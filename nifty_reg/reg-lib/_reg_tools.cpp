@@ -1,0 +1,1003 @@
+/*
+ *  _reg_tools.h
+ *  
+ *
+ *  Created by Marc Modat on 25/03/2009.
+ *  Copyright (c) 2009, University College London. All rights reserved.
+ *  Centre for Medical Image Computing (CMIC)
+ *  See the LICENSE.txt file in the nifty_reg root folder
+ *
+ */
+
+#ifndef _REG_TOOLS_CPP
+#define _REG_TOOLS_CPP
+
+#include "_reg_tools.h"
+
+/* *************************************************************** */
+
+template<class DTYPE>
+void reg_intensityRescale2(	nifti_image *image,
+				float newMin,
+				float newMax
+			)
+{
+	DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
+	DTYPE currentMin=0;
+	DTYPE currentMax=0;
+	switch(image->datatype){
+		case NIFTI_TYPE_UINT8:
+			currentMin=(DTYPE)std::numeric_limits<unsigned char>::max();
+			currentMax=0;
+			break;
+		case NIFTI_TYPE_INT8:
+			currentMin=(DTYPE)std::numeric_limits<char>::max();
+			currentMax=(DTYPE)std::numeric_limits<char>::min();
+			break;
+		case NIFTI_TYPE_UINT16:
+			currentMin=(DTYPE)std::numeric_limits<unsigned short>::max();
+			currentMax=0;
+			break;
+		case NIFTI_TYPE_INT16:
+			currentMin=(DTYPE)std::numeric_limits<char>::max();
+			currentMax=(DTYPE)std::numeric_limits<char>::min();
+			break;
+		case NIFTI_TYPE_UINT32:
+			currentMin=(DTYPE)std::numeric_limits<unsigned int>::max();
+			currentMax=0;
+			break;
+		case NIFTI_TYPE_INT32:
+			currentMin=(DTYPE)std::numeric_limits<int>::max();
+			currentMax=(DTYPE)std::numeric_limits<int>::min();
+			break;
+		case NIFTI_TYPE_FLOAT32:
+			currentMin=(DTYPE)std::numeric_limits<float>::max();
+			currentMax=(DTYPE)std::numeric_limits<float>::min();
+			break;
+		case NIFTI_TYPE_FLOAT64:
+			currentMin=(DTYPE)std::numeric_limits<double>::max();
+			currentMax=(DTYPE)std::numeric_limits<double>::min();
+			break;
+	}
+
+	for(unsigned int index=0; index<image->nvox; index++){
+		DTYPE value = *imagePtr++;
+		currentMin=(currentMin<value)?currentMin:value;
+		currentMax=(currentMax>value)?currentMax:value;
+	}
+	
+	double currentDiff = (double)(currentMax-currentMin);
+	double newDiff = (double)(newMax-newMin);
+
+	imagePtr = static_cast<DTYPE *>(image->data);
+
+	for(unsigned int index=0; index<image->nvox; index++){
+		double value = (double)*imagePtr;
+		value = (value-(double)currentMin)/currentDiff;
+		value = value * newDiff + newMin;
+		*imagePtr++=(DTYPE)value;
+	}
+}
+void reg_intensityRescale(	nifti_image *image,
+				float newMin,
+				float newMax
+			)
+{
+	switch(image->datatype){
+		case NIFTI_TYPE_UINT8:
+			reg_intensityRescale2<unsigned char>(image, newMin, newMax);
+			break;
+		case NIFTI_TYPE_INT8:
+			reg_intensityRescale2<char>(image, newMin, newMax);
+			break;
+		case NIFTI_TYPE_UINT16:
+			reg_intensityRescale2<unsigned short>(image, newMin, newMax);
+			break;
+		case NIFTI_TYPE_INT16:
+			reg_intensityRescale2<short>(image, newMin, newMax);
+			break;
+		case NIFTI_TYPE_UINT32:
+			reg_intensityRescale2<unsigned int>(image, newMin, newMax);
+			break;
+		case NIFTI_TYPE_INT32:
+			reg_intensityRescale2<int>(image, newMin, newMax);
+			break;
+		case NIFTI_TYPE_FLOAT32:
+			reg_intensityRescale2<float>(image, newMin, newMax);
+			break;
+		case NIFTI_TYPE_FLOAT64:
+			reg_intensityRescale2<double>(image, newMin, newMax);
+			break;
+		default:
+			printf("err\treg_intensityRescale\tThe image data type is not supported\n");
+			return;
+	}
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class PrecisionTYPE, class DTYPE>
+void reg_smoothImageForCubicSpline1(	nifti_image *image,
+								   int radius[]
+								   )
+{
+	DTYPE *imageArray = static_cast<DTYPE *>(image->data);
+	
+	/* a temp image array is first created */
+	DTYPE *tempArray  = (DTYPE *)malloc(image->nvox * sizeof(DTYPE));
+	
+	int timePoint = image->nt;
+	if(timePoint==0) timePoint=1;
+	int field = image->nu;
+	if(field==0) field=1;
+	
+	/* Smoothing along the X axis */
+	int windowSize = 2*radius[0] + 1;
+	// 	printf("window size along X: %i\n", windowSize);
+	PrecisionTYPE *window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
+//PrecisionTYPE coeffSum=0.0;
+	for(int it=-radius[0]; it<=radius[0]; it++){
+		PrecisionTYPE coeff = fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[0]);
+		if(coeff<1.0)	window[it+radius[0]] = 2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff;
+		else		window[it+radius[0]] = -(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0;
+//coeffSum += window[it+radius[0]];
+	}
+//	 	for(int it=0;it<windowSize;it++){
+//	 		printf("coeff[%i] = %g -> ", it, window[it]);
+//window[it] /= coeffSum;
+//	 		printf("%g\n", window[it]);
+//	 	}
+	for(int t=0;t<timePoint;t++){
+		for(int u=0;u<field;u++){
+			
+			DTYPE *readingValue=&imageArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
+			DTYPE *writtingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
+			int i=0;
+			for(int z=0; z<image->nz; z++){
+				for(int y=0; y<image->ny; y++){
+					for(int x=0; x<image->nx; x++){
+						
+						PrecisionTYPE finalValue=0.0;
+						
+						int index = i - radius[0];
+						int X = x - radius[0];
+						
+						for(int it=0; it<windowSize; it++){
+							if(-1<X && X<image->nx){
+								DTYPE imageValue = readingValue[index];
+								PrecisionTYPE windowValue = window[it];
+								finalValue += (PrecisionTYPE)imageValue * windowValue;
+							}
+							index++;
+							X++;
+						}
+						
+						writtingValue[i++] = (DTYPE)finalValue;
+					}
+				}
+			}
+		}
+	}
+	
+	/* Smoothing along the Y axis */
+	windowSize = 2*radius[1] + 1;
+	// 	printf("window size along Y: %i\n", windowSize);
+	free(window);
+	window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
+//coeffSum=0.0;
+	for(int it=-radius[1]; it<=radius[1]; it++){
+		PrecisionTYPE coeff = fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[1]);
+		if(coeff<1.0)	window[it+radius[1]] = 2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff;
+		else		window[it+radius[1]] = -(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0;
+//coeffSum += window[it+radius[1]];
+	}
+//for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
+	for(int t=0;t<timePoint;t++){
+		for(int u=0;u<field;u++){
+			
+			DTYPE *readingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
+			DTYPE *writtingValue=&imageArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
+			int i=0;
+			for(int z=0; z<image->nz; z++){
+				for(int y=0; y<image->ny; y++){
+					for(int x=0; x<image->nx; x++){
+						
+						PrecisionTYPE finalValue=0.0;
+						
+						int index = i - image->nx*radius[1];
+						int Y = y - radius[1];
+						
+						for(int it=0; it<windowSize; it++){
+							if(-1<Y && Y<image->ny){
+								DTYPE imageValue = readingValue[index];
+								PrecisionTYPE windowValue = window[it];
+								finalValue += (PrecisionTYPE)imageValue * windowValue;
+							}
+							index+=image->nx;
+							Y++;
+						}
+						
+						writtingValue[i++] = (DTYPE)finalValue;
+					}
+				}
+			}
+		}
+	}
+	
+	/* Smoothing along the Z axis */
+	windowSize = 2*radius[2] + 1;
+	// 	printf("window size along Z: %i\n", windowSize);
+	free(window);
+	window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
+//coeffSum=0.0;
+	for(int it=-radius[2]; it<=radius[2]; it++){
+		PrecisionTYPE coeff = fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[2]);
+		if(coeff<1.0)	window[it+radius[2]] = 2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff;
+		else		window[it+radius[2]] = -(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0;
+//coeffSum += window[it+radius[2]];
+	}
+//for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
+	for(int t=0;t<timePoint;t++){
+		for(int u=0;u<field;u++){
+			
+			DTYPE *readingValue=&imageArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
+			DTYPE *writtingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
+			int i=0;
+			for(int z=0; z<image->nz; z++){
+				for(int y=0; y<image->ny; y++){
+					for(int x=0; x<image->nx; x++){
+						
+						PrecisionTYPE finalValue=0.0;
+						
+						int index = i - image->nx*image->ny*radius[2];
+						int Z = z - radius[2];
+						
+						for(int it=0; it<windowSize; it++){
+							if(-1<Z && Z<image->nz){
+								DTYPE imageValue = readingValue[index];
+								PrecisionTYPE windowValue = window[it];
+								finalValue += (PrecisionTYPE)imageValue * windowValue;
+							}
+							index+=image->nx*image->ny;
+							Z++;
+						}
+						
+						writtingValue[i++] = (DTYPE)finalValue;
+					}
+				}
+			}
+		}
+	}
+	free(window);
+	memcpy(imageArray,tempArray,image->nvox * sizeof(DTYPE));
+	free(tempArray);
+}
+/* *************************************************************** */
+template <class PrecisionTYPE>
+void reg_smoothImageForCubicSpline(	nifti_image *image,
+								  int radius[]
+								  )
+{
+	switch(image->datatype){
+		case NIFTI_TYPE_UINT8:
+			reg_smoothImageForCubicSpline1<PrecisionTYPE,unsigned char>(image, radius);
+			break;
+		case NIFTI_TYPE_INT8:
+			reg_smoothImageForCubicSpline1<PrecisionTYPE,char>(image, radius);
+			break;
+		case NIFTI_TYPE_UINT16:
+			reg_smoothImageForCubicSpline1<PrecisionTYPE,unsigned short>(image, radius);
+			break;
+		case NIFTI_TYPE_INT16:
+			reg_smoothImageForCubicSpline1<PrecisionTYPE,short>(image, radius);
+			break;
+		case NIFTI_TYPE_UINT32:
+			reg_smoothImageForCubicSpline1<PrecisionTYPE,unsigned int>(image, radius);
+			break;
+		case NIFTI_TYPE_INT32:
+			reg_smoothImageForCubicSpline1<PrecisionTYPE,int>(image, radius);
+			break;
+		case NIFTI_TYPE_FLOAT32:
+			reg_smoothImageForCubicSpline1<PrecisionTYPE,float>(image, radius);
+			break;
+		case NIFTI_TYPE_FLOAT64:
+			reg_smoothImageForCubicSpline1<PrecisionTYPE,double>(image, radius);
+			break;
+		default:
+			printf("err\treg_smoothImage\tThe image data type is not supported\n");
+			return;
+	}
+}
+/* *************************************************************** */
+template void reg_smoothImageForCubicSpline<float>(nifti_image *, int[]);
+template void reg_smoothImageForCubicSpline<double>(nifti_image *, int[]);
+/* *************************************************************** */
+/* *************************************************************** */
+template <class PrecisionTYPE, class DTYPE>
+void reg_smoothImageForTrilinear1(	nifti_image *image,
+								   int radius[]
+								   )
+{
+	DTYPE *imageArray = static_cast<DTYPE *>(image->data);
+	
+	/* a temp image array is first created */
+	DTYPE *tempArray  = (DTYPE *)malloc(image->nvox * sizeof(DTYPE));
+	
+	int timePoint = image->nt;
+	if(timePoint==0) timePoint=1;
+	int field = image->nu;
+	if(field==0) field=1;
+	
+	/* Smoothing along the X axis */
+	int windowSize = 2*radius[0] + 1;
+	// 	printf("window size along X: %i\n", windowSize);
+	PrecisionTYPE *window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
+PrecisionTYPE coeffSum=0.0;
+	for(int it=-radius[0]; it<=radius[0]; it++){
+		PrecisionTYPE coeff = fabs(1.0 -fabs((PrecisionTYPE)(it)/(PrecisionTYPE)radius[0] ));
+		window[it+radius[0]] = coeff;
+coeffSum += coeff;
+	}
+for(int it=0;it<windowSize;it++){
+//printf("coeff[%i] = %g -> ", it, window[it]);
+window[it] /= coeffSum;
+//printf("%g\n", window[it]);
+}
+	for(int t=0;t<timePoint;t++){
+		for(int u=0;u<field;u++){
+			
+			DTYPE *readingValue=&imageArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
+			DTYPE *writtingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
+			int i=0;
+			for(int z=0; z<image->nz; z++){
+				for(int y=0; y<image->ny; y++){
+					for(int x=0; x<image->nx; x++){
+						
+						PrecisionTYPE finalValue=0.0;
+						
+						int index = i - radius[0];
+						int X = x - radius[0];
+						
+						for(int it=0; it<windowSize; it++){
+							if(-1<X && X<image->nx){
+								DTYPE imageValue = readingValue[index];
+								PrecisionTYPE windowValue = window[it];
+								finalValue += (PrecisionTYPE)imageValue * windowValue;
+							}
+							index++;
+							X++;
+						}
+						
+						writtingValue[i++] = (DTYPE)finalValue;
+					}
+				}
+			}
+		}
+	}
+	
+	/* Smoothing along the Y axis */
+	windowSize = 2*radius[1] + 1;
+	// 	printf("window size along Y: %i\n", windowSize);
+	free(window);
+	window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
+coeffSum=0.0;
+	for(int it=-radius[1]; it<=radius[1]; it++){
+		PrecisionTYPE coeff = fabs(1.0 -fabs((PrecisionTYPE)(it)/(PrecisionTYPE)radius[0] ));
+		window[it+radius[1]] = coeff;
+coeffSum += coeff;
+	}
+for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
+	for(int t=0;t<timePoint;t++){
+		for(int u=0;u<field;u++){
+			
+			DTYPE *readingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
+			DTYPE *writtingValue=&imageArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
+			int i=0;
+			for(int z=0; z<image->nz; z++){
+				for(int y=0; y<image->ny; y++){
+					for(int x=0; x<image->nx; x++){
+						
+						PrecisionTYPE finalValue=0.0;
+						
+						int index = i - image->nx*radius[1];
+						int Y = y - radius[1];
+						
+						for(int it=0; it<windowSize; it++){
+							if(-1<Y && Y<image->ny){
+								DTYPE imageValue = readingValue[index];
+								PrecisionTYPE windowValue = window[it];
+								finalValue += (PrecisionTYPE)imageValue * windowValue;
+							}
+							index+=image->nx;
+							Y++;
+						}
+						
+						writtingValue[i++] = (DTYPE)finalValue;
+					}
+				}
+			}
+		}
+	}
+	
+	/* Smoothing along the Z axis */
+	windowSize = 2*radius[2] + 1;
+	// 	printf("window size along Z: %i\n", windowSize);
+	free(window);
+	window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
+coeffSum=0.0;
+	for(int it=-radius[2]; it<=radius[2]; it++){
+		PrecisionTYPE coeff = fabs(1.0 -fabs((PrecisionTYPE)(it)/(PrecisionTYPE)radius[0] ));
+		window[it+radius[2]] = coeff;
+coeffSum += coeff;
+	}
+for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
+	for(int t=0;t<timePoint;t++){
+		for(int u=0;u<field;u++){
+			
+			DTYPE *readingValue=&imageArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
+			DTYPE *writtingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
+			int i=0;
+			for(int z=0; z<image->nz; z++){
+				for(int y=0; y<image->ny; y++){
+					for(int x=0; x<image->nx; x++){
+						
+						PrecisionTYPE finalValue=0.0;
+						
+						int index = i - image->nx*image->ny*radius[2];
+						int Z = z - radius[2];
+						
+						for(int it=0; it<windowSize; it++){
+							if(-1<Z && Z<image->nz){
+								DTYPE imageValue = readingValue[index];
+								PrecisionTYPE windowValue = window[it];
+								finalValue += (PrecisionTYPE)imageValue * windowValue;
+							}
+							index+=image->nx*image->ny;
+							Z++;
+						}
+						
+						writtingValue[i++] = (DTYPE)finalValue;
+					}
+				}
+			}
+		}
+	}
+	free(window);
+	memcpy(imageArray,tempArray,image->nvox * sizeof(DTYPE));
+	free(tempArray);
+}
+/* *************************************************************** */
+template <class PrecisionTYPE>
+void reg_smoothImageForTrilinear(	nifti_image *image,
+								  int radius[]
+								  )
+{
+	switch(image->datatype){
+		case NIFTI_TYPE_UINT8:
+			reg_smoothImageForTrilinear1<PrecisionTYPE,unsigned char>(image, radius);
+			break;
+		case NIFTI_TYPE_INT8:
+			reg_smoothImageForTrilinear1<PrecisionTYPE,char>(image, radius);
+			break;
+		case NIFTI_TYPE_UINT16:
+			reg_smoothImageForTrilinear1<PrecisionTYPE,unsigned short>(image, radius);
+			break;
+		case NIFTI_TYPE_INT16:
+			reg_smoothImageForTrilinear1<PrecisionTYPE,short>(image, radius);
+			break;
+		case NIFTI_TYPE_UINT32:
+			reg_smoothImageForCubicSpline1<PrecisionTYPE,unsigned int>(image, radius);
+			break;
+		case NIFTI_TYPE_INT32:
+			reg_smoothImageForTrilinear1<PrecisionTYPE,int>(image, radius);
+			break;
+		case NIFTI_TYPE_FLOAT32:
+			reg_smoothImageForTrilinear1<PrecisionTYPE,float>(image, radius);
+			break;
+		case NIFTI_TYPE_FLOAT64:
+			reg_smoothImageForTrilinear1<PrecisionTYPE,double>(image, radius);
+			break;
+		default:
+			printf("err\treg_smoothImage\tThe image data type is not supported\n");
+			return;
+	}
+}
+/* *************************************************************** */
+template void reg_smoothImageForTrilinear<float>(nifti_image *, int[]);
+template void reg_smoothImageForTrilinear<double>(nifti_image *, int[]);
+/* *************************************************************** */
+/* *************************************************************** */
+template <class PrecisionTYPE, class DTYPE>
+PrecisionTYPE reg_getMaximalLength1(nifti_image *image)
+{
+	DTYPE *dataPtrX = static_cast<DTYPE *>(image->data);
+	DTYPE *dataPtrY = &dataPtrX[image->nx*image->ny*image->nz];
+	DTYPE *dataPtrZ = &dataPtrY[image->nx*image->ny*image->nz];
+	
+	PrecisionTYPE max=0.0;
+	
+	for(int i=0; i<image->nx*image->ny*image->nz; i++){
+		PrecisionTYPE valX = *dataPtrX++;
+		PrecisionTYPE valY = *dataPtrY++;
+		PrecisionTYPE valZ = *dataPtrZ++;
+		PrecisionTYPE length = sqrt(valX*valX + valY*valY + valZ*valZ);
+		max = (length>max)?length:max;
+	}
+	return max;
+}
+/* *************************************************************** */
+template <class PrecisionTYPE>
+		PrecisionTYPE reg_getMaximalLength(nifti_image *image)
+{
+	switch(image->datatype){
+		case NIFTI_TYPE_FLOAT32:
+			return reg_getMaximalLength1<PrecisionTYPE,float>(image);
+			break;
+		case NIFTI_TYPE_FLOAT64:
+			return reg_getMaximalLength1<PrecisionTYPE,double>(image);
+			break;
+	}
+	return 0;
+}
+/* *************************************************************** */
+template float reg_getMaximalLength<float>(nifti_image *);
+template double reg_getMaximalLength<double>(nifti_image *);
+/* *************************************************************** */
+/* *************************************************************** */
+template <class NewTYPE, class DTYPE>
+void reg_changeDatatype1(nifti_image *image)
+{
+	// the initial array is saved and freeed
+	DTYPE *initialValue = (DTYPE *)malloc(image->nvox*sizeof(DTYPE));
+	memcpy(initialValue, image->data, image->nvox*sizeof(DTYPE));
+	
+	// the new array is allocated and then filled
+	if(sizeof(NewTYPE)==sizeof(unsigned char)) image->datatype = NIFTI_TYPE_UINT8;
+	else if(sizeof(NewTYPE)==sizeof(float)) image->datatype = NIFTI_TYPE_FLOAT32;
+	else if(sizeof(NewTYPE)==sizeof(double)) image->datatype = NIFTI_TYPE_FLOAT64;
+	else{
+		printf("err\treg_changeDatatype\tOnly change to unsigned char, float or double are supported\n");
+		free(initialValue);
+		return;
+	}
+	free(image->data);
+	image->nbyper = sizeof(NewTYPE);
+	image->data = (void *)calloc(image->nvox,sizeof(NewTYPE));
+	NewTYPE *dataPtr = static_cast<NewTYPE *>(image->data);
+	for(unsigned int i=0; i<image->nvox; i++) dataPtr[i] = (NewTYPE)(initialValue[i]);
+
+	free(initialValue);
+	return;
+}
+/* *************************************************************** */
+template <class NewTYPE>
+void reg_changeDatatype(nifti_image *image)
+{
+	switch(image->datatype){
+		case NIFTI_TYPE_UINT8:
+			reg_changeDatatype1<NewTYPE,unsigned char>(image);
+			break;
+		case NIFTI_TYPE_INT8:
+			reg_changeDatatype1<NewTYPE,char>(image);
+			break;
+		case NIFTI_TYPE_UINT16:
+			reg_changeDatatype1<NewTYPE,unsigned short>(image);
+			break;
+		case NIFTI_TYPE_INT16:
+			reg_changeDatatype1<NewTYPE,short>(image);
+			break;
+		case NIFTI_TYPE_UINT32:
+			reg_changeDatatype1<NewTYPE,unsigned int>(image);
+			break;
+		case NIFTI_TYPE_INT32:
+			reg_changeDatatype1<NewTYPE,int>(image);
+			break;
+		case NIFTI_TYPE_FLOAT32:
+			reg_changeDatatype1<NewTYPE,float>(image);
+			break;
+		case NIFTI_TYPE_FLOAT64:
+			reg_changeDatatype1<NewTYPE,double>(image);
+			break;
+		default:
+			printf("err\treg_changeDatatype\tThe initial image data type is not supported\n");
+			return;
+	}
+}
+/* *************************************************************** */
+template void reg_changeDatatype<unsigned char>(nifti_image *);
+template void reg_changeDatatype<float>(nifti_image *);
+template void reg_changeDatatype<double>(nifti_image *);
+/* *************************************************************** */
+/* *************************************************************** */
+template <class ImageTYPE>
+double reg_tool_GetIntensityValue1(nifti_image *image,
+								 int *index)
+{
+	ImageTYPE *imgPtr = static_cast<ImageTYPE *>(image->data);
+	return (double) imgPtr[(index[2]*image->ny+index[1])*image->nx+index[0]];
+}
+/* *************************************************************** */
+double reg_tool_GetIntensityValue(nifti_image *image,
+								  int *index)
+{
+	switch(image->datatype){
+		case NIFTI_TYPE_UINT8:
+			return reg_tool_GetIntensityValue1<unsigned char>(image, index);
+			break;
+		case NIFTI_TYPE_INT8:
+			return reg_tool_GetIntensityValue1<char>(image, index);
+			break;
+		case NIFTI_TYPE_UINT16:
+			return reg_tool_GetIntensityValue1<unsigned short>(image, index);
+			break;
+		case NIFTI_TYPE_INT16:
+			reg_tool_GetIntensityValue1<short>(image, index);
+			break;
+		case NIFTI_TYPE_UINT32:
+			return reg_tool_GetIntensityValue1<unsigned int>(image, index);
+			break;
+		case NIFTI_TYPE_INT32:
+			return reg_tool_GetIntensityValue1<int>(image, index);
+			break;
+		case NIFTI_TYPE_FLOAT32:
+			return reg_tool_GetIntensityValue1<float>(image, index);
+			break;
+		case NIFTI_TYPE_FLOAT64:
+			return reg_tool_GetIntensityValue1<double>(image, index);
+			break;
+		default:
+			printf("err\treg_changeDatatype\tThe initial image data type is not supported\n");
+			break;
+	}
+	
+	return 0.0;
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class TYPE1, class TYPE2>
+void reg_tools_addImages2(	nifti_image *img1,
+							nifti_image *img2,
+							nifti_image *res)
+{
+	TYPE1 *img1Ptr = static_cast<TYPE1 *>(img1->data);
+	TYPE2 *img2Ptr = static_cast<TYPE2 *>(img2->data);
+	TYPE1 *resPtr = static_cast<TYPE1 *>(res->data);
+	
+	for(unsigned int i=0; i<res->nvox; i++)
+		*resPtr++ = (TYPE1)(*img1Ptr++ + *img2Ptr++);
+}
+/* *************************************************************** */
+template <class TYPE1>
+void reg_tools_addImages1(	nifti_image *img1,
+							nifti_image *img2,
+							nifti_image *res)
+{
+	switch(img1->datatype){
+		case NIFTI_TYPE_UINT8:
+			reg_tools_addImages2<TYPE1,unsigned char>(img1, img2, res);
+			break;
+		case NIFTI_TYPE_INT8:
+			reg_tools_addImages2<TYPE1,char>(img1, img2, res);
+			break;
+		case NIFTI_TYPE_UINT16:
+			reg_tools_addImages2<TYPE1,unsigned short>(img1, img2, res);
+			break;
+		case NIFTI_TYPE_INT16:
+			reg_tools_addImages2<TYPE1,short>(img1, img2, res);
+			break;
+		case NIFTI_TYPE_UINT32:
+			reg_tools_addImages2<TYPE1,unsigned int>(img1, img2, res);
+			break;
+		case NIFTI_TYPE_INT32:
+			reg_tools_addImages2<TYPE1,int>(img1, img2, res);
+			break;
+		case NIFTI_TYPE_FLOAT32:
+			reg_tools_addImages2<TYPE1,float>(img1, img2, res);
+			break;
+		case NIFTI_TYPE_FLOAT64:
+			reg_tools_addImages2<TYPE1,double>(img1, img2, res);
+			break;
+		default:
+			fprintf(stderr,"err\treg_tools_addImage\tSecond image data type is not supported\n");
+			return;
+	}
+}
+/* *************************************************************** */
+void reg_tools_addImages(	nifti_image *img1,
+							nifti_image *img2,
+							nifti_image *res)
+{
+	
+	if(img1->dim[0]!=img2->dim[0] ||
+	   img1->dim[1]!=img2->dim[1] ||
+	   img1->dim[2]!=img2->dim[2] ||
+	   img1->dim[3]!=img2->dim[3] ||
+	   img1->dim[4]!=img2->dim[4] ||
+	   img1->dim[5]!=img2->dim[5] ||
+	   img1->dim[6]!=img2->dim[6] ||
+	   img1->dim[7]!=img2->dim[7]){
+		fprintf(stderr,"err\treg_tools_addImage\tBoth images do not have the same dimension\n");
+		return;
+	}
+
+	if(img1->datatype != img2->datatype){
+		fprintf(stderr,"err\treg_tools_addImage\tFirst and result image do not have the same data type\n");
+		return;
+	}
+	switch(img1->datatype){
+		case NIFTI_TYPE_UINT8:
+			reg_tools_addImages1<unsigned char>(img1, img2, res);
+			break;
+		case NIFTI_TYPE_INT8:
+			reg_tools_addImages1<char>(img1, img1, res);
+			break;
+		case NIFTI_TYPE_UINT16:
+			reg_tools_addImages1<unsigned short>(img1, img2, res);
+			break;
+		case NIFTI_TYPE_INT16:
+			reg_tools_addImages1<short>(img1, img2, res);
+			break;
+		case NIFTI_TYPE_UINT32:
+			reg_tools_addImages1<unsigned int>(img1, img2, res);
+			break;
+		case NIFTI_TYPE_INT32:
+			reg_tools_addImages1<int>(img1, img2, res);
+			break;
+		case NIFTI_TYPE_FLOAT32:
+			reg_tools_addImages1<float>(img1, img2, res);
+			break;
+		case NIFTI_TYPE_FLOAT64:
+			reg_tools_addImages1<double>(img1, img2, res);
+			break;
+		default:
+			fprintf(stderr,"err\treg_tools_addImage\tFirst image data type is not supported\n");
+			return;
+	}
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class PrecisionTYPE, class ImageTYPE>
+void reg_gaussianSmoothing1(	nifti_image *image,
+				float sigma)
+{
+	ImageTYPE *imagePtr = static_cast<ImageTYPE *>(image->data);
+	PrecisionTYPE *resultValue=(PrecisionTYPE *)malloc(image->nvox * sizeof(PrecisionTYPE));
+	for(int n=1; n<=image->dim[0]; n++){
+		float currentSigma;
+		if(sigma>0) currentSigma=sigma/image->pixdim[n];
+		else currentSigma=fabs(sigma); // voxel based if negative value
+		int radius=(int)ceil(currentSigma*3.0f);
+		PrecisionTYPE *kernel = new PrecisionTYPE[2*radius+1];
+		PrecisionTYPE kernelSum=0;
+		for(float i=-radius; i<=radius; i++){
+			kernel[radius+(int)i]=exp( -(i*i)/(2.0*currentSigma*currentSigma)) / (currentSigma*2.506628274631); // 2.506... = sqrt(2*pi)
+			kernelSum += kernel[radius+(int)i];
+		}
+		for(int i=-radius; i<=radius; i++) kernel[radius+i] /= kernelSum;
+#ifdef _DEBUG
+		printf("[DEBUG]smoothing dim[%i] radius[%i] kernelSum[%g]\n", n, radius, kernelSum);
+#endif
+		int increment=1;
+		switch(n){
+			case 1: increment=1;break;
+			case 2: increment=image->nx;break;
+			case 3: increment=image->nx*image->ny;break;
+			case 4: increment=image->nx*image->ny*image->nz;break;
+			case 5: increment=image->nx*image->ny*image->nz*image->nt;break;
+			case 6: increment=image->nx*image->ny*image->nz*image->nt*image->nu;break;
+			case 7: increment=image->nx*image->ny*image->nz*image->nt*image->nu*image->nv;break;
+		}
+		unsigned int index=0;
+		while(index<image->nvox){
+			for(int x=0; x<image->dim[n]; x++){
+				int current = index - increment*radius;
+				PrecisionTYPE value=0;
+				for(int j=-radius; j<=radius; j++){
+					if(-1<current && current<(int)image->nvox){
+						value += imagePtr[current]*kernel[j+radius];
+					}
+					current += increment;
+				}
+				resultValue[index]=value;
+				index++;
+			}
+		}
+		for(unsigned int i=0; i<image->nvox; i++) imagePtr[i]=(ImageTYPE)resultValue[i];
+		delete[] kernel;
+	}
+	free(resultValue);
+}
+/* *************************************************************** */
+template <class PrecisionTYPE>
+void reg_gaussianSmoothing(	nifti_image *image,
+							float sigma)
+{
+	if(sigma==0.0) return;
+	switch(image->datatype){
+		case NIFTI_TYPE_UINT8:
+			reg_gaussianSmoothing1<PrecisionTYPE,unsigned char>(image, sigma);
+			break;
+		case NIFTI_TYPE_INT8:
+			reg_gaussianSmoothing1<PrecisionTYPE,char>(image, sigma);
+			break;
+		case NIFTI_TYPE_UINT16:
+			reg_gaussianSmoothing1<PrecisionTYPE,unsigned short>(image, sigma);
+			break;
+		case NIFTI_TYPE_INT16:
+			reg_gaussianSmoothing1<PrecisionTYPE,short>(image, sigma);
+			break;
+		case NIFTI_TYPE_UINT32:
+			reg_gaussianSmoothing1<PrecisionTYPE,unsigned int>(image, sigma);
+			break;
+		case NIFTI_TYPE_INT32:
+			reg_gaussianSmoothing1<PrecisionTYPE,int>(image, sigma);
+			break;
+		case NIFTI_TYPE_FLOAT32:
+			reg_gaussianSmoothing1<PrecisionTYPE,float>(image, sigma);
+			break;
+		case NIFTI_TYPE_FLOAT64:
+			reg_gaussianSmoothing1<PrecisionTYPE,double>(image, sigma);
+			break;
+		default:
+			printf("err\treg_smoothImage\tThe image data type is not supported\n");
+			return;
+	}
+}
+template void reg_gaussianSmoothing<float>(nifti_image *, float);
+template void reg_gaussianSmoothing<double>(nifti_image *, float);
+/* *************************************************************** */
+/* *************************************************************** */
+template <class PrecisionTYPE, class ImageTYPE>
+void reg_downsampleImage1(nifti_image *image)
+{
+	/* the input image is first smooth */
+	reg_gaussianSmoothing<float>(image, -0.7);
+	
+	/* the values are copied */
+	ImageTYPE *oldValues = (ImageTYPE *)malloc(image->nvox * image->nbyper);
+	ImageTYPE *imagePtr = static_cast<ImageTYPE *>(image->data);
+	memcpy(oldValues, imagePtr, image->nvox*image->nbyper);
+	free(image->data);
+	
+	int oldDim[4];
+	for(int i=1; i<4; i++){
+		oldDim[i]=image->dim[i];
+		if(image->dim[i]>1) image->dim[i]=(int)(image->dim[i]/2.0);
+		if(image->pixdim[i]>0) image->pixdim[i]=image->pixdim[i]*2.0;
+	}
+	image->nx=image->dim[1];
+	image->ny=image->dim[2];
+	image->nz=image->dim[3];
+	image->dx=image->pixdim[1];
+	image->dy=image->pixdim[2];
+	image->dz=image->pixdim[3];
+	if(image->nt<=0 || image->dim[4]<=0) image->nt=image->dim[4]=1;
+	if(image->nu<=0 || image->dim[5]<=0) image->nu=image->dim[5]=1;
+	if(image->nv<=0 || image->dim[6]<=0) image->nv=image->dim[6]=1;
+	if(image->nw<=0 || image->dim[7]<=0) image->nw=image->dim[7]=1;
+	mat44 oldMat; memset(&oldMat, 0, sizeof(mat44));
+	for(int i=0; i<3; i++){
+		for(int j=0; j<3; j++){
+			oldMat.m[i][j]=image->qto_ijk.m[i][j];
+			image->qto_xyz.m[i][j]=image->qto_xyz.m[i][j]*2.0;
+			image->sto_xyz.m[i][j]=image->sto_xyz.m[i][j]*2.0;
+		}
+	}
+	oldMat.m[0][3]=image->qto_ijk.m[0][3];
+	oldMat.m[1][3]=image->qto_ijk.m[1][3];
+	oldMat.m[2][3]=image->qto_ijk.m[2][3];
+	oldMat.m[3][3]=image->qto_ijk.m[3][3];
+	
+	image->qto_ijk = nifti_mat44_inverse(image->qto_xyz);
+	image->sto_ijk = nifti_mat44_inverse(image->sto_xyz);
+
+	image->nvox=image->nx*image->ny*image->nz*image->nt*image->nu*image->nv*image->nw;
+	
+	image->data=(void *)calloc(image->nvox, image->nbyper);
+	imagePtr = static_cast<ImageTYPE *>(image->data);
+
+	PrecisionTYPE real[3], position[3], relative, xBasis[2], yBasis[2], zBasis[2], intensity;
+	int previous[3];
+
+	for(int tuvw=0; tuvw<image->nt*image->nu*image->nv*image->nw; tuvw++){
+		ImageTYPE *valuesPtrTUVW = &oldValues[tuvw*oldDim[1]*oldDim[2]*oldDim[3]];
+		for(int z=0; z<image->nz; z++){
+			for(int y=0; y<image->ny; y++){
+				for(int x=0; x<image->nx; x++){
+					real[0]=x*image->qto_xyz.m[0][0] + y*image->qto_xyz.m[0][1] + z*image->qto_xyz.m[0][2] + image->qto_xyz.m[0][3];
+					real[1]=x*image->qto_xyz.m[1][0] + y*image->qto_xyz.m[1][1] + z*image->qto_xyz.m[1][2] + image->qto_xyz.m[1][3];
+					real[2]=x*image->qto_xyz.m[2][0] + y*image->qto_xyz.m[2][1] + z*image->qto_xyz.m[2][2] + image->qto_xyz.m[2][3];
+					position[0]=real[0]*oldMat.m[0][0] + real[1]*oldMat.m[0][1] + real[2]*oldMat.m[0][2] + oldMat.m[0][3];
+					position[1]=real[0]*oldMat.m[1][0] + real[1]*oldMat.m[1][1] + real[2]*oldMat.m[1][2] + oldMat.m[1][3];
+					position[2]=real[0]*oldMat.m[2][0] + real[1]*oldMat.m[2][1] + real[2]*oldMat.m[2][2] + oldMat.m[2][3];
+					/* trilinear interpolation */
+					previous[0] = (int)floor(position[0]);
+					previous[1] = (int)floor(position[1]);
+					previous[2] = (int)floor(position[2]);
+					
+					// basis values along the x axis
+					relative=position[0]-(PrecisionTYPE)previous[0];
+					if(relative<0) relative=0.0; // rounding error correction
+					xBasis[0]= 1.0-relative;
+					xBasis[1]= relative;
+					// basis values along the y axis
+					relative=position[1]-(PrecisionTYPE)previous[1];
+					if(relative<0) relative=0.0; // rounding error correction
+					yBasis[0]= 1.0-relative;
+					yBasis[1]= relative;
+					// basis values along the z axis
+					relative=position[2]-(PrecisionTYPE)previous[2];
+					if(relative<0) relative=0.0; // rounding error correction
+					zBasis[0]= 1.0-relative;
+					zBasis[1]= relative;
+					intensity=0;
+					for(short c=0; c<2; c++){
+						short Z= previous[2]+c;
+						if(-1<Z && Z<oldDim[3]){
+							ImageTYPE *zPointer = &valuesPtrTUVW[Z*oldDim[1]*oldDim[2]];
+							PrecisionTYPE yTempNewValue=0.0;
+							for(short b=0; b<2; b++){
+								short Y= previous[1]+b;
+								if(-1<Y && Y<oldDim[2]){
+									ImageTYPE *yzPointer = &zPointer[Y*oldDim[1]];
+									ImageTYPE *xyzPointer = &yzPointer[previous[0]];
+									PrecisionTYPE xTempNewValue=0.0;
+									for(short a=0; a<2; a++){
+										if(-1<(previous[0]+a) && (previous[0]+a)<oldDim[1]){
+											const ImageTYPE coeff = *xyzPointer;
+											xTempNewValue +=  coeff * xBasis[a];
+										}
+										xyzPointer++;
+									}
+									yTempNewValue += (xTempNewValue * yBasis[b]);
+								}
+							}
+							intensity += yTempNewValue * zBasis[c];
+						}
+					}
+					*imagePtr++ = (ImageTYPE) intensity;
+				}
+			}
+		}
+	}
+
+	free(oldValues);
+}
+/* *************************************************************** */
+template <class PrecisionTYPE>
+void reg_downsampleImage(nifti_image *image)
+{
+	switch(image->datatype){
+		case NIFTI_TYPE_UINT8:
+			reg_downsampleImage1<PrecisionTYPE,unsigned char>(image);
+			break;
+		case NIFTI_TYPE_INT8:
+			reg_downsampleImage1<PrecisionTYPE,char>(image);
+			break;
+		case NIFTI_TYPE_UINT16:
+			reg_downsampleImage1<PrecisionTYPE,unsigned short>(image);
+			break;
+		case NIFTI_TYPE_INT16:
+			reg_downsampleImage1<PrecisionTYPE,short>(image);
+			break;
+		case NIFTI_TYPE_UINT32:
+			reg_downsampleImage1<PrecisionTYPE,unsigned int>(image);
+			break;
+		case NIFTI_TYPE_INT32:
+			reg_downsampleImage1<PrecisionTYPE,int>(image);
+			break;
+		case NIFTI_TYPE_FLOAT32:
+			reg_downsampleImage1<PrecisionTYPE,float>(image);
+			break;
+		case NIFTI_TYPE_FLOAT64:
+			reg_downsampleImage1<PrecisionTYPE,double>(image);
+			break;
+		default:
+			printf("err\treg_downsampleImage\tThe image data type is not supported\n");
+			return;
+	}
+}
+template void reg_downsampleImage<float>(nifti_image *);
+template void reg_downsampleImage<double>(nifti_image *);
+/* *************************************************************** */
+/* *************************************************************** */
+#endif
