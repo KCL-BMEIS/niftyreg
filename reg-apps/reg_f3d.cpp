@@ -211,15 +211,15 @@ int main(int argc, char **argv)
 			flag->maxIterationFlag=1;
 		}
 		else if(strcmp(argv[i], "-sx") == 0){
-			param->spacing[0]=atof(argv[++i]);
+			param->spacing[0]=(float)(atof(argv[++i]));
 			flag->spacingFlag[0]=1;
 		}
 		else if(strcmp(argv[i], "-sy") == 0){
-			param->spacing[1]=atof(argv[++i]);
+			param->spacing[1]=(float)(atof(argv[++i]));
 			flag->spacingFlag[1]=1;
 		}
 		else if(strcmp(argv[i], "-sz") == 0){
-			param->spacing[2]=atof(argv[++i]);
+			param->spacing[2]=(float)(atof(argv[++i]));
 			flag->spacingFlag[2]=1;
 		}
 		else if(strcmp(argv[i], "-bin") == 0){
@@ -234,7 +234,7 @@ int main(int argc, char **argv)
 			flag->pyramidFlag=0;
 		}
 		else if(strcmp(argv[i], "-be") == 0){
-			param->bendingEnergyWeight=atof(argv[++i]);
+			param->bendingEnergyWeight=(float)(atof(argv[++i]));
 		}
 		else if(strcmp(argv[i], "-appBE") == 0){
 			flag->appBendingEnergyFlag=0;
@@ -243,7 +243,7 @@ int main(int argc, char **argv)
 			flag->beGradFlag=0;
 		}
 		else if(strcmp(argv[i], "-jl") == 0){
-			param->jacobianWeight=atof(argv[++i]);
+			param->jacobianWeight=(float)(atof(argv[++i]));
 			flag->jacobianWeightFlag=1;
 		}
 		else if(strcmp(argv[i], "-appJL") == 0){
@@ -259,11 +259,11 @@ int main(int argc, char **argv)
 			flag->noConjugateGradient=1;
 		}
 		else if(strcmp(argv[i], "-smooT") == 0){
-			param->targetSigmaValue=atof(argv[++i]);
+			param->targetSigmaValue=(float)(atof(argv[++i]));
 			flag->targetSigmaFlag=1;
 		}
 		else if(strcmp(argv[i], "-smooS") == 0){
-			param->sourceSigmaValue=atof(argv[++i]);
+			param->sourceSigmaValue=(float)(atof(argv[++i]));
 			flag->sourceSigmaFlag=1;
 		}
 		else if(strcmp(argv[i], "-mpad") == 0){
@@ -664,8 +664,8 @@ int main(int argc, char **argv)
 		float smallestSize = maxStepSize / 100.0f;
 
 		/* the target and source are resampled between 0 and bin-1 */
-		reg_intensityRescale(targetImage,0.0f,(float)param->binning-1.0);
-		reg_intensityRescale(sourceImage,0.0f,(float)param->binning-1.0);
+		reg_intensityRescale(targetImage,0.0f,(float)param->binning-1.0f);
+		reg_intensityRescale(sourceImage,0.0f,(float)param->binning-1.0f);
 
 		if(flag->backgroundIndexFlag){
 			int index[3];
@@ -679,7 +679,7 @@ int main(int argc, char **argv)
 					index[2] /= 2;
 				}
 			}
-			param->sourceBGValue = reg_tool_GetIntensityValue(sourceImage, index);
+			param->sourceBGValue = (float)(reg_tool_GetIntensityValue(sourceImage, index));
 		}
 
 		/* the gradient images are allocated */
@@ -1039,9 +1039,9 @@ int main(int argc, char **argv)
 							conjGPtrX[i] = - gradientValuesX[i];
 							conjGPtrY[i] = - gradientValuesY[i];
 							conjGPtrZ[i] = - gradientValuesZ[i];
-							conjHPtrX[i] = conjGPtrX[i] + gam * conjHPtrX[i];
-							conjHPtrY[i] = conjGPtrY[i] + gam * conjHPtrY[i];
-							conjHPtrZ[i] = conjGPtrZ[i] + gam * conjHPtrZ[i];
+							conjHPtrX[i] = (float)(conjGPtrX[i] + gam * conjHPtrX[i]);
+							conjHPtrY[i] = (float)(conjGPtrY[i] + gam * conjHPtrY[i]);
+							conjHPtrZ[i] = (float)(conjGPtrZ[i] + gam * conjHPtrZ[i]);
 							gradientValuesX[i] = - conjHPtrX[i];
 							gradientValuesY[i] = - conjHPtrY[i];
 							gradientValuesZ[i] = - conjHPtrZ[i];
@@ -1208,7 +1208,7 @@ int main(int argc, char **argv)
 					bestWBE = currentWBE;
 					bestWJac = currentWJac;
 					addedStep += currentSize;
-					currentSize*=1.1;
+					currentSize*=1.1f;
 					currentSize = (currentSize<maxStepSize)?currentSize:maxStepSize;
 				}
 				else{
@@ -1336,8 +1336,8 @@ int main(int argc, char **argv)
 	free( param );
 
 	time_t end; time( &end );
-	int minutes = (int)floorf( (end-start)/60 );
-	int seconds = end-start - 60*minutes;
+	int minutes = (int)floorf(float(end-start)/60.0f);
+	int seconds = (int)(end-start - 60*minutes);
 	printf("Registration Performed in %i min %i sec\n", minutes, seconds);
 	printf("Have a good day !\n");
 

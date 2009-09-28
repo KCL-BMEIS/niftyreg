@@ -91,7 +91,7 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
 									if(x<targetImage->nx){
 										DTYPE value = *targetPtrXYZ;
 										if(value!=0.0){
-											mean += value;
+											mean += (float)value;
 											voxelNumber++;
 										}
 									}
@@ -115,7 +115,7 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
 										if(x<targetImage->nx){
 											DTYPE value = *targetPtrXYZ;
 											if(value!=0.0)
-												variance += (mean - *targetPtrXYZ)*(mean - *targetPtrXYZ);
+												variance += (mean - (float)(*targetPtrXYZ))*(mean - float(*targetPtrXYZ));
 										}
 										targetPtrXYZ++;
 									}
@@ -332,8 +332,8 @@ void real_block_matching_method(nifti_image * target,
 	
 									for(int a=0; a<BLOCK_SIZE; a++){
 										if(targetOverlap[a] && resultOverlap[a]){
-											PrecisionTYPE targetTemp=targetValues[a]-targetMean;
-											PrecisionTYPE resultTemp=resultValues[a]-resultMean;
+											PrecisionTYPE targetTemp=(PrecisionTYPE)(targetValues[a]-targetMean);
+											PrecisionTYPE resultTemp=(PrecisionTYPE)(resultValues[a]-resultMean);
 											targetVar += (targetTemp)*(targetTemp);
 											resultVar += (resultTemp)*(resultTemp);
 											localCC += (targetTemp)*(resultTemp);
@@ -346,9 +346,9 @@ void real_block_matching_method(nifti_image * target,
 	
 									if(localCC>bestCC){
 										bestCC=localCC;
-										bestDisplacement[0] = l;
-										bestDisplacement[1] = m;
-										bestDisplacement[2] = n;
+										bestDisplacement[0] = (float)l;
+										bestDisplacement[1] = (float)m;
+										bestDisplacement[2] = (float)n;
 									}
 								} 
 							}
@@ -356,9 +356,9 @@ void real_block_matching_method(nifti_image * target,
 					}
 					
 					float targetPosition_temp[3];
-					targetPosition_temp[0] = i*BLOCK_WIDTH;
-					targetPosition_temp[1] = j*BLOCK_WIDTH;
-					targetPosition_temp[2] = k*BLOCK_WIDTH;
+					targetPosition_temp[0] = (float)(i*BLOCK_WIDTH);
+					targetPosition_temp[1] = (float)(j*BLOCK_WIDTH);
+					targetPosition_temp[2] = (float)(k*BLOCK_WIDTH);
 
 					bestDisplacement[0] += targetPosition_temp[0];
 					bestDisplacement[1] += targetPosition_temp[1];
@@ -1114,8 +1114,8 @@ float pythag(float a, float b)
 	absa = fabs(a);
 	absb = fabs(b);
 
-	if (absa > absb) return absa * sqrt(1.0f+SQR(absb/absa));
-	else return (absb == 0.0f ? 0.0f : absb * sqrt(1.0f+SQR(absa/absb)));
+	if (absa > absb) return (float)(absa * sqrt(1.0f+SQR(absb/absa)));
+	else return (absb == 0.0f ? 0.0f : (float)(absb * sqrt(1.0f+SQR(absa/absb))));
 }
 
 void svd(float ** in, int m, int n, float * w, float ** v)
@@ -1301,7 +1301,7 @@ void svd(float ** in, int m, int n, float * w, float ** v)
 			g = rv1[nm-1];
 			h = rv1[k-1];
 
-			f = ((y-z)*(y+z)+(g-h)*(g+h))/(2.0*h*y);
+			f = ((y-z)*(y+z)+(g-h)*(g+h))/(2.0f*h*y);
 			g = pythag(f, 1.0f);
 			f = ((x-z)*(x+z)+h*((y/(f+SIGN(g,f)))-h))/x;
 			c = s = 1.0f;

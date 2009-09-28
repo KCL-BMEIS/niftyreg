@@ -212,11 +212,11 @@ int main(int argc, char **argv)
 			flag->level2PerformFlag=1;
 		}
 		else if(strcmp(argv[i], "-smooT") == 0){
-			param->targetSigmaValue=atof(argv[++i]);
+			param->targetSigmaValue=(float)(atof(argv[++i]));
 			flag->targetSigmaFlag=1;
 		}
 		else if(strcmp(argv[i], "-smooS") == 0){
-			param->sourceSigmaValue=atof(argv[++i]);
+			param->sourceSigmaValue=(float)(atof(argv[++i]));
 			flag->sourceSigmaFlag=1;
 		}
 		else if(strcmp(argv[i], "-rigOnly") == 0){
@@ -434,7 +434,7 @@ int main(int argc, char **argv)
 					index[2] /= 2;
 				}
 			}
-			param->sourceBGValue = reg_tool_GetIntensityValue(sourceImage, index);
+			param->sourceBGValue = (float)(reg_tool_GetIntensityValue(sourceImage, index));
 		}
 		else param->sourceBGValue = 0;
 
@@ -729,8 +729,8 @@ int main(int argc, char **argv)
 	free(param);
 
 	time_t end; time(&end);
-	int minutes=(int)floorf((end-start)/60.0);
-	int seconds=end-start - 60*minutes;
+	int minutes=(int)floorf((end-start)/60.0f);
+	int seconds=(int)(end-start - 60*minutes);
 	printf("Registration Performed in %i min %i sec\n", minutes, seconds);
 	printf("Have a good day !\n");
 

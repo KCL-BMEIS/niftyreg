@@ -50,14 +50,14 @@ void intensitiesToSplineCoefficients(PrecisionTYPE *values, int number, Precisio
 		currentPole *= pole;
 		currentOpposite /= pole;
 	}
-	values[0] = (values[0] - pole*pole*(values[0] + sum)) / (1.0 - pow(pole,(PrecisionTYPE)(2.0*(double)number+2.0)));
+	values[0] = (PrecisionTYPE)((values[0] - pole*pole*(values[0] + sum)) / (1.0 - pow(pole,(PrecisionTYPE)(2.0*(double)number+2.0))));
 	
 	//other values forward
 	for(int i=1; i<number; i++){
 		values[i] += pole * values[i-1];
 	}
 	
-	PrecisionTYPE ipp=1.0-pole; ipp*=ipp;
+	PrecisionTYPE ipp=(PrecisionTYPE)(1.0-pole); ipp*=ipp;
 	
 	//last value
 	values[number-1] = ipp * values[number-1];
@@ -117,28 +117,28 @@ void CubicSplineResampleSourceImage(PrecisionTYPE *sourceCoefficients,
 		// basis values along the x axis
 		relative=position[0]-(PrecisionTYPE)previous[0];
 		if(relative<0) relative=0.0; // rounding error correction
-		xBasis[3]= relative * relative * relative / 6.0;
-		xBasis[0]= 1.0/6.0 + relative*(relative-1.0)/2.0 - xBasis[3];
-		xBasis[2]= relative + xBasis[0] - 2.0*xBasis[3];
-		xBasis[1]= 1.0 - xBasis[0] - xBasis[2] - xBasis[3];
+		xBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
+		xBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - xBasis[3]);
+		xBasis[2]= (PrecisionTYPE)(relative + xBasis[0] - 2.0*xBasis[3]);
+		xBasis[1]= (PrecisionTYPE)(1.0 - xBasis[0] - xBasis[2] - xBasis[3]);
 		// basis values along the y axis
 		relative=position[1]-(PrecisionTYPE)previous[1];
 		if(relative<0) relative=0.0; // rounding error correction
-		yBasis[3]= relative * relative * relative / 6.0;
-		yBasis[0]= 1.0/6.0 + relative*(relative-1.0)/2.0 - yBasis[3];
-		yBasis[2]= relative + yBasis[0] - 2.0*yBasis[3];
-		yBasis[1]= 1.0 - yBasis[0] - yBasis[2] - yBasis[3];
+		yBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
+		yBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - yBasis[3]);
+		yBasis[2]= (PrecisionTYPE)(relative + yBasis[0] - 2.0*yBasis[3]);
+		yBasis[1]= (PrecisionTYPE)(1.0 - yBasis[0] - yBasis[2] - yBasis[3]);
 		// basis values along the z axis
 		relative=position[2]-(PrecisionTYPE)previous[2];
-		if(relative<0) relative=0.0; // rounding error correction
-		zBasis[3]= relative * relative * relative / 6.0;
-		zBasis[0]= 1.0/6.0 + relative*(relative-1.0)/2.0 - zBasis[3];
-		zBasis[2]= relative + zBasis[0] - 2.0*zBasis[3];
-		zBasis[1]= 1.0 - zBasis[0] - zBasis[2] - zBasis[3];
+		if(relative<0) relative=(PrecisionTYPE)(0.0); // rounding error correction
+		zBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
+		zBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - zBasis[3]);
+		zBasis[2]= (PrecisionTYPE)(relative + zBasis[0] - 2.0*zBasis[3]);
+		zBasis[1]= (PrecisionTYPE)(1.0 - zBasis[0] - zBasis[2] - zBasis[3]);
 		
 		previous[0]--;previous[1]--;previous[2]--;
 
-		PrecisionTYPE intensity=0.0;
+		PrecisionTYPE intensity=(PrecisionTYPE)(0.0);
 // 		bool bg=false;
 		for(short c=0; c<4; c++){
 			short Z= previous[2]+c;
@@ -233,17 +233,17 @@ void CubicSplineResampleSourceImage2D(PrecisionTYPE *sourceCoefficients,
 		// basis values along the x axis
 		relative=position[0]-(PrecisionTYPE)previous[0];
 		if(relative<0) relative=0.0; // rounding error correction
-		xBasis[3]= relative * relative * relative / 6.0;
-		xBasis[0]= 1.0/6.0 + relative*(relative-1.0)/2.0 - xBasis[3];
-		xBasis[2]= relative + xBasis[0] - 2.0*xBasis[3];
-		xBasis[1]= 1.0 - xBasis[0] - xBasis[2] - xBasis[3];
+		xBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
+		xBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - xBasis[3]);
+		xBasis[2]= (PrecisionTYPE)(relative + xBasis[0] - 2.0*xBasis[3]);
+		xBasis[1]= (PrecisionTYPE)(1.0 - xBasis[0] - xBasis[2] - xBasis[3]);
 		// basis values along the y axis
 		relative=position[1]-(PrecisionTYPE)previous[1];
-		if(relative<0) relative=0.0; // rounding error correction
-		yBasis[3]= relative * relative * relative / 6.0;
-		yBasis[0]= 1.0/6.0 + relative*(relative-1.0)/2.0 - yBasis[3];
-		yBasis[2]= relative + yBasis[0] - 2.0*yBasis[3];
-		yBasis[1]= 1.0 - yBasis[0] - yBasis[2] - yBasis[3];
+		if(relative<0) relative=(PrecisionTYPE)(0.0); // rounding error correction
+		yBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
+		yBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - yBasis[3]);
+		yBasis[2]= (PrecisionTYPE)(relative + yBasis[0] - 2.0*yBasis[3]);
+		yBasis[1]= (PrecisionTYPE)(1.0 - yBasis[0] - yBasis[2] - yBasis[3]);
 		
 		previous[0]--;previous[1]--;
 		
@@ -322,9 +322,9 @@ void TrilinearResampleSourceImage(	SourceTYPE *intensityPtr,
 
 	for(unsigned int index=0;index<resultImage->nvox; index++){
 		
-		voxelIndex[0]=(PrecisionTYPE) *positionFieldPtrX++;
-		voxelIndex[1]=(PrecisionTYPE) *positionFieldPtrY++;
-		voxelIndex[2]=(PrecisionTYPE) *positionFieldPtrZ++;
+		voxelIndex[0]=(float) *positionFieldPtrX++;
+		voxelIndex[1]=(float) *positionFieldPtrY++;
+		voxelIndex[2]=(float) *positionFieldPtrZ++;
 
 		/* real -> voxel; source space */
         reg_mat44_mul(sourceIJKMatrix, voxelIndex, position);
@@ -335,17 +335,17 @@ void TrilinearResampleSourceImage(	SourceTYPE *intensityPtr,
 		// basis values along the x axis
 		relative=position[0]-(PrecisionTYPE)previous[0];
 		if(relative<0) relative=0.0; // rounding error correction
-		xBasis[0]= 1.0-relative;
+		xBasis[0]= (PrecisionTYPE)(1.0-relative);
 		xBasis[1]= relative;
 		// basis values along the y axis
 		relative=position[1]-(PrecisionTYPE)previous[1];
 		if(relative<0) relative=0.0; // rounding error correction
-		yBasis[0]= 1.0-relative;
+		yBasis[0]= (PrecisionTYPE)(1.0-relative);
 		yBasis[1]= relative;
 		// basis values along the z axis
 		relative=position[2]-(PrecisionTYPE)previous[2];
 		if(relative<0) relative=0.0; // rounding error correction
-		zBasis[0]= 1.0-relative;
+		zBasis[0]= (PrecisionTYPE)(1.0-relative);
 		zBasis[1]= relative;
 
 // 		PrecisionTYPE intensity=0.0;
@@ -389,18 +389,18 @@ void TrilinearResampleSourceImage(	SourceTYPE *intensityPtr,
 							for(short a=0; a<2; a++){
 								if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
 									const SourceTYPE coeff = *xyzPointer;
-									xTempNewValue +=  coeff * xBasis[a];
+									xTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
 								}
-								else backgroundWeight += (SourceTYPE)bgValue * xBasis[a];
+								else backgroundWeight += (PrecisionTYPE)((SourceTYPE)bgValue * xBasis[a]);
 								xyzPointer++;
 							}
 							yTempNewValue += (xTempNewValue * yBasis[b]);
 						}
-						else backgroundWeight += (SourceTYPE)bgValue * xBasis[b];
+						else backgroundWeight += (PrecisionTYPE)((SourceTYPE)bgValue * xBasis[b]);
 					}
 					intensity += yTempNewValue * zBasis[c];
 				}
-				else backgroundWeight += (SourceTYPE)bgValue * xBasis[c];
+				else backgroundWeight += (PrecisionTYPE)((SourceTYPE)bgValue * xBasis[c]);
 			}
 			intensity += backgroundWeight;
 		}
@@ -419,7 +419,7 @@ void TrilinearResampleSourceImage(	SourceTYPE *intensityPtr,
 							for(short a=0; a<2; a++){
 								if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
 									const SourceTYPE coeff = *xyzPointer;
-									xTempNewValue +=  coeff * xBasis[a];
+									xTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
 								}
 								xyzPointer++;
 							}
@@ -494,12 +494,12 @@ void TrilinearResampleSourceImage2D(SourceTYPE *intensityPtr,
 		// basis values along the x axis
 		relative=position[0]-(PrecisionTYPE)previous[0];
 		if(relative<0) relative=0.0; // rounding error correction
-		xBasis[0]= 1.0-relative;
+		xBasis[0]= (PrecisionTYPE)(1.0-relative);
 		xBasis[1]= relative;
 		// basis values along the y axis
 		relative=position[1]-(PrecisionTYPE)previous[1];
 		if(relative<0) relative=0.0; // rounding error correction
-		yBasis[0]= 1.0-relative;
+		yBasis[0]= (PrecisionTYPE)(1.0-relative);
 		yBasis[1]= relative;
 		
 // 		PrecisionTYPE intensity=0.0;
@@ -530,14 +530,14 @@ void TrilinearResampleSourceImage2D(SourceTYPE *intensityPtr,
 					for(short a=0; a<2; a++){
 						if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
 							const SourceTYPE coeff = *xyPointer;
-							xTempNewValue +=  coeff * xBasis[a];
+							xTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
 						}
-						else backgroundWeight += (SourceTYPE)bgValue * xBasis[a];
+						else backgroundWeight += (PrecisionTYPE)((SourceTYPE)bgValue * xBasis[a]);
 						xyPointer++;
 					}
 					intensity += (xTempNewValue * yBasis[b]);
 				}
-				else backgroundWeight += (SourceTYPE)bgValue * xBasis[b];
+				else backgroundWeight += (PrecisionTYPE)((SourceTYPE)bgValue * xBasis[b]);
 			}
 			intensity += backgroundWeight;
 		}
@@ -550,7 +550,7 @@ void TrilinearResampleSourceImage2D(SourceTYPE *intensityPtr,
 					for(short a=0; a<2; a++){
 						if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
 							const SourceTYPE coeff = *xyPointer;
-							xTempNewValue +=  coeff * xBasis[a];
+							xTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
 						}
 						xyPointer++;
 					}
@@ -709,7 +709,7 @@ void reg_resampleSourceImage2(	nifti_image *targetImage,
 		for(unsigned int i=0; i<sourceImage->nvox;i++)
 			sourceCoefficients[i]=(PrecisionTYPE)intensityPtr[i];
 
-		PrecisionTYPE pole = sqrt(3.0) - 2.0;
+		PrecisionTYPE pole = (PrecisionTYPE)(sqrt(3.0) - 2.0);
 
 			// X axis first
 		int number = sourceImage->nx;
@@ -1022,17 +1022,17 @@ void TrilinearGradientResultImage(	SourceTYPE *sourceCoefficients,
 		// basis values along the x axis
 		relative=position[0]-(PrecisionTYPE)previous[0];
 		if(relative<0) relative=0.0; // rounding error correction
-		xBasis[0]= 1.0-relative;
+		xBasis[0]= (PrecisionTYPE)(1.0-relative);
 		xBasis[1]= relative;
 		// basis values along the y axis
 		relative=position[1]-(PrecisionTYPE)previous[1];
 		if(relative<0) relative=0.0; // rounding error correction
-		yBasis[0]= 1.0-relative;
+		yBasis[0]= (PrecisionTYPE)(1.0-relative);
 		yBasis[1]= relative;
 		// basis values along the z axis
 		relative=position[2]-(PrecisionTYPE)previous[2];
 		if(relative<0) relative=0.0; // rounding error correction
-		zBasis[0]= 1.0-relative;
+		zBasis[0]= (PrecisionTYPE)(1.0-relative);
 		zBasis[1]= relative;
 		
 		PrecisionTYPE gradX=0.0;
@@ -1057,9 +1057,9 @@ void TrilinearGradientResultImage(	SourceTYPE *sourceCoefficients,
 						for(short a=0; a<2; a++){
 							if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
 								const SourceTYPE coeff = *xyzPointer;
-								xTempNewValue +=  coeff * deriv[a];
-								yTempNewValue +=  coeff * xBasis[a];
-								zTempNewValue +=  coeff * xBasis[a];
+								xTempNewValue +=  (PrecisionTYPE)(coeff * deriv[a]);
+								yTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
+								zTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
 							}
 							else bg=true;
 							xyzPointer++;
@@ -1146,12 +1146,12 @@ void TrilinearGradientResultImage2D(	SourceTYPE *sourceCoefficients,
 		// basis values along the x axis
 		relative=position[0]-(PrecisionTYPE)previous[0];
 		if(relative<0) relative=0.0; // rounding error correction
-		xBasis[0]= 1.0-relative;
+		xBasis[0]= (PrecisionTYPE)(1.0-relative);
 		xBasis[1]= relative;
 		// basis values along the y axis
 		relative=position[1]-(PrecisionTYPE)previous[1];
 		if(relative<0) relative=0.0; // rounding error correction
-		yBasis[0]= 1.0-relative;
+		yBasis[0]= (PrecisionTYPE)(1.0-relative);
 		yBasis[1]= relative;
 		
 		PrecisionTYPE gradX=0.0;
@@ -1167,8 +1167,8 @@ void TrilinearGradientResultImage2D(	SourceTYPE *sourceCoefficients,
 				for(short a=0; a<2; a++){
 					if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
 						const SourceTYPE coeff = *xyPointer;
-						xTempNewValue +=  coeff * deriv[a];
-						yTempNewValue +=  coeff * xBasis[a];
+						xTempNewValue +=  (PrecisionTYPE)(coeff * deriv[a]);
+						yTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
 					}
 					else bg=true;
 					xyPointer++;
@@ -1249,35 +1249,35 @@ void CubicSplineGradientResultImage(PrecisionTYPE *sourceCoefficients,
 		// basis values along the x axis
 		relative=position[0]-(PrecisionTYPE)previous[0];
 		if(relative<0) relative=0.0; // rounding error correction
-		xBasis[3]= relative * relative * relative / 6.0;
-		xBasis[0]= 1.0/6.0 + relative*(relative-1.0)/2.0 - xBasis[3];
-		xBasis[2]= relative + xBasis[0] - 2.0*xBasis[3];
-		xBasis[1]= 1.0 - xBasis[0] - xBasis[2] - xBasis[3];
-		xDeriv[3]= relative * relative / 2.0;
-		xDeriv[0]= relative - 1.0/2.0 - xDeriv[3];
-		xDeriv[2]= 1.0 + xDeriv[0] - 2.0*xDeriv[3];
+		xBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
+		xBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - xBasis[3]);
+		xBasis[2]= (PrecisionTYPE)(relative + xBasis[0] - 2.0*xBasis[3]);
+		xBasis[1]= (PrecisionTYPE)(1.0 - xBasis[0] - xBasis[2] - xBasis[3]);
+		xDeriv[3]= (PrecisionTYPE)(relative * relative / 2.0);
+		xDeriv[0]= (PrecisionTYPE)(relative - 1.0/2.0 - xDeriv[3]);
+		xDeriv[2]= (PrecisionTYPE)(1.0 + xDeriv[0] - 2.0*xDeriv[3]);
 		xDeriv[1]= - xDeriv[0] - xDeriv[2] - xDeriv[3];
 		// basis values along the y axis
 		relative=position[1]-(PrecisionTYPE)previous[1];
 		if(relative<0) relative=0.0; // rounding error correction
-		yBasis[3]= relative * relative * relative / 6.0;
-		yBasis[0]= 1.0/6.0 + relative*(relative-1.0)/2.0 - yBasis[3];
-		yBasis[2]= relative + yBasis[0] - 2.0*yBasis[3];
-		yBasis[1]= 1.0 - yBasis[0] - yBasis[2] - yBasis[3];
-		yDeriv[3]= relative * relative / 2.0;
-		yDeriv[0]= relative - 1.0/2.0 - yDeriv[3];
-		yDeriv[2]= 1.0 + yDeriv[0] - 2.0*yDeriv[3];
+		yBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
+		yBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - yBasis[3]);
+		yBasis[2]= (PrecisionTYPE)(relative + yBasis[0] - 2.0*yBasis[3]);
+		yBasis[1]= (PrecisionTYPE)(1.0 - yBasis[0] - yBasis[2] - yBasis[3]);
+		yDeriv[3]= (PrecisionTYPE)(relative * relative / 2.0);
+		yDeriv[0]= (PrecisionTYPE)(relative - 1.0/2.0 - yDeriv[3]);
+		yDeriv[2]= (PrecisionTYPE)(1.0 + yDeriv[0] - 2.0*yDeriv[3]);
 		yDeriv[1]= - yDeriv[0] - yDeriv[2] - yDeriv[3];
 		// basis values along the z axis
 		relative=position[2]-(PrecisionTYPE)previous[2];
 		if(relative<0) relative=0.0; // rounding error correction
-		zBasis[3]= relative * relative * relative / 6.0;
-		zBasis[0]= 1.0/6.0 + relative*(relative-1.0)/2.0 - zBasis[3];
-		zBasis[2]= relative + zBasis[0] - 2.0*zBasis[3];
-		zBasis[1]= 1.0 - zBasis[0] - zBasis[2] - zBasis[3];
-		zDeriv[3]= relative * relative / 2.0;
-		zDeriv[0]= relative - 1.0/2.0 - zDeriv[3];
-		zDeriv[2]= 1.0 + zDeriv[0] - 2.0*zDeriv[3];
+		zBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
+		zBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - zBasis[3]);
+		zBasis[2]= (PrecisionTYPE)(relative + zBasis[0] - 2.0*zBasis[3]);
+		zBasis[1]= (PrecisionTYPE)(1.0 - zBasis[0] - zBasis[2] - zBasis[3]);
+		zDeriv[3]= (PrecisionTYPE)(relative * relative / 2.0);
+		zDeriv[0]= (PrecisionTYPE)(relative - 1.0/2.0 - zDeriv[3]);
+		zDeriv[2]= (PrecisionTYPE)(1.0 + zDeriv[0] - 2.0*zDeriv[3]);
 		zDeriv[1]= - zDeriv[0] - zDeriv[2] - zDeriv[3];
 		
 		previous[0]--;previous[1]--;previous[2]--;
@@ -1391,24 +1391,24 @@ void CubicSplineGradientResultImage2D(PrecisionTYPE *sourceCoefficients,
 		// basis values along the x axis
 		relative=position[0]-(PrecisionTYPE)previous[0];
 		if(relative<0) relative=0.0; // rounding error correction
-		xBasis[3]= relative * relative * relative / 6.0;
-		xBasis[0]= 1.0/6.0 + relative*(relative-1.0)/2.0 - xBasis[3];
-		xBasis[2]= relative + xBasis[0] - 2.0*xBasis[3];
-		xBasis[1]= 1.0 - xBasis[0] - xBasis[2] - xBasis[3];
-		xDeriv[3]= relative * relative / 2.0;
-		xDeriv[0]= relative - 1.0/2.0 - xDeriv[3];
-		xDeriv[2]= 1.0 + xDeriv[0] - 2.0*xDeriv[3];
+		xBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
+		xBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - xBasis[3]);
+		xBasis[2]= (PrecisionTYPE)(relative + xBasis[0] - 2.0*xBasis[3]);
+		xBasis[1]= (PrecisionTYPE)(1.0 - xBasis[0] - xBasis[2] - xBasis[3]);
+		xDeriv[3]= (PrecisionTYPE)(relative * relative / 2.0);
+		xDeriv[0]= (PrecisionTYPE)(relative - 1.0/2.0 - xDeriv[3]);
+		xDeriv[2]= (PrecisionTYPE)(1.0 + xDeriv[0] - 2.0*xDeriv[3]);
 		xDeriv[1]= - xDeriv[0] - xDeriv[2] - xDeriv[3];
 		// basis values along the y axis
 		relative=position[1]-(PrecisionTYPE)previous[1];
 		if(relative<0) relative=0.0; // rounding error correction
-		yBasis[3]= relative * relative * relative / 6.0;
-		yBasis[0]= 1.0/6.0 + relative*(relative-1.0)/2.0 - yBasis[3];
-		yBasis[2]= relative + yBasis[0] - 2.0*yBasis[3];
-		yBasis[1]= 1.0 - yBasis[0] - yBasis[2] - yBasis[3];
-		yDeriv[3]= relative * relative / 2.0;
-		yDeriv[0]= relative - 1.0/2.0 - yDeriv[3];
-		yDeriv[2]= 1.0 + yDeriv[0] - 2.0*yDeriv[3];
+		yBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
+		yBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - yBasis[3]);
+		yBasis[2]= (PrecisionTYPE)(relative + yBasis[0] - 2.0*yBasis[3]);
+		yBasis[1]= (PrecisionTYPE)(1.0 - yBasis[0] - yBasis[2] - yBasis[3]);
+		yDeriv[3]= (PrecisionTYPE)(relative * relative / 2.0);
+		yDeriv[0]= (PrecisionTYPE)(relative - 1.0/2.0 - yDeriv[3]);
+		yDeriv[2]= (PrecisionTYPE)(1.0 + yDeriv[0] - 2.0*yDeriv[3]);
 		yDeriv[1]= - yDeriv[0] - yDeriv[2] - yDeriv[3];
 		
 		previous[0]--;previous[1]--;
@@ -1479,7 +1479,7 @@ void reg_getSourceImageGradient3(nifti_image *targetImage,
 		for(unsigned int i=0; i<sourceImage->nvox;i++)
 			sourceCoefficients[i]=(PrecisionTYPE)intensityPtr[i];
 
-		PrecisionTYPE pole = sqrt(3.0) - 2.0;
+		PrecisionTYPE pole = (PrecisionTYPE)(sqrt(3.0) - 2.0);
 
 			// X axis first
 		int number = sourceImage->nx;
@@ -1667,94 +1667,94 @@ void reg_getJacobianImage2(	nifti_image *positionField,
 				// derivative of along the X axis
 				if(x==0){
 					// forward difference
-					jacobianMatrix[0][0]= (fieldPtrX[voxelIndex+1] - fieldPtrX[voxelIndex] ) / (positionField->dx);// Tx/dx
-					jacobianMatrix[1][0]= (fieldPtrY[voxelIndex+1] - fieldPtrY[voxelIndex] ) / (positionField->dx);// Ty/dx
-					jacobianMatrix[2][0]= (fieldPtrZ[voxelIndex+1] - fieldPtrZ[voxelIndex] ) / (positionField->dx);// Tz/dx
+					jacobianMatrix[0][0]= (JacobianTYPE)((fieldPtrX[voxelIndex+1] - fieldPtrX[voxelIndex] ) / (positionField->dx));// Tx/dx
+					jacobianMatrix[1][0]= (JacobianTYPE)((fieldPtrY[voxelIndex+1] - fieldPtrY[voxelIndex] ) / (positionField->dx));// Ty/dx
+					jacobianMatrix[2][0]= (JacobianTYPE)((fieldPtrZ[voxelIndex+1] - fieldPtrZ[voxelIndex] ) / (positionField->dx));// Tz/dx
 					
 				}
 				else if(x==positionField->nx-1){
 					// backward difference
-					jacobianMatrix[0][0]= (fieldPtrX[voxelIndex] - fieldPtrX[voxelIndex-1] ) / (positionField->dx);// Tx/dx
-					jacobianMatrix[1][0]= (fieldPtrY[voxelIndex] - fieldPtrY[voxelIndex-1] ) / (positionField->dx);// Ty/dx
-					jacobianMatrix[2][0]= (fieldPtrZ[voxelIndex] - fieldPtrZ[voxelIndex-1] ) / (positionField->dx);// Tz/dx
+					jacobianMatrix[0][0]= (JacobianTYPE)((fieldPtrX[voxelIndex] - fieldPtrX[voxelIndex-1] ) / (positionField->dx));// Tx/dx
+					jacobianMatrix[1][0]= (JacobianTYPE)((fieldPtrY[voxelIndex] - fieldPtrY[voxelIndex-1] ) / (positionField->dx));// Ty/dx
+					jacobianMatrix[2][0]= (JacobianTYPE)((fieldPtrZ[voxelIndex] - fieldPtrZ[voxelIndex-1] ) / (positionField->dx));// Tz/dx
 					
 				}
 				else{
 					// symmetric derivative
-					jacobianMatrix[0][0]= (fieldPtrX[voxelIndex+1] - fieldPtrX[voxelIndex-1] ) / (2.0*positionField->dx);// Tx/dx
-					jacobianMatrix[1][0]= (fieldPtrY[voxelIndex+1] - fieldPtrY[voxelIndex-1] ) / (2.0*positionField->dx);// Ty/dx
-					jacobianMatrix[2][0]= (fieldPtrZ[voxelIndex+1] - fieldPtrZ[voxelIndex-1] ) / (2.0*positionField->dx);// Tz/dx
+					jacobianMatrix[0][0]= (JacobianTYPE)((fieldPtrX[voxelIndex+1] - fieldPtrX[voxelIndex-1] ) / (2.0*positionField->dx));// Tx/dx
+					jacobianMatrix[1][0]= (JacobianTYPE)((fieldPtrY[voxelIndex+1] - fieldPtrY[voxelIndex-1] ) / (2.0*positionField->dx));// Ty/dx
+					jacobianMatrix[2][0]= (JacobianTYPE)((fieldPtrZ[voxelIndex+1] - fieldPtrZ[voxelIndex-1] ) / (2.0*positionField->dx));// Tz/dx
 				}
 
 				// derivative of along the Y axis
 				if(y==0){
 					// forward difference
-					jacobianMatrix[0][1]= (fieldPtrX[voxelIndex+positionField->nx] - fieldPtrX[voxelIndex] ) /
-							(positionField->dy);// Tx/dy
-					jacobianMatrix[1][1]= (fieldPtrY[voxelIndex+positionField->nx] - fieldPtrY[voxelIndex] ) /
-							(positionField->dy);// Ty/dy
-					jacobianMatrix[2][1]= (fieldPtrZ[voxelIndex+positionField->nx] - fieldPtrZ[voxelIndex] ) /
-							(positionField->dy);// Tz/dy
+					jacobianMatrix[0][1]= (JacobianTYPE)((fieldPtrX[voxelIndex+positionField->nx] - fieldPtrX[voxelIndex] ) /
+							(positionField->dy));// Tx/dy
+					jacobianMatrix[1][1]= (JacobianTYPE)((fieldPtrY[voxelIndex+positionField->nx] - fieldPtrY[voxelIndex] ) /
+							(positionField->dy));// Ty/dy
+					jacobianMatrix[2][1]= (JacobianTYPE)((fieldPtrZ[voxelIndex+positionField->nx] - fieldPtrZ[voxelIndex] ) /
+							(positionField->dy));// Tz/dy
 					
 				}
 				else if(y==positionField->ny-1){
 					// backward difference
-					jacobianMatrix[0][1]= (fieldPtrX[voxelIndex] - fieldPtrX[voxelIndex-positionField->nx] ) /
-							(positionField->dy);// Tx/dy
-					jacobianMatrix[1][1]= (fieldPtrY[voxelIndex] - fieldPtrY[voxelIndex-positionField->nx] ) /
-							(positionField->dy);// Ty/dy
-					jacobianMatrix[2][1]= (fieldPtrZ[voxelIndex] - fieldPtrZ[voxelIndex-positionField->nx] ) /
-							(positionField->dy);// Tz/dy
+					jacobianMatrix[0][1]= (JacobianTYPE)((fieldPtrX[voxelIndex] - fieldPtrX[voxelIndex-positionField->nx] ) /
+							(positionField->dy));// Tx/dy
+					jacobianMatrix[1][1]= (JacobianTYPE)((fieldPtrY[voxelIndex] - fieldPtrY[voxelIndex-positionField->nx] ) /
+							(positionField->dy));// Ty/dy
+					jacobianMatrix[2][1]= (JacobianTYPE)((fieldPtrZ[voxelIndex] - fieldPtrZ[voxelIndex-positionField->nx] ) /
+							(positionField->dy));// Tz/dy
 					
 				}
 				else{
 					// symmetric derivative
-					jacobianMatrix[0][1]= (fieldPtrX[voxelIndex+positionField->nx] - fieldPtrX[voxelIndex-positionField->nx] ) /
-							(2.0*positionField->dy);// Tx/dy
-					jacobianMatrix[1][1]= (fieldPtrY[voxelIndex+positionField->nx] - fieldPtrY[voxelIndex-positionField->nx] ) /
-							(2.0*positionField->dy);// Ty/dy
-					jacobianMatrix[2][1]= (fieldPtrZ[voxelIndex+positionField->nx] - fieldPtrZ[voxelIndex-positionField->nx] ) /
-							(2.0*positionField->dy);// Tz/dy
+					jacobianMatrix[0][1]= (JacobianTYPE)((fieldPtrX[voxelIndex+positionField->nx] - fieldPtrX[voxelIndex-positionField->nx] ) /
+							(2.0*positionField->dy));// Tx/dy
+					jacobianMatrix[1][1]= (JacobianTYPE)((fieldPtrY[voxelIndex+positionField->nx] - fieldPtrY[voxelIndex-positionField->nx] ) /
+							(2.0*positionField->dy));// Ty/dy
+					jacobianMatrix[2][1]= (JacobianTYPE)((fieldPtrZ[voxelIndex+positionField->nx] - fieldPtrZ[voxelIndex-positionField->nx] ) /
+							(2.0*positionField->dy));// Tz/dy
 				}
 
 				// derivative of along the Z axis
 				if(z==0){
 					// forward difference
-					jacobianMatrix[0][2]= (fieldPtrX[voxelIndex+positionField->nx*positionField->ny] -
+					jacobianMatrix[0][2]= (JacobianTYPE)((fieldPtrX[voxelIndex+positionField->nx*positionField->ny] -
 							fieldPtrX[voxelIndex] ) /
-							(positionField->dz);// Tx/dz
-					jacobianMatrix[1][2]= (fieldPtrY[voxelIndex+positionField->nx*positionField->ny] -
+							(positionField->dz));// Tx/dz
+					jacobianMatrix[1][2]= (JacobianTYPE)((fieldPtrY[voxelIndex+positionField->nx*positionField->ny] -
 							fieldPtrY[voxelIndex] ) /
-							(positionField->dz);// Ty/dz
-					jacobianMatrix[2][2]= (fieldPtrZ[voxelIndex+positionField->nx*positionField->ny] -
+							(positionField->dz));// Ty/dz
+					jacobianMatrix[2][2]= (JacobianTYPE)((fieldPtrZ[voxelIndex+positionField->nx*positionField->ny] -
 							fieldPtrZ[voxelIndex] ) /
-							(positionField->dz);// Tz/dz
+							(positionField->dz));// Tz/dz
 					
 				}
 				else if(z==positionField->nz-1){
 					// backward difference
-					jacobianMatrix[0][2]= (fieldPtrX[voxelIndex] -
+					jacobianMatrix[0][2]= (JacobianTYPE)((fieldPtrX[voxelIndex] -
 							fieldPtrX[voxelIndex-positionField->nx*positionField->ny] ) /
-							(positionField->dz);// Tx/dz
-					jacobianMatrix[1][2]= (fieldPtrY[voxelIndex] -
+							(positionField->dz));// Tx/dz
+					jacobianMatrix[1][2]= (JacobianTYPE)((fieldPtrY[voxelIndex] -
 							fieldPtrY[voxelIndex-positionField->nx*positionField->ny] ) /
-							(positionField->dz);// Ty/dz
-					jacobianMatrix[2][2]= (fieldPtrZ[voxelIndex] -
+							(positionField->dz));// Ty/dz
+					jacobianMatrix[2][2]= (JacobianTYPE)((fieldPtrZ[voxelIndex] -
 							fieldPtrZ[voxelIndex-positionField->nx*positionField->ny] ) /
-							(positionField->dz);// Tz/dz
+							(positionField->dz));// Tz/dz
 					
 				}
 				else{
 					// symmetric derivative
-					jacobianMatrix[0][2]= (fieldPtrX[voxelIndex+positionField->nx*positionField->ny] -
+					jacobianMatrix[0][2]= (JacobianTYPE)((fieldPtrX[voxelIndex+positionField->nx*positionField->ny] -
 							fieldPtrX[voxelIndex-positionField->nx*positionField->ny] ) /
-							(2.0*positionField->dz);// Tx/dz
-					jacobianMatrix[1][2]= (fieldPtrY[voxelIndex+positionField->nx*positionField->ny] -
+							(2.0*positionField->dz));// Tx/dz
+					jacobianMatrix[1][2]= (JacobianTYPE)((fieldPtrY[voxelIndex+positionField->nx*positionField->ny] -
 							fieldPtrY[voxelIndex-positionField->nx*positionField->ny] ) /
-							(2.0*positionField->dz);// Ty/dz
-					jacobianMatrix[2][2]= (fieldPtrZ[voxelIndex+positionField->nx*positionField->ny] -
+							(2.0*positionField->dz));// Ty/dz
+					jacobianMatrix[2][2]= (JacobianTYPE)((fieldPtrZ[voxelIndex+positionField->nx*positionField->ny] -
 							fieldPtrZ[voxelIndex-positionField->nx*positionField->ny] ) /
-							(2.0*positionField->dz);// Tz/dz
+							(2.0*positionField->dz));// Tz/dz
 				}
 
 				JacobianTYPE jacobianValue = jacobianMatrix[0][0]*jacobianMatrix[1][1]*jacobianMatrix[2][2];

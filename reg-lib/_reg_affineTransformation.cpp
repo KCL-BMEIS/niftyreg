@@ -83,11 +83,11 @@ void reg_affine_positionField1(mat44 *affineTransformation,
     float index[3];
     float position[3];
     for(int z=0; z<targetImage->nz; z++){
-        index[2]=z;
+        index[2]=(float)z;
         for(int y=0; y<targetImage->ny; y++){
-            index[1]=y;
+            index[1]=(float)y;
             for(int x=0; x<targetImage->nx; x++){
-                index[0]=x;
+                index[0]=(float)x;
 
                 reg_mat44_mul(&voxelToRealDeformed, index, position);
 

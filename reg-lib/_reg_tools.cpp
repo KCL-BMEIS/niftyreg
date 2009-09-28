@@ -136,9 +136,9 @@ void reg_smoothImageForCubicSpline1(	nifti_image *image,
 	PrecisionTYPE *window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
 //PrecisionTYPE coeffSum=0.0;
 	for(int it=-radius[0]; it<=radius[0]; it++){
-		PrecisionTYPE coeff = fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[0]);
-		if(coeff<1.0)	window[it+radius[0]] = 2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff;
-		else		window[it+radius[0]] = -(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0;
+		PrecisionTYPE coeff = (PrecisionTYPE)(fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[0]));
+		if(coeff<1.0)	window[it+radius[0]] = (PrecisionTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
+		else		window[it+radius[0]] = (PrecisionTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
 //coeffSum += window[it+radius[0]];
 	}
 //	 	for(int it=0;it<windowSize;it++){
@@ -185,9 +185,9 @@ void reg_smoothImageForCubicSpline1(	nifti_image *image,
 	window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
 //coeffSum=0.0;
 	for(int it=-radius[1]; it<=radius[1]; it++){
-		PrecisionTYPE coeff = fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[1]);
-		if(coeff<1.0)	window[it+radius[1]] = 2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff;
-		else		window[it+radius[1]] = -(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0;
+		PrecisionTYPE coeff = (PrecisionTYPE)(fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[1]));
+		if(coeff<1.0)	window[it+radius[1]] = (PrecisionTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
+		else		window[it+radius[1]] = (PrecisionTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
 //coeffSum += window[it+radius[1]];
 	}
 //for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
@@ -230,9 +230,9 @@ void reg_smoothImageForCubicSpline1(	nifti_image *image,
 	window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
 //coeffSum=0.0;
 	for(int it=-radius[2]; it<=radius[2]; it++){
-		PrecisionTYPE coeff = fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[2]);
-		if(coeff<1.0)	window[it+radius[2]] = 2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff;
-		else		window[it+radius[2]] = -(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0;
+		PrecisionTYPE coeff = (PrecisionTYPE)(fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[2]));
+		if(coeff<1.0)	window[it+radius[2]] = (PrecisionTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
+		else		window[it+radius[2]] = (PrecisionTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
 //coeffSum += window[it+radius[2]];
 	}
 //for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
@@ -333,7 +333,7 @@ void reg_smoothImageForTrilinear1(	nifti_image *image,
 	PrecisionTYPE *window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
 PrecisionTYPE coeffSum=0.0;
 	for(int it=-radius[0]; it<=radius[0]; it++){
-		PrecisionTYPE coeff = fabs(1.0 -fabs((PrecisionTYPE)(it)/(PrecisionTYPE)radius[0] ));
+		PrecisionTYPE coeff = (PrecisionTYPE)(fabs(1.0 -fabs((PrecisionTYPE)(it)/(PrecisionTYPE)radius[0] )));
 		window[it+radius[0]] = coeff;
 coeffSum += coeff;
 	}
@@ -381,7 +381,7 @@ window[it] /= coeffSum;
 	window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
 coeffSum=0.0;
 	for(int it=-radius[1]; it<=radius[1]; it++){
-		PrecisionTYPE coeff = fabs(1.0 -fabs((PrecisionTYPE)(it)/(PrecisionTYPE)radius[0] ));
+		PrecisionTYPE coeff = (PrecisionTYPE)(fabs(1.0 -fabs((PrecisionTYPE)(it)/(PrecisionTYPE)radius[0] )));
 		window[it+radius[1]] = coeff;
 coeffSum += coeff;
 	}
@@ -425,7 +425,7 @@ for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
 	window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
 coeffSum=0.0;
 	for(int it=-radius[2]; it<=radius[2]; it++){
-		PrecisionTYPE coeff = fabs(1.0 -fabs((PrecisionTYPE)(it)/(PrecisionTYPE)radius[0] ));
+		PrecisionTYPE coeff = (PrecisionTYPE)(fabs(1.0 -fabs((PrecisionTYPE)(it)/(PrecisionTYPE)radius[0] )));
 		window[it+radius[2]] = coeff;
 coeffSum += coeff;
 	}
@@ -516,10 +516,10 @@ PrecisionTYPE reg_getMaximalLength1(nifti_image *image)
 	PrecisionTYPE max=0.0;
 	
 	for(int i=0; i<image->nx*image->ny*image->nz; i++){
-		PrecisionTYPE valX = *dataPtrX++;
-		PrecisionTYPE valY = *dataPtrY++;
-		PrecisionTYPE valZ = *dataPtrZ++;
-		PrecisionTYPE length = sqrt(valX*valX + valY*valY + valZ*valZ);
+		PrecisionTYPE valX = (PrecisionTYPE)(*dataPtrX++);
+		PrecisionTYPE valY = (PrecisionTYPE)(*dataPtrY++);
+		PrecisionTYPE valZ = (PrecisionTYPE)(*dataPtrZ++);
+		PrecisionTYPE length = (PrecisionTYPE)(sqrt(valX*valX + valY*valY + valZ*valZ));
 		max = (length>max)?length:max;
 	}
 	return max;
@@ -768,9 +768,9 @@ void reg_gaussianSmoothing1(	nifti_image *image,
 		int radius=(int)ceil(currentSigma*3.0f);
 		PrecisionTYPE *kernel = new PrecisionTYPE[2*radius+1];
 		PrecisionTYPE kernelSum=0;
-		for(float i=-radius; i<=radius; i++){
-			kernel[radius+(int)i]=exp( -(i*i)/(2.0*currentSigma*currentSigma)) / (currentSigma*2.506628274631); // 2.506... = sqrt(2*pi)
-			kernelSum += kernel[radius+(int)i];
+		for(int i=-radius; i<=radius; i++){
+			kernel[radius+i]=(PrecisionTYPE)(exp( -(i*i)/(2.0*currentSigma*currentSigma)) / (currentSigma*2.506628274631)); // 2.506... = sqrt(2*pi)
+			kernelSum += kernel[radius+i];
 		}
 		for(int i=-radius; i<=radius; i++) kernel[radius+i] /= kernelSum;
 #ifdef _DEBUG
@@ -793,7 +793,7 @@ void reg_gaussianSmoothing1(	nifti_image *image,
 				PrecisionTYPE value=0;
 				for(int j=-radius; j<=radius; j++){
 					if(-1<current && current<(int)image->nvox){
-						value += imagePtr[current]*kernel[j+radius];
+						value += (PrecisionTYPE)(imagePtr[current]*kernel[j+radius]);
 					}
 					current += increment;
 				}
@@ -850,7 +850,7 @@ template <class PrecisionTYPE, class ImageTYPE>
 void reg_downsampleImage1(nifti_image *image)
 {
 	/* the input image is first smooth */
-	reg_gaussianSmoothing<float>(image, -0.7);
+	reg_gaussianSmoothing<float>(image, -0.7f);
 	
 	/* the values are copied */
 	ImageTYPE *oldValues = (ImageTYPE *)malloc(image->nvox * image->nbyper);
@@ -862,7 +862,7 @@ void reg_downsampleImage1(nifti_image *image)
 	for(int i=1; i<4; i++){
 		oldDim[i]=image->dim[i];
 		if(image->dim[i]>1) image->dim[i]=(int)(image->dim[i]/2.0);
-		if(image->pixdim[i]>0) image->pixdim[i]=image->pixdim[i]*2.0;
+		if(image->pixdim[i]>0) image->pixdim[i]=image->pixdim[i]*2.0f;
 	}
 	image->nx=image->dim[1];
 	image->ny=image->dim[2];
@@ -878,8 +878,8 @@ void reg_downsampleImage1(nifti_image *image)
 	for(int i=0; i<3; i++){
 		for(int j=0; j<3; j++){
 			oldMat.m[i][j]=image->qto_ijk.m[i][j];
-			image->qto_xyz.m[i][j]=image->qto_xyz.m[i][j]*2.0;
-			image->sto_xyz.m[i][j]=image->sto_xyz.m[i][j]*2.0;
+			image->qto_xyz.m[i][j]=image->qto_xyz.m[i][j]*2.0f;
+			image->sto_xyz.m[i][j]=image->sto_xyz.m[i][j]*2.0f;
 		}
 	}
 	oldMat.m[0][3]=image->qto_ijk.m[0][3];
@@ -917,17 +917,17 @@ void reg_downsampleImage1(nifti_image *image)
 					// basis values along the x axis
 					relative=position[0]-(PrecisionTYPE)previous[0];
 					if(relative<0) relative=0.0; // rounding error correction
-					xBasis[0]= 1.0-relative;
+					xBasis[0]= (PrecisionTYPE)(1.0-relative);
 					xBasis[1]= relative;
 					// basis values along the y axis
 					relative=position[1]-(PrecisionTYPE)previous[1];
 					if(relative<0) relative=0.0; // rounding error correction
-					yBasis[0]= 1.0-relative;
+					yBasis[0]= (PrecisionTYPE)(1.0-relative);
 					yBasis[1]= relative;
 					// basis values along the z axis
 					relative=position[2]-(PrecisionTYPE)previous[2];
 					if(relative<0) relative=0.0; // rounding error correction
-					zBasis[0]= 1.0-relative;
+					zBasis[0]= (PrecisionTYPE)(1.0-relative);
 					zBasis[1]= relative;
 					intensity=0;
 					for(short c=0; c<2; c++){
@@ -944,7 +944,7 @@ void reg_downsampleImage1(nifti_image *image)
 									for(short a=0; a<2; a++){
 										if(-1<(previous[0]+a) && (previous[0]+a)<oldDim[1]){
 											const ImageTYPE coeff = *xyzPointer;
-											xTempNewValue +=  coeff * xBasis[a];
+											xTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
 										}
 										xyzPointer++;
 									}
