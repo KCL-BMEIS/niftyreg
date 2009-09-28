@@ -57,7 +57,7 @@ void reg_bspline2(	nifti_image *splineControlPoint,
 	gridVoxelSpacing[1] = splineControlPoint->dy / targetImage->dy;
 	gridVoxelSpacing[2] = splineControlPoint->dz / targetImage->dz;
 
-    PrecisionTYPE basis, FF, FFF, MF, oldBasis=1.1;
+    PrecisionTYPE basis, FF, FFF, MF, oldBasis=(PrecisionTYPE)(1.1);
 
 #ifdef _WINDOWS
     __declspec(align(16)) PrecisionTYPE zBasis[4];
@@ -90,20 +90,20 @@ void reg_bspline2(	nifti_image *splineControlPoint,
 			if(basis<0.0) basis=0.0; //rounding error
 			FF= basis*basis;
 			FFF= FF*basis;
-			MF=1.0-basis;
-			zBasis[0] = (MF)*(MF)*(MF)/6.0;
-			zBasis[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
-			zBasis[2] = (-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0;
-			zBasis[3] = FFF/6.0;
+			MF=(PrecisionTYPE)(1.0-basis);
+			zBasis[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/(6.0));
+			zBasis[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+			zBasis[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+			zBasis[3] = (PrecisionTYPE)(FFF/6.0);
 		
 			for(int y=0; y<positionField->ny; y++){
 
 				int yPre=(int)((PrecisionTYPE)y/gridVoxelSpacing[1]);
 				basis=(PrecisionTYPE)y/gridVoxelSpacing[1]-(PrecisionTYPE)yPre;
-				if(basis<0.0) basis=0.0; //rounding error
+				if(basis<0.0) basis=(PrecisionTYPE)(0.0); //rounding error
 				FF= basis*basis;
 				FFF= FF*basis;
-				MF=1.0-basis;
+				MF=(PrecisionTYPE)(1.0-basis);
 #if _USE_SSE
 				val.f[0] = (MF)*(MF)*(MF)/6.0;
 				val.f[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
@@ -117,10 +117,10 @@ void reg_bspline2(	nifti_image *splineControlPoint,
 					ptrBasis++;
 				}
 #else
-				temp[0] = (MF)*(MF)*(MF)/6.0;
-				temp[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
-				temp[2] = (-3.0*FFF + 3.0*FF + 3.0*basis +1.0)/6.0;
-				temp[3] = FFF/6.0;
+				temp[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/6.0);
+				temp[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+				temp[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis +1.0)/6.0);
+				temp[3] = (PrecisionTYPE)(FFF/6.0);
 				coord=0;
 				for(int a=0;a<4;a++){
 					yzBasis[coord++]=temp[0]*zBasis[a];
@@ -137,7 +137,7 @@ void reg_bspline2(	nifti_image *splineControlPoint,
 					if(basis<0.0) basis=0.0; //rounding error
 					FF= basis*basis;
 					FFF= FF*basis;
-					MF=1.0-basis;
+					MF=(PrecisionTYPE)(1.0-basis);
 #if _USE_SSE
 					val.f[0] = (MF)*(MF)*(MF)/6.0;
 					val.f[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
@@ -151,10 +151,10 @@ void reg_bspline2(	nifti_image *splineControlPoint,
 						ptrBasis++;
 					}
 #else
-					temp[0] = (MF)*(MF)*(MF)/6.0;
-					temp[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
-					temp[2] = (-3.0*FFF + 3.0*FF + 3.0*basis +1.0)/6.0;
-					temp[3] = FFF/6.0;
+					temp[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/6.0);
+					temp[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+					temp[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis +1.0)/6.0);
+					temp[3] = (PrecisionTYPE)(FFF/6.0);
 					coord=0;
 					for(int a=0;a<16;a++){
 						xyzBasis[coord++]=temp[0]*yzBasis[a];
@@ -226,14 +226,14 @@ void reg_bspline2(	nifti_image *splineControlPoint,
 #endif
 
 					if(type==1){ // addition of deformation fields
-						*fieldPtrX += xReal;
-						*fieldPtrY += yReal;
-						*fieldPtrZ += zReal;
+						*fieldPtrX += (FieldTYPE)xReal;
+						*fieldPtrY += (FieldTYPE)yReal;
+						*fieldPtrZ += (FieldTYPE)zReal;
 					}
 					else{ // starting from a blank deformation field
-						*fieldPtrX = xReal;
-						*fieldPtrY = yReal;
-						*fieldPtrZ = zReal;
+						*fieldPtrX = (FieldTYPE)xReal;
+						*fieldPtrY = (FieldTYPE)yReal;
+						*fieldPtrZ = (FieldTYPE)zReal;
 					}
 
 					fieldPtrX++;
@@ -298,7 +298,7 @@ PrecisionTYPE reg_bspline_bendingEnergyValue(	nifti_image *splineControlPoint,
 	PrecisionTYPE zBasis[4],zFirst[4],zSecond[4];
 	PrecisionTYPE tempXX[16], tempYY[16], tempZZ[16], tempXY[16], tempYZ[16], tempXZ[16];
 	PrecisionTYPE basisXX[64], basisYY[64], basisZZ[64], basisXY[64], basisYZ[64], basisXZ[64];
-	PrecisionTYPE basis, FF, FFF, MF, oldBasis=1.1;
+	PrecisionTYPE basis, FF, FFF, MF, oldBasis=(PrecisionTYPE)(1.1);
 
 	PrecisionTYPE xControlPointCoordinates[64];
 	PrecisionTYPE yControlPointCoordinates[64];
@@ -320,18 +320,18 @@ PrecisionTYPE reg_bspline_bendingEnergyValue(	nifti_image *splineControlPoint,
 		if(basis<0.0) basis=0.0; //rounding error
 		FF= basis*basis;
 		FFF= FF*basis;
-		MF=1.0-basis;
-		zBasis[0] = (MF)*(MF)*(MF)/6.0;
-		zBasis[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
-		zBasis[2] = (-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0;
-		zBasis[3] = FFF/6.0;
-		zFirst[3]= FF / 2.0;
-		zFirst[0]= basis - 1.0/2.0 - zFirst[3];
-		zFirst[2]= 1.0 + zFirst[0] - 2.0*zFirst[3];
-		zFirst[1]= - zFirst[0] - zFirst[2] - zFirst[3];
+		MF=(PrecisionTYPE)(1.0-basis);
+		zBasis[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/6.0);
+		zBasis[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+		zBasis[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+		zBasis[3] = (PrecisionTYPE)(FFF/6.0);
+		zFirst[3] = (PrecisionTYPE)(FF / 2.0);
+		zFirst[0] = (PrecisionTYPE)(basis - 1.0/2.0 - zFirst[3]);
+		zFirst[2] = (PrecisionTYPE)(1.0 + zFirst[0] - 2.0*zFirst[3]);
+		zFirst[1] = (PrecisionTYPE)(- zFirst[0] - zFirst[2] - zFirst[3]);
 		zSecond[3]= basis;
-		zSecond[0]= 1.0 - zSecond[3];
-		zSecond[2]= zSecond[0] - 2.0*zSecond[3];
+		zSecond[0]= (PrecisionTYPE)(1.0 - zSecond[3]);
+		zSecond[2]= (PrecisionTYPE)(zSecond[0] - 2.0*zSecond[3]);
 		zSecond[1]= - zSecond[0] - zSecond[2] - zSecond[3];
 	
 		for(int y=0; y<targetImage->ny; y++){
@@ -341,18 +341,18 @@ PrecisionTYPE reg_bspline_bendingEnergyValue(	nifti_image *splineControlPoint,
 			if(basis<0.0) basis=0.0; //rounding error
 			FF= basis*basis;
 			FFF= FF*basis;
-			MF=1.0-basis;
-			temp[0] = (MF)*(MF)*(MF)/6.0;
-			temp[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
-			temp[2] = (-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0;
-			temp[3] = FFF/6.0;
-			first[3]= FF / 2.0;
-			first[0]= basis - 1.0/2.0 - first[3];
-			first[2]= 1.0 + first[0] - 2.0*first[3];
+			MF=(PrecisionTYPE)(1.0-basis);
+			temp[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/6.0);
+			temp[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+			temp[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+			temp[3] = (PrecisionTYPE)(FFF/6.0);
+			first[3]= (PrecisionTYPE)(FF / 2.0);
+			first[0]= (PrecisionTYPE)(basis - 1.0/2.0 - first[3]);
+			first[2]= (PrecisionTYPE)(1.0 + first[0] - 2.0*first[3]);
 			first[1]= - first[0] - first[2] - first[3];
 			second[3]= basis;
-			second[0]= 1.0 - second[3];
-			second[2]= second[0] - 2.0*second[3];
+			second[0]= (PrecisionTYPE)(1.0 - second[3]);
+			second[2]= (PrecisionTYPE)(second[0] - 2.0*second[3]);
 			second[1]= - second[0] - second[2] - second[3];
 
 			coord=0;
@@ -375,18 +375,18 @@ PrecisionTYPE reg_bspline_bendingEnergyValue(	nifti_image *splineControlPoint,
 				if(basis<0.0) basis=0.0; //rounding error
 				FF= basis*basis;
 				FFF= FF*basis;
-				MF=1.0-basis;
-				temp[0] = (MF)*(MF)*(MF)/6.0;
-				temp[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
-				temp[2] = (-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0;
-				temp[3] = FFF/6.0;
-				first[3]= FF / 2.0;
-				first[0]= basis - 1.0/2.0 - first[3];
-				first[2]= 1.0 + first[0] - 2.0*first[3];
+				MF=(PrecisionTYPE)(1.0-basis);
+				temp[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/6.0);
+				temp[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+				temp[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+				temp[3] = (PrecisionTYPE)(FFF/6.0);
+				first[3]= (PrecisionTYPE)(FF / 2.0);
+				first[0]= (PrecisionTYPE)(basis - 1.0/2.0 - first[3]);
+				first[2]= (PrecisionTYPE)(1.0 + first[0] - 2.0*first[3]);
 				first[1]= - first[0] - first[2] - first[3];
 				second[3]= basis;
-				second[0]= 1.0 - second[3];
-				second[2]= second[0] - 2.0*second[3];
+				second[0]= (PrecisionTYPE)(1.0 - second[3]);
+				second[2]= (PrecisionTYPE)(second[0] - 2.0*second[3]);
 				second[1]= - second[0] - second[2] - second[3];
 
 				coord=0;
@@ -467,14 +467,14 @@ PrecisionTYPE reg_bspline_bendingEnergyValue(	nifti_image *splineControlPoint,
 					XZ_z += basisXZ[a]*zControlPointCoordinates[a];
 				}
 				
-				constraintValue += XX_x*XX_x + YY_x*YY_x + ZZ_x*ZZ_x + 2.0*(XY_x*XY_x + YZ_x*YZ_x + XZ_x*XZ_x);
-				constraintValue += XX_y*XX_y + YY_y*YY_y + ZZ_y*ZZ_y + 2.0*(XY_y*XY_y + YZ_y*YZ_y + XZ_y*XZ_y);
-				constraintValue += XX_z*XX_z + YY_z*YY_z + ZZ_z*ZZ_z + 2.0*(XY_z*XY_z + YZ_z*YZ_z + XZ_z*XZ_z);
+				constraintValue += (PrecisionTYPE)(XX_x*XX_x + YY_x*YY_x + ZZ_x*ZZ_x + 2.0*(XY_x*XY_x + YZ_x*YZ_x + XZ_x*XZ_x));
+				constraintValue += (PrecisionTYPE)(XX_y*XX_y + YY_y*YY_y + ZZ_y*ZZ_y + 2.0*(XY_y*XY_y + YZ_y*YZ_y + XZ_y*XZ_y));
+				constraintValue += (PrecisionTYPE)(XX_z*XX_z + YY_z*YY_z + ZZ_z*ZZ_z + 2.0*(XY_z*XY_z + YZ_z*YZ_z + XZ_z*XZ_z));
 			}
 		}
 	}
 
-	return constraintValue/(3.0*targetImage->nx*targetImage->ny*targetImage->nz);
+	return (PrecisionTYPE)(constraintValue/(3.0*targetImage->nx*targetImage->ny*targetImage->nz));
 		
 }
 /* *************************************************************** */
@@ -490,15 +490,15 @@ PrecisionTYPE reg_bspline_bendingEnergyApproxValue(	nifti_image *splineControlPo
 	PrecisionTYPE normal[3];
 	PrecisionTYPE first[3];
 	PrecisionTYPE second[3];
-	normal[0] = 1.0/6.0;
-	normal[1] = 2.0/3.0;
-	normal[2] = 1.0/6.0;
-	first[0] = -0.5;
-	first[1] = 0.0;
-	first[2] = 0.5;
-	second[0] = 1.0;
-	second[1] = -2.0;
-	second[2] = 1.0;
+	normal[0] = (PrecisionTYPE)(1.0/6.0);
+	normal[1] = (PrecisionTYPE)(2.0/3.0);
+	normal[2] = (PrecisionTYPE)(1.0/6.0);
+	first[0] = (PrecisionTYPE)(-0.5);
+	first[1] = (PrecisionTYPE)(0.0);
+	first[2] = (PrecisionTYPE)(0.5);
+	second[0] = (PrecisionTYPE)(1.0);
+	second[1] = (PrecisionTYPE)(-2.0);
+	second[2] = (PrecisionTYPE)(1.0);
 	
 	int coord=0;
 	PrecisionTYPE constraintValue=0.0;
@@ -604,14 +604,14 @@ PrecisionTYPE reg_bspline_bendingEnergyApproxValue(	nifti_image *splineControlPo
 					XZ_z += basisXZ[a]*zControlPointCoordinates[a];
 				}
 				
-				constraintValue += XX_x*XX_x + YY_x*YY_x + ZZ_x*ZZ_x + 2.0*(XY_x*XY_x + YZ_x*YZ_x + XZ_x*XZ_x);
-				constraintValue += XX_y*XX_y + YY_y*YY_y + ZZ_y*ZZ_y + 2.0*(XY_y*XY_y + YZ_y*YZ_y + XZ_y*XZ_y);
-				constraintValue += XX_z*XX_z + YY_z*YY_z + ZZ_z*ZZ_z + 2.0*(XY_z*XY_z + YZ_z*YZ_z + XZ_z*XZ_z);
+				constraintValue += (PrecisionTYPE)(XX_x*XX_x + YY_x*YY_x + ZZ_x*ZZ_x + 2.0*(XY_x*XY_x + YZ_x*YZ_x + XZ_x*XZ_x));
+				constraintValue += (PrecisionTYPE)(XX_y*XX_y + YY_y*YY_y + ZZ_y*ZZ_y + 2.0*(XY_y*XY_y + YZ_y*YZ_y + XZ_y*XZ_y));
+				constraintValue += (PrecisionTYPE)(XX_z*XX_z + YY_z*YY_z + ZZ_z*ZZ_z + 2.0*(XY_z*XY_z + YZ_z*YZ_z + XZ_z*XZ_z));
 			}
 		}
 	}
 	
-	return constraintValue/(3.0*splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz);
+	return (PrecisionTYPE)(constraintValue/(3.0*splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz));
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SplineTYPE>
@@ -659,7 +659,7 @@ PrecisionTYPE reg_bspline_jacobianValue(	nifti_image *splineControlPoint,
 	PrecisionTYPE zBasis[4],zFirst[4],temp[4],first[4];
 	PrecisionTYPE tempX[16], tempY[16], tempZ[16];
 	PrecisionTYPE basisX[64], basisY[64], basisZ[64];
-	PrecisionTYPE basis, FF, FFF, MF, oldBasis=1.1;
+	PrecisionTYPE basis, FF, FFF, MF, oldBasis=(PrecisionTYPE)(1.1);
 
 	PrecisionTYPE xControlPointCoordinates[64];
 	PrecisionTYPE yControlPointCoordinates[64];
@@ -699,14 +699,14 @@ PrecisionTYPE reg_bspline_jacobianValue(	nifti_image *splineControlPoint,
 		if(basis<0.0) basis=0.0; //rounding error
 		FF= basis*basis;
 		FFF= FF*basis;
-		MF=1.0-basis;
-		zBasis[0] = (MF)*(MF)*(MF)/6.0;
-		zBasis[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
-		zBasis[2] = (-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0;
-		zBasis[3] = FFF/6.0;
-		zFirst[3]= FF / 2.0;
-		zFirst[0]= basis - 1.0/2.0 - zFirst[3];
-		zFirst[2]= 1.0 + zFirst[0] - 2.0*zFirst[3];
+		MF=(PrecisionTYPE)(1.0-basis);
+		zBasis[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/6.0);
+		zBasis[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+		zBasis[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+		zBasis[3] = (PrecisionTYPE)(FFF/6.0);
+		zFirst[3]= (PrecisionTYPE)(FF / 2.0);
+		zFirst[0]= (PrecisionTYPE)(basis - 1.0/2.0 - zFirst[3]);
+		zFirst[2]= (PrecisionTYPE)(1.0 + zFirst[0] - 2.0*zFirst[3]);
 		zFirst[1]= - zFirst[0] - zFirst[2] - zFirst[3];
 		
 		for(int y=0; y<targetImage->ny; y++){
@@ -716,14 +716,14 @@ PrecisionTYPE reg_bspline_jacobianValue(	nifti_image *splineControlPoint,
 			if(basis<0.0) basis=0.0; //rounding error
 			FF= basis*basis;
 			FFF= FF*basis;
-			MF=1.0-basis;
-			temp[0] = (MF)*(MF)*(MF)/6.0;
-			temp[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
-			temp[2] = (-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0;
-			temp[3] = FFF/6.0;
-			first[3]= FF / 2.0;
-			first[0]= basis - 1.0/2.0 - first[3];
-			first[2]= 1.0 + first[0] - 2.0*first[3];
+			MF=(PrecisionTYPE)(1.0-basis);
+			temp[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/6.0);
+			temp[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+			temp[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+			temp[3] = (PrecisionTYPE)(FFF/6.0);
+			first[3]= (PrecisionTYPE)(FF / 2.0);
+			first[0]= (PrecisionTYPE)(basis - 1.0/2.0 - first[3]);
+			first[2]= (PrecisionTYPE)(1.0 + first[0] - 2.0*first[3]);
 			first[1]= - first[0] - first[2] - first[3];
 
 			coord=0;
@@ -743,14 +743,14 @@ PrecisionTYPE reg_bspline_jacobianValue(	nifti_image *splineControlPoint,
 				if(basis<0.0) basis=0.0; //rounding error
 				FF= basis*basis;
 				FFF= FF*basis;
-				MF=1.0-basis;
-				temp[0] = (MF)*(MF)*(MF)/6.0;
-				temp[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
-				temp[2] = (-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0;
-				temp[3] = FFF/6.0;
-				first[3]= FF / 2.0;
-				first[0]= basis - 1.0/2.0 - first[3];
-				first[2]= 1.0 + first[0] - 2.0*first[3];
+				MF=(PrecisionTYPE)(1.0-basis);
+				temp[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/6.0);
+				temp[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+				temp[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+				temp[3] = (PrecisionTYPE)(FFF/6.0);
+				first[3]= (PrecisionTYPE)(FF / 2.0);
+				first[0]= (PrecisionTYPE)(basis - 1.0/2.0 - first[3]);
+				first[2]= (PrecisionTYPE)(1.0 + first[0] - 2.0*first[3]);
 				first[1]= - first[0] - first[2] - first[3];
 
 				coord=0;
@@ -849,16 +849,16 @@ PrecisionTYPE reg_bspline_jacobianApproxValue(	nifti_image *splineControlPoint,
 	// As the contraint is only computed at the voxel position, the basis value of the spline are always the same 
 	PrecisionTYPE normal[4];
 	PrecisionTYPE first[4];
-	normal[0] = 1.0/6.0;
-	normal[1] = 2.0/3.0;
-	normal[2] = 1.0/6.0;
-	normal[3] = 0.0;
-	first[0] = -0.5;
-	first[1] = 0.0;
-	first[2] = 0.5;
-	first[3] = 0.0;
+	normal[0] = (PrecisionTYPE)(1.0/6.0);
+	normal[1] = (PrecisionTYPE)(2.0/3.0);
+	normal[2] = (PrecisionTYPE)(1.0/6.0);
+	normal[3] = (PrecisionTYPE)(0.0);
+	first[0] = (PrecisionTYPE)(-0.5);
+	first[1] = (PrecisionTYPE)(0.0);
+	first[2] = (PrecisionTYPE)(0.5);
+	first[3] = (PrecisionTYPE)(0.0);
 
-	PrecisionTYPE constraintValue=0.0;
+	PrecisionTYPE constraintValue= (PrecisionTYPE)(0.0);
 
 	// There are six different values taken into account
 	PrecisionTYPE tempX[16], tempY[16], tempZ[16];
@@ -1048,9 +1048,9 @@ void reg_voxelCentric2NodeCentric1(	nifti_image *nodeImage,
 			for(int x=0;x<nodeImage->nx; x++){
 				int X = (int)round((float)(x-1) * ratio[0]);
 				if(-1<Z && Z<voxelImage->nz && -1<Y && Y<voxelImage->ny && -1<X && X<voxelImage->nx){
-					*nodePtrX++ = yzvoxelPtrX[X];
-					*nodePtrY++ = yzvoxelPtrY[X];
-					*nodePtrZ++ = yzvoxelPtrZ[X];
+					*nodePtrX++ = (NodeTYPE)(yzvoxelPtrX[X]);
+					*nodePtrY++ = (NodeTYPE)(yzvoxelPtrY[X]);
+					*nodePtrZ++ = (NodeTYPE)(yzvoxelPtrZ[X]);
 				}
 				else{
 					*nodePtrX++ = 0.0;
@@ -1112,15 +1112,15 @@ void reg_bspline_bendingEnergyGradient1(	nifti_image *splineControlPoint,
 	PrecisionTYPE normal[3];
 	PrecisionTYPE first[3];
 	PrecisionTYPE second[3];
-	normal[0] = 1.0/6.0;
-	normal[1] = 2.0/3.0;
-	normal[2] = 1.0/6.0;
-	first[0] = -0.5;
-	first[1] = 0.0;
-	first[2] = 0.5;
-	second[0] = 1.0;
-	second[1] = -2.0;
-	second[2] = 1.0;
+	normal[0] = (PrecisionTYPE)(1.0/6.0);
+	normal[1] = (PrecisionTYPE)(2.0/3.0);
+	normal[2] = (PrecisionTYPE)(1.0/6.0);
+	first[0] = (PrecisionTYPE)(-0.5);
+	first[1] = (PrecisionTYPE)(0.0);
+	first[2] = (PrecisionTYPE)(0.5);
+	second[0] = (PrecisionTYPE)(1.0);
+	second[1] = (PrecisionTYPE)(-2.0);
+	second[2] = (PrecisionTYPE)(1.0);
 
 
 	int coord;
@@ -1155,7 +1155,7 @@ void reg_bspline_bendingEnergyGradient1(	nifti_image *splineControlPoint,
 		}
 	}
 	
-	PrecisionTYPE nodeNumber = splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz;
+	PrecisionTYPE nodeNumber = (PrecisionTYPE)(splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz);
 	PrecisionTYPE *derivativeValues = (PrecisionTYPE *)calloc(18*(int)nodeNumber, sizeof(PrecisionTYPE));
 	PrecisionTYPE *derivativeValuesPtr;
 
@@ -1233,24 +1233,24 @@ void reg_bspline_bendingEnergyGradient1(	nifti_image *splineControlPoint,
 					YZ_z += basisYZ[a]*zControlPointCoordinates[a];
 					XZ_z += basisXZ[a]*zControlPointCoordinates[a];
 				}
-				*derivativeValuesPtr++ = 2.0*XX_x;
-				*derivativeValuesPtr++ = 2.0*XX_y;
-				*derivativeValuesPtr++ = 2.0*XX_z;
-				*derivativeValuesPtr++ = 2.0*YY_x;
-				*derivativeValuesPtr++ = 2.0*YY_y;
-				*derivativeValuesPtr++ = 2.0*YY_z;
-				*derivativeValuesPtr++ = 2.0*ZZ_x;
-				*derivativeValuesPtr++ = 2.0*ZZ_y;
-				*derivativeValuesPtr++ = 2.0*ZZ_z;
-				*derivativeValuesPtr++ = 4.0*XY_x;
-				*derivativeValuesPtr++ = 4.0*XY_y;
-				*derivativeValuesPtr++ = 4.0*XY_z;
-				*derivativeValuesPtr++ = 4.0*YZ_x;
-				*derivativeValuesPtr++ = 4.0*YZ_y;
-				*derivativeValuesPtr++ = 4.0*YZ_z;
-				*derivativeValuesPtr++ = 4.0*XZ_x;
-				*derivativeValuesPtr++ = 4.0*XZ_y;
-				*derivativeValuesPtr++ = 4.0*XZ_z;
+				*derivativeValuesPtr++ = (PrecisionTYPE)(2.0*XX_x);
+				*derivativeValuesPtr++ = (PrecisionTYPE)(2.0*XX_y);
+				*derivativeValuesPtr++ = (PrecisionTYPE)(2.0*XX_z);
+				*derivativeValuesPtr++ = (PrecisionTYPE)(2.0*YY_x);
+				*derivativeValuesPtr++ = (PrecisionTYPE)(2.0*YY_y);
+				*derivativeValuesPtr++ = (PrecisionTYPE)(2.0*YY_z);
+				*derivativeValuesPtr++ = (PrecisionTYPE)(2.0*ZZ_x);
+				*derivativeValuesPtr++ = (PrecisionTYPE)(2.0*ZZ_y);
+				*derivativeValuesPtr++ = (PrecisionTYPE)(2.0*ZZ_z);
+				*derivativeValuesPtr++ = (PrecisionTYPE)(4.0*XY_x);
+				*derivativeValuesPtr++ = (PrecisionTYPE)(4.0*XY_y);
+				*derivativeValuesPtr++ = (PrecisionTYPE)(4.0*XY_z);
+				*derivativeValuesPtr++ = (PrecisionTYPE)(4.0*YZ_x);
+				*derivativeValuesPtr++ = (PrecisionTYPE)(4.0*YZ_y);
+				*derivativeValuesPtr++ = (PrecisionTYPE)(4.0*YZ_z);
+				*derivativeValuesPtr++ = (PrecisionTYPE)(4.0*XZ_x);
+				*derivativeValuesPtr++ = (PrecisionTYPE)(4.0*XZ_y);
+				*derivativeValuesPtr++ = (PrecisionTYPE)(4.0*XZ_z);
 			}
 		}
 	}
@@ -1305,12 +1305,12 @@ void reg_bspline_bendingEnergyGradient1(	nifti_image *splineControlPoint,
 						}
 					}
 				}
-				metricGradientValue[0] = *gradientXPtr;
-				metricGradientValue[1] = *gradientYPtr;
-				metricGradientValue[2] = *gradientZPtr;
-				*gradientXPtr++ = (1.0-weight)*metricGradientValue[0] + weight*gradientValue[0]/nodeNumber;
-				*gradientYPtr++ = (1.0-weight)*metricGradientValue[1] + weight*gradientValue[1]/nodeNumber;
-				*gradientZPtr++ = (1.0-weight)*metricGradientValue[2] + weight*gradientValue[2]/nodeNumber;
+				metricGradientValue[0] = (PrecisionTYPE)(*gradientXPtr);
+				metricGradientValue[1] = (PrecisionTYPE)(*gradientYPtr);
+				metricGradientValue[2] = (PrecisionTYPE)(*gradientZPtr);
+				*gradientXPtr++ = (SplineTYPE)((1.0-weight)*metricGradientValue[0] + weight*gradientValue[0]/nodeNumber);
+				*gradientYPtr++ = (SplineTYPE)((1.0-weight)*metricGradientValue[1] + weight*gradientValue[1]/nodeNumber);
+				*gradientZPtr++ = (SplineTYPE)((1.0-weight)*metricGradientValue[2] + weight*gradientValue[2]/nodeNumber);
 			}
 		}
 	}
@@ -1352,8 +1352,8 @@ void reg_bspline_jacobianDeterminantGradient1(	nifti_image *splineControlPoint,
 											 float weight)
 {
 	mat33 *jacobian = (mat33 *)malloc(sizeof(mat33));
-	PrecisionTYPE voxelNumber = targetImage->nx * targetImage->ny * targetImage->nz;
-	PrecisionTYPE nodeNumber = splineControlPoint->nx * splineControlPoint->ny * splineControlPoint->nz;
+	PrecisionTYPE voxelNumber = (PrecisionTYPE)(targetImage->nx * targetImage->ny * targetImage->nz);
+	PrecisionTYPE nodeNumber = (PrecisionTYPE)(splineControlPoint->nx * splineControlPoint->ny * splineControlPoint->nz);
 
 	PrecisionTYPE *twoLogDetJacArray = (PrecisionTYPE *)calloc((unsigned int)voxelNumber,sizeof(PrecisionTYPE));
 	mat33 *jacobianInverseArray = (mat33 *)calloc((unsigned int)voxelNumber,sizeof(mat33));
@@ -1370,7 +1370,7 @@ void reg_bspline_jacobianDeterminantGradient1(	nifti_image *splineControlPoint,
 	PrecisionTYPE zBasis[4],zFirst[4],temp[4],first[4];
 	PrecisionTYPE tempX[16], tempY[16], tempZ[16];
 	PrecisionTYPE basisX[64], basisY[64], basisZ[64];
-	PrecisionTYPE basis, FF, FFF, MF, oldBasis=1.1;
+	PrecisionTYPE basis, FF, FFF, MF, oldBasis=(PrecisionTYPE)(1.1);
 	int coord;
 	
 	PrecisionTYPE xControlPointCoordinates[64];
@@ -1407,15 +1407,15 @@ void reg_bspline_jacobianDeterminantGradient1(	nifti_image *splineControlPoint,
 		if(basis<0.0) basis=0.0; //rounding error
 		FF= basis*basis;
 		FFF= FF*basis;
-		MF=1.0-basis;
-		zBasis[0] = (MF)*(MF)*(MF)/6.0;
-		zBasis[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
-		zBasis[2] = (-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0;
-		zBasis[3] = FFF/6.0;
-		zFirst[3]= FF / 2.0;
-		zFirst[0]= basis - 1.0/2.0 - zFirst[3];
-		zFirst[2]= 1.0 + zFirst[0] - 2.0*zFirst[3];
-		zFirst[1]= - zFirst[0] - zFirst[2] - zFirst[3];
+		MF=(PrecisionTYPE)(1.0-basis);
+		zBasis[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/6.0);
+		zBasis[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+		zBasis[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+		zBasis[3] = (PrecisionTYPE)(FFF/6.0);
+		zFirst[3] = (PrecisionTYPE)(FF / 2.0);
+		zFirst[0] = (PrecisionTYPE)(basis - 1.0/2.0 - zFirst[3]);
+		zFirst[2] = (PrecisionTYPE)(1.0 + zFirst[0] - 2.0*zFirst[3]);
+		zFirst[1] = (PrecisionTYPE)(- zFirst[0] - zFirst[2] - zFirst[3]);
 		
 		for(int y=0; y<targetImage->ny; y++){
 			
@@ -1424,15 +1424,15 @@ void reg_bspline_jacobianDeterminantGradient1(	nifti_image *splineControlPoint,
 			if(basis<0.0) basis=0.0; //rounding error
 			FF= basis*basis;
 			FFF= FF*basis;
-			MF=1.0-basis;
-			temp[0] = (MF)*(MF)*(MF)/6.0;
-			temp[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
-			temp[2] = (-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0;
-			temp[3] = FFF/6.0;
-			first[3]= FF / 2.0;
-			first[0]= basis - 1.0/2.0 - first[3];
-			first[2]= 1.0 + first[0] - 2.0*first[3];
-			first[1]= - first[0] - first[2] - first[3];
+			MF=(PrecisionTYPE)(1.0-basis);
+			temp[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/6.0);
+			temp[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+			temp[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+			temp[3] = (PrecisionTYPE)(FFF/6.0);
+			first[3]= (PrecisionTYPE)(FF / 2.0);
+			first[0]= (PrecisionTYPE)(basis - 1.0/2.0 - first[3]);
+			first[2]= (PrecisionTYPE)(1.0 + first[0] - 2.0*first[3]);
+			first[1]= (PrecisionTYPE)(- first[0] - first[2] - first[3]);
 			
 			coord=0;
 			for(int c=0; c<4; c++){
@@ -1451,14 +1451,14 @@ void reg_bspline_jacobianDeterminantGradient1(	nifti_image *splineControlPoint,
 				if(basis<0.0) basis=0.0; //rounding error
 				FF= basis*basis;
 				FFF= FF*basis;
-				MF=1.0-basis;
-				temp[0] = (MF)*(MF)*(MF)/6.0;
-				temp[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
-				temp[2] = (-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0;
-				temp[3] = FFF/6.0;
-				first[3]= FF / 2.0;
-				first[0]= basis - 1.0/2.0 - first[3];
-				first[2]= 1.0 + first[0] - 2.0*first[3];
+				MF=(PrecisionTYPE)(1.0-basis);
+				temp[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/6.0);
+				temp[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+				temp[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+				temp[3] = (PrecisionTYPE)(FFF/6.0);
+				first[3]= (PrecisionTYPE)(FF / 2.0);
+				first[0]= (PrecisionTYPE)(basis - 1.0/2.0 - first[3]);
+				first[2]= (PrecisionTYPE)(1.0 + first[0] - 2.0*first[3]);
 				first[1]= - first[0] - first[2] - first[3];
 				
 				coord=0;
@@ -1529,11 +1529,11 @@ void reg_bspline_jacobianDeterminantGradient1(	nifti_image *splineControlPoint,
 				Ty_z /= splineControlPoint->dz;
 				Tz_z /= splineControlPoint->dz;
 				
-				jacobian->m[0][0]=Tx_x; jacobian->m[0][1]=Tx_y; jacobian->m[0][2]=Tx_z;
-				jacobian->m[1][0]=Ty_x; jacobian->m[1][1]=Ty_y; jacobian->m[1][2]=Ty_z;
-				jacobian->m[2][0]=Tz_x; jacobian->m[2][1]=Tz_y; jacobian->m[2][2]=Tz_z;
+				jacobian->m[0][0]=(float)Tx_x; jacobian->m[0][1]=(float)Tx_y; jacobian->m[0][2]=(float)Tx_z;
+				jacobian->m[1][0]=(float)Ty_x; jacobian->m[1][1]=(float)Ty_y; jacobian->m[1][2]=(float)Ty_z;
+				jacobian->m[2][0]=(float)Tz_x; jacobian->m[2][1]=(float)Tz_y; jacobian->m[2][2]=(float)Tz_z;
 				
-				*twoLogDetJacArrayPtr++ = 2.0*log(nifti_mat33_determ(*jacobian));
+				*twoLogDetJacArrayPtr++ = (PrecisionTYPE)(2.0*log(nifti_mat33_determ(*jacobian)));
 				*jacobianInverseArrayPtr++ = nifti_mat33_inverse(*jacobian);
 			}
 		}
@@ -1560,20 +1560,20 @@ void reg_bspline_jacobianDeterminantGradient1(	nifti_image *splineControlPoint,
 						if(basis<0.0) basis=0.0; //rounding error
 						PrecisionTYPE normalZ, firstZ;
 						switch(zPre - z + 3){
-							case 0:	normalZ=(1.0-basis)*(1.0-basis)*(1.0-basis)/6.0;
-								firstZ=(-basis*basis + 2.0*basis - 1.0)/2.0;
+							case 0:	normalZ=(PrecisionTYPE)((1.0-basis)*(1.0-basis)*(1.0-basis)/6.0);
+								firstZ=(PrecisionTYPE)((-basis*basis + 2.0*basis - 1.0)/2.0);
 								break;
-							case 1:	normalZ=(3.0*basis*basis*basis - 6.0*basis*basis +4.0)/6.0;
-								firstZ=(3.0*basis*basis - 4.0*basis)/2.0;
+							case 1:	normalZ=(PrecisionTYPE)((3.0*basis*basis*basis - 6.0*basis*basis +4.0)/6.0);
+								firstZ=(PrecisionTYPE)((3.0*basis*basis - 4.0*basis)/2.0);
 								break;
-							case 2:	normalZ=(-3.0*basis*basis*basis + 3.0*basis*basis + 3.0*basis + 1.0)/6.0;
-								firstZ=(-3.0*basis*basis + 2.0*basis + 1.0)/2.0;
+							case 2:	normalZ=(PrecisionTYPE)((-3.0*basis*basis*basis + 3.0*basis*basis + 3.0*basis + 1.0)/6.0);
+								firstZ=(PrecisionTYPE)((-3.0*basis*basis + 2.0*basis + 1.0)/2.0);
 								break;
-							case 3:	normalZ=basis*basis*basis/6.0;
-								firstZ=basis*basis/2.0;
+							case 3:	normalZ=(PrecisionTYPE)(basis*basis*basis/6.0);
+								firstZ=(PrecisionTYPE)(basis*basis/2.0);
 								break;
-							default:normalZ=0.0;
-								firstZ=0.0;
+							default:normalZ=(PrecisionTYPE)(0.0);
+								firstZ=(PrecisionTYPE)(0.0);
 								break;
 						}
 						
@@ -1584,20 +1584,20 @@ void reg_bspline_jacobianDeterminantGradient1(	nifti_image *splineControlPoint,
 								if(basis<0.0) basis=0.0; //rounding error
 								PrecisionTYPE normalY, firstY;
 								switch(yPre - y + 3){
-									case 0:	normalY=(1.0-basis)*(1.0-basis)*(1.0-basis)/6.0;
-										firstY=(-basis*basis + 2.0*basis - 1.0)/2.0;
+									case 0:	normalY=(PrecisionTYPE)((1.0-basis)*(1.0-basis)*(1.0-basis)/6.0);
+										firstY=(PrecisionTYPE)((-basis*basis + 2.0*basis - 1.0)/2.0);
 										break;
-									case 1:	normalY=(3.0*basis*basis*basis - 6.0*basis*basis +4.0)/6.0;
-										firstY=(3.0*basis*basis - 4.0*basis)/2.0;
+									case 1:	normalY=(PrecisionTYPE)((3.0*basis*basis*basis - 6.0*basis*basis +4.0)/6.0);
+										firstY=(PrecisionTYPE)((3.0*basis*basis - 4.0*basis)/2.0);
 										break;
-									case 2:	normalY=(-3.0*basis*basis*basis + 3.0*basis*basis + 3.0*basis + 1.0)/6.0;
-										firstY=(-3.0*basis*basis + 2.0*basis + 1.0)/2.0;
+									case 2:	normalY=(PrecisionTYPE)((-3.0*basis*basis*basis + 3.0*basis*basis + 3.0*basis + 1.0)/6.0);
+										firstY=(PrecisionTYPE)((-3.0*basis*basis + 2.0*basis + 1.0)/2.0);
 										break;
-									case 3:	normalY=basis*basis*basis/6.0;
-										firstY=basis*basis/2.0;
+									case 3:	normalY=(PrecisionTYPE)(basis*basis*basis/6.0);
+										firstY=(PrecisionTYPE)(basis*basis/2.0);
 										break;
-									default:normalY=0.0;
-										firstY=0.0;
+									default:normalY=(PrecisionTYPE)(0.0);
+										firstY=(PrecisionTYPE)(0.0);
 										break;
 								}
 								
@@ -1609,20 +1609,20 @@ void reg_bspline_jacobianDeterminantGradient1(	nifti_image *splineControlPoint,
 										PrecisionTYPE normalX, firstX;
 										switch(xPre - x + 3){
 												//											case 0:	normalX=(1.0-basis)*(1.0-basis)*(1.0-basis)/6.0;
-											case 0:	normalX=(-basis*basis*basis + 3.0*basis*basis - 3.0*basis + 1.0)/6.0;
-												firstX=(-basis*basis + 2.0*basis - 1.0)/2.0;
+											case 0:	normalX=(PrecisionTYPE)((-basis*basis*basis + 3.0*basis*basis - 3.0*basis + 1.0)/6.0);
+												firstX=(PrecisionTYPE)((-basis*basis + 2.0*basis - 1.0)/2.0);
 												break;
-											case 1:	normalX=(3.0*basis*basis*basis - 6.0*basis*basis +4.0)/6.0;
-												firstX=(3.0*basis*basis - 4.0*basis)/2.0;
+											case 1:	normalX=(PrecisionTYPE)((3.0*basis*basis*basis - 6.0*basis*basis +4.0)/6.0);
+												firstX=(PrecisionTYPE)((3.0*basis*basis - 4.0*basis)/2.0);
 												break;
-											case 2:	normalX=(-3.0*basis*basis*basis + 3.0*basis*basis + 3.0*basis + 1.0)/6.0;
-												firstX=(-3.0*basis*basis + 2.0*basis + 1.0)/2.0;
+											case 2:	normalX=(PrecisionTYPE)((-3.0*basis*basis*basis + 3.0*basis*basis + 3.0*basis + 1.0)/6.0);
+												firstX=(PrecisionTYPE)((-3.0*basis*basis + 2.0*basis + 1.0)/2.0);
 												break;
-											case 3:	normalX=basis*basis*basis/6.0;
-												firstX=basis*basis/2.0;
+											case 3:	normalX=(PrecisionTYPE)(basis*basis*basis/6.0);
+												firstX=(PrecisionTYPE)(basis*basis/2.0);
 												break;
-											default:normalX=0.0;
-												firstX=0.0;
+											default:normalX=(PrecisionTYPE)(0.0);
+												firstX=(PrecisionTYPE)(0.0);
 												break;
 										}
 										int indexJacobian=(Z*targetImage->ny+Y)*targetImage->nx+X;
@@ -1659,17 +1659,17 @@ void reg_bspline_jacobianDeterminantGradient1(	nifti_image *splineControlPoint,
 				
 				if(!negativeJacobian){
 					PrecisionTYPE metricGradientValue[3];
-					metricGradientValue[0] = *gradientX;
-					metricGradientValue[1] = *gradientY;
-					metricGradientValue[2] = *gradientZ;
-					*gradientX++ = (1.0-weight)*metricGradientValue[0] + weight*gradientValue[0]/voxelNumber;
-					*gradientY++ = (1.0-weight)*metricGradientValue[1] + weight*gradientValue[1]/voxelNumber;
-					*gradientZ++ = (1.0-weight)*metricGradientValue[2] + weight*gradientValue[2]/voxelNumber;
+					metricGradientValue[0] = (PrecisionTYPE)(*gradientX);
+					metricGradientValue[1] = (PrecisionTYPE)(*gradientY);
+					metricGradientValue[2] = (PrecisionTYPE)(*gradientZ);
+					*gradientX++ = (SplineTYPE)((1.0-weight)*metricGradientValue[0] + weight*gradientValue[0]/voxelNumber);
+					*gradientY++ = (SplineTYPE)((1.0-weight)*metricGradientValue[1] + weight*gradientValue[1]/voxelNumber);
+					*gradientZ++ = (SplineTYPE)((1.0-weight)*metricGradientValue[2] + weight*gradientValue[2]/voxelNumber);
 				}
 				else{
-					*gradientX++ = weight*gradientValue[0]/voxelNumber;
-					*gradientY++ = weight*gradientValue[1]/voxelNumber;
-					*gradientZ++ = weight*gradientValue[2]/voxelNumber;
+					*gradientX++ = (SplineTYPE)(weight*gradientValue[0]/voxelNumber);
+					*gradientY++ = (SplineTYPE)(weight*gradientValue[1]/voxelNumber);
+					*gradientZ++ = (SplineTYPE)(weight*gradientValue[2]/voxelNumber);
 				}
 			}
 		}
@@ -1686,7 +1686,7 @@ void reg_bspline_jacobianDeterminantGradientApprox(	nifti_image *splineControlPo
 							float weight)
 {
 	mat33 *jacobian = (mat33 *)malloc(sizeof(mat33));
-	PrecisionTYPE nodeNumber = splineControlPoint->nx * splineControlPoint->ny * splineControlPoint->nz;
+	PrecisionTYPE nodeNumber = (PrecisionTYPE)(splineControlPoint->nx * splineControlPoint->ny * splineControlPoint->nz);
 	
 	PrecisionTYPE *twoLogDetJacArray = (PrecisionTYPE *)calloc((unsigned int)nodeNumber,sizeof(PrecisionTYPE));
 	mat33 *jacobianInverseArray = (mat33 *)calloc((unsigned int)nodeNumber,sizeof(mat33));
@@ -1702,14 +1702,14 @@ void reg_bspline_jacobianDeterminantGradientApprox(	nifti_image *splineControlPo
 	
 	PrecisionTYPE normal[4];
 	PrecisionTYPE first[4];
-	normal[0] = 1.0/6.0;
-	normal[1] = 2.0/3.0;
-	normal[2] = 1.0/6.0;
-	normal[3] = 0.0;
-	first[0] = -0.5;
-	first[1] = 0.0;
-	first[2] = 0.5;
-	first[3] = 0.0;
+	normal[0] = (PrecisionTYPE)(1.0/6.0);
+	normal[1] = (PrecisionTYPE)(2.0/3.0);
+	normal[2] = (PrecisionTYPE)(1.0/6.0);
+	normal[3] = (PrecisionTYPE)(0.0);
+	first[0] = (PrecisionTYPE)(-0.5);
+	first[1] = (PrecisionTYPE)(0.0);
+	first[2] = (PrecisionTYPE)(0.5);
+	first[3] = (PrecisionTYPE)(0.0);
 	
 	// There are six different values taken into account
 	PrecisionTYPE tempX[16], tempY[16], tempZ[16];
@@ -1830,11 +1830,11 @@ void reg_bspline_jacobianDeterminantGradientApprox(	nifti_image *splineControlPo
 				Ty_z /= splineControlPoint->dz;
 				Tz_z /= splineControlPoint->dz;
 				
-				jacobian->m[0][0]=Tx_x; jacobian->m[0][1]=Tx_y; jacobian->m[0][2]=Tx_z;
-				jacobian->m[1][0]=Ty_x; jacobian->m[1][1]=Ty_y; jacobian->m[1][2]=Ty_z;
-				jacobian->m[2][0]=Tz_x; jacobian->m[2][1]=Tz_y; jacobian->m[2][2]=Tz_z;
+				jacobian->m[0][0]=(float)Tx_x; jacobian->m[0][1]=(float)Tx_y; jacobian->m[0][2]=(float)Tx_z;
+				jacobian->m[1][0]=(float)Ty_x; jacobian->m[1][1]=(float)Ty_y; jacobian->m[1][2]=(float)Ty_z;
+				jacobian->m[2][0]=(float)Tz_x; jacobian->m[2][1]=(float)Tz_y; jacobian->m[2][2]=(float)Tz_z;
 				
-				*twoLogDetJacArrayPtr++ = 2.0*log(nifti_mat33_determ(*jacobian));
+				*twoLogDetJacArrayPtr++ = (PrecisionTYPE)(2.0*log(nifti_mat33_determ(*jacobian)));
 				*jacobianInverseArrayPtr++ = nifti_mat33_inverse(*jacobian);
 			}
 		}
@@ -1858,60 +1858,60 @@ void reg_bspline_jacobianDeterminantGradientApprox(	nifti_image *splineControlPo
 					if(Z>-1 && Z<splineControlPoint->nz){
 						PrecisionTYPE normalZ, firstZ;
 						switch(Z - z + 1){
-							case 0:	normalZ=1.0/6.0;
-								firstZ=-1.0/2.0;
+							case 0:	normalZ=(PrecisionTYPE)(1.0/6.0);
+								firstZ=(PrecisionTYPE)(-1.0/2.0);
 								break;
-							case 1:	normalZ=2.0/3.0;
-								firstZ=0.0;
+							case 1:	normalZ=(PrecisionTYPE)(2.0/3.0);
+								firstZ=(PrecisionTYPE)(0.0);
 								break;
-							case 2:	normalZ=1.0/6.0;
-								firstZ=1.0/2.0;
+							case 2:	normalZ=(PrecisionTYPE)(1.0/6.0);
+								firstZ=(PrecisionTYPE)(1.0/2.0);
 								break;
-							case 3:	normalZ=0.0;
-								firstZ=0.0;
+							case 3:	normalZ=(PrecisionTYPE)(0.0);
+								firstZ=(PrecisionTYPE)(0.0);
 								break;
-							default:normalZ=0.0;
-								firstZ=0.0;
+							default:normalZ=(PrecisionTYPE)(0.0);
+								firstZ=(PrecisionTYPE)(0.0);
 								break;
 						}
 						for(int Y=y-1; Y<y+2; Y++){
 							if(Y>-1 && Y<splineControlPoint->ny){
 								PrecisionTYPE normalY, firstY;
 								switch(Y - y + 1){
-									case 0:	normalY=1.0/6.0;
-										firstY=-1.0/2.0;
+									case 0:	normalY=(PrecisionTYPE)(1.0/6.0);
+										firstY=(PrecisionTYPE)(-1.0/2.0);
 										break;
-									case 1:	normalY=2.0/3.0;
-										firstY=0.0;
+									case 1:	normalY=(PrecisionTYPE)(2.0/3.0);
+										firstY=(PrecisionTYPE)(0.0);
 										break;
-									case 2:	normalY=1.0/6.0;
-										firstY=1.0/2.0;
+									case 2:	normalY=(PrecisionTYPE)(1.0/6.0);
+										firstY=(PrecisionTYPE)(1.0/2.0);
 										break;
-									case 3:	normalY=0.0;
-										firstY=0.0;
+									case 3:	normalY=(PrecisionTYPE)(0.0);
+										firstY=(PrecisionTYPE)(0.0);
 										break;
-									default:normalY=0.0;
-										firstY=0.0;
+									default:normalY=(PrecisionTYPE)(0.0);
+										firstY=(PrecisionTYPE)(0.0);
 										break;
 								}
 								for(int X=x-1; X<x+2; X++){
 									if(X>-1 && X<splineControlPoint->nx){
 										PrecisionTYPE normalX, firstX;
 										switch(X - x + 1){
-											case 0:	normalX=1.0/6.0;
-												firstX=-1.0/2.0;
+											case 0:	normalX=(PrecisionTYPE)(1.0/6.0);
+												firstX=(PrecisionTYPE)(-1.0/2.0);
 												break;
-											case 1:	normalX=2.0/3.0;
-												firstX=0.0;
+											case 1:	normalX=(PrecisionTYPE)(2.0/3.0);
+												firstX=(PrecisionTYPE)(0.0);
 												break;
-											case 2:	normalX=1.0/6.0;
-												firstX=1.0/2.0;
+											case 2:	normalX=(PrecisionTYPE)(1.0/6.0);
+												firstX=(PrecisionTYPE)(1.0/2.0);
 												break;
-											case 3:	normalX=0.0;
-												firstX=0.0;
+											case 3:	normalX=(PrecisionTYPE)(0.0);
+												firstX=(PrecisionTYPE)(0.0);
 												break;
-											default:normalX=0.0;
-												firstX=0.0;
+											default:normalX=(PrecisionTYPE)(0.0);
+												firstX=(PrecisionTYPE)(0.0);
 												break;
 										}
 										int indexJacobian=(Z*splineControlPoint->ny+Y)*splineControlPoint->nx+X;
@@ -1946,17 +1946,17 @@ void reg_bspline_jacobianDeterminantGradientApprox(	nifti_image *splineControlPo
 				}
 				if(!negativeJacobian){
 					PrecisionTYPE metricGradientValue[3];
-					metricGradientValue[0] = *gradientX;
-					metricGradientValue[1] = *gradientY;
-					metricGradientValue[2] = *gradientZ;
-					*gradientX++ = (1.0-weight)*metricGradientValue[0] + weight*gradientValue[0]*nodeNumber*orientation[0];
-					*gradientY++ = (1.0-weight)*metricGradientValue[1] + weight*gradientValue[1]*nodeNumber*orientation[1];
-					*gradientZ++ = (1.0-weight)*metricGradientValue[2] + weight*gradientValue[2]*nodeNumber*orientation[2];
+					metricGradientValue[0] = (PrecisionTYPE)(*gradientX);
+					metricGradientValue[1] = (PrecisionTYPE)(*gradientY);
+					metricGradientValue[2] = (PrecisionTYPE)(*gradientZ);
+					*gradientX++ = (SplineTYPE)((1.0-weight)*metricGradientValue[0] + weight*gradientValue[0]*nodeNumber*orientation[0]);
+					*gradientY++ = (SplineTYPE)((1.0-weight)*metricGradientValue[1] + weight*gradientValue[1]*nodeNumber*orientation[1]);
+					*gradientZ++ = (SplineTYPE)((1.0-weight)*metricGradientValue[2] + weight*gradientValue[2]*nodeNumber*orientation[2]);
 				}
 				else{
-					*gradientX++ = weight*gradientValue[0]*nodeNumber*orientation[0];
-					*gradientY++ = weight*gradientValue[1]*nodeNumber*orientation[1];
-					*gradientZ++ = weight*gradientValue[2]*nodeNumber*orientation[2];
+					*gradientX++ = (SplineTYPE)(weight*gradientValue[0]*nodeNumber*orientation[0]);
+					*gradientY++ = (SplineTYPE)(weight*gradientValue[1]*nodeNumber*orientation[1]);
+					*gradientZ++ = (SplineTYPE)(weight*gradientValue[2]*nodeNumber*orientation[2]);
 				}
 			}
 		}
@@ -2372,7 +2372,7 @@ void reg_bspline_GetJacobianMap2(nifti_image *splineControlPoint,
 	JacobianTYPE zBasis[4],zFirst[4],temp[4],first[4];
 	JacobianTYPE tempX[16], tempY[16], tempZ[16];
 	JacobianTYPE basisX[64], basisY[64], basisZ[64];
-	JacobianTYPE basis, FF, FFF, MF, oldBasis=1.1;
+	JacobianTYPE basis, FF, FFF, MF, oldBasis=(JacobianTYPE)(1.1);
 	
 	JacobianTYPE xControlPointCoordinates[64];
 	JacobianTYPE yControlPointCoordinates[64];
@@ -2409,15 +2409,15 @@ void reg_bspline_GetJacobianMap2(nifti_image *splineControlPoint,
 		if(basis<0.0) basis=0.0; //rounding error
 		FF= basis*basis;
 		FFF= FF*basis;
-		MF=1.0-basis;
-		zBasis[0] = (MF)*(MF)*(MF)/6.0;
-		zBasis[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
-		zBasis[2] = (-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0;
-		zBasis[3] = FFF/6.0;
-		zFirst[3]= FF / 2.0;
-		zFirst[0]= basis - 1.0/2.0 - zFirst[3];
-		zFirst[2]= 1.0 + zFirst[0] - 2.0*zFirst[3];
-		zFirst[1]= - zFirst[0] - zFirst[2] - zFirst[3];
+		MF=(JacobianTYPE)(1.0-basis);
+		zBasis[0] = (JacobianTYPE)((MF)*(MF)*(MF)/6.0);
+		zBasis[1] = (JacobianTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+		zBasis[2] = (JacobianTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+		zBasis[3] = (JacobianTYPE)(FFF/6.0);
+		zFirst[3] = (JacobianTYPE)(FF / 2.0);
+		zFirst[0]= (JacobianTYPE)(basis - 1.0/2.0 - zFirst[3]);
+		zFirst[2]= (JacobianTYPE)(1.0 + zFirst[0] - 2.0*zFirst[3]);
+		zFirst[1]= (JacobianTYPE)(- zFirst[0] - zFirst[2] - zFirst[3]);
 		
 		for(int y=0; y<jacobianImage->ny; y++){
 			
@@ -2426,15 +2426,15 @@ void reg_bspline_GetJacobianMap2(nifti_image *splineControlPoint,
 			if(basis<0.0) basis=0.0; //rounding error
 			FF= basis*basis;
 			FFF= FF*basis;
-			MF=1.0-basis;
-			temp[0] = (MF)*(MF)*(MF)/6.0;
-			temp[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
-			temp[2] = (-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0;
-			temp[3] = FFF/6.0;
-			first[3]= FF / 2.0;
-			first[0]= basis - 1.0/2.0 - first[3];
-			first[2]= 1.0 + first[0] - 2.0*first[3];
-			first[1]= - first[0] - first[2] - first[3];
+			MF=(JacobianTYPE)(1.0-basis);
+			temp[0] = (JacobianTYPE)((MF)*(MF)*(MF)/6.0);
+			temp[1] = (JacobianTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+			temp[2] = (JacobianTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+			temp[3] = (JacobianTYPE)(FFF/6.0);
+			first[3]= (JacobianTYPE)(FF / 2.0);
+			first[0]= (JacobianTYPE)(basis - 1.0/2.0 - first[3]);
+			first[2]= (JacobianTYPE)(1.0 + first[0] - 2.0*first[3]);
+			first[1]= (JacobianTYPE)(- first[0] - first[2] - first[3]);
 			
 			coord=0;
 			for(int c=0; c<4; c++){
@@ -2453,15 +2453,15 @@ void reg_bspline_GetJacobianMap2(nifti_image *splineControlPoint,
 				if(basis<0.0) basis=0.0; //rounding error
 				FF= basis*basis;
 				FFF= FF*basis;
-				MF=1.0-basis;
-				temp[0] = (MF)*(MF)*(MF)/6.0;
-				temp[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
-				temp[2] = (-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0;
-				temp[3] = FFF/6.0;
-				first[3]= FF / 2.0;
-				first[0]= basis - 1.0/2.0 - first[3];
-				first[2]= 1.0 + first[0] - 2.0*first[3];
-				first[1]= - first[0] - first[2] - first[3];
+				MF=(JacobianTYPE)(1.0-basis);
+				temp[0] = (JacobianTYPE)((MF)*(MF)*(MF)/6.0);
+				temp[1] = (JacobianTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+				temp[2] = (JacobianTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+				temp[3] = (JacobianTYPE)(FFF/6.0);
+				first[3]= (JacobianTYPE)(FF / 2.0);
+				first[0]= (JacobianTYPE)(basis - 1.0/2.0 - first[3]);
+				first[2]= (JacobianTYPE)(1.0 + first[0] - 2.0*first[3]);
+				first[1]= (JacobianTYPE)(- first[0] - first[2] - first[3]);
 				
 				coord=0;
 				for(int bc=0; bc<16; bc++){
@@ -2595,7 +2595,7 @@ void reg_bspline_GetJacobianMatrix2(nifti_image *splineControlPoint,
 	JacobianTYPE zBasis[4],zFirst[4],temp[4],first[4];
 	JacobianTYPE tempX[16], tempY[16], tempZ[16];
 	JacobianTYPE basisX[64], basisY[64], basisZ[64];
-	JacobianTYPE basis, FF, FFF, MF, oldBasis=1.1;
+	JacobianTYPE basis, FF, FFF, MF, oldBasis=(JacobianTYPE)(1.1);
 	
 	JacobianTYPE xControlPointCoordinates[64];
 	JacobianTYPE yControlPointCoordinates[64];
@@ -2633,15 +2633,15 @@ void reg_bspline_GetJacobianMatrix2(nifti_image *splineControlPoint,
 		if(basis<0.0) basis=0.0; //rounding error
 		FF= basis*basis;
 		FFF= FF*basis;
-		MF=1.0-basis;
-		zBasis[0] = (MF)*(MF)*(MF)/6.0;
-		zBasis[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
-		zBasis[2] = (-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0;
-		zBasis[3] = FFF/6.0;
-		zFirst[3]= FF / 2.0;
-		zFirst[0]= basis - 1.0/2.0 - zFirst[3];
-		zFirst[2]= 1.0 + zFirst[0] - 2.0*zFirst[3];
-		zFirst[1]= - zFirst[0] - zFirst[2] - zFirst[3];
+		MF=(JacobianTYPE)(1.0-basis);
+		zBasis[0] = (JacobianTYPE)((MF)*(MF)*(MF)/6.0);
+		zBasis[1] = (JacobianTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+		zBasis[2] = (JacobianTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+		zBasis[3] = (JacobianTYPE)(FFF/6.0);
+		zFirst[3] = (JacobianTYPE)(FF / 2.0);
+		zFirst[0] = (JacobianTYPE)(basis - 1.0/2.0 - zFirst[3]);
+		zFirst[2] = (JacobianTYPE)(1.0 + zFirst[0] - 2.0*zFirst[3]);
+		zFirst[1] = (JacobianTYPE)(- zFirst[0] - zFirst[2] - zFirst[3]);
 		
 		for(int y=0; y<jacobianImage->ny; y++){
 			
@@ -2650,15 +2650,15 @@ void reg_bspline_GetJacobianMatrix2(nifti_image *splineControlPoint,
 			if(basis<0.0) basis=0.0; //rounding error
 			FF= basis*basis;
 			FFF= FF*basis;
-			MF=1.0-basis;
-			temp[0] = (MF)*(MF)*(MF)/6.0;
-			temp[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
-			temp[2] = (-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0;
-			temp[3] = FFF/6.0;
-			first[3]= FF / 2.0;
-			first[0]= basis - 1.0/2.0 - first[3];
-			first[2]= 1.0 + first[0] - 2.0*first[3];
-			first[1]= - first[0] - first[2] - first[3];
+			MF=(JacobianTYPE)(1.0-basis);
+			temp[0] = (JacobianTYPE)((MF)*(MF)*(MF)/6.0);
+			temp[1] = (JacobianTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+			temp[2] = (JacobianTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+			temp[3] = (JacobianTYPE)(FFF/6.0);
+			first[3]= (JacobianTYPE)(FF / 2.0);
+			first[0]= (JacobianTYPE)(basis - 1.0/2.0 - first[3]);
+			first[2]= (JacobianTYPE)(1.0 + first[0] - 2.0*first[3]);
+			first[1]= (JacobianTYPE)(- first[0] - first[2] - first[3]);
 			
 			coord=0;
 			for(int c=0; c<4; c++){
@@ -2677,15 +2677,15 @@ void reg_bspline_GetJacobianMatrix2(nifti_image *splineControlPoint,
 				if(basis<0.0) basis=0.0; //rounding error
 				FF= basis*basis;
 				FFF= FF*basis;
-				MF=1.0-basis;
-				temp[0] = (MF)*(MF)*(MF)/6.0;
-				temp[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
-				temp[2] = (-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0;
-				temp[3] = FFF/6.0;
-				first[3]= FF / 2.0;
-				first[0]= basis - 1.0/2.0 - first[3];
-				first[2]= 1.0 + first[0] - 2.0*first[3];
-				first[1]= - first[0] - first[2] - first[3];
+				MF=(JacobianTYPE)(1.0-basis);
+				temp[0] = (JacobianTYPE)((MF)*(MF)*(MF)/6.0);
+				temp[1] = (JacobianTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+				temp[2] = (JacobianTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+				temp[3] = (JacobianTYPE)(FFF/6.0);
+				first[3]= (JacobianTYPE)(FF / 2.0);
+				first[0]= (JacobianTYPE)(basis - 1.0/2.0 - first[3]);
+				first[2]= (JacobianTYPE)(1.0 + first[0] - 2.0*first[3]);
+				first[1]= (JacobianTYPE)(- first[0] - first[2] - first[3]);
 				
 				coord=0;
 				for(int bc=0; bc<16; bc++){
@@ -2829,11 +2829,11 @@ void reg_bspline_initialiseControlPointGridWithAffine1(	mat44 *affineTransformat
     float index[3];
     float position[3];
     for(int z=0; z<controlPointImage->nz; z++){
-        index[2]=z;
+        index[2]=(float)z;
         for(int y=0; y<controlPointImage->ny; y++){
-            index[1]=y;
+            index[1]=(float)y;
             for(int x=0; x<controlPointImage->nx; x++){
-                index[0]=x;
+                index[0]=(float)x;
 
                 reg_mat44_mul(&voxelToRealDeformed, index, position);
 

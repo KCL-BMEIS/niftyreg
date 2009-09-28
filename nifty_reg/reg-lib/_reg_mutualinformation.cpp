@@ -22,7 +22,7 @@ PrecisionTYPE GetBasisSplineValue(PrecisionTYPE x)
 	PrecisionTYPE value=0.0;
 	if(x<2.0)
 		if(x<1.0)
-			value = 2.0f/3.0f + (0.5f*x-1.0)*x*x;
+			value = (PrecisionTYPE)(2.0f/3.0f + (0.5f*x-1.0)*x*x);
 		else{
 			x-=2.0f;
 			value = -x*x*x/6.0f;
@@ -37,7 +37,7 @@ PrecisionTYPE GetBasisSplineDerivativeValue(PrecisionTYPE ori)
 	PrecisionTYPE value=0.0;
 	if(x<2.0)
 		if(x<1.0)
-			value = (1.5f*x-2.0)*ori;
+			value = (PrecisionTYPE)((1.5f*x-2.0)*ori);
 		else{
 			x-=2.0f;
 			value = -0.5f * x * x;
@@ -96,8 +96,8 @@ void reg_getEntropies3(	nifti_image *targetImage,
 			for(unsigned int index=0; index<targetImage->nvox; index++){
 				TargetTYPE targetInt = *targetPtr++;
 				ResultTYPE resultInt = *resultPtr++;
-				if(targetInt>(TargetTYPE)0 && targetInt<(TargetTYPE) binning && resultInt>(ResultTYPE)0 && resultInt<(ResultTYPE)binning){
-					probaJointHistogram[(unsigned int)((floorf(targetInt) * binning + floorf(resultInt)))]++;
+				if(targetInt>(TargetTYPE)(0) && targetInt<(TargetTYPE)(binning) && resultInt>(ResultTYPE)(0) && resultInt<(ResultTYPE)(binning)){
+					probaJointHistogram[(unsigned int)((floorf((float)targetInt) * binning + floorf((float)resultInt)))]++;
 					voxelNumber++;
 				}
 			}
@@ -131,7 +131,7 @@ void reg_getEntropies3(	nifti_image *targetImage,
 				TargetTYPE targetInt = *targetPtr++;
 				ResultTYPE resultInt = *resultPtr++;
 				if((float)targetInt>=0 && targetInt<(TargetTYPE) binning && (float)resultInt>=0 && resultInt<(ResultTYPE)binning){
-					probaJointHistogram[(unsigned int)(floorf(targetInt) * binning + floorf(resultInt))]++;
+					probaJointHistogram[(unsigned int)(floorf((float)targetInt) * binning + floorf((float)resultInt))]++;
 					voxelNumber++;
 				}
 			}
@@ -140,14 +140,14 @@ void reg_getEntropies3(	nifti_image *targetImage,
 	if(type==2){ // parzen windows approximation by smoothing the classical approach
 		// the logJointHistogram array is used as a temporary array
 		PrecisionTYPE window[3];
-		window[0]=window[2]=GetBasisSplineValue(-1.0);
-		window[1]=GetBasisSplineValue(0.0);
+		window[0]=window[2]=GetBasisSplineValue((PrecisionTYPE)(-1.0));
+		window[1]=GetBasisSplineValue((PrecisionTYPE)(0.0));
 		
 		//The joint histogram is smoothed along the target axis
 		for(int s=0; s<binning; s++){
 			for(int t=0; t<binning; t++){
 	
-				PrecisionTYPE value=0.0;
+				PrecisionTYPE value=(PrecisionTYPE)(0.0);
 				targetIndex = t-1;
 				PrecisionTYPE *ptrHisto = &probaJointHistogram[targetIndex*binning+s];
 				
@@ -368,9 +368,9 @@ void reg_getVoxelBasedNMIGradientUsingPW4(	nifti_image *targetImage,
 					if(targetValue && resultValue){
 
 						PrecisionTYPE resDeriv[3];
-						resDeriv[0] = *resultGradientPtrX / entropies[3];
-						resDeriv[1] = *resultGradientPtrY / entropies[3];
-						resDeriv[2] = *resultGradientPtrZ / entropies[3];
+						resDeriv[0] = (PrecisionTYPE)(*resultGradientPtrX / entropies[3]);
+						resDeriv[1] = (PrecisionTYPE)(*resultGradientPtrY / entropies[3]);
+						resDeriv[2] = (PrecisionTYPE)(*resultGradientPtrZ / entropies[3]);
 
 						PrecisionTYPE jointEntropyDerivative_X = 0.0;
 						PrecisionTYPE movingEntropyDerivative_X = 0.0;
@@ -440,9 +440,9 @@ void reg_getVoxelBasedNMIGradientUsingPW4(	nifti_image *targetImage,
 					ResultTYPE resultValue = *resultPtr++;
 					
 					PrecisionTYPE resDeriv[3];
-					resDeriv[0] = *resultGradientPtrX / entropies[3];
-					resDeriv[1] = *resultGradientPtrY / entropies[3];
-					resDeriv[2] = *resultGradientPtrZ / entropies[3];
+					resDeriv[0] = (PrecisionTYPE)(*resultGradientPtrX / entropies[3]);
+					resDeriv[1] = (PrecisionTYPE)(*resultGradientPtrY / entropies[3]);
+					resDeriv[2] = (PrecisionTYPE)(*resultGradientPtrZ / entropies[3]);
 					
 					PrecisionTYPE jointEntropyDerivative_X = 0.0;
 					PrecisionTYPE movingEntropyDerivative_X = 0.0;
