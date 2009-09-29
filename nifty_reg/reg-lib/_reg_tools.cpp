@@ -773,8 +773,8 @@ void reg_gaussianSmoothing1(	nifti_image *image,
 			kernelSum += kernel[radius+i];
 		}
 		for(int i=-radius; i<=radius; i++) kernel[radius+i] /= kernelSum;
-#ifdef _DEBUG
-		printf("[DEBUG]smoothing dim[%i] radius[%i] kernelSum[%g]\n", n, radius, kernelSum);
+#ifdef _VERBOSE
+		printf("[VERBOSE]smoothing dim[%i] radius[%i] kernelSum[%g]\n", n, radius, kernelSum);
 #endif
 		int increment=1;
 		switch(n){

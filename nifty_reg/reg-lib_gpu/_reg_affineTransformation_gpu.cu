@@ -55,8 +55,8 @@ void reg_affine_positionField_gpu(	mat44 *affineMatrix,
 
 	reg_affine_positionField_kernel <<< G1, B1 >>> (*array_d);
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
-#if _DEBUG
-	printf("[DEBUG] reg_affine_deformationField_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+#if _VERBOSE
+	printf("[VERBOSE] reg_affine_deformationField_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 	

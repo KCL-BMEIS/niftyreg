@@ -51,6 +51,7 @@ typedef struct{
 	int maxIteration;
 	int binning;
 	int levelNumber;
+    int level2Perform;
 	float bendingEnergyWeight;
 	float jacobianWeight;
 	char *outputResultName;
@@ -69,6 +70,7 @@ typedef struct{
 	bool spacingFlag[3];
 	bool binningFlag;
 	bool levelNumberFlag;
+    bool level2PerformFlag;
 	bool maxIterationFlag;
 	bool outputResultFlag;
 	bool outputCPPFlag;
@@ -132,6 +134,7 @@ void Usage(char *exec)
 	printf("\t-smooT <float>\t\tSmooth the target image using the specified sigma (mm) [0]\n");
 	printf("\t-smooS <float>\t\tSmooth the source image using the specified sigma (mm) [0]\n");
 	printf("\t-ln <int>\t\tNumber of level to perform [3]\n");
+    printf("\t-lp <int>\t\tOnly perform the first levels [ln]\n");
 	printf("\t-nopy\t\t\tDo not use a pyramidal approach [no]\n");
 	
 	printf("\t-be <float>\t\tWeight of the bending energy penalty term [0.01]\n");
@@ -230,6 +233,10 @@ int main(int argc, char **argv)
 			param->levelNumber=atoi(argv[++i]);
 			flag->levelNumberFlag=1;
 		}
+        else if(strcmp(argv[i], "-lp") == 0){
+            param->level2Perform=atoi(argv[++i]);
+            flag->level2PerformFlag=1;
+        }
 		else if(strcmp(argv[i], "-nopy") == 0){
 			flag->pyramidFlag=0;
 		}
@@ -321,6 +328,8 @@ int main(int argc, char **argv)
 	if(!flag->spacingFlag[2]) param->spacing[2]=param->spacing[0];
 	
 	if(!flag->levelNumberFlag) param->levelNumber=3;
+    if(!flag->level2PerformFlag) param->level2Perform=param->levelNumber;
+    param->level2Perform=param->level2Perform<param->levelNumber?param->level2Perform:param->levelNumber;
 
 	/* Read the maximum number of iteration */
 	if(!flag->maxIterationFlag) param->maxIteration=300;
@@ -353,12 +362,18 @@ int main(int argc, char **argv)
 	}
 
 #ifdef _USE_CUDA
+    // Compute the ratio if the registration is not performed using
+    // the full resolution image
+    float ratioFullRes = 1.0f;
+    if(param->level2Perform != param->levelNumber){
+        ratioFullRes= 1.0f/powf(8.0f,(float)(param->levelNumber-param->level2Perform));
+    }
 	float memoryNeeded=0;
-	memoryNeeded += 2 * targetHeader->nvox * sizeof(float); // target and result images
-	memoryNeeded += sourceHeader->nvox * sizeof(float); // source image
-	memoryNeeded += targetHeader->nvox * sizeof(float4); // position field
-	memoryNeeded += targetHeader->nvox * sizeof(float4); // spatial gradient
-	memoryNeeded += 2 * targetHeader->nvox * sizeof(float4); // nmi gradient + smoothed
+	memoryNeeded += 2 * targetHeader->nvox * sizeof(float) * ratioFullRes; // target and result images
+	memoryNeeded += sourceHeader->nvox * sizeof(float) * ratioFullRes; // source image
+	memoryNeeded += targetHeader->nvox * sizeof(float4) * ratioFullRes; // position field
+	memoryNeeded += targetHeader->nvox * sizeof(float4) * ratioFullRes; // spatial gradient
+	memoryNeeded += 2 * targetHeader->nvox * sizeof(float4) * ratioFullRes; // nmi gradient + smoothed
 	memoryNeeded += 4 * (ceil(targetHeader->nx*targetHeader->dx/param->spacing[0])+4) *
 			(ceil(targetHeader->nx*targetHeader->dy/param->spacing[1])+4) *
 			(ceil(targetHeader->nx*targetHeader->dz/param->spacing[2])+4) *
@@ -394,8 +409,8 @@ int main(int argc, char **argv)
 						param->affineMatrixName,
 						flag->affineFlirtFlag);
 		}
-#ifdef _DEBUG
-        reg_mat44_disp(affineTransformation, "[DEBUG] Affine transformation matrix");
+#ifdef _VERBOSE
+        reg_mat44_disp(affineTransformation, "[VERBOSE] Affine transformation matrix");
 #endif
 	}
 
@@ -477,14 +492,14 @@ int main(int argc, char **argv)
 			printf("ERROR\tThe specified graphical card does not exist.\n");
 			return 1;
 		}
-#ifdef _DEBUG
-		printf("[DEBUG] Graphical card memory[%i/%i] = %iMo avail | %iMo required.\n", device+1, device_count,
+#ifdef _VERBOSE
+		printf("[VERBOSE] Graphical card memory[%i/%i] = %iMo avail | %iMo required.\n", device+1, device_count,
 			(int)floor(deviceProp.totalGlobalMem/1000000.0), (int)ceil(memoryNeeded/1000000.0));
 #endif
 	}
 #endif
 
-	for(int level=0; level<param->levelNumber; level++){
+    for(int level=0; level<param->level2Perform; level++){
 		/* Read the target and source image */
 		nifti_image *targetImage = nifti_image_read(param->targetImageName,true);
 		if(targetImage->data == NULL){
@@ -517,9 +532,9 @@ int main(int argc, char **argv)
             if(!flag->inputCPPFlag){
                 /* allocate the control point image */
                 float gridSpacing[3];
-                gridSpacing[0] = param->spacing[0] * powf(2.0f, (float)(param->levelNumber-1));
-                gridSpacing[1] = param->spacing[1] * powf(2.0f, (float)(param->levelNumber-1));
-                gridSpacing[2] = param->spacing[2] * powf(2.0f, (float)(param->levelNumber-1));
+                gridSpacing[0] = param->spacing[0] * powf(2.0f, (float)(param->level2Perform-1));
+                gridSpacing[1] = param->spacing[1] * powf(2.0f, (float)(param->level2Perform-1));
+                gridSpacing[2] = param->spacing[2] * powf(2.0f, (float)(param->level2Perform-1));
 
                 int dim_cpp[8];
                 dim_cpp[0]=5;
@@ -649,12 +664,12 @@ int main(int argc, char **argv)
 		printf("Control point position image name: %s\n",param->outputCPPName);
 		printf("\t%ix%ix%i control points (%i DoF)\n",controlPointImage->nx,controlPointImage->ny,controlPointImage->nz,(int)controlPointImage->nvox);
 		printf("\t%gx%gx%g mm\n",controlPointImage->dx,controlPointImage->dy,controlPointImage->dz);	
-#ifdef _DEBUG
+#ifdef _VERBOSE
 		if(targetImage->sform_code>0)
-			reg_mat44_disp(&targetImage->sto_xyz, "[DEBUG] Target image matrix");
-		else reg_mat44_disp(&targetImage->qto_xyz, "[DEBUG] Target image matrix");
-		reg_mat44_disp(sourceMatrix_xyz, "[DEBUG] Source image matrix");
-		reg_mat44_disp(cppMatrix_xyz, "[DEBUG] Control point image matrix");
+			reg_mat44_disp(&targetImage->sto_xyz, "[VERBOSE] Target image matrix");
+		else reg_mat44_disp(&targetImage->qto_xyz, "[VERBOSE] Target image matrix");
+		reg_mat44_disp(sourceMatrix_xyz, "[VERBOSE] Source image matrix");
+		reg_mat44_disp(cppMatrix_xyz, "[VERBOSE] Control point image matrix");
 #endif
 		printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 		
@@ -1058,8 +1073,8 @@ int main(int argc, char **argv)
 				printf("No Gradient ... exit\n");
 				break;	
 			}
-#ifdef _DEBUG
-			printf("[DEBUG] [%i] Max metric gradient value = %g\n", iteration, maxLength);
+#ifdef _VERBOSE
+			printf("[VERBOSE] [%i] Max metric gradient value = %g\n", iteration, maxLength);
 #endif
 			
 			/* ** LINE ASCENT ** */
@@ -1071,8 +1086,8 @@ int main(int argc, char **argv)
 				
 				float currentLength = -currentSize/maxLength;
 
-#ifdef _DEBUG
-				printf("[DEBUG] [%i] Current added max step: %g\n", iteration, currentSize);
+#ifdef _VERBOSE
+				printf("[VERBOSE] [%i] Current added max step: %g\n", iteration, currentSize);
 #endif
 	
 #ifdef _USE_CUDA
@@ -1181,10 +1196,10 @@ int main(int argc, char **argv)
 				}
 #endif
 
-#ifdef _DEBUG
-				printf("[DEBUG] [%i] Current metric value: %g\n", iteration, currentValue);
-				if(flag->bendingEnergyFlag) printf("[DEBUG] [%i] Weighted bending energy value = %g, approx[%i]\n", iteration, currentWBE, flag->appBendingEnergyFlag);
-				if(flag->jacobianWeightFlag) printf("[DEBUG] [%i] Weighted Jacobian log value = %g, approx[%i]\n", iteration, currentWJac, flag->appJacobianFlag);
+#ifdef _VERBOSE
+				printf("[VERBOSE] [%i] Current metric value: %g\n", iteration, currentValue);
+				if(flag->bendingEnergyFlag) printf("[VERBOSE] [%i] Weighted bending energy value = %g, approx[%i]\n", iteration, currentWBE, flag->appBendingEnergyFlag);
+				if(flag->jacobianWeightFlag) printf("[VERBOSE] [%i] Weighted Jacobian log value = %g, approx[%i]\n", iteration, currentWJac, flag->appJacobianFlag);
 #endif
 
 				iteration++;
@@ -1272,7 +1287,7 @@ int main(int argc, char **argv)
 #endif
 		nifti_image_free( resultImage );
 
-		if(level==(param->levelNumber-1)){
+		if(level==(param->level2Perform-1)){
 		/* ****************** */
 		/* OUTPUT THE RESULTS */
 		/* ****************** */
@@ -1281,29 +1296,42 @@ int main(int argc, char **argv)
             nifti_set_filenames(controlPointImage, param->outputCPPName, 0, 0);
 			nifti_image_write(controlPointImage);
 
+            if(param->level2Perform != param->levelNumber){
+                free(positionFieldImage->data);
+                positionFieldImage->dim[1]=positionFieldImage->nx=targetHeader->nx;
+                positionFieldImage->dim[2]=positionFieldImage->ny=targetHeader->ny;
+                positionFieldImage->dim[3]=positionFieldImage->nz=targetHeader->nz;
+                positionFieldImage->dim[4]=positionFieldImage->nt=1;positionFieldImage->pixdim[4]=positionFieldImage->dt=1.0;
+                positionFieldImage->dim[5]=positionFieldImage->nu=3;positionFieldImage->pixdim[5]=positionFieldImage->du=1.0;
+                positionFieldImage->dim[6]=positionFieldImage->nv=1;positionFieldImage->pixdim[6]=positionFieldImage->dv=1.0;
+                positionFieldImage->dim[7]=positionFieldImage->nw=1;positionFieldImage->pixdim[7]=positionFieldImage->dw=1.0;
+                positionFieldImage->nvox=positionFieldImage->nx*positionFieldImage->ny*positionFieldImage->nz*positionFieldImage->nt*positionFieldImage->nu;
+                positionFieldImage->data = (void *)calloc(positionFieldImage->nvox, positionFieldImage->nbyper);
+            }
+
 			/* The corresponding deformation field is evaluated and saved */
 			reg_bspline<PrecisionTYPE>(	controlPointImage,
-							targetImage,
-							positionFieldImage,
-							0);
+						                targetHeader,
+						                positionFieldImage,
+						                0);
 
-			nifti_image_free( sourceImage );
-			sourceImage = nifti_image_read(param->sourceImageName,true); // reload the source image with the correct intensity values
+            nifti_image_free( sourceImage );
+            sourceImage = nifti_image_read(param->sourceImageName,true); // reload the source image with the correct intensity values
 
-			resultImage = nifti_copy_nim_info(targetImage);
-			resultImage->cal_min=sourceImage->cal_min;
-			resultImage->cal_max=sourceImage->cal_max;
-			resultImage->scl_slope=sourceImage->scl_slope;
-			resultImage->scl_inter=sourceImage->scl_inter;
+			resultImage = nifti_copy_nim_info(targetHeader);
+			resultImage->cal_min = sourceImage->cal_min;
+			resultImage->cal_max = sourceImage->cal_max;
+			resultImage->scl_slope = sourceImage->scl_slope;
+			resultImage->scl_inter = sourceImage->scl_inter;
 			resultImage->datatype = sourceImage->datatype;
 			resultImage->nbyper = sourceImage->nbyper;
 			resultImage->data = (void *)calloc(resultImage->nvox, resultImage->nbyper);
-			reg_resampleSourceImage<double>(targetImage,
-							sourceImage,
-							resultImage,
-							positionFieldImage,
-							3,
-							param->sourceBGValue);
+			reg_resampleSourceImage<double>(targetHeader,
+							                sourceImage,
+							                resultImage,
+							                positionFieldImage,
+							                3,
+							                param->sourceBGValue);
 			if(!flag->outputResultFlag) param->outputResultName="outputResult.nii";
 			nifti_set_filenames(resultImage, param->outputResultName, 0, 0);
 			nifti_image_write(resultImage);

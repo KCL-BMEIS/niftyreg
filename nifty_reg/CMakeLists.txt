@@ -26,7 +26,7 @@ OPTION(BUILD_ALADIN "To build the reg_aladin executable" ON)
 OPTION(BUILD_F3D "To build the reg_f3d executable" ON)
 OPTION(BUILD_RESAMPLE "To build the reg_resample executable" ON)
 
-OPTION(USE_DEBUG "To print out extra information" OFF)
+OPTION(USE_VERBOSE "To print out extra information" OFF)
 
 OPTION(USE_SSE "to use SSE computation in some case" OFF)
 
@@ -38,9 +38,9 @@ INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/nifti)
 
 #-----------------------------------------------------------------------------
 
-IF(USE_DEBUG)
-	ADD_DEFINITIONS(-D_DEBUG)
-ENDIF(USE_DEBUG)
+IF(USE_VERBOSE)
+	ADD_DEFINITIONS(-D_VERBOSE)
+ENDIF(USE_VERBOSE)
 
 IF(USE_SSE)
 	ADD_DEFINITIONS(-D_USE_SSE)
