@@ -187,13 +187,13 @@ void initialise_block_matching_method(	nifti_image * target,
 			fprintf(stderr,"ERROR\tinitialise_block_matching_method\tThe target image data type is not supported\n");
 			return;
 	}
-#ifdef _DEBUG
-	printf("[DEBUG]: There are %i active block(s) out of %i.\n", params->activeBlockNumber, params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2]);
+#ifdef _VERBOSE
+	printf("[VERBOSE]: There are %i active block(s) out of %i.\n", params->activeBlockNumber, params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2]);
 #endif
 	params->targetPosition = (float *)malloc(params->activeBlockNumber*3*sizeof(float));
 	params->resultPosition = (float *)malloc(params->activeBlockNumber*3*sizeof(float));
-#ifdef _DEBUG
-	printf("[DEBUG]: block matching initialisation done.\n");
+#ifdef _VERBOSE
+	printf("[VERBOSE]: block matching initialisation done.\n");
 #endif
 }
 template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageType>
@@ -380,7 +380,7 @@ void real_block_matching_method(nifti_image * target,
 		}
 	}
 
-#ifdef _DEBUG
+#ifdef _VERBOSE
 	double transX=0.0, transY=0.0, transZ=0.0;
 	double varX=0.0, varY=0.0, varZ=0.0;
 	for (int i = 0; i < params->activeBlockNumber*3; i+=3){
@@ -402,7 +402,7 @@ void real_block_matching_method(nifti_image * target,
 	varX /= (double)params->activeBlockNumber;
 	varY /= (double)params->activeBlockNumber;
 	varZ /= (double)params->activeBlockNumber;
-	printf("[DEBUG] Translation parameters (SD) = [%g(%g) | %g(%g) | %g(%g)]\n",
+	printf("[VERBOSE] Translation parameters (SD) = [%g(%g) | %g(%g) | %g(%g)]\n",
 		transX, sqrt(varX), transY, sqrt(varY), transZ, sqrt(varZ));
 #endif
 	free(resultValues);

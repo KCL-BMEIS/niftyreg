@@ -77,8 +77,8 @@ void block_matching_method_gpu(	nifti_image *targetImage,
 	// Ensure that all the threads have done their job
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 
-#if _DEBUG
-	printf("[DEBUG] block_matching kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+#if _VERBOSE
+	printf("[VERBOSE] block_matching kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 	cudaFree(targetValues);
