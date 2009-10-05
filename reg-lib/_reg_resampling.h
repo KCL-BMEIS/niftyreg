@@ -28,6 +28,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 				nifti_image *sourceImage,
 				nifti_image *resultImage,
 				nifti_image *positionField,
+                int *mask,
 				int interp,
 				PrecisionTYPE backgroundValue);
 
@@ -36,6 +37,7 @@ void reg_getSourceImageGradient(	nifti_image *targetImage,
 				nifti_image *sourceImage,
 				nifti_image *resultGradientImage,
 				nifti_image *deformationField,
+                int *mask,
 				int interp);
 
 extern "C++"

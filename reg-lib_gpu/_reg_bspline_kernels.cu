@@ -18,8 +18,10 @@ __device__ __constant__ int3 c_TargetImageDim;
 __device__ __constant__ int3 c_ControlPointImageDim;
 __device__ __constant__ float3 c_ControlPointVoxelSpacing;
 __device__ __constant__ float c_BendingEnergyWeight;
+__device__ __constant__ int c_ActiveVoxelNumber;
 
 texture<float4, 1, cudaReadModeElementType> controlPointTexture;
+texture<int, 1, cudaReadModeElementType> maskTexture;
 
 
 __device__ float3 operator*(float a, float3 b){
@@ -29,11 +31,11 @@ __device__ float3 operator*(float a, float3 b){
 __global__ void _reg_freeForm_interpolatePosition(float4 *positionField)
 {
 	const int tid= blockIdx.x*blockDim.x + threadIdx.x;
-	if(tid<c_VoxelNumber){
+	if(tid<c_ActiveVoxelNumber){
 
 		int3 imageSize = c_TargetImageDim;
 
-		int tempIndex=tid;
+		int tempIndex=tex1Dfetch(maskTexture,tid);
 		const short z =(int)(tempIndex/(imageSize.x*imageSize.y));
 		tempIndex -= z*(imageSize.x)*(imageSize.y);
 		const short y =(int)(tempIndex/(imageSize.x));

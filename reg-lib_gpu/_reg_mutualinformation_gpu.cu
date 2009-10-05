@@ -16,16 +16,18 @@
 #include "_reg_mutualinformation_gpu.h"
 #include "_reg_mutualinformation_kernels.cu"
 
-void reg_getVoxelBasedNMIGradientUsingPW_gpu(	nifti_image *targetImage,
-						nifti_image *resultImage,
-						float **targetImageArray_d,
-						float **resultImageArray_d,
-						float4 **resultGradientArray_d,
-						float **logJointHistogram_d,
-						float4 **voxelNMIGradientArray_d,
-						double *entropies,
-						int binning,
-						bool includePadding)
+void reg_getVoxelBasedNMIGradientUsingPW_gpu(   nifti_image *targetImage,
+                                                nifti_image *resultImage,
+                                                float **targetImageArray_d,
+                                                float **resultImageArray_d,
+                                                float4 **resultGradientArray_d,
+                                                float **logJointHistogram_d,
+                                                float4 **voxelNMIGradientArray_d,
+                                                int **mask_d,
+                                                int activeVoxelNumber,
+                                                double *entropies,
+                                                int binning,
+                                                bool includePadding)
 {
 	const int voxelNumber = targetImage->nvox;
 	const int binNumber = binning*(binning+2);
@@ -38,15 +40,19 @@ void reg_getVoxelBasedNMIGradientUsingPW_gpu(	nifti_image *targetImage,
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Entropies,&entropies_h,sizeof(float4)));
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NMI,&NMI,sizeof(float)));
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_IncludePadding,&includePadding,sizeof(bool)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber,&activeVoxelNumber,sizeof(int)));
 
 	// Texture binding
 	CUDA_SAFE_CALL(cudaBindTexture(0, targetImageTexture, *targetImageArray_d, voxelNumber*sizeof(float)));
 	CUDA_SAFE_CALL(cudaBindTexture(0, resultImageTexture, *resultImageArray_d, voxelNumber*sizeof(float)));
 	CUDA_SAFE_CALL(cudaBindTexture(0, resultImageGradientTexture, *resultGradientArray_d, voxelNumber*sizeof(float4)));
-	CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
-	
+    CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
+    CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, *mask_d, activeVoxelNumber*sizeof(int)));
+
+    CUDA_SAFE_CALL(cudaMemset(*voxelNMIGradientArray_d, 0, voxelNumber*sizeof(float4)));
+
 	const unsigned int Grid_reg_getVoxelBasedNMIGradientUsingPW = 
-		(unsigned int)ceil((float)voxelNumber/(float)Block_reg_getVoxelBasedNMIGradientUsingPW);
+		(unsigned int)ceil((float)activeVoxelNumber/(float)Block_reg_getVoxelBasedNMIGradientUsingPW);
 	dim3 B1(Block_reg_getVoxelBasedNMIGradientUsingPW,1,1);
 	dim3 G1(Grid_reg_getVoxelBasedNMIGradientUsingPW,1,1);
 

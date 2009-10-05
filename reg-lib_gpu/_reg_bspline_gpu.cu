@@ -15,10 +15,12 @@
 #include "_reg_bspline_gpu.h"
 #include "_reg_bspline_kernels.cu"
 
-void reg_bspline_gpu(	nifti_image *controlPointImage,
-			nifti_image *targetImage,
-			float4 **controlPointImageArray_d,
-			float4 **positionFieldImageArray_d)
+void reg_bspline_gpu(   nifti_image *controlPointImage,
+                        nifti_image *targetImage,
+                        float4 **controlPointImageArray_d,
+                        float4 **positionFieldImageArray_d,
+                        int **mask_d,
+                        int activeVoxelNumber)
 {
 	const int voxelNumber = targetImage->nx * targetImage->ny * targetImage->nz;
 	const int controlPointNumber = controlPointImage->nx*controlPointImage->ny*controlPointImage->nz;
@@ -35,12 +37,14 @@ void reg_bspline_gpu(	nifti_image *controlPointImage,
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&voxelNumber,sizeof(int)));
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_TargetImageDim,&targetImageDim,sizeof(int3)));
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointImageDim,&controlPointImageDim,sizeof(int3)));
-	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointVoxelSpacing,&controlPointVoxelSpacing,sizeof(float3)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointVoxelSpacing,&controlPointVoxelSpacing,sizeof(float3)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber,&activeVoxelNumber,sizeof(int)));
 
-	CUDA_SAFE_CALL(cudaBindTexture(0,controlPointTexture, *controlPointImageArray_d, controlPointGridMem));
+    CUDA_SAFE_CALL(cudaBindTexture(0, controlPointTexture, *controlPointImageArray_d, controlPointGridMem));
+    CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, *mask_d, activeVoxelNumber*sizeof(int)));
 
 	const unsigned int Grid_reg_freeForm_interpolatePosition = 
-		(unsigned int)ceil((float)voxelNumber/(float)(Block_reg_freeForm_interpolatePosition));
+		(unsigned int)ceil((float)activeVoxelNumber/(float)(Block_reg_freeForm_interpolatePosition));
 	dim3 BlockP1(Block_reg_freeForm_interpolatePosition,1,1);
 	dim3 GridP1(Grid_reg_freeForm_interpolatePosition,1,1);
 

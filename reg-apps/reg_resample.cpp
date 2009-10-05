@@ -230,6 +230,7 @@ int main(int argc, char **argv)
 			reg_bspline<PrecisionTYPE>(	controlPointImage,
 							targetImage,
 							positionFieldImage,
+                            NULL,
 							1); // additive df
 		}
 		/* Generate the jacobian map */
@@ -315,6 +316,7 @@ int main(int argc, char **argv)
                                         sourceImage,
                                         resultImage,
                                         positionFieldImage,
+                                        NULL,
                                         inter,
                                         param->sourceBGValue);
         nifti_set_filenames(resultImage, param->outputResultName, 0, 0);
@@ -349,11 +351,12 @@ int main(int argc, char **argv)
 		resultImage->nbyper = gridImage->nbyper;
 		resultImage->data = (void *)calloc(resultImage->nvox, resultImage->nbyper);
 		reg_resampleSourceImage<double>(	targetImage,
-						gridImage,
-						resultImage,
-						positionFieldImage,
-						1,
-						0);
+						                    gridImage,
+						                    resultImage,
+						                    positionFieldImage,
+                                            NULL,
+						                    1,
+						                    0);
 		nifti_image_free(gridImage);
 		nifti_set_filenames(resultImage, param->outputBlankName, 0, 0);
 		nifti_image_write(resultImage);

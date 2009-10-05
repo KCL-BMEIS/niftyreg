@@ -20,14 +20,15 @@ void reg_resampleSourceImage_gpu(	nifti_image *resultImage,
 					float **resultImageArray_d,
 					cudaArray **sourceImageArray_d,
 					float4 **positionFieldImageArray_d,
+                    int **mask_d,
+                    int activeVoxelNumber,
 					float sourceBGValue)
 {
-	int voxelNumber = resultImage->nvox;
 	int3 sourceDim = make_int3(sourceImage->nx, sourceImage->ny, sourceImage->nz);
 
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_SourceDim,&sourceDim,sizeof(int3)));
-	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&voxelNumber,sizeof(int)));
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_PaddingValue,&sourceBGValue,sizeof(float)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber,&activeVoxelNumber,sizeof(int)));
 
 	//Bind source image array to a 3D texture
 	sourceTexture.normalized = true;
@@ -39,8 +40,11 @@ void reg_resampleSourceImage_gpu(	nifti_image *resultImage,
 	cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
 	CUDA_SAFE_CALL(cudaBindTextureToArray(sourceTexture, *sourceImageArray_d, channelDesc));
 
-	//Bind positionField to texture
-	CUDA_SAFE_CALL(cudaBindTexture(0, positionFieldTexture, *positionFieldImageArray_d, voxelNumber*sizeof(float4)));
+    //Bind positionField to texture
+    CUDA_SAFE_CALL(cudaBindTexture(0, positionFieldTexture, *positionFieldImageArray_d, activeVoxelNumber*sizeof(float4)));
+
+    //Bind positionField to texture
+    CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, *mask_d, activeVoxelNumber*sizeof(int)));
 
 	// Bind the real to voxel matrix to texture
 	mat44 *sourceMatrix;
@@ -60,7 +64,7 @@ void reg_resampleSourceImage_gpu(	nifti_image *resultImage,
 	CUDA_SAFE_CALL(cudaFreeHost((void *)sourceRealToVoxel_h));
 	CUDA_SAFE_CALL(cudaBindTexture(0, sourceMatrixTexture, sourceRealToVoxel_d, 3*sizeof(float4)));
 
-	const unsigned int Grid_reg_resampleSourceImage = (unsigned int)ceil((float)voxelNumber/(float)Block_reg_resampleSourceImage);
+	const unsigned int Grid_reg_resampleSourceImage = (unsigned int)ceil((float)activeVoxelNumber/(float)Block_reg_resampleSourceImage);
 	dim3 B1(Block_reg_resampleSourceImage,1,1);
 	dim3 G1(Grid_reg_resampleSourceImage,1,1);
 
@@ -78,13 +82,13 @@ void reg_getSourceImageGradient_gpu(	nifti_image *targetImage,
 					nifti_image *sourceImage,
 					cudaArray **sourceImageArray_d,
 					float4 **positionFieldImageArray_d,
-					float4 **resultGradientArray_d)
+					float4 **resultGradientArray_d,
+                    int activeVoxelNumber)
 {
-	int voxelNumber = targetImage->nvox;
 	int3 sourceDim = make_int3(sourceImage->nx, sourceImage->ny, sourceImage->nz);
 
-	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber, &voxelNumber, sizeof(int)));
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_SourceDim, &sourceDim, sizeof(int3)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber, &activeVoxelNumber, sizeof(int)));
 
 	//Bind source image array to a 3D texture
 	sourceTexture.normalized = true;
@@ -97,7 +101,7 @@ void reg_getSourceImageGradient_gpu(	nifti_image *targetImage,
 	CUDA_SAFE_CALL(cudaBindTextureToArray(sourceTexture, *sourceImageArray_d, channelDesc));
 
 	//Bind positionField to texture
-	cudaBindTexture(0, positionFieldTexture, *positionFieldImageArray_d, voxelNumber*sizeof(float4));
+	cudaBindTexture(0, positionFieldTexture, *positionFieldImageArray_d, activeVoxelNumber*sizeof(float4));
 
 	// Bind the real to voxel matrix to texture
 	mat44 *sourceMatrix;
@@ -117,7 +121,7 @@ void reg_getSourceImageGradient_gpu(	nifti_image *targetImage,
 	CUDA_SAFE_CALL(cudaFreeHost((void *)sourceRealToVoxel_h));
 	CUDA_SAFE_CALL(cudaBindTexture(0, sourceMatrixTexture, sourceRealToVoxel_d, 3*sizeof(float4)));
 
-	const unsigned int Grid_reg_getSourceImageGradient = (unsigned int)ceil((float)voxelNumber/(float)Block_reg_getSourceImageGradient);
+	const unsigned int Grid_reg_getSourceImageGradient = (unsigned int)ceil((float)activeVoxelNumber/(float)Block_reg_getSourceImageGradient);
 	dim3 B1(Block_reg_getSourceImageGradient,1,1);
 	dim3 G1(Grid_reg_getSourceImageGradient,1,1);
 

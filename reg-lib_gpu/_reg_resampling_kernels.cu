@@ -19,20 +19,22 @@
 texture<float, 3, cudaReadModeElementType> sourceTexture;
 texture<float4, 1, cudaReadModeElementType> sourceMatrixTexture;
 texture<float4, 1, cudaReadModeElementType> positionFieldTexture;
+texture<int, 1, cudaReadModeElementType> maskTexture;
 /* *************************************************************** */
 __device__ __constant__ int3 c_SourceDim;
 __device__ __constant__ int c_VoxelNumber;
 __device__ __constant__ float c_PaddingValue;
+__device__ __constant__ int c_ActiveVoxelNumber;
 /* *************************************************************** */
 
 __global__ void reg_resampleSourceImage_kernel(float *resultArray)
 {
 	const int tid= blockIdx.x*blockDim.x + threadIdx.x;
-	if(tid<c_VoxelNumber){
+	if(tid<c_ActiveVoxelNumber){
 
 		//Get the real world position in the source space
 		float4 realPosition = tex1Dfetch(positionFieldTexture,tid);
-	
+
 		//Get the voxel-based position in the source space
 		float3 voxelPosition;
 		float4 matrix = tex1Dfetch(sourceMatrixTexture,0);
@@ -45,7 +47,6 @@ __global__ void reg_resampleSourceImage_kernel(float *resultArray)
 		voxelPosition.z =	matrix.x*realPosition.x + matrix.y*realPosition.y  +
 					matrix.z*realPosition.z  +  matrix.w;
 
-
 		int3 sourceImageSize = c_SourceDim;
 		if(	-1<voxelPosition.x && voxelPosition.x<=sourceImageSize.x &&
 			-1<voxelPosition.y && voxelPosition.y<=sourceImageSize.y &&
@@ -54,9 +55,9 @@ __global__ void reg_resampleSourceImage_kernel(float *resultArray)
 			relativePosition.x=(voxelPosition.x+0.5f)/(float)c_SourceDim.x;
 			relativePosition.y=(voxelPosition.y+0.5f)/(float)c_SourceDim.y;
 			relativePosition.z=(voxelPosition.z+0.5f)/(float)c_SourceDim.z;
-			resultArray[tid]=tex3D(sourceTexture, relativePosition.x, relativePosition.y, relativePosition.z);
+			resultArray[tex1Dfetch(maskTexture,tid)]=tex3D(sourceTexture, relativePosition.x, relativePosition.y, relativePosition.z);
 		}
-		else resultArray[tid]=c_PaddingValue;
+		else resultArray[tex1Dfetch(maskTexture,tid)]=c_PaddingValue;
 	}
 }
 
@@ -64,7 +65,7 @@ __global__ void reg_resampleSourceImage_kernel(float *resultArray)
 __global__ void reg_getSourceImageGradient_kernel(float4 *gradientArray)
 {
 	const int tid= blockIdx.x*blockDim.x + threadIdx.x;
-	if(tid<c_VoxelNumber){
+	if(tid<c_ActiveVoxelNumber){
 
 		//Get the real world position in the source space
 		float4 realPosition = tex1Dfetch(positionFieldTexture,tid);

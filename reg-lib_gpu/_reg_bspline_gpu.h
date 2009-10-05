@@ -15,10 +15,12 @@
 #include "_reg_blocksize_gpu.h"
 
 extern "C++"
-void reg_bspline_gpu(	nifti_image *controlPointImage,
-			nifti_image *targetImage,
-			float4 **controlPointImageArray_d,
-			float4 **positionFieldImageArray_d);
+void reg_bspline_gpu(   nifti_image *controlPointImage,
+                        nifti_image *targetImage,
+                        float4 **controlPointImageArray_d,
+                        float4 **positionFieldImageArray_d,
+                        int **mask,
+                        int activeVoxelNumber);
 
 extern "C++"
 float reg_bspline_ApproxBendingEnergy_gpu(	nifti_image *controlPointImage,

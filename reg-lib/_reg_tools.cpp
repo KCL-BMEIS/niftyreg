@@ -847,10 +847,13 @@ template void reg_gaussianSmoothing<double>(nifti_image *, float);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class ImageTYPE>
-void reg_downsampleImage1(nifti_image *image)
+void reg_downsampleImage1(nifti_image *image, int type)
 {
-	/* the input image is first smooth */
-	reg_gaussianSmoothing<float>(image, -0.7f);
+
+    if(type==1){
+	    /* the input image is first smooth */
+	    reg_gaussianSmoothing<float>(image, -0.7f);
+    }
 	
 	/* the values are copied */
 	ImageTYPE *oldValues = (ImageTYPE *)malloc(image->nvox * image->nbyper);
@@ -954,7 +957,27 @@ void reg_downsampleImage1(nifti_image *image)
 							intensity += yTempNewValue * zBasis[c];
 						}
 					}
-					*imagePtr++ = (ImageTYPE) intensity;
+                    switch(image->datatype){
+                        case NIFTI_TYPE_FLOAT32:
+                            (*imagePtr)=(ImageTYPE)intensity;
+                            break;
+                        case NIFTI_TYPE_FLOAT64:
+                            (*imagePtr)=(ImageTYPE)intensity;
+                            break;
+                        case NIFTI_TYPE_UINT8:
+                            (*imagePtr)=(ImageTYPE)(intensity>0?round(intensity):0);
+                            break;
+                        case NIFTI_TYPE_UINT16:
+                            (*imagePtr)=(ImageTYPE)(intensity>0?round(intensity):0);
+                            break;
+                        case NIFTI_TYPE_UINT32:
+                            (*imagePtr)=(ImageTYPE)(intensity>0?round(intensity):0);
+                            break;
+                        default:
+                            (*imagePtr)=(ImageTYPE)round(intensity);
+                            break;
+                    }
+                    imagePtr++;
 				}
 			}
 		}
@@ -964,40 +987,136 @@ void reg_downsampleImage1(nifti_image *image)
 }
 /* *************************************************************** */
 template <class PrecisionTYPE>
-void reg_downsampleImage(nifti_image *image)
+void reg_downsampleImage(nifti_image *image, int type)
 {
 	switch(image->datatype){
 		case NIFTI_TYPE_UINT8:
-			reg_downsampleImage1<PrecisionTYPE,unsigned char>(image);
+			reg_downsampleImage1<PrecisionTYPE,unsigned char>(image, type);
 			break;
 		case NIFTI_TYPE_INT8:
-			reg_downsampleImage1<PrecisionTYPE,char>(image);
+			reg_downsampleImage1<PrecisionTYPE,char>(image, type);
 			break;
 		case NIFTI_TYPE_UINT16:
-			reg_downsampleImage1<PrecisionTYPE,unsigned short>(image);
+			reg_downsampleImage1<PrecisionTYPE,unsigned short>(image, type);
 			break;
 		case NIFTI_TYPE_INT16:
-			reg_downsampleImage1<PrecisionTYPE,short>(image);
+			reg_downsampleImage1<PrecisionTYPE,short>(image, type);
 			break;
 		case NIFTI_TYPE_UINT32:
-			reg_downsampleImage1<PrecisionTYPE,unsigned int>(image);
+			reg_downsampleImage1<PrecisionTYPE,unsigned int>(image, type);
 			break;
 		case NIFTI_TYPE_INT32:
-			reg_downsampleImage1<PrecisionTYPE,int>(image);
+			reg_downsampleImage1<PrecisionTYPE,int>(image, type);
 			break;
 		case NIFTI_TYPE_FLOAT32:
-			reg_downsampleImage1<PrecisionTYPE,float>(image);
+			reg_downsampleImage1<PrecisionTYPE,float>(image, type);
 			break;
 		case NIFTI_TYPE_FLOAT64:
-			reg_downsampleImage1<PrecisionTYPE,double>(image);
+			reg_downsampleImage1<PrecisionTYPE,double>(image, type);
 			break;
 		default:
 			printf("err\treg_downsampleImage\tThe image data type is not supported\n");
 			return;
 	}
 }
-template void reg_downsampleImage<float>(nifti_image *);
-template void reg_downsampleImage<double>(nifti_image *);
+template void reg_downsampleImage<float>(nifti_image *, int);
+template void reg_downsampleImage<double>(nifti_image *, int);
+/* *************************************************************** */
+/* *************************************************************** */
+template <class DTYPE>
+void reg_tool_binarise_image1(nifti_image *image)
+{
+    DTYPE *dataPtr=static_cast<DTYPE *>(image->data);
+    for(int i=0; i<image->nvox; i++){
+        *dataPtr = (*dataPtr)!=0?1:0;
+        dataPtr++;
+    }
+}
+/* *************************************************************** */
+void reg_tool_binarise_image(nifti_image *image)
+{
+    switch(image->datatype){
+        case NIFTI_TYPE_UINT8:
+            reg_tool_binarise_image1<unsigned char>(image);
+            break;
+        case NIFTI_TYPE_INT8:
+            reg_tool_binarise_image1<char>(image);
+            break;
+        case NIFTI_TYPE_UINT16:
+            reg_tool_binarise_image1<unsigned short>(image);
+            break;
+        case NIFTI_TYPE_INT16:
+            reg_tool_binarise_image1<short>(image);
+            break;
+        case NIFTI_TYPE_UINT32:
+            reg_tool_binarise_image1<unsigned int>(image);
+            break;
+        case NIFTI_TYPE_INT32:
+            reg_tool_binarise_image1<int>(image);
+            break;
+        case NIFTI_TYPE_FLOAT32:
+            reg_tool_binarise_image1<float>(image);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            reg_tool_binarise_image1<double>(image);
+            break;
+        default:
+            printf("err\treg_tool_binarise_image\tThe image data type is not supported\n");
+            return;
+    }
+}
+
+/* *************************************************************** */
+/* *************************************************************** */
+template <class DTYPE>
+void reg_tool_binaryImage2int1(nifti_image *image, int *array, int &activeVoxelNumber)
+{
+    // Active voxel are different from -1
+    activeVoxelNumber=0;
+    DTYPE *dataPtr=static_cast<DTYPE *>(image->data);
+    for(int i=0; i<image->nvox; i++){
+        if(*dataPtr++ != 0){
+            array[i]=1;
+            activeVoxelNumber++;
+        }
+        else{
+            array[i]=-1;
+        }
+    }
+}
+/* *************************************************************** */
+void reg_tool_binaryImage2int(nifti_image *image, int *array, int &activeVoxelNumber)
+{
+    switch(image->datatype){
+        case NIFTI_TYPE_UINT8:
+            reg_tool_binaryImage2int1<unsigned char>(image, array, activeVoxelNumber);
+            break;
+        case NIFTI_TYPE_INT8:
+            reg_tool_binaryImage2int1<char>(image, array, activeVoxelNumber);
+            break;
+        case NIFTI_TYPE_UINT16:
+            reg_tool_binaryImage2int1<unsigned short>(image, array, activeVoxelNumber);
+            break;
+        case NIFTI_TYPE_INT16:
+            reg_tool_binaryImage2int1<short>(image, array, activeVoxelNumber);
+            break;
+        case NIFTI_TYPE_UINT32:
+            reg_tool_binaryImage2int1<unsigned int>(image, array, activeVoxelNumber);
+            break;
+        case NIFTI_TYPE_INT32:
+            reg_tool_binaryImage2int1<int>(image, array, activeVoxelNumber);
+            break;
+        case NIFTI_TYPE_FLOAT32:
+            reg_tool_binaryImage2int1<float>(image, array, activeVoxelNumber);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            reg_tool_binaryImage2int1<double>(image, array, activeVoxelNumber);
+            break;
+        default:
+            printf("err\treg_tool_binarise_image\tThe image data type is not supported\n");
+            return;
+    }
+}
 /* *************************************************************** */
 /* *************************************************************** */
 #endif

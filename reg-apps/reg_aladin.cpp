@@ -47,6 +47,7 @@ typedef struct{
 	char *inputAffineName;
 	char *outputResultName;
 	char *outputAffineName;
+    char *targetMaskName;
 
 	int maxIteration;
 
@@ -71,6 +72,7 @@ typedef struct{
 	bool level2PerformFlag;
 	bool outputResultFlag;
 	bool outputAffineFlag;
+    bool targetMaskFlag;
 
 	bool maxIterationFlag;
 
@@ -112,6 +114,7 @@ void Usage(char *exec)
 	printf("\t-affOnly\t\tTo perform an affine registration only (rigid+affine by default)\n");
 	printf("\t-inaff <filename>\tFilename which contains an input affine transformation (Affine*Target=Source) [none]\n");
 	printf("\t-affFlirt <filename>\tFilename which contains an input affine transformation from Flirt [none]\n");
+    printf("\t-tmask <filename>\tFilename of a mask image in the target space\n");
 	printf("\t-result <filename>\tFilename of the resampled image [outputResult.nii]\n");
 	printf("\t-maxit <int>\t\tNumber of iteration per level [3]\n");
 	printf("\t-smooT <float>\t\tSmooth the target image using the specified sigma (mm) [0]\n");
@@ -195,6 +198,10 @@ int main(int argc, char **argv)
 			flag->inputAffineFlag=1;
 			flag->flirtAffineFlag=1;
 		}
+        else if(strcmp(argv[i], "-tmask") == 0){
+            param->targetMaskName=argv[++i];
+            flag->targetMaskFlag=1;
+        }
 		else if(strcmp(argv[i], "-result") == 0){
 			param->outputResultName=argv[++i];
 			flag->outputResultFlag=1;
@@ -338,6 +345,23 @@ int main(int argc, char **argv)
 					flag->flirtAffineFlag);
 	}
 
+    /* read and binarise the target mask image */
+    nifti_image *targetMaskImage;
+    if(flag->targetMaskFlag){
+        targetMaskImage = nifti_image_read(param->targetMaskName,true);
+        if(targetMaskImage == NULL){
+            fprintf(stderr,"* ERROR Error when reading the target naask image: %s\n",param->targetMaskName);
+            return 1;
+        }
+        /* check the dimension */
+        for(int i=1; i<=targetHeader->dim[0]; i++){
+            if(targetHeader->dim[i]!=targetMaskImage->dim[i]){
+                fprintf(stderr,"* ERROR The target image and its mask do not have the same dimension\n");
+                return 1;
+            }
+        }
+        reg_tool_binarise_image(targetMaskImage);
+    }
 	
 	/* *********************************** */
 	/* DISPLAY THE REGISTRATION PARAMETERS */
@@ -380,12 +404,36 @@ int main(int argc, char **argv)
 			return 1;
 		}
 		reg_changeDatatype<PrecisionTYPE>(sourceImage);
-		
-		/* downsample the input image if appropriate */
-		for(int l=level; l<param->levelNumber-1; l++){
-			reg_downsampleImage<PrecisionTYPE>(targetImage);
-			reg_downsampleImage<PrecisionTYPE>(sourceImage);
-		}
+
+        /* declare the target mask array */
+        int *targetMask;
+        int activeVoxelNumber=0;
+
+        /* downsample the input images if appropriate */
+        if(flag->pyramidFlag){
+            nifti_image *tempMaskImage;
+            if(flag->targetMaskFlag){
+                tempMaskImage = nifti_copy_nim_info(targetMaskImage);
+                tempMaskImage->data = (void *)malloc(tempMaskImage->nvox * tempMaskImage->nbyper);
+                memcpy( tempMaskImage->data, targetMaskImage->data, tempMaskImage->nvox*tempMaskImage->nbyper);
+            }
+            for(int l=level; l<param->levelNumber-1; l++){
+                reg_downsampleImage<PrecisionTYPE>(targetImage, 1);
+                reg_downsampleImage<PrecisionTYPE>(sourceImage, 1);
+                if(flag->targetMaskFlag){
+                    reg_downsampleImage<PrecisionTYPE>(tempMaskImage, 0);
+                }
+            }
+            targetMask = (int *)malloc(targetImage->nvox*sizeof(int));
+            if(flag->targetMaskFlag){
+                reg_tool_binaryImage2int(tempMaskImage, targetMask, activeVoxelNumber);
+                nifti_image_free(tempMaskImage);
+            }
+            else{
+                for(int i=0; i<targetImage->nvox; i++)
+                    targetMask[i]=activeVoxelNumber++;
+            }
+        }
 		
 		/* smooth the input image if appropriate */
 		if(flag->targetSigmaFlag)
@@ -452,10 +500,11 @@ int main(int argc, char **argv)
 		cudaArray *sourceImageArray_d;
 		float *resultImageArray_d;
 		float4 *positionFieldImageArray_d;
+        int *targetMask_d;
 
 		float *targetPosition_d;
 		float *resultPosition_d;
-		int *activeBlock_d;
+        int *activeBlock_d;
 
 		if(flag->useGPUFlag){
 			/* The data are transfered from the host to the device */
@@ -465,6 +514,9 @@ int main(int argc, char **argv)
 			if(cudaCommon_transferNiftiToArrayOnDevice<float>(&sourceImageArray_d,sourceImage)) return 1;
 			if(cudaCommon_allocateArrayToDevice<float>(&resultImageArray_d, targetImage->dim)) return 1;
 			if(cudaCommon_allocateArrayToDevice<float4>(&positionFieldImageArray_d, targetImage->dim)) return 1;
+
+            CUDA_SAFE_CALL(cudaMalloc((void **)&targetMask_d, targetImage->nvox*sizeof(int)));
+            CUDA_SAFE_CALL(cudaMemcpy(targetMask_d, targetMask, targetImage->nvox*sizeof(int), cudaMemcpyHostToDevice));
 
 			CUDA_SAFE_CALL(cudaMalloc((void **)&targetPosition_d, blockMatchingParams.activeBlockNumber*3*sizeof(float)));
 			CUDA_SAFE_CALL(cudaMalloc((void **)&resultPosition_d, blockMatchingParams.activeBlockNumber*3*sizeof(float)));
@@ -515,6 +567,8 @@ int main(int argc, char **argv)
 									&resultImageArray_d,
 									&sourceImageArray_d,
 									&positionFieldImageArray_d,
+                                    &targetMask_d,
+                                    activeVoxelNumber,
 									param->sourceBGValue);
 					/* Compute the correspondances between blocks */
 					block_matching_method_gpu(	targetImage,
@@ -542,6 +596,7 @@ int main(int argc, char **argv)
 										sourceImage,
 										resultImage,
 										positionFieldImage,
+                                        targetMask,
 										1,
 										param->sourceBGValue);
 					/* Compute the correspondances between blocks */
@@ -586,6 +641,8 @@ int main(int argc, char **argv)
 									&resultImageArray_d,
 									&sourceImageArray_d,
 									&positionFieldImageArray_d,
+                                    &targetMask_d,
+                                    activeVoxelNumber,
 									param->sourceBGValue);
 					/* Compute the correspondances between blocks */
 					block_matching_method_gpu(	targetImage,
@@ -614,6 +671,7 @@ int main(int argc, char **argv)
 										sourceImage,
 										resultImage,
 										positionFieldImage,
+                                        targetMask,
 										1,
 										param->sourceBGValue);
 					/* Compute the correspondances between blocks */
@@ -639,6 +697,8 @@ int main(int argc, char **argv)
 				iteration++;
 			}
 		}
+
+        free(targetMask);
 
 #ifdef _USE_CUDA
 		if(flag->useGPUFlag){
@@ -691,6 +751,7 @@ int main(int argc, char **argv)
 							sourceImage,
 							resultImage,
 							positionFieldImage,
+                            NULL,
 							3,
 							param->sourceBGValue);
 			if(!flag->outputResultFlag) param->outputResultName="outputResult.nii";
