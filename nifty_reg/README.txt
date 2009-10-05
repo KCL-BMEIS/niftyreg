@@ -8,41 +8,54 @@
 1 WHAT DOES THE PACKAGE CONTAIN?
 --------------------------------
 The code contains programs to perform rigid, affine and non-linearregistration
-of 3D images. 
-The rigid and affine registration are performed using an algorithm presented
-by Ourselin et al.[1,2]; whereas the non-rigid registration is based on the work
+of 3D images.
+
+
+The rigid and afiine registration are performed using an algorithm presented by
+Ourselin et al.[1, 2]; whereas the non-rigid registration is based on the work
 of Modat et al.[3].
-Ourselin et al.[1,2] presented an algorithm called Aladin, which is based on a
-block-matching approach and a Trimmed Least Square (TLS) scheme. Firstly,
-the block matching provides a set of corresponding points between a target
-and a source image. Secondly, using this set of corresponding points, the best
-rigid or affine transformation is evaluated. This two-step loop is repeated until
-convergence to the best global transformation.
+
+Ourselin et al.[1, 2] presented an algorithm called Aladin, which is based on
+a block-matching approach and a Trimmed Least Square (TLS) scheme. Firstly,
+the block matching provides a set of corresponding points between a target and
+a source image. Secondly, using this set of corresponding points, the best
+rigid or affine transformation is evaluated. This two-step loop is repeated
+until convergence to the best transformation.
 In our implementation, we used the normalised cross-correlation between the
-target and source blocks to extract the best correspondence. The block width is
-constant and has been set to 4 voxels. A coarse-to-ﬁne approach is used, where
-the registration is ﬁrst performed on down-sampled images (using a Gaussian
-ﬁlter to resample images) and the last one is perform on full resolution images.
-reg aladin is the name of the command to perform this global registration.
+target and source blocks to extract the best correspondence. The block width
+is constant and has been set to 4 voxels. A coarse-to-ﬁne approach is used,
+where the registration is ﬁrst performed on down-sampled images (using a
+Gaussian ﬁlter to resample images) and finally performed on full resolution
+images.
+reg aladin is the name of the command to perform rigid or affine registration.
+
 The non-rigid algorithm implementation is based on the Free-From Deformation
 presented by Rueckert et al.[4]. However, the algorithm has been re-factored
 in order to speed-up registration. The deformation of the source image is
-performed using cubic B-splines to generate the deformation ﬁeld. Concretely, a 
-lattice of equally spaced control points is applied on the target image and 
-moving each point allows to locally deform the underlying image. In order to
-assess the quality of the warping between both input images, an objective
-function composed from the Normalised Mutual Information(NMI) and the Bending-
-Energy(BE) is used. The ob jective function value is optimised using the
-analytical derivative of both, the NMI and the BE within a conjugate gradient
-scheme. reg f3d is the command to perform this local registration.
+performed using cubic B-splines to generate the deformation ﬁeld. Concretely,
+a lattice of equally spaced control points is defined over the target image
+and moving each point allows to locally modify the mapping to the source image.
+In order to assess the quality of the warping between both input images, an
+objective function composed from the Normalised Mutual Information (NMI) and
+the Bending-Energy (BE) is used. The ob jective function value is optimised
+using the analytical derivative of both, the NMI and the BE within a conjugate
+gradient scheme.
+reg f3d is the command to perform non-linear registration.
+
 A third program, called reg resample, is been embedded in the package. It
 uses the output of reg aladin and reg f3d to apply transformation, generate
 deformation ﬁelds or Jacobian map images for example.
+
 The code has been implemented for CPU and GPU architecture. The former
 code is based on the C/C++ language, whereas the later is based on CUDA
 (http://www.nvidia.com).
+
 The nifti library (http://nifti.nimh.nih.gov/) is used to read and write
 images. The code is thus dealing with nifti and analyse formats.
+
+If you are planning to use any of our research, we would be grateful if you
+would be kind enough to cite reference(s) 1, 2 (rigid or affine) and/or
+3 (non-rigid).
 
 ##############################################################################
 

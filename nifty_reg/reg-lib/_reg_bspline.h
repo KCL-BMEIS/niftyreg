@@ -23,6 +23,7 @@ extern "C++" template<class PrecisionTYPE>
 void reg_bspline(	nifti_image *splineControlPoint,
 			nifti_image *targetImage,
 			nifti_image *deformationField,
+            int *mask,
 			int type
  			);
 

@@ -49,17 +49,19 @@ PrecisionTYPE GetBasisSplineDerivativeValue(PrecisionTYPE ori)
 /* *************************************************************** */
 extern "C++" template<class PrecisionTYPE, class TargetTYPE, class ResultTYPE>
 void reg_getEntropies3(	nifti_image *targetImage,
- 						nifti_image *resultImage,
-	 					int type,
-	 					int binning,
-	 					PrecisionTYPE *probaJointHistogram,
-	 					PrecisionTYPE *logJointHistogram,
-					  PrecisionTYPE *entropies,
-					  bool includePadding
-	 				 )
+                        nifti_image *resultImage,
+                        int type,
+                        int binning,
+                        PrecisionTYPE *probaJointHistogram,
+                        PrecisionTYPE *logJointHistogram,
+                        PrecisionTYPE *entropies,
+                        bool includePadding,
+                        int *mask)
 {
 	TargetTYPE *targetPtr = static_cast<TargetTYPE *>(targetImage->data);
 	ResultTYPE *resultPtr = static_cast<ResultTYPE *>(resultImage->data);
+
+    int *maskPtr = &mask[0];
 
 	memset(probaJointHistogram, 0, binning*(binning+2) * sizeof(PrecisionTYPE));
 	memset(logJointHistogram, 0, binning*(binning+2) * sizeof(PrecisionTYPE));
@@ -74,7 +76,7 @@ void reg_getEntropies3(	nifti_image *targetImage,
 					for(int x=0; x<targetImage->nx; x++){
 						TargetTYPE targetValue=*targetPtr++;
 						ResultTYPE resultValue=*resultPtr++;
-						if(targetValue && resultValue){
+						if(targetValue && resultValue && *maskPtr++>-1){
 							for(int t=(int)(targetValue-2.0); t<(int)(targetValue+3.0); t++){
 								if(-1<t && t<binning){
 									for(int r=(int)(resultValue-2.0); r<(int)(resultValue+3.0); r++){
@@ -94,12 +96,16 @@ void reg_getEntropies3(	nifti_image *targetImage,
 		}
 		else{ // classical trilinear interpolation only
 			for(unsigned int index=0; index<targetImage->nvox; index++){
-				TargetTYPE targetInt = *targetPtr++;
-				ResultTYPE resultInt = *resultPtr++;
-				if(targetInt>(TargetTYPE)(0) && targetInt<(TargetTYPE)(binning) && resultInt>(ResultTYPE)(0) && resultInt<(ResultTYPE)(binning)){
-					probaJointHistogram[(unsigned int)((floorf((float)targetInt) * binning + floorf((float)resultInt)))]++;
-					voxelNumber++;
-				}
+                if(*maskPtr++>-1){
+                    TargetTYPE targetInt = *targetPtr;
+                    ResultTYPE resultInt = *resultPtr;
+                    if(targetInt>(TargetTYPE)(0) && targetInt<(TargetTYPE)(binning) && resultInt>(ResultTYPE)(0) && resultInt<(ResultTYPE)(binning)){
+	                    probaJointHistogram[(unsigned int)((floorf((float)targetInt) * binning + floorf((float)resultInt)))]++;
+	                    voxelNumber++;
+                    }
+                }
+                targetPtr++;
+                resultPtr++;
 			}
 		}
 	}
@@ -108,32 +114,40 @@ void reg_getEntropies3(	nifti_image *targetImage,
 			for(int z=0; z<targetImage->nz; z++){ // loop over the target space
 				for(int y=0; y<targetImage->ny; y++){
 					for(int x=0; x<targetImage->nx; x++){
-						TargetTYPE targetValue=*targetPtr++;
-						ResultTYPE resultValue=*resultPtr++;
-						for(int t=(int)(targetValue-2.0); t<(int)(targetValue+3.0); t++){
-							if(-1<t && t<binning){
-								for(int r=(int)(resultValue-2.0); r<(int)(resultValue+3.0); r++){
-									if(-1<r && r<binning){
-										PrecisionTYPE coeff = GetBasisSplineValue<PrecisionTYPE>((PrecisionTYPE)t-(PrecisionTYPE)targetValue) *
-										GetBasisSplineValue<PrecisionTYPE>((PrecisionTYPE)r-(PrecisionTYPE)resultValue);
-										probaJointHistogram[t*binning+r] += coeff;
-										voxelNumber += coeff;
-									} // O<j<bin
-								} // j
-							} // 0<i<bin
-						} // i
+                        if(*maskPtr++>-1){
+						    TargetTYPE targetValue=*targetPtr;
+						    ResultTYPE resultValue=*resultPtr;
+						    for(int t=(int)(targetValue-2.0); t<(int)(targetValue+3.0); t++){
+							    if(-1<t && t<binning){
+								    for(int r=(int)(resultValue-2.0); r<(int)(resultValue+3.0); r++){
+									    if(-1<r && r<binning){
+										    PrecisionTYPE coeff = GetBasisSplineValue<PrecisionTYPE>((PrecisionTYPE)t-(PrecisionTYPE)targetValue) *
+										    GetBasisSplineValue<PrecisionTYPE>((PrecisionTYPE)r-(PrecisionTYPE)resultValue);
+										    probaJointHistogram[t*binning+r] += coeff;
+										    voxelNumber += coeff;
+									    } // O<j<bin
+								    } // j
+							    } // 0<i<bin
+						    } // i
+                        }
+                        targetPtr++;
+                        resultPtr++;
 					} // x
 				} // y
 			} // z
 		}
 		else{ // classical trilinear interpolation only
 			for(unsigned int index=0; index<targetImage->nvox; index++){
-				TargetTYPE targetInt = *targetPtr++;
-				ResultTYPE resultInt = *resultPtr++;
-				if((float)targetInt>=0 && targetInt<(TargetTYPE) binning && (float)resultInt>=0 && resultInt<(ResultTYPE)binning){
-					probaJointHistogram[(unsigned int)(floorf((float)targetInt) * binning + floorf((float)resultInt))]++;
-					voxelNumber++;
-				}
+                if(*maskPtr++>-1){
+				    TargetTYPE targetInt = *targetPtr;
+				    ResultTYPE resultInt = *resultPtr;
+				    if((float)targetInt>=0 && targetInt<(TargetTYPE) binning && (float)resultInt>=0 && resultInt<(ResultTYPE)binning){
+					    probaJointHistogram[(unsigned int)(floorf((float)targetInt) * binning + floorf((float)resultInt))]++;
+					    voxelNumber++;
+				    }
+                    targetPtr++;
+                    resultPtr++;
+                }
 			}
 		}
 	}
@@ -249,33 +263,34 @@ void reg_getEntropies2(	nifti_image *targetImage,
 	 					PrecisionTYPE *probaJointHistogram,
 	 					PrecisionTYPE *logJointHistogram,
 					  PrecisionTYPE *entropies,
-					  bool includePadding
+					  bool includePadding,
+                    int *mask
  					)
 {
 	switch(resultImage->datatype){
 		case NIFTI_TYPE_UINT8:
-			reg_getEntropies3<PrecisionTYPE,TargetTYPE,unsigned char>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding);
+			reg_getEntropies3<PrecisionTYPE,TargetTYPE,unsigned char>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding, mask);
 			break;
 		case NIFTI_TYPE_INT8:
-			reg_getEntropies3<PrecisionTYPE,TargetTYPE,char>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding);
+			reg_getEntropies3<PrecisionTYPE,TargetTYPE,char>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding, mask);
 			break;
 		case NIFTI_TYPE_UINT16:
-			reg_getEntropies3<PrecisionTYPE,TargetTYPE,unsigned short>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding);
+			reg_getEntropies3<PrecisionTYPE,TargetTYPE,unsigned short>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding, mask);
 			break;
 		case NIFTI_TYPE_INT16:
-			reg_getEntropies3<PrecisionTYPE,TargetTYPE,short>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding);
+			reg_getEntropies3<PrecisionTYPE,TargetTYPE,short>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding, mask);
 			break;
 		case NIFTI_TYPE_UINT32:
-			reg_getEntropies3<PrecisionTYPE,TargetTYPE,unsigned int>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding);
+			reg_getEntropies3<PrecisionTYPE,TargetTYPE,unsigned int>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding, mask);
 			break;
 		case NIFTI_TYPE_INT32:
-			reg_getEntropies3<PrecisionTYPE,TargetTYPE,int>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding);
+			reg_getEntropies3<PrecisionTYPE,TargetTYPE,int>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding, mask);
 			break;
 		case NIFTI_TYPE_FLOAT32:
-			reg_getEntropies3<PrecisionTYPE,TargetTYPE,float>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding);
+			reg_getEntropies3<PrecisionTYPE,TargetTYPE,float>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding, mask);
 			break;
 		case NIFTI_TYPE_FLOAT64:
-			reg_getEntropies3<PrecisionTYPE,TargetTYPE,double>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding);
+			reg_getEntropies3<PrecisionTYPE,TargetTYPE,double>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding, mask);
 			break;
 		default:
 			printf("err\treg_getEntropies\tThe result image data type is not supported\n");
@@ -291,34 +306,35 @@ void reg_getEntropies(	nifti_image *targetImage,
 	 					int binning,
 	 					PrecisionTYPE *probaJointHistogram,
 	 					PrecisionTYPE *logJointHistogram,
-					 PrecisionTYPE *entropies,
-					 bool includePadding
+					    PrecisionTYPE *entropies,
+					    bool includePadding,
+                        int *mask
  					)
 {
 	switch(targetImage->datatype){
 		case NIFTI_TYPE_UINT8:
-			reg_getEntropies2<PrecisionTYPE,unsigned char>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding);
+			reg_getEntropies2<PrecisionTYPE,unsigned char>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding, mask);
 			break;
 		case NIFTI_TYPE_INT8:
-			reg_getEntropies2<PrecisionTYPE,char>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding);
+			reg_getEntropies2<PrecisionTYPE,char>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding, mask);
 			break;
 		case NIFTI_TYPE_UINT16:
-			reg_getEntropies2<PrecisionTYPE,unsigned short>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding);
+			reg_getEntropies2<PrecisionTYPE,unsigned short>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding, mask);
 			break;
 		case NIFTI_TYPE_INT16:
-			reg_getEntropies2<PrecisionTYPE,short>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding);
+			reg_getEntropies2<PrecisionTYPE,short>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding, mask);
 			break;
 		case NIFTI_TYPE_UINT32:
-			reg_getEntropies2<PrecisionTYPE,unsigned int>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding);
+			reg_getEntropies2<PrecisionTYPE,unsigned int>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding, mask);
 			break;
 		case NIFTI_TYPE_INT32:
-			reg_getEntropies2<PrecisionTYPE,int>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding);
+			reg_getEntropies2<PrecisionTYPE,int>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding, mask);
 			break;
 		case NIFTI_TYPE_FLOAT32:
-			reg_getEntropies2<PrecisionTYPE,float>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding);
+			reg_getEntropies2<PrecisionTYPE,float>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding, mask);
 			break;
 		case NIFTI_TYPE_FLOAT64:
-			reg_getEntropies2<PrecisionTYPE,double>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding);
+			reg_getEntropies2<PrecisionTYPE,double>(targetImage, resultImage, type, binning, probaJointHistogram, logJointHistogram, entropies, includePadding, mask);
 			break;
 		default:
 			printf("err\treg_getEntropies\tThe target image data type is not supported\n");
@@ -327,8 +343,8 @@ void reg_getEntropies(	nifti_image *targetImage,
 	return;
 }
 /* *************************************************************** */
-template void reg_getEntropies<float>(nifti_image *, nifti_image *, int, int, float *, float *, float *, bool);
-template void reg_getEntropies<double>(nifti_image *, nifti_image *, int, int, double *, double *, double *, bool);
+template void reg_getEntropies<float>(nifti_image *, nifti_image *, int, int, float *, float *, float *, bool, int *);
+template void reg_getEntropies<double>(nifti_image *, nifti_image *, int, int, double *, double *, double *, bool, int *);
 /* *************************************************************** */
 /* *************************************************************** */
 /* *************************************************************** */
@@ -340,6 +356,7 @@ void reg_getVoxelBasedNMIGradientUsingPW4(	nifti_image *targetImage,
 						PrecisionTYPE *logJointHistogram,
 						PrecisionTYPE *entropies,
 						nifti_image *nmiGradientImage,
+                        int *mask,
 						bool includePadding)
 {
 	TargetTYPE *targetPtr = static_cast<TargetTYPE *>(targetImage->data);
@@ -351,6 +368,8 @@ void reg_getVoxelBasedNMIGradientUsingPW4(	nifti_image *targetImage,
 	NMIGradientTYPE *nmiGradientPtrY = &nmiGradientPtrX[resultImage->nvox];
 	NMIGradientTYPE *nmiGradientPtrZ = &nmiGradientPtrY[resultImage->nvox];
 	
+    int *maskPtr = &mask[0];
+
 	// In a first time the NMI gradient is computed for every voxel
 	memset(nmiGradientPtrX,0,nmiGradientImage->nvox*nmiGradientImage->nbyper);
 
@@ -363,70 +382,74 @@ void reg_getVoxelBasedNMIGradientUsingPW4(	nifti_image *targetImage,
 			for(int y=0; y<targetImage->ny; y++){
 				for(int x=0; x<targetImage->nx; x++){
 
-					TargetTYPE targetValue = *targetPtr++;
-					ResultTYPE resultValue = *resultPtr++;
-					if(targetValue && resultValue){
-
-						PrecisionTYPE resDeriv[3];
-						resDeriv[0] = (PrecisionTYPE)(*resultGradientPtrX / entropies[3]);
-						resDeriv[1] = (PrecisionTYPE)(*resultGradientPtrY / entropies[3]);
-						resDeriv[2] = (PrecisionTYPE)(*resultGradientPtrZ / entropies[3]);
-
-						PrecisionTYPE jointEntropyDerivative_X = 0.0;
-						PrecisionTYPE movingEntropyDerivative_X = 0.0;
-						PrecisionTYPE fixedEntropyDerivative_X = 0.0;
-
-						PrecisionTYPE jointEntropyDerivative_Y = 0.0;
-						PrecisionTYPE movingEntropyDerivative_Y = 0.0;
-						PrecisionTYPE fixedEntropyDerivative_Y = 0.0;
-
-						PrecisionTYPE jointEntropyDerivative_Z = 0.0;
-						PrecisionTYPE movingEntropyDerivative_Z = 0.0;
-						PrecisionTYPE fixedEntropyDerivative_Z = 0.0;
-						
-						for(int t=(int)(targetValue-2.0); t<(int)(targetValue+3.0); t++){
-							if(-1<t && t<binning){
-								for(int r=(int)(resultValue-2.0); r<(int)(resultValue+3.0); r++){
-									if(-1<r && r<binning){
-										PrecisionTYPE commonValue =  GetBasisSplineValue<PrecisionTYPE>((PrecisionTYPE)t-(PrecisionTYPE)targetValue) * 
-											GetBasisSplineDerivativeValue<PrecisionTYPE>((PrecisionTYPE)r-(PrecisionTYPE)resultValue);
-										
-										PrecisionTYPE jointLog = logJointHistogram[t*binning+r];
-										PrecisionTYPE targetLog = logJointHistogram[binningSquare+t];
-										PrecisionTYPE resultLog = logJointHistogram[binningSquare+binning+r];
-										
-										PrecisionTYPE temp = commonValue * resDeriv[0];
-										jointEntropyDerivative_X -= temp * jointLog;
-										fixedEntropyDerivative_X -= temp * targetLog;
-										movingEntropyDerivative_X -= temp * resultLog;
-										
-										temp = commonValue * resDeriv[1];
-										jointEntropyDerivative_Y -= temp * jointLog;
-										fixedEntropyDerivative_Y -= temp * targetLog;
-										movingEntropyDerivative_Y -= temp * resultLog;
-										
-										temp = commonValue * resDeriv[2];
-										jointEntropyDerivative_Z -= temp * jointLog;
-										fixedEntropyDerivative_Z -= temp * targetLog;
-										movingEntropyDerivative_Z -= temp * resultLog;
-										
-									} // O<t<bin
-								} // t
-							} // 0<r<bin
-						} // r
-						
-						// The gradient is computed in a the voxel space - The target orientation has to be taken into account
-						*nmiGradientPtrX = (NMIGradientTYPE)((fixedEntropyDerivative_X + movingEntropyDerivative_X - NMI * jointEntropyDerivative_X) / entropies[2]);
-						*nmiGradientPtrY = (NMIGradientTYPE)((fixedEntropyDerivative_Y + movingEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / entropies[2]);
-						*nmiGradientPtrZ = (NMIGradientTYPE)((fixedEntropyDerivative_Z + movingEntropyDerivative_Z - NMI * jointEntropyDerivative_Z) / entropies[2]);
-						
-					} // value > 0
-					nmiGradientPtrX++;
-					nmiGradientPtrY++;
-					nmiGradientPtrZ++;
-					resultGradientPtrX++;
-					resultGradientPtrY++;
-					resultGradientPtrZ++;
+                    if(*maskPtr++>-1){
+                        TargetTYPE targetValue = *targetPtr;
+                        ResultTYPE resultValue = *resultPtr;
+                        if(targetValue && resultValue){
+    
+						    PrecisionTYPE resDeriv[3];
+						    resDeriv[0] = (PrecisionTYPE)(*resultGradientPtrX / entropies[3]);
+						    resDeriv[1] = (PrecisionTYPE)(*resultGradientPtrY / entropies[3]);
+						    resDeriv[2] = (PrecisionTYPE)(*resultGradientPtrZ / entropies[3]);
+    
+						    PrecisionTYPE jointEntropyDerivative_X = 0.0;
+						    PrecisionTYPE movingEntropyDerivative_X = 0.0;
+						    PrecisionTYPE fixedEntropyDerivative_X = 0.0;
+    
+						    PrecisionTYPE jointEntropyDerivative_Y = 0.0;
+						    PrecisionTYPE movingEntropyDerivative_Y = 0.0;
+						    PrecisionTYPE fixedEntropyDerivative_Y = 0.0;
+    
+						    PrecisionTYPE jointEntropyDerivative_Z = 0.0;
+						    PrecisionTYPE movingEntropyDerivative_Z = 0.0;
+						    PrecisionTYPE fixedEntropyDerivative_Z = 0.0;
+						    
+						    for(int t=(int)(targetValue-2.0); t<(int)(targetValue+3.0); t++){
+							    if(-1<t && t<binning){
+								    for(int r=(int)(resultValue-2.0); r<(int)(resultValue+3.0); r++){
+									    if(-1<r && r<binning){
+										    PrecisionTYPE commonValue =  GetBasisSplineValue<PrecisionTYPE>((PrecisionTYPE)t-(PrecisionTYPE)targetValue) * 
+											    GetBasisSplineDerivativeValue<PrecisionTYPE>((PrecisionTYPE)r-(PrecisionTYPE)resultValue);
+										    
+										    PrecisionTYPE jointLog = logJointHistogram[t*binning+r];
+										    PrecisionTYPE targetLog = logJointHistogram[binningSquare+t];
+										    PrecisionTYPE resultLog = logJointHistogram[binningSquare+binning+r];
+										    
+										    PrecisionTYPE temp = commonValue * resDeriv[0];
+										    jointEntropyDerivative_X -= temp * jointLog;
+										    fixedEntropyDerivative_X -= temp * targetLog;
+										    movingEntropyDerivative_X -= temp * resultLog;
+										    
+										    temp = commonValue * resDeriv[1];
+										    jointEntropyDerivative_Y -= temp * jointLog;
+										    fixedEntropyDerivative_Y -= temp * targetLog;
+										    movingEntropyDerivative_Y -= temp * resultLog;
+										    
+										    temp = commonValue * resDeriv[2];
+										    jointEntropyDerivative_Z -= temp * jointLog;
+										    fixedEntropyDerivative_Z -= temp * targetLog;
+										    movingEntropyDerivative_Z -= temp * resultLog;
+										    
+									    } // O<t<bin
+								    } // t
+							    } // 0<r<bin
+						    } // r
+						    
+						    // The gradient is computed in a the voxel space - The target orientation has to be taken into account
+						    *nmiGradientPtrX = (NMIGradientTYPE)((fixedEntropyDerivative_X + movingEntropyDerivative_X - NMI * jointEntropyDerivative_X) / entropies[2]);
+						    *nmiGradientPtrY = (NMIGradientTYPE)((fixedEntropyDerivative_Y + movingEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / entropies[2]);
+						    *nmiGradientPtrZ = (NMIGradientTYPE)((fixedEntropyDerivative_Z + movingEntropyDerivative_Z - NMI * jointEntropyDerivative_Z) / entropies[2]);
+						    
+					    } // value > 0
+                    }// mask > -1
+                    targetPtr++;
+                    resultPtr++;
+                    nmiGradientPtrX++;
+                    nmiGradientPtrY++;
+                    nmiGradientPtrZ++;
+                    resultGradientPtrX++;
+                    resultGradientPtrY++;
+                    resultGradientPtrZ++;
 				}
 			}
 		}
@@ -436,67 +459,71 @@ void reg_getVoxelBasedNMIGradientUsingPW4(	nifti_image *targetImage,
 			for(int y=0; y<targetImage->ny; y++){
 				for(int x=0; x<targetImage->nx; x++){
 					
-					TargetTYPE targetValue = *targetPtr++;
-					ResultTYPE resultValue = *resultPtr++;
-					
-					PrecisionTYPE resDeriv[3];
-					resDeriv[0] = (PrecisionTYPE)(*resultGradientPtrX / entropies[3]);
-					resDeriv[1] = (PrecisionTYPE)(*resultGradientPtrY / entropies[3]);
-					resDeriv[2] = (PrecisionTYPE)(*resultGradientPtrZ / entropies[3]);
-					
-					PrecisionTYPE jointEntropyDerivative_X = 0.0;
-					PrecisionTYPE movingEntropyDerivative_X = 0.0;
-					PrecisionTYPE fixedEntropyDerivative_X = 0.0;
-					
-					PrecisionTYPE jointEntropyDerivative_Y = 0.0;
-					PrecisionTYPE movingEntropyDerivative_Y = 0.0;
-					PrecisionTYPE fixedEntropyDerivative_Y = 0.0;
-					
-					PrecisionTYPE jointEntropyDerivative_Z = 0.0;
-					PrecisionTYPE movingEntropyDerivative_Z = 0.0;
-					PrecisionTYPE fixedEntropyDerivative_Z = 0.0;
-					
-					for(int t=(int)(targetValue-2.0); t<(int)(targetValue+3.0); t++){
-						if(-1<t && t<binning){
-							for(int r=(int)(resultValue-2.0); r<(int)(resultValue+3.0); r++){
-								if(-1<r && r<binning){
-									PrecisionTYPE commonValue =  GetBasisSplineValue<PrecisionTYPE>((PrecisionTYPE)t-(PrecisionTYPE)targetValue) * 
-									GetBasisSplineDerivativeValue<PrecisionTYPE>((PrecisionTYPE)r-(PrecisionTYPE)resultValue);
-									
-									PrecisionTYPE jointLog = logJointHistogram[t*binning+r];
-									PrecisionTYPE targetLog = logJointHistogram[binningSquare+t];
-									PrecisionTYPE resultLog = logJointHistogram[binningSquare+binning+r];
-									
-									PrecisionTYPE temp = commonValue * resDeriv[0];
-									jointEntropyDerivative_X -= temp * jointLog;
-									fixedEntropyDerivative_X -= temp * targetLog;
-									movingEntropyDerivative_X -= temp * resultLog;
-									
-									temp = commonValue * resDeriv[1];
-									jointEntropyDerivative_Y -= temp * jointLog;
-									fixedEntropyDerivative_Y -= temp * targetLog;
-									movingEntropyDerivative_Y -= temp * resultLog;
-									
-									temp = commonValue * resDeriv[2];
-									jointEntropyDerivative_Z -= temp * jointLog;
-									fixedEntropyDerivative_Z -= temp * targetLog;
-									movingEntropyDerivative_Z -= temp * resultLog;
-									
-								} // O<t<bin
-							} // t
-						} // 0<r<bin
-					} // r
-					
-					*nmiGradientPtrX = (NMIGradientTYPE)((fixedEntropyDerivative_X + movingEntropyDerivative_X - NMI * jointEntropyDerivative_X) / entropies[2]);
-					*nmiGradientPtrY = (NMIGradientTYPE)((fixedEntropyDerivative_Y + movingEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / entropies[2]);
-					*nmiGradientPtrZ = (NMIGradientTYPE)((fixedEntropyDerivative_Z + movingEntropyDerivative_Z - NMI * jointEntropyDerivative_Z) / entropies[2]);
-					
-					nmiGradientPtrX++;
-					nmiGradientPtrY++;
-					nmiGradientPtrZ++;
-					resultGradientPtrX++;
-					resultGradientPtrY++;
-					resultGradientPtrZ++;
+                    if(*maskPtr++>-1){
+	                TargetTYPE targetValue = *targetPtr;
+	                ResultTYPE resultValue = *resultPtr;
+
+	                PrecisionTYPE resDeriv[3];
+	                resDeriv[0] = (PrecisionTYPE)(*resultGradientPtrX / entropies[3]);
+	                resDeriv[1] = (PrecisionTYPE)(*resultGradientPtrY / entropies[3]);
+	                resDeriv[2] = (PrecisionTYPE)(*resultGradientPtrZ / entropies[3]);
+
+	                PrecisionTYPE jointEntropyDerivative_X = 0.0;
+	                PrecisionTYPE movingEntropyDerivative_X = 0.0;
+	                PrecisionTYPE fixedEntropyDerivative_X = 0.0;
+
+	                PrecisionTYPE jointEntropyDerivative_Y = 0.0;
+	                PrecisionTYPE movingEntropyDerivative_Y = 0.0;
+	                PrecisionTYPE fixedEntropyDerivative_Y = 0.0;
+
+	                PrecisionTYPE jointEntropyDerivative_Z = 0.0;
+	                PrecisionTYPE movingEntropyDerivative_Z = 0.0;
+	                PrecisionTYPE fixedEntropyDerivative_Z = 0.0;
+
+	                for(int t=(int)(targetValue-2.0); t<(int)(targetValue+3.0); t++){
+		                if(-1<t && t<binning){
+			                for(int r=(int)(resultValue-2.0); r<(int)(resultValue+3.0); r++){
+				                if(-1<r && r<binning){
+					                PrecisionTYPE commonValue =  GetBasisSplineValue<PrecisionTYPE>((PrecisionTYPE)t-(PrecisionTYPE)targetValue) * 
+					                GetBasisSplineDerivativeValue<PrecisionTYPE>((PrecisionTYPE)r-(PrecisionTYPE)resultValue);
+
+					                PrecisionTYPE jointLog = logJointHistogram[t*binning+r];
+					                PrecisionTYPE targetLog = logJointHistogram[binningSquare+t];
+					                PrecisionTYPE resultLog = logJointHistogram[binningSquare+binning+r];
+
+					                PrecisionTYPE temp = commonValue * resDeriv[0];
+					                jointEntropyDerivative_X -= temp * jointLog;
+					                fixedEntropyDerivative_X -= temp * targetLog;
+					                movingEntropyDerivative_X -= temp * resultLog;
+
+					                temp = commonValue * resDeriv[1];
+					                jointEntropyDerivative_Y -= temp * jointLog;
+					                fixedEntropyDerivative_Y -= temp * targetLog;
+					                movingEntropyDerivative_Y -= temp * resultLog;
+
+					                temp = commonValue * resDeriv[2];
+					                jointEntropyDerivative_Z -= temp * jointLog;
+					                fixedEntropyDerivative_Z -= temp * targetLog;
+					                movingEntropyDerivative_Z -= temp * resultLog;
+
+				                } // O<t<bin
+			                } // t
+		                } // 0<r<bin
+	                } // r
+
+	                *nmiGradientPtrX = (NMIGradientTYPE)((fixedEntropyDerivative_X + movingEntropyDerivative_X - NMI * jointEntropyDerivative_X) / entropies[2]);
+	                *nmiGradientPtrY = (NMIGradientTYPE)((fixedEntropyDerivative_Y + movingEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / entropies[2]);
+	                *nmiGradientPtrZ = (NMIGradientTYPE)((fixedEntropyDerivative_Z + movingEntropyDerivative_Z - NMI * jointEntropyDerivative_Z) / entropies[2]);
+                }// mask > -1
+
+                targetPtr++;
+                resultPtr++;
+                nmiGradientPtrX++;
+                nmiGradientPtrY++;
+                nmiGradientPtrZ++;
+                resultGradientPtrX++;
+                resultGradientPtrY++;
+                resultGradientPtrZ++;
 				}
 			}
 		}
@@ -505,23 +532,23 @@ void reg_getVoxelBasedNMIGradientUsingPW4(	nifti_image *targetImage,
 /* *************************************************************** */
 template<class PrecisionTYPE,class TargetTYPE,class ResultTYPE,class ResultGradientTYPE>
 void reg_getVoxelBasedNMIGradientUsingPW3(	nifti_image *targetImage,
-					 						nifti_image *resultImage,
-					 						nifti_image *resultImageGradient,
-						 					int binning,
-						 					PrecisionTYPE *logJointHistogram,
-						 					PrecisionTYPE *entropies,
-										 nifti_image *nmiGradientImage,
-										 bool includePadding
-		 								)
+                                            nifti_image *resultImage,
+                                            nifti_image *resultImageGradient,
+                                            int binning,
+                                            PrecisionTYPE *logJointHistogram,
+                                            PrecisionTYPE *entropies,
+                                            nifti_image *nmiGradientImage,
+                                            int *mask,
+                                            bool includePadding)
 {
 	switch(nmiGradientImage->datatype){
 		case NIFTI_TYPE_FLOAT32:
 			reg_getVoxelBasedNMIGradientUsingPW4<PrecisionTYPE,TargetTYPE,ResultTYPE,ResultGradientTYPE,float>
-				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, includePadding);
+				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, mask, includePadding);
 			break;
 		case NIFTI_TYPE_FLOAT64:
 			reg_getVoxelBasedNMIGradientUsingPW4<PrecisionTYPE,TargetTYPE,ResultTYPE,ResultGradientTYPE,double>
-				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, includePadding);
+				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, mask, includePadding);
 			break;
 		default:
 			printf("err\treg_getVoxelBasedNMIGradientUsingPW\tThe result image gradient data type is not supported\n");
@@ -531,23 +558,23 @@ void reg_getVoxelBasedNMIGradientUsingPW3(	nifti_image *targetImage,
 /* *************************************************************** */
 template<class PrecisionTYPE,class TargetTYPE,class ResultTYPE>
 void reg_getVoxelBasedNMIGradientUsingPW2(	nifti_image *targetImage,
-					 						nifti_image *resultImage,
-					 						nifti_image *resultImageGradient,
-						 					int binning,
-						 					PrecisionTYPE *logJointHistogram,
-						 					PrecisionTYPE *entropies,
-										 nifti_image *nmiGradientImage,
-										 bool includePadding
-		 								)
+                                            nifti_image *resultImage,
+                                            nifti_image *resultImageGradient,
+                                            int binning,
+                                            PrecisionTYPE *logJointHistogram,
+                                            PrecisionTYPE *entropies,
+                                            nifti_image *nmiGradientImage,
+                                            int *mask,
+                                            bool includePadding)
 {
 	switch(resultImageGradient->datatype){
 		case NIFTI_TYPE_FLOAT32:
 			reg_getVoxelBasedNMIGradientUsingPW3<PrecisionTYPE,TargetTYPE,ResultTYPE,float>
-				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, includePadding);
+				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, mask, includePadding);
 			break;
 		case NIFTI_TYPE_FLOAT64:
 			reg_getVoxelBasedNMIGradientUsingPW3<PrecisionTYPE,TargetTYPE,ResultTYPE,double>
-				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, includePadding);
+				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, mask, includePadding);
 			break;
 		default:
 			printf("err\treg_getVoxelBasedNMIGradientUsingPW\tThe result image gradient data type is not supported\n");
@@ -563,41 +590,42 @@ void reg_getVoxelBasedNMIGradientUsingPW1(	nifti_image *targetImage,
 						 					PrecisionTYPE *logJointHistogram,
 						 					PrecisionTYPE *entropies,
 										 nifti_image *nmiGradientImage,
+                                            int *mask,
 										 bool includePadding
 		 								)
 {
 	switch(resultImage->datatype){
 				case NIFTI_TYPE_UINT8:
 			reg_getVoxelBasedNMIGradientUsingPW2<PrecisionTYPE,TargetTYPE,unsigned char>
-				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, includePadding);
+				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, mask, includePadding);
 			break;
 		case NIFTI_TYPE_INT8:
 			reg_getVoxelBasedNMIGradientUsingPW2<PrecisionTYPE,TargetTYPE,char>
-				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, includePadding);
+				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, mask, includePadding);
 			break;
 		case NIFTI_TYPE_UINT16:
 			reg_getVoxelBasedNMIGradientUsingPW2<PrecisionTYPE,TargetTYPE,unsigned short>
-				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, includePadding);
+				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, mask, includePadding);
 			break;
 		case NIFTI_TYPE_INT16:
 			reg_getVoxelBasedNMIGradientUsingPW2<PrecisionTYPE,TargetTYPE,short>
-				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, includePadding);
+				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, mask, includePadding);
 			break;
 		case NIFTI_TYPE_UINT32:
 			reg_getVoxelBasedNMIGradientUsingPW2<PrecisionTYPE,TargetTYPE,unsigned int>
-				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, includePadding);
+				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, mask, includePadding);
 			break;
 		case NIFTI_TYPE_INT32:
 			reg_getVoxelBasedNMIGradientUsingPW2<PrecisionTYPE,TargetTYPE,int>
-				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, includePadding);
+				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, mask, includePadding);
 			break;
 		case NIFTI_TYPE_FLOAT32:
 			reg_getVoxelBasedNMIGradientUsingPW2<PrecisionTYPE,TargetTYPE,float>
-				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, includePadding);
+				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, mask, includePadding);
 			break;
 		case NIFTI_TYPE_FLOAT64:
 			reg_getVoxelBasedNMIGradientUsingPW2<PrecisionTYPE,TargetTYPE,double>
-				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, includePadding);
+				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, mask, includePadding);
 			break;
 		default:
 			printf("err\treg_getVoxelBasedNMIGradientUsingPW\tThe result image data type is not supported\n");
@@ -613,41 +641,42 @@ void reg_getVoxelBasedNMIGradientUsingPW(	nifti_image *targetImage,
 						 					PrecisionTYPE *logJointHistogram,
 						 					PrecisionTYPE *entropies,
 										nifti_image *nmiGradientImage,
+                                            int *mask,
 										bool includePadding
 		 								)
 {
 	switch(targetImage->datatype){
 				case NIFTI_TYPE_UINT8:
 			reg_getVoxelBasedNMIGradientUsingPW1<PrecisionTYPE,unsigned char>
-				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, includePadding);
+				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, mask, includePadding);
 			break;
 		case NIFTI_TYPE_INT8:
 			reg_getVoxelBasedNMIGradientUsingPW1<PrecisionTYPE,char>
-				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, includePadding);
+				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, mask, includePadding);
 			break;
 		case NIFTI_TYPE_UINT16:
 			reg_getVoxelBasedNMIGradientUsingPW1<PrecisionTYPE,unsigned short>
-				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, includePadding);
+				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, mask, includePadding);
 			break;
 		case NIFTI_TYPE_INT16:
 			reg_getVoxelBasedNMIGradientUsingPW1<PrecisionTYPE,short>
-				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, includePadding);
+				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, mask, includePadding);
 			break;
 		case NIFTI_TYPE_UINT32:
 			reg_getVoxelBasedNMIGradientUsingPW1<PrecisionTYPE,unsigned int>
-				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, includePadding);
+				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, mask, includePadding);
 			break;
 		case NIFTI_TYPE_INT32:
 			reg_getVoxelBasedNMIGradientUsingPW1<PrecisionTYPE,int>
-				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, includePadding);
+				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, mask, includePadding);
 			break;
 		case NIFTI_TYPE_FLOAT32:
 			reg_getVoxelBasedNMIGradientUsingPW1<PrecisionTYPE,float>
-				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, includePadding);
+				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, mask, includePadding);
 			break;
 		case NIFTI_TYPE_FLOAT64:
 			reg_getVoxelBasedNMIGradientUsingPW1<PrecisionTYPE,double>
-				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, includePadding);
+				(targetImage, resultImage, resultImageGradient, binning, logJointHistogram, entropies, nmiGradientImage, mask, includePadding);
 			break;
 		default:
 			printf("err\treg_getVoxelBasedNMIGradientUsingPW\tThe target image data type is not supported\n");
@@ -655,8 +684,8 @@ void reg_getVoxelBasedNMIGradientUsingPW(	nifti_image *targetImage,
 	}
 }
 /* *************************************************************** */
-template void reg_getVoxelBasedNMIGradientUsingPW<float>(nifti_image *, nifti_image *, nifti_image *, int, float *, float *, nifti_image *, bool);
-template void reg_getVoxelBasedNMIGradientUsingPW<double>(nifti_image *, nifti_image *, nifti_image *, int, double *, double *, nifti_image *, bool);
+template void reg_getVoxelBasedNMIGradientUsingPW<float>(nifti_image *, nifti_image *, nifti_image *, int, float *, float *, nifti_image *, int *, bool);
+template void reg_getVoxelBasedNMIGradientUsingPW<double>(nifti_image *, nifti_image *, nifti_image *, int, double *, double *, nifti_image *, int *, bool);
 /* *************************************************************** */
 /* *************************************************************** */
 

@@ -18,6 +18,7 @@ __device__ __constant__ int c_Binning;
 __device__ __constant__ float4 c_Entropies;
 __device__ __constant__ float c_NMI;
 __device__ __constant__ bool c_IncludePadding;
+__device__ __constant__ int c_ActiveVoxelNumber;
 
 texture<float, 1, cudaReadModeElementType> targetImageTexture;
 texture<float, 1, cudaReadModeElementType> resultImageTexture;
@@ -25,6 +26,7 @@ texture<float4, 1, cudaReadModeElementType> resultImageGradientTexture;
 texture<float, 1, cudaReadModeElementType> histogramTexture;
 texture<float, 1, cudaReadModeElementType> convolutionWinTexture;
 texture<float4, 1, cudaReadModeElementType> gradientImageTexture;
+texture<int, 1, cudaReadModeElementType> maskTexture;
 
 __device__ float GetBasisSplineValue(float x)
 {
@@ -57,10 +59,11 @@ __device__ float GetBasisSplineDerivativeValue(float ori)
 __global__ void reg_getVoxelBasedNMIGradientUsingPW_kernel(float4 *voxelNMIGradientArray_d)
 {
 	const int tid=blockIdx.x*blockDim.x+threadIdx.x;
-	if(tid<c_VoxelNumber){
+	if(tid<c_ActiveVoxelNumber){
 
-		float targetImageValue = tex1Dfetch(targetImageTexture,tid);
-		float resultImageValue = tex1Dfetch(resultImageTexture,tid);
+        const int targetIndex = tex1Dfetch(maskTexture,tid);
+		float targetImageValue = tex1Dfetch(targetImageTexture,targetIndex);
+		float resultImageValue = tex1Dfetch(resultImageTexture,targetIndex);
 		float4 resultImageGradient = tex1Dfetch(resultImageGradientTexture,tid);
 		
 		float4 gradValue = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -123,7 +126,7 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW_kernel(float4 *voxelNMIGradi
 			gradValue.z = (fixedEntropyDerivative_Z + movingEntropyDerivative_Z - NMI * jointEntropyDerivative_Z) / c_Entropies.z;
 
 		}
-		voxelNMIGradientArray_d[tid]=gradValue;
+		voxelNMIGradientArray_d[targetIndex]=gradValue;
 
 	}
 	return;

@@ -27,6 +27,7 @@ template<class PrecisionTYPE, class FieldTYPE>
 void reg_bspline2(	nifti_image *splineControlPoint,
 			nifti_image *targetImage,
 			nifti_image *positionField,
+            int *mask,
 			int type
 		)
 {
@@ -51,6 +52,8 @@ void reg_bspline2(	nifti_image *splineControlPoint,
 	FieldTYPE *fieldPtrX=static_cast<FieldTYPE *>(positionField->data);
 	FieldTYPE *fieldPtrY=&fieldPtrX[targetImage->nvox];
 	FieldTYPE *fieldPtrZ=&fieldPtrY[targetImage->nvox];
+
+    int *maskPtr = &mask[0];
 	
 	PrecisionTYPE gridVoxelSpacing[3];
 	gridVoxelSpacing[0] = splineControlPoint->dx / targetImage->dx;
@@ -192,39 +195,41 @@ void reg_bspline2(	nifti_image *splineControlPoint,
 					PrecisionTYPE xReal=0.0;
 					PrecisionTYPE yReal=0.0;
 					PrecisionTYPE zReal=0.0;
-#if _USE_SSE
-					__m128 tempX =  _mm_set_ps1(0.0);
-					__m128 tempY =  _mm_set_ps1(0.0);
-					__m128 tempZ =  _mm_set_ps1(0.0);
-					__m128 *ptrX = (__m128 *) &xControlPointCoordinates[0];
-					__m128 *ptrY = (__m128 *) &yControlPointCoordinates[0];
-					__m128 *ptrZ = (__m128 *) &zControlPointCoordinates[0];
-					__m128 *ptrBasis   = (__m128 *) &xyzBasis[0];
-					//addition and multiplication of the 64 basis value and CP displacement for each axis
-					for(unsigned int a=0; a<16; a++){
-						tempX = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrX), tempX );
-						tempY = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrY), tempY );
-						tempZ = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrZ), tempZ );
-						ptrBasis++;
-						ptrX++;
-						ptrY++;
-						ptrZ++;
-					}
-					//the values stored in SSE variables are transfered to normal float
-					val.m=tempX;
-					xReal=val.f[0]+val.f[1]+val.f[2]+val.f[3];
-					val.m=tempY;
-					yReal= val.f[0]+val.f[1]+val.f[2]+val.f[3];
-					val.m=tempZ;
-					zReal= val.f[0]+val.f[1]+val.f[2]+val.f[3];
-#else
-					for(unsigned int i=0; i<64; i++){
-						xReal += xControlPointCoordinates[i] * xyzBasis[i];
-						yReal += yControlPointCoordinates[i] * xyzBasis[i];
-						zReal += zControlPointCoordinates[i] * xyzBasis[i];
-					}
-#endif
 
+                    if(*maskPtr++>-1){
+#if _USE_SSE
+					    __m128 tempX =  _mm_set_ps1(0.0);
+					    __m128 tempY =  _mm_set_ps1(0.0);
+					    __m128 tempZ =  _mm_set_ps1(0.0);
+					    __m128 *ptrX = (__m128 *) &xControlPointCoordinates[0];
+					    __m128 *ptrY = (__m128 *) &yControlPointCoordinates[0];
+					    __m128 *ptrZ = (__m128 *) &zControlPointCoordinates[0];
+					    __m128 *ptrBasis   = (__m128 *) &xyzBasis[0];
+					    //addition and multiplication of the 64 basis value and CP displacement for each axis
+					    for(unsigned int a=0; a<16; a++){
+						    tempX = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrX), tempX );
+						    tempY = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrY), tempY );
+						    tempZ = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrZ), tempZ );
+						    ptrBasis++;
+						    ptrX++;
+						    ptrY++;
+						    ptrZ++;
+					    }
+					    //the values stored in SSE variables are transfered to normal float
+					    val.m=tempX;
+					    xReal=val.f[0]+val.f[1]+val.f[2]+val.f[3];
+					    val.m=tempY;
+					    yReal= val.f[0]+val.f[1]+val.f[2]+val.f[3];
+					    val.m=tempZ;
+					    zReal= val.f[0]+val.f[1]+val.f[2]+val.f[3];
+#else
+					    for(unsigned int i=0; i<64; i++){
+						    xReal += xControlPointCoordinates[i] * xyzBasis[i];
+						    yReal += yControlPointCoordinates[i] * xyzBasis[i];
+						    zReal += zControlPointCoordinates[i] * xyzBasis[i];
+					    }
+#endif
+                    }// mask
 					if(type==1){ // addition of deformation fields
 						*fieldPtrX += (FieldTYPE)xReal;
 						*fieldPtrY += (FieldTYPE)yReal;
@@ -248,12 +253,11 @@ void reg_bspline2(	nifti_image *splineControlPoint,
 }
 /* *************************************************************** */
 template<class PrecisionTYPE>
-void reg_bspline(	nifti_image *splineControlPoint,
-			nifti_image *targetImage,
-			nifti_image *positionField,
-			int type
-		)
-
+void reg_bspline(   nifti_image *splineControlPoint,
+                    nifti_image *targetImage,
+                    nifti_image *positionField,
+                    int *mask,
+                    int type)
 {
 #if _USE_SSE
 	if(sizeof(PrecisionTYPE) != sizeof(float)){
@@ -262,28 +266,34 @@ void reg_bspline(	nifti_image *splineControlPoint,
 		return;
 	}
 #endif
-
 	if(splineControlPoint->datatype != positionField->datatype){
 		printf("The spline control point image and the deformation field image are expected to be the same type\n");
 		printf("The deformation field is not computed\n");
 		return;	
 	}
-	switch(positionField->datatype){
-		case NIFTI_TYPE_FLOAT32:
-			reg_bspline2<PrecisionTYPE, float>(splineControlPoint, targetImage, positionField, type);
-			break;
-		case NIFTI_TYPE_FLOAT64:
-			reg_bspline2<PrecisionTYPE, double>(splineControlPoint, targetImage, positionField, type);
-			break;
-		default:
-			printf("Only single of double precision is implemented for deformation field\n");
-			printf("The deformation field is not computed\n");
-			return;	
+    bool MrPropre=false;
+    if(mask==NULL){
+        // Active voxel are all superior to -1, 0 thus will do !
+        MrPropre=true;
+        mask=(int *)calloc(targetImage->nvox, sizeof(int));
+    }
+    switch(positionField->datatype){
+        case NIFTI_TYPE_FLOAT32:
+	        reg_bspline2<PrecisionTYPE, float>(splineControlPoint, targetImage, positionField, mask, type);
+	        break;
+        case NIFTI_TYPE_FLOAT64:
+	        reg_bspline2<PrecisionTYPE, double>(splineControlPoint, targetImage, positionField, mask, type);
+	        break;
+        default:
+	        printf("Only single of double precision is implemented for deformation field\n");
+	        printf("The deformation field is not computed\n");
+	        break;
 	}
+    if(MrPropre==true) free(mask);
 	return;
 }
-template void reg_bspline<float>(nifti_image *, nifti_image *, nifti_image *, int);
-template void reg_bspline<double>(nifti_image *, nifti_image *, nifti_image *, int);
+template void reg_bspline<float>(nifti_image *, nifti_image *, nifti_image *, int *, int);
+template void reg_bspline<double>(nifti_image *, nifti_image *, nifti_image *, int *, int);
 /* *************************************************************** */
 /* *************************************************************** */
 template<class PrecisionTYPE, class SplineTYPE>

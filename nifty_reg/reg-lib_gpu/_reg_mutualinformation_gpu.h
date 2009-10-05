@@ -15,16 +15,18 @@
 #include "_reg_blocksize_gpu.h"
 
 extern "C++"
-void reg_getVoxelBasedNMIGradientUsingPW_gpu(	nifti_image *targetImage,
-						nifti_image *resultImage,
-						float **targetImageArray_d,
-						float **resultImageArray_d,
-						float4 **resultGradientArray_d,
-						float **logJointHistogram_d,
-						float4 **voxelNMIGradientArray_d,
-						double *entropies,
-						int binning,
-						bool includePadding);
+void reg_getVoxelBasedNMIGradientUsingPW_gpu(   nifti_image *targetImage,
+                                                nifti_image *resultImage,
+                                                float **targetImageArray_d,
+                                                float **resultImageArray_d,
+                                                float4 **resultGradientArray_d,
+                                                float **logJointHistogram_d,
+                                                float4 **voxelNMIGradientArray_d,
+                                                int **targetMask_d,
+                                                int activeVoxelNumber,
+                                                double *entropies,
+                                                int binning,
+                                                bool includePadding);
 
 
 extern "C++"

@@ -37,7 +37,7 @@ void reg_gaussianSmoothing(	nifti_image *image,
 						  float sigma);
 
 extern "C++" template <class PrecisionTYPE>
-void reg_downsampleImage(nifti_image *image);
+void reg_downsampleImage(nifti_image *image, int);
 
 extern "C++" template <class PrecisionTYPE>
 PrecisionTYPE reg_getMaximalLength(nifti_image *image);
@@ -54,4 +54,9 @@ void reg_tools_addImages(	nifti_image *,
 							nifti_image *,
 							nifti_image *);
 
+extern "C++"
+void reg_tool_binarise_image(nifti_image *);
+
+extern "C++"
+void reg_tool_binaryImage2int(nifti_image *, int *, int &);
 #endif

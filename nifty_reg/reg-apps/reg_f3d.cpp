@@ -47,6 +47,7 @@ typedef struct{
 	char *sourceImageName;
 	char *affineMatrixName;
 	char *inputCPPName;
+    char *targetMaskName;
 	float spacing[3];
 	int maxIteration;
 	int binning;
@@ -67,6 +68,7 @@ typedef struct{
 	bool affineMatrixFlag;
 	bool affineFlirtFlag;
 	bool inputCPPFlag;
+    bool targetMaskFlag;
 	bool spacingFlag[3];
 	bool binningFlag;
 	bool levelNumberFlag;
@@ -125,7 +127,8 @@ void Usage(char *exec)
 	printf("\t-result <filename> \tFilename of the resampled image [outputResult.nii]\n");
 	printf("\t-cpp <filename>\t\tFilename of control point grid [outputCPP.nii]\n");
 	printf("\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Target=Source)\n");
-	printf("\t-affFlirt <filename>\tFilename which contains a flirt affine transformation\n");
+    printf("\t-affFlirt <filename>\tFilename which contains a flirt affine transformation\n");
+    printf("\t-tmask <filename>\tFilename of a mask image in the target space\n");
 	printf("\t-maxit <int>\t\tMaximal number of iteration per level [300]\n");
 	printf("\t-sx <float>\t\tFinal grid spacing along the x axis in mm [5]\n");
 	printf("\t-sy <float>\t\tFinal grid spacing along the y axis in mm [sx value]\n");
@@ -197,10 +200,14 @@ int main(int argc, char **argv)
 			flag->affineMatrixFlag=1;
 			flag->affineFlirtFlag=1;
 		}
-		else if(strcmp(argv[i], "-incpp") == 0){
-			param->inputCPPName=argv[++i];
-			flag->inputCPPFlag=1;
-		}
+        else if(strcmp(argv[i], "-incpp") == 0){
+            param->inputCPPName=argv[++i];
+            flag->inputCPPFlag=1;
+        }
+        else if(strcmp(argv[i], "-tmask") == 0){
+            param->targetMaskName=argv[++i];
+            flag->targetMaskFlag=1;
+        }
 		else if(strcmp(argv[i], "-result") == 0){
 			param->outputResultName=argv[++i];
 			flag->outputResultFlag=1;
@@ -369,7 +376,8 @@ int main(int argc, char **argv)
         ratioFullRes= 1.0f/powf(8.0f,(float)(param->levelNumber-param->level2Perform));
     }
 	float memoryNeeded=0;
-	memoryNeeded += 2 * targetHeader->nvox * sizeof(float) * ratioFullRes; // target and result images
+    memoryNeeded += 2 * targetHeader->nvox * sizeof(float) * ratioFullRes; // target and result images
+    memoryNeeded += targetHeader->nvox * sizeof(bool) * ratioFullRes; // target mask
 	memoryNeeded += sourceHeader->nvox * sizeof(float) * ratioFullRes; // source image
 	memoryNeeded += targetHeader->nvox * sizeof(float4) * ratioFullRes; // position field
 	memoryNeeded += targetHeader->nvox * sizeof(float4) * ratioFullRes; // spatial gradient
@@ -425,6 +433,25 @@ int main(int argc, char **argv)
 	}
     if(!flag->outputCPPFlag) param->outputCPPName="outputCPP.nii";
 
+    /* read and binarise the target mask image */
+    nifti_image *targetMaskImage;
+    if(flag->targetMaskFlag){
+        targetMaskImage = nifti_image_read(param->targetMaskName,true);
+        if(targetMaskImage == NULL){
+            fprintf(stderr,"* ERROR Error when reading the target naask image: %s\n",param->targetMaskName);
+            return 1;
+        }
+        /* check the dimension */
+        for(int i=1; i<=targetHeader->dim[0]; i++){
+            if(targetHeader->dim[i]!=targetMaskImage->dim[i]){
+                fprintf(stderr,"* ERROR The target image and its mask do not have the same dimension\n");
+                return 1;
+            }
+        }
+        reg_tool_binarise_image(targetMaskImage);
+    }
+
+
 	/* ****************** */
 	/* DISPLAY THE REGISTRATION PARAMETERS */
 	/* ****************** */
@@ -454,9 +481,9 @@ int main(int argc, char **argv)
 #endif
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n");
 	
-	/* *********** */
+	/* ********************** */
 	/* START THE REGISTRATION */
-	/* *********** */
+	/* ********************** */
 
 #ifdef _USE_CUDA
 	if(flag->useGPUFlag){
@@ -500,33 +527,56 @@ int main(int argc, char **argv)
 #endif
 
     for(int level=0; level<param->level2Perform; level++){
-		/* Read the target and source image */
-		nifti_image *targetImage = nifti_image_read(param->targetImageName,true);
-		if(targetImage->data == NULL){
-			fprintf(stderr, "* ERROR Error when reading the target image: %s\n", param->targetImageName);
-			return 1;
-		}
-		reg_changeDatatype<PrecisionTYPE>(targetImage);
-		nifti_image *sourceImage = nifti_image_read(param->sourceImageName,true);
-		if(sourceImage->data == NULL){
-			fprintf(stderr, "* ERROR Error when reading the source image: %s\n", param->sourceImageName);
-			return 1;
-		}
-		reg_changeDatatype<PrecisionTYPE>(sourceImage);
+        /* Read the target and source image */
+        nifti_image *targetImage = nifti_image_read(param->targetImageName,true);
+        if(targetImage->data == NULL){
+            fprintf(stderr, "* ERROR Error when reading the target image: %s\n", param->targetImageName);
+            return 1;
+        }
+        reg_changeDatatype<PrecisionTYPE>(targetImage);
+        nifti_image *sourceImage = nifti_image_read(param->sourceImageName,true);
+        if(sourceImage->data == NULL){
+            fprintf(stderr, "* ERROR Error when reading the source image: %s\n", param->sourceImageName);
+            return 1;
+        }
+        reg_changeDatatype<PrecisionTYPE>(sourceImage);
 
-		/* downsample the input image if appropriate */
-		if(flag->pyramidFlag){
-			for(int l=level; l<param->levelNumber-1; l++){
-				reg_downsampleImage<PrecisionTYPE>(targetImage);
-				reg_downsampleImage<PrecisionTYPE>(sourceImage);
-			}
-		}
+        /* declare the target mask array */
+        int *targetMask;
+        int activeVoxelNumber=0;
 
-		/* smooth the input image if appropriate */
-		if(flag->targetSigmaFlag)
-			reg_gaussianSmoothing<PrecisionTYPE>( targetImage, param->targetSigmaValue);
-		if(flag->sourceSigmaFlag)
-			reg_gaussianSmoothing<PrecisionTYPE>( sourceImage, param->sourceSigmaValue);
+        /* downsample the input images if appropriate */
+        if(flag->pyramidFlag){
+            nifti_image *tempMaskImage;
+            if(flag->targetMaskFlag){
+                tempMaskImage = nifti_copy_nim_info(targetMaskImage);
+                tempMaskImage->data = (void *)malloc(tempMaskImage->nvox * tempMaskImage->nbyper);
+                memcpy( tempMaskImage->data, targetMaskImage->data, tempMaskImage->nvox*tempMaskImage->nbyper);
+            }
+            for(int l=level; l<param->levelNumber-1; l++){
+                reg_downsampleImage<PrecisionTYPE>(targetImage, 1);
+                reg_downsampleImage<PrecisionTYPE>(sourceImage, 1);
+                if(flag->targetMaskFlag){
+                    reg_downsampleImage<PrecisionTYPE>(tempMaskImage, 0);
+                }
+            }
+            targetMask = (int *)malloc(targetImage->nvox*sizeof(int));
+            if(flag->targetMaskFlag){
+                reg_tool_binaryImage2int(tempMaskImage, targetMask, activeVoxelNumber);
+                nifti_image_free(tempMaskImage);
+            }
+            else{
+                for(int i=0; i<targetImage->nvox; i++)
+                    targetMask[i]=activeVoxelNumber++;
+            }
+        }
+
+
+        /* smooth the input image if appropriate */
+        if(flag->targetSigmaFlag)
+            reg_gaussianSmoothing<PrecisionTYPE>( targetImage, param->targetSigmaValue);
+        if(flag->sourceSigmaFlag)
+            reg_gaussianSmoothing<PrecisionTYPE>( sourceImage, param->sourceSigmaValue);
 
         if(level==0){
             if(!flag->inputCPPFlag){
@@ -717,6 +767,7 @@ int main(int argc, char **argv)
 		float4 *controlPointImageArray_d;
 		float *resultImageArray_d;
 		float4 *positionFieldImageArray_d;
+        int *targetMask_d;
 
 		float4 *resultGradientArray_d;
 		float4 *voxelNMIGradientArray_d;
@@ -730,24 +781,42 @@ int main(int argc, char **argv)
 		float *logJointHistogram_d;
 
 		if(flag->useGPUFlag){
-			if(cudaCommon_allocateArrayToDevice(&resultGradientArray_d, resultImage->dim)) return 1;
-			if(cudaCommon_allocateArrayToDevice(&voxelNMIGradientArray_d, resultImage->dim)) return 1;
-			if(cudaCommon_allocateArrayToDevice(&nodeNMIGradientArray_d, controlPointImage->dim)) return 1;
 			if(!flag->noConjugateGradient){
 				if(cudaCommon_allocateArrayToDevice(&conjugateG_d, controlPointImage->dim)) return 1;
 				if(cudaCommon_allocateArrayToDevice(&conjugateH_d, controlPointImage->dim)) return 1;
 			}
 			if(cudaCommon_allocateArrayToDevice<float>(&targetImageArray_d, targetImage->dim)) return 1;
 			if(cudaCommon_transferNiftiToArrayOnDevice<float>(&targetImageArray_d, targetImage)) return 1;
+
 			if(cudaCommon_allocateArrayToDevice<float>(&sourceImageArray_d, sourceImage->dim)) return 1;
 			if(cudaCommon_transferNiftiToArrayOnDevice<float>(&sourceImageArray_d,sourceImage)) return 1;
+
+            if(cudaCommon_allocateArrayToDevice<float>(&resultImageArray_d, targetImage->dim)) return 1;
+
 			if(cudaCommon_allocateArrayToDevice<float4>(&controlPointImageArray_d, controlPointImage->dim)) return 1;
 			if(cudaCommon_transferNiftiToArrayOnDevice<float4>(&controlPointImageArray_d,controlPointImage)) return 1;
+
 			if(cudaCommon_allocateArrayToDevice<float4>(&bestControlPointPosition_d, controlPointImage->dim)) return 1;
 			if(cudaCommon_transferNiftiToArrayOnDevice<float4>(&bestControlPointPosition_d,controlPointImage)) return 1;
-			if(cudaCommon_allocateArrayToDevice<float>(&resultImageArray_d, targetImage->dim)) return 1;
-			if(cudaCommon_allocateArrayToDevice<float4>(&positionFieldImageArray_d, targetImage->dim)) return 1;
+
 			CUDA_SAFE_CALL(cudaMalloc((void **)&logJointHistogram_d, param->binning*(param->binning+2)*sizeof(float)));
+
+            if(cudaCommon_allocateArrayToDevice(&voxelNMIGradientArray_d, resultImage->dim)) return 1;
+            if(cudaCommon_allocateArrayToDevice(&nodeNMIGradientArray_d, controlPointImage->dim)) return 1;
+
+            // Index of the active voxel is stored
+            int *targetMask_h;CUDA_SAFE_CALL(cudaMallocHost((void **)&targetMask_h, activeVoxelNumber*sizeof(int)));
+            int *targetMask_h_ptr = &targetMask_h[0];
+            for(int i=0;i<targetImage->nvox;i++){
+                if(targetMask[i]!=-1) *targetMask_h_ptr++=i;
+            }
+            CUDA_SAFE_CALL(cudaMalloc((void **)&targetMask_d, activeVoxelNumber*sizeof(int)));
+            CUDA_SAFE_CALL(cudaMemcpy(targetMask_d, targetMask_h, activeVoxelNumber*sizeof(int), cudaMemcpyHostToDevice));
+            CUDA_SAFE_CALL(cudaFreeHost(targetMask_h));
+
+            CUDA_SAFE_CALL(cudaMalloc((void **)&positionFieldImageArray_d, activeVoxelNumber*sizeof(float4)));
+            CUDA_SAFE_CALL(cudaMalloc((void **)&resultGradientArray_d, activeVoxelNumber*sizeof(float4)));
+
 		}
 		else{
 #endif
@@ -783,36 +852,41 @@ int main(int argc, char **argv)
 		int iteration=0;
 		while(iteration<param->maxIteration && currentSize>smallestSize){
 #ifdef _USE_CUDA
-			if(flag->useGPUFlag){
-				/* generate the position field */
-				reg_bspline_gpu(controlPointImage,
-						targetImage,
-						&controlPointImageArray_d,
-						&positionFieldImageArray_d);
-				/* Resample the source image */
-				reg_resampleSourceImage_gpu(	resultImage,
-								sourceImage,
-								&resultImageArray_d,
-								&sourceImageArray_d,
-								&positionFieldImageArray_d,
-								param->sourceBGValue);
-
+            if(flag->useGPUFlag){
+                /* generate the position field */
+                reg_bspline_gpu(controlPointImage,
+                                targetImage,
+                                &controlPointImageArray_d,
+                                &positionFieldImageArray_d,
+                                &targetMask_d,
+                                activeVoxelNumber);
+                /* Resample the source image */
+                reg_resampleSourceImage_gpu(resultImage,
+                                            sourceImage,
+                                            &resultImageArray_d,
+                                            &sourceImageArray_d,
+                                            &positionFieldImageArray_d,
+                                            &targetMask_d,
+                                            activeVoxelNumber,
+                                            param->sourceBGValue);
 				/* The result image is transfered back to the host */
 				if(cudaCommon_transferFromDeviceToNifti(resultImage, &resultImageArray_d)) return 1;
 			}
 			else{
 #endif
 				reg_bspline<PrecisionTYPE>(	controlPointImage,
-								targetImage,
-								positionFieldImage,
-								0);
+                                            targetImage,
+                                            positionFieldImage,
+                                            targetMask,
+                                            0);
 				/* Resample the source image */
 				reg_resampleSourceImage<PrecisionTYPE>(	targetImage,
-									sourceImage,
-									resultImage,
-									positionFieldImage,
-									1,
-									param->sourceBGValue);
+                                                        sourceImage,
+                                                        resultImage,
+                                                        positionFieldImage,
+                                                        targetMask,
+                                                        1,
+                                                        param->sourceBGValue);
 #ifdef _USE_CUDA
 			}
 #endif
@@ -825,7 +899,8 @@ int main(int argc, char **argv)
 							probaJointHistogram,
 							logJointHistogram,
 							entropies,
-							flag->metricPaddingFlag);
+							flag->metricPaddingFlag,
+                            targetMask);
 			currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight)*(entropies[0]+entropies[1])/entropies[2];
 
 #ifdef _USE_CUDA
@@ -881,7 +956,7 @@ int main(int argc, char **argv)
 			double bestWBE = currentWBE;
 			double bestWJac = currentWJac;
 			if(iteration==0){
-				printf("Initial Metric value = %g\n", currentValue);
+				printf("Initial objective function value = %g\n", currentValue);
 
 			}
 			iteration++;
@@ -894,7 +969,8 @@ int main(int argc, char **argv)
 								sourceImage,
 								&sourceImageArray_d,
 								&positionFieldImageArray_d,
-								&resultGradientArray_d);
+								&resultGradientArray_d,
+                                activeVoxelNumber);
 				reg_getVoxelBasedNMIGradientUsingPW_gpu(targetImage,
 									resultImage,
 									&targetImageArray_d,
@@ -902,6 +978,8 @@ int main(int argc, char **argv)
 									&resultGradientArray_d,
 									&logJointHistogram_d,
 									&voxelNMIGradientArray_d,
+                                    &targetMask_d,
+                                    activeVoxelNumber,
 									entropies,
 									param->binning,
 									flag->metricPaddingFlag);
@@ -953,6 +1031,7 @@ int main(int argc, char **argv)
 										sourceImage,
 										resultGradientImage,
 										positionFieldImage,
+                                        targetMask,
 										1);
 				reg_getVoxelBasedNMIGradientUsingPW<double>(	targetImage,
 										resultImage,
@@ -961,6 +1040,7 @@ int main(int argc, char **argv)
 										logJointHistogram,
 										entropies,
 										voxelNMIGradientImage,
+                                        targetMask,
 										flag->metricPaddingFlag);
 				reg_smoothImageForCubicSpline<PrecisionTYPE>(voxelNMIGradientImage,smoothingRadius);
 				reg_voxelCentric2NodeCentric(nodeNMIGradientImage,voxelNMIGradientImage);
@@ -1104,13 +1184,17 @@ int main(int argc, char **argv)
 					reg_bspline_gpu(controlPointImage,
 							targetImage,
 							&controlPointImageArray_d,
-							&positionFieldImageArray_d);
+							&positionFieldImageArray_d,
+                            &targetMask_d,
+                            activeVoxelNumber);
 					/* Resample the source image */
 					reg_resampleSourceImage_gpu(	resultImage,
 									sourceImage,
 									&resultImageArray_d,
 									&sourceImageArray_d,
 									&positionFieldImageArray_d,
+                                    &targetMask_d,
+                                    activeVoxelNumber,
 									param->sourceBGValue);
 					/* The result image is transfered back to the host */
 					PrecisionTYPE *resultPtr=static_cast<PrecisionTYPE *>(resultImage->data);
@@ -1138,12 +1222,14 @@ int main(int argc, char **argv)
 					reg_bspline<PrecisionTYPE>(	controlPointImage,
 									targetImage,
 									positionFieldImage,
+                                    targetMask,
 									0);
 					/* Resample the source image */
 					reg_resampleSourceImage<PrecisionTYPE>(	targetImage,
 										sourceImage,
 										resultImage,
 										positionFieldImage,
+                                        NULL,
 										1,
 										param->sourceBGValue);
 #ifdef _USE_CUDA
@@ -1152,13 +1238,14 @@ int main(int argc, char **argv)
 
 				/* Computation of the NMI */
 				reg_getEntropies<double>(	targetImage,
-								resultImage,
-								2,
-								param->binning,
-								probaJointHistogram,
-								logJointHistogram,
-								entropies,
-								flag->metricPaddingFlag);
+                                            resultImage,
+                                            2,
+                                            param->binning,
+                                            probaJointHistogram,
+                                            logJointHistogram,
+                                            entropies,
+                                            flag->metricPaddingFlag,
+                                            targetMask);
 				currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight)*(entropies[0]+entropies[1])/entropies[2];
 
 #ifdef _USE_CUDA
@@ -1197,7 +1284,7 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef _VERBOSE
-				printf("[VERBOSE] [%i] Current metric value: %g\n", iteration, currentValue);
+				printf("[VERBOSE] [%i] Current objective function value: %g\n", iteration, currentValue);
 				if(flag->bendingEnergyFlag) printf("[VERBOSE] [%i] Weighted bending energy value = %g, approx[%i]\n", iteration, currentWBE, flag->appBendingEnergyFlag);
 				if(flag->jacobianWeightFlag) printf("[VERBOSE] [%i] Weighted Jacobian log value = %g, approx[%i]\n", iteration, currentWJac, flag->appJacobianFlag);
 #endif
@@ -1243,12 +1330,13 @@ int main(int argc, char **argv)
 			}
 #endif
 			currentSize=addedStep;
-			printf("[%i] Metric value=%g | max. added disp. = %g mm", iteration, bestValue, addedStep);
+			printf("[%i] Objective function value=%g | max. added disp. = %g mm", iteration, bestValue, addedStep);
 			if(flag->bendingEnergyFlag) printf(" | wBE=%g", bestWBE);
 			if(flag->jacobianWeightFlag) printf(" | wJacLog=%g", bestWJac);
 			printf("\n");
 		} // while(iteration<param->maxIteration && currentSize>smallestSize){
 	
+        free(targetMask);
 		free(entropies);
 		free(probaJointHistogram);
 		free(logJointHistogram);
@@ -1264,6 +1352,7 @@ int main(int argc, char **argv)
 			}
 			cudaCommon_free((void **)&bestControlPointPosition_d);
 			cudaCommon_free((void **)&logJointHistogram_d);
+            CUDA_SAFE_CALL(cudaFree(targetMask_d));
 		}
 		else{
 #endif
@@ -1313,6 +1402,7 @@ int main(int argc, char **argv)
 			reg_bspline<PrecisionTYPE>(	controlPointImage,
 						                targetHeader,
 						                positionFieldImage,
+                                        NULL,
 						                0);
 
             nifti_image_free( sourceImage );
@@ -1330,6 +1420,7 @@ int main(int argc, char **argv)
 							                sourceImage,
 							                resultImage,
 							                positionFieldImage,
+                                            NULL,
 							                3,
 							                param->sourceBGValue);
 			if(!flag->outputResultFlag) param->outputResultName="outputResult.nii";
@@ -1359,6 +1450,7 @@ int main(int argc, char **argv)
 	nifti_image_free( controlPointImage );
 	nifti_image_free( targetHeader );
 	nifti_image_free( sourceHeader );
+    if(flag->targetMaskFlag) nifti_image_free( targetMaskImage );
 
 	free( flag );
 	free( param );
