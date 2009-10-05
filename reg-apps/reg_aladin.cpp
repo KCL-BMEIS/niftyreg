@@ -111,7 +111,7 @@ void Usage(char *exec)
 	printf("* * OPTIONS * *\n");
 	printf("\t-aff <filename>\t\tFilename which contains the output affine transformation [outputAffine.txt]\n");
 	printf("\t-rigOnly\t\tTo perform a rigid registration only (rigid+affine by default)\n");
-	printf("\t-affOnly\t\tTo perform an affine registration only (rigid+affine by default)\n");
+	printf("\t-affDirect\t\tDirectly optimize 12 DoF affine [default is rigid initially then affine]\n");
 	printf("\t-inaff <filename>\tFilename which contains an input affine transformation (Affine*Target=Source) [none]\n");
 	printf("\t-affFlirt <filename>\tFilename which contains an input affine transformation from Flirt [none]\n");
     printf("\t-tmask <filename>\tFilename of a mask image in the target space\n");
@@ -122,7 +122,7 @@ void Usage(char *exec)
 	printf("\t-ln <int>\t\tNumber of level to perform [3]\n");
 	printf("\t-lp <int>\t\tOnly perform the first levels [ln]\n");
 	
-	printf("\t-ac\t\tTranslation are added to the affine initialisation\n");
+	printf("\t-ac\t\t\tTranslation are added to the affine initialisation\n");
 	
 	printf("\t-bgi <int> <int> <int>\tForce the background value during\n\t\t\t\tresampling to have the same value as this voxel in the source image [none]\n");
 
@@ -229,7 +229,7 @@ int main(int argc, char **argv)
 		else if(strcmp(argv[i], "-rigOnly") == 0){
 			flag->affineFlag=0;
 		}
-		else if(strcmp(argv[i], "-affOnly") == 0){
+		else if(strcmp(argv[i], "-affDirect") == 0){
 			flag->rigidFlag=0;
 		}
 		else if(strcmp(argv[i], "-ac") == 0){
@@ -410,29 +410,27 @@ int main(int argc, char **argv)
         int activeVoxelNumber=0;
 
         /* downsample the input images if appropriate */
-        if(flag->pyramidFlag){
-            nifti_image *tempMaskImage;
+        nifti_image *tempMaskImage;
+        if(flag->targetMaskFlag){
+            tempMaskImage = nifti_copy_nim_info(targetMaskImage);
+            tempMaskImage->data = (void *)malloc(tempMaskImage->nvox * tempMaskImage->nbyper);
+            memcpy( tempMaskImage->data, targetMaskImage->data, tempMaskImage->nvox*tempMaskImage->nbyper);
+        }
+        for(int l=level; l<param->levelNumber-1; l++){
+            reg_downsampleImage<PrecisionTYPE>(targetImage, 1);
+            reg_downsampleImage<PrecisionTYPE>(sourceImage, 1);
             if(flag->targetMaskFlag){
-                tempMaskImage = nifti_copy_nim_info(targetMaskImage);
-                tempMaskImage->data = (void *)malloc(tempMaskImage->nvox * tempMaskImage->nbyper);
-                memcpy( tempMaskImage->data, targetMaskImage->data, tempMaskImage->nvox*tempMaskImage->nbyper);
+                reg_downsampleImage<PrecisionTYPE>(tempMaskImage, 0);
             }
-            for(int l=level; l<param->levelNumber-1; l++){
-                reg_downsampleImage<PrecisionTYPE>(targetImage, 1);
-                reg_downsampleImage<PrecisionTYPE>(sourceImage, 1);
-                if(flag->targetMaskFlag){
-                    reg_downsampleImage<PrecisionTYPE>(tempMaskImage, 0);
-                }
-            }
-            targetMask = (int *)malloc(targetImage->nvox*sizeof(int));
-            if(flag->targetMaskFlag){
-                reg_tool_binaryImage2int(tempMaskImage, targetMask, activeVoxelNumber);
-                nifti_image_free(tempMaskImage);
-            }
-            else{
-                for(int i=0; i<targetImage->nvox; i++)
-                    targetMask[i]=activeVoxelNumber++;
-            }
+        }
+        targetMask = (int *)malloc(targetImage->nvox*sizeof(int));
+        if(flag->targetMaskFlag){
+            reg_tool_binaryImage2int(tempMaskImage, targetMask, activeVoxelNumber);
+            nifti_image_free(tempMaskImage);
+        }
+        else{
+            for(int i=0; i<targetImage->nvox; i++)
+                targetMask[i]=activeVoxelNumber++;
         }
 		
 		/* smooth the input image if appropriate */
@@ -490,8 +488,9 @@ int main(int argc, char **argv)
 		_reg_blockMatchingParam blockMatchingParams;
 		initialise_block_matching_method(	targetImage,
 							&blockMatchingParams,
-							param->block_percent_to_use,	// percentage of block kept
-							param->inlier_lts);		// percentage of inlier in the optimisation process
+							param->block_percent_to_use,    // percentage of block kept
+							param->inlier_lts,              // percentage of inlier in the optimisation process
+                            targetMask);
 		mat44 updateAffineMatrix;
 
 #ifdef _USE_CUDA
@@ -589,16 +588,16 @@ int main(int argc, char **argv)
 				else{
 #endif
 					reg_affine_positionField(	affineTransformation,
-									targetImage,
-									positionFieldImage);
+                                                targetImage,
+                                                positionFieldImage);
 					/* Resample the source image */
 					reg_resampleSourceImage<PrecisionTYPE>(	targetImage,
-										sourceImage,
-										resultImage,
-										positionFieldImage,
-                                        targetMask,
-										1,
-										param->sourceBGValue);
+                                                            sourceImage,
+                                                            resultImage,
+                                                            positionFieldImage,
+                                                            targetMask,
+                                                            1,
+                                                            param->sourceBGValue);
 					/* Compute the correspondances between blocks */
 					block_matching_method<PrecisionTYPE>(	targetImage,
 										resultImage,

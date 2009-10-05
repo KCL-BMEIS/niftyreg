@@ -65,11 +65,13 @@ void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum)
 }
 
 template <class DTYPE>
-void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *params)
+void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *params, int *mask)
 {
 	const int totalBlockNumber = params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2];
 	float *varianceArray=(float *)malloc(totalBlockNumber*sizeof(float));
-	int *indexArray=(int *)malloc(totalBlockNumber*sizeof(int));
+    int *indexArray=(int *)malloc(totalBlockNumber*sizeof(int));
+
+    int *maskPtr=&mask[0];
 
 	int unusableBlock=0;
 
@@ -83,12 +85,14 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
 				float voxelNumber=0.0f;
 				for(int z=k*BLOCK_WIDTH; z<(k+1)*BLOCK_WIDTH; z++){
 					if(z<targetImage->nz){
-						DTYPE *targetPtrZ=&targetPtr[z*targetImage->nx*targetImage->ny];
+                        DTYPE *targetPtrZ=&targetPtr[z*targetImage->nx*targetImage->ny];
+                        int *maskPtrZ=&maskPtr[z*targetImage->nx*targetImage->ny];
 						for(int y=j*BLOCK_WIDTH; y<(j+1)*BLOCK_WIDTH; y++){
 							if(y<targetImage->ny){
-								DTYPE *targetPtrXYZ=&targetPtrZ[y*targetImage->nx+i*BLOCK_WIDTH];
+                                DTYPE *targetPtrXYZ=&targetPtrZ[y*targetImage->nx+i*BLOCK_WIDTH];
+                                int *maskPtrXYZ=&maskPtrZ[y*targetImage->nx+i*BLOCK_WIDTH];
 								for(int x=i*BLOCK_WIDTH; x<(i+1)*BLOCK_WIDTH; x++){
-									if(x<targetImage->nx){
+									if(x<targetImage->nx && *maskPtrXYZ>-1){
 										DTYPE value = *targetPtrXYZ;
 										if(value!=0.0){
 											mean += (float)value;
@@ -108,11 +112,13 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
 					for(int z=k*BLOCK_WIDTH; z<(k+1)*BLOCK_WIDTH; z++){
 						if(z<targetImage->nz){
 							DTYPE *targetPtrZ=&targetPtr[z*targetImage->nx*targetImage->ny];
+                            int *maskPtrZ=&maskPtr[z*targetImage->nx*targetImage->ny];
 							for(int y=j*BLOCK_WIDTH; y<(j+1)*BLOCK_WIDTH; y++){
 								if(y<targetImage->ny){
 									DTYPE *targetPtrXYZ=&targetPtrZ[y*targetImage->nx+i*BLOCK_WIDTH];
+                                    int *maskPtrXYZ=&maskPtrZ[y*targetImage->nx+i*BLOCK_WIDTH];
 									for(int x=i*BLOCK_WIDTH; x<(i+1)*BLOCK_WIDTH; x++){
-										if(x<targetImage->nx){
+										if(x<targetImage->nx && *maskPtrXYZ>-1){
 											DTYPE value = *targetPtrXYZ;
 											if(value!=0.0)
 												variance += (mean - (float)(*targetPtrXYZ))*(mean - float(*targetPtrXYZ));
@@ -153,10 +159,11 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
 	free(indexArray);
 }
 
-void initialise_block_matching_method(	nifti_image * target,
-					_reg_blockMatchingParam *params,
-					int percentToKeep_block,
-					int percentToKeep_opt)
+void initialise_block_matching_method(  nifti_image * target,
+                                        _reg_blockMatchingParam *params,
+                                        int percentToKeep_block,
+                                        int percentToKeep_opt,
+                                        int *mask)
 {
 	params->blockNumber[0]=(int)ceil((float)target->nx / (float)BLOCK_WIDTH);
 	params->blockNumber[1]=(int)ceil((float)target->ny / (float)BLOCK_WIDTH);
@@ -168,21 +175,21 @@ void initialise_block_matching_method(	nifti_image * target,
 	params->activeBlock = (int *)malloc(params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2] * sizeof(int));
 	switch(target->datatype){
 		case NIFTI_TYPE_UINT8:
-			_reg_set_active_blocks<unsigned char>(target, params);break;
+			_reg_set_active_blocks<unsigned char>(target, params, mask);break;
 		case NIFTI_TYPE_INT8:
-			_reg_set_active_blocks<char>(target, params);break;
+			_reg_set_active_blocks<char>(target, params, mask);break;
 		case NIFTI_TYPE_UINT16:
-			_reg_set_active_blocks<unsigned short>(target, params);break;
+			_reg_set_active_blocks<unsigned short>(target, params, mask);break;
 		case NIFTI_TYPE_INT16:
-			_reg_set_active_blocks<short>(target, params);break;
+			_reg_set_active_blocks<short>(target, params, mask);break;
 		case NIFTI_TYPE_UINT32:
-			_reg_set_active_blocks<unsigned int>(target, params);break;
+			_reg_set_active_blocks<unsigned int>(target, params, mask);break;
 		case NIFTI_TYPE_INT32:
-			_reg_set_active_blocks<int>(target, params);break;
+			_reg_set_active_blocks<int>(target, params, mask);break;
 		case NIFTI_TYPE_FLOAT32:
-			_reg_set_active_blocks<float>(target, params);break;
+			_reg_set_active_blocks<float>(target, params, mask);break;
 		case NIFTI_TYPE_FLOAT64:
-			_reg_set_active_blocks<double>(target, params);break;
+			_reg_set_active_blocks<double>(target, params, mask);break;
 		default:
 			fprintf(stderr,"ERROR\tinitialise_block_matching_method\tThe target image data type is not supported\n");
 			return;
@@ -198,8 +205,8 @@ void initialise_block_matching_method(	nifti_image * target,
 }
 template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageType>
 void real_block_matching_method(nifti_image * target,
-				nifti_image * result,
-				_reg_blockMatchingParam *params)
+                                nifti_image * result,
+                                _reg_blockMatchingParam *params)
 {
 	TargetImageType *targetPtr=static_cast<TargetImageType *>(target->data);
 	ResultImageType *resultPtr=static_cast<ResultImageType *>(result->data);

@@ -303,11 +303,11 @@ void CubicSplineResampleSourceImage2D(PrecisionTYPE *sourceCoefficients,
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class FieldTYPE>
 void TrilinearResampleSourceImage(	SourceTYPE *intensityPtr,
-					nifti_image *sourceImage,
-					nifti_image *positionField,
-					nifti_image *resultImage,
-                    int *mask,
-					PrecisionTYPE bgValue)
+                                    nifti_image *sourceImage,
+                                    nifti_image *positionField,
+                                    nifti_image *resultImage,
+                                    int *mask,
+                                    PrecisionTYPE bgValue)
 {
 	FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
 	FieldTYPE *positionFieldPtrY = &positionFieldPtrX[resultImage->nvox];
