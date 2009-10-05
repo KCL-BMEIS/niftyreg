@@ -551,7 +551,7 @@ int main(int argc, char **argv)
             if(flag->targetMaskFlag){
                 tempMaskImage = nifti_copy_nim_info(targetMaskImage);
                 tempMaskImage->data = (void *)malloc(tempMaskImage->nvox * tempMaskImage->nbyper);
-                memcpy( tempMaskImage->data, targetMaskImage->data, tempMaskImage->nvox*tempMaskImage->nbyper);
+                memcpy(tempMaskImage->data, targetMaskImage->data, tempMaskImage->nvox*tempMaskImage->nbyper);
             }
             for(int l=level; l<param->levelNumber-1; l++){
                 reg_downsampleImage<PrecisionTYPE>(targetImage, 1);

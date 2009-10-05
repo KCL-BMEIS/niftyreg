@@ -82,7 +82,8 @@ extern "C++"
 void initialise_block_matching_method(	nifti_image * target,
 					_reg_blockMatchingParam *params,
 					int percentToKeep_block,
-					int percentToKeep_opt);
+					int percentToKeep_opt,
+                    int *mask);
 
 /**
 * Interface for the block matching algorithm.
