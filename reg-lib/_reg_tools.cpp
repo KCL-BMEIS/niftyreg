@@ -16,6 +16,15 @@
 
 /* *************************************************************** */
 
+// No round() function available in windows.
+#ifdef _WINDOWS
+template<class PrecisionType>
+int round(PrecisionType x)
+{
+   return int(x > 0.0 ? x + 0.5 : x - 0.5);
+}
+#endif
+
 template<class DTYPE>
 void reg_intensityRescale2(	nifti_image *image,
 				float newMin,
@@ -1027,8 +1036,8 @@ template <class DTYPE>
 void reg_tool_binarise_image1(nifti_image *image)
 {
     DTYPE *dataPtr=static_cast<DTYPE *>(image->data);
-    for(int i=0; i<image->nvox; i++){
-        *dataPtr = (*dataPtr)!=0?1:0;
+    for(unsigned i=0; i<image->nvox; i++){
+        *dataPtr = (*dataPtr)!=0?(DTYPE)1:(DTYPE)0;
         dataPtr++;
     }
 }
@@ -1074,7 +1083,7 @@ void reg_tool_binaryImage2int1(nifti_image *image, int *array, int &activeVoxelN
     // Active voxel are different from -1
     activeVoxelNumber=0;
     DTYPE *dataPtr=static_cast<DTYPE *>(image->data);
-    for(int i=0; i<image->nvox; i++){
+    for(unsigned i=0; i<image->nvox; i++){
         if(*dataPtr++ != 0){
             array[i]=1;
             activeVoxelNumber++;
