@@ -321,9 +321,7 @@ int main(int argc, char **argv)
 		targetCenter[1]=(float)(targetHeader->ny)/2.0f;
 		targetCenter[2]=(float)(targetHeader->nz)/2.0f;
 		float sourceRealPosition[3]; reg_mat44_mul(sourceMatrix, sourceCenter, sourceRealPosition);
-		printf("%g %g %g -> %g %g %g\n",sourceCenter[0], sourceCenter[1], sourceCenter[2],sourceRealPosition[0], sourceRealPosition[1], sourceRealPosition[2]);
 		float targetRealPosition[3]; reg_mat44_mul(targetMatrix, targetCenter, targetRealPosition);
-		printf("%g %g %g -> %g %g %g\n",targetCenter[0], targetCenter[1], targetCenter[2],targetRealPosition[0], targetRealPosition[1], targetRealPosition[2]);
 		affineTransformation->m[0][3]=sourceRealPosition[0]-targetRealPosition[0];
 		affineTransformation->m[1][3]=sourceRealPosition[1]-targetRealPosition[1];
 		affineTransformation->m[2][3]=sourceRealPosition[2]-targetRealPosition[2];
@@ -429,8 +427,8 @@ int main(int argc, char **argv)
             nifti_image_free(tempMaskImage);
         }
         else{
-            for(unsigned i=0; i<targetImage->nvox; i++)
-                targetMask[i]=activeVoxelNumber++;
+            for(unsigned i=0; i<targetImage->nvox; i++) targetMask[i]=i;
+            activeVoxelNumber=targetImage->nvox;
         }
 		
 		/* smooth the input image if appropriate */
@@ -486,11 +484,11 @@ int main(int argc, char **argv)
 
 		/* initialise the block matching */
 		_reg_blockMatchingParam blockMatchingParams;
-		initialise_block_matching_method(	targetImage,
-							&blockMatchingParams,
-							param->block_percent_to_use,    // percentage of block kept
-							param->inlier_lts,              // percentage of inlier in the optimisation process
-                            targetMask);
+		initialise_block_matching_method(   targetImage,
+                                            &blockMatchingParams,
+                                            param->block_percent_to_use,    // percentage of block kept
+                                            param->inlier_lts,              // percentage of inlier in the optimisation process
+                                            targetMask);
 		mat44 updateAffineMatrix;
 
 #ifdef _USE_CUDA
@@ -600,8 +598,9 @@ int main(int argc, char **argv)
                                                             param->sourceBGValue);
 					/* Compute the correspondances between blocks */
 					block_matching_method<PrecisionTYPE>(	targetImage,
-										resultImage,
-										&blockMatchingParams);
+										                    resultImage,
+										                    &blockMatchingParams,
+                                                            targetMask);
 					/* update  the affine transformation matrix */
 					optimize(	&blockMatchingParams,
 							&updateAffineMatrix,
@@ -676,7 +675,8 @@ int main(int argc, char **argv)
 					/* Compute the correspondances between blocks */
 					block_matching_method<PrecisionTYPE>(	targetImage,
 										resultImage,
-										&blockMatchingParams);
+										&blockMatchingParams,
+                                        targetMask);
 					/* update  the affine transformation matrix */
 					optimize(	&blockMatchingParams,
 							&updateAffineMatrix,

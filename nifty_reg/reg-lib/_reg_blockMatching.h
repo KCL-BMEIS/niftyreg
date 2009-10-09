@@ -16,7 +16,7 @@
 #include <vector>
 #include <iostream>
 
-#define TOLERANCE 0.00001
+#define TOLERANCE 0.01
 #define MAX_ITERATIONS 20
 
 #define BLOCK_WIDTH 4
@@ -93,27 +93,10 @@ void initialise_block_matching_method(	nifti_image * target,
 extern "C++"
 template<typename PrecisionType>
 void block_matching_method(	nifti_image * target,
-				nifti_image * result,
-				_reg_blockMatchingParam *params);
+                            nifti_image * result,
+                            _reg_blockMatchingParam *params,
+                            int *);
 
-/**
-* This method is only called internally to figure out the correct
-* template params
-*/
-template<typename PrecisionType, typename TargetImageType> 
-void block_matching_method_2(	nifti_image * target,
-				nifti_image * result,
-				_reg_blockMatchingParam *params);
-
-/**
-* This is the actual implementation of the algorithm.
-*/
-template<typename PrecisionType, typename TargetImageType,
-typename ResultImageType>  
-void real_block_matching_method(nifti_image * target,
-				nifti_image * result,
-				_reg_blockMatchingParam *params);
-		
 /**
 * Apply the given affine transformation to a point
 */
