@@ -267,7 +267,7 @@ __global__ void process_result_blocks_gpu(float *targetPosition_d,
 							    localCC = fabsf(localCC/
 								    (voxelNumber*targetVar*resultVar));
 
-                            if(localCC - bestCC > 0.0001f){								
+                            if(localCC > bestCC){								
                                 bestCC = localCC;
                                 bestDisplacement.x=l[threadIdx.x];
 								bestDisplacement.y=m[threadIdx.x];
