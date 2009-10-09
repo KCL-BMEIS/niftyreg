@@ -839,11 +839,11 @@ void optimize_affine(	_reg_blockMatchingParam *params,
 			++i;
 		}
 				
-		// If the change is not 
-		/*if (fabs(distance - lastDistance) < 0.001)
+		// If the change is not substantial, we return 
+		if (fabs(distance - lastDistance) < 0.001)
 		{
 			return;
-		}*/
+		}
 		
 		lastDistance = distance;
 		estimate_affine_transformation(top_points, final, a, w, v, r, b);	
@@ -988,9 +988,7 @@ void estimate_rigid_transformation(std::vector<_reg_sorted_point> & points,
 	
 	t[2] = centroid_result[2] - (r[2][0] * centroid_target[0] +
 	r[2][1] * centroid_target[1] +
-	r[2][2] * centroid_target[2]);
-
-	
+	r[2][2] * centroid_target[2]);	
 		
 	transformation->m[0][0] = r[0][0];
 	transformation->m[0][1] = r[0][1];
@@ -1084,15 +1082,14 @@ void optimize_rigid(_reg_blockMatchingParam *params,
 			queue.pop();
 			++i;
 		}
-				
-// 		if (fabs(distance - lastDistance) < 0.001)
-// 		{
-// 			return;
-// 		}		
-		
+
+		// If the change is not substantial, we return 		
+ 		if (fabs(distance - lastDistance) < 0.001)
+ 		{
+ 			return;
+        }		
 		estimate_rigid_transformation(top_points, final);
-	}
-	
+	}	
 	delete [] newResultPosition;
 }
 
