@@ -1,6 +1,6 @@
 /*
  *  _reg_mutualinformation_kernels.cu
- *  
+ *
  *
  *  Created by Marc Modat on 24/03/2009.
  *  Copyright (c) 2009, University College London. All rights reserved.
@@ -17,7 +17,6 @@ __device__ __constant__ int3 c_ImageSize;
 __device__ __constant__ int c_Binning;
 __device__ __constant__ float4 c_Entropies;
 __device__ __constant__ float c_NMI;
-__device__ __constant__ bool c_IncludePadding;
 __device__ __constant__ int c_ActiveVoxelNumber;
 
 texture<float, 1, cudaReadModeElementType> targetImageTexture;
@@ -69,13 +68,18 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW_kernel(float4 *voxelNMIGradi
 		float4 gradValue = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 
 		// No computation is performed if any of the point is part of the background
+        // The two is added because the image is resample between 2 and bin +2
+        // if 64 bins are used the histogram will have 68 bins et the image will be between 2 and 65
+		if( targetImageValue>2.0f &&
+            resultImageValue>2.0f){
 
-		if(targetImageValue && resultImageValue){
+            targetImageValue = floor(targetImageValue); // Parzen window filling of the joint histogram is approximated
+            resultImageValue = floor(resultImageValue);
 
 			float3 resDeriv = make_float3(
-				resultImageGradient.x / c_Entropies.w,
-				resultImageGradient.y / c_Entropies.w,
-				resultImageGradient.z / c_Entropies.w);
+				resultImageGradient.x,
+				resultImageGradient.y,
+				resultImageGradient.z);
 					
 			float jointEntropyDerivative_X = 0.0f;
 			float movingEntropyDerivative_X = 0.0f;
@@ -89,9 +93,9 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW_kernel(float4 *voxelNMIGradi
 			float movingEntropyDerivative_Z = 0.0f;
 			float fixedEntropyDerivative_Z = 0.0f;
 					
-			for(int t=(int)(targetImageValue-2.0f); t<(int)(targetImageValue+3.0f); t++){
+			for(int t=(int)(targetImageValue-1.0f); t<(int)(targetImageValue+2.0f); t++){
 				if(-1<t && t<c_Binning){
-					for(int r=(int)(resultImageValue-2.0f); r<(int)(resultImageValue+3.0f); r++){
+					for(int r=(int)(resultImageValue-1.0f); r<(int)(resultImageValue+2.0f); r++){
 						if(-1<r && r<c_Binning){
 							float commonValue = GetBasisSplineValue((float)t-targetImageValue) *
 								GetBasisSplineDerivativeValue((float)r-resultImageValue);
@@ -120,10 +124,11 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW_kernel(float4 *voxelNMIGradi
 			} // r
 
 			float NMI= c_NMI;
-
-			gradValue.x = (fixedEntropyDerivative_X + movingEntropyDerivative_X - NMI * jointEntropyDerivative_X) / c_Entropies.z;
-			gradValue.y = (fixedEntropyDerivative_Y + movingEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / c_Entropies.z;
-			gradValue.z = (fixedEntropyDerivative_Z + movingEntropyDerivative_Z - NMI * jointEntropyDerivative_Z) / c_Entropies.z;
+            float temp = c_Entropies.z;
+            // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way
+			gradValue.x = (fixedEntropyDerivative_X + movingEntropyDerivative_X - NMI * jointEntropyDerivative_X) / temp;
+			gradValue.y = (fixedEntropyDerivative_Y + movingEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / temp;
+			gradValue.z = (fixedEntropyDerivative_Z + movingEntropyDerivative_Z - NMI * jointEntropyDerivative_Z) / temp;
 
 		}
 		voxelNMIGradientArray_d[targetIndex]=gradValue;
@@ -247,6 +252,18 @@ __global__ void _reg_ApplyConvolutionWindowAlongZ_kernel(float4 *smoothedImage,
 		smoothedImage[tid] = finalValue;
 	}
 	return;
+}
+
+__global__ void NormaliseConvolutionWindows_kernel( float *window,
+                                                    int windowSize)
+{
+    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    if(tid<1){
+        float sum=0.0f;
+        for(int i=0; i<windowSize; i++) sum += window[i];
+        for(int i=0; i<windowSize; i++) window[i] /= sum;
+    }
+
 }
 
 #endif

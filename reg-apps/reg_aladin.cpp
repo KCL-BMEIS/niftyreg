@@ -134,7 +134,7 @@ void Usage(char *exec)
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 	return;
 }
-#define CONVERGENCE_EPS 0.001
+#define CONVERGENCE_EPS 0.00001
 bool reg_test_convergence(mat44 *mat)
 {
 	bool convergence=true;

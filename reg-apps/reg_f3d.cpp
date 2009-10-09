@@ -41,6 +41,9 @@
 #endif
 
 #define PrecisionTYPE float
+#define JH_TRI 0
+#define JH_PARZEN_WIN 1
+#define JH_PW_APPROX 2
 
 typedef struct{
 	char *targetImageName;
@@ -92,7 +95,6 @@ typedef struct{
 	bool targetSigmaFlag;
 	bool sourceSigmaFlag;
 	bool pyramidFlag;
-	bool metricPaddingFlag;
 
 #ifdef _USE_CUDA	
 	bool useGPUFlag;
@@ -152,7 +154,6 @@ void Usage(char *exec)
 	printf("\t-bgi <int> <int> <int>\tForce the background value during\n\t\t\t\tresampling to have the same value as this voxel in the source image [none]\n");
 // 	printf("\t-ssd\t\t\tTo use the SSD as the similiarity measure [no]\n");
 	printf("\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent/descent\n");
-	printf("\t-mpad\t\t\tTo include the padding value (0.0) into the metric computation\n");
 	printf("\t-mem\t\t\tDisplay an approximate memory requierment and exit\n");
 
 #ifdef _USE_CUDA
@@ -280,9 +281,6 @@ int main(int argc, char **argv)
 			param->sourceSigmaValue=(float)(atof(argv[++i]));
 			flag->sourceSigmaFlag=1;
 		}
-		else if(strcmp(argv[i], "-mpad") == 0){
-			flag->metricPaddingFlag=1;
-		}
 		else if(strcmp(argv[i], "-bgi") == 0){
 			param->backgroundIndex[0]=atoi(argv[++i]);
 			param->backgroundIndex[1]=atoi(argv[++i]);
@@ -343,6 +341,7 @@ int main(int argc, char **argv)
 
 	/* Read the number of bin to use */
 	if(!flag->binningFlag) param->binning=64;
+    param->binning += 4; //This is due to the extrapolation of the joint histogram using the Parzen window
 
     if(param->bendingEnergyWeight==0.0f)flag->bendingEnergyFlag=0;
 
@@ -567,7 +566,8 @@ int main(int argc, char **argv)
             }
             else{
                 for(int i=0; i<targetImage->nvox; i++)
-                    targetMask[i]=activeVoxelNumber++;
+                    targetMask[i]=i;
+                activeVoxelNumber=targetImage->nvox;
             }
         }
 
@@ -728,57 +728,59 @@ int main(int argc, char **argv)
 		float currentSize = maxStepSize;
 		float smallestSize = maxStepSize / 100.0f;
 
-		/* the target and source are resampled between 0 and bin-1 */
-		reg_intensityRescale(targetImage,0.0f,(float)param->binning-1.0f);
-		reg_intensityRescale(sourceImage,0.0f,(float)param->binning-1.0f);
+		/* the target and source are resampled between 0 and bin-1
+         * The images are then shifted by two which is the suport of the spline used
+         * by the parzen window filling of the joint histogram */
+		reg_intensityRescale(targetImage,2.0f,(float)param->binning+1.0f);
+		reg_intensityRescale(sourceImage,2.0f,(float)param->binning+1.0f);
 
-		if(flag->backgroundIndexFlag){
-			int index[3];
-			index[0]=param->backgroundIndex[0];
-			index[1]=param->backgroundIndex[1];
-			index[2]=param->backgroundIndex[2];
-			if(flag->pyramidFlag){
-				for(int l=level; l<param->levelNumber-1; l++){
-					index[0] /= 2;
-					index[1] /= 2;
-					index[2] /= 2;
-				}
-			}
-			param->sourceBGValue = (float)(reg_tool_GetIntensityValue(sourceImage, index));
-		}
+        if(flag->backgroundIndexFlag){
+            int index[3];
+            index[0]=param->backgroundIndex[0];
+            index[1]=param->backgroundIndex[1];
+            index[2]=param->backgroundIndex[2];
+            if(flag->pyramidFlag){
+                for(int l=level; l<param->levelNumber-1; l++){
+                    index[0] /= 2;
+                    index[1] /= 2;
+                    index[2] /= 2;
+                }
+            }
+            param->sourceBGValue = (float)(reg_tool_GetIntensityValue(sourceImage, index));
+        }
 
-		/* the gradient images are allocated */
-		nifti_image *resultGradientImage;
-		nifti_image *voxelNMIGradientImage;
-		nifti_image *nodeNMIGradientImage;
-		/* Conjugate gradient */
-		PrecisionTYPE *conjugateG;
-		PrecisionTYPE *conjugateH;
-		/* joint histogram related variables */
-		double *probaJointHistogram = (double *)malloc(param->binning*(param->binning+2)*sizeof(double));
-		double *logJointHistogram = (double *)malloc(param->binning*(param->binning+2)*sizeof(double));
-		double *entropies = (double *)malloc(4*sizeof(double));
+        /* the gradient images are allocated */
+        nifti_image *resultGradientImage;
+        nifti_image *voxelNMIGradientImage;
+        nifti_image *nodeNMIGradientImage;
+        /* Conjugate gradient */
+        PrecisionTYPE *conjugateG;
+        PrecisionTYPE *conjugateH;
+        /* joint histogram related variables */
+        double *probaJointHistogram = (double *)malloc(param->binning*(param->binning+2)*sizeof(double));
+        double *logJointHistogram = (double *)malloc(param->binning*(param->binning+2)*sizeof(double));
+        double *entropies = (double *)malloc(4*sizeof(double));
 
-		PrecisionTYPE *bestControlPointPosition;
-		
+        PrecisionTYPE *bestControlPointPosition;
+
 #ifdef _USE_CUDA
-		float *targetImageArray_d;
-		cudaArray *sourceImageArray_d;
-		float4 *controlPointImageArray_d;
-		float *resultImageArray_d;
-		float4 *positionFieldImageArray_d;
+        float *targetImageArray_d;
+        cudaArray *sourceImageArray_d;
+        float4 *controlPointImageArray_d;
+        float *resultImageArray_d;
+        float4 *positionFieldImageArray_d;
         int *targetMask_d;
 
-		float4 *resultGradientArray_d;
-		float4 *voxelNMIGradientArray_d;
-		float4 *nodeNMIGradientArray_d;
+        float4 *resultGradientArray_d;
+        float4 *voxelNMIGradientArray_d;
+        float4 *nodeNMIGradientArray_d;
 
-		float4 *conjugateG_d;
-		float4 *conjugateH_d;
+        float4 *conjugateG_d;
+        float4 *conjugateH_d;
 
-		float4 *bestControlPointPosition_d;
+        float4 *bestControlPointPosition_d;
 
-		float *logJointHistogram_d;
+        float *logJointHistogram_d;
 
 		if(flag->useGPUFlag){
 			if(!flag->noConjugateGradient){
@@ -850,7 +852,7 @@ int main(int argc, char **argv)
 		smoothingRadius[2] = (int)floor( 2.0*controlPointImage->dz/targetImage->dz );
 
 		int iteration=0;
-		while(iteration<param->maxIteration && currentSize>smallestSize){
+        while(iteration<param->maxIteration && currentSize>smallestSize){
 #ifdef _USE_CUDA
             if(flag->useGPUFlag){
                 /* generate the position field */
@@ -894,12 +896,11 @@ int main(int argc, char **argv)
 			double currentValue;
 			reg_getEntropies<double>(	targetImage,
 							resultImage,
-							2,
+							JH_PW_APPROX,
 							param->binning,
 							probaJointHistogram,
 							logJointHistogram,
 							entropies,
-							flag->metricPaddingFlag,
                             targetMask);
 			currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight)*(entropies[0]+entropies[1])/entropies[2];
 
@@ -981,19 +982,18 @@ int main(int argc, char **argv)
                                     &targetMask_d,
                                     activeVoxelNumber,
 									entropies,
-									param->binning,
-									flag->metricPaddingFlag);
-				reg_smoothImageForCubicSpline_gpu(	resultImage,
-									&voxelNMIGradientArray_d,
-									smoothingRadius);
-				reg_voxelCentric2NodeCentric_gpu(	targetImage,
-									controlPointImage,
-									&voxelNMIGradientArray_d,
-									&nodeNMIGradientArray_d);
+									param->binning);
+				reg_smoothImageForCubicSpline_gpu(  resultImage,
+									                &voxelNMIGradientArray_d,
+									                smoothingRadius);
+				reg_voxelCentric2NodeCentric_gpu(   targetImage,
+								                    controlPointImage,
+								                    &voxelNMIGradientArray_d,
+								                    &nodeNMIGradientArray_d);
 				/* The NMI gradient is converted from voxel space to real space */
-				reg_convertNMIGradientFromVoxelToRealSpace_gpu(	sourceMatrix_xyz,
-										controlPointImage,
-										&nodeNMIGradientArray_d);
+				reg_convertNMIGradientFromVoxelToRealSpace_gpu( sourceMatrix_xyz,
+										                        controlPointImage,
+										                        &nodeNMIGradientArray_d);
 				/* The other gradients are calculated */
 				if(flag->beGradFlag && flag->bendingEnergyFlag){
 				    reg_bspline_ApproxBendingEnergyGradient_gpu(controlPointImage,
@@ -1033,15 +1033,15 @@ int main(int argc, char **argv)
 										positionFieldImage,
                                         targetMask,
 										1);
-				reg_getVoxelBasedNMIGradientUsingPW<double>(	targetImage,
-										resultImage,
-										resultGradientImage,
-										param->binning,
-										logJointHistogram,
-										entropies,
-										voxelNMIGradientImage,
-                                        targetMask,
-										flag->metricPaddingFlag);
+				reg_getVoxelBasedNMIGradientUsingPW<double>(targetImage,
+                                                            resultImage,
+                                                            JH_PW_APPROX,
+                                                            resultGradientImage,
+                                                            param->binning,
+                                                            logJointHistogram,
+                                                            entropies,
+                                                            voxelNMIGradientImage,
+                                                            targetMask);
 				reg_smoothImageForCubicSpline<PrecisionTYPE>(voxelNMIGradientImage,smoothingRadius);
 				reg_voxelCentric2NodeCentric(nodeNMIGradientImage,voxelNMIGradientImage);
 
@@ -1239,12 +1239,11 @@ int main(int argc, char **argv)
 				/* Computation of the NMI */
 				reg_getEntropies<double>(	targetImage,
                                             resultImage,
-                                            2,
+                                            JH_PW_APPROX,
                                             param->binning,
                                             probaJointHistogram,
                                             logJointHistogram,
                                             entropies,
-                                            flag->metricPaddingFlag,
                                             targetMask);
 				currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight)*(entropies[0]+entropies[1])/entropies[2];
 
@@ -1341,20 +1340,28 @@ int main(int argc, char **argv)
 		free(probaJointHistogram);
 		free(logJointHistogram);
 #ifdef _USE_CUDA
-		if(flag->useGPUFlag){
-			if(cudaCommon_transferFromDeviceToNifti(controlPointImage, &controlPointImageArray_d)) return 1;
-			cudaCommon_free((void **)&resultGradientArray_d);
-			cudaCommon_free((void **)&voxelNMIGradientArray_d);
-			cudaCommon_free((void **)&nodeNMIGradientArray_d);
-			if(!flag->noConjugateGradient){
-				cudaCommon_free((void **)&conjugateG_d);
-				cudaCommon_free((void **)&conjugateH_d);
-			}
-			cudaCommon_free((void **)&bestControlPointPosition_d);
-			cudaCommon_free((void **)&logJointHistogram_d);
+        if(flag->useGPUFlag){
+            if(cudaCommon_transferFromDeviceToNifti(controlPointImage, &controlPointImageArray_d)) return 1;
+            cudaCommon_free( (void **)&targetImageArray_d );
+            cudaCommon_free( &sourceImageArray_d );
+            cudaCommon_free( (void **)&controlPointImageArray_d );
+            cudaCommon_free( (void **)&resultImageArray_d );
+            cudaCommon_free( (void **)&positionFieldImageArray_d );
             CUDA_SAFE_CALL(cudaFree(targetMask_d));
-		}
-		else{
+            cudaCommon_free((void **)&resultGradientArray_d);
+            cudaCommon_free((void **)&voxelNMIGradientArray_d);
+            cudaCommon_free((void **)&nodeNMIGradientArray_d);
+            if(!flag->noConjugateGradient){
+                cudaCommon_free((void **)&conjugateG_d);
+                cudaCommon_free((void **)&conjugateH_d);
+            }
+            cudaCommon_free((void **)&bestControlPointPosition_d);
+            cudaCommon_free((void **)&logJointHistogram_d);
+
+            CUDA_SAFE_CALL(cudaFreeHost(resultImage->data));
+            resultImage->data = NULL;
+        }
+        else{
 #endif
 			nifti_image_free(resultGradientImage);
 			nifti_image_free(voxelNMIGradientImage);
@@ -1368,18 +1375,12 @@ int main(int argc, char **argv)
 		}
 #endif
 
-#ifdef _USE_CUDA
-		if(flag->useGPUFlag){
-			CUDA_SAFE_CALL(cudaFreeHost(resultImage->data));
-			resultImage->data = NULL;
-		}
-#endif
-		nifti_image_free( resultImage );
+        nifti_image_free( resultImage );
 
-		if(level==(param->level2Perform-1)){
-		/* ****************** */
-		/* OUTPUT THE RESULTS */
-		/* ****************** */
+        if(level==(param->level2Perform-1)){
+        /* ****************** */
+        /* OUTPUT THE RESULTS */
+        /* ****************** */
 
 			/* The best result is returned */
             nifti_set_filenames(controlPointImage, param->outputCPPName, 0, 0);
@@ -1434,15 +1435,6 @@ int main(int argc, char **argv)
 		nifti_image_free( sourceImage );
 		nifti_image_free( targetImage );
 
-#ifdef _USE_CUDA
-		if(flag->useGPUFlag){
-			cudaCommon_free( (void **)&targetImageArray_d );
-			cudaCommon_free( &sourceImageArray_d );
-			cudaCommon_free( (void **)&controlPointImageArray_d );
-			cudaCommon_free( (void **)&resultImageArray_d );
-			cudaCommon_free( (void **)&positionFieldImageArray_d );
-		}
-#endif
 		printf("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n\n");
 	} // for(int level=0; level<param->levelNumber; level++){
 

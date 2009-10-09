@@ -1318,9 +1318,10 @@ void reg_bspline_bendingEnergyGradient1(	nifti_image *splineControlPoint,
 				metricGradientValue[0] = (PrecisionTYPE)(*gradientXPtr);
 				metricGradientValue[1] = (PrecisionTYPE)(*gradientYPtr);
 				metricGradientValue[2] = (PrecisionTYPE)(*gradientZPtr);
-				*gradientXPtr++ = (SplineTYPE)((1.0-weight)*metricGradientValue[0] + weight*gradientValue[0]/nodeNumber);
-				*gradientYPtr++ = (SplineTYPE)((1.0-weight)*metricGradientValue[1] + weight*gradientValue[1]/nodeNumber);
-				*gradientZPtr++ = (SplineTYPE)((1.0-weight)*metricGradientValue[2] + weight*gradientValue[2]/nodeNumber);
+                // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way
+				*gradientXPtr++ = (SplineTYPE)((1.0-weight)*metricGradientValue[0] + weight*gradientValue[0]);
+				*gradientYPtr++ = (SplineTYPE)((1.0-weight)*metricGradientValue[1] + weight*gradientValue[1]);
+				*gradientZPtr++ = (SplineTYPE)((1.0-weight)*metricGradientValue[2] + weight*gradientValue[2]);
 			}
 		}
 	}

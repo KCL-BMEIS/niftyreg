@@ -86,7 +86,7 @@ float reg_bspline_ApproxBendingEnergy_gpu(	nifti_image *controlPointImage,
 	float *penaltyTerm_h;
 	CUDA_SAFE_CALL(cudaMallocHost((void **)&penaltyTerm_h, controlPointNumber*sizeof(float)));
 	CUDA_SAFE_CALL(cudaMemcpy(penaltyTerm_h, penaltyTerm_d, controlPointNumber*sizeof(float), cudaMemcpyDeviceToHost));
-	CUDA_SAFE_CALL(cudaFree((void *)penaltyTerm_d));
+	CUDA_SAFE_CALL(cudaFree(penaltyTerm_d));
 
 	double penaltyValue=0.0;
 	for(int i=0;i<controlPointNumber;i++)
@@ -96,10 +96,10 @@ float reg_bspline_ApproxBendingEnergy_gpu(	nifti_image *controlPointImage,
 	return (float)(penaltyValue/(3.0*(double)controlPointNumber));
 }
 
-void reg_bspline_ApproxBendingEnergyGradient_gpu(	nifti_image *controlPointImage,
-							float4 **controlPointImageArray_d,
-							float4 **nodeNMIGradientArray_d,
-							float bendingEnergyWeight)
+void reg_bspline_ApproxBendingEnergyGradient_gpu(   nifti_image *controlPointImage,
+                                                    float4 **controlPointImageArray_d,
+                                                    float4 **nodeNMIGradientArray_d,
+                                                    float bendingEnergyWeight)
 {
 	const int controlPointNumber = controlPointImage->nx*controlPointImage->ny*controlPointImage->nz;
 	const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
@@ -114,7 +114,7 @@ void reg_bspline_ApproxBendingEnergyGradient_gpu(	nifti_image *controlPointImage
     CUDA_SAFE_CALL(cudaMalloc((void **)&bendingEnergyValue_d, 6*controlPointNumber*sizeof(float3)));
     CUDA_SAFE_CALL(cudaMemset(bendingEnergyValue_d, 0, 6*controlPointNumber*sizeof(float3)));
 
-	const unsigned int Grid_reg_bspline_storeApproxBendingEnergy = 
+	const unsigned int Grid_reg_bspline_storeApproxBendingEnergy =
 		(unsigned int)ceil((float)controlPointNumber/(float)(Block_reg_bspline_storeApproxBendingEnergy));
 	dim3 B1(Block_reg_bspline_storeApproxBendingEnergy,1,1);
 	dim3 G1(Grid_reg_bspline_storeApproxBendingEnergy,1,1);
@@ -153,6 +153,8 @@ void reg_bspline_ApproxBendingEnergyGradient_gpu(	nifti_image *controlPointImage
 	CUDA_SAFE_CALL(cudaMemcpy(basis_b_d, basis_b, 27*sizeof(float2), cudaMemcpyHostToDevice));
 	CUDA_SAFE_CALL(cudaFreeHost((void *)basis_a));
 	CUDA_SAFE_CALL(cudaFreeHost((void *)basis_b));
+    CUDA_SAFE_CALL(cudaBindTexture(0, basisValueATexture, basis_a_d, 27*sizeof(float4)));
+    CUDA_SAFE_CALL(cudaBindTexture(0, basisValueBTexture, basis_b_d, 27*sizeof(float2)));
 
 	const unsigned int Grid_reg_bspline_getApproxBendingEnergyGradient =
 		(unsigned int)ceil((float)controlPointNumber/(float)(Block_reg_bspline_getApproxBendingEnergyGradient));
@@ -160,9 +162,7 @@ void reg_bspline_ApproxBendingEnergyGradient_gpu(	nifti_image *controlPointImage
 	dim3 G2(Grid_reg_bspline_getApproxBendingEnergyGradient,1,1);
 
 	reg_bspline_getApproxBendingEnergyGradient_kernel <<< G2, B2 >>>(	bendingEnergyValue_d,
-										                                *nodeNMIGradientArray_d,
-										                                basis_a_d,
-										                                basis_b_d);
+										                                *nodeNMIGradientArray_d);
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 #if _VERBOSE
 	printf("[VERBOSE] reg_bspline_getApproxBendingEnergyGradient kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",

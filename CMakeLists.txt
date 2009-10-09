@@ -25,6 +25,7 @@ ENDIF(WIN32)
 OPTION(BUILD_ALADIN "To build the reg_aladin executable" ON)
 OPTION(BUILD_F3D "To build the reg_f3d executable" ON)
 OPTION(BUILD_RESAMPLE "To build the reg_resample executable" ON)
+OPTION(BUILD_TOOLS "To build the reg_tools executable" ON)
 
 OPTION(USE_VERBOSE "To print out extra information" OFF)
 

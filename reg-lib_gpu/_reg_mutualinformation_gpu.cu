@@ -26,8 +26,7 @@ void reg_getVoxelBasedNMIGradientUsingPW_gpu(   nifti_image *targetImage,
                                                 int **mask_d,
                                                 int activeVoxelNumber,
                                                 double *entropies,
-                                                int binning,
-                                                bool includePadding)
+                                                int binning)
 {
 	const int voxelNumber = targetImage->nvox;
 	const int binNumber = binning*(binning+2);
@@ -39,7 +38,6 @@ void reg_getVoxelBasedNMIGradientUsingPW_gpu(   nifti_image *targetImage,
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Binning,&binning,sizeof(int)));
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Entropies,&entropies_h,sizeof(float4)));
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NMI,&NMI,sizeof(float)));
-	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_IncludePadding,&includePadding,sizeof(bool)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber,&activeVoxelNumber,sizeof(int)));
 
 	// Texture binding
@@ -89,6 +87,12 @@ void reg_smoothImageForCubicSpline_gpu(	nifti_image *resultImage,
 	printf("[VERBOSE] FillConvolutionWindows_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
+    NormaliseConvolutionWindows_kernel <<< dim3(1,1,1), dim3(1,1,1) >>>(window, windowSize);
+    CUDA_SAFE_CALL(cudaThreadSynchronize());
+#if _VERBOSE
+    printf("[VERBOSE] NormaliseConvolutionWindows_kernel: %s - Grid size [1 0 0] - Block size [1 0 0]\n",
+           cudaGetErrorString(cudaGetLastError()));
+#endif
 	const unsigned int Grid_reg_ApplyConvolutionWindowAlongX =
 		(unsigned int)ceil((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongX);
 	dim3 B2(Block_reg_ApplyConvolutionWindowAlongX,1,1);
@@ -116,6 +120,12 @@ void reg_smoothImageForCubicSpline_gpu(	nifti_image *resultImage,
 	printf("[VERBOSE] FillConvolutionWindows_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G3.x,G3.y,G3.z,B3.x,B3.y,B3.z);
 #endif
+    NormaliseConvolutionWindows_kernel <<< dim3(1,1,1), dim3(1,1,1) >>>(window, windowSize);
+    CUDA_SAFE_CALL(cudaThreadSynchronize());
+#if _VERBOSE
+    printf("[VERBOSE] NormaliseConvolutionWindows_kernel: %s - Grid size [1 0 0] - Block size [1 0 0]\n",
+           cudaGetErrorString(cudaGetLastError()));
+#endif
 	const unsigned int Grid_reg_ApplyConvolutionWindowAlongY =
 		(unsigned int)ceil((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongY);
 	dim3 B4(Block_reg_ApplyConvolutionWindowAlongY,1,1);
@@ -142,6 +152,12 @@ void reg_smoothImageForCubicSpline_gpu(	nifti_image *resultImage,
 #if _VERBOSE
 	printf("[VERBOSE] FillConvolutionWindows_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G5.x,G5.y,G5.z,B5.x,B5.y,B5.z);
+#endif
+    NormaliseConvolutionWindows_kernel <<< dim3(1,1,1), dim3(1,1,1) >>>(window, windowSize);
+    CUDA_SAFE_CALL(cudaThreadSynchronize());
+#if _VERBOSE
+    printf("[VERBOSE] NormaliseConvolutionWindows_kernel: %s - Grid size [1 0 0] - Block size [1 0 0]\n",
+           cudaGetErrorString(cudaGetLastError()));
 #endif
 	const unsigned int Grid_reg_ApplyConvolutionWindowAlongZ =
 		(unsigned int)ceil((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongZ);

@@ -22,19 +22,16 @@ void reg_getEntropies(	nifti_image *targetImage,
 						PrecisionTYPE *probaJointHistogram,
 						PrecisionTYPE *logJointHistogram,
 						PrecisionTYPE *entropies,
-						bool includePadding,
-                        int *mask
- 					);
+                        int *mask);
 
 extern "C++" template <class PrecisionTYPE>
 void reg_getVoxelBasedNMIGradientUsingPW(	nifti_image *targetImage,
 											nifti_image *resultImage,
+                                            int type,
 											nifti_image *resultImageGradient,
 											int binning,
 											PrecisionTYPE *logJointHistogram,
 											PrecisionTYPE *entropies,
 											nifti_image *nmiGradientImage,
-                                            int *mask,
-											bool includePadding
-					);
+                                            int *mask);
 #endif

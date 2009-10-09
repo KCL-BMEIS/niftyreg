@@ -25,8 +25,7 @@ void reg_getVoxelBasedNMIGradientUsingPW_gpu(   nifti_image *targetImage,
                                                 int **targetMask_d,
                                                 int activeVoxelNumber,
                                                 double *entropies,
-                                                int binning,
-                                                bool includePadding);
+                                                int binning);
 
 
 extern "C++"

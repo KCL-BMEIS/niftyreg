@@ -1,8 +1,14 @@
 #-----------------------------------------------------------------------------
-IF(BUILD_RESAMPLE)	
-	ADD_EXECUTABLE(reg_resample reg_resample.cpp)
-		TARGET_LINK_LIBRARIES(reg_resample _reg_resampling _reg_bspline _reg_tools _reg_affineTransformation reg_nifti ${ZLIB})
-	INSTALL_TARGETS(/bin reg_resample)
+IF(BUILD_TOOLS)
+    ADD_EXECUTABLE(reg_tools reg_tools.cpp)
+        TARGET_LINK_LIBRARIES(reg_tools _reg_resampling _reg_tools _reg_affineTransformation reg_nifti ${ZLIB})
+    INSTALL_TARGETS(/bin reg_tools)
+ENDIF(BUILD_TOOLS)
+#-----------------------------------------------------------------------------
+IF(BUILD_RESAMPLE)  
+    ADD_EXECUTABLE(reg_resample reg_resample.cpp)
+        TARGET_LINK_LIBRARIES(reg_resample _reg_resampling _reg_bspline _reg_tools _reg_affineTransformation reg_nifti ${ZLIB})
+    INSTALL_TARGETS(/bin reg_resample)
 ENDIF(BUILD_RESAMPLE)
 #-----------------------------------------------------------------------------
 IF(BUILD_F3D)
