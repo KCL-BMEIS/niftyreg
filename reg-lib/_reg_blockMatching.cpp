@@ -155,6 +155,19 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
 	for (int i = params->activeBlockNumber; i < totalBlockNumber; ++i){
 		params->activeBlock[*indexArrayPtr--] = -1;
 	}
+
+    // renumber them to ensure consistency with the GPU version
+    count = 0;
+    for (int i = 0; i < totalBlockNumber; ++i)
+    {
+        if (params->activeBlock[i] != -1)
+        {
+            params->activeBlock[i] = count;
+            ++count;
+        }
+    }    
+
+
 	free(varianceArray);
 	free(indexArray);
 }
