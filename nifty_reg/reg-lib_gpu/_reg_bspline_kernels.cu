@@ -21,6 +21,8 @@ __device__ __constant__ float c_BendingEnergyWeight;
 __device__ __constant__ int c_ActiveVoxelNumber;
 
 texture<float4, 1, cudaReadModeElementType> controlPointTexture;
+texture<float4, 1, cudaReadModeElementType> basisValueATexture;
+texture<float2, 1, cudaReadModeElementType> basisValueBTexture;
 texture<int, 1, cudaReadModeElementType> maskTexture;
 
 
@@ -230,7 +232,6 @@ __global__ void reg_bspline_storeApproxBendingEnergy_kernel(float3 *beValues)
 			float3 YZ = make_float3(0.0f,0.0f,0.0f);
 			float3 XZ = make_float3(0.0f,0.0f,0.0f);
 
-
 			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.027778f,0.027778f,0.027778f,0.041667f,0.041667f,0.041667f,((z-1)*gridSize.y+y-1)*gridSize.x+x-1);
 			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,-0.055556f,0.111111f,0.111111f,-0.000000f,0.166667f,-0.000000f,((z-1)*gridSize.y+y-1)*gridSize.x+x);
 			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.027778f,0.027778f,0.027778f,-0.041667f,0.041667f,-0.041667f,((z-1)*gridSize.y+y-1)*gridSize.x+x+1);
@@ -273,9 +274,7 @@ __global__ void reg_bspline_storeApproxBendingEnergy_kernel(float3 *beValues)
 
 
 __global__ void reg_bspline_getApproxBendingEnergyGradient_kernel(  float3 *bendingEnergyValue,
-                                                                    float4 *nodeNMIGradientArray_d,
-                                                                    float4 *basis_a_d,
-                                                                    float2 *basis_b_d)
+                                                                    float4 *nodeNMIGradientArray_d)
 {
     __shared__ float basisXX[27];
     __shared__ float basisYY[27];
@@ -284,13 +283,15 @@ __global__ void reg_bspline_getApproxBendingEnergyGradient_kernel(  float3 *bend
     __shared__ float basisYZ[27];
     __shared__ float basisXZ[27];
 
-    if(threadIdx.x<28){
-        basisXX[threadIdx.x] = basis_a_d[threadIdx.x].x;
-        basisYY[threadIdx.x] = basis_a_d[threadIdx.x].y;
-        basisZZ[threadIdx.x] = basis_a_d[threadIdx.x].z;
-        basisXY[threadIdx.x] = basis_a_d[threadIdx.x].w;
-        basisYZ[threadIdx.x] = basis_b_d[threadIdx.x].x;
-        basisXZ[threadIdx.x] = basis_b_d[threadIdx.x].y;
+    if(threadIdx.x<27){
+        float4 tempA = tex1Dfetch(basisValueATexture,threadIdx.x);
+        basisXX[threadIdx.x] = tempA.x;
+        basisYY[threadIdx.x] = tempA.y;
+        basisZZ[threadIdx.x] = tempA.z;
+        basisXY[threadIdx.x] = tempA.w;
+        float2 tempB = tex1Dfetch(basisValueBTexture,threadIdx.x);
+        basisYZ[threadIdx.x] = tempB.x;
+        basisXZ[threadIdx.x] = tempB.y;
     }
     __syncthreads();
 
@@ -307,43 +308,45 @@ __global__ void reg_bspline_getApproxBendingEnergyGradient_kernel(  float3 *bend
 
 		float3 gradientValue=make_float3(0.0f,0.0f,0.0f);
 
-		float3 *bendingEnergyValuePtr;
+        float3 *bendingEnergyValuePtr;
+        float3 bendingEnergyCurrentValue;
 
 		short coord=0;
 		for(short Z=z-1; Z<z+2; Z++){
 			for(short Y=y-1; Y<y+2; Y++){
 				for(short X=x-1; X<x+2; X++){
 					if(-1<X && -1<Y && -1<Z && X<gridSize.x && Y<gridSize.y && Z<gridSize.z){
-						bendingEnergyValuePtr = &(bendingEnergyValue[6 * ((Z*gridSize.y + Y)*gridSize.x + X)]);
+						bendingEnergyValuePtr = &bendingEnergyValue[6 * ((Z*gridSize.y + Y)*gridSize.x + X)];
 
-                        gradientValue.x += (*bendingEnergyValuePtr).x * basisXX[coord];
-                        gradientValue.y += (*bendingEnergyValuePtr).y * basisXX[coord];
-                        gradientValue.z += (*bendingEnergyValuePtr).z * basisXX[coord];
-                        bendingEnergyValuePtr++;
+                        bendingEnergyCurrentValue =  *bendingEnergyValuePtr++;
+                        gradientValue.x += bendingEnergyCurrentValue.x * basisXX[coord];
+                        gradientValue.y += bendingEnergyCurrentValue.y * basisXX[coord];
+                        gradientValue.z += bendingEnergyCurrentValue.z * basisXX[coord];
 
-                        gradientValue.x += (*bendingEnergyValuePtr).x * basisYY[coord];
-                        gradientValue.y += (*bendingEnergyValuePtr).y * basisYY[coord];
-                        gradientValue.z += (*bendingEnergyValuePtr).z * basisYY[coord];
-                        bendingEnergyValuePtr++;
+                        bendingEnergyCurrentValue =  *bendingEnergyValuePtr++;
+                        gradientValue.x += bendingEnergyCurrentValue.x * basisYY[coord];
+                        gradientValue.y += bendingEnergyCurrentValue.y * basisYY[coord];
+                        gradientValue.z += bendingEnergyCurrentValue.z * basisYY[coord];
 
-                        gradientValue.x += (*bendingEnergyValuePtr).x * basisZZ[coord];
-                        gradientValue.y += (*bendingEnergyValuePtr).y * basisZZ[coord];
-                        gradientValue.z += (*bendingEnergyValuePtr).z * basisZZ[coord];
-                        bendingEnergyValuePtr++;
+                        bendingEnergyCurrentValue =  *bendingEnergyValuePtr++;
+                        gradientValue.x += bendingEnergyCurrentValue.x * basisZZ[coord];
+                        gradientValue.y += bendingEnergyCurrentValue.y * basisZZ[coord];
+                        gradientValue.z += bendingEnergyCurrentValue.z * basisZZ[coord];
 
-                        gradientValue.x += (*bendingEnergyValuePtr).x * basisXY[coord];
-                        gradientValue.y += (*bendingEnergyValuePtr).y * basisXY[coord];
-                        gradientValue.z += (*bendingEnergyValuePtr).z * basisXY[coord];
-                        bendingEnergyValuePtr++;
+                        bendingEnergyCurrentValue =  *bendingEnergyValuePtr++;
+                        gradientValue.x += bendingEnergyCurrentValue.x * basisXY[coord];
+                        gradientValue.y += bendingEnergyCurrentValue.y * basisXY[coord];
+                        gradientValue.z += bendingEnergyCurrentValue.z * basisXY[coord];
 
-                        gradientValue.x += (*bendingEnergyValuePtr).x * basisYZ[coord];
-                        gradientValue.y += (*bendingEnergyValuePtr).y * basisYZ[coord];
-                        gradientValue.z += (*bendingEnergyValuePtr).z * basisYZ[coord];
-                        bendingEnergyValuePtr++;
+                        bendingEnergyCurrentValue =  *bendingEnergyValuePtr++;
+                        gradientValue.x += bendingEnergyCurrentValue.x * basisYZ[coord];
+                        gradientValue.y += bendingEnergyCurrentValue.y * basisYZ[coord];
+                        gradientValue.z += bendingEnergyCurrentValue.z * basisYZ[coord];
 
-                        gradientValue.x += (*bendingEnergyValuePtr).x * basisXZ[coord];
-                        gradientValue.y += (*bendingEnergyValuePtr).y * basisXZ[coord];
-                        gradientValue.z += (*bendingEnergyValuePtr).z * basisXZ[coord];
+                        bendingEnergyCurrentValue =  *bendingEnergyValuePtr;
+                        gradientValue.x += bendingEnergyCurrentValue.x * basisXZ[coord];
+                        gradientValue.y += bendingEnergyCurrentValue.y * basisXZ[coord];
+                        gradientValue.z += bendingEnergyCurrentValue.z * basisXZ[coord];
 					}
 					coord++;
 				}
@@ -351,11 +354,12 @@ __global__ void reg_bspline_getApproxBendingEnergyGradient_kernel(  float3 *bend
 		}
 		float4 metricGradientValue;
 		metricGradientValue = nodeNMIGradientArray_d[tid];
-		metricGradientValue.x = (1.0f-c_BendingEnergyWeight)*metricGradientValue.x + c_BendingEnergyWeight*gradientValue.x/(float)c_ControlPointNumber;
-		metricGradientValue.y = (1.0f-c_BendingEnergyWeight)*metricGradientValue.y + c_BendingEnergyWeight*gradientValue.y/(float)c_ControlPointNumber;
-		metricGradientValue.z = (1.0f-c_BendingEnergyWeight)*metricGradientValue.z + c_BendingEnergyWeight*gradientValue.z/(float)c_ControlPointNumber;
+        float weight = c_BendingEnergyWeight;
+        // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way
+        metricGradientValue.x = (1.0f-weight)*metricGradientValue.x + weight*gradientValue.x;
+        metricGradientValue.y = (1.0f-weight)*metricGradientValue.y + weight*gradientValue.y;
+        metricGradientValue.z = (1.0f-weight)*metricGradientValue.z + weight*gradientValue.z;
 		nodeNMIGradientArray_d[tid]=metricGradientValue;
-
 	}
 }
 

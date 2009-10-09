@@ -21,13 +21,15 @@
 typedef struct{
 	char *inputImageName;
 	char *outputImageName;
-	char *addImageName;
+    char *addImageName;
+    char *rmsImageName;
 	int smoothValue;
 }PARAM;
 typedef struct{
 	bool inputImageFlag;
 	bool outputImageFlag;
-	bool addImageFlag;
+    bool addImageFlag;
+    bool rmsImageFlag;
 	bool smoothValueFlag;
 	bool gradientImageFlag;
 }FLAG;
@@ -44,11 +46,12 @@ void Usage(char *exec)
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 	printf("Usage:\t%s -in <filename> -out <filename> [OPTIONS].\n",exec);
 	printf("\t-in <filename>\tFilename of the input image image (mandatory)\n");
-	printf("\t-out <filename>\t\tFilename out the output image [output.nii]\n");
 	printf("* * OPTIONS * *\n");
+    printf("\t-out <filename>\t\tFilename out the output image [output.nii]\n");
 	printf("\t-grad\t\t\t4D spatial gradient of the input image\n");
 	printf("\t-add <filename>\t\tThis image is added to the input\n");
-	printf("\t-smo <int>\t\tThe input image is smoothed using a b-spline curve\n");
+    printf("\t-smo <int>\t\tThe input image is smoothed using a b-spline curve\n");
+    printf("\t-rms <filename>\tCompute the mean rms between both image\n");
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 	return;
 }
@@ -77,10 +80,14 @@ int main(int argc, char **argv)
 		else if(strcmp(argv[i], "-grad") == 0){
 			flag->gradientImageFlag=1;
 		}
-		else if(strcmp(argv[i], "-add") == 0){
-			param->addImageName=argv[++i];
-			flag->addImageFlag=1;
-		}
+        else if(strcmp(argv[i], "-add") == 0){
+            param->addImageName=argv[++i];
+            flag->addImageFlag=1;
+        }
+        else if(strcmp(argv[i], "-rms") == 0){
+            param->rmsImageName=argv[++i];
+            flag->rmsImageFlag=1;
+        }
 		else if(strcmp(argv[i], "-smo") == 0){
 			param->smoothValue=atoi(argv[++i]);
 			flag->smoothValueFlag=1;
@@ -124,18 +131,19 @@ int main(int argc, char **argv)
 		affineTransformation->m[1][1]=1.0;
 		affineTransformation->m[2][2]=1.0;
 		affineTransformation->m[3][3]=1.0;
-		nifti_image *fakeDeformationField = nifti_copy_nim_info(spatialGradientImage);
-		fakeDeformationField->data = (void *)malloc(fakeDeformationField->nvox * fakeDeformationField->nbyper);
-		reg_affine_deformationField(	affineTransformation,
-						image,
-						fakeDeformationField);
+		nifti_image *fakepositionField = nifti_copy_nim_info(spatialGradientImage);
+		fakepositionField->data = (void *)malloc(fakepositionField->nvox * fakepositionField->nbyper);
+		reg_affine_positionField(	affineTransformation,
+						            image,
+						            fakepositionField);
 		free(affineTransformation);
 		reg_getSourceImageGradient<PrecisionTYPE>(	image,
-								image,
-								spatialGradientImage,
-								fakeDeformationField,
-								3); // cubic spline interpolation
-		nifti_image_free(fakeDeformationField);
+								                    image,
+								                    spatialGradientImage,
+								                    fakepositionField,
+                                                    NULL,
+								                    3); // cubic spline interpolation
+		nifti_image_free(fakepositionField);
 		nifti_image_write(spatialGradientImage);
 		nifti_image_free(spatialGradientImage);
 	}
@@ -150,40 +158,63 @@ int main(int argc, char **argv)
 		printf("%i\n", param->smoothValue);
 		int radius[3];radius[0]=radius[1]=radius[2]=param->smoothValue;
 		reg_smoothImageForCubicSpline<PrecisionTYPE>(smoothImg, radius);
-//		reg_smoothImageForTrilinear<PrecisionTYPE>(smoothImg, radius);
 		nifti_image_write(smoothImg);
 		nifti_image_free(smoothImg);
 	}
-	
-	if(flag->addImageFlag){
-		nifti_image *imageToAdd = nifti_image_read(param->addImageName,true);
-		if(imageToAdd == NULL){
-			fprintf(stderr,"** ERROR Error when reading the image to add: %s\n",param->addImageName);
-			return 1;
-		}
-		// Check image dimension
-		if(image->dim[0]!=imageToAdd->dim[0] ||
-		   image->dim[1]!=imageToAdd->dim[1] ||
-		   image->dim[2]!=imageToAdd->dim[2] ||
-		   image->dim[3]!=imageToAdd->dim[3] ||
-		   image->dim[4]!=imageToAdd->dim[4] ||
-		   image->dim[5]!=imageToAdd->dim[5] ||
-		   image->dim[6]!=imageToAdd->dim[6] ||
-		   image->dim[7]!=imageToAdd->dim[7]){
-			fprintf(stderr,"Both images do not have the same dimension\n");
-			return 1;
-		}
-		nifti_image *sumImage = nifti_copy_nim_info(image);
-		sumImage->data = (void *)malloc(sumImage->nvox * sumImage->nbyper);
-		if(flag->outputImageFlag)
-			nifti_set_filenames(sumImage, param->outputImageName, 0, 0);
-		else nifti_set_filenames(sumImage, "output.nii", 0, 0);
-		
-		reg_tools_addImages(image, imageToAdd, sumImage);
-		nifti_image_write(sumImage);
-		nifti_image_free(sumImage);
-		nifti_image_free(imageToAdd);
-	}
+
+    if(flag->addImageFlag){
+        nifti_image *imageToAdd = nifti_image_read(param->addImageName,true);
+        if(imageToAdd == NULL){
+            fprintf(stderr,"** ERROR Error when reading the image to add: %s\n",param->addImageName);
+            return 1;
+        }
+        // Check image dimension
+        if(image->dim[0]!=imageToAdd->dim[0] ||
+           image->dim[1]!=imageToAdd->dim[1] ||
+           image->dim[2]!=imageToAdd->dim[2] ||
+           image->dim[3]!=imageToAdd->dim[3] ||
+           image->dim[4]!=imageToAdd->dim[4] ||
+           image->dim[5]!=imageToAdd->dim[5] ||
+           image->dim[6]!=imageToAdd->dim[6] ||
+           image->dim[7]!=imageToAdd->dim[7]){
+            fprintf(stderr,"Both images do not have the same dimension\n");
+            return 1;
+        }
+        nifti_image *sumImage = nifti_copy_nim_info(image);
+        sumImage->data = (void *)malloc(sumImage->nvox * sumImage->nbyper);
+        if(flag->outputImageFlag)
+            nifti_set_filenames(sumImage, param->outputImageName, 0, 0);
+        else nifti_set_filenames(sumImage, "output.nii", 0, 0);
+
+        reg_tools_addImages(image, imageToAdd, sumImage);
+        nifti_image_write(sumImage);
+        nifti_image_free(sumImage);
+        nifti_image_free(imageToAdd);
+    }
+
+    if(flag->rmsImageFlag){
+        nifti_image *image2 = nifti_image_read(param->rmsImageName,true);
+        if(image2 == NULL){
+            fprintf(stderr,"** ERROR Error when reading the image to add: %s\n",param->rmsImageName);
+            return 1;
+        }
+        // Check image dimension
+        if(image->dim[0]!=image2->dim[0] ||
+           image->dim[1]!=image2->dim[1] ||
+           image->dim[2]!=image2->dim[2] ||
+           image->dim[3]!=image2->dim[3] ||
+           image->dim[4]!=image2->dim[4] ||
+           image->dim[5]!=image2->dim[5] ||
+           image->dim[6]!=image2->dim[6] ||
+           image->dim[7]!=image2->dim[7]){
+            fprintf(stderr,"Both images do not have the same dimension\n");
+            return 1;
+        }
+
+        double meanRMSerror = reg_tools_getMeanRMS(image, image2);
+        printf("%g\n", meanRMSerror);
+        nifti_image_free(image2);
+    }
 
 	nifti_image_free(image);
 	return 0;

@@ -59,4 +59,7 @@ void reg_tool_binarise_image(nifti_image *);
 
 extern "C++"
 void reg_tool_binaryImage2int(nifti_image *, int *, int &);
+
+extern "C++"
+double reg_tools_getMeanRMS(nifti_image *, nifti_image *);
 #endif
