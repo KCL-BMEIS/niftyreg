@@ -74,35 +74,49 @@ __global__ void process_target_blocks_gpu(float *targetPosition_d,
 		    int targetIndex_end_z = targetIndex_start_z + BLOCK_WIDTH;
 
             const int3 imageSize = c_ImageSize;
-            unsigned int index = 0;
+            
+            if (targetIndex_end_z > imageSize.z){                
+                targetIndex_end_z = imageSize.z;
+            }
 
-            for(int z = targetIndex_start_z; z< targetIndex_end_z; ++z){
-				if(-1<z && z<imageSize.z){
-					int indexZ = z * imageSize.x * imageSize.y;
-					for(int y = targetIndex_start_y; y < targetIndex_end_y; ++y){
-						if(-1<y && y<imageSize.y){
-							int indexXYZ = indexZ + y * imageSize.x + targetIndex_start_x;
-							for(int x = targetIndex_start_x; x < targetIndex_end_x; ++x){
-								if(-1<x && x<imageSize.x){
-									const float tempTargetValue = tex1Dfetch(targetImageArray_texture, indexXYZ);
-									targetValues[index + offset] = tempTargetValue;									
-								}
-                                else {
-                                    targetValues[index + offset] = 0.0f;
-                                }
-								indexXYZ++;
-								index++;
-							}
-						}
-						else index+= BLOCK_WIDTH;
-					}
-				}
-				else index+= BLOCK_WIDTH* BLOCK_WIDTH;
-			}
+            __shared__ int rampY[Block_target_block];
+            rampY[threadIdx.x] = 0;
+            if (targetIndex_end_y > imageSize.y){
+                rampY[threadIdx.x] = targetIndex_end_y - imageSize.y;
+                targetIndex_end_y = imageSize.y;
+            }
+            
+            __shared__ int rampX[Block_target_block];
+            rampX[threadIdx.x] = 0;
+            if (targetIndex_end_x > imageSize.x){
+                rampX[threadIdx.x] = targetIndex_end_x - imageSize.x;
+                targetIndex_end_x = imageSize.x;
+            }
+
+            for (int count = 0; count < BLOCK_SIZE; ++count)
+            {
+                targetValues[count + offset] = 0.0f;
+            }
+
+		    unsigned int index = 0;	            
+		    for(int z = targetIndex_start_z; z< targetIndex_end_z; ++z){                
+		        int indexZ = z * imageSize.x * imageSize.y;
+		        for(int y = targetIndex_start_y; y < targetIndex_end_y; ++y){                    
+			        int indexXYZ = indexZ + y * imageSize.x + targetIndex_start_x;
+                    for(int x = targetIndex_start_x; x < targetIndex_end_x; ++x){
+				        targetValues[index + offset] = tex1Dfetch(targetImageArray_texture, indexXYZ);
+			            indexXYZ++;
+			            index++;
+			        }
+                    index += rampX[threadIdx.x];
+		        }
+                index += rampY[threadIdx.x] * BLOCK_WIDTH;
+		    }
+
             float3 targetPosition;
 		    targetPosition.x = i * BLOCK_WIDTH;
 		    targetPosition.y = j * BLOCK_WIDTH;
-		    targetPosition.z = k * BLOCK_WIDTH;
+		    targetPosition.z = k * BLOCK_WIDTH;        
 		    apply_affine(targetPosition, &(targetPosition_d[currentBlockIndex * 3]));        
         }
     }
@@ -125,12 +139,19 @@ __global__ void process_result_blocks_gpu(float *targetPosition_d,
 		    tempIndex -= k * bDim.x * bDim.y;
 		    const int j =(int)(tempIndex/(bDim.x));
 		    const int i = tempIndex - j * (bDim.x);		
+
             const int offset = activeBlockIndex * BLOCK_SIZE;
 			const int targetIndex_start_x = i * BLOCK_WIDTH;
 			const int targetIndex_start_y = j * BLOCK_WIDTH;
 			const int targetIndex_start_z = k * BLOCK_WIDTH;			
             unsigned int index = 0;
             const int3 imageSize = c_ImageSize;
+
+            __shared__ int rampZ[Block_result_block];            
+            __shared__ int rampYLeft[Block_result_block];            
+            __shared__ int rampYRight[Block_result_block];            
+            __shared__ int rampXLeft[Block_result_block];                                   
+            __shared__ int rampXRight[Block_result_block];
 
             __shared__ int n[Block_result_block];
             __shared__ int m[Block_result_block];
@@ -140,43 +161,65 @@ __global__ void process_result_blocks_gpu(float *targetPosition_d,
             float3 bestDisplacement = make_float3(0.0f, 0.0f, 0.0f);
 
             for(n[threadIdx.x] = -OVERLAP_SIZE; n[threadIdx.x] < OVERLAP_SIZE; n[threadIdx.x]+=STEP_SIZE){
-				const int resultIndex_start_z = targetIndex_start_z + n[threadIdx.x];
-				const int resultIndex_end_z = resultIndex_start_z + BLOCK_WIDTH;
+				int resultIndex_start_z = targetIndex_start_z + n[threadIdx.x];
+                int resultIndex_end_z = resultIndex_start_z + BLOCK_WIDTH;
+                rampZ[threadIdx.x] = 0;
+                if (resultIndex_start_z < 0){
+                    rampZ[threadIdx.x] = -resultIndex_start_z;
+                    resultIndex_start_z = 0;                    
+                }
+                if (resultIndex_end_z > imageSize.z){
+                    resultIndex_end_z = imageSize.z;
+                }
 				
 				for(m[threadIdx.x] = -OVERLAP_SIZE; m[threadIdx.x] < OVERLAP_SIZE; m[threadIdx.x]+=STEP_SIZE){
-					const int resultIndex_start_y = targetIndex_start_y + m[threadIdx.x];
-					const int resultIndex_end_y = resultIndex_start_y + BLOCK_WIDTH;
+					int resultIndex_start_y = targetIndex_start_y + m[threadIdx.x];
+					int resultIndex_end_y = resultIndex_start_y + BLOCK_WIDTH;
+                    rampYLeft[threadIdx.x] = rampYRight[threadIdx.x] = 0;
+                    if (resultIndex_start_y < 0) {
+                        rampYLeft[threadIdx.x] = -resultIndex_start_y;
+                        resultIndex_start_y = 0;
+                    }
+                    if (resultIndex_end_y > imageSize.y) {
+                        rampYRight[threadIdx.x] = resultIndex_end_y - imageSize.y;
+                        resultIndex_end_y = imageSize.y;
+                    }
 
-					for(l[threadIdx.x] = -OVERLAP_SIZE; l[threadIdx.x] < OVERLAP_SIZE; l[threadIdx.x]+=STEP_SIZE){                        
-						const int resultIndex_start_x = targetIndex_start_x + l[threadIdx.x];
-						const int resultIndex_end_x = resultIndex_start_x + BLOCK_WIDTH;
-						index = 0;					
-						for(int z = resultIndex_start_z; z < resultIndex_end_z; ++z){
-							if(-1<z && z <imageSize.z)
-                            {
-								int indexZ = z * imageSize.y * imageSize.x;
-								for(int y = resultIndex_start_y; y < resultIndex_end_y; ++y){
-									if(-1<y && y < imageSize.y)
-                                    {
-										int indexXYZ = indexZ + y * imageSize.x + resultIndex_start_x;
-										for(int x = resultIndex_start_x; x < resultIndex_end_x; ++x){
-											if(-1<x && x<imageSize.x){
-												const float tempResultValue = tex1Dfetch(resultImageArray_texture, indexXYZ);
-												resultValues[offset+index] = tempResultValue;
-											}
-                                            else 
-                                            {
-                                                resultValues[offset+index] = 0.0f;
-                                            }
-											indexXYZ++;
-											index++;
-										}
-									}
-									else index += BLOCK_WIDTH;
-								}
-							}
-							else index += BLOCK_WIDTH * BLOCK_WIDTH;
-						}
+					for(l[threadIdx.x] = -OVERLAP_SIZE; l[threadIdx.x]< OVERLAP_SIZE; l[threadIdx.x]+=STEP_SIZE){                        
+						int resultIndex_start_x = targetIndex_start_x + l[threadIdx.x];
+						int resultIndex_end_x = resultIndex_start_x + BLOCK_WIDTH;
+                        rampXLeft[threadIdx.x] = rampXRight[threadIdx.x] = 0;
+                        if (resultIndex_start_x < 0) {
+                            rampXLeft[threadIdx.x] = -resultIndex_start_x;
+                            resultIndex_start_x = 0;
+                        }
+                        if (resultIndex_end_x > imageSize.x) {
+                            rampXRight[threadIdx.x] = resultIndex_end_x - imageSize.x;
+                            resultIndex_end_x = imageSize.x;
+                        }
+
+                        for (int count = 0; count < BLOCK_SIZE; ++count)
+                        {
+                            resultValues[count + offset] = 0.0f;
+                        }
+
+                        index = 0;
+                        index += rampZ[threadIdx.x] * BLOCK_WIDTH * BLOCK_WIDTH;
+                        for(int z = resultIndex_start_z; z< resultIndex_end_z; ++z){
+                            int indexZ = z * imageSize.y * imageSize.x;
+                            index += rampYLeft[threadIdx.x] * BLOCK_WIDTH;
+                            for(int y = resultIndex_start_y; y < resultIndex_end_y; ++y){                                    
+                                int indexXYZ = indexZ + y * imageSize.x + resultIndex_start_x;
+                                index += rampXLeft[threadIdx.x];                                
+                                for(int x = resultIndex_start_x; x < resultIndex_end_x; ++x){                                            
+                                    resultValues[offset+index] = tex1Dfetch(resultImageArray_texture, indexXYZ);                                    
+                                    indexXYZ++;
+                                    index++;
+                                }
+                                index += rampXRight[threadIdx.x];                                    
+                            }
+                            index += rampYRight[threadIdx.x] * BLOCK_WIDTH;                            
+                        }
                         
                         // Do the cross corelation stuff
                         float targetMean=0.0f;
@@ -186,7 +229,7 @@ __global__ void process_result_blocks_gpu(float *targetPosition_d,
 						for(int a = 0; a < BLOCK_SIZE; ++a){
                             float tv = targetValues[a + offset];
                             float rv = resultValues[a + offset];
-                            if (tv > 0.0f && rv > 0.0f) {							
+                            if (tv != 0.0f && rv != 0.0f) {							
 								targetMean += tv;
 								resultMean += rv;
 								voxelNumber++;
@@ -207,7 +250,7 @@ __global__ void process_result_blocks_gpu(float *targetPosition_d,
 							{
                                 float tv = targetValues[a + offset];
                                 float rv = resultValues[a + offset];								
-                                if (tv > 0.0f && rv > 0.0f)
+                                if (tv != 0.0f && rv != 0.0f)
 								{
 									targetTemp = tv-targetMean;
 									resultTemp = rv-resultMean;                                    
@@ -217,13 +260,14 @@ __global__ void process_result_blocks_gpu(float *targetPosition_d,
 								}
 							}
 							
-							targetVar = sqrtf(targetVar/voxelNumber);
-							resultVar = sqrtf(resultVar/voxelNumber);
+							targetVar = sqrt(targetVar/voxelNumber);
+							resultVar = sqrt(resultVar/voxelNumber);
 	
-							localCC = fabsf(localCC/
-								(voxelNumber*targetVar*resultVar));
+                            if (targetVar > 0.0f && resultVar > 0.0f)
+							    localCC = fabsf(localCC/
+								    (voxelNumber*targetVar*resultVar));
 
-                            if (localCC > bestCC) {								
+                            if(localCC - bestCC > 0.0001f){								
                                 bestCC = localCC;
                                 bestDisplacement.x=l[threadIdx.x];
 								bestDisplacement.y=m[threadIdx.x];
@@ -232,16 +276,11 @@ __global__ void process_result_blocks_gpu(float *targetPosition_d,
                         }						
                     }
                 }
-            }
-            float3 resultPosition;
-			resultPosition.x = i * BLOCK_WIDTH;
-			resultPosition.y = j * BLOCK_WIDTH;
-			resultPosition.z = k * BLOCK_WIDTH;                        			
-			bestDisplacement.x += resultPosition.x; 
-            bestDisplacement.y += resultPosition.y;  
-            bestDisplacement.z += resultPosition.z;
+            }            
+			bestDisplacement.x += i * BLOCK_WIDTH; 
+            bestDisplacement.y += j * BLOCK_WIDTH;  
+            bestDisplacement.z += k * BLOCK_WIDTH;
             apply_affine(bestDisplacement, &(resultPosition_d[activeBlockIndex * 3]));
-
         }
     }
 }
