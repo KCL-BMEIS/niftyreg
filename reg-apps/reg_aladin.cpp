@@ -429,7 +429,7 @@ int main(int argc, char **argv)
             nifti_image_free(tempMaskImage);
         }
         else{
-            for(int i=0; i<targetImage->nvox; i++)
+            for(unsigned i=0; i<targetImage->nvox; i++)
                 targetMask[i]=activeVoxelNumber++;
         }
 		
