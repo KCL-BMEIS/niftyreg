@@ -367,8 +367,8 @@ void reg_getVoxelBasedNMIGradientUsingPW4(	nifti_image *targetImage,
                     // if 64 bins are used the histogram will have 68 bins et the image will be between 2 and 65
 
                         if(type!=1){
-                            targetValue = (TargetTYPE)floor(targetValue);
-                            resultValue = (ResultTYPE)floor(resultValue);
+                            targetValue = (TargetTYPE)floor((double)targetValue);
+                            resultValue = (ResultTYPE)floor((double)resultValue);
                         }
 
 						PrecisionTYPE resDeriv[3];
