@@ -656,104 +656,203 @@ double reg_tool_GetIntensityValue(nifti_image *image,
 /* *************************************************************** */
 /* *************************************************************** */
 template <class TYPE1, class TYPE2>
-void reg_tools_addImages2(	nifti_image *img1,
-							nifti_image *img2,
-							nifti_image *res)
+void reg_tools_addSubMulDivImages2( nifti_image *img1,
+                                    nifti_image *img2,
+                                    nifti_image *res,
+                                    int type)
 {
-	TYPE1 *img1Ptr = static_cast<TYPE1 *>(img1->data);
-	TYPE2 *img2Ptr = static_cast<TYPE2 *>(img2->data);
-	TYPE1 *resPtr = static_cast<TYPE1 *>(res->data);
-	
-	for(unsigned int i=0; i<res->nvox; i++)
-		*resPtr++ = (TYPE1)(*img1Ptr++ + *img2Ptr++);
+    TYPE1 *img1Ptr = static_cast<TYPE1 *>(img1->data);
+    TYPE2 *img2Ptr = static_cast<TYPE2 *>(img2->data);
+    TYPE1 *resPtr = static_cast<TYPE1 *>(res->data);
+    switch(type){
+        case 0:
+            for(unsigned int i=0; i<res->nvox; i++)
+                *resPtr++ = (TYPE1)(*img1Ptr++ + *img2Ptr++);
+            break;
+        case 1:
+            for(unsigned int i=0; i<res->nvox; i++)
+                *resPtr++ = (TYPE1)(*img1Ptr++ - *img2Ptr++);
+            break;
+        case 2:
+            for(unsigned int i=0; i<res->nvox; i++)
+                *resPtr++ = (TYPE1)(*img1Ptr++ * *img2Ptr++);
+            break;
+        case 3:
+            for(unsigned int i=0; i<res->nvox; i++)
+                *resPtr++ = (TYPE1)(*img1Ptr++ / *img2Ptr++);
+            break;
+    }
 }
 /* *************************************************************** */
 template <class TYPE1>
-void reg_tools_addImages1(	nifti_image *img1,
-							nifti_image *img2,
-							nifti_image *res)
+void reg_tools_addSubMulDivImages1( nifti_image *img1,
+                                    nifti_image *img2,
+                                    nifti_image *res,
+                                    int type)
 {
-	switch(img1->datatype){
-		case NIFTI_TYPE_UINT8:
-			reg_tools_addImages2<TYPE1,unsigned char>(img1, img2, res);
-			break;
-		case NIFTI_TYPE_INT8:
-			reg_tools_addImages2<TYPE1,char>(img1, img2, res);
-			break;
-		case NIFTI_TYPE_UINT16:
-			reg_tools_addImages2<TYPE1,unsigned short>(img1, img2, res);
-			break;
-		case NIFTI_TYPE_INT16:
-			reg_tools_addImages2<TYPE1,short>(img1, img2, res);
-			break;
-		case NIFTI_TYPE_UINT32:
-			reg_tools_addImages2<TYPE1,unsigned int>(img1, img2, res);
-			break;
-		case NIFTI_TYPE_INT32:
-			reg_tools_addImages2<TYPE1,int>(img1, img2, res);
-			break;
-		case NIFTI_TYPE_FLOAT32:
-			reg_tools_addImages2<TYPE1,float>(img1, img2, res);
-			break;
-		case NIFTI_TYPE_FLOAT64:
-			reg_tools_addImages2<TYPE1,double>(img1, img2, res);
-			break;
-		default:
-			fprintf(stderr,"err\treg_tools_addImage\tSecond image data type is not supported\n");
-			return;
-	}
+    switch(img1->datatype){
+        case NIFTI_TYPE_UINT8:
+            reg_tools_addSubMulDivImages2<TYPE1,unsigned char>(img1, img2, res, type);
+            break;
+        case NIFTI_TYPE_INT8:
+            reg_tools_addSubMulDivImages2<TYPE1,char>(img1, img2, res, type);
+            break;
+        case NIFTI_TYPE_UINT16:
+            reg_tools_addSubMulDivImages2<TYPE1,unsigned short>(img1, img2, res, type);
+            break;
+        case NIFTI_TYPE_INT16:
+            reg_tools_addSubMulDivImages2<TYPE1,short>(img1, img2, res, type);
+            break;
+        case NIFTI_TYPE_UINT32:
+            reg_tools_addSubMulDivImages2<TYPE1,unsigned int>(img1, img2, res, type);
+            break;
+        case NIFTI_TYPE_INT32:
+            reg_tools_addSubMulDivImages2<TYPE1,int>(img1, img2, res, type);
+            break;
+        case NIFTI_TYPE_FLOAT32:
+            reg_tools_addSubMulDivImages2<TYPE1,float>(img1, img2, res, type);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            reg_tools_addSubMulDivImages2<TYPE1,double>(img1, img2, res, type);
+            break;
+        default:
+            fprintf(stderr,"err\treg_tools_addSubMulDivImages1\tSecond image data type is not supported\n");
+            return;
+    }
 }
 /* *************************************************************** */
-void reg_tools_addImages(	nifti_image *img1,
-							nifti_image *img2,
-							nifti_image *res)
+void reg_tools_addSubMulDivImages(  nifti_image *img1,
+                                    nifti_image *img2,
+                                    nifti_image *res,
+                                    int type)
 {
-	
-	if(img1->dim[0]!=img2->dim[0] ||
-	   img1->dim[1]!=img2->dim[1] ||
-	   img1->dim[2]!=img2->dim[2] ||
-	   img1->dim[3]!=img2->dim[3] ||
-	   img1->dim[4]!=img2->dim[4] ||
-	   img1->dim[5]!=img2->dim[5] ||
-	   img1->dim[6]!=img2->dim[6] ||
-	   img1->dim[7]!=img2->dim[7]){
-		fprintf(stderr,"err\treg_tools_addImage\tBoth images do not have the same dimension\n");
-		return;
-	}
+    
+    if(img1->dim[0]!=img2->dim[0] ||
+       img1->dim[1]!=img2->dim[1] ||
+       img1->dim[2]!=img2->dim[2] ||
+       img1->dim[3]!=img2->dim[3] ||
+       img1->dim[4]!=img2->dim[4] ||
+       img1->dim[5]!=img2->dim[5] ||
+       img1->dim[6]!=img2->dim[6] ||
+       img1->dim[7]!=img2->dim[7]){
+        fprintf(stderr,"err\treg_tools_addSubMulDivImages\tBoth images do not have the same dimension\n");
+        return;
+    }
 
-	if(img1->datatype != img2->datatype){
-		fprintf(stderr,"err\treg_tools_addImage\tFirst and result image do not have the same data type\n");
-		return;
-	}
-	switch(img1->datatype){
-		case NIFTI_TYPE_UINT8:
-			reg_tools_addImages1<unsigned char>(img1, img2, res);
-			break;
-		case NIFTI_TYPE_INT8:
-			reg_tools_addImages1<char>(img1, img1, res);
-			break;
-		case NIFTI_TYPE_UINT16:
-			reg_tools_addImages1<unsigned short>(img1, img2, res);
-			break;
-		case NIFTI_TYPE_INT16:
-			reg_tools_addImages1<short>(img1, img2, res);
-			break;
-		case NIFTI_TYPE_UINT32:
-			reg_tools_addImages1<unsigned int>(img1, img2, res);
-			break;
-		case NIFTI_TYPE_INT32:
-			reg_tools_addImages1<int>(img1, img2, res);
-			break;
-		case NIFTI_TYPE_FLOAT32:
-			reg_tools_addImages1<float>(img1, img2, res);
-			break;
-		case NIFTI_TYPE_FLOAT64:
-			reg_tools_addImages1<double>(img1, img2, res);
-			break;
-		default:
-			fprintf(stderr,"err\treg_tools_addImage\tFirst image data type is not supported\n");
-			return;
-	}
+    if(img1->datatype != res->datatype){
+        fprintf(stderr,"err\treg_tools_addSubMulDivImages\tFirst and result image do not have the same data type\n");
+        return;
+    }
+    switch(img1->datatype){
+        case NIFTI_TYPE_UINT8:
+            reg_tools_addSubMulDivImages1<unsigned char>(img1, img2, res, type);
+            break;
+        case NIFTI_TYPE_INT8:
+            reg_tools_addSubMulDivImages1<char>(img1, img1, res, type);
+            break;
+        case NIFTI_TYPE_UINT16:
+            reg_tools_addSubMulDivImages1<unsigned short>(img1, img2, res, type);
+            break;
+        case NIFTI_TYPE_INT16:
+            reg_tools_addSubMulDivImages1<short>(img1, img2, res, type);
+            break;
+        case NIFTI_TYPE_UINT32:
+            reg_tools_addSubMulDivImages1<unsigned int>(img1, img2, res, type);
+            break;
+        case NIFTI_TYPE_INT32:
+            reg_tools_addSubMulDivImages1<int>(img1, img2, res, type);
+            break;
+        case NIFTI_TYPE_FLOAT32:
+            reg_tools_addSubMulDivImages1<float>(img1, img2, res, type);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            reg_tools_addSubMulDivImages1<double>(img1, img2, res, type);
+            break;
+        default:
+            fprintf(stderr,"err\treg_tools_addSubMulDivImages1\tFirst image data type is not supported\n");
+            return;
+    }
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class TYPE1>
+void reg_tools_addSubMulDivValue1(  nifti_image *img1,
+                                    nifti_image *res,
+                                    float val,
+                                    int type)
+{
+    TYPE1 *img1Ptr = static_cast<TYPE1 *>(img1->data);
+    TYPE1 *resPtr = static_cast<TYPE1 *>(res->data);
+    switch(type){
+        case 0:
+            printf("+ %g\n",val);
+            for(unsigned int i=0; i<res->nvox; i++)
+                *resPtr++ = (TYPE1)(*img1Ptr++ + val);
+            break;
+        case 1:
+            printf("- %g\n",val);
+            for(unsigned int i=0; i<res->nvox; i++)
+                *resPtr++ = (TYPE1)(*img1Ptr++ - val);
+            break;
+        case 2:
+            printf("* %g\n",val);
+            for(unsigned int i=0; i<res->nvox; i++)
+                *resPtr++ = (TYPE1)(*img1Ptr++ * val);
+            break;
+        case 3:
+            printf("/ %g\n",val);
+            for(unsigned int i=0; i<res->nvox; i++)
+                *resPtr++ = (TYPE1)(*img1Ptr++ / val);
+            break;
+    }
+}
+/* *************************************************************** */
+void reg_tools_addSubMulDivValue(   nifti_image *img1,
+                                    nifti_image *res,
+                                    float val,
+                                    int type)
+{
+    if(img1->datatype != res->datatype){
+        fprintf(stderr,"err\treg_tools_addSubMulDivValue\tInput and result image do not have the same data type\n");
+        return;
+    }
+    switch(img1->datatype){
+        case NIFTI_TYPE_UINT8:
+            reg_tools_addSubMulDivValue1<unsigned char>
+                (img1, res, val, type);
+            break;
+        case NIFTI_TYPE_INT8:
+            reg_tools_addSubMulDivValue1<char>
+                (img1, res, val, type);
+            break;
+        case NIFTI_TYPE_UINT16:
+            reg_tools_addSubMulDivValue1<unsigned short>
+                (img1, res, val, type);
+            break;
+        case NIFTI_TYPE_INT16:
+            reg_tools_addSubMulDivValue1<short>
+                (img1, res, val, type);
+            break;
+        case NIFTI_TYPE_UINT32:
+            reg_tools_addSubMulDivValue1<unsigned int>
+                (img1, res, val, type);
+            break;
+        case NIFTI_TYPE_INT32:
+            reg_tools_addSubMulDivValue1<int>
+                (img1, res, val, type);
+            break;
+        case NIFTI_TYPE_FLOAT32:
+            reg_tools_addSubMulDivValue1<float>
+                (img1, res, val, type);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            reg_tools_addSubMulDivValue1<double>
+                (img1, res, val, type);
+            break;
+        default:
+            fprintf(stderr,"err\treg_tools_addSubMulDivImages1\tFirst image data type is not supported\n");
+            return;
+    }
 }
 /* *************************************************************** */
 /* *************************************************************** */

@@ -50,9 +50,15 @@ double reg_tool_GetIntensityValue(nifti_image *,
 								 int *);
 
 extern "C++"
-void reg_tools_addImages(	nifti_image *,
-							nifti_image *,
-							nifti_image *);
+void reg_tools_addSubMulDivImages(  nifti_image *,
+                                    nifti_image *,
+                                    nifti_image *,
+                                    int);
+extern "C++"
+void reg_tools_addSubMulDivValue(  nifti_image *,
+                                    nifti_image *,
+                                    float,
+                                    int);
 
 extern "C++"
 void reg_tool_binarise_image(nifti_image *);
