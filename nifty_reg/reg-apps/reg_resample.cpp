@@ -203,6 +203,8 @@ int main(int argc, char **argv)
 		positionFieldImage = nifti_copy_nim_info(targetImage);
 		positionFieldImage->cal_min=0;
 		positionFieldImage->cal_max=0;
+        positionFieldImage->scl_slope = 1.0f;
+        positionFieldImage->scl_inter = 0.0f;
 		positionFieldImage->dim[0]=positionFieldImage->ndim=5;
 		positionFieldImage->dim[1]=positionFieldImage->nx=targetImage->nx;
 		positionFieldImage->dim[2]=positionFieldImage->ny=targetImage->ny;
@@ -236,6 +238,8 @@ int main(int argc, char **argv)
 		/* Generate the jacobian map */
 		if(flag->outputJacobianFlag){
 			nifti_image *jacobianImage = nifti_copy_nim_info(targetImage);
+            jacobianImage->scl_slope = 1.0f;
+            jacobianImage->scl_inter = 0.0f;
 			jacobianImage->datatype = NIFTI_TYPE_FLOAT32;
 			jacobianImage->nbyper = sizeof(float);
 			jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
@@ -251,6 +255,8 @@ int main(int argc, char **argv)
 			nifti_image *jacobianImage = nifti_copy_nim_info(targetImage);
 			jacobianImage->cal_min=0;
 			jacobianImage->cal_max=0;
+            jacobianImage->scl_slope = 1.0f;
+            jacobianImage->scl_inter = 0.0f;
 			jacobianImage->dim[0]=jacobianImage->ndim=5;
 			jacobianImage->dim[1]=jacobianImage->nx=targetImage->nx;
 			jacobianImage->dim[2]=jacobianImage->ny=targetImage->ny;
@@ -347,6 +353,8 @@ int main(int argc, char **argv)
 		nifti_image *resultImage = nifti_copy_nim_info(targetImage);
 		resultImage->cal_min=gridImage->cal_min;
 		resultImage->cal_max=gridImage->cal_max;
+        resultImage->scl_slope = 1.0f;
+        resultImage->scl_inter = 0.0f;
 		resultImage->datatype = gridImage->datatype;
 		resultImage->nbyper = gridImage->nbyper;
 		resultImage->data = (void *)calloc(resultImage->nvox, resultImage->nbyper);
@@ -374,6 +382,8 @@ int main(int argc, char **argv)
 	/* Output the deformation field */
 	if(flag->outputDefFlag){
 		nifti_image *deformationFieldImage = nifti_copy_nim_info(positionFieldImage);
+        deformationFieldImage->scl_slope = 1.0f;
+        deformationFieldImage->scl_inter = 0.0f;
 		deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
 		nifti_set_filenames(deformationFieldImage, param->outputDefName, 0, 0);
 		memcpy(deformationFieldImage->data, positionFieldImage->data, deformationFieldImage->nvox*deformationFieldImage->nbyper);

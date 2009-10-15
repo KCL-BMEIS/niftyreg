@@ -22,6 +22,13 @@ typedef struct{
 	char *inputImageName;
 	char *outputImageName;
     char *addImageName;
+    char *subImageName;
+    char *mulImageName;
+    char *divImageName;
+    float addValue;
+    float subValue;
+    float mulValue;
+    float divValue;
     char *rmsImageName;
 	int smoothValue;
 }PARAM;
@@ -29,6 +36,13 @@ typedef struct{
 	bool inputImageFlag;
 	bool outputImageFlag;
     bool addImageFlag;
+    bool subImageFlag;
+    bool mulImageFlag;
+    bool divImageFlag;
+    bool addValueFlag;
+    bool subValueFlag;
+    bool mulValueFlag;
+    bool divValueFlag;
     bool rmsImageFlag;
 	bool smoothValueFlag;
 	bool gradientImageFlag;
@@ -49,7 +63,14 @@ void Usage(char *exec)
 	printf("* * OPTIONS * *\n");
     printf("\t-out <filename>\t\tFilename out the output image [output.nii]\n");
 	printf("\t-grad\t\t\t4D spatial gradient of the input image\n");
-	printf("\t-add <filename>\t\tThis image is added to the input\n");
+    printf("\t-add <filename>\t\tThis image is added to the input\n");
+    printf("\t-sub <filename>\t\tThis image is subtracted to the input\n");
+    printf("\t-mul <filename>\t\tThis image is multiplied to the input\n");
+    printf("\t-div <filename>\t\tThis image is divided to the input\n");
+    printf("\t-addV <float>\t\tThis value is added to the input\n");
+    printf("\t-subV <float>\t\tThis value is subtracted to the input\n");
+    printf("\t-mulV <float>\t\tThis value is multiplied to the input\n");
+    printf("\t-divV <float>\t\tThis value is divided to the input\n");
     printf("\t-smo <int>\t\tThe input image is smoothed using a b-spline curve\n");
     printf("\t-rms <filename>\tCompute the mean rms between both image\n");
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
@@ -80,10 +101,41 @@ int main(int argc, char **argv)
 		else if(strcmp(argv[i], "-grad") == 0){
 			flag->gradientImageFlag=1;
 		}
+
         else if(strcmp(argv[i], "-add") == 0){
             param->addImageName=argv[++i];
             flag->addImageFlag=1;
         }
+        else if(strcmp(argv[i], "-sub") == 0){
+            param->subImageName=argv[++i];
+            flag->subImageFlag=1;
+        }
+        else if(strcmp(argv[i], "-mul") == 0){
+            param->mulImageName=argv[++i];
+            flag->mulImageFlag=1;
+        }
+        else if(strcmp(argv[i], "-div") == 0){
+            param->divImageName=argv[++i];
+            flag->divImageFlag=1;
+        }
+
+        else if(strcmp(argv[i], "-addV") == 0){
+            param->addValue=atof(argv[++i]);
+            flag->addValueFlag=1;
+        }
+        else if(strcmp(argv[i], "-subV") == 0){
+            param->subValue=atof(argv[++i]);
+            flag->subValueFlag=1;
+        }
+        else if(strcmp(argv[i], "-mulV") == 0){
+            param->mulValue=atof(argv[++i]);
+            flag->mulValueFlag=1;
+        }
+        else if(strcmp(argv[i], "-divV") == 0){
+            param->divValue=atof(argv[++i]);
+            flag->divValueFlag=1;
+        }
+
         else if(strcmp(argv[i], "-rms") == 0){
             param->rmsImageName=argv[++i];
             flag->rmsImageFlag=1;
@@ -162,34 +214,66 @@ int main(int argc, char **argv)
 		nifti_image_free(smoothImg);
 	}
 
-    if(flag->addImageFlag){
-        nifti_image *imageToAdd = nifti_image_read(param->addImageName,true);
-        if(imageToAdd == NULL){
-            fprintf(stderr,"** ERROR Error when reading the image to add: %s\n",param->addImageName);
+    if(flag->addImageFlag || flag->subImageFlag || flag->mulImageFlag || flag->divImageFlag){
+        nifti_image *image2;
+        if(flag->addImageFlag) image2 = nifti_image_read(param->addImageName,true);
+        if(flag->subImageFlag) image2 = nifti_image_read(param->subImageName,true);
+        if(flag->mulImageFlag) image2 = nifti_image_read(param->mulImageName,true);
+        if(flag->divImageFlag) image2 = nifti_image_read(param->divImageName,true);
+        if(image2 == NULL){
+            if(flag->addImageFlag)
+                fprintf(stderr,"** ERROR Error when reading the image to add: %s\n",param->addImageName);
+            if(flag->subImageFlag)
+                fprintf(stderr,"** ERROR Error when reading the image to sub: %s\n",param->subImageName);
+            if(flag->mulImageFlag)
+                fprintf(stderr,"** ERROR Error when reading the image to mul: %s\n",param->mulImageName);
+            if(flag->divImageFlag)
+                fprintf(stderr,"** ERROR Error when reading the image to div: %s\n",param->divImageName);
             return 1;
         }
         // Check image dimension
-        if(image->dim[0]!=imageToAdd->dim[0] ||
-           image->dim[1]!=imageToAdd->dim[1] ||
-           image->dim[2]!=imageToAdd->dim[2] ||
-           image->dim[3]!=imageToAdd->dim[3] ||
-           image->dim[4]!=imageToAdd->dim[4] ||
-           image->dim[5]!=imageToAdd->dim[5] ||
-           image->dim[6]!=imageToAdd->dim[6] ||
-           image->dim[7]!=imageToAdd->dim[7]){
+        if(image->dim[0]!=image2->dim[0] ||
+           image->dim[1]!=image2->dim[1] ||
+           image->dim[2]!=image2->dim[2] ||
+           image->dim[3]!=image2->dim[3] ||
+           image->dim[4]!=image2->dim[4] ||
+           image->dim[5]!=image2->dim[5] ||
+           image->dim[6]!=image2->dim[6] ||
+           image->dim[7]!=image2->dim[7]){
             fprintf(stderr,"Both images do not have the same dimension\n");
             return 1;
         }
-        nifti_image *sumImage = nifti_copy_nim_info(image);
-        sumImage->data = (void *)malloc(sumImage->nvox * sumImage->nbyper);
+        nifti_image *resultImage = nifti_copy_nim_info(image);
+        resultImage->data = (void *)malloc(resultImage->nvox * resultImage->nbyper);
         if(flag->outputImageFlag)
-            nifti_set_filenames(sumImage, param->outputImageName, 0, 0);
-        else nifti_set_filenames(sumImage, "output.nii", 0, 0);
+            nifti_set_filenames(resultImage, param->outputImageName, 0, 0);
+        else nifti_set_filenames(resultImage, "output.nii", 0, 0);
 
-        reg_tools_addImages(image, imageToAdd, sumImage);
-        nifti_image_write(sumImage);
-        nifti_image_free(sumImage);
-        nifti_image_free(imageToAdd);
+        if(flag->addImageFlag) reg_tools_addSubMulDivImages(image, image2, resultImage, 0);
+        if(flag->subImageFlag) reg_tools_addSubMulDivImages(image, image2, resultImage, 1);
+        if(flag->mulImageFlag) reg_tools_addSubMulDivImages(image, image2, resultImage, 2);
+        if(flag->divImageFlag) reg_tools_addSubMulDivImages(image, image2, resultImage, 3);
+
+        nifti_image_write(resultImage);
+        nifti_image_free(resultImage);
+        nifti_image_free(image2);
+    }
+
+    if(flag->addValueFlag || flag->subValueFlag || flag->mulValueFlag || flag->divValueFlag){
+
+        nifti_image *resultImage = nifti_copy_nim_info(image);
+        resultImage->data = (void *)malloc(resultImage->nvox * resultImage->nbyper);
+        if(flag->outputImageFlag)
+            nifti_set_filenames(resultImage, param->outputImageName, 0, 0);
+        else nifti_set_filenames(resultImage, "output.nii", 0, 0);
+
+        if(flag->addValueFlag) reg_tools_addSubMulDivValue(image, resultImage, param->addValue, 0);
+        if(flag->subValueFlag) reg_tools_addSubMulDivValue(image, resultImage, param->subValue, 1);
+        if(flag->mulValueFlag) reg_tools_addSubMulDivValue(image, resultImage, param->mulValue, 2);
+        if(flag->divValueFlag) reg_tools_addSubMulDivValue(image, resultImage, param->divValue, 3);
+
+        nifti_image_write(resultImage);
+        nifti_image_free(resultImage);
     }
 
     if(flag->rmsImageFlag){
