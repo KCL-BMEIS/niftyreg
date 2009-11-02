@@ -25,7 +25,7 @@ typedef struct{
 	char *affineMatrixName;
 	char *inputCPPName;
 	char *outputPosName;
-	char *outputDefName;
+	char *outputDispName;
 	char *outputResultName;
 	char *outputBlankName;
 	char *outputJacobianName;
@@ -38,7 +38,7 @@ typedef struct{
 	bool affineMatrixFlag;
 	bool affineFlirtFlag;
 	bool inputCPPFlag;
-	bool outputDefFlag;
+	bool outputDispFlag;
 	bool outputPosFlag;
 	bool outputFullDefFlag;
 	bool outputResultFlag;
@@ -70,8 +70,8 @@ void Usage(char *exec)
 	printf("\t-blank <filename> \tFilename of the resampled blank grid [none]\n");
 	printf("\t-jac <filename> \tFilename of the Jacobian map image [none]\n");
 	printf("\t-jacM <filename> \tFilename of the Jacobian matrix image [none]\n");
-	printf("\t-opf <filename>\t\tFilename of position field image\n");
-	printf("\t-odf <filename>\t\tFilename of deformation field image\n");
+	printf("\t-opf <filename>\t\tFilename of the position field image\n");
+	printf("\t-odf <filename>\t\tFilename of the displacement field image\n");
 	printf("\t-NN \t\t\tUse a Nearest Neighbor interpolation for the source resampling (cubic spline by default)\n");
 	printf("\t-TRI \t\t\tUse a Trilinear interpolation for the source resampling (cubic spline by default)\n");
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
@@ -125,8 +125,8 @@ int main(int argc, char **argv)
 			flag->inputCPPFlag=1;
 		}
 		else if(strcmp(argv[i], "-odf") == 0){
-			param->outputDefName=argv[++i];
-			flag->outputDefFlag=1;
+			param->outputDispName=argv[++i];
+			flag->outputDispFlag=1;
 		}
 		else if(strcmp(argv[i], "-opf") == 0){
 			param->outputPosName=argv[++i];
@@ -194,7 +194,7 @@ int main(int argc, char **argv)
 	bool positionFieldNeeded=false;
 	if(	flag->outputResultFlag ||
 		flag->outputBlankFlag ||
-		flag->outputDefFlag ||
+		flag->outputDispFlag ||
 		flag->outputPosFlag)
 		positionFieldNeeded=true;
 
@@ -379,21 +379,21 @@ int main(int argc, char **argv)
 		printf("Position field image has been saved: %s\n", param->outputPosName);
 	}
 
-	/* Output the deformation field */
-	if(flag->outputDefFlag){
-		nifti_image *deformationFieldImage = nifti_copy_nim_info(positionFieldImage);
-        deformationFieldImage->scl_slope = 1.0f;
-        deformationFieldImage->scl_inter = 0.0f;
-		deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
-		nifti_set_filenames(deformationFieldImage, param->outputDefName, 0, 0);
-		memcpy(deformationFieldImage->data, positionFieldImage->data, deformationFieldImage->nvox*deformationFieldImage->nbyper);
-		PrecisionTYPE *fullDefPtrX=static_cast<PrecisionTYPE *>(deformationFieldImage->data);
+	/* Output the displacement field */
+	if(flag->outputDispFlag){
+		nifti_image *displacementFieldImage = nifti_copy_nim_info(positionFieldImage);
+        displacementFieldImage->scl_slope = 1.0f;
+        displacementFieldImage->scl_inter = 0.0f;
+		displacementFieldImage->data = (void *)calloc(displacementFieldImage->nvox, displacementFieldImage->nbyper);
+		nifti_set_filenames(displacementFieldImage, param->outputDispName, 0, 0);
+		memcpy(displacementFieldImage->data, positionFieldImage->data, displacementFieldImage->nvox*displacementFieldImage->nbyper);
+		PrecisionTYPE *fullDefPtrX=static_cast<PrecisionTYPE *>(displacementFieldImage->data);
 		PrecisionTYPE *fullDefPtrY=&fullDefPtrX[targetImage->nvox];
 		PrecisionTYPE *fullDefPtrZ=&fullDefPtrY[targetImage->nvox];
 		PrecisionTYPE position[3];
-		for(int z=0; z<deformationFieldImage->nz; z++){
-			for(int y=0; y<deformationFieldImage->ny; y++){
-				for(int x=0; x<deformationFieldImage->nx; x++){
+		for(int z=0; z<displacementFieldImage->nz; z++){
+			for(int y=0; y<displacementFieldImage->ny; y++){
+				for(int x=0; x<displacementFieldImage->nx; x++){
 					position[0]=x*targetImage->qto_xyz.m[0][0] + y*targetImage->qto_xyz.m[0][1] + z*targetImage->qto_xyz.m[0][2] + targetImage->qto_xyz.m[0][3];
 					position[1]=x*targetImage->qto_xyz.m[1][0] + y*targetImage->qto_xyz.m[1][1] + z*targetImage->qto_xyz.m[1][2] + targetImage->qto_xyz.m[1][3];
 					position[2]=x*targetImage->qto_xyz.m[2][0] + y*targetImage->qto_xyz.m[2][1] + z*targetImage->qto_xyz.m[2][2] + targetImage->qto_xyz.m[2][3];
@@ -403,9 +403,9 @@ int main(int argc, char **argv)
 				}
 			}
 		}
-		nifti_image_write(deformationFieldImage);
-		nifti_image_free(deformationFieldImage);
-		printf("Deformation field image has been saved: %s\n", param->outputDefName);
+		nifti_image_write(displacementFieldImage);
+		nifti_image_free(displacementFieldImage);
+		printf("Deformation field image has been saved: %s\n", param->outputDispName);
 	}
 
 

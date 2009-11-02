@@ -787,8 +787,6 @@ void reg_resampleSourceImage2(	nifti_image *targetImage,
                                                                            mask,
 																		   bgValue);
 		}
-		
-		
 
 	}
 	else{ // trilinear interpolation [ by default ]

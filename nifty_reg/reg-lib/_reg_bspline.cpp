@@ -24,232 +24,232 @@ int round(PrecisionType x)
 #endif
 
 template<class PrecisionTYPE, class FieldTYPE>
-void reg_bspline2(	nifti_image *splineControlPoint,
-			nifti_image *targetImage,
-			nifti_image *positionField,
+void reg_bspline3D( nifti_image *splineControlPoint,
+            nifti_image *targetImage,
+            nifti_image *positionField,
             int *mask,
-			int type
-		)
+            int type
+        )
 {
 
 #if _USE_SSE
-	union u{
-	__m128 m;
-	float f[4];
-	} val;
+    union u{
+    __m128 m;
+    float f[4];
+    } val;
 #else
     #ifdef _WINDOWS
         __declspec(align(16)) PrecisionTYPE temp[4];
     #else
         PrecisionTYPE temp[4] __attribute__((aligned(16)));
     #endif
-#endif	
+#endif  
 
-	FieldTYPE *controlPointPtrX = static_cast<FieldTYPE *>(splineControlPoint->data);
-	FieldTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
-	FieldTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
-	
-	FieldTYPE *fieldPtrX=static_cast<FieldTYPE *>(positionField->data);
-	FieldTYPE *fieldPtrY=&fieldPtrX[targetImage->nvox];
-	FieldTYPE *fieldPtrZ=&fieldPtrY[targetImage->nvox];
+    FieldTYPE *controlPointPtrX = static_cast<FieldTYPE *>(splineControlPoint->data);
+    FieldTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+    FieldTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+    
+    FieldTYPE *fieldPtrX=static_cast<FieldTYPE *>(positionField->data);
+    FieldTYPE *fieldPtrY=&fieldPtrX[targetImage->nvox];
+    FieldTYPE *fieldPtrZ=&fieldPtrY[targetImage->nvox];
 
     int *maskPtr = &mask[0];
-	
-	PrecisionTYPE gridVoxelSpacing[3];
-	gridVoxelSpacing[0] = splineControlPoint->dx / targetImage->dx;
-	gridVoxelSpacing[1] = splineControlPoint->dy / targetImage->dy;
-	gridVoxelSpacing[2] = splineControlPoint->dz / targetImage->dz;
+    
+    PrecisionTYPE gridVoxelSpacing[3];
+    gridVoxelSpacing[0] = splineControlPoint->dx / targetImage->dx;
+    gridVoxelSpacing[1] = splineControlPoint->dy / targetImage->dy;
+    gridVoxelSpacing[2] = splineControlPoint->dz / targetImage->dz;
 
     PrecisionTYPE basis, FF, FFF, MF, oldBasis=(PrecisionTYPE)(1.1);
 
 #ifdef _WINDOWS
     __declspec(align(16)) PrecisionTYPE zBasis[4];
-	__declspec(align(16)) PrecisionTYPE yzBasis[16];
-	__declspec(align(16)) PrecisionTYPE xyzBasis[64];	
+    __declspec(align(16)) PrecisionTYPE yzBasis[16];
+    __declspec(align(16)) PrecisionTYPE xyzBasis[64];   
 
-	__declspec(align(16)) PrecisionTYPE xControlPointCoordinates[64];
-	__declspec(align(16)) PrecisionTYPE yControlPointCoordinates[64];
-	__declspec(align(16)) PrecisionTYPE zControlPointCoordinates[64];
+    __declspec(align(16)) PrecisionTYPE xControlPointCoordinates[64];
+    __declspec(align(16)) PrecisionTYPE yControlPointCoordinates[64];
+    __declspec(align(16)) PrecisionTYPE zControlPointCoordinates[64];
 #else
-	PrecisionTYPE zBasis[4] __attribute__((aligned(16)));
-	PrecisionTYPE yzBasis[16] __attribute__((aligned(16)));
-	PrecisionTYPE xyzBasis[64] __attribute__((aligned(16)));	
+    PrecisionTYPE zBasis[4] __attribute__((aligned(16)));
+    PrecisionTYPE yzBasis[16] __attribute__((aligned(16)));
+    PrecisionTYPE xyzBasis[64] __attribute__((aligned(16)));    
 
-	PrecisionTYPE xControlPointCoordinates[64] __attribute__((aligned(16)));
-	PrecisionTYPE yControlPointCoordinates[64] __attribute__((aligned(16)));
-	PrecisionTYPE zControlPointCoordinates[64] __attribute__((aligned(16)));
+    PrecisionTYPE xControlPointCoordinates[64] __attribute__((aligned(16)));
+    PrecisionTYPE yControlPointCoordinates[64] __attribute__((aligned(16)));
+    PrecisionTYPE zControlPointCoordinates[64] __attribute__((aligned(16)));
 #endif
 
-	unsigned int coord;
+    unsigned int coord;
 
-	if(type == 2){ // Composition of deformation fields
-	
-	}
-	else{
-		for(int z=0; z<positionField->nz; z++){
+    if(type == 2){ // Composition of deformation fields
+    
+    }
+    else{
+        for(int z=0; z<positionField->nz; z++){
 
-			int zPre=(int)((PrecisionTYPE)z/gridVoxelSpacing[2]);
-			basis=(PrecisionTYPE)z/gridVoxelSpacing[2]-(PrecisionTYPE)zPre;
-			if(basis<0.0) basis=0.0; //rounding error
-			FF= basis*basis;
-			FFF= FF*basis;
-			MF=(PrecisionTYPE)(1.0-basis);
-			zBasis[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/(6.0));
-			zBasis[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
-			zBasis[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
-			zBasis[3] = (PrecisionTYPE)(FFF/6.0);
-		
-			for(int y=0; y<positionField->ny; y++){
+            int zPre=(int)((PrecisionTYPE)z/gridVoxelSpacing[2]);
+            basis=(PrecisionTYPE)z/gridVoxelSpacing[2]-(PrecisionTYPE)zPre;
+            if(basis<0.0) basis=0.0; //rounding error
+            FF= basis*basis;
+            FFF= FF*basis;
+            MF=(PrecisionTYPE)(1.0-basis);
+            zBasis[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/(6.0));
+            zBasis[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+            zBasis[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+            zBasis[3] = (PrecisionTYPE)(FFF/6.0);
+        
+            for(int y=0; y<positionField->ny; y++){
 
-				int yPre=(int)((PrecisionTYPE)y/gridVoxelSpacing[1]);
-				basis=(PrecisionTYPE)y/gridVoxelSpacing[1]-(PrecisionTYPE)yPre;
-				if(basis<0.0) basis=(PrecisionTYPE)(0.0); //rounding error
-				FF= basis*basis;
-				FFF= FF*basis;
-				MF=(PrecisionTYPE)(1.0-basis);
+                int yPre=(int)((PrecisionTYPE)y/gridVoxelSpacing[1]);
+                basis=(PrecisionTYPE)y/gridVoxelSpacing[1]-(PrecisionTYPE)yPre;
+                if(basis<0.0) basis=(PrecisionTYPE)(0.0); //rounding error
+                FF= basis*basis;
+                FFF= FF*basis;
+                MF=(PrecisionTYPE)(1.0-basis);
 #if _USE_SSE
-				val.f[0] = (MF)*(MF)*(MF)/6.0;
-				val.f[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
-				val.f[2] = (-3.0*FFF + 3.0*FF + 3.0*basis +1.0)/6.0;
-				val.f[3] = FFF/6.0;
-				__m128 tempCurrent=val.m;
-				__m128* ptrBasis   = (__m128 *) &yzBasis[0];
-				for(int a=0;a<4;a++){
-					val.m=_mm_set_ps1(zBasis[a]);
-					*ptrBasis=_mm_mul_ps(tempCurrent,val.m);
-					ptrBasis++;
-				}
+                val.f[0] = (MF)*(MF)*(MF)/6.0;
+                val.f[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
+                val.f[2] = (-3.0*FFF + 3.0*FF + 3.0*basis +1.0)/6.0;
+                val.f[3] = FFF/6.0;
+                __m128 tempCurrent=val.m;
+                __m128* ptrBasis   = (__m128 *) &yzBasis[0];
+                for(int a=0;a<4;a++){
+                    val.m=_mm_set_ps1(zBasis[a]);
+                    *ptrBasis=_mm_mul_ps(tempCurrent,val.m);
+                    ptrBasis++;
+                }
 #else
-				temp[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/6.0);
-				temp[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
-				temp[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis +1.0)/6.0);
-				temp[3] = (PrecisionTYPE)(FFF/6.0);
-				coord=0;
-				for(int a=0;a<4;a++){
-					yzBasis[coord++]=temp[0]*zBasis[a];
-					yzBasis[coord++]=temp[1]*zBasis[a];
-					yzBasis[coord++]=temp[2]*zBasis[a];
-					yzBasis[coord++]=temp[3]*zBasis[a];
-				}			
+                temp[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/6.0);
+                temp[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+                temp[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis +1.0)/6.0);
+                temp[3] = (PrecisionTYPE)(FFF/6.0);
+                coord=0;
+                for(int a=0;a<4;a++){
+                    yzBasis[coord++]=temp[0]*zBasis[a];
+                    yzBasis[coord++]=temp[1]*zBasis[a];
+                    yzBasis[coord++]=temp[2]*zBasis[a];
+                    yzBasis[coord++]=temp[3]*zBasis[a];
+                }           
 #endif
 
-				for(int x=0; x<positionField->nx; x++){
+                for(int x=0; x<positionField->nx; x++){
 
-					int xPre=(int)((PrecisionTYPE)x/gridVoxelSpacing[0]);
-					basis=(PrecisionTYPE)x/gridVoxelSpacing[0]-(PrecisionTYPE)xPre;
-					if(basis<0.0) basis=0.0; //rounding error
-					FF= basis*basis;
-					FFF= FF*basis;
-					MF=(PrecisionTYPE)(1.0-basis);
+                    int xPre=(int)((PrecisionTYPE)x/gridVoxelSpacing[0]);
+                    basis=(PrecisionTYPE)x/gridVoxelSpacing[0]-(PrecisionTYPE)xPre;
+                    if(basis<0.0) basis=0.0; //rounding error
+                    FF= basis*basis;
+                    FFF= FF*basis;
+                    MF=(PrecisionTYPE)(1.0-basis);
 #if _USE_SSE
-					val.f[0] = (MF)*(MF)*(MF)/6.0;
-					val.f[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
-					val.f[2] = (-3.0*FFF + 3.0*FF + 3.0*basis +1.0)/6.0;
-					val.f[3] = FFF/6.0;
-					tempCurrent=val.m;			
-					ptrBasis   = (__m128 *) &xyzBasis[0];
-					for(int a=0;a<16;++a){
-						val.m=_mm_set_ps1(yzBasis[a]);
-						*ptrBasis=_mm_mul_ps(tempCurrent,val.m);
-						ptrBasis++;
-					}
+                    val.f[0] = (MF)*(MF)*(MF)/6.0;
+                    val.f[1] = (3.0*FFF - 6.0*FF +4.0)/6.0;
+                    val.f[2] = (-3.0*FFF + 3.0*FF + 3.0*basis +1.0)/6.0;
+                    val.f[3] = FFF/6.0;
+                    tempCurrent=val.m;          
+                    ptrBasis   = (__m128 *) &xyzBasis[0];
+                    for(int a=0;a<16;++a){
+                        val.m=_mm_set_ps1(yzBasis[a]);
+                        *ptrBasis=_mm_mul_ps(tempCurrent,val.m);
+                        ptrBasis++;
+                    }
 #else
-					temp[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/6.0);
-					temp[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
-					temp[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis +1.0)/6.0);
-					temp[3] = (PrecisionTYPE)(FFF/6.0);
-					coord=0;
-					for(int a=0;a<16;a++){
-						xyzBasis[coord++]=temp[0]*yzBasis[a];
-						xyzBasis[coord++]=temp[1]*yzBasis[a];
-						xyzBasis[coord++]=temp[2]*yzBasis[a];
-						xyzBasis[coord++]=temp[3]*yzBasis[a];
-					}
+                    temp[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/6.0);
+                    temp[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+                    temp[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis +1.0)/6.0);
+                    temp[3] = (PrecisionTYPE)(FFF/6.0);
+                    coord=0;
+                    for(int a=0;a<16;a++){
+                        xyzBasis[coord++]=temp[0]*yzBasis[a];
+                        xyzBasis[coord++]=temp[1]*yzBasis[a];
+                        xyzBasis[coord++]=temp[2]*yzBasis[a];
+                        xyzBasis[coord++]=temp[3]*yzBasis[a];
+                    }
 #endif
-					if(basis<=oldBasis || x==0){
-						memset(xControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
-						memset(yControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
-						memset(zControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
-						coord=0;
-						for(int Z=zPre; Z<zPre+4; Z++){
-							unsigned int index=Z*splineControlPoint->nx*splineControlPoint->ny;
-							FieldTYPE *xPtr = &controlPointPtrX[index];
-							FieldTYPE *yPtr = &controlPointPtrY[index];
-							FieldTYPE *zPtr = &controlPointPtrZ[index];
-							for(int Y=yPre; Y<yPre+4; Y++){
-								index = Y*splineControlPoint->nx;
-								FieldTYPE *xxPtr = &xPtr[index];
-								FieldTYPE *yyPtr = &yPtr[index];
-								FieldTYPE *zzPtr = &zPtr[index];
-								for(int X=xPre; X<xPre+4; X++){
-									xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[X];
-									yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[X];
-									zControlPointCoordinates[coord] = (PrecisionTYPE)zzPtr[X];
-									coord++;
-								}
-							}
-						}
-					}
-					oldBasis=basis;
+                    if(basis<=oldBasis || x==0){
+                        memset(xControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
+                        memset(yControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
+                        memset(zControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
+                        coord=0;
+                        for(int Z=zPre; Z<zPre+4; Z++){
+                            unsigned int index=Z*splineControlPoint->nx*splineControlPoint->ny;
+                            FieldTYPE *xPtr = &controlPointPtrX[index];
+                            FieldTYPE *yPtr = &controlPointPtrY[index];
+                            FieldTYPE *zPtr = &controlPointPtrZ[index];
+                            for(int Y=yPre; Y<yPre+4; Y++){
+                                index = Y*splineControlPoint->nx;
+                                FieldTYPE *xxPtr = &xPtr[index];
+                                FieldTYPE *yyPtr = &yPtr[index];
+                                FieldTYPE *zzPtr = &zPtr[index];
+                                for(int X=xPre; X<xPre+4; X++){
+                                    xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[X];
+                                    yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[X];
+                                    zControlPointCoordinates[coord] = (PrecisionTYPE)zzPtr[X];
+                                    coord++;
+                                }
+                            }
+                        }
+                    }
+                    oldBasis=basis;
 
-					PrecisionTYPE xReal=0.0;
-					PrecisionTYPE yReal=0.0;
-					PrecisionTYPE zReal=0.0;
+                    PrecisionTYPE xReal=0.0;
+                    PrecisionTYPE yReal=0.0;
+                    PrecisionTYPE zReal=0.0;
 
                     if(*maskPtr++>-1){
 #if _USE_SSE
-					    __m128 tempX =  _mm_set_ps1(0.0);
-					    __m128 tempY =  _mm_set_ps1(0.0);
-					    __m128 tempZ =  _mm_set_ps1(0.0);
-					    __m128 *ptrX = (__m128 *) &xControlPointCoordinates[0];
-					    __m128 *ptrY = (__m128 *) &yControlPointCoordinates[0];
-					    __m128 *ptrZ = (__m128 *) &zControlPointCoordinates[0];
-					    __m128 *ptrBasis   = (__m128 *) &xyzBasis[0];
-					    //addition and multiplication of the 64 basis value and CP displacement for each axis
-					    for(unsigned int a=0; a<16; a++){
-						    tempX = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrX), tempX );
-						    tempY = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrY), tempY );
-						    tempZ = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrZ), tempZ );
-						    ptrBasis++;
-						    ptrX++;
-						    ptrY++;
-						    ptrZ++;
-					    }
-					    //the values stored in SSE variables are transfered to normal float
-					    val.m=tempX;
-					    xReal=val.f[0]+val.f[1]+val.f[2]+val.f[3];
-					    val.m=tempY;
-					    yReal= val.f[0]+val.f[1]+val.f[2]+val.f[3];
-					    val.m=tempZ;
-					    zReal= val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                        __m128 tempX =  _mm_set_ps1(0.0);
+                        __m128 tempY =  _mm_set_ps1(0.0);
+                        __m128 tempZ =  _mm_set_ps1(0.0);
+                        __m128 *ptrX = (__m128 *) &xControlPointCoordinates[0];
+                        __m128 *ptrY = (__m128 *) &yControlPointCoordinates[0];
+                        __m128 *ptrZ = (__m128 *) &zControlPointCoordinates[0];
+                        __m128 *ptrBasis   = (__m128 *) &xyzBasis[0];
+                        //addition and multiplication of the 64 basis value and CP displacement for each axis
+                        for(unsigned int a=0; a<16; a++){
+                            tempX = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrX), tempX );
+                            tempY = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrY), tempY );
+                            tempZ = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrZ), tempZ );
+                            ptrBasis++;
+                            ptrX++;
+                            ptrY++;
+                            ptrZ++;
+                        }
+                        //the values stored in SSE variables are transfered to normal float
+                        val.m=tempX;
+                        xReal=val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                        val.m=tempY;
+                        yReal= val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                        val.m=tempZ;
+                        zReal= val.f[0]+val.f[1]+val.f[2]+val.f[3];
 #else
-					    for(unsigned int i=0; i<64; i++){
-						    xReal += xControlPointCoordinates[i] * xyzBasis[i];
-						    yReal += yControlPointCoordinates[i] * xyzBasis[i];
-						    zReal += zControlPointCoordinates[i] * xyzBasis[i];
-					    }
+                        for(unsigned int i=0; i<64; i++){
+                            xReal += xControlPointCoordinates[i] * xyzBasis[i];
+                            yReal += yControlPointCoordinates[i] * xyzBasis[i];
+                            zReal += zControlPointCoordinates[i] * xyzBasis[i];
+                        }
 #endif
                     }// mask
-					if(type==1){ // addition of deformation fields
-						*fieldPtrX += (FieldTYPE)xReal;
-						*fieldPtrY += (FieldTYPE)yReal;
-						*fieldPtrZ += (FieldTYPE)zReal;
-					}
-					else{ // starting from a blank deformation field
-						*fieldPtrX = (FieldTYPE)xReal;
-						*fieldPtrY = (FieldTYPE)yReal;
-						*fieldPtrZ = (FieldTYPE)zReal;
-					}
+                    if(type==1){ // addition of deformation fields
+                        *fieldPtrX += (FieldTYPE)xReal;
+                        *fieldPtrY += (FieldTYPE)yReal;
+                        *fieldPtrZ += (FieldTYPE)zReal;
+                    }
+                    else{ // starting from a blank deformation field
+                        *fieldPtrX = (FieldTYPE)xReal;
+                        *fieldPtrY = (FieldTYPE)yReal;
+                        *fieldPtrZ = (FieldTYPE)zReal;
+                    }
 
-					fieldPtrX++;
-					fieldPtrY++;
-					fieldPtrZ++;
-				} // x
-			} // y
-		} // z
-	} // additive or blank deformation field
-	
-	return;
+                    fieldPtrX++;
+                    fieldPtrY++;
+                    fieldPtrZ++;
+                } // x
+            } // y
+        } // z
+    } // additive or blank deformation field
+    
+    return;
 }
 /* *************************************************************** */
 template<class PrecisionTYPE>
@@ -279,16 +279,16 @@ void reg_bspline(   nifti_image *splineControlPoint,
     }
     switch(positionField->datatype){
         case NIFTI_TYPE_FLOAT32:
-	        reg_bspline2<PrecisionTYPE, float>(splineControlPoint, targetImage, positionField, mask, type);
-	        break;
+            reg_bspline3D<PrecisionTYPE, float>(splineControlPoint, targetImage, positionField, mask, type);
+            break;
         case NIFTI_TYPE_FLOAT64:
-	        reg_bspline2<PrecisionTYPE, double>(splineControlPoint, targetImage, positionField, mask, type);
-	        break;
+            reg_bspline3D<PrecisionTYPE, double>(splineControlPoint, targetImage, positionField, mask, type);
+            break;
         default:
-	        printf("Only single of double precision is implemented for deformation field\n");
-	        printf("The deformation field is not computed\n");
-	        break;
-	}
+            printf("Only single of double precision is implemented for deformation field\n");
+            printf("The deformation field is not computed\n");
+            break;
+    }
     if(MrPropre==true) free(mask);
 	return;
 }
