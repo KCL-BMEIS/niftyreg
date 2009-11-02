@@ -122,7 +122,7 @@ void Usage(char *exec)
 	printf("\t-ln <int>\t\tNumber of level to perform [3]\n");
 	printf("\t-lp <int>\t\tOnly perform the first levels [ln]\n");
 	
-	printf("\t-ac\t\t\tTranslation are added to the affine initialisation\n");
+	printf("\t-nac\t\t\tUse the nifti header origins to initialise the translation\n");
 	
 	printf("\t-bgi <int> <int> <int>\tForce the background value during\n\t\t\t\tresampling to have the same value as this voxel in the source image [none]\n");
 
@@ -168,6 +168,7 @@ int main(int argc, char **argv)
 	flag->rigidFlag=1;
 	param->block_percent_to_use=20;
 	param->inlier_lts=50;
+    flag->alignCenterFlag=1;
 
 	/* read the input parameter */
 	for(int i=1;i<argc;i++){
@@ -232,8 +233,8 @@ int main(int argc, char **argv)
 		else if(strcmp(argv[i], "-affDirect") == 0){
 			flag->rigidFlag=0;
 		}
-		else if(strcmp(argv[i], "-ac") == 0){
-			flag->alignCenterFlag=1;
+		else if(strcmp(argv[i], "-nac") == 0){
+			flag->alignCenterFlag=0;
 		}
 		else if(strcmp(argv[i], "-bgi") == 0){
 			param->backgroundIndex[0]=atoi(argv[++i]);
