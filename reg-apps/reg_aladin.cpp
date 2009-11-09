@@ -100,8 +100,9 @@ void PetitUsage(char *exec)
 void Usage(char *exec)
 {
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-	printf("Aladin.\n");
-	printf("Based on Seb\n");
+	printf("Block Matching algorithm for global registration.\n");
+	printf("Based on Ourselin et al., \"Reconstructing a 3D structure from serial histological sections\",\n");
+    printf("Image and Vision Computing, 2001\n");
 	printf("This code has been written by Marc Modat (m.modat@ucl.ac.uk) and Pankaj Daga,\n");
 	printf("for any comment, please contact them.\n");
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");

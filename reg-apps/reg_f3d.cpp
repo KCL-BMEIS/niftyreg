@@ -114,8 +114,10 @@ void Usage(char *exec)
 {
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 	printf("Fast Free-Form Deformation algorithm for non-rigid registration.\n");
-	printf("This implementation is based on Daniel Rueckert' 99 TMI work.\n");
-	printf("Cubic B-Spline are used to deform a source image in order to optimise a cost function\n");
+    printf("This implementation is a re-factoring off Daniel Rueckert' 99 TMI work.\n");
+    printf("The code is presented in Modat et al., \"Fast Free-Form Deformation using\n");
+    printf("graphics processing units\", CMPB, 2009\n");
+	printf("Cubic B-Spline are used to deform a source image in order to optimise a objective function\n");
 	printf("based on the Normalised Mutual Information and a penalty term. The penalty term could\n");
 	printf("be either the bending energy or the absolute Jacobian determinant log.\n");
 	printf("This code has been written by Marc Modat (m.modat@ucl.ac.uk), for any comment,\n");
@@ -143,8 +145,8 @@ void Usage(char *exec)
 	printf("\t-nopy\t\t\tDo not use a pyramidal approach [no]\n");
 	
 	printf("\t-be <float>\t\tWeight of the bending energy penalty term [0.01]\n");
-	printf("\t-appBE\t\t\tTo not approximate the BE value only at the control point position [no]\n");
-	printf("\t-gradBE\t\t\tTo not use the gradient of the bending energy [no]\n");
+	printf("\t-noAppBE\t\t\tTo not approximate the BE value only at the control point position\n");
+	printf("\t-noGradBE\t\t\tTo not use the gradient of the bending energy\n");
 	
 // 	printf("\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]\n");
 // 	printf("\t-appJL\t\t\tApproximate the JL value only at the control point position [no]\n");
@@ -251,10 +253,10 @@ int main(int argc, char **argv)
 		else if(strcmp(argv[i], "-be") == 0){
 			param->bendingEnergyWeight=(float)(atof(argv[++i]));
 		}
-		else if(strcmp(argv[i], "-appBE") == 0){
+		else if(strcmp(argv[i], "-noAppBE") == 0){
 			flag->appBendingEnergyFlag=0;
 		}
-		else if(strcmp(argv[i], "-gradBE") == 0){
+		else if(strcmp(argv[i], "-noGradBE") == 0){
 			flag->beGradFlag=0;
 		}
 		else if(strcmp(argv[i], "-jl") == 0){
