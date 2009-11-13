@@ -147,16 +147,18 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
 	}
 	for (int i = params->activeBlockNumber; i < totalBlockNumber; ++i){
 		params->activeBlock[*indexArrayPtr--] = -1;
-	}
-
-    // renumber them to ensure consistency with the GPU version
+	}    
+    
+#ifdef _USE_CUDA
     count = 0;
     for(int i = 0; i < totalBlockNumber; ++i){
-        if(params->activeBlock[i] != -1){
-            params->activeBlock[i] = count;
+        if(params->activeBlock[i] != -1){            
+            params->activeBlock[i] = -1;
+            params->activeBlock[count] = i;            
             ++count;
         }
     }
+#endif    
     free(varianceArray);
     free(indexArray);
 }
@@ -242,7 +244,6 @@ void real_block_matching_method(nifti_image * target,
 
 	unsigned int blockIndex=0;
 	unsigned int activeBlockIndex=0;
-
     int index;
 
 	for(int k=0; k<params->blockNumber[2]; k++){
@@ -345,9 +346,7 @@ void real_block_matching_method(nifti_image * target,
 									}
 								}
 	
-	
                                 if(voxelNumber>BLOCK_SIZE/2){
-
 									targetMean /= voxelNumber;
 									resultMean /= voxelNumber;
 	
@@ -367,7 +366,7 @@ void real_block_matching_method(nifti_image * target,
 	
                                     localCC = fabs(localCC/sqrt(targetVar*resultVar));
 	
-									if(localCC>bestCC){
+									if(localCC>bestCC){                                        
 										bestCC=localCC;
 										bestDisplacement[0] = (float)l;
 										bestDisplacement[1] = (float)m;
@@ -405,7 +404,7 @@ void real_block_matching_method(nifti_image * target,
 	free(resultValues);
 	free(targetValues);
 	free(targetOverlap);
-	free(resultOverlap);
+	free(resultOverlap);    
 }
 
 // Called internally to determine the parameter type
@@ -631,12 +630,12 @@ void estimate_affine_transformation(std::vector<_reg_sorted_point> & points,
 	{
 		w[k] = 0.0f;
 	}	
-		// Now we can compute our svd
+	// Now we can compute our svd
 	svd(A, num_equations, 12, w, v);
 		
-		// First we make sure that the really small singular values
-		// are set to 0. and compute the inverse by taking the reciprocal
-		// of the entries
+	// First we make sure that the really small singular values
+	// are set to 0. and compute the inverse by taking the reciprocal
+	// of the entries
 	for (unsigned k = 0; k < 12; ++k)
 	{
 		if (w[k] < 0.0001)
@@ -1350,5 +1349,5 @@ void svd(float ** in, int m, int n, float * w, float ** v)
 			w[k-1] = x;
 		}
 	}
-	free (rv1);
+	free (rv1);    
 }
