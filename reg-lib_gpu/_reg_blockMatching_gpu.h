@@ -37,7 +37,7 @@ void optimize_gpu(	_reg_blockMatchingParam *blockMatchingParams,
 			mat44 *updateAffineMatrix,
 			float **targetPosition_d,
 			float **resultPosition_d,
-		    	bool affine = true);
+		    bool affine = true);
 
 #endif
 

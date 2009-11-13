@@ -47,33 +47,42 @@ void block_matching_method_gpu(	nifti_image *targetImage,
 	float4 t_m_c_h = make_float4(xyz_mat->m[2][0],xyz_mat->m[2][1],xyz_mat->m[2][2],xyz_mat->m[2][3]);
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(t_m_a, &t_m_a_h,sizeof(float4)));
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(t_m_b, &t_m_b_h,sizeof(float4)));
-	CUDA_SAFE_CALL(cudaMemcpyToSymbol(t_m_c, &t_m_c_h,sizeof(float4)));
-	
+	CUDA_SAFE_CALL(cudaMemcpyToSymbol(t_m_c, &t_m_c_h,sizeof(float4)));	
 	// We need to allocate some memory to keep track of overlap areas and values for blocks
-	unsigned memSize = 64 * params->activeBlockNumber;
-	float * targetValues;CUDA_SAFE_CALL(cudaMalloc((void **)&targetValues, memSize * sizeof(float)));
-	float * resultValues;CUDA_SAFE_CALL(cudaMalloc((void **)&resultValues, memSize * sizeof(float)));
-    CUDA_SAFE_CALL(cudaMemset(targetValues, 0, memSize * sizeof(float)));
-    CUDA_SAFE_CALL(cudaMemset(resultValues, 0, memSize * sizeof(float)));
+	unsigned memSize = BLOCK_SIZE * params->activeBlockNumber;    
+	float * targetValues;CUDA_SAFE_CALL(cudaMalloc((void **)&targetValues, memSize * sizeof(float)));    
+    memSize = BLOCK_SIZE * params->activeBlockNumber;
+	float * resultValues;CUDA_SAFE_CALL(cudaMalloc((void **)&resultValues, memSize * sizeof(float)));        
+    unsigned int Grid_block_matching = (unsigned int)ceil((float)params->activeBlockNumber/(float)Block_target_block);
+    unsigned int Grid_block_matching_2 = 1;
 
-    const unsigned int Grid_block_matching = (unsigned int)ceil((float)numBlocks/(float)Block_target_block);
+    // We have hit the limit in one dimension
+    if (Grid_block_matching > 65335) {
+        Grid_block_matching_2 = (unsigned int)ceil((float)Grid_block_matching/65535.0f);
+        Grid_block_matching = 65335;
+    }
+
 	dim3 B1(Block_target_block,1,1);
-	dim3 G1(Grid_block_matching,1,1);
+	dim3 G1(Grid_block_matching,Grid_block_matching_2,1);    
     // process the target blocks
     process_target_blocks_gpu<<<G1, B1>>>(  *targetPosition_d,    
 		                                    targetValues);
 
     // Ensure that all the threads have done their job
-    CUDA_SAFE_CALL(cudaThreadSynchronize());
+    CUDA_SAFE_CALL(cudaThreadSynchronize());    
+    unsigned int Result_block_matching = params->activeBlockNumber;
+    unsigned int Result_block_matching_2 = 1;
 
-    const unsigned int Result_block_matching = (unsigned int)ceil((float)numBlocks/(float)Block_result_block);
+    // We have hit the limit in one dimension
+    if (Result_block_matching > 65335) {
+        Result_block_matching_2 = (unsigned int)ceil((float)Result_block_matching/65535.0f);
+        Result_block_matching = 65335;
+    }
+
     dim3 B2(Block_result_block,1,1);
-	dim3 G2(Result_block_matching,1,1);
-
-    process_result_blocks_gpu<<<G2, B2>>>(	*targetPosition_d,
-						                    *resultPosition_d,
-						                    targetValues,
-						                    resultValues);
+	dim3 G2(Result_block_matching,Result_block_matching_2,1);
+    process_result_blocks_gpu<<<G2, B2>>>(*resultPosition_d, targetValues);
+    
 	// Ensure that all the threads have done their job
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 
@@ -100,9 +109,9 @@ void optimize_gpu(	_reg_blockMatchingParam *blockMatchingParams,
 	// device to host copy
  	int memSize = blockMatchingParams->activeBlockNumber * 3 * sizeof(float);
  	CUDA_SAFE_CALL(cudaMemcpy(blockMatchingParams->targetPosition, *targetPosition_d, memSize, cudaMemcpyDeviceToHost));
- 	CUDA_SAFE_CALL(cudaMemcpy(blockMatchingParams->resultPosition, *resultPosition_d, memSize, cudaMemcpyDeviceToHost));    
- 	// Cheat and call the CPU version.
- 	optimize(blockMatchingParams, updateAffineMatrix, affine);
+ 	CUDA_SAFE_CALL(cudaMemcpy(blockMatchingParams->resultPosition, *resultPosition_d, memSize, cudaMemcpyDeviceToHost));
+ 	// Cheat and call the CPU version.    
+ 	optimize(blockMatchingParams, updateAffineMatrix, affine);    
 }
 
 #endif

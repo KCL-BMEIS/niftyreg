@@ -23,6 +23,9 @@
 #define BLOCK_SIZE 64
 #define OVERLAP_SIZE 3
 #define STEP_SIZE 1
+#define NUM_BLOCKS_TO_COMPARE 216 // We compare in a 6x6x6 neighborhood.
+#define NUM_BLOCKS_TO_COMPARE_2D 36
+#define NUM_BLOCKS_TO_COMPARE_1D 6
 
 /**
 *
