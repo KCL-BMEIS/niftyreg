@@ -490,7 +490,8 @@ int main(int argc, char **argv)
                                             &blockMatchingParams,
                                             param->block_percent_to_use,    // percentage of block kept
                                             param->inlier_lts,              // percentage of inlier in the optimisation process
-                                            targetMask);
+                                            targetMask,
+                                            flag->useGPUFlag);
 		mat44 updateAffineMatrix;
 
 #ifdef _USE_CUDA
