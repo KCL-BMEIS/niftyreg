@@ -52,7 +52,7 @@ __device__ inline void apply_affine(const float4 &pt, float * result)
 __global__ void process_target_blocks_gpu(float *targetPosition_d,                                          
                                           float *targetValues)                                          
 {   
-    const int tid = (blockIdx.x * blockDim.x + threadIdx.x) + (blockIdx.y * gridDim.x);    
+    const int tid = (blockIdx.x * blockDim.x + threadIdx.x) + (blockIdx.y * gridDim.x);
     const int3 bDim = c_BlockDim;
 	if (tid < bDim.x * bDim.y * bDim.z){
         const int currentBlockIndex = tex1Dfetch(activeBlock_texture,tid);        
@@ -73,22 +73,22 @@ __global__ void process_target_blocks_gpu(float *targetPosition_d,
 		    int targetIndex_end_z = targetIndex_start_z + BLOCK_WIDTH;
 
             const int3 imageSize = c_ImageSize;
-            
+            const int threadId = tid % NUM_BLOCKS_TO_COMPARE;
             if (targetIndex_end_z > imageSize.z){                
                 targetIndex_end_z = imageSize.z;
             }
 
             __shared__ int rampY[Block_target_block];
-            rampY[threadIdx.x] = 0;
+            rampY[threadId] = 0;
             if (targetIndex_end_y > imageSize.y){
-                rampY[threadIdx.x] = targetIndex_end_y - imageSize.y;
+                rampY[threadId] = targetIndex_end_y - imageSize.y;
                 targetIndex_end_y = imageSize.y;
             }
             
             __shared__ int rampX[Block_target_block];
-            rampX[threadIdx.x] = 0;
+            rampX[threadId] = 0;
             if (targetIndex_end_x > imageSize.x){
-                rampX[threadIdx.x] = targetIndex_end_x - imageSize.x;
+                rampX[threadId] = targetIndex_end_x - imageSize.x;
                 targetIndex_end_x = imageSize.x;
             }
 
@@ -107,9 +107,9 @@ __global__ void process_target_blocks_gpu(float *targetPosition_d,
 			            indexXYZ++;
 			            index++;
 			        }
-                    index += rampX[threadIdx.x];
+                    index += rampX[threadId];
 		        }
-                index += rampY[threadIdx.x] * BLOCK_WIDTH;
+                index += rampY[threadId] * BLOCK_WIDTH;
 		    }
 
             float4 targetPosition;
@@ -134,8 +134,7 @@ __global__ void process_result_blocks_gpu(float *resultPosition_d,
     __shared__ int updateThreadID;
     updateThreadID = -1;
     if (ctid < bDim.x * bDim.y * bDim.z) {
-        const int activeBlockIndex = tex1Dfetch(activeBlock_texture, ctid);
-        //int tempIndex = ctid;
+        const int activeBlockIndex = tex1Dfetch(activeBlock_texture, ctid);        
         int tempIndex = activeBlockIndex;
         const int k =(int)(tempIndex/(bDim.x * bDim.y));
 	    tempIndex -= k * bDim.x * bDim.y;
@@ -145,8 +144,7 @@ __global__ void process_result_blocks_gpu(float *resultPosition_d,
 		const int targetIndex_start_y = j * BLOCK_WIDTH;
 		const int targetIndex_start_z = k * BLOCK_WIDTH;			
         
-        if (activeBlockIndex >= 0) {
-            //const int block_offset = activeBlockIndex * BLOCK_SIZE;
+        if (activeBlockIndex >= 0) {            
             const int block_offset = ctid * BLOCK_SIZE;
             const int3 imageSize = c_ImageSize;
             tempIndex = tid % NUM_BLOCKS_TO_COMPARE;
@@ -163,7 +161,7 @@ __global__ void process_result_blocks_gpu(float *resultPosition_d,
             int resultIndex_start_z = targetIndex_start_z + n;
             int resultIndex_end_z = resultIndex_start_z + BLOCK_WIDTH;
 
-            int rampZ = 0;
+            int rampZ = 0;            
             if (resultIndex_start_z < 0){
                 rampZ = -resultIndex_start_z;
                 resultIndex_start_z = 0;                    
@@ -199,36 +197,39 @@ __global__ void process_result_blocks_gpu(float *resultPosition_d,
                 resultIndex_end_x = imageSize.x;
             }            
 
-            float target_mean = 0.0f;
-            float result_mean = 0.0f;
+            float target_mean = 0.0f;            
+            float result_mean = 0.0f;            
             float voxel_number = 0.0f;
             float result_var = 0.0f;
             float target_var = 0.0f;
             float target_temp = 0.0f;
-            float result_temp = 0.0f;            
-            localCC[tempIndex].w = 0.0f;
+            float result_temp = 0.0f;
+            float current_value = 0.0f;
+            float current_target_value = 0.0f;
 
-            unsigned int index = rampZ * BLOCK_WIDTH * BLOCK_WIDTH;
+            localCC[tempIndex].w = 0.0f;
+            __shared__ unsigned int index[NUM_BLOCKS_TO_COMPARE];
+            index[tempIndex]= rampZ * BLOCK_WIDTH * BLOCK_WIDTH;
             for(int z = resultIndex_start_z; z< resultIndex_end_z; ++z){
                 int indexZ = z * imageSize.y * imageSize.x;
-                index += rampYLeft * BLOCK_WIDTH;
+                index[tempIndex] += rampYLeft * BLOCK_WIDTH;
                 for(int y = resultIndex_start_y; y < resultIndex_end_y; ++y){                                    
                     int indexXYZ = indexZ + y * imageSize.x + resultIndex_start_x;
-                    index += rampXLeft;                                
+                    index[tempIndex] += rampXLeft;                                
                     for(int x = resultIndex_start_x; x < resultIndex_end_x; ++x){
-                        float current_value = tex1Dfetch(resultImageArray_texture, indexXYZ);
-                        float current_target_value = targetValues[block_offset + index];
+                        current_value = tex1Dfetch(resultImageArray_texture, indexXYZ);
+                        current_target_value = targetValues[block_offset + index[tempIndex]];
                         if (current_value != 0.0f && current_target_value != 0.0f) {
                             result_mean += current_value;
                             target_mean += current_target_value;
                             ++voxel_number;
                         }
                         indexXYZ++;
-                        index++;
+                        index[tempIndex]++;
                     }
-                    index += rampXRight;                                    
+                    index[tempIndex] += rampXRight;                                    
                 }
-                index += rampYRight * BLOCK_WIDTH;                            
+                index[tempIndex] += rampYRight * BLOCK_WIDTH;                            
             }
 
             if (voxel_number > 0.0f) {
@@ -236,16 +237,16 @@ __global__ void process_result_blocks_gpu(float *resultPosition_d,
                 target_mean /= voxel_number;
             }
 
-            index = rampZ * BLOCK_WIDTH * BLOCK_WIDTH;
+            index[tempIndex] = rampZ * BLOCK_WIDTH * BLOCK_WIDTH;
             for(int z = resultIndex_start_z; z< resultIndex_end_z; ++z){
                 int indexZ = z * imageSize.y * imageSize.x;
-                index += rampYLeft * BLOCK_WIDTH;
+                index[tempIndex] += rampYLeft * BLOCK_WIDTH;
                 for(int y = resultIndex_start_y; y < resultIndex_end_y; ++y){                                    
                     int indexXYZ = indexZ + y * imageSize.x + resultIndex_start_x;
-                    index += rampXLeft;                                
+                    index[tempIndex] += rampXLeft;                                
                     for(int x = resultIndex_start_x; x < resultIndex_end_x; ++x){
-                        float current_value = tex1Dfetch(resultImageArray_texture, indexXYZ);
-                        float current_target_value = targetValues[block_offset + index];
+                        current_value = tex1Dfetch(resultImageArray_texture, indexXYZ);
+                        current_target_value = targetValues[block_offset + index[tempIndex]];
                         if (current_value != 0.0f && current_target_value != 0.0f) {
                             target_temp = (current_target_value - target_mean);
                             result_temp = (current_value - result_mean);
@@ -254,11 +255,11 @@ __global__ void process_result_blocks_gpu(float *resultPosition_d,
                             localCC[tempIndex].w += target_temp * result_temp;
                         }
                         indexXYZ++;
-                        index++;
+                        index[tempIndex]++;
                     }
-                    index += rampXRight;                                    
+                    index[tempIndex] += rampXRight;                                    
                 }
-                index += rampYRight * BLOCK_WIDTH;                            
+                index[tempIndex] += rampYRight * BLOCK_WIDTH;                            
             }            
             localCC[tempIndex].x = l;
             localCC[tempIndex].y = m;
@@ -279,13 +280,14 @@ __global__ void process_result_blocks_gpu(float *resultPosition_d,
         __syncthreads();
         // Just let one thread do the final update
         if (updateThreadID > -1) {
-            float4 bestCC = make_float4(0.0f, 0.0f, 0.0f, 0.0f);           
-            for (unsigned i = 0; i < NUM_BLOCKS_TO_COMPARE; ++i) {
-                if (localCC[i].w > bestCC.w) {
-                    bestCC.x = localCC[i].x;
-                    bestCC.y = localCC[i].y;
-                    bestCC.z = localCC[i].z;
-                    bestCC.w = localCC[i].w;
+            float4 bestCC = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+            __shared__ unsigned dex[NUM_BLOCKS_TO_COMPARE];
+            for (dex[tempIndex] = 0; dex[tempIndex] < NUM_BLOCKS_TO_COMPARE; ++dex[tempIndex]) {
+                if (localCC[dex[tempIndex]].w > bestCC.w) {
+                    bestCC.x = localCC[dex[tempIndex]].x;
+                    bestCC.y = localCC[dex[tempIndex]].y;
+                    bestCC.z = localCC[dex[tempIndex]].z;
+                    bestCC.w = localCC[dex[tempIndex]].w;
                 }
             }
             bestCC.x += targetIndex_start_x;
