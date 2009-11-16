@@ -733,8 +733,8 @@ int main(int argc, char **argv)
 		/* the target and source are resampled between 0 and bin-1
          * The images are then shifted by two which is the suport of the spline used
          * by the parzen window filling of the joint histogram */
-		reg_intensityRescale(targetImage,2.0f,(float)param->binning-1.0f);
-		reg_intensityRescale(sourceImage,2.0f,(float)param->binning-1.0f);
+		reg_intensityRescale(targetImage,2.0f,(float)param->binning-3.0f);
+		reg_intensityRescale(sourceImage,2.0f,(float)param->binning-3.0f);
 
         if(flag->backgroundIndexFlag){
             int index[3];
