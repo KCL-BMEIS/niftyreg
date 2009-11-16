@@ -65,7 +65,7 @@ void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum)
 }
 
 template <class DTYPE>
-void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *params, int *mask)
+void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *params, int *mask, bool runningOnGPU)
 {
 	const int totalBlockNumber = params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2];
 	float *varianceArray=(float *)malloc(totalBlockNumber*sizeof(float));
@@ -148,17 +148,18 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
 	for (int i = params->activeBlockNumber; i < totalBlockNumber; ++i){
 		params->activeBlock[*indexArrayPtr--] = -1;
 	}    
-    
-#ifdef _USE_CUDA
+
     count = 0;
-    for(int i = 0; i < totalBlockNumber; ++i){
-        if(params->activeBlock[i] != -1){            
-            params->activeBlock[i] = -1;
-            params->activeBlock[count] = i;            
-            ++count;
+    if (runningOnGPU) {
+        for(int i = 0; i < totalBlockNumber; ++i){
+            if(params->activeBlock[i] != -1){            
+                params->activeBlock[i] = -1;
+                params->activeBlock[count] = i;            
+                ++count;
+            }
         }
     }
-#endif    
+
     free(varianceArray);
     free(indexArray);
 }
@@ -167,7 +168,8 @@ void initialise_block_matching_method(  nifti_image * target,
                                         _reg_blockMatchingParam *params,
                                         int percentToKeep_block,
                                         int percentToKeep_opt,
-                                        int *mask)
+                                        int *mask,
+                                        bool runningOnGPU)
 {
 	params->blockNumber[0]=(int)ceil((float)target->nx / (float)BLOCK_WIDTH);
 	params->blockNumber[1]=(int)ceil((float)target->ny / (float)BLOCK_WIDTH);
@@ -179,21 +181,21 @@ void initialise_block_matching_method(  nifti_image * target,
 	params->activeBlock = (int *)malloc(params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2] * sizeof(int));
 	switch(target->datatype){
 		case NIFTI_TYPE_UINT8:
-			_reg_set_active_blocks<unsigned char>(target, params, mask);break;
+			_reg_set_active_blocks<unsigned char>(target, params, mask, runningOnGPU);break;
 		case NIFTI_TYPE_INT8:
-			_reg_set_active_blocks<char>(target, params, mask);break;
+			_reg_set_active_blocks<char>(target, params, mask, runningOnGPU);break;
 		case NIFTI_TYPE_UINT16:
-			_reg_set_active_blocks<unsigned short>(target, params, mask);break;
+			_reg_set_active_blocks<unsigned short>(target, params, mask, runningOnGPU);break;
 		case NIFTI_TYPE_INT16:
-			_reg_set_active_blocks<short>(target, params, mask);break;
+			_reg_set_active_blocks<short>(target, params, mask, runningOnGPU);break;
 		case NIFTI_TYPE_UINT32:
-			_reg_set_active_blocks<unsigned int>(target, params, mask);break;
+			_reg_set_active_blocks<unsigned int>(target, params, mask, runningOnGPU);break;
 		case NIFTI_TYPE_INT32:
-			_reg_set_active_blocks<int>(target, params, mask);break;
+			_reg_set_active_blocks<int>(target, params, mask, runningOnGPU);break;
 		case NIFTI_TYPE_FLOAT32:
-			_reg_set_active_blocks<float>(target, params, mask);break;
+			_reg_set_active_blocks<float>(target, params, mask, runningOnGPU);break;
 		case NIFTI_TYPE_FLOAT64:
-			_reg_set_active_blocks<double>(target, params, mask);break;
+			_reg_set_active_blocks<double>(target, params, mask, runningOnGPU);break;
 		default:
 			fprintf(stderr,"ERROR\tinitialise_block_matching_method\tThe target image data type is not supported\n");
 			return;
@@ -259,7 +261,6 @@ void real_block_matching_method(nifti_image * target,
 				targetIndex_end_x=targetIndex_start_x+BLOCK_WIDTH;
 
 				if(params->activeBlock[blockIndex] > -1){
-
 					targetIndex=0;
 					memset(targetOverlap, 0, BLOCK_SIZE*sizeof(bool));
 					for(int z=targetIndex_start_z; z<targetIndex_end_z; z++){
