@@ -709,6 +709,7 @@ int main(int argc, char **argv)
 			cudaCommon_free(&sourceImageArray_d);
 			cudaCommon_free((void **)&resultImageArray_d);
 			cudaCommon_free((void **)&positionFieldImageArray_d);
+            cudaCommon_free((void **)activeBlock_d);
 			CUDA_SAFE_CALL(cudaFreeHost(resultImage->data));
 			resultImage->data=NULL;
 		}
