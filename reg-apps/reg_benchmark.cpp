@@ -86,9 +86,6 @@ int main(int argc, char **argv)
         maskImage[i]=i;
 	}
 
-nifti_set_filenames(targetImage, "temp.nii", 0, 0);
-nifti_image_write(targetImage);
-
     // Deformation field image is created
     dim_img[0]=5;
     dim_img[1]=dimension;
@@ -167,51 +164,18 @@ nifti_image_write(targetImage);
 	nodeNMIGradientImage->nbyper = sizeof(float);
 	nodeNMIGradientImage->data = (void *)calloc(nodeNMIGradientImage->nvox, nodeNMIGradientImage->nbyper);
 
-    _reg_blockMatchingParam blockMatchingParams;
-    initialise_block_matching_method(   targetImage,
-                                        &blockMatchingParams,
-                                        100,    // percentage of block kept
-                                        50,     // percentage of inlier in the optimisation process
-                                        maskImage);
 
-    // GPU VARIABLE INITIALISATION AND ALLOCATION
     float *targetImageArray_d;
     if(cudaCommon_allocateArrayToDevice<float>(&targetImageArray_d, targetImage->dim)) return 1;
     if(cudaCommon_transferNiftiToArrayOnDevice<float>(&targetImageArray_d, targetImage)) return 1;
     cudaArray *sourceImageArray_d;
     if(cudaCommon_allocateArrayToDevice<float>(&sourceImageArray_d, sourceImage->dim)) return 1;
     if(cudaCommon_transferNiftiToArrayOnDevice<float>(&sourceImageArray_d,sourceImage)) return 1;
-    float *resultImageArray_d;
-    if(cudaCommon_allocateArrayToDevice<float>(&resultImageArray_d, targetImage->dim)) return 1;
-    float4 *controlPointImageArray_d;
-    if(cudaCommon_allocateArrayToDevice<float4>(&controlPointImageArray_d, controlPointImage->dim)) return 1;
-    if(cudaCommon_transferNiftiToArrayOnDevice<float4>(&controlPointImageArray_d,controlPointImage)) return 1;
-    float4 *bestControlPointPosition_d;
-    if(cudaCommon_allocateArrayToDevice<float4>(&bestControlPointPosition_d, controlPointImage->dim)) return 1;
-    if(cudaCommon_transferNiftiToArrayOnDevice<float4>(&bestControlPointPosition_d,controlPointImage)) return 1;
-    float *logJointHistogram_d;
-    CUDA_SAFE_CALL(cudaMalloc((void **)&logJointHistogram_d, binning*(binning+2)*sizeof(float)));
-    float4 *voxelNMIGradientArray_d;
-    if(cudaCommon_allocateArrayToDevice(&voxelNMIGradientArray_d, resultImage->dim)) return 1;
-    float4 *nodeNMIGradientArray_d;
-    if(cudaCommon_allocateArrayToDevice(&nodeNMIGradientArray_d, controlPointImage->dim)) return 1;
     int *targetMask_d;
     CUDA_SAFE_CALL(cudaMalloc((void **)&targetMask_d, targetImage->nvox*sizeof(int)));
     CUDA_SAFE_CALL(cudaMemcpy(targetMask_d, maskImage, targetImage->nvox*sizeof(int), cudaMemcpyHostToDevice));
-    float4 *positionFieldImageArray_d;
-    CUDA_SAFE_CALL(cudaMalloc((void **)&positionFieldImageArray_d, targetImage->nvox*sizeof(float4)));
-    float4 *resultGradientArray_d;
-    CUDA_SAFE_CALL(cudaMalloc((void **)&resultGradientArray_d, targetImage->nvox*sizeof(float4)));
-    int *activeBlock_d;
-    CUDA_SAFE_CALL(cudaMalloc((void **)&activeBlock_d,
-        blockMatchingParams.blockNumber[0]*blockMatchingParams.blockNumber[1]*blockMatchingParams.blockNumber[2]*sizeof(int)));
-    CUDA_SAFE_CALL(cudaMemcpy(activeBlock_d, blockMatchingParams.activeBlock,
-        blockMatchingParams.blockNumber[0]*blockMatchingParams.blockNumber[1]*blockMatchingParams.blockNumber[2]*sizeof(int),
-        cudaMemcpyHostToDevice));
-    float *targetPosition_d;
-    CUDA_SAFE_CALL(cudaMalloc((void **)&targetPosition_d, blockMatchingParams.activeBlockNumber*3*sizeof(float)));
-    float *resultPosition_d;
-    CUDA_SAFE_CALL(cudaMalloc((void **)&resultPosition_d, blockMatchingParams.activeBlockNumber*3*sizeof(float)));
+    float4 *deformationFieldImageArray_d;
+    CUDA_SAFE_CALL(cudaMalloc((void **)&deformationFieldImageArray_d, targetImage->nvox*sizeof(float4)));
 
 	time_t start,end;
     int minutes, seconds, cpuTime, gpuTime, maxIt;
@@ -248,7 +212,7 @@ nifti_image_write(targetImage);
     for(int i=0; i<maxIt; ++i){
         reg_affine_positionField_gpu(   affineTransformation,
                                         targetImage,
-                                        &positionFieldImageArray_d);
+                                        &deformationFieldImageArray_d);
     }
     time(&end);
     gpuTime=(end-start);
@@ -260,6 +224,9 @@ nifti_image_write(targetImage);
 
 
 	// SPLINE DEFORMATION FIELD CREATION
+    float4 *controlPointImageArray_d;
+    if(cudaCommon_allocateArrayToDevice<float4>(&controlPointImageArray_d, controlPointImage->dim)) return 1;
+    if(cudaCommon_transferNiftiToArrayOnDevice<float4>(&controlPointImageArray_d,controlPointImage)) return 1;
     maxIt=50000 / dimension;
     time(&start);
     for(int i=0; i<maxIt; ++i){
@@ -279,7 +246,7 @@ nifti_image_write(targetImage);
         reg_bspline_gpu(controlPointImage,
                         targetImage,
                         &controlPointImageArray_d,
-                        &positionFieldImageArray_d,
+                        &deformationFieldImageArray_d,
                         &targetMask_d,
                         targetImage->nvox);
     }
@@ -292,6 +259,8 @@ nifti_image_write(targetImage);
     printf("Spline deformation done\n");
 
     // LINEAR INTERPOLATION
+    float *resultImageArray_d;
+    if(cudaCommon_allocateArrayToDevice<float>(&resultImageArray_d, targetImage->dim)) return 1;
     maxIt=100000 / dimension;
     time(&start);
     for(int i=0; i<maxIt; ++i){
@@ -314,7 +283,7 @@ nifti_image_write(targetImage);
                                     sourceImage,
                                     &resultImageArray_d,
                                     &sourceImageArray_d,
-                                    &positionFieldImageArray_d,
+                                    &deformationFieldImageArray_d,
                                     &targetMask_d,
                                     targetImage->nvox,
                                     0);
@@ -327,40 +296,9 @@ nifti_image_write(targetImage);
     fprintf(outputFile, "Linear interpolation ratio - %g time(s)\n\n", (float)cpuTime/(float)gpuTime);
     printf("Linear interpolation done\n");
 
-    // BLOCK MATCHING
-    maxIt=2000 / dimension;
-    time(&start);
-    for(int i=0; i<maxIt; ++i){
-        block_matching_method<float>(   targetImage,
-                                        resultImage,
-                                        &blockMatchingParams,
-                                        maskImage);
-    }
-    time(&end);
-    cpuTime=(end-start);
-    minutes = (int)floorf(float(cpuTime)/60.0f);
-    seconds = (int)(cpuTime - 60*minutes);
-    fprintf(outputFile, "CPU - %i block matching computations - %i min %i sec\n", maxIt, minutes, seconds);
-    time(&start);
-    for(int i=0; i<maxIt; ++i){
-        block_matching_method_gpu(  targetImage,
-                                    resultImage,
-                                    &blockMatchingParams,
-                                    &targetImageArray_d,
-                                    &resultImageArray_d,
-                                    &targetPosition_d,
-                                    &resultPosition_d,
-                                    &activeBlock_d);
-    }
-    time(&end);
-    gpuTime=(end-start);
-    minutes = (int)floorf(float(gpuTime)/60.0f);
-    seconds = (int)(gpuTime - 60*minutes);
-    fprintf(outputFile, "GPU - %i block matching computations - %i min %i sec\n", maxIt, minutes, seconds);
-    fprintf(outputFile, "Block-Matching ratio - %g time(s)\n\n", (float)cpuTime/(float)gpuTime);
-    printf("Block-matching done\n");
-
     // SPATIAL GRADIENT COMPUTATION
+    float4 *resultGradientArray_d;
+    CUDA_SAFE_CALL(cudaMalloc((void **)&resultGradientArray_d, targetImage->nvox*sizeof(float4)));
     maxIt=100000 / dimension;
     time(&start);
     for(int i=0; i<maxIt; ++i){
@@ -381,7 +319,7 @@ nifti_image_write(targetImage);
         reg_getSourceImageGradient_gpu( targetImage,
                                         sourceImage,
                                         &sourceImageArray_d,
-                                        &positionFieldImageArray_d,
+                                        &deformationFieldImageArray_d,
                                         &resultGradientArray_d,
                                         targetImage->nvox);
     }
@@ -391,6 +329,9 @@ nifti_image_write(targetImage);
     seconds = (int)(gpuTime - 60*minutes);
     fprintf(outputFile, "GPU - %i spatial gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
     fprintf(outputFile, "Spatial gradient ratio - %g time(s)\n\n", (float)cpuTime/(float)gpuTime);
+    cudaCommon_free( &sourceImageArray_d );
+    nifti_image_free(sourceImage);
+    cudaCommon_free( (void **)&deformationFieldImageArray_d );
     printf("Spatial gradient done\n");
 
     // JOINT HISTOGRAM COMPUTATION
@@ -406,6 +347,8 @@ nifti_image_write(targetImage);
 
 
     // VOXEL-BASED NMI GRADIENT COMPUTATION
+    float4 *voxelNMIGradientArray_d;
+    if(cudaCommon_allocateArrayToDevice(&voxelNMIGradientArray_d, resultImage->dim)) return 1;
     maxIt=100000 / dimension;
     time(&start);
     for(int i=0; i<maxIt; ++i){
@@ -424,6 +367,14 @@ nifti_image_write(targetImage);
     minutes = (int)floorf(float(cpuTime)/60.0f);
     seconds = (int)(cpuTime - 60*minutes);
     fprintf(outputFile, "CPU - %i voxel-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
+    float *logJointHistogram_d;
+    CUDA_SAFE_CALL(cudaMalloc((void **)&logJointHistogram_d, binning*(binning+2)*sizeof(float)));
+    float *tempB=(float *)malloc(binning*(binning+2)*sizeof(float));
+    for(int i=0; i<binning*(binning+2);i++){
+        tempB[i]=(float)logJointHistogram[i];
+    }
+    CUDA_SAFE_CALL(cudaMemcpy(logJointHistogram_d, tempB, binning*(binning+2)*sizeof(float), cudaMemcpyHostToDevice));
+    free(tempB);
     time(&start);
     for(int i=0; i<maxIt; ++i){
         reg_getVoxelBasedNMIGradientUsingPW_gpu(targetImage,
@@ -444,9 +395,14 @@ nifti_image_write(targetImage);
     seconds = (int)(gpuTime - 60*minutes);
     fprintf(outputFile, "GPU - %i voxel-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
     fprintf(outputFile, "Voxel-based NMI gradient ratio - %g time(s)\n\n", (float)cpuTime/(float)gpuTime);
+    cudaCommon_free((void **)&logJointHistogram_d);
+    cudaCommon_free((void **)&resultGradientArray_d);
+    CUDA_SAFE_CALL(cudaFree(targetMask_d));
     printf("Voxel-based NMI gradient done\n");
 
     // NODE-BASED NMI GRADIENT COMPUTATION
+    float4 *nodeNMIGradientArray_d;
+    if(cudaCommon_allocateArrayToDevice(&nodeNMIGradientArray_d, controlPointImage->dim)) return 1;
     maxIt=10000 / dimension;
     int smoothingRadius[3];
     smoothingRadius[0] = (int)floor( 2.0*controlPointImage->dx/targetImage->dx );
@@ -478,6 +434,8 @@ nifti_image_write(targetImage);
     seconds = (int)(gpuTime - 60*minutes);
     fprintf(outputFile, "GPU - %i node-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
     fprintf(outputFile, "Node-based NMI gradient ratio - %g time(s)\n\n", (float)cpuTime/(float)gpuTime);
+    cudaCommon_free((void **)&voxelNMIGradientArray_d);
+    cudaCommon_free((void **)&nodeNMIGradientArray_d);
     printf("Node-based NMI gradient done\n");
 
     // BENDING ENERGY COMPUTATION
@@ -531,7 +489,60 @@ nifti_image_write(targetImage);
     seconds = (int)(gpuTime - 60*minutes);
     fprintf(outputFile, "GPU - %i BE gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
     fprintf(outputFile, "BE gradient ratio - %g time(s)\n\n", (float)cpuTime/(float)gpuTime);
+    cudaCommon_free( (void **)&controlPointImageArray_d );
     printf("BE gradient done\n");
+
+    // BLOCK MATCHING
+    _reg_blockMatchingParam blockMatchingParams;
+    initialise_block_matching_method(   targetImage,
+                                        &blockMatchingParams,
+                                        100,    // percentage of block kept
+                                        50,     // percentage of inlier in the optimisation process
+                                        maskImage);
+    int *activeBlock_d;
+    CUDA_SAFE_CALL(cudaMalloc((void **)&activeBlock_d,
+        blockMatchingParams.blockNumber[0]*blockMatchingParams.blockNumber[1]*blockMatchingParams.blockNumber[2]*sizeof(int)));
+    CUDA_SAFE_CALL(cudaMemcpy(activeBlock_d, blockMatchingParams.activeBlock,
+        blockMatchingParams.blockNumber[0]*blockMatchingParams.blockNumber[1]*blockMatchingParams.blockNumber[2]*sizeof(int),
+        cudaMemcpyHostToDevice));
+    float *targetPosition_d;
+    CUDA_SAFE_CALL(cudaMalloc((void **)&targetPosition_d, blockMatchingParams.activeBlockNumber*3*sizeof(float)));
+    float *resultPosition_d;
+    CUDA_SAFE_CALL(cudaMalloc((void **)&resultPosition_d, blockMatchingParams.activeBlockNumber*3*sizeof(float)));
+    maxIt=2000 / dimension;
+    time(&start);
+    for(int i=0; i<maxIt; ++i){
+        block_matching_method<float>(   targetImage,
+                                        resultImage,
+                                        &blockMatchingParams,
+                                        maskImage);
+    }
+    time(&end);
+    cpuTime=(end-start);
+    minutes = (int)floorf(float(cpuTime)/60.0f);
+    seconds = (int)(cpuTime - 60*minutes);
+    fprintf(outputFile, "CPU - %i block matching computations - %i min %i sec\n", maxIt, minutes, seconds);
+    time(&start);
+    for(int i=0; i<maxIt; ++i){
+        block_matching_method_gpu(  targetImage,
+                                    resultImage,
+                                    &blockMatchingParams,
+                                    &targetImageArray_d,
+                                    &resultImageArray_d,
+                                    &targetPosition_d,
+                                    &resultPosition_d,
+                                    &activeBlock_d);
+    }
+    time(&end);
+    gpuTime=(end-start);
+    minutes = (int)floorf(float(gpuTime)/60.0f);
+    seconds = (int)(gpuTime - 60*minutes);
+    fprintf(outputFile, "GPU - %i block matching computations - %i min %i sec\n", maxIt, minutes, seconds);
+    fprintf(outputFile, "Block-Matching ratio - %g time(s)\n\n", (float)cpuTime/(float)gpuTime);
+    cudaCommon_free((void **)activeBlock_d);
+    cudaCommon_free((void **)targetPosition_d);
+    cudaCommon_free((void **)resultPosition_d);
+    printf("Block-matching done\n");
 
     fclose(outputFile);
 
@@ -549,16 +560,7 @@ nifti_image_write(targetImage);
 	free(logJointHistogram);
 
     cudaCommon_free( (void **)&targetImageArray_d );
-    cudaCommon_free( &sourceImageArray_d );
-    cudaCommon_free( (void **)&controlPointImageArray_d );
     cudaCommon_free( (void **)&resultImageArray_d );
-    cudaCommon_free( (void **)&positionFieldImageArray_d );
-    CUDA_SAFE_CALL(cudaFree(targetMask_d));
-    cudaCommon_free((void **)&resultGradientArray_d);
-    cudaCommon_free((void **)&voxelNMIGradientArray_d);
-    cudaCommon_free((void **)&nodeNMIGradientArray_d);
-    cudaCommon_free((void **)&bestControlPointPosition_d);
-    cudaCommon_free((void **)&logJointHistogram_d);
 
     return 0;
 }

@@ -857,116 +857,125 @@ void reg_tools_addSubMulDivValue(   nifti_image *img1,
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class ImageTYPE>
-void reg_gaussianSmoothing1(	nifti_image *image,
-				float sigma)
+void reg_gaussianSmoothing1(nifti_image *image,
+			                float sigma,
+                            bool downXYZ[8])
 {
 	ImageTYPE *imagePtr = static_cast<ImageTYPE *>(image->data);
 	PrecisionTYPE *resultValue=(PrecisionTYPE *)malloc(image->nvox * sizeof(PrecisionTYPE));
 	for(int n=1; n<=image->dim[0]; n++){
-		float currentSigma;
-		if(sigma>0) currentSigma=sigma/image->pixdim[n];
-		else currentSigma=fabs(sigma); // voxel based if negative value
-		int radius=(int)ceil(currentSigma*3.0f);
-		PrecisionTYPE *kernel = new PrecisionTYPE[2*radius+1];
-		PrecisionTYPE kernelSum=0;
-		for(int i=-radius; i<=radius; i++){
-			kernel[radius+i]=(PrecisionTYPE)(exp( -(i*i)/(2.0*currentSigma*currentSigma)) / (currentSigma*2.506628274631)); // 2.506... = sqrt(2*pi)
-			kernelSum += kernel[radius+i];
-		}
-		for(int i=-radius; i<=radius; i++) kernel[radius+i] /= kernelSum;
+        if(downXYZ[n]==true){
+		    float currentSigma;
+		    if(sigma>0) currentSigma=sigma/image->pixdim[n];
+		    else currentSigma=fabs(sigma); // voxel based if negative value
+		    int radius=(int)ceil(currentSigma*3.0f);
+		    PrecisionTYPE *kernel = new PrecisionTYPE[2*radius+1];
+		    PrecisionTYPE kernelSum=0;
+		    for(int i=-radius; i<=radius; i++){
+			    kernel[radius+i]=(PrecisionTYPE)(exp( -(i*i)/(2.0*currentSigma*currentSigma)) / (currentSigma*2.506628274631)); // 2.506... = sqrt(2*pi)
+			    kernelSum += kernel[radius+i];
+		    }
+		    for(int i=-radius; i<=radius; i++) kernel[radius+i] /= kernelSum;
 #ifdef _VERBOSE
-		printf("[VERBOSE]smoothing dim[%i] radius[%i] kernelSum[%g]\n", n, radius, kernelSum);
+		    printf("[VERBOSE]smoothing dim[%i] radius[%i] kernelSum[%g]\n", n, radius, kernelSum);
 #endif
-		int increment=1;
-		switch(n){
-			case 1: increment=1;break;
-			case 2: increment=image->nx;break;
-			case 3: increment=image->nx*image->ny;break;
-			case 4: increment=image->nx*image->ny*image->nz;break;
-			case 5: increment=image->nx*image->ny*image->nz*image->nt;break;
-			case 6: increment=image->nx*image->ny*image->nz*image->nt*image->nu;break;
-			case 7: increment=image->nx*image->ny*image->nz*image->nt*image->nu*image->nv;break;
-		}
-		unsigned int index=0;
-		while(index<image->nvox){
-			for(int x=0; x<image->dim[n]; x++){
-				int current = index - increment*radius;
-				PrecisionTYPE value=0;
-				for(int j=-radius; j<=radius; j++){
-					if(-1<current && current<(int)image->nvox){
-						value += (PrecisionTYPE)(imagePtr[current]*kernel[j+radius]);
-					}
-					current += increment;
-				}
-				resultValue[index]=value;
-				index++;
-			}
-		}
-		for(unsigned int i=0; i<image->nvox; i++) imagePtr[i]=(ImageTYPE)resultValue[i];
-		delete[] kernel;
+		    int increment=1;
+		    switch(n){
+			    case 1: increment=1;break;
+			    case 2: increment=image->nx;break;
+			    case 3: increment=image->nx*image->ny;break;
+			    case 4: increment=image->nx*image->ny*image->nz;break;
+			    case 5: increment=image->nx*image->ny*image->nz*image->nt;break;
+			    case 6: increment=image->nx*image->ny*image->nz*image->nt*image->nu;break;
+			    case 7: increment=image->nx*image->ny*image->nz*image->nt*image->nu*image->nv;break;
+		    }
+		    unsigned int index=0;
+		    while(index<image->nvox){
+			    for(int x=0; x<image->dim[n]; x++){
+				    int current = index - increment*radius;
+				    PrecisionTYPE value=0;
+				    for(int j=-radius; j<=radius; j++){
+					    if(-1<current && current<(int)image->nvox){
+						    value += (PrecisionTYPE)(imagePtr[current]*kernel[j+radius]);
+					    }
+					    current += increment;
+				    }
+				    resultValue[index]=value;
+				    index++;
+			    }
+		    }
+		    for(unsigned int i=0; i<image->nvox; i++) imagePtr[i]=(ImageTYPE)resultValue[i];
+		    delete[] kernel;
+        }
 	}
 	free(resultValue);
 }
 /* *************************************************************** */
 template <class PrecisionTYPE>
 void reg_gaussianSmoothing(	nifti_image *image,
-							float sigma)
+							float sigma,
+                            bool downXYZ[8])
 {
 	if(sigma==0.0) return;
 	switch(image->datatype){
 		case NIFTI_TYPE_UINT8:
-			reg_gaussianSmoothing1<PrecisionTYPE,unsigned char>(image, sigma);
+			reg_gaussianSmoothing1<PrecisionTYPE,unsigned char>(image, sigma, downXYZ);
 			break;
 		case NIFTI_TYPE_INT8:
-			reg_gaussianSmoothing1<PrecisionTYPE,char>(image, sigma);
+			reg_gaussianSmoothing1<PrecisionTYPE,char>(image, sigma, downXYZ);
 			break;
 		case NIFTI_TYPE_UINT16:
-			reg_gaussianSmoothing1<PrecisionTYPE,unsigned short>(image, sigma);
+			reg_gaussianSmoothing1<PrecisionTYPE,unsigned short>(image, sigma, downXYZ);
 			break;
 		case NIFTI_TYPE_INT16:
-			reg_gaussianSmoothing1<PrecisionTYPE,short>(image, sigma);
+			reg_gaussianSmoothing1<PrecisionTYPE,short>(image, sigma, downXYZ);
 			break;
 		case NIFTI_TYPE_UINT32:
-			reg_gaussianSmoothing1<PrecisionTYPE,unsigned int>(image, sigma);
+			reg_gaussianSmoothing1<PrecisionTYPE,unsigned int>(image, sigma, downXYZ);
 			break;
 		case NIFTI_TYPE_INT32:
-			reg_gaussianSmoothing1<PrecisionTYPE,int>(image, sigma);
+			reg_gaussianSmoothing1<PrecisionTYPE,int>(image, sigma, downXYZ);
 			break;
 		case NIFTI_TYPE_FLOAT32:
-			reg_gaussianSmoothing1<PrecisionTYPE,float>(image, sigma);
+			reg_gaussianSmoothing1<PrecisionTYPE,float>(image, sigma, downXYZ);
 			break;
 		case NIFTI_TYPE_FLOAT64:
-			reg_gaussianSmoothing1<PrecisionTYPE,double>(image, sigma);
+			reg_gaussianSmoothing1<PrecisionTYPE,double>(image, sigma, downXYZ);
 			break;
 		default:
 			printf("err\treg_smoothImage\tThe image data type is not supported\n");
 			return;
 	}
 }
-template void reg_gaussianSmoothing<float>(nifti_image *, float);
-template void reg_gaussianSmoothing<double>(nifti_image *, float);
+template void reg_gaussianSmoothing<float>(nifti_image *, float, bool[8]);
+template void reg_gaussianSmoothing<double>(nifti_image *, float, bool[8]);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class ImageTYPE>
 void reg_downsampleImage1(nifti_image *image, int type)
 {
 
+    bool downXYZ[8]={false,false,false,false,false,false,false,false};
+    for(int i=1;i<=image->dim[0];i++){
+        if((image->dim[i]/2)>=32) downXYZ[i]=true;
+    }
+
     if(type==1){
 	    /* the input image is first smooth */
-	    reg_gaussianSmoothing<float>(image, -0.7f);
+	    reg_gaussianSmoothing<float>(image, -0.7f, downXYZ);
     }
-	
+
 	/* the values are copied */
 	ImageTYPE *oldValues = (ImageTYPE *)malloc(image->nvox * image->nbyper);
 	ImageTYPE *imagePtr = static_cast<ImageTYPE *>(image->data);
 	memcpy(oldValues, imagePtr, image->nvox*image->nbyper);
 	free(image->data);
-	
+
 	int oldDim[4];
 	for(int i=1; i<4; i++){
 		oldDim[i]=image->dim[i];
-		if(image->dim[i]>1) image->dim[i]=(int)(image->dim[i]/2.0);
-		if(image->pixdim[i]>0) image->pixdim[i]=image->pixdim[i]*2.0f;
+		if(image->dim[i]>1 && downXYZ[i]==true) image->dim[i]=(int)(image->dim[i]/2.0);
+		if(image->pixdim[i]>0 && downXYZ[i]==true) image->pixdim[i]=image->pixdim[i]*2.0f;
 	}
 	image->nx=image->dim[1];
 	image->ny=image->dim[2];
@@ -982,8 +991,10 @@ void reg_downsampleImage1(nifti_image *image, int type)
 	for(int i=0; i<3; i++){
 		for(int j=0; j<3; j++){
 			oldMat.m[i][j]=image->qto_ijk.m[i][j];
-			image->qto_xyz.m[i][j]=image->qto_xyz.m[i][j]*2.0f;
-			image->sto_xyz.m[i][j]=image->sto_xyz.m[i][j]*2.0f;
+            if(downXYZ[j+1]==true){
+			    image->qto_xyz.m[i][j]=image->qto_xyz.m[i][j]*2.0f;
+			    image->sto_xyz.m[i][j]=image->sto_xyz.m[i][j]*2.0f;
+            }
 		}
 	}
 	oldMat.m[0][3]=image->qto_ijk.m[0][3];
