@@ -575,10 +575,14 @@ int main(int argc, char **argv)
 
 
         /* smooth the input image if appropriate */
-        if(flag->targetSigmaFlag)
-            reg_gaussianSmoothing<PrecisionTYPE>( targetImage, param->targetSigmaValue);
-        if(flag->sourceSigmaFlag)
-            reg_gaussianSmoothing<PrecisionTYPE>( sourceImage, param->sourceSigmaValue);
+        if(flag->targetSigmaFlag){
+            bool smoothAxis[8]={true,true,true,true,true,true,true,true};
+            reg_gaussianSmoothing<PrecisionTYPE>(targetImage, param->targetSigmaValue, smoothAxis);
+        }
+        if(flag->sourceSigmaFlag){
+            bool smoothAxis[8]={true,true,true,true,true,true,true,true};
+            reg_gaussianSmoothing<PrecisionTYPE>(sourceImage, param->sourceSigmaValue, smoothAxis);
+        }
 
         if(level==0){
             if(!flag->inputCPPFlag){

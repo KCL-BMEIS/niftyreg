@@ -34,7 +34,8 @@ void reg_smoothImageForTrilinear(	nifti_image *image,
 
 extern "C++" template <class PrecisionTYPE>
 void reg_gaussianSmoothing(	nifti_image *image,
-						  float sigma);
+						    float sigma,
+                            bool[8]);
 
 extern "C++" template <class PrecisionTYPE>
 void reg_downsampleImage(nifti_image *image, int);

@@ -117,7 +117,7 @@ void Usage(char *exec)
 	printf("\t-affFlirt <filename>\tFilename which contains an input affine transformation from Flirt [none]\n");
     printf("\t-tmask <filename>\tFilename of a mask image in the target space\n");
 	printf("\t-result <filename>\tFilename of the resampled image [outputResult.nii]\n");
-	printf("\t-maxit <int>\t\tNumber of iteration per level [3]\n");
+	printf("\t-maxit <int>\t\tNumber of iteration per level [5]\n");
 	printf("\t-smooT <float>\t\tSmooth the target image using the specified sigma (mm) [0]\n");
 	printf("\t-smooS <float>\t\tSmooth the source image using the specified sigma (mm) [0]\n");
 	printf("\t-ln <int>\t\tNumber of level to perform [3]\n");
@@ -127,7 +127,7 @@ void Usage(char *exec)
 	
 	printf("\t-bgi <int> <int> <int>\tForce the background value during\n\t\t\t\tresampling to have the same value as this voxel in the source image [none]\n");
 
-	printf("\t-%%v <int>\t\tPercentage of block to use [20]\n");
+	printf("\t-%%v <int>\t\tPercentage of block to use [50]\n");
 	printf("\t-%%i <int>\t\tPercentage of inlier for the LTS [50]\n");
 #ifdef _USE_CUDA	
 	printf("\t-gpu \t\t\tTo use the GPU implementation [no]\n");
@@ -167,7 +167,7 @@ int main(int argc, char **argv)
 
 	flag->affineFlag=1;
 	flag->rigidFlag=1;
-	param->block_percent_to_use=20;
+	param->block_percent_to_use=50;
 	param->inlier_lts=50;
     flag->alignCenterFlag=1;
 
@@ -270,7 +270,7 @@ int main(int argc, char **argv)
 	if(!flag->levelNumberFlag) param->levelNumber=3;
 	
 	/* Read the maximum number of iteration */
-	if(!flag->maxIterationFlag) param->maxIteration=3;
+	if(!flag->maxIterationFlag) param->maxIteration=5;
 
 	if(!flag->level2PerformFlag) param->level2Perform=param->levelNumber;
 
@@ -423,6 +423,7 @@ int main(int argc, char **argv)
                 reg_downsampleImage<PrecisionTYPE>(tempMaskImage, 0);
             }
         }
+
         targetMask = (int *)malloc(targetImage->nvox*sizeof(int));
         if(flag->targetMaskFlag){
             reg_tool_binaryImage2int(tempMaskImage, targetMask, activeVoxelNumber);
@@ -434,10 +435,14 @@ int main(int argc, char **argv)
         }
 		
 		/* smooth the input image if appropriate */
-		if(flag->targetSigmaFlag)
-			reg_gaussianSmoothing<PrecisionTYPE>(targetImage, param->targetSigmaValue);
-		if(flag->sourceSigmaFlag)
-			reg_gaussianSmoothing<PrecisionTYPE>(sourceImage, param->sourceSigmaValue);
+		if(flag->targetSigmaFlag){
+            bool smoothAxis[8]={true,true,true,true,true,true,true,true};
+			reg_gaussianSmoothing<PrecisionTYPE>(targetImage, param->targetSigmaValue, smoothAxis);
+        }
+		if(flag->sourceSigmaFlag){
+            bool smoothAxis[8]={true,true,true,true,true,true,true,true};
+			reg_gaussianSmoothing<PrecisionTYPE>(sourceImage, param->sourceSigmaValue, smoothAxis);
+        }
 		
 		/* allocate the deformation Field image */
 		nifti_image *positionFieldImage = nifti_copy_nim_info(targetImage);
