@@ -73,10 +73,6 @@ void block_matching_method_gpu(	nifti_image *targetImage,
            cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 
-#if _VERBOSE
-	printf("[VERBOSE] process_target_blocks_gpu kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
-	       cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
-#endif
     unsigned int Result_block_matching = params->activeBlockNumber;
     unsigned int Result_block_matching_2 = 1;
 
