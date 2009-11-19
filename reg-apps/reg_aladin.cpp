@@ -388,6 +388,8 @@ int main(int argc, char **argv)
 	/* ********************** */
 	/* START THE REGISTRATION */
 	/* ********************** */
+
+    bool downsampleAxis[8]={false,false,false,false,false,false,false,false};
 	
 	for(int level=0; level<param->level2Perform; level++){
 		/* Read the target and source image */
@@ -417,10 +419,22 @@ int main(int argc, char **argv)
             memcpy( tempMaskImage->data, targetMaskImage->data, tempMaskImage->nvox*tempMaskImage->nbyper);
         }
         for(int l=level; l<param->levelNumber-1; l++){
-            reg_downsampleImage<PrecisionTYPE>(targetImage, 1);
-            reg_downsampleImage<PrecisionTYPE>(sourceImage, 1);
+            int ratio = (int)pow(2,param->levelNumber-param->levelNumber+l+1);
+
+            bool sourceDownsampleAxis[8]={true,true,true,true,true,true,true,true};
+            if((sourceHeader->nx/ratio) < 32) sourceDownsampleAxis[1]=false;
+            if((sourceHeader->ny/ratio) < 32) sourceDownsampleAxis[2]=false;
+            if((sourceHeader->nz/ratio) < 32) sourceDownsampleAxis[3]=false;
+            reg_downsampleImage<PrecisionTYPE>(sourceImage, 1, sourceDownsampleAxis);
+
+            bool targetDownsampleAxis[8]={true,true,true,true,true,true,true,true};
+            if((targetHeader->nx/ratio) < 32) targetDownsampleAxis[1]=false;
+            if((targetHeader->ny/ratio) < 32) targetDownsampleAxis[2]=false;
+            if((targetHeader->nz/ratio) < 32) targetDownsampleAxis[3]=false;
+            reg_downsampleImage<PrecisionTYPE>(targetImage, 1, targetDownsampleAxis);
+
             if(flag->targetMaskFlag){
-                reg_downsampleImage<PrecisionTYPE>(tempMaskImage, 0);
+                reg_downsampleImage<PrecisionTYPE>(tempMaskImage, 0, targetDownsampleAxis);
             }
         }
 
@@ -714,7 +728,7 @@ int main(int argc, char **argv)
 			cudaCommon_free(&sourceImageArray_d);
 			cudaCommon_free((void **)&resultImageArray_d);
 			cudaCommon_free((void **)&positionFieldImageArray_d);
-            cudaCommon_free((void **)activeBlock_d);
+            cudaCommon_free((void **)&activeBlock_d);
 			CUDA_SAFE_CALL(cudaFreeHost(resultImage->data));
 			resultImage->data=NULL;
 		}
