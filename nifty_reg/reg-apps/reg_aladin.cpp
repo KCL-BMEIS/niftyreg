@@ -378,7 +378,8 @@ int main(int argc, char **argv)
 	printf("Source image name: %s\n",sourceHeader->fname);
 	printf("\t%ix%ix%i voxels\n",sourceHeader->nx,sourceHeader->ny,sourceHeader->nz);
 	printf("\t%gx%gx%g mm\n",sourceHeader->dx,sourceHeader->dy,sourceHeader->dz);
-	printf("Maximum iteration number: %i\n",param->maxIteration);
+    printf("Maximum iteration number: %i\n",param->maxIteration);
+    printf("Percentage of blocks: %i\%\n",param->block_percent_to_use);
 #ifdef _USE_CUDA
 	if(flag->useGPUFlag) printf("The GPU implementation is used\n");
 	else printf("The CPU implementation is used\n");
