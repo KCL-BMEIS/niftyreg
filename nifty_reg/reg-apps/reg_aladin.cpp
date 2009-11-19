@@ -86,9 +86,7 @@ typedef struct{
 	bool targetSigmaFlag;
 	bool sourceSigmaFlag;
 	bool pyramidFlag;
-#ifdef _USE_CUDA	
 	bool useGPUFlag;
-#endif
 }FLAG;
 void PetitUsage(char *exec)
 {
