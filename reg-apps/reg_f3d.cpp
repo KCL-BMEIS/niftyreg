@@ -785,6 +785,12 @@ int main(int argc, char **argv)
 #endif
 		printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 
+//         nifti_set_filenames(targetImage, "tar.nii.gz", 0, 0);
+//         nifti_set_filenames(sourceImage, "sou.nii.gz", 0, 0);
+//         nifti_image_write(targetImage);
+//         nifti_image_write(sourceImage);
+//         return 1;
+
 		float maxStepSize = (targetImage->dx>targetImage->dy)?targetImage->dx:targetImage->dy;
 		maxStepSize = (targetImage->dz>maxStepSize)?targetImage->dz:maxStepSize;
 		float currentSize = maxStepSize;
