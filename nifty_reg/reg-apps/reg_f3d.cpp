@@ -26,6 +26,7 @@
 #include "_reg_mutualinformation.h"
 #include "_reg_ssd.h"
 #include "_reg_tools.h"
+#include "float.h"
 
 #ifdef _USE_CUDA
 	#include "_reg_cudaCommon.h"
@@ -64,6 +65,10 @@ typedef struct{
 	PrecisionTYPE sourceBGValue;
 	float targetSigmaValue;
 	float sourceSigmaValue;
+    float targetLowThresholdValue;
+    float targetUpThresholdValue;
+    float sourceLowThresholdValue;
+    float sourceUpThresholdValue;
 }PARAM;
 typedef struct{
 	bool targetImageFlag;
@@ -94,7 +99,12 @@ typedef struct{
 	bool noConjugateGradient;
 	bool targetSigmaFlag;
 	bool sourceSigmaFlag;
-	bool pyramidFlag;
+    bool pyramidFlag;
+
+    bool targetLowThresholdFlag;
+    bool targetUpThresholdFlag;
+    bool sourceLowThresholdFlag;
+    bool sourceUpThresholdFlag;
 
 #ifdef _USE_CUDA	
 	bool useGPUFlag;
@@ -138,15 +148,20 @@ void Usage(char *exec)
 	printf("\t-sy <float>\t\tFinal grid spacing along the y axis in mm [sx value]\n");
 	printf("\t-sz <float>\t\tFinal grid spacing along the z axis in mm [sx value]\n");
 	printf("\t-bin <int>\t\tNumber of bin to use for the joint histogram [64]\n");
-	printf("\t-smooT <float>\t\tSmooth the target image using the specified sigma (mm) [0]\n");
-	printf("\t-smooS <float>\t\tSmooth the source image using the specified sigma (mm) [0]\n");
+    printf("\t-smooT <float>\t\tSmooth the target image using the specified sigma (mm) [0]\n");
+    printf("\t-smooS <float>\t\tSmooth the source image using the specified sigma (mm) [0]\n");
+    printf("\t-tLwTh <float>\t\tLower threshold to apply to the target image intensities [none]\n");
+    printf("\t-tUpTh <float>\t\tUpper threshold to apply to the target image intensities [none]\n");
+    printf("\t-sLwTh <float>\t\tLower threshold to apply to the source image intensities [none]\n");
+    printf("\t-sUpTh <float>\t\tUpper threshold to apply to the source image intensities [none]\n");
+    printf("\t\t\t\tThe scl_slope and scl_inter from the nifti header are taken into account for the thresholds\n");
 	printf("\t-ln <int>\t\tNumber of level to perform [3]\n");
     printf("\t-lp <int>\t\tOnly perform the first levels [ln]\n");
 	printf("\t-nopy\t\t\tDo not use a pyramidal approach [no]\n");
 	
 	printf("\t-be <float>\t\tWeight of the bending energy penalty term [0.01]\n");
-	printf("\t-noAppBE\t\t\tTo not approximate the BE value only at the control point position\n");
-	printf("\t-noGradBE\t\t\tTo not use the gradient of the bending energy\n");
+	printf("\t-noAppBE\t\tTo not approximate the BE value only at the control point position\n");
+	printf("\t-noGradBE\t\tTo not use the gradient of the bending energy\n");
 	
 // 	printf("\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]\n");
 // 	printf("\t-appJL\t\t\tApproximate the JL value only at the control point position [no]\n");
@@ -177,6 +192,11 @@ int main(int argc, char **argv)
 	param->bendingEnergyWeight=0.01f;
 	flag->appBendingEnergyFlag=1;
 	flag->beGradFlag=1;
+
+    param->targetLowThresholdValue=-FLT_MAX;
+    param->targetUpThresholdValue=FLT_MAX;
+    param->sourceLowThresholdValue=-FLT_MAX;
+    param->sourceUpThresholdValue=FLT_MAX;
 
 	/* read the input parameter */
 	for(int i=1;i<argc;i++){
@@ -279,10 +299,26 @@ int main(int argc, char **argv)
 			param->targetSigmaValue=(float)(atof(argv[++i]));
 			flag->targetSigmaFlag=1;
 		}
-		else if(strcmp(argv[i], "-smooS") == 0){
-			param->sourceSigmaValue=(float)(atof(argv[++i]));
-			flag->sourceSigmaFlag=1;
-		}
+        else if(strcmp(argv[i], "-smooS") == 0){
+            param->sourceSigmaValue=(float)(atof(argv[++i]));
+            flag->sourceSigmaFlag=1;
+        }
+        else if(strcmp(argv[i], "-tLwTh") == 0){
+            param->targetLowThresholdValue=(float)(atof(argv[++i]));
+            flag->targetLowThresholdFlag=1;
+        }
+        else if(strcmp(argv[i], "-tUpTh") == 0){
+            param->targetUpThresholdValue=(float)(atof(argv[++i]));
+            flag->targetUpThresholdFlag=1;
+        }
+        else if(strcmp(argv[i], "-sLwTh") == 0){
+            param->sourceLowThresholdValue=(float)(atof(argv[++i]));
+            flag->sourceLowThresholdFlag=1;
+        }
+        else if(strcmp(argv[i], "-sUpTh") == 0){
+            param->sourceUpThresholdValue=(float)(atof(argv[++i]));
+            flag->sourceUpThresholdFlag=1;
+        }
 		else if(strcmp(argv[i], "-bgi") == 0){
 			param->backgroundIndex[0]=atoi(argv[++i]);
 			param->backgroundIndex[1]=atoi(argv[++i]);
@@ -308,6 +344,7 @@ int main(int argc, char **argv)
 			return 1;
 		}
 	}
+
 
 #ifdef _USE_CUDA
 	if(flag->useGPUFlag){
@@ -469,7 +506,7 @@ int main(int argc, char **argv)
 	printf("\t%ix%ix%i voxels\n",sourceHeader->nx,sourceHeader->ny,sourceHeader->nz);
 	printf("\t%gx%gx%g mm\n",sourceHeader->dx,sourceHeader->dy,sourceHeader->dz);
 	printf("Maximum iteration number: %i\n",param->maxIteration);
-	printf("Number of bin to used: %i\n",param->binning);
+	printf("Number of bin to used: %i\n",param->binning-4);
 	printf("Bending energy weight: %g\n",param->bendingEnergyWeight);
 	if(flag->appBendingEnergyFlag) printf("Bending energy penalty term evaluated at the control point position only\n");
 	printf("log of the jacobian determinant weight: %g\n",param->jacobianWeight);
@@ -554,11 +591,24 @@ int main(int argc, char **argv)
                 tempMaskImage->data = (void *)malloc(tempMaskImage->nvox * tempMaskImage->nbyper);
                 memcpy(tempMaskImage->data, targetMaskImage->data, tempMaskImage->nvox*tempMaskImage->nbyper);
             }
-            for(int l=level; l<param->levelNumber-1; l++){
-                reg_downsampleImage<PrecisionTYPE>(targetImage, 1);
-                reg_downsampleImage<PrecisionTYPE>(sourceImage, 1);
+
+        for(int l=level; l<param->levelNumber-1; l++){
+                int ratio = (int)pow(2,param->levelNumber-param->levelNumber+l+1);
+
+                bool sourceDownsampleAxis[8]={true,true,true,true,true,true,true,true};
+                if((sourceHeader->nx/ratio) < 32) sourceDownsampleAxis[1]=false;
+                if((sourceHeader->ny/ratio) < 32) sourceDownsampleAxis[2]=false;
+                if((sourceHeader->nz/ratio) < 32) sourceDownsampleAxis[3]=false;
+                reg_downsampleImage<PrecisionTYPE>(sourceImage, 1, sourceDownsampleAxis);
+
+                bool targetDownsampleAxis[8]={true,true,true,true,true,true,true,true};
+                if((targetHeader->nx/ratio) < 32) targetDownsampleAxis[1]=false;
+                if((targetHeader->ny/ratio) < 32) targetDownsampleAxis[2]=false;
+                if((targetHeader->nz/ratio) < 32) targetDownsampleAxis[3]=false;
+                reg_downsampleImage<PrecisionTYPE>(targetImage, 1, targetDownsampleAxis);
+
                 if(flag->targetMaskFlag){
-                    reg_downsampleImage<PrecisionTYPE>(tempMaskImage, 0);
+                    reg_downsampleImage<PrecisionTYPE>(tempMaskImage, 0, targetDownsampleAxis);
                 }
             }
             targetMask = (int *)malloc(targetImage->nvox*sizeof(int));
@@ -583,6 +633,12 @@ int main(int argc, char **argv)
             bool smoothAxis[8]={true,true,true,true,true,true,true,true};
             reg_gaussianSmoothing<PrecisionTYPE>(sourceImage, param->sourceSigmaValue, smoothAxis);
         }
+
+        /* the target and source are resampled between 0 and bin-1
+         * The images are then shifted by two which is the suport of the spline used
+         * by the parzen window filling of the joint histogram */
+        reg_intensityRescale(targetImage,2.0f,(float)param->binning-3.0f, param->targetLowThresholdValue, param->targetUpThresholdValue);
+        reg_intensityRescale(sourceImage,2.0f,(float)param->binning-3.0f, param->sourceLowThresholdValue, param->sourceUpThresholdValue);
 
         if(level==0){
             if(!flag->inputCPPFlag){
@@ -728,17 +784,11 @@ int main(int argc, char **argv)
 		reg_mat44_disp(cppMatrix_xyz, "[VERBOSE] Control point image matrix");
 #endif
 		printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-		
+
 		float maxStepSize = (targetImage->dx>targetImage->dy)?targetImage->dx:targetImage->dy;
 		maxStepSize = (targetImage->dz>maxStepSize)?targetImage->dz:maxStepSize;
 		float currentSize = maxStepSize;
 		float smallestSize = maxStepSize / 100.0f;
-
-		/* the target and source are resampled between 0 and bin-1
-         * The images are then shifted by two which is the suport of the spline used
-         * by the parzen window filling of the joint histogram */
-		reg_intensityRescale(targetImage,2.0f,(float)param->binning-3.0f);
-		reg_intensityRescale(sourceImage,2.0f,(float)param->binning-3.0f);
 
         if(flag->backgroundIndexFlag){
             int index[3];

@@ -27,8 +27,10 @@ int round(PrecisionType x)
 
 template<class DTYPE>
 void reg_intensityRescale2(	nifti_image *image,
-				float newMin,
-				float newMax
+			                float newMin,
+			                float newMax,
+                            float lowThr,
+                            float upThr
 			)
 {
 	DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
@@ -41,7 +43,7 @@ void reg_intensityRescale2(	nifti_image *image,
 			break;
 		case NIFTI_TYPE_INT8:
 			currentMin=(DTYPE)std::numeric_limits<char>::max();
-			currentMax=(DTYPE)std::numeric_limits<char>::min();
+			currentMax=(DTYPE)-std::numeric_limits<char>::max();
 			break;
 		case NIFTI_TYPE_UINT16:
 			currentMin=(DTYPE)std::numeric_limits<unsigned short>::max();
@@ -49,7 +51,7 @@ void reg_intensityRescale2(	nifti_image *image,
 			break;
 		case NIFTI_TYPE_INT16:
 			currentMin=(DTYPE)std::numeric_limits<char>::max();
-			currentMax=(DTYPE)std::numeric_limits<char>::min();
+			currentMax=-(DTYPE)std::numeric_limits<char>::max();
 			break;
 		case NIFTI_TYPE_UINT32:
 			currentMin=(DTYPE)std::numeric_limits<unsigned int>::max();
@@ -57,65 +59,81 @@ void reg_intensityRescale2(	nifti_image *image,
 			break;
 		case NIFTI_TYPE_INT32:
 			currentMin=(DTYPE)std::numeric_limits<int>::max();
-			currentMax=(DTYPE)std::numeric_limits<int>::min();
+			currentMax=-(DTYPE)std::numeric_limits<int>::max();
 			break;
 		case NIFTI_TYPE_FLOAT32:
 			currentMin=(DTYPE)std::numeric_limits<float>::max();
-			currentMax=(DTYPE)std::numeric_limits<float>::min();
+			currentMax=-(DTYPE)std::numeric_limits<float>::max();
 			break;
 		case NIFTI_TYPE_FLOAT64:
 			currentMin=(DTYPE)std::numeric_limits<double>::max();
-			currentMax=(DTYPE)std::numeric_limits<double>::min();
+			currentMax=-(DTYPE)std::numeric_limits<double>::max();
 			break;
 	}
 
 	for(unsigned int index=0; index<image->nvox; index++){
-		DTYPE value = *imagePtr++;
+		DTYPE value = (DTYPE)(*imagePtr++ * image->scl_slope + image->scl_inter);
 		currentMin=(currentMin<value)?currentMin:value;
 		currentMax=(currentMax>value)?currentMax:value;
-	}
+    }
+
+    if(currentMin<lowThr) currentMin=(DTYPE)lowThr;
+    if(currentMax>upThr) currentMax=(DTYPE)upThr;
 	
 	double currentDiff = (double)(currentMax-currentMin);
 	double newDiff = (double)(newMax-newMin);
 
+    image->cal_min=newMin * image->scl_slope + image->scl_inter;
+    image->cal_max=newMax * image->scl_slope + image->scl_inter;
+
 	imagePtr = static_cast<DTYPE *>(image->data);
 
 	for(unsigned int index=0; index<image->nvox; index++){
-		double value = (double)*imagePtr;
-		value = (value-(double)currentMin)/currentDiff;
-		value = value * newDiff + newMin;
+		double value = (double)*imagePtr * image->scl_slope + image->scl_inter;
+        if(value<currentMin){
+            value = newMin;
+        }
+        else if(value>currentMax){
+            value = newMax;
+        }
+        else{
+		    value = (value-(double)currentMin)/currentDiff;
+		    value = value * newDiff + newMin;
+        }
 		*imagePtr++=(DTYPE)value;
 	}
 }
 void reg_intensityRescale(	nifti_image *image,
-				float newMin,
-				float newMax
+				            float newMin,
+				            float newMax,
+                            float lowThr,
+                            float upThr
 			)
 {
 	switch(image->datatype){
 		case NIFTI_TYPE_UINT8:
-			reg_intensityRescale2<unsigned char>(image, newMin, newMax);
+			reg_intensityRescale2<unsigned char>(image, newMin, newMax, lowThr, upThr);
 			break;
 		case NIFTI_TYPE_INT8:
-			reg_intensityRescale2<char>(image, newMin, newMax);
+			reg_intensityRescale2<char>(image, newMin, newMax, lowThr, upThr);
 			break;
 		case NIFTI_TYPE_UINT16:
-			reg_intensityRescale2<unsigned short>(image, newMin, newMax);
+			reg_intensityRescale2<unsigned short>(image, newMin, newMax, lowThr, upThr);
 			break;
 		case NIFTI_TYPE_INT16:
-			reg_intensityRescale2<short>(image, newMin, newMax);
+			reg_intensityRescale2<short>(image, newMin, newMax, lowThr, upThr);
 			break;
 		case NIFTI_TYPE_UINT32:
-			reg_intensityRescale2<unsigned int>(image, newMin, newMax);
+			reg_intensityRescale2<unsigned int>(image, newMin, newMax, lowThr, upThr);
 			break;
 		case NIFTI_TYPE_INT32:
-			reg_intensityRescale2<int>(image, newMin, newMax);
+			reg_intensityRescale2<int>(image, newMin, newMax, lowThr, upThr);
 			break;
 		case NIFTI_TYPE_FLOAT32:
-			reg_intensityRescale2<float>(image, newMin, newMax);
+			reg_intensityRescale2<float>(image, newMin, newMax, lowThr, upThr);
 			break;
 		case NIFTI_TYPE_FLOAT64:
-			reg_intensityRescale2<double>(image, newMin, newMax);
+			reg_intensityRescale2<double>(image, newMin, newMax, lowThr, upThr);
 			break;
 		default:
 			printf("err\treg_intensityRescale\tThe image data type is not supported\n");
@@ -952,17 +970,11 @@ template void reg_gaussianSmoothing<double>(nifti_image *, float, bool[8]);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class ImageTYPE>
-void reg_downsampleImage1(nifti_image *image, int type)
+void reg_downsampleImage1(nifti_image *image, int type, bool downsampleAxis[8])
 {
-
-    bool downXYZ[8]={false,false,false,false,false,false,false,false};
-    for(int i=1;i<=image->dim[0];i++){
-        if((image->dim[i]/2)>=32) downXYZ[i]=true;
-    }
-
     if(type==1){
 	    /* the input image is first smooth */
-	    reg_gaussianSmoothing<float>(image, -0.7f, downXYZ);
+	    reg_gaussianSmoothing<float>(image, -0.7f, downsampleAxis);
     }
 
 	/* the values are copied */
@@ -974,8 +986,8 @@ void reg_downsampleImage1(nifti_image *image, int type)
 	int oldDim[4];
 	for(int i=1; i<4; i++){
 		oldDim[i]=image->dim[i];
-		if(image->dim[i]>1 && downXYZ[i]==true) image->dim[i]=(int)(image->dim[i]/2.0);
-		if(image->pixdim[i]>0 && downXYZ[i]==true) image->pixdim[i]=image->pixdim[i]*2.0f;
+		if(image->dim[i]>1 && downsampleAxis[i]==true) image->dim[i]=(int)(image->dim[i]/2.0);
+		if(image->pixdim[i]>0 && downsampleAxis[i]==true) image->pixdim[i]=image->pixdim[i]*2.0f;
 	}
 	image->nx=image->dim[1];
 	image->ny=image->dim[2];
@@ -991,7 +1003,7 @@ void reg_downsampleImage1(nifti_image *image, int type)
 	for(int i=0; i<3; i++){
 		for(int j=0; j<3; j++){
 			oldMat.m[i][j]=image->qto_ijk.m[i][j];
-            if(downXYZ[j+1]==true){
+            if(downsampleAxis[j+1]==true){
 			    image->qto_xyz.m[i][j]=image->qto_xyz.m[i][j]*2.0f;
 			    image->sto_xyz.m[i][j]=image->sto_xyz.m[i][j]*2.0f;
             }
@@ -1099,40 +1111,40 @@ void reg_downsampleImage1(nifti_image *image, int type)
 }
 /* *************************************************************** */
 template <class PrecisionTYPE>
-void reg_downsampleImage(nifti_image *image, int type)
+void reg_downsampleImage(nifti_image *image, int type, bool downsampleAxis[8])
 {
 	switch(image->datatype){
 		case NIFTI_TYPE_UINT8:
-			reg_downsampleImage1<PrecisionTYPE,unsigned char>(image, type);
+			reg_downsampleImage1<PrecisionTYPE,unsigned char>(image, type, downsampleAxis);
 			break;
 		case NIFTI_TYPE_INT8:
-			reg_downsampleImage1<PrecisionTYPE,char>(image, type);
+			reg_downsampleImage1<PrecisionTYPE,char>(image, type, downsampleAxis);
 			break;
 		case NIFTI_TYPE_UINT16:
-			reg_downsampleImage1<PrecisionTYPE,unsigned short>(image, type);
+			reg_downsampleImage1<PrecisionTYPE,unsigned short>(image, type, downsampleAxis);
 			break;
 		case NIFTI_TYPE_INT16:
-			reg_downsampleImage1<PrecisionTYPE,short>(image, type);
+			reg_downsampleImage1<PrecisionTYPE,short>(image, type, downsampleAxis);
 			break;
 		case NIFTI_TYPE_UINT32:
-			reg_downsampleImage1<PrecisionTYPE,unsigned int>(image, type);
+			reg_downsampleImage1<PrecisionTYPE,unsigned int>(image, type, downsampleAxis);
 			break;
 		case NIFTI_TYPE_INT32:
-			reg_downsampleImage1<PrecisionTYPE,int>(image, type);
+			reg_downsampleImage1<PrecisionTYPE,int>(image, type, downsampleAxis);
 			break;
 		case NIFTI_TYPE_FLOAT32:
-			reg_downsampleImage1<PrecisionTYPE,float>(image, type);
+			reg_downsampleImage1<PrecisionTYPE,float>(image, type, downsampleAxis);
 			break;
 		case NIFTI_TYPE_FLOAT64:
-			reg_downsampleImage1<PrecisionTYPE,double>(image, type);
+			reg_downsampleImage1<PrecisionTYPE,double>(image, type, downsampleAxis);
 			break;
 		default:
 			printf("err\treg_downsampleImage\tThe image data type is not supported\n");
 			return;
 	}
 }
-template void reg_downsampleImage<float>(nifti_image *, int);
-template void reg_downsampleImage<double>(nifti_image *, int);
+template void reg_downsampleImage<float>(nifti_image *, int, bool[8]);
+template void reg_downsampleImage<double>(nifti_image *, int, bool[8]);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>

@@ -19,7 +19,9 @@
 extern "C++"
 void reg_intensityRescale(	nifti_image *image,
 							float newMin,
-							float newMax
+							float newMax,
+                            float lowThr,
+                            float upThr
 		 				);
 
 extern "C++" template <class PrecisionTYPE>
@@ -38,7 +40,7 @@ void reg_gaussianSmoothing(	nifti_image *image,
                             bool[8]);
 
 extern "C++" template <class PrecisionTYPE>
-void reg_downsampleImage(nifti_image *image, int);
+void reg_downsampleImage(nifti_image *image, int, bool[8]);
 
 extern "C++" template <class PrecisionTYPE>
 PrecisionTYPE reg_getMaximalLength(nifti_image *image);
