@@ -167,8 +167,8 @@ void reg_bspline2D( nifti_image *splineControlPoint,
                     yReal= val.f[0]+val.f[1]+val.f[2]+val.f[3];
 #else
                     for(unsigned int i=0; i<16; i++){
-                        xReal += xControlPointCoordinates[i] * xyzBasis[i];
-                        yReal += yControlPointCoordinates[i] * xyzBasis[i];
+                        xReal += xControlPointCoordinates[i] * xyBasis[i];
+                        yReal += yControlPointCoordinates[i] * xyBasis[i];
                     }
 #endif
                 }// mask
@@ -2602,11 +2602,51 @@ void reg_bspline_refineControlPointGrid2D(  nifti_image *targetImage,
                 int X=2*x-1;
                 if(X<splineControlPoint->nx){
 
-                    /* X Axis */
-                    // 0 0
+		/* X Axis */
+			// 0 0
+			SetValue(gridPtrX, splineControlPoint->dim, X, Y, 0,
+			(GetValue(oldGridPtrX,oldDim,x-1,y-1,0) + GetValue(oldGridPtrX,oldDim,x+1,y-1,0) +
+			GetValue(oldGridPtrX,oldDim,x-1,y+1,0) + GetValue(oldGridPtrX,oldDim,x+1,y+1,0)
+			+ 6.0f * (GetValue(oldGridPtrX,oldDim,x-1,y,0) + GetValue(oldGridPtrX,oldDim,x+1,y,0) +
+			GetValue(oldGridPtrX,oldDim,x,y-1,0) + GetValue(oldGridPtrX,oldDim,x,y+1,0) )
+			+ 36.0f * GetValue(oldGridPtrX,oldDim,x,y,0) ) / 64.0f);
                     // 1 0
+			SetValue(gridPtrX, splineControlPoint->dim, X+1, Y, 0,
+			(GetValue(oldGridPtrX,oldDim,x,y-1,0) + GetValue(oldGridPtrX,oldDim,x+1,y-1,0) +
+			GetValue(oldGridPtrX,oldDim,x,y+1,0) + GetValue(oldGridPtrX,oldDim,x+1,y+1,0)
+			+ 6.0f * GetValue(oldGridPtrX,oldDim,x,y,0) + GetValue(oldGridPtrX,oldDim,x+1,y,0) ) / 16.0f);
                     // 0 1
+			SetValue(gridPtrX, splineControlPoint->dim, X, Y+1, 0,
+			(GetValue(oldGridPtrX,oldDim,x-1,y,0) + GetValue(oldGridPtrX,oldDim,x-1,y+1,0) +
+			GetValue(oldGridPtrX,oldDim,x+1,y,0) + GetValue(oldGridPtrX,oldDim,x+1,y+1,0)
+			+ 6.0f * GetValue(oldGridPtrX,oldDim,x,y,0) + GetValue(oldGridPtrX,oldDim,x,y+1,0) ) / 16.0f);
                     // 1 1
+			SetValue(gridPtrX, splineControlPoint->dim, X+1, Y+1, 0,
+			(GetValue(oldGridPtrX,oldDim,x,y,0) + GetValue(oldGridPtrX,oldDim,x+1,y,0) +
+			GetValue(oldGridPtrX,oldDim,x,y+1,0) + GetValue(oldGridPtrX,oldDim,x+1,y+1,0) ) / 4.0f);
+
+		/* Y Axis */
+			// 0 0
+			SetValue(gridPtrY, splineControlPoint->dim, X, Y, 0,
+			(GetValue(oldGridPtrY,oldDim,x-1,y-1,0) + GetValue(oldGridPtrY,oldDim,x+1,y-1,0) +
+			GetValue(oldGridPtrY,oldDim,x-1,y+1,0) + GetValue(oldGridPtrY,oldDim,x+1,y+1,0)
+			+ 6.0f * (GetValue(oldGridPtrY,oldDim,x-1,y,0) + GetValue(oldGridPtrY,oldDim,x+1,y,0) +
+			GetValue(oldGridPtrY,oldDim,x,y-1,0) + GetValue(oldGridPtrY,oldDim,x,y+1,0) )
+			+ 36.0f * GetValue(oldGridPtrY,oldDim,x,y,0) ) / 64.0f);
+                    // 1 0
+			SetValue(gridPtrY, splineControlPoint->dim, X+1, Y, 0,
+			(GetValue(oldGridPtrY,oldDim,x,y-1,0) + GetValue(oldGridPtrY,oldDim,x+1,y-1,0) +
+			GetValue(oldGridPtrY,oldDim,x,y+1,0) + GetValue(oldGridPtrY,oldDim,x+1,y+1,0)
+			+ 6.0f * GetValue(oldGridPtrY,oldDim,x,y,0) + GetValue(oldGridPtrY,oldDim,x+1,y,0) ) / 16.0f);
+                    // 0 1
+			SetValue(gridPtrY, splineControlPoint->dim, X, Y+1, 0,
+			(GetValue(oldGridPtrY,oldDim,x-1,y,0) + GetValue(oldGridPtrY,oldDim,x-1,y+1,0) +
+			GetValue(oldGridPtrY,oldDim,x+1,y,0) + GetValue(oldGridPtrY,oldDim,x+1,y+1,0)
+			+ 6.0f * GetValue(oldGridPtrY,oldDim,x,y,0) + GetValue(oldGridPtrY,oldDim,x,y+1,0) ) / 16.0f);
+                    // 1 1
+			SetValue(gridPtrY, splineControlPoint->dim, X+1, Y+1, 0,
+			(GetValue(oldGridPtrY,oldDim,x,y,0) + GetValue(oldGridPtrY,oldDim,x+1,y,0) +
+			GetValue(oldGridPtrY,oldDim,x,y+1,0) + GetValue(oldGridPtrY,oldDim,x+1,y+1,0) ) / 4.0f);
 
                 }
             }
