@@ -106,6 +106,8 @@ typedef struct{
     bool sourceLowThresholdFlag;
     bool sourceUpThresholdFlag;
 
+    bool twoDimRegistration;
+
 #ifdef _USE_CUDA	
 	bool useGPUFlag;
 	bool memoryFlag;
@@ -395,6 +397,8 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+    if(sourceHeader->nz=1) flag->twoDimRegistration=1;
+
 	/* Check the source background index */
 	if(!flag->backgroundIndexFlag) param->sourceBGValue = 0.0;
 	else{
@@ -646,13 +650,16 @@ int main(int argc, char **argv)
                 float gridSpacing[3];
                 gridSpacing[0] = param->spacing[0] * powf(2.0f, (float)(param->level2Perform-1));
                 gridSpacing[1] = param->spacing[1] * powf(2.0f, (float)(param->level2Perform-1));
-                gridSpacing[2] = param->spacing[2] * powf(2.0f, (float)(param->level2Perform-1));
+                if(!flag->twoDimRegistration)
+                    gridSpacing[2] = param->spacing[2] * powf(2.0f, (float)(param->level2Perform-1));
 
                 int dim_cpp[8];
                 dim_cpp[0]=5;
                 dim_cpp[1]=(int)floor(targetImage->nx*targetImage->dx/gridSpacing[0])+4;
                 dim_cpp[2]=(int)floor(targetImage->ny*targetImage->dy/gridSpacing[1])+4;
-                dim_cpp[3]=(int)floor(targetImage->nz*targetImage->dz/gridSpacing[2])+4;
+                if(!flag->twoDimRegistration)
+                    dim_cpp[3]=(int)floor(targetImage->nz*targetImage->dz/gridSpacing[2])+4;
+                else dim_cpp[3]=1;
                 dim_cpp[5]=3;
                 dim_cpp[4]=dim_cpp[6]=dim_cpp[7]=1;
                 if(sizeof(PrecisionTYPE)==4) controlPointImage = nifti_make_new_nim(dim_cpp, NIFTI_TYPE_FLOAT32, true);
@@ -662,7 +669,9 @@ int main(int argc, char **argv)
                 controlPointImage->pixdim[0]=1.0f;
                 controlPointImage->pixdim[1]=controlPointImage->dx=gridSpacing[0];
                 controlPointImage->pixdim[2]=controlPointImage->dy=gridSpacing[1];
-                controlPointImage->pixdim[3]=controlPointImage->dz=gridSpacing[2];
+                if(!flag->twoDimRegistration)
+                    controlPointImage->pixdim[3]=controlPointImage->dz=gridSpacing[2];
+                else controlPointImage->pixdim[3]=controlPointImage->dz=1.0f;
                 controlPointImage->pixdim[4]=controlPointImage->dt=1.0f;
                 controlPointImage->pixdim[5]=controlPointImage->du=1.0f;
                 controlPointImage->pixdim[6]=controlPointImage->dv=1.0f;
