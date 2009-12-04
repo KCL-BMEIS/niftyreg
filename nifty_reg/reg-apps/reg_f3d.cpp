@@ -1190,11 +1190,11 @@ int main(int argc, char **argv)
 						// first conjugate gradient iteration
 						if(flag->twoDimRegistration){
 							PrecisionTYPE *conjGPtrX = &conjugateG[0];
-							PrecisionTYPE *conjGPtrY = &conjGPtrX[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
+							PrecisionTYPE *conjGPtrY = &conjGPtrX[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny];
 							PrecisionTYPE *conjHPtrX = &conjugateH[0];
-							PrecisionTYPE *conjHPtrY = &conjHPtrX[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
+							PrecisionTYPE *conjHPtrY = &conjHPtrX[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny];
 							PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
-							PrecisionTYPE *gradientValuesY = &gradientValuesX[nodeNMIGradientImage->nx*nodeNMIGradientImage->ny*nodeNMIGradientImage->nz];
+							PrecisionTYPE *gradientValuesY = &gradientValuesX[nodeNMIGradientImage->nx*nodeNMIGradientImage->ny];
 							for(int i=0; i<nodeNMIGradientImage->nx*nodeNMIGradientImage->ny;i++){
 								*conjHPtrX++ = *conjGPtrX++ = - *gradientValuesX++;
 								*conjHPtrY++ = *conjGPtrY++ = - *gradientValuesY++;
