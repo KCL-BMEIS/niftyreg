@@ -1410,7 +1410,40 @@ template double reg_bspline_jacobian<double>(nifti_image *, nifti_image *, int);
 /* *************************************************************** */
 /* *************************************************************** */
 template<class NodeTYPE, class VoxelTYPE>
-void reg_voxelCentric2NodeCentric1(	nifti_image *nodeImage,
+void reg_voxelCentric2NodeCentric2D(	nifti_image *nodeImage,
+					nifti_image *voxelImage
+ 				)
+{
+	NodeTYPE *nodePtrX = static_cast<NodeTYPE *>(nodeImage->data);
+	NodeTYPE *nodePtrY = &nodePtrX[nodeImage->nx*nodeImage->ny*nodeImage->nz];
+
+	VoxelTYPE *voxelPtrX = static_cast<VoxelTYPE *>(voxelImage->data);
+	VoxelTYPE *voxelPtrY = &voxelPtrX[voxelImage->nx*voxelImage->ny*voxelImage->nz];
+
+	float ratio[2];
+	ratio[0] = nodeImage->dx / voxelImage->dx;
+	ratio[1] = nodeImage->dy / voxelImage->dy;
+
+	for(int y=0;y<nodeImage->ny; y++){
+		int Y = (int)round((float)(y-1) * ratio[1]);
+		VoxelTYPE *yvoxelPtrX=&voxelPtrX[Y*voxelImage->nx];
+		VoxelTYPE *yvoxelPtrY=&voxelPtrY[Y*voxelImage->nx];
+		for(int x=0;x<nodeImage->nx; x++){
+			int X = (int)round((float)(x-1) * ratio[0]);
+			if(Y<voxelImage->ny && -1<X && X<voxelImage->nx){
+				*nodePtrX++ = (NodeTYPE)(yvoxelPtrX[X]);
+				*nodePtrY++ = (NodeTYPE)(yvoxelPtrY[X]);
+			}
+			else{
+				*nodePtrX++ = 0.0;
+				*nodePtrY++ = 0.0;
+			}
+		}
+	}
+}
+/* *************************************************************** */
+template<class NodeTYPE, class VoxelTYPE>
+void reg_voxelCentric2NodeCentric3D(	nifti_image *nodeImage,
 					nifti_image *voxelImage
  				)
 {
@@ -1460,36 +1493,71 @@ void reg_voxelCentric2NodeCentric(	nifti_image *nodeImage,
 				)
 {
 	// it is assumed than node[000] and voxel[000] are aligned.
-	switch(nodeImage->datatype){
-		case NIFTI_TYPE_FLOAT32:
-			switch(voxelImage->datatype){
-				case NIFTI_TYPE_FLOAT32:
-					reg_voxelCentric2NodeCentric1<float, float>(nodeImage, voxelImage);
-					break;
-				case NIFTI_TYPE_FLOAT64:
-					reg_voxelCentric2NodeCentric1<float, double>(nodeImage, voxelImage);
-					break;
-				default:
-					printf("err\treg_voxelCentric2NodeCentric:v1\tdata type not supported\n");
-					break;
-			}
-			break;
-		case NIFTI_TYPE_FLOAT64:
-			switch(voxelImage->datatype){
-				case NIFTI_TYPE_FLOAT32:
-					reg_voxelCentric2NodeCentric1<double, float>(nodeImage, voxelImage);
-					break;
-				case NIFTI_TYPE_FLOAT64:
-					reg_voxelCentric2NodeCentric1<double, double>(nodeImage, voxelImage);
-					break;
-				default:
-					printf("err\treg_voxelCentric2NodeCentric:v2\tdata type not supported\n");
-					break;
-			}
-			break;
-		default:
-			printf("err\treg_voxelCentric2NodeCentric:n\tdata type not supported\n");
-			break;
+	if(nodeImage->nz==1){	
+		switch(nodeImage->datatype){
+			case NIFTI_TYPE_FLOAT32:
+				switch(voxelImage->datatype){
+					case NIFTI_TYPE_FLOAT32:
+						reg_voxelCentric2NodeCentric2D<float, float>(nodeImage, voxelImage);
+						break;
+					case NIFTI_TYPE_FLOAT64:
+						reg_voxelCentric2NodeCentric2D<float, double>(nodeImage, voxelImage);
+						break;
+					default:
+						printf("err\treg_voxelCentric2NodeCentric:v1\tdata type not supported\n");
+						break;
+				}
+				break;
+			case NIFTI_TYPE_FLOAT64:
+				switch(voxelImage->datatype){
+					case NIFTI_TYPE_FLOAT32:
+						reg_voxelCentric2NodeCentric2D<double, float>(nodeImage, voxelImage);
+						break;
+					case NIFTI_TYPE_FLOAT64:
+						reg_voxelCentric2NodeCentric2D<double, double>(nodeImage, voxelImage);
+						break;
+					default:
+						printf("err\treg_voxelCentric2NodeCentric:v2\tdata type not supported\n");
+						break;
+				}
+				break;
+			default:
+				printf("err\treg_voxelCentric2NodeCentric:n\tdata type not supported\n");
+				break;
+		}
+	}
+	else{
+		switch(nodeImage->datatype){
+			case NIFTI_TYPE_FLOAT32:
+				switch(voxelImage->datatype){
+					case NIFTI_TYPE_FLOAT32:
+						reg_voxelCentric2NodeCentric3D<float, float>(nodeImage, voxelImage);
+						break;
+					case NIFTI_TYPE_FLOAT64:
+						reg_voxelCentric2NodeCentric3D<float, double>(nodeImage, voxelImage);
+						break;
+					default:
+						printf("err\treg_voxelCentric2NodeCentric:v1\tdata type not supported\n");
+						break;
+				}
+				break;
+			case NIFTI_TYPE_FLOAT64:
+				switch(voxelImage->datatype){
+					case NIFTI_TYPE_FLOAT32:
+						reg_voxelCentric2NodeCentric3D<double, float>(nodeImage, voxelImage);
+						break;
+					case NIFTI_TYPE_FLOAT64:
+						reg_voxelCentric2NodeCentric3D<double, double>(nodeImage, voxelImage);
+						break;
+					default:
+						printf("err\treg_voxelCentric2NodeCentric:v2\tdata type not supported\n");
+						break;
+				}
+				break;
+			default:
+				printf("err\treg_voxelCentric2NodeCentric:n\tdata type not supported\n");
+				break;
+		}
 	}
 }
 /* *************************************************************** */
@@ -2578,10 +2646,11 @@ void reg_bspline_refineControlPointGrid2D(  nifti_image *targetImage,
     int oldDim[4];
     oldDim[1]=splineControlPoint->dim[1];
     oldDim[2]=splineControlPoint->dim[2];
-    oldDim[3]=splineControlPoint->dim[3];
+    oldDim[3]=1;
 
     splineControlPoint->dx = splineControlPoint->pixdim[1] = splineControlPoint->dx / 2.0f;
     splineControlPoint->dy = splineControlPoint->pixdim[2] = splineControlPoint->dy / 2.0f;
+    splineControlPoint->dz = 1.0f;
 
     splineControlPoint->dim[1]=splineControlPoint->nx=(int)floor(targetImage->nx*targetImage->dx/splineControlPoint->dx)+4;
     splineControlPoint->dim[2]=splineControlPoint->ny=(int)floor(targetImage->ny*targetImage->dy/splineControlPoint->dy)+4;
@@ -2610,17 +2679,17 @@ void reg_bspline_refineControlPointGrid2D(  nifti_image *targetImage,
 			+ 6.0f * (GetValue(oldGridPtrX,oldDim,x-1,y,0) + GetValue(oldGridPtrX,oldDim,x+1,y,0) +
 			GetValue(oldGridPtrX,oldDim,x,y-1,0) + GetValue(oldGridPtrX,oldDim,x,y+1,0) )
 			+ 36.0f * GetValue(oldGridPtrX,oldDim,x,y,0) ) / 64.0f);
-                    // 1 0
+            // 1 0
 			SetValue(gridPtrX, splineControlPoint->dim, X+1, Y, 0,
 			(GetValue(oldGridPtrX,oldDim,x,y-1,0) + GetValue(oldGridPtrX,oldDim,x+1,y-1,0) +
 			GetValue(oldGridPtrX,oldDim,x,y+1,0) + GetValue(oldGridPtrX,oldDim,x+1,y+1,0)
-			+ 6.0f * GetValue(oldGridPtrX,oldDim,x,y,0) + GetValue(oldGridPtrX,oldDim,x+1,y,0) ) / 16.0f);
-                    // 0 1
+			+ 6.0f * ( GetValue(oldGridPtrX,oldDim,x,y,0) + GetValue(oldGridPtrX,oldDim,x+1,y,0) ) ) / 16.0f);
+            // 0 1
 			SetValue(gridPtrX, splineControlPoint->dim, X, Y+1, 0,
 			(GetValue(oldGridPtrX,oldDim,x-1,y,0) + GetValue(oldGridPtrX,oldDim,x-1,y+1,0) +
 			GetValue(oldGridPtrX,oldDim,x+1,y,0) + GetValue(oldGridPtrX,oldDim,x+1,y+1,0)
-			+ 6.0f * GetValue(oldGridPtrX,oldDim,x,y,0) + GetValue(oldGridPtrX,oldDim,x,y+1,0) ) / 16.0f);
-                    // 1 1
+			+ 6.0f * ( GetValue(oldGridPtrX,oldDim,x,y,0) + GetValue(oldGridPtrX,oldDim,x,y+1,0) ) ) / 16.0f);
+            // 1 1
 			SetValue(gridPtrX, splineControlPoint->dim, X+1, Y+1, 0,
 			(GetValue(oldGridPtrX,oldDim,x,y,0) + GetValue(oldGridPtrX,oldDim,x+1,y,0) +
 			GetValue(oldGridPtrX,oldDim,x,y+1,0) + GetValue(oldGridPtrX,oldDim,x+1,y+1,0) ) / 4.0f);
@@ -2633,17 +2702,17 @@ void reg_bspline_refineControlPointGrid2D(  nifti_image *targetImage,
 			+ 6.0f * (GetValue(oldGridPtrY,oldDim,x-1,y,0) + GetValue(oldGridPtrY,oldDim,x+1,y,0) +
 			GetValue(oldGridPtrY,oldDim,x,y-1,0) + GetValue(oldGridPtrY,oldDim,x,y+1,0) )
 			+ 36.0f * GetValue(oldGridPtrY,oldDim,x,y,0) ) / 64.0f);
-                    // 1 0
+            // 1 0
 			SetValue(gridPtrY, splineControlPoint->dim, X+1, Y, 0,
 			(GetValue(oldGridPtrY,oldDim,x,y-1,0) + GetValue(oldGridPtrY,oldDim,x+1,y-1,0) +
 			GetValue(oldGridPtrY,oldDim,x,y+1,0) + GetValue(oldGridPtrY,oldDim,x+1,y+1,0)
-			+ 6.0f * GetValue(oldGridPtrY,oldDim,x,y,0) + GetValue(oldGridPtrY,oldDim,x+1,y,0) ) / 16.0f);
-                    // 0 1
+			+ 6.0f * ( GetValue(oldGridPtrY,oldDim,x,y,0) + GetValue(oldGridPtrY,oldDim,x+1,y,0) ) ) / 16.0f);
+            // 0 1
 			SetValue(gridPtrY, splineControlPoint->dim, X, Y+1, 0,
 			(GetValue(oldGridPtrY,oldDim,x-1,y,0) + GetValue(oldGridPtrY,oldDim,x-1,y+1,0) +
 			GetValue(oldGridPtrY,oldDim,x+1,y,0) + GetValue(oldGridPtrY,oldDim,x+1,y+1,0)
-			+ 6.0f * GetValue(oldGridPtrY,oldDim,x,y,0) + GetValue(oldGridPtrY,oldDim,x,y+1,0) ) / 16.0f);
-                    // 1 1
+			+ 6.0f * ( GetValue(oldGridPtrY,oldDim,x,y,0) + GetValue(oldGridPtrY,oldDim,x,y+1,0) ) ) / 16.0f);
+            // 1 1
 			SetValue(gridPtrY, splineControlPoint->dim, X+1, Y+1, 0,
 			(GetValue(oldGridPtrY,oldDim,x,y,0) + GetValue(oldGridPtrY,oldDim,x+1,y,0) +
 			GetValue(oldGridPtrY,oldDim,x,y+1,0) + GetValue(oldGridPtrY,oldDim,x+1,y+1,0) ) / 4.0f);
@@ -3455,7 +3524,37 @@ void reg_bspline_GetJacobianMatrix(	nifti_image *splineControlPoint,
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void reg_bspline_initialiseControlPointGridWithAffine1(	mat44 *affineTransformation,
+void reg_bspline_initialiseControlPointGridWithAffine2D(	mat44 *affineTransformation,
+															nifti_image *controlPointImage)
+{
+    DTYPE *CPPX=static_cast<DTYPE *>(controlPointImage->data);
+    DTYPE *CPPY=&CPPX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+
+    mat44 *cppMatrix;
+    if(controlPointImage->sform_code>0)
+        cppMatrix=&(controlPointImage->sto_xyz);
+    else cppMatrix=&(controlPointImage->qto_xyz);
+
+    mat44 voxelToRealDeformed = reg_mat44_mul(affineTransformation, cppMatrix);
+
+    float index[3];
+    float position[3];
+    index[2]=0;
+    for(int y=0; y<controlPointImage->ny; y++){
+        index[1]=(float)y;
+        for(int x=0; x<controlPointImage->nx; x++){
+            index[0]=(float)x;
+
+            reg_mat44_mul(&voxelToRealDeformed, index, position);
+
+            *CPPX++ = position[0];
+            *CPPY++ = position[1];
+        }
+    }
+}
+/* *************************************************************** */
+template <class DTYPE>
+void reg_bspline_initialiseControlPointGridWithAffine3D(	mat44 *affineTransformation,
 							nifti_image *controlPointImage)
 {
     DTYPE *CPPX=static_cast<DTYPE *>(controlPointImage->data);
@@ -3491,17 +3590,33 @@ void reg_bspline_initialiseControlPointGridWithAffine1(	mat44 *affineTransformat
 int reg_bspline_initialiseControlPointGridWithAffine(   mat44 *affineTransformation,
                                                         nifti_image *controlPointImage)
 {
-	switch(controlPointImage->datatype){
-		case NIFTI_TYPE_FLOAT32:
-			reg_bspline_initialiseControlPointGridWithAffine1<float>(affineTransformation, controlPointImage);
-			break;
-		case NIFTI_TYPE_FLOAT64:
-			reg_bspline_initialiseControlPointGridWithAffine1<double>(affineTransformation, controlPointImage);
-			break;
-		default:
-			fprintf(stderr,"ERROR:\treg_bspline_initialiseControlPointGridWithAffine\n");
-			fprintf(stderr,"ERROR:\tOnly single of double precision is implemented for the control point image\n");
-			return 1;
+	if(controlPointImage->nz==1){
+		switch(controlPointImage->datatype){
+			case NIFTI_TYPE_FLOAT32:
+				reg_bspline_initialiseControlPointGridWithAffine2D<float>(affineTransformation, controlPointImage);
+				break;
+			case NIFTI_TYPE_FLOAT64:
+				reg_bspline_initialiseControlPointGridWithAffine2D<double>(affineTransformation, controlPointImage);
+				break;
+			default:
+				fprintf(stderr,"ERROR:\treg_bspline_initialiseControlPointGridWithAffine\n");
+				fprintf(stderr,"ERROR:\tOnly single or double precision is implemented for the control point image\n");
+				return 1;
+		}
+	}
+	else{
+		switch(controlPointImage->datatype){
+			case NIFTI_TYPE_FLOAT32:
+				reg_bspline_initialiseControlPointGridWithAffine3D<float>(affineTransformation, controlPointImage);
+				break;
+			case NIFTI_TYPE_FLOAT64:
+				reg_bspline_initialiseControlPointGridWithAffine3D<double>(affineTransformation, controlPointImage);
+				break;
+			default:
+				fprintf(stderr,"ERROR:\treg_bspline_initialiseControlPointGridWithAffine\n");
+				fprintf(stderr,"ERROR:\tOnly single or double precision is implemented for the control point image\n");
+				return 1;
+		}
 	}
 	return 0;
 }

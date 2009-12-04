@@ -377,7 +377,7 @@ int main(int argc, char **argv)
 	printf("\t%ix%ix%i voxels\n",sourceHeader->nx,sourceHeader->ny,sourceHeader->nz);
 	printf("\t%gx%gx%g mm\n",sourceHeader->dx,sourceHeader->dy,sourceHeader->dz);
     printf("Maximum iteration number: %i\n",param->maxIteration);
-    printf("Percentage of blocks: %i\%\n",param->block_percent_to_use);
+    printf("Percentage of blocks: %i %%\n",param->block_percent_to_use);
 #ifdef _USE_CUDA
 	if(flag->useGPUFlag) printf("The GPU implementation is used\n");
 	else printf("The CPU implementation is used\n");
@@ -565,7 +565,7 @@ int main(int argc, char **argv)
 		else reg_mat44_disp(&sourceImage->qto_xyz, "[VERBOSE] Source image matrix (qform qto_xyz)");
 #endif
 		printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-		reg_mat44_disp(affineTransformation, "Initial affine transformation:");
+		reg_mat44_disp(affineTransformation, (char *)"Initial affine transformation:");
 
 		/* ****************** */
 		/* Rigid registration */
@@ -775,7 +775,7 @@ int main(int argc, char **argv)
                             NULL,
 							3,
 							param->sourceBGValue);
-			if(!flag->outputResultFlag) param->outputResultName="outputResult.nii";
+			if(!flag->outputResultFlag) param->outputResultName=(char *)"outputResult.nii";
 			nifti_set_filenames(resultImage, param->outputResultName, 0, 0);
 			nifti_image_write(resultImage);
 
@@ -784,7 +784,7 @@ int main(int argc, char **argv)
 		nifti_image_free(resultImage);
 		nifti_image_free(targetImage);
 		nifti_image_free(sourceImage);
-		reg_mat44_disp(affineTransformation, "Final affine transformation:");
+		reg_mat44_disp(affineTransformation, (char *)"Final affine transformation:");
 #ifdef _VERBOSE
 		mat33 tempMat;
 		for(int i=0; i<3; i++){
@@ -801,7 +801,7 @@ int main(int argc, char **argv)
 	/* The affine transformation is saved */
 	if(flag->outputAffineFlag)
 		reg_tool_WriteAffineFile(affineTransformation, param->outputAffineName);
-	else reg_tool_WriteAffineFile(affineTransformation, "outputAffine.txt");
+	else reg_tool_WriteAffineFile(affineTransformation, (char *)"outputAffine.txt");
 		
 	free(affineTransformation);
 	nifti_image_free(targetHeader);
