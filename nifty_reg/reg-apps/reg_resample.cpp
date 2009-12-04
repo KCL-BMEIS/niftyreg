@@ -210,7 +210,10 @@ int main(int argc, char **argv)
 		positionFieldImage->dim[2]=positionFieldImage->ny=targetImage->ny;
 		positionFieldImage->dim[3]=positionFieldImage->nz=targetImage->nz;
 		positionFieldImage->dim[4]=positionFieldImage->nt=1;positionFieldImage->pixdim[4]=positionFieldImage->dt=1.0;
-		positionFieldImage->dim[5]=positionFieldImage->nu=3;positionFieldImage->pixdim[5]=positionFieldImage->du=1.0;
+		if(targetImage->nz>1)
+			positionFieldImage->dim[5]=positionFieldImage->nu=3;
+		else positionFieldImage->dim[5]=positionFieldImage->nu=2;
+		positionFieldImage->pixdim[5]=positionFieldImage->du=1.0;
 		positionFieldImage->dim[6]=positionFieldImage->nv=1;positionFieldImage->pixdim[6]=positionFieldImage->dv=1.0;
 		positionFieldImage->dim[7]=positionFieldImage->nw=1;positionFieldImage->pixdim[7]=positionFieldImage->dw=1.0;
 		positionFieldImage->nvox=positionFieldImage->nx*positionFieldImage->ny*positionFieldImage->nz*positionFieldImage->nt*positionFieldImage->nu;
@@ -387,21 +390,37 @@ int main(int argc, char **argv)
 		displacementFieldImage->data = (void *)calloc(displacementFieldImage->nvox, displacementFieldImage->nbyper);
 		nifti_set_filenames(displacementFieldImage, param->outputDispName, 0, 0);
 		memcpy(displacementFieldImage->data, positionFieldImage->data, displacementFieldImage->nvox*displacementFieldImage->nbyper);
-		PrecisionTYPE *fullDefPtrX=static_cast<PrecisionTYPE *>(displacementFieldImage->data);
-		PrecisionTYPE *fullDefPtrY=&fullDefPtrX[targetImage->nvox];
-		PrecisionTYPE *fullDefPtrZ=&fullDefPtrY[targetImage->nvox];
-		PrecisionTYPE position[3];
-		for(int z=0; z<displacementFieldImage->nz; z++){
-			for(int y=0; y<displacementFieldImage->ny; y++){
-				for(int x=0; x<displacementFieldImage->nx; x++){
-					position[0]=x*targetImage->qto_xyz.m[0][0] + y*targetImage->qto_xyz.m[0][1] + z*targetImage->qto_xyz.m[0][2] + targetImage->qto_xyz.m[0][3];
-					position[1]=x*targetImage->qto_xyz.m[1][0] + y*targetImage->qto_xyz.m[1][1] + z*targetImage->qto_xyz.m[1][2] + targetImage->qto_xyz.m[1][3];
-					position[2]=x*targetImage->qto_xyz.m[2][0] + y*targetImage->qto_xyz.m[2][1] + z*targetImage->qto_xyz.m[2][2] + targetImage->qto_xyz.m[2][3];
-					*fullDefPtrX++ -= position[0];
-					*fullDefPtrY++ -= position[1];
-					*fullDefPtrZ++ -= position[2];
+		if(targetImage->nz>1){
+			PrecisionTYPE *fullDefPtrX=static_cast<PrecisionTYPE *>(displacementFieldImage->data);
+			PrecisionTYPE *fullDefPtrY=&fullDefPtrX[targetImage->nvox];
+			PrecisionTYPE *fullDefPtrZ=&fullDefPtrY[targetImage->nvox];
+			PrecisionTYPE position[3];
+			for(int z=0; z<displacementFieldImage->nz; z++){
+				for(int y=0; y<displacementFieldImage->ny; y++){
+					for(int x=0; x<displacementFieldImage->nx; x++){
+						position[0]=x*targetImage->qto_xyz.m[0][0] + y*targetImage->qto_xyz.m[0][1] + z*targetImage->qto_xyz.m[0][2] + targetImage->qto_xyz.m[0][3];
+						position[1]=x*targetImage->qto_xyz.m[1][0] + y*targetImage->qto_xyz.m[1][1] + z*targetImage->qto_xyz.m[1][2] + targetImage->qto_xyz.m[1][3];
+						position[2]=x*targetImage->qto_xyz.m[2][0] + y*targetImage->qto_xyz.m[2][1] + z*targetImage->qto_xyz.m[2][2] + targetImage->qto_xyz.m[2][3];
+						*fullDefPtrX++ -= position[0];
+						*fullDefPtrY++ -= position[1];
+						*fullDefPtrZ++ -= position[2];
+					}
 				}
 			}
+		}
+		else{
+			PrecisionTYPE *fullDefPtrX=static_cast<PrecisionTYPE *>(displacementFieldImage->data);
+			PrecisionTYPE *fullDefPtrY=&fullDefPtrX[targetImage->nvox];
+			PrecisionTYPE position[3];
+			for(int y=0; y<displacementFieldImage->ny; y++){
+				for(int x=0; x<displacementFieldImage->nx; x++){
+					position[0]=x*targetImage->qto_xyz.m[0][0] + y*targetImage->qto_xyz.m[0][1] + targetImage->qto_xyz.m[0][3];
+					position[1]=x*targetImage->qto_xyz.m[1][0] + y*targetImage->qto_xyz.m[1][1] + targetImage->qto_xyz.m[1][3];
+					*fullDefPtrX++ -= position[0];
+					*fullDefPtrY++ -= position[1];
+				}
+			}
+			
 		}
 		nifti_image_write(displacementFieldImage);
 		nifti_image_free(displacementFieldImage);

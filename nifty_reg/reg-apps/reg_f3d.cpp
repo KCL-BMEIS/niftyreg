@@ -473,7 +473,7 @@ int main(int argc, char **argv)
 			return 1;
 		}
 	}
-    if(!flag->outputCPPFlag) param->outputCPPName="outputCPP.nii";
+    if(!flag->outputCPPFlag) param->outputCPPName=(char *)"outputCPP.nii";
 
     /* read and binarise the target mask image */
     nifti_image *targetMaskImage;
@@ -657,10 +657,14 @@ int main(int argc, char **argv)
                 dim_cpp[0]=5;
                 dim_cpp[1]=(int)floor(targetImage->nx*targetImage->dx/gridSpacing[0])+4;
                 dim_cpp[2]=(int)floor(targetImage->ny*targetImage->dy/gridSpacing[1])+4;
-                if(!flag->twoDimRegistration)
+                if(flag->twoDimRegistration){
+                	dim_cpp[3]=1;
+                	dim_cpp[5]=2;
+                }
+                else{
                     dim_cpp[3]=(int)floor(targetImage->nz*targetImage->dz/gridSpacing[2])+4;
-                else dim_cpp[3]=1;
-                dim_cpp[5]=3;
+                	dim_cpp[5]=3;
+                }
                 dim_cpp[4]=dim_cpp[6]=dim_cpp[7]=1;
                 if(sizeof(PrecisionTYPE)==4) controlPointImage = nifti_make_new_nim(dim_cpp, NIFTI_TYPE_FLOAT32, true);
                 else controlPointImage = nifti_make_new_nim(dim_cpp, NIFTI_TYPE_FLOAT64, true);
@@ -669,8 +673,7 @@ int main(int argc, char **argv)
                 controlPointImage->pixdim[0]=1.0f;
                 controlPointImage->pixdim[1]=controlPointImage->dx=gridSpacing[0];
                 controlPointImage->pixdim[2]=controlPointImage->dy=gridSpacing[1];
-                if(!flag->twoDimRegistration)
-                    controlPointImage->pixdim[3]=controlPointImage->dz=gridSpacing[2];
+                if(!flag->twoDimRegistration) controlPointImage->pixdim[3]=controlPointImage->dz=gridSpacing[2];
                 else controlPointImage->pixdim[3]=controlPointImage->dz=1.0f;
                 controlPointImage->pixdim[4]=controlPointImage->dt=1.0f;
                 controlPointImage->pixdim[5]=controlPointImage->du=1.0f;
@@ -756,7 +759,9 @@ int main(int argc, char **argv)
         positionFieldImage->dim[2]=positionFieldImage->ny=targetImage->ny;
         positionFieldImage->dim[3]=positionFieldImage->nz=targetImage->nz;
         positionFieldImage->dim[4]=positionFieldImage->nt=1;positionFieldImage->pixdim[4]=positionFieldImage->dt=1.0;
-        positionFieldImage->dim[5]=positionFieldImage->nu=3;positionFieldImage->pixdim[5]=positionFieldImage->du=1.0;
+        if(flag->twoDimRegistration) positionFieldImage->dim[5]=positionFieldImage->nu=2;
+	    else positionFieldImage->dim[5]=positionFieldImage->nu=3;
+	    positionFieldImage->pixdim[5]=positionFieldImage->du=1.0;
         positionFieldImage->dim[6]=positionFieldImage->nv=1;positionFieldImage->pixdim[6]=positionFieldImage->dv=1.0;
         positionFieldImage->dim[7]=positionFieldImage->nw=1;positionFieldImage->pixdim[7]=positionFieldImage->dw=1.0;
         positionFieldImage->nvox=positionFieldImage->nx*positionFieldImage->ny*positionFieldImage->nz*positionFieldImage->nt*positionFieldImage->nu;
@@ -1117,25 +1122,42 @@ int main(int argc, char **argv)
 				reg_voxelCentric2NodeCentric(nodeNMIGradientImage,voxelNMIGradientImage);
 
 				/* The NMI gradient is converted from voxel space to real space */
-				PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
-				PrecisionTYPE *gradientValuesY = &gradientValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-				PrecisionTYPE *gradientValuesZ = &gradientValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-				PrecisionTYPE newGradientValueX, newGradientValueY, newGradientValueZ;
-				for(int i=0; i<controlPointImage->nx*controlPointImage->ny*controlPointImage->nz; i++){
-	
-					newGradientValueX = 	*gradientValuesX * sourceMatrix_xyz->m[0][0] +
-								*gradientValuesY * sourceMatrix_xyz->m[0][1] +
-								*gradientValuesZ * sourceMatrix_xyz->m[0][2];
-					newGradientValueY = 	*gradientValuesX * sourceMatrix_xyz->m[1][0] +
-								*gradientValuesY * sourceMatrix_xyz->m[1][1] +
-								*gradientValuesZ * sourceMatrix_xyz->m[1][2];
-					newGradientValueZ = 	*gradientValuesX * sourceMatrix_xyz->m[2][0] +
-								*gradientValuesY * sourceMatrix_xyz->m[2][1] +
-								*gradientValuesZ * sourceMatrix_xyz->m[2][2];
-	
-					*gradientValuesX++ = newGradientValueX;
-					*gradientValuesY++ = newGradientValueY;
-					*gradientValuesZ++ = newGradientValueZ;
+				if(flag->twoDimRegistration){
+					PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
+					PrecisionTYPE *gradientValuesY = &gradientValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+					PrecisionTYPE newGradientValueX, newGradientValueY;
+					for(int i=0; i<controlPointImage->nx*controlPointImage->ny*controlPointImage->nz; i++){
+		
+						newGradientValueX = 	*gradientValuesX * sourceMatrix_xyz->m[0][0] +
+									*gradientValuesY * sourceMatrix_xyz->m[0][1];
+						newGradientValueY = 	*gradientValuesX * sourceMatrix_xyz->m[1][0] +
+									*gradientValuesY * sourceMatrix_xyz->m[1][1];
+		
+						*gradientValuesX++ = newGradientValueX;
+						*gradientValuesY++ = newGradientValueY;
+					}
+				}
+				else{
+					PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
+					PrecisionTYPE *gradientValuesY = &gradientValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+					PrecisionTYPE *gradientValuesZ = &gradientValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+					PrecisionTYPE newGradientValueX, newGradientValueY, newGradientValueZ;
+					for(int i=0; i<controlPointImage->nx*controlPointImage->ny*controlPointImage->nz; i++){
+		
+						newGradientValueX = 	*gradientValuesX * sourceMatrix_xyz->m[0][0] +
+									*gradientValuesY * sourceMatrix_xyz->m[0][1] +
+									*gradientValuesZ * sourceMatrix_xyz->m[0][2];
+						newGradientValueY = 	*gradientValuesX * sourceMatrix_xyz->m[1][0] +
+									*gradientValuesY * sourceMatrix_xyz->m[1][1] +
+									*gradientValuesZ * sourceMatrix_xyz->m[1][2];
+						newGradientValueZ = 	*gradientValuesX * sourceMatrix_xyz->m[2][0] +
+									*gradientValuesY * sourceMatrix_xyz->m[2][1] +
+									*gradientValuesZ * sourceMatrix_xyz->m[2][2];
+		
+						*gradientValuesX++ = newGradientValueX;
+						*gradientValuesY++ = newGradientValueY;
+						*gradientValuesZ++ = newGradientValueZ;
+					}
 				}
 
 				/* The other gradients are calculated */
@@ -1166,51 +1188,89 @@ int main(int argc, char **argv)
 				if(!flag->noConjugateGradient){
 					if(iteration==1){
 						// first conjugate gradient iteration
-						PrecisionTYPE *conjGPtrX = &conjugateG[0];
-						PrecisionTYPE *conjGPtrY = &conjGPtrX[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
-						PrecisionTYPE *conjGPtrZ = &conjGPtrY[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
-						PrecisionTYPE *conjHPtrX = &conjugateH[0];
-						PrecisionTYPE *conjHPtrY = &conjHPtrX[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
-						PrecisionTYPE *conjHPtrZ = &conjHPtrY[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
-						PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
-						PrecisionTYPE *gradientValuesY = &gradientValuesX[nodeNMIGradientImage->nx*nodeNMIGradientImage->ny*nodeNMIGradientImage->nz];
-						PrecisionTYPE *gradientValuesZ = &gradientValuesY[nodeNMIGradientImage->nx*nodeNMIGradientImage->ny*nodeNMIGradientImage->nz];
-						for(int i=0; i<nodeNMIGradientImage->nx*nodeNMIGradientImage->ny*nodeNMIGradientImage->nz;i++){
-							*conjHPtrX++ = *conjGPtrX++ = - *gradientValuesX++;
-							*conjHPtrY++ = *conjGPtrY++ = - *gradientValuesY++;
-							*conjHPtrZ++ = *conjGPtrZ++ = - *gradientValuesZ++;
+						if(flag->twoDimRegistration){
+							PrecisionTYPE *conjGPtrX = &conjugateG[0];
+							PrecisionTYPE *conjGPtrY = &conjGPtrX[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
+							PrecisionTYPE *conjHPtrX = &conjugateH[0];
+							PrecisionTYPE *conjHPtrY = &conjHPtrX[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
+							PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
+							PrecisionTYPE *gradientValuesY = &gradientValuesX[nodeNMIGradientImage->nx*nodeNMIGradientImage->ny*nodeNMIGradientImage->nz];
+							for(int i=0; i<nodeNMIGradientImage->nx*nodeNMIGradientImage->ny;i++){
+								*conjHPtrX++ = *conjGPtrX++ = - *gradientValuesX++;
+								*conjHPtrY++ = *conjGPtrY++ = - *gradientValuesY++;
+							}
+						}else{
+							PrecisionTYPE *conjGPtrX = &conjugateG[0];
+							PrecisionTYPE *conjGPtrY = &conjGPtrX[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
+							PrecisionTYPE *conjGPtrZ = &conjGPtrY[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
+							PrecisionTYPE *conjHPtrX = &conjugateH[0];
+							PrecisionTYPE *conjHPtrY = &conjHPtrX[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
+							PrecisionTYPE *conjHPtrZ = &conjHPtrY[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
+							PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
+							PrecisionTYPE *gradientValuesY = &gradientValuesX[nodeNMIGradientImage->nx*nodeNMIGradientImage->ny*nodeNMIGradientImage->nz];
+							PrecisionTYPE *gradientValuesZ = &gradientValuesY[nodeNMIGradientImage->nx*nodeNMIGradientImage->ny*nodeNMIGradientImage->nz];
+							for(int i=0; i<nodeNMIGradientImage->nx*nodeNMIGradientImage->ny*nodeNMIGradientImage->nz;i++){
+								*conjHPtrX++ = *conjGPtrX++ = - *gradientValuesX++;
+								*conjHPtrY++ = *conjGPtrY++ = - *gradientValuesY++;
+								*conjHPtrZ++ = *conjGPtrZ++ = - *gradientValuesZ++;
+							}
 						}
 					}
 					else{
 						double dgg=0.0, gg=0.0;
-						PrecisionTYPE *conjGPtrX = &conjugateG[0];
-						PrecisionTYPE *conjGPtrY = &conjGPtrX[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
-						PrecisionTYPE *conjGPtrZ = &conjGPtrY[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
-						PrecisionTYPE *conjHPtrX = &conjugateH[0];
-						PrecisionTYPE *conjHPtrY = &conjHPtrX[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
-						PrecisionTYPE *conjHPtrZ = &conjHPtrY[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
-						PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
-						PrecisionTYPE *gradientValuesY = &gradientValuesX[nodeNMIGradientImage->nx*nodeNMIGradientImage->ny*nodeNMIGradientImage->nz];
-						PrecisionTYPE *gradientValuesZ = &gradientValuesY[nodeNMIGradientImage->nx*nodeNMIGradientImage->ny*nodeNMIGradientImage->nz];
-						for(int i=0; i<nodeNMIGradientImage->nx*nodeNMIGradientImage->ny*nodeNMIGradientImage->nz;i++){
-							gg += conjHPtrX[i] * conjGPtrX[i];
-							gg += conjHPtrY[i] * conjGPtrY[i];
-							gg += conjHPtrZ[i] * conjGPtrZ[i];
-							dgg += (gradientValuesX[i] + conjGPtrX[i]) * gradientValuesX[i];
-							dgg += (gradientValuesY[i] + conjGPtrY[i]) * gradientValuesY[i];
-							dgg += (gradientValuesZ[i] + conjGPtrZ[i]) * gradientValuesZ[i];
+						if(flag->twoDimRegistration){
+							PrecisionTYPE *conjGPtrX = &conjugateG[0];
+							PrecisionTYPE *conjGPtrY = &conjGPtrX[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
+							PrecisionTYPE *conjHPtrX = &conjugateH[0];
+							PrecisionTYPE *conjHPtrY = &conjHPtrX[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
+							PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
+							PrecisionTYPE *gradientValuesY = &gradientValuesX[nodeNMIGradientImage->nx*nodeNMIGradientImage->ny*nodeNMIGradientImage->nz];
+							for(int i=0; i<nodeNMIGradientImage->nx*nodeNMIGradientImage->ny;i++){
+								gg += conjHPtrX[i] * conjGPtrX[i];
+								gg += conjHPtrY[i] * conjGPtrY[i];
+								dgg += (gradientValuesX[i] + conjGPtrX[i]) * gradientValuesX[i];
+								dgg += (gradientValuesY[i] + conjGPtrY[i]) * gradientValuesY[i];
+							}
+							double gam = dgg/gg;
+							for(int i=0; i<nodeNMIGradientImage->nx*nodeNMIGradientImage->ny;i++){
+								conjGPtrX[i] = - gradientValuesX[i];
+								conjGPtrY[i] = - gradientValuesY[i];
+								conjHPtrX[i] = (float)(conjGPtrX[i] + gam * conjHPtrX[i]);
+								conjHPtrY[i] = (float)(conjGPtrY[i] + gam * conjHPtrY[i]);
+								gradientValuesX[i] = - conjHPtrX[i];
+								gradientValuesY[i] = - conjHPtrY[i];
+							}
 						}
-						double gam = dgg/gg;
-						for(int i=0; i<nodeNMIGradientImage->nx*nodeNMIGradientImage->ny*nodeNMIGradientImage->nz;i++){
-							conjGPtrX[i] = - gradientValuesX[i];
-							conjGPtrY[i] = - gradientValuesY[i];
-							conjGPtrZ[i] = - gradientValuesZ[i];
-							conjHPtrX[i] = (float)(conjGPtrX[i] + gam * conjHPtrX[i]);
-							conjHPtrY[i] = (float)(conjGPtrY[i] + gam * conjHPtrY[i]);
-							conjHPtrZ[i] = (float)(conjGPtrZ[i] + gam * conjHPtrZ[i]);
-							gradientValuesX[i] = - conjHPtrX[i];
-							gradientValuesY[i] = - conjHPtrY[i];
-							gradientValuesZ[i] = - conjHPtrZ[i];
+						else{
+							PrecisionTYPE *conjGPtrX = &conjugateG[0];
+							PrecisionTYPE *conjGPtrY = &conjGPtrX[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
+							PrecisionTYPE *conjGPtrZ = &conjGPtrY[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
+							PrecisionTYPE *conjHPtrX = &conjugateH[0];
+							PrecisionTYPE *conjHPtrY = &conjHPtrX[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
+							PrecisionTYPE *conjHPtrZ = &conjHPtrY[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
+							PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
+							PrecisionTYPE *gradientValuesY = &gradientValuesX[nodeNMIGradientImage->nx*nodeNMIGradientImage->ny*nodeNMIGradientImage->nz];
+							PrecisionTYPE *gradientValuesZ = &gradientValuesY[nodeNMIGradientImage->nx*nodeNMIGradientImage->ny*nodeNMIGradientImage->nz];
+							for(int i=0; i<nodeNMIGradientImage->nx*nodeNMIGradientImage->ny*nodeNMIGradientImage->nz;i++){
+								gg += conjHPtrX[i] * conjGPtrX[i];
+								gg += conjHPtrY[i] * conjGPtrY[i];
+								gg += conjHPtrZ[i] * conjGPtrZ[i];
+								dgg += (gradientValuesX[i] + conjGPtrX[i]) * gradientValuesX[i];
+								dgg += (gradientValuesY[i] + conjGPtrY[i]) * gradientValuesY[i];
+								dgg += (gradientValuesZ[i] + conjGPtrZ[i]) * gradientValuesZ[i];
+							}
+							double gam = dgg/gg;
+							for(int i=0; i<nodeNMIGradientImage->nx*nodeNMIGradientImage->ny*nodeNMIGradientImage->nz;i++){
+								conjGPtrX[i] = - gradientValuesX[i];
+								conjGPtrY[i] = - gradientValuesY[i];
+								conjGPtrZ[i] = - gradientValuesZ[i];
+								conjHPtrX[i] = (float)(conjGPtrX[i] + gam * conjHPtrX[i]);
+								conjHPtrY[i] = (float)(conjGPtrY[i] + gam * conjHPtrY[i]);
+								conjHPtrZ[i] = (float)(conjGPtrZ[i] + gam * conjHPtrZ[i]);
+								gradientValuesX[i] = - conjHPtrX[i];
+								gradientValuesY[i] = - conjHPtrY[i];
+								gradientValuesZ[i] = - conjHPtrZ[i];
+							}
 						}
 					}
 				}
@@ -1274,19 +1334,33 @@ int main(int argc, char **argv)
 				else{
 #endif
 					/* Update the control point position */
-					PrecisionTYPE *controlPointValuesX = static_cast<PrecisionTYPE *>(controlPointImage->data);
-					PrecisionTYPE *controlPointValuesY = &controlPointValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-					PrecisionTYPE *controlPointValuesZ = &controlPointValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-					PrecisionTYPE *bestControlPointValuesX = &bestControlPointPosition[0];
-					PrecisionTYPE *bestControlPointValuesY = &bestControlPointValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-					PrecisionTYPE *bestControlPointValuesZ = &bestControlPointValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-					PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
-					PrecisionTYPE *gradientValuesY = &gradientValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-					PrecisionTYPE *gradientValuesZ = &gradientValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-					for(int i=0; i<controlPointImage->nx*controlPointImage->ny*controlPointImage->nz;i++){
-						*controlPointValuesX++ = *bestControlPointValuesX++ + currentLength * *gradientValuesX++;
-						*controlPointValuesY++ = *bestControlPointValuesY++ + currentLength * *gradientValuesY++;
-						*controlPointValuesZ++ = *bestControlPointValuesZ++ + currentLength * *gradientValuesZ++;
+					if(flag->twoDimRegistration){
+						PrecisionTYPE *controlPointValuesX = static_cast<PrecisionTYPE *>(controlPointImage->data);
+						PrecisionTYPE *controlPointValuesY = &controlPointValuesX[controlPointImage->nx*controlPointImage->ny];
+						PrecisionTYPE *bestControlPointValuesX = &bestControlPointPosition[0];
+						PrecisionTYPE *bestControlPointValuesY = &bestControlPointValuesX[controlPointImage->nx*controlPointImage->ny];
+						PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
+						PrecisionTYPE *gradientValuesY = &gradientValuesX[controlPointImage->nx*controlPointImage->ny];
+						for(int i=0; i<controlPointImage->nx*controlPointImage->ny;i++){
+							*controlPointValuesX++ = *bestControlPointValuesX++ + currentLength * *gradientValuesX++;
+							*controlPointValuesY++ = *bestControlPointValuesY++ + currentLength * *gradientValuesY++;
+						}
+					}
+					else{
+						PrecisionTYPE *controlPointValuesX = static_cast<PrecisionTYPE *>(controlPointImage->data);
+						PrecisionTYPE *controlPointValuesY = &controlPointValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+						PrecisionTYPE *controlPointValuesZ = &controlPointValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+						PrecisionTYPE *bestControlPointValuesX = &bestControlPointPosition[0];
+						PrecisionTYPE *bestControlPointValuesY = &bestControlPointValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+						PrecisionTYPE *bestControlPointValuesZ = &bestControlPointValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+						PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
+						PrecisionTYPE *gradientValuesY = &gradientValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+						PrecisionTYPE *gradientValuesZ = &gradientValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+						for(int i=0; i<controlPointImage->nx*controlPointImage->ny*controlPointImage->nz;i++){
+							*controlPointValuesX++ = *bestControlPointValuesX++ + currentLength * *gradientValuesX++;
+							*controlPointValuesY++ = *bestControlPointValuesY++ + currentLength * *gradientValuesY++;
+							*controlPointValuesZ++ = *bestControlPointValuesZ++ + currentLength * *gradientValuesZ++;
+						}
 					}
 
 					/* generate the position field */
@@ -1463,7 +1537,10 @@ int main(int argc, char **argv)
                 positionFieldImage->dim[2]=positionFieldImage->ny=targetHeader->ny;
                 positionFieldImage->dim[3]=positionFieldImage->nz=targetHeader->nz;
                 positionFieldImage->dim[4]=positionFieldImage->nt=1;positionFieldImage->pixdim[4]=positionFieldImage->dt=1.0;
-                positionFieldImage->dim[5]=positionFieldImage->nu=3;positionFieldImage->pixdim[5]=positionFieldImage->du=1.0;
+                if(flag->twoDimRegistration)
+                	positionFieldImage->dim[5]=positionFieldImage->nu=2;
+                else positionFieldImage->dim[5]=positionFieldImage->nu=3;
+                positionFieldImage->pixdim[5]=positionFieldImage->du=1.0;
                 positionFieldImage->dim[6]=positionFieldImage->nv=1;positionFieldImage->pixdim[6]=positionFieldImage->dv=1.0;
                 positionFieldImage->dim[7]=positionFieldImage->nw=1;positionFieldImage->pixdim[7]=positionFieldImage->dw=1.0;
                 positionFieldImage->nvox=positionFieldImage->nx*positionFieldImage->ny*positionFieldImage->nz*positionFieldImage->nt*positionFieldImage->nu;
@@ -1495,7 +1572,7 @@ int main(int argc, char **argv)
                                             NULL,
 							                3,
 							                param->sourceBGValue);
-			if(!flag->outputResultFlag) param->outputResultName="outputResult.nii";
+			if(!flag->outputResultFlag) param->outputResultName=(char *)"outputResult.nii";
 			nifti_set_filenames(resultImage, param->outputResultName, 0, 0);
 			nifti_image_write(resultImage);
 			nifti_image_free(resultImage);

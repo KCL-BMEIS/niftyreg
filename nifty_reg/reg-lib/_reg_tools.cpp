@@ -244,45 +244,46 @@ void reg_smoothImageForCubicSpline1(	nifti_image *image,
 			}
 		}
 	}
-	
-	/* Smoothing along the Z axis */
-	windowSize = 2*radius[2] + 1;
-	free(window);
-	window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
-    coeffSum=0.0;
-	for(int it=-radius[2]; it<=radius[2]; it++){
-		PrecisionTYPE coeff = (PrecisionTYPE)(fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[2]));
-		if(coeff<1.0)	window[it+radius[2]] = (PrecisionTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
-		else		window[it+radius[2]] = (PrecisionTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
-    coeffSum += window[it+radius[2]];
-	}
-    for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
-	for(int t=0;t<timePoint;t++){
-		for(int u=0;u<field;u++){
-			
-			DTYPE *readingValue=&imageArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
-			DTYPE *writtingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
-			int i=0;
-			for(int z=0; z<image->nz; z++){
-				for(int y=0; y<image->ny; y++){
-					for(int x=0; x<image->nx; x++){
-						
-						PrecisionTYPE finalValue=0.0;
-						
-						int index = i - image->nx*image->ny*radius[2];
-						int Z = z - radius[2];
-						
-						for(int it=0; it<windowSize; it++){
-							if(-1<Z && Z<image->nz){
-								DTYPE imageValue = readingValue[index];
-								PrecisionTYPE windowValue = window[it];
-								finalValue += (PrecisionTYPE)imageValue * windowValue;
+	if(image->nz>1){
+		/* Smoothing along the Z axis */
+		windowSize = 2*radius[2] + 1;
+		free(window);
+		window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
+	    coeffSum=0.0;
+		for(int it=-radius[2]; it<=radius[2]; it++){
+			PrecisionTYPE coeff = (PrecisionTYPE)(fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[2]));
+			if(coeff<1.0)	window[it+radius[2]] = (PrecisionTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
+			else		window[it+radius[2]] = (PrecisionTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
+	    coeffSum += window[it+radius[2]];
+		}
+	    for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
+		for(int t=0;t<timePoint;t++){
+			for(int u=0;u<field;u++){
+				
+				DTYPE *readingValue=&imageArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
+				DTYPE *writtingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
+				int i=0;
+				for(int z=0; z<image->nz; z++){
+					for(int y=0; y<image->ny; y++){
+						for(int x=0; x<image->nx; x++){
+							
+							PrecisionTYPE finalValue=0.0;
+							
+							int index = i - image->nx*image->ny*radius[2];
+							int Z = z - radius[2];
+							
+							for(int it=0; it<windowSize; it++){
+								if(-1<Z && Z<image->nz){
+									DTYPE imageValue = readingValue[index];
+									PrecisionTYPE windowValue = window[it];
+									finalValue += (PrecisionTYPE)imageValue * windowValue;
+								}
+								index+=image->nx*image->ny;
+								Z++;
 							}
-							index+=image->nx*image->ny;
-							Z++;
+							
+							writtingValue[i++] = (DTYPE)finalValue;
 						}
-						
-						writtingValue[i++] = (DTYPE)finalValue;
 					}
 				}
 			}
@@ -528,7 +529,24 @@ template void reg_smoothImageForTrilinear<double>(nifti_image *, int[]);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class DTYPE>
-PrecisionTYPE reg_getMaximalLength1(nifti_image *image)
+PrecisionTYPE reg_getMaximalLength2D(nifti_image *image)
+{
+	DTYPE *dataPtrX = static_cast<DTYPE *>(image->data);
+	DTYPE *dataPtrY = &dataPtrX[image->nx*image->ny*image->nz];
+	
+	PrecisionTYPE max=0.0;
+	
+	for(int i=0; i<image->nx*image->ny*image->nz; i++){
+		PrecisionTYPE valX = (PrecisionTYPE)(*dataPtrX++);
+		PrecisionTYPE valY = (PrecisionTYPE)(*dataPtrY++);
+		PrecisionTYPE length = (PrecisionTYPE)(sqrt(valX*valX + valY*valY));
+		max = (length>max)?length:max;
+	}
+	return max;
+}
+/* *************************************************************** */
+template <class PrecisionTYPE, class DTYPE>
+PrecisionTYPE reg_getMaximalLength3D(nifti_image *image)
 {
 	DTYPE *dataPtrX = static_cast<DTYPE *>(image->data);
 	DTYPE *dataPtrY = &dataPtrX[image->nx*image->ny*image->nz];
@@ -549,13 +567,25 @@ PrecisionTYPE reg_getMaximalLength1(nifti_image *image)
 template <class PrecisionTYPE>
 		PrecisionTYPE reg_getMaximalLength(nifti_image *image)
 {
-	switch(image->datatype){
-		case NIFTI_TYPE_FLOAT32:
-			return reg_getMaximalLength1<PrecisionTYPE,float>(image);
-			break;
-		case NIFTI_TYPE_FLOAT64:
-			return reg_getMaximalLength1<PrecisionTYPE,double>(image);
-			break;
+	if(image->nz==1){
+		switch(image->datatype){
+			case NIFTI_TYPE_FLOAT32:
+				return reg_getMaximalLength2D<PrecisionTYPE,float>(image);
+				break;
+			case NIFTI_TYPE_FLOAT64:
+				return reg_getMaximalLength2D<PrecisionTYPE,double>(image);
+				break;
+		}
+	}
+	else{
+		switch(image->datatype){
+			case NIFTI_TYPE_FLOAT32:
+				return reg_getMaximalLength3D<PrecisionTYPE,float>(image);
+				break;
+			case NIFTI_TYPE_FLOAT64:
+				return reg_getMaximalLength3D<PrecisionTYPE,double>(image);
+				break;
+		}
 	}
 	return 0;
 }
