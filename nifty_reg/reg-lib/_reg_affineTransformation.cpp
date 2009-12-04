@@ -181,11 +181,11 @@ void reg_tool_ReadAffineFile(	mat44 *mat,
 		absoluteTarget.m[3][3]=absoluteSource.m[3][3]=1.0;
 #ifdef _VERBOSE
 		printf("[VERBOSE] An flirt affine file is assumed and is converted to a real word affine matrix\n");
-		reg_mat44_disp(mat, "[VERBOSE] Matrix read from the input file");
-		reg_mat44_disp(targetMatrix, "[VERBOSE] Target Matrix");
-		reg_mat44_disp(sourceMatrix, "[VERBOSE] Source Matrix");
-		reg_mat44_disp(&(absoluteTarget), "[VERBOSE] Target absolute Matrix");
-		reg_mat44_disp(&(absoluteSource), "[VERBOSE] Source absolute Matrix");
+		reg_mat44_disp(mat, (char *)"[VERBOSE] Matrix read from the input file");
+		reg_mat44_disp(targetMatrix, (char *)"[VERBOSE] Target Matrix");
+		reg_mat44_disp(sourceMatrix, (char *)"[VERBOSE] Source Matrix");
+		reg_mat44_disp(&(absoluteTarget), (char *)"[VERBOSE] Target absolute Matrix");
+		reg_mat44_disp(&(absoluteSource), (char *)"[VERBOSE] Source absolute Matrix");
 #endif
 		
 		absoluteSource = nifti_mat44_inverse(absoluteSource);
@@ -199,7 +199,7 @@ void reg_tool_ReadAffineFile(	mat44 *mat,
 	}
 	
 #ifdef _VERBOSE
-	reg_mat44_disp(mat, "[VERBOSE] Affine matrix");
+	reg_mat44_disp(mat, (char *)"[VERBOSE] Affine matrix");
 #endif
 }
 /* *************************************************************** */

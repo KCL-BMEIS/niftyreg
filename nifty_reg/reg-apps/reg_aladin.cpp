@@ -387,8 +387,6 @@ int main(int argc, char **argv)
 	/* ********************** */
 	/* START THE REGISTRATION */
 	/* ********************** */
-
-    bool downsampleAxis[8]={false,false,false,false,false,false,false,false};
 	
 	for(int level=0; level<param->level2Perform; level++){
 		/* Read the target and source image */
@@ -558,11 +556,11 @@ int main(int argc, char **argv)
 			blockMatchingParams.blockNumber[1], blockMatchingParams.blockNumber[2]);
 #ifdef _VERBOSE
 		if(targetImage->sform_code>0)
-			reg_mat44_disp(&targetImage->sto_xyz, "[VERBOSE] Target image matrix (sform sto_xyz)");
-		else reg_mat44_disp(&targetImage->qto_xyz, "[VERBOSE] Target image matrix (qform qto_xyz)");
+			reg_mat44_disp(&targetImage->sto_xyz, (char *)"[VERBOSE] Target image matrix (sform sto_xyz)");
+		else reg_mat44_disp(&targetImage->qto_xyz, (char *)"[VERBOSE] Target image matrix (qform qto_xyz)");
 		if(sourceImage->sform_code>0)
-			reg_mat44_disp(&sourceImage->sto_xyz, "[VERBOSE] Source image matrix (sform sto_xyz)");
-		else reg_mat44_disp(&sourceImage->qto_xyz, "[VERBOSE] Source image matrix (qform qto_xyz)");
+			reg_mat44_disp(&sourceImage->sto_xyz, (char *)"[VERBOSE] Source image matrix (sform sto_xyz)");
+		else reg_mat44_disp(&sourceImage->qto_xyz, (char *)"[VERBOSE] Source image matrix (qform qto_xyz)");
 #endif
 		printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 		reg_mat44_disp(affineTransformation, (char *)"Initial affine transformation:");
@@ -633,8 +631,8 @@ int main(int argc, char **argv)
 				*affineTransformation = reg_mat44_mul( affineTransformation, &(updateAffineMatrix));
 #ifdef _VERBOSE
 				printf("[VERBOSE] -Rigid- iteration %i - ",iteration);
-				reg_mat44_disp(&updateAffineMatrix, "[VERBOSE] updateMatrix");
-				reg_mat44_disp(affineTransformation, "[VERBOSE] updated affine");
+				reg_mat44_disp(&updateAffineMatrix, (char *)"[VERBOSE] updateMatrix");
+				reg_mat44_disp(affineTransformation, (char *)"[VERBOSE] updated affine");
 #endif
 	
 				if(reg_test_convergence(&updateAffineMatrix)) break;
@@ -710,8 +708,8 @@ int main(int argc, char **argv)
 				*affineTransformation = reg_mat44_mul( affineTransformation, &(updateAffineMatrix));
 #ifdef _VERBOSE
 				printf("[VERBOSE] iteration %i - ",iteration);
-				reg_mat44_disp(&updateAffineMatrix, "[VERBOSE] updateMatrix");
-				reg_mat44_disp(affineTransformation, "[VERBOSE] updated affine");
+				reg_mat44_disp(&updateAffineMatrix, (char *)"[VERBOSE] updateMatrix");
+				reg_mat44_disp(affineTransformation, (char *)"[VERBOSE] updated affine");
 #endif
 				if(reg_test_convergence(&updateAffineMatrix)) break;
 				iteration++;

@@ -397,7 +397,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-    if(sourceHeader->nz=1) flag->twoDimRegistration=1;
+    if(sourceHeader->nz==1) flag->twoDimRegistration=1;
 
 	/* Check the source background index */
 	if(!flag->backgroundIndexFlag) param->sourceBGValue = 0.0;
@@ -460,7 +460,7 @@ int main(int argc, char **argv)
 						flag->affineFlirtFlag);
 		}
 #ifdef _VERBOSE
-        reg_mat44_disp(affineTransformation, "[VERBOSE] Affine transformation matrix");
+        reg_mat44_disp(affineTransformation, (char *)"[VERBOSE] Affine transformation matrix");
 #endif
 	}
 
@@ -621,7 +621,7 @@ int main(int argc, char **argv)
                 nifti_image_free(tempMaskImage);
             }
             else{
-                for(int i=0; i<targetImage->nvox; i++)
+                for(unsigned int i=0; i<targetImage->nvox; i++)
                     targetMask[i]=i;
                 activeVoxelNumber=targetImage->nvox;
             }
@@ -792,10 +792,10 @@ int main(int argc, char **argv)
 		printf("\t%gx%gx%g mm\n",controlPointImage->dx,controlPointImage->dy,controlPointImage->dz);	
 #ifdef _VERBOSE
 		if(targetImage->sform_code>0)
-			reg_mat44_disp(&targetImage->sto_xyz, "[VERBOSE] Target image matrix");
-		else reg_mat44_disp(&targetImage->qto_xyz, "[VERBOSE] Target image matrix");
-		reg_mat44_disp(sourceMatrix_xyz, "[VERBOSE] Source image matrix");
-		reg_mat44_disp(cppMatrix_xyz, "[VERBOSE] Control point image matrix");
+			reg_mat44_disp(&targetImage->sto_xyz, (char *)"[VERBOSE] Target image matrix");
+		else reg_mat44_disp(&targetImage->qto_xyz, (char *)"[VERBOSE] Target image matrix");
+		reg_mat44_disp(sourceMatrix_xyz, (char *)"[VERBOSE] Source image matrix");
+		reg_mat44_disp(cppMatrix_xyz, (char *)"[VERBOSE] Control point image matrix");
 #endif
 		printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 

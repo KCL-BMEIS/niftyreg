@@ -812,7 +812,7 @@ PrecisionTYPE reg_bspline_bendingEnergyApproxValue2D(   nifti_image *splineContr
     int coord=0;
     PrecisionTYPE constraintValue=0.0;
 
-    PrecisionTYPE basisXX[9], basisYY[9], basisZZ[9], basisXY[9], basisYZ[9], basisXZ[9];
+    PrecisionTYPE basisXX[9], basisYY[9], basisXY[9];
 
     coord=0;
     for(int b=0; b<3; b++){
@@ -1803,7 +1803,7 @@ void reg_bspline_bendingEnergyGradient2D(   nifti_image *splineControlPoint,
 
     int coord;
     // There are six different values taken into account
-    PrecisionTYPE basisXX[9], basisYY[9], basisZZ[9], basisXY[9], basisYZ[9], basisXZ[9];
+    PrecisionTYPE basisXX[9], basisYY[9], basisXY[9];
 
     coord=0;
     for(int b=0; b<3; b++){
@@ -1824,7 +1824,6 @@ void reg_bspline_bendingEnergyGradient2D(   nifti_image *splineControlPoint,
 
     PrecisionTYPE xControlPointCoordinates[27];
     PrecisionTYPE yControlPointCoordinates[27];
-    PrecisionTYPE zControlPointCoordinates[27];
 
     for(int y=1;y<splineControlPoint->ny-1;y++){
         derivativeValuesPtr = &derivativeValues[12*(y*splineControlPoint->nx+1)];
