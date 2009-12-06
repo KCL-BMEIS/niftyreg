@@ -596,7 +596,7 @@ int main(int argc, char **argv)
                 memcpy(tempMaskImage->data, targetMaskImage->data, tempMaskImage->nvox*tempMaskImage->nbyper);
             }
 
-        for(int l=level; l<param->levelNumber-1; l++){
+			for(int l=level; l<param->levelNumber-1; l++){
                 int ratio = (int)pow(2,param->levelNumber-param->levelNumber+l+1);
 
                 bool sourceDownsampleAxis[8]={true,true,true,true,true,true,true,true};
@@ -626,6 +626,17 @@ int main(int argc, char **argv)
                 activeVoxelNumber=targetImage->nvox;
             }
         }
+		else{
+            targetMask = (int *)malloc(targetImage->nvox*sizeof(int));
+            if(flag->targetMaskFlag){
+                reg_tool_binaryImage2int(targetMaskImage, targetMask, activeVoxelNumber);
+            }
+            else{
+                for(unsigned int i=0; i<targetImage->nvox; i++)
+                    targetMask[i]=i;
+                activeVoxelNumber=targetImage->nvox;
+            }
+		}
 
 
         /* smooth the input image if appropriate */

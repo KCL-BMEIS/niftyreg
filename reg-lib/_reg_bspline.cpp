@@ -126,8 +126,8 @@ void reg_bspline2D( nifti_image *splineControlPoint,
                 }
 #endif
                 if(basis<=oldBasis || x==0){
-                    memset(xControlPointCoordinates, 0, 16*sizeof(PrecisionTYPE));
-                    memset(yControlPointCoordinates, 0, 16*sizeof(PrecisionTYPE));
+//                    memset(xControlPointCoordinates, 0, 16*sizeof(PrecisionTYPE));
+//                    memset(yControlPointCoordinates, 0, 16*sizeof(PrecisionTYPE));
                     coord=0;
                     for(int Y=yPre; Y<yPre+4; Y++){
                         unsigned int index=Y*splineControlPoint->nx;
@@ -334,9 +334,9 @@ void reg_bspline3D( nifti_image *splineControlPoint,
                     }
 #endif
                     if(basis<=oldBasis || x==0){
-                        memset(xControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
-                        memset(yControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
-                        memset(zControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
+//                        memset(xControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
+//                        memset(yControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
+//                        memset(zControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
                         coord=0;
                         for(int Z=zPre; Z<zPre+4; Z++){
                             unsigned int index=Z*splineControlPoint->nx*splineControlPoint->ny;
@@ -558,16 +558,16 @@ PrecisionTYPE reg_bspline_bendingEnergyValue2D( nifti_image *splineControlPoint,
 
             if(basis<=oldBasis || x==0){
                 coord=0;
-                for(int Y=y-1; Y<y+2; Y++){
-                    unsigned int index=Y*splineControlPoint->nx;
-                    SplineTYPE *xPtr = &controlPointPtrX[index];
-                    SplineTYPE *yPtr = &controlPointPtrY[index];
-                    for(int X=x-1; X<x+2; X++){
-                        xControlPointCoordinates[coord] = (PrecisionTYPE)xPtr[X];
-                        yControlPointCoordinates[coord] = (PrecisionTYPE)yPtr[X];
-                        coord++;
-                    }
-                }
+				for(int Y=yPre; Y<yPre+4; Y++){
+					unsigned int index=Y*splineControlPoint->nx;
+					SplineTYPE *xPtr = &controlPointPtrX[index];
+					SplineTYPE *yPtr = &controlPointPtrY[index];
+					for(int X=xPre; X<xPre+4; X++){
+						xControlPointCoordinates[coord] = (PrecisionTYPE)xPtr[X];
+						yControlPointCoordinates[coord] = (PrecisionTYPE)yPtr[X];
+						coord++;
+					}
+				}
             }
 
             PrecisionTYPE XX_x=0.0;
@@ -577,7 +577,7 @@ PrecisionTYPE reg_bspline_bendingEnergyValue2D( nifti_image *splineControlPoint,
             PrecisionTYPE YY_y=0.0;
             PrecisionTYPE XY_y=0.0;
 
-            for(int a=0; a<9; a++){
+            for(int a=0; a<16; a++){
                 XX_x += basisXX[a]*xControlPointCoordinates[a];
                 YY_x += basisYY[a]*xControlPointCoordinates[a];
                 XY_x += basisXY[a]*xControlPointCoordinates[a];
