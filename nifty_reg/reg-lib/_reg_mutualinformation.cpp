@@ -226,8 +226,8 @@ void reg_getEntropies2(	nifti_image *targetImage,
 	 					int binning,
 	 					PrecisionTYPE *probaJointHistogram,
 	 					PrecisionTYPE *logJointHistogram,
-					  PrecisionTYPE *entropies,
-                    int *mask
+						PrecisionTYPE *entropies,
+						int *mask
  					)
 {
 	switch(resultImage->datatype){
