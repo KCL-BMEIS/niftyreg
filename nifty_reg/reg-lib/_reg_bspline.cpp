@@ -1651,11 +1651,11 @@ void reg_voxelCentric2NodeCentric2D(	nifti_image *nodeImage,
 	ratio[0] = nodeImage->dx / voxelImage->dx;
 	ratio[1] = nodeImage->dy / voxelImage->dy;
 
-	for(int y=1;y<nodeImage->ny; y++){
+	for(int y=0;y<nodeImage->ny; y++){
 		int Y = (int)round((float)(y-1) * ratio[1]);
 		VoxelTYPE *yVoxelPtrX=&voxelPtrX[Y*voxelImage->nx];
 		VoxelTYPE *yVoxelPtrY=&voxelPtrY[Y*voxelImage->nx];
-		for(int x=1;x<nodeImage->nx; x++){
+		for(int x=0;x<nodeImage->nx; x++){
 			int X = (int)round((float)(x-1) * ratio[0]);
 			if( -1<Y && Y<voxelImage->ny && -1<X && X<voxelImage->nx){
 				*nodePtrX++ = (NodeTYPE)(yVoxelPtrX[X]);

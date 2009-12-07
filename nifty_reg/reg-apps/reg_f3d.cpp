@@ -397,18 +397,19 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+    /* Flag for 2D registration */
     if(sourceHeader->nz==1) flag->twoDimRegistration=1;
 
-	/* Check the source background index */
-	if(!flag->backgroundIndexFlag) param->sourceBGValue = 0.0;
-	else{
-		if(param->backgroundIndex[0] < 0 || param->backgroundIndex[1] < 0 || param->backgroundIndex[2] < 0 
-		   || param->backgroundIndex[0] >= sourceHeader->dim[1] || param->backgroundIndex[1] >= sourceHeader->dim[2] || param->backgroundIndex[2] >= sourceHeader->dim[3]){
-			fprintf(stderr,"The specified index (%i %i %i) for background does not belong to the source image (out of bondary)\n",
-					param->backgroundIndex[0], param->backgroundIndex[1], param->backgroundIndex[2]);
-			return 1;
-		}
-	}
+    /* Check the source background index */
+    if(!flag->backgroundIndexFlag) param->sourceBGValue = 0.0;
+    else{
+	    if(param->backgroundIndex[0] < 0 || param->backgroundIndex[1] < 0 || param->backgroundIndex[2] < 0 
+		    || param->backgroundIndex[0] >= sourceHeader->dim[1] || param->backgroundIndex[1] >= sourceHeader->dim[2] || param->backgroundIndex[2] >= sourceHeader->dim[3]){
+		    fprintf(stderr,"The specified index (%i %i %i) for background does not belong to the source image (out of bondary)\n",
+				    param->backgroundIndex[0], param->backgroundIndex[1], param->backgroundIndex[2]);
+		    return 1;
+	    }
+    }
 
 #ifdef _USE_CUDA
     // Compute the ratio if the registration is not performed using
@@ -658,21 +659,20 @@ int main(int argc, char **argv)
         if(level==0){
             if(!flag->inputCPPFlag){
                 /* allocate the control point image */
-                float gridSpacing[3];
-                gridSpacing[0] = param->spacing[0] * powf(2.0f, (float)(param->level2Perform-1));
-                gridSpacing[1] = param->spacing[1] * powf(2.0f, (float)(param->level2Perform-1));
-                if(!flag->twoDimRegistration)
-                    gridSpacing[2] = param->spacing[2] * powf(2.0f, (float)(param->level2Perform-1));
-
                 int dim_cpp[8];
+                float gridSpacing[3];
                 dim_cpp[0]=5;
+                gridSpacing[0] = param->spacing[0] * powf(2.0f, (float)(param->level2Perform-1));
                 dim_cpp[1]=(int)floor(targetImage->nx*targetImage->dx/gridSpacing[0])+4;
+                gridSpacing[1] = param->spacing[1] * powf(2.0f, (float)(param->level2Perform-1));
                 dim_cpp[2]=(int)floor(targetImage->ny*targetImage->dy/gridSpacing[1])+4;
                 if(flag->twoDimRegistration){
+                    gridSpacing[2] = param->spacing[2] * powf(2.0f, (float)(param->level2Perform-1));
                 	dim_cpp[3]=1;
                 	dim_cpp[5]=2;
                 }
                 else{
+                    gridSpacing[2] = 1.0f;
                     dim_cpp[3]=(int)floor(targetImage->nz*targetImage->dz/gridSpacing[2])+4;
                 	dim_cpp[5]=3;
                 }
@@ -770,8 +770,10 @@ int main(int argc, char **argv)
         positionFieldImage->dim[2]=positionFieldImage->ny=targetImage->ny;
         positionFieldImage->dim[3]=positionFieldImage->nz=targetImage->nz;
         positionFieldImage->dim[4]=positionFieldImage->nt=1;positionFieldImage->pixdim[4]=positionFieldImage->dt=1.0;
+
         if(flag->twoDimRegistration) positionFieldImage->dim[5]=positionFieldImage->nu=2;
 	    else positionFieldImage->dim[5]=positionFieldImage->nu=3;
+
 	    positionFieldImage->pixdim[5]=positionFieldImage->du=1.0;
         positionFieldImage->dim[6]=positionFieldImage->nv=1;positionFieldImage->pixdim[6]=positionFieldImage->dv=1.0;
         positionFieldImage->dim[7]=positionFieldImage->nw=1;positionFieldImage->pixdim[7]=positionFieldImage->dw=1.0;
@@ -1231,11 +1233,11 @@ int main(int argc, char **argv)
 						double dgg=0.0, gg=0.0;
 						if(flag->twoDimRegistration){
 							PrecisionTYPE *conjGPtrX = &conjugateG[0];
-							PrecisionTYPE *conjGPtrY = &conjGPtrX[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
+							PrecisionTYPE *conjGPtrY = &conjGPtrX[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny];
 							PrecisionTYPE *conjHPtrX = &conjugateH[0];
-							PrecisionTYPE *conjHPtrY = &conjHPtrX[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny * nodeNMIGradientImage->nz];
+							PrecisionTYPE *conjHPtrY = &conjHPtrX[nodeNMIGradientImage->nx * nodeNMIGradientImage->ny];
 							PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
-							PrecisionTYPE *gradientValuesY = &gradientValuesX[nodeNMIGradientImage->nx*nodeNMIGradientImage->ny*nodeNMIGradientImage->nz];
+							PrecisionTYPE *gradientValuesY = &gradientValuesX[nodeNMIGradientImage->nx*nodeNMIGradientImage->ny];
 							for(int i=0; i<nodeNMIGradientImage->nx*nodeNMIGradientImage->ny;i++){
 								gg += conjHPtrX[i] * conjGPtrX[i];
 								gg += conjHPtrY[i] * conjGPtrY[i];
@@ -1289,6 +1291,7 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
 			}
 #endif
+
 	
 			/* The gradient is applied to the control point positions */
 			if(maxLength==0){
