@@ -288,9 +288,9 @@ void reg_smoothImageForCubicSpline1(	nifti_image *image,
 				}
 			}
 		}
+        memcpy(imageArray,tempArray,image->nvox * sizeof(DTYPE));
 	}
 	free(window);
-	memcpy(imageArray,tempArray,image->nvox * sizeof(DTYPE));
 	free(tempArray);
 }
 /* *************************************************************** */
