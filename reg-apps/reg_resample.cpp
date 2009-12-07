@@ -248,7 +248,7 @@ int main(int argc, char **argv)
 			jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
 			nifti_set_filenames(jacobianImage, param->outputJacobianName, 0, 0);
 			reg_bspline_GetJacobianMap(	controlPointImage,
-							jacobianImage);
+							            jacobianImage);
 			nifti_image_write(jacobianImage);
 			nifti_image_free(jacobianImage);
 			printf("Jacobian map image has been saved: %s\n", param->outputJacobianName);
@@ -265,7 +265,8 @@ int main(int argc, char **argv)
 			jacobianImage->dim[2]=jacobianImage->ny=targetImage->ny;
 			jacobianImage->dim[3]=jacobianImage->nz=targetImage->nz;
 			jacobianImage->dim[4]=jacobianImage->nt=1;jacobianImage->pixdim[4]=jacobianImage->dt=1.0;
-			jacobianImage->dim[5]=jacobianImage->nu=9;jacobianImage->pixdim[5]=jacobianImage->du=1.0;
+			jacobianImage->dim[5]=jacobianImage->nu=controlPointImage->nu*controlPointImage->nu;
+            jacobianImage->pixdim[5]=jacobianImage->du=1.0;
 			jacobianImage->dim[6]=jacobianImage->nv=1;jacobianImage->pixdim[6]=jacobianImage->dv=1.0;
 			jacobianImage->dim[7]=jacobianImage->nw=1;jacobianImage->pixdim[7]=jacobianImage->dw=1.0;
 			jacobianImage->nvox=jacobianImage->nx*jacobianImage->ny*jacobianImage->nz*jacobianImage->nt*jacobianImage->nu;
