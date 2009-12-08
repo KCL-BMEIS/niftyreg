@@ -28,8 +28,4 @@ void reg_getVoxelBasedNMIGradientUsingPW_gpu(   nifti_image *targetImage,
                                                 int binning);
 
 
-extern "C++"
-void reg_smoothImageForCubicSpline_gpu(	nifti_image *resultImage,
-					float4 **voxelNMIGradientArray_d,
-					int *smoothingRadius);
 #endif

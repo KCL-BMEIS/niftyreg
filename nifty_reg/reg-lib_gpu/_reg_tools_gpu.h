@@ -47,5 +47,16 @@ void reg_updateControlPointPosition_gpu(nifti_image *controlPointImage,
 					float4 **bestControlPointPosition_d,
 					float4 **nodeNMIGradientArray_d,
 					float currentLength);
+
+extern "C++"
+void reg_gaussianSmoothing_gpu( nifti_image *image,
+                                float4 **imageArray_d,
+                                float sigma,
+                                bool axisToSmooth[8]);
+
+extern "C++"
+void reg_smoothImageForCubicSpline_gpu( nifti_image *resultImage,
+                    float4 **voxelNMIGradientArray_d,
+                    int *smoothingRadius);
 #endif
 

@@ -11,9 +11,11 @@
 #define _REG_TOOLS_KERNELS_CU
 
 __device__ __constant__ int c_NodeNumber;
+__device__ __constant__ int c_VoxelNumber;
 __device__ __constant__ int3 c_TargetImageDim;
 __device__ __constant__ float3 c_VoxelNodeRatio;
 __device__ __constant__ int3 c_ControlPointImageDim;
+__device__ __constant__ int3 c_ImageDim;
 __device__ __constant__ float c_ScalingFactor;
 
 texture<float4, 1, cudaReadModeElementType> controlPointTexture;
@@ -21,6 +23,7 @@ texture<float4, 1, cudaReadModeElementType> gradientImageTexture;
 texture<float4, 1, cudaReadModeElementType> conjugateGTexture;
 texture<float4, 1, cudaReadModeElementType> conjugateHTexture;
 texture<float4, 1, cudaReadModeElementType> matrixTexture;
+texture<float, 1, cudaReadModeElementType> convolutionKernelTexture;
 
 __global__ void reg_voxelCentric2NodeCentric_kernel(float4 *nodeNMIGradientArray_d)
 {
@@ -151,5 +154,110 @@ __global__ void reg_updateControlPointPosition_kernel(float4 *controlPointImageA
 	
 	}
 }
+
+__global__ void _reg_ApplyConvolutionWindowAlongX_kernel(   float4 *smoothedImage,
+                                                            int windowSize)
+{
+    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    if(tid < c_VoxelNumber){
+
+        int3 imageSize = c_ImageDim;
+
+        int temp=tid;
+        const short z=(int)(temp/(imageSize.x*imageSize.y));
+        temp -= z*imageSize.x*imageSize.y;
+        const short y =(int)(temp/(imageSize.x));
+        short x = temp - y*(imageSize.x);
+
+        int radius = (windowSize-1)/2;
+        int index = tid - radius;
+        x -= radius;
+
+        float4 finalValue = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+
+        for(int i=0; i<windowSize; i++){
+            if(-1<x && x<imageSize.x){
+                float4 gradientValue = tex1Dfetch(gradientImageTexture,index);
+                float windowValue = tex1Dfetch(convolutionKernelTexture,i);
+                finalValue.x += gradientValue.x * windowValue;
+                finalValue.y += gradientValue.y * windowValue;
+                finalValue.z += gradientValue.z * windowValue;
+            }
+            index++;
+            x++;
+        }
+        smoothedImage[tid] = finalValue;
+    }
+    return;
+}
+
+
+__global__ void _reg_ApplyConvolutionWindowAlongY_kernel(float4 *smoothedImage,
+                            int windowSize)
+{
+    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    if(tid < c_VoxelNumber){
+        int3 imageSize = c_ImageDim;
+
+        const short z=(int)(tid/(imageSize.x*imageSize.y));
+        int index = tid - z*imageSize.x*imageSize.y;
+        short y=(int)(index/imageSize.x);
+
+        int radius = (windowSize-1)/2;
+        index = tid - imageSize.x*radius;
+        y -= radius;
+
+        float4 finalValue = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+
+        for(int i=0; i<windowSize; i++){
+            if(-1<y && y<imageSize.y){
+                float4 gradientValue = tex1Dfetch(gradientImageTexture,index);
+                float windowValue = tex1Dfetch(convolutionKernelTexture,i);
+                finalValue.x += gradientValue.x * windowValue;
+                finalValue.y += gradientValue.y * windowValue;
+                finalValue.z += gradientValue.z * windowValue;
+            }
+            index += imageSize.x;
+            y++;
+        }
+        smoothedImage[tid] = finalValue;
+    }
+    return;
+}
+
+
+__global__ void _reg_ApplyConvolutionWindowAlongZ_kernel(float4 *smoothedImage,
+                            int windowSize)
+{
+    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    if(tid < c_VoxelNumber){
+        int3 imageSize = c_ImageDim;
+
+        short z=(int)(tid/((imageSize.x)*(imageSize.y)));
+
+        int radius = (windowSize-1)/2;
+        int index = tid - imageSize.x*imageSize.y*radius;
+        z -= radius;
+
+        float4 finalValue = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+
+        for(int i=0; i<windowSize; i++){
+            if(-1<z && z<imageSize.z){
+                float4 gradientValue = tex1Dfetch(gradientImageTexture,index);
+                float windowValue = tex1Dfetch(convolutionKernelTexture,i);
+                finalValue.x += gradientValue.x * windowValue;
+                finalValue.y += gradientValue.y * windowValue;
+                finalValue.z += gradientValue.z * windowValue;
+            }
+            index += imageSize.x*imageSize.y;
+            z++;
+        }
+
+        smoothedImage[tid] = finalValue;
+    }
+    return;
+}
+
+
 #endif
 
