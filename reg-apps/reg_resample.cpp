@@ -198,7 +198,7 @@ int main(int argc, char **argv)
 		flag->outputPosFlag)
 		positionFieldNeeded=true;
 
-	nifti_image *positionFieldImage;
+	nifti_image *positionFieldImage=NULL;
 	if(positionFieldNeeded==true){
 		positionFieldImage = nifti_copy_nim_info(targetImage);
 		positionFieldImage->cal_min=0;

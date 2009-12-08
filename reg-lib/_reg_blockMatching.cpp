@@ -14,6 +14,7 @@
 #include <queue>
 #include <iostream>
 
+/* *************************************************************** */
 // Helper function: Get the square of the Euclidean distance
 double get_square_distance(float * first_point3D, float * second_point3D)
 {
@@ -22,6 +23,7 @@ double get_square_distance(float * first_point3D, float * second_point3D)
 		(first_point3D[2]-second_point3D[2])*(first_point3D[2]-second_point3D[2]));
 }
 
+/* *************************************************************** */
 // Heap sort
 void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum)
 {
@@ -63,7 +65,8 @@ void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum)
 		index[i]=iVal;
 	}
 }
-
+/* *************************************************************** */
+/* *************************************************************** */
 template <class DTYPE>
 void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *params, int *mask, bool runningOnGPU)
 {
@@ -79,60 +82,113 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
     DTYPE *targetValues = (DTYPE *)malloc(BLOCK_SIZE * sizeof(DTYPE));
 	DTYPE *targetPtr = static_cast<DTYPE *>(targetImage->data);
 	int blockIndex=0;
-	for(int k=0; k<params->blockNumber[2]; k++){
-		for(int j=0; j<params->blockNumber[1]; j++){
-			for(int i=0; i<params->blockNumber[0]; i++){
+
+    if(targetImage->nz>1){
+        // Version using 3D blocks
+	    for(int k=0; k<params->blockNumber[2]; k++){
+		    for(int j=0; j<params->blockNumber[1]; j++){
+			    for(int i=0; i<params->blockNumber[0]; i++){
+    
+                    memset(targetValues, 0, BLOCK_SIZE * sizeof(DTYPE));
+				    float mean=0.0f;
+				    float voxelNumber=0.0f;
+                    int coord=0;
+				    for(int z=k*BLOCK_WIDTH; z<(k+1)*BLOCK_WIDTH; z++){
+					    if(z<targetImage->nz){
+                            index =z*targetImage->nx*targetImage->ny;
+                            DTYPE *targetPtrZ=&targetPtr[index];
+                            int *maskPtrZ=&maskPtr[index];
+						    for(int y=j*BLOCK_WIDTH; y<(j+1)*BLOCK_WIDTH; y++){
+							    if(y<targetImage->ny){
+                                    index = y*targetImage->nx+i*BLOCK_WIDTH;
+                                    DTYPE *targetPtrXYZ=&targetPtrZ[index];
+                                    int *maskPtrXYZ=&maskPtrZ[index];
+								    for(int x=i*BLOCK_WIDTH; x<(i+1)*BLOCK_WIDTH; x++){
+									    if(x<targetImage->nx){
+										    targetValues[coord] = *targetPtrXYZ;
+										    if(targetValues[coord]>0.0 && *maskPtrXYZ>-1){
+											    mean += (float)targetValues[coord];
+											    voxelNumber++;
+										    }
+									    }
+                                        targetPtrXYZ++;
+                                        maskPtrXYZ++;
+                                        coord++;
+								    }
+							    }
+						    }
+					    }
+				    }
+				    if(voxelNumber>BLOCK_SIZE/2){
+                        float variance=0.0f;
+                        for(int i=0; i<BLOCK_SIZE; i++){
+						    if(targetValues[coord]>0.0)
+							    variance += (mean - (float)targetValues[i])
+                                    * (mean - (float)targetValues[i]);
+                        }
+    
+					    variance /= voxelNumber;
+					    varianceArray[blockIndex]=variance;
+				    }
+				    else{
+					    varianceArray[blockIndex]=-1;
+					    unusableBlock++;
+				    }
+				    indexArray[blockIndex]=blockIndex;
+				    blockIndex++;
+			    }
+		    }
+	    }
+    }
+    else{
+        // Version using 2D blocks
+        for(int j=0; j<params->blockNumber[1]; j++){
+            for(int i=0; i<params->blockNumber[0]; i++){
 
                 memset(targetValues, 0, BLOCK_SIZE * sizeof(DTYPE));
-				float mean=0.0f;
-				float voxelNumber=0.0f;
+                float mean=0.0f;
+                float voxelNumber=0.0f;
                 int coord=0;
-				for(int z=k*BLOCK_WIDTH; z<(k+1)*BLOCK_WIDTH; z++){
-					if(z<targetImage->nz){
-                        index =z*targetImage->nx*targetImage->ny;
-                        DTYPE *targetPtrZ=&targetPtr[index];
-                        int *maskPtrZ=&maskPtr[index];
-						for(int y=j*BLOCK_WIDTH; y<(j+1)*BLOCK_WIDTH; y++){
-							if(y<targetImage->ny){
-                                index = y*targetImage->nx+i*BLOCK_WIDTH;
-                                DTYPE *targetPtrXYZ=&targetPtrZ[index];
-                                int *maskPtrXYZ=&maskPtrZ[index];
-								for(int x=i*BLOCK_WIDTH; x<(i+1)*BLOCK_WIDTH; x++){
-									if(x<targetImage->nx){
-										targetValues[coord] = *targetPtrXYZ;
-										if(targetValues[coord]>0.0 && *maskPtrXYZ>-1){
-											mean += (float)targetValues[coord];
-											voxelNumber++;
-										}
-									}
-                                    targetPtrXYZ++;
-                                    maskPtrXYZ++;
-                                    coord++;
-								}
-							}
-						}
-					}
-				}
-				if(voxelNumber>BLOCK_SIZE/2){
+
+                for(int y=j*BLOCK_WIDTH; y<(j+1)*BLOCK_WIDTH; y++){
+                    if(y<targetImage->ny){
+                        index = y*targetImage->nx+i*BLOCK_WIDTH;
+                        DTYPE *targetPtrXY=&targetPtr[index];
+                        int *maskPtrXY=&maskPtr[index];
+                        for(int x=i*BLOCK_WIDTH; x<(i+1)*BLOCK_WIDTH; x++){
+                            if(x<targetImage->nx){
+                                targetValues[coord] = *targetPtrXY;
+                                if(targetValues[coord]>0.0 && *maskPtrXY>-1){
+                                    mean += (float)targetValues[coord];
+                                    voxelNumber++;
+                                }
+                            }
+                            targetPtrXY++;
+                            maskPtrXY++;
+                            coord++;
+                        }
+                    }
+                }
+                if(voxelNumber>BLOCK_2D_SIZE/2){
                     float variance=0.0f;
-                    for(int i=0; i<BLOCK_SIZE; i++){
-						if(targetValues[coord]>0.0)
-							variance += (mean - (float)targetValues[i])
+                    for(int i=0; i<BLOCK_2D_SIZE; i++){
+                        if(targetValues[coord]>0.0)
+                            variance += (mean - (float)targetValues[i])
                                 * (mean - (float)targetValues[i]);
                     }
 
-					variance /= voxelNumber;
-					varianceArray[blockIndex]=variance;
-				}
-				else{
-					varianceArray[blockIndex]=-1;
-					unusableBlock++;
-				}
-				indexArray[blockIndex]=blockIndex;
-				blockIndex++;
-			}
-		}
-	}
+                    variance /= voxelNumber;
+                    varianceArray[blockIndex]=variance;
+                }
+                else{
+                    varianceArray[blockIndex]=-1;
+                    unusableBlock++;
+                }
+                indexArray[blockIndex]=blockIndex;
+                blockIndex++;
+            }
+        }
+    }
     free(targetValues);
 
 	params->activeBlockNumber=params->activeBlockNumber<(totalBlockNumber-unusableBlock)?params->activeBlockNumber:(totalBlockNumber-unusableBlock);
@@ -147,14 +203,14 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
 	}
 	for (int i = params->activeBlockNumber; i < totalBlockNumber; ++i){
 		params->activeBlock[*indexArrayPtr--] = -1;
-	}    
+	}
 
     count = 0;
     if (runningOnGPU) {
         for(int i = 0; i < totalBlockNumber; ++i){
-            if(params->activeBlock[i] != -1){            
+            if(params->activeBlock[i] != -1){
                 params->activeBlock[i] = -1;
-                params->activeBlock[count] = i;            
+                params->activeBlock[count] = i;
                 ++count;
             }
         }
@@ -163,7 +219,7 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
     free(varianceArray);
     free(indexArray);
 }
-
+/* *************************************************************** */
 void initialise_block_matching_method(  nifti_image * target,
                                         _reg_blockMatchingParam *params,
                                         int percentToKeep_block,
@@ -173,7 +229,9 @@ void initialise_block_matching_method(  nifti_image * target,
 {
 	params->blockNumber[0]=(int)ceil((float)target->nx / (float)BLOCK_WIDTH);
 	params->blockNumber[1]=(int)ceil((float)target->ny / (float)BLOCK_WIDTH);
-	params->blockNumber[2]=(int)ceil((float)target->nz / (float)BLOCK_WIDTH);
+    if(target->nz>1)
+        params->blockNumber[2]=(int)ceil((float)target->nz / (float)BLOCK_WIDTH);
+    else params->blockNumber[2]=1;
 
 	params->percent_to_keep=percentToKeep_opt;
 	params->activeBlockNumber=params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2] * percentToKeep_block / 100;
@@ -203,258 +261,478 @@ void initialise_block_matching_method(  nifti_image * target,
 #ifdef _VERBOSE
 	printf("[VERBOSE]: There are %i active block(s) out of %i.\n", params->activeBlockNumber, params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2]);
 #endif
+//TODO Need to be change using only 2D array
 	params->targetPosition = (float *)malloc(params->activeBlockNumber*3*sizeof(float));
 	params->resultPosition = (float *)malloc(params->activeBlockNumber*3*sizeof(float));
 #ifdef _VERBOSE
 	printf("[VERBOSE]: block matching initialisation done.\n");
 #endif
 }
+/* *************************************************************** */
+/* *************************************************************** */
 template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageType>
-void real_block_matching_method(nifti_image * target,
+void block_matching_method2D(nifti_image * target,
                                 nifti_image * result,
                                 _reg_blockMatchingParam *params,
                                 int *mask)
 {
-	TargetImageType *targetPtr=static_cast<TargetImageType *>(target->data);
-	ResultImageType *resultPtr=static_cast<ResultImageType *>(result->data);
+    TargetImageType *targetPtr=static_cast<TargetImageType *>(target->data);
+    ResultImageType *resultPtr=static_cast<ResultImageType *>(result->data);
 
-	TargetImageType *targetValues=(TargetImageType *)malloc(BLOCK_SIZE*sizeof(TargetImageType));
-	bool *targetOverlap=(bool *)malloc(BLOCK_SIZE*sizeof(bool));
-	ResultImageType *resultValues=(ResultImageType *)malloc(BLOCK_SIZE*sizeof(ResultImageType));
-	bool *resultOverlap=(bool *)malloc(BLOCK_SIZE*sizeof(bool));
+    TargetImageType *targetValues=(TargetImageType *)malloc(BLOCK_2D_SIZE*sizeof(TargetImageType));
+    bool *targetOverlap=(bool *)malloc(BLOCK_2D_SIZE*sizeof(bool));
+    ResultImageType *resultValues=(ResultImageType *)malloc(BLOCK_2D_SIZE*sizeof(ResultImageType));
+    bool *resultOverlap=(bool *)malloc(BLOCK_2D_SIZE*sizeof(bool));
 
-	mat44 *targetMatrix_xyz;
-	if(target->sform_code >0)
-		targetMatrix_xyz = &(target->sto_xyz);
-	else targetMatrix_xyz = &(target->qto_xyz);
+    mat44 *targetMatrix_xyz;
+    if(target->sform_code >0)
+        targetMatrix_xyz = &(target->sto_xyz);
+    else targetMatrix_xyz = &(target->qto_xyz);
 
-	int targetIndex_start_x;
-	int targetIndex_start_y;
-	int targetIndex_start_z;
-	int targetIndex_end_x;
-	int targetIndex_end_y;
-	int targetIndex_end_z;
-	int resultIndex_start_x;
-	int resultIndex_start_y;
-	int resultIndex_start_z;
-	int resultIndex_end_x;
-	int resultIndex_end_y;
-	int resultIndex_end_z;
+    int targetIndex_start_x;
+    int targetIndex_start_y;
+    int targetIndex_end_x;
+    int targetIndex_end_y;
+    int resultIndex_start_x;
+    int resultIndex_start_y;
+    int resultIndex_end_x;
+    int resultIndex_end_y;
 
-	unsigned int targetIndex;
-	unsigned int resultIndex;
+    unsigned int targetIndex;
+    unsigned int resultIndex;
 
-	unsigned int blockIndex=0;
-	unsigned int activeBlockIndex=0;
+    unsigned int blockIndex=0;
+    unsigned int activeBlockIndex=0;
     int index;
 
-	for(int k=0; k<params->blockNumber[2]; k++){
-		targetIndex_start_z=k*BLOCK_WIDTH;
-		targetIndex_end_z=targetIndex_start_z+BLOCK_WIDTH;
+    for(int j=0; j<params->blockNumber[1]; j++){
+        targetIndex_start_y=j*BLOCK_WIDTH;
+        targetIndex_end_y=targetIndex_start_y+BLOCK_WIDTH;
 
-		for(int j=0; j<params->blockNumber[1]; j++){
-			targetIndex_start_y=j*BLOCK_WIDTH;
-			targetIndex_end_y=targetIndex_start_y+BLOCK_WIDTH;
+        for(int i=0; i<params->blockNumber[0]; i++){
+            targetIndex_start_x=i*BLOCK_WIDTH;
+            targetIndex_end_x=targetIndex_start_x+BLOCK_WIDTH;
 
-			for(int i=0; i<params->blockNumber[0]; i++){
-				targetIndex_start_x=i*BLOCK_WIDTH;
-				targetIndex_end_x=targetIndex_start_x+BLOCK_WIDTH;
+            if(params->activeBlock[blockIndex] > -1){
 
-				if(params->activeBlock[blockIndex] > -1){
-					targetIndex=0;
-					memset(targetOverlap, 0, BLOCK_SIZE*sizeof(bool));
-					for(int z=targetIndex_start_z; z<targetIndex_end_z; z++){
-						if(-1<z && z<target->nz){
+                targetIndex=0;
+                memset(targetOverlap, 0, BLOCK_2D_SIZE*sizeof(bool));
+
+
+                for(int y=targetIndex_start_y; y<targetIndex_end_y; y++){
+                    if(-1<y && y<target->ny){
+                        index = y*target->nx+targetIndex_start_x;
+                        TargetImageType *targetPtr_XY = &targetPtr[index];
+                        int *maskPtr_XY=&mask[index];
+                        for(int x=targetIndex_start_x; x<targetIndex_end_x; x++){
+                            if(-1<x && x<target->nx){
+                                TargetImageType value = *targetPtr_XY;
+                                if(value>0.0 && *maskPtr_XY>-1){
+                                    targetValues[targetIndex]=value;
+                                    targetOverlap[targetIndex]=1;
+                                }
+                            }
+                            targetPtr_XY++;
+                            maskPtr_XY++;
+                            targetIndex++;
+                        }
+                    }
+                    else targetIndex+=BLOCK_WIDTH;
+                }
+                PrecisionTYPE bestCC=0.0;
+                float bestDisplacement[3] = {0.0f, 0.0f, 0.0f};
+
+                // iteration over the result blocks
+                for(int m=-OVERLAP_SIZE; m<=OVERLAP_SIZE; m+=STEP_SIZE){
+                    resultIndex_start_y=targetIndex_start_y+m;
+                    resultIndex_end_y=resultIndex_start_y+BLOCK_WIDTH;
+                    for(int l=-OVERLAP_SIZE; l<=OVERLAP_SIZE; l+=STEP_SIZE){
+                        resultIndex_start_x=targetIndex_start_x+l;
+                        resultIndex_end_x=resultIndex_start_x+BLOCK_WIDTH;
+
+                        resultIndex=0;
+                        memset(resultOverlap, 0, BLOCK_2D_SIZE*sizeof(bool));
+
+                        for(int y=resultIndex_start_y; y<resultIndex_end_y; y++){
+                            if(-1<y && y<result->ny){
+                                index=y*result->nx+resultIndex_start_x;
+                                ResultImageType *resultPtr_XY = &resultPtr[index];
+                                int *maskPtr_XY=&mask[index];
+                                for(int x=resultIndex_start_x; x<resultIndex_end_x; x++){
+                                    if(-1<x && x<result->nx){
+                                        ResultImageType value = *resultPtr_XY;
+                                        if(value>0.0 && *maskPtr_XY>-1){
+                                            resultValues[resultIndex]=value;
+                                            resultOverlap[resultIndex]=1;
+                                        }
+                                    }
+                                    resultPtr_XY++;
+                                    resultIndex++;
+                                    maskPtr_XY++;
+                                }
+                            }
+                            else resultIndex+=BLOCK_WIDTH;
+                        }
+                        PrecisionTYPE targetMean=0.0;
+                        PrecisionTYPE resultMean=0.0;
+                        PrecisionTYPE voxelNumber=0.0;
+                        for(int a=0; a<BLOCK_2D_SIZE; a++){
+                            if(targetOverlap[a] && resultOverlap[a]){
+                                targetMean += (PrecisionTYPE)targetValues[a];
+                                resultMean += (PrecisionTYPE)resultValues[a];
+                                voxelNumber++;
+                            }
+                        }
+
+                        if(voxelNumber>BLOCK_2D_SIZE/2){
+                            targetMean /= voxelNumber;
+                            resultMean /= voxelNumber;
+
+                            PrecisionTYPE targetVar=0.0;
+                            PrecisionTYPE resultVar=0.0;
+                            PrecisionTYPE localCC=0.0;
+
+                            for(int a=0; a<BLOCK_2D_SIZE; a++){
+                                if(targetOverlap[a] && resultOverlap[a]){
+                                    PrecisionTYPE targetTemp=(PrecisionTYPE)(targetValues[a]-targetMean);
+                                    PrecisionTYPE resultTemp=(PrecisionTYPE)(resultValues[a]-resultMean);
+                                    targetVar += (targetTemp)*(targetTemp);
+                                    resultVar += (resultTemp)*(resultTemp);
+                                    localCC += (targetTemp)*(resultTemp);
+                                }
+                            }
+
+                            localCC = fabs(localCC/sqrt(targetVar*resultVar));
+
+                            if(localCC>bestCC){
+                                bestCC=localCC;
+                                bestDisplacement[0] = (float)l;
+                                bestDisplacement[1] = (float)m;
+                            }
+                        } 
+                    }
+                }
+
+//TODO Need to be change using only 2D array
+                    float targetPosition_temp[3];
+                    targetPosition_temp[0] = (float)(i*BLOCK_WIDTH);
+                    targetPosition_temp[1] = (float)(j*BLOCK_WIDTH);
+                    targetPosition_temp[2] = 0.0f;
+
+                    bestDisplacement[0] += targetPosition_temp[0];
+                    bestDisplacement[1] += targetPosition_temp[1];
+                    bestDisplacement[2] = 0.0f;
+
+                    float tempPosition[3];
+                    apply_affine(targetMatrix_xyz, targetPosition_temp, tempPosition);
+                    params->targetPosition[activeBlockIndex] = tempPosition[0];
+                    params->targetPosition[activeBlockIndex+1] = tempPosition[1];
+                    params->targetPosition[activeBlockIndex+2] = tempPosition[2];
+// printf("%g %g %g -> ", tempPosition[0], tempPosition[1], tempPosition[2]);
+                    apply_affine(targetMatrix_xyz, bestDisplacement, tempPosition);
+                    params->resultPosition[activeBlockIndex] = tempPosition[0];
+                    params->resultPosition[activeBlockIndex+1] = tempPosition[1];
+                    params->resultPosition[activeBlockIndex+2] = tempPosition[2];
+// printf("%g %g %g\n", tempPosition[0], tempPosition[1], tempPosition[2]);
+                    activeBlockIndex += 3;
+            }
+            blockIndex++;
+        }
+    }
+    free(resultValues);
+    free(targetValues);
+    free(targetOverlap);
+    free(resultOverlap);
+}
+/* *************************************************************** */
+template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageType>
+void block_matching_method3D(nifti_image * target,
+                                nifti_image * result,
+                                _reg_blockMatchingParam *params,
+                                int *mask)
+{
+    TargetImageType *targetPtr=static_cast<TargetImageType *>(target->data);
+    ResultImageType *resultPtr=static_cast<ResultImageType *>(result->data);
+
+    TargetImageType *targetValues=(TargetImageType *)malloc(BLOCK_SIZE*sizeof(TargetImageType));
+    bool *targetOverlap=(bool *)malloc(BLOCK_SIZE*sizeof(bool));
+    ResultImageType *resultValues=(ResultImageType *)malloc(BLOCK_SIZE*sizeof(ResultImageType));
+    bool *resultOverlap=(bool *)malloc(BLOCK_SIZE*sizeof(bool));
+
+    mat44 *targetMatrix_xyz;
+    if(target->sform_code >0)
+        targetMatrix_xyz = &(target->sto_xyz);
+    else targetMatrix_xyz = &(target->qto_xyz);
+
+    int targetIndex_start_x;
+    int targetIndex_start_y;
+    int targetIndex_start_z;
+    int targetIndex_end_x;
+    int targetIndex_end_y;
+    int targetIndex_end_z;
+    int resultIndex_start_x;
+    int resultIndex_start_y;
+    int resultIndex_start_z;
+    int resultIndex_end_x;
+    int resultIndex_end_y;
+    int resultIndex_end_z;
+
+    unsigned int targetIndex;
+    unsigned int resultIndex;
+
+    unsigned int blockIndex=0;
+    unsigned int activeBlockIndex=0;
+    int index;
+
+    for(int k=0; k<params->blockNumber[2]; k++){
+        targetIndex_start_z=k*BLOCK_WIDTH;
+        targetIndex_end_z=targetIndex_start_z+BLOCK_WIDTH;
+
+        for(int j=0; j<params->blockNumber[1]; j++){
+            targetIndex_start_y=j*BLOCK_WIDTH;
+            targetIndex_end_y=targetIndex_start_y+BLOCK_WIDTH;
+
+            for(int i=0; i<params->blockNumber[0]; i++){
+                targetIndex_start_x=i*BLOCK_WIDTH;
+                targetIndex_end_x=targetIndex_start_x+BLOCK_WIDTH;
+
+                if(params->activeBlock[blockIndex] > -1){
+                    targetIndex=0;
+                    memset(targetOverlap, 0, BLOCK_SIZE*sizeof(bool));
+                    for(int z=targetIndex_start_z; z<targetIndex_end_z; z++){
+                        if(-1<z && z<target->nz){
                             index = z*target->nx*target->ny;
-							TargetImageType *targetPtr_Z = &targetPtr[index];
+                            TargetImageType *targetPtr_Z = &targetPtr[index];
                             int *maskPtr_Z=&mask[index];
-							for(int y=targetIndex_start_y; y<targetIndex_end_y; y++){
-								if(-1<y && y<target->ny){
+                            for(int y=targetIndex_start_y; y<targetIndex_end_y; y++){
+                                if(-1<y && y<target->ny){
                                     index = y*target->nx+targetIndex_start_x;
-									TargetImageType *targetPtr_XYZ = &targetPtr_Z[index];
+                                    TargetImageType *targetPtr_XYZ = &targetPtr_Z[index];
                                     int *maskPtr_XYZ=&maskPtr_Z[index];
-									for(int x=targetIndex_start_x; x<targetIndex_end_x; x++){
-										if(-1<x && x<target->nx){
-											TargetImageType value = *targetPtr_XYZ;
-											if(value>0.0 && *maskPtr_XYZ>-1){
-												targetValues[targetIndex]=value;
-												targetOverlap[targetIndex]=1;
-											}
-										}
-										targetPtr_XYZ++;
+                                    for(int x=targetIndex_start_x; x<targetIndex_end_x; x++){
+                                        if(-1<x && x<target->nx){
+                                            TargetImageType value = *targetPtr_XYZ;
+                                            if(value>0.0 && *maskPtr_XYZ>-1){
+                                                targetValues[targetIndex]=value;
+                                                targetOverlap[targetIndex]=1;
+                                            }
+                                        }
+                                        targetPtr_XYZ++;
                                         maskPtr_XYZ++;
-										targetIndex++;
-									}
-								}
-								else targetIndex+=BLOCK_WIDTH;
-							}
-						}
-						else targetIndex+=BLOCK_WIDTH*BLOCK_WIDTH;
-					}
-					PrecisionTYPE bestCC=0.0;
-					float bestDisplacement[3] = {0.0f, 0.0f, 0.0f};
-	
-					// iteration over the result blocks
-					for(int n=-OVERLAP_SIZE; n<=OVERLAP_SIZE; n+=STEP_SIZE){
-						resultIndex_start_z=targetIndex_start_z+n;
-						resultIndex_end_z=resultIndex_start_z+BLOCK_WIDTH;
-						for(int m=-OVERLAP_SIZE; m<=OVERLAP_SIZE; m+=STEP_SIZE){
-							resultIndex_start_y=targetIndex_start_y+m;
-							resultIndex_end_y=resultIndex_start_y+BLOCK_WIDTH;
-							for(int l=-OVERLAP_SIZE; l<=OVERLAP_SIZE; l+=STEP_SIZE){
-								resultIndex_start_x=targetIndex_start_x+l;
-								resultIndex_end_x=resultIndex_start_x+BLOCK_WIDTH;
+                                        targetIndex++;
+                                    }
+                                }
+                                else targetIndex+=BLOCK_WIDTH;
+                            }
+                        }
+                        else targetIndex+=BLOCK_WIDTH*BLOCK_WIDTH;
+                    }
+                    PrecisionTYPE bestCC=0.0;
+                    float bestDisplacement[3] = {0.0f, 0.0f, 0.0f};
+    
+                    // iteration over the result blocks
+                    for(int n=-OVERLAP_SIZE; n<=OVERLAP_SIZE; n+=STEP_SIZE){
+                        resultIndex_start_z=targetIndex_start_z+n;
+                        resultIndex_end_z=resultIndex_start_z+BLOCK_WIDTH;
+                        for(int m=-OVERLAP_SIZE; m<=OVERLAP_SIZE; m+=STEP_SIZE){
+                            resultIndex_start_y=targetIndex_start_y+m;
+                            resultIndex_end_y=resultIndex_start_y+BLOCK_WIDTH;
+                            for(int l=-OVERLAP_SIZE; l<=OVERLAP_SIZE; l+=STEP_SIZE){
+                                resultIndex_start_x=targetIndex_start_x+l;
+                                resultIndex_end_x=resultIndex_start_x+BLOCK_WIDTH;
 
-								resultIndex=0;
-								memset(resultOverlap, 0, BLOCK_SIZE*sizeof(bool));
+                                resultIndex=0;
+                                memset(resultOverlap, 0, BLOCK_SIZE*sizeof(bool));
 
-								for(int z=resultIndex_start_z; z<resultIndex_end_z; z++){
-									if(-1<z && z<result->nz){
+                                for(int z=resultIndex_start_z; z<resultIndex_end_z; z++){
+                                    if(-1<z && z<result->nz){
                                         index = z*result->nx*result->ny;
                                         ResultImageType *resultPtr_Z = &resultPtr[index];
                                         int *maskPtr_Z = &mask[index];
-										for(int y=resultIndex_start_y; y<resultIndex_end_y; y++){
-											if(-1<y && y<result->ny){
+                                        for(int y=resultIndex_start_y; y<resultIndex_end_y; y++){
+                                            if(-1<y && y<result->ny){
                                                 index=y*result->nx+resultIndex_start_x;
-												ResultImageType *resultPtr_XYZ = &resultPtr_Z[index];
+                                                ResultImageType *resultPtr_XYZ = &resultPtr_Z[index];
                                                 int *maskPtr_XYZ=&maskPtr_Z[index];
-												for(int x=resultIndex_start_x; x<resultIndex_end_x; x++){
-													if(-1<x && x<result->nx){
-														ResultImageType value = *resultPtr_XYZ;
-														if(value>0.0 && *maskPtr_XYZ>-1){
-															resultValues[resultIndex]=value;
-															resultOverlap[resultIndex]=1;
-														}
-													}
-													resultPtr_XYZ++;
+                                                for(int x=resultIndex_start_x; x<resultIndex_end_x; x++){
+                                                    if(-1<x && x<result->nx){
+                                                        ResultImageType value = *resultPtr_XYZ;
+                                                        if(value>0.0 && *maskPtr_XYZ>-1){
+                                                            resultValues[resultIndex]=value;
+                                                            resultOverlap[resultIndex]=1;
+                                                        }
+                                                    }
+                                                    resultPtr_XYZ++;
                                                     resultIndex++;
                                                     maskPtr_XYZ++;
-												}
-											}
-											else resultIndex+=BLOCK_WIDTH;
-										}
-									}
-									else resultIndex+=BLOCK_WIDTH*BLOCK_WIDTH;
-								}
-								PrecisionTYPE targetMean=0.0;
-								PrecisionTYPE resultMean=0.0;
-								PrecisionTYPE voxelNumber=0.0;
-								for(int a=0; a<BLOCK_SIZE; a++){
-									if(targetOverlap[a] && resultOverlap[a]){
-										targetMean += (PrecisionTYPE)targetValues[a];
-										resultMean += (PrecisionTYPE)resultValues[a];
-										voxelNumber++;
-									}
-								}
-	
+                                                }
+                                            }
+                                            else resultIndex+=BLOCK_WIDTH;
+                                        }
+                                    }
+                                    else resultIndex+=BLOCK_WIDTH*BLOCK_WIDTH;
+                                }
+                                PrecisionTYPE targetMean=0.0;
+                                PrecisionTYPE resultMean=0.0;
+                                PrecisionTYPE voxelNumber=0.0;
+                                for(int a=0; a<BLOCK_SIZE; a++){
+                                    if(targetOverlap[a] && resultOverlap[a]){
+                                        targetMean += (PrecisionTYPE)targetValues[a];
+                                        resultMean += (PrecisionTYPE)resultValues[a];
+                                        voxelNumber++;
+                                    }
+                                }
+    
                                 if(voxelNumber>BLOCK_SIZE/2){
-									targetMean /= voxelNumber;
-									resultMean /= voxelNumber;
-	
+                                    targetMean /= voxelNumber;
+                                    resultMean /= voxelNumber;
+    
                                     PrecisionTYPE targetVar=0.0;
                                     PrecisionTYPE resultVar=0.0;
                                     PrecisionTYPE localCC=0.0;
 
-									for(int a=0; a<BLOCK_SIZE; a++){
-										if(targetOverlap[a] && resultOverlap[a]){
-											PrecisionTYPE targetTemp=(PrecisionTYPE)(targetValues[a]-targetMean);
-											PrecisionTYPE resultTemp=(PrecisionTYPE)(resultValues[a]-resultMean);
-											targetVar += (targetTemp)*(targetTemp);
-											resultVar += (resultTemp)*(resultTemp);
-											localCC += (targetTemp)*(resultTemp);
-										}
-									}
-	
+                                    for(int a=0; a<BLOCK_SIZE; a++){
+                                        if(targetOverlap[a] && resultOverlap[a]){
+                                            PrecisionTYPE targetTemp=(PrecisionTYPE)(targetValues[a]-targetMean);
+                                            PrecisionTYPE resultTemp=(PrecisionTYPE)(resultValues[a]-resultMean);
+                                            targetVar += (targetTemp)*(targetTemp);
+                                            resultVar += (resultTemp)*(resultTemp);
+                                            localCC += (targetTemp)*(resultTemp);
+                                        }
+                                    }
+    
                                     localCC = fabs(localCC/sqrt(targetVar*resultVar));
-	
-									if(localCC>bestCC){                                        
-										bestCC=localCC;
-										bestDisplacement[0] = (float)l;
-										bestDisplacement[1] = (float)m;
-										bestDisplacement[2] = (float)n;
-									}
-								} 
-							}
-						}
-					}
-					
-					float targetPosition_temp[3];
-					targetPosition_temp[0] = (float)(i*BLOCK_WIDTH);
-					targetPosition_temp[1] = (float)(j*BLOCK_WIDTH);
-					targetPosition_temp[2] = (float)(k*BLOCK_WIDTH);
+    
+                                    if(localCC>bestCC){                                        
+                                        bestCC=localCC;
+                                        bestDisplacement[0] = (float)l;
+                                        bestDisplacement[1] = (float)m;
+                                        bestDisplacement[2] = (float)n;
+                                    }
+                                } 
+                            }
+                        }
+                    }
+                    
+                    float targetPosition_temp[3];
+                    targetPosition_temp[0] = (float)(i*BLOCK_WIDTH);
+                    targetPosition_temp[1] = (float)(j*BLOCK_WIDTH);
+                    targetPosition_temp[2] = (float)(k*BLOCK_WIDTH);
 
-					bestDisplacement[0] += targetPosition_temp[0];
-					bestDisplacement[1] += targetPosition_temp[1];
-					bestDisplacement[2] += targetPosition_temp[2];
+                    bestDisplacement[0] += targetPosition_temp[0];
+                    bestDisplacement[1] += targetPosition_temp[1];
+                    bestDisplacement[2] += targetPosition_temp[2];
 
-					float tempPosition[3];
-					apply_affine(targetMatrix_xyz, targetPosition_temp, tempPosition);
-					params->targetPosition[activeBlockIndex] = tempPosition[0];
-					params->targetPosition[activeBlockIndex+1] = tempPosition[1];
-					params->targetPosition[activeBlockIndex+2] = tempPosition[2];
-					apply_affine(targetMatrix_xyz, bestDisplacement, tempPosition);
-					params->resultPosition[activeBlockIndex] = tempPosition[0];
-					params->resultPosition[activeBlockIndex+1] = tempPosition[1];
-					params->resultPosition[activeBlockIndex+2] = tempPosition[2];
-					activeBlockIndex += 3;
-				}
-				blockIndex++;
-			}
-		}
-	}
-	free(resultValues);
-	free(targetValues);
-	free(targetOverlap);
-	free(resultOverlap);    
+                    float tempPosition[3];
+                    apply_affine(targetMatrix_xyz, targetPosition_temp, tempPosition);
+                    params->targetPosition[activeBlockIndex] = tempPosition[0];
+                    params->targetPosition[activeBlockIndex+1] = tempPosition[1];
+                    params->targetPosition[activeBlockIndex+2] = tempPosition[2];
+                    apply_affine(targetMatrix_xyz, bestDisplacement, tempPosition);
+                    params->resultPosition[activeBlockIndex] = tempPosition[0];
+                    params->resultPosition[activeBlockIndex+1] = tempPosition[1];
+                    params->resultPosition[activeBlockIndex+2] = tempPosition[2];
+                    activeBlockIndex += 3;
+                }
+                blockIndex++;
+            }
+        }
+    }
+    free(resultValues);
+    free(targetValues);
+    free(targetOverlap);
+    free(resultOverlap);    
 }
-
+/* *************************************************************** */
 // Called internally to determine the parameter type
 template<typename PrecisionTYPE, typename TargetImageType> 
-void block_matching_method_2(   nifti_image * target,
+void block_matching_method2(   nifti_image * target,
                                 nifti_image * result,
                                 _reg_blockMatchingParam *params,
                                 int *mask)
 {
-    switch(result->datatype){
-        case NIFTI_TYPE_UINT8:
-            real_block_matching_method<PrecisionTYPE, TargetImageType, unsigned char>
-                    (target, result, params, mask);
-                    break;
-        case NIFTI_TYPE_INT8:
-            real_block_matching_method<PrecisionTYPE, TargetImageType, char>
-                    (target, result, params, mask);
-                    break;
-        case NIFTI_TYPE_UINT16:
-            real_block_matching_method<PrecisionTYPE, TargetImageType, unsigned short>
-                    (target, result, params, mask);
-                    break;
-        case NIFTI_TYPE_INT16:
-            real_block_matching_method<PrecisionTYPE, TargetImageType, short>
-                    (target, result, params, mask);
-                    break;
-        case NIFTI_TYPE_UINT32:
-            real_block_matching_method<PrecisionTYPE, TargetImageType, unsigned int>
-                    (target, result, params, mask);
-                    break;
-        case NIFTI_TYPE_INT32:
-            real_block_matching_method<PrecisionTYPE, TargetImageType, int>
-                    (target, result, params, mask);
-                    break;
-        case NIFTI_TYPE_FLOAT32:
-            real_block_matching_method<PrecisionTYPE, TargetImageType, float>
-                    (target, result, params, mask);
-                    break;
-        case NIFTI_TYPE_FLOAT64:
-            real_block_matching_method<PrecisionTYPE, TargetImageType, double>
-                    (target, result, params, mask);
-                    break;
-        default:
-            printf("err\tblock_match\tThe target image data type is not "
-                    "supported\n");
-            return;
+    if(target->nz==1){
+        switch(result->datatype){
+            case NIFTI_TYPE_UINT8:
+                block_matching_method2D<PrecisionTYPE, TargetImageType, unsigned char>
+                        (target, result, params, mask);
+                        break;
+            case NIFTI_TYPE_INT8:
+                block_matching_method2D<PrecisionTYPE, TargetImageType, char>
+                        (target, result, params, mask);
+                        break;
+            case NIFTI_TYPE_UINT16:
+                block_matching_method2D<PrecisionTYPE, TargetImageType, unsigned short>
+                        (target, result, params, mask);
+                        break;
+            case NIFTI_TYPE_INT16:
+                block_matching_method2D<PrecisionTYPE, TargetImageType, short>
+                        (target, result, params, mask);
+                        break;
+            case NIFTI_TYPE_UINT32:
+                block_matching_method2D<PrecisionTYPE, TargetImageType, unsigned int>
+                        (target, result, params, mask);
+                        break;
+            case NIFTI_TYPE_INT32:
+                block_matching_method2D<PrecisionTYPE, TargetImageType, int>
+                        (target, result, params, mask);
+                        break;
+            case NIFTI_TYPE_FLOAT32:
+                block_matching_method2D<PrecisionTYPE, TargetImageType, float>
+                        (target, result, params, mask);
+                        break;
+            case NIFTI_TYPE_FLOAT64:
+                block_matching_method2D<PrecisionTYPE, TargetImageType, double>
+                        (target, result, params, mask);
+                        break;
+            default:
+                printf("err\tblock_match\tThe target image data type is not "
+                        "supported\n");
+                return;
+        }
+    }
+    else{
+        switch(result->datatype){
+            case NIFTI_TYPE_UINT8:
+                block_matching_method3D<PrecisionTYPE, TargetImageType, unsigned char>
+                        (target, result, params, mask);
+                        break;
+            case NIFTI_TYPE_INT8:
+                block_matching_method3D<PrecisionTYPE, TargetImageType, char>
+                        (target, result, params, mask);
+                        break;
+            case NIFTI_TYPE_UINT16:
+                block_matching_method3D<PrecisionTYPE, TargetImageType, unsigned short>
+                        (target, result, params, mask);
+                        break;
+            case NIFTI_TYPE_INT16:
+                block_matching_method3D<PrecisionTYPE, TargetImageType, short>
+                        (target, result, params, mask);
+                        break;
+            case NIFTI_TYPE_UINT32:
+                block_matching_method3D<PrecisionTYPE, TargetImageType, unsigned int>
+                        (target, result, params, mask);
+                        break;
+            case NIFTI_TYPE_INT32:
+                block_matching_method3D<PrecisionTYPE, TargetImageType, int>
+                        (target, result, params, mask);
+                        break;
+            case NIFTI_TYPE_FLOAT32:
+                block_matching_method3D<PrecisionTYPE, TargetImageType, float>
+                        (target, result, params, mask);
+                        break;
+            case NIFTI_TYPE_FLOAT64:
+                block_matching_method3D<PrecisionTYPE, TargetImageType, double>
+                        (target, result, params, mask);
+                        break;
+            default:
+                printf("err\tblock_match\tThe target image data type is not "
+                        "supported\n");
+                return;
+        }
     }
 }
-
+/* *************************************************************** */
 // Block matching interface function
 template<typename PrecisionTYPE>
 void block_matching_method(	nifti_image * target,
@@ -464,35 +742,35 @@ void block_matching_method(	nifti_image * target,
 {
 	switch(target->datatype){
 		case NIFTI_TYPE_UINT8:
-			block_matching_method_2<PrecisionTYPE, unsigned char>
+			block_matching_method2<PrecisionTYPE, unsigned char>
 					(target, result, params, mask);
 					break;
 		case NIFTI_TYPE_INT8:
-			block_matching_method_2<PrecisionTYPE, char>
+			block_matching_method2<PrecisionTYPE, char>
 					(target, result, params, mask);
 					break;
 		case NIFTI_TYPE_UINT16:
-			block_matching_method_2<PrecisionTYPE, unsigned short>
+			block_matching_method2<PrecisionTYPE, unsigned short>
 					(target, result, params, mask);
 					break;
 		case NIFTI_TYPE_INT16:
-			block_matching_method_2<PrecisionTYPE, short>
+			block_matching_method2<PrecisionTYPE, short>
 					(target, result, params, mask);
 					break;
 		case NIFTI_TYPE_UINT32:
-			block_matching_method_2<PrecisionTYPE, unsigned int>
+			block_matching_method2<PrecisionTYPE, unsigned int>
 					(target, result, params, mask);
 					break;
 		case NIFTI_TYPE_INT32:
-			block_matching_method_2<PrecisionTYPE, int>
+			block_matching_method2<PrecisionTYPE, int>
 					(target, result, params, mask);
 					break;
 		case NIFTI_TYPE_FLOAT32:
-			block_matching_method_2<PrecisionTYPE, float>
+			block_matching_method2<PrecisionTYPE, float>
 					(target, result, params, mask);
 					break;
 		case NIFTI_TYPE_FLOAT64:
-			block_matching_method_2<PrecisionTYPE, double>
+			block_matching_method2<PrecisionTYPE, double>
 					(target, result, params, mask);
 					break;
 		default:
@@ -503,7 +781,8 @@ void block_matching_method(	nifti_image * target,
 }
 template void block_matching_method<float>(nifti_image *, nifti_image *, _reg_blockMatchingParam *, int *);
 template void block_matching_method<double>(nifti_image *, nifti_image *, _reg_blockMatchingParam *, int *);
-
+/* *************************************************************** */
+/* *************************************************************** */
 
 // Apply the suppled affine transformation to a 3D point
 void apply_affine(mat44 * mat, float *pt, float *result)

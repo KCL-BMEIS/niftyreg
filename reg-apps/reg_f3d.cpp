@@ -174,7 +174,7 @@ void Usage(char *exec)
 // 	printf("\t-fullJL\t\t\tThe JL is compute using the full resolution image [no]\n");
 // 	printf("\t-gradJL\t\t\tTo use the gradient of the Jacobian determinant [no]\n");
 	
-	printf("\t-bgi <int> <int> <int>\tForce the background value during\n\t\t\t\tresampling to have the same value as this voxel in the source image [none]\n");
+	printf("\t-bgi <int> <int> <int>\tForce the background value during\n\t\t\t\tresampling to have the same value than this voxel in the source image [none]\n");
 // 	printf("\t-ssd\t\t\tTo use the SSD as the similiarity measure [no]\n");
 	printf("\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent/descent\n");
 	printf("\t-mem\t\t\tDisplay an approximate memory requierment and exit\n");
@@ -325,7 +325,7 @@ int main(int argc, char **argv)
             param->sourceUpThresholdValue=(float)(atof(argv[++i]));
             flag->sourceUpThresholdFlag=1;
         }
-        else if(strcmp(argv[i], "-nmiGradSM") == 0){
+        else if(strcmp(argv[i], "-smoothGrad") == 0){
             param->gradientSmoothingValue=(float)(atof(argv[++i]));
             flag->gradientSmoothingFlag=1;
         }
@@ -392,6 +392,7 @@ int main(int argc, char **argv)
 	if(!flag->binningFlag) param->binning=64;
     param->binning += 4; //This is due to the extrapolation of the joint histogram using the Parzen window
 
+    /* inactive the BE flag if the weight is 0 */
     if(param->bendingEnergyWeight==0.0f)flag->bendingEnergyFlag=0;
 
 	nifti_image *targetHeader = nifti_image_read(param->targetImageName,false);
@@ -455,7 +456,7 @@ int main(int argc, char **argv)
 #endif
 
 	/* Read the affine tranformation is defined otherwise assign it to identity */
-	mat44 *affineTransformation;
+	mat44 *affineTransformation=NULL;
 	if(!flag->inputCPPFlag){
 		affineTransformation = (mat44 *)calloc(1,sizeof(mat44));
 		affineTransformation->m[0][0]=1.0;
@@ -483,7 +484,7 @@ int main(int argc, char **argv)
 	}
 
 	/* read the control point image */
-	nifti_image *controlPointImage;
+	nifti_image *controlPointImage=NULL;
 	if(flag->inputCPPFlag){
 		controlPointImage = nifti_image_read(param->inputCPPName,true);
 		if(controlPointImage == NULL){
@@ -494,7 +495,7 @@ int main(int argc, char **argv)
     if(!flag->outputCPPFlag) param->outputCPPName=(char *)"outputCPP.nii";
 
     /* read and binarise the target mask image */
-    nifti_image *targetMaskImage;
+    nifti_image *targetMaskImage=NULL;
     if(flag->targetMaskFlag){
         targetMaskImage = nifti_image_read(param->targetMaskName,true);
         if(targetMaskImage == NULL){
@@ -607,7 +608,7 @@ int main(int argc, char **argv)
 
         /* downsample the input images if appropriate */
         if(flag->pyramidFlag){
-            nifti_image *tempMaskImage;
+            nifti_image *tempMaskImage=NULL;
             if(flag->targetMaskFlag){
                 tempMaskImage = nifti_copy_nim_info(targetMaskImage);
                 tempMaskImage->data = (void *)malloc(tempMaskImage->nvox * tempMaskImage->nbyper);
@@ -862,37 +863,37 @@ int main(int argc, char **argv)
         }
 
         /* the gradient images are allocated */
-        nifti_image *resultGradientImage;
-        nifti_image *voxelNMIGradientImage;
-        nifti_image *nodeNMIGradientImage;
+        nifti_image *resultGradientImage=NULL;
+        nifti_image *voxelNMIGradientImage=NULL;
+        nifti_image *nodeNMIGradientImage=NULL;
         /* Conjugate gradient */
-        PrecisionTYPE *conjugateG;
-        PrecisionTYPE *conjugateH;
+        PrecisionTYPE *conjugateG=NULL;
+        PrecisionTYPE *conjugateH=NULL;
         /* joint histogram related variables */
         double *probaJointHistogram = (double *)malloc(param->binning*(param->binning+2)*sizeof(double));
         double *logJointHistogram = (double *)malloc(param->binning*(param->binning+2)*sizeof(double));
         double *entropies = (double *)malloc(4*sizeof(double));
 
-        PrecisionTYPE *bestControlPointPosition;
+        PrecisionTYPE *bestControlPointPosition=NULL;
 
 #ifdef _USE_CUDA
-        float *targetImageArray_d;
-        cudaArray *sourceImageArray_d;
-        float4 *controlPointImageArray_d;
-        float *resultImageArray_d;
-        float4 *positionFieldImageArray_d;
-        int *targetMask_d;
+        float *targetImageArray_d=NULL;
+        cudaArray *sourceImageArray_d=NULL;
+        float4 *controlPointImageArray_d=NULL;
+        float *resultImageArray_d=NULL;
+        float4 *positionFieldImageArray_d=NULL;
+        int *targetMask_d=NULL;
 
-        float4 *resultGradientArray_d;
-        float4 *voxelNMIGradientArray_d;
-        float4 *nodeNMIGradientArray_d;
+        float4 *resultGradientArray_d=NULL;
+        float4 *voxelNMIGradientArray_d=NULL;
+        float4 *nodeNMIGradientArray_d=NULL;
 
-        float4 *conjugateG_d;
-        float4 *conjugateH_d;
+        float4 *conjugateG_d=NULL;
+        float4 *conjugateH_d=NULL;
 
-        float4 *bestControlPointPosition_d;
+        float4 *bestControlPointPosition_d=NULL;
 
-        float *logJointHistogram_d;
+        float *logJointHistogram_d=NULL;
 
 		if(flag->useGPUFlag){
 			if(!flag->noConjugateGradient){
@@ -921,7 +922,7 @@ int main(int argc, char **argv)
             // Index of the active voxel is stored
             int *targetMask_h;CUDA_SAFE_CALL(cudaMallocHost((void **)&targetMask_h, activeVoxelNumber*sizeof(int)));
             int *targetMask_h_ptr = &targetMask_h[0];
-            for(int i=0;i<targetImage->nvox;i++){
+            for(unsigned int i=0;i<targetImage->nvox;i++){
                 if(targetMask[i]!=-1) *targetMask_h_ptr++=i;
             }
             CUDA_SAFE_CALL(cudaMalloc((void **)&targetMask_d, activeVoxelNumber*sizeof(int)));

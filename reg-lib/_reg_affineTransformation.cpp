@@ -62,23 +62,58 @@ void reg_mat44_disp(mat44 *mat, char * title)
 /* *************************************************************** */
 /* *************************************************************** */
 template <class FieldTYPE>
-void reg_affine_positionField1(mat44 *affineTransformation,
-					nifti_image *targetImage,
-					nifti_image *positionFieldImage)
+void reg_affine_positionField2D(mat44 *affineTransformation,
+                    nifti_image *targetImage,
+                    nifti_image *positionFieldImage)
 {
-	FieldTYPE *positionFieldPtr = static_cast<FieldTYPE *>(positionFieldImage->data);
-	
-	unsigned int positionFieldXIndex=0;
-	unsigned int positionFieldYIndex=targetImage->nvox;
-	unsigned int positionFieldZIndex=2*targetImage->nvox;
-	
-	mat44 *targetMatrix;
-	if(targetImage->sform_code>0){
-		targetMatrix=&(targetImage->sto_xyz);
-	}
-	else targetMatrix=&(targetImage->qto_xyz);
-	
-	mat44 voxelToRealDeformed = reg_mat44_mul(affineTransformation, targetMatrix);
+    FieldTYPE *positionFieldPtr = static_cast<FieldTYPE *>(positionFieldImage->data);
+
+    unsigned int positionFieldXIndex=0;
+    unsigned int positionFieldYIndex=targetImage->nvox;
+
+    mat44 *targetMatrix;
+    if(targetImage->sform_code>0){
+        targetMatrix=&(targetImage->sto_xyz);
+    }
+    else targetMatrix=&(targetImage->qto_xyz);
+
+    mat44 voxelToRealDeformed = reg_mat44_mul(affineTransformation, targetMatrix);
+
+    float index[3];
+    float position[3];
+    index[2]=0;
+    for(int y=0; y<targetImage->ny; y++){
+        index[1]=(float)y;
+        for(int x=0; x<targetImage->nx; x++){
+            index[0]=(float)x;
+
+            reg_mat44_mul(&voxelToRealDeformed, index, position);
+
+            /* the deformation field (real coordinates) is stored */
+            positionFieldPtr[positionFieldXIndex++] = position[0];
+            positionFieldPtr[positionFieldYIndex++] = position[1];
+        }
+    }
+}
+/* *************************************************************** */
+template <class FieldTYPE>
+void reg_affine_positionField3D(mat44 *affineTransformation,
+                    nifti_image *targetImage,
+                    nifti_image *positionFieldImage)
+{
+    FieldTYPE *positionFieldPtr = static_cast<FieldTYPE *>(positionFieldImage->data);
+    
+    unsigned int positionFieldXIndex=0;
+    unsigned int positionFieldYIndex=targetImage->nvox;
+    unsigned int positionFieldZIndex=2*targetImage->nvox;
+    
+    mat44 *targetMatrix;
+    if(targetImage->sform_code>0){
+        targetMatrix=&(targetImage->sto_xyz);
+    }
+    else targetMatrix=&(targetImage->qto_xyz);
+    
+    mat44 voxelToRealDeformed = reg_mat44_mul(affineTransformation, targetMatrix);
 
     float index[3];
     float position[3];
@@ -94,29 +129,42 @@ void reg_affine_positionField1(mat44 *affineTransformation,
                 /* the deformation field (real coordinates) is stored */
                 positionFieldPtr[positionFieldXIndex++] = position[0];
                 positionFieldPtr[positionFieldYIndex++] = position[1];
-                if(targetImage->nz>1)
-                    positionFieldPtr[positionFieldZIndex++] = position[2];
+                positionFieldPtr[positionFieldZIndex++] = position[2];
             }
         }
     }
 }
-
 /* *************************************************************** */
 void reg_affine_positionField(mat44 *affineTransformation,
 								nifti_image *targetImage,
 								nifti_image *positionFieldImage)
 {
-	switch(positionFieldImage->datatype){
-		case NIFTI_TYPE_FLOAT32:
-			reg_affine_positionField1<float>(affineTransformation, targetImage, positionFieldImage);
-			break;
-		case NIFTI_TYPE_FLOAT64:
-			reg_affine_positionField1<double>(affineTransformation, targetImage, positionFieldImage);
-			break;
-		default:
-			printf("err\treg_affine_positionField\tThe deformation field data type is not supported\n");
-			return;
-	}
+    if(targetImage->nz==1){
+        switch(positionFieldImage->datatype){
+            case NIFTI_TYPE_FLOAT32:
+                reg_affine_positionField2D<float>(affineTransformation, targetImage, positionFieldImage);
+                break;
+            case NIFTI_TYPE_FLOAT64:
+                reg_affine_positionField2D<double>(affineTransformation, targetImage, positionFieldImage);
+                break;
+            default:
+                printf("err\treg_affine_positionField\tThe deformation field data type is not supported\n");
+                return;
+        }
+    }
+    else{
+        switch(positionFieldImage->datatype){
+            case NIFTI_TYPE_FLOAT32:
+                reg_affine_positionField3D<float>(affineTransformation, targetImage, positionFieldImage);
+                break;
+            case NIFTI_TYPE_FLOAT64:
+                reg_affine_positionField3D<double>(affineTransformation, targetImage, positionFieldImage);
+                break;
+            default:
+                printf("err\treg_affine_positionField\tThe deformation field data type is not supported\n");
+                return;
+        }
+    }
 }
 /* *************************************************************** */
 /* *************************************************************** */
