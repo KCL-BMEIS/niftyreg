@@ -208,5 +208,183 @@ void reg_updateControlPointPosition_gpu(nifti_image *controlPointImage,
 #endif
 }
 
+void reg_gaussianSmoothing_gpu( nifti_image *image,
+                                float4 **imageArray_d,
+                                float sigma,
+                                bool smoothXYZ[8])
+
+{
+    const int voxelNumber = image->nx * image->ny * image->nz;
+    const int3 imageDim = make_int3(image->nx, image->ny, image->nz);
+
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ImageDim, &imageDim,sizeof(int3)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber, &voxelNumber,sizeof(int3)));
+
+    bool axisToSmooth[8];
+    if(smoothXYZ==NULL){
+        for(int i=0; i<8; i++) axisToSmooth[i]=true;
+    }
+    else{
+        for(int i=0; i<8; i++) axisToSmooth[i]=smoothXYZ[i];
+    }
+
+    for(int n=1; n<4; n++){
+        if(axisToSmooth[n]==true){
+            float currentSigma;
+            if(sigma>0) currentSigma=sigma/image->pixdim[n];
+            else currentSigma=fabs(sigma); // voxel based if negative value
+            int radius=(int)ceil(currentSigma*3.0f);
+            if(radius>0){
+                int kernelSize = 1+radius*2;
+                float *kernel_h;
+                CUDA_SAFE_CALL(cudaMallocHost((void **)&kernel_h, kernelSize*sizeof(float)));
+                float kernelSum=0;
+                for(int i=-radius; i<=radius; i++){
+                    kernel_h[radius+i]=(float)(exp( -(i*i)/(2.0*currentSigma*currentSigma)) / (currentSigma*2.506628274631)); // 2.506... = sqrt(2*pi)
+                    kernelSum += kernel_h[radius+i];
+                }
+                for(int i=0; i<kernelSize; i++)
+                    kernel_h[i] /= kernelSum;
+                float *kernel_d;
+                CUDA_SAFE_CALL(cudaMalloc((void **)&kernel_d, kernelSize*sizeof(float)));
+                CUDA_SAFE_CALL(cudaMemcpy(kernel_d, kernel_h, kernelSize*sizeof(float), cudaMemcpyHostToDevice));
+                CUDA_SAFE_CALL(cudaFreeHost(kernel_h));
+
+                float4 *smoothedImage;
+                CUDA_SAFE_CALL(cudaMalloc((void **)&smoothedImage,voxelNumber*sizeof(float4)));
+
+                CUDA_SAFE_CALL(cudaBindTexture(0, convolutionKernelTexture, kernel_d, kernelSize*sizeof(float)));
+                CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *imageArray_d, voxelNumber*sizeof(float4)));
+                unsigned int Grid_reg_ApplyConvolutionWindow;
+                dim3 B,G;
+                switch(n){
+                    case 1:
+                        Grid_reg_ApplyConvolutionWindow =
+                            (unsigned int)ceil((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongX);
+                        B=dim3(Block_reg_ApplyConvolutionWindowAlongX,1,1);
+                        G=dim3(Grid_reg_ApplyConvolutionWindow,1,1);
+                        _reg_ApplyConvolutionWindowAlongX_kernel <<< G, B >>> (smoothedImage, kernelSize);
+                        CUDA_SAFE_CALL(cudaThreadSynchronize());
+#if _VERBOSE
+                        printf("[VERBOSE] reg_ApplyConvolutionWindowAlongX_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+                            cudaGetErrorString(cudaGetLastError()),G.x,G.y,G.z,B.x,B.y,B.z);
+#endif
+                        break;
+                    case 2:
+                        Grid_reg_ApplyConvolutionWindow =
+                            (unsigned int)ceil((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongY);
+                        B=dim3(Block_reg_ApplyConvolutionWindowAlongY,1,1);
+                        G=dim3(Grid_reg_ApplyConvolutionWindow,1,1);
+                        _reg_ApplyConvolutionWindowAlongY_kernel <<< G, B >>> (smoothedImage, kernelSize);
+                        CUDA_SAFE_CALL(cudaThreadSynchronize());
+#if _VERBOSE
+                        printf("[VERBOSE] reg_ApplyConvolutionWindowAlongY_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+                            cudaGetErrorString(cudaGetLastError()),G.x,G.y,G.z,B.x,B.y,B.z);
+#endif
+                        break;
+                    case 3:
+                        Grid_reg_ApplyConvolutionWindow =
+                            (unsigned int)ceil((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongZ);
+                        B=dim3(Block_reg_ApplyConvolutionWindowAlongZ,1,1);
+                        G=dim3(Grid_reg_ApplyConvolutionWindow,1,1);
+                        _reg_ApplyConvolutionWindowAlongZ_kernel <<< G, B >>> (smoothedImage, kernelSize);
+                        CUDA_SAFE_CALL(cudaThreadSynchronize());
+#if _VERBOSE
+                        printf("[VERBOSE] reg_ApplyConvolutionWindowAlongZ_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+                            cudaGetErrorString(cudaGetLastError()),G.x,G.y,G.z,B.x,B.y,B.z);
+#endif
+                        break;
+                }
+                CUDA_SAFE_CALL(cudaFree(kernel_d));
+                CUDA_SAFE_CALL(cudaMemcpy(*imageArray_d, smoothedImage, voxelNumber*sizeof(float4), cudaMemcpyDeviceToDevice));
+                CUDA_SAFE_CALL(cudaFree(smoothedImage));
+            }
+        }
+    }
+
+}
+
+
+void reg_smoothImageForCubicSpline_gpu( nifti_image *image,
+                                        float4 **imageArray_d,
+                                        int *smoothingRadius)
+{
+    const int voxelNumber = image->nx * image->ny * image->nz;
+    const int3 imageDim = make_int3(image->nx, image->ny, image->nz);
+
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ImageDim, &imageDim,sizeof(int3)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber, &voxelNumber,sizeof(int3)));
+
+    for(int n=0; n<3; n++){
+        if(smoothingRadius[n]>0){
+            int kernelSize = 1+smoothingRadius[n]*2;
+            float *kernel_h;
+            CUDA_SAFE_CALL(cudaMallocHost((void **)&kernel_h, kernelSize*sizeof(float)));
+            float kernelSum=0;
+            for(int i=-smoothingRadius[n]; i<=smoothingRadius[n]; i++){
+                float coeff = fabs(2.0f*(float)(i)/smoothingRadius[n]);
+                if(coeff<1.0f)  kernel_h[smoothingRadius[n]+i] = 2.0f/3.0f - coeff*coeff + 0.5f*coeff*coeff*coeff;
+                else        kernel_h[smoothingRadius[n]+i] = -(coeff-2.0f)*(coeff-2.0f)*(coeff-2.0f)/6.0f;
+                kernelSum += kernel_h[smoothingRadius[n]+i];
+            }
+            for(int i=0; i<kernelSize; i++) kernel_h[i] /= kernelSum;
+            float *kernel_d;
+            CUDA_SAFE_CALL(cudaMalloc((void **)&kernel_d, kernelSize*sizeof(float)));
+            CUDA_SAFE_CALL(cudaMemcpy(kernel_d, kernel_h, kernelSize*sizeof(float), cudaMemcpyHostToDevice));
+            CUDA_SAFE_CALL(cudaFreeHost(kernel_h));
+            CUDA_SAFE_CALL(cudaBindTexture(0, convolutionKernelTexture, kernel_d, kernelSize*sizeof(float)));
+
+            float4 *smoothedImage_d;
+            CUDA_SAFE_CALL(cudaMalloc((void **)&smoothedImage_d,voxelNumber*sizeof(float4)));
+
+            CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *imageArray_d, voxelNumber*sizeof(float4)));
+
+            unsigned int Grid_reg_ApplyConvolutionWindow;
+            dim3 B,G;
+            switch(n){
+                case 0:
+                    Grid_reg_ApplyConvolutionWindow =
+                        (unsigned int)ceil((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongX);
+                    B=dim3(Block_reg_ApplyConvolutionWindowAlongX,1,1);
+                    G=dim3(Grid_reg_ApplyConvolutionWindow,1,1);
+                    _reg_ApplyConvolutionWindowAlongX_kernel <<< G, B >>> (smoothedImage_d, kernelSize);
+                    CUDA_SAFE_CALL(cudaThreadSynchronize());
+#if _VERBOSE
+                    printf("[VERBOSE] reg_ApplyConvolutionWindowAlongX_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+                        cudaGetErrorString(cudaGetLastError()),G.x,G.y,G.z,B.x,B.y,B.z);
+#endif
+                    break;
+                case 1:
+                    Grid_reg_ApplyConvolutionWindow =
+                        (unsigned int)ceil((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongY);
+                    B=dim3(Block_reg_ApplyConvolutionWindowAlongY,1,1);
+                    G=dim3(Grid_reg_ApplyConvolutionWindow,1,1);
+                    _reg_ApplyConvolutionWindowAlongY_kernel <<< G, B >>> (smoothedImage_d, kernelSize);
+                    CUDA_SAFE_CALL(cudaThreadSynchronize());
+#if _VERBOSE
+                    printf("[VERBOSE] reg_ApplyConvolutionWindowAlongY_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+                        cudaGetErrorString(cudaGetLastError()),G.x,G.y,G.z,B.x,B.y,B.z);
+#endif
+                    break;
+                case 2:
+                    Grid_reg_ApplyConvolutionWindow =
+                        (unsigned int)ceil((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongZ);
+                    B=dim3(Block_reg_ApplyConvolutionWindowAlongZ,1,1);
+                    G=dim3(Grid_reg_ApplyConvolutionWindow,1,1);
+                    _reg_ApplyConvolutionWindowAlongZ_kernel <<< G, B >>> (smoothedImage_d, kernelSize);
+                    CUDA_SAFE_CALL(cudaThreadSynchronize());
+#if _VERBOSE
+                    printf("[VERBOSE] reg_ApplyConvolutionWindowAlongZ_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+                        cudaGetErrorString(cudaGetLastError()),G.x,G.y,G.z,B.x,B.y,B.z);
+#endif
+                    break;
+            }
+            CUDA_SAFE_CALL(cudaFree(kernel_d));
+            CUDA_SAFE_CALL(cudaMemcpy(*imageArray_d, smoothedImage_d, voxelNumber*sizeof(float4), cudaMemcpyDeviceToDevice));
+            CUDA_SAFE_CALL(cudaFree(smoothedImage_d));
+        }
+    }
+}
+
 #endif
 

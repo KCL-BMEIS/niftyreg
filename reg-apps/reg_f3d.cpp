@@ -69,7 +69,7 @@ typedef struct{
     float targetUpThresholdValue;
     float sourceLowThresholdValue;
     float sourceUpThresholdValue;
-    float nmiGradientSmoothingValue;
+    float gradientSmoothingValue;
 }PARAM;
 typedef struct{
 	bool targetImageFlag;
@@ -108,7 +108,7 @@ typedef struct{
     bool sourceUpThresholdFlag;
 
     bool twoDimRegistration;
-    bool nmiGradientSmoothingFlag;
+    bool gradientSmoothingFlag;
 
 #ifdef _USE_CUDA	
 	bool useGPUFlag;
@@ -163,7 +163,7 @@ void Usage(char *exec)
     printf("\t-lp <int>\t\tOnly perform the first levels [ln]\n");
 	printf("\t-nopy\t\t\tDo not use a pyramidal approach [no]\n");
 
-    printf("\t-nmiGradSM <float>\t\tTo smooth the node-based NMI gradient (in mm) [0]\n");
+    printf("\t-smoothGrad <float>\tTo smooth the node-based gradient (in mm) [0]\n");
 	
 	printf("\t-be <float>\t\tWeight of the bending energy penalty term [0.01]\n");
 	printf("\t-noAppBE\t\tTo not approximate the BE value only at the control point position\n");
@@ -326,8 +326,8 @@ int main(int argc, char **argv)
             flag->sourceUpThresholdFlag=1;
         }
         else if(strcmp(argv[i], "-nmiGradSM") == 0){
-            param->nmiGradientSmoothingValue=(float)(atof(argv[++i]));
-            flag->nmiGradientSmoothingFlag=1;
+            param->gradientSmoothingValue=(float)(atof(argv[++i]));
+            flag->gradientSmoothingFlag=1;
         }
 		else if(strcmp(argv[i], "-bgi") == 0){
 			param->backgroundIndex[0]=atoi(argv[++i]);
@@ -789,18 +789,22 @@ int main(int argc, char **argv)
         positionFieldImage->dim[2]=positionFieldImage->ny=targetImage->ny;
         positionFieldImage->dim[3]=positionFieldImage->nz=targetImage->nz;
         positionFieldImage->dim[4]=positionFieldImage->nt=1;positionFieldImage->pixdim[4]=positionFieldImage->dt=1.0;
-
         if(flag->twoDimRegistration) positionFieldImage->dim[5]=positionFieldImage->nu=2;
-	    else positionFieldImage->dim[5]=positionFieldImage->nu=3;
-
-	    positionFieldImage->pixdim[5]=positionFieldImage->du=1.0;
+        else positionFieldImage->dim[5]=positionFieldImage->nu=3;
+        positionFieldImage->pixdim[5]=positionFieldImage->du=1.0;
         positionFieldImage->dim[6]=positionFieldImage->nv=1;positionFieldImage->pixdim[6]=positionFieldImage->dv=1.0;
         positionFieldImage->dim[7]=positionFieldImage->nw=1;positionFieldImage->pixdim[7]=positionFieldImage->dw=1.0;
         positionFieldImage->nvox=positionFieldImage->nx*positionFieldImage->ny*positionFieldImage->nz*positionFieldImage->nt*positionFieldImage->nu;
         if(sizeof(PrecisionTYPE)==4) positionFieldImage->datatype = NIFTI_TYPE_FLOAT32;
         else positionFieldImage->datatype = NIFTI_TYPE_FLOAT64;
         positionFieldImage->nbyper = sizeof(PrecisionTYPE);
-        positionFieldImage->data = (void *)calloc(positionFieldImage->nvox, positionFieldImage->nbyper);
+#ifdef _USE_CUDA
+        if(flag->useGPUFlag){
+            positionFieldImage->data=NULL;
+        }
+        else
+#endif
+            positionFieldImage->data = (void *)calloc(positionFieldImage->nvox, positionFieldImage->nbyper);
 
         /* allocate the result image */
         nifti_image *resultImage = nifti_copy_nim_info(targetImage);
@@ -1099,6 +1103,12 @@ int main(int argc, char **argv)
 								                    controlPointImage,
 								                    &voxelNMIGradientArray_d,
 								                    &nodeNMIGradientArray_d);
+                if(flag->gradientSmoothingFlag){
+                    reg_gaussianSmoothing_gpu(  controlPointImage,
+                                                &nodeNMIGradientArray_d,
+                                                param->gradientSmoothingValue,
+                                                NULL);
+                }
 				/* The NMI gradient is converted from voxel space to real space */
 				reg_convertNMIGradientFromVoxelToRealSpace_gpu( sourceMatrix_xyz,
 										                        controlPointImage,
@@ -1153,9 +1163,9 @@ int main(int argc, char **argv)
                                                             targetMask);
                 reg_smoothImageForCubicSpline<PrecisionTYPE>(voxelNMIGradientImage,smoothingRadius);
                 reg_voxelCentric2NodeCentric(nodeNMIGradientImage,voxelNMIGradientImage);
-                if(flag->nmiGradientSmoothingFlag){
+                if(flag->gradientSmoothingFlag){
                     reg_gaussianSmoothing<PrecisionTYPE>(   nodeNMIGradientImage,
-                                                            param->nmiGradientSmoothingValue,
+                                                            param->gradientSmoothingValue,
                                                             NULL);
                 }
 
@@ -1570,21 +1580,26 @@ int main(int argc, char **argv)
             nifti_set_filenames(controlPointImage, param->outputCPPName, 0, 0);
 			nifti_image_write(controlPointImage);
 
-            if(param->level2Perform != param->levelNumber){
-                free(positionFieldImage->data);
-                positionFieldImage->dim[1]=positionFieldImage->nx=targetHeader->nx;
-                positionFieldImage->dim[2]=positionFieldImage->ny=targetHeader->ny;
-                positionFieldImage->dim[3]=positionFieldImage->nz=targetHeader->nz;
-                positionFieldImage->dim[4]=positionFieldImage->nt=1;positionFieldImage->pixdim[4]=positionFieldImage->dt=1.0;
-                if(flag->twoDimRegistration)
-                	positionFieldImage->dim[5]=positionFieldImage->nu=2;
-                else positionFieldImage->dim[5]=positionFieldImage->nu=3;
-                positionFieldImage->pixdim[5]=positionFieldImage->du=1.0;
-                positionFieldImage->dim[6]=positionFieldImage->nv=1;positionFieldImage->pixdim[6]=positionFieldImage->dv=1.0;
-                positionFieldImage->dim[7]=positionFieldImage->nw=1;positionFieldImage->pixdim[7]=positionFieldImage->dw=1.0;
-                positionFieldImage->nvox=positionFieldImage->nx*positionFieldImage->ny*positionFieldImage->nz*positionFieldImage->nt*positionFieldImage->nu;
+#ifdef _USE_CUDA
+            if(flag->useGPUFlag && param->level2Perform==param->levelNumber)
                 positionFieldImage->data = (void *)calloc(positionFieldImage->nvox, positionFieldImage->nbyper);
-            }
+            else
+#endif
+                if(param->level2Perform != param->levelNumber){
+                    if(positionFieldImage->data)free(positionFieldImage->data);
+                    positionFieldImage->dim[1]=positionFieldImage->nx=targetHeader->nx;
+                    positionFieldImage->dim[2]=positionFieldImage->ny=targetHeader->ny;
+                    positionFieldImage->dim[3]=positionFieldImage->nz=targetHeader->nz;
+                    positionFieldImage->dim[4]=positionFieldImage->nt=1;positionFieldImage->pixdim[4]=positionFieldImage->dt=1.0;
+                    if(flag->twoDimRegistration)
+                        positionFieldImage->dim[5]=positionFieldImage->nu=2;
+                    else positionFieldImage->dim[5]=positionFieldImage->nu=3;
+                    positionFieldImage->pixdim[5]=positionFieldImage->du=1.0;
+                    positionFieldImage->dim[6]=positionFieldImage->nv=1;positionFieldImage->pixdim[6]=positionFieldImage->dv=1.0;
+                    positionFieldImage->dim[7]=positionFieldImage->nw=1;positionFieldImage->pixdim[7]=positionFieldImage->dw=1.0;
+                    positionFieldImage->nvox=positionFieldImage->nx*positionFieldImage->ny*positionFieldImage->nz*positionFieldImage->nt*positionFieldImage->nu;
+                    positionFieldImage->data = (void *)calloc(positionFieldImage->nvox, positionFieldImage->nbyper);
+                }
 
 			/* The corresponding deformation field is evaluated and saved */
 			reg_bspline<PrecisionTYPE>(	controlPointImage,

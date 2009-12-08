@@ -928,7 +928,7 @@ void reg_gaussianSmoothing1(nifti_image *image,
 		        if(sigma>0) currentSigma=sigma/image->pixdim[n];
 		        else currentSigma=fabs(sigma); // voxel based if negative value
 		        int radius=(int)ceil(currentSigma*3.0f);
-                if(radius>1){
+                if(radius>0){
 		            PrecisionTYPE *kernel = new PrecisionTYPE[2*radius+1];
 		            PrecisionTYPE kernelSum=0;
 		            for(int i=-radius; i<=radius; i++){
@@ -976,14 +976,14 @@ void reg_gaussianSmoothing1(nifti_image *image,
 template <class PrecisionTYPE>
 void reg_gaussianSmoothing(	nifti_image *image,
 							float sigma,
-                            bool downXYZ[8])
+                            bool smoothXYZ[8])
 {
     bool axisToSmooth[8];
-    if(downXYZ==NULL){
+    if(smoothXYZ==NULL){
         for(int i=0; i<8; i++) axisToSmooth[i]=true;
     }
     else{
-        for(int i=0; i<8; i++) axisToSmooth[i]=downXYZ[i];
+        for(int i=0; i<8; i++) axisToSmooth[i]=smoothXYZ[i];
     }
 
 	if(sigma==0.0) return;
