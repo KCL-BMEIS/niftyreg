@@ -908,56 +908,69 @@ void reg_tools_addSubMulDivValue(   nifti_image *img1,
 template <class PrecisionTYPE, class ImageTYPE>
 void reg_gaussianSmoothing1(nifti_image *image,
 			                float sigma,
-                            bool downXYZ[8])
+                            bool axisToSmooth[8])
 {
 	ImageTYPE *imagePtr = static_cast<ImageTYPE *>(image->data);
-	PrecisionTYPE *resultValue=(PrecisionTYPE *)malloc(image->nvox * sizeof(PrecisionTYPE));
-	for(int n=1; n<=image->dim[0]; n++){
-        if(downXYZ[n]==true){
-		    float currentSigma;
-		    if(sigma>0) currentSigma=sigma/image->pixdim[n];
-		    else currentSigma=fabs(sigma); // voxel based if negative value
-		    int radius=(int)ceil(currentSigma*3.0f);
-		    PrecisionTYPE *kernel = new PrecisionTYPE[2*radius+1];
-		    PrecisionTYPE kernelSum=0;
-		    for(int i=-radius; i<=radius; i++){
-			    kernel[radius+i]=(PrecisionTYPE)(exp( -(i*i)/(2.0*currentSigma*currentSigma)) / (currentSigma*2.506628274631)); // 2.506... = sqrt(2*pi)
-			    kernelSum += kernel[radius+i];
-		    }
-		    for(int i=-radius; i<=radius; i++) kernel[radius+i] /= kernelSum;
+
+    int timePoint = image->nt;
+    if(timePoint==0) timePoint=1;
+    int field = image->nu;
+    if(field==0) field=1;
+
+    unsigned int voxelNumber = image->nx*image->ny*image->nz;
+
+    for(int t=0; t<timePoint*field; t++){
+        ImageTYPE *timeImagePtr = &imagePtr[t * voxelNumber];
+        PrecisionTYPE *resultValue=(PrecisionTYPE *)malloc(voxelNumber * sizeof(PrecisionTYPE));
+	    for(int n=1; n<4; n++){
+            if(axisToSmooth[n]==true && image->dim[n]>1){
+		        float currentSigma;
+		        if(sigma>0) currentSigma=sigma/image->pixdim[n];
+		        else currentSigma=fabs(sigma); // voxel based if negative value
+		        int radius=(int)ceil(currentSigma*3.0f);
+                if(radius>1){
+		            PrecisionTYPE *kernel = new PrecisionTYPE[2*radius+1];
+		            PrecisionTYPE kernelSum=0;
+		            for(int i=-radius; i<=radius; i++){
+			            kernel[radius+i]=(PrecisionTYPE)(exp( -(i*i)/(2.0*currentSigma*currentSigma)) / (currentSigma*2.506628274631)); // 2.506... = sqrt(2*pi)
+			            kernelSum += kernel[radius+i];
+		            }
+		            for(int i=-radius; i<=radius; i++) kernel[radius+i] /= kernelSum;
 #ifdef _VERBOSE
-		    printf("[VERBOSE]smoothing dim[%i] radius[%i] kernelSum[%g]\n", n, radius, kernelSum);
+		            printf("[VERBOSE]smoothing dim[%i] radius[%i] kernelSum[%g]\n", n, radius, kernelSum);
 #endif
-		    int increment=1;
-		    switch(n){
-			    case 1: increment=1;break;
-			    case 2: increment=image->nx;break;
-			    case 3: increment=image->nx*image->ny;break;
-			    case 4: increment=image->nx*image->ny*image->nz;break;
-			    case 5: increment=image->nx*image->ny*image->nz*image->nt;break;
-			    case 6: increment=image->nx*image->ny*image->nz*image->nt*image->nu;break;
-			    case 7: increment=image->nx*image->ny*image->nz*image->nt*image->nu*image->nv;break;
-		    }
-		    unsigned int index=0;
-		    while(index<image->nvox){
-			    for(int x=0; x<image->dim[n]; x++){
-				    int current = index - increment*radius;
-				    PrecisionTYPE value=0;
-				    for(int j=-radius; j<=radius; j++){
-					    if(-1<current && current<(int)image->nvox){
-						    value += (PrecisionTYPE)(imagePtr[current]*kernel[j+radius]);
-					    }
-					    current += increment;
-				    }
-				    resultValue[index]=value;
-				    index++;
-			    }
-		    }
-		    for(unsigned int i=0; i<image->nvox; i++) imagePtr[i]=(ImageTYPE)resultValue[i];
-		    delete[] kernel;
-        }
-	}
-	free(resultValue);
+		            int increment=1;
+		            switch(n){
+			            case 1: increment=1;break;
+			            case 2: increment=image->nx;break;
+			            case 3: increment=image->nx*image->ny;break;
+			            case 4: increment=image->nx*image->ny*image->nz;break;
+			            case 5: increment=image->nx*image->ny*image->nz*image->nt;break;
+			            case 6: increment=image->nx*image->ny*image->nz*image->nt*image->nu;break;
+			            case 7: increment=image->nx*image->ny*image->nz*image->nt*image->nu*image->nv;break;
+		            }
+		            unsigned int index=0;
+		            while(index<voxelNumber){
+			            for(int x=0; x<image->dim[n]; x++){
+				            int current = index - increment*radius;
+				            PrecisionTYPE value=0;
+				            for(int j=-radius; j<=radius; j++){
+					            if(-1<current && current<(int)voxelNumber){
+						            value += (PrecisionTYPE)(timeImagePtr[current]*kernel[j+radius]);
+					            }
+					            current += increment;
+				            }
+				            resultValue[index]=value;
+				            index++;
+			            }
+		            }
+		            for(unsigned int i=0; i<voxelNumber; i++) timeImagePtr[i]=(ImageTYPE)resultValue[i];
+		            delete[] kernel;
+                }
+            }
+	    }
+        free(resultValue);
+    }
 }
 /* *************************************************************** */
 template <class PrecisionTYPE>
@@ -965,31 +978,39 @@ void reg_gaussianSmoothing(	nifti_image *image,
 							float sigma,
                             bool downXYZ[8])
 {
+    bool axisToSmooth[8];
+    if(downXYZ==NULL){
+        for(int i=0; i<8; i++) axisToSmooth[i]=true;
+    }
+    else{
+        for(int i=0; i<8; i++) axisToSmooth[i]=downXYZ[i];
+    }
+
 	if(sigma==0.0) return;
 	switch(image->datatype){
 		case NIFTI_TYPE_UINT8:
-			reg_gaussianSmoothing1<PrecisionTYPE,unsigned char>(image, sigma, downXYZ);
+			reg_gaussianSmoothing1<PrecisionTYPE,unsigned char>(image, sigma, axisToSmooth);
 			break;
 		case NIFTI_TYPE_INT8:
-			reg_gaussianSmoothing1<PrecisionTYPE,char>(image, sigma, downXYZ);
+			reg_gaussianSmoothing1<PrecisionTYPE,char>(image, sigma, axisToSmooth);
 			break;
 		case NIFTI_TYPE_UINT16:
-			reg_gaussianSmoothing1<PrecisionTYPE,unsigned short>(image, sigma, downXYZ);
+			reg_gaussianSmoothing1<PrecisionTYPE,unsigned short>(image, sigma, axisToSmooth);
 			break;
 		case NIFTI_TYPE_INT16:
-			reg_gaussianSmoothing1<PrecisionTYPE,short>(image, sigma, downXYZ);
+			reg_gaussianSmoothing1<PrecisionTYPE,short>(image, sigma, axisToSmooth);
 			break;
 		case NIFTI_TYPE_UINT32:
-			reg_gaussianSmoothing1<PrecisionTYPE,unsigned int>(image, sigma, downXYZ);
+			reg_gaussianSmoothing1<PrecisionTYPE,unsigned int>(image, sigma, axisToSmooth);
 			break;
 		case NIFTI_TYPE_INT32:
-			reg_gaussianSmoothing1<PrecisionTYPE,int>(image, sigma, downXYZ);
+			reg_gaussianSmoothing1<PrecisionTYPE,int>(image, sigma, axisToSmooth);
 			break;
 		case NIFTI_TYPE_FLOAT32:
-			reg_gaussianSmoothing1<PrecisionTYPE,float>(image, sigma, downXYZ);
+			reg_gaussianSmoothing1<PrecisionTYPE,float>(image, sigma, axisToSmooth);
 			break;
 		case NIFTI_TYPE_FLOAT64:
-			reg_gaussianSmoothing1<PrecisionTYPE,double>(image, sigma, downXYZ);
+			reg_gaussianSmoothing1<PrecisionTYPE,double>(image, sigma, axisToSmooth);
 			break;
 		default:
 			printf("err\treg_smoothImage\tThe image data type is not supported\n");

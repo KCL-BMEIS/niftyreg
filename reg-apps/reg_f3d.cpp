@@ -69,6 +69,7 @@ typedef struct{
     float targetUpThresholdValue;
     float sourceLowThresholdValue;
     float sourceUpThresholdValue;
+    float nmiGradientSmoothingValue;
 }PARAM;
 typedef struct{
 	bool targetImageFlag;
@@ -107,6 +108,7 @@ typedef struct{
     bool sourceUpThresholdFlag;
 
     bool twoDimRegistration;
+    bool nmiGradientSmoothingFlag;
 
 #ifdef _USE_CUDA	
 	bool useGPUFlag;
@@ -160,11 +162,13 @@ void Usage(char *exec)
 	printf("\t-ln <int>\t\tNumber of level to perform [3]\n");
     printf("\t-lp <int>\t\tOnly perform the first levels [ln]\n");
 	printf("\t-nopy\t\t\tDo not use a pyramidal approach [no]\n");
+
+    printf("\t-nmiGradSM <float>\t\tTo smooth the node-based NMI gradient (in mm) [0]\n");
 	
 	printf("\t-be <float>\t\tWeight of the bending energy penalty term [0.01]\n");
 	printf("\t-noAppBE\t\tTo not approximate the BE value only at the control point position\n");
-	printf("\t-noGradBE\t\tTo not use the gradient of the bending energy\n");
-	
+    printf("\t-noGradBE\t\tTo not use the gradient of the bending energy\n");
+
 // 	printf("\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]\n");
 // 	printf("\t-appJL\t\t\tApproximate the JL value only at the control point position [no]\n");
 // 	printf("\t-fullJL\t\t\tThe JL is compute using the full resolution image [no]\n");
@@ -321,6 +325,10 @@ int main(int argc, char **argv)
             param->sourceUpThresholdValue=(float)(atof(argv[++i]));
             flag->sourceUpThresholdFlag=1;
         }
+        else if(strcmp(argv[i], "-nmiGradSM") == 0){
+            param->nmiGradientSmoothingValue=(float)(atof(argv[++i]));
+            flag->nmiGradientSmoothingFlag=1;
+        }
 		else if(strcmp(argv[i], "-bgi") == 0){
 			param->backgroundIndex[0]=atoi(argv[++i]);
 			param->backgroundIndex[1]=atoi(argv[++i]);
@@ -352,7 +360,7 @@ int main(int argc, char **argv)
 	if(flag->useGPUFlag){
 		if(flag->jacobianWeightFlag){
 			printf("\n[WARNING] The gpu-based Jacobian determinant log penalty term has not been implemented yet [/WARNING]\n");
-			printf("[WARNING] ... Exit ... [/WARNING]\n");
+            printf("[WARNING] >>> Exit <<< [/WARNING]\n");
 			return 1;
 		}
 		if(!flag->bendingEnergyFlag){
@@ -398,7 +406,16 @@ int main(int argc, char **argv)
 	}
 
     /* Flag for 2D registration */
-    if(sourceHeader->nz==1) flag->twoDimRegistration=1;
+    if(sourceHeader->nz==1){
+        flag->twoDimRegistration=1;
+#ifdef _USE_CUDA 
+        if(flag->useGPUFlag){
+            printf("\n[WARNING] The GPU 2D version has not been implemented yet [/WARNING]\n");
+            printf("[WARNING] >>> Exit <<< [/WARNING]\n");
+            return 1;
+        }
+#endif
+    }
 
     /* Check the source background index */
     if(!flag->backgroundIndexFlag) param->sourceBGValue = 0.0;
@@ -667,12 +684,12 @@ int main(int argc, char **argv)
                 gridSpacing[1] = param->spacing[1] * powf(2.0f, (float)(param->level2Perform-1));
                 dim_cpp[2]=(int)floor(targetImage->ny*targetImage->dy/gridSpacing[1])+4;
                 if(flag->twoDimRegistration){
-                    gridSpacing[2] = param->spacing[2] * powf(2.0f, (float)(param->level2Perform-1));
+                    gridSpacing[2] = 1.0f;
                 	dim_cpp[3]=1;
                 	dim_cpp[5]=2;
                 }
                 else{
-                    gridSpacing[2] = 1.0f;
+                    gridSpacing[2] = param->spacing[2] * powf(2.0f, (float)(param->level2Perform-1));
                     dim_cpp[3]=(int)floor(targetImage->nz*targetImage->dz/gridSpacing[2])+4;
                 	dim_cpp[5]=3;
                 }
@@ -684,8 +701,10 @@ int main(int argc, char **argv)
                 controlPointImage->pixdim[0]=1.0f;
                 controlPointImage->pixdim[1]=controlPointImage->dx=gridSpacing[0];
                 controlPointImage->pixdim[2]=controlPointImage->dy=gridSpacing[1];
-                if(!flag->twoDimRegistration) controlPointImage->pixdim[3]=controlPointImage->dz=gridSpacing[2];
-                else controlPointImage->pixdim[3]=controlPointImage->dz=1.0f;
+                if(flag->twoDimRegistration){
+                    controlPointImage->pixdim[3]=controlPointImage->dz=1.0f;
+                }
+                else controlPointImage->pixdim[3]=controlPointImage->dz=gridSpacing[2];
                 controlPointImage->pixdim[4]=controlPointImage->dt=1.0f;
                 controlPointImage->pixdim[5]=controlPointImage->du=1.0f;
                 controlPointImage->pixdim[6]=controlPointImage->dv=1.0f;
@@ -940,6 +959,7 @@ int main(int argc, char **argv)
 		smoothingRadius[1] = (int)floor( 2.0*controlPointImage->dy/targetImage->dy );
 		smoothingRadius[2] = (int)floor( 2.0*controlPointImage->dz/targetImage->dz );
 
+
 		int iteration=0;
         while(iteration<param->maxIteration && currentSize>smallestSize){
 #ifdef _USE_CUDA
@@ -1105,13 +1125,13 @@ int main(int argc, char **argv)
 					else{
 						// conjugate gradient computation if iteration != 1
 						reg_GetConjugateGradient(	&nodeNMIGradientArray_d,
-										&conjugateG_d,
-										&conjugateH_d,
-										controlPointImage->nx*controlPointImage->ny*controlPointImage->nz);
+										            &conjugateG_d,
+										            &conjugateH_d,
+										            controlPointImage->nx*controlPointImage->ny*controlPointImage->nz);
 					}
 				}
 				maxLength = reg_getMaximalLength_gpu(	&nodeNMIGradientArray_d,
-									controlPointImage->nx*controlPointImage->ny*controlPointImage->nz);
+									                    controlPointImage->nx*controlPointImage->ny*controlPointImage->nz);
 			}
 			else{
 #endif
@@ -1131,50 +1151,55 @@ int main(int argc, char **argv)
                                                             entropies,
                                                             voxelNMIGradientImage,
                                                             targetMask);
-				reg_smoothImageForCubicSpline<PrecisionTYPE>(voxelNMIGradientImage,smoothingRadius);
-				reg_voxelCentric2NodeCentric(nodeNMIGradientImage,voxelNMIGradientImage);
+                reg_smoothImageForCubicSpline<PrecisionTYPE>(voxelNMIGradientImage,smoothingRadius);
+                reg_voxelCentric2NodeCentric(nodeNMIGradientImage,voxelNMIGradientImage);
+                if(flag->nmiGradientSmoothingFlag){
+                    reg_gaussianSmoothing<PrecisionTYPE>(   nodeNMIGradientImage,
+                                                            param->nmiGradientSmoothingValue,
+                                                            NULL);
+                }
 
-				/* The NMI gradient is converted from voxel space to real space */
-				if(flag->twoDimRegistration){
-					PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
-					PrecisionTYPE *gradientValuesY = &gradientValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-					PrecisionTYPE newGradientValueX, newGradientValueY;
-					for(int i=0; i<controlPointImage->nx*controlPointImage->ny*controlPointImage->nz; i++){
-		
-						newGradientValueX = 	*gradientValuesX * sourceMatrix_xyz->m[0][0] +
-									*gradientValuesY * sourceMatrix_xyz->m[0][1];
-						newGradientValueY = 	*gradientValuesX * sourceMatrix_xyz->m[1][0] +
-									*gradientValuesY * sourceMatrix_xyz->m[1][1];
-		
-						*gradientValuesX++ = newGradientValueX;
-						*gradientValuesY++ = newGradientValueY;
-					}
-				}
-				else{
-					PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
-					PrecisionTYPE *gradientValuesY = &gradientValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-					PrecisionTYPE *gradientValuesZ = &gradientValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-					PrecisionTYPE newGradientValueX, newGradientValueY, newGradientValueZ;
-					for(int i=0; i<controlPointImage->nx*controlPointImage->ny*controlPointImage->nz; i++){
-		
-						newGradientValueX = 	*gradientValuesX * sourceMatrix_xyz->m[0][0] +
-									*gradientValuesY * sourceMatrix_xyz->m[0][1] +
-									*gradientValuesZ * sourceMatrix_xyz->m[0][2];
-						newGradientValueY = 	*gradientValuesX * sourceMatrix_xyz->m[1][0] +
-									*gradientValuesY * sourceMatrix_xyz->m[1][1] +
-									*gradientValuesZ * sourceMatrix_xyz->m[1][2];
-						newGradientValueZ = 	*gradientValuesX * sourceMatrix_xyz->m[2][0] +
-									*gradientValuesY * sourceMatrix_xyz->m[2][1] +
-									*gradientValuesZ * sourceMatrix_xyz->m[2][2];
-		
-						*gradientValuesX++ = newGradientValueX;
-						*gradientValuesY++ = newGradientValueY;
-						*gradientValuesZ++ = newGradientValueZ;
-					}
-				}
+                /* The NMI gradient is converted from voxel space to real space */
+                if(flag->twoDimRegistration){
+	                PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
+	                PrecisionTYPE *gradientValuesY = &gradientValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+	                PrecisionTYPE newGradientValueX, newGradientValueY;
+	                for(int i=0; i<controlPointImage->nx*controlPointImage->ny*controlPointImage->nz; i++){
 
-				/* The other gradients are calculated */
-				if(flag->beGradFlag && flag->bendingEnergyFlag){
+		                newGradientValueX = 	*gradientValuesX * sourceMatrix_xyz->m[0][0] +
+					                *gradientValuesY * sourceMatrix_xyz->m[0][1];
+		                newGradientValueY = 	*gradientValuesX * sourceMatrix_xyz->m[1][0] +
+					                *gradientValuesY * sourceMatrix_xyz->m[1][1];
+
+		                *gradientValuesX++ = newGradientValueX;
+		                *gradientValuesY++ = newGradientValueY;
+	                }
+                }
+                else{
+	                PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
+	                PrecisionTYPE *gradientValuesY = &gradientValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+	                PrecisionTYPE *gradientValuesZ = &gradientValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+	                PrecisionTYPE newGradientValueX, newGradientValueY, newGradientValueZ;
+	                for(int i=0; i<controlPointImage->nx*controlPointImage->ny*controlPointImage->nz; i++){
+
+		                newGradientValueX = 	*gradientValuesX * sourceMatrix_xyz->m[0][0] +
+					                *gradientValuesY * sourceMatrix_xyz->m[0][1] +
+					                *gradientValuesZ * sourceMatrix_xyz->m[0][2];
+		                newGradientValueY = 	*gradientValuesX * sourceMatrix_xyz->m[1][0] +
+					                *gradientValuesY * sourceMatrix_xyz->m[1][1] +
+					                *gradientValuesZ * sourceMatrix_xyz->m[1][2];
+		                newGradientValueZ = 	*gradientValuesX * sourceMatrix_xyz->m[2][0] +
+					                *gradientValuesY * sourceMatrix_xyz->m[2][1] +
+					                *gradientValuesZ * sourceMatrix_xyz->m[2][2];
+
+		                *gradientValuesX++ = newGradientValueX;
+		                *gradientValuesY++ = newGradientValueY;
+		                *gradientValuesZ++ = newGradientValueZ;
+	                }
+                }
+
+                /* The other gradients are calculated */
+                if(flag->beGradFlag && flag->bendingEnergyFlag){
                     reg_bspline_bendingEnergyGradient<PrecisionTYPE>(controlPointImage,
                                             targetImage,
                                             nodeNMIGradientImage,
