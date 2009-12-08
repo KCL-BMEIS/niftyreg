@@ -1300,10 +1300,10 @@ double reg_tools_getMeanRMS2(nifti_image *imageA, nifti_image *imageB)
 {
     ATYPE *imageAPtrX = static_cast<ATYPE *>(imageA->data);
     BTYPE *imageBPtrX = static_cast<BTYPE *>(imageB->data);
-    ATYPE *imageAPtrY;
-    BTYPE *imageBPtrY;
-    ATYPE *imageAPtrZ;
-    BTYPE *imageBPtrZ;
+    ATYPE *imageAPtrY=NULL;
+    BTYPE *imageBPtrY=NULL;
+    ATYPE *imageAPtrZ=NULL;
+    BTYPE *imageBPtrZ=NULL;
     if(imageA->dim[5]>1){
         imageAPtrY = &imageAPtrX[imageA->nx*imageA->ny*imageA->nz];
         imageBPtrY = &imageBPtrX[imageA->nx*imageA->ny*imageA->nz];

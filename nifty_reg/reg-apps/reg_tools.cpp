@@ -215,7 +215,7 @@ int main(int argc, char **argv)
 	}
 
     if(flag->addImageFlag || flag->subImageFlag || flag->mulImageFlag || flag->divImageFlag){
-        nifti_image *image2;
+        nifti_image *image2=NULL;
         if(flag->addImageFlag) image2 = nifti_image_read(param->addImageName,true);
         if(flag->subImageFlag) image2 = nifti_image_read(param->subImageName,true);
         if(flag->mulImageFlag) image2 = nifti_image_read(param->mulImageName,true);

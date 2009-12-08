@@ -20,6 +20,7 @@
 #define MAX_ITERATIONS 20
 
 #define BLOCK_WIDTH 4
+#define BLOCK_2D_SIZE 16
 #define BLOCK_SIZE 64
 #define OVERLAP_SIZE 3
 #define STEP_SIZE 1

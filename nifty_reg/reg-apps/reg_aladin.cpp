@@ -87,6 +87,7 @@ typedef struct{
 	bool sourceSigmaFlag;
 	bool pyramidFlag;
 	bool useGPUFlag;
+    bool twoDimRegistration;
 }FLAG;
 void PetitUsage(char *exec)
 {
@@ -285,7 +286,22 @@ int main(int argc, char **argv)
 		fprintf(stderr,"** ERROR Error when reading the source image: %s\n",param->sourceImageName);
 		return 1;
 	}
-	
+
+	/* Flag for 2D registration */
+    if(sourceHeader->nz==1 || targetHeader->nz==1){
+        flag->twoDimRegistration=1;
+        printf("\n[WARNING] The 2D version has not been implemented yet [/WARNING]\n");
+        printf("[WARNING] >>> Exit <<< [/WARNING]\n\n");
+        return 1;
+#ifdef _USE_CUDA 
+        if(flag->useGPUFlag){
+            printf("\n[WARNING] The GPU 2D version has not been implemented yet [/WARNING]\n");
+            printf("[WARNING] >>> Exit <<< [/WARNING]\n\n");
+            return 1;
+        }
+#endif
+    }
+
 	/* Check the source background index */
 	if(!flag->backgroundIndexFlag) param->sourceBGValue = 0.0;
 	else{
@@ -344,7 +360,7 @@ int main(int argc, char **argv)
 	}
 
     /* read and binarise the target mask image */
-    nifti_image *targetMaskImage;
+    nifti_image *targetMaskImage=NULL;
     if(flag->targetMaskFlag){
         targetMaskImage = nifti_image_read(param->targetMaskName,true);
         if(targetMaskImage == NULL){
@@ -409,12 +425,13 @@ int main(int argc, char **argv)
         int activeVoxelNumber=0;
 
         /* downsample the input images if appropriate */
-        nifti_image *tempMaskImage;
+        nifti_image *tempMaskImage=NULL;
         if(flag->targetMaskFlag){
             tempMaskImage = nifti_copy_nim_info(targetMaskImage);
             tempMaskImage->data = (void *)malloc(tempMaskImage->nvox * tempMaskImage->nbyper);
-            memcpy( tempMaskImage->data, targetMaskImage->data, tempMaskImage->nvox*tempMaskImage->nbyper);
+            memcpy(tempMaskImage->data, targetMaskImage->data, tempMaskImage->nvox*tempMaskImage->nbyper);
         }
+
         for(int l=level; l<param->levelNumber-1; l++){
             int ratio = (int)pow(2,param->levelNumber-param->levelNumber+l+1);
 
@@ -434,17 +451,18 @@ int main(int argc, char **argv)
                 reg_downsampleImage<PrecisionTYPE>(tempMaskImage, 0, targetDownsampleAxis);
             }
         }
-
         targetMask = (int *)malloc(targetImage->nvox*sizeof(int));
         if(flag->targetMaskFlag){
             reg_tool_binaryImage2int(tempMaskImage, targetMask, activeVoxelNumber);
             nifti_image_free(tempMaskImage);
         }
         else{
-            for(unsigned i=0; i<targetImage->nvox; i++) targetMask[i]=i;
+            for(unsigned int i=0; i<targetImage->nvox; i++)
+                targetMask[i]=i;
             activeVoxelNumber=targetImage->nvox;
         }
-		
+
+
 		/* smooth the input image if appropriate */
 		if(flag->targetSigmaFlag){
             bool smoothAxis[8]={true,true,true,true,true,true,true,true};
@@ -455,21 +473,29 @@ int main(int argc, char **argv)
 			reg_gaussianSmoothing<PrecisionTYPE>(sourceImage, param->sourceSigmaValue, smoothAxis);
         }
 		
-		/* allocate the deformation Field image */
-		nifti_image *positionFieldImage = nifti_copy_nim_info(targetImage);
-		positionFieldImage->dim[0]=positionFieldImage->ndim=5;
-		positionFieldImage->dim[1]=positionFieldImage->nx=targetImage->nx;
-		positionFieldImage->dim[2]=positionFieldImage->ny=targetImage->ny;
-		positionFieldImage->dim[3]=positionFieldImage->nz=targetImage->nz;
-		positionFieldImage->dim[4]=positionFieldImage->nt=1;positionFieldImage->pixdim[4]=positionFieldImage->dt=1.0;
-		positionFieldImage->dim[5]=positionFieldImage->nu=3;positionFieldImage->pixdim[5]=positionFieldImage->du=1.0;
-		positionFieldImage->dim[6]=positionFieldImage->nv=1;positionFieldImage->pixdim[6]=positionFieldImage->dv=1.0;
-		positionFieldImage->dim[7]=positionFieldImage->nw=1;positionFieldImage->pixdim[7]=positionFieldImage->dw=1.0;
-		positionFieldImage->nvox=positionFieldImage->nx*positionFieldImage->ny*positionFieldImage->nz*positionFieldImage->nt*positionFieldImage->nu;
-		if(sizeof(PrecisionTYPE)==4) positionFieldImage->datatype = NIFTI_TYPE_FLOAT32;
-		else positionFieldImage->datatype = NIFTI_TYPE_FLOAT64;
-		positionFieldImage->nbyper = sizeof(PrecisionTYPE);
-		positionFieldImage->data = (void *)calloc(positionFieldImage->nvox, positionFieldImage->nbyper);
+        /* allocate the deformation Field image */
+        nifti_image *positionFieldImage = nifti_copy_nim_info(targetImage);
+        positionFieldImage->dim[0]=positionFieldImage->ndim=5;
+        positionFieldImage->dim[1]=positionFieldImage->nx=targetImage->nx;
+        positionFieldImage->dim[2]=positionFieldImage->ny=targetImage->ny;
+        positionFieldImage->dim[3]=positionFieldImage->nz=targetImage->nz;
+        positionFieldImage->dim[4]=positionFieldImage->nt=1;positionFieldImage->pixdim[4]=positionFieldImage->dt=1.0;
+        if(flag->twoDimRegistration) positionFieldImage->dim[5]=positionFieldImage->nu=2;
+        else positionFieldImage->dim[5]=positionFieldImage->nu=3;
+        positionFieldImage->pixdim[5]=positionFieldImage->du=1.0;
+        positionFieldImage->dim[6]=positionFieldImage->nv=1;positionFieldImage->pixdim[6]=positionFieldImage->dv=1.0;
+        positionFieldImage->dim[7]=positionFieldImage->nw=1;positionFieldImage->pixdim[7]=positionFieldImage->dw=1.0;
+        positionFieldImage->nvox=positionFieldImage->nx*positionFieldImage->ny*positionFieldImage->nz*positionFieldImage->nt*positionFieldImage->nu;
+        if(sizeof(PrecisionTYPE)==4) positionFieldImage->datatype = NIFTI_TYPE_FLOAT32;
+        else positionFieldImage->datatype = NIFTI_TYPE_FLOAT64;
+        positionFieldImage->nbyper = sizeof(PrecisionTYPE);
+#ifdef _USE_CUDA
+        if(flag->useGPUFlag){
+            positionFieldImage->data=NULL;
+        }
+        else
+#endif
+            positionFieldImage->data = (void *)calloc(positionFieldImage->nvox, positionFieldImage->nbyper);
 		
 		/* allocate the result image */
 		nifti_image *resultImage = nifti_copy_nim_info(targetImage);
@@ -502,12 +528,13 @@ int main(int argc, char **argv)
 
 		/* initialise the block matching */
 		_reg_blockMatchingParam blockMatchingParams;
-		initialise_block_matching_method(   targetImage,
+        initialise_block_matching_method(   targetImage,
                                             &blockMatchingParams,
                                             param->block_percent_to_use,    // percentage of block kept
                                             param->inlier_lts,              // percentage of inlier in the optimisation process
                                             targetMask,
                                             flag->useGPUFlag);
+
 		mat44 updateAffineMatrix;
 
 #ifdef _USE_CUDA
@@ -551,7 +578,9 @@ int main(int argc, char **argv)
 		       targetImage->nx, targetImage->ny, targetImage->nz, targetImage->dx, targetImage->dy, targetImage->dz);
 		printf("Source image size: \t%ix%ix%i voxels\t%gx%gx%g mm\n",
 		       sourceImage->nx, sourceImage->ny, sourceImage->nz, sourceImage->dx, sourceImage->dy, sourceImage->dz);
-		printf("Block size = [4 4 4]\n");
+        if(flag->twoDimRegistration)
+            printf("Block size = [4 4 1]\n");
+        else printf("Block size = [4 4 4]\n");
 		printf("Block number = [%i %i %i]\n", blockMatchingParams.blockNumber[0],
 			blockMatchingParams.blockNumber[1], blockMatchingParams.blockNumber[2]);
 #ifdef _VERBOSE
@@ -616,14 +645,18 @@ int main(int argc, char **argv)
                                                             1,
                                                             param->sourceBGValue);
 					/* Compute the correspondances between blocks */
-					block_matching_method<PrecisionTYPE>(	targetImage,
-										                    resultImage,
-										                    &blockMatchingParams,
-                                                            targetMask);
+                    if(flag->twoDimRegistration){
+                        block_matching_method<PrecisionTYPE>(   targetImage,
+                                                                resultImage,
+                                                                &blockMatchingParams,
+                                                                targetMask);
+                    }
+                    else{
+                    }
 					/* update  the affine transformation matrix */
 					optimize(	&blockMatchingParams,
-							&updateAffineMatrix,
-							RIGID);
+							    &updateAffineMatrix,
+							    RIGID);
 #ifdef _USE_CUDA
 				}
 #endif
@@ -736,18 +769,26 @@ int main(int argc, char **argv)
 			/* OUTPUT THE RESULTS */
 			/* ****************** */
 
-			if(param->level2Perform != param->levelNumber){
-				free(positionFieldImage->data);
-				positionFieldImage->dim[1]=positionFieldImage->nx=targetHeader->nx;
-				positionFieldImage->dim[2]=positionFieldImage->ny=targetHeader->ny;
-				positionFieldImage->dim[3]=positionFieldImage->nz=targetHeader->nz;
-				positionFieldImage->dim[4]=positionFieldImage->nt=1;positionFieldImage->pixdim[4]=positionFieldImage->dt=1.0;
-				positionFieldImage->dim[5]=positionFieldImage->nu=3;positionFieldImage->pixdim[5]=positionFieldImage->du=1.0;
-				positionFieldImage->dim[6]=positionFieldImage->nv=1;positionFieldImage->pixdim[6]=positionFieldImage->dv=1.0;
-				positionFieldImage->dim[7]=positionFieldImage->nw=1;positionFieldImage->pixdim[7]=positionFieldImage->dw=1.0;
-				positionFieldImage->nvox=positionFieldImage->nx*positionFieldImage->ny*positionFieldImage->nz*positionFieldImage->nt*positionFieldImage->nu;
-				positionFieldImage->data = (void *)calloc(positionFieldImage->nvox, positionFieldImage->nbyper);
-			}
+#ifdef _USE_CUDA
+            if(flag->useGPUFlag && param->level2Perform==param->levelNumber)
+                positionFieldImage->data = (void *)calloc(positionFieldImage->nvox, positionFieldImage->nbyper);
+            else
+#endif
+                if(param->level2Perform != param->levelNumber){
+                    if(positionFieldImage->data)free(positionFieldImage->data);
+                    positionFieldImage->dim[1]=positionFieldImage->nx=targetHeader->nx;
+                    positionFieldImage->dim[2]=positionFieldImage->ny=targetHeader->ny;
+                    positionFieldImage->dim[3]=positionFieldImage->nz=targetHeader->nz;
+                    positionFieldImage->dim[4]=positionFieldImage->nt=1;positionFieldImage->pixdim[4]=positionFieldImage->dt=1.0;
+                    if(flag->twoDimRegistration)
+                        positionFieldImage->dim[5]=positionFieldImage->nu=2;
+                    else positionFieldImage->dim[5]=positionFieldImage->nu=3;
+                    positionFieldImage->pixdim[5]=positionFieldImage->du=1.0;
+                    positionFieldImage->dim[6]=positionFieldImage->nv=1;positionFieldImage->pixdim[6]=positionFieldImage->dv=1.0;
+                    positionFieldImage->dim[7]=positionFieldImage->nw=1;positionFieldImage->pixdim[7]=positionFieldImage->dw=1.0;
+                    positionFieldImage->nvox=positionFieldImage->nx*positionFieldImage->ny*positionFieldImage->nz*positionFieldImage->nt*positionFieldImage->nu;
+                    positionFieldImage->data = (void *)calloc(positionFieldImage->nvox, positionFieldImage->nbyper);
+                }
 			
 			/* The corresponding deformation field is evaluated and saved */
 			reg_affine_positionField(	affineTransformation,

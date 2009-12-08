@@ -37,7 +37,8 @@ void reg_affine_positionField_gpu(	mat44 *affineMatrix,
 	mat44 transformationMatrix = reg_mat44_mul(affineMatrix, targetMatrix);
 	
 	// The transformation matrix is binded to a texture
-	float4 *transformationMatrix_h;CUDA_SAFE_CALL(cudaMallocHost((void **)&transformationMatrix_h, 3*sizeof(float4)));
+	float4 *transformationMatrix_h;
+    CUDA_SAFE_CALL(cudaMallocHost((void **)&transformationMatrix_h, 3*sizeof(float4)));
 	float4 *transformationMatrix_d;
 	CUDA_SAFE_CALL(cudaMalloc((void **)&transformationMatrix_d, 3*sizeof(float4)));
 	for(int i=0; i<3; i++){
