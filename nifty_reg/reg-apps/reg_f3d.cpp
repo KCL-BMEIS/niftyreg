@@ -250,15 +250,15 @@ int main(int argc, char **argv)
 			flag->maxIterationFlag=1;
 		}
 		else if(strcmp(argv[i], "-sx") == 0){
-			param->spacing[0]=(float)(atof(argv[++i]));
+			param->spacing[0]=(float)fabs((atof(argv[++i])));
 			flag->spacingFlag[0]=1;
 		}
 		else if(strcmp(argv[i], "-sy") == 0){
-			param->spacing[1]=(float)(atof(argv[++i]));
+			param->spacing[1]=(float)fabs((atof(argv[++i])));
 			flag->spacingFlag[1]=1;
 		}
 		else if(strcmp(argv[i], "-sz") == 0){
-			param->spacing[2]=(float)(atof(argv[++i]));
+			param->spacing[2]=(float)fabs((atof(argv[++i])));
 			flag->spacingFlag[2]=1;
 		}
 		else if(strcmp(argv[i], "-bin") == 0){

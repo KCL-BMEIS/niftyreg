@@ -290,9 +290,11 @@ int main(int argc, char **argv)
 	/* Flag for 2D registration */
     if(sourceHeader->nz==1 || targetHeader->nz==1){
         flag->twoDimRegistration=1;
-        printf("\n[WARNING] The 2D version has not been implemented yet [/WARNING]\n");
-        printf("[WARNING] >>> Exit <<< [/WARNING]\n\n");
-        return 1;
+        if(flag->affineFlag){
+            printf("\n[WARNING] The 2D version has not been implemented yet [/WARNING]\n");
+            printf("[WARNING] >>> Exit <<< [/WARNING]\n\n");
+            return 1;
+        }
 #ifdef _USE_CUDA 
         if(flag->useGPUFlag){
             printf("\n[WARNING] The GPU 2D version has not been implemented yet [/WARNING]\n");
@@ -392,8 +394,12 @@ int main(int argc, char **argv)
 	printf("Source image name: %s\n",sourceHeader->fname);
 	printf("\t%ix%ix%i voxels\n",sourceHeader->nx,sourceHeader->ny,sourceHeader->nz);
 	printf("\t%gx%gx%g mm\n",sourceHeader->dx,sourceHeader->dy,sourceHeader->dz);
-    printf("Maximum iteration number: %i\n",param->maxIteration);
-    printf("Percentage of blocks: %i %%\n",param->block_percent_to_use);
+    printf("Maximum iteration number: %i ",param->maxIteration);
+    if(flag->inputAffineFlag) printf("\n");
+    else printf("(%i during the first level)\n",2*param->maxIteration);
+    printf("Percentage of blocks: %i %%",param->block_percent_to_use);
+    if(flag->inputAffineFlag) printf("\n");
+    else printf(" (100%% during the first level)\n");
 #ifdef _USE_CUDA
 	if(flag->useGPUFlag) printf("The GPU implementation is used\n");
 	else printf("The CPU implementation is used\n");
@@ -406,7 +412,7 @@ int main(int argc, char **argv)
 	
 	for(int level=0; level<param->level2Perform; level++){
 		/* Read the target and source image */
-		nifti_image *targetImage = nifti_image_read(param->targetImageName,true);		
+		nifti_image *targetImage = nifti_image_read(param->targetImageName,true);
 		
 		if(targetImage->data == NULL){
 			fprintf(stderr, "** ERROR Error when reading the target image: %s\n", param->targetImageName);
@@ -419,6 +425,15 @@ int main(int argc, char **argv)
 			return 1;
 		}
 		reg_changeDatatype<PrecisionTYPE>(sourceImage);
+
+        // Twice more iterations are performed during the first level
+        // All the blocks are used during the first level
+        int maxNumberOfIterationToPerform=param->maxIteration;
+        int percentageOfBlockToUse=param->block_percent_to_use;
+        if(level==0 && !flag->inputAffineFlag){
+            maxNumberOfIterationToPerform*=2;
+            percentageOfBlockToUse=100;
+        }
 
         /* declare the target mask array */
         int *targetMask;
@@ -530,7 +545,7 @@ int main(int argc, char **argv)
 		_reg_blockMatchingParam blockMatchingParams;
         initialise_block_matching_method(   targetImage,
                                             &blockMatchingParams,
-                                            param->block_percent_to_use,    // percentage of block kept
+                                            percentageOfBlockToUse,    // percentage of block kept
                                             param->inlier_lts,              // percentage of inlier in the optimisation process
                                             targetMask,
                                             flag->useGPUFlag);
@@ -539,15 +554,15 @@ int main(int argc, char **argv)
 
 #ifdef _USE_CUDA
 		/* initialise the cuda array if necessary */
-		float *targetImageArray_d;
-		cudaArray *sourceImageArray_d;
-		float *resultImageArray_d;
-		float4 *positionFieldImageArray_d;
-        int *targetMask_d;
+		float *targetImageArray_d=NULL;
+		cudaArray *sourceImageArray_d=NULL;
+		float *resultImageArray_d=NULL;
+		float4 *positionFieldImageArray_d=NULL;
+        int *targetMask_d=NULL;
 
-		float *targetPosition_d;
-		float *resultPosition_d;
-        int *activeBlock_d;
+		float *targetPosition_d=NULL;
+		float *resultPosition_d=NULL;
+        int *activeBlock_d=NULL;
 
 		if(flag->useGPUFlag){
 			/* The data are transfered from the host to the device */
@@ -563,9 +578,9 @@ int main(int argc, char **argv)
 
 			CUDA_SAFE_CALL(cudaMalloc((void **)&targetPosition_d, blockMatchingParams.activeBlockNumber*3*sizeof(float)));
 			CUDA_SAFE_CALL(cudaMalloc((void **)&resultPosition_d, blockMatchingParams.activeBlockNumber*3*sizeof(float)));
+
 			CUDA_SAFE_CALL(cudaMalloc((void **)&activeBlock_d,
 				blockMatchingParams.blockNumber[0]*blockMatchingParams.blockNumber[1]*blockMatchingParams.blockNumber[2]*sizeof(int)));
-
 			CUDA_SAFE_CALL(cudaMemcpy(activeBlock_d, blockMatchingParams.activeBlock,
 				blockMatchingParams.blockNumber[0]*blockMatchingParams.blockNumber[1]*blockMatchingParams.blockNumber[2]*sizeof(int),
 				cudaMemcpyHostToDevice));
@@ -598,8 +613,9 @@ int main(int argc, char **argv)
 		/* Rigid registration */
 		/* ****************** */
 		int iteration=0;
+
 		if((flag->rigidFlag && !flag->affineFlag) || (flag->affineFlag && flag->rigidFlag && level==0)){
-			while(iteration<param->maxIteration){
+			while(iteration<maxNumberOfIterationToPerform){
 				/* Compute the affine transformation deformation field */
 #ifdef _USE_CUDA
 				if(flag->useGPUFlag){
@@ -645,14 +661,10 @@ int main(int argc, char **argv)
                                                             1,
                                                             param->sourceBGValue);
 					/* Compute the correspondances between blocks */
-                    if(flag->twoDimRegistration){
-                        block_matching_method<PrecisionTYPE>(   targetImage,
-                                                                resultImage,
-                                                                &blockMatchingParams,
-                                                                targetMask);
-                    }
-                    else{
-                    }
+                    block_matching_method<PrecisionTYPE>(   targetImage,
+                                                            resultImage,
+                                                            &blockMatchingParams,
+                                                            targetMask);
 					/* update  the affine transformation matrix */
 					optimize(	&blockMatchingParams,
 							    &updateAffineMatrix,
@@ -678,7 +690,7 @@ int main(int argc, char **argv)
 		/* ******************* */
 		iteration=0;
 		if(flag->affineFlag){
-			while(iteration<param->maxIteration){
+			while(iteration<maxNumberOfIterationToPerform){
 				/* Compute the affine transformation deformation field */
 #ifdef _USE_CUDA
 				if(flag->useGPUFlag){
@@ -740,7 +752,7 @@ int main(int argc, char **argv)
 				// the affine transformation is updated
 				*affineTransformation = reg_mat44_mul( affineTransformation, &(updateAffineMatrix));
 #ifdef _VERBOSE
-				printf("[VERBOSE] iteration %i - ",iteration);
+                printf("[VERBOSE] -Affine- iteration %i - ",iteration);
 				reg_mat44_disp(&updateAffineMatrix, (char *)"[VERBOSE] updateMatrix");
 				reg_mat44_disp(affineTransformation, (char *)"[VERBOSE] updated affine");
 #endif
