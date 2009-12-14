@@ -919,10 +919,10 @@ void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> & points,
         A[c][2] = A[c][3] = A[c][5] = 0.0f;
         A[c][4] = 1.0f;
 
-        A[c][2] = points[k].target[0];
-        A[c][3] = points[k].target[1];
-        A[c][0] = A[c][1] = A[c][4] = 0.0f;
-        A[c][5] = 1.0f;
+        A[c+1][2] = points[k].target[0];
+        A[c+1][3] = points[k].target[1];
+        A[c+1][0] = A[c+1][1] = A[c+1][4] = 0.0f;
+        A[c+1][5] = 1.0f;
     }    
 
     for (unsigned k = 0; k < 6; ++k)
@@ -930,7 +930,7 @@ void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> & points,
         w[k] = 0.0f;
     }
 
-    svd(A, num_equations, 12, w, v);
+    svd(A, num_equations, 6, w, v);
         
     for (unsigned k = 0; k < 6; ++k)
     {
@@ -990,7 +990,6 @@ void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> & points,
     transformation->m[3][3] = 1.0f;
 
     delete[] transform;
-    
 }
 
 
