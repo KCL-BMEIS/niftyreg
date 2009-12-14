@@ -404,10 +404,9 @@ void reg_getVoxelBasedNMIGradientUsingPW2D(	nifti_image *targetImage,
 							} // t
 						} // 0<r<bin
 					} // r
-					
-					// The gradient is computed in a the voxel space - The target orientation has to be taken into account
+
                        PrecisionTYPE temp = (PrecisionTYPE)(entropies[2]);
-                       // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way
+					   // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
 					*nmiGradientPtrX = (NMIGradientTYPE)((fixedEntropyDerivative_X + movingEntropyDerivative_X - NMI * jointEntropyDerivative_X) / temp);
 					*nmiGradientPtrY = (NMIGradientTYPE)((fixedEntropyDerivative_Y + movingEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / temp);
 					
@@ -516,9 +515,8 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(	nifti_image *targetImage,
 							} // 0<r<bin
 						} // r
 						
-						// The gradient is computed in a the voxel space - The target orientation has to be taken into account
+						// (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
                         PrecisionTYPE temp = (PrecisionTYPE)(entropies[2]);
-                        // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way
 						*nmiGradientPtrX = (NMIGradientTYPE)((fixedEntropyDerivative_X + movingEntropyDerivative_X - NMI * jointEntropyDerivative_X) / temp);
 						*nmiGradientPtrY = (NMIGradientTYPE)((fixedEntropyDerivative_Y + movingEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / temp);
 						*nmiGradientPtrZ = (NMIGradientTYPE)((fixedEntropyDerivative_Z + movingEntropyDerivative_Z - NMI * jointEntropyDerivative_Z) / temp);

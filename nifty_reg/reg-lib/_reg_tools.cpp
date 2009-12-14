@@ -161,14 +161,14 @@ void reg_smoothImageForCubicSpline1(	nifti_image *image,
 	/* Smoothing along the X axis */
 	int windowSize = 2*radius[0] + 1;
 	PrecisionTYPE *window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
-    PrecisionTYPE coeffSum=0.0;
+//    PrecisionTYPE coeffSum=0.0;
 	for(int it=-radius[0]; it<=radius[0]; it++){
 		PrecisionTYPE coeff = (PrecisionTYPE)(fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[0]));
 		if(coeff<1.0)	window[it+radius[0]] = (PrecisionTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
 		else		window[it+radius[0]] = (PrecisionTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
-        coeffSum += window[it+radius[0]];
+//        coeffSum += window[it+radius[0]];
 	}
-	for(int it=0;it<windowSize;it++) window[it] /= coeffSum;
+//	for(int it=0;it<windowSize;it++) window[it] /= coeffSum;
 	for(int t=0;t<timePoint;t++){
 		for(int u=0;u<field;u++){
 			
@@ -205,14 +205,14 @@ void reg_smoothImageForCubicSpline1(	nifti_image *image,
 	windowSize = 2*radius[1] + 1;
 	free(window);
 	window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
-    coeffSum=0.0;
+//    coeffSum=0.0;
 	for(int it=-radius[1]; it<=radius[1]; it++){
 		PrecisionTYPE coeff = (PrecisionTYPE)(fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[1]));
 		if(coeff<1.0)	window[it+radius[1]] = (PrecisionTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
 		else		window[it+radius[1]] = (PrecisionTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
-        coeffSum += window[it+radius[1]];
+//        coeffSum += window[it+radius[1]];
 	}
-    for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
+//    for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
 	for(int t=0;t<timePoint;t++){
 		for(int u=0;u<field;u++){
 			
@@ -249,14 +249,14 @@ void reg_smoothImageForCubicSpline1(	nifti_image *image,
 		windowSize = 2*radius[2] + 1;
 		free(window);
 		window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
-	    coeffSum=0.0;
+//	    coeffSum=0.0;
 		for(int it=-radius[2]; it<=radius[2]; it++){
 			PrecisionTYPE coeff = (PrecisionTYPE)(fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[2]));
 			if(coeff<1.0)	window[it+radius[2]] = (PrecisionTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
 			else		window[it+radius[2]] = (PrecisionTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
-	    coeffSum += window[it+radius[2]];
+//			coeffSum += window[it+radius[2]];
 		}
-	    for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
+//	    for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
 		for(int t=0;t<timePoint;t++){
 			for(int u=0;u<field;u++){
 				
