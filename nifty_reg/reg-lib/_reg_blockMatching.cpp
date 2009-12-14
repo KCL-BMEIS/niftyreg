@@ -899,6 +899,102 @@ float compute_determinant3x3(float ** mat)
 			(mat[0][2]*(mat[1][0]*mat[2][1]-mat[1][1]*mat[2][0]));
 }
 
+
+// estimate an affine transformation using least square
+void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> & points,
+									mat44 * transformation,
+									float ** A,
+									float *  w,
+									float ** v,
+									float ** r,
+                                    float *  b)
+{
+    int num_equations = points.size() * 2;
+    unsigned c = 0;
+    for (unsigned k = 0; k < points.size(); ++k)
+    {
+        c = k * 2;
+        A[c][0] = points[k].target[0];
+        A[c][1] = points[k].target[1];
+        A[c][2] = A[c][3] = A[c][5] = 0.0f;
+        A[c][4] = 1.0f;
+
+        A[c][2] = points[k].target[0];
+        A[c][3] = points[k].target[1];
+        A[c][0] = A[c][1] = A[c][4] = 0.0f;
+        A[c][5] = 1.0f;
+    }    
+
+    for (unsigned k = 0; k < 6; ++k)
+    {
+        w[k] = 0.0f;
+    }
+
+    svd(A, num_equations, 12, w, v);
+        
+    for (unsigned k = 0; k < 6; ++k)
+    {
+        if (w[k] < 0.0001)
+        {
+            w[k] = 0.0f;
+        }
+        else
+        {
+            w[k] = 1.0f/w[k];            
+        }
+    }
+
+    // Now we can compute the pseudoinverse which is given by
+    // V*inv(W)*U'
+    // First compute the V * inv(w) in place.
+    // Simply scale each column by the corresponding singular value 
+    for (unsigned k = 0; k < 6; ++k)
+    {
+        for (unsigned j = 0; j < 6; ++j)
+        {
+            v[j][k] *=w[k];            
+        }
+    }
+
+    mul_matrices(v, A, 6, 6, num_equations, r, true);		
+    // Now r contains the pseudoinverse
+    // Create vector b and then multiple rb to get the affine paramsA
+    for (unsigned k = 0; k < points.size(); ++k)
+    {
+        c = k * 2;			 
+        b[c] = points[k].result[0];
+        b[c+1] = points[k].result[1];
+    }
+		
+    float * transform = new float[6];
+    mul_matvec(r, 6, num_equations, b, transform);
+	
+    transformation->m[0][0] = transform[0];
+    transformation->m[0][1] = transform[1];
+    transformation->m[0][2] = 0.0f;
+    transformation->m[0][3] = transform[4];
+        
+    transformation->m[1][0] = transform[2];
+    transformation->m[1][1] = transform[3];
+    transformation->m[1][2] = 0.0f;
+    transformation->m[1][3] = transform[5];
+        
+    transformation->m[2][0] = 0.0f;
+    transformation->m[2][1] = 0.0f;
+    transformation->m[2][2] = 1.0f;
+    transformation->m[2][3] = 0.0f;
+		
+    transformation->m[3][0] = 0.0f;
+    transformation->m[3][1] = 0.0f;
+    transformation->m[3][2] = 0.0f;
+    transformation->m[3][3] = 1.0f;
+
+    delete[] transform;
+    
+}
+
+
+
 // estimate an affine transformation using least square
 void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> & points,
 									mat44 * transformation,
@@ -909,7 +1005,6 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> & points,
 									float *  b)
 {	
 	// Create our A matrix
-	// Each point will give us 3 linearly independent equations, so
 	// we need at least 4 points. Assuming we have that here.
 	int num_equations = points.size() * 3;
 	unsigned c = 0;
@@ -920,19 +1015,19 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> & points,
 		A[c][1] = points[k].target[1];
 		A[c][2] = points[k].target[2];
 		A[c][3] = A[c][4] = A[c][5] = A[c][6] = A[c][7] = A[c][8] = A[c][10] = A[c][11] = 0.0f;
-		A[c][9] = 1.0;
+		A[c][9] = 1.0f;
 			
 		A[c+1][3] = points[k].target[0];
 		A[c+1][4] = points[k].target[1];
 		A[c+1][5] = points[k].target[2];
 		A[c+1][0] = A[c+1][1] = A[c+1][2] = A[c+1][6] = A[c+1][7] = A[c+1][8] = A[c+1][9] = A[c+1][11] = 0.0f;
-		A[c+1][10] = 1.0;
+		A[c+1][10] = 1.0f;
 			
 		A[c+2][6] = points[k].target[0];
 		A[c+2][7] = points[k].target[1];
 		A[c+2][8] = points[k].target[2];
 		A[c+2][0] = A[c+2][1] = A[c+2][2] = A[c+2][3] = A[c+2][4] = A[c+2][5] = A[c+2][9] = A[c+2][10] = 0.0f;
-		A[c+2][11] = 1.0;
+		A[c+2][11] = 1.0f;
 	}	
 	
 	for (unsigned k = 0; k < 12; ++k)
@@ -1006,6 +1101,158 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> & points,
 	transformation->m[3][3] = 1.0f;
 
 	delete[] transform;
+}
+
+void optimize_affine2D(_reg_blockMatchingParam * params,
+                       mat44 * final)
+{
+    // Set the current transformation to identity
+	final->m[0][0] = final->m[1][1] = final->m[2][2] = final->m[3][3] = 1.0f;
+	final->m[0][1] = final->m[0][2] = final->m[0][3] = 0.0f;
+	final->m[1][0] = final->m[1][2] = final->m[1][3] = 0.0f;
+	final->m[2][0] = final->m[2][1] = final->m[2][3] = 0.0f;
+	final->m[3][0] = final->m[3][1] = final->m[3][2] = 0.0f;
+
+    const unsigned num_points = params->activeBlockNumber;
+    unsigned long num_equations = num_points * 2;
+    std::priority_queue<_reg_sorted_point2D> queue;
+	std::vector<_reg_sorted_point2D> top_points;
+	double distance = 0.0;
+	double lastDistance = 0.0;
+	unsigned long i;
+
+    // massive left hand side matrix
+	float ** a = new float *[num_equations];
+	for (unsigned k = 0; k < num_equations; ++k)
+	{			
+		a[k] = new float[6]; // full affine
+	}
+	
+	// The array of singular values returned by svd
+	float *w = new float[6];
+		
+	// v will be n x n
+	float **v = new float *[6];
+	for (unsigned k = 0; k < 6; ++k)
+	{
+		v[k] = new float[6];
+	}
+	
+	// Allocate memory for pseudoinverse		
+	float **r = new float *[6];
+	for (unsigned k = 0; k < 6; ++k)
+	{
+		r[k] = new float[num_equations];
+	}
+	
+	// Allocate memory for RHS vector
+	float *b = new float[num_equations];
+
+    // The initial vector with all the input points
+	for (unsigned j = 0; j < num_points*2; j+=2)
+	{
+		top_points.push_back(_reg_sorted_point2D(&(params->targetPosition[j]), 
+							 &(params->resultPosition[j]),0.0f));
+	}
+	
+	// estimate the optimal transformation while considering all the points
+	estimate_affine_transformation2D(top_points, final, a, w, v, r, b);
+
+	// Delete a, b and r. w and v will not change size in subsequent svd operations.
+	for (unsigned int k = 0; k < num_equations; ++k)
+	{
+		delete[] a[k];
+	}
+	delete[] a;
+	delete[] b;
+	
+	for (unsigned k = 0; k < 6; ++k)
+	{
+		delete[] r[k];
+	}
+	delete [] r;
+
+    // The LS in the iterations is done on subsample of the input data	
+	float * newResultPosition = new float[num_points*2];
+	const unsigned long num_to_keep = (unsigned long)(num_points * (params->percent_to_keep/100.0f));
+	num_equations = num_to_keep*2;
+
+	// The LHS matrix
+	a = new float *[num_equations];
+	for (unsigned k = 0; k < num_equations; ++k)
+	{			
+		a[k] = new float[6]; // full affine
+	}
+	
+	// Allocate memory for pseudoinverse		
+	r = new float *[6];
+	for (unsigned k = 0; k < 6; ++k)
+	{
+		r[k] = new float[num_equations];
+	}
+	
+	// Allocate memory for RHS vector
+	b = new float[num_equations];
+
+    for (unsigned count = 0; count < MAX_ITERATIONS; ++count)
+	{
+		// Transform the points in the target
+		for (unsigned j = 0; j < num_points * 2; j+=2)		
+		{				
+			apply_affine2D(final, &(params->targetPosition[j]), &newResultPosition[j]);
+		}
+
+		queue = std::priority_queue<_reg_sorted_point2D> ();
+		for (unsigned j = 0; j < num_points * 2; j+=2)
+		{
+			distance = get_square_distance2D(&newResultPosition[j], &(params->resultPosition[j]));
+			queue.push(_reg_sorted_point2D(&(params->targetPosition[j]), 
+					   &(params->resultPosition[j]), distance));
+		}
+						
+		distance = 0.0;	
+		i = 0;
+		top_points.clear();
+		while (i < num_to_keep && i < queue.size())
+		{
+			top_points.push_back(queue.top());
+			distance += queue.top().distance;
+			queue.pop();
+			++i;
+		}
+				
+		// If the change is not substantial, we return 
+		if (fabs(distance - lastDistance) < TOLERANCE)
+		{
+			break;
+		}
+		
+		lastDistance = distance;
+		estimate_affine_transformation2D(top_points, final, a, w, v, r, b);	
+	}
+
+    delete[] newResultPosition;
+	delete[] b;
+	for (unsigned k = 0; k < 6; ++k)
+	{
+		delete[] r[k];
+	}
+	delete [] r;
+				
+	// free the memory
+	for (unsigned int k = 0; k < num_equations; ++k)
+	{
+		delete[] a[k];
+	}
+	delete[] a;
+		
+	delete[] w;
+	for (int k = 0; k < 6; ++k)
+	{
+		delete[] v[k];
+	}
+	delete [] v;  
+    
 }
 
 void optimize_affine3D(	_reg_blockMatchingParam *params,
@@ -1561,7 +1808,7 @@ void optimize(	_reg_blockMatchingParam *params,
 {	
     if(params->blockNumber[2]==1){
         if (affine){
-//             optimize_affine2D(params, final);
+            optimize_affine2D(params, final);
         }
         else{
             optimize_rigid2D(params, final);
