@@ -320,14 +320,14 @@ void reg_smoothImageForCubicSpline_gpu( nifti_image *image,
             int kernelSize = 1+smoothingRadius[n]*2;
             float *kernel_h;
             CUDA_SAFE_CALL(cudaMallocHost((void **)&kernel_h, kernelSize*sizeof(float)));
-            float kernelSum=0;
+//             float kernelSum=0;
             for(int i=-smoothingRadius[n]; i<=smoothingRadius[n]; i++){
                 float coeff = fabs(2.0f*(float)(i)/smoothingRadius[n]);
                 if(coeff<1.0f)  kernel_h[smoothingRadius[n]+i] = 2.0f/3.0f - coeff*coeff + 0.5f*coeff*coeff*coeff;
                 else        kernel_h[smoothingRadius[n]+i] = -(coeff-2.0f)*(coeff-2.0f)*(coeff-2.0f)/6.0f;
-                kernelSum += kernel_h[smoothingRadius[n]+i];
+//                 kernelSum += kernel_h[smoothingRadius[n]+i];
             }
-            for(int i=0; i<kernelSize; i++) kernel_h[i] /= kernelSum;
+//             for(int i=0; i<kernelSize; i++) kernel_h[i] /= kernelSum;
             float *kernel_d;
             CUDA_SAFE_CALL(cudaMalloc((void **)&kernel_d, kernelSize*sizeof(float)));
             CUDA_SAFE_CALL(cudaMemcpy(kernel_d, kernel_h, kernelSize*sizeof(float), cudaMemcpyHostToDevice));

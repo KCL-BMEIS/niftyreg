@@ -290,11 +290,6 @@ int main(int argc, char **argv)
 	/* Flag for 2D registration */
     if(sourceHeader->nz==1 || targetHeader->nz==1){
         flag->twoDimRegistration=1;
-        if(flag->affineFlag){
-            printf("\n[WARNING] The 2D version has not been implemented yet [/WARNING]\n");
-            printf("[WARNING] >>> Exit <<< [/WARNING]\n\n");
-            return 1;
-        }
 #ifdef _USE_CUDA 
         if(flag->useGPUFlag){
             printf("\n[WARNING] The GPU 2D version has not been implemented yet [/WARNING]\n");

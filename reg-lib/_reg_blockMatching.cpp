@@ -911,8 +911,7 @@ void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> & points,
 {
     int num_equations = points.size() * 2;
     unsigned c = 0;
-    for (unsigned k = 0; k < points.size(); ++k)
-    {
+    for (unsigned k = 0; k < points.size(); ++k){
         c = k * 2;
         A[c][0] = points[k].target[0];
         A[c][1] = points[k].target[1];
@@ -923,10 +922,9 @@ void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> & points,
         A[c+1][3] = points[k].target[1];
         A[c+1][0] = A[c+1][1] = A[c+1][4] = 0.0f;
         A[c+1][5] = 1.0f;
-    }    
+    }
 
-    for (unsigned k = 0; k < 6; ++k)
-    {
+    for (unsigned k = 0; k < 6; ++k){
         w[k] = 0.0f;
     }
 
@@ -938,9 +936,8 @@ void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> & points,
         {
             w[k] = 0.0f;
         }
-        else
-        {
-            w[k] = 1.0f/w[k];            
+        else{
+            w[k] = 1.0f/w[k];
         }
     }
 
@@ -950,35 +947,33 @@ void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> & points,
     // Simply scale each column by the corresponding singular value 
     for (unsigned k = 0; k < 6; ++k)
     {
-        for (unsigned j = 0; j < 6; ++j)
-        {
-            v[j][k] *=w[k];            
+        for (unsigned j = 0; j < 6; ++j){
+            v[j][k] *=w[k];
         }
     }
 
-    mul_matrices(v, A, 6, 6, num_equations, r, true);		
+    mul_matrices(v, A, 6, 6, num_equations, r, true);
     // Now r contains the pseudoinverse
     // Create vector b and then multiple rb to get the affine paramsA
-    for (unsigned k = 0; k < points.size(); ++k)
-    {
-        c = k * 2;			 
+    for (unsigned k = 0; k < points.size(); ++k){
+        c = k * 2;
         b[c] = points[k].result[0];
         b[c+1] = points[k].result[1];
     }
-		
+
     float * transform = new float[6];
     mul_matvec(r, 6, num_equations, b, transform);
-	
+
     transformation->m[0][0] = transform[0];
     transformation->m[0][1] = transform[1];
     transformation->m[0][2] = 0.0f;
     transformation->m[0][3] = transform[4];
-        
+
     transformation->m[1][0] = transform[2];
     transformation->m[1][1] = transform[3];
     transformation->m[1][2] = 0.0f;
     transformation->m[1][3] = transform[5];
-        
+
     transformation->m[2][0] = 0.0f;
     transformation->m[2][1] = 0.0f;
     transformation->m[2][2] = 1.0f;
@@ -1250,8 +1245,7 @@ void optimize_affine2D(_reg_blockMatchingParam * params,
 	{
 		delete[] v[k];
 	}
-	delete [] v;  
-    
+	delete [] v;
 }
 
 void optimize_affine3D(	_reg_blockMatchingParam *params,
@@ -1403,7 +1397,7 @@ void optimize_affine3D(	_reg_blockMatchingParam *params,
 	{
 		delete[] v[k];
 	}
-	delete [] v;	
+	delete [] v;
 }
 void estimate_rigid_transformation2D(  std::vector<_reg_sorted_point2D> & points,
                                         mat44 * transformation)
@@ -1778,7 +1772,7 @@ void optimize_rigid3D(  _reg_blockMatchingParam *params,
                 &(params->resultPosition[j]), distance));
         }
 
-        distance = 0.0; 
+        distance = 0.0;
         i = 0;
         top_points.clear();
         while (i < num_to_keep && i < queue.size()){
