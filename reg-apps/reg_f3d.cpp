@@ -1034,7 +1034,7 @@ int main(int argc, char **argv)
 			double currentWJac=0.0f;
 #ifdef _USE_CUDA
 			if(flag->useGPUFlag){
-				if(flag->bendingEnergyFlag){
+				if(flag->bendingEnergyFlag && param->bendingEnergyValue>0 ){
 					currentWBE = param->bendingEnergyWeight
 							* reg_bspline_ApproxBendingEnergy_gpu(	controlPointImage,
 												&controlPointImageArray_d);
@@ -1046,12 +1046,12 @@ int main(int argc, char **argv)
 			}
 			else{
 #endif
-				if(flag->bendingEnergyFlag){
+				if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
 					currentWBE = param->bendingEnergyWeight
 							* reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
 					currentValue -= currentWBE;
 				}
-				if(flag->jacobianWeightFlag){
+				if(flag->jacobianWeightFlag && param->jacobianWeight){
 					if(flag->jacFullFlag){
 						currentWJac = param->jacobianWeight
 							* reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetHeader, flag->appJacobianFlag);
@@ -1115,7 +1115,7 @@ int main(int argc, char **argv)
 										                        controlPointImage,
 										                        &nodeNMIGradientArray_d);
 				/* The other gradients are calculated */
-				if(flag->beGradFlag && flag->bendingEnergyFlag){
+				if(flag->beGradFlag && flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
 				    reg_bspline_ApproxBendingEnergyGradient_gpu(controlPointImage,
 											                    &controlPointImageArray_d,
 											                    &nodeNMIGradientArray_d,
@@ -1210,13 +1210,13 @@ int main(int argc, char **argv)
                 }
 
                 /* The other gradients are calculated */
-                if(flag->beGradFlag && flag->bendingEnergyFlag){
+                if(flag->beGradFlag && flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
                     reg_bspline_bendingEnergyGradient<PrecisionTYPE>(controlPointImage,
                                             targetImage,
                                             nodeNMIGradientImage,
                                             param->bendingEnergyWeight);
 				}
-				if(flag->jacGradFlag && flag->jacobianWeightFlag){
+				if(flag->jacGradFlag && flag->jacobianWeightFlag && param->jacobianWeight>0){
 					if(flag->jacFullFlag){
 						reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>(	controlPointImage,
 													targetHeader,//targetImage,
@@ -1444,7 +1444,7 @@ int main(int argc, char **argv)
 
 #ifdef _USE_CUDA
 				if(flag->useGPUFlag){
-					if(flag->bendingEnergyFlag){
+					if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
 						currentWBE = param->bendingEnergyWeight
 								* reg_bspline_ApproxBendingEnergy_gpu(	controlPointImage,
 													&controlPointImageArray_d);
@@ -1456,12 +1456,12 @@ int main(int argc, char **argv)
 				}
 				else{
 #endif
-					if(flag->bendingEnergyFlag){
+					if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
 						currentWBE = param->bendingEnergyWeight
 								* reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
 						currentValue -= currentWBE;
 					}
-					if(flag->jacobianWeightFlag){
+					if(flag->jacobianWeightFlag && param->jacobianWeight>0){
 						if(flag->jacFullFlag){
 							currentWJac = param->jacobianWeight
 								* reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetHeader, flag->appJacobianFlag);
