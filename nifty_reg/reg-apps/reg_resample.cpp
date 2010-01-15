@@ -236,7 +236,7 @@ int main(int argc, char **argv)
 							targetImage,
 							positionFieldImage,
                             NULL,
-							1); // additive df
+							0); // new df
 		}
 		/* Generate the jacobian map */
 		if(flag->outputJacobianFlag){
@@ -347,8 +347,14 @@ int main(int argc, char **argv)
 		for(int z=0; z<gridImage->nz;z++){
 			for(int y=0; y<gridImage->ny;y++){
 				for(int x=0; x<gridImage->nx;x++){
-					if( x/10==(float)x/10.0 || y/10==(float)y/10.0 || z/10==(float)z/10.0)
-						*gridImageValuePtr = 255;
+					if(targetImage->nz>1){
+						if( x/10==(float)x/10.0 || y/10==(float)y/10.0 || z/10==(float)z/10.0)
+							*gridImageValuePtr = 255;
+					}
+					else{
+						if( x/10==(float)x/10.0 || x==targetImage->nx-1 || y/10==(float)y/10.0 || y==targetImage->ny-1)
+							*gridImageValuePtr = 255;
+					}
 					gridImageValuePtr++;
 				}
 			}
