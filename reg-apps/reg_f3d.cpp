@@ -1034,7 +1034,7 @@ int main(int argc, char **argv)
 			double currentWJac=0.0f;
 #ifdef _USE_CUDA
 			if(flag->useGPUFlag){
-				if(flag->bendingEnergyFlag && param->bendingEnergyValue>0 ){
+				if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0 ){
 					currentWBE = param->bendingEnergyWeight
 							* reg_bspline_ApproxBendingEnergy_gpu(	controlPointImage,
 												&controlPointImageArray_d);
