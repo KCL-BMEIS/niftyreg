@@ -33,8 +33,8 @@ OPTION(USE_SSE "to use SSE computation in some case" OFF)
 OPTION(USE_CUDA "Use CUDA for a GPU implementation of the code" OFF)
 #-----------------------------------------------------------------------------
 
-INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-lib)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/nifti)
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-lib)
 
 #-----------------------------------------------------------------------------
 
@@ -72,6 +72,7 @@ ENDIF(BUILD_BENCHMARK)
 
 #-----------------------------------------------------------------------------
 
+SUBDIRS(zlib)
 SUBDIRS(nifti)
 SUBDIRS(reg-lib)
 IF(USE_CUDA)
