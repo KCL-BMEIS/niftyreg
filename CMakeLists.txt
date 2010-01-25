@@ -15,11 +15,7 @@ if(COMMAND cmake_policy)
 endif(COMMAND cmake_policy)
 
 #-----------------------------------------------------------------------------
-IF(WIN32)
-    SET(ZLIB "zlib")
-ELSE(WIN32)
-    SET(ZLIB "z")
-ENDIF(WIN32)
+SET(ZLIB "z")
 #-----------------------------------------------------------------------------
 
 OPTION(BUILD_ALADIN "To build the reg_aladin executable" ON)
@@ -35,6 +31,7 @@ OPTION(USE_CUDA "Use CUDA for a GPU implementation of the code" OFF)
 
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/nifti)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-lib)
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/zlib)
 
 #-----------------------------------------------------------------------------
 
