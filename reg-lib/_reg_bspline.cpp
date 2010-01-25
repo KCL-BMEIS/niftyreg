@@ -517,7 +517,7 @@ void reg_bspline3D( nifti_image *splineControlPoint,
 							for(unsigned int b=0; b<4; b++){
 								for(unsigned int a=0; a<4; a++){
 									PrecisionTYPE tempValue = xBasis[a] * yBasis[b] * zBasis[c];
-									index=(4*c+b)*4+a;
+									unsigned int index=(4*c+b)*4+a;
 									xReal += xControlPointCoordinates[index] * tempValue;
 									yReal += yControlPointCoordinates[index] * tempValue;
 									zReal += zControlPointCoordinates[index] * tempValue;
