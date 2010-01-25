@@ -443,7 +443,7 @@ int main(int argc, char **argv)
         }
 
         for(int l=level; l<param->levelNumber-1; l++){
-            int ratio = (int)pow(2,param->levelNumber-param->levelNumber+l+1);
+            int ratio = (int)powf(2,param->levelNumber-param->levelNumber+l+1);
 
             bool sourceDownsampleAxis[8]={true,true,true,true,true,true,true,true};
             if((sourceHeader->nx/ratio) < 32) sourceDownsampleAxis[1]=false;
