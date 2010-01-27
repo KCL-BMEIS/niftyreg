@@ -121,11 +121,11 @@ void reg_getVoxelBasedSSDGradient4(	nifti_image *targetImage,
 	ResultTYPE *resultPtr=static_cast<ResultTYPE *>(resultImage->data);
 	GradientImgTYPE *spatialGradPtrX=static_cast<GradientImgTYPE *>(resultImageGradient->data);
 	GradientImgTYPE *spatialGradPtrY = &spatialGradPtrX[resultImageGradient->nz*resultImageGradient->ny*resultImageGradient->nz];
-	GradientImgTYPE *spatialGradPtrZ;
+	GradientImgTYPE *spatialGradPtrZ = NULL;
 	if(targetImage->nz>1) spatialGradPtrZ = &spatialGradPtrY[resultImageGradient->nz*resultImageGradient->ny*resultImageGradient->nz];
 	SSDGradTYPE *ssdGradPtrX=static_cast<SSDGradTYPE *>(ssdGradientImage->data);
 	SSDGradTYPE *ssdGradPtrY = &ssdGradPtrX[ssdGradientImage->nz*ssdGradientImage->ny*ssdGradientImage->nz];
-	SSDGradTYPE *ssdGradPtrZ;
+	SSDGradTYPE *ssdGradPtrZ = NULL;
 	if(targetImage->nz>1) ssdGradPtrZ = &ssdGradPtrY[ssdGradientImage->nz*ssdGradientImage->ny*ssdGradientImage->nz];
 	
 	for(unsigned int i=0; i<targetImage->nvox;i++){

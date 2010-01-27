@@ -19,7 +19,8 @@
 void reg_voxelCentric2NodeCentric_gpu(	nifti_image *targetImage,
 					nifti_image *controlPointImage,
 					float4 **voxelNMIGradientArray_d,
-					float4 **nodeNMIGradientArray_d)
+					float4 **nodeNMIGradientArray_d,
+					float weight)
 {
 	const int nodeNumber = controlPointImage->nx * controlPointImage->ny * controlPointImage->nz;
 	const int voxelNumber = targetImage->nx * targetImage->ny * targetImage->nz;
@@ -34,6 +35,7 @@ void reg_voxelCentric2NodeCentric_gpu(	nifti_image *targetImage,
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_TargetImageDim,&targetImageDim,sizeof(int3)));
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointImageDim,&gridSize,sizeof(int3)));
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNodeRatio,&voxelNodeRatio_h,sizeof(float3)));
+	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Weight,&weight,sizeof(float)));
 
 	CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *voxelNMIGradientArray_d, voxelNumber*sizeof(float4)));
 

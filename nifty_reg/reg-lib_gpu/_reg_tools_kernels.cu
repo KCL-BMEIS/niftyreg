@@ -17,6 +17,7 @@ __device__ __constant__ float3 c_VoxelNodeRatio;
 __device__ __constant__ int3 c_ControlPointImageDim;
 __device__ __constant__ int3 c_ImageDim;
 __device__ __constant__ float c_ScalingFactor;
+__device__ __constant__ float c_Weight;
 
 texture<float4, 1, cudaReadModeElementType> controlPointTexture;
 texture<float4, 1, cudaReadModeElementType> gradientImageTexture;
@@ -45,7 +46,11 @@ __global__ void reg_voxelCentric2NodeCentric_kernel(float4 *nodeNMIGradientArray
 		const int3 imageSize = c_TargetImageDim;
 		if(-1<X && X<imageSize.x && -1<Y && Y<imageSize.y && -1<Z && Z<imageSize.z){
 			int index = (Z*imageSize.y+Y)*imageSize.x+X;
-			nodeNMIGradientArray_d[tid] = tex1Dfetch(gradientImageTexture,index);
+			float4 gradientValue = tex1Dfetch(gradientImageTexture,index);
+			nodeNMIGradientArray_d[tid] = make_float4(c_Weight*gradientValue.x,
+				c_Weight*gradientValue.y,
+				c_Weight*gradientValue.z,
+				0.0f);
 		}
 		else nodeNMIGradientArray_d[tid]=make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 	}
