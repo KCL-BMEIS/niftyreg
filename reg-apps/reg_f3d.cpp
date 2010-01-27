@@ -93,8 +93,7 @@ typedef struct{
 
 	bool jacobianWeightFlag;
 	bool appJacobianFlag;
-	bool jacFullFlag;
-	bool jacGradFlag;
+	bool jlGradFlag;
 
 	bool useSSDFlag;
 	bool noConjugateGradient;
@@ -170,9 +169,8 @@ void Usage(char *exec)
     printf("\t-noGradBE\t\tTo not use the gradient of the bending energy\n");
 
 // 	printf("\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]\n");
-// 	printf("\t-appJL\t\t\tApproximate the JL value only at the control point position [no]\n");
-// 	printf("\t-fullJL\t\t\tThe JL is compute using the full resolution image [no]\n");
-// 	printf("\t-gradJL\t\t\tTo use the gradient of the Jacobian determinant [no]\n");
+// 	printf("\t-noAppJL\t\t\tTo not approximate the JL value only at the control point position [no]\n");
+// 	printf("\t-noGradJL\t\t\tTo not use the gradient of the Jacobian determinant [no]\n");
 	
 	printf("\t-bgi <int> <int> <int>\tForce the background value during\n\t\t\t\tresampling to have the same value than this voxel in the source image [none]\n");
 // 	printf("\t-ssd\t\t\tTo use the SSD as the similiarity measure [no]\n");
@@ -197,7 +195,9 @@ int main(int argc, char **argv)
 	flag->bendingEnergyFlag=1;
 	param->bendingEnergyWeight=0.01f;
 	flag->appBendingEnergyFlag=1;
+	flag->appJacobianFlag=1;
 	flag->beGradFlag=1;
+	flag->jlGradFlag=1;
 
     param->targetLowThresholdValue=-FLT_MAX;
     param->targetUpThresholdValue=FLT_MAX;
@@ -289,14 +289,11 @@ int main(int argc, char **argv)
 			param->jacobianWeight=(float)(atof(argv[++i]));
 			flag->jacobianWeightFlag=1;
 		}
-		else if(strcmp(argv[i], "-appJL") == 0){
-			flag->appJacobianFlag=1;
+		else if(strcmp(argv[i], "-noAppJL") == 0){
+			flag->appJacobianFlag=0;
 		}
-		else if(strcmp(argv[i], "-fullJL") == 0){
-			flag->jacFullFlag=1;
-		}
-		else if(strcmp(argv[i], "-gradJL") == 0){
-			flag->jacGradFlag=1;
+		else if(strcmp(argv[i], "-noGradJL") == 0){
+			flag->jlGradFlag=0;
 		}
 		else if(strcmp(argv[i], "-noConj") == 0){
 			flag->noConjugateGradient=1;
@@ -530,12 +527,14 @@ int main(int argc, char **argv)
 	printf("\t%gx%gx%g mm\n",sourceHeader->dx,sourceHeader->dy,sourceHeader->dz);
 	printf("Maximum iteration number: %i\n",param->maxIteration);
 	printf("Number of bin to used: %i\n",param->binning-4);
+	
 	printf("Bending energy weight: %g\n",param->bendingEnergyWeight);
-	if(flag->appBendingEnergyFlag) printf("Bending energy penalty term evaluated at the control point position only\n");
+	if(flag->bendingEnergyFlag && flag->appBendingEnergyFlag) printf("Bending energy penalty term evaluated at the control point position only\n");
+	if(flag->bendingEnergyFlag && flag->beGradFlag) printf("The gradient of the bending energy is used\n");
+	
 	printf("log of the jacobian determinant weight: %g\n",param->jacobianWeight);
-	if(flag->appJacobianFlag) printf("Log of the Jacobian penalty term evaluated at the control point position only\n");
-	if(flag->beGradFlag) printf("The gradient of the bending energy is used\n");
-	if(flag->jacGradFlag) printf("The gradient of the jacobian determinant is used\n");
+	if(flag->jacobianWeightFlag && flag->appJacobianFlag) printf("Log of the Jacobian penalty term evaluated at the control point position only\n");
+	if(flag->jacobianWeightFlag && flag->jlGradFlag) printf("The gradient of the jacobian determinant is used\n");
 #ifdef _USE_CUDA
 	if(flag->useGPUFlag) printf("The GPU implementation is used\n");
 	else printf("The CPU implementation is used\n");
@@ -1052,14 +1051,8 @@ int main(int argc, char **argv)
 					currentValue -= currentWBE;
 				}
 				if(flag->jacobianWeightFlag && param->jacobianWeight){
-					if(flag->jacFullFlag){
-						currentWJac = param->jacobianWeight
-							* reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetHeader, flag->appJacobianFlag);
-					}
-					else{
-						currentWJac = param->jacobianWeight
-							* reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
-					}
+					currentWJac = param->jacobianWeight
+						* reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
 					currentValue -= currentWJac;
 					if(currentWJac!=currentWJac) currentValue = 0.0f;
 				}
@@ -1103,7 +1096,8 @@ int main(int argc, char **argv)
 				reg_voxelCentric2NodeCentric_gpu(   targetImage,
 								                    controlPointImage,
 								                    &voxelNMIGradientArray_d,
-								                    &nodeNMIGradientArray_d);
+								                    &nodeNMIGradientArray_d,
+													1.0f-param->bendingEnergyWeight-param->jacobianWeight);
                 if(flag->gradientSmoothingFlag){
                     reg_gaussianSmoothing_gpu(  controlPointImage,
                                                 &nodeNMIGradientArray_d,
@@ -1163,7 +1157,9 @@ int main(int argc, char **argv)
                                                             voxelNMIGradientImage,
                                                             targetMask);
                 reg_smoothImageForCubicSpline<PrecisionTYPE>(voxelNMIGradientImage,smoothingRadius);
-                reg_voxelCentric2NodeCentric(nodeNMIGradientImage,voxelNMIGradientImage);
+                reg_voxelCentric2NodeCentric(nodeNMIGradientImage,
+											 voxelNMIGradientImage,
+											 1.0f-param->bendingEnergyWeight-param->jacobianWeight);
                 if(flag->gradientSmoothingFlag){
                     reg_gaussianSmoothing<PrecisionTYPE>(   nodeNMIGradientImage,
                                                             param->gradientSmoothingValue,
@@ -1216,21 +1212,12 @@ int main(int argc, char **argv)
                                             nodeNMIGradientImage,
                                             param->bendingEnergyWeight);
 				}
-				if(flag->jacGradFlag && flag->jacobianWeightFlag && param->jacobianWeight>0){
-					if(flag->jacFullFlag){
-						reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>(	controlPointImage,
-													targetHeader,//targetImage,
-													nodeNMIGradientImage,
-													param->jacobianWeight,
-													flag->appJacobianFlag);
-					}
-					else{
-						reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>(	controlPointImage,
-													targetImage,
-													nodeNMIGradientImage,
-													param->jacobianWeight,
-													flag->appJacobianFlag);
-					}
+				if(flag->jlGradFlag && flag->jacobianWeightFlag && param->jacobianWeight>0){
+					reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>(	controlPointImage,
+												targetImage,
+												nodeNMIGradientImage,
+												param->jacobianWeight,
+												flag->appJacobianFlag);
 				}
 
 				/* The conjugate gradient is computed */
@@ -1462,14 +1449,8 @@ int main(int argc, char **argv)
 						currentValue -= currentWBE;
 					}
 					if(flag->jacobianWeightFlag && param->jacobianWeight>0){
-						if(flag->jacFullFlag){
-							currentWJac = param->jacobianWeight
-								* reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetHeader, flag->appJacobianFlag);
-						}
-						else{
-							currentWJac = param->jacobianWeight
-								* reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
-						}
+						currentWJac = param->jacobianWeight
+							* reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
 						currentValue -= currentWJac;
 						if(currentWJac!=currentWJac) currentValue = 0.0f;
 					}

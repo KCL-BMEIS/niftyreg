@@ -107,7 +107,7 @@ void reg_bspline_ApproxBendingEnergyGradient_gpu(   nifti_image *controlPointIma
 
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointNumber,&controlPointNumber,sizeof(int)));
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointImageDim,&controlPointImageDim,sizeof(int3)));
-	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_BendingEnergyWeight,&bendingEnergyWeight,sizeof(float)));
+	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Weight,&bendingEnergyWeight,sizeof(float)));
 	CUDA_SAFE_CALL(cudaBindTexture(0,controlPointTexture, *controlPointImageArray_d, controlPointGridMem));
 
 	float3 *bendingEnergyValue_d;

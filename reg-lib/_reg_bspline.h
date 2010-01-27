@@ -64,8 +64,9 @@ void reg_bspline_GetJacobianMatrix(	nifti_image *splineControlPoint,
 
 extern "C++"
 void reg_voxelCentric2NodeCentric(	nifti_image *nodeImage,
- 					nifti_image *voxelImage
- 					);
+									nifti_image *voxelImage,
+									float weight
+								  );
 
 extern "C++"
 void reg_bspline_refineControlPointGrid(	nifti_image *targetImage,

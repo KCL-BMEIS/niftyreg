@@ -17,7 +17,7 @@ __device__ __constant__ int c_ControlPointNumber;
 __device__ __constant__ int3 c_TargetImageDim;
 __device__ __constant__ int3 c_ControlPointImageDim;
 __device__ __constant__ float3 c_ControlPointVoxelSpacing;
-__device__ __constant__ float c_BendingEnergyWeight;
+__device__ __constant__ float c_Weight;
 __device__ __constant__ int c_ActiveVoxelNumber;
 
 texture<float4, 1, cudaReadModeElementType> controlPointTexture;
@@ -354,11 +354,11 @@ __global__ void reg_bspline_getApproxBendingEnergyGradient_kernel(  float3 *bend
 		}
 		float4 metricGradientValue;
 		metricGradientValue = nodeNMIGradientArray_d[tid];
-        float weight = c_BendingEnergyWeight;
+        float weight = c_Weight;
         // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way
-        metricGradientValue.x = (1.0f-weight)*metricGradientValue.x + weight*gradientValue.x;
-        metricGradientValue.y = (1.0f-weight)*metricGradientValue.y + weight*gradientValue.y;
-        metricGradientValue.z = (1.0f-weight)*metricGradientValue.z + weight*gradientValue.z;
+        metricGradientValue.x = metricGradientValue.x + weight*gradientValue.x;
+        metricGradientValue.y = metricGradientValue.y + weight*gradientValue.y;
+        metricGradientValue.z = metricGradientValue.z + weight*gradientValue.z;
 		nodeNMIGradientArray_d[tid]=metricGradientValue;
 	}
 }

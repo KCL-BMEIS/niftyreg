@@ -1462,7 +1462,9 @@ PrecisionTYPE reg_bspline_jacobianValue2D(  nifti_image *splineControlPoint,
             Ty_y /= splineControlPoint->dy;
 
             PrecisionTYPE detJac =  Tx_x * Ty_y - Tx_y * Ty_x;
-            constraintValue += log(detJac)*log(detJac);
+			if(detJac>0.0)
+				constraintValue += log(detJac)*log(detJac);
+			else constraintValue += 100.0;
         }
     }
 
@@ -1645,9 +1647,11 @@ PrecisionTYPE reg_bspline_jacobianValue3D(  nifti_image *splineControlPoint,
                 Tz_z /= splineControlPoint->dz;
 
                 PrecisionTYPE detJac =  Tz_z*(Ty_y*Tx_x - Tx_y*Ty_x) +
-                            Ty_z*(Tx_y*Tz_x - Tz_y*Tx_x) +
-                            Tx_z*(Tz_y*Ty_x - Ty_y*Tz_x);
-                constraintValue += log(detJac)*log(detJac);
+					Ty_z*(Tx_y*Tz_x - Tz_y*Tx_x) +
+					Tx_z*(Tz_y*Ty_x - Ty_y*Tz_x);
+				if(detJac>0.0)
+					constraintValue += log(detJac)*log(detJac);
+				else constraintValue += 100.0;
             }
         }
     }
@@ -1739,7 +1743,9 @@ PrecisionTYPE reg_bspline_jacobianApproxValue2D(  nifti_image *splineControlPoin
             Ty_y /= splineControlPoint->dy;
 
             PrecisionTYPE detJac =  Tx_x * Ty_y - Tx_y * Ty_x;
-            constraintValue += log(detJac)*log(detJac);
+			if(detJac>0.0)
+				constraintValue += log(detJac)*log(detJac);
+			else constraintValue += 100.0;
         }
     }
 
@@ -1756,25 +1762,23 @@ PrecisionTYPE reg_bspline_jacobianApproxValue3D(  nifti_image *splineControlPoin
     SplineTYPE *controlPointPtrZ = static_cast<SplineTYPE *>(&controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz]);
 
     // As the contraint is only computed at the voxel position, the basis value of the spline are always the same 
-    PrecisionTYPE normal[4];
-    PrecisionTYPE first[4];
+    PrecisionTYPE normal[3];
+    PrecisionTYPE first[3];
     normal[0] = (PrecisionTYPE)(1.0/6.0);
     normal[1] = (PrecisionTYPE)(2.0/3.0);
     normal[2] = (PrecisionTYPE)(1.0/6.0);
-    normal[3] = (PrecisionTYPE)(0.0);
     first[0] = (PrecisionTYPE)(-0.5);
     first[1] = (PrecisionTYPE)(0.0);
     first[2] = (PrecisionTYPE)(0.5);
-    first[3] = (PrecisionTYPE)(0.0);
 
     PrecisionTYPE constraintValue= (PrecisionTYPE)(0.0);
 
     // There are six different values taken into account
-    PrecisionTYPE tempX[16], tempY[16], tempZ[16];
+    PrecisionTYPE tempX[9], tempY[9], tempZ[9];
 
     int coord=0;
-    for(int c=0; c<4; c++){
-        for(int b=0; b<4; b++){
+    for(int c=0; c<3; c++){
+        for(int b=0; b<3; b++){
             tempX[coord]=normal[c]*normal[b];   // z * y
             tempY[coord]=normal[c]*first[b];    // z * y'
             tempZ[coord]=first[c]*normal[b];    // z'* y
@@ -1782,11 +1786,11 @@ PrecisionTYPE reg_bspline_jacobianApproxValue3D(  nifti_image *splineControlPoin
         }
     }
     
-    PrecisionTYPE basisX[64], basisY[64], basisZ[64];
+    PrecisionTYPE basisX[27], basisY[27], basisZ[27];
     
     coord=0;
-    for(int bc=0; bc<16; bc++){
-        for(int a=0; a<4; a++){
+    for(int bc=0; bc<9; bc++){
+        for(int a=0; a<3; a++){
             basisX[coord]=tempX[bc]*first[a];   // z * y * x'
             basisY[coord]=tempY[bc]*normal[a];  // z * y'* x
             basisZ[coord]=tempZ[bc]*normal[a];  // z'* y * x
@@ -1794,9 +1798,9 @@ PrecisionTYPE reg_bspline_jacobianApproxValue3D(  nifti_image *splineControlPoin
         }
     }
     
-    PrecisionTYPE xControlPointCoordinates[64];
-    PrecisionTYPE yControlPointCoordinates[64];
-    PrecisionTYPE zControlPointCoordinates[64];
+    PrecisionTYPE xControlPointCoordinates[27];
+    PrecisionTYPE yControlPointCoordinates[27];
+    PrecisionTYPE zControlPointCoordinates[27];
 
     mat44 *splineMatrix;
     if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
@@ -1821,17 +1825,17 @@ PrecisionTYPE reg_bspline_jacobianApproxValue3D(  nifti_image *splineControlPoin
             for(int x=1;x<splineControlPoint->nx-2;x++){
                 
                 coord=0;
-                for(int Z=z-1; Z<z+3; Z++){
+                for(int Z=z-1; Z<z+2; Z++){
                     unsigned int index=Z*splineControlPoint->nx*splineControlPoint->ny;
                     SplineTYPE *xPtr = &controlPointPtrX[index];
                     SplineTYPE *yPtr = &controlPointPtrY[index];
                     SplineTYPE *zPtr = &controlPointPtrZ[index];
-                    for(int Y=y-1; Y<y+3; Y++){
+                    for(int Y=y-1; Y<y+2; Y++){
                         index = Y*splineControlPoint->nx;
                         SplineTYPE *xxPtr = &xPtr[index];
                         SplineTYPE *yyPtr = &yPtr[index];
                         SplineTYPE *zzPtr = &zPtr[index];
-                        for(int X=x-1; X<x+3; X++){
+                        for(int X=x-1; X<x+2; X++){
                             xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[X]*orientation[0];
                             yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[X]*orientation[1];
                             zControlPointCoordinates[coord] = (PrecisionTYPE)zzPtr[X]*orientation[2];
@@ -1850,7 +1854,7 @@ PrecisionTYPE reg_bspline_jacobianApproxValue3D(  nifti_image *splineControlPoin
                 PrecisionTYPE Ty_z=0.0;
                 PrecisionTYPE Tz_z=0.0;
                 
-                for(int a=0; a<64; a++){
+                for(int a=0; a<27; a++){
                     Tx_x += basisX[a]*xControlPointCoordinates[a];
                     Tx_y += basisY[a]*xControlPointCoordinates[a];
                     Tx_z += basisZ[a]*xControlPointCoordinates[a];
@@ -1877,9 +1881,11 @@ PrecisionTYPE reg_bspline_jacobianApproxValue3D(  nifti_image *splineControlPoin
                 Tz_z /= splineControlPoint->dz;
 
                 PrecisionTYPE detJac =  Tz_z*(Ty_y*Tx_x - Tx_y*Ty_x) +
-                            Ty_z*(Tx_y*Tz_x - Tz_y*Tx_x) +
-                            Tx_z*(Tz_y*Ty_x - Ty_y*Tz_x);
-                constraintValue += log(detJac)*log(detJac);
+					Ty_z*(Tx_y*Tz_x - Tz_y*Tx_x) +
+					Tx_z*(Tz_y*Ty_x - Ty_y*Tz_x);
+				if(detJac>0.0)
+					constraintValue += log(detJac)*log(detJac);
+				else constraintValue += 100.0;
             }
         }
     }
@@ -1934,9 +1940,10 @@ template double reg_bspline_jacobian<double>(nifti_image *, nifti_image *, int);
 /* *************************************************************** */
 /* *************************************************************** */
 template<class NodeTYPE, class VoxelTYPE>
-void reg_voxelCentric2NodeCentric2D(	nifti_image *nodeImage,
-					nifti_image *voxelImage
- 				)
+void reg_voxelCentric2NodeCentric2D(nifti_image *nodeImage,
+									nifti_image *voxelImage,
+									float weight
+									)
 {
 	NodeTYPE *nodePtrX = static_cast<NodeTYPE *>(nodeImage->data);
 	NodeTYPE *nodePtrY = &nodePtrX[nodeImage->nx*nodeImage->ny];
@@ -1955,8 +1962,8 @@ void reg_voxelCentric2NodeCentric2D(	nifti_image *nodeImage,
 		for(int x=0;x<nodeImage->nx; x++){
 			int X = (int)round((float)(x-1) * ratio[0]);
 			if( -1<Y && Y<voxelImage->ny && -1<X && X<voxelImage->nx){
-				*nodePtrX++ = (NodeTYPE)(yVoxelPtrX[X]);
-				*nodePtrY++ = (NodeTYPE)(yVoxelPtrY[X]);
+				*nodePtrX++ = (NodeTYPE)(yVoxelPtrX[X] * weight);
+				*nodePtrY++ = (NodeTYPE)(yVoxelPtrY[X] * weight);
 			}
 			else{
 				*nodePtrX++ = 0.0;
@@ -1967,9 +1974,10 @@ void reg_voxelCentric2NodeCentric2D(	nifti_image *nodeImage,
 }
 /* *************************************************************** */
 template<class NodeTYPE, class VoxelTYPE>
-void reg_voxelCentric2NodeCentric3D(	nifti_image *nodeImage,
-					nifti_image *voxelImage
- 				)
+void reg_voxelCentric2NodeCentric3D(nifti_image *nodeImage,
+									nifti_image *voxelImage,
+									float weight
+									)
 {
 	NodeTYPE *nodePtrX = static_cast<NodeTYPE *>(nodeImage->data);
 	NodeTYPE *nodePtrY = &nodePtrX[nodeImage->nx*nodeImage->ny*nodeImage->nz];
@@ -1997,9 +2005,9 @@ void reg_voxelCentric2NodeCentric3D(	nifti_image *nodeImage,
 			for(int x=0;x<nodeImage->nx; x++){
 				int X = (int)round((float)(x-1) * ratio[0]);
 				if(-1<Z && Z<voxelImage->nz && -1<Y && Y<voxelImage->ny && -1<X && X<voxelImage->nx){
-					*nodePtrX++ = (NodeTYPE)(yzvoxelPtrX[X]);
-					*nodePtrY++ = (NodeTYPE)(yzvoxelPtrY[X]);
-					*nodePtrZ++ = (NodeTYPE)(yzvoxelPtrZ[X]);
+					*nodePtrX++ = (NodeTYPE)(yzvoxelPtrX[X]*weight);
+					*nodePtrY++ = (NodeTYPE)(yzvoxelPtrY[X]*weight);
+					*nodePtrZ++ = (NodeTYPE)(yzvoxelPtrZ[X]*weight);
 				}
 				else{
 					*nodePtrX++ = 0.0;
@@ -2013,8 +2021,9 @@ void reg_voxelCentric2NodeCentric3D(	nifti_image *nodeImage,
 /* *************************************************************** */
 extern "C++"
 void reg_voxelCentric2NodeCentric(	nifti_image *nodeImage,
- 					nifti_image *voxelImage
-				)
+									nifti_image *voxelImage,
+									float weight
+									)
 {
 	// it is assumed than node[000] and voxel[000] are aligned.
 	if(nodeImage->nz==1){	
@@ -2022,10 +2031,10 @@ void reg_voxelCentric2NodeCentric(	nifti_image *nodeImage,
 			case NIFTI_TYPE_FLOAT32:
 				switch(voxelImage->datatype){
 					case NIFTI_TYPE_FLOAT32:
-						reg_voxelCentric2NodeCentric2D<float, float>(nodeImage, voxelImage);
+						reg_voxelCentric2NodeCentric2D<float, float>(nodeImage, voxelImage, weight);
 						break;
 					case NIFTI_TYPE_FLOAT64:
-						reg_voxelCentric2NodeCentric2D<float, double>(nodeImage, voxelImage);
+						reg_voxelCentric2NodeCentric2D<float, double>(nodeImage, voxelImage, weight);
 						break;
 					default:
 						printf("err\treg_voxelCentric2NodeCentric:v1\tdata type not supported\n");
@@ -2035,10 +2044,10 @@ void reg_voxelCentric2NodeCentric(	nifti_image *nodeImage,
 			case NIFTI_TYPE_FLOAT64:
 				switch(voxelImage->datatype){
 					case NIFTI_TYPE_FLOAT32:
-						reg_voxelCentric2NodeCentric2D<double, float>(nodeImage, voxelImage);
+						reg_voxelCentric2NodeCentric2D<double, float>(nodeImage, voxelImage, weight);
 						break;
 					case NIFTI_TYPE_FLOAT64:
-						reg_voxelCentric2NodeCentric2D<double, double>(nodeImage, voxelImage);
+						reg_voxelCentric2NodeCentric2D<double, double>(nodeImage, voxelImage, weight);
 						break;
 					default:
 						printf("err\treg_voxelCentric2NodeCentric:v2\tdata type not supported\n");
@@ -2055,10 +2064,10 @@ void reg_voxelCentric2NodeCentric(	nifti_image *nodeImage,
 			case NIFTI_TYPE_FLOAT32:
 				switch(voxelImage->datatype){
 					case NIFTI_TYPE_FLOAT32:
-						reg_voxelCentric2NodeCentric3D<float, float>(nodeImage, voxelImage);
+						reg_voxelCentric2NodeCentric3D<float, float>(nodeImage, voxelImage, weight);
 						break;
 					case NIFTI_TYPE_FLOAT64:
-						reg_voxelCentric2NodeCentric3D<float, double>(nodeImage, voxelImage);
+						reg_voxelCentric2NodeCentric3D<float, double>(nodeImage, voxelImage, weight);
 						break;
 					default:
 						printf("err\treg_voxelCentric2NodeCentric:v1\tdata type not supported\n");
@@ -2068,10 +2077,10 @@ void reg_voxelCentric2NodeCentric(	nifti_image *nodeImage,
 			case NIFTI_TYPE_FLOAT64:
 				switch(voxelImage->datatype){
 					case NIFTI_TYPE_FLOAT32:
-						reg_voxelCentric2NodeCentric3D<double, float>(nodeImage, voxelImage);
+						reg_voxelCentric2NodeCentric3D<double, float>(nodeImage, voxelImage, weight);
 						break;
 					case NIFTI_TYPE_FLOAT64:
-						reg_voxelCentric2NodeCentric3D<double, double>(nodeImage, voxelImage);
+						reg_voxelCentric2NodeCentric3D<double, double>(nodeImage, voxelImage, weight);
 						break;
 					default:
 						printf("err\treg_voxelCentric2NodeCentric:v2\tdata type not supported\n");
@@ -2245,8 +2254,7 @@ void reg_bspline_bendingEnergyGradient3D(   nifti_image *splineControlPoint,
     SplineTYPE *gradientXPtr = &gradientX[0];
     SplineTYPE *gradientYPtr = &gradientY[0];
     SplineTYPE *gradientZPtr = &gradientZ[0];
-    
-    PrecisionTYPE metricGradientValue[3];
+
     PrecisionTYPE gradientValue[3];
 
     for(int z=0;z<splineControlPoint->nz;z++){
@@ -2289,13 +2297,10 @@ void reg_bspline_bendingEnergyGradient3D(   nifti_image *splineControlPoint,
                         }
                     }
                 }
-                metricGradientValue[0] = (PrecisionTYPE)(*gradientXPtr);
-                metricGradientValue[1] = (PrecisionTYPE)(*gradientYPtr);
-                metricGradientValue[2] = (PrecisionTYPE)(*gradientZPtr);
                 // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
-                *gradientXPtr++ = (SplineTYPE)((1.0-weight)*metricGradientValue[0] + weight*gradientValue[0]);
-                *gradientYPtr++ = (SplineTYPE)((1.0-weight)*metricGradientValue[1] + weight*gradientValue[1]);
-                *gradientZPtr++ = (SplineTYPE)((1.0-weight)*metricGradientValue[2] + weight*gradientValue[2]);
+                *gradientXPtr++ += weight*gradientValue[0];
+                *gradientYPtr++ += weight*gradientValue[1];
+                *gradientZPtr++ += weight*gradientValue[2];
             }
         }
     }
@@ -2396,7 +2401,6 @@ void reg_bspline_bendingEnergyGradient2D(   nifti_image *splineControlPoint,
     SplineTYPE *gradientXPtr = static_cast<SplineTYPE *>(gradientImage->data);
     SplineTYPE *gradientYPtr = static_cast<SplineTYPE *>(&gradientXPtr[(int)nodeNumber]);
 
-    PrecisionTYPE metricGradientValue[2];
     PrecisionTYPE gradientValue[2];
 
     for(int y=0;y<splineControlPoint->ny;y++){
@@ -2421,11 +2425,9 @@ void reg_bspline_bendingEnergyGradient2D(   nifti_image *splineControlPoint,
                     coord++;
                 }
             }
-            metricGradientValue[0] = (PrecisionTYPE)(*gradientXPtr);
-            metricGradientValue[1] = (PrecisionTYPE)(*gradientYPtr);
             // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
-            *gradientXPtr++ = (SplineTYPE)((1.0-weight)*metricGradientValue[0] + weight*gradientValue[0]);
-            *gradientYPtr++ = (SplineTYPE)((1.0-weight)*metricGradientValue[1] + weight*gradientValue[1]);
+            *gradientXPtr++ += weight*gradientValue[0];
+            *gradientYPtr++ += weight*gradientValue[1];
         }
     }
 
@@ -2493,8 +2495,8 @@ void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlP
 													 float weight)
 {	
     // As the contraint is only computed at the voxel position, the basis value of the spline are always the same 
-    PrecisionTYPE normal[4];
-    PrecisionTYPE first[4];
+    PrecisionTYPE normal[3];
+    PrecisionTYPE first[3];
     normal[0] = (PrecisionTYPE)(1.0/6.0);
     normal[1] = (PrecisionTYPE)(2.0/3.0);
     normal[2] = (PrecisionTYPE)(1.0/6.0);
@@ -2503,7 +2505,7 @@ void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlP
     first[2] = (PrecisionTYPE)(0.5);
 	
     PrecisionTYPE basisX[9], basisY[9];
-	
+
     int coord=0;
     for(int b=0; b<3; b++){
         for(int a=0; a<3; a++){
@@ -2534,8 +2536,6 @@ void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlP
     SplineTYPE *gradientImagePtrX = static_cast<SplineTYPE *>(gradientImage->data);
     SplineTYPE *gradientImagePtrY = static_cast<SplineTYPE *>(&gradientImagePtrX[splineControlPoint->nx*splineControlPoint->ny]);
 	
-	memset(gradientImagePtrX, 0, splineControlPoint->nx*splineControlPoint->ny * 2 *sizeof(SplineTYPE) );
-	
 	// Loop over each control point
     for(int y=0;y<splineControlPoint->ny;y++){
         for(int x=0;x<splineControlPoint->nx;x++){
@@ -2552,7 +2552,7 @@ void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlP
 					coord=0;
 					for(int Y=CPY-1; Y<CPY+2; Y++){
 						PrecisionTYPE diffY = (PrecisionTYPE)0.0;
-						unsigned int index = Y*splineControlPoint->nx;
+						int index = Y*splineControlPoint->nx;
 						if(Y<0){ // Border effect
 							diffY=Y;
 							index=0;
@@ -2575,10 +2575,9 @@ void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlP
 								index=splineControlPoint->nx-1;
 								diffX=X-index;
 							}
-							
+							// home-made sliding effect which reproduce the control point spacing
 							xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[index]*orientation[0] + diffX*splineControlPoint->dx;
 							yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[index]*orientation[1] + diffY*splineControlPoint->dy;
-							
 							coord++;
 						}
 					}
@@ -2591,7 +2590,6 @@ void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlP
 					for(int a=0; a<9; a++){
 						Tx_x += basisX[a]*xControlPointCoordinates[a];
 						Tx_y += basisY[a]*xControlPointCoordinates[a];
-						
 						Ty_x += basisX[a]*yControlPointCoordinates[a];
 						Ty_y += basisY[a]*yControlPointCoordinates[a];
 					}
@@ -2603,24 +2601,31 @@ void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlP
 					Ty_y /= splineControlPoint->dy;
 
 					PrecisionTYPE detJac =  Tx_x * Ty_y - Tx_y * Ty_x;
-					PrecisionTYPE commonValue = 2.0*log(detJac) / detJac;
-					PrecisionTYPE determinantDerivativeTrace = Tx_x + Ty_y; // det(M(2,2)*trace(inverse(M(2,2))) = trace(M(2,2))
 					
 					PrecisionTYPE basisValues[2];
-					basisValues[0] = basisX[(int)basisValues[basisCoord]];
-					basisValues[1] = basisY[(int)basisValues[basisCoord]];
-					basisCoord++;
+					basisValues[0] = basisX[basisCoord];
+					basisValues[1] = basisY[basisCoord];
 					
-					jacobianContraintX += commonValue * determinantDerivativeTrace*(basisValues[0] + basisValues[1]);
-					jacobianContraintY += commonValue * determinantDerivativeTrace*(basisValues[0] + basisValues[1]);
-
+					PrecisionTYPE jacobianInverse[4];
+					jacobianInverse[0]=detJac*Ty_y;
+					jacobianInverse[1]=-detJac*Ty_x;
+					jacobianInverse[2]=-detJac*Tx_y;
+					jacobianInverse[3]=detJac*Tx_x;
+					
+					PrecisionTYPE twoLogDet=2.0 * log(detJac);
+					if(detJac<=0.0) twoLogDet = -100;	
+										
+					jacobianContraintX -=	twoLogDet
+						* (jacobianInverse[0]*basisValues[0]+jacobianInverse[1]*basisValues[1]);
+					jacobianContraintY -=	twoLogDet
+						* (jacobianInverse[2]*basisValues[0]+jacobianInverse[3]*basisValues[1]);
+			
+					basisCoord++;
 				} // X
 			} // Y
             // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
-			SplineTYPE initialGradientValueX=*gradientImagePtrX;
-			SplineTYPE initialGradientValueY=*gradientImagePtrY;
-			*gradientImagePtrX++ += (1.0-weight)*initialGradientValueX + weight*jacobianContraintX;
-			*gradientImagePtrY++ += (1.0-weight)*initialGradientValueY + weight*jacobianContraintY;
+			*gradientImagePtrX++ += weight*jacobianContraintX*orientation[0];
+			*gradientImagePtrY++ += weight*jacobianContraintY*orientation[1];
         } // x
     } // y
 }
@@ -2643,10 +2648,332 @@ void reg_bspline_jacobianDeterminantGradientApprox3D(nifti_image *splineControlP
 													 nifti_image *gradientImage,
 													 float weight)
 {
-	//TODO
-	fprintf(stderr, "The approximation of the 3D gradient of the Jacobian determinant has not been implemented yet.\n");
-	fprintf(stderr, "... Exit ...\n");
-	exit(0);
+    // As the contraint is only computed at the voxel position, the basis value of the spline are always the same 
+    PrecisionTYPE normal[3];
+    PrecisionTYPE first[3];
+    normal[0] = (PrecisionTYPE)(1.0/6.0);
+    normal[1] = (PrecisionTYPE)(2.0/3.0);
+    normal[2] = (PrecisionTYPE)(1.0/6.0);
+    first[0] = (PrecisionTYPE)(-0.5);
+    first[1] = (PrecisionTYPE)(0.0);
+    first[2] = (PrecisionTYPE)(0.5);
+	
+    // There are 3 different values taken into account
+    PrecisionTYPE tempX[9], tempY[9], tempZ[9];
+    int coord=0;
+    for(int c=0; c<3; c++){
+        for(int b=0; b<3; b++){
+            tempX[coord]=normal[c]*normal[b];   // z * y
+            tempY[coord]=normal[c]*first[b];    // z * y'
+            tempZ[coord]=first[c]*normal[b];    // z'* y
+            coord++;
+        }
+    }
+    
+    PrecisionTYPE basisX[27], basisY[27], basisZ[27];
+    
+    coord=0;
+    for(int bc=0; bc<9; bc++){
+        for(int a=0; a<3; a++){
+            basisX[coord]=tempX[bc]*first[a];   // z * y * x'
+            basisY[coord]=tempY[bc]*normal[a];  // z * y'* x
+            basisZ[coord]=tempZ[bc]*normal[a];  // z'* y * x
+            coord++;
+        }
+    }
+	
+    PrecisionTYPE xControlPointCoordinates[27];
+    PrecisionTYPE yControlPointCoordinates[27];
+    PrecisionTYPE zControlPointCoordinates[27];
+	
+    mat44 *splineMatrix;
+    if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
+    else splineMatrix=&(splineControlPoint->qto_xyz);
+	
+    float orientation[3];
+    orientation[0] = (  (splineMatrix->m[0][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][0]*splineMatrix->m[0][0] +
+					  (splineMatrix->m[0][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][1]*splineMatrix->m[0][1] +
+					  (splineMatrix->m[0][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][2]*splineMatrix->m[0][2]
+					  )>0.0f?1.0f:-1.0f;
+    orientation[1] = (  (splineMatrix->m[1][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][0]*splineMatrix->m[1][0] +
+					  (splineMatrix->m[1][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][1]*splineMatrix->m[1][1] +
+					  (splineMatrix->m[1][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][2]*splineMatrix->m[1][2]
+					  )>0.0f?1.0f:-1.0f;
+    orientation[2] = (  (splineMatrix->m[2][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][0]*splineMatrix->m[2][0] +
+					  (splineMatrix->m[2][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][1]*splineMatrix->m[2][1] +
+					  (splineMatrix->m[2][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][2]*splineMatrix->m[2][2]
+					  )>0.0f?1.0f:-1.0f;
+	
+    SplineTYPE *controlPointPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
+    SplineTYPE *controlPointPtrY = static_cast<SplineTYPE *>(&controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz]);
+    SplineTYPE *controlPointPtrZ = static_cast<SplineTYPE *>(&controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz]);
+
+	/* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+	/* All the Jacobian matrix are computed */
+	/* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+	mat33 *inverseJacobianMatrices =
+	(mat33 *)malloc((gradientImage->nx+2)
+					*(gradientImage->ny+2)
+					*(gradientImage->nz+2)
+					* sizeof(mat33));
+	mat33 *inverseJacobianMatricesPtr = &inverseJacobianMatrices[0];
+	PrecisionTYPE *jacobianDeterminants = 
+	(PrecisionTYPE *)malloc((gradientImage->nx+2)
+							*(gradientImage->ny+2)
+							*(gradientImage->nz+2)
+							* sizeof(PrecisionTYPE));
+	PrecisionTYPE *jacobianDeterminantsPtr = &jacobianDeterminants[0];
+	// Loop over each control point
+	for(int z=-1;z<gradientImage->nz+1;z++){
+		for(int y=-1;y<gradientImage->ny+1;y++){
+			for(int x=-1;x<gradientImage->nx+1;x++){
+							
+				// The control points are stored
+				coord=0;
+				for(int Z=z-1; Z<z+2; Z++){
+					PrecisionTYPE diffZ = (PrecisionTYPE)0.0;
+					int index = Z*splineControlPoint->nx*splineControlPoint->ny;
+					if(Z<0){ // Border effect
+						diffZ=Z;
+						index=0;
+					}
+					else if(Z>=splineControlPoint->nz){ // Border effect
+						diffZ=Z-splineControlPoint->nz+1;
+						index=(splineControlPoint->nz-1)*splineControlPoint->nx*splineControlPoint->ny;
+					}
+					SplineTYPE *xPtr = &controlPointPtrX[index];
+					SplineTYPE *yPtr = &controlPointPtrY[index];
+					SplineTYPE *zPtr = &controlPointPtrZ[index];
+					
+					for(int Y=y-1; Y<y+2; Y++){
+						PrecisionTYPE diffY = (PrecisionTYPE)0.0;
+						int index = Y*splineControlPoint->nx;
+						if(Y<0){ // Border effect
+							diffY=Y;
+							index=0;
+						}
+						else if(Y>=splineControlPoint->ny){ // Border effect
+							diffY=Y-splineControlPoint->ny+1;
+							index=(splineControlPoint->ny-1)*splineControlPoint->nx;
+						}
+						SplineTYPE *xxPtr = &xPtr[index];
+						SplineTYPE *yyPtr = &yPtr[index];
+						SplineTYPE *zzPtr = &zPtr[index];
+						
+						for(int X=x-1; X<x+2; X++){
+							PrecisionTYPE diffX = (PrecisionTYPE)0.0;
+							index=X;
+							if(X<0){ // Border effect
+								diffX=X;
+								index=0;
+							}
+							else if(X>=splineControlPoint->nx){ // Border effect
+								index=splineControlPoint->nx-1;
+								diffX=X-index;
+							}
+							// home-made sliding effect which reproduce the control point spacing
+							xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[index]*orientation[0] + diffX*splineControlPoint->dx;
+							yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[index]*orientation[1] + diffY*splineControlPoint->dy;
+							zControlPointCoordinates[coord] = (PrecisionTYPE)zzPtr[index]*orientation[2] + diffZ*splineControlPoint->dz;
+							coord++;
+						}
+					}
+				}
+
+				PrecisionTYPE Tx_x=(PrecisionTYPE)0.0;
+				PrecisionTYPE Ty_x=(PrecisionTYPE)0.0;
+				PrecisionTYPE Tz_x=(PrecisionTYPE)0.0;
+				PrecisionTYPE Tx_y=(PrecisionTYPE)0.0;
+				PrecisionTYPE Ty_y=(PrecisionTYPE)0.0;
+				PrecisionTYPE Tz_y=(PrecisionTYPE)0.0;
+				PrecisionTYPE Tx_z=(PrecisionTYPE)0.0;
+				PrecisionTYPE Ty_z=(PrecisionTYPE)0.0;
+				PrecisionTYPE Tz_z=(PrecisionTYPE)0.0;
+
+				for(int a=0; a<27; a++){
+					Tx_x += basisX[a]*xControlPointCoordinates[a];
+					Tx_y += basisY[a]*xControlPointCoordinates[a];
+					Tx_z += basisZ[a]*xControlPointCoordinates[a];
+					Ty_x += basisX[a]*yControlPointCoordinates[a];
+					Ty_y += basisY[a]*yControlPointCoordinates[a];
+					Ty_z += basisZ[a]*yControlPointCoordinates[a];
+					Tz_x += basisX[a]*zControlPointCoordinates[a];
+					Tz_y += basisY[a]*zControlPointCoordinates[a];
+					Tz_z += basisZ[a]*zControlPointCoordinates[a];
+				}
+
+				mat33 jacobianMatrix;
+				jacobianMatrix.m[0][0] = Tx_x/splineControlPoint->dx;
+				jacobianMatrix.m[0][1] = Tx_y/splineControlPoint->dy;
+				jacobianMatrix.m[0][2] = Tx_z/splineControlPoint->dz;
+				jacobianMatrix.m[1][0] = Ty_x/splineControlPoint->dx;
+				jacobianMatrix.m[1][1] = Ty_y/splineControlPoint->dy;
+				jacobianMatrix.m[1][2] = Ty_z/splineControlPoint->dz;
+				jacobianMatrix.m[2][0] = Tz_x/splineControlPoint->dx;
+				jacobianMatrix.m[2][1] = Tz_y/splineControlPoint->dy;
+				jacobianMatrix.m[2][2] = Tz_z/splineControlPoint->dz;
+
+				*jacobianDeterminantsPtr++ = nifti_mat33_determ(jacobianMatrix);
+				*inverseJacobianMatricesPtr++ = nifti_mat33_inverse(jacobianMatrix);
+
+			} // x
+		} // y
+	} //z
+
+	/* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+	/* The actual gradient are now computed */
+	/* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+    SplineTYPE *gradientImagePtrX = static_cast<SplineTYPE *>(gradientImage->data);
+    SplineTYPE *gradientImagePtrY = static_cast<SplineTYPE *>(&gradientImagePtrX[gradientImage->nx*gradientImage->ny*gradientImage->nz]);
+    SplineTYPE *gradientImagePtrZ = static_cast<SplineTYPE *>(&gradientImagePtrY[gradientImage->nx*gradientImage->ny*gradientImage->nz]);
+	// Loop over each control point
+	for(int z=0;z<gradientImage->nz;z++){
+		for(int y=0;y<gradientImage->ny;y++){
+			for(int x=0;x<gradientImage->nx;x++){
+				
+				PrecisionTYPE jacobianContraintX=(PrecisionTYPE)0.0;
+				PrecisionTYPE jacobianContraintY=(PrecisionTYPE)0.0;
+				PrecisionTYPE jacobianContraintZ=(PrecisionTYPE)0.0;
+				
+				// Loop over all the control points in the surrounding area
+				unsigned int basisCoord=0;
+				for(int CPZ=z-1;CPZ<z+2; CPZ++){
+					for(int CPY=y-1;CPY<y+2; CPY++){
+						for(int CPX=x-1;CPX<x+2; CPX++){
+							
+							
+//							
+//							// The control points are stored
+//							coord=0;
+//							for(int Z=CPZ-1; Z<CPZ+2; Z++){
+//								PrecisionTYPE diffZ = (PrecisionTYPE)0.0;
+//								int index = Z*splineControlPoint->nx*splineControlPoint->ny;
+//								if(Z<0){ // Border effect
+//									diffZ=Z;
+//									index=0;
+//								}
+//								else if(Z>=splineControlPoint->nz){ // Border effect
+//									diffZ=Z-splineControlPoint->nz+1;
+//									index=(splineControlPoint->nz-1)*splineControlPoint->nx*splineControlPoint->ny;
+//								}
+//								SplineTYPE *xPtr = &controlPointPtrX[index];
+//								SplineTYPE *yPtr = &controlPointPtrY[index];
+//								SplineTYPE *zPtr = &controlPointPtrZ[index];
+//								
+//								for(int Y=CPY-1; Y<CPY+2; Y++){
+//									PrecisionTYPE diffY = (PrecisionTYPE)0.0;
+//									int index = Y*splineControlPoint->nx;
+//									if(Y<0){ // Border effect
+//										diffY=Y;
+//										index=0;
+//									}
+//									else if(Y>=splineControlPoint->ny){ // Border effect
+//										diffY=Y-splineControlPoint->ny+1;
+//										index=(splineControlPoint->ny-1)*splineControlPoint->nx;
+//									}
+//									SplineTYPE *xxPtr = &xPtr[index];
+//									SplineTYPE *yyPtr = &yPtr[index];
+//									SplineTYPE *zzPtr = &zPtr[index];
+//									
+//									for(int X=x-1; X<x+2; X++){
+//										PrecisionTYPE diffX = (PrecisionTYPE)0.0;
+//										index=X;
+//										if(X<0){ // Border effect
+//											diffX=X;
+//											index=0;
+//										}
+//										else if(X>=splineControlPoint->nx){ // Border effect
+//											index=splineControlPoint->nx-1;
+//											diffX=X-index;
+//										}
+//										// home-made sliding effect which reproduce the control point spacing
+//										xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[index]*orientation[0] + diffX*splineControlPoint->dx;
+//										yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[index]*orientation[1] + diffY*splineControlPoint->dy;
+//										zControlPointCoordinates[coord] = (PrecisionTYPE)zzPtr[index]*orientation[2] + diffZ*splineControlPoint->dz;
+//										coord++;
+//									}
+//								}
+//							}
+//							
+//							PrecisionTYPE Tx_x=(PrecisionTYPE)0.0;
+//							PrecisionTYPE Ty_x=(PrecisionTYPE)0.0;
+//							PrecisionTYPE Tz_x=(PrecisionTYPE)0.0;
+//							PrecisionTYPE Tx_y=(PrecisionTYPE)0.0;
+//							PrecisionTYPE Ty_y=(PrecisionTYPE)0.0;
+//							PrecisionTYPE Tz_y=(PrecisionTYPE)0.0;
+//							PrecisionTYPE Tx_z=(PrecisionTYPE)0.0;
+//							PrecisionTYPE Ty_z=(PrecisionTYPE)0.0;
+//							PrecisionTYPE Tz_z=(PrecisionTYPE)0.0;
+//							
+//							for(int a=0; a<27; a++){
+//								Tx_x += basisX[a]*xControlPointCoordinates[a];
+//								Tx_y += basisY[a]*xControlPointCoordinates[a];
+//								Tx_z += basisZ[a]*xControlPointCoordinates[a];
+//								Ty_x += basisX[a]*yControlPointCoordinates[a];
+//								Ty_y += basisY[a]*yControlPointCoordinates[a];
+//								Ty_z += basisZ[a]*yControlPointCoordinates[a];
+//								Tz_x += basisX[a]*zControlPointCoordinates[a];
+//								Tz_y += basisY[a]*zControlPointCoordinates[a];
+//								Tz_z += basisZ[a]*zControlPointCoordinates[a];
+//							}
+//							
+//							mat33 jacobianMatrix;
+//							jacobianMatrix.m[0][0] = Tx_x/splineControlPoint->dx;
+//							jacobianMatrix.m[0][1] = Tx_y/splineControlPoint->dy;
+//							jacobianMatrix.m[0][2] = Tx_z/splineControlPoint->dz;
+//							jacobianMatrix.m[1][0] = Ty_x/splineControlPoint->dx;
+//							jacobianMatrix.m[1][1] = Ty_y/splineControlPoint->dy;
+//							jacobianMatrix.m[1][2] = Ty_z/splineControlPoint->dz;
+//							jacobianMatrix.m[2][0] = Tz_x/splineControlPoint->dx;
+//							jacobianMatrix.m[2][1] = Tz_y/splineControlPoint->dy;
+//							jacobianMatrix.m[2][2] = Tz_z/splineControlPoint->dz;
+//							
+//							*jacobianDeterminantsPtr++ = nifti_mat33_determ(jacobianMatrix);
+//							*inverseJacobianMatricesPtr++ = nifti_mat33_inverse(jacobianMatrix);
+							
+							
+							
+							
+							unsigned int jacobianIndex =
+								((CPZ+1)*(gradientImage->ny+2)+(CPY+1))
+								*(gradientImage->nx+2)+CPX+1;
+							
+							PrecisionTYPE twoLogDet=2.0 * log(jacobianDeterminants[jacobianIndex]);
+							if(twoLogDet != twoLogDet) twoLogDet = -100;
+
+							mat33 jacobianMatrix=inverseJacobianMatrices[jacobianIndex];
+
+							PrecisionTYPE basisValues[3];
+							basisValues[0] = basisX[basisCoord];
+							basisValues[1] = basisY[basisCoord];
+							basisValues[2] = basisZ[basisCoord];
+
+							jacobianContraintX -=	twoLogDet
+							* ( jacobianMatrix.m[0][0]*basisValues[0]
+							   + jacobianMatrix.m[1][0]*basisValues[1]
+							   + jacobianMatrix.m[2][0]*basisValues[2]);
+							jacobianContraintY -=	twoLogDet
+							* ( jacobianMatrix.m[0][1]*basisValues[0]
+							   + jacobianMatrix.m[1][1]*basisValues[1]
+							   + jacobianMatrix.m[2][1]*basisValues[2]);
+							jacobianContraintZ -=	twoLogDet
+							* ( jacobianMatrix.m[0][2]*basisValues[0]
+							   + jacobianMatrix.m[1][2]*basisValues[1]
+							   + jacobianMatrix.m[2][2]*basisValues[2]);
+							
+							basisCoord++;
+						} // X
+					} // Y
+				} // Z
+				// (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
+				*gradientImagePtrX++ += weight*jacobianContraintX*orientation[0];
+				*gradientImagePtrY++ += weight*jacobianContraintY*orientation[1];
+				*gradientImagePtrZ++ += weight*jacobianContraintZ*orientation[2];
+			} // x
+		} // y
+	} //z
+	free(inverseJacobianMatrices);
+	free(jacobianDeterminants);
 }
 /* *************************************************************** */
 extern "C++" template<class PrecisionTYPE>

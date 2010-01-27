@@ -18,7 +18,8 @@ extern "C++"
 void reg_voxelCentric2NodeCentric_gpu(	nifti_image *targetImage,
 					nifti_image *controlPointImage,
 					float4 **voxelNMIGradientArray_d,
-					float4 **nodeNMIGradientArray_d);
+					float4 **nodeNMIGradientArray_d,
+					float weight);
 
 extern "C++"
 void reg_convertNMIGradientFromVoxelToRealSpace_gpu(	mat44 *sourceMatrix_xyz,
