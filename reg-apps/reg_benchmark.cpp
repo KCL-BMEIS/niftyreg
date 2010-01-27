@@ -411,7 +411,7 @@ int main(int argc, char **argv)
     time(&start);
     for(int i=0; i<maxIt; ++i){
         reg_smoothImageForCubicSpline<float>(voxelNMIGradientImage,smoothingRadius);
-        reg_voxelCentric2NodeCentric(nodeNMIGradientImage,voxelNMIGradientImage);
+        reg_voxelCentric2NodeCentric(nodeNMIGradientImage,voxelNMIGradientImage,1.0f);
     }
     time(&end);
     cpuTime=(end-start);
@@ -426,7 +426,8 @@ int main(int argc, char **argv)
         reg_voxelCentric2NodeCentric_gpu(   targetImage,
                                             controlPointImage,
                                             &voxelNMIGradientArray_d,
-                                            &nodeNMIGradientArray_d);
+                                            &nodeNMIGradientArray_d,
+                                            1.0f);
     }
     time(&end);
     gpuTime=(end-start);
