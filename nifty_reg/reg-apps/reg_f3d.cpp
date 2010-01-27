@@ -1115,7 +1115,7 @@ int main(int argc, char **argv)
 											                    &nodeNMIGradientArray_d,
 											                    param->bendingEnergyWeight);
 				}
-				if(flag->jacGradFlag && flag->jacobianWeightFlag){
+				if(flag->jlGradFlag && flag->jacobianWeightFlag){
 					//TODO
 				}
 				/* The conjugate gradient is computed */
