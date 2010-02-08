@@ -4313,4 +4313,387 @@ int reg_bspline_initialiseControlPointGridWithAffine(   mat44 *affineTransformat
 }
 /* *************************************************************** */
 /* *************************************************************** */
+template<class PrecisionTYPE>
+void reg_square_cpp_2D(nifti_image *splineControlPoint)
+{	
+#if _USE_SSE
+    union u{
+		__m128 m;
+		float f[4];
+    } val;
+#else
+#ifdef _WINDOWS
+	__declspec(align(16)) PrecisionTYPE temp[4];
+#else
+	PrecisionTYPE temp[4] __attribute__((aligned(16)));
+#endif
+#endif  
+	
+	// The input cpp is saved
+	PrecisionTYPE *tempCPPStorage = (PrecisionTYPE *)malloc(splineControlPoint->nvox * sizeof(PrecisionTYPE));
+	memcpy(tempCPPStorage, splineControlPoint->data, splineControlPoint->nvox*splineControlPoint->nbyper);
+	
+    PrecisionTYPE *controlPointPtrX = tempCPPStorage;
+    PrecisionTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny];
+	
+    PrecisionTYPE *outCPPPtrX=static_cast<PrecisionTYPE *>(splineControlPoint->data);
+    PrecisionTYPE *outCPPPtrY=&outCPPPtrX[splineControlPoint->nx*splineControlPoint->ny];
+	
+    PrecisionTYPE basis, FF, FFF, MF;
+	
+#ifdef _WINDOWS
+    __declspec(align(16)) PrecisionTYPE yBasis[4];
+    __declspec(align(16)) PrecisionTYPE xyBasis[16];
+	
+    __declspec(align(16)) PrecisionTYPE xControlPointCoordinates[16];
+    __declspec(align(16)) PrecisionTYPE yControlPointCoordinates[16];
+#else
+    PrecisionTYPE yBasis[4] __attribute__((aligned(16)));
+    PrecisionTYPE xyBasis[16] __attribute__((aligned(16)));
+	
+    PrecisionTYPE xControlPointCoordinates[16] __attribute__((aligned(16)));
+    PrecisionTYPE yControlPointCoordinates[16] __attribute__((aligned(16)));
+#endif
+	
+    unsigned int coord;
+		
+	mat44 *matrix_real_to_voxel;
+	if(splineControlPoint->sform_code>0)
+		matrix_real_to_voxel=&(splineControlPoint->sto_ijk);
+	else matrix_real_to_voxel=&(splineControlPoint->qto_ijk);
+	
+	mat44 *matrix_voxel_to_real;
+    if(splineControlPoint->sform_code>0) matrix_voxel_to_real=&(splineControlPoint->sto_xyz);
+    else matrix_voxel_to_real=&(splineControlPoint->qto_xyz);
+		
+#ifdef _WINDOWS
+	__declspec(align(16)) PrecisionTYPE xBasis[4];
+#else
+	PrecisionTYPE xBasis[4] __attribute__((aligned(16)));
+#endif		
+	// read the ijk sform or qform, as appropriate
+	
+	for(int y=0; y<splineControlPoint->ny; y++){
+		for(int x=0; x<splineControlPoint->nx; x++){
+			
+			// Get the initial control point position
+			PrecisionTYPE xInit = matrix_voxel_to_real->m[0][0]*(PrecisionTYPE)x
+			+ matrix_voxel_to_real->m[0][1]*(PrecisionTYPE)y
+			+ matrix_voxel_to_real->m[0][3];
+			PrecisionTYPE yInit = matrix_voxel_to_real->m[1][0]*(PrecisionTYPE)x
+			+ matrix_voxel_to_real->m[1][1]*(PrecisionTYPE)y
+			+ matrix_voxel_to_real->m[1][3];
+			
+			// Get the control point actual position
+			PrecisionTYPE xReal = *outCPPPtrX + xInit;
+			PrecisionTYPE yReal = *outCPPPtrY + yInit;
+			
+			// Get the voxel based control point position
+			PrecisionTYPE xVoxel = matrix_real_to_voxel->m[0][0]*xReal
+			+ matrix_real_to_voxel->m[0][1]*yReal + matrix_real_to_voxel->m[0][3];
+			PrecisionTYPE yVoxel = matrix_real_to_voxel->m[1][0]*xReal
+			+ matrix_real_to_voxel->m[1][1]*yReal + matrix_real_to_voxel->m[1][3];
+			
+			xVoxel = xVoxel<0.0?0.0:xVoxel;
+			yVoxel = yVoxel<0.0?0.0:yVoxel;
+			
+			printf("x[%i] y[%i] / [%g][%g] -> [%g][%g]\n", x, y, xReal, yReal, xVoxel, yVoxel);
+//			exit(0);
+			
+			// The spline coefficients are computed
+			int xPre=(int)(floor(xVoxel)-1);
+			basis=(PrecisionTYPE)xVoxel-(PrecisionTYPE)xPre;
+			if(basis<0.0) basis=0.0; //rounding error
+			FF= basis*basis;
+			FFF= FF*basis;
+			MF=(PrecisionTYPE)(1.0-basis);
+			xBasis[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/(6.0));
+			xBasis[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+			xBasis[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+			xBasis[3] = (PrecisionTYPE)(FFF/6.0);
+			
+			int yPre=(int)(floor(yVoxel)-1);
+			basis=(PrecisionTYPE)yVoxel-(PrecisionTYPE)yPre;
+			if(basis<0.0) basis=0.0; //rounding error
+			FF= basis*basis;
+			FFF= FF*basis;
+			MF=(PrecisionTYPE)(1.0-basis);
+			yBasis[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/(6.0));
+			yBasis[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+			yBasis[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+			yBasis[3] = (PrecisionTYPE)(FFF/6.0);
+			
+			// The control points are stored
+			coord=0;
+			memset(xControlPointCoordinates, 0, 16*sizeof(PrecisionTYPE));
+			memset(yControlPointCoordinates, 0, 16*sizeof(PrecisionTYPE));
+			for(int Y=yPre; Y<yPre+3; Y++){
+				int index = Y*splineControlPoint->nx;
+				PrecisionTYPE *xxPtr = &controlPointPtrX[index];
+				PrecisionTYPE *yyPtr = &controlPointPtrY[index];
+				
+				for(int X=xPre; X<xPre+3; X++){
+					// home-made sliding effect which reproduce the control point spacing
+					if(X>-1 && Y>-1 && X<splineControlPoint->nx && Y<splineControlPoint->ny){
+						xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[index];
+						yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[index];
+					}
+					coord++;
+				}
+			}
+			
+			xReal=0.0;
+			yReal=0.0;
+
+#if _USE_SSE
+			coord=0;
+			for(unsigned int b=0; b<4; b++){
+				for(unsigned int a=0; a<4; a++){
+					xyBasis[coord++] = xBasis[a] * yBasis[b];
+				}
+			}
+			
+			__m128 tempX =  _mm_set_ps1(0.0);
+			__m128 tempY =  _mm_set_ps1(0.0);
+			__m128 *ptrX = (__m128 *) &xControlPointCoordinates[0];
+			__m128 *ptrY = (__m128 *) &yControlPointCoordinates[0];
+			__m128 *ptrBasis   = (__m128 *) &xyBasis[0];
+			//addition and multiplication of the 16 basis value and CP position for each axis
+			for(unsigned int a=0; a<4; a++){
+				tempX = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrX), tempX );
+				tempY = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrY), tempY );
+				ptrBasis++;
+				ptrX++;
+				ptrY++;
+			}
+			//the values stored in SSE variables are transfered to normal float
+			val.m = tempX;
+			xReal = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+			val.m = tempY;
+			yReal = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+#else
+			for(unsigned int b=0; b<4; b++){
+				for(unsigned int a=0; a<4; a++){
+					PrecisionTYPE tempValue = xBasis[a] * yBasis[b];
+					xReal += xControlPointCoordinates[b*4+a] * tempValue;
+					yReal += yControlPointCoordinates[b*4+a] * tempValue;
+				}
+			}
+#endif
+			
+			*outCPPPtrX++ = (PrecisionTYPE)xReal;
+			*outCPPPtrY++ = (PrecisionTYPE)yReal;
+		}
+	}
+	free(tempCPPStorage);
+	return;
+}
+/* *************************************************************** */
+template<class PrecisionTYPE>
+void reg_square_cpp_3D(nifti_image *splineControlPoint)
+{
+	// The input cpp is saved
+	PrecisionTYPE *tempCPPStorage = (PrecisionTYPE *)malloc(splineControlPoint->nvox * sizeof(PrecisionTYPE));
+	memcpy(tempCPPStorage, splineControlPoint->data, splineControlPoint->nvox*splineControlPoint->nbyper);
+	
+	
+}
+/* *************************************************************** */
+template<class PrecisionTYPE>
+int reg_square_cpp(nifti_image *splineControlPoint)
+{
+		
+	switch(splineControlPoint->nu){
+		case 2:
+			reg_square_cpp_2D<PrecisionTYPE>(splineControlPoint);
+			break;
+		case 3:
+			reg_square_cpp_3D<PrecisionTYPE>(splineControlPoint);
+			break;
+		default:
+			fprintf(stderr,"ERROR:\treg_square_cpp\n");
+			fprintf(stderr,"ERROR:\tOnly implemented for 2 or 3D images\n");
+			return 1;
+	}
+	return 0;
+}
+template int reg_square_cpp<float>(nifti_image *);
+/* *************************************************************** */
+/* *************************************************************** */
+template<class PrecisionTYPE>
+void reg_getDisplacementFromPosition_2D(nifti_image *splineControlPoint)
+{
+	PrecisionTYPE *controlPointPtrX = static_cast<PrecisionTYPE *>(splineControlPoint->data);
+    PrecisionTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny];
+	
+	mat44 *splineMatrix;
+    if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
+    else splineMatrix=&(splineControlPoint->qto_xyz);
+	
+	
+	for(int y=0; y<splineControlPoint->ny; y++){
+		for(int x=0; x<splineControlPoint->nx; x++){
+			
+			// Get the initial control point position
+			PrecisionTYPE xInit = splineMatrix->m[0][0]*(PrecisionTYPE)x
+			+ splineMatrix->m[0][1]*(PrecisionTYPE)y
+			+ splineMatrix->m[0][3];
+			PrecisionTYPE yInit = splineMatrix->m[1][0]*(PrecisionTYPE)x
+			+ splineMatrix->m[1][1]*(PrecisionTYPE)y
+			+ splineMatrix->m[1][3];
+			
+			// The initial position is subtracted from every values
+			*controlPointPtrX++ -= xInit;
+			*controlPointPtrY++ -= yInit;
+		}
+	}
+}
+/* *************************************************************** */
+template<class PrecisionTYPE>
+void reg_getDisplacementFromPosition_3D(nifti_image *splineControlPoint)
+{
+	PrecisionTYPE *controlPointPtrX = static_cast<PrecisionTYPE *>(splineControlPoint->data);
+    PrecisionTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+    PrecisionTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+	
+	mat44 *splineMatrix;
+    if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
+    else splineMatrix=&(splineControlPoint->qto_xyz);
+	
+	
+	for(int z=0; z<splineControlPoint->nz; z++){
+		for(int y=0; y<splineControlPoint->ny; y++){
+			for(int x=0; x<splineControlPoint->nx; x++){
+			
+				// Get the initial control point position
+				PrecisionTYPE xInit = splineMatrix->m[0][0]*(PrecisionTYPE)x
+				+ splineMatrix->m[0][1]*(PrecisionTYPE)y
+				+ splineMatrix->m[0][2]*(PrecisionTYPE)z
+				+ splineMatrix->m[0][3];
+				PrecisionTYPE yInit = splineMatrix->m[1][0]*(PrecisionTYPE)x
+				+ splineMatrix->m[1][1]*(PrecisionTYPE)y
+				+ splineMatrix->m[1][2]*(PrecisionTYPE)z
+				+ splineMatrix->m[1][3];
+				PrecisionTYPE zInit = splineMatrix->m[2][0]*(PrecisionTYPE)x
+				+ splineMatrix->m[2][1]*(PrecisionTYPE)y
+				+ splineMatrix->m[2][2]*(PrecisionTYPE)z
+				+ splineMatrix->m[2][3];
+				
+				// The initial position is subtracted from every values
+				*controlPointPtrX++ -= xInit;
+				*controlPointPtrY++ -= yInit;
+				*controlPointPtrZ++ -= zInit;
+			}
+		}
+	}
+}
+/* *************************************************************** */
+template<class PrecisionTYPE>
+int reg_getDisplacementFromPosition(nifti_image *splineControlPoint)
+{		
+	switch(splineControlPoint->nu){
+		case 2:
+			reg_getDisplacementFromPosition_2D<PrecisionTYPE>(splineControlPoint);
+			break;
+		case 3:
+			reg_getDisplacementFromPosition_3D<PrecisionTYPE>(splineControlPoint);
+			break;
+		default:
+			fprintf(stderr,"ERROR:\treg_getDisplacementFromPosition\n");
+			fprintf(stderr,"ERROR:\tOnly implemented for 2 or 3D images\n");
+			return 1;
+	}
+	return 0;
+}
+template int reg_getDisplacementFromPosition<float>(nifti_image *);
+/* *************************************************************** */
+/* *************************************************************** */
+/* *************************************************************** */
+template<class PrecisionTYPE>
+void reg_getPositionFromDisplacement_2D(nifti_image *splineControlPoint)
+{
+	PrecisionTYPE *controlPointPtrX = static_cast<PrecisionTYPE *>(splineControlPoint->data);
+    PrecisionTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny];
+	
+	mat44 *splineMatrix;
+    if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
+    else splineMatrix=&(splineControlPoint->qto_xyz);
+	
+	
+	for(int y=0; y<splineControlPoint->ny; y++){
+		for(int x=0; x<splineControlPoint->nx; x++){
+			
+			// Get the initial control point position
+			PrecisionTYPE xInit = splineMatrix->m[0][0]*(PrecisionTYPE)x
+			+ splineMatrix->m[0][1]*(PrecisionTYPE)y
+			+ splineMatrix->m[0][3];
+			PrecisionTYPE yInit = splineMatrix->m[1][0]*(PrecisionTYPE)x
+			+ splineMatrix->m[1][1]*(PrecisionTYPE)y
+			+ splineMatrix->m[1][3];
+			
+			// The initial position is added from every values
+			*controlPointPtrX++ += xInit;
+			*controlPointPtrY++ += yInit;
+		}
+	}
+}
+/* *************************************************************** */
+template<class PrecisionTYPE>
+void reg_getPositionFromDisplacement_3D(nifti_image *splineControlPoint)
+{
+	PrecisionTYPE *controlPointPtrX = static_cast<PrecisionTYPE *>(splineControlPoint->data);
+    PrecisionTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+    PrecisionTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+	
+	mat44 *splineMatrix;
+    if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
+    else splineMatrix=&(splineControlPoint->qto_xyz);
+	
+	
+	for(int z=0; z<splineControlPoint->nz; z++){
+		for(int y=0; y<splineControlPoint->ny; y++){
+			for(int x=0; x<splineControlPoint->nx; x++){
+				
+				// Get the initial control point position
+				PrecisionTYPE xInit = splineMatrix->m[0][0]*(PrecisionTYPE)x
+				+ splineMatrix->m[0][1]*(PrecisionTYPE)y
+				+ splineMatrix->m[0][2]*(PrecisionTYPE)z
+				+ splineMatrix->m[0][3];
+				PrecisionTYPE yInit = splineMatrix->m[1][0]*(PrecisionTYPE)x
+				+ splineMatrix->m[1][1]*(PrecisionTYPE)y
+				+ splineMatrix->m[1][2]*(PrecisionTYPE)z
+				+ splineMatrix->m[1][3];
+				PrecisionTYPE zInit = splineMatrix->m[2][0]*(PrecisionTYPE)x
+				+ splineMatrix->m[2][1]*(PrecisionTYPE)y
+				+ splineMatrix->m[2][2]*(PrecisionTYPE)z
+				+ splineMatrix->m[2][3];
+				
+				// The initial position is subtracted from every values
+				*controlPointPtrX++ += xInit;
+				*controlPointPtrY++ += yInit;
+				*controlPointPtrZ++ += zInit;
+			}
+		}
+	}
+}
+/* *************************************************************** */
+template<class PrecisionTYPE>
+int reg_getPositionFromDisplacement(nifti_image *splineControlPoint)
+{
+	switch(splineControlPoint->nu){
+		case 2:
+			reg_getPositionFromDisplacement_2D<PrecisionTYPE>(splineControlPoint);
+			break;
+		case 3:
+			reg_getPositionFromDisplacement_3D<PrecisionTYPE>(splineControlPoint);
+			break;
+		default:
+			fprintf(stderr,"ERROR:\treg_getPositionFromDisplacement\n");
+			fprintf(stderr,"ERROR:\tOnly implemented for 2 or 3D images\n");
+			return 1;
+	}
+	return 0;}
+template int reg_getPositionFromDisplacement<float>(nifti_image *);
+/* *************************************************************** */
+/* *************************************************************** */
 #endif
