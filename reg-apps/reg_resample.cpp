@@ -232,11 +232,40 @@ int main(int argc, char **argv)
 		}
 		/* apply the cubic spline interpolation to generate the position field */
 		if(positionFieldNeeded==true){
+			
+			// The current cpp is stored
+			PrecisionTYPE *tempCPPStorage = (PrecisionTYPE *)malloc(controlPointImage->nvox * sizeof(PrecisionTYPE));
+			memcpy(tempCPPStorage, controlPointImage->data, controlPointImage->nvox*controlPointImage->nbyper);
+			// From position to displacement conversion
+			reg_getDisplacementFromPosition<PrecisionTYPE>(controlPointImage);
+			// The displacements are scaled down
+			PrecisionTYPE scalingCoefficient = powf(2,8);
+			PrecisionTYPE *ptr=static_cast<PrecisionTYPE *>(controlPointImage->data);
+			for(unsigned int t=0; t<controlPointImage->nvox; t++){
+				*ptr /= scalingCoefficient;
+			}
+			// The displacement are squared
+			for(int t=0; t<8; t++){
+				reg_square_cpp<PrecisionTYPE>(controlPointImage);
+			}
+			// From displacement to position conversion
+			reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
+			// The deformation field is computed
 			reg_bspline<PrecisionTYPE>(	controlPointImage,
-							targetImage,
-							positionFieldImage,
-                            NULL,
-							0); // new df
+									   targetImage,
+									   positionFieldImage,
+									   NULL,
+									   0);
+			// the cpp grid is restored
+			memcpy(controlPointImage->data, tempCPPStorage, controlPointImage->nvox*controlPointImage->nbyper);
+			free(tempCPPStorage);
+			
+			
+//			reg_bspline<PrecisionTYPE>(	controlPointImage,
+//							targetImage,
+//							positionFieldImage,
+//                            NULL,
+//							0); // new df
 		}
 		/* Generate the jacobian map */
 		if(flag->outputJacobianFlag){

@@ -70,6 +70,7 @@ typedef struct{
     float sourceLowThresholdValue;
     float sourceUpThresholdValue;
     float gradientSmoothingValue;
+	int useScalingSquaringValue;
 }PARAM;
 typedef struct{
 	bool targetImageFlag;
@@ -108,6 +109,8 @@ typedef struct{
 
     bool twoDimRegistration;
     bool gradientSmoothingFlag;
+
+	bool useScalingSquaringFlag;
 
 #ifdef _USE_CUDA	
 	bool useGPUFlag;
@@ -175,6 +178,7 @@ void Usage(char *exec)
 	printf("\t-bgi <int> <int> <int>\tForce the background value during\n\t\t\t\tresampling to have the same value than this voxel in the source image [none]\n");
 // 	printf("\t-ssd\t\t\tTo use the SSD as the similiarity measure [no]\n");
 	printf("\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent/descent\n");
+	printf("\t-scs <int>\t\tTo use a scaling squaring approach to generate the deformation field. [0]\n");
 	printf("\t-mem\t\t\tDisplay an approximate memory requierment and exit\n");
 
 #ifdef _USE_CUDA
@@ -337,6 +341,11 @@ int main(int argc, char **argv)
 			printf("I'm affraid I did not have time to validate the SSD metric and its gradient yet\n");
 			return 1;
 		}
+		else if(strcmp(argv[i], "-scs") == 0){
+			flag->useScalingSquaringFlag=1;
+			param->useScalingSquaringValue=atoi(argv[++i]);
+		}
+
 #ifdef _USE_CUDA
 		else if(strcmp(argv[i], "-mem") == 0){
 			flag->memoryFlag=1;
@@ -968,13 +977,12 @@ int main(int argc, char **argv)
         while(iteration<param->maxIteration && currentSize>smallestSize){
 #ifdef _USE_CUDA
             if(flag->useGPUFlag){
-                /* generate the position field */
-                reg_bspline_gpu(controlPointImage,
-                                targetImage,
-                                &controlPointImageArray_d,
-                                &positionFieldImageArray_d,
-                                &targetMask_d,
-                                activeVoxelNumber);
+				reg_bspline_gpu(controlPointImage,
+								targetImage,
+								&controlPointImageArray_d,
+								&positionFieldImageArray_d,
+								&targetMask_d,
+								activeVoxelNumber);
                 /* Resample the source image */
                 reg_resampleSourceImage_gpu(resultImage,
                                             sourceImage,
@@ -989,11 +997,40 @@ int main(int argc, char **argv)
 			}
 			else{
 #endif
-				reg_bspline<PrecisionTYPE>(	controlPointImage,
-                                            targetImage,
-                                            positionFieldImage,
-                                            targetMask,
-                                            0);
+                /* generate the position field */
+				if(flag->useScalingSquaringFlag){
+					// The current cpp is stored
+					PrecisionTYPE *tempCPPStorage = (PrecisionTYPE *)malloc(controlPointImage->nvox * sizeof(PrecisionTYPE));
+					memcpy(tempCPPStorage, controlPointImage->data, controlPointImage->nvox*controlPointImage->nbyper);
+					// From position to displacement conversion
+					reg_getDisplacementFromPosition<PrecisionTYPE>(controlPointImage);
+					// The displacements are scaled down
+					int scalingCoefficient = pow(2,param->useScalingSquaringValue);
+					PrecisionTYPE *ptr=static_cast<PrecisionTYPE *>(controlPointImage->data);
+					for(unsigned int t=0; t<controlPointImage->nvox; t++)
+						*ptr++ /= scalingCoefficient;
+					// The displacement are squared
+					for(int t=0; t<param->useScalingSquaringValue; t++){
+						reg_square_cpp<PrecisionTYPE>(controlPointImage);
+					}
+					// From displacement to position conversion
+					reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
+					// The deformation field is computed
+					reg_bspline<PrecisionTYPE>(	controlPointImage,
+											   targetImage,
+											   positionFieldImage,
+											   targetMask,
+											   0);
+					// the cpp grid is restored
+					memcpy(controlPointImage->data, tempCPPStorage, controlPointImage->nvox*controlPointImage->nbyper);
+					free(tempCPPStorage);
+				}else{
+					reg_bspline<PrecisionTYPE>(	controlPointImage,
+												targetImage,
+												positionFieldImage,
+												targetMask,
+												0);
+				}
 				/* Resample the source image */
 				reg_resampleSourceImage<PrecisionTYPE>(	targetImage,
                                                         sourceImage,
@@ -1401,11 +1438,40 @@ int main(int argc, char **argv)
 					}
 
 					/* generate the position field */
-					reg_bspline<PrecisionTYPE>(	controlPointImage,
-									targetImage,
-									positionFieldImage,
-                                    targetMask,
-									0);
+					if(flag->useScalingSquaringFlag){
+						// The current cpp is stored
+						PrecisionTYPE *tempCPPStorage = (PrecisionTYPE *)malloc(controlPointImage->nvox * sizeof(PrecisionTYPE));
+						memcpy(tempCPPStorage, controlPointImage->data, controlPointImage->nvox*controlPointImage->nbyper);
+						// From position to displacement conversion
+						reg_getDisplacementFromPosition<PrecisionTYPE>(controlPointImage);
+						// The displacements are scaled down
+						int scalingCoefficient = pow(2,param->useScalingSquaringValue);
+						PrecisionTYPE *ptr=static_cast<PrecisionTYPE *>(controlPointImage->data);
+						for(unsigned int t=0; t<controlPointImage->nvox; t++)
+							*ptr++ /= scalingCoefficient;
+						// The displacement are squared
+						for(int t=0; t<param->useScalingSquaringValue; t++){
+							reg_square_cpp<PrecisionTYPE>(controlPointImage);
+						}
+						// From displacement to position conversion
+						reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
+						// The deformation field is computed
+						reg_bspline<PrecisionTYPE>(	controlPointImage,
+												   targetImage,
+												   positionFieldImage,
+												   targetMask,
+												   0);
+						// the cpp grid is restored
+						memcpy(controlPointImage->data, tempCPPStorage, controlPointImage->nvox*controlPointImage->nbyper);
+						free(tempCPPStorage);
+					}else{
+						reg_bspline<PrecisionTYPE>(	controlPointImage,
+												   targetImage,
+												   positionFieldImage,
+												   targetMask,
+												   0);
+					}
+					
 					/* Resample the source image */
 					reg_resampleSourceImage<PrecisionTYPE>(	targetImage,
 										sourceImage,
