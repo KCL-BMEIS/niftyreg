@@ -77,13 +77,21 @@ int reg_bspline_initialiseControlPointGridWithAffine(	mat44 *affineTransformatio
 							nifti_image *controlPointImage
 						      );
 
-extern "C++" template<class PrecisionTYPE>
-int reg_square_cpp(nifti_image *controlPointImage);
+
+
+
+extern "C++"
+int reg_square_cpp(nifti_image *positionGridImage,
+				   nifti_image *decomposedGridImage);
 
 extern "C++" template<class PrecisionTYPE>
 int reg_getDisplacementFromPosition(nifti_image *controlPointImage);
 
 extern "C++" template<class PrecisionTYPE>
 int reg_getPositionFromDisplacement(nifti_image *controlPointImage);
+
+extern "C++"
+int reg_spline_Interpolant2Interpolator(nifti_image *inputImage,
+										nifti_image *outputImage);
 
 #endif
