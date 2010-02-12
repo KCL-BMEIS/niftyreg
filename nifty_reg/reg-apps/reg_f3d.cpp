@@ -46,6 +46,9 @@
 #define JH_PARZEN_WIN 1
 #define JH_PW_APPROX 2
 
+#define SCALING_VALUE 65536
+#define SQUARING_VALUE 16
+
 typedef struct{
 	char *targetImageName;
 	char *sourceImageName;
@@ -70,7 +73,7 @@ typedef struct{
     float sourceLowThresholdValue;
     float sourceUpThresholdValue;
     float gradientSmoothingValue;
-	int useScalingSquaringValue;
+	char *velocityFieldName;
 }PARAM;
 typedef struct{
 	bool targetImageFlag;
@@ -110,7 +113,7 @@ typedef struct{
     bool twoDimRegistration;
     bool gradientSmoothingFlag;
 
-	bool useScalingSquaringFlag;
+	bool useVelocityFieldFlag;
 
 #ifdef _USE_CUDA	
 	bool useGPUFlag;
@@ -147,6 +150,7 @@ void Usage(char *exec)
 	printf("\t-result <filename> \tFilename of the resampled image [outputResult.nii]\n");
 	printf("\t-cpp <filename>\t\tFilename of control point grid [outputCPP.nii]\n");
 	printf("\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Target=Source)\n");
+//	printf("\t-vel <fileName>\t\tVelocity file name use to generate the cpp grid [none]\n");
     printf("\t-affFlirt <filename>\tFilename which contains a flirt affine transformation\n");
     printf("\t-tmask <filename>\tFilename of a mask image in the target space\n");
 	printf("\t-maxit <int>\t\tMaximal number of iteration per level [300]\n");
@@ -178,7 +182,6 @@ void Usage(char *exec)
 	printf("\t-bgi <int> <int> <int>\tForce the background value during\n\t\t\t\tresampling to have the same value than this voxel in the source image [none]\n");
 // 	printf("\t-ssd\t\t\tTo use the SSD as the similiarity measure [no]\n");
 	printf("\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent/descent\n");
-	printf("\t-scs <int>\t\tTo use a scaling squaring approach to generate the deformation field. [0]\n");
 	printf("\t-mem\t\t\tDisplay an approximate memory requierment and exit\n");
 
 #ifdef _USE_CUDA
@@ -341,9 +344,9 @@ int main(int argc, char **argv)
 			printf("I'm affraid I did not have time to validate the SSD metric and its gradient yet\n");
 			return 1;
 		}
-		else if(strcmp(argv[i], "-scs") == 0){
-			flag->useScalingSquaringFlag=1;
-			param->useScalingSquaringValue=atoi(argv[++i]);
+		else if(strcmp(argv[i], "-vel") == 0){
+			flag->useVelocityFieldFlag=1;
+			param->velocityFieldName=argv[++i];
 		}
 
 #ifdef _USE_CUDA
@@ -499,6 +502,9 @@ int main(int argc, char **argv)
 		}
 	}
     if(!flag->outputCPPFlag) param->outputCPPName=(char *)"outputCPP.nii";
+	
+	/* Create the velocity field image */
+	nifti_image *velocityFieldImage=NULL;
 
     /* read and binarise the target mask image */
     nifti_image *targetMaskImage=NULL;
@@ -751,24 +757,18 @@ int main(int argc, char **argv)
         controlPointImage->qto_ijk = nifti_mat44_inverse(controlPointImage->qto_xyz);
 
         if(controlPointImage->sform_code>0){
-            float target2gridRatio[3];
-            target2gridRatio[0] = controlPointImage->dx / targetImage->dx;
-            target2gridRatio[1] = controlPointImage->dy / targetImage->dy;
-            target2gridRatio[2] = controlPointImage->dz / targetImage->dz;
-            for(int i=0; i<3; i++){
-                controlPointImage->sto_xyz.m[i][0] = targetImage->sto_xyz.m[i][0] * target2gridRatio[0];
-                controlPointImage->sto_xyz.m[i][1] = targetImage->sto_xyz.m[i][1] * target2gridRatio[1];
-                controlPointImage->sto_xyz.m[i][2] = targetImage->sto_xyz.m[i][2] * target2gridRatio[2];
-            }
-            controlPointImage->sto_xyz.m[0][3] = targetImage->sto_xyz.m[0][3];
-            controlPointImage->sto_xyz.m[1][3] = targetImage->sto_xyz.m[1][3];
-            controlPointImage->sto_xyz.m[2][3] = targetImage->sto_xyz.m[2][3];
-            controlPointImage->sto_xyz.m[3][3] = 1.0f;
-            // Origin is shifted from 1 control point
-            reg_mat44_mul(&(controlPointImage->sto_xyz), originIndex, originReal);
-            controlPointImage->sto_xyz.m[0][3]=originReal[0];
-            controlPointImage->sto_xyz.m[1][3]=originReal[1];
-            controlPointImage->sto_xyz.m[2][3]=originReal[2];
+			nifti_mat44_to_quatern( targetImage->sto_xyz, &qb, &qc, &qd, &qx, &qy, &qz, &dx, &dy, &dz, &qfac);
+			
+			controlPointImage->sto_xyz = nifti_quatern_to_mat44(qb, qc, qd, qx, qy, qz,
+				controlPointImage->dx, controlPointImage->dy, controlPointImage->dz, qfac);
+			
+			originIndex[0] = -1.0f;
+			originIndex[1] = -1.0f;
+			originIndex[2] = -1.0f;
+			reg_mat44_mul(&(controlPointImage->sto_xyz), originIndex, originReal);
+			controlPointImage->sto_xyz.m[0][3] = originReal[0];
+			controlPointImage->sto_xyz.m[1][3] = originReal[1];
+			controlPointImage->sto_xyz.m[2][3] = originReal[2];
 
             controlPointImage->sto_ijk = nifti_mat44_inverse(controlPointImage->sto_xyz);
         }
@@ -777,6 +777,19 @@ int main(int argc, char **argv)
             if(reg_bspline_initialiseControlPointGridWithAffine(affineTransformation, controlPointImage)) return 1;
             free(affineTransformation);
         }
+		
+        if(flag->useVelocityFieldFlag){
+			velocityFieldImage=nifti_copy_nim_info(controlPointImage);
+			velocityFieldImage->data=(void *)calloc(controlPointImage->nvox, controlPointImage->nbyper);
+			memcpy(velocityFieldImage->data, controlPointImage->data, controlPointImage->nvox*controlPointImage->nbyper);
+			
+			reg_getDisplacementFromPosition<PrecisionTYPE>(velocityFieldImage);
+			
+			PrecisionTYPE *velocityFieldPtr = static_cast<PrecisionTYPE *>(velocityFieldImage->data);
+			for(unsigned int i=0; i<controlPointImage->nvox; i++){
+				velocityFieldPtr[i] /= (PrecisionTYPE)SCALING_VALUE;
+			}
+		}
 
         mat44 *cppMatrix_xyz;
         mat44 *targetMatrix_ijk;
@@ -848,10 +861,12 @@ int main(int argc, char **argv)
 //         nifti_set_filenames(sourceImage, "sou.nii.gz", 0, 0);
 //         nifti_image_write(targetImage);
 //         nifti_image_write(sourceImage);
-//         return 1;
 
 		float maxStepSize = (targetImage->dx>targetImage->dy)?targetImage->dx:targetImage->dy;
 		maxStepSize = (targetImage->dz>maxStepSize)?targetImage->dz:maxStepSize;
+		if(flag->useVelocityFieldFlag){
+			maxStepSize /= (float)SCALING_VALUE;
+		}
 		float currentSize = maxStepSize;
 		float smallestSize = maxStepSize / 100.0f;
 
@@ -963,7 +978,12 @@ int main(int argc, char **argv)
 				conjugateH = (PrecisionTYPE *)calloc(nodeNMIGradientImage->nvox, sizeof(PrecisionTYPE));
 			}
 			bestControlPointPosition = (PrecisionTYPE *)malloc(controlPointImage->nvox * sizeof(PrecisionTYPE));
-			memcpy(bestControlPointPosition, controlPointImage->data, controlPointImage->nvox*controlPointImage->nbyper);
+			if(flag->useVelocityFieldFlag){
+				memcpy(bestControlPointPosition, velocityFieldImage->data, controlPointImage->nvox*controlPointImage->nbyper);
+			}
+			else{
+				memcpy(bestControlPointPosition, controlPointImage->data, controlPointImage->nvox*controlPointImage->nbyper);
+			}
 #ifdef _USE_CUDA
 		}
 #endif
@@ -997,40 +1017,40 @@ int main(int argc, char **argv)
 			}
 			else{
 #endif
-                /* generate the position field */
-				if(flag->useScalingSquaringFlag){
-					// The current cpp is stored
-					PrecisionTYPE *tempCPPStorage = (PrecisionTYPE *)malloc(controlPointImage->nvox * sizeof(PrecisionTYPE));
-					memcpy(tempCPPStorage, controlPointImage->data, controlPointImage->nvox*controlPointImage->nbyper);
-					// From position to displacement conversion
-					reg_getDisplacementFromPosition<PrecisionTYPE>(controlPointImage);
-					// The displacements are scaled down
-					int scalingCoefficient = pow(2,param->useScalingSquaringValue);
-					PrecisionTYPE *ptr=static_cast<PrecisionTYPE *>(controlPointImage->data);
-					for(unsigned int t=0; t<controlPointImage->nvox; t++)
-						*ptr++ /= scalingCoefficient;
-					// The displacement are squared
-					for(int t=0; t<param->useScalingSquaringValue; t++){
-						reg_square_cpp<PrecisionTYPE>(controlPointImage);
+				/* A Velocity field is use to generate the CPP image
+					using a scaling squaring approach */
+				if(flag->useVelocityFieldFlag){
+
+					// The velocity field is copied to the cpp image
+					memcpy(controlPointImage->data, velocityFieldImage->data,
+						   controlPointImage->nvox*controlPointImage->nbyper);
+
+					// A second cpp grid is created
+					nifti_image *controlPointImage2=nifti_copy_nim_info(controlPointImage);
+					controlPointImage2->data=(void *)calloc(controlPointImage2->nvox, controlPointImage2->nbyper);
+					memcpy(controlPointImage2->data, velocityFieldImage->data,
+						   controlPointImage->nvox*controlPointImage->nbyper);
+
+					// The control point image is decomposed
+					reg_spline_Interpolant2Interpolator(	controlPointImage2,
+															controlPointImage);
+					// Squaring approach
+					for(unsigned int i=0; i<SQUARING_VALUE; i++){
+						reg_square_cpp(controlPointImage2,
+									   controlPointImage);
+						// The control point image is decomposed
+						reg_spline_Interpolant2Interpolator(	controlPointImage2,
+																controlPointImage);
 					}
-					// From displacement to position conversion
 					reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
-					// The deformation field is computed
-					reg_bspline<PrecisionTYPE>(	controlPointImage,
-											   targetImage,
-											   positionFieldImage,
-											   targetMask,
-											   0);
-					// the cpp grid is restored
-					memcpy(controlPointImage->data, tempCPPStorage, controlPointImage->nvox*controlPointImage->nbyper);
-					free(tempCPPStorage);
-				}else{
-					reg_bspline<PrecisionTYPE>(	controlPointImage,
-												targetImage,
-												positionFieldImage,
-												targetMask,
-												0);
+					nifti_image_free(controlPointImage2);
 				}
+                /* generate the position field */
+				reg_bspline<PrecisionTYPE>(	controlPointImage,
+											targetImage,
+											positionFieldImage,
+											targetMask,
+											0);
 				/* Resample the source image */
 				reg_resampleSourceImage<PrecisionTYPE>(	targetImage,
                                                         sourceImage,
@@ -1038,7 +1058,8 @@ int main(int argc, char **argv)
                                                         positionFieldImage,
                                                         targetMask,
                                                         1,
-                                                        param->sourceBGValue);
+													   param->sourceBGValue);
+
 #ifdef _USE_CUDA
 			}
 #endif
@@ -1377,6 +1398,7 @@ int main(int argc, char **argv)
 	
 #ifdef _USE_CUDA
 				if(flag->useGPUFlag){
+					
 					/* Update the control point position */
 					reg_updateControlPointPosition_gpu(	controlPointImage,
 										&controlPointImageArray_d,
@@ -1409,8 +1431,16 @@ int main(int argc, char **argv)
 #endif
 					/* Update the control point position */
 					if(flag->twoDimRegistration){
-						PrecisionTYPE *controlPointValuesX = static_cast<PrecisionTYPE *>(controlPointImage->data);
-						PrecisionTYPE *controlPointValuesY = &controlPointValuesX[controlPointImage->nx*controlPointImage->ny];
+						PrecisionTYPE *controlPointValuesX = NULL;
+						PrecisionTYPE *controlPointValuesY = NULL;
+						if(flag->useVelocityFieldFlag){
+							controlPointValuesX = static_cast<PrecisionTYPE *>(velocityFieldImage->data);
+							controlPointValuesY = &controlPointValuesX[velocityFieldImage->nx*velocityFieldImage->ny];
+						}
+						else{
+							controlPointValuesX = static_cast<PrecisionTYPE *>(controlPointImage->data);
+							controlPointValuesY = &controlPointValuesX[controlPointImage->nx*controlPointImage->ny];
+						}
 						PrecisionTYPE *bestControlPointValuesX = &bestControlPointPosition[0];
 						PrecisionTYPE *bestControlPointValuesY = &bestControlPointValuesX[controlPointImage->nx*controlPointImage->ny];
 						PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
@@ -1421,9 +1451,19 @@ int main(int argc, char **argv)
 						}
 					}
 					else{
-						PrecisionTYPE *controlPointValuesX = static_cast<PrecisionTYPE *>(controlPointImage->data);
-						PrecisionTYPE *controlPointValuesY = &controlPointValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-						PrecisionTYPE *controlPointValuesZ = &controlPointValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+						PrecisionTYPE *controlPointValuesX = NULL;
+						PrecisionTYPE *controlPointValuesY = NULL;
+						PrecisionTYPE *controlPointValuesZ = NULL;
+						if(flag->useVelocityFieldFlag){
+							controlPointValuesX = static_cast<PrecisionTYPE *>(velocityFieldImage->data);
+							controlPointValuesY = &controlPointValuesX[velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz];
+							controlPointValuesZ = &controlPointValuesY[velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz];
+						}
+						else{
+							controlPointValuesX = static_cast<PrecisionTYPE *>(controlPointImage->data);
+							controlPointValuesY = &controlPointValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+							controlPointValuesZ = &controlPointValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+						}
 						PrecisionTYPE *bestControlPointValuesX = &bestControlPointPosition[0];
 						PrecisionTYPE *bestControlPointValuesY = &bestControlPointValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
 						PrecisionTYPE *bestControlPointValuesZ = &bestControlPointValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
@@ -1437,41 +1477,40 @@ int main(int argc, char **argv)
 						}
 					}
 
-					/* generate the position field */
-					if(flag->useScalingSquaringFlag){
-						// The current cpp is stored
-						PrecisionTYPE *tempCPPStorage = (PrecisionTYPE *)malloc(controlPointImage->nvox * sizeof(PrecisionTYPE));
-						memcpy(tempCPPStorage, controlPointImage->data, controlPointImage->nvox*controlPointImage->nbyper);
-						// From position to displacement conversion
-						reg_getDisplacementFromPosition<PrecisionTYPE>(controlPointImage);
-						// The displacements are scaled down
-						int scalingCoefficient = pow(2,param->useScalingSquaringValue);
-						PrecisionTYPE *ptr=static_cast<PrecisionTYPE *>(controlPointImage->data);
-						for(unsigned int t=0; t<controlPointImage->nvox; t++)
-							*ptr++ /= scalingCoefficient;
-						// The displacement are squared
-						for(int t=0; t<param->useScalingSquaringValue; t++){
-							reg_square_cpp<PrecisionTYPE>(controlPointImage);
+					/* A Velocity field is use to generate the CPP image
+					 using a scaling squaring approach */
+					if(flag->useVelocityFieldFlag){
+						
+						// The velocity field is copied to the cpp image
+						memcpy(controlPointImage->data, velocityFieldImage->data,
+							   controlPointImage->nvox*controlPointImage->nbyper);
+						
+						// A second cpp grid is created
+						nifti_image *controlPointImage2=nifti_copy_nim_info(controlPointImage);
+						controlPointImage2->data=(void *)calloc(controlPointImage2->nvox, controlPointImage2->nbyper);
+						memcpy(controlPointImage2->data, velocityFieldImage->data,
+							   controlPointImage->nvox*controlPointImage->nbyper);
+						
+						// The control point image is decomposed
+						reg_spline_Interpolant2Interpolator(	controlPointImage2,
+															controlPointImage);
+						// Squaring approach
+						for(unsigned int i=0; i<SQUARING_VALUE; i++){
+							reg_square_cpp(controlPointImage2,
+										   controlPointImage);
+							// The control point image is decomposed
+							reg_spline_Interpolant2Interpolator(	controlPointImage2,
+																controlPointImage);
 						}
-						// From displacement to position conversion
 						reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
-						// The deformation field is computed
-						reg_bspline<PrecisionTYPE>(	controlPointImage,
-												   targetImage,
-												   positionFieldImage,
-												   targetMask,
-												   0);
-						// the cpp grid is restored
-						memcpy(controlPointImage->data, tempCPPStorage, controlPointImage->nvox*controlPointImage->nbyper);
-						free(tempCPPStorage);
-					}else{
-						reg_bspline<PrecisionTYPE>(	controlPointImage,
-												   targetImage,
-												   positionFieldImage,
-												   targetMask,
-												   0);
+						nifti_image_free(controlPointImage2);
 					}
-					
+					reg_bspline<PrecisionTYPE>(	controlPointImage,
+											   targetImage,
+											   positionFieldImage,
+											   targetMask,
+											   0);
+				
 					/* Resample the source image */
 					reg_resampleSourceImage<PrecisionTYPE>(	targetImage,
 										sourceImage,
@@ -1543,7 +1582,12 @@ int main(int argc, char **argv)
 					}
 					else{
 #endif
-						memcpy(bestControlPointPosition,controlPointImage->data,controlPointImage->nvox*controlPointImage->nbyper);
+						if(flag->useVelocityFieldFlag){
+							memcpy(bestControlPointPosition,velocityFieldImage->data,controlPointImage->nvox*controlPointImage->nbyper);
+						}
+						else{
+							memcpy(bestControlPointPosition,controlPointImage->data,controlPointImage->nvox*controlPointImage->nbyper);
+						}
 #ifdef _USE_CUDA
 					}
 #endif
@@ -1623,10 +1667,11 @@ int main(int argc, char **argv)
         /* ****************** */
         /* OUTPUT THE RESULTS */
         /* ****************** */
-
-			/* The best result is returned */
-            nifti_set_filenames(controlPointImage, param->outputCPPName, 0, 0);
-			nifti_image_write(controlPointImage);
+			
+			if(flag->useVelocityFieldFlag){
+				nifti_set_filenames(velocityFieldImage, param->velocityFieldName, 0, 0);
+				nifti_image_write(velocityFieldImage);
+			}
 
 #ifdef _USE_CUDA
             if(flag->useGPUFlag && param->level2Perform==param->levelNumber)
@@ -1650,12 +1695,46 @@ int main(int argc, char **argv)
                 }
 
 			/* The corresponding deformation field is evaluated and saved */
-			reg_bspline<PrecisionTYPE>(	controlPointImage,
-						                targetHeader,
-						                positionFieldImage,
-                                        NULL,
-						                0);
+			
+			/* A Velocity field is use to generate the CPP image
+			 using a scaling squaring approach */
+			if(flag->useVelocityFieldFlag){
+				
+				// The velocity field is copied to the cpp image
+				memcpy(controlPointImage->data, velocityFieldImage->data,
+					   controlPointImage->nvox*controlPointImage->nbyper);
+				
+				// A second cpp grid is created
+				nifti_image *controlPointImage2=nifti_copy_nim_info(controlPointImage);
+				controlPointImage2->data=(void *)calloc(controlPointImage2->nvox, controlPointImage2->nbyper);
+				memcpy(controlPointImage2->data, velocityFieldImage->data,
+					   controlPointImage->nvox*controlPointImage->nbyper);
+				
+				// The control point image is decomposed
+				reg_spline_Interpolant2Interpolator(	controlPointImage2,
+													controlPointImage);
+				// Squaring approach
+				for(unsigned int i=0; i<SQUARING_VALUE; i++){
+					reg_square_cpp(controlPointImage2,
+								   controlPointImage);
+					// The control point image is decomposed
+					reg_spline_Interpolant2Interpolator(	controlPointImage2,
+														controlPointImage);
+				}
+				reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
+				nifti_image_free(controlPointImage2);
+			}
 
+			/* The best result is returned */
+            nifti_set_filenames(controlPointImage, param->outputCPPName, 0, 0);
+			nifti_image_write(controlPointImage);
+
+			reg_bspline<PrecisionTYPE>(	controlPointImage,
+									   targetHeader,
+									   positionFieldImage,
+									   NULL,
+									   0);
+			
             nifti_image_free( sourceImage );
             sourceImage = nifti_image_read(param->sourceImageName,true); // reload the source image with the correct intensity values
 
@@ -1684,6 +1763,7 @@ int main(int argc, char **argv)
 		nifti_image_free( positionFieldImage );
 		nifti_image_free( sourceImage );
 		nifti_image_free( targetImage );
+		nifti_image_free( velocityFieldImage );
 
 		printf("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n\n");
 	} // for(int level=0; level<param->levelNumber; level++){

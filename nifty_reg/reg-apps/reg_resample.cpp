@@ -232,40 +232,11 @@ int main(int argc, char **argv)
 		}
 		/* apply the cubic spline interpolation to generate the position field */
 		if(positionFieldNeeded==true){
-			
-			// The current cpp is stored
-			PrecisionTYPE *tempCPPStorage = (PrecisionTYPE *)malloc(controlPointImage->nvox * sizeof(PrecisionTYPE));
-			memcpy(tempCPPStorage, controlPointImage->data, controlPointImage->nvox*controlPointImage->nbyper);
-			// From position to displacement conversion
-			reg_getDisplacementFromPosition<PrecisionTYPE>(controlPointImage);
-			// The displacements are scaled down
-			PrecisionTYPE scalingCoefficient = powf(2,8);
-			PrecisionTYPE *ptr=static_cast<PrecisionTYPE *>(controlPointImage->data);
-			for(unsigned int t=0; t<controlPointImage->nvox; t++){
-				*ptr /= scalingCoefficient;
-			}
-			// The displacement are squared
-			for(int t=0; t<8; t++){
-				reg_square_cpp<PrecisionTYPE>(controlPointImage);
-			}
-			// From displacement to position conversion
-			reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
-			// The deformation field is computed
 			reg_bspline<PrecisionTYPE>(	controlPointImage,
-									   targetImage,
-									   positionFieldImage,
-									   NULL,
-									   0);
-			// the cpp grid is restored
-			memcpy(controlPointImage->data, tempCPPStorage, controlPointImage->nvox*controlPointImage->nbyper);
-			free(tempCPPStorage);
-			
-			
-//			reg_bspline<PrecisionTYPE>(	controlPointImage,
-//							targetImage,
-//							positionFieldImage,
-//                            NULL,
-//							0); // new df
+							targetImage,
+							positionFieldImage,
+                            NULL,
+							0); // new df
 		}
 		/* Generate the jacobian map */
 		if(flag->outputJacobianFlag){
@@ -426,6 +397,12 @@ int main(int argc, char **argv)
 		displacementFieldImage->data = (void *)calloc(displacementFieldImage->nvox, displacementFieldImage->nbyper);
 		nifti_set_filenames(displacementFieldImage, param->outputDispName, 0, 0);
 		memcpy(displacementFieldImage->data, positionFieldImage->data, displacementFieldImage->nvox*displacementFieldImage->nbyper);
+		
+		mat44 *target_voxel_2_real=NULL;
+		if(targetImage->sform_code)
+			target_voxel_2_real=&targetImage->sto_xyz;
+		else target_voxel_2_real=&targetImage->qto_xyz;
+		
 		if(targetImage->nz>1){
 			PrecisionTYPE *fullDefPtrX=static_cast<PrecisionTYPE *>(displacementFieldImage->data);
 			PrecisionTYPE *fullDefPtrY=&fullDefPtrX[targetImage->nvox];
@@ -434,9 +411,12 @@ int main(int argc, char **argv)
 			for(int z=0; z<displacementFieldImage->nz; z++){
 				for(int y=0; y<displacementFieldImage->ny; y++){
 					for(int x=0; x<displacementFieldImage->nx; x++){
-						position[0]=x*targetImage->qto_xyz.m[0][0] + y*targetImage->qto_xyz.m[0][1] + z*targetImage->qto_xyz.m[0][2] + targetImage->qto_xyz.m[0][3];
-						position[1]=x*targetImage->qto_xyz.m[1][0] + y*targetImage->qto_xyz.m[1][1] + z*targetImage->qto_xyz.m[1][2] + targetImage->qto_xyz.m[1][3];
-						position[2]=x*targetImage->qto_xyz.m[2][0] + y*targetImage->qto_xyz.m[2][1] + z*targetImage->qto_xyz.m[2][2] + targetImage->qto_xyz.m[2][3];
+						position[0]=x*target_voxel_2_real->m[0][0] + y*target_voxel_2_real->m[0][1]
+							+ z*target_voxel_2_real->m[0][2] + target_voxel_2_real->m[0][3];
+						position[1]=x*target_voxel_2_real->m[1][0] + y*target_voxel_2_real->m[1][1]
+							+ z*target_voxel_2_real->m[1][2] + target_voxel_2_real->m[1][3];
+						position[2]=x*target_voxel_2_real->m[2][0] + y*target_voxel_2_real->m[2][1]
+							+ z*target_voxel_2_real->m[2][2] + target_voxel_2_real->m[2][3];
 						*fullDefPtrX++ -= position[0];
 						*fullDefPtrY++ -= position[1];
 						*fullDefPtrZ++ -= position[2];
@@ -450,8 +430,8 @@ int main(int argc, char **argv)
 			PrecisionTYPE position[3];
 			for(int y=0; y<displacementFieldImage->ny; y++){
 				for(int x=0; x<displacementFieldImage->nx; x++){
-					position[0]=x*targetImage->qto_xyz.m[0][0] + y*targetImage->qto_xyz.m[0][1] + targetImage->qto_xyz.m[0][3];
-					position[1]=x*targetImage->qto_xyz.m[1][0] + y*targetImage->qto_xyz.m[1][1] + targetImage->qto_xyz.m[1][3];
+					position[0]=x*target_voxel_2_real->m[0][0] + y*target_voxel_2_real->m[0][1] + target_voxel_2_real->m[0][3];
+					position[1]=x*target_voxel_2_real->m[1][0] + y*target_voxel_2_real->m[1][1] + target_voxel_2_real->m[1][3];
 					*fullDefPtrX++ -= position[0];
 					*fullDefPtrY++ -= position[1];
 				}
