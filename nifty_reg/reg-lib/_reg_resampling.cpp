@@ -1883,5 +1883,104 @@ void reg_getJacobianImage(	nifti_image *positionField,
 }
 /* *************************************************************** */
 /* *************************************************************** */
+template <class ImageTYPE>
+void reg_linearVelocityUpsampling_2D(nifti_image *image, nifti_image *newDimImage)
+{
+	/* The current image is stored and freed */
+	ImageTYPE *currentValue = (ImageTYPE *)malloc(image->nvox * sizeof(ImageTYPE));
+	memcpy(currentValue, image->data, image->nvox*image->nbyper);
+	const int oldDim[8]={image->dim[0], image->dim[1], image->dim[2], image->dim[3],
+		image->dim[4], image->dim[5], image->dim[6], image->dim[7]};
 
+	free(image->data);
+	image->data=NULL;
+	nifti_image_free(image);
+	
+	/* The image is dimension are updated. */
+	image=nifti_copy_nim_info(newDimImage);
+	image->data = (void *)calloc(newDimImage->nvox,sizeof(ImageTYPE));
+	ImageTYPE *imagePtr = static_cast<ImageTYPE *>(image->data);
+
+	if(image->nt<1) image->nt=1;
+	if(image->nu<1) image->nu=1;
+
+	for(int ut=0;ut<image->nu*image->nt;ut++){
+		ImageTYPE *newPtr = &imagePtr[ut*image->nx*image->ny];
+		ImageTYPE *oldPtr = &currentValue[ut*oldDim[1]*oldDim[2]];
+		for(int y=0; y<image->ny; y++){
+			const int Y = (int)ceil((float)y/2.0f);
+//			if(Y<oldDim[2]){
+				for(int x=0; x<image->nx; x++){
+					const int X = (int)ceil((float)x/2.0f);
+//					if(X<oldDim[1]){
+						if(x/2 == X){
+							if(y/2 == Y){
+								*newPtr = (oldPtr[Y*oldDim[1]+X]
+											 + oldPtr[Y*oldDim[1]+X+1]
+											 + oldPtr[(Y+1)*oldDim[1]+X]
+											 + oldPtr[(Y+1)*oldDim[1]+X+1]) /4.0;
+							}
+							else{
+								*newPtr = (oldPtr[Y*oldDim[1]+X]
+											 + oldPtr[Y*oldDim[1]+X+1]) /2.0;
+							}
+						}
+						else{
+							if(y/2 == Y){
+								*newPtr = (oldPtr[Y*oldDim[1]+X]
+											 + oldPtr[(Y+1)*oldDim[1]+X])/2.0;
+							}
+							else{
+								*newPtr = oldPtr[Y*oldDim[1]+X];
+							}
+						}
+					newPtr++;
+//					}
+				}
+//			}
+		}
+	}
+	
+	free(currentValue);
+	return;
+}
+/* *************************************************************** */
+template <class ImageTYPE>
+void reg_linearVelocityUpsampling_3D(nifti_image *image, nifti_image *newDimImage)
+{
+	fprintf(stderr, "err\treg_linearVelocityUpsampling\tTODO.");
+	return;
+}
+/* *************************************************************** */
+void reg_linearVelocityUpsampling(nifti_image *image, nifti_image *newDimImage)
+{
+	if(image->nz>1){
+		switch(image->datatype){
+			case NIFTI_TYPE_FLOAT32:
+				reg_linearVelocityUpsampling_3D<float>(image, newDimImage);
+				break;
+			case NIFTI_TYPE_FLOAT64:
+				reg_linearVelocityUpsampling_3D<double>(image, newDimImage);
+				break;
+			default:
+				fprintf(stderr, "err\treg_linearVelocityUpsampling\tVoxel type unsupported.");
+				break;
+		}
+	}
+	else{
+		switch(image->datatype){
+			case NIFTI_TYPE_FLOAT32:
+				reg_linearVelocityUpsampling_2D<float>(image, newDimImage);
+				break;
+			case NIFTI_TYPE_FLOAT64:
+				reg_linearVelocityUpsampling_2D<double>(image, newDimImage);
+				break;
+			default:
+				fprintf(stderr, "err\treg_linearVelocityUpsampling\tPixel type unsupported.");
+				break;
+		}
+	}
+}
+/* *************************************************************** */
+/* *************************************************************** */
 #endif

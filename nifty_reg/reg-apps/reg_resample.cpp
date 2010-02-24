@@ -26,6 +26,7 @@ typedef struct{
 	char *inputCPPName;
 	char *outputPosName;
 	char *outputDispName;
+	char *outputEuclDispName;
 	char *outputResultName;
 	char *outputBlankName;
 	char *outputJacobianName;
@@ -39,6 +40,7 @@ typedef struct{
 	bool affineFlirtFlag;
 	bool inputCPPFlag;
 	bool outputDispFlag;
+	bool outputEuclDispFlag;
 	bool outputPosFlag;
 	bool outputFullDefFlag;
 	bool outputResultFlag;
@@ -72,6 +74,7 @@ void Usage(char *exec)
 	printf("\t-jacM <filename> \tFilename of the Jacobian matrix image [none]\n");
 	printf("\t-opf <filename>\t\tFilename of the position field image\n");
 	printf("\t-odf <filename>\t\tFilename of the displacement field image\n");
+	printf("\t-oed <filename>\t\tFilename of the euclidian displacement image\n");
 	printf("\t-NN \t\t\tUse a Nearest Neighbor interpolation for the source resampling (cubic spline by default)\n");
 	printf("\t-TRI \t\t\tUse a Trilinear interpolation for the source resampling (cubic spline by default)\n");
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
@@ -127,6 +130,10 @@ int main(int argc, char **argv)
 		else if(strcmp(argv[i], "-odf") == 0){
 			param->outputDispName=argv[++i];
 			flag->outputDispFlag=1;
+		}
+		else if(strcmp(argv[i], "-oed") == 0){
+			param->outputEuclDispName=argv[++i];
+			flag->outputEuclDispFlag=1;
 		}
 		else if(strcmp(argv[i], "-opf") == 0){
 			param->outputPosName=argv[++i];
@@ -195,6 +202,7 @@ int main(int argc, char **argv)
 	if(	flag->outputResultFlag ||
 		flag->outputBlankFlag ||
 		flag->outputDispFlag ||
+		flag->outputEuclDispFlag ||
 		flag->outputPosFlag)
 		positionFieldNeeded=true;
 
@@ -390,13 +398,26 @@ int main(int argc, char **argv)
 	}
 
 	/* Output the displacement field */
-	if(flag->outputDispFlag){
+	if(flag->outputDispFlag || flag->outputEuclDispFlag ){
 		nifti_image *displacementFieldImage = nifti_copy_nim_info(positionFieldImage);
         displacementFieldImage->scl_slope = 1.0f;
         displacementFieldImage->scl_inter = 0.0f;
 		displacementFieldImage->data = (void *)calloc(displacementFieldImage->nvox, displacementFieldImage->nbyper);
-		nifti_set_filenames(displacementFieldImage, param->outputDispName, 0, 0);
 		memcpy(displacementFieldImage->data, positionFieldImage->data, displacementFieldImage->nvox*displacementFieldImage->nbyper);
+		
+		nifti_image *euclidianDispImage=NULL;
+		PrecisionTYPE *euclidianDispPtr=NULL;
+		if(flag->outputEuclDispFlag){
+			euclidianDispImage = nifti_copy_nim_info(targetImage);
+			if(sizeof(PrecisionTYPE)==4) euclidianDispImage->datatype = NIFTI_TYPE_FLOAT32;
+			else euclidianDispImage->datatype = NIFTI_TYPE_FLOAT64;
+			euclidianDispImage->nbyper=sizeof(PrecisionTYPE);
+			euclidianDispImage->scl_slope = 1.0f;
+			euclidianDispImage->scl_inter = 0.0f;
+			euclidianDispImage->data = (void *)calloc(euclidianDispImage->nvox, euclidianDispImage->nbyper);
+			nifti_set_filenames(euclidianDispImage, param->outputEuclDispName, 0, 0);
+			euclidianDispPtr=static_cast<PrecisionTYPE *>(euclidianDispImage->data);
+		}
 		
 		mat44 *target_voxel_2_real=NULL;
 		if(targetImage->sform_code)
@@ -417,9 +438,18 @@ int main(int argc, char **argv)
 							+ z*target_voxel_2_real->m[1][2] + target_voxel_2_real->m[1][3];
 						position[2]=x*target_voxel_2_real->m[2][0] + y*target_voxel_2_real->m[2][1]
 							+ z*target_voxel_2_real->m[2][2] + target_voxel_2_real->m[2][3];
-						*fullDefPtrX++ -= position[0];
-						*fullDefPtrY++ -= position[1];
-						*fullDefPtrZ++ -= position[2];
+						*fullDefPtrX -= position[0];
+						*fullDefPtrY -= position[1];
+						*fullDefPtrZ -= position[2];
+						
+						if(flag->outputEuclDispFlag){
+							*euclidianDispPtr++ = sqrt((*fullDefPtrX * (*fullDefPtrX))+
+								(*fullDefPtrY * (*fullDefPtrY))+(*fullDefPtrZ * (*fullDefPtrZ)));
+						}
+						
+						fullDefPtrX++;
+						fullDefPtrY++;
+						fullDefPtrZ++;
 					}
 				}
 			}
@@ -432,15 +462,31 @@ int main(int argc, char **argv)
 				for(int x=0; x<displacementFieldImage->nx; x++){
 					position[0]=x*target_voxel_2_real->m[0][0] + y*target_voxel_2_real->m[0][1] + target_voxel_2_real->m[0][3];
 					position[1]=x*target_voxel_2_real->m[1][0] + y*target_voxel_2_real->m[1][1] + target_voxel_2_real->m[1][3];
-					*fullDefPtrX++ -= position[0];
-					*fullDefPtrY++ -= position[1];
+					*fullDefPtrX -= position[0];
+					*fullDefPtrY -= position[1];
+					
+					if(flag->outputEuclDispFlag){
+						*euclidianDispPtr++ = sqrt((*fullDefPtrX * (*fullDefPtrX))+
+												   (*fullDefPtrY * (*fullDefPtrY)));
+					}
+					
+					fullDefPtrX++;
+					fullDefPtrY++;
 				}
 			}
 			
 		}
-		nifti_image_write(displacementFieldImage);
+		if(flag->outputEuclDispFlag){
+			nifti_image_write(euclidianDispImage);
+			printf("Euclidian displacement image has been saved: %s\n", param->outputEuclDispName);
+			nifti_image_free(euclidianDispImage);
+		}
+		if(flag->outputDispFlag){
+			nifti_set_filenames(displacementFieldImage, param->outputDispName, 0, 0);
+			nifti_image_write(displacementFieldImage);
+			printf("Displacement field image has been saved: %s\n", param->outputDispName);
+		}
 		nifti_image_free(displacementFieldImage);
-		printf("Deformation field image has been saved: %s\n", param->outputDispName);
 	}
 
 

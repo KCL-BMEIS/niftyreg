@@ -46,8 +46,8 @@
 #define JH_PARZEN_WIN 1
 #define JH_PW_APPROX 2
 
-#define SCALING_VALUE 65536
-#define SQUARING_VALUE 16
+#define SCALING_VALUE 256
+#define SQUARING_VALUE 8
 
 typedef struct{
 	char *targetImageName;
@@ -74,6 +74,7 @@ typedef struct{
     float sourceUpThresholdValue;
     float gradientSmoothingValue;
 	char *velocityFieldName;
+	char *inputVelocityFieldName;
 }PARAM;
 typedef struct{
 	bool targetImageFlag;
@@ -114,6 +115,7 @@ typedef struct{
     bool gradientSmoothingFlag;
 
 	bool useVelocityFieldFlag;
+	bool inputVelocityFieldFlag;
 
 #ifdef _USE_CUDA	
 	bool useGPUFlag;
@@ -146,11 +148,12 @@ void Usage(char *exec)
 	printf("\t-target <filename>\tFilename of the target image (mandatory)\n");
 	printf("\t-source <filename>\tFilename of the source image (mandatory)\n");
 	printf("* * OPTIONS * *\n");
+	//	printf("\t-vel <fileName>\t\tVelocity file name use to generate the cpp grid [none]\n");
 	printf("\t-incpp <filename>\tFilename of control point grid input\n\t\t\t\tThe coarse spacing is defined by this file.\n");
+	printf("\t-invel <filename>\tFilename of velocity grid input\n\t\t\t\tThe coarse spacing is defined by this file.\n");
 	printf("\t-result <filename> \tFilename of the resampled image [outputResult.nii]\n");
 	printf("\t-cpp <filename>\t\tFilename of control point grid [outputCPP.nii]\n");
 	printf("\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Target=Source)\n");
-//	printf("\t-vel <fileName>\t\tVelocity file name use to generate the cpp grid [none]\n");
     printf("\t-affFlirt <filename>\tFilename which contains a flirt affine transformation\n");
     printf("\t-tmask <filename>\tFilename of a mask image in the target space\n");
 	printf("\t-maxit <int>\t\tMaximal number of iteration per level [300]\n");
@@ -348,6 +351,10 @@ int main(int argc, char **argv)
 			flag->useVelocityFieldFlag=1;
 			param->velocityFieldName=argv[++i];
 		}
+		else if(strcmp(argv[i], "-inVel") == 0){
+			flag->inputVelocityFieldFlag=1;
+			param->inputVelocityFieldName=argv[++i];
+		}
 
 #ifdef _USE_CUDA
 		else if(strcmp(argv[i], "-mem") == 0){
@@ -466,7 +473,7 @@ int main(int argc, char **argv)
 
 	/* Read the affine tranformation is defined otherwise assign it to identity */
 	mat44 *affineTransformation=NULL;
-	if(!flag->inputCPPFlag){
+	if(!flag->inputCPPFlag && !flag->inputVelocityFieldFlag){
 		affineTransformation = (mat44 *)calloc(1,sizeof(mat44));
 		affineTransformation->m[0][0]=1.0;
 		affineTransformation->m[1][1]=1.0;
@@ -492,7 +499,7 @@ int main(int argc, char **argv)
 #endif
 	}
 
-	/* read the control point image */
+	/* read the input control point image and set the output control point image*/
 	nifti_image *controlPointImage=NULL;
 	if(flag->inputCPPFlag){
 		controlPointImage = nifti_image_read(param->inputCPPName,true);
@@ -501,10 +508,27 @@ int main(int argc, char **argv)
 			return 1;
 		}
 	}
+
     if(!flag->outputCPPFlag) param->outputCPPName=(char *)"outputCPP.nii";
 	
 	/* Create the velocity field image */
 	nifti_image *velocityFieldImage=NULL;
+	if(flag->inputVelocityFieldFlag){
+		velocityFieldImage = nifti_image_read(param->inputVelocityFieldName,true);
+		if(velocityFieldImage == NULL){
+			fprintf(stderr,"* ERROR Error when reading the input velocity field image: %s\n",param->inputVelocityFieldName);
+			return 1;
+		}
+		if(!flag->useVelocityFieldFlag){
+			flag->useVelocityFieldFlag=1;
+			param->velocityFieldName=(char *)"outputVelocity.nii";
+		}
+//		PrecisionTYPE *tmp=static_cast<PrecisionTYPE *>(velocityFieldImage->data);
+//		for(unsigned int i=0; i<velocityFieldImage->nvox;i++){
+//			*tmp=-(*tmp);
+//			tmp++;
+//		}
+	}
 
     /* read and binarise the target mask image */
     nifti_image *targetMaskImage=NULL;
@@ -726,13 +750,24 @@ int main(int argc, char **argv)
                 controlPointImage->pixdim[7]=controlPointImage->dw=1.0f;
                 controlPointImage->qform_code=targetImage->qform_code;
                 controlPointImage->sform_code=targetImage->sform_code;
+				
+				// The control point position image is initialised with the affine transformation
+				if(!flag->useVelocityFieldFlag){
+					if(reg_bspline_initialiseControlPointGridWithAffine(affineTransformation, controlPointImage)) return 1;
+					free(affineTransformation);
+				}
             }
+			// The velocity field is initialised to a blank field
+			if(flag->useVelocityFieldFlag && !flag->inputVelocityFieldFlag){
+				velocityFieldImage=nifti_copy_nim_info(controlPointImage);
+				velocityFieldImage->data=(void *)calloc(controlPointImage->nvox, controlPointImage->nbyper);
+			}
         }
         else{
-            // the grid as to be refined
-            reg_bspline_refineControlPointGrid(targetImage, controlPointImage);
+			reg_bspline_refineControlPointGrid(targetImage, controlPointImage);
         }
 
+		// The qform (and sform) are set for the control point position image
         float qb, qc, qd, qx, qy, qz, dx, dy, dz, qfac;
         nifti_mat44_to_quatern( targetImage->qto_xyz, &qb, &qc, &qd, &qx, &qy, &qz, &dx, &dy, &dz, &qfac);
         controlPointImage->quatern_b=qb;
@@ -743,12 +778,13 @@ int main(int argc, char **argv)
         controlPointImage->qto_xyz = nifti_quatern_to_mat44(qb, qc, qd, qx, qy, qz,
             controlPointImage->dx, controlPointImage->dy, controlPointImage->dz, qfac);
 
-        // Origin is shifted from 1 control point
+        // Origin is shifted from 1 control point in the qform
         float originIndex[3];
         float originReal[3];
         originIndex[0] = -1.0f;
         originIndex[1] = -1.0f;
-        originIndex[2] = -1.0f;
+        originIndex[2] = 0.0f;
+        if(targetImage->nz>1) originIndex[2] = -1.0f;
         reg_mat44_mul(&(controlPointImage->qto_xyz), originIndex, originReal);
         controlPointImage->qto_xyz.m[0][3] = controlPointImage->qoffset_x = originReal[0];
         controlPointImage->qto_xyz.m[1][3] = controlPointImage->qoffset_y = originReal[1];
@@ -761,10 +797,12 @@ int main(int argc, char **argv)
 			
 			controlPointImage->sto_xyz = nifti_quatern_to_mat44(qb, qc, qd, qx, qy, qz,
 				controlPointImage->dx, controlPointImage->dy, controlPointImage->dz, qfac);
-			
+
+			// Origin is shifted from 1 control point in the sform
 			originIndex[0] = -1.0f;
 			originIndex[1] = -1.0f;
-			originIndex[2] = -1.0f;
+			originIndex[2] = 0.0f;
+			if(targetImage->nz>1) originIndex[2] = -1.0f;
 			reg_mat44_mul(&(controlPointImage->sto_xyz), originIndex, originReal);
 			controlPointImage->sto_xyz.m[0][3] = originReal[0];
 			controlPointImage->sto_xyz.m[1][3] = originReal[1];
@@ -772,23 +810,14 @@ int main(int argc, char **argv)
 
             controlPointImage->sto_ijk = nifti_mat44_inverse(controlPointImage->sto_xyz);
         }
-
-        if(level==0 && !flag->inputCPPFlag){
-            if(reg_bspline_initialiseControlPointGridWithAffine(affineTransformation, controlPointImage)) return 1;
-            free(affineTransformation);
-        }
 		
-        if(flag->useVelocityFieldFlag){
-			velocityFieldImage=nifti_copy_nim_info(controlPointImage);
-			velocityFieldImage->data=(void *)calloc(controlPointImage->nvox, controlPointImage->nbyper);
-			memcpy(velocityFieldImage->data, controlPointImage->data, controlPointImage->nvox*controlPointImage->nbyper);
-			
-			reg_getDisplacementFromPosition<PrecisionTYPE>(velocityFieldImage);
-			
-			PrecisionTYPE *velocityFieldPtr = static_cast<PrecisionTYPE *>(velocityFieldImage->data);
-			for(unsigned int i=0; i<controlPointImage->nvox; i++){
-				velocityFieldPtr[i] /= (PrecisionTYPE)SCALING_VALUE;
-			}
+		if(flag->useVelocityFieldFlag && level>0){
+			// The velocity field has to be up-sampled
+			nifti_set_filenames(velocityFieldImage, "smallVel.nii", 0, 0);
+			nifti_image_write(velocityFieldImage);
+			reg_linearVelocityUpsampling(velocityFieldImage, controlPointImage);
+			nifti_set_filenames(velocityFieldImage, "largeVel.nii", 0, 0);
+			nifti_image_write(velocityFieldImage);
 		}
 
         mat44 *cppMatrix_xyz;
@@ -1038,11 +1067,13 @@ int main(int argc, char **argv)
 					for(unsigned int i=0; i<SQUARING_VALUE; i++){
 						reg_square_cpp(controlPointImage2,
 									   controlPointImage);
+						if(i==(SQUARING_VALUE-1)){
+							reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage2);
+						}
 						// The control point image is decomposed
 						reg_spline_Interpolant2Interpolator(	controlPointImage2,
 																controlPointImage);
 					}
-					reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
 					nifti_image_free(controlPointImage2);
 				}
                 /* generate the position field */
@@ -1265,17 +1296,34 @@ int main(int argc, char **argv)
 
                 /* The other gradients are calculated */
                 if(flag->beGradFlag && flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
-                    reg_bspline_bendingEnergyGradient<PrecisionTYPE>(controlPointImage,
-                                            targetImage,
-                                            nodeNMIGradientImage,
-                                            param->bendingEnergyWeight);
+					if(flag->useVelocityFieldFlag){
+						reg_bspline_bendingEnergyGradient<PrecisionTYPE>(velocityFieldImage,
+																		 targetImage,
+																		 nodeNMIGradientImage,
+																		 param->bendingEnergyWeight);
+					}
+					else{
+						reg_bspline_bendingEnergyGradient<PrecisionTYPE>(controlPointImage,
+																		targetImage,
+																		nodeNMIGradientImage,
+																		param->bendingEnergyWeight);
+					}
 				}
 				if(flag->jlGradFlag && flag->jacobianWeightFlag && param->jacobianWeight>0){
-					reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>(	controlPointImage,
-												targetImage,
-												nodeNMIGradientImage,
-												param->jacobianWeight,
-												flag->appJacobianFlag);
+					if(flag->useVelocityFieldFlag){
+						reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>(	velocityFieldImage,
+																				targetImage,
+																				nodeNMIGradientImage,
+																				param->jacobianWeight,
+																				flag->appJacobianFlag);
+					}
+					else{
+						reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>(	controlPointImage,
+																			   targetImage,
+																			   nodeNMIGradientImage,
+																			   param->jacobianWeight,
+																			   flag->appJacobianFlag);
+					}
 				}
 
 				/* The conjugate gradient is computed */
@@ -1498,11 +1546,13 @@ int main(int argc, char **argv)
 						for(unsigned int i=0; i<SQUARING_VALUE; i++){
 							reg_square_cpp(controlPointImage2,
 										   controlPointImage);
+							if(i==(SQUARING_VALUE-1)){
+								reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage2);
+							}
 							// The control point image is decomposed
 							reg_spline_Interpolant2Interpolator(	controlPointImage2,
 																controlPointImage);
 						}
-						reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
 						nifti_image_free(controlPointImage2);
 					}
 					reg_bspline<PrecisionTYPE>(	controlPointImage,
@@ -1610,7 +1660,12 @@ int main(int argc, char **argv)
 			}
 			else{
 #endif
-				memcpy(controlPointImage->data,bestControlPointPosition,controlPointImage->nvox*controlPointImage->nbyper);
+				if(flag->useVelocityFieldFlag){
+					memcpy(velocityFieldImage->data,bestControlPointPosition,controlPointImage->nvox*controlPointImage->nbyper);
+				}
+				else{
+					memcpy(controlPointImage->data,bestControlPointPosition,controlPointImage->nvox*controlPointImage->nbyper);
+				}
 #ifdef _USE_CUDA
 			}
 #endif
@@ -1719,7 +1774,7 @@ int main(int argc, char **argv)
 								   controlPointImage);
 					// The control point image is decomposed
 					reg_spline_Interpolant2Interpolator(	controlPointImage2,
-														controlPointImage);
+															controlPointImage);
 				}
 				reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
 				nifti_image_free(controlPointImage2);
@@ -1730,10 +1785,10 @@ int main(int argc, char **argv)
 			nifti_image_write(controlPointImage);
 
 			reg_bspline<PrecisionTYPE>(	controlPointImage,
-									   targetHeader,
-									   positionFieldImage,
-									   NULL,
-									   0);
+										targetHeader,
+										positionFieldImage,
+										NULL,
+										0);
 			
             nifti_image_free( sourceImage );
             sourceImage = nifti_image_read(param->sourceImageName,true); // reload the source image with the correct intensity values
@@ -1763,13 +1818,13 @@ int main(int argc, char **argv)
 		nifti_image_free( positionFieldImage );
 		nifti_image_free( sourceImage );
 		nifti_image_free( targetImage );
-		nifti_image_free( velocityFieldImage );
 
 		printf("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n\n");
 	} // for(int level=0; level<param->levelNumber; level++){
 
 	/* Mr Clean */
 	nifti_image_free( controlPointImage );
+	nifti_image_free( velocityFieldImage );
 	nifti_image_free( targetHeader );
 	nifti_image_free( sourceHeader );
     if(flag->targetMaskFlag) nifti_image_free( targetMaskImage );

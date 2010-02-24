@@ -29,7 +29,7 @@ void reg_bspline2D( nifti_image *splineControlPoint,
                     nifti_image *positionField,
                     int *mask,
                     int type
-        )
+					)
 {
 
 #if _USE_SSE
@@ -1372,16 +1372,38 @@ PrecisionTYPE reg_bspline_jacobianValue2D(  nifti_image *splineControlPoint,
     if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
     else splineMatrix=&(splineControlPoint->qto_xyz);
 
-    float orientation[3];
-    orientation[0] = (  (splineMatrix->m[0][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][0]*splineMatrix->m[0][0] +
-                (splineMatrix->m[0][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][1]*splineMatrix->m[0][1]
-                )>0.0f?1.0f:-1.0f;
-    orientation[1] = (  (splineMatrix->m[1][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][0]*splineMatrix->m[1][0] +
-                (splineMatrix->m[1][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][1]*splineMatrix->m[1][1]
-                )>0.0f?1.0f:-1.0f;
-
     unsigned int coord=0;
 
+	mat33 reorient;
+	reorient.m[0][0]=splineControlPoint->dx; reorient.m[0][1]=0.0f; reorient.m[0][2]=0.0f;
+	reorient.m[1][0]=0.0f; reorient.m[1][1]=splineControlPoint->dy; reorient.m[1][2]=0.0f;
+	reorient.m[2][0]=0.0f; reorient.m[2][1]=0.0f; reorient.m[2][2]=splineControlPoint->dz;
+	mat33 spline_ijk;
+    if(splineControlPoint->sform_code>0){
+		spline_ijk.m[0][0]=splineControlPoint->sto_ijk.m[0][0];
+		spline_ijk.m[0][1]=splineControlPoint->sto_ijk.m[0][1];
+		spline_ijk.m[0][2]=splineControlPoint->sto_ijk.m[0][2];
+		spline_ijk.m[1][0]=splineControlPoint->sto_ijk.m[1][0];
+		spline_ijk.m[1][1]=splineControlPoint->sto_ijk.m[1][1];
+		spline_ijk.m[1][2]=splineControlPoint->sto_ijk.m[1][2];
+		spline_ijk.m[2][0]=splineControlPoint->sto_ijk.m[2][0];
+		spline_ijk.m[2][1]=splineControlPoint->sto_ijk.m[2][1];
+		spline_ijk.m[2][2]=splineControlPoint->sto_ijk.m[2][2];
+	}
+    else{
+		spline_ijk.m[0][0]=splineControlPoint->qto_ijk.m[0][0];
+		spline_ijk.m[0][1]=splineControlPoint->qto_ijk.m[0][1];
+		spline_ijk.m[0][2]=splineControlPoint->qto_ijk.m[0][2];
+		spline_ijk.m[1][0]=splineControlPoint->qto_ijk.m[1][0];
+		spline_ijk.m[1][1]=splineControlPoint->qto_ijk.m[1][1];
+		spline_ijk.m[1][2]=splineControlPoint->qto_ijk.m[1][2];
+		spline_ijk.m[2][0]=splineControlPoint->qto_ijk.m[2][0];
+		spline_ijk.m[2][1]=splineControlPoint->qto_ijk.m[2][1];
+		spline_ijk.m[2][2]=splineControlPoint->qto_ijk.m[2][2];
+	}
+	reorient=nifti_mat33_mul(spline_ijk, reorient);
+	mat33 jacobianMatrix;
+	
     PrecisionTYPE constraintValue=0;
 
     for(int y=0; y<targetImage->ny; y++){
@@ -1434,8 +1456,8 @@ PrecisionTYPE reg_bspline_jacobianValue2D(  nifti_image *splineControlPoint,
                     SplineTYPE *xxPtr = &controlPointPtrX[index];
                     SplineTYPE *yyPtr = &controlPointPtrY[index];
                     for(int X=xPre; X<xPre+4; X++){
-                        xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[X]*orientation[0];
-                        yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[X]*orientation[1];
+                        xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[X];
+                        yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[X];
                         coord++;
                     }
                 }
@@ -1455,13 +1477,15 @@ PrecisionTYPE reg_bspline_jacobianValue2D(  nifti_image *splineControlPoint,
                 Ty_y += basisY[a]*yControlPointCoordinates[a];
             }
 
-            Tx_x /= splineControlPoint->dx;
-            Ty_x /= splineControlPoint->dx;
-
-            Tx_y /= splineControlPoint->dy;
-            Ty_y /= splineControlPoint->dy;
-
-            PrecisionTYPE detJac =  Tx_x * Ty_y - Tx_y * Ty_x;
+			memset(&jacobianMatrix, 0, sizeof(mat33));
+			jacobianMatrix.m[2][2]=1.0f;
+			jacobianMatrix.m[0][0]= Tx_x / splineControlPoint->dx;
+			jacobianMatrix.m[0][1]= Tx_y / splineControlPoint->dy;
+			jacobianMatrix.m[1][0]= Ty_x / splineControlPoint->dx;
+			jacobianMatrix.m[1][1]= Ty_y / splineControlPoint->dy;
+			
+			jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
+			PrecisionTYPE detJac = nifti_mat33_determ(jacobianMatrix);
 			if(detJac>0.0)
 				constraintValue += log(detJac)*log(detJac);
 			else constraintValue += 100.0;
@@ -1498,22 +1522,38 @@ PrecisionTYPE reg_bspline_jacobianValue3D(  nifti_image *splineControlPoint,
     if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
     else splineMatrix=&(splineControlPoint->qto_xyz);
 
-    float orientation[3];
-    orientation[0] = (  (splineMatrix->m[0][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][0]*splineMatrix->m[0][0] +
-                (splineMatrix->m[0][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][1]*splineMatrix->m[0][1] +
-                (splineMatrix->m[0][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][2]*splineMatrix->m[0][2]
-                )>0.0f?1.0f:-1.0f;
-    orientation[1] = (  (splineMatrix->m[1][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][0]*splineMatrix->m[1][0] +
-                (splineMatrix->m[1][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][1]*splineMatrix->m[1][1] +
-                (splineMatrix->m[1][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][2]*splineMatrix->m[1][2]
-                )>0.0f?1.0f:-1.0f;
-    orientation[2] = (  (splineMatrix->m[2][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][0]*splineMatrix->m[2][0] +
-                (splineMatrix->m[2][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][1]*splineMatrix->m[2][1] +
-                (splineMatrix->m[2][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][2]*splineMatrix->m[2][2]
-                )>0.0f?1.0f:-1.0f;
-
     unsigned int coord=0;
 
+	mat33 reorient;
+	reorient.m[0][0]=splineControlPoint->dx; reorient.m[0][1]=0.0f; reorient.m[0][2]=0.0f;
+	reorient.m[1][0]=0.0f; reorient.m[1][1]=splineControlPoint->dy; reorient.m[1][2]=0.0f;
+	reorient.m[2][0]=0.0f; reorient.m[2][1]=0.0f; reorient.m[2][2]=splineControlPoint->dz;
+	mat33 spline_ijk;
+    if(splineControlPoint->sform_code>0){
+		spline_ijk.m[0][0]=splineControlPoint->sto_ijk.m[0][0];
+		spline_ijk.m[0][1]=splineControlPoint->sto_ijk.m[0][1];
+		spline_ijk.m[0][2]=splineControlPoint->sto_ijk.m[0][2];
+		spline_ijk.m[1][0]=splineControlPoint->sto_ijk.m[1][0];
+		spline_ijk.m[1][1]=splineControlPoint->sto_ijk.m[1][1];
+		spline_ijk.m[1][2]=splineControlPoint->sto_ijk.m[1][2];
+		spline_ijk.m[2][0]=splineControlPoint->sto_ijk.m[2][0];
+		spline_ijk.m[2][1]=splineControlPoint->sto_ijk.m[2][1];
+		spline_ijk.m[2][2]=splineControlPoint->sto_ijk.m[2][2];
+	}
+    else{
+		spline_ijk.m[0][0]=splineControlPoint->qto_ijk.m[0][0];
+		spline_ijk.m[0][1]=splineControlPoint->qto_ijk.m[0][1];
+		spline_ijk.m[0][2]=splineControlPoint->qto_ijk.m[0][2];
+		spline_ijk.m[1][0]=splineControlPoint->qto_ijk.m[1][0];
+		spline_ijk.m[1][1]=splineControlPoint->qto_ijk.m[1][1];
+		spline_ijk.m[1][2]=splineControlPoint->qto_ijk.m[1][2];
+		spline_ijk.m[2][0]=splineControlPoint->qto_ijk.m[2][0];
+		spline_ijk.m[2][1]=splineControlPoint->qto_ijk.m[2][1];
+		spline_ijk.m[2][2]=splineControlPoint->qto_ijk.m[2][2];
+	}
+	reorient=nifti_mat33_mul(spline_ijk, reorient);
+	mat33 jacobianMatrix;
+	
     PrecisionTYPE constraintValue=0;
 
     for(int z=0; z<targetImage->nz; z++){
@@ -1600,9 +1640,9 @@ PrecisionTYPE reg_bspline_jacobianValue3D(  nifti_image *splineControlPoint,
                             SplineTYPE *yyPtr = &yPtr[index];
                             SplineTYPE *zzPtr = &zPtr[index];
                             for(int X=xPre; X<xPre+4; X++){
-                                xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[X]*orientation[0];
-                                yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[X]*orientation[1];
-                                zControlPointCoordinates[coord] = (PrecisionTYPE)zzPtr[X]*orientation[2];
+                                xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[X];
+                                yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[X];
+                                zControlPointCoordinates[coord] = (PrecisionTYPE)zzPtr[X];
                                 coord++;
                             }
                         }
@@ -1633,22 +1673,20 @@ PrecisionTYPE reg_bspline_jacobianValue3D(  nifti_image *splineControlPoint,
                     Tz_y += basisY[a]*zControlPointCoordinates[a];
                     Tz_z += basisZ[a]*zControlPointCoordinates[a];
                 }
+				
+				jacobianMatrix.m[0][0]= Tx_x / splineControlPoint->dx;
+				jacobianMatrix.m[0][1]= Tx_y / splineControlPoint->dy;
+				jacobianMatrix.m[0][2]= Tx_z / splineControlPoint->dz;
+				jacobianMatrix.m[1][0]= Ty_x / splineControlPoint->dx;
+				jacobianMatrix.m[1][1]= Ty_y / splineControlPoint->dy;
+				jacobianMatrix.m[1][2]= Ty_z / splineControlPoint->dz;
+				jacobianMatrix.m[2][0]= Tz_x / splineControlPoint->dx;
+				jacobianMatrix.m[2][1]= Tz_y / splineControlPoint->dy;
+				jacobianMatrix.m[2][2]= Tz_z / splineControlPoint->dz;
+				
+				jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
+				PrecisionTYPE detJac = nifti_mat33_determ(jacobianMatrix);
 
-                Tx_x /= splineControlPoint->dx;
-                Ty_x /= splineControlPoint->dx;
-                Tz_x /= splineControlPoint->dx;
-
-                Tx_y /= splineControlPoint->dy;
-                Ty_y /= splineControlPoint->dy;
-                Tz_y /= splineControlPoint->dy;
-
-                Tx_z /= splineControlPoint->dz;
-                Ty_z /= splineControlPoint->dz;
-                Tz_z /= splineControlPoint->dz;
-
-                PrecisionTYPE detJac =  Tz_z*(Ty_y*Tx_x - Tx_y*Ty_x) +
-					Ty_z*(Tx_y*Tz_x - Tz_y*Tx_x) +
-					Tx_z*(Tz_y*Ty_x - Ty_y*Tz_x);
 				if(detJac>0.0)
 					constraintValue += log(detJac)*log(detJac);
 				else constraintValue += 100.0;
@@ -1669,56 +1707,76 @@ PrecisionTYPE reg_bspline_jacobianApproxValue2D(  nifti_image *splineControlPoin
     SplineTYPE *controlPointPtrY = static_cast<SplineTYPE *>(&controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny]);
 
     // As the contraint is only computed at the voxel position, the basis value of the spline are always the same 
-    PrecisionTYPE normal[4];
-    PrecisionTYPE first[4];
+    PrecisionTYPE normal[3];
+    PrecisionTYPE first[3];
     normal[0] = (PrecisionTYPE)(1.0/6.0);
     normal[1] = (PrecisionTYPE)(2.0/3.0);
     normal[2] = (PrecisionTYPE)(1.0/6.0);
-    normal[3] = (PrecisionTYPE)(0.0);
     first[0] = (PrecisionTYPE)(-0.5);
     first[1] = (PrecisionTYPE)(0.0);
     first[2] = (PrecisionTYPE)(0.5);
-    first[3] = (PrecisionTYPE)(0.0);
 
     PrecisionTYPE constraintValue= (PrecisionTYPE)(0.0);
 
-    PrecisionTYPE basisX[16], basisY[16];
+    PrecisionTYPE basisX[9], basisY[9];
 
     int coord=0;
-    for(int b=0; b<4; b++){
-        for(int a=0; a<4; a++){
+    for(int b=0; b<3; b++){
+        for(int a=0; a<3; a++){
             basisX[coord]=normal[b]*first[a];   // y * x'
             basisY[coord]=first[b]*normal[a];   // y'* x
             coord++;
         }
     }
 
-    PrecisionTYPE xControlPointCoordinates[16];
-    PrecisionTYPE yControlPointCoordinates[16];
+    PrecisionTYPE xControlPointCoordinates[9];
+    PrecisionTYPE yControlPointCoordinates[9];
 
     mat44 *splineMatrix;
     if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
     else splineMatrix=&(splineControlPoint->qto_xyz);
 
-    float orientation[3];
-    orientation[0] = (  (splineMatrix->m[0][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][0]*splineMatrix->m[0][0] +
-                (splineMatrix->m[0][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][1]*splineMatrix->m[0][1]
-                )>0.0f?1.0f:-1.0f;
-    orientation[1] = (  (splineMatrix->m[1][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][0]*splineMatrix->m[1][0] +
-                (splineMatrix->m[1][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][1]*splineMatrix->m[1][1]
-                )>0.0f?1.0f:-1.0f;
-
+	mat33 reorient;
+	reorient.m[0][0]=splineControlPoint->dx; reorient.m[0][1]=0.0f; reorient.m[0][2]=0.0f;
+	reorient.m[1][0]=0.0f; reorient.m[1][1]=splineControlPoint->dy; reorient.m[1][2]=0.0f;
+	reorient.m[2][0]=0.0f; reorient.m[2][1]=0.0f; reorient.m[2][2]=splineControlPoint->dz;
+	mat33 spline_ijk;
+    if(splineControlPoint->sform_code>0){
+		spline_ijk.m[0][0]=splineControlPoint->sto_ijk.m[0][0];
+		spline_ijk.m[0][1]=splineControlPoint->sto_ijk.m[0][1];
+		spline_ijk.m[0][2]=splineControlPoint->sto_ijk.m[0][2];
+		spline_ijk.m[1][0]=splineControlPoint->sto_ijk.m[1][0];
+		spline_ijk.m[1][1]=splineControlPoint->sto_ijk.m[1][1];
+		spline_ijk.m[1][2]=splineControlPoint->sto_ijk.m[1][2];
+		spline_ijk.m[2][0]=splineControlPoint->sto_ijk.m[2][0];
+		spline_ijk.m[2][1]=splineControlPoint->sto_ijk.m[2][1];
+		spline_ijk.m[2][2]=splineControlPoint->sto_ijk.m[2][2];
+	}
+    else{
+		spline_ijk.m[0][0]=splineControlPoint->qto_ijk.m[0][0];
+		spline_ijk.m[0][1]=splineControlPoint->qto_ijk.m[0][1];
+		spline_ijk.m[0][2]=splineControlPoint->qto_ijk.m[0][2];
+		spline_ijk.m[1][0]=splineControlPoint->qto_ijk.m[1][0];
+		spline_ijk.m[1][1]=splineControlPoint->qto_ijk.m[1][1];
+		spline_ijk.m[1][2]=splineControlPoint->qto_ijk.m[1][2];
+		spline_ijk.m[2][0]=splineControlPoint->qto_ijk.m[2][0];
+		spline_ijk.m[2][1]=splineControlPoint->qto_ijk.m[2][1];
+		spline_ijk.m[2][2]=splineControlPoint->qto_ijk.m[2][2];
+	}
+	reorient=nifti_mat33_mul(spline_ijk, reorient);
+	mat33 jacobianMatrix;
+	
     for(int y=1;y<splineControlPoint->ny-2;y++){
         for(int x=1;x<splineControlPoint->nx-2;x++){
 
             coord=0;
-            for(int Y=y-1; Y<y+3; Y++){
+            for(int Y=y-1; Y<y+2; Y++){
                 unsigned int index = Y*splineControlPoint->nx;
                 SplineTYPE *xxPtr = &controlPointPtrX[index];
                 SplineTYPE *yyPtr = &controlPointPtrY[index];
-                for(int X=x-1; X<x+3; X++){
-                    xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[X]*orientation[0];
-                    yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[X]*orientation[1];
+                for(int X=x-1; X<x+2; X++){
+                    xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[X];
+                    yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[X];
                     coord++;
                 }
             }
@@ -1728,21 +1786,24 @@ PrecisionTYPE reg_bspline_jacobianApproxValue2D(  nifti_image *splineControlPoin
             PrecisionTYPE Tx_y=0.0;
             PrecisionTYPE Ty_y=0.0;
 
-            for(int a=0; a<16; a++){
+            for(int a=0; a<9; a++){
                 Tx_x += basisX[a]*xControlPointCoordinates[a];
                 Tx_y += basisY[a]*xControlPointCoordinates[a];
 
                 Ty_x += basisX[a]*yControlPointCoordinates[a];
                 Ty_y += basisY[a]*yControlPointCoordinates[a];
             }
+			
+			memset(&jacobianMatrix, 0, sizeof(mat33));
+			jacobianMatrix.m[2][2]=1.0f;
+			jacobianMatrix.m[0][0]= Tx_x / splineControlPoint->dx;
+			jacobianMatrix.m[0][1]= Tx_y / splineControlPoint->dy;
+			jacobianMatrix.m[1][0]= Ty_x / splineControlPoint->dx;
+			jacobianMatrix.m[1][1]= Ty_y / splineControlPoint->dy;
+			
+			jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
+			PrecisionTYPE detJac = nifti_mat33_determ(jacobianMatrix);
 
-            Tx_x /= splineControlPoint->dx;
-            Ty_x /= splineControlPoint->dx;
-
-            Tx_y /= splineControlPoint->dy;
-            Ty_y /= splineControlPoint->dy;
-
-            PrecisionTYPE detJac =  Tx_x * Ty_y - Tx_y * Ty_x;
 			if(detJac>0.0)
 				constraintValue += log(detJac)*log(detJac);
 			else constraintValue += 100.0;
@@ -1805,21 +1866,37 @@ PrecisionTYPE reg_bspline_jacobianApproxValue3D(  nifti_image *splineControlPoin
     mat44 *splineMatrix;
     if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
     else splineMatrix=&(splineControlPoint->qto_xyz);
-
-    float orientation[3];
-    orientation[0] = (  (splineMatrix->m[0][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][0]*splineMatrix->m[0][0] +
-                (splineMatrix->m[0][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][1]*splineMatrix->m[0][1] +
-                (splineMatrix->m[0][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][2]*splineMatrix->m[0][2]
-                )>0.0f?1.0f:-1.0f;
-    orientation[1] = (  (splineMatrix->m[1][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][0]*splineMatrix->m[1][0] +
-                (splineMatrix->m[1][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][1]*splineMatrix->m[1][1] +
-                (splineMatrix->m[1][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][2]*splineMatrix->m[1][2]
-                )>0.0f?1.0f:-1.0f;
-    orientation[2] = (  (splineMatrix->m[2][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][0]*splineMatrix->m[2][0] +
-                (splineMatrix->m[2][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][1]*splineMatrix->m[2][1] +
-                (splineMatrix->m[2][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][2]*splineMatrix->m[2][2]
-                )>0.0f?1.0f:-1.0f;
     
+	mat33 reorient;
+	reorient.m[0][0]=splineControlPoint->dx; reorient.m[0][1]=0.0f; reorient.m[0][2]=0.0f;
+	reorient.m[1][0]=0.0f; reorient.m[1][1]=splineControlPoint->dy; reorient.m[1][2]=0.0f;
+	reorient.m[2][0]=0.0f; reorient.m[2][1]=0.0f; reorient.m[2][2]=splineControlPoint->dz;
+	mat33 spline_ijk;
+    if(splineControlPoint->sform_code>0){
+		spline_ijk.m[0][0]=splineControlPoint->sto_ijk.m[0][0];
+		spline_ijk.m[0][1]=splineControlPoint->sto_ijk.m[0][1];
+		spline_ijk.m[0][2]=splineControlPoint->sto_ijk.m[0][2];
+		spline_ijk.m[1][0]=splineControlPoint->sto_ijk.m[1][0];
+		spline_ijk.m[1][1]=splineControlPoint->sto_ijk.m[1][1];
+		spline_ijk.m[1][2]=splineControlPoint->sto_ijk.m[1][2];
+		spline_ijk.m[2][0]=splineControlPoint->sto_ijk.m[2][0];
+		spline_ijk.m[2][1]=splineControlPoint->sto_ijk.m[2][1];
+		spline_ijk.m[2][2]=splineControlPoint->sto_ijk.m[2][2];
+	}
+    else{
+		spline_ijk.m[0][0]=splineControlPoint->qto_ijk.m[0][0];
+		spline_ijk.m[0][1]=splineControlPoint->qto_ijk.m[0][1];
+		spline_ijk.m[0][2]=splineControlPoint->qto_ijk.m[0][2];
+		spline_ijk.m[1][0]=splineControlPoint->qto_ijk.m[1][0];
+		spline_ijk.m[1][1]=splineControlPoint->qto_ijk.m[1][1];
+		spline_ijk.m[1][2]=splineControlPoint->qto_ijk.m[1][2];
+		spline_ijk.m[2][0]=splineControlPoint->qto_ijk.m[2][0];
+		spline_ijk.m[2][1]=splineControlPoint->qto_ijk.m[2][1];
+		spline_ijk.m[2][2]=splineControlPoint->qto_ijk.m[2][2];
+	}
+	reorient=nifti_mat33_mul(spline_ijk, reorient);
+	mat33 jacobianMatrix;
+	
     for(int z=1;z<splineControlPoint->nz-2;z++){
         for(int y=1;y<splineControlPoint->ny-2;y++){
             for(int x=1;x<splineControlPoint->nx-2;x++){
@@ -1836,9 +1913,9 @@ PrecisionTYPE reg_bspline_jacobianApproxValue3D(  nifti_image *splineControlPoin
                         SplineTYPE *yyPtr = &yPtr[index];
                         SplineTYPE *zzPtr = &zPtr[index];
                         for(int X=x-1; X<x+2; X++){
-                            xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[X]*orientation[0];
-                            yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[X]*orientation[1];
-                            zControlPointCoordinates[coord] = (PrecisionTYPE)zzPtr[X]*orientation[2];
+                            xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[X];
+                            yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[X];
+                            zControlPointCoordinates[coord] = (PrecisionTYPE)zzPtr[X];
                             coord++;
                         }
                     }
@@ -1867,22 +1944,20 @@ PrecisionTYPE reg_bspline_jacobianApproxValue3D(  nifti_image *splineControlPoin
                     Tz_y += basisY[a]*zControlPointCoordinates[a];
                     Tz_z += basisZ[a]*zControlPointCoordinates[a];
                 }
-                
-                Tx_x /= splineControlPoint->dx;
-                Ty_x /= splineControlPoint->dx;
-                Tz_x /= splineControlPoint->dx;
-                
-                Tx_y /= splineControlPoint->dy;
-                Ty_y /= splineControlPoint->dy;
-                Tz_y /= splineControlPoint->dy;
-                
-                Tx_z /= splineControlPoint->dz;
-                Ty_z /= splineControlPoint->dz;
-                Tz_z /= splineControlPoint->dz;
+				
+				jacobianMatrix.m[0][0]= Tx_x / splineControlPoint->dx;
+				jacobianMatrix.m[0][1]= Tx_y / splineControlPoint->dy;
+				jacobianMatrix.m[0][2]= Tx_z / splineControlPoint->dz;
+				jacobianMatrix.m[1][0]= Ty_x / splineControlPoint->dx;
+				jacobianMatrix.m[1][1]= Ty_y / splineControlPoint->dy;
+				jacobianMatrix.m[1][2]= Ty_z / splineControlPoint->dz;
+				jacobianMatrix.m[2][0]= Tz_x / splineControlPoint->dx;
+				jacobianMatrix.m[2][1]= Tz_y / splineControlPoint->dy;
+				jacobianMatrix.m[2][2]= Tz_z / splineControlPoint->dz;
+				
+				jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
+				PrecisionTYPE detJac = nifti_mat33_determ(jacobianMatrix);
 
-                PrecisionTYPE detJac =  Tz_z*(Ty_y*Tx_x - Tx_y*Ty_x) +
-					Ty_z*(Tx_y*Tz_x - Tz_y*Tx_x) +
-					Tx_z*(Tz_y*Ty_x - Ty_y*Tz_x);
 				if(detJac>0.0)
 					constraintValue += log(detJac)*log(detJac);
 				else constraintValue += 100.0;
@@ -2522,13 +2597,35 @@ void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlP
     if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
     else splineMatrix=&(splineControlPoint->qto_xyz);
 	
-    float orientation[2];
-    orientation[0] = (  (splineMatrix->m[0][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][0]*splineMatrix->m[0][0] +
-					  (splineMatrix->m[0][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][1]*splineMatrix->m[0][1]
-					  )>0.0f?1.0f:-1.0f;
-    orientation[1] = (  (splineMatrix->m[1][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][0]*splineMatrix->m[1][0] +
-					  (splineMatrix->m[1][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][1]*splineMatrix->m[1][1]
-					  )>0.0f?1.0f:-1.0f;
+	mat33 reorient;
+	reorient.m[0][0]=splineControlPoint->dx; reorient.m[0][1]=0.0f; reorient.m[0][2]=0.0f;
+	reorient.m[1][0]=0.0f; reorient.m[1][1]=splineControlPoint->dy; reorient.m[1][2]=0.0f;
+	reorient.m[2][0]=0.0f; reorient.m[2][1]=0.0f; reorient.m[2][2]=splineControlPoint->dz;
+	mat33 spline_ijk;
+    if(splineControlPoint->sform_code>0){
+		spline_ijk.m[0][0]=splineControlPoint->sto_ijk.m[0][0];
+		spline_ijk.m[0][1]=splineControlPoint->sto_ijk.m[0][1];
+		spline_ijk.m[0][2]=splineControlPoint->sto_ijk.m[0][2];
+		spline_ijk.m[1][0]=splineControlPoint->sto_ijk.m[1][0];
+		spline_ijk.m[1][1]=splineControlPoint->sto_ijk.m[1][1];
+		spline_ijk.m[1][2]=splineControlPoint->sto_ijk.m[1][2];
+		spline_ijk.m[2][0]=splineControlPoint->sto_ijk.m[2][0];
+		spline_ijk.m[2][1]=splineControlPoint->sto_ijk.m[2][1];
+		spline_ijk.m[2][2]=splineControlPoint->sto_ijk.m[2][2];
+	}
+    else{
+		spline_ijk.m[0][0]=splineControlPoint->qto_ijk.m[0][0];
+		spline_ijk.m[0][1]=splineControlPoint->qto_ijk.m[0][1];
+		spline_ijk.m[0][2]=splineControlPoint->qto_ijk.m[0][2];
+		spline_ijk.m[1][0]=splineControlPoint->qto_ijk.m[1][0];
+		spline_ijk.m[1][1]=splineControlPoint->qto_ijk.m[1][1];
+		spline_ijk.m[1][2]=splineControlPoint->qto_ijk.m[1][2];
+		spline_ijk.m[2][0]=splineControlPoint->qto_ijk.m[2][0];
+		spline_ijk.m[2][1]=splineControlPoint->qto_ijk.m[2][1];
+		spline_ijk.m[2][2]=splineControlPoint->qto_ijk.m[2][2];
+	}
+	reorient=nifti_mat33_mul(spline_ijk, reorient);
+	mat33 jacobianMatrix;
 	
     SplineTYPE *controlPointPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
     SplineTYPE *controlPointPtrY = static_cast<SplineTYPE *>(&controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny]);
@@ -2548,84 +2645,70 @@ void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlP
 			for(int CPY=y-1;CPY<y+2; CPY++){
 				for(int CPX=x-1;CPX<x+2; CPX++){
 					
-					// The control points are stored
-					coord=0;
-					for(int Y=CPY-1; Y<CPY+2; Y++){
-						PrecisionTYPE diffY = (PrecisionTYPE)0.0;
-						int index = Y*splineControlPoint->nx;
-						if(Y<0){ // Border effect
-							diffY=Y;
-							index=0;
+					if(0<CPX && 0<CPY && CPX<splineControlPoint->nx-1 && CPY<splineControlPoint->ny-1){
+					
+						// The control points are stored
+						coord=0;
+						for(int Y=CPY-1; Y<CPY+2; Y++){
+							unsigned int index=Y*splineControlPoint->nx;
+
+							SplineTYPE *xxPtr = &controlPointPtrX[index];
+							SplineTYPE *yyPtr = &controlPointPtrY[index];
+							
+							for(int X=CPX-1; X<CPX+2; X++){
+								xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[X];
+								yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[X];
+								coord++;
+							}
 						}
-						else if(Y>=splineControlPoint->ny){ // Border effect
-							diffY=Y-splineControlPoint->ny+1;
-							index=(splineControlPoint->ny-1)*splineControlPoint->nx;
-						}
-						SplineTYPE *xxPtr = &controlPointPtrX[index];
-						SplineTYPE *yyPtr = &controlPointPtrY[index];
 						
-						for(int X=CPX-1; X<CPX+2; X++){
-							PrecisionTYPE diffX = (PrecisionTYPE)0.0;
-							index=X;
-							if(X<0){ // Border effect
-								diffX=X;
-								index=0;
-							}
-							else if(X>=splineControlPoint->nx){ // Border effect
-								index=splineControlPoint->nx-1;
-								diffX=X-index;
-							}
-							// home-made sliding effect which reproduce the control point spacing
-							xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[index]*orientation[0] + diffX*splineControlPoint->dx;
-							yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[index]*orientation[1] + diffY*splineControlPoint->dy;
-							coord++;
+						PrecisionTYPE Tx_x=(PrecisionTYPE)0.0;
+						PrecisionTYPE Ty_x=(PrecisionTYPE)0.0;
+						PrecisionTYPE Tx_y=(PrecisionTYPE)0.0;
+						PrecisionTYPE Ty_y=(PrecisionTYPE)0.0;
+
+						for(int a=0; a<9; a++){
+							Tx_x += basisX[a]*xControlPointCoordinates[a];
+							Tx_y += basisY[a]*xControlPointCoordinates[a];
+							Ty_x += basisX[a]*yControlPointCoordinates[a];
+							Ty_y += basisY[a]*yControlPointCoordinates[a];
 						}
-					}
-					
-					PrecisionTYPE Tx_x=(PrecisionTYPE)0.0;
-					PrecisionTYPE Ty_x=(PrecisionTYPE)0.0;
-					PrecisionTYPE Tx_y=(PrecisionTYPE)0.0;
-					PrecisionTYPE Ty_y=(PrecisionTYPE)0.0;
-
-					for(int a=0; a<9; a++){
-						Tx_x += basisX[a]*xControlPointCoordinates[a];
-						Tx_y += basisY[a]*xControlPointCoordinates[a];
-						Ty_x += basisX[a]*yControlPointCoordinates[a];
-						Ty_y += basisY[a]*yControlPointCoordinates[a];
-					}
-
-					Tx_x /= splineControlPoint->dx;
-					Ty_x /= splineControlPoint->dx;
-
-					Tx_y /= splineControlPoint->dy;
-					Ty_y /= splineControlPoint->dy;
-
-					PrecisionTYPE detJac =  Tx_x * Ty_y - Tx_y * Ty_x;
-					
-					PrecisionTYPE basisValues[2];
-					basisValues[0] = basisX[basisCoord];
-					basisValues[1] = basisY[basisCoord];
-					
-					PrecisionTYPE jacobianInverse[4];
-					jacobianInverse[0]=detJac*Ty_y;
-					jacobianInverse[1]=-detJac*Ty_x;
-					jacobianInverse[2]=-detJac*Tx_y;
-					jacobianInverse[3]=detJac*Tx_x;
-					
-					PrecisionTYPE twoLogDet=2.0 * log(detJac);
-					if(detJac<=0.0) twoLogDet = -100;	
-										
-					jacobianContraintX -=	twoLogDet
-						* (jacobianInverse[0]*basisValues[0]+jacobianInverse[1]*basisValues[1]);
-					jacobianContraintY -=	twoLogDet
-						* (jacobianInverse[2]*basisValues[0]+jacobianInverse[3]*basisValues[1]);
-			
-					basisCoord++;
+						
+						memset(&jacobianMatrix, 0, sizeof(mat33));
+						jacobianMatrix.m[2][2]=1.0f;
+						jacobianMatrix.m[0][0]= Tx_x / splineControlPoint->dx;
+						jacobianMatrix.m[0][1]= Tx_y / splineControlPoint->dy;
+						jacobianMatrix.m[1][0]= Ty_x / splineControlPoint->dx;
+						jacobianMatrix.m[1][1]= Ty_y / splineControlPoint->dy;
+						
+						jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
+						PrecisionTYPE detJac = nifti_mat33_determ(jacobianMatrix);
+						
+						PrecisionTYPE basisValues[2];
+						basisValues[0] = basisX[basisCoord];
+						basisValues[1] = basisY[basisCoord];
+						
+						PrecisionTYPE jacobianInverse[4];
+						jacobianInverse[0]=detJac*Ty_y;
+						jacobianInverse[1]=-detJac*Ty_x;
+						jacobianInverse[2]=-detJac*Tx_y;
+						jacobianInverse[3]=detJac*Tx_x;
+						
+						PrecisionTYPE twoLogDet=2.0 * log(detJac);
+						if(detJac<=0.0) twoLogDet = -100;	
+											
+						jacobianContraintX -=	twoLogDet
+							* (jacobianInverse[0]*basisValues[0]+jacobianInverse[1]*basisValues[1]);
+						jacobianContraintY -=	twoLogDet
+							* (jacobianInverse[2]*basisValues[0]+jacobianInverse[3]*basisValues[1]);
+				
+						basisCoord++;
+					}//if
 				} // X
 			} // Y
             // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
-			*gradientImagePtrX++ += weight*jacobianContraintX*orientation[0];
-			*gradientImagePtrY++ += weight*jacobianContraintY*orientation[1];
+			*gradientImagePtrX++ += weight*jacobianContraintX;
+			*gradientImagePtrY++ += weight*jacobianContraintY;
         } // x
     } // y
 }
@@ -2703,6 +2786,34 @@ void reg_bspline_jacobianDeterminantGradientApprox3D(nifti_image *splineControlP
 					  (splineMatrix->m[2][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][1]*splineMatrix->m[2][1] +
 					  (splineMatrix->m[2][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][2]*splineMatrix->m[2][2]
 					  )>0.0f?1.0f:-1.0f;
+	mat33 reorient;
+	reorient.m[0][0]=splineControlPoint->dx; reorient.m[0][1]=0.0f; reorient.m[0][2]=0.0f;
+	reorient.m[1][0]=0.0f; reorient.m[1][1]=splineControlPoint->dy; reorient.m[1][2]=0.0f;
+	reorient.m[2][0]=0.0f; reorient.m[2][1]=0.0f; reorient.m[2][2]=splineControlPoint->dz;
+	mat33 spline_ijk;
+    if(splineControlPoint->sform_code>0){
+		spline_ijk.m[0][0]=splineControlPoint->sto_ijk.m[0][0];
+		spline_ijk.m[0][1]=splineControlPoint->sto_ijk.m[0][1];
+		spline_ijk.m[0][2]=splineControlPoint->sto_ijk.m[0][2];
+		spline_ijk.m[1][0]=splineControlPoint->sto_ijk.m[1][0];
+		spline_ijk.m[1][1]=splineControlPoint->sto_ijk.m[1][1];
+		spline_ijk.m[1][2]=splineControlPoint->sto_ijk.m[1][2];
+		spline_ijk.m[2][0]=splineControlPoint->sto_ijk.m[2][0];
+		spline_ijk.m[2][1]=splineControlPoint->sto_ijk.m[2][1];
+		spline_ijk.m[2][2]=splineControlPoint->sto_ijk.m[2][2];
+	}
+    else{
+		spline_ijk.m[0][0]=splineControlPoint->qto_ijk.m[0][0];
+		spline_ijk.m[0][1]=splineControlPoint->qto_ijk.m[0][1];
+		spline_ijk.m[0][2]=splineControlPoint->qto_ijk.m[0][2];
+		spline_ijk.m[1][0]=splineControlPoint->qto_ijk.m[1][0];
+		spline_ijk.m[1][1]=splineControlPoint->qto_ijk.m[1][1];
+		spline_ijk.m[1][2]=splineControlPoint->qto_ijk.m[1][2];
+		spline_ijk.m[2][0]=splineControlPoint->qto_ijk.m[2][0];
+		spline_ijk.m[2][1]=splineControlPoint->qto_ijk.m[2][1];
+		spline_ijk.m[2][2]=splineControlPoint->qto_ijk.m[2][2];
+	}
+	reorient=nifti_mat33_mul(spline_ijk, reorient);
 	
     SplineTYPE *controlPointPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
     SplineTYPE *controlPointPtrY = static_cast<SplineTYPE *>(&controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz]);
@@ -2772,9 +2883,9 @@ void reg_bspline_jacobianDeterminantGradientApprox3D(nifti_image *splineControlP
 								diffX=X-index;
 							}
 							// home-made sliding effect which reproduce the control point spacing
-							xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[index]*orientation[0] + diffX*splineControlPoint->dx;
-							yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[index]*orientation[1] + diffY*splineControlPoint->dy;
-							zControlPointCoordinates[coord] = (PrecisionTYPE)zzPtr[index]*orientation[2] + diffZ*splineControlPoint->dz;
+							xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[index] + orientation[0]*diffX*splineControlPoint->dx;
+							yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[index] + orientation[1]*diffY*splineControlPoint->dy;
+							zControlPointCoordinates[coord] = (PrecisionTYPE)zzPtr[index] + orientation[2]*diffZ*splineControlPoint->dz;
 							coord++;
 						}
 					}
@@ -2803,15 +2914,15 @@ void reg_bspline_jacobianDeterminantGradientApprox3D(nifti_image *splineControlP
 				}
 
 				mat33 jacobianMatrix;
-				jacobianMatrix.m[0][0] = Tx_x/splineControlPoint->dx;
-				jacobianMatrix.m[0][1] = Tx_y/splineControlPoint->dy;
-				jacobianMatrix.m[0][2] = Tx_z/splineControlPoint->dz;
-				jacobianMatrix.m[1][0] = Ty_x/splineControlPoint->dx;
-				jacobianMatrix.m[1][1] = Ty_y/splineControlPoint->dy;
-				jacobianMatrix.m[1][2] = Ty_z/splineControlPoint->dz;
-				jacobianMatrix.m[2][0] = Tz_x/splineControlPoint->dx;
-				jacobianMatrix.m[2][1] = Tz_y/splineControlPoint->dy;
-				jacobianMatrix.m[2][2] = Tz_z/splineControlPoint->dz;
+				jacobianMatrix.m[0][0]= Tx_x / splineControlPoint->dx;
+				jacobianMatrix.m[0][1]= Tx_y / splineControlPoint->dy;
+				jacobianMatrix.m[0][2]= Tx_z / splineControlPoint->dz;
+				jacobianMatrix.m[1][0]= Ty_x / splineControlPoint->dx;
+				jacobianMatrix.m[1][1]= Ty_y / splineControlPoint->dy;
+				jacobianMatrix.m[1][2]= Ty_z / splineControlPoint->dz;
+				jacobianMatrix.m[2][0]= Tz_x / splineControlPoint->dx;
+				jacobianMatrix.m[2][1]= Tz_y / splineControlPoint->dy;
+				jacobianMatrix.m[2][2]= Tz_z / splineControlPoint->dz;
 
 				*jacobianDeterminantsPtr++ = nifti_mat33_determ(jacobianMatrix);
 				*inverseJacobianMatricesPtr++ = nifti_mat33_inverse(jacobianMatrix);
@@ -2840,99 +2951,6 @@ void reg_bspline_jacobianDeterminantGradientApprox3D(nifti_image *splineControlP
 				for(int CPZ=z-1;CPZ<z+2; CPZ++){
 					for(int CPY=y-1;CPY<y+2; CPY++){
 						for(int CPX=x-1;CPX<x+2; CPX++){
-							
-							
-//							
-//							// The control points are stored
-//							coord=0;
-//							for(int Z=CPZ-1; Z<CPZ+2; Z++){
-//								PrecisionTYPE diffZ = (PrecisionTYPE)0.0;
-//								int index = Z*splineControlPoint->nx*splineControlPoint->ny;
-//								if(Z<0){ // Border effect
-//									diffZ=Z;
-//									index=0;
-//								}
-//								else if(Z>=splineControlPoint->nz){ // Border effect
-//									diffZ=Z-splineControlPoint->nz+1;
-//									index=(splineControlPoint->nz-1)*splineControlPoint->nx*splineControlPoint->ny;
-//								}
-//								SplineTYPE *xPtr = &controlPointPtrX[index];
-//								SplineTYPE *yPtr = &controlPointPtrY[index];
-//								SplineTYPE *zPtr = &controlPointPtrZ[index];
-//								
-//								for(int Y=CPY-1; Y<CPY+2; Y++){
-//									PrecisionTYPE diffY = (PrecisionTYPE)0.0;
-//									int index = Y*splineControlPoint->nx;
-//									if(Y<0){ // Border effect
-//										diffY=Y;
-//										index=0;
-//									}
-//									else if(Y>=splineControlPoint->ny){ // Border effect
-//										diffY=Y-splineControlPoint->ny+1;
-//										index=(splineControlPoint->ny-1)*splineControlPoint->nx;
-//									}
-//									SplineTYPE *xxPtr = &xPtr[index];
-//									SplineTYPE *yyPtr = &yPtr[index];
-//									SplineTYPE *zzPtr = &zPtr[index];
-//									
-//									for(int X=x-1; X<x+2; X++){
-//										PrecisionTYPE diffX = (PrecisionTYPE)0.0;
-//										index=X;
-//										if(X<0){ // Border effect
-//											diffX=X;
-//											index=0;
-//										}
-//										else if(X>=splineControlPoint->nx){ // Border effect
-//											index=splineControlPoint->nx-1;
-//											diffX=X-index;
-//										}
-//										// home-made sliding effect which reproduce the control point spacing
-//										xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[index]*orientation[0] + diffX*splineControlPoint->dx;
-//										yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[index]*orientation[1] + diffY*splineControlPoint->dy;
-//										zControlPointCoordinates[coord] = (PrecisionTYPE)zzPtr[index]*orientation[2] + diffZ*splineControlPoint->dz;
-//										coord++;
-//									}
-//								}
-//							}
-//							
-//							PrecisionTYPE Tx_x=(PrecisionTYPE)0.0;
-//							PrecisionTYPE Ty_x=(PrecisionTYPE)0.0;
-//							PrecisionTYPE Tz_x=(PrecisionTYPE)0.0;
-//							PrecisionTYPE Tx_y=(PrecisionTYPE)0.0;
-//							PrecisionTYPE Ty_y=(PrecisionTYPE)0.0;
-//							PrecisionTYPE Tz_y=(PrecisionTYPE)0.0;
-//							PrecisionTYPE Tx_z=(PrecisionTYPE)0.0;
-//							PrecisionTYPE Ty_z=(PrecisionTYPE)0.0;
-//							PrecisionTYPE Tz_z=(PrecisionTYPE)0.0;
-//							
-//							for(int a=0; a<27; a++){
-//								Tx_x += basisX[a]*xControlPointCoordinates[a];
-//								Tx_y += basisY[a]*xControlPointCoordinates[a];
-//								Tx_z += basisZ[a]*xControlPointCoordinates[a];
-//								Ty_x += basisX[a]*yControlPointCoordinates[a];
-//								Ty_y += basisY[a]*yControlPointCoordinates[a];
-//								Ty_z += basisZ[a]*yControlPointCoordinates[a];
-//								Tz_x += basisX[a]*zControlPointCoordinates[a];
-//								Tz_y += basisY[a]*zControlPointCoordinates[a];
-//								Tz_z += basisZ[a]*zControlPointCoordinates[a];
-//							}
-//							
-//							mat33 jacobianMatrix;
-//							jacobianMatrix.m[0][0] = Tx_x/splineControlPoint->dx;
-//							jacobianMatrix.m[0][1] = Tx_y/splineControlPoint->dy;
-//							jacobianMatrix.m[0][2] = Tx_z/splineControlPoint->dz;
-//							jacobianMatrix.m[1][0] = Ty_x/splineControlPoint->dx;
-//							jacobianMatrix.m[1][1] = Ty_y/splineControlPoint->dy;
-//							jacobianMatrix.m[1][2] = Ty_z/splineControlPoint->dz;
-//							jacobianMatrix.m[2][0] = Tz_x/splineControlPoint->dx;
-//							jacobianMatrix.m[2][1] = Tz_y/splineControlPoint->dy;
-//							jacobianMatrix.m[2][2] = Tz_z/splineControlPoint->dz;
-//							
-//							*jacobianDeterminantsPtr++ = nifti_mat33_determ(jacobianMatrix);
-//							*inverseJacobianMatricesPtr++ = nifti_mat33_inverse(jacobianMatrix);
-							
-							
-							
 							
 							unsigned int jacobianIndex =
 								((CPZ+1)*(gradientImage->ny+2)+(CPY+1))
@@ -2966,9 +2984,9 @@ void reg_bspline_jacobianDeterminantGradientApprox3D(nifti_image *splineControlP
 					} // Y
 				} // Z
 				// (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
-				*gradientImagePtrX++ += weight*jacobianContraintX*orientation[0];
-				*gradientImagePtrY++ += weight*jacobianContraintY*orientation[1];
-				*gradientImagePtrZ++ += weight*jacobianContraintZ*orientation[2];
+				*gradientImagePtrX++ += weight*jacobianContraintX;
+				*gradientImagePtrY++ += weight*jacobianContraintY;
+				*gradientImagePtrZ++ += weight*jacobianContraintZ;
 			} // x
 		} // y
 	} //z
@@ -3531,15 +3549,47 @@ void reg_bspline_GetJacobianMap2D(nifti_image *splineControlPoint,
     if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
     else splineMatrix=&(splineControlPoint->qto_xyz);
 
-    float orientation[2];
-    orientation[0] = (  (splineMatrix->m[0][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][0]*splineMatrix->m[0][0] +
-                (splineMatrix->m[0][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][1]*splineMatrix->m[0][1]
-                )>0.0f?1.0f:-1.0f;
-    orientation[1] = (  (splineMatrix->m[1][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][0]*splineMatrix->m[1][0] +
-                (splineMatrix->m[1][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][1]*splineMatrix->m[1][1]
-                )>0.0f?1.0f:-1.0f;
+//    float direction[2];
+//    direction[0] = (  (splineMatrix->m[0][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][0]*splineMatrix->m[0][0] +
+//                (splineMatrix->m[0][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][1]*splineMatrix->m[0][1]
+//                )>0.0f?1.0f:-1.0f;
+//    direction[1] = (  (splineMatrix->m[1][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][0]*splineMatrix->m[1][0] +
+//                (splineMatrix->m[1][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][1]*splineMatrix->m[1][1]
+//                )>0.0f?1.0f:-1.0f;
     unsigned int coord=0;
-
+	
+	/* In case the matrix is not diagonal, the jacobian has to be reoriented */
+	mat33 reorient;
+	reorient.m[0][0]=splineControlPoint->dx; reorient.m[0][1]=0.0f; reorient.m[0][2]=0.0f;
+	reorient.m[1][0]=0.0f; reorient.m[1][1]=splineControlPoint->dy; reorient.m[1][2]=0.0f;
+	reorient.m[2][0]=0.0f; reorient.m[2][1]=0.0f; reorient.m[2][2]=splineControlPoint->dz;
+	mat33 spline_ijk;
+    if(splineControlPoint->sform_code>0){
+		spline_ijk.m[0][0]=splineControlPoint->sto_ijk.m[0][0];
+		spline_ijk.m[0][1]=splineControlPoint->sto_ijk.m[0][1];
+		spline_ijk.m[0][2]=splineControlPoint->sto_ijk.m[0][2];
+		spline_ijk.m[1][0]=splineControlPoint->sto_ijk.m[1][0];
+		spline_ijk.m[1][1]=splineControlPoint->sto_ijk.m[1][1];
+		spline_ijk.m[1][2]=splineControlPoint->sto_ijk.m[1][2];
+		spline_ijk.m[2][0]=splineControlPoint->sto_ijk.m[2][0];
+		spline_ijk.m[2][1]=splineControlPoint->sto_ijk.m[2][1];
+		spline_ijk.m[2][2]=splineControlPoint->sto_ijk.m[2][2];
+	}
+    else{
+		spline_ijk.m[0][0]=splineControlPoint->qto_ijk.m[0][0];
+		spline_ijk.m[0][1]=splineControlPoint->qto_ijk.m[0][1];
+		spline_ijk.m[0][2]=splineControlPoint->qto_ijk.m[0][2];
+		spline_ijk.m[1][0]=splineControlPoint->qto_ijk.m[1][0];
+		spline_ijk.m[1][1]=splineControlPoint->qto_ijk.m[1][1];
+		spline_ijk.m[1][2]=splineControlPoint->qto_ijk.m[1][2];
+		spline_ijk.m[2][0]=splineControlPoint->qto_ijk.m[2][0];
+		spline_ijk.m[2][1]=splineControlPoint->qto_ijk.m[2][1];
+		spline_ijk.m[2][2]=splineControlPoint->qto_ijk.m[2][2];
+	}
+	reorient=nifti_mat33_mul(spline_ijk, reorient);
+	
+	mat33 jacobianMatrix;
+	
     for(int y=0; y<jacobianImage->ny; y++){
 
         int yPre=(int)((JacobianTYPE)y/gridVoxelSpacing[1]);
@@ -3590,33 +3640,36 @@ void reg_bspline_GetJacobianMap2D(nifti_image *splineControlPoint,
                     SplineTYPE *xPtr = &controlPointPtrX[index];
                     SplineTYPE *yPtr = &controlPointPtrY[index];
                     for(int X=xPre; X<xPre+4; X++){
-                        xControlPointCoordinates[coord] = (JacobianTYPE)xPtr[X]*orientation[0];
-                        yControlPointCoordinates[coord] = (JacobianTYPE)yPtr[X]*orientation[1];
+                        xControlPointCoordinates[coord] = (JacobianTYPE)xPtr[X];
+                        yControlPointCoordinates[coord] = (JacobianTYPE)yPtr[X];
                         coord++;
                     }
                 }
             }
             oldBasis=basis;
-            JacobianTYPE X_x=0.0;
-            JacobianTYPE Y_x=0.0;
-            JacobianTYPE X_y=0.0;
-            JacobianTYPE Y_y=0.0;
+            JacobianTYPE Tx_x=0.0;
+            JacobianTYPE Ty_x=0.0;
+            JacobianTYPE Tx_y=0.0;
+            JacobianTYPE Ty_y=0.0;
 
             for(int a=0; a<16; a++){
-                X_x += basisX[a]*xControlPointCoordinates[a];
-                Y_x += basisY[a]*xControlPointCoordinates[a];
+                Tx_x += basisX[a]*xControlPointCoordinates[a];
+                Ty_x += basisX[a]*yControlPointCoordinates[a];
 
-                X_y += basisX[a]*yControlPointCoordinates[a];
-                Y_y += basisY[a]*yControlPointCoordinates[a];
+                Tx_y += basisY[a]*xControlPointCoordinates[a];
+                Ty_y += basisY[a]*yControlPointCoordinates[a];
             }
-
-            X_x /= splineControlPoint->dx;
-            Y_x /= splineControlPoint->dx;
-
-            X_y /= splineControlPoint->dy;
-            Y_y /= splineControlPoint->dy;
-
-            *jacobianMapPtr++ = X_x * Y_y - X_y * Y_x;
+			
+			memset(&jacobianMatrix, 0, sizeof(mat33));
+			jacobianMatrix.m[2][2]=1.0f;
+			jacobianMatrix.m[0][0]= Tx_x / splineControlPoint->dx;
+            jacobianMatrix.m[0][1]= Tx_y / splineControlPoint->dy;
+            jacobianMatrix.m[1][0]= Ty_x / splineControlPoint->dx;
+            jacobianMatrix.m[1][1]= Ty_y / splineControlPoint->dy;
+			
+			jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
+			
+			*jacobianMapPtr++ = nifti_mat33_determ(jacobianMatrix);
         }
     }
 }
@@ -3649,20 +3702,50 @@ void reg_bspline_GetJacobianMap3D(nifti_image *splineControlPoint,
     if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
     else splineMatrix=&(splineControlPoint->qto_xyz);
 
-    float orientation[3];
-    orientation[0] = (  (splineMatrix->m[0][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][0]*splineMatrix->m[0][0] +
-                (splineMatrix->m[0][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][1]*splineMatrix->m[0][1] +
-                (splineMatrix->m[0][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][2]*splineMatrix->m[0][2]
-                )>0.0f?1.0f:-1.0f;
-    orientation[1] = (  (splineMatrix->m[1][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][0]*splineMatrix->m[1][0] +
-                (splineMatrix->m[1][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][1]*splineMatrix->m[1][1] +
-                (splineMatrix->m[1][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][2]*splineMatrix->m[1][2]
-                )>0.0f?1.0f:-1.0f;
-    orientation[2] = (  (splineMatrix->m[2][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][0]*splineMatrix->m[2][0] +
-                (splineMatrix->m[2][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][1]*splineMatrix->m[2][1] +
-                (splineMatrix->m[2][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][2]*splineMatrix->m[2][2]
-                )>0.0f?1.0f:-1.0f;
+//    float orientation[3];
+//    orientation[0] = (  (splineMatrix->m[0][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][0]*splineMatrix->m[0][0] +
+//                (splineMatrix->m[0][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][1]*splineMatrix->m[0][1] +
+//                (splineMatrix->m[0][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][2]*splineMatrix->m[0][2]
+//                )>0.0f?1.0f:-1.0f;
+//    orientation[1] = (  (splineMatrix->m[1][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][0]*splineMatrix->m[1][0] +
+//                (splineMatrix->m[1][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][1]*splineMatrix->m[1][1] +
+//                (splineMatrix->m[1][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][2]*splineMatrix->m[1][2]
+//                )>0.0f?1.0f:-1.0f;
+//    orientation[2] = (  (splineMatrix->m[2][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][0]*splineMatrix->m[2][0] +
+//                (splineMatrix->m[2][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][1]*splineMatrix->m[2][1] +
+//                (splineMatrix->m[2][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][2]*splineMatrix->m[2][2]
+//                )>0.0f?1.0f:-1.0f;
     unsigned int coord=0;
+	
+	mat33 reorient;
+	reorient.m[0][0]=splineControlPoint->dx; reorient.m[0][1]=0.0f; reorient.m[0][2]=0.0f;
+	reorient.m[1][0]=0.0f; reorient.m[1][1]=splineControlPoint->dy; reorient.m[1][2]=0.0f;
+	reorient.m[2][0]=0.0f; reorient.m[2][1]=0.0f; reorient.m[2][2]=splineControlPoint->dz;
+	mat33 spline_ijk;
+    if(splineControlPoint->sform_code>0){
+		spline_ijk.m[0][0]=splineControlPoint->sto_ijk.m[0][0];
+		spline_ijk.m[0][1]=splineControlPoint->sto_ijk.m[0][1];
+		spline_ijk.m[0][2]=splineControlPoint->sto_ijk.m[0][2];
+		spline_ijk.m[1][0]=splineControlPoint->sto_ijk.m[1][0];
+		spline_ijk.m[1][1]=splineControlPoint->sto_ijk.m[1][1];
+		spline_ijk.m[1][2]=splineControlPoint->sto_ijk.m[1][2];
+		spline_ijk.m[2][0]=splineControlPoint->sto_ijk.m[2][0];
+		spline_ijk.m[2][1]=splineControlPoint->sto_ijk.m[2][1];
+		spline_ijk.m[2][2]=splineControlPoint->sto_ijk.m[2][2];
+	}
+    else{
+		spline_ijk.m[0][0]=splineControlPoint->qto_ijk.m[0][0];
+		spline_ijk.m[0][1]=splineControlPoint->qto_ijk.m[0][1];
+		spline_ijk.m[0][2]=splineControlPoint->qto_ijk.m[0][2];
+		spline_ijk.m[1][0]=splineControlPoint->qto_ijk.m[1][0];
+		spline_ijk.m[1][1]=splineControlPoint->qto_ijk.m[1][1];
+		spline_ijk.m[1][2]=splineControlPoint->qto_ijk.m[1][2];
+		spline_ijk.m[2][0]=splineControlPoint->qto_ijk.m[2][0];
+		spline_ijk.m[2][1]=splineControlPoint->qto_ijk.m[2][1];
+		spline_ijk.m[2][2]=splineControlPoint->qto_ijk.m[2][2];
+	}
+	reorient=nifti_mat33_mul(spline_ijk, reorient);
+	mat33 jacobianMatrix;
     
     for(int z=0; z<jacobianImage->nz; z++){
         
@@ -3748,9 +3831,9 @@ void reg_bspline_GetJacobianMap3D(nifti_image *splineControlPoint,
                             SplineTYPE *yyPtr = &yPtr[index];
                             SplineTYPE *zzPtr = &zPtr[index];
                             for(int X=xPre; X<xPre+4; X++){
-                                xControlPointCoordinates[coord] = (JacobianTYPE)xxPtr[X]*orientation[0];
-                                yControlPointCoordinates[coord] = (JacobianTYPE)yyPtr[X]*orientation[1];
-                                zControlPointCoordinates[coord] = (JacobianTYPE)zzPtr[X]*orientation[2];
+                                xControlPointCoordinates[coord] = (JacobianTYPE)xxPtr[X];
+                                yControlPointCoordinates[coord] = (JacobianTYPE)yyPtr[X];
+                                zControlPointCoordinates[coord] = (JacobianTYPE)zzPtr[X];
                                 coord++;
                             }
                         }
@@ -3758,46 +3841,44 @@ void reg_bspline_GetJacobianMap3D(nifti_image *splineControlPoint,
                 }
                 oldBasis=basis;
                 
-                JacobianTYPE X_x=0.0;
-                JacobianTYPE Y_x=0.0;
-                JacobianTYPE Z_x=0.0;
-                JacobianTYPE X_y=0.0;
-                JacobianTYPE Y_y=0.0;
-                JacobianTYPE Z_y=0.0;
-                JacobianTYPE X_z=0.0;
-                JacobianTYPE Y_z=0.0;
-                JacobianTYPE Z_z=0.0;
+                JacobianTYPE Tx_x=0.0;
+                JacobianTYPE Ty_x=0.0;
+                JacobianTYPE Tz_x=0.0;
+                JacobianTYPE Tx_y=0.0;
+                JacobianTYPE Ty_y=0.0;
+                JacobianTYPE Tz_y=0.0;
+                JacobianTYPE Tx_z=0.0;
+                JacobianTYPE Ty_z=0.0;
+                JacobianTYPE Tz_z=0.0;
                 
                 for(int a=0; a<64; a++){
-                    X_x += basisX[a]*xControlPointCoordinates[a];
-                    Y_x += basisY[a]*xControlPointCoordinates[a];
-                    Z_x += basisZ[a]*xControlPointCoordinates[a];
+                    Tx_x += basisX[a]*xControlPointCoordinates[a];
+                    Tx_y += basisY[a]*xControlPointCoordinates[a];
+                    Tx_z += basisZ[a]*xControlPointCoordinates[a];
                     
-                    X_y += basisX[a]*yControlPointCoordinates[a];
-                    Y_y += basisY[a]*yControlPointCoordinates[a];
-                    Z_y += basisZ[a]*yControlPointCoordinates[a];
+                    Ty_x += basisX[a]*yControlPointCoordinates[a];
+                    Ty_y += basisY[a]*yControlPointCoordinates[a];
+                    Ty_z += basisZ[a]*yControlPointCoordinates[a];
                     
-                    X_z += basisX[a]*zControlPointCoordinates[a];
-                    Y_z += basisY[a]*zControlPointCoordinates[a];
-                    Z_z += basisZ[a]*zControlPointCoordinates[a];
+                    Tz_x += basisX[a]*zControlPointCoordinates[a];
+                    Tz_y += basisY[a]*zControlPointCoordinates[a];
+                    Tz_z += basisZ[a]*zControlPointCoordinates[a];
                 }
                 
-                X_x /= splineControlPoint->dx;
-                Y_x /= splineControlPoint->dx;
-                Z_x /= splineControlPoint->dx;
-                
-                X_y /= splineControlPoint->dy;
-                Y_y /= splineControlPoint->dy;
-                Z_y /= splineControlPoint->dy;
-                
-                X_z /= splineControlPoint->dz;
-                Y_z /= splineControlPoint->dz;
-                Z_z /= splineControlPoint->dz;
+				jacobianMatrix.m[0][0]= Tx_x / splineControlPoint->dx;
+				jacobianMatrix.m[0][1]= Tx_y / splineControlPoint->dy;
+				jacobianMatrix.m[0][2]= Tx_z / splineControlPoint->dz;
+				jacobianMatrix.m[1][0]= Ty_x / splineControlPoint->dx;
+				jacobianMatrix.m[1][1]= Ty_y / splineControlPoint->dy;
+				jacobianMatrix.m[1][2]= Ty_z / splineControlPoint->dz;
+				jacobianMatrix.m[2][0]= Tz_x / splineControlPoint->dx;
+				jacobianMatrix.m[2][1]= Tz_y / splineControlPoint->dy;
+				jacobianMatrix.m[2][2]= Tz_z / splineControlPoint->dz;
+				
+				jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
+				JacobianTYPE detJac = nifti_mat33_determ(jacobianMatrix);
 
-                JacobianTYPE jacobianValue = X_x * Y_y * Z_z + X_y * Y_z * Z_x + X_z * Y_x * Z_y;
-                jacobianValue -= X_z * Y_y * Z_x + X_y * Y_x * Z_z + X_x * Y_z * Z_y;
-                
-                *jacobianMapPtr++ = jacobianValue;
+                *jacobianMapPtr++ = detJac;
             }
         }
     }
@@ -3874,16 +3955,46 @@ void reg_bspline_GetJacobianMatrix2D(nifti_image *splineControlPoint,
     if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
     else splineMatrix=&(splineControlPoint->qto_xyz);
 
-    float orientation[2];
-    orientation[0] = (  (splineMatrix->m[0][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][0]*splineMatrix->m[0][0] +
-                (splineMatrix->m[0][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][1]*splineMatrix->m[0][1]
-                )>0.0f?1.0f:-1.0f;
-    orientation[1] = (  (splineMatrix->m[1][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][0]*splineMatrix->m[1][0] +
-                (splineMatrix->m[1][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][1]*splineMatrix->m[1][1]
-                )>0.0f?1.0f:-1.0f;
+//    float orientation[2];
+//    orientation[0] = (  (splineMatrix->m[0][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][0]*splineMatrix->m[0][0] +
+//                (splineMatrix->m[0][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][1]*splineMatrix->m[0][1]
+//                )>0.0f?1.0f:-1.0f;
+//    orientation[1] = (  (splineMatrix->m[1][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][0]*splineMatrix->m[1][0] +
+//                (splineMatrix->m[1][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][1]*splineMatrix->m[1][1]
+//                )>0.0f?1.0f:-1.0f;
 
     unsigned int coord=0;
 
+	mat33 reorient;
+	reorient.m[0][0]=splineControlPoint->dx; reorient.m[0][1]=0.0f; reorient.m[0][2]=0.0f;
+	reorient.m[1][0]=0.0f; reorient.m[1][1]=splineControlPoint->dy; reorient.m[1][2]=0.0f;
+	reorient.m[2][0]=0.0f; reorient.m[2][1]=0.0f; reorient.m[2][2]=splineControlPoint->dz;
+	mat33 spline_ijk;
+    if(splineControlPoint->sform_code>0){
+		spline_ijk.m[0][0]=splineControlPoint->sto_ijk.m[0][0];
+		spline_ijk.m[0][1]=splineControlPoint->sto_ijk.m[0][1];
+		spline_ijk.m[0][2]=splineControlPoint->sto_ijk.m[0][2];
+		spline_ijk.m[1][0]=splineControlPoint->sto_ijk.m[1][0];
+		spline_ijk.m[1][1]=splineControlPoint->sto_ijk.m[1][1];
+		spline_ijk.m[1][2]=splineControlPoint->sto_ijk.m[1][2];
+		spline_ijk.m[2][0]=splineControlPoint->sto_ijk.m[2][0];
+		spline_ijk.m[2][1]=splineControlPoint->sto_ijk.m[2][1];
+		spline_ijk.m[2][2]=splineControlPoint->sto_ijk.m[2][2];
+	}
+    else{
+		spline_ijk.m[0][0]=splineControlPoint->qto_ijk.m[0][0];
+		spline_ijk.m[0][1]=splineControlPoint->qto_ijk.m[0][1];
+		spline_ijk.m[0][2]=splineControlPoint->qto_ijk.m[0][2];
+		spline_ijk.m[1][0]=splineControlPoint->qto_ijk.m[1][0];
+		spline_ijk.m[1][1]=splineControlPoint->qto_ijk.m[1][1];
+		spline_ijk.m[1][2]=splineControlPoint->qto_ijk.m[1][2];
+		spline_ijk.m[2][0]=splineControlPoint->qto_ijk.m[2][0];
+		spline_ijk.m[2][1]=splineControlPoint->qto_ijk.m[2][1];
+		spline_ijk.m[2][2]=splineControlPoint->qto_ijk.m[2][2];
+	}
+	reorient=nifti_mat33_mul(spline_ijk, reorient);
+	mat33 jacobianMatrix;
+	
     for(int y=0; y<jacobianImage->ny; y++){
 
         int yPre=(int)((JacobianTYPE)y/gridVoxelSpacing[1]);
@@ -3934,37 +4045,40 @@ void reg_bspline_GetJacobianMatrix2D(nifti_image *splineControlPoint,
                     SplineTYPE *xPtr = &controlPointPtrX[index];
                     SplineTYPE *yPtr = &controlPointPtrY[index];
                     for(int X=xPre; X<xPre+4; X++){
-                        xControlPointCoordinates[coord] = (JacobianTYPE)xPtr[X]*orientation[0];
-                        yControlPointCoordinates[coord] = (JacobianTYPE)yPtr[X]*orientation[1];
+                        xControlPointCoordinates[coord] = (JacobianTYPE)xPtr[X];
+                        yControlPointCoordinates[coord] = (JacobianTYPE)yPtr[X];
                         coord++;
                     }
                 }
             }
             oldBasis=basis;
-            JacobianTYPE X_x=0.0;
-            JacobianTYPE Y_x=0.0;
-            JacobianTYPE X_y=0.0;
-            JacobianTYPE Y_y=0.0;
+            JacobianTYPE Tx_x=0.0;
+            JacobianTYPE Ty_x=0.0;
+            JacobianTYPE Tx_y=0.0;
+            JacobianTYPE Ty_y=0.0;
 
             for(int a=0; a<16; a++){
-                X_x += basisX[a]*xControlPointCoordinates[a];
-                Y_x += basisY[a]*xControlPointCoordinates[a];
+                Tx_x += basisX[a]*xControlPointCoordinates[a];
+                Tx_y += basisY[a]*xControlPointCoordinates[a];
 
-                X_y += basisX[a]*yControlPointCoordinates[a];
-                Y_y += basisY[a]*yControlPointCoordinates[a];
+                Ty_x += basisX[a]*yControlPointCoordinates[a];
+                Ty_y += basisY[a]*yControlPointCoordinates[a];
             }
+			
+			memset(&jacobianMatrix, 0, sizeof(mat33));
+			jacobianMatrix.m[2][2]=1.0f;
+			jacobianMatrix.m[0][0]= Tx_x / splineControlPoint->dx;
+			jacobianMatrix.m[0][1]= Tx_y / splineControlPoint->dy;
+			jacobianMatrix.m[1][0]= Ty_x / splineControlPoint->dx;
+			jacobianMatrix.m[1][1]= Ty_y / splineControlPoint->dy;
+			
+			jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
 
-            X_x /= splineControlPoint->dx;
-            Y_x /= splineControlPoint->dx;
+            *jacobianMatrixTxxPtr++ = jacobianMatrix.m[0][0];
+            *jacobianMatrixTyxPtr++ = jacobianMatrix.m[0][1];
 
-            X_y /= splineControlPoint->dy;
-            Y_y /= splineControlPoint->dy;
-
-            *jacobianMatrixTxxPtr++ = X_x;
-            *jacobianMatrixTyxPtr++ = Y_x;
-
-            *jacobianMatrixTxyPtr++ = X_y;
-            *jacobianMatrixTyyPtr++ = Y_y;
+            *jacobianMatrixTxyPtr++ = jacobianMatrix.m[1][0];
+            *jacobianMatrixTyyPtr++ = jacobianMatrix.m[1][1];
         }
     }
 }
@@ -4008,22 +4122,51 @@ void reg_bspline_GetJacobianMatrix3D(nifti_image *splineControlPoint,
     if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
     else splineMatrix=&(splineControlPoint->qto_xyz);
 
-    float orientation[3];
-    orientation[0] = (  (splineMatrix->m[0][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][0]*splineMatrix->m[0][0] +
-                (splineMatrix->m[0][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][1]*splineMatrix->m[0][1] +
-                (splineMatrix->m[0][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][2]*splineMatrix->m[0][2]
-                )>0.0f?1.0f:-1.0f;
-    orientation[1] = (  (splineMatrix->m[1][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][0]*splineMatrix->m[1][0] +
-                (splineMatrix->m[1][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][1]*splineMatrix->m[1][1] +
-                (splineMatrix->m[1][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][2]*splineMatrix->m[1][2]
-                )>0.0f?1.0f:-1.0f;
-    orientation[2] = (  (splineMatrix->m[2][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][0]*splineMatrix->m[2][0] +
-                (splineMatrix->m[2][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][1]*splineMatrix->m[2][1] +
-                (splineMatrix->m[2][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][2]*splineMatrix->m[2][2]
-                )>0.0f?1.0f:-1.0f;
+//    float orientation[3];
+//    orientation[0] = (  (splineMatrix->m[0][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][0]*splineMatrix->m[0][0] +
+//                (splineMatrix->m[0][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][1]*splineMatrix->m[0][1] +
+//                (splineMatrix->m[0][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[0][2]*splineMatrix->m[0][2]
+//                )>0.0f?1.0f:-1.0f;
+//    orientation[1] = (  (splineMatrix->m[1][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][0]*splineMatrix->m[1][0] +
+//                (splineMatrix->m[1][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][1]*splineMatrix->m[1][1] +
+//                (splineMatrix->m[1][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[1][2]*splineMatrix->m[1][2]
+//                )>0.0f?1.0f:-1.0f;
+//    orientation[2] = (  (splineMatrix->m[2][0]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][0]*splineMatrix->m[2][0] +
+//                (splineMatrix->m[2][1]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][1]*splineMatrix->m[2][1] +
+//                (splineMatrix->m[2][2]>0.0f?1.0f:-1.0f)*splineMatrix->m[2][2]*splineMatrix->m[2][2]
+//                )>0.0f?1.0f:-1.0f;
 
     unsigned int coord=0;
-    
+   	mat33 reorient;
+	reorient.m[0][0]=splineControlPoint->dx; reorient.m[0][1]=0.0f; reorient.m[0][2]=0.0f;
+	reorient.m[1][0]=0.0f; reorient.m[1][1]=splineControlPoint->dy; reorient.m[1][2]=0.0f;
+	reorient.m[2][0]=0.0f; reorient.m[2][1]=0.0f; reorient.m[2][2]=splineControlPoint->dz;
+	mat33 spline_ijk;
+    if(splineControlPoint->sform_code>0){
+		spline_ijk.m[0][0]=splineControlPoint->sto_ijk.m[0][0];
+		spline_ijk.m[0][1]=splineControlPoint->sto_ijk.m[0][1];
+		spline_ijk.m[0][2]=splineControlPoint->sto_ijk.m[0][2];
+		spline_ijk.m[1][0]=splineControlPoint->sto_ijk.m[1][0];
+		spline_ijk.m[1][1]=splineControlPoint->sto_ijk.m[1][1];
+		spline_ijk.m[1][2]=splineControlPoint->sto_ijk.m[1][2];
+		spline_ijk.m[2][0]=splineControlPoint->sto_ijk.m[2][0];
+		spline_ijk.m[2][1]=splineControlPoint->sto_ijk.m[2][1];
+		spline_ijk.m[2][2]=splineControlPoint->sto_ijk.m[2][2];
+	}
+    else{
+		spline_ijk.m[0][0]=splineControlPoint->qto_ijk.m[0][0];
+		spline_ijk.m[0][1]=splineControlPoint->qto_ijk.m[0][1];
+		spline_ijk.m[0][2]=splineControlPoint->qto_ijk.m[0][2];
+		spline_ijk.m[1][0]=splineControlPoint->qto_ijk.m[1][0];
+		spline_ijk.m[1][1]=splineControlPoint->qto_ijk.m[1][1];
+		spline_ijk.m[1][2]=splineControlPoint->qto_ijk.m[1][2];
+		spline_ijk.m[2][0]=splineControlPoint->qto_ijk.m[2][0];
+		spline_ijk.m[2][1]=splineControlPoint->qto_ijk.m[2][1];
+		spline_ijk.m[2][2]=splineControlPoint->qto_ijk.m[2][2];
+	}
+	reorient=nifti_mat33_mul(spline_ijk, reorient);
+	mat33 jacobianMatrix;
+
     for(int z=0; z<jacobianImage->nz; z++){
         
         int zPre=(int)((JacobianTYPE)z/gridVoxelSpacing[2]);
@@ -4107,9 +4250,9 @@ void reg_bspline_GetJacobianMatrix3D(nifti_image *splineControlPoint,
                             SplineTYPE *yyPtr = &yPtr[index];
                             SplineTYPE *zzPtr = &zPtr[index];
                             for(int X=xPre; X<xPre+4; X++){
-                                xControlPointCoordinates[coord] = (JacobianTYPE)xxPtr[X]*orientation[0];
-                                yControlPointCoordinates[coord] = (JacobianTYPE)yyPtr[X]*orientation[1];
-                                zControlPointCoordinates[coord] = (JacobianTYPE)zzPtr[X]*orientation[2];
+                                xControlPointCoordinates[coord] = (JacobianTYPE)xxPtr[X];
+                                yControlPointCoordinates[coord] = (JacobianTYPE)yyPtr[X];
+                                zControlPointCoordinates[coord] = (JacobianTYPE)zzPtr[X];
                                 coord++;
                             }
                         }
@@ -4117,53 +4260,49 @@ void reg_bspline_GetJacobianMatrix3D(nifti_image *splineControlPoint,
                 }
                 oldBasis=basis;
                 
-                JacobianTYPE X_x=0.0;
-                JacobianTYPE Y_x=0.0;
-                JacobianTYPE Z_x=0.0;
-                JacobianTYPE X_y=0.0;
-                JacobianTYPE Y_y=0.0;
-                JacobianTYPE Z_y=0.0;
-                JacobianTYPE X_z=0.0;
-                JacobianTYPE Y_z=0.0;
-                JacobianTYPE Z_z=0.0;
+                JacobianTYPE Tx_x=0.0;
+                JacobianTYPE Ty_x=0.0;
+                JacobianTYPE Tz_x=0.0;
+                JacobianTYPE Tx_y=0.0;
+                JacobianTYPE Ty_y=0.0;
+                JacobianTYPE Tz_y=0.0;
+                JacobianTYPE Tx_z=0.0;
+                JacobianTYPE Ty_z=0.0;
+                JacobianTYPE Tz_z=0.0;
                 
                 for(int a=0; a<64; a++){
-                    X_x += basisX[a]*xControlPointCoordinates[a];
-                    Y_x += basisY[a]*xControlPointCoordinates[a];
-                    Z_x += basisZ[a]*xControlPointCoordinates[a];
-                    
-                    X_y += basisX[a]*yControlPointCoordinates[a];
-                    Y_y += basisY[a]*yControlPointCoordinates[a];
-                    Z_y += basisZ[a]*yControlPointCoordinates[a];
-                    
-                    X_z += basisX[a]*zControlPointCoordinates[a];
-                    Y_z += basisY[a]*zControlPointCoordinates[a];
-                    Z_z += basisZ[a]*zControlPointCoordinates[a];
+                    Tx_x += basisX[a]*xControlPointCoordinates[a];
+                    Tx_y += basisY[a]*xControlPointCoordinates[a];
+                    Tx_z += basisZ[a]*xControlPointCoordinates[a];
+                    Ty_x += basisX[a]*yControlPointCoordinates[a];
+                    Ty_y += basisY[a]*yControlPointCoordinates[a];
+                    Ty_z += basisZ[a]*yControlPointCoordinates[a];
+                    Tz_x += basisX[a]*zControlPointCoordinates[a];
+                    Tz_y += basisY[a]*zControlPointCoordinates[a];
+                    Tz_z += basisZ[a]*zControlPointCoordinates[a];
                 }
                 
-                X_x /= splineControlPoint->dx;
-                Y_x /= splineControlPoint->dx;
-                Z_x /= splineControlPoint->dx;
-                
-                X_y /= splineControlPoint->dy;
-                Y_y /= splineControlPoint->dy;
-                Z_y /= splineControlPoint->dy;
-                
-                X_z /= splineControlPoint->dz;
-                Y_z /= splineControlPoint->dz;
-                Z_z /= splineControlPoint->dz;
-
-                *jacobianMatrixTxxPtr++ = X_x;
-                *jacobianMatrixTyxPtr++ = Y_x;
-                *jacobianMatrixTzxPtr++ = Z_x;
-                
-                *jacobianMatrixTxyPtr++ = X_y;
-                *jacobianMatrixTyyPtr++ = Y_y;
-                *jacobianMatrixTzyPtr++ = Z_y;
-                
-                *jacobianMatrixTxzPtr++ = X_z;
-                *jacobianMatrixTyzPtr++ = Y_z;
-                *jacobianMatrixTzzPtr++ = Z_z;
+				jacobianMatrix.m[0][0]= Tx_x / splineControlPoint->dx;
+				jacobianMatrix.m[0][1]= Tx_y / splineControlPoint->dy;
+				jacobianMatrix.m[0][2]= Tx_z / splineControlPoint->dz;
+				jacobianMatrix.m[1][0]= Ty_x / splineControlPoint->dx;
+				jacobianMatrix.m[1][1]= Ty_y / splineControlPoint->dy;
+				jacobianMatrix.m[1][2]= Ty_z / splineControlPoint->dz;
+				jacobianMatrix.m[2][0]= Tz_x / splineControlPoint->dx;
+				jacobianMatrix.m[2][1]= Tz_y / splineControlPoint->dy;
+				jacobianMatrix.m[2][2]= Tz_z / splineControlPoint->dz;
+				
+				jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
+				
+                *jacobianMatrixTxxPtr++ = jacobianMatrix.m[0][0];
+                *jacobianMatrixTyxPtr++ = jacobianMatrix.m[0][1];
+                *jacobianMatrixTzxPtr++ = jacobianMatrix.m[0][2];
+                *jacobianMatrixTxyPtr++ = jacobianMatrix.m[1][0];
+                *jacobianMatrixTyyPtr++ = jacobianMatrix.m[1][1];
+                *jacobianMatrixTzyPtr++ = jacobianMatrix.m[1][2];
+                *jacobianMatrixTxzPtr++ = jacobianMatrix.m[2][0];
+                *jacobianMatrixTyzPtr++ = jacobianMatrix.m[2][1];
+                *jacobianMatrixTzzPtr++ = jacobianMatrix.m[2][2];
             }
         }
     }
@@ -4353,37 +4492,39 @@ void reg_square_cpp_2D(	nifti_image *positionGridImage,
 #endif
 	
     unsigned int coord;
-		
-	mat44 *matrix_real_to_voxel;
-	if(decomposedGridImage->sform_code>0)
-		matrix_real_to_voxel=&(decomposedGridImage->sto_ijk);
-	else matrix_real_to_voxel=&(decomposedGridImage->qto_ijk);
 	
-//	mat44 *matrix_voxel_to_real;
-//    if(decomposedGridImage->sform_code>0) matrix_voxel_to_real=&(decomposedGridImage->sto_xyz);
-//    else matrix_voxel_to_real=&(decomposedGridImage->qto_xyz);
-		
+	// read the xyz/ijk sform or qform, as appropriate
+	mat44 *matrix_real_to_voxel=NULL;
+	mat44 *matrix_voxel_to_real=NULL;
+	if(decomposedGridImage->sform_code>0){
+		matrix_real_to_voxel=&(decomposedGridImage->sto_ijk);
+		matrix_voxel_to_real=&(decomposedGridImage->sto_xyz);
+	}
+	else{
+		matrix_real_to_voxel=&(decomposedGridImage->qto_ijk);
+		matrix_voxel_to_real=&(decomposedGridImage->qto_xyz);
+	}
+
 #ifdef _WINDOWS
 	__declspec(align(16)) PrecisionTYPE xBasis[4];
 #else
 	PrecisionTYPE xBasis[4] __attribute__((aligned(16)));
 #endif		
-	// read the ijk sform or qform, as appropriate
 	
 	for(int y=0; y<decomposedGridImage->ny; y++){
 		for(int x=0; x<decomposedGridImage->nx; x++){
 			
-//			// Get the initial control point position
-//			PrecisionTYPE xInit = matrix_voxel_to_real->m[0][0]*(PrecisionTYPE)x
-//			+ matrix_voxel_to_real->m[0][1]*(PrecisionTYPE)y
-//			+ matrix_voxel_to_real->m[0][3];
-//			PrecisionTYPE yInit = matrix_voxel_to_real->m[1][0]*(PrecisionTYPE)x
-//			+ matrix_voxel_to_real->m[1][1]*(PrecisionTYPE)y
-//			+ matrix_voxel_to_real->m[1][3];
+			// Get the initial control point position
+			PrecisionTYPE xReal = matrix_voxel_to_real->m[0][0]*(PrecisionTYPE)x
+			+ matrix_voxel_to_real->m[0][1]*(PrecisionTYPE)y
+			+ matrix_voxel_to_real->m[0][3];
+			PrecisionTYPE yReal = matrix_voxel_to_real->m[1][0]*(PrecisionTYPE)x
+			+ matrix_voxel_to_real->m[1][1]*(PrecisionTYPE)y
+			+ matrix_voxel_to_real->m[1][3];
 			
 			// Get the control point actual position
-			PrecisionTYPE xReal = *outCPPPtrX;
-			PrecisionTYPE yReal = *outCPPPtrY;
+			xReal += *outCPPPtrX;
+			yReal += *outCPPPtrY;
 			
 			// Get the voxel based control point position
 			PrecisionTYPE xVoxel = matrix_real_to_voxel->m[0][0]*xReal
@@ -4439,7 +4580,6 @@ void reg_square_cpp_2D(	nifti_image *positionGridImage,
 			
 			xReal=0.0;
 			yReal=0.0;
-
 #if _USE_SSE
 			coord=0;
 			for(unsigned int b=0; b<4; b++){
@@ -4476,8 +4616,8 @@ void reg_square_cpp_2D(	nifti_image *positionGridImage,
 			}
 #endif
 			
-			*outCPPPtrX++ = (PrecisionTYPE)xReal;
-			*outCPPPtrY++ = (PrecisionTYPE)yReal;
+			*outCPPPtrX++ += (PrecisionTYPE)xReal;
+			*outCPPPtrY++ += (PrecisionTYPE)yReal;
 		}
 	}
 	return;
