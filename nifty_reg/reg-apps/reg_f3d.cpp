@@ -523,11 +523,6 @@ int main(int argc, char **argv)
 			flag->useVelocityFieldFlag=1;
 			param->velocityFieldName=(char *)"outputVelocity.nii";
 		}
-//		PrecisionTYPE *tmp=static_cast<PrecisionTYPE *>(velocityFieldImage->data);
-//		for(unsigned int i=0; i<velocityFieldImage->nvox;i++){
-//			*tmp=-(*tmp);
-//			tmp++;
-//		}
 	}
 
     /* read and binarise the target mask image */
@@ -750,12 +745,6 @@ int main(int argc, char **argv)
                 controlPointImage->pixdim[7]=controlPointImage->dw=1.0f;
                 controlPointImage->qform_code=targetImage->qform_code;
                 controlPointImage->sform_code=targetImage->sform_code;
-				
-				// The control point position image is initialised with the affine transformation
-				if(!flag->useVelocityFieldFlag){
-					if(reg_bspline_initialiseControlPointGridWithAffine(affineTransformation, controlPointImage)) return 1;
-					free(affineTransformation);
-				}
             }
 			// The velocity field is initialised to a blank field
 			if(flag->useVelocityFieldFlag && !flag->inputVelocityFieldFlag){
@@ -813,11 +802,13 @@ int main(int argc, char **argv)
 		
 		if(flag->useVelocityFieldFlag && level>0){
 			// The velocity field has to be up-sampled
-			nifti_set_filenames(velocityFieldImage, "smallVel.nii", 0, 0);
-			nifti_image_write(velocityFieldImage);
 			reg_linearVelocityUpsampling(velocityFieldImage, controlPointImage);
-			nifti_set_filenames(velocityFieldImage, "largeVel.nii", 0, 0);
-			nifti_image_write(velocityFieldImage);
+		}
+		
+		// The control point position image is initialised with the affine transformation
+		if(!flag->useVelocityFieldFlag && level==0 && !flag->inputCPPFlag){
+			if(reg_bspline_initialiseControlPointGridWithAffine(affineTransformation, controlPointImage)) return 1;
+			free(affineTransformation);
 		}
 
         mat44 *cppMatrix_xyz;
@@ -1067,15 +1058,14 @@ int main(int argc, char **argv)
 					for(unsigned int i=0; i<SQUARING_VALUE; i++){
 						reg_square_cpp(controlPointImage2,
 									   controlPointImage);
-						if(i==(SQUARING_VALUE-1)){
-							reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage2);
-						}
 						// The control point image is decomposed
 						reg_spline_Interpolant2Interpolator(	controlPointImage2,
 																controlPointImage);
 					}
 					nifti_image_free(controlPointImage2);
+					reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
 				}
+
                 /* generate the position field */
 				reg_bspline<PrecisionTYPE>(	controlPointImage,
 											targetImage,
@@ -1089,7 +1079,7 @@ int main(int argc, char **argv)
                                                         positionFieldImage,
                                                         targetMask,
                                                         1,
-													   param->sourceBGValue);
+														param->sourceBGValue);
 
 #ifdef _USE_CUDA
 			}
@@ -1136,7 +1126,8 @@ int main(int argc, char **argv)
 #endif
 				if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
 					currentWBE = param->bendingEnergyWeight
-							* reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
+					* reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
+					
 					currentValue -= currentWBE;
 				}
 				if(flag->jacobianWeightFlag && param->jacobianWeight){
@@ -1147,6 +1138,12 @@ int main(int argc, char **argv)
 				}
 #ifdef _USE_CUDA
 			}
+#endif
+
+#ifdef _VERBOSE
+			printf("[VERBOSE] Initial metric value: %g\n", (entropies[0]+entropies[1])/entropies[2]);
+			if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0) printf("[VERBOSE] Initial weighted bending energy value = %g, approx[%i]\n", currentWBE, flag->appBendingEnergyFlag);
+			if(flag->jacobianWeightFlag && param->jacobianWeight>0) printf("[VERBOSE] Initial weighted Jacobian log value = %g, approx[%i]\n", currentWJac, flag->appJacobianFlag);
 #endif
 
 			double bestValue = currentValue;
@@ -1296,34 +1293,17 @@ int main(int argc, char **argv)
 
                 /* The other gradients are calculated */
                 if(flag->beGradFlag && flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
-					if(flag->useVelocityFieldFlag){
-						reg_bspline_bendingEnergyGradient<PrecisionTYPE>(velocityFieldImage,
-																		 targetImage,
-																		 nodeNMIGradientImage,
-																		 param->bendingEnergyWeight);
-					}
-					else{
-						reg_bspline_bendingEnergyGradient<PrecisionTYPE>(controlPointImage,
-																		targetImage,
-																		nodeNMIGradientImage,
-																		param->bendingEnergyWeight);
-					}
+					reg_bspline_bendingEnergyGradient<PrecisionTYPE>(controlPointImage,
+																	 targetImage,
+																	 nodeNMIGradientImage,
+																	 param->bendingEnergyWeight);
 				}
 				if(flag->jlGradFlag && flag->jacobianWeightFlag && param->jacobianWeight>0){
-					if(flag->useVelocityFieldFlag){
-						reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>(	velocityFieldImage,
-																				targetImage,
-																				nodeNMIGradientImage,
-																				param->jacobianWeight,
-																				flag->appJacobianFlag);
-					}
-					else{
-						reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>(	controlPointImage,
-																			   targetImage,
-																			   nodeNMIGradientImage,
-																			   param->jacobianWeight,
-																			   flag->appJacobianFlag);
-					}
+					reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>(controlPointImage,
+																		   targetImage,
+																		   nodeNMIGradientImage,
+																		   param->jacobianWeight,
+																		   flag->appJacobianFlag);
 				}
 
 				/* The conjugate gradient is computed */
@@ -1546,14 +1526,12 @@ int main(int argc, char **argv)
 						for(unsigned int i=0; i<SQUARING_VALUE; i++){
 							reg_square_cpp(controlPointImage2,
 										   controlPointImage);
-							if(i==(SQUARING_VALUE-1)){
-								reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage2);
-							}
 							// The control point image is decomposed
 							reg_spline_Interpolant2Interpolator(	controlPointImage2,
 																controlPointImage);
 						}
 						nifti_image_free(controlPointImage2);
+						reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
 					}
 					reg_bspline<PrecisionTYPE>(	controlPointImage,
 											   targetImage,
@@ -1615,8 +1593,8 @@ int main(int argc, char **argv)
 
 #ifdef _VERBOSE
 				printf("[VERBOSE] [%i] Current objective function value: %g\n", iteration, currentValue);
-				if(flag->bendingEnergyFlag) printf("[VERBOSE] [%i] Weighted bending energy value = %g, approx[%i]\n", iteration, currentWBE, flag->appBendingEnergyFlag);
-				if(flag->jacobianWeightFlag) printf("[VERBOSE] [%i] Weighted Jacobian log value = %g, approx[%i]\n", iteration, currentWJac, flag->appJacobianFlag);
+				if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0) printf("[VERBOSE] [%i] Weighted bending energy value = %g, approx[%i]\n", iteration, currentWBE, flag->appBendingEnergyFlag);
+				if(flag->jacobianWeightFlag && param->jacobianWeight>0) printf("[VERBOSE] [%i] Weighted Jacobian log value = %g, approx[%i]\n", iteration, currentWJac, flag->appJacobianFlag);
 #endif
 
 				iteration++;
@@ -1671,8 +1649,8 @@ int main(int argc, char **argv)
 #endif
 			currentSize=addedStep;
 			printf("[%i] Objective function value=%g | max. added disp. = %g mm", iteration, bestValue, addedStep);
-			if(flag->bendingEnergyFlag) printf(" | wBE=%g", bestWBE);
-			if(flag->jacobianWeightFlag) printf(" | wJacLog=%g", bestWJac);
+			if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0) printf(" | wBE=%g", bestWBE);
+			if(flag->jacobianWeightFlag && param->jacobianWeight>0) printf(" | wJacLog=%g", bestWJac);
 			printf("\n");
 		} // while(iteration<param->maxIteration && currentSize>smallestSize){
 	
@@ -1774,10 +1752,10 @@ int main(int argc, char **argv)
 								   controlPointImage);
 					// The control point image is decomposed
 					reg_spline_Interpolant2Interpolator(	controlPointImage2,
-															controlPointImage);
+														controlPointImage);
 				}
-				reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
 				nifti_image_free(controlPointImage2);
+				reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
 			}
 
 			/* The best result is returned */
