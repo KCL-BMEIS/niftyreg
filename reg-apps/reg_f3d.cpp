@@ -345,7 +345,6 @@ int main(int argc, char **argv)
 		else if(strcmp(argv[i], "-ssd") == 0){
 			flag->useSSDFlag=1;
 			printf("I'm affraid I did not have time to validate the SSD metric and its gradient yet\n");
-			return 1;
 		}
 		else if(strcmp(argv[i], "-vel") == 0){
 			flag->useVelocityFieldFlag=1;
@@ -433,6 +432,17 @@ int main(int argc, char **argv)
         }
 #endif
     }
+	
+#ifdef _USE_CUDA 
+	/* Check the SSD for GPU*/
+	if(flag->useGPUFlag){
+		if(flag->useSSDFlag){
+			printf("\n[WARNING] The SSD GPU version has not been implemented yet [/WARNING]\n");
+			printf("[WARNING] >>> Exit <<< [/WARNING]\n");
+			return 1;
+		}
+	}
+#endif	
 
     /* Check the source background index */
     if(!flag->backgroundIndexFlag) param->sourceBGValue = 0.0;
@@ -1085,16 +1095,24 @@ int main(int argc, char **argv)
 			}
 #endif
 
-			double currentValue;
-			reg_getEntropies<double>(	targetImage,
-							resultImage,
-							JH_PW_APPROX,
-							param->binning,
-							probaJointHistogram,
-							logJointHistogram,
-							entropies,
-                            targetMask);
-			currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight)*(entropies[0]+entropies[1])/entropies[2];
+			double currentValue=0.0;
+			PrecisionTYPE SSDValue=0.0;
+			if(flag->useSSDFlag){
+				SSDValue=reg_getSSD<PrecisionTYPE>(	targetImage,
+													resultImage);
+				currentValue = -(1.0-param->bendingEnergyWeight-param->jacobianWeight)*log(SSDValue+1.0);
+			}
+			else{
+				reg_getEntropies<double>(	targetImage,
+								resultImage,
+								JH_PW_APPROX,
+								param->binning,
+								probaJointHistogram,
+								logJointHistogram,
+								entropies,
+								targetMask);
+				currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight)*(entropies[0]+entropies[1])/entropies[2];
+			}
 
 #ifdef _USE_CUDA
 			/* * NEED TO BE CHANGED */
@@ -1141,7 +1159,9 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef _VERBOSE
-			printf("[VERBOSE] Initial metric value: %g\n", (entropies[0]+entropies[1])/entropies[2]);
+			if(flag->useSSDFlag)
+				printf("[VERBOSE] Initial metric value (log(SSD)): %g\n", log(SSDValue+1.0));
+			else printf("[VERBOSE] Initial metric value: %g\n", (entropies[0]+entropies[1])/entropies[2]);
 			if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0) printf("[VERBOSE] Initial weighted bending energy value = %g, approx[%i]\n", currentWBE, flag->appBendingEnergyFlag);
 			if(flag->jacobianWeightFlag && param->jacobianWeight>0) printf("[VERBOSE] Initial weighted Jacobian log value = %g, approx[%i]\n", currentWJac, flag->appJacobianFlag);
 #endif
@@ -1228,20 +1248,30 @@ int main(int argc, char **argv)
 #endif
 				/* The NMI Gradient is calculated */
 				reg_getSourceImageGradient<PrecisionTYPE>(	targetImage,
-										sourceImage,
-										resultGradientImage,
-										positionFieldImage,
-                                        targetMask,
-										1);
-				reg_getVoxelBasedNMIGradientUsingPW<double>(targetImage,
-                                                            resultImage,
-                                                            JH_PW_APPROX,
-                                                            resultGradientImage,
-                                                            param->binning,
-                                                            logJointHistogram,
-                                                            entropies,
-                                                            voxelNMIGradientImage,
-                                                            targetMask);
+															sourceImage,
+															resultGradientImage,
+															positionFieldImage,
+															targetMask,
+															1);
+				
+				if(flag->useSSDFlag){
+					reg_getVoxelBasedSSDGradient<PrecisionTYPE>(SSDValue,
+																targetImage,
+																resultImage,
+																resultGradientImage,
+																voxelNMIGradientImage);
+				}
+				else{
+					reg_getVoxelBasedNMIGradientUsingPW<double>(targetImage,
+																resultImage,
+																JH_PW_APPROX,
+																resultGradientImage,
+																param->binning,
+																logJointHistogram,
+																entropies,
+																voxelNMIGradientImage,
+																targetMask);
+				}
                 reg_smoothImageForCubicSpline<PrecisionTYPE>(voxelNMIGradientImage,smoothingRadius);
                 reg_voxelCentric2NodeCentric(nodeNMIGradientImage,
 											 voxelNMIGradientImage,
@@ -1551,16 +1581,23 @@ int main(int argc, char **argv)
 				}
 #endif
 
-				/* Computation of the NMI */
-				reg_getEntropies<double>(	targetImage,
-                                            resultImage,
-                                            JH_PW_APPROX,
-                                            param->binning,
-                                            probaJointHistogram,
-                                            logJointHistogram,
-                                            entropies,
-                                            targetMask);
-				currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight)*(entropies[0]+entropies[1])/entropies[2];
+				/* Computation of the Metric Value */
+				if(flag->useSSDFlag){
+					SSDValue=reg_getSSD<PrecisionTYPE>(	targetImage,
+														resultImage);
+					currentValue = -(1.0-param->bendingEnergyWeight-param->jacobianWeight)*log(SSDValue+1.0);
+				}
+				else{
+					reg_getEntropies<double>(	targetImage,
+											 resultImage,
+											 JH_PW_APPROX,
+											 param->binning,
+											 probaJointHistogram,
+											 logJointHistogram,
+											 entropies,
+											 targetMask);
+					currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight)*(entropies[0]+entropies[1])/entropies[2];
+				}
 
 #ifdef _USE_CUDA
 				if(flag->useGPUFlag){

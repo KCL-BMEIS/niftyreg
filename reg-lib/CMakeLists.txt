@@ -23,9 +23,7 @@ IF(BUILD_F3D)
 		LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 	)
-ENDIF(BUILD_F3D)
 #-----------------------------------------------------------------------------
-IF(BUILD_F3D)
 	SET(NAME _reg_mutualinformation)
 	ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp)
 	INSTALL(TARGETS ${NAME}
@@ -33,6 +31,14 @@ IF(BUILD_F3D)
 		LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 	)
+#-----------------------------------------------------------------------------
+        SET(NAME _reg_ssd)
+        ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp)
+        INSTALL(TARGETS ${NAME}
+                RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+                LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+                ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        )
 ENDIF(BUILD_F3D)
 #-----------------------------------------------------------------------------
 SET(NAME _reg_tools)
@@ -42,16 +48,6 @@ INSTALL(TARGETS ${NAME}
 	LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 )
-#-----------------------------------------------------------------------------
-IF(BUILD_F3D)
-	SET(NAME _reg_ssd)
-	ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp)
-	INSTALL(TARGETS ${NAME}
-		RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-		LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-	)
-ENDIF(BUILD_F3D)
 #-----------------------------------------------------------------------------
 IF(BUILD_ALADIN)
 	SET(NAME _reg_blockMatching)

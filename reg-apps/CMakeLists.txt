@@ -42,3 +42,4 @@ IF(BUILD_BENCHMARK)
 	INSTALL_TARGETS(/bin reg_benchmark)
 ENDIF(BUILD_BENCHMARK)
 #-----------------------------------------------------------------------------
+

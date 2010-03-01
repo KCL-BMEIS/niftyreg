@@ -111,7 +111,8 @@ template double reg_getSSD<double>(nifti_image *, nifti_image *);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class TargetTYPE, class ResultTYPE, class GradientImgTYPE, class SSDGradTYPE>
-void reg_getVoxelBasedSSDGradient4(	nifti_image *targetImage,
+void reg_getVoxelBasedSSDGradient4(	PrecisionTYPE SSDValue,
+									nifti_image *targetImage,
 									nifti_image *resultImage,
 									nifti_image *resultImageGradient,
 									nifti_image *ssdGradientImage
@@ -119,15 +120,17 @@ void reg_getVoxelBasedSSDGradient4(	nifti_image *targetImage,
 {
 	TargetTYPE *targetPtr=static_cast<TargetTYPE *>(targetImage->data);
 	ResultTYPE *resultPtr=static_cast<ResultTYPE *>(resultImage->data);
+
 	GradientImgTYPE *spatialGradPtrX=static_cast<GradientImgTYPE *>(resultImageGradient->data);
-	GradientImgTYPE *spatialGradPtrY = &spatialGradPtrX[resultImageGradient->nz*resultImageGradient->ny*resultImageGradient->nz];
+	GradientImgTYPE *spatialGradPtrY = &spatialGradPtrX[resultImageGradient->nx*resultImageGradient->ny*resultImageGradient->nz];
 	GradientImgTYPE *spatialGradPtrZ = NULL;
-	if(targetImage->nz>1) spatialGradPtrZ = &spatialGradPtrY[resultImageGradient->nz*resultImageGradient->ny*resultImageGradient->nz];
+	if(targetImage->nz>1) spatialGradPtrZ = &spatialGradPtrY[resultImageGradient->nx*resultImageGradient->ny*resultImageGradient->nz];
+
 	SSDGradTYPE *ssdGradPtrX=static_cast<SSDGradTYPE *>(ssdGradientImage->data);
-	SSDGradTYPE *ssdGradPtrY = &ssdGradPtrX[ssdGradientImage->nz*ssdGradientImage->ny*ssdGradientImage->nz];
+	SSDGradTYPE *ssdGradPtrY = &ssdGradPtrX[ssdGradientImage->nx*ssdGradientImage->ny*ssdGradientImage->nz];
 	SSDGradTYPE *ssdGradPtrZ = NULL;
-	if(targetImage->nz>1) ssdGradPtrZ = &ssdGradPtrY[ssdGradientImage->nz*ssdGradientImage->ny*ssdGradientImage->nz];
-	
+	if(targetImage->nz>1) ssdGradPtrZ = &ssdGradPtrY[ssdGradientImage->nx*ssdGradientImage->ny*ssdGradientImage->nz];
+
 	for(unsigned int i=0; i<targetImage->nvox;i++){
 		TargetTYPE targetValue = *targetPtr++;
 		ResultTYPE resultValue = *resultPtr++;
@@ -144,14 +147,16 @@ void reg_getVoxelBasedSSDGradient4(	nifti_image *targetImage,
 		spatialGradPtrY++;
 		if(targetImage->nz>1) spatialGradPtrZ++;
 		
-		*ssdGradPtrX++ = (SSDGradTYPE)gradX;
-		*ssdGradPtrY++ = (SSDGradTYPE)gradY;
-		if(targetImage->nz>1) *ssdGradPtrZ++ = (SSDGradTYPE)gradZ;
+		// the optical flow is divided by the SSD value since I used the log of the SSD as a metric.
+		*ssdGradPtrX++ = (SSDGradTYPE)gradX/(SSDValue+1.0);
+		*ssdGradPtrY++ = (SSDGradTYPE)gradY/(SSDValue+1.0);
+		if(targetImage->nz>1) *ssdGradPtrZ++ = (SSDGradTYPE)gradZ/(SSDValue+1.0);
 	}
 }
 /* *************************************************************** */
 template <class PrecisionTYPE, class TargetTYPE, class ResultTYPE, class GradientImgTYPE>
-void reg_getVoxelBasedSSDGradient3(	nifti_image *targetImage,
+void reg_getVoxelBasedSSDGradient3(	PrecisionTYPE SSDValue,
+									nifti_image *targetImage,
 									nifti_image *resultImage,
 									nifti_image *resultImageGradient,
 									nifti_image *ssdGradientImage
@@ -160,11 +165,11 @@ void reg_getVoxelBasedSSDGradient3(	nifti_image *targetImage,
 	switch ( ssdGradientImage->datatype ){
 		case NIFTI_TYPE_FLOAT32:
 			reg_getVoxelBasedSSDGradient4<PrecisionTYPE,TargetTYPE,ResultTYPE,GradientImgTYPE,float>
-				(targetImage, resultImage, resultImageGradient, ssdGradientImage);
+				(SSDValue, targetImage, resultImage, resultImageGradient, ssdGradientImage);
 			break;
 		case NIFTI_TYPE_FLOAT64:
 			reg_getVoxelBasedSSDGradient4<PrecisionTYPE,TargetTYPE,ResultTYPE,GradientImgTYPE,double>
-				(targetImage, resultImage, resultImageGradient, ssdGradientImage);
+				(SSDValue, targetImage, resultImage, resultImageGradient, ssdGradientImage);
 			break;
 		default:
 			printf("SSD gradient pixel type unsupported in the SSD gradient computation function.");
@@ -173,7 +178,8 @@ void reg_getVoxelBasedSSDGradient3(	nifti_image *targetImage,
 }
 /* *************************************************************** */
 template <class PrecisionTYPE, class TargetTYPE, class ResultTYPE>
-void reg_getVoxelBasedSSDGradient2(	nifti_image *targetImage,
+void reg_getVoxelBasedSSDGradient2(	PrecisionTYPE SSDValue,
+									nifti_image *targetImage,
 									nifti_image *resultImage,
 									nifti_image *resultImageGradient,
 									nifti_image *ssdGradientImage
@@ -182,11 +188,11 @@ void reg_getVoxelBasedSSDGradient2(	nifti_image *targetImage,
 	switch ( resultImageGradient->datatype ){
 		case NIFTI_TYPE_FLOAT32:
 			reg_getVoxelBasedSSDGradient3<PrecisionTYPE,TargetTYPE,ResultTYPE,float>
-				(targetImage, resultImage, resultImageGradient, ssdGradientImage);
+				(SSDValue, targetImage, resultImage, resultImageGradient, ssdGradientImage);
 			break;
 		case NIFTI_TYPE_FLOAT64:
 			reg_getVoxelBasedSSDGradient3<PrecisionTYPE,TargetTYPE,ResultTYPE,double>
-				(targetImage, resultImage, resultImageGradient, ssdGradientImage);
+				(SSDValue, targetImage, resultImage, resultImageGradient, ssdGradientImage);
 			break;
 		default:
 			printf("Spatial gradient pixel type unsupported in the SSD gradient computation function.");
@@ -195,7 +201,8 @@ void reg_getVoxelBasedSSDGradient2(	nifti_image *targetImage,
 }
 /* *************************************************************** */
 template <class PrecisionTYPE, class TargetTYPE>
-void reg_getVoxelBasedSSDGradient1(	nifti_image *targetImage,
+void reg_getVoxelBasedSSDGradient1(	PrecisionTYPE SSDValue,
+									nifti_image *targetImage,
 									nifti_image *resultImage,
 									nifti_image *resultImageGradient,
 									nifti_image *ssdGradientImage
@@ -204,35 +211,35 @@ void reg_getVoxelBasedSSDGradient1(	nifti_image *targetImage,
 	switch ( resultImage->datatype ){
 		case NIFTI_TYPE_UINT8:
 			reg_getVoxelBasedSSDGradient2<PrecisionTYPE,TargetTYPE,unsigned char>
-				(targetImage, resultImage, resultImageGradient, ssdGradientImage);
+				(SSDValue, targetImage, resultImage, resultImageGradient, ssdGradientImage);
 			break;
 		case NIFTI_TYPE_INT8:
 			reg_getVoxelBasedSSDGradient2<PrecisionTYPE,TargetTYPE,char>
-				(targetImage, resultImage, resultImageGradient, ssdGradientImage);
+				(SSDValue, targetImage, resultImage, resultImageGradient, ssdGradientImage);
 			break;
 		case NIFTI_TYPE_UINT16:
 			reg_getVoxelBasedSSDGradient2<PrecisionTYPE,TargetTYPE,unsigned short>
-				(targetImage, resultImage, resultImageGradient, ssdGradientImage);
+				(SSDValue, targetImage, resultImage, resultImageGradient, ssdGradientImage);
 			break;
 		case NIFTI_TYPE_INT16:
 			reg_getVoxelBasedSSDGradient2<PrecisionTYPE,TargetTYPE,short>
-				(targetImage, resultImage, resultImageGradient, ssdGradientImage);
+				(SSDValue, targetImage, resultImage, resultImageGradient, ssdGradientImage);
 			break;
 		case NIFTI_TYPE_UINT32:
 			reg_getVoxelBasedSSDGradient2<PrecisionTYPE,TargetTYPE,unsigned int>
-				(targetImage, resultImage, resultImageGradient, ssdGradientImage);
+				(SSDValue, targetImage, resultImage, resultImageGradient, ssdGradientImage);
 			break;
 		case NIFTI_TYPE_INT32:
 			reg_getVoxelBasedSSDGradient2<PrecisionTYPE,TargetTYPE,int>
-				(targetImage, resultImage, resultImageGradient, ssdGradientImage);
+				(SSDValue, targetImage, resultImage, resultImageGradient, ssdGradientImage);
 			break;
 		case NIFTI_TYPE_FLOAT32:
 			reg_getVoxelBasedSSDGradient2<PrecisionTYPE,TargetTYPE,float>
-				(targetImage, resultImage, resultImageGradient, ssdGradientImage);
+				(SSDValue, targetImage, resultImage, resultImageGradient, ssdGradientImage);
 			break;
 		case NIFTI_TYPE_FLOAT64:
 			reg_getVoxelBasedSSDGradient2<PrecisionTYPE,TargetTYPE,double>
-				(targetImage, resultImage, resultImageGradient, ssdGradientImage);
+				(SSDValue, targetImage, resultImage, resultImageGradient, ssdGradientImage);
 			break;
 		default:
 			printf("Result pixel type unsupported in the SSD gradient computation function.");
@@ -241,7 +248,8 @@ void reg_getVoxelBasedSSDGradient1(	nifti_image *targetImage,
 }
 /* *************************************************************** */
 template <class PrecisionTYPE>
-void reg_getVoxelBasedSSDGradient(	nifti_image *targetImage,
+void reg_getVoxelBasedSSDGradient(	PrecisionTYPE SSDValue,
+									nifti_image *targetImage,
 									nifti_image *resultImage,
 									nifti_image *resultImageGradient,
 									nifti_image *ssdGradientImage
@@ -249,35 +257,43 @@ void reg_getVoxelBasedSSDGradient(	nifti_image *targetImage,
 {
 	switch ( targetImage->datatype ){
 		case NIFTI_TYPE_UINT8:
-			reg_getVoxelBasedSSDGradient1<PrecisionTYPE,unsigned char>(targetImage, resultImage, resultImageGradient, ssdGradientImage);
+			reg_getVoxelBasedSSDGradient1<PrecisionTYPE,unsigned char>
+				(SSDValue, targetImage, resultImage, resultImageGradient, ssdGradientImage);
 			break;
 		case NIFTI_TYPE_INT8:
-			reg_getVoxelBasedSSDGradient1<PrecisionTYPE,char>(targetImage, resultImage, resultImageGradient, ssdGradientImage);
+			reg_getVoxelBasedSSDGradient1<PrecisionTYPE,char>
+				(SSDValue, targetImage, resultImage, resultImageGradient, ssdGradientImage);
 			break;
 		case NIFTI_TYPE_UINT16:
-			reg_getVoxelBasedSSDGradient1<PrecisionTYPE,unsigned short>(targetImage, resultImage, resultImageGradient, ssdGradientImage);
+			reg_getVoxelBasedSSDGradient1<PrecisionTYPE,unsigned short>
+				(SSDValue, targetImage, resultImage, resultImageGradient, ssdGradientImage);
 			break;
 		case NIFTI_TYPE_INT16:
-			reg_getVoxelBasedSSDGradient1<PrecisionTYPE,short>(targetImage, resultImage, resultImageGradient, ssdGradientImage);
+			reg_getVoxelBasedSSDGradient1<PrecisionTYPE,short>
+				(SSDValue, targetImage, resultImage, resultImageGradient, ssdGradientImage);
 			break;
 		case NIFTI_TYPE_UINT32:
-			reg_getVoxelBasedSSDGradient1<PrecisionTYPE,unsigned int>(targetImage, resultImage, resultImageGradient, ssdGradientImage);
+			reg_getVoxelBasedSSDGradient1<PrecisionTYPE,unsigned int>
+				(SSDValue, targetImage, resultImage, resultImageGradient, ssdGradientImage);
 			break;
 		case NIFTI_TYPE_INT32:
-			reg_getVoxelBasedSSDGradient1<PrecisionTYPE,int>(targetImage, resultImage, resultImageGradient, ssdGradientImage);
+			reg_getVoxelBasedSSDGradient1<PrecisionTYPE,int>
+				(SSDValue, targetImage, resultImage, resultImageGradient, ssdGradientImage);
 			break;
 		case NIFTI_TYPE_FLOAT32:
-			reg_getVoxelBasedSSDGradient1<PrecisionTYPE,float>(targetImage, resultImage, resultImageGradient, ssdGradientImage);
+			reg_getVoxelBasedSSDGradient1<PrecisionTYPE,float>
+				(SSDValue, targetImage, resultImage, resultImageGradient, ssdGradientImage);
 			break;
 		case NIFTI_TYPE_FLOAT64:
-			reg_getVoxelBasedSSDGradient1<PrecisionTYPE,double>(targetImage, resultImage, resultImageGradient, ssdGradientImage);
+			reg_getVoxelBasedSSDGradient1<PrecisionTYPE,double>
+				(SSDValue, targetImage, resultImage, resultImageGradient, ssdGradientImage);
 			break;
 		default:
 			printf("Target pixel type unsupported in the SSD gradient computation function.");
 			break;
 	}
 }
-template void reg_getVoxelBasedSSDGradient<float>(nifti_image *, nifti_image *, nifti_image *, nifti_image *);
-template void reg_getVoxelBasedSSDGradient<double>(nifti_image *, nifti_image *, nifti_image *, nifti_image *);
+template void reg_getVoxelBasedSSDGradient<float>(float, nifti_image *, nifti_image *, nifti_image *, nifti_image *);
+template void reg_getVoxelBasedSSDGradient<double>(double, nifti_image *, nifti_image *, nifti_image *, nifti_image *);
 /* *************************************************************** */
 /* *************************************************************** */
