@@ -43,6 +43,8 @@ void reg_getSourceImageGradient(	nifti_image *targetImage,
 extern "C++"
 void reg_getJacobianImage(	nifti_image *deformationField,
 						  nifti_image *jacobianImage);
+
 extern "C++"
 void reg_linearVelocityUpsampling(nifti_image *image, nifti_image *image);
+
 #endif
