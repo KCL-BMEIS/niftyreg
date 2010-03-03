@@ -2720,7 +2720,7 @@ void reg_bspline_jacobianDeterminantGradient2D(nifti_image *splineControlPoint,
 			PrecisionTYPE jacobianContraintY=(PrecisionTYPE)0.0;
 			
 			// Loop over all the control points in the surrounding area
-			for(int pixelY=(y-3)*gridVoxelSpacing[1];pixelY<(y+1)*gridVoxelSpacing[1]; pixelY++){
+			for(int pixelY=(int)((y-3)*gridVoxelSpacing[1]);pixelY<(int)((y+1)*gridVoxelSpacing[1]); pixelY++){
 				if(pixelY>-1 && pixelY<targetImage->ny){
 					
 					int yPre=(int)((PrecisionTYPE)pixelY/gridVoxelSpacing[1]);
@@ -2750,7 +2750,7 @@ void reg_bspline_jacobianDeterminantGradient2D(nifti_image *splineControlPoint,
 							break;
 					}
 					
-					for(int pixelX=(x-3)*gridVoxelSpacing[0];pixelX<(x+1)*gridVoxelSpacing[0]; pixelX++){
+					for(int pixelX=(int)((x-3)*gridVoxelSpacing[0]);pixelX<(int)((x+1)*gridVoxelSpacing[0]); pixelX++){
 						if(pixelX>-1 && pixelX<targetImage->nx){
 							
 							int xPre=(int)((PrecisionTYPE)pixelX/gridVoxelSpacing[0]);
