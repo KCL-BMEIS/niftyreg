@@ -120,19 +120,19 @@ int main(int argc, char **argv)
         }
 
         else if(strcmp(argv[i], "-addV") == 0){
-            param->addValue=atof(argv[++i]);
+            param->addValue=(float)atof(argv[++i]);
             flag->addValueFlag=1;
         }
         else if(strcmp(argv[i], "-subV") == 0){
-            param->subValue=atof(argv[++i]);
+            param->subValue=(float)atof(argv[++i]);
             flag->subValueFlag=1;
         }
         else if(strcmp(argv[i], "-mulV") == 0){
-            param->mulValue=atof(argv[++i]);
+            param->mulValue=(float)atof(argv[++i]);
             flag->mulValueFlag=1;
         }
         else if(strcmp(argv[i], "-divV") == 0){
-            param->divValue=atof(argv[++i]);
+            param->divValue=(float)atof(argv[++i]);
             flag->divValueFlag=1;
         }
 
