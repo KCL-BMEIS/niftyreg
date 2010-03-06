@@ -809,6 +809,29 @@ int main(int argc, char **argv)
 
             controlPointImage->sto_ijk = nifti_mat44_inverse(controlPointImage->sto_xyz);
         }
+
+		if(flag->useVelocityFieldFlag && !flag->inputVelocityFieldFlag){
+			velocityFieldImage->qform_code = controlPointImage->qform_code;
+			velocityFieldImage->sform_code = controlPointImage->sform_code;
+			velocityFieldImage->quatern_b = controlPointImage->quatern_b;
+			velocityFieldImage->quatern_c = controlPointImage->quatern_c;
+			velocityFieldImage->quatern_d = controlPointImage->quatern_d;
+			velocityFieldImage->qoffset_x = controlPointImage->qoffset_x;
+			velocityFieldImage->qoffset_y = controlPointImage->qoffset_y;
+			velocityFieldImage->qoffset_z = controlPointImage->qoffset_z;
+			velocityFieldImage->dx = controlPointImage->dx;
+			velocityFieldImage->dy = controlPointImage->dy;
+			velocityFieldImage->dz = controlPointImage->dz;
+			velocityFieldImage->qfac = controlPointImage->qfac;
+			
+			if(velocityFieldImage->sform_code>0){
+				for(int i=0;i<4;i++){
+					for(int j=0;j<4;j++){
+						velocityFieldImage->sto_xyz.m[i][j]=controlPointImage->sto_xyz.m[i][j];
+					}
+				}
+			}	
+		}
 		
 		if(flag->useVelocityFieldFlag && level>0){
 			// The velocity field has to be up-sampled
@@ -1322,6 +1345,17 @@ int main(int argc, char **argv)
                 }
 
                 /* The other gradients are calculated */
+				if(flag->useVelocityFieldFlag &&
+				   ( (flag->beGradFlag && flag->bendingEnergyFlag && param->bendingEnergyWeight>0) ||
+					flag->jlGradFlag && flag->jacobianWeightFlag && param->jacobianWeight>0) ){
+					   
+					   PrecisionTYPE *velPtr=static_cast<PrecisionTYPE *>(velocityFieldImage->data);
+					   PrecisionTYPE *cppPtr=static_cast<PrecisionTYPE *>(controlPointImage->data);
+					   for(unsigned int i=0; i<controlPointImage->nvox; i++)
+						   *cppPtr++ = *velPtr++ * (PrecisionTYPE)SCALING_VALUE;
+					   reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
+					   
+				}
                 if(flag->beGradFlag && flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
 					reg_bspline_bendingEnergyGradient<PrecisionTYPE>(controlPointImage,
 																	 targetImage,
@@ -1737,11 +1771,6 @@ int main(int argc, char **argv)
         /* ****************** */
         /* OUTPUT THE RESULTS */
         /* ****************** */
-			
-			if(flag->useVelocityFieldFlag){
-				nifti_set_filenames(velocityFieldImage, param->velocityFieldName, 0, 0);
-				nifti_image_write(velocityFieldImage);
-			}
 
 #ifdef _USE_CUDA
             if(flag->useGPUFlag && param->level2Perform==param->levelNumber)
@@ -1770,6 +1799,9 @@ int main(int argc, char **argv)
 			 using a scaling squaring approach */
 			if(flag->useVelocityFieldFlag){
 				
+				nifti_set_filenames(velocityFieldImage, param->velocityFieldName, 0, 0);
+				nifti_image_write(velocityFieldImage);
+
 				// The velocity field is copied to the cpp image
 				memcpy(controlPointImage->data, velocityFieldImage->data,
 					   controlPointImage->nvox*controlPointImage->nbyper);
@@ -1842,7 +1874,8 @@ int main(int argc, char **argv)
 	nifti_image_free( velocityFieldImage );
 	nifti_image_free( targetHeader );
 	nifti_image_free( sourceHeader );
-    if(flag->targetMaskFlag) nifti_image_free( targetMaskImage );
+    if(flag->targetMaskFlag)
+		nifti_image_free( targetMaskImage );
 
 	free( flag );
 	free( param );
