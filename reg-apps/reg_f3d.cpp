@@ -46,8 +46,8 @@
 #define JH_PARZEN_WIN 1
 #define JH_PW_APPROX 2
 
-#define SCALING_VALUE 64
-#define SQUARING_VALUE 6
+#define SCALING_VALUE 256
+#define SQUARING_VALUE 8
 
 typedef struct{
 	char *targetImageName;
@@ -199,27 +199,25 @@ void apply_scaling_squaring(nifti_image *velocityFieldImage,
 {
 
 	// The velocity field is copied to the cpp image
-	memcpy(controlPointImage->data, velocityFieldImage->data,
-		   controlPointImage->nvox*controlPointImage->nbyper);
+	nifti_image *nodePositionImage=nifti_copy_nim_info(controlPointImage);
+	nodePositionImage->data=(void *)calloc(controlPointImage->nvox, controlPointImage->nbyper);
 	
-	// A second cpp grid is created
-	nifti_image *controlPointImage2=nifti_copy_nim_info(controlPointImage);
-	controlPointImage2->data=(void *)calloc(controlPointImage2->nvox, controlPointImage2->nbyper);
-	memcpy(controlPointImage2->data, velocityFieldImage->data,
+	memcpy(nodePositionImage->data, velocityFieldImage->data,
 		   controlPointImage->nvox*controlPointImage->nbyper);
-	
+
 	// The control point image is decomposed
-	reg_spline_Interpolant2Interpolator(	controlPointImage2,
+	reg_spline_Interpolant2Interpolator(nodePositionImage,
 										controlPointImage);
+	
 	// Squaring approach
 	for(unsigned int i=0; i<SQUARING_VALUE; i++){
-		reg_square_cpp(controlPointImage2,
+		reg_square_cpp(nodePositionImage,
 					   controlPointImage);
 		// The control point image is decomposed
-		reg_spline_Interpolant2Interpolator(	controlPointImage2,
+		reg_spline_Interpolant2Interpolator(nodePositionImage,
 											controlPointImage);
 	}
-	nifti_image_free(controlPointImage2);
+	nifti_image_free(nodePositionImage);
 
 	reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
 }

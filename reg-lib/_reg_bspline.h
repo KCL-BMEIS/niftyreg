@@ -93,5 +93,8 @@ int reg_getPositionFromDisplacement(nifti_image *controlPointImage);
 extern "C++"
 int reg_spline_Interpolant2Interpolator(nifti_image *inputImage,
 										nifti_image *outputImage);
+extern "C++"
+int reg_bspline_GetJacobianMapFromVelocityField(nifti_image* velocityFieldImage,
+												nifti_image* jacobianImage);
 
 #endif
