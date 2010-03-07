@@ -46,8 +46,8 @@
 #define JH_PARZEN_WIN 1
 #define JH_PW_APPROX 2
 
-#define SCALING_VALUE 256
-#define SQUARING_VALUE 8
+#define SCALING_VALUE 64
+#define SQUARING_VALUE 6
 
 typedef struct{
 	char *targetImageName;
@@ -172,7 +172,7 @@ void Usage(char *exec)
     printf("\t-lp <int>\t\tOnly perform the first levels [ln]\n");
 	printf("\t-nopy\t\t\tDo not use a pyramidal approach [no]\n");
 
-    printf("\t-smoothGrad <float>\tTo smooth the node-based gradient (in mm) [0]\n");
+    printf("\t-smoothGrad <float>\tTo smooth the objective function derivative (in mm) [0]\n");
 	
 	printf("\t-be <float>\t\tWeight of the bending energy penalty term [0.01]\n");
 	printf("\t-noAppBE\t\tTo not approximate the BE value only at the control point position\n");
@@ -192,6 +192,36 @@ void Usage(char *exec)
 #endif
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 	return;
+}
+
+void apply_scaling_squaring(nifti_image *velocityFieldImage,
+							nifti_image *controlPointImage)
+{
+
+	// The velocity field is copied to the cpp image
+	memcpy(controlPointImage->data, velocityFieldImage->data,
+		   controlPointImage->nvox*controlPointImage->nbyper);
+	
+	// A second cpp grid is created
+	nifti_image *controlPointImage2=nifti_copy_nim_info(controlPointImage);
+	controlPointImage2->data=(void *)calloc(controlPointImage2->nvox, controlPointImage2->nbyper);
+	memcpy(controlPointImage2->data, velocityFieldImage->data,
+		   controlPointImage->nvox*controlPointImage->nbyper);
+	
+	// The control point image is decomposed
+	reg_spline_Interpolant2Interpolator(	controlPointImage2,
+										controlPointImage);
+	// Squaring approach
+	for(unsigned int i=0; i<SQUARING_VALUE; i++){
+		reg_square_cpp(controlPointImage2,
+					   controlPointImage);
+		// The control point image is decomposed
+		reg_spline_Interpolant2Interpolator(	controlPointImage2,
+											controlPointImage);
+	}
+	nifti_image_free(controlPointImage2);
+
+	reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
 }
 
 int main(int argc, char **argv)
@@ -810,7 +840,7 @@ int main(int argc, char **argv)
             controlPointImage->sto_ijk = nifti_mat44_inverse(controlPointImage->sto_xyz);
         }
 
-		if(flag->useVelocityFieldFlag && !flag->inputVelocityFieldFlag){
+		if(flag->useVelocityFieldFlag && !flag->inputVelocityFieldFlag  && level==0){
 			velocityFieldImage->qform_code = controlPointImage->qform_code;
 			velocityFieldImage->sform_code = controlPointImage->sform_code;
 			velocityFieldImage->quatern_b = controlPointImage->quatern_b;
@@ -1073,30 +1103,8 @@ int main(int argc, char **argv)
 				/* A Velocity field is use to generate the CPP image
 					using a scaling squaring approach */
 				if(flag->useVelocityFieldFlag){
-
-					// The velocity field is copied to the cpp image
-					memcpy(controlPointImage->data, velocityFieldImage->data,
-						   controlPointImage->nvox*controlPointImage->nbyper);
-
-					// A second cpp grid is created
-					nifti_image *controlPointImage2=nifti_copy_nim_info(controlPointImage);
-					controlPointImage2->data=(void *)calloc(controlPointImage2->nvox, controlPointImage2->nbyper);
-					memcpy(controlPointImage2->data, velocityFieldImage->data,
-						   controlPointImage->nvox*controlPointImage->nbyper);
-
-					// The control point image is decomposed
-					reg_spline_Interpolant2Interpolator(	controlPointImage2,
-															controlPointImage);
-					// Squaring approach
-					for(unsigned int i=0; i<SQUARING_VALUE; i++){
-						reg_square_cpp(controlPointImage2,
-									   controlPointImage);
-						// The control point image is decomposed
-						reg_spline_Interpolant2Interpolator(	controlPointImage2,
-																controlPointImage);
-					}
-					nifti_image_free(controlPointImage2);
-					reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
+					apply_scaling_squaring(	velocityFieldImage,
+										   controlPointImage);
 				}
 
                 /* generate the position field */
@@ -1227,12 +1235,6 @@ int main(int argc, char **argv)
 								                    &voxelNMIGradientArray_d,
 								                    &nodeNMIGradientArray_d,
 													1.0f-param->bendingEnergyWeight-param->jacobianWeight);
-                if(flag->gradientSmoothingFlag){
-                    reg_gaussianSmoothing_gpu(  controlPointImage,
-                                                &nodeNMIGradientArray_d,
-                                                param->gradientSmoothingValue,
-                                                NULL);
-                }
 				/* The NMI gradient is converted from voxel space to real space */
 				reg_convertNMIGradientFromVoxelToRealSpace_gpu( sourceMatrix_xyz,
 										                        controlPointImage,
@@ -1264,6 +1266,12 @@ int main(int argc, char **argv)
 										            controlPointImage->nx*controlPointImage->ny*controlPointImage->nz);
 					}
 				}
+				if(flag->gradientSmoothingFlag){
+                    reg_gaussianSmoothing_gpu(  controlPointImage,
+											  &nodeNMIGradientArray_d,
+											  param->gradientSmoothingValue,
+											  NULL);
+                }
 				maxLength = reg_getMaximalLength_gpu(	&nodeNMIGradientArray_d,
 									                    controlPointImage->nx*controlPointImage->ny*controlPointImage->nz);
 			}
@@ -1299,11 +1307,6 @@ int main(int argc, char **argv)
                 reg_voxelCentric2NodeCentric(nodeNMIGradientImage,
 											 voxelNMIGradientImage,
 											 1.0f-param->bendingEnergyWeight-param->jacobianWeight);
-                if(flag->gradientSmoothingFlag){
-                    reg_gaussianSmoothing<PrecisionTYPE>(   nodeNMIGradientImage,
-                                                            param->gradientSmoothingValue,
-                                                            NULL);
-                }
 
                 /* The NMI gradient is converted from voxel space to real space */
                 if(flag->twoDimRegistration){
@@ -1460,6 +1463,11 @@ int main(int argc, char **argv)
 						}
 					}
 				}
+                if(flag->gradientSmoothingFlag){
+                    reg_gaussianSmoothing<PrecisionTYPE>(   nodeNMIGradientImage,
+														 param->gradientSmoothingValue,
+														 NULL);
+                }
 				maxLength = reg_getMaximalLength<PrecisionTYPE>(nodeNMIGradientImage);
 #ifdef _USE_CUDA
 			}
@@ -1572,30 +1580,8 @@ int main(int argc, char **argv)
 					/* A Velocity field is use to generate the CPP image
 					 using a scaling squaring approach */
 					if(flag->useVelocityFieldFlag){
-						
-						// The velocity field is copied to the cpp image
-						memcpy(controlPointImage->data, velocityFieldImage->data,
-							   controlPointImage->nvox*controlPointImage->nbyper);
-						
-						// A second cpp grid is created
-						nifti_image *controlPointImage2=nifti_copy_nim_info(controlPointImage);
-						controlPointImage2->data=(void *)calloc(controlPointImage2->nvox, controlPointImage2->nbyper);
-						memcpy(controlPointImage2->data, velocityFieldImage->data,
-							   controlPointImage->nvox*controlPointImage->nbyper);
-						
-						// The control point image is decomposed
-						reg_spline_Interpolant2Interpolator(	controlPointImage2,
-															controlPointImage);
-						// Squaring approach
-						for(unsigned int i=0; i<SQUARING_VALUE; i++){
-							reg_square_cpp(controlPointImage2,
-										   controlPointImage);
-							// The control point image is decomposed
-							reg_spline_Interpolant2Interpolator(	controlPointImage2,
-																controlPointImage);
-						}
-						nifti_image_free(controlPointImage2);
-						reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
+						apply_scaling_squaring(	velocityFieldImage,
+											   controlPointImage);
 					}
 					reg_bspline<PrecisionTYPE>(	controlPointImage,
 											   targetImage,
@@ -1801,30 +1787,9 @@ int main(int argc, char **argv)
 				
 				nifti_set_filenames(velocityFieldImage, param->velocityFieldName, 0, 0);
 				nifti_image_write(velocityFieldImage);
-
-				// The velocity field is copied to the cpp image
-				memcpy(controlPointImage->data, velocityFieldImage->data,
-					   controlPointImage->nvox*controlPointImage->nbyper);
 				
-				// A second cpp grid is created
-				nifti_image *controlPointImage2=nifti_copy_nim_info(controlPointImage);
-				controlPointImage2->data=(void *)calloc(controlPointImage2->nvox, controlPointImage2->nbyper);
-				memcpy(controlPointImage2->data, velocityFieldImage->data,
-					   controlPointImage->nvox*controlPointImage->nbyper);
-				
-				// The control point image is decomposed
-				reg_spline_Interpolant2Interpolator(	controlPointImage2,
-													controlPointImage);
-				// Squaring approach
-				for(unsigned int i=0; i<SQUARING_VALUE; i++){
-					reg_square_cpp(controlPointImage2,
-								   controlPointImage);
-					// The control point image is decomposed
-					reg_spline_Interpolant2Interpolator(	controlPointImage2,
-														controlPointImage);
-				}
-				nifti_image_free(controlPointImage2);
-				reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
+				apply_scaling_squaring(velocityFieldImage,
+									   controlPointImage);
 			}
 
 			/* The best result is returned */
