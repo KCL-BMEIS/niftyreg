@@ -45,6 +45,6 @@ void reg_getJacobianImage(	nifti_image *deformationField,
 						  nifti_image *jacobianImage);
 
 extern "C++"
-void reg_linearVelocityUpsampling(nifti_image *, nifti_image *);
+void reg_linearVelocityUpsampling(nifti_image **, nifti_image *);
 
 #endif

@@ -513,7 +513,7 @@ int main(int argc, char **argv)
 
 	/* Read the affine tranformation is defined otherwise assign it to identity */
 	mat44 *affineTransformation=NULL;
-	if(!flag->inputCPPFlag && !flag->inputVelocityFieldFlag){
+	if(!flag->inputCPPFlag && !flag->inputVelocityFieldFlag && !flag->useVelocityFieldFlag){
 		affineTransformation = (mat44 *)calloc(1,sizeof(mat44));
 		affineTransformation->m[0][0]=1.0;
 		affineTransformation->m[1][1]=1.0;
@@ -865,7 +865,7 @@ int main(int argc, char **argv)
 		
 		if(flag->useVelocityFieldFlag && level>0){
 			// The velocity field has to be up-sampled
-			reg_linearVelocityUpsampling(velocityFieldImage, controlPointImage);
+			reg_linearVelocityUpsampling(&velocityFieldImage, controlPointImage);
 		}
 		
 		// The control point position image is initialised with the affine transformation

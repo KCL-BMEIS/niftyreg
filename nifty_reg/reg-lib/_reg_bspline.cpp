@@ -3328,6 +3328,7 @@ void reg_bspline_jacobianDeterminantGradient3D(nifti_image *splineControlPoint,
 			}
 		}
 	}
+	free(allInverseJacobianMatrices);
 	return;
 }
 /* *************************************************************** */
