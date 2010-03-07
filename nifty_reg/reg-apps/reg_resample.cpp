@@ -24,6 +24,7 @@ typedef struct{
 	char *sourceImageName;
 	char *affineMatrixName;
 	char *inputCPPName;
+	char *inputVelocityFieldName;
 	char *outputPosName;
 	char *outputDispName;
 	char *outputEuclDispName;
@@ -46,6 +47,7 @@ typedef struct{
 	bool outputResultFlag;
 	bool outputBlankFlag;
 	bool outputJacobianFlag;
+	bool outputJacobianVelFlag;
 	bool outputJacobianMatrixFlag;
 	bool NNInterpolationFlag;
 	bool TRIInterpolationFlag;
@@ -71,6 +73,7 @@ void Usage(char *exec)
 	printf("\t-result <filename> \tFilename of the resampled image [none]\n");
 	printf("\t-blank <filename> \tFilename of the resampled blank grid [none]\n");
 	printf("\t-jac <filename> \tFilename of the Jacobian map image [none]\n");
+//	printf("\t-jacVel <inputVel> <outputJac> \t Wouhou [none]\n");
 	printf("\t-jacM <filename> \tFilename of the Jacobian matrix image [none]\n");
 	printf("\t-opf <filename>\t\tFilename of the position field image\n");
 	printf("\t-odf <filename>\t\tFilename of the displacement field image\n");
@@ -118,6 +121,11 @@ int main(int argc, char **argv)
 		else if(strcmp(argv[i], "-jac") == 0){
 			param->outputJacobianName=argv[++i];
 			flag->outputJacobianFlag=1;
+		}
+		else if(strcmp(argv[i], "-jacVel") == 0){
+			param->inputVelocityFieldName=argv[++i];
+			param->outputJacobianName=argv[++i];
+			flag->outputJacobianVelFlag=1;
 		}
 		else if(strcmp(argv[i], "-jacM") == 0){
 			param->outputJacobianMatrixName=argv[++i];
@@ -230,6 +238,27 @@ int main(int argc, char **argv)
 		positionFieldImage->nbyper = sizeof(PrecisionTYPE);
 		positionFieldImage->data = (void *)calloc(positionFieldImage->nvox, positionFieldImage->nbyper);
 	}
+	
+	if(flag->outputJacobianVelFlag){
+		nifti_image *velocityFieldImage = nifti_image_read(param->inputVelocityFieldName,true);
+		if(velocityFieldImage == NULL){
+			fprintf(stderr,"** ERROR Error when reading the velocity field image: %s\n",param->inputVelocityFieldName);
+			return 1;
+		}
+		nifti_image *jacobianImage = nifti_copy_nim_info(targetImage);
+		jacobianImage->scl_slope = 1.0f;
+		jacobianImage->scl_inter = 0.0f;
+		jacobianImage->datatype = NIFTI_TYPE_FLOAT32;
+		jacobianImage->nbyper = sizeof(float);
+		jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
+		nifti_set_filenames(jacobianImage, param->outputJacobianName, 0, 0);
+		reg_bspline_GetJacobianMapFromVelocityField(velocityFieldImage,
+													jacobianImage);
+		nifti_image_free(velocityFieldImage);
+		nifti_image_write(jacobianImage);
+		nifti_image_free(jacobianImage);
+		printf("Jacobian map image has been saved from the velocity field: %s\n", param->outputJacobianName);
+	}
 
 	if(flag->inputCPPFlag){
 		/* Read the CPP image */
@@ -256,7 +285,7 @@ int main(int argc, char **argv)
 			jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
 			nifti_set_filenames(jacobianImage, param->outputJacobianName, 0, 0);
 			reg_bspline_GetJacobianMap(	controlPointImage,
-							            jacobianImage);
+									   jacobianImage);
 			nifti_image_write(jacobianImage);
 			nifti_image_free(jacobianImage);
 			printf("Jacobian map image has been saved: %s\n", param->outputJacobianName);
