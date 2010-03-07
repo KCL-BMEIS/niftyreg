@@ -1963,8 +1963,8 @@ void reg_linearVelocityUpsampling_3D(nifti_image *image, nifti_image *newDimImag
 	if(image->nu<1) image->nu=1;
 	
 	for(int ut=0;ut<image->nu*image->nt;ut++){
-		ImageTYPE *newPtr = &imagePtr[ut*image->nx*image->ny];
-		ImageTYPE *oldPtr = &currentValue[ut*oldDim[1]*oldDim[2]];
+		ImageTYPE *newPtr = &imagePtr[ut*image->nx*image->ny*image->nz];
+		ImageTYPE *oldPtr = &currentValue[ut*oldDim[1]*oldDim[2]*oldDim[3]];
 		for(int z=0; z<image->nz; z++){
 			const int Z = (int)ceil((float)z/2.0f);
 			if(z/2 == Z){
@@ -2006,7 +2006,7 @@ void reg_linearVelocityUpsampling_3D(nifti_image *image, nifti_image *newDimImag
 							else{ // (x/2==x)
 								// z' y x
 								*newPtr++ = (oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X]+
-											 oldPtr[((Z+1)*oldDim[2]+Y)*oldDim[1]+X] ) /4.0;
+											 oldPtr[((Z+1)*oldDim[2]+Y)*oldDim[1]+X] ) /2.0;
 							} // (x/2==x)
 						} // x loop
 					} // (y/2==Y)

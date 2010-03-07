@@ -49,7 +49,7 @@ void reg_bspline2D( nifti_image *splineControlPoint,
     FieldTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny];
 
     FieldTYPE *fieldPtrX=static_cast<FieldTYPE *>(positionField->data);
-    FieldTYPE *fieldPtrY=&fieldPtrX[targetImage->nvox];
+    FieldTYPE *fieldPtrY=&fieldPtrX[targetImage->nx*targetImage->ny*targetImage->nz];
 
     int *maskPtr = &mask[0];
 
@@ -343,8 +343,8 @@ void reg_bspline3D( nifti_image *splineControlPoint,
     FieldTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
     
     FieldTYPE *fieldPtrX=static_cast<FieldTYPE *>(positionField->data);
-    FieldTYPE *fieldPtrY=&fieldPtrX[targetImage->nvox];
-    FieldTYPE *fieldPtrZ=&fieldPtrY[targetImage->nvox];
+    FieldTYPE *fieldPtrY=&fieldPtrX[targetImage->nx*targetImage->ny*targetImage->nz];
+    FieldTYPE *fieldPtrZ=&fieldPtrY[targetImage->nx*targetImage->ny*targetImage->nz];
 
     int *maskPtr = &mask[0];
     
@@ -454,23 +454,34 @@ void reg_bspline3D( nifti_image *splineControlPoint,
 					
 					// The control point postions are extracted
 					coord=0;
+                    memset(xControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
+                    memset(yControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
+                    memset(zControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
 					for(int Z=zPre; Z<zPre+4; Z++){
-						unsigned int index=Z*splineControlPoint->nx*splineControlPoint->ny;
-						FieldTYPE *xPtr = &controlPointPtrX[index];
-						FieldTYPE *yPtr = &controlPointPtrY[index];
-						FieldTYPE *zPtr = &controlPointPtrZ[index];
-						for(int Y=yPre; Y<yPre+4; Y++){
-							index = Y*splineControlPoint->nx;
-							FieldTYPE *xxPtr = &xPtr[index];
-							FieldTYPE *yyPtr = &yPtr[index];
-							FieldTYPE *zzPtr = &zPtr[index];
-							for(int X=xPre; X<xPre+4; X++){
-								xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[X];
-								yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[X];
-								zControlPointCoordinates[coord] = (PrecisionTYPE)zzPtr[X];
-								coord++;
+						if(Z>-1 && Z<splineControlPoint->nz){
+							int index = Z*splineControlPoint->nx*splineControlPoint->ny;
+							FieldTYPE *xPtr = &controlPointPtrX[index];
+							FieldTYPE *yPtr = &controlPointPtrY[index];
+							FieldTYPE *zPtr = &controlPointPtrZ[index];
+							for(int Y=yPre; Y<yPre+4; Y++){
+								if(Y>-1 && Y<splineControlPoint->ny){
+									index = Y*splineControlPoint->nx;
+									FieldTYPE *xxPtr = &xPtr[index];
+									FieldTYPE *yyPtr = &yPtr[index];
+									FieldTYPE *zzPtr = &zPtr[index];
+									for(int X=xPre; X<xPre+4; X++){
+										if(X>-1 && X<splineControlPoint->nx){
+											xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[X];
+											yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[X];
+											zControlPointCoordinates[coord] = (PrecisionTYPE)zzPtr[X];
+										}
+										coord++;
+									}
+								}
+								else coord+=4;
 							}
 						}
+						else coord+=16;
 					}
 					
 					xReal=0.0;
@@ -527,13 +538,9 @@ void reg_bspline3D( nifti_image *splineControlPoint,
 	#endif
 					}
 					
-					*fieldPtrX = (FieldTYPE)xReal;
-					*fieldPtrY = (FieldTYPE)yReal;
-					*fieldPtrY = (FieldTYPE)yReal;
-					
-					fieldPtrX++;
-					fieldPtrY++;
-					fieldPtrZ++;
+					*fieldPtrX++ = (FieldTYPE)xReal;
+					*fieldPtrY++ = (FieldTYPE)yReal;
+					*fieldPtrZ++ = (FieldTYPE)zReal;
 				}
 			}
 		}
@@ -626,29 +633,37 @@ void reg_bspline3D( nifti_image *splineControlPoint,
                     }
 #endif
                     if(basis<=oldBasis || x==0){
-//                        memset(xControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
-//                        memset(yControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
-//                        memset(zControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
-                        coord=0;
-                        for(int Z=zPre; Z<zPre+4; Z++){
-                            unsigned int index=Z*splineControlPoint->nx*splineControlPoint->ny;
-                            FieldTYPE *xPtr = &controlPointPtrX[index];
-                            FieldTYPE *yPtr = &controlPointPtrY[index];
-                            FieldTYPE *zPtr = &controlPointPtrZ[index];
-                            for(int Y=yPre; Y<yPre+4; Y++){
-                                index = Y*splineControlPoint->nx;
-                                FieldTYPE *xxPtr = &xPtr[index];
-                                FieldTYPE *yyPtr = &yPtr[index];
-                                FieldTYPE *zzPtr = &zPtr[index];
-                                for(int X=xPre; X<xPre+4; X++){
-                                    xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[X];
-                                    yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[X];
-                                    zControlPointCoordinates[coord] = (PrecisionTYPE)zzPtr[X];
-                                    coord++;
-                                }
-                            }
-                        }
-                    }
+						coord=0;
+						memset(xControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
+						memset(yControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
+						memset(zControlPointCoordinates, 0, 64*sizeof(PrecisionTYPE));
+						for(int Z=zPre; Z<zPre+4; Z++){
+							if(Z>-1 && Z<splineControlPoint->nz){
+								int index = Z*splineControlPoint->nx*splineControlPoint->ny;
+								FieldTYPE *xPtr = &controlPointPtrX[index];
+								FieldTYPE *yPtr = &controlPointPtrY[index];
+								FieldTYPE *zPtr = &controlPointPtrZ[index];
+								for(int Y=yPre; Y<yPre+4; Y++){
+									if(Y>-1 && Y<splineControlPoint->ny){
+										index = Y*splineControlPoint->nx;
+										FieldTYPE *xxPtr = &xPtr[index];
+										FieldTYPE *yyPtr = &yPtr[index];
+										FieldTYPE *zzPtr = &zPtr[index];
+										for(int X=xPre; X<xPre+4; X++){
+											if(X>-1 && X<splineControlPoint->nx){
+												xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[X];
+												yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[X];
+												zControlPointCoordinates[coord] = (PrecisionTYPE)zzPtr[X];
+											}
+											coord++;
+										}
+									}
+									else coord+=4;
+								}
+							}
+							else coord+=16;
+						}
+					}
                     oldBasis=basis;
 
                     PrecisionTYPE xReal=0.0;
