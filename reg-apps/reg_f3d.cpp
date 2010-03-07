@@ -838,34 +838,13 @@ int main(int argc, char **argv)
             controlPointImage->sto_ijk = nifti_mat44_inverse(controlPointImage->sto_xyz);
         }
 
-		if(flag->useVelocityFieldFlag && !flag->inputVelocityFieldFlag  && level==0){
-			velocityFieldImage->qform_code = controlPointImage->qform_code;
-			velocityFieldImage->sform_code = controlPointImage->sform_code;
-			velocityFieldImage->quatern_b = controlPointImage->quatern_b;
-			velocityFieldImage->quatern_c = controlPointImage->quatern_c;
-			velocityFieldImage->quatern_d = controlPointImage->quatern_d;
-			velocityFieldImage->qoffset_x = controlPointImage->qoffset_x;
-			velocityFieldImage->qoffset_y = controlPointImage->qoffset_y;
-			velocityFieldImage->qoffset_z = controlPointImage->qoffset_z;
-			velocityFieldImage->dx = controlPointImage->dx;
-			velocityFieldImage->dy = controlPointImage->dy;
-			velocityFieldImage->dz = controlPointImage->dz;
-			velocityFieldImage->qfac = controlPointImage->qfac;
-			
-			if(velocityFieldImage->sform_code>0){
-				for(int i=0;i<4;i++){
-					for(int j=0;j<4;j++){
-						velocityFieldImage->sto_xyz.m[i][j]=controlPointImage->sto_xyz.m[i][j];
-					}
-				}
-			}	
-		}
+
 		
 		if(flag->useVelocityFieldFlag && level>0){
 			// The velocity field has to be up-sampled
 			reg_linearVelocityUpsampling(&velocityFieldImage, controlPointImage);
 		}
-		
+
 		// The control point position image is initialised with the affine transformation
 		if(!flag->useVelocityFieldFlag && level==0 && !flag->inputCPPFlag){
 			if(reg_bspline_initialiseControlPointGridWithAffine(affineTransformation, controlPointImage)) return 1;
@@ -1060,7 +1039,7 @@ int main(int argc, char **argv)
 			}
 			bestControlPointPosition = (PrecisionTYPE *)malloc(controlPointImage->nvox * sizeof(PrecisionTYPE));
 			if(flag->useVelocityFieldFlag){
-				memcpy(bestControlPointPosition, velocityFieldImage->data, controlPointImage->nvox*controlPointImage->nbyper);
+				memcpy(bestControlPointPosition, velocityFieldImage->data, velocityFieldImage->nvox*velocityFieldImage->nbyper);
 			}
 			else{
 				memcpy(bestControlPointPosition, controlPointImage->data, controlPointImage->nvox*controlPointImage->nbyper);
