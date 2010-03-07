@@ -1478,8 +1478,10 @@ PrecisionTYPE reg_bspline_jacobianValue2D(  nifti_image *splineControlPoint,
 			
 			jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
 			PrecisionTYPE detJac = nifti_mat33_determ(jacobianMatrix);
-			if(detJac>0.0)
-				constraintValue += log(detJac)*log(detJac);
+			if(detJac>0.0){
+				PrecisionTYPE logValue = log(detJac);
+				constraintValue += logValue*logValue;
+			}
 			else constraintValue += 1000000.0;
         }
     }
@@ -1491,6 +1493,18 @@ template<class PrecisionTYPE, class SplineTYPE>
 PrecisionTYPE reg_bspline_jacobianValue3D(  nifti_image *splineControlPoint,
 											nifti_image *targetImage)
 {
+#if _USE_SSE
+	if(sizeof(PrecisionTYPE)!=4){
+		fprintf(stderr, "***ERROR***\treg_bspline_jacobianValue3D\n");
+		fprintf(stderr, "The SSE implementation assume single precision... Exit\n");
+		exit(0);
+	}
+    union u{
+		__m128 m;
+		float f[4];
+    } val;
+#endif  
+	
     SplineTYPE *controlPointPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
     SplineTYPE *controlPointPtrY = static_cast<SplineTYPE *>(&controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz]);
     SplineTYPE *controlPointPtrZ = static_cast<SplineTYPE *>(&controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz]);
@@ -1580,7 +1594,32 @@ PrecisionTYPE reg_bspline_jacobianValue3D(  nifti_image *splineControlPoint,
             first[0]= (PrecisionTYPE)(basis - 1.0/2.0 - first[3]);
             first[2]= (PrecisionTYPE)(1.0 + first[0] - 2.0*first[3]);
             first[1]= - first[0] - first[2] - first[3];
-
+			
+#if _USE_SSE
+			val.f[0]=temp[0];
+			val.f[1]=temp[1];
+			val.f[2]=temp[2];
+			val.f[3]=temp[3];
+			__m128 _yBasis=val.m; 
+			val.f[0]=first[0];
+			val.f[1]=first[1];
+			val.f[2]=first[2];
+			val.f[3]=first[3];
+			__m128 _yFirst=val.m;          
+			__m128 *ptrBasisX = (__m128 *) &tempX[0];
+			__m128 *ptrBasisY = (__m128 *) &tempY[0];
+			__m128 *ptrBasisZ = (__m128 *) &tempZ[0];
+			for(int a=0;a<4;++a){
+				val.m=_mm_set_ps1(zBasis[a]);
+				*ptrBasisX=_mm_mul_ps(_yBasis,val.m);
+				*ptrBasisY=_mm_mul_ps(_yFirst,val.m);
+				val.m=_mm_set_ps1(zFirst[a]);
+				*ptrBasisZ=_mm_mul_ps(_yBasis,val.m);
+				ptrBasisX++;
+				ptrBasisY++;
+				ptrBasisZ++;
+			}
+#else
             coord=0;
             for(int c=0; c<4; c++){
                 for(int b=0; b<4; b++){
@@ -1590,7 +1629,7 @@ PrecisionTYPE reg_bspline_jacobianValue3D(  nifti_image *splineControlPoint,
                     coord++;
                 }
             }
-
+#endif
             for(int x=0; x<targetImage->nx; x++){
 
                 int xPre=(int)((PrecisionTYPE)x/gridVoxelSpacing[0]);
@@ -1608,6 +1647,32 @@ PrecisionTYPE reg_bspline_jacobianValue3D(  nifti_image *splineControlPoint,
                 first[2]= (PrecisionTYPE)(1.0 + first[0] - 2.0*first[3]);
                 first[1]= - first[0] - first[2] - first[3];
 
+#if _USE_SSE
+				val.f[0]=temp[0];
+				val.f[1]=temp[1];
+				val.f[2]=temp[2];
+				val.f[3]=temp[3];
+				__m128 _xBasis=val.m; 
+				val.f[0]=first[0];
+				val.f[1]=first[1];
+				val.f[2]=first[2];
+				val.f[3]=first[3];
+				__m128 _xFirst=val.m;          
+				ptrBasisX = (__m128 *) &basisX[0];
+				ptrBasisY = (__m128 *) &basisY[0];
+				ptrBasisZ = (__m128 *) &basisZ[0];
+				for(int a=0;a<16;++a){
+					val.m=_mm_set_ps1(tempX[a]);
+					*ptrBasisX=_mm_mul_ps(_xFirst,val.m);
+					val.m=_mm_set_ps1(tempY[a]);
+					*ptrBasisY=_mm_mul_ps(_xBasis,val.m);
+					val.m=_mm_set_ps1(tempZ[a]);
+					*ptrBasisZ=_mm_mul_ps(_xBasis,val.m);
+					ptrBasisX++;
+					ptrBasisY++;
+					ptrBasisZ++;
+				}
+#else
                 coord=0;
                 for(int bc=0; bc<16; bc++){
                     for(int a=0; a<4; a++){
@@ -1617,6 +1682,7 @@ PrecisionTYPE reg_bspline_jacobianValue3D(  nifti_image *splineControlPoint,
                         coord++;
                     }
                 }
+#endif
 
                 if(basis<=oldBasis || x==0){
                     coord=0;
@@ -1651,20 +1717,81 @@ PrecisionTYPE reg_bspline_jacobianValue3D(  nifti_image *splineControlPoint,
                 PrecisionTYPE Ty_z=0.0;
                 PrecisionTYPE Tz_z=0.0;
 
+#if _USE_SSE	
+				__m128 tempX_x =  _mm_set_ps1(0.0);
+				__m128 tempX_y =  _mm_set_ps1(0.0);
+				__m128 tempX_z =  _mm_set_ps1(0.0);
+				__m128 tempY_x =  _mm_set_ps1(0.0);
+				__m128 tempY_y =  _mm_set_ps1(0.0);
+				__m128 tempY_z =  _mm_set_ps1(0.0);
+				__m128 tempZ_x =  _mm_set_ps1(0.0);
+				__m128 tempZ_y =  _mm_set_ps1(0.0);
+				__m128 tempZ_z =  _mm_set_ps1(0.0);
+				__m128 *ptrX = (__m128 *) &xControlPointCoordinates[0];
+				__m128 *ptrY = (__m128 *) &yControlPointCoordinates[0];
+				__m128 *ptrZ = (__m128 *) &zControlPointCoordinates[0];
+				ptrBasisX   = (__m128 *) &basisX[0];
+				ptrBasisY   = (__m128 *) &basisY[0];
+				ptrBasisZ   = (__m128 *) &basisZ[0];
+				//addition and multiplication of the 16 basis value and CP position for each axis
+				for(unsigned int a=0; a<16; a++){
+					tempX_x = _mm_add_ps(_mm_mul_ps(*ptrBasisX, *ptrX), tempX_x );
+					tempX_y = _mm_add_ps(_mm_mul_ps(*ptrBasisY, *ptrX), tempX_y );
+					tempX_z = _mm_add_ps(_mm_mul_ps(*ptrBasisZ, *ptrX), tempX_z );
+					
+					tempY_x = _mm_add_ps(_mm_mul_ps(*ptrBasisX, *ptrY), tempY_x );
+					tempY_y = _mm_add_ps(_mm_mul_ps(*ptrBasisY, *ptrY), tempY_y );
+					tempY_z = _mm_add_ps(_mm_mul_ps(*ptrBasisZ, *ptrY), tempY_z );
+					
+					tempZ_x = _mm_add_ps(_mm_mul_ps(*ptrBasisX, *ptrZ), tempZ_x );
+					tempZ_y = _mm_add_ps(_mm_mul_ps(*ptrBasisY, *ptrZ), tempZ_y );
+					tempZ_z = _mm_add_ps(_mm_mul_ps(*ptrBasisZ, *ptrZ), tempZ_z );
+					
+					ptrBasisX++;
+					ptrBasisY++;
+					ptrBasisZ++;
+					ptrX++;
+					ptrY++;
+					ptrZ++;
+				}
+
+				//the values stored in SSE variables are transfered to normal float
+				val.m = tempX_x;
+				Tx_x = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+				val.m = tempX_y;
+				Tx_y = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+				val.m = tempX_z;
+				Tx_z = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+				
+				val.m = tempY_x;
+				Ty_x = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+				val.m = tempY_y;
+				Ty_y = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+				val.m = tempY_z;
+				Ty_z = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+				
+				val.m = tempZ_x;
+				Tz_x = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+				val.m = tempZ_y;
+				Tz_y = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+				val.m = tempZ_z;
+				Tz_z = val.f[0]+val.f[1]+val.f[2]+val.f[3];	
+#else
                 for(int a=0; a<64; a++){
                     Tx_x += basisX[a]*xControlPointCoordinates[a];
                     Tx_y += basisY[a]*xControlPointCoordinates[a];
                     Tx_z += basisZ[a]*xControlPointCoordinates[a];
-
+					
                     Ty_x += basisX[a]*yControlPointCoordinates[a];
                     Ty_y += basisY[a]*yControlPointCoordinates[a];
                     Ty_z += basisZ[a]*yControlPointCoordinates[a];
-
+					
                     Tz_x += basisX[a]*zControlPointCoordinates[a];
                     Tz_y += basisY[a]*zControlPointCoordinates[a];
                     Tz_z += basisZ[a]*zControlPointCoordinates[a];
                 }
-				
+#endif				
+
 				jacobianMatrix.m[0][0]= Tx_x / splineControlPoint->dx;
 				jacobianMatrix.m[0][1]= Tx_y / splineControlPoint->dy;
 				jacobianMatrix.m[0][2]= Tx_z / splineControlPoint->dz;
@@ -1678,8 +1805,10 @@ PrecisionTYPE reg_bspline_jacobianValue3D(  nifti_image *splineControlPoint,
 				jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
 				PrecisionTYPE detJac = nifti_mat33_determ(jacobianMatrix);
 
-				if(detJac>0.0)
-					constraintValue += log(detJac)*log(detJac);
+				if(detJac>0.0){
+					PrecisionTYPE logValue = log(detJac);
+					constraintValue += logValue*logValue;
+				}
 				else constraintValue += 1000000.0;
             }
         }
@@ -1795,8 +1924,10 @@ PrecisionTYPE reg_bspline_jacobianApproxValue2D(  nifti_image *splineControlPoin
 			jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
 			PrecisionTYPE detJac = nifti_mat33_determ(jacobianMatrix);
 
-			if(detJac>0.0)
-				constraintValue += log(detJac)*log(detJac);
+			if(detJac>0.0){
+				PrecisionTYPE logValue = log(detJac);
+				constraintValue += logValue*logValue;
+			}
 			else constraintValue += 1000000.0;
         }
     }
@@ -1949,8 +2080,10 @@ PrecisionTYPE reg_bspline_jacobianApproxValue3D(  nifti_image *splineControlPoin
 				jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
 				PrecisionTYPE detJac = nifti_mat33_determ(jacobianMatrix);
 
-				if(detJac>0.0)
-					constraintValue += log(detJac)*log(detJac);
+				if(detJac>0.0){
+					PrecisionTYPE logValue = log(detJac);
+					constraintValue += logValue*logValue;
+				}
 				else constraintValue += 1000000.0;
             }
         }
