@@ -198,11 +198,11 @@ int main(int argc, char **argv)
 	// AFFINE DEFORMATION FIELD CREATION
     maxIt=500000 / dimension;
     time(&start);
-//     for(int i=0; i<maxIt; ++i){
-//         reg_affine_positionField(   affineTransformation,
-//                                     targetImage,
-//                                     deformationFieldImage);
-//     }
+    for(int i=0; i<maxIt; ++i){
+        reg_affine_positionField(   affineTransformation,
+                                    targetImage,
+                                    deformationFieldImage);
+    }
     time(&end);
     cpuTime=(end-start);
     minutes = (int)floorf(float(cpuTime)/60.0f);
@@ -210,11 +210,11 @@ int main(int argc, char **argv)
     printf( "CPU - %i affine deformation field computations - %i min %i sec\n", maxIt, minutes, seconds);
     fprintf(outputFile, "CPU - %i affine deformation field computations - %i min %i sec\n", maxIt, minutes, seconds);
     time(&start);
-//     for(int i=0; i<maxIt; ++i){
-//         reg_affine_positionField_gpu(   affineTransformation,
-//                                         targetImage,
-//                                         &deformationFieldImageArray_d);
-//     }
+    for(int i=0; i<maxIt; ++i){
+        reg_affine_positionField_gpu(   affineTransformation,
+                                        targetImage,
+                                        &deformationFieldImageArray_d);
+    }
     time(&end);
     gpuTime=(end-start);
     minutes = (int)floorf(float(gpuTime)/60.0f);
@@ -232,13 +232,13 @@ int main(int argc, char **argv)
     if(cudaCommon_transferNiftiToArrayOnDevice<float4>(&controlPointImageArray_d,controlPointImage)) return 1;
     maxIt=50000 / dimension;
     time(&start);
-//     for(int i=0; i<maxIt; ++i){
-//         reg_bspline<float>( controlPointImage,
-//                             targetImage,
-//                             deformationFieldImage,
-//                             maskImage,
-//                             0);
-//     }
+    for(int i=0; i<maxIt; ++i){
+        reg_bspline<float>( controlPointImage,
+                            targetImage,
+                            deformationFieldImage,
+                            maskImage,
+                            0);
+    }
     time(&end);
     cpuTime=(end-start);
     minutes = (int)floorf(float(cpuTime)/60.0f);
@@ -246,14 +246,14 @@ int main(int argc, char **argv)
     printf("CPU - %i spline deformation field computations - %i min %i sec\n", maxIt, minutes, seconds);
     fprintf(outputFile, "CPU - %i spline deformation field computations - %i min %i sec\n", maxIt, minutes, seconds);
     time(&start);
-//     for(int i=0; i<maxIt; ++i){
-//         reg_bspline_gpu(controlPointImage,
-//                         targetImage,
-//                         &controlPointImageArray_d,
-//                         &deformationFieldImageArray_d,
-//                         &targetMask_d,
-//                         targetImage->nvox);
-//     }
+    for(int i=0; i<maxIt; ++i){
+        reg_bspline_gpu(controlPointImage,
+                        targetImage,
+                        &controlPointImageArray_d,
+                        &deformationFieldImageArray_d,
+                        &targetMask_d,
+                        targetImage->nvox);
+    }
     time(&end);
     gpuTime=(end-start);
     minutes = (int)floorf(float(gpuTime)/60.0f);
@@ -269,15 +269,15 @@ int main(int argc, char **argv)
     if(cudaCommon_allocateArrayToDevice<float>(&resultImageArray_d, targetImage->dim)) return 1;
     maxIt=100000 / dimension;
     time(&start);
-//     for(int i=0; i<maxIt; ++i){
-//         reg_resampleSourceImage<float>( targetImage,
-//                                         sourceImage,
-//                                         resultImage,
-//                                         deformationFieldImage,
-//                                         maskImage,
-//                                         1,
-//                                         0);
-//     }
+    for(int i=0; i<maxIt; ++i){
+        reg_resampleSourceImage<float>( targetImage,
+                                        sourceImage,
+                                        resultImage,
+                                        deformationFieldImage,
+                                        maskImage,
+                                        1,
+                                        0);
+    }
     time(&end);
     cpuTime=(end-start);
     minutes = (int)floorf(float(cpuTime)/60.0f);
@@ -285,16 +285,16 @@ int main(int argc, char **argv)
     printf("CPU - %i linear interpolation computations - %i min %i sec\n", maxIt, minutes, seconds);
     fprintf(outputFile, "CPU - %i linear interpolation computations - %i min %i sec\n", maxIt, minutes, seconds);
     time(&start);
-//     for(int i=0; i<maxIt; ++i){
-//         reg_resampleSourceImage_gpu(resultImage,
-//                                     sourceImage,
-//                                     &resultImageArray_d,
-//                                     &sourceImageArray_d,
-//                                     &deformationFieldImageArray_d,
-//                                     &targetMask_d,
-//                                     targetImage->nvox,
-//                                     0);
-//     }
+    for(int i=0; i<maxIt; ++i){
+        reg_resampleSourceImage_gpu(resultImage,
+                                    sourceImage,
+                                    &resultImageArray_d,
+                                    &sourceImageArray_d,
+                                    &deformationFieldImageArray_d,
+                                    &targetMask_d,
+                                    targetImage->nvox,
+                                    0);
+    }
     time(&end);
     gpuTime=(end-start);
     minutes = (int)floorf(float(gpuTime)/60.0f);
@@ -310,14 +310,14 @@ int main(int argc, char **argv)
     CUDA_SAFE_CALL(cudaMalloc((void **)&resultGradientArray_d, targetImage->nvox*sizeof(float4)));
     maxIt=100000 / dimension;
     time(&start);
-//     for(int i=0; i<maxIt; ++i){
-//         reg_getSourceImageGradient<float>(  targetImage,
-//                                             sourceImage,
-//                                             resultGradientImage,
-//                                             deformationFieldImage,
-//                                             maskImage,
-//                                             1);
-//     }
+    for(int i=0; i<maxIt; ++i){
+        reg_getSourceImageGradient<float>(  targetImage,
+                                            sourceImage,
+                                            resultGradientImage,
+                                            deformationFieldImage,
+                                            maskImage,
+                                            1);
+    }
     time(&end);
     cpuTime=(end-start);
     minutes = (int)floorf(float(cpuTime)/60.0f);
@@ -325,14 +325,14 @@ int main(int argc, char **argv)
     printf("CPU - %i spatial gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
     fprintf(outputFile, "CPU - %i spatial gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
     time(&start);
-//     for(int i=0; i<maxIt; ++i){
-//         reg_getSourceImageGradient_gpu( targetImage,
-//                                         sourceImage,
-//                                         &sourceImageArray_d,
-//                                         &deformationFieldImageArray_d,
-//                                         &resultGradientArray_d,
-//                                         targetImage->nvox);
-//     }
+    for(int i=0; i<maxIt; ++i){
+        reg_getSourceImageGradient_gpu( targetImage,
+                                        sourceImage,
+                                        &sourceImageArray_d,
+                                        &deformationFieldImageArray_d,
+                                        &resultGradientArray_d,
+                                        targetImage->nvox);
+    }
     time(&end);
     gpuTime=(end-start);
     minutes = (int)floorf(float(gpuTime)/60.0f);
@@ -363,17 +363,17 @@ int main(int argc, char **argv)
     if(cudaCommon_allocateArrayToDevice(&voxelNMIGradientArray_d, resultImage->dim)) return 1;
     maxIt=100000 / dimension;
     time(&start);
-//     for(int i=0; i<maxIt; ++i){
-//         reg_getVoxelBasedNMIGradientUsingPW<double>(targetImage,
-//                                                     resultImage,
-//                                                     2,
-//                                                     resultGradientImage,
-//                                                     binning,
-//                                                     logJointHistogram,
-//                                                     entropies,
-//                                                     voxelNMIGradientImage,
-//                                                     maskImage);
-//     }
+    for(int i=0; i<maxIt; ++i){
+        reg_getVoxelBasedNMIGradientUsingPW<double>(targetImage,
+                                                    resultImage,
+                                                    2,
+                                                    resultGradientImage,
+                                                    binning,
+                                                    logJointHistogram,
+                                                    entropies,
+                                                    voxelNMIGradientImage,
+                                                    maskImage);
+    }
     time(&end);
     cpuTime=(end-start);
     minutes = (int)floorf(float(cpuTime)/60.0f);
@@ -389,19 +389,19 @@ int main(int argc, char **argv)
     CUDA_SAFE_CALL(cudaMemcpy(logJointHistogram_d, tempB, binning*(binning+2)*sizeof(float), cudaMemcpyHostToDevice));
     free(tempB);
     time(&start);
-//     for(int i=0; i<maxIt; ++i){
-//         reg_getVoxelBasedNMIGradientUsingPW_gpu(targetImage,
-//                                                 resultImage,
-//                                                 &targetImageArray_d,
-//                                                 &resultImageArray_d,
-//                                                 &resultGradientArray_d,
-//                                                 &logJointHistogram_d,
-//                                                 &voxelNMIGradientArray_d,
-//                                                 &targetMask_d,
-//                                                 targetImage->nvox,
-//                                                 entropies,
-//                                                 binning);
-//     }
+    for(int i=0; i<maxIt; ++i){
+        reg_getVoxelBasedNMIGradientUsingPW_gpu(targetImage,
+                                                resultImage,
+                                                &targetImageArray_d,
+                                                &resultImageArray_d,
+                                                &resultGradientArray_d,
+                                                &logJointHistogram_d,
+                                                &voxelNMIGradientArray_d,
+                                                &targetMask_d,
+                                                targetImage->nvox,
+                                                entropies,
+                                                binning);
+    }
     time(&end);
     gpuTime=(end-start);
     minutes = (int)floorf(float(gpuTime)/60.0f);
@@ -424,10 +424,10 @@ int main(int argc, char **argv)
     smoothingRadius[1] = (int)floor( 2.0*controlPointImage->dy/targetImage->dy );
     smoothingRadius[2] = (int)floor( 2.0*controlPointImage->dz/targetImage->dz );
     time(&start);
-//     for(int i=0; i<maxIt; ++i){
-//         reg_smoothImageForCubicSpline<float>(voxelNMIGradientImage,smoothingRadius);
-//         reg_voxelCentric2NodeCentric(nodeNMIGradientImage,voxelNMIGradientImage,1.0f);
-//     }
+    for(int i=0; i<maxIt; ++i){
+        reg_smoothImageForCubicSpline<float>(voxelNMIGradientImage,smoothingRadius);
+        reg_voxelCentric2NodeCentric(nodeNMIGradientImage,voxelNMIGradientImage,1.0f);
+    }
     time(&end);
     cpuTime=(end-start);
     minutes = (int)floorf(float(cpuTime)/60.0f);
@@ -435,16 +435,16 @@ int main(int argc, char **argv)
     printf("CPU - %i node-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
     fprintf(outputFile, "CPU - %i node-based NMI gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
     time(&start);
-//     for(int i=0; i<maxIt; ++i){
-//         reg_smoothImageForCubicSpline_gpu(  resultImage,
-//                                             &voxelNMIGradientArray_d,
-//                                             smoothingRadius);
-//         reg_voxelCentric2NodeCentric_gpu(   targetImage,
-//                                             controlPointImage,
-//                                             &voxelNMIGradientArray_d,
-//                                             &nodeNMIGradientArray_d,
-//                                             1.0f);
-//     }
+    for(int i=0; i<maxIt; ++i){
+        reg_smoothImageForCubicSpline_gpu(  resultImage,
+                                            &voxelNMIGradientArray_d,
+                                            smoothingRadius);
+        reg_voxelCentric2NodeCentric_gpu(   targetImage,
+                                            controlPointImage,
+                                            &voxelNMIGradientArray_d,
+                                            &nodeNMIGradientArray_d,
+                                            1.0f);
+    }
     time(&end);
     gpuTime=(end-start);
     minutes = (int)floorf(float(gpuTime)/60.0f);
@@ -460,9 +460,9 @@ int main(int argc, char **argv)
     // BENDING ENERGY COMPUTATION
     maxIt=100000 / dimension;
     time(&start);
-//     for(int i=0; i<maxIt; ++i){
-//         reg_bspline_bendingEnergy<float>(controlPointImage, targetImage,1);
-//     }
+    for(int i=0; i<maxIt; ++i){
+        reg_bspline_bendingEnergy<float>(controlPointImage, targetImage,1);
+    }
     time(&end);
     cpuTime=(end-start);
     minutes = (int)floorf(float(cpuTime)/60.0f);
@@ -470,10 +470,10 @@ int main(int argc, char **argv)
     printf("CPU - %i BE computations - %i min %i sec\n", maxIt, minutes, seconds);
     fprintf(outputFile, "CPU - %i BE computations - %i min %i sec\n", maxIt, minutes, seconds);
     time(&start);
-//     for(int i=0; i<maxIt; ++i){
-//         reg_bspline_ApproxBendingEnergy_gpu(controlPointImage,
-//                                             &controlPointImageArray_d);
-//     }
+    for(int i=0; i<maxIt; ++i){
+        reg_bspline_ApproxBendingEnergy_gpu(controlPointImage,
+                                            &controlPointImageArray_d);
+    }
     time(&end);
     gpuTime=(end-start);
     minutes = (int)floorf(float(gpuTime)/60.0f);
@@ -487,12 +487,12 @@ int main(int argc, char **argv)
     // BENDING ENERGY GRADIENT COMPUTATION
     maxIt=1000000 / dimension;
     time(&start);
-//     for(int i=0; i<maxIt; ++i){
-//         reg_bspline_bendingEnergyGradient<float>(   controlPointImage,
-//                                                     targetImage,
-//                                                     nodeNMIGradientImage,
-//                                                     0.01f);
-//     }
+    for(int i=0; i<maxIt; ++i){
+        reg_bspline_bendingEnergyGradient<float>(   controlPointImage,
+                                                    targetImage,
+                                                    nodeNMIGradientImage,
+                                                    0.01f);
+    }
     time(&end);
     cpuTime=(end-start);
     minutes = (int)floorf(float(cpuTime)/60.0f);
@@ -500,12 +500,12 @@ int main(int argc, char **argv)
     printf("CPU - %i BE gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
     fprintf(outputFile, "CPU - %i BE gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
     time(&start);
-//     for(int i=0; i<maxIt; ++i){
-//         reg_bspline_ApproxBendingEnergyGradient_gpu(controlPointImage,
-//                                                     &controlPointImageArray_d,
-//                                                     &nodeNMIGradientArray_d,
-//                                                     0.01f);
-//     }
+    for(int i=0; i<maxIt; ++i){
+        reg_bspline_ApproxBendingEnergyGradient_gpu(controlPointImage,
+                                                    &controlPointImageArray_d,
+                                                    &nodeNMIGradientArray_d,
+                                                    0.01f);
+    }
     time(&end);
     gpuTime=(end-start);
     minutes = (int)floorf(float(gpuTime)/60.0f);
@@ -536,12 +536,12 @@ int main(int argc, char **argv)
     CUDA_SAFE_CALL(cudaMalloc((void **)&resultPosition_d, blockMatchingParams.activeBlockNumber*3*sizeof(float)));
     maxIt=2000 / dimension;
     time(&start);
-//     for(int i=0; i<maxIt; ++i){
-//         block_matching_method<float>(   targetImage,
-//                                         resultImage,
-//                                         &blockMatchingParams,
-//                                         maskImage);
-//     }
+    for(int i=0; i<maxIt; ++i){
+        block_matching_method<float>(   targetImage,
+                                        resultImage,
+                                        &blockMatchingParams,
+                                        maskImage);
+    }
     time(&end);
     cpuTime=(end-start);
     minutes = (int)floorf(float(cpuTime)/60.0f);
@@ -549,16 +549,16 @@ int main(int argc, char **argv)
     printf("CPU - %i block matching computations - %i min %i sec\n", maxIt, minutes, seconds);
     fprintf(outputFile, "CPU - %i block matching computations - %i min %i sec\n", maxIt, minutes, seconds);
     time(&start);
-//     for(int i=0; i<maxIt; ++i){
-//         block_matching_method_gpu(  targetImage,
-//                                     resultImage,
-//                                     &blockMatchingParams,
-//                                     &targetImageArray_d,
-//                                     &resultImageArray_d,
-//                                     &targetPosition_d,
-//                                     &resultPosition_d,
-//                                     &activeBlock_d);
-//     }
+    for(int i=0; i<maxIt; ++i){
+        block_matching_method_gpu(  targetImage,
+                                    resultImage,
+                                    &blockMatchingParams,
+                                    &targetImageArray_d,
+                                    &resultImageArray_d,
+                                    &targetPosition_d,
+                                    &resultPosition_d,
+                                    &activeBlock_d);
+    }
     time(&end);
     gpuTime=(end-start);
     minutes = (int)floorf(float(gpuTime)/60.0f);
