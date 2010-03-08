@@ -84,7 +84,7 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
 	int unusableBlock=0;
     int index;
 
-    DTYPE *targetValues = (DTYPE *)malloc(BLOCK_SIZE * sizeof(DTYPE));
+    DTYPE *targetValues = (DTYPE *)calloc(BLOCK_SIZE, sizeof(DTYPE));
 	DTYPE *targetPtr = static_cast<DTYPE *>(targetImage->data);
 	int blockIndex=0;
 
@@ -93,7 +93,6 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
 	    for(int k=0; k<params->blockNumber[2]; k++){
 		    for(int j=0; j<params->blockNumber[1]; j++){
 			    for(int i=0; i<params->blockNumber[0]; i++){
-
                     memset(targetValues, 0, BLOCK_SIZE * sizeof(DTYPE));
 				    float mean=0.0f;
 				    float voxelNumber=0.0f;
@@ -127,7 +126,7 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
 				    if(voxelNumber>BLOCK_SIZE/2){
                         float variance=0.0f;
                         for(int i=0; i<BLOCK_SIZE; i++){
-						    if(targetValues[coord]>0.0)
+						    if(targetValues[i]>0.0)
 							    variance += (mean - (float)targetValues[i])
                                     * (mean - (float)targetValues[i]);
                         }
@@ -177,7 +176,7 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
                 if(voxelNumber>BLOCK_2D_SIZE/2){
                     float variance=0.0f;
                     for(int i=0; i<BLOCK_2D_SIZE; i++){
-                        if(targetValues[coord]>0.0)
+                        if(targetValues[i]>0.0)
                             variance += (mean - (float)targetValues[i])
                                 * (mean - (float)targetValues[i]);
                     }
