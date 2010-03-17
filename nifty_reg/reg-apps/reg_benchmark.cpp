@@ -501,7 +501,8 @@ int main(int argc, char **argv)
     fprintf(outputFile, "CPU - %i BE gradient computations - %i min %i sec\n", maxIt, minutes, seconds);
     time(&start);
     for(int i=0; i<maxIt; ++i){
-        reg_bspline_ApproxBendingEnergyGradient_gpu(controlPointImage,
+        reg_bspline_ApproxBendingEnergyGradient_gpu(targetImage,
+                                                    controlPointImage,
                                                     &controlPointImageArray_d,
                                                     &nodeNMIGradientArray_d,
                                                     0.01f);

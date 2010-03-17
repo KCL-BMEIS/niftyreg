@@ -248,6 +248,8 @@ int main(int argc, char **argv)
 		nifti_image *jacobianImage = nifti_copy_nim_info(targetImage);
 		jacobianImage->scl_slope = 1.0f;
 		jacobianImage->scl_inter = 0.0f;
+        jacobianImage->cal_min=0;
+        jacobianImage->cal_max=0;
 		jacobianImage->datatype = NIFTI_TYPE_FLOAT32;
 		jacobianImage->nbyper = sizeof(float);
 		jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
@@ -278,6 +280,8 @@ int main(int argc, char **argv)
 		/* Generate the jacobian map */
 		if(flag->outputJacobianFlag){
 			nifti_image *jacobianImage = nifti_copy_nim_info(targetImage);
+            jacobianImage->cal_min=0;
+            jacobianImage->cal_max=0;
             jacobianImage->scl_slope = 1.0f;
             jacobianImage->scl_inter = 0.0f;
 			jacobianImage->datatype = NIFTI_TYPE_FLOAT32;
