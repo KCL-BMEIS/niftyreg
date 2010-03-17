@@ -752,9 +752,9 @@ int main(int argc, char **argv)
                 float gridSpacing[3];
                 dim_cpp[0]=5;
                 gridSpacing[0] = param->spacing[0] * powf(2.0f, (float)(param->level2Perform-1));
-                dim_cpp[1]=(int)floor(targetImage->nx*targetImage->dx/gridSpacing[0])+4;
+                dim_cpp[1]=(int)floor(targetImage->nx*targetImage->dx/gridSpacing[0])+5;
                 gridSpacing[1] = param->spacing[1] * powf(2.0f, (float)(param->level2Perform-1));
-                dim_cpp[2]=(int)floor(targetImage->ny*targetImage->dy/gridSpacing[1])+4;
+                dim_cpp[2]=(int)floor(targetImage->ny*targetImage->dy/gridSpacing[1])+5;
                 if(flag->twoDimRegistration){
                     gridSpacing[2] = 1.0f;
                 	dim_cpp[3]=1;
@@ -762,7 +762,7 @@ int main(int argc, char **argv)
                 }
                 else{
                     gridSpacing[2] = param->spacing[2] * powf(2.0f, (float)(param->level2Perform-1));
-                    dim_cpp[3]=(int)floor(targetImage->nz*targetImage->dz/gridSpacing[2])+4;
+                    dim_cpp[3]=(int)floor(targetImage->nz*targetImage->dz/gridSpacing[2])+5;
                 	dim_cpp[5]=3;
                 }
                 dim_cpp[4]=dim_cpp[6]=dim_cpp[7]=1;
@@ -1216,9 +1216,17 @@ int main(int argc, char **argv)
 				reg_convertNMIGradientFromVoxelToRealSpace_gpu( sourceMatrix_xyz,
 										                        controlPointImage,
 										                        &nodeNMIGradientArray_d);
+                if(flag->gradientSmoothingFlag){
+                    reg_gaussianSmoothing_gpu(  controlPointImage,
+                                              &nodeNMIGradientArray_d,
+                                              param->gradientSmoothingValue,
+                                              NULL);
+                }
+
 				/* The other gradients are calculated */
 				if(flag->beGradFlag && flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
-				    reg_bspline_ApproxBendingEnergyGradient_gpu(controlPointImage,
+				    reg_bspline_ApproxBendingEnergyGradient_gpu(targetImage,
+                                                                controlPointImage,
 											                    &controlPointImageArray_d,
 											                    &nodeNMIGradientArray_d,
 											                    param->bendingEnergyWeight);
@@ -1243,12 +1251,6 @@ int main(int argc, char **argv)
 										            controlPointImage->nx*controlPointImage->ny*controlPointImage->nz);
 					}
 				}
-				if(flag->gradientSmoothingFlag){
-                    reg_gaussianSmoothing_gpu(  controlPointImage,
-											  &nodeNMIGradientArray_d,
-											  param->gradientSmoothingValue,
-											  NULL);
-                }
 				maxLength = reg_getMaximalLength_gpu(	&nodeNMIGradientArray_d,
 									                    controlPointImage->nx*controlPointImage->ny*controlPointImage->nz);
 			}
@@ -1322,6 +1324,11 @@ int main(int argc, char **argv)
 		                *gradientValuesY++ = newGradientValueY;
 		                *gradientValuesZ++ = newGradientValueZ;
 	                }
+                }
+                if(flag->gradientSmoothingFlag){
+                    reg_gaussianSmoothing<PrecisionTYPE>(   nodeNMIGradientImage,
+                                                         param->gradientSmoothingValue,
+                                                         NULL);
                 }
 
                 /* The other gradients are calculated */
@@ -1440,11 +1447,6 @@ int main(int argc, char **argv)
 						}
 					}
 				}
-                if(flag->gradientSmoothingFlag){
-                    reg_gaussianSmoothing<PrecisionTYPE>(   nodeNMIGradientImage,
-														 param->gradientSmoothingValue,
-														 NULL);
-                }
 				maxLength = reg_getMaximalLength<PrecisionTYPE>(nodeNMIGradientImage);
 #ifdef _USE_CUDA
 			}

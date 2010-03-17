@@ -2295,10 +2295,10 @@ void reg_voxelCentric2NodeCentric(	nifti_image *nodeImage,
 /* *************************************************************** */
 /* *************************************************************** */
 extern "C++" template<class PrecisionTYPE, class SplineTYPE>
-void reg_bspline_bendingEnergyGradient3D(   nifti_image *splineControlPoint,
-                                            nifti_image *targetImage,
-                                            nifti_image *gradientImage,
-                                            float weight)
+void reg_bspline_approxBendingEnergyGradient3D( nifti_image *splineControlPoint,
+                                                nifti_image *targetImage,
+                                                nifti_image *gradientImage,
+                                                float weight)
 {
     // As the contraint is only computed at the voxel position, the basis value of the spline are always the same 
     PrecisionTYPE normal[3];
@@ -2331,22 +2331,22 @@ void reg_bspline_bendingEnergyGradient3D(   nifti_image *splineControlPoint,
             coord++;
         }
     }
-    
+
     PrecisionTYPE basisXX[27], basisYY[27], basisZZ[27], basisXY[27], basisYZ[27], basisXZ[27];
-    
+
     coord=0;
     for(int bc=0; bc<9; bc++){
         for(int a=0; a<3; a++){
             basisXX[coord]=tempXX[bc]*second[a];    // z * y * x"
             basisYY[coord]=tempYY[bc]*normal[a];    // z * y"* x
             basisZZ[coord]=tempZZ[bc]*normal[a];    // z"* y * x
-            basisXY[coord]=tempXY[bc]*first[a]; // z * y'* x'
+            basisXY[coord]=tempXY[bc]*first[a];     // z * y'* x'
             basisYZ[coord]=tempYZ[bc]*normal[a];    // z'* y'* x
-            basisXZ[coord]=tempXZ[bc]*first[a]; // z'* y * x'
+            basisXZ[coord]=tempXZ[bc]*first[a];     // z'* y * x'
             coord++;
         }
     }
-    
+
     PrecisionTYPE nodeNumber = (PrecisionTYPE)(splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz);
     PrecisionTYPE *derivativeValues = (PrecisionTYPE *)calloc(18*(int)nodeNumber, sizeof(PrecisionTYPE));
     PrecisionTYPE *derivativeValuesPtr;
@@ -2354,14 +2354,14 @@ void reg_bspline_bendingEnergyGradient3D(   nifti_image *splineControlPoint,
     SplineTYPE *controlPointPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
     SplineTYPE *controlPointPtrY = static_cast<SplineTYPE *>(&controlPointPtrX[(unsigned int)nodeNumber]);
     SplineTYPE *controlPointPtrZ = static_cast<SplineTYPE *>(&controlPointPtrY[(unsigned int)nodeNumber]);
-    
+
     PrecisionTYPE xControlPointCoordinates[27];
     PrecisionTYPE yControlPointCoordinates[27];
     PrecisionTYPE zControlPointCoordinates[27];
-	
+
     for(int z=1;z<splineControlPoint->nz-1;z++){
         for(int y=1;y<splineControlPoint->ny-1;y++){
-			derivativeValuesPtr = &derivativeValues[18*((z*splineControlPoint->ny+y)*splineControlPoint->nx+1)];
+            derivativeValuesPtr = &derivativeValues[18*((z*splineControlPoint->ny+y)*splineControlPoint->nx+1)];
             for(int x=1;x<splineControlPoint->nx-1;x++){
 
                 coord=0;
@@ -2383,7 +2383,7 @@ void reg_bspline_bendingEnergyGradient3D(   nifti_image *splineControlPoint,
                         }
                     }
                 }
-                
+
                 PrecisionTYPE XX_x=0.0;
                 PrecisionTYPE YY_x=0.0;
                 PrecisionTYPE ZZ_x=0.0;
@@ -2402,7 +2402,7 @@ void reg_bspline_bendingEnergyGradient3D(   nifti_image *splineControlPoint,
                 PrecisionTYPE XY_z=0.0;
                 PrecisionTYPE YZ_z=0.0;
                 PrecisionTYPE XZ_z=0.0;
-                
+
                 for(int a=0; a<27; a++){
                     XX_x += basisXX[a]*xControlPointCoordinates[a];
                     YY_x += basisYY[a]*xControlPointCoordinates[a];
@@ -2446,16 +2446,16 @@ void reg_bspline_bendingEnergyGradient3D(   nifti_image *splineControlPoint,
             }
         }
     }
-    
+
     SplineTYPE *gradientX = static_cast<SplineTYPE *>(gradientImage->data);
-    SplineTYPE *gradientY = static_cast<SplineTYPE *>(&gradientX[(int)nodeNumber]);
-    SplineTYPE *gradientZ = static_cast<SplineTYPE *>(&gradientY[(int)nodeNumber]);
+    SplineTYPE *gradientY = &gradientX[(int)nodeNumber];
+    SplineTYPE *gradientZ = &gradientY[(int)nodeNumber];
     SplineTYPE *gradientXPtr = &gradientX[0];
     SplineTYPE *gradientYPtr = &gradientY[0];
     SplineTYPE *gradientZPtr = &gradientZ[0];
-	
-	SplineTYPE approxRatio= weight * targetImage->nx*targetImage->ny*targetImage->nz
-	/ ( splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz );
+
+    SplineTYPE approxRatio= weight * targetImage->nx*targetImage->ny*targetImage->nz
+    / ( splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz );
 
     PrecisionTYPE gradientValue[3];
 
@@ -2512,7 +2512,7 @@ void reg_bspline_bendingEnergyGradient3D(   nifti_image *splineControlPoint,
 /* *************************************************************** */
 /* *************************************************************** */
 extern "C++" template<class PrecisionTYPE, class SplineTYPE>
-void reg_bspline_bendingEnergyGradient2D(   nifti_image *splineControlPoint,
+void reg_bspline_approxBendingEnergyGradient2D(   nifti_image *splineControlPoint,
                                             nifti_image *targetImage,
                                             nifti_image *gradientImage,
                                             float weight)
@@ -2652,11 +2652,11 @@ void reg_bspline_bendingEnergyGradient( nifti_image *splineControlPoint,
     if(splineControlPoint->nz==1){
         switch(splineControlPoint->datatype){
             case NIFTI_TYPE_FLOAT32:
-                reg_bspline_bendingEnergyGradient2D<PrecisionTYPE, float>(splineControlPoint, targetImage, gradientImage, weight);
+                reg_bspline_approxBendingEnergyGradient2D<PrecisionTYPE, float>(splineControlPoint, targetImage, gradientImage, weight);
                 break;
             case NIFTI_TYPE_FLOAT64:
                 break;
-                reg_bspline_bendingEnergyGradient2D<PrecisionTYPE, double>(splineControlPoint, targetImage, gradientImage, weight);
+                reg_bspline_approxBendingEnergyGradient2D<PrecisionTYPE, double>(splineControlPoint, targetImage, gradientImage, weight);
             default:
                 fprintf(stderr,"Only single or double precision is implemented for the bending energy gradient\n");
                 fprintf(stderr,"The bending energy gradient has not been computed\n");
@@ -2665,11 +2665,11 @@ void reg_bspline_bendingEnergyGradient( nifti_image *splineControlPoint,
         }else{
         switch(splineControlPoint->datatype){
             case NIFTI_TYPE_FLOAT32:
-                reg_bspline_bendingEnergyGradient3D<PrecisionTYPE, float>(splineControlPoint, targetImage, gradientImage, weight);
+                reg_bspline_approxBendingEnergyGradient3D<PrecisionTYPE, float>(splineControlPoint, targetImage, gradientImage, weight);
                 break;
             case NIFTI_TYPE_FLOAT64:
                 break;
-                reg_bspline_bendingEnergyGradient3D<PrecisionTYPE, double>(splineControlPoint, targetImage, gradientImage, weight);
+                reg_bspline_approxBendingEnergyGradient3D<PrecisionTYPE, double>(splineControlPoint, targetImage, gradientImage, weight);
             default:
                 fprintf(stderr,"Only single or double precision is implemented for the bending energy gradient\n");
                 fprintf(stderr,"The bending energy gradient has not been computed\n");
@@ -3071,7 +3071,7 @@ void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlP
 						jacobianInverse[3]=detJac*Tx_x;
 						
 						PrecisionTYPE twoLogDet=2.0 * log(detJac);
-						if(detJac<=0.0) twoLogDet = -2000;	
+						if(detJac<=0.0) twoLogDet = -2000.0;
 											
 						jacobianContraintX -=	twoLogDet
 							* (jacobianInverse[0]*basisValues[0]+jacobianInverse[1]*basisValues[1]);
@@ -4574,9 +4574,9 @@ void reg_bspline_GetJacobianMap3D(nifti_image *splineControlPoint,
 	}
 	reorient=nifti_mat33_inverse(nifti_mat33_mul(spline_ijk, reorient));
 	mat33 jacobianMatrix;
-    
+
     for(int z=0; z<jacobianImage->nz; z++){
-        
+
         int zPre=(int)((JacobianTYPE)z/gridVoxelSpacing[2]);
         basis=(JacobianTYPE)z/gridVoxelSpacing[2]-(JacobianTYPE)zPre;
         if(basis<0.0) basis=0.0; //rounding error
@@ -4591,7 +4591,7 @@ void reg_bspline_GetJacobianMap3D(nifti_image *splineControlPoint,
         zFirst[0]= (JacobianTYPE)(basis - 1.0/2.0 - zFirst[3]);
         zFirst[2]= (JacobianTYPE)(1.0 + zFirst[0] - 2.0*zFirst[3]);
         zFirst[1]= (JacobianTYPE)(- zFirst[0] - zFirst[2] - zFirst[3]);
-        
+
         for(int y=0; y<jacobianImage->ny; y++){
             
             int yPre=(int)((JacobianTYPE)y/gridVoxelSpacing[1]);

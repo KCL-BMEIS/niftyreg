@@ -27,8 +27,9 @@ float reg_bspline_ApproxBendingEnergy_gpu(	nifti_image *controlPointImage,
 						float4 **controlPointImageArray_d);
 
 extern "C++"
-void reg_bspline_ApproxBendingEnergyGradient_gpu(	nifti_image *controlPointImage,
-							float4 **controlPointImageArray_d,
-							float4 **nodeNMIGradientArray_d,
-							float bendingEnergyWeight);
+void reg_bspline_ApproxBendingEnergyGradient_gpu(   nifti_image *targetImage,
+                                                    nifti_image *controlPointImage,
+							                        float4 **controlPointImageArray_d,
+							                        float4 **nodeNMIGradientArray_d,
+							                        float bendingEnergyWeight);
 #endif
