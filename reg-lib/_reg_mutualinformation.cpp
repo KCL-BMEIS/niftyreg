@@ -76,7 +76,9 @@ void reg_getEntropies3(	nifti_image *targetImage,
 					ResultTYPE resultValue=*resultPtr++;
 					if( targetValue>2.0f &&
                         resultValue>2.0f &&
-                        *maskPtr++>-1){
+						*maskPtr++>-1 &&
+						targetValue==targetValue &&
+						resultValue==resultValue){
                         // The two is added because the image is resample between 2 and bin +2
                         // if 64 bins are used the histogram will have 68 bins et the image will be between 2 and 65
 						for(int t=(int)(targetValue-1.0); t<(int)(targetValue+2.0); t++){
@@ -106,7 +108,9 @@ void reg_getEntropies3(	nifti_image *targetImage,
                 if( targetInt>(TargetTYPE)(2) &&
                     targetInt<(TargetTYPE)(binning) &&
                     resultInt>(ResultTYPE)(2) &&
-                    resultInt<(ResultTYPE)(binning)){
+					resultInt<(ResultTYPE)(binning) &&
+					targetInt==targetInt &&
+					resultInt==resultInt){
 	                probaJointHistogram[(unsigned int)((floorf((float)targetInt) * binning + floorf((float)resultInt)))]++;
 	                voxelNumber++;
                 }
@@ -359,7 +363,10 @@ void reg_getVoxelBasedNMIGradientUsingPW2D(	nifti_image *targetImage,
                if(*maskPtr++>-1){
                    TargetTYPE targetValue = *targetPtr;
                    ResultTYPE resultValue = *resultPtr;
-                   if(targetValue>2.0f && resultValue>2.0f){
+                   if(targetValue>2.0f &&
+					  resultValue>2.0f &&
+					  targetValue==targetValue &&
+					  resultValue==resultValue){
                    // The two is added because the image is resample between 2 and bin +2
                    // if 64 bins are used the histogram will have 68 bins et the image will be between 2 and 65
 
@@ -371,45 +378,48 @@ void reg_getVoxelBasedNMIGradientUsingPW2D(	nifti_image *targetImage,
 					PrecisionTYPE resDeriv[2];
 					resDeriv[0] = (PrecisionTYPE)(*resultGradientPtrX);
 					resDeriv[1] = (PrecisionTYPE)(*resultGradientPtrY);
+					   
+					if(resDeriv[0]==resDeriv[0] && resDeriv[1]==resDeriv[1]){
 
-					PrecisionTYPE jointEntropyDerivative_X = 0.0;
-					PrecisionTYPE movingEntropyDerivative_X = 0.0;
-					PrecisionTYPE fixedEntropyDerivative_X = 0.0;
+						PrecisionTYPE jointEntropyDerivative_X = 0.0;
+						PrecisionTYPE movingEntropyDerivative_X = 0.0;
+						PrecisionTYPE fixedEntropyDerivative_X = 0.0;
 
-					PrecisionTYPE jointEntropyDerivative_Y = 0.0;
-					PrecisionTYPE movingEntropyDerivative_Y = 0.0;
-					PrecisionTYPE fixedEntropyDerivative_Y = 0.0;
-					
-					for(int t=(int)(targetValue-1.0); t<(int)(targetValue+2.0); t++){
-						if(-1<t && t<binning){
-							for(int r=(int)(resultValue-1.0); r<(int)(resultValue+2.0); r++){
-								if(-1<r && r<binning){
-									PrecisionTYPE commonValue =  GetBasisSplineValue<PrecisionTYPE>((PrecisionTYPE)t-(PrecisionTYPE)targetValue) * 
-										GetBasisSplineDerivativeValue<PrecisionTYPE>((PrecisionTYPE)r-(PrecisionTYPE)resultValue);
-									
-									PrecisionTYPE jointLog = logJointHistogram[t*binning+r];
-									PrecisionTYPE targetLog = logJointHistogram[binningSquare+t];
-									PrecisionTYPE resultLog = logJointHistogram[binningSquare+binning+r];
-									
-									PrecisionTYPE temp = commonValue * resDeriv[0];
-									jointEntropyDerivative_X -= temp * jointLog;
-									fixedEntropyDerivative_X -= temp * targetLog;
-									movingEntropyDerivative_X -= temp * resultLog;
-									
-									temp = commonValue * resDeriv[1];
-									jointEntropyDerivative_Y -= temp * jointLog;
-									fixedEntropyDerivative_Y -= temp * targetLog;
-									movingEntropyDerivative_Y -= temp * resultLog;										
-								} // O<t<bin
-							} // t
-						} // 0<r<bin
-					} // r
+						PrecisionTYPE jointEntropyDerivative_Y = 0.0;
+						PrecisionTYPE movingEntropyDerivative_Y = 0.0;
+						PrecisionTYPE fixedEntropyDerivative_Y = 0.0;
+						
+						for(int t=(int)(targetValue-1.0); t<(int)(targetValue+2.0); t++){
+							if(-1<t && t<binning){
+								for(int r=(int)(resultValue-1.0); r<(int)(resultValue+2.0); r++){
+									if(-1<r && r<binning){
+										PrecisionTYPE commonValue =  GetBasisSplineValue<PrecisionTYPE>((PrecisionTYPE)t-(PrecisionTYPE)targetValue) * 
+											GetBasisSplineDerivativeValue<PrecisionTYPE>((PrecisionTYPE)r-(PrecisionTYPE)resultValue);
+										
+										PrecisionTYPE jointLog = logJointHistogram[t*binning+r];
+										PrecisionTYPE targetLog = logJointHistogram[binningSquare+t];
+										PrecisionTYPE resultLog = logJointHistogram[binningSquare+binning+r];
+										
+										PrecisionTYPE temp = commonValue * resDeriv[0];
+										jointEntropyDerivative_X -= temp * jointLog;
+										fixedEntropyDerivative_X -= temp * targetLog;
+										movingEntropyDerivative_X -= temp * resultLog;
+										
+										temp = commonValue * resDeriv[1];
+										jointEntropyDerivative_Y -= temp * jointLog;
+										fixedEntropyDerivative_Y -= temp * targetLog;
+										movingEntropyDerivative_Y -= temp * resultLog;										
+									} // O<t<bin
+								} // t
+							} // 0<r<bin
+						} // r
 
-                       PrecisionTYPE temp = (PrecisionTYPE)(entropies[2]);
-					   // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
-					*nmiGradientPtrX = (NMIGradientTYPE)((fixedEntropyDerivative_X + movingEntropyDerivative_X - NMI * jointEntropyDerivative_X) / temp);
-					*nmiGradientPtrY = (NMIGradientTYPE)((fixedEntropyDerivative_Y + movingEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / temp);
-					
+						PrecisionTYPE temp = (PrecisionTYPE)(entropies[2]);
+						// (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
+						*nmiGradientPtrX = (NMIGradientTYPE)((fixedEntropyDerivative_X + movingEntropyDerivative_X - NMI * jointEntropyDerivative_X) / temp);
+						*nmiGradientPtrY = (NMIGradientTYPE)((fixedEntropyDerivative_Y + movingEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / temp);
+							
+					} // gradient nan
 				} // value > 0
                }// mask > -1
                targetPtr++;
@@ -458,9 +468,12 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(	nifti_image *targetImage,
                 if(*maskPtr++>-1){
                     TargetTYPE targetValue = *targetPtr;
                     ResultTYPE resultValue = *resultPtr;
-                    if(targetValue>2.0f && resultValue>2.0f){
-                    // The two is added because the image is resample between 2 and bin +2
-                    // if 64 bins are used the histogram will have 68 bins et the image will be between 2 and 65
+                    if(targetValue>2.0f &&
+					   resultValue>2.0f &&
+					   targetValue==targetValue &&
+					   resultValue==resultValue){
+						// The two is added because the image is resample between 2 and bin +2
+						// if 64 bins are used the histogram will have 68 bins et the image will be between 2 and 65
 
                         if(type!=1){
                             targetValue = (TargetTYPE)floor((double)targetValue);
@@ -471,56 +484,59 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(	nifti_image *targetImage,
 						resDeriv[0] = (PrecisionTYPE)(*resultGradientPtrX);
 						resDeriv[1] = (PrecisionTYPE)(*resultGradientPtrY);
 						resDeriv[2] = (PrecisionTYPE)(*resultGradientPtrZ);
-
-						PrecisionTYPE jointEntropyDerivative_X = 0.0;
-						PrecisionTYPE movingEntropyDerivative_X = 0.0;
-						PrecisionTYPE fixedEntropyDerivative_X = 0.0;
-
-						PrecisionTYPE jointEntropyDerivative_Y = 0.0;
-						PrecisionTYPE movingEntropyDerivative_Y = 0.0;
-						PrecisionTYPE fixedEntropyDerivative_Y = 0.0;
-
-						PrecisionTYPE jointEntropyDerivative_Z = 0.0;
-						PrecisionTYPE movingEntropyDerivative_Z = 0.0;
-						PrecisionTYPE fixedEntropyDerivative_Z = 0.0;
 						
-						for(int t=(int)(targetValue-1.0); t<(int)(targetValue+2.0); t++){
-							if(-1<t && t<binning){
-								for(int r=(int)(resultValue-1.0); r<(int)(resultValue+2.0); r++){
-									if(-1<r && r<binning){
-										PrecisionTYPE commonValue =  GetBasisSplineValue<PrecisionTYPE>((PrecisionTYPE)t-(PrecisionTYPE)targetValue) * 
-											GetBasisSplineDerivativeValue<PrecisionTYPE>((PrecisionTYPE)r-(PrecisionTYPE)resultValue);
-										
-										PrecisionTYPE jointLog = logJointHistogram[t*binning+r];
-										PrecisionTYPE targetLog = logJointHistogram[binningSquare+t];
-										PrecisionTYPE resultLog = logJointHistogram[binningSquare+binning+r];
-										
-										PrecisionTYPE temp = commonValue * resDeriv[0];
-										jointEntropyDerivative_X -= temp * jointLog;
-										fixedEntropyDerivative_X -= temp * targetLog;
-										movingEntropyDerivative_X -= temp * resultLog;
-										
-										temp = commonValue * resDeriv[1];
-										jointEntropyDerivative_Y -= temp * jointLog;
-										fixedEntropyDerivative_Y -= temp * targetLog;
-										movingEntropyDerivative_Y -= temp * resultLog;
-										
-										temp = commonValue * resDeriv[2];
-										jointEntropyDerivative_Z -= temp * jointLog;
-										fixedEntropyDerivative_Z -= temp * targetLog;
-										movingEntropyDerivative_Z -= temp * resultLog;
-										
-									} // O<t<bin
-								} // t
-							} // 0<r<bin
-						} // r
+						if(resDeriv[0]==resDeriv[0] && resDeriv[1]==resDeriv[1] && resDeriv[2]==resDeriv[2]){
+
+							PrecisionTYPE jointEntropyDerivative_X = 0.0;
+							PrecisionTYPE movingEntropyDerivative_X = 0.0;
+							PrecisionTYPE fixedEntropyDerivative_X = 0.0;
+
+							PrecisionTYPE jointEntropyDerivative_Y = 0.0;
+							PrecisionTYPE movingEntropyDerivative_Y = 0.0;
+							PrecisionTYPE fixedEntropyDerivative_Y = 0.0;
+
+							PrecisionTYPE jointEntropyDerivative_Z = 0.0;
+							PrecisionTYPE movingEntropyDerivative_Z = 0.0;
+							PrecisionTYPE fixedEntropyDerivative_Z = 0.0;
+							
+							for(int t=(int)(targetValue-1.0); t<(int)(targetValue+2.0); t++){
+								if(-1<t && t<binning){
+									for(int r=(int)(resultValue-1.0); r<(int)(resultValue+2.0); r++){
+										if(-1<r && r<binning){
+											PrecisionTYPE commonValue =  GetBasisSplineValue<PrecisionTYPE>((PrecisionTYPE)t-(PrecisionTYPE)targetValue) * 
+												GetBasisSplineDerivativeValue<PrecisionTYPE>((PrecisionTYPE)r-(PrecisionTYPE)resultValue);
+											
+											PrecisionTYPE jointLog = logJointHistogram[t*binning+r];
+											PrecisionTYPE targetLog = logJointHistogram[binningSquare+t];
+											PrecisionTYPE resultLog = logJointHistogram[binningSquare+binning+r];
+											
+											PrecisionTYPE temp = commonValue * resDeriv[0];
+											jointEntropyDerivative_X -= temp * jointLog;
+											fixedEntropyDerivative_X -= temp * targetLog;
+											movingEntropyDerivative_X -= temp * resultLog;
+											
+											temp = commonValue * resDeriv[1];
+											jointEntropyDerivative_Y -= temp * jointLog;
+											fixedEntropyDerivative_Y -= temp * targetLog;
+											movingEntropyDerivative_Y -= temp * resultLog;
+											
+											temp = commonValue * resDeriv[2];
+											jointEntropyDerivative_Z -= temp * jointLog;
+											fixedEntropyDerivative_Z -= temp * targetLog;
+											movingEntropyDerivative_Z -= temp * resultLog;
+											
+										} // O<t<bin
+									} // t
+								} // 0<r<bin
+							} // r
 						
-						// (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
-                        PrecisionTYPE temp = (PrecisionTYPE)(entropies[2]);
-						*nmiGradientPtrX = (NMIGradientTYPE)((fixedEntropyDerivative_X + movingEntropyDerivative_X - NMI * jointEntropyDerivative_X) / temp);
-						*nmiGradientPtrY = (NMIGradientTYPE)((fixedEntropyDerivative_Y + movingEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / temp);
-						*nmiGradientPtrZ = (NMIGradientTYPE)((fixedEntropyDerivative_Z + movingEntropyDerivative_Z - NMI * jointEntropyDerivative_Z) / temp);
-						
+							// (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
+							PrecisionTYPE temp = (PrecisionTYPE)(entropies[2]);
+							*nmiGradientPtrX = (NMIGradientTYPE)((fixedEntropyDerivative_X + movingEntropyDerivative_X - NMI * jointEntropyDerivative_X) / temp);
+							*nmiGradientPtrY = (NMIGradientTYPE)((fixedEntropyDerivative_Y + movingEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / temp);
+							*nmiGradientPtrZ = (NMIGradientTYPE)((fixedEntropyDerivative_Z + movingEntropyDerivative_Z - NMI * jointEntropyDerivative_Z) / temp);
+								
+						}
 					} // value > 0
                 }// mask > -1
                 targetPtr++;
