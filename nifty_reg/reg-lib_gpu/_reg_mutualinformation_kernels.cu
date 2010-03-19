@@ -70,7 +70,9 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW_kernel(float4 *voxelNMIGradi
         // The two is added because the image is resample between 2 and bin +2
         // if 64 bins are used the histogram will have 68 bins et the image will be between 2 and 65
 		if( targetImageValue>2.0f &&
-            resultImageValue>2.0f){
+            resultImageValue>2.0f &&
+            targetImageValue==targetImageValue &&
+            resultImageValue==resultImageValue){
 
             targetImageValue = floor(targetImageValue); // Parzen window filling of the joint histogram is approximated
             resultImageValue = floor(resultImageValue);
@@ -79,56 +81,61 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW_kernel(float4 *voxelNMIGradi
 				resultImageGradient.x,
 				resultImageGradient.y,
 				resultImageGradient.z);
+				
+			if( resultImageGradient.x==resultImageGradient.x &&
+				resultImageGradient.y==resultImageGradient.y &&
+				resultImageGradient.z==resultImageGradient.z){
 					
-			float jointEntropyDerivative_X = 0.0f;
-			float movingEntropyDerivative_X = 0.0f;
-			float fixedEntropyDerivative_X = 0.0f;
-					
-			float jointEntropyDerivative_Y = 0.0f;
-			float movingEntropyDerivative_Y = 0.0f;
-			float fixedEntropyDerivative_Y = 0.0f;
-					
-			float jointEntropyDerivative_Z = 0.0f;
-			float movingEntropyDerivative_Z = 0.0f;
-			float fixedEntropyDerivative_Z = 0.0f;
-					
-			for(int t=(int)(targetImageValue-1.0f); t<(int)(targetImageValue+2.0f); t++){
-				if(-1<t && t<c_Binning){
-					for(int r=(int)(resultImageValue-1.0f); r<(int)(resultImageValue+2.0f); r++){
-						if(-1<r && r<c_Binning){
-							float commonValue = GetBasisSplineValue((float)t-targetImageValue) *
-								GetBasisSplineDerivativeValue((float)r-resultImageValue);
-
-							float jointLog = tex1Dfetch(histogramTexture, t*c_Binning+r);
-							float targetLog = tex1Dfetch(histogramTexture, c_Binning*c_Binning+t);
-							float resultLog = tex1Dfetch(histogramTexture, c_Binning*c_Binning+c_Binning+r);
-
-							float temp = commonValue * resDeriv.x;
-							jointEntropyDerivative_X -= temp * jointLog;
-							fixedEntropyDerivative_X -= temp * targetLog;
-							movingEntropyDerivative_X -= temp * resultLog;
-
-							temp = commonValue * resDeriv.y;
-							jointEntropyDerivative_Y -= temp * jointLog;
-							fixedEntropyDerivative_Y -= temp * targetLog;
-							movingEntropyDerivative_Y -= temp * resultLog;
-
-							temp = commonValue * resDeriv.z;
-							jointEntropyDerivative_Z -= temp * jointLog;
-							fixedEntropyDerivative_Z -= temp * targetLog;
-							movingEntropyDerivative_Z -= temp * resultLog;
-						} // O<t<bin
-					} // t
-				} // 0<r<bin
-			} // r
-
-			float NMI= c_NMI;
-            float temp = c_Entropies.z;
-            // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way
-			gradValue.x = (fixedEntropyDerivative_X + movingEntropyDerivative_X - NMI * jointEntropyDerivative_X) / temp;
-			gradValue.y = (fixedEntropyDerivative_Y + movingEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / temp;
-			gradValue.z = (fixedEntropyDerivative_Z + movingEntropyDerivative_Z - NMI * jointEntropyDerivative_Z) / temp;
-
+				float jointEntropyDerivative_X = 0.0f;
+				float movingEntropyDerivative_X = 0.0f;
+				float fixedEntropyDerivative_X = 0.0f;
+						
+				float jointEntropyDerivative_Y = 0.0f;
+				float movingEntropyDerivative_Y = 0.0f;
+				float fixedEntropyDerivative_Y = 0.0f;
+						
+				float jointEntropyDerivative_Z = 0.0f;
+				float movingEntropyDerivative_Z = 0.0f;
+				float fixedEntropyDerivative_Z = 0.0f;
+						
+				for(int t=(int)(targetImageValue-1.0f); t<(int)(targetImageValue+2.0f); t++){
+					if(-1<t && t<c_Binning){
+						for(int r=(int)(resultImageValue-1.0f); r<(int)(resultImageValue+2.0f); r++){
+							if(-1<r && r<c_Binning){
+								float commonValue = GetBasisSplineValue((float)t-targetImageValue) *
+									GetBasisSplineDerivativeValue((float)r-resultImageValue);
+		
+								float jointLog = tex1Dfetch(histogramTexture, t*c_Binning+r);
+								float targetLog = tex1Dfetch(histogramTexture, c_Binning*c_Binning+t);
+								float resultLog = tex1Dfetch(histogramTexture, c_Binning*c_Binning+c_Binning+r);
+		
+								float temp = commonValue * resDeriv.x;
+								jointEntropyDerivative_X -= temp * jointLog;
+								fixedEntropyDerivative_X -= temp * targetLog;
+								movingEntropyDerivative_X -= temp * resultLog;
+		
+								temp = commonValue * resDeriv.y;
+								jointEntropyDerivative_Y -= temp * jointLog;
+								fixedEntropyDerivative_Y -= temp * targetLog;
+								movingEntropyDerivative_Y -= temp * resultLog;
+		
+								temp = commonValue * resDeriv.z;
+								jointEntropyDerivative_Z -= temp * jointLog;
+								fixedEntropyDerivative_Z -= temp * targetLog;
+								movingEntropyDerivative_Z -= temp * resultLog;
+							} // O<t<bin
+						} // t
+					} // 0<r<bin
+				} // r
+		
+				float NMI= c_NMI;
+		           float temp = c_Entropies.z;
+		           // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way
+				gradValue.x = (fixedEntropyDerivative_X + movingEntropyDerivative_X - NMI * jointEntropyDerivative_X) / temp;
+				gradValue.y = (fixedEntropyDerivative_Y + movingEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / temp;
+				gradValue.z = (fixedEntropyDerivative_Z + movingEntropyDerivative_Z - NMI * jointEntropyDerivative_Z) / temp;
+		
+			}
 		}
 		voxelNMIGradientArray_d[targetIndex]=gradValue;
 
