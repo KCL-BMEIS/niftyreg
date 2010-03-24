@@ -13,6 +13,31 @@
 #include "_reg_affineTransformation.h"
 #include <queue>
 #include <iostream>
+#include <limits>
+
+
+void copy_transformation_4x4(const mat44 & source, mat44 & dest)
+{
+    dest.m[0][0] = source.m[0][0];
+    dest.m[0][1] = source.m[0][1];
+    dest.m[0][2] = source.m[0][2];
+    dest.m[0][3] = source.m[0][3];
+
+    dest.m[1][0] = source.m[1][0];
+    dest.m[1][1] = source.m[1][1];
+    dest.m[1][2] = source.m[1][2];
+    dest.m[1][3] = source.m[1][3];
+
+    dest.m[2][0] = source.m[2][0];
+    dest.m[2][1] = source.m[2][1];
+    dest.m[2][2] = source.m[2][2];
+    dest.m[2][3] = source.m[2][3];
+
+    dest.m[3][0] = source.m[3][0];
+    dest.m[3][1] = source.m[3][1];
+    dest.m[3][2] = source.m[3][2];
+    dest.m[3][3] = source.m[3][3];
+}
 
 /* *************************************************************** */
 // Helper function: Get the square of the Euclidean distance
@@ -1111,7 +1136,7 @@ void optimize_affine2D(_reg_blockMatchingParam * params,
     std::priority_queue<_reg_sorted_point2D> queue;
 	std::vector<_reg_sorted_point2D> top_points;
 	double distance = 0.0;
-	double lastDistance = 0.0;
+    double lastDistance = std::numeric_limits<double>::max();;
 	unsigned long i;
 
     // massive left hand side matrix
@@ -1186,6 +1211,7 @@ void optimize_affine2D(_reg_blockMatchingParam * params,
 	
 	// Allocate memory for RHS vector
 	b = new float[num_equations];
+    mat44 lastTransformation;
 
     for (unsigned count = 0; count < MAX_ITERATIONS; ++count)
 	{
@@ -1213,14 +1239,15 @@ void optimize_affine2D(_reg_blockMatchingParam * params,
 			queue.pop();
 			++i;
 		}
-				
-		// If the change is not substantial, we return 
-		if (fabs(distance - lastDistance) < TOLERANCE)
+
+        if (lastDistance - distance < TOLERANCE)
 		{
+            // restore the last transformation
+            copy_transformation_4x4(lastTransformation, *(final));
 			break;
-		}
-		
+		}		
 		lastDistance = distance;
+        copy_transformation_4x4(*(final), lastTransformation);
 		estimate_affine_transformation2D(top_points, final, a, w, v, r, b);	
 	}
 
@@ -1262,7 +1289,7 @@ void optimize_affine3D(	_reg_blockMatchingParam *params,
 	std::priority_queue<_reg_sorted_point3D> queue;
 	std::vector<_reg_sorted_point3D> top_points;
 	double distance = 0.0;
-	double lastDistance = 0.0;
+	double lastDistance = std::numeric_limits<double>::max();
 	unsigned long i;
 
 	// massive left hand side matrix
@@ -1296,7 +1323,7 @@ void optimize_affine3D(	_reg_blockMatchingParam *params,
 	for (unsigned j = 0; j < num_points*3; j+=3)
 	{
 		top_points.push_back(_reg_sorted_point3D(&(params->targetPosition[j]), 
-							 &(params->resultPosition[j]),0.0f));
+							 &(params->resultPosition[j]),0.0f));        
 	}
 	
 	// estimate the optimal transformation while considering all the points
@@ -1337,14 +1364,15 @@ void optimize_affine3D(	_reg_blockMatchingParam *params,
 	}
 	
 	// Allocate memory for RHS vector
-	b = new float[num_equations];
+	b = new float[num_equations];    
+    mat44 lastTransformation;
 	
 	for (unsigned count = 0; count < MAX_ITERATIONS; ++count)
 	{
 		// Transform the points in the target
 		for (unsigned j = 0; j < num_points * 3; j+=3)		
 		{				
-			apply_affine(final, &(params->targetPosition[j]), &newResultPosition[j]);
+			apply_affine(final, &(params->targetPosition[j]), &newResultPosition[j]);  
 		}
 
 		queue = std::priority_queue<_reg_sorted_point3D> ();
@@ -1354,10 +1382,11 @@ void optimize_affine3D(	_reg_blockMatchingParam *params,
 			queue.push(_reg_sorted_point3D(&(params->targetPosition[j]), 
 					   &(params->resultPosition[j]), distance));
 		}
-						
+
 		distance = 0.0;	
 		i = 0;
 		top_points.clear();
+
 		while (i < num_to_keep && i < queue.size())
 		{
 			top_points.push_back(queue.top());
@@ -1365,17 +1394,17 @@ void optimize_affine3D(	_reg_blockMatchingParam *params,
 			queue.pop();
 			++i;
 		}
-				
-		// If the change is not substantial, we return 
-		if (fabs(distance - lastDistance) < TOLERANCE)
+		// If the change is not substantial or we are getting worst, we return 
+        if (lastDistance - distance < TOLERANCE)
 		{
+            // restore the last transformation
+            copy_transformation_4x4(lastTransformation, *(final));
 			break;
-		}
-		
+		}		
 		lastDistance = distance;
+        copy_transformation_4x4(*(final), lastTransformation);
 		estimate_affine_transformation3D(top_points, final, a, w, v, r, b);	
-	}
-	
+	}	
 	delete[] newResultPosition;
 	delete[] b;
 	for (unsigned k = 0; k < 12; ++k)

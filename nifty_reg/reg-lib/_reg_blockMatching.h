@@ -17,7 +17,7 @@
 #include <iostream>
 
 #define TOLERANCE 0.01
-#define MAX_ITERATIONS 20
+#define MAX_ITERATIONS 30
 
 #define BLOCK_WIDTH 4
 #define BLOCK_SIZE 64
