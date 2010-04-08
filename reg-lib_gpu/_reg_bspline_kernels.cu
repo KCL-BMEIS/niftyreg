@@ -19,16 +19,30 @@ __device__ __constant__ int3 c_ControlPointImageDim;
 __device__ __constant__ float3 c_ControlPointVoxelSpacing;
 __device__ __constant__ float c_Weight;
 __device__ __constant__ int c_ActiveVoxelNumber;
+__device__ __constant__ bool c_Type;
+
+/* *************************************************************** */
+/* *************************************************************** */
 
 texture<float4, 1, cudaReadModeElementType> controlPointTexture;
 texture<float4, 1, cudaReadModeElementType> basisValueATexture;
 texture<float2, 1, cudaReadModeElementType> basisValueBTexture;
 texture<int, 1, cudaReadModeElementType> maskTexture;
+texture<float4, 1, cudaReadModeElementType> txVoxelToRealMatrix;
+texture<float4, 1, cudaReadModeElementType> txRealToVoxelMatrix;
 
+/* *************************************************************** */
+/* *************************************************************** */
 
 __device__ float3 operator*(float a, float3 b){
     return make_float3(a*b.x, a*b.y, a*b.z);
 }
+__device__ float4 operator+(float4 a, float4 b){
+    return make_float4(a.x+b.x, a.y+b.y, a.z+b.z, 0.0f);
+}
+
+/* *************************************************************** */
+/* *************************************************************** */
 
 __global__ void _reg_freeForm_interpolatePosition(float4 *positionField)
 {
@@ -103,6 +117,9 @@ __global__ void _reg_freeForm_interpolatePosition(float4 *positionField)
 	return;
 }
 
+/* *************************************************************** */
+/* *************************************************************** */
+
 __device__ void bendingEnergyMult(	float3 *XX,
 					float3 *YY,
 					float3 *ZZ,
@@ -144,6 +161,9 @@ __device__ void bendingEnergyMult(	float3 *XX,
 
 	return;
 }
+
+/* *************************************************************** */
+/* *************************************************************** */
 
 __global__ void reg_bspline_ApproxBendingEnergy_kernel( float *penaltyTerm)
 {
@@ -207,6 +227,9 @@ __global__ void reg_bspline_ApproxBendingEnergy_kernel( float *penaltyTerm)
 	}
 	return;
 }
+
+/* *************************************************************** */
+/* *************************************************************** */
 
 __global__ void reg_bspline_storeApproxBendingEnergy_kernel(float3 *beValues)
 {
@@ -272,6 +295,8 @@ __global__ void reg_bspline_storeApproxBendingEnergy_kernel(float3 *beValues)
 	return;
 }
 
+/* *************************************************************** */
+/* *************************************************************** */
 
 __global__ void reg_bspline_getApproxBendingEnergyGradient_kernel(  float3 *bendingEnergyValue,
                                                                     float4 *nodeNMIGradientArray_d)
@@ -362,6 +387,114 @@ __global__ void reg_bspline_getApproxBendingEnergyGradient_kernel(  float3 *bend
 		nodeNMIGradientArray_d[tid]=metricGradientValue;
 	}
 }
+
+/* *************************************************************** */
+/* *************************************************************** */
+
+__global__ void _reg_spline_cppComposition_kernel(float4 *toUpdateArray)
+{
+    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    if(tid<c_ControlPointNumber){
+
+
+        int3 controlPointImageDim = c_ControlPointImageDim;
+
+        // The current position is extracted
+        float4 matrix;
+        float3 voxel;
+        float4 position=toUpdateArray[tid];
+        if(c_Type==0){
+            int tempIndex=tid;
+            voxel.z =(int)(tempIndex/(controlPointImageDim.x*controlPointImageDim.y));
+            tempIndex -= (int)voxel.z*(controlPointImageDim.x)*(controlPointImageDim.y);
+            voxel.y =(int)(tempIndex/(controlPointImageDim.x));
+            voxel.x = tempIndex - (int)voxel.y*(controlPointImageDim.x);
+
+            float4 matrix = tex1Dfetch(txVoxelToRealMatrix,0);
+            position.x =    matrix.x*voxel.x + matrix.y*voxel.y  +
+                            matrix.z*voxel.z  +  matrix.w;
+            matrix = tex1Dfetch(txVoxelToRealMatrix,1);
+            position.y =    matrix.x*voxel.x + matrix.y*voxel.y  +
+                            matrix.z*voxel.z  +  matrix.w;
+            matrix = tex1Dfetch(txVoxelToRealMatrix,2);
+            position.z =    matrix.x*voxel.x + matrix.y*voxel.y  +
+                            matrix.z*voxel.z  +  matrix.w;
+        }
+
+        // The voxel position is computed
+        matrix = tex1Dfetch(txVoxelToRealMatrix,0);
+        voxel.x =   matrix.x*position.x + matrix.y*position.y  +
+                    matrix.z*position.z  +  matrix.w;
+        matrix = tex1Dfetch(txVoxelToRealMatrix,1);
+        voxel.y =   matrix.x*position.x + matrix.y*position.y  +
+                    matrix.z*position.z  +  matrix.w;
+        matrix = tex1Dfetch(txVoxelToRealMatrix,2);
+        voxel.z =   matrix.x*position.x + matrix.y*position.y  +
+                    matrix.z*position.z  +  matrix.w;
+
+        // the "nearest previous" node is determined [0,0,0]
+        int3 nodeAnte;
+        nodeAnte.x = (int)floorf(voxel.x);
+        nodeAnte.y = (int)floorf(voxel.y);
+        nodeAnte.z = (int)floorf(voxel.z);
+
+        float relative = fabsf(voxel.x - (float)nodeAnte.x);
+        float xBasis[4];
+        xBasis[3]= relative * relative * relative / 6.0f;
+        xBasis[0]= 1.0f/6.0f + relative*(relative-1.0f)/2.0f - xBasis[3];
+        xBasis[2]= relative + xBasis[0] - 2.0f*xBasis[3];
+        xBasis[1]= 1.0f - xBasis[0] - xBasis[2] - xBasis[3];
+
+        relative = fabsf((float)voxel.y-(float)nodeAnte.y);
+        float yBasis[4];
+        yBasis[3]= relative * relative * relative / 6.0f;
+        yBasis[0]= 1.0f/6.0f + relative*(relative-1.0f)/2.0f - yBasis[3];
+        yBasis[2]= relative + yBasis[0] - 2.0f*yBasis[3];
+        yBasis[1]= 1.0f - yBasis[0] - yBasis[2] - yBasis[3];
+
+        relative = fabsf((float)voxel.z-(float)nodeAnte.z);
+        float zBasis[4];
+        zBasis[3]= relative * relative * relative / 6.0f;
+        zBasis[0]= 1.0f/6.0f + relative*(relative-1.0f)/2.0f - zBasis[3];
+        zBasis[2]= relative + zBasis[0] - 2.0f*zBasis[3];
+        zBasis[1]= 1.0f - zBasis[0] - zBasis[2] - zBasis[3];
+
+        float4 displacement=make_float4(0.0f,0.0f,0.0f,0.0f);
+
+        nodeAnte.x--;
+        nodeAnte.y--;
+        nodeAnte.z--;
+
+        int indexYZ, indexXYZ;
+        for(short c=0; c<4; c++){
+            float4 tempValueY=make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+            indexYZ= ( (nodeAnte.z + c) * controlPointImageDim.y + nodeAnte.y ) * controlPointImageDim.x;
+            for(short b=0; b<4; b++){
+                float4 tempValueX=make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+                indexXYZ= indexYZ + nodeAnte.x;
+                for(short a=0; a<4; a++){
+                    float4 nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ);
+                    tempValueX.x +=  nodeCoefficient.x* xBasis[a];
+                    tempValueX.y +=  nodeCoefficient.y* xBasis[a];
+                    tempValueX.z +=  nodeCoefficient.z* xBasis[a];
+                    indexXYZ++;
+                }
+                tempValueY.x += tempValueX.x * yBasis[b];
+                tempValueY.y += tempValueX.y * yBasis[b];
+                tempValueY.z += tempValueX.z * yBasis[b];
+                indexYZ += controlPointImageDim.x;
+            }
+            displacement.x += tempValueY.x * zBasis[c];
+            displacement.y += tempValueY.y * zBasis[c];
+            displacement.z += tempValueY.z * zBasis[c];
+        }
+        toUpdateArray[tid] = toUpdateArray[tid] + displacement;
+    }
+    return;
+}
+
+/* *************************************************************** */
+/* *************************************************************** */
 
 #endif
 

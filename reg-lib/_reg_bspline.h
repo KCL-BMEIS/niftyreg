@@ -14,6 +14,7 @@
 
 #include "nifti1_io.h"
 #include "_reg_affineTransformation.h"
+#include "float.h"
 
 #if _USE_SSE
 	#include <emmintrin.h>
@@ -53,8 +54,8 @@ PrecisionTYPE reg_bspline_jacobian(	nifti_image *splineControlPoint,
 								  );
 
 extern "C++"
-void reg_bspline_GetJacobianMap(	nifti_image *splineControlPoint,
-							   nifti_image *jacobianImage
+void reg_bspline_GetJacobianMap(nifti_image *splineControlPoint,
+							    nifti_image *jacobianImage
 							   );
 
 extern "C++"
@@ -77,24 +78,8 @@ int reg_bspline_initialiseControlPointGridWithAffine(	mat44 *affineTransformatio
 							nifti_image *controlPointImage
 						      );
 
-
-
-
-extern "C++"
-int reg_square_cpp(nifti_image *positionGridImage,
-				   nifti_image *decomposedGridImage);
-
 extern "C++" template<class PrecisionTYPE>
-int reg_getDisplacementFromPosition(nifti_image *controlPointImage);
-
-extern "C++" template<class PrecisionTYPE>
-int reg_getPositionFromDisplacement(nifti_image *controlPointImage);
-
-extern "C++"
-int reg_spline_Interpolant2Interpolator(nifti_image *inputImage,
-										nifti_image *outputImage);
-extern "C++"
-int reg_bspline_GetJacobianMapFromVelocityField(nifti_image* velocityFieldImage,
-												nifti_image* jacobianImage);
+void reg_bspline_correctFolding(nifti_image *splineControlPoint,
+                                nifti_image *targetImage);
 
 #endif

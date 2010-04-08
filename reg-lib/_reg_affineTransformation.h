@@ -25,8 +25,11 @@ void reg_mat44_mul(	mat44 *mat,
 			float out[3]);
 
 extern "C++"
-void reg_mat44_disp(	mat44 *mat,
-			char * title);
+void reg_mat44_disp(    mat44 *mat,
+            char * title);
+extern "C++"
+void reg_mat33_disp(    mat33 *mat,
+            char * title);
 
 
 /** reg_affine_deformationField

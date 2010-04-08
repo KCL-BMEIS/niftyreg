@@ -74,8 +74,10 @@ void reg_getEntropies3(	nifti_image *targetImage,
 				for(int x=0; x<targetImage->nx; x++){
 					TargetTYPE targetValue=*targetPtr++;
 					ResultTYPE resultValue=*resultPtr++;
-					if( targetValue>2.0f &&
-                        resultValue>2.0f &&
+                    if( targetValue>0.0f &&
+                        resultValue>0.0f &&
+                        targetValue<binning &&
+                        resultValue<binning &&
 						*maskPtr++>-1 &&
 						targetValue==targetValue &&
 						resultValue==resultValue){
@@ -105,12 +107,12 @@ void reg_getEntropies3(	nifti_image *targetImage,
             if(*maskPtr++>-1){
                 TargetTYPE targetInt = *targetPtr;
                 ResultTYPE resultInt = *resultPtr;
-                if( targetInt>(TargetTYPE)(2) &&
+                if( targetInt>(TargetTYPE)(0) &&
                     targetInt<(TargetTYPE)(binning) &&
-                    resultInt>(ResultTYPE)(2) &&
-					resultInt<(ResultTYPE)(binning) &&
-					targetInt==targetInt &&
-					resultInt==resultInt){
+                    resultInt>(ResultTYPE)(0) &&
+                    resultInt<(ResultTYPE)(binning) &&
+                    targetInt==targetInt &&
+                    resultInt==resultInt){
 	                probaJointHistogram[(unsigned int)((floorf((float)targetInt) * binning + floorf((float)resultInt)))]++;
 	                voxelNumber++;
                 }
@@ -363,8 +365,10 @@ void reg_getVoxelBasedNMIGradientUsingPW2D(	nifti_image *targetImage,
                if(*maskPtr++>-1){
                    TargetTYPE targetValue = *targetPtr;
                    ResultTYPE resultValue = *resultPtr;
-                   if(targetValue>2.0f &&
-					  resultValue>2.0f &&
+                   if(targetValue>0.0f &&
+                      resultValue>0.0f &&
+                      targetValue<binning &&
+                      resultValue<binning &&
 					  targetValue==targetValue &&
 					  resultValue==resultValue){
                    // The two is added because the image is resample between 2 and bin +2
@@ -468,8 +472,10 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(	nifti_image *targetImage,
                 if(*maskPtr++>-1){
                     TargetTYPE targetValue = *targetPtr;
                     ResultTYPE resultValue = *resultPtr;
-                    if(targetValue>2.0f &&
-					   resultValue>2.0f &&
+                    if(targetValue>0.0f &&
+                       resultValue>0.0f &&
+                       targetValue<binning &&
+                       resultValue<binning &&
 					   targetValue==targetValue &&
 					   resultValue==resultValue){
 						// The two is added because the image is resample between 2 and bin +2

@@ -15,6 +15,9 @@
 #include "_reg_bspline_gpu.h"
 #include "_reg_bspline_kernels.cu"
 
+/* *************************************************************** */
+/* *************************************************************** */
+
 void reg_bspline_gpu(   nifti_image *controlPointImage,
                         nifti_image *targetImage,
                         float4 **controlPointImageArray_d,
@@ -57,6 +60,9 @@ void reg_bspline_gpu(   nifti_image *controlPointImage,
 	return;
 }
 
+/* *************************************************************** */
+/* *************************************************************** */
+
 float reg_bspline_ApproxBendingEnergy_gpu(	nifti_image *controlPointImage,
 						float4 **controlPointImageArray_d)
 {
@@ -95,6 +101,9 @@ float reg_bspline_ApproxBendingEnergy_gpu(	nifti_image *controlPointImage,
 
 	return (float)(penaltyValue/(3.0*(double)controlPointNumber));
 }
+
+/* *************************************************************** */
+/* *************************************************************** */
 
 void reg_bspline_ApproxBendingEnergyGradient_gpu(   nifti_image *targetImage,
                                                     nifti_image *controlPointImage,
@@ -179,5 +188,86 @@ void reg_bspline_ApproxBendingEnergyGradient_gpu(   nifti_image *targetImage,
 
 	return;
 }
+
+/* *************************************************************** */
+/* *************************************************************** */
+
+void reg_spline_cppComposition_gpu( nifti_image *toUpdate,
+                                    nifti_image *toCompose,
+                                    float4 **toUpdateArray_d,
+                                    float4 **toComposeArray_d,
+                                    float ratio,
+                                    bool type)
+{
+    if(toUpdate->nvox != toCompose->nvox){
+        fprintf(stderr,"ERROR:\treg_spline_cppComposition_gpu\n");
+        fprintf(stderr,"ERROR:\tBoth image are expected to have the same size ... Exit\n");
+        exit(1);
+    }
+
+    const int controlPointNumber = toCompose->nx*toCompose->ny*toCompose->nz;
+    const int3 controlPointImageDim = make_int3(toCompose->nx, toCompose->ny, toCompose->nz);
+
+    const int controlPointGridMem = controlPointNumber*sizeof(float4);
+
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Type,&type,sizeof(bool)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointNumber,&controlPointNumber,sizeof(int3)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointImageDim,&controlPointImageDim,sizeof(int3)));
+
+    // The transformation matrix is binded to a texture
+    float4 *transformationMatrix_h;
+    float4 *voxelToRealMatrix_d;
+    float4 *realToVoxelMatrix_d;
+    CUDA_SAFE_CALL(cudaMallocHost((void **)&transformationMatrix_h, 3*sizeof(float4)));
+    CUDA_SAFE_CALL(cudaMalloc((void **)&voxelToRealMatrix_d, 3*sizeof(float4)));
+    CUDA_SAFE_CALL(cudaMalloc((void **)&realToVoxelMatrix_d, 3*sizeof(float4)));
+    mat44 *voxelToReal=NULL;
+    mat44 *realToVoxel=NULL;
+    if(toUpdate->sform_code>0){
+        voxelToReal=&(toUpdate->sto_xyz);
+        realToVoxel=&(toUpdate->sto_ijk);
+    }
+    else{
+        voxelToReal=&(toUpdate->qto_xyz);
+        realToVoxel=&(toUpdate->qto_ijk);
+    }
+    for(int i=0; i<3; i++){
+        transformationMatrix_h[i].x=voxelToReal->m[i][0];
+        transformationMatrix_h[i].y=voxelToReal->m[i][1];
+        transformationMatrix_h[i].z=voxelToReal->m[i][2];
+        transformationMatrix_h[i].w=voxelToReal->m[i][3];
+    }
+    CUDA_SAFE_CALL(cudaMemcpy(voxelToRealMatrix_d, transformationMatrix_h, 3*sizeof(float4), cudaMemcpyHostToDevice));
+    cudaBindTexture(0,txVoxelToRealMatrix,voxelToRealMatrix_d,3*sizeof(float4));
+    for(int i=0; i<3; i++){
+        transformationMatrix_h[i].x=realToVoxel->m[i][0];
+        transformationMatrix_h[i].y=realToVoxel->m[i][1];
+        transformationMatrix_h[i].z=realToVoxel->m[i][2];
+        transformationMatrix_h[i].w=realToVoxel->m[i][3];
+    }
+    CUDA_SAFE_CALL(cudaMemcpy(realToVoxelMatrix_d, transformationMatrix_h, 3*sizeof(float4), cudaMemcpyHostToDevice));
+    cudaBindTexture(0,txRealToVoxelMatrix,realToVoxelMatrix_d,3*sizeof(float4));
+    CUDA_SAFE_CALL(cudaFreeHost((void *)transformationMatrix_h));
+
+    // The control point grid is binded to a texture
+    CUDA_SAFE_CALL(cudaBindTexture(0, controlPointTexture, *toComposeArray_d, controlPointGridMem));
+
+    const unsigned int Grid_reg_freeForm_interpolatePosition = 
+        (unsigned int)ceil((float)controlPointNumber/(float)(Block_reg_spline_cppComposition));
+    dim3 BlockP1(Block_reg_freeForm_interpolatePosition,1,1);
+    dim3 GridP1(Grid_reg_freeForm_interpolatePosition,1,1);
+
+    _reg_spline_cppComposition_kernel <<< GridP1, BlockP1 >>>(*toUpdateArray_d);
+    CUDA_SAFE_CALL(cudaThreadSynchronize());
+#if _VERBOSE
+    printf("[VERBOSE] _reg_spline_cppComposition_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+           cudaGetErrorString(cudaGetLastError()),GridP1.x,GridP1.y,GridP1.z,BlockP1.x,BlockP1.y,BlockP1.z);
+#endif
+    return;
+}
+
+/* *************************************************************** */
+/* *************************************************************** */
+
 
 #endif
