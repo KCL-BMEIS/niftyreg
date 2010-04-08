@@ -24,6 +24,14 @@ IF(BUILD_F3D)
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 	)
 #-----------------------------------------------------------------------------
+	SET(NAME _reg_bspline_comp)
+	ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp)
+	INSTALL(TARGETS ${NAME}
+		RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+		LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+	)
+#-----------------------------------------------------------------------------
 	SET(NAME _reg_mutualinformation)
 	ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp)
 	INSTALL(TARGETS ${NAME}

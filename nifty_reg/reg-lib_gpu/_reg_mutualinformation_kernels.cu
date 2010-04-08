@@ -69,8 +69,10 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW_kernel(float4 *voxelNMIGradi
 		// No computation is performed if any of the point is part of the background
         // The two is added because the image is resample between 2 and bin +2
         // if 64 bins are used the histogram will have 68 bins et the image will be between 2 and 65
-		if( targetImageValue>2.0f &&
-            resultImageValue>2.0f &&
+        if( targetImageValue>0.0f &&
+            resultImageValue>0.0f &&
+            targetImageValue<c_Binning &&
+            resultImageValue<c_Binning &&
             targetImageValue==targetImageValue &&
             resultImageValue==resultImageValue){
 

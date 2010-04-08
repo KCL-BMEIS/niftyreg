@@ -49,6 +49,7 @@ void reg_affine_positionField_gpu(	mat44 *affineMatrix,
 	}
 	CUDA_SAFE_CALL(cudaMemcpy(transformationMatrix_d, transformationMatrix_h, 3*sizeof(float4), cudaMemcpyHostToDevice));
 	cudaBindTexture(0,txAffineTransformation,transformationMatrix_d,3*sizeof(float4));
+    CUDA_SAFE_CALL(cudaFreeHost((void *)transformationMatrix_h));
 	
 	const unsigned int Grid_reg_affine_deformationField = (unsigned int)ceil((float)targetImage->nvox/(float)Block_reg_affine_deformationField);
 	dim3 B1(Block_reg_affine_deformationField,1,1);
@@ -62,7 +63,6 @@ void reg_affine_positionField_gpu(	mat44 *affineMatrix,
 #endif
 	
 	CUDA_SAFE_CALL(cudaFree(transformationMatrix_d));
-	CUDA_SAFE_CALL(cudaFreeHost((void *)transformationMatrix_h));
 }
 /* *************************************************************** */
 /* *************************************************************** */

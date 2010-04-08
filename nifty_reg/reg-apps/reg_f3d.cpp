@@ -23,6 +23,7 @@
 #include "_reg_resampling.h"
 #include "_reg_affineTransformation.h"
 #include "_reg_bspline.h"
+#include "_reg_bspline_comp.h"
 #include "_reg_mutualinformation.h"
 #include "_reg_ssd.h"
 #include "_reg_tools.h"
@@ -46,9 +47,6 @@
 #define JH_PARZEN_WIN 1
 #define JH_PW_APPROX 2
 
-#define SCALING_VALUE 256
-#define SQUARING_VALUE 8
-
 typedef struct{
 	char *targetImageName;
 	char *sourceImageName;
@@ -65,7 +63,7 @@ typedef struct{
 	char *outputResultName;
 	char *outputCPPName;
 	int backgroundIndex[3];
-	PrecisionTYPE sourceBGValue;
+	PrecisionTYPE sourcePaddingValue;
 	float targetSigmaValue;
 	float sourceSigmaValue;
     float targetLowThresholdValue;
@@ -114,6 +112,8 @@ typedef struct{
     bool twoDimRegistration;
     bool gradientSmoothingFlag;
 
+    bool useCompositionFlag;
+
 	bool useVelocityFieldFlag;
 	bool inputVelocityFieldFlag;
 
@@ -147,80 +147,64 @@ void Usage(char *exec)
 	printf("Usage:\t%s -target <filename> -source <filename> [OPTIONS].\n",exec);
 	printf("\t-target <filename>\tFilename of the target image (mandatory)\n");
 	printf("\t-source <filename>\tFilename of the source image (mandatory)\n");
-	printf("* * OPTIONS * *\n");
-	//	printf("\t-vel <fileName>\t\tVelocity file name use to generate the cpp grid [none]\n");
-	printf("\t-incpp <filename>\tFilename of control point grid input\n\t\t\t\tThe coarse spacing is defined by this file.\n");
-	printf("\t-invel <filename>\tFilename of velocity grid input\n\t\t\t\tThe coarse spacing is defined by this file.\n");
-	printf("\t-result <filename> \tFilename of the resampled image [outputResult.nii]\n");
-	printf("\t-cpp <filename>\t\tFilename of control point grid [outputCPP.nii]\n");
-	printf("\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Target=Source)\n");
-    printf("\t-affFlirt <filename>\tFilename which contains a flirt affine transformation\n");
+    printf("\n***************\n*** OPTIONS ***\n***************\n");
+
+    printf("\n*** Initial transformation options (One option will be considered):\n");
+    printf("\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Target=Source)\n");
+    printf("\t-affFlirt <filename>\tFilename which contains a flirt affine transformation (Flirt from the FSL package)\n");
+    printf("\t-incpp <filename>\tFilename of control point grid input\n\t\t\t\tThe coarse spacing is defined by this file.\n");
+//     printf("\t-invel <filename>\tFilename of velocity grid input\n\t\t\t\tThe coarse spacing is defined by this file.\n");
+
+    printf("\n*** Output options:\n");
+    printf("\t-cpp <filename>\t\tFilename of control point grid [outputCPP.nii]\n");
+//     printf("\t-vel <fileName>\t\tVelocity file name use to generate the cpp grid [none]\n");
+    printf("\t-result <filename> \tFilename of the resampled image [outputResult.nii]\n");
+
+    printf("\n*** Input image options:\n");
     printf("\t-tmask <filename>\tFilename of a mask image in the target space\n");
-	printf("\t-maxit <int>\t\tMaximal number of iteration per level [300]\n");
-	printf("\t-sx <float>\t\tFinal grid spacing along the x axis in mm [5]\n");
-	printf("\t-sy <float>\t\tFinal grid spacing along the y axis in mm [sx value]\n");
-	printf("\t-sz <float>\t\tFinal grid spacing along the z axis in mm [sx value]\n");
-	printf("\t-bin <int>\t\tNumber of bin to use for the joint histogram [64]\n");
     printf("\t-smooT <float>\t\tSmooth the target image using the specified sigma (mm) [0]\n");
     printf("\t-smooS <float>\t\tSmooth the source image using the specified sigma (mm) [0]\n");
     printf("\t-tLwTh <float>\t\tLower threshold to apply to the target image intensities [none]\n");
     printf("\t-tUpTh <float>\t\tUpper threshold to apply to the target image intensities [none]\n");
     printf("\t-sLwTh <float>\t\tLower threshold to apply to the source image intensities [none]\n");
     printf("\t-sUpTh <float>\t\tUpper threshold to apply to the source image intensities [none]\n");
+    printf("\t-bgi <int> <int> <int>\tForce the background value during\n\t\t\t\tresampling to have the same value than this voxel in the source image [none]\n");
+
+    printf("\n*** Spline options:\n");
+    printf("\t-sx <float>\t\tFinal grid spacing along the x axis in mm [5]\n");
+    printf("\t-sy <float>\t\tFinal grid spacing along the y axis in mm [sx value]\n");
+    printf("\t-sz <float>\t\tFinal grid spacing along the z axis in mm [sx value]\n");
+
+    printf("\n*** Objective function and optimisation options:\n");
+	printf("\t-maxit <int>\t\tMaximal number of iteration per level [300]\n");
+	printf("\t-bin <int>\t\tNumber of bin to use for the joint histogram [64]\n");
     printf("\t\t\t\tThe scl_slope and scl_inter from the nifti header are taken into account for the thresholds\n");
 	printf("\t-ln <int>\t\tNumber of level to perform [3]\n");
     printf("\t-lp <int>\t\tOnly perform the first levels [ln]\n");
 	printf("\t-nopy\t\t\tDo not use a pyramidal approach [no]\n");
-
-    printf("\t-smoothGrad <float>\tTo smooth the objective function derivative (in mm) [0]\n");
-	
 	printf("\t-be <float>\t\tWeight of the bending energy penalty term [0.01]\n");
 	printf("\t-noAppBE\t\tTo not approximate the BE value only at the control point position\n");
     printf("\t-noGradBE\t\tTo not use the gradient of the bending energy\n");
-
-// 	printf("\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]\n");
-// 	printf("\t-noAppJL\t\t\tTo not approximate the JL value only at the control point position [no]\n");
-// 	printf("\t-noGradJL\t\t\tTo not use the gradient of the Jacobian determinant [no]\n");
-	
-	printf("\t-bgi <int> <int> <int>\tForce the background value during\n\t\t\t\tresampling to have the same value than this voxel in the source image [none]\n");
+	printf("\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]\n");
+	printf("\t-noAppJL\t\tTo not approximate the JL value only at the control point position [no]\n");
+	printf("\t-noGradJL\t\tTo not use the gradient of the Jacobian determinant [no]\n");
+    printf("\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent\n");
 // 	printf("\t-ssd\t\t\tTo use the SSD as the similiarity measure [no]\n");
-	printf("\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent/descent\n");
-	printf("\t-mem\t\t\tDisplay an approximate memory requierment and exit\n");
+
+    printf("\n*** Other options:\n");
+    printf("\t-smoothGrad <float>\tTo smooth the metric derivative (in mm) [0]\n");
+    printf("\t-comp\t\t\tTo compose the gradient image instead of adding it during the optimisation scheme [no]\n");
+
 
 #ifdef _USE_CUDA
+    printf("\n*** GPU-related options:\n");
+    printf("\t-mem\t\t\tDisplay an approximate memory requierment and exit\n");
 	printf("\t-gpu \t\t\tTo use the GPU implementation [no]\n");
 #endif
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 	return;
 }
 
-void apply_scaling_squaring(nifti_image *velocityFieldImage,
-							nifti_image *controlPointImage)
-{
-
-	// The velocity field is copied to the cpp image
-	nifti_image *nodePositionImage=nifti_copy_nim_info(controlPointImage);
-	nodePositionImage->data=(void *)calloc(controlPointImage->nvox, controlPointImage->nbyper);
-	
-	memcpy(nodePositionImage->data, velocityFieldImage->data,
-		   controlPointImage->nvox*controlPointImage->nbyper);
-
-	// The control point image is decomposed
-	reg_spline_Interpolant2Interpolator(nodePositionImage,
-										controlPointImage);
-	
-	// Squaring approach
-	for(unsigned int i=0; i<SQUARING_VALUE; i++){
-		reg_square_cpp(nodePositionImage,
-					   controlPointImage);
-		// The control point image is decomposed
-		reg_spline_Interpolant2Interpolator(nodePositionImage,
-											controlPointImage);
-	}
-	nifti_image_free(nodePositionImage);
-
-	reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
-}
 
 int main(int argc, char **argv)
 {
@@ -378,10 +362,13 @@ int main(int argc, char **argv)
 			flag->useVelocityFieldFlag=1;
 			param->velocityFieldName=argv[++i];
 		}
-		else if(strcmp(argv[i], "-inVel") == 0){
-			flag->inputVelocityFieldFlag=1;
-			param->inputVelocityFieldName=argv[++i];
-		}
+        else if(strcmp(argv[i], "-inVel") == 0){
+            flag->inputVelocityFieldFlag=1;
+            param->inputVelocityFieldName=argv[++i];
+        }
+        else if(strcmp(argv[i], "-comp") == 0){
+            flag->useCompositionFlag=1;
+        }
 
 #ifdef _USE_CUDA
 		else if(strcmp(argv[i], "-mem") == 0){
@@ -473,7 +460,7 @@ int main(int argc, char **argv)
 #endif	
 
     /* Check the source background index */
-    if(!flag->backgroundIndexFlag) param->sourceBGValue = 0.0;
+    if(!flag->backgroundIndexFlag) param->sourcePaddingValue = NAN;
     else{
 	    if(param->backgroundIndex[0] < 0 || param->backgroundIndex[1] < 0 || param->backgroundIndex[2] < 0 
 		    || param->backgroundIndex[0] >= sourceHeader->dim[1] || param->backgroundIndex[1] >= sourceHeader->dim[2] || param->backgroundIndex[2] >= sourceHeader->dim[3]){
@@ -942,7 +929,7 @@ int main(int argc, char **argv)
                     index[2] /= 2;
                 }
             }
-            param->sourceBGValue = (float)(reg_tool_GetIntensityValue(sourceImage, index));
+            param->sourcePaddingValue = (float)(reg_tool_GetIntensityValue(sourceImage, index));
         }
 
         /* the gradient images are allocated */
@@ -1055,132 +1042,146 @@ int main(int argc, char **argv)
 
 		int iteration=0;
         while(iteration<param->maxIteration && currentSize>smallestSize){
-#ifdef _USE_CUDA
-            if(flag->useGPUFlag){
-				reg_bspline_gpu(controlPointImage,
-								targetImage,
-								&controlPointImageArray_d,
-								&positionFieldImageArray_d,
-								&targetMask_d,
-								activeVoxelNumber);
-                /* Resample the source image */
-                reg_resampleSourceImage_gpu(resultImage,
-                                            sourceImage,
-                                            &resultImageArray_d,
-                                            &sourceImageArray_d,
-                                            &positionFieldImageArray_d,
-                                            &targetMask_d,
-                                            activeVoxelNumber,
-                                            param->sourceBGValue);
-				/* The result image is transfered back to the host */
-				if(cudaCommon_transferFromDeviceToNifti(resultImage, &resultImageArray_d)) return 1;
-			}
-			else{
-#endif
-				/* A Velocity field is use to generate the CPP image
-					using a scaling squaring approach */
-				if(flag->useVelocityFieldFlag){
-					apply_scaling_squaring(	velocityFieldImage,
-										   controlPointImage);
-				}
 
-                /* generate the position field */
-				reg_bspline<PrecisionTYPE>(	controlPointImage,
-											targetImage,
-											positionFieldImage,
-											targetMask,
-											0);
-				/* Resample the source image */
-				reg_resampleSourceImage<PrecisionTYPE>(	targetImage,
-                                                        sourceImage,
-                                                        resultImage,
-                                                        positionFieldImage,
-                                                        targetMask,
-                                                        1,
-														param->sourceBGValue);
+            double currentValue=0.0;
+            PrecisionTYPE SSDValue=0.0;
+            double currentWBE=0.0f;
+            double currentWJac=0.0f;
+
+            do{
 
 #ifdef _USE_CUDA
-			}
+                if(flag->useGPUFlag){
+				    reg_bspline_gpu(controlPointImage,
+								    targetImage,
+								    &controlPointImageArray_d,
+								    &positionFieldImageArray_d,
+								    &targetMask_d,
+								    activeVoxelNumber);
+                    /* Resample the source image */
+                    reg_resampleSourceImage_gpu(resultImage,
+                                                sourceImage,
+                                                &resultImageArray_d,
+                                                &sourceImageArray_d,
+                                                &positionFieldImageArray_d,
+                                                &targetMask_d,
+                                                activeVoxelNumber,
+                                                param->sourcePaddingValue);
+				    /* The result image is transfered back to the host */
+				    if(cudaCommon_transferFromDeviceToNifti(resultImage, &resultImageArray_d)) return 1;
+			    }
+			    else{
+#endif
+				    /* A Velocity field is use to generate the CPP image
+					    using a scaling squaring approach */
+				    if(flag->useVelocityFieldFlag){
+					    reg_spline_scaling_squaring(velocityFieldImage,
+										            controlPointImage);
+				    }
+    
+                    /* generate the position field */
+				    reg_bspline<PrecisionTYPE>(	controlPointImage,
+											    targetImage,
+											    positionFieldImage,
+											    targetMask,
+											    0);
+				    /* Resample the source image */
+				    reg_resampleSourceImage<PrecisionTYPE>(	targetImage,
+                                                            sourceImage,
+                                                            resultImage,
+                                                            positionFieldImage,
+                                                            targetMask,
+                                                            1,
+														    param->sourcePaddingValue);
+
+#ifdef _USE_CUDA
+			    }
 #endif
 
-			double currentValue=0.0;
-			PrecisionTYPE SSDValue=0.0;
-			if(flag->useSSDFlag){
-				SSDValue=reg_getSSD<PrecisionTYPE>(	targetImage,
-													resultImage);
-				currentValue = -(1.0-param->bendingEnergyWeight-param->jacobianWeight)*log(SSDValue+1.0);
-			}
-			else{
-				reg_getEntropies<double>(	targetImage,
-								resultImage,
-								JH_PW_APPROX,
-								param->binning,
-								probaJointHistogram,
-								logJointHistogram,
-								entropies,
-								targetMask);
-				currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight)*(entropies[0]+entropies[1])/entropies[2];
-			}
+			    if(flag->useSSDFlag){
+				    SSDValue=reg_getSSD<PrecisionTYPE>(	targetImage,
+													    resultImage);
+				    currentValue = -(1.0-param->bendingEnergyWeight-param->jacobianWeight)*log(SSDValue+1.0);
+			    }
+			    else{
+				    reg_getEntropies<double>(	targetImage,
+								    resultImage,
+								    JH_PW_APPROX,
+								    param->binning,
+								    probaJointHistogram,
+								    logJointHistogram,
+								    entropies,
+								    targetMask);
+				    currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight)*(entropies[0]+entropies[1])/entropies[2];
+			    }
 
 #ifdef _USE_CUDA
-			/* * NEED TO BE CHANGED */
-			if(flag->useGPUFlag){
-				/* both histogram are tranfered back to the device */
-				float *tempB=(float *)malloc(param->binning*(param->binning+2)*sizeof(float));
-				for(int i=0; i<param->binning*(param->binning+2);i++){
-					tempB[i]=(float)logJointHistogram[i];
-				}
-				CUDA_SAFE_CALL(cudaMemcpy(logJointHistogram_d, tempB, param->binning*(param->binning+2)*sizeof(float), cudaMemcpyHostToDevice));
-				free(tempB);
-			}
+			    /* * NEED TO BE CHANGED */
+			    if(flag->useGPUFlag){
+				    /* both histogram are tranfered back to the device */
+				    float *tempB=(float *)malloc(param->binning*(param->binning+2)*sizeof(float));
+				    for(int i=0; i<param->binning*(param->binning+2);i++){
+					    tempB[i]=(float)logJointHistogram[i];
+				    }
+				    CUDA_SAFE_CALL(cudaMemcpy(logJointHistogram_d, tempB, param->binning*(param->binning+2)*sizeof(float), cudaMemcpyHostToDevice));
+				    free(tempB);
+			    }
 #endif
-			double currentWBE=0.0f;
-			double currentWJac=0.0f;
 #ifdef _USE_CUDA
-			if(flag->useGPUFlag){
-				if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0 ){
-					currentWBE = param->bendingEnergyWeight
-							* reg_bspline_ApproxBendingEnergy_gpu(	controlPointImage,
-												&controlPointImageArray_d);
-					currentValue -= currentWBE;
-				}
-				if(flag->jacobianWeightFlag){
-					//TODO
-				}
-			}
-			else{
+			    if(flag->useGPUFlag){
+				    if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0 ){
+					    currentWBE = param->bendingEnergyWeight
+							    * reg_bspline_ApproxBendingEnergy_gpu(	controlPointImage,
+												    &controlPointImageArray_d);
+					    currentValue -= currentWBE;
+				    }
+				    if(flag->jacobianWeightFlag){
+					    //TODO
+				    }
+			    }
+			    else{
 #endif
-				if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
-					currentWBE = param->bendingEnergyWeight
-					* reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
-					
-					currentValue -= currentWBE;
-				}
-				if(flag->jacobianWeightFlag && param->jacobianWeight){
-					currentWJac = param->jacobianWeight
-						* reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
-					currentValue -= currentWJac;
-					if(currentWJac!=currentWJac) currentValue = 0.0f;
-				}
+				    if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
+					    currentWBE = param->bendingEnergyWeight
+					    * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
+					    
+					    currentValue -= currentWBE;
+				    }
+				    if(flag->jacobianWeightFlag && param->jacobianWeight){
+					    currentWJac = param->jacobianWeight
+						    * reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
+					    currentValue -= currentWJac;
+					    if(currentWJac!=currentWJac) currentValue = 0.0f;
+				    }
 #ifdef _USE_CUDA
-			}
+			    }
 #endif
 
 #ifdef _VERBOSE
-			if(flag->useSSDFlag)
-				printf("[VERBOSE] Initial metric value (log(SSD)): %g\n", log(SSDValue+1.0));
-			else printf("[VERBOSE] Initial metric value: %g\n", (entropies[0]+entropies[1])/entropies[2]);
-			if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0) printf("[VERBOSE] Initial weighted bending energy value = %g, approx[%i]\n", currentWBE, flag->appBendingEnergyFlag);
-			if(flag->jacobianWeightFlag && param->jacobianWeight>0) printf("[VERBOSE] Initial weighted Jacobian log value = %g, approx[%i]\n", currentWJac, flag->appJacobianFlag);
+			    if(flag->useSSDFlag)
+				    printf("[VERBOSE] Initial metric value (log(SSD)): %g\n", log(SSDValue+1.0));
+			    else printf("[VERBOSE] Initial metric value: %g\n", (entropies[0]+entropies[1])/entropies[2]);
+			    if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0) printf("[VERBOSE] Initial weighted bending energy value = %g, approx[%i]\n", currentWBE, flag->appBendingEnergyFlag);
+			    if(flag->jacobianWeightFlag && param->jacobianWeight>0) printf("[VERBOSE] Initial weighted Jacobian log value = %g, approx[%i]\n", currentWJac, flag->appJacobianFlag);
 #endif
+
+                if(currentWJac!=currentWJac){
+#ifdef _VERBOSE
+                    printf("[VERBOSE] ********* Initial folding correction *********\n");
+#endif
+                    reg_bspline_correctFolding<PrecisionTYPE>(  controlPointImage,
+                                                                resultImage);
+                    iteration++;
+                }
+
+            }while(currentWJac!=currentWJac);
 
 			double bestValue = currentValue;
 			double bestWBE = currentWBE;
 			double bestWJac = currentWJac;
-			if(iteration==0){
+			if(iteration==0)
 				printf("Initial objective function value = %g\n", currentValue);
 
-			}
 			iteration++;
 			float maxLength;
 
@@ -1332,29 +1333,42 @@ int main(int argc, char **argv)
                 }
 
                 /* The other gradients are calculated */
-				if(flag->useVelocityFieldFlag &&
-				   ( (flag->beGradFlag && flag->bendingEnergyFlag && param->bendingEnergyWeight>0) ||
-					flag->jlGradFlag && flag->jacobianWeightFlag && param->jacobianWeight>0) ){
-					   
-					   PrecisionTYPE *velPtr=static_cast<PrecisionTYPE *>(velocityFieldImage->data);
-					   PrecisionTYPE *cppPtr=static_cast<PrecisionTYPE *>(controlPointImage->data);
-					   for(unsigned int i=0; i<controlPointImage->nvox; i++)
-						   *cppPtr++ = *velPtr++ * (PrecisionTYPE)SCALING_VALUE;
-					   reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
-					   
-				}
+// 				if(flag->useVelocityFieldFlag &&
+// 				   ( (flag->beGradFlag && flag->bendingEnergyFlag && param->bendingEnergyWeight>0) ||
+// 					flag->jlGradFlag && flag->jacobianWeightFlag && param->jacobianWeight>0) ){
+// 
+// 					   PrecisionTYPE *velPtr=static_cast<PrecisionTYPE *>(velocityFieldImage->data);
+// 					   PrecisionTYPE *cppPtr=static_cast<PrecisionTYPE *>(controlPointImage->data);
+// 					   for(unsigned int i=0; i<controlPointImage->nvox; i++)
+// 						   *cppPtr++ = *velPtr++ * (PrecisionTYPE)SCALING_VALUE;
+// 					   reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
+// 				}
                 if(flag->beGradFlag && flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
-					reg_bspline_bendingEnergyGradient<PrecisionTYPE>(controlPointImage,
-																	 targetImage,
-																	 nodeNMIGradientImage,
-																	 param->bendingEnergyWeight);
+                    if(flag->useVelocityFieldFlag){
+                        //TODO
+                        fprintf(stderr, "TODO - velocity field bending-energy gradient ... EXIT\n");
+                        exit(0);
+                    }
+                    else{
+					    reg_bspline_bendingEnergyGradient<PrecisionTYPE>(controlPointImage,
+																	    targetImage,
+																	    nodeNMIGradientImage,
+																	    param->bendingEnergyWeight);
+                    }
 				}
 				if(flag->jlGradFlag && flag->jacobianWeightFlag && param->jacobianWeight>0){
-					reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>(controlPointImage,
-																		   targetImage,
-																		   nodeNMIGradientImage,
-																		   param->jacobianWeight,
-																		   flag->appJacobianFlag);
+                    if(flag->useVelocityFieldFlag){
+                        //TODO
+                        fprintf(stderr, "TODO - velocity field jacobian determinant gradient ... EXIT\n");
+                        exit(0);
+                    }
+                    else{
+                        reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>( controlPointImage,
+                                                                                targetImage,
+                                                                                nodeNMIGradientImage,
+                                                                                param->jacobianWeight,
+                                                                                flag->appJacobianFlag);
+                    }
 				}
 
 				/* The conjugate gradient is computed */
@@ -1464,7 +1478,7 @@ int main(int argc, char **argv)
 			
 			/* ** LINE ASCENT ** */
 			int lineIteration = 0;
-			maxStepSize=currentSize;
+    		currentSize=maxStepSize;
 			float addedStep=0.0f;
 	
             while(currentSize>smallestSize && lineIteration<12){
@@ -1474,165 +1488,222 @@ int main(int argc, char **argv)
 #ifdef _VERBOSE
 				printf("[VERBOSE] [%i] Current added max step: %g\n", iteration, currentSize);
 #endif
-	
+
 #ifdef _USE_CUDA
 				if(flag->useGPUFlag){
 					
 					/* Update the control point position */
-					reg_updateControlPointPosition_gpu(	controlPointImage,
-										&controlPointImageArray_d,
-										&bestControlPointPosition_d,
-										&nodeNMIGradientArray_d,
-										currentLength);
-
-
-					/* generate the position field */
-					reg_bspline_gpu(controlPointImage,
-							targetImage,
-							&controlPointImageArray_d,
-							&positionFieldImageArray_d,
-                            &targetMask_d,
-                            activeVoxelNumber);
-					/* Resample the source image */
-					reg_resampleSourceImage_gpu(	resultImage,
-									sourceImage,
-									&resultImageArray_d,
-									&sourceImageArray_d,
-									&positionFieldImageArray_d,
-                                    &targetMask_d,
-                                    activeVoxelNumber,
-									param->sourceBGValue);
-					/* The result image is transfered back to the host */
-					PrecisionTYPE *resultPtr=static_cast<PrecisionTYPE *>(resultImage->data);
-					CUDA_SAFE_CALL(cudaMemcpy(resultPtr, resultImageArray_d, resultImage->nvox*sizeof(PrecisionTYPE), cudaMemcpyDeviceToHost));
-				}
-				else{
-#endif
-					/* Update the control point position */
-					if(flag->twoDimRegistration){
-						PrecisionTYPE *controlPointValuesX = NULL;
-						PrecisionTYPE *controlPointValuesY = NULL;
-						if(flag->useVelocityFieldFlag){
-							controlPointValuesX = static_cast<PrecisionTYPE *>(velocityFieldImage->data);
-							controlPointValuesY = &controlPointValuesX[velocityFieldImage->nx*velocityFieldImage->ny];
-						}
-						else{
-							controlPointValuesX = static_cast<PrecisionTYPE *>(controlPointImage->data);
-							controlPointValuesY = &controlPointValuesX[controlPointImage->nx*controlPointImage->ny];
-						}
-						PrecisionTYPE *bestControlPointValuesX = &bestControlPointPosition[0];
-						PrecisionTYPE *bestControlPointValuesY = &bestControlPointValuesX[controlPointImage->nx*controlPointImage->ny];
-						PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
-						PrecisionTYPE *gradientValuesY = &gradientValuesX[controlPointImage->nx*controlPointImage->ny];
-						for(int i=0; i<controlPointImage->nx*controlPointImage->ny;i++){
-							*controlPointValuesX++ = *bestControlPointValuesX++ + currentLength * *gradientValuesX++;
-							*controlPointValuesY++ = *bestControlPointValuesY++ + currentLength * *gradientValuesY++;
-						}
-					}
-					else{
-						PrecisionTYPE *controlPointValuesX = NULL;
-						PrecisionTYPE *controlPointValuesY = NULL;
-						PrecisionTYPE *controlPointValuesZ = NULL;
-						if(flag->useVelocityFieldFlag){
-							controlPointValuesX = static_cast<PrecisionTYPE *>(velocityFieldImage->data);
-							controlPointValuesY = &controlPointValuesX[velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz];
-							controlPointValuesZ = &controlPointValuesY[velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz];
-						}
-						else{
-							controlPointValuesX = static_cast<PrecisionTYPE *>(controlPointImage->data);
-							controlPointValuesY = &controlPointValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-							controlPointValuesZ = &controlPointValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-						}
-						PrecisionTYPE *bestControlPointValuesX = &bestControlPointPosition[0];
-						PrecisionTYPE *bestControlPointValuesY = &bestControlPointValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-						PrecisionTYPE *bestControlPointValuesZ = &bestControlPointValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-						PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
-						PrecisionTYPE *gradientValuesY = &gradientValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-						PrecisionTYPE *gradientValuesZ = &gradientValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-						for(int i=0; i<controlPointImage->nx*controlPointImage->ny*controlPointImage->nz;i++){
-							*controlPointValuesX++ = *bestControlPointValuesX++ + currentLength * *gradientValuesX++;
-							*controlPointValuesY++ = *bestControlPointValuesY++ + currentLength * *gradientValuesY++;
-							*controlPointValuesZ++ = *bestControlPointValuesZ++ + currentLength * *gradientValuesZ++;
-						}
-					}
-
-					/* A Velocity field is use to generate the CPP image
-					 using a scaling squaring approach */
-					if(flag->useVelocityFieldFlag){
-						apply_scaling_squaring(	velocityFieldImage,
-											   controlPointImage);
-					}
-					reg_bspline<PrecisionTYPE>(	controlPointImage,
-											   targetImage,
-											   positionFieldImage,
-											   targetMask,
-											   0);
-				
-					/* Resample the source image */
-					reg_resampleSourceImage<PrecisionTYPE>(	targetImage,
-										sourceImage,
-										resultImage,
-										positionFieldImage,
-                                        NULL,
-										1,
-										param->sourceBGValue);
+                    if(flag->useCompositionFlag){ // the control point positions are updated using composition
+                        CUDA_SAFE_CALL(cudaMemcpy(controlPointImageArray_d, bestControlPointPosition_d,
+                            controlPointImage->nx*controlPointImage->ny*controlPointImage->nz*sizeof(float4),
+                            cudaMemcpyDeviceToDevice));
+                        reg_spline_cppComposition_gpu(  controlPointImage,
+                                                        nodeNMIGradientImage,
+                                                        &controlPointImageArray_d,
+                                                        &nodeNMIGradientArray_d,
+                                                        (float)currentLength,
+                                                        1);
+                    }
+                    else{ // the control point positions are updated using addition
+					    reg_updateControlPointPosition_gpu(	controlPointImage,
+										    &controlPointImageArray_d,
+										    &bestControlPointPosition_d,
+										    &nodeNMIGradientArray_d,
+										    currentLength);
+                    }
+                }
+                else{
+#endif                  /* Update the control point position */
+                    if(flag->useCompositionFlag){ // the control point positions are updated using composition
+                        memcpy(controlPointImage->data,bestControlPointPosition,controlPointImage->nvox*controlPointImage->nbyper);
+                        reg_spline_cppComposition(  controlPointImage,
+                                                    nodeNMIGradientImage,
+                                                    (float)currentLength,
+                                                    1);
+                    }
+                    else{ // the control point positions are updated using addition
+                        if(flag->twoDimRegistration){
+                            PrecisionTYPE *controlPointValuesX = NULL;
+                            PrecisionTYPE *controlPointValuesY = NULL;
+                            if(flag->useVelocityFieldFlag){
+                                controlPointValuesX = static_cast<PrecisionTYPE *>(velocityFieldImage->data);
+                                controlPointValuesY = &controlPointValuesX[velocityFieldImage->nx*velocityFieldImage->ny];
+                            }
+                            else{
+                                controlPointValuesX = static_cast<PrecisionTYPE *>(controlPointImage->data);
+                                controlPointValuesY = &controlPointValuesX[controlPointImage->nx*controlPointImage->ny];
+                            }
+                            PrecisionTYPE *bestControlPointValuesX = &bestControlPointPosition[0];
+                            PrecisionTYPE *bestControlPointValuesY = &bestControlPointValuesX[controlPointImage->nx*controlPointImage->ny];
+                            PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
+                            PrecisionTYPE *gradientValuesY = &gradientValuesX[controlPointImage->nx*controlPointImage->ny];
+                            for(int i=0; i<controlPointImage->nx*controlPointImage->ny;i++){
+                                *controlPointValuesX++ = *bestControlPointValuesX++ + currentLength * *gradientValuesX++;
+                                *controlPointValuesY++ = *bestControlPointValuesY++ + currentLength * *gradientValuesY++;
+                            }
+                        }
+                        else{
+                            PrecisionTYPE *controlPointValuesX = NULL;
+                            PrecisionTYPE *controlPointValuesY = NULL;
+                            PrecisionTYPE *controlPointValuesZ = NULL;
+                            if(flag->useVelocityFieldFlag){
+                                controlPointValuesX = static_cast<PrecisionTYPE *>(velocityFieldImage->data);
+                                controlPointValuesY = &controlPointValuesX[velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz];
+                                controlPointValuesZ = &controlPointValuesY[velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz];
+                            }
+                            else{
+                                controlPointValuesX = static_cast<PrecisionTYPE *>(controlPointImage->data);
+                                controlPointValuesY = &controlPointValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+                                controlPointValuesZ = &controlPointValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+                            }
+                            PrecisionTYPE *bestControlPointValuesX = &bestControlPointPosition[0];
+                            PrecisionTYPE *bestControlPointValuesY = &bestControlPointValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+                            PrecisionTYPE *bestControlPointValuesZ = &bestControlPointValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+                            PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
+                            PrecisionTYPE *gradientValuesY = &gradientValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+                            PrecisionTYPE *gradientValuesZ = &gradientValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+                            for(int i=0; i<controlPointImage->nx*controlPointImage->ny*controlPointImage->nz;i++){
+                                *controlPointValuesX++ = *bestControlPointValuesX++ + currentLength * *gradientValuesX++;
+                                *controlPointValuesY++ = *bestControlPointValuesY++ + currentLength * *gradientValuesY++;
+                                *controlPointValuesZ++ = *bestControlPointValuesZ++ + currentLength * *gradientValuesZ++;
+                            }
+                        }
+                    }
 #ifdef _USE_CUDA
-				}
+                }
+#endif
+                unsigned short negCorrection=0;
+                do{
+#ifdef _USE_CUDA
+                    if(flag->useGPUFlag){
+					    /* generate the position field */
+					    reg_bspline_gpu(controlPointImage,
+							    targetImage,
+							    &controlPointImageArray_d,
+							    &positionFieldImageArray_d,
+                                &targetMask_d,
+                                activeVoxelNumber);
+					    /* Resample the source image */
+					    reg_resampleSourceImage_gpu(	resultImage,
+									    sourceImage,
+									    &resultImageArray_d,
+									    &sourceImageArray_d,
+									    &positionFieldImageArray_d,
+                                        &targetMask_d,
+                                        activeVoxelNumber,
+									    param->sourcePaddingValue);
+					    /* The result image is transfered back to the host */
+					    PrecisionTYPE *resultPtr=static_cast<PrecisionTYPE *>(resultImage->data);
+					    CUDA_SAFE_CALL(cudaMemcpy(resultPtr, resultImageArray_d, resultImage->nvox*sizeof(PrecisionTYPE), cudaMemcpyDeviceToHost));
+				    }
+				    else{
+#endif
+					    /* A Velocity field is use to generate the CPP image
+					    using a scaling squaring approach */
+					    if(flag->useVelocityFieldFlag){
+						    reg_spline_scaling_squaring(velocityFieldImage,
+											            controlPointImage);
+					    }
+					    reg_bspline<PrecisionTYPE>(	controlPointImage,
+											        targetImage,
+											        positionFieldImage,
+											        targetMask,
+											        0);
+				    
+					    /* Resample the source image */
+					    reg_resampleSourceImage<PrecisionTYPE>(	targetImage,
+										                        sourceImage,
+										                        resultImage,
+										                        positionFieldImage,
+                                                                NULL,
+										                        1,
+										                        param->sourcePaddingValue);
+#ifdef _USE_CUDA
+				    }
+#endif
+				    /* Computation of the Metric Value */
+				    if(flag->useSSDFlag){
+					    SSDValue=reg_getSSD<PrecisionTYPE>(	targetImage,
+														    resultImage);
+					    currentValue = -(1.0-param->bendingEnergyWeight-param->jacobianWeight)*log(SSDValue+1.0);
+				    }
+				    else{
+					    reg_getEntropies<double>(	targetImage,
+											        resultImage,
+											        JH_PW_APPROX,
+											        param->binning,
+											        probaJointHistogram,
+											        logJointHistogram,
+											        entropies,
+											        targetMask);
+					    currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight)*(entropies[0]+entropies[1])/entropies[2];
+				    }
+#ifdef _VERBOSE
+                    printf("[VERBOSE] [%i] Metric value: %g\n",
+                    iteration, (entropies[0]+entropies[1])/entropies[2]);
 #endif
 
-				/* Computation of the Metric Value */
-				if(flag->useSSDFlag){
-					SSDValue=reg_getSSD<PrecisionTYPE>(	targetImage,
-														resultImage);
-					currentValue = -(1.0-param->bendingEnergyWeight-param->jacobianWeight)*log(SSDValue+1.0);
-				}
-				else{
-					reg_getEntropies<double>(	targetImage,
-											 resultImage,
-											 JH_PW_APPROX,
-											 param->binning,
-											 probaJointHistogram,
-											 logJointHistogram,
-											 entropies,
-											 targetMask);
-					currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight)*(entropies[0]+entropies[1])/entropies[2];
-				}
+#ifdef _USE_CUDA
+				    if(flag->useGPUFlag){
+					    if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
+						    currentWBE = param->bendingEnergyWeight
+								    * reg_bspline_ApproxBendingEnergy_gpu(	controlPointImage,
+													    &controlPointImageArray_d);
+						    currentValue -= currentWBE;
+#ifdef _VERBOSE
+                            printf("[VERBOSE] [%i] Weighted bending energy value = %g, approx[%i]\n",
+                                iteration, currentWBE, flag->appBendingEnergyFlag);
+#endif
+					    }
+					    if(flag->jacobianWeightFlag){
+						    //TODO
+					    }
+				    }
+				    else{
+#endif
+					    if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
+						    currentWBE = param->bendingEnergyWeight
+								    * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
+						    currentValue -= currentWBE;
+#ifdef _VERBOSE
+                            printf("[VERBOSE] [%i] Weighted bending energy value = %g, approx[%i]\n",
+                                iteration, currentWBE, flag->appBendingEnergyFlag);
+#endif
+					    }
+					    if(flag->jacobianWeightFlag && param->jacobianWeight>0){
+                            if(flag->useVelocityFieldFlag){
+    //                             currentWJac = param->jacobianWeight
+    //                                 * reg_bspline_GetJacobianValueFromVelocityField(velocityFieldImage, flag->appJacobianFlag);
+                            }
+                            else{
+						        currentWJac = param->jacobianWeight
+							        * reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
+                            }
+						    currentValue -= currentWJac;
+					    }
+#ifdef _VERBOSE
+                        printf("[VERBOSE] [%i] Weighted Jacobian log value = %g, approx[%i]\n",
+                            iteration, currentWJac, flag->appJacobianFlag);
+#endif
 
-#ifdef _USE_CUDA
-				if(flag->useGPUFlag){
-					if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
-						currentWBE = param->bendingEnergyWeight
-								* reg_bspline_ApproxBendingEnergy_gpu(	controlPointImage,
-													&controlPointImageArray_d);
-						currentValue -= currentWBE;
-					}
-					if(flag->jacobianWeightFlag){
-						//TODO
-					}
-				}
-				else{
+                        if(currentWJac!=currentWJac){
+#ifdef _VERBOSE
+                            printf("[VERBOSE] ********* Folding correction *********\n");
 #endif
-					if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
-						currentWBE = param->bendingEnergyWeight
-								* reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
-						currentValue -= currentWBE;
-					}
-					if(flag->jacobianWeightFlag && param->jacobianWeight>0){
-						currentWJac = param->jacobianWeight
-							* reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
-						currentValue -= currentWJac;
-						if(currentWJac!=currentWJac) currentValue = 0.0f;
-					}
+                            reg_bspline_correctFolding<PrecisionTYPE>(  controlPointImage,
+                                                                        resultImage);
+                            negCorrection++;
+                            iteration++;
+                        }
 #ifdef _USE_CUDA
-				}
+				    }
 #endif
+                }
+                while(currentWJac!=currentWJac && negCorrection<5);
 
 #ifdef _VERBOSE
-				printf("[VERBOSE] [%i] Current objective function value: %g\n", iteration, currentValue);
-				if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0) printf("[VERBOSE] [%i] Weighted bending energy value = %g, approx[%i]\n", iteration, currentWBE, flag->appBendingEnergyFlag);
-				if(flag->jacobianWeightFlag && param->jacobianWeight>0) printf("[VERBOSE] [%i] Weighted Jacobian log value = %g, approx[%i]\n", iteration, currentWJac, flag->appJacobianFlag);
+				printf("[VERBOSE] [%i] Current objective function value: %g\n", iteration, currentValue); 
 #endif
-
 				iteration++;
 				lineIteration++;
 		
@@ -1767,8 +1838,8 @@ int main(int argc, char **argv)
 				nifti_set_filenames(velocityFieldImage, param->velocityFieldName, 0, 0);
 				nifti_image_write(velocityFieldImage);
 				
-				apply_scaling_squaring(velocityFieldImage,
-									   controlPointImage);
+				reg_spline_scaling_squaring(velocityFieldImage,
+									        controlPointImage);
 			}
 
 			/* The best result is returned */
@@ -1798,7 +1869,7 @@ int main(int argc, char **argv)
 							                positionFieldImage,
                                             NULL,
 							                3,
-							                param->sourceBGValue);
+							                param->sourcePaddingValue);
 			if(!flag->outputResultFlag) param->outputResultName=(char *)"outputResult.nii";
 			nifti_set_filenames(resultImage, param->outputResultName, 0, 0);
 			nifti_image_write(resultImage);

@@ -32,4 +32,12 @@ void reg_bspline_ApproxBendingEnergyGradient_gpu(   nifti_image *targetImage,
 							                        float4 **controlPointImageArray_d,
 							                        float4 **nodeNMIGradientArray_d,
 							                        float bendingEnergyWeight);
+
+extern "C++"
+void reg_spline_cppComposition_gpu( nifti_image *toUpdate,
+                                    nifti_image *toCompose,
+                                    float4 **toUpdateArray_d,
+                                    float4 **toComposeArray_d,
+                                    float ratio,
+                                    bool type);
 #endif

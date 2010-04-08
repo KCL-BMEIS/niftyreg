@@ -15,6 +15,7 @@
 #include "_reg_resampling.h"
 #include "_reg_affineTransformation.h"
 #include "_reg_bspline.h"
+#include "_reg_bspline_comp.h"
 #include "_reg_tools.h"
 
 #define PrecisionTYPE float
@@ -272,13 +273,14 @@ int main(int argc, char **argv)
 		/* apply the cubic spline interpolation to generate the position field */
 		if(positionFieldNeeded==true){
 			reg_bspline<PrecisionTYPE>(	controlPointImage,
-							targetImage,
-							positionFieldImage,
-                            NULL,
-							0); // new df
+							            targetImage,
+							            positionFieldImage,
+                                        NULL,
+							            0); // new df
 		}
 		/* Generate the jacobian map */
 		if(flag->outputJacobianFlag){
+
 			nifti_image *jacobianImage = nifti_copy_nim_info(targetImage);
             jacobianImage->cal_min=0;
             jacobianImage->cal_max=0;
