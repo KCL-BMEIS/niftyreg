@@ -1212,6 +1212,7 @@ void optimize_affine2D(_reg_blockMatchingParam * params,
 	// Allocate memory for RHS vector
 	b = new float[num_equations];
     mat44 lastTransformation;
+	memset(&lastTransformation,0,sizeof(mat44));
 
     for (unsigned count = 0; count < MAX_ITERATIONS; ++count)
 	{
@@ -1366,6 +1367,7 @@ void optimize_affine3D(	_reg_blockMatchingParam *params,
 	// Allocate memory for RHS vector
 	b = new float[num_equations];    
     mat44 lastTransformation;
+	memset(&lastTransformation,0,sizeof(mat44));
 	
 	for (unsigned count = 0; count < MAX_ITERATIONS; ++count)
 	{

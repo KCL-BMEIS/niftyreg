@@ -76,8 +76,8 @@ void reg_getEntropies3(	nifti_image *targetImage,
 					ResultTYPE resultValue=*resultPtr++;
                     if( targetValue>0.0f &&
                         resultValue>0.0f &&
-                        targetValue<binning &&
-                        resultValue<binning &&
+                        targetValue<(TargetTYPE)binning &&
+                        resultValue<(ResultTYPE)binning &&
 						*maskPtr++>-1 &&
 						targetValue==targetValue &&
 						resultValue==resultValue){
@@ -367,8 +367,8 @@ void reg_getVoxelBasedNMIGradientUsingPW2D(	nifti_image *targetImage,
                    ResultTYPE resultValue = *resultPtr;
                    if(targetValue>0.0f &&
                       resultValue>0.0f &&
-                      targetValue<binning &&
-                      resultValue<binning &&
+                      targetValue<(TargetTYPE)binning &&
+                      resultValue<(ResultTYPE)binning &&
 					  targetValue==targetValue &&
 					  resultValue==resultValue){
                    // The two is added because the image is resample between 2 and bin +2
@@ -474,8 +474,8 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(	nifti_image *targetImage,
                     ResultTYPE resultValue = *resultPtr;
                     if(targetValue>0.0f &&
                        resultValue>0.0f &&
-                       targetValue<binning &&
-                       resultValue<binning &&
+                       targetValue<(TargetTYPE)binning &&
+                       resultValue<(ResultTYPE)binning &&
 					   targetValue==targetValue &&
 					   resultValue==resultValue){
 						// The two is added because the image is resample between 2 and bin +2
