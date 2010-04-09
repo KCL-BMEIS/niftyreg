@@ -53,8 +53,8 @@ void reg_bspline_gpu(   nifti_image *controlPointImage,
 
 	_reg_freeForm_interpolatePosition <<< GridP1, BlockP1 >>>(*positionFieldImageArray_d);
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
-#if _VERBOSE
-	printf("[VERBOSE] reg_freeForm_interpolatePosition kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+#ifndef NDEBUG
+	printf("[DEBUG] reg_freeForm_interpolatePosition kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),GridP1.x,GridP1.y,GridP1.z,BlockP1.x,BlockP1.y,BlockP1.z);
 #endif
 	return;
@@ -84,8 +84,8 @@ float reg_bspline_ApproxBendingEnergy_gpu(	nifti_image *controlPointImage,
 
 	reg_bspline_ApproxBendingEnergy_kernel <<< G1, B1 >>>(penaltyTerm_d);
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
-#if _VERBOSE
-	printf("[VERBOSE] reg_bspline_ApproxBendingEnergy kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+#ifndef NDEBUG
+	printf("[DEBUG] reg_bspline_ApproxBendingEnergy kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 
@@ -134,8 +134,8 @@ void reg_bspline_ApproxBendingEnergyGradient_gpu(   nifti_image *targetImage,
 
 	reg_bspline_storeApproxBendingEnergy_kernel <<< G1, B1 >>>(bendingEnergyValue_d);
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
-#if _VERBOSE
-	printf("[VERBOSE] reg_bspline_storeApproxBendingEnergy kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+#ifndef NDEBUG
+	printf("[DEBUG] reg_bspline_storeApproxBendingEnergy kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 
@@ -177,8 +177,8 @@ void reg_bspline_ApproxBendingEnergyGradient_gpu(   nifti_image *targetImage,
 	reg_bspline_getApproxBendingEnergyGradient_kernel <<< G2, B2 >>>(	bendingEnergyValue_d,
 										                                *nodeNMIGradientArray_d);
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
-#if _VERBOSE
-	printf("[VERBOSE] reg_bspline_getApproxBendingEnergyGradient kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+#ifndef NDEBUG
+	printf("[DEBUG] reg_bspline_getApproxBendingEnergyGradient kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G2.x,G2.y,G2.z,B2.x,B2.y,B2.z);
 #endif
 
@@ -259,8 +259,8 @@ void reg_spline_cppComposition_gpu( nifti_image *toUpdate,
 
     _reg_spline_cppComposition_kernel <<< GridP1, BlockP1 >>>(*toUpdateArray_d);
     CUDA_SAFE_CALL(cudaThreadSynchronize());
-#if _VERBOSE
-    printf("[VERBOSE] _reg_spline_cppComposition_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+#ifndef NDEBUG
+    printf("[DEBUG] _reg_spline_cppComposition_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
            cudaGetErrorString(cudaGetLastError()),GridP1.x,GridP1.y,GridP1.z,BlockP1.x,BlockP1.y,BlockP1.z);
 #endif
     return;

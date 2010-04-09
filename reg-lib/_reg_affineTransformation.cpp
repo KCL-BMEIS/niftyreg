@@ -211,16 +211,16 @@ void reg_tool_ReadAffineFile(	mat44 *mat,
 		mat44 *targetMatrix;
 		if(target->sform_code > 0){
 			targetMatrix = &(target->sto_xyz);
-#ifdef _VERBOSE
-			printf("[VERBOSE] The target sform matrix is defined and used\n");
+#ifndef NDEBUG
+			printf("[DEBUG] The target sform matrix is defined and used\n");
 #endif
 		}
 		else targetMatrix = &(target->qto_xyz);
 		//If the source sform is defined, it is used; qform otherwise;
 		mat44 *sourceMatrix;
 		if(source->sform_code > 0){
-#ifdef _VERBOSE
-			printf("[VERBOSE] The source sform matrix is defined and used\n");
+#ifndef NDEBUG
+			printf("[DEBUG] The source sform matrix is defined and used\n");
 #endif
 			sourceMatrix = &(source->sto_xyz);
 		}
@@ -235,13 +235,13 @@ void reg_tool_ReadAffineFile(	mat44 *mat,
 						+ sourceMatrix->m[2][i]*sourceMatrix->m[2][i]);
 		}
 		absoluteTarget.m[3][3]=absoluteSource.m[3][3]=1.0;
-#ifdef _VERBOSE
-		printf("[VERBOSE] An flirt affine file is assumed and is converted to a real word affine matrix\n");
-		reg_mat44_disp(mat, (char *)"[VERBOSE] Matrix read from the input file");
-		reg_mat44_disp(targetMatrix, (char *)"[VERBOSE] Target Matrix");
-		reg_mat44_disp(sourceMatrix, (char *)"[VERBOSE] Source Matrix");
-		reg_mat44_disp(&(absoluteTarget), (char *)"[VERBOSE] Target absolute Matrix");
-		reg_mat44_disp(&(absoluteSource), (char *)"[VERBOSE] Source absolute Matrix");
+#ifndef NDEBUG
+		printf("[DEBUG] An flirt affine file is assumed and is converted to a real word affine matrix\n");
+		reg_mat44_disp(mat, (char *)"[DEBUG] Matrix read from the input file");
+		reg_mat44_disp(targetMatrix, (char *)"[DEBUG] Target Matrix");
+		reg_mat44_disp(sourceMatrix, (char *)"[DEBUG] Source Matrix");
+		reg_mat44_disp(&(absoluteTarget), (char *)"[DEBUG] Target absolute Matrix");
+		reg_mat44_disp(&(absoluteSource), (char *)"[DEBUG] Source absolute Matrix");
 #endif
 		
 		absoluteSource = nifti_mat44_inverse(absoluteSource);
@@ -254,8 +254,8 @@ void reg_tool_ReadAffineFile(	mat44 *mat,
 		*mat = reg_mat44_mul(mat, &tmp);
 	}
 	
-#ifdef _VERBOSE
-	reg_mat44_disp(mat, (char *)"[VERBOSE] Affine matrix");
+#ifndef NDEBUG
+	reg_mat44_disp(mat, (char *)"[DEBUG] Affine matrix");
 #endif
 }
 /* *************************************************************** */

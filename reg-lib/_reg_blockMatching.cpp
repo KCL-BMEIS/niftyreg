@@ -287,8 +287,8 @@ void initialise_block_matching_method(  nifti_image * target,
 			fprintf(stderr,"ERROR\tinitialise_block_matching_method\tThe target image data type is not supported\n");
 			return;
 	}
-#ifdef _VERBOSE
-	printf("[VERBOSE]: There are %i active block(s) out of %i.\n", params->activeBlockNumber, params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2]);
+#ifndef NDEBUG
+	printf("[DEBUG]: There are %i active block(s) out of %i.\n", params->activeBlockNumber, params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2]);
 #endif
     if(target->nz>1){
 	    params->targetPosition = (float *)malloc(params->activeBlockNumber*3*sizeof(float));
@@ -298,8 +298,8 @@ void initialise_block_matching_method(  nifti_image * target,
         params->targetPosition = (float *)malloc(params->activeBlockNumber*2*sizeof(float));
         params->resultPosition = (float *)malloc(params->activeBlockNumber*2*sizeof(float));
     }
-#ifdef _VERBOSE
-	printf("[VERBOSE]: block matching initialisation done.\n");
+#ifndef NDEBUG
+	printf("[DEBUG]: block matching initialisation done.\n");
 #endif
 }
 /* *************************************************************** */

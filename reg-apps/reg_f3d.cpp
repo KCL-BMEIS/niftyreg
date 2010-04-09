@@ -519,8 +519,8 @@ int main(int argc, char **argv)
 						param->affineMatrixName,
 						flag->affineFlirtFlag);
 		}
-#ifdef _VERBOSE
-        reg_mat44_disp(affineTransformation, (char *)"[VERBOSE] Affine transformation matrix");
+#ifndef NDEBUG
+        reg_mat44_disp(affineTransformation, (char *)"[DEBUG] Affine transformation matrix");
 #endif
 	}
 
@@ -638,8 +638,8 @@ int main(int argc, char **argv)
 			printf("ERROR\tThe specified graphical card does not exist.\n");
 			return 1;
 		}
-#ifdef _VERBOSE
-		printf("[VERBOSE] Graphical card memory[%i/%i] = %iMo avail | %iMo required.\n", device+1, device_count,
+#ifndef NDEBUG
+		printf("[DEBUG] Graphical card memory[%i/%i] = %iMo avail | %iMo required.\n", device+1, device_count,
 			(int)floor(deviceProp.totalGlobalMem/1000000.0), (int)ceil(memoryNeeded/1000000.0));
 #endif
 	}
@@ -895,12 +895,12 @@ int main(int argc, char **argv)
 		printf("Control point position image name: %s\n",param->outputCPPName);
 		printf("\t%ix%ix%i control points (%i DoF)\n",controlPointImage->nx,controlPointImage->ny,controlPointImage->nz,(int)controlPointImage->nvox);
 		printf("\t%gx%gx%g mm\n",controlPointImage->dx,controlPointImage->dy,controlPointImage->dz);	
-#ifdef _VERBOSE
+#ifndef NDEBUG
 		if(targetImage->sform_code>0)
-			reg_mat44_disp(&targetImage->sto_xyz, (char *)"[VERBOSE] Target image matrix");
-		else reg_mat44_disp(&targetImage->qto_xyz, (char *)"[VERBOSE] Target image matrix");
-		reg_mat44_disp(sourceMatrix_xyz, (char *)"[VERBOSE] Source image matrix");
-		reg_mat44_disp(cppMatrix_xyz, (char *)"[VERBOSE] Control point image matrix");
+			reg_mat44_disp(&targetImage->sto_xyz, (char *)"[DEBUG] Target image matrix");
+		else reg_mat44_disp(&targetImage->qto_xyz, (char *)"[DEBUG] Target image matrix");
+		reg_mat44_disp(sourceMatrix_xyz, (char *)"[DEBUG] Source image matrix");
+		reg_mat44_disp(cppMatrix_xyz, (char *)"[DEBUG] Control point image matrix");
 #endif
 		printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 
@@ -1047,6 +1047,7 @@ int main(int argc, char **argv)
             PrecisionTYPE SSDValue=0.0;
             double currentWBE=0.0f;
             double currentWJac=0.0f;
+            unsigned short negCorrection=0;
 
             do{
 
@@ -1157,30 +1158,29 @@ int main(int argc, char **argv)
 			    }
 #endif
 
-#ifdef _VERBOSE
+#ifndef NDEBUG
 			    if(flag->useSSDFlag)
-				    printf("[VERBOSE] Initial metric value (log(SSD)): %g\n", log(SSDValue+1.0));
-			    else printf("[VERBOSE] Initial metric value: %g\n", (entropies[0]+entropies[1])/entropies[2]);
-			    if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0) printf("[VERBOSE] Initial weighted bending energy value = %g, approx[%i]\n", currentWBE, flag->appBendingEnergyFlag);
-			    if(flag->jacobianWeightFlag && param->jacobianWeight>0) printf("[VERBOSE] Initial weighted Jacobian log value = %g, approx[%i]\n", currentWJac, flag->appJacobianFlag);
+				    printf("[DEBUG] Initial metric value (log(SSD)): %g\n", log(SSDValue+1.0));
+			    else printf("[DEBUG] Initial metric value: %g\n", (entropies[0]+entropies[1])/entropies[2]);
+			    if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0) printf("[DEBUG] Initial weighted bending energy value = %g, approx[%i]\n", currentWBE, flag->appBendingEnergyFlag);
+			    if(flag->jacobianWeightFlag && param->jacobianWeight>0) printf("[DEBUG] Initial weighted Jacobian log value = %g, approx[%i]\n", currentWJac, flag->appJacobianFlag);
 #endif
 
                 if(currentWJac!=currentWJac){
-#ifdef _VERBOSE
-                    printf("[VERBOSE] ********* Initial folding correction *********\n");
+#ifndef NDEBUG
+                    printf("[DEBUG] ********* Initial folding correction *********\n");
 #endif
                     reg_bspline_correctFolding<PrecisionTYPE>(  controlPointImage,
                                                                 resultImage);
                     iteration++;
                 }
 
-            }while(currentWJac!=currentWJac);
+            }while(currentWJac!=currentWJac  && negCorrection<10);
 
 			double bestValue = currentValue;
 			double bestWBE = currentWBE;
 			double bestWJac = currentWJac;
-			if(iteration==0)
-				printf("Initial objective function value = %g\n", currentValue);
+			if(iteration==0) printf("Initial objective function value = %g\n", currentValue);
 
 			iteration++;
 			float maxLength;
@@ -1472,8 +1472,8 @@ int main(int argc, char **argv)
 				printf("No Gradient ... exit\n");
 				break;	
 			}
-#ifdef _VERBOSE
-			printf("[VERBOSE] [%i] Max metric gradient value = %g\n", iteration, maxLength);
+#ifndef NDEBUG
+			printf("[DEBUG] [%i] Max metric gradient value = %g\n", iteration, maxLength);
 #endif
 			
 			/* ** LINE ASCENT ** */
@@ -1485,8 +1485,8 @@ int main(int argc, char **argv)
 				
 				float currentLength = -currentSize/maxLength;
 
-#ifdef _VERBOSE
-				printf("[VERBOSE] [%i] Current added max step: %g\n", iteration, currentSize);
+#ifndef NDEBUG
+				printf("[DEBUG] [%i] Current added max step: %g\n", iteration, currentSize);
 #endif
 
 #ifdef _USE_CUDA
@@ -1572,7 +1572,7 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
                 }
 #endif
-                unsigned short negCorrection=0;
+                negCorrection=0;
                 do{
 #ifdef _USE_CUDA
                     if(flag->useGPUFlag){
@@ -1638,8 +1638,8 @@ int main(int argc, char **argv)
 											        targetMask);
 					    currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight)*(entropies[0]+entropies[1])/entropies[2];
 				    }
-#ifdef _VERBOSE
-                    printf("[VERBOSE] [%i] Metric value: %g\n",
+#ifndef NDEBUG
+                    printf("[DEBUG] [%i] Metric value: %g\n",
                     iteration, (entropies[0]+entropies[1])/entropies[2]);
 #endif
 
@@ -1650,8 +1650,8 @@ int main(int argc, char **argv)
 								    * reg_bspline_ApproxBendingEnergy_gpu(	controlPointImage,
 													    &controlPointImageArray_d);
 						    currentValue -= currentWBE;
-#ifdef _VERBOSE
-                            printf("[VERBOSE] [%i] Weighted bending energy value = %g, approx[%i]\n",
+#ifndef NDEBUG
+                            printf("[DEBUG] [%i] Weighted bending energy value = %g, approx[%i]\n",
                                 iteration, currentWBE, flag->appBendingEnergyFlag);
 #endif
 					    }
@@ -1665,8 +1665,8 @@ int main(int argc, char **argv)
 						    currentWBE = param->bendingEnergyWeight
 								    * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
 						    currentValue -= currentWBE;
-#ifdef _VERBOSE
-                            printf("[VERBOSE] [%i] Weighted bending energy value = %g, approx[%i]\n",
+#ifndef NDEBUG
+                            printf("[DEBUG] [%i] Weighted bending energy value = %g, approx[%i]\n",
                                 iteration, currentWBE, flag->appBendingEnergyFlag);
 #endif
 					    }
@@ -1681,14 +1681,14 @@ int main(int argc, char **argv)
                             }
 						    currentValue -= currentWJac;
 					    }
-#ifdef _VERBOSE
-                        printf("[VERBOSE] [%i] Weighted Jacobian log value = %g, approx[%i]\n",
+#ifndef NDEBUG
+                        printf("[DEBUG] [%i] Weighted Jacobian log value = %g, approx[%i]\n",
                             iteration, currentWJac, flag->appJacobianFlag);
 #endif
 
                         if(currentWJac!=currentWJac){
-#ifdef _VERBOSE
-                            printf("[VERBOSE] ********* Folding correction *********\n");
+#ifndef NDEBUG
+                            printf("[DEBUG] ********* Folding correction *********\n");
 #endif
                             reg_bspline_correctFolding<PrecisionTYPE>(  controlPointImage,
                                                                         resultImage);
@@ -1701,8 +1701,8 @@ int main(int argc, char **argv)
                 }
                 while(currentWJac!=currentWJac && negCorrection<5);
 
-#ifdef _VERBOSE
-				printf("[VERBOSE] [%i] Current objective function value: %g\n", iteration, currentValue); 
+#ifndef NDEBUG
+				printf("[DEBUG] [%i] Current objective function value: %g\n", iteration, currentValue); 
 #endif
 				iteration++;
 				lineIteration++;

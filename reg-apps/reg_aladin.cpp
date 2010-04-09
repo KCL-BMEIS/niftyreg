@@ -593,13 +593,13 @@ int main(int argc, char **argv)
         else printf("Block size = [4 4 4]\n");
 		printf("Block number = [%i %i %i]\n", blockMatchingParams.blockNumber[0],
 			blockMatchingParams.blockNumber[1], blockMatchingParams.blockNumber[2]);
-#ifdef _VERBOSE
+#ifndef NDEBUG
 		if(targetImage->sform_code>0)
-			reg_mat44_disp(&targetImage->sto_xyz, (char *)"[VERBOSE] Target image matrix (sform sto_xyz)");
-		else reg_mat44_disp(&targetImage->qto_xyz, (char *)"[VERBOSE] Target image matrix (qform qto_xyz)");
+			reg_mat44_disp(&targetImage->sto_xyz, (char *)"[DEBUG] Target image matrix (sform sto_xyz)");
+		else reg_mat44_disp(&targetImage->qto_xyz, (char *)"[DEBUG] Target image matrix (qform qto_xyz)");
 		if(sourceImage->sform_code>0)
-			reg_mat44_disp(&sourceImage->sto_xyz, (char *)"[VERBOSE] Source image matrix (sform sto_xyz)");
-		else reg_mat44_disp(&sourceImage->qto_xyz, (char *)"[VERBOSE] Source image matrix (qform qto_xyz)");
+			reg_mat44_disp(&sourceImage->sto_xyz, (char *)"[DEBUG] Source image matrix (sform sto_xyz)");
+		else reg_mat44_disp(&sourceImage->qto_xyz, (char *)"[DEBUG] Source image matrix (qform qto_xyz)");
 #endif
 		printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 		reg_mat44_disp(affineTransformation, (char *)"Initial affine transformation:");
@@ -669,10 +669,10 @@ int main(int argc, char **argv)
 #endif
 				// the affine transformation is updated
 				*affineTransformation = reg_mat44_mul( affineTransformation, &(updateAffineMatrix));
-#ifdef _VERBOSE
-				printf("[VERBOSE] -Rigid- iteration %i - ",iteration);
-				reg_mat44_disp(&updateAffineMatrix, (char *)"[VERBOSE] updateMatrix");
-				reg_mat44_disp(affineTransformation, (char *)"[VERBOSE] updated affine");
+#ifndef NDEBUG
+				printf("[DEBUG] -Rigid- iteration %i - ",iteration);
+				reg_mat44_disp(&updateAffineMatrix, (char *)"[DEBUG] updateMatrix");
+				reg_mat44_disp(affineTransformation, (char *)"[DEBUG] updated affine");
 #endif
 	
 				if(reg_test_convergence(&updateAffineMatrix)) break;
@@ -746,10 +746,10 @@ int main(int argc, char **argv)
 	
 				// the affine transformation is updated
 				*affineTransformation = reg_mat44_mul( affineTransformation, &(updateAffineMatrix));
-#ifdef _VERBOSE
-                printf("[VERBOSE] -Affine- iteration %i - ",iteration);
-				reg_mat44_disp(&updateAffineMatrix, (char *)"[VERBOSE] updateMatrix");
-				reg_mat44_disp(affineTransformation, (char *)"[VERBOSE] updated affine");
+#ifndef NDEBUG
+                printf("[DEBUG] -Affine- iteration %i - ",iteration);
+				reg_mat44_disp(&updateAffineMatrix, (char *)"[DEBUG] updateMatrix");
+				reg_mat44_disp(affineTransformation, (char *)"[DEBUG] updated affine");
 #endif
 				if(reg_test_convergence(&updateAffineMatrix)) break;
 				iteration++;
@@ -831,14 +831,14 @@ int main(int argc, char **argv)
 		nifti_image_free(targetImage);
 		nifti_image_free(sourceImage);
 		reg_mat44_disp(affineTransformation, (char *)"Final affine transformation:");
-#ifdef _VERBOSE
+#ifndef NDEBUG
 		mat33 tempMat;
 		for(int i=0; i<3; i++){
 			for(int j=0; j<3; j++){
 				tempMat.m[i][j] = affineTransformation->m[i][j];
 			}
 		}
-		printf("[VERBOSE] Matrix determinant %g\n", nifti_mat33_determ	(tempMat));
+		printf("[DEBUG] Matrix determinant %g\n", nifti_mat33_determ	(tempMat));
 #endif
 		printf("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n\n");
 	}
