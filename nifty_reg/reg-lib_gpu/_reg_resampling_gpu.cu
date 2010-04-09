@@ -70,8 +70,8 @@ void reg_resampleSourceImage_gpu(	nifti_image *resultImage,
 
 	reg_resampleSourceImage_kernel <<< G1, B1 >>> (*resultImageArray_d);
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
-#if _VERBOSE
-	printf("[VERBOSE] reg_resampleSourceImage_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+#ifndef NDEBUG
+	printf("[DEBUG] reg_resampleSourceImage_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 
@@ -127,8 +127,8 @@ void reg_getSourceImageGradient_gpu(	nifti_image *targetImage,
 
 	reg_getSourceImageGradient_kernel <<< G1, B1 >>> (*resultGradientArray_d);
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
-#if _VERBOSE
-	printf("[VERBOSE] reg_getSourceImageGradient kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+#ifndef NDEBUG
+	printf("[DEBUG] reg_getSourceImageGradient kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 	cudaFree(sourceRealToVoxel_d);

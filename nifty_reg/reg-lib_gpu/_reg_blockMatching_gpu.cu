@@ -68,8 +68,8 @@ void block_matching_method_gpu(	nifti_image *targetImage,
     process_target_blocks_gpu<<<G1, B1>>>(  *targetPosition_d,    
 		                                    targetValues);
     CUDA_SAFE_CALL(cudaThreadSynchronize());
-#if _VERBOSE
-    printf("[VERBOSE] process_target_blocks_gpu kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+#ifndef NDEBUG
+    printf("[DEBUG] process_target_blocks_gpu kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
            cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 
@@ -86,8 +86,8 @@ void block_matching_method_gpu(	nifti_image *targetImage,
 	dim3 G2(Result_block_matching,Result_block_matching_2,1);
     process_result_blocks_gpu<<<G2, B2>>>(*resultPosition_d, targetValues);
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
-#if _VERBOSE
-	printf("[VERBOSE] process_result_blocks_gpu kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+#ifndef NDEBUG
+	printf("[DEBUG] process_result_blocks_gpu kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G2.x,G2.y,G2.z,B2.x,B2.y,B2.z);
 #endif
 	cudaFree(targetValues);
