@@ -5625,13 +5625,13 @@ void reg_bspline_correctFolding3D(  nifti_image *splineControlPoint,
                             for(int a=0;a<2;a++){
                                 const unsigned int one=xPre+1+a;
                                 const unsigned int controlPointCoord[7][3] =
-                                    {one,two,three,
-                                    one-1,two,three,
-                                    one+1,two,three,
-                                    one,two-1,three,
-                                    one,two+1,three,
-                                    one,two,three-1,
-                                    one,two,three+1};
+								{{one,two,three},
+                                    {one-1,two,three},
+									{one+1,two,three},
+									{one,two-1,three},
+									{one,two+1,three},
+									{one,two,three-1},
+									{one,two,three+1}};
                                 unsigned int controlPointIndex[7];
                                 PrecisionTYPE position[7][3];
                                 for(unsigned int i=0;i<7;i++){
