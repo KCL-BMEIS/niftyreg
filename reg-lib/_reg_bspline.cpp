@@ -5304,12 +5304,12 @@ int reg_bspline_initialiseControlPointGridWithAffine(   mat44 *affineTransformat
 }
 /* *************************************************************** */
 /* *************************************************************** */
-extern "C++" template<class PrecisionTYPE, class SplineTYPE>
+extern "C++" template<class SplineTYPE>
 void reg_bspline_correctFolding3D(  nifti_image *splineControlPoint,
                                     nifti_image *targetImage)
 {
 #if _USE_SSE
-    if(sizeof(PrecisionTYPE)!=4){
+    if(sizeof(SplineTYPE)!=4){
         fprintf(stderr, "***ERROR***\treg_bspline_correctFolding3D\n");
         fprintf(stderr, "The SSE implementation assume single precision... Exit\n");
         exit(0);
@@ -5323,16 +5323,16 @@ void reg_bspline_correctFolding3D(  nifti_image *splineControlPoint,
     SplineTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
     SplineTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
 
-    PrecisionTYPE yBasis[4],yFirst[4],xBasis[4],xFirst[4],zBasis[4],zFirst[4];
-    PrecisionTYPE tempX[16], tempY[16], tempZ[16];
-    PrecisionTYPE basisX[64], basisY[64], basisZ[64];
-    PrecisionTYPE basis, FF, FFF, MF, oldBasis=(PrecisionTYPE)(1.1);
+    SplineTYPE yBasis[4],yFirst[4],xBasis[4],xFirst[4],zBasis[4],zFirst[4];
+    SplineTYPE tempX[16], tempY[16], tempZ[16];
+    SplineTYPE basisX[64], basisY[64], basisZ[64];
+    SplineTYPE basis, FF, FFF, MF, oldBasis=(SplineTYPE)(1.1);
 
-    PrecisionTYPE xControlPointCoordinates[64];
-    PrecisionTYPE yControlPointCoordinates[64];
-    PrecisionTYPE zControlPointCoordinates[64];
+    SplineTYPE xControlPointCoordinates[64];
+    SplineTYPE yControlPointCoordinates[64];
+    SplineTYPE zControlPointCoordinates[64];
 
-    PrecisionTYPE gridVoxelSpacing[3];
+    SplineTYPE gridVoxelSpacing[3];
     gridVoxelSpacing[0] = splineControlPoint->dx / targetImage->dx;
     gridVoxelSpacing[1] = splineControlPoint->dy / targetImage->dy;
     gridVoxelSpacing[2] = splineControlPoint->dz / targetImage->dz;
@@ -5375,36 +5375,36 @@ void reg_bspline_correctFolding3D(  nifti_image *splineControlPoint,
 
     for(int z=0; z<targetImage->nz; z++){
 
-        int zPre=(int)((PrecisionTYPE)z/gridVoxelSpacing[2]);
-        basis=(PrecisionTYPE)z/gridVoxelSpacing[2]-(PrecisionTYPE)zPre;
+        int zPre=(int)((SplineTYPE)z/gridVoxelSpacing[2]);
+        basis=(SplineTYPE)z/gridVoxelSpacing[2]-(SplineTYPE)zPre;
         if(basis<0.0) basis=0.0; //rounding error
         FF= basis*basis;
         FFF= FF*basis;
-        MF=(PrecisionTYPE)(1.0-basis);
-        zBasis[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/6.0);
-        zBasis[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
-        zBasis[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
-        zBasis[3] = (PrecisionTYPE)(FFF/6.0);
-        zFirst[3]= (PrecisionTYPE)(FF / 2.0);
-        zFirst[0]= (PrecisionTYPE)(basis - 1.0/2.0 - zFirst[3]);
-        zFirst[2]= (PrecisionTYPE)(1.0 + zFirst[0] - 2.0*zFirst[3]);
+        MF=(SplineTYPE)(1.0-basis);
+        zBasis[0] = (SplineTYPE)((MF)*(MF)*(MF)/6.0);
+        zBasis[1] = (SplineTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+        zBasis[2] = (SplineTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+        zBasis[3] = (SplineTYPE)(FFF/6.0);
+        zFirst[3]= (SplineTYPE)(FF / 2.0);
+        zFirst[0]= (SplineTYPE)(basis - 1.0/2.0 - zFirst[3]);
+        zFirst[2]= (SplineTYPE)(1.0 + zFirst[0] - 2.0*zFirst[3]);
         zFirst[1]= - zFirst[0] - zFirst[2] - zFirst[3];
 
         for(int y=0; y<targetImage->ny; y++){
 
-            int yPre=(int)((PrecisionTYPE)y/gridVoxelSpacing[1]);
-            basis=(PrecisionTYPE)y/gridVoxelSpacing[1]-(PrecisionTYPE)yPre;
+            int yPre=(int)((SplineTYPE)y/gridVoxelSpacing[1]);
+            basis=(SplineTYPE)y/gridVoxelSpacing[1]-(SplineTYPE)yPre;
             if(basis<0.0) basis=0.0; //rounding error
             FF= basis*basis;
             FFF= FF*basis;
-            MF=(PrecisionTYPE)(1.0-basis);
-            yBasis[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/6.0);
-            yBasis[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
-            yBasis[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
-            yBasis[3] = (PrecisionTYPE)(FFF/6.0);
-            yFirst[3]= (PrecisionTYPE)(FF / 2.0);
-            yFirst[0]= (PrecisionTYPE)(basis - 1.0/2.0 - yFirst[3]);
-            yFirst[2]= (PrecisionTYPE)(1.0 + yFirst[0] - 2.0*yFirst[3]);
+            MF=(SplineTYPE)(1.0-basis);
+            yBasis[0] = (SplineTYPE)((MF)*(MF)*(MF)/6.0);
+            yBasis[1] = (SplineTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+            yBasis[2] = (SplineTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+            yBasis[3] = (SplineTYPE)(FFF/6.0);
+            yFirst[3]= (SplineTYPE)(FF / 2.0);
+            yFirst[0]= (SplineTYPE)(basis - 1.0/2.0 - yFirst[3]);
+            yFirst[2]= (SplineTYPE)(1.0 + yFirst[0] - 2.0*yFirst[3]);
             yFirst[1]= - yFirst[0] - yFirst[2] - yFirst[3];
 #if _USE_SSE
             val.f[0]=yBasis[0];
@@ -5444,19 +5444,19 @@ void reg_bspline_correctFolding3D(  nifti_image *splineControlPoint,
 
             for(int x=0; x<targetImage->nx; x++){
 
-                int xPre=(int)((PrecisionTYPE)x/gridVoxelSpacing[0]);
-                basis=(PrecisionTYPE)x/gridVoxelSpacing[0]-(PrecisionTYPE)xPre;
+                int xPre=(int)((SplineTYPE)x/gridVoxelSpacing[0]);
+                basis=(SplineTYPE)x/gridVoxelSpacing[0]-(SplineTYPE)xPre;
                 if(basis<0.0) basis=0.0; //rounding error
                 FF= basis*basis;
                 FFF= FF*basis;
-                MF=(PrecisionTYPE)(1.0-basis);
-                xBasis[0] = (PrecisionTYPE)((MF)*(MF)*(MF)/6.0);
-                xBasis[1] = (PrecisionTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
-                xBasis[2] = (PrecisionTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
-                xBasis[3] = (PrecisionTYPE)(FFF/6.0);
-                xFirst[3]= (PrecisionTYPE)(FF / 2.0);
-                xFirst[0]= (PrecisionTYPE)(basis - 1.0/2.0 - xFirst[3]);
-                xFirst[2]= (PrecisionTYPE)(1.0 + xFirst[0] - 2.0*xFirst[3]);
+                MF=(SplineTYPE)(1.0-basis);
+                xBasis[0] = (SplineTYPE)((MF)*(MF)*(MF)/6.0);
+                xBasis[1] = (SplineTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+                xBasis[2] = (SplineTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+                xBasis[3] = (SplineTYPE)(FFF/6.0);
+                xFirst[3]= (SplineTYPE)(FF / 2.0);
+                xFirst[0]= (SplineTYPE)(basis - 1.0/2.0 - xFirst[3]);
+                xFirst[2]= (SplineTYPE)(1.0 + xFirst[0] - 2.0*xFirst[3]);
                 xFirst[1]= - xFirst[0] - xFirst[2] - xFirst[3];
 
 #if _USE_SSE
@@ -5509,9 +5509,9 @@ void reg_bspline_correctFolding3D(  nifti_image *splineControlPoint,
                             SplineTYPE *yyPtr = &yPtr[index];
                             SplineTYPE *zzPtr = &zPtr[index];
                             for(int X=xPre; X<xPre+4; X++){
-                                xControlPointCoordinates[coord] = (PrecisionTYPE)xxPtr[X];
-                                yControlPointCoordinates[coord] = (PrecisionTYPE)yyPtr[X];
-                                zControlPointCoordinates[coord] = (PrecisionTYPE)zzPtr[X];
+                                xControlPointCoordinates[coord] = (SplineTYPE)xxPtr[X];
+                                yControlPointCoordinates[coord] = (SplineTYPE)yyPtr[X];
+                                zControlPointCoordinates[coord] = (SplineTYPE)zzPtr[X];
                                 coord++;
                             }
                         }
@@ -5519,15 +5519,15 @@ void reg_bspline_correctFolding3D(  nifti_image *splineControlPoint,
 //                 }
                 oldBasis=basis;
 
-                PrecisionTYPE Tx_x=0.0;
-                PrecisionTYPE Ty_x=0.0;
-                PrecisionTYPE Tz_x=0.0;
-                PrecisionTYPE Tx_y=0.0;
-                PrecisionTYPE Ty_y=0.0;
-                PrecisionTYPE Tz_y=0.0;
-                PrecisionTYPE Tx_z=0.0;
-                PrecisionTYPE Ty_z=0.0;
-                PrecisionTYPE Tz_z=0.0;
+                SplineTYPE Tx_x=0.0;
+                SplineTYPE Ty_x=0.0;
+                SplineTYPE Tz_x=0.0;
+                SplineTYPE Tx_y=0.0;
+                SplineTYPE Ty_y=0.0;
+                SplineTYPE Tz_y=0.0;
+                SplineTYPE Tx_z=0.0;
+                SplineTYPE Ty_z=0.0;
+                SplineTYPE Tz_z=0.0;
 #if _USE_SSE
                 __m128 tempX_x =  _mm_set_ps1(0.0);
                 __m128 tempX_y =  _mm_set_ps1(0.0);
@@ -5614,7 +5614,7 @@ void reg_bspline_correctFolding3D(  nifti_image *splineControlPoint,
                 jacobianMatrix.m[2][2]= Tz_z / splineControlPoint->dz;
 
                 jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
-                PrecisionTYPE detJac = nifti_mat33_determ(jacobianMatrix);
+                SplineTYPE detJac = nifti_mat33_determ(jacobianMatrix);
 
                 // The control point positions are "corrected"
                 if(detJac<0.1){
@@ -5633,7 +5633,7 @@ void reg_bspline_correctFolding3D(  nifti_image *splineControlPoint,
 									{one,two,three-1},
 									{one,two,three+1}};
                                 unsigned int controlPointIndex[7];
-                                PrecisionTYPE position[7][3];
+                                SplineTYPE position[7][3];
                                 for(unsigned int i=0;i<7;i++){
                                     controlPointIndex[i] = (controlPointCoord[i][2]*splineControlPoint->ny+controlPointCoord[i][1])
                                         * splineControlPoint->nx+controlPointCoord[i][0];
@@ -5657,7 +5657,6 @@ void reg_bspline_correctFolding3D(  nifti_image *splineControlPoint,
     return;
 }
 /* *************************************************************** */
-extern "C++" template<class PrecisionTYPE>
 void reg_bspline_correctFolding(nifti_image *splineControlPoint,
                                 nifti_image *targetImage)
 {
@@ -5678,10 +5677,10 @@ void reg_bspline_correctFolding(nifti_image *splineControlPoint,
     else{
         switch(splineControlPoint->datatype){
             case NIFTI_TYPE_FLOAT32:
-                reg_bspline_correctFolding3D<PrecisionTYPE, float>(splineControlPoint, targetImage);
+                reg_bspline_correctFolding3D<float>(splineControlPoint, targetImage);
                 break;
             case NIFTI_TYPE_FLOAT64:
-                reg_bspline_correctFolding3D<PrecisionTYPE, double>(splineControlPoint, targetImage);
+                reg_bspline_correctFolding3D<double>(splineControlPoint, targetImage);
                 break;
             default:
                 fprintf(stderr,"Only single or doubl, gradientImage, weighte precision is implemented for the Jacobian determinant gradient\n");
@@ -5690,8 +5689,6 @@ void reg_bspline_correctFolding(nifti_image *splineControlPoint,
         }
     }
 }
-template void reg_bspline_correctFolding<float>(nifti_image *, nifti_image *);
-template void reg_bspline_correctFolding<double>(nifti_image *, nifti_image *);
 /* *************************************************************** */
 /* *************************************************************** */
 

@@ -587,16 +587,16 @@ int main(int argc, char **argv)
 	printf("Maximum iteration number: %i\n",param->maxIteration);
 	printf("Number of bin to used: %i\n",param->binning-4);
 	
-	printf("Bending energy weight: %g\n",param->bendingEnergyWeight);
-	if(flag->bendingEnergyFlag && flag->appBendingEnergyFlag) printf("Bending energy penalty term evaluated at the control point position only\n");
-	if(flag->bendingEnergyFlag && flag->beGradFlag) printf("The gradient of the bending energy is used\n");
+	printf("\nBending energy weight: %g\n",param->bendingEnergyWeight);
+	if(flag->bendingEnergyFlag && flag->appBendingEnergyFlag) printf("\tBending energy penalty term evaluated at the control point position only\n");
+	if(flag->bendingEnergyFlag && flag->beGradFlag) printf("\tThe gradient of the bending energy is used\n");
 	
-	printf("log of the jacobian determinant weight: %g\n",param->jacobianWeight);
-	if(flag->jacobianWeightFlag && flag->appJacobianFlag) printf("Log of the Jacobian penalty term evaluated at the control point position only\n");
-	if(flag->jacobianWeightFlag && flag->jlGradFlag) printf("The gradient of the jacobian determinant is used\n");
+	printf("Squared Log of the jacobian determinant weight: %g\n",param->jacobianWeight);
+	if(flag->jacobianWeightFlag && flag->appJacobianFlag) printf("\tLog of the Jacobian penalty term evaluated at the control point position only\n");
+	if(flag->jacobianWeightFlag && flag->jlGradFlag) printf("\tThe gradient of the jacobian determinant is used\n");
 #ifdef _USE_CUDA
-	if(flag->useGPUFlag) printf("The GPU implementation is used\n");
-	else printf("The CPU implementation is used\n");
+	if(flag->useGPUFlag) printf("\nThe GPU implementation is used\n");
+	else printf("\nThe CPU implementation is used\n");
 #endif
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n");
 	
@@ -826,10 +826,29 @@ int main(int argc, char **argv)
         }
 
 
-		
-		if(flag->useVelocityFieldFlag && level>0){
-			// The velocity field has to be up-sampled
-			reg_linearVelocityUpsampling(&velocityFieldImage, controlPointImage);
+		if(flag->useVelocityFieldFlag){
+            if(level>0){
+			    // The velocity field has to be up-sampled
+			    reg_linearVelocityUpsampling(&velocityFieldImage, controlPointImage);
+            }
+            else if(!flag->inputVelocityFieldFlag){
+                velocityFieldImage->qform_code = controlPointImage->qform_code;
+                velocityFieldImage->quatern_b = controlPointImage->quatern_b;
+                velocityFieldImage->quatern_c = controlPointImage->quatern_c;
+                velocityFieldImage->quatern_d = controlPointImage->quatern_d;
+                velocityFieldImage->qoffset_x = controlPointImage->qoffset_x;
+                velocityFieldImage->qoffset_y = controlPointImage->qoffset_y;
+                velocityFieldImage->qoffset_z = controlPointImage->qoffset_z;
+                velocityFieldImage->dx = controlPointImage->dx;
+                velocityFieldImage->dy = controlPointImage->dy;
+                velocityFieldImage->dz = controlPointImage->dz;
+                velocityFieldImage->qfac = controlPointImage->qfac;
+                velocityFieldImage->sform_code = controlPointImage->sform_code;
+                if(controlPointImage->sform_code>0){
+                    memcpy(&(velocityFieldImage->sto_xyz),&(controlPointImage->sto_xyz), sizeof(mat44));
+                    memcpy(&(velocityFieldImage->sto_ijk),&(controlPointImage->sto_ijk), sizeof(mat44));
+                }
+            }
 		}
 
 		// The control point position image is initialised with the affine transformation
@@ -929,7 +948,6 @@ int main(int argc, char **argv)
                     index[2] /= 2;
                 }
             }
-            param->sourcePaddingValue = (float)(reg_tool_GetIntensityValue(sourceImage, index));
         }
 
         /* the gradient images are allocated */
@@ -1041,6 +1059,7 @@ int main(int argc, char **argv)
 
 
 		int iteration=0;
+
         while(iteration<param->maxIteration && currentSize>smallestSize){
 
             double currentValue=0.0;
@@ -1079,7 +1098,7 @@ int main(int argc, char **argv)
 					    reg_spline_scaling_squaring(velocityFieldImage,
 										            controlPointImage);
 				    }
-    
+
                     /* generate the position field */
 				    reg_bspline<PrecisionTYPE>(	controlPointImage,
 											    targetImage,
@@ -1142,18 +1161,33 @@ int main(int argc, char **argv)
 			    }
 			    else{
 #endif
-				    if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
-					    currentWBE = param->bendingEnergyWeight
-					    * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
-					    
-					    currentValue -= currentWBE;
-				    }
-				    if(flag->jacobianWeightFlag && param->jacobianWeight){
-					    currentWJac = param->jacobianWeight
-						    * reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
-					    currentValue -= currentWJac;
-					    if(currentWJac!=currentWJac) currentValue = 0.0f;
-				    }
+                    if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
+                        if(flag->useVelocityFieldFlag){
+                            //TODO
+                            memcpy(controlPointImage->data, velocityFieldImage->data,
+                                controlPointImage->nvox * controlPointImage->nbyper);
+                            reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
+                            currentWBE = (float)SCALING_VALUE * param->bendingEnergyWeight
+                                * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
+                        }
+                        else{
+                            currentWBE = param->bendingEnergyWeight
+                                * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
+                        }
+                        currentValue -= currentWBE;
+                    }
+                    if(flag->jacobianWeightFlag && param->jacobianWeight>0){
+                        if(flag->useVelocityFieldFlag){
+                            // TODO
+                            currentWJac = param->jacobianWeight
+                                * reg_bspline_GetJacobianValueFromVelocityField(velocityFieldImage, resultImage, flag->appJacobianFlag);
+                        }
+                        else{
+                            currentWJac = param->jacobianWeight
+                                * reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
+                        }
+                        currentValue -= currentWJac;
+                    }
 #ifdef _USE_CUDA
 			    }
 #endif
@@ -1168,21 +1202,27 @@ int main(int argc, char **argv)
 
                 if(currentWJac!=currentWJac){
 #ifndef NDEBUG
-                    printf("[DEBUG] ********* Initial folding correction *********\n");
+                    printf("[DEBUG] ********* Initial folding correction *********\n\n");
 #endif
-                    reg_bspline_correctFolding<PrecisionTYPE>(  controlPointImage,
-                                                                resultImage);
-                    iteration++;
+                    if(flag->useVelocityFieldFlag){
+                        reg_bsplineComp_correctFolding( velocityFieldImage,
+                                                        resultImage);
+                    }
+                    else{
+                        reg_bspline_correctFolding( controlPointImage,
+                                                    resultImage);
+                    }
                 }
+                iteration++;
+                negCorrection++;
 
             }while(currentWJac!=currentWJac  && negCorrection<10);
 
 			double bestValue = currentValue;
 			double bestWBE = currentWBE;
 			double bestWJac = currentWJac;
-			if(iteration==0) printf("Initial objective function value = %g\n", currentValue);
+			if(iteration==1) printf("Initial objective function value = %g\n", currentValue);
 
-			iteration++;
 			float maxLength;
 
 #ifdef _USE_CUDA
@@ -1333,34 +1373,27 @@ int main(int argc, char **argv)
                 }
 
                 /* The other gradients are calculated */
-// 				if(flag->useVelocityFieldFlag &&
-// 				   ( (flag->beGradFlag && flag->bendingEnergyFlag && param->bendingEnergyWeight>0) ||
-// 					flag->jlGradFlag && flag->jacobianWeightFlag && param->jacobianWeight>0) ){
-// 
-// 					   PrecisionTYPE *velPtr=static_cast<PrecisionTYPE *>(velocityFieldImage->data);
-// 					   PrecisionTYPE *cppPtr=static_cast<PrecisionTYPE *>(controlPointImage->data);
-// 					   for(unsigned int i=0; i<controlPointImage->nvox; i++)
-// 						   *cppPtr++ = *velPtr++ * (PrecisionTYPE)SCALING_VALUE;
-// 					   reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
-// 				}
                 if(flag->beGradFlag && flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
                     if(flag->useVelocityFieldFlag){
-                        //TODO
-                        fprintf(stderr, "TODO - velocity field bending-energy gradient ... EXIT\n");
-                        exit(0);
+                        // TODO
+                        memcpy(controlPointImage->data, velocityFieldImage->data,
+                            controlPointImage->nvox * controlPointImage->nbyper);
+                        reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
+                        reg_bspline_bendingEnergyGradient<PrecisionTYPE>(   controlPointImage,
+                                                                            targetImage,
+                                                                            nodeNMIGradientImage,
+                                                                            (float)SCALING_VALUE *param->bendingEnergyWeight);
                     }
                     else{
-					    reg_bspline_bendingEnergyGradient<PrecisionTYPE>(controlPointImage,
-																	    targetImage,
-																	    nodeNMIGradientImage,
-																	    param->bendingEnergyWeight);
+					    reg_bspline_bendingEnergyGradient<PrecisionTYPE>(   controlPointImage,
+																	        targetImage,
+																	        nodeNMIGradientImage,
+																	        param->bendingEnergyWeight);
                     }
 				}
 				if(flag->jlGradFlag && flag->jacobianWeightFlag && param->jacobianWeight>0){
                     if(flag->useVelocityFieldFlag){
                         //TODO
-                        fprintf(stderr, "TODO - velocity field jacobian determinant gradient ... EXIT\n");
-                        exit(0);
                     }
                     else{
                         reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>( controlPointImage,
@@ -1609,7 +1642,7 @@ int main(int argc, char **argv)
 											        positionFieldImage,
 											        targetMask,
 											        0);
-				    
+
 					    /* Resample the source image */
 					    reg_resampleSourceImage<PrecisionTYPE>(	targetImage,
 										                        sourceImage,
@@ -1662,8 +1695,18 @@ int main(int argc, char **argv)
 				    else{
 #endif
 					    if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
-						    currentWBE = param->bendingEnergyWeight
-								    * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
+                            if(flag->useVelocityFieldFlag){
+                                //TODO
+                                memcpy(controlPointImage->data, velocityFieldImage->data,
+                                    controlPointImage->nvox * controlPointImage->nbyper);
+                                reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
+                                currentWBE = (float)SCALING_VALUE * param->bendingEnergyWeight
+                                    * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
+                            }
+                            else{
+                                currentWBE = param->bendingEnergyWeight
+                                        * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
+                            }
 						    currentValue -= currentWBE;
 #ifndef NDEBUG
                             printf("[DEBUG] [%i] Weighted bending energy value = %g, approx[%i]\n",
@@ -1672,8 +1715,9 @@ int main(int argc, char **argv)
 					    }
 					    if(flag->jacobianWeightFlag && param->jacobianWeight>0){
                             if(flag->useVelocityFieldFlag){
-    //                             currentWJac = param->jacobianWeight
-    //                                 * reg_bspline_GetJacobianValueFromVelocityField(velocityFieldImage, flag->appJacobianFlag);
+                                //TODO
+                                currentWJac = param->jacobianWeight
+                                    * reg_bspline_GetJacobianValueFromVelocityField(velocityFieldImage, resultImage, flag->appJacobianFlag);
                             }
                             else{
 						        currentWJac = param->jacobianWeight
@@ -1688,25 +1732,30 @@ int main(int argc, char **argv)
 
                         if(currentWJac!=currentWJac){
 #ifndef NDEBUG
-                            printf("[DEBUG] ********* Folding correction *********\n");
+                            printf("[DEBUG] ********* Folding correction *********\n\n");
 #endif
-                            reg_bspline_correctFolding<PrecisionTYPE>(  controlPointImage,
-                                                                        resultImage);
-                            negCorrection++;
-                            iteration++;
+                            if(flag->useVelocityFieldFlag){
+                                reg_bsplineComp_correctFolding( velocityFieldImage,
+                                                                resultImage);
+                            }
+                            else{
+                                reg_bspline_correctFolding( controlPointImage,
+                                                            resultImage);
+                            }
                         }
 #ifdef _USE_CUDA
 				    }
 #endif
-                }
-                while(currentWJac!=currentWJac && negCorrection<5);
+                    negCorrection++;
+                    iteration++;
+
+                }while(currentWJac!=currentWJac && negCorrection<5);
 
 #ifndef NDEBUG
 				printf("[DEBUG] [%i] Current objective function value: %g\n", iteration, currentValue); 
 #endif
-				iteration++;
-				lineIteration++;
-		
+                lineIteration++;
+	
 				/* The current deformation field is kept if it was the best so far */
 				if(currentValue>bestValue){
 #ifdef _USE_CUDA

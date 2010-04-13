@@ -72,15 +72,6 @@ int reg_spline_Interpolant2Interpolator(nifti_image *inputImage,
                                         nifti_image *outputImage
                                         );
 
-/** reg_bspline_GetJacobianValueFromVelocityField(nifti_image *img1)
-  * This function integrate all the Jacobian determinant using a squaring approach
-  * applied to a velocity field
-**/
-extern "C++"
-double reg_bspline_GetJacobianValueFromVelocityField(   nifti_image* velocityFieldImage,
-                                                        bool approx
-                                                        );
-
 /** reg_bspline_GetJacobianMapFromVelocityField(nifti_image *img1, nifti_image *img2)
   * This function computed a Jacobian determinant using a squaring approach
   * applied to a velocity field
@@ -90,5 +81,24 @@ int reg_bspline_GetJacobianMapFromVelocityField(nifti_image* velocityFieldImage,
                                                 nifti_image* jacobianImage
                                                 );
 
+/** reg_bspline_GetJacobianValueFromVelocityField(nifti_image *img1, nifti_image *img2, bool approx)
+  * This function integrate all the Jacobian determinant using a squaring approach
+  * applied to a velocity field. The result image header is used to know the image
+  * dimensions.
+**/
+extern "C++"
+double reg_bspline_GetJacobianValueFromVelocityField(   nifti_image* velocityFieldImage,
+                                                        nifti_image* resultImage,
+                                                        bool approx
+                                                        );
+
+/** reg_bsplineComp_correctFolding(nifti_image *img1, nifti_image *img2);
+  * This function aims to removed the folded area by averaging the control point
+  * positions. img1 corresponds to the control point grid whereas img2 is the
+  * result image which dimension are used.
+  * The Jacobian map is computed using the squaring scheme.
+**/
+void reg_bsplineComp_correctFolding(nifti_image *,
+                                    nifti_image *);
 
 #endif
