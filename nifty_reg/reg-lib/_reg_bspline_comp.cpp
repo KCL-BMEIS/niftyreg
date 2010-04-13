@@ -924,34 +924,38 @@ int reg_spline_Interpolant2Interpolator(nifti_image *inputImage,
 template <class ImageTYPE>
 void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldImage,
                                                     nifti_image* jacobianImage)
-{   
+{
     // The jacobian map is initialise to 1 everywhere
     ImageTYPE *jacPtr = static_cast<ImageTYPE *>(jacobianImage->data);
     for(unsigned int i=0;i<jacobianImage->nvox;i++) jacPtr[i]=(ImageTYPE)1.0;
-    
-    // A control point image is allocated
+
+    // Two control point image are allocated
     nifti_image *splineControlPoint = nifti_copy_nim_info(velocityFieldImage);
-    splineControlPoint->data=(void *)calloc(splineControlPoint->nvox, splineControlPoint->nbyper);
-    
+    splineControlPoint->data=(void *)malloc(splineControlPoint->nvox * splineControlPoint->nbyper);
+
+    nifti_image *splineControlPoint2 = nifti_copy_nim_info(velocityFieldImage);
+    splineControlPoint2->data=(void *)malloc(splineControlPoint2->nvox * splineControlPoint2->nbyper);
+    memcpy(splineControlPoint2->data, velocityFieldImage->data, splineControlPoint2->nvox * splineControlPoint2->nbyper);
+
     ImageTYPE zBasis[4],zFirst[4],temp[4],first[4];
     ImageTYPE tempX[16], tempY[16], tempZ[16];
     ImageTYPE basisX[64], basisY[64], basisZ[64];
     ImageTYPE basis, FF, FFF, MF, oldBasis=(ImageTYPE)(1.1);
-    
+
     ImageTYPE xControlPointCoordinates[64];
     ImageTYPE yControlPointCoordinates[64];
     ImageTYPE zControlPointCoordinates[64];
-    
+
     ImageTYPE gridVoxelSpacing[3];
     gridVoxelSpacing[0] = splineControlPoint->dx / jacobianImage->dx;
     gridVoxelSpacing[1] = splineControlPoint->dy / jacobianImage->dy;
     gridVoxelSpacing[2] = splineControlPoint->dz / jacobianImage->dz;
-    
+
     mat44 *splineMatrix;
     if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
     else splineMatrix=&(splineControlPoint->qto_xyz);
     unsigned int coord=0;
-    
+
     mat33 reorient;
     reorient.m[0][0]=splineControlPoint->dx; reorient.m[0][1]=0.0f; reorient.m[0][2]=0.0f;
     reorient.m[1][0]=0.0f; reorient.m[1][1]=splineControlPoint->dy; reorient.m[1][2]=0.0f;
@@ -981,11 +985,11 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
     }
     reorient=nifti_mat33_inverse(nifti_mat33_mul(spline_ijk, reorient));
     mat33 jacobianMatrix;
-    
-    // The jacobian map is updated and then the deformation is composed
-    for(int l=0;l<8;l++){
 
-        reg_spline_Interpolant2Interpolator(velocityFieldImage,
+    // The jacobian map is updated and then the deformation is composed
+    for(int l=0;l<SQUARING_VALUE;l++){
+
+        reg_spline_Interpolant2Interpolator(splineControlPoint2,
                                             splineControlPoint);
 
         reg_getPositionFromDisplacement<ImageTYPE>(splineControlPoint);
@@ -993,10 +997,10 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
         ImageTYPE *controlPointPtrX = static_cast<ImageTYPE *>(splineControlPoint->data);
         ImageTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
         ImageTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
-        
+
         unsigned int jacIndex=0;
         for(int z=0; z<jacobianImage->nz; z++){
-            
+
             int zPre=(int)((ImageTYPE)z/gridVoxelSpacing[2]);
             basis=(ImageTYPE)z/gridVoxelSpacing[2]-(ImageTYPE)zPre;
             if(basis<0.0) basis=0.0; //rounding error
@@ -1011,9 +1015,9 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
             zFirst[0]= (ImageTYPE)(basis - 1.0/2.0 - zFirst[3]);
             zFirst[2]= (ImageTYPE)(1.0 + zFirst[0] - 2.0*zFirst[3]);
             zFirst[1]= (ImageTYPE)(- zFirst[0] - zFirst[2] - zFirst[3]);
-            
+
             for(int y=0; y<jacobianImage->ny; y++){
-                
+
                 int yPre=(int)((ImageTYPE)y/gridVoxelSpacing[1]);
                 basis=(ImageTYPE)y/gridVoxelSpacing[1]-(ImageTYPE)yPre;
                 if(basis<0.0) basis=0.0; //rounding error
@@ -1028,7 +1032,7 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                 first[0]= (ImageTYPE)(basis - 1.0/2.0 - first[3]);
                 first[2]= (ImageTYPE)(1.0 + first[0] - 2.0*first[3]);
                 first[1]= (ImageTYPE)(- first[0] - first[2] - first[3]);
-                
+
                 coord=0;
                 for(int c=0; c<4; c++){
                     for(int b=0; b<4; b++){
@@ -1038,9 +1042,9 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                         coord++;
                     }
                 }
-                
+
                 for(int x=0; x<jacobianImage->nx; x++){
-                    
+
                     int xPre=(int)((ImageTYPE)x/gridVoxelSpacing[0]);
                     basis=(ImageTYPE)x/gridVoxelSpacing[0]-(ImageTYPE)xPre;
                     if(basis<0.0) basis=0.0; //rounding error
@@ -1055,7 +1059,7 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                     first[0]= (ImageTYPE)(basis - 1.0/2.0 - first[3]);
                     first[2]= (ImageTYPE)(1.0 + first[0] - 2.0*first[3]);
                     first[1]= (ImageTYPE)(- first[0] - first[2] - first[3]);
-                    
+
                     coord=0;
                     for(int bc=0; bc<16; bc++){
                         for(int a=0; a<4; a++){
@@ -1065,7 +1069,7 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                             coord++;
                         }
                     }
-                    
+
                     if(basis<=oldBasis || x==0){
                         coord=0;
                         for(int Z=zPre; Z<zPre+4; Z++){
@@ -1088,7 +1092,7 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                         }
                     }
                     oldBasis=basis;
-                    
+
                     ImageTYPE Tx_x=0.0;
                     ImageTYPE Ty_x=0.0;
                     ImageTYPE Tz_x=0.0;
@@ -1098,21 +1102,21 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                     ImageTYPE Tx_z=0.0;
                     ImageTYPE Ty_z=0.0;
                     ImageTYPE Tz_z=0.0;
-                    
+
                     for(int a=0; a<64; a++){
                         Tx_x += basisX[a]*xControlPointCoordinates[a];
                         Tx_y += basisY[a]*xControlPointCoordinates[a];
                         Tx_z += basisZ[a]*xControlPointCoordinates[a];
-                        
+
                         Ty_x += basisX[a]*yControlPointCoordinates[a];
                         Ty_y += basisY[a]*yControlPointCoordinates[a];
                         Ty_z += basisZ[a]*yControlPointCoordinates[a];
-                        
+
                         Tz_x += basisX[a]*zControlPointCoordinates[a];
                         Tz_y += basisY[a]*zControlPointCoordinates[a];
                         Tz_z += basisZ[a]*zControlPointCoordinates[a];
                     }
-                    
+
                     jacobianMatrix.m[0][0]= Tx_x / splineControlPoint->dx;
                     jacobianMatrix.m[0][1]= Tx_y / splineControlPoint->dy;
                     jacobianMatrix.m[0][2]= Tx_z / splineControlPoint->dz;
@@ -1122,23 +1126,24 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                     jacobianMatrix.m[2][0]= Tz_x / splineControlPoint->dx;
                     jacobianMatrix.m[2][1]= Tz_y / splineControlPoint->dy;
                     jacobianMatrix.m[2][2]= Tz_z / splineControlPoint->dz;
-                    
+
                     jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
                     ImageTYPE detJac = nifti_mat33_determ(jacobianMatrix);
-                    
+
                     jacPtr[jacIndex++] *= detJac;
                 }
             }
         }
         reg_getDisplacementFromPosition<ImageTYPE>(splineControlPoint);
-        
-        reg_spline_cppComposition(  velocityFieldImage,
+
+        reg_spline_cppComposition(  splineControlPoint2,
                                     splineControlPoint,
                                     1.0f,
                                     0);
     }
-    
+
     nifti_image_free(splineControlPoint);
+    nifti_image_free(splineControlPoint2);
 }
 /* *************************************************************** */
 template <class ImageTYPE>
@@ -1149,9 +1154,12 @@ void reg_bspline_GetJacobianMapFromVelocityField_2D(nifti_image* velocityFieldIm
     ImageTYPE *jacPtr = static_cast<ImageTYPE *>(jacobianImage->data);
     for(unsigned int i=0;i<jacobianImage->nvox;i++) jacPtr[i]=(ImageTYPE)1.0;
 
-    // A control point image is allocated
+    // Two control point image is allocated
     nifti_image *splineControlPoint = nifti_copy_nim_info(velocityFieldImage);
-    splineControlPoint->data=(void *)calloc(splineControlPoint->nvox, splineControlPoint->nbyper);
+    splineControlPoint->data=(void *)malloc(splineControlPoint->nvox * splineControlPoint->nbyper);
+    nifti_image *splineControlPoint2 = nifti_copy_nim_info(velocityFieldImage);
+    splineControlPoint2->data=(void *)malloc(splineControlPoint2->nvox * splineControlPoint2->nbyper);
+    memcpy(splineControlPoint2->data, velocityFieldImage->data, splineControlPoint2->nvox * splineControlPoint2->nbyper);
 
     ImageTYPE yBasis[4],yFirst[4],temp[4],first[4];
     ImageTYPE basisX[16], basisY[16];
@@ -1200,9 +1208,9 @@ void reg_bspline_GetJacobianMapFromVelocityField_2D(nifti_image* velocityFieldIm
     mat33 jacobianMatrix;
 
     // The jacobian map is updated and then the deformation is composed
-    for(int l=0;l<8;l++){
+    for(int l=0;l<SQUARING_VALUE;l++){
 
-        reg_spline_Interpolant2Interpolator(velocityFieldImage,
+        reg_spline_Interpolant2Interpolator(splineControlPoint2,
                                             splineControlPoint);
 
         reg_getPositionFromDisplacement<ImageTYPE>(splineControlPoint);
@@ -1300,12 +1308,13 @@ void reg_bspline_GetJacobianMapFromVelocityField_2D(nifti_image* velocityFieldIm
         }
         reg_getDisplacementFromPosition<ImageTYPE>(splineControlPoint);
 
-        reg_spline_cppComposition(  velocityFieldImage,
+        reg_spline_cppComposition(  splineControlPoint2,
                                     splineControlPoint,
                                     1.0f,
                                     0);
     }
     nifti_image_free(splineControlPoint);
+    nifti_image_free(splineControlPoint2);
 }
 /* *************************************************************** */
 int reg_bspline_GetJacobianMapFromVelocityField(nifti_image* velocityFieldImage,
@@ -1351,5 +1360,251 @@ int reg_bspline_GetJacobianMapFromVelocityField(nifti_image* velocityFieldImage,
 }
 /* *************************************************************** */
 /* *************************************************************** */
+double reg_bspline_GetJacobianValueFromVelocityField(   nifti_image* velocityFieldImage,
+                                                        nifti_image* resultImage,
+                                                        bool approx)
+{
+    if(approx!=0){
+            fprintf(stderr,"ERROR:\treg_bspline_GetJacobianValueFromVelocityField\n");
+            fprintf(stderr,"ERROR:\tThe approximated version has not been implemented yet\n");
+            exit(1);
+    }
 
+    // An image to contain the Jacobian map is allocated
+    nifti_image *jacobianImage = nifti_copy_nim_info(resultImage);
+    jacobianImage->datatype = velocityFieldImage->datatype;
+    switch(velocityFieldImage->datatype){
+            case NIFTI_TYPE_FLOAT32:
+                jacobianImage->nbyper = sizeof(float);
+                break;
+            case NIFTI_TYPE_FLOAT64:
+                jacobianImage->nbyper = sizeof(double);
+                break;
+            default:
+                fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField\n");
+                fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
+                exit(1);
+                break;
+    }
+    jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
+
+    if(velocityFieldImage->nz>1){
+        switch(velocityFieldImage->datatype){
+            case NIFTI_TYPE_FLOAT32:
+                reg_bspline_GetJacobianMapFromVelocityField_3D<float>(velocityFieldImage, jacobianImage);
+                break;
+            case NIFTI_TYPE_FLOAT64:
+                reg_bspline_GetJacobianMapFromVelocityField_3D<double>(velocityFieldImage, jacobianImage);
+                break;
+            default:
+                fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField_3D\n");
+                fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
+                exit(1);
+                break;
+        }
+    }
+    else{
+        switch(velocityFieldImage->datatype){
+            case NIFTI_TYPE_FLOAT32:
+                reg_bspline_GetJacobianMapFromVelocityField_2D<float>(velocityFieldImage, jacobianImage);
+                break;
+            case NIFTI_TYPE_FLOAT64:
+                reg_bspline_GetJacobianMapFromVelocityField_2D<double>(velocityFieldImage, jacobianImage);
+                break;
+            default:
+                fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField_2D\n");
+                fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
+                exit(1);
+                break;
+        }
+    }
+    // The value in the array are then integrated
+    double jacobianNormalisedSum=0.0;
+    float *singlePtr=NULL;
+    double *doublePtr=NULL;
+    switch(velocityFieldImage->datatype){
+        case NIFTI_TYPE_FLOAT32:
+            singlePtr = static_cast<float *>(jacobianImage->data);
+            for(unsigned int i=0;i<jacobianImage->nvox;i++){
+                float temp = logf(singlePtr[i]);
+                if(temp!=temp) return NAN;
+                temp *= temp;
+                jacobianNormalisedSum += (double)temp;
+            }
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            doublePtr = static_cast<double *>(jacobianImage->data);
+            for(unsigned int i=0;i<jacobianImage->nvox;i++){
+                double temp = logf(doublePtr[i]);
+                if(temp!=temp) return NAN;
+                temp *= temp;
+                jacobianNormalisedSum += temp;
+            }
+            break;
+    }
+    nifti_image_free(jacobianImage);
+
+    return jacobianNormalisedSum = jacobianNormalisedSum / (double)resultImage->nvox;
+
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class ImageTYPE>
+void reg_bsplineComp_correctFolding2D(nifti_image *velocityFieldImage,
+                                    nifti_image *targetImage)
+{
+    fprintf(stderr, "reg_bsplineComp_correctFolding2D needs to be implemented. Exit ...\n");
+    exit(1);
+}
+/* *************************************************************** */
+template <class ImageTYPE>
+void reg_bsplineComp_correctFolding3D(  nifti_image *velocityFieldImage,
+                                        nifti_image *jacobianImage)
+{
+    ImageTYPE *jacobianImagePtr=static_cast<ImageTYPE *>(jacobianImage->data);
+
+    ImageTYPE gridVoxelSpacing[3];
+    gridVoxelSpacing[0] = velocityFieldImage->dx / jacobianImage->dx;
+    gridVoxelSpacing[1] = velocityFieldImage->dy / jacobianImage->dy;
+    gridVoxelSpacing[2] = velocityFieldImage->dz / jacobianImage->dz;
+
+    ImageTYPE *velocityFieldImagePtrX = static_cast<ImageTYPE *>(velocityFieldImage->data);
+    ImageTYPE *velocityFieldImagePtrY = &velocityFieldImagePtrX[velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz];
+    ImageTYPE *velocityFieldImagePtrZ = &velocityFieldImagePtrY[velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz];
+
+    for(unsigned int z=0; z<jacobianImage->nz; z++){
+        int zPre=(int)((ImageTYPE)z/gridVoxelSpacing[2]);
+        for(unsigned int y=0; y<jacobianImage->ny; y++){
+            int yPre=(int)((ImageTYPE)y/gridVoxelSpacing[1]);
+            for(unsigned int x=0; x<jacobianImage->nx; x++){
+                int xPre=(int)((ImageTYPE)x/gridVoxelSpacing[0]);
+
+                ImageTYPE detJac = jacobianImagePtr[(z*jacobianImage->ny+y)*jacobianImage->nx+x];
+
+                if(detJac<0.1){
+                    for(int c=0;c<2;c++){
+                        const unsigned int three=zPre+1+c;
+                        for(int b=0;b<2;b++){
+                            const unsigned int two=yPre+1+b;
+                            for(int a=0;a<2;a++){
+                                const unsigned int one=xPre+1+a;
+                                const unsigned int controlPointCoord[7][3] =
+                                {{one,two,three},
+                                    {one-1,two,three},
+                                    {one+1,two,three},
+                                    {one,two-1,three},
+                                    {one,two+1,three},
+                                    {one,two,three-1},
+                                    {one,two,three+1}};
+                                unsigned int controlPointIndex[7];
+                                ImageTYPE position[7][3];
+                                for(unsigned int i=0;i<7;i++){
+                                    controlPointIndex[i] = (controlPointCoord[i][2]*velocityFieldImage->ny+controlPointCoord[i][1])
+                                        * velocityFieldImage->nx+controlPointCoord[i][0];
+                                    // The position are extracted
+                                    position[i][0] = velocityFieldImagePtrX[controlPointIndex[i]];
+                                    position[i][1] = velocityFieldImagePtrY[controlPointIndex[i]];
+                                    position[i][2] = velocityFieldImagePtrZ[controlPointIndex[i]];
+                                }
+                                velocityFieldImagePtrX[controlPointIndex[0]]= (position[2][0] + position[1][0])/2.0;
+                                velocityFieldImagePtrY[controlPointIndex[0]]= (position[4][1] + position[3][1])/2.0;
+                                velocityFieldImagePtrZ[controlPointIndex[0]]= (position[6][2] + position[5][2])/2.0;
+                            }
+                        }
+                    }
+                    x+=int(fabs(gridVoxelSpacing[0]-1));
+                }
+            }
+        }
+    }
+}
+/* *************************************************************** */
+void reg_bsplineComp_correctFolding(nifti_image *velocityFieldImage,
+                                    nifti_image *resultImage)
+{
+    // A Jacobian map image is first computed using the squaring approach
+    nifti_image *jacobianImage = nifti_copy_nim_info(resultImage);
+    jacobianImage->datatype = velocityFieldImage->datatype;
+    switch(velocityFieldImage->datatype){
+            case NIFTI_TYPE_FLOAT32:
+                jacobianImage->nbyper = sizeof(float);
+                break;
+            case NIFTI_TYPE_FLOAT64:
+                jacobianImage->nbyper = sizeof(double);
+                break;
+            default:
+                fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField\n");
+                fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
+                exit(1);
+                break;
+    }
+    jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
+
+    if(velocityFieldImage->nz>1){
+        switch(velocityFieldImage->datatype){
+            case NIFTI_TYPE_FLOAT32:
+                reg_bspline_GetJacobianMapFromVelocityField_3D<float>(velocityFieldImage, jacobianImage);
+                break;
+            case NIFTI_TYPE_FLOAT64:
+                reg_bspline_GetJacobianMapFromVelocityField_3D<double>(velocityFieldImage, jacobianImage);
+                break;
+            default:
+                fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField_3D\n");
+                fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
+                exit(1);
+                break;
+        }
+    }
+    else{
+        switch(velocityFieldImage->datatype){
+            case NIFTI_TYPE_FLOAT32:
+                reg_bspline_GetJacobianMapFromVelocityField_2D<float>(velocityFieldImage, jacobianImage);
+                break;
+            case NIFTI_TYPE_FLOAT64:
+                reg_bspline_GetJacobianMapFromVelocityField_2D<double>(velocityFieldImage, jacobianImage);
+                break;
+            default:
+                fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField_2D\n");
+                fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
+                exit(1);
+                break;
+        }
+    }
+
+    // The previously computed Jacobian map is now used to assess the folded area
+    if(velocityFieldImage->nz>1){
+        switch(velocityFieldImage->datatype){
+            case NIFTI_TYPE_FLOAT32:
+                reg_bsplineComp_correctFolding3D<float>(velocityFieldImage, jacobianImage);
+                break;
+            case NIFTI_TYPE_FLOAT64:
+                reg_bsplineComp_correctFolding3D<double>(velocityFieldImage, jacobianImage);
+                break;
+            default:
+                fprintf(stderr,"ERROR:\treg_bsplineComp_correctFolding3D\n");
+                fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
+                exit(1);
+                break;
+        }
+    }
+    else{
+        switch(velocityFieldImage->datatype){
+            case NIFTI_TYPE_FLOAT32:
+                reg_bsplineComp_correctFolding2D<float>(velocityFieldImage, jacobianImage);
+                break;
+            case NIFTI_TYPE_FLOAT64:
+                reg_bsplineComp_correctFolding2D<double>(velocityFieldImage, jacobianImage);
+                break;
+            default:
+                fprintf(stderr,"ERROR:\treg_bsplineComp_correctFolding2D\n");
+                fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
+                exit(1);
+                break;
+        }
+    }
+    nifti_image_free(jacobianImage);
+    return;
+}
+/* *************************************************************** */
+/* *************************************************************** */
 #endif
