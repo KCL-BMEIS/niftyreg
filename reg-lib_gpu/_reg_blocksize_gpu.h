@@ -20,9 +20,9 @@
 
 #ifndef __VECTOR_TYPES_H__
 #define __VECTOR_TYPES_H__
-	struct __attribute__(aligned(4)) float4{
-		float x,y,z,w;
-	};
+        struct __attribute__(aligned(4)) float4{
+                float x,y,z,w;
+        };
 #endif
 
 #define Block_reg_affine_deformationField 256                       // 16 regs - 067% occupancy
@@ -45,8 +45,8 @@
 #define Block_reg_bspline_ApproxBendingEnergy 192                   // 39 regs - 025% occupancy
 #define Block_reg_bspline_storeApproxBendingEnergy 192              // 39 regs - 025% occupancy
 #define Block_reg_bspline_getApproxBendingEnergyGradient 384        // 19 regs - 050% occupancy
-#define Block_target_block 512  				                    // 26 regs - 100% occupancy
-#define Block_result_block 216                                      // 31 regs - 25% occupancy
+#define Block_target_block 512  				    // 26 regs - 100% occupancy
+#define Block_result_block 343                                      // 29 regs - 34% occupancy
 
 #endif
 #endif
