@@ -1,6 +1,6 @@
 /*
  *  _reg_blockMatching.h
- *  
+ *
  *
  *  Created by Marc Modat and Pankaj Daga on 24/03/2009.
  *  Copyright (c) 2009, University College London. All rights reserved.
@@ -24,22 +24,23 @@
 #define BLOCK_2D_SIZE 16
 #define OVERLAP_SIZE 3
 #define STEP_SIZE 1
-#define NUM_BLOCKS_TO_COMPARE 216 // We compare in a 6x6x6 neighborhood.
-#define NUM_BLOCKS_TO_COMPARE_2D 36
-#define NUM_BLOCKS_TO_COMPARE_1D 6
+
+#define NUM_BLOCKS_TO_COMPARE 343 // We compare in a 7x7x7 neighborhood.
+#define NUM_BLOCKS_TO_COMPARE_2D 49
+#define NUM_BLOCKS_TO_COMPARE_1D 7
 
 /**
 *
-* Main algorithm of Ourselin et al. 
+* Main algorithm of Ourselin et al.
 * The essence of the algorithm is as follows:
-* - Subdivide the target image into a number of blocks and find 
+* - Subdivide the target image into a number of blocks and find
 *   the block in the result image that is most similar.
 * - Get the point pair between the target and the result image block
 *   for the most similar block.
-* 
+*
 * target: Pointer to the nifti target image.
 * result: Pointer to the nifti result image.
-*  
+*
 *
 * block_size: Size of the block.
 * block_half_width: Half-width of the search neighborhood.
@@ -47,9 +48,9 @@
 * delta_2: Sub-sampling value for a block
 *
 * Possible improvement: Take care of anisotropic data. Right now, we specify
-* the block size, neighborhood and the step sizes in voxels and it would be 
+* the block size, neighborhood and the step sizes in voxels and it would be
 * better to specify it in millimeters and take the voxel size into account.
-* However, it would be more efficient to calculate this once (outside this 
+* However, it would be more efficient to calculate this once (outside this
 * module) and pass these values for each axes. For the time being, we do this
 * simple implementation.
 *
@@ -58,35 +59,35 @@
 /**
  * Structure which contains the block matching parameters
  */
- 
- #include <iostream>
- 
-struct _reg_blockMatchingParam{
-	int blockNumber[3];
-	int percent_to_keep;
-	
-	float * targetPosition;
-	float * resultPosition;
-	
-	int activeBlockNumber;
-	int *activeBlock;
-	
-	_reg_blockMatchingParam()
-		:targetPosition(0), resultPosition(0), activeBlock(0)
-	{}
-	
 
-	~_reg_blockMatchingParam(){
-		if(targetPosition) free(targetPosition);
-		if(resultPosition) free(resultPosition);
-		if(activeBlock) free(activeBlock);
-	}
+ #include <iostream>
+
+struct _reg_blockMatchingParam{
+        int blockNumber[3];
+        int percent_to_keep;
+
+        float * targetPosition;
+        float * resultPosition;
+
+        int activeBlockNumber;
+        int *activeBlock;
+
+        _reg_blockMatchingParam()
+                :targetPosition(0), resultPosition(0), activeBlock(0)
+        {}
+
+
+        ~_reg_blockMatchingParam(){
+                if(targetPosition) free(targetPosition);
+                if(resultPosition) free(resultPosition);
+                if(activeBlock) free(activeBlock);
+        }
 };
 extern "C++"
 void initialise_block_matching_method(	nifti_image * target,
-					_reg_blockMatchingParam *params,
-					int percentToKeep_block,
-					int percentToKeep_opt,
+                                        _reg_blockMatchingParam *params,
+                                        int percentToKeep_block,
+                                        int percentToKeep_opt,
                     int *mask,
                     bool runningOnGPU = false);
 
