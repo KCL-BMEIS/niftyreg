@@ -10,7 +10,7 @@
  */
 
 /* TODO
-	- Jacobian log gradient?
+	- Approximate Jacobian log gradient?
 */
 
 /* TOFIX
@@ -71,8 +71,6 @@ typedef struct{
     float sourceLowThresholdValue;
     float sourceUpThresholdValue;
     float gradientSmoothingValue;
-	char *velocityFieldName;
-	char *inputVelocityFieldName;
 }PARAM;
 typedef struct{
 	bool targetImageFlag;
@@ -114,9 +112,6 @@ typedef struct{
 
     bool useCompositionFlag;
 
-	bool useVelocityFieldFlag;
-	bool inputVelocityFieldFlag;
-
 #ifdef _USE_CUDA	
 	bool useGPUFlag;
 	bool memoryFlag;
@@ -153,11 +148,9 @@ void Usage(char *exec)
     printf("\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Target=Source)\n");
     printf("\t-affFlirt <filename>\tFilename which contains a flirt affine transformation (Flirt from the FSL package)\n");
     printf("\t-incpp <filename>\tFilename of control point grid input\n\t\t\t\tThe coarse spacing is defined by this file.\n");
-//     printf("\t-invel <filename>\tFilename of velocity grid input\n\t\t\t\tThe coarse spacing is defined by this file.\n");
 
     printf("\n*** Output options:\n");
     printf("\t-cpp <filename>\t\tFilename of control point grid [outputCPP.nii]\n");
-//     printf("\t-vel <fileName>\t\tVelocity file name use to generate the cpp grid [none]\n");
     printf("\t-result <filename> \tFilename of the resampled image [outputResult.nii]\n");
 
     printf("\n*** Input image options:\n");
@@ -189,7 +182,7 @@ void Usage(char *exec)
 	printf("\t-noAppJL\t\tTo not approximate the JL value only at the control point position [no]\n");
 	printf("\t-noGradJL\t\tTo not use the gradient of the Jacobian determinant [no]\n");
     printf("\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent\n");
-// 	printf("\t-ssd\t\t\tTo use the SSD as the similiarity measure [no]\n");
+	printf("\t-ssd\t\t\tTo use the SSD as the similiarity measure [no]\n");
 
     printf("\n*** Other options:\n");
     printf("\t-smoothGrad <float>\tTo smooth the metric derivative (in mm) [0]\n");
@@ -358,14 +351,6 @@ int main(int argc, char **argv)
 			flag->useSSDFlag=1;
 			printf("I'm affraid I did not have time to validate the SSD metric and its gradient yet\n");
 		}
-		else if(strcmp(argv[i], "-vel") == 0){
-			flag->useVelocityFieldFlag=1;
-			param->velocityFieldName=argv[++i];
-		}
-        else if(strcmp(argv[i], "-inVel") == 0){
-            flag->inputVelocityFieldFlag=1;
-            param->inputVelocityFieldName=argv[++i];
-        }
         else if(strcmp(argv[i], "-comp") == 0){
             flag->useCompositionFlag=1;
         }
@@ -498,7 +483,7 @@ int main(int argc, char **argv)
 
 	/* Read the affine tranformation is defined otherwise assign it to identity */
 	mat44 *affineTransformation=NULL;
-	if(!flag->inputCPPFlag && !flag->inputVelocityFieldFlag && !flag->useVelocityFieldFlag){
+	if(!flag->inputCPPFlag){
 		affineTransformation = (mat44 *)calloc(1,sizeof(mat44));
 		affineTransformation->m[0][0]=1.0;
 		affineTransformation->m[1][1]=1.0;
@@ -535,20 +520,6 @@ int main(int argc, char **argv)
 	}
 
     if(!flag->outputCPPFlag) param->outputCPPName=(char *)"outputCPP.nii";
-	
-	/* Create the velocity field image */
-	nifti_image *velocityFieldImage=NULL;
-	if(flag->inputVelocityFieldFlag){
-		velocityFieldImage = nifti_image_read(param->inputVelocityFieldName,true);
-		if(velocityFieldImage == NULL){
-			fprintf(stderr,"* ERROR Error when reading the input velocity field image: %s\n",param->inputVelocityFieldName);
-			return 1;
-		}
-		if(!flag->useVelocityFieldFlag){
-			flag->useVelocityFieldFlag=1;
-			param->velocityFieldName=(char *)"outputVelocity.nii";
-		}
-	}
 
     /* read and binarise the target mask image */
     nifti_image *targetMaskImage=NULL;
@@ -771,11 +742,6 @@ int main(int argc, char **argv)
                 controlPointImage->qform_code=targetImage->qform_code;
                 controlPointImage->sform_code=targetImage->sform_code;
             }
-			// The velocity field is initialised to a blank field
-			if(flag->useVelocityFieldFlag && !flag->inputVelocityFieldFlag){
-				velocityFieldImage=nifti_copy_nim_info(controlPointImage);
-				velocityFieldImage->data=(void *)calloc(controlPointImage->nvox, controlPointImage->nbyper);
-			}
         }
         else{
 			reg_bspline_refineControlPointGrid(targetImage, controlPointImage);
@@ -825,37 +791,6 @@ int main(int argc, char **argv)
             controlPointImage->sto_ijk = nifti_mat44_inverse(controlPointImage->sto_xyz);
         }
 
-
-		if(flag->useVelocityFieldFlag){
-            if(level>0){
-			    // The velocity field has to be up-sampled
-			    reg_linearVelocityUpsampling(&velocityFieldImage, controlPointImage);
-            }
-            else if(!flag->inputVelocityFieldFlag){
-                velocityFieldImage->qform_code = controlPointImage->qform_code;
-                velocityFieldImage->quatern_b = controlPointImage->quatern_b;
-                velocityFieldImage->quatern_c = controlPointImage->quatern_c;
-                velocityFieldImage->quatern_d = controlPointImage->quatern_d;
-                velocityFieldImage->qoffset_x = controlPointImage->qoffset_x;
-                velocityFieldImage->qoffset_y = controlPointImage->qoffset_y;
-                velocityFieldImage->qoffset_z = controlPointImage->qoffset_z;
-                velocityFieldImage->dx = controlPointImage->dx;
-                velocityFieldImage->dy = controlPointImage->dy;
-                velocityFieldImage->dz = controlPointImage->dz;
-                velocityFieldImage->qfac = controlPointImage->qfac;
-                velocityFieldImage->sform_code = controlPointImage->sform_code;
-                if(controlPointImage->sform_code>0){
-                    memcpy(&(velocityFieldImage->sto_xyz),&(controlPointImage->sto_xyz), sizeof(mat44));
-                    memcpy(&(velocityFieldImage->sto_ijk),&(controlPointImage->sto_ijk), sizeof(mat44));
-                }
-            }
-		}
-
-		// The control point position image is initialised with the affine transformation
-		if(!flag->useVelocityFieldFlag && level==0 && !flag->inputCPPFlag){
-			if(reg_bspline_initialiseControlPointGridWithAffine(affineTransformation, controlPointImage)) return 1;
-			free(affineTransformation);
-		}
 
         mat44 *cppMatrix_xyz;
         mat44 *targetMatrix_ijk;
@@ -930,9 +865,7 @@ int main(int argc, char **argv)
 
 		float maxStepSize = (targetImage->dx>targetImage->dy)?targetImage->dx:targetImage->dy;
 		maxStepSize = (targetImage->dz>maxStepSize)?targetImage->dz:maxStepSize;
-		if(flag->useVelocityFieldFlag){
-			maxStepSize /= (float)SCALING_VALUE;
-		}
+
 		float currentSize = maxStepSize;
 		float smallestSize = maxStepSize / 100.0f;
 
@@ -1043,12 +976,8 @@ int main(int argc, char **argv)
 				conjugateH = (PrecisionTYPE *)calloc(nodeNMIGradientImage->nvox, sizeof(PrecisionTYPE));
 			}
 			bestControlPointPosition = (PrecisionTYPE *)malloc(controlPointImage->nvox * sizeof(PrecisionTYPE));
-			if(flag->useVelocityFieldFlag){
-				memcpy(bestControlPointPosition, velocityFieldImage->data, velocityFieldImage->nvox*velocityFieldImage->nbyper);
-			}
-			else{
-				memcpy(bestControlPointPosition, controlPointImage->data, controlPointImage->nvox*controlPointImage->nbyper);
-			}
+
+			memcpy(bestControlPointPosition, controlPointImage->data, controlPointImage->nvox*controlPointImage->nbyper);
 #ifdef _USE_CUDA
 		}
 #endif
@@ -1092,12 +1021,6 @@ int main(int argc, char **argv)
 			    }
 			    else{
 #endif
-				    /* A Velocity field is use to generate the CPP image
-					    using a scaling squaring approach */
-				    if(flag->useVelocityFieldFlag){
-					    reg_spline_scaling_squaring(velocityFieldImage,
-										            controlPointImage);
-				    }
 
                     /* generate the position field */
 				    reg_bspline<PrecisionTYPE>(	controlPointImage,
@@ -1162,30 +1085,13 @@ int main(int argc, char **argv)
 			    else{
 #endif
                     if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
-                        if(flag->useVelocityFieldFlag){
-                            //TODO
-                            memcpy(controlPointImage->data, velocityFieldImage->data,
-                                controlPointImage->nvox * controlPointImage->nbyper);
-                            reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
-                            currentWBE = (float)SCALING_VALUE * param->bendingEnergyWeight
-                                * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
-                        }
-                        else{
-                            currentWBE = param->bendingEnergyWeight
-                                * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
-                        }
+                        currentWBE = param->bendingEnergyWeight
+                            * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
                         currentValue -= currentWBE;
                     }
                     if(flag->jacobianWeightFlag && param->jacobianWeight>0){
-                        if(flag->useVelocityFieldFlag){
-                            // TODO
-                            currentWJac = param->jacobianWeight
-                                * reg_bspline_GetJacobianValueFromVelocityField(velocityFieldImage, resultImage, flag->appJacobianFlag);
-                        }
-                        else{
-                            currentWJac = param->jacobianWeight
-                                * reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
-                        }
+                        currentWJac = param->jacobianWeight
+                            * reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
                         currentValue -= currentWJac;
                     }
 #ifdef _USE_CUDA
@@ -1204,14 +1110,8 @@ int main(int argc, char **argv)
 #ifndef NDEBUG
                     printf("[DEBUG] ********* Initial folding correction *********\n\n");
 #endif
-                    if(flag->useVelocityFieldFlag){
-                        reg_bsplineComp_correctFolding( velocityFieldImage,
-                                                        resultImage);
-                    }
-                    else{
-                        reg_bspline_correctFolding( controlPointImage,
-                                                    resultImage);
-                    }
+                    reg_bspline_correctFolding( controlPointImage,
+                                                resultImage);
                 }
                 iteration++;
                 negCorrection++;
@@ -1374,34 +1274,17 @@ int main(int argc, char **argv)
 
                 /* The other gradients are calculated */
                 if(flag->beGradFlag && flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
-                    if(flag->useVelocityFieldFlag){
-                        // TODO
-                        memcpy(controlPointImage->data, velocityFieldImage->data,
-                            controlPointImage->nvox * controlPointImage->nbyper);
-                        reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
-                        reg_bspline_bendingEnergyGradient<PrecisionTYPE>(   controlPointImage,
-                                                                            targetImage,
-                                                                            nodeNMIGradientImage,
-                                                                            (float)SCALING_VALUE *param->bendingEnergyWeight);
-                    }
-                    else{
-					    reg_bspline_bendingEnergyGradient<PrecisionTYPE>(   controlPointImage,
-																	        targetImage,
-																	        nodeNMIGradientImage,
-																	        param->bendingEnergyWeight);
-                    }
+					reg_bspline_bendingEnergyGradient<PrecisionTYPE>(   controlPointImage,
+																	    targetImage,
+																	    nodeNMIGradientImage,
+																	    param->bendingEnergyWeight);
 				}
 				if(flag->jlGradFlag && flag->jacobianWeightFlag && param->jacobianWeight>0){
-                    if(flag->useVelocityFieldFlag){
-                        //TODO
-                    }
-                    else{
-                        reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>( controlPointImage,
-                                                                                targetImage,
-                                                                                nodeNMIGradientImage,
-                                                                                param->jacobianWeight,
-                                                                                flag->appJacobianFlag);
-                    }
+                    reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>( controlPointImage,
+                                                                            targetImage,
+                                                                            nodeNMIGradientImage,
+                                                                            param->jacobianWeight,
+                                                                            flag->appJacobianFlag);
 				}
 
 				/* The conjugate gradient is computed */
@@ -1558,14 +1441,8 @@ int main(int argc, char **argv)
                         if(flag->twoDimRegistration){
                             PrecisionTYPE *controlPointValuesX = NULL;
                             PrecisionTYPE *controlPointValuesY = NULL;
-                            if(flag->useVelocityFieldFlag){
-                                controlPointValuesX = static_cast<PrecisionTYPE *>(velocityFieldImage->data);
-                                controlPointValuesY = &controlPointValuesX[velocityFieldImage->nx*velocityFieldImage->ny];
-                            }
-                            else{
-                                controlPointValuesX = static_cast<PrecisionTYPE *>(controlPointImage->data);
-                                controlPointValuesY = &controlPointValuesX[controlPointImage->nx*controlPointImage->ny];
-                            }
+                            controlPointValuesX = static_cast<PrecisionTYPE *>(controlPointImage->data);
+                            controlPointValuesY = &controlPointValuesX[controlPointImage->nx*controlPointImage->ny];
                             PrecisionTYPE *bestControlPointValuesX = &bestControlPointPosition[0];
                             PrecisionTYPE *bestControlPointValuesY = &bestControlPointValuesX[controlPointImage->nx*controlPointImage->ny];
                             PrecisionTYPE *gradientValuesX = static_cast<PrecisionTYPE *>(nodeNMIGradientImage->data);
@@ -1579,16 +1456,9 @@ int main(int argc, char **argv)
                             PrecisionTYPE *controlPointValuesX = NULL;
                             PrecisionTYPE *controlPointValuesY = NULL;
                             PrecisionTYPE *controlPointValuesZ = NULL;
-                            if(flag->useVelocityFieldFlag){
-                                controlPointValuesX = static_cast<PrecisionTYPE *>(velocityFieldImage->data);
-                                controlPointValuesY = &controlPointValuesX[velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz];
-                                controlPointValuesZ = &controlPointValuesY[velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz];
-                            }
-                            else{
-                                controlPointValuesX = static_cast<PrecisionTYPE *>(controlPointImage->data);
-                                controlPointValuesY = &controlPointValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-                                controlPointValuesZ = &controlPointValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-                            }
+                            controlPointValuesX = static_cast<PrecisionTYPE *>(controlPointImage->data);
+                            controlPointValuesY = &controlPointValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
+                            controlPointValuesZ = &controlPointValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
                             PrecisionTYPE *bestControlPointValuesX = &bestControlPointPosition[0];
                             PrecisionTYPE *bestControlPointValuesY = &bestControlPointValuesX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
                             PrecisionTYPE *bestControlPointValuesZ = &bestControlPointValuesY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
@@ -1631,12 +1501,6 @@ int main(int argc, char **argv)
 				    }
 				    else{
 #endif
-					    /* A Velocity field is use to generate the CPP image
-					    using a scaling squaring approach */
-					    if(flag->useVelocityFieldFlag){
-						    reg_spline_scaling_squaring(velocityFieldImage,
-											            controlPointImage);
-					    }
 					    reg_bspline<PrecisionTYPE>(	controlPointImage,
 											        targetImage,
 											        positionFieldImage,
@@ -1695,18 +1559,8 @@ int main(int argc, char **argv)
 				    else{
 #endif
 					    if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
-                            if(flag->useVelocityFieldFlag){
-                                //TODO
-                                memcpy(controlPointImage->data, velocityFieldImage->data,
-                                    controlPointImage->nvox * controlPointImage->nbyper);
-                                reg_getPositionFromDisplacement<PrecisionTYPE>(controlPointImage);
-                                currentWBE = (float)SCALING_VALUE * param->bendingEnergyWeight
+                            currentWBE = param->bendingEnergyWeight
                                     * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
-                            }
-                            else{
-                                currentWBE = param->bendingEnergyWeight
-                                        * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
-                            }
 						    currentValue -= currentWBE;
 #ifndef NDEBUG
                             printf("[DEBUG] [%i] Weighted bending energy value = %g, approx[%i]\n",
@@ -1714,15 +1568,8 @@ int main(int argc, char **argv)
 #endif
 					    }
 					    if(flag->jacobianWeightFlag && param->jacobianWeight>0){
-                            if(flag->useVelocityFieldFlag){
-                                //TODO
-                                currentWJac = param->jacobianWeight
-                                    * reg_bspline_GetJacobianValueFromVelocityField(velocityFieldImage, resultImage, flag->appJacobianFlag);
-                            }
-                            else{
-						        currentWJac = param->jacobianWeight
-							        * reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
-                            }
+						    currentWJac = param->jacobianWeight
+							    * reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
 						    currentValue -= currentWJac;
 					    }
 #ifndef NDEBUG
@@ -1734,14 +1581,8 @@ int main(int argc, char **argv)
 #ifndef NDEBUG
                             printf("[DEBUG] ********* Folding correction *********\n\n");
 #endif
-                            if(flag->useVelocityFieldFlag){
-                                reg_bsplineComp_correctFolding( velocityFieldImage,
-                                                                resultImage);
-                            }
-                            else{
-                                reg_bspline_correctFolding( controlPointImage,
-                                                            resultImage);
-                            }
+                            reg_bspline_correctFolding( controlPointImage,
+                                                        resultImage);
                         }
 #ifdef _USE_CUDA
 				    }
@@ -1766,12 +1607,7 @@ int main(int argc, char **argv)
 					}
 					else{
 #endif
-						if(flag->useVelocityFieldFlag){
-							memcpy(bestControlPointPosition,velocityFieldImage->data,controlPointImage->nvox*controlPointImage->nbyper);
-						}
-						else{
-							memcpy(bestControlPointPosition,controlPointImage->data,controlPointImage->nvox*controlPointImage->nbyper);
-						}
+						memcpy(bestControlPointPosition,controlPointImage->data,controlPointImage->nvox*controlPointImage->nbyper);
 #ifdef _USE_CUDA
 					}
 #endif
@@ -1794,12 +1630,7 @@ int main(int argc, char **argv)
 			}
 			else{
 #endif
-				if(flag->useVelocityFieldFlag){
-					memcpy(velocityFieldImage->data,bestControlPointPosition,controlPointImage->nvox*controlPointImage->nbyper);
-				}
-				else{
-					memcpy(controlPointImage->data,bestControlPointPosition,controlPointImage->nvox*controlPointImage->nbyper);
-				}
+				memcpy(controlPointImage->data,bestControlPointPosition,controlPointImage->nvox*controlPointImage->nbyper);
 #ifdef _USE_CUDA
 			}
 #endif
@@ -1879,18 +1710,6 @@ int main(int argc, char **argv)
                 }
 
 			/* The corresponding deformation field is evaluated and saved */
-			
-			/* A Velocity field is use to generate the CPP image
-			 using a scaling squaring approach */
-			if(flag->useVelocityFieldFlag){
-				
-				nifti_set_filenames(velocityFieldImage, param->velocityFieldName, 0, 0);
-				nifti_image_write(velocityFieldImage);
-				
-				reg_spline_scaling_squaring(velocityFieldImage,
-									        controlPointImage);
-			}
-
 			/* The best result is returned */
             nifti_set_filenames(controlPointImage, param->outputCPPName, 0, 0);
 			nifti_image_write(controlPointImage);
@@ -1935,7 +1754,6 @@ int main(int argc, char **argv)
 
 	/* Mr Clean */
 	nifti_image_free( controlPointImage );
-	nifti_image_free( velocityFieldImage );
 	nifti_image_free( targetHeader );
 	nifti_image_free( sourceHeader );
     if(flag->targetMaskFlag)
