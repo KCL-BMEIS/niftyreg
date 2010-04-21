@@ -13,6 +13,7 @@
 #define _REG_BSPLINE_COMP_CPP
 
 #include "_reg_bspline_comp.h"
+#include <limits>
 
 
 /* *************************************************************** */
@@ -1427,7 +1428,7 @@ double reg_bspline_GetJacobianValueFromVelocityField(   nifti_image* velocityFie
             singlePtr = static_cast<float *>(jacobianImage->data);
             for(unsigned int i=0;i<jacobianImage->nvox;i++){
                 float temp = logf(singlePtr[i]);
-                if(temp!=temp) return NAN;
+                if(temp!=temp) return std::numeric_limits<float>::quiet_NaN();
                 temp *= temp;
                 jacobianNormalisedSum += (double)temp;
             }
@@ -1436,7 +1437,7 @@ double reg_bspline_GetJacobianValueFromVelocityField(   nifti_image* velocityFie
             doublePtr = static_cast<double *>(jacobianImage->data);
             for(unsigned int i=0;i<jacobianImage->nvox;i++){
                 double temp = logf(doublePtr[i]);
-                if(temp!=temp) return NAN;
+                if(temp!=temp) return std::numeric_limits<double>::quiet_NaN();
                 temp *= temp;
                 jacobianNormalisedSum += temp;
             }

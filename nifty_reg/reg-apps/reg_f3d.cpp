@@ -28,6 +28,7 @@
 #include "_reg_ssd.h"
 #include "_reg_tools.h"
 #include "float.h"
+#include <limits>
 
 #ifdef _USE_CUDA
 	#include "_reg_cudaCommon.h"
@@ -445,7 +446,7 @@ int main(int argc, char **argv)
 #endif	
 
     /* Check the source background index */
-    if(!flag->backgroundIndexFlag) param->sourcePaddingValue = NAN;
+    if(!flag->backgroundIndexFlag) param->sourcePaddingValue = std::numeric_limits<float>::quiet_NaN();//param->sourcePaddingValue = NAN;
     else{
 	    if(param->backgroundIndex[0] < 0 || param->backgroundIndex[1] < 0 || param->backgroundIndex[2] < 0 
 		    || param->backgroundIndex[0] >= sourceHeader->dim[1] || param->backgroundIndex[1] >= sourceHeader->dim[2] || param->backgroundIndex[2] >= sourceHeader->dim[3]){
