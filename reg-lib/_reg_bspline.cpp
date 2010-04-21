@@ -13,6 +13,7 @@
 #define _REG_BSPLINE_CPP
 
 #include "_reg_bspline.h"
+#include <limits>
 
 // No round() function available in windows.
 #ifdef _WINDOWS
@@ -1484,7 +1485,7 @@ PrecisionTYPE reg_bspline_jacobianValue2D(  nifti_image *splineControlPoint,
                 constraintValue += logJac*logJac;
             }
 			else{
-                return NAN;
+                return std::numeric_limits<PrecisionTYPE>::quiet_NaN();
             }
         }
     }
@@ -1817,7 +1818,8 @@ PrecisionTYPE reg_bspline_jacobianValue3D(  nifti_image *splineControlPoint,
 //                     constraintValue += logValue;
 				}
 //                 else constraintValue += 1000.0;
-				else return NAN;
+				//else return NAN;
+                else return std::numeric_limits<PrecisionTYPE>::quiet_NaN();
             }
         }
     }
@@ -1936,7 +1938,9 @@ PrecisionTYPE reg_bspline_jacobianApproxValue2D(  nifti_image *splineControlPoin
                 PrecisionTYPE logJac = log(detJac);
                 constraintValue += logJac*logJac;
 			}
-			else return NAN;
+            else return std::numeric_limits<PrecisionTYPE>::quiet_NaN();
+            
+			//else return NAN;
         }
     }
 
@@ -2093,7 +2097,8 @@ PrecisionTYPE reg_bspline_jacobianApproxValue3D(  nifti_image *splineControlPoin
                     constraintValue += logJac*logJac;
 //                     constraintValue += logValue;
 				}
-				else return NAN;
+                else return std::numeric_limits<PrecisionTYPE>::quiet_NaN();
+				//else return NAN;
             }
         }
     }
