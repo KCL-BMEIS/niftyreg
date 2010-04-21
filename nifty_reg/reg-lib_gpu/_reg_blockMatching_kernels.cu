@@ -111,10 +111,13 @@ __global__ void process_result_blocks_gpu(float *resultPosition_d,
 {
     const int tid = (blockIdx.x * blockDim.x + threadIdx.x) + (blockIdx.y * gridDim.x);
     const int3 bDim = c_BlockDim;
-    const int ctid = (int)(tid / NUM_BLOCKS_TO_COMPARE);
+    int tempIndex = tid % NUM_BLOCKS_TO_COMPARE;
+    __shared__ int ctid;
+    if (tempIndex == 0) ctid = (int)(tid / NUM_BLOCKS_TO_COMPARE);
+    __syncthreads();
+    //const int ctid = (int)(tid / NUM_BLOCKS_TO_COMPARE);
     __shared__ float4 localCC [NUM_BLOCKS_TO_COMPARE];
     __shared__ int3 indexes;
-    int tempIndex = tid % NUM_BLOCKS_TO_COMPARE;
     localCC[tempIndex] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     __shared__ int updateThreadID;
     updateThreadID = -1;
@@ -125,7 +128,6 @@ __global__ void process_result_blocks_gpu(float *resultPosition_d,
         tempIndex -= k * bDim.x * bDim.y;
         int j =(int)(tempIndex/(bDim.x));
         int i = tempIndex - j * (bDim.x);
-
         tempIndex = tid % NUM_BLOCKS_TO_COMPARE;
         if (tempIndex == 0) {
             indexes.x = i * BLOCK_WIDTH;
@@ -145,17 +147,15 @@ __global__ void process_result_blocks_gpu(float *resultPosition_d,
             j -= OVERLAP_SIZE;
             i -= OVERLAP_SIZE;
             tempIndex = tid % NUM_BLOCKS_TO_COMPARE;
-
             int resultIndex_start_z = indexes.z + k;
             int resultIndex_end_z = resultIndex_start_z + BLOCK_WIDTH;
             int resultIndex_start_y = indexes.y + j;
             int resultIndex_end_y = resultIndex_start_y + BLOCK_WIDTH;
             int resultIndex_start_x = indexes.x + i;
             int resultIndex_end_x = resultIndex_start_x + BLOCK_WIDTH;
-
-            __shared__ float2 current_values [NUM_BLOCKS_TO_COMPARE];
-            current_values[tempIndex].x = 0.0f;
-            current_values[tempIndex].y = 0.0f;
+            __shared__ float4 cc_vars [NUM_BLOCKS_TO_COMPARE];
+            cc_vars[tempIndex].x = 0.0f;
+            cc_vars[tempIndex].y = 0.0f;
             unsigned int index = 0;
             for(int z = resultIndex_start_z; z< resultIndex_end_z; ++z){
                 if (z>=0 && z<imageSize.z) {
@@ -165,11 +165,11 @@ __global__ void process_result_blocks_gpu(float *resultPosition_d,
                             int indexXYZ = indexZ + y * imageSize.x + resultIndex_start_x;
                             for(int x = resultIndex_start_x; x < resultIndex_end_x; ++x){
                                 if (x>=0 && x<imageSize.x) {
-                                    current_values[tempIndex].x = tex1Dfetch(resultImageArray_texture, indexXYZ);
-                                    current_values[tempIndex].y = targetValues[block_offset + index];
-                                    if (current_values[tempIndex].x != 0.0f && current_values[tempIndex].y != 0.0f) {
-                                        localCC[tempIndex].x += current_values[tempIndex].x;
-                                        localCC[tempIndex].y += current_values[tempIndex].y;
+                                    cc_vars[tempIndex].x = tex1Dfetch(resultImageArray_texture, indexXYZ);
+                                    cc_vars[tempIndex].y = targetValues[block_offset + index];
+                                    if (cc_vars[tempIndex].x != 0.0f && cc_vars[tempIndex].y != 0.0f) {
+                                        localCC[tempIndex].x += cc_vars[tempIndex].x;
+                                        localCC[tempIndex].y += cc_vars[tempIndex].y;
                                         ++localCC[tempIndex].z;
                                     }
                                 }
@@ -187,9 +187,8 @@ __global__ void process_result_blocks_gpu(float *resultPosition_d,
                 localCC[tempIndex].x /= localCC[tempIndex].z;
                 localCC[tempIndex].y /= localCC[tempIndex].z;
             }
-            __shared__ float2 variances [NUM_BLOCKS_TO_COMPARE];
-            variances[tempIndex].x = 0.0f; // result var
-            variances[tempIndex].y = 0.0f; // target var
+            cc_vars[tempIndex].z = 0.0f;
+            cc_vars[tempIndex].w = 0.0f;
             index = 0;
             for(int z = resultIndex_start_z; z< resultIndex_end_z; ++z){
                 if (z>=0 && z<imageSize.z) {
@@ -199,14 +198,15 @@ __global__ void process_result_blocks_gpu(float *resultPosition_d,
                             int indexXYZ = indexZ + y * imageSize.x + resultIndex_start_x;
                             for(int x = resultIndex_start_x; x < resultIndex_end_x; ++x){
                                 if (x>=0 && x<imageSize.x) {
-                                    current_values[tempIndex].x = tex1Dfetch(resultImageArray_texture, indexXYZ);
-                                    current_values[tempIndex].y = targetValues[block_offset + index];
-                                    if (current_values[tempIndex].x != 0.0f && current_values[tempIndex].y != 0.0f) {
-                                        current_values[tempIndex].x -= localCC[tempIndex].x;
-                                        current_values[tempIndex].y -= localCC[tempIndex].y;
-                                        variances[tempIndex].x += current_values[tempIndex].x * current_values[tempIndex].x;
-                                        variances[tempIndex].y += current_values[tempIndex].y * current_values[tempIndex].y;
-                                        localCC[tempIndex].w += current_values[tempIndex].x * current_values[tempIndex].y;
+                                    cc_vars[tempIndex].x = tex1Dfetch(resultImageArray_texture, indexXYZ);
+                                    cc_vars[tempIndex].y = targetValues[block_offset + index];
+                                    if (cc_vars[tempIndex].x != 0.0f && cc_vars[tempIndex].y != 0.0f) {
+                                        cc_vars[tempIndex].x -= localCC[tempIndex].x;
+                                        cc_vars[tempIndex].y -= localCC[tempIndex].y;
+
+                                        cc_vars[tempIndex].z += cc_vars[tempIndex].x * cc_vars[tempIndex].x;
+                                        cc_vars[tempIndex].w += cc_vars[tempIndex].y * cc_vars[tempIndex].y;
+                                        localCC[tempIndex].w += cc_vars[tempIndex].x * cc_vars[tempIndex].y;
                                     }
                                 }
                                 ++indexXYZ;
@@ -220,8 +220,9 @@ __global__ void process_result_blocks_gpu(float *resultPosition_d,
             }
 
             if (localCC[tempIndex].z > (float)(BLOCK_SIZE/2)) {
-                if (variances[tempIndex].x > 0.0f && variances[tempIndex].y > 0.0f)
-                    localCC[tempIndex].w = fabsf(localCC[tempIndex].w/sqrt(variances[tempIndex].x * variances[tempIndex].y));
+                if (cc_vars[tempIndex].z > 0.0f && cc_vars[tempIndex].w > 0.0f) {
+                    localCC[tempIndex].w = fabsf(localCC[tempIndex].w/sqrt(cc_vars[tempIndex].z * cc_vars[tempIndex].w));
+                }
             }
             else { localCC[tempIndex].w = 0.0f; }
 
@@ -232,8 +233,8 @@ __global__ void process_result_blocks_gpu(float *resultPosition_d,
             // Just take ownership of updating the final value
             if (updateThreadID == -1) updateThreadID = tid;
         }
-
         __syncthreads();
+
         // Just let one thread do the final update
         if (tid == updateThreadID) {
             __shared__ float4 bestCC;
