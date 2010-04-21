@@ -131,12 +131,12 @@ void Usage(char *exec)
 {
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 	printf("Fast Free-Form Deformation algorithm for non-rigid registration.\n");
-    printf("This implementation is a re-factoring off Daniel Rueckert' 99 TMI work.\n");
+    printf("This implementation is a re-factoring of Daniel Rueckert' 99 TMI work.\n");
     printf("The code is presented in Modat et al., \"Fast Free-Form Deformation using\n");
     printf("graphics processing units\", CMPB, 2009\n");
 	printf("Cubic B-Spline are used to deform a source image in order to optimise a objective function\n");
 	printf("based on the Normalised Mutual Information and a penalty term. The penalty term could\n");
-	printf("be either the bending energy or the absolute Jacobian determinant log.\n");
+	printf("be either the bending energy or the squared Jacobian determinant log.\n");
 	printf("This code has been written by Marc Modat (m.modat@ucl.ac.uk), for any comment,\n");
 	printf("please contact him.\n");
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
@@ -555,11 +555,13 @@ int main(int argc, char **argv)
 	printf("\t%gx%gx%g mm\n",targetHeader->dx,targetHeader->dy,targetHeader->dz);
 	printf("Source image name: %s\n",sourceHeader->fname);
 	printf("\t%ix%ix%i voxels\n",sourceHeader->nx,sourceHeader->ny,sourceHeader->nz);
-	printf("\t%gx%gx%g mm\n",sourceHeader->dx,sourceHeader->dy,sourceHeader->dz);
-	printf("Maximum iteration number: %i\n",param->maxIteration);
-	printf("Number of bin to used: %i\n",param->binning-4);
+	printf("\t%gx%gx%g mm\n\n",sourceHeader->dx,sourceHeader->dy,sourceHeader->dz);
+
+	printf("Maximum iteration number: %i\n\n",param->maxIteration);
+
+	printf("Number of bin to used: %i\n\n",param->binning-4);
 	
-	printf("\nBending energy weight: %g\n",param->bendingEnergyWeight);
+	printf("Bending energy weight: %g\n",param->bendingEnergyWeight);
 	if(flag->bendingEnergyFlag && flag->appBendingEnergyFlag) printf("\tBending energy penalty term evaluated at the control point position only\n");
 	if(flag->bendingEnergyFlag && flag->beGradFlag) printf("\tThe gradient of the bending energy is used\n");
 	
@@ -742,6 +744,10 @@ int main(int argc, char **argv)
                 controlPointImage->pixdim[7]=controlPointImage->dw=1.0f;
                 controlPointImage->qform_code=targetImage->qform_code;
                 controlPointImage->sform_code=targetImage->sform_code;
+
+                 // The control point position image is initialised with the affine transformation
+                if(reg_bspline_initialiseControlPointGridWithAffine(affineTransformation, controlPointImage)) return 1;
+                free(affineTransformation);
             }
         }
         else{
