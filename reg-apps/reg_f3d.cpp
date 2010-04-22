@@ -744,10 +744,6 @@ int main(int argc, char **argv)
                 controlPointImage->pixdim[7]=controlPointImage->dw=1.0f;
                 controlPointImage->qform_code=targetImage->qform_code;
                 controlPointImage->sform_code=targetImage->sform_code;
-
-                 // The control point position image is initialised with the affine transformation
-                if(reg_bspline_initialiseControlPointGridWithAffine(affineTransformation, controlPointImage)) return 1;
-                free(affineTransformation);
             }
         }
         else{
@@ -796,6 +792,12 @@ int main(int argc, char **argv)
 			controlPointImage->sto_xyz.m[2][3] = originReal[2];
 
             controlPointImage->sto_ijk = nifti_mat44_inverse(controlPointImage->sto_xyz);
+        }
+
+        if(level==0 && !flag->inputCPPFlag){
+                // The control point position image is initialised with the affine transformation
+                if(reg_bspline_initialiseControlPointGridWithAffine(affineTransformation, controlPointImage)) return 1;
+                free(affineTransformation);
         }
 
 
