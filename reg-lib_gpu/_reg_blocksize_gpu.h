@@ -45,7 +45,7 @@
 #define Block_reg_bspline_ApproxBendingEnergy 192                   // 39 regs - 025% occupancy
 #define Block_reg_bspline_storeApproxBendingEnergy 192              // 39 regs - 025% occupancy
 #define Block_reg_bspline_getApproxBendingEnergyGradient 384        // 19 regs - 050% occupancy
-#define Block_target_block 512  				    // 26 regs - 100% occupancy
+#define Block_target_block 512  				                    // 26 regs - 100% occupancy
 #define Block_result_block 343                                      // 29 regs - 34% occupancy
 
 #endif

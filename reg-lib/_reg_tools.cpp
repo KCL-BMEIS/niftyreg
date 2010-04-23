@@ -74,8 +74,10 @@ void reg_intensityRescale2(	nifti_image *image,
     if(image->scl_slope==0) image->scl_slope=1.0f;
 	for(unsigned int index=0; index<image->nvox; index++){
 		DTYPE value = (DTYPE)(*imagePtr++ * image->scl_slope + image->scl_inter);
-		currentMin=(currentMin<value)?currentMin:value;
-		currentMax=(currentMax>value)?currentMax:value;
+        if(value==value){
+		    currentMin=(currentMin<value)?currentMin:value;
+		    currentMax=(currentMax>value)?currentMax:value;
+        }
     }
 
     if(currentMin<lowThr) currentMin=(DTYPE)lowThr;
@@ -91,15 +93,17 @@ void reg_intensityRescale2(	nifti_image *image,
 
 	for(unsigned int index=0; index<image->nvox; index++){
 		double value = (double)*imagePtr * image->scl_slope + image->scl_inter;
-        if(value<currentMin){
-            value = newMin;
-        }
-        else if(value>currentMax){
-            value = newMax;
-        }
-        else{
-		    value = (value-(double)currentMin)/currentDiff;
-		    value = value * newDiff + newMin;
+        if(value==value){
+            if(value<currentMin){
+                value = newMin;
+            }
+            else if(value>currentMax){
+                value = newMax;
+            }
+            else{
+		        value = (value-(double)currentMin)/currentDiff;
+		        value = value * newDiff + newMin;
+            }
         }
 		*imagePtr++=(DTYPE)value;
 	}
@@ -353,17 +357,17 @@ void reg_smoothImageForTrilinear1(	nifti_image *image,
 	int windowSize = 2*radius[0] + 1;
 	// 	printf("window size along X: %i\n", windowSize);
 	PrecisionTYPE *window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
-PrecisionTYPE coeffSum=0.0;
+    PrecisionTYPE coeffSum=0.0;
 	for(int it=-radius[0]; it<=radius[0]; it++){
 		PrecisionTYPE coeff = (PrecisionTYPE)(fabs(1.0 -fabs((PrecisionTYPE)(it)/(PrecisionTYPE)radius[0] )));
 		window[it+radius[0]] = coeff;
-coeffSum += coeff;
+        coeffSum += coeff;
 	}
-for(int it=0;it<windowSize;it++){
+    for(int it=0;it<windowSize;it++){
 //printf("coeff[%i] = %g -> ", it, window[it]);
-window[it] /= coeffSum;
+        window[it] /= coeffSum;
 //printf("%g\n", window[it]);
-}
+    }
 	for(int t=0;t<timePoint;t++){
 		for(int u=0;u<field;u++){
 			
@@ -383,7 +387,8 @@ window[it] /= coeffSum;
 							if(-1<X && X<image->nx){
 								DTYPE imageValue = readingValue[index];
 								PrecisionTYPE windowValue = window[it];
-								finalValue += (PrecisionTYPE)imageValue * windowValue;
+                                if(windowValue==windowValue)
+								    finalValue += (PrecisionTYPE)imageValue * windowValue;
 							}
 							index++;
 							X++;
@@ -401,13 +406,13 @@ window[it] /= coeffSum;
 	// 	printf("window size along Y: %i\n", windowSize);
 	free(window);
 	window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
-coeffSum=0.0;
+    coeffSum=0.0;
 	for(int it=-radius[1]; it<=radius[1]; it++){
 		PrecisionTYPE coeff = (PrecisionTYPE)(fabs(1.0 -fabs((PrecisionTYPE)(it)/(PrecisionTYPE)radius[0] )));
 		window[it+radius[1]] = coeff;
-coeffSum += coeff;
+        coeffSum += coeff;
 	}
-for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
+    for(int it=0;it<windowSize;it++) window[it] /= coeffSum;
 	for(int t=0;t<timePoint;t++){
 		for(int u=0;u<field;u++){
 			
@@ -427,7 +432,8 @@ for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
 							if(-1<Y && Y<image->ny){
 								DTYPE imageValue = readingValue[index];
 								PrecisionTYPE windowValue = window[it];
-								finalValue += (PrecisionTYPE)imageValue * windowValue;
+                                if(windowValue==windowValue)
+								    finalValue += (PrecisionTYPE)imageValue * windowValue;
 							}
 							index+=image->nx;
 							Y++;
@@ -445,13 +451,13 @@ for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
 	// 	printf("window size along Z: %i\n", windowSize);
 	free(window);
 	window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
-coeffSum=0.0;
+    coeffSum=0.0;
 	for(int it=-radius[2]; it<=radius[2]; it++){
 		PrecisionTYPE coeff = (PrecisionTYPE)(fabs(1.0 -fabs((PrecisionTYPE)(it)/(PrecisionTYPE)radius[0] )));
 		window[it+radius[2]] = coeff;
-coeffSum += coeff;
+        coeffSum += coeff;
 	}
-for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
+    for(int it=0;it<windowSize;it++) window[it] /= coeffSum;
 	for(int t=0;t<timePoint;t++){
 		for(int u=0;u<field;u++){
 			
@@ -471,7 +477,8 @@ for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
 							if(-1<Z && Z<image->nz){
 								DTYPE imageValue = readingValue[index];
 								PrecisionTYPE windowValue = window[it];
-								finalValue += (PrecisionTYPE)imageValue * windowValue;
+                                if(windowValue==windowValue)
+								    finalValue += (PrecisionTYPE)imageValue * windowValue;
 							}
 							index+=image->nx*image->ny;
 							Z++;
