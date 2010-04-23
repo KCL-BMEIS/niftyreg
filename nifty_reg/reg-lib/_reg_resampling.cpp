@@ -1884,32 +1884,38 @@ void reg_getJacobianImage(	nifti_image *positionField,
 /* *************************************************************** */
 /* *************************************************************** */
 template <class ImageTYPE>
-void reg_linearVelocityUpsampling_2D(nifti_image **image, nifti_image *newDimImage)
+void reg_linearVelocityUpsampling_2D(nifti_image *image, int newDim[8], float newSpacing[8])
 {
-	/* The current image is stored and freed */
-	ImageTYPE *currentValue = (ImageTYPE *)malloc((*image)->nvox * sizeof(ImageTYPE));
-	memcpy(currentValue, (*image)->data, (*image)->nvox*(*image)->nbyper);
-	const int oldDim[8]={(*image)->dim[0], (*image)->dim[1], (*image)->dim[2], (*image)->dim[3],
-		(*image)->dim[4], (*image)->dim[5], (*image)->dim[6], (*image)->dim[7]};
+    /* The current image is stored and freed */
+    ImageTYPE *currentValue = (ImageTYPE *)malloc(image->nvox * sizeof(ImageTYPE));
+    memcpy(currentValue, image->data, image->nvox*image->nbyper);
+    const int oldDim[8]={image->dim[0], image->dim[1], image->dim[2], image->dim[3],
+        image->dim[4], image->dim[5], image->dim[6], image->dim[7]};
 
-	free((*image)->data);
-	(*image)->data=NULL;
-	nifti_image_free((*image));
-	
-	/* The image is dimension are updated. */
-	(*image)=nifti_copy_nim_info(newDimImage);
-	(*image)->data = (void *)calloc(newDimImage->nvox,sizeof(ImageTYPE));
-	ImageTYPE *imagePtr = static_cast<ImageTYPE *>((*image)->data);
+    free(image->data);
 
-	if((*image)->nt<1) (*image)->nt=1;
-	if((*image)->nu<1) (*image)->nu=1;
+    for(int i=0;i<8;i++){
+        image->dim[i]=newDim[i];
+        image->pixdim[i]=newSpacing[i];
+    }
+    image->nx=image->dim[1];
+    image->ny=image->dim[2];
+    image->dx=image->pixdim[1];
+    image->dy=image->pixdim[2];
+    image->nvox=image->dim[1]*image->dim[2]*image->dim[3]*image->dim[4]*image->dim[5];
+    image->data=(ImageTYPE *)malloc( image->nvox * sizeof(ImageTYPE) );
 
-	for(int ut=0;ut<(*image)->nu*(*image)->nt;ut++){
-		ImageTYPE *newPtr = &imagePtr[ut*(*image)->nx*(*image)->ny];
+    ImageTYPE *imagePtr = static_cast<ImageTYPE *>(image->data);
+
+    if(image->nt<1) image->nt=1;
+    if(image->nu<1) image->nu=1;
+
+	for(int ut=0;ut<image->nu*image->nt;ut++){
+		ImageTYPE *newPtr = &imagePtr[ut*image->nx*image->ny];
 		ImageTYPE *oldPtr = &currentValue[ut*oldDim[1]*oldDim[2]];
-		for(int y=0; y<(*image)->ny; y++){
+		for(int y=0; y<image->ny; y++){
 			const int Y = (int)ceil((float)y/2.0f);
-			for(int x=0; x<(*image)->nx; x++){
+			for(int x=0; x<image->nx; x++){
 				const int X = (int)ceil((float)x/2.0f);
 				if(x/2 == X){
 					if(y/2 == Y){
@@ -1942,36 +1948,44 @@ void reg_linearVelocityUpsampling_2D(nifti_image **image, nifti_image *newDimIma
 }
 /* *************************************************************** */
 template <class ImageTYPE>
-void reg_linearVelocityUpsampling_3D(nifti_image **image, nifti_image *newDimImage)
+void reg_linearVelocityUpsampling_3D(nifti_image *image, int newDim[8], float newSpacing[8])
 {
 	/* The current image is stored and freed */
-	ImageTYPE *currentValue = (ImageTYPE *)malloc((*image)->nvox * sizeof(ImageTYPE));
-	memcpy(currentValue, (*image)->data, (*image)->nvox*(*image)->nbyper);
-	const int oldDim[8]={(*image)->dim[0], (*image)->dim[1], (*image)->dim[2], (*image)->dim[3],
-		(*image)->dim[4], (*image)->dim[5], (*image)->dim[6], (*image)->dim[7]};
+	ImageTYPE *currentValue = (ImageTYPE *)malloc(image->nvox * sizeof(ImageTYPE));
+	memcpy(currentValue, image->data, image->nvox*image->nbyper);
+	const int oldDim[8]={image->dim[0], image->dim[1], image->dim[2], image->dim[3],
+		image->dim[4], image->dim[5], image->dim[6], image->dim[7]};
 	
-	free((*image)->data);
-	(*image)->data=NULL;
-	nifti_image_free((*image));
+    free(image->data);
+
+    for(int i=0;i<8;i++){
+        image->dim[i]=newDim[i];
+        image->pixdim[i]=newSpacing[i];
+    }
+    image->nx=image->dim[1];
+    image->ny=image->dim[2];
+    image->nz=image->dim[3];
+    image->dx=image->pixdim[1];
+    image->dy=image->pixdim[2];
+    image->dz=image->pixdim[3];
+    image->nvox=image->dim[1]*image->dim[2]*image->dim[3]*image->dim[4]*image->dim[5];
+    image->data=(ImageTYPE *)malloc( image->nvox * sizeof(ImageTYPE) );
+
+	ImageTYPE *imagePtr = static_cast<ImageTYPE *>(image->data);
 	
-	/* The image is dimension are updated. */
-	(*image)=nifti_copy_nim_info(newDimImage);
-	(*image)->data = (void *)calloc(newDimImage->nvox,sizeof(ImageTYPE));
-	ImageTYPE *imagePtr = static_cast<ImageTYPE *>((*image)->data);
+	if(image->nt<1) image->nt=1;
+	if(image->nu<1) image->nu=1;
 	
-	if((*image)->nt<1) (*image)->nt=1;
-	if((*image)->nu<1) (*image)->nu=1;
-	
-	for(int ut=0;ut<(*image)->nu*(*image)->nt;ut++){
-		ImageTYPE *newPtr = &imagePtr[ut*(*image)->nx*(*image)->ny*(*image)->nz];
+	for(int ut=0;ut<image->nu*image->nt;ut++){
+		ImageTYPE *newPtr = &imagePtr[ut*image->nx*image->ny*image->nz];
 		ImageTYPE *oldPtr = &currentValue[ut*oldDim[1]*oldDim[2]*oldDim[3]];
-		for(int z=0; z<(*image)->nz; z++){
+		for(int z=0; z<image->nz; z++){
 			const int Z = (int)ceil((float)z/2.0f);
 			if(z/2 == Z){
-				for(int y=0; y<(*image)->ny; y++){
+				for(int y=0; y<image->ny; y++){
 					const int Y = (int)ceil((float)y/2.0f);
 					if(y/2 == Y){
-						for(int x=0; x<(*image)->nx; x++){
+						for(int x=0; x<image->nx; x++){
 							const int X = (int)ceil((float)x/2.0f);
 							if(x/2 == X){
 								// z' y' x' 
@@ -1994,7 +2008,7 @@ void reg_linearVelocityUpsampling_3D(nifti_image **image, nifti_image *newDimIma
 						} // x loop
 					}
 					else{ // (y/2==Y)
-						for(int x=0; x<(*image)->nx; x++){
+						for(int x=0; x<image->nx; x++){
 							const int X = (int)ceil((float)x/2.0f);
 							if(x/2 == X){
 								// z' y x'
@@ -2013,10 +2027,10 @@ void reg_linearVelocityUpsampling_3D(nifti_image **image, nifti_image *newDimIma
 				} // y loop
 			}
 			else{ // (z/2==Z)
-				for(int y=0; y<(*image)->ny; y++){
+				for(int y=0; y<image->ny; y++){
 					const int Y = (int)ceil((float)y/2.0f);
 					if(y/2 == Y){
-						for(int x=0; x<(*image)->nx; x++){
+						for(int x=0; x<image->nx; x++){
 							const int X = (int)ceil((float)x/2.0f);
 							if(x/2 == X){
 								// z y' x'
@@ -2033,7 +2047,7 @@ void reg_linearVelocityUpsampling_3D(nifti_image **image, nifti_image *newDimIma
 						} // x loop
 					}
 					else{ // (y/2==Y)
-						for(int x=0; x<(*image)->nx; x++){
+						for(int x=0; x<image->nx; x++){
 							const int X = (int)ceil((float)x/2.0f);
 							if(x/2 == X){
 								// z y x'
@@ -2057,15 +2071,15 @@ void reg_linearVelocityUpsampling_3D(nifti_image **image, nifti_image *newDimIma
 	return;
 }
 /* *************************************************************** */
-void reg_linearVelocityUpsampling(nifti_image **image, nifti_image *newDimImage)
+void reg_linearVelocityUpsampling(nifti_image *image, int newDim[8], float newSpacing[8])
 {
-	if((*image)->nz>1){
-		switch((*image)->datatype){
+	if(image->nz>1){
+		switch(image->datatype){
 			case NIFTI_TYPE_FLOAT32:
-				reg_linearVelocityUpsampling_3D<float>(image, newDimImage);
+				reg_linearVelocityUpsampling_3D<float>(image, newDim, newSpacing);
 				break;
 			case NIFTI_TYPE_FLOAT64:
-				reg_linearVelocityUpsampling_3D<double>(image, newDimImage);
+				reg_linearVelocityUpsampling_3D<double>(image, newDim, newSpacing);
 				break;
 			default:
 				fprintf(stderr, "err\treg_linearVelocityUpsampling\tVoxel type unsupported.");
@@ -2073,12 +2087,12 @@ void reg_linearVelocityUpsampling(nifti_image **image, nifti_image *newDimImage)
 		}
 	}
 	else{
-		switch((*image)->datatype){
+		switch(image->datatype){
 			case NIFTI_TYPE_FLOAT32:
-				reg_linearVelocityUpsampling_2D<float>(image, newDimImage);
+				reg_linearVelocityUpsampling_2D<float>(image, newDim, newSpacing);
 				break;
 			case NIFTI_TYPE_FLOAT64:
-				reg_linearVelocityUpsampling_2D<double>(image, newDimImage);
+				reg_linearVelocityUpsampling_2D<double>(image, newDim, newSpacing);
 				break;
 			default:
 				fprintf(stderr, "err\treg_linearVelocityUpsampling\tPixel type unsupported.");
