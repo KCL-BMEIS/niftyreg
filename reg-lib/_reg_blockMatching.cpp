@@ -1667,7 +1667,7 @@ void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> & points,
 	transformation->m[0][0] = r[0][0];
 	transformation->m[0][1] = r[0][1];
 	transformation->m[0][2] = r[0][2];
-	transformation->m[0][3] = t[0];	
+	transformation->m[0][3] = t[0];
 		
 	transformation->m[1][0] = r[1][0];
 	transformation->m[1][1] = r[1][1];
@@ -1694,7 +1694,7 @@ void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> & points,
 	}
 	delete [] u;
 	delete [] v;
-	delete [] ut;	
+	delete [] ut;
 	delete [] r;
 	delete [] w;
 }
