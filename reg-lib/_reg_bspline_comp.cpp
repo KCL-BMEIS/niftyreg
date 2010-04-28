@@ -926,6 +926,18 @@ template <class ImageTYPE>
 void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldImage,
                                                     nifti_image* jacobianImage)
 {
+#if _USE_SSE
+    if(sizeof(ImageTYPE)!=4){
+        fprintf(stderr, "***ERROR***\treg_bspline_GetJacobianMapFromVelocityField_3D\n");
+        fprintf(stderr, "The SSE implementation assume single precision... Exit\n");
+        exit(0);
+    }
+    union u{
+        __m128 m;
+        float f[4];
+    } val;
+#endif
+
     // The jacobian map is initialise to 1 everywhere
     ImageTYPE *jacPtr = static_cast<ImageTYPE *>(jacobianImage->data);
     for(unsigned int i=0;i<jacobianImage->nvox;i++) jacPtr[i]=(ImageTYPE)1.0;
@@ -1033,7 +1045,31 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                 first[0]= (ImageTYPE)(basis - 1.0/2.0 - first[3]);
                 first[2]= (ImageTYPE)(1.0 + first[0] - 2.0*first[3]);
                 first[1]= (ImageTYPE)(- first[0] - first[2] - first[3]);
-
+#if _USE_SSE
+                val.f[0]=temp[0];
+                val.f[1]=temp[1];
+                val.f[2]=temp[2];
+                val.f[3]=temp[3];
+                __m128 _yBasis=val.m; 
+                val.f[0]=first[0];
+                val.f[1]=first[1];
+                val.f[2]=first[2];
+                val.f[3]=first[3];
+                __m128 _yFirst=val.m;          
+                __m128 *ptrBasisX = (__m128 *) &tempX[0];
+                __m128 *ptrBasisY = (__m128 *) &tempY[0];
+                __m128 *ptrBasisZ = (__m128 *) &tempZ[0];
+                for(int a=0;a<4;++a){
+                    val.m=_mm_set_ps1(zBasis[a]);
+                    *ptrBasisX=_mm_mul_ps(_yBasis,val.m);
+                    *ptrBasisY=_mm_mul_ps(_yFirst,val.m);
+                    val.m=_mm_set_ps1(zFirst[a]);
+                    *ptrBasisZ=_mm_mul_ps(_yBasis,val.m);
+                    ptrBasisX++;
+                    ptrBasisY++;
+                    ptrBasisZ++;
+                }
+#else
                 coord=0;
                 for(int c=0; c<4; c++){
                     for(int b=0; b<4; b++){
@@ -1043,6 +1079,7 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                         coord++;
                     }
                 }
+#endif
 
                 for(int x=0; x<jacobianImage->nx; x++){
 
@@ -1060,7 +1097,32 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                     first[0]= (ImageTYPE)(basis - 1.0/2.0 - first[3]);
                     first[2]= (ImageTYPE)(1.0 + first[0] - 2.0*first[3]);
                     first[1]= (ImageTYPE)(- first[0] - first[2] - first[3]);
-
+#if _USE_SSE
+                    val.f[0]=temp[0];
+                    val.f[1]=temp[1];
+                    val.f[2]=temp[2];
+                    val.f[3]=temp[3];
+                    __m128 _xBasis=val.m; 
+                    val.f[0]=first[0];
+                    val.f[1]=first[1];
+                    val.f[2]=first[2];
+                    val.f[3]=first[3];
+                    __m128 _xFirst=val.m;
+                    ptrBasisX = (__m128 *) &basisX[0];
+                    ptrBasisY = (__m128 *) &basisY[0];
+                    ptrBasisZ = (__m128 *) &basisZ[0];
+                    for(int a=0;a<16;++a){
+                        val.m=_mm_set_ps1(tempX[a]);
+                        *ptrBasisX=_mm_mul_ps(_xFirst,val.m);
+                        val.m=_mm_set_ps1(tempY[a]);
+                        *ptrBasisY=_mm_mul_ps(_xBasis,val.m);
+                        val.m=_mm_set_ps1(tempZ[a]);
+                        *ptrBasisZ=_mm_mul_ps(_xBasis,val.m);
+                        ptrBasisX++;
+                        ptrBasisY++;
+                        ptrBasisZ++;
+                    }
+#else
                     coord=0;
                     for(int bc=0; bc<16; bc++){
                         for(int a=0; a<4; a++){
@@ -1070,6 +1132,7 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                             coord++;
                         }
                     }
+#endif
 
                     if(basis<=oldBasis || x==0){
                         coord=0;
@@ -1103,7 +1166,66 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                     ImageTYPE Tx_z=0.0;
                     ImageTYPE Ty_z=0.0;
                     ImageTYPE Tz_z=0.0;
+#if _USE_SSE    
+                    __m128 tempX_x =  _mm_set_ps1(0.0);
+                    __m128 tempX_y =  _mm_set_ps1(0.0);
+                    __m128 tempX_z =  _mm_set_ps1(0.0);
+                    __m128 tempY_x =  _mm_set_ps1(0.0);
+                    __m128 tempY_y =  _mm_set_ps1(0.0);
+                    __m128 tempY_z =  _mm_set_ps1(0.0);
+                    __m128 tempZ_x =  _mm_set_ps1(0.0);
+                    __m128 tempZ_y =  _mm_set_ps1(0.0);
+                    __m128 tempZ_z =  _mm_set_ps1(0.0);
+                    __m128 *ptrX = (__m128 *) &xControlPointCoordinates[0];
+                    __m128 *ptrY = (__m128 *) &yControlPointCoordinates[0];
+                    __m128 *ptrZ = (__m128 *) &zControlPointCoordinates[0];
+                    ptrBasisX   = (__m128 *) &basisX[0];
+                    ptrBasisY   = (__m128 *) &basisY[0];
+                    ptrBasisZ   = (__m128 *) &basisZ[0];
+                    //addition and multiplication of the 16 basis value and CP position for each axis
+                    for(unsigned int a=0; a<16; a++){
+                        tempX_x = _mm_add_ps(_mm_mul_ps(*ptrBasisX, *ptrX), tempX_x );
+                        tempX_y = _mm_add_ps(_mm_mul_ps(*ptrBasisY, *ptrX), tempX_y );
+                        tempX_z = _mm_add_ps(_mm_mul_ps(*ptrBasisZ, *ptrX), tempX_z );
 
+                        tempY_x = _mm_add_ps(_mm_mul_ps(*ptrBasisX, *ptrY), tempY_x );
+                        tempY_y = _mm_add_ps(_mm_mul_ps(*ptrBasisY, *ptrY), tempY_y );
+                        tempY_z = _mm_add_ps(_mm_mul_ps(*ptrBasisZ, *ptrY), tempY_z );
+
+                        tempZ_x = _mm_add_ps(_mm_mul_ps(*ptrBasisX, *ptrZ), tempZ_x );
+                        tempZ_y = _mm_add_ps(_mm_mul_ps(*ptrBasisY, *ptrZ), tempZ_y );
+                        tempZ_z = _mm_add_ps(_mm_mul_ps(*ptrBasisZ, *ptrZ), tempZ_z );
+
+                        ptrBasisX++;
+                        ptrBasisY++;
+                        ptrBasisZ++;
+                        ptrX++;
+                        ptrY++;
+                        ptrZ++;
+                    }
+
+                    //the values stored in SSE variables are transfered to normal float
+                    val.m = tempX_x;
+                    Tx_x = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                    val.m = tempX_y;
+                    Tx_y = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                    val.m = tempX_z;
+                    Tx_z = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+
+                    val.m = tempY_x;
+                    Ty_x = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                    val.m = tempY_y;
+                    Ty_y = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                    val.m = tempY_z;
+                    Ty_z = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+
+                    val.m = tempZ_x;
+                    Tz_x = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                    val.m = tempZ_y;
+                    Tz_y = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                    val.m = tempZ_z;
+                    Tz_z = val.f[0]+val.f[1]+val.f[2]+val.f[3]; 
+#else
                     for(int a=0; a<64; a++){
                         Tx_x += basisX[a]*xControlPointCoordinates[a];
                         Tx_y += basisY[a]*xControlPointCoordinates[a];
@@ -1117,7 +1239,7 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                         Tz_y += basisY[a]*zControlPointCoordinates[a];
                         Tz_z += basisZ[a]*zControlPointCoordinates[a];
                     }
-
+#endif
                     jacobianMatrix.m[0][0]= Tx_x / splineControlPoint->dx;
                     jacobianMatrix.m[0][1]= Tx_y / splineControlPoint->dy;
                     jacobianMatrix.m[0][2]= Tx_z / splineControlPoint->dz;
