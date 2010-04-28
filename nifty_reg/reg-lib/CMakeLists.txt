@@ -15,7 +15,7 @@ INSTALL(TARGETS ${NAME}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 )
 #-----------------------------------------------------------------------------
-IF(BUILD_F3D)
+IF(BUILD_F3D OR BUILD_F3D2)
 	SET(NAME _reg_bspline)
 	ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp)
 	INSTALL(TARGETS ${NAME}
@@ -40,14 +40,14 @@ IF(BUILD_F3D)
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 	)
 #-----------------------------------------------------------------------------
-        SET(NAME _reg_ssd)
-        ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp)
-        INSTALL(TARGETS ${NAME}
-                RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-                LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-                ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        )
-ENDIF(BUILD_F3D)
+    SET(NAME _reg_ssd)
+    ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp)
+    INSTALL(TARGETS ${NAME}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+            LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+    )
+ENDIF(BUILD_F3D OR BUILD_F3D2)
 #-----------------------------------------------------------------------------
 SET(NAME _reg_tools)
 ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp)

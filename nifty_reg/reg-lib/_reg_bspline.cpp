@@ -1603,29 +1603,29 @@ PrecisionTYPE reg_bspline_jacobianValue3D(  nifti_image *splineControlPoint,
             first[1]= - first[0] - first[2] - first[3];
 			
 #if _USE_SSE
-		val.f[0]=temp[0];
-		val.f[1]=temp[1];
-		val.f[2]=temp[2];
-		val.f[3]=temp[3];
-		__m128 _yBasis=val.m; 
-		val.f[0]=first[0];
-		val.f[1]=first[1];
-		val.f[2]=first[2];
-		val.f[3]=first[3];
-		__m128 _yFirst=val.m;          
-		__m128 *ptrBasisX = (__m128 *) &tempX[0];
-		__m128 *ptrBasisY = (__m128 *) &tempY[0];
-		__m128 *ptrBasisZ = (__m128 *) &tempZ[0];
-		for(int a=0;a<4;++a){
-			val.m=_mm_set_ps1(zBasis[a]);
-			*ptrBasisX=_mm_mul_ps(_yBasis,val.m);
-			*ptrBasisY=_mm_mul_ps(_yFirst,val.m);
-			val.m=_mm_set_ps1(zFirst[a]);
-			*ptrBasisZ=_mm_mul_ps(_yBasis,val.m);
-			ptrBasisX++;
-			ptrBasisY++;
-			ptrBasisZ++;
-		}
+            val.f[0]=temp[0];
+            val.f[1]=temp[1];
+            val.f[2]=temp[2];
+            val.f[3]=temp[3];
+            __m128 _yBasis=val.m; 
+            val.f[0]=first[0];
+            val.f[1]=first[1];
+            val.f[2]=first[2];
+            val.f[3]=first[3];
+            __m128 _yFirst=val.m;          
+            __m128 *ptrBasisX = (__m128 *) &tempX[0];
+            __m128 *ptrBasisY = (__m128 *) &tempY[0];
+            __m128 *ptrBasisZ = (__m128 *) &tempZ[0];
+            for(int a=0;a<4;++a){
+	            val.m=_mm_set_ps1(zBasis[a]);
+	            *ptrBasisX=_mm_mul_ps(_yBasis,val.m);
+	            *ptrBasisY=_mm_mul_ps(_yFirst,val.m);
+	            val.m=_mm_set_ps1(zFirst[a]);
+	            *ptrBasisZ=_mm_mul_ps(_yBasis,val.m);
+	            ptrBasisX++;
+	            ptrBasisY++;
+	            ptrBasisZ++;
+            }
 #else
             coord=0;
             for(int c=0; c<4; c++){
@@ -1664,7 +1664,7 @@ PrecisionTYPE reg_bspline_jacobianValue3D(  nifti_image *splineControlPoint,
 				val.f[1]=first[1];
 				val.f[2]=first[2];
 				val.f[3]=first[3];
-				__m128 _xFirst=val.m;          
+				__m128 _xFirst=val.m;
 				ptrBasisX = (__m128 *) &basisX[0];
 				ptrBasisY = (__m128 *) &basisY[0];
 				ptrBasisZ = (__m128 *) &basisZ[0];
