@@ -33,7 +33,7 @@ int main(int argc, char **argv)
     int dimension = 100;
     float gridSpacing = 10.0f;
     int binning = 68;
-    char *outputFileName = "benchmark_result.txt";
+    char *outputFileName = (char *)"benchmark_result.txt";
 
     for(int i=1;i<argc;i++){
         if(strcmp(argv[i], "-help")==0 || strcmp(argv[i], "-Help")==0 ||
