@@ -25,28 +25,49 @@
         };
 #endif
 
-#define Block_reg_affine_deformationField 256                       // 16 regs - 067% occupancy
-#define Block_reg_resampleSourceImage 256                           // 16 regs - 067% occupancy
-#define Block_reg_freeForm_interpolatePosition 320                  // 22 regs - 042% occupancy
-#define Block_reg_spline_cppComposition 320                         // 25 regs - 042% occupancy
-#define Block_reg_getSourceImageGradient 320                        // 23 regs - 042% occupancy
-#define Block_reg_getVoxelBasedNMIGradientUsingPW 320               // 24 regs - 042% occupancy
-#define Block_reg_FillConvolutionWindows 384                        // 04 regs - 100% occupancy
-#define Block_reg_ApplyConvolutionWindowAlongX 320                  // 11 regs - 083% occupancy
-#define Block_reg_ApplyConvolutionWindowAlongY 320                  // 11 regs - 083% occupancy
-#define Block_reg_ApplyConvolutionWindowAlongZ 320                  // 12 regs - 083% occupancy
-#define Block_reg_voxelCentric2NodeCentric 320                      // 11 regs - 083% occupancy
-#define Block_reg_convertNMIGradientFromVoxelToRealSpace 448        // 18 regs - 058% occupancy
+#ifdef _HIGH_CAPA
+	#define Block_reg_affine_deformationField 512                       // 16 regs - 100% occupancy
+	#define Block_reg_resampleSourceImage 512                           // 16 regs - 100% occupancy
+	#define Block_reg_freeForm_interpolatePosition 320                  // 22 regs - 063% occupancy
+	#define Block_reg_spline_cppComposition 320                         // 25 regs - 063% occupancy
+	#define Block_reg_getSourceImageGradient 320                        // 23 regs - 063% occupancy
+	#define Block_reg_getVoxelBasedNMIGradientUsingPW 320               // 24 regs - 063% occupancy
+	#define Block_reg_ApplyConvolutionWindowAlongX 512                  // 11 regs - 100% occupancy
+	#define Block_reg_ApplyConvolutionWindowAlongY 512                  // 11 regs - 100% occupancy
+	#define Block_reg_ApplyConvolutionWindowAlongZ 512                  // 12 regs - 100% occupancy
+	#define Block_reg_voxelCentric2NodeCentric 512                      // 11 regs - 083% occupancy
+	#define Block_reg_convertNMIGradientFromVoxelToRealSpace 448        // 18 regs - 088% occupancy
+	#define Block_reg_GetConjugateGradient1 512                         // 12 regs - 100% occupancy
+	#define Block_reg_bspline_ApproxBendingEnergy 384                   // 39 regs - 038% occupancy
+	#define Block_reg_bspline_storeApproxBendingEnergy 384              // 39 regs - 038% occupancy
+	#define Block_reg_bspline_getApproxBendingEnergyGradient 384        // 19 regs - 075% occupancy
+#else
+	#define Block_reg_affine_deformationField 256                       // 16 regs - 067% occupancy
+	#define Block_reg_resampleSourceImage 256                           // 16 regs - 067% occupancy
+	#define Block_reg_freeForm_interpolatePosition 320                  // 22 regs - 042% occupancy
+	#define Block_reg_spline_cppComposition 320                         // 25 regs - 042% occupancy
+	#define Block_reg_getSourceImageGradient 320                        // 23 regs - 042% occupancy
+	#define Block_reg_getVoxelBasedNMIGradientUsingPW 320               // 24 regs - 042% occupancy
+	#define Block_reg_ApplyConvolutionWindowAlongX 320                  // 11 regs - 083% occupancy
+	#define Block_reg_ApplyConvolutionWindowAlongY 320                  // 11 regs - 083% occupancy
+	#define Block_reg_ApplyConvolutionWindowAlongZ 320                  // 12 regs - 083% occupancy
+	#define Block_reg_voxelCentric2NodeCentric 320                      // 11 regs - 083% occupancy
+	#define Block_reg_convertNMIGradientFromVoxelToRealSpace 448        // 18 regs - 058% occupancy
+	#define Block_reg_GetConjugateGradient1 320                         // 12 regs - 083% occupancy
+	#define Block_reg_bspline_ApproxBendingEnergy 192                   // 39 regs - 025% occupancy
+	#define Block_reg_bspline_storeApproxBendingEnergy 192              // 39 regs - 025% occupancy
+	#define Block_reg_bspline_getApproxBendingEnergyGradient 384        // 19 regs - 050% occupancy
+#endif
+
+
+
 #define Block_reg_initialiseConjugateGradient 384                   // 09 regs - 100% occupancy
-#define Block_reg_GetConjugateGradient1 320                         // 12 regs - 083% occupancy
 #define Block_reg_GetConjugateGradient2 384                         // 10 regs - 100% occupancy
 #define Block_reg_getMaximalLength 384                              // 07 regs - 100% occupancy
 #define Block_reg_updateControlPointPosition 384                    // 08 regs - 100% occupancy
-#define Block_reg_bspline_ApproxBendingEnergy 192                   // 39 regs - 025% occupancy
-#define Block_reg_bspline_storeApproxBendingEnergy 192              // 39 regs - 025% occupancy
-#define Block_reg_bspline_getApproxBendingEnergyGradient 384        // 19 regs - 050% occupancy
 #define Block_target_block 512  				                    // 26 regs - 100% occupancy
-#define Block_result_block 343                                      // 29 regs - 34% occupancy
+#define Block_reg_FillConvolutionWindows 384                        // 04 regs - 100% occupancy
+#define Block_result_block 343                                      // 29 regs - 034% occupancy
 
 #endif
 #endif
