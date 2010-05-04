@@ -48,13 +48,13 @@ __global__ void reg_resampleSourceImage_kernel(float *resultArray)
 					matrix.z*realPosition.z  +  matrix.w;
 
 		int3 sourceImageSize = c_SourceDim;
-		if(	-1<voxelPosition.x && voxelPosition.x<=sourceImageSize.x &&
-			-1<voxelPosition.y && voxelPosition.y<=sourceImageSize.y &&
-			-1<voxelPosition.z && voxelPosition.z<=sourceImageSize.z){
-			float3 relativePosition;
-			relativePosition.x=(voxelPosition.x+0.5f)/(float)c_SourceDim.x;
-			relativePosition.y=(voxelPosition.y+0.5f)/(float)c_SourceDim.y;
-			relativePosition.z=(voxelPosition.z+0.5f)/(float)c_SourceDim.z;
+		float3 relativePosition;
+		relativePosition.x=(voxelPosition.x+0.5f)/(float)c_SourceDim.x;
+		relativePosition.y=(voxelPosition.y+0.5f)/(float)c_SourceDim.y;
+		relativePosition.z=(voxelPosition.z+0.5f)/(float)c_SourceDim.z;
+        if( relativePosition.x>=0.0f && relativePosition.x<=1.0f &&
+            relativePosition.y>=0.0f && relativePosition.y<=1.0f &&
+            relativePosition.z>=0.0f && relativePosition.z<=1.0f ){
 			resultArray[tex1Dfetch(maskTexture,tid)]=tex3D(sourceTexture, relativePosition.x, relativePosition.y, relativePosition.z);
 		}
 		else resultArray[tex1Dfetch(maskTexture,tid)]=c_PaddingValue;

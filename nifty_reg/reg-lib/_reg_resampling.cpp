@@ -344,82 +344,49 @@ void TrilinearResampleSourceImage(	SourceTYPE *intensityPtr,
 		    /* real -> voxel; source space */
             reg_mat44_mul(sourceIJKMatrix, voxelIndex, position);
 
-		    previous[0] = (int)floor(position[0]);
-		    previous[1] = (int)floor(position[1]);
-		    previous[2] = (int)floor(position[2]);
-		    // basis values along the x axis
-		    relative=position[0]-(PrecisionTYPE)previous[0];
-		    if(relative<0) relative=0.0; // rounding error correction
-		    xBasis[0]= (PrecisionTYPE)(1.0-relative);
-		    xBasis[1]= relative;
-		    // basis values along the y axis
-		    relative=position[1]-(PrecisionTYPE)previous[1];
-		    if(relative<0) relative=0.0; // rounding error correction
-		    yBasis[0]= (PrecisionTYPE)(1.0-relative);
-		    yBasis[1]= relative;
-		    // basis values along the z axis
-		    relative=position[2]-(PrecisionTYPE)previous[2];
-		    if(relative<0) relative=0.0; // rounding error correction
-		    zBasis[0]= (PrecisionTYPE)(1.0-relative);
-		    zBasis[1]= relative;
 
-		    if(bgValue!=0.0){
-			    PrecisionTYPE backgroundWeight=0.0;
+            if( position[0]>=0.0f && position[0]<sourceImage->nx-1 &&
+                position[1]>=0.0f && position[1]<sourceImage->ny-1 &&
+                position[2]>=0.0f && position[2]<sourceImage->nz-1 ){
+
+                previous[0] = (int)floor(position[0]);
+                previous[1] = (int)floor(position[1]);
+                previous[2] = (int)floor(position[2]);
+                // basis values along the x axis
+                relative=position[0]-(PrecisionTYPE)previous[0];
+                if(relative<0) relative=0.0; // rounding error correction
+                xBasis[0]= (PrecisionTYPE)(1.0-relative);
+                xBasis[1]= relative;
+                // basis values along the y axis
+                relative=position[1]-(PrecisionTYPE)previous[1];
+                if(relative<0) relative=0.0; // rounding error correction
+                yBasis[0]= (PrecisionTYPE)(1.0-relative);
+                yBasis[1]= relative;
+                // basis values along the z axis
+                relative=position[2]-(PrecisionTYPE)previous[2];
+                if(relative<0) relative=0.0; // rounding error correction
+                zBasis[0]= (PrecisionTYPE)(1.0-relative);
+                zBasis[1]= relative;
+
 			    for(short c=0; c<2; c++){
 				    short Z= previous[2]+c;
-				    if(-1<Z && Z<sourceImage->nz){
-					    SourceTYPE *zPointer = &intensityPtr[Z*sourceImage->nx*sourceImage->ny];
-					    PrecisionTYPE yTempNewValue=0.0;
-					    for(short b=0; b<2; b++){
-						    short Y= previous[1]+b;
-						    if(-1<Y && Y<sourceImage->ny){
-							    SourceTYPE *yzPointer = &zPointer[Y*sourceImage->nx];
-							    SourceTYPE *xyzPointer = &yzPointer[previous[0]];
-							    PrecisionTYPE xTempNewValue=0.0;
-							    for(short a=0; a<2; a++){
-								    if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
-									    const SourceTYPE coeff = *xyzPointer;
-									    xTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
-								    }
-								    else backgroundWeight += (PrecisionTYPE)((SourceTYPE)bgValue * xBasis[a]);
-								    xyzPointer++;
-							    }
-							    yTempNewValue += (xTempNewValue * yBasis[b]);
-						    }
-						    else backgroundWeight += (PrecisionTYPE)((SourceTYPE)bgValue * xBasis[b]);
+				    SourceTYPE *zPointer = &intensityPtr[Z*sourceImage->nx*sourceImage->ny];
+				    PrecisionTYPE yTempNewValue=0.0;
+				    for(short b=0; b<2; b++){
+					    short Y= previous[1]+b;
+					    SourceTYPE *xyzPointer = &zPointer[Y*sourceImage->nx+previous[0]];
+					    PrecisionTYPE xTempNewValue=0.0;
+					    for(short a=0; a<2; a++){
+						    const SourceTYPE coeff = *xyzPointer;
+						    xTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
+						    xyzPointer++;
 					    }
-					    intensity += yTempNewValue * zBasis[c];
+					    yTempNewValue += (xTempNewValue * yBasis[b]);
 				    }
-				    else backgroundWeight += (PrecisionTYPE)((SourceTYPE)bgValue * xBasis[c]);
+				    intensity += yTempNewValue * zBasis[c];
 			    }
-			    intensity += backgroundWeight;
-		    }
-		    else{
-			    for(short c=0; c<2; c++){
-				    short Z= previous[2]+c;
-				    if(-1<Z && Z<sourceImage->nz){
-					    SourceTYPE *zPointer = &intensityPtr[Z*sourceImage->nx*sourceImage->ny];
-					    PrecisionTYPE yTempNewValue=0.0;
-					    for(short b=0; b<2; b++){
-						    short Y= previous[1]+b;
-						    if(-1<Y && Y<sourceImage->ny){
-							    SourceTYPE *yzPointer = &zPointer[Y*sourceImage->nx];
-							    SourceTYPE *xyzPointer = &yzPointer[previous[0]];
-							    PrecisionTYPE xTempNewValue=0.0;
-							    for(short a=0; a<2; a++){
-								    if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
-									    const SourceTYPE coeff = *xyzPointer;
-									    xTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
-								    }
-								    xyzPointer++;
-							    }
-							    yTempNewValue += (xTempNewValue * yBasis[b]);
-						    }
-					    }
-					    intensity += yTempNewValue * zBasis[c];
-				    }
-			    }
-		    }
+            }
+            else intensity = bgValue;
         }
 		
 		switch(sourceImage->datatype){
@@ -489,57 +456,35 @@ void TrilinearResampleSourceImage2D(SourceTYPE *intensityPtr,
 		    position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
 		    sourceIJKMatrix.m[1][3];
 
-		    previous[0] = (int)floor(position[0]);
-		    previous[1] = (int)floor(position[1]);
-		    // basis values along the x axis
-		    relative=position[0]-(PrecisionTYPE)previous[0];
-		    if(relative<0) relative=0.0; // rounding error correction
-		    xBasis[0]= (PrecisionTYPE)(1.0-relative);
-		    xBasis[1]= relative;
-		    // basis values along the y axis
-		    relative=position[1]-(PrecisionTYPE)previous[1];
-		    if(relative<0) relative=0.0; // rounding error correction
-		    yBasis[0]= (PrecisionTYPE)(1.0-relative);
-		    yBasis[1]= relative;
+            if( position[0]>=0.0f && position[0]<sourceImage->nx-1 &&
+                position[1]>=0.0f && position[1]<sourceImage->ny-1 ){
 
-		    if(bgValue!=0.0){
-			    PrecisionTYPE backgroundWeight=0.0;
+		        previous[0] = (int)floor(position[0]);
+		        previous[1] = (int)floor(position[1]);
+		        // basis values along the x axis
+		        relative=position[0]-(PrecisionTYPE)previous[0];
+		        if(relative<0) relative=0.0; // rounding error correction
+		        xBasis[0]= (PrecisionTYPE)(1.0-relative);
+		        xBasis[1]= relative;
+		        // basis values along the y axis
+		        relative=position[1]-(PrecisionTYPE)previous[1];
+		        if(relative<0) relative=0.0; // rounding error correction
+		        yBasis[0]= (PrecisionTYPE)(1.0-relative);
+		        yBasis[1]= relative;
+
 			    for(short b=0; b<2; b++){
 				    short Y= previous[1]+b;
-				    if(-1<Y && Y<sourceImage->ny){
-					    SourceTYPE *xyPointer = &intensityPtr[Y*sourceImage->nx+previous[0]];
-					    PrecisionTYPE xTempNewValue=0.0;
-					    for(short a=0; a<2; a++){
-						    if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
-							    const SourceTYPE coeff = *xyPointer;
-							    xTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
-						    }
-						    else backgroundWeight += (PrecisionTYPE)((SourceTYPE)bgValue * xBasis[a]);
-						    xyPointer++;
-					    }
-					    intensity += (xTempNewValue * yBasis[b]);
-				    }
-				    else backgroundWeight += (PrecisionTYPE)((SourceTYPE)bgValue * xBasis[b]);
-			    }
-			    intensity += backgroundWeight;
-		    }
-		    else{
-			    for(short b=0; b<2; b++){
-				    short Y= previous[1]+b;
-				    if(-1<Y && Y<sourceImage->ny){
-					    SourceTYPE *xyPointer = &intensityPtr[Y*sourceImage->nx+previous[0]];
-					    PrecisionTYPE xTempNewValue=0.0;
-					    for(short a=0; a<2; a++){
-						    if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
-							    const SourceTYPE coeff = *xyPointer;
-							    xTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
-						    }
-						    xyPointer++;
-					    }
-					    intensity += (xTempNewValue * yBasis[b]);
-				    }
+					SourceTYPE *xyPointer = &intensityPtr[Y*sourceImage->nx+previous[0]];
+					PrecisionTYPE xTempNewValue=0.0;
+					for(short a=0; a<2; a++){
+						const SourceTYPE coeff = *xyPointer;
+						xTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
+						xyPointer++;
+					}
+					intensity += (xTempNewValue * yBasis[b]);
 			    }
 		    }
+            else intensity = bgValue;
         }
 
 		switch(sourceImage->datatype){
@@ -605,11 +550,11 @@ void NearestNeighborResampleSourceImage(SourceTYPE *intensityPtr,
 		    worldZ*sourceIJKMatrix.m[1][2] +  sourceIJKMatrix.m[1][3];
 		    position[2] = worldX*sourceIJKMatrix.m[2][0] + worldY*sourceIJKMatrix.m[2][1] +
 		    worldZ*sourceIJKMatrix.m[2][2] +  sourceIJKMatrix.m[2][3];
-		    
+
 		    previous[0] = (int)round(position[0]);
 		    previous[1] = (int)round(position[1]);
 		    previous[2] = (int)round(position[2]);
-		    
+
 		    if( -1<previous[2] && previous[2]<sourceImage->nz &&
 		    -1<previous[1] && previous[1]<sourceImage->ny &&
 		    -1<previous[0] && previous[0]<sourceImage->nx){
@@ -1051,29 +996,31 @@ void TrilinearGradientResultImage(	SourceTYPE *sourceCoefficients,
 		    position[2] = worldX*sourceIJKMatrix.m[2][0] + worldY*sourceIJKMatrix.m[2][1] +
 		    worldZ*sourceIJKMatrix.m[2][2] +  sourceIJKMatrix.m[2][3];
 
-		    previous[0] = (int)floor(position[0]);
-		    previous[1] = (int)floor(position[1]);
-		    previous[2] = (int)floor(position[2]);
-		    // basis values along the x axis
-		    relative=position[0]-(PrecisionTYPE)previous[0];
-		    if(relative<0) relative=0.0; // rounding error correction
-		    xBasis[0]= (PrecisionTYPE)(1.0-relative);
-		    xBasis[1]= relative;
-		    // basis values along the y axis
-		    relative=position[1]-(PrecisionTYPE)previous[1];
-		    if(relative<0) relative=0.0; // rounding error correction
-		    yBasis[0]= (PrecisionTYPE)(1.0-relative);
-		    yBasis[1]= relative;
-		    // basis values along the z axis
-		    relative=position[2]-(PrecisionTYPE)previous[2];
-		    if(relative<0) relative=0.0; // rounding error correction
-		    zBasis[0]= (PrecisionTYPE)(1.0-relative);
-		    zBasis[1]= relative;
+            if( position[0]>=0.0f && position[0]<sourceImage->nx-1 &&
+                position[1]>=0.0f && position[1]<sourceImage->ny-1 &&
+                position[2]>=0.0f && position[2]<sourceImage->nz-1 ){
 
-		    bool bg=false;
-		    for(short c=0; c<2; c++){
-			    short Z= previous[2]+c;
-			    if(-1<Z && Z<sourceImage->nz){
+		        previous[0] = (int)floor(position[0]);
+		        previous[1] = (int)floor(position[1]);
+		        previous[2] = (int)floor(position[2]);
+		        // basis values along the x axis
+		        relative=position[0]-(PrecisionTYPE)previous[0];
+		        if(relative<0) relative=0.0; // rounding error correction
+		        xBasis[0]= (PrecisionTYPE)(1.0-relative);
+		        xBasis[1]= relative;
+		        // basis values along the y axis
+		        relative=position[1]-(PrecisionTYPE)previous[1];
+		        if(relative<0) relative=0.0; // rounding error correction
+		        yBasis[0]= (PrecisionTYPE)(1.0-relative);
+		        yBasis[1]= relative;
+		        // basis values along the z axis
+		        relative=position[2]-(PrecisionTYPE)previous[2];
+		        if(relative<0) relative=0.0; // rounding error correction
+		        zBasis[0]= (PrecisionTYPE)(1.0-relative);
+		        zBasis[1]= relative;
+
+		        for(short c=0; c<2; c++){
+			        short Z= previous[2]+c;
 				    SourceTYPE *zPointer = &sourceCoefficients[Z*sourceImage->nx*sourceImage->ny];
 				    PrecisionTYPE xxTempNewValue=0.0;
 				    PrecisionTYPE yyTempNewValue=0.0;
@@ -1081,39 +1028,26 @@ void TrilinearGradientResultImage(	SourceTYPE *sourceCoefficients,
 				    for(short b=0; b<2; b++){
 					    short Y= previous[1]+b;
 					    SourceTYPE *yzPointer = &zPointer[Y*sourceImage->nx];
-					    if(-1<Y && Y<sourceImage->ny){
-						    SourceTYPE *xyzPointer = &yzPointer[previous[0]];
-						    PrecisionTYPE xTempNewValue=0.0;
-						    PrecisionTYPE yTempNewValue=0.0;
-						    PrecisionTYPE zTempNewValue=0.0;
-						    for(short a=0; a<2; a++){
-							    if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
-								    const SourceTYPE coeff = *xyzPointer;
-								    xTempNewValue +=  (PrecisionTYPE)(coeff * deriv[a]);
-								    yTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
-								    zTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
-							    }
-							    else bg=true;
-							    xyzPointer++;
-						    }
-						    xxTempNewValue += xTempNewValue * yBasis[b];
-						    yyTempNewValue += yTempNewValue * deriv[b];
-						    zzTempNewValue += zTempNewValue * yBasis[b];
-					    }
-					    else bg=true;
+						SourceTYPE *xyzPointer = &yzPointer[previous[0]];
+						PrecisionTYPE xTempNewValue=0.0;
+						PrecisionTYPE yTempNewValue=0.0;
+						PrecisionTYPE zTempNewValue=0.0;
+						for(short a=0; a<2; a++){
+							const SourceTYPE coeff = *xyzPointer;
+							xTempNewValue +=  (PrecisionTYPE)(coeff * deriv[a]);
+							yTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
+							zTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
+							xyzPointer++;
+						}
+						xxTempNewValue += xTempNewValue * yBasis[b];
+						yyTempNewValue += yTempNewValue * deriv[b];
+						zzTempNewValue += zTempNewValue * yBasis[b];
 				    }
 				    gradX += xxTempNewValue * zBasis[c];
 				    gradY += yyTempNewValue * zBasis[c];
 				    gradZ += zzTempNewValue * deriv[c];
-			    }
-			    else bg=true;
-		    }
-
-		    if(bg==true){
-			    gradX=0.0;
-			    gradY=0.0;
-			    gradZ=0.0;
-		    }
+		        }
+            }
         }
 
 		switch(resultGradientImage->datatype){
@@ -1184,46 +1118,39 @@ void TrilinearGradientResultImage2D(	SourceTYPE *sourceCoefficients,
 		    position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
 		    sourceIJKMatrix.m[1][3];
 
-		    previous[0] = (int)floor(position[0]);
-		    previous[1] = (int)floor(position[1]);
-		    // basis values along the x axis
-		    relative=position[0]-(PrecisionTYPE)previous[0];
-		    if(relative<0) relative=0.0; // rounding error correction
-		    xBasis[0]= (PrecisionTYPE)(1.0-relative);
-		    xBasis[1]= relative;
-		    // basis values along the y axis
-		    relative=position[1]-(PrecisionTYPE)previous[1];
-		    if(relative<0) relative=0.0; // rounding error correction
-		    yBasis[0]= (PrecisionTYPE)(1.0-relative);
-		    yBasis[1]= relative;
+            if( position[0]>=0.0f && position[0]<sourceImage->nx-1 &&
+                position[1]>=0.0f && position[1]<sourceImage->ny-1 &&
+                position[2]>=0.0f && position[2]<sourceImage->nz-1 ){
 
-		    bool bg=false;
-		    for(short b=0; b<2; b++){
-			    short Y= previous[1]+b;
-			    SourceTYPE *yPointer = &sourceCoefficients[Y*sourceImage->nx];
-			    if(-1<Y && Y<sourceImage->ny){
+		        previous[0] = (int)floor(position[0]);
+		        previous[1] = (int)floor(position[1]);
+		        // basis values along the x axis
+		        relative=position[0]-(PrecisionTYPE)previous[0];
+		        if(relative<0) relative=0.0; // rounding error correction
+		        xBasis[0]= (PrecisionTYPE)(1.0-relative);
+		        xBasis[1]= relative;
+		        // basis values along the y axis
+		        relative=position[1]-(PrecisionTYPE)previous[1];
+		        if(relative<0) relative=0.0; // rounding error correction
+		        yBasis[0]= (PrecisionTYPE)(1.0-relative);
+		        yBasis[1]= relative;
+
+		        for(short b=0; b<2; b++){
+			        short Y= previous[1]+b;
+			        SourceTYPE *yPointer = &sourceCoefficients[Y*sourceImage->nx];
 				    SourceTYPE *xyPointer = &yPointer[previous[0]];
 				    PrecisionTYPE xTempNewValue=0.0;
 				    PrecisionTYPE yTempNewValue=0.0;
 				    for(short a=0; a<2; a++){
-					    if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
-						    const SourceTYPE coeff = *xyPointer;
-						    xTempNewValue +=  (PrecisionTYPE)(coeff * deriv[a]);
-						    yTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
-					    }
-					    else bg=true;
+						const SourceTYPE coeff = *xyPointer;
+						xTempNewValue +=  (PrecisionTYPE)(coeff * deriv[a]);
+						yTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
 					    xyPointer++;
 				    }
 				    gradX += xTempNewValue * yBasis[b];
 				    gradY += yTempNewValue * deriv[b];
-			    }
-			    else bg=true;
-		    }
-		    
-		    if(bg==true){
-			    gradX=0.0;
-			    gradY=0.0;
-		    }
+		        }
+            }
         }
 		
 		switch(resultGradientImage->datatype){
