@@ -49,9 +49,9 @@ __global__ void reg_resampleSourceImage_kernel(float *resultArray)
 
 		int3 sourceImageSize = c_SourceDim;
 		float3 relativePosition;
-		relativePosition.x=(voxelPosition.x+0.5f)/(float)c_SourceDim.x;
-		relativePosition.y=(voxelPosition.y+0.5f)/(float)c_SourceDim.y;
-		relativePosition.z=(voxelPosition.z+0.5f)/(float)c_SourceDim.z;
+		relativePosition.x=(voxelPosition.x+0.5f)/(float)sourceImageSize.x;
+		relativePosition.y=(voxelPosition.y+0.5f)/(float)sourceImageSize.y;
+		relativePosition.z=(voxelPosition.z+0.5f)/(float)sourceImageSize.z;
         if( relativePosition.x>=0.0f && relativePosition.x<=1.0f &&
             relativePosition.y>=0.0f && relativePosition.y<=1.0f &&
             relativePosition.z>=0.0f && relativePosition.z<=1.0f ){
