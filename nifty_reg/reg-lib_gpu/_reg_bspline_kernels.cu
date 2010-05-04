@@ -12,6 +12,8 @@
 #ifndef _REG_BSPLINE_KERNELS_CU
 #define _REG_BSPLINE_KERNELS_CU
 
+#include "_reg_blocksize_gpu.h"
+
 __device__ __constant__ int c_VoxelNumber;
 __device__ __constant__ int c_ControlPointNumber;
 __device__ __constant__ int3 c_TargetImageDim;
@@ -46,73 +48,89 @@ __device__ float4 operator+(float4 a, float4 b){
 
 __global__ void _reg_freeForm_interpolatePosition(float4 *positionField)
 {
-	const int tid= blockIdx.x*blockDim.x + threadIdx.x;
+	const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
 	if(tid<c_ActiveVoxelNumber){
 
 		int3 imageSize = c_TargetImageDim;
 
-		int tempIndex=tex1Dfetch(maskTexture,tid);
-		const short z =(int)(tempIndex/(imageSize.x*imageSize.y));
+		unsigned int tempIndex=tex1Dfetch(maskTexture,tid);
+		const unsigned short z =(unsigned short)(tempIndex/(imageSize.x*imageSize.y));
 		tempIndex -= z*(imageSize.x)*(imageSize.y);
-		const short y =(int)(tempIndex/(imageSize.x));
-		const short x = tempIndex - y*(imageSize.x);
+		const unsigned short y =(unsigned short)(tempIndex/(imageSize.x));
+		const unsigned short x = tempIndex - y*(imageSize.x);
 	
 		// the "nearest previous" node is determined [0,0,0]
-		int3 nodeAnte;
+		short3 nodeAnte;
 		float3 gridVoxelSpacing = c_ControlPointVoxelSpacing;
 		nodeAnte.x = (short)floorf((float)x/gridVoxelSpacing.x);
 		nodeAnte.y = (short)floorf((float)y/gridVoxelSpacing.y);
 		nodeAnte.z = (short)floorf((float)z/gridVoxelSpacing.z);
-		
-		float relative = fabsf((float)x/gridVoxelSpacing.x - (float)nodeAnte.x);
-		float xBasis[4];
-		xBasis[3]= relative * relative * relative / 6.0f;
-		xBasis[0]= 1.0f/6.0f + relative*(relative-1.0f)/2.0f - xBasis[3];
-		xBasis[2]= relative + xBasis[0] - 2.0f*xBasis[3];
-		xBasis[1]= 1.0f - xBasis[0] - xBasis[2] - xBasis[3];
-		
+
+        float relative;
+		relative = fabsf((float)x/gridVoxelSpacing.x-(float)nodeAnte.x);
+        float4 xBasis;
+        xBasis.w= relative * relative * relative / 6.0f;
+        xBasis.x= 1.0f/6.0f + relative*(relative-1.0f)/2.0f - xBasis.w;
+        xBasis.z= relative + xBasis.x - 2.0f*xBasis.w;
+        xBasis.y= 1.0f - xBasis.x - xBasis.z - xBasis.w;
+
 		relative = fabsf((float)y/gridVoxelSpacing.y-(float)nodeAnte.y);
-		float yBasis[4];
-		yBasis[3]= relative * relative * relative / 6.0f;
-		yBasis[0]= 1.0f/6.0f + relative*(relative-1.0f)/2.0f - yBasis[3];
-		yBasis[2]= relative + yBasis[0] - 2.0f*yBasis[3];
-		yBasis[1]= 1.0f - yBasis[0] - yBasis[2] - yBasis[3];
-		
+        __shared__ float yBasis[Block_reg_freeForm_interpolatePosition*4];
+        const unsigned short shareMemIndex = 4*threadIdx.x;
+        yBasis[shareMemIndex+3]= relative * relative * relative / 6.0f;
+        yBasis[shareMemIndex]= 1.0f/6.0f + relative*(relative-1.0f)/2.0f - yBasis[shareMemIndex+3];
+        yBasis[shareMemIndex+2]= relative + yBasis[shareMemIndex] - 2.0f*yBasis[shareMemIndex+3];
+        yBasis[shareMemIndex+1]= 1.0f - yBasis[shareMemIndex] - yBasis[shareMemIndex+2] - yBasis[shareMemIndex+3];
+
 		relative = fabsf((float)z/gridVoxelSpacing.z-(float)nodeAnte.z);
-		float zBasis[4];
-		zBasis[3]= relative * relative * relative / 6.0f;
-		zBasis[0]= 1.0f/6.0f + relative*(relative-1.0f)/2.0f - zBasis[3];
-		zBasis[2]= relative + zBasis[0] - 2.0f*zBasis[3];
-		zBasis[1]= 1.0f - zBasis[0] - zBasis[2] - zBasis[3];
 
 		float4 displacement=make_float4(0.0f,0.0f,0.0f,0.0f);
+        int3 controlPointImageDim = c_ControlPointImageDim;
+        float basis;
 
-		int3 controlPointImageDim = c_ControlPointImageDim;
+		short2 indexXYZ;
+		for(unsigned short c=0; c<4; c++){
+            float3 tempDisplacement=make_float3(0.0f, 0.0f, 0.0f);
+			indexXYZ.x= ( (nodeAnte.z + c) * controlPointImageDim.y + nodeAnte.y ) * controlPointImageDim.x;
+			for(unsigned short b=0; b<4; b++){
+                float3 tempDisplacement2=make_float3(0.0f, 0.0f, 0.0f);
+				indexXYZ.y= indexXYZ.x + nodeAnte.x;
 
-		int indexYZ, indexXYZ;
-		for(short c=0; c<4; c++){
-			float4 tempValueY=make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-			indexYZ= ( (nodeAnte.z + c) * controlPointImageDim.y + nodeAnte.y ) * controlPointImageDim.x;
-			for(short b=0; b<4; b++){
-				float4 tempValueX=make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-				indexXYZ= indexYZ + nodeAnte.x;
-				for(short a=0; a<4; a++){
-					float4 nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ);
-					tempValueX.x +=  nodeCoefficient.x* xBasis[a];
-					tempValueX.y +=  nodeCoefficient.y* xBasis[a];
-					tempValueX.z +=  nodeCoefficient.z* xBasis[a];
-					indexXYZ++;
-				}
-				tempValueY.x += tempValueX.x * yBasis[b];
-				tempValueY.y += tempValueX.y * yBasis[b];
-				tempValueY.z += tempValueX.z * yBasis[b];
-				indexYZ += controlPointImageDim.x;
+                float4 nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ.y);
+
+                tempDisplacement2.x +=  nodeCoefficient.x* xBasis.x;
+                tempDisplacement2.y +=  nodeCoefficient.y* xBasis.x;
+                tempDisplacement2.z +=  nodeCoefficient.z* xBasis.x;
+
+                tempDisplacement2.x +=  nodeCoefficient.x* xBasis.y;
+                tempDisplacement2.y +=  nodeCoefficient.y* xBasis.y;
+                tempDisplacement2.z +=  nodeCoefficient.z* xBasis.y;
+
+                tempDisplacement2.x +=  nodeCoefficient.x* xBasis.z;
+                tempDisplacement2.y +=  nodeCoefficient.y* xBasis.z;
+                tempDisplacement2.z +=  nodeCoefficient.z* xBasis.z;
+
+                tempDisplacement2.x +=  nodeCoefficient.x* xBasis.w;
+                tempDisplacement2.y +=  nodeCoefficient.y* xBasis.w;
+                tempDisplacement2.z +=  nodeCoefficient.z* xBasis.w;
+
+                basis=yBasis[shareMemIndex+b];
+                tempDisplacement.x += tempDisplacement2.x * yBasis[shareMemIndex+b];
+                tempDisplacement.y += tempDisplacement2.y * yBasis[shareMemIndex+b];
+                tempDisplacement.z += tempDisplacement2.z * yBasis[shareMemIndex+b];
+				indexXYZ.x += controlPointImageDim.x;
 			}
-			displacement.x += tempValueY.x * zBasis[c];
-			displacement.y += tempValueY.y * zBasis[c];
-			displacement.z += tempValueY.z * zBasis[c];
+            switch(c){
+                case 0: basis= (1.0f-relative)*(1.0f-relative)*(1.0f-relative)/6.0f;break;
+                case 1: basis= (3.0f*relative*relative*relative - 6.0f*relative*relative +4.0f)/6.0f;break;
+                case 2: basis= (-3.0f*relative*relative*relative + 3.0f*relative*relative + 3.0f*relative + 1.0f)/6.0f;break;
+                case 3: basis= relative*relative*relative/6.0f;break;
+            }
+			displacement.x += tempDisplacement.x * basis;
+			displacement.y += tempDisplacement.y * basis;
+			displacement.z += tempDisplacement.z * basis;
 		}
-		positionField[tid] = displacement;
+        positionField[tid] = displacement;
 	}
 	return;
 }
