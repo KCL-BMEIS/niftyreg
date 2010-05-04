@@ -148,8 +148,8 @@ void reg_intensityRescale(	nifti_image *image,
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class DTYPE>
-void reg_smoothImageForCubicSpline1(	nifti_image *image,
-								   int radius[]
+void reg_smoothImageForCubicSpline1(nifti_image *image,
+								    int radius[]
 								   )
 {
 	DTYPE *imageArray = static_cast<DTYPE *>(image->data);
@@ -939,7 +939,8 @@ void reg_gaussianSmoothing1(nifti_image *image,
 		            PrecisionTYPE *kernel = new PrecisionTYPE[2*radius+1];
 		            PrecisionTYPE kernelSum=0;
 		            for(int i=-radius; i<=radius; i++){
-			            kernel[radius+i]=(PrecisionTYPE)(exp( -(i*i)/(2.0*currentSigma*currentSigma)) / (currentSigma*2.506628274631)); // 2.506... = sqrt(2*pi)
+			            kernel[radius+i]=(PrecisionTYPE)(exp( -(i*i)/(2.0*currentSigma*currentSigma)) / (currentSigma*2.506628274631));
+                        // 2.506... = sqrt(2*pi)
 			            kernelSum += kernel[radius+i];
 		            }
 		            for(int i=-radius; i<=radius; i++) kernel[radius+i] /= kernelSum;
@@ -963,7 +964,8 @@ void reg_gaussianSmoothing1(nifti_image *image,
 				            PrecisionTYPE value=0;
 				            for(int j=-radius; j<=radius; j++){
 					            if(-1<current && current<(int)voxelNumber){
-						            value += (PrecisionTYPE)(timeImagePtr[current]*kernel[j+radius]);
+                                    if(timeImagePtr[current]!=timeImagePtr[current])
+    						            value += (PrecisionTYPE)(timeImagePtr[current]*kernel[j+radius]);
 					            }
 					            current += increment;
 				            }

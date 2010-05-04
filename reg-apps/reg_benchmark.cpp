@@ -94,9 +94,6 @@ int main(int argc, char **argv)
     dim_img[5]=3;
     dim_img[4]=dim_img[6]=dim_img[7]=1;
 	nifti_image *deformationFieldImage = nifti_make_new_nim(dim_img, NIFTI_TYPE_FLOAT32, true);
-    targetImage->sform_code=0;
-    sourceImage->sform_code=0;
-    resultImage->sform_code=0;
 	
 	// Joint histogram creation
 	double *probaJointHistogram=(double *)malloc(binning*(binning+2)*sizeof(double));

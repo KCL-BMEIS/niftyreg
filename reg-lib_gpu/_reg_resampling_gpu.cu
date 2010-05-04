@@ -27,7 +27,7 @@ void reg_resampleSourceImage_gpu(	nifti_image *resultImage,
 	int3 sourceDim = make_int3(sourceImage->nx, sourceImage->ny, sourceImage->nz);
 
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_SourceDim,&sourceDim,sizeof(int3)));
-	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_PaddingValue,&sourceBGValue,sizeof(float)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_PaddingValue,&sourceBGValue,sizeof(float)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber,&activeVoxelNumber,sizeof(int)));
 
 	//Bind source image array to a 3D texture
