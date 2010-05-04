@@ -964,7 +964,7 @@ void reg_gaussianSmoothing1(nifti_image *image,
 				            PrecisionTYPE value=0;
 				            for(int j=-radius; j<=radius; j++){
 					            if(-1<current && current<(int)voxelNumber){
-                                    if(timeImagePtr[current]!=timeImagePtr[current])
+                                    if(timeImagePtr[current]==timeImagePtr[current])
     						            value += (PrecisionTYPE)(timeImagePtr[current]*kernel[j+radius]);
 					            }
 					            current += increment;
