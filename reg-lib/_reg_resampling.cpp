@@ -1119,8 +1119,7 @@ void TrilinearGradientResultImage2D(	SourceTYPE *sourceCoefficients,
 		    sourceIJKMatrix.m[1][3];
 
             if( position[0]>=0.0f && position[0]<sourceImage->nx-1 &&
-                position[1]>=0.0f && position[1]<sourceImage->ny-1 &&
-                position[2]>=0.0f && position[2]<sourceImage->nz-1 ){
+                position[1]>=0.0f && position[1]<sourceImage->ny-1 ){
 
 		        previous[0] = (int)floor(position[0]);
 		        previous[1] = (int)floor(position[1]);
@@ -1201,7 +1200,9 @@ void CubicSplineGradientResultImage(PrecisionTYPE *sourceCoefficients,
 	mat44 sourceIJKMatrix;
 	if(sourceImage->sform_code>0)
 		sourceIJKMatrix=sourceImage->sto_ijk;
-	else sourceIJKMatrix=sourceImage->qto_ijk;
+	else sourceIJKMatrix=sourceImage->qto_ijk;nifti_set_filenames(resultGradientImage, "gra.nii", 0, 0);
+nifti_image_write(resultGradientImage);
+exit(0);
 
 	for(int index=0;index<resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz; index++){
 

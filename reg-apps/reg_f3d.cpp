@@ -830,12 +830,12 @@ int main(int argc, char **argv)
         if(sizeof(PrecisionTYPE)==4) positionFieldImage->datatype = NIFTI_TYPE_FLOAT32;
         else positionFieldImage->datatype = NIFTI_TYPE_FLOAT64;
         positionFieldImage->nbyper = sizeof(PrecisionTYPE);
-#ifdef _USE_CUDA
-        if(flag->useGPUFlag){
-            positionFieldImage->data=NULL;
-        }
-        else
-#endif
+// #ifdef _USE_CUDA
+//         if(flag->useGPUFlag){
+//             positionFieldImage->data=NULL;
+//         }
+//         else
+// #endif
             positionFieldImage->data = (void *)calloc(positionFieldImage->nvox, positionFieldImage->nbyper);
 
         /* allocate the result image */
@@ -1010,41 +1010,50 @@ int main(int argc, char **argv)
 
 #ifdef _USE_CUDA
                 if(flag->useGPUFlag){
-				    reg_bspline_gpu(controlPointImage,
-								    targetImage,
-								    &controlPointImageArray_d,
-								    &positionFieldImageArray_d,
-								    &targetMask_d,
-								    activeVoxelNumber);
+                    reg_bspline_gpu(controlPointImage,
+                                    targetImage,
+                                    &controlPointImageArray_d,
+                                    &positionFieldImageArray_d,
+                                    &targetMask_d,
+                                    activeVoxelNumber);
                     /* Resample the source image */
-                    reg_resampleSourceImage_gpu(resultImage,
-                                                sourceImage,
-                                                &resultImageArray_d,
-                                                &sourceImageArray_d,
-                                                &positionFieldImageArray_d,
-                                                &targetMask_d,
-                                                activeVoxelNumber,
-                                                param->sourcePaddingValue);
-				    /* The result image is transfered back to the host */
-				    if(cudaCommon_transferFromDeviceToNifti(resultImage, &resultImageArray_d)) return 1;
-			    }
-			    else{
+if(cudaCommon_transferFromDeviceToNifti(positionFieldImage, &positionFieldImageArray_d)) return 1;
+reg_resampleSourceImage<PrecisionTYPE>( targetImage,
+                                        sourceImage,
+                                        resultImage,
+                                        positionFieldImage,
+                                        targetMask,
+                                        1,
+                                        param->sourcePaddingValue);
+if(cudaCommon_transferNiftiToArrayOnDevice<PrecisionTYPE>(&resultImageArray_d, resultImage)) return 1;
+//                     reg_resampleSourceImage_gpu(resultImage,
+//                                                 sourceImage,
+//                                                 &resultImageArray_d,
+//                                                 &sourceImageArray_d,
+//                                                 &positionFieldImageArray_d,
+//                                                 &targetMask_d,
+//                                                 activeVoxelNumber,
+//                                                 param->sourcePaddingValue);
+                    /* The result image is transfered back to the host */
+//                     if(cudaCommon_transferFromDeviceToNifti(resultImage, &resultImageArray_d)) return 1;
+                }
+                else{
 #endif
 
                     /* generate the position field */
-				    reg_bspline<PrecisionTYPE>(	controlPointImage,
-											    targetImage,
-											    positionFieldImage,
-											    targetMask,
-											    0);
-				    /* Resample the source image */
-				    reg_resampleSourceImage<PrecisionTYPE>(	targetImage,
+                    reg_bspline<PrecisionTYPE>( controlPointImage,
+                                                targetImage,
+                                                positionFieldImage,
+                                                targetMask,
+                                                0);
+                    /* Resample the source image */
+                    reg_resampleSourceImage<PrecisionTYPE>(	targetImage,
                                                             sourceImage,
                                                             resultImage,
                                                             positionFieldImage,
                                                             targetMask,
                                                             1,
-														    param->sourcePaddingValue);
+                                                            param->sourcePaddingValue);
 
 #ifdef _USE_CUDA
 			    }
@@ -1070,7 +1079,7 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
 			    /* * NEED TO BE CHANGED */
 			    if(flag->useGPUFlag){
-				    /* both histogram are tranfered back to the device */
+				    /* histogram is tranfered back to the device */
 				    float *tempB=(float *)malloc(param->binning*(param->binning+2)*sizeof(float));
 				    for(int i=0; i<param->binning*(param->binning+2);i++){
 					    tempB[i]=(float)logJointHistogram[i];
@@ -1083,8 +1092,8 @@ int main(int argc, char **argv)
 			    if(flag->useGPUFlag){
 				    if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0 ){
 					    currentWBE = param->bendingEnergyWeight
-							    * reg_bspline_ApproxBendingEnergy_gpu(	controlPointImage,
-												    &controlPointImageArray_d);
+							    * reg_bspline_ApproxBendingEnergy_gpu(  controlPointImage,
+												                        &controlPointImageArray_d);
 					    currentValue -= currentWBE;
 				    }
 				    if(flag->jacobianWeightFlag){
@@ -1144,16 +1153,16 @@ int main(int argc, char **argv)
 								&resultGradientArray_d,
                                 activeVoxelNumber);
 				reg_getVoxelBasedNMIGradientUsingPW_gpu(targetImage,
-									resultImage,
-									&targetImageArray_d,
-									&resultImageArray_d,
-									&resultGradientArray_d,
-									&logJointHistogram_d,
-									&voxelNMIGradientArray_d,
-                                    &targetMask_d,
-                                    activeVoxelNumber,
-									entropies,
-									param->binning);
+                                                        resultImage,
+                                                        &targetImageArray_d,
+                                                        &resultImageArray_d,
+                                                        &resultGradientArray_d,
+                                                        &logJointHistogram_d,
+                                                        &voxelNMIGradientArray_d,
+                                                        &targetMask_d,
+                                                        activeVoxelNumber,
+                                                        entropies,
+                                                        param->binning);
 				reg_smoothImageForCubicSpline_gpu(  resultImage,
 									                &voxelNMIGradientArray_d,
 									                smoothingRadius);
@@ -1213,7 +1222,6 @@ int main(int argc, char **argv)
 															positionFieldImage,
 															targetMask,
 															1);
-				
 				if(flag->useSSDFlag){
 					reg_getVoxelBasedSSDGradient<PrecisionTYPE>(SSDValue,
 																targetImage,
@@ -1496,17 +1504,26 @@ int main(int argc, char **argv)
                                 &targetMask_d,
                                 activeVoxelNumber);
 					    /* Resample the source image */
-					    reg_resampleSourceImage_gpu(	resultImage,
-									    sourceImage,
-									    &resultImageArray_d,
-									    &sourceImageArray_d,
-									    &positionFieldImageArray_d,
-                                        &targetMask_d,
-                                        activeVoxelNumber,
-									    param->sourcePaddingValue);
+// 					    reg_resampleSourceImage_gpu(	resultImage,
+// 									    sourceImage,
+// 									    &resultImageArray_d,
+// 									    &sourceImageArray_d,
+// 									    &positionFieldImageArray_d,
+//                                         &targetMask_d,
+//                                         activeVoxelNumber,
+// 									    param->sourcePaddingValue);
+if(cudaCommon_transferFromDeviceToNifti(positionFieldImage, &positionFieldImageArray_d)) return 1;
+reg_resampleSourceImage<PrecisionTYPE>( targetImage,
+                                        sourceImage,
+                                        resultImage,
+                                        positionFieldImage,
+                                        targetMask,
+                                        1,
+                                        param->sourcePaddingValue);
+if(cudaCommon_transferNiftiToArrayOnDevice<PrecisionTYPE>(&resultImageArray_d, resultImage)) return 1;
 					    /* The result image is transfered back to the host */
-					    PrecisionTYPE *resultPtr=static_cast<PrecisionTYPE *>(resultImage->data);
-					    CUDA_SAFE_CALL(cudaMemcpy(resultPtr, resultImageArray_d, resultImage->nvox*sizeof(PrecisionTYPE), cudaMemcpyDeviceToHost));
+// 					    PrecisionTYPE *resultPtr=static_cast<PrecisionTYPE *>(resultImage->data);
+// 					    CUDA_SAFE_CALL(cudaMemcpy(resultPtr, resultImageArray_d, resultImage->nvox*sizeof(PrecisionTYPE), cudaMemcpyDeviceToHost));
 				    }
 				    else{
 #endif
@@ -1697,11 +1714,11 @@ int main(int argc, char **argv)
         /* OUTPUT THE RESULTS */
         /* ****************** */
 
-#ifdef _USE_CUDA
-            if(flag->useGPUFlag && param->level2Perform==param->levelNumber)
-                positionFieldImage->data = (void *)calloc(positionFieldImage->nvox, positionFieldImage->nbyper);
-            else
-#endif
+// #ifdef _USE_CUDA
+//             if(flag->useGPUFlag && param->level2Perform==param->levelNumber)
+//                 positionFieldImage->data = (void *)calloc(positionFieldImage->nvox, positionFieldImage->nbyper);
+//             else
+// #endif
                 if(param->level2Perform != param->levelNumber){
                     if(positionFieldImage->data)free(positionFieldImage->data);
                     positionFieldImage->dim[1]=positionFieldImage->nx=targetHeader->nx;
