@@ -26,7 +26,7 @@ PrecisionTYPE reg_getSSD2(	nifti_image *targetImage,
 	for(unsigned int i=0; i<targetImage->nvox;i++){
 		TargetTYPE targetValue = *targetPtr++;
 		ResultTYPE resultValue = *resultPtr++;
-		if(targetValue!=0 && resultValue!=0){
+		if(targetValue==targetValue && resultValue==resultValue){
 			SSD += (PrecisionTYPE)((targetValue-resultValue)*(targetValue-resultValue));
 		}
 	}
@@ -137,7 +137,7 @@ void reg_getVoxelBasedSSDGradient4(	PrecisionTYPE SSDValue,
 		PrecisionTYPE gradX=0;
 		PrecisionTYPE gradY=0;
 		PrecisionTYPE gradZ=0;
-		if(targetValue!=0 && resultValue!=0){
+		if(targetValue==targetValue && resultValue==resultValue){
 			PrecisionTYPE common = (PrecisionTYPE)(- 2.0 * (targetValue - resultValue));
 			gradX = (PrecisionTYPE)(common * (*spatialGradPtrX));
 			gradY = (PrecisionTYPE)(common * (*spatialGradPtrY));
