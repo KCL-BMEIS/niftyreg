@@ -67,7 +67,7 @@
 #define Block_reg_updateControlPointPosition 384                    // 08 regs - 100% occupancy
 #define Block_target_block 512  				                    // 26 regs - 100% occupancy
 #define Block_reg_FillConvolutionWindows 384                        // 04 regs - 100% occupancy
-#define Block_result_block 343                                      // 29 regs - 034% occupancy
+#define Block_result_block 343                                      // 21 regs - 034% occupancy
 
 #endif
 #endif

@@ -1595,11 +1595,11 @@ void reg_bsplineComp_correctFolding3D(  nifti_image *velocityFieldImage,
     ImageTYPE *velocityFieldImagePtrY = &velocityFieldImagePtrX[velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz];
     ImageTYPE *velocityFieldImagePtrZ = &velocityFieldImagePtrY[velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz];
 
-    for(unsigned int z=0; z<jacobianImage->nz; z++){
+    for(int z=0; z<jacobianImage->nz; z++){
         int zPre=(int)((ImageTYPE)z/gridVoxelSpacing[2]);
-        for(unsigned int y=0; y<jacobianImage->ny; y++){
+        for(int y=0; y<jacobianImage->ny; y++){
             int yPre=(int)((ImageTYPE)y/gridVoxelSpacing[1]);
-            for(unsigned int x=0; x<jacobianImage->nx; x++){
+            for(int x=0; x<jacobianImage->nx; x++){
                 int xPre=(int)((ImageTYPE)x/gridVoxelSpacing[0]);
 
                 ImageTYPE detJac = jacobianImagePtr[(z*jacobianImage->ny+y)*jacobianImage->nx+x];
