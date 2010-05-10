@@ -110,38 +110,26 @@ __global__ void _reg_freeForm_interpolatePosition(float4 *positionField)
             for(short b=0; b<4; b++){
 
                 indexXYZ = indexYZ + nodeAnte.x;
-                float nodeCoefficientA = tex1Dfetch(controlPointTexture,indexXYZ++).x;
-                float nodeCoefficientB = tex1Dfetch(controlPointTexture,indexXYZ++).x;
-                float nodeCoefficientC = tex1Dfetch(controlPointTexture,indexXYZ++).x;
-                float nodeCoefficientD = tex1Dfetch(controlPointTexture,indexXYZ).x;
+                float4 nodeCoefficientA = tex1Dfetch(controlPointTexture,indexXYZ++);
+                float4 nodeCoefficientB = tex1Dfetch(controlPointTexture,indexXYZ++);
+                float4 nodeCoefficientC = tex1Dfetch(controlPointTexture,indexXYZ++);
+                float4 nodeCoefficientD = tex1Dfetch(controlPointTexture,indexXYZ);
 
                 basis=yBasis[shareMemIndex+b];
-                tempDisplacement.x += (nodeCoefficientA * xBasis.x
-                    + nodeCoefficientB * xBasis.y
-                    + nodeCoefficientC * xBasis.z
-                    + nodeCoefficientD * xBasis.w) * basis;
+                tempDisplacement.x += (nodeCoefficientA.x * xBasis.x
+                    + nodeCoefficientB.x * xBasis.y
+                    + nodeCoefficientC.x * xBasis.z
+                    + nodeCoefficientD.x * xBasis.w) * basis;
 
-                indexXYZ = indexYZ + nodeAnte.x;
-                nodeCoefficientA = tex1Dfetch(controlPointTexture,indexXYZ++).y;
-                nodeCoefficientB = tex1Dfetch(controlPointTexture,indexXYZ++).y;
-                nodeCoefficientC = tex1Dfetch(controlPointTexture,indexXYZ++).y;
-                nodeCoefficientD = tex1Dfetch(controlPointTexture,indexXYZ).y;
+                tempDisplacement.y += (nodeCoefficientA.y * xBasis.x
+                    + nodeCoefficientB.y * xBasis.y
+                    + nodeCoefficientC.y * xBasis.z
+                    + nodeCoefficientD.y * xBasis.w) * basis;
 
-                tempDisplacement.y += (nodeCoefficientA * xBasis.x
-                    + nodeCoefficientB * xBasis.y
-                    + nodeCoefficientC * xBasis.z
-                    + nodeCoefficientD * xBasis.w) * basis;
-
-                indexXYZ = indexYZ + nodeAnte.x;
-                nodeCoefficientA = tex1Dfetch(controlPointTexture,indexXYZ++).z;
-                nodeCoefficientB = tex1Dfetch(controlPointTexture,indexXYZ++).z;
-                nodeCoefficientC = tex1Dfetch(controlPointTexture,indexXYZ++).z;
-                nodeCoefficientD = tex1Dfetch(controlPointTexture,indexXYZ).z;
-
-                tempDisplacement.z += (nodeCoefficientA * xBasis.x
-                    + nodeCoefficientB * xBasis.y
-                    + nodeCoefficientC * xBasis.z
-                    + nodeCoefficientD * xBasis.w) * basis;
+                tempDisplacement.z += (nodeCoefficientA.z * xBasis.x
+                    + nodeCoefficientB.z * xBasis.y
+                    + nodeCoefficientC.z * xBasis.z
+                    + nodeCoefficientD.z * xBasis.w) * basis;
 
                 indexYZ += controlPointImageDim.x;
             }

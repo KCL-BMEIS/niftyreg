@@ -28,7 +28,6 @@
 #ifdef _HIGH_CAPA
 	#define Block_reg_affine_deformationField 512                       // 16 regs - 100% occupancy
 	#define Block_reg_resampleSourceImage 512                           // 16 regs - 100% occupancy
-	#define Block_reg_freeForm_interpolatePosition 320                  // 23 regs - 062% occupancy
 	#define Block_reg_spline_cppComposition 320                         // 25 regs - 063% occupancy
 	#define Block_reg_getSourceImageGradient 320                        // 23 regs - 063% occupancy
 	#define Block_reg_getVoxelBasedNMIGradientUsingPW 320               // 24 regs - 063% occupancy
@@ -44,7 +43,6 @@
 #else
 	#define Block_reg_affine_deformationField 256                       // 16 regs - 067% occupancy
 	#define Block_reg_resampleSourceImage 256                           // 16 regs - 067% occupancy
-	#define Block_reg_freeForm_interpolatePosition 320                  // 23 regs - 042% occupancy
 	#define Block_reg_spline_cppComposition 320                         // 25 regs - 042% occupancy
 	#define Block_reg_getSourceImageGradient 320                        // 23 regs - 042% occupancy
 	#define Block_reg_getVoxelBasedNMIGradientUsingPW 320               // 24 regs - 042% occupancy
@@ -59,7 +57,7 @@
 	#define Block_reg_bspline_getApproxBendingEnergyGradient 384        // 19 regs - 050% occupancy
 #endif
 
-
+#define Block_reg_freeForm_interpolatePosition 256                  // 30 regs - 025% occupancy
 
 #define Block_reg_initialiseConjugateGradient 384                   // 09 regs - 100% occupancy
 #define Block_reg_GetConjugateGradient2 384                         // 10 regs - 100% occupancy
