@@ -3768,6 +3768,11 @@ void reg_bspline_jacobianDeterminantGradientApprox3D(nifti_image *splineControlP
 			} // x
 		} // y
 	} //z
+float cons=0.0f;
+for( int i = 0;i<10*(splineControlPoint->nx-2)*(splineControlPoint->ny-2)
+                            *(splineControlPoint->nz-2);i+=10)
+    cons += allInverseJacobianMatrices[i];
+printf("value %g\n", weight * cons /(splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz));
 
 	/* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 	/* The actual gradient are now computed */
@@ -3778,6 +3783,9 @@ void reg_bspline_jacobianDeterminantGradientApprox3D(nifti_image *splineControlP
 	
 	PrecisionTYPE xBasis, yBasis, zBasis, xFirst, yFirst, zFirst;
 	PrecisionTYPE basisValues[3];
+
+    PrecisionTYPE approxRatio = weight * targetImage->nvox
+        / ( splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz );
 	
 	for(int z=0;z<splineControlPoint->nz;z++){
 		for(int y=0;y<splineControlPoint->ny;y++){
@@ -3788,8 +3796,8 @@ void reg_bspline_jacobianDeterminantGradientApprox3D(nifti_image *splineControlP
 				PrecisionTYPE jacobianConstraintZ=(PrecisionTYPE)0.0;
 				
 				// Loop over all the control points in the surrounding area
-				for(int pixelZ=(int)((z-1));pixelZ<(int)((z+1)); pixelZ++){
-					if(pixelZ>-1 && pixelZ<splineControlPoint->nz){
+				for(int pixelZ=(int)((z-1));pixelZ<(int)((z+2)); pixelZ++){
+					if(pixelZ>0 && pixelZ<splineControlPoint->nz-1){
 						
 						switch(pixelZ-z){
 							case -1:
@@ -3809,8 +3817,8 @@ void reg_bspline_jacobianDeterminantGradientApprox3D(nifti_image *splineControlP
 								zFirst=(PrecisionTYPE)0.0;
 								break;
 						}
-						for(int pixelY=(int)((y-1));pixelY<(int)((y+1)); pixelY++){
-							if(pixelY>-1 && pixelY<splineControlPoint->ny){
+						for(int pixelY=(int)((y-1));pixelY<(int)((y+2)); pixelY++){
+							if(pixelY>0 && pixelY<splineControlPoint->ny-1){
 								
 								switch(pixelY-y){
 									case -1:
@@ -3830,8 +3838,8 @@ void reg_bspline_jacobianDeterminantGradientApprox3D(nifti_image *splineControlP
 										yFirst=(PrecisionTYPE)0.0;
 										break;
 								}
-								for(int pixelX=(int)((x-1));pixelX<(int)((x+1)); pixelX++){
-									if(pixelX>-1 && pixelX<splineControlPoint->nx){
+								for(int pixelX=(int)((x-1));pixelX<(int)((x+2)); pixelX++){
+									if(pixelX>0 && pixelX<splineControlPoint->nx-1){
 										
 										switch(pixelX-x){
 											case -1:
@@ -3873,15 +3881,15 @@ void reg_bspline_jacobianDeterminantGradientApprox3D(nifti_image *splineControlP
 					}// if z
 				} // z
 				// (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
-                *gradientImagePtrX++ += weight *
+                *gradientImagePtrX++ += approxRatio *
 				(reorient.m[0][0]*jacobianConstraintX +
 				 reorient.m[0][1]*jacobianConstraintY +
 				 reorient.m[0][2]*jacobianConstraintZ);
-                *gradientImagePtrY++ += weight *
+                *gradientImagePtrY++ += approxRatio *
 				(reorient.m[1][0]*jacobianConstraintX +
 				 reorient.m[1][1]*jacobianConstraintY +
 				 reorient.m[1][2]*jacobianConstraintZ);
-                *gradientImagePtrZ++ += weight *
+                *gradientImagePtrZ++ += approxRatio *
 				(reorient.m[2][0]*jacobianConstraintX +
 				 reorient.m[2][1]*jacobianConstraintY +
 				 reorient.m[2][2]*jacobianConstraintZ);
