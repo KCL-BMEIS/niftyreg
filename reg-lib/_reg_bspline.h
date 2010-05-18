@@ -22,63 +22,62 @@
 
 extern "C++" template<class PrecisionTYPE>
 void reg_bspline(	nifti_image *splineControlPoint,
-			nifti_image *targetImage,
-			nifti_image *deformationField,
-            int *mask,
-			int type
- 			);
+			        nifti_image *targetImage,
+			        nifti_image *deformationField,
+                    int *mask,
+			        int type
+                    );
 
 extern "C++" template<class PrecisionTYPE>
-PrecisionTYPE reg_bspline_bendingEnergy(	nifti_image *splineControlPoint,
-					nifti_image *targetImage,
-					int type
-					);
+PrecisionTYPE reg_bspline_bendingEnergy(nifti_image *splineControlPoint,
+					                    nifti_image *targetImage,
+					                    int type
+					                    );
 extern "C++" template<class PrecisionTYPE>
 void reg_bspline_bendingEnergyGradient(	nifti_image *splineControlPoint,
-									  nifti_image *targetImage,
-									  nifti_image *gradientImage,
-									  float weight
-									  );
+									    nifti_image *targetImage,
+									    nifti_image *gradientImage,
+									    float weight
+									    );
 extern "C++" template<class PrecisionTYPE>
-void reg_bspline_jacobianDeterminantGradient(	nifti_image *splineControlPoint,
-												nifti_image *targetImage,
-												nifti_image *gradientImage,
-												float weight,
-												bool approx
-												);
+PrecisionTYPE reg_bspline_jacobianDeterminantGradient(	nifti_image *splineControlPoint,
+												        nifti_image *targetImage,
+												        nifti_image *gradientImage,
+												        float weight,
+                                                        bool approx,
+                                                        bool correctFoldingOnly
+												        );
 
 extern "C++" template<class PrecisionTYPE>
 PrecisionTYPE reg_bspline_jacobian(	nifti_image *splineControlPoint,
-								  nifti_image *targetImage,
-								  int type
-								  );
+								    nifti_image *targetImage,
+								    int type
+								    );
 
 extern "C++"
 void reg_bspline_GetJacobianMap(nifti_image *splineControlPoint,
 							    nifti_image *jacobianImage
-							   );
+							    );
 
 extern "C++"
 void reg_bspline_GetJacobianMatrix(	nifti_image *splineControlPoint,
 									nifti_image *jacobianImage
-							   );
+							        );
 
 extern "C++"
 void reg_voxelCentric2NodeCentric(	nifti_image *nodeImage,
 									nifti_image *voxelImage,
 									float weight
-								  );
+								    );
 
 extern "C++"
-void reg_bspline_refineControlPointGrid(	nifti_image *targetImage,
-					nifti_image *splineControlPoint);
+void reg_bspline_refineControlPointGrid(nifti_image *targetImage,
+					                    nifti_image *splineControlPoint
+                                        );
 
 extern "C++"
 int reg_bspline_initialiseControlPointGridWithAffine(	mat44 *affineTransformation,
-							nifti_image *controlPointImage
-						      );
-
-void reg_bspline_correctFolding(nifti_image *splineControlPoint,
-                                nifti_image *targetImage);
+							                            nifti_image *controlPointImage
+						                                );
 
 #endif
