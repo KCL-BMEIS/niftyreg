@@ -374,13 +374,8 @@ int main(int argc, char **argv)
 
 #ifdef _USE_CUDA
 	if(flag->useGPUFlag){
-		if(flag->jacobianWeightFlag){
-			printf("\n[WARNING] The gpu-based Jacobian determinant log penalty term has not been implemented yet [/WARNING]\n");
-            printf("[WARNING] >>> Exit <<< [/WARNING]\n");
-			return 1;
-		}
-		if(!flag->bendingEnergyFlag){
-			printf("\n[WARNING] The gpu-based bending-energy is only approximated [/WARNING]\n");
+		if(flag->bendingEnergyFlag && flag->appBendingEnergyFlag==0){
+			printf("\n[WARNING] The gpu-based bending-energy penlaty term is only approximated [/WARNING]\n");
 			flag->appBendingEnergyFlag=1;
 		}
 	}
@@ -433,7 +428,7 @@ int main(int argc, char **argv)
         }
 #endif
     }
-	
+
 #ifdef _USE_CUDA 
 	/* Check the SSD for GPU*/
 	if(flag->useGPUFlag){
@@ -456,30 +451,70 @@ int main(int argc, char **argv)
 	    }
     }
 
+    /* read the input control point image and set the output control point image*/
+    nifti_image *controlPointImage=NULL;
+    if(flag->inputCPPFlag){
+        controlPointImage = nifti_image_read(param->inputCPPName,true);
+        if(controlPointImage == NULL){
+            fprintf(stderr,"* ERROR Error when reading the input cpp image: %s\n",param->inputCPPName);
+            return 1;
+        }
+    }
+    if(!flag->outputCPPFlag) param->outputCPPName=(char *)"outputCPP.nii";
+
 #ifdef _USE_CUDA
-    // Compute the ratio if the registration is not performed using
-    // the full resolution image
+    /*  Compute the ratio if the registration is not performed using
+        the full resolution image */
     float ratioFullRes = 1.0f;
     if(param->level2Perform != param->levelNumber){
         ratioFullRes= 1.0f/powf(8.0f,(float)(param->levelNumber-param->level2Perform));
     }
-	float memoryNeeded=0;
-    memoryNeeded += 2 * targetHeader->nvox * sizeof(float) * ratioFullRes; // target and result images
-    memoryNeeded += targetHeader->nvox * sizeof(bool) * ratioFullRes; // target mask
-	memoryNeeded += sourceHeader->nvox * sizeof(float) * ratioFullRes; // source image
-	memoryNeeded += targetHeader->nvox * sizeof(float4) * ratioFullRes; // position field
-	memoryNeeded += targetHeader->nvox * sizeof(float4) * ratioFullRes; // spatial gradient
-	memoryNeeded += 2 * targetHeader->nvox * sizeof(float4) * ratioFullRes; // nmi gradient + smoothed
-	memoryNeeded += 4 * (ceil(targetHeader->nx*targetHeader->dx/param->spacing[0])+4) *
-			(ceil(targetHeader->nx*targetHeader->dy/param->spacing[1])+4) *
-			(ceil(targetHeader->nx*targetHeader->dz/param->spacing[2])+4) *
-			sizeof(float4);// control point image + cpp gradient image + 2 conjugate array
-	memoryNeeded += param->binning*(param->binning+2)*sizeof(double); // joint histo
-		
-	if(flag->memoryFlag){
-		printf("The approximate amount of gpu memory require to run this registration is %g Mo\n", memoryNeeded / 1000000.0);
-		return 0;
-	}
+
+    /* The final control point dimension is evaluated */
+    float cpDimension[3];
+    if(controlPointImage == NULL){
+        cpDimension[0]=ceil(targetHeader->nx*targetHeader->dx/param->spacing[0])+5;
+        cpDimension[1]=ceil(targetHeader->ny*targetHeader->dy/param->spacing[1])+5;
+        cpDimension[2]=ceil(targetHeader->nz*targetHeader->dz/param->spacing[2])+5;
+    }
+    else{
+        cpDimension[0]=controlPointImage->nx*param->level2Perform;
+        cpDimension[1]=controlPointImage->ny*param->level2Perform;
+        cpDimension[2]=controlPointImage->nz*param->level2Perform;
+    }
+
+    /* The allocated memory size is summed */
+    float memoryNeeded=0;
+    // target and result images
+    memoryNeeded += 2 * targetHeader->nvox * sizeof(float) * ratioFullRes;
+    // target mask
+    memoryNeeded += targetHeader->nvox * sizeof(bool) * ratioFullRes;
+    // source image
+    memoryNeeded += sourceHeader->nvox * sizeof(float) * ratioFullRes;
+    // position field
+    memoryNeeded += targetHeader->nvox * sizeof(float4) * ratioFullRes;
+    // spatial gradient
+    memoryNeeded += targetHeader->nvox * sizeof(float4) * ratioFullRes;
+    // nmi gradient + smoothed
+    memoryNeeded += 2 * targetHeader->nvox * sizeof(float4) * ratioFullRes;
+    // control point image + cpp gradient image + 2 conjugate array
+    memoryNeeded += 4 * cpDimension[0] * cpDimension[1] *  cpDimension[2] * sizeof(float4);
+    // Jacobian gradient temporary array
+    if(flag->jacobianWeightFlag){
+        if(flag->appJacobianFlag)
+            memoryNeeded += 10 * (cpDimension[0]-2) * (cpDimension[1]-2) *  (cpDimension[2]-2) * sizeof(float);
+        else memoryNeeded += 10 * targetHeader->nvox * ratioFullRes * sizeof(float);
+    }
+    // joint histo
+    memoryNeeded += param->binning*(param->binning+2)*sizeof(double);
+
+    if(flag->memoryFlag){
+        printf("The approximate amount of gpu memory require to run this registration is %g MB\n", memoryNeeded / 1000000.0);
+        nifti_image_free(targetHeader);
+        nifti_image_free(sourceHeader);
+        nifti_image_free(controlPointImage);
+        return 0;
+    }
 #endif
 
 	/* Read the affine tranformation is defined otherwise assign it to identity */
@@ -510,18 +545,6 @@ int main(int argc, char **argv)
 #endif
 	}
 
-	/* read the input control point image and set the output control point image*/
-	nifti_image *controlPointImage=NULL;
-	if(flag->inputCPPFlag){
-		controlPointImage = nifti_image_read(param->inputCPPName,true);
-		if(controlPointImage == NULL){
-			fprintf(stderr,"* ERROR Error when reading the input cpp image: %s\n",param->inputCPPName);
-			return 1;
-		}
-	}
-
-    if(!flag->outputCPPFlag) param->outputCPPName=(char *)"outputCPP.nii";
-
     /* read and binarise the target mask image */
     nifti_image *targetMaskImage=NULL;
     if(flag->targetMaskFlag){
@@ -539,7 +562,6 @@ int main(int argc, char **argv)
         }
         reg_tool_binarise_image(targetMaskImage);
     }
-
 
 	/* ****************** */
 	/* DISPLAY THE REGISTRATION PARAMETERS */
@@ -1004,135 +1026,147 @@ int main(int argc, char **argv)
             PrecisionTYPE SSDValue=0.0;
             double currentWBE=0.0f;
             double currentWJac=0.0f;
-            unsigned short negCorrection=0;
 
-            do{
 
+#ifdef _USE_CUDA
+            if(flag->useGPUFlag){
+                reg_bspline_gpu(controlPointImage,
+                                targetImage,
+                                &controlPointImageArray_d,
+                                &positionFieldImageArray_d,
+                                &targetMask_d,
+                                activeVoxelNumber);
+                /* Resample the source image */
+                reg_resampleSourceImage_gpu(resultImage,
+                                            sourceImage,
+                                            &resultImageArray_d,
+                                            &sourceImageArray_d,
+                                            &positionFieldImageArray_d,
+                                            &targetMask_d,
+                                            activeVoxelNumber,
+                                            param->sourcePaddingValue);
+                /* The result image is transfered back to the host */
+                if(cudaCommon_transferFromDeviceToNifti(resultImage, &resultImageArray_d)) return 1;
+            }
+            else{
+#endif
+
+                /* generate the position field */
+                reg_bspline<PrecisionTYPE>( controlPointImage,
+                                            targetImage,
+                                            positionFieldImage,
+                                            targetMask,
+                                            0);
+                /* Resample the source image */
+                reg_resampleSourceImage<PrecisionTYPE>(	targetImage,
+                                                        sourceImage,
+                                                        resultImage,
+                                                        positionFieldImage,
+                                                        targetMask,
+                                                        1,
+                                                        param->sourcePaddingValue);
+#ifdef _USE_CUDA
+			}
+#endif
+
+			if(flag->useSSDFlag){
+				SSDValue=reg_getSSD<PrecisionTYPE>(	targetImage,
+													resultImage);
+				currentValue = -(1.0-param->bendingEnergyWeight-param->jacobianWeight)*log(SSDValue+1.0);
+			}
+			else{
+				reg_getEntropies<double>(	targetImage,
+								resultImage,
+								JH_PW_APPROX,
+								param->binning,
+								probaJointHistogram,
+								logJointHistogram,
+								entropies,
+								targetMask);
+				currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight)*(entropies[0]+entropies[1])/entropies[2];
+			}
+
+#ifdef _USE_CUDA
+			/* * NEED TO BE CHANGED */
+			if(flag->useGPUFlag){
+				/* histogram is tranfered back to the device */
+				float *tempB=(float *)malloc(param->binning*(param->binning+2)*sizeof(float));
+				for(int i=0; i<param->binning*(param->binning+2);i++){
+					tempB[i]=(float)logJointHistogram[i];
+				}
+				CUDA_SAFE_CALL(cudaMemcpy(logJointHistogram_d, tempB, param->binning*(param->binning+2)*sizeof(float), cudaMemcpyHostToDevice));
+				free(tempB);
+			}
+#endif
+#ifdef _USE_CUDA
+			if(flag->useGPUFlag){
+				if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0 ){
+					currentWBE = param->bendingEnergyWeight
+							* reg_bspline_ApproxBendingEnergy_gpu(  controlPointImage,
+												                    &controlPointImageArray_d);
+				}
+                if(flag->jacobianWeightFlag && param->jacobianWeight>0){
+                    currentWJac = param->jacobianWeight
+                            * reg_bspline_ComputeJacobianPenaltyTerm_gpu(   targetImage,
+                                                                            controlPointImage,
+                                                                            &controlPointImageArray_d,
+                                                                            flag->appJacobianFlag);
+                }
+			}
+			else{
+#endif
+                if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
+                    currentWBE = param->bendingEnergyWeight
+                        * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
+                }
+                if(flag->jacobianWeightFlag && param->jacobianWeight>0){
+                    currentWJac = param->jacobianWeight
+                        * reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
+                }
+#ifdef _USE_CUDA
+			}
+#endif
+
+#ifndef NDEBUG
+			if(flag->useSSDFlag)
+				printf("[DEBUG] Initial metric value (log(SSD)): %g\n", log(SSDValue+1.0));
+			else printf("[DEBUG] Initial metric value: %g\n", (entropies[0]+entropies[1])/entropies[2]);
+			if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0) printf("[DEBUG] Initial weighted bending energy value = %g, approx[%i]\n", currentWBE, flag->appBendingEnergyFlag);
+			if(flag->jacobianWeightFlag && param->jacobianWeight>0) printf("[DEBUG] Initial weighted Jacobian log value = %g, approx[%i]\n", currentWJac, flag->appJacobianFlag);
+#endif
+
+            int initialNegCorrection=0;
+            while(currentWJac!=currentWJac && initialNegCorrection<50){
 #ifdef _USE_CUDA
                 if(flag->useGPUFlag){
-                    reg_bspline_gpu(controlPointImage,
-                                    targetImage,
-                                    &controlPointImageArray_d,
-                                    &positionFieldImageArray_d,
-                                    &targetMask_d,
-                                    activeVoxelNumber);
-                    /* Resample the source image */
-                    reg_resampleSourceImage_gpu(resultImage,
-                                                sourceImage,
-                                                &resultImageArray_d,
-                                                &sourceImageArray_d,
-                                                &positionFieldImageArray_d,
-                                                &targetMask_d,
-                                                activeVoxelNumber,
-                                                param->sourcePaddingValue);
-                    /* The result image is transfered back to the host */
-                    if(cudaCommon_transferFromDeviceToNifti(resultImage, &resultImageArray_d)) return 1;
+                    currentWJac = param->jacobianWeight *
+                        reg_bspline_correctFolding_gpu( targetImage,
+                                                        controlPointImage,
+                                                        &controlPointImageArray_d,
+                                                        flag->appJacobianFlag);
                 }
-                else{
+                else
 #endif
+                    currentWJac = param->jacobianWeight*
+                        reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>( controlPointImage,
+                                                                                targetImage,
+                                                                                nodeNMIGradientImage,
+                                                                                param->jacobianWeight,
+                                                                                0,
+                                                                                1);
+                initialNegCorrection++;
+                if(currentWJac!=currentWJac)
+                    printf("*** Final folding correction [%i/50] ***\n", initialNegCorrection);
+            }
+            iteration++;
 
-                    /* generate the position field */
-                    reg_bspline<PrecisionTYPE>( controlPointImage,
-                                                targetImage,
-                                                positionFieldImage,
-                                                targetMask,
-                                                0);
-                    /* Resample the source image */
-                    reg_resampleSourceImage<PrecisionTYPE>(	targetImage,
-                                                            sourceImage,
-                                                            resultImage,
-                                                            positionFieldImage,
-                                                            targetMask,
-                                                            1,
-                                                            param->sourcePaddingValue);
 
-#ifdef _USE_CUDA
-			    }
-#endif
+            double bestWBE = currentWBE;
+            double bestWJac = currentWJac;
+            double bestValue = currentValue - bestWBE - currentWJac;
+            if(iteration==1) printf("Initial objective function value = %g\n", bestValue);
 
-			    if(flag->useSSDFlag){
-				    SSDValue=reg_getSSD<PrecisionTYPE>(	targetImage,
-													    resultImage);
-				    currentValue = -(1.0-param->bendingEnergyWeight-param->jacobianWeight)*log(SSDValue+1.0);
-			    }
-			    else{
-				    reg_getEntropies<double>(	targetImage,
-								    resultImage,
-								    JH_PW_APPROX,
-								    param->binning,
-								    probaJointHistogram,
-								    logJointHistogram,
-								    entropies,
-								    targetMask);
-				    currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight)*(entropies[0]+entropies[1])/entropies[2];
-			    }
-
-#ifdef _USE_CUDA
-			    /* * NEED TO BE CHANGED */
-			    if(flag->useGPUFlag){
-				    /* histogram is tranfered back to the device */
-				    float *tempB=(float *)malloc(param->binning*(param->binning+2)*sizeof(float));
-				    for(int i=0; i<param->binning*(param->binning+2);i++){
-					    tempB[i]=(float)logJointHistogram[i];
-				    }
-				    CUDA_SAFE_CALL(cudaMemcpy(logJointHistogram_d, tempB, param->binning*(param->binning+2)*sizeof(float), cudaMemcpyHostToDevice));
-				    free(tempB);
-			    }
-#endif
-#ifdef _USE_CUDA
-			    if(flag->useGPUFlag){
-				    if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0 ){
-					    currentWBE = param->bendingEnergyWeight
-							    * reg_bspline_ApproxBendingEnergy_gpu(  controlPointImage,
-												                        &controlPointImageArray_d);
-					    currentValue -= currentWBE;
-				    }
-				    if(flag->jacobianWeightFlag){
-					    //TODO
-				    }
-			    }
-			    else{
-#endif
-                    if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
-                        currentWBE = param->bendingEnergyWeight
-                            * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
-                        currentValue -= currentWBE;
-                    }
-                    if(flag->jacobianWeightFlag && param->jacobianWeight>0){
-                        currentWJac = param->jacobianWeight
-                            * reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
-                        currentValue -= currentWJac;
-                    }
-#ifdef _USE_CUDA
-			    }
-#endif
-
-#ifndef NDEBUG
-			    if(flag->useSSDFlag)
-				    printf("[DEBUG] Initial metric value (log(SSD)): %g\n", log(SSDValue+1.0));
-			    else printf("[DEBUG] Initial metric value: %g\n", (entropies[0]+entropies[1])/entropies[2]);
-			    if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0) printf("[DEBUG] Initial weighted bending energy value = %g, approx[%i]\n", currentWBE, flag->appBendingEnergyFlag);
-			    if(flag->jacobianWeightFlag && param->jacobianWeight>0) printf("[DEBUG] Initial weighted Jacobian log value = %g, approx[%i]\n", currentWJac, flag->appJacobianFlag);
-#endif
-
-                if(currentWJac!=currentWJac){
-#ifndef NDEBUG
-                    printf("[DEBUG] ********* Initial folding correction *********\n\n");
-#endif
-                    reg_bspline_correctFolding( controlPointImage,
-                                                resultImage);
-                }
-                iteration++;
-                negCorrection++;
-
-            }while(currentWJac!=currentWJac  && negCorrection<10);
-
-			double bestValue = currentValue;
-			double bestWBE = currentWBE;
-			double bestWJac = currentWJac;
-			if(iteration==1) printf("Initial objective function value = %g\n", currentValue);
-
-			float maxLength;
+            float maxLength;
 
 #ifdef _USE_CUDA
 			if(flag->useGPUFlag){
@@ -1181,8 +1215,13 @@ int main(int argc, char **argv)
 											                    &nodeNMIGradientArray_d,
 											                    param->bendingEnergyWeight);
 				}
-				if(flag->jlGradFlag && flag->jacobianWeightFlag){
-					//TODO
+				if(flag->jlGradFlag && flag->jacobianWeightFlag>0){
+					reg_bspline_ComputeJacobianGradient_gpu(targetImage,
+                                                            controlPointImage,
+                                                            &controlPointImageArray_d,
+                                                            &nodeNMIGradientArray_d,
+                                                            param->jacobianWeight,
+                                                            flag->appJacobianFlag);
 				}
 				/* The conjugate gradient is computed */
 				if(!flag->noConjugateGradient){
@@ -1292,7 +1331,8 @@ int main(int argc, char **argv)
                                                                             targetImage,
                                                                             nodeNMIGradientImage,
                                                                             param->jacobianWeight,
-                                                                            flag->appJacobianFlag);
+                                                                            flag->appJacobianFlag,
+                                                                            0);
 				}
 
 				/* The conjugate gradient is computed */
@@ -1483,124 +1523,144 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
                 }
 #endif
-                negCorrection=0;
-                do{
-#ifdef _USE_CUDA
-                    if(flag->useGPUFlag){
-					    /* generate the position field */
-					    reg_bspline_gpu(controlPointImage,
-							    targetImage,
-							    &controlPointImageArray_d,
-							    &positionFieldImageArray_d,
-                                &targetMask_d,
-                                activeVoxelNumber);
-					    /* Resample the source image */
-                        reg_resampleSourceImage_gpu(	resultImage,
-				                        sourceImage,
-				                        &resultImageArray_d,
-				                        &sourceImageArray_d,
-				                        &positionFieldImageArray_d,
-                                        &targetMask_d,
-                                        activeVoxelNumber,
-				                        param->sourcePaddingValue);
-					    /* The result image is transfered back to the host */
-                        if(cudaCommon_transferFromDeviceToNifti(resultImage, &resultImageArray_d)) return 1;
-				    }
-				    else{
-#endif
-					    reg_bspline<PrecisionTYPE>(	controlPointImage,
-											        targetImage,
-											        positionFieldImage,
-											        targetMask,
-											        0);
-
-					    /* Resample the source image */
-					    reg_resampleSourceImage<PrecisionTYPE>(	targetImage,
-										                        sourceImage,
-										                        resultImage,
-										                        positionFieldImage,
-                                                                NULL,
-										                        1,
-										                        param->sourcePaddingValue);
-#ifdef _USE_CUDA
-				    }
-#endif
-				    /* Computation of the Metric Value */
-				    if(flag->useSSDFlag){
-					    SSDValue=reg_getSSD<PrecisionTYPE>(	targetImage,
-														    resultImage);
-					    currentValue = -(1.0-param->bendingEnergyWeight-param->jacobianWeight)*log(SSDValue+1.0);
-				    }
-				    else{
-					    reg_getEntropies<double>(	targetImage,
-											        resultImage,
-											        JH_PW_APPROX,
-											        param->binning,
-											        probaJointHistogram,
-											        logJointHistogram,
-											        entropies,
-											        targetMask);
-					    currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight)*(entropies[0]+entropies[1])/entropies[2];
-				    }
-#ifndef NDEBUG
-                    printf("[DEBUG] [%i] Metric value: %g\n",
-                    iteration, (entropies[0]+entropies[1])/entropies[2]);
-#endif
 
 #ifdef _USE_CUDA
-				    if(flag->useGPUFlag){
-					    if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
-						    currentWBE = param->bendingEnergyWeight
-								    * reg_bspline_ApproxBendingEnergy_gpu(	controlPointImage,
-													    &controlPointImageArray_d);
-						    currentValue -= currentWBE;
+                if(flag->useGPUFlag){
+					/* generate the position field */
+					reg_bspline_gpu(controlPointImage,
+							targetImage,
+							&controlPointImageArray_d,
+							&positionFieldImageArray_d,
+                            &targetMask_d,
+                            activeVoxelNumber);
+					/* Resample the source image */
+                    reg_resampleSourceImage_gpu(	resultImage,
+				                    sourceImage,
+				                    &resultImageArray_d,
+				                    &sourceImageArray_d,
+				                    &positionFieldImageArray_d,
+                                    &targetMask_d,
+                                    activeVoxelNumber,
+				                    param->sourcePaddingValue);
+					/* The result image is transfered back to the host */
+                    if(cudaCommon_transferFromDeviceToNifti(resultImage, &resultImageArray_d)) return 1;
+				}
+				else{
+#endif
+					reg_bspline<PrecisionTYPE>(	controlPointImage,
+											    targetImage,
+											    positionFieldImage,
+											    targetMask,
+											    0);
+
+					/* Resample the source image */
+					reg_resampleSourceImage<PrecisionTYPE>(	targetImage,
+										                    sourceImage,
+										                    resultImage,
+										                    positionFieldImage,
+                                                            NULL,
+										                    1,
+										                    param->sourcePaddingValue);
+#ifdef _USE_CUDA
+				}
+#endif
+				/* Computation of the Metric Value */
+				if(flag->useSSDFlag){
+					SSDValue=reg_getSSD<PrecisionTYPE>(	targetImage,
+														resultImage);
+					currentValue = -(1.0-param->bendingEnergyWeight-param->jacobianWeight)*log(SSDValue+1.0);
+				}
+				else{
+					reg_getEntropies<double>(	targetImage,
+											    resultImage,
+											    JH_PW_APPROX,
+											    param->binning,
+											    probaJointHistogram,
+											    logJointHistogram,
+											    entropies,
+											    targetMask);
+					currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight)*(entropies[0]+entropies[1])/entropies[2];
+				}
 #ifndef NDEBUG
-                            printf("[DEBUG] [%i] Weighted bending energy value = %g, approx[%i]\n",
-                                iteration, currentWBE, flag->appBendingEnergyFlag);
+                printf("[DEBUG] [%i] Metric value: %g\n",
+                iteration, (entropies[0]+entropies[1])/entropies[2]);
 #endif
-					    }
-					    if(flag->jacobianWeightFlag){
-						    //TODO
-					    }
-				    }
-				    else{
-#endif
-					    if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
-                            currentWBE = param->bendingEnergyWeight
-                                    * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
-						    currentValue -= currentWBE;
+
+#ifdef _USE_CUDA
+				if(flag->useGPUFlag){
+					if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
+						currentWBE = param->bendingEnergyWeight
+								* reg_bspline_ApproxBendingEnergy_gpu(	controlPointImage,
+													&controlPointImageArray_d);
 #ifndef NDEBUG
-                            printf("[DEBUG] [%i] Weighted bending energy value = %g, approx[%i]\n",
-                                iteration, currentWBE, flag->appBendingEnergyFlag);
+                        printf("[DEBUG] [%i] Weighted bending energy value = %g, approx[%i]\n",
+                            iteration, currentWBE, flag->appBendingEnergyFlag);
 #endif
-					    }
-					    if(flag->jacobianWeightFlag && param->jacobianWeight>0){
-						    currentWJac = param->jacobianWeight
-							    * reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
-						    currentValue -= currentWJac;
-					    }
+					}
+					if(flag->jacobianWeightFlag && param->jacobianWeight>0){
+                        currentWJac = param->jacobianWeight
+                            * reg_bspline_ComputeJacobianPenaltyTerm_gpu(   targetImage,
+                                                                            controlPointImage,
+                                                                            &controlPointImageArray_d,
+                                                                            flag->appJacobianFlag);
 #ifndef NDEBUG
                         printf("[DEBUG] [%i] Weighted Jacobian log value = %g, approx[%i]\n",
                             iteration, currentWJac, flag->appJacobianFlag);
 #endif
-
-                        if(currentWJac!=currentWJac){
-#ifndef NDEBUG
-                            printf("[DEBUG] ********* Folding correction *********\n\n");
+					}
+				}
+				else{
 #endif
-                            reg_bspline_correctFolding( controlPointImage,
-                                                        resultImage);
-                        }
+					if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
+                        currentWBE = param->bendingEnergyWeight
+                                * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
+#ifndef NDEBUG
+                        printf("[DEBUG] [%i] Weighted bending energy value = %g, approx[%i]\n",
+                            iteration, currentWBE, flag->appBendingEnergyFlag);
+#endif
+					}
+					if(flag->jacobianWeightFlag && param->jacobianWeight>0){
+						currentWJac = param->jacobianWeight
+							* reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
+#ifndef NDEBUG
+                        printf("[DEBUG] [%i] Weighted Jacobian log value = %g, approx[%i]\n",
+                            iteration, currentWJac, flag->appJacobianFlag);
+#endif
+                    }
+
 #ifdef _USE_CUDA
-				    }
+				}
 #endif
+                int negCorrection=0;
+                while(currentWJac!=currentWJac && negCorrection<5){
+#ifndef NDEBUG
+                    printf("[DEBUG] ********* Folding correction *********\n");
+#endif
+#ifdef _USE_CUDA
+                    if(flag->useGPUFlag){
+                        currentWJac = param->jacobianWeight*
+                            reg_bspline_correctFolding_gpu( targetImage,
+                                                            controlPointImage,
+                                                            &controlPointImageArray_d,
+                                                            flag->appJacobianFlag);
+                    }
+                    else
+#endif
+                        currentWJac = param->jacobianWeight*
+                        reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>( controlPointImage,
+                                                                                targetImage,
+                                                                                nodeNMIGradientImage,
+                                                                                param->jacobianWeight,
+                                                                                flag->appJacobianFlag,
+                                                                                1);
                     negCorrection++;
-                    iteration++;
+                }
+                iteration++;
 
-                }while(currentWJac!=currentWJac && negCorrection<5);
+                currentValue -= currentWBE + currentWJac;
 
 #ifndef NDEBUG
-				printf("[DEBUG] [%i] Current objective function value: %g\n", iteration, currentValue); 
+				printf("[DEBUG] [%i] Current objective function value: %g\n", iteration, currentValue);
 #endif
                 lineIteration++;
 	
@@ -1647,7 +1707,37 @@ int main(int argc, char **argv)
 			if(flag->jacobianWeightFlag && param->jacobianWeight>0) printf(" | wJacLog=%g", bestWJac);
 			printf("\n");
 		} // while(iteration<param->maxIteration && currentSize>smallestSize){
-	
+
+        /* The deformation model is unfolded if the Jacobian
+            determinant-based penalty term is used */
+        if(flag->jacobianWeightFlag && param->jacobianWeight>0){
+            int finalNegCorrection=0;
+            PrecisionTYPE finalWJac;
+            do{
+#ifdef _USE_CUDA
+                if(flag->useGPUFlag){
+                    finalWJac = param->jacobianWeight *
+                        reg_bspline_correctFolding_gpu( targetImage,
+                                                        controlPointImage,
+                                                        &controlPointImageArray_d,
+                                                        flag->appJacobianFlag);
+                }
+                else
+#endif
+                    finalWJac = param->jacobianWeight*
+                        reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>( controlPointImage,
+                                                                                targetImage,
+                                                                                nodeNMIGradientImage,
+                                                                                param->jacobianWeight,
+                                                                                0,
+                                                                                1);
+                finalNegCorrection++;
+                if(finalWJac!=finalWJac)
+                    printf("*** Final folding correction [%i/50] ***\n", finalNegCorrection);
+            }
+            while(finalWJac!=finalWJac && finalNegCorrection<50);
+        }
+
         free(targetMask);
 		free(entropies);
 		free(probaJointHistogram);
@@ -1690,10 +1780,11 @@ int main(int argc, char **argv)
 
         nifti_image_free( resultImage );
 
-        if(level==(param->level2Perform-1)){
+
         /* ****************** */
         /* OUTPUT THE RESULTS */
         /* ****************** */
+        if(level==(param->level2Perform-1)){
 
 #ifdef _USE_CUDA
             if(flag->useGPUFlag && param->level2Perform==param->levelNumber)

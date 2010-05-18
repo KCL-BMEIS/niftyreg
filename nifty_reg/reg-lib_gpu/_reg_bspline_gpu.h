@@ -24,7 +24,13 @@ void reg_bspline_gpu(   nifti_image *controlPointImage,
 
 extern "C++"
 float reg_bspline_ApproxBendingEnergy_gpu(	nifti_image *controlPointImage,
-						float4 **controlPointImageArray_d);
+                                            float4 **controlPointImageArray_d);
+
+extern "C++"
+float reg_bspline_ComputeJacobianPenaltyTerm_gpu(   nifti_image *targetImage,
+                                                    nifti_image *controlPointImage,
+                                                    float4 **controlPointImageArray_d,
+                                                    bool approximate);
 
 extern "C++"
 void reg_bspline_ApproxBendingEnergyGradient_gpu(   nifti_image *targetImage,
@@ -34,10 +40,25 @@ void reg_bspline_ApproxBendingEnergyGradient_gpu(   nifti_image *targetImage,
 							                        float bendingEnergyWeight);
 
 extern "C++"
+void reg_bspline_ComputeJacobianGradient_gpu(   nifti_image *targetImage,
+                                                nifti_image *controlPointImage,
+                                                float4 **controlPointImageArray_d,
+                                                float4 **nodeNMIGradientArray_d,
+                                                float jacobianWeight,
+                                                bool appJacobianFlag);
+
+extern "C++"
+float reg_bspline_correctFolding_gpu(   nifti_image *targetImage,
+                                        nifti_image *controlPointImage,
+                                        float4 **controlPointImageArray_d,
+                                        bool approx);
+
+extern "C++"
 void reg_spline_cppComposition_gpu( nifti_image *toUpdate,
                                     nifti_image *toCompose,
                                     float4 **toUpdateArray_d,
                                     float4 **toComposeArray_d,
                                     float ratio,
                                     bool type);
+
 #endif
