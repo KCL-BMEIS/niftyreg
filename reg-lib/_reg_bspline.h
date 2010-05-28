@@ -40,13 +40,12 @@ void reg_bspline_bendingEnergyGradient(	nifti_image *splineControlPoint,
 									    float weight
 									    );
 extern "C++" template<class PrecisionTYPE>
-PrecisionTYPE reg_bspline_jacobianDeterminantGradient(	nifti_image *splineControlPoint,
-												        nifti_image *targetImage,
-												        nifti_image *gradientImage,
-												        float weight,
-                                                        bool approx,
-                                                        bool correctFoldingOnly
-												        );
+void reg_bspline_jacobianDeterminantGradient(	nifti_image *splineControlPoint,
+                                                nifti_image *targetImage,
+                                                nifti_image *gradientImage,
+                                                float weight,
+                                                bool approx
+                                                );
 
 extern "C++" template<class PrecisionTYPE>
 PrecisionTYPE reg_bspline_jacobian(	nifti_image *splineControlPoint,
@@ -80,4 +79,9 @@ int reg_bspline_initialiseControlPointGridWithAffine(	mat44 *affineTransformatio
 							                            nifti_image *controlPointImage
 						                                );
 
+
+extern "C++" template<class PrecisionTYPE>
+PrecisionTYPE reg_bspline_correctFolding(	nifti_image *splineControlPoint,
+                                            nifti_image *targetImage,
+                                            bool approx);
 #endif
