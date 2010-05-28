@@ -48,6 +48,8 @@
 #define JH_PARZEN_WIN 1
 #define JH_PW_APPROX 2
 
+#define FOLDING_CORRECTION_STEP 50
+
 typedef struct{
 	char *targetImageName;
 	char *sourceImageName;
@@ -670,7 +672,7 @@ int main(int argc, char **argv)
             }
 
 			for(int l=level; l<param->levelNumber-1; l++){
-                int ratio = (int)powf(2,param->levelNumber-param->levelNumber+l+1);
+                int ratio = (int)powf(2,l+1);
 
                 bool sourceDownsampleAxis[8]={true,true,true,true,true,true,true,true};
                 if((sourceHeader->nx/ratio) < 32) sourceDownsampleAxis[1]=false;
@@ -791,6 +793,7 @@ int main(int argc, char **argv)
         originIndex[2] = 0.0f;
         if(targetImage->nz>1) originIndex[2] = -1.0f;
         reg_mat44_mul(&(controlPointImage->qto_xyz), originIndex, originReal);
+        if(controlPointImage->sform_code==0) controlPointImage->sform_code=1;
         controlPointImage->qto_xyz.m[0][3] = controlPointImage->qoffset_x = originReal[0];
         controlPointImage->qto_xyz.m[1][3] = controlPointImage->qoffset_y = originReal[1];
         controlPointImage->qto_xyz.m[2][3] = controlPointImage->qoffset_z = originReal[2];
@@ -836,6 +839,13 @@ int main(int argc, char **argv)
             sourceMatrix_xyz = &(sourceImage->sto_xyz);
         else sourceMatrix_xyz = &(sourceImage->qto_xyz);
 
+        mat33 reorient_NMI_gradient;
+        for(unsigned int i=0; i<3; i++){
+            for(unsigned int  j=0; j<3; j++){
+                reorient_NMI_gradient.m[i][j] = sourceMatrix_xyz->m[i][j];
+            }
+        }
+
         /* allocate the deformation Field image */
         nifti_image *positionFieldImage = nifti_copy_nim_info(targetImage);
         positionFieldImage->dim[0]=positionFieldImage->ndim=5;
@@ -870,7 +880,7 @@ int main(int argc, char **argv)
         }
 		else
 #endif
-			resultImage->data = (void *)calloc(resultImage->nvox, resultImage->nbyper);
+            resultImage->data = (void *)calloc(resultImage->nvox, resultImage->nbyper);
 
 		printf("Current level %i / %i\n", level+1, param->levelNumber);
 		printf("Target image size: \t%ix%ix%i voxels\t%gx%gx%g mm\n",
@@ -887,12 +897,7 @@ int main(int argc, char **argv)
 		reg_mat44_disp(sourceMatrix_xyz, (char *)"[DEBUG] Source image matrix");
 		reg_mat44_disp(cppMatrix_xyz, (char *)"[DEBUG] Control point image matrix");
 #endif
-		printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-
-//         nifti_set_filenames(targetImage, "tar.nii.gz", 0, 0);
-//         nifti_set_filenames(sourceImage, "sou.nii.gz", 0, 0);
-//         nifti_image_write(targetImage);
-//         nifti_image_write(sourceImage);
+        printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 
 		float maxStepSize = (targetImage->dx>targetImage->dy)?targetImage->dx:targetImage->dy;
 		maxStepSize = (targetImage->dz>maxStepSize)?targetImage->dz:maxStepSize;
@@ -1023,9 +1028,9 @@ int main(int argc, char **argv)
         while(iteration<param->maxIteration && currentSize>smallestSize){
 
             double currentValue=0.0;
-            PrecisionTYPE SSDValue=0.0;
             double currentWBE=0.0f;
             double currentWJac=0.0f;
+            PrecisionTYPE SSDValue=0.0;
 
 
 #ifdef _USE_CUDA
@@ -1068,14 +1073,13 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
 			}
 #endif
-
 			if(flag->useSSDFlag){
-				SSDValue=reg_getSSD<PrecisionTYPE>(	targetImage,
-													resultImage);
-				currentValue = -(1.0-param->bendingEnergyWeight-param->jacobianWeight)*log(SSDValue+1.0);
+                currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight) *
+                    reg_getSSD<PrecisionTYPE>(	targetImage,
+					        					resultImage);
 			}
 			else{
-				reg_getEntropies<double>(	targetImage,
+                reg_getEntropies<double>(	targetImage,
 								resultImage,
 								JH_PW_APPROX,
 								param->binning,
@@ -1136,7 +1140,7 @@ int main(int argc, char **argv)
 #endif
 
             int initialNegCorrection=0;
-            while(currentWJac!=currentWJac && initialNegCorrection<50){
+            while(currentWJac!=currentWJac && initialNegCorrection<FOLDING_CORRECTION_STEP && iteration==0){
 #ifdef _USE_CUDA
                 if(flag->useGPUFlag){
                     currentWJac = param->jacobianWeight *
@@ -1148,15 +1152,16 @@ int main(int argc, char **argv)
                 else
 #endif
                     currentWJac = param->jacobianWeight*
-                        reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>( controlPointImage,
-                                                                                targetImage,
-                                                                                nodeNMIGradientImage,
-                                                                                param->jacobianWeight,
-                                                                                0,
-                                                                                1);
+                          reg_bspline_correctFolding<PrecisionTYPE>(controlPointImage,
+                                                                    targetImage,
+                                                                    0); // No approximation is done
                 initialNegCorrection++;
                 if(currentWJac!=currentWJac)
-                    printf("*** Final folding correction [%i/50] ***\n", initialNegCorrection);
+                    printf("*** Initial folding correction [%i/%i] ***\n",
+                       initialNegCorrection, FOLDING_CORRECTION_STEP);
+                else{
+                    memcpy(bestControlPointPosition,controlPointImage->data,controlPointImage->nvox*controlPointImage->nbyper);
+                }
             }
             iteration++;
 
@@ -1260,7 +1265,7 @@ int main(int argc, char **argv)
 																voxelNMIGradientImage);
 				}
 				else{
-					reg_getVoxelBasedNMIGradientUsingPW<double>(targetImage,
+                    reg_getVoxelBasedNMIGradientUsingPW<double>(targetImage,
 																resultImage,
 																JH_PW_APPROX,
 																resultGradientImage,
@@ -1298,19 +1303,18 @@ int main(int argc, char **argv)
 	                PrecisionTYPE newGradientValueX, newGradientValueY, newGradientValueZ;
 	                for(int i=0; i<controlPointImage->nx*controlPointImage->ny*controlPointImage->nz; i++){
 
-		                newGradientValueX = 	*gradientValuesX * sourceMatrix_xyz->m[0][0] +
-					                *gradientValuesY * sourceMatrix_xyz->m[0][1] +
-					                *gradientValuesZ * sourceMatrix_xyz->m[0][2];
-		                newGradientValueY = 	*gradientValuesX * sourceMatrix_xyz->m[1][0] +
-					                *gradientValuesY * sourceMatrix_xyz->m[1][1] +
-					                *gradientValuesZ * sourceMatrix_xyz->m[1][2];
-		                newGradientValueZ = 	*gradientValuesX * sourceMatrix_xyz->m[2][0] +
-					                *gradientValuesY * sourceMatrix_xyz->m[2][1] +
-					                *gradientValuesZ * sourceMatrix_xyz->m[2][2];
-
-		                *gradientValuesX++ = newGradientValueX;
-		                *gradientValuesY++ = newGradientValueY;
-		                *gradientValuesZ++ = newGradientValueZ;
+                        newGradientValueX = *gradientValuesX * reorient_NMI_gradient.m[0][0] +
+                                            *gradientValuesY * reorient_NMI_gradient.m[0][1] +
+                                            *gradientValuesZ * reorient_NMI_gradient.m[0][2];
+                        newGradientValueY = *gradientValuesX * reorient_NMI_gradient.m[1][0] +
+                                            *gradientValuesY * reorient_NMI_gradient.m[1][1] +
+                                            *gradientValuesZ * reorient_NMI_gradient.m[1][2];
+                        newGradientValueZ = *gradientValuesX * reorient_NMI_gradient.m[2][0] +
+                                            *gradientValuesY * reorient_NMI_gradient.m[2][1] +
+                                            *gradientValuesZ * reorient_NMI_gradient.m[2][2];
+                        *gradientValuesX++ = newGradientValueX;
+                        *gradientValuesY++ = newGradientValueY;
+                        *gradientValuesZ++ = newGradientValueZ;
 	                }
                 }
                 if(flag->gradientSmoothingFlag){
@@ -1331,8 +1335,7 @@ int main(int argc, char **argv)
                                                                             targetImage,
                                                                             nodeNMIGradientImage,
                                                                             param->jacobianWeight,
-                                                                            flag->appJacobianFlag,
-                                                                            0);
+                                                                            flag->appJacobianFlag);
 				}
 
 				/* The conjugate gradient is computed */
@@ -1568,10 +1571,10 @@ int main(int argc, char **argv)
 				if(flag->useSSDFlag){
 					SSDValue=reg_getSSD<PrecisionTYPE>(	targetImage,
 														resultImage);
-					currentValue = -(1.0-param->bendingEnergyWeight-param->jacobianWeight)*log(SSDValue+1.0);
+					currentValue = -(1.0-param->bendingEnergyWeight-param->jacobianWeight)*SSDValue+1.0;
 				}
 				else{
-					reg_getEntropies<double>(	targetImage,
+                    reg_getEntropies<double>(	targetImage,
 											    resultImage,
 											    JH_PW_APPROX,
 											    param->binning,
@@ -1647,12 +1650,9 @@ int main(int argc, char **argv)
                     else
 #endif
                         currentWJac = param->jacobianWeight*
-                        reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>( controlPointImage,
-                                                                                targetImage,
-                                                                                nodeNMIGradientImage,
-                                                                                param->jacobianWeight,
-                                                                                flag->appJacobianFlag,
-                                                                                1);
+                            reg_bspline_correctFolding<PrecisionTYPE>(  controlPointImage,
+                                                                        targetImage,
+                                                                        flag->appJacobianFlag);
                     negCorrection++;
                 }
                 iteration++;
@@ -1724,20 +1724,28 @@ int main(int argc, char **argv)
                 }
                 else
 #endif
-                    finalWJac = param->jacobianWeight*
-                        reg_bspline_jacobianDeterminantGradient<PrecisionTYPE>( controlPointImage,
-                                                                                targetImage,
-                                                                                nodeNMIGradientImage,
-                                                                                param->jacobianWeight,
-                                                                                0,
-                                                                                1);
+                {
+                    if(level == param->level2Perform-1){
+                        finalWJac = param->jacobianWeight*
+                            reg_bspline_correctFolding<PrecisionTYPE>(controlPointImage,
+                                                                      targetHeader,
+                                                                      0); // No approximation is done
+                    }
+                    else{
+                        finalWJac = param->jacobianWeight*
+                            reg_bspline_correctFolding<PrecisionTYPE>(controlPointImage,
+                                                                      targetImage,
+                                                                      0); // No approximation is done
+                    }
+                }
                 finalNegCorrection++;
                 if(finalWJac!=finalWJac)
-                    printf("*** Final folding correction [%i/50] ***\n", finalNegCorrection);
+                    fprintf(stderr, "*** Final folding correction [%i/%i] ***\n",
+                        finalNegCorrection, FOLDING_CORRECTION_STEP);
+                else printf(">>> Final Jacobian based penalty term value = %g\n", finalWJac);
             }
-            while(finalWJac!=finalWJac && finalNegCorrection<50);
+            while(finalWJac!=finalWJac && finalNegCorrection<FOLDING_CORRECTION_STEP);
         }
-
         free(targetMask);
 		free(entropies);
 		free(probaJointHistogram);

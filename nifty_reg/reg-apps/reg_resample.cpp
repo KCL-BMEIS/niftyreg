@@ -179,7 +179,7 @@ int main(int argc, char **argv)
     /* Check the number of input images */
     if( ((unsigned int)flag->affineMatrixFlag
         + (unsigned int)flag->affineFlirtFlag 
-        + (unsigned int)flag->affineMatrixFlag
+        + (unsigned int)flag->inputCPPFlag
         + (unsigned int)flag->inputVelocityFieldFlag) > 1){
         fprintf(stderr,"Err:\tOnly one input transformation has to be assigned.\n");
         PetitUsage(argv[0]);
