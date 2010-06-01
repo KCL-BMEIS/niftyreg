@@ -2683,17 +2683,6 @@ void computeJacobianMatrices_2D(nifti_image *targetImage,
                                 mat33 *invertedJacobianMatrices,
                                 PrecisionTYPE *jacobianDeterminant)
 {
-#if _USE_SSE
-    if(sizeof(PrecisionTYPE)!=4){
-        fprintf(stderr, "***ERROR***\tcomputeJacobianMatrices_2D\n");
-        fprintf(stderr, "The SSE implementation assume single precision... Exit\n");
-        exit(0);
-    }
-    union u{
-        __m128 m;
-        float f[4];
-    } val;
-#endif
 
     SplineTYPE *controlPointPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
     SplineTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny];
@@ -3932,7 +3921,7 @@ void reg_bspline_jacobianDeterminantGradient3D( nifti_image *splineControlPoint,
 }
 /* *************************************************************** */
 extern "C++" template<class PrecisionTYPE, class SplineTYPE>
-PrecisionTYPE reg_bspline_jacobianDeterminantGradientApprox3D(  nifti_image *splineControlPoint,
+void reg_bspline_jacobianDeterminantGradientApprox3D(  nifti_image *splineControlPoint,
 													            nifti_image *targetImage,
 													            nifti_image *gradientImage,
                                                                 float weight)
@@ -4223,7 +4212,7 @@ PrecisionTYPE reg_bspline_correctFolding_2D(nifti_image *splineControlPoint,
 
     // The current Penalty term value is computed
     double penaltyTerm =0.0;
-    for(int i=0; i< targetImage->nvox; i++){
+    for(unsigned int i=0; i< targetImage->nvox; i++){
         double logDet = log(jacobianDeterminant[i]);
         penaltyTerm += logDet*logDet;
     }
@@ -4563,7 +4552,7 @@ PrecisionTYPE reg_bspline_correctFolding_3D(nifti_image *splineControlPoint,
 
     /* The current Penalty term value is computed */
     double penaltyTerm =0.0;
-    for(int i=0; i< targetImage->nvox; i++){
+    for(unsigned int i=0; i< targetImage->nvox; i++){
         double logDet = log(jacobianDeterminant[i]);
         penaltyTerm += logDet*logDet;
     }
@@ -6060,7 +6049,7 @@ void reg_bspline_GetJacobianMatrix3D(   nifti_image *splineControlPoint,
     ImageTYPE *jacobianMatrixTyzPtr = &jacobianMatrixTxzPtr[jacobianImage->nx*jacobianImage->ny*jacobianImage->nz];
     ImageTYPE *jacobianMatrixTzzPtr = &jacobianMatrixTyzPtr[jacobianImage->nx*jacobianImage->ny*jacobianImage->nz];
     
-    for(unsigned int i=0; i<jacobianImage->nx*jacobianImage->ny*jacobianImage->nz; i++){
+    for(int i=0; i<jacobianImage->nx*jacobianImage->ny*jacobianImage->nz; i++){
         *jacobianMatrixTxxPtr++ = invertedJacobianMatrices[i].m[0][0];
         *jacobianMatrixTxyPtr++ = invertedJacobianMatrices[i].m[0][1];
         *jacobianMatrixTxzPtr++ = invertedJacobianMatrices[i].m[0][2];
