@@ -92,13 +92,27 @@ double reg_bspline_GetJacobianValueFromVelocityField(   nifti_image* velocityFie
                                                         bool approx
                                                         );
 
-/** reg_bsplineComp_correctFolding(nifti_image *img1, nifti_image *img2);
-  * This function aims to removed the folded area by averaging the control point
-  * positions. img1 corresponds to the control point grid whereas img2 is the
-  * result image which dimension are used.
-  * The Jacobian map is computed using the squaring scheme.
+/** reg_bspline_GetJacobianGradientFromVelocityField(nifti_image *img1, nifti_image *img2);
+  * The gradient of the Jacobian-based penalty term is computed using the scaling-and-squaring
+  * approach. The value can be approximated or fully computed
 **/
-void reg_bsplineComp_correctFolding(nifti_image *,
-                                    nifti_image *);
+extern "C++"
+void reg_bspline_GetJacobianGradientFromVelocityField(   nifti_image* velocityFieldImage,
+                                                            nifti_image* resultImage,
+                                                            nifti_image* gradientImage,
+                                                            float weight,
+                                                            bool approx
+                                                            );
+
+/** reg_bspline_CorrectFoldingFromVelocityField(nifti_image *img1, nifti_image *img2, bool approx);
+  * This function aims to removed the folded area by computing the negative Jacobian
+  * determinant gradient
+  * It also return the current Jacobian penalty term value.
+**/
+extern "C++"
+double reg_bspline_CorrectFoldingFromVelocityField( nifti_image* velocityFieldImage,
+                                                    nifti_image* targetImage,
+                                                    bool approx
+                                                    );
 
 #endif

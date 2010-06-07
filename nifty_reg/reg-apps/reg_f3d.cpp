@@ -793,7 +793,7 @@ int main(int argc, char **argv)
         originIndex[2] = 0.0f;
         if(targetImage->nz>1) originIndex[2] = -1.0f;
         reg_mat44_mul(&(controlPointImage->qto_xyz), originIndex, originReal);
-        if(controlPointImage->sform_code==0) controlPointImage->sform_code=1;
+        if(controlPointImage->qform_code==0) controlPointImage->qform_code=1;
         controlPointImage->qto_xyz.m[0][3] = controlPointImage->qoffset_x = originReal[0];
         controlPointImage->qto_xyz.m[1][3] = controlPointImage->qoffset_y = originReal[1];
         controlPointImage->qto_xyz.m[2][3] = controlPointImage->qoffset_z = originReal[2];
@@ -1726,6 +1726,7 @@ int main(int argc, char **argv)
 #endif
                 {
                     if(level == param->level2Perform-1){
+                        // The correction folding is performed at full res for the last iteration
                         finalWJac = param->jacobianWeight*
                             reg_bspline_correctFolding<PrecisionTYPE>(controlPointImage,
                                                                       targetHeader,
