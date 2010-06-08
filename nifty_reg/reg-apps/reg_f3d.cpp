@@ -167,9 +167,9 @@ void Usage(char *exec)
     printf("\t-bgi <int> <int> <int>\tForce the background value during\n\t\t\t\tresampling to have the same value than this voxel in the source image [none]\n");
 
     printf("\n*** Spline options:\n");
-    printf("\t-sx <float>\t\tFinal grid spacing along the x axis in mm [5]\n");
-    printf("\t-sy <float>\t\tFinal grid spacing along the y axis in mm [sx value]\n");
-    printf("\t-sz <float>\t\tFinal grid spacing along the z axis in mm [sx value]\n");
+    printf("\t-sx <float>\t\tFinal grid spacing along the x axis in mm (in voxel if negative value) [5]\n");
+    printf("\t-sy <float>\t\tFinal grid spacing along the y axis in mm (in voxel if negative value) [sx value]\n");
+    printf("\t-sz <float>\t\tFinal grid spacing along the z axis in mm (in voxel if negative value) [sx value]\n");
 
     printf("\n*** Objective function and optimisation options:\n");
 	printf("\t-maxit <int>\t\tMaximal number of iteration per level [300]\n");
@@ -268,15 +268,15 @@ int main(int argc, char **argv)
 			flag->maxIterationFlag=1;
 		}
 		else if(strcmp(argv[i], "-sx") == 0){
-			param->spacing[0]=(float)fabs((atof(argv[++i])));
+            param->spacing[0]=(float)atof(argv[++i]);
 			flag->spacingFlag[0]=1;
 		}
 		else if(strcmp(argv[i], "-sy") == 0){
-			param->spacing[1]=(float)fabs((atof(argv[++i])));
+            param->spacing[1]=(float)atof(argv[++i]);
 			flag->spacingFlag[1]=1;
 		}
 		else if(strcmp(argv[i], "-sz") == 0){
-			param->spacing[2]=(float)fabs((atof(argv[++i])));
+            param->spacing[2]=(float)atof(argv[++i]);
 			flag->spacingFlag[2]=1;
 		}
 		else if(strcmp(argv[i], "-bin") == 0){
@@ -389,10 +389,6 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	/* Read the grid spacing */
-	if(!flag->spacingFlag[0]) param->spacing[0]=5.0;
-	if(!flag->spacingFlag[1]) param->spacing[1]=param->spacing[0];
-	if(!flag->spacingFlag[2]) param->spacing[2]=param->spacing[0];
 	
 	if(!flag->levelNumberFlag) param->levelNumber=3;
     if(!flag->level2PerformFlag) param->level2Perform=param->levelNumber;
@@ -418,6 +414,18 @@ int main(int argc, char **argv)
 		fprintf(stderr,"* ERROR Error when reading the source image: %s\n",param->sourceImageName);
 		return 1;
 	}
+
+    /* Read the grid spacing */
+    if(!flag->spacingFlag[0]) param->spacing[0]=-5.0; // Set to a 5 voxel-width spacing
+    if(!flag->spacingFlag[1]) param->spacing[1]=param->spacing[0];
+    if(!flag->spacingFlag[2]) param->spacing[2]=param->spacing[0];
+    /* Convert the spacing from voxel to mm if necessary */
+    if(param->spacing[0]<0) param->spacing[0] *=
+        -1.0 * targetHeader->dx * powf(2.0f, (float)(param->levelNumber-param->level2Perform);
+    if(param->spacing[1]<1) param->spacing[1] *=
+        -1.0 * targetHeader->dy * powf(2.0f, (float)(param->levelNumber-param->level2Perform);
+    if(param->spacing[2]<2) param->spacing[2] *=
+        -1.0 * targetHeader->dz * powf(2.0f, (float)(param->levelNumber-param->level2Perform);
 
     /* Flag for 2D registration */
     if(sourceHeader->nz==1){
@@ -586,12 +594,16 @@ int main(int argc, char **argv)
 	printf("Number of bin to used: %i\n\n",param->binning-4);
 	
 	printf("Bending energy weight: %g\n",param->bendingEnergyWeight);
-	if(flag->bendingEnergyFlag && flag->appBendingEnergyFlag) printf("\tBending energy penalty term evaluated at the control point position only\n");
-	if(flag->bendingEnergyFlag && flag->beGradFlag) printf("\tThe gradient of the bending energy is used\n");
+    if(flag->bendingEnergyFlag && flag->appBendingEnergyFlag && param->bendingEnergyWeight>0)
+        printf("\tBending energy penalty term evaluated at the control point position only\n");
+    if(flag->bendingEnergyFlag && flag->beGradFlag && param->bendingEnergyWeight>0)
+        printf("\tThe gradient of the bending energy is used\n");
 	
 	printf("Squared Log of the jacobian determinant weight: %g\n",param->jacobianWeight);
-	if(flag->jacobianWeightFlag && flag->appJacobianFlag) printf("\tLog of the Jacobian penalty term evaluated at the control point position only\n");
-	if(flag->jacobianWeightFlag && flag->jlGradFlag) printf("\tThe gradient of the jacobian determinant is used\n");
+    if(flag->jacobianWeightFlag && flag->appJacobianFlag && param->jacobianWeight>0)
+        printf("\tLog of the Jacobian penalty term evaluated at the control point position only\n");
+    if(flag->jacobianWeightFlag && flag->jlGradFlag && param->jacobianWeight>0)
+        printf("\tThe gradient of the jacobian determinant is used\n");
 #ifdef _USE_CUDA
 	if(flag->useGPUFlag) printf("\nThe GPU implementation is used\n");
 	else printf("\nThe CPU implementation is used\n");
@@ -1032,7 +1044,77 @@ int main(int argc, char **argv)
             double currentWJac=0.0f;
             PrecisionTYPE SSDValue=0.0;
 
+            /* The Jacobian-based penalty term is first computed */
+#ifdef _USE_CUDA
+            if(flag->useGPUFlag){
+                if(flag->jacobianWeightFlag && param->jacobianWeight>0){
+                    currentWJac = param->jacobianWeight
+                            * reg_bspline_ComputeJacobianPenaltyTerm_gpu(   targetImage,
+                                                                            controlPointImage,
+                                                                            &controlPointImageArray_d,
+                                                                            flag->appJacobianFlag);
+                }
+			}
+			else{
+#endif
+                if(flag->jacobianWeightFlag && param->jacobianWeight>0){
+                    currentWJac = param->jacobianWeight
+                        * reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
+                }
+#ifdef _USE_CUDA
+			}
+#endif
 
+            /* The control point grid is corrected if necessary */
+            int initialNegCorrection=0;
+            while(currentWJac!=currentWJac && initialNegCorrection<FOLDING_CORRECTION_STEP && iteration==0){
+#ifdef _USE_CUDA
+                if(flag->useGPUFlag){
+                    currentWJac = param->jacobianWeight *
+                        reg_bspline_correctFolding_gpu( targetImage,
+                                                        controlPointImage,
+                                                        &controlPointImageArray_d,
+                                                        flag->appJacobianFlag);
+                }
+                else
+#endif
+                    currentWJac = param->jacobianWeight*
+                          reg_bspline_correctFolding<PrecisionTYPE>(controlPointImage,
+                                                                    targetImage,
+                                                                    flag->appJacobianFlag);
+                initialNegCorrection++;
+                if(currentWJac!=currentWJac)
+                    printf("*** Initial folding correction [%i/%i] ***\n",
+                       initialNegCorrection, FOLDING_CORRECTION_STEP);
+                else{
+                    memcpy(bestControlPointPosition,controlPointImage->data,controlPointImage->nvox*controlPointImage->nbyper);
+                }
+            }
+            if(currentWJac!=currentWJac){
+                fprintf(stderr, "[WARNING] The initial folding correction failed\n.");
+                fprintf(stderr, "[WARNING] You might want to increase the penalty term weights\n.");
+            }
+
+            /* The bending-energy penalty term is computed */
+#ifdef _USE_CUDA
+            if(flag->useGPUFlag){
+                if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0 ){
+                    currentWBE = param->bendingEnergyWeight
+                            * reg_bspline_ApproxBendingEnergy_gpu(  controlPointImage,
+                                                                    &controlPointImageArray_d);
+                }
+            }
+            else{
+#endif
+                if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
+                    currentWBE = param->bendingEnergyWeight
+                        * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
+                }
+#ifdef _USE_CUDA
+            }
+#endif
+
+            /* The source image is resampled and the metric assessed */
 #ifdef _USE_CUDA
             if(flag->useGPUFlag){
                 reg_bspline_gpu(controlPointImage,
@@ -1073,10 +1155,10 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
 			}
 #endif
-			if(flag->useSSDFlag){
-                currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight) *
-                    reg_getSSD<PrecisionTYPE>(	targetImage,
-					        					resultImage);
+            if(flag->useSSDFlag){
+                SSDValue = reg_getSSD<PrecisionTYPE>(	targetImage,
+                                                        resultImage);
+                currentValue = -(1.0-param->bendingEnergyWeight-param->jacobianWeight) * log(SSDValue+1.0);
 			}
 			else{
                 reg_getEntropies<double>(	targetImage,
@@ -1102,67 +1184,15 @@ int main(int argc, char **argv)
 				free(tempB);
 			}
 #endif
-#ifdef _USE_CUDA
-			if(flag->useGPUFlag){
-				if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0 ){
-					currentWBE = param->bendingEnergyWeight
-							* reg_bspline_ApproxBendingEnergy_gpu(  controlPointImage,
-												                    &controlPointImageArray_d);
-				}
-                if(flag->jacobianWeightFlag && param->jacobianWeight>0){
-                    currentWJac = param->jacobianWeight
-                            * reg_bspline_ComputeJacobianPenaltyTerm_gpu(   targetImage,
-                                                                            controlPointImage,
-                                                                            &controlPointImageArray_d,
-                                                                            flag->appJacobianFlag);
-                }
-			}
-			else{
-#endif
-                if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
-                    currentWBE = param->bendingEnergyWeight
-                        * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
-                }
-                if(flag->jacobianWeightFlag && param->jacobianWeight>0){
-                    currentWJac = param->jacobianWeight
-                        * reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
-                }
-#ifdef _USE_CUDA
-			}
-#endif
 
 #ifndef NDEBUG
 			if(flag->useSSDFlag)
-				printf("[DEBUG] Initial metric value (log(SSD)): %g\n", log(SSDValue+1.0));
+                printf("[DEBUG] Initial metric value (log(SSD+1)): %g\n", -log(SSDValue+1.0));
 			else printf("[DEBUG] Initial metric value: %g\n", (entropies[0]+entropies[1])/entropies[2]);
 			if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0) printf("[DEBUG] Initial weighted bending energy value = %g, approx[%i]\n", currentWBE, flag->appBendingEnergyFlag);
 			if(flag->jacobianWeightFlag && param->jacobianWeight>0) printf("[DEBUG] Initial weighted Jacobian log value = %g, approx[%i]\n", currentWJac, flag->appJacobianFlag);
 #endif
 
-            int initialNegCorrection=0;
-            while(currentWJac!=currentWJac && initialNegCorrection<FOLDING_CORRECTION_STEP && iteration==0){
-#ifdef _USE_CUDA
-                if(flag->useGPUFlag){
-                    currentWJac = param->jacobianWeight *
-                        reg_bspline_correctFolding_gpu( targetImage,
-                                                        controlPointImage,
-                                                        &controlPointImageArray_d,
-                                                        flag->appJacobianFlag);
-                }
-                else
-#endif
-                    currentWJac = param->jacobianWeight*
-                          reg_bspline_correctFolding<PrecisionTYPE>(controlPointImage,
-                                                                    targetImage,
-                                                                    0); // No approximation is done
-                initialNegCorrection++;
-                if(currentWJac!=currentWJac)
-                    printf("*** Initial folding correction [%i/%i] ***\n",
-                       initialNegCorrection, FOLDING_CORRECTION_STEP);
-                else{
-                    memcpy(bestControlPointPosition,controlPointImage->data,controlPointImage->nvox*controlPointImage->nbyper);
-                }
-            }
             iteration++;
 
 
@@ -1527,6 +1557,86 @@ int main(int argc, char **argv)
                 }
 #endif
 
+                /* The Jacobian-based penalty term is computed */
+#ifdef _USE_CUDA
+                if(flag->useGPUFlag){
+                    if(flag->jacobianWeightFlag && param->jacobianWeight>0){
+                        currentWJac = param->jacobianWeight
+                            * reg_bspline_ComputeJacobianPenaltyTerm_gpu(   targetImage,
+                                                                            controlPointImage,
+                                                                            &controlPointImageArray_d,
+                                                                            flag->appJacobianFlag);
+#ifndef NDEBUG
+                        printf("[DEBUG] [%i] Weighted Jacobian log value = %g, approx[%i]\n",
+                            iteration, currentWJac, flag->appJacobianFlag);
+#endif
+                    }
+                }
+                else{
+#endif
+                    if(flag->jacobianWeightFlag && param->jacobianWeight>0){
+                        currentWJac = param->jacobianWeight
+                            * reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
+#ifndef NDEBUG
+                        printf("[DEBUG] [%i] Weighted Jacobian log value = %g, approx[%i]\n",
+                            iteration, currentWJac, flag->appJacobianFlag);
+#endif
+                    }
+
+#ifdef _USE_CUDA
+                }
+#endif
+                int negCorrection=0;
+                while(currentWJac!=currentWJac && negCorrection<5){
+#ifndef NDEBUG
+                    printf("[DEBUG] ********* Folding correction *********\n");
+#endif
+#ifdef _USE_CUDA
+                    if(flag->useGPUFlag){
+                        currentWJac = param->jacobianWeight*
+                            reg_bspline_correctFolding_gpu( targetImage,
+                                                            controlPointImage,
+                                                            &controlPointImageArray_d,
+                                                            flag->appJacobianFlag);
+                    }
+                    else
+#endif
+                        currentWJac = param->jacobianWeight*
+                            reg_bspline_correctFolding<PrecisionTYPE>(  controlPointImage,
+                                                                        targetImage,
+                                                                        flag->appJacobianFlag);
+                    negCorrection++;
+                }
+
+                /* The bending energy is computed */
+#ifdef _USE_CUDA
+                if(flag->useGPUFlag){
+                    if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
+                        currentWBE = param->bendingEnergyWeight
+                                * reg_bspline_ApproxBendingEnergy_gpu(	controlPointImage,
+                                                    &controlPointImageArray_d);
+#ifndef NDEBUG
+                        printf("[DEBUG] [%i] Weighted bending energy value = %g, approx[%i]\n",
+                            iteration, currentWBE, flag->appBendingEnergyFlag);
+#endif
+                    }
+                }
+                else{
+#endif
+                    if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
+                        currentWBE = param->bendingEnergyWeight
+                                * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
+#ifndef NDEBUG
+                        printf("[DEBUG] [%i] Weighted bending energy value = %g, approx[%i]\n",
+                            iteration, currentWBE, flag->appBendingEnergyFlag);
+#endif
+                    }
+
+#ifdef _USE_CUDA
+                }
+#endif
+
+                /* The source image is resampled and the metric evaluated */
 #ifdef _USE_CUDA
                 if(flag->useGPUFlag){
 					/* generate the position field */
@@ -1570,8 +1680,12 @@ int main(int argc, char **argv)
 				/* Computation of the Metric Value */
 				if(flag->useSSDFlag){
 					SSDValue=reg_getSSD<PrecisionTYPE>(	targetImage,
-														resultImage);
-					currentValue = -(1.0-param->bendingEnergyWeight-param->jacobianWeight)*SSDValue+1.0;
+                                                        resultImage);
+#ifndef NDEBUG
+                    printf("[DEBUG] [%i] log(SSD+1) value: %g\n",
+                    iteration, -log(SSDValue+1.0));
+#endif
+                    currentValue = -(1.0-param->bendingEnergyWeight-param->jacobianWeight)*log(SSDValue+1.0);
 				}
 				else{
                     reg_getEntropies<double>(	targetImage,
@@ -1581,87 +1695,20 @@ int main(int argc, char **argv)
 											    probaJointHistogram,
 											    logJointHistogram,
 											    entropies,
-											    targetMask);
-					currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight)*(entropies[0]+entropies[1])/entropies[2];
-				}
+                                                targetMask);
 #ifndef NDEBUG
-                printf("[DEBUG] [%i] Metric value: %g\n",
-                iteration, (entropies[0]+entropies[1])/entropies[2]);
+                    printf("[DEBUG] [%i] NMI value: %g\n",
+                    iteration, (entropies[0]+entropies[1])/entropies[2]);
 #endif
-
-#ifdef _USE_CUDA
-				if(flag->useGPUFlag){
-					if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
-						currentWBE = param->bendingEnergyWeight
-								* reg_bspline_ApproxBendingEnergy_gpu(	controlPointImage,
-													&controlPointImageArray_d);
-#ifndef NDEBUG
-                        printf("[DEBUG] [%i] Weighted bending energy value = %g, approx[%i]\n",
-                            iteration, currentWBE, flag->appBendingEnergyFlag);
-#endif
-					}
-					if(flag->jacobianWeightFlag && param->jacobianWeight>0){
-                        currentWJac = param->jacobianWeight
-                            * reg_bspline_ComputeJacobianPenaltyTerm_gpu(   targetImage,
-                                                                            controlPointImage,
-                                                                            &controlPointImageArray_d,
-                                                                            flag->appJacobianFlag);
-#ifndef NDEBUG
-                        printf("[DEBUG] [%i] Weighted Jacobian log value = %g, approx[%i]\n",
-                            iteration, currentWJac, flag->appJacobianFlag);
-#endif
-					}
-				}
-				else{
-#endif
-					if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0){
-                        currentWBE = param->bendingEnergyWeight
-                                * reg_bspline_bendingEnergy<PrecisionTYPE>(controlPointImage, targetImage, flag->appBendingEnergyFlag);
-#ifndef NDEBUG
-                        printf("[DEBUG] [%i] Weighted bending energy value = %g, approx[%i]\n",
-                            iteration, currentWBE, flag->appBendingEnergyFlag);
-#endif
-					}
-					if(flag->jacobianWeightFlag && param->jacobianWeight>0){
-						currentWJac = param->jacobianWeight
-							* reg_bspline_jacobian<PrecisionTYPE>(controlPointImage, targetImage, flag->appJacobianFlag);
-#ifndef NDEBUG
-                        printf("[DEBUG] [%i] Weighted Jacobian log value = %g, approx[%i]\n",
-                            iteration, currentWJac, flag->appJacobianFlag);
-#endif
-                    }
-
-#ifdef _USE_CUDA
-				}
-#endif
-                int negCorrection=0;
-                while(currentWJac!=currentWJac && negCorrection<5){
-#ifndef NDEBUG
-                    printf("[DEBUG] ********* Folding correction *********\n");
-#endif
-#ifdef _USE_CUDA
-                    if(flag->useGPUFlag){
-                        currentWJac = param->jacobianWeight*
-                            reg_bspline_correctFolding_gpu( targetImage,
-                                                            controlPointImage,
-                                                            &controlPointImageArray_d,
-                                                            flag->appJacobianFlag);
-                    }
-                    else
-#endif
-                        currentWJac = param->jacobianWeight*
-                            reg_bspline_correctFolding<PrecisionTYPE>(  controlPointImage,
-                                                                        targetImage,
-                                                                        flag->appJacobianFlag);
-                    negCorrection++;
+                    currentValue = (1.0-param->bendingEnergyWeight-param->jacobianWeight)*(entropies[0]+entropies[1])/entropies[2];
                 }
-                iteration++;
 
                 currentValue -= currentWBE + currentWJac;
 
 #ifndef NDEBUG
 				printf("[DEBUG] [%i] Current objective function value: %g\n", iteration, currentValue);
 #endif
+                iteration++;
                 lineIteration++;
 	
 				/* The current deformation field is kept if it was the best so far */
@@ -1712,7 +1759,7 @@ int main(int argc, char **argv)
             determinant-based penalty term is used */
         if(flag->jacobianWeightFlag && param->jacobianWeight>0){
             int finalNegCorrection=0;
-            PrecisionTYPE finalWJac;
+            PrecisionTYPE finalWJac=0;
             do{
 #ifdef _USE_CUDA
                 if(flag->useGPUFlag){
@@ -1737,11 +1784,13 @@ int main(int argc, char **argv)
                 else printf(">>> Final Jacobian based penalty term value = %g\n", finalWJac);
             }
             while(finalWJac!=finalWJac && finalNegCorrection<FOLDING_CORRECTION_STEP);
-            if(finalNegCorrection==FOLDING_CORRECTION_STEP){
-                fprintf(stderr, "The weight of the bending energy and/or the Jacobian-based penalty term are too low.\n");
-                fprintf(stderr, "... Exit ...\n");
+            if(finalWJac!=finalWJac){
+                fprintf(stderr, "[WARNING] The final folding correction failed\n.");
+                fprintf(stderr, "[WARNING] You might want to increase the penalty term weights\n.");
+                memcpy(controlPointImage->data,bestControlPointPosition,controlPointImage->nvox*controlPointImage->nbyper);
             }
         }
+
         free(targetMask);
 		free(entropies);
 		free(probaJointHistogram);
@@ -1776,8 +1825,8 @@ int main(int argc, char **argv)
 			if(!flag->noConjugateGradient){
 				free(conjugateG);
 				free(conjugateH);
-			}
-			free(bestControlPointPosition);
+            }
+            free(bestControlPointPosition);
 #ifdef _USE_CUDA
 		}
 #endif

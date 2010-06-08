@@ -4358,7 +4358,7 @@ PrecisionTYPE reg_bspline_correctFolding_2D(nifti_image *splineControlPoint,
                     desorient.m[0][1]*foldingCorrectionY;
                 gradient[1] = desorient.m[1][0]*foldingCorrectionX +
                     desorient.m[1][1]*foldingCorrectionY;
-                PrecisionTYPE norm = 10 * sqrt(gradient[0]*gradient[0] + gradient[1]*gradient[1]);
+                PrecisionTYPE norm = 5.0 * sqrt(gradient[0]*gradient[0] + gradient[1]*gradient[1]);
                 if(norm>0.0){
                     const unsigned int id = y*splineControlPoint->nx+x;
                     controlPointPtrX[id] += splineControlPoint->dx*gradient[0]/norm;
@@ -4522,7 +4522,7 @@ PrecisionTYPE reg_bspline_correctFoldingApprox_2D(nifti_image *splineControlPoin
                             + desorient.m[0][1]*foldingCorrectionY;
                 gradient[1] = desorient.m[1][0]*foldingCorrectionX
                             + desorient.m[1][1]*foldingCorrectionY;
-                PrecisionTYPE norm = 10.0 * sqrt(gradient[0]*gradient[0] + gradient[1]*gradient[1]);
+                PrecisionTYPE norm = 5.0 * sqrt(gradient[0]*gradient[0] + gradient[1]*gradient[1]);
                 if(norm>0.0){
                     const unsigned int id = y*splineControlPoint->nx+x;
                     controlPointPtrX[id] += splineControlPoint->dx*gradient[0]/norm;
@@ -4751,7 +4751,7 @@ PrecisionTYPE reg_bspline_correctFolding_3D(nifti_image *splineControlPoint,
                     gradient[2] = desorient.m[2][0]*foldingCorrectionX
                                 + desorient.m[2][1]*foldingCorrectionY
                                 + desorient.m[2][2]*foldingCorrectionZ;
-                    PrecisionTYPE norm = 10.0 * sqrt(gradient[0]*gradient[0]
+                    PrecisionTYPE norm = 5.0 * sqrt(gradient[0]*gradient[0]
                                             + gradient[1]*gradient[1]
                                             + gradient[2]*gradient[2]);
 
@@ -4957,7 +4957,7 @@ PrecisionTYPE reg_bspline_correctFoldingApprox_3D(  nifti_image *splineControlPo
                     gradient[2] = desorient.m[2][0]*foldingCorrectionX
                                 + desorient.m[2][1]*foldingCorrectionY
                                 + desorient.m[2][2]*foldingCorrectionZ;
-                    PrecisionTYPE norm = 10.0 * sqrt(gradient[0]*gradient[0]
+                    PrecisionTYPE norm = 5.0 * sqrt(gradient[0]*gradient[0]
                                             + gradient[1]*gradient[1]
                                             + gradient[2]*gradient[2]);
 
