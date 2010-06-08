@@ -48,7 +48,7 @@
 #define JH_PARZEN_WIN 1
 #define JH_PW_APPROX 2
 
-#define FOLDING_CORRECTION_STEP 50
+#define FOLDING_CORRECTION_STEP 20
 
 typedef struct{
 	char *targetImageName;
@@ -1725,27 +1725,22 @@ int main(int argc, char **argv)
                 else
 #endif
                 {
-                    if(level == param->level2Perform-1){
-                        // The correction folding is performed at full res for the last iteration
-                        finalWJac = param->jacobianWeight*
-                            reg_bspline_correctFolding<PrecisionTYPE>(controlPointImage,
-                                                                      targetHeader,
-                                                                      0); // No approximation is done
-                    }
-                    else{
                         finalWJac = param->jacobianWeight*
                             reg_bspline_correctFolding<PrecisionTYPE>(controlPointImage,
                                                                       targetImage,
                                                                       0); // No approximation is done
-                    }
                 }
                 finalNegCorrection++;
                 if(finalWJac!=finalWJac)
-                    fprintf(stderr, "*** Final folding correction [%i/%i] ***\n",
+                    printf( "*** Final folding correction [%i/%i] ***\n",
                         finalNegCorrection, FOLDING_CORRECTION_STEP);
                 else printf(">>> Final Jacobian based penalty term value = %g\n", finalWJac);
             }
             while(finalWJac!=finalWJac && finalNegCorrection<FOLDING_CORRECTION_STEP);
+            if(finalNegCorrection==FOLDING_CORRECTION_STEP){
+                fprintf(stderr, "The weight of the bending energy and/or the Jacobian-based penalty term are too low.\n");
+                fprintf(stderr, "... Exit ...\n");
+            }
         }
         free(targetMask);
 		free(entropies);
@@ -1839,7 +1834,7 @@ int main(int argc, char **argv)
 			resultImage->nbyper = sourceImage->nbyper;
 			resultImage->data = (void *)calloc(resultImage->nvox, resultImage->nbyper);
 			reg_resampleSourceImage<double>(targetHeader,
-							                sourceImage,
+                                            sourceImage,
 							                resultImage,
 							                positionFieldImage,
                                             NULL,
