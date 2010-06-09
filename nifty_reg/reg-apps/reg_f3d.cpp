@@ -421,11 +421,11 @@ int main(int argc, char **argv)
     if(!flag->spacingFlag[2]) param->spacing[2]=param->spacing[0];
     /* Convert the spacing from voxel to mm if necessary */
     if(param->spacing[0]<0) param->spacing[0] *=
-        -1.0 * targetHeader->dx * powf(2.0f, (float)(param->levelNumber-param->level2Perform);
+        -1.0 * targetHeader->dx * powf(2.0f, (float)(param->levelNumber-param->level2Perform));
     if(param->spacing[1]<1) param->spacing[1] *=
-        -1.0 * targetHeader->dy * powf(2.0f, (float)(param->levelNumber-param->level2Perform);
+        -1.0 * targetHeader->dy * powf(2.0f, (float)(param->levelNumber-param->level2Perform));
     if(param->spacing[2]<2) param->spacing[2] *=
-        -1.0 * targetHeader->dz * powf(2.0f, (float)(param->levelNumber-param->level2Perform);
+        -1.0 * targetHeader->dz * powf(2.0f, (float)(param->levelNumber-param->level2Perform));
 
     /* Flag for 2D registration */
     if(sourceHeader->nz==1){
