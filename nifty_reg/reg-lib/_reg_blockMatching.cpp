@@ -109,7 +109,7 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
 	int unusableBlock=0;
     int index;
 
-    DTYPE *targetValues = (DTYPE *)calloc(BLOCK_SIZE, sizeof(DTYPE));
+    DTYPE *targetValues = (DTYPE *)malloc(BLOCK_SIZE * sizeof(DTYPE));
 	DTYPE *targetPtr = static_cast<DTYPE *>(targetImage->data);
 	int blockIndex=0;
 
@@ -118,7 +118,8 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
 	    for(int k=0; k<params->blockNumber[2]; k++){
 		    for(int j=0; j<params->blockNumber[1]; j++){
 			    for(int i=0; i<params->blockNumber[0]; i++){
-                    memset(targetValues, 0, BLOCK_SIZE * sizeof(DTYPE));
+                    for(unsigned int n=0; n<BLOCK_SIZE; n++)
+                        targetValues[n]=(DTYPE)std::numeric_limits<float>::quiet_NaN();
 				    float mean=0.0f;
 				    float voxelNumber=0.0f;
                     int coord=0;
@@ -135,7 +136,7 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
 								    for(int x=i*BLOCK_WIDTH; x<(i+1)*BLOCK_WIDTH; x++){
 									    if(x<targetImage->nx){
 										    targetValues[coord] = *targetPtrXYZ;
-										    if(targetValues[coord]>0.0 && *maskPtrXYZ>-1){
+                                            if(targetValues[coord]==targetValues[coord] && *maskPtrXYZ>-1){
 											    mean += (float)targetValues[coord];
 											    voxelNumber++;
 										    }
@@ -151,7 +152,7 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
 				    if(voxelNumber>BLOCK_SIZE/2){
                         float variance=0.0f;
                         for(int i=0; i<BLOCK_SIZE; i++){
-						    if(targetValues[i]>0.0)
+                            if(targetValues[i]==targetValues[i])
 							    variance += (mean - (float)targetValues[i])
                                     * (mean - (float)targetValues[i]);
                         }
@@ -174,7 +175,8 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
         for(int j=0; j<params->blockNumber[1]; j++){
             for(int i=0; i<params->blockNumber[0]; i++){
 
-                memset(targetValues, 0, BLOCK_SIZE * sizeof(DTYPE));
+                for(unsigned int n=0; n<BLOCK_2D_SIZE; n++)
+                    targetValues[n]=(DTYPE)std::numeric_limits<float>::quiet_NaN();
                 float mean=0.0f;
                 float voxelNumber=0.0f;
                 int coord=0;
@@ -187,7 +189,7 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
                         for(int x=i*BLOCK_WIDTH; x<(i+1)*BLOCK_WIDTH; x++){
                             if(x<targetImage->nx){
                                 targetValues[coord] = *targetPtrXY;
-                                if(targetValues[coord]>0.0 && *maskPtrXY>-1){
+                                if(targetValues[coord]==targetValues[coord] && *maskPtrXY>-1){
                                     mean += (float)targetValues[coord];
                                     voxelNumber++;
                                 }
@@ -201,7 +203,7 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
                 if(voxelNumber>BLOCK_2D_SIZE/2){
                     float variance=0.0f;
                     for(int i=0; i<BLOCK_2D_SIZE; i++){
-                        if(targetValues[i]>0.0)
+                        if(targetValues[i]==targetValues[i])
                             variance += (mean - (float)targetValues[i])
                                 * (mean - (float)targetValues[i]);
                     }
@@ -285,8 +287,13 @@ void initialise_block_matching_method(  nifti_image * target,
 			_reg_set_active_blocks<double>(target, params, mask, runningOnGPU);break;
 		default:
 			fprintf(stderr,"ERROR\tinitialise_block_matching_method\tThe target image data type is not supported\n");
-			return;
-	}
+            exit(1);
+    }
+    if(params->activeBlockNumber<2){
+        fprintf(stderr,"There are no active blocks\n");
+        fprintf(stderr,"... Exit ...\n");
+        exit(1);
+    }
 #ifndef NDEBUG
 	printf("[DEBUG]: There are %i active block(s) out of %i.\n", params->activeBlockNumber, params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2]);
 #endif
@@ -352,7 +359,6 @@ void block_matching_method2D(nifti_image * target,
                 targetIndex=0;
                 memset(targetOverlap, 0, BLOCK_2D_SIZE*sizeof(bool));
 
-
                 for(int y=targetIndex_start_y; y<targetIndex_end_y; y++){
                     if(-1<y && y<target->ny){
                         index = y*target->nx+targetIndex_start_x;
@@ -361,7 +367,7 @@ void block_matching_method2D(nifti_image * target,
                         for(int x=targetIndex_start_x; x<targetIndex_end_x; x++){
                             if(-1<x && x<target->nx){
                                 TargetImageType value = *targetPtr_XY;
-                                if(value>0.0 && *maskPtr_XY>-1){
+                                if(value==value && *maskPtr_XY>-1){
                                     targetValues[targetIndex]=value;
                                     targetOverlap[targetIndex]=1;
                                 }
@@ -395,7 +401,7 @@ void block_matching_method2D(nifti_image * target,
                                 for(int x=resultIndex_start_x; x<resultIndex_end_x; x++){
                                     if(-1<x && x<result->nx){
                                         ResultImageType value = *resultPtr_XY;
-                                        if(value>0.0 && *maskPtr_XY>-1){
+                                        if(value==value && *maskPtr_XY>-1){
                                             resultValues[resultIndex]=value;
                                             resultOverlap[resultIndex]=1;
                                         }
@@ -447,23 +453,23 @@ void block_matching_method2D(nifti_image * target,
                     }
                 }
 
-                    float targetPosition_temp[3];
-                    targetPosition_temp[0] = (float)(i*BLOCK_WIDTH);
-                    targetPosition_temp[1] = (float)(j*BLOCK_WIDTH);
-                    targetPosition_temp[2] = 0.0f;
+                float targetPosition_temp[3];
+                targetPosition_temp[0] = (float)(i*BLOCK_WIDTH);
+                targetPosition_temp[1] = (float)(j*BLOCK_WIDTH);
+                targetPosition_temp[2] = 0.0f;
 
-                    bestDisplacement[0] += targetPosition_temp[0];
-                    bestDisplacement[1] += targetPosition_temp[1];
-                    bestDisplacement[2] = 0.0f;
+                bestDisplacement[0] += targetPosition_temp[0];
+                bestDisplacement[1] += targetPosition_temp[1];
+                bestDisplacement[2] = 0.0f;
 
-                    float tempPosition[3];
-                    apply_affine(targetMatrix_xyz, targetPosition_temp, tempPosition);
-                    params->targetPosition[activeBlockIndex] = tempPosition[0];
-                    params->targetPosition[activeBlockIndex+1] = tempPosition[1];
-                    apply_affine(targetMatrix_xyz, bestDisplacement, tempPosition);
-                    params->resultPosition[activeBlockIndex] = tempPosition[0];
-                    params->resultPosition[activeBlockIndex+1] = tempPosition[1];
-                    activeBlockIndex += 2;
+                float tempPosition[3];
+                apply_affine(targetMatrix_xyz, targetPosition_temp, tempPosition);
+                params->targetPosition[activeBlockIndex] = tempPosition[0];
+                params->targetPosition[activeBlockIndex+1] = tempPosition[1];
+                apply_affine(targetMatrix_xyz, bestDisplacement, tempPosition);
+                params->resultPosition[activeBlockIndex] = tempPosition[0];
+                params->resultPosition[activeBlockIndex+1] = tempPosition[1];
+                activeBlockIndex += 2;
             }
             blockIndex++;
         }
@@ -541,7 +547,7 @@ void block_matching_method3D(nifti_image * target,
                                     for(int x=targetIndex_start_x; x<targetIndex_end_x; x++){
                                         if(-1<x && x<target->nx){
                                             TargetImageType value = *targetPtr_XYZ;
-                                            if(value>0.0 && *maskPtr_XYZ>-1){
+                                            if(value==value && *maskPtr_XYZ>-1){
                                                 targetValues[targetIndex]=value;
                                                 targetOverlap[targetIndex]=1;
                                             }
@@ -586,7 +592,7 @@ void block_matching_method3D(nifti_image * target,
                                                 for(int x=resultIndex_start_x; x<resultIndex_end_x; x++){
                                                     if(-1<x && x<result->nx){
                                                         ResultImageType value = *resultPtr_XYZ;
-                                                        if(value>0.0 && *maskPtr_XYZ>-1){
+                                                        if(value==value && *maskPtr_XYZ>-1){
                                                             resultValues[resultIndex]=value;
                                                             resultOverlap[resultIndex]=1;
                                                         }
