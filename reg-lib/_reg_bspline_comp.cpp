@@ -2489,7 +2489,7 @@ double reg_bspline_GetJacobianGradient_3D(  nifti_image *velocityFieldImage,
 
     // The jacobian map is updated and then the deformation is composed
     for(int l=0;l<SQUARING_VALUE;l++){
-
+        
         reg_spline_Interpolant2Interpolator(splineControlPoint2,
                                             splineControlPoint);
 
