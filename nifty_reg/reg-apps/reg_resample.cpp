@@ -31,8 +31,9 @@ typedef struct{
 	char *outputEuclDispName;
 	char *outputResultName;
 	char *outputBlankName;
-	char *outputJacobianName;
-	char *outputJacobianMatrixName;
+    char *outputJacobianName;
+    char *outputJacobianMatrixName;
+    char *outputCPPName;
 	PrecisionTYPE sourceBGValue;
 }PARAM;
 typedef struct{
@@ -50,8 +51,9 @@ typedef struct{
 	bool outputBlankFlag;
 	bool outputJacobianFlag;
 	bool outputJacobianMatrixFlag;
-	bool NNInterpolationFlag;
-	bool TRIInterpolationFlag;
+    bool NNInterpolationFlag;
+    bool TRIInterpolationFlag;
+    bool outputCPPFlag;
 }FLAG;
 
 
@@ -71,18 +73,19 @@ void Usage(char *exec)
 	printf("* * OPTIONS * *\n");
     printf("\t*\tOnly one of the following tranformation is taken into account\n");
     printf("\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Target=Source)\n");
-    printf("\t-affFlirt <filename>\t\tFilename which contains a radiological flirt affine transformation [none]\n");
+    printf("\t-affFlirt <filename>\t\tFilename which contains a radiological flirt affine transformation\n");
     printf("\t-cpp <filename>\t\tFilename of control point grid image\n");
     printf("\t-vel <filename>\t\tFilename of the velocity field image\n\n");
 
     printf("\t*\tThere are no limit for the required output number from the following\n");
-	printf("\t-result <filename> \tFilename of the resampled image [none]\n");
+    printf("\t-result <filename> \tFilename of the resampled image [none]\n");
 	printf("\t-blank <filename> \tFilename of the resampled blank grid [none]\n");
 	printf("\t-jac <filename> \tFilename of the Jacobian map image [none]\n");
 	printf("\t-jacM <filename> \tFilename of the Jacobian matrix image [none]\n");
 	printf("\t-opf <filename>\t\tFilename of the position field image\n");
 	printf("\t-odf <filename>\t\tFilename of the displacement field image\n");
 	printf("\t-oed <filename>\t\tFilename of the euclidian displacement image\n\n");
+    printf("\t-ocp <filename> \tFilename of the control point grid image\n");
 
     printf("\t*\tOthers\n");
 	printf("\t-NN \t\t\tUse a Nearest Neighbor interpolation for the source resampling (cubic spline by default)\n");
@@ -107,11 +110,11 @@ int main(int argc, char **argv)
 		else if(strcmp(argv[i], "-target") == 0){
 			param->targetImageName=argv[++i];
 			flag->targetImageFlag=1;
-		}
-		else if(strcmp(argv[i], "-source") == 0){
-			param->sourceImageName=argv[++i];
-			flag->sourceImageFlag=1;
-		}
+        }
+        else if(strcmp(argv[i], "-source") == 0){
+            param->sourceImageName=argv[++i];
+            flag->sourceImageFlag=1;
+        }
 		else if(strcmp(argv[i], "-aff") == 0){
 			param->affineMatrixName=argv[++i];
 			flag->affineMatrixFlag=1;
@@ -153,6 +156,10 @@ int main(int argc, char **argv)
 			param->outputPosName=argv[++i];
 			flag->outputPosFlag=1;
 		}
+        else if(strcmp(argv[i], "-ocp") == 0){
+            param->outputCPPName=argv[++i];
+            flag->outputCPPFlag=1;
+        }
 		else if(strcmp(argv[i], "-NN") == 0){
 			flag->NNInterpolationFlag=1;
 		}
@@ -261,7 +268,7 @@ int main(int argc, char **argv)
             fprintf(stderr,"** ERROR Error when reading the velocity field image: %s\n",param->inputVelocityFieldName);
             return 1;
         }
-        if(positionFieldNeeded==true)
+        if(positionFieldNeeded==true || flag->outputCPPFlag)
             controlPointPositionNeeded=true;
 
         if(flag->outputJacobianFlag){
@@ -304,6 +311,10 @@ int main(int argc, char **argv)
             controlPointImage->data = (void *)calloc(controlPointImage->nvox, controlPointImage->nbyper);
             reg_spline_scaling_squaring(velocityFieldImage,
                                         controlPointImage);
+            if(flag->outputCPPFlag){
+                nifti_set_filenames(controlPointImage, param->outputCPPName, 0, 0);
+                nifti_image_write(controlPointImage);
+            }
         }
 		/* apply the cubic spline interpolation to generate the position field */
 		if(positionFieldNeeded==true){

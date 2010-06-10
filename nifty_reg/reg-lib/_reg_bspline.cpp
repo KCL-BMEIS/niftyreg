@@ -3878,7 +3878,6 @@ void reg_bspline_jacobianDeterminantGradient3D( nifti_image *splineControlPoint,
                                         jacIndex = (pixelZ*targetImage->ny+pixelY)*targetImage->nx+pixelX;
                                         jacobianMatrix = invertedJacobianMatrices[jacIndex];
                                         PrecisionTYPE detJac = jacobianDeterminant[jacIndex];
-
                                         if(detJac>0.0){
                                             detJac = 2.0 * log(detJac);
                                             jacobianConstraintX += detJac *
