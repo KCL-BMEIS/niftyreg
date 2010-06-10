@@ -1239,7 +1239,8 @@ void optimize_affine2D(_reg_blockMatchingParam * params,
 		distance = 0.0;	
 		i = 0;
 		top_points.clear();
-		while (i < num_to_keep && i < queue.size())
+        int initial_size = queue.size();
+        while (i < num_to_keep && i < initial_size)
 		{
 			top_points.push_back(queue.top());
 			distance += queue.top().distance;
@@ -1392,10 +1393,11 @@ void optimize_affine3D(	_reg_blockMatchingParam *params,
 		}
 
 		distance = 0.0;	
-		i = 0;
+		i = 0;        
 		top_points.clear();
+        int initial_size = queue.size();
 
-		while (i < num_to_keep && i < queue.size())
+        while (i < num_to_keep && i < initial_size)
 		{
 			top_points.push_back(queue.top());
 			distance += queue.top().distance;
@@ -1751,7 +1753,8 @@ void optimize_rigid2D(  _reg_blockMatchingParam *params,
         distance = 0.0;
         i = 0;
         top_points.clear();
-        while (i < num_to_keep && i < queue.size()){
+        int initial_size = queue.size();
+        while (i < num_to_keep && i < initial_size){
             top_points.push_back(queue.top());
             distance += queue.top().distance;
             queue.pop();
@@ -1811,7 +1814,8 @@ void optimize_rigid3D(  _reg_blockMatchingParam *params,
         distance = 0.0;
         i = 0;
         top_points.clear();
-        while (i < num_to_keep && i < queue.size()){
+        int initial_size = queue.size();
+        while (i < num_to_keep && i < initial_size){
             top_points.push_back(queue.top());
             distance += queue.top().distance;
             queue.pop();

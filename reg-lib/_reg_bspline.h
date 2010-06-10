@@ -79,7 +79,6 @@ int reg_bspline_initialiseControlPointGridWithAffine(	mat44 *affineTransformatio
 							                            nifti_image *controlPointImage
 						                                );
 
-
 extern "C++" template<class PrecisionTYPE>
 PrecisionTYPE reg_bspline_correctFolding(	nifti_image *splineControlPoint,
                                             nifti_image *targetImage,

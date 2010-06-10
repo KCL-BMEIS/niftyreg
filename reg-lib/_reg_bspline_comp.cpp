@@ -3908,4 +3908,877 @@ double reg_bspline_CorrectFoldingFromVelocityField( nifti_image* velocityFieldIm
 }
 /* *************************************************************** */
 /* *************************************************************** */
+template<class SplineTYPE>
+SplineTYPE reg_bspline_CorrectApproximatedFoldingFromApproxCPP_3D(  nifti_image *splineControlPoint,
+                                                                    nifti_image *velocityFieldImage,
+                                                                    nifti_image *targetImage)
+{
+    unsigned int jacobianNumber = splineControlPoint->nx * splineControlPoint->ny * splineControlPoint->nz;
+
+    mat33 *invertedJacobianMatrices=(mat33 *)malloc(jacobianNumber * sizeof(mat33));
+    SplineTYPE *jacobianDeterminant=(SplineTYPE *)malloc(jacobianNumber * sizeof(SplineTYPE));
+
+    // As the contraint is only computed at the voxel position, the basis value of the spline are always the same
+    SplineTYPE normal[3];
+    SplineTYPE first[3];
+    normal[0] = (SplineTYPE)(1.0/6.0);
+    normal[1] = (SplineTYPE)(2.0/3.0);
+    normal[2] = (SplineTYPE)(1.0/6.0);
+    first[0] = (SplineTYPE)(-0.5);
+    first[1] = (SplineTYPE)(0.0);
+    first[2] = (SplineTYPE)(0.5);
+
+    // There are 3 different values taken into account
+    SplineTYPE tempX[9], tempY[9], tempZ[9];
+    int coord=0;
+    for(int c=0; c<3; c++){
+        for(int b=0; b<3; b++){
+            tempX[coord]=normal[c]*normal[b];   // z * y
+            tempY[coord]=normal[c]*first[b];    // z * y'
+            tempZ[coord]=first[c]*normal[b];    // z'* y
+            coord++;
+        }
+    }
+
+    SplineTYPE basisX[27], basisY[27], basisZ[27];
+
+    coord=0;
+    for(int bc=0; bc<9; bc++){
+        for(int a=0; a<3; a++){
+            basisX[coord]=tempX[bc]*first[a];   // z * y * x'
+            basisY[coord]=tempY[bc]*normal[a];  // z * y'* x
+            basisZ[coord]=tempZ[bc]*normal[a];  // z'* y * x
+            coord++;
+        }
+    }
+
+    SplineTYPE xControlPointCoordinates[27];
+    SplineTYPE yControlPointCoordinates[27];
+    SplineTYPE zControlPointCoordinates[27];
+
+    mat33 reorient;
+    reorient.m[0][0]=splineControlPoint->dx; reorient.m[0][1]=0.0f; reorient.m[0][2]=0.0f;
+    reorient.m[1][0]=0.0f; reorient.m[1][1]=splineControlPoint->dy; reorient.m[1][2]=0.0f;
+    reorient.m[2][0]=0.0f; reorient.m[2][1]=0.0f; reorient.m[2][2]=splineControlPoint->dz;
+    mat33 spline_ijk;
+    if(splineControlPoint->sform_code>0){
+        spline_ijk.m[0][0]=splineControlPoint->sto_ijk.m[0][0];
+        spline_ijk.m[0][1]=splineControlPoint->sto_ijk.m[0][1];
+        spline_ijk.m[0][2]=splineControlPoint->sto_ijk.m[0][2];
+        spline_ijk.m[1][0]=splineControlPoint->sto_ijk.m[1][0];
+        spline_ijk.m[1][1]=splineControlPoint->sto_ijk.m[1][1];
+        spline_ijk.m[1][2]=splineControlPoint->sto_ijk.m[1][2];
+        spline_ijk.m[2][0]=splineControlPoint->sto_ijk.m[2][0];
+        spline_ijk.m[2][1]=splineControlPoint->sto_ijk.m[2][1];
+        spline_ijk.m[2][2]=splineControlPoint->sto_ijk.m[2][2];
+    }
+    else{
+        spline_ijk.m[0][0]=splineControlPoint->qto_ijk.m[0][0];
+        spline_ijk.m[0][1]=splineControlPoint->qto_ijk.m[0][1];
+        spline_ijk.m[0][2]=splineControlPoint->qto_ijk.m[0][2];
+        spline_ijk.m[1][0]=splineControlPoint->qto_ijk.m[1][0];
+        spline_ijk.m[1][1]=splineControlPoint->qto_ijk.m[1][1];
+        spline_ijk.m[1][2]=splineControlPoint->qto_ijk.m[1][2];
+        spline_ijk.m[2][0]=splineControlPoint->qto_ijk.m[2][0];
+        spline_ijk.m[2][1]=splineControlPoint->qto_ijk.m[2][1];
+        spline_ijk.m[2][2]=splineControlPoint->qto_ijk.m[2][2];
+    }
+    mat33 desorient=nifti_mat33_mul(spline_ijk, reorient);
+    reorient=nifti_mat33_inverse(desorient);
+    mat33 jacobianMatrix;
+
+    SplineTYPE *controlPointPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
+    SplineTYPE *controlPointPtrY = static_cast<SplineTYPE *>
+        (&controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz]);
+    SplineTYPE *controlPointPtrZ = static_cast<SplineTYPE *>
+        (&controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz]);
+
+    /* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+    /* All the Jacobian matrices are computed */
+    /* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+
+    mat33 *invertedJacobianMatricesPtr = invertedJacobianMatrices;
+    SplineTYPE *jacobianDeterminantPtr = jacobianDeterminant;
+
+//	// Loop over (almost) each control point
+    for(int z=1;z<splineControlPoint->nz-1;z++){
+        for(int y=1;y<splineControlPoint->ny-1;y++){
+            unsigned int jacIndex = (z*splineControlPoint->ny+y)*splineControlPoint->nx+1;
+            for(int x=1;x<splineControlPoint->nx-1;x++){
+
+                // The control points are stored
+                coord=0;
+                for(int Z=z-1; Z<z+2; Z++){
+                    unsigned int index = Z*splineControlPoint->nx*splineControlPoint->ny;
+                    SplineTYPE *xPtr = &controlPointPtrX[index];
+                    SplineTYPE *yPtr = &controlPointPtrY[index];
+                    SplineTYPE *zPtr = &controlPointPtrZ[index];
+                    for(int Y=y-1; Y<y+2; Y++){
+                        unsigned int index = Y*splineControlPoint->nx;
+                        SplineTYPE *xxPtr = &xPtr[index];
+                        SplineTYPE *yyPtr = &yPtr[index];
+                        SplineTYPE *zzPtr = &zPtr[index];
+                        for(int X=x-1; X<x+2; X++){
+                            xControlPointCoordinates[coord] = (SplineTYPE)xxPtr[X];
+                            yControlPointCoordinates[coord] = (SplineTYPE)yyPtr[X];
+                            zControlPointCoordinates[coord] = (SplineTYPE)zzPtr[X];
+                            coord++;
+                        }
+                    }
+                }
+
+                SplineTYPE Tx_x=(SplineTYPE)0.0;
+                SplineTYPE Ty_x=(SplineTYPE)0.0;
+                SplineTYPE Tz_x=(SplineTYPE)0.0;
+                SplineTYPE Tx_y=(SplineTYPE)0.0;
+                SplineTYPE Ty_y=(SplineTYPE)0.0;
+                SplineTYPE Tz_y=(SplineTYPE)0.0;
+                SplineTYPE Tx_z=(SplineTYPE)0.0;
+                SplineTYPE Ty_z=(SplineTYPE)0.0;
+                SplineTYPE Tz_z=(SplineTYPE)0.0;
+
+                for(int a=0; a<27; a++){
+                    Tx_x += basisX[a]*xControlPointCoordinates[a];
+                    Tx_y += basisY[a]*xControlPointCoordinates[a];
+                    Tx_z += basisZ[a]*xControlPointCoordinates[a];
+                    Ty_x += basisX[a]*yControlPointCoordinates[a];
+                    Ty_y += basisY[a]*yControlPointCoordinates[a];
+                    Ty_z += basisZ[a]*yControlPointCoordinates[a];
+                    Tz_x += basisX[a]*zControlPointCoordinates[a];
+                    Tz_y += basisY[a]*zControlPointCoordinates[a];
+                    Tz_z += basisZ[a]*zControlPointCoordinates[a];
+                }
+
+
+                jacobianMatrix.m[0][0]= Tx_x / splineControlPoint->dx;
+                jacobianMatrix.m[0][1]= Tx_y / splineControlPoint->dy;
+                jacobianMatrix.m[0][2]= Tx_z / splineControlPoint->dz;
+                jacobianMatrix.m[1][0]= Ty_x / splineControlPoint->dx;
+                jacobianMatrix.m[1][1]= Ty_y / splineControlPoint->dy;
+                jacobianMatrix.m[1][2]= Ty_z / splineControlPoint->dz;
+                jacobianMatrix.m[2][0]= Tz_x / splineControlPoint->dx;
+                jacobianMatrix.m[2][1]= Tz_y / splineControlPoint->dy;
+                jacobianMatrix.m[2][2]= Tz_z / splineControlPoint->dz;
+
+                jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
+                jacobianDeterminantPtr[jacIndex] = nifti_mat33_determ(jacobianMatrix);
+                invertedJacobianMatricesPtr[jacIndex] = nifti_mat33_inverse(jacobianMatrix);
+                jacIndex++;
+            } // x
+        } // y
+    } //z
+    // The current Penalty term value is computed
+    unsigned int jacIndex;
+    double penaltyTerm =0.0;
+    for(int k=1; k<splineControlPoint->nz-1; k++){
+        for(int j=1; j<splineControlPoint->ny-1; j++){
+            jacIndex = (k*splineControlPoint->ny+j)*splineControlPoint->nx+1;
+            for(int i=1; i<splineControlPoint->nx-1; i++){
+                double logDet = log(jacobianDeterminant[jacIndex++]);
+                penaltyTerm += logDet*logDet;
+            }
+        }
+    }
+    if(penaltyTerm==penaltyTerm){
+        free(jacobianDeterminant);
+        free(invertedJacobianMatrices);
+        return (SplineTYPE)(penaltyTerm/(SplineTYPE)jacobianNumber);
+    }
+
+    SplineTYPE basisValues[3];
+    SplineTYPE xBasis, yBasis, zBasis;
+    SplineTYPE xFirst, yFirst, zFirst;
+
+    SplineTYPE *velocityFieldPtrX = static_cast<SplineTYPE *>(velocityFieldImage->data);
+    SplineTYPE *velocityFieldPtrY = &velocityFieldPtrX[velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz];
+    SplineTYPE *velocityFieldPtrZ = &velocityFieldPtrY[velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz];
+
+    for(int z=0;z<splineControlPoint->nz;z++){
+        for(int y=0;y<splineControlPoint->ny;y++){
+            for(int x=0;x<splineControlPoint->nx;x++){
+
+                SplineTYPE foldingCorrectionX=(SplineTYPE)0.0;
+                SplineTYPE foldingCorrectionY=(SplineTYPE)0.0;
+                SplineTYPE foldingCorrectionZ=(SplineTYPE)0.0;
+
+                bool correctFolding=false;
+
+                // Loop over all the control points in the surrounding area
+                for(int pixelZ=(int)((z-1));pixelZ<(int)((z+2)); pixelZ++){
+                    if(pixelZ>0 && pixelZ<splineControlPoint->nz-1){
+
+                        switch(pixelZ-z){
+                            case -1:
+                                zBasis=(SplineTYPE)(1.0/6.0);
+                                zFirst=(SplineTYPE)(0.5);
+                                break;
+                            case 0:
+                                zBasis=(SplineTYPE)(2.0/3.0);
+                                zFirst=(SplineTYPE)(0.0);
+                                break;
+                            case 1:
+                                zBasis=(SplineTYPE)(1.0/6.0);
+                                zFirst=(SplineTYPE)(-0.5);
+                                break;
+                            default:
+                                zBasis=(SplineTYPE)0.0;
+                                zFirst=(SplineTYPE)0.0;
+                                break;
+                        }
+                        for(int pixelY=(int)((y-1));pixelY<(int)((y+2)); pixelY++){
+                            if(pixelY>0 && pixelY<splineControlPoint->ny-1){
+
+                                switch(pixelY-y){
+                                    case -1:
+                                        yBasis=(SplineTYPE)(1.0/6.0);
+                                        yFirst=(SplineTYPE)(0.5);
+                                        break;
+                                    case 0:
+                                        yBasis=(SplineTYPE)(2.0/3.0);
+                                        yFirst=(SplineTYPE)(0.0);
+                                        break;
+                                    case 1:
+                                        yBasis=(SplineTYPE)(1.0/6.0);
+                                        yFirst=(SplineTYPE)(-0.5);
+                                        break;
+                                    default:
+                                        yBasis=(SplineTYPE)0.0;
+                                        yFirst=(SplineTYPE)0.0;
+                                        break;
+                                }
+                                for(int pixelX=(int)((x-1));pixelX<(int)((x+2)); pixelX++){
+                                    if(pixelX>0 && pixelX<splineControlPoint->nx-1){
+
+                                        switch(pixelX-x){
+                                            case -1:
+                                                xBasis=(SplineTYPE)(1.0/6.0);
+                                                xFirst=(SplineTYPE)(0.5);
+                                                break;
+                                            case 0:
+                                                xBasis=(SplineTYPE)(2.0/3.0);
+                                                xFirst=(SplineTYPE)(0.0);
+                                                break;
+                                            case 1:
+                                                xBasis=(SplineTYPE)(1.0/6.0);
+                                                xFirst=(SplineTYPE)(-0.5);
+                                                break;
+                                            default:
+                                                xBasis=(SplineTYPE)0.0;
+                                                xFirst=(SplineTYPE)0.0;
+                                                break;
+                                        }
+
+                                        basisValues[0] = xFirst * yBasis * zBasis ;
+                                        basisValues[1] = xBasis * yFirst * zBasis ;
+                                        basisValues[2] = xBasis * yBasis * zFirst ;
+
+                                        jacIndex = (pixelZ*splineControlPoint->ny+pixelY)*splineControlPoint->nx+pixelX;
+                                        jacobianMatrix = invertedJacobianMatrices[jacIndex];
+                                        SplineTYPE detJac = jacobianDeterminant[jacIndex];
+
+                                        if(detJac<=0.0){
+                                            correctFolding=true;
+                                            // Derivative of the jacobian itself
+                                            foldingCorrectionX += detJac *
+                                                ( jacobianMatrix.m[0][0]*basisValues[0]
+                                                + jacobianMatrix.m[0][1]*basisValues[1]
+                                                + jacobianMatrix.m[0][2]*basisValues[2]);
+                                            foldingCorrectionY += detJac *
+                                                ( jacobianMatrix.m[1][0]*basisValues[0]
+                                                + jacobianMatrix.m[1][1]*basisValues[1]
+                                                + jacobianMatrix.m[1][2]*basisValues[2]);
+                                            foldingCorrectionZ += detJac *
+                                                ( jacobianMatrix.m[2][0]*basisValues[0]
+                                                + jacobianMatrix.m[2][1]*basisValues[1]
+                                                + jacobianMatrix.m[2][2]*basisValues[2]);
+                                        } // detJac<0.0
+                                    } // if x
+                                }// x
+                            }// if y
+                        }// y
+                    }// if z
+                } // z
+                // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
+                if(correctFolding){
+                    SplineTYPE gradient[3];
+                    gradient[0] = desorient.m[0][0]*foldingCorrectionX
+                                + desorient.m[0][1]*foldingCorrectionY
+                                + desorient.m[0][2]*foldingCorrectionZ;
+                    gradient[1] = desorient.m[1][0]*foldingCorrectionX
+                                + desorient.m[1][1]*foldingCorrectionY
+                                + desorient.m[1][2]*foldingCorrectionZ;
+                    gradient[2] = desorient.m[2][0]*foldingCorrectionX
+                                + desorient.m[2][1]*foldingCorrectionY
+                                + desorient.m[2][2]*foldingCorrectionZ;
+                    SplineTYPE norm = 5.0 * sqrt(gradient[0]*gradient[0]
+                                            + gradient[1]*gradient[1]
+                                            + gradient[2]*gradient[2])
+                                            / (float)SCALING_VALUE;
+
+                    if(norm>0.0){
+                        const unsigned int id = (z*splineControlPoint->ny+y)*splineControlPoint->nx+x;
+                        velocityFieldPtrX[id] += splineControlPoint->dx*gradient[0]/norm;
+                        velocityFieldPtrY[id] += splineControlPoint->dy*gradient[1]/norm;
+                        velocityFieldPtrZ[id] += splineControlPoint->dz*gradient[2]/norm;
+                    }
+                }
+            }
+        }
+    }
+    free(jacobianDeterminant);
+    free(invertedJacobianMatrices);
+    return std::numeric_limits<float>::quiet_NaN();
+}
+
+/* *************************************************************** */
+template<class SplineTYPE>
+SplineTYPE reg_bspline_CorrectApproximatedFoldingFromCPP_3D(    nifti_image *splineControlPoint,
+                                                                nifti_image *velocityFieldImage,
+                                                                nifti_image *targetImage)
+{
+
+#if _USE_SSE
+    if(sizeof(SplineTYPE)!=4){
+        fprintf(stderr, "***ERROR***\tcomputeJacobianMatrices_3D\n");
+        fprintf(stderr, "The SSE implementation assume single precision... Exit\n");
+        exit(0);
+    }
+    union u{
+        __m128 m;
+        float f[4];
+    } val;
+#endif
+
+    SplineTYPE *controlPointPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
+    SplineTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+    SplineTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+
+    SplineTYPE *velocityFieldPtrX = static_cast<SplineTYPE *>(velocityFieldImage->data);
+    SplineTYPE *velocityFieldPtrY = &velocityFieldPtrX[velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz];
+    SplineTYPE *velocityFieldPtrZ = &velocityFieldPtrY[velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz];
+
+    SplineTYPE *jacValues = (SplineTYPE *)malloc(targetImage->nvox * sizeof(SplineTYPE));
+    mat33 *jacInvertedMatrices = (mat33 *)malloc(targetImage->nvox * sizeof(mat33));
+    SplineTYPE *jacPtr = &jacValues[0];
+    mat33 *matricesPtr = &jacInvertedMatrices[0];
+
+    SplineTYPE yBasis[4],yFirst[4],xBasis[4],xFirst[4],zBasis[4],zFirst[4];
+    SplineTYPE tempX[16], tempY[16], tempZ[16];
+    SplineTYPE basisX[64], basisY[64], basisZ[64];
+    SplineTYPE basis, FF, FFF, MF, oldBasis=(SplineTYPE)(1.1);
+
+    SplineTYPE xControlPointCoordinates[64];
+    SplineTYPE yControlPointCoordinates[64];
+    SplineTYPE zControlPointCoordinates[64];
+
+    SplineTYPE gridVoxelSpacing[3];
+    gridVoxelSpacing[0] = splineControlPoint->dx / targetImage->dx;
+    gridVoxelSpacing[1] = splineControlPoint->dy / targetImage->dy;
+    gridVoxelSpacing[2] = splineControlPoint->dz / targetImage->dz;
+
+    unsigned int coord=0;
+
+    mat33 reorient;
+    reorient.m[0][0]=splineControlPoint->dx; reorient.m[0][1]=0.0f; reorient.m[0][2]=0.0f;
+    reorient.m[1][0]=0.0f; reorient.m[1][1]=splineControlPoint->dy; reorient.m[1][2]=0.0f;
+    reorient.m[2][0]=0.0f; reorient.m[2][1]=0.0f; reorient.m[2][2]=splineControlPoint->dz;
+    mat33 spline_ijk;
+    if(splineControlPoint->sform_code>0){
+        spline_ijk.m[0][0]=splineControlPoint->sto_ijk.m[0][0];
+        spline_ijk.m[0][1]=splineControlPoint->sto_ijk.m[0][1];
+        spline_ijk.m[0][2]=splineControlPoint->sto_ijk.m[0][2];
+        spline_ijk.m[1][0]=splineControlPoint->sto_ijk.m[1][0];
+        spline_ijk.m[1][1]=splineControlPoint->sto_ijk.m[1][1];
+        spline_ijk.m[1][2]=splineControlPoint->sto_ijk.m[1][2];
+        spline_ijk.m[2][0]=splineControlPoint->sto_ijk.m[2][0];
+        spline_ijk.m[2][1]=splineControlPoint->sto_ijk.m[2][1];
+        spline_ijk.m[2][2]=splineControlPoint->sto_ijk.m[2][2];
+    }
+    else{
+        spline_ijk.m[0][0]=splineControlPoint->qto_ijk.m[0][0];
+        spline_ijk.m[0][1]=splineControlPoint->qto_ijk.m[0][1];
+        spline_ijk.m[0][2]=splineControlPoint->qto_ijk.m[0][2];
+        spline_ijk.m[1][0]=splineControlPoint->qto_ijk.m[1][0];
+        spline_ijk.m[1][1]=splineControlPoint->qto_ijk.m[1][1];
+        spline_ijk.m[1][2]=splineControlPoint->qto_ijk.m[1][2];
+        spline_ijk.m[2][0]=splineControlPoint->qto_ijk.m[2][0];
+        spline_ijk.m[2][1]=splineControlPoint->qto_ijk.m[2][1];
+        spline_ijk.m[2][2]=splineControlPoint->qto_ijk.m[2][2];
+    }
+    mat33 desorient=nifti_mat33_mul(spline_ijk, reorient);
+    reorient=nifti_mat33_inverse(desorient);
+    mat33 jacobianMatrix;
+
+    for(int z=0; z<targetImage->nz; z++){
+
+        int zPre=(int)((SplineTYPE)z/gridVoxelSpacing[2]);
+        basis=(SplineTYPE)z/gridVoxelSpacing[2]-(SplineTYPE)zPre;
+        if(basis<0.0) basis=0.0; //rounding error
+        FF= basis*basis;
+        FFF= FF*basis;
+        MF=(SplineTYPE)(1.0-basis);
+        zBasis[0] = (SplineTYPE)((MF)*(MF)*(MF)/6.0);
+        zBasis[1] = (SplineTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+        zBasis[2] = (SplineTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+        zBasis[3] = (SplineTYPE)(FFF/6.0);
+        zFirst[3]= (SplineTYPE)(FF / 2.0);
+        zFirst[0]= (SplineTYPE)(basis - 1.0/2.0 - zFirst[3]);
+        zFirst[2]= (SplineTYPE)(1.0 + zFirst[0] - 2.0*zFirst[3]);
+        zFirst[1]= - zFirst[0] - zFirst[2] - zFirst[3];
+
+        for(int y=0; y<targetImage->ny; y++){
+
+            int yPre=(int)((SplineTYPE)y/gridVoxelSpacing[1]);
+            basis=(SplineTYPE)y/gridVoxelSpacing[1]-(SplineTYPE)yPre;
+            if(basis<0.0) basis=0.0; //rounding error
+            FF= basis*basis;
+            FFF= FF*basis;
+            MF=(SplineTYPE)(1.0-basis);
+            yBasis[0] = (SplineTYPE)((MF)*(MF)*(MF)/6.0);
+            yBasis[1] = (SplineTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+            yBasis[2] = (SplineTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+            yBasis[3] = (SplineTYPE)(FFF/6.0);
+            yFirst[3]= (SplineTYPE)(FF / 2.0);
+            yFirst[0]= (SplineTYPE)(basis - 1.0/2.0 - yFirst[3]);
+            yFirst[2]= (SplineTYPE)(1.0 + yFirst[0] - 2.0*yFirst[3]);
+            yFirst[1]= - yFirst[0] - yFirst[2] - yFirst[3];
+#if _USE_SSE
+            val.f[0]=yBasis[0];
+            val.f[1]=yBasis[1];
+            val.f[2]=yBasis[2];
+            val.f[3]=yBasis[3];
+            __m128 _yBasis=val.m;
+            val.f[0]=yFirst[0];
+            val.f[1]=yFirst[1];
+            val.f[2]=yFirst[2];
+            val.f[3]=yFirst[3];
+            __m128 _yFirst=val.m;
+            __m128 *ptrBasisX = (__m128 *) &tempX[0];
+            __m128 *ptrBasisY = (__m128 *) &tempY[0];
+            __m128 *ptrBasisZ = (__m128 *) &tempZ[0];
+            for(int a=0;a<4;++a){
+                val.m=_mm_set_ps1(zBasis[a]);
+                *ptrBasisX=_mm_mul_ps(_yBasis,val.m);
+                *ptrBasisY=_mm_mul_ps(_yFirst,val.m);
+                val.m=_mm_set_ps1(zFirst[a]);
+                *ptrBasisZ=_mm_mul_ps(_yBasis,val.m);
+                ptrBasisX++;
+                ptrBasisY++;
+                ptrBasisZ++;
+            }
+#else
+            coord=0;
+            for(int c=0; c<4; c++){
+                for(int b=0; b<4; b++){
+                    tempX[coord]=zBasis[c]*yBasis[b]; // z * y
+                    tempY[coord]=zBasis[c]*yFirst[b];// z * y'
+                    tempZ[coord]=zFirst[c]*yBasis[b]; // z'* y
+                    coord++;
+                }
+            }
+#endif
+
+            for(int x=0; x<targetImage->nx; x++){
+
+                int xPre=(int)((SplineTYPE)x/gridVoxelSpacing[0]);
+                basis=(SplineTYPE)x/gridVoxelSpacing[0]-(SplineTYPE)xPre;
+                if(basis<0.0) basis=0.0; //rounding error
+                FF= basis*basis;
+                FFF= FF*basis;
+                MF=(SplineTYPE)(1.0-basis);
+                xBasis[0] = (SplineTYPE)((MF)*(MF)*(MF)/6.0);
+                xBasis[1] = (SplineTYPE)((3.0*FFF - 6.0*FF +4.0)/6.0);
+                xBasis[2] = (SplineTYPE)((-3.0*FFF + 3.0*FF + 3.0*basis + 1.0)/6.0);
+                xBasis[3] = (SplineTYPE)(FFF/6.0);
+                xFirst[3]= (SplineTYPE)(FF / 2.0);
+                xFirst[0]= (SplineTYPE)(basis - 1.0/2.0 - xFirst[3]);
+                xFirst[2]= (SplineTYPE)(1.0 + xFirst[0] - 2.0*xFirst[3]);
+                xFirst[1]= - xFirst[0] - xFirst[2] - xFirst[3];
+
+#if _USE_SSE
+                val.f[0]=xBasis[0];
+                val.f[1]=xBasis[1];
+                val.f[2]=xBasis[2];
+                val.f[3]=xBasis[3];
+                __m128 _xBasis=val.m;
+                val.f[0]=xFirst[0];
+                val.f[1]=xFirst[1];
+                val.f[2]=xFirst[2];
+                val.f[3]=xFirst[3];
+                __m128 _xFirst=val.m;
+                ptrBasisX = (__m128 *) &basisX[0];
+                ptrBasisY = (__m128 *) &basisY[0];
+                ptrBasisZ = (__m128 *) &basisZ[0];
+                for(int a=0;a<16;++a){
+                    val.m=_mm_set_ps1(tempX[a]);
+                    *ptrBasisX=_mm_mul_ps(_xFirst,val.m);
+                    val.m=_mm_set_ps1(tempY[a]);
+                    *ptrBasisY=_mm_mul_ps(_xBasis,val.m);
+                    val.m=_mm_set_ps1(tempZ[a]);
+                    *ptrBasisZ=_mm_mul_ps(_xBasis,val.m);
+                    ptrBasisX++;
+                    ptrBasisY++;
+                    ptrBasisZ++;
+                }
+#else
+                coord=0;
+                for(int bc=0; bc<16; bc++){
+                    for(int a=0; a<4; a++){
+                        basisX[coord]=tempX[bc]*xFirst[a];   // z * y * x'
+                        basisY[coord]=tempY[bc]*xBasis[a];    // z * y'* x
+                        basisZ[coord]=tempZ[bc]*xBasis[a];    // z'* y * x
+                        coord++;
+                    }
+                }
+#endif
+
+                if(basis<=oldBasis || x==0){
+                    coord=0;
+                    for(int Z=zPre; Z<zPre+4; Z++){
+                        unsigned int index = Z*splineControlPoint->nx*splineControlPoint->ny;
+                        SplineTYPE *xPtr = &controlPointPtrX[index];
+                        SplineTYPE *yPtr = &controlPointPtrY[index];
+                        SplineTYPE *zPtr = &controlPointPtrZ[index];
+                        for(int Y=yPre; Y<yPre+4; Y++){
+                            unsigned int index = Y*splineControlPoint->nx;
+                            SplineTYPE *xxPtr = &xPtr[index];
+                            SplineTYPE *yyPtr = &yPtr[index];
+                            SplineTYPE *zzPtr = &zPtr[index];
+                            for(int X=xPre; X<xPre+4; X++){
+                                xControlPointCoordinates[coord] = (SplineTYPE)xxPtr[X];
+                                yControlPointCoordinates[coord] = (SplineTYPE)yyPtr[X];
+                                zControlPointCoordinates[coord] = (SplineTYPE)zzPtr[X];
+                                coord++;
+                            }
+                        }
+                    }
+                }
+                oldBasis=basis;
+
+                SplineTYPE Tx_x=0.0;
+                SplineTYPE Ty_x=0.0;
+                SplineTYPE Tz_x=0.0;
+                SplineTYPE Tx_y=0.0;
+                SplineTYPE Ty_y=0.0;
+                SplineTYPE Tz_y=0.0;
+                SplineTYPE Tx_z=0.0;
+                SplineTYPE Ty_z=0.0;
+                SplineTYPE Tz_z=0.0;
+
+#if _USE_SSE
+                __m128 tempX_x =  _mm_set_ps1(0.0);
+                __m128 tempX_y =  _mm_set_ps1(0.0);
+                __m128 tempX_z =  _mm_set_ps1(0.0);
+                __m128 tempY_x =  _mm_set_ps1(0.0);
+                __m128 tempY_y =  _mm_set_ps1(0.0);
+                __m128 tempY_z =  _mm_set_ps1(0.0);
+                __m128 tempZ_x =  _mm_set_ps1(0.0);
+                __m128 tempZ_y =  _mm_set_ps1(0.0);
+                __m128 tempZ_z =  _mm_set_ps1(0.0);
+                __m128 *ptrX = (__m128 *) &xControlPointCoordinates[0];
+                __m128 *ptrY = (__m128 *) &yControlPointCoordinates[0];
+                __m128 *ptrZ = (__m128 *) &zControlPointCoordinates[0];
+                ptrBasisX   = (__m128 *) &basisX[0];
+                ptrBasisY   = (__m128 *) &basisY[0];
+                ptrBasisZ   = (__m128 *) &basisZ[0];
+                //addition and multiplication of the 16 basis value and CP position for each axis
+                for(unsigned int a=0; a<16; a++){
+                    tempX_x = _mm_add_ps(_mm_mul_ps(*ptrBasisX, *ptrX), tempX_x );
+                    tempX_y = _mm_add_ps(_mm_mul_ps(*ptrBasisY, *ptrX), tempX_y );
+                    tempX_z = _mm_add_ps(_mm_mul_ps(*ptrBasisZ, *ptrX), tempX_z );
+
+                    tempY_x = _mm_add_ps(_mm_mul_ps(*ptrBasisX, *ptrY), tempY_x );
+                    tempY_y = _mm_add_ps(_mm_mul_ps(*ptrBasisY, *ptrY), tempY_y );
+                    tempY_z = _mm_add_ps(_mm_mul_ps(*ptrBasisZ, *ptrY), tempY_z );
+
+                    tempZ_x = _mm_add_ps(_mm_mul_ps(*ptrBasisX, *ptrZ), tempZ_x );
+                    tempZ_y = _mm_add_ps(_mm_mul_ps(*ptrBasisY, *ptrZ), tempZ_y );
+                    tempZ_z = _mm_add_ps(_mm_mul_ps(*ptrBasisZ, *ptrZ), tempZ_z );
+
+                    ptrBasisX++;
+                    ptrBasisY++;
+                    ptrBasisZ++;
+                    ptrX++;
+                    ptrY++;
+                    ptrZ++;
+                }
+
+                //the values stored in SSE variables are transfered to normal float
+                val.m = tempX_x;
+                Tx_x = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                val.m = tempX_y;
+                Tx_y = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                val.m = tempX_z;
+                Tx_z = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+
+                val.m = tempY_x;
+                Ty_x = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                val.m = tempY_y;
+                Ty_y = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                val.m = tempY_z;
+                Ty_z = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+
+                val.m = tempZ_x;
+                Tz_x = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                val.m = tempZ_y;
+                Tz_y = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                val.m = tempZ_z;
+                Tz_z = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+#else
+                for(int a=0; a<64; a++){
+                    Tx_x += basisX[a]*xControlPointCoordinates[a];
+                    Tx_y += basisY[a]*xControlPointCoordinates[a];
+                    Tx_z += basisZ[a]*xControlPointCoordinates[a];
+
+                    Ty_x += basisX[a]*yControlPointCoordinates[a];
+                    Ty_y += basisY[a]*yControlPointCoordinates[a];
+                    Ty_z += basisZ[a]*yControlPointCoordinates[a];
+
+                    Tz_x += basisX[a]*zControlPointCoordinates[a];
+                    Tz_y += basisY[a]*zControlPointCoordinates[a];
+                    Tz_z += basisZ[a]*zControlPointCoordinates[a];
+                }
+#endif
+
+                jacobianMatrix.m[0][0]= Tx_x / splineControlPoint->dx;
+                jacobianMatrix.m[0][1]= Tx_y / splineControlPoint->dy;
+                jacobianMatrix.m[0][2]= Tx_z / splineControlPoint->dz;
+                jacobianMatrix.m[1][0]= Ty_x / splineControlPoint->dx;
+                jacobianMatrix.m[1][1]= Ty_y / splineControlPoint->dy;
+                jacobianMatrix.m[1][2]= Ty_z / splineControlPoint->dz;
+                jacobianMatrix.m[2][0]= Tz_x / splineControlPoint->dx;
+                jacobianMatrix.m[2][1]= Tz_y / splineControlPoint->dy;
+                jacobianMatrix.m[2][2]= Tz_z / splineControlPoint->dz;
+
+                jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
+                SplineTYPE detJac = nifti_mat33_determ(jacobianMatrix);
+                *jacPtr++ = detJac;
+                *matricesPtr++ = nifti_mat33_inverse(jacobianMatrix);
+            } // x
+        } // y
+    } // z
+    double averagedJacobianValue=0.0;
+    for(unsigned int i=0; i<targetImage->nvox; i++){
+        double logDet = log(jacValues[i]);
+        averagedJacobianValue+=logDet*logDet;
+    }
+    averagedJacobianValue /= (SplineTYPE)targetImage->nvox;
+    if(averagedJacobianValue==averagedJacobianValue){
+        free(jacInvertedMatrices);
+        free(jacValues);
+        return (SplineTYPE)averagedJacobianValue;
+    }
+
+    SplineTYPE basisValues[3];
+    SplineTYPE xBasisSingle, yBasisSingle, zBasisSingle;
+    SplineTYPE xFirstSingle, yFirstSingle, zFirstSingle;
+    unsigned int jacIndex;
+
+    for(int z=0;z<splineControlPoint->nz;z++){
+        for(int y=0;y<splineControlPoint->ny;y++){
+            for(int x=0;x<splineControlPoint->nx;x++){
+
+                SplineTYPE foldingCorrectionX=(SplineTYPE)0.0;
+                SplineTYPE foldingCorrectionY=(SplineTYPE)0.0;
+                SplineTYPE foldingCorrectionZ=(SplineTYPE)0.0;
+
+                bool correctFolding=false;
+
+                // Loop over all the control points in the surrounding area
+                for(int pixelZ=(int)ceil((z-2)*gridVoxelSpacing[2]);pixelZ<(int)floor((z)*gridVoxelSpacing[2]); pixelZ++){
+                    if(pixelZ>-1 && pixelZ<targetImage->nz){
+
+                        int zPre=(int)((SplineTYPE)pixelZ/gridVoxelSpacing[2]);
+                        basis=(SplineTYPE)pixelZ/gridVoxelSpacing[2]-(SplineTYPE)zPre;
+                        if(basis<0.0) basis=0.0; //rounding error
+
+                        switch(z-zPre){
+                            case 0:
+                                zBasisSingle=(SplineTYPE)((basis-1.0)*(basis-1.0)*(basis-1.0)/(6.0));
+                                zFirstSingle=(SplineTYPE)((-basis*basis + 2.0*basis - 1.0) / 2.0);
+                                break;
+                            case 1:
+                                zBasisSingle=(SplineTYPE)((3.0*basis*basis*basis - 6.0*basis*basis + 4.0)/6.0);
+                                zFirstSingle=(SplineTYPE)((3.0*basis*basis - 4.0*basis) / 2.0);
+                                break;
+                            case 2:
+                                zBasisSingle=(SplineTYPE)((-3.0*basis*basis*basis + 3.0*basis*basis + 3.0*basis + 1.0)/6.0);
+                                zFirstSingle=(SplineTYPE)((-3.0*basis*basis + 2.0*basis + 1.0) / 2.0);
+                                break;
+                            case 3:
+                                zBasisSingle=(SplineTYPE)(basis*basis*basis/6.0);
+                                zFirstSingle=(SplineTYPE)(basis*basis/2.0);
+                                break;
+                            default:
+                                zBasisSingle=(SplineTYPE)0.0;
+                                zFirstSingle=(SplineTYPE)0.0;
+                                break;
+                        }
+
+
+                        for(int pixelY=(int)ceil((y-2)*gridVoxelSpacing[1]);pixelY<(int)floor((y)*gridVoxelSpacing[1]); pixelY++){
+                            if(pixelY>-1 && pixelY<targetImage->ny){
+
+                                int yPre=(int)((SplineTYPE)pixelY/gridVoxelSpacing[1]);
+                                basis=(SplineTYPE)pixelY/gridVoxelSpacing[1]-(SplineTYPE)yPre;
+                                if(basis<0.0) basis=0.0; //rounding error
+
+                                switch(y-yPre){
+                                    case 0:
+                                        yBasisSingle=(SplineTYPE)((basis-1.0)*(basis-1.0)*(basis-1.0)/(6.0));
+                                        yFirstSingle=(SplineTYPE)((-basis*basis + 2.0*basis - 1.0) / 2.0);
+                                        break;
+                                    case 1:
+                                        yBasisSingle=(SplineTYPE)((3.0*basis*basis*basis - 6.0*basis*basis + 4.0)/6.0);
+                                        yFirstSingle=(SplineTYPE)((3.0*basis*basis - 4.0*basis) / 2.0);
+                                        break;
+                                    case 2:
+                                        yBasisSingle=(SplineTYPE)((-3.0*basis*basis*basis + 3.0*basis*basis + 3.0*basis + 1.0)/6.0);
+                                        yFirstSingle=(SplineTYPE)((-3.0*basis*basis + 2.0*basis + 1.0) / 2.0);
+                                        break;
+                                    case 3:
+                                        yBasisSingle=(SplineTYPE)(basis*basis*basis/6.0);
+                                        yFirstSingle=(SplineTYPE)(basis*basis/2.0);
+                                        break;
+                                    default:
+                                        yBasisSingle=(SplineTYPE)0.0;
+                                        yFirstSingle=(SplineTYPE)0.0;
+                                        break;
+                                }
+
+                                for(int pixelX=(int)ceil((x-2)*gridVoxelSpacing[0]);pixelX<(int)floor((x)*gridVoxelSpacing[0]); pixelX++){
+                                    if(pixelX>-1 && pixelX<targetImage->nx){
+
+                                        int xPre=(int)((SplineTYPE)pixelX/gridVoxelSpacing[0]);
+                                        basis=(SplineTYPE)pixelX/gridVoxelSpacing[0]-(SplineTYPE)xPre;
+                                        if(basis<0.0) basis=0.0; //rounding error
+
+                                        switch(x-xPre){
+                                            case 0:
+                                                xBasisSingle=(SplineTYPE)((basis-1.0)*(basis-1.0)*(basis-1.0)/(6.0));
+                                                xFirstSingle=(SplineTYPE)((-basis*basis + 2.0*basis - 1.0) / 2.0);
+                                                break;
+                                            case 1:
+                                                xBasisSingle=(SplineTYPE)((3.0*basis*basis*basis - 6.0*basis*basis + 4.0)/6.0);
+                                                xFirstSingle=(SplineTYPE)((3.0*basis*basis - 4.0*basis) / 2.0);
+                                                break;
+                                            case 2:
+                                                xBasisSingle=(SplineTYPE)((-3.0*basis*basis*basis + 3.0*basis*basis + 3.0*basis + 1.0)/6.0);
+                                                xFirstSingle=(SplineTYPE)((-3.0*basis*basis + 2.0*basis + 1.0) / 2.0);
+                                                break;
+                                            case 3:
+                                                xBasisSingle=(SplineTYPE)(basis*basis*basis/6.0);
+                                                xFirstSingle=(SplineTYPE)(basis*basis/2.0);
+                                                break;
+                                            default:
+                                                xBasisSingle=(SplineTYPE)0.0;
+                                                xFirstSingle=(SplineTYPE)0.0;
+                                                break;
+                                        }
+
+                                        basisValues[0]= xFirstSingle * yBasisSingle * zBasisSingle ;
+                                        basisValues[1]= xBasisSingle * yFirstSingle * zBasisSingle ;
+                                        basisValues[2]= xBasisSingle * yBasisSingle * zFirstSingle ;
+
+                                        jacIndex = (pixelZ*targetImage->ny+pixelY)*targetImage->nx+pixelX;
+                                        SplineTYPE detJac = jacValues[jacIndex];
+
+                                        mat33 jacobianMatrix = jacInvertedMatrices[jacIndex];
+
+                                        if(detJac<=0.0){
+                                            correctFolding=true;
+                                            // Derivative of the jacobian itself
+                                            foldingCorrectionX += detJac *
+                                                ( jacobianMatrix.m[0][0]*basisValues[0]
+                                                + jacobianMatrix.m[0][1]*basisValues[1]
+                                                + jacobianMatrix.m[0][2]*basisValues[2]);
+                                            foldingCorrectionY += detJac *
+                                                ( jacobianMatrix.m[1][0]*basisValues[0]
+                                                + jacobianMatrix.m[1][1]*basisValues[1]
+                                                + jacobianMatrix.m[1][2]*basisValues[2]);
+                                            foldingCorrectionZ += detJac *
+                                                ( jacobianMatrix.m[2][0]*basisValues[0]
+                                                + jacobianMatrix.m[2][1]*basisValues[1]
+                                                + jacobianMatrix.m[2][2]*basisValues[2]);
+                                        } // detJac<0.0
+                                    } // if x
+                                }// x
+                            }// if y
+                        }// y
+                    }// if z
+                } // z
+                // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
+                if(correctFolding){
+                    SplineTYPE gradient[3];
+                    gradient[0] = desorient.m[0][0]*foldingCorrectionX
+                                + desorient.m[0][1]*foldingCorrectionY
+                                + desorient.m[0][2]*foldingCorrectionZ;
+                    gradient[1] = desorient.m[1][0]*foldingCorrectionX
+                                + desorient.m[1][1]*foldingCorrectionY
+                                + desorient.m[1][2]*foldingCorrectionZ;
+                    gradient[2] = desorient.m[2][0]*foldingCorrectionX
+                                + desorient.m[2][1]*foldingCorrectionY
+                                + desorient.m[2][2]*foldingCorrectionZ;
+                    SplineTYPE norm = 5.0 * sqrt(gradient[0]*gradient[0]
+                                            + gradient[1]*gradient[1]
+                                            + gradient[2]*gradient[2])
+                                            * SCALING_VALUE;
+                    if(norm>0.0){
+                        const unsigned int id = (z*splineControlPoint->ny+y)*splineControlPoint->nx+x;
+                        velocityFieldPtrX[id] += splineControlPoint->dx*gradient[0]/norm;
+                        velocityFieldPtrY[id] += splineControlPoint->dy*gradient[1]/norm;
+                        velocityFieldPtrZ[id] += splineControlPoint->dz*gradient[2]/norm;
+                    }
+                }
+            }
+        }
+    }
+    free(jacInvertedMatrices);
+    free(jacValues);
+    return std::numeric_limits<float>::quiet_NaN();
+}
+/* *************************************************************** */
+double reg_bspline_CorrectApproximatedFoldingFromCPP(   nifti_image* controlPointImage,
+                                                        nifti_image* velocityFieldImage,
+                                                        nifti_image* targetImage,
+                                                        bool approx
+                                                        )
+{
+    // The Jacobian-based folding correction is computed
+    if(approx){
+//        switch(velocityFieldImage->datatype){
+//            case NIFTI_TYPE_FLOAT32:
+//                return reg_bspline_CorrectApproximatedFoldingFromApproxCPP_3D<float>
+//                    (velocityFieldImage, targetImage);
+//                break;
+//            case NIFTI_TYPE_FLOAT64:
+//                return reg_bspline_CorrectApproximatedFoldingFromApproxCPP_3D<double>
+//                        (velocityFieldImage, targetImage);
+//                break;
+//            default:
+//                fprintf(stderr,"ERROR:\treg_bspline_CorrectFoldingFromVelocityField_3D\n");
+//                fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
+//                exit(1);
+//                break;
+//        }
+    }
+    else{
+        switch(velocityFieldImage->datatype){
+            case NIFTI_TYPE_FLOAT32:
+                return reg_bspline_CorrectApproximatedFoldingFromCPP_3D<float>
+                    (controlPointImage, velocityFieldImage, targetImage);
+                break;
+            case NIFTI_TYPE_FLOAT64:
+                return reg_bspline_CorrectApproximatedFoldingFromCPP_3D<double>
+                        (controlPointImage, velocityFieldImage, targetImage);
+                break;
+            default:
+                fprintf(stderr,"ERROR:\treg_bspline_CorrectFoldingFromVelocityField_3D\n");
+                fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
+                exit(1);
+                break;
+        }
+    }
+}
+
 #endif

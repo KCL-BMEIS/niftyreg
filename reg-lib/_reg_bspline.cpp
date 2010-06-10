@@ -4537,7 +4537,7 @@ PrecisionTYPE reg_bspline_correctFoldingApprox_2D(nifti_image *splineControlPoin
     return std::numeric_limits<float>::quiet_NaN();
 }
 /* *************************************************************** */
-extern "C++" template<class PrecisionTYPE, class SplineTYPE>
+template<class PrecisionTYPE, class SplineTYPE>
 PrecisionTYPE reg_bspline_correctFolding_3D(nifti_image *splineControlPoint,
                                             nifti_image *targetImage)
 {
