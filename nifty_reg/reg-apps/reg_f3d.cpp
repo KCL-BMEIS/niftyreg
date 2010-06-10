@@ -9,14 +9,6 @@
  *
  */
 
-/* TODO
-	- Approximate Jacobian log gradient?
-*/
-
-/* TOFIX
-	- None (so far)
-*/
-
 #ifndef _MM_F3D_CPP
 #define _MM_F3D_CPP
 

@@ -115,4 +115,16 @@ double reg_bspline_CorrectFoldingFromVelocityField( nifti_image* velocityFieldIm
                                                     bool approx
                                                     );
 
+/** reg_bspline_CorrectFoldingFromVelocityField(nifti_image *img1, nifti_image *img2, bool approx);
+  * This function aims to removed the folded area by computing the negative Jacobian
+  * determinant gradient
+  * It also return the current Jacobian penalty term value.
+**/
+extern "C++"
+double reg_bspline_CorrectApproximatedFoldingFromCPP(   nifti_image* controlPointImage,
+                                                        nifti_image* velocityFieldImage,
+                                                        nifti_image* targetImage,
+                                                        bool approx
+                                                        );
+
 #endif

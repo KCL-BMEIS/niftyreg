@@ -25,7 +25,7 @@ IF(BUILD_F3D OR BUILD_F3D2)
 	)
 #-----------------------------------------------------------------------------
 	SET(NAME _reg_bspline_comp)
-	ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp)
+    ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp)
 	INSTALL(TARGETS ${NAME}
 		RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 		LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
