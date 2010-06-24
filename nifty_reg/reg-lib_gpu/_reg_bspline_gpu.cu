@@ -480,6 +480,7 @@ void reg_bspline_ComputeJacobianGradient_gpu(   nifti_image *targetImage,
 
     // All the values will be store in an array
     float *jacobianMatrices_d;
+    float *jacobianDeterminant_d;
 
     if(approximate){
             /* Since we are using an approximation, only 27 basis values are used
@@ -505,7 +506,9 @@ void reg_bspline_ComputeJacobianGradient_gpu(   nifti_image *targetImage,
         CUDA_SAFE_CALL(cudaBindTexture(0, zBasisTexture, zBasisValues_d, 27*sizeof(float)));
 
         CUDA_SAFE_CALL(cudaMalloc((void **)&jacobianMatrices_d,
-            10*(controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2)*sizeof(float)));
+            9*(controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2)*sizeof(float)));
+        CUDA_SAFE_CALL(cudaMalloc((void **)&jacobianDeterminant_d,
+            (controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2)*sizeof(float)));
 
         // The Jacobian matrices array is filled
         const unsigned int Grid_reg_bspline_ApproxJacobian =
@@ -513,7 +516,7 @@ void reg_bspline_ComputeJacobianGradient_gpu(   nifti_image *targetImage,
         dim3 B1(Block_reg_bspline_ApproxJacobian,1,1);
         dim3 G1(Grid_reg_bspline_ApproxJacobian,1,1);
 
-        reg_bspline_ApproxJacobianMatrix_kernel <<< G1, B1 >>>(jacobianMatrices_d);
+        reg_bspline_ApproxJacobianMatrix_kernel <<< G1, B1 >>>(jacobianMatrices_d, jacobianDeterminant_d);
         CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
         printf("[DEBUG] reg_bspline_ApproxJacobianMatrix_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
@@ -526,7 +529,9 @@ void reg_bspline_ComputeJacobianGradient_gpu(   nifti_image *targetImage,
     }
     else{
         CUDA_SAFE_CALL(cudaMalloc((void **)&jacobianMatrices_d,
-            10*targetImage->nvox*sizeof(float)));
+            9*targetImage->nvox*sizeof(float)));
+        CUDA_SAFE_CALL(cudaMalloc((void **)&jacobianDeterminant_d,
+            targetImage->nvox*sizeof(float)));
 
         // The Jacobian matrices array is filled
         const unsigned int Grid_reg_bspline_Jacobian =
@@ -534,7 +539,7 @@ void reg_bspline_ComputeJacobianGradient_gpu(   nifti_image *targetImage,
         dim3 B1(Block_reg_bspline_Jacobian,1,1);
         dim3 G1(Grid_reg_bspline_Jacobian,1,1);
 
-        reg_bspline_JacobianMatrix_kernel <<< G1, B1 >>>(jacobianMatrices_d);
+        reg_bspline_JacobianMatrix_kernel <<< G1, B1 >>>(jacobianMatrices_d, jacobianDeterminant_d);
         CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
         printf("[DEBUG] reg_bspline_JacobianMatrix_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
@@ -551,8 +556,10 @@ void reg_bspline_ComputeJacobianGradient_gpu(   nifti_image *targetImage,
         CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Weight,&weight,sizeof(float)));
 
         // The jacobian matrices are binded to a texture
-        CUDA_SAFE_CALL(cudaBindTexture(0, jacobianDeterminantTexture, jacobianMatrices_d,
-            10*(controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2)*sizeof(float)));
+        CUDA_SAFE_CALL(cudaBindTexture(0, jacobianMatricesTexture, jacobianMatrices_d,
+            9*(controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2)*sizeof(float)));
+        CUDA_SAFE_CALL(cudaBindTexture(0, jacobianDeterminantTexture, jacobianDeterminant_d,
+            (controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2)*sizeof(float)));
 
         const unsigned int Grid_reg_bspline_ApproxJacobianGradient =
             (unsigned int)ceil((float)controlPointNumber/(float)(Block_reg_bspline_ApproxJacobianGradient));
@@ -571,8 +578,10 @@ void reg_bspline_ComputeJacobianGradient_gpu(   nifti_image *targetImage,
         CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Weight,&jacobianWeight,sizeof(float)));
 
         // The jacobian matrices are binded to a texture
-        CUDA_SAFE_CALL(cudaBindTexture(0, jacobianDeterminantTexture, jacobianMatrices_d,
-            10*targetImage->nvox*sizeof(float)));
+        CUDA_SAFE_CALL(cudaBindTexture(0, jacobianMatricesTexture, jacobianMatrices_d,
+            9*targetImage->nvox*sizeof(float)));
+        CUDA_SAFE_CALL(cudaBindTexture(0, jacobianDeterminantTexture, jacobianDeterminant_d,
+            targetImage->nvox*sizeof(float)));
 
         const unsigned int Grid_reg_bspline_JacobianGradient =
             (unsigned int)ceil((float)controlPointNumber/(float)(Block_reg_bspline_JacobianGradient));
@@ -588,6 +597,7 @@ void reg_bspline_ComputeJacobianGradient_gpu(   nifti_image *targetImage,
     }
 
     CUDA_SAFE_CALL(cudaFree(jacobianMatrices_d));
+    CUDA_SAFE_CALL(cudaFree(jacobianDeterminant_d));
 }
 
 /* *************************************************************** */
@@ -658,6 +668,7 @@ double reg_bspline_correctFolding_gpu(  nifti_image *targetImage,
 
     // All the values will be store in an array
     float *jacobianMatrices_d;
+    float *jacobianDeterminant_d;
 
     if(approximate){
             /* Since we are using an approximation, only 27 basis values are used
@@ -683,7 +694,9 @@ double reg_bspline_correctFolding_gpu(  nifti_image *targetImage,
         CUDA_SAFE_CALL(cudaBindTexture(0, zBasisTexture, zBasisValues_d, 27*sizeof(float)));
 
         CUDA_SAFE_CALL(cudaMalloc((void **)&jacobianMatrices_d,
-            10*(controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2)*sizeof(float)));
+            9*(controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2)*sizeof(float)));
+        CUDA_SAFE_CALL(cudaMalloc((void **)&jacobianDeterminant_d,
+            (controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2)*sizeof(float)));
 
         // The Jacobian matrices array is filled
         const unsigned int Grid_reg_bspline_ApproxJacobian =
@@ -691,7 +704,7 @@ double reg_bspline_correctFolding_gpu(  nifti_image *targetImage,
         dim3 B1(Block_reg_bspline_ApproxJacobian,1,1);
         dim3 G1(Grid_reg_bspline_ApproxJacobian,1,1);
 
-        reg_bspline_ApproxJacobianMatrix_kernel <<< G1, B1 >>>(jacobianMatrices_d);
+        reg_bspline_ApproxJacobianMatrix_kernel <<< G1, B1 >>>(jacobianMatrices_d, jacobianDeterminant_d);
         CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
         printf("[DEBUG] reg_bspline_ApproxJacobianMatrix_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
@@ -704,7 +717,9 @@ double reg_bspline_correctFolding_gpu(  nifti_image *targetImage,
     }
     else{
         CUDA_SAFE_CALL(cudaMalloc((void **)&jacobianMatrices_d,
-            10*targetImage->nvox*sizeof(float)));
+            9*targetImage->nvox*sizeof(float)));
+        CUDA_SAFE_CALL(cudaMalloc((void **)&jacobianDeterminant_d,
+            targetImage->nvox*sizeof(float)));
 
         // The Jacobian matrices array is filled
         const unsigned int Grid_reg_bspline_Jacobian =
@@ -712,7 +727,7 @@ double reg_bspline_correctFolding_gpu(  nifti_image *targetImage,
         dim3 B1(Block_reg_bspline_Jacobian,1,1);
         dim3 G1(Grid_reg_bspline_Jacobian,1,1);
 
-        reg_bspline_JacobianMatrix_kernel <<< G1, B1 >>>(jacobianMatrices_d);
+        reg_bspline_JacobianMatrix_kernel <<< G1, B1 >>>(jacobianMatrices_d, jacobianDeterminant_d);
         CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
         printf("[DEBUG] reg_bspline_JacobianMatrix_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
@@ -720,19 +735,41 @@ double reg_bspline_correctFolding_gpu(  nifti_image *targetImage,
 #endif
     }
     double JacDetpenaltyTerm=0.;
-/**
- *  //TODO HERE : Compute the Jacobian determinant penalty term
-*/
+    float *jacobianDeterminant_h;
+    if(approximate){
+        CUDA_SAFE_CALL(cudaMallocHost((void**)&jacobianDeterminant_h,(controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2)*sizeof(float)));
+        CUDA_SAFE_CALL(cudaMemcpy(jacobianDeterminant_h, jacobianDeterminant_d,
+                                  (controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2)*sizeof(float),
+                                  cudaMemcpyDeviceToHost));
+        for(int i=0; i<(controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2); i++)
+            JacDetpenaltyTerm += jacobianDeterminant_h[i];
+        JacDetpenaltyTerm /= (double)((controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2));
+    }
+    else{
+        CUDA_SAFE_CALL(cudaMallocHost((void**)&jacobianDeterminant_h,targetImage->nvox*sizeof(float)));
+        CUDA_SAFE_CALL(cudaMemcpy(jacobianDeterminant_h, jacobianDeterminant_d,
+                                  targetImage->nvox*sizeof(float),
+                                  cudaMemcpyDeviceToHost));
+        for(int i=0; i<targetImage->nvox; i++)
+            JacDetpenaltyTerm += jacobianDeterminant_h[i];
+        JacDetpenaltyTerm /= (double)(targetImage->nvox);
+
+    }
+    CUDA_SAFE_CALL(cudaFreeHost(jacobianDeterminant_h));
+
     if(JacDetpenaltyTerm==JacDetpenaltyTerm){
         CUDA_SAFE_CALL(cudaFree(jacobianMatrices_d));
+        CUDA_SAFE_CALL(cudaFree(jacobianDeterminant_d));
         return JacDetpenaltyTerm;
     }
 
     // The folded voxel impact on the node position
     if(approximate){
         // The jacobian matrices are binded to a texture
-        CUDA_SAFE_CALL(cudaBindTexture(0, jacobianDeterminantTexture, jacobianMatrices_d,
-            10*(controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2)*sizeof(float)));
+        CUDA_SAFE_CALL(cudaBindTexture(0, jacobianMatricesTexture, jacobianMatrices_d,
+            9*(controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2)*sizeof(float)));
+        CUDA_SAFE_CALL(cudaBindTexture(0, jacobianDeterminantTexture, jacobianDeterminant_d,
+            (controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2)*sizeof(float)));
 
         const unsigned int Grid_reg_bspline_ApproxCorrectFolding =
             (unsigned int)ceil((float)controlPointNumber/(float)(Block_reg_bspline_ApproxCorrectFolding));
@@ -748,8 +785,10 @@ double reg_bspline_correctFolding_gpu(  nifti_image *targetImage,
     }
     else{
         // The jacobian matrices are binded to a texture
-        CUDA_SAFE_CALL(cudaBindTexture(0, jacobianDeterminantTexture, jacobianMatrices_d,
-            10*targetImage->nvox*sizeof(float)));
+        CUDA_SAFE_CALL(cudaBindTexture(0, jacobianMatricesTexture, jacobianMatrices_d,
+            9*targetImage->nvox*sizeof(float)));
+        CUDA_SAFE_CALL(cudaBindTexture(0, jacobianDeterminantTexture, jacobianDeterminant_d,
+            targetImage->nvox*sizeof(float)));
 
         const unsigned int Grid_reg_bspline_CorrectFolding =
             (unsigned int)ceil((float)controlPointNumber/(float)(Block_reg_bspline_CorrectFolding));
@@ -763,6 +802,8 @@ double reg_bspline_correctFolding_gpu(  nifti_image *targetImage,
             cudaGetErrorString(cudaGetLastError()),G2.x,G2.y,G2.z,B2.x,B2.y,B2.z);
 #endif
     }
+    CUDA_SAFE_CALL(cudaFree(jacobianMatrices_d));
+    CUDA_SAFE_CALL(cudaFree(jacobianDeterminant_d));
 
     return std::numeric_limits<double>::quiet_NaN();;
 }

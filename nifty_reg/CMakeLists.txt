@@ -40,7 +40,7 @@ IF(USE_SSE)
 ENDIF(USE_SSE)
 
 IF(USE_CUDA)
-    OPTION(CUDA_CHECK_CAP "Check the cuda card capability" OFF)
+    OPTION(CUDA_CHECK_CAP "Check the cuda card capability and adjust the block sizes accordingly" OFF)
 
 	INCLUDE(${CMAKE_SOURCE_DIR}/CMake/cuda/FindCUDA.cmake)
 	INCLUDE_DIRECTORIES(${CUDA_CUT_INCLUDE_DIR})
