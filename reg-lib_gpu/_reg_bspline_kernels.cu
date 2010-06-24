@@ -49,8 +49,20 @@ texture<float,1, cudaReadModeElementType> jacobianDeterminantTexture;
 __device__ float3 operator*(float a, float3 b){
     return make_float3(a*b.x, a*b.y, a*b.z);
 }
+__device__ float3 operator/(float3 b, float a){
+    return make_float3(b.x/a, b.y/a, b.z/a);
+}
 __device__ float4 operator+(float4 a, float4 b){
     return make_float4(a.x+b.x, a.y+b.y, a.z+b.z, 0.0f);
+}
+__device__ float3 operator+(float3 a, float3 b){
+    return make_float3(a.x+b.x, a.y+b.y, a.z+b.z);
+}
+__device__ float3 operator-(float3 a, float3 b){
+    return make_float3(a.x-b.x, a.y-b.y, a.z-b.z);
+}
+__device__ float3 operator*(float3 a, float3 b){
+    return make_float3(a.x*b.x, a.y*b.y, a.z*b.z);
 }
 
 /* *************************************************************** */
@@ -1106,6 +1118,297 @@ __global__ void reg_bspline_ApproxJacobianGradient_kernel(float4 *gradient)
                                                     0.0f);
     }
 }
+/* *************************************************************** */
+/* *************************************************************** */
+
+__global__ void reg_bspline_CorrectFolding_kernel(float4 *controlPointArray)
+{
+    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    if(tid<c_ControlPointNumber){
+
+        int3 gridSize = c_ControlPointImageDim;
+
+        int tempIndex=tid;
+        const int z =(int)(tempIndex/(gridSize.x*gridSize.y));
+        tempIndex -= z*(gridSize.x)*(gridSize.y);
+        const int y =(int)(tempIndex/(gridSize.x));
+        const int x = tempIndex - y*(gridSize.x) ;
+
+        float3 jacobianConstraint=make_float3(0.0f,0.0f,0.0f);
+        float3 basisValues;
+        float3 basis;
+        float3 first;
+        float relative;
+        int pre;
+
+        int3 targetSize = c_TargetImageDim;
+        float3 gridVoxelSpacing = c_ControlPointVoxelSpacing;
+
+        // Loop over all the control points in the surrounding area
+        for(int pixelZ=(int)((z-3)*gridVoxelSpacing.z);pixelZ<(int)((z+1)*gridVoxelSpacing.z); pixelZ++){
+            if(pixelZ>-1 && pixelZ<targetSize.z){
+
+                pre=(int)((float)pixelZ/gridVoxelSpacing.z);
+                relative =(float)pixelZ/gridVoxelSpacing.z-(float)pre;
+                switch(z-pre){
+                    case 0:
+                        basis.z=(relative-1.0f)*(relative-1.0f)*(relative-1.0f)/6.0f;
+                        first.z=(2.0f*relative - relative*relative - 1.0f) / 2.0f;
+                        break;
+                    case 1:
+                        basis.z=(3.0f*relative*relative*relative - 6.0f*relative*relative + 4.0f)/6.0f;
+                        first.z=(3.0f*relative*relative - 4.0f*relative) / 2.0f;
+                        break;
+                    case 2:
+                        basis.z=(-3.0f*relative*relative*relative + 3.0f*relative*relative + 3.0f*relative + 1.0f)/6.0f;
+                        first.z=(-3.0f*relative*relative + 2.0f*relative + 1.0f) / 2.0f;
+                        break;
+                    case 3:
+                        basis.z=relative*relative*relative/6.0f;
+                        first.z=relative*relative/2.0f;
+                        break;
+                    default:
+                        basis.z=0.0f;
+                        first.z=0.0f;
+                        break;
+                }
+                for(int pixelY=(int)((y-3)*gridVoxelSpacing.y);pixelY<(int)((y+1)*gridVoxelSpacing.y); pixelY++){
+                    if(pixelY>-1 && pixelY<targetSize.y){
+
+                        pre=(int)((float)pixelY/gridVoxelSpacing.y);
+                        relative =(float)pixelY/gridVoxelSpacing.y-(float)pre;
+                        switch(y-pre){
+                            case 0:
+                                basis.y=(relative-1.0f)*(relative-1.0f)*(relative-1.0f)/6.0f;
+                                first.y=(2.0f*relative - relative*relative - 1.0f) / 2.0f;
+                                break;
+                            case 1:
+                                basis.y=(3.0f*relative*relative*relative - 6.0f*relative*relative + 4.0f)/6.0f;
+                                first.y=(3.0f*relative*relative - 4.0f*relative) / 2.0f;
+                                break;
+                            case 2:
+                                basis.y=(-3.0f*relative*relative*relative + 3.0f*relative*relative + 3.0f*relative + 1.0f)/6.0f;
+                                first.y=(-3.0f*relative*relative + 2.0f*relative + 1.0f) / 2.0f;
+                                break;
+                            case 3:
+                                basis.y=relative*relative*relative/6.0f;
+                                first.y=relative*relative/2.0f;
+                                break;
+                            default:
+                                basis.y=0.0f;
+                                first.y=0.0f;
+                                break;
+                        }
+                        for(int pixelX=(int)((x-3)*gridVoxelSpacing.x);pixelX<(int)((x+1)*gridVoxelSpacing.x); pixelX++){
+                            if(pixelX>-1 && pixelX<targetSize.x){
+
+                                pre=(int)((float)pixelX/gridVoxelSpacing.x);
+                                relative =(float)pixelX/gridVoxelSpacing.x-(float)pre;
+                                switch(x-pre){
+                                    case 0:
+                                        basis.x=(relative-1.0f)*(relative-1.0f)*(relative-1.0f)/6.0f;
+                                        first.x=(2.0f*relative - relative*relative - 1.0f) / 2.0f;
+                                        break;
+                                    case 1:
+                                        basis.x=(3.0f*relative*relative*relative - 6.0f*relative*relative + 4.0f)/6.0f;
+                                        first.x=(3.0f*relative*relative - 4.0f*relative) / 2.0f;
+                                        break;
+                                    case 2:
+                                        basis.x=(-3.0f*relative*relative*relative + 3.0f*relative*relative + 3.0f*relative + 1.0f)/6.0f;
+                                        first.x=(-3.0f*relative*relative + 2.0f*relative + 1.0f) / 2.0f;
+                                        break;
+                                    case 3:
+                                        basis.x=relative*relative*relative/6.0f;
+                                        first.x=relative*relative/2.0f;
+                                        break;
+                                    default:
+                                        basis.x=0.0f;
+                                        first.x=0.0f;
+                                        break;
+                                }
+                                basisValues.x = first.x * basis.y * basis.z;
+                                basisValues.y = basis.x * first.y * basis.z;
+                                basisValues.z = basis.x * basis.y * first.z;
+
+                                int storageIndex = 10*((pixelZ*targetSize.y+pixelY)*targetSize.x+pixelX);
+                                float jacobianDeterminant = tex1Dfetch(jacobianDeterminantTexture,storageIndex);
+                                if(jacobianDeterminant<0){
+                                    jacobianConstraint.x += jacobianDeterminant
+                                    * (tex1Dfetch(jacobianDeterminantTexture,storageIndex+1)*basisValues.x
+                                    +  tex1Dfetch(jacobianDeterminantTexture,storageIndex+2)*basisValues.y
+                                    +  tex1Dfetch(jacobianDeterminantTexture,storageIndex+3)*basisValues.z);
+                                    jacobianConstraint.y += jacobianDeterminant
+                                    * (tex1Dfetch(jacobianDeterminantTexture,storageIndex+4)*basisValues.x
+                                    +  tex1Dfetch(jacobianDeterminantTexture,storageIndex+5)*basisValues.y
+                                    +  tex1Dfetch(jacobianDeterminantTexture,storageIndex+6)*basisValues.z);
+                                    jacobianConstraint.z += jacobianDeterminant
+                                    * (tex1Dfetch(jacobianDeterminantTexture,storageIndex+7)*basisValues.x
+                                    +  tex1Dfetch(jacobianDeterminantTexture,storageIndex+8)*basisValues.y
+                                    +  tex1Dfetch(jacobianDeterminantTexture,storageIndex+9)*basisValues.z);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        float norm = sqrt(  jacobianConstraint.x*jacobianConstraint.x
+                          + jacobianConstraint.y*jacobianConstraint.y
+                          + jacobianConstraint.z*jacobianConstraint.z);
+        if(norm>0){
+            controlPointArray[tid] = controlPointArray[tid] + make_float4(
+                                                            (c_ControlPointSpacing.x
+                                                            * c_AffineMatrix0.x *jacobianConstraint.x
+                                                            + c_AffineMatrix0.y *jacobianConstraint.y
+                                                            + c_AffineMatrix0.z *jacobianConstraint.z)
+                                                            / norm,
+                                                            (c_ControlPointSpacing.y
+                                                            * c_AffineMatrix1.x *jacobianConstraint.x
+                                                            + c_AffineMatrix1.y *jacobianConstraint.y
+                                                            + c_AffineMatrix1.z *jacobianConstraint.z)
+                                                            / norm,
+                                                            (c_ControlPointSpacing.z
+                                                            * c_AffineMatrix2.x *jacobianConstraint.x
+                                                            + c_AffineMatrix2.y *jacobianConstraint.y
+                                                            + c_AffineMatrix2.z *jacobianConstraint.z)
+                                                            / norm,
+                                                            0.0f);
+        }
+    }
+}
+
+/* *************************************************************** */
+/* *************************************************************** */
+
+__global__ void reg_bspline_ApproxCorrectFolding_kernel(float4 *controlPointArray)
+{
+    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    if(tid<c_ControlPointNumber){
+
+        int3 gridSize = c_ControlPointImageDim;
+
+        int tempIndex=tid;
+        const int z =(int)(tempIndex/(gridSize.x*gridSize.y));
+        tempIndex -= z*(gridSize.x)*(gridSize.y);
+        const int y =(int)(tempIndex/(gridSize.x));
+        const int x = tempIndex - y*(gridSize.x) ;
+
+        float3 jacobianConstraint=make_float3(0.0f,0.0f,0.0f);
+        float3 basisValues;
+        float3 basis;
+        float3 first;
+
+        // Loop over all the control points in the surrounding area
+        for(int pixelZ=(z-1);pixelZ<(z+2); pixelZ++){
+            if(pixelZ>0 && pixelZ<gridSize.z-1){
+
+                switch(pixelZ-z){
+                    case -1:
+                        basis.z=0.1666667f;
+                        first.z=0.5f;
+                        break;
+                    case 0:
+                        basis.z=0.6666667f;
+                        first.z=0.0f;
+                        break;
+                    case 1:
+                        basis.z=0.1666667f;
+                        first.z=-0.5f;
+                        break;
+                    default:
+                        basis.z=0.0f;
+                        first.z=0.0f;
+                        break;
+                }
+                for(int pixelY=(y-1);pixelY<(y+2); pixelY++){
+                    if(pixelY>0 && pixelY<gridSize.y-1){
+
+                        switch(pixelY-y){
+                            case -1:
+                                basis.y=0.1666667f;
+                                first.y=0.5f;
+                                break;
+                            case 0:
+                                basis.y=0.6666667f;
+                                first.y=0.0f;
+                                break;
+                            case 1:
+                                basis.y=0.1666667f;
+                                first.y=-0.5f;
+                                break;
+                            default:
+                                basis.y=0.0f;
+                                first.y=0.0f;
+                                break;
+                        }
+                        for(int pixelX=(x-1);pixelX<(x+2); pixelX++){
+                            if(pixelX>0 && pixelX<gridSize.x-1){
+
+                                switch(pixelX-x){
+                                    case -1:
+                                        basis.x=0.1666667f;
+                                        first.x=0.5f;
+                                        break;
+                                    case 0:
+                                        basis.x=0.6666667f;
+                                        first.x=0.0f;
+                                        break;
+                                    case 1:
+                                        basis.x=0.1666667f;
+                                        first.x=-0.5f;
+                                        break;
+                                    default:
+                                        basis.x=0.0f;
+                                        first.x=0.0f;
+                                        break;
+                                }
+                                basisValues.x = first.x * basis.y * basis.z;
+                                basisValues.y = basis.x * first.y * basis.z;
+                                basisValues.z = basis.x * basis.y * first.z;
+
+                                int storageIndex = 10*(((pixelZ-1)*(gridSize.y-2)+pixelY-1)*(gridSize.x-2)+pixelX-1);
+                                jacobianConstraint.x += tex1Dfetch(jacobianDeterminantTexture,storageIndex)
+                                * (tex1Dfetch(jacobianDeterminantTexture,storageIndex+1)*basisValues.x
+                                +  tex1Dfetch(jacobianDeterminantTexture,storageIndex+2)*basisValues.y
+                                +  tex1Dfetch(jacobianDeterminantTexture,storageIndex+3)*basisValues.z);
+                                jacobianConstraint.y += tex1Dfetch(jacobianDeterminantTexture,storageIndex)
+                                * (tex1Dfetch(jacobianDeterminantTexture,storageIndex+4)*basisValues.x
+                                +  tex1Dfetch(jacobianDeterminantTexture,storageIndex+5)*basisValues.y
+                                +  tex1Dfetch(jacobianDeterminantTexture,storageIndex+6)*basisValues.z);
+                                jacobianConstraint.z += tex1Dfetch(jacobianDeterminantTexture,storageIndex)
+                                * (tex1Dfetch(jacobianDeterminantTexture,storageIndex+7)*basisValues.x
+                                +  tex1Dfetch(jacobianDeterminantTexture,storageIndex+8)*basisValues.y
+                                +  tex1Dfetch(jacobianDeterminantTexture,storageIndex+9)*basisValues.z);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        float norm = sqrt(  jacobianConstraint.x*jacobianConstraint.x
+                          + jacobianConstraint.y*jacobianConstraint.y
+                          + jacobianConstraint.z*jacobianConstraint.z);
+        if(norm>0){
+            controlPointArray[tid] = controlPointArray[tid] + make_float4(
+                                                            (c_ControlPointSpacing.x
+                                                            * c_AffineMatrix0.x *jacobianConstraint.x
+                                                            + c_AffineMatrix0.y *jacobianConstraint.y
+                                                            + c_AffineMatrix0.z *jacobianConstraint.z)
+                                                            / norm,
+                                                            (c_ControlPointSpacing.y
+                                                            * c_AffineMatrix1.x *jacobianConstraint.x
+                                                            + c_AffineMatrix1.y *jacobianConstraint.y
+                                                            + c_AffineMatrix1.z *jacobianConstraint.z)
+                                                            / norm,
+                                                            (c_ControlPointSpacing.z
+                                                            * c_AffineMatrix2.x *jacobianConstraint.x
+                                                            + c_AffineMatrix2.y *jacobianConstraint.y
+                                                            + c_AffineMatrix2.z *jacobianConstraint.z)
+                                                            / norm,
+                                                            0.0f);
+        }
+    }
+}
 
 /* *************************************************************** */
 /* *************************************************************** */
@@ -1281,32 +1584,32 @@ __global__ void _reg_spline_cppComposition_kernel(float4 *toUpdateArray)
         float4 matrix;
         float3 voxel;
         float4 position=toUpdateArray[tid];
-        if(c_Type==0){
+        if(c_Type==0){ // input node contains displacement
             int tempIndex=tid;
             voxel.z =(int)(tempIndex/(controlPointImageDim.x*controlPointImageDim.y));
             tempIndex -= (int)voxel.z*(controlPointImageDim.x)*(controlPointImageDim.y);
             voxel.y =(int)(tempIndex/(controlPointImageDim.x));
             voxel.x = tempIndex - (int)voxel.y*(controlPointImageDim.x);
 
-            float4 matrix = tex1Dfetch(txVoxelToRealMatrix,0);
-            position.x =    matrix.x*voxel.x + matrix.y*voxel.y  +
+            matrix = tex1Dfetch(txVoxelToRealMatrix,0);
+            position.x +=   matrix.x*voxel.x + matrix.y*voxel.y  +
                             matrix.z*voxel.z  +  matrix.w;
             matrix = tex1Dfetch(txVoxelToRealMatrix,1);
-            position.y =    matrix.x*voxel.x + matrix.y*voxel.y  +
+            position.y +=   matrix.x*voxel.x + matrix.y*voxel.y  +
                             matrix.z*voxel.z  +  matrix.w;
             matrix = tex1Dfetch(txVoxelToRealMatrix,2);
-            position.z =    matrix.x*voxel.x + matrix.y*voxel.y  +
+            position.z +=   matrix.x*voxel.x + matrix.y*voxel.y  +
                             matrix.z*voxel.z  +  matrix.w;
         }
 
         // The voxel position is computed
-        matrix = tex1Dfetch(txVoxelToRealMatrix,0);
+        matrix = tex1Dfetch(txRealToVoxelMatrix,0);
         voxel.x =   matrix.x*position.x + matrix.y*position.y  +
                     matrix.z*position.z  +  matrix.w;
-        matrix = tex1Dfetch(txVoxelToRealMatrix,1);
+        matrix = tex1Dfetch(txRealToVoxelMatrix,1);
         voxel.y =   matrix.x*position.x + matrix.y*position.y  +
                     matrix.z*position.z  +  matrix.w;
-        matrix = tex1Dfetch(txVoxelToRealMatrix,2);
+        matrix = tex1Dfetch(txRealToVoxelMatrix,2);
         voxel.z =   matrix.x*position.x + matrix.y*position.y  +
                     matrix.z*position.z  +  matrix.w;
 
@@ -1373,70 +1676,119 @@ __global__ void _reg_spline_cppComposition_kernel(float4 *toUpdateArray)
 
 /* *************************************************************** */
 /* *************************************************************** */
-
-__global__ void reg_spline_correcFolding_kernel(float4 *controlPointImageArray)
+__global__ void _reg_spline_cppDeconvolve_kernel(   float3 *temporaryGridImage_d,
+                                                    float4 *outputControlPointArray_d,
+                                                    int axis)
 {
+
     const int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    const int3 gridSize = c_ControlPointImageDim;
 
-    int3 gridSize = c_ControlPointImageDim;
+    if(tid<gridSize.x*gridSize.z){
 
-    int tempIndex=tid;
-    const short z =(int)(tempIndex/(gridSize.x*gridSize.y));
-    tempIndex -= z*(gridSize.x)*(gridSize.y);
-    const short y =(int)(tempIndex/(gridSize.x));
-    const short x = tempIndex - y*(gridSize.x);
+        unsigned int start;
+        unsigned int last;
+        unsigned int number;
+        unsigned increment;
+        switch(axis){
+            case 0: // X axis is assumed
+                start = tid * gridSize.x;
+                last = start + gridSize.x;
+                number=gridSize.x;
+                increment=1;
+                break;
+            case 1: // y axis is assumed
+                start = tid + tid/gridSize.x * gridSize.x * (gridSize.y - 1);
+                last = start + gridSize.x*gridSize.y;
+                number=gridSize.y;
+                increment=gridSize.x;
+                break;
+            case 2: // X axis is assumed
+                start = tid;
+                last = start + gridSize.x*gridSize.y*gridSize.z;
+                number=gridSize.z;
+                increment=gridSize.x*gridSize.y;
+                break;
+        }
+        const unsigned int newStart = tid * number;
+        const float pole = -0.26794919f;//sqrt(3.0) - 2.0
 
-    if( x>0 && x<gridSize.x-1 &&
-        y>0 && y<gridSize.y-1 &&
-        z>0 && z<gridSize.z-1){
+        unsigned int coord=newStart;
+        for(unsigned int i=start; i<last; i+=increment)
+            memcpy(&temporaryGridImage_d[coord++], &outputControlPointArray_d[i], sizeof(float3));
 
-        int3 imageSize = c_TargetImageDim;
-        const float3 gridVoxelSpacing = c_ControlPointVoxelSpacing;;
+        float3 currentPole=make_float3(pole,pole,pole);
+        float3 currentOpposite = make_float3(pow(pole,(2.f*(float)(number)-1.f)),0.f,0.f);
+        currentOpposite.z=currentOpposite.y=currentOpposite.x;
+        float3 sum=make_float3(0.f,0.f,0.f);
+        for(unsigned int i=newStart+1; i<newStart+number; i++){
+            sum = sum + (currentPole - currentOpposite) * temporaryGridImage_d[i];
+            currentPole = pole *currentPole;
+            currentOpposite = currentOpposite / pole;
+        }
 
-        // Check the Jacobian determinant values in the control point direct neighborhood
-        for(int pixelZ=(int)((z-2)*gridVoxelSpacing.z);pixelZ<(int)(z*gridVoxelSpacing.z); pixelZ++){
-            if(pixelZ>-1 && pixelZ<imageSize.z){
+        temporaryGridImage_d[newStart] = (temporaryGridImage_d[newStart] - pole*pole*(temporaryGridImage_d[newStart] + sum)) / (1.f - pow(pole,(2.f*number+2.f)));
 
-                for(int pixelY=(int)((y-2)*gridVoxelSpacing.y);pixelY<(int)(y*gridVoxelSpacing.y); pixelY++){
-                    if(pixelY>-1 && pixelY<imageSize.y){
-                        const int firstXVoxel = (int)((x-2)*gridVoxelSpacing.x);
-                        int targetVoxelIndex = (pixelZ*imageSize.y+pixelY)*imageSize.x+firstXVoxel;
+        //other values forward
+        for(int i=newStart+1; i<newStart+number; i++){
+            temporaryGridImage_d[i] = temporaryGridImage_d[i] + pole * temporaryGridImage_d[i-1];
+        }
 
-                        for(int pixelX=firstXVoxel;pixelX<(int)(x*gridVoxelSpacing.x); pixelX++){
-                            if(pixelX>-1 && pixelX<imageSize.x){
+        float ipp=(1.f-pole);
+        ipp*=ipp;
 
-                                if(tex1Dfetch(jacobianDeterminantTexture,targetVoxelIndex++)<0.1f){
+        //last value
+        temporaryGridImage_d[newStart+number-1] = ipp * temporaryGridImage_d[newStart+number-1];
 
-                                    int index = ((z)*gridSize.y+y)*gridSize.x+x-1;
-                                    float4 newMeanPosition=controlPointImageArray[index];
-                                    newMeanPosition=newMeanPosition+controlPointImageArray[index+2];
+        //other values backward
+        for(int i=newStart+number-2; newStart<=i; i--){
+            temporaryGridImage_d[i] = pole * temporaryGridImage_d[i+1] + ipp*temporaryGridImage_d[i];
+        }
 
-                                    index = ((z)*gridSize.y+y-1)*gridSize.x+x;
-                                    newMeanPosition=newMeanPosition+controlPointImageArray[index];
-                                    newMeanPosition=newMeanPosition+controlPointImageArray[index+2*gridSize.x];
-
-                                    index = ((z-1)*gridSize.y+y)*gridSize.x+x;
-                                    newMeanPosition=newMeanPosition+controlPointImageArray[index];
-                                    newMeanPosition=newMeanPosition+controlPointImageArray[index+2*gridSize.x*gridSize.y];
-
-                                    controlPointImageArray[tid]=
-                                        make_float4(newMeanPosition.x/6.0f,
-                                                    newMeanPosition.y/6.0f,
-                                                    newMeanPosition.z/6.0f,
-                                                    0.0f);
-                                    return;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        // Data are transfered back in the original image
+        coord=newStart;
+        for(unsigned int i=start; i<last; i+=increment){
+            memcpy(&outputControlPointArray_d[i], &temporaryGridImage_d[coord++], sizeof(float3));
         }
     }
+    return;
 }
-
 /* *************************************************************** */
 /* *************************************************************** */
+__global__ void _reg_spline_getDeformationFromDisplacement_kernel(float4 *imageArray_d)
+{
+    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    if(tid<c_ControlPointNumber){
 
+
+        // The current displacement is extracted
+        float3 position;
+        memcpy(&position, &imageArray_d[tid], sizeof(float3));
+
+        // The voxel index is computed
+        float3 voxel;
+        int tempIndex=tid;
+        int3 imageDim = c_ControlPointImageDim;
+        voxel.z =tempIndex/(imageDim.x*imageDim.y);
+        tempIndex -= (int)voxel.z*(imageDim.x)*(imageDim.y);
+        voxel.y = tempIndex/imageDim.x;
+        voxel.x = tempIndex - (int)voxel.y*(imageDim.x);
+
+        // The initial voxel position is added to the displacmeent
+        float4 matrix = tex1Dfetch(txVoxelToRealMatrix,0);
+        position.x +=   matrix.x*voxel.x + matrix.y*voxel.y  +
+                        matrix.z*voxel.z  +  matrix.w;
+        matrix = tex1Dfetch(txVoxelToRealMatrix,1);
+        position.y +=   matrix.x*voxel.x + matrix.y*voxel.y  +
+                        matrix.z*voxel.z  +  matrix.w;
+        matrix = tex1Dfetch(txVoxelToRealMatrix,2);
+        position.z +=   matrix.x*voxel.x + matrix.y*voxel.y  +
+                        matrix.z*voxel.z  +  matrix.w;
+
+        imageArray_d[tid] = make_float4(position.x, position.y, position.z, 0.f);
+    }
+}
+/* *************************************************************** */
+/* *************************************************************** */
 #endif
 

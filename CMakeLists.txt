@@ -19,7 +19,7 @@ SET(ZLIB "z")
 #-----------------------------------------------------------------------------
 
 OPTION(BUILD_ALADIN "To build the reg_aladin executable" ON)
-OPTION(BUILD_BENCHMARK "To build the reg_benchmark executable" OFF)
+OPTION(BUILD_BENCHMARK "To build the reg_benchmark executable" ON)
 OPTION(BUILD_F3D "To build the reg_f3d executable" ON)
 #OPTION(BUILD_F3D2 "To build the reg_f3d2 executable" ON)
 OPTION(BUILD_RESAMPLE "To build the reg_resample executable" ON)
@@ -40,6 +40,8 @@ IF(USE_SSE)
 ENDIF(USE_SSE)
 
 IF(USE_CUDA)
+    OPTION(CUDA_CHECK_CAP "Check the cuda card capability" OFF)
+
 	INCLUDE(${CMAKE_SOURCE_DIR}/CMake/cuda/FindCUDA.cmake)
 	INCLUDE_DIRECTORIES(${CUDA_CUT_INCLUDE_DIR})
 	CUDA_INCLUDE_DIRECTORIES(${CUDA_CUT_INCLUDE_DIR})
@@ -54,20 +56,23 @@ IF(USE_CUDA)
         RUN_OUTPUT_VARIABLE RUN_OUTPUT_VAR
 	)
 	
-	if(NOT COMPILE_RESULT_VAR)
-		MESSAGE(FATAL_ERROR "Cuda test code did not compile. Exit")
-	endif(NOT COMPILE_RESULT_VAR)
+    if(CUDA_CHECK_CAP)
+        if(NOT COMPILE_RESULT_VAR)
+            MESSAGE(FATAL_ERROR "Cuda test code did not compile. Exit")
+        endif(NOT COMPILE_RESULT_VAR)
+        if(RUN_RESULT_VAR)
+            MESSAGE("There are no cuda-enabled device detected on your machine.")
+            MESSAGE("Please turn the USE_CUDA flag off.")
+            MESSAGE(FATAL_ERROR "Turn the CUDA_CHECK_CAP flag OFF if you think we have the appropriate card to ignore the error.")
+        endif(RUN_RESULT_VAR)
 
-	if(RUN_RESULT_VAR)
-		MESSAGE(FATAL_ERROR "There are no cuda-enabled device detected on your machine.\n Please turn the USE_CUDA flag off.")
-	endif(RUN_RESULT_VAR)
-	
-	MESSAGE("*** Cuda card capability ${RUN_OUTPUT_VAR} ***")
-	# If the capability is equal or higher than 1.2
-	IF(${RUN_OUTPUT_VAR} GREATER "1.1")
-		ADD_DEFINITIONS(-D_HIGH_CAPA)
-		SET(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-D_HIGH_CAPA")
-	ENDIF(${RUN_OUTPUT_VAR} GREATER "1.1")
+        MESSAGE("*** Cuda card capability ${RUN_OUTPUT_VAR} ***")
+        # If the capability is equal or higher than 1.2
+        IF(${RUN_OUTPUT_VAR} GREATER "1.1")
+            ADD_DEFINITIONS(-D_HIGH_CAPA)
+            SET(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-D_HIGH_CAPA")
+        ENDIF(${RUN_OUTPUT_VAR} GREATER "1.1")
+    ENDIF(CUDA_CHECK_CAP)
 	
 	ADD_DEFINITIONS(-D_USE_CUDA)
 	SET(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-D_USE_CUDA")
@@ -78,9 +83,6 @@ ENDIF(USE_CUDA)
 #-----------------------------------------------------------------------------
 
 IF(BUILD_BENCHMARK)
-	IF(NOT USE_CUDA)
-		MESSAGE(FATAL_ERROR "USE_CUDA is needed to build reg_benchmark. Exit")
-	ENDIF(NOT USE_CUDA)
 	IF(NOT BUILD_F3D)
 		MESSAGE(FATAL_ERROR "BUILD_F3D is needed to build reg_benchmark. Exit")
 	ENDIF(NOT BUILD_F3D)
