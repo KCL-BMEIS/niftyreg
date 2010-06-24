@@ -51,8 +51,7 @@ int reg_spline_cppComposition(  nifti_image *positionGridImage,
   * The conversion is done using the appropriate qform/sform
 **/
 extern "C++" template<class PrecisionTYPE>
-int reg_getDisplacementFromPosition(nifti_image *controlPointImage
-                                    );
+int reg_getDisplacementFromPosition(nifti_image *controlPointImage);
 
 /** reg_getPositionFromDisplacement(nifti_image *)
   * This function converts a control point grid containing displacements
@@ -60,8 +59,7 @@ int reg_getDisplacementFromPosition(nifti_image *controlPointImage
   * The conversion is done using the appropriate qform/sform
 **/
 extern "C++" template<class PrecisionTYPE>
-int reg_getPositionFromDisplacement(nifti_image *controlPointImage
-                                    );
+int reg_getPositionFromDisplacement(nifti_image *controlPointImage);
 
 /** reg_getPositionFromDisplacement(nifti_image *img1, nifti_image *img2)
   * This function converts a control point grid values into coefficients

@@ -465,53 +465,93 @@ int main(int argc, char **argv)
     if(!flag->outputCPPFlag) param->outputCPPName=(char *)"outputCPP.nii";
 
 #ifdef _USE_CUDA
-    /*  Compute the ratio if the registration is not performed using
-        the full resolution image */
-    float ratioFullRes = 1.0f;
-    if(param->level2Perform != param->levelNumber){
-        ratioFullRes= 1.0f/powf(8.0f,(float)(param->levelNumber-param->level2Perform));
-    }
+    int gpuMemoryAvailable = 0;
+    if(flag->useGPUFlag){
+        struct cudaDeviceProp deviceProp;
+        // following code is from cutGetMaxGflopsDeviceId()
+        int device_count = 0;
+        cudaGetDeviceCount( &device_count );
 
-    /* The final control point dimension is evaluated */
-    float cpDimension[3];
-    if(controlPointImage == NULL){
-        cpDimension[0]=ceil(targetHeader->nx*targetHeader->dx/param->spacing[0])+5;
-        cpDimension[1]=ceil(targetHeader->ny*targetHeader->dy/param->spacing[1])+5;
-        cpDimension[2]=ceil(targetHeader->nz*targetHeader->dz/param->spacing[2])+5;
-    }
-    else{
-        cpDimension[0]=controlPointImage->nx*param->level2Perform;
-        cpDimension[1]=controlPointImage->ny*param->level2Perform;
-        cpDimension[2]=controlPointImage->nz*param->level2Perform;
-    }
+        int max_gflops_device = 0;
+        int max_gflops = 0;
 
-    /* The allocated memory size is summed */
-    float memoryNeeded=0;
-    // target and result images
-    memoryNeeded += 2 * targetHeader->nvox * sizeof(float) * ratioFullRes;
-    // target mask
-    memoryNeeded += targetHeader->nvox * sizeof(bool) * ratioFullRes;
-    // source image
-    memoryNeeded += sourceHeader->nvox * sizeof(float) * ratioFullRes;
-    // position field
-    memoryNeeded += targetHeader->nvox * sizeof(float4) * ratioFullRes;
-    // spatial gradient
-    memoryNeeded += targetHeader->nvox * sizeof(float4) * ratioFullRes;
-    // nmi gradient + smoothed
-    memoryNeeded += 2 * targetHeader->nvox * sizeof(float4) * ratioFullRes;
-    // control point image + cpp gradient image + 2 conjugate array
-    memoryNeeded += 4 * cpDimension[0] * cpDimension[1] *  cpDimension[2] * sizeof(float4);
-    // Jacobian gradient temporary array
-    if(flag->jacobianWeightFlag){
-        if(flag->appJacobianFlag)
-            memoryNeeded += 10 * (cpDimension[0]-2) * (cpDimension[1]-2) *  (cpDimension[2]-2) * sizeof(float);
-        else memoryNeeded += 10 * targetHeader->nvox * ratioFullRes * sizeof(float);
+        int current_device = 0;
+        cudaGetDeviceProperties( &deviceProp, current_device );
+        max_gflops = deviceProp.multiProcessorCount * deviceProp.clockRate;
+        ++current_device;
+
+        while( current_device < device_count )
+        {
+            cudaGetDeviceProperties( &deviceProp, current_device );
+            int gflops = deviceProp.multiProcessorCount * deviceProp.clockRate;
+            if( gflops > max_gflops )
+            {
+                max_gflops        = gflops;
+                max_gflops_device = current_device;
+            }
+            ++current_device;
+        }
+        const int device = max_gflops_device;
+
+        CUDA_SAFE_CALL(cudaSetDevice( device ));
+        CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, device ));
+        if (deviceProp.major < 1){
+            printf("ERROR\tThe specified graphical card does not exist.\n");
+            return 1;
+        }
+#ifndef NDEBUG
+        printf("[DEBUG] Graphical card memory[%i/%i] = %iMo avail\n", device+1, device_count,
+            (int)floor(deviceProp.totalGlobalMem/1000000.0));
+#endif
+        gpuMemoryAvailable = deviceProp.totalGlobalMem;
     }
-    // joint histo
-    memoryNeeded += param->binning*(param->binning+2)*sizeof(double);
 
     if(flag->memoryFlag){
-        printf("The approximate amount of gpu memory require to run this registration is %g MB\n", memoryNeeded / 1000000.0);
+        /*  Compute the ratio if the registration is not performed using
+            the full resolution image */
+        float ratioFullRes = 1.0f;
+        if(param->level2Perform != param->levelNumber){
+            ratioFullRes= 1.0f/powf(8.0f,(float)(param->levelNumber-param->level2Perform));
+        }
+
+        /* The final control point dimension is evaluated */
+        float cpDimension[3];
+        if(controlPointImage == NULL){
+            cpDimension[0]=ceil(targetHeader->nx*targetHeader->dx/param->spacing[0])+5;
+            cpDimension[1]=ceil(targetHeader->ny*targetHeader->dy/param->spacing[1])+5;
+            cpDimension[2]=ceil(targetHeader->nz*targetHeader->dz/param->spacing[2])+5;
+        }
+        else{
+            cpDimension[0]=controlPointImage->nx*param->level2Perform;
+            cpDimension[1]=controlPointImage->ny*param->level2Perform;
+            cpDimension[2]=controlPointImage->nz*param->level2Perform;
+        }
+
+        /* The allocated memory size is summed */
+        float memoryNeeded=10000000; // 10 MB are added
+        // target and result images
+        memoryNeeded += 2 * targetHeader->nvox * sizeof(float) * ratioFullRes;
+        // target mask
+        memoryNeeded += targetHeader->nvox * sizeof(bool) * ratioFullRes;
+        // source image
+        memoryNeeded += sourceHeader->nvox * sizeof(float) * ratioFullRes;
+        // position field
+        memoryNeeded += targetHeader->nvox * sizeof(float4) * ratioFullRes;
+        // spatial gradient
+        memoryNeeded += targetHeader->nvox * sizeof(float4) * ratioFullRes;
+        // nmi gradient + smoothed
+        memoryNeeded += 2 * targetHeader->nvox * sizeof(float4) * ratioFullRes;
+        // control point image + cpp gradient image + 2 conjugate array
+        memoryNeeded += 4 * cpDimension[0] * cpDimension[1] *  cpDimension[2] * sizeof(float4);
+        // Jacobian gradient temporary array
+        if(flag->jacobianWeightFlag){ //Jacobian det gradient and folding correction
+            memoryNeeded += 10 * targetHeader->nvox * ratioFullRes * sizeof(float);
+        }
+        // joint histo
+        memoryNeeded += param->binning*(param->binning+2)*sizeof(double);
+
+        printf("The approximate amount of gpu memory require to run this registration is %g MB for %g MB available\n",
+               memoryNeeded / 1000000.0, (float)gpuMemoryAvailable/1000000.0);
         nifti_image_free(targetHeader);
         nifti_image_free(sourceHeader);
         nifti_image_free(controlPointImage);
@@ -605,47 +645,6 @@ int main(int argc, char **argv)
 	/* ********************** */
 	/* START THE REGISTRATION */
 	/* ********************** */
-
-#ifdef _USE_CUDA
-	if(flag->useGPUFlag){
-		struct cudaDeviceProp deviceProp;
-		// following code is from cutGetMaxGflopsDeviceId()
-		int device_count = 0;
-		cudaGetDeviceCount( &device_count );
-	
-		int max_gflops_device = 0;
-		int max_gflops = 0;
-		
-		int current_device = 0;
-		cudaGetDeviceProperties( &deviceProp, current_device );
-		max_gflops = deviceProp.multiProcessorCount * deviceProp.clockRate;
-		++current_device;
-	
-		while( current_device < device_count )
-		{
-			cudaGetDeviceProperties( &deviceProp, current_device );
-			int gflops = deviceProp.multiProcessorCount * deviceProp.clockRate;
-			if( gflops > max_gflops )
-			{
-				max_gflops        = gflops;
-				max_gflops_device = current_device;
-			}
-			++current_device;
-		}
-		const int device = max_gflops_device;
-
-		CUDA_SAFE_CALL(cudaSetDevice( device ));
-		CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, device ));
-		if (deviceProp.major < 1){
-			printf("ERROR\tThe specified graphical card does not exist.\n");
-			return 1;
-		}
-#ifndef NDEBUG
-		printf("[DEBUG] Graphical card memory[%i/%i] = %iMo avail | %iMo required.\n", device+1, device_count,
-			(int)floor(deviceProp.totalGlobalMem/1000000.0), (int)ceil(memoryNeeded/1000000.0));
-#endif
-	}
-#endif
 
     for(int level=0; level<param->level2Perform; level++){
         /* Read the target and source image */
@@ -1862,7 +1861,7 @@ int main(int argc, char **argv)
 										positionFieldImage,
 										NULL,
 										0);
-			
+
             nifti_image_free( sourceImage );
             sourceImage = nifti_image_read(param->sourceImageName,true); // reload the source image with the correct intensity values
 
