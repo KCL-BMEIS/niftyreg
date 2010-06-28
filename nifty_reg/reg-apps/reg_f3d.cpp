@@ -522,9 +522,9 @@ int main(int argc, char **argv)
             cpDimension[2]=ceil(targetHeader->nz*targetHeader->dz/param->spacing[2])+5;
         }
         else{
-            cpDimension[0]=controlPointImage->nx*param->level2Perform;
-            cpDimension[1]=controlPointImage->ny*param->level2Perform;
-            cpDimension[2]=controlPointImage->nz*param->level2Perform;
+            cpDimension[0]=(float)(controlPointImage->nx*param->level2Perform);
+            cpDimension[1]=(float)(controlPointImage->ny*param->level2Perform);
+            cpDimension[2]=(float)(controlPointImage->nz*param->level2Perform);
         }
 
         /* The allocated memory size is summed */
@@ -1778,10 +1778,10 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
                 if(flag->useGPUFlag){
                     finalWJac = param->jacobianWeight *
-                        reg_bspline_correctFolding_gpu( targetImage,
+                        (float)(reg_bspline_correctFolding_gpu( targetImage,
                                                         controlPointImage,
                                                         &controlPointImageArray_d,
-                                                        false); // No approximation is done
+                                                        false)); // No approximation is done
                 }
                 else
 #endif
