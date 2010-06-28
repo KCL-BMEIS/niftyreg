@@ -50,6 +50,9 @@ texture<float,1, cudaReadModeElementType> jacobianMatricesTexture;
 __device__ float3 operator*(float a, float3 b){
     return make_float3(a*b.x, a*b.y, a*b.z);
 }
+__device__ float4 operator*(float a, float4 b){
+    return make_float4(a*b.x, a*b.y, a*b.z, 0.0f);
+}
 __device__ float3 operator/(float3 b, float a){
     return make_float3(b.x/a, b.y/a, b.z/a);
 }
@@ -1690,7 +1693,7 @@ __global__ void _reg_spline_cppComposition_kernel(float4 *toUpdateArray)
                 float4 tempValueX=make_float4(0.0f, 0.0f, 0.0f, 0.0f);
                 indexXYZ= indexYZ + nodeAnte.x;
                 for(short a=0; a<4; a++){
-                    float4 nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ);
+                    float4 nodeCoefficient = tex1Dfetch(controlPointTexture, indexXYZ);
                     tempValueX.x +=  nodeCoefficient.x* xBasis[a];
                     tempValueX.y +=  nodeCoefficient.y* xBasis[a];
                     tempValueX.z +=  nodeCoefficient.z* xBasis[a];
@@ -1705,7 +1708,7 @@ __global__ void _reg_spline_cppComposition_kernel(float4 *toUpdateArray)
             displacement.y += tempValueY.y * zBasis[c];
             displacement.z += tempValueY.z * zBasis[c];
         }
-        toUpdateArray[tid] = toUpdateArray[tid] + displacement;
+        toUpdateArray[tid] = toUpdateArray[tid] + c_Weight * displacement;
     }
     return;
 }

@@ -836,7 +836,7 @@ void reg_spline_cppComposition_gpu( nifti_image *toUpdate,
                                     nifti_image *toCompose,
                                     float4 **toUpdateArray_d,
                                     float4 **toComposeArray_d, // displacement
-                                    float ratio,
+                                    float length,
                                     bool type)
 {
     if(toUpdate->nvox != toCompose->nvox){
@@ -850,8 +850,9 @@ void reg_spline_cppComposition_gpu( nifti_image *toUpdate,
 
     const int controlPointGridMem = controlPointNumber*sizeof(float4);
 
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Weight,&length,sizeof(float)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Type,&type,sizeof(bool)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointNumber,&controlPointNumber,sizeof(int3)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointNumber,&controlPointNumber,sizeof(int)));
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointImageDim,&controlPointImageDim,sizeof(int3)));
 
     // The transformation matrix is binded to a texture
@@ -1039,14 +1040,14 @@ void reg_spline_scaling_squaring_gpu(   nifti_image *velocityFieldImage,
 
     reg_spline_cppDeconvolve_gpu(   controlPointImage,
                                     controlPointImage,
-                                    &nodePositionArray_d,
-                                    controlPointArray_d);
+                                    &nodePositionArray_d,   // input
+                                    controlPointArray_d);   // output
 
     for(unsigned int i=0; i<SQUARING_VALUE; i++){
         reg_spline_cppComposition_gpu(  controlPointImage,
                                         controlPointImage,
-                                        &nodePositionArray_d,
-                                        controlPointArray_d,
+                                        &nodePositionArray_d,   // deformed (output)
+                                        controlPointArray_d,    // used as a grid
                                         1.0,
                                         0);
         reg_spline_cppDeconvolve_gpu(   controlPointImage,

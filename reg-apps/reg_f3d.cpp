@@ -972,7 +972,8 @@ int main(int argc, char **argv)
 			if(cudaCommon_transferNiftiToArrayOnDevice<float4>(&controlPointImageArray_d,controlPointImage)) return 1;
 
 			if(cudaCommon_allocateArrayToDevice<float4>(&bestControlPointPosition_d, controlPointImage->dim)) return 1;
-			if(cudaCommon_transferNiftiToArrayOnDevice<float4>(&bestControlPointPosition_d,controlPointImage)) return 1;
+            CUDA_SAFE_CALL(cudaMemcpy(bestControlPointPosition_d, controlPointImageArray_d,
+                  controlPointImage->nx*controlPointImage->ny*controlPointImage->nz*sizeof(float4), cudaMemcpyDeviceToDevice));
 
 			CUDA_SAFE_CALL(cudaMalloc((void **)&logJointHistogram_d, param->binning*(param->binning+2)*sizeof(float)));
 
@@ -1501,24 +1502,24 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
 				if(flag->useGPUFlag){
 					
-					/* Update the control point position */
+                    /* Update the control point position */
                     if(flag->useCompositionFlag){ // the control point positions are updated using composition
                         CUDA_SAFE_CALL(cudaMemcpy(controlPointImageArray_d, bestControlPointPosition_d,
                             controlPointImage->nx*controlPointImage->ny*controlPointImage->nz*sizeof(float4),
                             cudaMemcpyDeviceToDevice));
                         reg_spline_cppComposition_gpu(  controlPointImage,
-                                                        nodeNMIGradientImage,
-                                                        &controlPointImageArray_d,
-                                                        &nodeNMIGradientArray_d,
-                                                        (float)currentLength,
+                                                        controlPointImage,
+                                                        &controlPointImageArray_d,  // toUpdate - deformation field
+                                                        &nodeNMIGradientArray_d,    // toCompose - displacement field
+                                                        currentLength,
                                                         1);
                     }
                     else{ // the control point positions are updated using addition
 					    reg_updateControlPointPosition_gpu(	controlPointImage,
-										    &controlPointImageArray_d,
-										    &bestControlPointPosition_d,
-										    &nodeNMIGradientArray_d,
-										    currentLength);
+                                                            &controlPointImageArray_d,
+                                                            &bestControlPointPosition_d,
+                                                            &nodeNMIGradientArray_d,
+                                                            currentLength);
                     }
                 }
                 else{
