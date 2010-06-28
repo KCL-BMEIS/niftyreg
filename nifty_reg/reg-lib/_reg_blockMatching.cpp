@@ -1,6 +1,6 @@
 /*
  *  _reg_blockMatching.cpp
- *  
+ *
  *
  *  Created by Marc Modat and Pankaj Daga on 24/03/2009.
  *  Copyright (c) 2009, University College London. All rights reserved.
@@ -11,9 +11,10 @@
 
 #include "_reg_blockMatching.h"
 #include "_reg_affineTransformation.h"
-#include <queue>
+#include <map>
 #include <iostream>
 #include <limits>
+
 
 
 void copy_transformation_4x4(const mat44 & source, mat44 & dest)
@@ -44,131 +45,131 @@ void copy_transformation_4x4(const mat44 & source, mat44 & dest)
 double get_square_distance(float * first_point3D, float * second_point3D)
 {
     return  sqrt((first_point3D[0]-second_point3D[0])*(first_point3D[0]-second_point3D[0]) +
-        (first_point3D[1]-second_point3D[1])*(first_point3D[1]-second_point3D[1]) +
-        (first_point3D[2]-second_point3D[2])*(first_point3D[2]-second_point3D[2]));
+                 (first_point3D[1]-second_point3D[1])*(first_point3D[1]-second_point3D[1]) +
+                 (first_point3D[2]-second_point3D[2])*(first_point3D[2]-second_point3D[2]));
 }
 double get_square_distance2D(float * first_point2D, float * second_point2D)
 {
     return  sqrt((first_point2D[0]-second_point2D[0])*(first_point2D[0]-second_point2D[0]) +
-        (first_point2D[1]-second_point2D[1])*(first_point2D[1]-second_point2D[1]));
+                 (first_point2D[1]-second_point2D[1])*(first_point2D[1]-second_point2D[1]));
 }
 
 /* *************************************************************** */
 // Heap sort
 void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum)
 {
-	float *array = &array_tmp[-1];
-	int *index = &index_tmp[-1];
-	int l=(blockNum >> 1)+1;
-	int ir=blockNum;
-	float val;
-	int iVal;
-	for(;;){
-		if(l>1){
-			val=array[--l];
-			iVal=index[l];
-		}
-		else{
-			val=array[ir];
-			iVal=index[ir];
-			array[ir]=array[1];
-			index[ir]=index[1];
-			if(--ir == 1){
-				array[1]=val;
-				index[1]=iVal;
-				break;
-			}
-		}
-		int i=l;
-		int j=l+l;
-		while(j<=ir){
-			if(j<ir && array[j]<array[j+1]) j++;
-			if(val<array[j]){
-				array[i]=array[j];
-				index[i]=index[j];
-				i=j;
-				j<<=1;
-			}
-			else break;
-		}
-		array[i]=val;
-		index[i]=iVal;
-	}
+    float *array = &array_tmp[-1];
+    int *index = &index_tmp[-1];
+    int l=(blockNum >> 1)+1;
+    int ir=blockNum;
+    float val;
+    int iVal;
+    for(;;){
+        if(l>1){
+            val=array[--l];
+            iVal=index[l];
+        }
+        else{
+            val=array[ir];
+            iVal=index[ir];
+            array[ir]=array[1];
+            index[ir]=index[1];
+            if(--ir == 1){
+                array[1]=val;
+                index[1]=iVal;
+                break;
+            }
+        }
+        int i=l;
+        int j=l+l;
+        while(j<=ir){
+            if(j<ir && array[j]<array[j+1]) j++;
+            if(val<array[j]){
+                array[i]=array[j];
+                index[i]=index[j];
+                i=j;
+                j<<=1;
+            }
+            else break;
+        }
+        array[i]=val;
+        index[i]=iVal;
+    }
 }
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *params, int *mask, bool runningOnGPU)
+        void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *params, int *mask, bool runningOnGPU)
 {
-	const int totalBlockNumber = params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2];
-	float *varianceArray=(float *)malloc(totalBlockNumber*sizeof(float));
+    const int totalBlockNumber = params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2];
+    float *varianceArray=(float *)malloc(totalBlockNumber*sizeof(float));
     int *indexArray=(int *)malloc(totalBlockNumber*sizeof(int));
 
     int *maskPtr=&mask[0];
 
-	int unusableBlock=0;
+    int unusableBlock=0;
     int index;
 
     DTYPE *targetValues = (DTYPE *)malloc(BLOCK_SIZE * sizeof(DTYPE));
-	DTYPE *targetPtr = static_cast<DTYPE *>(targetImage->data);
-	int blockIndex=0;
+    DTYPE *targetPtr = static_cast<DTYPE *>(targetImage->data);
+    int blockIndex=0;
 
     if(targetImage->nz>1){
         // Version using 3D blocks
-	    for(int k=0; k<params->blockNumber[2]; k++){
-		    for(int j=0; j<params->blockNumber[1]; j++){
-			    for(int i=0; i<params->blockNumber[0]; i++){
+        for(int k=0; k<params->blockNumber[2]; k++){
+            for(int j=0; j<params->blockNumber[1]; j++){
+                for(int i=0; i<params->blockNumber[0]; i++){
                     for(unsigned int n=0; n<BLOCK_SIZE; n++)
                         targetValues[n]=(DTYPE)std::numeric_limits<float>::quiet_NaN();
-				    float mean=0.0f;
-				    float voxelNumber=0.0f;
+                    float mean=0.0f;
+                    float voxelNumber=0.0f;
                     int coord=0;
-				    for(int z=k*BLOCK_WIDTH; z<(k+1)*BLOCK_WIDTH; z++){
-					    if(z<targetImage->nz){
+                    for(int z=k*BLOCK_WIDTH; z<(k+1)*BLOCK_WIDTH; z++){
+                        if(z<targetImage->nz){
                             index =z*targetImage->nx*targetImage->ny;
                             DTYPE *targetPtrZ=&targetPtr[index];
                             int *maskPtrZ=&maskPtr[index];
-						    for(int y=j*BLOCK_WIDTH; y<(j+1)*BLOCK_WIDTH; y++){
-							    if(y<targetImage->ny){
+                            for(int y=j*BLOCK_WIDTH; y<(j+1)*BLOCK_WIDTH; y++){
+                                if(y<targetImage->ny){
                                     index = y*targetImage->nx+i*BLOCK_WIDTH;
                                     DTYPE *targetPtrXYZ=&targetPtrZ[index];
                                     int *maskPtrXYZ=&maskPtrZ[index];
-								    for(int x=i*BLOCK_WIDTH; x<(i+1)*BLOCK_WIDTH; x++){
-									    if(x<targetImage->nx){
-										    targetValues[coord] = *targetPtrXYZ;
+                                    for(int x=i*BLOCK_WIDTH; x<(i+1)*BLOCK_WIDTH; x++){
+                                        if(x<targetImage->nx){
+                                            targetValues[coord] = *targetPtrXYZ;
                                             if(targetValues[coord]==targetValues[coord] && *maskPtrXYZ>-1){
-											    mean += (float)targetValues[coord];
-											    voxelNumber++;
-										    }
-									    }
+                                                mean += (float)targetValues[coord];
+                                                voxelNumber++;
+                                            }
+                                        }
                                         targetPtrXYZ++;
                                         maskPtrXYZ++;
                                         coord++;
-								    }
-							    }
-						    }
-					    }
-				    }
-				    if(voxelNumber>BLOCK_SIZE/2){
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if(voxelNumber>BLOCK_SIZE/2){
                         float variance=0.0f;
                         for(int i=0; i<BLOCK_SIZE; i++){
                             if(targetValues[i]==targetValues[i])
-							    variance += (mean - (float)targetValues[i])
-                                    * (mean - (float)targetValues[i]);
+                                variance += (mean - (float)targetValues[i])
+                                * (mean - (float)targetValues[i]);
                         }
 
-					    variance /= voxelNumber;
-					    varianceArray[blockIndex]=variance;
-				    }
-				    else{
-					    varianceArray[blockIndex]=-1;
-					    unusableBlock++;
-				    }
-				    indexArray[blockIndex]=blockIndex;
-				    blockIndex++;
-			    }
-		    }
-	    }
+                        variance /= voxelNumber;
+                        varianceArray[blockIndex]=variance;
+                    }
+                    else{
+                        varianceArray[blockIndex]=-1;
+                        unusableBlock++;
+                    }
+                    indexArray[blockIndex]=blockIndex;
+                    blockIndex++;
+                }
+            }
+        }
     }
     else{
         // Version using 2D blocks
@@ -205,7 +206,7 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
                     for(int i=0; i<BLOCK_2D_SIZE; i++){
                         if(targetValues[i]==targetValues[i])
                             variance += (mean - (float)targetValues[i])
-                                * (mean - (float)targetValues[i]);
+                            * (mean - (float)targetValues[i]);
                     }
 
                     variance /= voxelNumber;
@@ -222,19 +223,19 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
     }
     free(targetValues);
 
-	params->activeBlockNumber=params->activeBlockNumber<(totalBlockNumber-unusableBlock)?params->activeBlockNumber:(totalBlockNumber-unusableBlock);
+    params->activeBlockNumber=params->activeBlockNumber<(totalBlockNumber-unusableBlock)?params->activeBlockNumber:(totalBlockNumber-unusableBlock);
 
-	reg_heapSort(varianceArray, indexArray, totalBlockNumber);
+    reg_heapSort(varianceArray, indexArray, totalBlockNumber);
 
-	memset(params->activeBlock, 0, totalBlockNumber * sizeof(int));
-	int *indexArrayPtr = &indexArray[totalBlockNumber-1];
-	int count = 0;
-	for(int i=0; i<params->activeBlockNumber; i++){
-		params->activeBlock[*indexArrayPtr--] = count++;
-	}
-	for (int i = params->activeBlockNumber; i < totalBlockNumber; ++i){
-		params->activeBlock[*indexArrayPtr--] = -1;
-	}
+    memset(params->activeBlock, 0, totalBlockNumber * sizeof(int));
+    int *indexArrayPtr = &indexArray[totalBlockNumber-1];
+    int count = 0;
+    for(int i=0; i<params->activeBlockNumber; i++){
+        params->activeBlock[*indexArrayPtr--] = count++;
+    }
+    for (int i = params->activeBlockNumber; i < totalBlockNumber; ++i){
+        params->activeBlock[*indexArrayPtr--] = -1;
+    }
 
     count = 0;
     if (runningOnGPU) {
@@ -258,36 +259,36 @@ void initialise_block_matching_method(  nifti_image * target,
                                         int *mask,
                                         bool runningOnGPU)
 {
-	params->blockNumber[0]=(int)ceil((float)target->nx / (float)BLOCK_WIDTH);
-	params->blockNumber[1]=(int)ceil((float)target->ny / (float)BLOCK_WIDTH);
+    params->blockNumber[0]=(int)ceil((float)target->nx / (float)BLOCK_WIDTH);
+    params->blockNumber[1]=(int)ceil((float)target->ny / (float)BLOCK_WIDTH);
     if(target->nz>1)
         params->blockNumber[2]=(int)ceil((float)target->nz / (float)BLOCK_WIDTH);
     else params->blockNumber[2]=1;
 
-	params->percent_to_keep=percentToKeep_opt;
-	params->activeBlockNumber=params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2] * percentToKeep_block / 100;
+    params->percent_to_keep=percentToKeep_opt;
+    params->activeBlockNumber=params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2] * percentToKeep_block / 100;
 
-	params->activeBlock = (int *)malloc(params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2] * sizeof(int));
-	switch(target->datatype){
-		case NIFTI_TYPE_UINT8:
-			_reg_set_active_blocks<unsigned char>(target, params, mask, runningOnGPU);break;
-		case NIFTI_TYPE_INT8:
-			_reg_set_active_blocks<char>(target, params, mask, runningOnGPU);break;
-		case NIFTI_TYPE_UINT16:
-			_reg_set_active_blocks<unsigned short>(target, params, mask, runningOnGPU);break;
-		case NIFTI_TYPE_INT16:
-			_reg_set_active_blocks<short>(target, params, mask, runningOnGPU);break;
-		case NIFTI_TYPE_UINT32:
-			_reg_set_active_blocks<unsigned int>(target, params, mask, runningOnGPU);break;
-		case NIFTI_TYPE_INT32:
-			_reg_set_active_blocks<int>(target, params, mask, runningOnGPU);break;
-		case NIFTI_TYPE_FLOAT32:
-			_reg_set_active_blocks<float>(target, params, mask, runningOnGPU);break;
-		case NIFTI_TYPE_FLOAT64:
-			_reg_set_active_blocks<double>(target, params, mask, runningOnGPU);break;
-		default:
-			fprintf(stderr,"ERROR\tinitialise_block_matching_method\tThe target image data type is not supported\n");
-            exit(1);
+    params->activeBlock = (int *)malloc(params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2] * sizeof(int));
+    switch(target->datatype){
+                case NIFTI_TYPE_UINT8:
+        _reg_set_active_blocks<unsigned char>(target, params, mask, runningOnGPU);break;
+                case NIFTI_TYPE_INT8:
+        _reg_set_active_blocks<char>(target, params, mask, runningOnGPU);break;
+                case NIFTI_TYPE_UINT16:
+        _reg_set_active_blocks<unsigned short>(target, params, mask, runningOnGPU);break;
+                case NIFTI_TYPE_INT16:
+        _reg_set_active_blocks<short>(target, params, mask, runningOnGPU);break;
+                case NIFTI_TYPE_UINT32:
+        _reg_set_active_blocks<unsigned int>(target, params, mask, runningOnGPU);break;
+                case NIFTI_TYPE_INT32:
+        _reg_set_active_blocks<int>(target, params, mask, runningOnGPU);break;
+                case NIFTI_TYPE_FLOAT32:
+        _reg_set_active_blocks<float>(target, params, mask, runningOnGPU);break;
+                case NIFTI_TYPE_FLOAT64:
+        _reg_set_active_blocks<double>(target, params, mask, runningOnGPU);break;
+                default:
+        fprintf(stderr,"ERROR\tinitialise_block_matching_method\tThe target image data type is not supported\n");
+        exit(1);
     }
     if(params->activeBlockNumber<2){
         fprintf(stderr,"There are no active blocks\n");
@@ -295,27 +296,27 @@ void initialise_block_matching_method(  nifti_image * target,
         exit(1);
     }
 #ifndef NDEBUG
-	printf("[DEBUG]: There are %i active block(s) out of %i.\n", params->activeBlockNumber, params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2]);
+    printf("[DEBUG]: There are %i active block(s) out of %i.\n", params->activeBlockNumber, params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2]);
 #endif
     if(target->nz>1){
-	    params->targetPosition = (float *)malloc(params->activeBlockNumber*3*sizeof(float));
-	    params->resultPosition = (float *)malloc(params->activeBlockNumber*3*sizeof(float));
+        params->targetPosition = (float *)malloc(params->activeBlockNumber*3*sizeof(float));
+        params->resultPosition = (float *)malloc(params->activeBlockNumber*3*sizeof(float));
     }
     else{
         params->targetPosition = (float *)malloc(params->activeBlockNumber*2*sizeof(float));
         params->resultPosition = (float *)malloc(params->activeBlockNumber*2*sizeof(float));
     }
 #ifndef NDEBUG
-	printf("[DEBUG]: block matching initialisation done.\n");
+    printf("[DEBUG]: block matching initialisation done.\n");
 #endif
 }
 /* *************************************************************** */
 /* *************************************************************** */
 template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageType>
-void block_matching_method2D(nifti_image * target,
-                                nifti_image * result,
-                                _reg_blockMatchingParam *params,
-                                int *mask)
+        void block_matching_method2D(nifti_image * target,
+                                     nifti_image * result,
+                                     _reg_blockMatchingParam *params,
+                                     int *mask)
 {
     TargetImageType *targetPtr=static_cast<TargetImageType *>(target->data);
     ResultImageType *resultPtr=static_cast<ResultImageType *>(result->data);
@@ -449,7 +450,7 @@ void block_matching_method2D(nifti_image * target,
                                 bestDisplacement[0] = (float)l;
                                 bestDisplacement[1] = (float)m;
                             }
-                        } 
+                        }
                     }
                 }
 
@@ -481,10 +482,10 @@ void block_matching_method2D(nifti_image * target,
 }
 /* *************************************************************** */
 template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageType>
-void block_matching_method3D(nifti_image * target,
-                                nifti_image * result,
-                                _reg_blockMatchingParam *params,
-                                int *mask)
+        void block_matching_method3D(nifti_image * target,
+                                     nifti_image * result,
+                                     _reg_blockMatchingParam *params,
+                                     int *mask)
 {
     TargetImageType *targetPtr=static_cast<TargetImageType *>(target->data);
     ResultImageType *resultPtr=static_cast<ResultImageType *>(result->data);
@@ -564,7 +565,7 @@ void block_matching_method3D(nifti_image * target,
                     }
                     PrecisionTYPE bestCC=0.0;
                     float bestDisplacement[3] = {0.0f, 0.0f, 0.0f};
-    
+
                     // iteration over the result blocks
                     for(int n=-OVERLAP_SIZE; n<=OVERLAP_SIZE; n+=STEP_SIZE){
                         resultIndex_start_z=targetIndex_start_z+n;
@@ -617,11 +618,11 @@ void block_matching_method3D(nifti_image * target,
                                         voxelNumber++;
                                     }
                                 }
-    
+
                                 if(voxelNumber>BLOCK_SIZE/2){
                                     targetMean /= voxelNumber;
                                     resultMean /= voxelNumber;
-    
+
                                     PrecisionTYPE targetVar=0.0;
                                     PrecisionTYPE resultVar=0.0;
                                     PrecisionTYPE localCC=0.0;
@@ -635,16 +636,16 @@ void block_matching_method3D(nifti_image * target,
                                             localCC += (targetTemp)*(resultTemp);
                                         }
                                     }
-    
+
                                     localCC = fabs(localCC/sqrt(targetVar*resultVar));
-    
-                                    if(localCC>bestCC){                                        
+
+                                    if(localCC>bestCC){
                                         bestCC=localCC;
                                         bestDisplacement[0] = (float)l;
                                         bestDisplacement[1] = (float)m;
                                         bestDisplacement[2] = (float)n;
                                     }
-                                } 
+                                }
                             }
                         }
                     }
@@ -680,139 +681,139 @@ void block_matching_method3D(nifti_image * target,
 }
 /* *************************************************************** */
 // Called internally to determine the parameter type
-template<typename PrecisionTYPE, typename TargetImageType> 
-void block_matching_method2(   nifti_image * target,
-                                nifti_image * result,
-                                _reg_blockMatchingParam *params,
-                                int *mask)
+template<typename PrecisionTYPE, typename TargetImageType>
+        void block_matching_method2(   nifti_image * target,
+                                       nifti_image * result,
+                                       _reg_blockMatchingParam *params,
+                                       int *mask)
 {
     if(target->nz==1){
         switch(result->datatype){
-            case NIFTI_TYPE_UINT8:
-                block_matching_method2D<PrecisionTYPE, TargetImageType, unsigned char>
-                        (target, result, params, mask);
-                        break;
-            case NIFTI_TYPE_INT8:
-                block_matching_method2D<PrecisionTYPE, TargetImageType, char>
-                        (target, result, params, mask);
-                        break;
-            case NIFTI_TYPE_UINT16:
-                block_matching_method2D<PrecisionTYPE, TargetImageType, unsigned short>
-                        (target, result, params, mask);
-                        break;
-            case NIFTI_TYPE_INT16:
-                block_matching_method2D<PrecisionTYPE, TargetImageType, short>
-                        (target, result, params, mask);
-                        break;
-            case NIFTI_TYPE_UINT32:
-                block_matching_method2D<PrecisionTYPE, TargetImageType, unsigned int>
-                        (target, result, params, mask);
-                        break;
-            case NIFTI_TYPE_INT32:
-                block_matching_method2D<PrecisionTYPE, TargetImageType, int>
-                        (target, result, params, mask);
-                        break;
-            case NIFTI_TYPE_FLOAT32:
-                block_matching_method2D<PrecisionTYPE, TargetImageType, float>
-                        (target, result, params, mask);
-                        break;
-            case NIFTI_TYPE_FLOAT64:
-                block_matching_method2D<PrecisionTYPE, TargetImageType, double>
-                        (target, result, params, mask);
-                        break;
-            default:
-                printf("err\tblock_match\tThe target image data type is not "
-                        "supported\n");
-                return;
+        case NIFTI_TYPE_UINT8:
+            block_matching_method2D<PrecisionTYPE, TargetImageType, unsigned char>
+                    (target, result, params, mask);
+            break;
+        case NIFTI_TYPE_INT8:
+            block_matching_method2D<PrecisionTYPE, TargetImageType, char>
+                    (target, result, params, mask);
+            break;
+        case NIFTI_TYPE_UINT16:
+            block_matching_method2D<PrecisionTYPE, TargetImageType, unsigned short>
+                    (target, result, params, mask);
+            break;
+        case NIFTI_TYPE_INT16:
+            block_matching_method2D<PrecisionTYPE, TargetImageType, short>
+                    (target, result, params, mask);
+            break;
+        case NIFTI_TYPE_UINT32:
+            block_matching_method2D<PrecisionTYPE, TargetImageType, unsigned int>
+                    (target, result, params, mask);
+            break;
+        case NIFTI_TYPE_INT32:
+            block_matching_method2D<PrecisionTYPE, TargetImageType, int>
+                    (target, result, params, mask);
+            break;
+        case NIFTI_TYPE_FLOAT32:
+            block_matching_method2D<PrecisionTYPE, TargetImageType, float>
+                    (target, result, params, mask);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            block_matching_method2D<PrecisionTYPE, TargetImageType, double>
+                    (target, result, params, mask);
+            break;
+        default:
+            printf("err\tblock_match\tThe target image data type is not "
+                   "supported\n");
+            return;
         }
     }
     else{
         switch(result->datatype){
-            case NIFTI_TYPE_UINT8:
-                block_matching_method3D<PrecisionTYPE, TargetImageType, unsigned char>
-                        (target, result, params, mask);
-                        break;
-            case NIFTI_TYPE_INT8:
-                block_matching_method3D<PrecisionTYPE, TargetImageType, char>
-                        (target, result, params, mask);
-                        break;
-            case NIFTI_TYPE_UINT16:
-                block_matching_method3D<PrecisionTYPE, TargetImageType, unsigned short>
-                        (target, result, params, mask);
-                        break;
-            case NIFTI_TYPE_INT16:
-                block_matching_method3D<PrecisionTYPE, TargetImageType, short>
-                        (target, result, params, mask);
-                        break;
-            case NIFTI_TYPE_UINT32:
-                block_matching_method3D<PrecisionTYPE, TargetImageType, unsigned int>
-                        (target, result, params, mask);
-                        break;
-            case NIFTI_TYPE_INT32:
-                block_matching_method3D<PrecisionTYPE, TargetImageType, int>
-                        (target, result, params, mask);
-                        break;
-            case NIFTI_TYPE_FLOAT32:
-                block_matching_method3D<PrecisionTYPE, TargetImageType, float>
-                        (target, result, params, mask);
-                        break;
-            case NIFTI_TYPE_FLOAT64:
-                block_matching_method3D<PrecisionTYPE, TargetImageType, double>
-                        (target, result, params, mask);
-                        break;
-            default:
-                printf("err\tblock_match\tThe target image data type is not "
-                        "supported\n");
-                return;
+        case NIFTI_TYPE_UINT8:
+            block_matching_method3D<PrecisionTYPE, TargetImageType, unsigned char>
+                    (target, result, params, mask);
+            break;
+        case NIFTI_TYPE_INT8:
+            block_matching_method3D<PrecisionTYPE, TargetImageType, char>
+                    (target, result, params, mask);
+            break;
+        case NIFTI_TYPE_UINT16:
+            block_matching_method3D<PrecisionTYPE, TargetImageType, unsigned short>
+                    (target, result, params, mask);
+            break;
+        case NIFTI_TYPE_INT16:
+            block_matching_method3D<PrecisionTYPE, TargetImageType, short>
+                    (target, result, params, mask);
+            break;
+        case NIFTI_TYPE_UINT32:
+            block_matching_method3D<PrecisionTYPE, TargetImageType, unsigned int>
+                    (target, result, params, mask);
+            break;
+        case NIFTI_TYPE_INT32:
+            block_matching_method3D<PrecisionTYPE, TargetImageType, int>
+                    (target, result, params, mask);
+            break;
+        case NIFTI_TYPE_FLOAT32:
+            block_matching_method3D<PrecisionTYPE, TargetImageType, float>
+                    (target, result, params, mask);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            block_matching_method3D<PrecisionTYPE, TargetImageType, double>
+                    (target, result, params, mask);
+            break;
+        default:
+            printf("err\tblock_match\tThe target image data type is not "
+                   "supported\n");
+            return;
         }
     }
 }
 /* *************************************************************** */
 // Block matching interface function
 template<typename PrecisionTYPE>
-void block_matching_method(	nifti_image * target,
-							nifti_image * result,
-							_reg_blockMatchingParam *params,
-                            int *mask)
+        void block_matching_method(	nifti_image * target,
+                                        nifti_image * result,
+                                        _reg_blockMatchingParam *params,
+                                        int *mask)
 {
-	switch(target->datatype){
-		case NIFTI_TYPE_UINT8:
-			block_matching_method2<PrecisionTYPE, unsigned char>
-					(target, result, params, mask);
-					break;
-		case NIFTI_TYPE_INT8:
-			block_matching_method2<PrecisionTYPE, char>
-					(target, result, params, mask);
-					break;
-		case NIFTI_TYPE_UINT16:
-			block_matching_method2<PrecisionTYPE, unsigned short>
-					(target, result, params, mask);
-					break;
-		case NIFTI_TYPE_INT16:
-			block_matching_method2<PrecisionTYPE, short>
-					(target, result, params, mask);
-					break;
-		case NIFTI_TYPE_UINT32:
-			block_matching_method2<PrecisionTYPE, unsigned int>
-					(target, result, params, mask);
-					break;
-		case NIFTI_TYPE_INT32:
-			block_matching_method2<PrecisionTYPE, int>
-					(target, result, params, mask);
-					break;
-		case NIFTI_TYPE_FLOAT32:
-			block_matching_method2<PrecisionTYPE, float>
-					(target, result, params, mask);
-					break;
-		case NIFTI_TYPE_FLOAT64:
-			block_matching_method2<PrecisionTYPE, double>
-					(target, result, params, mask);
-					break;
-		default:
-			printf("err\tblock_match\tThe target image data type is not"
-					"supported\n");
-			return;
-	}
+    switch(target->datatype){
+                case NIFTI_TYPE_UINT8:
+        block_matching_method2<PrecisionTYPE, unsigned char>
+                (target, result, params, mask);
+        break;
+                case NIFTI_TYPE_INT8:
+        block_matching_method2<PrecisionTYPE, char>
+                (target, result, params, mask);
+        break;
+                case NIFTI_TYPE_UINT16:
+        block_matching_method2<PrecisionTYPE, unsigned short>
+                (target, result, params, mask);
+        break;
+                case NIFTI_TYPE_INT16:
+        block_matching_method2<PrecisionTYPE, short>
+                (target, result, params, mask);
+        break;
+                case NIFTI_TYPE_UINT32:
+        block_matching_method2<PrecisionTYPE, unsigned int>
+                (target, result, params, mask);
+        break;
+                case NIFTI_TYPE_INT32:
+        block_matching_method2<PrecisionTYPE, int>
+                (target, result, params, mask);
+        break;
+                case NIFTI_TYPE_FLOAT32:
+        block_matching_method2<PrecisionTYPE, float>
+                (target, result, params, mask);
+        break;
+                case NIFTI_TYPE_FLOAT64:
+        block_matching_method2<PrecisionTYPE, double>
+                (target, result, params, mask);
+        break;
+                default:
+        printf("err\tblock_match\tThe target image data type is not"
+               "supported\n");
+        return;
+    }
 }
 template void block_matching_method<float>(nifti_image *, nifti_image *, _reg_blockMatchingParam *, int *);
 template void block_matching_method<double>(nifti_image *, nifti_image *, _reg_blockMatchingParam *, int *);
@@ -821,13 +822,13 @@ template void block_matching_method<double>(nifti_image *, nifti_image *, _reg_b
 
 // Apply the suppled affine transformation to a 3D point
 void apply_affine(mat44 * mat, float *pt, float *result)
-{   
+{
     result[0] = (mat->m[0][0] * pt[0]) + (mat->m[0][1]*pt[1]) + (mat->m[0][2]*pt[2]) + (mat->m[0][3]);
     result[1] = (mat->m[1][0] * pt[0]) + (mat->m[1][1]*pt[1]) + (mat->m[1][2]*pt[2]) + (mat->m[1][3]);
     result[2] = (mat->m[2][0] * pt[0]) + (mat->m[2][1]*pt[1]) + (mat->m[2][2]*pt[2]) + (mat->m[2][3]);
 }
 void apply_affine2D(mat44 * mat, float *pt, float *result)
-{   
+{
     result[0] = (mat->m[0][0] * pt[0]) + (mat->m[0][1]*pt[1]) + (mat->m[0][3]);
     result[1] = (mat->m[1][0] * pt[0]) + (mat->m[1][1]*pt[1]) + (mat->m[1][3]);
 }
@@ -840,17 +841,17 @@ struct _reg_sorted_point3D
     double distance;
 
     _reg_sorted_point3D(float * t, float * r, double d)
-        :distance(d)
+            :distance(d)
     {
         target[0] = t[0];
         target[1] = t[1];
         target[2] = t[2];
-        
+
         result[0] = r[0];
         result[1] = r[1];
         result[2] = r[2];
     }
-     
+
     const bool operator <(const _reg_sorted_point3D & sp) const
     {
         return (sp.distance < distance);
@@ -864,7 +865,7 @@ struct _reg_sorted_point2D
     double distance;
 
     _reg_sorted_point2D(float * t, float * r, double d)
-        :distance(d)
+            :distance(d)
     {
         target[0] = t[0];
         target[1] = t[1];
@@ -888,56 +889,56 @@ struct _reg_sorted_point2D
 
 void mul_matrices(float ** a, float ** b, int ar, int ac, int bc, float ** r, bool transposeB)
 {
-	if (transposeB){
-		for (int i = 0; i < ar; ++i){
-			for (int j = 0; j < bc; ++j){
-				r[i][j] = 0.0f;
-				for (int k = 0; k < ac; ++k){
-					r[i][j] += a[i][k] * b[j][k];
-				}
-			}
-		}
-	}
-	else{		
-		for (int i = 0; i < ar; ++i){
-			for (int j = 0; j < bc; ++j){
-				r[i][j] = 0.0f;
-				for (int k = 0; k < ac; ++k){
-					r[i][j] += a[i][k] * b[k][j];
-				}
-			}
-		}
-	}
+    if (transposeB){
+        for (int i = 0; i < ar; ++i){
+            for (int j = 0; j < bc; ++j){
+                r[i][j] = 0.0f;
+                for (int k = 0; k < ac; ++k){
+                    r[i][j] += a[i][k] * b[j][k];
+                }
+            }
+        }
+    }
+    else{
+        for (int i = 0; i < ar; ++i){
+            for (int j = 0; j < bc; ++j){
+                r[i][j] = 0.0f;
+                for (int k = 0; k < ac; ++k){
+                    r[i][j] += a[i][k] * b[k][j];
+                }
+            }
+        }
+    }
 }
 
 // Multiply a matrix with a vctor
 void mul_matvec(float ** a, int ar, int ac, float * b, float * r)
 {
-	for (int i = 0; i < ar; ++i){
-		r[i] = 0;
-		for (int k = 0; k < ac; ++k){
-			r[i] += a[i][k] * b[k];
-		}
-	}
+    for (int i = 0; i < ar; ++i){
+        r[i] = 0;
+        for (int k = 0; k < ac; ++k){
+            r[i] += a[i][k] * b[k];
+        }
+    }
 }
 
 // Compute determinant of a 3x3 matrix
 float compute_determinant3x3(float ** mat)
 {
-	return 	(mat[0][0]*(mat[1][1]*mat[2][2]-mat[1][2]*mat[2][1]))-
-			(mat[0][1]*(mat[1][0]*mat[2][2]-mat[1][2]*mat[2][0]))+
-			(mat[0][2]*(mat[1][0]*mat[2][1]-mat[1][1]*mat[2][0]));
+    return 	(mat[0][0]*(mat[1][1]*mat[2][2]-mat[1][2]*mat[2][1]))-
+            (mat[0][1]*(mat[1][0]*mat[2][2]-mat[1][2]*mat[2][0]))+
+            (mat[0][2]*(mat[1][0]*mat[2][1]-mat[1][1]*mat[2][0]));
 }
 
 
 // estimate an affine transformation using least square
 void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> & points,
-									mat44 * transformation,
-									float ** A,
-									float *  w,
-									float ** v,
-									float ** r,
-                                    float *  b)
+                                      mat44 * transformation,
+                                      float ** A,
+                                      float *  w,
+                                      float ** v,
+                                      float ** r,
+                                      float *  b)
 {
     int num_equations = points.size() * 2;
     unsigned c = 0;
@@ -959,7 +960,7 @@ void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> & points,
     }
 
     svd(A, num_equations, 6, w, v);
-        
+
     for (unsigned k = 0; k < 6; ++k)
     {
         if (w[k] < 0.0001)
@@ -974,7 +975,7 @@ void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> & points,
     // Now we can compute the pseudoinverse which is given by
     // V*inv(W)*U'
     // First compute the V * inv(w) in place.
-    // Simply scale each column by the corresponding singular value 
+    // Simply scale each column by the corresponding singular value
     for (unsigned k = 0; k < 6; ++k)
     {
         for (unsigned j = 0; j < 6; ++j){
@@ -1008,7 +1009,7 @@ void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> & points,
     transformation->m[2][1] = 0.0f;
     transformation->m[2][2] = 1.0f;
     transformation->m[2][3] = 0.0f;
-		
+
     transformation->m[3][0] = 0.0f;
     transformation->m[3][1] = 0.0f;
     transformation->m[3][2] = 0.0f;
@@ -1021,424 +1022,424 @@ void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> & points,
 
 // estimate an affine transformation using least square
 void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> & points,
-									mat44 * transformation,
-									float ** A,
-									float *  w,
-									float ** v,
-									float ** r,
-									float *  b)
-{	
-	// Create our A matrix
-	// we need at least 4 points. Assuming we have that here.
-	int num_equations = points.size() * 3;
-	unsigned c = 0;
-	for (unsigned k = 0; k < points.size(); ++k)
-	{
-		c = k * 3;
-		A[c][0] = points[k].target[0];
-		A[c][1] = points[k].target[1];
-		A[c][2] = points[k].target[2];
-		A[c][3] = A[c][4] = A[c][5] = A[c][6] = A[c][7] = A[c][8] = A[c][10] = A[c][11] = 0.0f;
-		A[c][9] = 1.0f;
-			
-		A[c+1][3] = points[k].target[0];
-		A[c+1][4] = points[k].target[1];
-		A[c+1][5] = points[k].target[2];
-		A[c+1][0] = A[c+1][1] = A[c+1][2] = A[c+1][6] = A[c+1][7] = A[c+1][8] = A[c+1][9] = A[c+1][11] = 0.0f;
-		A[c+1][10] = 1.0f;
-			
-		A[c+2][6] = points[k].target[0];
-		A[c+2][7] = points[k].target[1];
-		A[c+2][8] = points[k].target[2];
-		A[c+2][0] = A[c+2][1] = A[c+2][2] = A[c+2][3] = A[c+2][4] = A[c+2][5] = A[c+2][9] = A[c+2][10] = 0.0f;
-		A[c+2][11] = 1.0f;
-	}	
-	
-	for (unsigned k = 0; k < 12; ++k)
-	{
-		w[k] = 0.0f;
-	}	
-	// Now we can compute our svd
-	svd(A, num_equations, 12, w, v);
-		
-	// First we make sure that the really small singular values
-	// are set to 0. and compute the inverse by taking the reciprocal
-	// of the entries
-	for (unsigned k = 0; k < 12; ++k)
-	{
-		if (w[k] < 0.0001)
-		{
-			w[k] = 0.0f;
-		}
-		else
-		{
-			w[k] = 1.0f/w[k];
-		}
-	}
-		
-	// Now we can compute the pseudoinverse which is given by
-	// V*inv(W)*U'
-	// First compute the V * inv(w) in place.
-	// Simply scale each column by the corresponding singular value 
-	for (unsigned k = 0; k < 12; ++k)
-	{
-		for (unsigned j = 0; j < 12; ++j)
-		{
-			v[j][k] *=w[k];
-		}
-	}
-		
-	// Now multiply the matrices together
-	// Pseudoinverse = v * e * A(transpose)
-	mul_matrices(v, A, 12, 12, num_equations, r, true);		
-	// Now r contains the pseudoinverse
-	// Create vector b and then multiple rb to get the affine paramsA
-	for (unsigned k = 0; k < points.size(); ++k)
-	{
-		c = k * 3;			 
-		b[c] = 		points[k].result[0];
-		b[c+1] = 	points[k].result[1];
-		b[c+2] = 	points[k].result[2];
-	}
-		
-	float * transform = new float[12];
-	mul_matvec(r, 12, num_equations, b, transform);
-	
-	transformation->m[0][0] = transform[0];
-	transformation->m[0][1] = transform[1];
-	transformation->m[0][2] = transform[2];
-	transformation->m[0][3] = transform[9];
-		
-	transformation->m[1][0] = transform[3];
-	transformation->m[1][1] = transform[4];
-	transformation->m[1][2] = transform[5];
-	transformation->m[1][3] = transform[10];
-		
-	transformation->m[2][0] = transform[6];
-	transformation->m[2][1] = transform[7];
-	transformation->m[2][2] = transform[8];
-	transformation->m[2][3] = transform[11];
-		
-	transformation->m[3][0] = 0.0f;
-	transformation->m[3][1] = 0.0f;
-	transformation->m[3][2] = 0.0f;
-	transformation->m[3][3] = 1.0f;
+                                      mat44 * transformation,
+                                      float ** A,
+                                      float *  w,
+                                      float ** v,
+                                      float ** r,
+                                      float *  b)
+{
+    // Create our A matrix
+    // we need at least 4 points. Assuming we have that here.
+    int num_equations = points.size() * 3;
+    unsigned c = 0;
+    for (unsigned k = 0; k < points.size(); ++k)
+    {
+        c = k * 3;
+        A[c][0] = points[k].target[0];
+        A[c][1] = points[k].target[1];
+        A[c][2] = points[k].target[2];
+        A[c][3] = A[c][4] = A[c][5] = A[c][6] = A[c][7] = A[c][8] = A[c][10] = A[c][11] = 0.0f;
+        A[c][9] = 1.0f;
 
-	delete[] transform;
+        A[c+1][3] = points[k].target[0];
+        A[c+1][4] = points[k].target[1];
+        A[c+1][5] = points[k].target[2];
+        A[c+1][0] = A[c+1][1] = A[c+1][2] = A[c+1][6] = A[c+1][7] = A[c+1][8] = A[c+1][9] = A[c+1][11] = 0.0f;
+        A[c+1][10] = 1.0f;
+
+        A[c+2][6] = points[k].target[0];
+        A[c+2][7] = points[k].target[1];
+        A[c+2][8] = points[k].target[2];
+        A[c+2][0] = A[c+2][1] = A[c+2][2] = A[c+2][3] = A[c+2][4] = A[c+2][5] = A[c+2][9] = A[c+2][10] = 0.0f;
+        A[c+2][11] = 1.0f;
+    }
+
+    for (unsigned k = 0; k < 12; ++k)
+    {
+        w[k] = 0.0f;
+    }
+    // Now we can compute our svd
+    svd(A, num_equations, 12, w, v);
+
+    // First we make sure that the really small singular values
+    // are set to 0. and compute the inverse by taking the reciprocal
+    // of the entries
+    for (unsigned k = 0; k < 12; ++k)
+    {
+        if (w[k] < 0.0001)
+        {
+            w[k] = 0.0f;
+        }
+        else
+        {
+            w[k] = 1.0f/w[k];
+        }
+    }
+
+    // Now we can compute the pseudoinverse which is given by
+    // V*inv(W)*U'
+    // First compute the V * inv(w) in place.
+    // Simply scale each column by the corresponding singular value
+    for (unsigned k = 0; k < 12; ++k)
+    {
+        for (unsigned j = 0; j < 12; ++j)
+        {
+            v[j][k] *=w[k];
+        }
+    }
+
+    // Now multiply the matrices together
+    // Pseudoinverse = v * e * A(transpose)
+    mul_matrices(v, A, 12, 12, num_equations, r, true);
+    // Now r contains the pseudoinverse
+    // Create vector b and then multiple rb to get the affine paramsA
+    for (unsigned k = 0; k < points.size(); ++k)
+    {
+        c = k * 3;
+        b[c] = 		points[k].result[0];
+        b[c+1] = 	points[k].result[1];
+        b[c+2] = 	points[k].result[2];
+    }
+
+    float * transform = new float[12];
+    mul_matvec(r, 12, num_equations, b, transform);
+
+    transformation->m[0][0] = transform[0];
+    transformation->m[0][1] = transform[1];
+    transformation->m[0][2] = transform[2];
+    transformation->m[0][3] = transform[9];
+
+    transformation->m[1][0] = transform[3];
+    transformation->m[1][1] = transform[4];
+    transformation->m[1][2] = transform[5];
+    transformation->m[1][3] = transform[10];
+
+    transformation->m[2][0] = transform[6];
+    transformation->m[2][1] = transform[7];
+    transformation->m[2][2] = transform[8];
+    transformation->m[2][3] = transform[11];
+
+    transformation->m[3][0] = 0.0f;
+    transformation->m[3][1] = 0.0f;
+    transformation->m[3][2] = 0.0f;
+    transformation->m[3][3] = 1.0f;
+
+    delete[] transform;
 }
 
 void optimize_affine2D(_reg_blockMatchingParam * params,
                        mat44 * final)
 {
     // Set the current transformation to identity
-	final->m[0][0] = final->m[1][1] = final->m[2][2] = final->m[3][3] = 1.0f;
-	final->m[0][1] = final->m[0][2] = final->m[0][3] = 0.0f;
-	final->m[1][0] = final->m[1][2] = final->m[1][3] = 0.0f;
-	final->m[2][0] = final->m[2][1] = final->m[2][3] = 0.0f;
-	final->m[3][0] = final->m[3][1] = final->m[3][2] = 0.0f;
+    final->m[0][0] = final->m[1][1] = final->m[2][2] = final->m[3][3] = 1.0f;
+    final->m[0][1] = final->m[0][2] = final->m[0][3] = 0.0f;
+    final->m[1][0] = final->m[1][2] = final->m[1][3] = 0.0f;
+    final->m[2][0] = final->m[2][1] = final->m[2][3] = 0.0f;
+    final->m[3][0] = final->m[3][1] = final->m[3][2] = 0.0f;
 
     const unsigned num_points = params->activeBlockNumber;
     unsigned long num_equations = num_points * 2;
-    std::priority_queue<_reg_sorted_point2D> queue;
-	std::vector<_reg_sorted_point2D> top_points;
-	double distance = 0.0;
+    std::multimap<double, _reg_sorted_point2D> queue;
+    std::vector<_reg_sorted_point2D> top_points;
+    double distance = 0.0;
     double lastDistance = std::numeric_limits<double>::max();;
-	unsigned long i;
+    unsigned long i;
 
     // massive left hand side matrix
-	float ** a = new float *[num_equations];
-	for (unsigned k = 0; k < num_equations; ++k)
-	{			
-		a[k] = new float[6]; // full affine
-	}
-	
-	// The array of singular values returned by svd
-	float *w = new float[6];
-		
-	// v will be n x n
-	float **v = new float *[6];
-	for (unsigned k = 0; k < 6; ++k)
-	{
-		v[k] = new float[6];
-	}
-	
-	// Allocate memory for pseudoinverse		
-	float **r = new float *[6];
-	for (unsigned k = 0; k < 6; ++k)
-	{
-		r[k] = new float[num_equations];
-	}
-	
-	// Allocate memory for RHS vector
-	float *b = new float[num_equations];
+    float ** a = new float *[num_equations];
+    for (unsigned k = 0; k < num_equations; ++k)
+    {
+        a[k] = new float[6]; // full affine
+    }
+
+    // The array of singular values returned by svd
+    float *w = new float[6];
+
+    // v will be n x n
+    float **v = new float *[6];
+    for (unsigned k = 0; k < 6; ++k)
+    {
+        v[k] = new float[6];
+    }
+
+    // Allocate memory for pseudoinverse
+    float **r = new float *[6];
+    for (unsigned k = 0; k < 6; ++k)
+    {
+        r[k] = new float[num_equations];
+    }
+
+    // Allocate memory for RHS vector
+    float *b = new float[num_equations];
 
     // The initial vector with all the input points
-	for (unsigned j = 0; j < num_points*2; j+=2)
-	{
-		top_points.push_back(_reg_sorted_point2D(&(params->targetPosition[j]), 
-							 &(params->resultPosition[j]),0.0f));
-	}
-	
-	// estimate the optimal transformation while considering all the points
-	estimate_affine_transformation2D(top_points, final, a, w, v, r, b);
+    for (unsigned j = 0; j < num_points*2; j+=2)
+    {
+        top_points.push_back(_reg_sorted_point2D(&(params->targetPosition[j]),
+                                                 &(params->resultPosition[j]),0.0f));
+    }
 
-	// Delete a, b and r. w and v will not change size in subsequent svd operations.
-	for (unsigned int k = 0; k < num_equations; ++k)
-	{
-		delete[] a[k];
-	}
-	delete[] a;
-	delete[] b;
-	
-	for (unsigned k = 0; k < 6; ++k)
-	{
-		delete[] r[k];
-	}
-	delete [] r;
+    // estimate the optimal transformation while considering all the points
+    estimate_affine_transformation2D(top_points, final, a, w, v, r, b);
 
-    // The LS in the iterations is done on subsample of the input data	
-	float * newResultPosition = new float[num_points*2];
-	const unsigned long num_to_keep = (unsigned long)(num_points * (params->percent_to_keep/100.0f));
-	num_equations = num_to_keep*2;
+    // Delete a, b and r. w and v will not change size in subsequent svd operations.
+    for (unsigned int k = 0; k < num_equations; ++k)
+    {
+        delete[] a[k];
+    }
+    delete[] a;
+    delete[] b;
 
-	// The LHS matrix
-	a = new float *[num_equations];
-	for (unsigned k = 0; k < num_equations; ++k)
-	{			
-		a[k] = new float[6]; // full affine
-	}
-	
-	// Allocate memory for pseudoinverse		
-	r = new float *[6];
-	for (unsigned k = 0; k < 6; ++k)
-	{
-		r[k] = new float[num_equations];
-	}
-	
-	// Allocate memory for RHS vector
-	b = new float[num_equations];
+    for (unsigned k = 0; k < 6; ++k)
+    {
+        delete[] r[k];
+    }
+    delete [] r;
+
+    // The LS in the iterations is done on subsample of the input data
+    float * newResultPosition = new float[num_points*2];
+    const unsigned long num_to_keep = (unsigned long)(num_points * (params->percent_to_keep/100.0f));
+    num_equations = num_to_keep*2;
+
+    // The LHS matrix
+    a = new float *[num_equations];
+    for (unsigned k = 0; k < num_equations; ++k)
+    {
+        a[k] = new float[6]; // full affine
+    }
+
+    // Allocate memory for pseudoinverse
+    r = new float *[6];
+    for (unsigned k = 0; k < 6; ++k)
+    {
+        r[k] = new float[num_equations];
+    }
+
+    // Allocate memory for RHS vector
+    b = new float[num_equations];
     mat44 lastTransformation;
-	memset(&lastTransformation,0,sizeof(mat44));
+    memset(&lastTransformation,0,sizeof(mat44));
 
     for (unsigned count = 0; count < MAX_ITERATIONS; ++count)
-	{
-		// Transform the points in the target
-		for (unsigned j = 0; j < num_points * 2; j+=2)		
-		{				
-			apply_affine2D(final, &(params->targetPosition[j]), &newResultPosition[j]);
-		}
+    {
+        // Transform the points in the target
+        for (unsigned j = 0; j < num_points * 2; j+=2)
+        {
+            apply_affine2D(final, &(params->targetPosition[j]), &newResultPosition[j]);
+        }
+        queue = std::multimap<double, _reg_sorted_point2D> ();
+        for (unsigned j = 0; j < num_points * 2; j+=2)
+        {
+            distance = get_square_distance2D(&newResultPosition[j], &(params->resultPosition[j]));
+            queue.insert(std::pair<double, _reg_sorted_point2D>(distance, _reg_sorted_point2D(&(params->targetPosition[j]),
+                                           &(params->resultPosition[j]), distance)));
+        }
 
-		queue = std::priority_queue<_reg_sorted_point2D> ();
-		for (unsigned j = 0; j < num_points * 2; j+=2)
-		{
-			distance = get_square_distance2D(&newResultPosition[j], &(params->resultPosition[j]));
-			queue.push(_reg_sorted_point2D(&(params->targetPosition[j]), 
-					   &(params->resultPosition[j]), distance));
-		}
-						
-		distance = 0.0;	
-		i = 0;
-		top_points.clear();
+        distance = 0.0;
+        i = 0;
+        top_points.clear();
         int initial_size = queue.size();
-        while (i < num_to_keep && i < initial_size)
-		{
-			top_points.push_back(queue.top());
-			distance += queue.top().distance;
-			queue.pop();
-			++i;
-		}
+
+        for (std::multimap<double, _reg_sorted_point2D>::iterator it = queue.begin();
+        it != queue.end(); ++it, ++i)
+        {
+            if (i >= num_to_keep) break;
+            top_points.push_back((*it).second);
+            distance += (*it).first;
+        }
 
         if (lastDistance - distance < TOLERANCE)
-		{
+        {
             // restore the last transformation
             copy_transformation_4x4(lastTransformation, *(final));
-			break;
-		}		
-		lastDistance = distance;
+            break;
+        }
+        lastDistance = distance;
         copy_transformation_4x4(*(final), lastTransformation);
-		estimate_affine_transformation2D(top_points, final, a, w, v, r, b);	
-	}
+        estimate_affine_transformation2D(top_points, final, a, w, v, r, b);
+    }
 
     delete[] newResultPosition;
-	delete[] b;
-	for (unsigned k = 0; k < 6; ++k)
-	{
-		delete[] r[k];
-	}
-	delete [] r;
-				
-	// free the memory
-	for (unsigned int k = 0; k < num_equations; ++k)
-	{
-		delete[] a[k];
-	}
-	delete[] a;
-		
-	delete[] w;
-	for (int k = 0; k < 6; ++k)
-	{
-		delete[] v[k];
-	}
-	delete [] v;
+    delete[] b;
+    for (unsigned k = 0; k < 6; ++k)
+    {
+        delete[] r[k];
+    }
+    delete [] r;
+
+    // free the memory
+    for (unsigned int k = 0; k < num_equations; ++k)
+    {
+        delete[] a[k];
+    }
+    delete[] a;
+
+    delete[] w;
+    for (int k = 0; k < 6; ++k)
+    {
+        delete[] v[k];
+    }
+    delete [] v;
 }
 
-void optimize_affine3D(	_reg_blockMatchingParam *params,
-						mat44 * final)
+void optimize_affine3D(_reg_blockMatchingParam *params,
+                        mat44 * final)
 {
-	// Set the current transformation to identity
-	final->m[0][0] = final->m[1][1] = final->m[2][2] = final->m[3][3] = 1.0f;
-	final->m[0][1] = final->m[0][2] = final->m[0][3] = 0.0f;
-	final->m[1][0] = final->m[1][2] = final->m[1][3] = 0.0f;
-	final->m[2][0] = final->m[2][1] = final->m[2][3] = 0.0f;
-	final->m[3][0] = final->m[3][1] = final->m[3][2] = 0.0f;
+    // Set the current transformation to identity
+    final->m[0][0] = final->m[1][1] = final->m[2][2] = final->m[3][3] = 1.0f;
+    final->m[0][1] = final->m[0][2] = final->m[0][3] = 0.0f;
+    final->m[1][0] = final->m[1][2] = final->m[1][3] = 0.0f;
+    final->m[2][0] = final->m[2][1] = final->m[2][3] = 0.0f;
+    final->m[3][0] = final->m[3][1] = final->m[3][2] = 0.0f;
 
-	const unsigned num_points = params->activeBlockNumber;
-	unsigned long num_equations = num_points * 3;
-	std::priority_queue<_reg_sorted_point3D> queue;
-	std::vector<_reg_sorted_point3D> top_points;
-	double distance = 0.0;
-	double lastDistance = std::numeric_limits<double>::max();
-	unsigned long i;
+    const unsigned num_points = params->activeBlockNumber;
+    unsigned long num_equations = num_points * 3;
+    std::multimap<double, _reg_sorted_point3D> queue;
+    std::vector<_reg_sorted_point3D> top_points;
+    double distance = 0.0;
+    double lastDistance = std::numeric_limits<double>::max();
+    unsigned long i;
 
-	// massive left hand side matrix
-	float ** a = new float *[num_equations];
-	for (unsigned k = 0; k < num_equations; ++k)
-	{			
-		a[k] = new float[12]; // full affine
-	}
-	
-	// The array of singular values returned by svd
-	float *w = new float[12];
-		
-	// v will be n x n
-	float **v = new float *[12];
-	for (unsigned k = 0; k < 12; ++k)
-	{
-		v[k] = new float[12];
-	}
-	
-	// Allocate memory for pseudoinverse		
-	float **r = new float *[12];
-	for (unsigned k = 0; k < 12; ++k)
-	{
-		r[k] = new float[num_equations];
-	}
-	
-	// Allocate memory for RHS vector
-	float *b = new float[num_equations];
-	
-	// The initial vector with all the input points
-	for (unsigned j = 0; j < num_points*3; j+=3)
-	{
-		top_points.push_back(_reg_sorted_point3D(&(params->targetPosition[j]), 
-							 &(params->resultPosition[j]),0.0f));        
-	}
-	
-	// estimate the optimal transformation while considering all the points
-	estimate_affine_transformation3D(top_points, final, a, w, v, r, b);
+    // massive left hand side matrix
+    float ** a = new float *[num_equations];
+    for (unsigned k = 0; k < num_equations; ++k)
+    {
+        a[k] = new float[12]; // full affine
+    }
 
-	// Delete a, b and r. w and v will not change size in subsequent svd operations.
-	for (unsigned int k = 0; k < num_equations; ++k)
-	{
-		delete[] a[k];
-	}
-	delete[] a;
-	delete[] b;
-	
-	for (unsigned k = 0; k < 12; ++k)
-	{
-		delete[] r[k];
-	}
-	delete [] r;
+    // The array of singular values returned by svd
+    float *w = new float[12];
+
+    // v will be n x n
+    float **v = new float *[12];
+    for (unsigned k = 0; k < 12; ++k)
+    {
+        v[k] = new float[12];
+    }
+
+    // Allocate memory for pseudoinverse
+    float **r = new float *[12];
+    for (unsigned k = 0; k < 12; ++k)
+    {
+        r[k] = new float[num_equations];
+    }
+
+    // Allocate memory for RHS vector
+    float *b = new float[num_equations];
+
+    // The initial vector with all the input points
+    for (unsigned j = 0; j < num_points*3; j+=3)
+    {
+        top_points.push_back(_reg_sorted_point3D(&(params->targetPosition[j]),
+                                                 &(params->resultPosition[j]),0.0f));
+    }
+
+    // estimate the optimal transformation while considering all the points
+    estimate_affine_transformation3D(top_points, final, a, w, v, r, b);
+
+    // Delete a, b and r. w and v will not change size in subsequent svd operations.
+    for (unsigned int k = 0; k < num_equations; ++k)
+    {
+        delete[] a[k];
+    }
+    delete[] a;
+    delete[] b;
+
+    for (unsigned k = 0; k < 12; ++k)
+    {
+        delete[] r[k];
+    }
+    delete [] r;
 
 
-	// The LS in the iterations is done on subsample of the input data	
-	float * newResultPosition = new float[num_points*3];
-	const unsigned long num_to_keep = (unsigned long)(num_points * (params->percent_to_keep/100.0f));
-	num_equations = num_to_keep*3;
+    // The LS in the iterations is done on subsample of the input data
+    float * newResultPosition = new float[num_points*3];
+    const unsigned long num_to_keep = (unsigned long)(num_points * (params->percent_to_keep/100.0f));
+    num_equations = num_to_keep*3;
 
-	// The LHS matrix
-	a = new float *[num_equations];
-	for (unsigned k = 0; k < num_equations; ++k)
-	{			
-		a[k] = new float[12]; // full affine
-	}
-	
-	// Allocate memory for pseudoinverse		
-	r = new float *[12];
-	for (unsigned k = 0; k < 12; ++k)
-	{
-		r[k] = new float[num_equations];
-	}
-	
-	// Allocate memory for RHS vector
-	b = new float[num_equations];    
+    // The LHS matrix
+    a = new float *[num_equations];
+    for (unsigned k = 0; k < num_equations; ++k)
+    {
+        a[k] = new float[12]; // full affine
+    }
+
+    // Allocate memory for pseudoinverse
+    r = new float *[12];
+    for (unsigned k = 0; k < 12; ++k)
+    {
+        r[k] = new float[num_equations];
+    }
+
+    // Allocate memory for RHS vector
+    b = new float[num_equations];
     mat44 lastTransformation;
-	memset(&lastTransformation,0,sizeof(mat44));
-	
-	for (unsigned count = 0; count < MAX_ITERATIONS; ++count)
-	{
-		// Transform the points in the target
-		for (unsigned j = 0; j < num_points * 3; j+=3)		
-		{				
-			apply_affine(final, &(params->targetPosition[j]), &newResultPosition[j]);  
-		}
+    memset(&lastTransformation,0,sizeof(mat44));
 
-		queue = std::priority_queue<_reg_sorted_point3D> ();
-		for (unsigned j = 0; j < num_points * 3; j+=3)
-		{
-			distance = get_square_distance(&newResultPosition[j], &(params->resultPosition[j]));
-			queue.push(_reg_sorted_point3D(&(params->targetPosition[j]), 
-					   &(params->resultPosition[j]), distance));
-		}
+    for (unsigned count = 0; count < MAX_ITERATIONS; ++count)
+    {
+        // Transform the points in the target
+        for (unsigned j = 0; j < num_points * 3; j+=3)
+        {
+            apply_affine(final, &(params->targetPosition[j]), &newResultPosition[j]);
+        }
 
-		distance = 0.0;	
-		i = 0;        
-		top_points.clear();
-        int initial_size = queue.size();
+        queue = std::multimap<double, _reg_sorted_point3D> ();
+        for (unsigned j = 0; j < num_points * 3; j+=3)
+        {
+            distance = get_square_distance(&newResultPosition[j], &(params->resultPosition[j]));
+            queue.insert(std::pair<double, _reg_sorted_point3D>(distance, _reg_sorted_point3D(&(params->targetPosition[j]),
+                                           &(params->resultPosition[j]), distance)));
+        }
 
-        while (i < num_to_keep && i < initial_size)
-		{
-			top_points.push_back(queue.top());
-			distance += queue.top().distance;
-			queue.pop();
-			++i;
-		}
-		// If the change is not substantial or we are getting worst, we return 
+        distance = 0.0;
+        i = 0;
+        top_points.clear();
+
+        for (std::multimap<double, _reg_sorted_point3D>::iterator it = queue.begin();
+        it != queue.end(); ++it, ++i)
+        {
+            if (i >= num_to_keep) break;
+            top_points.push_back((*it).second);
+            distance += (*it).first;
+        }
+
+        // If the change is not substantial or we are getting worst, we return
         if (lastDistance - distance < TOLERANCE)
-		{
+        {
             // restore the last transformation
             copy_transformation_4x4(lastTransformation, *(final));
-			break;
-		}		
-		lastDistance = distance;
+            break;
+        }
+        lastDistance = distance;
         copy_transformation_4x4(*(final), lastTransformation);
-		estimate_affine_transformation3D(top_points, final, a, w, v, r, b);	
-	}	
-	delete[] newResultPosition;
-	delete[] b;
-	for (unsigned k = 0; k < 12; ++k)
-	{
-		delete[] r[k];
-	}
-	delete [] r;
-				
-	// free the memory
-	for (unsigned int k = 0; k < num_equations; ++k)
-	{
-		delete[] a[k];
-	}
-	delete[] a;
-		
-	delete[] w;
-	for (int k = 0; k < 12; ++k)
-	{
-		delete[] v[k];
-	}
-	delete [] v;
+        estimate_affine_transformation3D(top_points, final, a, w, v, r, b);
+    }
+    delete[] newResultPosition;
+    delete[] b;
+    for (unsigned k = 0; k < 12; ++k)
+    {
+        delete[] r[k];
+    }
+    delete [] r;
+
+    // free the memory
+    for (unsigned int k = 0; k < num_equations; ++k)
+    {
+        delete[] a[k];
+    }
+    delete[] a;
+
+    delete[] w;
+    for (int k = 0; k < 12; ++k)
+    {
+        delete[] v[k];
+    }
+    delete [] v;
 }
 void estimate_rigid_transformation2D(  std::vector<_reg_sorted_point2D> & points,
-                                        mat44 * transformation)
+                                       mat44 * transformation)
 {
     float centroid_target[2] = {0.0f};
     float centroid_result[2] = {0.0f};
@@ -1490,8 +1491,8 @@ void estimate_rigid_transformation2D(  std::vector<_reg_sorted_point2D> & points
 
     svd(u, 2, 2, w, v);
 
-    // Calculate transpose  
-    ut[0][0] = u[0][0]; 
+    // Calculate transpose
+    ut[0][0] = u[0][0];
     ut[1][0] = u[0][1];
 
     ut[0][1] = u[1][0];
@@ -1502,7 +1503,7 @@ void estimate_rigid_transformation2D(  std::vector<_reg_sorted_point2D> & points
 
     float det = (r[0][0] * r[1][1]) - (r[0][1] * r[1][0]);
 
-    // Take care of possible reflection 
+    // Take care of possible reflection
     if (det < 0.0f)
     {
         v[0][2] = -v[0][2];
@@ -1513,10 +1514,10 @@ void estimate_rigid_transformation2D(  std::vector<_reg_sorted_point2D> & points
     // Calculate the translation
     float t[2];
     t[0] = centroid_result[0] - (r[0][0] * centroid_target[0] +
-    r[0][1] * centroid_target[1]);
+                                 r[0][1] * centroid_target[1]);
 
     t[1] = centroid_result[1] - (r[1][0] * centroid_target[0] +
-    r[1][1] * centroid_target[1]);
+                                 r[1][1] * centroid_target[1]);
 
     transformation->m[0][0] = r[0][0];
     transformation->m[0][1] = r[0][1];
@@ -1555,156 +1556,156 @@ void estimate_rigid_transformation2D(  std::vector<_reg_sorted_point2D> & points
     delete [] w;
 }
 void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> & points,
-								   mat44 * transformation)
-{	
-	float centroid_target[3] = {0.0f};
-	float centroid_result[3] = {0.0f};
-	
-	
-	for (unsigned j = 0; j < points.size(); ++j)
-	{
-		centroid_target[0] += points[j].target[0];
-		centroid_target[1] += points[j].target[1];
-		centroid_target[2] += points[j].target[2];
-			
-		centroid_result[0] += points[j].result[0];
-		centroid_result[1] += points[j].result[1];
-		centroid_result[2] += points[j].result[2];
-	}
-		
-	centroid_target[0] /= (float)(points.size());
-	centroid_target[1] /= (float)(points.size());
-	centroid_target[2] /= (float)(points.size());
-	
-	centroid_result[0] /= (float)(points.size());
-	centroid_result[1] /= (float)(points.size());
-	centroid_result[2] /= (float)(points.size());
-	
-	float ** u = new float*[3];
-	float * w = new float[3];
-	float ** v = new float*[3];
-	float ** ut = new float*[3];
-	float ** r = new float*[3];
+                                     mat44 * transformation)
+{
+    float centroid_target[3] = {0.0f};
+    float centroid_result[3] = {0.0f};
 
-	for (unsigned i = 0; i < 3; ++i)
-	{
-		u[i] = new float[3];
-		v[i] = new float[3];
-		ut[i] = new float[3];
-		r[i] = new float[3];
-		
-		w[i] = 0.0f;
-	
-		
-		for (unsigned j = 0; j < 3; ++j)
-		{
-			u[i][j] = v[i][j] = ut[i][j] = r[i][j] = 0.0f;			
-		}
-	}
-	
-	// Demean the input points
-	for (unsigned j = 0; j < points.size(); ++j)
-	{
-		points[j].target[0] -= centroid_target[0];
-		points[j].target[1] -= centroid_target[1];
-		points[j].target[2] -= centroid_target[2];
-			
-		points[j].result[0] -= centroid_result[0];
-		points[j].result[1] -= centroid_result[1];
-		points[j].result[2] -= centroid_result[2];
-			
-		u[0][0] += points[j].target[0] * points[j].result[0];
-		u[0][1] += points[j].target[0] * points[j].result[1];
-		u[0][2] += points[j].target[0] * points[j].result[2];
-			
-		u[1][0] += points[j].target[1] * points[j].result[0];
-		u[1][1] += points[j].target[1] * points[j].result[1];
-		u[1][2] += points[j].target[1] * points[j].result[2];
-			
-		u[2][0] += points[j].target[2] * points[j].result[0];
-		u[2][1] += points[j].target[2] * points[j].result[1];
-		u[2][2] += points[j].target[2] * points[j].result[2];
-		
-	}
-	
-	svd(u, 3, 3, w, v);	
-	
-	// Calculate transpose	
-	ut[0][0] = u[0][0];	
-	ut[1][0] = u[0][1];
-	ut[2][0] = u[0][2];
-	
-	ut[0][1] = u[1][0];
-	ut[1][1] = u[1][1];
-	ut[2][1] = u[1][2];
-	
-	ut[0][2] = u[2][0];
-	ut[1][2] = u[2][1];
-	ut[2][2] = u[2][2];
-	
-	// Calculate the rotation matrix
-	mul_matrices(v, ut, 3, 3, 3, r, false);
-	
-	float det = compute_determinant3x3(r);
-	
-	// Take care of possible reflection 
-	if (det < 0.0f)
-	{
-		v[0][2] = -v[0][2];
-		v[1][2] = -v[1][2];
-		v[2][2] = -v[2][2];
-		
-	}
-		// Calculate the rotation matrix
-	mul_matrices(v, ut, 3, 3, 3, r, false);
-	
-	// Calculate the translation
-	float t[3];
-	t[0] = centroid_result[0] - (r[0][0] * centroid_target[0] +
-	r[0][1] * centroid_target[1] +
-	r[0][2] * centroid_target[2]);
-	
-	t[1] = centroid_result[1] - (r[1][0] * centroid_target[0] +
-	r[1][1] * centroid_target[1] +
-	r[1][2] * centroid_target[2]);
-	
-	t[2] = centroid_result[2] - (r[2][0] * centroid_target[0] +
-	r[2][1] * centroid_target[1] +
-	r[2][2] * centroid_target[2]);	
-		
-	transformation->m[0][0] = r[0][0];
-	transformation->m[0][1] = r[0][1];
-	transformation->m[0][2] = r[0][2];
-	transformation->m[0][3] = t[0];
-		
-	transformation->m[1][0] = r[1][0];
-	transformation->m[1][1] = r[1][1];
-	transformation->m[1][2] = r[1][2];
-	transformation->m[1][3] = t[1];
-		
-	transformation->m[2][0] = r[2][0];
-	transformation->m[2][1] = r[2][1];
-	transformation->m[2][2] = r[2][2];
-	transformation->m[2][3] = t[2];
-		
-	transformation->m[3][0] = 0.0f;
-	transformation->m[3][1] = 0.0f;
-	transformation->m[3][2] = 0.0f;
-	transformation->m[3][3] = 1.0f;
-	
-	// Do the deletion here
-	for (int i = 0; i < 3; ++i)
-	{
-		delete [] u[i];
-		delete [] v[i];
-		delete [] ut[i];
-		delete [] r[i];
-	}
-	delete [] u;
-	delete [] v;
-	delete [] ut;
-	delete [] r;
-	delete [] w;
+
+    for (unsigned j = 0; j < points.size(); ++j)
+    {
+        centroid_target[0] += points[j].target[0];
+        centroid_target[1] += points[j].target[1];
+        centroid_target[2] += points[j].target[2];
+
+        centroid_result[0] += points[j].result[0];
+        centroid_result[1] += points[j].result[1];
+        centroid_result[2] += points[j].result[2];
+    }
+
+    centroid_target[0] /= (float)(points.size());
+    centroid_target[1] /= (float)(points.size());
+    centroid_target[2] /= (float)(points.size());
+
+    centroid_result[0] /= (float)(points.size());
+    centroid_result[1] /= (float)(points.size());
+    centroid_result[2] /= (float)(points.size());
+
+    float ** u = new float*[3];
+    float * w = new float[3];
+    float ** v = new float*[3];
+    float ** ut = new float*[3];
+    float ** r = new float*[3];
+
+    for (unsigned i = 0; i < 3; ++i)
+    {
+        u[i] = new float[3];
+        v[i] = new float[3];
+        ut[i] = new float[3];
+        r[i] = new float[3];
+
+        w[i] = 0.0f;
+
+
+        for (unsigned j = 0; j < 3; ++j)
+        {
+            u[i][j] = v[i][j] = ut[i][j] = r[i][j] = 0.0f;
+        }
+    }
+
+    // Demean the input points
+    for (unsigned j = 0; j < points.size(); ++j)
+    {
+        points[j].target[0] -= centroid_target[0];
+        points[j].target[1] -= centroid_target[1];
+        points[j].target[2] -= centroid_target[2];
+
+        points[j].result[0] -= centroid_result[0];
+        points[j].result[1] -= centroid_result[1];
+        points[j].result[2] -= centroid_result[2];
+
+        u[0][0] += points[j].target[0] * points[j].result[0];
+        u[0][1] += points[j].target[0] * points[j].result[1];
+        u[0][2] += points[j].target[0] * points[j].result[2];
+
+        u[1][0] += points[j].target[1] * points[j].result[0];
+        u[1][1] += points[j].target[1] * points[j].result[1];
+        u[1][2] += points[j].target[1] * points[j].result[2];
+
+        u[2][0] += points[j].target[2] * points[j].result[0];
+        u[2][1] += points[j].target[2] * points[j].result[1];
+        u[2][2] += points[j].target[2] * points[j].result[2];
+
+    }
+
+    svd(u, 3, 3, w, v);
+
+    // Calculate transpose
+    ut[0][0] = u[0][0];
+    ut[1][0] = u[0][1];
+    ut[2][0] = u[0][2];
+
+    ut[0][1] = u[1][0];
+    ut[1][1] = u[1][1];
+    ut[2][1] = u[1][2];
+
+    ut[0][2] = u[2][0];
+    ut[1][2] = u[2][1];
+    ut[2][2] = u[2][2];
+
+    // Calculate the rotation matrix
+    mul_matrices(v, ut, 3, 3, 3, r, false);
+
+    float det = compute_determinant3x3(r);
+
+    // Take care of possible reflection
+    if (det < 0.0f)
+    {
+        v[0][2] = -v[0][2];
+        v[1][2] = -v[1][2];
+        v[2][2] = -v[2][2];
+
+    }
+    // Calculate the rotation matrix
+    mul_matrices(v, ut, 3, 3, 3, r, false);
+
+    // Calculate the translation
+    float t[3];
+    t[0] = centroid_result[0] - (r[0][0] * centroid_target[0] +
+                                 r[0][1] * centroid_target[1] +
+                                 r[0][2] * centroid_target[2]);
+
+    t[1] = centroid_result[1] - (r[1][0] * centroid_target[0] +
+                                 r[1][1] * centroid_target[1] +
+                                 r[1][2] * centroid_target[2]);
+
+    t[2] = centroid_result[2] - (r[2][0] * centroid_target[0] +
+                                 r[2][1] * centroid_target[1] +
+                                 r[2][2] * centroid_target[2]);
+
+    transformation->m[0][0] = r[0][0];
+    transformation->m[0][1] = r[0][1];
+    transformation->m[0][2] = r[0][2];
+    transformation->m[0][3] = t[0];
+
+    transformation->m[1][0] = r[1][0];
+    transformation->m[1][1] = r[1][1];
+    transformation->m[1][2] = r[1][2];
+    transformation->m[1][3] = t[1];
+
+    transformation->m[2][0] = r[2][0];
+    transformation->m[2][1] = r[2][1];
+    transformation->m[2][2] = r[2][2];
+    transformation->m[2][3] = t[2];
+
+    transformation->m[3][0] = 0.0f;
+    transformation->m[3][1] = 0.0f;
+    transformation->m[3][2] = 0.0f;
+    transformation->m[3][3] = 1.0f;
+
+    // Do the deletion here
+    for (int i = 0; i < 3; ++i)
+    {
+        delete [] u[i];
+        delete [] v[i];
+        delete [] ut[i];
+        delete [] r[i];
+    }
+    delete [] u;
+    delete [] v;
+    delete [] ut;
+    delete [] r;
+    delete [] w;
 }
 
 
@@ -1715,7 +1716,8 @@ void optimize_rigid2D(  _reg_blockMatchingParam *params,
 {
     unsigned num_points = params->activeBlockNumber;
     // Keep a sorted list of the distance measure
-    std::priority_queue<_reg_sorted_point2D> queue;
+    std::multimap<double, _reg_sorted_point2D> queue;
+
     std::vector<_reg_sorted_point2D> top_points;
     double distance = 0.0;
     double lastDistance = 0.0;
@@ -1730,7 +1732,7 @@ void optimize_rigid2D(  _reg_blockMatchingParam *params,
 
     for (unsigned j = 0; j < num_points * 2; j+= 2){
         top_points.push_back(_reg_sorted_point2D(&(params->targetPosition[j]),
-        &(params->resultPosition[j]), 0.0f));
+                                                 &(params->resultPosition[j]), 0.0f));
     }
 
     estimate_rigid_transformation2D(top_points, final);
@@ -1742,23 +1744,24 @@ void optimize_rigid2D(  _reg_blockMatchingParam *params,
         for (unsigned j = 0; j < num_points * 2; j+=2){
             apply_affine2D(final, &(params->targetPosition[j]), &newResultPosition[j]);
         }
-
-        queue = std::priority_queue<_reg_sorted_point2D> ();
+        queue = std::multimap<double, _reg_sorted_point2D>();
         for (unsigned j = 0; j < num_points * 2; j+= 2){
             distance = get_square_distance2D(&newResultPosition[j], &(params->resultPosition[j]));
-            queue.push(_reg_sorted_point2D(&(params->targetPosition[j]), 
-                &(params->resultPosition[j]), distance));
+            queue.insert(std::pair<double, _reg_sorted_point2D>(distance,
+                        _reg_sorted_point2D(&(params->targetPosition[j]),
+                                           &(params->resultPosition[j]), distance)));
         }
 
         distance = 0.0;
         i = 0;
         top_points.clear();
         int initial_size = queue.size();
-        while (i < num_to_keep && i < initial_size){
-            top_points.push_back(queue.top());
-            distance += queue.top().distance;
-            queue.pop();
-            ++i;
+        for (std::multimap<double, _reg_sorted_point2D>::iterator it = queue.begin();
+        it != queue.end(); ++it, ++i)
+        {
+            if (i >= num_to_keep) break;
+            top_points.push_back((*it).second);
+            distance += (*it).first;
         }
 
         // If the change is not substantial, we return
@@ -1774,12 +1777,12 @@ void optimize_rigid2D(  _reg_blockMatchingParam *params,
 void optimize_rigid3D(  _reg_blockMatchingParam *params,
                         mat44 * final)
 {
-    unsigned num_points = params->activeBlockNumber;    
+    unsigned num_points = params->activeBlockNumber;
     // Keep a sorted list of the distance measure
-    std::priority_queue<_reg_sorted_point3D> queue;
+    std::multimap<double, _reg_sorted_point3D> queue;
     std::vector<_reg_sorted_point3D> top_points;
     double distance = 0.0;
-    double lastDistance = 0.0;  
+    double lastDistance = 0.0;
     unsigned long i;
 
     // Set the current transformation to identity
@@ -1790,55 +1793,55 @@ void optimize_rigid3D(  _reg_blockMatchingParam *params,
     final->m[3][0] = final->m[3][1] = final->m[3][2] = 0.0f;
 
     for (unsigned j = 0; j < num_points * 3; j+= 3){
-        top_points.push_back(_reg_sorted_point3D(&(params->targetPosition[j]), 
-        &(params->resultPosition[j]), 0.0f));
+        top_points.push_back(_reg_sorted_point3D(&(params->targetPosition[j]),
+                                                 &(params->resultPosition[j]), 0.0f));
     }
 
     estimate_rigid_transformation3D(top_points, final);
     unsigned long num_to_keep = (unsigned long)(num_points * (params->percent_to_keep/100.0f));
     float * newResultPosition = new float[num_points*3];
 
-    for (unsigned count = 0; count < MAX_ITERATIONS; ++count){   
+    for (unsigned count = 0; count < MAX_ITERATIONS; ++count){
         // Transform the points in the target
         for (unsigned j = 0; j < num_points * 3; j+=3){
             apply_affine(final, &(params->targetPosition[j]), &newResultPosition[j]);
         }
-
-        queue = std::priority_queue<_reg_sorted_point3D> ();
+        queue = std::multimap<double, _reg_sorted_point3D>();
         for (unsigned j = 0; j < num_points * 3; j+= 3){
             distance = get_square_distance(&newResultPosition[j], &(params->resultPosition[j]));
-            queue.push(_reg_sorted_point3D(&(params->targetPosition[j]), 
-                &(params->resultPosition[j]), distance));
+            queue.insert(std::pair<double, _reg_sorted_point3D>(distance,
+                    _reg_sorted_point3D(&(params->targetPosition[j]),
+                                        &(params->resultPosition[j]), distance)));
         }
 
         distance = 0.0;
         i = 0;
         top_points.clear();
-        int initial_size = queue.size();
-        while (i < num_to_keep && i < initial_size){
-            top_points.push_back(queue.top());
-            distance += queue.top().distance;
-            queue.pop();
-            ++i;
+        for (std::multimap<double, _reg_sorted_point3D>::iterator it = queue.begin();
+        it != queue.end(); ++it, ++i)
+        {
+            if (i >= num_to_keep) break;
+            top_points.push_back((*it).second);
+            distance += (*it).first;
         }
 
-        // If the change is not substantial, we return      
+        // If the change is not substantial, we return
         if (fabs(distance - lastDistance) < TOLERANCE)
         {
             break;
         }
-        lastDistance = distance;        
+        lastDistance = distance;
         estimate_rigid_transformation3D(top_points, final);
-    }   
+    }
     delete [] newResultPosition;
 }
 
 
 // Find the optimal affine transformation
 void optimize(	_reg_blockMatchingParam *params,
-		    mat44 * final,
-		    bool affine)
-{	
+                mat44 * final,
+                bool affine)
+{
     if(params->blockNumber[2]==1){
         if (affine){
             optimize_affine2D(params, final);
@@ -1864,11 +1867,11 @@ void optimize(	_reg_blockMatchingParam *params,
 
 static float maxarg1,maxarg2;
 #define FMAX(a,b) (maxarg1=(a),maxarg2=(b),(maxarg1) > (maxarg2) ?\
-        (maxarg1) : (maxarg2))
+(maxarg1) : (maxarg2))
 
 static int iminarg1,iminarg2;
 #define IMIN(a,b) (iminarg1=(a),iminarg2=(b),(iminarg1) < (iminarg2) ?\
-        (iminarg1) : (iminarg2))
+(iminarg1) : (iminarg2))
 
 static float sqrarg;
 #define SQR(a) ((sqrarg=(a)) == 0.0 ? 0.0 : sqrarg*sqrarg)
@@ -1876,247 +1879,247 @@ static float sqrarg;
 // Calculate pythagorean distance
 float pythag(float a, float b)
 {
-	float absa, absb;
-	absa = fabs(a);
-	absb = fabs(b);
+    float absa, absb;
+    absa = fabs(a);
+    absb = fabs(b);
 
-	if (absa > absb) return (float)(absa * sqrt(1.0f+SQR(absb/absa)));
-	else return (absb == 0.0f ? 0.0f : (float)(absb * sqrt(1.0f+SQR(absa/absb))));
+    if (absa > absb) return (float)(absa * sqrt(1.0f+SQR(absb/absa)));
+    else return (absb == 0.0f ? 0.0f : (float)(absb * sqrt(1.0f+SQR(absa/absb))));
 }
 
 void svd(float ** in, int m, int n, float * w, float ** v)
 {
-	float * rv1 = (float *)malloc(sizeof(float) * n);
-	float anorm, c, f, g, h, s, scale, x, y, z; 
-	int flag,i,its,j,jj,k,l,nm;
+    float * rv1 = (float *)malloc(sizeof(float) * n);
+    float anorm, c, f, g, h, s, scale, x, y, z;
+    int flag,i,its,j,jj,k,l,nm;
 
-	g = scale = anorm = 0.0f;
-	for (i = 1; i <= n; ++i)
-	{
-		l = i + 1;
-		rv1[i-1] = scale * g;
-		g = s = scale = 0.0f;
+    g = scale = anorm = 0.0f;
+    for (i = 1; i <= n; ++i)
+    {
+        l = i + 1;
+        rv1[i-1] = scale * g;
+        g = s = scale = 0.0f;
 
-		if ( i <= m)
-		{
-			for (k = i; k <= m; ++k)
-			{
-				scale += fabs(in[k-1][i-1]);
-			}
-			if (scale)
-			{   
-				for (k = i; k <= m; ++k)
-				{
-					in[k-1][i-1] /= scale;
-					s += in[k-1][i-1] * in[k-1][i-1];
-				}
-				f = in[i-1][i-1];
-				g = -SIGN(sqrt(s), f);
-				h = f * g - s;
-				in[i-1][i-1] = f - g;
+        if ( i <= m)
+        {
+            for (k = i; k <= m; ++k)
+            {
+                scale += fabs(in[k-1][i-1]);
+            }
+            if (scale)
+            {
+                for (k = i; k <= m; ++k)
+                {
+                    in[k-1][i-1] /= scale;
+                    s += in[k-1][i-1] * in[k-1][i-1];
+                }
+                f = in[i-1][i-1];
+                g = -SIGN(sqrt(s), f);
+                h = f * g - s;
+                in[i-1][i-1] = f - g;
 
-				for (j = l; j <= n; ++j)
-				{
-					for (s = 0.0, k=i; k<=m; ++k) s += in[k-1][i-1]*in[k-1][j-1];				
-					f = s/h;
-					for (k = i; k <= m; ++k) in[k-1][j-1] += f * in[k-1][i-1];
-				}
-				for (k = i; k <= m; ++k)
-				{
-					in[k-1][i-1] *= scale;
-				}
-			}
-		}
-		w[i-1] = scale * g;
-		g = s = scale = 0.0;
-		if ((i <= m) && (i != n))
-		{
-			for (k = l; k <= n; ++k)
-			{
-				scale += fabs(in[i-1][k-1]);
-			}
-			if (scale)
-			{
-				for (k = l; k <= n; ++k)
-				{
-					in[i-1][k-1] /= scale;
-					s += in[i-1][k-1] * in[i-1][k-1];
-				}
-				f = in[i-1][l-1];
-				g = -SIGN(sqrt(s), f);
-				h = f*g-s;
-				in[i-1][l-1] = f - g;
+                for (j = l; j <= n; ++j)
+                {
+                    for (s = 0.0, k=i; k<=m; ++k) s += in[k-1][i-1]*in[k-1][j-1];
+                    f = s/h;
+                    for (k = i; k <= m; ++k) in[k-1][j-1] += f * in[k-1][i-1];
+                }
+                for (k = i; k <= m; ++k)
+                {
+                    in[k-1][i-1] *= scale;
+                }
+            }
+        }
+        w[i-1] = scale * g;
+        g = s = scale = 0.0;
+        if ((i <= m) && (i != n))
+        {
+            for (k = l; k <= n; ++k)
+            {
+                scale += fabs(in[i-1][k-1]);
+            }
+            if (scale)
+            {
+                for (k = l; k <= n; ++k)
+                {
+                    in[i-1][k-1] /= scale;
+                    s += in[i-1][k-1] * in[i-1][k-1];
+                }
+                f = in[i-1][l-1];
+                g = -SIGN(sqrt(s), f);
+                h = f*g-s;
+                in[i-1][l-1] = f - g;
 
-				for (k = l; k <= n; ++k) rv1[k-1] = in[i-1][k-1]/h;
-				for (j = l; j <= m; ++j)
-				{
-					for (s = 0.0, k = l; k <= n; ++k)
-					{
-						s += in[j-1][k-1] * in[i-1][k-1];
-					}
-					for (k = l; k <= n; ++k)
-					{
-						in[j-1][k-1] += s * rv1[k-1];
-					}
-				}
+                for (k = l; k <= n; ++k) rv1[k-1] = in[i-1][k-1]/h;
+                for (j = l; j <= m; ++j)
+                {
+                    for (s = 0.0, k = l; k <= n; ++k)
+                    {
+                        s += in[j-1][k-1] * in[i-1][k-1];
+                    }
+                    for (k = l; k <= n; ++k)
+                    {
+                        in[j-1][k-1] += s * rv1[k-1];
+                    }
+                }
 
-				for (k=l;k<=n;++k) in[i-1][k-1] *= scale;
-			}
-		}
-		anorm = FMAX(anorm, (fabs(w[i-1])+fabs(rv1[i-1])));
-	}
-    
-	for (i = n; i >= 1; --i)
-	{
-		if (i < n)
-		{
-			if (g)
-			{
-				for (j = l; j <= n; ++j)
-				{
-					v[j-1][i-1] = (in[i-1][j-1]/in[i-1][l-1])/g;
-				}
-				for (j = l; j <= n; ++j)
-				{
-					for (s = 0.0, k = l; k <= n; ++k) s += in[i-1][k-1] * v[k-1][j-1];
-					for (k=l;k<=n;++k) v[k-1][j-1] += s * v[k-1][i-1];
-				}
-			}
-			for (j = l; j <= n; ++j) v[i-1][j-1] = v[j-1][i-1] = 0.0;
-		}
-		v[i-1][i-1] = 1.0f;
-		g = rv1[i-1];
-		l = i;
-	}
+                for (k=l;k<=n;++k) in[i-1][k-1] *= scale;
+            }
+        }
+        anorm = FMAX(anorm, (fabs(w[i-1])+fabs(rv1[i-1])));
+    }
 
-	for (i = IMIN(m, n); i >= 1; --i)
-	{
-		l = i+1;
-		g = w[i-1];
-		for (j = l; j <= n; ++j) in[i-1][j-1] = 0.0f;
-		if (g)
-		{
-			g = 1.0f/g;
-			for (j = l; j <= n; ++j)
-			{
-				for (s = 0.0, k = l; k <= m; ++k) s += in[k-1][i-1] * in[k-1][j-1];
-				f = (s/in[i-1][i-1])*g;
-				for (k=i; k <=m; ++k) in[k-1][j-1] += f * in[k-1][i-1];
-			}
-			for (j=i; j <= m; ++j) in[j-1][i-1] *= g;
-		}
-		else for (j = i; j <= m; ++j) in[j-1][i-1] = 0.0;
-		++in[i-1][i-1];
-	}
+    for (i = n; i >= 1; --i)
+    {
+        if (i < n)
+        {
+            if (g)
+            {
+                for (j = l; j <= n; ++j)
+                {
+                    v[j-1][i-1] = (in[i-1][j-1]/in[i-1][l-1])/g;
+                }
+                for (j = l; j <= n; ++j)
+                {
+                    for (s = 0.0, k = l; k <= n; ++k) s += in[i-1][k-1] * v[k-1][j-1];
+                    for (k=l;k<=n;++k) v[k-1][j-1] += s * v[k-1][i-1];
+                }
+            }
+            for (j = l; j <= n; ++j) v[i-1][j-1] = v[j-1][i-1] = 0.0;
+        }
+        v[i-1][i-1] = 1.0f;
+        g = rv1[i-1];
+        l = i;
+    }
 
-	for (k = n; k >= 1; --k)
-	{
-		for (its = 0; its < 30; ++its)
-		{
-			flag = 1;
-			for (l=k; l >= 1; --l)
-			{
-				nm = l - 1;
-				if ((float)(fabs(rv1[l-1])+anorm) == anorm)
-				{
-					flag = 0;
-					break;
-				}
-				if ((float)(fabs(w[nm-1])+anorm) == anorm) break;
-			}
+    for (i = IMIN(m, n); i >= 1; --i)
+    {
+        l = i+1;
+        g = w[i-1];
+        for (j = l; j <= n; ++j) in[i-1][j-1] = 0.0f;
+        if (g)
+        {
+            g = 1.0f/g;
+            for (j = l; j <= n; ++j)
+            {
+                for (s = 0.0, k = l; k <= m; ++k) s += in[k-1][i-1] * in[k-1][j-1];
+                f = (s/in[i-1][i-1])*g;
+                for (k=i; k <=m; ++k) in[k-1][j-1] += f * in[k-1][i-1];
+            }
+            for (j=i; j <= m; ++j) in[j-1][i-1] *= g;
+        }
+        else for (j = i; j <= m; ++j) in[j-1][i-1] = 0.0;
+        ++in[i-1][i-1];
+    }
 
-			if (flag)
-			{
-				c = 0.0f;
-				s = 1.0f;
-				for (i=l; i<=k; ++i) // changed
-				{
-					f = s * rv1[i-1];
-					rv1[i-1] = c * rv1[i-1];
-					if ((float)(fabs(f)+anorm) == anorm) break;
-					g=w[i-1];
-					h=pythag(f,g);
-					w[i-1]=h;
-					h=1.0f/h;
-					c=g*h;
-					s = -f*h;
+    for (k = n; k >= 1; --k)
+    {
+        for (its = 0; its < 30; ++its)
+        {
+            flag = 1;
+            for (l=k; l >= 1; --l)
+            {
+                nm = l - 1;
+                if ((float)(fabs(rv1[l-1])+anorm) == anorm)
+                {
+                    flag = 0;
+                    break;
+                }
+                if ((float)(fabs(w[nm-1])+anorm) == anorm) break;
+            }
 
-					for (j = 1; j <= m; ++j)
-					{
-						y=in[j-1][nm-1];
-						z=in[j-1][i-1];
-						in[j-1][nm-1]=y*c+z*s;
-						in[j-1][i-1]=z*c-y*s;
-					}
-				}
-			}
-			z = w[k-1];
-			if (l == k)
-			{
-				if (z < 0.0f)
-				{
-					w[k-1] = -z;
-					for (j = 1; j <= n; ++j) v[j-1][k-1] = -v[j-1][k-1];
-				}
-				break;
-			}
+            if (flag)
+            {
+                c = 0.0f;
+                s = 1.0f;
+                for (i=l; i<=k; ++i) // changed
+                {
+                    f = s * rv1[i-1];
+                    rv1[i-1] = c * rv1[i-1];
+                    if ((float)(fabs(f)+anorm) == anorm) break;
+                    g=w[i-1];
+                    h=pythag(f,g);
+                    w[i-1]=h;
+                    h=1.0f/h;
+                    c=g*h;
+                    s = -f*h;
 
-			x = w[l-1];
-			nm = k - 1;
-			y = w[nm-1];
-			g = rv1[nm-1];
-			h = rv1[k-1];
+                    for (j = 1; j <= m; ++j)
+                    {
+                        y=in[j-1][nm-1];
+                        z=in[j-1][i-1];
+                        in[j-1][nm-1]=y*c+z*s;
+                        in[j-1][i-1]=z*c-y*s;
+                    }
+                }
+            }
+            z = w[k-1];
+            if (l == k)
+            {
+                if (z < 0.0f)
+                {
+                    w[k-1] = -z;
+                    for (j = 1; j <= n; ++j) v[j-1][k-1] = -v[j-1][k-1];
+                }
+                break;
+            }
 
-			f = ((y-z)*(y+z)+(g-h)*(g+h))/(2.0f*h*y);
-			g = pythag(f, 1.0f);
-			f = ((x-z)*(x+z)+h*((y/(f+SIGN(g,f)))-h))/x;
-			c = s = 1.0f;
-			for (j = l; j <= nm; ++j)
-			{
-				i = j + 1;
-				g = rv1[i-1];
-				y = w[i-1];
-				h = s * g;
-				g = c * g;
-				z = pythag(f, h);
-				rv1[j-1] = z;
-				c = f/z;
-				s = h/z;
-				f = x*c+g*s;
-				g = g*c-x*s;
-				h = y*s;
-				y *= c;
+            x = w[l-1];
+            nm = k - 1;
+            y = w[nm-1];
+            g = rv1[nm-1];
+            h = rv1[k-1];
 
-				for (jj = 1; jj <= n; ++jj)
-				{
-					x = v[jj-1][j-1];
-					z = v[jj-1][i-1];
-					v[jj-1][j-1] = x*c+z*s;
-					v[jj-1][i-1] = z*c-x*s;
-				}
-				z = pythag(f, h);
-				w[j-1] = z;
-				if (z)
-				{
-					z = 1.0f/z;
-					c = f * z;
-					s = h * z;
-				}
-				f = c*g+s*y;
-				x = c*y-s*g;
+            f = ((y-z)*(y+z)+(g-h)*(g+h))/(2.0f*h*y);
+            g = pythag(f, 1.0f);
+            f = ((x-z)*(x+z)+h*((y/(f+SIGN(g,f)))-h))/x;
+            c = s = 1.0f;
+            for (j = l; j <= nm; ++j)
+            {
+                i = j + 1;
+                g = rv1[i-1];
+                y = w[i-1];
+                h = s * g;
+                g = c * g;
+                z = pythag(f, h);
+                rv1[j-1] = z;
+                c = f/z;
+                s = h/z;
+                f = x*c+g*s;
+                g = g*c-x*s;
+                h = y*s;
+                y *= c;
 
-				for (jj = 1; jj <= m; ++jj)
-				{
-					y = in[jj-1][j-1];
-					z = in[jj-1][i-1];
-					in[jj-1][j-1] = y*c+z*s;
-					in[jj-1][i-1] = z*c-y*s;
-				}
-			}
-			rv1[l-1] = 0.0f;
-			rv1[k-1] = f;
-			w[k-1] = x;
-		}
-	}
-	free (rv1);    
+                for (jj = 1; jj <= n; ++jj)
+                {
+                    x = v[jj-1][j-1];
+                    z = v[jj-1][i-1];
+                    v[jj-1][j-1] = x*c+z*s;
+                    v[jj-1][i-1] = z*c-x*s;
+                }
+                z = pythag(f, h);
+                w[j-1] = z;
+                if (z)
+                {
+                    z = 1.0f/z;
+                    c = f * z;
+                    s = h * z;
+                }
+                f = c*g+s*y;
+                x = c*y-s*g;
+
+                for (jj = 1; jj <= m; ++jj)
+                {
+                    y = in[jj-1][j-1];
+                    z = in[jj-1][i-1];
+                    in[jj-1][j-1] = y*c+z*s;
+                    in[jj-1][i-1] = z*c-y*s;
+                }
+            }
+            rv1[l-1] = 0.0f;
+            rv1[k-1] = f;
+            w[k-1] = x;
+        }
+    }
+    free (rv1);
 }
