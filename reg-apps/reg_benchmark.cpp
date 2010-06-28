@@ -203,7 +203,7 @@ int main(int argc, char **argv)
 	// AFFINE DEFORMATION FIELD CREATION
     {
         maxIt=500000 / dimension;
-        maxIt=1;
+//        maxIt=1;
         mat44 *affineTransformation = (mat44 *)calloc(1,sizeof(mat44));
         affineTransformation->m[0][0]=1.0;
         affineTransformation->m[1][1]=1.0;
@@ -251,7 +251,7 @@ int main(int argc, char **argv)
 #endif
     {
         maxIt=50000 / dimension;
-        maxIt=1;
+//        maxIt=1;
         time(&start);
         for(int i=0; i<maxIt; ++i){
             reg_bspline<float>( controlPointImage,
@@ -296,7 +296,7 @@ int main(int argc, char **argv)
 #endif
     {
         maxIt=20000 / dimension;
-        maxIt=1;
+//        maxIt=1;
         time(&start);
         for(int i=0; i<maxIt; ++i){
             reg_spline_scaling_squaring(velocityFieldImage,
@@ -335,7 +335,7 @@ int main(int argc, char **argv)
 #endif
     {
         maxIt=100000 / dimension;
-        maxIt=1;
+//        maxIt=1;
         time(&start);
         for(int i=0; i<maxIt; ++i){
             reg_resampleSourceImage<float>( targetImage,
@@ -383,7 +383,7 @@ int main(int argc, char **argv)
 #endif
     {
         maxIt=100000 / dimension;
-        maxIt=1;
+//        maxIt=1;
         time(&start);
         for(int i=0; i<maxIt; ++i){
             reg_getSourceImageGradient<float>(  targetImage,
@@ -447,7 +447,7 @@ int main(int argc, char **argv)
 #endif
     {
         maxIt=100000 / dimension;
-        maxIt=1;
+//        maxIt=1;
         time(&start);
         for(int i=0; i<maxIt; ++i){
             reg_getVoxelBasedNMIGradientUsingPW<double>(targetImage,
@@ -514,7 +514,7 @@ int main(int argc, char **argv)
 #endif
     {
         maxIt=10000 / dimension;
-        maxIt=1;
+//        maxIt=1;
         int smoothingRadius[3];
         smoothingRadius[0] = (int)floor( 2.0*controlPointImage->dx/targetImage->dx );
         smoothingRadius[1] = (int)floor( 2.0*controlPointImage->dy/targetImage->dy );
@@ -562,7 +562,7 @@ int main(int argc, char **argv)
     // APPROXIMATED BENDING ENERGY PENALTY TERM COMPUTATION
     {
         maxIt=100000 / dimension;
-        maxIt=1;
+//        maxIt=1;
         time(&start);
         for(int i=0; i<maxIt; ++i){
             reg_bspline_bendingEnergy<float>(controlPointImage, targetImage,1);
@@ -594,7 +594,7 @@ int main(int argc, char **argv)
     // APPROXIMATED BENDING ENERGY GRADIENT COMPUTATION
     {
         maxIt=1000000 / dimension;
-        maxIt=1;
+//        maxIt=1;
         time(&start);
         for(int i=0; i<maxIt; ++i){
             reg_bspline_bendingEnergyGradient<float>(   controlPointImage,
@@ -696,7 +696,7 @@ int main(int argc, char **argv)
     // BLOCK MATCHING
     {
         maxIt=2000 / dimension;
-        maxIt=1;
+//        maxIt=1;
         _reg_blockMatchingParam blockMatchingParams;
         initialise_block_matching_method(   targetImage,
                                             &blockMatchingParams,
