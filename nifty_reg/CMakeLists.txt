@@ -46,24 +46,25 @@ IF(USE_CUDA)
 	INCLUDE_DIRECTORIES(${CUDA_CUT_INCLUDE_DIR})
 	CUDA_INCLUDE_DIRECTORIES(${CUDA_CUT_INCLUDE_DIR})
 
-    try_run(RUN_RESULT_VAR COMPILE_RESULT_VAR
-        ${CMAKE_BINARY_DIR} 
-    	${CMAKE_CURRENT_SOURCE_DIR}/reg-apps/checkCudaCard.cpp
-        CMAKE_FLAGS 
-            -DINCLUDE_DIRECTORIES:STRING=${CUDA_TOOLKIT_INCLUDE}
-            -DLINK_LIBRARIES:STRING=${CUDA_CUDART_LIBRARY}
-        COMPILE_OUTPUT_VARIABLE COMPILE_OUTPUT_VAR
-        RUN_OUTPUT_VARIABLE RUN_OUTPUT_VAR
-	)
 	
     if(CUDA_CHECK_CAP)
+        try_run(RUN_RESULT_VAR COMPILE_RESULT_VAR
+            ${CMAKE_BINARY_DIR}
+            ${CMAKE_CURRENT_SOURCE_DIR}/reg-apps/checkCudaCard.cpp
+            CMAKE_FLAGS
+                -DINCLUDE_DIRECTORIES:STRING=${CUDA_TOOLKIT_INCLUDE}
+                -DLINK_LIBRARIES:STRING=${CUDA_CUDART_LIBRARY}
+            COMPILE_OUTPUT_VARIABLE COMPILE_OUTPUT_VAR
+            RUN_OUTPUT_VARIABLE RUN_OUTPUT_VAR
+        )
         if(NOT COMPILE_RESULT_VAR)
-            MESSAGE(FATAL_ERROR "Cuda test code did not compile. Exit")
+            MESSAGE("Cuda test code did not compile. Exit")
+            MESSAGE(FATAL_ERROR "\nError is the following:\n${COMPILE_RESULT_VAR}")
         endif(NOT COMPILE_RESULT_VAR)
         if(RUN_RESULT_VAR)
             MESSAGE("There are no cuda-enabled device detected on your machine.")
             MESSAGE("Please turn the USE_CUDA flag off.")
-            MESSAGE(FATAL_ERROR "Turn the CUDA_CHECK_CAP flag OFF if you think we have the appropriate card to ignore the error.")
+            MESSAGE(FATAL_ERROR "Turn the CUDA_CHECK_CAP flag OFF if you think you have the appropriate card to ignore the error.")
         endif(RUN_RESULT_VAR)
 
         MESSAGE("*** Cuda card capability ${RUN_OUTPUT_VAR} ***")
