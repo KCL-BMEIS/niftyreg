@@ -30,7 +30,7 @@ PrecisionTYPE reg_getSSD2(	nifti_image *targetImage,
 			SSD += (PrecisionTYPE)((targetValue-resultValue)*(targetValue-resultValue));
 		}
 	}
-	return log(SSD+1.0);
+	return log(SSD+1.0f);
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class ResultTYPE>
@@ -148,9 +148,9 @@ void reg_getVoxelBasedSSDGradient4(	PrecisionTYPE SSDValue,
 		if(targetImage->nz>1) spatialGradPtrZ++;
 		
 		// the optical flow is divided by the SSD value since I used the log of the SSD as a metric.
-		*ssdGradPtrX++ = (SSDGradTYPE)gradX/(SSDValue+1.0);
-		*ssdGradPtrY++ = (SSDGradTYPE)gradY/(SSDValue+1.0);
-		if(targetImage->nz>1) *ssdGradPtrZ++ = (SSDGradTYPE)gradZ/(SSDValue+1.0);
+		*ssdGradPtrX++ = (SSDGradTYPE)(gradX/(SSDValue+1.0f));
+		*ssdGradPtrY++ = (SSDGradTYPE)(gradY/(SSDValue+1.0f));
+		if(targetImage->nz>1) *ssdGradPtrZ++ = (SSDGradTYPE)(gradZ/(SSDValue+1.0f));
 	}
 }
 /* *************************************************************** */

@@ -1850,17 +1850,17 @@ void reg_linearVelocityUpsampling_2D(nifti_image *image, int newDim[8], float ne
 						*newPtr = (oldPtr[Y*oldDim[1]+X]
 									 + oldPtr[Y*oldDim[1]+X+1]
 									 + oldPtr[(Y+1)*oldDim[1]+X]
-									 + oldPtr[(Y+1)*oldDim[1]+X+1]) /4.0;
+									 + oldPtr[(Y+1)*oldDim[1]+X+1]) /4.0f;
 					}
 					else{
 						*newPtr = (oldPtr[Y*oldDim[1]+X]
-									 + oldPtr[Y*oldDim[1]+X+1]) /2.0;
+									 + oldPtr[Y*oldDim[1]+X+1]) /2.0f;
 					}
 				}
 				else{
 					if(y/2 == Y){
 						*newPtr = (oldPtr[Y*oldDim[1]+X]
-									 + oldPtr[(Y+1)*oldDim[1]+X])/2.0;
+									 + oldPtr[(Y+1)*oldDim[1]+X])/2.0f;
 					}
 					else{
 						*newPtr = oldPtr[Y*oldDim[1]+X];
@@ -1924,14 +1924,14 @@ void reg_linearVelocityUpsampling_3D(nifti_image *image, int newDim[8], float ne
 											 oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X+1]+
 											 oldPtr[((Z+1)*oldDim[2]+Y)*oldDim[1]+X+1]+
 											 oldPtr[(Z*oldDim[2]+Y+1)*oldDim[1]+X+1]+
-											 oldPtr[((Z+1)*oldDim[2]+Y+1)*oldDim[1]+X+1] ) /8.0;
+											 oldPtr[((Z+1)*oldDim[2]+Y+1)*oldDim[1]+X+1] ) /8.0f;
 							}
 							else{ // (x/2==x)
 								// z' y' x
 								*newPtr++ = (oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X]+
 											 oldPtr[((Z+1)*oldDim[2]+Y)*oldDim[1]+X]+
 											 oldPtr[(Z*oldDim[2]+Y+1)*oldDim[1]+X]+
-											 oldPtr[((Z+1)*oldDim[2]+Y+1)*oldDim[1]+X] ) /4.0;
+											 oldPtr[((Z+1)*oldDim[2]+Y+1)*oldDim[1]+X] ) /4.0f;
 							} // (x/2==x)
 						} // x loop
 					}
@@ -1943,12 +1943,12 @@ void reg_linearVelocityUpsampling_3D(nifti_image *image, int newDim[8], float ne
 								*newPtr++ = (oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X]+
 											 oldPtr[((Z+1)*oldDim[2]+Y)*oldDim[1]+X]+
 											 oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X+1]+
-											 oldPtr[((Z+1)*oldDim[2]+Y)*oldDim[1]+X+1] ) /4.0;
+											 oldPtr[((Z+1)*oldDim[2]+Y)*oldDim[1]+X+1] ) /4.0f;
 							}
 							else{ // (x/2==x)
 								// z' y x
 								*newPtr++ = (oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X]+
-											 oldPtr[((Z+1)*oldDim[2]+Y)*oldDim[1]+X] ) /2.0;
+											 oldPtr[((Z+1)*oldDim[2]+Y)*oldDim[1]+X] ) /2.0f;
 							} // (x/2==x)
 						} // x loop
 					} // (y/2==Y)
@@ -1965,12 +1965,12 @@ void reg_linearVelocityUpsampling_3D(nifti_image *image, int newDim[8], float ne
 								*newPtr++ = (oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X]+
 											 oldPtr[(Z*oldDim[2]+Y+1)*oldDim[1]+X]+
 											 oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X+1]+
-											 oldPtr[(Z*oldDim[2]+Y+1)*oldDim[1]+X+1] ) /4.0;
+											 oldPtr[(Z*oldDim[2]+Y+1)*oldDim[1]+X+1] ) /4.0f;
 							}
 							else{ // (x/2==x)
 								// z y' x
 								*newPtr++ = (oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X]+
-											 oldPtr[(Z*oldDim[2]+Y+1)*oldDim[1]+X] ) /2.0;
+											 oldPtr[(Z*oldDim[2]+Y+1)*oldDim[1]+X] ) /2.0f;
 							} // (x/2==x)
 						} // x loop
 					}
@@ -1980,7 +1980,7 @@ void reg_linearVelocityUpsampling_3D(nifti_image *image, int newDim[8], float ne
 							if(x/2 == X){
 								// z y x'
 								*newPtr++ = (oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X]
-											 + oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X+1] ) /2.0;
+											 + oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X+1] ) /2.0f;
 							}
 							else{ // (x/2==x)
 								// z y x
