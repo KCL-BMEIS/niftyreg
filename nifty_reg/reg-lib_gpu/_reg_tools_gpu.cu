@@ -137,7 +137,7 @@ void reg_GetConjugateGradient(	float4 **nodeNMIGradientArray_d,
 		dgg += sum_h[i].x;
 		gg += sum_h[i].y;
 	}
-	float gam = dgg / gg;
+	float gam = (float)(dgg / gg);
 	CUDA_SAFE_CALL(cudaFreeHost((void *)sum_h));
 
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ScalingFactor,&gam,sizeof(float)));
@@ -182,7 +182,7 @@ float reg_getMaximalLength_gpu(	float4 **nodeNMIGradientArray_d,
 	for(int i=0; i<threadNumber; i++) maxDistance = all_h[i]>maxDistance?all_h[i]:maxDistance;
 	CUDA_SAFE_CALL(cudaFreeHost((void *)all_h));
 
-	return maxDistance;
+	return (float)maxDistance;
 }
 
 void reg_updateControlPointPosition_gpu(nifti_image *controlPointImage,
