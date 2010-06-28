@@ -413,11 +413,11 @@ int main(int argc, char **argv)
     if(!flag->spacingFlag[2]) param->spacing[2]=param->spacing[0];
     /* Convert the spacing from voxel to mm if necessary */
     if(param->spacing[0]<0) param->spacing[0] *=
-        -1.0 * targetHeader->dx * powf(2.0f, (float)(param->levelNumber-param->level2Perform));
+        -1.0f * targetHeader->dx * powf(2.0f, (float)(param->levelNumber-param->level2Perform));
     if(param->spacing[1]<1) param->spacing[1] *=
-        -1.0 * targetHeader->dy * powf(2.0f, (float)(param->levelNumber-param->level2Perform));
+        -1.0f * targetHeader->dy * powf(2.0f, (float)(param->levelNumber-param->level2Perform));
     if(param->spacing[2]<2) param->spacing[2] *=
-        -1.0 * targetHeader->dz * powf(2.0f, (float)(param->levelNumber-param->level2Perform));
+        -1.0f * targetHeader->dz * powf(2.0f, (float)(param->levelNumber-param->level2Perform));
 
     /* Flag for 2D registration */
     if(sourceHeader->nz==1){
@@ -675,7 +675,7 @@ int main(int argc, char **argv)
             }
 
 			for(int l=level; l<param->levelNumber-1; l++){
-                int ratio = (int)powf(2,l+1);
+                int ratio = (int)powf(2.0f,l+1.0f);
 
                 bool sourceDownsampleAxis[8]={true,true,true,true,true,true,true,true};
                 if((sourceHeader->nx/ratio) < 32) sourceDownsampleAxis[1]=false;
@@ -1263,7 +1263,7 @@ int main(int argc, char **argv)
 											                    &nodeNMIGradientArray_d,
 											                    param->bendingEnergyWeight);
 				}
-				if(flag->jlGradFlag && flag->jacobianWeightFlag>0){
+				if(flag->jlGradFlag && flag->jacobianWeightFlag){
 					reg_bspline_ComputeJacobianGradient_gpu(targetImage,
                                                             controlPointImage,
                                                             &controlPointImageArray_d,
@@ -1781,7 +1781,7 @@ int main(int argc, char **argv)
                         reg_bspline_correctFolding_gpu( targetImage,
                                                         controlPointImage,
                                                         &controlPointImageArray_d,
-                                                        0); // No approximation is done
+                                                        false); // No approximation is done
                 }
                 else
 #endif
@@ -1789,7 +1789,7 @@ int main(int argc, char **argv)
                     finalWJac = param->jacobianWeight*
                         reg_bspline_correctFolding<PrecisionTYPE>(controlPointImage,
                                                                   targetImage,
-                                                                  0); // No approximation is done
+                                                                  false); // No approximation is done
                 }
                 finalNegCorrection++;
                 if(finalWJac!=finalWJac)
