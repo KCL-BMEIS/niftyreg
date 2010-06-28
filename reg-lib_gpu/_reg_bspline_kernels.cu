@@ -452,13 +452,14 @@ __global__ void reg_bspline_JacobianDeterminant_kernel(float *jacobianMap)
         float Ty_z2=c_AffineMatrix2.x*Tx_y + c_AffineMatrix2.y*Ty_y + c_AffineMatrix2.z*Tz_y;
         float Tz_z2=c_AffineMatrix2.x*Tx_z + c_AffineMatrix2.y*Ty_z + c_AffineMatrix2.z*Tz_z;
 
+
         /* The Jacobian determinant is computed and stored */
-        jacobianMap[tid] =  Tx_x2*Ty_y2*Tz_z2
-                            + Tx_y2*Ty_z2*Tz_x2
-                            + Tx_z2*Ty_x2*Tz_y2
-                            - Tx_x2*Ty_z2*Tz_y2
-                            - Tx_y2*Ty_x2*Tz_z2
-                            - Tx_z2*Ty_y2*Tz_x2;
+        jacobianMap[tid]= Tx_x2*Ty_y2*Tz_z2
+                        + Tx_y2*Ty_z2*Tz_x2
+                        + Tx_z2*Ty_x2*Tz_y2
+                        - Tx_x2*Ty_z2*Tz_y2
+                        - Tx_y2*Ty_x2*Tz_z2
+                        - Tx_z2*Ty_y2*Tz_x2;
     }
     return;
 }
@@ -731,23 +732,30 @@ __global__ void reg_bspline_JacobianMatrix_kernel(float *jacobianMatrices, float
         float Ty_z2=c_AffineMatrix2.x*Tx_y + c_AffineMatrix2.y*Ty_y + c_AffineMatrix2.z*Tz_y;
         float Tz_z2=c_AffineMatrix2.x*Tx_z + c_AffineMatrix2.y*Ty_z + c_AffineMatrix2.z*Tz_z;
 
-        /* The Jacobian matrix is computed and stored */
-        jacobianDeterminant[tid] = 2.0f * log( Tx_x2*Ty_y2*Tz_z2
-                                        + Tx_y2*Ty_z2*Tz_x2
-                                        + Tx_z2*Ty_x2*Tz_y2
-                                        - Tx_x2*Ty_z2*Tz_y2
-                                        - Tx_y2*Ty_x2*Tz_z2
-                                        - Tx_z2*Ty_y2*Tz_x2);
+        /* The Jacobian matrix is inverted and stored */
+        float det= Tx_x2*Ty_y2*Tz_z2
+                + Tx_y2*Ty_z2*Tz_x2
+                + Tx_z2*Ty_x2*Tz_y2
+                - Tx_x2*Ty_z2*Tz_y2
+                - Tx_y2*Ty_x2*Tz_z2
+                - Tx_z2*Ty_y2*Tz_x2;
+
+        jacobianDeterminant[tid]= det;
+
+        det = 1.f / det;
         int id = 9*tid;
-        jacobianMatrices[id++]=Tx_x2;
-        jacobianMatrices[id++]=Tx_y2;
-        jacobianMatrices[id++]=Tx_z2;
-        jacobianMatrices[id++]=Ty_x2;
-        jacobianMatrices[id++]=Ty_y2;
-        jacobianMatrices[id++]=Ty_z2;
-        jacobianMatrices[id++]=Tz_x2;
-        jacobianMatrices[id++]=Tz_y2;
-        jacobianMatrices[id]=Tz_z2;
+        jacobianMatrices[id++] = det * (Ty_y2* Tz_z2 - Tz_y2*Ty_z2);
+        jacobianMatrices[id++] = det * (Tz_y2* Tx_z2 - Tx_y2*Tz_z2);
+        jacobianMatrices[id++] = det * (Tx_y2* Ty_z2 - Ty_y2*Tx_z2);
+
+        jacobianMatrices[id++] = det * (Tz_x2* Ty_z2 - Ty_x2*Tz_z2);
+        jacobianMatrices[id++] = det * (Tx_x2* Tz_z2 - Tz_x2*Tx_z2);
+        jacobianMatrices[id++] = det * (Ty_x2* Tx_z2 - Tx_x2*Ty_z2);
+
+        jacobianMatrices[id++] = det * (Ty_x2* Tz_y2 - Tz_x2*Ty_y2);
+        jacobianMatrices[id++] = det * (Tz_x2* Tx_y2 - Tx_x2*Tz_y2);
+        jacobianMatrices[id]  =  det * (Tx_x2* Ty_y2 - Ty_x2*Tx_y2);
+
     }
     return;
 }
@@ -838,22 +846,29 @@ __global__ void reg_bspline_ApproxJacobianMatrix_kernel(float *matrices, float *
 
         /* The Jacobian determinant is computed and stored */
 
-        determinant[tid] = 2.0f * log( Tx_x2*Ty_y2*Tz_z2
-                                        + Tx_y2*Ty_z2*Tz_x2
-                                        + Tx_z2*Ty_x2*Tz_y2
-                                        - Tx_x2*Ty_z2*Tz_y2
-                                        - Tx_y2*Ty_x2*Tz_z2
-                                        - Tx_z2*Ty_y2*Tz_x2);
+        float det= Tx_x2*Ty_y2*Tz_z2
+                + Tx_y2*Ty_z2*Tz_x2
+                + Tx_z2*Ty_x2*Tz_y2
+                - Tx_x2*Ty_z2*Tz_y2
+                - Tx_y2*Ty_x2*Tz_z2
+                - Tx_z2*Ty_y2*Tz_x2;
+
         int id = 9*(((z-1)*(gridSize.y-2)+y-1)*(gridSize.x-2)+x-1);
-        matrices[id++]=Tx_x2;
-        matrices[id++]=Tx_y2;
-        matrices[id++]=Tx_z2;
-        matrices[id++]=Ty_x2;
-        matrices[id++]=Ty_y2;
-        matrices[id++]=Ty_z2;
-        matrices[id++]=Tz_x2;
-        matrices[id++]=Tz_y2;
-        matrices[id]=Tz_z2;
+        determinant[tid]= det ;
+
+        det = 1.f / det;
+        matrices[id++] = det * (Ty_y2*Tz_z2 - Tz_y2*Ty_z2);
+        matrices[id++] = det * (Tz_y2*Tx_z2 - Tx_y2*Tz_z2);
+        matrices[id++] = det * (Tx_y2*Ty_z2 - Ty_y2*Tx_z2);
+
+        matrices[id++] = det * (Tz_x2*Ty_z2 - Ty_x2*Tz_z2);
+        matrices[id++] = det * (Tx_x2*Tz_z2 - Tz_x2*Tx_z2);
+        matrices[id++] = det * (Ty_x2*Tx_z2 - Tx_x2*Ty_z2);
+
+        matrices[id++] = det * (Ty_x2*Tz_y2 - Tz_x2*Ty_y2);
+        matrices[id++] = det * (Tz_x2*Tx_y2 - Tx_x2*Tz_y2);
+        matrices[id]  =  det * (Tx_x2*Ty_y2 - Ty_x2*Tx_y2);
+
     }
 }
 
@@ -971,34 +986,38 @@ __global__ void reg_bspline_JacobianGradient_kernel(float4 *gradient)
 
                                 int storageIndex =(pixelZ*targetSize.y+pixelY)*targetSize.x+pixelX;
                                 float jacDeterminant = tex1Dfetch(jacobianDeterminantTexture,storageIndex);
+                                if(jacDeterminant>0) jacDeterminant = 2.f * log(jacDeterminant);
                                 storageIndex *= 9;
                                 jacobianConstraint.x += jacDeterminant
-                                    * (tex1Dfetch(jacobianMatricesTexture,storageIndex)*basisValues.x
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+1)*basisValues.y
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+2)*basisValues.z);
+                                    * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.x
+                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.y
+                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.z);
                                 jacobianConstraint.y += jacDeterminant
-                                    * (tex1Dfetch(jacobianMatricesTexture,storageIndex+3)*basisValues.x
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+4)*basisValues.y
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+5)*basisValues.z);
+                                    * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.x
+                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.y
+                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.z);
                                 jacobianConstraint.z += jacDeterminant
-                                    * (tex1Dfetch(jacobianMatricesTexture,storageIndex+6)*basisValues.x
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+7)*basisValues.y
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+8)*basisValues.z);
+                                    * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.x
+                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.y
+                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex)*basisValues.z);
                             }
                         }
                     }
                 }
             }
         }
-        gradient[tid] = gradient[tid] + make_float4(c_Weight * c_AffineMatrix0.x *jacobianConstraint.x
+        gradient[tid] = gradient[tid] + make_float4(c_Weight
+                                                    * (c_AffineMatrix0.x *jacobianConstraint.x
                                                     + c_AffineMatrix0.y *jacobianConstraint.y
-                                                    + c_AffineMatrix0.z *jacobianConstraint.z,
-                                                    c_Weight * c_AffineMatrix1.x *jacobianConstraint.x
+                                                    + c_AffineMatrix0.z *jacobianConstraint.z),
+                                                    c_Weight
+                                                    * (c_AffineMatrix1.x *jacobianConstraint.x
                                                     + c_AffineMatrix1.y *jacobianConstraint.y
-                                                    + c_AffineMatrix1.z *jacobianConstraint.z,
-                                                    c_Weight * c_AffineMatrix2.x *jacobianConstraint.x
+                                                    + c_AffineMatrix1.z *jacobianConstraint.z),
+                                                    c_Weight
+                                                    * (c_AffineMatrix2.x *jacobianConstraint.x
                                                     + c_AffineMatrix2.y *jacobianConstraint.y
-                                                    + c_AffineMatrix2.z *jacobianConstraint.z,
+                                                    + c_AffineMatrix2.z *jacobianConstraint.z),
                                                     0.0f);
     }
 }
@@ -1094,6 +1113,7 @@ __global__ void reg_bspline_ApproxJacobianGradient_kernel(float4 *gradient)
 
                                 int storageIndex = ((pixelZ-1)*(gridSize.y-2)+pixelY-1)*(gridSize.x-2)+pixelX-1;
                                 float jacDeterminant = tex1Dfetch(jacobianDeterminantTexture,storageIndex);
+                                if(jacDeterminant>0) jacDeterminant = 2.f * log(jacDeterminant);
                                 storageIndex *= 9;
                                 jacobianConstraint.x += jacDeterminant
                                     * (tex1Dfetch(jacobianMatricesTexture,storageIndex)*basisValues.x
@@ -1113,16 +1133,20 @@ __global__ void reg_bspline_ApproxJacobianGradient_kernel(float4 *gradient)
                 }
             }
         }
-        gradient[tid] = gradient[tid] + make_float4(c_Weight * c_AffineMatrix0.x *jacobianConstraint.x
-                                                    + c_AffineMatrix0.y *jacobianConstraint.y
-                                                    + c_AffineMatrix0.z *jacobianConstraint.z,
-                                                    c_Weight * c_AffineMatrix1.x *jacobianConstraint.x
-                                                    + c_AffineMatrix1.y *jacobianConstraint.y
-                                                    + c_AffineMatrix1.z *jacobianConstraint.z,
-                                                    c_Weight * c_AffineMatrix2.x *jacobianConstraint.x
-                                                    + c_AffineMatrix2.y *jacobianConstraint.y
-                                                    + c_AffineMatrix2.z *jacobianConstraint.z,
-                                                    0.0f);
+        gradient[tid] = gradient[tid]
+            + make_float4(c_Weight
+            * (c_AffineMatrix0.x *jacobianConstraint.x
+            + c_AffineMatrix0.y *jacobianConstraint.y
+            + c_AffineMatrix0.z *jacobianConstraint.z),
+            c_Weight
+            * (c_AffineMatrix1.x *jacobianConstraint.x
+            + c_AffineMatrix1.y *jacobianConstraint.y
+            + c_AffineMatrix1.z *jacobianConstraint.z),
+            c_Weight
+            * (c_AffineMatrix2.x *jacobianConstraint.x
+            + c_AffineMatrix2.y *jacobianConstraint.y
+            + c_AffineMatrix2.z *jacobianConstraint.z),
+            0.0f);
     }
 }
 /* *************************************************************** */
@@ -1152,7 +1176,7 @@ __global__ void reg_bspline_CorrectFolding_kernel(float4 *controlPointArray)
         float3 gridVoxelSpacing = c_ControlPointVoxelSpacing;
 
         // Loop over all the control points in the surrounding area
-        for(int pixelZ=(int)((z-3)*gridVoxelSpacing.z);pixelZ<(int)((z+1)*gridVoxelSpacing.z); pixelZ++){
+        for(int pixelZ=(int)((z-2)*gridVoxelSpacing.z);pixelZ<(int)((z)*gridVoxelSpacing.z); pixelZ++){
             if(pixelZ>-1 && pixelZ<targetSize.z){
 
                 pre=(int)((float)pixelZ/gridVoxelSpacing.z);
@@ -1179,7 +1203,7 @@ __global__ void reg_bspline_CorrectFolding_kernel(float4 *controlPointArray)
                         first.z=0.0f;
                         break;
                 }
-                for(int pixelY=(int)((y-3)*gridVoxelSpacing.y);pixelY<(int)((y+1)*gridVoxelSpacing.y); pixelY++){
+                for(int pixelY=(int)((y-2)*gridVoxelSpacing.y);pixelY<(int)((y)*gridVoxelSpacing.y); pixelY++){
                     if(pixelY>-1 && pixelY<targetSize.y){
 
                         pre=(int)((float)pixelY/gridVoxelSpacing.y);
@@ -1206,7 +1230,7 @@ __global__ void reg_bspline_CorrectFolding_kernel(float4 *controlPointArray)
                                 first.y=0.0f;
                                 break;
                         }
-                        for(int pixelX=(int)((x-3)*gridVoxelSpacing.x);pixelX<(int)((x+1)*gridVoxelSpacing.x); pixelX++){
+                        for(int pixelX=(int)((x-2)*gridVoxelSpacing.x);pixelX<(int)((x)*gridVoxelSpacing.x); pixelX++){
                             if(pixelX>-1 && pixelX<targetSize.x){
 
                                 pre=(int)((float)pixelX/gridVoxelSpacing.x);
@@ -1239,19 +1263,21 @@ __global__ void reg_bspline_CorrectFolding_kernel(float4 *controlPointArray)
 
                                 int storageIndex =(pixelZ*targetSize.y+pixelY)*targetSize.x+pixelX;
                                 float jacDeterminant = tex1Dfetch(jacobianDeterminantTexture,storageIndex);
-                                storageIndex *= 9;
-                                jacobianConstraint.x += jacDeterminant
-                                    * (tex1Dfetch(jacobianMatricesTexture,storageIndex)*basisValues.x
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+1)*basisValues.y
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+2)*basisValues.z);
-                                jacobianConstraint.y += jacDeterminant
-                                    * (tex1Dfetch(jacobianMatricesTexture,storageIndex+3)*basisValues.x
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+4)*basisValues.y
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+5)*basisValues.z);
-                                jacobianConstraint.z += jacDeterminant
-                                    * (tex1Dfetch(jacobianMatricesTexture,storageIndex+6)*basisValues.x
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+7)*basisValues.y
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+8)*basisValues.z);
+                                if(jacDeterminant<=0){
+                                    storageIndex *= 9;
+                                    jacobianConstraint.x += jacDeterminant
+                                        * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.x
+                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.y
+                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.z);
+                                    jacobianConstraint.y += jacDeterminant
+                                        * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.x
+                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.y
+                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.z);
+                                    jacobianConstraint.z += jacDeterminant
+                                        * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.x
+                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.y
+                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex)*basisValues.z);
+                                }
                             }
                         }
                     }
@@ -1261,7 +1287,7 @@ __global__ void reg_bspline_CorrectFolding_kernel(float4 *controlPointArray)
         float norm = sqrt(  jacobianConstraint.x*jacobianConstraint.x
                           + jacobianConstraint.y*jacobianConstraint.y
                           + jacobianConstraint.z*jacobianConstraint.z);
-        if(norm>0){
+        if(norm>0.f){
             controlPointArray[tid] = controlPointArray[tid] + make_float4(
                                                             (c_ControlPointSpacing.x
                                                             * c_AffineMatrix0.x * jacobianConstraint.x
@@ -1374,19 +1400,21 @@ __global__ void reg_bspline_ApproxCorrectFolding_kernel(float4 *controlPointArra
 
                                 int storageIndex = ((pixelZ-1)*(gridSize.y-2)+pixelY-1)*(gridSize.x-2)+pixelX-1;
                                 float jacDeterminant = tex1Dfetch(jacobianDeterminantTexture,storageIndex);
-                                storageIndex *= 9;
-                                jacobianConstraint.x += jacDeterminant
-                                * (tex1Dfetch(jacobianMatricesTexture,storageIndex)*basisValues.x
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+1)*basisValues.y
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+2)*basisValues.z);
-                                jacobianConstraint.y += jacDeterminant
-                                * (tex1Dfetch(jacobianMatricesTexture,storageIndex+3)*basisValues.x
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+4)*basisValues.y
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+5)*basisValues.z);
-                                jacobianConstraint.z += jacDeterminant
-                                * (tex1Dfetch(jacobianMatricesTexture,storageIndex+6)*basisValues.x
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+7)*basisValues.y
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+8)*basisValues.z);
+                                if(jacDeterminant<=0){
+                                    storageIndex *= 9;
+                                    jacobianConstraint.x += jacDeterminant
+                                        * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.x
+                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.y
+                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.z);
+                                    jacobianConstraint.y += jacDeterminant
+                                        * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.x
+                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.y
+                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex+5)*basisValues.z);
+                                    jacobianConstraint.z += jacDeterminant
+                                        * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.x
+                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.y
+                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.z);
+                                }
                             }
                         }
                     }

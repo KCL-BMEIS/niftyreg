@@ -30,7 +30,7 @@ void reg_getVoxelBasedNMIGradientUsingPW_gpu(   nifti_image *targetImage,
 {
 	const int voxelNumber = targetImage->nvox;
 	const int binNumber = binning*(binning+2);
-	const float4 entropies_h=make_float4(entropies[0],entropies[1],entropies[2],entropies[3]);
+    const float4 entropies_h=make_float4((float)entropies[0],(float)entropies[1],(float)entropies[2],(float)entropies[3]);
 	const float NMI = (entropies[0]+entropies[1])/entropies[2];
 
 	// Bind Symbols
