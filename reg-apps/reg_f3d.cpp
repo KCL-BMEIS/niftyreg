@@ -1100,9 +1100,11 @@ int main(int argc, char **argv)
                         controlPointImage->nx*controlPointImage->ny*controlPointImage->nz*sizeof(float4),
                         cudaMemcpyDeviceToDevice));
                 }
-#endif
                 else
+#endif
+                {
                     memcpy(controlPointImage->data,bestControlPointPosition,controlPointImage->nvox*controlPointImage->nbyper);
+                }
             }
 
             /* The bending-energy penalty term is computed */
@@ -1805,9 +1807,11 @@ int main(int argc, char **argv)
                         controlPointImage->nx*controlPointImage->ny*controlPointImage->nz*sizeof(float4),
                         cudaMemcpyDeviceToDevice));
                 }
-#endif
                 else
+#endif
+                {
                     memcpy(controlPointImage->data,bestControlPointPosition,controlPointImage->nvox*controlPointImage->nbyper);
+                }
             }
         }
 

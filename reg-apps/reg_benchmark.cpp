@@ -18,13 +18,15 @@
 #include "_reg_tools.h"
 #include "_reg_blockMatching.h"
 
-#include "_reg_cudaCommon.h"
-#include "_reg_resampling_gpu.h"
-#include "_reg_affineTransformation_gpu.h"
-#include "_reg_bspline_gpu.h"
-#include "_reg_mutualinformation_gpu.h"
-#include "_reg_tools_gpu.h"
-#include "_reg_blockMatching_gpu.h"
+#ifdef _USE_CUDA
+    #include "_reg_cudaCommon.h"
+    #include "_reg_resampling_gpu.h"
+    #include "_reg_affineTransformation_gpu.h"
+    #include "_reg_bspline_gpu.h"
+    #include "_reg_mutualinformation_gpu.h"
+    #include "_reg_tools_gpu.h"
+    #include "_reg_blockMatching_gpu.h"
+#endif
 
 void Usage(char *);
 
