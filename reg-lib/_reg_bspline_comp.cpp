@@ -148,13 +148,13 @@ void reg_spline_cppComposition_2D(  nifti_image *positionGridImage,
             PrecisionTYPE yVoxel = matrix_real_to_voxel->m[1][0]*xReal
             + matrix_real_to_voxel->m[1][1]*yReal + matrix_real_to_voxel->m[1][3];
             
-            xVoxel = xVoxel<0.0?0.0:xVoxel;
-            yVoxel = yVoxel<0.0?0.0:yVoxel;
+            xVoxel = xVoxel<(PrecisionTYPE)0.0?(PrecisionTYPE)0.0:xVoxel;
+            yVoxel = yVoxel<(PrecisionTYPE)0.0?(PrecisionTYPE)0.0:yVoxel;
             
             // The spline coefficients are computed
             int xPre=(int)(floor(xVoxel));
             basis=(PrecisionTYPE)xVoxel-(PrecisionTYPE)xPre;
-            if(basis<0.0) basis=0.0; //rounding error
+            if(basis<(PrecisionTYPE)0.0) basis=(PrecisionTYPE)0.0; //rounding error
             FF= basis*basis;
             FFF= FF*basis;
             MF=(PrecisionTYPE)(1.0-basis);
@@ -334,9 +334,9 @@ void reg_spline_cppComposition_3D(  nifti_image *positionGridImage,
                 + matrix_real_to_voxel->m[2][2]*zReal
                 + matrix_real_to_voxel->m[2][3];
 
-                xVoxel = xVoxel<0.0?0.0:xVoxel;
-                yVoxel = yVoxel<0.0?0.0:yVoxel;
-                zVoxel = zVoxel<0.0?0.0:zVoxel;
+                xVoxel = xVoxel<(PrecisionTYPE)0.0?(PrecisionTYPE)0.0:xVoxel;
+                yVoxel = yVoxel<(PrecisionTYPE)0.0?(PrecisionTYPE)0.0:yVoxel;
+                zVoxel = zVoxel<(PrecisionTYPE)0.0?(PrecisionTYPE)0.0:zVoxel;
 
                 // The spline coefficients are computed
                 xPre=(int)(floor(xVoxel));
@@ -1094,15 +1094,15 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_2D(  nifti_image* velocit
                         Ty_y += basisY[a]*yControlPointCoordinates[a];
                     }
 
-                    jacobianMatrix.m[0][0]= Tx_x / (ImageTYPE)splineControlPoint->dx;
-                    jacobianMatrix.m[0][1]= Tx_y / (ImageTYPE)splineControlPoint->dy;
-                    jacobianMatrix.m[0][2]= 0.0;
-                    jacobianMatrix.m[1][0]= Ty_x / (ImageTYPE)splineControlPoint->dx;
-                    jacobianMatrix.m[1][1]= Ty_y / (ImageTYPE)splineControlPoint->dy;
-                    jacobianMatrix.m[1][2]= 0.0;
-                    jacobianMatrix.m[2][0]= 0.0;
-                    jacobianMatrix.m[2][1]= 0.0;
-                    jacobianMatrix.m[2][2]= 1.0;
+                    jacobianMatrix.m[0][0]= (float)(Tx_x / (ImageTYPE)splineControlPoint->dx);
+                    jacobianMatrix.m[0][1]= (float)(Tx_y / (ImageTYPE)splineControlPoint->dy);
+                    jacobianMatrix.m[0][2]= 0.0f;
+                    jacobianMatrix.m[1][0]= (float)(Ty_x / (ImageTYPE)splineControlPoint->dx);
+                    jacobianMatrix.m[1][1]= (float)(Ty_y / (ImageTYPE)splineControlPoint->dy);
+                    jacobianMatrix.m[1][2]= 0.0f;
+                    jacobianMatrix.m[2][0]= 0.0f;
+                    jacobianMatrix.m[2][1]= 0.0f;
+                    jacobianMatrix.m[2][2]= 1.0f;
 
                     jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
                     detJac = nifti_mat33_determ(jacobianMatrix);
@@ -1304,15 +1304,15 @@ void reg_bspline_GetJacobianMapFromVelocityField_2D(nifti_image* velocityFieldIm
                         Ty_y += basisY[a]*yControlPointCoordinates[a];
                     }
 
-                    jacobianMatrix.m[0][0]= Tx_x / (ImageTYPE)splineControlPoint->dx;
-                    jacobianMatrix.m[0][1]= Tx_y / (ImageTYPE)splineControlPoint->dy;
-                    jacobianMatrix.m[0][2]= 0.0;
-                    jacobianMatrix.m[1][0]= Ty_x / (ImageTYPE)splineControlPoint->dx;
-                    jacobianMatrix.m[1][1]= Ty_y / (ImageTYPE)splineControlPoint->dy;
-                    jacobianMatrix.m[1][2]= 0.0;
-                    jacobianMatrix.m[2][0]= 0.0;
-                    jacobianMatrix.m[2][1]= 0.0;
-                    jacobianMatrix.m[2][2]= 1.0;
+                    jacobianMatrix.m[0][0]= (float)(Tx_x / (ImageTYPE)splineControlPoint->dx);
+                    jacobianMatrix.m[0][1]= (float)(Tx_y / (ImageTYPE)splineControlPoint->dy);
+                    jacobianMatrix.m[0][2]= 0.0f;
+                    jacobianMatrix.m[1][0]= (float)(Ty_x / (ImageTYPE)splineControlPoint->dx);
+                    jacobianMatrix.m[1][1]= (float)(Ty_y / (ImageTYPE)splineControlPoint->dy);
+                    jacobianMatrix.m[1][2]= 0.0f;
+                    jacobianMatrix.m[2][0]= 0.0f;
+                    jacobianMatrix.m[2][1]= 0.0f;
+                    jacobianMatrix.m[2][2]= 1.0f;
 
                     jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
                     detJac = nifti_mat33_determ(jacobianMatrix);
@@ -1722,15 +1722,15 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_3D(nifti_image* velocityF
                         deformationFieldArrayY[jacIndex] = newPositionY;
                         deformationFieldArrayZ[jacIndex] = newPositionZ;
 
-                        jacobianMatrix.m[0][0]= Tx_x / (ImageTYPE)splineControlPoint->dx;
-                        jacobianMatrix.m[0][1]= Tx_y / (ImageTYPE)splineControlPoint->dy;
-                        jacobianMatrix.m[0][2]= Tx_z / (ImageTYPE)splineControlPoint->dz;
-                        jacobianMatrix.m[1][0]= Ty_x / (ImageTYPE)splineControlPoint->dx;
-                        jacobianMatrix.m[1][1]= Ty_y / (ImageTYPE)splineControlPoint->dy;
-                        jacobianMatrix.m[1][2]= Ty_z / (ImageTYPE)splineControlPoint->dz;
-                        jacobianMatrix.m[2][0]= Tz_x / (ImageTYPE)splineControlPoint->dx;
-                        jacobianMatrix.m[2][1]= Tz_y / (ImageTYPE)splineControlPoint->dy;
-                        jacobianMatrix.m[2][2]= Tz_z / (ImageTYPE)splineControlPoint->dz;
+                        jacobianMatrix.m[0][0]= (float)(Tx_x / (ImageTYPE)splineControlPoint->dx);
+                        jacobianMatrix.m[0][1]= (float)(Tx_y / (ImageTYPE)splineControlPoint->dy);
+                        jacobianMatrix.m[0][2]= (float)(Tx_z / (ImageTYPE)splineControlPoint->dz);
+                        jacobianMatrix.m[1][0]= (float)(Ty_x / (ImageTYPE)splineControlPoint->dx);
+                        jacobianMatrix.m[1][1]= (float)(Ty_y / (ImageTYPE)splineControlPoint->dy);
+                        jacobianMatrix.m[1][2]= (float)(Ty_z / (ImageTYPE)splineControlPoint->dz);
+                        jacobianMatrix.m[2][0]= (float)(Tz_x / (ImageTYPE)splineControlPoint->dx);
+                        jacobianMatrix.m[2][1]= (float)(Tz_y / (ImageTYPE)splineControlPoint->dy);
+                        jacobianMatrix.m[2][2]= (float)(Tz_z / (ImageTYPE)splineControlPoint->dz);
 
                         jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
                         detJac = nifti_mat33_determ(jacobianMatrix);
@@ -2149,15 +2149,15 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                         deformationFieldArrayY[jacIndex] = newPositionY;
                         deformationFieldArrayZ[jacIndex] = newPositionZ;
 
-                        jacobianMatrix.m[0][0]= Tx_x / (ImageTYPE)splineControlPoint->dx;
-                        jacobianMatrix.m[0][1]= Tx_y / (ImageTYPE)splineControlPoint->dy;
-                        jacobianMatrix.m[0][2]= Tx_z / (ImageTYPE)splineControlPoint->dz;
-                        jacobianMatrix.m[1][0]= Ty_x / (ImageTYPE)splineControlPoint->dx;
-                        jacobianMatrix.m[1][1]= Ty_y / (ImageTYPE)splineControlPoint->dy;
-                        jacobianMatrix.m[1][2]= Ty_z / (ImageTYPE)splineControlPoint->dz;
-                        jacobianMatrix.m[2][0]= Tz_x / (ImageTYPE)splineControlPoint->dx;
-                        jacobianMatrix.m[2][1]= Tz_y / (ImageTYPE)splineControlPoint->dy;
-                        jacobianMatrix.m[2][2]= Tz_z / (ImageTYPE)splineControlPoint->dz;
+                        jacobianMatrix.m[0][0]= (float)(Tx_x / (ImageTYPE)splineControlPoint->dx);
+                        jacobianMatrix.m[0][1]= (float)(Tx_y / (ImageTYPE)splineControlPoint->dy);
+                        jacobianMatrix.m[0][2]= (float)(Tx_z / (ImageTYPE)splineControlPoint->dz);
+                        jacobianMatrix.m[1][0]= (float)(Ty_x / (ImageTYPE)splineControlPoint->dx);
+                        jacobianMatrix.m[1][1]= (float)(Ty_y / (ImageTYPE)splineControlPoint->dy);
+                        jacobianMatrix.m[1][2]= (float)(Ty_z / (ImageTYPE)splineControlPoint->dz);
+                        jacobianMatrix.m[2][0]= (float)(Tz_x / (ImageTYPE)splineControlPoint->dx);
+                        jacobianMatrix.m[2][1]= (float)(Tz_y / (ImageTYPE)splineControlPoint->dy);
+                        jacobianMatrix.m[2][2]= (float)(Tz_z / (ImageTYPE)splineControlPoint->dz);
 
                         jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
                         detJac = nifti_mat33_determ(jacobianMatrix);
@@ -2754,22 +2754,22 @@ void reg_bspline_GetJacobianGradient_3D(  nifti_image *velocityFieldImage,
                         deformationFieldArrayY[jacIndex] = newPositionY;
                         deformationFieldArrayZ[jacIndex] = newPositionZ;
 
-                        jacobianMatrix.m[0][0]= Tx_x / (ImageTYPE)splineControlPoint->dx;
-                        jacobianMatrix.m[0][1]= Tx_y / (ImageTYPE)splineControlPoint->dy;
-                        jacobianMatrix.m[0][2]= Tx_z / (ImageTYPE)splineControlPoint->dz;
-                        jacobianMatrix.m[1][0]= Ty_x / (ImageTYPE)splineControlPoint->dx;
-                        jacobianMatrix.m[1][1]= Ty_y / (ImageTYPE)splineControlPoint->dy;
-                        jacobianMatrix.m[1][2]= Ty_z / (ImageTYPE)splineControlPoint->dz;
-                        jacobianMatrix.m[2][0]= Tz_x / (ImageTYPE)splineControlPoint->dx;
-                        jacobianMatrix.m[2][1]= Tz_y / (ImageTYPE)splineControlPoint->dy;
-                        jacobianMatrix.m[2][2]= Tz_z / (ImageTYPE)splineControlPoint->dz;
+                        jacobianMatrix.m[0][0]= (float)(Tx_x / (ImageTYPE)splineControlPoint->dx);
+                        jacobianMatrix.m[0][1]= (float)(Tx_y / (ImageTYPE)splineControlPoint->dy);
+                        jacobianMatrix.m[0][2]= (float)(Tx_z / (ImageTYPE)splineControlPoint->dz);
+                        jacobianMatrix.m[1][0]= (float)(Ty_x / (ImageTYPE)splineControlPoint->dx);
+                        jacobianMatrix.m[1][1]= (float)(Ty_y / (ImageTYPE)splineControlPoint->dy);
+                        jacobianMatrix.m[1][2]= (float)(Ty_z / (ImageTYPE)splineControlPoint->dz);
+                        jacobianMatrix.m[2][0]= (float)(Tz_x / (ImageTYPE)splineControlPoint->dx);
+                        jacobianMatrix.m[2][1]= (float)(Tz_y / (ImageTYPE)splineControlPoint->dy);
+                        jacobianMatrix.m[2][2]= (float)(Tz_z / (ImageTYPE)splineControlPoint->dz);
 
                         jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
                         detJac = nifti_mat33_determ(jacobianMatrix);
                         jacobianMatrix=nifti_mat33_inverse(jacobianMatrix);
 
                         if(detJac>0){
-                            detJac = 2.0 * log(detJac); // otherwise the gradient of the determinant itself is considered
+                            detJac = 2.0f * log(detJac); // otherwise the gradient of the determinant itself is considered
 //                            detJac *= -1.0; // otherwise the gradient of the determinant itself is considered
                         }
                         coord = 0;
@@ -3240,22 +3240,22 @@ void reg_bspline_GetApproxJacobianGradient_3D(nifti_image *velocityFieldImage,
                         deformationFieldArrayY[jacIndex] = newPositionY;
                         deformationFieldArrayZ[jacIndex] = newPositionZ;
 
-                        jacobianMatrix.m[0][0]= Tx_x / (ImageTYPE)splineControlPoint->dx;
-                        jacobianMatrix.m[0][1]= Tx_y / (ImageTYPE)splineControlPoint->dy;
-                        jacobianMatrix.m[0][2]= Tx_z / (ImageTYPE)splineControlPoint->dz;
-                        jacobianMatrix.m[1][0]= Ty_x / (ImageTYPE)splineControlPoint->dx;
-                        jacobianMatrix.m[1][1]= Ty_y / (ImageTYPE)splineControlPoint->dy;
-                        jacobianMatrix.m[1][2]= Ty_z / (ImageTYPE)splineControlPoint->dz;
-                        jacobianMatrix.m[2][0]= Tz_x / (ImageTYPE)splineControlPoint->dx;
-                        jacobianMatrix.m[2][1]= Tz_y / (ImageTYPE)splineControlPoint->dy;
-                        jacobianMatrix.m[2][2]= Tz_z / (ImageTYPE)splineControlPoint->dz;
+                        jacobianMatrix.m[0][0]= (float)(Tx_x / (ImageTYPE)splineControlPoint->dx);
+                        jacobianMatrix.m[0][1]= (float)(Tx_y / (ImageTYPE)splineControlPoint->dy);
+                        jacobianMatrix.m[0][2]= (float)(Tx_z / (ImageTYPE)splineControlPoint->dz);
+                        jacobianMatrix.m[1][0]= (float)(Ty_x / (ImageTYPE)splineControlPoint->dx);
+                        jacobianMatrix.m[1][1]= (float)(Ty_y / (ImageTYPE)splineControlPoint->dy);
+                        jacobianMatrix.m[1][2]= (float)(Ty_z / (ImageTYPE)splineControlPoint->dz);
+                        jacobianMatrix.m[2][0]= (float)(Tz_x / (ImageTYPE)splineControlPoint->dx);
+                        jacobianMatrix.m[2][1]= (float)(Tz_y / (ImageTYPE)splineControlPoint->dy);
+                        jacobianMatrix.m[2][2]= (float)(Tz_z / (ImageTYPE)splineControlPoint->dz);
 
                         jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
                         detJac = nifti_mat33_determ(jacobianMatrix);
                         jacobianMatrix=nifti_mat33_inverse(jacobianMatrix);
 
                         if(detJac>0){
-                            detJac = 2.0 * log(detJac); // otherwise the gradient of the determinant itself is considered
+                            detJac = 2.0f * log(detJac); // otherwise the gradient of the determinant itself is considered
                         }// otherwise the gradient of the determinant itself is considered
                         coord = 0;
                         for(int Z=zPre-1; Z<zPre+3; Z++){
@@ -3459,7 +3459,7 @@ double reg_bspline_CorrectFoldingFromVelocityField_3D(  nifti_image* velocityFie
     ImageTYPE *veloPtrY = &veloPtrX[velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz];
     ImageTYPE *veloPtrZ = &veloPtrY[velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz];
 
-    ImageTYPE ratio = 2.0 / (ImageTYPE)(SCALING_VALUE*targetImage->nvox);
+    ImageTYPE ratio = (ImageTYPE)(2.0 / (ImageTYPE)(SCALING_VALUE*targetImage->nvox));
 
     unsigned int coord=0;
     // The jacobian map is updated and then the deformation is composed
@@ -3726,15 +3726,15 @@ double reg_bspline_CorrectFoldingFromVelocityField_3D(  nifti_image* velocityFie
                         deformationFieldArrayY[jacIndex] = newPositionY;
                         deformationFieldArrayZ[jacIndex] = newPositionZ;
 
-                        jacobianMatrix.m[0][0]= Tx_x / (ImageTYPE)splineControlPoint->dx;
-                        jacobianMatrix.m[0][1]= Tx_y / (ImageTYPE)splineControlPoint->dy;
-                        jacobianMatrix.m[0][2]= Tx_z / (ImageTYPE)splineControlPoint->dz;
-                        jacobianMatrix.m[1][0]= Ty_x / (ImageTYPE)splineControlPoint->dx;
-                        jacobianMatrix.m[1][1]= Ty_y / (ImageTYPE)splineControlPoint->dy;
-                        jacobianMatrix.m[1][2]= Ty_z / (ImageTYPE)splineControlPoint->dz;
-                        jacobianMatrix.m[2][0]= Tz_x / (ImageTYPE)splineControlPoint->dx;
-                        jacobianMatrix.m[2][1]= Tz_y / (ImageTYPE)splineControlPoint->dy;
-                        jacobianMatrix.m[2][2]= Tz_z / (ImageTYPE)splineControlPoint->dz;
+                        jacobianMatrix.m[0][0]= (float)(Tx_x / (ImageTYPE)splineControlPoint->dx);
+                        jacobianMatrix.m[0][1]= (float)(Tx_y / (ImageTYPE)splineControlPoint->dy);
+                        jacobianMatrix.m[0][2]= (float)(Tx_z / (ImageTYPE)splineControlPoint->dz);
+                        jacobianMatrix.m[1][0]= (float)(Ty_x / (ImageTYPE)splineControlPoint->dx);
+                        jacobianMatrix.m[1][1]= (float)(Ty_y / (ImageTYPE)splineControlPoint->dy);
+                        jacobianMatrix.m[1][2]= (float)(Ty_z / (ImageTYPE)splineControlPoint->dz);
+                        jacobianMatrix.m[2][0]= (float)(Tz_x / (ImageTYPE)splineControlPoint->dx);
+                        jacobianMatrix.m[2][1]= (float)(Tz_y / (ImageTYPE)splineControlPoint->dy);
+                        jacobianMatrix.m[2][2]= (float)(Tz_z / (ImageTYPE)splineControlPoint->dz);
 
                         jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
                         detJac = nifti_mat33_determ(jacobianMatrix);
@@ -3964,7 +3964,7 @@ double reg_bspline_CorrectFoldingFromApproxVelocityField_3D(    nifti_image* vel
     ImageTYPE *veloPtrY = &veloPtrX[velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz];
     ImageTYPE *veloPtrZ = &veloPtrY[velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz];
 
-    ImageTYPE ratio = 2.0 / (ImageTYPE)(SCALING_VALUE*targetImage->nvox);
+    ImageTYPE ratio = (ImageTYPE)(2.0 / (ImageTYPE)(SCALING_VALUE*targetImage->nvox));
 
     unsigned int coord=0;
     // The jacobian map is updated and then the deformation is composed
@@ -4231,15 +4231,15 @@ double reg_bspline_CorrectFoldingFromApproxVelocityField_3D(    nifti_image* vel
                         deformationFieldArrayY[jacIndex] = newPositionY;
                         deformationFieldArrayZ[jacIndex] = newPositionZ;
 
-                        jacobianMatrix.m[0][0]= Tx_x / splineControlPoint->dx;
-                        jacobianMatrix.m[0][1]= Tx_y / splineControlPoint->dy;
-                        jacobianMatrix.m[0][2]= Tx_z / splineControlPoint->dz;
-                        jacobianMatrix.m[1][0]= Ty_x / splineControlPoint->dx;
-                        jacobianMatrix.m[1][1]= Ty_y / splineControlPoint->dy;
-                        jacobianMatrix.m[1][2]= Ty_z / splineControlPoint->dz;
-                        jacobianMatrix.m[2][0]= Tz_x / splineControlPoint->dx;
-                        jacobianMatrix.m[2][1]= Tz_y / splineControlPoint->dy;
-                        jacobianMatrix.m[2][2]= Tz_z / splineControlPoint->dz;
+                        jacobianMatrix.m[0][0]= (float)(Tx_x / splineControlPoint->dx);
+                        jacobianMatrix.m[0][1]= (float)(Tx_y / splineControlPoint->dy);
+                        jacobianMatrix.m[0][2]= (float)(Tx_z / splineControlPoint->dz);
+                        jacobianMatrix.m[1][0]= (float)(Ty_x / splineControlPoint->dx);
+                        jacobianMatrix.m[1][1]= (float)(Ty_y / splineControlPoint->dy);
+                        jacobianMatrix.m[1][2]= (float)(Ty_z / splineControlPoint->dz);
+                        jacobianMatrix.m[2][0]= (float)(Tz_x / splineControlPoint->dx);
+                        jacobianMatrix.m[2][1]= (float)(Tz_y / splineControlPoint->dy);
+                        jacobianMatrix.m[2][2]= (float)(Tz_z / splineControlPoint->dz);
 
                         jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
                         detJac = nifti_mat33_determ(jacobianMatrix);
@@ -4555,15 +4555,15 @@ SplineTYPE reg_bspline_CorrectApproximatedFoldingFromApproxCPP_3D(  nifti_image 
                 }
 
 
-                jacobianMatrix.m[0][0]= Tx_x / (SplineTYPE)splineControlPoint->dx;
-                jacobianMatrix.m[0][1]= Tx_y / (SplineTYPE)splineControlPoint->dy;
-                jacobianMatrix.m[0][2]= Tx_z / (SplineTYPE)splineControlPoint->dz;
-                jacobianMatrix.m[1][0]= Ty_x / (SplineTYPE)splineControlPoint->dx;
-                jacobianMatrix.m[1][1]= Ty_y / (SplineTYPE)splineControlPoint->dy;
-                jacobianMatrix.m[1][2]= Ty_z / (SplineTYPE)splineControlPoint->dz;
-                jacobianMatrix.m[2][0]= Tz_x / (SplineTYPE)splineControlPoint->dx;
-                jacobianMatrix.m[2][1]= Tz_y / (SplineTYPE)splineControlPoint->dy;
-                jacobianMatrix.m[2][2]= Tz_z / (SplineTYPE)splineControlPoint->dz;
+                jacobianMatrix.m[0][0]= (float)(Tx_x / (SplineTYPE)splineControlPoint->dx);
+                jacobianMatrix.m[0][1]= (float)(Tx_y / (SplineTYPE)splineControlPoint->dy);
+                jacobianMatrix.m[0][2]= (float)(Tx_z / (SplineTYPE)splineControlPoint->dz);
+                jacobianMatrix.m[1][0]= (float)(Ty_x / (SplineTYPE)splineControlPoint->dx);
+                jacobianMatrix.m[1][1]= (float)(Ty_y / (SplineTYPE)splineControlPoint->dy);
+                jacobianMatrix.m[1][2]= (float)(Ty_z / (SplineTYPE)splineControlPoint->dz);
+                jacobianMatrix.m[2][0]= (float)(Tz_x / (SplineTYPE)splineControlPoint->dx);
+                jacobianMatrix.m[2][1]= (float)(Tz_y / (SplineTYPE)splineControlPoint->dy);
+                jacobianMatrix.m[2][2]= (float)(Tz_z / (SplineTYPE)splineControlPoint->dz);
 
                 jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
                 jacobianDeterminantPtr[jacIndex] = nifti_mat33_determ(jacobianMatrix);
@@ -4715,10 +4715,10 @@ SplineTYPE reg_bspline_CorrectApproximatedFoldingFromApproxCPP_3D(  nifti_image 
                     gradient[2] = desorient.m[2][0]*foldingCorrectionX
                                 + desorient.m[2][1]*foldingCorrectionY
                                 + desorient.m[2][2]*foldingCorrectionZ;
-                    SplineTYPE norm = 5.0 * sqrt(gradient[0]*gradient[0]
+                    SplineTYPE norm = (SplineTYPE)(5.0 * sqrt(gradient[0]*gradient[0]
                                             + gradient[1]*gradient[1]
                                             + gradient[2]*gradient[2])
-                                            / (float)SCALING_VALUE;
+                                            / (float)SCALING_VALUE);
 
                     if(norm>0.0){
                         const unsigned int id = (z*splineControlPoint->ny+y)*splineControlPoint->nx+x;
@@ -5045,15 +5045,15 @@ SplineTYPE reg_bspline_CorrectApproximatedFoldingFromCPP_3D(    nifti_image *spl
                 }
 #endif
 
-                jacobianMatrix.m[0][0]= Tx_x / (SplineTYPE)splineControlPoint->dx;
-                jacobianMatrix.m[0][1]= Tx_y / (SplineTYPE)splineControlPoint->dy;
-                jacobianMatrix.m[0][2]= Tx_z / (SplineTYPE)splineControlPoint->dz;
-                jacobianMatrix.m[1][0]= Ty_x / (SplineTYPE)splineControlPoint->dx;
-                jacobianMatrix.m[1][1]= Ty_y / (SplineTYPE)splineControlPoint->dy;
-                jacobianMatrix.m[1][2]= Ty_z / (SplineTYPE)splineControlPoint->dz;
-                jacobianMatrix.m[2][0]= Tz_x / (SplineTYPE)splineControlPoint->dx;
-                jacobianMatrix.m[2][1]= Tz_y / (SplineTYPE)splineControlPoint->dy;
-                jacobianMatrix.m[2][2]= Tz_z / (SplineTYPE)splineControlPoint->dz;
+                jacobianMatrix.m[0][0]= (float)(Tx_x / (SplineTYPE)splineControlPoint->dx);
+                jacobianMatrix.m[0][1]= (float)(Tx_y / (SplineTYPE)splineControlPoint->dy);
+                jacobianMatrix.m[0][2]= (float)(Tx_z / (SplineTYPE)splineControlPoint->dz);
+                jacobianMatrix.m[1][0]= (float)(Ty_x / (SplineTYPE)splineControlPoint->dx);
+                jacobianMatrix.m[1][1]= (float)(Ty_y / (SplineTYPE)splineControlPoint->dy);
+                jacobianMatrix.m[1][2]= (float)(Ty_z / (SplineTYPE)splineControlPoint->dz);
+                jacobianMatrix.m[2][0]= (float)(Tz_x / (SplineTYPE)splineControlPoint->dx);
+                jacobianMatrix.m[2][1]= (float)(Tz_y / (SplineTYPE)splineControlPoint->dy);
+                jacobianMatrix.m[2][2]= (float)(Tz_z / (SplineTYPE)splineControlPoint->dz);
 
                 jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
                 SplineTYPE detJac = nifti_mat33_determ(jacobianMatrix);
@@ -5224,10 +5224,10 @@ SplineTYPE reg_bspline_CorrectApproximatedFoldingFromCPP_3D(    nifti_image *spl
                     gradient[2] = desorient.m[2][0]*foldingCorrectionX
                                 + desorient.m[2][1]*foldingCorrectionY
                                 + desorient.m[2][2]*foldingCorrectionZ;
-                    SplineTYPE norm = 5.0 * sqrt(gradient[0]*gradient[0]
+                    SplineTYPE norm = (SplineTYPE)(5.0 * sqrt(gradient[0]*gradient[0]
                                             + gradient[1]*gradient[1]
                                             + gradient[2]*gradient[2])
-                                            * SCALING_VALUE;
+                                            * SCALING_VALUE);
                     if(norm>0.0){
                         const unsigned int id = (z*splineControlPoint->ny+y)*splineControlPoint->nx+x;
                         velocityFieldPtrX[id] += splineControlPoint->dx*gradient[0]/norm;
