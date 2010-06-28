@@ -68,7 +68,7 @@ double reg_bspline_correctFolding_gpu(  nifti_image *targetImage,
 /** Composition of control point grid */
 extern "C++"
 void reg_spline_cppComposition_gpu( nifti_image *toUpdate,
-                                    nifti_image *toCompose, // displacement
+                                    nifti_image *toCompose, // displacement or deformation
                                     float4 **toUpdateArray_d,
                                     float4 **toComposeArray_d,
                                     float ratio,
