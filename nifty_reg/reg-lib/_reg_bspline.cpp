@@ -3244,39 +3244,16 @@ void computeApproximateJacobianMatrices_3D( nifti_image *splineControlPoint,
                                             PrecisionTYPE *jacobianDeterminant)
 {
     // As the contraint is only computed at the voxel position, the basis value of the spline are always the same
-    PrecisionTYPE normal[3];
-    PrecisionTYPE first[3];
-    normal[0] = (PrecisionTYPE)(1.0/6.0);
-    normal[1] = (PrecisionTYPE)(2.0/3.0);
-    normal[2] = (PrecisionTYPE)(1.0/6.0);
-    first[0] = (PrecisionTYPE)(-0.5);
-    first[1] = (PrecisionTYPE)(0.0);
-    first[2] = (PrecisionTYPE)(0.5);
-
-    // There are 3 different values taken into account
-    PrecisionTYPE tempX[9], tempY[9], tempZ[9];
+	float basisX[27] = {-0.0138889,0.0000000,0.0138889,-0.0555556,0.0000000,0.0555556,-0.0138889,0.0000000,0.0138889,
+		-0.0555556,0.0000000,0.0555556,-0.2222222,0.0000000,0.2222222,-0.0555556,0.0000000,0.0555556,
+		-0.0138889,0.0000000,0.0138889,-0.0555556,0.0000000,0.0555556,-0.0138889,0.0000000,0.0138889};
+	float basisY[27] = {-0.0138889,-0.0555556,-0.0138889,0.0000000,0.0000000,0.0000000,0.0138889,0.0555556,0.0138889,
+		-0.0555556,-0.2222222,-0.0555556,0.0000000,0.0000000,0.0000000,0.0555556,0.2222222,0.0555556,
+		-0.0138889,-0.0555556,-0.0138889,0.0000000,0.0000000,0.0000000,0.0138889,0.0555556,0.0138889};
+	float basisZ[27] = {-0.0138889,-0.0555556,-0.0138889,-0.0555556,-0.2222222,-0.0555556,-0.0138889,-0.0555556,-0.0138889,
+		0.0000000,0.0000000,0.0000000,0.0000000,0.0000000,0.0000000,0.0000000,0.0000000,0.0000000,
+		0.0138889,0.0555556,0.0138889,0.0555556,0.2222222,0.0555556,0.0138889,0.0555556,0.0138889};
     int coord=0;
-    for(int c=0; c<3; c++){
-        for(int b=0; b<3; b++){
-            tempX[coord]=normal[c]*normal[b];   // z * y
-            tempY[coord]=normal[c]*first[b];    // z * y'
-            tempZ[coord]=first[c]*normal[b];    // z'* y
-            coord++;
-        }
-    }
-
-    PrecisionTYPE basisX[27], basisY[27], basisZ[27];
-
-    coord=0;
-    for(int bc=0; bc<9; bc++){
-        for(int a=0; a<3; a++){
-            basisX[coord]=tempX[bc]*first[a];   // z * y * x'
-            basisY[coord]=tempY[bc]*normal[a];  // z * y'* x
-            basisZ[coord]=tempZ[bc]*normal[a];  // z'* y * x
-            coord++;
-        }
-    }
-
     PrecisionTYPE xControlPointCoordinates[27];
     PrecisionTYPE yControlPointCoordinates[27];
     PrecisionTYPE zControlPointCoordinates[27];

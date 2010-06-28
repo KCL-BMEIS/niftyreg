@@ -159,7 +159,7 @@ void Usage(char *exec)
     printf("\t-bgi <int> <int> <int>\tForce the background value during\n\t\t\t\tresampling to have the same value than this voxel in the source image [none]\n");
 
     printf("\n*** Spline options:\n");
-    printf("\t-sx <float>\t\tFinal grid spacing along the x axis in mm (in voxel if negative value) [5]\n");
+    printf("\t-sx <float>\t\tFinal grid spacing along the x axis in mm (in voxel if negative value) [5 voxels]\n");
     printf("\t-sy <float>\t\tFinal grid spacing along the y axis in mm (in voxel if negative value) [sx value]\n");
     printf("\t-sz <float>\t\tFinal grid spacing along the z axis in mm (in voxel if negative value) [sx value]\n");
 
@@ -1074,16 +1074,35 @@ int main(int argc, char **argv)
                                                                     targetImage,
                                                                     flag->appJacobianFlag);
                 initialNegCorrection++;
-                if(currentWJac!=currentWJac)
+                if(currentWJac!=currentWJac){
                     printf("*** Initial folding correction [%i/%i] ***\n",
                        initialNegCorrection, FOLDING_CORRECTION_STEP);
+                }
                 else{
-                    memcpy(bestControlPointPosition,controlPointImage->data,controlPointImage->nvox*controlPointImage->nbyper);
+#ifdef _USE_CUDA
+                    if(flag->useGPUFlag){
+                        CUDA_SAFE_CALL(cudaMemcpy(bestControlPointPosition_d, controlPointImageArray_d,
+                            controlPointImage->nx*controlPointImage->ny*controlPointImage->nz*sizeof(float4),
+                            cudaMemcpyDeviceToDevice));
+                    }
+                    else
+#endif
+                        memcpy(bestControlPointPosition,controlPointImage->data,controlPointImage->nvox*controlPointImage->nbyper);
+                    printf(">>> Initial Jacobian based penalty term value = %g\n", currentWJac);
                 }
             }
             if(currentWJac!=currentWJac){
-                fprintf(stderr, "[WARNING] The initial folding correction failed\n.");
-                fprintf(stderr, "[WARNING] You might want to increase the penalty term weights\n.");
+                fprintf(stderr, "[WARNING] The initial folding correction failed.\n");
+                fprintf(stderr, "[WARNING] You might want to increase the penalty term weights.\n");
+#ifdef _USE_CUDA
+                if(flag->useGPUFlag){
+                    CUDA_SAFE_CALL(cudaMemcpy(controlPointImageArray_d, bestControlPointPosition_d,
+                        controlPointImage->nx*controlPointImage->ny*controlPointImage->nz*sizeof(float4),
+                        cudaMemcpyDeviceToDevice));
+                }
+#endif
+                else
+                    memcpy(controlPointImage->data,bestControlPointPosition,controlPointImage->nvox*controlPointImage->nbyper);
             }
 
             /* The bending-energy penalty term is computed */
@@ -1579,6 +1598,7 @@ int main(int argc, char **argv)
 #endif
                 int negCorrection=0;
                 while(currentWJac!=currentWJac && negCorrection<5){
+                    printf("*");
 #ifndef NDEBUG
                     printf("[DEBUG] ********* Folding correction *********\n");
 #endif
@@ -1758,15 +1778,15 @@ int main(int argc, char **argv)
                         reg_bspline_correctFolding_gpu( targetImage,
                                                         controlPointImage,
                                                         &controlPointImageArray_d,
-                                                        flag->appJacobianFlag);
+                                                        0); // No approximation is done
                 }
                 else
 #endif
                 {
-                        finalWJac = param->jacobianWeight*
-                            reg_bspline_correctFolding<PrecisionTYPE>(controlPointImage,
-                                                                      targetImage,
-                                                                      0); // No approximation is done
+                    finalWJac = param->jacobianWeight*
+                        reg_bspline_correctFolding<PrecisionTYPE>(controlPointImage,
+                                                                  targetImage,
+                                                                  0); // No approximation is done
                 }
                 finalNegCorrection++;
                 if(finalWJac!=finalWJac)
@@ -1775,10 +1795,19 @@ int main(int argc, char **argv)
                 else printf(">>> Final Jacobian based penalty term value = %g\n", finalWJac);
             }
             while(finalWJac!=finalWJac && finalNegCorrection<FOLDING_CORRECTION_STEP);
+
             if(finalWJac!=finalWJac){
-                fprintf(stderr, "[WARNING] The final folding correction failed\n.");
-                fprintf(stderr, "[WARNING] You might want to increase the penalty term weights\n.");
-                memcpy(controlPointImage->data,bestControlPointPosition,controlPointImage->nvox*controlPointImage->nbyper);
+                fprintf(stderr, "[WARNING] The final folding correction failed.\n");
+                fprintf(stderr, "[WARNING] You might want to increase the penalty term weights.\n");
+#ifdef _USE_CUDA
+                if(flag->useGPUFlag){
+                    CUDA_SAFE_CALL(cudaMemcpy(controlPointImageArray_d, bestControlPointPosition_d,
+                        controlPointImage->nx*controlPointImage->ny*controlPointImage->nz*sizeof(float4),
+                        cudaMemcpyDeviceToDevice));
+                }
+#endif
+                else
+                    memcpy(controlPointImage->data,bestControlPointPosition,controlPointImage->nvox*controlPointImage->nbyper);
             }
         }
 

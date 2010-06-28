@@ -41,9 +41,9 @@
 	#define Block_reg_bspline_storeApproxBendingEnergy 384              // 39 regs - 038% occupancy
 	#define Block_reg_bspline_getApproxBendingEnergyGradient 384        // 19 regs - 075% occupancy
     #define Block_reg_bspline_ApproxJacobian 512                        // 25 regs - 050% occupancy
-    #define Block_reg_bspline_CorrectFolding 256                        // 27 regs - 033% occupancy
-    #define Block_reg_bspline_ApproxCorrectFolding 256                  // 32 regs - 033% occupancy
     #define Block_reg_bspline_ApproxJacobianGradient 512                // 32 regs - 050% occupancy
+    #define Block_reg_bspline_CorrectFolding 512                        // 27 regs - 050% occupancy
+    #define Block_reg_bspline_ApproxCorrectFolding 512                  // 31 regs - 050% occupancy
 #else
 	#define Block_reg_affine_deformationField 256                       // 16 regs - 067% occupancy
 	#define Block_reg_resampleSourceImage 256                           // 16 regs - 067% occupancy
@@ -60,9 +60,9 @@
 	#define Block_reg_bspline_storeApproxBendingEnergy 192              // 39 regs - 025% occupancy
 	#define Block_reg_bspline_getApproxBendingEnergyGradient 384        // 19 regs - 050% occupancy
     #define Block_reg_bspline_ApproxJacobian 320                        // 25 regs - 042% occupancy
-    #define Block_reg_bspline_CorrectFolding 512                        // 27 regs - 050% occupancy
-    #define Block_reg_bspline_ApproxCorrectFolding 512                  // 32 regs - 050% occupancy
     #define Block_reg_bspline_ApproxJacobianGradient 256                // 32 regs - 030% occupancy
+    #define Block_reg_bspline_CorrectFolding 256                        // 27 regs - 033% occupancy
+    #define Block_reg_bspline_ApproxCorrectFolding 256                  // 31 regs - 033% occupancy
 #endif
 
 #define Block_reg_bspline_Jacobian 192                                  // 41 regs - 025% occupancy

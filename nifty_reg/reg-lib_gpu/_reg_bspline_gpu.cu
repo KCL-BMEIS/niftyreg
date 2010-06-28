@@ -406,8 +406,10 @@ double reg_bspline_ComputeJacobianPenaltyTerm_gpu(  nifti_image *targetImage,
         penaltyValue += logTerm*logTerm;
     }
     CUDA_SAFE_CALL(cudaFreeHost((void *)jacobianMap_h));
-
-    return penaltyValue/(double)((controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2));
+    if(approximate)
+        penaltyValue /= (double)((controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2));
+    else penaltyValue /= (double)(targetImage->nvox);
+    return penaltyValue;
 }
 
 /* *************************************************************** */
@@ -448,7 +450,8 @@ void reg_bspline_ComputeJacobianGradient_gpu(   nifti_image *targetImage,
         spline_ijk.m[2][1]=controlPointImage->qto_ijk.m[2][1];
         spline_ijk.m[2][2]=controlPointImage->qto_ijk.m[2][2];
     }
-    reorient=nifti_mat33_inverse(nifti_mat33_mul(spline_ijk, reorient));
+    mat33 desorient = nifti_mat33_mul(spline_ijk, reorient);
+    reorient=nifti_mat33_inverse(desorient);
     float3 temp=make_float3(reorient.m[0][0],reorient.m[0][1],reorient.m[0][2]);
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0,&temp,sizeof(float3)));
     temp=make_float3(reorient.m[1][0],reorient.m[1][1],reorient.m[1][2]);
@@ -478,7 +481,7 @@ void reg_bspline_ComputeJacobianGradient_gpu(   nifti_image *targetImage,
     // Texture binding: control point position
     CUDA_SAFE_CALL(cudaBindTexture(0, controlPointTexture, *controlPointImageArray_d, controlPointNumber*sizeof(float4)));
 
-    // All the values will be store in an array
+    // All the values will be store in two arrays
     float *jacobianMatrices_d;
     float *jacobianDeterminant_d;
 
@@ -546,8 +549,14 @@ void reg_bspline_ComputeJacobianGradient_gpu(   nifti_image *targetImage,
             cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
     }
-
     // The gradient computed on a node basis
+    temp=make_float3(desorient.m[0][0],desorient.m[0][1],desorient.m[0][2]);
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0,&temp,sizeof(float3)));
+    temp=make_float3(desorient.m[1][0],desorient.m[1][1],desorient.m[1][2]);
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix1,&temp,sizeof(float3)));
+    temp=make_float3(desorient.m[2][0],desorient.m[2][1],desorient.m[2][2]);
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix2,&temp,sizeof(float3)));
+
     if(approximate){
         // The weight is transfered to constant memory
         float weight=jacobianWeight;
@@ -578,10 +587,10 @@ void reg_bspline_ComputeJacobianGradient_gpu(   nifti_image *targetImage,
         CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Weight,&jacobianWeight,sizeof(float)));
 
         // The jacobian matrices are binded to a texture
-        CUDA_SAFE_CALL(cudaBindTexture(0, jacobianMatricesTexture, jacobianMatrices_d,
-            9*targetImage->nvox*sizeof(float)));
         CUDA_SAFE_CALL(cudaBindTexture(0, jacobianDeterminantTexture, jacobianDeterminant_d,
             targetImage->nvox*sizeof(float)));
+        CUDA_SAFE_CALL(cudaBindTexture(0, jacobianMatricesTexture, jacobianMatrices_d,
+            9*targetImage->nvox*sizeof(float)));
 
         const unsigned int Grid_reg_bspline_JacobianGradient =
             (unsigned int)ceil((float)controlPointNumber/(float)(Block_reg_bspline_JacobianGradient));
@@ -636,7 +645,8 @@ double reg_bspline_correctFolding_gpu(  nifti_image *targetImage,
         spline_ijk.m[2][1]=controlPointImage->qto_ijk.m[2][1];
         spline_ijk.m[2][2]=controlPointImage->qto_ijk.m[2][2];
     }
-    reorient=nifti_mat33_inverse(nifti_mat33_mul(spline_ijk, reorient));
+    mat33 desorient = nifti_mat33_mul(spline_ijk, reorient);
+    reorient=nifti_mat33_inverse(desorient);
     float3 temp=make_float3(reorient.m[0][0],reorient.m[0][1],reorient.m[0][2]);
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0,&temp,sizeof(float3)));
     temp=make_float3(reorient.m[1][0],reorient.m[1][1],reorient.m[1][2]);
@@ -734,6 +744,7 @@ double reg_bspline_correctFolding_gpu(  nifti_image *targetImage,
             cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
     }
+
     double JacDetpenaltyTerm=0.;
     float *jacobianDeterminant_h;
     if(approximate){
@@ -741,8 +752,10 @@ double reg_bspline_correctFolding_gpu(  nifti_image *targetImage,
         CUDA_SAFE_CALL(cudaMemcpy(jacobianDeterminant_h, jacobianDeterminant_d,
                                   (controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2)*sizeof(float),
                                   cudaMemcpyDeviceToHost));
-        for(int i=0; i<(controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2); i++)
-            JacDetpenaltyTerm += jacobianDeterminant_h[i];
+        for(int i=0; i<(controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2); i++){
+            double logDet = log(jacobianDeterminant_h[i]);
+            JacDetpenaltyTerm += logDet * logDet;
+        }
         JacDetpenaltyTerm /= (double)((controlPointImage->nx-2)*(controlPointImage->ny-2)*(controlPointImage->nz-2));
     }
     else{
@@ -750,8 +763,10 @@ double reg_bspline_correctFolding_gpu(  nifti_image *targetImage,
         CUDA_SAFE_CALL(cudaMemcpy(jacobianDeterminant_h, jacobianDeterminant_d,
                                   targetImage->nvox*sizeof(float),
                                   cudaMemcpyDeviceToHost));
-        for(int i=0; i<targetImage->nvox; i++)
-            JacDetpenaltyTerm += jacobianDeterminant_h[i];
+        for(int i=0; i<targetImage->nvox; i++){
+            double logDet = log((double)jacobianDeterminant_h[i]);
+            JacDetpenaltyTerm += logDet * logDet;
+        }
         JacDetpenaltyTerm /= (double)(targetImage->nvox);
 
     }
@@ -762,6 +777,13 @@ double reg_bspline_correctFolding_gpu(  nifti_image *targetImage,
         CUDA_SAFE_CALL(cudaFree(jacobianDeterminant_d));
         return JacDetpenaltyTerm;
     }
+
+    temp=make_float3(desorient.m[0][0],desorient.m[0][1],desorient.m[0][2]);
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0,&temp,sizeof(float3)));
+    temp=make_float3(desorient.m[1][0],desorient.m[1][1],desorient.m[1][2]);
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix1,&temp,sizeof(float3)));
+    temp=make_float3(desorient.m[2][0],desorient.m[2][1],desorient.m[2][2]);
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix2,&temp,sizeof(float3)));
 
     // The folded voxel impact on the node position
     if(approximate){
@@ -805,7 +827,7 @@ double reg_bspline_correctFolding_gpu(  nifti_image *targetImage,
     CUDA_SAFE_CALL(cudaFree(jacobianMatrices_d));
     CUDA_SAFE_CALL(cudaFree(jacobianDeterminant_d));
 
-    return std::numeric_limits<double>::quiet_NaN();;
+    return std::numeric_limits<double>::quiet_NaN();
 }
 
 /* *************************************************************** */
