@@ -269,7 +269,7 @@ void reg_bspline_ComputeApproximatedJacobianMap(   nifti_image *controlPointImag
     dim3 B1(Block_reg_bspline_ApproxJacobian,1,1);
     dim3 G1(Grid_reg_bspline_ApproxJacobian,1,1);
 
-    _reg_bspline_ApproxJacobianDeterminant_kernel <<< G1, B1 >>>(*jacobianMap);
+    _reg_bspline_ApproxJacDet_kernel <<< G1, B1 >>>(*jacobianMap);
     CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
     printf("[DEBUG] _reg_bspline_ApproxJacobianDeterminant_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
@@ -354,7 +354,7 @@ void reg_bspline_ComputeJacobianMap(nifti_image *targetImage,
     dim3 B1(Block_reg_bspline_Jacobian,1,1);
     dim3 G1(Grid_reg_bspline_Jacobian,1,1);
 
-    _reg_bspline_JacobianDeterminant_kernel <<< G1, B1 >>>(*jacobianMap);
+    _reg_bspline_JacDet_kernel <<< G1, B1 >>>(*jacobianMap);
     CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
     printf("[DEBUG] _reg_bspline_JacobianDeterminant_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
@@ -397,7 +397,7 @@ double reg_bspline_ComputeJacobianPenaltyTerm_gpu(  nifti_image *targetImage,
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&pointNumber,sizeof(int)));
     dim3 B1(512,1,1);
     dim3 G1((unsigned int)ceil((float)pointNumber/(float)(512)),1,1);
-    _reg_bspline_GetSquaredLogJacobianDeterminant_kernel <<< G1, B1 >>>(jacobianMap_d);
+    _reg_bspline_GetSquaredLogJacDet_kernel <<< G1, B1 >>>(jacobianMap_d);
     CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
     printf("[DEBUG] _reg_bspline_GetSquaredLogJacobianDeterminant_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
@@ -538,10 +538,10 @@ void reg_bspline_ComputeJacobianGradient_gpu(   nifti_image *targetImage,
         CUDA_SAFE_CALL(cudaFree(zBasisValues_d));
     }
     else{
-        CUDA_SAFE_CALL(cudaMalloc((void **)&jacobianMatrices_d,
-            9*targetImage->nvox*sizeof(float)));
         CUDA_SAFE_CALL(cudaMalloc((void **)&jacobianDeterminant_d,
             targetImage->nvox*sizeof(float)));
+        CUDA_SAFE_CALL(cudaMalloc((void **)&jacobianMatrices_d,
+            9*targetImage->nvox*sizeof(float)));
 
         // The Jacobian matrices array is filled
         const unsigned int Grid_reg_bspline_Jacobian =
@@ -1146,7 +1146,7 @@ void reg_bspline_ComputeApproximatedJacobianMapFromVelocityField(   nifti_image 
     dim3 B1(Block_reg_bspline_ApproxJacobianFromVelocityField,1,1);
     dim3 G1(Grid_reg_bspline_ApproxJacobianFromVelocityField,1,1);
 
-    _reg_bspline_ApproxJacobianDeterminantFromVelocityField_kernel <<< G1, B1 >>>(*jacobianMap_d, *voxelDisplacementField_d);
+    _reg_bspline_ApproxJacDetFromVelField_kernel <<< G1, B1 >>>(*jacobianMap_d, *voxelDisplacementField_d);
     CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
     printf("[DEBUG] _reg_bspline_ApproxJacobianDeterminantFromVelocityField_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
@@ -1247,7 +1247,7 @@ void reg_bspline_ComputeJacobianMapFromVelocityField(   nifti_image *targetImage
     dim3 B1(Block_reg_bspline_JacobianFromVelocityField,1,1);
     dim3 G1(Grid_reg_bspline_JacobianFromVelocityField,1,1);
 
-    _reg_bspline_JacobianDeterminantFromVelocityField_kernel <<< G1, B1 >>>(*jacobianMap_d, *voxelDisplacementField_d);
+    _reg_bspline_JacDetFromVelField_kernel <<< G1, B1 >>>(*jacobianMap_d, *voxelDisplacementField_d);
     CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
     printf("[DEBUG] _reg_bspline_JacobianDeterminantFromVelocityField_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
@@ -1276,7 +1276,7 @@ double reg_bspline_ComputeJacobianPenaltyTermFromVelocity_gpu(  nifti_image *tar
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&pointNumber,sizeof(int)));
     dim3 B1(512,1,1);
     dim3 G1((unsigned int)ceil((float)pointNumber/(float)(512)),1,1);
-    _reg_bspline_SetJacobianDeterminantToOne_kernel <<< G1, B1 >>>(jacobianDeterminantArray_d);
+    _reg_bspline_SetJacDetToOne_kernel <<< G1, B1 >>>(jacobianDeterminantArray_d);
     CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
     printf("[DEBUG] _reg_bspline_SetJacobianDeterminantToOne_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
@@ -1348,7 +1348,7 @@ double reg_bspline_ComputeJacobianPenaltyTermFromVelocity_gpu(  nifti_image *tar
     CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&pointNumber,sizeof(int)));
     dim3 B2(512,1,1);
     dim3 G2((unsigned int)ceil((float)pointNumber/(float)(512)),1,1);
-    _reg_bspline_GetSquaredLogJacobianDeterminant_kernel <<< G2, B2 >>>(jacobianDeterminantArray_d);
+    _reg_bspline_GetSquaredLogJacDet_kernel <<< G2, B2 >>>(jacobianDeterminantArray_d);
     CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
     printf("[DEBUG] _reg_bspline_GetSquaredLogJacobianDeterminant_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
