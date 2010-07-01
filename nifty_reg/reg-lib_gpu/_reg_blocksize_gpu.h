@@ -41,6 +41,7 @@
 	#define Block_reg_bspline_storeApproxBendingEnergy 384              // 39 regs - 038% occupancy
 	#define Block_reg_bspline_getApproxBendingEnergyGradient 384        // 19 regs - 075% occupancy
     #define Block_reg_bspline_ApproxJacobian 512                        // 25 regs - 050% occupancy
+    #define Block_reg_bspline_JacobianGradient 512                      // 27 regs - 050% occupancy
     #define Block_reg_bspline_ApproxJacobianGradient 512                // 32 regs - 050% occupancy
     #define Block_reg_bspline_CorrectFolding 512                        // 27 regs - 050% occupancy
     #define Block_reg_bspline_ApproxCorrectFolding 512                  // 31 regs - 050% occupancy
@@ -60,13 +61,15 @@
 	#define Block_reg_bspline_storeApproxBendingEnergy 192              // 39 regs - 025% occupancy
 	#define Block_reg_bspline_getApproxBendingEnergyGradient 384        // 19 regs - 050% occupancy
     #define Block_reg_bspline_ApproxJacobian 320                        // 25 regs - 042% occupancy
+    #define Block_reg_bspline_JacobianGradient 256                      // 27 regs - 033% occupancy
     #define Block_reg_bspline_ApproxJacobianGradient 256                // 32 regs - 030% occupancy
     #define Block_reg_bspline_CorrectFolding 256                        // 27 regs - 033% occupancy
     #define Block_reg_bspline_ApproxCorrectFolding 256                  // 31 regs - 033% occupancy
 #endif
 
 #define Block_reg_bspline_Jacobian 192                                  // 41 regs - 025% occupancy
-#define Block_reg_bspline_JacobianGradient 320                          // 25 regs - 000% occupancy
+#define Block_reg_bspline_JacobianFromVelocityField 128                 // 49 regs - 025% occupancy
+#define Block_reg_bspline_ApproxJacobianFromVelocityField 128           // 49 regs - 025% occupancy
 
 #define Block_reg_freeForm_interpolatePosition 256                      // 30 regs - 025% occupancy
 #define Block_reg_updateControlPointPosition 384                        // 08 regs - 100% occupancy
@@ -78,7 +81,6 @@
 #define Block_reg_FillConvolutionWindows 384                            // 04 regs - 100% occupancy
 #define Block_target_block 512                                          // 26 regs - 100% occupancy
 #define Block_result_block 343                                          // 21 regs - 034% occupancy
-
 
 
 

@@ -1338,7 +1338,7 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_3D(nifti_image* velocityF
 {
 #if _USE_SSE
     if(sizeof(ImageTYPE)!=4){
-        fprintf(stderr, "***ERROR***\treg_bspline_GetJacobianMapFromVelocityField_3D\n");
+        fprintf(stderr, "***ERROR***\treg_bspline_GetApproxJacobianMapFromVelocityField_3D\n");
         fprintf(stderr, "The SSE implementation assume single precision... Exit\n");
         exit(0);
     }
@@ -1515,11 +1515,11 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_3D(nifti_image* velocityF
                     yPre=(int)floor(voxelPosition[1]-1);
                     zPre=(int)floor(voxelPosition[2]-1);
 
-                    ImageTYPE detJac = 1.0f;
+                    if( xPre>-1 && xPre<splineControlPoint->nx-3 &&
+                        yPre>-1 && yPre<splineControlPoint->ny-3 &&
+                        zPre>-1 && zPre<splineControlPoint->nz-3 ){
 
-                    if( xPre>-1 && (xPre+3)<splineControlPoint->nx &&
-                        yPre>-1 && (yPre+3)<splineControlPoint->ny &&
-                        zPre>-1 && (zPre+3)<splineControlPoint->nz ){
+                        ImageTYPE detJac = 1.0f;
 
                         basis=(ImageTYPE)voxelPosition[0]-(ImageTYPE)(xPre+1);
                         FF= basis*basis;
@@ -1734,8 +1734,8 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_3D(nifti_image* velocityF
 
                         jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
                         detJac = nifti_mat33_determ(jacobianMatrix);
+                        jacPtr[jacIndex] *= detJac;
                     } // not in the range
-                    jacPtr[jacIndex] *= detJac;
                     jacIndex++;
                 } // x
             } // y
@@ -1841,6 +1841,7 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
         jac_ijk_matrix= &(jacobianImage->qto_ijk);
         jac_xyz_matrix= &(jacobianImage->qto_xyz);
     }
+
 #if USE_SSE
     val.f[0] = jac_ijk_matrix->m[0][0];
     val.f[1] = jac_ijk_matrix->m[0][1];
@@ -1891,8 +1892,6 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
         reg_spline_Interpolant2Interpolator(splineControlPoint2,
                                             splineControlPoint);
 
-        reg_getPositionFromDisplacement<ImageTYPE>(splineControlPoint);
-
         ImageTYPE *controlPointPtrX = static_cast<ImageTYPE *>(splineControlPoint->data);
         ImageTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
         ImageTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
@@ -1937,16 +1936,14 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                         + jac_ijk_matrix->m[2][2]*realPosition[2]
                         + jac_ijk_matrix->m[2][3];
 #endif
-
                     xPre=(int)floor((ImageTYPE)voxelPosition[0]/gridVoxelSpacing[0]);
                     yPre=(int)floor((ImageTYPE)voxelPosition[1]/gridVoxelSpacing[1]);
                     zPre=(int)floor((ImageTYPE)voxelPosition[2]/gridVoxelSpacing[2]);
 
-                    ImageTYPE detJac = 1.0f;
 
-                    if( xPre>-1 && (xPre+3)<splineControlPoint->nx &&
-                        yPre>-1 && (yPre+3)<splineControlPoint->ny &&
-                        zPre>-1 && (zPre+3)<splineControlPoint->nz ){
+                    if( xPre>-1 && xPre<splineControlPoint->nx+3 &&
+                        yPre>-1 && yPre<splineControlPoint->ny+3 &&
+                        zPre>-1 && zPre<splineControlPoint->nz+3 ){
 
                         basis=(ImageTYPE)voxelPosition[0]/gridVoxelSpacing[0]-(ImageTYPE)(xPre);
                         FF= basis*basis;
@@ -2145,9 +2142,9 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                         }
 #endif
 
-                        deformationFieldArrayX[jacIndex] = newPositionX;
-                        deformationFieldArrayY[jacIndex] = newPositionY;
-                        deformationFieldArrayZ[jacIndex] = newPositionZ;
+                        deformationFieldArrayX[jacIndex] += newPositionX;
+                        deformationFieldArrayY[jacIndex] += newPositionY;
+                        deformationFieldArrayZ[jacIndex] += newPositionZ;
 
                         jacobianMatrix.m[0][0]= (float)(Tx_x / (ImageTYPE)splineControlPoint->dx);
                         jacobianMatrix.m[0][1]= (float)(Tx_y / (ImageTYPE)splineControlPoint->dy);
@@ -2160,14 +2157,16 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                         jacobianMatrix.m[2][2]= (float)(Tz_z / (ImageTYPE)splineControlPoint->dz);
 
                         jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
-                        detJac = nifti_mat33_determ(jacobianMatrix);
+                        jacobianMatrix.m[0][0]++;
+                        jacobianMatrix.m[1][1]++;
+                        jacobianMatrix.m[2][2]++;
+                        ImageTYPE detJac = nifti_mat33_determ(jacobianMatrix);
+                        jacPtr[jacIndex] *= detJac;
                     } // not in the range
-                    jacPtr[jacIndex] *= detJac;
                     jacIndex++;
                 } // x
             } // y
         } // z
-        reg_getDisplacementFromPosition<ImageTYPE>(splineControlPoint);
 
         reg_spline_cppComposition(  splineControlPoint2,
                                     splineControlPoint,
@@ -2265,7 +2264,7 @@ double reg_bspline_GetJacobianValueFromVelocityField(   nifti_image* velocityFie
                     reg_bspline_GetApproxJacobianMapFromVelocityField_3D<double>(velocityFieldImage, jacobianImage);
                     break;
                 default:
-                    fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField_3D\n");
+                    fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField\n");
                     fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
                     exit(1);
                     break;
@@ -2280,7 +2279,7 @@ double reg_bspline_GetJacobianValueFromVelocityField(   nifti_image* velocityFie
                     reg_bspline_GetApproxJacobianMapFromVelocityField_2D<double>(velocityFieldImage, jacobianImage);
                     break;
                 default:
-                    fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField_2D\n");
+                    fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField\n");
                     fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
                     exit(1);
                     break;
@@ -2297,7 +2296,7 @@ double reg_bspline_GetJacobianValueFromVelocityField(   nifti_image* velocityFie
                     reg_bspline_GetJacobianMapFromVelocityField_3D<double>(velocityFieldImage, jacobianImage);
                     break;
                 default:
-                    fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField_3D\n");
+                    fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField\n");
                     fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
                     exit(1);
                     break;
@@ -2312,7 +2311,7 @@ double reg_bspline_GetJacobianValueFromVelocityField(   nifti_image* velocityFie
                     reg_bspline_GetJacobianMapFromVelocityField_2D<double>(velocityFieldImage, jacobianImage);
                     break;
                 default:
-                    fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField_2D\n");
+                    fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField\n");
                     fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
                     exit(1);
                     break;
@@ -2320,6 +2319,7 @@ double reg_bspline_GetJacobianValueFromVelocityField(   nifti_image* velocityFie
         }
 
     }
+
     // The value in the array are then integrated
     double jacobianNormalisedSum=0.0;
     switch(velocityFieldImage->datatype){
@@ -2339,7 +2339,9 @@ double reg_bspline_GetJacobianValueFromVelocityField(   nifti_image* velocityFie
             break;}
     }
 
-    jacobianNormalisedSum /= (double)jacobianImage->nvox;
+    if(approx)
+        jacobianNormalisedSum /= (double)((jacobianImage->nx-2)*(jacobianImage->ny-2)*(jacobianImage->nz-2));
+    else jacobianNormalisedSum /= (double)jacobianImage->nvox;
     nifti_image_free(jacobianImage);
     return jacobianNormalisedSum;
 
@@ -2354,7 +2356,7 @@ void reg_bspline_GetJacobianGradient_3D(  nifti_image *velocityFieldImage,
 {
 #if _USE_SSE
     if(sizeof(ImageTYPE)!=4){
-        fprintf(stderr, "***ERROR***\treg_bspline_GetJacobianMapFromVelocityField_3D\n");
+        fprintf(stderr, "***ERROR***\treg_bspline_GetJacobianGradient_3D\n");
         fprintf(stderr, "The SSE implementation assume single precision... Exit\n");
         exit(0);
     }
@@ -2843,7 +2845,7 @@ void reg_bspline_GetApproxJacobianGradient_3D(nifti_image *velocityFieldImage,
 {
 #if _USE_SSE
     if(sizeof(ImageTYPE)!=4){
-        fprintf(stderr, "***ERROR***\treg_bspline_GetJacobianMapFromVelocityField_3D\n");
+        fprintf(stderr, "***ERROR***\treg_bspline_GetApproxJacobianGradient_3D\n");
         fprintf(stderr, "The SSE implementation assume single precision... Exit\n");
         exit(0);
     }
@@ -3328,7 +3330,7 @@ double reg_bspline_CorrectFoldingFromVelocityField_3D(  nifti_image* velocityFie
 {
 #if _USE_SSE
     if(sizeof(ImageTYPE)!=4){
-        fprintf(stderr, "***ERROR***\treg_bspline_GetJacobianMapFromVelocityField_3D\n");
+        fprintf(stderr, "***ERROR***\treg_bspline_CorrectFoldingFromVelocityField_3D\n");
         fprintf(stderr, "The SSE implementation assume single precision... Exit\n");
         exit(0);
     }
@@ -3830,7 +3832,7 @@ double reg_bspline_CorrectFoldingFromApproxVelocityField_3D(    nifti_image* vel
 {
 #if _USE_SSE
     if(sizeof(ImageTYPE)!=4){
-        fprintf(stderr, "***ERROR***\treg_bspline_GetJacobianMapFromVelocityField_3D\n");
+        fprintf(stderr, "***ERROR***\treg_bspline_CorrectFoldingFromApproxVelocityField_3D\n");
         fprintf(stderr, "The SSE implementation assume single precision... Exit\n");
         exit(0);
     }
@@ -4346,7 +4348,7 @@ void reg_bspline_GetJacobianGradientFromVelocityField(  nifti_image* velocityFie
                     (velocityFieldImage, gradientImage, weight);
                 break;
             default:
-                fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField_3D\n");
+                fprintf(stderr,"ERROR:\treg_bspline_GetJacobianGradientFromVelocityField\n");
                 fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
                 exit(1);
                 break;
@@ -4363,7 +4365,7 @@ void reg_bspline_GetJacobianGradientFromVelocityField(  nifti_image* velocityFie
                     (velocityFieldImage, resultImage, gradientImage, weight);
                 break;
             default:
-                fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField_3D\n");
+                fprintf(stderr,"ERROR:\treg_bspline_GetJacobianGradientFromVelocityField\n");
                 fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
                 exit(1);
                 break;

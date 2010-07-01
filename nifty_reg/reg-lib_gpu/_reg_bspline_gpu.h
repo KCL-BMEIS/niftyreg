@@ -52,6 +52,12 @@ double reg_bspline_ComputeJacobianPenaltyTerm_gpu(  nifti_image *targetImage,
                                                     bool approximate);
 
 extern "C++"
+double reg_bspline_ComputeJacobianPenaltyTermFromVelocity_gpu(  nifti_image *targetImage,
+                                                                nifti_image *velocityFieldImage,
+                                                                float4 **velocityFieldImageArray_d,
+                                                                bool approximate);
+
+extern "C++"
 void reg_bspline_ComputeJacobianGradient_gpu(   nifti_image *targetImage,
                                                 nifti_image *controlPointImage,
                                                 float4 **controlPointImageArray_d,
