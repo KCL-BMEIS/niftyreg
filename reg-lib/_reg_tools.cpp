@@ -182,17 +182,22 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
 			for(int z=0; z<image->nz; z++){
 				for(int y=0; y<image->ny; y++){
 					for(int x=0; x<image->nx; x++){
-						
-						PrecisionTYPE finalValue=0.0;
+
 						
 						int index = i - radius[0];
 						int X = x - radius[0];
-						
+
+                        PrecisionTYPE finalValue=0.0;
+                        // Kahan summation used here
+                        PrecisionTYPE c = 0., y, t, windowValue;
 						for(int it=0; it<windowSize; it++){
 							if(-1<X && X<image->nx){
 								DTYPE imageValue = readingValue[index];
-								PrecisionTYPE windowValue = window[it];
-								finalValue += (PrecisionTYPE)imageValue * windowValue;
+                                windowValue = window[it];
+                                y = (PrecisionTYPE)imageValue * windowValue - c;
+                                t = finalValue + y;
+                                c = (t - finalValue) - y;
+                                finalValue = t;
 							}
 							index++;
 							X++;
@@ -231,12 +236,17 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
 						
 						int index = i - image->nx*radius[1];
 						int Y = y - radius[1];
-						
-						for(int it=0; it<windowSize; it++){
-							if(-1<Y && Y<image->ny){
-								DTYPE imageValue = readingValue[index];
-								PrecisionTYPE windowValue = window[it];
-								finalValue += (PrecisionTYPE)imageValue * windowValue;
+
+                        // Kahan summation used here
+                        PrecisionTYPE c = 0., y, t, windowValue;
+                        for(int it=0; it<windowSize; it++){
+                            if(-1<Y && Y<image->ny){
+                                DTYPE imageValue = readingValue[index];
+                                windowValue = window[it];
+                                y = (PrecisionTYPE)imageValue * windowValue - c;
+                                t = finalValue + y;
+                                c = (t - finalValue) - y;
+                                finalValue = t;
 							}
 							index+=image->nx;
 							Y++;
@@ -275,12 +285,17 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
 							
 							int index = i - image->nx*image->ny*radius[2];
 							int Z = z - radius[2];
-							
-							for(int it=0; it<windowSize; it++){
-								if(-1<Z && Z<image->nz){
-									DTYPE imageValue = readingValue[index];
-									PrecisionTYPE windowValue = window[it];
-									finalValue += (PrecisionTYPE)imageValue * windowValue;
+
+                            // Kahan summation used here
+                            PrecisionTYPE c = 0., y, t, windowValue;
+                            for(int it=0; it<windowSize; it++){
+                                if(-1<Z && Z<image->nz){
+                                    DTYPE imageValue = readingValue[index];
+                                    windowValue = window[it];
+                                    y = (PrecisionTYPE)imageValue * windowValue - c;
+                                    t = finalValue + y;
+                                    c = (t - finalValue) - y;
+                                    finalValue = t;
 								}
 								index+=image->nx*image->ny;
 								Z++;

@@ -1300,7 +1300,7 @@ double reg_bspline_ComputeJacobianPenaltyTermFromVelocity_gpu(  nifti_image *tar
     reg_spline_cppDeconvolve_gpu(   velocityFieldImage,
                                     velocityFieldImage,
                                     &nodePositionArray_d,   // input
-                                    &controlPointArray_d);   // output
+                                    &controlPointArray_d);  // output
 
 
     // The Jacobian map is computed using assuming we deal with a control point position
