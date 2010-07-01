@@ -31,9 +31,9 @@
 	#define Block_reg_spline_cppComposition 320                         // 25 regs - 063% occupancy
 	#define Block_reg_getSourceImageGradient 320                        // 23 regs - 063% occupancy
 	#define Block_reg_getVoxelBasedNMIGradientUsingPW 320               // 24 regs - 063% occupancy
-	#define Block_reg_ApplyConvolutionWindowAlongX 512                  // 11 regs - 100% occupancy
-	#define Block_reg_ApplyConvolutionWindowAlongY 512                  // 11 regs - 100% occupancy
-	#define Block_reg_ApplyConvolutionWindowAlongZ 512                  // 12 regs - 100% occupancy
+    #define Block_reg_ApplyConvolutionWindowAlongX 512                  // 14 regs - 100% occupancy
+    #define Block_reg_ApplyConvolutionWindowAlongY 512                  // 14 regs - 100% occupancy
+    #define Block_reg_ApplyConvolutionWindowAlongZ 512                  // 15 regs - 100% occupancy
 	#define Block_reg_voxelCentric2NodeCentric 512                      // 11 regs - 083% occupancy
 	#define Block_reg_convertNMIGradientFromVoxelToRealSpace 448        // 18 regs - 088% occupancy
 	#define Block_reg_GetConjugateGradient1 512                         // 12 regs - 100% occupancy
@@ -51,10 +51,10 @@
 	#define Block_reg_spline_cppComposition 320                         // 25 regs - 042% occupancy
 	#define Block_reg_getSourceImageGradient 320                        // 23 regs - 042% occupancy
 	#define Block_reg_getVoxelBasedNMIGradientUsingPW 320               // 24 regs - 042% occupancy
-	#define Block_reg_ApplyConvolutionWindowAlongX 320                  // 11 regs - 083% occupancy
-	#define Block_reg_ApplyConvolutionWindowAlongY 320                  // 11 regs - 083% occupancy
-	#define Block_reg_ApplyConvolutionWindowAlongZ 320                  // 12 regs - 083% occupancy
-	#define Block_reg_voxelCentric2NodeCentric 320                      // 11 regs - 083% occupancy
+    #define Block_reg_ApplyConvolutionWindowAlongX 320                  // 14 regs - 083% occupancy
+    #define Block_reg_ApplyConvolutionWindowAlongY 320                  // 14 regs - 083% occupancy
+    #define Block_reg_ApplyConvolutionWindowAlongZ 320                  // 15 regs - 083% occupancy
+    #define Block_reg_voxelCentric2NodeCentric 320                      // 10 regs - 083% occupancy
 	#define Block_reg_convertNMIGradientFromVoxelToRealSpace 448        // 18 regs - 058% occupancy
 	#define Block_reg_GetConjugateGradient1 320                         // 12 regs - 083% occupancy
 	#define Block_reg_bspline_ApproxBendingEnergy 192                   // 39 regs - 025% occupancy

@@ -180,13 +180,24 @@ __global__ void _reg_ApplyConvolutionWindowAlongX_kernel(   float4 *smoothedImag
 
         float4 finalValue = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 
+        // Kahan summation used here
+        float3 c=make_float3(0.f,0.f,0.f), Y, t;
+        float windowValue;
         for(int i=0; i<windowSize; i++){
             if(-1<x && x<imageSize.x){
                 float4 gradientValue = tex1Dfetch(gradientImageTexture,index);
-                float windowValue = tex1Dfetch(convolutionKernelTexture,i);
-                finalValue.x += gradientValue.x * windowValue;
-                finalValue.y += gradientValue.y * windowValue;
-                finalValue.z += gradientValue.z * windowValue;
+                windowValue = tex1Dfetch(convolutionKernelTexture,i);
+
+                Y.x = gradientValue.x * windowValue - c.x;
+                Y.y = gradientValue.y * windowValue - c.y;
+                Y.z = gradientValue.z * windowValue - c.z;
+                t.x = finalValue.x + Y.x;
+                t.y = finalValue.y + Y.y;
+                t.z = finalValue.z + Y.z;
+                c.x = (t.x - finalValue.x) - Y.x;
+                c.y = (t.y - finalValue.y) - Y.y;
+                c.z = (t.z - finalValue.z) - Y.z;
+                finalValue = make_float4(t.x, t.y, t.z, 0.f);
             }
             index++;
             x++;
@@ -214,13 +225,24 @@ __global__ void _reg_ApplyConvolutionWindowAlongY_kernel(float4 *smoothedImage,
 
         float4 finalValue = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 
+        // Kahan summation used here
+        float3 c=make_float3(0.f,0.f,0.f), Y, t;
+        float windowValue;
         for(int i=0; i<windowSize; i++){
             if(-1<y && y<imageSize.y){
                 float4 gradientValue = tex1Dfetch(gradientImageTexture,index);
-                float windowValue = tex1Dfetch(convolutionKernelTexture,i);
-                finalValue.x += gradientValue.x * windowValue;
-                finalValue.y += gradientValue.y * windowValue;
-                finalValue.z += gradientValue.z * windowValue;
+                windowValue = tex1Dfetch(convolutionKernelTexture,i);
+
+                Y.x = gradientValue.x * windowValue - c.x;
+                Y.y = gradientValue.y * windowValue - c.y;
+                Y.z = gradientValue.z * windowValue - c.z;
+                t.x = finalValue.x + Y.x;
+                t.y = finalValue.y + Y.y;
+                t.z = finalValue.z + Y.z;
+                c.x = (t.x - finalValue.x) - Y.x;
+                c.y = (t.y - finalValue.y) - Y.y;
+                c.z = (t.z - finalValue.z) - Y.z;
+                finalValue = make_float4(t.x, t.y, t.z, 0.f);
             }
             index += imageSize.x;
             y++;
@@ -246,18 +268,28 @@ __global__ void _reg_ApplyConvolutionWindowAlongZ_kernel(float4 *smoothedImage,
 
         float4 finalValue = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 
+        // Kahan summation used here
+        float3 c=make_float3(0.f,0.f,0.f), Y, t;
+        float windowValue;
         for(int i=0; i<windowSize; i++){
             if(-1<z && z<imageSize.z){
                 float4 gradientValue = tex1Dfetch(gradientImageTexture,index);
-                float windowValue = tex1Dfetch(convolutionKernelTexture,i);
-                finalValue.x += gradientValue.x * windowValue;
-                finalValue.y += gradientValue.y * windowValue;
-                finalValue.z += gradientValue.z * windowValue;
+                windowValue = tex1Dfetch(convolutionKernelTexture,i);
+
+                Y.x = gradientValue.x * windowValue - c.x;
+                Y.y = gradientValue.y * windowValue - c.y;
+                Y.z = gradientValue.z * windowValue - c.z;
+                t.x = finalValue.x + Y.x;
+                t.y = finalValue.y + Y.y;
+                t.z = finalValue.z + Y.z;
+                c.x = (t.x - finalValue.x) - Y.x;
+                c.y = (t.y - finalValue.y) - Y.y;
+                c.z = (t.z - finalValue.z) - Y.z;
+                finalValue = make_float4(t.x, t.y, t.z, 0.f);
             }
             index += imageSize.x*imageSize.y;
             z++;
         }
-
         smoothedImage[tid] = finalValue;
     }
     return;

@@ -789,8 +789,8 @@ __global__ void _reg_bspline_JacDetFromVelField_kernel(float *jacobianMap,
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_ApproxJacDetFromVelField_kernel(float *jacobianMap,
-                                                                              float4 *displacementField_d)
+__global__ void _reg_bspline_ApproxJacDetFromVelField_kernel(   float *jacobianMap,
+                                                                float4 *displacementField_d)
 {
     const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_ControlPointNumber){
