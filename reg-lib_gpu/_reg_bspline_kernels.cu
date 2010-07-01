@@ -72,6 +72,51 @@ __device__ float3 operator*(float3 a, float3 b){
 /* *************************************************************** */
 /* *************************************************************** */
 
+__device__ void bendingEnergyMult(	float3 *XX,
+                    float3 *YY,
+                    float3 *ZZ,
+                    float3 *XY,
+                    float3 *YZ,
+                    float3 *XZ,
+                    float basisXX,
+                    float basisYY,
+                    float basisZZ,
+                    float basisXY,
+                    float basisYZ,
+                    float basisXZ,
+                    int index)
+{
+    float4 position = tex1Dfetch(controlPointTexture,index);
+    (*XX).x += basisXX * position.x;
+    (*XX).y += basisXX * position.y;
+    (*XX).z += basisXX * position.z;
+
+    (*YY).x += basisYY * position.x;
+    (*YY).y += basisYY * position.y;
+    (*YY).z += basisYY * position.z;
+
+    (*ZZ).x += basisZZ * position.x;
+    (*ZZ).y += basisZZ * position.y;
+    (*ZZ).z += basisZZ * position.z;
+
+    (*XY).x += basisXY * position.x;
+    (*XY).y += basisXY * position.y;
+    (*XY).z += basisXY * position.z;
+
+    (*YZ).x += basisYZ * position.x;
+    (*YZ).y += basisYZ * position.y;
+    (*YZ).z += basisYZ * position.z;
+
+    (*XZ).x += basisXZ * position.x;
+    (*XZ).y += basisXZ * position.y;
+    (*XZ).z += basisXZ * position.z;
+
+    return;
+}
+
+/* *************************************************************** */
+/* *************************************************************** */
+
 __global__ void _reg_freeForm_interpolatePosition(float4 *positionField)
 {
     const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
@@ -173,51 +218,6 @@ __global__ void _reg_freeForm_interpolatePosition(float4 *positionField)
 /* *************************************************************** */
 /* *************************************************************** */
 
-__device__ void bendingEnergyMult(	float3 *XX,
-					float3 *YY,
-					float3 *ZZ,
-					float3 *XY,
-					float3 *YZ,
-					float3 *XZ,
-					float basisXX,
-					float basisYY,
-					float basisZZ,
-					float basisXY,
-					float basisYZ,
-					float basisXZ,
-					int index)
-{
-	float4 position = tex1Dfetch(controlPointTexture,index);
-	(*XX).x += basisXX * position.x;
-	(*XX).y += basisXX * position.y;
-	(*XX).z += basisXX * position.z;
-
-	(*YY).x += basisYY * position.x;
-	(*YY).y += basisYY * position.y;
-	(*YY).z += basisYY * position.z;
-
-	(*ZZ).x += basisZZ * position.x;
-	(*ZZ).y += basisZZ * position.y;
-	(*ZZ).z += basisZZ * position.z;
-
-	(*XY).x += basisXY * position.x;
-	(*XY).y += basisXY * position.y;
-	(*XY).z += basisXY * position.z;
-
-	(*YZ).x += basisYZ * position.x;
-	(*YZ).y += basisYZ * position.y;
-	(*YZ).z += basisYZ * position.z;
-
-	(*XZ).x += basisXZ * position.x;
-	(*XZ).y += basisXZ * position.y;
-	(*XZ).z += basisXZ * position.z;
-
-	return;
-}
-
-/* *************************************************************** */
-/* *************************************************************** */
-
 __global__ void _reg_bspline_ApproxBendingEnergy_kernel(float *penaltyTerm)
 {
 	const int tid= blockIdx.x*blockDim.x + threadIdx.x;
@@ -284,7 +284,7 @@ __global__ void _reg_bspline_ApproxBendingEnergy_kernel(float *penaltyTerm)
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_JacobianDeterminant_kernel(float *jacobianMap)
+__global__ void _reg_bspline_JacDet_kernel(float *jacobianMap)
 {
     const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_VoxelNumber){
@@ -470,7 +470,7 @@ __global__ void _reg_bspline_JacobianDeterminant_kernel(float *jacobianMap)
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_ApproxJacobianDeterminant_kernel(float *penaltyTerm)
+__global__ void _reg_bspline_ApproxJacDet_kernel(float *penaltyTerm)
 {
     __shared__ float basisX[27];
     __shared__ float basisY[27];
@@ -564,7 +564,7 @@ __global__ void _reg_bspline_ApproxJacobianDeterminant_kernel(float *penaltyTerm
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_JacobianDeterminantFromVelocityField_kernel(float *jacobianMap,
+__global__ void _reg_bspline_JacDetFromVelField_kernel(float *jacobianMap,
                                                                         float4 *displacementField_d)
 {
     const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
@@ -789,7 +789,7 @@ __global__ void _reg_bspline_JacobianDeterminantFromVelocityField_kernel(float *
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_ApproxJacobianDeterminantFromVelocityField_kernel(float *jacobianMap,
+__global__ void _reg_bspline_ApproxJacDetFromVelField_kernel(float *jacobianMap,
                                                                               float4 *displacementField_d)
 {
     const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
@@ -2290,7 +2290,7 @@ __global__ void _reg_spline_getDeformationFromDisplacement_kernel(float4 *imageA
 }
 /* *************************************************************** */
 /* *************************************************************** */
-__global__ void _reg_bspline_SetJacobianDeterminantToOne_kernel(float *array)
+__global__ void _reg_bspline_SetJacDetToOne_kernel(float *array)
 {
     const int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_VoxelNumber){
@@ -2299,7 +2299,7 @@ __global__ void _reg_bspline_SetJacobianDeterminantToOne_kernel(float *array)
 }
 /* *************************************************************** */
 
-__global__ void _reg_bspline_GetSquaredLogJacobianDeterminant_kernel(float *array)
+__global__ void _reg_bspline_GetSquaredLogJacDet_kernel(float *array)
 {
     const int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_VoxelNumber){
