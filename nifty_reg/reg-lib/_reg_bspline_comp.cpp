@@ -938,8 +938,6 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_2D(  nifti_image* velocit
     ImageTYPE xControlPointCoordinates[16];
     ImageTYPE yControlPointCoordinates[16];
 
-    int xPre, yPre, oldXPre=-1, oldYPre=-1;
-
     unsigned int coord=0;
 
     mat33 reorient;
@@ -983,10 +981,10 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_2D(  nifti_image* velocit
     unsigned int jacIndex = 0;
     for(int y=0; y>jacobianImage->ny; y++){
         for(int x=0; x>jacobianImage->nx; x++){
-            deformationFieldArrayX[jacIndex] = jac_xyz_matrix->m[0][0]*x
-                + jac_xyz_matrix->m[0][1]*y + jac_xyz_matrix->m[0][3];
-            deformationFieldArrayY[jacIndex] = jac_xyz_matrix->m[1][0]*x
-                + jac_xyz_matrix->m[1][1]*y + jac_xyz_matrix->m[1][3];
+            deformationFieldArrayX[jacIndex] = jac_xyz_matrix->m[0][0]*(ImageTYPE)x
+                + jac_xyz_matrix->m[0][1]*(ImageTYPE)y + jac_xyz_matrix->m[0][3];
+            deformationFieldArrayY[jacIndex] = jac_xyz_matrix->m[1][0]*(ImageTYPE)x
+                + jac_xyz_matrix->m[1][1]*(ImageTYPE)y + jac_xyz_matrix->m[1][3];
             jacIndex++;
         }
     }
@@ -1008,6 +1006,8 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_2D(  nifti_image* velocit
         ImageTYPE *controlPointPtrX = static_cast<ImageTYPE *>(splineControlPoint->data);
         ImageTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny];
 
+        int xPre, yPre, oldXPre=-1, oldYPre=-1;
+
         jacIndex=0;
 
         for(int y=0; y<jacobianImage->ny; y++){
@@ -1023,15 +1023,15 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_2D(  nifti_image* velocit
                 voxelPosition[1] = jac_ijk_matrix->m[1][0]*realPosition[0]
                     + jac_ijk_matrix->m[1][1]*realPosition[1] + jac_ijk_matrix->m[1][3];
 
-                xPre=x-1;
-                yPre=y-1;
+                xPre=(int)floor(voxelPosition[0]);
+                yPre=(int)floor(voxelPosition[1]);
 
                 ImageTYPE detJac = 1.0f;
 
-                if( xPre>-1 && (xPre+4)<splineControlPoint->nx &&
-                    yPre>-1 && (yPre+4)<splineControlPoint->ny){
+                if( xPre>0 && xPre<splineControlPoint->nx-2 &&
+                    yPre>0 && yPre<splineControlPoint->ny-2){
 
-                    basis=(ImageTYPE)voxelPosition[0]-(ImageTYPE)(xPre+1);
+                    basis=(ImageTYPE)voxelPosition[0]-(ImageTYPE)(xPre);
                     if(basis<0.0) basis=0.0; //rounding error
                     FF= basis*basis;
                     FFF= FF*basis;
@@ -1045,7 +1045,7 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_2D(  nifti_image* velocit
                     xFirst[2]= (ImageTYPE)(1.0 + xFirst[0] - 2.0*xFirst[3]);
                     xFirst[1]= (ImageTYPE)(- xFirst[0] - xFirst[2] - xFirst[3]);
 
-                    basis=(ImageTYPE)voxelPosition[1]-(ImageTYPE)(yPre+1);
+                    basis=(ImageTYPE)voxelPosition[1]-(ImageTYPE)(yPre);
                     if(basis<0.0) basis=0.0; //rounding error
                     FF= basis*basis;
                     FFF= FF*basis;
@@ -1069,11 +1069,11 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_2D(  nifti_image* velocit
                     }
                     if(xPre != oldXPre || yPre != oldYPre){
                         coord=0;
-                        for(int Y=yPre; Y<yPre+4; Y++){
+                        for(int Y=yPre-1; Y<yPre+3; Y++){
                             unsigned int index = Y*splineControlPoint->nx;
                             ImageTYPE *xPtr = &controlPointPtrX[index];
                             ImageTYPE *yPtr = &controlPointPtrY[index];
-                            for(int X=xPre; X<xPre+4; X++){
+                            for(int X=xPre-1; X<xPre+3; X++){
                                 xControlPointCoordinates[coord] = (ImageTYPE)xPtr[X];
                                 yControlPointCoordinates[coord] = (ImageTYPE)yPtr[X];
                                 coord++;
@@ -1144,8 +1144,6 @@ void reg_bspline_GetJacobianMapFromVelocityField_2D(nifti_image* velocityFieldIm
     ImageTYPE xControlPointCoordinates[16];
     ImageTYPE yControlPointCoordinates[16];
 
-    int xPre, yPre, oldXPre=-1, oldYPre=-1;
-
     ImageTYPE gridVoxelSpacing[2];
     gridVoxelSpacing[0] = splineControlPoint->dx / jacobianImage->dx;
     gridVoxelSpacing[1] = splineControlPoint->dy / jacobianImage->dy;
@@ -1193,10 +1191,10 @@ void reg_bspline_GetJacobianMapFromVelocityField_2D(nifti_image* velocityFieldIm
     unsigned int jacIndex = 0;
     for(int y=0; y>jacobianImage->ny; y++){
         for(int x=0; x>jacobianImage->nx; x++){
-            deformationFieldArrayX[jacIndex] = jac_xyz_matrix->m[0][0]*x
-                + jac_xyz_matrix->m[0][1]*y + jac_xyz_matrix->m[0][3];
-            deformationFieldArrayY[jacIndex] = jac_xyz_matrix->m[1][0]*x
-                + jac_xyz_matrix->m[1][1]*y + jac_xyz_matrix->m[1][3];
+            deformationFieldArrayX[jacIndex] = jac_xyz_matrix->m[0][0]*(ImageTYPE)x
+                + jac_xyz_matrix->m[0][1]*(ImageTYPE)y + jac_xyz_matrix->m[0][3];
+            deformationFieldArrayY[jacIndex] = jac_xyz_matrix->m[1][0]*(ImageTYPE)x
+                + jac_xyz_matrix->m[1][1]*(ImageTYPE)y + jac_xyz_matrix->m[1][3];
             jacIndex++;
         }
     }
@@ -1218,6 +1216,8 @@ void reg_bspline_GetJacobianMapFromVelocityField_2D(nifti_image* velocityFieldIm
         ImageTYPE *controlPointPtrX = static_cast<ImageTYPE *>(splineControlPoint->data);
         ImageTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny];
 
+        int xPre, yPre, oldXPre=-1, oldYPre=-1;
+
         jacIndex=0;
 
         for(int y=0; y<jacobianImage->ny; y++){
@@ -1233,13 +1233,13 @@ void reg_bspline_GetJacobianMapFromVelocityField_2D(nifti_image* velocityFieldIm
                 voxelPosition[1] = jac_ijk_matrix->m[1][0]*realPosition[0]
                     + jac_ijk_matrix->m[1][1]*realPosition[1] + jac_ijk_matrix->m[1][3];
 
-                xPre=(int)((ImageTYPE)x/gridVoxelSpacing[0]);
-                yPre=(int)((ImageTYPE)y/gridVoxelSpacing[1]);
+                xPre=(int)(voxelPosition[0]/gridVoxelSpacing[0]);
+                yPre=(int)(voxelPosition[0]/gridVoxelSpacing[1]);
 
                 ImageTYPE detJac = 1.0f;
 
-                if( xPre>-1 && (xPre+4)<splineControlPoint->nx &&
-                    yPre>-1 && (yPre+4)<splineControlPoint->ny){
+                if( xPre>-1 && xPre<splineControlPoint->nx-3 &&
+                    yPre>-1 && yPre<splineControlPoint->ny-3){
 
                     basis=(ImageTYPE)voxelPosition[0]/gridVoxelSpacing[0]-(ImageTYPE)xPre;
                     if(basis<0.0) basis=0.0; //rounding error
@@ -1362,8 +1362,6 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_3D(nifti_image* velocityF
     ImageTYPE xBasis[4],xFirst[4],yBasis[4],yFirst[4],zBasis[4],zFirst[4];
     ImageTYPE basis, FF, FFF, MF;
 
-    int xPre, xPreOld=1, yPre, yPreOld=1, zPre, zPreOld=1;
-
     ImageTYPE xControlPointCoordinates[64];
     ImageTYPE yControlPointCoordinates[64];
     ImageTYPE zControlPointCoordinates[64];
@@ -1414,6 +1412,7 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_3D(nifti_image* velocityF
         jac_ijk_matrix= &(jacobianImage->qto_ijk);
         jac_xyz_matrix= &(jacobianImage->qto_xyz);
     }
+
 #if USE_SSE
     val.f[0] = jac_ijk_matrix->m[0][0];
     val.f[1] = jac_ijk_matrix->m[0][1];
@@ -1438,19 +1437,19 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_3D(nifti_image* velocityF
         for(int y=0; y<jacobianImage->ny; y++){
             for(int x=0; x<jacobianImage->nx; x++){
                 deformationFieldArrayX[jacIndex]
-                    = jac_xyz_matrix->m[0][0]*x
-                    + jac_xyz_matrix->m[0][1]*y
-                    + jac_xyz_matrix->m[0][2]*z
+                    = jac_xyz_matrix->m[0][0]*(ImageTYPE)x
+                    + jac_xyz_matrix->m[0][1]*(ImageTYPE)y
+                    + jac_xyz_matrix->m[0][2]*(ImageTYPE)z
                     + jac_xyz_matrix->m[0][3];
                 deformationFieldArrayY[jacIndex]
-                    = jac_xyz_matrix->m[1][0]*x
-                    + jac_xyz_matrix->m[1][1]*y
-                    + jac_xyz_matrix->m[1][2]*z
+                    = jac_xyz_matrix->m[1][0]*(ImageTYPE)x
+                    + jac_xyz_matrix->m[1][1]*(ImageTYPE)y
+                    + jac_xyz_matrix->m[1][2]*(ImageTYPE)z
                     + jac_xyz_matrix->m[1][3];
                 deformationFieldArrayZ[jacIndex]
-                    = jac_xyz_matrix->m[2][0]*x
-                    + jac_xyz_matrix->m[2][1]*y
-                    + jac_xyz_matrix->m[2][2]*z
+                    = jac_xyz_matrix->m[2][0]*(ImageTYPE)x
+                    + jac_xyz_matrix->m[2][1]*(ImageTYPE)y
+                    + jac_xyz_matrix->m[2][2]*(ImageTYPE)z
                     + jac_xyz_matrix->m[2][3];
                 jacIndex++;
             }
@@ -1469,6 +1468,8 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_3D(nifti_image* velocityF
         ImageTYPE *controlPointPtrX = static_cast<ImageTYPE *>(splineControlPoint->data);
         ImageTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
         ImageTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+
+        int xPre, yPre, zPre, xPreOld=-1, yPreOld=-1, zPreOld=-1;
 
         jacIndex=0;
         for(int z=0; z<jacobianImage->nz; z++){
@@ -1511,17 +1512,17 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_3D(nifti_image* velocityF
                         + jac_ijk_matrix->m[2][3];
 #endif
 
-                    xPre=(int)floor(voxelPosition[0]-1);
-                    yPre=(int)floor(voxelPosition[1]-1);
-                    zPre=(int)floor(voxelPosition[2]-1);
+                    xPre=(int)floor(voxelPosition[0]);
+                    yPre=(int)floor(voxelPosition[1]);
+                    zPre=(int)floor(voxelPosition[2]);
 
-                    if( xPre>-1 && xPre<splineControlPoint->nx-3 &&
-                        yPre>-1 && yPre<splineControlPoint->ny-3 &&
-                        zPre>-1 && zPre<splineControlPoint->nz-3 ){
+                    if( xPre>0 && xPre<splineControlPoint->nx-2 &&
+                        yPre>0 && yPre<splineControlPoint->ny-2 &&
+                        zPre>0 && zPre<splineControlPoint->nz-2 ){
 
                         ImageTYPE detJac = 1.0f;
 
-                        basis=(ImageTYPE)voxelPosition[0]-(ImageTYPE)(xPre+1);
+                        basis=(ImageTYPE)voxelPosition[0]-(ImageTYPE)(xPre);
                         FF= basis*basis;
                         FFF= FF*basis;
                         MF=(ImageTYPE)(1.0-basis);
@@ -1534,7 +1535,7 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_3D(nifti_image* velocityF
                         xFirst[2]= (ImageTYPE)(1.0 + xFirst[0] - 2.0*xFirst[3]);
                         xFirst[1]= (ImageTYPE)(- xFirst[0] - xFirst[2] - xFirst[3]);
 
-                        basis=(ImageTYPE)voxelPosition[1]-(ImageTYPE)(yPre+1);
+                        basis=(ImageTYPE)voxelPosition[1]-(ImageTYPE)(yPre);
                         FF= basis*basis;
                         FFF= FF*basis;
                         MF=(ImageTYPE)(1.0-basis);
@@ -1547,7 +1548,7 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_3D(nifti_image* velocityF
                         yFirst[2]= (ImageTYPE)(1.0 + yFirst[0] - 2.0*yFirst[3]);
                         yFirst[1]= (ImageTYPE)(- yFirst[0] - yFirst[2] - yFirst[3]);
 
-                        basis=(ImageTYPE)voxelPosition[2]-(ImageTYPE)(zPre+1);
+                        basis=(ImageTYPE)voxelPosition[2]-(ImageTYPE)(zPre);
                         FF= basis*basis;
                         FFF= FF*basis;
                         MF=(ImageTYPE)(1.0-basis);
@@ -1575,17 +1576,17 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_3D(nifti_image* velocityF
 
                         if(xPre!=xPreOld || yPre!=yPreOld || zPre!=zPreOld){
                             coord=0;
-                            for(int Z=zPre; Z<zPre+4; Z++){
+                            for(int Z=zPre-1; Z<zPre+3; Z++){
                                 unsigned int index=Z*splineControlPoint->nx*splineControlPoint->ny;
                                 ImageTYPE *xPtr = &controlPointPtrX[index];
                                 ImageTYPE *yPtr = &controlPointPtrY[index];
                                 ImageTYPE *zPtr = &controlPointPtrZ[index];
-                                for(int Y=yPre; Y<yPre+4; Y++){
+                                for(int Y=yPre-1; Y<yPre+3; Y++){
                                     index = Y*splineControlPoint->nx;
                                     ImageTYPE *xxPtr = &xPtr[index];
                                     ImageTYPE *yyPtr = &yPtr[index];
                                     ImageTYPE *zzPtr = &zPtr[index];
-                                    for(int X=xPre; X<xPre+4; X++){
+                                    for(int X=xPre-1; X<xPre+3; X++){
                                         xControlPointCoordinates[coord] = (ImageTYPE)xxPtr[X];
                                         yControlPointCoordinates[coord] = (ImageTYPE)yyPtr[X];
                                         zControlPointCoordinates[coord] = (ImageTYPE)zzPtr[X];
@@ -1784,8 +1785,6 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
     ImageTYPE xBasis[4],xFirst[4],yBasis[4],yFirst[4],zBasis[4],zFirst[4];
     ImageTYPE basis, FF, FFF, MF;
 
-    int xPre, xPreOld=1, yPre, yPreOld=1, zPre, zPreOld=1;
-
     ImageTYPE xControlPointCoordinates[64];
     ImageTYPE yControlPointCoordinates[64];
     ImageTYPE zControlPointCoordinates[64];
@@ -1866,19 +1865,19 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
         for(int y=0; y<jacobianImage->ny; y++){
             for(int x=0; x<jacobianImage->nx; x++){
                 deformationFieldArrayX[jacIndex]
-                    = jac_xyz_matrix->m[0][0]*x
-                    + jac_xyz_matrix->m[0][1]*y
-                    + jac_xyz_matrix->m[0][2]*z
+                    = jac_xyz_matrix->m[0][0]*(ImageTYPE)x
+                    + jac_xyz_matrix->m[0][1]*(ImageTYPE)y
+                    + jac_xyz_matrix->m[0][2]*(ImageTYPE)z
                     + jac_xyz_matrix->m[0][3];
                 deformationFieldArrayY[jacIndex]
-                    = jac_xyz_matrix->m[1][0]*x
-                    + jac_xyz_matrix->m[1][1]*y
-                    + jac_xyz_matrix->m[1][2]*z
+                    = jac_xyz_matrix->m[1][0]*(ImageTYPE)x
+                    + jac_xyz_matrix->m[1][1]*(ImageTYPE)y
+                    + jac_xyz_matrix->m[1][2]*(ImageTYPE)z
                     + jac_xyz_matrix->m[1][3];
                 deformationFieldArrayZ[jacIndex]
-                    = jac_xyz_matrix->m[2][0]*x
-                    + jac_xyz_matrix->m[2][1]*y
-                    + jac_xyz_matrix->m[2][2]*z
+                    = jac_xyz_matrix->m[2][0]*(ImageTYPE)x
+                    + jac_xyz_matrix->m[2][1]*(ImageTYPE)y
+                    + jac_xyz_matrix->m[2][2]*(ImageTYPE)z
                     + jac_xyz_matrix->m[2][3];
                 jacIndex++;
             }
@@ -1895,6 +1894,8 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
         ImageTYPE *controlPointPtrX = static_cast<ImageTYPE *>(splineControlPoint->data);
         ImageTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
         ImageTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+
+        int xPre, xPreOld=-1, yPre, yPreOld=-1, zPre, zPreOld=-1;
 
         jacIndex=0;
         for(int z=0; z<jacobianImage->nz; z++){
@@ -2349,7 +2350,7 @@ double reg_bspline_GetJacobianValueFromVelocityField(   nifti_image* velocityFie
 /* *************************************************************** */
 /* *************************************************************** */
 template <class ImageTYPE>
-void reg_bspline_GetJacobianGradient_3D(  nifti_image *velocityFieldImage,
+void reg_bspline_GetJacGradientFromVel_3D(  nifti_image *velocityFieldImage,
                                             nifti_image *targetImage,
                                             nifti_image *gradientImage,
                                             float weight)
@@ -2375,8 +2376,6 @@ void reg_bspline_GetJacobianGradient_3D(  nifti_image *velocityFieldImage,
 
     ImageTYPE xBasis[4],xFirst[4],yBasis[4],yFirst[4],zBasis[4],zFirst[4];
     ImageTYPE basis, FF, FFF, MF;
-
-    int xPre, xPreOld=1, yPre, yPreOld=1, zPre, zPreOld=1;
 
     ImageTYPE xControlPointCoordinates[64];
     ImageTYPE yControlPointCoordinates[64];
@@ -2461,19 +2460,19 @@ void reg_bspline_GetJacobianGradient_3D(  nifti_image *velocityFieldImage,
         for(int y=0; y<targetImage->ny; y++){
             for(int x=0; x<targetImage->nx; x++){
                 deformationFieldArrayX[jacIndex]
-                    = jac_xyz_matrix->m[0][0]*x
-                    + jac_xyz_matrix->m[0][1]*y
-                    + jac_xyz_matrix->m[0][2]*z
+                    = jac_xyz_matrix->m[0][0]*(ImageTYPE)x
+                    + jac_xyz_matrix->m[0][1]*(ImageTYPE)y
+                    + jac_xyz_matrix->m[0][2]*(ImageTYPE)z
                     + jac_xyz_matrix->m[0][3];
                 deformationFieldArrayY[jacIndex]
-                    = jac_xyz_matrix->m[1][0]*x
-                    + jac_xyz_matrix->m[1][1]*y
-                    + jac_xyz_matrix->m[1][2]*z
+                    = jac_xyz_matrix->m[1][0]*(ImageTYPE)x
+                    + jac_xyz_matrix->m[1][1]*(ImageTYPE)y
+                    + jac_xyz_matrix->m[1][2]*(ImageTYPE)z
                     + jac_xyz_matrix->m[1][3];
                 deformationFieldArrayZ[jacIndex]
-                    = jac_xyz_matrix->m[2][0]*x
-                    + jac_xyz_matrix->m[2][1]*y
-                    + jac_xyz_matrix->m[2][2]*z
+                    = jac_xyz_matrix->m[2][0]*(ImageTYPE)x
+                    + jac_xyz_matrix->m[2][1]*(ImageTYPE)y
+                    + jac_xyz_matrix->m[2][2]*(ImageTYPE)z
                     + jac_xyz_matrix->m[2][3];
                 jacIndex++;
             }
@@ -2482,12 +2481,14 @@ void reg_bspline_GetJacobianGradient_3D(  nifti_image *velocityFieldImage,
     unsigned int coord=0;
 
     ImageTYPE *gradientImagePtrX=static_cast<ImageTYPE *>(gradientImage->data);
-    ImageTYPE *gradientImagePtrY=&gradientImagePtrX[gradientImage->nx*gradientImage->ny*gradientImage->nx];
-    ImageTYPE *gradientImagePtrZ=&gradientImagePtrY[gradientImage->nx*gradientImage->ny*gradientImage->nx];
+    ImageTYPE *gradientImagePtrY=&gradientImagePtrX[gradientImage->nx*gradientImage->ny*gradientImage->nz];
+    ImageTYPE *gradientImagePtrZ=&gradientImagePtrY[gradientImage->nx*gradientImage->ny*gradientImage->nz];
 
     ImageTYPE *controlPointPtrX = static_cast<ImageTYPE *>(splineControlPoint->data);
     ImageTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
     ImageTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+
+    ImageTYPE detJac;
 
     // The jacobian map is updated and then the deformation is composed
     for(int l=0;l<SQUARING_VALUE;l++){
@@ -2496,6 +2497,8 @@ void reg_bspline_GetJacobianGradient_3D(  nifti_image *velocityFieldImage,
                                             splineControlPoint);
 
         reg_getPositionFromDisplacement<ImageTYPE>(splineControlPoint);
+
+        int xPre, xPreOld=-1, yPre, yPreOld=-1, zPre, zPreOld=-1;
 
         jacIndex=0;
         for(int z=0; z<targetImage->nz; z++){
@@ -2542,11 +2545,9 @@ void reg_bspline_GetJacobianGradient_3D(  nifti_image *velocityFieldImage,
                     yPre=(int)floor((ImageTYPE)voxelPosition[1]/gridVoxelSpacing[1]);
                     zPre=(int)floor((ImageTYPE)voxelPosition[2]/gridVoxelSpacing[2]);
 
-                    ImageTYPE detJac = 1.0f;
-
-                    if( xPre>-1 && (xPre+3)<splineControlPoint->nx &&
-                        yPre>-1 && (yPre+3)<splineControlPoint->ny &&
-                        zPre>-1 && (zPre+3)<splineControlPoint->nz ){
+                    if( xPre>-1 && xPre<splineControlPoint->nx-3 &&
+                        yPre>-1 && yPre<splineControlPoint->ny-3 &&
+                        zPre>-1 && zPre<splineControlPoint->nz-3 ){
 
                         basis=(ImageTYPE)voxelPosition[0]/gridVoxelSpacing[0]-(ImageTYPE)(xPre);
                         FF= basis*basis;
@@ -2839,7 +2840,7 @@ void reg_bspline_GetJacobianGradient_3D(  nifti_image *velocityFieldImage,
 }
 /* *************************************************************** */
 template <class ImageTYPE>
-void reg_bspline_GetApproxJacobianGradient_3D(nifti_image *velocityFieldImage,
+void reg_bspline_GetApproxJacGradientFromVel_3D(nifti_image *velocityFieldImage,
                                                 nifti_image *gradientImage,
                                                 float weight)
 {
@@ -2866,8 +2867,6 @@ void reg_bspline_GetApproxJacobianGradient_3D(nifti_image *velocityFieldImage,
 
     ImageTYPE xBasis[4],xFirst[4],yBasis[4],yFirst[4],zBasis[4],zFirst[4];
     ImageTYPE basis, FF, FFF, MF;
-
-    int xPre, xPreOld=1, yPre, yPreOld=1, zPre, zPreOld=1;
 
     ImageTYPE xControlPointCoordinates[64];
     ImageTYPE yControlPointCoordinates[64];
@@ -2947,19 +2946,19 @@ void reg_bspline_GetApproxJacobianGradient_3D(nifti_image *velocityFieldImage,
         for(int y=0; y<velocityFieldImage->ny; y++){
             for(int x=0; x<velocityFieldImage->nx; x++){
                 deformationFieldArrayX[jacIndex]
-                    = jac_xyz_matrix->m[0][0]*x
-                    + jac_xyz_matrix->m[0][1]*y
-                    + jac_xyz_matrix->m[0][2]*z
+                    = jac_xyz_matrix->m[0][0]*(ImageTYPE)x
+                    + jac_xyz_matrix->m[0][1]*(ImageTYPE)y
+                    + jac_xyz_matrix->m[0][2]*(ImageTYPE)z
                     + jac_xyz_matrix->m[0][3];
                 deformationFieldArrayY[jacIndex]
-                    = jac_xyz_matrix->m[1][0]*x
-                    + jac_xyz_matrix->m[1][1]*y
-                    + jac_xyz_matrix->m[1][2]*z
+                    = jac_xyz_matrix->m[1][0]*(ImageTYPE)x
+                    + jac_xyz_matrix->m[1][1]*(ImageTYPE)y
+                    + jac_xyz_matrix->m[1][2]*(ImageTYPE)z
                     + jac_xyz_matrix->m[1][3];
                 deformationFieldArrayZ[jacIndex]
-                    = jac_xyz_matrix->m[2][0]*x
-                    + jac_xyz_matrix->m[2][1]*y
-                    + jac_xyz_matrix->m[2][2]*z
+                    = jac_xyz_matrix->m[2][0]*(ImageTYPE)x
+                    + jac_xyz_matrix->m[2][1]*(ImageTYPE)y
+                    + jac_xyz_matrix->m[2][2]*(ImageTYPE)z
                     + jac_xyz_matrix->m[2][3];
                 jacIndex++;
             }
@@ -2968,8 +2967,8 @@ void reg_bspline_GetApproxJacobianGradient_3D(nifti_image *velocityFieldImage,
     unsigned int coord=0;
 
     ImageTYPE *gradientImagePtrX=static_cast<ImageTYPE *>(gradientImage->data);
-    ImageTYPE *gradientImagePtrY=&gradientImagePtrX[gradientImage->nx*gradientImage->ny*gradientImage->nx];
-    ImageTYPE *gradientImagePtrZ=&gradientImagePtrY[gradientImage->nx*gradientImage->ny*gradientImage->nx];
+    ImageTYPE *gradientImagePtrY=&gradientImagePtrX[gradientImage->nx*gradientImage->ny*gradientImage->nz];
+    ImageTYPE *gradientImagePtrZ=&gradientImagePtrY[gradientImage->nx*gradientImage->ny*gradientImage->nz];
 
     ImageTYPE *controlPointPtrX = static_cast<ImageTYPE *>(splineControlPoint->data);
     ImageTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
@@ -2982,6 +2981,8 @@ void reg_bspline_GetApproxJacobianGradient_3D(nifti_image *velocityFieldImage,
                                             splineControlPoint);
 
         reg_getPositionFromDisplacement<ImageTYPE>(splineControlPoint);
+
+        int xPre, xPreOld=-1, yPre, yPreOld=-1, zPre, zPreOld=-1;
 
         jacIndex=0;
         for(int z=0; z<velocityFieldImage->nz; z++){
@@ -3032,7 +3033,7 @@ void reg_bspline_GetApproxJacobianGradient_3D(nifti_image *velocityFieldImage,
 
                     if( xPre>0 && xPre<splineControlPoint->nx-2 &&
                         yPre>0 && yPre<splineControlPoint->ny-2 &&
-                        zPre>0 && zPre<splineControlPoint->nz-2 ){
+                        zPre>0 && zPre<splineControlPoint->nz-2){
 
                         basis=(ImageTYPE)voxelPosition[0]-(ImageTYPE)(xPre);
                         FF= basis*basis;
@@ -3300,7 +3301,6 @@ void reg_bspline_GetApproxJacobianGradient_3D(nifti_image *velocityFieldImage,
                                 } // a
                             } // b
                         } // c
-
                     } // Not in the range
                     jacIndex++;
                 } // x
@@ -3356,8 +3356,6 @@ double reg_bspline_CorrectFoldingFromVelocityField_3D(  nifti_image* velocityFie
 
     ImageTYPE xBasis[4],xFirst[4],yBasis[4],yFirst[4],zBasis[4],zFirst[4];
     ImageTYPE basis, FF, FFF, MF;
-
-    int xPre, xPreOld=1, yPre, yPreOld=1, zPre, zPreOld=1;
 
     ImageTYPE xControlPointCoordinates[64];
     ImageTYPE yControlPointCoordinates[64];
@@ -3476,6 +3474,8 @@ double reg_bspline_CorrectFoldingFromVelocityField_3D(  nifti_image* velocityFie
         ImageTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
         ImageTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
 
+        int xPre, xPreOld=-1, yPre, yPreOld=-1, zPre, zPreOld=-1;
+
         jacIndex=0;
         for(int z=0; z<jacobianImage->nz; z++){
             for(int y=0; y<jacobianImage->ny; y++){
@@ -3523,9 +3523,9 @@ double reg_bspline_CorrectFoldingFromVelocityField_3D(  nifti_image* velocityFie
 
                     ImageTYPE detJac = 1.0f;
 
-                    if( xPre>-1 && (xPre+3)<splineControlPoint->nx &&
-                        yPre>-1 && (yPre+3)<splineControlPoint->ny &&
-                        zPre>-1 && (zPre+3)<splineControlPoint->nz ){
+                    if( xPre>-1 && xPre<splineControlPoint->nx-3 &&
+                        yPre>-1 && yPre<splineControlPoint->ny-3 &&
+                        zPre>-1 && zPre<splineControlPoint->nz-3 ){
 
                         basis=(ImageTYPE)voxelPosition[0]/gridVoxelSpacing[0]-(ImageTYPE)(xPre);
                         FF= basis*basis;
@@ -3862,16 +3862,9 @@ double reg_bspline_CorrectFoldingFromApproxVelocityField_3D(    nifti_image* vel
     ImageTYPE xBasis[4],xFirst[4],yBasis[4],yFirst[4],zBasis[4],zFirst[4];
     ImageTYPE basis, FF, FFF, MF;
 
-    int xPre, xPreOld=1, yPre, yPreOld=1, zPre, zPreOld=1;
-
     ImageTYPE xControlPointCoordinates[64];
     ImageTYPE yControlPointCoordinates[64];
     ImageTYPE zControlPointCoordinates[64];
-
-    ImageTYPE gridVoxelSpacing[3];
-    gridVoxelSpacing[0] = splineControlPoint->dx / jacobianImage->dx;
-    gridVoxelSpacing[1] = splineControlPoint->dy / jacobianImage->dy;
-    gridVoxelSpacing[2] = splineControlPoint->dz / jacobianImage->dz;
 
     mat33 desorient;
     desorient.m[0][0]=splineControlPoint->dx; desorient.m[0][1]=0.0f; desorient.m[0][2]=0.0f;
@@ -3981,6 +3974,8 @@ double reg_bspline_CorrectFoldingFromApproxVelocityField_3D(    nifti_image* vel
         ImageTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
         ImageTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
 
+        int xPre, xPreOld=-1, yPre, yPreOld=-1, zPre, zPreOld=-1;
+
         jacIndex=0;
         for(int z=0; z<jacobianImage->nz; z++){
             for(int y=0; y<jacobianImage->ny; y++){
@@ -4022,17 +4017,17 @@ double reg_bspline_CorrectFoldingFromApproxVelocityField_3D(    nifti_image* vel
                         + jac_ijk_matrix->m[2][3];
 #endif
 
-                    xPre=(int)floor((ImageTYPE)voxelPosition[0]/gridVoxelSpacing[0]);
-                    yPre=(int)floor((ImageTYPE)voxelPosition[1]/gridVoxelSpacing[1]);
-                    zPre=(int)floor((ImageTYPE)voxelPosition[2]/gridVoxelSpacing[2]);
+                    xPre=(int)floor(voxelPosition[0]);
+                    yPre=(int)floor(voxelPosition[1]);
+                    zPre=(int)floor(voxelPosition[2]);
 
                     ImageTYPE detJac = 1.0f;
 
-                    if( xPre>-1 && (xPre+3)<splineControlPoint->nx &&
-                        yPre>-1 && (yPre+3)<splineControlPoint->ny &&
-                        zPre>-1 && (zPre+3)<splineControlPoint->nz ){
+                    if( xPre>0 && xPre<splineControlPoint->nx-2 &&
+                        yPre>0 && yPre<splineControlPoint->ny-2 &&
+                        zPre>0 && zPre<splineControlPoint->nz-2 ){
 
-                        basis=(ImageTYPE)voxelPosition[0]/gridVoxelSpacing[0]-(ImageTYPE)(xPre);
+                        basis=voxelPosition[0] -(ImageTYPE)(xPre);
                         FF= basis*basis;
                         FFF= FF*basis;
                         MF=(ImageTYPE)(1.0-basis);
@@ -4045,7 +4040,7 @@ double reg_bspline_CorrectFoldingFromApproxVelocityField_3D(    nifti_image* vel
                         xFirst[2]= (ImageTYPE)(1.0 + xFirst[0] - 2.0*xFirst[3]);
                         xFirst[1]= (ImageTYPE)(- xFirst[0] - xFirst[2] - xFirst[3]);
 
-                        basis=(ImageTYPE)voxelPosition[1]/gridVoxelSpacing[1]-(ImageTYPE)(yPre);
+                        basis=voxelPosition[1] -(ImageTYPE)(yPre);
                         FF= basis*basis;
                         FFF= FF*basis;
                         MF=(ImageTYPE)(1.0-basis);
@@ -4058,7 +4053,7 @@ double reg_bspline_CorrectFoldingFromApproxVelocityField_3D(    nifti_image* vel
                         yFirst[2]= (ImageTYPE)(1.0 + yFirst[0] - 2.0*yFirst[3]);
                         yFirst[1]= (ImageTYPE)(- yFirst[0] - yFirst[2] - yFirst[3]);
 
-                        basis=(ImageTYPE)voxelPosition[2]/gridVoxelSpacing[2]-(ImageTYPE)(zPre);
+                        basis=voxelPosition[2] -(ImageTYPE)(zPre);
                         FF= basis*basis;
                         FFF= FF*basis;
                         MF=(ImageTYPE)(1.0-basis);
@@ -4086,17 +4081,17 @@ double reg_bspline_CorrectFoldingFromApproxVelocityField_3D(    nifti_image* vel
 
                         if(xPre!=xPreOld || yPre!=yPreOld || zPre!=zPreOld){
                             coord=0;
-                            for(int Z=zPre; Z<zPre+4; Z++){
+                            for(int Z=zPre-1; Z<zPre+3; Z++){
                                 unsigned int index=Z*splineControlPoint->nx*splineControlPoint->ny;
                                 ImageTYPE *xPtr = &controlPointPtrX[index];
                                 ImageTYPE *yPtr = &controlPointPtrY[index];
                                 ImageTYPE *zPtr = &controlPointPtrZ[index];
-                                for(int Y=yPre; Y<yPre+4; Y++){
+                                for(int Y=yPre-1; Y<yPre+3; Y++){
                                     index = Y*splineControlPoint->nx;
                                     ImageTYPE *xxPtr = &xPtr[index];
                                     ImageTYPE *yyPtr = &yPtr[index];
                                     ImageTYPE *zzPtr = &zPtr[index];
-                                    for(int X=xPre; X<xPre+4; X++){
+                                    for(int X=xPre-1; X<xPre+3; X++){
                                         xControlPointCoordinates[coord] = (ImageTYPE)xxPtr[X];
                                         yControlPointCoordinates[coord] = (ImageTYPE)yyPtr[X];
                                         zControlPointCoordinates[coord] = (ImageTYPE)zzPtr[X];
@@ -4248,13 +4243,13 @@ double reg_bspline_CorrectFoldingFromApproxVelocityField_3D(    nifti_image* vel
                         jacobianMatrix=nifti_mat33_inverse(jacobianMatrix);
 
                         if(detJac < 0){
-                            for(int c=1; c<3; c++){
+                            for(int c=0; c<2; c++){
                                 int Z=zPre+c;
                                 unsigned int index=Z*splineControlPoint->nx*splineControlPoint->ny;
                                 ImageTYPE *xPtr = &veloPtrX[index];
                                 ImageTYPE *yPtr = &veloPtrY[index];
                                 ImageTYPE *zPtr = &veloPtrZ[index];
-                                for(int b=1; b<3; b++){
+                                for(int b=0; b<2; b++){
                                     int Y=yPre+b;
                                     index = Y*splineControlPoint->nx;
                                     ImageTYPE *xxPtr = &xPtr[index];
@@ -4263,7 +4258,7 @@ double reg_bspline_CorrectFoldingFromApproxVelocityField_3D(    nifti_image* vel
                                     ImageTYPE tempBasisX=zBasis[c]*yBasis[b];
                                     ImageTYPE tempBasisY=zBasis[c]*yFirst[b];
                                     ImageTYPE tempBasisZ=zFirst[c]*yBasis[b];
-                                    for(int a=1; a<3; a++){
+                                    for(int a=0; a<2; a++){
                                         int X=xPre+a;
                                         ImageTYPE basisX= tempBasisX*xFirst[a];   // z * y * x'
                                         ImageTYPE basisY= tempBasisY*xBasis[a];   // z * y'* x
@@ -4340,11 +4335,11 @@ void reg_bspline_GetJacobianGradientFromVelocityField(  nifti_image* velocityFie
     if(approx){
         switch(velocityFieldImage->datatype){
             case NIFTI_TYPE_FLOAT32:
-                reg_bspline_GetApproxJacobianGradient_3D<float>
+                reg_bspline_GetApproxJacGradientFromVel_3D<float>
                     (velocityFieldImage, gradientImage, weight);
                 break;
             case NIFTI_TYPE_FLOAT64:
-                reg_bspline_GetApproxJacobianGradient_3D<double>
+                reg_bspline_GetApproxJacGradientFromVel_3D<double>
                     (velocityFieldImage, gradientImage, weight);
                 break;
             default:
@@ -4357,11 +4352,11 @@ void reg_bspline_GetJacobianGradientFromVelocityField(  nifti_image* velocityFie
     else{
         switch(velocityFieldImage->datatype){
             case NIFTI_TYPE_FLOAT32:
-                reg_bspline_GetJacobianGradient_3D<float>
+                reg_bspline_GetJacGradientFromVel_3D<float>
                     (velocityFieldImage, resultImage, gradientImage, weight);
                 break;
             case NIFTI_TYPE_FLOAT64:
-                reg_bspline_GetJacobianGradient_3D<double>
+                reg_bspline_GetJacGradientFromVel_3D<double>
                     (velocityFieldImage, resultImage, gradientImage, weight);
                 break;
             default:
