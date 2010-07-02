@@ -28,6 +28,10 @@
     #include "_reg_blockMatching_gpu.h"
 #endif
 
+#ifdef _WINDOWS
+    #include <time.h>
+#endif
+
 void Usage(char *);
 
 int main(int argc, char **argv)
