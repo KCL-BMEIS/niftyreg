@@ -58,7 +58,7 @@ typedef struct{
 	char *outputResultName;
 	char *outputCPPName;
 	int backgroundIndex[3];
-	PrecisionTYPE sourcePaddingValue;
+    PrecisionTYPE sourcePaddingValue;
 	float targetSigmaValue;
 	float sourceSigmaValue;
     float targetLowThresholdValue;
@@ -443,7 +443,7 @@ int main(int argc, char **argv)
 #endif	
 
     /* Check the source background index */
-    if(!flag->backgroundIndexFlag) param->sourcePaddingValue = std::numeric_limits<float>::quiet_NaN();//param->sourcePaddingValue = NAN;
+    if(!flag->backgroundIndexFlag) param->sourcePaddingValue = std::numeric_limits<float>::quiet_NaN();
     else{
 	    if(param->backgroundIndex[0] < 0 || param->backgroundIndex[1] < 0 || param->backgroundIndex[2] < 0 
 		    || param->backgroundIndex[0] >= sourceHeader->dim[1] || param->backgroundIndex[1] >= sourceHeader->dim[2] || param->backgroundIndex[2] >= sourceHeader->dim[3]){
@@ -1305,7 +1305,7 @@ int main(int argc, char **argv)
 																targetImage,
 																resultImage,
 																resultGradientImage,
-																voxelNMIGradientImage);
+                                                                voxelNMIGradientImage);
 				}
 				else{
                     reg_getVoxelBasedNMIGradientUsingPW<double>(targetImage,
@@ -1316,12 +1316,13 @@ int main(int argc, char **argv)
 																logJointHistogram,
 																entropies,
 																voxelNMIGradientImage,
-																targetMask);
+                                                                targetMask);
 				}
                 reg_smoothImageForCubicSpline<PrecisionTYPE>(voxelNMIGradientImage,smoothingRadius);
                 reg_voxelCentric2NodeCentric(nodeNMIGradientImage,
 											 voxelNMIGradientImage,
 											 1.0f-param->bendingEnergyWeight-param->jacobianWeight);
+
 
                 /* The NMI gradient is converted from voxel space to real space */
                 if(flag->twoDimRegistration){
@@ -1912,7 +1913,7 @@ int main(int argc, char **argv)
 							                resultImage,
 							                positionFieldImage,
                                             NULL,
-							                3,
+                                            3,
 							                param->sourcePaddingValue);
 			if(!flag->outputResultFlag) param->outputResultName=(char *)"outputResult.nii";
 			nifti_set_filenames(resultImage, param->outputResultName, 0, 0);
