@@ -941,11 +941,14 @@ void reg_gaussianSmoothing1(nifti_image *image,
 
     unsigned int voxelNumber = image->nx*image->ny*image->nz;
 
+    // Loop over the dimension higher than 3
     for(int t=0; t<timePoint*field; t++){
         ImageTYPE *timeImagePtr = &imagePtr[t * voxelNumber];
         PrecisionTYPE *resultValue=(PrecisionTYPE *)malloc(voxelNumber * sizeof(PrecisionTYPE));
+        // Loop over the 3 dimensions
 	    for(int n=1; n<4; n++){
             if(axisToSmooth[n]==true && image->dim[n]>1){
+                // Define the Guassian kernel
 		        float currentSigma;
 		        if(sigma>0) currentSigma=sigma/image->pixdim[n];
 		        else currentSigma=fabs(sigma); // voxel based if negative value
@@ -962,6 +965,7 @@ void reg_gaussianSmoothing1(nifti_image *image,
 #ifndef NDEBUG
 		            printf("[DEBUG] smoothing dim[%i] radius[%i] kernelSum[%g]\n", n, radius, kernelSum);
 #endif
+                    // Define the variable to increment in the 1D array
 		            int increment=1;
 		            switch(n){
 			            case 1: increment=1;break;
@@ -972,19 +976,27 @@ void reg_gaussianSmoothing1(nifti_image *image,
 			            case 6: increment=image->nx*image->ny*image->nz*image->nt*image->nu;break;
 			            case 7: increment=image->nx*image->ny*image->nz*image->nt*image->nu*image->nv;break;
 		            }
+                    // Loop over the different voxel
 		            unsigned int index=0;
 		            while(index<voxelNumber){
 			            for(int x=0; x<image->dim[n]; x++){
+
 				            int current = index - increment*radius;
 				            PrecisionTYPE value=0;
-				            for(int j=-radius; j<=radius; j++){
-					            if(-1<current && current<(int)voxelNumber){
-                                    if(timeImagePtr[current]==timeImagePtr[current])
-    						            value += (PrecisionTYPE)(timeImagePtr[current]*kernel[j+radius]);
-					            }
-					            current += increment;
-				            }
-				            resultValue[index]=value;
+                            // Check if the central voxel is a NaN
+                            if(timeImagePtr[index]==timeImagePtr[index]){
+                                for(int j=-radius; j<=radius; j++){
+                                    if(-1<current && current<(int)voxelNumber){
+                                        if(timeImagePtr[current]==timeImagePtr[current])
+                                            value += (PrecisionTYPE)(timeImagePtr[current]*kernel[j+radius]);
+                                    }
+                                    current += increment;
+                                }
+                                resultValue[index]=value;
+                            }
+                            else{
+                                resultValue[index]=timeImagePtr[index];
+                            }
 				            index++;
 			            }
 		            }

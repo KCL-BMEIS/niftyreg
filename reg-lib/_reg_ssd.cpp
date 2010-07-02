@@ -141,7 +141,7 @@ void reg_getVoxelBasedSSDGradient4(	PrecisionTYPE SSDValue,
 			PrecisionTYPE common = (PrecisionTYPE)(- 2.0 * (targetValue - resultValue));
 			gradX = (PrecisionTYPE)(common * (*spatialGradPtrX));
 			gradY = (PrecisionTYPE)(common * (*spatialGradPtrY));
-			if(targetImage->nz>1) gradZ = (PrecisionTYPE)(common * (*spatialGradPtrZ));
+            if(targetImage->nz>1) gradZ = (PrecisionTYPE)(common * (*spatialGradPtrZ));
 		}
 		spatialGradPtrX++;
 		spatialGradPtrY++;
