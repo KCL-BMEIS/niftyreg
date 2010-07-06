@@ -30,7 +30,7 @@ PrecisionTYPE reg_getSSD2(	nifti_image *targetImage,
 			SSD += (PrecisionTYPE)((targetValue-resultValue)*(targetValue-resultValue));
 		}
 	}
-	return log(SSD+1.0f);
+    return SSD;
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class ResultTYPE>
