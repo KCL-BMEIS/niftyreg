@@ -137,7 +137,7 @@ template <class DTYPE>
                                     for(int x=i*BLOCK_WIDTH; x<(i+1)*BLOCK_WIDTH; x++){
                                         if(x<targetImage->nx){
                                             targetValues[coord] = *targetPtrXYZ;
-                                            if(targetValues[coord]==targetValues[coord] && *maskPtrXYZ>-1){
+                                            if(targetValues[coord]==targetValues[coord] && targetValues[coord]!=0. && *maskPtrXYZ>-1){
                                                 mean += (float)targetValues[coord];
                                                 voxelNumber++;
                                             }
@@ -190,7 +190,7 @@ template <class DTYPE>
                         for(int x=i*BLOCK_WIDTH; x<(i+1)*BLOCK_WIDTH; x++){
                             if(x<targetImage->nx){
                                 targetValues[coord] = *targetPtrXY;
-                                if(targetValues[coord]==targetValues[coord] && *maskPtrXY>-1){
+                                if(targetValues[coord]==targetValues[coord] && targetValues[coord]!=0. && *maskPtrXY>-1){
                                     mean += (float)targetValues[coord];
                                     voxelNumber++;
                                 }
@@ -368,7 +368,7 @@ template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageT
                         for(int x=targetIndex_start_x; x<targetIndex_end_x; x++){
                             if(-1<x && x<target->nx){
                                 TargetImageType value = *targetPtr_XY;
-                                if(value==value && *maskPtr_XY>-1){
+                                if(value==value && value!=0. && *maskPtr_XY>-1){
                                     targetValues[targetIndex]=value;
                                     targetOverlap[targetIndex]=1;
                                 }
@@ -402,7 +402,7 @@ template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageT
                                 for(int x=resultIndex_start_x; x<resultIndex_end_x; x++){
                                     if(-1<x && x<result->nx){
                                         ResultImageType value = *resultPtr_XY;
-                                        if(value==value && *maskPtr_XY>-1){
+                                        if(value==value && value!=0. && *maskPtr_XY>-1){
                                             resultValues[resultIndex]=value;
                                             resultOverlap[resultIndex]=1;
                                         }
@@ -548,7 +548,7 @@ template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageT
                                     for(int x=targetIndex_start_x; x<targetIndex_end_x; x++){
                                         if(-1<x && x<target->nx){
                                             TargetImageType value = *targetPtr_XYZ;
-                                            if(value==value && *maskPtr_XYZ>-1){
+                                            if(value==value && value!=0. && *maskPtr_XYZ>-1){
                                                 targetValues[targetIndex]=value;
                                                 targetOverlap[targetIndex]=1;
                                             }
@@ -593,7 +593,7 @@ template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageT
                                                 for(int x=resultIndex_start_x; x<resultIndex_end_x; x++){
                                                     if(-1<x && x<result->nx){
                                                         ResultImageType value = *resultPtr_XYZ;
-                                                        if(value==value && *maskPtr_XYZ>-1){
+                                                        if(value==value && value!=0. && *maskPtr_XYZ>-1){
                                                             resultValues[resultIndex]=value;
                                                             resultOverlap[resultIndex]=1;
                                                         }
