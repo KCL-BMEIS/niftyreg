@@ -1249,7 +1249,7 @@ void optimize_affine2D(_reg_blockMatchingParam * params,
             distance += (*it).first;
         }
 
-        if (lastDistance - distance < TOLERANCE)
+        if ((distance > lastDistance) || (lastDistance - distance) < TOLERANCE)
         {
             // restore the last transformation
             copy_transformation_4x4(lastTransformation, *(final));
@@ -1406,7 +1406,7 @@ void optimize_affine3D(_reg_blockMatchingParam *params,
         }
 
         // If the change is not substantial or we are getting worst, we return
-        if (lastDistance - distance < TOLERANCE)
+        if ((distance >= lastDistance) || (lastDistance - distance) < TOLERANCE)
         {
             // restore the last transformation
             copy_transformation_4x4(lastTransformation, *(final));
@@ -1720,7 +1720,7 @@ void optimize_rigid2D(  _reg_blockMatchingParam *params,
 
     std::vector<_reg_sorted_point2D> top_points;
     double distance = 0.0;
-    double lastDistance = 0.0;
+    double lastDistance = std::numeric_limits<double>::max();
     unsigned long i;
 
     // Set the current transformation to identity
@@ -1738,6 +1738,9 @@ void optimize_rigid2D(  _reg_blockMatchingParam *params,
     estimate_rigid_transformation2D(top_points, final);
     unsigned long num_to_keep = (unsigned long)(num_points * (params->percent_to_keep/100.0f));
     float * newResultPosition = new float[num_points*2];
+
+    mat44 lastTransformation;
+    memset(&lastTransformation,0,sizeof(mat44));
 
     for (unsigned count = 0; count < MAX_ITERATIONS; ++count){
         // Transform the points in the target
@@ -1765,11 +1768,13 @@ void optimize_rigid2D(  _reg_blockMatchingParam *params,
         }
 
         // If the change is not substantial, we return
-        if (fabs(distance - lastDistance) < TOLERANCE)
+        if ((distance > lastDistance) || (lastDistance - distance) < TOLERANCE)
         {
+            copy_transformation_4x4(lastTransformation, *(final));
             break;
         }
         lastDistance = distance;
+        copy_transformation_4x4(*(final), lastTransformation);
         estimate_rigid_transformation2D(top_points, final);
     }
     delete [] newResultPosition;
@@ -1782,7 +1787,7 @@ void optimize_rigid3D(  _reg_blockMatchingParam *params,
     std::multimap<double, _reg_sorted_point3D> queue;
     std::vector<_reg_sorted_point3D> top_points;
     double distance = 0.0;
-    double lastDistance = 0.0;
+    double lastDistance = std::numeric_limits<double>::max();
     unsigned long i;
 
     // Set the current transformation to identity
@@ -1800,6 +1805,9 @@ void optimize_rigid3D(  _reg_blockMatchingParam *params,
     estimate_rigid_transformation3D(top_points, final);
     unsigned long num_to_keep = (unsigned long)(num_points * (params->percent_to_keep/100.0f));
     float * newResultPosition = new float[num_points*3];
+
+    mat44 lastTransformation;
+    memset(&lastTransformation,0,sizeof(mat44));
 
     for (unsigned count = 0; count < MAX_ITERATIONS; ++count){
         // Transform the points in the target
@@ -1826,13 +1834,16 @@ void optimize_rigid3D(  _reg_blockMatchingParam *params,
         }
 
         // If the change is not substantial, we return
-        if (fabs(distance - lastDistance) < TOLERANCE)
+        if ((distance > lastDistance) || (lastDistance - distance) < TOLERANCE)
         {
+            copy_transformation_4x4(lastTransformation, *(final));
             break;
         }
         lastDistance = distance;
+        copy_transformation_4x4(*(final), lastTransformation);
         estimate_rigid_transformation3D(top_points, final);
     }
+
     delete [] newResultPosition;
 }
 
