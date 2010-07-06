@@ -4084,9 +4084,11 @@ void reg_bspline_jacobianDeterminantGradient(	nifti_image *splineControlPoint,
 				case NIFTI_TYPE_FLOAT32:
                     reg_bspline_jacobianDeterminantGradientApprox2D<PrecisionTYPE, float>
                         (splineControlPoint, targetImage, gradientImage, weight);
+                    break;
 				case NIFTI_TYPE_FLOAT64:
                     reg_bspline_jacobianDeterminantGradientApprox2D<PrecisionTYPE, double>
                         (splineControlPoint, targetImage, gradientImage, weight);
+                    break;
 				default:
 					fprintf(stderr,"Only single or double precision is implemented for the Jacobian determinant gradient\n");
                     fprintf(stderr,"The jacobian penalty gradient has not computed\n");
