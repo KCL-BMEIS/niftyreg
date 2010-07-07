@@ -1413,7 +1413,7 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_3D(nifti_image* velocityF
         jac_xyz_matrix= &(jacobianImage->qto_xyz);
     }
 
-#if USE_SSE
+#if _USE_SSE
     val.f[0] = jac_ijk_matrix->m[0][0];
     val.f[1] = jac_ijk_matrix->m[0][1];
     val.f[2] = jac_ijk_matrix->m[0][2];
@@ -1482,7 +1482,7 @@ void reg_bspline_GetApproxJacobianMapFromVelocityField_3D(nifti_image* velocityF
                     realPosition[2] = deformationFieldArrayZ[jacIndex];
 
                     ImageTYPE voxelPosition[3];
-#if USE_SSE
+#if _USE_SSE
                     val.f[0] = realPosition[0];
                     val.f[1] = realPosition[1];
                     val.f[2] = realPosition[2];
@@ -1841,7 +1841,7 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
         jac_xyz_matrix= &(jacobianImage->qto_xyz);
     }
 
-#if USE_SSE
+#if _USE_SSE
     val.f[0] = jac_ijk_matrix->m[0][0];
     val.f[1] = jac_ijk_matrix->m[0][1];
     val.f[2] = jac_ijk_matrix->m[0][2];
@@ -1908,7 +1908,7 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                     realPosition[2] = deformationFieldArrayZ[jacIndex];
 
                     ImageTYPE voxelPosition[3];
-#if USE_SSE
+#if _USE_SSE
                     val.f[0] = realPosition[0];
                     val.f[1] = realPosition[1];
                     val.f[2] = realPosition[2];
@@ -2436,7 +2436,7 @@ void reg_bspline_GetJacGradientFromVel_3D(  nifti_image *velocityFieldImage,
         jac_ijk_matrix= &(targetImage->qto_ijk);
         jac_xyz_matrix= &(targetImage->qto_xyz);
     }
-#if USE_SSE
+#if _USE_SSE
     val.f[0] = jac_ijk_matrix->m[0][0];
     val.f[1] = jac_ijk_matrix->m[0][1];
     val.f[2] = jac_ijk_matrix->m[0][2];
@@ -2511,7 +2511,7 @@ void reg_bspline_GetJacGradientFromVel_3D(  nifti_image *velocityFieldImage,
                     realPosition[2] = deformationFieldArrayZ[jacIndex];
 
                     ImageTYPE voxelPosition[3];
-#if USE_SSE
+#if _USE_SSE
                     val.f[0] = realPosition[0];
                     val.f[1] = realPosition[1];
                     val.f[2] = realPosition[2];
@@ -2922,7 +2922,7 @@ void reg_bspline_GetApproxJacGradientFromVel_3D(nifti_image *velocityFieldImage,
         jac_ijk_matrix= &(velocityFieldImage->qto_ijk);
         jac_xyz_matrix= &(velocityFieldImage->qto_xyz);
     }
-#if USE_SSE
+#if _USE_SSE
     val.f[0] = jac_ijk_matrix->m[0][0];
     val.f[1] = jac_ijk_matrix->m[0][1];
     val.f[2] = jac_ijk_matrix->m[0][2];
@@ -2995,7 +2995,7 @@ void reg_bspline_GetApproxJacGradientFromVel_3D(nifti_image *velocityFieldImage,
                     realPosition[2] = deformationFieldArrayZ[jacIndex];
 
                     ImageTYPE voxelPosition[3];
-#if USE_SSE
+#if _USE_SSE
                     val.f[0] = realPosition[0];
                     val.f[1] = realPosition[1];
                     val.f[2] = realPosition[2];
@@ -3412,7 +3412,7 @@ double reg_bspline_CorrectFoldingFromVelocityField_3D(  nifti_image* velocityFie
         jac_ijk_matrix= &(jacobianImage->qto_ijk);
         jac_xyz_matrix= &(jacobianImage->qto_xyz);
     }
-#if USE_SSE
+#if _USE_SSE
     val.f[0] = jac_ijk_matrix->m[0][0];
     val.f[1] = jac_ijk_matrix->m[0][1];
     val.f[2] = jac_ijk_matrix->m[0][2];
@@ -3487,7 +3487,7 @@ double reg_bspline_CorrectFoldingFromVelocityField_3D(  nifti_image* velocityFie
                     realPosition[2] = deformationFieldArrayZ[jacIndex];
 
                     ImageTYPE voxelPosition[3];
-#if USE_SSE
+#if _USE_SSE
                     val.f[0] = realPosition[0];
                     val.f[1] = realPosition[1];
                     val.f[2] = realPosition[2];
@@ -3912,7 +3912,7 @@ double reg_bspline_CorrectFoldingFromApproxVelocityField_3D(    nifti_image* vel
         jac_ijk_matrix= &(jacobianImage->qto_ijk);
         jac_xyz_matrix= &(jacobianImage->qto_xyz);
     }
-#if USE_SSE
+#if _USE_SSE
     val.f[0] = jac_ijk_matrix->m[0][0];
     val.f[1] = jac_ijk_matrix->m[0][1];
     val.f[2] = jac_ijk_matrix->m[0][2];
@@ -3987,7 +3987,7 @@ double reg_bspline_CorrectFoldingFromApproxVelocityField_3D(    nifti_image* vel
                     realPosition[2] = deformationFieldArrayZ[jacIndex];
 
                     ImageTYPE voxelPosition[3];
-#if USE_SSE
+#if _USE_SSE
                     val.f[0] = realPosition[0];
                     val.f[1] = realPosition[1];
                     val.f[2] = realPosition[2];
