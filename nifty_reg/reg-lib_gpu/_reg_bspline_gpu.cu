@@ -1267,7 +1267,7 @@ double reg_bspline_ComputeJacobianPenaltyTermFromVelocity_gpu(  nifti_image *tar
 
 
     // A Jacobian array is allocated
-    int pointNumber;
+    int pointNumber=0;
     if(approximate) pointNumber = controlPointNumber;
     else pointNumber = (int)targetImage->nvox;
     float *jacobianDeterminantArray_d;
@@ -1366,6 +1366,7 @@ double reg_bspline_ComputeJacobianPenaltyTermFromVelocity_gpu(  nifti_image *tar
     else jacPenaltyTerm /= (double)pointNumber;
 
 
+    CUDA_SAFE_CALL(cudaFree(voxelDisplacementField_d));
     CUDA_SAFE_CALL(cudaFree(controlPointArray_d));
     CUDA_SAFE_CALL(cudaFree(nodePositionArray_d));
     CUDA_SAFE_CALL(cudaFree(jacobianDeterminantArray_d));
