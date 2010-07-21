@@ -1777,7 +1777,8 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
 
     // Two control point image are allocated
     nifti_image *splineControlPoint = nifti_copy_nim_info(velocityFieldImage);
-    splineControlPoint->data=(void *)malloc(splineControlPoint->nvox * splineControlPoint->nbyper);
+    splineControlPoint->data=(void *)malloc(splineControlPoint->nvox * splineControlPoint->nbyper);    
+
     nifti_image *splineControlPoint2 = nifti_copy_nim_info(velocityFieldImage);
     splineControlPoint2->data=(void *)malloc(splineControlPoint2->nvox * splineControlPoint2->nbyper);
     memcpy(splineControlPoint2->data, velocityFieldImage->data, splineControlPoint2->nvox * splineControlPoint2->nbyper);
@@ -1860,7 +1861,7 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
 #endif
 
     // The initial deformation field is initialised with the nifti header
-    unsigned int jacIndex = 0;
+    int jacIndex = 0;
     for(int z=0; z<jacobianImage->nz; z++){
         for(int y=0; y<jacobianImage->ny; y++){
             for(int x=0; x<jacobianImage->nx; x++){
@@ -1883,7 +1884,7 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
             }
         }
     }
-    unsigned int coord=0;
+    int coord=0;
 
     // The jacobian map is updated and then the deformation is composed
     for(int l=0;l<SQUARING_VALUE;l++){
@@ -1891,11 +1892,14 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
         reg_spline_Interpolant2Interpolator(splineControlPoint2,
                                             splineControlPoint);
 
-        ImageTYPE *controlPointPtrX = static_cast<ImageTYPE *>(splineControlPoint->data);
+        ImageTYPE *controlPointPtrX = reinterpret_cast<ImageTYPE *>(splineControlPoint->data);
         ImageTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
         ImageTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
 
-        int xPre, xPreOld=-1, yPre, yPreOld=-1, zPre, zPreOld=-1;
+        int xPre, yPre, zPre;
+        int xPreOld=-99;
+        int yPreOld=-99;
+        int zPreOld=-99;
 
         jacIndex=0;
         for(int z=0; z<jacobianImage->nz; z++){
@@ -1942,9 +1946,9 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                     zPre=(int)floor((ImageTYPE)voxelPosition[2]/gridVoxelSpacing[2]);
 
 
-                    if( xPre>-1 && xPre<splineControlPoint->nx+3 &&
-                        yPre>-1 && yPre<splineControlPoint->ny+3 &&
-                        zPre>-1 && zPre<splineControlPoint->nz+3 ){
+                    if( xPre>-1 && xPre<splineControlPoint->nx-3 &&
+                        yPre>-1 && yPre<splineControlPoint->ny-3 &&
+                        zPre>-1 && zPre<splineControlPoint->nz-3 ){
 
                         basis=(ImageTYPE)voxelPosition[0]/gridVoxelSpacing[0]-(ImageTYPE)(xPre);
                         FF= basis*basis;
@@ -2001,7 +2005,7 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                         if(xPre!=xPreOld || yPre!=yPreOld || zPre!=zPreOld){
                             coord=0;
                             for(int Z=zPre; Z<zPre+4; Z++){
-                                unsigned int index=Z*splineControlPoint->nx*splineControlPoint->ny;
+                                int index=Z*splineControlPoint->nx*splineControlPoint->ny;
                                 ImageTYPE *xPtr = &controlPointPtrX[index];
                                 ImageTYPE *yPtr = &controlPointPtrY[index];
                                 ImageTYPE *zPtr = &controlPointPtrZ[index];
@@ -2010,7 +2014,7 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                                     ImageTYPE *xxPtr = &xPtr[index];
                                     ImageTYPE *yyPtr = &yPtr[index];
                                     ImageTYPE *zzPtr = &zPtr[index];
-                                    for(int X=xPre; X<xPre+4; X++){
+                                    for(int X=xPre; X<xPre+4; X++){                                        
                                         xControlPointCoordinates[coord] = (ImageTYPE)xxPtr[X];
                                         yControlPointCoordinates[coord] = (ImageTYPE)yyPtr[X];
                                         zControlPointCoordinates[coord] = (ImageTYPE)zzPtr[X];
@@ -2498,7 +2502,7 @@ void reg_bspline_GetJacGradientFromVel_3D(  nifti_image *velocityFieldImage,
 
         reg_getPositionFromDisplacement<ImageTYPE>(splineControlPoint);
 
-        int xPre, xPreOld=-1, yPre, yPreOld=-1, zPre, zPreOld=-1;
+        int xPre, xPreOld=-99, yPre, yPreOld=-99, zPre, zPreOld=-99;
 
         jacIndex=0;
         for(int z=0; z<targetImage->nz; z++){
@@ -2982,7 +2986,7 @@ void reg_bspline_GetApproxJacGradientFromVel_3D(nifti_image *velocityFieldImage,
 
         reg_getPositionFromDisplacement<ImageTYPE>(splineControlPoint);
 
-        int xPre, xPreOld=-1, yPre, yPreOld=-1, zPre, zPreOld=-1;
+        int xPre, xPreOld=-99, yPre, yPreOld=-99, zPre, zPreOld=-99;
 
         jacIndex=0;
         for(int z=0; z<velocityFieldImage->nz; z++){
@@ -3474,7 +3478,7 @@ double reg_bspline_CorrectFoldingFromVelocityField_3D(  nifti_image* velocityFie
         ImageTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
         ImageTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
 
-        int xPre, xPreOld=-1, yPre, yPreOld=-1, zPre, zPreOld=-1;
+        int xPre, xPreOld=-99, yPre, yPreOld=-99, zPre, zPreOld=-99;
 
         jacIndex=0;
         for(int z=0; z<jacobianImage->nz; z++){
@@ -3974,7 +3978,7 @@ double reg_bspline_CorrectFoldingFromApproxVelocityField_3D(    nifti_image* vel
         ImageTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
         ImageTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
 
-        int xPre, xPreOld=-1, yPre, yPreOld=-1, zPre, zPreOld=-1;
+        int xPre, xPreOld=-99, yPre, yPreOld=-99, zPre, zPreOld=-99;
 
         jacIndex=0;
         for(int z=0; z<jacobianImage->nz; z++){
