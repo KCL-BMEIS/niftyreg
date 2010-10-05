@@ -746,7 +746,7 @@ void reg_tools_addSubMulDivImages2( nifti_image *img1,
             break;
         case 2:
             for(unsigned int i=0; i<res->nvox; i++)
-                *resPtr++ = (TYPE1)(*img1Ptr++ * *img2Ptr++);
+                *resPtr++ = (TYPE1)((double)*img1Ptr++ * (double)*img2Ptr++);
             break;
         case 3:
             for(unsigned int i=0; i<res->nvox; i++)
@@ -856,22 +856,18 @@ void reg_tools_addSubMulDivValue1(  nifti_image *img1,
     TYPE1 *resPtr = static_cast<TYPE1 *>(res->data);
     switch(type){
         case 0:
-            printf("+ %g\n",val);
             for(unsigned int i=0; i<res->nvox; i++)
                 *resPtr++ = (TYPE1)(*img1Ptr++ + val);
             break;
         case 1:
-            printf("- %g\n",val);
             for(unsigned int i=0; i<res->nvox; i++)
                 *resPtr++ = (TYPE1)(*img1Ptr++ - val);
             break;
         case 2:
-            printf("* %g\n",val);
             for(unsigned int i=0; i<res->nvox; i++)
                 *resPtr++ = (TYPE1)(*img1Ptr++ * val);
             break;
         case 3:
-            printf("/ %g\n",val);
             for(unsigned int i=0; i<res->nvox; i++)
                 *resPtr++ = (TYPE1)(*img1Ptr++ / val);
             break;
