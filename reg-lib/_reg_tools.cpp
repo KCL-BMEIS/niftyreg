@@ -147,6 +147,76 @@ void reg_intensityRescale(	nifti_image *image,
 }
 /* *************************************************************** */
 /* *************************************************************** */
+//this function will threshold an image to the values provided,
+//set the scl_slope and sct_inter of the image to 1 and 0 (SSD uses actual image data values),
+//and sets cal_min and cal_max to have the min/max image data values
+template<class DTYPE>
+void reg_thresholdImage2(	nifti_image *image,
+                            float lowThr,
+                            float upThr
+			)
+{
+	DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
+	float currentMin=std::numeric_limits<float>::max();
+	float currentMax=-std::numeric_limits<float>::max();
+
+    for(unsigned int index=0; index<image->nvox; index++){
+		float value = (float)*imagePtr;
+        if(value==value){
+		    if(value<lowThr){
+                value = lowThr;
+            }
+            else if(value>upThr){
+                value = upThr;
+            }
+			currentMin=(currentMin<value)?currentMin:value;
+		    currentMax=(currentMax>value)?currentMax:value;
+        }
+		*imagePtr++=(DTYPE)value;
+    }
+
+	image->scl_slope = 1;
+	image->scl_inter = 0;
+    image->cal_min = currentMin;
+    image->cal_max = currentMax;
+}
+void reg_thresholdImage(	nifti_image *image,
+                            float lowThr,
+                            float upThr
+			)
+{
+	switch(image->datatype){
+		case NIFTI_TYPE_UINT8:
+			reg_thresholdImage2<unsigned char>(image, lowThr, upThr);
+			break;
+		case NIFTI_TYPE_INT8:
+			reg_thresholdImage2<char>(image, lowThr, upThr);
+			break;
+		case NIFTI_TYPE_UINT16:
+			reg_thresholdImage2<unsigned short>(image, lowThr, upThr);
+			break;
+		case NIFTI_TYPE_INT16:
+			reg_thresholdImage2<short>(image, lowThr, upThr);
+			break;
+		case NIFTI_TYPE_UINT32:
+			reg_thresholdImage2<unsigned int>(image, lowThr, upThr);
+			break;
+		case NIFTI_TYPE_INT32:
+			reg_thresholdImage2<int>(image, lowThr, upThr);
+			break;
+		case NIFTI_TYPE_FLOAT32:
+			reg_thresholdImage2<float>(image, lowThr, upThr);
+			break;
+		case NIFTI_TYPE_FLOAT64:
+			reg_thresholdImage2<double>(image, lowThr, upThr);
+			break;
+		default:
+			printf("err\treg_thresholdImage\tThe image data type is not supported\n");
+			return;
+	}
+}
+/* *************************************************************** */
+/* *************************************************************** */
 template <class PrecisionTYPE, class DTYPE>
 void reg_smoothImageForCubicSpline1(nifti_image *image,
 								    int radius[]
