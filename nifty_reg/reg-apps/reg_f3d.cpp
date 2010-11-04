@@ -727,11 +727,26 @@ int main(int argc, char **argv)
             reg_gaussianSmoothing<PrecisionTYPE>(sourceImage, param->sourceSigmaValue, smoothAxis);
         }
 
-        /* the target and source are resampled between 0 and bin-1
-         * The images are then shifted by two which is the suport of the spline used
-         * by the parzen window filling of the joint histogram */
-        reg_intensityRescale(targetImage,2.0f,(float)param->binning-3.0f, param->targetLowThresholdValue, param->targetUpThresholdValue);
-        reg_intensityRescale(sourceImage,2.0f,(float)param->binning-3.0f, param->sourceLowThresholdValue, param->sourceUpThresholdValue);
+        float maxSD = 0.0;
+		if(flag->useSSDFlag){
+			//threshold images
+			//this also sets the cal_min and cal_max to the actual min/max data values as used to calc ssd
+			reg_thresholdImage(targetImage, param->targetLowThresholdValue, param->targetUpThresholdValue);
+			reg_thresholdImage(sourceImage, param->sourceLowThresholdValue, param->sourceUpThresholdValue);
+
+			float maxSD1 = (targetImage->cal_min-sourceImage->cal_max)*(targetImage->cal_min-sourceImage->cal_max);
+			float maxSD2 = (targetImage->cal_max-sourceImage->cal_min)*(targetImage->cal_max-sourceImage->cal_min);
+
+			if(maxSD1>maxSD2) maxSD = maxSD1;
+			else maxSD = maxSD2;
+		}
+		else{
+			/* the target and source are resampled between 0 and bin-1
+			* The images are then shifted by two which is the suport of the spline used
+			* by the parzen window filling of the joint histogram */
+			reg_intensityRescale(targetImage,2.0f,(float)param->binning-3.0f, param->targetLowThresholdValue, param->targetUpThresholdValue);
+			reg_intensityRescale(sourceImage,2.0f,(float)param->binning-3.0f, param->sourceLowThresholdValue, param->sourceUpThresholdValue);
+		}
 
         if(level==0){
             if(!flag->inputCPPFlag){
@@ -1171,7 +1186,7 @@ int main(int argc, char **argv)
             if(flag->useSSDFlag){
                 SSDValue = reg_getSSD<PrecisionTYPE>(	targetImage,
                                                         resultImage);
-                currentValue = -(1.0-param->bendingEnergyWeight-param->jacobianWeight) * log(SSDValue+1.0);
+                currentValue = -(1.0-param->bendingEnergyWeight-param->jacobianWeight) * SSDValue/maxSD;
 			}
 			else{
                 reg_getEntropies<double>(	targetImage,
@@ -1200,7 +1215,7 @@ int main(int argc, char **argv)
 
 #ifndef NDEBUG
 			if(flag->useSSDFlag)
-                printf("[DEBUG] Initial metric value (log(SSD+1)): %g\n", -log(SSDValue+1.0));
+                printf("[DEBUG] Initial metric value (meanSD / maxSD): %g\n", -SSDValue/maxSD);
 			else printf("[DEBUG] Initial metric value: %g\n", (entropies[0]+entropies[1])/entropies[2]);
 			if(flag->bendingEnergyFlag && param->bendingEnergyWeight>0) printf("[DEBUG] Initial weighted bending energy value = %g, approx[%i]\n", currentWBE, flag->appBendingEnergyFlag);
 			if(flag->jacobianWeightFlag && param->jacobianWeight>0) printf("[DEBUG] Initial weighted Jacobian log value = %g, approx[%i]\n", currentWJac, flag->appJacobianFlag);
@@ -1301,10 +1316,10 @@ int main(int argc, char **argv)
 															targetMask,
 															1);
 				if(flag->useSSDFlag){
-					reg_getVoxelBasedSSDGradient<PrecisionTYPE>(SSDValue,
-																targetImage,
+					reg_getVoxelBasedSSDGradient<PrecisionTYPE>(targetImage,
 																resultImage,
 																resultGradientImage,
+																maxSD,
                                                                 voxelNMIGradientImage);
 				}
 				else{
@@ -1697,10 +1712,10 @@ int main(int argc, char **argv)
 					SSDValue=reg_getSSD<PrecisionTYPE>(	targetImage,
                                                         resultImage);
 #ifndef NDEBUG
-                    printf("[DEBUG] [%i] log(SSD+1) value: %g\n",
-                    iteration, -log(SSDValue+1.0));
+                    printf("[DEBUG] [%i] meanSD / maxSD: %g\n",
+                    iteration, -SSDValue/maxSD);
 #endif
-                    currentValue = -(1.0-param->bendingEnergyWeight-param->jacobianWeight)*log(SSDValue+1.0);
+                    currentValue = -(1.0-param->bendingEnergyWeight-param->jacobianWeight)*SSDValue/maxSD;
 				}
 				else{
                     reg_getEntropies<double>(	targetImage,
