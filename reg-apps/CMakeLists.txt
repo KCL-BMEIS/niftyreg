@@ -11,6 +11,12 @@ IF(BUILD_RESAMPLE)
     INSTALL_TARGETS(/bin reg_resample)
 ENDIF(BUILD_RESAMPLE)
 #-----------------------------------------------------------------------------
+IF(BUILD_TRANSFORM)
+    ADD_EXECUTABLE(reg_transform reg_transform.cpp)
+        TARGET_LINK_LIBRARIES(reg_transform _reg_resampling _reg_bspline _reg_bspline_comp _reg_tools _reg_affineTransformation reg_nifti ${ZLIB})
+    INSTALL_TARGETS(/bin reg_transform)
+ENDIF(BUILD_TRANSFORM)
+#-----------------------------------------------------------------------------
 IF(BUILD_F3D)
     IF(USE_CUDA)
         CUDA_ADD_EXECUTABLE(reg_f3d reg_f3d.cpp)    
