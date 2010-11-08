@@ -23,6 +23,7 @@ OPTION(BUILD_BENCHMARK "To build the reg_benchmark executable" ON)
 OPTION(BUILD_F3D "To build the reg_f3d executable" ON)
 #OPTION(BUILD_F3D2 "To build the reg_f3d2 executable" ON)
 OPTION(BUILD_RESAMPLE "To build the reg_resample executable" ON)
+OPTION(BUILD_TRANSFORM "To build the reg_transform executable" ON)
 OPTION(BUILD_TOOLS "To build the reg_tools executable" ON)
 
 OPTION(USE_SSE "to use SSE computation in some case" OFF)
