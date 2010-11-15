@@ -17,6 +17,7 @@
 
 #include "nifti1_io.h"
 #include "_reg_affineTransformation.h"
+#include "_reg_bspline.h"
 
 #if _USE_SSE
     #include <emmintrin.h>

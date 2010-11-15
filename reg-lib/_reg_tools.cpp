@@ -75,7 +75,7 @@ void reg_intensityRescale2(	nifti_image *image,
 	for(unsigned int index=0; index<image->nvox; index++){
 		DTYPE value = (DTYPE)(*imagePtr++ * image->scl_slope + image->scl_inter);
         if(value==value){
-		    currentMin=(currentMin<value)?currentMin:value;
+            currentMin=(currentMin<value)?currentMin:value;
 		    currentMax=(currentMax>value)?currentMax:value;
         }
     }

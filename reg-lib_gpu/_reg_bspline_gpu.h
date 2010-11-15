@@ -66,6 +66,14 @@ void reg_bspline_ComputeJacobianGradient_gpu(   nifti_image *targetImage,
                                                 bool appJacobianFlag);
 
 extern "C++"
+void reg_bspline_ComputeJacGradientFromVelocity_gpu(nifti_image *targetImage,
+                                                    nifti_image *velocityFieldImage,
+                                                    float4 **velocityFieldImageArray_d,
+                                                    float4 **gradientImageArray_d,
+                                                    float jacobianWeight,
+                                                    bool approximate);
+
+extern "C++"
 double reg_bspline_correctFolding_gpu(  nifti_image *targetImage,
                                         nifti_image *controlPointImage,
                                         float4 **controlPointImageArray_d,

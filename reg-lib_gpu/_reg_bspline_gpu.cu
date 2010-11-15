@@ -1256,6 +1256,179 @@ void reg_bspline_ComputeJacobianMapFromVelocityField(   nifti_image *targetImage
 
     CUDA_SAFE_CALL(cudaFree(realToVoxelMatrix_d));
 }
+
+/* *************************************************************** */
+/* *************************************************************** */
+
+void reg_bspline_ComputeJacobianGradientFromVelocityField(  nifti_image *targetImage,
+                                                            nifti_image *controlPointImage,
+                                                            float4 **controlPointImageArray_d,
+                                                            float4 **voxelDisplacementField_d,
+                                                            float **JacobianMatricesArray_d,
+                                                            float **jacobianDetArray_d,
+                                                            float4 **gradientImageArray_d,
+                                                            float weight,
+                                                            bool approx)
+{
+
+    // Other constant memory and texture are binded
+    const int controlPointNumber = controlPointImage->nx*controlPointImage->ny*controlPointImage->nz;
+    CUDA_SAFE_CALL(cudaBindTexture(0, controlPointTexture, *controlPointImageArray_d, controlPointNumber*sizeof(float4)));
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointNumber,&controlPointNumber, sizeof(int)));
+
+    const int3 controlPointImageDim = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointImageDim,&controlPointImageDim, sizeof(int3)));
+
+    const int3 targetImageDim = make_int3(targetImage->nx, targetImage->ny, targetImage->nz);
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_TargetImageDim,&targetImageDim, sizeof(int3)));
+
+    int voxelNumber = targetImage->nvox;
+    if(approx) voxelNumber = controlPointImage->nvox/3;
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&voxelNumber,sizeof(int)));
+
+    const float3 controlPointSpacing = make_float3(controlPointImage->dx, controlPointImage->dy, controlPointImage->dz);
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointSpacing,&controlPointSpacing, sizeof(float3)));
+
+    float3 controlPointVoxelSpacing=make_float3(1.f,1.f,1.f);
+    if(!approx)
+        controlPointVoxelSpacing = make_float3(
+            controlPointImage->dx / targetImage->dx,
+            controlPointImage->dy / targetImage->dy,
+            controlPointImage->dz / targetImage->dz);
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointVoxelSpacing,&controlPointVoxelSpacing,sizeof(float3)));
+
+    // The Jacobian matrices need to be reoriented
+    mat33 desorient;
+    desorient.m[0][0]=controlPointImage->dx; desorient.m[0][1]=0.0f; desorient.m[0][2]=0.0f;
+    desorient.m[1][0]=0.0f; desorient.m[1][1]=controlPointImage->dy; desorient.m[1][2]=0.0f;
+    desorient.m[2][0]=0.0f; desorient.m[2][1]=0.0f; desorient.m[2][2]=controlPointImage->dz;
+    mat33 spline_ijk;
+    if(controlPointImage->sform_code>0){
+        spline_ijk.m[0][0]=controlPointImage->sto_ijk.m[0][0];
+        spline_ijk.m[0][1]=controlPointImage->sto_ijk.m[0][1];
+        spline_ijk.m[0][2]=controlPointImage->sto_ijk.m[0][2];
+        spline_ijk.m[1][0]=controlPointImage->sto_ijk.m[1][0];
+        spline_ijk.m[1][1]=controlPointImage->sto_ijk.m[1][1];
+        spline_ijk.m[1][2]=controlPointImage->sto_ijk.m[1][2];
+        spline_ijk.m[2][0]=controlPointImage->sto_ijk.m[2][0];
+        spline_ijk.m[2][1]=controlPointImage->sto_ijk.m[2][1];
+        spline_ijk.m[2][2]=controlPointImage->sto_ijk.m[2][2];
+    }
+    else{
+        spline_ijk.m[0][0]=controlPointImage->qto_ijk.m[0][0];
+        spline_ijk.m[0][1]=controlPointImage->qto_ijk.m[0][1];
+        spline_ijk.m[0][2]=controlPointImage->qto_ijk.m[0][2];
+        spline_ijk.m[1][0]=controlPointImage->qto_ijk.m[1][0];
+        spline_ijk.m[1][1]=controlPointImage->qto_ijk.m[1][1];
+        spline_ijk.m[1][2]=controlPointImage->qto_ijk.m[1][2];
+        spline_ijk.m[2][0]=controlPointImage->qto_ijk.m[2][0];
+        spline_ijk.m[2][1]=controlPointImage->qto_ijk.m[2][1];
+        spline_ijk.m[2][2]=controlPointImage->qto_ijk.m[2][2];
+    }
+    mat33 reorient=nifti_mat33_inverse(nifti_mat33_mul(spline_ijk, desorient));
+    float3 temp=make_float3(reorient.m[0][0],reorient.m[0][1],reorient.m[0][2]);
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0,&temp,sizeof(float3)));
+    temp=make_float3(reorient.m[1][0],reorient.m[1][1],reorient.m[1][2]);
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix1,&temp,sizeof(float3)));
+    temp=make_float3(reorient.m[2][0],reorient.m[2][1],reorient.m[2][2]);
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix2,&temp,sizeof(float3)));
+
+    float4 *transformationMatrix_h;
+    float4 *realToVoxelMatrix_d;
+    CUDA_SAFE_CALL(cudaMallocHost((void **)&transformationMatrix_h, 3*sizeof(float4)));
+    CUDA_SAFE_CALL(cudaMalloc((void **)&realToVoxelMatrix_d, 3*sizeof(float4)));
+    mat44 *realToVoxel=NULL;
+    if(approx){
+        if(controlPointImage->sform_code>0) realToVoxel=&(controlPointImage->sto_ijk);
+        else realToVoxel=&(controlPointImage->qto_ijk);
+    }
+    else{
+        if(targetImage->sform_code>0) realToVoxel=&(targetImage->sto_ijk);
+        else realToVoxel=&(targetImage->qto_ijk);
+    }
+    for(int i=0; i<3; i++){
+        transformationMatrix_h[i].x=realToVoxel->m[i][0];
+        transformationMatrix_h[i].y=realToVoxel->m[i][1];
+        transformationMatrix_h[i].z=realToVoxel->m[i][2];
+        transformationMatrix_h[i].w=realToVoxel->m[i][3];
+    }
+    CUDA_SAFE_CALL(cudaMemcpy(realToVoxelMatrix_d, transformationMatrix_h, 3*sizeof(float4), cudaMemcpyHostToDevice));
+    cudaBindTexture(0,txRealToVoxelMatrix,realToVoxelMatrix_d,3*sizeof(float4));
+    CUDA_SAFE_CALL(cudaFreeHost((void *)transformationMatrix_h));
+
+    // The current voxel position is saved since it is need for the gradient computation
+    float4 *oldVoxelDisplacementField_d;
+    CUDA_SAFE_CALL(cudaMalloc((void **)&oldVoxelDisplacementField_d, voxelNumber*sizeof(float4)));
+    CUDA_SAFE_CALL(cudaMemcpy(oldVoxelDisplacementField_d, *voxelDisplacementField_d,
+          voxelNumber*sizeof(float4) , cudaMemcpyDeviceToDevice));
+
+    // The Jacobian matrice array is filled
+    const unsigned int Grid_reg_bspline_Jacobian =
+        (unsigned int)ceil((float)voxelNumber/(float)(Block_reg_bspline_Jacobian));
+    dim3 B1(Block_reg_bspline_Jacobian,1,1);
+    dim3 G1(Grid_reg_bspline_Jacobian,1,1);
+
+    _reg_bspline_JacobianMatrixFromVel_kernel <<< G1, B1 >>>(*JacobianMatricesArray_d, *jacobianDetArray_d, *voxelDisplacementField_d);
+    CUDA_SAFE_CALL(cudaThreadSynchronize());
+#ifndef NDEBUG
+    printf("[DEBUG] _reg_bspline_JacobianMatrix_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+        cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
+#endif
+
+    // The gradient computed on a node basis and need to be oriented in the control point space
+    temp=make_float3(desorient.m[0][0],desorient.m[0][1],desorient.m[0][2]);
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0,&temp,sizeof(float3)));
+    temp=make_float3(desorient.m[1][0],desorient.m[1][1],desorient.m[1][2]);
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix1,&temp,sizeof(float3)));
+    temp=make_float3(desorient.m[2][0],desorient.m[2][1],desorient.m[2][2]);
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix2,&temp,sizeof(float3)));
+
+    // The weight is transfered to constant memory
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Weight,&weight,sizeof(float)));
+
+    // The jacobian matrices are binded to a texture
+    CUDA_SAFE_CALL(cudaBindTexture(0, jacobianDeterminantTexture, *jacobianDetArray_d,
+        targetImage->nvox*sizeof(float)));
+    CUDA_SAFE_CALL(cudaBindTexture(0, jacobianMatricesTexture, *JacobianMatricesArray_d,
+        9*targetImage->nvox*sizeof(float)));
+
+    // The voxel position are converted into indices
+    if(approx)
+        reg_spline_getDeformationFromDisplacement_gpu( controlPointImage,
+                                                       &oldVoxelDisplacementField_d);
+    else reg_spline_getDeformationFromDisplacement_gpu( targetImage,
+                                                        &oldVoxelDisplacementField_d);
+
+    const unsigned int Grid_reg_bspline_PositionToIndices =
+        (unsigned int)ceil((float)voxelNumber/(float)(Block_reg_bspline_PositionToIndices));
+    dim3 B2(Block_reg_bspline_PositionToIndices,1,1);
+    dim3 G2(Grid_reg_bspline_PositionToIndices,1,1);
+    _reg_bspline_PositionToIndices_kernel <<< G2, B2 >>>(oldVoxelDisplacementField_d);
+    CUDA_SAFE_CALL(cudaThreadSynchronize());
+#ifndef NDEBUG
+    printf("[DEBUG] _reg_bspline_PositionToIndices_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+        cudaGetErrorString(cudaGetLastError()),G2.x,G2.y,G2.z,B2.x,B2.y,B2.z);
+#endif
+
+    // The voxel indices are binded to a texture
+    CUDA_SAFE_CALL(cudaBindTexture(0, voxelDisplacementTexture, oldVoxelDisplacementField_d,
+        voxelNumber*sizeof(float4)));
+
+
+    const unsigned int Grid_reg_bspline_JacobianGradient =
+        (unsigned int)ceil((float)controlPointNumber/(float)(Block_reg_bspline_JacobianGradientFromVelocityField));
+    dim3 B3(Block_reg_bspline_JacobianGradient,1,1);
+    dim3 G3(Grid_reg_bspline_JacobianGradient,1,1);
+    _reg_bspline_JacobianGradFromVel_kernel <<< G3, B3 >>>(*gradientImageArray_d);
+    CUDA_SAFE_CALL(cudaThreadSynchronize());
+#ifndef NDEBUG
+    printf("[DEBUG] _reg_bspline_JacobianGradFromVel_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+        cudaGetErrorString(cudaGetLastError()),G3.x,G3.y,G3.z,B3.x,B3.y,B3.z);
+#endif
+
+    CUDA_SAFE_CALL(cudaFree(oldVoxelDisplacementField_d));
+    CUDA_SAFE_CALL(cudaFree(realToVoxelMatrix_d));
+}
 /* *************************************************************** */
 /* *************************************************************** */
 double reg_bspline_ComputeJacobianPenaltyTermFromVelocity_gpu(  nifti_image *targetImage,
@@ -1264,7 +1437,6 @@ double reg_bspline_ComputeJacobianPenaltyTermFromVelocity_gpu(  nifti_image *tar
                                                                 bool approximate)
 {
     const int controlPointNumber = velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz;
-
 
     // A Jacobian array is allocated
     int pointNumber=0;
@@ -1372,6 +1544,100 @@ double reg_bspline_ComputeJacobianPenaltyTermFromVelocity_gpu(  nifti_image *tar
     CUDA_SAFE_CALL(cudaFree(jacobianDeterminantArray_d));
 
     return jacPenaltyTerm;
+}
+/* *************************************************************** */
+/* *************************************************************** */
+void reg_bspline_ComputeJacGradientFromVelocity_gpu(nifti_image *targetImage,
+                                                    nifti_image *velocityFieldImage,
+                                                    float4 **velocityFieldImageArray_d,
+                                                    float4 **gradientImageArray_d,
+                                                    float jacobianWeight,
+                                                    bool approximate)
+{
+    const int controlPointNumber = velocityFieldImage->nx*velocityFieldImage->ny*velocityFieldImage->nz;
+
+    // A Jacobian array is allocated
+    int pointNumber=0;
+    if(approximate) pointNumber = controlPointNumber;
+    else pointNumber = (int)targetImage->nvox;
+    float *jacobianDeterminantArray_d;
+    CUDA_SAFE_CALL(cudaMalloc((void **)&jacobianDeterminantArray_d, pointNumber*sizeof(float)));
+
+    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&pointNumber,sizeof(int)));
+    dim3 B1(512,1,1);
+    dim3 G1((unsigned int)ceil((float)pointNumber/(float)(512)),1,1);
+    _reg_bspline_SetJacDetToOne_kernel <<< G1, B1 >>>(jacobianDeterminantArray_d);
+    CUDA_SAFE_CALL(cudaThreadSynchronize());
+#ifndef NDEBUG
+    printf("[DEBUG] _reg_bspline_SetJacobianDeterminantToOne_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+           cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
+#endif
+
+    // A displacement field array is allocated since the voxel position as to be always updated
+    float4 *voxelDisplacementField_d;
+    CUDA_SAFE_CALL(cudaMalloc((void **)&voxelDisplacementField_d, pointNumber*sizeof(float4)));
+    CUDA_SAFE_CALL(cudaMemset(voxelDisplacementField_d, 0, pointNumber*sizeof(float4)));
+
+    // An array to contain the Jacobian matrix is allocated
+    float *JacobianMatricesArray_d;
+    CUDA_SAFE_CALL(cudaMalloc((void **)&JacobianMatricesArray_d, 9*pointNumber*sizeof(float)));
+
+    // Two temporary images are allocated on the card
+    float4 *controlPointArray_d;
+    float4 *nodePositionArray_d;
+    CUDA_SAFE_CALL(cudaMalloc((void **)&controlPointArray_d, controlPointNumber*sizeof(float4)));
+    CUDA_SAFE_CALL(cudaMalloc((void **)&nodePositionArray_d, controlPointNumber*sizeof(float4)));
+    CUDA_SAFE_CALL(cudaMemcpy(nodePositionArray_d, *velocityFieldImageArray_d,
+          controlPointNumber*sizeof(float4) , cudaMemcpyDeviceToDevice));
+
+    // The velocity field is first deconvolved
+    reg_spline_cppDeconvolve_gpu(   velocityFieldImage,
+                                    velocityFieldImage,
+                                    &nodePositionArray_d,   // input
+                                    &controlPointArray_d);  // output
+
+
+    // The Jacobian map is computed using assuming we deal with a control point position
+    reg_bspline_ComputeJacobianGradientFromVelocityField(targetImage,
+                                                        velocityFieldImage,
+                                                        &controlPointArray_d,
+                                                        &voxelDisplacementField_d,
+                                                        &JacobianMatricesArray_d,
+                                                        &jacobianDeterminantArray_d,
+                                                        gradientImageArray_d,
+                                                        jacobianWeight,
+                                                        approximate);
+
+    for(unsigned int i=1; i<SQUARING_VALUE; i++){
+        reg_spline_cppComposition_gpu(  velocityFieldImage,
+                                        velocityFieldImage,
+                                        &nodePositionArray_d,   // deformed (output)
+                                        &controlPointArray_d,    // used as a grid
+                                        1.0,
+                                        0);
+        reg_spline_cppDeconvolve_gpu(   velocityFieldImage,
+                                        velocityFieldImage,
+                                        &nodePositionArray_d,
+                                        &controlPointArray_d);
+        reg_bspline_ComputeJacobianGradientFromVelocityField(targetImage,
+                                                            velocityFieldImage,
+                                                            &controlPointArray_d,
+                                                            &voxelDisplacementField_d,
+                                                            &JacobianMatricesArray_d,
+                                                            &jacobianDeterminantArray_d,
+                                                            gradientImageArray_d,
+                                                            jacobianWeight,
+                                                            approximate);
+    }
+
+
+    CUDA_SAFE_CALL(cudaFree(JacobianMatricesArray_d));
+    CUDA_SAFE_CALL(cudaFree(voxelDisplacementField_d));
+    CUDA_SAFE_CALL(cudaFree(controlPointArray_d));
+    CUDA_SAFE_CALL(cudaFree(nodePositionArray_d));
+    CUDA_SAFE_CALL(cudaFree(jacobianDeterminantArray_d));
+
+    return;
 }
 /* *************************************************************** */
 /* *************************************************************** */

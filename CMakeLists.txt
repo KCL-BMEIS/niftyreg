@@ -18,13 +18,7 @@ endif(COMMAND cmake_policy)
 SET(ZLIB "z")
 #-----------------------------------------------------------------------------
 
-OPTION(BUILD_ALADIN "To build the reg_aladin executable" ON)
-OPTION(BUILD_BENCHMARK "To build the reg_benchmark executable" ON)
-OPTION(BUILD_F3D "To build the reg_f3d executable" ON)
-#OPTION(BUILD_F3D2 "To build the reg_f3d2 executable" ON)
-OPTION(BUILD_RESAMPLE "To build the reg_resample executable" ON)
-OPTION(BUILD_TRANSFORM "To build the reg_transform executable" ON)
-OPTION(BUILD_TOOLS "To build the reg_tools executable" ON)
+OPTION(BUILD_NIFTYREG "To build the reg_aladin executable" ON)
 
 OPTION(USE_SSE "to use SSE computation in some case" OFF)
 OPTION(USE_CUDA "Use CUDA for a GPU implementation of the code" OFF)
@@ -84,23 +78,14 @@ ENDIF(USE_CUDA)
 
 #-----------------------------------------------------------------------------
 
-IF(BUILD_BENCHMARK)
-	IF(NOT BUILD_F3D)
-		MESSAGE(FATAL_ERROR "BUILD_F3D is needed to build reg_benchmark. Exit")
-	ENDIF(NOT BUILD_F3D)
-	IF(NOT BUILD_ALADIN)
-		MESSAGE(FATAL_ERROR "BUILD_ALADIN is needed to build reg_benchmark. Exit")
-	ENDIF(NOT BUILD_ALADIN)
-ENDIF(BUILD_BENCHMARK)
-
-#-----------------------------------------------------------------------------
-
 SUBDIRS(zlib)
 SUBDIRS(nifti)
-SUBDIRS(reg-lib)
-IF(USE_CUDA)
-	SUBDIRS(reg-lib_gpu)
-ENDIF(USE_CUDA)
-SUBDIRS(reg-apps)
+IF(BUILD_NIFTYREG)
+	SUBDIRS(reg-lib)
+	IF(USE_CUDA)
+		SUBDIRS(reg-lib_gpu)
+	ENDIF(USE_CUDA)
+	SUBDIRS(reg-apps)
+ENDIF(BUILD_NIFTYREG)
 
 #-----------------------------------------------------------------------------

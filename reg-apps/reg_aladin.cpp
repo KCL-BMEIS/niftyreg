@@ -568,8 +568,15 @@ int main(int argc, char **argv)
 			if(cudaCommon_allocateArrayToDevice<float>(&resultImageArray_d, targetImage->dim)) return 1;
 			if(cudaCommon_allocateArrayToDevice<float4>(&positionFieldImageArray_d, targetImage->dim)) return 1;
 
-            CUDA_SAFE_CALL(cudaMalloc((void **)&targetMask_d, targetImage->nvox*sizeof(int)));
-            CUDA_SAFE_CALL(cudaMemcpy(targetMask_d, targetMask, targetImage->nvox*sizeof(int), cudaMemcpyHostToDevice));
+            // Index of the active voxel is stored
+            int *targetMask_h;CUDA_SAFE_CALL(cudaMallocHost((void **)&targetMask_h, activeVoxelNumber*sizeof(int)));
+            int *targetMask_h_ptr = &targetMask_h[0];
+            for(unsigned int i=0;i<targetImage->nvox;i++){
+                if(targetMask[i]!=-1) *targetMask_h_ptr++=i;
+            }
+            CUDA_SAFE_CALL(cudaMalloc((void **)&targetMask_d, activeVoxelNumber*sizeof(int)));
+            CUDA_SAFE_CALL(cudaMemcpy(targetMask_d, targetMask_h, activeVoxelNumber*sizeof(int), cudaMemcpyHostToDevice));
+            CUDA_SAFE_CALL(cudaFreeHost(targetMask_h));
 
 			CUDA_SAFE_CALL(cudaMalloc((void **)&targetPosition_d, blockMatchingParams.activeBlockNumber*3*sizeof(float)));
 			CUDA_SAFE_CALL(cudaMalloc((void **)&resultPosition_d, blockMatchingParams.activeBlockNumber*3*sizeof(float)));
