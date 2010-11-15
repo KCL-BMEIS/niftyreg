@@ -1,63 +1,26 @@
+IF(BUILD_NIFTYREG AND USE_CUDA)
 #-----------------------------------------------------------------------------
-SET(NAME _reg_affineTransformation)
-CUDA_ADD_LIBRARY(${NAME}_gpu ${NAME}_gpu.h ${NAME}_gpu.cu ${NAME}_kernels.cu)
-INSTALL(TARGETS ${NAME}_gpu
-	RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-	LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-	ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-)
+	SET(LIST _reg_affineTransformation)
+	SET(LIST ${LIST} _reg_blockMatching)
+	SET(LIST ${LIST} _reg_bspline)
+	SET(LIST ${LIST} _reg_mutualinformation)
+	SET(LIST ${LIST} _reg_resampling)
+	SET(LIST ${LIST} _reg_tools)
+	FOREACH(NAME ${LIST})
+		CUDA_ADD_LIBRARY(${NAME}_gpu ${NAME}_gpu.h ${NAME}_gpu.cu ${NAME}_kernels.cu)
+		INSTALL(TARGETS ${NAME}_gpu
+			RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+			LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+			ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+		)
+	ENDFOREACH(NAME)
 #-----------------------------------------------------------------------------
-IF(BUILD_ALADIN)
-	SET(NAME _reg_blockMatching)
-	CUDA_ADD_LIBRARY(${NAME}_gpu ${NAME}_gpu.h ${NAME}_gpu.cu ${NAME}_kernels.cu)
-	INSTALL(TARGETS ${NAME}_gpu
+	SET(NAME _reg_cudaCommon)
+	CUDA_ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cu)
+	INSTALL(TARGETS ${NAME}
 		RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 		LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 	)
-ENDIF(BUILD_ALADIN)
 #-----------------------------------------------------------------------------
-IF(BUILD_F3D)
-	SET(NAME _reg_bspline)
-	CUDA_ADD_LIBRARY(${NAME}_gpu ${NAME}_gpu.h ${NAME}_gpu.cu ${NAME}_kernels.cu)
-	INSTALL(TARGETS ${NAME}_gpu
-		RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-		LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-	)
-ENDIF(BUILD_F3D)
-#-----------------------------------------------------------------------------
-SET(NAME _reg_cudaCommon)
-CUDA_ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cu)
-INSTALL(TARGETS ${NAME}
-	RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-	LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-	ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-)
-#-----------------------------------------------------------------------------
-IF(BUILD_F3D)
-	SET(NAME _reg_mutualinformation)
-	CUDA_ADD_LIBRARY(${NAME}_gpu ${NAME}_gpu.h ${NAME}_gpu.cu ${NAME}_kernels.cu)
-	INSTALL(TARGETS ${NAME}_gpu
-		RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-		LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-	)
-ENDIF(BUILD_F3D)
-#-----------------------------------------------------------------------------
-SET(NAME _reg_resampling)
-CUDA_ADD_LIBRARY(${NAME}_gpu ${NAME}_gpu.h ${NAME}_gpu.cu ${NAME}_kernels.cu)
-INSTALL(TARGETS ${NAME}_gpu
-	RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-	LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-	ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-)
-#-----------------------------------------------------------------------------
-SET(NAME _reg_tools)
-CUDA_ADD_LIBRARY(${NAME}_gpu ${NAME}_gpu.h ${NAME}_gpu.cu ${NAME}_kernels.cu)
-INSTALL(TARGETS ${NAME}_gpu
-	RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-	LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-	ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-)
-#-----------------------------------------------------------------------------
+ENDIF(BUILD_NIFTYREG AND USE_CUDA)

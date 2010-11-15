@@ -1239,7 +1239,6 @@ void optimize_affine2D(_reg_blockMatchingParam * params,
         distance = 0.0;
         i = 0;
         top_points.clear();
-        int initial_size = queue.size();
 
         for (std::multimap<double, _reg_sorted_point2D>::iterator it = queue.begin();
         it != queue.end(); ++it, ++i)
@@ -1758,7 +1757,6 @@ void optimize_rigid2D(  _reg_blockMatchingParam *params,
         distance = 0.0;
         i = 0;
         top_points.clear();
-        int initial_size = queue.size();
         for (std::multimap<double, _reg_sorted_point2D>::iterator it = queue.begin();
         it != queue.end(); ++it, ++i)
         {

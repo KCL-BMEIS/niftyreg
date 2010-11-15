@@ -45,6 +45,7 @@
     #define Block_reg_bspline_ApproxJacobianGradient 512                // 32 regs - 050% occupancy
     #define Block_reg_bspline_CorrectFolding 512                        // 27 regs - 050% occupancy
     #define Block_reg_bspline_ApproxCorrectFolding 512                  // 31 regs - 050% occupancy
+    #define Block_target_block 512                                      // 26 regs - 100% occupancy
 #else
 	#define Block_reg_affine_deformationField 256                       // 16 regs - 067% occupancy
 	#define Block_reg_resampleSourceImage 256                           // 16 regs - 067% occupancy
@@ -65,21 +66,24 @@
     #define Block_reg_bspline_ApproxJacobianGradient 256                // 32 regs - 030% occupancy
     #define Block_reg_bspline_CorrectFolding 256                        // 27 regs - 033% occupancy
     #define Block_reg_bspline_ApproxCorrectFolding 256                  // 31 regs - 033% occupancy
+    #define Block_target_block 256                                      // 26 regs - 033% occupancy
 #endif
 
 #define Block_reg_bspline_Jacobian 192                                  // 41 regs - 025% occupancy
 #define Block_reg_bspline_JacobianFromVelocityField 128                 // 49 regs - 025% occupancy
 #define Block_reg_bspline_ApproxJacobianFromVelocityField 128           // 49 regs - 025% occupancy
 
+#define Block_reg_bspline_JacobianGradientFromVelocityField 384         // 20 regs - 075% occupancy (050% in 1.0/1.1)
+#define Block_reg_bspline_PositionToIndices 448                         // 17 regs - 088% occupancy (058% in 1.0/1.1)
+
 #define Block_reg_freeForm_interpolatePosition 256                      // 30 regs - 025% occupancy
 #define Block_reg_updateControlPointPosition 384                        // 08 regs - 100% occupancy
 #define Block_reg_spline_cppDeconvolve 384                              // 19 regs - 075% occupancy (050% in 1.0/1.1)
-#define Block_reg_spline_deformationFromDisplacement 256                // 19 regs - 075% occupancy (050% in 1.0/1.1)
+#define Block_reg_spline_deformationFromDisplacement 384                // 19 regs - 075% occupancy (050% in 1.0/1.1)
 #define Block_reg_initialiseConjugateGradient 384                       // 09 regs - 100% occupancy
 #define Block_reg_GetConjugateGradient2 384                             // 10 regs - 100% occupancy
 #define Block_reg_getMaximalLength 384                                  // 07 regs - 100% occupancy
 #define Block_reg_FillConvolutionWindows 384                            // 04 regs - 100% occupancy
-#define Block_target_block 512                                          // 26 regs - 100% occupancy
 #define Block_result_block 343                                          // 21 regs - 034% occupancy
 
 

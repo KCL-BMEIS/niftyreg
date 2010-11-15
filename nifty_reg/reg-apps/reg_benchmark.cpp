@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 	float *targetPtr=static_cast<float *>(targetImage->data);
 	float *sourcePtr=static_cast<float *>(sourceImage->data);
     srand((unsigned)time(0));
-	for(int i=0;i<targetImage->nvox;++i){
+    for(unsigned int i=0;i<targetImage->nvox;++i){
 	    *targetPtr++ = (float)(binning-4)*(float)rand()/(float)RAND_MAX + 2.0f;
 	    *sourcePtr++ = (float)(binning-4)*(float)rand()/(float)RAND_MAX + 2.0f;
         maskImage[i]=i;

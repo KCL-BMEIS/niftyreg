@@ -20,6 +20,16 @@
 	#include <emmintrin.h>
 #endif
 
+
+extern "C++" template<class DTYPE>
+void Get_BasisValues_a(DTYPE basis, DTYPE *values);
+extern "C++" template<class DTYPE>
+void Get_BasisValues_b(DTYPE basis, DTYPE *values, DTYPE *first);
+extern "C++" template<class DTYPE>
+void Get_BasisValues_c(DTYPE basis, DTYPE *values, DTYPE *first, DTYPE *second);
+extern "C++"
+void getReorientationMatrix(nifti_image *splineControlPoint, mat33 *desorient, mat33 *reorient);
+
 extern "C++" template<class PrecisionTYPE>
 void reg_bspline(	nifti_image *splineControlPoint,
 			        nifti_image *targetImage,

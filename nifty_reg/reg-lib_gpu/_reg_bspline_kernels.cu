@@ -43,6 +43,7 @@ texture<float,1, cudaReadModeElementType> zBasisTexture;
 
 texture<float,1, cudaReadModeElementType> jacobianDeterminantTexture;
 texture<float,1, cudaReadModeElementType> jacobianMatricesTexture;
+texture<float4,1, cudaReadModeElementType> voxelDisplacementTexture;
 
 /* *************************************************************** */
 /* *************************************************************** */
@@ -564,8 +565,8 @@ __global__ void _reg_bspline_ApproxJacDet_kernel(float *penaltyTerm)
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_JacDetFromVelField_kernel(float *jacobianMap,
-                                                                        float4 *displacementField_d)
+__global__ void _reg_bspline_JacDetFromVelField_kernel( float *jacobianMap,
+                                                        float4 *displacementField_d)
 {
     const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_VoxelNumber){
@@ -1324,6 +1325,229 @@ __global__ void _reg_bspline_ApproxJacobianMatrix_kernel(float *matrices, float 
         matrices[id]  =  det * (Tx_x2*Ty_y2 - Ty_x2*Tx_y2);
 
     }
+}
+
+/* *************************************************************** */
+/* *************************************************************** */
+
+__global__ void _reg_bspline_JacobianMatrixFromVel_kernel(  float *jacobianMatrices,
+                                                            float *jacobianDeterminant,
+                                                            float4 *voxelPosition_array)
+{
+    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    if(tid<c_VoxelNumber){
+
+        float4 voxelPosition = voxelPosition_array[tid];
+
+        // the "nearest previous" node is determined [0,0,0]
+        short3 nodeAnte;
+        float3 gridVoxelSpacing = c_ControlPointVoxelSpacing;
+        nodeAnte.x = (short)floorf((float)voxelPosition.x/gridVoxelSpacing.x);
+        nodeAnte.y = (short)floorf((float)voxelPosition.y/gridVoxelSpacing.y);
+        nodeAnte.z = (short)floorf((float)voxelPosition.z/gridVoxelSpacing.z);
+
+        int3 controlPointImageDim = c_ControlPointImageDim;
+
+        if(nodeAnte.x<0 || nodeAnte.y<0 || nodeAnte.z<0 ||
+           nodeAnte.x>controlPointImageDim.x-4 ||
+           nodeAnte.y>controlPointImageDim.y-4 ||
+           nodeAnte.z>controlPointImageDim.z-4){
+           return;
+        }
+
+        // Z basis values
+        const unsigned short shareMemIndex = 4*threadIdx.x;
+        __shared__ float zBasis[Block_reg_bspline_Jacobian*4];
+        __shared__ float zFirst[Block_reg_bspline_Jacobian*4];
+        float relative = fabsf(voxelPosition.z/gridVoxelSpacing.z-(float)nodeAnte.z);
+        float FF= relative*relative;
+        float FFF= FF*relative;
+        float MF=1.0f-relative;
+        zBasis[shareMemIndex] = MF*MF*MF/6.0f;
+        zBasis[shareMemIndex+1] = (3.0f*FFF - 6.0f*FF +4.0f)/6.0f;
+        zBasis[shareMemIndex+2] = (-3.0f*FFF + 3.0f*FF + 3.0f*relative + 1.0f)/6.0f;
+        zBasis[shareMemIndex+3] = FFF/6.0f;
+        zFirst[shareMemIndex] = (2.0f*relative - FF - 1.0f)/2.0f;
+        zFirst[shareMemIndex+1] = (3.0f*FF - 4.0f*relative)/2.0f;
+        zFirst[shareMemIndex+2] = (2.0f*relative - 3.0f*FF + 1.0f)/2.0f;
+        zFirst[shareMemIndex+3] = FF/2.0f;
+
+        // Y basis values
+        __shared__ float yBasis[Block_reg_bspline_Jacobian*4];
+        __shared__ float yFirst[Block_reg_bspline_Jacobian*4];
+        relative = fabsf(voxelPosition.y/gridVoxelSpacing.y-(float)nodeAnte.y);
+        FF= relative*relative;
+        FFF= FF*relative;
+        MF=1.0f-relative;
+        yBasis[shareMemIndex] = MF*MF*MF/6.0f;
+        yBasis[shareMemIndex+1] = (3.0f*FFF - 6.0f*FF +4.0f)/6.0f;
+        yBasis[shareMemIndex+2] = (-3.0f*FFF + 3.0f*FF + 3.0f*relative + 1.0f)/6.0f;
+        yBasis[shareMemIndex+3] = FFF/6.0f;
+        yFirst[shareMemIndex] = (2.0f*relative - FF - 1.0f)/2.0f;
+        yFirst[shareMemIndex+1] = (3.0f*FF - 4.0f*relative)/2.0f;
+        yFirst[shareMemIndex+2] = (2.0f*relative - 3.0f*FF + 1.0f)/2.0f;
+        yFirst[shareMemIndex+3] = FF/2.0f;
+
+        // X basis values
+        relative = fabsf(voxelPosition.x/gridVoxelSpacing.x-(float)nodeAnte.x);
+        float4 xBasis;
+        float4 xFirst;
+        xBasis.w= relative * relative * relative / 6.0f;
+        xBasis.x= 1.0f/6.0f + relative*(relative-1.0f)/2.0f - xBasis.w;
+        xBasis.z= relative + xBasis.x - 2.0f*xBasis.w;
+        xBasis.y= 1.0f - xBasis.x - xBasis.z - xBasis.w;
+        xFirst.w= relative * relative / 2.0f;
+        xFirst.x= relative - 0.5f - xFirst.w;
+        xFirst.z= 1.0f + xFirst.x - 2.0f*xFirst.w;
+        xFirst.y= - xFirst.x - xFirst.z - xFirst.w;
+
+        float4 position=make_float4(0.f,0.f,0.f,0.f);
+        float Tx_x=0.0f;
+        float Ty_x=0.0f;
+        float Tz_x=0.0f;
+        float Tx_y=0.0f;
+        float Ty_y=0.0f;
+        float Tz_y=0.0f;
+        float Tx_z=0.0f;
+        float Ty_z=0.0f;
+        float Tz_z=0.0f;
+
+        float4 nodeCoefficient;
+        float3 tempBasis;
+        float basis;
+
+        int indexYZ, indexXYZ;
+        for(short c=0; c<4; c++){
+            indexYZ= ( (nodeAnte.z + c) * controlPointImageDim.y + nodeAnte.y) * controlPointImageDim.x;
+            for(short b=0; b<4; b++){
+
+                tempBasis.x = zBasis[shareMemIndex+c] * yBasis[shareMemIndex+b];
+                tempBasis.y = zBasis[shareMemIndex+c] * yFirst[shareMemIndex+b];
+                tempBasis.z = zFirst[shareMemIndex+c] * yBasis[shareMemIndex+b];
+
+                indexXYZ = indexYZ + nodeAnte.x;
+                nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ++);
+                basis = xBasis.x * tempBasis.x;
+                position.x += nodeCoefficient.x * basis;
+                position.y += nodeCoefficient.y * basis;
+                position.z += nodeCoefficient.z * basis;
+                basis = xFirst.x * tempBasis.x;
+                Tx_x+=nodeCoefficient.x * basis;
+                Ty_x+=nodeCoefficient.y * basis;
+                Tz_x+=nodeCoefficient.z * basis;
+                basis = xBasis.x * tempBasis.y;
+                Tx_y+=nodeCoefficient.x * basis;
+                Ty_y+=nodeCoefficient.y * basis;
+                Tz_y+=nodeCoefficient.z * basis;
+                basis = xBasis.x * tempBasis.z;
+                Tx_z+=nodeCoefficient.x * basis;
+                Ty_z+=nodeCoefficient.y * basis;
+                Tz_z+=nodeCoefficient.z * basis;
+                nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ++);
+                basis = xBasis.y * tempBasis.x;
+                position.x += nodeCoefficient.x * basis;
+                position.y += nodeCoefficient.y * basis;
+                position.z += nodeCoefficient.z * basis;
+                basis = xFirst.y * tempBasis.x;
+                Tx_x+=nodeCoefficient.x * basis;
+                Ty_x+=nodeCoefficient.y * basis;
+                Tz_x+=nodeCoefficient.z * basis;
+                basis = xBasis.y * tempBasis.y;
+                Tx_y+=nodeCoefficient.x * basis;
+                Ty_y+=nodeCoefficient.y * basis;
+                Tz_y+=nodeCoefficient.z * basis;
+                basis = xBasis.y * tempBasis.z;
+                Tx_z+=nodeCoefficient.x * basis;
+                Ty_z+=nodeCoefficient.y * basis;
+                Tz_z+=nodeCoefficient.z * basis;
+                nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ++);
+                basis = xBasis.z * tempBasis.x;
+                position.x += nodeCoefficient.x * basis;
+                position.y += nodeCoefficient.y * basis;
+                position.z += nodeCoefficient.z * basis;
+                basis = xFirst.z * tempBasis.x;
+                Tx_x+=nodeCoefficient.x * basis;
+                Ty_x+=nodeCoefficient.y * basis;
+                Tz_x+=nodeCoefficient.z * basis;
+                basis = xBasis.z * tempBasis.y;
+                Tx_y+=nodeCoefficient.x * basis;
+                Ty_y+=nodeCoefficient.y * basis;
+                Tz_y+=nodeCoefficient.z * basis;
+                basis = xBasis.z * tempBasis.z;
+                Tx_z+=nodeCoefficient.x * basis;
+                Ty_z+=nodeCoefficient.y * basis;
+                Tz_z+=nodeCoefficient.z * basis;
+                nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ);
+                basis = xBasis.w * tempBasis.x;
+                position.x += nodeCoefficient.x * basis;
+                position.y += nodeCoefficient.y * basis;
+                position.z += nodeCoefficient.z * basis;
+                basis = xFirst.w * tempBasis.x;
+                Tx_x+=nodeCoefficient.x * basis;
+                Ty_x+=nodeCoefficient.y * basis;
+                Tz_x+=nodeCoefficient.z * basis;
+                basis = xBasis.w * tempBasis.y;
+                Tx_y+=nodeCoefficient.x * basis;
+                Ty_y+=nodeCoefficient.y * basis;
+                Tz_y+=nodeCoefficient.z * basis;
+                basis = xBasis.w * tempBasis.z;
+                Tx_z+=nodeCoefficient.x * basis;
+                Ty_z+=nodeCoefficient.y * basis;
+                Tz_z+=nodeCoefficient.z * basis;
+
+                indexYZ += controlPointImageDim.x;
+            }
+        }
+        voxelPosition_array[tid]=position;
+
+        Tx_x /= c_ControlPointSpacing.x;
+        Ty_x /= c_ControlPointSpacing.x;
+        Tz_x /= c_ControlPointSpacing.x;
+        Tx_y /= c_ControlPointSpacing.y;
+        Ty_y /= c_ControlPointSpacing.y;
+        Tz_y /= c_ControlPointSpacing.y;
+        Tx_z /= c_ControlPointSpacing.z;
+        Ty_z /= c_ControlPointSpacing.z;
+        Tz_z /= c_ControlPointSpacing.z;
+
+        float Tx_x2=c_AffineMatrix0.x*Tx_x + c_AffineMatrix0.y*Ty_x + c_AffineMatrix0.z*Tz_x;
+        float Ty_x2=c_AffineMatrix0.x*Tx_y + c_AffineMatrix0.y*Ty_y + c_AffineMatrix0.z*Tz_y;
+        float Tz_x2=c_AffineMatrix0.x*Tx_z + c_AffineMatrix0.y*Ty_z + c_AffineMatrix0.z*Tz_z;
+
+        float Tx_y2=c_AffineMatrix1.x*Tx_x + c_AffineMatrix1.y*Ty_x + c_AffineMatrix1.z*Tz_x;
+        float Ty_y2=c_AffineMatrix1.x*Tx_y + c_AffineMatrix1.y*Ty_y + c_AffineMatrix1.z*Tz_y;
+        float Tz_y2=c_AffineMatrix1.x*Tx_z + c_AffineMatrix1.y*Ty_z + c_AffineMatrix1.z*Tz_z;
+
+        float Tx_z2=c_AffineMatrix2.x*Tx_x + c_AffineMatrix2.y*Ty_x + c_AffineMatrix2.z*Tz_x;
+        float Ty_z2=c_AffineMatrix2.x*Tx_y + c_AffineMatrix2.y*Ty_y + c_AffineMatrix2.z*Tz_y;
+        float Tz_z2=c_AffineMatrix2.x*Tx_z + c_AffineMatrix2.y*Ty_z + c_AffineMatrix2.z*Tz_z;
+
+        /* The Jacobian matrix is inverted and stored */
+        float det= Tx_x2*Ty_y2*Tz_z2
+                + Tx_y2*Ty_z2*Tz_x2
+                + Tx_z2*Ty_x2*Tz_y2
+                - Tx_x2*Ty_z2*Tz_y2
+                - Tx_y2*Ty_x2*Tz_z2
+                - Tx_z2*Ty_y2*Tz_x2;
+
+        jacobianDeterminant[tid]= det;
+
+        det = 1.f / det;
+        int id = 9*tid;
+        jacobianMatrices[id++] = det * (Ty_y2* Tz_z2 - Tz_y2*Ty_z2);
+        jacobianMatrices[id++] = det * (Tz_y2* Tx_z2 - Tx_y2*Tz_z2);
+        jacobianMatrices[id++] = det * (Tx_y2* Ty_z2 - Ty_y2*Tx_z2);
+
+        jacobianMatrices[id++] = det * (Tz_x2* Ty_z2 - Ty_x2*Tz_z2);
+        jacobianMatrices[id++] = det * (Tx_x2* Tz_z2 - Tz_x2*Tx_z2);
+        jacobianMatrices[id++] = det * (Ty_x2* Tx_z2 - Tx_x2*Ty_z2);
+
+        jacobianMatrices[id++] = det * (Ty_x2* Tz_y2 - Tz_x2*Ty_y2);
+        jacobianMatrices[id++] = det * (Tz_x2* Tx_y2 - Tx_x2*Tz_y2);
+        jacobianMatrices[id]  =  det * (Tx_x2* Ty_y2 - Ty_x2*Tx_y2);
+
+    }
+    return;
 }
 
 /* *************************************************************** */
@@ -2209,9 +2433,6 @@ __global__ void _reg_spline_cppDeconvolve_kernel(   float3 *temporaryGridImage_d
         unsigned int coord=newStart;
         for(unsigned int i=start; i<last; i+=increment){
             memcpy(&temporaryGridImage_d[coord++], &outputControlPointArray_d[i], sizeof(float3));
-//            temporaryGridImage_d[coord].x = outputControlPointArray_d[i].x;
-//            temporaryGridImage_d[coord].y = outputControlPointArray_d[i].y;
-//            temporaryGridImage_d[coord++].z = outputControlPointArray_d[i].z;
         }
 
         float3 currentPole=make_float3(pole,pole,pole);
@@ -2246,9 +2467,6 @@ __global__ void _reg_spline_cppDeconvolve_kernel(   float3 *temporaryGridImage_d
         coord=newStart;
         for(int i=start; i<last; i+=increment){
             memcpy(&outputControlPointArray_d[i], &temporaryGridImage_d[coord++], sizeof(float3));
-//            outputControlPointArray_d[i].x = temporaryGridImage_d[coord].x;
-//            outputControlPointArray_d[i].y = temporaryGridImage_d[coord].y;
-//            outputControlPointArray_d[i].z = temporaryGridImage_d[coord++].z;
         }
     }
     return;
@@ -2259,7 +2477,6 @@ __global__ void _reg_spline_getDeformationFromDisplacement_kernel(float4 *imageA
 {
     const int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_ControlPointNumber){
-
 
         // The current displacement is extracted
         float3 position;
@@ -2309,6 +2526,185 @@ __global__ void _reg_bspline_GetSquaredLogJacDet_kernel(float *array)
 }
 
 /* *************************************************************** */
+/* *************************************************************** */
 
+__global__ void _reg_bspline_JacobianGradFromVel_kernel(float4 *gradientImageArray_d)
+{
+    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    if(tid<c_ControlPointNumber){
+
+        int3 controlPointIndex;
+        int3 controlPointImageDim = c_ControlPointImageDim;
+        int tempIndex=tid;
+        controlPointIndex.z =tempIndex/(controlPointImageDim.x*controlPointImageDim.y);
+        tempIndex -= (int)controlPointIndex.z*(controlPointImageDim.x)*(controlPointImageDim.y);
+        controlPointIndex.y = tempIndex/controlPointImageDim.x;
+        controlPointIndex.x = tempIndex - (int)controlPointIndex.y*(controlPointImageDim.x);
+
+        /* For each control point (thread), I need to loop over every voxel in order to
+           know which one are in the area of interest */
+
+        float4 JacobianGradient=make_float4(0.f,0.f,0.f,0.f);
+
+        for(int i=0;i<c_VoxelNumber;i++){
+            float4 voxelIndex = tex1Dfetch(voxelDisplacementTexture,i);
+
+            int zPre = (int)floorf((float)voxelIndex.z/(float)c_ControlPointVoxelSpacing.z);
+            if(controlPointIndex.z>=zPre && controlPointIndex.z<zPre+4){
+
+                int yPre = (int)floorf((float)voxelIndex.y/(float)c_ControlPointVoxelSpacing.y);
+                if(controlPointIndex.y>=yPre && controlPointIndex.y<yPre+4){
+
+                    int xPre = (int)floorf((float)voxelIndex.x/(float)c_ControlPointVoxelSpacing.x);
+                    if(controlPointIndex.x>=xPre && controlPointIndex.x<xPre+4){
+
+                        float3 basisValues, firstValues;
+                        float basis=(float)voxelIndex.x/c_ControlPointVoxelSpacing.x-(float)xPre;
+                        switch(controlPointIndex.x-xPre){
+                            case 0:
+                                basisValues.x=(basis-1.f)*(basis-1.f)*(basis-1.f)/6.f;
+                                firstValues.x=(-basis*basis + 2.f*basis - 1.f) / 2.f;
+                                break;
+                            case 1:
+                                basisValues.x=(3.f*basis*basis*basis - 6.f*basis*basis + 4.f)/6.f;
+                                firstValues.x=(3.f*basis*basis - 4.f*basis) / 2.f;
+                                break;
+                            case 2:
+                                basisValues.x=(-3.f*basis*basis*basis + 3.f*basis*basis + 3.f*basis + 1.f)/6.f;
+                                firstValues.x=(-3.f*basis*basis + 2.f*basis + 1.f) / 2.f;
+                                break;
+                            case 3:
+                                basisValues.x=basis*basis*basis/6.f;
+                                firstValues.x=basis*basis/2.f;
+                                break;
+                            default:
+                                basisValues.x=0.f;
+                                firstValues.x=0.f;
+                                break;
+                        }
+
+                        basis=(float)voxelIndex.y/c_ControlPointVoxelSpacing.y-(float)yPre;
+                        switch(controlPointIndex.y-yPre){
+                            case 0:
+                                basisValues.y=(basis-1.f)*(basis-1.f)*(basis-1.f)/6.f;
+                                firstValues.y=(-basis*basis + 2.f*basis - 1.f) / 2.f;
+                                break;
+                            case 1:
+                                basisValues.y=(3.f*basis*basis*basis - 6.f*basis*basis + 4.f)/6.f;
+                                firstValues.y=(3.f*basis*basis - 4.f*basis) / 2.f;
+                                break;
+                            case 2:
+                                basisValues.y=(-3.f*basis*basis*basis + 3.f*basis*basis + 3.f*basis + 1.f)/6.f;
+                                firstValues.y=(-3.f*basis*basis + 2.f*basis + 1.f) / 2.f;
+                                break;
+                            case 3:
+                                basisValues.y=basis*basis*basis/6.f;
+                                firstValues.y=basis*basis/2.f;
+                                break;
+                            default:
+                                basisValues.y=0.f;
+                                firstValues.y=0.f;
+                                break;
+                        }
+
+                        basis=(float)voxelIndex.z/c_ControlPointVoxelSpacing.z-(float)zPre;
+                        switch(controlPointIndex.z-zPre){
+                            case 0:
+                                basisValues.z=(basis-1.f)*(basis-1.f)*(basis-1.f)/6.f;
+                                firstValues.z=(-basis*basis + 2.f*basis - 1.f) / 2.f;
+                                break;
+                            case 1:
+                                basisValues.z=(3.f*basis*basis*basis - 6.f*basis*basis + 4.f)/6.f;
+                                firstValues.z=(3.f*basis*basis - 4.f*basis) / 2.f;
+                                break;
+                            case 2:
+                                basisValues.z=(-3.f*basis*basis*basis + 3.f*basis*basis + 3.f*basis + 1.f)/6.f;
+                                firstValues.z=(-3.f*basis*basis + 2.f*basis + 1.f) / 2.f;
+                                break;
+                            case 3:
+                                basisValues.z=basis*basis*basis/6.f;
+                                firstValues.z=basis*basis/2.f;
+                                break;
+                            default:
+                                basisValues.z=0.f;
+                                firstValues.z=0.f;
+                                break;
+                        }
+
+                        float3 currentBasisValues = make_float3(
+                            firstValues.x * basisValues.y * basisValues.z,
+                            basisValues.x * firstValues.y * basisValues.z,
+                            basisValues.x * basisValues.y * firstValues.z);
+
+                        int storageIndex = i;
+                        float jacDeterminant = tex1Dfetch(jacobianDeterminantTexture,i);
+                        if(jacDeterminant>0) jacDeterminant = 2.f * log(jacDeterminant);
+                        storageIndex *= 9;
+                        JacobianGradient.x += jacDeterminant
+                            * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*currentBasisValues.x
+                            +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*currentBasisValues.y
+                            +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*currentBasisValues.z);
+                        JacobianGradient.y += jacDeterminant
+                            * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*currentBasisValues.x
+                            +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*currentBasisValues.y
+                            +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*currentBasisValues.z);
+                        JacobianGradient.z += jacDeterminant
+                            * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*currentBasisValues.x
+                            +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*currentBasisValues.y
+                            +  tex1Dfetch(jacobianMatricesTexture,storageIndex)*currentBasisValues.z);
+
+                    } //z in the range
+                } //y in the range
+            } //x in the range
+        } //i
+
+        gradientImageArray_d[tid] = gradientImageArray_d[tid]
+                                    + make_float4(c_Weight
+                                    * (c_AffineMatrix0.x *JacobianGradient.x
+                                    + c_AffineMatrix0.y *JacobianGradient.y
+                                    + c_AffineMatrix0.z *JacobianGradient.z),
+                                    c_Weight
+                                    * (c_AffineMatrix1.x *JacobianGradient.x
+                                    + c_AffineMatrix1.y *JacobianGradient.y
+                                    + c_AffineMatrix1.z *JacobianGradient.z),
+                                    c_Weight
+                                    * (c_AffineMatrix2.x *JacobianGradient.x
+                                    + c_AffineMatrix2.y *JacobianGradient.y
+                                    + c_AffineMatrix2.z *JacobianGradient.z),
+                                    0.0f);
+    } //tid
+}
+
+/* *************************************************************** */
+/* *************************************************************** */
+__global__ void _reg_bspline_PositionToIndices_kernel(float4 *position)
+{
+    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    if(tid<c_VoxelNumber){
+
+        float4 voxelPosition = position[tid];
+        float3 voxelIndices;
+
+        float4 matrix = tex1Dfetch(txRealToVoxelMatrix,0);
+        voxelIndices.x =   matrix.x*voxelPosition.x + matrix.y*voxelPosition.y  +
+                        matrix.z*voxelPosition.z  +  matrix.w;
+
+        matrix = tex1Dfetch(txRealToVoxelMatrix,1);
+        voxelIndices.y =   matrix.x*voxelPosition.x + matrix.y*voxelPosition.y  +
+                        matrix.z*voxelPosition.z  +  matrix.w;
+
+        matrix = tex1Dfetch(txRealToVoxelMatrix,2);
+        voxelIndices.z =   matrix.x*voxelPosition.x + matrix.y*voxelPosition.y  +
+                        matrix.z*voxelPosition.z  +  matrix.w;
+
+        position[tid] = make_float4(voxelIndices.x,
+                                    voxelIndices.y,
+                                    voxelIndices.z,
+                                    0.f);
+    }
+}
+
+/* *************************************************************** */
+/* *************************************************************** */
 #endif
 
