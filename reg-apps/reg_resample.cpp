@@ -173,10 +173,10 @@ int main(int argc, char **argv)
 	printf("\n\n");
 	printf("Parameters\n");
 	printf("Target image name: %s\n",targetImage->fname);
-	printf("\t%ix%ix%i voxels\n",targetImage->nx,targetImage->ny,targetImage->nz);
+    printf("\t%ix%ix%i voxels, %i volumes\n",targetImage->nx,targetImage->ny,targetImage->nz,targetImage->nt);
 	printf("\t%gx%gx%g mm\n",targetImage->dx,targetImage->dy,targetImage->dz);
 	printf("Source image name: %s\n",sourceImage->fname);
-	printf("\t%ix%ix%i voxels\n",sourceImage->nx,sourceImage->ny,sourceImage->nz);
+    printf("\t%ix%ix%i voxels, %i volumes\n",sourceImage->nx,sourceImage->ny,sourceImage->nz,sourceImage->nt);
 	printf("\t%gx%gx%g mm\n",sourceImage->dx,sourceImage->dy,sourceImage->dz);
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n");
 
@@ -283,12 +283,15 @@ int main(int argc, char **argv)
         else if(flag->NNInterpolationFlag) inter=0;
 
         nifti_image *resultImage = nifti_copy_nim_info(targetImage);
+        resultImage->dim[0]=resultImage->ndim=sourceImage->dim[0];
+        resultImage->dim[4]=resultImage->nt=sourceImage->dim[4];
         resultImage->cal_min=sourceImage->cal_min;
         resultImage->cal_max=sourceImage->cal_max;
         resultImage->scl_slope=sourceImage->scl_slope;
         resultImage->scl_inter=sourceImage->scl_inter;
         resultImage->datatype = sourceImage->datatype;
         resultImage->nbyper = sourceImage->nbyper;
+        resultImage->nvox = resultImage->dim[1] * resultImage->dim[2] * resultImage->dim[3] * resultImage->dim[4];
         resultImage->data = (void *)calloc(resultImage->nvox, resultImage->nbyper);
         reg_resampleSourceImage<double>(targetImage,
                                         sourceImage,
@@ -299,8 +302,8 @@ int main(int argc, char **argv)
                                         0);
         nifti_set_filenames(resultImage, param->outputResultName, 0, 0);
         nifti_image_write(resultImage);
-        nifti_image_free(resultImage);
         printf("Resampled image has been saved: %s\n", param->outputResultName);
+        nifti_image_free(resultImage);
     }
 
     /* *********************** */
@@ -331,6 +334,8 @@ int main(int argc, char **argv)
         }
 
         nifti_image *resultImage = nifti_copy_nim_info(targetImage);
+        resultImage->dim[0]=resultImage->ndim=3;
+        resultImage->dim[4]=resultImage->nt=1;
         resultImage->cal_min=sourceImage->cal_min;
         resultImage->cal_max=sourceImage->cal_max;
         resultImage->scl_slope=sourceImage->scl_slope;

@@ -18,7 +18,8 @@ endif(COMMAND cmake_policy)
 SET(ZLIB "z")
 #-----------------------------------------------------------------------------
 
-OPTION(BUILD_NIFTYREG "To build the reg_aladin executable" ON)
+OPTION(BUILD_NIFTYREG "To build the NiftyReg executables" ON)
+OPTION(BUILD_NR_DEV "To build all the templated functions (longer). Useful for developpers only" OFF)
 
 OPTION(USE_SSE "to use SSE computation in some case" OFF)
 OPTION(USE_CUDA "Use CUDA for a GPU implementation of the code" OFF)
@@ -30,17 +31,36 @@ INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/zlib)
 
 #-----------------------------------------------------------------------------
 
+ADD_DEFINITIONS(-fPIC)
+
 IF(USE_SSE)
-	ADD_DEFINITIONS(-D_USE_SSE)
+    ADD_DEFINITIONS(-D_USE_SSE)
 ENDIF(USE_SSE)
 
+IF(BUILD_NR_DEV)
+    ADD_DEFINITIONS(-D_NR_DEV)
+ENDIF(BUILD_NR_DEV)
+
 IF(USE_CUDA)
-    OPTION(CUDA_CHECK_CAP "Check the cuda card capability and adjust the block sizes accordingly" OFF)
+    OPTION(CUDA_CHECK_CAP "Check the cuda card capability and adjust the NiftyReg block sizes accordingly" OFF)
 
-	INCLUDE(${CMAKE_SOURCE_DIR}/CMake/cuda/FindCUDA.cmake)
-	INCLUDE_DIRECTORIES(${CUDA_CUT_INCLUDE_DIR})
-	CUDA_INCLUDE_DIRECTORIES(${CUDA_CUT_INCLUDE_DIR})
+    INCLUDE(${CMAKE_SOURCE_DIR}/CMake/cuda/FindCUDA.cmake)
 
+    # Check the cuda version to make sure it is compatible with NiftyReg
+    IF("${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR}" MATCHES "^3\\.2$")
+        MESSAGE(ERROR "\nNiftyReg is not compatible with the 3.2 cuda drivers\nThe USE_CUDA flag has been turned off")
+        SET(USE_CUDA OFF)
+    ENDIF("${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR}" MATCHES "^3\\.2$")
+
+    INCLUDE_DIRECTORIES(${CUDA_CUT_INCLUDE_DIR})
+    CUDA_INCLUDE_DIRECTORIES(${CUDA_CUT_INCLUDE_DIR})
+
+    IF(NOT EXISTS "${CUDA_SDK_ROOT_DIR}/C/common/inc/cutil.h")
+        MESSAGE(FATAL_ERROR "Please define the CUDA_SDK_ROOT_DIR variable\nsuch as CUDA_SDK_ROOT_DIR/C/common/inc/cutil.h exists")
+    ENDIF(NOT EXISTS "${CUDA_SDK_ROOT_DIR}/C/common/inc/cutil.h")
+
+    INCLUDE_DIRECTORIES(${CUDA_SDK_ROOT_DIR}/C/common/inc)
+    CUDA_INCLUDE_DIRECTORIES(${CUDA_SDK_ROOT_DIR}/C/common/inc)
 	
     if(CUDA_CHECK_CAP)
         try_run(RUN_RESULT_VAR COMPILE_RESULT_VAR
@@ -72,8 +92,7 @@ IF(USE_CUDA)
 	
 	ADD_DEFINITIONS(-D_USE_CUDA)
 	SET(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-D_USE_CUDA")
-	CUDA_INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/nifti)
-	INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-lib_gpu)
+    CUDA_INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/nifti)
 ENDIF(USE_CUDA)
 
 #-----------------------------------------------------------------------------
@@ -82,9 +101,6 @@ SUBDIRS(zlib)
 SUBDIRS(nifti)
 IF(BUILD_NIFTYREG)
 	SUBDIRS(reg-lib)
-	IF(USE_CUDA)
-		SUBDIRS(reg-lib_gpu)
-	ENDIF(USE_CUDA)
 	SUBDIRS(reg-apps)
 ENDIF(BUILD_NIFTYREG)
 

@@ -16,7 +16,8 @@
 
 extern "C++" template<class PrecisionTYPE>
 PrecisionTYPE reg_getSSD(	nifti_image *targetImage,
-	 						nifti_image *resultImage
+                            nifti_image *resultImage,
+                            int *mask
  							);
 
 extern "C++" template <class PrecisionTYPE>
@@ -24,5 +25,6 @@ void reg_getVoxelBasedSSDGradient(	nifti_image *targetImage,
 									nifti_image *resultImage,
 									nifti_image *resultImageGradient,
 									float maxSD,
-									nifti_image *ssdGradientImage);
+                                    nifti_image *ssdGradientImage,
+                                    int *mask);
 #endif

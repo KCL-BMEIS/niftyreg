@@ -46,7 +46,7 @@ void reg_voxelCentric2NodeCentric_gpu(	nifti_image *targetImage,
 	reg_voxelCentric2NodeCentric_kernel <<< G1, B1 >>> (*nodeNMIGradientArray_d);
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
-	printf("[DEBUG] reg_voxelCentric2NodeCentric_gpu kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+    printf("[NiftyReg CUDA DEBUG] reg_voxelCentric2NodeCentric_gpu kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 }
@@ -58,12 +58,12 @@ void reg_convertNMIGradientFromVoxelToRealSpace_gpu(	mat44 *sourceMatrix_xyz,
 	const int nodeNumber = controlPointImage->nx * controlPointImage->ny * controlPointImage->nz;
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber,&nodeNumber,sizeof(int)));
 
-	float4 *matrix_h;CUDA_SAFE_CALL(cudaMallocHost((void **)&matrix_h, 3*sizeof(float4)));
+    float4 *matrix_h;CUDA_SAFE_CALL(cudaMallocHost(&matrix_h, 3*sizeof(float4)));
 	matrix_h[0] = make_float4(sourceMatrix_xyz->m[0][0], sourceMatrix_xyz->m[0][1], sourceMatrix_xyz->m[0][2], sourceMatrix_xyz->m[0][3]);
 	matrix_h[1] = make_float4(sourceMatrix_xyz->m[1][0], sourceMatrix_xyz->m[1][1], sourceMatrix_xyz->m[1][2], sourceMatrix_xyz->m[1][3]);
 	matrix_h[2] = make_float4(sourceMatrix_xyz->m[2][0], sourceMatrix_xyz->m[2][1], sourceMatrix_xyz->m[2][2], sourceMatrix_xyz->m[2][3]);
 	float4 *matrix_d;
-	CUDA_SAFE_CALL(cudaMalloc((void **)&matrix_d, 3*sizeof(float4)));
+    CUDA_SAFE_CALL(cudaMalloc(&matrix_d, 3*sizeof(float4)));
 	CUDA_SAFE_CALL(cudaMemcpy(matrix_d, matrix_h, 3*sizeof(float4), cudaMemcpyHostToDevice));
     CUDA_SAFE_CALL(cudaFreeHost((void *)matrix_h));
 	CUDA_SAFE_CALL(cudaBindTexture(0, matrixTexture, matrix_d, 3*sizeof(float4)));
@@ -76,7 +76,7 @@ void reg_convertNMIGradientFromVoxelToRealSpace_gpu(	mat44 *sourceMatrix_xyz,
 	_reg_convertNMIGradientFromVoxelToRealSpace_kernel <<< G1, B1 >>> (*nodeNMIGradientArray_d);
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
-	printf("[DEBUG] reg_convertNMIGradientFromVoxelToRealSpace: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+    printf("[NiftyReg CUDA DEBUG] reg_convertNMIGradientFromVoxelToRealSpace: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 	CUDA_SAFE_CALL(cudaFree(matrix_d));
@@ -99,7 +99,7 @@ void reg_initialiseConjugateGradient(	float4 **nodeNMIGradientArray_d,
 	reg_initialiseConjugateGradient_kernel <<< G1, B1 >>> (*conjugateG_d);
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
-	printf("[DEBUG] reg_initialiseConjugateGradient: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+    printf("[NiftyReg CUDA DEBUG] reg_initialiseConjugateGradient: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 	CUDA_SAFE_CALL(cudaMemcpy(*conjugateH_d, *conjugateG_d, nodeNumber*sizeof(float4), cudaMemcpyDeviceToDevice));
@@ -121,14 +121,14 @@ void reg_GetConjugateGradient(	float4 **nodeNMIGradientArray_d,
 	dim3 G1(Grid_reg_GetConjugateGradient1,1,1);
 
 	float2 *sum_d;
-	CUDA_SAFE_CALL(cudaMalloc((void **)&sum_d, nodeNumber*sizeof(float2)));
+    CUDA_SAFE_CALL(cudaMalloc(&sum_d, nodeNumber*sizeof(float2)));
 	reg_GetConjugateGradient1_kernel <<< G1, B1 >>> (sum_d);
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
-	printf("[DEBUG] reg_GetConjugateGradient1 kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+    printf("[NiftyReg CUDA DEBUG] reg_GetConjugateGradient1 kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
-	float2 *sum_h;CUDA_SAFE_CALL(cudaMallocHost((void **)&sum_h, nodeNumber*sizeof(float2)));
+    float2 *sum_h;CUDA_SAFE_CALL(cudaMallocHost(&sum_h, nodeNumber*sizeof(float2)));
 	CUDA_SAFE_CALL(cudaMemcpy(sum_h,sum_d, nodeNumber*sizeof(float2),cudaMemcpyDeviceToHost));
 	CUDA_SAFE_CALL(cudaFree(sum_d));
 	double dgg = 0.0;
@@ -147,7 +147,7 @@ void reg_GetConjugateGradient(	float4 **nodeNMIGradientArray_d,
 	reg_GetConjugateGradient2_kernel <<< G2, B2 >>> (*nodeNMIGradientArray_d, *conjugateG_d, *conjugateH_d);
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
-	printf("[DEBUG] reg_GetConjugateGradient2 kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+    printf("[NiftyReg CUDA DEBUG] reg_GetConjugateGradient2 kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 
@@ -168,14 +168,14 @@ float reg_getMaximalLength_gpu(	float4 **nodeNMIGradientArray_d,
 	dim3 G1(Grid_reg_getMaximalLength,1,1);
 
 	float *all_d;
-	CUDA_SAFE_CALL(cudaMalloc((void **)&all_d, threadNumber*sizeof(float)));
+    CUDA_SAFE_CALL(cudaMalloc(&all_d, threadNumber*sizeof(float)));
 	reg_getMaximalLength_kernel <<< G1, B1 >>> (all_d);
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
-	printf("[DEBUG] reg_getMaximalLength kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+    printf("[NiftyReg CUDA DEBUG] reg_getMaximalLength kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
-	float *all_h;CUDA_SAFE_CALL(cudaMallocHost((void **)&all_h, nodeNumber*sizeof(float)));
+    float *all_h;CUDA_SAFE_CALL(cudaMallocHost(&all_h, nodeNumber*sizeof(float)));
 	CUDA_SAFE_CALL(cudaMemcpy(all_h, all_d, threadNumber*sizeof(float),cudaMemcpyDeviceToHost));
 	CUDA_SAFE_CALL(cudaFree(all_d));
 	double maxDistance = 0.0f;
@@ -205,7 +205,7 @@ void reg_updateControlPointPosition_gpu(nifti_image *controlPointImage,
 	reg_updateControlPointPosition_kernel <<< G1, B1 >>> (*controlPointImageArray_d);
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
-	printf("[DEBUG] reg_updateControlPointPosition kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+    printf("[NiftyReg CUDA DEBUG] reg_updateControlPointPosition kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 }
@@ -239,7 +239,7 @@ void reg_gaussianSmoothing_gpu( nifti_image *image,
             if(radius>0){
                 int kernelSize = 1+radius*2;
                 float *kernel_h;
-                CUDA_SAFE_CALL(cudaMallocHost((void **)&kernel_h, kernelSize*sizeof(float)));
+                CUDA_SAFE_CALL(cudaMallocHost(&kernel_h, kernelSize*sizeof(float)));
                 float kernelSum=0;
                 for(int i=-radius; i<=radius; i++){
                     kernel_h[radius+i]=(float)(exp( -(i*i)/(2.0*currentSigma*currentSigma)) / (currentSigma*2.506628274631)); // 2.506... = sqrt(2*pi)
@@ -248,12 +248,12 @@ void reg_gaussianSmoothing_gpu( nifti_image *image,
                 for(int i=0; i<kernelSize; i++)
                     kernel_h[i] /= kernelSum;
                 float *kernel_d;
-                CUDA_SAFE_CALL(cudaMalloc((void **)&kernel_d, kernelSize*sizeof(float)));
+                CUDA_SAFE_CALL(cudaMalloc(&kernel_d, kernelSize*sizeof(float)));
                 CUDA_SAFE_CALL(cudaMemcpy(kernel_d, kernel_h, kernelSize*sizeof(float), cudaMemcpyHostToDevice));
                 CUDA_SAFE_CALL(cudaFreeHost(kernel_h));
 
                 float4 *smoothedImage;
-                CUDA_SAFE_CALL(cudaMalloc((void **)&smoothedImage,voxelNumber*sizeof(float4)));
+                CUDA_SAFE_CALL(cudaMalloc(&smoothedImage,voxelNumber*sizeof(float4)));
 
                 CUDA_SAFE_CALL(cudaBindTexture(0, convolutionKernelTexture, kernel_d, kernelSize*sizeof(float)));
                 CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *imageArray_d, voxelNumber*sizeof(float4)));
@@ -268,7 +268,7 @@ void reg_gaussianSmoothing_gpu( nifti_image *image,
                         _reg_ApplyConvolutionWindowAlongX_kernel <<< G, B >>> (smoothedImage, kernelSize);
                         CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
-                        printf("[DEBUG] reg_ApplyConvolutionWindowAlongX_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+                        printf("[NiftyReg CUDA DEBUG] reg_ApplyConvolutionWindowAlongX_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
                             cudaGetErrorString(cudaGetLastError()),G.x,G.y,G.z,B.x,B.y,B.z);
 #endif
                         break;
@@ -280,7 +280,7 @@ void reg_gaussianSmoothing_gpu( nifti_image *image,
                         _reg_ApplyConvolutionWindowAlongY_kernel <<< G, B >>> (smoothedImage, kernelSize);
                         CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
-                        printf("[DEBUG] reg_ApplyConvolutionWindowAlongY_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+                        printf("[NiftyReg CUDA DEBUG] reg_ApplyConvolutionWindowAlongY_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
                             cudaGetErrorString(cudaGetLastError()),G.x,G.y,G.z,B.x,B.y,B.z);
 #endif
                         break;
@@ -292,7 +292,7 @@ void reg_gaussianSmoothing_gpu( nifti_image *image,
                         _reg_ApplyConvolutionWindowAlongZ_kernel <<< G, B >>> (smoothedImage, kernelSize);
                         CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
-                        printf("[DEBUG] reg_ApplyConvolutionWindowAlongZ_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+                        printf("[NiftyReg CUDA DEBUG] reg_ApplyConvolutionWindowAlongZ_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
                             cudaGetErrorString(cudaGetLastError()),G.x,G.y,G.z,B.x,B.y,B.z);
 #endif
                         break;
@@ -321,7 +321,7 @@ void reg_smoothImageForCubicSpline_gpu( nifti_image *image,
         if(smoothingRadius[n]>0){
             int kernelSize = 1+smoothingRadius[n]*2;
             float *kernel_h;
-            CUDA_SAFE_CALL(cudaMallocHost((void **)&kernel_h, kernelSize*sizeof(float)));
+            CUDA_SAFE_CALL(cudaMallocHost(&kernel_h, kernelSize*sizeof(float)));
 //             float kernelSum=0;
             for(int i=-smoothingRadius[n]; i<=smoothingRadius[n]; i++){
                 float coeff = fabs(2.0f*(float)(i)/smoothingRadius[n]);
@@ -331,13 +331,13 @@ void reg_smoothImageForCubicSpline_gpu( nifti_image *image,
             }
 //             for(int i=0; i<kernelSize; i++) kernel_h[i] /= kernelSum;
             float *kernel_d;
-            CUDA_SAFE_CALL(cudaMalloc((void **)&kernel_d, kernelSize*sizeof(float)));
+            CUDA_SAFE_CALL(cudaMalloc(&kernel_d, kernelSize*sizeof(float)));
             CUDA_SAFE_CALL(cudaMemcpy(kernel_d, kernel_h, kernelSize*sizeof(float), cudaMemcpyHostToDevice));
             CUDA_SAFE_CALL(cudaFreeHost(kernel_h));
             CUDA_SAFE_CALL(cudaBindTexture(0, convolutionKernelTexture, kernel_d, kernelSize*sizeof(float)));
 
             float4 *smoothedImage_d;
-            CUDA_SAFE_CALL(cudaMalloc((void **)&smoothedImage_d,voxelNumber*sizeof(float4)));
+            CUDA_SAFE_CALL(cudaMalloc(&smoothedImage_d,voxelNumber*sizeof(float4)));
 
             CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *imageArray_d, voxelNumber*sizeof(float4)));
 
@@ -352,7 +352,7 @@ void reg_smoothImageForCubicSpline_gpu( nifti_image *image,
                     _reg_ApplyConvolutionWindowAlongX_kernel <<< G, B >>> (smoothedImage_d, kernelSize);
                     CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
-                    printf("[DEBUG] reg_ApplyConvolutionWindowAlongX_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+                    printf("[NiftyReg CUDA DEBUG] reg_ApplyConvolutionWindowAlongX_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
                         cudaGetErrorString(cudaGetLastError()),G.x,G.y,G.z,B.x,B.y,B.z);
 #endif
                     break;
@@ -364,7 +364,7 @@ void reg_smoothImageForCubicSpline_gpu( nifti_image *image,
                     _reg_ApplyConvolutionWindowAlongY_kernel <<< G, B >>> (smoothedImage_d, kernelSize);
                     CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
-                    printf("[DEBUG] reg_ApplyConvolutionWindowAlongY_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+                    printf("[NiftyReg CUDA DEBUG] reg_ApplyConvolutionWindowAlongY_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
                         cudaGetErrorString(cudaGetLastError()),G.x,G.y,G.z,B.x,B.y,B.z);
 #endif
                     break;
@@ -376,7 +376,7 @@ void reg_smoothImageForCubicSpline_gpu( nifti_image *image,
                     _reg_ApplyConvolutionWindowAlongZ_kernel <<< G, B >>> (smoothedImage_d, kernelSize);
                     CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
-                    printf("[DEBUG] reg_ApplyConvolutionWindowAlongZ_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+                    printf("[NiftyReg CUDA DEBUG] reg_ApplyConvolutionWindowAlongZ_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
                         cudaGetErrorString(cudaGetLastError()),G.x,G.y,G.z,B.x,B.y,B.z);
 #endif
                     break;

@@ -18,10 +18,10 @@
 
 extern "C++"
 void reg_intensityRescale(	nifti_image *image,
-							float newMin,
-							float newMax,
-                            float lowThr,
-                            float upThr
+                            float *newMin,
+                            float *newMax,
+                            float *lowThr,
+                            float *upThr
 		 				);
 
 extern "C++" template <class PrecisionTYPE>
@@ -36,7 +36,7 @@ void reg_smoothImageForTrilinear(	nifti_image *image,
 
 extern "C++" template <class PrecisionTYPE>
 void reg_gaussianSmoothing(	nifti_image *image,
-						    float sigma,
+                            PrecisionTYPE sigma,
                             bool[8]);
 
 extern "C++" template <class PrecisionTYPE>
@@ -76,9 +76,9 @@ double reg_tools_getMeanRMS(nifti_image *, nifti_image *);
 //this function will threshold an image to the values provided,
 //set the scl_slope and sct_inter of the image to 1 and 0 (SSD uses actual image data values),
 //and sets cal_min and cal_max to have the min/max image data values
-extern "C++"
+extern "C++" template<class T>
 void reg_thresholdImage(nifti_image *image,
-                            float lowThr,
-                            float upThr
+                            T lowThr,
+                            T upThr
 		 				);
 #endif

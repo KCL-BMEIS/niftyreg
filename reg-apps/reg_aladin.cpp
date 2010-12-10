@@ -513,7 +513,7 @@ int main(int argc, char **argv)
 		resultImage->nbyper = sourceImage->nbyper;
 #ifdef _USE_CUDA
 		if(flag->useGPUFlag){
-			CUDA_SAFE_CALL(cudaMallocHost(&resultImage->data,resultImage->nvox*resultImage->nbyper));
+            cudaMallocHost(&resultImage->data,resultImage->nvox*resultImage->nbyper);
 		}
 		else
 #endif
@@ -569,23 +569,23 @@ int main(int argc, char **argv)
 			if(cudaCommon_allocateArrayToDevice<float4>(&positionFieldImageArray_d, targetImage->dim)) return 1;
 
             // Index of the active voxel is stored
-            int *targetMask_h;CUDA_SAFE_CALL(cudaMallocHost((void **)&targetMask_h, activeVoxelNumber*sizeof(int)));
+            int *targetMask_h;cudaMallocHost(&targetMask_h, activeVoxelNumber*sizeof(int));
             int *targetMask_h_ptr = &targetMask_h[0];
             for(unsigned int i=0;i<targetImage->nvox;i++){
                 if(targetMask[i]!=-1) *targetMask_h_ptr++=i;
             }
-            CUDA_SAFE_CALL(cudaMalloc((void **)&targetMask_d, activeVoxelNumber*sizeof(int)));
-            CUDA_SAFE_CALL(cudaMemcpy(targetMask_d, targetMask_h, activeVoxelNumber*sizeof(int), cudaMemcpyHostToDevice));
-            CUDA_SAFE_CALL(cudaFreeHost(targetMask_h));
+            cudaMalloc(&targetMask_d, activeVoxelNumber*sizeof(int));
+            cudaMemcpy(targetMask_d, targetMask_h, activeVoxelNumber*sizeof(int), cudaMemcpyHostToDevice);
+            cudaFreeHost(targetMask_h);
 
-			CUDA_SAFE_CALL(cudaMalloc((void **)&targetPosition_d, blockMatchingParams.activeBlockNumber*3*sizeof(float)));
-			CUDA_SAFE_CALL(cudaMalloc((void **)&resultPosition_d, blockMatchingParams.activeBlockNumber*3*sizeof(float)));
+            cudaMalloc(&targetPosition_d, blockMatchingParams.activeBlockNumber*3*sizeof(float));
+            cudaMalloc(&resultPosition_d, blockMatchingParams.activeBlockNumber*3*sizeof(float));
 
-			CUDA_SAFE_CALL(cudaMalloc((void **)&activeBlock_d,
-				blockMatchingParams.blockNumber[0]*blockMatchingParams.blockNumber[1]*blockMatchingParams.blockNumber[2]*sizeof(int)));
-			CUDA_SAFE_CALL(cudaMemcpy(activeBlock_d, blockMatchingParams.activeBlock,
+            cudaMalloc(&activeBlock_d,
+                blockMatchingParams.blockNumber[0]*blockMatchingParams.blockNumber[1]*blockMatchingParams.blockNumber[2]*sizeof(int));
+            cudaMemcpy(activeBlock_d, blockMatchingParams.activeBlock,
 				blockMatchingParams.blockNumber[0]*blockMatchingParams.blockNumber[1]*blockMatchingParams.blockNumber[2]*sizeof(int),
-				cudaMemcpyHostToDevice));
+                cudaMemcpyHostToDevice);
 		}
 #endif
 
@@ -768,12 +768,12 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
 		if(flag->useGPUFlag){
 			/* The data are transfered from the host to the device */
-			cudaCommon_free((void **)&targetImageArray_d);
+            cudaCommon_free<float>(&targetImageArray_d);
 			cudaCommon_free(&sourceImageArray_d);
-			cudaCommon_free((void **)&resultImageArray_d);
-			cudaCommon_free((void **)&positionFieldImageArray_d);
-            cudaCommon_free((void **)&activeBlock_d);
-			CUDA_SAFE_CALL(cudaFreeHost(resultImage->data));
+            cudaCommon_free<float>(&resultImageArray_d);
+            cudaCommon_free<float4>(&positionFieldImageArray_d);
+            cudaCommon_free<int>(&activeBlock_d);
+            cudaFreeHost(resultImage->data);
 			resultImage->data=NULL;
 		}
 #endif

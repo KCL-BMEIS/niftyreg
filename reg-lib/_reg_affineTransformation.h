@@ -44,12 +44,15 @@ void reg_affine_positionField(mat44 *,
 
 extern "C++"
 void reg_tool_ReadAffineFile(	mat44 *,
-				nifti_image *,
-				nifti_image *,
-				char *,
-				bool);
+                                nifti_image *,
+                                nifti_image *,
+                                char *,
+                                bool);
+extern "C++"
+void reg_tool_ReadAffineFile(	mat44 *,
+                                char *);
 extern "C++"
 void reg_tool_WriteAffineFile(	mat44 *mat,
-				char *fileName);
+                                char *fileName);
 
 #endif

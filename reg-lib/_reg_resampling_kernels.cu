@@ -83,14 +83,14 @@ __global__ void reg_getSourceImageGradient_kernel(float4 *gradientArray)
 					matrix.z*realPosition.z  +  matrix.w;
 
 		int3 sourceImageSize = c_SourceDim;
-		if(	0.0f<=voxelPosition.x && voxelPosition.x<=sourceImageSize.x-1 &&
-			0.0f<=voxelPosition.y && voxelPosition.y<=sourceImageSize.y-1 &&
-			0.0f<=voxelPosition.z && voxelPosition.z<=sourceImageSize.z-1){
+        if(	0.0f<=voxelPosition.x && voxelPosition.x<=float(sourceImageSize.x-1) &&
+            0.0f<=voxelPosition.y && voxelPosition.y<=float(sourceImageSize.y-1) &&
+            0.0f<=voxelPosition.z && voxelPosition.z<=float(sourceImageSize.z-1)){
 
-			short3 voxel;
-			voxel.x = (short)floorf(voxelPosition.x);
-			voxel.y = (short)floorf(voxelPosition.y);
-			voxel.z = (short)floorf(voxelPosition.z);
+            int3 voxel;
+            voxel.x = (int)(voxelPosition.x);
+            voxel.y = (int)(voxelPosition.y);
+            voxel.z = (int)(voxelPosition.z);
 
 			float xBasis[2];
 			float relative = fabsf(voxelPosition.x - (float)voxel.x);
@@ -112,7 +112,7 @@ __global__ void reg_getSourceImageGradient_kernel(float4 *gradientArray)
 			float3 relativePosition;
 			for(short c=0; c<2; c++){
 				relativePosition.z=((float)voxel.z+(float)c+0.5f)/(float)c_SourceDim.z;
-				float4 tempValueY=make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+                float3 tempValueY=make_float3(0.0f, 0.0f, 0.0f);
 				for(short b=0; b<2; b++){
 					float2 tempValueX=make_float2(0.0f, 0.0f);
 					relativePosition.y=((float)voxel.y+(float)b+0.5f)/(float)c_SourceDim.y;
@@ -120,12 +120,12 @@ __global__ void reg_getSourceImageGradient_kernel(float4 *gradientArray)
 						relativePosition.x=((float)voxel.x+(float)a+0.5f)/(float)c_SourceDim.x;
 						float intensity=tex3D(sourceTexture, relativePosition.x, relativePosition.y, relativePosition.z);
 
-						tempValueX.x +=  intensity * deriv[a];
-						tempValueX.y +=  intensity * xBasis[a];
+                        tempValueX.x +=  intensity * deriv[a];
+                        tempValueX.y +=  intensity * xBasis[a];
 					}
 					tempValueY.x += tempValueX.x * yBasis[b];
 					tempValueY.y += tempValueX.y * deriv[b];
-					tempValueY.z += tempValueX.y * yBasis[b];
+                    tempValueY.z += tempValueX.y * yBasis[b];
 				}
 				gradientValue.x += tempValueY.x * zBasis[c];
 				gradientValue.y += tempValueY.y * zBasis[c];

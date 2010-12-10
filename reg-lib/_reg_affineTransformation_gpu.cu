@@ -8,7 +8,6 @@
  *  See the LICENSE.txt file in the nifty_reg root folder
  *
  */
-#ifdef _USE_CUDA
 
 #ifndef _REG_AFFINETRANSFORMATION_GPU_CU
 #define _REG_AFFINETRANSFORMATION_GPU_CU
@@ -38,9 +37,9 @@ void reg_affine_positionField_gpu(	mat44 *affineMatrix,
 	
 	// The transformation matrix is binded to a texture
 	float4 *transformationMatrix_h;
-    CUDA_SAFE_CALL(cudaMallocHost((void **)&transformationMatrix_h, 3*sizeof(float4)));
+    CUDA_SAFE_CALL(cudaMallocHost(&transformationMatrix_h, 3*sizeof(float4)));
 	float4 *transformationMatrix_d;
-	CUDA_SAFE_CALL(cudaMalloc((void **)&transformationMatrix_d, 3*sizeof(float4)));
+    CUDA_SAFE_CALL(cudaMalloc(&transformationMatrix_d, 3*sizeof(float4)));
 	for(int i=0; i<3; i++){
 		transformationMatrix_h[i].x=transformationMatrix.m[i][0];
 		transformationMatrix_h[i].y=transformationMatrix.m[i][1];
@@ -58,7 +57,7 @@ void reg_affine_positionField_gpu(	mat44 *affineMatrix,
 	reg_affine_positionField_kernel <<< G1, B1 >>> (*array_d);
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
-	printf("[DEBUG] reg_affine_deformationField_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+    printf("[NiftyReg CUDA DEBUG] reg_affine_deformationField_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 	
@@ -67,5 +66,4 @@ void reg_affine_positionField_gpu(	mat44 *affineMatrix,
 /* *************************************************************** */
 /* *************************************************************** */
 
-#endif
 #endif
