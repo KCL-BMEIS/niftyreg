@@ -25,94 +25,103 @@ int round(PrecisionType x)
 }
 #endif
 
+/* *************************************************************** */
+/* *************************************************************** */
 template<class DTYPE>
 void reg_intensityRescale2(	nifti_image *image,
-			                float newMin,
-			                float newMax,
-                            float lowThr,
-                            float upThr
+                            float *newMin,
+                            float *newMax,
+                            float *lowThr,
+                            float *upThr
 			)
 {
 	DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
-	DTYPE currentMin=0;
-	DTYPE currentMax=0;
-	switch(image->datatype){
-		case NIFTI_TYPE_UINT8:
-			currentMin=(DTYPE)std::numeric_limits<unsigned char>::max();
-			currentMax=0;
-			break;
-		case NIFTI_TYPE_INT8:
-			currentMin=(DTYPE)std::numeric_limits<char>::max();
-			currentMax=(DTYPE)-std::numeric_limits<char>::max();
-			break;
-		case NIFTI_TYPE_UINT16:
-			currentMin=(DTYPE)std::numeric_limits<unsigned short>::max();
-			currentMax=0;
-			break;
-		case NIFTI_TYPE_INT16:
-			currentMin=(DTYPE)std::numeric_limits<char>::max();
-			currentMax=-(DTYPE)std::numeric_limits<char>::max();
-			break;
-		case NIFTI_TYPE_UINT32:
-			currentMin=(DTYPE)std::numeric_limits<unsigned int>::max();
-			currentMax=0;
-			break;
-		case NIFTI_TYPE_INT32:
-			currentMin=(DTYPE)std::numeric_limits<int>::max();
-			currentMax=-(DTYPE)std::numeric_limits<int>::max();
-			break;
-		case NIFTI_TYPE_FLOAT32:
-			currentMin=(DTYPE)std::numeric_limits<float>::max();
-			currentMax=-(DTYPE)std::numeric_limits<float>::max();
-			break;
-		case NIFTI_TYPE_FLOAT64:
-			currentMin=(DTYPE)std::numeric_limits<double>::max();
-			currentMax=-(DTYPE)std::numeric_limits<double>::max();
-			break;
-	}
+    unsigned int voxelNumber = image->nx*image->ny*image->nz;
 
-    if(image->scl_slope==0) image->scl_slope=1.0f;
-	for(unsigned int index=0; index<image->nvox; index++){
-		DTYPE value = (DTYPE)(*imagePtr++ * image->scl_slope + image->scl_inter);
-        if(value==value){
-            currentMin=(currentMin<value)?currentMin:value;
-		    currentMax=(currentMax>value)?currentMax:value;
+    // The rescasling is done for each volume independtly
+    for(int t=0;t<image->nt;t++){
+        DTYPE *volumePtr = &imagePtr[t*voxelNumber];
+        DTYPE currentMin=0;
+        DTYPE currentMax=0;
+        switch(image->datatype){
+            case NIFTI_TYPE_UINT8:
+                currentMin=(DTYPE)std::numeric_limits<unsigned char>::max();
+                currentMax=0;
+                break;
+            case NIFTI_TYPE_INT8:
+                currentMin=(DTYPE)std::numeric_limits<char>::max();
+                currentMax=(DTYPE)-std::numeric_limits<char>::max();
+                break;
+            case NIFTI_TYPE_UINT16:
+                currentMin=(DTYPE)std::numeric_limits<unsigned short>::max();
+                currentMax=0;
+                break;
+            case NIFTI_TYPE_INT16:
+                currentMin=(DTYPE)std::numeric_limits<char>::max();
+                currentMax=-(DTYPE)std::numeric_limits<char>::max();
+                break;
+            case NIFTI_TYPE_UINT32:
+                currentMin=(DTYPE)std::numeric_limits<unsigned int>::max();
+                currentMax=0;
+                break;
+            case NIFTI_TYPE_INT32:
+                currentMin=(DTYPE)std::numeric_limits<int>::max();
+                currentMax=-(DTYPE)std::numeric_limits<int>::max();
+                break;
+            case NIFTI_TYPE_FLOAT32:
+                currentMin=(DTYPE)std::numeric_limits<float>::max();
+                currentMax=-(DTYPE)std::numeric_limits<float>::max();
+                break;
+            case NIFTI_TYPE_FLOAT64:
+                currentMin=(DTYPE)std::numeric_limits<double>::max();
+                currentMax=-(DTYPE)std::numeric_limits<double>::max();
+                break;
         }
-    }
 
-    if(currentMin<lowThr) currentMin=(DTYPE)lowThr;
-    if(currentMax>upThr) currentMax=(DTYPE)upThr;
-	
-	double currentDiff = (double)(currentMax-currentMin);
-	double newDiff = (double)(newMax-newMin);
-
-    image->cal_min=newMin * image->scl_slope + image->scl_inter;
-    image->cal_max=newMax * image->scl_slope + image->scl_inter;
-
-	imagePtr = static_cast<DTYPE *>(image->data);
-
-	for(unsigned int index=0; index<image->nvox; index++){
-		double value = (double)*imagePtr * image->scl_slope + image->scl_inter;
-        if(value==value){
-            if(value<currentMin){
-                value = newMin;
-            }
-            else if(value>currentMax){
-                value = newMax;
-            }
-            else{
-		        value = (value-(double)currentMin)/currentDiff;
-		        value = value * newDiff + newMin;
+        if(image->scl_slope==0) image->scl_slope=1.0f;
+        for(unsigned int index=0; index<voxelNumber; index++){
+            DTYPE value = (DTYPE)(*volumePtr++ * image->scl_slope + image->scl_inter);
+            if(value==value){
+                currentMin=(currentMin<value)?currentMin:value;
+                currentMax=(currentMax>value)?currentMax:value;
             }
         }
-		*imagePtr++=(DTYPE)value;
-	}
+
+        if(currentMin<lowThr[t]) currentMin=(DTYPE)lowThr[t];
+        if(currentMax>upThr[t]) currentMax=(DTYPE)upThr[t];
+
+        double currentDiff = (double)(currentMax-currentMin);
+        double newDiff = (double)(newMax[t]-newMin[t]);
+
+        image->cal_min=newMin[t] * image->scl_slope + image->scl_inter;
+        image->cal_max=newMax[t] * image->scl_slope + image->scl_inter;
+
+        volumePtr = &imagePtr[t*voxelNumber];
+
+        for(unsigned int index=0; index<voxelNumber; index++){
+            double value = (double)*volumePtr * image->scl_slope + image->scl_inter;
+            if(value==value){
+                if(value<currentMin){
+                    value = newMin[t];
+                }
+                else if(value>currentMax){
+                    value = newMax[t];
+                }
+                else{
+                    value = (value-(double)currentMin)/currentDiff;
+                    value = value * newDiff + newMin[t];
+                }
+            }
+            *volumePtr++=(DTYPE)value;
+        }
+    }//t
 }
+/* *************************************************************** */
 void reg_intensityRescale(	nifti_image *image,
-				            float newMin,
-				            float newMax,
-                            float lowThr,
-                            float upThr
+                            float *newMin,
+                            float *newMax,
+                            float *lowThr,
+                            float *upThr
 			)
 {
 	switch(image->datatype){
@@ -141,8 +150,8 @@ void reg_intensityRescale(	nifti_image *image,
 			reg_intensityRescale2<double>(image, newMin, newMax, lowThr, upThr);
 			break;
 		default:
-			printf("err\treg_intensityRescale\tThe image data type is not supported\n");
-			return;
+            fprintf(stderr,"[NiftyReg ERROR] reg_intensityRescale\tThe image data type is not supported\n");
+            exit(1);
 	}
 }
 /* *************************************************************** */
@@ -150,18 +159,20 @@ void reg_intensityRescale(	nifti_image *image,
 //this function will threshold an image to the values provided,
 //set the scl_slope and sct_inter of the image to 1 and 0 (SSD uses actual image data values),
 //and sets cal_min and cal_max to have the min/max image data values
-template<class DTYPE>
+template<class T,class DTYPE>
 void reg_thresholdImage2(	nifti_image *image,
-                            float lowThr,
-                            float upThr
+                            T lowThr,
+                            T upThr
 			)
 {
 	DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
-	float currentMin=std::numeric_limits<float>::max();
-	float currentMax=-std::numeric_limits<float>::max();
+	T currentMin=std::numeric_limits<T>::max();
+	T currentMax=-std::numeric_limits<T>::max();
+	
+	if(image->scl_slope==0)image->scl_slope=1.0;
 
     for(unsigned int index=0; index<image->nvox; index++){
-		float value = (float)*imagePtr;
+		T value = (T)(*imagePtr * image->scl_slope + image->scl_inter);
         if(value==value){
 		    if(value<lowThr){
                 value = lowThr;
@@ -175,46 +186,48 @@ void reg_thresholdImage2(	nifti_image *image,
 		*imagePtr++=(DTYPE)value;
     }
 
-	image->scl_slope = 1;
-	image->scl_inter = 0;
     image->cal_min = currentMin;
     image->cal_max = currentMax;
 }
+/* *************************************************************** */
+template<class T>
 void reg_thresholdImage(	nifti_image *image,
-                            float lowThr,
-                            float upThr
+                            T lowThr,
+                            T upThr
 			)
 {
 	switch(image->datatype){
 		case NIFTI_TYPE_UINT8:
-			reg_thresholdImage2<unsigned char>(image, lowThr, upThr);
+			reg_thresholdImage2<T,unsigned char>(image, lowThr, upThr);
 			break;
 		case NIFTI_TYPE_INT8:
-			reg_thresholdImage2<char>(image, lowThr, upThr);
+			reg_thresholdImage2<T,char>(image, lowThr, upThr);
 			break;
 		case NIFTI_TYPE_UINT16:
-			reg_thresholdImage2<unsigned short>(image, lowThr, upThr);
+			reg_thresholdImage2<T,unsigned short>(image, lowThr, upThr);
 			break;
 		case NIFTI_TYPE_INT16:
-			reg_thresholdImage2<short>(image, lowThr, upThr);
+			reg_thresholdImage2<T,short>(image, lowThr, upThr);
 			break;
 		case NIFTI_TYPE_UINT32:
-			reg_thresholdImage2<unsigned int>(image, lowThr, upThr);
+			reg_thresholdImage2<T,unsigned int>(image, lowThr, upThr);
 			break;
 		case NIFTI_TYPE_INT32:
-			reg_thresholdImage2<int>(image, lowThr, upThr);
+			reg_thresholdImage2<T,int>(image, lowThr, upThr);
 			break;
 		case NIFTI_TYPE_FLOAT32:
-			reg_thresholdImage2<float>(image, lowThr, upThr);
+			reg_thresholdImage2<T,float>(image, lowThr, upThr);
 			break;
 		case NIFTI_TYPE_FLOAT64:
-			reg_thresholdImage2<double>(image, lowThr, upThr);
+			reg_thresholdImage2<T,double>(image, lowThr, upThr);
 			break;
 		default:
-			printf("err\treg_thresholdImage\tThe image data type is not supported\n");
-			return;
+            fprintf(stderr,"[NiftyReg ERROR] reg_thresholdImage\tThe image data type is not supported\n");
+            exit(1);
 	}
 }
+template void reg_thresholdImage<float>(nifti_image *, float, float);
+template void reg_thresholdImage<double>(nifti_image *, double, double);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class DTYPE>
@@ -414,8 +427,8 @@ void reg_smoothImageForCubicSpline(	nifti_image *image,
 			reg_smoothImageForCubicSpline1<PrecisionTYPE,double>(image, radius);
 			break;
 		default:
-			printf("err\treg_smoothImage\tThe image data type is not supported\n");
-			return;
+            fprintf(stderr,"[NiftyReg ERROR] reg_smoothImage\tThe image data type is not supported\n");
+            exit(1);
 	}
 }
 /* *************************************************************** */
@@ -611,8 +624,8 @@ void reg_smoothImageForTrilinear(	nifti_image *image,
 			reg_smoothImageForTrilinear1<PrecisionTYPE,double>(image, radius);
 			break;
 		default:
-			printf("err\treg_smoothImage\tThe image data type is not supported\n");
-			return;
+            fprintf(stderr,"[NiftyReg ERROR] reg_smoothImage\tThe image data type is not supported\n");
+            exit(1);
 	}
 }
 /* *************************************************************** */
@@ -698,9 +711,8 @@ void reg_changeDatatype1(nifti_image *image)
 	else if(sizeof(NewTYPE)==sizeof(float)) image->datatype = NIFTI_TYPE_FLOAT32;
 	else if(sizeof(NewTYPE)==sizeof(double)) image->datatype = NIFTI_TYPE_FLOAT64;
 	else{
-		printf("err\treg_changeDatatype\tOnly change to unsigned char, float or double are supported\n");
-		free(initialValue);
-		return;
+        fprintf(stderr,"[NiftyReg ERROR] reg_changeDatatype\tOnly change to unsigned char, float or double are supported\n");
+        exit(1);
 	}
 	free(image->data);
 	image->nbyper = sizeof(NewTYPE);
@@ -741,8 +753,8 @@ void reg_changeDatatype(nifti_image *image)
 			reg_changeDatatype1<NewTYPE,double>(image);
 			break;
 		default:
-			printf("err\treg_changeDatatype\tThe initial image data type is not supported\n");
-			return;
+            fprintf(stderr,"[NiftyReg ERROR] reg_changeDatatype\tThe initial image data type is not supported\n");
+            exit(1);
 	}
 }
 /* *************************************************************** */
@@ -788,8 +800,8 @@ double reg_tool_GetIntensityValue(nifti_image *image,
 			return reg_tool_GetIntensityValue1<double>(image, index);
 			break;
 		default:
-			printf("err\treg_changeDatatype\tThe initial image data type is not supported\n");
-			break;
+            fprintf(stderr,"[NiftyReg ERROR] reg_changeDatatype\tThe initial image data type is not supported\n");
+            exit(1);
 	}
 	
 	return 0.0;
@@ -857,8 +869,8 @@ void reg_tools_addSubMulDivImages1( nifti_image *img1,
             reg_tools_addSubMulDivImages2<TYPE1,double>(img1, img2, res, type);
             break;
         default:
-            fprintf(stderr,"err\treg_tools_addSubMulDivImages1\tSecond image data type is not supported\n");
-            return;
+            fprintf(stderr,"[NiftyReg ERROR] reg_tools_addSubMulDivImages1\tSecond image data type is not supported\n");
+            exit(1);
     }
 }
 /* *************************************************************** */
@@ -876,13 +888,13 @@ void reg_tools_addSubMulDivImages(  nifti_image *img1,
        img1->dim[5]!=img2->dim[5] ||
        img1->dim[6]!=img2->dim[6] ||
        img1->dim[7]!=img2->dim[7]){
-        fprintf(stderr,"err\treg_tools_addSubMulDivImages\tBoth images do not have the same dimension\n");
-        return;
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_addSubMulDivImages\tBoth images do not have the same dimension\n");
+        exit(1);
     }
 
     if(img1->datatype != res->datatype){
-        fprintf(stderr,"err\treg_tools_addSubMulDivImages\tFirst and result image do not have the same data type\n");
-        return;
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_addSubMulDivImages\tFirst and result image do not have the same data type\n");
+        exit(1);
     }
     switch(img1->datatype){
         case NIFTI_TYPE_UINT8:
@@ -910,8 +922,8 @@ void reg_tools_addSubMulDivImages(  nifti_image *img1,
             reg_tools_addSubMulDivImages1<double>(img1, img2, res, type);
             break;
         default:
-            fprintf(stderr,"err\treg_tools_addSubMulDivImages1\tFirst image data type is not supported\n");
-            return;
+            fprintf(stderr,"[NiftyReg ERROR] reg_tools_addSubMulDivImages1\tFirst image data type is not supported\n");
+            exit(1);
     }
 }
 /* *************************************************************** */
@@ -950,8 +962,8 @@ void reg_tools_addSubMulDivValue(   nifti_image *img1,
                                     int type)
 {
     if(img1->datatype != res->datatype){
-        fprintf(stderr,"err\treg_tools_addSubMulDivValue\tInput and result image do not have the same data type\n");
-        return;
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_addSubMulDivValue\tInput and result image do not have the same data type\n");
+        exit(1);
     }
     switch(img1->datatype){
         case NIFTI_TYPE_UINT8:
@@ -987,15 +999,15 @@ void reg_tools_addSubMulDivValue(   nifti_image *img1,
                 (img1, res, val, type);
             break;
         default:
-            fprintf(stderr,"err\treg_tools_addSubMulDivImages1\tFirst image data type is not supported\n");
-            return;
+            fprintf(stderr,"[NiftyReg ERROR] reg_tools_addSubMulDivImages1\tFirst image data type is not supported\n");
+            exit(1);
     }
 }
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class ImageTYPE>
 void reg_gaussianSmoothing1(nifti_image *image,
-			                float sigma,
+                            PrecisionTYPE sigma,
                             bool axisToSmooth[8])
 {
 	ImageTYPE *imagePtr = static_cast<ImageTYPE *>(image->data);
@@ -1029,7 +1041,7 @@ void reg_gaussianSmoothing1(nifti_image *image,
 		            }
 		            for(int i=-radius; i<=radius; i++) kernel[radius+i] /= kernelSum;
 #ifndef NDEBUG
-		            printf("[DEBUG] smoothing dim[%i] radius[%i] kernelSum[%g]\n", n, radius, kernelSum);
+                    printf("[NiftyReg DEBUG] smoothing dim[%i] radius[%i] kernelSum[%g]\n", n, radius, kernelSum);
 #endif
                     // Define the variable to increment in the 1D array
 		            int increment=1;
@@ -1077,7 +1089,7 @@ void reg_gaussianSmoothing1(nifti_image *image,
 /* *************************************************************** */
 template <class PrecisionTYPE>
 void reg_gaussianSmoothing(	nifti_image *image,
-							float sigma,
+                            PrecisionTYPE sigma,
                             bool smoothXYZ[8])
 {
     bool axisToSmooth[8];
@@ -1115,12 +1127,12 @@ void reg_gaussianSmoothing(	nifti_image *image,
 			reg_gaussianSmoothing1<PrecisionTYPE,double>(image, sigma, axisToSmooth);
 			break;
 		default:
-			printf("err\treg_smoothImage\tThe image data type is not supported\n");
-			return;
+            fprintf(stderr,"[NiftyReg ERROR] reg_smoothImage\tThe image data type is not supported\n");
+            exit(1);
 	}
 }
 template void reg_gaussianSmoothing<float>(nifti_image *, float, bool[8]);
-template void reg_gaussianSmoothing<double>(nifti_image *, float, bool[8]);
+template void reg_gaussianSmoothing<double>(nifti_image *, double, bool[8]);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class ImageTYPE>
@@ -1259,8 +1271,7 @@ void reg_downsampleImage1(nifti_image *image, int type, bool downsampleAxis[8])
 				}
 			}
 		}
-	}
-
+    }
 	free(oldValues);
 }
 /* *************************************************************** */
@@ -1293,12 +1304,14 @@ void reg_downsampleImage(nifti_image *image, int type, bool downsampleAxis[8])
 			reg_downsampleImage1<PrecisionTYPE,double>(image, type, downsampleAxis);
 			break;
 		default:
-			printf("err\treg_downsampleImage\tThe image data type is not supported\n");
-			return;
+            fprintf(stderr,"[NiftyReg ERROR] reg_downsampleImage\tThe image data type is not supported\n");
+            exit(1);
 	}
 }
 template void reg_downsampleImage<float>(nifti_image *, int, bool[8]);
+#ifdef _NR_DEV
 template void reg_downsampleImage<double>(nifti_image *, int, bool[8]);
+#endif
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
@@ -1339,8 +1352,8 @@ void reg_tool_binarise_image(nifti_image *image)
             reg_tool_binarise_image1<double>(image);
             break;
         default:
-            printf("err\treg_tool_binarise_image\tThe image data type is not supported\n");
-            return;
+            fprintf(stderr,"[NiftyReg ERROR] reg_tool_binarise_image\tThe image data type is not supported\n");
+            exit(1);
     }
 }
 
@@ -1391,8 +1404,8 @@ void reg_tool_binaryImage2int(nifti_image *image, int *array, int &activeVoxelNu
             reg_tool_binaryImage2int1<double>(image, array, activeVoxelNumber);
             break;
         default:
-            printf("err\treg_tool_binarise_image\tThe image data type is not supported\n");
-            return;
+            fprintf(stderr,"[NiftyReg ERROR] reg_tool_binarise_image\tThe image data type is not supported\n");
+            exit(1);
     }
 }
 /* *************************************************************** */
@@ -1454,8 +1467,8 @@ double reg_tools_getMeanRMS1(nifti_image *imageA, nifti_image *imageB)
         case NIFTI_TYPE_FLOAT64:
             return reg_tools_getMeanRMS2<ATYPE,double>(imageA, imageB);
         default:
-            printf("err\treg_tools_getMeanRMS\tThe image data type is not supported\n");
-            return -1;
+            fprintf(stderr,"[NiftyReg ERROR] reg_tools_getMeanRMS\tThe image data type is not supported\n");
+            exit(1);
     }
 }
 /* *************************************************************** */
@@ -1479,8 +1492,8 @@ double reg_tools_getMeanRMS(nifti_image *imageA, nifti_image *imageB)
         case NIFTI_TYPE_FLOAT64:
             return reg_tools_getMeanRMS1<double>(imageA, imageB);
         default:
-            printf("err\treg_tools_getMeanRMS\tThe image data type is not supported\n");
-            return -1;
+            fprintf(stderr,"[NiftyReg ERROR] reg_tools_getMeanRMS\tThe image data type is not supported\n");
+            exit(1);
     }
 }
 

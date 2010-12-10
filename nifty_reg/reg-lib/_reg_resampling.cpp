@@ -19,7 +19,7 @@
 template<class PrecisionType>
 int round(PrecisionType x)
 {
-	return int(x > 0.0 ? x + 0.5 : x - 0.5);
+    return static_cas<int>(x > 0.0 ? x + 0.5 : x - 0.5);
 }
 #endif
 
@@ -70,8 +70,66 @@ void intensitiesToSplineCoefficients(PrecisionTYPE *values, int number, Precisio
 }
 /* *************************************************************** */
 /* *************************************************************** */
+template <class PrecisionTYPE, class SourceTYPE>
+void DecomposeSourceImageIntensities(   nifti_image *sourceImage,
+                                        PrecisionTYPE *sourceCoefficients)
+{
+    /* in order to apply a cubic Spline resampling, the source image
+     intensities have to be decomposed */
+
+    SourceTYPE *intensityPtr = (SourceTYPE *)sourceImage->data;
+
+    for(unsigned int i=0; i<sourceImage->nvox;i++)
+        sourceCoefficients[i]=(PrecisionTYPE)intensityPtr[i];
+
+    PrecisionTYPE pole = (PrecisionTYPE)(sqrt(3.0) - 2.0);
+
+    for(int t=0; t<sourceImage->nt; t++){
+        unsigned int sourceVoxelNumber = sourceImage->nx * sourceImage->ny * sourceImage->nz;
+        // X axis first
+        int number = sourceImage->nx;
+        PrecisionTYPE *values=new PrecisionTYPE[number];
+        int increment = 1;
+        for(int i=0;i<sourceImage->ny*sourceImage->nz;i++){
+            int start = i*sourceImage->nx + t*sourceVoxelNumber;
+            int end =  start + sourceImage->nx;
+            extractLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
+            intensitiesToSplineCoefficients<PrecisionTYPE>(values, number, pole);
+            restoreLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
+        }
+        delete[] values;
+        // Y axis then
+        number = sourceImage->ny;
+        values=new PrecisionTYPE[number];
+        increment = sourceImage->nx;
+        for(int i=0;i<sourceImage->nx*sourceImage->nz;i++){
+            int start = i + i/sourceImage->nx * sourceImage->nx * (sourceImage->ny - 1) + t*sourceVoxelNumber;
+            int end =  start + sourceImage->nx*sourceImage->ny;
+            extractLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
+            intensitiesToSplineCoefficients<PrecisionTYPE>(values, number, pole);
+            restoreLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
+        }
+        delete[] values;
+        if(sourceImage->nz>1){
+            // Z axis at last
+            number = sourceImage->nz;
+            values=new PrecisionTYPE[number];
+            increment = sourceImage->nx*sourceImage->ny;
+            for(int i=0;i<sourceImage->nx*sourceImage->ny;i++){
+                int start = i + t*sourceVoxelNumber;
+                int end =  start + sourceImage->nx*sourceImage->ny*sourceImage->nz;
+                extractLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
+                intensitiesToSplineCoefficients<PrecisionTYPE>(values, number, pole);
+                restoreLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
+            }
+            delete[] values;
+        }
+    }
+}
+/* *************************************************************** */
+/* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class FieldTYPE>
-void CubicSplineResampleSourceImage(PrecisionTYPE *sourceCoefficients,
+void CubicSplineResampleSourceImage(PrecisionTYPE *sourceIntensityPtr,
 									nifti_image *sourceImage,
 									nifti_image *positionField,
 									nifti_image *resultImage,
@@ -80,125 +138,137 @@ void CubicSplineResampleSourceImage(PrecisionTYPE *sourceCoefficients,
 {
 	// The spline decomposition assumes a background set to 0 the bgValue variable is thus not use here
 
-	FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-	FieldTYPE *positionFieldPtrY = &positionFieldPtrX[resultImage->nvox];
-	FieldTYPE *positionFieldPtrZ = &positionFieldPtrY[resultImage->nvox];
+    SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
+    unsigned int targetVoxelNumber = resultImage->nx*resultImage->ny*resultImage->nz;
+    unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
 
-	SourceTYPE *resultIntensity = static_cast<SourceTYPE *>(resultImage->data);
+    // Iteration over the different volume along the 4th axis
+    for(int t=0; t<resultImage->nt;t++){
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] 3D Cubic spline resampling of volume number %i\n",t);
+#endif
 
-    int *maskPtr = &mask[0];
-	
-	PrecisionTYPE position[3];
-	int previous[3];
-	PrecisionTYPE xBasis[4];
-	PrecisionTYPE yBasis[4];
-	PrecisionTYPE zBasis[4];
-	PrecisionTYPE relative;
+        FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
+        FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
+        FieldTYPE *positionFieldPtrZ = &positionFieldPtrY[targetVoxelNumber];
 
-	mat44 sourceIJKMatrix;
-	if(sourceImage->sform_code>0)
-		sourceIJKMatrix=sourceImage->sto_ijk;
-	else sourceIJKMatrix=sourceImage->qto_ijk;
-	
-	for(unsigned int index=0;index<resultImage->nvox; index++){
-		
-        PrecisionTYPE intensity=(PrecisionTYPE)(0.0);
+        SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
+        PrecisionTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-        if((*maskPtr++)>-1){
-		    PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
-		    PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
-		    PrecisionTYPE worldZ=(PrecisionTYPE) *positionFieldPtrZ;
-		    /* real -> voxel; source space */
-		    position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
-			    worldZ*sourceIJKMatrix.m[0][2] +  sourceIJKMatrix.m[0][3];
-		    position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
-			    worldZ*sourceIJKMatrix.m[1][2] +  sourceIJKMatrix.m[1][3];
-		    position[2] = worldX*sourceIJKMatrix.m[2][0] + worldY*sourceIJKMatrix.m[2][1] +
-			    worldZ*sourceIJKMatrix.m[2][2] +  sourceIJKMatrix.m[2][3];
+        int *maskPtr = &mask[0];
 
-		    previous[0] = (int)floor(position[0]);
-		    previous[1] = (int)floor(position[1]);
-		    previous[2] = (int)floor(position[2]);
+        PrecisionTYPE position[3];
+        int previous[3];
+        PrecisionTYPE xBasis[4];
+        PrecisionTYPE yBasis[4];
+        PrecisionTYPE zBasis[4];
+        PrecisionTYPE relative;
 
-		    // basis values along the x axis
-		    relative=position[0]-(PrecisionTYPE)previous[0];
-		    if(relative<0) relative=0.0; // rounding error correction
-		    xBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
-		    xBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - xBasis[3]);
-		    xBasis[2]= (PrecisionTYPE)(relative + xBasis[0] - 2.0*xBasis[3]);
-		    xBasis[1]= (PrecisionTYPE)(1.0 - xBasis[0] - xBasis[2] - xBasis[3]);
-		    // basis values along the y axis
-		    relative=position[1]-(PrecisionTYPE)previous[1];
-		    if(relative<0) relative=0.0; // rounding error correction
-		    yBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
-		    yBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - yBasis[3]);
-		    yBasis[2]= (PrecisionTYPE)(relative + yBasis[0] - 2.0*yBasis[3]);
-		    yBasis[1]= (PrecisionTYPE)(1.0 - yBasis[0] - yBasis[2] - yBasis[3]);
-		    // basis values along the z axis
-		    relative=position[2]-(PrecisionTYPE)previous[2];
-		    if(relative<0) relative=(PrecisionTYPE)(0.0); // rounding error correction
-		    zBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
-		    zBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - zBasis[3]);
-		    zBasis[2]= (PrecisionTYPE)(relative + zBasis[0] - 2.0*zBasis[3]);
-		    zBasis[1]= (PrecisionTYPE)(1.0 - zBasis[0] - zBasis[2] - zBasis[3]);
+        mat44 sourceIJKMatrix;
+        if(sourceImage->sform_code>0)
+            sourceIJKMatrix=sourceImage->sto_ijk;
+        else sourceIJKMatrix=sourceImage->qto_ijk;
 
-		    previous[0]--;previous[1]--;previous[2]--;
+        for(unsigned int index=0;index<targetVoxelNumber; index++){
 
-		    for(short c=0; c<4; c++){
-			    short Z= previous[2]+c;
-			    if(-1<Z && Z<sourceImage->nz){
-				    PrecisionTYPE *zPointer = &sourceCoefficients[Z*sourceImage->nx*sourceImage->ny];
-				    PrecisionTYPE yTempNewValue=0.0;
-				    for(short b=0; b<4; b++){
-					    short Y= previous[1]+b;
-					    PrecisionTYPE *yzPointer = &zPointer[Y*sourceImage->nx];
-					    if(-1<Y && Y<sourceImage->ny){
-						    PrecisionTYPE *xyzPointer = &yzPointer[previous[0]];
-						    PrecisionTYPE xTempNewValue=0.0;
-						    for(short a=0; a<4; a++){
-							    if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
-								    const PrecisionTYPE coeff = *xyzPointer;
-								    xTempNewValue +=  coeff * xBasis[a];
-							    }
-							    xyzPointer++;
-						    }
-						    yTempNewValue += (xTempNewValue * yBasis[b]);
-					    }
-				    }
-				    intensity += yTempNewValue * zBasis[c];
-			    }
-		    }
+            PrecisionTYPE intensity=(PrecisionTYPE)(0.0);
+
+            if((*maskPtr++)>-1){
+                PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
+                PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
+                PrecisionTYPE worldZ=(PrecisionTYPE) *positionFieldPtrZ;
+                /* real -> voxel; source space */
+                position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
+                    worldZ*sourceIJKMatrix.m[0][2] +  sourceIJKMatrix.m[0][3];
+                position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
+                    worldZ*sourceIJKMatrix.m[1][2] +  sourceIJKMatrix.m[1][3];
+                position[2] = worldX*sourceIJKMatrix.m[2][0] + worldY*sourceIJKMatrix.m[2][1] +
+                    worldZ*sourceIJKMatrix.m[2][2] +  sourceIJKMatrix.m[2][3];
+
+                previous[0] = static_cast<int>(floor(position[0]));
+                previous[1] = static_cast<int>(floor(position[1]));
+                previous[2] = static_cast<int>(floor(position[2]));
+
+                // basis values along the x axis
+                relative=position[0]-(PrecisionTYPE)previous[0];
+                if(relative<0) relative=0.0; // rounding error correction
+                xBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
+                xBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - xBasis[3]);
+                xBasis[2]= (PrecisionTYPE)(relative + xBasis[0] - 2.0*xBasis[3]);
+                xBasis[1]= (PrecisionTYPE)(1.0 - xBasis[0] - xBasis[2] - xBasis[3]);
+                // basis values along the y axis
+                relative=position[1]-(PrecisionTYPE)previous[1];
+                if(relative<0) relative=0.0; // rounding error correction
+                yBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
+                yBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - yBasis[3]);
+                yBasis[2]= (PrecisionTYPE)(relative + yBasis[0] - 2.0*yBasis[3]);
+                yBasis[1]= (PrecisionTYPE)(1.0 - yBasis[0] - yBasis[2] - yBasis[3]);
+                // basis values along the z axis
+                relative=position[2]-(PrecisionTYPE)previous[2];
+                if(relative<0) relative=(PrecisionTYPE)(0.0); // rounding error correction
+                zBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
+                zBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - zBasis[3]);
+                zBasis[2]= (PrecisionTYPE)(relative + zBasis[0] - 2.0*zBasis[3]);
+                zBasis[1]= (PrecisionTYPE)(1.0 - zBasis[0] - zBasis[2] - zBasis[3]);
+
+                --previous[0];--previous[1];--previous[2];
+
+                for(short c=0; c<4; c++){
+                    short Z= previous[2]+c;
+                    if(-1<Z && Z<sourceImage->nz){
+                        PrecisionTYPE *zPointer = &sourceCoefficients[Z*sourceImage->nx*sourceImage->ny];
+                        PrecisionTYPE yTempNewValue=0.0;
+                        for(short b=0; b<4; b++){
+                            short Y= previous[1]+b;
+                            PrecisionTYPE *yzPointer = &zPointer[Y*sourceImage->nx];
+                            if(-1<Y && Y<sourceImage->ny){
+                                PrecisionTYPE *xyzPointer = &yzPointer[previous[0]];
+                                PrecisionTYPE xTempNewValue=0.0;
+                                for(short a=0; a<4; a++){
+                                    if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
+                                        const PrecisionTYPE coeff = *xyzPointer;
+                                        xTempNewValue +=  coeff * xBasis[a];
+                                    }
+                                    xyzPointer++;
+                                }
+                                yTempNewValue += (xTempNewValue * yBasis[b]);
+                            }
+                        }
+                        intensity += yTempNewValue * zBasis[c];
+                    }
+                }
+            }
+
+            switch(sourceImage->datatype){
+                case NIFTI_TYPE_FLOAT32:
+                    (*resultIntensity)=(SourceTYPE)intensity;
+                    break;
+                case NIFTI_TYPE_FLOAT64:
+                    (*resultIntensity)=(SourceTYPE)intensity;
+                    break;
+                case NIFTI_TYPE_UINT8:
+                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    break;
+                case NIFTI_TYPE_UINT16:
+                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    break;
+                case NIFTI_TYPE_UINT32:
+                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    break;
+                default:
+                    (*resultIntensity)=(SourceTYPE)round(intensity);
+                    break;
+            }
+            resultIntensity++;
+            positionFieldPtrX++;
+            positionFieldPtrY++;
+            positionFieldPtrZ++;
         }
-
-		switch(sourceImage->datatype){
-			case NIFTI_TYPE_FLOAT32:
-				(*resultIntensity)=(SourceTYPE)intensity;
-				break;
-			case NIFTI_TYPE_FLOAT64:
-				(*resultIntensity)=(SourceTYPE)intensity;
-				break;
-			case NIFTI_TYPE_UINT8:
-                (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
-				break;
-			case NIFTI_TYPE_UINT16:
-				(*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
-				break;
-			case NIFTI_TYPE_UINT32:
-                (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
-				break;
-			default:
-				(*resultIntensity)=(SourceTYPE)round(intensity);
-				break;
-		}
-		resultIntensity++;
-        positionFieldPtrX++;
-        positionFieldPtrY++;
-        positionFieldPtrZ++;
-	}
+    }
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class FieldTYPE>
-void CubicSplineResampleSourceImage2D(PrecisionTYPE *sourceCoefficients,
+void CubicSplineResampleSourceImage2D(PrecisionTYPE *sourceIntensityPtr,
 									  nifti_image *sourceImage,
 									  nifti_image *positionField,
                                       nifti_image *resultImage,
@@ -206,420 +276,479 @@ void CubicSplineResampleSourceImage2D(PrecisionTYPE *sourceCoefficients,
 									  PrecisionTYPE bgValue)
 {
 	// The spline decomposition assumes a background set to 0 the bgValue variable is thus not use here
-	FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-	FieldTYPE *positionFieldPtrY = &positionFieldPtrX[resultImage->nvox];
-	
-	SourceTYPE *resultIntensity = static_cast<SourceTYPE *>(resultImage->data);
 
-    int *maskPtr = &mask[0];
-	
-	PrecisionTYPE position[2];
-	int previous[2];
-	PrecisionTYPE xBasis[4];
-	PrecisionTYPE yBasis[4];
-	PrecisionTYPE relative;
-	
-	mat44 sourceIJKMatrix;
-	if(sourceImage->sform_code>0)
-		sourceIJKMatrix=sourceImage->sto_ijk;
-	else sourceIJKMatrix=sourceImage->qto_ijk;
-	
-	for(unsigned int index=0;index<resultImage->nvox; index++){
-		
-        PrecisionTYPE intensity=0.0;
+    // The resampling scheme is applied along each time
+    SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
+    unsigned int targetVoxelNumber = resultImage->nx*resultImage->ny;
+    unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny;
 
-        if((*maskPtr++)>-1){
+    for(int t=0; t<resultImage->nt;t++){
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] 2D Cubic spline resampling of volume number %i\n",t);
+#endif
 
-		    PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
-		    PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
-		    /* real -> voxel; source space */
-		    position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
-		    sourceIJKMatrix.m[0][3];
-		    position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
-		    sourceIJKMatrix.m[1][3];
+        FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
+        FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
 
-		    previous[0] = (int)floor(position[0]);
-		    previous[1] = (int)floor(position[1]);
-		    // basis values along the x axis
-		    relative=position[0]-(PrecisionTYPE)previous[0];
-		    if(relative<0) relative=0.0; // rounding error correction
-		    xBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
-		    xBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - xBasis[3]);
-		    xBasis[2]= (PrecisionTYPE)(relative + xBasis[0] - 2.0*xBasis[3]);
-		    xBasis[1]= (PrecisionTYPE)(1.0 - xBasis[0] - xBasis[2] - xBasis[3]);
-		    // basis values along the y axis
-		    relative=position[1]-(PrecisionTYPE)previous[1];
-		    if(relative<0) relative=(PrecisionTYPE)(0.0); // rounding error correction
-		    yBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
-		    yBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - yBasis[3]);
-		    yBasis[2]= (PrecisionTYPE)(relative + yBasis[0] - 2.0*yBasis[3]);
-		    yBasis[1]= (PrecisionTYPE)(1.0 - yBasis[0] - yBasis[2] - yBasis[3]);
+        SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
+        PrecisionTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-		    previous[0]--;previous[1]--;
+        int *maskPtr = &mask[0];
 
-		    for(short b=0; b<4; b++){
-			    short Y= previous[1]+b;
-			    PrecisionTYPE *yPointer = &sourceCoefficients[Y*sourceImage->nx];
-			    if(-1<Y && Y<sourceImage->ny){
-				    PrecisionTYPE *xyPointer = &yPointer[previous[0]];
-				    PrecisionTYPE xTempNewValue=0.0;
-				    for(short a=0; a<4; a++){
-					    if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
-						    const PrecisionTYPE coeff = *xyPointer;
-						    xTempNewValue +=  coeff * xBasis[a];
-					    }
-					    xyPointer++;
-				    }
-				    intensity += (xTempNewValue * yBasis[b]);
-			    }
-		    }
+        PrecisionTYPE position[2];
+        int previous[2];
+        PrecisionTYPE xBasis[4];
+        PrecisionTYPE yBasis[4];
+        PrecisionTYPE relative;
+
+        mat44 sourceIJKMatrix;
+        if(sourceImage->sform_code>0)
+            sourceIJKMatrix=sourceImage->sto_ijk;
+        else sourceIJKMatrix=sourceImage->qto_ijk;
+
+        for(unsigned int index=0;index<targetVoxelNumber; index++){
+
+            PrecisionTYPE intensity=0.0;
+
+            if((*maskPtr++)>-1){
+
+                PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
+                PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
+                /* real -> voxel; source space */
+                position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
+                sourceIJKMatrix.m[0][3];
+                position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
+                sourceIJKMatrix.m[1][3];
+
+                previous[0] = (int)floor(position[0]);
+                previous[1] = (int)floor(position[1]);
+                // basis values along the x axis
+                relative=position[0]-(PrecisionTYPE)previous[0];
+                if(relative<0) relative=0.0; // rounding error correction
+                xBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
+                xBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - xBasis[3]);
+                xBasis[2]= (PrecisionTYPE)(relative + xBasis[0] - 2.0*xBasis[3]);
+                xBasis[1]= (PrecisionTYPE)(1.0 - xBasis[0] - xBasis[2] - xBasis[3]);
+                // basis values along the y axis
+                relative=position[1]-(PrecisionTYPE)previous[1];
+                if(relative<0) relative=(PrecisionTYPE)(0.0); // rounding error correction
+                yBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
+                yBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - yBasis[3]);
+                yBasis[2]= (PrecisionTYPE)(relative + yBasis[0] - 2.0*yBasis[3]);
+                yBasis[1]= (PrecisionTYPE)(1.0 - yBasis[0] - yBasis[2] - yBasis[3]);
+
+                previous[0]--;previous[1]--;
+
+                for(short b=0; b<4; b++){
+                    short Y= previous[1]+b;
+                    PrecisionTYPE *yPointer = &sourceCoefficients[Y*sourceImage->nx];
+                    if(-1<Y && Y<sourceImage->ny){
+                        PrecisionTYPE *xyPointer = &yPointer[previous[0]];
+                        PrecisionTYPE xTempNewValue=0.0;
+                        for(short a=0; a<4; a++){
+                            if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
+                                const PrecisionTYPE coeff = *xyPointer;
+                                xTempNewValue +=  coeff * xBasis[a];
+                            }
+                            xyPointer++;
+                        }
+                        intensity += (xTempNewValue * yBasis[b]);
+                    }
+                }
+            }
+
+            switch(sourceImage->datatype){
+                case NIFTI_TYPE_FLOAT32:
+                    (*resultIntensity)=(SourceTYPE)intensity;
+                    break;
+                case NIFTI_TYPE_FLOAT64:
+                    (*resultIntensity)=(SourceTYPE)intensity;
+                    break;
+                case NIFTI_TYPE_UINT8:
+                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    break;
+                case NIFTI_TYPE_UINT16:
+                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    break;
+                case NIFTI_TYPE_UINT32:
+                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    break;
+                default:
+                    (*resultIntensity)=(SourceTYPE)round(intensity);
+                    break;
+            }
+            resultIntensity++;
+            positionFieldPtrX++;
+            positionFieldPtrY++;
         }
-
-		switch(sourceImage->datatype){
-			case NIFTI_TYPE_FLOAT32:
-				(*resultIntensity)=(SourceTYPE)intensity;
-				break;
-			case NIFTI_TYPE_FLOAT64:
-				(*resultIntensity)=(SourceTYPE)intensity;
-				break;
-			case NIFTI_TYPE_UINT8:
-                (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
-				break;
-			case NIFTI_TYPE_UINT16:
-                (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
-				break;
-			case NIFTI_TYPE_UINT32:
-                (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
-				break;
-			default:
-				(*resultIntensity)=(SourceTYPE)round(intensity);
-				break;
-		}
-		resultIntensity++;
-        positionFieldPtrX++;
-        positionFieldPtrY++;
-	}
+    }
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class FieldTYPE>
-void TrilinearResampleSourceImage(	SourceTYPE *intensityPtr,
+void TrilinearResampleSourceImage(	SourceTYPE *sourceIntensityPtr,
                                     nifti_image *sourceImage,
                                     nifti_image *positionField,
                                     nifti_image *resultImage,
                                     int *mask,
                                     PrecisionTYPE bgValue)
 {
-	FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-	FieldTYPE *positionFieldPtrY = &positionFieldPtrX[resultImage->nvox];
-	FieldTYPE *positionFieldPtrZ = &positionFieldPtrY[resultImage->nvox];
+    // The resampling scheme is applied along each time
+    SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
+    unsigned int targetVoxelNumber = resultImage->nx*resultImage->ny*resultImage->nz;
+    unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
 
-	SourceTYPE *resultIntensity = static_cast<SourceTYPE *>(resultImage->data);
+    for(int t=0; t<resultImage->nt;t++){
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] 3D linear resampling of volume number %i\n",t);
+#endif
 
-    int *maskPtr = &mask[0];
+        FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
+        FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
+        FieldTYPE *positionFieldPtrZ = &positionFieldPtrY[targetVoxelNumber];
 
-    float voxelIndex[3];
-    float position[3];
-	int previous[3];
-	PrecisionTYPE xBasis[2];
-	PrecisionTYPE yBasis[2];
-	PrecisionTYPE zBasis[2];
-	PrecisionTYPE relative;
-	
-	mat44 *sourceIJKMatrix;
-	if(sourceImage->sform_code>0)
-		sourceIJKMatrix=&(sourceImage->sto_ijk);
-	else sourceIJKMatrix=&(sourceImage->qto_ijk);
+        SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
+        SourceTYPE *intensityPtr = &sourceIntensityPtr[t*sourceVoxelNumber];
 
+        int *maskPtr = &mask[0];
 
-	for(unsigned int index=0;index<resultImage->nvox; index++){
+        float voxelIndex[3];
+        float position[3];
+        int previous[3];
+        PrecisionTYPE xBasis[2];
+        PrecisionTYPE yBasis[2];
+        PrecisionTYPE zBasis[2];
+        PrecisionTYPE relative;
 
-        PrecisionTYPE intensity=0.0;
-
-        if((*maskPtr++)>-1){
-
-		    voxelIndex[0]=(float) *positionFieldPtrX;
-		    voxelIndex[1]=(float) *positionFieldPtrY;
-		    voxelIndex[2]=(float) *positionFieldPtrZ;
-
-		    /* real -> voxel; source space */
-            reg_mat44_mul(sourceIJKMatrix, voxelIndex, position);
+        mat44 *sourceIJKMatrix;
+        if(sourceImage->sform_code>0)
+            sourceIJKMatrix=&(sourceImage->sto_ijk);
+        else sourceIJKMatrix=&(sourceImage->qto_ijk);
 
 
-            if( position[0]>=0.0f && position[0]<sourceImage->nx-1 &&
-                position[1]>=0.0f && position[1]<sourceImage->ny-1 &&
-                position[2]>=0.0f && position[2]<sourceImage->nz-1 ){
+        for(unsigned int index=0;index<targetVoxelNumber; index++){
 
-                previous[0] = (int)floor(position[0]);
-                previous[1] = (int)floor(position[1]);
-                previous[2] = (int)floor(position[2]);
-                // basis values along the x axis
-                relative=position[0]-(PrecisionTYPE)previous[0];
-                if(relative<0) relative=0.0; // rounding error correction
-                xBasis[0]= (PrecisionTYPE)(1.0-relative);
-                xBasis[1]= relative;
-                // basis values along the y axis
-                relative=position[1]-(PrecisionTYPE)previous[1];
-                if(relative<0) relative=0.0; // rounding error correction
-                yBasis[0]= (PrecisionTYPE)(1.0-relative);
-                yBasis[1]= relative;
-                // basis values along the z axis
-                relative=position[2]-(PrecisionTYPE)previous[2];
-                if(relative<0) relative=0.0; // rounding error correction
-                zBasis[0]= (PrecisionTYPE)(1.0-relative);
-                zBasis[1]= relative;
+            PrecisionTYPE intensity=0.0;
 
-			    for(short c=0; c<2; c++){
-				    short Z= previous[2]+c;
-				    SourceTYPE *zPointer = &intensityPtr[Z*sourceImage->nx*sourceImage->ny];
-				    PrecisionTYPE yTempNewValue=0.0;
-				    for(short b=0; b<2; b++){
-					    short Y= previous[1]+b;
-					    SourceTYPE *xyzPointer = &zPointer[Y*sourceImage->nx+previous[0]];
-					    PrecisionTYPE xTempNewValue=0.0;
-					    for(short a=0; a<2; a++){
-						    const SourceTYPE coeff = *xyzPointer;
-						    xTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
-						    xyzPointer++;
-					    }
-					    yTempNewValue += (xTempNewValue * yBasis[b]);
-				    }
-				    intensity += yTempNewValue * zBasis[c];
-			    }
+            if((*maskPtr++)>-1){
+
+                voxelIndex[0]=(float) *positionFieldPtrX;
+                voxelIndex[1]=(float) *positionFieldPtrY;
+                voxelIndex[2]=(float) *positionFieldPtrZ;
+
+                /* real -> voxel; source space */
+                reg_mat44_mul(sourceIJKMatrix, voxelIndex, position);
+
+                if( position[0]>=0.f && position[0]<(PrecisionTYPE)(sourceImage->nx-1) &&
+                    position[1]>=0.f && position[1]<(PrecisionTYPE)(sourceImage->ny-1) &&
+                    position[2]>=0.f && position[2]<(PrecisionTYPE)(sourceImage->nz-1) ){
+
+                    previous[0] = (int)position[0];
+                    previous[1] = (int)position[1];
+                    previous[2] = (int)position[2];
+                    // basis values along the x axis
+                    relative=position[0]-(PrecisionTYPE)previous[0];
+                    if(relative<0) relative=0.0; // rounding error correction
+                    xBasis[0]= (PrecisionTYPE)(1.0-relative);
+                    xBasis[1]= relative;
+                    // basis values along the y axis
+                    relative=position[1]-(PrecisionTYPE)previous[1];
+                    if(relative<0) relative=0.0; // rounding error correction
+                    yBasis[0]= (PrecisionTYPE)(1.0-relative);
+                    yBasis[1]= relative;
+                    // basis values along the z axis
+                    relative=position[2]-(PrecisionTYPE)previous[2];
+                    if(relative<0) relative=0.0; // rounding error correction
+                    zBasis[0]= (PrecisionTYPE)(1.0-relative);
+                    zBasis[1]= relative;
+
+                    for(short c=0; c<2; c++){
+                        short Z= previous[2]+c;
+                        SourceTYPE *zPointer = &intensityPtr[Z*sourceImage->nx*sourceImage->ny];
+                        PrecisionTYPE yTempNewValue=0.0;
+                        for(short b=0; b<2; b++){
+                            short Y= previous[1]+b;
+                            SourceTYPE *xyzPointer = &zPointer[Y*sourceImage->nx+previous[0]];
+                            PrecisionTYPE xTempNewValue=0.0;
+                            for(short a=0; a<2; a++){
+                                const SourceTYPE coeff = *xyzPointer;
+                                xTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
+                                xyzPointer++;
+                            }
+                            yTempNewValue += (xTempNewValue * yBasis[b]);
+                        }
+                        intensity += yTempNewValue * zBasis[c];
+                    }
+                }
+                else intensity = bgValue;
             }
-            else intensity = bgValue;
+
+            switch(sourceImage->datatype){
+                case NIFTI_TYPE_FLOAT32:
+                    (*resultIntensity)=(SourceTYPE)intensity;
+                    break;
+                case NIFTI_TYPE_FLOAT64:
+                    (*resultIntensity)=(SourceTYPE)intensity;
+                    break;
+                case NIFTI_TYPE_UINT8:
+                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    break;
+                case NIFTI_TYPE_UINT16:
+                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    break;
+                case NIFTI_TYPE_UINT32:
+                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    break;
+                default:
+                    (*resultIntensity)=(SourceTYPE)round(intensity);
+                    break;
+            }
+            resultIntensity++;
+            positionFieldPtrX++;
+            positionFieldPtrY++;
+            positionFieldPtrZ++;
         }
-		
-		switch(sourceImage->datatype){
-			case NIFTI_TYPE_FLOAT32:
-				(*resultIntensity)=(SourceTYPE)intensity;
-				break;
-			case NIFTI_TYPE_FLOAT64:
-				(*resultIntensity)=(SourceTYPE)intensity;
-				break;
-			case NIFTI_TYPE_UINT8:
-                (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
-				break;
-			case NIFTI_TYPE_UINT16:
-                (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
-				break;
-			case NIFTI_TYPE_UINT32:
-                (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
-				break;
-			default:
-				(*resultIntensity)=(SourceTYPE)round(intensity);
-				break;
-		}
-		resultIntensity++;
-        positionFieldPtrX++;
-        positionFieldPtrY++;
-        positionFieldPtrZ++;
-	}
+    }
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class FieldTYPE>
-void TrilinearResampleSourceImage2D(SourceTYPE *intensityPtr,
+void TrilinearResampleSourceImage2D(SourceTYPE *sourceIntensityPtr,
 									nifti_image *sourceImage,
 									nifti_image *positionField,
 									nifti_image *resultImage,
                                     int *mask,
 									PrecisionTYPE bgValue)
 {
-	FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-	FieldTYPE *positionFieldPtrY = &positionFieldPtrX[resultImage->nvox];
-	
-	SourceTYPE *resultIntensity = static_cast<SourceTYPE *>(resultImage->data);
+    // The resampling scheme is applied along each time
+    SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
+    unsigned int targetVoxelNumber = resultImage->nx*resultImage->ny*resultImage->nz;
+    unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
 
-    int *maskPtr = &mask[0];
-	
-	PrecisionTYPE position[2];
-	int previous[2];
-	PrecisionTYPE xBasis[2];
-	PrecisionTYPE yBasis[2];
-	PrecisionTYPE relative;
-	
-	mat44 sourceIJKMatrix;
-	if(sourceImage->sform_code>0)
-		sourceIJKMatrix=sourceImage->sto_ijk;
-	else sourceIJKMatrix=sourceImage->qto_ijk;
-	
-	for(unsigned int index=0;index<resultImage->nvox; index++){
+    for(int t=0; t<resultImage->nt;t++){
 
-        PrecisionTYPE intensity=0.0;
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] 3D linear resampling of volume number %i\n",t);
+#endif
+        FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
+        FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
 
-        if((*maskPtr++)>-1){
-		    PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
-		    PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
+        SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
+        SourceTYPE *intensityPtr = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-		    /* real -> voxel; source space */
-		    position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
-		    sourceIJKMatrix.m[0][3];
-		    position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
-		    sourceIJKMatrix.m[1][3];
+        int *maskPtr = &mask[0];
 
-            if( position[0]>=0.0f && position[0]<sourceImage->nx-1 &&
-                position[1]>=0.0f && position[1]<sourceImage->ny-1 ){
+        PrecisionTYPE position[2];
+        int previous[2];
+        PrecisionTYPE xBasis[2];
+        PrecisionTYPE yBasis[2];
+        PrecisionTYPE relative;
 
-		        previous[0] = (int)floor(position[0]);
-		        previous[1] = (int)floor(position[1]);
-		        // basis values along the x axis
-		        relative=position[0]-(PrecisionTYPE)previous[0];
-		        if(relative<0) relative=0.0; // rounding error correction
-		        xBasis[0]= (PrecisionTYPE)(1.0-relative);
-		        xBasis[1]= relative;
-		        // basis values along the y axis
-		        relative=position[1]-(PrecisionTYPE)previous[1];
-		        if(relative<0) relative=0.0; // rounding error correction
-		        yBasis[0]= (PrecisionTYPE)(1.0-relative);
-		        yBasis[1]= relative;
+        mat44 sourceIJKMatrix;
+        if(sourceImage->sform_code>0)
+            sourceIJKMatrix=sourceImage->sto_ijk;
+        else sourceIJKMatrix=sourceImage->qto_ijk;
 
-			    for(short b=0; b<2; b++){
-				    short Y= previous[1]+b;
-					SourceTYPE *xyPointer = &intensityPtr[Y*sourceImage->nx+previous[0]];
-					PrecisionTYPE xTempNewValue=0.0;
-					for(short a=0; a<2; a++){
-						const SourceTYPE coeff = *xyPointer;
-						xTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
-						xyPointer++;
-					}
-					intensity += (xTempNewValue * yBasis[b]);
-			    }
-		    }
-            else intensity = bgValue;
+        for(unsigned int index=0;index<targetVoxelNumber; index++){
+
+            PrecisionTYPE intensity=0.0;
+
+            if((*maskPtr++)>-1){
+                PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
+                PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
+
+                /* real -> voxel; source space */
+                position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
+                sourceIJKMatrix.m[0][3];
+                position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
+                sourceIJKMatrix.m[1][3];
+
+                if( position[0]>=0.0f && position[0]<(PrecisionTYPE)(sourceImage->nx-1) &&
+                    position[1]>=0.0f && position[1]<(PrecisionTYPE)(sourceImage->ny-1)) {
+
+                    previous[0] = (int)position[0];
+                    previous[1] = (int)position[1];
+                    // basis values along the x axis
+                    relative=position[0]-(PrecisionTYPE)previous[0];
+                    if(relative<0) relative=0.0; // rounding error correction
+                    xBasis[0]= (PrecisionTYPE)(1.0-relative);
+                    xBasis[1]= relative;
+                    // basis values along the y axis
+                    relative=position[1]-(PrecisionTYPE)previous[1];
+                    if(relative<0) relative=0.0; // rounding error correction
+                    yBasis[0]= (PrecisionTYPE)(1.0-relative);
+                    yBasis[1]= relative;
+
+                    for(short b=0; b<2; b++){
+                        short Y= previous[1]+b;
+                        SourceTYPE *xyPointer = &intensityPtr[Y*sourceImage->nx+previous[0]];
+                        PrecisionTYPE xTempNewValue=0.0;
+                        for(short a=0; a<2; a++){
+                            const SourceTYPE coeff = *xyPointer;
+                            xTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
+                            xyPointer++;
+                        }
+                        intensity += (xTempNewValue * yBasis[b]);
+                    }
+                }
+                else intensity = bgValue;
+            }
+
+            switch(sourceImage->datatype){
+                case NIFTI_TYPE_FLOAT32:
+                    (*resultIntensity)=(SourceTYPE)intensity;
+                    break;
+                case NIFTI_TYPE_FLOAT64:
+                    (*resultIntensity)=(SourceTYPE)intensity;
+                    break;
+                case NIFTI_TYPE_UINT8:
+                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    break;
+                case NIFTI_TYPE_UINT16:
+                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    break;
+                case NIFTI_TYPE_UINT32:
+                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    break;
+                default:
+                    (*resultIntensity)=(SourceTYPE)round(intensity);
+                    break;
+            }
+            resultIntensity++;
+            positionFieldPtrX++;
+            positionFieldPtrY++;
         }
-
-		switch(sourceImage->datatype){
-			case NIFTI_TYPE_FLOAT32:
-				(*resultIntensity)=(SourceTYPE)intensity;
-				break;
-			case NIFTI_TYPE_FLOAT64:
-				(*resultIntensity)=(SourceTYPE)intensity;
-				break;
-			case NIFTI_TYPE_UINT8:
-                (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
-				break;
-			case NIFTI_TYPE_UINT16:
-                (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
-				break;
-			case NIFTI_TYPE_UINT32:
-                (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
-				break;
-			default:
-				(*resultIntensity)=(SourceTYPE)round(intensity);
-				break;
-		}
-		resultIntensity++;
-        positionFieldPtrX++;
-        positionFieldPtrY++;
-	}
+    }
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class FieldTYPE>
-void NearestNeighborResampleSourceImage(SourceTYPE *intensityPtr,
+void NearestNeighborResampleSourceImage(SourceTYPE *sourceIntensityPtr,
 										nifti_image *sourceImage,
 										nifti_image *positionField,
 										nifti_image *resultImage,
                                         int *mask,
 										PrecisionTYPE bgValue)
 {
-	FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-	FieldTYPE *positionFieldPtrY = &positionFieldPtrX[resultImage->nvox];
-	FieldTYPE *positionFieldPtrZ = &positionFieldPtrY[resultImage->nvox];
-	
-	SourceTYPE *resultIntensity = static_cast<SourceTYPE *>(resultImage->data);
+    // The resampling scheme is applied along each time
+    SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
+    unsigned int targetVoxelNumber = resultImage->nx*resultImage->ny*resultImage->nz;
+    unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
 
-    int *maskPtr = &mask[0];
-	
-	PrecisionTYPE position[3];
-	int previous[3];
-	
-	mat44 sourceIJKMatrix;
-	if(sourceImage->sform_code>0)
-		sourceIJKMatrix=sourceImage->sto_ijk;
-	else sourceIJKMatrix=sourceImage->qto_ijk;
-	
-	for(unsigned int index=0; index<resultImage->nvox; index++){
-		
-        if((*maskPtr++)>-1){
-		    PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
-		    PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
-		    PrecisionTYPE worldZ=(PrecisionTYPE) *positionFieldPtrZ;
-		    /* real -> voxel; source space */
-		    position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
-		    worldZ*sourceIJKMatrix.m[0][2] +  sourceIJKMatrix.m[0][3];
-		    position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
-		    worldZ*sourceIJKMatrix.m[1][2] +  sourceIJKMatrix.m[1][3];
-		    position[2] = worldX*sourceIJKMatrix.m[2][0] + worldY*sourceIJKMatrix.m[2][1] +
-		    worldZ*sourceIJKMatrix.m[2][2] +  sourceIJKMatrix.m[2][3];
+    for(int t=0; t<resultImage->nt;t++){
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] 3D nearest neighbor resampling of volume number %i\n",t);
+#endif
 
-		    previous[0] = (int)round(position[0]);
-		    previous[1] = (int)round(position[1]);
-		    previous[2] = (int)round(position[2]);
+        FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
+        FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
+        FieldTYPE *positionFieldPtrZ = &positionFieldPtrY[targetVoxelNumber];
 
-		    if( -1<previous[2] && previous[2]<sourceImage->nz &&
-		    -1<previous[1] && previous[1]<sourceImage->ny &&
-		    -1<previous[0] && previous[0]<sourceImage->nx){
-			    SourceTYPE intensity = intensityPtr[(previous[2]*sourceImage->ny+previous[1])*sourceImage->nx+previous[0]];
-			    (*resultIntensity)=intensity;
-		    }
-		    else (*resultIntensity)=(SourceTYPE)bgValue;
+        SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
+        SourceTYPE *intensityPtr = &sourceIntensityPtr[t*sourceVoxelNumber];
+
+        int *maskPtr = &mask[0];
+
+        PrecisionTYPE position[3];
+        int previous[3];
+
+        mat44 sourceIJKMatrix;
+        if(sourceImage->sform_code>0)
+            sourceIJKMatrix=sourceImage->sto_ijk;
+        else sourceIJKMatrix=sourceImage->qto_ijk;
+
+        for(unsigned int index=0; index<targetVoxelNumber; index++){
+
+            if((*maskPtr++)>-1){
+                PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
+                PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
+                PrecisionTYPE worldZ=(PrecisionTYPE) *positionFieldPtrZ;
+                /* real -> voxel; source space */
+                position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
+                worldZ*sourceIJKMatrix.m[0][2] +  sourceIJKMatrix.m[0][3];
+                position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
+                worldZ*sourceIJKMatrix.m[1][2] +  sourceIJKMatrix.m[1][3];
+                position[2] = worldX*sourceIJKMatrix.m[2][0] + worldY*sourceIJKMatrix.m[2][1] +
+                worldZ*sourceIJKMatrix.m[2][2] +  sourceIJKMatrix.m[2][3];
+
+                previous[0] = (int)round(position[0]);
+                previous[1] = (int)round(position[1]);
+                previous[2] = (int)round(position[2]);
+
+                if( -1<previous[2] && previous[2]<sourceImage->nz &&
+                -1<previous[1] && previous[1]<sourceImage->ny &&
+                -1<previous[0] && previous[0]<sourceImage->nx){
+                    SourceTYPE intensity = intensityPtr[(previous[2]*sourceImage->ny+previous[1])*sourceImage->nx+previous[0]];
+                    (*resultIntensity)=intensity;
+                }
+                else (*resultIntensity)=(SourceTYPE)bgValue;
+            }
+            else (*resultIntensity)=(SourceTYPE)bgValue;
+            resultIntensity++;
+            positionFieldPtrX++;
+            positionFieldPtrY++;
+            positionFieldPtrZ++;
         }
-        else (*resultIntensity)=(SourceTYPE)bgValue;
-		resultIntensity++;
-        positionFieldPtrX++;
-        positionFieldPtrY++;
-        positionFieldPtrZ++;
-	}
+    }
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class FieldTYPE>
-void NearestNeighborResampleSourceImage2D(SourceTYPE *intensityPtr,
+void NearestNeighborResampleSourceImage2D(SourceTYPE *sourceIntensityPtr,
 										  nifti_image *sourceImage,
 										  nifti_image *positionField,
 										  nifti_image *resultImage,
                                           int *mask,
 										  PrecisionTYPE bgValue)
 {
-	FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-	FieldTYPE *positionFieldPtrY = &positionFieldPtrX[resultImage->nvox];
-	
-	SourceTYPE *resultIntensity = static_cast<SourceTYPE *>(resultImage->data);
+    SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
+    unsigned int targetVoxelNumber = resultImage->nx*resultImage->ny;
+    unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny;
 
-    int *maskPtr = &mask[0];
+    for(int t=0; t<resultImage->nt;t++){
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] 2D nearest neighbor resampling of volume number %i\n",t);
+#endif
 
-	PrecisionTYPE position[2];
-	int previous[2];
-	
-	mat44 sourceIJKMatrix;
-	if(sourceImage->sform_code>0)
-		sourceIJKMatrix=sourceImage->sto_ijk;
-	else sourceIJKMatrix=sourceImage->qto_ijk;
-	
-	for(unsigned int index=0;index<resultImage->nvox; index++){
-		
-        if((*maskPtr++)>-1){
-		    PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
-		    PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
-		    /* real -> voxel; source space */
-		    position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
-		    sourceIJKMatrix.m[0][3];
-		    position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
-		    sourceIJKMatrix.m[1][3];
-		    
-		    previous[0] = (int)round(position[0]);
-		    previous[1] = (int)round(position[1]);
-		    
-		    if( -1<previous[1] && previous[1]<sourceImage->ny &&
-		    -1<previous[0] && previous[0]<sourceImage->nx){
-			    SourceTYPE intensity = intensityPtr[previous[1]*sourceImage->nx+previous[0]];
-			    (*resultIntensity)=intensity;
-		    }
-		    else (*resultIntensity)=(SourceTYPE)bgValue;
-		}
-        else (*resultIntensity)=(SourceTYPE)bgValue;
-		resultIntensity++;
-        positionFieldPtrX++;
-        positionFieldPtrY++;
-	}
+        FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
+        FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
+
+        SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
+        SourceTYPE *intensityPtr = &sourceIntensityPtr[t*sourceVoxelNumber];
+
+        int *maskPtr = &mask[0];
+
+        PrecisionTYPE position[2];
+        int previous[2];
+
+        mat44 sourceIJKMatrix;
+        if(sourceImage->sform_code>0)
+            sourceIJKMatrix=sourceImage->sto_ijk;
+        else sourceIJKMatrix=sourceImage->qto_ijk;
+
+        for(unsigned int index=0;index<targetVoxelNumber; index++){
+
+            if((*maskPtr++)>-1){
+                PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
+                PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
+                /* real -> voxel; source space */
+                position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
+                sourceIJKMatrix.m[0][3];
+                position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
+                sourceIJKMatrix.m[1][3];
+
+                previous[0] = (int)round(position[0]);
+                previous[1] = (int)round(position[1]);
+
+                if( -1<previous[1] && previous[1]<sourceImage->ny &&
+                -1<previous[0] && previous[0]<sourceImage->nx){
+                    SourceTYPE intensity = intensityPtr[previous[1]*sourceImage->nx+previous[0]];
+                    (*resultIntensity)=intensity;
+                }
+                else (*resultIntensity)=(SourceTYPE)bgValue;
+            }
+            else (*resultIntensity)=(SourceTYPE)bgValue;
+            resultIntensity++;
+            positionFieldPtrX++;
+            positionFieldPtrY++;
+        }
+    }
 }
 /* *************************************************************** */
 
@@ -645,54 +774,10 @@ void reg_resampleSourceImage2(	nifti_image *targetImage,
 {
 	/* The deformation field contains the position in the real world */
 	
-	if(interp==3){
-		/* in order to apply a cubic Spline resampling, the source image
-		 intensities have to be decomposed */
-		SourceTYPE *intensityPtr = (SourceTYPE *)sourceImage->data;
-	 	PrecisionTYPE *sourceCoefficients = (PrecisionTYPE *)malloc(sourceImage->nvox*sizeof(PrecisionTYPE));
-		for(unsigned int i=0; i<sourceImage->nvox;i++)
-			sourceCoefficients[i]=(PrecisionTYPE)intensityPtr[i];
-
-		PrecisionTYPE pole = (PrecisionTYPE)(sqrt(3.0) - 2.0);
-
-			// X axis first
-		int number = sourceImage->nx;
-		PrecisionTYPE *values=new PrecisionTYPE[number];
-		int increment = 1;
-		for(int i=0;i<sourceImage->ny*sourceImage->nz;i++){
-			int start = i*sourceImage->nx;
-			int end =  start + sourceImage->nx;
-			extractLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
-			intensitiesToSplineCoefficients<PrecisionTYPE>(values, number, pole);
-			restoreLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
-		}
-		delete[] values;
-		// Y axis then
-		number = sourceImage->ny;
-		values=new PrecisionTYPE[number];
-		increment = sourceImage->nx;
-		for(int i=0;i<sourceImage->nx*sourceImage->nz;i++){
-			int start = i + i/sourceImage->nx * sourceImage->nx * (sourceImage->ny - 1);
-			int end =  start + sourceImage->nx*sourceImage->ny;
-			extractLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
-			intensitiesToSplineCoefficients<PrecisionTYPE>(values, number, pole);
-			restoreLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
-		}
-		delete[] values;
-		if(targetImage->nz>1){
-			// Z axis at last
-			number = sourceImage->nz;
-			values=new PrecisionTYPE[number];
-			increment = sourceImage->nx*sourceImage->ny;
-			for(int i=0;i<sourceImage->nx*sourceImage->ny;i++){
-				int start = i;
-				int end =  start + sourceImage->nx*sourceImage->ny*sourceImage->nz;
-				extractLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
-				intensitiesToSplineCoefficients<PrecisionTYPE>(values, number, pole);
-				restoreLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
-			}
-			delete[] values;
-		}
+    if(interp==3){
+        PrecisionTYPE *sourceCoefficients = (PrecisionTYPE *)malloc(sourceImage->nvox*sizeof(PrecisionTYPE));
+        DecomposeSourceImageIntensities<PrecisionTYPE,SourceTYPE>(  sourceImage,
+                                                                    sourceCoefficients);
 		
 		if(targetImage->nz>1){
 			CubicSplineResampleSourceImage<PrecisionTYPE,SourceTYPE,FieldTYPE>(	sourceCoefficients,
@@ -730,7 +815,7 @@ void reg_resampleSourceImage2(	nifti_image *targetImage,
 																		   positionFieldImage,
 																		   resultImage,
                                                                            mask,
-																		   bgValue);
+                                                                           bgValue);
 		}
 
 	}
@@ -771,10 +856,16 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 		return;
 	}
 
+    if(sourceImage->nt != resultImage->nt){
+        printf("err:\treg_resampleSourceImage\tThe source and result images have different dimension along the time axis\n");
+        printf("err:\treg_resampleSourceImage\tNothing has been done\n");
+        return;
+    }
+
     // a mask array is created if no mask is specified
     bool MrPropreRules = false;
     if(mask==NULL){
-        mask=(int *)calloc(targetImage->nvox,sizeof(int)); // voxels in the background are set to -1 so 0 will do the job here
+        mask=(int *)calloc(targetImage->nx*targetImage->ny*targetImage->nz,sizeof(int)); // voxels in the background are set to -1 so 0 will do the job here
         MrPropreRules = true;
     }
 
@@ -858,6 +949,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 					break;
 			}
 			break;
+#ifdef _NR_DEV
 		case NIFTI_TYPE_FLOAT64:
 			switch ( sourceImage->datatype ){
 				case NIFTI_TYPE_UINT8:
@@ -937,6 +1029,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 					break;
 			}
 			break;
+#endif
 		default:
 			printf("Deformation field pixel type unsupported.");
 			break;
@@ -948,507 +1041,551 @@ template void reg_resampleSourceImage<double>(nifti_image *, nifti_image *, nift
 /* *************************************************************** */
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class GradientTYPE, class FieldTYPE>
-void TrilinearGradientResultImage(	SourceTYPE *sourceCoefficients,
-								  nifti_image *sourceImage,
-								  nifti_image *positionField,
-								  nifti_image *resultGradientImage,
+void TrilinearGradientResultImage(	SourceTYPE *sourceIntensityPtr,
+                                    nifti_image *sourceImage,
+                                    nifti_image *positionField,
+                                    nifti_image *resultGradientImage,
                                     int *mask)
 {
-	GradientTYPE *resultGradientPtrX = static_cast<GradientTYPE *>(resultGradientImage->data);
-	GradientTYPE *resultGradientPtrY = &resultGradientPtrX[resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz];
-	GradientTYPE *resultGradientPtrZ = &resultGradientPtrY[resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz];
-	
-	FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-	FieldTYPE *positionFieldPtrY = &positionFieldPtrX[resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz];
-	FieldTYPE *positionFieldPtrZ = &positionFieldPtrY[resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz];
+    unsigned int targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz;
+    unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
+    unsigned int gradientOffSet = targetVoxelNumber*resultGradientImage->nt;
 
-    int *maskPtr = &mask[0];
+    GradientTYPE *resultGradientImagePtr = static_cast<GradientTYPE *>(resultGradientImage->data);
 
-	PrecisionTYPE position[3];
-	int previous[3];
-	PrecisionTYPE xBasis[2];
-	PrecisionTYPE yBasis[2];
-	PrecisionTYPE zBasis[2];
-	PrecisionTYPE deriv[2];deriv[0]=-1;deriv[1]=1;
-	PrecisionTYPE relative;
-	
-	mat44 sourceIJKMatrix;
-	if(sourceImage->sform_code>0)
-		sourceIJKMatrix=sourceImage->sto_ijk;
-	else sourceIJKMatrix=sourceImage->qto_ijk;
+    // Iteration over the different volume along the 4th axis
+    for(int t=0; t<resultGradientImage->nt;t++){
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] 3D linear gradient computation of volume number %i\n",t);
+#endif
 
-	for(int index=0;index<resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz; index++){
+        FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
+        FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
+        FieldTYPE *positionFieldPtrZ = &positionFieldPtrY[targetVoxelNumber];
 
-        PrecisionTYPE gradX=0.0;
-        PrecisionTYPE gradY=0.0;
-        PrecisionTYPE gradZ=0.0;
+        GradientTYPE *resultGradientPtrX = &resultGradientImagePtr[targetVoxelNumber*t];
+        GradientTYPE *resultGradientPtrY = &resultGradientPtrX[gradientOffSet];
+        GradientTYPE *resultGradientPtrZ = &resultGradientPtrY[gradientOffSet];
 
-        if((*maskPtr++)>-1){
-		    PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
-		    PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
-		    PrecisionTYPE worldZ=(PrecisionTYPE) *positionFieldPtrZ;
+        SourceTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-		    /* real -> voxel; source space */
-		    position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
-		    worldZ*sourceIJKMatrix.m[0][2] +  sourceIJKMatrix.m[0][3];
-		    position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
-		    worldZ*sourceIJKMatrix.m[1][2] +  sourceIJKMatrix.m[1][3];
-		    position[2] = worldX*sourceIJKMatrix.m[2][0] + worldY*sourceIJKMatrix.m[2][1] +
-		    worldZ*sourceIJKMatrix.m[2][2] +  sourceIJKMatrix.m[2][3];
+        int *maskPtr = &mask[0];
 
-            if( position[0]>=0.0f && position[0]<sourceImage->nx-1 &&
-                position[1]>=0.0f && position[1]<sourceImage->ny-1 &&
-                position[2]>=0.0f && position[2]<sourceImage->nz-1 ){
+        PrecisionTYPE position[3];
+        int previous[3];
+        PrecisionTYPE xBasis[2];
+        PrecisionTYPE yBasis[2];
+        PrecisionTYPE zBasis[2];
+        PrecisionTYPE deriv[2];deriv[0]=-1;deriv[1]=1;
+        PrecisionTYPE relative;
 
-		        previous[0] = (int)floor(position[0]);
-		        previous[1] = (int)floor(position[1]);
-		        previous[2] = (int)floor(position[2]);
-		        // basis values along the x axis
-		        relative=position[0]-(PrecisionTYPE)previous[0];
-		        if(relative<0) relative=0.0; // rounding error correction
-		        xBasis[0]= (PrecisionTYPE)(1.0-relative);
-		        xBasis[1]= relative;
-		        // basis values along the y axis
-		        relative=position[1]-(PrecisionTYPE)previous[1];
-		        if(relative<0) relative=0.0; // rounding error correction
-		        yBasis[0]= (PrecisionTYPE)(1.0-relative);
-		        yBasis[1]= relative;
-		        // basis values along the z axis
-		        relative=position[2]-(PrecisionTYPE)previous[2];
-		        if(relative<0) relative=0.0; // rounding error correction
-		        zBasis[0]= (PrecisionTYPE)(1.0-relative);
-		        zBasis[1]= relative;
+        mat44 sourceIJKMatrix;
+        if(sourceImage->sform_code>0)
+            sourceIJKMatrix=sourceImage->sto_ijk;
+        else sourceIJKMatrix=sourceImage->qto_ijk;
 
-		        for(short c=0; c<2; c++){
-			        short Z= previous[2]+c;
-				    SourceTYPE *zPointer = &sourceCoefficients[Z*sourceImage->nx*sourceImage->ny];
-				    PrecisionTYPE xxTempNewValue=0.0;
-				    PrecisionTYPE yyTempNewValue=0.0;
-				    PrecisionTYPE zzTempNewValue=0.0;
-				    for(short b=0; b<2; b++){
-					    short Y= previous[1]+b;
-					    SourceTYPE *yzPointer = &zPointer[Y*sourceImage->nx];
-						SourceTYPE *xyzPointer = &yzPointer[previous[0]];
-						PrecisionTYPE xTempNewValue=0.0;
-						PrecisionTYPE yTempNewValue=0.0;
-						PrecisionTYPE zTempNewValue=0.0;
-						for(short a=0; a<2; a++){
-							const SourceTYPE coeff = *xyzPointer;
-							xTempNewValue +=  (PrecisionTYPE)(coeff * deriv[a]);
-							yTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
-							zTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
-							xyzPointer++;
-						}
-						xxTempNewValue += xTempNewValue * yBasis[b];
-						yyTempNewValue += yTempNewValue * deriv[b];
-						zzTempNewValue += zTempNewValue * yBasis[b];
-				    }
-				    gradX += xxTempNewValue * zBasis[c];
-				    gradY += yyTempNewValue * zBasis[c];
-				    gradZ += zzTempNewValue * deriv[c];
-		        }
+        for(unsigned int index=0;index<targetVoxelNumber; index++){
+
+            PrecisionTYPE gradX=0.0;
+            PrecisionTYPE gradY=0.0;
+            PrecisionTYPE gradZ=0.0;
+
+            if((*maskPtr++)>-1){
+                PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
+                PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
+                PrecisionTYPE worldZ=(PrecisionTYPE) *positionFieldPtrZ;
+
+                /* real -> voxel; source space */
+                position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
+                worldZ*sourceIJKMatrix.m[0][2] +  sourceIJKMatrix.m[0][3];
+                position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
+                worldZ*sourceIJKMatrix.m[1][2] +  sourceIJKMatrix.m[1][3];
+                position[2] = worldX*sourceIJKMatrix.m[2][0] + worldY*sourceIJKMatrix.m[2][1] +
+                worldZ*sourceIJKMatrix.m[2][2] +  sourceIJKMatrix.m[2][3];
+
+
+                if( position[0]>=0.0f && position[0]<(PrecisionTYPE)(sourceImage->nx-1) &&
+                    position[1]>=0.0f && position[1]<(PrecisionTYPE)(sourceImage->ny-1) &&
+                    position[2]>=0.0f && position[2]<(PrecisionTYPE)(sourceImage->nz-1) ){
+
+                    previous[0] = (int)position[0];
+                    previous[1] = (int)position[1];
+                    previous[2] = (int)position[2];
+                    // basis values along the x axis
+                    relative=position[0]-(PrecisionTYPE)previous[0];
+                    if(relative<0) relative=0.0; // rounding error correction
+                    xBasis[0]= (PrecisionTYPE)(1.0-relative);
+                    xBasis[1]= relative;
+                    // basis values along the y axis
+                    relative=position[1]-(PrecisionTYPE)previous[1];
+                    if(relative<0) relative=0.0; // rounding error correction
+                    yBasis[0]= (PrecisionTYPE)(1.0-relative);
+                    yBasis[1]= relative;
+                    // basis values along the z axis
+                    relative=position[2]-(PrecisionTYPE)previous[2];
+                    if(relative<0) relative=0.0; // rounding error correction
+                    zBasis[0]= (PrecisionTYPE)(1.0-relative);
+                    zBasis[1]= relative;
+
+                    for(short c=0; c<2; c++){
+                        short Z= previous[2]+c;
+                        SourceTYPE *zPointer = &sourceCoefficients[Z*sourceImage->nx*sourceImage->ny];
+                        PrecisionTYPE xxTempNewValue=0.0;
+                        PrecisionTYPE yyTempNewValue=0.0;
+                        PrecisionTYPE zzTempNewValue=0.0;
+                        for(short b=0; b<2; b++){
+                            short Y= previous[1]+b;
+                            SourceTYPE *yzPointer = &zPointer[Y*sourceImage->nx];
+                            SourceTYPE *xyzPointer = &yzPointer[previous[0]];
+                            PrecisionTYPE xTempNewValue=0.0;
+                            PrecisionTYPE yTempNewValue=0.0;
+                            for(short a=0; a<2; a++){
+                                const SourceTYPE coeff = *xyzPointer;
+                                xTempNewValue +=  (PrecisionTYPE)(coeff * deriv[a]);
+                                yTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
+                                xyzPointer++;
+                            }
+                            xxTempNewValue += xTempNewValue * yBasis[b];
+                            yyTempNewValue += yTempNewValue * deriv[b];
+                            zzTempNewValue += yTempNewValue * yBasis[b];
+                        }
+                        gradX += xxTempNewValue * zBasis[c];
+                        gradY += yyTempNewValue * zBasis[c];
+                        gradZ += zzTempNewValue * deriv[c];
+                    }
+                }
             }
-        }
 
-		switch(resultGradientImage->datatype){
-			case NIFTI_TYPE_FLOAT32:
-				*resultGradientPtrX = (GradientTYPE)gradX;
-				*resultGradientPtrY = (GradientTYPE)gradY;
-				*resultGradientPtrZ = (GradientTYPE)gradZ;
-				break;
-			case NIFTI_TYPE_FLOAT64:
-				*resultGradientPtrX = (GradientTYPE)gradX;
-				*resultGradientPtrY = (GradientTYPE)gradY;
-				*resultGradientPtrZ = (GradientTYPE)gradZ;
-				break;
-			default:
-				*resultGradientPtrX=(GradientTYPE)round(gradX);
-				*resultGradientPtrY=(GradientTYPE)round(gradY);
-				*resultGradientPtrZ=(GradientTYPE)round(gradZ);
-				break;
-		}
-		resultGradientPtrX++;
-		resultGradientPtrY++;
-		resultGradientPtrZ++;
-        positionFieldPtrX++;
-        positionFieldPtrY++;
-        positionFieldPtrZ++;
-	}
+            *resultGradientPtrX = (GradientTYPE)gradX;
+            *resultGradientPtrY = (GradientTYPE)gradY;
+            *resultGradientPtrZ = (GradientTYPE)gradZ;
+
+            resultGradientPtrX++;
+            resultGradientPtrY++;
+            resultGradientPtrZ++;
+            positionFieldPtrX++;
+            positionFieldPtrY++;
+            positionFieldPtrZ++;
+        }
+    }
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class GradientTYPE, class FieldTYPE>
-void TrilinearGradientResultImage2D(	SourceTYPE *sourceCoefficients,
+void TrilinearGradientResultImage2D(	SourceTYPE *sourceIntensityPtr,
                                         nifti_image *sourceImage,
                                         nifti_image *positionField,
                                         nifti_image *resultGradientImage,
                                         int *mask)
 {
-	GradientTYPE *resultGradientPtrX = static_cast<GradientTYPE *>(resultGradientImage->data);
-	GradientTYPE *resultGradientPtrY = &resultGradientPtrX[resultGradientImage->nx*resultGradientImage->ny];
-	
-	FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-	FieldTYPE *positionFieldPtrY = &positionFieldPtrX[resultGradientImage->nx*resultGradientImage->ny];
+    unsigned int targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny;
+    unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny;
+    unsigned int gradientOffSet = targetVoxelNumber*resultGradientImage->nt;
 
-    int *maskPtr = &mask[0];
+    GradientTYPE *resultGradientImagePtr = static_cast<GradientTYPE *>(resultGradientImage->data);
 
-	PrecisionTYPE position[2];
-	int previous[2];
-	PrecisionTYPE xBasis[2];
-	PrecisionTYPE yBasis[2];
-	PrecisionTYPE deriv[2];deriv[0]=-1;deriv[1]=1;
-	PrecisionTYPE relative;
-	
-	mat44 sourceIJKMatrix;
-	if(sourceImage->sform_code>0)
-		sourceIJKMatrix=sourceImage->sto_ijk;
-	else sourceIJKMatrix=sourceImage->qto_ijk;
-	
-	for(int index=0;index<resultGradientImage->nx*resultGradientImage->ny; index++){
+    // Iteration over the different volume along the 4th axis
+    for(int t=0; t<resultGradientImage->nt;t++){
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] 2D linear gradient computation of volume number %i\n",t);
+#endif
 
-        PrecisionTYPE gradX=0.0;
-        PrecisionTYPE gradY=0.0;
+        FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
+        FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
 
-        if((*maskPtr++)>-1){
-		    PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
-		    PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
+        GradientTYPE *resultGradientPtrX = &resultGradientImagePtr[targetVoxelNumber*t];
+        GradientTYPE *resultGradientPtrY = &resultGradientPtrX[gradientOffSet];
 
-		    /* real -> voxel; source space */
-		    position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
-		    sourceIJKMatrix.m[0][3];
-		    position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
-		    sourceIJKMatrix.m[1][3];
+        SourceTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-            if( position[0]>=0.0f && position[0]<sourceImage->nx-1 &&
-                position[1]>=0.0f && position[1]<sourceImage->ny-1 ){
+        int *maskPtr = &mask[0];
 
-		        previous[0] = (int)floor(position[0]);
-		        previous[1] = (int)floor(position[1]);
-		        // basis values along the x axis
-		        relative=position[0]-(PrecisionTYPE)previous[0];
-		        if(relative<0) relative=0.0; // rounding error correction
-		        xBasis[0]= (PrecisionTYPE)(1.0-relative);
-		        xBasis[1]= relative;
-		        // basis values along the y axis
-		        relative=position[1]-(PrecisionTYPE)previous[1];
-		        if(relative<0) relative=0.0; // rounding error correction
-		        yBasis[0]= (PrecisionTYPE)(1.0-relative);
-		        yBasis[1]= relative;
+        PrecisionTYPE position[2];
+        int previous[2];
+        PrecisionTYPE xBasis[2];
+        PrecisionTYPE yBasis[2];
+        PrecisionTYPE deriv[2];deriv[0]=-1;deriv[1]=1;
+        PrecisionTYPE relative;
 
-		        for(short b=0; b<2; b++){
-			        short Y= previous[1]+b;
-			        SourceTYPE *yPointer = &sourceCoefficients[Y*sourceImage->nx];
-				    SourceTYPE *xyPointer = &yPointer[previous[0]];
-				    PrecisionTYPE xTempNewValue=0.0;
-				    PrecisionTYPE yTempNewValue=0.0;
-				    for(short a=0; a<2; a++){
-						const SourceTYPE coeff = *xyPointer;
-						xTempNewValue +=  (PrecisionTYPE)(coeff * deriv[a]);
-						yTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
-					    xyPointer++;
-				    }
-				    gradX += xTempNewValue * yBasis[b];
-				    gradY += yTempNewValue * deriv[b];
-		        }
+        mat44 sourceIJKMatrix;
+        if(sourceImage->sform_code>0)
+            sourceIJKMatrix=sourceImage->sto_ijk;
+        else sourceIJKMatrix=sourceImage->qto_ijk;
+
+        for(unsigned int index=0;index<targetVoxelNumber; index++){
+
+            PrecisionTYPE gradX=0.0;
+            PrecisionTYPE gradY=0.0;
+
+            if((*maskPtr++)>-1){
+                PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
+                PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
+
+                /* real -> voxel; source space */
+                position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
+                sourceIJKMatrix.m[0][3];
+                position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
+                sourceIJKMatrix.m[1][3];
+
+                if( position[0]>=0.0f && position[0]<(PrecisionTYPE)(sourceImage->nx-1) &&
+                    position[1]>=0.0f && position[1]<(PrecisionTYPE)(sourceImage->ny-1) ){
+
+                    previous[0] = (int)position[0];
+                    previous[1] = (int)position[1];
+                    // basis values along the x axis
+                    relative=position[0]-(PrecisionTYPE)previous[0];
+                    if(relative<0) relative=0.0; // rounding error correction
+                    xBasis[0]= (PrecisionTYPE)(1.0-relative);
+                    xBasis[1]= relative;
+                    // basis values along the y axis
+                    relative=position[1]-(PrecisionTYPE)previous[1];
+                    if(relative<0) relative=0.0; // rounding error correction
+                    yBasis[0]= (PrecisionTYPE)(1.0-relative);
+                    yBasis[1]= relative;
+
+                    for(short b=0; b<2; b++){
+                        short Y= previous[1]+b;
+                        SourceTYPE *yPointer = &sourceCoefficients[Y*sourceImage->nx];
+                        SourceTYPE *xyPointer = &yPointer[previous[0]];
+                        PrecisionTYPE xTempNewValue=0.0;
+                        PrecisionTYPE yTempNewValue=0.0;
+                        for(short a=0; a<2; a++){
+                            const SourceTYPE coeff = *xyPointer;
+                            xTempNewValue +=  (PrecisionTYPE)(coeff * deriv[a]);
+                            yTempNewValue +=  (PrecisionTYPE)(coeff * xBasis[a]);
+                            xyPointer++;
+                        }
+                        gradX += xTempNewValue * yBasis[b];
+                        gradY += yTempNewValue * deriv[b];
+                    }
+                }
             }
+
+            switch(resultGradientImage->datatype){
+                case NIFTI_TYPE_FLOAT32:
+                    *resultGradientPtrX = (GradientTYPE)gradX;
+                    *resultGradientPtrY = (GradientTYPE)gradY;
+                    break;
+                case NIFTI_TYPE_FLOAT64:
+                    *resultGradientPtrX = (GradientTYPE)gradX;
+                    *resultGradientPtrY = (GradientTYPE)gradY;
+                    break;
+                default:
+                    *resultGradientPtrX=(GradientTYPE)round(gradX);
+                    *resultGradientPtrY=(GradientTYPE)round(gradY);
+                    break;
+            }
+            resultGradientPtrX++;
+            resultGradientPtrY++;
+            positionFieldPtrX++;
+            positionFieldPtrY++;
         }
-		
-		switch(resultGradientImage->datatype){
-			case NIFTI_TYPE_FLOAT32:
-				*resultGradientPtrX = (GradientTYPE)gradX;
-				*resultGradientPtrY = (GradientTYPE)gradY;
-				break;
-			case NIFTI_TYPE_FLOAT64:
-				*resultGradientPtrX = (GradientTYPE)gradX;
-				*resultGradientPtrY = (GradientTYPE)gradY;
-				break;
-			default:
-				*resultGradientPtrX=(GradientTYPE)round(gradX);
-				*resultGradientPtrY=(GradientTYPE)round(gradY);
-				break;
-		}
-		resultGradientPtrX++;
-		resultGradientPtrY++;
-        positionFieldPtrX++;
-        positionFieldPtrY++;
-	}
+    }
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class GradientTYPE, class FieldTYPE>
-void CubicSplineGradientResultImage(PrecisionTYPE *sourceCoefficients,
+void CubicSplineGradientResultImage(PrecisionTYPE *sourceIntensityPtr,
 									nifti_image *sourceImage,
 									nifti_image *positionField,
 									nifti_image *resultGradientImage,
                                     int *mask)
 {
-	GradientTYPE *resultGradientPtrX = static_cast<GradientTYPE *>(resultGradientImage->data);
-	GradientTYPE *resultGradientPtrY = &resultGradientPtrX[resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz];
-	GradientTYPE *resultGradientPtrZ = &resultGradientPtrY[resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz];
+    unsigned int targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz;
+    unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
+    unsigned int gradientOffSet = targetVoxelNumber*resultGradientImage->nt;
 
-	FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-	FieldTYPE *positionFieldPtrY = &positionFieldPtrX[resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz];
-	FieldTYPE *positionFieldPtrZ = &positionFieldPtrY[resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz];
+    GradientTYPE *resultGradientImagePtr = static_cast<GradientTYPE *>(resultGradientImage->data);
 
-    int *maskPtr = &mask[0];
+    // Iteration over the different volume along the 4th axis
+    for(int t=0; t<resultGradientImage->nt;t++){
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] 3D cubic spline gradient computation of volume number %i\n",t);
+#endif
 
-	PrecisionTYPE position[3];
-	int previous[3];
-	PrecisionTYPE xBasis[4], xDeriv[4];
-	PrecisionTYPE yBasis[4], yDeriv[4];
-	PrecisionTYPE zBasis[4], zDeriv[4];
-	PrecisionTYPE relative;
+        FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
+        FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
+        FieldTYPE *positionFieldPtrZ = &positionFieldPtrY[targetVoxelNumber];
 
-	mat44 sourceIJKMatrix;
-	if(sourceImage->sform_code>0)
-		sourceIJKMatrix=sourceImage->sto_ijk;
-	else sourceIJKMatrix=sourceImage->qto_ijk;nifti_set_filenames(resultGradientImage, "gra.nii", 0, 0);
-nifti_image_write(resultGradientImage);
-exit(0);
+        GradientTYPE *resultGradientPtrX = &resultGradientImagePtr[targetVoxelNumber*t];
+        GradientTYPE *resultGradientPtrY = &resultGradientPtrX[gradientOffSet];
+        GradientTYPE *resultGradientPtrZ = &resultGradientPtrY[gradientOffSet];
 
-	for(int index=0;index<resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz; index++){
+        PrecisionTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-        PrecisionTYPE gradX=0.0;
-        PrecisionTYPE gradY=0.0;
-        PrecisionTYPE gradZ=0.0;
+        int *maskPtr = &mask[0];
 
-        if((*maskPtr++)>-1){
+        PrecisionTYPE position[3];
+        int previous[3];
+        PrecisionTYPE xBasis[4], xDeriv[4];
+        PrecisionTYPE yBasis[4], yDeriv[4];
+        PrecisionTYPE zBasis[4], zDeriv[4];
+        PrecisionTYPE relative;
 
-		    PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
-		    PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
-		    PrecisionTYPE worldZ=(PrecisionTYPE) *positionFieldPtrZ;
+        mat44 sourceIJKMatrix;
+        if(sourceImage->sform_code>0)
+            sourceIJKMatrix=sourceImage->sto_ijk;
+        else sourceIJKMatrix=sourceImage->qto_ijk;
 
-		    /* real -> voxel; source space */
-		    position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
-		    worldZ*sourceIJKMatrix.m[0][2] +  sourceIJKMatrix.m[0][3];
-		    position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
-		    worldZ*sourceIJKMatrix.m[1][2] +  sourceIJKMatrix.m[1][3];
-		    position[2] = worldX*sourceIJKMatrix.m[2][0] + worldY*sourceIJKMatrix.m[2][1] +
-		    worldZ*sourceIJKMatrix.m[2][2] +  sourceIJKMatrix.m[2][3];
+        for(unsigned int index=0;index<targetVoxelNumber; index++){
 
-		    previous[0] = (int)floor(position[0]);
-		    previous[1] = (int)floor(position[1]);
-		    previous[2] = (int)floor(position[2]);
-		    // basis values along the x axis
-		    relative=position[0]-(PrecisionTYPE)previous[0];
-		    if(relative<0) relative=0.0; // rounding error correction
-		    xBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
-		    xBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - xBasis[3]);
-		    xBasis[2]= (PrecisionTYPE)(relative + xBasis[0] - 2.0*xBasis[3]);
-		    xBasis[1]= (PrecisionTYPE)(1.0 - xBasis[0] - xBasis[2] - xBasis[3]);
-		    xDeriv[3]= (PrecisionTYPE)(relative * relative / 2.0);
-		    xDeriv[0]= (PrecisionTYPE)(relative - 1.0/2.0 - xDeriv[3]);
-		    xDeriv[2]= (PrecisionTYPE)(1.0 + xDeriv[0] - 2.0*xDeriv[3]);
-		    xDeriv[1]= - xDeriv[0] - xDeriv[2] - xDeriv[3];
-		    // basis values along the y axis
-		    relative=position[1]-(PrecisionTYPE)previous[1];
-		    if(relative<0) relative=0.0; // rounding error correction
-		    yBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
-		    yBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - yBasis[3]);
-		    yBasis[2]= (PrecisionTYPE)(relative + yBasis[0] - 2.0*yBasis[3]);
-		    yBasis[1]= (PrecisionTYPE)(1.0 - yBasis[0] - yBasis[2] - yBasis[3]);
-		    yDeriv[3]= (PrecisionTYPE)(relative * relative / 2.0);
-		    yDeriv[0]= (PrecisionTYPE)(relative - 1.0/2.0 - yDeriv[3]);
-		    yDeriv[2]= (PrecisionTYPE)(1.0 + yDeriv[0] - 2.0*yDeriv[3]);
-		    yDeriv[1]= - yDeriv[0] - yDeriv[2] - yDeriv[3];
-		    // basis values along the z axis
-		    relative=position[2]-(PrecisionTYPE)previous[2];
-		    if(relative<0) relative=0.0; // rounding error correction
-		    zBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
-		    zBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - zBasis[3]);
-		    zBasis[2]= (PrecisionTYPE)(relative + zBasis[0] - 2.0*zBasis[3]);
-		    zBasis[1]= (PrecisionTYPE)(1.0 - zBasis[0] - zBasis[2] - zBasis[3]);
-		    zDeriv[3]= (PrecisionTYPE)(relative * relative / 2.0);
-		    zDeriv[0]= (PrecisionTYPE)(relative - 1.0/2.0 - zDeriv[3]);
-		    zDeriv[2]= (PrecisionTYPE)(1.0 + zDeriv[0] - 2.0*zDeriv[3]);
-		    zDeriv[1]= - zDeriv[0] - zDeriv[2] - zDeriv[3];
+            PrecisionTYPE gradX=0.0;
+            PrecisionTYPE gradY=0.0;
+            PrecisionTYPE gradZ=0.0;
 
-		    previous[0]--;previous[1]--;previous[2]--;
+            if((*maskPtr++)>-1){
 
-		    bool bg=false;
-		    for(short c=0; c<4; c++){
-			    short Z= previous[2]+c;
-			    if(-1<Z && Z<sourceImage->nz){
-				    PrecisionTYPE *zPointer = &sourceCoefficients[Z*sourceImage->nx*sourceImage->ny];
-				    PrecisionTYPE xxTempNewValue=0.0;
-				    PrecisionTYPE yyTempNewValue=0.0;
-				    PrecisionTYPE zzTempNewValue=0.0;
-				    for(short b=0; b<4; b++){
-					    short Y= previous[1]+b;
-					    PrecisionTYPE *yzPointer = &zPointer[Y*sourceImage->nx];
-					    if(-1<Y && Y<sourceImage->ny){
-						    PrecisionTYPE *xyzPointer = &yzPointer[previous[0]];
-						    PrecisionTYPE xTempNewValue=0.0;
-						    PrecisionTYPE yTempNewValue=0.0;
-						    PrecisionTYPE zTempNewValue=0.0;
-						    for(short a=0; a<4; a++){
-							    if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
-								    const PrecisionTYPE coeff = *xyzPointer;
-								    xTempNewValue +=  coeff * xDeriv[a];
-								    yTempNewValue +=  coeff * xBasis[a];
-								    zTempNewValue +=  coeff * xBasis[a];
-							    }
-							    else bg=true;
-							    xyzPointer++;
-						    }
-						    xxTempNewValue += (xTempNewValue * yBasis[b]);
-						    yyTempNewValue += (yTempNewValue * yDeriv[b]);
-						    zzTempNewValue += (zTempNewValue * yBasis[b]);
-					    }
-					    else bg=true;
-				    }
-				    gradX += xxTempNewValue * zBasis[c];
-				    gradY += yyTempNewValue * zBasis[c];
-				    gradZ += zzTempNewValue * zDeriv[c];
-			    }
-			    else bg=true;
-		    }
+                PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
+                PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
+                PrecisionTYPE worldZ=(PrecisionTYPE) *positionFieldPtrZ;
 
-		    if(bg==true){
-			    gradX=0.0;
-			    gradY=0.0;
-			    gradZ=0.0;
-		    }
+                /* real -> voxel; source space */
+                position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
+                worldZ*sourceIJKMatrix.m[0][2] +  sourceIJKMatrix.m[0][3];
+                position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
+                worldZ*sourceIJKMatrix.m[1][2] +  sourceIJKMatrix.m[1][3];
+                position[2] = worldX*sourceIJKMatrix.m[2][0] + worldY*sourceIJKMatrix.m[2][1] +
+                worldZ*sourceIJKMatrix.m[2][2] +  sourceIJKMatrix.m[2][3];
+
+                previous[0] = (int)floor(position[0]);
+                previous[1] = (int)floor(position[1]);
+                previous[2] = (int)floor(position[2]);
+                // basis values along the x axis
+                relative=position[0]-(PrecisionTYPE)previous[0];
+                if(relative<0) relative=0.0; // rounding error correction
+                xBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
+                xBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - xBasis[3]);
+                xBasis[2]= (PrecisionTYPE)(relative + xBasis[0] - 2.0*xBasis[3]);
+                xBasis[1]= (PrecisionTYPE)(1.0 - xBasis[0] - xBasis[2] - xBasis[3]);
+                xDeriv[3]= (PrecisionTYPE)(relative * relative / 2.0);
+                xDeriv[0]= (PrecisionTYPE)(relative - 1.0/2.0 - xDeriv[3]);
+                xDeriv[2]= (PrecisionTYPE)(1.0 + xDeriv[0] - 2.0*xDeriv[3]);
+                xDeriv[1]= - xDeriv[0] - xDeriv[2] - xDeriv[3];
+                // basis values along the y axis
+                relative=position[1]-(PrecisionTYPE)previous[1];
+                if(relative<0) relative=0.0; // rounding error correction
+                yBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
+                yBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - yBasis[3]);
+                yBasis[2]= (PrecisionTYPE)(relative + yBasis[0] - 2.0*yBasis[3]);
+                yBasis[1]= (PrecisionTYPE)(1.0 - yBasis[0] - yBasis[2] - yBasis[3]);
+                yDeriv[3]= (PrecisionTYPE)(relative * relative / 2.0);
+                yDeriv[0]= (PrecisionTYPE)(relative - 1.0/2.0 - yDeriv[3]);
+                yDeriv[2]= (PrecisionTYPE)(1.0 + yDeriv[0] - 2.0*yDeriv[3]);
+                yDeriv[1]= - yDeriv[0] - yDeriv[2] - yDeriv[3];
+                // basis values along the z axis
+                relative=position[2]-(PrecisionTYPE)previous[2];
+                if(relative<0) relative=0.0; // rounding error correction
+                zBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
+                zBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - zBasis[3]);
+                zBasis[2]= (PrecisionTYPE)(relative + zBasis[0] - 2.0*zBasis[3]);
+                zBasis[1]= (PrecisionTYPE)(1.0 - zBasis[0] - zBasis[2] - zBasis[3]);
+                zDeriv[3]= (PrecisionTYPE)(relative * relative / 2.0);
+                zDeriv[0]= (PrecisionTYPE)(relative - 1.0/2.0 - zDeriv[3]);
+                zDeriv[2]= (PrecisionTYPE)(1.0 + zDeriv[0] - 2.0*zDeriv[3]);
+                zDeriv[1]= - zDeriv[0] - zDeriv[2] - zDeriv[3];
+
+                previous[0]--;previous[1]--;previous[2]--;
+
+                bool bg=false;
+                for(short c=0; c<4; c++){
+                    short Z= previous[2]+c;
+                    if(-1<Z && Z<sourceImage->nz){
+                        PrecisionTYPE *zPointer = &sourceCoefficients[Z*sourceImage->nx*sourceImage->ny];
+                        PrecisionTYPE xxTempNewValue=0.0;
+                        PrecisionTYPE yyTempNewValue=0.0;
+                        PrecisionTYPE zzTempNewValue=0.0;
+                        for(short b=0; b<4; b++){
+                            short Y= previous[1]+b;
+                            PrecisionTYPE *yzPointer = &zPointer[Y*sourceImage->nx];
+                            if(-1<Y && Y<sourceImage->ny){
+                                PrecisionTYPE *xyzPointer = &yzPointer[previous[0]];
+                                PrecisionTYPE xTempNewValue=0.0;
+                                PrecisionTYPE yTempNewValue=0.0;
+                                PrecisionTYPE zTempNewValue=0.0;
+                                for(short a=0; a<4; a++){
+                                    if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
+                                        const PrecisionTYPE coeff = *xyzPointer;
+                                        xTempNewValue +=  coeff * xDeriv[a];
+                                        yTempNewValue +=  coeff * xBasis[a];
+                                        zTempNewValue +=  coeff * xBasis[a];
+                                    }
+                                    else bg=true;
+                                    xyzPointer++;
+                                }
+                                xxTempNewValue += (xTempNewValue * yBasis[b]);
+                                yyTempNewValue += (yTempNewValue * yDeriv[b]);
+                                zzTempNewValue += (zTempNewValue * yBasis[b]);
+                            }
+                            else bg=true;
+                        }
+                        gradX += xxTempNewValue * zBasis[c];
+                        gradY += yyTempNewValue * zBasis[c];
+                        gradZ += zzTempNewValue * zDeriv[c];
+                    }
+                    else bg=true;
+                }
+
+                if(bg==true){
+                    gradX=0.0;
+                    gradY=0.0;
+                    gradZ=0.0;
+                }
+            }
+            switch(resultGradientImage->datatype){
+                case NIFTI_TYPE_FLOAT32:
+                    *resultGradientPtrX = (GradientTYPE)gradX;
+                    *resultGradientPtrY = (GradientTYPE)gradY;
+                    *resultGradientPtrZ = (GradientTYPE)gradZ;
+                    break;
+                case NIFTI_TYPE_FLOAT64:
+                    *resultGradientPtrX = (GradientTYPE)gradX;
+                    *resultGradientPtrY = (GradientTYPE)gradY;
+                    *resultGradientPtrZ = (GradientTYPE)gradZ;
+                    break;
+                default:
+                    *resultGradientPtrX=(GradientTYPE)round(gradX);
+                    *resultGradientPtrY=(GradientTYPE)round(gradY);
+                    *resultGradientPtrZ=(GradientTYPE)round(gradZ);
+                    break;
+            }
+            resultGradientPtrX++;
+            resultGradientPtrY++;
+            resultGradientPtrZ++;
+            positionFieldPtrX++;
+            positionFieldPtrY++;
+            positionFieldPtrZ++;
         }
-		switch(resultGradientImage->datatype){
-			case NIFTI_TYPE_FLOAT32:
-				*resultGradientPtrX = (GradientTYPE)gradX;
-				*resultGradientPtrY = (GradientTYPE)gradY;
-				*resultGradientPtrZ = (GradientTYPE)gradZ;
-				break;
-			case NIFTI_TYPE_FLOAT64:
-				*resultGradientPtrX = (GradientTYPE)gradX;
-				*resultGradientPtrY = (GradientTYPE)gradY;
-				*resultGradientPtrZ = (GradientTYPE)gradZ;
-				break;
-			default:
-				*resultGradientPtrX=(GradientTYPE)round(gradX);
-				*resultGradientPtrY=(GradientTYPE)round(gradY);
-				*resultGradientPtrZ=(GradientTYPE)round(gradZ);
-				break;
-		}
-		resultGradientPtrX++;
-		resultGradientPtrY++;
-		resultGradientPtrZ++;
-        positionFieldPtrX++;
-        positionFieldPtrY++;
-        positionFieldPtrZ++;
-	}
+    }
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class GradientTYPE, class FieldTYPE>
-void CubicSplineGradientResultImage2D(PrecisionTYPE *sourceCoefficients,
+void CubicSplineGradientResultImage2D(PrecisionTYPE *sourceIntensityPtr,
 									nifti_image *sourceImage,
 									nifti_image *positionField,
 									nifti_image *resultGradientImage,
                                     int *mask)
 {
-	GradientTYPE *resultGradientPtrX = static_cast<GradientTYPE *>(resultGradientImage->data);
-	GradientTYPE *resultGradientPtrY = &resultGradientPtrX[resultGradientImage->nx*resultGradientImage->ny];
-	
-	FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-	FieldTYPE *positionFieldPtrY = &positionFieldPtrX[resultGradientImage->nx*resultGradientImage->ny];
+    unsigned int targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny;
+    unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny;
+    unsigned int gradientOffSet = targetVoxelNumber*resultGradientImage->nt;
 
-    int *maskPtr = &mask[0];
+    GradientTYPE *resultGradientImagePtr = static_cast<GradientTYPE *>(resultGradientImage->data);
 
-	PrecisionTYPE position[2];
-	int previous[2];
-	PrecisionTYPE xBasis[4], xDeriv[4];
-	PrecisionTYPE yBasis[4], yDeriv[4];
-	PrecisionTYPE relative;
-	
-	mat44 sourceIJKMatrix;
-	if(sourceImage->sform_code>0)
-		sourceIJKMatrix=sourceImage->sto_ijk;
-	else sourceIJKMatrix=sourceImage->qto_ijk;
-	
-	for(int index=0;index<resultGradientImage->nx*resultGradientImage->ny; index++){
-		
-        PrecisionTYPE gradX=0.0;
-        PrecisionTYPE gradY=0.0;
+    // Iteration over the different volume along the 4th axis
+    for(int t=0; t<resultGradientImage->nt;t++){
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] 2D cubic spline gradient computation of volume number %i\n",t);
+#endif
 
-        if((*maskPtr++)>-1){
-		    PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
-		    PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
-		    
-		    /* real -> voxel; source space */
-		    position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
-		    sourceIJKMatrix.m[0][3];
-		    position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
-		    sourceIJKMatrix.m[1][3];
-		    
-		    previous[0] = (int)floor(position[0]);
-		    previous[1] = (int)floor(position[1]);
-		    // basis values along the x axis
-		    relative=position[0]-(PrecisionTYPE)previous[0];
-		    if(relative<0) relative=0.0; // rounding error correction
-		    xBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
-		    xBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - xBasis[3]);
-		    xBasis[2]= (PrecisionTYPE)(relative + xBasis[0] - 2.0*xBasis[3]);
-		    xBasis[1]= (PrecisionTYPE)(1.0 - xBasis[0] - xBasis[2] - xBasis[3]);
-		    xDeriv[3]= (PrecisionTYPE)(relative * relative / 2.0);
-		    xDeriv[0]= (PrecisionTYPE)(relative - 1.0/2.0 - xDeriv[3]);
-		    xDeriv[2]= (PrecisionTYPE)(1.0 + xDeriv[0] - 2.0*xDeriv[3]);
-		    xDeriv[1]= - xDeriv[0] - xDeriv[2] - xDeriv[3];
-		    // basis values along the y axis
-		    relative=position[1]-(PrecisionTYPE)previous[1];
-		    if(relative<0) relative=0.0; // rounding error correction
-		    yBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
-		    yBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - yBasis[3]);
-		    yBasis[2]= (PrecisionTYPE)(relative + yBasis[0] - 2.0*yBasis[3]);
-		    yBasis[1]= (PrecisionTYPE)(1.0 - yBasis[0] - yBasis[2] - yBasis[3]);
-		    yDeriv[3]= (PrecisionTYPE)(relative * relative / 2.0);
-		    yDeriv[0]= (PrecisionTYPE)(relative - 1.0/2.0 - yDeriv[3]);
-		    yDeriv[2]= (PrecisionTYPE)(1.0 + yDeriv[0] - 2.0*yDeriv[3]);
-		    yDeriv[1]= - yDeriv[0] - yDeriv[2] - yDeriv[3];
+        FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
+        FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
 
-		    previous[0]--;previous[1]--;
+        GradientTYPE *resultGradientPtrX = &resultGradientImagePtr[targetVoxelNumber*t];
+        GradientTYPE *resultGradientPtrY = &resultGradientPtrX[gradientOffSet];
 
-		    bool bg=false;
-		    for(short b=0; b<4; b++){
-			    short Y= previous[1]+b;
-			    PrecisionTYPE *yPointer = &sourceCoefficients[Y*sourceImage->nx];
-			    if(-1<Y && Y<sourceImage->ny){
-				    PrecisionTYPE *xyPointer = &yPointer[previous[0]];
-				    PrecisionTYPE xTempNewValue=0.0;
-				    PrecisionTYPE yTempNewValue=0.0;
-				    for(short a=0; a<4; a++){
-					    if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
-						    const PrecisionTYPE coeff = *xyPointer;
-						    xTempNewValue +=  coeff * xDeriv[a];
-						    yTempNewValue +=  coeff * xBasis[a];
-					    }
-					    else bg=true;
-					    xyPointer++;
-				    }
-				    gradX += (xTempNewValue * yBasis[b]);
-				    gradY += (yTempNewValue * yDeriv[b]);
-			    }
-			    else bg=true;
-		    }
+        PrecisionTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-		    if(bg==true){
-			    gradX=0.0;
-			    gradY=0.0;
-		    }
+        int *maskPtr = &mask[0];
+
+        PrecisionTYPE position[2];
+        int previous[2];
+        PrecisionTYPE xBasis[4], xDeriv[4];
+        PrecisionTYPE yBasis[4], yDeriv[4];
+        PrecisionTYPE relative;
+
+        mat44 sourceIJKMatrix;
+        if(sourceImage->sform_code>0)
+            sourceIJKMatrix=sourceImage->sto_ijk;
+        else sourceIJKMatrix=sourceImage->qto_ijk;
+
+        for(unsigned int index=0;index<targetVoxelNumber; index++){
+
+            PrecisionTYPE gradX=0.0;
+            PrecisionTYPE gradY=0.0;
+
+            if((*maskPtr++)>-1){
+                PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
+                PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
+
+                /* real -> voxel; source space */
+                position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
+                sourceIJKMatrix.m[0][3];
+                position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
+                sourceIJKMatrix.m[1][3];
+
+                previous[0] = (int)floor(position[0]);
+                previous[1] = (int)floor(position[1]);
+                // basis values along the x axis
+                relative=position[0]-(PrecisionTYPE)previous[0];
+                if(relative<0) relative=0.0; // rounding error correction
+                xBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
+                xBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - xBasis[3]);
+                xBasis[2]= (PrecisionTYPE)(relative + xBasis[0] - 2.0*xBasis[3]);
+                xBasis[1]= (PrecisionTYPE)(1.0 - xBasis[0] - xBasis[2] - xBasis[3]);
+                xDeriv[3]= (PrecisionTYPE)(relative * relative / 2.0);
+                xDeriv[0]= (PrecisionTYPE)(relative - 1.0/2.0 - xDeriv[3]);
+                xDeriv[2]= (PrecisionTYPE)(1.0 + xDeriv[0] - 2.0*xDeriv[3]);
+                xDeriv[1]= - xDeriv[0] - xDeriv[2] - xDeriv[3];
+                // basis values along the y axis
+                relative=position[1]-(PrecisionTYPE)previous[1];
+                if(relative<0) relative=0.0; // rounding error correction
+                yBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
+                yBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - yBasis[3]);
+                yBasis[2]= (PrecisionTYPE)(relative + yBasis[0] - 2.0*yBasis[3]);
+                yBasis[1]= (PrecisionTYPE)(1.0 - yBasis[0] - yBasis[2] - yBasis[3]);
+                yDeriv[3]= (PrecisionTYPE)(relative * relative / 2.0);
+                yDeriv[0]= (PrecisionTYPE)(relative - 1.0/2.0 - yDeriv[3]);
+                yDeriv[2]= (PrecisionTYPE)(1.0 + yDeriv[0] - 2.0*yDeriv[3]);
+                yDeriv[1]= - yDeriv[0] - yDeriv[2] - yDeriv[3];
+
+                previous[0]--;previous[1]--;
+
+                bool bg=false;
+                for(short b=0; b<4; b++){
+                    short Y= previous[1]+b;
+                    PrecisionTYPE *yPointer = &sourceCoefficients[Y*sourceImage->nx];
+                    if(-1<Y && Y<sourceImage->ny){
+                        PrecisionTYPE *xyPointer = &yPointer[previous[0]];
+                        PrecisionTYPE xTempNewValue=0.0;
+                        PrecisionTYPE yTempNewValue=0.0;
+                        for(short a=0; a<4; a++){
+                            if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
+                                const PrecisionTYPE coeff = *xyPointer;
+                                xTempNewValue +=  coeff * xDeriv[a];
+                                yTempNewValue +=  coeff * xBasis[a];
+                            }
+                            else bg=true;
+                            xyPointer++;
+                        }
+                        gradX += (xTempNewValue * yBasis[b]);
+                        gradY += (yTempNewValue * yDeriv[b]);
+                    }
+                    else bg=true;
+                }
+
+                if(bg==true){
+                    gradX=0.0;
+                    gradY=0.0;
+                }
+            }
+            switch(resultGradientImage->datatype){
+                case NIFTI_TYPE_FLOAT32:
+                    *resultGradientPtrX = (GradientTYPE)gradX;
+                    *resultGradientPtrY = (GradientTYPE)gradY;
+                    break;
+                case NIFTI_TYPE_FLOAT64:
+                    *resultGradientPtrX = (GradientTYPE)gradX;
+                    *resultGradientPtrY = (GradientTYPE)gradY;
+                    break;
+                default:
+                    *resultGradientPtrX=(GradientTYPE)round(gradX);
+                    *resultGradientPtrY=(GradientTYPE)round(gradY);
+                    break;
+            }
+            resultGradientPtrX++;
+            resultGradientPtrY++;
+            positionFieldPtrX++;
+            positionFieldPtrY++;
         }
-		switch(resultGradientImage->datatype){
-			case NIFTI_TYPE_FLOAT32:
-				*resultGradientPtrX = (GradientTYPE)gradX;
-				*resultGradientPtrY = (GradientTYPE)gradY;
-				break;
-			case NIFTI_TYPE_FLOAT64:
-				*resultGradientPtrX = (GradientTYPE)gradX;
-				*resultGradientPtrY = (GradientTYPE)gradY;
-				break;
-			default:
-				*resultGradientPtrX=(GradientTYPE)round(gradX);
-				*resultGradientPtrY=(GradientTYPE)round(gradY);
-				break;
-		}
-		resultGradientPtrX++;
-		resultGradientPtrY++;
-        positionFieldPtrX++;
-        positionFieldPtrY++;
-	}
+    }
 }
 /* *************************************************************** */
 template <class PrecisionTYPE, class FieldTYPE, class SourceTYPE, class GradientTYPE>
@@ -1463,52 +1600,11 @@ void reg_getSourceImageGradient3(   nifti_image *targetImage,
 
 	if(interp==3){
 		/* in order to apply a cubic Spline resampling, the source image
-		 intensities have to be decomposed */
-		SourceTYPE *intensityPtr = (SourceTYPE *)sourceImage->data;
-	 	PrecisionTYPE *sourceCoefficients = (PrecisionTYPE *)malloc(sourceImage->nvox*sizeof(PrecisionTYPE));
-		for(unsigned int i=0; i<sourceImage->nvox;i++)
-			sourceCoefficients[i]=(PrecisionTYPE)intensityPtr[i];
+         intensities have to be decomposed */
 
-		PrecisionTYPE pole = (PrecisionTYPE)(sqrt(3.0) - 2.0);
-
-			// X axis first
-		int number = sourceImage->nx;
-		PrecisionTYPE *values=new PrecisionTYPE[number];
-		int increment = 1;
-		for(int i=0;i<sourceImage->ny*sourceImage->nz;i++){
-			int start = i*sourceImage->nx;
-			int end =  start + sourceImage->nx;
-			extractLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
-			intensitiesToSplineCoefficients<PrecisionTYPE>(values, number, pole);
-			restoreLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
-		}
-		delete[] values;
-		// Y axis then
-		number = sourceImage->ny;
-		values=new PrecisionTYPE[number];
-		increment = sourceImage->nx;
-		for(int i=0;i<sourceImage->nx*sourceImage->nz;i++){
-			int start = i + i/sourceImage->nx * sourceImage->nx * (sourceImage->ny - 1);
-			int end =  start + sourceImage->nx*sourceImage->ny;
-			extractLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
-			intensitiesToSplineCoefficients<PrecisionTYPE>(values, number, pole);
-			restoreLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
-		}
-		delete[] values;
-		if(targetImage->nz>1){
-			// Z axis at last
-			number = sourceImage->nz;
-			values=new PrecisionTYPE[number];
-			increment = sourceImage->nx*sourceImage->ny;
-			for(int i=0;i<sourceImage->nx*sourceImage->ny;i++){
-				int start = i;
-				int end =  start + sourceImage->nx*sourceImage->ny*sourceImage->nz;
-				extractLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
-				intensitiesToSplineCoefficients<PrecisionTYPE>(values, number, pole);
-				restoreLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
-			}
-			delete[] values;
-		}
+        PrecisionTYPE *sourceCoefficients = (PrecisionTYPE *)malloc(sourceImage->nvox*sizeof(PrecisionTYPE));
+        DecomposeSourceImageIntensities<PrecisionTYPE,SourceTYPE>(  sourceImage,
+                                                                    sourceCoefficients);
 
 		if(targetImage->nz>1){
 			CubicSplineGradientResultImage<PrecisionTYPE,SourceTYPE,GradientTYPE,FieldTYPE>(	sourceCoefficients,
@@ -1619,18 +1715,25 @@ void reg_getSourceImageGradient1(nifti_image *targetImage,
 /* *************************************************************** */
 extern "C++" template <class PrecisionTYPE>
 void reg_getSourceImageGradient(	nifti_image *targetImage,
-								nifti_image *sourceImage,
-								nifti_image *resultGradientImage,
-								nifti_image *positionField,
-                                int *mask,
-								int interp
+                                    nifti_image *sourceImage,
+                                    nifti_image *resultGradientImage,
+                                    nifti_image *positionField,
+                                    int *mask,
+                                    int interp
 							)
 {
     // a mask array is created if no mask is specified
     bool MrPropreRule=false;
     if(mask==NULL){
-        mask=(int *)calloc(targetImage->nvox,sizeof(int)); // voxels in the background are set to -1 so 0 will do the job here
+        mask=(int *)calloc(targetImage->nx*targetImage->ny*targetImage->nz,sizeof(int)); // voxels in the background are set to -1 so 0 will do the job here
         MrPropreRule=true;
+    }
+
+    // Check if the dimension are correct
+    if(sourceImage->nt != resultGradientImage->nt){
+        printf("err:\treg_getSourceImageGradient\tThe source and result images have different dimension along the time axis\n");
+        printf("err:\treg_getSourceImageGradient\tNothing has been done\n");
+        return;
     }
 
 	switch(positionField->datatype){
@@ -1638,10 +1741,12 @@ void reg_getSourceImageGradient(	nifti_image *targetImage,
 			reg_getSourceImageGradient1<PrecisionTYPE,float>
 				(targetImage,sourceImage,resultGradientImage,positionField,mask,interp);
 			break;
+#ifdef _NR_DEV
 		case NIFTI_TYPE_FLOAT64:
 			reg_getSourceImageGradient1<PrecisionTYPE,double>
 				(targetImage,sourceImage,resultGradientImage,positionField,mask,interp);
 			break;
+#endif
 		default:
 			printf("err\treg_getSourceImageGradient\tDeformation field pixel type unsupported.");
 			break;
@@ -1785,9 +1890,11 @@ void reg_getJacobianImage1(	nifti_image *positionField,
 		case NIFTI_TYPE_FLOAT32:
 			reg_getJacobianImage2<FieldTYPE,float>(positionField,jacobianImage);
 			break;
+#ifdef _NR_DEV
 		case NIFTI_TYPE_FLOAT64:
 			reg_getJacobianImage2<FieldTYPE,double>(positionField,jacobianImage);
 			break;
+#endif
 		default:
 			printf("err\treg_getSourceImageGradient\tJacobian image pixel type unsupported.");
 			break;
@@ -1801,9 +1908,11 @@ void reg_getJacobianImage(	nifti_image *positionField,
 		case NIFTI_TYPE_FLOAT32:
 			reg_getJacobianImage1<float>(positionField,jacobianImage);
 			break;
+#ifdef _NR_DEV
 		case NIFTI_TYPE_FLOAT64:
 			reg_getJacobianImage1<double>(positionField,jacobianImage);
 			break;
+#endif
 		default:
 			printf("err\treg_getSourceImageGradient\tDeformation field pixel type unsupported.");
 			break;

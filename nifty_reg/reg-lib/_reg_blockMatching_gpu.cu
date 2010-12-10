@@ -50,9 +50,9 @@ void block_matching_method_gpu(	nifti_image *targetImage,
 	CUDA_SAFE_CALL(cudaMemcpyToSymbol(t_m_c, &t_m_c_h,sizeof(float4)));	
 	// We need to allocate some memory to keep track of overlap areas and values for blocks
 	unsigned memSize = BLOCK_SIZE * params->activeBlockNumber;    
-	float * targetValues;CUDA_SAFE_CALL(cudaMalloc((void **)&targetValues, memSize * sizeof(float)));    
+    float * targetValues;CUDA_SAFE_CALL(cudaMalloc(&targetValues, memSize * sizeof(float)));
     memSize = BLOCK_SIZE * params->activeBlockNumber;
-	float * resultValues;CUDA_SAFE_CALL(cudaMalloc((void **)&resultValues, memSize * sizeof(float)));        
+    float * resultValues;CUDA_SAFE_CALL(cudaMalloc(&resultValues, memSize * sizeof(float)));
     unsigned int Grid_block_matching = (unsigned int)ceil((float)params->activeBlockNumber/(float)Block_target_block);
     unsigned int Grid_block_matching_2 = 1;
 
@@ -69,7 +69,7 @@ void block_matching_method_gpu(	nifti_image *targetImage,
 		                                    targetValues);
     CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
-    printf("[DEBUG] process_target_blocks_gpu kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+    printf("[NiftyReg CUDA DEBUG] process_target_blocks_gpu kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
            cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 
@@ -87,7 +87,7 @@ void block_matching_method_gpu(	nifti_image *targetImage,
     process_result_blocks_gpu<<<G2, B2>>>(*resultPosition_d, targetValues);
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
-	printf("[DEBUG] process_result_blocks_gpu kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+    printf("[NiftyReg CUDA DEBUG] process_result_blocks_gpu kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G2.x,G2.y,G2.z,B2.x,B2.y,B2.z);
 #endif
 	cudaFree(targetValues);

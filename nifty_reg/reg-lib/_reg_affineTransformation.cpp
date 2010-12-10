@@ -152,11 +152,13 @@ void reg_affine_positionField(mat44 *affineTransformation,
             case NIFTI_TYPE_FLOAT32:
                 reg_affine_positionField2D<float>(affineTransformation, targetImage, positionFieldImage);
                 break;
+#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 reg_affine_positionField2D<double>(affineTransformation, targetImage, positionFieldImage);
                 break;
+#endif
             default:
-                printf("err\treg_affine_positionField\tThe deformation field data type is not supported\n");
+                fprintf(stderr,"[NiftyReg ERROR] reg_affine_positionField\tThe deformation field data type is not supported\n");
                 return;
         }
     }
@@ -165,11 +167,13 @@ void reg_affine_positionField(mat44 *affineTransformation,
             case NIFTI_TYPE_FLOAT32:
                 reg_affine_positionField3D<float>(affineTransformation, targetImage, positionFieldImage);
                 break;
+#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 reg_affine_positionField3D<double>(affineTransformation, targetImage, positionFieldImage);
                 break;
+#endif
             default:
-                printf("err\treg_affine_positionField\tThe deformation field data type is not supported\n");
+                fprintf(stderr,"[NiftyReg ERROR] reg_affine_positionField\tThe deformation field data type is not supported\n");
                 return;
         }
     }
@@ -177,85 +181,111 @@ void reg_affine_positionField(mat44 *affineTransformation,
 /* *************************************************************** */
 /* *************************************************************** */
 void reg_tool_ReadAffineFile(	mat44 *mat,
-								nifti_image* target,
-								nifti_image* source,
-								char *fileName,
-								bool flirtFile)
+                                nifti_image* target,
+                                nifti_image* source,
+                                char *fileName,
+                                bool flirtFile)
 {
-	std::ifstream affineFile;
-	affineFile.open(fileName);
-	if(affineFile.is_open()){
-		int i=0;
-		float value1,value2,value3,value4;
-		while(!affineFile.eof()){
-			affineFile >> value1 >> value2 >> value3 >> value4;
-			mat->m[i][0] = value1;
-			mat->m[i][1] = value2;
-			mat->m[i][2] = value3;
-			mat->m[i][3] = value4;
-			i++;
-			if(i>3) break;
-		}
-	}
-	affineFile.close();
-	
-	if(flirtFile){
-		mat44 absoluteTarget;
-		mat44 absoluteSource;
-		for(int i=0;i<4;i++){
-			for(int j=0;j<4;j++){
-				absoluteTarget.m[i][j]=absoluteSource.m[i][j]=0.0;
-			}
-		}
-		//If the target sform is defined, it is used; qform otherwise;
-		mat44 *targetMatrix;
-		if(target->sform_code > 0){
-			targetMatrix = &(target->sto_xyz);
+    std::ifstream affineFile;
+    affineFile.open(fileName);
+    if(affineFile.is_open()){
+        int i=0;
+        float value1,value2,value3,value4;
+        while(!affineFile.eof()){
+            affineFile >> value1 >> value2 >> value3 >> value4;
+            mat->m[i][0] = value1;
+            mat->m[i][1] = value2;
+            mat->m[i][2] = value3;
+            mat->m[i][3] = value4;
+            i++;
+            if(i>3) break;
+        }
+    }
+    affineFile.close();
+
+    if(flirtFile){
+        mat44 absoluteTarget;
+        mat44 absoluteSource;
+        for(int i=0;i<4;i++){
+            for(int j=0;j<4;j++){
+                absoluteTarget.m[i][j]=absoluteSource.m[i][j]=0.0;
+            }
+        }
+        //If the target sform is defined, it is used; qform otherwise;
+        mat44 *targetMatrix;
+        if(target->sform_code > 0){
+            targetMatrix = &(target->sto_xyz);
 #ifndef NDEBUG
-			printf("[DEBUG] The target sform matrix is defined and used\n");
+            printf("[NiftyReg DEBUG] The target sform matrix is defined and used\n");
 #endif
-		}
-		else targetMatrix = &(target->qto_xyz);
-		//If the source sform is defined, it is used; qform otherwise;
-		mat44 *sourceMatrix;
-		if(source->sform_code > 0){
+        }
+        else targetMatrix = &(target->qto_xyz);
+        //If the source sform is defined, it is used; qform otherwise;
+        mat44 *sourceMatrix;
+        if(source->sform_code > 0){
 #ifndef NDEBUG
-			printf("[DEBUG] The source sform matrix is defined and used\n");
+            printf("[NiftyReg DEBUG]  The source sform matrix is defined and used\n");
 #endif
-			sourceMatrix = &(source->sto_xyz);
-		}
-		else sourceMatrix = &(source->qto_xyz);
-		
-		for(int i=0;i<3;i++){
-			absoluteTarget.m[i][i]=sqrt(targetMatrix->m[0][i]*targetMatrix->m[0][i]
-						+ targetMatrix->m[1][i]*targetMatrix->m[1][i]
-						+ targetMatrix->m[2][i]*targetMatrix->m[2][i]);
-			absoluteSource.m[i][i]=sqrt(sourceMatrix->m[0][i]*sourceMatrix->m[0][i]
-						+ sourceMatrix->m[1][i]*sourceMatrix->m[1][i]
-						+ sourceMatrix->m[2][i]*sourceMatrix->m[2][i]);
-		}
-		absoluteTarget.m[3][3]=absoluteSource.m[3][3]=1.0;
+            sourceMatrix = &(source->sto_xyz);
+        }
+        else sourceMatrix = &(source->qto_xyz);
+
+        for(int i=0;i<3;i++){
+            absoluteTarget.m[i][i]=sqrt(targetMatrix->m[0][i]*targetMatrix->m[0][i]
+                        + targetMatrix->m[1][i]*targetMatrix->m[1][i]
+                        + targetMatrix->m[2][i]*targetMatrix->m[2][i]);
+            absoluteSource.m[i][i]=sqrt(sourceMatrix->m[0][i]*sourceMatrix->m[0][i]
+                        + sourceMatrix->m[1][i]*sourceMatrix->m[1][i]
+                        + sourceMatrix->m[2][i]*sourceMatrix->m[2][i]);
+        }
+        absoluteTarget.m[3][3]=absoluteSource.m[3][3]=1.0;
 #ifndef NDEBUG
-		printf("[DEBUG] An flirt affine file is assumed and is converted to a real word affine matrix\n");
-		reg_mat44_disp(mat, (char *)"[DEBUG] Matrix read from the input file");
-		reg_mat44_disp(targetMatrix, (char *)"[DEBUG] Target Matrix");
-		reg_mat44_disp(sourceMatrix, (char *)"[DEBUG] Source Matrix");
-		reg_mat44_disp(&(absoluteTarget), (char *)"[DEBUG] Target absolute Matrix");
-		reg_mat44_disp(&(absoluteSource), (char *)"[DEBUG] Source absolute Matrix");
+        printf("[NiftyReg DEBUG] An flirt affine file is assumed and is converted to a real word affine matrix\n");
+        reg_mat44_disp(mat, (char *)"[DEBUG] Matrix read from the input file");
+        reg_mat44_disp(targetMatrix, (char *)"[DEBUG] Target Matrix");
+        reg_mat44_disp(sourceMatrix, (char *)"[DEBUG] Source Matrix");
+        reg_mat44_disp(&(absoluteTarget), (char *)"[DEBUG] Target absolute Matrix");
+        reg_mat44_disp(&(absoluteSource), (char *)"[DEBUG] Source absolute Matrix");
 #endif
-		
-		absoluteSource = nifti_mat44_inverse(absoluteSource);
-		*mat = nifti_mat44_inverse(*mat);
-		
-		*mat = reg_mat44_mul(&absoluteSource,mat);
-		*mat = reg_mat44_mul(mat, &absoluteTarget);
-		*mat = reg_mat44_mul(sourceMatrix,mat);
-		mat44 tmp = nifti_mat44_inverse(*targetMatrix);
-		*mat = reg_mat44_mul(mat, &tmp);
-	}
-	
+
+        absoluteSource = nifti_mat44_inverse(absoluteSource);
+        *mat = nifti_mat44_inverse(*mat);
+
+        *mat = reg_mat44_mul(&absoluteSource,mat);
+        *mat = reg_mat44_mul(mat, &absoluteTarget);
+        *mat = reg_mat44_mul(sourceMatrix,mat);
+        mat44 tmp = nifti_mat44_inverse(*targetMatrix);
+        *mat = reg_mat44_mul(mat, &tmp);
+    }
+
 #ifndef NDEBUG
-	reg_mat44_disp(mat, (char *)"[DEBUG] Affine matrix");
+    reg_mat44_disp(mat, (char *)"[DEBUG] Affine matrix");
+#endif
+}
+/* *************************************************************** */
+/* *************************************************************** */
+void reg_tool_ReadAffineFile(	mat44 *mat,
+                                char *fileName)
+{
+    std::ifstream affineFile;
+    affineFile.open(fileName);
+    if(affineFile.is_open()){
+        int i=0;
+        float value1,value2,value3,value4;
+        while(!affineFile.eof()){
+            affineFile >> value1 >> value2 >> value3 >> value4;
+            mat->m[i][0] = value1;
+            mat->m[i][1] = value2;
+            mat->m[i][2] = value3;
+            mat->m[i][3] = value4;
+            i++;
+            if(i>3) break;
+        }
+    }
+    affineFile.close();
+
+#ifndef NDEBUG
+    reg_mat44_disp(mat, (char *)"[DEBUG] Affine matrix");
 #endif
 }
 /* *************************************************************** */

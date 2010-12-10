@@ -8,7 +8,6 @@
  *  See the LICENSE.txt file in the nifty_reg root folder
  *
  */
-#ifdef _USE_CUDA
 
 #ifndef _REG_AFFINETRANSFORMATION_GPU_H
 #define _REG_AFFINETRANSFORMATION_GPU_H
@@ -21,5 +20,4 @@ void reg_affine_positionField_gpu(	mat44 *,
 					nifti_image *,
 					float4 **);
 
-#endif
 #endif

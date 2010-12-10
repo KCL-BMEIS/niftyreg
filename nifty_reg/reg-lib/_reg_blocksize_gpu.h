@@ -9,8 +9,6 @@
  *
  */
 
-#ifdef _USE_CUDA
-
 #ifndef _REG_BLOCKSIZE_GPU_H
 #define _REG_BLOCKSIZE_GPU_H
 
@@ -50,8 +48,8 @@
 	#define Block_reg_affine_deformationField 256                       // 16 regs - 067% occupancy
 	#define Block_reg_resampleSourceImage 256                           // 16 regs - 067% occupancy
 	#define Block_reg_spline_cppComposition 320                         // 25 regs - 042% occupancy
-	#define Block_reg_getSourceImageGradient 320                        // 23 regs - 042% occupancy
-	#define Block_reg_getVoxelBasedNMIGradientUsingPW 320               // 24 regs - 042% occupancy
+    #define Block_reg_getSourceImageGradient 320                        // 23 regs - 042% occupancy
+    #define Block_reg_getVoxelBasedNMIGradientUsingPW 320               // 24 regs - 042% occupancy
     #define Block_reg_ApplyConvolutionWindowAlongX 320                  // 14 regs - 083% occupancy
     #define Block_reg_ApplyConvolutionWindowAlongY 320                  // 14 regs - 083% occupancy
     #define Block_reg_ApplyConvolutionWindowAlongZ 320                  // 15 regs - 083% occupancy
@@ -68,6 +66,8 @@
     #define Block_reg_bspline_ApproxCorrectFolding 256                  // 31 regs - 033% occupancy
     #define Block_target_block 256                                      // 26 regs - 033% occupancy
 #endif
+
+#define Block_reg_getVoxelBasedNMIGradientUsingPW2x2 192                   // 42 regs - 025% occupancy
 
 #define Block_reg_bspline_Jacobian 192                                  // 41 regs - 025% occupancy
 #define Block_reg_bspline_JacobianFromVelocityField 128                 // 49 regs - 025% occupancy
@@ -88,5 +88,4 @@
 
 
 
-#endif
 #endif

@@ -38,7 +38,7 @@ int main(int argc, char **argv)
 {
     int dimension = 100;
     float gridSpacing = 10.0f;
-    int binning = 68;
+    unsigned int binning = 68;
     char *outputFileName = (char *)"benchmark_result.txt";
     bool runGPU=1;
 
@@ -186,7 +186,10 @@ int main(int argc, char **argv)
 #endif
 
 	time_t start,end;
-    int minutes, seconds, cpuTime, gpuTime, maxIt;
+    int minutes, seconds, cpuTime, maxIt;
+#ifdef _USE_CUDA
+    int gpuTime
+#endif
 
     FILE *outputFile;
     outputFile=fopen(outputFileName, "w");
@@ -460,7 +463,8 @@ int main(int argc, char **argv)
         reg_getEntropies<double>(   targetImage,
                                     resultImage,
                                     2,
-                                    binning,
+                                    &binning,
+                                    &binning,
                                     probaJointHistogram,
                                     logJointHistogram,
                                     entropies,
@@ -483,7 +487,8 @@ int main(int argc, char **argv)
                                                         resultImage,
                                                         2,
                                                         resultGradientImage,
-                                                        binning,
+                                                        &binning,
+                                                        &binning,
                                                         logJointHistogram,
                                                         entropies,
                                                         voxelNMIGradientImage,

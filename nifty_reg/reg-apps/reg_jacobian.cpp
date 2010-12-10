@@ -16,6 +16,7 @@
 #include "_reg_bspline.h"
 #include "_reg_bspline_comp.h"
 #include "_reg_tools.h"
+#include "_reg_resampling.h"
 
 
 #define PrecisionTYPE float
@@ -51,8 +52,8 @@ void Usage(char *exec)
     printf("\t-target <filename>\tFilename of the target image (mandatory)\n");
 
     printf("\n* * INPUT (Only one will be used) * *\n");
-//    printf("\t-def <filename>\n");
-//        printf("\t\tFilename of the deformation field (from reg_transform).\n");
+    printf("\t-def <filename>\n");
+        printf("\t\tFilename of the deformation field (from reg_transform).\n");
     printf("\t-cpp <filename>\n");
         printf("\t\tFilename of the control point position lattice (from reg_f3d).\n");
     printf("\n* * OUTPUT * *\n");
@@ -79,10 +80,10 @@ int main(int argc, char **argv)
             Usage(argv[0]);
             return 0;
         }
-//        else if(strcmp(argv[i], "-target") == 0){
-//            param->referenceImageName=argv[++i];
-//            flag->referenceImageFlag=1;
-//        }
+        else if(strcmp(argv[i], "-target") == 0){
+            param->referenceImageName=argv[++i];
+            flag->referenceImageFlag=1;
+        }
         else if(strcmp(argv[i], "-def") == 0){
             param->inputDEFName=argv[++i];
             flag->inputDEFFlag=1;
@@ -132,14 +133,14 @@ int main(int argc, char **argv)
             return 1;
         }
     }
-//    else if(flag->inputDEFFlag){
-//        deformationFieldImage = nifti_image_read(param->inputDEFName,true);
-//        if(deformationFieldImage == NULL){
-//            fprintf(stderr,"** ERROR Error when reading the deformation field image: %s\n",param->inputDEFName);
-//            nifti_image_free(image);
-//            return 1;
-//        }
-//    }
+    else if(flag->inputDEFFlag){
+        deformationFieldImage = nifti_image_read(param->inputDEFName,true);
+        if(deformationFieldImage == NULL){
+            fprintf(stderr,"** ERROR Error when reading the deformation field image: %s\n",param->inputDEFName);
+            nifti_image_free(image);
+            return 1;
+        }
+    }
     else{
         fprintf(stderr, "No transformation has been provided.\n");
         nifti_image_free(image);
@@ -165,7 +166,9 @@ int main(int argc, char **argv)
             reg_bspline_GetJacobianMap( controlPointImage,
                                         jacobianImage);
         }
-        else{//TODO
+        else{
+            reg_getJacobianImage(   deformationFieldImage,
+                                    jacobianImage);
         }
 
         // Export the Jacobian determinant amp

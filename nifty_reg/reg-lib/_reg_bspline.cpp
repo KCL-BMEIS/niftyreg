@@ -18,14 +18,25 @@
 /* *************************************************************** */
 /* *************************************************************** */
 
-// No round() function available in windows.
-#ifdef _WINDOWS
 template<class PrecisionType>
-int round(PrecisionType x)
+int reg_round(PrecisionType x)
 {
-   return int(x > 0.0 ? x + 0.5 : x - 0.5);
+//    return int(x > 0.0 ? x + 0.5 : x - 0.5);
+    return int(round(x));
 }
-#endif
+template<class PrecisionType>
+int reg_floor(PrecisionType x)
+{
+//    return int(x > 0.0 ? (int)x : (int)(x-1));
+    return int(floor(x));
+}
+template<class PrecisionType>
+int reg_ceil(PrecisionType x)
+{
+//   int casted = (int)x;
+//   return int((x-casted)==0 ? casted : (casted+1));
+   return int(ceil(x));
+}
 
 /* *************************************************************** */
 /* *************************************************************** */
@@ -758,15 +769,15 @@ void reg_bspline(   nifti_image *splineControlPoint,
 {
 #if _USE_SSE
 	if(sizeof(PrecisionTYPE) != sizeof(float)){
-		printf("SSE computation has only been implemented for single precision.\n");
-		printf("The deformation field is not computed\n");
-		return;
+        fprintf(stderr,"[NiftyReg ERROR] SSE computation has only been implemented for single precision.\n");
+        fprintf(stderr,"[NiftyReg ERROR] The deformation field is not computed\n");
+        exit(1);
 	}
 #endif
 	if(splineControlPoint->datatype != positionField->datatype){
-		printf("The spline control point image and the deformation field image are expected to be the same type\n");
-		printf("The deformation field is not computed\n");
-		return;	
+        fprintf(stderr,"[NiftyReg ERROR] The spline control point image and the deformation field image are expected to be the same type\n");
+        fprintf(stderr,"[NiftyReg ERROR] The deformation field is not computed\n");
+        exit(1);
 	}
     bool MrPropre=false;
     if(mask==NULL){
@@ -780,13 +791,15 @@ void reg_bspline(   nifti_image *splineControlPoint,
             case NIFTI_TYPE_FLOAT32:
                 reg_bspline2D<PrecisionTYPE, float>(splineControlPoint, targetImage, positionField, mask, type);
                 break;
+#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 reg_bspline2D<PrecisionTYPE, double>(splineControlPoint, targetImage, positionField, mask, type);
                 break;
+#endif
             default:
-                printf("Only single or double precision is implemented for deformation field\n");
-                printf("The deformation field is not computed\n");
-                break;
+                fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for deformation field\n");
+                fprintf(stderr,"[NiftyReg ERROR] The deformation field is not computed\n");
+                exit(1);
         }
     }
     else{
@@ -794,20 +807,24 @@ void reg_bspline(   nifti_image *splineControlPoint,
             case NIFTI_TYPE_FLOAT32:
                 reg_bspline3D<PrecisionTYPE, float>(splineControlPoint, targetImage, positionField, mask, type);
                 break;
+#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 reg_bspline3D<PrecisionTYPE, double>(splineControlPoint, targetImage, positionField, mask, type);
                 break;
+#endif
             default:
-                printf("Only single or double precision is implemented for deformation field\n");
-                printf("The deformation field is not computed\n");
-                break;
+                fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for deformation field\n");
+                fprintf(stderr,"[NiftyReg ERROR] The deformation field is not computed\n");
+                exit(1);
         }
     }
     if(MrPropre==true) free(mask);
 	return;
 }
 template void reg_bspline<float>(nifti_image *, nifti_image *, nifti_image *, int *, int);
+#ifdef _NR_DEV
 template void reg_bspline<double>(nifti_image *, nifti_image *, nifti_image *, int *, int);
+#endif
 /* *************************************************************** */
 /* *************************************************************** */
 template<class PrecisionTYPE, class SplineTYPE>
@@ -1283,17 +1300,21 @@ PrecisionTYPE reg_bspline_bendingEnergy(	nifti_image *splineControlPoint,
 	switch(splineControlPoint->datatype){
 		case NIFTI_TYPE_FLOAT32:
 			return reg_bspline_bendingEnergy1<PrecisionTYPE, float>(splineControlPoint, targetImage, type);
+#ifdef _NR_DEV
 		case NIFTI_TYPE_FLOAT64:
 			return reg_bspline_bendingEnergy1<PrecisionTYPE, double>(splineControlPoint, targetImage, type);
+#endif
 		default:
-			printf("Only single or double precision is implemented for the bending energy\n");
-			printf("The bending energy is not computed\n");
-			return 0;
+            fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the bending energy\n");
+            fprintf(stderr,"[NiftyReg ERROR] The bending energy is not computed\n");
+            exit(1);
 	}
 }
 /* *************************************************************** */
 template float reg_bspline_bendingEnergy<float>(nifti_image *, nifti_image *, int);
+#ifdef _NR_DEV
 template double reg_bspline_bendingEnergy<double>(nifti_image *, nifti_image *, int);
+#endif
 /* *************************************************************** */
 /* *************************************************************** */
 template<class PrecisionTYPE, class SplineTYPE>
@@ -1397,9 +1418,9 @@ PrecisionTYPE reg_bspline_jacobianValue3D(  nifti_image *splineControlPoint,
 {
 #if _USE_SSE
 	if(sizeof(PrecisionTYPE)!=4){
-		fprintf(stderr, "***ERROR***\treg_bspline_jacobianValue3D\n");
-		fprintf(stderr, "The SSE implementation assume single precision... Exit\n");
-		exit(0);
+        fprintf(stderr, "[NiftyReg ERROR] reg_bspline_jacobianValue3D\n");
+        fprintf(stderr, "[NiftyReg ERROR] The SSE implementation assume single precision... Exit\n");
+        exit(1);
 	}
     union u{
 		__m128 m;
@@ -1880,17 +1901,21 @@ PrecisionTYPE reg_bspline_jacobian(	nifti_image *splineControlPoint,
 	switch(splineControlPoint->datatype){
 		case NIFTI_TYPE_FLOAT32:
 			return reg_bspline_jacobian1<PrecisionTYPE, float>(splineControlPoint, targetImage, type);
+#ifdef _NR_DEV
 		case NIFTI_TYPE_FLOAT64:
 			return reg_bspline_jacobian1<PrecisionTYPE, double>(splineControlPoint, targetImage, type);
+#endif
 		default:
-			printf("Only single or double precision is implemented for the jacobian value\n");
-			printf("The jacobian value is not computed\n");
-			return 0;
+            fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the jacobian value\n");
+            fprintf(stderr,"[NiftyReg ERROR] The jacobian value is not computed\n");
+            exit(1);
 	}
 }
 /* *************************************************************** */
 template float reg_bspline_jacobian<float>(nifti_image *, nifti_image *, int);
+#ifdef _NR_DEV
 template double reg_bspline_jacobian<double>(nifti_image *, nifti_image *, int);
+#endif
 /* *************************************************************** */
 /* *************************************************************** */
 template<class NodeTYPE, class VoxelTYPE>
@@ -1910,11 +1935,11 @@ void reg_voxelCentric2NodeCentric2D(nifti_image *nodeImage,
 	ratio[1] = nodeImage->dy / voxelImage->dy;
 
 	for(int y=0;y<nodeImage->ny; y++){
-		int Y = (int)round((float)(y-1) * ratio[1]);
+        int Y = (int)reg_round((float)(y-1) * ratio[1]);
 		VoxelTYPE *yVoxelPtrX=&voxelPtrX[Y*voxelImage->nx];
 		VoxelTYPE *yVoxelPtrY=&voxelPtrY[Y*voxelImage->nx];
 		for(int x=0;x<nodeImage->nx; x++){
-			int X = (int)round((float)(x-1) * ratio[0]);
+            int X = (int)reg_round((float)(x-1) * ratio[0]);
 			if( -1<Y && Y<voxelImage->ny && -1<X && X<voxelImage->nx){
 				*nodePtrX++ = (NodeTYPE)(yVoxelPtrX[X] * weight);
 				*nodePtrY++ = (NodeTYPE)(yVoxelPtrY[X] * weight);
@@ -1947,17 +1972,17 @@ void reg_voxelCentric2NodeCentric3D(nifti_image *nodeImage,
 	ratio[2] = nodeImage->dz / voxelImage->dz;
 
 	for(int z=0;z<nodeImage->nz; z++){
-		int Z = (int)round((float)(z-1) * ratio[2]);
+        int Z = (int)reg_round((float)(z-1) * ratio[2]);
 		VoxelTYPE *zvoxelPtrX=&voxelPtrX[Z*voxelImage->nx*voxelImage->ny];
 		VoxelTYPE *zvoxelPtrY=&voxelPtrY[Z*voxelImage->nx*voxelImage->ny];
 		VoxelTYPE *zvoxelPtrZ=&voxelPtrZ[Z*voxelImage->nx*voxelImage->ny];
 		for(int y=0;y<nodeImage->ny; y++){
-			int Y = (int)round((float)(y-1) * ratio[1]);
+            int Y = (int)reg_round((float)(y-1) * ratio[1]);
 			VoxelTYPE *yzvoxelPtrX=&zvoxelPtrX[Y*voxelImage->nx];
 			VoxelTYPE *yzvoxelPtrY=&zvoxelPtrY[Y*voxelImage->nx];
 			VoxelTYPE *yzvoxelPtrZ=&zvoxelPtrZ[Y*voxelImage->nx];
 			for(int x=0;x<nodeImage->nx; x++){
-				int X = (int)round((float)(x-1) * ratio[0]);
+                int X = (int)reg_round((float)(x-1) * ratio[0]);
 				if(-1<Z && Z<voxelImage->nz && -1<Y && Y<voxelImage->ny && -1<X && X<voxelImage->nx){
 					*nodePtrX++ = (NodeTYPE)(yzvoxelPtrX[X]*weight);
 					*nodePtrY++ = (NodeTYPE)(yzvoxelPtrY[X]*weight);
@@ -1987,12 +2012,14 @@ void reg_voxelCentric2NodeCentric(	nifti_image *nodeImage,
 					case NIFTI_TYPE_FLOAT32:
 						reg_voxelCentric2NodeCentric2D<float, float>(nodeImage, voxelImage, weight);
 						break;
+#ifdef _NR_DEV
 					case NIFTI_TYPE_FLOAT64:
 						reg_voxelCentric2NodeCentric2D<float, double>(nodeImage, voxelImage, weight);
 						break;
+#endif
 					default:
-						printf("err\treg_voxelCentric2NodeCentric:v1\tdata type not supported\n");
-						break;
+                        fprintf(stderr,"[NiftyReg ERROR] reg_voxelCentric2NodeCentric:v1\tdata type not supported\n");
+                        exit(1);
 				}
 				break;
 			case NIFTI_TYPE_FLOAT64:
@@ -2000,17 +2027,19 @@ void reg_voxelCentric2NodeCentric(	nifti_image *nodeImage,
 					case NIFTI_TYPE_FLOAT32:
 						reg_voxelCentric2NodeCentric2D<double, float>(nodeImage, voxelImage, weight);
 						break;
+#ifdef _NR_DEV
 					case NIFTI_TYPE_FLOAT64:
 						reg_voxelCentric2NodeCentric2D<double, double>(nodeImage, voxelImage, weight);
 						break;
+#endif
 					default:
-						printf("err\treg_voxelCentric2NodeCentric:v2\tdata type not supported\n");
-						break;
+                        fprintf(stderr,"[NiftyReg ERROR] reg_voxelCentric2NodeCentric:v2\tdata type not supported\n");
+                        exit(1);
 				}
 				break;
 			default:
-				printf("err\treg_voxelCentric2NodeCentric:n\tdata type not supported\n");
-				break;
+                fprintf(stderr,"[NiftyReg ERROR] reg_voxelCentric2NodeCentric:n\tdata type not supported\n");
+                exit(1);
 		}
 	}
 	else{
@@ -2020,12 +2049,14 @@ void reg_voxelCentric2NodeCentric(	nifti_image *nodeImage,
 					case NIFTI_TYPE_FLOAT32:
 						reg_voxelCentric2NodeCentric3D<float, float>(nodeImage, voxelImage, weight);
 						break;
+#ifdef _NR_DEV
 					case NIFTI_TYPE_FLOAT64:
 						reg_voxelCentric2NodeCentric3D<float, double>(nodeImage, voxelImage, weight);
 						break;
+#endif
 					default:
-						printf("err\treg_voxelCentric2NodeCentric:v1\tdata type not supported\n");
-						break;
+                        fprintf(stderr,"[NiftyReg ERROR] reg_voxelCentric2NodeCentric:v1\tdata type not supported\n");
+                        exit(1);
 				}
 				break;
 			case NIFTI_TYPE_FLOAT64:
@@ -2033,17 +2064,19 @@ void reg_voxelCentric2NodeCentric(	nifti_image *nodeImage,
 					case NIFTI_TYPE_FLOAT32:
 						reg_voxelCentric2NodeCentric3D<double, float>(nodeImage, voxelImage, weight);
 						break;
+#ifdef _NR_DEV
 					case NIFTI_TYPE_FLOAT64:
 						reg_voxelCentric2NodeCentric3D<double, double>(nodeImage, voxelImage, weight);
 						break;
+#endif
 					default:
-						printf("err\treg_voxelCentric2NodeCentric:v2\tdata type not supported\n");
-						break;
+                        fprintf(stderr,"[NiftyReg ERROR] reg_voxelCentric2NodeCentric:v2\tdata type not supported\n");
+                        exit(1);
 				}
 				break;
 			default:
-				printf("err\treg_voxelCentric2NodeCentric:n\tdata type not supported\n");
-				break;
+                fprintf(stderr,"[NiftyReg ERROR] reg_voxelCentric2NodeCentric:n\tdata type not supported\n");
+                exit(1);
 		}
 	}
 }
@@ -2401,8 +2434,9 @@ void reg_bspline_bendingEnergyGradient( nifti_image *splineControlPoint,
                                         float weight)
 {
 	if(splineControlPoint->datatype != gradientImage->datatype){
-		fprintf(stderr,"The spline control point image and the gradient image were expected to have the same datatype\n");
-		fprintf(stderr,"The bending energy gradient has not computed\n");
+        fprintf(stderr,"[NiftyReg ERROR] The spline control point image and the gradient image were expected to have the same datatype\n");
+        fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not computed\n");
+        exit(1);
 	}
     if(splineControlPoint->nz==1){
         switch(splineControlPoint->datatype){
@@ -2413,27 +2447,31 @@ void reg_bspline_bendingEnergyGradient( nifti_image *splineControlPoint,
                 break;
                 reg_bspline_approxBendingEnergyGradient2D<PrecisionTYPE, double>(splineControlPoint, targetImage, gradientImage, weight);
             default:
-                fprintf(stderr,"Only single or double precision is implemented for the bending energy gradient\n");
-                fprintf(stderr,"The bending energy gradient has not been computed\n");
-                break;
+                fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the bending energy gradient\n");
+                fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not been computed\n");
+                exit(1);
         }
         }else{
         switch(splineControlPoint->datatype){
             case NIFTI_TYPE_FLOAT32:
                 reg_bspline_approxBendingEnergyGradient3D<PrecisionTYPE, float>(splineControlPoint, targetImage, gradientImage, weight);
                 break;
+#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 break;
+#endif
                 reg_bspline_approxBendingEnergyGradient3D<PrecisionTYPE, double>(splineControlPoint, targetImage, gradientImage, weight);
             default:
-                fprintf(stderr,"Only single or double precision is implemented for the bending energy gradient\n");
-                fprintf(stderr,"The bending energy gradient has not been computed\n");
-                break;
+                fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the bending energy gradient\n");
+                fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not been computed\n");
+                exit(1);
         }
     }
 }
 template void reg_bspline_bendingEnergyGradient<float>(nifti_image *, nifti_image *, nifti_image *, float);
+#ifdef _NR_DEV
 template void reg_bspline_bendingEnergyGradient<double>(nifti_image *, nifti_image *, nifti_image *, float);
+#endif
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class SplineTYPE>
@@ -2539,9 +2577,9 @@ void computeJacobianMatrices_3D(nifti_image *targetImage,
 {
 #if _USE_SSE
     if(sizeof(PrecisionTYPE)!=4){
-        fprintf(stderr, "***ERROR***\tcomputeJacobianMatrices_3D\n");
-        fprintf(stderr, "The SSE implementation assume single precision... Exit\n");
-        exit(0);
+        fprintf(stderr, "[NiftyReg ERROR] computeJacobianMatrices_3D\n");
+        fprintf(stderr, "[NiftyReg ERROR] The SSE implementation assume single precision... Exit\n");
+        exit(1);
     }
     union u{
         __m128 m;
@@ -3025,7 +3063,7 @@ void reg_bspline_jacobianDeterminantGradient2D( nifti_image *splineControlPoint,
             PrecisionTYPE jacobianConstraintY=(PrecisionTYPE)0.0;
 			
 			// Loop over all the control points in the surrounding area
-            for(int pixelY=(int)ceil((y-3)*gridVoxelSpacing[1]);pixelY<(int)floor((y+1)*gridVoxelSpacing[1]); pixelY++){
+            for(int pixelY=(int)reg_ceil((y-3)*gridVoxelSpacing[1]);pixelY<(int)reg_floor((y+1)*gridVoxelSpacing[1]); pixelY++){
 				if(pixelY>-1 && pixelY<targetImage->ny){
 					
 					int yPre=(int)((PrecisionTYPE)pixelY/gridVoxelSpacing[1]);
@@ -3055,7 +3093,7 @@ void reg_bspline_jacobianDeterminantGradient2D( nifti_image *splineControlPoint,
 							break;
 					}
 					
-                    for(int pixelX=(int)ceil((x-3)*gridVoxelSpacing[0]);pixelX<(int)floor((x+1)*gridVoxelSpacing[0]); pixelX++){
+                    for(int pixelX=(int)reg_ceil((x-3)*gridVoxelSpacing[0]);pixelX<(int)reg_floor((x+1)*gridVoxelSpacing[0]); pixelX++){
 						if(pixelX>-1 && pixelX<targetImage->nx){
 							
 							int xPre=(int)((PrecisionTYPE)pixelX/gridVoxelSpacing[0]);
@@ -3270,7 +3308,7 @@ void reg_bspline_jacobianDeterminantGradient3D( nifti_image *splineControlPoint,
                 PrecisionTYPE jacobianConstraintZ=(PrecisionTYPE)0.0;
 				
                 // Loop over all the control points in the surrounding area
-                for(int pixelZ=(int)ceil((z-3)*gridVoxelSpacing[2]);pixelZ<=(int)floor((z+1)*gridVoxelSpacing[2]); pixelZ++){
+                for(int pixelZ=(int)reg_ceil((z-3)*gridVoxelSpacing[2]);pixelZ<=(int)reg_floor((z+1)*gridVoxelSpacing[2]); pixelZ++){
 					if(pixelZ>-1 && pixelZ<targetImage->nz){
 
 						int zPre=(int)((PrecisionTYPE)pixelZ/gridVoxelSpacing[2]);
@@ -3300,7 +3338,7 @@ void reg_bspline_jacobianDeterminantGradient3D( nifti_image *splineControlPoint,
 								break;
                         }
 						
-                        for(int pixelY=(int)ceil((y-3)*gridVoxelSpacing[1]);pixelY<(int)floor((y+1)*gridVoxelSpacing[1]); pixelY++){
+                        for(int pixelY=(int)reg_ceil((y-3)*gridVoxelSpacing[1]);pixelY<(int)reg_floor((y+1)*gridVoxelSpacing[1]); pixelY++){
 							if(pixelY>-1 && pixelY<targetImage->ny){
 						
 								int yPre=(int)((PrecisionTYPE)pixelY/gridVoxelSpacing[1]);
@@ -3330,7 +3368,7 @@ void reg_bspline_jacobianDeterminantGradient3D( nifti_image *splineControlPoint,
 										break;
 								}
 								
-                                for(int pixelX=(int)ceil((x-3)*gridVoxelSpacing[0]);pixelX<(int)floor((x+1)*gridVoxelSpacing[0]); pixelX++){
+                                for(int pixelX=(int)reg_ceil((x-3)*gridVoxelSpacing[0]);pixelX<(int)reg_floor((x+1)*gridVoxelSpacing[0]); pixelX++){
 									if(pixelX>-1 && pixelX<targetImage->nx){
 										
 										int xPre=(int)((PrecisionTYPE)pixelX/gridVoxelSpacing[0]);
@@ -3579,10 +3617,10 @@ void reg_bspline_jacobianDeterminantGradient(	nifti_image *splineControlPoint,
 						                        float weight,
                                                 bool approx)
 {
-	if(splineControlPoint->datatype != gradientImage->datatype){
-		
-		fprintf(stderr,"The spline control point image and the gradient image were expected to have the same datatype\n");
-		fprintf(stderr,"The bending energy gradient has not computed\n");
+    if(splineControlPoint->datatype != gradientImage->datatype){
+        fprintf(stderr,"[NiftyReg ERROR] The spline control point image and the gradient image were expected to have the same datatype\n");
+        fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not computed\n");
+        exit(1);
 	}
 	
     if(splineControlPoint->nz==1){
@@ -3592,13 +3630,15 @@ void reg_bspline_jacobianDeterminantGradient(	nifti_image *splineControlPoint,
                     reg_bspline_jacobianDeterminantGradientApprox2D<PrecisionTYPE, float>
                         (splineControlPoint, targetImage, gradientImage, weight);
                     break;
+#ifdef _NR_DEV
 				case NIFTI_TYPE_FLOAT64:
                     reg_bspline_jacobianDeterminantGradientApprox2D<PrecisionTYPE, double>
                         (splineControlPoint, targetImage, gradientImage, weight);
                     break;
+#endif
 				default:
-					fprintf(stderr,"Only single or double precision is implemented for the Jacobian determinant gradient\n");
-                    fprintf(stderr,"The jacobian penalty gradient has not computed\n");
+                    fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the Jacobian determinant gradient\n");
+                    fprintf(stderr,"[NiftyReg ERROR] The jacobian penalty gradient has not computed\n");
 					exit(1);
 			}		
 		}
@@ -3608,13 +3648,15 @@ void reg_bspline_jacobianDeterminantGradient(	nifti_image *splineControlPoint,
                     reg_bspline_jacobianDeterminantGradient2D<PrecisionTYPE, float>
                         (splineControlPoint, targetImage, gradientImage, weight);
 					break;
+#ifdef _NR_DEV
 				case NIFTI_TYPE_FLOAT64:
                     reg_bspline_jacobianDeterminantGradient2D<PrecisionTYPE, double>
                         (splineControlPoint, targetImage, gradientImage, weight);
+#endif
 					break;
 				default:
-                    fprintf(stderr,"Only single or double precision is implemented for the Jacobian determinant gradient\n");
-                    fprintf(stderr,"The jacobian penalty gradient has not computed\n");
+                    fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the Jacobian determinant gradient\n");
+                    fprintf(stderr,"[NiftyReg ERROR] The jacobian penalty gradient has not computed\n");
                     exit(1);
 			}
 		}
@@ -3626,15 +3668,16 @@ void reg_bspline_jacobianDeterminantGradient(	nifti_image *splineControlPoint,
                     reg_bspline_jacobianDeterminantGradientApprox3D<PrecisionTYPE, float>
                         (splineControlPoint, targetImage, gradientImage, weight);
 					break;
+#ifdef _NR_DEV
 				case NIFTI_TYPE_FLOAT64:
                     reg_bspline_jacobianDeterminantGradientApprox3D<PrecisionTYPE, double>
                         (splineControlPoint, targetImage, gradientImage, weight);
 					break;
+#endif
 				default:
-                    fprintf(stderr,"Only single or double precision is implemented for the Jacobian determinant gradient\n");
-                    fprintf(stderr,"The jacobian penalty gradient has not computed\n");
+                    fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the Jacobian determinant gradient\n");
+                    fprintf(stderr,"[NiftyReg ERROR] The jacobian penalty gradient has not computed\n");
                     exit(1);
-                    break;
 			}		
 		}
 		else{
@@ -3642,22 +3685,25 @@ void reg_bspline_jacobianDeterminantGradient(	nifti_image *splineControlPoint,
 				case NIFTI_TYPE_FLOAT32:
                     reg_bspline_jacobianDeterminantGradient3D<PrecisionTYPE, float>
                         (splineControlPoint, targetImage, gradientImage, weight);
-					break;
+                    break;
+#ifdef _NR_DEV
 				case NIFTI_TYPE_FLOAT64:
                     reg_bspline_jacobianDeterminantGradient3D<PrecisionTYPE, double>
                         (splineControlPoint, targetImage, gradientImage, weight);
 					break;
+#endif
 				default:
-                    fprintf(stderr,"Only single or double precision is implemented for the Jacobian determinant gradient\n");
-                    fprintf(stderr,"The jacobian penalty gradient has not computed\n");
+                    fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the Jacobian determinant gradient\n");
+                    fprintf(stderr,"[NiftyReg ERROR] The jacobian penalty gradient has not computed\n");
                     exit(1);
-                    break;
 			}
 		}
 	}
 }
 template void reg_bspline_jacobianDeterminantGradient<float>(nifti_image *, nifti_image *, nifti_image *, float, bool);
+#ifdef _NR_DEV
 template void reg_bspline_jacobianDeterminantGradient<double>(nifti_image *, nifti_image *, nifti_image *, float, bool);
+#endif
 /* *************************************************************** */
 /* *************************************************************** */
 extern "C++" template<class PrecisionTYPE, class SplineTYPE>
@@ -3710,7 +3756,7 @@ PrecisionTYPE reg_bspline_correctFolding_2D(nifti_image *splineControlPoint,
             bool correctFolding=false;
 
             // Loop over all the control points in the surrounding area
-            for(int pixelY=(int)ceil((y-2)*gridVoxelSpacing[1]);pixelY<(int)floor((y)*gridVoxelSpacing[1]); pixelY++){
+            for(int pixelY=(int)reg_ceil((y-2)*gridVoxelSpacing[1]);pixelY<(int)reg_floor((y)*gridVoxelSpacing[1]); pixelY++){
                 if(pixelY>-1 && pixelY<targetImage->ny){
 
                     int yPre=(int)((PrecisionTYPE)pixelY/gridVoxelSpacing[1]);
@@ -3740,7 +3786,7 @@ PrecisionTYPE reg_bspline_correctFolding_2D(nifti_image *splineControlPoint,
                             break;
                     }
 
-                    for(int pixelX=(int)ceil((x-2)*gridVoxelSpacing[0]);pixelX<(int)floor((x)*gridVoxelSpacing[0]); pixelX++){
+                    for(int pixelX=(int)reg_ceil((x-2)*gridVoxelSpacing[0]);pixelX<(int)reg_floor((x)*gridVoxelSpacing[0]); pixelX++){
                         if(pixelX>-1 && pixelX<targetImage->nx){
 
                             int xPre=(int)((PrecisionTYPE)pixelX/gridVoxelSpacing[0]);
@@ -3837,6 +3883,7 @@ PrecisionTYPE reg_bspline_correctFoldingApprox_2D(nifti_image *splineControlPoin
     if(penaltyTerm==penaltyTerm){
         free(jacobianDeterminant);
         free(invertedJacobianMatrices);
+        jacobianNumber = (splineControlPoint->nx-2) * (splineControlPoint->ny-2);
         return (PrecisionTYPE)(penaltyTerm/(PrecisionTYPE)jacobianNumber);
     }
 
@@ -4000,7 +4047,7 @@ PrecisionTYPE reg_bspline_correctFolding_3D(nifti_image *splineControlPoint,
                 bool correctFolding=false;
 
                 // Loop over all the control points in the surrounding area
-                for(int pixelZ=(int)ceil((z-2)*gridVoxelSpacing[2]);pixelZ<(int)floor((z)*gridVoxelSpacing[2]); pixelZ++){
+                for(int pixelZ=(int)reg_ceil((z-2)*gridVoxelSpacing[2]);pixelZ<(int)reg_floor((z)*gridVoxelSpacing[2]); pixelZ++){
                     if(pixelZ>-1 && pixelZ<targetImage->nz){
 
                         int zPre=(int)((PrecisionTYPE)pixelZ/gridVoxelSpacing[2]);
@@ -4031,7 +4078,7 @@ PrecisionTYPE reg_bspline_correctFolding_3D(nifti_image *splineControlPoint,
                         }
 
 
-                        for(int pixelY=(int)ceil((y-2)*gridVoxelSpacing[1]);pixelY<(int)floor((y)*gridVoxelSpacing[1]); pixelY++){
+                        for(int pixelY=(int)reg_ceil((y-2)*gridVoxelSpacing[1]);pixelY<(int)reg_floor((y)*gridVoxelSpacing[1]); pixelY++){
                             if(pixelY>-1 && pixelY<targetImage->ny){
 
                                 int yPre=(int)((PrecisionTYPE)pixelY/gridVoxelSpacing[1]);
@@ -4061,7 +4108,7 @@ PrecisionTYPE reg_bspline_correctFolding_3D(nifti_image *splineControlPoint,
                                         break;
                                 }
 
-                                for(int pixelX=(int)ceil((x-2)*gridVoxelSpacing[0]);pixelX<(int)floor((x)*gridVoxelSpacing[0]); pixelX++){
+                                for(int pixelX=(int)reg_ceil((x-2)*gridVoxelSpacing[0]);pixelX<(int)reg_floor((x)*gridVoxelSpacing[0]); pixelX++){
                                     if(pixelX>-1 && pixelX<targetImage->nx){
 
                                         int xPre=(int)((PrecisionTYPE)pixelX/gridVoxelSpacing[0]);
@@ -4182,6 +4229,7 @@ PrecisionTYPE reg_bspline_correctFoldingApprox_3D(  nifti_image *splineControlPo
     if(penaltyTerm==penaltyTerm){
         free(jacobianDeterminant);
         free(invertedJacobianMatrices);
+        jacobianNumber = (splineControlPoint->nx-2) * (splineControlPoint->ny-2) * (splineControlPoint->nz-2);
         return (PrecisionTYPE)(penaltyTerm/(PrecisionTYPE)jacobianNumber);
     }
 
@@ -4344,12 +4392,14 @@ PrecisionTYPE reg_bspline_correctFolding(	nifti_image *splineControlPoint,
                 case NIFTI_TYPE_FLOAT32:
                     return reg_bspline_correctFoldingApprox_2D<PrecisionTYPE, float>
                         (splineControlPoint, targetImage);
+#ifdef _NR_DEV
                 case NIFTI_TYPE_FLOAT64:
                     return reg_bspline_correctFoldingApprox_2D<PrecisionTYPE, double>
                         (splineControlPoint, targetImage);
+#endif
                 default:
-                    fprintf(stderr,"Only single or double precision is implemented for the Jacobian determinant gradient\n");
-                    fprintf(stderr,"The bending energy gradient has not computed\n");
+                    fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the Jacobian determinant gradient\n");
+                    fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not computed\n");
                     exit(1);
             }
         }
@@ -4359,13 +4409,15 @@ PrecisionTYPE reg_bspline_correctFolding(	nifti_image *splineControlPoint,
                     return reg_bspline_correctFolding_2D<PrecisionTYPE, float>
                         (splineControlPoint, targetImage);
                     break;
+#ifdef _NR_DEV
                 case NIFTI_TYPE_FLOAT64:
                     return reg_bspline_correctFolding_2D<PrecisionTYPE, double>
                         (splineControlPoint, targetImage);
+#endif
                     break;
                 default:
-                    fprintf(stderr,"Only single or double precision is implemented for the Jacobian determinant gradient\n");
-                    fprintf(stderr,"The bending energy gradient has not computed\n");
+                    fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the Jacobian determinant gradient\n");
+                    fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not computed\n");
                     exit(1);
             }
         }
@@ -4377,15 +4429,16 @@ PrecisionTYPE reg_bspline_correctFolding(	nifti_image *splineControlPoint,
                     return reg_bspline_correctFoldingApprox_3D<PrecisionTYPE, float>
                         (splineControlPoint, targetImage);
                     break;
+#ifdef _NR_DEV
                 case NIFTI_TYPE_FLOAT64:
                     return reg_bspline_correctFoldingApprox_3D<PrecisionTYPE, double>
                         (splineControlPoint, targetImage);
                     break;
+#endif
                 default:
-                    fprintf(stderr,"Only single or double precision is implemented for the Jacobian determinant gradient\n");
-                    fprintf(stderr,"The bending energy gradient has not computed\n");
+                    fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the Jacobian determinant gradient\n");
+                    fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not computed\n");
                     exit(1);
-                    break;
             }
         }
         else{
@@ -4394,21 +4447,24 @@ PrecisionTYPE reg_bspline_correctFolding(	nifti_image *splineControlPoint,
                     return reg_bspline_correctFolding_3D<PrecisionTYPE, float>
                         (splineControlPoint, targetImage);
                     break;
+#ifdef _NR_DEV
                 case NIFTI_TYPE_FLOAT64:
                     return reg_bspline_correctFolding_3D<PrecisionTYPE, double>
                         (splineControlPoint, targetImage);
                     break;
+#endif
                 default:
-                    fprintf(stderr,"Only single or double precision is implemented for the Jacobian determinant gradient\n");
-                    fprintf(stderr,"The bending energy gradient has not computed\n");
+                    fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the Jacobian determinant gradient\n");
+                    fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not computed\n");
                     exit(1);
-                    break;
             }
         }
     }
 }
 template float reg_bspline_correctFolding<float>(nifti_image *, nifti_image *, bool);
+#ifdef _NR_DEV
 template double reg_bspline_correctFolding<double>(nifti_image *, nifti_image *, bool);
+#endif
 /* *************************************************************** */
 /* *************************************************************** */
 template<class SplineTYPE>
@@ -4447,6 +4503,8 @@ void reg_bspline_refineControlPointGrid2D(  nifti_image *targetImage,
 
     splineControlPoint->dim[1]=splineControlPoint->nx=(int)floor(targetImage->nx*targetImage->dx/splineControlPoint->dx)+5;
     splineControlPoint->dim[2]=splineControlPoint->ny=(int)floor(targetImage->ny*targetImage->dy/splineControlPoint->dy)+5;
+//    splineControlPoint->dim[1]=splineControlPoint->nx=(int)ceil(targetImage->nx*targetImage->dx/splineControlPoint->dx)+4;
+//    splineControlPoint->dim[2]=splineControlPoint->ny=(int)ceil(targetImage->ny*targetImage->dy/splineControlPoint->dy)+4;
     splineControlPoint->dim[3]=1;
 
     splineControlPoint->nvox=splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz*splineControlPoint->nt*splineControlPoint->nu;
@@ -4529,6 +4587,7 @@ void reg_bspline_refineControlPointGrid3D(nifti_image *targetImage,
     memcpy(oldGrid, gridPtrX, splineControlPoint->nvox*splineControlPoint->nbyper);
     if(splineControlPoint->data!=NULL) free(splineControlPoint->data);
     int oldDim[4];
+    oldDim[0]=splineControlPoint->dim[0];
     oldDim[1]=splineControlPoint->dim[1];
     oldDim[2]=splineControlPoint->dim[2];
     oldDim[3]=splineControlPoint->dim[3];
@@ -4536,6 +4595,10 @@ void reg_bspline_refineControlPointGrid3D(nifti_image *targetImage,
     splineControlPoint->dx = splineControlPoint->pixdim[1] = splineControlPoint->dx / 2.0f;
     splineControlPoint->dy = splineControlPoint->pixdim[2] = splineControlPoint->dy / 2.0f;
     splineControlPoint->dz = splineControlPoint->pixdim[3] = splineControlPoint->dz / 2.0f;
+
+//    splineControlPoint->dim[1]=splineControlPoint->nx=(int)ceil(targetImage->nx*targetImage->dx/splineControlPoint->dx)+4;
+//    splineControlPoint->dim[2]=splineControlPoint->ny=(int)ceil(targetImage->ny*targetImage->dy/splineControlPoint->dy)+4;
+//    splineControlPoint->dim[3]=splineControlPoint->nz=(int)ceil(targetImage->nz*targetImage->dz/splineControlPoint->dz)+4;
 
     splineControlPoint->dim[1]=splineControlPoint->nx=(int)floor(targetImage->nx*targetImage->dx/splineControlPoint->dx)+5;
     splineControlPoint->dim[2]=splineControlPoint->ny=(int)floor(targetImage->ny*targetImage->dy/splineControlPoint->dy)+5;
@@ -4837,30 +4900,92 @@ void reg_bspline_refineControlPointGrid3D(nifti_image *targetImage,
 }
 /* *************************************************************** */
 extern "C++"
-void reg_bspline_refineControlPointGrid(	nifti_image *targetImage,
-					nifti_image *splineControlPoint)
+void reg_bspline_refineControlPointGrid(nifti_image *referenceImage,
+                                        nifti_image *controlPointGrid)
 {
-    if(splineControlPoint->nz==1){
-        switch(splineControlPoint->datatype){
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] Starting the refine the control point grid\n");
+#endif
+    if(controlPointGrid->nz==1){
+        switch(controlPointGrid->datatype){
             case NIFTI_TYPE_FLOAT32:
-                return reg_bspline_refineControlPointGrid2D<float>(targetImage,splineControlPoint);
+                reg_bspline_refineControlPointGrid2D<float>(referenceImage,controlPointGrid);
+                break;
+#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
-                return reg_bspline_refineControlPointGrid2D<double>(targetImage,splineControlPoint);
+                reg_bspline_refineControlPointGrid2D<double>(referenceImage,controlPointGrid);
+                break;
+#endif
             default:
-                fprintf(stderr,"Only single or double precision is implemented for the bending energy gradient\n");
-                fprintf(stderr,"The bending energy gradient has not computed\n");
+                fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the bending energy gradient\n");
+                fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not computed\n");
+                exit(1);
         }
     }else{
-        switch(splineControlPoint->datatype){
+        switch(controlPointGrid->datatype){
             case NIFTI_TYPE_FLOAT32:
-                return reg_bspline_refineControlPointGrid3D<float>(targetImage,splineControlPoint);
+                reg_bspline_refineControlPointGrid3D<float>(referenceImage,controlPointGrid);
+                break;
+#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
-                return reg_bspline_refineControlPointGrid3D<double>(targetImage,splineControlPoint);
+                reg_bspline_refineControlPointGrid3D<double>(referenceImage,controlPointGrid);
+                break;
+#endif
             default:
-                fprintf(stderr,"Only single or double precision is implemented for the bending energy gradient\n");
-                fprintf(stderr,"The bending energy gradient has not computed\n");
+                fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the bending energy gradient\n");
+                fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not computed\n");
+                exit(1);
         }
     }
+    // Compute the new control point header
+    // The qform (and sform) are set for the control point position image
+    float qb, qc, qd, qx, qy, qz, dx, dy, dz, qfac;
+    nifti_mat44_to_quatern(referenceImage->qto_xyz, &qb, &qc, &qd, &qx, &qy, &qz, &dx, &dy, &dz, &qfac);
+    controlPointGrid->quatern_b=qb;
+    controlPointGrid->quatern_c=qc;
+    controlPointGrid->quatern_d=qd;
+    controlPointGrid->qfac=qfac;
+
+    controlPointGrid->qto_xyz = nifti_quatern_to_mat44(qb, qc, qd, qx, qy, qz,
+        controlPointGrid->dx, controlPointGrid->dy, controlPointGrid->dz, qfac);
+
+    // Origin is shifted from 1 control point in the qform
+    float originIndex[3];
+    float originReal[3];
+    originIndex[0] = -1.0f;
+    originIndex[1] = -1.0f;
+    originIndex[2] = 0.0f;
+    if(referenceImage->nz>1) originIndex[2] = -1.0f;
+    reg_mat44_mul(&(controlPointGrid->qto_xyz), originIndex, originReal);
+    if(controlPointGrid->qform_code==0) controlPointGrid->qform_code=1;
+    controlPointGrid->qto_xyz.m[0][3] = controlPointGrid->qoffset_x = originReal[0];
+    controlPointGrid->qto_xyz.m[1][3] = controlPointGrid->qoffset_y = originReal[1];
+    controlPointGrid->qto_xyz.m[2][3] = controlPointGrid->qoffset_z = originReal[2];
+
+    controlPointGrid->qto_ijk = nifti_mat44_inverse(controlPointGrid->qto_xyz);
+
+    if(controlPointGrid->sform_code>0){
+        nifti_mat44_to_quatern( referenceImage->sto_xyz, &qb, &qc, &qd, &qx, &qy, &qz, &dx, &dy, &dz, &qfac);
+
+        controlPointGrid->sto_xyz = nifti_quatern_to_mat44(qb, qc, qd, qx, qy, qz,
+            controlPointGrid->dx, controlPointGrid->dy, controlPointGrid->dz, qfac);
+
+        // Origin is shifted from 1 control point in the sform
+        originIndex[0] = -1.0f;
+        originIndex[1] = -1.0f;
+        originIndex[2] = 0.0f;
+        if(referenceImage->nz>1) originIndex[2] = -1.0f;
+        reg_mat44_mul(&(controlPointGrid->sto_xyz), originIndex, originReal);
+        controlPointGrid->sto_xyz.m[0][3] = originReal[0];
+        controlPointGrid->sto_xyz.m[1][3] = originReal[1];
+        controlPointGrid->sto_xyz.m[2][3] = originReal[2];
+
+        controlPointGrid->sto_ijk = nifti_mat44_inverse(controlPointGrid->sto_xyz);
+    }
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] The control point grid has been refined\n");
+#endif
+    return;
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -5092,21 +5217,27 @@ void reg_bspline_GetJacobianMap1(   nifti_image *splineControlPoint,
         switch(jacobianImage->datatype){
             case NIFTI_TYPE_FLOAT32:
                 return reg_bspline_GetJacobianMap2D<SplineTYPE,float>(splineControlPoint, jacobianImage);
+#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 return reg_bspline_GetJacobianMap2D<SplineTYPE,double>(splineControlPoint, jacobianImage);
+#endif
             default:
-                fprintf(stderr,"Only single or double precision is implemented for the jacobian map image\n");
-                fprintf(stderr,"The jacobian map has not computed\n");
+                fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the jacobian map image\n");
+                fprintf(stderr,"[NiftyReg ERROR] The jacobian map has not computed\n");
+                exit(1);
         }
     }else{
         switch(jacobianImage->datatype){
             case NIFTI_TYPE_FLOAT32:
                 return reg_bspline_GetJacobianMap3D<SplineTYPE,float>(splineControlPoint, jacobianImage);
+#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 return reg_bspline_GetJacobianMap3D<SplineTYPE,double>(splineControlPoint, jacobianImage);
+#endif
             default:
-                fprintf(stderr,"Only single or double precision is implemented for the jacobian map image\n");
-                fprintf(stderr,"The jacobian map has not computed\n");
+                fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the jacobian map image\n");
+                fprintf(stderr,"[NiftyReg ERROR] The jacobian map has not computed\n");
+                exit(1);
         }
     }
 }
@@ -5117,11 +5248,14 @@ void reg_bspline_GetJacobianMap(	nifti_image *splineControlPoint,
 	switch(splineControlPoint->datatype){
 		case NIFTI_TYPE_FLOAT32:
 			return reg_bspline_GetJacobianMap1<float>(splineControlPoint, jacobianImage);
+#ifdef _NR_DEV
 		case NIFTI_TYPE_FLOAT64:
 			return reg_bspline_GetJacobianMap1<double>(splineControlPoint, jacobianImage);
+#endif
 		default:
-			fprintf(stderr,"Only single or double precision is implemented for the control point image\n");
-			fprintf(stderr,"The jacobian map has not computed\n");
+            fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the control point image\n");
+            fprintf(stderr,"[NiftyReg ERROR] The jacobian map has not computed\n");
+            exit(1);
 	}
 }
 /* *************************************************************** */
@@ -5267,8 +5401,8 @@ void reg_bspline_GetJacobianMatrix(nifti_image *splineControlPoint,
                                    nifti_image *jacobianImage)
 {
     if(splineControlPoint->datatype != jacobianImage->datatype){
-        fprintf(stderr, "Error:\treg_bspline_GetJacobianMatrix\n");
-        fprintf(stderr, "Input images were expected to be from the same type\n");
+        fprintf(stderr, "[NiftyReg ERROR] reg_bspline_GetJacobianMatrix\n");
+        fprintf(stderr, "[NiftyReg ERROR] Input images were expected to be from the same type\n");
         exit(1);
     }
 
@@ -5276,11 +5410,13 @@ void reg_bspline_GetJacobianMatrix(nifti_image *splineControlPoint,
         switch(splineControlPoint->datatype){
             case NIFTI_TYPE_FLOAT32:
                 return reg_bspline_GetJacobianMatrix3D<float>(splineControlPoint, jacobianImage);
+#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 return reg_bspline_GetJacobianMatrix3D<double>(splineControlPoint, jacobianImage);
+#endif
             default:
-                fprintf(stderr,"Only single or double precision is implemented for the control point image\n");
-                fprintf(stderr,"The jacobian matrix image has not been computed\n");
+                fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the control point image\n");
+                fprintf(stderr,"[NiftyReg ERROR] The jacobian matrix image has not been computed\n");
                 exit(1);
         }
     }
@@ -5288,11 +5424,13 @@ void reg_bspline_GetJacobianMatrix(nifti_image *splineControlPoint,
         switch(splineControlPoint->datatype){
             case NIFTI_TYPE_FLOAT32:
                 return reg_bspline_GetJacobianMatrix2D<float>(splineControlPoint, jacobianImage);
+#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 return reg_bspline_GetJacobianMatrix2D<double>(splineControlPoint, jacobianImage);
+#endif
             default:
-                fprintf(stderr,"Only single or double precision is implemented for the control point image\n");
-                fprintf(stderr,"The jacobian matrix image has not been computed\n");
+                fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the control point image\n");
+                fprintf(stderr,"[NiftyReg ERROR] The jacobian matrix image has not been computed\n");
                 exit(1);
         }
     }
@@ -5371,13 +5509,15 @@ int reg_bspline_initialiseControlPointGridWithAffine(   mat44 *affineTransformat
 			case NIFTI_TYPE_FLOAT32:
 				reg_bspline_initialiseControlPointGridWithAffine2D<float>(affineTransformation, controlPointImage);
 				break;
+#ifdef _NR_DEV
 			case NIFTI_TYPE_FLOAT64:
 				reg_bspline_initialiseControlPointGridWithAffine2D<double>(affineTransformation, controlPointImage);
 				break;
+#endif
 			default:
-				fprintf(stderr,"ERROR:\treg_bspline_initialiseControlPointGridWithAffine\n");
-				fprintf(stderr,"ERROR:\tOnly single or double precision is implemented for the control point image\n");
-				return 1;
+                fprintf(stderr,"[NiftyReg ERROR] reg_bspline_initialiseControlPointGridWithAffine\n");
+                fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the control point image\n");
+                exit(1);
 		}
 	}
 	else{
@@ -5385,13 +5525,15 @@ int reg_bspline_initialiseControlPointGridWithAffine(   mat44 *affineTransformat
 			case NIFTI_TYPE_FLOAT32:
 				reg_bspline_initialiseControlPointGridWithAffine3D<float>(affineTransformation, controlPointImage);
 				break;
+#ifdef _NR_DEV
 			case NIFTI_TYPE_FLOAT64:
 				reg_bspline_initialiseControlPointGridWithAffine3D<double>(affineTransformation, controlPointImage);
 				break;
+#endif
 			default:
-				fprintf(stderr,"ERROR:\treg_bspline_initialiseControlPointGridWithAffine\n");
-				fprintf(stderr,"ERROR:\tOnly single or double precision is implemented for the control point image\n");
-				return 1;
+                fprintf(stderr,"[NiftyReg ERROR] reg_bspline_initialiseControlPointGridWithAffine\n");
+                fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the control point image\n");
+                exit(1);
 		}
 	}
 	return 0;
