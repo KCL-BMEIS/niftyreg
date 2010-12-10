@@ -56,7 +56,7 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->spacing[1]=std::numeric_limits<T>::quiet_NaN();
     this->spacing[2]=std::numeric_limits<T>::quiet_NaN();
     this->levelNumber=3;
-    this->levelToPerform=3;
+    this->levelToPerform=0;
     this->gradientSmoothingSigma=0;
     this->useComposition=false;
     this->verbose=true;
@@ -710,6 +710,10 @@ int reg_f3d<T>::Initisalise_f3d()
     nifti_image **tempMaskImagePyramid = (nifti_image **)malloc(this->levelToPerform*sizeof(nifti_image *));
     this->maskPyramid = (int **)malloc(this->levelToPerform*sizeof(int *));
     this->activeVoxelNumber= (int *)malloc(this->levelToPerform*sizeof(int));
+
+    // CHECK THE NUMBER OF LEVEL TO PERFORM
+    if(this->levelToPerform==0 || this->levelToPerform>this->levelNumber)
+        this->levelToPerform=this->levelNumber;
 
     // FINEST LEVEL OF REGISTRATION
     // Reference image is copied and converted to type T
