@@ -478,15 +478,31 @@ double reg_f3d_gpu<T>::ComputeSimilarityMeasure()
     }
 
     double measure=0.;
-    reg_getEntropies<double>(   this->currentReference,
-                                this->warped,
-                                2,
-                                this->referenceBinNumber,
-                                this->floatingBinNumber,
-                                this->probaJointHistogram,
-                                this->logJointHistogram,
-                                this->entropies,
-                                this->currentMask);
+    if(this->currentFloating->nt==1){
+        reg_getEntropies<double>(   this->currentReference,
+                                    this->warped,
+                                    2,
+                                    this->referenceBinNumber,
+                                    this->floatingBinNumber,
+                                    this->probaJointHistogram,
+                                    this->logJointHistogram,
+                                    this->entropies,
+                                    this->currentMask);
+    }
+    else if(this->currentFloating->nt==2){
+        reg_getEntropies2x2_gpu(this->currentReference,
+                                 this->warped,
+                                 2,
+                                 this->referenceBinNumber, // should be an array of size num_target_volumes
+                                 this->floatingBinNumber, // should be an array of size num_result_volumes
+                                 this->probaJointHistogram,
+                                 this->logJointHistogram,
+                                 &this->logJointHistogram_gpu,
+                                 this->entropies,
+                                 this->currentMask);
+    }
+
+
     measure = double(this->entropies[0]+this->entropies[1])/double(this->entropies[2]);
 
     return double(1.0-this->bendingEnergyWeight-this->jacobianLogWeight) * measure;

@@ -63,6 +63,7 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->useSSD=false;
     this->useConjGradient=true;
 	this->maxSSD=NULL;
+    this->entropies[0]=this->entropies[1]=this->entropies[2]=this->entropies[3]=0.;
 //	this->threadNumber=1;
 
     this->initialised=false;
@@ -1578,7 +1579,6 @@ int reg_f3d<T>::Run_f3d()
         this->WarpFloatingImage(1);
         double bestWMeasure = this->ComputeSimilarityMeasure();
 
-
         // Evalulate the objective function value
         double bestValue = bestWMeasure - bestWBE - bestWJac;
 
@@ -1728,7 +1728,8 @@ int reg_f3d<T>::Run_f3d()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-nifti_image *reg_f3d<T>::GetWarpedImage(){
+nifti_image *reg_f3d<T>::GetWarpedImage()
+{
     // The initial images are used
     if(this->inputReference==NULL ||
        this->inputFloating==NULL ||

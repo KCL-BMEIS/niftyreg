@@ -12,6 +12,12 @@
 #ifndef _REG_MUTUALINFORMATION_kernels_CU
 #define _REG_MUTUALINFORMATION_kernels_CU
 
+#include <stdio.h>
+
+#define COEFF_L 0.16666666f
+#define COEFF_C 0.66666666f
+#define COEFF_B 0.83333333f
+
 __device__ __constant__ int c_VoxelNumber;
 __device__ __constant__ int3 c_ImageSize;
 
@@ -289,6 +295,186 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW_kernel2x2(float4 *voxelNMIGr
             }
         }
         voxelNMIGradientArray_d[targetIndex]=gradValue;
+    }
+}
+
+__global__ void reg_smoothJointHistogramX_kernel(float *tempHistogram)
+{
+    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    if(tid<c_secondTargetBin*c_firstResultBin*c_secondResultBin){
+        // The starting index is computed
+        unsigned int startingPoint=tid*c_firstTargetBin;
+        unsigned int finishPoint=startingPoint+c_firstTargetBin;
+
+        // The first point is computed
+        tempHistogram[startingPoint] = (tex1Dfetch(histogramTexture, startingPoint) * COEFF_C +
+                                       tex1Dfetch(histogramTexture, startingPoint+1) * COEFF_L) / COEFF_B;
+        // The middle points are computed
+        for(unsigned int i=startingPoint+1; i<finishPoint-1; ++i){
+            tempHistogram[i] = tex1Dfetch(histogramTexture, i-1) * COEFF_L +
+                               tex1Dfetch(histogramTexture, i) * COEFF_C +
+                               tex1Dfetch(histogramTexture, i+1) * COEFF_L;
+        }
+        // The last point is computed
+        tempHistogram[finishPoint-1] = (tex1Dfetch(histogramTexture, finishPoint-2) * COEFF_L +
+                                       tex1Dfetch(histogramTexture, finishPoint-1) * COEFF_C) / COEFF_B;
+    }
+    return;
+}
+
+__global__ void reg_smoothJointHistogramY_kernel(float *tempHistogram)
+{
+    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    if(tid<c_firstTargetBin*c_firstResultBin*c_secondResultBin){
+        // The starting index is computed
+        unsigned int startingPoint=tid + c_firstTargetBin*(c_secondTargetBin-1)*(c_firstResultBin*(int)(tid/(c_firstTargetBin*c_firstResultBin)) +
+                                   (int)(tid/c_firstTargetBin - c_firstResultBin * (int)(tid/(c_firstTargetBin*c_firstResultBin))));
+        unsigned int increment = c_firstTargetBin;
+        unsigned int finishPoint=startingPoint+increment*c_secondTargetBin;
+
+        // The first point is computed
+        tempHistogram[startingPoint] = (tex1Dfetch(histogramTexture, startingPoint) * COEFF_C +
+                                       tex1Dfetch(histogramTexture, startingPoint+increment) * COEFF_L) / COEFF_B;
+        // The middle points are computed
+        for(unsigned int i=startingPoint+increment; i<finishPoint-increment; i+=increment){
+            tempHistogram[i] = tex1Dfetch(histogramTexture, i-increment) * COEFF_L +
+                               tex1Dfetch(histogramTexture, i) * COEFF_C +
+                               tex1Dfetch(histogramTexture, i+increment) * COEFF_L;
+        }
+        // The last point is computed
+        tempHistogram[finishPoint-increment] = (tex1Dfetch(histogramTexture, finishPoint-2*increment) * COEFF_L +
+                                       tex1Dfetch(histogramTexture, finishPoint-increment) * COEFF_C) / COEFF_B;
+    }
+    return;
+}
+
+__global__ void reg_smoothJointHistogramZ_kernel(float *tempHistogram)
+{
+    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    if(tid<c_firstTargetBin*c_secondTargetBin*c_secondResultBin){
+        // The starting index is computed
+        unsigned int startingPoint=tid+c_firstTargetBin*c_secondTargetBin*(c_firstResultBin-1)*(int)(tid/(c_firstTargetBin*c_secondTargetBin));
+        unsigned int increment = c_firstTargetBin*c_secondTargetBin;
+        unsigned int finishPoint=startingPoint+increment*c_firstResultBin;
+
+        // The first point is computed
+        tempHistogram[startingPoint] = (tex1Dfetch(histogramTexture, startingPoint) * COEFF_C +
+                                       tex1Dfetch(histogramTexture, startingPoint+increment) * COEFF_L) / COEFF_B;
+        // The middle points are computed
+        for(unsigned int i=startingPoint+increment; i<finishPoint-increment; i+=increment){
+            tempHistogram[i] = tex1Dfetch(histogramTexture, i-increment) * COEFF_L +
+                               tex1Dfetch(histogramTexture, i) * COEFF_C +
+                               tex1Dfetch(histogramTexture, i+increment) * COEFF_L;
+        }
+        // The last point is computed
+        tempHistogram[finishPoint-increment] = (tex1Dfetch(histogramTexture, finishPoint-2*increment) * COEFF_L +
+                                       tex1Dfetch(histogramTexture, finishPoint-increment) * COEFF_C) / COEFF_B;
+    }
+    return;
+}
+
+__global__ void reg_smoothJointHistogramW_kernel(float *tempHistogram)
+{
+    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    if(tid<c_firstTargetBin*c_secondTargetBin*c_firstResultBin){
+        // The starting index is computed
+        unsigned int startingPoint=tid;
+        unsigned int increment = c_firstTargetBin*c_secondTargetBin*c_firstResultBin;
+        unsigned int finishPoint=increment*c_secondResultBin;
+
+        // The first point is computed
+        tempHistogram[startingPoint] = (tex1Dfetch(histogramTexture, startingPoint) * COEFF_C +
+                                       tex1Dfetch(histogramTexture, startingPoint+increment) * COEFF_L) / COEFF_B;
+        // The middle points are computed
+        for(unsigned int i=startingPoint+increment; i<finishPoint-increment; i+=increment){
+            tempHistogram[i] = tex1Dfetch(histogramTexture, i-increment) * COEFF_L +
+                               tex1Dfetch(histogramTexture, i) * COEFF_C +
+                               tex1Dfetch(histogramTexture, i+increment) * COEFF_L;
+        }
+        // The last point is computed
+        tempHistogram[finishPoint-increment] = (tex1Dfetch(histogramTexture, finishPoint-2*increment) * COEFF_L +
+                                       tex1Dfetch(histogramTexture, finishPoint-increment) * COEFF_C) / COEFF_B;
+    }
+    return;
+}
+
+/// Kernels for marginalisation along the different axes
+__global__ void reg_marginaliseTargetX_kernel(float *babyHisto)
+{
+    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    if(tid<c_secondTargetBin*c_firstResultBin*c_secondResultBin){
+        unsigned int startingPoint=tid*c_firstTargetBin;
+        unsigned int finishPoint=startingPoint+c_firstTargetBin;
+
+        float sum=tex1Dfetch(histogramTexture, startingPoint);
+        float c=0.f,Y,t;
+        for(unsigned int i=startingPoint+1; i<finishPoint; ++i){
+            Y = tex1Dfetch(histogramTexture, i) - c;
+            t = sum + Y;
+            c = (t-sum)-Y;
+            sum=t;
+        }
+        babyHisto[tid]=sum;
+    }
+}
+
+__global__ void reg_marginaliseTargetXY_kernel(float *babyHisto)
+{
+    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    if(tid<c_firstResultBin*c_secondResultBin){
+        unsigned int startingPoint=tid*c_secondTargetBin;
+        unsigned int finishPoint=startingPoint+c_secondTargetBin;
+
+        float sum=tex1Dfetch(histogramTexture, startingPoint);        
+        float c=0.f,Y,t;
+        for(unsigned int i=startingPoint+1; i<finishPoint; ++i){            
+            Y = tex1Dfetch(histogramTexture, i) - c;
+            t = sum + Y;
+            c = (t-sum)-Y;
+            sum=t;
+        }        
+        babyHisto[tid]=sum;
+    }
+}
+
+__global__ void reg_marginaliseResultX_kernel(float *babyHisto)
+{
+    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    if(tid<c_firstTargetBin*c_secondTargetBin*c_firstResultBin){
+        unsigned int startingPoint = tid;
+        float sum=tex1Dfetch(histogramTexture, startingPoint);
+        // increment by a the cube
+        unsigned int increment = c_firstTargetBin*c_secondTargetBin*c_firstResultBin;
+        float c=0.f,Y,t;
+
+        for (unsigned int i = 1; i < c_secondResultBin; ++i)
+        {
+            Y = tex1Dfetch(histogramTexture, startingPoint + i *increment) - c;
+            t = sum + Y;
+            c = (t-sum)-Y;
+            sum=t;
+        }
+        babyHisto[tid]=sum;
+    }
+}
+
+__global__ void reg_marginaliseResultXY_kernel(float *babyHisto)
+{
+    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    if(tid<c_firstTargetBin*c_secondTargetBin){
+        unsigned int startingPoint=tid;
+        float sum=tex1Dfetch(histogramTexture, startingPoint);
+        // increment by the plane.
+        unsigned int increment = c_firstTargetBin*c_secondTargetBin;
+        float c=0.f,Y,t;
+        for (unsigned int i = 1; i < c_firstResultBin; ++i)
+        {
+            Y = tex1Dfetch(histogramTexture, startingPoint + i *increment) - c;
+            t = sum + Y;
+            c = (t-sum)-Y;
+            sum=t;
+        }
+        babyHisto[tid]=sum;
     }
 }
 

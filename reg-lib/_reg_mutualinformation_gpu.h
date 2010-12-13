@@ -15,6 +15,18 @@
 #include "_reg_blocksize_gpu.h"
 
 extern "C++"
+void reg_getEntropies2x2_gpu(nifti_image *targetImages,
+                             nifti_image *resultImages,
+                             int type,
+                             unsigned int *target_bins, // should be an array of size num_target_volumes
+                             unsigned int *result_bins, // should be an array of size num_result_volumes
+                             double *probaJointHistogram,
+                             double *logJointHistogram,
+                             float  **logJointHistogram_d,
+                             double *entropies,
+                             int *mask);
+
+extern "C++"
 void reg_getVoxelBasedNMIGradientUsingPW_gpu(nifti_image *targetImage,
                                             nifti_image *resultImage,
                                             float **targetImageArray_d,
