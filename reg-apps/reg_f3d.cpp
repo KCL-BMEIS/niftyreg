@@ -364,8 +364,8 @@ int main(int argc, char **argv)
     // Create the reg_f3d object
     reg_f3d<PrecisionTYPE> *REG=NULL;
 #ifdef _USE_CUDA
-    if(useGPU)
-        if((referenceImage->nt==1&&floatingImage->nt==1)||(referenceImage->nt==2&&floatingImage->nt==2)){
+    if(useGPU){
+        if((referenceImage->nt==1&&floatingImage->nt==1) || (referenceImage->nt==2&&floatingImage->nt==2)){
             REG = new reg_f3d_gpu<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
             if(verbose==true){
@@ -379,6 +379,7 @@ int main(int argc, char **argv)
             fprintf(stderr,"[NiftyReg ERROR] The GPU implementation only handle 1 to 1 or 2 to 2 image(s) registration\n");
             exit(1);
         }
+    }
     else
 #endif
     {

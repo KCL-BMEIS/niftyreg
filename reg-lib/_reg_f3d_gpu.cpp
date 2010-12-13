@@ -493,8 +493,8 @@ double reg_f3d_gpu<T>::ComputeSimilarityMeasure()
         reg_getEntropies2x2_gpu(this->currentReference,
                                  this->warped,
                                  2,
-                                 this->referenceBinNumber, // should be an array of size num_target_volumes
-                                 this->floatingBinNumber, // should be an array of size num_result_volumes
+                                 this->referenceBinNumber,
+                                 this->floatingBinNumber,
                                  this->probaJointHistogram,
                                  this->logJointHistogram,
                                  &this->logJointHistogram_gpu,
