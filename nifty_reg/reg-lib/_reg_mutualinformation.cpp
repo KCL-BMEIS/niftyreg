@@ -243,10 +243,8 @@ void reg_getEntropies3(nifti_image *targetImage,
                 probaJointHistogram[target_flat_index + (result_flat_index * total_target_entries)]++;
                 ++voxel_number;
             }
-        }
+        }        
     }
-
-
 
     PrecisionTYPE window[3];
     window[0] = window[2] = GetBasisSplineValue((PrecisionTYPE)(-1.0));
@@ -313,7 +311,7 @@ void reg_getEntropies3(nifti_image *targetImage,
 
         for (int i = 0; i < total_target_entries; ++i)
         {
-            current_value = data[i];
+            current_value = data[i];            
             current_log = (PrecisionTYPE)0;
             if (current_value) current_log = log(current_value);
             target_entropy -= current_value * current_log;
@@ -345,7 +343,7 @@ void reg_getEntropies3(nifti_image *targetImage,
 
         for (int i = 0; i < total_result_entries; ++i)
         {
-            current_value = data[i];
+            current_value = data[i];            
             current_log = (PrecisionTYPE)0;
             if (current_value) current_log = log(current_value);
             result_entropy -= current_value * current_log;
@@ -357,7 +355,7 @@ void reg_getEntropies3(nifti_image *targetImage,
     PrecisionTYPE joint_entropy = (PrecisionTYPE)0;
     for (int i = 0; i < num_probabilities; ++i)
     {
-        current_value = probaJointHistogram[i];
+        current_value = probaJointHistogram[i];        
         current_log = (PrecisionTYPE)0;
         if (current_value) current_log = log(current_value);
         joint_entropy -= current_value * current_log;
