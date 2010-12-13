@@ -82,6 +82,7 @@ public:
     reg_f3d_gpu(int refTimePoint,int floTimePoint);
     ~reg_f3d_gpu();
     int Run_f3d();
+    int CheckMemoryMB_f3d();
 };
 
 #include "_reg_f3d_gpu.cpp"
