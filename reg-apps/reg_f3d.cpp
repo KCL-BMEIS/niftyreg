@@ -9,7 +9,6 @@
  *
  */
 
-
 #include "_reg_f3d.h"
 #ifdef _USE_CUDA
     #include "_reg_f3d_gpu.h"
@@ -96,8 +95,8 @@ void Usage(char *exec)
 
 #ifdef _USE_CUDA
     printf("\n*** GPU-related options:\n");
-// //   printf("\t-mem\t\t\tDisplay an approximate memory requierment and exit\n");
-	printf("\t-gpu \t\t\tTo use the GPU implementation [no]\n");
+    printf("\t-mem\t\t\tDisplay an approximate memory requierment and exit\n");
+    printf("\t-gpu \t\t\tTo use the GPU implementation [no]\n");
 #endif
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 	return;
@@ -160,6 +159,7 @@ int main(int argc, char **argv)
     bool useConjugate=true;
     bool useSSD=false;
     bool useGPU=false;
+    bool checkMem=false;
 	
 	/* read the input parameter */
     for(int i=1;i<argc;i++){
@@ -280,6 +280,9 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-gpu") == 0){
             useGPU=true;
         }
+        else if(strcmp(argv[i], "-mem") == 0){
+            checkMem=true;
+        }
 #endif
 		else{
 			fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
@@ -378,17 +381,60 @@ int main(int argc, char **argv)
     // Create the reg_f3d object
     reg_f3d<PrecisionTYPE> *REG=NULL;
 #ifdef _USE_CUDA
+    int gpuMemoryAvailable = 0;
     if(useGPU){
         if((referenceImage->dim[4]==1&&floatingImage->dim[4]==1) || (referenceImage->dim[4]==2&&floatingImage->dim[4]==2)){
+
+            // The CUDA card is setup
+
+            struct cudaDeviceProp deviceProp;
+            // following code is from cutGetMaxGflopsDeviceId()
+            int device_count = 0;
+            cudaGetDeviceCount( &device_count );
+            int max_gflops_device = 0;
+            int max_gflops = 0;
+            int current_device = 0;
+            cudaGetDeviceProperties( &deviceProp, current_device );
+            max_gflops = deviceProp.multiProcessorCount * deviceProp.clockRate;
+            ++current_device;
+            while( current_device < device_count ){
+                cudaGetDeviceProperties( &deviceProp, current_device );
+                int gflops = deviceProp.multiProcessorCount * deviceProp.clockRate;
+                if( gflops > max_gflops ){
+                    max_gflops = gflops;
+                    max_gflops_device = current_device;
+                }
+                ++current_device;
+            }
+            const int device = max_gflops_device;
+
+            CUDA_SAFE_CALL(cudaSetDevice( device ));
+            CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, device ));
+            if (deviceProp.major < 1){
+                printf("NiftyReg ERROR CUDA] The specified graphical card does not exist.\n");
+                return 1;
+            }
+#ifdef NDEBUG
+            if(verbose==true){
+#endif
+                printf("[NiftyReg F3D DEBUG] Graphical card memory[%i/%i] = %iMo avail\n", device+1, device_count,
+                (int)floor(deviceProp.totalGlobalMem/1000000.0));
+#ifdef NDEBUG
+            }
+#endif
+            gpuMemoryAvailable = deviceProp.totalGlobalMem;
+
+            // The CUDA reg_f3d object is created
             REG = new reg_f3d_gpu<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
             if(verbose==true){
 #endif
-                printf("\n[NiftyReg F3D] GPU implementation is used\n");
+                printf("\n[NiftyReg F3D] GPU implementation is used\n\n");
 #ifdef NDEBUG
             }
 #endif
         }
+
         else{
             fprintf(stderr,"[NiftyReg ERROR] The GPU implementation only handle 1 to 1 or 2 to 2 image(s) registration\n");
             exit(1);
@@ -402,9 +448,9 @@ int main(int argc, char **argv)
         if(verbose==true){
   #endif
             printf("\n[NiftyReg F3D] CPU implementation is used\n");
-  #ifdef NDEBUG
+#ifdef NDEBUG
         }
-  #endif
+#endif
     }
 
     // Set the reg_f3d parameters
@@ -497,22 +543,32 @@ int main(int argc, char **argv)
     else REG->DoNotUseConjugateGradient();
 
     // Run the registration
-    REG->Run_f3d();
 
-    // Save the control point result
-    nifti_image *outputControlPointGridImage = REG->GetControlPointPositionImage();
-    if(outputControlPointGridName==NULL) outputControlPointGridName=(char *)"outputCPP.nii";
-    nifti_set_filenames(outputControlPointGridImage, outputControlPointGridName, 0, 0);
-    nifti_image_write(outputControlPointGridImage);
-    nifti_image_free(outputControlPointGridImage);outputControlPointGridImage=NULL;
+#ifdef _USE_CUDA
+    if(useGPU && checkMem){
+        int requiredMemory = REG->CheckMemoryMB_f3d();
+        printf("[NiftyReg F3D] The registration require %i MB on the GPU and %i MB are available\n", requiredMemory, gpuMemoryAvailable/1000000);
+    }
+    else{
+#endif
+        REG->Run_f3d();
 
-    // Save the warped image result
-    nifti_image *outputWarpedImage = REG->GetWarpedImage();
-    if(outputWarpedName==NULL) outputWarpedName=(char *)"outputResult.nii";
-    nifti_set_filenames(outputWarpedImage, outputWarpedName, 0, 0);
-    nifti_image_write(outputWarpedImage);
-    nifti_image_free(outputWarpedImage);outputWarpedImage=NULL;
+        // Save the control point result
+        nifti_image *outputControlPointGridImage = REG->GetControlPointPositionImage();
+        if(outputControlPointGridName==NULL) outputControlPointGridName=(char *)"outputCPP.nii";
+        nifti_set_filenames(outputControlPointGridImage, outputControlPointGridName, 0, 0);
+        nifti_image_write(outputControlPointGridImage);
+        nifti_image_free(outputControlPointGridImage);outputControlPointGridImage=NULL;
 
+        // Save the warped image result
+        nifti_image *outputWarpedImage = REG->GetWarpedImage();
+        if(outputWarpedName==NULL) outputWarpedName=(char *)"outputResult.nii";
+        nifti_set_filenames(outputWarpedImage, outputWarpedName, 0, 0);
+        nifti_image_write(outputWarpedImage);
+        nifti_image_free(outputWarpedImage);outputWarpedImage=NULL;
+#ifdef _USE_CUDA
+    }
+#endif
     // Erase the registration object
     delete REG;
 

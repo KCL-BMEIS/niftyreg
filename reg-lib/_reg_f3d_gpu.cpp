@@ -752,5 +752,71 @@ int reg_f3d_gpu<T>::ClearCurrentInputImage()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+int reg_f3d_gpu<T>::CheckMemoryMB_f3d()
+{
+    if(!this->initialised){
+        if( reg_f3d<T>::Initisalise_f3d() )
+            return 1;
+    }
+
+    unsigned int totalMemoryRequiered=0;
+    // reference image
+    totalMemoryRequiered += this->referencePyramid[this->levelToPerform-1]->nvox * sizeof(float);
+
+    // floating image
+    totalMemoryRequiered += this->floatingPyramid[this->levelToPerform-1]->nvox * sizeof(float);
+
+    // warped image
+    totalMemoryRequiered += this->referencePyramid[this->levelToPerform-1]->nvox * sizeof(float);
+
+    // mask image
+    totalMemoryRequiered += this->activeVoxelNumber[this->levelToPerform-1] * sizeof(int);
+
+    // deformation field
+    totalMemoryRequiered += this->activeVoxelNumber[this->levelToPerform-1] * sizeof(float4);
+
+    // voxel based intensity gradient
+    totalMemoryRequiered += this->referencePyramid[this->levelToPerform-1]->nvox * sizeof(float4);
+
+    // voxel based NMI gradient + smoothing
+    totalMemoryRequiered += 2 * this->referencePyramid[this->levelToPerform-1]->nvox * sizeof(float4);
+
+    // control point grid
+    unsigned int cp=1;
+    cp *= (int)floor(this->referencePyramid[this->levelToPerform-1]->nx*this->referencePyramid[this->levelToPerform-1]->dx/this->spacing[0])+5;
+    cp *= (int)floor(this->referencePyramid[this->levelToPerform-1]->ny*this->referencePyramid[this->levelToPerform-1]->dy/this->spacing[1])+5;
+    if(this->referencePyramid[this->levelToPerform-1]->nz>1)
+        cp *= (int)floor(this->referencePyramid[this->levelToPerform-1]->nz*this->referencePyramid[this->levelToPerform-1]->dz/this->spacing[2])+5;
+    totalMemoryRequiered += cp * sizeof(float4);
+
+    // node based NMI gradient
+    totalMemoryRequiered += cp * sizeof(float4);
+
+    // conjugate gradient
+    totalMemoryRequiered += 2 * cp * sizeof(float4);
+
+    // joint histogram
+    unsigned int histogramSize[3]={1,1,1};
+    for(int i=0;i<this->referenceTimePoint;i++){
+        histogramSize[0] *= this->referenceBinNumber[i];
+        histogramSize[1] *= this->referenceBinNumber[i];
+    }
+    for(int i=0;i<this->floatingTimePoint;i++){
+        histogramSize[0] *= this->floatingBinNumber[i];
+        histogramSize[2] *= this->floatingBinNumber[i];
+    }
+    histogramSize[0] += histogramSize[1] + histogramSize[2];
+    totalMemoryRequiered += histogramSize[0] * sizeof(float);
+
+    // jacobian array
+    if(this->jacobianLogWeight>0)
+        totalMemoryRequiered += 10 * this->referencePyramid[this->levelToPerform-1]->nvox * sizeof(float);
+
+    return (int)(ceil(totalMemoryRequiered/1000000));
+
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
 #endif

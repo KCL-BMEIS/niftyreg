@@ -158,6 +158,7 @@ public:
     int CheckParameters_f3d();
     int Initisalise_f3d();
     int Run_f3d();
+    virtual int CheckMemoryMB_f3d(){return 0;};
 	nifti_image *GetWarpedImage();
     nifti_image *GetControlPointPositionImage();
 };
