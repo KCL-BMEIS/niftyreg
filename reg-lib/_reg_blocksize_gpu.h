@@ -30,14 +30,14 @@
         #define Block_result_block 480                                      // 21 regs
         #define Block_target_block 512                                      // 15 regs
 
-        #define Block_reg_bspline_JacobianMatrixFromVel 384                 // 42 regs
-        #define Block_reg_bspline_PositionToIndices 000                     // 17 regs
+        #define Block_reg_bspline_JacobianMatrixFromVel 192                 // 42 regs
+        #define Block_reg_bspline_PositionToIndices 512                     // 17 regs
         #define Block_reg_bspline_GetSquaredLogJacDet 512                   // 07 regs
         #define Block_reg_bspline_ApproxJacobianMatrix 416                  // 25 regs
-        #define Block_reg_bspline_ApproxJacDetFromVelField 320              // 49 regs
+        #define Block_reg_bspline_ApproxJacDetFromVelField 128              // 49 regs
         #define Block_reg_bspline_ApproxJacobianGradient 512                // 32 regs
-        #define Block_reg_bspline_JacobianMatrix 384                        // 41 regs
-        #define Block_reg_bspline_JacDetFromVelField 320                    // 49 regs
+        #define Block_reg_bspline_JacobianMatrix 192                        // 41 regs
+        #define Block_reg_bspline_JacDetFromVelField 128                    // 49 regs
         #define Block_reg_spline_getDeformationFromDisplacement 512         // 19 regs
         #define Block_reg_bspline_JacobianGradient 384                      // 27 regs
         #define Block_reg_bspline_ApproxCorrectFolding 512                  // 31 regs
@@ -49,7 +49,7 @@
         #define Block_reg_bspline_getApproxBendingEnergyGradient 512        // 19 regs
         #define Block_reg_bspline_ApproxJacDet 448                          // 24 regs
         #define Block_reg_spline_cppComposition 416                         // 25 regs
-        #define Block_reg_bspline_JacDet 384                                // 41 regs
+        #define Block_reg_bspline_JacDet 192                                // 41 regs
         #define Block_reg_bspline_JacobianGradFromVel 512                   // 20 regs
         #define Block_reg_bspline_ApproxBendingEnergy 384                   // 39 regs
 
@@ -83,14 +83,14 @@
         #define Block_result_block 384                                      // 21 regs
         #define Block_target_block 512                                      // 15 regs
 
-        #define Block_reg_bspline_JacobianMatrixFromVel 384                 // 42 regs
+        #define Block_reg_bspline_JacobianMatrixFromVel 192                 // 42 regs - shared 12328
         #define Block_reg_bspline_PositionToIndices 448                     // 17 regs
         #define Block_reg_bspline_GetSquaredLogJacDet 512                   // 07 regs
         #define Block_reg_bspline_ApproxJacobianMatrix 320                  // 25 regs
-        #define Block_reg_bspline_ApproxJacDetFromVelField 320              // 49 regs
+        #define Block_reg_bspline_ApproxJacDetFromVelField 128              // 49 regs
         #define Block_reg_bspline_ApproxJacobianGradient 512                // 32 regs
-        #define Block_reg_bspline_JacobianMatrix 384                        // 41 regs
-        #define Block_reg_bspline_JacDetFromVelField 320                    // 49 regs
+        #define Block_reg_bspline_JacobianMatrix 192                        // 41 regs
+        #define Block_reg_bspline_JacDetFromVelField 128                    // 49 regs
         #define Block_reg_spline_getDeformationFromDisplacement 384         // 19 regs
         #define Block_reg_bspline_JacobianGradient 512                      // 27 regs
         #define Block_reg_bspline_ApproxCorrectFolding 512                  // 31 regs
@@ -102,7 +102,7 @@
         #define Block_reg_bspline_getApproxBendingEnergyGradient 384        // 19 regs
         #define Block_reg_bspline_ApproxJacDet 320                          // 24 regs
         #define Block_reg_spline_cppComposition 320                         // 25 regs
-        #define Block_reg_bspline_JacDet 384                                // 41 regs
+        #define Block_reg_bspline_JacDet 192                                // 41 regs
         #define Block_reg_bspline_JacobianGradFromVel 384                   // 20 regs
         #define Block_reg_bspline_ApproxBendingEnergy 384                   // 39 regs
 
@@ -137,7 +137,7 @@
     #define Block_result_block 343                                      // 21 regs
     #define Block_target_block 512                                      // 15 regs
 
-    #define Block_reg_bspline_JacobianMatrixFromVel 192                 // 42 regs
+    #define Block_reg_bspline_JacobianMatrixFromVel 192                 // 42 regs - shared 12328
     #define Block_reg_bspline_PositionToIndices 448                     // 17 regs
     #define Block_reg_bspline_GetSquaredLogJacDet 384                   // 07 regs
     #define Block_reg_bspline_ApproxJacobianMatrix 320                  // 25 regs
