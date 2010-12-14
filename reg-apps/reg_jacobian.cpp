@@ -119,6 +119,7 @@ int main(int argc, char **argv)
         fprintf(stderr,"** ERROR Error when reading the target image: %s\n",param->referenceImageName);
         return 1;
     }
+    reg_checkAndCorrectDimension(image);
 
     /* ******************* */
     /* READ TRANSFORMATION */
@@ -132,6 +133,7 @@ int main(int argc, char **argv)
             nifti_image_free(image);
             return 1;
         }
+        reg_checkAndCorrectDimension(controlPointImage);
     }
     else if(flag->inputDEFFlag){
         deformationFieldImage = nifti_image_read(param->inputDEFName,true);
@@ -140,6 +142,7 @@ int main(int argc, char **argv)
             nifti_image_free(image);
             return 1;
         }
+        reg_checkAndCorrectDimension(deformationFieldImage);
     }
     else{
         fprintf(stderr, "No transformation has been provided.\n");

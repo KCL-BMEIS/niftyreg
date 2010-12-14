@@ -281,11 +281,13 @@ int main(int argc, char **argv)
 		fprintf(stderr,"** ERROR Error when reading the target image: %s\n",param->targetImageName);
 		return 1;
 	}
+    reg_checkAndCorrectDimension(targetHeader);
 	nifti_image *sourceHeader = nifti_image_read(param->sourceImageName,false);
 	if(sourceHeader == NULL){
 		fprintf(stderr,"** ERROR Error when reading the source image: %s\n",param->sourceImageName);
 		return 1;
 	}
+    reg_checkAndCorrectDimension(sourceHeader);
 
 	/* Flag for 2D registration */
     if(sourceHeader->nz==1 || targetHeader->nz==1){
@@ -364,6 +366,7 @@ int main(int argc, char **argv)
             fprintf(stderr,"* ERROR Error when reading the target naask image: %s\n",param->targetMaskName);
             return 1;
         }
+        reg_checkAndCorrectDimension(targetMaskImage);
         /* check the dimension */
         for(int i=1; i<=targetHeader->dim[0]; i++){
             if(targetHeader->dim[i]!=targetMaskImage->dim[i]){

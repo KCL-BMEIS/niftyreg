@@ -171,6 +171,7 @@ int main(int argc, char **argv)
 		PetitUsage(argv[0]);
 		return 1;
     }
+    reg_checkAndCorrectDimension(targetImage);
 
     /* ****************************** */
     /* GENERATE THE DEFORMATION FIELD */
@@ -183,6 +184,7 @@ int main(int argc, char **argv)
             PetitUsage(argv[0]);
             return 1;
         }
+        reg_checkAndCorrectDimension(controlPointImage);
         // Allocate the deformation field
         nifti_image *deformationFieldImage = nifti_copy_nim_info(targetImage);
         deformationFieldImage->dim[0]=deformationFieldImage->ndim=5;
@@ -224,6 +226,7 @@ int main(int argc, char **argv)
 			PetitUsage(argv[0]);
 			return 1;
 		}
+        reg_checkAndCorrectDimension(secondControlPointImage);
 
 		// Here should be a check for the control point image. Does it suit the target image space.
 		//TODO
@@ -239,6 +242,7 @@ int main(int argc, char **argv)
 				PetitUsage(argv[0]);
 				return 1;
 			}
+            reg_checkAndCorrectDimension(firstControlPointImage);
 
 			// Create the deformation field image
 			deformationFieldImage = nifti_copy_nim_info(targetImage);
@@ -279,6 +283,7 @@ int main(int argc, char **argv)
 				PetitUsage(argv[0]);
 				return 1;
 			}
+            reg_checkAndCorrectDimension(deformationFieldImage);
 		}
 		
 		// Are the deformation field and the target image defined in the same space

@@ -157,6 +157,7 @@ int main(int argc, char **argv)
 		fprintf(stderr,"** ERROR Error when reading the target image: %s\n",param->inputImageName);
 		return 1;
 	}
+    reg_checkAndCorrectDimension(image);
 	
 	/* spatial gradient image */
 	if(flag->gradientImageFlag){
@@ -231,6 +232,7 @@ int main(int argc, char **argv)
                 fprintf(stderr,"** ERROR Error when reading the image to div: %s\n",param->divImageName);
             return 1;
         }
+        reg_checkAndCorrectDimension(image2);
         // Check image dimension
         if(image->dim[0]!=image2->dim[0] ||
            image->dim[1]!=image2->dim[1] ||
@@ -282,6 +284,7 @@ int main(int argc, char **argv)
             fprintf(stderr,"** ERROR Error when reading the image to add: %s\n",param->rmsImageName);
             return 1;
         }
+        reg_checkAndCorrectDimension(image2);
         // Check image dimension
         if(image->dim[0]!=image2->dim[0] ||
            image->dim[1]!=image2->dim[1] ||

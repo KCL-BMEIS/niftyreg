@@ -16,6 +16,10 @@
 #include <fstream>
 #include <limits>
 
+
+extern "C++"
+void reg_checkAndCorrectDimension(nifti_image *image);
+
 extern "C++"
 void reg_intensityRescale(	nifti_image *image,
                             float *newMin,
