@@ -118,7 +118,7 @@ __device__ void bendingEnergyMult(	float3 *XX,
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_freeForm_interpolatePosition(float4 *positionField)
+__global__ void reg_freeForm_deformationField_kernel(float4 *positionField)
 {
     const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
 	if(tid<c_ActiveVoxelNumber){
@@ -140,7 +140,7 @@ __global__ void _reg_freeForm_interpolatePosition(float4 *positionField)
 
         // Z basis values
         const unsigned short shareMemIndex = 4*threadIdx.x;
-        __shared__ float zBasis[Block_reg_freeForm_interpolatePosition*4];
+        __shared__ float zBasis[Block_reg_freeForm_deformationField*4];
         float relative = fabsf((float)z/gridVoxelSpacing.z-(float)nodeAnte.z);
         float FF= relative*relative;
         float FFF= FF*relative;
@@ -151,7 +151,7 @@ __global__ void _reg_freeForm_interpolatePosition(float4 *positionField)
         zBasis[shareMemIndex+3] = FFF/6.0f;
 
         // Y basis values
-        __shared__ float yBasis[Block_reg_freeForm_interpolatePosition*4];
+        __shared__ float yBasis[Block_reg_freeForm_deformationField*4];
         relative = fabsf((float)y/gridVoxelSpacing.y-(float)nodeAnte.y);
         FF= relative*relative;
         FFF= FF*relative;
@@ -219,7 +219,7 @@ __global__ void _reg_freeForm_interpolatePosition(float4 *positionField)
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_ApproxBendingEnergy_kernel(float *penaltyTerm)
+__global__ void reg_bspline_ApproxBendingEnergy_kernel(float *penaltyTerm)
 {
 	const int tid= blockIdx.x*blockDim.x + threadIdx.x;
 	if(tid<c_ControlPointNumber){
@@ -285,7 +285,7 @@ __global__ void _reg_bspline_ApproxBendingEnergy_kernel(float *penaltyTerm)
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_JacDet_kernel(float *jacobianMap)
+__global__ void reg_bspline_JacDet_kernel(float *jacobianMap)
 {
     const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_VoxelNumber){
@@ -307,8 +307,8 @@ __global__ void _reg_bspline_JacDet_kernel(float *jacobianMap)
 
         // Z basis values
         const unsigned short shareMemIndex = 4*threadIdx.x;
-        __shared__ float zBasis[Block_reg_bspline_Jacobian*4];
-        __shared__ float zFirst[Block_reg_bspline_Jacobian*4];
+        __shared__ float zBasis[Block_reg_bspline_JacDet*4];
+        __shared__ float zFirst[Block_reg_bspline_JacDet*4];
         float relative = fabsf((float)z/gridVoxelSpacing.z-(float)nodeAnte.z);
         float FF= relative*relative;
         float FFF= FF*relative;
@@ -323,8 +323,8 @@ __global__ void _reg_bspline_JacDet_kernel(float *jacobianMap)
         zFirst[shareMemIndex+3] = FF/2.0f;
 
         // Y basis values
-        __shared__ float yBasis[Block_reg_bspline_Jacobian*4];
-        __shared__ float yFirst[Block_reg_bspline_Jacobian*4];
+        __shared__ float yBasis[Block_reg_bspline_JacDet*4];
+        __shared__ float yFirst[Block_reg_bspline_JacDet*4];
         relative = fabsf((float)y/gridVoxelSpacing.y-(float)nodeAnte.y);
         FF= relative*relative;
         FFF= FF*relative;
@@ -471,7 +471,7 @@ __global__ void _reg_bspline_JacDet_kernel(float *jacobianMap)
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_ApproxJacDet_kernel(float *penaltyTerm)
+__global__ void reg_bspline_ApproxJacDet_kernel(float *penaltyTerm)
 {
     __shared__ float basisX[27];
     __shared__ float basisY[27];
@@ -565,7 +565,7 @@ __global__ void _reg_bspline_ApproxJacDet_kernel(float *penaltyTerm)
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_JacDetFromVelField_kernel( float *jacobianMap,
+__global__ void reg_bspline_JacDetFromVelField_kernel( float *jacobianMap,
                                                         float4 *displacementField_d)
 {
     const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
@@ -606,8 +606,8 @@ __global__ void _reg_bspline_JacDetFromVelField_kernel( float *jacobianMap,
 
             // Z basis values
             const unsigned short shareMemIndex = 4*threadIdx.x;
-            __shared__ float zBasis[Block_reg_bspline_Jacobian*4];
-            __shared__ float zFirst[Block_reg_bspline_Jacobian*4];
+            __shared__ float zBasis[Block_reg_bspline_JacDetFromVelField*4];
+            __shared__ float zFirst[Block_reg_bspline_JacDetFromVelField*4];
             float relative = fabsf(z/gridVoxelSpacing.z-(float)nodeAnte.z);
             float FF= relative*relative;
             float FFF= FF*relative;
@@ -622,8 +622,8 @@ __global__ void _reg_bspline_JacDetFromVelField_kernel( float *jacobianMap,
             zFirst[shareMemIndex+3] = FF/2.0f;
 
             // Y basis values
-            __shared__ float yBasis[Block_reg_bspline_Jacobian*4];
-            __shared__ float yFirst[Block_reg_bspline_Jacobian*4];
+            __shared__ float yBasis[Block_reg_bspline_JacDetFromVelField*4];
+            __shared__ float yFirst[Block_reg_bspline_JacDetFromVelField*4];
             relative = fabsf(y/gridVoxelSpacing.y-(float)nodeAnte.y);
             FF= relative*relative;
             FFF= FF*relative;
@@ -790,7 +790,7 @@ __global__ void _reg_bspline_JacDetFromVelField_kernel( float *jacobianMap,
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_ApproxJacDetFromVelField_kernel(   float *jacobianMap,
+__global__ void reg_bspline_ApproxJacDetFromVelField_kernel(   float *jacobianMap,
                                                                 float4 *displacementField_d)
 {
     const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
@@ -828,8 +828,8 @@ __global__ void _reg_bspline_ApproxJacDetFromVelField_kernel(   float *jacobianM
 
             // Z basis values
             const unsigned short shareMemIndex = 4*threadIdx.x;
-            __shared__ float zBasis[Block_reg_bspline_Jacobian*4];
-            __shared__ float zFirst[Block_reg_bspline_Jacobian*4];
+            __shared__ float zBasis[Block_reg_bspline_ApproxJacDetFromVelField*4];
+            __shared__ float zFirst[Block_reg_bspline_ApproxJacDetFromVelField*4];
             float relative = fabsf(z-(float)nodeAnte.z);
             float FF= relative*relative;
             float FFF= FF*relative;
@@ -844,8 +844,8 @@ __global__ void _reg_bspline_ApproxJacDetFromVelField_kernel(   float *jacobianM
             zFirst[shareMemIndex+3] = FF/2.0f;
 
             // Y basis values
-            __shared__ float yBasis[Block_reg_bspline_Jacobian*4];
-            __shared__ float yFirst[Block_reg_bspline_Jacobian*4];
+            __shared__ float yBasis[Block_reg_bspline_ApproxJacDetFromVelField*4];
+            __shared__ float yFirst[Block_reg_bspline_ApproxJacDetFromVelField*4];
             relative = fabsf(y-(float)nodeAnte.y);
             FF= relative*relative;
             FFF= FF*relative;
@@ -1015,7 +1015,7 @@ __global__ void _reg_bspline_ApproxJacDetFromVelField_kernel(   float *jacobianM
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_JacobianMatrix_kernel(float *jacobianMatrices, float *jacobianDeterminant)
+__global__ void reg_bspline_JacobianMatrix_kernel(float *jacobianMatrices, float *jacobianDeterminant)
 {
     const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_VoxelNumber){
@@ -1037,8 +1037,8 @@ __global__ void _reg_bspline_JacobianMatrix_kernel(float *jacobianMatrices, floa
 
         // Z basis values
         const unsigned short shareMemIndex = 4*threadIdx.x;
-        __shared__ float zBasis[Block_reg_bspline_Jacobian*4];
-        __shared__ float zFirst[Block_reg_bspline_Jacobian*4];
+        __shared__ float zBasis[Block_reg_bspline_JacobianMatrix*4];
+        __shared__ float zFirst[Block_reg_bspline_JacobianMatrix*4];
         float relative = fabsf((float)z/gridVoxelSpacing.z-(float)nodeAnte.z);
         float FF= relative*relative;
         float FFF= FF*relative;
@@ -1053,8 +1053,8 @@ __global__ void _reg_bspline_JacobianMatrix_kernel(float *jacobianMatrices, floa
         zFirst[shareMemIndex+3] = FF/2.0f;
 
         // Y basis values
-        __shared__ float yBasis[Block_reg_bspline_Jacobian*4];
-        __shared__ float yFirst[Block_reg_bspline_Jacobian*4];
+        __shared__ float yBasis[Block_reg_bspline_JacobianMatrix*4];
+        __shared__ float yFirst[Block_reg_bspline_JacobianMatrix*4];
         relative = fabsf((float)y/gridVoxelSpacing.y-(float)nodeAnte.y);
         FF= relative*relative;
         FFF= FF*relative;
@@ -1217,7 +1217,7 @@ __global__ void _reg_bspline_JacobianMatrix_kernel(float *jacobianMatrices, floa
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_ApproxJacobianMatrix_kernel(float *matrices, float *determinant)
+__global__ void reg_bspline_ApproxJacobianMatrix_kernel(float *matrices, float *determinant)
 {
     __shared__ float basisX[27];
     __shared__ float basisY[27];
@@ -1330,7 +1330,7 @@ __global__ void _reg_bspline_ApproxJacobianMatrix_kernel(float *matrices, float 
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_JacobianMatrixFromVel_kernel(  float *jacobianMatrices,
+__global__ void reg_bspline_JacobianMatrixFromVel_kernel(  float *jacobianMatrices,
                                                             float *jacobianDeterminant,
                                                             float4 *voxelPosition_array)
 {
@@ -1357,8 +1357,8 @@ __global__ void _reg_bspline_JacobianMatrixFromVel_kernel(  float *jacobianMatri
 
         // Z basis values
         const unsigned short shareMemIndex = 4*threadIdx.x;
-        __shared__ float zBasis[Block_reg_bspline_Jacobian*4];
-        __shared__ float zFirst[Block_reg_bspline_Jacobian*4];
+        __shared__ float zBasis[Block_reg_bspline_JacobianMatrixFromVel*4];
+        __shared__ float zFirst[Block_reg_bspline_JacobianMatrixFromVel*4];
         float relative = fabsf(voxelPosition.z/gridVoxelSpacing.z-(float)nodeAnte.z);
         float FF= relative*relative;
         float FFF= FF*relative;
@@ -1373,8 +1373,8 @@ __global__ void _reg_bspline_JacobianMatrixFromVel_kernel(  float *jacobianMatri
         zFirst[shareMemIndex+3] = FF/2.0f;
 
         // Y basis values
-        __shared__ float yBasis[Block_reg_bspline_Jacobian*4];
-        __shared__ float yFirst[Block_reg_bspline_Jacobian*4];
+        __shared__ float yBasis[Block_reg_bspline_JacobianMatrixFromVel*4];
+        __shared__ float yFirst[Block_reg_bspline_JacobianMatrixFromVel*4];
         relative = fabsf(voxelPosition.y/gridVoxelSpacing.y-(float)nodeAnte.y);
         FF= relative*relative;
         FFF= FF*relative;
@@ -1553,7 +1553,7 @@ __global__ void _reg_bspline_JacobianMatrixFromVel_kernel(  float *jacobianMatri
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_JacobianGradient_kernel(float4 *gradient)
+__global__ void reg_bspline_JacobianGradient_kernel(float4 *gradient)
 {
     const int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_ControlPointNumber){
@@ -1703,7 +1703,7 @@ __global__ void _reg_bspline_JacobianGradient_kernel(float4 *gradient)
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_ApproxJacobianGradient_kernel(float4 *gradient)
+__global__ void reg_bspline_ApproxJacobianGradient_kernel(float4 *gradient)
 {
     const int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_ControlPointNumber){
@@ -1830,7 +1830,7 @@ __global__ void _reg_bspline_ApproxJacobianGradient_kernel(float4 *gradient)
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_CorrectFolding_kernel(float4 *controlPointArray)
+__global__ void reg_bspline_CorrectFolding_kernel(float4 *controlPointArray)
 {
     const int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_ControlPointNumber){
@@ -1990,7 +1990,7 @@ __global__ void _reg_bspline_CorrectFolding_kernel(float4 *controlPointArray)
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_ApproxCorrectFolding_kernel(float4 *controlPointArray)
+__global__ void reg_bspline_ApproxCorrectFolding_kernel(float4 *controlPointArray)
 {
     const int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_ControlPointNumber){
@@ -2127,7 +2127,7 @@ __global__ void _reg_bspline_ApproxCorrectFolding_kernel(float4 *controlPointArr
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_storeApproxBendingEnergy_kernel(float3 *beValues)
+__global__ void reg_bspline_storeApproxBendingEnergy_kernel(float3 *beValues)
 {
 	const int tid= blockIdx.x*blockDim.x + threadIdx.x;
 	if(tid<c_ControlPointNumber){
@@ -2194,7 +2194,7 @@ __global__ void _reg_bspline_storeApproxBendingEnergy_kernel(float3 *beValues)
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_getApproxBendingEnergyGradient_kernel(  float3 *bendingEnergyValue,
+__global__ void reg_bspline_getApproxBendingEnergyGradient_kernel(  float3 *bendingEnergyValue,
                                                                     float4 *nodeNMIGradientArray_d)
 {
     __shared__ float basisXX[27];
@@ -2287,7 +2287,7 @@ __global__ void _reg_bspline_getApproxBendingEnergyGradient_kernel(  float3 *ben
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_spline_cppComposition_kernel(float4 *toUpdateArray)
+__global__ void reg_spline_cppComposition_kernel(float4 *toUpdateArray)
 {
     const int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_ControlPointNumber){
@@ -2390,7 +2390,7 @@ __global__ void _reg_spline_cppComposition_kernel(float4 *toUpdateArray)
 
 /* *************************************************************** */
 /* *************************************************************** */
-__global__ void _reg_spline_cppDeconvolve_kernel(   float3 *temporaryGridImage_d,
+__global__ void reg_spline_cppDeconvolve_kernel(   float3 *temporaryGridImage_d,
                                                     float4 *outputControlPointArray_d,
                                                     int axis)
 {
@@ -2473,7 +2473,7 @@ __global__ void _reg_spline_cppDeconvolve_kernel(   float3 *temporaryGridImage_d
 }
 /* *************************************************************** */
 /* *************************************************************** */
-__global__ void _reg_spline_getDeformationFromDisplacement_kernel(float4 *imageArray_d)
+__global__ void reg_spline_getDeformationFromDisplacement_kernel(float4 *imageArray_d)
 {
     const int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_ControlPointNumber){
@@ -2507,7 +2507,7 @@ __global__ void _reg_spline_getDeformationFromDisplacement_kernel(float4 *imageA
 }
 /* *************************************************************** */
 /* *************************************************************** */
-__global__ void _reg_bspline_SetJacDetToOne_kernel(float *array)
+__global__ void reg_bspline_SetJacDetToOne_kernel(float *array)
 {
     const int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_VoxelNumber){
@@ -2516,7 +2516,7 @@ __global__ void _reg_bspline_SetJacDetToOne_kernel(float *array)
 }
 /* *************************************************************** */
 
-__global__ void _reg_bspline_GetSquaredLogJacDet_kernel(float *array)
+__global__ void reg_bspline_GetSquaredLogJacDet_kernel(float *array)
 {
     const int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_VoxelNumber){
@@ -2528,7 +2528,7 @@ __global__ void _reg_bspline_GetSquaredLogJacDet_kernel(float *array)
 /* *************************************************************** */
 /* *************************************************************** */
 
-__global__ void _reg_bspline_JacobianGradFromVel_kernel(float4 *gradientImageArray_d)
+__global__ void reg_bspline_JacobianGradFromVel_kernel(float4 *gradientImageArray_d)
 {
     const int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_ControlPointNumber){
@@ -2677,7 +2677,7 @@ __global__ void _reg_bspline_JacobianGradFromVel_kernel(float4 *gradientImageArr
 
 /* *************************************************************** */
 /* *************************************************************** */
-__global__ void _reg_bspline_PositionToIndices_kernel(float4 *position)
+__global__ void reg_bspline_PositionToIndices_kernel(float4 *position)
 {
     const int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_VoxelNumber){
