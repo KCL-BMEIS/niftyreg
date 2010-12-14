@@ -94,7 +94,7 @@
         #define Block_reg_spline_getDeformationFromDisplacement 384         // 19 regs
         #define Block_reg_bspline_JacobianGradient 512                      // 27 regs
         #define Block_reg_bspline_ApproxCorrectFolding 512                  // 31 regs
-        #define Block_reg_freeForm_deformationField 512                     // 30 regs
+        #define Block_reg_freeForm_deformationField 480                     // 30 regs
         #define Block_reg_bspline_CorrectFolding 512                        // 27 regs
         #define Block_reg_spline_cppDeconvolve 448                          // 18 regs
         #define Block_reg_bspline_storeApproxBendingEnergy 384              // 39 regs
