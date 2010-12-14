@@ -156,6 +156,7 @@ int main(int argc, char **argv)
 		fprintf(stderr,"** ERROR Error when reading the target image: %s\n",param->targetImageName);
 		return 1;
 	}
+    reg_checkAndCorrectDimension(targetImage);
 	
 	/* Read the source image */
     nifti_image *sourceImage = nifti_image_read(param->sourceImageName,true);
@@ -163,6 +164,7 @@ int main(int argc, char **argv)
 		fprintf(stderr,"** ERROR Error when reading the source image: %s\n",param->sourceImageName);
 		return 1;
 	}
+    reg_checkAndCorrectDimension(sourceImage);
 
 	/* *********************************** */
 	/* DISPLAY THE REGISTRATION PARAMETERS */
@@ -195,6 +197,7 @@ int main(int argc, char **argv)
             fprintf(stderr,"** ERROR Error when reading the control point image: %s\n",param->inputCPPName);
             return 1;
         }
+        reg_checkAndCorrectDimension(controlPointImage);
     }
     else if(flag->inputDEFFlag){
 #ifndef NDEBUG
@@ -205,6 +208,7 @@ int main(int argc, char **argv)
             fprintf(stderr,"** ERROR Error when reading the deformation field image: %s\n",param->inputDEFName);
             return 1;
         }
+        reg_checkAndCorrectDimension(deformationFieldImage);
     }
     else if(flag->affineMatrixFlag){
 #ifndef NDEBUG

@@ -27,6 +27,19 @@ int round(PrecisionType x)
 
 /* *************************************************************** */
 /* *************************************************************** */
+void reg_checkAndCorrectDimension(nifti_image *image)
+{
+
+    if(image->nx<1) image->dim[1]=image->nx=1;
+    if(image->ny<1) image->dim[2]=image->ny=1;
+    if(image->nz<1) image->dim[3]=image->nz=1;
+    if(image->nt<1) image->dim[4]=image->nt=1;
+    if(image->nu<1) image->dim[5]=image->nu=1;
+    if(image->nv<1) image->dim[6]=image->nv=1;
+    if(image->nw<1) image->dim[7]=image->nw=1;
+}
+/* *************************************************************** */
+/* *************************************************************** */
 template<class DTYPE>
 void reg_intensityRescale2(	nifti_image *image,
                             float *newMin,

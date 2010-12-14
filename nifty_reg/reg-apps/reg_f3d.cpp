@@ -313,6 +313,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "Error when reading the reference image %s\n",referenceName);
         return 1;
     }
+    reg_checkAndCorrectDimension(referenceImage);
     // Read the floating image
     if(floatingName==NULL){
         fprintf(stderr, "Error. No floating image has been defined\n");
@@ -323,6 +324,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "Error when reading the floating image %s\n",floatingName);
         return 1;
     }
+    reg_checkAndCorrectDimension(floatingImage);
     // Read the mask image
     nifti_image *referenceMaskImage=NULL;
     if(referenceMaskName!=NULL){
@@ -331,6 +333,7 @@ int main(int argc, char **argv)
             fprintf(stderr, "Error when reading the reference mask image %s\n",referenceMaskName);
             return 1;
         }
+        reg_checkAndCorrectDimension(referenceMaskImage);
     }
     // Read the input control point grid image
     nifti_image *controlPointGridImage=NULL;
@@ -340,6 +343,7 @@ int main(int argc, char **argv)
             fprintf(stderr, "Error when reading the input control point grid image %s\n",inputControlPointGridName);
             return 1;
         }
+        reg_checkAndCorrectDimension(controlPointGridImage);
     }
     // Read the affine transformation
     mat44 *affineTransformation=NULL;
@@ -359,24 +363,6 @@ int main(int argc, char **argv)
                                 affineTransformationName,
                                 flirtAffine);
     }
-
-
-    // Check the dimemsion
-    if(referenceImage->nx<1) referenceImage->dim[1]=referenceImage->nx=1;
-    if(referenceImage->ny<1) referenceImage->dim[2]=referenceImage->ny=1;
-    if(referenceImage->nz<1) referenceImage->dim[3]=referenceImage->nz=1;
-    if(referenceImage->nt<1) referenceImage->dim[4]=referenceImage->nt=1;
-    if(referenceImage->nu<1) referenceImage->dim[5]=referenceImage->nu=1;
-    if(referenceImage->nv<1) referenceImage->dim[6]=referenceImage->nv=1;
-    if(referenceImage->nw<1) referenceImage->dim[7]=referenceImage->nw=1;
-
-    if(floatingImage->nx<1) floatingImage->dim[1]=floatingImage->nx=1;
-    if(floatingImage->ny<1) floatingImage->dim[2]=floatingImage->ny=1;
-    if(floatingImage->nz<1) floatingImage->dim[3]=floatingImage->nz=1;
-    if(floatingImage->nt<1) floatingImage->dim[4]=floatingImage->nt=1;
-    if(floatingImage->nu<1) floatingImage->dim[5]=floatingImage->nu=1;
-    if(floatingImage->nv<1) floatingImage->dim[6]=floatingImage->nv=1;
-    if(floatingImage->nw<1) floatingImage->dim[7]=floatingImage->nw=1;
 
     // Create the reg_f3d object
     reg_f3d<PrecisionTYPE> *REG=NULL;
