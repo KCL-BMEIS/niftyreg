@@ -8,7 +8,6 @@
  *  See the LICENSE.txt file in the nifty_reg root folder
  *
  */
-#ifdef _USE_CUDA
 
 #ifndef _REG_AFFINETRANSFORMATION_KERNELS_CU
 #define _REG_AFFINETRANSFORMATION_KERNELS_CU
@@ -24,7 +23,7 @@ texture<float4, 1, cudaReadModeElementType> txAffineTransformation;
 /* *************************************************************** */
 /* *************************************************************** */
 __global__
-void reg_affine_positionField_kernel(float4 *PositionFieldArray)
+void reg_affine_deformationField_kernel(float4 *PositionFieldArray)
 {
 	const int tid= blockIdx.x*blockDim.x + threadIdx.x;
 	if(tid<c_VoxelNumber){
@@ -56,5 +55,4 @@ void reg_affine_positionField_kernel(float4 *PositionFieldArray)
 /* *************************************************************** */
 /* *************************************************************** */
 
-#endif
 #endif

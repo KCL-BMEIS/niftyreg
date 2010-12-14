@@ -165,7 +165,7 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW_kernel(float4 *voxelNMIGradi
 }
 
 // Multichannel NMI gradient. Hardcoded for 2x2 NMI channels.
-__global__ void reg_getVoxelBasedNMIGradientUsingPW_kernel2x2(float4 *voxelNMIGradientArray_d)
+__global__ void reg_getVoxelBasedNMIGradientUsingPW2x2_kernel(float4 *voxelNMIGradientArray_d)
 {
     const int tid=blockIdx.x*blockDim.x+threadIdx.x;
     if(tid<c_ActiveVoxelNumber){

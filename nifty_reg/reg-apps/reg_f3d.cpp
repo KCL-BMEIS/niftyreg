@@ -381,7 +381,7 @@ int main(int argc, char **argv)
     // Create the reg_f3d object
     reg_f3d<PrecisionTYPE> *REG=NULL;
 #ifdef _USE_CUDA
-    int gpuMemoryAvailable = 0;
+    unsigned int gpuMemoryAvailable = 0;
     if(useGPU){
         if((referenceImage->dim[4]==1&&floatingImage->dim[4]==1) || (referenceImage->dim[4]==2&&floatingImage->dim[4]==2)){
 
@@ -417,7 +417,7 @@ int main(int argc, char **argv)
 #ifdef NDEBUG
             if(verbose==true){
 #endif
-                printf("[NiftyReg F3D DEBUG] Graphical card memory[%i/%i] = %iMo avail\n", device+1, device_count,
+                printf("[NiftyReg F3D] Graphical card memory[%i/%i] = %iMo avail\n", device+1, device_count,
                 (int)floor(deviceProp.totalGlobalMem/1000000.0));
 #ifdef NDEBUG
             }
@@ -547,7 +547,7 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
     if(useGPU && checkMem){
         int requiredMemory = REG->CheckMemoryMB_f3d();
-        printf("[NiftyReg F3D] The registration require %i MB on the GPU and %i MB are available\n", requiredMemory, gpuMemoryAvailable/1000000);
+        printf("[NiftyReg F3D] The registration require %i MB on the GPU and %i MB are available\n", requiredMemory, (int)(gpuMemoryAvailable/1000000.f));
     }
     else{
 #endif

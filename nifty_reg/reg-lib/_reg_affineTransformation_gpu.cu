@@ -54,7 +54,7 @@ void reg_affine_positionField_gpu(	mat44 *affineMatrix,
 	dim3 B1(Block_reg_affine_deformationField,1,1);
 	dim3 G1(Grid_reg_affine_deformationField,1,1);
 
-	reg_affine_positionField_kernel <<< G1, B1 >>> (*array_d);
+    reg_affine_deformationField_kernel <<< G1, B1 >>> (*array_d);
 	CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
     printf("[NiftyReg CUDA DEBUG] reg_affine_deformationField_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
