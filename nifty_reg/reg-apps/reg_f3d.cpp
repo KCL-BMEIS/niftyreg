@@ -380,7 +380,7 @@ int main(int argc, char **argv)
             struct cudaDeviceProp deviceProp;
             int device=cardNumber;
             int device_count = 0;
-            if(cardNumber>-1){
+            if(cardNumber!=-1){
                 // following code is from cutGetMaxGflopsDeviceId()
                 cudaGetDeviceCount( &device_count );
                 int max_gflops_device = 0;
