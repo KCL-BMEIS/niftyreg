@@ -160,6 +160,7 @@ int main(int argc, char **argv)
     bool useSSD=false;
     bool useGPU=false;
     bool checkMem=false;
+    int cardNumber=-1;
 	
 	/* read the input parameter */
     for(int i=1;i<argc;i++){
@@ -280,6 +281,9 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-gpu") == 0){
             useGPU=true;
         }
+        else if(strcmp(argv[i], "-card") == 0){
+            cardNumber=atoi(argv[++i]);
+        }
         else if(strcmp(argv[i], "-mem") == 0){
             checkMem=true;
         }
@@ -374,26 +378,28 @@ int main(int argc, char **argv)
             // The CUDA card is setup
 
             struct cudaDeviceProp deviceProp;
-            // following code is from cutGetMaxGflopsDeviceId()
+            int device=cardNumber;
             int device_count = 0;
-            cudaGetDeviceCount( &device_count );
-            int max_gflops_device = 0;
-            int max_gflops = 0;
-            int current_device = 0;
-            cudaGetDeviceProperties( &deviceProp, current_device );
-            max_gflops = deviceProp.multiProcessorCount * deviceProp.clockRate;
-            ++current_device;
-            while( current_device < device_count ){
+            if(cardNumber>-1){
+                // following code is from cutGetMaxGflopsDeviceId()
+                cudaGetDeviceCount( &device_count );
+                int max_gflops_device = 0;
+                int max_gflops = 0;
+                int current_device = 0;
                 cudaGetDeviceProperties( &deviceProp, current_device );
-                int gflops = deviceProp.multiProcessorCount * deviceProp.clockRate;
-                if( gflops > max_gflops ){
-                    max_gflops = gflops;
-                    max_gflops_device = current_device;
-                }
+                max_gflops = deviceProp.multiProcessorCount * deviceProp.clockRate;
                 ++current_device;
+                while( current_device < device_count ){
+                    cudaGetDeviceProperties( &deviceProp, current_device );
+                    int gflops = deviceProp.multiProcessorCount * deviceProp.clockRate;
+                    if( gflops > max_gflops ){
+                        max_gflops = gflops;
+                        max_gflops_device = current_device;
+                    }
+                    ++current_device;
+                }
+                device = max_gflops_device;
             }
-            const int device = max_gflops_device;
-
             CUDA_SAFE_CALL(cudaSetDevice( device ));
             CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, device ));
             if (deviceProp.major < 1){
@@ -403,7 +409,7 @@ int main(int argc, char **argv)
 #ifdef NDEBUG
             if(verbose==true){
 #endif
-                printf("[NiftyReg F3D] Graphical card memory[%i/%i] = %iMo avail\n", device+1, device_count,
+                printf("[NiftyReg F3D] Graphical card memory[%i] = %iMo avail\n", device+1, device_count,
                 (int)floor(deviceProp.totalGlobalMem/1000000.0));
 #ifdef NDEBUG
             }
