@@ -378,11 +378,11 @@ int main(int argc, char **argv)
             // The CUDA card is setup
 
             struct cudaDeviceProp deviceProp;
-            int device=cardNumber;
             int device_count = 0;
-            if(cardNumber!=-1){
+            cudaGetDeviceCount( &device_count );
+            int device=cardNumber;
+            if(cardNumber==-1){
                 // following code is from cutGetMaxGflopsDeviceId()
-                cudaGetDeviceCount( &device_count );
                 int max_gflops_device = 0;
                 int max_gflops = 0;
                 int current_device = 0;
@@ -409,7 +409,7 @@ int main(int argc, char **argv)
 #ifdef NDEBUG
             if(verbose==true){
 #endif
-                printf("[NiftyReg F3D] Graphical card memory[%i] = %iMo avail\n", device+1, device_count,
+                printf("[NiftyReg F3D] Graphical card memory[%i/%i] = %iMo avail\n", device+1, device_count,
                 (int)floor(deviceProp.totalGlobalMem/1000000.0));
 #ifdef NDEBUG
             }
