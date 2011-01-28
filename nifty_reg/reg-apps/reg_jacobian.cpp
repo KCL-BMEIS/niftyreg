@@ -177,6 +177,8 @@ int main(int argc, char **argv)
         // Export the Jacobian determinant amp
         if(flag->jacobianMapFlag){
             nifti_set_filenames(jacobianImage, param->jacobianMapName, 0, 0);
+            memset(jacobianImage->descrip, 0, 80);
+            strcpy (jacobianImage->descrip,"Jacobian determinant map created using NiftyReg");
             nifti_image_write(jacobianImage);
             printf("Jacobian map image has been saved: %s\n", param->jacobianMapName);
         }
@@ -187,6 +189,8 @@ int main(int argc, char **argv)
                 jacPtr++;
             }
             nifti_set_filenames(jacobianImage, param->logJacobianMapName, 0, 0);
+            memset(jacobianImage->descrip, 0, 80);
+            strcpy (jacobianImage->descrip,"Jacobian determinant log map created using NiftyReg");
             nifti_image_write(jacobianImage);
             printf("Jacobian map image (log) has been saved: %s\n", param->logJacobianMapName);
         }
@@ -221,6 +225,8 @@ int main(int argc, char **argv)
 
         // Export the Jacobian matrix image
         nifti_set_filenames(jacobianImage, param->jacobianMatrixName, 0, 0);
+        strcpy (jacobianImage->descrip,"Jacobian determinant matrix created using NiftyReg");
+        nifti_image_write(jacobianImage);
         nifti_image_write(jacobianImage);
         printf("Jacobian map image has been saved: %s\n", param->jacobianMatrixName);
         nifti_image_free(jacobianImage);
