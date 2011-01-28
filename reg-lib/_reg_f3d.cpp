@@ -1508,7 +1508,7 @@ int reg_f3d<T>::Run_f3d()
     if(this->verbose){
 #endif
         printf("[NiftyReg F3D] **************************************************\n");
-        printf("[NiftyReg F3D] Current level: %i / %i\n", level+1, this->levelToPerform);
+        printf("[NiftyReg F3D] Current level: %i / %i\n", level+1, this->levelNumber);
         printf("[NiftyReg F3D] Current reference image\n");
         printf("[NiftyReg F3D] \t* image dimension: %i x %i x %i x %i\n",
                this->currentReference->nx, this->currentReference->ny,

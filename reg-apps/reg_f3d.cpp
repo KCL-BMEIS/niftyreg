@@ -236,10 +236,10 @@ int main(int argc, char **argv)
 		else if(strcmp(argv[i], "-noAppJL") == 0){
             jacobianLogApproximation=false;
         }
-        else if(strcmp(argv[i], "-smoT") == 0){
+        else if(strcmp(argv[i], "-smooT") == 0){
             referenceSmoothingSigma=(PrecisionTYPE)(atof(argv[++i]));
 		}
-        else if(strcmp(argv[i], "-smoS") == 0){
+        else if(strcmp(argv[i], "-smooS") == 0){
             floatingSmoothingSigma=(PrecisionTYPE)(atof(argv[++i]));
         }
         else if(strcmp(argv[i], "-tLwTh") == 0){
@@ -549,6 +549,8 @@ int main(int argc, char **argv)
         nifti_image *outputControlPointGridImage = REG->GetControlPointPositionImage();
         if(outputControlPointGridName==NULL) outputControlPointGridName=(char *)"outputCPP.nii";
         nifti_set_filenames(outputControlPointGridImage, outputControlPointGridName, 0, 0);
+        memset(outputControlPointGridImage->descrip, 0, 80);
+        strcpy (outputControlPointGridImage->descrip,"Control point position from NiftyReg (reg_f3d)");
         nifti_image_write(outputControlPointGridImage);
         nifti_image_free(outputControlPointGridImage);outputControlPointGridImage=NULL;
 
@@ -556,6 +558,8 @@ int main(int argc, char **argv)
         nifti_image *outputWarpedImage = REG->GetWarpedImage();
         if(outputWarpedName==NULL) outputWarpedName=(char *)"outputResult.nii";
         nifti_set_filenames(outputWarpedImage, outputWarpedName, 0, 0);
+        memset(outputWarpedImage->descrip, 0, 80);
+        strcpy (outputWarpedImage->descrip,"Warped image using NiftyReg (reg_f3d)");
         nifti_image_write(outputWarpedImage);
         nifti_image_free(outputWarpedImage);outputWarpedImage=NULL;
 #ifdef _USE_CUDA

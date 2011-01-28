@@ -305,6 +305,8 @@ int main(int argc, char **argv)
                                         inter,
                                         0);
         nifti_set_filenames(resultImage, param->outputResultName, 0, 0);
+        memset(resultImage->descrip, 0, 80);
+        strcpy (resultImage->descrip,"Warped image using NiftyReg (reg_f3d)");
         nifti_image_write(resultImage);
         printf("Resampled image has been saved: %s\n", param->outputResultName);
         nifti_image_free(resultImage);
@@ -355,6 +357,8 @@ int main(int argc, char **argv)
                                         1,
                                        0);
         nifti_set_filenames(resultImage, param->outputBlankName, 0, 0);
+        memset(resultImage->descrip, 0, 80);
+        strcpy (resultImage->descrip,"Warped regular grid using NiftyReg (reg_f3d)");
         nifti_image_write(resultImage);
         nifti_image_free(resultImage);
         nifti_image_free(gridImage);
