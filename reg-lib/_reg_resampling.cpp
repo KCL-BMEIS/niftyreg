@@ -851,15 +851,15 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 								PrecisionTYPE bgValue)
 {
 	if(sourceImage->datatype != resultImage->datatype){
-		printf("err:\treg_resampleSourceImage\tSource and result image should have the same data type\n");
-		printf("err:\treg_resampleSourceImage\tNothing has been done\n");
-		return;
+        printf("NiftyReg ERROR] reg_resampleSourceImage\tSource and result image should have the same data type\n");
+        printf("NiftyReg ERROR] reg_resampleSourceImage\tNothing has been done\n");
+        exit(1);
 	}
 
     if(sourceImage->nt != resultImage->nt){
-        printf("err:\treg_resampleSourceImage\tThe source and result images have different dimension along the time axis\n");
-        printf("err:\treg_resampleSourceImage\tNothing has been done\n");
-        return;
+        printf("[NiftyReg ERROR] reg_resampleSourceImage\tThe source and result images have different dimension along the time axis\n");
+        printf("NiftyReg ERROR] reg_resampleSourceImage\tNothing has been done\n");
+        exit(1);
     }
 
     // a mask array is created if no mask is specified

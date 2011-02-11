@@ -511,8 +511,11 @@ int main(int argc, char **argv)
             positionFieldImage->data = (void *)calloc(positionFieldImage->nvox, positionFieldImage->nbyper);
 		
 		/* allocate the result image */
-		nifti_image *resultImage = nifti_copy_nim_info(targetImage);
-		resultImage->datatype = sourceImage->datatype;
+        nifti_image *resultImage = nifti_copy_nim_info(targetImage);
+        resultImage->datatype = sourceImage->datatype;
+        resultImage->dim[0] = sourceImage->dim[0];
+        resultImage->dim[4] = resultImage->nt = sourceImage->nt;
+        resultImage->nvox=resultImage->nx*resultImage->ny*resultImage->nz*resultImage->nt;
 		resultImage->nbyper = sourceImage->nbyper;
 #ifdef _USE_CUDA
 		if(flag->useGPUFlag){
@@ -544,7 +547,7 @@ int main(int argc, char **argv)
         initialise_block_matching_method(   targetImage,
                                             &blockMatchingParams,
                                             percentageOfBlockToUse,    // percentage of block kept
-                                            param->inlier_lts,              // percentage of inlier in the optimisation process
+                                            param->inlier_lts,         // percentage of inlier in the optimisation process
                                             targetMask,
                                             flag->useGPUFlag);
 
