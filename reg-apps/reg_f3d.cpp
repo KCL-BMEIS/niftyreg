@@ -10,6 +10,7 @@
  */
 
 #include "_reg_f3d.h"
+#include "_reg_f3d2.h"
 #ifdef _USE_CUDA
     #include "_reg_f3d_gpu.h"
 #endif
@@ -21,7 +22,6 @@
 #endif
 
 #define PrecisionTYPE float
-
 
 void PetitUsage(char *exec)
 {
@@ -87,10 +87,16 @@ void Usage(char *exec)
 //    printf("\t-nopy\t\t\tDo not use a pyramidal approach [no]\n");
 //    printf("\t-ssd\t\t\tTo use the SSD as the similiarity measure [Experimental]\n");
 
+    printf("\n*** F3D2 options:\n");
+    printf("\t-vel <filename>\t\tFilename of velocity field grid [none]\n");
+    printf("\t-invel <filename>\tFilename of velocity field grid input\n\t\t\t\tThe coarse spacing is defined by this file.\n");
+    printf("\t-step <int>\tNumber of composition step [10].\n");
+
     printf("\n*** Other options:\n");
     printf("\t-smoothGrad <float>\tTo smooth the metric derivative (in mm) [0]\n");
     printf("\t-comp\t\t\tTo compose the gradient image instead of adding it during the optimisation scheme\n");
     printf("\t-voff\t\t\tTo turn verbose off\n");
+
 
 
 #ifdef _USE_CUDA
@@ -158,9 +164,14 @@ int main(int argc, char **argv)
     bool useComposition=false;
     bool useConjugate=true;
     bool useSSD=false;
+#ifdef _USE_CUDA
     bool useGPU=false;
     bool checkMem=false;
     int cardNumber=-1;
+#endif
+
+    int stepNumber=-1;
+    bool useVel=false;
 	
 	/* read the input parameter */
     for(int i=1;i<argc;i++){
@@ -185,19 +196,29 @@ int main(int argc, char **argv)
 		else if(strcmp(argv[i], "-affFlirt") == 0){
             affineTransformationName=argv[++i];
             flirtAffine=1;
-		}
+        }
         else if(strcmp(argv[i], "-incpp") == 0){
             inputControlPointGridName=argv[++i];
+        }
+        else if(strcmp(argv[i], "-invel") == 0){
+            inputControlPointGridName=argv[++i];
+            useVel=true;
         }
         else if(strcmp(argv[i], "-tmask") == 0){
             referenceMaskName=argv[++i];
         }
         else if(strcmp(argv[i], "-result") == 0){
             outputWarpedName=argv[++i];
-		}
-		else if(strcmp(argv[i], "-cpp") == 0){
+        }
+        else if(strcmp(argv[i], "-cpp") == 0){
             outputControlPointGridName=argv[++i];
-		}
+        }
+        else if(strcmp(argv[i], "-vel") == 0){
+            outputControlPointGridName=argv[++i];
+            useVel=true;
+            if(outputControlPointGridName==NULL)
+                outputControlPointGridName="outputVel.nii";
+        }
 		else if(strcmp(argv[i], "-maxit") == 0){
             maxiterationNumber=atoi(argv[++i]);
 		}
@@ -258,7 +279,7 @@ int main(int argc, char **argv)
             floatingThresholdUp[atoi(argv[i+1])]=(PrecisionTYPE)(atof(argv[i+2]));
             i+=2;
         }
-        else if(strcmp(argv[i], "-smoGrad") == 0){
+        else if(strcmp(argv[i], "-smoothGrad") == 0){
             gradientSmoothingSigma=(PrecisionTYPE)(atof(argv[++i]));
         }
 		else if(strcmp(argv[i], "-ssd") == 0){
@@ -276,6 +297,9 @@ int main(int argc, char **argv)
 //		}
         else if(strcmp(argv[i], "-noConj") == 0){
            useConjugate=false;
+        }
+        else if(strcmp(argv[i], "-step") == 0){
+           stepNumber=atoi(argv[++i]);
         }
 #ifdef _USE_CUDA
         else if(strcmp(argv[i], "-gpu") == 0){
@@ -297,15 +321,16 @@ int main(int argc, char **argv)
 
     // Output the command line
 #ifdef NDEBUG
-            if(verbose==true){
+        if(verbose==true){
 #endif
-                printf("\n[NiftyReg F3D] Command line:\n\t");
-                for(int i=0;i<argc;i++)
-                    printf(" %s", argv[i]);
-                printf("\n\n");
+            printf("\n[NiftyReg F3D] Command line:\n\t");
+            for(int i=0;i<argc;i++)
+                printf(" %s", argv[i]);
+            printf("\n\n");
 #ifdef NDEBUG
-            }
+        }
 #endif
+
 
     // Read the reference image
     if(referenceName==NULL){
@@ -339,6 +364,19 @@ int main(int argc, char **argv)
         }
         reg_checkAndCorrectDimension(referenceMaskImage);
     }
+
+    if(useVel){
+        printf("[NiftyReg F3D] WARNING - You are using F3D2 - Further validation is required.\n\n");
+        if(affineTransformationName!=NULL){
+            printf("[NiftyReg F3D] ERROR(ish) - You are using an affine with a velocity field\n");
+            printf("[NiftyReg F3D] Please update the source image sform instead. This can be done using:\n");
+            printf("\treg_transform -target %s -updSform %s %s updatedSourceImage.nii\n",
+                   referenceName, floatingName, affineTransformationName);
+            printf("[NiftyReg F3D] Use then the updatedSourceImage.nii as a source without the aff option.\n\n");
+            return 0;
+        }
+    }
+
     // Read the input control point grid image
     nifti_image *controlPointGridImage=NULL;
     if(inputControlPointGridName!=NULL){
@@ -435,7 +473,9 @@ int main(int argc, char **argv)
     else
 #endif
     {
-        REG = new reg_f3d<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
+        if(useVel)
+            REG = new reg_f3d2<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
+        else REG = new reg_f3d<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
         if(verbose==true){
   #endif
@@ -521,10 +561,13 @@ int main(int argc, char **argv)
 
     if(gradientSmoothingSigma==gradientSmoothingSigma)
         REG->SetGradientSmoothingSigma(gradientSmoothingSigma);
-	
+
     if(useComposition)
         REG->UseComposition();
     else REG->DoNotUseComposition();
+
+    if(stepNumber>0)
+        REG->SetCompositionStepNumber(stepNumber);
 	
     if(useSSD)
         REG->UseSSD();
@@ -550,7 +593,9 @@ int main(int argc, char **argv)
         if(outputControlPointGridName==NULL) outputControlPointGridName=(char *)"outputCPP.nii";
         nifti_set_filenames(outputControlPointGridImage, outputControlPointGridName, 0, 0);
         memset(outputControlPointGridImage->descrip, 0, 80);
-        strcpy (outputControlPointGridImage->descrip,"Control point position from NiftyReg (reg_f3d)");
+        if(useVel)
+            strcpy (outputControlPointGridImage->descrip,"Velocity field grid from NiftyReg (reg_f3d2)");
+        else strcpy (outputControlPointGridImage->descrip,"Control point position from NiftyReg (reg_f3d)");
         nifti_image_write(outputControlPointGridImage);
         nifti_image_free(outputControlPointGridImage);outputControlPointGridImage=NULL;
 
@@ -559,7 +604,9 @@ int main(int argc, char **argv)
         if(outputWarpedName==NULL) outputWarpedName=(char *)"outputResult.nii";
         nifti_set_filenames(outputWarpedImage, outputWarpedName, 0, 0);
         memset(outputWarpedImage->descrip, 0, 80);
-        strcpy (outputWarpedImage->descrip,"Warped image using NiftyReg (reg_f3d)");
+        if(useVel)
+            strcpy (outputWarpedImage->descrip,"Warped image using NiftyReg (reg_f3d2)");
+        else strcpy (outputWarpedImage->descrip,"Warped image using NiftyReg (reg_f3d)");
         nifti_image_write(outputWarpedImage);
         nifti_image_free(outputWarpedImage);outputWarpedImage=NULL;
 #ifdef _USE_CUDA

@@ -69,13 +69,15 @@ IF(BUILD_NIFTYREG)
 	SET(NAME _reg_f3d)
 	IF(USE_CUDA)
 #-----------------------------------------------------------------------------
-		CUDA_ADD_LIBRARY(${NAME} SHARED ${NAME}.h ${NAME}.cpp ${NAME}_gpu.h ${NAME}_gpu.cpp)
+		CUDA_ADD_LIBRARY(${NAME} SHARED ${NAME}.h ${NAME}.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_gpu.h ${NAME}_gpu.cpp)
 		TARGET_LINK_LIBRARIES(${NAME} _reg_bspline_comp _reg_resampling _reg_affineTransformation _reg_ssd _reg_mutualinformation _reg_tools reg_nifti ${ZLIB} _reg_bspline_gpu _reg_resampling_gpu _reg_affineTransformation_gpu _reg_mutualinformation_gpu _reg_tools_gpu _reg_cudaCommon)
 		INSTALL(FILES ${NAME}_gpu.h DESTINATION include)
 #-----------------------------------------------------------------------------
 	ELSE(USE_CUDA)
 #-----------------------------------------------------------------------------
-		ADD_LIBRARY(${NAME} SHARED ${NAME}.h ${NAME}.cpp)
+# 		ADD_LIBRARY(${NAME} SHARED ${NAME}.h ${NAME}.cpp)
+# 		TARGET_LINK_LIBRARIES(${NAME} _reg_bspline_comp _reg_resampling _reg_affineTransformation _reg_ssd _reg_mutualinformation _reg_tools reg_nifti ${ZLIB})
+		ADD_LIBRARY(${NAME} SHARED ${NAME}2.h ${NAME}2.cpp)
 		TARGET_LINK_LIBRARIES(${NAME} _reg_bspline_comp _reg_resampling _reg_affineTransformation _reg_ssd _reg_mutualinformation _reg_tools reg_nifti ${ZLIB})
 #-----------------------------------------------------------------------------
 	ENDIF(USE_CUDA)
@@ -86,6 +88,7 @@ IF(BUILD_NIFTYREG)
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 	)
 	INSTALL(FILES ${NAME}.h DESTINATION include)
+	INSTALL(FILES ${NAME}2.h DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
