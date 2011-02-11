@@ -112,8 +112,8 @@ void reg_affine_positionField3D(mat44 *affineTransformation,
     FieldTYPE *positionFieldPtr = static_cast<FieldTYPE *>(positionFieldImage->data);
     
     unsigned int positionFieldXIndex=0;
-    unsigned int positionFieldYIndex=targetImage->nvox;
-    unsigned int positionFieldZIndex=2*targetImage->nvox;
+    unsigned int positionFieldYIndex=targetImage->nx*targetImage->ny*targetImage->nz;
+    unsigned int positionFieldZIndex=2*targetImage->nx*targetImage->ny*targetImage->nz;
     
     mat44 *targetMatrix;
     if(targetImage->sform_code>0){
