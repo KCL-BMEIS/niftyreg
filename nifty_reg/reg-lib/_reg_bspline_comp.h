@@ -12,9 +12,6 @@
 #ifndef _REG_BSPLINE_COMP_H
 #define _REG_BSPLINE_COMP_H
 
-#define SCALING_VALUE 256
-#define SQUARING_VALUE 8
-
 #include "nifti1_io.h"
 #include "_reg_affineTransformation.h"
 #include "_reg_bspline.h"
@@ -22,16 +19,6 @@
 #if _USE_SSE
     #include <emmintrin.h>
 #endif
-
-
-/** apply_scaling_squaring(nifti_image* img1, nifti_image* img2)
-  * This function applies a squaring approach of the velocity field img1
-  * in order to produce a control point position img2.
-**/
-extern "C++"
-void reg_spline_scaling_squaring(   nifti_image *velocityFieldImage,
-                                    nifti_image *controlPointImage
-                                    );
 
 /** reg_spline_cppComposition(nifti_image* img1, nifti_image* img2, bool type)
   * This function compose the a first control point image with a second one.
@@ -62,14 +49,6 @@ int reg_getDisplacementFromPosition(nifti_image *controlPointImage);
 extern "C++" template<class PrecisionTYPE>
 int reg_getPositionFromDisplacement(nifti_image *controlPointImage);
 
-/** reg_getPositionFromDisplacement(nifti_image *img1, nifti_image *img2)
-  * This function converts a control point grid values into coefficients
-  * in order to perform true interpolation
-**/
-extern "C++"
-int reg_spline_Interpolant2Interpolator(nifti_image *inputImage,
-                                        nifti_image *outputImage
-                                        );
 
 /** reg_bspline_GetJacobianMapFromVelocityField(nifti_image *img1, nifti_image *img2)
   * This function computed a Jacobian determinant using a squaring approach
@@ -103,27 +82,23 @@ void reg_bspline_GetJacobianGradientFromVelocityField(   nifti_image* velocityFi
                                                             bool approx
                                                             );
 
-/** reg_bspline_CorrectFoldingFromVelocityField(nifti_image *img1, nifti_image *img2, bool approx);
-  * This function aims to removed the folded area by computing the negative Jacobian
-  * determinant gradient
-  * It also return the current Jacobian penalty term value.
-**/
-extern "C++"
-double reg_bspline_CorrectFoldingFromVelocityField( nifti_image* velocityFieldImage,
-                                                    nifti_image* targetImage,
-                                                    bool approx
-                                                    );
 
-/** reg_bspline_CorrectFoldingFromVelocityField(nifti_image *img1, nifti_image *img2, bool approx);
-  * This function aims to removed the folded area by computing the negative Jacobian
-  * determinant gradient
-  * It also return the current Jacobian penalty term value.
+extern "C++" template <class ImageTYPE>
+void reg_getControlPointPositionFromVelocityGrid(nifti_image *velocityFieldGrid,
+                                                 nifti_image *controlPointGrid);
+
+extern "C++" template <class ImageTYPE>
+void reg_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
+                                             nifti_image *deformationFieldImage,
+                                             int *currentMask);
+
+/** reg_getPositionFromDisplacement(nifti_image *img1, nifti_image *img2)
+  * This function converts a control point grid values into coefficients
+  * in order to perform true interpolation
 **/
 extern "C++"
-double reg_bspline_CorrectApproximatedFoldingFromCPP(   nifti_image* controlPointImage,
-                                                        nifti_image* velocityFieldImage,
-                                                        nifti_image* targetImage,
-                                                        bool approx
-                                                        );
+int reg_spline_Interpolant2Interpolator(nifti_image *inputImage,
+                                        nifti_image *outputImage
+                                        );
 
 #endif

@@ -23,8 +23,8 @@
 typedef struct{
 	char *targetImageName;
 
+    char *inputSourceImageName;
     char *inputAffineName;
-	char *inputSourceImageName;
 	char *inputFirstCPPName;
 	char *inputSecondCPPName;
 	char *inputDeformationName;
@@ -35,17 +35,25 @@ typedef struct{
     char *outputAffineName;
     char *cpp2defInputName;
     char *cpp2defOutputName;
+    char *vel2defInputName;
+    char *vel2defOutputName;
+    char *vel2cppInputName;
+    char *vel2cppOutputName;
+    char *outputVelName;
 }PARAM;
 typedef struct{
     bool targetImageFlag;
     bool cpp2defFlag;
     bool composeTransformation1Flag;
-	bool composeTransformation2Flag;
-	bool def2dispFlag;
+    bool composeTransformation2Flag;
+    bool vel2defFlag;
+    bool vel2cppFlag;
+    bool def2dispFlag;
     bool disp2defFlag;
     bool updateSformFlag;
     bool aff2defFlag;
-	bool invertAffineFlag;
+    bool invertAffineFlag;
+    bool invertVelFlag;
 }FLAG;
 
 
@@ -66,6 +74,14 @@ void Usage(char *exec)
         printf("\t\tConversion from control point position to deformation field.\n");
         printf("\t\tFilename1 of input lattice of control point positions (CPP).\n");
         printf("\t\tFilename2 of the output deformation field image (DEF).\n");
+    printf("\t-vel2def <filename1>  <filename2>\n");
+        printf("\t\tConversion from velocity field grid to deformation field.\n");
+        printf("\t\tFilename1 of input lattice of control point positions (VEL).\n");
+        printf("\t\tFilename2 of the output deformation field image (DEF).\n");
+//    printf("\t-vel2cpp <filename1>  <filename2>\n");
+//        printf("\t\tConversion from velocity field grid to deformation field.\n");
+//        printf("\t\tFilename1 of input lattice of control point positions (VEL).\n");
+//        printf("\t\tFilename2 of the output control point position image (CPP).\n");
     printf("\t-comp1 <filename1>  <filename2> <filename3>\n");
         printf("\t\tComposition of two lattices of control points. CPP2(CPP1(x)).\n");
         printf("\t\tFilename1 of lattice of control point that contains the second deformation (CPP2).\n");
@@ -164,6 +180,16 @@ int main(int argc, char **argv)
             param->cpp2defOutputName=argv[++i];
             flag->cpp2defFlag=1;
         }
+        else if(strcmp(argv[i], "-vel2def") == 0){
+            param->vel2defInputName=argv[++i];
+            param->vel2defOutputName=argv[++i];
+            flag->vel2defFlag=1;
+        }
+        else if(strcmp(argv[i], "-vel2cpp") == 0){
+            param->vel2cppInputName=argv[++i];
+            param->vel2cppOutputName=argv[++i];
+            flag->vel2cppFlag=1;
+        }
 		else{
 			fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
 			PetitUsage(argv[0]);
@@ -187,8 +213,71 @@ int main(int argc, char **argv)
     reg_checkAndCorrectDimension(targetImage);
 
     /* ****************************** */
-    /* GENERATE THE DEFORMATION FIELD */
+    /* GENERATE THE CONTROL POINT POSITION GRID */
     /* ****************************** */
+    if(flag->vel2cppFlag){
+        // Read the velocity field image
+        nifti_image *velocityField = nifti_image_read(param->vel2cppInputName,true);
+        if(velocityField == NULL){
+            fprintf(stderr,"[NiftyReg ERROR] Error when reading the velocity grid: %s\n",param->vel2cppInputName);
+            PetitUsage(argv[0]);
+            return 1;
+        }
+        reg_checkAndCorrectDimension(velocityField);
+        // Allocate the deformation field
+        nifti_image *controlPointGrid = nifti_copy_nim_info(velocityField);
+        controlPointGrid->data = (void *)calloc(controlPointGrid->nvox, controlPointGrid->nbyper);
+        reg_getControlPointPositionFromVelocityGrid<float>(velocityField,
+                                                           controlPointGrid);
+        nifti_set_filenames(controlPointGrid, param->vel2cppOutputName, 0, 0);
+        nifti_image_write(controlPointGrid);
+        printf("Composed control poinrt grid has been saved: %s\n", param->vel2cppOutputName);
+        nifti_image_free(controlPointGrid);
+        nifti_image_free(velocityField);
+    }
+
+
+    /* *************************************** */
+    /* GENERATE THE DEFORMATION FIELD FROM VEL */
+    /* *************************************** */
+    if(flag->vel2defFlag){
+        // Read the velocity field image
+        nifti_image *velocityField = nifti_image_read(param->vel2defInputName,true);
+        if(velocityField == NULL){
+            fprintf(stderr,"[NiftyReg ERROR] Error when reading the control point position image: %s\n",param->vel2defInputName);
+            PetitUsage(argv[0]);
+            return 1;
+        }
+        reg_checkAndCorrectDimension(velocityField);
+        // Allocate the deformation field
+        nifti_image *deformationFieldImage = nifti_copy_nim_info(targetImage);
+        deformationFieldImage->dim[0]=deformationFieldImage->ndim=5;
+        deformationFieldImage->dim[1]=deformationFieldImage->nx=targetImage->nx;
+        deformationFieldImage->dim[2]=deformationFieldImage->ny=targetImage->ny;
+        deformationFieldImage->dim[3]=deformationFieldImage->nz=targetImage->nz;
+        deformationFieldImage->dim[4]=deformationFieldImage->nt=1;deformationFieldImage->pixdim[4]=deformationFieldImage->dt=1.0;
+        if(targetImage->nz>1) deformationFieldImage->dim[5]=deformationFieldImage->nu=3;
+        else deformationFieldImage->dim[5]=deformationFieldImage->nu=2;
+        deformationFieldImage->pixdim[5]=deformationFieldImage->du=1.0;
+        deformationFieldImage->dim[6]=deformationFieldImage->nv=1;deformationFieldImage->pixdim[6]=deformationFieldImage->dv=1.0;
+        deformationFieldImage->dim[7]=deformationFieldImage->nw=1;deformationFieldImage->pixdim[7]=deformationFieldImage->dw=1.0;
+        deformationFieldImage->nvox=deformationFieldImage->nx*deformationFieldImage->ny*deformationFieldImage->nz*deformationFieldImage->nt*deformationFieldImage->nu;
+        deformationFieldImage->datatype = NIFTI_TYPE_FLOAT32;
+        deformationFieldImage->nbyper = sizeof(float);
+        deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
+        reg_getDeformationFieldFromVelocityGrid<float>(velocityField,
+                                                       deformationFieldImage,
+                                                       NULL);
+        nifti_set_filenames(deformationFieldImage, param->vel2defOutputName, 0, 0);
+        nifti_image_write(deformationFieldImage);
+        printf("Composed deformation field has been saved: %s\n", param->vel2defOutputName);
+        nifti_image_free(deformationFieldImage);
+        nifti_image_free(velocityField);
+    }
+
+    /* *************************************** */
+    /* GENERATE THE DEFORMATION FIELD FROM CPP */
+    /* *************************************** */
     if(flag->cpp2defFlag){
         // Read the control point image
         nifti_image *controlPointImage = nifti_image_read(param->cpp2defInputName,true);

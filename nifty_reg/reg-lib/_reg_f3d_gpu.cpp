@@ -433,16 +433,30 @@ double reg_f3d_gpu<T>::ComputeBendingEnergyPenaltyTerm()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
+int reg_f3d_gpu<T>::GetDeformationField()
+{
+    if(this->controlPointGrid_gpu==NULL){
+        reg_f3d<T>::GetDeformationField();
+    }
+    else{
+       // Compute the deformation field
+        reg_bspline_gpu(this->controlPointGrid,
+                        this->currentReference,
+                        &this->controlPointGrid_gpu,
+                        &this->deformationFieldImage_gpu,
+                        &this->currentMask_gpu,
+                        this->activeVoxelNumber[this->currentLevel]);
+    }
+    return 0;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
 int reg_f3d_gpu<T>::WarpFloatingImage(int inter)
 {
 
     // Compute the deformation field
-    reg_bspline_gpu(this->controlPointGrid,
-                    this->currentReference,
-                    &this->controlPointGrid_gpu,
-                    &this->deformationFieldImage_gpu,
-                    &this->currentMask_gpu,
-                    this->activeVoxelNumber[this->currentLevel]);
+    this->GetDeformationField();
 
     // Resample the floating image
     reg_resampleSourceImage_gpu(this->currentReference,
@@ -687,8 +701,10 @@ int reg_f3d_gpu<T>::UpdateControlPointPosition(T scale)
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d_gpu<T>::AllocateCurrentInputImage()
+int reg_f3d_gpu<T>::AllocateCurrentInputImage(int level)
 {
+    reg_f3d<T>::AllocateCurrentInputImage(level);
+
     if(this->currentReference_gpu!=NULL) cudaCommon_free<float>(&this->currentReference_gpu);
     if(this->currentReference2_gpu!=NULL) cudaCommon_free<float>(&this->currentReference2_gpu);
     if(this->currentReference->nt==1){

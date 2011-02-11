@@ -24,6 +24,7 @@ typedef struct{
 	char *targetImageName;
 	char *sourceImageName;
     char *affineMatrixName;
+    char *inputVelName;
     char *inputCPPName;
     char *inputDEFName;
 	char *outputResultName;
@@ -35,6 +36,7 @@ typedef struct{
 	bool sourceImageFlag;
 	bool affineMatrixFlag;
     bool affineFlirtFlag;
+    bool inputVelFlag;
     bool inputCPPFlag;
     bool inputDEFFlag;
 	bool outputResultFlag;
@@ -61,7 +63,8 @@ void Usage(char *exec)
     printf("\t*\tOnly one of the following tranformation is taken into account\n");
     printf("\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Target=Source)\n");
     printf("\t-affFlirt <filename>\t\tFilename which contains a radiological flirt affine transformation\n");
-    printf("\t-cpp <filename>\t\tFilename of the control point grid image\n");
+//    printf("\t-vel <filename>\t\tFilename of the velocity field grid image (F3D2)\n");
+    printf("\t-cpp <filename>\t\tFilename of the control point grid image (F3D)\n");
     printf("\t-def <filename>\t\tFilename of the deformation field image\n");
 
     printf("\t*\tThere are no limit for the required output number from the following\n");
@@ -109,6 +112,10 @@ int main(int argc, char **argv)
 			param->outputResultName=argv[++i];
 			flag->outputResultFlag=1;
         }
+        else if(strcmp(argv[i], "-vel") == 0){
+            param->inputVelName=argv[++i];
+            flag->inputVelFlag=1;
+        }
         else if(strcmp(argv[i], "-cpp") == 0){
             param->inputCPPName=argv[++i];
             flag->inputCPPFlag=1;
@@ -135,7 +142,7 @@ int main(int argc, char **argv)
 	}
 	
 	if(!flag->targetImageFlag || !flag->sourceImageFlag){
-		fprintf(stderr,"Err:\tThe target and the source image have both to be defined.\n");
+        fprintf(stderr,"[NiftyReg ERROR] The target and the source image have both to be defined.\n");
 		PetitUsage(argv[0]);
 		return 1;
 	}
@@ -145,7 +152,7 @@ int main(int argc, char **argv)
         + (unsigned int)flag->affineFlirtFlag
         + (unsigned int)flag->inputCPPFlag
         + (unsigned int)flag->inputDEFFlag) > 1){
-        fprintf(stderr,"Err:\tOnly one input transformation has to be assigned.\n");
+        fprintf(stderr,"[NiftyReg ERROR] Only one input transformation has to be assigned.\n");
         PetitUsage(argv[0]);
         return 1;
     }
@@ -153,7 +160,7 @@ int main(int argc, char **argv)
 	/* Read the target image */
     nifti_image *targetImage = nifti_image_read(param->targetImageName,false);
 	if(targetImage == NULL){
-		fprintf(stderr,"** ERROR Error when reading the target image: %s\n",param->targetImageName);
+        fprintf(stderr,"[NiftyReg ERROR] Error when reading the target image: %s\n",param->targetImageName);
 		return 1;
 	}
     reg_checkAndCorrectDimension(targetImage);
@@ -161,7 +168,7 @@ int main(int argc, char **argv)
 	/* Read the source image */
     nifti_image *sourceImage = nifti_image_read(param->sourceImageName,true);
 	if(sourceImage == NULL){
-		fprintf(stderr,"** ERROR Error when reading the source image: %s\n",param->sourceImageName);
+        fprintf(stderr,"[NiftyReg ERROR] Error when reading the source image: %s\n",param->sourceImageName);
 		return 1;
 	}
     reg_checkAndCorrectDimension(sourceImage);
@@ -185,34 +192,46 @@ int main(int argc, char **argv)
     /* *********************** */
     /* READ THE TRANSFORMATION */
     /* *********************** */
+    nifti_image *velocityFieldImage = NULL;
     nifti_image *controlPointImage = NULL;
     nifti_image *deformationFieldImage = NULL;
     mat44 *affineTransformationMatrix = (mat44 *)calloc(1,sizeof(mat44));
-    if(flag->inputCPPFlag){
+    if(flag->inputVelFlag){
 #ifndef NDEBUG
-        printf("Name of the control point image: %s\n", param->inputCPPName);
+        printf("[NiftyReg DEBUG] Name of the velocity field image: %s\n", param->inputVelName);
+#endif
+        velocityFieldImage = nifti_image_read(param->inputVelName,true);
+        if(velocityFieldImage == NULL){
+            fprintf(stderr,"[NiftyReg ERROR] Error when reading the velocity field image: %s\n",param->inputVelName);
+            return 1;
+        }
+        reg_checkAndCorrectDimension(velocityFieldImage);
+    }
+    else if(flag->inputCPPFlag){
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] Name of the control point image: %s\n", param->inputCPPName);
 #endif
         controlPointImage = nifti_image_read(param->inputCPPName,true);
         if(controlPointImage == NULL){
-            fprintf(stderr,"** ERROR Error when reading the control point image: %s\n",param->inputCPPName);
+            fprintf(stderr,"[NiftyReg ERROR] Error when reading the control point image: %s\n",param->inputCPPName);
             return 1;
         }
         reg_checkAndCorrectDimension(controlPointImage);
     }
     else if(flag->inputDEFFlag){
 #ifndef NDEBUG
-        printf("Name of the deformation field image: %s\n", param->inputDEFName);
+        printf("[NiftyReg DEBUG] Name of the deformation field image: %s\n", param->inputDEFName);
 #endif
         deformationFieldImage = nifti_image_read(param->inputDEFName,true);
         if(deformationFieldImage == NULL){
-            fprintf(stderr,"** ERROR Error when reading the deformation field image: %s\n",param->inputDEFName);
+            fprintf(stderr,"[NiftyReg ERROR] Error when reading the deformation field image: %s\n",param->inputDEFName);
             return 1;
         }
         reg_checkAndCorrectDimension(deformationFieldImage);
     }
     else if(flag->affineMatrixFlag){
 #ifndef NDEBUG
-        printf("Name of affine transformation: %s\n", param->affineMatrixName);
+        printf("[NiftyReg DEBUG] Name of affine transformation: %s\n", param->affineMatrixName);
 #endif
         // Check first if the specified affine file exist
         if(FILE *aff=fopen(param->affineMatrixName, "r")){
@@ -239,7 +258,7 @@ int main(int argc, char **argv)
     // Allocate and copmute the deformation field if necessary
     if(!flag->inputDEFFlag){
 #ifndef NDEBUG
-        printf("Allocation of the deformation field\n");
+        printf("[NiftyReg DEBUG] Allocation of the deformation field\n");
 #endif
         // Allocate
         deformationFieldImage = nifti_copy_nim_info(targetImage);
@@ -258,9 +277,15 @@ int main(int argc, char **argv)
         deformationFieldImage->nbyper = sizeof(float);
         deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
         //Computation
-        if(flag->inputCPPFlag){
+        if(flag->inputVelFlag){
+            reg_getDeformationFieldFromVelocityGrid<float>(velocityFieldImage,
+                                                           deformationFieldImage,
+                                                           NULL);
+            
+        }
+        else if(flag->inputCPPFlag){
 #ifndef NDEBUG
-            printf("Computation of the deformation field from the CPP image\n");
+            printf("[NiftyReg DEBUG] Computation of the deformation field from the CPP image\n");
 #endif
             reg_bspline<float>(	controlPointImage,
                                 targetImage,
@@ -270,7 +295,7 @@ int main(int argc, char **argv)
         }
         else{
 #ifndef NDEBUG
-            printf("Computation of the deformation field from the affine transformation\n");
+            printf("[NiftyReg DEBUG] Computation of the deformation field from the affine transformation\n");
 #endif
             reg_affine_positionField(   affineTransformationMatrix,
                                         targetImage,
@@ -308,7 +333,7 @@ int main(int argc, char **argv)
         memset(resultImage->descrip, 0, 80);
         strcpy (resultImage->descrip,"Warped image using NiftyReg (reg_f3d)");
         nifti_image_write(resultImage);
-        printf("Resampled image has been saved: %s\n", param->outputResultName);
+        printf("[NiftyReg] Resampled image has been saved: %s\n", param->outputResultName);
         nifti_image_free(resultImage);
     }
 
@@ -362,11 +387,12 @@ int main(int argc, char **argv)
         nifti_image_write(resultImage);
         nifti_image_free(resultImage);
         nifti_image_free(gridImage);
-        printf("Resampled grid has been saved: %s\n", param->outputBlankName);
+        printf("[NiftyReg] Resampled grid has been saved: %s\n", param->outputBlankName);
     }
 
     nifti_image_free(targetImage);
     nifti_image_free(sourceImage);
+    nifti_image_free(velocityFieldImage);
     nifti_image_free(controlPointImage);
     nifti_image_free(deformationFieldImage);
     free(affineTransformationMatrix);

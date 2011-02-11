@@ -1763,11 +1763,14 @@ void reg_getJacobianImage2(	nifti_image *positionField,
 							nifti_image *jacobianImage)
 {
 	FieldTYPE *fieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-	FieldTYPE *fieldPtrY = &fieldPtrX[jacobianImage->nvox];
-	FieldTYPE *fieldPtrZ = &fieldPtrY[jacobianImage->nvox];
+    FieldTYPE *fieldPtrY = &fieldPtrX[jacobianImage->nvox];
+    FieldTYPE *fieldPtrZ = NULL;
+    if(positionField->nz>1)
+        fieldPtrZ = &fieldPtrY[jacobianImage->nvox];
 	JacobianTYPE *jacobianPtr = static_cast<JacobianTYPE *>(jacobianImage->data);
 
 	JacobianTYPE jacobianMatrix[3][3];
+    memset(jacobianMatrix,0,sizeof(jacobianMatrix));
 
 	int voxelIndex=0;
 	for(int z=0; z<positionField->nz; z++){
@@ -1779,21 +1782,24 @@ void reg_getJacobianImage2(	nifti_image *positionField,
 					// forward difference
 					jacobianMatrix[0][0]= (JacobianTYPE)((fieldPtrX[voxelIndex+1] - fieldPtrX[voxelIndex] ) / (positionField->dx));// Tx/dx
 					jacobianMatrix[1][0]= (JacobianTYPE)((fieldPtrY[voxelIndex+1] - fieldPtrY[voxelIndex] ) / (positionField->dx));// Ty/dx
-					jacobianMatrix[2][0]= (JacobianTYPE)((fieldPtrZ[voxelIndex+1] - fieldPtrZ[voxelIndex] ) / (positionField->dx));// Tz/dx
+                    if(positionField->nz>1)
+                        jacobianMatrix[2][0]= (JacobianTYPE)((fieldPtrZ[voxelIndex+1] - fieldPtrZ[voxelIndex] ) / (positionField->dx));// Tz/dx
 					
 				}
 				else if(x==positionField->nx-1){
 					// backward difference
 					jacobianMatrix[0][0]= (JacobianTYPE)((fieldPtrX[voxelIndex] - fieldPtrX[voxelIndex-1] ) / (positionField->dx));// Tx/dx
 					jacobianMatrix[1][0]= (JacobianTYPE)((fieldPtrY[voxelIndex] - fieldPtrY[voxelIndex-1] ) / (positionField->dx));// Ty/dx
-					jacobianMatrix[2][0]= (JacobianTYPE)((fieldPtrZ[voxelIndex] - fieldPtrZ[voxelIndex-1] ) / (positionField->dx));// Tz/dx
+                    if(positionField->nz>1)
+                        jacobianMatrix[2][0]= (JacobianTYPE)((fieldPtrZ[voxelIndex] - fieldPtrZ[voxelIndex-1] ) / (positionField->dx));// Tz/dx
 					
 				}
 				else{
 					// symmetric derivative
 					jacobianMatrix[0][0]= (JacobianTYPE)((fieldPtrX[voxelIndex+1] - fieldPtrX[voxelIndex-1] ) / (2.0*positionField->dx));// Tx/dx
 					jacobianMatrix[1][0]= (JacobianTYPE)((fieldPtrY[voxelIndex+1] - fieldPtrY[voxelIndex-1] ) / (2.0*positionField->dx));// Ty/dx
-					jacobianMatrix[2][0]= (JacobianTYPE)((fieldPtrZ[voxelIndex+1] - fieldPtrZ[voxelIndex-1] ) / (2.0*positionField->dx));// Tz/dx
+                    if(positionField->nz>1)
+                        jacobianMatrix[2][0]= (JacobianTYPE)((fieldPtrZ[voxelIndex+1] - fieldPtrZ[voxelIndex-1] ) / (2.0*positionField->dx));// Tz/dx
 				}
 
 				// derivative of along the Y axis
@@ -1803,8 +1809,9 @@ void reg_getJacobianImage2(	nifti_image *positionField,
 							(positionField->dy));// Tx/dy
 					jacobianMatrix[1][1]= (JacobianTYPE)((fieldPtrY[voxelIndex+positionField->nx] - fieldPtrY[voxelIndex] ) /
 							(positionField->dy));// Ty/dy
-					jacobianMatrix[2][1]= (JacobianTYPE)((fieldPtrZ[voxelIndex+positionField->nx] - fieldPtrZ[voxelIndex] ) /
-							(positionField->dy));// Tz/dy
+                    if(positionField->nz>1)
+                        jacobianMatrix[2][1]= (JacobianTYPE)((fieldPtrZ[voxelIndex+positionField->nx] - fieldPtrZ[voxelIndex] ) /
+                                (positionField->dy));// Tz/dy
 					
 				}
 				else if(y==positionField->ny-1){
@@ -1813,8 +1820,9 @@ void reg_getJacobianImage2(	nifti_image *positionField,
 							(positionField->dy));// Tx/dy
 					jacobianMatrix[1][1]= (JacobianTYPE)((fieldPtrY[voxelIndex] - fieldPtrY[voxelIndex-positionField->nx] ) /
 							(positionField->dy));// Ty/dy
-					jacobianMatrix[2][1]= (JacobianTYPE)((fieldPtrZ[voxelIndex] - fieldPtrZ[voxelIndex-positionField->nx] ) /
-							(positionField->dy));// Tz/dy
+                    if(positionField->nz>1)
+                        jacobianMatrix[2][1]= (JacobianTYPE)((fieldPtrZ[voxelIndex] - fieldPtrZ[voxelIndex-positionField->nx] ) /
+                                (positionField->dy));// Tz/dy
 					
 				}
 				else{
@@ -1823,57 +1831,66 @@ void reg_getJacobianImage2(	nifti_image *positionField,
 							(2.0*positionField->dy));// Tx/dy
 					jacobianMatrix[1][1]= (JacobianTYPE)((fieldPtrY[voxelIndex+positionField->nx] - fieldPtrY[voxelIndex-positionField->nx] ) /
 							(2.0*positionField->dy));// Ty/dy
-					jacobianMatrix[2][1]= (JacobianTYPE)((fieldPtrZ[voxelIndex+positionField->nx] - fieldPtrZ[voxelIndex-positionField->nx] ) /
-							(2.0*positionField->dy));// Tz/dy
+                    if(positionField->nz>1)
+                        jacobianMatrix[2][1]= (JacobianTYPE)((fieldPtrZ[voxelIndex+positionField->nx] - fieldPtrZ[voxelIndex-positionField->nx] ) /
+                                (2.0*positionField->dy));// Tz/dy
 				}
 
 				// derivative of along the Z axis
-				if(z==0){
-					// forward difference
-					jacobianMatrix[0][2]= (JacobianTYPE)((fieldPtrX[voxelIndex+positionField->nx*positionField->ny] -
-							fieldPtrX[voxelIndex] ) /
-							(positionField->dz));// Tx/dz
-					jacobianMatrix[1][2]= (JacobianTYPE)((fieldPtrY[voxelIndex+positionField->nx*positionField->ny] -
-							fieldPtrY[voxelIndex] ) /
-							(positionField->dz));// Ty/dz
-					jacobianMatrix[2][2]= (JacobianTYPE)((fieldPtrZ[voxelIndex+positionField->nx*positionField->ny] -
-							fieldPtrZ[voxelIndex] ) /
-							(positionField->dz));// Tz/dz
-					
-				}
-				else if(z==positionField->nz-1){
-					// backward difference
-					jacobianMatrix[0][2]= (JacobianTYPE)((fieldPtrX[voxelIndex] -
-							fieldPtrX[voxelIndex-positionField->nx*positionField->ny] ) /
-							(positionField->dz));// Tx/dz
-					jacobianMatrix[1][2]= (JacobianTYPE)((fieldPtrY[voxelIndex] -
-							fieldPtrY[voxelIndex-positionField->nx*positionField->ny] ) /
-							(positionField->dz));// Ty/dz
-					jacobianMatrix[2][2]= (JacobianTYPE)((fieldPtrZ[voxelIndex] -
-							fieldPtrZ[voxelIndex-positionField->nx*positionField->ny] ) /
-							(positionField->dz));// Tz/dz
-					
-				}
-				else{
-					// symmetric derivative
-					jacobianMatrix[0][2]= (JacobianTYPE)((fieldPtrX[voxelIndex+positionField->nx*positionField->ny] -
-							fieldPtrX[voxelIndex-positionField->nx*positionField->ny] ) /
-							(2.0*positionField->dz));// Tx/dz
-					jacobianMatrix[1][2]= (JacobianTYPE)((fieldPtrY[voxelIndex+positionField->nx*positionField->ny] -
-							fieldPtrY[voxelIndex-positionField->nx*positionField->ny] ) /
-							(2.0*positionField->dz));// Ty/dz
-					jacobianMatrix[2][2]= (JacobianTYPE)((fieldPtrZ[voxelIndex+positionField->nx*positionField->ny] -
-							fieldPtrZ[voxelIndex-positionField->nx*positionField->ny] ) /
-							(2.0*positionField->dz));// Tz/dz
-				}
 
-				JacobianTYPE jacobianValue = jacobianMatrix[0][0]*jacobianMatrix[1][1]*jacobianMatrix[2][2];
-				jacobianValue += jacobianMatrix[0][1]*jacobianMatrix[1][2]*jacobianMatrix[2][0];
-				jacobianValue += jacobianMatrix[0][2]*jacobianMatrix[1][0]*jacobianMatrix[2][1];
+                if(positionField->nz>1){
+                    if(z==0){
+                        // forward difference
+                        jacobianMatrix[0][2]= (JacobianTYPE)((fieldPtrX[voxelIndex+positionField->nx*positionField->ny] -
+                                fieldPtrX[voxelIndex] ) / (positionField->dz));// Tx/dz
+                        jacobianMatrix[1][2]= (JacobianTYPE)((fieldPtrY[voxelIndex+positionField->nx*positionField->ny] -
+                                fieldPtrY[voxelIndex] ) / (positionField->dz));// Ty/dz
+                            jacobianMatrix[2][2]= (JacobianTYPE)((fieldPtrZ[voxelIndex+positionField->nx*positionField->ny] -
+                                    fieldPtrZ[voxelIndex] ) / (positionField->dz));// Tz/dz
 
-				jacobianValue -= jacobianMatrix[0][0]*jacobianMatrix[1][2]*jacobianMatrix[2][1];
-				jacobianValue -= jacobianMatrix[0][1]*jacobianMatrix[1][0]*jacobianMatrix[2][2];
-				jacobianValue -= jacobianMatrix[0][2]*jacobianMatrix[1][1]*jacobianMatrix[2][0];
+                    }
+                    else if(z==positionField->nz-1){
+                        // backward difference
+                        jacobianMatrix[0][2]= (JacobianTYPE)((fieldPtrX[voxelIndex] -
+                                fieldPtrX[voxelIndex-positionField->nx*positionField->ny] ) /
+                                (positionField->dz));// Tx/dz
+                        jacobianMatrix[1][2]= (JacobianTYPE)((fieldPtrY[voxelIndex] -
+                                fieldPtrY[voxelIndex-positionField->nx*positionField->ny] ) /
+                                (positionField->dz));// Ty/dz
+                            jacobianMatrix[2][2]= (JacobianTYPE)((fieldPtrZ[voxelIndex] -
+                                    fieldPtrZ[voxelIndex-positionField->nx*positionField->ny] ) /
+                                    (positionField->dz));// Tz/dz
+
+                    }
+                    else{
+                        // symmetric derivative
+                        jacobianMatrix[0][2]= (JacobianTYPE)((fieldPtrX[voxelIndex+positionField->nx*positionField->ny] -
+                                fieldPtrX[voxelIndex-positionField->nx*positionField->ny] ) /
+                                (2.0*positionField->dz));// Tx/dz
+                        jacobianMatrix[1][2]= (JacobianTYPE)((fieldPtrY[voxelIndex+positionField->nx*positionField->ny] -
+                                fieldPtrY[voxelIndex-positionField->nx*positionField->ny] ) /
+                                (2.0*positionField->dz));// Ty/dz
+                            jacobianMatrix[2][2]= (JacobianTYPE)((fieldPtrZ[voxelIndex+positionField->nx*positionField->ny] -
+                                    fieldPtrZ[voxelIndex-positionField->nx*positionField->ny] ) /
+                                    (2.0*positionField->dz));// Tz/dz
+                    }
+                }
+
+                JacobianTYPE jacobianValue = 1;
+
+                if(positionField->nz>1){
+                    jacobianValue =  jacobianMatrix[0][0]*jacobianMatrix[1][1]*jacobianMatrix[2][2];
+                    jacobianValue += jacobianMatrix[0][1]*jacobianMatrix[1][2]*jacobianMatrix[2][0];
+                    jacobianValue += jacobianMatrix[0][2]*jacobianMatrix[1][0]*jacobianMatrix[2][1];
+
+                    jacobianValue -= jacobianMatrix[0][0]*jacobianMatrix[1][2]*jacobianMatrix[2][1];
+                    jacobianValue -= jacobianMatrix[0][1]*jacobianMatrix[1][0]*jacobianMatrix[2][2];
+                    jacobianValue -= jacobianMatrix[0][2]*jacobianMatrix[1][1]*jacobianMatrix[2][0];
+                }
+                else{
+                    jacobianValue =  jacobianMatrix[0][0]*jacobianMatrix[1][1];
+                    jacobianValue -= jacobianMatrix[0][1]*jacobianMatrix[1][0];
+                }
 
 				*jacobianPtr++ = jacobianValue;
 				voxelIndex++;
@@ -1884,7 +1901,7 @@ void reg_getJacobianImage2(	nifti_image *positionField,
 /* *************************************************************** */
 template <class FieldTYPE>
 void reg_getJacobianImage1(	nifti_image *positionField,
-				nifti_image *jacobianImage)
+                            nifti_image *jacobianImage)
 {
 	switch(jacobianImage->datatype){
 		case NIFTI_TYPE_FLOAT32:
@@ -1902,7 +1919,7 @@ void reg_getJacobianImage1(	nifti_image *positionField,
 }
 /* *************************************************************** */
 void reg_getJacobianImage(	nifti_image *positionField,
-				nifti_image *jacobianImage)
+                            nifti_image *jacobianImage)
 {
 	switch(positionField->datatype){
 		case NIFTI_TYPE_FLOAT32:
@@ -1916,225 +1933,6 @@ void reg_getJacobianImage(	nifti_image *positionField,
 		default:
 			printf("err\treg_getSourceImageGradient\tDeformation field pixel type unsupported.");
 			break;
-	}
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template <class ImageTYPE>
-void reg_linearVelocityUpsampling_2D(nifti_image *image, int newDim[8], float newSpacing[8])
-{
-    /* The current image is stored and freed */
-    ImageTYPE *currentValue = (ImageTYPE *)malloc(image->nvox * sizeof(ImageTYPE));
-    memcpy(currentValue, image->data, image->nvox*image->nbyper);
-    const int oldDim[8]={image->dim[0], image->dim[1], image->dim[2], image->dim[3],
-        image->dim[4], image->dim[5], image->dim[6], image->dim[7]};
-
-    free(image->data);
-
-    for(int i=0;i<8;i++){
-        image->dim[i]=newDim[i];
-        image->pixdim[i]=newSpacing[i];
-    }
-    image->nx=image->dim[1];
-    image->ny=image->dim[2];
-    image->dx=image->pixdim[1];
-    image->dy=image->pixdim[2];
-    image->nvox=image->dim[1]*image->dim[2]*image->dim[3]*image->dim[4]*image->dim[5];
-    image->data=(ImageTYPE *)malloc( image->nvox * sizeof(ImageTYPE) );
-
-    ImageTYPE *imagePtr = static_cast<ImageTYPE *>(image->data);
-
-    if(image->nt<1) image->nt=1;
-    if(image->nu<1) image->nu=1;
-
-	for(int ut=0;ut<image->nu*image->nt;ut++){
-		ImageTYPE *newPtr = &imagePtr[ut*image->nx*image->ny];
-		ImageTYPE *oldPtr = &currentValue[ut*oldDim[1]*oldDim[2]];
-		for(int y=0; y<image->ny; y++){
-			const int Y = (int)ceil((float)y/2.0f);
-			for(int x=0; x<image->nx; x++){
-				const int X = (int)ceil((float)x/2.0f);
-				if(x/2 == X){
-					if(y/2 == Y){
-						*newPtr = (oldPtr[Y*oldDim[1]+X]
-									 + oldPtr[Y*oldDim[1]+X+1]
-									 + oldPtr[(Y+1)*oldDim[1]+X]
-									 + oldPtr[(Y+1)*oldDim[1]+X+1]) /4.0f;
-					}
-					else{
-						*newPtr = (oldPtr[Y*oldDim[1]+X]
-									 + oldPtr[Y*oldDim[1]+X+1]) /2.0f;
-					}
-				}
-				else{
-					if(y/2 == Y){
-						*newPtr = (oldPtr[Y*oldDim[1]+X]
-									 + oldPtr[(Y+1)*oldDim[1]+X])/2.0f;
-					}
-					else{
-						*newPtr = oldPtr[Y*oldDim[1]+X];
-					}
-				}
-				newPtr++;
-			}
-		}
-	}
-	
-	free(currentValue);
-	return;
-}
-/* *************************************************************** */
-template <class ImageTYPE>
-void reg_linearVelocityUpsampling_3D(nifti_image *image, int newDim[8], float newSpacing[8])
-{
-	/* The current image is stored and freed */
-	ImageTYPE *currentValue = (ImageTYPE *)malloc(image->nvox * sizeof(ImageTYPE));
-	memcpy(currentValue, image->data, image->nvox*image->nbyper);
-	const int oldDim[8]={image->dim[0], image->dim[1], image->dim[2], image->dim[3],
-		image->dim[4], image->dim[5], image->dim[6], image->dim[7]};
-	
-    free(image->data);
-
-    for(int i=0;i<8;i++){
-        image->dim[i]=newDim[i];
-        image->pixdim[i]=newSpacing[i];
-    }
-    image->nx=image->dim[1];
-    image->ny=image->dim[2];
-    image->nz=image->dim[3];
-    image->dx=image->pixdim[1];
-    image->dy=image->pixdim[2];
-    image->dz=image->pixdim[3];
-    image->nvox=image->dim[1]*image->dim[2]*image->dim[3]*image->dim[4]*image->dim[5];
-    image->data=(ImageTYPE *)malloc( image->nvox * sizeof(ImageTYPE) );
-
-	ImageTYPE *imagePtr = static_cast<ImageTYPE *>(image->data);
-	
-	if(image->nt<1) image->nt=1;
-	if(image->nu<1) image->nu=1;
-	
-	for(int ut=0;ut<image->nu*image->nt;ut++){
-		ImageTYPE *newPtr = &imagePtr[ut*image->nx*image->ny*image->nz];
-		ImageTYPE *oldPtr = &currentValue[ut*oldDim[1]*oldDim[2]*oldDim[3]];
-		for(int z=0; z<image->nz; z++){
-			const int Z = (int)ceil((float)z/2.0f);
-			if(z/2 == Z){
-				for(int y=0; y<image->ny; y++){
-					const int Y = (int)ceil((float)y/2.0f);
-					if(y/2 == Y){
-						for(int x=0; x<image->nx; x++){
-							const int X = (int)ceil((float)x/2.0f);
-							if(x/2 == X){
-								// z' y' x' 
-								*newPtr++ = (oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X]+
-											 oldPtr[((Z+1)*oldDim[2]+Y)*oldDim[1]+X]+
-											 oldPtr[(Z*oldDim[2]+Y+1)*oldDim[1]+X]+
-											 oldPtr[((Z+1)*oldDim[2]+Y+1)*oldDim[1]+X]+
-											 oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X+1]+
-											 oldPtr[((Z+1)*oldDim[2]+Y)*oldDim[1]+X+1]+
-											 oldPtr[(Z*oldDim[2]+Y+1)*oldDim[1]+X+1]+
-											 oldPtr[((Z+1)*oldDim[2]+Y+1)*oldDim[1]+X+1] ) /8.0f;
-							}
-							else{ // (x/2==x)
-								// z' y' x
-								*newPtr++ = (oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X]+
-											 oldPtr[((Z+1)*oldDim[2]+Y)*oldDim[1]+X]+
-											 oldPtr[(Z*oldDim[2]+Y+1)*oldDim[1]+X]+
-											 oldPtr[((Z+1)*oldDim[2]+Y+1)*oldDim[1]+X] ) /4.0f;
-							} // (x/2==x)
-						} // x loop
-					}
-					else{ // (y/2==Y)
-						for(int x=0; x<image->nx; x++){
-							const int X = (int)ceil((float)x/2.0f);
-							if(x/2 == X){
-								// z' y x'
-								*newPtr++ = (oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X]+
-											 oldPtr[((Z+1)*oldDim[2]+Y)*oldDim[1]+X]+
-											 oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X+1]+
-											 oldPtr[((Z+1)*oldDim[2]+Y)*oldDim[1]+X+1] ) /4.0f;
-							}
-							else{ // (x/2==x)
-								// z' y x
-								*newPtr++ = (oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X]+
-											 oldPtr[((Z+1)*oldDim[2]+Y)*oldDim[1]+X] ) /2.0f;
-							} // (x/2==x)
-						} // x loop
-					} // (y/2==Y)
-				} // y loop
-			}
-			else{ // (z/2==Z)
-				for(int y=0; y<image->ny; y++){
-					const int Y = (int)ceil((float)y/2.0f);
-					if(y/2 == Y){
-						for(int x=0; x<image->nx; x++){
-							const int X = (int)ceil((float)x/2.0f);
-							if(x/2 == X){
-								// z y' x'
-								*newPtr++ = (oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X]+
-											 oldPtr[(Z*oldDim[2]+Y+1)*oldDim[1]+X]+
-											 oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X+1]+
-											 oldPtr[(Z*oldDim[2]+Y+1)*oldDim[1]+X+1] ) /4.0f;
-							}
-							else{ // (x/2==x)
-								// z y' x
-								*newPtr++ = (oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X]+
-											 oldPtr[(Z*oldDim[2]+Y+1)*oldDim[1]+X] ) /2.0f;
-							} // (x/2==x)
-						} // x loop
-					}
-					else{ // (y/2==Y)
-						for(int x=0; x<image->nx; x++){
-							const int X = (int)ceil((float)x/2.0f);
-							if(x/2 == X){
-								// z y x'
-								*newPtr++ = (oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X]
-											 + oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X+1] ) /2.0f;
-							}
-							else{ // (x/2==x)
-								// z y x
-								*newPtr++ = oldPtr[(Z*oldDim[2]+Y)*oldDim[1]+X];
-							} // (x/2==x)
-						} // x loop
-					} // (y/2==Y)
-				} // y loop
-			} // (z/2==Z)
-		} // z loop
-	} // ut
-				
-
-	
-	free(currentValue);
-	return;
-}
-/* *************************************************************** */
-void reg_linearVelocityUpsampling(nifti_image *image, int newDim[8], float newSpacing[8])
-{
-	if(image->nz>1){
-		switch(image->datatype){
-			case NIFTI_TYPE_FLOAT32:
-				reg_linearVelocityUpsampling_3D<float>(image, newDim, newSpacing);
-				break;
-			case NIFTI_TYPE_FLOAT64:
-				reg_linearVelocityUpsampling_3D<double>(image, newDim, newSpacing);
-				break;
-			default:
-				fprintf(stderr, "err\treg_linearVelocityUpsampling\tVoxel type unsupported.");
-				break;
-		}
-	}
-	else{
-		switch(image->datatype){
-			case NIFTI_TYPE_FLOAT32:
-				reg_linearVelocityUpsampling_2D<float>(image, newDim, newSpacing);
-				break;
-			case NIFTI_TYPE_FLOAT64:
-				reg_linearVelocityUpsampling_2D<double>(image, newDim, newSpacing);
-				break;
-			default:
-				fprintf(stderr, "err\treg_linearVelocityUpsampling\tPixel type unsupported.");
-				break;
-		}
 	}
 }
 /* *************************************************************** */

@@ -46,7 +46,7 @@ class reg_f3d_gpu : public reg_f3d<T>
     float *warped2_gpu;
     float4 *warpedGradientImage2_gpu;
 
-    int AllocateCurrentInputImage();
+    int AllocateCurrentInputImage(int);
     int ClearCurrentInputImage();
     int AllocateWarped();
     int ClearWarped();
@@ -69,6 +69,7 @@ class reg_f3d_gpu : public reg_f3d<T>
 	int RestoreCurrentControlPoint();
     double ComputeJacobianBasedPenaltyTerm(int);
     double ComputeBendingEnergyPenaltyTerm();
+    int GetDeformationField();
     int WarpFloatingImage(int);
     double ComputeSimilarityMeasure();
     int GetSimilarityMeasureGradient();

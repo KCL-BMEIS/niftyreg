@@ -154,7 +154,7 @@
     #define Block_reg_bspline_storeApproxBendingEnergy 192              // 39 regs
     #define Block_reg_bspline_SetJacDetToOne 384                        // 02 regs
     #define Block_reg_bspline_getApproxBendingEnergyGradient 384        // 19 regs
-    #define Block_reg_bspline_ApproxJacDet 320                          // 24 regs
+    #define Block_reg_bspline_ApproxJacDet 256                          // 24 regs
     #define Block_reg_spline_cppComposition 320                         // 25 regs
     #define Block_reg_bspline_JacDet 192                                // 41 regs
     #define Block_reg_bspline_JacobianGradFromVel 384                   // 20 regs

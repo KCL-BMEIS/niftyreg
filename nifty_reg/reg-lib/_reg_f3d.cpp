@@ -64,6 +64,7 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->useConjGradient=true;
 	this->maxSSD=NULL;
     this->entropies[0]=this->entropies[1]=this->entropies[2]=this->entropies[3]=0.;
+    this->stepNumber=10;
 //	this->threadNumber=1;
 
     this->initialised=false;
@@ -323,7 +324,14 @@ template<class T>
 int reg_f3d<T>::SetGradientSmoothingSigma(T g)
 {
     this->gradientSmoothingSigma = g;
-	return 0;	
+    return 0;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+int reg_f3d<T>::SetCompositionStepNumber(int s)
+{
+    this->stepNumber = s;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
@@ -391,8 +399,10 @@ int reg_f3d<T>::DoNotPrintOutInformation()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::AllocateCurrentInputImage()
+int reg_f3d<T>::AllocateCurrentInputImage(int level)
 {
+    if(level!=0)
+        reg_bspline_refineControlPointGrid(this->currentReference, this->controlPointGrid);
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1005,7 +1015,7 @@ int reg_f3d<T>::Initisalise_f3d()
     else{
         // The control point grid image is initialised with the provided grid
         this->controlPointGrid = nifti_copy_nim_info(this->inputControlPointGrid);
-        this->controlPointGrid->data = (T *)malloc( this->controlPointGrid->nvox *
+        this->controlPointGrid->data = (void *)malloc( this->controlPointGrid->nvox *
                                                     this->controlPointGrid->nbyper);
         memcpy( this->controlPointGrid->data, this->inputControlPointGrid->data,
                 this->controlPointGrid->nvox * this->controlPointGrid->nbyper);
@@ -1158,14 +1168,22 @@ double reg_f3d<T>::ComputeBendingEnergyPenaltyTerm()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::WarpFloatingImage(int inter)
+int reg_f3d<T>::GetDeformationField()
 {
-    // Compute the deformation field
     reg_bspline<T>( this->controlPointGrid,
                     this->currentReference,
                     this->deformationFieldImage,
                     this->currentMask,
                     0);
+    return 0;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+int reg_f3d<T>::WarpFloatingImage(int inter)
+{
+    // Compute the deformation field
+    this->GetDeformationField();
     // Resample the floating image
     reg_resampleSourceImage<T>(	this->currentReference,
                                 this->currentFloating,
@@ -1235,7 +1253,7 @@ int reg_f3d<T>::GetSimilarityMeasureGradient()
 													this->logJointHistogram,
 													this->entropies,
 													this->voxelBasedMeasureGradientImage,
-													this->currentMask);
+                                                    this->currentMask);
     }
 
     // The voxel based NMI gradient is convolved with a spline kernel
@@ -1498,10 +1516,8 @@ int reg_f3d<T>::Run_f3d()
         this->currentMask = this->maskPyramid[this->currentLevel];
 
         // The grid is refined if necessary
-        if(level != 0)
-            reg_bspline_refineControlPointGrid(currentReference, this->controlPointGrid);
 
-        this->AllocateCurrentInputImage();
+        this->AllocateCurrentInputImage(level);
 
 
 #ifdef NDEBUG
@@ -1740,19 +1756,20 @@ nifti_image *reg_f3d<T>::GetWarpedImage()
 
     this->currentReference = this->inputReference;
     this->currentFloating = this->inputFloating;
+    this->currentMask=NULL;
 
-    reg_f3d::AllocateWarped();
-    reg_f3d::AllocateDeformationField();
+    reg_f3d<T>::AllocateWarped();
+    reg_f3d<T>::AllocateDeformationField();
 
-    reg_f3d::WarpFloatingImage(3); // cubic spline interpolation
+    reg_f3d<T>::WarpFloatingImage(3); // cubic spline interpolation
 
-    reg_f3d::ClearDeformationField();
+    reg_f3d<T>::ClearDeformationField();
 
     nifti_image *resultImage = nifti_copy_nim_info(this->warped);
     resultImage->data=(void *)malloc(resultImage->nvox*resultImage->nbyper);
     memcpy(resultImage->data, this->warped->data, resultImage->nvox*resultImage->nbyper);
 
-    reg_f3d::ClearWarped();
+    reg_f3d<T>::ClearWarped();
     return resultImage;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

@@ -22,7 +22,6 @@
 #include "float.h"
 #include <limits>
 
-
 template <class T>
 class reg_f3d
 {
@@ -83,6 +82,7 @@ class reg_f3d
 	T *maxSSD;
 	unsigned int currentLevel;
     unsigned totalBinNumber;
+    int stepNumber;
 
 	virtual int AllocateWarped();
 	virtual int ClearWarped();
@@ -100,13 +100,14 @@ class reg_f3d
     virtual int ClearBestControlPointArray();
     virtual int AllocateJointHistogram();
     virtual int ClearJointHistogram();
-    virtual int AllocateCurrentInputImage();
+    virtual int AllocateCurrentInputImage(int);
     virtual int ClearCurrentInputImage();
 
     virtual int SaveCurrentControlPoint();
     virtual int RestoreCurrentControlPoint();
     virtual double ComputeJacobianBasedPenaltyTerm(int);
     virtual double ComputeBendingEnergyPenaltyTerm();
+    virtual int GetDeformationField();
     virtual int WarpFloatingImage(int);
     virtual double ComputeSimilarityMeasure();
     virtual int GetSimilarityMeasureGradient();
@@ -153,13 +154,14 @@ public:
     int SetMaximalIterationNumber(unsigned int);
     int SetReferenceBinNumber(int, unsigned int);
     int SetFloatingBinNumber(int, unsigned int);
+    int SetCompositionStepNumber(int);
 //	int SetThreadNumber(int t);
 
     int CheckParameters_f3d();
     int Initisalise_f3d();
     int Run_f3d();
     virtual int CheckMemoryMB_f3d(){return 0;};
-	nifti_image *GetWarpedImage();
+    virtual nifti_image *GetWarpedImage();
     nifti_image *GetControlPointPositionImage();
 };
 

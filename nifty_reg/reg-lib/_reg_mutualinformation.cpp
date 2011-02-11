@@ -501,6 +501,224 @@ template void reg_getEntropies<float>(nifti_image *, nifti_image *,
 /* *************************************************************** */
 /// Voxel based multichannel gradient computation
 template<class PrecisionTYPE,class TargetTYPE,class ResultTYPE,class ResultGradientTYPE,class NMIGradientTYPE>
+void reg_getVoxelBasedNMIGradientUsingPW2D(nifti_image *targetImage,
+                                           nifti_image *resultImage,
+                                           int type, //! Not used at the moment
+                                           nifti_image *resultImageGradient,
+                                           unsigned int *target_bins,
+                                           unsigned int *result_bins,
+                                           PrecisionTYPE *logJointHistogram,
+                                           PrecisionTYPE *entropies,
+                                           nifti_image *nmiGradientImage,
+                                           int *mask)
+{
+    unsigned int num_target_volumes=targetImage->nt;
+    unsigned int num_result_volumes=resultImage->nt;
+    unsigned int num_loops = num_target_volumes + num_result_volumes;
+
+    unsigned targetVoxelNumber = targetImage->nx * targetImage->ny;
+
+    TargetTYPE *targetImagePtr = static_cast<TargetTYPE *>(targetImage->data);
+    ResultTYPE *resultImagePtr = static_cast<ResultTYPE *>(resultImage->data);
+    ResultGradientTYPE *resulImageGradientPtrX = static_cast<ResultGradientTYPE *>(resultImageGradient->data);
+    ResultGradientTYPE *resulImageGradientPtrY = &resulImageGradientPtrX[targetVoxelNumber*num_result_volumes];
+
+    // Build up this arrays of offsets that will help us index the histogram entries
+    int target_offsets[10];
+    int result_offsets[10];
+
+    int total_target_entries = 1;
+    int total_result_entries = 1;
+
+    // The 4D
+    for (unsigned int i = 0; i < num_target_volumes; ++i) {
+        total_target_entries *= target_bins[i];
+        target_offsets[i] = 1;
+        for (int j = i; j > 0; --j) target_offsets[i] *= target_bins[j - 1];
+    }
+
+    for (unsigned int i = 0; i < num_result_volumes; ++i) {
+        total_result_entries *= result_bins[i];
+        result_offsets[i] = 1;
+        for (int j = i; j > 0; --j) result_offsets[i] *= result_bins[j - 1];
+    }
+
+    int num_probabilities = total_target_entries * total_result_entries;
+
+    int *maskPtr = &mask[0];
+    PrecisionTYPE NMI = (entropies[0] + entropies[1]) / entropies[2];
+
+    // Hold current values.
+    // target and result images limited to 10 max for speed.
+    TargetTYPE voxel_values[20];
+    ResultGradientTYPE result_gradient_x_values[10];
+    ResultGradientTYPE result_gradient_y_values[10];
+
+    bool valid_values;
+    PrecisionTYPE common_target_value;
+
+    PrecisionTYPE jointEntropyDerivative_X;
+    PrecisionTYPE movingEntropyDerivative_X;
+    PrecisionTYPE fixedEntropyDerivative_X;
+
+    PrecisionTYPE jointEntropyDerivative_Y;
+    PrecisionTYPE movingEntropyDerivative_Y;
+    PrecisionTYPE fixedEntropyDerivative_Y;
+
+    PrecisionTYPE jointLog, targetLog, resultLog;
+    PrecisionTYPE joint_entropy = (PrecisionTYPE)(entropies[2]);
+
+    NMIGradientTYPE *nmiGradientPtrX = static_cast<NMIGradientTYPE *>(nmiGradientImage->data);
+    NMIGradientTYPE *nmiGradientPtrY = &nmiGradientPtrX[targetVoxelNumber];
+    memset(nmiGradientPtrX,0,nmiGradientImage->nvox*nmiGradientImage->nbyper);
+
+    // Set up the multi loop
+    Multi_Loop<int> loop;
+    for (unsigned int i = 0; i < num_loops; ++i) loop.Add(-1, 2);
+
+    SafeArray<int> bins(num_loops);
+    for (unsigned int i = 0; i < num_target_volumes; ++i) bins[i] = target_bins[i];
+    for (unsigned int i = 0; i < num_result_volumes; ++i) bins[i + num_target_volumes] = result_bins[i];
+
+    PrecisionTYPE coefficients[20];
+    PrecisionTYPE positions[20];
+    int relative_positions[20];
+
+    PrecisionTYPE result_common[2];
+    PrecisionTYPE der_term[2];
+
+    // Loop over all the voxels
+    for (unsigned int index = 0; index < targetVoxelNumber; ++index) {
+        if(*maskPtr++>-1){
+            valid_values = true;
+            // Collect the target intensities and do some sanity checking
+            for (unsigned int i = 0; i < num_target_volumes; ++i) {
+                voxel_values[i] = targetImagePtr[index+i*targetVoxelNumber];
+                if (voxel_values[i] <= (TargetTYPE)0 ||
+                    voxel_values[i] >= (TargetTYPE)target_bins[i] ||
+                    voxel_values[i] != voxel_values[i]) {
+                    valid_values = false;
+                    break;
+                }
+                voxel_values[i] = (TargetTYPE)static_cast<int>((double)voxel_values[i]);
+            }
+
+            // Collect the result intensities and do some sanity checking
+            if (valid_values) {
+                for (unsigned int i = 0; i < num_result_volumes; ++i) {
+                    unsigned int currentIndex = index+i*targetVoxelNumber;
+                    ResultTYPE temp = resultImagePtr[currentIndex];
+                    result_gradient_x_values[i] = resulImageGradientPtrX[currentIndex];
+                    result_gradient_y_values[i] = resulImageGradientPtrY[currentIndex];
+
+                    if (temp <= (ResultTYPE)0 ||
+                        temp >= (ResultTYPE)result_bins[i] ||
+                        temp != temp ||
+                        result_gradient_x_values[i] != result_gradient_x_values[i] ||
+                        result_gradient_y_values[i] != result_gradient_y_values[i]) {
+                        valid_values = false;
+                        break;
+                    }
+                    voxel_values[num_target_volumes + i] = (TargetTYPE)static_cast<int>((double)temp);
+                }
+            }
+            if (valid_values) {
+                jointEntropyDerivative_X = 0.0;
+                movingEntropyDerivative_X = 0.0;
+                fixedEntropyDerivative_X = 0.0;
+
+                jointEntropyDerivative_Y = 0.0;
+                movingEntropyDerivative_Y = 0.0;
+                fixedEntropyDerivative_Y = 0.0;
+
+                int target_flat_index, result_flat_index;
+
+                for (loop.Initialise(); loop.Continue(); loop.Next()) {
+                    target_flat_index = result_flat_index = 0;
+                    valid_values = true;
+
+                    for(unsigned int lc = 0; lc < num_target_volumes; ++lc){
+                        int relative_pos = int(voxel_values[lc] + loop.Index(lc));
+                        if(relative_pos< 0 || relative_pos >= bins[lc]){
+                            valid_values = false; break;
+                        }
+                        PrecisionTYPE common_value = GetBasisSplineValue<PrecisionTYPE>((PrecisionTYPE)relative_pos-(PrecisionTYPE)voxel_values[lc]);
+                        coefficients[lc] = common_value;
+                        positions[lc] = (PrecisionTYPE)relative_pos-(PrecisionTYPE)voxel_values[lc];
+                        relative_positions[lc] = relative_pos;
+                    }
+
+                    for(unsigned int jc = num_target_volumes; jc < num_loops; ++jc){
+                        int relative_pos = int(voxel_values[jc] + loop.Index(jc));
+                        if(relative_pos< 0 || relative_pos >= bins[jc]){
+                            valid_values = false; break;
+                        }
+                        if (num_result_volumes > 1) {
+                            PrecisionTYPE common_value = GetBasisSplineValue<PrecisionTYPE>((PrecisionTYPE)relative_pos-(PrecisionTYPE)voxel_values[jc]);
+                            coefficients[jc] = common_value;
+                        }
+                        positions[jc] = (PrecisionTYPE)relative_pos-(PrecisionTYPE)voxel_values[jc];
+                        relative_positions[jc] = relative_pos;
+                    }
+
+                    if(valid_values) {
+                        common_target_value = (PrecisionTYPE)1.0;
+                        for (unsigned int i = 0; i < num_target_volumes; ++i) common_target_value *= coefficients[i];
+
+                        result_common[0] = result_common[1] = (PrecisionTYPE)0.0;
+
+                        for (unsigned int i = 0; i < num_result_volumes; ++i)
+                        {
+                            der_term[0] = der_term[1] = der_term[2] = (PrecisionTYPE)1.0;
+                            for (unsigned int j = 0; j < num_result_volumes; ++j)
+                            {
+                                if (i == j) {
+                                    PrecisionTYPE reg = GetBasisSplineDerivativeValue<PrecisionTYPE>
+                                                        ((PrecisionTYPE)positions[j + num_target_volumes]);
+                                    der_term[0] *= reg * (PrecisionTYPE)result_gradient_x_values[j];
+                                    der_term[1] *= reg * (PrecisionTYPE)result_gradient_y_values[j];
+                                }
+                                else {
+                                    der_term[0] *= coefficients[j+num_target_volumes];
+                                    der_term[1] *= coefficients[j+num_target_volumes];
+                                }
+                            }
+                            result_common[0] += der_term[0];
+                            result_common[1] += der_term[1];
+                        }
+
+                        result_common[0] *= common_target_value;
+                        result_common[1] *= common_target_value;
+
+                        for (unsigned int i = 0; i < num_target_volumes; ++i) target_flat_index += relative_positions[i] * target_offsets[i];
+                        for (unsigned int i = 0; i < num_result_volumes; ++i) result_flat_index += relative_positions[i + num_target_volumes] * result_offsets[i];
+
+                        jointLog = logJointHistogram[target_flat_index + (result_flat_index * total_target_entries)];
+                        targetLog = logJointHistogram[num_probabilities + target_flat_index];
+                        resultLog = logJointHistogram[num_probabilities + total_target_entries + result_flat_index];
+
+                        jointEntropyDerivative_X -= result_common[0] * jointLog;
+                        fixedEntropyDerivative_X -= result_common[0] * targetLog;
+                        movingEntropyDerivative_X -= result_common[0] * resultLog;
+
+                        jointEntropyDerivative_Y -= result_common[1] * jointLog;
+                        fixedEntropyDerivative_Y -= result_common[1] * targetLog;
+                        movingEntropyDerivative_Y -= result_common[1] * resultLog;
+                    }
+
+                    *nmiGradientPtrX = (NMIGradientTYPE)((fixedEntropyDerivative_X + movingEntropyDerivative_X - NMI * jointEntropyDerivative_X) / joint_entropy);
+                    *nmiGradientPtrY = (NMIGradientTYPE)((fixedEntropyDerivative_Y + movingEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / joint_entropy);
+                }
+            }
+        }
+
+        nmiGradientPtrX++; nmiGradientPtrY++;
+    }
+}
+/* *************************************************************** */
+/* *************************************************************** */
+/// Voxel based multichannel gradient computation
+template<class PrecisionTYPE,class TargetTYPE,class ResultTYPE,class ResultGradientTYPE,class NMIGradientTYPE>
 void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *targetImage,
                                            nifti_image *resultImage,
                                            int type, //! Not used at the moment
@@ -654,7 +872,7 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *targetImage,
                         int relative_pos = int(voxel_values[lc] + loop.Index(lc));
                         if(relative_pos< 0 || relative_pos >= bins[lc]){
                             valid_values = false; break;
-                        }                        
+                        }
                         PrecisionTYPE common_value = GetBasisSplineValue<PrecisionTYPE>((PrecisionTYPE)relative_pos-(PrecisionTYPE)voxel_values[lc]);
                         coefficients[lc] = common_value;
                         positions[lc] = (PrecisionTYPE)relative_pos-(PrecisionTYPE)voxel_values[lc];
@@ -768,22 +986,24 @@ void reg_getVoxelBasedNMIGradientUsingPW3(nifti_image *targetImage,
                 fprintf(stderr,"[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe result image gradient data type is not supported\n");
                 exit(1);
         }
-    }else{/*
+    }else{
         switch(nmiGradientImage->datatype){
             case NIFTI_TYPE_FLOAT32:
                 reg_getVoxelBasedNMIGradientUsingPW2D<PrecisionTYPE,TargetTYPE,ResultTYPE,ResultGradientTYPE,float>
                         (targetImage, resultImage, type, resultImageGradient, target_bins, result_bins, logJointHistogram,
-                         entropies, nmiGradientImage, mask, num_target_volumes, num_result_volumes);
+                         entropies, nmiGradientImage, mask);
                 break;
+#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 reg_getVoxelBasedNMIGradientUsingPW2D<PrecisionTYPE,TargetTYPE,ResultTYPE,ResultGradientTYPE,double>
                         (targetImage, resultImage, type, resultImageGradient, target_bins, result_bins, logJointHistogram,
-                         entropies, nmiGradientImage, mask, num_target_volumes, num_result_volumes);
+                         entropies, nmiGradientImage, mask);
                 break;
+#endif
             default:
                 fprintf(stderr,"[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe result image gradient data type is not supported\n");
                 exit(1);
-        }*/
+        }
     }
 }
 /* *************************************************************** */
