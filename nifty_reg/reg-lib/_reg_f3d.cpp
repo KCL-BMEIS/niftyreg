@@ -873,10 +873,10 @@ int reg_f3d<T>::Initisalise_f3d()
 		 * The images are then shifted by two which is the suport of the spline used
 		 * by the parzen window filling of the joint histogram */
         
-		float referenceRescalingArrayDown[this->referencePyramid[0]->nt];
-		float referenceRescalingArrayUp[this->referencePyramid[0]->nt];
-		float floatingRescalingArrayDown[this->floatingPyramid[0]->nt];
-		float floatingRescalingArrayUp[this->floatingPyramid[0]->nt];
+		float referenceRescalingArrayDown[10];
+		float referenceRescalingArrayUp[10];
+		float floatingRescalingArrayDown[10];
+		float floatingRescalingArrayUp[10];
 		for(int t=0;t<this->referencePyramid[0]->nt;t++){
             // INCREASE THE BIN SIZES
             this->referenceBinNumber[t] += 4;

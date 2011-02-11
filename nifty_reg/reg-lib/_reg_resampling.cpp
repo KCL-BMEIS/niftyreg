@@ -19,7 +19,7 @@
 template<class PrecisionType>
 int round(PrecisionType x)
 {
-    return static_cas<int>(x > 0.0 ? x + 0.5 : x - 0.5);
+    return static_cast<int>(x > 0.0 ? x + 0.5 : x - 0.5);
 }
 #endif
 

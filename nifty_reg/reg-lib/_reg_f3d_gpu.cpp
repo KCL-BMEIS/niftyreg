@@ -829,7 +829,7 @@ int reg_f3d_gpu<T>::CheckMemoryMB_f3d()
     if(this->jacobianLogWeight>0)
         totalMemoryRequiered += 10 * this->referencePyramid[this->levelToPerform-1]->nvox * sizeof(float);
 
-    return (int)(ceil(totalMemoryRequiered/1000000));
+    return (int)(ceil((float)totalMemoryRequiered/1000000.0f));
 
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

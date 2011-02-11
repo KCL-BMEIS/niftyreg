@@ -21,8 +21,11 @@
 template<class PrecisionType>
 int reg_round(PrecisionType x)
 {
-//    return int(x > 0.0 ? x + 0.5 : x - 0.5);
+#ifdef _WINDOWS
+    return int(x > 0.0 ? x + 0.5 : x - 0.5);
+#else
     return int(round(x));
+#endif
 }
 template<class PrecisionType>
 int reg_floor(PrecisionType x)
