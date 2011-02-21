@@ -491,43 +491,28 @@ int main(int argc, char **argv)
     /* APPLY AFFINE TO DEFORMATION */
     /* *************************** */
     if(flag->aff2defFlag){
+        // Read the input deformation field
+        nifti_image *deformationField = nifti_image_read(param->inputDeformationName,true);
+        if(deformationField == NULL){
+            fprintf(stderr,"[NiftyReg ERROR] Error when reading the input deformation field image: %s\n",param->inputDeformationName);
+            PetitUsage(argv[0]);
+            return 1;
+        }
+        reg_checkAndCorrectDimension(deformationField);
         // Read the affine transformation
         mat44 *affineTransformation = (mat44 *)calloc(1,sizeof(mat44));
-        reg_tool_ReadAffineFile(	affineTransformation,
-                                    targetImage,
-                                    targetImage,
-                                    param->inputAffineName,
-                                    0);
+        reg_tool_ReadAffineFile(affineTransformation,
+                                targetImage,
+                                deformationField,
+                                param->inputAffineName,
+                                0);
         //Invert the affine transformation since the floating is updated
         *affineTransformation = nifti_mat44_inverse(*affineTransformation);
 
-        // Create a deformation field
-        nifti_image *deformationFieldImage = nifti_copy_nim_info(targetImage);
-        deformationFieldImage->cal_min=0;
-        deformationFieldImage->cal_max=0;
-        deformationFieldImage->scl_slope = 1.0f;
-        deformationFieldImage->scl_inter = 0.0f;
-        deformationFieldImage->dim[0]=deformationFieldImage->ndim=5;
-        deformationFieldImage->dim[1]=deformationFieldImage->nx=targetImage->nx;
-        deformationFieldImage->dim[2]=deformationFieldImage->ny=targetImage->ny;
-        deformationFieldImage->dim[3]=deformationFieldImage->nz=targetImage->nz;
-        deformationFieldImage->dim[4]=deformationFieldImage->nt=1;deformationFieldImage->pixdim[4]=deformationFieldImage->dt=1.0;
-        if(targetImage->nz>1)
-            deformationFieldImage->dim[5]=deformationFieldImage->nu=3;
-        else deformationFieldImage->dim[5]=deformationFieldImage->nu=2;
-        deformationFieldImage->pixdim[5]=deformationFieldImage->du=1.0;
-        deformationFieldImage->dim[6]=deformationFieldImage->nv=1;deformationFieldImage->pixdim[6]=deformationFieldImage->dv=1.0;
-        deformationFieldImage->dim[7]=deformationFieldImage->nw=1;deformationFieldImage->pixdim[7]=deformationFieldImage->dw=1.0;
-        deformationFieldImage->nvox=deformationFieldImage->nx*deformationFieldImage->ny*deformationFieldImage->nz*deformationFieldImage->nt*deformationFieldImage->nu;
-        if(sizeof(PrecisionTYPE)==4) deformationFieldImage->datatype = NIFTI_TYPE_FLOAT32;
-        else deformationFieldImage->datatype = NIFTI_TYPE_FLOAT64;
-        deformationFieldImage->nbyper = sizeof(PrecisionTYPE);
-        deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
-
         // Update the deformation field
-        unsigned int voxelNumber = deformationFieldImage->nx*deformationFieldImage->ny*deformationFieldImage->nz;
-        if(deformationFieldImage->datatype==NIFTI_TYPE_FLOAT32){
-            float *defPtrX = static_cast<float *>(deformationFieldImage->data);
+        unsigned int voxelNumber = deformationField->nx*deformationField->ny*deformationField->nz;
+        if(deformationField->datatype==NIFTI_TYPE_FLOAT32){
+            float *defPtrX = static_cast<float *>(deformationField->data);
             float *defPtrY = &defPtrX[voxelNumber];
             float *defPtrZ = &defPtrY[voxelNumber];
             for(unsigned int i=0;i<voxelNumber;++i){
@@ -535,24 +520,24 @@ int main(int argc, char **argv)
                 float positionY = *defPtrY;
                 float positionZ = *defPtrZ;
                 float newPositionX = positionX * affineTransformation->m[0][0] +
-                                     positionY * affineTransformation->m[0][1] +
-                                     positionZ * affineTransformation->m[0][2] +
-                                     affineTransformation->m[0][3];
+                                    positionY * affineTransformation->m[0][1] +
+                                    positionZ * affineTransformation->m[0][2] +
+                                    affineTransformation->m[0][3];
                 float newPositionY = positionX * affineTransformation->m[1][0] +
-                                     positionY * affineTransformation->m[1][1] +
-                                     positionZ * affineTransformation->m[1][2] +
-                                     affineTransformation->m[1][3];
+                                    positionY * affineTransformation->m[1][1] +
+                                    positionZ * affineTransformation->m[1][2] +
+                                    affineTransformation->m[1][3];
                 float newPositionZ = positionX * affineTransformation->m[2][0] +
-                                     positionY * affineTransformation->m[2][1] +
-                                     positionZ * affineTransformation->m[2][2] +
-                                     affineTransformation->m[2][3];
+                                    positionY * affineTransformation->m[2][1] +
+                                    positionZ * affineTransformation->m[2][2] +
+                                    affineTransformation->m[2][3];
                 *defPtrX++ = newPositionX;
                 *defPtrY++ = newPositionY;
                 *defPtrZ++ = newPositionZ;
             }
         }
-        else if(deformationFieldImage->datatype==NIFTI_TYPE_FLOAT64){
-            double *defPtrX = static_cast<double *>(deformationFieldImage->data);
+        else if(deformationField->datatype==NIFTI_TYPE_FLOAT64){
+            double *defPtrX = static_cast<double *>(deformationField->data);
             double *defPtrY = &defPtrX[voxelNumber];
             double *defPtrZ = &defPtrY[voxelNumber];
             for(unsigned int i=0;i<voxelNumber;++i){
@@ -560,17 +545,17 @@ int main(int argc, char **argv)
                 double positionY = *defPtrY;
                 double positionZ = *defPtrZ;
                 double newPositionX = positionX * affineTransformation->m[0][0] +
-                                     positionY * affineTransformation->m[0][1] +
-                                     positionZ * affineTransformation->m[0][2] +
-                                     affineTransformation->m[0][3];
+                positionY * affineTransformation->m[0][1] +
+                positionZ * affineTransformation->m[0][2] +
+                affineTransformation->m[0][3];
                 double newPositionY = positionX * affineTransformation->m[1][0] +
-                                     positionY * affineTransformation->m[1][1] +
-                                     positionZ * affineTransformation->m[1][2] +
-                                     affineTransformation->m[1][3];
+                positionY * affineTransformation->m[1][1] +
+                positionZ * affineTransformation->m[1][2] +
+                affineTransformation->m[1][3];
                 double newPositionZ = positionX * affineTransformation->m[2][0] +
-                                     positionY * affineTransformation->m[2][1] +
-                                     positionZ * affineTransformation->m[2][2] +
-                                     affineTransformation->m[2][3];
+                positionY * affineTransformation->m[2][1] +
+                positionZ * affineTransformation->m[2][2] +
+                affineTransformation->m[2][3];
                 *defPtrX++ = newPositionX;
                 *defPtrY++ = newPositionY;
                 *defPtrZ++ = newPositionZ;
@@ -581,9 +566,9 @@ int main(int argc, char **argv)
             PetitUsage(argv[0]);
             return 1;
         }
-        nifti_set_filenames(deformationFieldImage, param->outputDeformationName, 0, 0);
-        nifti_image_write(deformationFieldImage);
-        nifti_image_free(deformationFieldImage);
+        nifti_set_filenames(deformationField, param->outputDeformationName, 0, 0);
+        nifti_image_write(deformationField);
+        nifti_image_free(deformationField);
     }
 
 	/* **************************** */
