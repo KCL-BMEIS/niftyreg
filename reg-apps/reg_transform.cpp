@@ -17,11 +17,13 @@
 #include "_reg_bspline.h"
 #include "_reg_bspline_comp.h"
 #include "_reg_tools.h"
+#include "_reg_thinPlateSpline.h"
 
 #define PrecisionTYPE float
 
 typedef struct{
-	char *targetImageName;
+    char *targetImageName;
+    char *sourceImageName;
 
     char *inputSourceImageName;
     char *inputAffineName;
@@ -54,6 +56,7 @@ typedef struct{
     bool aff2defFlag;
     bool invertAffineFlag;
     bool invertVelFlag;
+    bool invertDefFlag;
 }FLAG;
 
 
@@ -106,15 +109,21 @@ void Usage(char *exec)
         printf("\t\tFilename2: Affine transformation defined as Affine x Reference = Floating\n");
         printf("\t\tFilename3: Updated image.\n");
         printf("\t\tFilename2: deformation field x'=T(x)\n");
-    printf("\t-aff2def <filename1> <filename2> <filename3>\n");
-        printf("\t\tApply an affine transformation to a deformation field.\n");
-        printf("\t\tFilename1: deformation field to be updated\n");
-        printf("\t\tFilename2: Affine transformation defined as Affine x Reference = Floating\n");
-        printf("\t\tFilename3: Updated deformation field.\n");
-	printf("\t-invAffine <filename1> <filename2>\n");
-		printf("\t\tInvert an affine transformation matrix\n");
-		printf("\t\tFilename1: Input affine matrix\n");
-		printf("\t\tFilename2: Inverted affine matrix\n");
+    printf("\t-aff2def <filename1> <filename2> <filename3> <filename3>\n");
+        printf("\t\tApply a non-rigid deformation (stored as CPP) to an initial affine transformation.\nReturns a deformation field.\n");
+        printf("\t\tFilename1: Affine transformation defined as Affine x Reference = Floating\n");
+        printf("\t\tFilename2: Image used as a target for the non-rigid step.\n");
+        printf("\t\tFilename3: Control point position filename\n");
+        printf("\t\tFilename4: Updated deformation field.\n");
+    printf("\t-invAffine <filename1> <filename2>\n");
+        printf("\t\tInvert an affine transformation matrix\n");
+        printf("\t\tFilename1: Input affine matrix\n");
+        printf("\t\tFilename2: Inverted affine matrix\n");
+//    printf("\t-invDef <filename1> <filename2> <filename3>\n");
+//        printf("\t\tInvert a deformation field\n");
+//        printf("\t\tFilename1: Input deformation field filename\n");
+//        printf("\t\tFilename2: Source image filename\n");
+//        printf("\t\tFilename3: output deformation field filename\n");
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 	return;
 }
@@ -165,8 +174,9 @@ int main(int argc, char **argv)
             flag->updateSformFlag=1;
         }
         else if(strcmp(argv[i], "-aff2def") == 0){
-            param->inputDeformationName=argv[++i];
             param->inputAffineName=argv[++i];
+            param->sourceImageName=argv[++i];
+            param->inputFirstCPPName=argv[++i];
             param->outputDeformationName=argv[++i];
             flag->aff2defFlag=1;
         }
@@ -174,6 +184,12 @@ int main(int argc, char **argv)
             param->inputAffineName=argv[++i];
             param->outputAffineName=argv[++i];
             flag->invertAffineFlag=1;
+        }
+        else if(strcmp(argv[i], "-invDef") == 0){
+            param->inputDeformationName=argv[++i];
+            param->sourceImageName=argv[++i];
+            param->outputDeformationName=argv[++i];
+            flag->invertDefFlag=1;
         }
         else if(strcmp(argv[i], "-cpp2def") == 0){
             param->cpp2defInputName=argv[++i];
@@ -487,90 +503,6 @@ int main(int argc, char **argv)
 	}
 	
 
-    /* *************************** */
-    /* APPLY AFFINE TO DEFORMATION */
-    /* *************************** */
-    if(flag->aff2defFlag){
-        // Read the input deformation field
-        nifti_image *deformationField = nifti_image_read(param->inputDeformationName,true);
-        if(deformationField == NULL){
-            fprintf(stderr,"[NiftyReg ERROR] Error when reading the input deformation field image: %s\n",param->inputDeformationName);
-            PetitUsage(argv[0]);
-            return 1;
-        }
-        reg_checkAndCorrectDimension(deformationField);
-        // Read the affine transformation
-        mat44 *affineTransformation = (mat44 *)calloc(1,sizeof(mat44));
-        reg_tool_ReadAffineFile(affineTransformation,
-                                targetImage,
-                                deformationField,
-                                param->inputAffineName,
-                                0);
-        //Invert the affine transformation since the floating is updated
-        *affineTransformation = nifti_mat44_inverse(*affineTransformation);
-
-        // Update the deformation field
-        unsigned int voxelNumber = deformationField->nx*deformationField->ny*deformationField->nz;
-        if(deformationField->datatype==NIFTI_TYPE_FLOAT32){
-            float *defPtrX = static_cast<float *>(deformationField->data);
-            float *defPtrY = &defPtrX[voxelNumber];
-            float *defPtrZ = &defPtrY[voxelNumber];
-            for(unsigned int i=0;i<voxelNumber;++i){
-                float positionX = *defPtrX;
-                float positionY = *defPtrY;
-                float positionZ = *defPtrZ;
-                float newPositionX = positionX * affineTransformation->m[0][0] +
-                                    positionY * affineTransformation->m[0][1] +
-                                    positionZ * affineTransformation->m[0][2] +
-                                    affineTransformation->m[0][3];
-                float newPositionY = positionX * affineTransformation->m[1][0] +
-                                    positionY * affineTransformation->m[1][1] +
-                                    positionZ * affineTransformation->m[1][2] +
-                                    affineTransformation->m[1][3];
-                float newPositionZ = positionX * affineTransformation->m[2][0] +
-                                    positionY * affineTransformation->m[2][1] +
-                                    positionZ * affineTransformation->m[2][2] +
-                                    affineTransformation->m[2][3];
-                *defPtrX++ = newPositionX;
-                *defPtrY++ = newPositionY;
-                *defPtrZ++ = newPositionZ;
-            }
-        }
-        else if(deformationField->datatype==NIFTI_TYPE_FLOAT64){
-            double *defPtrX = static_cast<double *>(deformationField->data);
-            double *defPtrY = &defPtrX[voxelNumber];
-            double *defPtrZ = &defPtrY[voxelNumber];
-            for(unsigned int i=0;i<voxelNumber;++i){
-                double positionX = *defPtrX;
-                double positionY = *defPtrY;
-                double positionZ = *defPtrZ;
-                double newPositionX = positionX * affineTransformation->m[0][0] +
-                positionY * affineTransformation->m[0][1] +
-                positionZ * affineTransformation->m[0][2] +
-                affineTransformation->m[0][3];
-                double newPositionY = positionX * affineTransformation->m[1][0] +
-                positionY * affineTransformation->m[1][1] +
-                positionZ * affineTransformation->m[1][2] +
-                affineTransformation->m[1][3];
-                double newPositionZ = positionX * affineTransformation->m[2][0] +
-                positionY * affineTransformation->m[2][1] +
-                positionZ * affineTransformation->m[2][2] +
-                affineTransformation->m[2][3];
-                *defPtrX++ = newPositionX;
-                *defPtrY++ = newPositionY;
-                *defPtrZ++ = newPositionZ;
-            }
-        }
-        else{
-            fprintf(stderr,"[NiftyReg ERROR] Only float or double deformation field are considered.\n");
-            PetitUsage(argv[0]);
-            return 1;
-        }
-        nifti_set_filenames(deformationField, param->outputDeformationName, 0, 0);
-        nifti_image_write(deformationField);
-        nifti_image_free(deformationField);
-    }
-
 	/* **************************** */
 	/* INVERT AFFINE TRANSFORMATION */
 	/* **************************** */
@@ -591,7 +523,153 @@ int main(int argc, char **argv)
 									param->outputAffineName);
 		free(affineTransformation);
 	}
-	
+
+//    /* ************************ */
+//    /* INVERT DEFORMATION FIELD */
+//    /* ************************ */
+//    if(flag->invertDefFlag){
+//        // Read the input deformation field
+//        nifti_image *deformationField = nifti_image_read(param->inputDeformationName,true);
+//        if(deformationField == NULL){
+//            fprintf(stderr,"[NiftyReg ERROR] Error when reading the input deformation field image: %s\n",param->inputDeformationName);
+//            PetitUsage(argv[0]);
+//            return 1;
+//        }
+//        reg_checkAndCorrectDimension(deformationField);
+//
+//        nifti_image *sourceImage = nifti_image_read(param->sourceImageName,false);
+//        if(sourceImage == NULL){
+//            fprintf(stderr,"[NiftyReg ERROR] Error when reading the source image: %s\n",param->sourceImageName);
+//            PetitUsage(argv[0]);
+//            return 1;
+//        }
+//        reg_checkAndCorrectDimension(sourceImage);
+//
+//        thinPlateSpline *tps=NULL;
+//        reg_initThinPlateSplineFromDeformationField(deformationField,
+//                                                    tps,
+//                                                    false);
+//
+//        nifti_image *outputDeformationFieldImage = nifti_copy_nim_info(sourceImage);
+//        outputDeformationFieldImage->cal_min=0;
+//        outputDeformationFieldImage->cal_max=0;
+//        outputDeformationFieldImage->scl_slope = 1.0f;
+//        outputDeformationFieldImage->scl_inter = 0.0f;
+//        outputDeformationFieldImage->dim[0]=outputDeformationFieldImage->ndim=5;
+//        outputDeformationFieldImage->dim[1]=outputDeformationFieldImage->nx=sourceImage->nx;
+//        outputDeformationFieldImage->dim[2]=outputDeformationFieldImage->ny=sourceImage->ny;
+//        outputDeformationFieldImage->dim[3]=outputDeformationFieldImage->nz=sourceImage->nz;
+//        outputDeformationFieldImage->dim[4]=outputDeformationFieldImage->nt=1;outputDeformationFieldImage->pixdim[4]=outputDeformationFieldImage->dt=1.0;
+//        if(targetImage->nz>1)
+//            outputDeformationFieldImage->dim[5]=outputDeformationFieldImage->nu=3;
+//        else outputDeformationFieldImage->dim[5]=outputDeformationFieldImage->nu=2;
+//        outputDeformationFieldImage->pixdim[5]=outputDeformationFieldImage->du=1.0;
+//        outputDeformationFieldImage->dim[6]=outputDeformationFieldImage->nv=1;
+//        outputDeformationFieldImage->pixdim[6]=outputDeformationFieldImage->dv=1.0;
+//        outputDeformationFieldImage->dim[7]=outputDeformationFieldImage->nw=1;
+//        outputDeformationFieldImage->pixdim[7]=outputDeformationFieldImage->dw=1.0;
+//        outputDeformationFieldImage->nvox=outputDeformationFieldImage->nx*outputDeformationFieldImage->ny*
+//                                          outputDeformationFieldImage->nz*outputDeformationFieldImage->nt*
+//                                          outputDeformationFieldImage->nu;
+//        if(sizeof(PrecisionTYPE)==4) outputDeformationFieldImage->datatype = NIFTI_TYPE_FLOAT32;
+//        else outputDeformationFieldImage->datatype = NIFTI_TYPE_FLOAT64;
+//        outputDeformationFieldImage->nbyper = sizeof(PrecisionTYPE);
+//        outputDeformationFieldImage->data = (void *)calloc(outputDeformationFieldImage->nvox, outputDeformationFieldImage->nbyper);
+//
+//        reg_TPSfillDeformationField(tps, outputDeformationFieldImage);
+//
+//        nifti_set_filenames(outputDeformationFieldImage,param->outputDeformationName,0,0);
+//        nifti_image_write(outputDeformationFieldImage);
+//        nifti_image_free(sourceImage);
+//        nifti_image_free(deformationField);
+//        nifti_image_free(outputDeformationFieldImage);
+//    }
+
+    /* *************************** */
+    /* APPLY AFFINE TO DEFORMATION */
+    /* *************************** */
+    if(flag->aff2defFlag){
+        // Read the input control point position
+        nifti_image *controlPointPosition = nifti_image_read(param->inputFirstCPPName,true);
+        if(controlPointPosition == NULL){
+            fprintf(stderr,"[NiftyReg ERROR] Error when reading the input control point position image: %s\n",param->inputFirstCPPName);
+            PetitUsage(argv[0]);
+            return 1;
+        }
+        reg_checkAndCorrectDimension(controlPointPosition);
+
+        // Read the input control point position
+        nifti_image *targetImage2 = nifti_image_read(param->sourceImageName,true);
+        if(targetImage2 == NULL){
+            fprintf(stderr,"[NiftyReg ERROR] Error when reading the nrr-step target image: %s\n",param->sourceImageName);
+            PetitUsage(argv[0]);
+            return 1;
+        }
+        reg_checkAndCorrectDimension(targetImage2);
+
+        // Read the affine transformation
+        mat44 *affineTransformation = (mat44 *)calloc(1,sizeof(mat44));
+        reg_tool_ReadAffineFile(affineTransformation,
+                                targetImage,
+                                targetImage2,
+                                param->inputAffineName,
+                                0);
+
+        reg_mat44_disp(affineTransformation, "affineTransformation");
+
+        // An initial deformation field is created
+        nifti_image *deformationFieldImage = nifti_copy_nim_info(targetImage);
+        deformationFieldImage->cal_min=0;
+        deformationFieldImage->cal_max=0;
+        deformationFieldImage->scl_slope = 1.0f;
+        deformationFieldImage->scl_inter = 0.0f;
+        deformationFieldImage->dim[0]=deformationFieldImage->ndim=5;
+        deformationFieldImage->dim[1]=deformationFieldImage->nx=targetImage->nx;
+        deformationFieldImage->dim[2]=deformationFieldImage->ny=targetImage->ny;
+        deformationFieldImage->dim[3]=deformationFieldImage->nz=targetImage->nz;
+        deformationFieldImage->dim[4]=deformationFieldImage->nt=1;
+        deformationFieldImage->pixdim[4]=deformationFieldImage->dt=1.0;
+        if(targetImage->nz>1)
+        deformationFieldImage->dim[5]=deformationFieldImage->nu=3;
+        else deformationFieldImage->dim[5]=deformationFieldImage->nu=2;
+        deformationFieldImage->pixdim[5]=deformationFieldImage->du=1.0;
+        deformationFieldImage->dim[6]=deformationFieldImage->nv=1;
+        deformationFieldImage->pixdim[6]=deformationFieldImage->dv=1.0;
+        deformationFieldImage->dim[7]=deformationFieldImage->nw=1;
+        deformationFieldImage->pixdim[7]=deformationFieldImage->dw=1.0;
+        deformationFieldImage->nvox=deformationFieldImage->nx*deformationFieldImage->ny
+                                    *deformationFieldImage->nz*deformationFieldImage->nt
+                                    *deformationFieldImage->nu;
+        if(sizeof(PrecisionTYPE)==4) deformationFieldImage->datatype = NIFTI_TYPE_FLOAT32;
+        else deformationFieldImage->datatype = NIFTI_TYPE_FLOAT64;
+        deformationFieldImage->nbyper = sizeof(PrecisionTYPE);
+        deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox,
+                                                     deformationFieldImage->nbyper);
+
+        // The deformation field is field with the affine transformation
+        reg_affine_positionField(affineTransformation, targetImage, deformationFieldImage);
+
+nifti_set_filenames(deformationFieldImage, "def_afterAffine.nii", 0, 0);
+nifti_image_write(deformationFieldImage);
+
+
+        // The deformation field is composed with the CPP file
+        reg_bspline<PrecisionTYPE>(controlPointPosition,
+                                   targetImage2,
+                                   deformationFieldImage,
+                                   NULL,
+                                   1);
+
+nifti_set_filenames(deformationFieldImage, "def_afterNRR.nii", 0, 0);
+nifti_image_write(deformationFieldImage);
+
+        nifti_set_filenames(deformationFieldImage, param->outputDeformationName, 0, 0);
+        nifti_image_write(deformationFieldImage);
+        nifti_image_free(deformationFieldImage);
+        nifti_image_free(controlPointPosition);
+        nifti_image_free(targetImage2);
+    }
+
 	nifti_image_free(targetImage);
 	
 	free(flag);
