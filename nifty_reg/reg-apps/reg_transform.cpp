@@ -17,7 +17,7 @@
 #include "_reg_bspline.h"
 #include "_reg_bspline_comp.h"
 #include "_reg_tools.h"
-#include "_reg_thinPlateSpline.h"
+// #include "_reg_thinPlateSpline.h"
 
 #define PrecisionTYPE float
 
@@ -110,7 +110,7 @@ void Usage(char *exec)
         printf("\t\tFilename3: Updated image.\n");
         printf("\t\tFilename2: deformation field x'=T(x)\n");
     printf("\t-aff2def <filename1> <filename2> <filename3> <filename3>\n");
-        printf("\t\tApply a non-rigid deformation (stored as CPP) to an initial affine transformation.\nReturns a deformation field.\n");
+        printf("\t\tApply a non-rigid deformation (stored as CPP) to an initial affine transformation.\n\t\tReturns a deformation field.\n");
         printf("\t\tFilename1: Affine transformation defined as Affine x Reference = Floating\n");
         printf("\t\tFilename2: Image used as a target for the non-rigid step.\n");
         printf("\t\tFilename3: Control point position filename\n");
