@@ -648,12 +648,14 @@ int main(int argc, char **argv)
         reg_affine_positionField(affineTransformation, targetImage, deformationFieldImage);
 
         // The deformation field is composed with the CPP file
+		int *mask=(int *)calloc(targetImage->nvox, sizeof(int));
         reg_bspline<PrecisionTYPE>(controlPointPosition,
                                    targetImage2,
                                    deformationFieldImage,
-                                   NULL,
+                                   mask,
                                    1);
-
+		free(mask);
+		
         nifti_set_filenames(deformationFieldImage, param->outputDeformationName, 0, 0);
         nifti_image_write(deformationFieldImage);
         nifti_image_free(deformationFieldImage);
