@@ -615,8 +615,6 @@ int main(int argc, char **argv)
                                 param->inputAffineName,
                                 0);
 
-        reg_mat44_disp(affineTransformation, "affineTransformation");
-
         // An initial deformation field is created
         nifti_image *deformationFieldImage = nifti_copy_nim_info(targetImage);
         deformationFieldImage->cal_min=0;
@@ -649,19 +647,12 @@ int main(int argc, char **argv)
         // The deformation field is field with the affine transformation
         reg_affine_positionField(affineTransformation, targetImage, deformationFieldImage);
 
-nifti_set_filenames(deformationFieldImage, "def_afterAffine.nii", 0, 0);
-nifti_image_write(deformationFieldImage);
-
-
         // The deformation field is composed with the CPP file
         reg_bspline<PrecisionTYPE>(controlPointPosition,
                                    targetImage2,
                                    deformationFieldImage,
                                    NULL,
                                    1);
-
-nifti_set_filenames(deformationFieldImage, "def_afterNRR.nii", 0, 0);
-nifti_image_write(deformationFieldImage);
 
         nifti_set_filenames(deformationFieldImage, param->outputDeformationName, 0, 0);
         nifti_image_write(deformationFieldImage);
