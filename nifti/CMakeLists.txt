@@ -8,4 +8,5 @@ INSTALL(TARGETS ${NAME}
 	LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 )
+INSTALL(FILES nifti1_io.h znzlib.h nifti1.h DESTINATION include)
 #-----------------------------------------------------------------------------

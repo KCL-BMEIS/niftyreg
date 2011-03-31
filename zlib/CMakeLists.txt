@@ -6,4 +6,5 @@ INSTALL(TARGETS ${NAME}
 	LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 )
+INSTALL(FILES zlib.h zutil.h DESTINATION include)
 #-----------------------------------------------------------------------------
