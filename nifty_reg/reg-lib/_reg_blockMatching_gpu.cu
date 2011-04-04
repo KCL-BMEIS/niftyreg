@@ -35,7 +35,7 @@ void block_matching_method_gpu(	nifti_image *targetImage,
 	const int numBlocks = bDim.x*bDim.y*bDim.z;
 	CUDA_SAFE_CALL(cudaBindTexture(0, targetImageArray_texture, *targetImageArray_d, targetImage->nvox*sizeof(float)));
 	CUDA_SAFE_CALL(cudaBindTexture(0, resultImageArray_texture, *resultImageArray_d, targetImage->nvox*sizeof(float)));	
-    CUDA_SAFE_CALL(cudaBindTexture(0, activeBlock_texture, *activeBlock_d, numBlocks*sizeof(int)));    
+        CUDA_SAFE_CALL(cudaBindTexture(0, activeBlock_texture, *activeBlock_d, numBlocks*sizeof(int)));
 	
 	// Copy the sform transformation matrix onto the device memort
 	mat44 *xyz_mat;
@@ -65,8 +65,8 @@ void block_matching_method_gpu(	nifti_image *targetImage,
 	dim3 B1(Block_target_block,1,1);
 	dim3 G1(Grid_block_matching,Grid_block_matching_2,1);    
     // process the target blocks
-    process_target_blocks_gpu<<<G1, B1>>>(  *targetPosition_d,    
-		                                    targetValues);
+    process_target_blocks_gpu<<<G1, B1>>>(  *targetPosition_d,
+                                            targetValues);
     CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
     printf("[NiftyReg CUDA DEBUG] process_target_blocks_gpu kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
@@ -90,11 +90,11 @@ void block_matching_method_gpu(	nifti_image *targetImage,
     printf("[NiftyReg CUDA DEBUG] process_result_blocks_gpu kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 	       cudaGetErrorString(cudaGetLastError()),G2.x,G2.y,G2.z,B2.x,B2.y,B2.z);
 #endif
-	cudaFree(targetValues);
-	cudaFree(resultValues);
-    cudaUnbindTexture(targetImageArray_texture);
-    cudaUnbindTexture(resultImageArray_texture);
-    cudaUnbindTexture(activeBlock_texture);
+    CUDA_SAFE_CALL(cudaUnbindTexture(targetImageArray_texture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(resultImageArray_texture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(activeBlock_texture));
+    CUDA_SAFE_CALL(cudaFree(targetValues));
+    CUDA_SAFE_CALL(cudaFree(resultValues));
 
 }
 

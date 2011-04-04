@@ -57,7 +57,9 @@ void reg_bspline_gpu(   nifti_image *controlPointImage,
     printf("[NiftyReg CUDA DEBUG] reg_freeForm_deformationField_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
         cudaGetErrorString(cudaGetLastError()),GridP1.x,GridP1.y,GridP1.z,BlockP1.x,BlockP1.y,BlockP1.z);
 #endif
-	return;
+    CUDA_SAFE_CALL(cudaUnbindTexture(controlPointTexture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(maskTexture));
+    return;
 }
 
 /* *************************************************************** */
@@ -99,7 +101,9 @@ float reg_bspline_ApproxBendingEnergy_gpu(	nifti_image *controlPointImage,
 		penaltyValue += penaltyTerm_h[i];
 	CUDA_SAFE_CALL(cudaFreeHost((void *)penaltyTerm_h));
 
+        CUDA_SAFE_CALL(cudaUnbindTexture(controlPointTexture));
 	return (float)(penaltyValue/(3.0*(double)controlPointNumber));
+
 }
 
 /* *************************************************************** */
@@ -181,6 +185,10 @@ void reg_bspline_ApproxBendingEnergyGradient_gpu(   nifti_image *targetImage,
     printf("[NiftyReg CUDA DEBUG] reg_bspline_getApproxBendingEnergyGradient_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
            cudaGetErrorString(cudaGetLastError()),G2.x,G2.y,G2.z,B2.x,B2.y,B2.z);
 #endif
+
+    CUDA_SAFE_CALL(cudaUnbindTexture(controlPointTexture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(basisValueATexture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(basisValueBTexture));
 
     CUDA_SAFE_CALL(cudaFree((void *)basis_a_d));
     CUDA_SAFE_CALL(cudaFree((void *)basis_b_d));
@@ -276,6 +284,12 @@ void reg_bspline_ComputeApproximatedJacobianMap(   nifti_image *controlPointImag
            cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 
+
+    CUDA_SAFE_CALL(cudaUnbindTexture(xBasisTexture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(yBasisTexture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(zBasisTexture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(controlPointTexture));
+
     CUDA_SAFE_CALL(cudaFree(xBasisValues_d));
     CUDA_SAFE_CALL(cudaFree(yBasisValues_d));
     CUDA_SAFE_CALL(cudaFree(zBasisValues_d));
@@ -360,6 +374,8 @@ void reg_bspline_ComputeJacobianMap(nifti_image *targetImage,
     printf("[NiftyReg CUDA DEBUG] reg_bspline_JacDet_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
            cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
+
+    CUDA_SAFE_CALL(cudaUnbindTexture(controlPointTexture));
 }
 
 /* *************************************************************** */
@@ -533,6 +549,9 @@ void reg_bspline_ComputeJacobianGradient_gpu(   nifti_image *targetImage,
             cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 
+        CUDA_SAFE_CALL(cudaUnbindTexture(xBasisTexture));
+        CUDA_SAFE_CALL(cudaUnbindTexture(yBasisTexture));
+        CUDA_SAFE_CALL(cudaUnbindTexture(zBasisTexture));
         CUDA_SAFE_CALL(cudaFree(xBasisValues_d));
         CUDA_SAFE_CALL(cudaFree(yBasisValues_d));
         CUDA_SAFE_CALL(cudaFree(zBasisValues_d));
@@ -611,6 +630,10 @@ void reg_bspline_ComputeJacobianGradient_gpu(   nifti_image *targetImage,
             cudaGetErrorString(cudaGetLastError()),G2.x,G2.y,G2.z,B2.x,B2.y,B2.z);
 #endif
     }
+
+    CUDA_SAFE_CALL(cudaUnbindTexture(controlPointTexture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(jacobianMatricesTexture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(jacobianDeterminantTexture));
 
     CUDA_SAFE_CALL(cudaFree(jacobianMatrices_d));
     CUDA_SAFE_CALL(cudaFree(jacobianDeterminant_d));
@@ -728,6 +751,9 @@ double reg_bspline_correctFolding_gpu(  nifti_image *targetImage,
             cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 
+        CUDA_SAFE_CALL(cudaUnbindTexture(xBasisTexture));
+        CUDA_SAFE_CALL(cudaUnbindTexture(yBasisTexture));
+        CUDA_SAFE_CALL(cudaUnbindTexture(zBasisTexture));
         CUDA_SAFE_CALL(cudaFree(xBasisValues_d));
         CUDA_SAFE_CALL(cudaFree(yBasisValues_d));
         CUDA_SAFE_CALL(cudaFree(zBasisValues_d));
@@ -831,6 +857,11 @@ double reg_bspline_correctFolding_gpu(  nifti_image *targetImage,
             cudaGetErrorString(cudaGetLastError()),G2.x,G2.y,G2.z,B2.x,B2.y,B2.z);
 #endif
     }
+
+    CUDA_SAFE_CALL(cudaUnbindTexture(controlPointTexture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(jacobianMatricesTexture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(jacobianDeterminantTexture));
+
     CUDA_SAFE_CALL(cudaFree(jacobianMatrices_d));
     CUDA_SAFE_CALL(cudaFree(jacobianDeterminant_d));
 
@@ -911,6 +942,11 @@ void reg_spline_cppComposition_gpu( nifti_image *toUpdate,
     printf("[NiftyReg CUDA DEBUG] _reg_spline_cppComposition_kernel kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
            cudaGetErrorString(cudaGetLastError()),GridP1.x,GridP1.y,GridP1.z,BlockP1.x,BlockP1.y,BlockP1.z);
 #endif
+
+    CUDA_SAFE_CALL(cudaUnbindTexture(txVoxelToRealMatrix));
+    CUDA_SAFE_CALL(cudaUnbindTexture(txRealToVoxelMatrix));
+    CUDA_SAFE_CALL(cudaUnbindTexture(controlPointTexture));
+
     CUDA_SAFE_CALL(cudaFree(realToVoxelMatrix_d));
     CUDA_SAFE_CALL(cudaFree(voxelToRealMatrix_d));
     return;
@@ -1022,6 +1058,7 @@ void reg_spline_getDeformationFromDisplacement_gpu( nifti_image *image,
     printf("[NiftyReg CUDA DEBUG] _reg_spline_getDeformationFromDisplacement kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
            cudaGetErrorString(cudaGetLastError()),GridP1.x,GridP1.y,GridP1.z,BlockP1.x,BlockP1.y,BlockP1.z);
 #endif
+    CUDA_SAFE_CALL(cudaUnbindTexture(txVoxelToRealMatrix));
     CUDA_SAFE_CALL(cudaFree(voxelToRealMatrix_d));
 }
 /* *************************************************************** */
@@ -1153,6 +1190,8 @@ void reg_bspline_ComputeApproximatedJacobianMapFromVelocityField(   nifti_image 
            cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 
+    CUDA_SAFE_CALL(cudaUnbindTexture(controlPointTexture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(txRealToVoxelMatrix));
     CUDA_SAFE_CALL(cudaFree(realToVoxelMatrix_d));
 }
 /* *************************************************************** */
@@ -1254,6 +1293,9 @@ void reg_bspline_ComputeJacobianMapFromVelocityField(   nifti_image *targetImage
            cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 
+    CUDA_SAFE_CALL(cudaUnbindTexture(controlPointTexture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(txRealToVoxelMatrix));
+
     CUDA_SAFE_CALL(cudaFree(realToVoxelMatrix_d));
 }
 
@@ -1353,7 +1395,7 @@ void reg_bspline_ComputeJacobianGradientFromVelocityField(  nifti_image *targetI
         transformationMatrix_h[i].w=realToVoxel->m[i][3];
     }
     CUDA_SAFE_CALL(cudaMemcpy(realToVoxelMatrix_d, transformationMatrix_h, 3*sizeof(float4), cudaMemcpyHostToDevice));
-    cudaBindTexture(0,txRealToVoxelMatrix,realToVoxelMatrix_d,3*sizeof(float4));
+    CUDA_SAFE_CALL(cudaBindTexture(0,txRealToVoxelMatrix,realToVoxelMatrix_d,3*sizeof(float4)));
     CUDA_SAFE_CALL(cudaFreeHost((void *)transformationMatrix_h));
 
     // The current voxel position is saved since it is need for the gradient computation
@@ -1425,6 +1467,12 @@ void reg_bspline_ComputeJacobianGradientFromVelocityField(  nifti_image *targetI
     printf("[NiftyReg CUDA DEBUG] _reg_bspline_JacobianGradFromVel_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
         cudaGetErrorString(cudaGetLastError()),G3.x,G3.y,G3.z,B3.x,B3.y,B3.z);
 #endif
+
+    CUDA_SAFE_CALL(cudaUnbindTexture(controlPointTexture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(txRealToVoxelMatrix));
+    CUDA_SAFE_CALL(cudaUnbindTexture(jacobianDeterminantTexture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(jacobianMatricesTexture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(voxelDisplacementTexture));
 
     CUDA_SAFE_CALL(cudaFree(oldVoxelDisplacementField_d));
     CUDA_SAFE_CALL(cudaFree(realToVoxelMatrix_d));

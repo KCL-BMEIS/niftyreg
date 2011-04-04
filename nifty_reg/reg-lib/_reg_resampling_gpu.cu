@@ -75,6 +75,12 @@ void reg_resampleSourceImage_gpu(nifti_image *resultImage,
            cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
 
+
+    CUDA_SAFE_CALL(cudaUnbindTexture(sourceTexture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(positionFieldTexture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(maskTexture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(sourceMatrixTexture));
+
     cudaFree(sourceRealToVoxel_d);
 }
 
@@ -101,7 +107,7 @@ void reg_getSourceImageGradient_gpu(	nifti_image *targetImage,
     CUDA_SAFE_CALL(cudaBindTextureToArray(sourceTexture, *sourceImageArray_d, channelDesc));
 
     //Bind positionField to texture
-    cudaBindTexture(0, positionFieldTexture, *positionFieldImageArray_d, activeVoxelNumber*sizeof(float4));
+    CUDA_SAFE_CALL(cudaBindTexture(0, positionFieldTexture, *positionFieldImageArray_d, activeVoxelNumber*sizeof(float4)));
 
     // Bind the real to voxel matrix to texture
     mat44 *sourceMatrix;
@@ -131,6 +137,10 @@ void reg_getSourceImageGradient_gpu(	nifti_image *targetImage,
     printf("[NiftyReg CUDA DEBUG] reg_getSourceImageGradient kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
            cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
 #endif
+    CUDA_SAFE_CALL(cudaUnbindTexture(sourceTexture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(positionFieldTexture));
+    CUDA_SAFE_CALL(cudaUnbindTexture(sourceMatrixTexture));
+
     cudaFree(sourceRealToVoxel_d);
 }
 
