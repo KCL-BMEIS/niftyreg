@@ -25,120 +25,42 @@ int round(PrecisionType x)
 
 /* *************************************************************** */
 template <class PrecisionTYPE>
-void extractLine(int start, int end, int increment,const PrecisionTYPE *image, PrecisionTYPE *values)
+void interpolantCubicSpline(PrecisionTYPE ratio, PrecisionTYPE *basis)
 {
-	unsigned int index = 0;
-	for(int i=start; i<end; i+=increment) values[index++] = image[i];
+    if(ratio<0.0) ratio=0.0; //rounding error
+    PrecisionTYPE FF= ratio*ratio;
+    basis[0] = (PrecisionTYPE)((ratio * ((2.0-ratio)*ratio - 1.0))/2.0);
+    basis[1] = (PrecisionTYPE)((FF * (3.0*ratio-5.0) + 2.0)/2.0);
+    basis[2] = (PrecisionTYPE)((ratio * ((4.0-3.0*ratio)*ratio + 1.0))/2.0);
+    basis[3] = (PrecisionTYPE)((ratio-1.0) * FF/2.0);
 }
 /* *************************************************************** */
 template <class PrecisionTYPE>
-void restoreLine(int start, int end, int increment, PrecisionTYPE *image, const PrecisionTYPE *values)
+void interpolantCubicSplineDerivative(PrecisionTYPE ratio, PrecisionTYPE *basis, PrecisionTYPE *derivative)
 {
-	unsigned int index = 0;
-	for(int i=start; i<end; i+=increment) image[i] = values[index++];
-}
-/* *************************************************************** */
-template <class PrecisionTYPE>
-void intensitiesToSplineCoefficients(PrecisionTYPE *values, int number, PrecisionTYPE pole)
-{
-	// Border are set to zero
-	PrecisionTYPE currentPole = pole;
-	PrecisionTYPE currentOpposite = pow(pole,(PrecisionTYPE)(2.0*(PrecisionTYPE)number-1.0));
-	PrecisionTYPE sum=0.0;
-	for(short i=1; i<number; i++){
-		sum += (currentPole - currentOpposite) * values[i];
-		currentPole *= pole;
-		currentOpposite /= pole;
-	}
-	values[0] = (PrecisionTYPE)((values[0] - pole*pole*(values[0] + sum)) / (1.0 - pow(pole,(PrecisionTYPE)(2.0*(double)number+2.0))));
-	
-	//other values forward
-	for(int i=1; i<number; i++){
-		values[i] += pole * values[i-1];
-	}
-	
-	PrecisionTYPE ipp=(PrecisionTYPE)(1.0-pole); ipp*=ipp;
-	
-	//last value
-	values[number-1] = ipp * values[number-1];
-	
-	//other values backward
-	for(int i=number-2; 0<=i; i--){
-		values[i] = pole * values[i+1] + ipp*values[i];
-	}
-	return;
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template <class PrecisionTYPE, class SourceTYPE>
-void DecomposeSourceImageIntensities(   nifti_image *sourceImage,
-                                        PrecisionTYPE *sourceCoefficients)
-{
-    /* in order to apply a cubic Spline resampling, the source image
-     intensities have to be decomposed */
-
-    SourceTYPE *intensityPtr = (SourceTYPE *)sourceImage->data;
-
-    for(unsigned int i=0; i<sourceImage->nvox;i++)
-        sourceCoefficients[i]=(PrecisionTYPE)intensityPtr[i];
-
-    PrecisionTYPE pole = (PrecisionTYPE)(sqrt(3.0) - 2.0);
-
-    for(int t=0; t<sourceImage->nt; t++){
-        unsigned int sourceVoxelNumber = sourceImage->nx * sourceImage->ny * sourceImage->nz;
-        // X axis first
-        int number = sourceImage->nx;
-        PrecisionTYPE *values=new PrecisionTYPE[number];
-        int increment = 1;
-        for(int i=0;i<sourceImage->ny*sourceImage->nz;i++){
-            int start = i*sourceImage->nx + t*sourceVoxelNumber;
-            int end =  start + sourceImage->nx;
-            extractLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
-            intensitiesToSplineCoefficients<PrecisionTYPE>(values, number, pole);
-            restoreLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
-        }
-        delete[] values;
-        // Y axis then
-        number = sourceImage->ny;
-        values=new PrecisionTYPE[number];
-        increment = sourceImage->nx;
-        for(int i=0;i<sourceImage->nx*sourceImage->nz;i++){
-            int start = i + i/sourceImage->nx * sourceImage->nx * (sourceImage->ny - 1) + t*sourceVoxelNumber;
-            int end =  start + sourceImage->nx*sourceImage->ny;
-            extractLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
-            intensitiesToSplineCoefficients<PrecisionTYPE>(values, number, pole);
-            restoreLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
-        }
-        delete[] values;
-        if(sourceImage->nz>1){
-            // Z axis at last
-            number = sourceImage->nz;
-            values=new PrecisionTYPE[number];
-            increment = sourceImage->nx*sourceImage->ny;
-            for(int i=0;i<sourceImage->nx*sourceImage->ny;i++){
-                int start = i + t*sourceVoxelNumber;
-                int end =  start + sourceImage->nx*sourceImage->ny*sourceImage->nz;
-                extractLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
-                intensitiesToSplineCoefficients<PrecisionTYPE>(values, number, pole);
-                restoreLine<PrecisionTYPE>(start,end,increment,sourceCoefficients,values);
-            }
-            delete[] values;
-        }
-    }
+    interpolantCubicSpline<PrecisionTYPE>(ratio,basis);
+    if(ratio<0.0) ratio=0.0; //rounding error
+    PrecisionTYPE FF= ratio*ratio;
+    derivative[0] = (PrecisionTYPE)((4.0*ratio - 3.0*FF - 1.0)/2.0);
+    derivative[1] = (PrecisionTYPE)((9.0*ratio - 10.0) * ratio/2.0);
+    derivative[2] = (PrecisionTYPE)((8.0*ratio - 9.0*FF + 1)/2.0);
+    derivative[3] = (PrecisionTYPE)((3.0*ratio - 2.0) * ratio/2.0);
 }
 /* *************************************************************** */
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class FieldTYPE>
-void CubicSplineResampleSourceImage(PrecisionTYPE *sourceIntensityPtr,
-									nifti_image *sourceImage,
-									nifti_image *positionField,
-									nifti_image *resultImage,
+void CubicSplineResampleSourceImage(nifti_image *sourceImage,
+                                    nifti_image *positionField,
+                                    nifti_image *resultImage,
                                     int *mask,
-									PrecisionTYPE bgValue)
+                                    PrecisionTYPE bgValue)
 {
-	// The spline decomposition assumes a background set to 0 the bgValue variable is thus not use here
+    // The spline decomposition assumes a background set to 0 the bgValue variable is thus not use here
+
+    SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
 
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
+
     unsigned int targetVoxelNumber = resultImage->nx*resultImage->ny*resultImage->nz;
     unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
 
@@ -153,7 +75,7 @@ void CubicSplineResampleSourceImage(PrecisionTYPE *sourceIntensityPtr,
         FieldTYPE *positionFieldPtrZ = &positionFieldPtrY[targetVoxelNumber];
 
         SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
-        PrecisionTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
+        SourceTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
 
         int *maskPtr = &mask[0];
 
@@ -191,38 +113,26 @@ void CubicSplineResampleSourceImage(PrecisionTYPE *sourceIntensityPtr,
 
                 // basis values along the x axis
                 relative=position[0]-(PrecisionTYPE)previous[0];
-                if(relative<0) relative=0.0; // rounding error correction
-                xBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
-                xBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - xBasis[3]);
-                xBasis[2]= (PrecisionTYPE)(relative + xBasis[0] - 2.0*xBasis[3]);
-                xBasis[1]= (PrecisionTYPE)(1.0 - xBasis[0] - xBasis[2] - xBasis[3]);
+                interpolantCubicSpline<PrecisionTYPE>(relative, xBasis);
                 // basis values along the y axis
                 relative=position[1]-(PrecisionTYPE)previous[1];
-                if(relative<0) relative=0.0; // rounding error correction
-                yBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
-                yBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - yBasis[3]);
-                yBasis[2]= (PrecisionTYPE)(relative + yBasis[0] - 2.0*yBasis[3]);
-                yBasis[1]= (PrecisionTYPE)(1.0 - yBasis[0] - yBasis[2] - yBasis[3]);
+                interpolantCubicSpline<PrecisionTYPE>(relative, yBasis);
                 // basis values along the z axis
                 relative=position[2]-(PrecisionTYPE)previous[2];
-                if(relative<0) relative=(PrecisionTYPE)(0.0); // rounding error correction
-                zBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
-                zBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - zBasis[3]);
-                zBasis[2]= (PrecisionTYPE)(relative + zBasis[0] - 2.0*zBasis[3]);
-                zBasis[1]= (PrecisionTYPE)(1.0 - zBasis[0] - zBasis[2] - zBasis[3]);
+                interpolantCubicSpline<PrecisionTYPE>(relative, zBasis);
 
                 --previous[0];--previous[1];--previous[2];
 
                 for(short c=0; c<4; c++){
                     short Z= previous[2]+c;
                     if(-1<Z && Z<sourceImage->nz){
-                        PrecisionTYPE *zPointer = &sourceCoefficients[Z*sourceImage->nx*sourceImage->ny];
+                        SourceTYPE *zPointer = &sourceCoefficients[Z*sourceImage->nx*sourceImage->ny];
                         PrecisionTYPE yTempNewValue=0.0;
                         for(short b=0; b<4; b++){
                             short Y= previous[1]+b;
-                            PrecisionTYPE *yzPointer = &zPointer[Y*sourceImage->nx];
+                            SourceTYPE *yzPointer = &zPointer[Y*sourceImage->nx];
                             if(-1<Y && Y<sourceImage->ny){
-                                PrecisionTYPE *xyzPointer = &yzPointer[previous[0]];
+                                SourceTYPE *xyzPointer = &yzPointer[previous[0]];
                                 PrecisionTYPE xTempNewValue=0.0;
                                 for(short a=0; a<4; a++){
                                     if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
@@ -268,16 +178,17 @@ void CubicSplineResampleSourceImage(PrecisionTYPE *sourceIntensityPtr,
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class FieldTYPE>
-void CubicSplineResampleSourceImage2D(PrecisionTYPE *sourceIntensityPtr,
-									  nifti_image *sourceImage,
-									  nifti_image *positionField,
-                                      nifti_image *resultImage,
-                                      int *mask,
-									  PrecisionTYPE bgValue)
+void CubicSplineResampleSourceImage2D(  nifti_image *sourceImage,
+                                        nifti_image *positionField,
+                                        nifti_image *resultImage,
+                                        int *mask,
+                                        PrecisionTYPE bgValue)
 {
-	// The spline decomposition assumes a background set to 0 the bgValue variable is thus not use here
+    // The spline decomposition assumes a background set to 0 the bgValue variable is thus not use here
 
     // The resampling scheme is applied along each time
+    SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
+
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
     unsigned int targetVoxelNumber = resultImage->nx*resultImage->ny;
     unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny;
@@ -291,7 +202,7 @@ void CubicSplineResampleSourceImage2D(PrecisionTYPE *sourceIntensityPtr,
         FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
 
         SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
-        PrecisionTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
+        SourceTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
 
         int *maskPtr = &mask[0];
 
@@ -322,28 +233,21 @@ void CubicSplineResampleSourceImage2D(PrecisionTYPE *sourceIntensityPtr,
 
                 previous[0] = (int)floor(position[0]);
                 previous[1] = (int)floor(position[1]);
+
                 // basis values along the x axis
                 relative=position[0]-(PrecisionTYPE)previous[0];
-                if(relative<0) relative=0.0; // rounding error correction
-                xBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
-                xBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - xBasis[3]);
-                xBasis[2]= (PrecisionTYPE)(relative + xBasis[0] - 2.0*xBasis[3]);
-                xBasis[1]= (PrecisionTYPE)(1.0 - xBasis[0] - xBasis[2] - xBasis[3]);
+                interpolantCubicSpline<PrecisionTYPE>(relative, xBasis);
                 // basis values along the y axis
                 relative=position[1]-(PrecisionTYPE)previous[1];
-                if(relative<0) relative=(PrecisionTYPE)(0.0); // rounding error correction
-                yBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
-                yBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - yBasis[3]);
-                yBasis[2]= (PrecisionTYPE)(relative + yBasis[0] - 2.0*yBasis[3]);
-                yBasis[1]= (PrecisionTYPE)(1.0 - yBasis[0] - yBasis[2] - yBasis[3]);
+                interpolantCubicSpline<PrecisionTYPE>(relative, yBasis);
 
                 previous[0]--;previous[1]--;
 
                 for(short b=0; b<4; b++){
                     short Y= previous[1]+b;
-                    PrecisionTYPE *yPointer = &sourceCoefficients[Y*sourceImage->nx];
+                    SourceTYPE *yPointer = &sourceCoefficients[Y*sourceImage->nx];
                     if(-1<Y && Y<sourceImage->ny){
-                        PrecisionTYPE *xyPointer = &yPointer[previous[0]];
+                        SourceTYPE *xyPointer = &yPointer[previous[0]];
                         PrecisionTYPE xTempNewValue=0.0;
                         for(short a=0; a<4; a++){
                             if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
@@ -385,14 +289,15 @@ void CubicSplineResampleSourceImage2D(PrecisionTYPE *sourceIntensityPtr,
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class FieldTYPE>
-void TrilinearResampleSourceImage(	SourceTYPE *sourceIntensityPtr,
-                                    nifti_image *sourceImage,
+void TrilinearResampleSourceImage(  nifti_image *sourceImage,
                                     nifti_image *positionField,
                                     nifti_image *resultImage,
                                     int *mask,
                                     PrecisionTYPE bgValue)
 {
     // The resampling scheme is applied along each time
+    SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
+
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
     unsigned int targetVoxelNumber = resultImage->nx*resultImage->ny*resultImage->nz;
     unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
@@ -511,14 +416,15 @@ void TrilinearResampleSourceImage(	SourceTYPE *sourceIntensityPtr,
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class FieldTYPE>
-void TrilinearResampleSourceImage2D(SourceTYPE *sourceIntensityPtr,
-									nifti_image *sourceImage,
-									nifti_image *positionField,
-									nifti_image *resultImage,
+void TrilinearResampleSourceImage2D(nifti_image *sourceImage,
+                                    nifti_image *positionField,
+                                    nifti_image *resultImage,
                                     int *mask,
-									PrecisionTYPE bgValue)
+                                    PrecisionTYPE bgValue)
 {
     // The resampling scheme is applied along each time
+    SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
+
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
     unsigned int targetVoxelNumber = resultImage->nx*resultImage->ny*resultImage->nz;
     unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
@@ -620,14 +526,15 @@ void TrilinearResampleSourceImage2D(SourceTYPE *sourceIntensityPtr,
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class FieldTYPE>
-void NearestNeighborResampleSourceImage(SourceTYPE *sourceIntensityPtr,
-										nifti_image *sourceImage,
-										nifti_image *positionField,
-										nifti_image *resultImage,
+void NearestNeighborResampleSourceImage(nifti_image *sourceImage,
+                                        nifti_image *positionField,
+                                        nifti_image *resultImage,
                                         int *mask,
-										PrecisionTYPE bgValue)
+                                        PrecisionTYPE bgValue)
 {
     // The resampling scheme is applied along each time
+    SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
+
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
     unsigned int targetVoxelNumber = resultImage->nx*resultImage->ny*resultImage->nz;
     unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
@@ -690,13 +597,14 @@ void NearestNeighborResampleSourceImage(SourceTYPE *sourceIntensityPtr,
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class FieldTYPE>
-void NearestNeighborResampleSourceImage2D(SourceTYPE *sourceIntensityPtr,
-										  nifti_image *sourceImage,
-										  nifti_image *positionField,
-										  nifti_image *resultImage,
+void NearestNeighborResampleSourceImage2D(nifti_image *sourceImage,
+                                          nifti_image *positionField,
+                                          nifti_image *resultImage,
                                           int *mask,
-										  PrecisionTYPE bgValue)
+                                          PrecisionTYPE bgValue)
 {
+    SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
+
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
     unsigned int targetVoxelNumber = resultImage->nx*resultImage->ny;
     unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny;
@@ -764,91 +672,77 @@ void NearestNeighborResampleSourceImage2D(SourceTYPE *sourceIntensityPtr,
  */
 template <class PrecisionTYPE, class FieldTYPE, class SourceTYPE>
 void reg_resampleSourceImage2(	nifti_image *targetImage,
-								nifti_image *sourceImage,
-								nifti_image *resultImage,
-								nifti_image *positionFieldImage,
+                                nifti_image *sourceImage,
+                                nifti_image *resultImage,
+                                nifti_image *positionFieldImage,
                                 int *mask,
-								int interp,
-								PrecisionTYPE bgValue
-							)
+                                int interp,
+                                PrecisionTYPE bgValue
+                                )
 {
-	/* The deformation field contains the position in the real world */
-	
+    /* The deformation field contains the position in the real world */
     if(interp==3){
-        PrecisionTYPE *sourceCoefficients = (PrecisionTYPE *)malloc(sourceImage->nvox*sizeof(PrecisionTYPE));
-        DecomposeSourceImageIntensities<PrecisionTYPE,SourceTYPE>(  sourceImage,
-                                                                    sourceCoefficients);
-		
-		if(targetImage->nz>1){
-			CubicSplineResampleSourceImage<PrecisionTYPE,SourceTYPE,FieldTYPE>(	sourceCoefficients,
-																				sourceImage,
-																				positionFieldImage,
-																				resultImage,
-                                                                                mask,
-																				bgValue);
-		}
-		else
-		{
-			CubicSplineResampleSourceImage2D<PrecisionTYPE, SourceTYPE, FieldTYPE>(	sourceCoefficients,
-																	   sourceImage,
-																	   positionFieldImage,
-																	   resultImage,
-                                                                       mask,
-																	   bgValue);
-		}
-		free(sourceCoefficients);
-	}
-	else if(interp==0){ // Nearest neighbor interpolation
-		SourceTYPE *intensityPtr = (SourceTYPE *)sourceImage->data;
-		if(targetImage->nz>1){
-			NearestNeighborResampleSourceImage<PrecisionTYPE,SourceTYPE, FieldTYPE>(	intensityPtr,
-																		 sourceImage,
-																		 positionFieldImage,
-																		 resultImage,
-                                                                         mask,
-																		 bgValue);
-		}
-		else
-		{
-			NearestNeighborResampleSourceImage2D<PrecisionTYPE,SourceTYPE, FieldTYPE>(	intensityPtr,
-																		   sourceImage,
-																		   positionFieldImage,
-																		   resultImage,
-                                                                           mask,
-                                                                           bgValue);
-		}
+        if(targetImage->nz>1){
+                CubicSplineResampleSourceImage<PrecisionTYPE,SourceTYPE,FieldTYPE>( sourceImage,
+                                                                                    positionFieldImage,
+                                                                                    resultImage,
+                                                                                    mask,
+                                                                                    bgValue);
+        }
+        else
+        {
+            CubicSplineResampleSourceImage2D<PrecisionTYPE,SourceTYPE,FieldTYPE>(  sourceImage,
+                                                                                    positionFieldImage,
+                                                                                    resultImage,
+                                                                                    mask,
+                                                                                    bgValue);
+        }
+    }
+    else if(interp==0){ // Nearest neighbor interpolation
+        if(targetImage->nz>1){
+                NearestNeighborResampleSourceImage<PrecisionTYPE,SourceTYPE, FieldTYPE>( sourceImage,
+                                                                                         positionFieldImage,
+                                                                                         resultImage,
+                                                                                         mask,
+                                                                                         bgValue);
+        }
+        else
+        {
+                NearestNeighborResampleSourceImage2D<PrecisionTYPE,SourceTYPE, FieldTYPE>( sourceImage,
+                                                                                           positionFieldImage,
+                                                                                           resultImage,
+                                                                                           mask,
+                                                                                           bgValue);
+        }
 
-	}
-	else{ // trilinear interpolation [ by default ]
-		SourceTYPE *intensityPtr = (SourceTYPE *)sourceImage->data;
-		if(targetImage->nz>1){
-			TrilinearResampleSourceImage<PrecisionTYPE,SourceTYPE, FieldTYPE>(	intensityPtr,
-																   sourceImage,
-																   positionFieldImage,
-																   resultImage,
-                                                                   mask,
-																   bgValue);
-		}
-		else{
-			TrilinearResampleSourceImage2D<PrecisionTYPE,SourceTYPE, FieldTYPE>(	intensityPtr,
-																	 sourceImage,
-																	 positionFieldImage,
-																	 resultImage,
-                                                                     mask,
-																	 bgValue);
-		}
-	}
+    }
+    else{ // trilinear interpolation [ by default ]
+        if(targetImage->nz>1){
+                TrilinearResampleSourceImage<PrecisionTYPE,SourceTYPE, FieldTYPE>( sourceImage,
+                                                                                   positionFieldImage,
+                                                                                   resultImage,
+                                                                                   mask,
+                                                                                   bgValue);
+        }
+        else{
+                TrilinearResampleSourceImage2D<PrecisionTYPE,SourceTYPE, FieldTYPE>( sourceImage,
+                                                                                     positionFieldImage,
+                                                                                     resultImage,
+                                                                                     mask,
+                                                                                     bgValue);
+        }
+    }
 }
 
 /* *************************************************************** */
 template <class PrecisionTYPE>
 void reg_resampleSourceImage(	nifti_image *targetImage,
-								nifti_image *sourceImage,
-								nifti_image *resultImage,
-								nifti_image *positionField,
+                                nifti_image *sourceImage,
+                                nifti_image *resultImage,
+                                nifti_image *positionField,
                                 int *mask,
-								int interp,
-								PrecisionTYPE bgValue)
+                                int interp,
+                                PrecisionTYPE bgValue)
 {
 	if(sourceImage->datatype != resultImage->datatype){
         printf("NiftyReg ERROR] reg_resampleSourceImage\tSource and result image should have the same data type\n");
@@ -1041,8 +935,7 @@ template void reg_resampleSourceImage<double>(nifti_image *, nifti_image *, nift
 /* *************************************************************** */
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class GradientTYPE, class FieldTYPE>
-void TrilinearGradientResultImage(	SourceTYPE *sourceIntensityPtr,
-                                    nifti_image *sourceImage,
+void TrilinearGradientResultImage(  nifti_image *sourceImage,
                                     nifti_image *positionField,
                                     nifti_image *resultGradientImage,
                                     int *mask)
@@ -1050,6 +943,8 @@ void TrilinearGradientResultImage(	SourceTYPE *sourceIntensityPtr,
     unsigned int targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz;
     unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
     unsigned int gradientOffSet = targetVoxelNumber*resultGradientImage->nt;
+
+    SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
 
     GradientTYPE *resultGradientImagePtr = static_cast<GradientTYPE *>(resultGradientImage->data);
 
@@ -1171,8 +1066,7 @@ void TrilinearGradientResultImage(	SourceTYPE *sourceIntensityPtr,
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class GradientTYPE, class FieldTYPE>
-void TrilinearGradientResultImage2D(	SourceTYPE *sourceIntensityPtr,
-                                        nifti_image *sourceImage,
+void TrilinearGradientResultImage2D(	nifti_image *sourceImage,
                                         nifti_image *positionField,
                                         nifti_image *resultGradientImage,
                                         int *mask)
@@ -1180,6 +1074,8 @@ void TrilinearGradientResultImage2D(	SourceTYPE *sourceIntensityPtr,
     unsigned int targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny;
     unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny;
     unsigned int gradientOffSet = targetVoxelNumber*resultGradientImage->nt;
+
+    SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
 
     GradientTYPE *resultGradientImagePtr = static_cast<GradientTYPE *>(resultGradientImage->data);
 
@@ -1283,15 +1179,16 @@ void TrilinearGradientResultImage2D(	SourceTYPE *sourceIntensityPtr,
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class GradientTYPE, class FieldTYPE>
-void CubicSplineGradientResultImage(PrecisionTYPE *sourceIntensityPtr,
-									nifti_image *sourceImage,
-									nifti_image *positionField,
-									nifti_image *resultGradientImage,
+void CubicSplineGradientResultImage(nifti_image *sourceImage,
+                                    nifti_image *positionField,
+                                    nifti_image *resultGradientImage,
                                     int *mask)
 {
     unsigned int targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz;
     unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
     unsigned int gradientOffSet = targetVoxelNumber*resultGradientImage->nt;
+
+    SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
 
     GradientTYPE *resultGradientImagePtr = static_cast<GradientTYPE *>(resultGradientImage->data);
 
@@ -1309,7 +1206,7 @@ void CubicSplineGradientResultImage(PrecisionTYPE *sourceIntensityPtr,
         GradientTYPE *resultGradientPtrY = &resultGradientPtrX[gradientOffSet];
         GradientTYPE *resultGradientPtrZ = &resultGradientPtrY[gradientOffSet];
 
-        PrecisionTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
+        SourceTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
 
         int *maskPtr = &mask[0];
 
@@ -1348,39 +1245,18 @@ void CubicSplineGradientResultImage(PrecisionTYPE *sourceIntensityPtr,
                 previous[0] = (int)floor(position[0]);
                 previous[1] = (int)floor(position[1]);
                 previous[2] = (int)floor(position[2]);
+
                 // basis values along the x axis
                 relative=position[0]-(PrecisionTYPE)previous[0];
-                if(relative<0) relative=0.0; // rounding error correction
-                xBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
-                xBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - xBasis[3]);
-                xBasis[2]= (PrecisionTYPE)(relative + xBasis[0] - 2.0*xBasis[3]);
-                xBasis[1]= (PrecisionTYPE)(1.0 - xBasis[0] - xBasis[2] - xBasis[3]);
-                xDeriv[3]= (PrecisionTYPE)(relative * relative / 2.0);
-                xDeriv[0]= (PrecisionTYPE)(relative - 1.0/2.0 - xDeriv[3]);
-                xDeriv[2]= (PrecisionTYPE)(1.0 + xDeriv[0] - 2.0*xDeriv[3]);
-                xDeriv[1]= - xDeriv[0] - xDeriv[2] - xDeriv[3];
+                interpolantCubicSplineDerivative<PrecisionTYPE>(relative, xBasis, xDeriv);
+
                 // basis values along the y axis
                 relative=position[1]-(PrecisionTYPE)previous[1];
-                if(relative<0) relative=0.0; // rounding error correction
-                yBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
-                yBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - yBasis[3]);
-                yBasis[2]= (PrecisionTYPE)(relative + yBasis[0] - 2.0*yBasis[3]);
-                yBasis[1]= (PrecisionTYPE)(1.0 - yBasis[0] - yBasis[2] - yBasis[3]);
-                yDeriv[3]= (PrecisionTYPE)(relative * relative / 2.0);
-                yDeriv[0]= (PrecisionTYPE)(relative - 1.0/2.0 - yDeriv[3]);
-                yDeriv[2]= (PrecisionTYPE)(1.0 + yDeriv[0] - 2.0*yDeriv[3]);
-                yDeriv[1]= - yDeriv[0] - yDeriv[2] - yDeriv[3];
+                interpolantCubicSplineDerivative<PrecisionTYPE>(relative, yBasis, yDeriv);
+
                 // basis values along the z axis
                 relative=position[2]-(PrecisionTYPE)previous[2];
-                if(relative<0) relative=0.0; // rounding error correction
-                zBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
-                zBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - zBasis[3]);
-                zBasis[2]= (PrecisionTYPE)(relative + zBasis[0] - 2.0*zBasis[3]);
-                zBasis[1]= (PrecisionTYPE)(1.0 - zBasis[0] - zBasis[2] - zBasis[3]);
-                zDeriv[3]= (PrecisionTYPE)(relative * relative / 2.0);
-                zDeriv[0]= (PrecisionTYPE)(relative - 1.0/2.0 - zDeriv[3]);
-                zDeriv[2]= (PrecisionTYPE)(1.0 + zDeriv[0] - 2.0*zDeriv[3]);
-                zDeriv[1]= - zDeriv[0] - zDeriv[2] - zDeriv[3];
+                interpolantCubicSplineDerivative<PrecisionTYPE>(relative, zBasis, zDeriv);
 
                 previous[0]--;previous[1]--;previous[2]--;
 
@@ -1388,15 +1264,15 @@ void CubicSplineGradientResultImage(PrecisionTYPE *sourceIntensityPtr,
                 for(short c=0; c<4; c++){
                     short Z= previous[2]+c;
                     if(-1<Z && Z<sourceImage->nz){
-                        PrecisionTYPE *zPointer = &sourceCoefficients[Z*sourceImage->nx*sourceImage->ny];
+                        SourceTYPE *zPointer = &sourceCoefficients[Z*sourceImage->nx*sourceImage->ny];
                         PrecisionTYPE xxTempNewValue=0.0;
                         PrecisionTYPE yyTempNewValue=0.0;
                         PrecisionTYPE zzTempNewValue=0.0;
                         for(short b=0; b<4; b++){
                             short Y= previous[1]+b;
-                            PrecisionTYPE *yzPointer = &zPointer[Y*sourceImage->nx];
+                            SourceTYPE *yzPointer = &zPointer[Y*sourceImage->nx];
                             if(-1<Y && Y<sourceImage->ny){
-                                PrecisionTYPE *xyzPointer = &yzPointer[previous[0]];
+                                SourceTYPE *xyzPointer = &yzPointer[previous[0]];
                                 PrecisionTYPE xTempNewValue=0.0;
                                 PrecisionTYPE yTempNewValue=0.0;
                                 PrecisionTYPE zTempNewValue=0.0;
@@ -1457,15 +1333,16 @@ void CubicSplineGradientResultImage(PrecisionTYPE *sourceIntensityPtr,
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class GradientTYPE, class FieldTYPE>
-void CubicSplineGradientResultImage2D(PrecisionTYPE *sourceIntensityPtr,
-									nifti_image *sourceImage,
-									nifti_image *positionField,
-									nifti_image *resultGradientImage,
-                                    int *mask)
+void CubicSplineGradientResultImage2D(nifti_image *sourceImage,
+                                      nifti_image *positionField,
+                                      nifti_image *resultGradientImage,
+                                      int *mask)
 {
     unsigned int targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny;
     unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny;
     unsigned int gradientOffSet = targetVoxelNumber*resultGradientImage->nt;
+
+    SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
 
     GradientTYPE *resultGradientImagePtr = static_cast<GradientTYPE *>(resultGradientImage->data);
 
@@ -1481,7 +1358,7 @@ void CubicSplineGradientResultImage2D(PrecisionTYPE *sourceIntensityPtr,
         GradientTYPE *resultGradientPtrX = &resultGradientImagePtr[targetVoxelNumber*t];
         GradientTYPE *resultGradientPtrY = &resultGradientPtrX[gradientOffSet];
 
-        PrecisionTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
+        SourceTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
 
         int *maskPtr = &mask[0];
 
@@ -1515,40 +1392,24 @@ void CubicSplineGradientResultImage2D(PrecisionTYPE *sourceIntensityPtr,
                 previous[1] = (int)floor(position[1]);
                 // basis values along the x axis
                 relative=position[0]-(PrecisionTYPE)previous[0];
-                if(relative<0) relative=0.0; // rounding error correction
-                xBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
-                xBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - xBasis[3]);
-                xBasis[2]= (PrecisionTYPE)(relative + xBasis[0] - 2.0*xBasis[3]);
-                xBasis[1]= (PrecisionTYPE)(1.0 - xBasis[0] - xBasis[2] - xBasis[3]);
-                xDeriv[3]= (PrecisionTYPE)(relative * relative / 2.0);
-                xDeriv[0]= (PrecisionTYPE)(relative - 1.0/2.0 - xDeriv[3]);
-                xDeriv[2]= (PrecisionTYPE)(1.0 + xDeriv[0] - 2.0*xDeriv[3]);
-                xDeriv[1]= - xDeriv[0] - xDeriv[2] - xDeriv[3];
+                interpolantCubicSplineDerivative<PrecisionTYPE>(relative, xBasis, xDeriv);
                 // basis values along the y axis
                 relative=position[1]-(PrecisionTYPE)previous[1];
-                if(relative<0) relative=0.0; // rounding error correction
-                yBasis[3]= (PrecisionTYPE)(relative * relative * relative / 6.0);
-                yBasis[0]= (PrecisionTYPE)(1.0/6.0 + relative*(relative-1.0)/2.0 - yBasis[3]);
-                yBasis[2]= (PrecisionTYPE)(relative + yBasis[0] - 2.0*yBasis[3]);
-                yBasis[1]= (PrecisionTYPE)(1.0 - yBasis[0] - yBasis[2] - yBasis[3]);
-                yDeriv[3]= (PrecisionTYPE)(relative * relative / 2.0);
-                yDeriv[0]= (PrecisionTYPE)(relative - 1.0/2.0 - yDeriv[3]);
-                yDeriv[2]= (PrecisionTYPE)(1.0 + yDeriv[0] - 2.0*yDeriv[3]);
-                yDeriv[1]= - yDeriv[0] - yDeriv[2] - yDeriv[3];
+                interpolantCubicSplineDerivative<PrecisionTYPE>(relative, yBasis, yDeriv);
 
                 previous[0]--;previous[1]--;
 
                 bool bg=false;
                 for(short b=0; b<4; b++){
                     short Y= previous[1]+b;
-                    PrecisionTYPE *yPointer = &sourceCoefficients[Y*sourceImage->nx];
+                    SourceTYPE *yPointer = &sourceCoefficients[Y*sourceImage->nx];
                     if(-1<Y && Y<sourceImage->ny){
-                        PrecisionTYPE *xyPointer = &yPointer[previous[0]];
+                        SourceTYPE *xyPointer = &yPointer[previous[0]];
                         PrecisionTYPE xTempNewValue=0.0;
                         PrecisionTYPE yTempNewValue=0.0;
                         for(short a=0; a<4; a++){
                             if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
-                                const PrecisionTYPE coeff = *xyPointer;
+                                const SourceTYPE coeff = *xyPointer;
                                 xTempNewValue +=  coeff * xDeriv[a];
                                 yTempNewValue +=  coeff * xBasis[a];
                             }
@@ -1598,47 +1459,38 @@ void reg_getSourceImageGradient3(   nifti_image *targetImage,
 {
 	/* The deformation field contains the position in the real world */
 
-	if(interp==3){
-		/* in order to apply a cubic Spline resampling, the source image
-         intensities have to be decomposed */
-
-        PrecisionTYPE *sourceCoefficients = (PrecisionTYPE *)malloc(sourceImage->nvox*sizeof(PrecisionTYPE));
-        DecomposeSourceImageIntensities<PrecisionTYPE,SourceTYPE>(  sourceImage,
-                                                                    sourceCoefficients);
-
-		if(targetImage->nz>1){
-			CubicSplineGradientResultImage<PrecisionTYPE,SourceTYPE,GradientTYPE,FieldTYPE>(	sourceCoefficients,
-																				  sourceImage,
-																				  positionField,
-																				  resultGradientImage,
-                                                                                mask);
-		}
-		else{
-			CubicSplineGradientResultImage2D<PrecisionTYPE,SourceTYPE,GradientTYPE,FieldTYPE>(	sourceCoefficients,
-																						sourceImage,
-																						positionField,
-																						resultGradientImage,
-                                                                                        mask);
-		}
-		free(sourceCoefficients);
-	}
-	else{ // trilinear interpolation [ by default ]
-		SourceTYPE *intensityPtr = (SourceTYPE *)sourceImage->data;
-		if(targetImage->nz>1){
-			TrilinearGradientResultImage<PrecisionTYPE,SourceTYPE,GradientTYPE,FieldTYPE>(intensityPtr,
-																				sourceImage,
-																				positionField,
-																				resultGradientImage,
-                                                                                mask);
-		}
-		else{
-			TrilinearGradientResultImage2D<PrecisionTYPE,SourceTYPE,GradientTYPE,FieldTYPE>(	intensityPtr,
-																					sourceImage,
-																					positionField,
-																					resultGradientImage,
-                                                                                    mask);
-		}
-	}
+    if(interp==3){
+        if(targetImage->nz>1){
+            CubicSplineGradientResultImage
+                    <PrecisionTYPE,SourceTYPE,GradientTYPE,FieldTYPE>(  sourceImage,
+                                                                        positionField,
+                                                                        resultGradientImage,
+                                                                        mask);
+        }
+        else{
+            CubicSplineGradientResultImage2D
+                    <PrecisionTYPE,SourceTYPE,GradientTYPE,FieldTYPE>(sourceImage,
+                                                                      positionField,
+                                                                      resultGradientImage,
+                                                                      mask);
+        }
+    }
+    else{ // trilinear interpolation [ by default ]
+        if(targetImage->nz>1){
+            TrilinearGradientResultImage
+                    <PrecisionTYPE,SourceTYPE,GradientTYPE,FieldTYPE>(   sourceImage,
+                                                                         positionField,
+                                                                         resultGradientImage,
+                                                                         mask);
+        }
+        else{
+            TrilinearGradientResultImage2D
+                    <PrecisionTYPE,SourceTYPE,GradientTYPE,FieldTYPE>( sourceImage,
+                                                                       positionField,
+                                                                       resultGradientImage,
+                                                                       mask);
+        }
+    }
 }
 /* *************************************************************** */
 template <class PrecisionTYPE, class FieldTYPE, class SourceTYPE>
