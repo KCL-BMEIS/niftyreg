@@ -278,20 +278,22 @@ int main(int argc, char **argv)
         deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
         //Computation
         if(flag->inputVelFlag){
-            reg_getDeformationFieldFromVelocityGrid<float>(velocityFieldImage,
-                                                           deformationFieldImage,
-                                                           NULL);
+            reg_getDeformationFieldFromVelocityGrid(velocityFieldImage,
+                                                    deformationFieldImage,
+                                                    NULL);
             
         }
         else if(flag->inputCPPFlag){
 #ifndef NDEBUG
             printf("[NiftyReg DEBUG] Computation of the deformation field from the CPP image\n");
 #endif
-            reg_bspline<float>(	controlPointImage,
-                                targetImage,
-                                deformationFieldImage,
-                                NULL,
-                                0);
+            reg_bspline(controlPointImage,
+                        targetImage,
+                        deformationFieldImage,
+                        NULL, // mask
+                        false, //composition
+                        true // bspline
+                        );
         }
         else{
 #ifndef NDEBUG
