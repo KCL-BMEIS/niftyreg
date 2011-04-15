@@ -47,10 +47,10 @@ IF(USE_CUDA)
     INCLUDE(${CMAKE_SOURCE_DIR}/CMake/cuda/FindCUDA.cmake)
 
     # Check the cuda version to make sure it is compatible with NiftyReg
-    IF("${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR}" MATCHES "^3\\.2$")
-        MESSAGE(ERROR "\nNiftyReg is not compatible with the 3.2 cuda drivers\nThe USE_CUDA flag has been turned off")
-        SET(USE_CUDA OFF)
-    ENDIF("${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR}" MATCHES "^3\\.2$")
+#    IF("${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR}" MATCHES "^3\\.2$")
+#        MESSAGE(ERROR "\nNiftyReg is not compatible with the 3.2 cuda drivers\nThe USE_CUDA flag has been turned off")
+#        SET(USE_CUDA OFF)
+#    ENDIF("${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR}" MATCHES "^3\\.2$")
 
     INCLUDE_DIRECTORIES(${CUDA_CUT_INCLUDE_DIR})
     CUDA_INCLUDE_DIRECTORIES(${CUDA_CUT_INCLUDE_DIR})

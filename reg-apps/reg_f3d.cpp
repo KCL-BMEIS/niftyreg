@@ -94,7 +94,6 @@ void Usage(char *exec)
 
     printf("\n*** Other options:\n");
     printf("\t-smoothGrad <float>\tTo smooth the metric derivative (in mm) [0]\n");
-    printf("\t-comp\t\t\tTo compose the gradient image instead of adding it during the optimisation scheme\n");
     printf("\t-voff\t\t\tTo turn verbose off\n");
 
 
@@ -161,7 +160,6 @@ int main(int argc, char **argv)
     unsigned int levelToPerform=0;
     PrecisionTYPE gradientSmoothingSigma=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
     bool verbose=true;
-    bool useComposition=false;
     bool useConjugate=true;
     bool useSSD=false;
 #ifdef _USE_CUDA
@@ -217,18 +215,18 @@ int main(int argc, char **argv)
             outputControlPointGridName=argv[++i];
             useVel=true;
             if(outputControlPointGridName==NULL)
-                outputControlPointGridName="outputVel.nii";
+                outputControlPointGridName=(char *)"outputVel.nii";
         }
-		else if(strcmp(argv[i], "-maxit") == 0){
+        else if(strcmp(argv[i], "-maxit") == 0){
             maxiterationNumber=atoi(argv[++i]);
-		}
-		else if(strcmp(argv[i], "-sx") == 0){
+        }
+        else if(strcmp(argv[i], "-sx") == 0){
             spacing[0]=(float)atof(argv[++i]);
-		}
-		else if(strcmp(argv[i], "-sy") == 0){
+        }
+        else if(strcmp(argv[i], "-sy") == 0){
             spacing[1]=(float)atof(argv[++i]);
-		}
-		else if(strcmp(argv[i], "-sz") == 0){
+        }
+        else if(strcmp(argv[i], "-sz") == 0){
             spacing[2]=(float)atof(argv[++i]);
         }
         else if(strcmp(argv[i], "-tbn") == 0){
@@ -239,22 +237,22 @@ int main(int argc, char **argv)
             floatingBinNumber[atoi(argv[i+1])]=atoi(argv[i+2]);
             i+=2;
         }
-		else if(strcmp(argv[i], "-ln") == 0){
+        else if(strcmp(argv[i], "-ln") == 0){
             levelNumber=atoi(argv[++i]);
-		}
+        }
         else if(strcmp(argv[i], "-lp") == 0){
            levelToPerform=atoi(argv[++i]);
         }
-		else if(strcmp(argv[i], "-be") == 0){
+        else if(strcmp(argv[i], "-be") == 0){
             bendingEnergyWeight=(PrecisionTYPE)(atof(argv[++i]));
-		}
-		else if(strcmp(argv[i], "-noAppBE") == 0){
+        }
+        else if(strcmp(argv[i], "-noAppBE") == 0){
             bendingEnergyApproximation=false;
         }
-		else if(strcmp(argv[i], "-jl") == 0){
+        else if(strcmp(argv[i], "-jl") == 0){
             jacobianLogWeight=(PrecisionTYPE)(atof(argv[++i]));
-		}
-		else if(strcmp(argv[i], "-noAppJL") == 0){
+        }
+        else if(strcmp(argv[i], "-noAppJL") == 0){
             jacobianLogApproximation=false;
         }
         else if(strcmp(argv[i], "-smooT") == 0){
@@ -282,24 +280,22 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-smoothGrad") == 0){
             gradientSmoothingSigma=(PrecisionTYPE)(atof(argv[++i]));
         }
-		else if(strcmp(argv[i], "-ssd") == 0){
+        else if(strcmp(argv[i], "-ssd") == 0){
             useSSD=true;
-		}
-        else if(strcmp(argv[i], "-comp") == 0){
-            useComposition=1;
         }
         else if(strcmp(argv[i], "-pad") == 0){
             warpedPaddingValue=(PrecisionTYPE)(atof(argv[++i]));
         }
         //TODO
-//		else if(strcmp(argv[i], "-nopy") == 0){
-//            flag->pyramidFlag=0;
-//		}
+//      else if(strcmp(argv[i], "-nopy") == 0){
+//          flag->pyramidFlag=0;
+//      }
         else if(strcmp(argv[i], "-noConj") == 0){
            useConjugate=false;
         }
         else if(strcmp(argv[i], "-step") == 0){
            stepNumber=atoi(argv[++i]);
+           useVel=true;
         }
 #ifdef _USE_CUDA
         else if(strcmp(argv[i], "-gpu") == 0){
@@ -561,10 +557,6 @@ int main(int argc, char **argv)
 
     if(gradientSmoothingSigma==gradientSmoothingSigma)
         REG->SetGradientSmoothingSigma(gradientSmoothingSigma);
-
-    if(useComposition)
-        REG->UseComposition();
-    else REG->DoNotUseComposition();
 
     if(stepNumber>0)
         REG->SetCompositionStepNumber(stepNumber);
