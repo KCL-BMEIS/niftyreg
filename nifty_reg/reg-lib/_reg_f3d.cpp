@@ -58,7 +58,6 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->levelNumber=3;
     this->levelToPerform=0;
     this->gradientSmoothingSigma=0;
-    this->useComposition=false;
     this->verbose=true;
     this->useSSD=false;
     this->useConjGradient=true;
@@ -332,20 +331,6 @@ int reg_f3d<T>::SetCompositionStepNumber(int s)
 {
     this->stepNumber = s;
     return 0;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template<class T>
-int reg_f3d<T>::UseComposition()
-{
-    this->useComposition = true;
-	return 0;	
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template<class T>
-int reg_f3d<T>::DoNotUseComposition()
-{
-    this->useComposition = false;
-	return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
@@ -1067,18 +1052,18 @@ int reg_f3d<T>::Initisalise_f3d()
         printf("[NiftyReg F3D] Warped image padding value: %g\n", this->warpedPaddingValue);
         printf("[NiftyReg F3D]\n");
         printf("[NiftyReg F3D] Level number: %i\n", this->levelNumber);
-		if(this->levelNumber!=this->levelToPerform)
-			printf("[NiftyReg F3D] \t* Level to perform: %i\n", this->levelToPerform);
+        if(this->levelNumber!=this->levelToPerform)
+            printf("[NiftyReg F3D] \t* Level to perform: %i\n", this->levelToPerform);
         printf("[NiftyReg F3D]\n");
         printf("[NiftyReg F3D] Maximum iteration number per level: %i\n", this->maxiterationNumber);
         printf("[NiftyReg F3D]\n");
         printf("[NiftyReg F3D] Final spacing in mm: %g %g %g\n", this->spacing[0], this->spacing[1], this->spacing[2]);
         printf("[NiftyReg F3D]\n");
-		if(this->useSSD)
-			printf("[NiftyReg F3D] The SSD is used as a similarity measure.\n");
-		else printf("[NiftyReg F3D] The NMI is used as a similarity measure.\n");
+        if(this->useSSD)
+            printf("[NiftyReg F3D] The SSD is used as a similarity measure.\n");
+        else printf("[NiftyReg F3D] The NMI is used as a similarity measure.\n");
         printf("[NiftyReg F3D]\n");
-		printf("[NiftyReg F3D] Bending energy penalty term weight: %g\n", this->bendingEnergyWeight);
+            printf("[NiftyReg F3D] Bending energy penalty term weight: %g\n", this->bendingEnergyWeight);
         if(this->bendingEnergyWeight>0){
             if(this->bendingEnergyApproximation) printf("[NiftyReg F3D] \t* Bending energy penalty term is approximated\n");
             else printf("[NiftyReg F3D] \t* Bending energy penalty term is not approximated\n");
@@ -1089,9 +1074,6 @@ int reg_f3d<T>::Initisalise_f3d()
             if(this->jacobianLogApproximation) printf("[NiftyReg F3D] \t* Jacobian-based penalty term is approximated\n");
             else printf("[NiftyReg F3D] \t* Jacobian-based penalty term is not approximated\n");
         }
-        printf("[NiftyReg F3D]\n");
-        if(this->useComposition) printf("[NiftyReg F3D] The control point positions are updated using composition\n");
-        else printf("[NiftyReg F3D] The control point positions are updated using addition\n");
         printf("[NiftyReg F3D] --------------------------------------------------\n");
 #ifdef NDEBUG
     }
@@ -1162,7 +1144,8 @@ double reg_f3d<T>::ComputeBendingEnergyPenaltyTerm()
 {
     double value = reg_bspline_bendingEnergy<T>(this->controlPointGrid,
                                                 this->currentReference,
-                                                this->bendingEnergyApproximation);
+                                                this->bendingEnergyApproximation
+                                                );
     return this->bendingEnergyWeight * value;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1170,11 +1153,13 @@ double reg_f3d<T>::ComputeBendingEnergyPenaltyTerm()
 template <class T>
 int reg_f3d<T>::GetDeformationField()
 {
-    reg_bspline<T>( this->controlPointGrid,
-                    this->currentReference,
-                    this->deformationFieldImage,
-                    this->currentMask,
-                    0);
+    reg_bspline(this->controlPointGrid,
+                this->currentReference,
+                this->deformationFieldImage,
+                this->currentMask,
+                false, //composition
+                true // bspline
+                );
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1199,25 +1184,25 @@ int reg_f3d<T>::WarpFloatingImage(int inter)
 template <class T>
 double reg_f3d<T>::ComputeSimilarityMeasure()
 {
-	double measure=0.;
+    double measure=0.;
     if(this->useSSD){
         measure = -reg_getSSD<T>(this->currentReference,
                                 this->warped,
                                 this->currentMask);
-		measure /= this->maxSSD[this->currentLevel];
-	}
-	else{
-		reg_getEntropies<double>(   this->currentReference,
-                                    this->warped,
-									2,
-									this->referenceBinNumber,
-									this->floatingBinNumber,
-									this->probaJointHistogram,
-									this->logJointHistogram,
-									this->entropies,
-                                    this->currentMask);
-        measure = (this->entropies[0]+this->entropies[1])/this->entropies[2];
-	}
+        measure /= this->maxSSD[this->currentLevel];
+    }
+    else{
+        reg_getEntropies<double>(this->currentReference,
+                                 this->warped,
+                                 2,
+                                 this->referenceBinNumber,
+                                 this->floatingBinNumber,
+                                 this->probaJointHistogram,
+                                 this->logJointHistogram,
+                                 this->entropies,
+                                 this->currentMask);
+    measure = (this->entropies[0]+this->entropies[1])/this->entropies[2];
+    }
     return double(1.0-this->bendingEnergyWeight-this->jacobianLogWeight) * measure;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1226,34 +1211,34 @@ template <class T>
 int reg_f3d<T>::GetSimilarityMeasureGradient()
 {
     // The intensity gradient is first computed
-    reg_getSourceImageGradient<T>(	this->currentReference,
-                                    this->currentFloating,
-                                    this->warpedGradientImage,
-                                    this->deformationFieldImage,
-                                    this->currentMask,
-                                    1);
+    reg_getSourceImageGradient<T>(this->currentReference,
+                                  this->currentFloating,
+                                  this->warpedGradientImage,
+                                  this->deformationFieldImage,
+                                  this->currentMask,
+                                  USE_LINEAR_INTERPOLATION);
 
 	if(this->useSSD){
-        // Compute the voxel based SSD gradient
-		reg_getVoxelBasedSSDGradient<T>(this->currentReference,
-                                        this->warped,
-										this->warpedGradientImage,
-										this->maxSSD[this->currentLevel],
-                                        this->voxelBasedMeasureGradientImage,
-                                        this->currentMask);
+            // Compute the voxel based SSD gradient
+            reg_getVoxelBasedSSDGradient<T>(this->currentReference,
+                                            this->warped,
+                                            this->warpedGradientImage,
+                                            this->maxSSD[this->currentLevel],
+                                            this->voxelBasedMeasureGradientImage,
+                                            this->currentMask);
 	}
 	else{
-		// Compute the voxel based NMI gradient
-		reg_getVoxelBasedNMIGradientUsingPW<double>(this->currentReference,
-													this->warped,
-													2,
-													this->warpedGradientImage,
-													this->referenceBinNumber,
-													this->floatingBinNumber,
-													this->logJointHistogram,
-													this->entropies,
-													this->voxelBasedMeasureGradientImage,
-                                                    this->currentMask);
+            // Compute the voxel based NMI gradient
+            reg_getVoxelBasedNMIGradientUsingPW<double>(this->currentReference,
+                                                        this->warped,
+                                                        2,
+                                                        this->warpedGradientImage,
+                                                        this->referenceBinNumber,
+                                                        this->floatingBinNumber,
+                                                        this->logJointHistogram,
+                                                        this->entropies,
+                                                        this->voxelBasedMeasureGradientImage,
+                                                        this->currentMask);
     }
 
     // The voxel based NMI gradient is convolved with a spline kernel
@@ -1454,43 +1439,33 @@ T reg_f3d<T>::GetMaximalGradientLength()
 template <class T>
 int reg_f3d<T>::UpdateControlPointPosition(T scale)
 {
-    if(this->useComposition){ // the control point positions are updated using composition
-        memcpy(this->controlPointGrid->data,this->bestControlPointPosition,
-               this->controlPointGrid->nvox*this->controlPointGrid->nbyper);
-        reg_spline_cppComposition(  this->controlPointGrid,
-                                    this->nodeBasedMeasureGradientImage,
-                                    (float)scale,
-                                    1);
-    }
-    else{ // the control point positions are updated using addition
-        unsigned int nodeNumber = this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz;
-        if(this->currentReference->nz==1){
-            T *controlPointValuesX = static_cast<T *>(this->controlPointGrid->data);
-            T *controlPointValuesY = &controlPointValuesX[nodeNumber];
-            T *bestControlPointValuesX = &this->bestControlPointPosition[0];
-            T *bestControlPointValuesY = &bestControlPointValuesX[nodeNumber];
-            T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
-            T *gradientValuesY = &gradientValuesX[nodeNumber];
-            for(unsigned int i=0; i<nodeNumber;i++){
-                *controlPointValuesX++ = *bestControlPointValuesX++ + scale * *gradientValuesX++;
-                *controlPointValuesY++ = *bestControlPointValuesY++ + scale * *gradientValuesY++;
-            }
+    unsigned int nodeNumber = this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz;
+    if(this->currentReference->nz==1){
+        T *controlPointValuesX = static_cast<T *>(this->controlPointGrid->data);
+        T *controlPointValuesY = &controlPointValuesX[nodeNumber];
+        T *bestControlPointValuesX = &this->bestControlPointPosition[0];
+        T *bestControlPointValuesY = &bestControlPointValuesX[nodeNumber];
+        T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
+        T *gradientValuesY = &gradientValuesX[nodeNumber];
+        for(unsigned int i=0; i<nodeNumber;i++){
+            *controlPointValuesX++ = *bestControlPointValuesX++ + scale * *gradientValuesX++;
+            *controlPointValuesY++ = *bestControlPointValuesY++ + scale * *gradientValuesY++;
         }
-        else{
-            T *controlPointValuesX = static_cast<T *>(this->controlPointGrid->data);
-            T *controlPointValuesY = &controlPointValuesX[nodeNumber];
-            T *controlPointValuesZ = &controlPointValuesY[nodeNumber];
-            T *bestControlPointValuesX = &this->bestControlPointPosition[0];
-            T *bestControlPointValuesY = &bestControlPointValuesX[nodeNumber];
-            T *bestControlPointValuesZ = &bestControlPointValuesY[nodeNumber];
-            T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
-            T *gradientValuesY = &gradientValuesX[nodeNumber];
-            T *gradientValuesZ = &gradientValuesY[nodeNumber];
-            for(unsigned int i=0; i<nodeNumber;i++){
-                *controlPointValuesX++ = *bestControlPointValuesX++ + scale * *gradientValuesX++;
-                *controlPointValuesY++ = *bestControlPointValuesY++ + scale * *gradientValuesY++;
-                *controlPointValuesZ++ = *bestControlPointValuesZ++ + scale * *gradientValuesZ++;
-            }
+    }
+    else{
+        T *controlPointValuesX = static_cast<T *>(this->controlPointGrid->data);
+        T *controlPointValuesY = &controlPointValuesX[nodeNumber];
+        T *controlPointValuesZ = &controlPointValuesY[nodeNumber];
+        T *bestControlPointValuesX = &this->bestControlPointPosition[0];
+        T *bestControlPointValuesY = &bestControlPointValuesX[nodeNumber];
+        T *bestControlPointValuesZ = &bestControlPointValuesY[nodeNumber];
+        T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
+        T *gradientValuesY = &gradientValuesX[nodeNumber];
+        T *gradientValuesZ = &gradientValuesY[nodeNumber];
+        for(unsigned int i=0; i<nodeNumber;i++){
+            *controlPointValuesX++ = *bestControlPointValuesX++ + scale * *gradientValuesX++;
+            *controlPointValuesY++ = *bestControlPointValuesY++ + scale * *gradientValuesY++;
+            *controlPointValuesZ++ = *bestControlPointValuesZ++ + scale * *gradientValuesZ++;
         }
     }
     return 0;
@@ -1592,7 +1567,7 @@ int reg_f3d<T>::Run_f3d()
             bestWBE = this->ComputeBendingEnergyPenaltyTerm();
 
         // Compute initial similarity measure
-        this->WarpFloatingImage(1);
+        this->WarpFloatingImage(USE_LINEAR_INTERPOLATION);
         double bestWMeasure = this->ComputeSimilarityMeasure();
 
         // Evalulate the objective function value
@@ -1615,7 +1590,7 @@ int reg_f3d<T>::Run_f3d()
         while(currentSize>smallestSize && iteration<this->maxiterationNumber){
 
             // Compute the gradient of the similarity measure
-            this->WarpFloatingImage(1); iteration++;
+            this->WarpFloatingImage(USE_LINEAR_INTERPOLATION); iteration++;
             this->ComputeSimilarityMeasure();
             this->GetSimilarityMeasureGradient();
 
@@ -1657,7 +1632,7 @@ int reg_f3d<T>::Run_f3d()
                 double currentWBE=0;
                 if(this->bendingEnergyWeight>0)
                     currentWBE = this->ComputeBendingEnergyPenaltyTerm();
-                this->WarpFloatingImage(1); iteration++;
+                this->WarpFloatingImage(USE_LINEAR_INTERPOLATION); iteration++;
                 double currentWMeasure = this->ComputeSimilarityMeasure();
                 double currentValue = currentWMeasure - currentWBE - currentWJac;
 
@@ -1698,9 +1673,7 @@ int reg_f3d<T>::Run_f3d()
                     printf(" - (wBE)%.2e", bestWBE);
                 if(this->jacobianLogWeight>0)
                     printf(" - (wJAC)%.2e", bestWJac);
-                if(this->useComposition)
-                    printf(" [o %g mm]\n", addedStep);
-                else printf(" [+ %g mm]\n", addedStep);
+                printf(" [+ %g mm]\n", addedStep);
 #ifdef NDEBUG
             }
 #endif

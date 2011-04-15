@@ -13,90 +13,16 @@
 #define _REG_BSPLINE_COMP_CPP
 
 #include "_reg_bspline_comp.h"
-#include <limits>
 
 /* *************************************************************** */
-template <class ImageTYPE>
-void get_splineDisplacement(int startX,
-                            int startY,
-                            nifti_image *splineControlPoint,
-                            ImageTYPE *splineX,
-                            ImageTYPE *splineY,
-                            ImageTYPE *dispX,
-                            ImageTYPE *dispY)
+template<class DTYPE>
+void reg_spline_cppComposition_2D(nifti_image *grid1,
+                                  nifti_image *grid2,
+                                  bool disp,
+                                  bool bspline)
 {
-    unsigned int coord=0;
-    memset(dispX,0,16*sizeof(ImageTYPE));
-    memset(dispY,0,16*sizeof(ImageTYPE));
-    for(int Y=startY; Y<startY+4; Y++){
-        if(Y>-1 && Y<splineControlPoint->ny){
-            int index = Y*splineControlPoint->nx;
-            ImageTYPE *xxPtr = &splineX[index];
-            ImageTYPE *yyPtr = &splineY[index];
-            for(int X=startX; X<startX+4; X++){
-                if(X>-1 && X<splineControlPoint->nx){
-                    dispX[coord] = (ImageTYPE)xxPtr[X];
-                    dispY[coord] = (ImageTYPE)yyPtr[X];
-                }
-                coord++;
-            }
-        }
-        else coord+=4;
-    }
-}
-/* *************************************************************** */
-template <class ImageTYPE>
-void get_splineDisplacement(int startX,
-                            int startY,
-                            int startZ,
-                            nifti_image *splineControlPoint,
-                            ImageTYPE *splineX,
-                            ImageTYPE *splineY,
-                            ImageTYPE *splineZ,
-                            ImageTYPE *dispX,
-                            ImageTYPE *dispY,
-                            ImageTYPE *dispZ)
-{
-    memset(dispX,0,64*sizeof(ImageTYPE));
-    memset(dispY,0,64*sizeof(ImageTYPE));
-    memset(dispZ,0,64*sizeof(ImageTYPE));
-    unsigned int coord=0;
-    for(int Z=startZ; Z<startZ+4; Z++){
-        if(Z>-1 && Z<splineControlPoint->nz){
-            unsigned int index=Z*splineControlPoint->nx*splineControlPoint->ny;
-            ImageTYPE *xPtr = &splineX[index];
-            ImageTYPE *yPtr = &splineY[index];
-            ImageTYPE *zPtr = &splineZ[index];
-            for(int Y=startY; Y<startY+4; Y++){
-                if(Y>-1 && Y<splineControlPoint->ny){
-                    index = Y*splineControlPoint->nx;
-                    ImageTYPE *xxPtr = &xPtr[index];
-                    ImageTYPE *yyPtr = &yPtr[index];
-                    ImageTYPE *zzPtr = &zPtr[index];
-                    for(int X=startX; X<startX+4; X++){
-                        if(X>-1 && X<splineControlPoint->nx){
-                            dispX[coord] = (ImageTYPE)xxPtr[X];
-                            dispY[coord] = (ImageTYPE)yyPtr[X];
-                            dispZ[coord] = (ImageTYPE)zzPtr[X];
-                        }
-                        coord++;
-                    }
-                }
-                else coord+=4;
-            }
-        }
-        else coord+=16;
-    }
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template<class PrecisionTYPE>
-void reg_spline_cppComposition_2D(  nifti_image *positionGridImage,
-                                    nifti_image *gridToApply,
-                                    float ratio,
-                                    bool type
-                                    )
-{
+    // REMINDER T(x)=Grid1(Grid2(x))
+
 #if _USE_SSE
     union u{
         __m128 m;
@@ -104,32 +30,32 @@ void reg_spline_cppComposition_2D(  nifti_image *positionGridImage,
     } val;
 #endif
 
-    PrecisionTYPE *outCPPPtrX = static_cast<PrecisionTYPE *>(positionGridImage->data);
-    PrecisionTYPE *outCPPPtrY = &outCPPPtrX[positionGridImage->nx*positionGridImage->ny];
+    DTYPE *outCPPPtrX = static_cast<DTYPE *>(grid2->data);
+    DTYPE *outCPPPtrY = &outCPPPtrX[grid2->nx*grid2->ny];
 
-    PrecisionTYPE *controlPointPtrX = static_cast<PrecisionTYPE *>(gridToApply->data);
-    PrecisionTYPE *controlPointPtrY = &controlPointPtrX[gridToApply->nx*gridToApply->ny];
+    DTYPE *controlPointPtrX = static_cast<DTYPE *>(grid1->data);
+    DTYPE *controlPointPtrY = &controlPointPtrX[grid1->nx*grid1->ny];
 
-    PrecisionTYPE basis;
+    DTYPE basis;
 
 #ifdef _WINDOWS
-    __declspec(align(16)) PrecisionTYPE xBasis[4];
-    __declspec(align(16)) PrecisionTYPE yBasis[4];
+    __declspec(align(16)) DTYPE xBasis[4];
+    __declspec(align(16)) DTYPE yBasis[4];
 #if _USE_SSE
-    __declspec(align(16)) PrecisionTYPE xyBasis[16];
+    __declspec(align(16)) DTYPE xyBasis[16];
 #endif
 
-    __declspec(align(16)) PrecisionTYPE xControlPointCoordinates[16];
-    __declspec(align(16)) PrecisionTYPE yControlPointCoordinates[16];
+    __declspec(align(16)) DTYPE xControlPointCoordinates[16];
+    __declspec(align(16)) DTYPE yControlPointCoordinates[16];
 #else
-    PrecisionTYPE xBasis[4] __attribute__((aligned(16)));
-    PrecisionTYPE yBasis[4] __attribute__((aligned(16)));
+    DTYPE xBasis[4] __attribute__((aligned(16)));
+    DTYPE yBasis[4] __attribute__((aligned(16)));
 #if _USE_SSE
-    PrecisionTYPE xyBasis[16] __attribute__((aligned(16)));
+    DTYPE xyBasis[16] __attribute__((aligned(16)));
 #endif
 
-    PrecisionTYPE xControlPointCoordinates[16] __attribute__((aligned(16)));
-    PrecisionTYPE yControlPointCoordinates[16] __attribute__((aligned(16)));
+    DTYPE xControlPointCoordinates[16] __attribute__((aligned(16)));
+    DTYPE yControlPointCoordinates[16] __attribute__((aligned(16)));
 #endif
 
     unsigned int coord;
@@ -137,28 +63,32 @@ void reg_spline_cppComposition_2D(  nifti_image *positionGridImage,
     // read the xyz/ijk sform or qform, as appropriate
     mat44 *matrix_real_to_voxel=NULL;
     mat44 *matrix_voxel_to_real=NULL;
-    if(gridToApply->sform_code>0){
-        matrix_real_to_voxel=&(gridToApply->sto_ijk);
-        matrix_voxel_to_real=&(gridToApply->sto_xyz);
+    if(grid1->sform_code>0){
+        matrix_real_to_voxel=&(grid1->sto_ijk);
     }
     else{
-        matrix_real_to_voxel=&(gridToApply->qto_ijk);
-        matrix_voxel_to_real=&(gridToApply->qto_xyz);
+        matrix_real_to_voxel=&(grid1->qto_ijk);
+    }
+    if(grid2->sform_code>0){
+        matrix_voxel_to_real=&(grid2->sto_xyz);
+    }
+    else{
+        matrix_voxel_to_real=&(grid2->qto_xyz);
     }
 
-    for(int y=0; y<gridToApply->ny; y++){
-        for(int x=0; x<gridToApply->nx; x++){
+    for(int y=0; y<grid2->ny; y++){
+        for(int x=0; x<grid2->nx; x++){
 
             // Get the initial control point position
-            PrecisionTYPE xReal=0;
-            PrecisionTYPE yReal=0;
-            if(type==0){ // displacement are assumed, position otherwise
-                xReal = matrix_voxel_to_real->m[0][0]*(PrecisionTYPE)x
-                + matrix_voxel_to_real->m[0][1]*(PrecisionTYPE)y
-                + matrix_voxel_to_real->m[0][3];
-                yReal = matrix_voxel_to_real->m[1][0]*(PrecisionTYPE)x
-                + matrix_voxel_to_real->m[1][1]*(PrecisionTYPE)y
-                + matrix_voxel_to_real->m[1][3];
+            DTYPE xReal=0;
+            DTYPE yReal=0;
+            if(disp){ // displacement are assumed, position otherwise
+                xReal = matrix_voxel_to_real->m[0][0]*(DTYPE)x
+                    + matrix_voxel_to_real->m[0][1]*(DTYPE)y
+                    + matrix_voxel_to_real->m[0][3];
+                yReal = matrix_voxel_to_real->m[1][0]*(DTYPE)x
+                    + matrix_voxel_to_real->m[1][1]*(DTYPE)y
+                    + matrix_voxel_to_real->m[1][3];
             }
 
             // Get the control point actual position
@@ -166,32 +96,35 @@ void reg_spline_cppComposition_2D(  nifti_image *positionGridImage,
             yReal += *outCPPPtrY;
 
             // Get the voxel based control point position
-            PrecisionTYPE xVoxel = matrix_real_to_voxel->m[0][0]*xReal
+            DTYPE xVoxel = matrix_real_to_voxel->m[0][0]*xReal
             + matrix_real_to_voxel->m[0][1]*yReal + matrix_real_to_voxel->m[0][3];
-            PrecisionTYPE yVoxel = matrix_real_to_voxel->m[1][0]*xReal
+            DTYPE yVoxel = matrix_real_to_voxel->m[1][0]*xReal
             + matrix_real_to_voxel->m[1][1]*yReal + matrix_real_to_voxel->m[1][3];
 
-            xVoxel = xVoxel<(PrecisionTYPE)0.0?(PrecisionTYPE)0.0:xVoxel;
-            yVoxel = yVoxel<(PrecisionTYPE)0.0?(PrecisionTYPE)0.0:yVoxel;
+            xVoxel = xVoxel<(DTYPE)0.0?(DTYPE)0.0:xVoxel;
+            yVoxel = yVoxel<(DTYPE)0.0?(DTYPE)0.0:yVoxel;
 
             // The spline coefficients are computed
             int xPre=(int)(floor(xVoxel));
-            basis=(PrecisionTYPE)xVoxel-(PrecisionTYPE)xPre;
-            Get_BasisValues<PrecisionTYPE>(basis, xBasis);
+            basis=(DTYPE)xVoxel-(DTYPE)xPre;
+            if(bspline)
+                Get_BSplineBasisValues<DTYPE>(basis, xBasis);
+            else Get_SplineBasisValues<DTYPE>(basis, yBasis);
 
             int yPre=(int)(floor(yVoxel));
-            basis=(PrecisionTYPE)yVoxel-(PrecisionTYPE)yPre;
-            Get_BasisValues<PrecisionTYPE>(basis, yBasis);
+            basis=(DTYPE)yVoxel-(DTYPE)yPre;
+            if(bspline)
+                Get_BSplineBasisValues<DTYPE>(basis, yBasis);
+            else Get_SplineBasisValues<DTYPE>(basis, yBasis);
 
             // The control points are stored
-            coord=0;
-            get_splineDisplacement(xPre,
-                                   yPre,
-                                   gridToApply,
-                                   controlPointPtrX,
-                                   controlPointPtrY,
-                                   xControlPointCoordinates,
-                                   yControlPointCoordinates);
+            get_splineDisplacement<DTYPE>(xPre,
+                                          yPre,
+                                          grid2,
+                                          controlPointPtrX,
+                                          controlPointPtrY,
+                                          xControlPointCoordinates,
+                                          yControlPointCoordinates);
             xReal=0.0;
             yReal=0.0;
 #if _USE_SSE
@@ -224,26 +157,28 @@ void reg_spline_cppComposition_2D(  nifti_image *positionGridImage,
             coord=0;
             for(unsigned int b=0; b<4; b++){
                 for(unsigned int a=0; a<4; a++){
-                    PrecisionTYPE tempValue = xBasis[a] * yBasis[b];
+                    DTYPE tempValue = xBasis[a] * yBasis[b];
                     xReal += xControlPointCoordinates[coord] * tempValue;
                     yReal += yControlPointCoordinates[coord] * tempValue;
                     coord++;
                 }
             }
 #endif
-            *outCPPPtrX++ += ratio*(PrecisionTYPE)xReal;
-            *outCPPPtrY++ += ratio*(PrecisionTYPE)yReal;
+            *outCPPPtrX++ += xReal;
+            *outCPPPtrY++ += yReal;
         }
     }
     return;
 }
 /* *************************************************************** */
-template<class PrecisionTYPE>
-void reg_spline_cppComposition_3D(  nifti_image *positionGridImage,
-                                    nifti_image *gridToApply,
-                                    float ratio,
-                                    bool type)
+template<class DTYPE>
+void reg_spline_cppComposition_3D(nifti_image *grid1,
+                                  nifti_image *grid2,
+                                  bool disp,
+                                  bool bspline)
 {
+    // REMINDER T(x)=Grid1(Grid2(x))
+
 #if _USE_SSE
     union u{
         __m128 m;
@@ -251,66 +186,71 @@ void reg_spline_cppComposition_3D(  nifti_image *positionGridImage,
     } val;
 #endif
 
-    PrecisionTYPE *outCPPPtrX = static_cast<PrecisionTYPE *>(positionGridImage->data);
-    PrecisionTYPE *outCPPPtrY = &outCPPPtrX[positionGridImage->nx*positionGridImage->ny*positionGridImage->nz];
-    PrecisionTYPE *outCPPPtrZ = &outCPPPtrY[positionGridImage->nx*positionGridImage->ny*positionGridImage->nz];
+    DTYPE *outCPPPtrX = static_cast<DTYPE *>(grid2->data);
+    DTYPE *outCPPPtrY = &outCPPPtrX[grid2->nx*grid2->ny*grid2->nz];
+    DTYPE *outCPPPtrZ = &outCPPPtrY[grid2->nx*grid2->ny*grid2->nz];
 
-    PrecisionTYPE *controlPointPtrX = static_cast<PrecisionTYPE *>(gridToApply->data);
-    PrecisionTYPE *controlPointPtrY = &controlPointPtrX[gridToApply->nx*gridToApply->ny*gridToApply->nz];
-    PrecisionTYPE *controlPointPtrZ = &controlPointPtrY[gridToApply->nx*gridToApply->ny*gridToApply->nz];
+    DTYPE *controlPointPtrX = static_cast<DTYPE *>(grid1->data);
+    DTYPE *controlPointPtrY = &controlPointPtrX[grid1->nx*grid1->ny*grid1->nz];
+    DTYPE *controlPointPtrZ = &controlPointPtrY[grid1->nx*grid1->ny*grid1->nz];
 
-    PrecisionTYPE basis;
+    DTYPE basis;
 
 #ifdef _WINDOWS
-    __declspec(align(16)) PrecisionTYPE xBasis[4];
-    __declspec(align(16)) PrecisionTYPE yBasis[4];
-    __declspec(align(16)) PrecisionTYPE zBasis[4];
-    __declspec(align(16)) PrecisionTYPE xControlPointCoordinates[64];
-    __declspec(align(16)) PrecisionTYPE yControlPointCoordinates[64];
-    __declspec(align(16)) PrecisionTYPE zControlPointCoordinates[64];
+    __declspec(align(16)) DTYPE xBasis[4];
+    __declspec(align(16)) DTYPE yBasis[4];
+    __declspec(align(16)) DTYPE zBasis[4];
+    __declspec(align(16)) DTYPE xControlPointCoordinates[64];
+    __declspec(align(16)) DTYPE yControlPointCoordinates[64];
+    __declspec(align(16)) DTYPE zControlPointCoordinates[64];
 #else
-    PrecisionTYPE xBasis[4] __attribute__((aligned(16)));
-    PrecisionTYPE yBasis[4] __attribute__((aligned(16)));
-    PrecisionTYPE zBasis[4] __attribute__((aligned(16)));
-    PrecisionTYPE xControlPointCoordinates[64] __attribute__((aligned(16)));
-    PrecisionTYPE yControlPointCoordinates[64] __attribute__((aligned(16)));
-    PrecisionTYPE zControlPointCoordinates[64] __attribute__((aligned(16)));
+    DTYPE xBasis[4] __attribute__((aligned(16)));
+    DTYPE yBasis[4] __attribute__((aligned(16)));
+    DTYPE zBasis[4] __attribute__((aligned(16)));
+    DTYPE xControlPointCoordinates[64] __attribute__((aligned(16)));
+    DTYPE yControlPointCoordinates[64] __attribute__((aligned(16)));
+    DTYPE zControlPointCoordinates[64] __attribute__((aligned(16)));
 #endif
 
     int xPre, xPreOld=1, yPre, yPreOld=1, zPre, zPreOld=1;
 
     // read the xyz/ijk sform or qform, as appropriate
+    // read the xyz/ijk sform or qform, as appropriate
     mat44 *matrix_real_to_voxel=NULL;
     mat44 *matrix_voxel_to_real=NULL;
-    if(gridToApply->sform_code>0){
-        matrix_real_to_voxel=&(gridToApply->sto_ijk);
-        matrix_voxel_to_real=&(gridToApply->sto_xyz);
+    if(grid1->sform_code>0){
+        matrix_real_to_voxel=&(grid1->sto_ijk);
     }
     else{
-        matrix_real_to_voxel=&(gridToApply->qto_ijk);
-        matrix_voxel_to_real=&(gridToApply->qto_xyz);
+        matrix_real_to_voxel=&(grid1->qto_ijk);
+    }
+    if(grid2->sform_code>0){
+        matrix_voxel_to_real=&(grid2->sto_xyz);
+    }
+    else{
+        matrix_voxel_to_real=&(grid2->qto_xyz);
     }
 
-    for(int z=0; z<positionGridImage->nz; z++){
-        for(int y=0; y<positionGridImage->ny; y++){
-            for(int x=0; x<positionGridImage->nx; x++){
+    for(int z=0; z<grid2->nz; z++){
+        for(int y=0; y<grid2->ny; y++){
+            for(int x=0; x<grid2->nx; x++){
 
                 // Get the initial control point position
-                PrecisionTYPE xReal=0;
-                PrecisionTYPE yReal=0;
-                PrecisionTYPE zReal=0;
-                if(type==0){ // displacement are assumed, position otherwise
-                    xReal = matrix_voxel_to_real->m[0][0]*(PrecisionTYPE)x
-                    + matrix_voxel_to_real->m[0][1]*(PrecisionTYPE)y
-                    + matrix_voxel_to_real->m[0][2]*(PrecisionTYPE)z
+                DTYPE xReal=0;
+                DTYPE yReal=0;
+                DTYPE zReal=0;
+                if(disp){ // Grid2 contains displacements
+                    xReal = matrix_voxel_to_real->m[0][0]*(DTYPE)x
+                    + matrix_voxel_to_real->m[0][1]*(DTYPE)y
+                    + matrix_voxel_to_real->m[0][2]*(DTYPE)z
                     + matrix_voxel_to_real->m[0][3];
-                    yReal = matrix_voxel_to_real->m[1][0]*(PrecisionTYPE)x
-                    + matrix_voxel_to_real->m[1][1]*(PrecisionTYPE)y
-                    + matrix_voxel_to_real->m[1][2]*(PrecisionTYPE)z
+                    yReal = matrix_voxel_to_real->m[1][0]*(DTYPE)x
+                    + matrix_voxel_to_real->m[1][1]*(DTYPE)y
+                    + matrix_voxel_to_real->m[1][2]*(DTYPE)z
                     + matrix_voxel_to_real->m[1][3];
-                    zReal = matrix_voxel_to_real->m[2][0]*(PrecisionTYPE)x
-                    + matrix_voxel_to_real->m[2][1]*(PrecisionTYPE)y
-                    + matrix_voxel_to_real->m[2][2]*(PrecisionTYPE)z
+                    zReal = matrix_voxel_to_real->m[2][0]*(DTYPE)x
+                    + matrix_voxel_to_real->m[2][1]*(DTYPE)y
+                    + matrix_voxel_to_real->m[2][2]*(DTYPE)z
                     + matrix_voxel_to_real->m[2][3];
                 }
 
@@ -320,45 +260,45 @@ void reg_spline_cppComposition_3D(  nifti_image *positionGridImage,
                 zReal += *outCPPPtrZ;
 
                 // Get the voxel based control point position
-                PrecisionTYPE xVoxel =
+                DTYPE xVoxel =
                   matrix_real_to_voxel->m[0][0]*xReal
                 + matrix_real_to_voxel->m[0][1]*yReal
                 + matrix_real_to_voxel->m[0][2]*zReal
                 + matrix_real_to_voxel->m[0][3];
-                PrecisionTYPE yVoxel =
+                DTYPE yVoxel =
                   matrix_real_to_voxel->m[1][0]*xReal
                 + matrix_real_to_voxel->m[1][1]*yReal
                 + matrix_real_to_voxel->m[1][2]*zReal
                 + matrix_real_to_voxel->m[1][3];
-                PrecisionTYPE zVoxel =
+                DTYPE zVoxel =
                   matrix_real_to_voxel->m[2][0]*xReal
                 + matrix_real_to_voxel->m[2][1]*yReal
                 + matrix_real_to_voxel->m[2][2]*zReal
                 + matrix_real_to_voxel->m[2][3];
 
-                xVoxel = xVoxel<(PrecisionTYPE)0.0?(PrecisionTYPE)0.0:xVoxel;
-                yVoxel = yVoxel<(PrecisionTYPE)0.0?(PrecisionTYPE)0.0:yVoxel;
-                zVoxel = zVoxel<(PrecisionTYPE)0.0?(PrecisionTYPE)0.0:zVoxel;
+                xVoxel = xVoxel<(DTYPE)0.0?(DTYPE)0.0:xVoxel;
+                yVoxel = yVoxel<(DTYPE)0.0?(DTYPE)0.0:yVoxel;
+                zVoxel = zVoxel<(DTYPE)0.0?(DTYPE)0.0:zVoxel;
 
                 // The spline coefficients are computed
                 xPre=(int)(floor(xVoxel));
-                basis=(PrecisionTYPE)xVoxel-(PrecisionTYPE)xPre;
-                Get_BasisValues<PrecisionTYPE>(basis, xBasis);
+                basis=(DTYPE)xVoxel-(DTYPE)xPre;
+                Get_BSplineBasisValues<DTYPE>(basis, xBasis);
 
                 yPre=(int)(floor(yVoxel));
-                basis=(PrecisionTYPE)yVoxel-(PrecisionTYPE)yPre;
-                Get_BasisValues<PrecisionTYPE>(basis, yBasis);
+                basis=(DTYPE)yVoxel-(DTYPE)yPre;
+                Get_BSplineBasisValues<DTYPE>(basis, yBasis);
 
                 zPre=(int)(floor(zVoxel));
-                basis=(PrecisionTYPE)zVoxel-(PrecisionTYPE)zPre;
-                Get_BasisValues<PrecisionTYPE>(basis, zBasis);
+                basis=(DTYPE)zVoxel-(DTYPE)zPre;
+                Get_BSplineBasisValues<DTYPE>(basis, zBasis);
 
                 // The control points are stored
                 if(xPre!=xPreOld || yPre!=yPreOld || zPre!=zPreOld){
                     get_splineDisplacement(xPre,
                                            yPre,
                                            zPre,
-                                           gridToApply,
+                                           grid1,
                                            controlPointPtrX,
                                            controlPointPtrY,
                                            controlPointPtrZ,
@@ -412,7 +352,7 @@ void reg_spline_cppComposition_3D(  nifti_image *positionGridImage,
                 for(unsigned int c=0; c<4; c++){
                     for(unsigned int b=0; b<4; b++){
                         for(unsigned int a=0; a<4; a++){
-                            PrecisionTYPE tempValue = xBasis[a] * yBasis[b] * zBasis[c];
+                            DTYPE tempValue = xBasis[a] * yBasis[b] * zBasis[c];
                             xReal += xControlPointCoordinates[coord] * tempValue;
                             yReal += yControlPointCoordinates[coord] * tempValue;
                             zReal += zControlPointCoordinates[coord] * tempValue;
@@ -421,236 +361,70 @@ void reg_spline_cppComposition_3D(  nifti_image *positionGridImage,
                     }
                 }
 #endif
-                *outCPPPtrX++ += ratio*(PrecisionTYPE)xReal;
-                *outCPPPtrY++ += ratio*(PrecisionTYPE)yReal;
-                *outCPPPtrZ++ += ratio*(PrecisionTYPE)zReal;
+                *outCPPPtrX++ += xReal;
+                *outCPPPtrY++ += yReal;
+                *outCPPPtrZ++ += zReal;
             }
         }
     }
     return;
 }
 /* *************************************************************** */
-int reg_spline_cppComposition(  nifti_image *positionGridImage,
-                                nifti_image *gridToApply,
-                                float ratio,
-                                bool type)
+int reg_spline_cppComposition(nifti_image *grid1,
+                              nifti_image *grid2,
+                              bool disp,
+                              bool bspline)
 {
-    if(positionGridImage->datatype != gridToApply->datatype){
-        fprintf(stderr,"ERROR:\treg_square_cpp\n");
-        fprintf(stderr,"ERROR:\tInput and output image do not have the same data type\n");
-        return 1;
+    // REMINDER T(x)=Grid1(Grid2(x))
+
+    if(grid1->datatype != grid2->datatype){
+        fprintf(stderr,"[NiftyReg ERROR] reg_spline_cppComposition\n");
+        fprintf(stderr,"[NiftyReg ERROR] Both input images do not have the same type\n");
+        exit(1);
     }
 
-    if(positionGridImage->nz>1){
-        switch(positionGridImage->datatype){
+#if _USE_SSE
+    if(grid1->datatype != NIFTI_TYPE_FLOAT32){
+        fprintf(stderr,"[NiftyReg ERROR] SSE computation has only been implemented for single precision.\n");
+        fprintf(stderr,"[NiftyReg ERROR] The deformation field is not computed\n");
+        exit(1);
+    }
+#endif
+
+    if(grid1->nz>1){
+        switch(grid1->datatype){
             case NIFTI_TYPE_FLOAT32:
-                reg_spline_cppComposition_3D<float>(positionGridImage, gridToApply, ratio, type);
+                reg_spline_cppComposition_3D<float>
+                        (grid1, grid2, disp, bspline);
                 break;
             case NIFTI_TYPE_FLOAT64:
-                reg_spline_cppComposition_3D<double>(positionGridImage, gridToApply, ratio, type);
+                reg_spline_cppComposition_3D<double>
+                        (grid1, grid2, disp, bspline);
                 break;
             default:
-                fprintf(stderr,"ERROR:\treg_spline_cppComposition 3D\n");
-                fprintf(stderr,"ERROR:\tOnly implemented for single or double floating images\n");
+                fprintf(stderr,"[NiftyReg ERROR] reg_spline_cppComposition 3D\n");
+                fprintf(stderr,"[NiftyReg ERROR] Only implemented for single or double floating images\n");
                 return 1;
         }
     }
     else{
-        switch(positionGridImage->datatype){
+        switch(grid1->datatype){
             case NIFTI_TYPE_FLOAT32:
-                reg_spline_cppComposition_2D<float>(positionGridImage, gridToApply, ratio, type);
+                reg_spline_cppComposition_2D<float>
+                        (grid1, grid2, disp, bspline);
                 break;
             case NIFTI_TYPE_FLOAT64:
-                reg_spline_cppComposition_2D<double>(positionGridImage, gridToApply, ratio, type);
+                reg_spline_cppComposition_2D<double>
+                        (grid1, grid2, disp, bspline);
                 break;
             default:
-                fprintf(stderr,"ERROR:\treg_spline_cppComposition 2D\n");
-                fprintf(stderr,"ERROR:\tOnly implemented for single or double floating images\n");
+                fprintf(stderr,"[NiftyReg ERROR] reg_spline_cppComposition 2D\n");
+                fprintf(stderr,"[NiftyReg ERROR] Only implemented for single or double precision images\n");
                 return 1;
         }
     }
     return 0;
 }
-/* *************************************************************** */
-/* *************************************************************** */
-template<class PrecisionTYPE>
-void reg_getDisplacementFromPosition_2D(nifti_image *splineControlPoint)
-{
-    PrecisionTYPE *controlPointPtrX = static_cast<PrecisionTYPE *>(splineControlPoint->data);
-    PrecisionTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny];
-    
-    mat44 *splineMatrix;
-    if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
-    else splineMatrix=&(splineControlPoint->qto_xyz);
-
-
-    for(int y=0; y<splineControlPoint->ny; y++){
-        for(int x=0; x<splineControlPoint->nx; x++){
-
-            // Get the initial control point position
-            PrecisionTYPE xInit = splineMatrix->m[0][0]*(PrecisionTYPE)x
-            + splineMatrix->m[0][1]*(PrecisionTYPE)y
-            + splineMatrix->m[0][3];
-            PrecisionTYPE yInit = splineMatrix->m[1][0]*(PrecisionTYPE)x
-            + splineMatrix->m[1][1]*(PrecisionTYPE)y
-            + splineMatrix->m[1][3];
-
-            // The initial position is subtracted from every values
-            *controlPointPtrX++ -= xInit;
-            *controlPointPtrY++ -= yInit;
-        }
-    }
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template<class PrecisionTYPE>
-void reg_getDisplacementFromPosition_3D(nifti_image *splineControlPoint)
-{
-    PrecisionTYPE *controlPointPtrX = static_cast<PrecisionTYPE *>(splineControlPoint->data);
-    PrecisionTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
-    PrecisionTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
-    
-    mat44 *splineMatrix;
-    if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
-    else splineMatrix=&(splineControlPoint->qto_xyz);
-    
-    
-    for(int z=0; z<splineControlPoint->nz; z++){
-        for(int y=0; y<splineControlPoint->ny; y++){
-            for(int x=0; x<splineControlPoint->nx; x++){
-            
-                // Get the initial control point position
-                PrecisionTYPE xInit = splineMatrix->m[0][0]*(PrecisionTYPE)x
-                + splineMatrix->m[0][1]*(PrecisionTYPE)y
-                + splineMatrix->m[0][2]*(PrecisionTYPE)z
-                + splineMatrix->m[0][3];
-                PrecisionTYPE yInit = splineMatrix->m[1][0]*(PrecisionTYPE)x
-                + splineMatrix->m[1][1]*(PrecisionTYPE)y
-                + splineMatrix->m[1][2]*(PrecisionTYPE)z
-                + splineMatrix->m[1][3];
-                PrecisionTYPE zInit = splineMatrix->m[2][0]*(PrecisionTYPE)x
-                + splineMatrix->m[2][1]*(PrecisionTYPE)y
-                + splineMatrix->m[2][2]*(PrecisionTYPE)z
-                + splineMatrix->m[2][3];
-                
-                // The initial position is subtracted from every values
-                *controlPointPtrX++ -= xInit;
-                *controlPointPtrY++ -= yInit;
-                *controlPointPtrZ++ -= zInit;
-            }
-        }
-    }
-}
-/* *************************************************************** */
-template<class PrecisionTYPE>
-int reg_getDisplacementFromPosition(nifti_image *splineControlPoint)
-{       
-    switch(splineControlPoint->nu){
-        case 2:
-            reg_getDisplacementFromPosition_2D<PrecisionTYPE>(splineControlPoint);
-            break;
-        case 3:
-            reg_getDisplacementFromPosition_3D<PrecisionTYPE>(splineControlPoint);
-            break;
-        default:
-            fprintf(stderr,"ERROR:\treg_getDisplacementFromPosition\n");
-            fprintf(stderr,"ERROR:\tOnly implemented for 2 or 3D images\n");
-            return 1;
-    }
-    return 0;
-}
-template int reg_getDisplacementFromPosition<float>(nifti_image *);
-template int reg_getDisplacementFromPosition<double>(nifti_image *);
-/* *************************************************************** */
-/* *************************************************************** */
-template<class PrecisionTYPE>
-void reg_getPositionFromDisplacement_2D(nifti_image *splineControlPoint)
-{
-    PrecisionTYPE *controlPointPtrX = static_cast<PrecisionTYPE *>(splineControlPoint->data);
-    PrecisionTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny];
-    
-    mat44 *splineMatrix;
-    if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
-    else splineMatrix=&(splineControlPoint->qto_xyz);
-    
-    
-    for(int y=0; y<splineControlPoint->ny; y++){
-        for(int x=0; x<splineControlPoint->nx; x++){
-            
-            // Get the initial control point position
-            PrecisionTYPE xInit = splineMatrix->m[0][0]*(PrecisionTYPE)x
-            + splineMatrix->m[0][1]*(PrecisionTYPE)y
-            + splineMatrix->m[0][3];
-            PrecisionTYPE yInit = splineMatrix->m[1][0]*(PrecisionTYPE)x
-            + splineMatrix->m[1][1]*(PrecisionTYPE)y
-            + splineMatrix->m[1][3];
-            
-            // The initial position is added from every values
-            *controlPointPtrX++ += xInit;
-            *controlPointPtrY++ += yInit;
-        }
-    }
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template<class PrecisionTYPE>
-void reg_getPositionFromDisplacement_3D(nifti_image *splineControlPoint)
-{
-    PrecisionTYPE *controlPointPtrX = static_cast<PrecisionTYPE *>(splineControlPoint->data);
-    PrecisionTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
-    PrecisionTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
-    
-    mat44 *splineMatrix;
-    if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
-    else splineMatrix=&(splineControlPoint->qto_xyz);
-    
-    
-    for(int z=0; z<splineControlPoint->nz; z++){
-        for(int y=0; y<splineControlPoint->ny; y++){
-            for(int x=0; x<splineControlPoint->nx; x++){
-                
-                // Get the initial control point position
-                PrecisionTYPE xInit = splineMatrix->m[0][0]*(PrecisionTYPE)x
-                + splineMatrix->m[0][1]*(PrecisionTYPE)y
-                + splineMatrix->m[0][2]*(PrecisionTYPE)z
-                + splineMatrix->m[0][3];
-                PrecisionTYPE yInit = splineMatrix->m[1][0]*(PrecisionTYPE)x
-                + splineMatrix->m[1][1]*(PrecisionTYPE)y
-                + splineMatrix->m[1][2]*(PrecisionTYPE)z
-                + splineMatrix->m[1][3];
-                PrecisionTYPE zInit = splineMatrix->m[2][0]*(PrecisionTYPE)x
-                + splineMatrix->m[2][1]*(PrecisionTYPE)y
-                + splineMatrix->m[2][2]*(PrecisionTYPE)z
-                + splineMatrix->m[2][3];
-                
-                // The initial position is subtracted from every values
-                *controlPointPtrX++ += xInit;
-                *controlPointPtrY++ += yInit;
-                *controlPointPtrZ++ += zInit;
-            }
-        }
-    }
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template<class PrecisionTYPE>
-int reg_getPositionFromDisplacement(nifti_image *splineControlPoint)
-{
-    switch(splineControlPoint->nu){
-        case 2:
-            reg_getPositionFromDisplacement_2D<PrecisionTYPE>(splineControlPoint);
-            break;
-        case 3:
-            reg_getPositionFromDisplacement_3D<PrecisionTYPE>(splineControlPoint);
-            break;
-        default:
-            fprintf(stderr,"ERROR:\treg_getPositionFromDisplacement\n");
-            fprintf(stderr,"ERROR:\tOnly implemented for 2 or 3D images\n");
-            return 1;
-    }
-    return 0;}
-template int reg_getPositionFromDisplacement<float>(nifti_image *);
-template int reg_getPositionFromDisplacement<double>(nifti_image *);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class ImageTYPE>
@@ -739,10 +513,10 @@ void reg_bspline_GetJacobianMapFromVelocityField_2D(nifti_image* velocityFieldIm
                 yPre=(int)floor((ImageTYPE)voxelPosition[1]/gridVoxelSpacing[1]);
 
                 basis=(ImageTYPE)voxelPosition[0]/gridVoxelSpacing[0]-(ImageTYPE)(xPre);
-                Get_BasisValues<ImageTYPE>(basis, xBasis,xFirst);
+                Get_BSplineBasisValues<ImageTYPE>(basis, xBasis,xFirst);
 
                 basis=(ImageTYPE)voxelPosition[1]/gridVoxelSpacing[1]-(ImageTYPE)(yPre);
-                Get_BasisValues<ImageTYPE>(basis, yBasis,yFirst);
+                Get_BSplineBasisValues<ImageTYPE>(basis, yBasis,yFirst);
 
                 ImageTYPE Tx_x=0.0;
                 ImageTYPE Ty_x=0.0;
@@ -796,9 +570,9 @@ void reg_bspline_GetJacobianMapFromVelocityField_2D(nifti_image* velocityFieldIm
                 jacobianMatrix.m[2][2]= 0.f;
 
                 jacobianMatrix=nifti_mat33_mul(jacobianMatrix,reorient);
-                jacobianMatrix.m[0][0]=1.f;
-                jacobianMatrix.m[1][1]=1.f;
-                jacobianMatrix.m[2][2]=1.f;
+                jacobianMatrix.m[0][0]++;
+                jacobianMatrix.m[1][1]++;
+                jacobianMatrix.m[2][2]++;
                 ImageTYPE detJac = nifti_mat33_determ(jacobianMatrix);
                 jacPtr[jacIndex] *= detJac;
                 jacIndex++;
@@ -818,7 +592,7 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
     //TOCHECK
 #if _USE_SSE
     if(sizeof(ImageTYPE)!=4){
-        fprintf(stderr, "***ERROR***\treg_bspline_GetJacobianMapFromVelocityField_3D\n");
+        fprintf(stderr, "[NiftyReg ERROR] reg_bspline_GetJacobianMapFromVelocityField_3D\n");
         fprintf(stderr, "The SSE implementation assume single precision... Exit\n");
         exit(0);
     }
@@ -964,13 +738,13 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                     zPre=(int)floor((ImageTYPE)voxelPosition[2]/gridVoxelSpacing[2]);
 
                     basis=(ImageTYPE)voxelPosition[0]/gridVoxelSpacing[0]-(ImageTYPE)(xPre);
-                    Get_BasisValues<ImageTYPE>(basis, xBasis,xFirst);
+                    Get_BSplineBasisValues<ImageTYPE>(basis, xBasis,xFirst);
 
                     basis=(ImageTYPE)voxelPosition[1]/gridVoxelSpacing[1]-(ImageTYPE)(yPre);
-                    Get_BasisValues<ImageTYPE>(basis, yBasis,yFirst);
+                    Get_BSplineBasisValues<ImageTYPE>(basis, yBasis,yFirst);
 
                     basis=(ImageTYPE)voxelPosition[2]/gridVoxelSpacing[2]-(ImageTYPE)(zPre);
-                    Get_BasisValues<ImageTYPE>(basis, zBasis,zFirst);
+                    Get_BSplineBasisValues<ImageTYPE>(basis, zBasis,zFirst);
 
                     ImageTYPE Tx_x=0.0;
                     ImageTYPE Ty_x=0.0;
@@ -1161,8 +935,8 @@ int reg_bspline_GetJacobianMapFromVelocityField(nifti_image* velocityFieldImage,
                                                 nifti_image* jacobianImage)
 {
     if(velocityFieldImage->datatype != jacobianImage->datatype){
-        fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField\n");
-        fprintf(stderr,"ERROR:\tInput and output image do not have the same data type\n");
+        fprintf(stderr,"[NiftyReg ERROR] reg_bspline_GetJacobianMapFromVelocityField\n");
+        fprintf(stderr,"[NiftyReg ERROR] Input and output image do not have the same data type\n");
         return 1;
     }
     if(velocityFieldImage->nz>1){
@@ -1174,8 +948,8 @@ int reg_bspline_GetJacobianMapFromVelocityField(nifti_image* velocityFieldImage,
                 reg_bspline_GetJacobianMapFromVelocityField_3D<double>(velocityFieldImage, jacobianImage,0);
                 break;
             default:
-                fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField_3D\n");
-                fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
+                fprintf(stderr,"[NiftyReg ERROR] reg_bspline_GetJacobianMapFromVelocityField_3D\n");
+                fprintf(stderr,"[NiftyReg ERROR] Only implemented for float or double precision\n");
                 return 1;
                 break;
         }
@@ -1189,8 +963,8 @@ int reg_bspline_GetJacobianMapFromVelocityField(nifti_image* velocityFieldImage,
                 reg_bspline_GetJacobianMapFromVelocityField_2D<double>(velocityFieldImage, jacobianImage,0);
                 break;
             default:
-                fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField_2D\n");
-                fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
+                fprintf(stderr,"[NiftyReg ERROR] reg_bspline_GetJacobianMapFromVelocityField_2D\n");
+                fprintf(stderr,"[NiftyReg ERROR] Only implemented for float or double precision\n");
                 return 1;
                 break;
         }
@@ -1223,8 +997,8 @@ double reg_bspline_GetJacobianValueFromVelocityField(   nifti_image* velocityFie
                 jacobianImage->nbyper = sizeof(double);
                 break;
             default:
-                fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField\n");
-                fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
+                fprintf(stderr,"[NiftyReg ERROR] reg_bspline_GetJacobianMapFromVelocityField\n");
+                fprintf(stderr,"[NiftyReg ERROR] Only implemented for float or double precision\n");
                 exit(1);
                 break;
     }
@@ -1239,8 +1013,8 @@ double reg_bspline_GetJacobianValueFromVelocityField(   nifti_image* velocityFie
                 reg_bspline_GetJacobianMapFromVelocityField_3D<double>(velocityFieldImage, jacobianImage, approx);
                 break;
             default:
-                fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField\n");
-                fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
+                fprintf(stderr,"[NiftyReg ERROR] reg_bspline_GetJacobianMapFromVelocityField\n");
+                fprintf(stderr,"[NiftyReg ERROR] Only implemented for float or double precision\n");
                 exit(1);
                 break;
         }
@@ -1254,8 +1028,8 @@ double reg_bspline_GetJacobianValueFromVelocityField(   nifti_image* velocityFie
                 reg_bspline_GetJacobianMapFromVelocityField_2D<double>(velocityFieldImage, jacobianImage, approx);
                 break;
             default:
-                fprintf(stderr,"ERROR:\treg_bspline_GetJacobianMapFromVelocityField\n");
-                fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
+                fprintf(stderr,"[NiftyReg ERROR] reg_bspline_GetJacobianMapFromVelocityField\n");
+                fprintf(stderr,"[NiftyReg ERROR] Only implemented for float or double precision\n");
                 exit(1);
                 break;
         }
@@ -1384,10 +1158,10 @@ void reg_bspline_GetJacGradientFromVel_2D(  nifti_image *velocityFieldImage,
                 yPre=(int)floor((ImageTYPE)voxelPosition[1]/gridVoxelSpacing[1]);
 
                 basis=(ImageTYPE)voxelPosition[0]/gridVoxelSpacing[0]-(ImageTYPE)(xPre);
-                Get_BasisValues<ImageTYPE>(basis, xBasis,xFirst);
+                Get_BSplineBasisValues<ImageTYPE>(basis, xBasis,xFirst);
 
                 basis=(ImageTYPE)voxelPosition[1]/gridVoxelSpacing[1]-(ImageTYPE)(yPre);
-                Get_BasisValues<ImageTYPE>(basis, yBasis,yFirst);
+                Get_BSplineBasisValues<ImageTYPE>(basis, yBasis,yFirst);
 
                 ImageTYPE Tx_x=0.0;
                 ImageTYPE Ty_x=0.0;
@@ -1499,7 +1273,7 @@ void reg_bspline_GetJacGradientFromVel_3D(  nifti_image *velocityFieldImage,
     //TOCHECK
 #if _USE_SSE
     if(sizeof(ImageTYPE)!=4){
-        fprintf(stderr, "***ERROR***\treg_bspline_GetJacobianGradient_3D\n");
+        fprintf(stderr, "[NiftyReg ERROR] reg_bspline_GetJacobianGradient_3D\n");
         fprintf(stderr, "The SSE implementation assume single precision... Exit\n");
         exit(0);
     }
@@ -1649,13 +1423,13 @@ void reg_bspline_GetJacGradientFromVel_3D(  nifti_image *velocityFieldImage,
                     zPre=(int)floor((ImageTYPE)voxelPosition[2]/gridVoxelSpacing[2]);
 
                     basis=(ImageTYPE)voxelPosition[0]/gridVoxelSpacing[0]-(ImageTYPE)(xPre);
-                    Get_BasisValues<ImageTYPE>(basis, xBasis,xFirst);
+                    Get_BSplineBasisValues<ImageTYPE>(basis, xBasis,xFirst);
 
                     basis=(ImageTYPE)voxelPosition[1]/gridVoxelSpacing[1]-(ImageTYPE)(yPre);
-                    Get_BasisValues<ImageTYPE>(basis, yBasis,yFirst);
+                    Get_BSplineBasisValues<ImageTYPE>(basis, yBasis,yFirst);
 
                     basis=(ImageTYPE)voxelPosition[2]/gridVoxelSpacing[2]-(ImageTYPE)(zPre);
-                    Get_BasisValues<ImageTYPE>(basis, zBasis,zFirst);
+                    Get_BSplineBasisValues<ImageTYPE>(basis, zBasis,zFirst);
 
                     ImageTYPE Tx_x=0.0;
                     ImageTYPE Ty_x=0.0;
@@ -1917,8 +1691,8 @@ void reg_bspline_GetJacobianGradientFromVelocityField(  nifti_image* velocityFie
                     (velocityFieldImage, resultImage, gradientImage, weight, approx);
                 break;
             default:
-                fprintf(stderr,"ERROR:\treg_bspline_GetJacobianGradientFromVelocityField\n");
-                fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
+                fprintf(stderr,"[NiftyReg ERROR] reg_bspline_GetJacobianGradientFromVelocityField\n");
+                fprintf(stderr,"[NiftyReg ERROR] Only implemented for float or double precision\n");
                 exit(1);
                 break;
         }
@@ -1934,8 +1708,8 @@ void reg_bspline_GetJacobianGradientFromVelocityField(  nifti_image* velocityFie
                 (velocityFieldImage, resultImage, gradientImage, weight, approx);
             break;
         default:
-            fprintf(stderr,"ERROR:\treg_bspline_GetJacobianGradientFromVelocityField\n");
-            fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
+            fprintf(stderr,"[NiftyReg ERROR] reg_bspline_GetJacobianGradientFromVelocityField\n");
+            fprintf(stderr,"[NiftyReg ERROR] Only implemented for float or double precision\n");
             exit(1);
             break;
         }
@@ -1943,7 +1717,6 @@ void reg_bspline_GetJacobianGradientFromVelocityField(  nifti_image* velocityFie
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class ImageTYPE>
 void reg_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                              nifti_image *deformationFieldImage,
                                              int *currentMask)
@@ -1952,49 +1725,33 @@ void reg_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
     tempGrid->data=(void *)malloc(tempGrid->nvox*tempGrid->nbyper);
     memcpy(tempGrid->data, velocityFieldGrid->data,
         tempGrid->nvox * tempGrid->nbyper);
-    reg_getPositionFromDisplacement<ImageTYPE>(tempGrid);
-    reg_bspline<ImageTYPE>(tempGrid,
-                           deformationFieldImage,
-                           deformationFieldImage,
-                           currentMask,
-                           0);
+    reg_getDeformationFromDisplacement(tempGrid);
+    reg_bspline(tempGrid,
+                deformationFieldImage,
+                deformationFieldImage,
+                currentMask,
+                false, //composition
+                true // bspline
+                );
     for(int i=1; i<velocityFieldGrid->pixdim[5];++i){
-        reg_bspline<ImageTYPE>(tempGrid,
-                               deformationFieldImage,
-                               deformationFieldImage,
-                               currentMask,
-                               2);
+        reg_bspline(tempGrid,
+                    deformationFieldImage,
+                    deformationFieldImage,
+                    currentMask,
+                    true, //composition
+                    true // bspline
+                    );
     }
     nifti_image_free(tempGrid);
 
 }
-template void reg_getDeformationFieldFromVelocityGrid<float>(nifti_image *, nifti_image *, int *);
-#ifdef _NR_DEV
-template void reg_getDeformationFieldFromVelocityGrid<double>(nifti_image *, nifti_image *, int *);
-#endif
 /* *************************************************************** */
 /* *************************************************************** */
-template <class ImageTYPE>
 void reg_getControlPointPositionFromVelocityGrid(nifti_image *velocityFieldGrid,
                                                  nifti_image *controlPointGrid)
 {
-    nifti_image *tempGrid = nifti_copy_nim_info(velocityFieldGrid);
-    tempGrid->data=(void *)calloc(tempGrid->nvox,tempGrid->nbyper);
-
-    for(int i=0; i<velocityFieldGrid->pixdim[5];++i){
-        reg_spline_cppComposition(tempGrid,velocityFieldGrid,1,0);
-    }
-
-    reg_spline_Interpolant2Interpolator(tempGrid,
-                                        controlPointGrid);
-    reg_getPositionFromDisplacement<ImageTYPE>(controlPointGrid);
-
-    nifti_image_free(tempGrid);
+    //TODO
 }
-template void reg_getControlPointPositionFromVelocityGrid<float>(nifti_image *, nifti_image *);
-#ifdef _NR_DEV
-template void reg_getControlPointPositionFromVelocityGrid<double>(nifti_image *, nifti_image *);
-#endif
 /* *************************************************************** */
 /* *************************************************************** */
 template <class ImageTYPE>
@@ -2043,79 +1800,30 @@ void intensitiesToSplineCoefficients(double *values, int number, double pole)
     return;
 }
 /* *************************************************************** */
-template <class ImageTYPE>
-int reg_spline_Interpolant2Interpolator_2D(nifti_image *inputImage,
-                                           nifti_image *outputImage)
+template <class DTYPE>
+int Interpolant2Interpolator(nifti_image *inputImage,
+                             nifti_image *outputImage)
 {
-    /* in order to apply a cubic Spline resampling, the source image
-     intensities have to be decomposed */
-    ImageTYPE *inputPtrX = static_cast<ImageTYPE *>(inputImage->data);
-    ImageTYPE *inputPtrY = &inputPtrX[inputImage->nx*inputImage->ny];
+    if(inputImage->nz<1) inputImage->nz=1;
+    if(outputImage->nz<1) outputImage->nz=1;
 
-    ImageTYPE *outputPtrX = static_cast<ImageTYPE *>(outputImage->data);
-    ImageTYPE *outputPtrY = &outputPtrX[outputImage->nx*outputImage->ny];
+    DTYPE *inputPtrX = static_cast<DTYPE *>(inputImage->data);
+    DTYPE *inputPtrY = &inputPtrX[inputImage->nx*inputImage->ny*inputImage->nz];
+    DTYPE *inputPtrZ = NULL;
+    if(inputImage->nz>1)
+        inputPtrZ = &inputPtrY[inputImage->nx*inputImage->ny*inputImage->nz];
+
+    DTYPE *outputPtrX = static_cast<DTYPE *>(outputImage->data);
+    DTYPE *outputPtrY = &outputPtrX[outputImage->nx*outputImage->ny*outputImage->nz];
+    DTYPE *outputPtrZ = NULL;
+    if(inputImage->nz>1)
+        outputPtrZ = &outputPtrY[outputImage->nx*outputImage->ny*outputImage->nz];
 
     double pole = (double)(sqrt(3.0) - 2.0);
     int increment;
-    double *values=NULL;
 
     // X axis first
-    values=new double[inputImage->nx];
-    increment = 1;
-    for(int i=0;i<inputImage->ny;i++){
-        int start = i*inputImage->nx;
-        int end =  start + inputImage->nx;
-
-        extractLine(start,end,increment,inputPtrX,values);
-        intensitiesToSplineCoefficients(values, inputImage->nx, pole);
-        restoreLine(start,end,increment,outputPtrX,values);
-
-        extractLine(start,end,increment,inputPtrY,values);
-        intensitiesToSplineCoefficients(values, inputImage->nx, pole);
-        restoreLine(start,end,increment,outputPtrY,values);
-    }
-    delete[] values;
-
-    // Y axis then
-    values=new double[inputImage->ny];
-    increment = inputImage->nx;
-    for(int i=0;i<inputImage->nx;i++){
-        int start = i + i/inputImage->nx * inputImage->nx * (inputImage->ny - 1);
-        int end =  start + inputImage->nx*inputImage->ny;
-
-        extractLine(start,end,increment,outputPtrX,values);
-        intensitiesToSplineCoefficients(values, inputImage->ny, pole);
-        restoreLine(start,end,increment,outputPtrX,values);
-
-        extractLine(start,end,increment,outputPtrY,values);
-        intensitiesToSplineCoefficients(values, inputImage->ny, pole);
-        restoreLine(start,end,increment,outputPtrY,values);
-    }
-    delete[] values;
-
-    return 0;
-}
-/* *************************************************************** */
-template <class ImageTYPE>
-int reg_spline_Interpolant2Interpolator_3D(nifti_image *inputImage,
-                                           nifti_image *outputImage)
-{
-    /* in order to apply a cubic Spline resampling, the source image
-     intensities have to be decomposed */
-    ImageTYPE *inputPtrX = static_cast<ImageTYPE *>(inputImage->data);
-    ImageTYPE *inputPtrY = &inputPtrX[inputImage->nx*inputImage->ny*inputImage->nz];
-    ImageTYPE *inputPtrZ = &inputPtrY[inputImage->nx*inputImage->ny*inputImage->nz];
-
-    ImageTYPE *outputPtrX = static_cast<ImageTYPE *>(outputImage->data);
-    ImageTYPE *outputPtrY = &outputPtrX[outputImage->nx*outputImage->ny*outputImage->nz];
-    ImageTYPE *outputPtrZ = &outputPtrY[outputImage->nx*outputImage->ny*outputImage->nz];
-
-    double pole = (double)(sqrt(3.0) - 2.0);
-    int increment;
-    double *values=NULL;
-
-    // X axis first
-    values=new double[inputImage->nx];
+    double *values=new double[inputImage->nx];
     increment = 1;
     for(int i=0;i<inputImage->ny*inputImage->nz;i++){
         int start = i*inputImage->nx;
@@ -2129,11 +1837,14 @@ int reg_spline_Interpolant2Interpolator_3D(nifti_image *inputImage,
         intensitiesToSplineCoefficients(values, inputImage->nx, pole);
         restoreLine(start,end,increment,outputPtrY,values);
 
-        extractLine(start,end,increment,inputPtrZ,values);
-        intensitiesToSplineCoefficients(values, inputImage->nx, pole);
-        restoreLine(start,end,increment,outputPtrZ,values);
+        if(inputImage->nz>1){
+            extractLine(start,end,increment,inputPtrZ,values);
+            intensitiesToSplineCoefficients(values, inputImage->nx, pole);
+            restoreLine(start,end,increment,outputPtrZ,values);
+        }
     }
     delete[] values;
+
     // Y axis
     values=new double[inputImage->ny];
     increment = inputImage->nx;
@@ -2149,31 +1860,36 @@ int reg_spline_Interpolant2Interpolator_3D(nifti_image *inputImage,
         intensitiesToSplineCoefficients(values, inputImage->ny, pole);
         restoreLine(start,end,increment,outputPtrY,values);
 
-        extractLine(start,end,increment,outputPtrZ,values);
-        intensitiesToSplineCoefficients(values, inputImage->ny, pole);
-        restoreLine(start,end,increment,outputPtrZ,values);
+        if(inputImage->nz>1){
+            extractLine(start,end,increment,outputPtrZ,values);
+            intensitiesToSplineCoefficients(values, inputImage->ny, pole);
+            restoreLine(start,end,increment,outputPtrZ,values);
+        }
     }
     delete[] values;
+
     // Z axis
-    values=new double[inputImage->nz];
-    increment = inputImage->nx*inputImage->ny;
-    for(int i=0;i<inputImage->nx*inputImage->ny;i++){
-        int start = i;
-        int end =  start + inputImage->nx*inputImage->ny*inputImage->nz;
+    if(inputImage->nz>1){
+        values=new double[inputImage->nz];
+        increment = inputImage->nx*inputImage->ny;
+        for(int i=0;i<inputImage->nx*inputImage->ny;i++){
+            int start = i;
+            int end =  start + inputImage->nx*inputImage->ny*inputImage->nz;
 
-        extractLine(start,end,increment,outputPtrX,values);
-        intensitiesToSplineCoefficients(values, inputImage->nz, pole);
-        restoreLine(start,end,increment,outputPtrX,values);
+            extractLine(start,end,increment,outputPtrX,values);
+            intensitiesToSplineCoefficients(values, inputImage->nz, pole);
+            restoreLine(start,end,increment,outputPtrX,values);
 
-        extractLine(start,end,increment,outputPtrY,values);
-        intensitiesToSplineCoefficients(values, inputImage->nz, pole);
-        restoreLine(start,end,increment,outputPtrY,values);
+            extractLine(start,end,increment,outputPtrY,values);
+            intensitiesToSplineCoefficients(values, inputImage->nz, pole);
+            restoreLine(start,end,increment,outputPtrY,values);
 
-        extractLine(start,end,increment,outputPtrZ,values);
-        intensitiesToSplineCoefficients(values, inputImage->nz, pole);
-        restoreLine(start,end,increment,outputPtrZ,values);
+            extractLine(start,end,increment,outputPtrZ,values);
+            intensitiesToSplineCoefficients(values, inputImage->nz, pole);
+            restoreLine(start,end,increment,outputPtrZ,values);
+        }
+        delete[] values;
     }
-    delete[] values;
     return 0;
 }
 /* *************************************************************** */
@@ -2181,40 +1897,29 @@ int reg_spline_Interpolant2Interpolator(nifti_image *inputImage,
                                         nifti_image *outputImage)
 {
     if(inputImage->datatype != outputImage->datatype){
-        fprintf(stderr,"ERROR:\treg_spline_Interpolant2Interpolator\n");
-        fprintf(stderr,"ERROR:\tInput and output image do not have the same data type\n");
-        return 1;
+        fprintf(stderr,"[NiftyReg ERROR] reg_spline_Interpolant2Interpolator\n");
+        fprintf(stderr,"[NiftyReg ERROR] Input and output image do not have the same data type. EXIT\n");
+        exit(1);
+    }
+    for(int i=1;i<8;++i){
+        if(inputImage->dim[i]!=outputImage->dim[i]){
+            fprintf(stderr,"[NiftyReg ERROR] reg_spline_Interpolant2Interpolator\n");
+            fprintf(stderr,"[NiftyReg ERROR] Both images are expected to have the same size. EXIT\n");
+            exit(1);
+        }
     }
 
-    if(inputImage->nz>1){
-        switch(inputImage->datatype){
-            case NIFTI_TYPE_FLOAT32:
-                reg_spline_Interpolant2Interpolator_3D<float>(inputImage, outputImage);
-                break;
-            case NIFTI_TYPE_FLOAT64:
-                reg_spline_Interpolant2Interpolator_3D<double>(inputImage, outputImage);
-                break;
-            default:
-                fprintf(stderr,"ERROR:\treg_spline_Interpolant2Interpolator\n");
-                fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
-                return 1;
-                break;
-        }
-    }
-    else{
-        switch(inputImage->datatype){
-            case NIFTI_TYPE_FLOAT32:
-                reg_spline_Interpolant2Interpolator_2D<float>(inputImage, outputImage);
-                break;
-            case NIFTI_TYPE_FLOAT64:
-                reg_spline_Interpolant2Interpolator_2D<double>(inputImage, outputImage);
-                break;
-            default:
-                fprintf(stderr,"ERROR:\treg_spline_Interpolant2Interpolator\n");
-                fprintf(stderr,"ERROR:\tOnly implemented for float or double precision\n");
-                return 1;
-                break;
-        }
+    switch(inputImage->datatype){
+        case NIFTI_TYPE_FLOAT32:
+            Interpolant2Interpolator<float>(inputImage, outputImage);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            Interpolant2Interpolator<double>(inputImage, outputImage);
+            break;
+        default:
+            fprintf(stderr,"[NiftyReg ERROR] reg_spline_Interpolant2Interpolator\n");
+            fprintf(stderr,"[NiftyReg ERROR] Only implemented for float or double precision. EXIT\n");
+            exit(1);
     }
     return 0;
 }

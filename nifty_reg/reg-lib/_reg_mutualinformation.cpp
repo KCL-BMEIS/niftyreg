@@ -106,12 +106,13 @@ PrecisionTYPE GetBasisSplineValue(PrecisionTYPE x)
 {
     x=fabs(x);
     PrecisionTYPE value=0.0;
-    if(x<2.0)
+    if(x<2.0){
         if(x<1.0)
             value = (PrecisionTYPE)(2.0f/3.0f + (0.5f*x-1.0)*x*x);
         else{
             x-=2.0f;
             value = -x*x*x/6.0f;
+        }
     }
     return value;
 }
@@ -121,13 +122,14 @@ PrecisionTYPE GetBasisSplineDerivativeValue(PrecisionTYPE ori)
 {
     PrecisionTYPE x=fabs(ori);
     PrecisionTYPE value=0.0;
-    if(x<2.0)
+    if(x<2.0){
         if(x<1.0)
             value = (PrecisionTYPE)((1.5f*x-2.0)*ori);
         else{
             x-=2.0f;
             value = -0.5f * x * x;
             if(ori<0.0f)value =-value;
+        }
     }
     return value;
 }

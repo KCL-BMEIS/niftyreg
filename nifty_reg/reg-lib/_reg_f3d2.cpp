@@ -20,6 +20,9 @@ template <class T>
 reg_f3d2<T>::reg_f3d2(int refTimePoint,int floTimePoint)
     :reg_f3d<T>::reg_f3d(refTimePoint,floTimePoint)
 {
+    fprintf(stderr,"F3D2 is work under progress and should not be used at the moment.\n");
+    fprintf(stderr,"I am currently doing modification to it.\n");
+    fprintf(stderr,"EXIT.\n"); exit(1);
 
     this->controlPointPositionGrid=NULL;
 #ifndef NDEBUG
@@ -45,9 +48,9 @@ reg_f3d2<T>::~reg_f3d2()
 template <class T>
 int reg_f3d2<T>::GetDeformationField()
 {
-    reg_getDeformationFieldFromVelocityGrid<T>(this->controlPointGrid,
-                                               this->deformationFieldImage,
-                                               this->currentMask);
+    reg_getDeformationFieldFromVelocityGrid(this->controlPointGrid,
+                                            this->deformationFieldImage,
+                                            this->currentMask);
 //    reg_getControlPointPositionFromVelocityGrid<T>(this->controlPointGrid,
 //                                                   this->controlPointPositionGrid);
 //    reg_bspline<T>( this->controlPointPositionGrid,
@@ -64,10 +67,11 @@ double reg_f3d2<T>::ComputeBendingEnergyPenaltyTerm()
 {
     memcpy(this->controlPointPositionGrid->data, this->controlPointGrid->data,
             this->controlPointGrid->nvox * this->controlPointGrid->nbyper);
-    reg_getPositionFromDisplacement<T>(this->controlPointPositionGrid);
+    reg_getDeformationFromDisplacement(this->controlPointPositionGrid);
     double value = reg_bspline_bendingEnergy<T>(this->controlPointPositionGrid,
                                                 this->currentReference,
-                                                this->bendingEnergyApproximation);
+                                                this->bendingEnergyApproximation
+                                                );
     return this->bendingEnergyWeight * value;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -77,7 +81,7 @@ int reg_f3d2<T>::GetBendingEnergyGradient()
 {
     memcpy(this->controlPointPositionGrid->data, this->controlPointGrid->data,
             this->controlPointGrid->nvox * this->controlPointGrid->nbyper);
-    reg_getPositionFromDisplacement<T>(this->controlPointPositionGrid);
+    reg_getDeformationFromDisplacement(this->controlPointPositionGrid);
     reg_bspline_bendingEnergyGradient<T>(   this->controlPointPositionGrid,
                                             this->currentReference,
                                             this->nodeBasedMeasureGradientImage,
@@ -129,43 +133,33 @@ int reg_f3d2<T>::UpdateControlPointPosition(T scale)
 {
     T scaledScale = scale/(T)this->stepNumber;
 
-    if(this->useComposition){ // the control point positions are updated using composition
-        memcpy(this->controlPointGrid->data,this->bestControlPointPosition,
-               this->controlPointGrid->nvox*this->controlPointGrid->nbyper);
-        reg_spline_cppComposition(  this->controlPointGrid,
-                                    this->nodeBasedMeasureGradientImage,
-                                    (float)scaledScale,
-                                    0);
-    }
-    else{ // the control point positions are updated using addition
-        unsigned int nodeNumber = this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz;
-        if(this->currentReference->nz==1){
-            T *controlPointValuesX = static_cast<T *>(this->controlPointGrid->data);
-            T *controlPointValuesY = &controlPointValuesX[nodeNumber];
-            T *bestControlPointValuesX = &this->bestControlPointPosition[0];
-            T *bestControlPointValuesY = &bestControlPointValuesX[nodeNumber];
-            T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
-            T *gradientValuesY = &gradientValuesX[nodeNumber];
-            for(unsigned int i=0; i<nodeNumber;i++){
-                *controlPointValuesX++ = *bestControlPointValuesX++ + scaledScale * *gradientValuesX++;
-                *controlPointValuesY++ = *bestControlPointValuesY++ + scaledScale * *gradientValuesY++;
-            }
+    unsigned int nodeNumber = this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz;
+    if(this->currentReference->nz==1){
+        T *controlPointValuesX = static_cast<T *>(this->controlPointGrid->data);
+        T *controlPointValuesY = &controlPointValuesX[nodeNumber];
+        T *bestControlPointValuesX = &this->bestControlPointPosition[0];
+        T *bestControlPointValuesY = &bestControlPointValuesX[nodeNumber];
+        T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
+        T *gradientValuesY = &gradientValuesX[nodeNumber];
+        for(unsigned int i=0; i<nodeNumber;i++){
+            *controlPointValuesX++ = *bestControlPointValuesX++ + scaledScale * *gradientValuesX++;
+            *controlPointValuesY++ = *bestControlPointValuesY++ + scaledScale * *gradientValuesY++;
         }
-        else{
-            T *controlPointValuesX = static_cast<T *>(this->controlPointGrid->data);
-            T *controlPointValuesY = &controlPointValuesX[nodeNumber];
-            T *controlPointValuesZ = &controlPointValuesY[nodeNumber];
-            T *bestControlPointValuesX = &this->bestControlPointPosition[0];
-            T *bestControlPointValuesY = &bestControlPointValuesX[nodeNumber];
-            T *bestControlPointValuesZ = &bestControlPointValuesY[nodeNumber];
-            T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
-            T *gradientValuesY = &gradientValuesX[nodeNumber];
-            T *gradientValuesZ = &gradientValuesY[nodeNumber];
-            for(unsigned int i=0; i<nodeNumber;i++){
-                *controlPointValuesX++ = *bestControlPointValuesX++ + scaledScale * *gradientValuesX++;
-                *controlPointValuesY++ = *bestControlPointValuesY++ + scaledScale * *gradientValuesY++;
-                *controlPointValuesZ++ = *bestControlPointValuesZ++ + scaledScale * *gradientValuesZ++;
-            }
+    }
+    else{
+        T *controlPointValuesX = static_cast<T *>(this->controlPointGrid->data);
+        T *controlPointValuesY = &controlPointValuesX[nodeNumber];
+        T *controlPointValuesZ = &controlPointValuesY[nodeNumber];
+        T *bestControlPointValuesX = &this->bestControlPointPosition[0];
+        T *bestControlPointValuesY = &bestControlPointValuesX[nodeNumber];
+        T *bestControlPointValuesZ = &bestControlPointValuesY[nodeNumber];
+        T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
+        T *gradientValuesY = &gradientValuesX[nodeNumber];
+        T *gradientValuesZ = &gradientValuesY[nodeNumber];
+        for(unsigned int i=0; i<nodeNumber;i++){
+            *controlPointValuesX++ = *bestControlPointValuesX++ + scaledScale * *gradientValuesX++;
+            *controlPointValuesY++ = *bestControlPointValuesY++ + scaledScale * *gradientValuesY++;
+            *controlPointValuesZ++ = *bestControlPointValuesZ++ + scaledScale * *gradientValuesZ++;
         }
     }
     return 0;
