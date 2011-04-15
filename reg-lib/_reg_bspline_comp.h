@@ -12,93 +12,86 @@
 #ifndef _REG_BSPLINE_COMP_H
 #define _REG_BSPLINE_COMP_H
 
-#include "nifti1_io.h"
-#include "_reg_affineTransformation.h"
 #include "_reg_bspline.h"
 
-#if _USE_SSE
-    #include <emmintrin.h>
-#endif
-
+/* *************************************************************** */
 /** reg_spline_cppComposition(nifti_image* img1, nifti_image* img2, bool type)
-  * This function compose the a first control point image with a second one.
-  * Type is set to 0 if img1 contains displacement and to 1 if it contains
-  * position.
-  * img2 always expect to be displacement and they will be multiplied by ratio.
-**/
+  * This function compose the a first control point image with a second one:
+  * T(x)=Grid1(Grid2(x)).
+  * Grid1 can be either displacement(disp=true) or deformation(disp=false).
+  * Cubic B-Spline can be used (bspline=true) or Cubic Spline (bspline=false)
+ **/
 extern "C++"
-int reg_spline_cppComposition(  nifti_image *positionGridImage,
-                                nifti_image *decomposedGridImage,
-                                float ratio,
-                                bool type
-                                );
-
-/** reg_getDisplacementFromPosition(nifti_image *)
-  * This function converts a control point grid containing positions
-  * into a control point grid containing displacements.
-  * The conversion is done using the appropriate qform/sform
-**/
-extern "C++" template<class PrecisionTYPE>
-int reg_getDisplacementFromPosition(nifti_image *controlPointImage);
-
-/** reg_getPositionFromDisplacement(nifti_image *)
-  * This function converts a control point grid containing displacements
-  * into a control point grid containing displacementspositions.
-  * The conversion is done using the appropriate qform/sform
-**/
-extern "C++" template<class PrecisionTYPE>
-int reg_getPositionFromDisplacement(nifti_image *controlPointImage);
-
-
+int reg_spline_cppComposition(nifti_image *grid1,
+                              nifti_image *grid2,
+                              bool disp,
+                              bool bspline
+                              );
+/* *************************************************************** */
 /** reg_bspline_GetJacobianMapFromVelocityField(nifti_image *img1, nifti_image *img2)
-  * This function computed a Jacobian determinant using a squaring approach
-  * applied to a velocity field
-**/
+  * This function computed a Jacobian determinant map by integrating the velocity field
+ **/
 extern "C++"
 int reg_bspline_GetJacobianMapFromVelocityField(nifti_image* velocityFieldImage,
                                                 nifti_image* jacobianImage
                                                 );
-
+/* *************************************************************** */
 /** reg_bspline_GetJacobianValueFromVelocityField(nifti_image *img1, nifti_image *img2, bool approx)
-  * This function integrate all the Jacobian determinant using a squaring approach
-  * applied to a velocity field. The result image header is used to know the image
-  * dimensions.
-**/
+  * This function compute a weight based on the Jacobian determinant map.
+  * The jacobian map is computed using the reg_bspline_GetJacobianMapFromVelocityField function
+  * The result image header is used to know the image dimensions.
+  * The Jacobian map can be computed either on all voxels or only at the control point position,
+  * this is defined by the approx flag
+ **/
 extern "C++"
-double reg_bspline_GetJacobianValueFromVelocityField(   nifti_image* velocityFieldImage,
-                                                        nifti_image* resultImage,
-                                                        bool approx
-                                                        );
-
+double reg_bspline_GetJacobianValueFromVelocityField(nifti_image* velocityFieldImage,
+                                                     nifti_image* resultImage,
+                                                     bool approx
+                                                     );
+/* *************************************************************** */
 /** reg_bspline_GetJacobianGradientFromVelocityField(nifti_image *img1, nifti_image *img2);
-  * The gradient of the Jacobian-based penalty term is computed using the scaling-and-squaring
-  * approach. The value can be approximated or fully computed
-**/
+  * The gradient of the Jacobian determinant weight is computing using the integration of
+  * a velocity field.
+  * The gradient is weighted by the weight variable and is added to the gradient image values.
+  * The Jacobian determinant geradient can be computed either on all voxels or
+  * only at the control point position, this is defined by the approx flag
+ **/
 extern "C++"
-void reg_bspline_GetJacobianGradientFromVelocityField(   nifti_image* velocityFieldImage,
-                                                            nifti_image* resultImage,
-                                                            nifti_image* gradientImage,
-                                                            float weight,
-                                                            bool approx
-                                                            );
-
-
-extern "C++" template <class ImageTYPE>
+void reg_bspline_GetJacobianGradientFromVelocityField(nifti_image* velocityFieldImage,
+                                                      nifti_image* resultImage,
+                                                      nifti_image* gradientImage,
+                                                      float weight,
+                                                      bool approx
+                                                      );
+/* *************************************************************** */
+/** reg_getControlPointPositionFromVelocityGrid(nifti_image *img1, nifti_image *img2);
+  * The deformation of the control point grid (img2) is computed by integrating
+  * a velocity field (img1).
+ **/
+extern "C++"
 void reg_getControlPointPositionFromVelocityGrid(nifti_image *velocityFieldGrid,
                                                  nifti_image *controlPointGrid);
-
-extern "C++" template <class ImageTYPE>
+/* *************************************************************** */
+/** reg_getDeformationFieldFromVelocityGrid(nifti_image *img1, nifti_image *img2, int *mask);
+  * The deformation field (img2) is computed by integrating a velocity field (img1).
+  * Only the voxel within the mask will be considered. If Mask is set to NULL then
+  * all the voxels will be included within the mask.
+ **/
+extern "C++"
 void reg_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                              nifti_image *deformationFieldImage,
                                              int *currentMask);
-
+/* *************************************************************** */
 /** reg_getPositionFromDisplacement(nifti_image *img1, nifti_image *img2)
-  * This function converts a control point grid values into coefficients
-  * in order to perform true interpolation
+  * This function converts a grid of control point positions into coefficient.
+  * The coefficients can be used then using Cubic B-Spline to perform true interpolation
+  * Using the img2 output with Cubic B-Spline basis functions is equivalent
+  * to using img1 with Cubic Spline basis functions.
 **/
 extern "C++"
 int reg_spline_Interpolant2Interpolator(nifti_image *inputImage,
                                         nifti_image *outputImage
                                         );
+/* *************************************************************** */
 
 #endif

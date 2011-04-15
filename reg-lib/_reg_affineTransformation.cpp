@@ -203,6 +203,8 @@ void reg_tool_ReadAffineFile(	mat44 *mat,
     }
     affineFile.close();
 
+    reg_mat44_disp(mat, (char *)"affineTransformation");
+
     if(flirtFile){
         mat44 absoluteTarget;
         mat44 absoluteSource;

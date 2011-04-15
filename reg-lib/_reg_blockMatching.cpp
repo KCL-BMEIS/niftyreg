@@ -53,49 +53,6 @@ double get_square_distance2D(float * first_point2D, float * second_point2D)
     return  sqrt((first_point2D[0]-second_point2D[0])*(first_point2D[0]-second_point2D[0]) +
                  (first_point2D[1]-second_point2D[1])*(first_point2D[1]-second_point2D[1]));
 }
-
-/* *************************************************************** */
-// Heap sort
-void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum)
-{
-    float *array = &array_tmp[-1];
-    int *index = &index_tmp[-1];
-    int l=(blockNum >> 1)+1;
-    int ir=blockNum;
-    float val;
-    int iVal;
-    for(;;){
-        if(l>1){
-            val=array[--l];
-            iVal=index[l];
-        }
-        else{
-            val=array[ir];
-            iVal=index[ir];
-            array[ir]=array[1];
-            index[ir]=index[1];
-            if(--ir == 1){
-                array[1]=val;
-                index[1]=iVal;
-                break;
-            }
-        }
-        int i=l;
-        int j=l+l;
-        while(j<=ir){
-            if(j<ir && array[j]<array[j+1]) j++;
-            if(val<array[j]){
-                array[i]=array[j];
-                index[i]=index[j];
-                i=j;
-                j<<=1;
-            }
-            else break;
-        }
-        array[i]=val;
-        index[i]=iVal;
-    }
-}
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
@@ -1909,7 +1866,7 @@ void svd(float ** in, int m, int n, float * w, float ** v)
 {
     float * rv1 = (float *)malloc(sizeof(float) * n);
     float anorm, c, f, g, h, s, scale, x, y, z;
-    int flag,i,its,j,jj,k,l,nm;
+    int flag,i,its,j,jj,k,l=0,nm;
 
     g = scale = anorm = 0.0f;
     for (i = 1; i <= n; ++i)

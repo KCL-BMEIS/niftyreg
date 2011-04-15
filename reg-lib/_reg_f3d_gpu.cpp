@@ -680,22 +680,11 @@ T reg_f3d_gpu<T>::GetMaximalGradientLength()
 template <class T>
 int reg_f3d_gpu<T>::UpdateControlPointPosition(T scale)
 {
-    if(this->useComposition){ // the control point positions are updated using composition
-        this->RestoreCurrentControlPoint();
-        reg_spline_cppComposition_gpu(  this->controlPointGrid,
-                                        this->controlPointGrid,
-                                        &this->controlPointGrid_gpu,
-                                        &this->nodeBasedMeasureGradientImage_gpu,
-                                        scale,
-                                        1);
-    }
-    else{ // the control point positions are updated using addition
-        reg_updateControlPointPosition_gpu(this->controlPointGrid,
-                                           &this->controlPointGrid_gpu,
-                                           &this->bestControlPointPosition_gpu,
-                                           &this->nodeBasedMeasureGradientImage_gpu,
-                                           scale);
-    }
+    reg_updateControlPointPosition_gpu(this->controlPointGrid,
+                                       &this->controlPointGrid_gpu,
+                                       &this->bestControlPointPosition_gpu,
+                                       &this->nodeBasedMeasureGradientImage_gpu,
+                                       scale);
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

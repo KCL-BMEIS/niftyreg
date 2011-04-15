@@ -22,6 +22,8 @@
 #include "float.h"
 #include <limits>
 
+#define USE_LINEAR_INTERPOLATION 1
+
 template <class T>
 class reg_f3d
 {
@@ -36,56 +38,55 @@ class reg_f3d
     mat44 *affineTransformation; // pointer to external
     int *referenceMask;
     nifti_image *controlPointGrid;
-	T bendingEnergyWeight;
-	bool bendingEnergyApproximation;
-	T jacobianLogWeight;
-	bool jacobianLogApproximation;
+    T bendingEnergyWeight;
+    bool bendingEnergyApproximation;
+    T jacobianLogWeight;
+    bool jacobianLogApproximation;
     unsigned int maxiterationNumber;
-	T referenceSmoothingSigma;
-	T floatingSmoothingSigma;
+    T referenceSmoothingSigma;
+    T floatingSmoothingSigma;
     float *referenceThresholdUp;
     float *referenceThresholdLow;
     float *floatingThresholdUp;
     float *floatingThresholdLow;
     unsigned int *referenceBinNumber;
     unsigned int *floatingBinNumber;
-	T warpedPaddingValue;
-	T spacing[3];
-	unsigned int levelNumber;
-	unsigned int levelToPerform;
-	T gradientSmoothingSigma;
-    bool useComposition;
+    T warpedPaddingValue;
+    T spacing[3];
+    unsigned int levelNumber;
+    unsigned int levelToPerform;
+    T gradientSmoothingSigma;
     bool useSSD;
     bool useConjGradient;
     bool verbose;
-//	int threadNumber;
+//    int threadNumber;
 
     bool initialised;
     nifti_image **referencePyramid;
     nifti_image **floatingPyramid;
     int **maskPyramid;
     int *activeVoxelNumber;
-	nifti_image *currentReference;
+    nifti_image *currentReference;
     nifti_image *currentFloating;
     int *currentMask;
-	nifti_image *warped;
-	nifti_image *deformationFieldImage;
-	nifti_image *warpedGradientImage;
-	nifti_image *voxelBasedMeasureGradientImage;
-	nifti_image *nodeBasedMeasureGradientImage;
-	T *conjugateG;
-	T *conjugateH;
-	T *bestControlPointPosition;
-	double *probaJointHistogram;
-	double *logJointHistogram;
+    nifti_image *warped;
+    nifti_image *deformationFieldImage;
+    nifti_image *warpedGradientImage;
+    nifti_image *voxelBasedMeasureGradientImage;
+    nifti_image *nodeBasedMeasureGradientImage;
+    T *conjugateG;
+    T *conjugateH;
+    T *bestControlPointPosition;
+    double *probaJointHistogram;
+    double *logJointHistogram;
     double entropies[4];
-	T *maxSSD;
-	unsigned int currentLevel;
+    T *maxSSD;
+    unsigned int currentLevel;
     unsigned totalBinNumber;
     int stepNumber;
 
-	virtual int AllocateWarped();
-	virtual int ClearWarped();
+    virtual int AllocateWarped();
+    virtual int ClearWarped();
     virtual int AllocateDeformationField();
     virtual int ClearDeformationField();
     virtual int AllocateWarpedGradient();
@@ -121,19 +122,19 @@ public:
     reg_f3d(int refTimePoint,int floTimePoint);
     virtual ~reg_f3d();
 
-	int SetReferenceImage(nifti_image *);
-	int SetFloatingImage(nifti_image *);
-	int SetControlPointGridImage(nifti_image *);
-	int SetReferenceMask(nifti_image *);
-	int SetAffineTransformation(mat44 *);
-	int SetBendingEnergyWeight(T);
-	int ApproximateBendingEnergy();
-	int DoNotApproximateBendingEnergy();
-	int SetJacobianLogWeight(T);
-	int ApproximateJacobianLog();
-	int DoNotApproximateJacobianLog();
-	int SetReferenceSmoothingSigma(T);
-	int SetFloatingSmoothingSigma(T);
+    int SetReferenceImage(nifti_image *);
+    int SetFloatingImage(nifti_image *);
+    int SetControlPointGridImage(nifti_image *);
+    int SetReferenceMask(nifti_image *);
+    int SetAffineTransformation(mat44 *);
+    int SetBendingEnergyWeight(T);
+    int ApproximateBendingEnergy();
+    int DoNotApproximateBendingEnergy();
+    int SetJacobianLogWeight(T);
+    int ApproximateJacobianLog();
+    int DoNotApproximateJacobianLog();
+    int SetReferenceSmoothingSigma(T);
+    int SetFloatingSmoothingSigma(T);
     int SetReferenceThresholdUp(unsigned int,T);
     int SetReferenceThresholdLow(unsigned int,T);
     int SetFloatingThresholdUp(unsigned int, T);
@@ -142,8 +143,8 @@ public:
     int SetSpacing(unsigned int ,T);
     int SetLevelNumber(unsigned int);
     int SetLevelToPerform(unsigned int);
-	int SetGradientSmoothingSigma(T);
-	int UseComposition();
+    int SetGradientSmoothingSigma(T);
+    int UseComposition();
     int DoNotUseComposition();
     int UseSSD();
     int DoNotUseSSD();
@@ -155,12 +156,12 @@ public:
     int SetReferenceBinNumber(int, unsigned int);
     int SetFloatingBinNumber(int, unsigned int);
     int SetCompositionStepNumber(int);
-//	int SetThreadNumber(int t);
+//    int SetThreadNumber(int t);
 
     int CheckParameters_f3d();
     int Initisalise_f3d();
     int Run_f3d();
-    virtual int CheckMemoryMB_f3d(){return 0;};
+    virtual int CheckMemoryMB_f3d(){return 0;}
     virtual nifti_image *GetWarpedImage();
     nifti_image *GetControlPointPositionImage();
 };

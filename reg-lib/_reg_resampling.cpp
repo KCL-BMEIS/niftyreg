@@ -36,7 +36,7 @@ void interpolantCubicSpline(PrecisionTYPE ratio, PrecisionTYPE *basis)
 }
 /* *************************************************************** */
 template <class PrecisionTYPE>
-void interpolantCubicSplineDerivative(PrecisionTYPE ratio, PrecisionTYPE *basis, PrecisionTYPE *derivative)
+void interpolantCubicSpline(PrecisionTYPE ratio, PrecisionTYPE *basis, PrecisionTYPE *derivative)
 {
     interpolantCubicSpline<PrecisionTYPE>(ratio,basis);
     if(ratio<0.0) ratio=0.0; //rounding error
@@ -1248,15 +1248,15 @@ void CubicSplineGradientResultImage(nifti_image *sourceImage,
 
                 // basis values along the x axis
                 relative=position[0]-(PrecisionTYPE)previous[0];
-                interpolantCubicSplineDerivative<PrecisionTYPE>(relative, xBasis, xDeriv);
+                interpolantCubicSpline<PrecisionTYPE>(relative, xBasis, xDeriv);
 
                 // basis values along the y axis
                 relative=position[1]-(PrecisionTYPE)previous[1];
-                interpolantCubicSplineDerivative<PrecisionTYPE>(relative, yBasis, yDeriv);
+                interpolantCubicSpline<PrecisionTYPE>(relative, yBasis, yDeriv);
 
                 // basis values along the z axis
                 relative=position[2]-(PrecisionTYPE)previous[2];
-                interpolantCubicSplineDerivative<PrecisionTYPE>(relative, zBasis, zDeriv);
+                interpolantCubicSpline<PrecisionTYPE>(relative, zBasis, zDeriv);
 
                 previous[0]--;previous[1]--;previous[2]--;
 
@@ -1392,10 +1392,10 @@ void CubicSplineGradientResultImage2D(nifti_image *sourceImage,
                 previous[1] = (int)floor(position[1]);
                 // basis values along the x axis
                 relative=position[0]-(PrecisionTYPE)previous[0];
-                interpolantCubicSplineDerivative<PrecisionTYPE>(relative, xBasis, xDeriv);
+                interpolantCubicSpline<PrecisionTYPE>(relative, xBasis, xDeriv);
                 // basis values along the y axis
                 relative=position[1]-(PrecisionTYPE)previous[1];
-                interpolantCubicSplineDerivative<PrecisionTYPE>(relative, yBasis, yDeriv);
+                interpolantCubicSpline<PrecisionTYPE>(relative, yBasis, yDeriv);
 
                 previous[0]--;previous[1]--;
 
