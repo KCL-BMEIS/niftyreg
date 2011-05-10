@@ -20,6 +20,7 @@ class reg_f3d2 : public reg_f3d<T>
   protected:
     nifti_image *inverseDeformationFieldImage;
     nifti_image *negatedControlPointGrid;
+//    bool useSymmetry;
 
     int AllocateDeformationField();
     int ClearDeformationField();
