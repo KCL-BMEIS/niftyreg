@@ -13,9 +13,8 @@
 #define _REG_F3D_H
 
 #include "_reg_resampling.h"
-#include "_reg_affineTransformation.h"
-#include "_reg_bspline.h"
-#include "_reg_bspline_comp.h"
+#include "_reg_globalTransformation.h"
+#include "_reg_localTransformation.h"
 #include "_reg_mutualinformation.h"
 #include "_reg_ssd.h"
 #include "_reg_tools.h"
@@ -28,7 +27,7 @@ template <class T>
 class reg_f3d
 {
   protected:
-
+    char *executableName;
     int referenceTimePoint;
     int floatingTimePoint;
     nifti_image *inputReference; // pointer to external
@@ -83,6 +82,9 @@ class reg_f3d
     T *maxSSD;
     unsigned int currentLevel;
     unsigned totalBinNumber;
+
+    unsigned int currentIteration;
+    bool f3d2AppFreeStep;
     int stepNumber;
 
     virtual int AllocateWarped();
@@ -114,9 +116,10 @@ class reg_f3d
     virtual int GetSimilarityMeasureGradient();
     virtual int GetBendingEnergyGradient();
     virtual int GetJacobianBasedGradient();
-    virtual int ComputeConjugateGradient(unsigned int );
+    virtual int ComputeConjugateGradient();
     virtual T GetMaximalGradientLength();
     virtual int UpdateControlPointPosition(T);
+    virtual int CheckStoppingCriteria(bool);
 
 public:
     reg_f3d(int refTimePoint,int floTimePoint);

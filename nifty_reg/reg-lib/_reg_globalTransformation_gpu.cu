@@ -12,8 +12,8 @@
 #ifndef _REG_AFFINETRANSFORMATION_GPU_CU
 #define _REG_AFFINETRANSFORMATION_GPU_CU
 
-#include "_reg_affineTransformation_gpu.h"
-#include "_reg_affineTransformation_kernels.cu"
+#include "_reg_globalTransformation_gpu.h"
+#include "_reg_globalTransformation_kernels.cu"
 
 /* *************************************************************** */
 /* *************************************************************** */

@@ -12,8 +12,8 @@
 #ifndef _REG_BSPLINE_GPU_CU
 #define _REG_BSPLINE_GPU_CU
 
-#include "_reg_bspline_gpu.h"
-#include "_reg_bspline_kernels.cu"
+#include "_reg_localTransformation_gpu.h"
+#include "_reg_localTransformation_kernels.cu"
 
 /* *************************************************************** */
 /* *************************************************************** */

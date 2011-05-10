@@ -12,9 +12,8 @@
 #ifndef _MM_JACOBIAN_CPP
 #define _MM_JACOBIAN_CPP
 
-#include "_reg_affineTransformation.h"
-#include "_reg_bspline.h"
-#include "_reg_bspline_comp.h"
+#include "_reg_globalTransformation.h"
+#include "_reg_localTransformation.h"
 #include "_reg_tools.h"
 #include "_reg_resampling.h"
 
@@ -25,7 +24,6 @@ typedef struct{
     char *referenceImageName;
     char *inputDEFName;
     char *inputCPPName;
-    char *inputVELName;
     char *jacobianMapName;
     char *jacobianMatrixName;
     char *logJacobianMapName;
@@ -34,7 +32,6 @@ typedef struct{
     bool referenceImageFlag;
     bool inputDEFFlag;
     bool inputCPPFlag;
-    bool inputVELFlag;
     bool jacobianMapFlag;
     bool jacobianMatrixFlag;
     bool logJacobianMapFlag;
@@ -58,8 +55,6 @@ void Usage(char *exec)
         printf("\t\tFilename of the deformation field (from reg_transform).\n");
     printf("\t-cpp <filename>\n");
         printf("\t\tFilename of the control point position lattice (from reg_f3d).\n");
-    printf("\t-vel <filename>\n");
-        printf("\t\tFilename of the velocity field lattice (from reg_f3d2).\n");
     printf("\n* * OUTPUT * *\n");
     printf("\t-jac <filename>\n");
         printf("\t\tFilename of the Jacobian determinant map.\n");
@@ -96,10 +91,6 @@ int main(int argc, char **argv)
             param->inputCPPName=argv[++i];
             flag->inputCPPFlag=1;
         }
-        else if(strcmp(argv[i], "-vel") == 0){
-            param->inputVELName=argv[++i];
-            flag->inputVELFlag=1;
-        }
         else if(strcmp(argv[i], "-jac") == 0){
             param->jacobianMapName=argv[++i];
             flag->jacobianMapFlag=1;
@@ -132,19 +123,9 @@ int main(int argc, char **argv)
     /* ******************* */
     /* READ TRANSFORMATION */
     /* ******************* */
-    nifti_image *velocityFieldImage=NULL;
     nifti_image *controlPointImage=NULL;
     nifti_image *deformationFieldImage=NULL;
-    if(flag->inputVELFlag){
-        velocityFieldImage = nifti_image_read(param->inputVELName,true);
-        if(velocityFieldImage == NULL){
-            fprintf(stderr,"** ERROR Error when reading the control point image: %s\n",param->inputVELName);
-            nifti_image_free(image);
-            return 1;
-        }
-        reg_checkAndCorrectDimension(velocityFieldImage);
-    }
-    else if(flag->inputCPPFlag){
+    if(flag->inputCPPFlag){
         controlPointImage = nifti_image_read(param->inputCPPName,true);
         if(controlPointImage == NULL){
             fprintf(stderr,"** ERROR Error when reading the control point image: %s\n",param->inputCPPName);
@@ -183,17 +164,21 @@ int main(int argc, char **argv)
         jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
 
         // Compute the determinant
-        if(flag->inputVELFlag){
-            reg_bspline_GetJacobianMapFromVelocityField(velocityFieldImage,
-                                                        jacobianImage);
-        }
-        else if(flag->inputCPPFlag){
-            reg_bspline_GetJacobianMap(controlPointImage,
-                                       jacobianImage);
+        if(flag->inputCPPFlag){
+            if(controlPointImage->pixdim[5]>1){
+                reg_bspline_GetJacobianMapFromVelocityField(controlPointImage,
+                                                            jacobianImage
+                                                            );
+            }
+            else{
+                reg_bspline_GetJacobianMap(controlPointImage,
+                                           jacobianImage
+                                           );
+            }
         }
         else if(flag->inputDEFFlag){
-            reg_getJacobianImage(deformationFieldImage,
-                                 jacobianImage);
+            reg_getJacobianMapFromDeformationField(deformationFieldImage,
+                                                   jacobianImage);
         }
         else{
             fprintf(stderr, "No transformation has been provided.\n");
@@ -217,9 +202,9 @@ int main(int argc, char **argv)
             }
             nifti_set_filenames(jacobianImage, param->logJacobianMapName, 0, 0);
             memset(jacobianImage->descrip, 0, 80);
-            strcpy (jacobianImage->descrip,"Jacobian determinant log map created using NiftyReg");
+            strcpy (jacobianImage->descrip,"Log Jacobian determinant map created using NiftyReg");
             nifti_image_write(jacobianImage);
-            printf("Jacobian map image (log) has been saved: %s\n", param->logJacobianMapName);
+            printf("Log Jacobian map image has been saved: %s\n", param->logJacobianMapName);
         }
         nifti_image_free(jacobianImage);
     }
@@ -244,8 +229,9 @@ int main(int argc, char **argv)
 
         // Compute the determinant
         if(flag->inputCPPFlag){
-            reg_bspline_GetJacobianMatrix(  controlPointImage,
-                                            jacobianImage);
+            reg_bspline_GetJacobianMatrix(controlPointImage,
+                                          jacobianImage
+                                          );
         }
         else{//TODO
         }
@@ -259,7 +245,6 @@ int main(int argc, char **argv)
         nifti_image_free(jacobianImage);
     }
 
-    nifti_image_free(velocityFieldImage);
     nifti_image_free(controlPointImage);
     nifti_image_free(deformationFieldImage);
     nifti_image_free(image);

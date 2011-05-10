@@ -24,14 +24,14 @@
 #define AFFINE 1
 
 #include "_reg_resampling.h"
-#include "_reg_affineTransformation.h"
+#include "_reg_globalTransformation.h"
 #include "_reg_blockMatching.h"
 #include "_reg_tools.h"
 
 #ifdef _USE_CUDA
 	#include "_reg_cudaCommon.h"
 	#include "_reg_resampling_gpu.h"
-	#include "_reg_affineTransformation_gpu.h"
+        #include "_reg_globalTransformation_gpu.h"
 	#include "_reg_blockMatching_gpu.h"
 #endif
 

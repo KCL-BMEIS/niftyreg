@@ -13,33 +13,30 @@
 #define _MM_RESAMPLE_CPP
 
 #include "_reg_resampling.h"
-#include "_reg_affineTransformation.h"
-#include "_reg_bspline.h"
-#include "_reg_bspline_comp.h"
+#include "_reg_globalTransformation.h"
+#include "_reg_localTransformation.h"
 #include "_reg_tools.h"
 
 #define PrecisionTYPE float
 
 typedef struct{
-	char *targetImageName;
-	char *sourceImageName;
+    char *targetImageName;
+    char *sourceImageName;
     char *affineMatrixName;
-    char *inputVelName;
     char *inputCPPName;
     char *inputDEFName;
-	char *outputResultName;
+    char *outputResultName;
     char *outputBlankName;
-	PrecisionTYPE sourceBGValue;
+    PrecisionTYPE sourceBGValue;
 }PARAM;
 typedef struct{
-	bool targetImageFlag;
-	bool sourceImageFlag;
-	bool affineMatrixFlag;
+    bool targetImageFlag;
+    bool sourceImageFlag;
+    bool affineMatrixFlag;
     bool affineFlirtFlag;
-    bool inputVelFlag;
     bool inputCPPFlag;
     bool inputDEFFlag;
-	bool outputResultFlag;
+    bool outputResultFlag;
     bool outputBlankFlag;
     bool NNInterpolationFlag;
     bool TRIInterpolationFlag;
@@ -48,73 +45,68 @@ typedef struct{
 
 void PetitUsage(char *exec)
 {
-	fprintf(stderr,"Usage:\t%s -target <targetImageName> -source <sourceImageName> [OPTIONS].\n",exec);
-	fprintf(stderr,"\tSee the help for more details (-h).\n");
-	return;
+    fprintf(stderr,"Usage:\t%s -target <targetImageName> -source <sourceImageName> [OPTIONS].\n",exec);
+    fprintf(stderr,"\tSee the help for more details (-h).\n");
+    return;
 }
 void Usage(char *exec)
 {
-	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-	printf("Usage:\t%s -target <filename> -source <filename> [OPTIONS].\n",exec);
-	printf("\t-target <filename>\tFilename of the target image (mandatory)\n");
-	printf("\t-source <filename>\tFilename of the source image (mandatory)\n\n");
+    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+    printf("Usage:\t%s -target <filename> -source <filename> [OPTIONS].\n",exec);
+    printf("\t-target <filename>\tFilename of the target image (mandatory)\n");
+    printf("\t-source <filename>\tFilename of the source image (mandatory)\n\n");
 
-	printf("* * OPTIONS * *\n");
+    printf("* * OPTIONS * *\n");
     printf("\t*\tOnly one of the following tranformation is taken into account\n");
     printf("\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Target=Source)\n");
     printf("\t-affFlirt <filename>\t\tFilename which contains a radiological flirt affine transformation\n");
-//    printf("\t-vel <filename>\t\tFilename of the velocity field grid image (F3D2)\n");
-    printf("\t-cpp <filename>\t\tFilename of the control point grid image (F3D)\n");
-    printf("\t-def <filename>\t\tFilename of the deformation field image\n");
+    printf("\t-cpp <filename>\t\tFilename of the control point grid image (from reg_f3d)\n");
+    printf("\t-def <filename>\t\tFilename of the deformation field image (from reg_transform)\n");
 
     printf("\t*\tThere are no limit for the required output number from the following\n");
     printf("\t-result <filename> \tFilename of the resampled image [none]\n");
     printf("\t-blank <filename> \tFilename of the resampled blank grid [none]\n");
 
     printf("\t*\tOthers\n");
-	printf("\t-NN \t\t\tUse a Nearest Neighbor interpolation for the source resampling (cubic spline by default)\n");
-	printf("\t-TRI \t\t\tUse a Trilinear interpolation for the source resampling (cubic spline by default)\n");
-	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-	return;
+    printf("\t-NN \t\t\tUse a Nearest Neighbor interpolation for the source resampling (cubic spline by default)\n");
+    printf("\t-TRI \t\t\tUse a Trilinear interpolation for the source resampling (cubic spline by default)\n");
+    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+    return;
 }
 
 int main(int argc, char **argv)
 {
-	PARAM *param = (PARAM *)calloc(1,sizeof(PARAM));
-	FLAG *flag = (FLAG *)calloc(1,sizeof(FLAG));
-	
-	/* read the input parameter */
-	for(int i=1;i<argc;i++){
-		if(strcmp(argv[i], "-help")==0 || strcmp(argv[i], "-Help")==0 ||
-		   strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
-		   strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0){
-			Usage(argv[0]);
-			return 0;
-		}
-		else if(strcmp(argv[i], "-target") == 0){
-			param->targetImageName=argv[++i];
-			flag->targetImageFlag=1;
+    PARAM *param = (PARAM *)calloc(1,sizeof(PARAM));
+    FLAG *flag = (FLAG *)calloc(1,sizeof(FLAG));
+
+    /* read the input parameter */
+    for(int i=1;i<argc;i++){
+        if(strcmp(argv[i], "-help")==0 || strcmp(argv[i], "-Help")==0 ||
+           strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
+           strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0){
+            Usage(argv[0]);
+            return 0;
+        }
+        else if(strcmp(argv[i], "-target") == 0){
+            param->targetImageName=argv[++i];
+            flag->targetImageFlag=1;
         }
         else if(strcmp(argv[i], "-source") == 0){
             param->sourceImageName=argv[++i];
             flag->sourceImageFlag=1;
         }
-		else if(strcmp(argv[i], "-aff") == 0){
-			param->affineMatrixName=argv[++i];
-			flag->affineMatrixFlag=1;
-		}
-		else if(strcmp(argv[i], "-affFlirt") == 0){
-			param->affineMatrixName=argv[++i];
-			flag->affineMatrixFlag=1;
-			flag->affineFlirtFlag=1;
-		}
-		else if(strcmp(argv[i], "-result") == 0){
-			param->outputResultName=argv[++i];
-			flag->outputResultFlag=1;
+        else if(strcmp(argv[i], "-aff") == 0){
+            param->affineMatrixName=argv[++i];
+            flag->affineMatrixFlag=1;
         }
-        else if(strcmp(argv[i], "-vel") == 0){
-            param->inputVelName=argv[++i];
-            flag->inputVelFlag=1;
+        else if(strcmp(argv[i], "-affFlirt") == 0){
+            param->affineMatrixName=argv[++i];
+            flag->affineMatrixFlag=1;
+            flag->affineFlirtFlag=1;
+        }
+        else if(strcmp(argv[i], "-result") == 0){
+                param->outputResultName=argv[++i];
+                flag->outputResultFlag=1;
         }
         else if(strcmp(argv[i], "-cpp") == 0){
             param->inputCPPName=argv[++i];
@@ -124,34 +116,33 @@ int main(int argc, char **argv)
             param->inputDEFName=argv[++i];
             flag->inputDEFFlag=1;
         }
-		else if(strcmp(argv[i], "-NN") == 0){
-			flag->NNInterpolationFlag=1;
-		}
-		else if(strcmp(argv[i], "-TRI") == 0){
-			flag->TRIInterpolationFlag=1;
-		}
-		else if(strcmp(argv[i], "-blank") == 0){
-			param->outputBlankName=argv[++i];
-			flag->outputBlankFlag=1;
-		}
-		else{
-			fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
-			PetitUsage(argv[0]);
-			return 1;
-		}
-	}
-	
-	if(!flag->targetImageFlag || !flag->sourceImageFlag){
-        fprintf(stderr,"[NiftyReg ERROR] The target and the source image have both to be defined.\n");
-		PetitUsage(argv[0]);
-		return 1;
-	}
+        else if(strcmp(argv[i], "-NN") == 0){
+            flag->NNInterpolationFlag=1;
+        }
+        else if(strcmp(argv[i], "-TRI") == 0){
+            flag->TRIInterpolationFlag=1;
+        }
+        else if(strcmp(argv[i], "-blank") == 0){
+            param->outputBlankName=argv[++i];
+            flag->outputBlankFlag=1;
+        }
+        else{
+            fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
+            PetitUsage(argv[0]);
+            return 1;
+        }
+    }
+
+    if(!flag->targetImageFlag || !flag->sourceImageFlag){
+    fprintf(stderr,"[NiftyReg ERROR] The target and the source image have both to be defined.\n");
+            PetitUsage(argv[0]);
+            return 1;
+    }
 	
     /* Check the number of input images */
-    if( ((unsigned int)flag->affineMatrixFlag
-        + (unsigned int)flag->affineFlirtFlag
-        + (unsigned int)flag->inputCPPFlag
-        + (unsigned int)flag->inputDEFFlag) > 1){
+    if(((unsigned int)flag->affineMatrixFlag +
+        (unsigned int)flag->inputCPPFlag +
+        (unsigned int)flag->inputDEFFlag) > 1){
         fprintf(stderr,"[NiftyReg ERROR] Only one input transformation has to be assigned.\n");
         PetitUsage(argv[0]);
         return 1;
@@ -159,55 +150,44 @@ int main(int argc, char **argv)
 
 	/* Read the target image */
     nifti_image *targetImage = nifti_image_read(param->targetImageName,false);
-	if(targetImage == NULL){
-        fprintf(stderr,"[NiftyReg ERROR] Error when reading the target image: %s\n",param->targetImageName);
-		return 1;
-	}
+    if(targetImage == NULL){
+        fprintf(stderr,"[NiftyReg ERROR] Error when reading the target image: %s\n",
+                param->targetImageName);
+        return 1;
+    }
     reg_checkAndCorrectDimension(targetImage);
 	
-	/* Read the source image */
+    /* Read the source image */
     nifti_image *sourceImage = nifti_image_read(param->sourceImageName,true);
-	if(sourceImage == NULL){
-        fprintf(stderr,"[NiftyReg ERROR] Error when reading the source image: %s\n",param->sourceImageName);
-		return 1;
-	}
+    if(sourceImage == NULL){
+        fprintf(stderr,"[NiftyReg ERROR] Error when reading the source image: %s\n",
+                param->sourceImageName);
+        return 1;
+    }
     reg_checkAndCorrectDimension(sourceImage);
 
-	/* *********************************** */
-	/* DISPLAY THE REGISTRATION PARAMETERS */
-	/* *********************************** */
-	printf("\n* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-	printf("Command line:\n");
-	for(int i=0;i<argc;i++) printf(" %s", argv[i]);
-	printf("\n\n");
-	printf("Parameters\n");
-	printf("Target image name: %s\n",targetImage->fname);
+    /* *********************************** */
+    /* DISPLAY THE RESAMPLING PARAMETERS */
+    /* *********************************** */
+    printf("\n* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+    printf("Command line:\n");
+    for(int i=0;i<argc;i++) printf(" %s", argv[i]);
+    printf("\n\n");
+    printf("Parameters\n");
+    printf("Target image name: %s\n",targetImage->fname);
     printf("\t%ix%ix%i voxels, %i volumes\n",targetImage->nx,targetImage->ny,targetImage->nz,targetImage->nt);
-	printf("\t%gx%gx%g mm\n",targetImage->dx,targetImage->dy,targetImage->dz);
-	printf("Source image name: %s\n",sourceImage->fname);
+    printf("\t%gx%gx%g mm\n",targetImage->dx,targetImage->dy,targetImage->dz);
+    printf("Source image name: %s\n",sourceImage->fname);
     printf("\t%ix%ix%i voxels, %i volumes\n",sourceImage->nx,sourceImage->ny,sourceImage->nz,sourceImage->nt);
-	printf("\t%gx%gx%g mm\n",sourceImage->dx,sourceImage->dy,sourceImage->dz);
-	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n");
+    printf("\t%gx%gx%g mm\n",sourceImage->dx,sourceImage->dy,sourceImage->dz);
+    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n");
 
     /* *********************** */
     /* READ THE TRANSFORMATION */
     /* *********************** */
-    nifti_image *velocityFieldImage = NULL;
     nifti_image *controlPointImage = NULL;
     nifti_image *deformationFieldImage = NULL;
-    mat44 *affineTransformationMatrix = (mat44 *)calloc(1,sizeof(mat44));
-    if(flag->inputVelFlag){
-#ifndef NDEBUG
-        printf("[NiftyReg DEBUG] Name of the velocity field image: %s\n", param->inputVelName);
-#endif
-        velocityFieldImage = nifti_image_read(param->inputVelName,true);
-        if(velocityFieldImage == NULL){
-            fprintf(stderr,"[NiftyReg ERROR] Error when reading the velocity field image: %s\n",param->inputVelName);
-            return 1;
-        }
-        reg_checkAndCorrectDimension(velocityFieldImage);
-    }
-    else if(flag->inputCPPFlag){
+    mat44 *affineTransformationMatrix = (mat44 *)calloc(1,sizeof(mat44));if(flag->inputCPPFlag){
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] Name of the control point image: %s\n", param->inputCPPName);
 #endif
@@ -277,23 +257,26 @@ int main(int argc, char **argv)
         deformationFieldImage->nbyper = sizeof(float);
         deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
         //Computation
-        if(flag->inputVelFlag){
-            reg_getDeformationFieldFromVelocityGrid(velocityFieldImage,
-                                                    deformationFieldImage,
-                                                    NULL);
-            
-        }
-        else if(flag->inputCPPFlag){
+        if(flag->inputCPPFlag){
 #ifndef NDEBUG
             printf("[NiftyReg DEBUG] Computation of the deformation field from the CPP image\n");
 #endif
-            reg_bspline(controlPointImage,
-                        targetImage,
-                        deformationFieldImage,
-                        NULL, // mask
-                        false, //composition
-                        true // bspline
-                        );
+            if(controlPointImage->pixdim[5]>1){
+                reg_getDeformationFieldFromVelocityGrid(controlPointImage,
+                                                        deformationFieldImage,
+                                                        NULL, // mask
+                                                        false // approximation
+                                                        );
+            }
+            else{
+                reg_spline(controlPointImage,
+                           targetImage,
+                           deformationFieldImage,
+                           NULL, // mask
+                           false, //composition
+                           true // bspline
+                           );
+            }
         }
         else{
 #ifndef NDEBUG
@@ -333,7 +316,7 @@ int main(int argc, char **argv)
                                         0);
         nifti_set_filenames(resultImage, param->outputResultName, 0, 0);
         memset(resultImage->descrip, 0, 80);
-        strcpy (resultImage->descrip,"Warped image using NiftyReg (reg_f3d)");
+        strcpy (resultImage->descrip,"Warped image using NiftyReg (reg_resample)");
         nifti_image_write(resultImage);
         printf("[NiftyReg] Resampled image has been saved: %s\n", param->outputResultName);
         nifti_image_free(resultImage);
@@ -385,7 +368,7 @@ int main(int argc, char **argv)
                                        0);
         nifti_set_filenames(resultImage, param->outputBlankName, 0, 0);
         memset(resultImage->descrip, 0, 80);
-        strcpy (resultImage->descrip,"Warped regular grid using NiftyReg (reg_f3d)");
+        strcpy (resultImage->descrip,"Warped regular grid using NiftyReg (reg_resample)");
         nifti_image_write(resultImage);
         nifti_image_free(resultImage);
         nifti_image_free(gridImage);
@@ -394,7 +377,6 @@ int main(int argc, char **argv)
 
     nifti_image_free(targetImage);
     nifti_image_free(sourceImage);
-    nifti_image_free(velocityFieldImage);
     nifti_image_free(controlPointImage);
     nifti_image_free(deformationFieldImage);
     free(affineTransformationMatrix);
