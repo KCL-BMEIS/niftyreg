@@ -20,25 +20,20 @@ template <class T>
 reg_f3d2<T>::reg_f3d2(int refTimePoint,int floTimePoint)
     :reg_f3d<T>::reg_f3d(refTimePoint,floTimePoint)
 {
-    fprintf(stderr,"F3D2 is work under progress and should not be used at the moment.\n");
-    fprintf(stderr,"I am currently doing modification to it.\n");
-    fprintf(stderr,"EXIT.\n"); exit(1);
+    this->executableName=(char *)"NiftyReg F3D2";
+    this->inverseDeformationFieldImage=NULL;
+    this->negatedControlPointGrid=NULL;
+    this->bendingEnergyWeight=0.1;
 
-    this->controlPointPositionGrid=NULL;
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d2 constructor called\n");
 #endif
-    printf("[NiftyReg F3D] A stationnary velocity field is use to parametrise the deformation (F3D2)\n");
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 reg_f3d2<T>::~reg_f3d2()
 {
-    if(this->controlPointPositionGrid!=NULL)
-        nifti_image_free(this->controlPointPositionGrid);
-    this->controlPointPositionGrid=NULL;
-
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d2 destructor called\n");
 #endif
@@ -46,84 +41,85 @@ reg_f3d2<T>::~reg_f3d2()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
+int reg_f3d2<T>::AllocateDeformationField()
+{
+    this->ClearDeformationField();
+    reg_f3d<T>::AllocateDeformationField();
+
+    this->inverseDeformationFieldImage = nifti_copy_nim_info(this->currentFloating);
+    this->inverseDeformationFieldImage->dim[0]=this->inverseDeformationFieldImage->ndim=5;
+    this->inverseDeformationFieldImage->dim[1]=this->inverseDeformationFieldImage->nx=this->currentFloating->nx;
+    this->inverseDeformationFieldImage->dim[2]=this->inverseDeformationFieldImage->ny=this->currentFloating->ny;
+    this->inverseDeformationFieldImage->dim[3]=this->inverseDeformationFieldImage->nz=this->currentFloating->nz;
+    this->inverseDeformationFieldImage->dim[4]=this->inverseDeformationFieldImage->nt=1;
+    this->inverseDeformationFieldImage->pixdim[4]=this->inverseDeformationFieldImage->dt=1.0;
+    if(this->currentFloating->nz==1)
+        this->inverseDeformationFieldImage->dim[5]=this->inverseDeformationFieldImage->nu=2;
+    else this->inverseDeformationFieldImage->dim[5]=this->inverseDeformationFieldImage->nu=3;
+    this->inverseDeformationFieldImage->pixdim[5]=this->inverseDeformationFieldImage->du=1.0;
+    this->inverseDeformationFieldImage->dim[6]=this->inverseDeformationFieldImage->nv=1;
+    this->inverseDeformationFieldImage->pixdim[6]=this->inverseDeformationFieldImage->dv=1.0;
+    this->inverseDeformationFieldImage->dim[7]=this->inverseDeformationFieldImage->nw=1;
+    this->inverseDeformationFieldImage->pixdim[7]=this->inverseDeformationFieldImage->dw=1.0;
+    this->inverseDeformationFieldImage->nvox=this->inverseDeformationFieldImage->nx *
+                                        this->inverseDeformationFieldImage->ny *
+                                        this->inverseDeformationFieldImage->nz *
+                                        this->inverseDeformationFieldImage->nt *
+                                        this->inverseDeformationFieldImage->nu;
+    this->inverseDeformationFieldImage->nbyper = this->controlPointGrid->nbyper;
+    this->inverseDeformationFieldImage->datatype = this->controlPointGrid->datatype;
+    this->inverseDeformationFieldImage->data = (void *)calloc(this->inverseDeformationFieldImage->nvox,
+                                                              this->inverseDeformationFieldImage->nbyper);
+
+    return 0;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+int reg_f3d2<T>::ClearDeformationField()
+{
+    reg_f3d<T>::ClearDeformationField();
+    if(this->inverseDeformationFieldImage!=NULL){
+        nifti_image_free(this->inverseDeformationFieldImage);
+        this->inverseDeformationFieldImage=NULL;
+    }
+    return 0;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
 int reg_f3d2<T>::GetDeformationField()
 {
-    reg_getDeformationFieldFromVelocityGrid(this->controlPointGrid,
-                                            this->deformationFieldImage,
-                                            this->currentMask);
-//    reg_getControlPointPositionFromVelocityGrid<T>(this->controlPointGrid,
-//                                                   this->controlPointPositionGrid);
-//    reg_bspline<T>( this->controlPointPositionGrid,
-//                    this->currentReference,
-//                    this->deformationFieldImage,
-//                    this->currentMask,
-//                    0);
-    return 0;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-double reg_f3d2<T>::ComputeBendingEnergyPenaltyTerm()
-{
-    memcpy(this->controlPointPositionGrid->data, this->controlPointGrid->data,
-            this->controlPointGrid->nvox * this->controlPointGrid->nbyper);
-    reg_getDeformationFromDisplacement(this->controlPointPositionGrid);
-    double value = reg_bspline_bendingEnergy<T>(this->controlPointPositionGrid,
-                                                this->currentReference,
-                                                this->bendingEnergyApproximation
+    if(this->f3d2AppFreeStep){
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] Velocity integration performed without approximation\n");
+#endif
+        reg_getDeformationFieldFromVelocityGrid(this->controlPointGrid,
+                                                this->deformationFieldImage,
+                                                this->currentMask,
+                                                false // approximation
                                                 );
-    return this->bendingEnergyWeight * value;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-int reg_f3d2<T>::GetBendingEnergyGradient()
-{
-    memcpy(this->controlPointPositionGrid->data, this->controlPointGrid->data,
-            this->controlPointGrid->nvox * this->controlPointGrid->nbyper);
-    reg_getDeformationFromDisplacement(this->controlPointPositionGrid);
-    reg_bspline_bendingEnergyGradient<T>(   this->controlPointPositionGrid,
-                                            this->currentReference,
-                                            this->nodeBasedMeasureGradientImage,
-                                            this->bendingEnergyWeight);
-    return 0;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-double reg_f3d2<T>::ComputeJacobianBasedPenaltyTerm(int type)
-{
-    double value;
-    do{
-        if(type==2){
-            value = reg_bspline_GetJacobianValueFromVelocityField(this->controlPointGrid,
-                                                                  this->currentReference,
-                                                                  false);
-        }
-        else{
-            value = reg_bspline_GetJacobianValueFromVelocityField(this->controlPointGrid,
-                                                                  this->currentReference,
-                                                                  this->jacobianLogApproximation);
-        }
-
-        if(value!=value){
-            printf("Folding correction needed\n");
-            return value;
-        }
     }
-    while(value!=value);
-    return (double)this->jacobianLogWeight * value;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-int reg_f3d2<T>::GetJacobianBasedGradient()
-{
-    reg_bspline_GetJacobianGradientFromVelocityField(this->controlPointGrid,
-                                                     this->currentReference,
-                                                     this->nodeBasedMeasureGradientImage,
-                                                     this->jacobianLogWeight,
-                                                     this->jacobianLogApproximation);
+    else{
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] Velocity integration performed with approximation\n");
+#endif
+        reg_getDeformationFieldFromVelocityGrid(this->controlPointGrid,
+                                                this->deformationFieldImage,
+                                                this->currentMask,
+                                                true // approximation
+                                                );
+    }
+
+//    memcpy(inverseControlPointGrid->data,this->controlPointGrid->data,
+//           inverseControlPointGrid->nvox*inverseControlPointGrid->nbyper);
+//    reg_getDisplacementFromDeformation(inverseControlPointGrid);
+//    reg_tools_addSubMulDivValue(inverseControlPointGrid,inverseControlPointGrid,-1.0f,2);
+//    reg_getDeformationFromDisplacement(inverseControlPointGrid);
+//    reg_getDeformationFieldFromVelocityGrid(inverseControlPointGrid,
+//                                            this->inverseDeformationFieldImage,
+//                                            NULL,
+//                                            true // approximation
+//                                            );
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -131,38 +127,8 @@ int reg_f3d2<T>::GetJacobianBasedGradient()
 template <class T>
 int reg_f3d2<T>::UpdateControlPointPosition(T scale)
 {
-    T scaledScale = scale/(T)this->stepNumber;
-
-    unsigned int nodeNumber = this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz;
-    if(this->currentReference->nz==1){
-        T *controlPointValuesX = static_cast<T *>(this->controlPointGrid->data);
-        T *controlPointValuesY = &controlPointValuesX[nodeNumber];
-        T *bestControlPointValuesX = &this->bestControlPointPosition[0];
-        T *bestControlPointValuesY = &bestControlPointValuesX[nodeNumber];
-        T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
-        T *gradientValuesY = &gradientValuesX[nodeNumber];
-        for(unsigned int i=0; i<nodeNumber;i++){
-            *controlPointValuesX++ = *bestControlPointValuesX++ + scaledScale * *gradientValuesX++;
-            *controlPointValuesY++ = *bestControlPointValuesY++ + scaledScale * *gradientValuesY++;
-        }
-    }
-    else{
-        T *controlPointValuesX = static_cast<T *>(this->controlPointGrid->data);
-        T *controlPointValuesY = &controlPointValuesX[nodeNumber];
-        T *controlPointValuesZ = &controlPointValuesY[nodeNumber];
-        T *bestControlPointValuesX = &this->bestControlPointPosition[0];
-        T *bestControlPointValuesY = &bestControlPointValuesX[nodeNumber];
-        T *bestControlPointValuesZ = &bestControlPointValuesY[nodeNumber];
-        T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
-        T *gradientValuesY = &gradientValuesX[nodeNumber];
-        T *gradientValuesZ = &gradientValuesY[nodeNumber];
-        for(unsigned int i=0; i<nodeNumber;i++){
-            *controlPointValuesX++ = *bestControlPointValuesX++ + scaledScale * *gradientValuesX++;
-            *controlPointValuesY++ = *bestControlPointValuesY++ + scaledScale * *gradientValuesY++;
-            *controlPointValuesZ++ = *bestControlPointValuesZ++ + scaledScale * *gradientValuesZ++;
-        }
-    }
-    return 0;
+    T scaledScale = scale/(T)pow(2,this->controlPointGrid->pixdim[5]);
+    return reg_f3d<T>::UpdateControlPointPosition(scaledScale);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -173,21 +139,22 @@ int reg_f3d2<T>::AllocateCurrentInputImage(int level)
     this->controlPointGrid->pixdim[5]=this->stepNumber;
     this->controlPointGrid->du=this->stepNumber;
 
-    if(level==0){
-        // Velocity field is set to 0
-        if(this->inputControlPointGrid==NULL){
-            memset(this->controlPointGrid->data, 0,
-                   this->controlPointGrid->nvox*this->controlPointGrid->nbyper);
-        }
+#ifdef NDEBUG
+    if(this->verbose){
+#endif
+        printf("[%s] Velocity field integration with %i steps,\n",
+               this->executableName, (int)pow(2,this->controlPointGrid->du));
+        printf("[%s] squaring approximation is performed using %i steps\n",
+               this->executableName, (int)this->controlPointGrid->du);
+#ifdef NDEBUG
     }
-    else{
-        reg_bspline_refineControlPointGrid(this->currentReference, this->controlPointGrid);
-    }
+#endif
+    reg_f3d<T>::AllocateCurrentInputImage(level);
 
-    this->controlPointPositionGrid=nifti_copy_nim_info(this->controlPointGrid);
-    this->controlPointPositionGrid->data=(void *)malloc(this->controlPointPositionGrid->nvox*
-                                                        this->controlPointPositionGrid->nbyper);
-
+    this->f3d2AppFreeStep=false;
+    this->negatedControlPointGrid=nifti_copy_nim_info(this->controlPointGrid);
+    this->negatedControlPointGrid->data=(void *)malloc(this->negatedControlPointGrid->nvox*
+                                                       this->negatedControlPointGrid->nbyper);
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -196,9 +163,10 @@ template <class T>
 int reg_f3d2<T>::ClearCurrentInputImage()
 {
     reg_f3d<T>::ClearCurrentInputImage();
-    if(this->controlPointPositionGrid!=NULL)
-        nifti_image_free(this->controlPointPositionGrid);
-    this->controlPointPositionGrid=NULL;
+    if(this->negatedControlPointGrid!=NULL){
+        nifti_image_free(this->negatedControlPointGrid);
+        this->negatedControlPointGrid=NULL;
+    }
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -210,7 +178,7 @@ nifti_image *reg_f3d2<T>::GetWarpedImage()
     if(this->inputReference==NULL ||
        this->inputFloating==NULL ||
        this->controlPointGrid==NULL){
-        fprintf(stderr,"[NiftyReg ERROR] reg_f3d::GetWarpedImage()\n");
+        fprintf(stderr,"[NiftyReg ERROR] reg_f3d2::GetWarpedImage()\n");
         fprintf(stderr," * The reference, floating and control point grid images have to be defined\n");
     }
 
@@ -219,13 +187,9 @@ nifti_image *reg_f3d2<T>::GetWarpedImage()
 
     reg_f3d2<T>::AllocateWarped();
     reg_f3d2<T>::AllocateDeformationField();
-//    this->controlPointPositionGrid=nifti_copy_nim_info(this->controlPointGrid);
-//    this->controlPointPositionGrid->data=(void *)malloc(this->controlPointPositionGrid->nvox*
-//                                                        this->controlPointPositionGrid->nbyper);
 
     reg_f3d2<T>::WarpFloatingImage(3); // cubic spline interpolation
 
-    this->controlPointPositionGrid=NULL;
     reg_f3d2<T>::ClearDeformationField();
 
     nifti_image *resultImage = nifti_copy_nim_info(this->warped);
@@ -233,8 +197,30 @@ nifti_image *reg_f3d2<T>::GetWarpedImage()
     memcpy(resultImage->data, this->warped->data, resultImage->nvox*resultImage->nbyper);
 
     reg_f3d2<T>::ClearWarped();
-//    nifti_image_free(this->controlPointPositionGrid);this->controlPointPositionGrid=NULL;
     return resultImage;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+int reg_f3d2<T>::CheckStoppingCriteria(bool convergence)
+{
+    if(this->f3d2AppFreeStep==false){
+        if( this->currentIteration>=(this->maxiterationNumber-(float)this->maxiterationNumber*0.1f) ||
+            convergence){
+            this->f3d2AppFreeStep=true;
+#ifdef NDEBUG
+            if(this->verbose)
+#endif
+            printf("[%s] Squaring is now performed without approximation\n",
+                   this->executableName);
+        }
+    }
+    else{
+        if(this->currentIteration>=this->maxiterationNumber || convergence){
+            return 1;
+        }
+    }
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

@@ -12,7 +12,7 @@
 #ifndef _REG_AFFINETRANSFORMATION_CPP
 #define _REG_AFFINETRANSFORMATION_CPP
 
-#include "_reg_affineTransformation.h"
+#include "_reg_globalTransformation.h"
 
 /* *************************************************************** */
 mat44 reg_mat44_mul(mat44 *A, mat44 *B)
@@ -37,7 +37,6 @@ mat44 reg_mat44_add(mat44 *A, mat44 *B)
             R.m[i][j] = A->m[i][j]+B->m[i][j];
         }
     }
-
     return R;
 }
 /* *************************************************************** */

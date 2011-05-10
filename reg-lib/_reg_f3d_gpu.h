@@ -13,8 +13,8 @@
 #define _REG_F3D_GPU_H
 
 #include "_reg_resampling_gpu.h"
-#include "_reg_affineTransformation_gpu.h"
-#include "_reg_bspline_gpu.h"
+#include "_reg_globalTransformation_gpu.h"
+#include "_reg_localTransformation_gpu.h"
 #include "_reg_mutualinformation_gpu.h"
 #include "_reg_tools_gpu.h"
 #include "_reg_cudaCommon.h"

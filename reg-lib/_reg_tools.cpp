@@ -41,12 +41,12 @@ void reg_checkAndCorrectDimension(nifti_image *image)
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
-void reg_intensityRescale2(	nifti_image *image,
-                            float *newMin,
-                            float *newMax,
-                            float *lowThr,
-                            float *upThr
-			)
+void reg_intensityRescale2(nifti_image *image,
+                           float *newMin,
+                           float *newMax,
+                           float *lowThr,
+                           float *upThr
+                           )
 {
 	DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
     unsigned int voxelNumber = image->nx*image->ny*image->nz;

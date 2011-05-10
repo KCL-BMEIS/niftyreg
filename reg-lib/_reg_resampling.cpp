@@ -16,8 +16,8 @@
 
 // No round() function available in windows.
 #ifdef _WINDOWS
-template<class PrecisionType>
-int round(PrecisionType x)
+template<class DTYPE>
+int round(DTYPE x)
 {
     return static_cast<int>(x > 0.0 ? x + 0.5 : x - 0.5);
 }
@@ -50,7 +50,7 @@ void interpolantCubicSpline(PrecisionTYPE ratio, PrecisionTYPE *basis, Precision
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class FieldTYPE>
 void CubicSplineResampleSourceImage(nifti_image *sourceImage,
-                                    nifti_image *positionField,
+                                    nifti_image *deformationField,
                                     nifti_image *resultImage,
                                     int *mask,
                                     PrecisionTYPE bgValue)
@@ -70,9 +70,9 @@ void CubicSplineResampleSourceImage(nifti_image *sourceImage,
         printf("[NiftyReg DEBUG] 3D Cubic spline resampling of volume number %i\n",t);
 #endif
 
-        FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-        FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
-        FieldTYPE *positionFieldPtrZ = &positionFieldPtrY[targetVoxelNumber];
+        FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+        FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
+        FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[targetVoxelNumber];
 
         SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
         SourceTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
@@ -96,9 +96,9 @@ void CubicSplineResampleSourceImage(nifti_image *sourceImage,
             PrecisionTYPE intensity=(PrecisionTYPE)(0.0);
 
             if((*maskPtr++)>-1){
-                PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
-                PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
-                PrecisionTYPE worldZ=(PrecisionTYPE) *positionFieldPtrZ;
+                PrecisionTYPE worldX=(PrecisionTYPE) *deformationFieldPtrX;
+                PrecisionTYPE worldY=(PrecisionTYPE) *deformationFieldPtrY;
+                PrecisionTYPE worldZ=(PrecisionTYPE) *deformationFieldPtrZ;
                 /* real -> voxel; source space */
                 position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
                     worldZ*sourceIJKMatrix.m[0][2] +  sourceIJKMatrix.m[0][3];
@@ -170,16 +170,16 @@ void CubicSplineResampleSourceImage(nifti_image *sourceImage,
                     break;
             }
             resultIntensity++;
-            positionFieldPtrX++;
-            positionFieldPtrY++;
-            positionFieldPtrZ++;
+            deformationFieldPtrX++;
+            deformationFieldPtrY++;
+            deformationFieldPtrZ++;
         }
     }
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class FieldTYPE>
 void CubicSplineResampleSourceImage2D(  nifti_image *sourceImage,
-                                        nifti_image *positionField,
+                                        nifti_image *deformationField,
                                         nifti_image *resultImage,
                                         int *mask,
                                         PrecisionTYPE bgValue)
@@ -198,8 +198,8 @@ void CubicSplineResampleSourceImage2D(  nifti_image *sourceImage,
         printf("[NiftyReg DEBUG] 2D Cubic spline resampling of volume number %i\n",t);
 #endif
 
-        FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-        FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
+        FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+        FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
 
         SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
         SourceTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
@@ -223,8 +223,8 @@ void CubicSplineResampleSourceImage2D(  nifti_image *sourceImage,
 
             if((*maskPtr++)>-1){
 
-                PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
-                PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
+                PrecisionTYPE worldX=(PrecisionTYPE) *deformationFieldPtrX;
+                PrecisionTYPE worldY=(PrecisionTYPE) *deformationFieldPtrY;
                 /* real -> voxel; source space */
                 position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
                 sourceIJKMatrix.m[0][3];
@@ -282,15 +282,15 @@ void CubicSplineResampleSourceImage2D(  nifti_image *sourceImage,
                     break;
             }
             resultIntensity++;
-            positionFieldPtrX++;
-            positionFieldPtrY++;
+            deformationFieldPtrX++;
+            deformationFieldPtrY++;
         }
     }
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class FieldTYPE>
 void TrilinearResampleSourceImage(  nifti_image *sourceImage,
-                                    nifti_image *positionField,
+                                    nifti_image *deformationField,
                                     nifti_image *resultImage,
                                     int *mask,
                                     PrecisionTYPE bgValue)
@@ -307,9 +307,9 @@ void TrilinearResampleSourceImage(  nifti_image *sourceImage,
         printf("[NiftyReg DEBUG] 3D linear resampling of volume number %i\n",t);
 #endif
 
-        FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-        FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
-        FieldTYPE *positionFieldPtrZ = &positionFieldPtrY[targetVoxelNumber];
+        FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+        FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
+        FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[targetVoxelNumber];
 
         SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
         SourceTYPE *intensityPtr = &sourceIntensityPtr[t*sourceVoxelNumber];
@@ -336,9 +336,9 @@ void TrilinearResampleSourceImage(  nifti_image *sourceImage,
 
             if((*maskPtr++)>-1){
 
-                voxelIndex[0]=(float) *positionFieldPtrX;
-                voxelIndex[1]=(float) *positionFieldPtrY;
-                voxelIndex[2]=(float) *positionFieldPtrZ;
+                voxelIndex[0]=(float) *deformationFieldPtrX;
+                voxelIndex[1]=(float) *deformationFieldPtrY;
+                voxelIndex[2]=(float) *deformationFieldPtrZ;
 
                 /* real -> voxel; source space */
                 reg_mat44_mul(sourceIJKMatrix, voxelIndex, position);
@@ -408,16 +408,16 @@ void TrilinearResampleSourceImage(  nifti_image *sourceImage,
                     break;
             }
             resultIntensity++;
-            positionFieldPtrX++;
-            positionFieldPtrY++;
-            positionFieldPtrZ++;
+            deformationFieldPtrX++;
+            deformationFieldPtrY++;
+            deformationFieldPtrZ++;
         }
     }
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class FieldTYPE>
 void TrilinearResampleSourceImage2D(nifti_image *sourceImage,
-                                    nifti_image *positionField,
+                                    nifti_image *deformationField,
                                     nifti_image *resultImage,
                                     int *mask,
                                     PrecisionTYPE bgValue)
@@ -434,8 +434,8 @@ void TrilinearResampleSourceImage2D(nifti_image *sourceImage,
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] 3D linear resampling of volume number %i\n",t);
 #endif
-        FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-        FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
+        FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+        FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
 
         SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
         SourceTYPE *intensityPtr = &sourceIntensityPtr[t*sourceVoxelNumber];
@@ -458,8 +458,8 @@ void TrilinearResampleSourceImage2D(nifti_image *sourceImage,
             PrecisionTYPE intensity=0.0;
 
             if((*maskPtr++)>-1){
-                PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
-                PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
+                PrecisionTYPE worldX=(PrecisionTYPE) *deformationFieldPtrX;
+                PrecisionTYPE worldY=(PrecisionTYPE) *deformationFieldPtrY;
 
                 /* real -> voxel; source space */
                 position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
@@ -519,15 +519,15 @@ void TrilinearResampleSourceImage2D(nifti_image *sourceImage,
                     break;
             }
             resultIntensity++;
-            positionFieldPtrX++;
-            positionFieldPtrY++;
+            deformationFieldPtrX++;
+            deformationFieldPtrY++;
         }
     }
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class FieldTYPE>
 void NearestNeighborResampleSourceImage(nifti_image *sourceImage,
-                                        nifti_image *positionField,
+                                        nifti_image *deformationField,
                                         nifti_image *resultImage,
                                         int *mask,
                                         PrecisionTYPE bgValue)
@@ -544,9 +544,9 @@ void NearestNeighborResampleSourceImage(nifti_image *sourceImage,
         printf("[NiftyReg DEBUG] 3D nearest neighbor resampling of volume number %i\n",t);
 #endif
 
-        FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-        FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
-        FieldTYPE *positionFieldPtrZ = &positionFieldPtrY[targetVoxelNumber];
+        FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+        FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
+        FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[targetVoxelNumber];
 
         SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
         SourceTYPE *intensityPtr = &sourceIntensityPtr[t*sourceVoxelNumber];
@@ -564,9 +564,9 @@ void NearestNeighborResampleSourceImage(nifti_image *sourceImage,
         for(unsigned int index=0; index<targetVoxelNumber; index++){
 
             if((*maskPtr++)>-1){
-                PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
-                PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
-                PrecisionTYPE worldZ=(PrecisionTYPE) *positionFieldPtrZ;
+                PrecisionTYPE worldX=(PrecisionTYPE) *deformationFieldPtrX;
+                PrecisionTYPE worldY=(PrecisionTYPE) *deformationFieldPtrY;
+                PrecisionTYPE worldZ=(PrecisionTYPE) *deformationFieldPtrZ;
                 /* real -> voxel; source space */
                 position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
                 worldZ*sourceIJKMatrix.m[0][2] +  sourceIJKMatrix.m[0][3];
@@ -589,16 +589,16 @@ void NearestNeighborResampleSourceImage(nifti_image *sourceImage,
             }
             else (*resultIntensity)=(SourceTYPE)bgValue;
             resultIntensity++;
-            positionFieldPtrX++;
-            positionFieldPtrY++;
-            positionFieldPtrZ++;
+            deformationFieldPtrX++;
+            deformationFieldPtrY++;
+            deformationFieldPtrZ++;
         }
     }
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class FieldTYPE>
 void NearestNeighborResampleSourceImage2D(nifti_image *sourceImage,
-                                          nifti_image *positionField,
+                                          nifti_image *deformationField,
                                           nifti_image *resultImage,
                                           int *mask,
                                           PrecisionTYPE bgValue)
@@ -614,8 +614,8 @@ void NearestNeighborResampleSourceImage2D(nifti_image *sourceImage,
         printf("[NiftyReg DEBUG] 2D nearest neighbor resampling of volume number %i\n",t);
 #endif
 
-        FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-        FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
+        FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+        FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
 
         SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
         SourceTYPE *intensityPtr = &sourceIntensityPtr[t*sourceVoxelNumber];
@@ -633,8 +633,8 @@ void NearestNeighborResampleSourceImage2D(nifti_image *sourceImage,
         for(unsigned int index=0;index<targetVoxelNumber; index++){
 
             if((*maskPtr++)>-1){
-                PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
-                PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
+                PrecisionTYPE worldX=(PrecisionTYPE) *deformationFieldPtrX;
+                PrecisionTYPE worldY=(PrecisionTYPE) *deformationFieldPtrY;
                 /* real -> voxel; source space */
                 position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
                 sourceIJKMatrix.m[0][3];
@@ -653,8 +653,8 @@ void NearestNeighborResampleSourceImage2D(nifti_image *sourceImage,
             }
             else (*resultIntensity)=(SourceTYPE)bgValue;
             resultIntensity++;
-            positionFieldPtrX++;
-            positionFieldPtrY++;
+            deformationFieldPtrX++;
+            deformationFieldPtrY++;
         }
     }
 }
@@ -674,7 +674,7 @@ template <class PrecisionTYPE, class FieldTYPE, class SourceTYPE>
 void reg_resampleSourceImage2(	nifti_image *targetImage,
                                 nifti_image *sourceImage,
                                 nifti_image *resultImage,
-                                nifti_image *positionFieldImage,
+                                nifti_image *deformationFieldImage,
                                 int *mask,
                                 int interp,
                                 PrecisionTYPE bgValue
@@ -684,7 +684,7 @@ void reg_resampleSourceImage2(	nifti_image *targetImage,
     if(interp==3){
         if(targetImage->nz>1){
                 CubicSplineResampleSourceImage<PrecisionTYPE,SourceTYPE,FieldTYPE>( sourceImage,
-                                                                                    positionFieldImage,
+                                                                                    deformationFieldImage,
                                                                                     resultImage,
                                                                                     mask,
                                                                                     bgValue);
@@ -692,7 +692,7 @@ void reg_resampleSourceImage2(	nifti_image *targetImage,
         else
         {
             CubicSplineResampleSourceImage2D<PrecisionTYPE,SourceTYPE,FieldTYPE>(  sourceImage,
-                                                                                    positionFieldImage,
+                                                                                    deformationFieldImage,
                                                                                     resultImage,
                                                                                     mask,
                                                                                     bgValue);
@@ -701,7 +701,7 @@ void reg_resampleSourceImage2(	nifti_image *targetImage,
     else if(interp==0){ // Nearest neighbor interpolation
         if(targetImage->nz>1){
                 NearestNeighborResampleSourceImage<PrecisionTYPE,SourceTYPE, FieldTYPE>( sourceImage,
-                                                                                         positionFieldImage,
+                                                                                         deformationFieldImage,
                                                                                          resultImage,
                                                                                          mask,
                                                                                          bgValue);
@@ -709,7 +709,7 @@ void reg_resampleSourceImage2(	nifti_image *targetImage,
         else
         {
                 NearestNeighborResampleSourceImage2D<PrecisionTYPE,SourceTYPE, FieldTYPE>( sourceImage,
-                                                                                           positionFieldImage,
+                                                                                           deformationFieldImage,
                                                                                            resultImage,
                                                                                            mask,
                                                                                            bgValue);
@@ -719,14 +719,14 @@ void reg_resampleSourceImage2(	nifti_image *targetImage,
     else{ // trilinear interpolation [ by default ]
         if(targetImage->nz>1){
                 TrilinearResampleSourceImage<PrecisionTYPE,SourceTYPE, FieldTYPE>( sourceImage,
-                                                                                   positionFieldImage,
+                                                                                   deformationFieldImage,
                                                                                    resultImage,
                                                                                    mask,
                                                                                    bgValue);
         }
         else{
                 TrilinearResampleSourceImage2D<PrecisionTYPE,SourceTYPE, FieldTYPE>( sourceImage,
-                                                                                     positionFieldImage,
+                                                                                     deformationFieldImage,
                                                                                      resultImage,
                                                                                      mask,
                                                                                      bgValue);
@@ -739,7 +739,7 @@ template <class PrecisionTYPE>
 void reg_resampleSourceImage(	nifti_image *targetImage,
                                 nifti_image *sourceImage,
                                 nifti_image *resultImage,
-                                nifti_image *positionField,
+                                nifti_image *deformationField,
                                 int *mask,
                                 int interp,
                                 PrecisionTYPE bgValue)
@@ -763,14 +763,14 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
         MrPropreRules = true;
     }
 
-	switch ( positionField->datatype ){
+        switch ( deformationField->datatype ){
 		case NIFTI_TYPE_FLOAT32:
 			switch ( sourceImage->datatype ){
 				case NIFTI_TYPE_UINT8:
 					reg_resampleSourceImage2<PrecisionTYPE,float,unsigned char>(	targetImage,
 													sourceImage,
 													resultImage,
-													positionField,
+                                                                                                        deformationField,
                                                     mask,
 													interp,
 										bgValue);
@@ -779,7 +779,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 					reg_resampleSourceImage2<PrecisionTYPE,float,char>(	targetImage,
 												sourceImage,
 												resultImage,
-												positionField,
+                                                                                                deformationField,
                                                     mask,
 												interp,
 										bgValue);
@@ -788,7 +788,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 					reg_resampleSourceImage2<PrecisionTYPE,float,unsigned short>(	targetImage,
 													sourceImage,
 													resultImage,
-													positionField,
+                                                                                                        deformationField,
                                                     mask,
 													interp,
 										bgValue);
@@ -797,7 +797,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 					reg_resampleSourceImage2<PrecisionTYPE,float,short>(	targetImage,
 												sourceImage,
 												resultImage,
-												positionField,
+                                                                                                deformationField,
                                                     mask,
 												interp,
 										bgValue);
@@ -806,7 +806,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 					reg_resampleSourceImage2<PrecisionTYPE,float,unsigned int>(	targetImage,
 													sourceImage,
 													resultImage,
-													positionField,
+                                                                                                        deformationField,
                                                     mask,
 													interp,
 										bgValue);
@@ -815,7 +815,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 					reg_resampleSourceImage2<PrecisionTYPE,float,int>(	targetImage,
 												sourceImage,
 												resultImage,
-												positionField,
+                                                                                                deformationField,
                                                     mask,
 												interp,
 										bgValue);
@@ -824,7 +824,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 					reg_resampleSourceImage2<PrecisionTYPE,float,float>(	targetImage,
 												sourceImage,
 												resultImage,
-												positionField,
+                                                                                                deformationField,
                                                     mask,
 												interp,
 										bgValue);
@@ -833,7 +833,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 					reg_resampleSourceImage2<PrecisionTYPE,float,double>(	targetImage,
 												sourceImage,
 												resultImage,
-												positionField,
+                                                                                                deformationField,
                                                     mask,
 												interp,
 										bgValue);
@@ -850,7 +850,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 					reg_resampleSourceImage2<PrecisionTYPE,double,unsigned char>(	targetImage,
 																	sourceImage,
 																	resultImage,
-																	positionField,
+                                                                                                                                        deformationField,
                                                     mask,
 																	interp,
 										bgValue);
@@ -859,7 +859,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 					reg_resampleSourceImage2<PrecisionTYPE,double,char>(	targetImage,
 															sourceImage,
 															resultImage,
-															positionField,
+                                                                                                                        deformationField,
                                                     mask,
 															interp,
 										bgValue);
@@ -868,7 +868,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 					reg_resampleSourceImage2<PrecisionTYPE,double,unsigned short>(	targetImage,
 																	sourceImage,
 																	resultImage,
-																	positionField,
+                                                                                                                                        deformationField,
                                                     mask,
 																	interp,
 										bgValue);
@@ -877,7 +877,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 					reg_resampleSourceImage2<PrecisionTYPE,double,short>(	targetImage,
 															sourceImage,
 															resultImage,
-															positionField,
+                                                                                                                        deformationField,
                                                     mask,
 															interp,
 										bgValue);
@@ -886,7 +886,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 					reg_resampleSourceImage2<PrecisionTYPE,double,unsigned int>(	targetImage,
 																	sourceImage,
 																	resultImage,
-																	positionField,
+                                                                                                                                        deformationField,
                                                     mask,
 																	interp,
 										bgValue);
@@ -895,7 +895,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 					reg_resampleSourceImage2<PrecisionTYPE,double,int>(	targetImage,
 														sourceImage,
 														resultImage,
-														positionField,
+                                                                                                                deformationField,
                                                     mask,
 														interp,
 										bgValue);
@@ -904,7 +904,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 					reg_resampleSourceImage2<PrecisionTYPE,double,float>(	targetImage,
 															sourceImage,
 															resultImage,
-															positionField,
+                                                                                                                        deformationField,
                                                     mask,
 															interp,
 										bgValue);
@@ -913,7 +913,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 					reg_resampleSourceImage2<PrecisionTYPE,double,double>(	targetImage,
 															sourceImage,
 															resultImage,
-															positionField,
+                                                                                                                        deformationField,
                                                     mask,
 															interp,
 										bgValue);
@@ -936,7 +936,7 @@ template void reg_resampleSourceImage<double>(nifti_image *, nifti_image *, nift
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class GradientTYPE, class FieldTYPE>
 void TrilinearGradientResultImage(  nifti_image *sourceImage,
-                                    nifti_image *positionField,
+                                    nifti_image *deformationField,
                                     nifti_image *resultGradientImage,
                                     int *mask)
 {
@@ -954,9 +954,9 @@ void TrilinearGradientResultImage(  nifti_image *sourceImage,
         printf("[NiftyReg DEBUG] 3D linear gradient computation of volume number %i\n",t);
 #endif
 
-        FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-        FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
-        FieldTYPE *positionFieldPtrZ = &positionFieldPtrY[targetVoxelNumber];
+        FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+        FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
+        FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[targetVoxelNumber];
 
         GradientTYPE *resultGradientPtrX = &resultGradientImagePtr[targetVoxelNumber*t];
         GradientTYPE *resultGradientPtrY = &resultGradientPtrX[gradientOffSet];
@@ -986,9 +986,9 @@ void TrilinearGradientResultImage(  nifti_image *sourceImage,
             PrecisionTYPE gradZ=0.0;
 
             if((*maskPtr++)>-1){
-                PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
-                PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
-                PrecisionTYPE worldZ=(PrecisionTYPE) *positionFieldPtrZ;
+                PrecisionTYPE worldX=(PrecisionTYPE) *deformationFieldPtrX;
+                PrecisionTYPE worldY=(PrecisionTYPE) *deformationFieldPtrY;
+                PrecisionTYPE worldZ=(PrecisionTYPE) *deformationFieldPtrZ;
 
                 /* real -> voxel; source space */
                 position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
@@ -1058,16 +1058,16 @@ void TrilinearGradientResultImage(  nifti_image *sourceImage,
             resultGradientPtrX++;
             resultGradientPtrY++;
             resultGradientPtrZ++;
-            positionFieldPtrX++;
-            positionFieldPtrY++;
-            positionFieldPtrZ++;
+            deformationFieldPtrX++;
+            deformationFieldPtrY++;
+            deformationFieldPtrZ++;
         }
     }
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class GradientTYPE, class FieldTYPE>
 void TrilinearGradientResultImage2D(	nifti_image *sourceImage,
-                                        nifti_image *positionField,
+                                        nifti_image *deformationField,
                                         nifti_image *resultGradientImage,
                                         int *mask)
 {
@@ -1085,8 +1085,8 @@ void TrilinearGradientResultImage2D(	nifti_image *sourceImage,
         printf("[NiftyReg DEBUG] 2D linear gradient computation of volume number %i\n",t);
 #endif
 
-        FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-        FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
+        FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+        FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
 
         GradientTYPE *resultGradientPtrX = &resultGradientImagePtr[targetVoxelNumber*t];
         GradientTYPE *resultGradientPtrY = &resultGradientPtrX[gradientOffSet];
@@ -1113,8 +1113,8 @@ void TrilinearGradientResultImage2D(	nifti_image *sourceImage,
             PrecisionTYPE gradY=0.0;
 
             if((*maskPtr++)>-1){
-                PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
-                PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
+                PrecisionTYPE worldX=(PrecisionTYPE) *deformationFieldPtrX;
+                PrecisionTYPE worldY=(PrecisionTYPE) *deformationFieldPtrY;
 
                 /* real -> voxel; source space */
                 position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
@@ -1172,15 +1172,15 @@ void TrilinearGradientResultImage2D(	nifti_image *sourceImage,
             }
             resultGradientPtrX++;
             resultGradientPtrY++;
-            positionFieldPtrX++;
-            positionFieldPtrY++;
+            deformationFieldPtrX++;
+            deformationFieldPtrY++;
         }
     }
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class GradientTYPE, class FieldTYPE>
 void CubicSplineGradientResultImage(nifti_image *sourceImage,
-                                    nifti_image *positionField,
+                                    nifti_image *deformationField,
                                     nifti_image *resultGradientImage,
                                     int *mask)
 {
@@ -1198,9 +1198,9 @@ void CubicSplineGradientResultImage(nifti_image *sourceImage,
         printf("[NiftyReg DEBUG] 3D cubic spline gradient computation of volume number %i\n",t);
 #endif
 
-        FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-        FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
-        FieldTYPE *positionFieldPtrZ = &positionFieldPtrY[targetVoxelNumber];
+        FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+        FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
+        FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[targetVoxelNumber];
 
         GradientTYPE *resultGradientPtrX = &resultGradientImagePtr[targetVoxelNumber*t];
         GradientTYPE *resultGradientPtrY = &resultGradientPtrX[gradientOffSet];
@@ -1230,9 +1230,9 @@ void CubicSplineGradientResultImage(nifti_image *sourceImage,
 
             if((*maskPtr++)>-1){
 
-                PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
-                PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
-                PrecisionTYPE worldZ=(PrecisionTYPE) *positionFieldPtrZ;
+                PrecisionTYPE worldX=(PrecisionTYPE) *deformationFieldPtrX;
+                PrecisionTYPE worldY=(PrecisionTYPE) *deformationFieldPtrY;
+                PrecisionTYPE worldZ=(PrecisionTYPE) *deformationFieldPtrZ;
 
                 /* real -> voxel; source space */
                 position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
@@ -1325,16 +1325,16 @@ void CubicSplineGradientResultImage(nifti_image *sourceImage,
             resultGradientPtrX++;
             resultGradientPtrY++;
             resultGradientPtrZ++;
-            positionFieldPtrX++;
-            positionFieldPtrY++;
-            positionFieldPtrZ++;
+            deformationFieldPtrX++;
+            deformationFieldPtrY++;
+            deformationFieldPtrZ++;
         }
     }
 }
 /* *************************************************************** */
 template<class PrecisionTYPE, class SourceTYPE, class GradientTYPE, class FieldTYPE>
 void CubicSplineGradientResultImage2D(nifti_image *sourceImage,
-                                      nifti_image *positionField,
+                                      nifti_image *deformationField,
                                       nifti_image *resultGradientImage,
                                       int *mask)
 {
@@ -1352,8 +1352,8 @@ void CubicSplineGradientResultImage2D(nifti_image *sourceImage,
         printf("[NiftyReg DEBUG] 2D cubic spline gradient computation of volume number %i\n",t);
 #endif
 
-        FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-        FieldTYPE *positionFieldPtrY = &positionFieldPtrX[targetVoxelNumber];
+        FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+        FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
 
         GradientTYPE *resultGradientPtrX = &resultGradientImagePtr[targetVoxelNumber*t];
         GradientTYPE *resultGradientPtrY = &resultGradientPtrX[gradientOffSet];
@@ -1379,8 +1379,8 @@ void CubicSplineGradientResultImage2D(nifti_image *sourceImage,
             PrecisionTYPE gradY=0.0;
 
             if((*maskPtr++)>-1){
-                PrecisionTYPE worldX=(PrecisionTYPE) *positionFieldPtrX;
-                PrecisionTYPE worldY=(PrecisionTYPE) *positionFieldPtrY;
+                PrecisionTYPE worldX=(PrecisionTYPE) *deformationFieldPtrX;
+                PrecisionTYPE worldY=(PrecisionTYPE) *deformationFieldPtrY;
 
                 /* real -> voxel; source space */
                 position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
@@ -1443,8 +1443,8 @@ void CubicSplineGradientResultImage2D(nifti_image *sourceImage,
             }
             resultGradientPtrX++;
             resultGradientPtrY++;
-            positionFieldPtrX++;
-            positionFieldPtrY++;
+            deformationFieldPtrX++;
+            deformationFieldPtrY++;
         }
     }
 }
@@ -1453,7 +1453,7 @@ template <class PrecisionTYPE, class FieldTYPE, class SourceTYPE, class Gradient
 void reg_getSourceImageGradient3(   nifti_image *targetImage,
                                     nifti_image *sourceImage,
                                     nifti_image *resultGradientImage,
-                                    nifti_image *positionField,
+                                    nifti_image *deformationField,
                                     int *mask,
                                     int interp)
 {
@@ -1463,14 +1463,14 @@ void reg_getSourceImageGradient3(   nifti_image *targetImage,
         if(targetImage->nz>1){
             CubicSplineGradientResultImage
                     <PrecisionTYPE,SourceTYPE,GradientTYPE,FieldTYPE>(  sourceImage,
-                                                                        positionField,
+                                                                        deformationField,
                                                                         resultGradientImage,
                                                                         mask);
         }
         else{
             CubicSplineGradientResultImage2D
                     <PrecisionTYPE,SourceTYPE,GradientTYPE,FieldTYPE>(sourceImage,
-                                                                      positionField,
+                                                                      deformationField,
                                                                       resultGradientImage,
                                                                       mask);
         }
@@ -1479,14 +1479,14 @@ void reg_getSourceImageGradient3(   nifti_image *targetImage,
         if(targetImage->nz>1){
             TrilinearGradientResultImage
                     <PrecisionTYPE,SourceTYPE,GradientTYPE,FieldTYPE>(   sourceImage,
-                                                                         positionField,
+                                                                         deformationField,
                                                                          resultGradientImage,
                                                                          mask);
         }
         else{
             TrilinearGradientResultImage2D
                     <PrecisionTYPE,SourceTYPE,GradientTYPE,FieldTYPE>( sourceImage,
-                                                                       positionField,
+                                                                       deformationField,
                                                                        resultGradientImage,
                                                                        mask);
         }
@@ -1497,7 +1497,7 @@ template <class PrecisionTYPE, class FieldTYPE, class SourceTYPE>
 void reg_getSourceImageGradient2(nifti_image *targetImage,
 								nifti_image *sourceImage,
 								nifti_image *resultGradientImage,
-								nifti_image *positionField,
+                                                                nifti_image *deformationField,
                                 int *mask,
 								int interp
 							)
@@ -1505,14 +1505,14 @@ void reg_getSourceImageGradient2(nifti_image *targetImage,
 	switch(resultGradientImage->datatype){
 		case NIFTI_TYPE_FLOAT32:
 			reg_getSourceImageGradient3<PrecisionTYPE,FieldTYPE,SourceTYPE,float>
-				(targetImage,sourceImage,resultGradientImage,positionField,mask,interp);
+                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
 			break;
 		case NIFTI_TYPE_FLOAT64:
 			reg_getSourceImageGradient3<PrecisionTYPE,FieldTYPE,SourceTYPE,double>
-				(targetImage,sourceImage,resultGradientImage,positionField,mask,interp);
+                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
 			break;
 		default:
-			printf("err\treg_getVoxelBasedNMIGradientUsingPW\tThe result image data type is not supported\n");
+                        printf("[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe result image data type is not supported\n");
 			return;
 	}
 }
@@ -1521,7 +1521,7 @@ template <class PrecisionTYPE, class FieldTYPE>
 void reg_getSourceImageGradient1(nifti_image *targetImage,
 								nifti_image *sourceImage,
 								nifti_image *resultGradientImage,
-								nifti_image *positionField,
+                                                                nifti_image *deformationField,
                                 int *mask,
 								int interp
 							)
@@ -1529,38 +1529,38 @@ void reg_getSourceImageGradient1(nifti_image *targetImage,
 	switch(sourceImage->datatype){
 		case NIFTI_TYPE_UINT8:
 			reg_getSourceImageGradient2<PrecisionTYPE,FieldTYPE,unsigned char>
-				(targetImage,sourceImage,resultGradientImage,positionField,mask,interp);
+                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
 			break;
 		case NIFTI_TYPE_INT8:
 			reg_getSourceImageGradient2<PrecisionTYPE,FieldTYPE,char>
-				(targetImage,sourceImage,resultGradientImage,positionField,mask,interp);
+                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
 			break;
 		case NIFTI_TYPE_UINT16:
 			reg_getSourceImageGradient2<PrecisionTYPE,FieldTYPE,unsigned short>
-				(targetImage,sourceImage,resultGradientImage,positionField,mask,interp);
+                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
 			break;
 		case NIFTI_TYPE_INT16:
 			reg_getSourceImageGradient2<PrecisionTYPE,FieldTYPE,short>
-				(targetImage,sourceImage,resultGradientImage,positionField,mask,interp);
+                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
 			break;
 		case NIFTI_TYPE_UINT32:
 			reg_getSourceImageGradient2<PrecisionTYPE,FieldTYPE,unsigned int>
-				(targetImage,sourceImage,resultGradientImage,positionField,mask,interp);
+                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
 			break;
 		case NIFTI_TYPE_INT32:
 			reg_getSourceImageGradient2<PrecisionTYPE,FieldTYPE,int>
-				(targetImage,sourceImage,resultGradientImage,positionField,mask,interp);
+                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
 			break;
 		case NIFTI_TYPE_FLOAT32:
 			reg_getSourceImageGradient2<PrecisionTYPE,FieldTYPE,float>
-				(targetImage,sourceImage,resultGradientImage,positionField,mask,interp);
+                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
 			break;
 		case NIFTI_TYPE_FLOAT64:
 			reg_getSourceImageGradient2<PrecisionTYPE,FieldTYPE,double>
-				(targetImage,sourceImage,resultGradientImage,positionField,mask,interp);
+                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
 			break;
 		default:
-			printf("err\treg_getVoxelBasedNMIGradientUsingPW\tThe result image data type is not supported\n");
+                        printf("[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe result image data type is not supported\n");
 			return;
 	}
 }
@@ -1569,7 +1569,7 @@ extern "C++" template <class PrecisionTYPE>
 void reg_getSourceImageGradient(	nifti_image *targetImage,
                                     nifti_image *sourceImage,
                                     nifti_image *resultGradientImage,
-                                    nifti_image *positionField,
+                                    nifti_image *deformationField,
                                     int *mask,
                                     int interp
 							)
@@ -1583,24 +1583,24 @@ void reg_getSourceImageGradient(	nifti_image *targetImage,
 
     // Check if the dimension are correct
     if(sourceImage->nt != resultGradientImage->nt){
-        printf("err:\treg_getSourceImageGradient\tThe source and result images have different dimension along the time axis\n");
-        printf("err:\treg_getSourceImageGradient\tNothing has been done\n");
+        printf("[NiftyReg ERROR] reg_getSourceImageGradient\tThe source and result images have different dimension along the time axis\n");
+        printf("[NiftyReg ERROR] reg_getSourceImageGradient\tNothing has been done\n");
         return;
     }
 
-	switch(positionField->datatype){
+        switch(deformationField->datatype){
 		case NIFTI_TYPE_FLOAT32:
 			reg_getSourceImageGradient1<PrecisionTYPE,float>
-				(targetImage,sourceImage,resultGradientImage,positionField,mask,interp);
+                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
 			break;
 #ifdef _NR_DEV
 		case NIFTI_TYPE_FLOAT64:
 			reg_getSourceImageGradient1<PrecisionTYPE,double>
-				(targetImage,sourceImage,resultGradientImage,positionField,mask,interp);
+                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
 			break;
 #endif
 		default:
-			printf("err\treg_getSourceImageGradient\tDeformation field pixel type unsupported.");
+                        printf("[NiftyReg ERROR] reg_getSourceImageGradient\tDeformation field pixel type unsupported.");
 			break;
 	}
     if(MrPropreRule==true) free(mask);
@@ -1610,183 +1610,5 @@ template void reg_getSourceImageGradient<float>(nifti_image *, nifti_image *, ni
 template void reg_getSourceImageGradient<double>(nifti_image *, nifti_image *, nifti_image *, nifti_image *, int *, int);
 /* *************************************************************** */
 /* *************************************************************** */
-template <class FieldTYPE, class JacobianTYPE>
-void reg_getJacobianImage2(	nifti_image *positionField,
-							nifti_image *jacobianImage)
-{
-	FieldTYPE *fieldPtrX = static_cast<FieldTYPE *>(positionField->data);
-    FieldTYPE *fieldPtrY = &fieldPtrX[jacobianImage->nvox];
-    FieldTYPE *fieldPtrZ = NULL;
-    if(positionField->nz>1)
-        fieldPtrZ = &fieldPtrY[jacobianImage->nvox];
-	JacobianTYPE *jacobianPtr = static_cast<JacobianTYPE *>(jacobianImage->data);
 
-	JacobianTYPE jacobianMatrix[3][3];
-    memset(jacobianMatrix,0,sizeof(jacobianMatrix));
-
-	int voxelIndex=0;
-	for(int z=0; z<positionField->nz; z++){
-		for(int y=0; y<positionField->ny; y++){
-			for(int x=0; x<positionField->nx; x++){
-
-				// derivative of along the X axis
-				if(x==0){
-					// forward difference
-					jacobianMatrix[0][0]= (JacobianTYPE)((fieldPtrX[voxelIndex+1] - fieldPtrX[voxelIndex] ) / (positionField->dx));// Tx/dx
-					jacobianMatrix[1][0]= (JacobianTYPE)((fieldPtrY[voxelIndex+1] - fieldPtrY[voxelIndex] ) / (positionField->dx));// Ty/dx
-                    if(positionField->nz>1)
-                        jacobianMatrix[2][0]= (JacobianTYPE)((fieldPtrZ[voxelIndex+1] - fieldPtrZ[voxelIndex] ) / (positionField->dx));// Tz/dx
-					
-				}
-				else if(x==positionField->nx-1){
-					// backward difference
-					jacobianMatrix[0][0]= (JacobianTYPE)((fieldPtrX[voxelIndex] - fieldPtrX[voxelIndex-1] ) / (positionField->dx));// Tx/dx
-					jacobianMatrix[1][0]= (JacobianTYPE)((fieldPtrY[voxelIndex] - fieldPtrY[voxelIndex-1] ) / (positionField->dx));// Ty/dx
-                    if(positionField->nz>1)
-                        jacobianMatrix[2][0]= (JacobianTYPE)((fieldPtrZ[voxelIndex] - fieldPtrZ[voxelIndex-1] ) / (positionField->dx));// Tz/dx
-					
-				}
-				else{
-					// symmetric derivative
-					jacobianMatrix[0][0]= (JacobianTYPE)((fieldPtrX[voxelIndex+1] - fieldPtrX[voxelIndex-1] ) / (2.0*positionField->dx));// Tx/dx
-					jacobianMatrix[1][0]= (JacobianTYPE)((fieldPtrY[voxelIndex+1] - fieldPtrY[voxelIndex-1] ) / (2.0*positionField->dx));// Ty/dx
-                    if(positionField->nz>1)
-                        jacobianMatrix[2][0]= (JacobianTYPE)((fieldPtrZ[voxelIndex+1] - fieldPtrZ[voxelIndex-1] ) / (2.0*positionField->dx));// Tz/dx
-				}
-
-				// derivative of along the Y axis
-				if(y==0){
-					// forward difference
-					jacobianMatrix[0][1]= (JacobianTYPE)((fieldPtrX[voxelIndex+positionField->nx] - fieldPtrX[voxelIndex] ) /
-							(positionField->dy));// Tx/dy
-					jacobianMatrix[1][1]= (JacobianTYPE)((fieldPtrY[voxelIndex+positionField->nx] - fieldPtrY[voxelIndex] ) /
-							(positionField->dy));// Ty/dy
-                    if(positionField->nz>1)
-                        jacobianMatrix[2][1]= (JacobianTYPE)((fieldPtrZ[voxelIndex+positionField->nx] - fieldPtrZ[voxelIndex] ) /
-                                (positionField->dy));// Tz/dy
-					
-				}
-				else if(y==positionField->ny-1){
-					// backward difference
-					jacobianMatrix[0][1]= (JacobianTYPE)((fieldPtrX[voxelIndex] - fieldPtrX[voxelIndex-positionField->nx] ) /
-							(positionField->dy));// Tx/dy
-					jacobianMatrix[1][1]= (JacobianTYPE)((fieldPtrY[voxelIndex] - fieldPtrY[voxelIndex-positionField->nx] ) /
-							(positionField->dy));// Ty/dy
-                    if(positionField->nz>1)
-                        jacobianMatrix[2][1]= (JacobianTYPE)((fieldPtrZ[voxelIndex] - fieldPtrZ[voxelIndex-positionField->nx] ) /
-                                (positionField->dy));// Tz/dy
-					
-				}
-				else{
-					// symmetric derivative
-					jacobianMatrix[0][1]= (JacobianTYPE)((fieldPtrX[voxelIndex+positionField->nx] - fieldPtrX[voxelIndex-positionField->nx] ) /
-							(2.0*positionField->dy));// Tx/dy
-					jacobianMatrix[1][1]= (JacobianTYPE)((fieldPtrY[voxelIndex+positionField->nx] - fieldPtrY[voxelIndex-positionField->nx] ) /
-							(2.0*positionField->dy));// Ty/dy
-                    if(positionField->nz>1)
-                        jacobianMatrix[2][1]= (JacobianTYPE)((fieldPtrZ[voxelIndex+positionField->nx] - fieldPtrZ[voxelIndex-positionField->nx] ) /
-                                (2.0*positionField->dy));// Tz/dy
-				}
-
-				// derivative of along the Z axis
-
-                if(positionField->nz>1){
-                    if(z==0){
-                        // forward difference
-                        jacobianMatrix[0][2]= (JacobianTYPE)((fieldPtrX[voxelIndex+positionField->nx*positionField->ny] -
-                                fieldPtrX[voxelIndex] ) / (positionField->dz));// Tx/dz
-                        jacobianMatrix[1][2]= (JacobianTYPE)((fieldPtrY[voxelIndex+positionField->nx*positionField->ny] -
-                                fieldPtrY[voxelIndex] ) / (positionField->dz));// Ty/dz
-                            jacobianMatrix[2][2]= (JacobianTYPE)((fieldPtrZ[voxelIndex+positionField->nx*positionField->ny] -
-                                    fieldPtrZ[voxelIndex] ) / (positionField->dz));// Tz/dz
-
-                    }
-                    else if(z==positionField->nz-1){
-                        // backward difference
-                        jacobianMatrix[0][2]= (JacobianTYPE)((fieldPtrX[voxelIndex] -
-                                fieldPtrX[voxelIndex-positionField->nx*positionField->ny] ) /
-                                (positionField->dz));// Tx/dz
-                        jacobianMatrix[1][2]= (JacobianTYPE)((fieldPtrY[voxelIndex] -
-                                fieldPtrY[voxelIndex-positionField->nx*positionField->ny] ) /
-                                (positionField->dz));// Ty/dz
-                            jacobianMatrix[2][2]= (JacobianTYPE)((fieldPtrZ[voxelIndex] -
-                                    fieldPtrZ[voxelIndex-positionField->nx*positionField->ny] ) /
-                                    (positionField->dz));// Tz/dz
-
-                    }
-                    else{
-                        // symmetric derivative
-                        jacobianMatrix[0][2]= (JacobianTYPE)((fieldPtrX[voxelIndex+positionField->nx*positionField->ny] -
-                                fieldPtrX[voxelIndex-positionField->nx*positionField->ny] ) /
-                                (2.0*positionField->dz));// Tx/dz
-                        jacobianMatrix[1][2]= (JacobianTYPE)((fieldPtrY[voxelIndex+positionField->nx*positionField->ny] -
-                                fieldPtrY[voxelIndex-positionField->nx*positionField->ny] ) /
-                                (2.0*positionField->dz));// Ty/dz
-                            jacobianMatrix[2][2]= (JacobianTYPE)((fieldPtrZ[voxelIndex+positionField->nx*positionField->ny] -
-                                    fieldPtrZ[voxelIndex-positionField->nx*positionField->ny] ) /
-                                    (2.0*positionField->dz));// Tz/dz
-                    }
-                }
-
-                JacobianTYPE jacobianValue = 1;
-
-                if(positionField->nz>1){
-                    jacobianValue =  jacobianMatrix[0][0]*jacobianMatrix[1][1]*jacobianMatrix[2][2];
-                    jacobianValue += jacobianMatrix[0][1]*jacobianMatrix[1][2]*jacobianMatrix[2][0];
-                    jacobianValue += jacobianMatrix[0][2]*jacobianMatrix[1][0]*jacobianMatrix[2][1];
-
-                    jacobianValue -= jacobianMatrix[0][0]*jacobianMatrix[1][2]*jacobianMatrix[2][1];
-                    jacobianValue -= jacobianMatrix[0][1]*jacobianMatrix[1][0]*jacobianMatrix[2][2];
-                    jacobianValue -= jacobianMatrix[0][2]*jacobianMatrix[1][1]*jacobianMatrix[2][0];
-                }
-                else{
-                    jacobianValue =  jacobianMatrix[0][0]*jacobianMatrix[1][1];
-                    jacobianValue -= jacobianMatrix[0][1]*jacobianMatrix[1][0];
-                }
-
-				*jacobianPtr++ = jacobianValue;
-				voxelIndex++;
-			}
-		}
-	}
-}
-/* *************************************************************** */
-template <class FieldTYPE>
-void reg_getJacobianImage1(	nifti_image *positionField,
-                            nifti_image *jacobianImage)
-{
-	switch(jacobianImage->datatype){
-		case NIFTI_TYPE_FLOAT32:
-			reg_getJacobianImage2<FieldTYPE,float>(positionField,jacobianImage);
-			break;
-#ifdef _NR_DEV
-		case NIFTI_TYPE_FLOAT64:
-			reg_getJacobianImage2<FieldTYPE,double>(positionField,jacobianImage);
-			break;
-#endif
-		default:
-			printf("err\treg_getSourceImageGradient\tJacobian image pixel type unsupported.");
-			break;
-	}
-}
-/* *************************************************************** */
-void reg_getJacobianImage(	nifti_image *positionField,
-                            nifti_image *jacobianImage)
-{
-	switch(positionField->datatype){
-		case NIFTI_TYPE_FLOAT32:
-			reg_getJacobianImage1<float>(positionField,jacobianImage);
-			break;
-#ifdef _NR_DEV
-		case NIFTI_TYPE_FLOAT64:
-			reg_getJacobianImage1<double>(positionField,jacobianImage);
-			break;
-#endif
-		default:
-			printf("err\treg_getSourceImageGradient\tDeformation field pixel type unsupported.");
-			break;
-	}
-}
-/* *************************************************************** */
-/* *************************************************************** */
 #endif

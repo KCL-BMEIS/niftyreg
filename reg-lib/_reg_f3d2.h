@@ -18,17 +18,17 @@ template <class T>
 class reg_f3d2 : public reg_f3d<T>
 {
   protected:
+    nifti_image *inverseDeformationFieldImage;
+    nifti_image *negatedControlPointGrid;
 
-    nifti_image *controlPointPositionGrid;
-
-    int GetDeformationField();
-    double ComputeJacobianBasedPenaltyTerm(int);
-    double ComputeBendingEnergyPenaltyTerm();
-    int GetBendingEnergyGradient();
-    int GetJacobianBasedGradient();
-    int UpdateControlPointPosition(T);
+    int AllocateDeformationField();
+    int ClearDeformationField();
     int AllocateCurrentInputImage(int);
     int ClearCurrentInputImage();
+
+    int GetDeformationField();
+    int UpdateControlPointPosition(T);
+    int CheckStoppingCriteria(bool);
 
 public:
     reg_f3d2(int refTimePoint,int floTimePoint);

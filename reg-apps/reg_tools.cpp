@@ -12,8 +12,8 @@
 #define MM_TOOLS_CPP
 
 #include "_reg_resampling.h"
-#include "_reg_affineTransformation.h"
-#include "_reg_bspline.h"
+#include "_reg_globalTransformation.h"
+#include "_reg_localTransformation.h"
 #include "_reg_tools.h"
 
 #define PrecisionTYPE float

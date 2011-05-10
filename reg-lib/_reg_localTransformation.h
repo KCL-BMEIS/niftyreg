@@ -9,11 +9,11 @@
  *
  */
 
-#ifndef _REG_BSPLINE_H
-#define _REG_BSPLINE_H
+#ifndef _REG_TRANSFORMATION_H
+#define _REG_TRANSFORMATION_H
 
 #include "nifti1_io.h"
-#include "_reg_affineTransformation.h"
+#include "_reg_globalTransformation.h"
 #include "float.h"
 #include <limits>
 
@@ -21,95 +21,10 @@
 	#include <emmintrin.h>
 #endif
 
-
-/* *************************************************************** */
-/** Get_BSplineBasisValues(DTYPE basis, DTYPE *values)
- * The four cubic b-spline values are computed from the relative position.
- */
-extern "C++" template<class DTYPE>
-void Get_BSplineBasisValues(DTYPE basis,
-                            DTYPE *values);
-/* *************************************************************** */
-/** Get_BSplineBasisValues(DTYPE basis, DTYPE *values, DTYPE *first)
- * The four cubic b-spline values and first derivatives
- * are computed from the relative position.
- */
-extern "C++" template<class DTYPE>
-void Get_BSplineBasisValues(DTYPE basis,
-                            DTYPE *values,
-                            DTYPE *first);
-/* *************************************************************** */
-/** Get_BSplineBasisValues(DTYPE basis, DTYPE *values, DTYPE *first, DTYPE *second)
- * The four cubic b-spline values, first and second derivatives
- * are computed from the relative position.
- */
-extern "C++" template<class DTYPE>
-void Get_BSplineBasisValues(DTYPE basis,
-                            DTYPE *values,
-                            DTYPE *first,
-                            DTYPE *second);
-/* *************************************************************** */
-/** Get_SplineBasisValues(DTYPE basis, DTYPE *values)
- * The four cubic spline values are computed from the relative position.
- */
-extern "C++" template<class DTYPE>
-void Get_SplineBasisValues(DTYPE basis,
-                           DTYPE *values);
-/* *************************************************************** */
-/** Get_SplineBasisValues(DTYPE basis, DTYPE *values, DTYPE *first)
- * The four cubic spline values and first derivatives
- * are computed from the relative position.
- */
-extern "C++" template<class DTYPE>
-void Get_SplineBasisValues(DTYPE basis,
-                           DTYPE *values,
-                           DTYPE *first);
-/* *************************************************************** */
-/** Get_SplineBasisValues(DTYPE basis, DTYPE *values, DTYPE *first, DTYPE *second)
- * The four cubic spline values, first and second derivatives
- * are computed from the relative position.
- */
-extern "C++" template<class DTYPE>
-void Get_SplineBasisValues(DTYPE basis,
-                           DTYPE *values,
-                           DTYPE *first,
-                           DTYPE *second);
-/* *************************************************************** */
-/** get_splineDisplacement
- * Extract 16x2 control point positions from a grid
- * StartX and StartY defined the control point of coordinate
- * [0,0]. Control point in a 4-by-4 box will be extracted
- */
-template <class ImageTYPE>
-void get_splineDisplacement(int startX,
-                            int startY,
-                            nifti_image *splineControlPoint,
-                            ImageTYPE *splineX,
-                            ImageTYPE *splineY,
-                            ImageTYPE *dispX,
-                            ImageTYPE *dispY);
-/* *************************************************************** */
-/** get_splineDisplacement
- * Extract 64x3 control point positions from a grid
- * StartX, StartY and StartZ defined the control point of coordinate
- * [0,0,0]. Control point in a 4-by-4-by-4 box will be extracted
- */
-template <class ImageTYPE>
-void get_splineDisplacement(int startX,
-                            int startY,
-                            int startZ,
-                            nifti_image *splineControlPoint,
-                            ImageTYPE *splineX,
-                            ImageTYPE *splineY,
-                            ImageTYPE *splineZ,
-                            ImageTYPE *dispX,
-                            ImageTYPE *dispY,
-                            ImageTYPE *dispZ);
 /* *************************************************************** */
 /** getReorientationMatrix
  * Compute the transformation matrix to diagonalise the input matrix
  */
-extern "C++"
 void getReorientationMatrix(nifti_image *splineControlPoint,
                             mat33 *desorient,
                             mat33 *reorient);
@@ -123,29 +38,29 @@ void getReorientationMatrix(nifti_image *splineControlPoint,
  * - Cubic B-Spline are used if bspline is true, cubic spline otherwise
  */
 extern "C++"
-void reg_bspline(nifti_image *splineControlPoint,
-                 nifti_image *referenceImage,
-                 nifti_image *deformationField,
-                 int *mask,
-                 bool composition,
-                 bool bspline
-                 );
+void reg_spline(nifti_image *splineControlPoint,
+                nifti_image *referenceImage,
+                nifti_image *deformationField,
+                int *mask,
+                bool composition,
+                bool bspline
+                );
 /* *************************************************************** */
 /** reg_bspline_bendingEnergy
  * Compute and return the average bending energy computed using cubic b-spline
  * If approx=true, the computation is performed at the control point initial position only
  */
-extern "C++" template<class PrecisionTYPE>
-PrecisionTYPE reg_bspline_bendingEnergy(nifti_image *splineControlPoint,
-                                        nifti_image *targetImage,
-                                        int approx
-                                        );
+extern "C++"
+double reg_bspline_bendingEnergy(nifti_image *splineControlPoint,
+                                 nifti_image *targetImage,
+                                 bool approx
+                                 );
 /* *************************************************************** */
 /** reg_bspline_bendingEnergyGradient
  * Compute and return the approximated (at the control point position)
  * bending energy gradient for each control point
  */
-extern "C++" template<class PrecisionTYPE>
+extern "C++"
 void reg_bspline_bendingEnergyGradient(nifti_image *splineControlPoint,
                                        nifti_image *targetImage,
                                        nifti_image *gradientImage,
@@ -154,6 +69,7 @@ void reg_bspline_bendingEnergyGradient(nifti_image *splineControlPoint,
 /* *************************************************************** */
 /** reg_bspline_GetJacobianMap
  * Compute the Jacobian determinant map using a cubic b-spline parametrisation
+ * or a cubic spline parametrisation
  */
 extern "C++"
 void reg_bspline_GetJacobianMap(nifti_image *splineControlPoint,
@@ -163,17 +79,17 @@ void reg_bspline_GetJacobianMap(nifti_image *splineControlPoint,
 /** reg_bspline_jacobian
  * Compute the average Jacobian determinant
  */
-extern "C++" template<class PrecisionTYPE>
-PrecisionTYPE reg_bspline_jacobian(nifti_image *splineControlPoint,
-                                   nifti_image *targetImage,
-                                   int type
-                                   );
+extern "C++"
+double reg_bspline_jacobian(nifti_image *splineControlPoint,
+                            nifti_image *targetImage,
+                            bool approx
+                            );
 /* *************************************************************** */
 /** reg_bspline_jacobianDeterminantGradient
  * Compute the gradient Jacobian determinant at every control point position
  * using a cubic b-spline parametrisation
  */
-extern "C++" template<class PrecisionTYPE>
+extern "C++"
 void reg_bspline_jacobianDeterminantGradient(nifti_image *splineControlPoint,
                                              nifti_image *targetImage,
                                              nifti_image *gradientImage,
@@ -190,24 +106,36 @@ void reg_bspline_GetJacobianMatrix(nifti_image *splineControlPoint,
                                    nifti_image *jacobianImage
                                    );
 /* *************************************************************** */
-extern "C++" template<class PrecisionTYPE>
-PrecisionTYPE reg_bspline_correctFolding(nifti_image *splineControlPoint,
-                                         nifti_image *targetImage,
-                                         bool approx
-                                         );
+/** reg_bspline_correctFolding
+ * Correct the folding in the transformation parametrised through
+ * cubic B-Spline
+ */
+extern "C++"
+double reg_bspline_correctFolding(nifti_image *splineControlPoint,
+                                  nifti_image *targetImage,
+                                  bool approx
+                                  );
 /* *************************************************************** */
-/** */
+/** reg_voxelCentric2NodeCentric
+ * Upsample an image from voxel space to node space
+ */
 extern "C++"
 void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
                                   nifti_image *voxelImage,
                                   float weight
                                   );
 /* *************************************************************** */
+/** reg_bspline_refineControlPointGrid
+ * Refine a control point grid
+ */
 extern "C++"
 void reg_bspline_refineControlPointGrid(nifti_image *targetImage,
                                         nifti_image *splineControlPoint
                                         );
 /* *************************************************************** */
+/** reg_bspline_initialiseControlPointGridWithAffine
+ * Initialise a lattice of control point to generate a global deformation
+ */
 extern "C++"
 int reg_bspline_initialiseControlPointGridWithAffine(mat44 *affineTransformation,
                                                      nifti_image *controlPointImage
@@ -227,5 +155,56 @@ int reg_getDisplacementFromDeformation(nifti_image *controlPointImage);
 **/
 int reg_getDeformationFromDisplacement(nifti_image *controlPointImage);
 /* *************************************************************** */
-
+/** reg_getJacobianImage
+ * Compute the Jacobian determinant at every voxel position
+ * from a deformation field. A linear interpolation is
+ * assumed
+ */
+extern "C++"
+void reg_getJacobianMapFromDeformationField(nifti_image *deformationField,
+                                            nifti_image *jacobianImage);
+/* *************************************************************** */
+/** reg_composeDefField
+  * Preforms a deformation field composition.
+  * The deformation field image is applied to the second image:
+  * dfToUpdate. Both images are expected to contain deformation
+  * field.
+  * Only voxel within the mask are considered.
+  */
+extern "C++"
+void reg_composeDefField(nifti_image *deformationField,
+                         nifti_image *dfToUpdate,
+                         int *mask);
+/* *************************************************************** */
+/** reg_spline_cppComposition(nifti_image* img1, nifti_image* img2, bool type)
+  * This function compose the a first control point image with a second one:
+  * T(x)=Grid1(Grid2(x)).
+  * Grid1 and Grid2 have to contain deformation.
+  * Cubic B-Spline can be used (bspline=true) or Cubic Spline (bspline=false)
+ **/
+extern "C++"
+int reg_spline_cppComposition(nifti_image *grid1,
+                              nifti_image *grid2,
+                              bool bspline
+                              );
+/* *************************************************************** */
+/** reg_bspline_GetJacobianMapFromVelocityField(nifti_image *img1, nifti_image *img2)
+  * This function computed a Jacobian determinant map by integrating the velocity field
+ **/
+extern "C++"
+int reg_bspline_GetJacobianMapFromVelocityField(nifti_image* velocityFieldImage,
+                                                nifti_image* jacobianImage
+                                                );
+/* *************************************************************** */
+/** reg_getDeformationFieldFromVelocityGrid(nifti_image *img1, nifti_image *img2, int *mask);
+  * The deformation field (img2) is computed by integrating a velocity field (img1).
+  * Only the voxel within the mask will be considered. If Mask is set to NULL then
+  * all the voxels will be included within the mask.
+ **/
+extern "C++"
+void reg_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
+                                             nifti_image *deformationFieldImage,
+                                             int *currentMask,
+                                             bool approx);
+/* *************************************************************** */
 #endif

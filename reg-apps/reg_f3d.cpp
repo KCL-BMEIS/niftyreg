@@ -32,18 +32,18 @@ void PetitUsage(char *exec)
 }
 void Usage(char *exec)
 {
-	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-	printf("Fast Free-Form Deformation algorithm for non-rigid registration.\n");
+    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+    printf("Fast Free-Form Deformation algorithm for non-rigid registration.\n");
     printf("This implementation is a re-factoring of Daniel Rueckert' 99 TMI work.\n");
     printf("The code is presented in Modat et al., \"Fast Free-Form Deformation using\n");
     printf("graphics processing units\", CMPB, 2010\n");
-	printf("Cubic B-Spline are used to deform a source image in order to optimise a objective function\n");
-	printf("based on the Normalised Mutual Information and a penalty term. The penalty term could\n");
-	printf("be either the bending energy or the squared Jacobian determinant log.\n");
-	printf("This code has been written by Marc Modat (m.modat@ucl.ac.uk), for any comment,\n");
+    printf("Cubic B-Spline are used to deform a source image in order to optimise a objective function\n");
+    printf("based on the Normalised Mutual Information and a penalty term. The penalty term could\n");
+    printf("be either the bending energy or the squared Jacobian determinant log.\n");
+    printf("This code has been written by Marc Modat (m.modat@ucl.ac.uk), for any comment,\n");
     printf("please contact him.\n");
-	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-	printf("Usage:\t%s -target <filename> -source <filename> [OPTIONS].\n",exec);
+    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+    printf("Usage:\t%s -target <filename> -source <filename> [OPTIONS].\n",exec);
     printf("\t-target <filename>\tFilename of the target image (mandatory)\n");
     printf("\t-source <filename>\tFilename of the source image (mandatory)\n");
     printf("\n***************\n*** OPTIONS ***\n***************\n");
@@ -79,7 +79,7 @@ void Usage(char *exec)
     printf("\t\t\t\tThe scl_slope and scl_inter from the nifti header are taken into account for the thresholds\n");
     printf("\t-ln <int>\t\tNumber of level to perform [3]\n");
     printf("\t-lp <int>\t\tOnly perform the first levels [ln]\n");
-    printf("\t-be <float>\t\tWeight of the bending energy penalty term [0.01]\n");
+    printf("\t-be <float>\t\tWeight of the bending energy penalty term [0.01(f3d) or 0.1(f3d2)]\n");
     printf("\t-noAppBE\t\tTo not approximate the BE value only at the control point position\n");
     printf("\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]\n");
     printf("\t-noAppJL\t\tTo not approximate the JL value only at the control point position [no]\n");
@@ -88,9 +88,8 @@ void Usage(char *exec)
 //    printf("\t-ssd\t\t\tTo use the SSD as the similiarity measure [Experimental]\n");
 
     printf("\n*** F3D2 options:\n");
-    printf("\t-vel <filename>\t\tFilename of velocity field grid [none]\n");
-    printf("\t-invel <filename>\tFilename of velocity field grid input\n\t\t\t\tThe coarse spacing is defined by this file.\n");
-    printf("\t-step <int>\tNumber of composition step [10].\n");
+    printf("\t-vel \t\t\t Use a velocity field integrationto generate the deformation [false]\n");
+    printf("\t-step <int>\tNumber of composition step [8].\n");
 
     printf("\n*** Other options:\n");
     printf("\t-smoothGrad <float>\tTo smooth the metric derivative (in mm) [0]\n");
@@ -173,12 +172,12 @@ int main(int argc, char **argv)
 	
 	/* read the input parameter */
     for(int i=1;i<argc;i++){
-		if(strcmp(argv[i], "-help")==0 || strcmp(argv[i], "-Help")==0 ||
-			strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
-			strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0){
-			Usage(argv[0]);
-			return 0;
-		}
+        if(strcmp(argv[i], "-help")==0 || strcmp(argv[i], "-Help")==0 ||
+           strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
+           strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0){
+            Usage(argv[0]);
+            return 0;
+        }
         else if(strcmp(argv[i], "-target") == 0){
             referenceName=argv[++i];
         }
@@ -188,19 +187,15 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-voff") == 0){
             verbose=false;
         }
-		else if(strcmp(argv[i], "-aff") == 0){
+        else if(strcmp(argv[i], "-aff") == 0){
             affineTransformationName=argv[++i];
-		}
-		else if(strcmp(argv[i], "-affFlirt") == 0){
+        }
+        else if(strcmp(argv[i], "-affFlirt") == 0){
             affineTransformationName=argv[++i];
             flirtAffine=1;
         }
         else if(strcmp(argv[i], "-incpp") == 0){
             inputControlPointGridName=argv[++i];
-        }
-        else if(strcmp(argv[i], "-invel") == 0){
-            inputControlPointGridName=argv[++i];
-            useVel=true;
         }
         else if(strcmp(argv[i], "-tmask") == 0){
             referenceMaskName=argv[++i];
@@ -212,10 +207,7 @@ int main(int argc, char **argv)
             outputControlPointGridName=argv[++i];
         }
         else if(strcmp(argv[i], "-vel") == 0){
-            outputControlPointGridName=argv[++i];
             useVel=true;
-            if(outputControlPointGridName==NULL)
-                outputControlPointGridName=(char *)"outputVel.nii";
         }
         else if(strcmp(argv[i], "-maxit") == 0){
             maxiterationNumber=atoi(argv[++i]);
@@ -286,7 +278,7 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-pad") == 0){
             warpedPaddingValue=(PrecisionTYPE)(atof(argv[++i]));
         }
-        //TODO
+//TODO
 //      else if(strcmp(argv[i], "-nopy") == 0){
 //          flag->pyramidFlag=0;
 //      }
@@ -308,12 +300,12 @@ int main(int argc, char **argv)
             checkMem=true;
         }
 #endif
-		else{
-			fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
-			PetitUsage(argv[0]);
-			return 1;
-		}
-	}
+        else{
+            fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
+            PetitUsage(argv[0]);
+            return 1;
+        }
+    }
 
     // Output the command line
 #ifdef NDEBUG
@@ -339,6 +331,7 @@ int main(int argc, char **argv)
         return 1;
     }
     reg_checkAndCorrectDimension(referenceImage);
+
     // Read the floating image
     if(floatingName==NULL){
         fprintf(stderr, "Error. No floating image has been defined\n");
@@ -350,6 +343,7 @@ int main(int argc, char **argv)
         return 1;
     }
     reg_checkAndCorrectDimension(floatingImage);
+
     // Read the mask image
     nifti_image *referenceMaskImage=NULL;
     if(referenceMaskName!=NULL){
@@ -361,18 +355,6 @@ int main(int argc, char **argv)
         reg_checkAndCorrectDimension(referenceMaskImage);
     }
 
-    if(useVel){
-        printf("[NiftyReg F3D] WARNING - You are using F3D2 - Further validation is required.\n\n");
-        if(affineTransformationName!=NULL){
-            printf("[NiftyReg F3D] ERROR(ish) - You are using an affine with a velocity field\n");
-            printf("[NiftyReg F3D] Please update the source image sform instead. This can be done using:\n");
-            printf("\treg_transform -target %s -updSform %s %s updatedSourceImage.nii\n",
-                   referenceName, floatingName, affineTransformationName);
-            printf("[NiftyReg F3D] Use then the updatedSourceImage.nii as a source without the aff option.\n\n");
-            return 0;
-        }
-    }
-
     // Read the input control point grid image
     nifti_image *controlPointGridImage=NULL;
     if(inputControlPointGridName!=NULL){
@@ -382,7 +364,10 @@ int main(int argc, char **argv)
             return 1;
         }
         reg_checkAndCorrectDimension(controlPointGridImage);
+        if(controlPointGridImage->pixdim[5]>1)
+            useVel=true;
     }
+
     // Read the affine transformation
     mat44 *affineTransformation=NULL;
     if(affineTransformationName!=NULL){
@@ -469,16 +454,26 @@ int main(int argc, char **argv)
     else
 #endif
     {
-        if(useVel)
+        if(useVel){
             REG = new reg_f3d2<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
-        else REG = new reg_f3d<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
-        if(verbose==true){
+            if(verbose==true){
   #endif
-            printf("\n[NiftyReg F3D] CPU implementation is used\n");
+                printf("\n[NiftyReg F3D2] CPU implementation is used\n");
 #ifdef NDEBUG
-        }
+            }
 #endif
+        }
+        else{
+            REG = new reg_f3d<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
+#ifdef NDEBUG
+            if(verbose==true){
+  #endif
+                printf("\n[NiftyReg F3D] CPU implementation is used\n");
+#ifdef NDEBUG
+            }
+#endif
+        }
     }
 
     // Set the reg_f3d parameters

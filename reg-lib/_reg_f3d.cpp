@@ -19,6 +19,7 @@
 template <class T>
 reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
 {
+    this->executableName=(char *)"NiftyReg F3D";
     this->referenceTimePoint=refTimePoint;
     this->floatingTimePoint=floTimePoint;
     this->inputReference=NULL; // pointer to external
@@ -61,9 +62,10 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->verbose=true;
     this->useSSD=false;
     this->useConjGradient=true;
-	this->maxSSD=NULL;
+    this->maxSSD=NULL;
     this->entropies[0]=this->entropies[1]=this->entropies[2]=this->entropies[3]=0.;
-    this->stepNumber=10;
+    this->stepNumber=8;
+    this->currentIteration=0;
 //	this->threadNumber=1;
 
     this->initialised=false;
@@ -516,7 +518,8 @@ int reg_f3d<T>::AllocateVoxelBasedMeasureGradient()
 	}
     reg_f3d<T>::ClearVoxelBasedMeasureGradient();
     this->voxelBasedMeasureGradientImage = nifti_copy_nim_info(this->deformationFieldImage);
-    this->voxelBasedMeasureGradientImage->data = (void *)calloc(this->voxelBasedMeasureGradientImage->nvox, this->voxelBasedMeasureGradientImage->nbyper);
+    this->voxelBasedMeasureGradientImage->data = (void *)calloc(this->voxelBasedMeasureGradientImage->nvox,
+                                                                this->voxelBasedMeasureGradientImage->nbyper);
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -539,7 +542,8 @@ int reg_f3d<T>::AllocateNodeBasedMeasureGradient()
     }
     reg_f3d<T>::ClearNodeBasedMeasureGradient();
     this->nodeBasedMeasureGradientImage = nifti_copy_nim_info(this->controlPointGrid);
-    this->nodeBasedMeasureGradientImage->data = (void *)calloc(this->nodeBasedMeasureGradientImage->nvox, this->nodeBasedMeasureGradientImage->nbyper);
+    this->nodeBasedMeasureGradientImage->data = (void *)calloc(this->nodeBasedMeasureGradientImage->nvox,
+                                                               this->nodeBasedMeasureGradientImage->nbyper);
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -840,47 +844,49 @@ int reg_f3d<T>::Initisalise_f3d()
     }
 
 	
-	if(this->useSSD){
-		this->maxSSD=new T[this->levelToPerform];
-		// THRESHOLD THE INPUT IMAGES IF REQUIRED
-		for(unsigned int l=0; l<this->levelToPerform; l++){
-			reg_thresholdImage<T>(referencePyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
-			reg_thresholdImage<T>(floatingPyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
-			// The maximal difference image is extracted for normalisation
-			T tempMaxSSD1 = (referencePyramid[l]->cal_min - floatingPyramid[l]->cal_max)*(referencePyramid[l]->cal_min - floatingPyramid[l]->cal_max);
-			T tempMaxSSD2 = (referencePyramid[l]->cal_max - floatingPyramid[l]->cal_min)*(referencePyramid[l]->cal_max - floatingPyramid[l]->cal_min);
-			this->maxSSD[l]=tempMaxSSD1>tempMaxSSD2?tempMaxSSD1:tempMaxSSD2;
-		}
-	}
-	else{
-		// RESCALE THE INPUT IMAGE INTENSITY
-		/* the target and source are resampled between 2 and bin-3
-		 * The images are then shifted by two which is the suport of the spline used
-		 * by the parzen window filling of the joint histogram */
-        
-		float referenceRescalingArrayDown[10];
-		float referenceRescalingArrayUp[10];
-		float floatingRescalingArrayDown[10];
-		float floatingRescalingArrayUp[10];
-		for(int t=0;t<this->referencePyramid[0]->nt;t++){
+    if(this->useSSD){
+            this->maxSSD=new T[this->levelToPerform];
+            // THRESHOLD THE INPUT IMAGES IF REQUIRED
+            for(unsigned int l=0; l<this->levelToPerform; l++){
+                    reg_thresholdImage<T>(referencePyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
+                    reg_thresholdImage<T>(floatingPyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
+                    // The maximal difference image is extracted for normalisation
+                    T tempMaxSSD1 = (referencePyramid[l]->cal_min - floatingPyramid[l]->cal_max) *
+                                    (referencePyramid[l]->cal_min - floatingPyramid[l]->cal_max);
+                    T tempMaxSSD2 = (referencePyramid[l]->cal_max - floatingPyramid[l]->cal_min) *
+                                    (referencePyramid[l]->cal_max - floatingPyramid[l]->cal_min);
+                    this->maxSSD[l]=tempMaxSSD1>tempMaxSSD2?tempMaxSSD1:tempMaxSSD2;
+            }
+    }
+    else{
+        // RESCALE THE INPUT IMAGE INTENSITY
+        /* the target and source are resampled between 2 and bin-3
+         * The images are then shifted by two which is the suport of the spline used
+         * by the parzen window filling of the joint histogram */
+
+        float referenceRescalingArrayDown[10];
+        float referenceRescalingArrayUp[10];
+        float floatingRescalingArrayDown[10];
+        float floatingRescalingArrayUp[10];
+        for(int t=0;t<this->referencePyramid[0]->nt;t++){
             // INCREASE THE BIN SIZES
             this->referenceBinNumber[t] += 4;
             referenceRescalingArrayDown[t] = 2.f;
             referenceRescalingArrayUp[t] = this->referenceBinNumber[t]-3;
-		}
-		for(int t=0;t<this->floatingPyramid[0]->nt;t++){
+        }
+        for(int t=0;t<this->floatingPyramid[0]->nt;t++){
             // INCREASE THE BIN SIZES
             this->floatingBinNumber[t] += 4;
-			floatingRescalingArrayDown[t] = 2.f;
-			floatingRescalingArrayUp[t] = this->floatingBinNumber[t]-3;
-		}
-		for(unsigned int l=0; l<this->levelToPerform; l++){
-			reg_intensityRescale(this->referencePyramid[l],referenceRescalingArrayDown,referenceRescalingArrayUp,
-								 this->referenceThresholdLow, this->referenceThresholdUp);
-			reg_intensityRescale(this->floatingPyramid[l],floatingRescalingArrayDown,floatingRescalingArrayUp,
-								 this->floatingThresholdLow, this->floatingThresholdUp);
+            floatingRescalingArrayDown[t] = 2.f;
+            floatingRescalingArrayUp[t] = this->floatingBinNumber[t]-3;
         }
-	}
+        for(unsigned int l=0; l<this->levelToPerform; l++){
+            reg_intensityRescale(this->referencePyramid[l],referenceRescalingArrayDown,referenceRescalingArrayUp,
+                                 this->referenceThresholdLow, this->referenceThresholdUp);
+            reg_intensityRescale(this->floatingPyramid[l],floatingRescalingArrayDown,floatingRescalingArrayUp,
+                                 this->floatingThresholdLow, this->floatingThresholdUp);
+       }
+    }
 
     // DETERMINE THE GRID SPACING AND CREATE THE GRID
     if(this->inputControlPointGrid==NULL){
@@ -901,14 +907,11 @@ int reg_f3d<T>::Initisalise_f3d()
         dim_cpp[0]=5;
         dim_cpp[1]=(int)floor(this->referencePyramid[0]->nx*this->referencePyramid[0]->dx/gridSpacing[0])+5;
         dim_cpp[2]=(int)floor(this->referencePyramid[0]->ny*this->referencePyramid[0]->dy/gridSpacing[1])+5;
-//        dim_cpp[1]=(int)ceil(this->referencePyramid[0]->nx*this->referencePyramid[0]->dx/gridSpacing[0])+4;
-//        dim_cpp[2]=(int)ceil(this->referencePyramid[0]->ny*this->referencePyramid[0]->dy/gridSpacing[1])+4;
         dim_cpp[3]=1;
         dim_cpp[5]=2;
         if(this->referencePyramid[0]->nz>1){
             gridSpacing[2] = this->spacing[2] * powf(2.0f, (float)(this->levelToPerform-1));
             dim_cpp[3]=(int)floor(this->referencePyramid[0]->nz*this->referencePyramid[0]->dz/gridSpacing[2])+5;
-//            dim_cpp[3]=(int)ceil(this->referencePyramid[0]->nz*this->referencePyramid[0]->dz/gridSpacing[2])+4;
             dim_cpp[5]=3;
         }
         dim_cpp[4]=dim_cpp[6]=dim_cpp[7]=1;
@@ -957,7 +960,8 @@ int reg_f3d<T>::Initisalise_f3d()
         this->controlPointGrid->qto_ijk = nifti_mat44_inverse(this->controlPointGrid->qto_xyz);
 
         if(this->controlPointGrid->sform_code>0){
-            nifti_mat44_to_quatern( this->referencePyramid[0]->sto_xyz, &qb, &qc, &qd, &qx, &qy, &qz, &dx, &dy, &dz, &qfac);
+            nifti_mat44_to_quatern(this->referencePyramid[0]->sto_xyz, &qb, &qc, &qd, &qx,
+                                   &qy, &qz, &dx, &dy, &dz, &qfac);
 
             this->controlPointGrid->sto_xyz = nifti_quatern_to_mat44(qb, qc, qd, qx, qy, qz,
                 this->controlPointGrid->dx, this->controlPointGrid->dy, this->controlPointGrid->dz, qfac);
@@ -993,9 +997,11 @@ int reg_f3d<T>::Initisalise_f3d()
             identityAffine.m[3][1]=0.f;
             identityAffine.m[3][2]=0.f;
             identityAffine.m[3][3]=1.f;
-            if(reg_bspline_initialiseControlPointGridWithAffine(&identityAffine, this->controlPointGrid)) return 1;
+            if(reg_bspline_initialiseControlPointGridWithAffine(&identityAffine, this->controlPointGrid))
+                return 1;
         }
-        else if(reg_bspline_initialiseControlPointGridWithAffine(this->affineTransformation, this->controlPointGrid)) return 1;
+        else if(reg_bspline_initialiseControlPointGridWithAffine(this->affineTransformation, this->controlPointGrid))
+            return 1;
     }
     else{
         // The control point grid image is initialised with the provided grid
@@ -1014,67 +1020,73 @@ int reg_f3d<T>::Initisalise_f3d()
 #ifdef NDEBUG
     if(this->verbose){
 #endif
-        printf("[NiftyReg F3D] **************************************************\n");
-        printf("[NiftyReg F3D] INPUT PARAMETERS\n");
-        printf("[NiftyReg F3D] **************************************************\n");
-        printf("[NiftyReg F3D] Reference image:\n");
-        printf("[NiftyReg F3D] \t* name: %s\n", this->inputReference->fname);
-        printf("[NiftyReg F3D] \t* image dimension: %i x %i x %i x %i\n",
+        printf("[%s] **************************************************\n", this->executableName);
+        printf("[%s] INPUT PARAMETERS\n", this->executableName);
+        printf("[%s] **************************************************\n", this->executableName);
+        printf("[%s] Reference image:\n", this->executableName);
+        printf("[%s] \t* name: %s\n", this->executableName, this->inputReference->fname);
+        printf("[%s] \t* image dimension: %i x %i x %i x %i\n", this->executableName,
                this->inputReference->nx, this->inputReference->ny,
                this->inputReference->nz, this->inputReference->nt);
-        printf("[NiftyReg F3D] \t* image spacing: %g x %g x %g mm\n",
-               this->inputReference->dx, this->inputReference->dy,
-               this->inputReference->dz);
+        printf("[%s] \t* image spacing: %g x %g x %g mm\n",
+               this->executableName, this->inputReference->dx,
+               this->inputReference->dy, this->inputReference->dz);
         for(int i=0;i<this->inputReference->nt;i++){
-            printf("[NiftyReg F3D] \t* intensity threshold for timepoint %i/%i: [%.2g %.2g]\n",
+            printf("[%s] \t* intensity threshold for timepoint %i/%i: [%.2g %.2g]\n", this->executableName,
                    i+1, this->inputReference->nt, this->referenceThresholdLow[i],this->referenceThresholdUp[i]);
             if(!this->useSSD)
-                printf("[NiftyReg F3D] \t* binnining size for timepoint %i/%i: %i\n", i+1, this->inputReference->nt, this->referenceBinNumber[i]-4);
+                printf("[%s] \t* binnining size for timepoint %i/%i: %i\n", this->executableName,
+                       i+1, this->inputReference->nt, this->referenceBinNumber[i]-4);
         }
-        printf("[NiftyReg F3D] \t* gaussian smoothing sigma: %g\n", this->referenceSmoothingSigma);
-        printf("[NiftyReg F3D]\n");
-        printf("[NiftyReg F3D] Floating image:\n");
-        printf("[NiftyReg F3D] \t* name: %s\n", this->inputFloating->fname);
-        printf("[NiftyReg F3D] \t* image dimension: %i x %i x %i x %i\n",
+        printf("[%s] \t* gaussian smoothing sigma: %g\n", this->executableName, this->referenceSmoothingSigma);
+        printf("[%s]\n", this->executableName);
+        printf("[%s] Floating image:\n", this->executableName);
+        printf("[%s] \t* name: %s\n", this->executableName, this->inputFloating->fname);
+        printf("[%s] \t* image dimension: %i x %i x %i x %i\n", this->executableName,
                this->inputFloating->nx, this->inputFloating->ny,
                this->inputFloating->nz, this->inputFloating->nt);
-        printf("[NiftyReg F3D] \t* image spacing: %g x %g x %g mm\n",
-               this->inputFloating->dx, this->inputFloating->dy,
-               this->inputFloating->dz);
+        printf("[%s] \t* image spacing: %g x %g x %g mm\n",
+               this->executableName, this->inputFloating->dx,
+               this->inputFloating->dy, this->inputFloating->dz);
         for(int i=0;i<this->inputFloating->nt;i++){
-            printf("[NiftyReg F3D] \t* intensity threshold for timepoint %i/%i: [%.2g %.2g]\n",
+            printf("[%s] \t* intensity threshold for timepoint %i/%i: [%.2g %.2g]\n", this->executableName,
                    i+1, this->inputFloating->nt, this->floatingThresholdLow[i],this->floatingThresholdUp[i]);
             if(!this->useSSD)
-                printf("[NiftyReg F3D] \t* binnining size for timepoint %i/%i: %i\n", i+1, this->inputFloating->nt, this->floatingBinNumber[i]-4);
+                printf("[%s] \t* binnining size for timepoint %i/%i: %i\n", this->executableName,
+                       i+1, this->inputFloating->nt, this->floatingBinNumber[i]-4);
         }
-        printf("[NiftyReg F3D] \t* gaussian smoothing sigma: %g\n", this->floatingSmoothingSigma);
-        printf("[NiftyReg F3D]\n");
-        printf("[NiftyReg F3D] Warped image padding value: %g\n", this->warpedPaddingValue);
-        printf("[NiftyReg F3D]\n");
-        printf("[NiftyReg F3D] Level number: %i\n", this->levelNumber);
+        printf("[%s] \t* gaussian smoothing sigma: %g\n",
+               this->executableName, this->floatingSmoothingSigma);
+        printf("[%s]\n", this->executableName);
+        printf("[%s] Warped image padding value: %g\n", this->executableName, this->warpedPaddingValue);
+        printf("[%s]\n", this->executableName);
+        printf("[%s] Level number: %i\n", this->executableName, this->levelNumber);
         if(this->levelNumber!=this->levelToPerform)
-            printf("[NiftyReg F3D] \t* Level to perform: %i\n", this->levelToPerform);
-        printf("[NiftyReg F3D]\n");
-        printf("[NiftyReg F3D] Maximum iteration number per level: %i\n", this->maxiterationNumber);
-        printf("[NiftyReg F3D]\n");
-        printf("[NiftyReg F3D] Final spacing in mm: %g %g %g\n", this->spacing[0], this->spacing[1], this->spacing[2]);
-        printf("[NiftyReg F3D]\n");
+            printf("[%s] \t* Level to perform: %i\n", this->executableName, this->levelToPerform);
+        printf("[%s]\n", this->executableName);
+        printf("[%s] Maximum iteration number per level: %i\n", this->executableName, this->maxiterationNumber);
+        printf("[%s]\n", this->executableName);
+        printf("[%s] Final spacing in mm: %g %g %g\n", this->executableName,
+               this->spacing[0], this->spacing[1], this->spacing[2]);
+        printf("[%s]\n", this->executableName);
         if(this->useSSD)
-            printf("[NiftyReg F3D] The SSD is used as a similarity measure.\n");
-        else printf("[NiftyReg F3D] The NMI is used as a similarity measure.\n");
-        printf("[NiftyReg F3D]\n");
-            printf("[NiftyReg F3D] Bending energy penalty term weight: %g\n", this->bendingEnergyWeight);
+            printf("[%s] The SSD is used as a similarity measure.\n", this->executableName);
+        else printf("[%s] The NMI is used as a similarity measure.\n", this->executableName);
+        printf("[%s]\n", this->executableName);
+            printf("[%s] Bending energy penalty term weight: %g\n", this->executableName, this->bendingEnergyWeight);
         if(this->bendingEnergyWeight>0){
-            if(this->bendingEnergyApproximation) printf("[NiftyReg F3D] \t* Bending energy penalty term is approximated\n");
-            else printf("[NiftyReg F3D] \t* Bending energy penalty term is not approximated\n");
+            if(this->bendingEnergyApproximation) printf("[%s] \t* Bending energy penalty term is approximated\n",
+                                                        this->executableName);
+            else printf("[%s] \t* Bending energy penalty term is not approximated\n", this->executableName);
         }
-        printf("[NiftyReg F3D]\n");
-        printf("[NiftyReg F3D] Jacobian-based penalty term weight: %g\n", this->jacobianLogWeight);
+        printf("[%s]\n", this->executableName);
+        printf("[%s] Jacobian-based penalty term weight: %g\n", this->executableName, this->jacobianLogWeight);
         if(this->jacobianLogWeight>0){
-            if(this->jacobianLogApproximation) printf("[NiftyReg F3D] \t* Jacobian-based penalty term is approximated\n");
-            else printf("[NiftyReg F3D] \t* Jacobian-based penalty term is not approximated\n");
+            if(this->jacobianLogApproximation) printf("[%s] \t* Jacobian-based penalty term is approximated\n",
+                                                      this->executableName);
+            else printf("[%s] \t* Jacobian-based penalty term is not approximated\n", this->executableName);
         }
-        printf("[NiftyReg F3D] --------------------------------------------------\n");
+        printf("[%s] --------------------------------------------------\n", this->executableName);
 #ifdef NDEBUG
     }
 #endif
@@ -1092,28 +1104,28 @@ double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type)
 {
     double value;
     if(type==2){
-        value = reg_bspline_jacobian<T>(this->controlPointGrid,
-                                        this->currentReference,
-                                        false);
+        value = reg_bspline_jacobian(this->controlPointGrid,
+                                     this->currentReference,
+                                     false);
     }
     else{
-        value = reg_bspline_jacobian<T>(this->controlPointGrid,
-                                        this->currentReference,
-                                        this->jacobianLogApproximation);
+        value = reg_bspline_jacobian(this->controlPointGrid,
+                                     this->currentReference,
+                                     this->jacobianLogApproximation);
     }
     unsigned int maxit=5;
     if(type>0) maxit=20;
     unsigned int it=0;
     while(value!=value && it<maxit){
         if(type==2){
-            value = reg_bspline_correctFolding<T>(this->controlPointGrid,
-                                                  this->currentReference,
-                                                  false);
+            value = reg_bspline_correctFolding(this->controlPointGrid,
+                                               this->currentReference,
+                                               false);
         }
         else{
-            value = reg_bspline_correctFolding<T>(this->controlPointGrid,
-                                              this->currentReference,
-                                              this->jacobianLogApproximation);
+            value = reg_bspline_correctFolding(this->controlPointGrid,
+                                               this->currentReference,
+                                               this->jacobianLogApproximation);
         }
 #ifndef NDEBUG
                     printf("[NiftyReg DEBUG] Folding correction\n");
@@ -1129,7 +1141,7 @@ double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type)
 #ifdef NDEBUG
             if(this->verbose){
 #endif
-                printf("[NiftyReg F3D] Folding correction, %i step(s)\n", it);
+                printf("[%s] Folding correction, %i step(s)\n", this->executableName, it);
 #ifdef NDEBUG
             }
 #endif
@@ -1142,10 +1154,10 @@ double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type)
 template <class T>
 double reg_f3d<T>::ComputeBendingEnergyPenaltyTerm()
 {
-    double value = reg_bspline_bendingEnergy<T>(this->controlPointGrid,
-                                                this->currentReference,
-                                                this->bendingEnergyApproximation
-                                                );
+    double value = reg_bspline_bendingEnergy(this->controlPointGrid,
+                                             this->currentReference,
+                                             this->bendingEnergyApproximation
+                                             );
     return this->bendingEnergyWeight * value;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1153,12 +1165,12 @@ double reg_f3d<T>::ComputeBendingEnergyPenaltyTerm()
 template <class T>
 int reg_f3d<T>::GetDeformationField()
 {
-    reg_bspline(this->controlPointGrid,
-                this->currentReference,
-                this->deformationFieldImage,
-                this->currentMask,
-                false, //composition
-                true // bspline
+    reg_spline(this->controlPointGrid,
+               this->currentReference,
+               this->deformationFieldImage,
+               this->currentMask,
+               false, //composition
+               true // bspline
                 );
     return 0;
 }
@@ -1308,10 +1320,10 @@ int reg_f3d<T>::GetSimilarityMeasureGradient()
 template <class T>
 int reg_f3d<T>::GetBendingEnergyGradient()
 {
-    reg_bspline_bendingEnergyGradient<T>(   this->controlPointGrid,
-                                            this->currentReference,
-                                            this->nodeBasedMeasureGradientImage,
-                                            this->bendingEnergyWeight);
+    reg_bspline_bendingEnergyGradient(this->controlPointGrid,
+                                      this->currentReference,
+                                      this->nodeBasedMeasureGradientImage,
+                                      this->bendingEnergyWeight);
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1319,20 +1331,22 @@ int reg_f3d<T>::GetBendingEnergyGradient()
 template <class T>
 int reg_f3d<T>::GetJacobianBasedGradient()
 {
-    reg_bspline_jacobianDeterminantGradient<T>( this->controlPointGrid,
-                                                this->currentReference,
-                                                this->nodeBasedMeasureGradientImage,
-                                                this->jacobianLogWeight,
-                                                this->jacobianLogApproximation);
+    reg_bspline_jacobianDeterminantGradient(this->controlPointGrid,
+                                            this->currentReference,
+                                            this->nodeBasedMeasureGradientImage,
+                                            this->jacobianLogWeight,
+                                            this->jacobianLogApproximation);
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::ComputeConjugateGradient(unsigned int iteration)
+int reg_f3d<T>::ComputeConjugateGradient()
 {
-    int nodeNumber = this->nodeBasedMeasureGradientImage->nx * this->nodeBasedMeasureGradientImage->ny * this->nodeBasedMeasureGradientImage->nz;
-    if(iteration==1){
+    int nodeNumber = this->nodeBasedMeasureGradientImage->nx *
+                     this->nodeBasedMeasureGradientImage->ny *
+                     this->nodeBasedMeasureGradientImage->nz;
+    if(this->currentIteration==1){
 #ifndef NDEBUG
             printf("[NiftyReg DEBUG] Conjugate gradient initialisation\n");
 #endif
@@ -1439,7 +1453,9 @@ T reg_f3d<T>::GetMaximalGradientLength()
 template <class T>
 int reg_f3d<T>::UpdateControlPointPosition(T scale)
 {
-    unsigned int nodeNumber = this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz;
+    unsigned int nodeNumber = this->controlPointGrid->nx *
+                              this->controlPointGrid->ny *
+                              this->controlPointGrid->nz;
     if(this->currentReference->nz==1){
         T *controlPointValuesX = static_cast<T *>(this->controlPointGrid->data);
         T *controlPointValuesY = &controlPointValuesX[nodeNumber];
@@ -1498,27 +1514,27 @@ int reg_f3d<T>::Run_f3d()
 #ifdef NDEBUG
     if(this->verbose){
 #endif
-        printf("[NiftyReg F3D] **************************************************\n");
-        printf("[NiftyReg F3D] Current level: %i / %i\n", level+1, this->levelNumber);
-        printf("[NiftyReg F3D] Current reference image\n");
-        printf("[NiftyReg F3D] \t* image dimension: %i x %i x %i x %i\n",
+        printf("[%s] **************************************************\n", this->executableName);
+        printf("[%s] Current level: %i / %i\n", this->executableName, level+1, this->levelNumber);
+        printf("[%s] Current reference image\n", this->executableName);
+        printf("[%s] \t* image dimension: %i x %i x %i x %i\n", this->executableName,
                this->currentReference->nx, this->currentReference->ny,
                this->currentReference->nz,this->currentReference->nt);
-        printf("[NiftyReg F3D] \t* image spacing: %g x %g x %g mm\n",
+        printf("[%s] \t* image spacing: %g x %g x %g mm\n", this->executableName,
                this->currentReference->dx, this->currentReference->dy,
                this->currentReference->dz);
-        printf("[NiftyReg F3D] Current floating image\n");
-        printf("[NiftyReg F3D] \t* image dimension: %i x %i x %i x %i\n",
+        printf("[%s] Current floating image\n", this->executableName);
+        printf("[%s] \t* image dimension: %i x %i x %i x %i\n", this->executableName,
                this->currentFloating->nx, this->currentFloating->ny,
                this->currentFloating->nz,this->currentFloating->nt);
-        printf("[NiftyReg F3D] \t* image spacing: %g x %g x %g mm\n",
+        printf("[%s] \t* image spacing: %g x %g x %g mm\n", this->executableName,
                this->currentFloating->dx, this->currentFloating->dy,
                this->currentFloating->dz);
-        printf("[NiftyReg F3D] Current control point image\n");
-        printf("[NiftyReg F3D] \t* image dimension: %i x %i x %i\n",
+        printf("[%s] Current control point image\n", this->executableName);
+        printf("[%s] \t* image dimension: %i x %i x %i\n", this->executableName,
                this->controlPointGrid->nx, this->controlPointGrid->ny,
                this->controlPointGrid->nz);
-        printf("[NiftyReg F3D] \t* image spacing: %g x %g x %g mm\n",
+        printf("[%s] \t* image spacing: %g x %g x %g mm\n", this->executableName,
                this->controlPointGrid->dx, this->controlPointGrid->dy,
                this->controlPointGrid->dz);
 #ifdef NDEBUG
@@ -1576,21 +1592,26 @@ int reg_f3d<T>::Run_f3d()
 #ifdef NDEBUG
         if(this->verbose){
 #endif
-			if(this->useSSD)
-				printf("[NiftyReg F3D] Initial objective function: %g = (wSSD)%g - (wBE)%g - (wJAC)%g\n",
-                   bestValue, bestWMeasure, bestWBE, bestWJac);
-            else printf("[NiftyReg F3D] Initial objective function: %g = (wNMI)%g - (wBE)%g - (wJAC)%g\n",
-                        bestValue, bestWMeasure, bestWBE, bestWJac);
+            if(this->useSSD)
+                printf("[%s] Initial objective function: %g = (wSSD)%g - (wBE)%g - (wJAC)%g\n",
+                       this->executableName, bestValue, bestWMeasure, bestWBE, bestWJac);
+            else printf("[%s] Initial objective function: %g = (wNMI)%g - (wBE)%g - (wJAC)%g\n",
+                        this->executableName, bestValue, bestWMeasure, bestWBE, bestWJac);
 #ifdef NDEBUG
         }
 #endif
         // The initial objective function values are kept
 
-        unsigned int iteration = 0;
-        while(currentSize>smallestSize && iteration<this->maxiterationNumber){
+        this->currentIteration = 0;
+        while(this->currentIteration<this->maxiterationNumber){
+
+            if(currentSize<=smallestSize)
+                // The algorithm converged and will stop in f3d.
+                // It will stop approximation in f3d2
+                if(this->CheckStoppingCriteria(true)) break;
 
             // Compute the gradient of the similarity measure
-            this->WarpFloatingImage(USE_LINEAR_INTERPOLATION); iteration++;
+            this->WarpFloatingImage(USE_LINEAR_INTERPOLATION); this->currentIteration++;
             this->ComputeSimilarityMeasure();
             this->GetSimilarityMeasureGradient();
 
@@ -1602,7 +1623,7 @@ int reg_f3d<T>::Run_f3d()
 
             // The conjugate gradient is computed
             if(this->useConjGradient)
-                this->ComputeConjugateGradient(iteration);
+                this->ComputeConjugateGradient();
 
             T maxLength = this->GetMaximalGradientLength();
 #ifndef NDEBUG
@@ -1632,7 +1653,7 @@ int reg_f3d<T>::Run_f3d()
                 double currentWBE=0;
                 if(this->bendingEnergyWeight>0)
                     currentWBE = this->ComputeBendingEnergyPenaltyTerm();
-                this->WarpFloatingImage(USE_LINEAR_INTERPOLATION); iteration++;
+                this->WarpFloatingImage(USE_LINEAR_INTERPOLATION); this->currentIteration++;
                 double currentWMeasure = this->ComputeSimilarityMeasure();
                 double currentValue = currentWMeasure - currentWBE - currentWJac;
 
@@ -1647,28 +1668,29 @@ int reg_f3d<T>::Run_f3d()
                     this->SaveCurrentControlPoint();
 #ifndef NDEBUG
                     printf("[NiftyReg DEBUG] [%i] objective function: %g = %g - %g - %g | KEPT\n",
-                           iteration, currentValue, currentWMeasure, currentWBE, currentWJac);
+                           this->currentIteration, currentValue, currentWMeasure, currentWBE, currentWJac);
 #endif
                 }
                 else{
                     currentSize*=0.5;
 #ifndef NDEBUG
                     printf("[NiftyReg DEBUG] [%i] objective function: %g = %g - %g - %g | REJECTED\n",
-                           iteration, currentValue, currentWMeasure, currentWBE, currentWJac);
+                           this->currentIteration, currentValue, currentWMeasure, currentWBE, currentWJac);
 #endif
                 }
                 lineIteration++;
-                if(iteration>=this->maxiterationNumber) break;
+                if(this->CheckStoppingCriteria(false)) break;
             }
             this->RestoreCurrentControlPoint();
             currentSize=addedStep;
 #ifdef NDEBUG
             if(this->verbose){
 #endif
-                printf("[NiftyReg F3D] [%i] Current objective function: %g", iteration, bestValue);
-				if(this->useSSD)
-					printf(" = (wSSD)%g", bestWMeasure);
-				else printf(" = (wNMI)%g", bestWMeasure);
+                printf("[%s] [%i] Current objective function: %g",
+                       this->executableName, this->currentIteration, bestValue);
+                if(this->useSSD)
+                    printf(" = (wSSD)%g", bestWMeasure);
+                else printf(" = (wNMI)%g", bestWMeasure);
                 if(this->bendingEnergyWeight>0)
                     printf(" - (wBE)%.2e", bestWBE);
                 if(this->jacobianLogWeight>0)
@@ -1701,8 +1723,8 @@ int reg_f3d<T>::Run_f3d()
 #ifdef NDEBUG
     if(this->verbose){
 #endif
-        printf("[NiftyReg F3D] Current registration level done\n");
-        printf("[NiftyReg F3D] --------------------------------------------------\n");
+        printf("[%s] Current registration level done\n", this->executableName);
+        printf("[%s] --------------------------------------------------\n", this->executableName);
 #ifdef NDEBUG
     }
 #endif
@@ -1756,7 +1778,15 @@ nifti_image * reg_f3d<T>::GetControlPointPositionImage()
            returnedControlPointGrid->nvox*returnedControlPointGrid->nbyper);
     return returnedControlPointGrid;
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+int reg_f3d<T>::CheckStoppingCriteria(bool convergence)
+{
+    if(convergence) return 1;
+    if(this->currentIteration>=this->maxiterationNumber) return 1;
+    return 0;
+}
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
