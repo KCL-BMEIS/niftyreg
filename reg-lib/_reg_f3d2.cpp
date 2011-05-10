@@ -24,6 +24,7 @@ reg_f3d2<T>::reg_f3d2(int refTimePoint,int floTimePoint)
     this->inverseDeformationFieldImage=NULL;
     this->negatedControlPointGrid=NULL;
     this->bendingEnergyWeight=0.1;
+//    this->useSymmetry=false;
 
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d2 constructor called\n");
@@ -46,31 +47,32 @@ int reg_f3d2<T>::AllocateDeformationField()
     this->ClearDeformationField();
     reg_f3d<T>::AllocateDeformationField();
 
-    this->inverseDeformationFieldImage = nifti_copy_nim_info(this->currentFloating);
-    this->inverseDeformationFieldImage->dim[0]=this->inverseDeformationFieldImage->ndim=5;
-    this->inverseDeformationFieldImage->dim[1]=this->inverseDeformationFieldImage->nx=this->currentFloating->nx;
-    this->inverseDeformationFieldImage->dim[2]=this->inverseDeformationFieldImage->ny=this->currentFloating->ny;
-    this->inverseDeformationFieldImage->dim[3]=this->inverseDeformationFieldImage->nz=this->currentFloating->nz;
-    this->inverseDeformationFieldImage->dim[4]=this->inverseDeformationFieldImage->nt=1;
-    this->inverseDeformationFieldImage->pixdim[4]=this->inverseDeformationFieldImage->dt=1.0;
-    if(this->currentFloating->nz==1)
-        this->inverseDeformationFieldImage->dim[5]=this->inverseDeformationFieldImage->nu=2;
-    else this->inverseDeformationFieldImage->dim[5]=this->inverseDeformationFieldImage->nu=3;
-    this->inverseDeformationFieldImage->pixdim[5]=this->inverseDeformationFieldImage->du=1.0;
-    this->inverseDeformationFieldImage->dim[6]=this->inverseDeformationFieldImage->nv=1;
-    this->inverseDeformationFieldImage->pixdim[6]=this->inverseDeformationFieldImage->dv=1.0;
-    this->inverseDeformationFieldImage->dim[7]=this->inverseDeformationFieldImage->nw=1;
-    this->inverseDeformationFieldImage->pixdim[7]=this->inverseDeformationFieldImage->dw=1.0;
-    this->inverseDeformationFieldImage->nvox=this->inverseDeformationFieldImage->nx *
-                                        this->inverseDeformationFieldImage->ny *
-                                        this->inverseDeformationFieldImage->nz *
-                                        this->inverseDeformationFieldImage->nt *
-                                        this->inverseDeformationFieldImage->nu;
-    this->inverseDeformationFieldImage->nbyper = this->controlPointGrid->nbyper;
-    this->inverseDeformationFieldImage->datatype = this->controlPointGrid->datatype;
-    this->inverseDeformationFieldImage->data = (void *)calloc(this->inverseDeformationFieldImage->nvox,
-                                                              this->inverseDeformationFieldImage->nbyper);
-
+//    if(this->useSymmetry){
+//        this->inverseDeformationFieldImage = nifti_copy_nim_info(this->currentFloating);
+//        this->inverseDeformationFieldImage->dim[0]=this->inverseDeformationFieldImage->ndim=5;
+//        this->inverseDeformationFieldImage->dim[1]=this->inverseDeformationFieldImage->nx=this->currentFloating->nx;
+//        this->inverseDeformationFieldImage->dim[2]=this->inverseDeformationFieldImage->ny=this->currentFloating->ny;
+//        this->inverseDeformationFieldImage->dim[3]=this->inverseDeformationFieldImage->nz=this->currentFloating->nz;
+//        this->inverseDeformationFieldImage->dim[4]=this->inverseDeformationFieldImage->nt=1;
+//        this->inverseDeformationFieldImage->pixdim[4]=this->inverseDeformationFieldImage->dt=1.0;
+//        if(this->currentFloating->nz==1)
+//            this->inverseDeformationFieldImage->dim[5]=this->inverseDeformationFieldImage->nu=2;
+//        else this->inverseDeformationFieldImage->dim[5]=this->inverseDeformationFieldImage->nu=3;
+//        this->inverseDeformationFieldImage->pixdim[5]=this->inverseDeformationFieldImage->du=1.0;
+//        this->inverseDeformationFieldImage->dim[6]=this->inverseDeformationFieldImage->nv=1;
+//        this->inverseDeformationFieldImage->pixdim[6]=this->inverseDeformationFieldImage->dv=1.0;
+//        this->inverseDeformationFieldImage->dim[7]=this->inverseDeformationFieldImage->nw=1;
+//        this->inverseDeformationFieldImage->pixdim[7]=this->inverseDeformationFieldImage->dw=1.0;
+//        this->inverseDeformationFieldImage->nvox=this->inverseDeformationFieldImage->nx *
+//                                            this->inverseDeformationFieldImage->ny *
+//                                            this->inverseDeformationFieldImage->nz *
+//                                            this->inverseDeformationFieldImage->nt *
+//                                            this->inverseDeformationFieldImage->nu;
+//        this->inverseDeformationFieldImage->nbyper = this->controlPointGrid->nbyper;
+//        this->inverseDeformationFieldImage->datatype = this->controlPointGrid->datatype;
+//        this->inverseDeformationFieldImage->data = (void *)calloc(this->inverseDeformationFieldImage->nvox,
+//                                                                  this->inverseDeformationFieldImage->nbyper);
+//    }
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -78,10 +80,10 @@ template <class T>
 int reg_f3d2<T>::ClearDeformationField()
 {
     reg_f3d<T>::ClearDeformationField();
-    if(this->inverseDeformationFieldImage!=NULL){
-        nifti_image_free(this->inverseDeformationFieldImage);
-        this->inverseDeformationFieldImage=NULL;
-    }
+//    if(this->inverseDeformationFieldImage!=NULL){
+//        nifti_image_free(this->inverseDeformationFieldImage);
+//        this->inverseDeformationFieldImage=NULL;
+//    }
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -89,6 +91,14 @@ int reg_f3d2<T>::ClearDeformationField()
 template <class T>
 int reg_f3d2<T>::GetDeformationField()
 {
+//    if(this->useSymmetry){
+//        memcpy(this->negatedControlPointGrid->data,this->controlPointGrid->data,
+//               this->negatedControlPointGrid->nvox*this->negatedControlPointGrid->nbyper);
+//        reg_getDisplacementFromDeformation(this->negatedControlPointGrid);
+//        reg_tools_addSubMulDivValue(this->negatedControlPointGrid,this->negatedControlPointGrid,-1.0f,2);
+//        reg_getDeformationFromDisplacement(this->negatedControlPointGrid);
+//    }
+
     if(this->f3d2AppFreeStep){
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] Velocity integration performed without approximation\n");
@@ -98,6 +108,13 @@ int reg_f3d2<T>::GetDeformationField()
                                                 this->currentMask,
                                                 false // approximation
                                                 );
+//        if(this->useSymmetry){
+//            reg_getDeformationFieldFromVelocityGrid(this->negatedControlPointGrid,
+//                                                    this->inverseDeformationFieldImage,
+//                                                    NULL,
+//                                                    false // approximation
+//                                                    );
+//        }
     }
     else{
 #ifndef NDEBUG
@@ -108,18 +125,14 @@ int reg_f3d2<T>::GetDeformationField()
                                                 this->currentMask,
                                                 true // approximation
                                                 );
+//        if(this->useSymmetry){
+//            reg_getDeformationFieldFromVelocityGrid(this->negatedControlPointGrid,
+//                                                    this->inverseDeformationFieldImage,
+//                                                    NULL,
+//                                                    true // approximation
+//                                                    );
+//        }
     }
-
-//    memcpy(inverseControlPointGrid->data,this->controlPointGrid->data,
-//           inverseControlPointGrid->nvox*inverseControlPointGrid->nbyper);
-//    reg_getDisplacementFromDeformation(inverseControlPointGrid);
-//    reg_tools_addSubMulDivValue(inverseControlPointGrid,inverseControlPointGrid,-1.0f,2);
-//    reg_getDeformationFromDisplacement(inverseControlPointGrid);
-//    reg_getDeformationFieldFromVelocityGrid(inverseControlPointGrid,
-//                                            this->inverseDeformationFieldImage,
-//                                            NULL,
-//                                            true // approximation
-//                                            );
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -152,9 +165,9 @@ int reg_f3d2<T>::AllocateCurrentInputImage(int level)
     reg_f3d<T>::AllocateCurrentInputImage(level);
 
     this->f3d2AppFreeStep=false;
-    this->negatedControlPointGrid=nifti_copy_nim_info(this->controlPointGrid);
-    this->negatedControlPointGrid->data=(void *)malloc(this->negatedControlPointGrid->nvox*
-                                                       this->negatedControlPointGrid->nbyper);
+//    this->negatedControlPointGrid=nifti_copy_nim_info(this->controlPointGrid);
+//    this->negatedControlPointGrid->data=(void *)malloc(this->negatedControlPointGrid->nvox*
+//                                                       this->negatedControlPointGrid->nbyper);
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -163,10 +176,10 @@ template <class T>
 int reg_f3d2<T>::ClearCurrentInputImage()
 {
     reg_f3d<T>::ClearCurrentInputImage();
-    if(this->negatedControlPointGrid!=NULL){
-        nifti_image_free(this->negatedControlPointGrid);
-        this->negatedControlPointGrid=NULL;
-    }
+//    if(this->negatedControlPointGrid!=NULL){
+//        nifti_image_free(this->negatedControlPointGrid);
+//        this->negatedControlPointGrid=NULL;
+//    }
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

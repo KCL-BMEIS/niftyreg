@@ -1131,17 +1131,18 @@ void reg_spline(nifti_image *splineControlPoint,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template<class NodeTYPE, class VoxelTYPE>
+template<class DTYPE>
 void reg_voxelCentric2NodeCentric2D(nifti_image *nodeImage,
                                     nifti_image *voxelImage,
-                                    float weight
+                                    float weight,
+                                    bool update
                                     )
 {
-    NodeTYPE *nodePtrX = static_cast<NodeTYPE *>(nodeImage->data);
-    NodeTYPE *nodePtrY = &nodePtrX[nodeImage->nx*nodeImage->ny];
+    DTYPE *nodePtrX = static_cast<DTYPE *>(nodeImage->data);
+    DTYPE *nodePtrY = &nodePtrX[nodeImage->nx*nodeImage->ny];
 
-    VoxelTYPE *voxelPtrX = static_cast<VoxelTYPE *>(voxelImage->data);
-    VoxelTYPE *voxelPtrY = &voxelPtrX[voxelImage->nx*voxelImage->ny];
+    DTYPE *voxelPtrX = static_cast<DTYPE *>(voxelImage->data);
+    DTYPE *voxelPtrY = &voxelPtrX[voxelImage->nx*voxelImage->ny];
 
     float ratio[2];
     ratio[0] = nodeImage->dx / voxelImage->dx;
@@ -1149,63 +1150,83 @@ void reg_voxelCentric2NodeCentric2D(nifti_image *nodeImage,
 
     for(int y=0;y<nodeImage->ny; y++){
     int Y = (int)reg_round((float)(y-1) * ratio[1]);
-        VoxelTYPE *yVoxelPtrX=&voxelPtrX[Y*voxelImage->nx];
-        VoxelTYPE *yVoxelPtrY=&voxelPtrY[Y*voxelImage->nx];
+        DTYPE *yVoxelPtrX=&voxelPtrX[Y*voxelImage->nx];
+        DTYPE *yVoxelPtrY=&voxelPtrY[Y*voxelImage->nx];
         for(int x=0;x<nodeImage->nx; x++){
         int X = (int)reg_round((float)(x-1) * ratio[0]);
             if( -1<Y && Y<voxelImage->ny && -1<X && X<voxelImage->nx){
-                *nodePtrX++ = (NodeTYPE)(yVoxelPtrX[X] * weight);
-                *nodePtrY++ = (NodeTYPE)(yVoxelPtrY[X] * weight);
+                if(update){
+                    *nodePtrX += (DTYPE)(yVoxelPtrX[X] * weight);
+                    *nodePtrY += (DTYPE)(yVoxelPtrY[X] * weight);
+                }
+                else{
+                    *nodePtrX = (DTYPE)(yVoxelPtrX[X] * weight);
+                    *nodePtrY = (DTYPE)(yVoxelPtrY[X] * weight);
+                }
             }
             else{
-                *nodePtrX++ = 0.0;
-                *nodePtrY++ = 0.0;
+                if(!update){
+                    *nodePtrX = 0.0;
+                    *nodePtrY = 0.0;
+                }
             }
+            nodePtrX++;nodePtrY++;
         }
     }
 }
 /* *************************************************************** */
-template<class NodeTYPE, class VoxelTYPE>
+template<class DTYPE>
 void reg_voxelCentric2NodeCentric3D(nifti_image *nodeImage,
                                     nifti_image *voxelImage,
-                                    float weight
+                                    float weight,
+                                    bool update
                                     )
 {
-    NodeTYPE *nodePtrX = static_cast<NodeTYPE *>(nodeImage->data);
-    NodeTYPE *nodePtrY = &nodePtrX[nodeImage->nx*nodeImage->ny*nodeImage->nz];
-    NodeTYPE *nodePtrZ = &nodePtrY[nodeImage->nx*nodeImage->ny*nodeImage->nz];
+    DTYPE *nodePtrX = static_cast<DTYPE *>(nodeImage->data);
+    DTYPE *nodePtrY = &nodePtrX[nodeImage->nx*nodeImage->ny*nodeImage->nz];
+    DTYPE *nodePtrZ = &nodePtrY[nodeImage->nx*nodeImage->ny*nodeImage->nz];
 
-    VoxelTYPE *voxelPtrX = static_cast<VoxelTYPE *>(voxelImage->data);
-    VoxelTYPE *voxelPtrY = &voxelPtrX[voxelImage->nx*voxelImage->ny*voxelImage->nz];
-    VoxelTYPE *voxelPtrZ = &voxelPtrY[voxelImage->nx*voxelImage->ny*voxelImage->nz];
+    DTYPE *voxelPtrX = static_cast<DTYPE *>(voxelImage->data);
+    DTYPE *voxelPtrY = &voxelPtrX[voxelImage->nx*voxelImage->ny*voxelImage->nz];
+    DTYPE *voxelPtrZ = &voxelPtrY[voxelImage->nx*voxelImage->ny*voxelImage->nz];
 
-    float ratio[3];
+    DTYPE ratio[3];
     ratio[0] = nodeImage->dx / voxelImage->dx;
     ratio[1] = nodeImage->dy / voxelImage->dy;
     ratio[2] = nodeImage->dz / voxelImage->dz;
 
     for(int z=0;z<nodeImage->nz; z++){
     int Z = (int)reg_round((float)(z-1) * ratio[2]);
-        VoxelTYPE *zvoxelPtrX=&voxelPtrX[Z*voxelImage->nx*voxelImage->ny];
-        VoxelTYPE *zvoxelPtrY=&voxelPtrY[Z*voxelImage->nx*voxelImage->ny];
-        VoxelTYPE *zvoxelPtrZ=&voxelPtrZ[Z*voxelImage->nx*voxelImage->ny];
+        DTYPE *zvoxelPtrX=&voxelPtrX[Z*voxelImage->nx*voxelImage->ny];
+        DTYPE *zvoxelPtrY=&voxelPtrY[Z*voxelImage->nx*voxelImage->ny];
+        DTYPE *zvoxelPtrZ=&voxelPtrZ[Z*voxelImage->nx*voxelImage->ny];
         for(int y=0;y<nodeImage->ny; y++){
         int Y = (int)reg_round((float)(y-1) * ratio[1]);
-            VoxelTYPE *yzvoxelPtrX=&zvoxelPtrX[Y*voxelImage->nx];
-            VoxelTYPE *yzvoxelPtrY=&zvoxelPtrY[Y*voxelImage->nx];
-            VoxelTYPE *yzvoxelPtrZ=&zvoxelPtrZ[Y*voxelImage->nx];
+            DTYPE *yzvoxelPtrX=&zvoxelPtrX[Y*voxelImage->nx];
+            DTYPE *yzvoxelPtrY=&zvoxelPtrY[Y*voxelImage->nx];
+            DTYPE *yzvoxelPtrZ=&zvoxelPtrZ[Y*voxelImage->nx];
             for(int x=0;x<nodeImage->nx; x++){
             int X = (int)reg_round((float)(x-1) * ratio[0]);
                 if(-1<Z && Z<voxelImage->nz && -1<Y && Y<voxelImage->ny && -1<X && X<voxelImage->nx){
-                    *nodePtrX++ = (NodeTYPE)(yzvoxelPtrX[X]*weight);
-                    *nodePtrY++ = (NodeTYPE)(yzvoxelPtrY[X]*weight);
-                    *nodePtrZ++ = (NodeTYPE)(yzvoxelPtrZ[X]*weight);
+                    if(update){
+                        *nodePtrX += (DTYPE)(yzvoxelPtrX[X]*weight);
+                        *nodePtrY += (DTYPE)(yzvoxelPtrY[X]*weight);
+                        *nodePtrZ += (DTYPE)(yzvoxelPtrZ[X]*weight);
+                    }
+                    else{
+                        *nodePtrX = (DTYPE)(yzvoxelPtrX[X]*weight);
+                        *nodePtrY = (DTYPE)(yzvoxelPtrY[X]*weight);
+                        *nodePtrZ = (DTYPE)(yzvoxelPtrZ[X]*weight);
+                    }
                 }
                 else{
-                    *nodePtrX++ = 0.0;
-                    *nodePtrY++ = 0.0;
-                    *nodePtrZ++ = 0.0;
+                    if(!update){
+                        *nodePtrX = 0.0;
+                        *nodePtrY = 0.0;
+                        *nodePtrZ = 0.0;
+                    }
                 }
+                nodePtrX++;nodePtrY++;nodePtrZ++;
             }
         }
     }
@@ -1214,83 +1235,45 @@ void reg_voxelCentric2NodeCentric3D(nifti_image *nodeImage,
 extern "C++"
 void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
                                   nifti_image *voxelImage,
-                                  float weight
+                                  float weight,
+                                  bool update
                                   )
 {
+    if(nodeImage->datatype!=voxelImage->datatype){
+        fprintf(stderr, "[NiftyReg ERROR] reg_voxelCentric2NodeCentric\n");
+        fprintf(stderr, "[NiftyReg ERROR] Both input images do not have the same type\n");
+        exit(1);
+    }
 	// it is assumed than node[000] and voxel[000] are aligned.
 	if(nodeImage->nz==1){	
-		switch(nodeImage->datatype){
-			case NIFTI_TYPE_FLOAT32:
-				switch(voxelImage->datatype){
-					case NIFTI_TYPE_FLOAT32:
-						reg_voxelCentric2NodeCentric2D<float, float>(nodeImage, voxelImage, weight);
-						break;
+            switch(nodeImage->datatype){
+                case NIFTI_TYPE_FLOAT32:
+                    reg_voxelCentric2NodeCentric2D<float>(nodeImage, voxelImage, weight, update);
+                    break;
 #ifdef _NR_DEV
-					case NIFTI_TYPE_FLOAT64:
-						reg_voxelCentric2NodeCentric2D<float, double>(nodeImage, voxelImage, weight);
-						break;
+                case NIFTI_TYPE_FLOAT64:
+                    reg_voxelCentric2NodeCentric2D<double>(nodeImage, voxelImage, weight, update);
+                    break;
 #endif
-					default:
-                        fprintf(stderr,"[NiftyReg ERROR] reg_voxelCentric2NodeCentric:v1\tdata type not supported\n");
-                        exit(1);
-				}
-				break;
-			case NIFTI_TYPE_FLOAT64:
-				switch(voxelImage->datatype){
-					case NIFTI_TYPE_FLOAT32:
-						reg_voxelCentric2NodeCentric2D<double, float>(nodeImage, voxelImage, weight);
-						break;
+                default:
+                    fprintf(stderr,"[NiftyReg ERROR] reg_voxelCentric2NodeCentric:\tdata type not supported\n");
+                    exit(1);
+            }
+        }
+        else{
+            switch(nodeImage->datatype){
+                case NIFTI_TYPE_FLOAT32:
+                    reg_voxelCentric2NodeCentric3D<float>(nodeImage, voxelImage, weight, update);
+                    break;
 #ifdef _NR_DEV
-					case NIFTI_TYPE_FLOAT64:
-						reg_voxelCentric2NodeCentric2D<double, double>(nodeImage, voxelImage, weight);
-						break;
+                case NIFTI_TYPE_FLOAT64:
+                    reg_voxelCentric2NodeCentric3D<double>(nodeImage, voxelImage, weight, update);
+                    break;
 #endif
-					default:
-                        fprintf(stderr,"[NiftyReg ERROR] reg_voxelCentric2NodeCentric:v2\tdata type not supported\n");
-                        exit(1);
-				}
-				break;
-			default:
-                fprintf(stderr,"[NiftyReg ERROR] reg_voxelCentric2NodeCentric:n\tdata type not supported\n");
-                exit(1);
-		}
-	}
-	else{
-		switch(nodeImage->datatype){
-			case NIFTI_TYPE_FLOAT32:
-				switch(voxelImage->datatype){
-					case NIFTI_TYPE_FLOAT32:
-						reg_voxelCentric2NodeCentric3D<float, float>(nodeImage, voxelImage, weight);
-						break;
-#ifdef _NR_DEV
-					case NIFTI_TYPE_FLOAT64:
-						reg_voxelCentric2NodeCentric3D<float, double>(nodeImage, voxelImage, weight);
-						break;
-#endif
-					default:
-                        fprintf(stderr,"[NiftyReg ERROR] reg_voxelCentric2NodeCentric:v1\tdata type not supported\n");
-                        exit(1);
-				}
-				break;
-			case NIFTI_TYPE_FLOAT64:
-				switch(voxelImage->datatype){
-					case NIFTI_TYPE_FLOAT32:
-						reg_voxelCentric2NodeCentric3D<double, float>(nodeImage, voxelImage, weight);
-						break;
-#ifdef _NR_DEV
-					case NIFTI_TYPE_FLOAT64:
-						reg_voxelCentric2NodeCentric3D<double, double>(nodeImage, voxelImage, weight);
-						break;
-#endif
-					default:
-                        fprintf(stderr,"[NiftyReg ERROR] reg_voxelCentric2NodeCentric:v2\tdata type not supported\n");
-                        exit(1);
-				}
-				break;
-			default:
-                fprintf(stderr,"[NiftyReg ERROR] reg_voxelCentric2NodeCentric:n\tdata type not supported\n");
-                exit(1);
-		}
+                default:
+                    fprintf(stderr,"[NiftyReg ERROR] reg_voxelCentric2NodeCentric:\tdata type not supported\n");
+                    exit(1);
+            }
 	}
 }
 /* *************************************************************** */
@@ -2774,80 +2757,6 @@ int reg_spline_cppComposition(nifti_image *grid1,
                 fprintf(stderr,"[NiftyReg ERROR] reg_spline_cppComposition 2D\n");
                 fprintf(stderr,"[NiftyReg ERROR] Only implemented for single or double precision images\n");
                 return 1;
-        }
-    }
-    return 0;
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template <class ImageTYPE>
-void reg_bspline_GetJacobianMapFromVelocityField_2D(nifti_image* velocityFieldImage,
-                                                    nifti_image* jacobianImage,
-                                                    bool approx)
-{
-    //TODO
-    exit(1);
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template <class ImageTYPE>
-void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldImage,
-                                                    nifti_image* jacobianImage,
-                                                    bool approx)
-{
-//#if _USE_SSE
-//    if(sizeof(ImageTYPE)!=4){
-//        fprintf(stderr, "[NiftyReg ERROR] reg_bspline_GetJacobianMapFromVelocityField_3D\n");
-//        fprintf(stderr, "The SSE implementation assume single precision... Exit\n");
-//        exit(0);
-//    }
-//    union u{
-//        __m128 m;
-//        float f[4];
-//    } val;
-//#endif
-
-    //TODO
-    exit(1);
-
-}
-/* *************************************************************** */
-int reg_bspline_GetJacobianMapFromVelocityField(nifti_image* velocityFieldImage,
-                                                nifti_image* jacobianImage)
-{
-    if(velocityFieldImage->datatype != jacobianImage->datatype){
-        fprintf(stderr,"[NiftyReg ERROR] reg_bspline_GetJacobianMapFromVelocityField\n");
-        fprintf(stderr,"[NiftyReg ERROR] Input and output image do not have the same data type\n");
-        return 1;
-    }
-    if(velocityFieldImage->nz>1){
-        switch(velocityFieldImage->datatype){
-            case NIFTI_TYPE_FLOAT32:
-                reg_bspline_GetJacobianMapFromVelocityField_3D<float>(velocityFieldImage, jacobianImage, 0);
-                break;
-            case NIFTI_TYPE_FLOAT64:
-                reg_bspline_GetJacobianMapFromVelocityField_3D<double>(velocityFieldImage, jacobianImage, 0);
-                break;
-            default:
-                fprintf(stderr,"[NiftyReg ERROR] reg_bspline_GetJacobianMapFromVelocityField_3D\n");
-                fprintf(stderr,"[NiftyReg ERROR] Only implemented for float or double precision\n");
-                return 1;
-                break;
-        }
-    }
-    else{
-        switch(velocityFieldImage->datatype){
-            case NIFTI_TYPE_FLOAT32:
-                reg_bspline_GetJacobianMapFromVelocityField_2D<float>(velocityFieldImage, jacobianImage, 0);
-                break;
-            case NIFTI_TYPE_FLOAT64:
-                reg_bspline_GetJacobianMapFromVelocityField_2D<double>(velocityFieldImage, jacobianImage, 0);
-                break;
-            default:
-                fprintf(stderr,"[NiftyReg ERROR] reg_bspline_GetJacobianMapFromVelocityField_2D\n");
-                fprintf(stderr,"[NiftyReg ERROR] Only implemented for float or double precision\n");
-                return 1;
-                break;
         }
     }
     return 0;

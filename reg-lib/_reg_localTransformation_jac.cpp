@@ -2842,3 +2842,396 @@ void reg_getJacobianMapFromDeformationField(nifti_image *deformationField,
 }
 /* *************************************************************** */
 /* *************************************************************** */
+template <class DTYPE>
+void reg_bspline_GetJacobianMapFromVelocityField_2D(nifti_image* velocityFieldImage,
+                                                    nifti_image* jacobianImage)
+{
+    // The initial deformation fields are allocated
+    nifti_image *deformationFieldA = nifti_copy_nim_info(jacobianImage);
+    deformationFieldA->dim[0]=deformationFieldA->ndim=5;
+    deformationFieldA->dim[1]=deformationFieldA->nx=jacobianImage->nx;
+    deformationFieldA->dim[2]=deformationFieldA->ny=jacobianImage->ny;
+    deformationFieldA->dim[3]=deformationFieldA->nz=jacobianImage->nz;
+    deformationFieldA->dim[4]=deformationFieldA->nt=1;
+    deformationFieldA->pixdim[4]=deformationFieldA->dt=1.0;
+    deformationFieldA->dim[5]=deformationFieldA->nu=velocityFieldImage->nu;
+    deformationFieldA->pixdim[5]=deformationFieldA->du=1.0;
+    deformationFieldA->dim[6]=deformationFieldA->nv=1;
+    deformationFieldA->pixdim[6]=deformationFieldA->dv=1.0;
+    deformationFieldA->dim[7]=deformationFieldA->nw=1;
+    deformationFieldA->pixdim[7]=deformationFieldA->dw=1.0;
+    deformationFieldA->nvox=deformationFieldA->nx *
+                            deformationFieldA->ny *
+                            deformationFieldA->nz *
+                            deformationFieldA->nt *
+                            deformationFieldA->nu;
+    deformationFieldA->nbyper = jacobianImage->nbyper;
+    deformationFieldA->datatype = jacobianImage->datatype;
+    deformationFieldA->data = (void *)calloc(deformationFieldA->nvox, deformationFieldA->nbyper);
+    nifti_image *deformationFieldB = nifti_copy_nim_info(deformationFieldA);
+    deformationFieldB->data = (void *)calloc(deformationFieldB->nvox, deformationFieldB->nbyper);
+
+    // The initial deformation field is computed
+    reg_spline(velocityFieldImage,
+               deformationFieldA,
+               deformationFieldA,
+               NULL, // mask
+               false, //composition
+               true // bspline
+               );
+
+    // The Jacobian determinant values are initialised to 1
+    DTYPE *jacobianPtr = static_cast<DTYPE *>(jacobianImage->data);
+    for(unsigned int i=0;i<jacobianImage->nvox;++i) jacobianPtr[i]=1;
+
+    mat33 reorient, desorient, jacobianMatrix;
+    getReorientationMatrix(deformationFieldA, &desorient, &reorient);
+
+    mat44 *real2voxel=NULL;
+    mat44 *voxel2real=NULL;
+    if(deformationFieldA->sform_code){
+        real2voxel=&(deformationFieldA->sto_ijk);
+        voxel2real=&(deformationFieldA->sto_xyz);
+    }
+    else{
+        real2voxel=&(deformationFieldA->qto_ijk);
+        voxel2real=&(deformationFieldA->qto_xyz);
+    }
+
+    DTYPE *deformationAPtrX = static_cast<DTYPE *>(deformationFieldA->data);
+    DTYPE *deformationAPtrY = &deformationAPtrX[jacobianImage->nvox];
+
+    DTYPE *deformationBPtrX = static_cast<DTYPE *>(deformationFieldB->data);
+    DTYPE *deformationBPtrY = &deformationBPtrX[jacobianImage->nvox];
+
+    for(unsigned int i=0;i<velocityFieldImage->pixdim[5];++i){
+
+        // The jacobian determinant is computed at every voxel
+        unsigned int currentIndex=0;
+            for(int y=0;y<jacobianImage->ny;++y){
+                for(int x=0;x<jacobianImage->nx;++x){
+
+                    // Extract the current voxel deformation
+                    DTYPE realPosition[2]={
+                        deformationAPtrX[currentIndex],
+                        deformationAPtrY[currentIndex]
+                        };
+
+                    // Get the corresponding voxel position
+                    DTYPE voxelPosition[2];
+                    voxelPosition[0]=real2voxel->m[0][0] * realPosition[0] +
+                                     real2voxel->m[0][1] * realPosition[1] +
+                                     real2voxel->m[0][3];
+                    voxelPosition[1]=real2voxel->m[1][0] * realPosition[0] +
+                                     real2voxel->m[1][1] * realPosition[1] +
+                                     real2voxel->m[1][3];
+
+                    // Compute the relative positions
+                    int previous[2];
+                    previous[0]=(int)floor(voxelPosition[0]);
+                    previous[1]=(int)floor(voxelPosition[1]);
+                    DTYPE basisX[2], basisY[2], first[2]={-1.0,1.0};
+                    basisX[1]=voxelPosition[0]-(DTYPE)previous[0];basisX[0]=1.0-basisX[1];
+                    basisY[1]=voxelPosition[1]-(DTYPE)previous[1];basisY[0]=1.0-basisY[1];
+
+                    DTYPE defX, defY, firstX, firstY, basis;
+                    memset(&jacobianMatrix,0,sizeof(mat33));
+                    DTYPE newDefX=0.0, newDefY=0.0;
+                        for(int b=0;b<2;++b){
+                            int currentY=previous[1]+b;
+                            for(int a=0;a<2;++a){
+                                int currentX=previous[0]+a;
+
+                                firstX=first[a]*basisY[b];
+                                firstY=basisX[a]*first[b];
+                                basis=basisX[a]*basisY[b];
+
+                                if(currentX>-1 && currentX<deformationFieldA->nx &&
+                                   currentY>-1 && currentY<deformationFieldA->ny){
+                                    // Uses the deformation field if voxel is in its space
+                                    unsigned int index=currentY*deformationFieldA->nx+currentX;
+                                    defX = deformationAPtrX[index];
+                                    defY = deformationAPtrY[index];
+                                }
+                                else{
+                                    // Uses the deformation field affine transformation
+                                    defX = voxel2real->m[0][0] * currentX +
+                                           voxel2real->m[0][1] * currentY +
+                                           voxel2real->m[0][3];
+                                    defY = voxel2real->m[1][0] * currentX +
+                                           voxel2real->m[1][1] * currentY +
+                                           voxel2real->m[1][3];
+                                }//in space
+
+                                newDefX += basis * defX;
+                                newDefY += basis * defY;
+                                jacobianMatrix.m[0][0] += firstX*defX;
+                                jacobianMatrix.m[0][1] += firstY*defX;
+                                jacobianMatrix.m[1][0] += firstX*defY;
+                                jacobianMatrix.m[1][1] += firstY*defY;
+                            }//a
+                        }//b
+                    jacobianMatrix.m[0][0] /= deformationFieldA->dx;
+                    jacobianMatrix.m[0][1] /= deformationFieldA->dy;
+                    jacobianMatrix.m[1][0] /= deformationFieldA->dx;
+                    jacobianMatrix.m[1][1] /= deformationFieldA->dy;
+                    jacobianMatrix.m[2][2]=1.f;
+
+                    jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
+                    DTYPE detJac = nifti_mat33_determ(jacobianMatrix);
+
+                    jacobianPtr[currentIndex] *= detJac;
+                    deformationBPtrX[currentIndex]=newDefX;
+                    deformationBPtrY[currentIndex]=newDefY;
+                    currentIndex++;
+
+                }// x jacImage
+            }//y jacImage
+        if(i!=velocityFieldImage->pixdim[5]-1)
+            memcpy(deformationFieldA->data,deformationFieldB->data,
+                   deformationFieldA->nvox*deformationFieldA->nbyper);
+    }//composition step
+
+    nifti_image_free(deformationFieldA);
+    nifti_image_free(deformationFieldB);
+
+}
+/* *************************************************************** */
+template <class DTYPE>
+void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldImage,
+                                                    nifti_image* jacobianImage)
+{
+    // The initial deformation fields are allocated
+    nifti_image *deformationFieldA = nifti_copy_nim_info(jacobianImage);
+    deformationFieldA->dim[0]=deformationFieldA->ndim=5;
+    deformationFieldA->dim[1]=deformationFieldA->nx=jacobianImage->nx;
+    deformationFieldA->dim[2]=deformationFieldA->ny=jacobianImage->ny;
+    deformationFieldA->dim[3]=deformationFieldA->nz=jacobianImage->nz;
+    deformationFieldA->dim[4]=deformationFieldA->nt=1;
+    deformationFieldA->pixdim[4]=deformationFieldA->dt=1.0;
+    deformationFieldA->dim[5]=deformationFieldA->nu=velocityFieldImage->nu;
+    deformationFieldA->pixdim[5]=deformationFieldA->du=1.0;
+    deformationFieldA->dim[6]=deformationFieldA->nv=1;
+    deformationFieldA->pixdim[6]=deformationFieldA->dv=1.0;
+    deformationFieldA->dim[7]=deformationFieldA->nw=1;
+    deformationFieldA->pixdim[7]=deformationFieldA->dw=1.0;
+    deformationFieldA->nvox=deformationFieldA->nx *
+                            deformationFieldA->ny *
+                            deformationFieldA->nz *
+                            deformationFieldA->nt *
+                            deformationFieldA->nu;
+    deformationFieldA->nbyper = jacobianImage->nbyper;
+    deformationFieldA->datatype = jacobianImage->datatype;
+    deformationFieldA->data = (void *)calloc(deformationFieldA->nvox, deformationFieldA->nbyper);
+    nifti_image *deformationFieldB = nifti_copy_nim_info(deformationFieldA);
+    deformationFieldB->data = (void *)calloc(deformationFieldB->nvox, deformationFieldB->nbyper);
+
+    // The initial deformation field is computed
+    reg_spline(velocityFieldImage,
+               deformationFieldA,
+               deformationFieldA,
+               NULL, // mask
+               false, //composition
+               true // bspline
+               );
+
+    // The Jacobian determinant values are initialised to 1
+    DTYPE *jacobianPtr = static_cast<DTYPE *>(jacobianImage->data);
+    for(unsigned int i=0;i<jacobianImage->nvox;++i) jacobianPtr[i]=1;
+
+    mat33 reorient, desorient, jacobianMatrix;
+    getReorientationMatrix(deformationFieldA, &desorient, &reorient);
+
+    mat44 *real2voxel=NULL;
+    mat44 *voxel2real=NULL;
+    if(deformationFieldA->sform_code){
+        real2voxel=&(deformationFieldA->sto_ijk);
+        voxel2real=&(deformationFieldA->sto_xyz);
+    }
+    else{
+        real2voxel=&(deformationFieldA->qto_ijk);
+        voxel2real=&(deformationFieldA->qto_xyz);
+    }
+
+    DTYPE *deformationAPtrX = static_cast<DTYPE *>(deformationFieldA->data);
+    DTYPE *deformationAPtrY = &deformationAPtrX[jacobianImage->nvox];
+    DTYPE *deformationAPtrZ = &deformationAPtrY[jacobianImage->nvox];
+
+    DTYPE *deformationBPtrX = static_cast<DTYPE *>(deformationFieldB->data);
+    DTYPE *deformationBPtrY = &deformationBPtrX[jacobianImage->nvox];
+    DTYPE *deformationBPtrZ = &deformationBPtrY[jacobianImage->nvox];
+
+    for(unsigned int i=0;i<velocityFieldImage->pixdim[5];++i){
+
+        // The jacobian determinant is computed at every voxel
+        unsigned int currentIndex=0;
+        for(int z=0;z<jacobianImage->nz;++z){
+            for(int y=0;y<jacobianImage->ny;++y){
+                for(int x=0;x<jacobianImage->nx;++x){
+
+                    // Extract the current voxel deformation
+                    DTYPE realPosition[3]={
+                        deformationAPtrX[currentIndex],
+                        deformationAPtrY[currentIndex],
+                        deformationAPtrZ[currentIndex]
+                        };
+
+                    // Get the corresponding voxel position
+                    DTYPE voxelPosition[3];
+                    voxelPosition[0]=real2voxel->m[0][0] * realPosition[0] +
+                                     real2voxel->m[0][1] * realPosition[1] +
+                                     real2voxel->m[0][2] * realPosition[2] +
+                                     real2voxel->m[0][3];
+                    voxelPosition[1]=real2voxel->m[1][0] * realPosition[0] +
+                                     real2voxel->m[1][1] * realPosition[1] +
+                                     real2voxel->m[1][2] * realPosition[2] +
+                                     real2voxel->m[1][3];
+                    voxelPosition[2]=real2voxel->m[2][0] * realPosition[0] +
+                                     real2voxel->m[2][1] * realPosition[1] +
+                                     real2voxel->m[2][2] * realPosition[2] +
+                                     real2voxel->m[2][3];
+
+                    // Compute the relative positions
+                    int previous[3];
+                    previous[0]=(int)floor(voxelPosition[0]);
+                    previous[1]=(int)floor(voxelPosition[1]);
+                    previous[2]=(int)floor(voxelPosition[2]);
+                    DTYPE basisX[2], basisY[2], basisZ[2], first[2]={-1.0,1.0};
+                    basisX[1]=voxelPosition[0]-(DTYPE)previous[0];basisX[0]=1.0-basisX[1];
+                    basisY[1]=voxelPosition[1]-(DTYPE)previous[1];basisY[0]=1.0-basisY[1];
+                    basisZ[1]=voxelPosition[2]-(DTYPE)previous[2];basisZ[0]=1.0-basisZ[1];
+
+                    DTYPE defX, defY, defZ, firstX, firstY, firstZ, basis;
+                    memset(&jacobianMatrix,0,sizeof(mat33));
+                    DTYPE newDefX=0.0, newDefY=0.0, newDefZ=0.0;
+                    for(int c=0;c<2;++c){
+                        int currentZ=previous[2]+c;
+                        for(int b=0;b<2;++b){
+                            int currentY=previous[1]+b;
+                            for(int a=0;a<2;++a){
+                                int currentX=previous[0]+a;
+
+                                firstX=first[a]*basisY[b]*basisZ[c];
+                                firstY=basisX[a]*first[b]*basisZ[c];
+                                firstZ=basisX[a]*basisY[b]*first[c];
+                                basis=basisX[a]*basisY[b]*basisZ[c];
+
+                                if(currentX>-1 && currentX<deformationFieldA->nx &&
+                                   currentY>-1 && currentY<deformationFieldA->ny &&
+                                   currentZ>-1 && currentZ<deformationFieldA->nz){
+                                    // Uses the deformation field if voxel is in its space
+                                    unsigned int index=(currentZ*deformationFieldA->ny+currentY)
+                                                       *deformationFieldA->nx+currentX;
+                                    defX = deformationAPtrX[index];
+                                    defY = deformationAPtrY[index];
+                                    defZ = deformationAPtrZ[index];
+                                }
+                                else{
+                                    // Uses the deformation field affine transformation
+                                    defX = voxel2real->m[0][0] * currentX +
+                                           voxel2real->m[0][1] * currentY +
+                                           voxel2real->m[0][2] * currentZ +
+                                           voxel2real->m[0][3];
+                                    defY = voxel2real->m[1][0] * currentX +
+                                           voxel2real->m[1][1] * currentY +
+                                           voxel2real->m[1][2] * currentZ +
+                                           voxel2real->m[1][3];
+                                    defZ = voxel2real->m[2][0] * currentX +
+                                           voxel2real->m[2][1] * currentY +
+                                           voxel2real->m[2][2] * currentZ +
+                                           voxel2real->m[2][3];
+                                }//in space
+
+                                newDefX += basis * defX;
+                                newDefY += basis * defY;
+                                newDefZ += basis * defZ;
+                                jacobianMatrix.m[0][0] += firstX*defX;
+                                jacobianMatrix.m[0][1] += firstY*defX;
+                                jacobianMatrix.m[0][2] += firstZ*defX;
+                                jacobianMatrix.m[1][0] += firstX*defY;
+                                jacobianMatrix.m[1][1] += firstY*defY;
+                                jacobianMatrix.m[1][2] += firstZ*defY;
+                                jacobianMatrix.m[2][0] += firstX*defZ;
+                                jacobianMatrix.m[2][1] += firstY*defZ;
+                                jacobianMatrix.m[2][2] += firstZ*defZ;
+                            }//a
+                        }//b
+                    }//c
+                    jacobianMatrix.m[0][0] /= deformationFieldA->dx;
+                    jacobianMatrix.m[0][1] /= deformationFieldA->dy;
+                    jacobianMatrix.m[0][2] /= deformationFieldA->dz;
+                    jacobianMatrix.m[1][0] /= deformationFieldA->dx;
+                    jacobianMatrix.m[1][1] /= deformationFieldA->dy;
+                    jacobianMatrix.m[1][2] /= deformationFieldA->dz;
+                    jacobianMatrix.m[2][0] /= deformationFieldA->dx;
+                    jacobianMatrix.m[2][1] /= deformationFieldA->dy;
+                    jacobianMatrix.m[2][2] /= deformationFieldA->dz;
+
+                    jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
+                    DTYPE detJac = nifti_mat33_determ(jacobianMatrix);
+
+                    jacobianPtr[currentIndex] *= detJac;
+                    deformationBPtrX[currentIndex]=newDefX;
+                    deformationBPtrY[currentIndex]=newDefY;
+                    deformationBPtrZ[currentIndex]=newDefZ;
+                    currentIndex++;
+
+                }// x jacImage
+            }//y jacImage
+        }//z jacImage
+        if(i!=velocityFieldImage->pixdim[5]-1)
+            memcpy(deformationFieldA->data,deformationFieldB->data,
+                   deformationFieldA->nvox*deformationFieldA->nbyper);
+    }//composition step
+
+    nifti_image_free(deformationFieldA);
+    nifti_image_free(deformationFieldB);
+
+}
+/* *************************************************************** */
+int reg_bspline_GetJacobianMapFromVelocityField(nifti_image* velocityFieldImage,
+                                                nifti_image* jacobianImage)
+{
+    if(velocityFieldImage->datatype != jacobianImage->datatype){
+        fprintf(stderr,"[NiftyReg ERROR] reg_bspline_GetJacobianMapFromVelocityField\n");
+        fprintf(stderr,"[NiftyReg ERROR] Input and output image do not have the same data type\n");
+        return 1;
+    }
+    if(velocityFieldImage->nz>1){
+        switch(velocityFieldImage->datatype){
+            case NIFTI_TYPE_FLOAT32:
+                reg_bspline_GetJacobianMapFromVelocityField_3D<float>(velocityFieldImage, jacobianImage);
+                break;
+#ifdef _NR_DEV
+            case NIFTI_TYPE_FLOAT64:
+                reg_bspline_GetJacobianMapFromVelocityField_3D<double>(velocityFieldImage, jacobianImage);
+                break;
+            default:
+#endif
+                fprintf(stderr,"[NiftyReg ERROR] reg_bspline_GetJacobianMapFromVelocityField_3D\n");
+                fprintf(stderr,"[NiftyReg ERROR] Only implemented for float or double precision\n");
+                return 1;
+                break;
+        }
+    }
+    else{
+        switch(velocityFieldImage->datatype){
+            case NIFTI_TYPE_FLOAT32:
+                reg_bspline_GetJacobianMapFromVelocityField_2D<float>(velocityFieldImage, jacobianImage);
+                break;
+#ifdef _NR_DEV
+            case NIFTI_TYPE_FLOAT64:
+                reg_bspline_GetJacobianMapFromVelocityField_2D<double>(velocityFieldImage, jacobianImage);
+                break;
+            default:
+#endif
+                fprintf(stderr,"[NiftyReg ERROR] reg_bspline_GetJacobianMapFromVelocityField_3D\n");
+                fprintf(stderr,"[NiftyReg ERROR] Only implemented for float or double precision\n");
+                return 1;
+                break;
+        }
+    }
+    return 0;
+}
+/* *************************************************************** */
+/* *************************************************************** */

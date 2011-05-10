@@ -167,8 +167,7 @@ int main(int argc, char **argv)
         if(flag->inputCPPFlag){
             if(controlPointImage->pixdim[5]>1){
                 reg_bspline_GetJacobianMapFromVelocityField(controlPointImage,
-                                                            jacobianImage
-                                                            );
+                                                            jacobianImage);
             }
             else{
                 reg_bspline_GetJacobianMap(controlPointImage,

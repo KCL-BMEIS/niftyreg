@@ -1264,7 +1264,8 @@ int reg_f3d<T>::GetSimilarityMeasureGradient()
     // The node based NMI gradient is extracted
     reg_voxelCentric2NodeCentric(this->nodeBasedMeasureGradientImage,
                                  this->voxelBasedMeasureGradientImage,
-                                 1.0-this->bendingEnergyWeight-this->jacobianLogWeight);
+                                 1.0-this->bendingEnergyWeight-this->jacobianLogWeight,
+                                 false);
 
     /* The gradient is converted from voxel space to real space */
     mat44 *floatingMatrix_xyz=NULL;

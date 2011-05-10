@@ -122,7 +122,8 @@ double reg_bspline_correctFolding(nifti_image *splineControlPoint,
 extern "C++"
 void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
                                   nifti_image *voxelImage,
-                                  float weight
+                                  float weight,
+                                  bool update
                                   );
 /* *************************************************************** */
 /** reg_bspline_refineControlPointGrid
