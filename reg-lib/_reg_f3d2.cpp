@@ -148,6 +148,13 @@ int reg_f3d2<T>::UpdateControlPointPosition(T scale)
 template <class T>
 int reg_f3d2<T>::AllocateCurrentInputImage(int level)
 {
+    if(this->affineTransformation!=NULL){
+        fprintf(stderr, "[NiftyReg ERROR] The velocity field parametrisation does not handle affine input\n");
+        fprintf(stderr, "[NiftyReg ERROR] Please update your source image sform using reg_transform\n");
+        fprintf(stderr, "[NiftyReg ERROR] and use the updated source image as an input\n.");
+        exit(1);
+    }
+
     // The number of step is store in the pixdim[5]
     this->controlPointGrid->pixdim[5]=this->stepNumber;
     this->controlPointGrid->du=this->stepNumber;
