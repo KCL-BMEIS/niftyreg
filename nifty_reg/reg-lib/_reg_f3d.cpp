@@ -64,7 +64,7 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->useConjGradient=true;
     this->maxSSD=NULL;
     this->entropies[0]=this->entropies[1]=this->entropies[2]=this->entropies[3]=0.;
-    this->stepNumber=8;
+    this->stepNumber=6;
     this->currentIteration=0;
 //	this->threadNumber=1;
 
