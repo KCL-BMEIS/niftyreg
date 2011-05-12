@@ -167,27 +167,27 @@ inline int previous(int current, int num_dims){
 }
 
 /// Multi channel NMI version - Entropy
-extern "C++" template<class PrecisionTYPE>
+extern "C++"
 void reg_getEntropies(nifti_image *targetImages,
                       nifti_image *resultImages,
                       int type,
                       unsigned int *target_bins, // should be an array of size num_target_volumes
                       unsigned int *result_bins, // should be an array of size num_result_volumes
-                      PrecisionTYPE *probaJointHistogram,
-                      PrecisionTYPE *logJointHistogram,
-                      PrecisionTYPE *entropies,
+                      double *probaJointHistogram,
+                      double *logJointHistogram,
+                      double *entropies,
                       int *mask);
 
 /// Multi channel NMI version - Gradient
-extern "C++" template<class PrecisionTYPE>
+extern "C++"
 void reg_getVoxelBasedNMIGradientUsingPW(nifti_image *targetImages,
                                          nifti_image *resultImages,
                                          int type,
                                          nifti_image *resultImageGradient,
                                          unsigned int *target_bins,
                                          unsigned int *result_bins,
-                                         PrecisionTYPE *logJointHistogram,
-                                         PrecisionTYPE *entropies,
+                                         double *logJointHistogram,
+                                         double *entropies,
                                          nifti_image *nmiGradientImage,
                                          int *mask);
 
