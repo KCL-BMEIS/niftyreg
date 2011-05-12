@@ -1204,15 +1204,15 @@ double reg_f3d<T>::ComputeSimilarityMeasure()
         measure /= this->maxSSD[this->currentLevel];
     }
     else{
-        reg_getEntropies<double>(this->currentReference,
-                                 this->warped,
-                                 2,
-                                 this->referenceBinNumber,
-                                 this->floatingBinNumber,
-                                 this->probaJointHistogram,
-                                 this->logJointHistogram,
-                                 this->entropies,
-                                 this->currentMask);
+        reg_getEntropies(this->currentReference,
+                         this->warped,
+                         2,
+                         this->referenceBinNumber,
+                         this->floatingBinNumber,
+                         this->probaJointHistogram,
+                         this->logJointHistogram,
+                         this->entropies,
+                         this->currentMask);
     measure = (this->entropies[0]+this->entropies[1])/this->entropies[2];
     }
     return double(1.0-this->bendingEnergyWeight-this->jacobianLogWeight) * measure;
@@ -1241,16 +1241,16 @@ int reg_f3d<T>::GetSimilarityMeasureGradient()
 	}
 	else{
             // Compute the voxel based NMI gradient
-            reg_getVoxelBasedNMIGradientUsingPW<double>(this->currentReference,
-                                                        this->warped,
-                                                        2,
-                                                        this->warpedGradientImage,
-                                                        this->referenceBinNumber,
-                                                        this->floatingBinNumber,
-                                                        this->logJointHistogram,
-                                                        this->entropies,
-                                                        this->voxelBasedMeasureGradientImage,
-                                                        this->currentMask);
+            reg_getVoxelBasedNMIGradientUsingPW(this->currentReference,
+                                                this->warped,
+                                                2,
+                                                this->warpedGradientImage,
+                                                this->referenceBinNumber,
+                                                this->floatingBinNumber,
+                                                this->logJointHistogram,
+                                                this->entropies,
+                                                this->voxelBasedMeasureGradientImage,
+                                                this->currentMask);
     }
 
     // The voxel based NMI gradient is convolved with a spline kernel

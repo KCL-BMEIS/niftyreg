@@ -3028,7 +3028,7 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
 
     // The initial deformation field is computed
     reg_spline(velocityFieldImage,
-               deformationFieldA,
+               jacobianImage,
                deformationFieldA,
                NULL, // mask
                false, //composition
@@ -3096,12 +3096,12 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                     previous[0]=(int)floor(voxelPosition[0]);
                     previous[1]=(int)floor(voxelPosition[1]);
                     previous[2]=(int)floor(voxelPosition[2]);
-                    DTYPE basisX[2], basisY[2], basisZ[2], first[2]={-1.0,1.0};
-                    basisX[1]=voxelPosition[0]-(DTYPE)previous[0];basisX[0]=1.0-basisX[1];
-                    basisY[1]=voxelPosition[1]-(DTYPE)previous[1];basisY[0]=1.0-basisY[1];
-                    basisZ[1]=voxelPosition[2]-(DTYPE)previous[2];basisZ[0]=1.0-basisZ[1];
+                    DTYPE basisX[2], basisY[2], basisZ[2], first[2]={-1,1};
+                    basisX[1]=voxelPosition[0]-(DTYPE)previous[0];basisX[0]=1.-basisX[1];
+                    basisY[1]=voxelPosition[1]-(DTYPE)previous[1];basisY[0]=1.-basisY[1];
+                    basisZ[1]=voxelPosition[2]-(DTYPE)previous[2];basisZ[0]=1.-basisZ[1];
 
-                    DTYPE defX, defY, defZ, firstX, firstY, firstZ, basis;
+                    DTYPE defX, defY, defZ, basisCoeff[4];
                     memset(&jacobianMatrix,0,sizeof(mat33));
                     DTYPE newDefX=0.0, newDefY=0.0, newDefZ=0.0;
                     for(int c=0;c<2;++c){
@@ -3111,17 +3111,17 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                             for(int a=0;a<2;++a){
                                 int currentX=previous[0]+a;
 
-                                firstX=first[a]*basisY[b]*basisZ[c];
-                                firstY=basisX[a]*first[b]*basisZ[c];
-                                firstZ=basisX[a]*basisY[b]*first[c];
-                                basis=basisX[a]*basisY[b]*basisZ[c];
+                                basisCoeff[0]=basisX[a]*basisY[b]*basisZ[c];
+                                basisCoeff[1]=first[a]*basisY[b]*basisZ[c];
+                                basisCoeff[2]=basisX[a]*first[b]*basisZ[c];
+                                basisCoeff[3]=basisX[a]*basisY[b]*first[c];
 
                                 if(currentX>-1 && currentX<deformationFieldA->nx &&
                                    currentY>-1 && currentY<deformationFieldA->ny &&
                                    currentZ>-1 && currentZ<deformationFieldA->nz){
                                     // Uses the deformation field if voxel is in its space
-                                    unsigned int index=(currentZ*deformationFieldA->ny+currentY)
-                                                       *deformationFieldA->nx+currentX;
+                                    int index=(currentZ*deformationFieldA->ny+currentY)
+                                              *deformationFieldA->nx+currentX;
                                     defX = deformationAPtrX[index];
                                     defY = deformationAPtrY[index];
                                     defZ = deformationAPtrZ[index];
@@ -3140,20 +3140,20 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                                            voxel2real->m[2][1] * currentY +
                                            voxel2real->m[2][2] * currentZ +
                                            voxel2real->m[2][3];
-                                }//in space
+                                }//padding
 
-                                newDefX += basis * defX;
-                                newDefY += basis * defY;
-                                newDefZ += basis * defZ;
-                                jacobianMatrix.m[0][0] += firstX*defX;
-                                jacobianMatrix.m[0][1] += firstY*defX;
-                                jacobianMatrix.m[0][2] += firstZ*defX;
-                                jacobianMatrix.m[1][0] += firstX*defY;
-                                jacobianMatrix.m[1][1] += firstY*defY;
-                                jacobianMatrix.m[1][2] += firstZ*defY;
-                                jacobianMatrix.m[2][0] += firstX*defZ;
-                                jacobianMatrix.m[2][1] += firstY*defZ;
-                                jacobianMatrix.m[2][2] += firstZ*defZ;
+                                newDefX += basisCoeff[0] * defX;
+                                newDefY += basisCoeff[0] * defY;
+                                newDefZ += basisCoeff[0] * defZ;
+                                jacobianMatrix.m[0][0] += basisCoeff[1]*defX;
+                                jacobianMatrix.m[0][1] += basisCoeff[2]*defX;
+                                jacobianMatrix.m[0][2] += basisCoeff[3]*defX;
+                                jacobianMatrix.m[1][0] += basisCoeff[1]*defY;
+                                jacobianMatrix.m[1][1] += basisCoeff[2]*defY;
+                                jacobianMatrix.m[1][2] += basisCoeff[3]*defY;
+                                jacobianMatrix.m[2][0] += basisCoeff[1]*defZ;
+                                jacobianMatrix.m[2][1] += basisCoeff[2]*defZ;
+                                jacobianMatrix.m[2][2] += basisCoeff[3]*defZ;
                             }//a
                         }//b
                     }//c
