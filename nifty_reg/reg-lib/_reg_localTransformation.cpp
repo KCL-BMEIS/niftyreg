@@ -2160,7 +2160,7 @@ void reg_composeDefField2D(nifti_image *deformationField,
 
             // Linear interpolation to compute the new deformation
             int pre[2];
-            pre[0]=floor(voxelX); pre[1]=floor(voxelY);
+            pre[0]=(int)floor(voxelX); pre[1]=(int)floor(voxelY);
             DTYPE relX[2], relY[2];
             relX[1]=voxelX-(DTYPE)pre[0];relX[0]=1.f-relX[1];
             relY[1]=voxelY-(DTYPE)pre[1];relY[0]=1.f-relY[1];
@@ -2243,7 +2243,7 @@ void reg_composeDefField3D(nifti_image *deformationField,
 
             // Linear interpolation to compute the new deformation
             int pre[3];
-            pre[0]=floor(voxelX); pre[1]=floor(voxelY); pre[2]=floor(voxelZ);
+            pre[0]=(int)floor(voxelX); pre[1]=(int)floor(voxelY); pre[2]=(int)floor(voxelZ);
             DTYPE relX[2], relY[2], relZ[2];
             relX[1]=voxelX-(DTYPE)pre[0];relX[0]=1.-relX[1];
             relY[1]=voxelY-(DTYPE)pre[1];relY[0]=1.-relY[1];
@@ -2289,52 +2289,6 @@ void reg_composeDefField3D(nifti_image *deformationField,
                     }
                 }
             }
-
-//        DTYPE relative=voxelX-(DTYPE)pre[0];DTYPE xBasis[4];
-//        interpolantCubicSpline<DTYPE>(relative, xBasis);
-//        relative=voxelY-(DTYPE)pre[1];DTYPE yBasis[4];
-//        interpolantCubicSpline<DTYPE>(relative, yBasis);
-//        relative=voxelZ-(DTYPE)pre[2];DTYPE zBasis[4];
-//        interpolantCubicSpline<DTYPE>(relative, zBasis);
-//        --pre[0];--pre[1];--pre[2];
-
-//        realDefX=realDefY=realDefZ=0.f;
-//        for(int c=0;c<4;++c){
-//            for(int b=0;b<4;++b){
-//                for(int a=0;a<4;++a){
-//                    DTYPE defX, defY, defZ;
-//                    if(pre[0]+a>-1 && pre[0]+a<deformationField->nx &&
-//                       pre[1]+b>-1 && pre[1]+b<deformationField->ny &&
-//                       pre[2]+c>-1 && pre[2]+c<deformationField->nz){
-//                        // Uses the deformation field if voxel is in its space
-//                        unsigned int index=((pre[2]+c)*deformationField->ny+pre[1]+b)
-//                                           *deformationField->nx+pre[0]+a;
-//                        defX = defPtrX[index];
-//                        defY = defPtrY[index];
-//                        defZ = defPtrZ[index];
-//                    }
-//                    else{
-//                        // Uses the deformation field affine transformation
-//                        defX = (pre[0]+a) * df_voxel2Real->m[0][0]
-//                               + (pre[1]+b) * df_voxel2Real->m[0][1]
-//                               + (pre[2]+c) * df_voxel2Real->m[0][2]
-//                               + df_voxel2Real->m[0][3];
-//                        defY = (pre[0]+a) * df_voxel2Real->m[1][0]
-//                               + (pre[1]+b) * df_voxel2Real->m[1][1]
-//                               + (pre[2]+c) * df_voxel2Real->m[1][2]
-//                               + df_voxel2Real->m[1][3];
-//                        defZ = (pre[0]+a) * df_voxel2Real->m[2][0]
-//                               + (pre[1]+b) * df_voxel2Real->m[2][1]
-//                               + (pre[2]+c) * df_voxel2Real->m[2][2]
-//                               + df_voxel2Real->m[2][3];
-//                    }
-//                    DTYPE basis = xBasis[a] * yBasis[b] * zBasis[c];
-//                    realDefX += defX * basis;
-//                    realDefY += defY * basis;
-//                    realDefZ += defZ * basis;
-//                }
-//            }
-//        }
             resPtrX[i]=realDefX;
             resPtrY[i]=realDefY;
             resPtrZ[i]=realDefZ;
