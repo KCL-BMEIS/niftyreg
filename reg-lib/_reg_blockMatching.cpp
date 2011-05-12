@@ -1866,7 +1866,7 @@ void svd(float ** in, int m, int n, float * w, float ** v)
 {
     float * rv1 = (float *)malloc(sizeof(float) * n);
     float anorm, c, f, g, h, s, scale, x, y, z;
-    int flag,i,its,j,jj,k,l=0,nm;
+    int flag,i,its,j,jj,k,l=0,nm=0;
 
     g = scale = anorm = 0.0f;
     for (i = 1; i <= n; ++i)
