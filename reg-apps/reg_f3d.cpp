@@ -21,7 +21,11 @@
     #include <time.h>
 #endif
 
-#define PrecisionTYPE float
+#ifdef _USE_NR_DOUBLE
+    #define PrecisionTYPE double
+#else
+    #define PrecisionTYPE float
+#endif
 
 void PetitUsage(char *exec)
 {

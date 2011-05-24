@@ -142,6 +142,7 @@ int reg_f3d2<T>::UpdateControlPointPosition(T scale)
 {
     T scaledScale = scale/(T)pow(2,this->controlPointGrid->pixdim[5]);
     return reg_f3d<T>::UpdateControlPointPosition(scaledScale);
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -156,8 +157,11 @@ int reg_f3d2<T>::AllocateCurrentInputImage(int level)
     }
 
     // The number of step is store in the pixdim[5]
-    this->controlPointGrid->pixdim[5]=this->stepNumber;
-    this->controlPointGrid->du=this->stepNumber;
+    if(this->inputControlPointGrid==NULL){
+        this->controlPointGrid->pixdim[5]=this->stepNumber;
+        this->controlPointGrid->du=this->stepNumber;
+    }
+    else this->stepNumber=this->controlPointGrid->du;
 
 #ifdef NDEBUG
     if(this->verbose){
@@ -224,9 +228,8 @@ nifti_image *reg_f3d2<T>::GetWarpedImage()
 template<class T>
 int reg_f3d2<T>::CheckStoppingCriteria(bool convergence)
 {
-    if(this->f3d2AppFreeStep==false){
-        if( this->currentIteration>=(this->maxiterationNumber-(float)this->maxiterationNumber*0.1f) ||
-            convergence){
+    if(convergence){
+        if(this->f3d2AppFreeStep==false){
             this->f3d2AppFreeStep=true;
 #ifdef NDEBUG
             if(this->verbose)
@@ -234,12 +237,22 @@ int reg_f3d2<T>::CheckStoppingCriteria(bool convergence)
             printf("[%s] Squaring is now performed without approximation\n",
                    this->executableName);
         }
+        else return 1;
     }
     else{
-        if(this->currentIteration>=this->maxiterationNumber || convergence){
-            return 1;
+        if( this->currentIteration>=(this->maxiterationNumber-(float)this->maxiterationNumber*0.1f) ){
+            if(this->f3d2AppFreeStep==false){
+                this->f3d2AppFreeStep=true;
+#ifdef NDEBUG
+                if(this->verbose)
+#endif
+                printf("[%s] Squaring is now performed without approximation\n",
+                       this->executableName);
+            }
         }
+        else if(this->currentIteration>=this->maxiterationNumber) return 1;
     }
+
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

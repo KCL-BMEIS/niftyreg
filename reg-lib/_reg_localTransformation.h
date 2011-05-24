@@ -16,6 +16,7 @@
 #include "_reg_globalTransformation.h"
 #include "float.h"
 #include <limits>
+#include "_reg_maths.h"
 
 #if _USE_SSE
 	#include <emmintrin.h>

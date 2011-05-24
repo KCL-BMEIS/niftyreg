@@ -1102,7 +1102,8 @@ int reg_f3d<T>::Initisalise_f3d()
 template <class T>
 double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type)
 {
-    double value;
+    double value=0.;
+
     if(type==2){
         value = reg_bspline_jacobian(this->controlPointGrid,
                                      this->currentReference,
@@ -1182,7 +1183,7 @@ int reg_f3d<T>::WarpFloatingImage(int inter)
     // Compute the deformation field
     this->GetDeformationField();
     // Resample the floating image
-    reg_resampleSourceImage<T>(	this->currentReference,
+    reg_resampleSourceImage<T>( this->currentReference,
                                 this->currentFloating,
                                 this->warped,
                                 this->deformationFieldImage,
@@ -1498,7 +1499,7 @@ int reg_f3d<T>::Run_f3d()
     if(!this->initialised){
         if( this->Initisalise_f3d() )
             return 1;
-	}
+    }
 
     for(unsigned int level=0; level<this->levelToPerform; level++){
 

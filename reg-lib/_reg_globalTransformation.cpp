@@ -13,59 +13,8 @@
 #define _REG_AFFINETRANSFORMATION_CPP
 
 #include "_reg_globalTransformation.h"
+#include "_reg_maths.h"
 
-/* *************************************************************** */
-mat44 reg_mat44_mul(mat44 *A, mat44 *B)
-{
-	mat44 R;
-	
-	for(int i=0; i<4; i++){
-		for(int j=0; j<4; j++){
-			R.m[i][j] = A->m[i][0]*B->m[0][j] + A->m[i][1]*B->m[1][j] + A->m[i][2]*B->m[2][j] + A->m[i][3]*B->m[3][j];
-		}
-	}
-	
-	return R;
-}
-/* *************************************************************** */
-mat44 reg_mat44_add(mat44 *A, mat44 *B)
-{
-    mat44 R;
-
-    for(int i=0; i<4; i++){
-        for(int j=0; j<4; j++){
-            R.m[i][j] = A->m[i][j]+B->m[i][j];
-        }
-    }
-    return R;
-}
-/* *************************************************************** */
-void reg_mat44_mul(	mat44 *mat,
-                    float in[3],
-                    float out[3])
-{
-    out[0]=mat->m[0][0]*in[0] + mat->m[0][1]*in[1] + mat->m[0][2]*in[2] + mat->m[0][3];
-    out[1]=mat->m[1][0]*in[0] + mat->m[1][1]*in[1] + mat->m[1][2]*in[2] + mat->m[1][3];
-    out[2]=mat->m[2][0]*in[0] + mat->m[2][1]*in[1] + mat->m[2][2]*in[2] + mat->m[2][3];
-    return;
-}
-/* *************************************************************** */
-void reg_mat44_disp(mat44 *mat, char * title)
-{
-    printf("%s:\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n", title,
-           mat->m[0][0], mat->m[0][1], mat->m[0][2], mat->m[0][3],
-           mat->m[1][0], mat->m[1][1], mat->m[1][2], mat->m[1][3],
-           mat->m[2][0], mat->m[2][1], mat->m[2][2], mat->m[2][3],
-           mat->m[3][0], mat->m[3][1], mat->m[3][2], mat->m[3][3]);
-}
-/* *************************************************************** */
-void reg_mat33_disp(mat33 *mat, char * title)
-{
-    printf("%s:\n%g\t%g\t%g\n%g\t%g\t%g\n%g\t%g\t%g\n", title,
-           mat->m[0][0], mat->m[0][1], mat->m[0][2],
-           mat->m[1][0], mat->m[1][1], mat->m[1][2],
-           mat->m[2][0], mat->m[2][1], mat->m[2][2]);
-}
 /* *************************************************************** */
 /* *************************************************************** */
 template <class FieldTYPE>

@@ -11,6 +11,8 @@
 
 #include "_reg_localTransformation.h"
 
+#define _USE_SQUARE_LOG_JAC
+
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
@@ -154,9 +156,12 @@ double reg_bspline_jacobianValue2D(nifti_image *splineControlPoint,
             jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
             double detJac = nifti_mat33_determ(jacobianMatrix);
             if(detJac>0.0){
-//                double logJac = log(detJac);
-//                constraintValue += logJac*logJac;
-                constraintValue +=  fabs(log(detJac));
+                double logJac = log(detJac);
+#ifdef _USE_SQUARE_LOG_JAC
+                constraintValue += logJac*logJac;
+#else
+                constraintValue +=  fabs(logJac);
+#endif
             }
             else return std::numeric_limits<double>::quiet_NaN();
         }
@@ -1235,9 +1240,11 @@ void reg_bspline_jacobianDeterminantGradient2D( nifti_image *splineControlPoint,
                             jacobianMatrix = invertedJacobianMatrices[jacIndex];
 
                             if(detJac>(SplineTYPE)0.0){
-                                /* derivative of the squared log of the Jacobian determinant */
-//                                logDet=(double)(2.0*log(logDet));
+#ifdef _USE_SQUARE_LOG_JAC
+                                detJac=(double)(2.0*log(detJac));
+#else
                                 detJac = log(detJac)>0?1.0:-1.0;
+#endif
                                 jacobianConstraintX += detJac * (jacobianMatrix.m[0][0]*basisValues[0] +
                                                                  jacobianMatrix.m[0][1]*basisValues[1]);
                                 jacobianConstraintY += detJac * (jacobianMatrix.m[1][0]*basisValues[0] +

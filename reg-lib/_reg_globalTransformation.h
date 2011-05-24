@@ -15,21 +15,7 @@
 #include "nifti1_io.h"
 #include <fstream>
 #include <limits>
-
-extern "C++"
-mat44 reg_mat44_mul(	mat44 *A,
-			mat44 *B);
-extern "C++"
-void reg_mat44_mul(	mat44 *mat,
-			float in[3],
-			float out[3]);
-
-extern "C++"
-void reg_mat44_disp(    mat44 *mat,
-            char * title);
-extern "C++"
-void reg_mat33_disp(    mat33 *mat,
-            char * title);
+#include "_reg_maths.h"
 
 
 /** reg_affine_deformationField

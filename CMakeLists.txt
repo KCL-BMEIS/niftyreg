@@ -21,8 +21,9 @@ SET(ZLIB "z")
 OPTION(BUILD_NIFTYREG "To build the NiftyReg executables" ON)
 OPTION(BUILD_NR_DEV "To build all the templated functions (longer). Useful for developpers only" OFF)
 
-OPTION(USE_SSE "to use SSE computation in some case" OFF)
-OPTION(USE_CUDA "Use CUDA for a GPU implementation of the code" OFF)
+OPTION(USE_SSE "To use SSE computation in some case" OFF)
+OPTION(USE_CUDA "To use CUDA for a GPU implementation of the code" OFF)
+OPTION(USE_DOUBLE "To use double precision instead of single precision" OFF)
 #-----------------------------------------------------------------------------
 
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/nifti)
@@ -32,6 +33,16 @@ INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/zlib)
 #-----------------------------------------------------------------------------
 
 ADD_DEFINITIONS(-fPIC)
+
+IF(USE_DOUBLE)
+    ADD_DEFINITIONS(-D_USE_NR_DOUBLE)
+    IF(USE_SSE)
+        MESSAGE(FATAL_ERROR "Can not use double precision and SSE implementation concurrenlty")
+    ENDIF(USE_SSE)
+    IF(USE_CUDA)
+        MESSAGE(FATAL_ERROR "Can not use double precision and CUDA implementation concurrenlty")
+    ENDIF(USE_CUDA)
+ENDIF(USE_DOUBLE)
 
 IF(USE_SSE)
     ADD_DEFINITIONS(-D_USE_SSE)

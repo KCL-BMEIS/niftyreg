@@ -845,7 +845,7 @@ void reg_tools_addSubMulDivImages2( nifti_image *img1,
             break;
         case 3:
             for(unsigned int i=0; i<res->nvox; i++)
-                *resPtr++ = (TYPE1)(*img1Ptr++ / *img2Ptr++);
+                *resPtr++ = (TYPE1)((double)*img1Ptr++ / (double)*img2Ptr++);
             break;
     }
 }
@@ -960,11 +960,11 @@ void reg_tools_addSubMulDivValue1(  nifti_image *img1,
             break;
         case 2:
             for(unsigned int i=0; i<res->nvox; i++)
-                *resPtr++ = (TYPE1)(*img1Ptr++ * val);
+                *resPtr++ = (TYPE1)((double)*img1Ptr++ * (double)val);
             break;
         case 3:
             for(unsigned int i=0; i<res->nvox; i++)
-                *resPtr++ = (TYPE1)(*img1Ptr++ / val);
+                *resPtr++ = (TYPE1)((double)*img1Ptr++ / (double)val);
             break;
     }
 }
