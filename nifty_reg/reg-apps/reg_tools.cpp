@@ -16,7 +16,11 @@
 #include "_reg_localTransformation.h"
 #include "_reg_tools.h"
 
-#define PrecisionTYPE float
+#ifdef _USE_NR_DOUBLE
+    #define PrecisionTYPE double
+#else
+    #define PrecisionTYPE float
+#endif
 
 typedef struct{
 	char *inputImageName;

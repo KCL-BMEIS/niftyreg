@@ -17,8 +17,11 @@
 #include "_reg_tools.h"
 #include "_reg_resampling.h"
 
-
-#define PrecisionTYPE float
+#ifdef _USE_NR_DOUBLE
+    #define PrecisionTYPE double
+#else
+    #define PrecisionTYPE float
+#endif
 
 typedef struct{
     char *referenceImageName;

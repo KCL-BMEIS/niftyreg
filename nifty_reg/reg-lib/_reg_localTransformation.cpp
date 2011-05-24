@@ -2093,8 +2093,8 @@ int reg_getDeformationFromDisplacement(nifti_image *splineControlPoint)
                 reg_getDeformationFromDisplacement_3D<float>(splineControlPoint);
                 break;
             default:
-                fprintf(stderr,"[NiftyReg ERROR] reg_getPositionFromDisplacement\n");
-                fprintf(stderr,"[NiftyReg ERROR] Only implemented for 2 or 3D images. EXIT\n");
+                fprintf(stderr,"[NiftyReg ERROR] reg_getDeformationFromDisplacement\n");
+                fprintf(stderr,"[NiftyReg ERROR] Only implemented for 2 or 3D deformation fields. EXIT\n");
                 exit(1);
         }
     }
@@ -2107,8 +2107,8 @@ int reg_getDeformationFromDisplacement(nifti_image *splineControlPoint)
                 reg_getDeformationFromDisplacement_3D<double>(splineControlPoint);
                 break;
             default:
-                fprintf(stderr,"[NiftyReg ERROR] reg_getPositionFromDisplacement\n");
-                fprintf(stderr,"[NiftyReg ERROR] Only implemented for 2 or 3D images. EXIT\n");
+                fprintf(stderr,"[NiftyReg ERROR] reg_getDeformationFromDisplacement\n");
+                fprintf(stderr,"[NiftyReg ERROR] Only implemented for 2 or 3D deformation fields. EXIT\n");
                 exit(1);
         }
     }
@@ -2144,7 +2144,6 @@ void reg_composeDefField2D(nifti_image *deformationField,
         df_real2Voxel=&(deformationField->qto_ijk);
         df_voxel2Real=&(deformationField->qto_xyz);
     }
-
     for(unsigned int i=0;i<resVoxelNumber;++i){
         if(mask[i]>-1){
             DTYPE realDefX = resPtrX[i];
@@ -2189,6 +2188,8 @@ void reg_composeDefField2D(nifti_image *deformationField,
                     realDefY += defY * basis;
                 }
             }
+            resPtrX[i]=realDefX;
+            resPtrY[i]=realDefY;
         }// mask
     }// loop over every voxel
 }
