@@ -257,8 +257,9 @@ int main(int argc, char **argv)
         deformationFieldImage->dim[6]=deformationFieldImage->nv=1;deformationFieldImage->pixdim[6]=deformationFieldImage->dv=1.0;
         deformationFieldImage->dim[7]=deformationFieldImage->nw=1;deformationFieldImage->pixdim[7]=deformationFieldImage->dw=1.0;
         deformationFieldImage->nvox=deformationFieldImage->nx*deformationFieldImage->ny*deformationFieldImage->nz*deformationFieldImage->nt*deformationFieldImage->nu;
-        deformationFieldImage->datatype = NIFTI_TYPE_FLOAT32;
-        deformationFieldImage->nbyper = sizeof(float);
+        if(sizeof(PrecisionTYPE)==8) deformationFieldImage->datatype = NIFTI_TYPE_FLOAT64;
+        else deformationFieldImage->datatype = NIFTI_TYPE_FLOAT32;
+        deformationFieldImage->nbyper = sizeof(PrecisionTYPE);
         deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
         //Computation
         if(flag->inputCPPFlag){
