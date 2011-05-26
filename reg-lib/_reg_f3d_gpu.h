@@ -50,23 +50,23 @@ class reg_f3d_gpu : public reg_f3d<T>
     int ClearCurrentInputImage();
     int AllocateWarped();
     int ClearWarped();
-	int AllocateDeformationField();
-	int ClearDeformationField();
+    int AllocateDeformationField();
+    int ClearDeformationField();
     int AllocateWarpedGradient();
     int ClearWarpedGradient();
-	int AllocateVoxelBasedMeasureGradient();
-	int ClearVoxelBasedMeasureGradient();
+    int AllocateVoxelBasedMeasureGradient();
+    int ClearVoxelBasedMeasureGradient();
     int AllocateNodeBasedMeasureGradient();
-	int ClearNodeBasedMeasureGradient();
-	int AllocateConjugateGradientVariables();
-	int ClearConjugateGradientVariables();
-	int AllocateBestControlPointArray();
-	int ClearBestControlPointArray();
-	int AllocateJointHistogram();
-	int ClearJointHistogram();
+    int ClearNodeBasedMeasureGradient();
+    int AllocateConjugateGradientVariables();
+    int ClearConjugateGradientVariables();
+    int AllocateBestControlPointArray();
+    int ClearBestControlPointArray();
+    int AllocateJointHistogram();
+    int ClearJointHistogram();
 
-	int SaveCurrentControlPoint();
-	int RestoreCurrentControlPoint();
+    int SaveCurrentControlPoint();
+    int RestoreCurrentControlPoint();
     double ComputeJacobianBasedPenaltyTerm(int);
     double ComputeBendingEnergyPenaltyTerm();
     int GetDeformationField();
@@ -75,7 +75,7 @@ class reg_f3d_gpu : public reg_f3d<T>
     int GetSimilarityMeasureGradient();
     int GetBendingEnergyGradient();
     int GetJacobianBasedGradient();
-    int ComputeConjugateGradient(unsigned int );
+    int ComputeConjugateGradient();
     T GetMaximalGradientLength();
     int UpdateControlPointPosition(T);
 

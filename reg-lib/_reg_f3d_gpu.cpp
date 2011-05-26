@@ -644,9 +644,9 @@ int reg_f3d_gpu<T>::GetJacobianBasedGradient()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d_gpu<T>::ComputeConjugateGradient(unsigned int iteration)
+int reg_f3d_gpu<T>::ComputeConjugateGradient()
 {
-    if(iteration==1){
+    if(this->currentIteration==1){
         // first conjugate gradient iteration
         reg_initialiseConjugateGradient(&this->nodeBasedMeasureGradientImage_gpu,
                                         &this->conjugateG_gpu,
