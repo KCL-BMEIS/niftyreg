@@ -162,8 +162,10 @@ int main(int argc, char **argv)
         jacobianImage->cal_max=0;
         jacobianImage->scl_slope = 1.0f;
         jacobianImage->scl_inter = 0.0f;
-        jacobianImage->datatype = NIFTI_TYPE_FLOAT32;
-        jacobianImage->nbyper = sizeof(float);
+        if(sizeof(PrecisionTYPE)==8)
+            jacobianImage->datatype = NIFTI_TYPE_FLOAT64;
+        else jacobianImage->datatype = NIFTI_TYPE_FLOAT32;
+        jacobianImage->nbyper = sizeof(PrecisionTYPE);
         jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
 
         // Compute the determinant
@@ -197,7 +199,7 @@ int main(int argc, char **argv)
             printf("Jacobian map image has been saved: %s\n", param->jacobianMapName);
         }
         else if(flag->logJacobianMapFlag){
-            float *jacPtr=static_cast<float *>(jacobianImage->data);
+            PrecisionTYPE *jacPtr=static_cast<PrecisionTYPE *>(jacobianImage->data);
             for(unsigned int i=0;i<jacobianImage->nvox;i++){
                 *jacPtr = log(*jacPtr);
                 jacPtr++;
@@ -224,8 +226,10 @@ int main(int argc, char **argv)
         jacobianImage->dim[0] = 5;
         if(image->nz>1) jacobianImage->dim[5] = jacobianImage->nu = 3;
         else jacobianImage->dim[5] = jacobianImage->nu = 2;
-        jacobianImage->datatype = NIFTI_TYPE_FLOAT32;
-        jacobianImage->nbyper = sizeof(float);
+        if(sizeof(PrecisionTYPE)==8)
+            jacobianImage->datatype = NIFTI_TYPE_FLOAT64;
+        else jacobianImage->datatype = NIFTI_TYPE_FLOAT32;
+        jacobianImage->nbyper = sizeof(PrecisionTYPE);
         jacobianImage->nvox *= jacobianImage->nu;
         jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
 

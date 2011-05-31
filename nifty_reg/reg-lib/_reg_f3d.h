@@ -37,8 +37,11 @@ class reg_f3d
     mat44 *affineTransformation; // pointer to external
     int *referenceMask;
     nifti_image *controlPointGrid;
+    T similarityWeight;
     T bendingEnergyWeight;
-    bool bendingEnergyApproximation;
+    T linearEnergyWeight0;
+    T linearEnergyWeight1;
+    T linearEnergyWeight2;
     T jacobianLogWeight;
     bool jacobianLogApproximation;
     unsigned int maxiterationNumber;
@@ -110,11 +113,13 @@ class reg_f3d
     virtual int RestoreCurrentControlPoint();
     virtual double ComputeJacobianBasedPenaltyTerm(int);
     virtual double ComputeBendingEnergyPenaltyTerm();
+    virtual double ComputeLinearEnergyPenaltyTerm();
     virtual int GetDeformationField();
     virtual int WarpFloatingImage(int);
     virtual double ComputeSimilarityMeasure();
     virtual int GetSimilarityMeasureGradient();
     virtual int GetBendingEnergyGradient();
+    virtual int GetLinearEnergyGradient();
     virtual int GetJacobianBasedGradient();
     virtual int ComputeConjugateGradient();
     virtual T GetMaximalGradientLength();
@@ -131,8 +136,7 @@ public:
     int SetReferenceMask(nifti_image *);
     int SetAffineTransformation(mat44 *);
     int SetBendingEnergyWeight(T);
-    int ApproximateBendingEnergy();
-    int DoNotApproximateBendingEnergy();
+    int SetLinearEnergyWeights(T,T,T);
     int SetJacobianLogWeight(T);
     int ApproximateJacobianLog();
     int DoNotApproximateJacobianLog();

@@ -23,7 +23,6 @@ reg_f3d2<T>::reg_f3d2(int refTimePoint,int floTimePoint)
     this->executableName=(char *)"NiftyReg F3D2";
     this->inverseDeformationFieldImage=NULL;
     this->negatedControlPointGrid=NULL;
-    this->bendingEnergyWeight=0.1;
 //    this->useSymmetry=false;
 
 #ifndef NDEBUG
@@ -133,15 +132,6 @@ int reg_f3d2<T>::GetDeformationField()
 //                                                    );
 //        }
     }
-    return 0;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-int reg_f3d2<T>::UpdateControlPointPosition(T scale)
-{
-    T scaledScale = scale/(T)pow(2,this->controlPointGrid->pixdim[5]);
-    return reg_f3d<T>::UpdateControlPointPosition(scaledScale);
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

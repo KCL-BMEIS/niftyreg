@@ -28,7 +28,6 @@ class reg_f3d2 : public reg_f3d<T>
     int ClearCurrentInputImage();
 
     int GetDeformationField();
-    int UpdateControlPointPosition(T);
     int CheckStoppingCriteria(bool);
 
 public:

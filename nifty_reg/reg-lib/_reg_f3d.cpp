@@ -30,8 +30,10 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->controlPointGrid=NULL;
     this->referenceMask=NULL;
     this->bendingEnergyWeight=0.01;
-    this->bendingEnergyApproximation=true;
-    this->jacobianLogWeight=0.f;
+    this->linearEnergyWeight0=0.;
+    this->linearEnergyWeight1=0.;
+    this->linearEnergyWeight2=0.;
+    this->jacobianLogWeight=0.;
     this->jacobianLogApproximation=true;
     this->maxiterationNumber=300;
     this->referenceSmoothingSigma=0.;
@@ -206,35 +208,30 @@ template<class T>
 int reg_f3d<T>::SetAffineTransformation(mat44 *a)
 {
     this->affineTransformation=a;
-	return 0;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 int reg_f3d<T>::SetBendingEnergyWeight(T be)
 {
     this->bendingEnergyWeight = be;
-	return 0;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::ApproximateBendingEnergy()
+int reg_f3d<T>::SetLinearEnergyWeights(T w0, T w1, T w2)
 {
-    this->bendingEnergyApproximation = true;
-	return 0;	
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template<class T>
-int reg_f3d<T>::DoNotApproximateBendingEnergy()
-{
-    this->bendingEnergyApproximation = false;
-	return 0;	
+    this->linearEnergyWeight0=w0;
+    this->linearEnergyWeight1=w1;
+    this->linearEnergyWeight2=w2;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 int reg_f3d<T>::SetJacobianLogWeight(T j)
 {
     this->jacobianLogWeight = j;
-	return 0;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
@@ -692,6 +689,18 @@ int reg_f3d<T>::CheckParameters_f3d()
     }
     else this->levelToPerform=this->levelNumber;
 
+    // NORMALISE THE OBJECTIVE FUNCTION WEIGHTS
+    T penaltySum=this->bendingEnergyWeight+this->linearEnergyWeight0+this->linearEnergyWeight1+this->linearEnergyWeight2+this->jacobianLogWeight;
+    if(penaltySum>=1) this->similarityWeight=0;
+    else this->similarityWeight=1.0 - penaltySum;
+    penaltySum+=this->similarityWeight;
+    this->similarityWeight /= penaltySum;
+    this->bendingEnergyWeight /= penaltySum;
+    this->linearEnergyWeight0 /= penaltySum;
+    this->linearEnergyWeight1 /= penaltySum;
+    this->linearEnergyWeight2 /= penaltySum;
+    this->jacobianLogWeight /= penaltySum;
+
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1072,13 +1081,12 @@ int reg_f3d<T>::Initisalise_f3d()
         if(this->useSSD)
             printf("[%s] The SSD is used as a similarity measure.\n", this->executableName);
         else printf("[%s] The NMI is used as a similarity measure.\n", this->executableName);
+        printf("[%s] Similarity measure term weight: %g\n", this->executableName, this->similarityWeight);
         printf("[%s]\n", this->executableName);
-            printf("[%s] Bending energy penalty term weight: %g\n", this->executableName, this->bendingEnergyWeight);
-        if(this->bendingEnergyWeight>0){
-            if(this->bendingEnergyApproximation) printf("[%s] \t* Bending energy penalty term is approximated\n",
-                                                        this->executableName);
-            else printf("[%s] \t* Bending energy penalty term is not approximated\n", this->executableName);
-        }
+        printf("[%s] Bending energy penalty term weight: %g\n", this->executableName, this->bendingEnergyWeight);
+        printf("[%s]\n", this->executableName);
+        printf("[%s] Linear energy penalty term weights: %g %g %g\n", this->executableName,
+               this->linearEnergyWeight0, this->linearEnergyWeight1, this->linearEnergyWeight2);
         printf("[%s]\n", this->executableName);
         printf("[%s] Jacobian-based penalty term weight: %g\n", this->executableName, this->jacobianLogWeight);
         if(this->jacobianLogWeight>0){
@@ -1155,11 +1163,19 @@ double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type)
 template <class T>
 double reg_f3d<T>::ComputeBendingEnergyPenaltyTerm()
 {
-    double value = reg_bspline_bendingEnergy(this->controlPointGrid,
-                                             this->currentReference,
-                                             this->bendingEnergyApproximation
-                                             );
+    double value = reg_bspline_bendingEnergy(this->controlPointGrid);
     return this->bendingEnergyWeight * value;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+double reg_f3d<T>::ComputeLinearEnergyPenaltyTerm()
+{
+    double values[3];
+    reg_bspline_linearEnergy(this->controlPointGrid, values);
+    return this->linearEnergyWeight0*values[0] +
+           this->linearEnergyWeight1*values[1] +
+           this->linearEnergyWeight2*values[2];
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1172,7 +1188,7 @@ int reg_f3d<T>::GetDeformationField()
                this->currentMask,
                false, //composition
                true // bspline
-                );
+               );
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1199,9 +1215,9 @@ double reg_f3d<T>::ComputeSimilarityMeasure()
 {
     double measure=0.;
     if(this->useSSD){
-        measure = -reg_getSSD<T>(this->currentReference,
-                                this->warped,
-                                this->currentMask);
+        measure = -reg_getSSD(this->currentReference,
+                              this->warped,
+                              this->currentMask);
         measure /= this->maxSSD[this->currentLevel];
     }
     else{
@@ -1216,7 +1232,7 @@ double reg_f3d<T>::ComputeSimilarityMeasure()
                          this->currentMask);
     measure = (this->entropies[0]+this->entropies[1])/this->entropies[2];
     }
-    return double(1.0-this->bendingEnergyWeight-this->jacobianLogWeight) * measure;
+    return double(this->similarityWeight) * measure;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1231,27 +1247,27 @@ int reg_f3d<T>::GetSimilarityMeasureGradient()
                                   this->currentMask,
                                   USE_LINEAR_INTERPOLATION);
 
-	if(this->useSSD){
-            // Compute the voxel based SSD gradient
-            reg_getVoxelBasedSSDGradient<T>(this->currentReference,
+    if(this->useSSD){
+        // Compute the voxel based SSD gradient
+        reg_getVoxelBasedSSDGradient(this->currentReference,
+                                     this->warped,
+                                     this->warpedGradientImage,
+                                     this->voxelBasedMeasureGradientImage,
+                                     this->maxSSD[this->currentLevel],
+                                     this->currentMask);
+    }
+    else{
+        // Compute the voxel based NMI gradient
+        reg_getVoxelBasedNMIGradientUsingPW(this->currentReference,
                                             this->warped,
+                                            2,
                                             this->warpedGradientImage,
-                                            this->maxSSD[this->currentLevel],
+                                            this->referenceBinNumber,
+                                            this->floatingBinNumber,
+                                            this->logJointHistogram,
+                                            this->entropies,
                                             this->voxelBasedMeasureGradientImage,
                                             this->currentMask);
-	}
-	else{
-            // Compute the voxel based NMI gradient
-            reg_getVoxelBasedNMIGradientUsingPW(this->currentReference,
-                                                this->warped,
-                                                2,
-                                                this->warpedGradientImage,
-                                                this->referenceBinNumber,
-                                                this->floatingBinNumber,
-                                                this->logJointHistogram,
-                                                this->entropies,
-                                                this->voxelBasedMeasureGradientImage,
-                                                this->currentMask);
     }
 
     // The voxel based NMI gradient is convolved with a spline kernel
@@ -1265,7 +1281,7 @@ int reg_f3d<T>::GetSimilarityMeasureGradient()
     // The node based NMI gradient is extracted
     reg_voxelCentric2NodeCentric(this->nodeBasedMeasureGradientImage,
                                  this->voxelBasedMeasureGradientImage,
-                                 1.0-this->bendingEnergyWeight-this->jacobianLogWeight,
+                                 this->similarityWeight,
                                  false);
 
     /* The gradient is converted from voxel space to real space */
@@ -1326,6 +1342,19 @@ int reg_f3d<T>::GetBendingEnergyGradient()
                                       this->currentReference,
                                       this->nodeBasedMeasureGradientImage,
                                       this->bendingEnergyWeight);
+    return 0;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+int reg_f3d<T>::GetLinearEnergyGradient()
+{
+    reg_bspline_linearEnergyGradient(this->controlPointGrid,
+                                     this->currentReference,
+                                     this->nodeBasedMeasureGradientImage,
+                                     this->linearEnergyWeight0,
+                                     this->linearEnergyWeight1,
+                                     this->linearEnergyWeight2);
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1509,7 +1538,6 @@ int reg_f3d<T>::Run_f3d()
         this->currentMask = this->maskPyramid[this->currentLevel];
 
         // The grid is refined if necessary
-
         this->AllocateCurrentInputImage(level);
 
 
@@ -1584,21 +1612,28 @@ int reg_f3d<T>::Run_f3d()
         if(this->bendingEnergyWeight>0)
             bestWBE = this->ComputeBendingEnergyPenaltyTerm();
 
+        double bestWLE = 0.0;
+        if(this->linearEnergyWeight0>0 || this->linearEnergyWeight1>0 || this->linearEnergyWeight2>0)
+            bestWLE = this->ComputeLinearEnergyPenaltyTerm();
+
         // Compute initial similarity measure
-        this->WarpFloatingImage(USE_LINEAR_INTERPOLATION);
-        double bestWMeasure = this->ComputeSimilarityMeasure();
+        double bestWMeasure = 0.0;
+        if(this->similarityWeight>0){
+            this->WarpFloatingImage(USE_LINEAR_INTERPOLATION);
+            bestWMeasure = this->ComputeSimilarityMeasure();
+        }
 
         // Evalulate the objective function value
-        double bestValue = bestWMeasure - bestWBE - bestWJac;
+        double bestValue = bestWMeasure - bestWBE - bestWLE - bestWJac;
 
 #ifdef NDEBUG
         if(this->verbose){
 #endif
             if(this->useSSD)
-                printf("[%s] Initial objective function: %g = (wSSD)%g - (wBE)%g - (wJAC)%g\n",
-                       this->executableName, bestValue, bestWMeasure, bestWBE, bestWJac);
-            else printf("[%s] Initial objective function: %g = (wNMI)%g - (wBE)%g - (wJAC)%g\n",
-                        this->executableName, bestValue, bestWMeasure, bestWBE, bestWJac);
+                printf("[%s] Initial objective function: %g = (wSSD)%g - (wBE)%g - (wLE)%g - (wJAC)%g\n",
+                       this->executableName, bestValue, bestWMeasure, bestWBE, bestWLE, bestWJac);
+            else printf("[%s] Initial objective function: %g = (wNMI)%g - (wBE)%g - (wLE)%g - (wJAC)%g\n",
+                        this->executableName, bestValue, bestWMeasure, bestWBE, bestWLE, bestWJac);
 #ifdef NDEBUG
         }
 #endif
@@ -1613,15 +1648,19 @@ int reg_f3d<T>::Run_f3d()
                 if(this->CheckStoppingCriteria(true)) break;
 
             // Compute the gradient of the similarity measure
-            this->WarpFloatingImage(USE_LINEAR_INTERPOLATION); this->currentIteration++;
-            this->ComputeSimilarityMeasure();
-            this->GetSimilarityMeasureGradient();
+            if(this->similarityWeight>0){
+                this->WarpFloatingImage(USE_LINEAR_INTERPOLATION);
+                this->ComputeSimilarityMeasure();
+                this->GetSimilarityMeasureGradient();
+            } this->currentIteration++;
 
             // Compute the bending energy gradient
             if(this->bendingEnergyWeight>0)
                 this->GetBendingEnergyGradient();
             if(this->jacobianLogWeight>0)
                 this->GetJacobianBasedGradient();
+            if(this->linearEnergyWeight0>0 || this->linearEnergyWeight1>0 || this->linearEnergyWeight2>0)
+                this->GetLinearEnergyGradient();
 
             // The conjugate gradient is computed
             if(this->useConjGradient)
@@ -1652,17 +1691,27 @@ int reg_f3d<T>::Run_f3d()
                 if(this->jacobianLogWeight>0){
                     currentWJac = this->ComputeJacobianBasedPenaltyTerm(0); // 5 iterations
                 }
+
                 double currentWBE=0;
                 if(this->bendingEnergyWeight>0)
                     currentWBE = this->ComputeBendingEnergyPenaltyTerm();
-                this->WarpFloatingImage(USE_LINEAR_INTERPOLATION); this->currentIteration++;
-                double currentWMeasure = this->ComputeSimilarityMeasure();
-                double currentValue = currentWMeasure - currentWBE - currentWJac;
+
+                double currentWLE = 0.0;
+                if(this->linearEnergyWeight0>0 || this->linearEnergyWeight1>0 || this->linearEnergyWeight2>0)
+                    currentWLE = this->ComputeLinearEnergyPenaltyTerm();
+
+                double currentWMeasure = 0.0;
+                if(this->similarityWeight>0){
+                    this->WarpFloatingImage(USE_LINEAR_INTERPOLATION);
+                    currentWMeasure = this->ComputeSimilarityMeasure();
+                } this->currentIteration++;
+                double currentValue = currentWMeasure - currentWBE - currentWLE - currentWJac;
 
                 if(currentValue>bestValue){
                     bestValue = currentValue;
                     bestWMeasure = currentWMeasure;
                     bestWBE = currentWBE;
+                    bestWLE = currentWLE;
                     bestWJac = currentWJac;
                     addedStep += currentSize;
                     currentSize*=1.1f;
@@ -1695,6 +1744,8 @@ int reg_f3d<T>::Run_f3d()
                 else printf(" = (wNMI)%g", bestWMeasure);
                 if(this->bendingEnergyWeight>0)
                     printf(" - (wBE)%.2e", bestWBE);
+                if(this->linearEnergyWeight0>0 || this->linearEnergyWeight1>0 || this->linearEnergyWeight2>0)
+                    printf(" - (wLE)%.2e", bestWLE);
                 if(this->jacobianLogWeight>0)
                     printf(" - (wJAC)%.2e", bestWJac);
                 printf(" [+ %g mm]\n", addedStep);

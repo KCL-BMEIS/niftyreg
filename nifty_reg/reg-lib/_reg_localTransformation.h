@@ -17,6 +17,7 @@
 #include "float.h"
 #include <limits>
 #include "_reg_maths.h"
+#include "_reg_tools.h"
 
 #if _USE_SSE
 	#include <emmintrin.h>
@@ -49,13 +50,10 @@ void reg_spline(nifti_image *splineControlPoint,
 /* *************************************************************** */
 /** reg_bspline_bendingEnergy
  * Compute and return the average bending energy computed using cubic b-spline
- * If approx=true, the computation is performed at the control point initial position only
+ * Value is approximated at the control point position only.
  */
 extern "C++"
-double reg_bspline_bendingEnergy(nifti_image *splineControlPoint,
-                                 nifti_image *targetImage,
-                                 bool approx
-                                 );
+double reg_bspline_bendingEnergy(nifti_image *splineControlPoint);
 /* *************************************************************** */
 /** reg_bspline_bendingEnergyGradient
  * Compute and return the approximated (at the control point position)
@@ -67,6 +65,22 @@ void reg_bspline_bendingEnergyGradient(nifti_image *splineControlPoint,
                                        nifti_image *gradientImage,
                                        float weight
                                        );
+/* *************************************************************** */
+/** reg_bspline_linearEnergy
+  * Compute and return the linear elastic energy term approximated
+  * at the control point positions only.
+  */
+extern "C++"
+void reg_bspline_linearEnergy(nifti_image *splineControlPoint, double *values);
+/* *************************************************************** */
+extern "C++"
+void reg_bspline_linearEnergyGradient(nifti_image *splineControlPoint,
+                                      nifti_image *targetImage,
+                                      nifti_image *gradientImage,
+                                      float weight0,
+                                      float weight1,
+                                      float weight2
+                                      );
 /* *************************************************************** */
 /** reg_bspline_GetJacobianMap
  * Compute the Jacobian determinant map using a cubic b-spline parametrisation
