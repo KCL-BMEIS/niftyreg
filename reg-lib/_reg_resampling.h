@@ -25,20 +25,20 @@
   * The padding value for the NN and the LIN interpolation are user defined.
  */
 extern "C++" template <class PrecisionTYPE>
-void reg_resampleSourceImage(	nifti_image *targetImage,
-				nifti_image *sourceImage,
-				nifti_image *resultImage,
-				nifti_image *positionField,
-                                int *mask,
-				int interp,
-				PrecisionTYPE backgroundValue);
+void reg_resampleSourceImage(nifti_image *targetImage,
+                             nifti_image *sourceImage,
+                             nifti_image *resultImage,
+                             nifti_image *positionField,
+                             int *mask,
+                             int interp,
+                             PrecisionTYPE backgroundValue);
 
 extern "C++" template <class PrecisionTYPE>
-void reg_getSourceImageGradient(	nifti_image *targetImage,
-				nifti_image *sourceImage,
-				nifti_image *resultGradientImage,
-				nifti_image *deformationField,
+void reg_getSourceImageGradient(nifti_image *targetImage,
+                                nifti_image *sourceImage,
+                                nifti_image *resultGradientImage,
+                                nifti_image *deformationField,
                                 int *mask,
-				int interp);
+                                int interp);
 
 #endif

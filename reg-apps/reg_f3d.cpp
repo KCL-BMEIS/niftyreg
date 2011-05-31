@@ -26,13 +26,32 @@
 #else
     #define PrecisionTYPE float
 #endif
-
+void HelpPenaltyTerm()
+{
+    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+    printf("Additional help on the penalty term that have been implemented in F3D\n");
+    printf("\t-be\t Bending Energy, sum of the second derivatives of the transformation T\n");
+    printf("\t\t\t(d2T/dxx)^2 + (d2T/dyy)^2 + (d2T/dzz)^2 + 2*((d2T/dxy)^2 + (d2T/dyz)^2 + (d2T/dxz)^2)\n");
+    printf("\t-le\t Linear Elasticity, 3 parameters weighted differently:\n");
+    printf("\t\t\t 1: Squared member of the symmetric part of the Jacobian matrix\n");
+    printf("\t\t\t 1: (dTx/dx)^2 + (dTy/dy)^2 + (dTz/dz)^2 + 1/2 * ( (dTx/dy+dTy/dx)^2 +  (dTx/dz+dTz/dx)^2 +  (dTy/dz+dTz/dy)^2 ) \n");
+    printf("\t\t\t 2: Divergence\n");
+    printf("\t\t\t 2: (dTx/dx)^2 + (dTy/dy)^2 + (dTz/dz)^2\n");
+    printf("\t\t\t 2: Squared Eucliean distance of the displacement field D\n");
+    printf("\t\t\t 3: (Dx)^2 + (Dy)^2 + (Dz)^2\n");
+    printf("\t-jl\t Penalty term based on the Jacobian determiant |J(T)|. Squared log of the Jacobian determinant\n");
+    printf("\t\t\t log^2(|J(T)|)\n");
+    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+    return;
+}
 void PetitUsage(char *exec)
 {
-	fprintf(stderr,"Fast Free-Form Deformation algorithm for non-rigid registration.\n");
-	fprintf(stderr,"Usage:\t%s -target <targetImageName> -source <sourceImageName> [OPTIONS].\n",exec);
-	fprintf(stderr,"\tSee the help for more details (-h).\n");
-	return;
+    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+    fprintf(stderr,"Fast Free-Form Deformation algorithm for non-rigid registration.\n");
+    fprintf(stderr,"Usage:\t%s -target <targetImageName> -source <sourceImageName> [OPTIONS].\n",exec);
+    fprintf(stderr,"\tSee the help for more details (-h).\n");
+    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+    return;
 }
 void Usage(char *exec)
 {
@@ -62,54 +81,55 @@ void Usage(char *exec)
     printf("\t-result <filename> \tFilename of the resampled image [outputResult.nii]\n");
 
     printf("\n*** Input image options:\n");
-    printf("\t-tmask <filename>\tFilename of a mask image in the target space\n");
-    printf("\t-smooT <float>\t\tSmooth the target image using the specified sigma (mm) [0]\n");
-    printf("\t-smooS <float>\t\tSmooth the source image using the specified sigma (mm) [0]\n");
-    printf("\t-tLwTh <timepoint> <float>\tLower threshold to apply to the target image intensities [none]\n");
-    printf("\t-tUpTh <timepoint> <float>\tUpper threshold to apply to the target image intensities [none]\n");
-    printf("\t-sLwTh  <timepoint> <float>\tLower threshold to apply to the source image intensities [none]\n");
-    printf("\t-sUpTh  <timepoint> <float>\tUpper threshold to apply to the source image intensities [none]\n");
-    printf("\t-tbn <timepoint> <bin>\tNumber of bin to use for the joint histogram [64]\n");
-    printf("\t-sbn <timepoint> <bin>\tNumber of bin to use for the joint histogram [64]\n");
-    printf("\t-pad <float>\tForce the background value during\n\t\t\t\tresampling to have the same value than this voxel in the source image [nan]\n");
+    printf("\t-tmask <filename>\t\tFilename of a mask image in the target space\n");
+    printf("\t-smooT <float>\t\t\tSmooth the target image using the specified sigma (mm) [0]\n");
+    printf("\t-smooS <float>\t\t\tSmooth the source image using the specified sigma (mm) [0]\n");
+    printf("\t-tbn <timepoint> <bin>\t\tNumber of bin to use for the joint histogram [64]\n");
+    printf("\t-sbn <timepoint> <bin>\t\tNumber of bin to use for the joint histogram [64]\n");
+    printf("\t-tLwTh <timepoint> <float>\tLower threshold to apply to the target image intensities [none]*\n");
+    printf("\t-tUpTh <timepoint> <float>\tUpper threshold to apply to the target image intensities [none]*\n");
+    printf("\t-sLwTh <timepoint> <float>\tLower threshold to apply to the source image intensities [none]*\n");
+    printf("\t-sUpTh <timepoint> <float>\tUpper threshold to apply to the source image intensities [none]*\n");
+    printf("\t* The scl_slope and scl_inter from the nifti header are taken into account for the thresholds\n");
 
     printf("\n*** Spline options:\n");
     printf("\t-sx <float>\t\tFinal grid spacing along the x axis in mm (in voxel if negative value) [5 voxels]\n");
     printf("\t-sy <float>\t\tFinal grid spacing along the y axis in mm (in voxel if negative value) [sx value]\n");
     printf("\t-sz <float>\t\tFinal grid spacing along the z axis in mm (in voxel if negative value) [sx value]\n");
 
-    printf("\n*** Objective function and optimisation options:\n");
-    printf("\t-maxit <int>\t\tMaximal number of iteration per level [300]\n");
-    printf("\t\t\t\tThe scl_slope and scl_inter from the nifti header are taken into account for the thresholds\n");
-    printf("\t-ln <int>\t\tNumber of level to perform [3]\n");
-    printf("\t-lp <int>\t\tOnly perform the first levels [ln]\n");
-    printf("\t-be <float>\t\tWeight of the bending energy penalty term [0.01(f3d) or 0.1(f3d2)]\n");
-    printf("\t-noAppBE\t\tTo not approximate the BE value only at the control point position\n");
+    printf("\n*** Objective function options:\n");
+    printf("\t-be <float>\t\tWeight of the bending energy penalty term [0.01]\n");
+    printf("\t-le <float> <float><float>\tWeights of linear elasticity penalty term [0.0 0.0 0.0]\n");
     printf("\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]\n");
     printf("\t-noAppJL\t\tTo not approximate the JL value only at the control point position [no]\n");
     printf("\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent\n");
+    printf("\t-ssd\t\t\tTo use the SSD as the similiarity measure [NMI by default]\n");
+
+    printf("\n*** Optimisation options:\n");
+    printf("\t-maxit <int>\t\tMaximal number of iteration per level [300]\n");
+    printf("\t-ln <int>\t\tNumber of level to perform [3]\n");
+    printf("\t-lp <int>\t\tOnly perform the first levels [ln]\n");
 //    printf("\t-nopy\t\t\tDo not use a pyramidal approach [no]\n");
-//    printf("\t-ssd\t\t\tTo use the SSD as the similiarity measure [Experimental]\n");
 
     printf("\n*** F3D2 options:\n");
-    printf("\t-vel \t\t\t Use a velocity field integrationto generate the deformation [false]\n");
-    printf("\t-step <int>\tNumber of composition step [8].\n");
+    printf("\t-vel \t\t\tUse a velocity field integrationto generate the deformation [false]\n");
+    printf("\t-step <int>\t\tNumber of composition step [6].\n");
 
     printf("\n*** Other options:\n");
     printf("\t-smoothGrad <float>\tTo smooth the metric derivative (in mm) [0]\n");
+    printf("\t-pad <float>\t\tPadding value [nan]\n");
     printf("\t-voff\t\t\tTo turn verbose off\n");
-
-
 
 #ifdef _USE_CUDA
     printf("\n*** GPU-related options:\n");
     printf("\t-mem\t\t\tDisplay an approximate memory requierment and exit\n");
     printf("\t-gpu \t\t\tTo use the GPU implementation [no]\n");
 #endif
-	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-	return;
+    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+    printf("For further description of the penalty term, use: %s -helpPenaly\n", exec);
+    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+    return;
 }
-
 
 int main(int argc, char **argv)
 {
@@ -134,7 +154,9 @@ int main(int argc, char **argv)
     char *affineTransformationName=NULL;
     bool flirtAffine=false;
     PrecisionTYPE bendingEnergyWeight=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
-    bool bendingEnergyApproximation=true;
+    PrecisionTYPE linearEnergyWeight0=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
+    PrecisionTYPE linearEnergyWeight1=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
+    PrecisionTYPE linearEnergyWeight2=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
     PrecisionTYPE jacobianLogWeight=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
     bool jacobianLogApproximation=true;
     int maxiterationNumber=-1;
@@ -180,6 +202,10 @@ int main(int argc, char **argv)
            strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
            strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0){
             Usage(argv[0]);
+            return 0;
+        }
+        if(strcmp(argv[i], "-helpPenaly")==0){
+            HelpPenaltyTerm();
             return 0;
         }
         else if(strcmp(argv[i], "-target") == 0){
@@ -242,8 +268,10 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-be") == 0){
             bendingEnergyWeight=(PrecisionTYPE)(atof(argv[++i]));
         }
-        else if(strcmp(argv[i], "-noAppBE") == 0){
-            bendingEnergyApproximation=false;
+        else if(strcmp(argv[i], "-le") == 0){
+            linearEnergyWeight0=(PrecisionTYPE)(atof(argv[++i]));
+            linearEnergyWeight1=(PrecisionTYPE)(atof(argv[++i]));
+            linearEnergyWeight2=(PrecisionTYPE)(atof(argv[++i]));
         }
         else if(strcmp(argv[i], "-jl") == 0){
             jacobianLogWeight=(PrecisionTYPE)(atof(argv[++i]));
@@ -396,6 +424,14 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
     unsigned int gpuMemoryAvailable = 0;
     if(useGPU){
+
+        if(linearEnergyWeight0!=linearEnergyWeight0 ||
+           linearEnergyWeight1!=linearEnergyWeight1 ||
+           linearEnergyWeight2!=linearEnergyWeight2){
+            printf("NiftyReg ERROR CUDA] The linear elasticity has not been implemented with CUDA yet. Exit.\n");
+            exit(0);
+        }
+
         if((referenceImage->dim[4]==1&&floatingImage->dim[4]==1) || (referenceImage->dim[4]==2&&floatingImage->dim[4]==2)){
 
             // The CUDA card is setup
@@ -449,7 +485,6 @@ int main(int argc, char **argv)
             }
 #endif
         }
-
         else{
             fprintf(stderr,"[NiftyReg ERROR] The GPU implementation only handle 1 to 1 or 2 to 2 image(s) registration\n");
             exit(1);
@@ -498,9 +533,13 @@ int main(int argc, char **argv)
 
     if(bendingEnergyWeight==bendingEnergyWeight)
         REG->SetBendingEnergyWeight(bendingEnergyWeight);
-    if(bendingEnergyApproximation)
-        REG->ApproximateBendingEnergy();
-    else REG->DoNotApproximateBendingEnergy();
+
+    if(linearEnergyWeight0==linearEnergyWeight0 || linearEnergyWeight1==linearEnergyWeight1 || linearEnergyWeight2==linearEnergyWeight2){
+        if(linearEnergyWeight0!=linearEnergyWeight0) linearEnergyWeight0=0.0;
+        if(linearEnergyWeight1!=linearEnergyWeight1) linearEnergyWeight1=0.0;
+        if(linearEnergyWeight2!=linearEnergyWeight2) linearEnergyWeight2=0.0;
+        REG->SetLinearEnergyWeights(linearEnergyWeight0,linearEnergyWeight1,linearEnergyWeight2);
+    }
 
     if(jacobianLogWeight==jacobianLogWeight)
         REG->SetJacobianLogWeight(jacobianLogWeight);

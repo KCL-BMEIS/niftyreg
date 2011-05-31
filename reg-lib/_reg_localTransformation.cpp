@@ -2723,6 +2723,14 @@ void reg_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                              int *currentMask,
                                              bool approx)
 {
+    // The velocity field is first scaled down
+    nifti_image * scaledVelcoityField = nifti_copy_nim_info(velocityFieldGrid);
+    scaledVelcoityField->data= (void *)malloc(scaledVelcoityField->nvox*scaledVelcoityField->nbyper);
+    memcpy(scaledVelcoityField->data,velocityFieldGrid->data,scaledVelcoityField->nvox*scaledVelcoityField->nbyper);
+    reg_getDisplacementFromDeformation(scaledVelcoityField);
+    reg_tools_addSubMulDivValue(scaledVelcoityField,scaledVelcoityField,scaledVelcoityField->pixdim[5],3);
+    reg_getDeformationFromDisplacement(scaledVelcoityField);
+
     if(approx){ // The transformation is applied to a lattice of control point
         // Two extra grid images are allocated
         nifti_image *controlPointGrid = nifti_copy_nim_info(velocityFieldGrid);
@@ -2762,7 +2770,7 @@ void reg_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
         // The initial deformation is generated using cubic B-Spline parametrisation
         nifti_image *tempDEFImage = nifti_copy_nim_info(deformationFieldImage);
         tempDEFImage->data=(void *)malloc(deformationFieldImage->nvox*deformationFieldImage->nbyper);
-        reg_spline(velocityFieldGrid,
+        reg_spline(scaledVelcoityField,
                    deformationFieldImage,
                    deformationFieldImage,
                    NULL, // mask
@@ -2781,11 +2789,12 @@ void reg_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
         }
         nifti_image_free(tempDEFImage);
     }
+    nifti_image_free(scaledVelcoityField);
 }
 /* *************************************************************** */
 /* *************************************************************** */
 
-#include "_reg_localTransformation_be.cpp"
 #include "_reg_localTransformation_jac.cpp"
+#include "_reg_localTransformation_be.cpp"
 
 #endif
