@@ -215,10 +215,10 @@ double reg_bspline_bendingEnergy(nifti_image *splineControlPoint)
 /* *************************************************************** */
 /* *************************************************************** */
 template<class SplineTYPE>
-void reg_bspline_approxBendingEnergyGradient2D(   nifti_image *splineControlPoint,
-                                            nifti_image *targetImage,
-                                            nifti_image *gradientImage,
-                                            float weight)
+void reg_bspline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
+                                               nifti_image *targetImage,
+                                               nifti_image *gradientImage,
+                                               float weight)
 {
     // As the contraint is only computed at the voxel position, the basis value of the spline are always the same
     SplineTYPE basisXX[9], basisYY[9], basisXY[9];
@@ -235,19 +235,18 @@ void reg_bspline_approxBendingEnergyGradient2D(   nifti_image *splineControlPoin
         }
     }
 
-    SplineTYPE nodeNumber = (SplineTYPE)(splineControlPoint->nx*splineControlPoint->ny);
-    SplineTYPE *derivativeValues = (SplineTYPE *)calloc(6*(int)nodeNumber, sizeof(SplineTYPE));
+    unsigned int nodeNumber = splineControlPoint->nx*splineControlPoint->ny;
+    SplineTYPE *derivativeValues = (SplineTYPE *)calloc(6*nodeNumber, sizeof(SplineTYPE));
 
     SplineTYPE *controlPointPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
-    SplineTYPE *controlPointPtrY = static_cast<SplineTYPE *>(&controlPointPtrX[(int)nodeNumber]);
+    SplineTYPE *controlPointPtrY = &(controlPointPtrX[nodeNumber]);
 
     SplineTYPE xControlPointCoordinates[9];
     SplineTYPE yControlPointCoordinates[9];
 
-    SplineTYPE *derivativeValuesPtr = &derivativeValues[0];
+    SplineTYPE *derivativeValuesPtr;
 
     for(int y=1;y<splineControlPoint->ny-1;y++){
-        derivativeValuesPtr = &derivativeValues[6*(y*splineControlPoint->nx+1)];
         for(int x=1;x<splineControlPoint->nx-1;x++){
 
             get_GridValuesApprox<SplineTYPE>(x-1,
@@ -275,20 +274,23 @@ void reg_bspline_approxBendingEnergyGradient2D(   nifti_image *splineControlPoin
                 YY_y += basisYY[a]*yControlPointCoordinates[a];
                 XY_y += basisXY[a]*yControlPointCoordinates[a];
             }
-            *derivativeValuesPtr++ = (SplineTYPE)(2.0*XX_x);
-            *derivativeValuesPtr++ = (SplineTYPE)(2.0*YY_x);
-            *derivativeValuesPtr++ = (SplineTYPE)(4.0*XY_x);
-            *derivativeValuesPtr++ = (SplineTYPE)(2.0*XX_y);
-            *derivativeValuesPtr++ = (SplineTYPE)(2.0*YY_y);
-            *derivativeValuesPtr++ = (SplineTYPE)(4.0*XY_y);
+
+            derivativeValuesPtr = &derivativeValues[6*(y*splineControlPoint->nx+x)];
+
+            derivativeValuesPtr[0] = (SplineTYPE)(2.0*XX_x);
+            derivativeValuesPtr[1] = (SplineTYPE)(2.0*YY_x);
+            derivativeValuesPtr[2] = (SplineTYPE)(4.0*XY_x);
+            derivativeValuesPtr[3] = (SplineTYPE)(2.0*XX_y);
+            derivativeValuesPtr[4] = (SplineTYPE)(2.0*YY_y);
+            derivativeValuesPtr[5] = (SplineTYPE)(4.0*XY_y);
         }
     }
 
     SplineTYPE *gradientXPtr = static_cast<SplineTYPE *>(gradientImage->data);
-    SplineTYPE *gradientYPtr = static_cast<SplineTYPE *>(&gradientXPtr[(int)nodeNumber]);
+    SplineTYPE *gradientYPtr = &(gradientXPtr[nodeNumber]);
 
     SplineTYPE approxRatio= weight * (SplineTYPE)(targetImage->nx*targetImage->ny)
-    / nodeNumber;
+    / (SplineTYPE)nodeNumber;
 
     SplineTYPE gradientValue[2];
 
@@ -297,23 +299,24 @@ void reg_bspline_approxBendingEnergyGradient2D(   nifti_image *splineControlPoin
 
             gradientValue[0]=gradientValue[1]=0.0;
 
-            unsigned int coord=0;
+            coord=0;
             for(int Y=y-1; Y<y+2; Y++){
                 for(int X=x-1; X<x+2; X++){
                     if(-1<X && -1<Y && X<splineControlPoint->nx && Y<splineControlPoint->ny){
                         derivativeValuesPtr = &derivativeValues[6 * (Y*splineControlPoint->nx + X)];
-                        gradientValue[0] += (*derivativeValuesPtr++) * basisXX[coord];
-                        gradientValue[0] += (*derivativeValuesPtr++) * basisYY[coord];
-                        gradientValue[0] += (*derivativeValuesPtr++) * basisXY[coord];
+                        gradientValue[0] += derivativeValuesPtr[0] * basisXX[coord] +
+                                            derivativeValuesPtr[1] * basisYY[coord] +
+                                            derivativeValuesPtr[2] * basisXY[coord];
 
-                        gradientValue[1] += (*derivativeValuesPtr++) * basisXX[coord];
-                        gradientValue[1] += (*derivativeValuesPtr++) * basisYY[coord];
-                        gradientValue[1] += (*derivativeValuesPtr++) * basisXY[coord];
+                        gradientValue[1] += derivativeValuesPtr[3] * basisXX[coord] +
+                                            derivativeValuesPtr[4] * basisYY[coord] +
+                                            derivativeValuesPtr[5] * basisXY[coord];
                     }
-                    coord++;
+                    ++coord;
                 }
             }
             // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
+
             *gradientXPtr++ += (SplineTYPE)(approxRatio*gradientValue[0]);
             *gradientYPtr++ += (SplineTYPE)(approxRatio*gradientValue[1]);
         }
@@ -468,7 +471,7 @@ void reg_bspline_approxBendingEnergyGradient3D( nifti_image *splineControlPoint,
 
                 gradientValue[0]=gradientValue[1]=gradientValue[2]=0.0;
 
-                unsigned int coord=0;
+                coord=0;
                 for(int Z=z-1; Z<z+2; Z++){
                     for(int Y=y-1; Y<y+2; Y++){
                         for(int X=x-1; X<x+2; X++){
@@ -577,7 +580,7 @@ void reg_bspline_linearEnergyApproxValue2D(nifti_image *splineControlPoint, doub
 
     DTYPE *jacobianDetermiant=(DTYPE *)malloc(nodeNumber*sizeof(DTYPE));
     mat33 *jacobianMatrices=(mat33 *)malloc(nodeNumber*sizeof(mat33));
-    computeApproximateJacobianMatrices_2D(splineControlPoint,
+    reg_bspline_computeApproximateJacobianMatrices_2D(splineControlPoint,
                                           jacobianMatrices,
                                           jacobianDetermiant);
 
@@ -591,13 +594,13 @@ void reg_bspline_linearEnergyApproxValue2D(nifti_image *splineControlPoint, doub
             jacobianMatrix=jacobianMatrices[index];
             jacobianMatrix.m[0][0]--;
             jacobianMatrix.m[1][1]--;
-            constraintValue[0] += (double)(jacobianMatrix.m[0][1]+jacobianMatrix.m[1][0])*(jacobianMatrix.m[0][1]+jacobianMatrix.m[1][0])/2.0;
-            constraintValue[1] += (double)(jacobianMatrix.m[0][0]*jacobianMatrix.m[0][0] + jacobianMatrix.m[1][1]*jacobianMatrix.m[1][1]);
-            constraintValue[2] += dispPointPtrX[index]*dispPointPtrX[index] + dispPointPtrY[index]*dispPointPtrY[index];
+            constraintValue[0] += (double)POW2(jacobianMatrix.m[0][1]+jacobianMatrix.m[1][0])/2.0
+                                  + POW2(jacobianMatrix.m[0][0]) + POW2(jacobianMatrix.m[1][1]);
+            constraintValue[1] += (double)POW2(jacobianMatrix.m[0][0]+jacobianMatrix.m[1][1]);
+            constraintValue[2] += POW2(dispPointPtrX[index]) + POW2(dispPointPtrY[index]);
             index++;
         }
     }
-    constraintValue[0] += constraintValue[1];
     constraintValue[0] /= (double)(splineControlPoint->nvox);
     constraintValue[1] /= (double)(splineControlPoint->nvox);
     constraintValue[2] /= (double)(splineControlPoint->nvox);
@@ -621,9 +624,9 @@ void reg_bspline_linearEnergyApproxValue3D(nifti_image *splineControlPoint, doub
 
     DTYPE *jacobianDetermiant=(DTYPE *)malloc(nodeNumber*sizeof(DTYPE));
     mat33 *jacobianMatrices=(mat33 *)malloc(nodeNumber*sizeof(mat33));
-    computeApproximateJacobianMatrices_3D(splineControlPoint,
-                                          jacobianMatrices,
-                                          jacobianDetermiant);
+    reg_bspline_computeApproximateJacobianMatrices_3D(splineControlPoint,
+                                                      jacobianMatrices,
+                                                      jacobianDetermiant);
 
     constraintValue[0]=constraintValue[1]=constraintValue[2]=0;
     mat33 jacobianMatrix;
@@ -637,23 +640,24 @@ void reg_bspline_linearEnergyApproxValue3D(nifti_image *splineControlPoint, doub
                 jacobianMatrix.m[0][0]--;
                 jacobianMatrix.m[1][1]--;
                 jacobianMatrix.m[2][2]--;
-                constraintValue[0] += (double).5 * ( (jacobianMatrix.m[0][1]+jacobianMatrix.m[1][0])*(jacobianMatrix.m[0][1]+jacobianMatrix.m[1][0]) +
-                                                     (jacobianMatrix.m[0][2]+jacobianMatrix.m[2][0])*(jacobianMatrix.m[0][2]+jacobianMatrix.m[2][0]) +
-                                                     (jacobianMatrix.m[1][2]+jacobianMatrix.m[2][1])*(jacobianMatrix.m[1][2]+jacobianMatrix.m[2][1]) );
-                constraintValue[1] += (double)(jacobianMatrix.m[0][0]*jacobianMatrix.m[0][0] +
-                                               jacobianMatrix.m[1][1]*jacobianMatrix.m[1][1] +
-                                               jacobianMatrix.m[2][2]*jacobianMatrix.m[2][2]);
-                constraintValue[2] += dispPointPtrX[index]*dispPointPtrX[index] +
-                                      dispPointPtrY[index]*dispPointPtrY[index] +
-                                      dispPointPtrZ[index]*dispPointPtrZ[index];
+                constraintValue[0] += (double).5 * ( POW2(jacobianMatrix.m[0][1]+jacobianMatrix.m[1][0]) +
+                                                     POW2(jacobianMatrix.m[0][2]+jacobianMatrix.m[2][0]) +
+                                                     POW2(jacobianMatrix.m[1][2]+jacobianMatrix.m[2][1]) ) +
+                                      POW2(jacobianMatrix.m[0][0]) +
+                                      POW2(jacobianMatrix.m[1][1]) +
+                                      POW2(jacobianMatrix.m[2][2]);
+                constraintValue[1] += (double)POW2(jacobianMatrix.m[0][0]+jacobianMatrix.m[1][1]+jacobianMatrix.m[2][2]);
+                constraintValue[2] += POW2(dispPointPtrX[index]) +
+                                      POW2(dispPointPtrY[index]) +
+                                      POW2(dispPointPtrZ[index]);
                 index++;
             }
         }
     }
-    constraintValue[0] += constraintValue[1];
     constraintValue[0] /= (double)(splineControlPoint->nvox);
     constraintValue[1] /= (double)(splineControlPoint->nvox);
     constraintValue[2] /= (double)(splineControlPoint->nvox);
+
     nifti_image_free(dispControlPoint);
     free(jacobianDetermiant);
     free(jacobianMatrices);
@@ -707,11 +711,12 @@ void reg_bspline_approxLinearEnergyGradient2D(nifti_image *splineControlPoint,
 {
     unsigned int nodeNumber = splineControlPoint->nx*splineControlPoint->ny;
 
-    DTYPE *jacobianDetermiant=(DTYPE *)malloc(nodeNumber*sizeof(DTYPE));
     mat33 *jacobianMatrices=(mat33 *)malloc(nodeNumber*sizeof(mat33));
-    computeApproximateJacobianMatrices_2D(splineControlPoint,
-                                          jacobianMatrices,
-                                          jacobianDetermiant);
+    DTYPE *jacDet=(DTYPE *)malloc(nodeNumber*sizeof(DTYPE));
+    reg_bspline_computeApproximateJacobianMatrices_2D(splineControlPoint,
+                                                      jacobianMatrices,
+                                                      jacDet);
+    free(jacDet);
 
     DTYPE *gradPtrX = static_cast<DTYPE *>(gradientImage->data);
     DTYPE *gradPtrY = &gradPtrX[nodeNumber];
@@ -743,9 +748,9 @@ void reg_bspline_approxLinearEnergyGradient2D(nifti_image *splineControlPoint,
     mat33 reorient, desorient, jacobianMatrix;
     getReorientationMatrix(splineControlPoint, &desorient, &reorient);
 
-    for(int y=1;y<splineControlPoint->ny-1;y++){
-        unsigned int index= y*splineControlPoint->nx+1;
-        for(int x=1;x<splineControlPoint->nx-1;x++){
+    unsigned int index=0;
+    for(int y=0;y<splineControlPoint->ny;y++){
+        for(int x=0;x<splineControlPoint->nx;x++){
             DTYPE gradX0=0;
             DTYPE gradX1=0;
             DTYPE gradX2=0;
@@ -757,21 +762,24 @@ void reg_bspline_approxLinearEnergyGradient2D(nifti_image *splineControlPoint,
                 unsigned int currentIndex= b*splineControlPoint->nx+x-1;
                 for(int a=x-1;a<x+2;a++){
 
-                    jacobianMatrix=jacobianMatrices[currentIndex];
+                    if(b>-1 && a >-1 && b<splineControlPoint->ny && a<splineControlPoint->nx){
+                        jacobianMatrix=jacobianMatrices[currentIndex];
 
-                    gradX0 +=  basisY[coord] * (jacobianMatrix.m[0][1]+jacobianMatrix.m[1][0]);
-                    gradY0 +=  basisX[coord] * (jacobianMatrix.m[0][1]+jacobianMatrix.m[1][0]);
+                        DTYPE commun=jacobianMatrix.m[0][1]+jacobianMatrix.m[1][0];
+                        gradX0 +=  basisY[coord]*commun + 2.0*(jacobianMatrix.m[0][0]-1)*basisX[coord];
+                        gradY0 +=  basisX[coord]*commun + 2.0*(jacobianMatrix.m[1][1]-1)*basisY[coord];
 
-                    gradX1 += 2.0 * basisX[coord] * (jacobianMatrix.m[0][0]-1.0);
-                    gradY1 += 2.0 * basisY[coord] * (jacobianMatrix.m[1][1]-1.0);
+                        commun=jacobianMatrix.m[0][0]+jacobianMatrix.m[1][1]-2.0;
+                        gradX1 += 2.0 * basisX[coord] * commun;
+                        gradY1 += 2.0 * basisY[coord] * commun;
 
-                    gradX2 += 2.0 * basis[coord] * dispPointPtrX[currentIndex];
-                    gradY2 += 2.0 * basis[coord] * dispPointPtrY[currentIndex];
+                        gradX2 += 2.0 * basis[coord] * dispPointPtrX[currentIndex];
+                        gradY2 += 2.0 * basis[coord] * dispPointPtrY[currentIndex];
+                    }
                     currentIndex++;
                     coord++;
                 }
             }
-            gradX0 += gradX1;gradY0 += gradY1;
             gradPtrX[index] += approxRatio0 * (desorient.m[0][0]*gradX0 + desorient.m[0][1]*gradY0) +
                                approxRatio1 * (desorient.m[0][0]*gradX1 + desorient.m[0][1]*gradY1) +
                                approxRatio2 * gradX2;
@@ -783,7 +791,6 @@ void reg_bspline_approxLinearEnergyGradient2D(nifti_image *splineControlPoint,
     }
     nifti_image_free(dispControlPoint);
     free(jacobianMatrices);
-    free(jacobianDetermiant);
 }
 /* *************************************************************** */
 template <class DTYPE>
@@ -797,19 +804,20 @@ void reg_bspline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
 {
     unsigned int nodeNumber = splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz;
 
-    DTYPE *jacobianDetermiant=(DTYPE *)malloc(nodeNumber*sizeof(DTYPE));
     mat33 *jacobianMatrices=(mat33 *)malloc(nodeNumber*sizeof(mat33));
-    computeApproximateJacobianMatrices_3D(splineControlPoint,
-                                          jacobianMatrices,
-                                          jacobianDetermiant);
+    DTYPE *jacobianDet=(DTYPE *)malloc(nodeNumber*sizeof(DTYPE));
+    reg_bspline_computeApproximateJacobianMatrices_3D(splineControlPoint,
+                                                      jacobianMatrices,
+                                                      jacobianDet);
+    free(jacobianDet);
 
     DTYPE *gradPtrX = static_cast<DTYPE *>(gradientImage->data);
     DTYPE *gradPtrY = &gradPtrX[nodeNumber];
     DTYPE *gradPtrZ = &gradPtrY[nodeNumber];
 
-    DTYPE approxRatio0 = 2.0 * (double)weight0 * (double)(referenceImage->nx*referenceImage->ny*referenceImage->nz) / nodeNumber;
-    DTYPE approxRatio1 = 2.0 * (double)weight1 * (double)(referenceImage->nx*referenceImage->ny*referenceImage->nz) / nodeNumber;
-    DTYPE approxRatio2 = 2.0 * (double)weight2 * (double)(referenceImage->nx*referenceImage->ny*referenceImage->nz) / nodeNumber;
+    DTYPE approxRatio0 = 2.0 * (double)weight0 * (double)(referenceImage->nx*referenceImage->ny*referenceImage->nz) / (double)nodeNumber;
+    DTYPE approxRatio1 = 2.0 * (double)weight1 * (double)(referenceImage->nx*referenceImage->ny*referenceImage->nz) / (double)nodeNumber;
+    DTYPE approxRatio2 = 2.0 * (double)weight2 * (double)(referenceImage->nx*referenceImage->ny*referenceImage->nz) / (double)nodeNumber;
 
     nifti_image *dispControlPoint=nifti_copy_nim_info(splineControlPoint);
     dispControlPoint->data=(void *)malloc(dispControlPoint->nvox*dispControlPoint->nbyper);
@@ -838,10 +846,10 @@ void reg_bspline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
     mat33 reorient, desorient, jacobianMatrix;
     getReorientationMatrix(splineControlPoint, &desorient, &reorient);
 
-    for(int z=1;z<splineControlPoint->nz-1;z++){
-        for(int y=1;y<splineControlPoint->ny-1;y++){
-            unsigned int index= (z*splineControlPoint->ny+y)*splineControlPoint->nx+1;
-            for(int x=1;x<splineControlPoint->nx-1;x++){
+    unsigned int index=0;
+    for(int z=0;z<splineControlPoint->nz;z++){
+        for(int y=0;y<splineControlPoint->ny;y++){
+            for(int x=0;x<splineControlPoint->nx;x++){
                 DTYPE gradX0=0; DTYPE gradX1=0; DTYPE gradX2=0;
                 DTYPE gradY0=0; DTYPE gradY1=0; DTYPE gradY2=0;
                 DTYPE gradZ0=0; DTYPE gradZ1=0; DTYPE gradZ2=0;
@@ -851,29 +859,37 @@ void reg_bspline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
                         unsigned int currentIndex= (c*splineControlPoint->ny+b)*splineControlPoint->nx+x-1;
                         for(int a=x-1;a<x+2;a++){
 
-                            jacobianMatrix=jacobianMatrices[currentIndex];
+                            if(c>-1 && b>-1 && a>-1 && c<splineControlPoint->nz && b<splineControlPoint->ny && a<splineControlPoint->nx){
+                                jacobianMatrix=jacobianMatrices[currentIndex];
+                                jacobianMatrix.m[0][0]--;
+                                jacobianMatrix.m[1][1]--;
+                                jacobianMatrix.m[2][2]--;
 
-                            gradX0 +=  basisY[coord] * (jacobianMatrix.m[0][1]+jacobianMatrix.m[1][0]) +
-                                       basisZ[coord] * (jacobianMatrix.m[0][2]+jacobianMatrix.m[2][0]);
-                            gradY0 +=  basisX[coord] * (jacobianMatrix.m[0][1]+jacobianMatrix.m[1][0]) +
-                                       basisZ[coord] * (jacobianMatrix.m[2][1]+jacobianMatrix.m[1][2]);
-                            gradZ0 +=  basisX[coord] * (jacobianMatrix.m[0][2]+jacobianMatrix.m[2][0]) +
-                                       basisY[coord] * (jacobianMatrix.m[2][1]+jacobianMatrix.m[1][2]);
+                                gradX0 +=  basisY[coord] * (jacobianMatrix.m[0][1]+jacobianMatrix.m[1][0]) +
+                                           basisZ[coord] * (jacobianMatrix.m[0][2]+jacobianMatrix.m[2][0]) +
+                                           2.0*basisX[coord] * jacobianMatrix.m[0][0];
+                                gradY0 +=  basisX[coord] * (jacobianMatrix.m[0][1]+jacobianMatrix.m[1][0]) +
+                                           basisZ[coord] * (jacobianMatrix.m[2][1]+jacobianMatrix.m[1][2]) +
+                                           2.0*basisY[coord] * jacobianMatrix.m[1][1];
+                                gradZ0 +=  basisX[coord] * (jacobianMatrix.m[0][2]+jacobianMatrix.m[2][0]) +
+                                           basisY[coord] * (jacobianMatrix.m[2][1]+jacobianMatrix.m[1][2]) +
+                                           2.0*basisZ[coord] * jacobianMatrix.m[2][2];
 
-                            gradX1 += 2.0 * basisX[coord] * (jacobianMatrix.m[0][0]-1.0);
-                            gradY1 += 2.0 * basisY[coord] * (jacobianMatrix.m[1][1]-1.0);
-                            gradZ1 += 2.0 * basisZ[coord] * (jacobianMatrix.m[2][2]-1.0);
+                                DTYPE commun=jacobianMatrix.m[0][0]+jacobianMatrix.m[1][1]+jacobianMatrix.m[2][2];
+                                gradX1 += 2.0 * basisX[coord] * commun;
+                                gradY1 += 2.0 * basisY[coord] * commun;
+                                gradZ1 += 2.0 * basisZ[coord] * commun;
 
-                            gradX2 += 2.0 * basis[coord] * dispPointPtrX[currentIndex];
-                            gradY2 += 2.0 * basis[coord] * dispPointPtrY[currentIndex];
-                            gradZ2 += 2.0 * basis[coord] * dispPointPtrZ[currentIndex];
+                                gradX2 += 2.0 * basis[coord] * dispPointPtrX[currentIndex];
+                                gradY2 += 2.0 * basis[coord] * dispPointPtrY[currentIndex];
+                                gradZ2 += 2.0 * basis[coord] * dispPointPtrZ[currentIndex];
+                            }
 
                             currentIndex++;
                             coord++;
                         }
                     }
                 }
-                gradX0 += gradX1;gradY0 += gradY1;gradZ0 += gradZ1;
                 gradPtrX[index] += approxRatio0 * (desorient.m[0][0]*gradX0 + desorient.m[0][1]*gradY0 + desorient.m[0][2]*gradZ0) +
                                    approxRatio1 * (desorient.m[0][0]*gradX1 + desorient.m[0][1]*gradY1 + desorient.m[0][2]*gradZ1) +
                                    approxRatio2 * gradX2;
@@ -889,7 +905,6 @@ void reg_bspline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
     }
     nifti_image_free(dispControlPoint);
     free(jacobianMatrices);
-    free(jacobianDetermiant);
 }
 /* *************************************************************** */
 void reg_bspline_linearEnergyGradient(nifti_image *splineControlPoint,

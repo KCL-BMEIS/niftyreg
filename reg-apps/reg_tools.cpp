@@ -194,7 +194,7 @@ int main(int argc, char **argv)
 						            image,
 						            fakepositionField);
 		free(affineTransformation);
-		reg_getSourceImageGradient<PrecisionTYPE>(	image,
+                reg_getSourceImageGradient(	image,
 								                    image,
 								                    spatialGradientImage,
 								                    fakepositionField,

@@ -665,7 +665,7 @@ int main(int argc, char **argv)
                                                 targetImage,
                                                 positionFieldImage);
 					/* Resample the source image */
-					reg_resampleSourceImage<PrecisionTYPE>(	targetImage,
+                                        reg_resampleSourceImage(	targetImage,
                                                             sourceImage,
                                                             resultImage,
                                                             positionFieldImage,
@@ -741,7 +741,7 @@ int main(int argc, char **argv)
 									targetImage,
 									positionFieldImage);
 					/* Resample the source image */
-					reg_resampleSourceImage<PrecisionTYPE>(	targetImage,
+                                        reg_resampleSourceImage(	targetImage,
 										sourceImage,
 										resultImage,
 										positionFieldImage,
@@ -831,7 +831,7 @@ int main(int argc, char **argv)
 			resultImage->datatype = sourceImage->datatype;
 			resultImage->nbyper = sourceImage->nbyper;
 			resultImage->data = (void *)calloc(resultImage->nvox, resultImage->nbyper);
-			reg_resampleSourceImage<double>(targetHeader,
+                        reg_resampleSourceImage(targetHeader,
 							sourceImage,
 							resultImage,
 							positionFieldImage,

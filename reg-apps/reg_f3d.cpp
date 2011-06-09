@@ -26,6 +26,7 @@
 #else
     #define PrecisionTYPE float
 #endif
+
 void HelpPenaltyTerm()
 {
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
@@ -101,18 +102,20 @@ void Usage(char *exec)
     printf("\t-be <float>\t\tWeight of the bending energy penalty term [0.01]\n");
     printf("\t-le <float> <float><float>\tWeights of linear elasticity penalty term [0.0 0.0 0.0]\n");
     printf("\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]\n");
-    printf("\t-noAppJL\t\tTo not approximate the JL value only at the control point position [no]\n");
+    printf("\t-noAppJL\t\tTo not approximate the JL value only at the control point position\n");
     printf("\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent\n");
-    printf("\t-ssd\t\t\tTo use the SSD as the similiarity measure [NMI by default]\n");
+    printf("\t-ssd\t\t\tTo use the SSD as the similiarity measure (NMI by default)\n");
 
     printf("\n*** Optimisation options:\n");
     printf("\t-maxit <int>\t\tMaximal number of iteration per level [300]\n");
     printf("\t-ln <int>\t\tNumber of level to perform [3]\n");
     printf("\t-lp <int>\t\tOnly perform the first levels [ln]\n");
-//    printf("\t-nopy\t\t\tDo not use a pyramidal approach [no]\n");
+    printf("\t-nopy\t\t\tDo not use a pyramidal approach\n");
 
     printf("\n*** F3D2 options:\n");
-    printf("\t-vel \t\t\tUse a velocity field integrationto generate the deformation [false]\n");
+    printf("\t-vel \t\t\tUse a velocity field integrationto generate the deformation\n");
+    printf("\t-useSym \t\tUse similarity measure gradient symmetry\n");
+    printf("\t-approxComp \t\tApproximate the composition step\n");
     printf("\t-step <int>\t\tNumber of composition step [6].\n");
 
     printf("\n*** Other options:\n");
@@ -126,7 +129,7 @@ void Usage(char *exec)
     printf("\t-gpu \t\t\tTo use the GPU implementation [no]\n");
 #endif
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-    printf("For further description of the penalty term, use: %s -helpPenaly\n", exec);
+    printf("For further description of the penalty term, use: %s -helpPenalty\n", exec);
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     return;
 }
@@ -187,6 +190,7 @@ int main(int argc, char **argv)
     bool verbose=true;
     bool useConjugate=true;
     bool useSSD=false;
+    bool noPyramid=0;
 #ifdef _USE_CUDA
     bool useGPU=false;
     bool checkMem=false;
@@ -195,6 +199,8 @@ int main(int argc, char **argv)
 
     int stepNumber=-1;
     bool useVel=false;
+    bool useSymmetry=false;
+    bool approxComposition=false;
 	
 	/* read the input parameter */
     for(int i=1;i<argc;i++){
@@ -204,7 +210,7 @@ int main(int argc, char **argv)
             Usage(argv[0]);
             return 0;
         }
-        if(strcmp(argv[i], "-helpPenaly")==0){
+        if(strcmp(argv[i], "-helpPenalty")==0){
             HelpPenaltyTerm();
             return 0;
         }
@@ -310,16 +316,22 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-pad") == 0){
             warpedPaddingValue=(PrecisionTYPE)(atof(argv[++i]));
         }
-//TODO
-//      else if(strcmp(argv[i], "-nopy") == 0){
-//          flag->pyramidFlag=0;
-//      }
+        else if(strcmp(argv[i], "-nopy") == 0){
+            noPyramid=1;
+        }
         else if(strcmp(argv[i], "-noConj") == 0){
            useConjugate=false;
         }
         else if(strcmp(argv[i], "-step") == 0){
            stepNumber=atoi(argv[++i]);
            useVel=true;
+        }
+        else if(strcmp(argv[i], "-approxComp") ==0){
+            approxComposition=true;
+            useVel=true;
+        }
+        else if(strcmp(argv[i], "-useSym") ==0){
+            useSymmetry=true;
         }
 #ifdef _USE_CUDA
         else if(strcmp(argv[i], "-gpu") == 0){
@@ -425,9 +437,9 @@ int main(int argc, char **argv)
     unsigned int gpuMemoryAvailable = 0;
     if(useGPU){
 
-        if(linearEnergyWeight0!=linearEnergyWeight0 ||
-           linearEnergyWeight1!=linearEnergyWeight1 ||
-           linearEnergyWeight2!=linearEnergyWeight2){
+        if(linearEnergyWeight0==linearEnergyWeight0 ||
+           linearEnergyWeight1==linearEnergyWeight1 ||
+           linearEnergyWeight2==linearEnergyWeight2){
             printf("NiftyReg ERROR CUDA] The linear elasticity has not been implemented with CUDA yet. Exit.\n");
             exit(0);
         }
@@ -543,6 +555,7 @@ int main(int argc, char **argv)
 
     if(jacobianLogWeight==jacobianLogWeight)
         REG->SetJacobianLogWeight(jacobianLogWeight);
+
     if(jacobianLogApproximation)
         REG->ApproximateJacobianLog();
     else REG->DoNotApproximateJacobianLog();
@@ -606,6 +619,15 @@ int main(int argc, char **argv)
     if(useConjugate==true)
         REG->UseConjugateGradient();
     else REG->DoNotUseConjugateGradient();
+
+    if(noPyramid==1)
+        REG->DoNotUsePyramidalApproach();
+
+    if(approxComposition)
+        REG->ApproximateComposition();
+
+    if(useSymmetry)
+        REG->UseSimilaritySymmetry();
 
     // Run the registration
 

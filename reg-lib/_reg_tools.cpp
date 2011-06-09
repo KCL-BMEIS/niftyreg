@@ -1023,7 +1023,7 @@ void reg_gaussianSmoothing1(nifti_image *image,
                             PrecisionTYPE sigma,
                             bool axisToSmooth[8])
 {
-	ImageTYPE *imagePtr = static_cast<ImageTYPE *>(image->data);
+    ImageTYPE *imagePtr = static_cast<ImageTYPE *>(image->data);
 
     int timePoint = image->nt;
     if(timePoint==0) timePoint=1;

@@ -6,6 +6,8 @@
 #include <math.h>
 #include "nifti1_io.h"
 
+#define POW2(a) ((a)*(a))
+
 /* *************************************************************** */
 extern "C++"
 void reg_LUdecomposition(float *inputMatrix,

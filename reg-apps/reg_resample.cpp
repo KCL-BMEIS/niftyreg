@@ -269,6 +269,7 @@ int main(int argc, char **argv)
             if(controlPointImage->pixdim[5]>1){
                 reg_getDeformationFieldFromVelocityGrid(controlPointImage,
                                                         deformationFieldImage,
+                                                        NULL, // intermediate
                                                         NULL, // mask
                                                         false // approximation
                                                         );
@@ -312,7 +313,7 @@ int main(int argc, char **argv)
         resultImage->nbyper = sourceImage->nbyper;
         resultImage->nvox = resultImage->dim[1] * resultImage->dim[2] * resultImage->dim[3] * resultImage->dim[4];
         resultImage->data = (void *)calloc(resultImage->nvox, resultImage->nbyper);
-        reg_resampleSourceImage<double>(targetImage,
+        reg_resampleSourceImage(targetImage,
                                         sourceImage,
                                         resultImage,
                                         deformationFieldImage,
@@ -364,7 +365,7 @@ int main(int argc, char **argv)
         resultImage->datatype =NIFTI_TYPE_UINT8;
         resultImage->nbyper = sizeof(unsigned char);
         resultImage->data = (void *)calloc(resultImage->nvox, resultImage->nbyper);
-        reg_resampleSourceImage<double>(targetImage,
+        reg_resampleSourceImage(targetImage,
                                         gridImage,
                                         resultImage,
                                         deformationFieldImage,

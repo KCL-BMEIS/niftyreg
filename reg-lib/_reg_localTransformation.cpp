@@ -2122,9 +2122,9 @@ int reg_getDeformationFromDisplacement(nifti_image *splineControlPoint)
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void reg_composeDefField2D(nifti_image *deformationField,
-                           nifti_image *dfToUpdate,
-                           int *mask)
+void reg_defField_compose2D(nifti_image *deformationField,
+                            nifti_image *dfToUpdate,
+                            int *mask)
 {
     unsigned int DFVoxelNumber=deformationField->nx*deformationField->ny;
     unsigned int resVoxelNumber=dfToUpdate->nx*dfToUpdate->ny;
@@ -2195,9 +2195,9 @@ void reg_composeDefField2D(nifti_image *deformationField,
 }
 /* *************************************************************** */
 template <class DTYPE>
-void reg_composeDefField3D(nifti_image *deformationField,
-                           nifti_image *dfToUpdate,
-                           int *mask)
+void reg_defField_compose3D(nifti_image *deformationField,
+                            nifti_image *dfToUpdate,
+                            int *mask)
 {
     unsigned int DFVoxelNumber=deformationField->nx*deformationField->ny*
                                deformationField->nz;
@@ -2298,7 +2298,7 @@ void reg_composeDefField3D(nifti_image *deformationField,
 
 }
 /* *************************************************************** */
-void reg_composeDefField(nifti_image *deformationField,
+void reg_defField_compose(nifti_image *deformationField,
                          nifti_image *dfToUpdate,
                          int *mask)
 {
@@ -2320,11 +2320,11 @@ void reg_composeDefField(nifti_image *deformationField,
     if(dfToUpdate->nu==2){
         switch(deformationField->datatype){
                 case NIFTI_TYPE_FLOAT32:
-                        reg_composeDefField2D<float>(deformationField,dfToUpdate,mask);
+                        reg_defField_compose2D<float>(deformationField,dfToUpdate,mask);
                         break;
 #ifdef _NR_DEV
                 case NIFTI_TYPE_FLOAT64:
-                        reg_composeDefField2D<double>(deformationField,dfToUpdate,mask);
+                        reg_defField_compose2D<double>(deformationField,dfToUpdate,mask);
                         break;
 #endif
                 default:
@@ -2335,11 +2335,11 @@ void reg_composeDefField(nifti_image *deformationField,
     else{
         switch(deformationField->datatype){
                 case NIFTI_TYPE_FLOAT32:
-                        reg_composeDefField3D<float>(deformationField,dfToUpdate,mask);
+                        reg_defField_compose3D<float>(deformationField,dfToUpdate,mask);
                         break;
 #ifdef _NR_DEV
                 case NIFTI_TYPE_FLOAT64:
-                        reg_composeDefField3D<double>(deformationField,dfToUpdate,mask);
+                        reg_defField_compose3D<double>(deformationField,dfToUpdate,mask);
                         break;
 #endif
                 default:
@@ -2720,16 +2720,23 @@ int reg_spline_cppComposition(nifti_image *grid1,
 /* *************************************************************** */
 void reg_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                              nifti_image *deformationFieldImage,
+                                             nifti_image **intermediateDeformationField,
                                              int *currentMask,
                                              bool approx)
 {
+
+    if(approx && intermediateDeformationField!=NULL){
+        fprintf(stderr,"[NiftyReg ERROR] reg_getDeformationFieldFromVelocityGrid\n");
+        fprintf(stderr,"[NiftyReg ERROR] Implementation of the intermediate steps using approximation has not been done yet\n");
+        exit(1);
+    }
     // The velocity field is first scaled down
-    nifti_image * scaledVelcoityField = nifti_copy_nim_info(velocityFieldGrid);
-    scaledVelcoityField->data= (void *)malloc(scaledVelcoityField->nvox*scaledVelcoityField->nbyper);
-    memcpy(scaledVelcoityField->data,velocityFieldGrid->data,scaledVelcoityField->nvox*scaledVelcoityField->nbyper);
-    reg_getDisplacementFromDeformation(scaledVelcoityField);
-    reg_tools_addSubMulDivValue(scaledVelcoityField,scaledVelcoityField,scaledVelcoityField->pixdim[5],3);
-    reg_getDeformationFromDisplacement(scaledVelcoityField);
+    nifti_image *scaledVelocityField = nifti_copy_nim_info(velocityFieldGrid);
+    scaledVelocityField->data= (void *)malloc(scaledVelocityField->nvox*scaledVelocityField->nbyper);
+    memcpy(scaledVelocityField->data,velocityFieldGrid->data,scaledVelocityField->nvox*scaledVelocityField->nbyper);
+    reg_getDisplacementFromDeformation(scaledVelocityField);
+    reg_tools_addSubMulDivValue(scaledVelocityField,scaledVelocityField,scaledVelocityField->pixdim[5],3);
+    reg_getDeformationFromDisplacement(scaledVelocityField);
 
     if(approx){ // The transformation is applied to a lattice of control point
         // Two extra grid images are allocated
@@ -2768,28 +2775,79 @@ void reg_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
     }
     else{
         // The initial deformation is generated using cubic B-Spline parametrisation
-        nifti_image *tempDEFImage = nifti_copy_nim_info(deformationFieldImage);
-        tempDEFImage->data=(void *)malloc(deformationFieldImage->nvox*deformationFieldImage->nbyper);
-        reg_spline(scaledVelcoityField,
+        nifti_image *tempDEFImage = NULL;
+        nifti_image **currentDefPtr0 = NULL;
+        nifti_image **currentDefPtr1 = NULL;
+        if(intermediateDeformationField==NULL){
+            tempDEFImage = nifti_copy_nim_info(deformationFieldImage);
+            tempDEFImage->data=(void *)malloc(deformationFieldImage->nvox*deformationFieldImage->nbyper);
+            currentDefPtr0 = &deformationFieldImage;
+            currentDefPtr1 = &tempDEFImage;
+        }
+        else{
+            currentDefPtr0 = &intermediateDeformationField[0];
+            currentDefPtr1 = &intermediateDeformationField[1];
+        }
+        reg_spline(scaledVelocityField,
                    deformationFieldImage,
-                   deformationFieldImage,
+                   *currentDefPtr0,
                    NULL, // mask
                    false, //composition
                    true // bspline
                    );
-        // The initial deformation is squared N times
-        memcpy(tempDEFImage->data, deformationFieldImage->data,
-               tempDEFImage->nvox*tempDEFImage->nbyper);
+
         for(unsigned int i=0;i<velocityFieldGrid->pixdim[5];++i){
-            reg_composeDefField(deformationFieldImage,
-                                tempDEFImage,
-                                currentMask);
-            memcpy(deformationFieldImage->data, tempDEFImage->data,
-                   tempDEFImage->nvox*tempDEFImage->nbyper);
+
+            memcpy((*currentDefPtr1)->data, (*currentDefPtr0)->data,
+                   deformationFieldImage->nvox*deformationFieldImage->nbyper);
+
+            if(intermediateDeformationField==NULL){
+                reg_defField_compose(*currentDefPtr1,
+                                    *currentDefPtr0,
+                                    currentMask);
+            }
+            else{
+                reg_defField_compose(*currentDefPtr0,
+                                    *currentDefPtr1,
+                                    currentMask);
+
+                if(i==(velocityFieldGrid->pixdim[5]-2)){
+                    currentDefPtr0 = &intermediateDeformationField[i+1];
+                    currentDefPtr1 = &deformationFieldImage;
+                }
+                else if(i<velocityFieldGrid->pixdim[5]-2){
+                    currentDefPtr0 = &intermediateDeformationField[i+1];
+                    currentDefPtr1 = &intermediateDeformationField[i+2];
+                }
+            }
         }
-        nifti_image_free(tempDEFImage);
+        if(intermediateDeformationField==NULL) nifti_image_free(tempDEFImage);
     }
-    nifti_image_free(scaledVelcoityField);
+
+    nifti_image_free(scaledVelocityField);
+}
+/* *************************************************************** */
+void reg_getInverseDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
+                                                    nifti_image *deformationFieldImage,
+                                                    nifti_image **intermediateDeformationField,
+                                                    int *currentMask,
+                                                    bool approx)
+{
+    // The velocity field is inverted
+    nifti_image * invertedVelcoityField = nifti_copy_nim_info(velocityFieldGrid);
+    invertedVelcoityField->data= (void *)malloc(invertedVelcoityField->nvox*invertedVelcoityField->nbyper);
+    memcpy(invertedVelcoityField->data,velocityFieldGrid->data,invertedVelcoityField->nvox*invertedVelcoityField->nbyper);
+    reg_getDisplacementFromDeformation(invertedVelcoityField);
+    reg_tools_addSubMulDivValue(invertedVelcoityField,invertedVelcoityField,-1,2);
+    reg_getDeformationFromDisplacement(invertedVelcoityField);
+
+    reg_getDeformationFieldFromVelocityGrid(invertedVelcoityField,
+                                            deformationFieldImage,
+                                            intermediateDeformationField,
+                                            currentMask,
+                                            approx);
+
+    nifti_image_free(invertedVelcoityField);
 }
 /* *************************************************************** */
 /* *************************************************************** */
