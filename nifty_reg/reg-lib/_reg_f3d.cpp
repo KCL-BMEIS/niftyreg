@@ -66,8 +66,8 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->useConjGradient=true;
     this->maxSSD=NULL;
     this->entropies[0]=this->entropies[1]=this->entropies[2]=this->entropies[3]=0.;
-    this->stepNumber=6;
     this->currentIteration=0;
+    this->usePyramid=true;
 //	this->threadNumber=1;
 
     this->initialised=false;
@@ -111,32 +111,59 @@ reg_f3d<T>::~reg_f3d()
         this->controlPointGrid=NULL;
     }
     if(this->referencePyramid!=NULL){
-        for(unsigned int i=0;i<levelToPerform;i++){
-            if(referencePyramid[i]!=NULL){
-				nifti_image_free(referencePyramid[i]);
-                referencePyramid[i]=NULL;
+        if(this->usePyramid){
+            for(unsigned int i=0;i<levelToPerform;i++){
+                if(referencePyramid[i]!=NULL){
+                    nifti_image_free(referencePyramid[i]);
+                    referencePyramid[i]=NULL;
+                }
             }
         }
+        else{
+            if(referencePyramid[0]!=NULL){
+                nifti_image_free(referencePyramid[0]);
+                referencePyramid[0]=NULL;
+            }
+        }
+        free(referencePyramid);
+        referencePyramid=NULL;
     }
-    free(referencePyramid);referencePyramid=NULL;
     if(this->maskPyramid!=NULL){
-        for(unsigned int i=0;i<levelToPerform;i++){
-            if(maskPyramid[i]!=NULL){
-				free(maskPyramid[i]);
-                maskPyramid[i]=NULL;
+        if(this->usePyramid){
+            for(unsigned int i=0;i<levelToPerform;i++){
+                if(this->maskPyramid[i]!=NULL){
+                    free(this->maskPyramid[i]);
+                    this->maskPyramid[i]=NULL;
+                }
             }
         }
+        else{
+            if(this->maskPyramid[0]!=NULL){
+                free(this->maskPyramid[0]);
+                this->maskPyramid[0]=NULL;
+            }
+        }
+        free(this->maskPyramid);
+        maskPyramid=NULL;
     }
-    free(maskPyramid);maskPyramid=NULL;
     if(this->floatingPyramid!=NULL){
-        for(unsigned int i=0;i<levelToPerform;i++){
-            if(floatingPyramid[i]!=NULL){
-				nifti_image_free(floatingPyramid[i]);
-                floatingPyramid[i]=NULL;
+        if(this->usePyramid){
+            for(unsigned int i=0;i<levelToPerform;i++){
+                if(floatingPyramid[i]!=NULL){
+                    nifti_image_free(floatingPyramid[i]);
+                    floatingPyramid[i]=NULL;
+                }
             }
         }
+        else{
+            if(floatingPyramid[0]!=NULL){
+                nifti_image_free(floatingPyramid[0]);
+                floatingPyramid[0]=NULL;
+            }
+        }
+        free(floatingPyramid);
+        floatingPyramid=NULL;
     }
-    free(floatingPyramid);floatingPyramid=NULL;
     if(this->activeVoxelNumber!=NULL){
         free(activeVoxelNumber);
         this->activeVoxelNumber=NULL;
@@ -326,13 +353,6 @@ int reg_f3d<T>::SetGradientSmoothingSigma(T g)
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetCompositionStepNumber(int s)
-{
-    this->stepNumber = s;
-    return 0;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template<class T>
 int reg_f3d<T>::UseSSD()
 {
     this->useSSD = true;
@@ -380,6 +400,13 @@ int reg_f3d<T>::DoNotPrintOutInformation()
 //	this->threadNumber = t;
 //	return 0;
 //}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+int reg_f3d<T>::DoNotUsePyramidalApproach()
+{
+    this->usePyramid=false;
+    return 0;
+}
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -701,6 +728,10 @@ int reg_f3d<T>::CheckParameters_f3d()
     this->linearEnergyWeight2 /= penaltySum;
     this->jacobianLogWeight /= penaltySum;
 
+    // CHECK THE NUMBER OF LEVEL TO PERFORM
+    if(this->levelToPerform==0 || this->levelToPerform>this->levelNumber)
+        this->levelToPerform=this->levelNumber;
+
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -714,197 +745,302 @@ int reg_f3d<T>::Initisalise_f3d()
     printf("[NiftyReg DEBUG] reg_f3d::Initialise_f3d() called\n");
 #endif
     // CREATE THE PYRAMIDE IMAGES
-    this->referencePyramid = (nifti_image **)malloc(this->levelToPerform*sizeof(nifti_image *));
-    this->floatingPyramid = (nifti_image **)malloc(this->levelToPerform*sizeof(nifti_image *));
-    nifti_image **tempMaskImagePyramid = (nifti_image **)malloc(this->levelToPerform*sizeof(nifti_image *));
-    this->maskPyramid = (int **)malloc(this->levelToPerform*sizeof(int *));
-    this->activeVoxelNumber= (int *)malloc(this->levelToPerform*sizeof(int));
-
-    // CHECK THE NUMBER OF LEVEL TO PERFORM
-    if(this->levelToPerform==0 || this->levelToPerform>this->levelNumber)
-        this->levelToPerform=this->levelNumber;
+    nifti_image **tempMaskImagePyramid=NULL;
+    if(this->usePyramid){
+        this->referencePyramid = (nifti_image **)malloc(this->levelToPerform*sizeof(nifti_image *));
+        this->floatingPyramid = (nifti_image **)malloc(this->levelToPerform*sizeof(nifti_image *));
+        tempMaskImagePyramid = (nifti_image **)malloc(this->levelToPerform*sizeof(nifti_image *));
+        this->maskPyramid = (int **)malloc(this->levelToPerform*sizeof(int *));
+        this->activeVoxelNumber= (int *)malloc(this->levelToPerform*sizeof(int));
+    }
+    else{
+        this->referencePyramid = (nifti_image **)malloc(sizeof(nifti_image *));
+        this->floatingPyramid = (nifti_image **)malloc(sizeof(nifti_image *));
+        tempMaskImagePyramid = (nifti_image **)malloc(sizeof(nifti_image *));
+        this->maskPyramid = (int **)malloc(sizeof(int *));
+        this->activeVoxelNumber= (int *)malloc(sizeof(int));
+    }
 
     // FINEST LEVEL OF REGISTRATION
     // Reference image is copied and converted to type T
-    this->referencePyramid[this->levelToPerform-1]=nifti_copy_nim_info(this->inputReference);
-    this->referencePyramid[this->levelToPerform-1]->data = (T *)calloc(this->referencePyramid[this->levelToPerform-1]->nvox,
-                                                                       this->referencePyramid[this->levelToPerform-1]->nbyper);
-    memcpy(this->referencePyramid[this->levelToPerform-1]->data, this->inputReference->data,
-           this->referencePyramid[this->levelToPerform-1]->nvox* this->referencePyramid[this->levelToPerform-1]->nbyper);
-    reg_changeDatatype<T>(this->referencePyramid[this->levelToPerform-1]);
+    if(this->usePyramid){
+        this->referencePyramid[this->levelToPerform-1]=nifti_copy_nim_info(this->inputReference);
+        this->referencePyramid[this->levelToPerform-1]->data = (T *)calloc(this->referencePyramid[this->levelToPerform-1]->nvox,
+                                                                           this->referencePyramid[this->levelToPerform-1]->nbyper);
+        memcpy(this->referencePyramid[this->levelToPerform-1]->data, this->inputReference->data,
+               this->referencePyramid[this->levelToPerform-1]->nvox* this->referencePyramid[this->levelToPerform-1]->nbyper);
+        reg_changeDatatype<T>(this->referencePyramid[this->levelToPerform-1]);
 
-    // Floating image is copied and converted to type T
-    this->floatingPyramid[this->levelToPerform-1]=nifti_copy_nim_info(this->inputFloating);
-    this->floatingPyramid[this->levelToPerform-1]->data = (T *)calloc(this->floatingPyramid[this->levelToPerform-1]->nvox,
-                                                                       this->floatingPyramid[this->levelToPerform-1]->nbyper);
-    memcpy(this->floatingPyramid[this->levelToPerform-1]->data, this->inputFloating->data,
-           this->floatingPyramid[this->levelToPerform-1]->nvox* this->floatingPyramid[this->levelToPerform-1]->nbyper);
-    reg_changeDatatype<T>(this->floatingPyramid[this->levelToPerform-1]);
+        // Floating image is copied and converted to type T
+        this->floatingPyramid[this->levelToPerform-1]=nifti_copy_nim_info(this->inputFloating);
+        this->floatingPyramid[this->levelToPerform-1]->data = (T *)calloc(this->floatingPyramid[this->levelToPerform-1]->nvox,
+                                                                           this->floatingPyramid[this->levelToPerform-1]->nbyper);
+        memcpy(this->floatingPyramid[this->levelToPerform-1]->data, this->inputFloating->data,
+               this->floatingPyramid[this->levelToPerform-1]->nvox* this->floatingPyramid[this->levelToPerform-1]->nbyper);
+        reg_changeDatatype<T>(this->floatingPyramid[this->levelToPerform-1]);
 
-    // Mask image is copied and converted to type unsigned char image
-    if(this->maskImage!=NULL){
-        tempMaskImagePyramid[this->levelToPerform-1]=nifti_copy_nim_info(this->maskImage);
-        tempMaskImagePyramid[this->levelToPerform-1]->data = (T *)calloc(tempMaskImagePyramid[this->levelToPerform-1]->nvox,
-                                                                         tempMaskImagePyramid[this->levelToPerform-1]->nbyper);
-        memcpy(tempMaskImagePyramid[this->levelToPerform-1]->data, this->maskImage->data,
-               tempMaskImagePyramid[this->levelToPerform-1]->nvox* tempMaskImagePyramid[this->levelToPerform-1]->nbyper);
-        reg_tool_binarise_image(tempMaskImagePyramid[this->levelToPerform-1]);
-        reg_changeDatatype<unsigned char>(tempMaskImagePyramid[this->levelToPerform-1]);
-    }
-    else tempMaskImagePyramid[this->levelToPerform-1]=NULL;
-
-    // Images are downsampled if appropriate
-    for(unsigned int l=this->levelToPerform; l<this->levelNumber; l++){
-        // Reference image
-        bool referenceDownsampleAxis[8]={false,true,true,true,false,false,false,false};
-        if((this->referencePyramid[this->levelToPerform-1]->nx/2) < 32) referenceDownsampleAxis[1]=false;
-        if((this->referencePyramid[this->levelToPerform-1]->ny/2) < 32) referenceDownsampleAxis[2]=false;
-        if((this->referencePyramid[this->levelToPerform-1]->nz/2) < 32) referenceDownsampleAxis[3]=false;
-        reg_downsampleImage<T>(this->referencePyramid[this->levelToPerform-1], 1, referenceDownsampleAxis);
-        // Mask image
-        if(tempMaskImagePyramid[this->levelToPerform-1]!=NULL)
-            reg_downsampleImage<T>(tempMaskImagePyramid[this->levelToPerform-1], 0, referenceDownsampleAxis);
-        //Floating image
-        bool floatingDownsampleAxis[8]={false,true,true,true,false,false,false,false};
-        if((this->floatingPyramid[this->levelToPerform-1]->nx/2) < 32) floatingDownsampleAxis[1]=false;
-        if((this->floatingPyramid[this->levelToPerform-1]->ny/2) < 32) floatingDownsampleAxis[2]=false;
-        if((this->floatingPyramid[this->levelToPerform-1]->nz/2) < 32) floatingDownsampleAxis[3]=false;
-        reg_downsampleImage<T>(this->floatingPyramid[this->levelToPerform-1], 1, floatingDownsampleAxis);
-    }
-    // Create a target mask here with the same dimension
-    this->activeVoxelNumber[this->levelToPerform-1]=this->referencePyramid[this->levelToPerform-1]->nx *
-                                              this->referencePyramid[this->levelToPerform-1]->ny *
-                                              this->referencePyramid[this->levelToPerform-1]->nz;
-    this->maskPyramid[this->levelToPerform-1]=(int *)calloc(this->activeVoxelNumber[this->levelToPerform-1], sizeof(int));
-    if(tempMaskImagePyramid[this->levelToPerform-1]!=NULL){
-        reg_tool_binaryImage2int(tempMaskImagePyramid[this->levelToPerform-1],
-                                 this->maskPyramid[this->levelToPerform-1],
-                                 this->activeVoxelNumber[this->levelToPerform-1]);
-    }
-
-    // Images for each subsequent levels are allocated and downsampled if appropriate
-    for(int l=this->levelToPerform-2; l>=0; l--){
-        // Allocation of the reference image
-        this->referencePyramid[l]=nifti_copy_nim_info(this->referencePyramid[l+1]);
-        this->referencePyramid[l]->data = (T *)calloc(  this->referencePyramid[l]->nvox,
-                                                        this->referencePyramid[l]->nbyper);
-        memcpy( this->referencePyramid[l]->data, this->referencePyramid[l+1]->data,
-                this->referencePyramid[l]->nvox* this->referencePyramid[l]->nbyper);
-
-        // Allocation of the floating image
-        this->floatingPyramid[l]=nifti_copy_nim_info(this->floatingPyramid[l+1]);
-        this->floatingPyramid[l]->data = (T *)calloc(   this->floatingPyramid[l]->nvox,
-                                                        this->floatingPyramid[l]->nbyper);
-        memcpy( this->floatingPyramid[l]->data, this->floatingPyramid[l+1]->data,
-                this->floatingPyramid[l]->nvox* this->floatingPyramid[l]->nbyper);
-
-        // Allocation of the mask image
+        // Mask image is copied and converted to type unsigned char image
         if(this->maskImage!=NULL){
-            tempMaskImagePyramid[l]=nifti_copy_nim_info(tempMaskImagePyramid[l+1]);
-            tempMaskImagePyramid[l]->data = (unsigned char *)calloc(tempMaskImagePyramid[l]->nvox,
-                                                                    tempMaskImagePyramid[l]->nbyper);
-            memcpy(tempMaskImagePyramid[l]->data, tempMaskImagePyramid[l+1]->data,
-                   tempMaskImagePyramid[l]->nvox* tempMaskImagePyramid[l]->nbyper);
+            tempMaskImagePyramid[this->levelToPerform-1]=nifti_copy_nim_info(this->maskImage);
+            tempMaskImagePyramid[this->levelToPerform-1]->data = (T *)calloc(tempMaskImagePyramid[this->levelToPerform-1]->nvox,
+                                                                             tempMaskImagePyramid[this->levelToPerform-1]->nbyper);
+            memcpy(tempMaskImagePyramid[this->levelToPerform-1]->data, this->maskImage->data,
+                   tempMaskImagePyramid[this->levelToPerform-1]->nvox* tempMaskImagePyramid[this->levelToPerform-1]->nbyper);
+            reg_tool_binarise_image(tempMaskImagePyramid[this->levelToPerform-1]);
+            reg_changeDatatype<unsigned char>(tempMaskImagePyramid[this->levelToPerform-1]);
         }
-        else tempMaskImagePyramid[l]=NULL;
+        else tempMaskImagePyramid[this->levelToPerform-1]=NULL;
 
-        // Downsample the reference image
-        bool referenceDownsampleAxis[8]={false,true,true,true,false,false,false,false};
-        if((this->referencePyramid[l]->nx/2) < 32) referenceDownsampleAxis[1]=false;
-        if((this->referencePyramid[l]->ny/2) < 32) referenceDownsampleAxis[2]=false;
-        if((this->referencePyramid[l]->nz/2) < 32) referenceDownsampleAxis[3]=false;
-        reg_downsampleImage<T>(this->referencePyramid[l], 1, referenceDownsampleAxis);
-        // Downsample the mask image
-        if(tempMaskImagePyramid[l]!=NULL)
-            reg_downsampleImage<T>(tempMaskImagePyramid[l], 0, referenceDownsampleAxis);
-        // Downsample the floating image
-        bool floatingDownsampleAxis[8]={false,true,true,true,false,false,false,false};
-        if((this->floatingPyramid[l]->nx/2) < 32) floatingDownsampleAxis[1]=false;
-        if((this->floatingPyramid[l]->ny/2) < 32) floatingDownsampleAxis[2]=false;
-        if((this->floatingPyramid[l]->nz/2) < 32) floatingDownsampleAxis[3]=false;
-        reg_downsampleImage<T>(this->floatingPyramid[l], 1, floatingDownsampleAxis);
+        // Images are downsampled if appropriate
+        for(unsigned int l=this->levelToPerform; l<this->levelNumber; l++){
+            // Reference image
+            bool referenceDownsampleAxis[8]={false,true,true,true,false,false,false,false};
+            if((this->referencePyramid[this->levelToPerform-1]->nx/2) < 32) referenceDownsampleAxis[1]=false;
+            if((this->referencePyramid[this->levelToPerform-1]->ny/2) < 32) referenceDownsampleAxis[2]=false;
+            if((this->referencePyramid[this->levelToPerform-1]->nz/2) < 32) referenceDownsampleAxis[3]=false;
+            reg_downsampleImage<T>(this->referencePyramid[this->levelToPerform-1], 1, referenceDownsampleAxis);
+            // Mask image
+            if(tempMaskImagePyramid[this->levelToPerform-1]!=NULL)
+                reg_downsampleImage<T>(tempMaskImagePyramid[this->levelToPerform-1], 0, referenceDownsampleAxis);
+            //Floating image
+            bool floatingDownsampleAxis[8]={false,true,true,true,false,false,false,false};
+            if((this->floatingPyramid[this->levelToPerform-1]->nx/2) < 32) floatingDownsampleAxis[1]=false;
+            if((this->floatingPyramid[this->levelToPerform-1]->ny/2) < 32) floatingDownsampleAxis[2]=false;
+            if((this->floatingPyramid[this->levelToPerform-1]->nz/2) < 32) floatingDownsampleAxis[3]=false;
+            reg_downsampleImage<T>(this->floatingPyramid[this->levelToPerform-1], 1, floatingDownsampleAxis);
+        }
+        // Create a target mask here with the same dimension
+        this->activeVoxelNumber[this->levelToPerform-1]=this->referencePyramid[this->levelToPerform-1]->nx *
+                                                  this->referencePyramid[this->levelToPerform-1]->ny *
+                                                  this->referencePyramid[this->levelToPerform-1]->nz;
+        this->maskPyramid[this->levelToPerform-1]=(int *)calloc(this->activeVoxelNumber[this->levelToPerform-1], sizeof(int));
+        if(tempMaskImagePyramid[this->levelToPerform-1]!=NULL){
+            reg_tool_binaryImage2int(tempMaskImagePyramid[this->levelToPerform-1],
+                                     this->maskPyramid[this->levelToPerform-1],
+                                     this->activeVoxelNumber[this->levelToPerform-1]);
+        }
+
+        // Images for each subsequent levels are allocated and downsampled if appropriate
+        for(int l=this->levelToPerform-2; l>=0; l--){
+            // Allocation of the reference image
+            this->referencePyramid[l]=nifti_copy_nim_info(this->referencePyramid[l+1]);
+            this->referencePyramid[l]->data = (T *)calloc(  this->referencePyramid[l]->nvox,
+                                                            this->referencePyramid[l]->nbyper);
+            memcpy( this->referencePyramid[l]->data, this->referencePyramid[l+1]->data,
+                    this->referencePyramid[l]->nvox* this->referencePyramid[l]->nbyper);
+
+            // Allocation of the floating image
+            this->floatingPyramid[l]=nifti_copy_nim_info(this->floatingPyramid[l+1]);
+            this->floatingPyramid[l]->data = (T *)calloc(   this->floatingPyramid[l]->nvox,
+                                                            this->floatingPyramid[l]->nbyper);
+            memcpy( this->floatingPyramid[l]->data, this->floatingPyramid[l+1]->data,
+                    this->floatingPyramid[l]->nvox* this->floatingPyramid[l]->nbyper);
+
+            // Allocation of the mask image
+            if(this->maskImage!=NULL){
+                tempMaskImagePyramid[l]=nifti_copy_nim_info(tempMaskImagePyramid[l+1]);
+                tempMaskImagePyramid[l]->data = (unsigned char *)calloc(tempMaskImagePyramid[l]->nvox,
+                                                                        tempMaskImagePyramid[l]->nbyper);
+                memcpy(tempMaskImagePyramid[l]->data, tempMaskImagePyramid[l+1]->data,
+                       tempMaskImagePyramid[l]->nvox* tempMaskImagePyramid[l]->nbyper);
+            }
+            else tempMaskImagePyramid[l]=NULL;
+
+            // Downsample the reference image
+            bool referenceDownsampleAxis[8]={false,true,true,true,false,false,false,false};
+            if((this->referencePyramid[l]->nx/2) < 32) referenceDownsampleAxis[1]=false;
+            if((this->referencePyramid[l]->ny/2) < 32) referenceDownsampleAxis[2]=false;
+            if((this->referencePyramid[l]->nz/2) < 32) referenceDownsampleAxis[3]=false;
+            reg_downsampleImage<T>(this->referencePyramid[l], 1, referenceDownsampleAxis);
+            // Downsample the mask image
+            if(tempMaskImagePyramid[l]!=NULL)
+                reg_downsampleImage<T>(tempMaskImagePyramid[l], 0, referenceDownsampleAxis);
+            // Downsample the floating image
+            bool floatingDownsampleAxis[8]={false,true,true,true,false,false,false,false};
+            if((this->floatingPyramid[l]->nx/2) < 32) floatingDownsampleAxis[1]=false;
+            if((this->floatingPyramid[l]->ny/2) < 32) floatingDownsampleAxis[2]=false;
+            if((this->floatingPyramid[l]->nz/2) < 32) floatingDownsampleAxis[3]=false;
+            reg_downsampleImage<T>(this->floatingPyramid[l], 1, floatingDownsampleAxis);
+
+            // Create a target mask here with the same dimension
+            this->activeVoxelNumber[l]=this->referencePyramid[l]->nx *
+                                       this->referencePyramid[l]->ny *
+                                       this->referencePyramid[l]->nz;
+            this->maskPyramid[l]=(int *)calloc(activeVoxelNumber[l], sizeof(int));
+            if(tempMaskImagePyramid[l]!=NULL){
+                reg_tool_binaryImage2int(tempMaskImagePyramid[l],
+                                         this->maskPyramid[l],
+                                         this->activeVoxelNumber[l]);
+            }
+        }
+        for(unsigned int l=0; l<this->levelToPerform; l++){
+            nifti_image_free(tempMaskImagePyramid[l]);
+        }
+        free(tempMaskImagePyramid);
+
+        // SMOOTH THE INPUT IMAGES IF REQUIRED
+        for(unsigned int l=0; l<this->levelToPerform; l++){
+            if(this->referenceSmoothingSigma!=0.0){
+                bool smoothAxis[8]={false,true,true,true,false,false,false,false};
+                reg_gaussianSmoothing<T>(this->referencePyramid[l], this->referenceSmoothingSigma, smoothAxis);
+            }
+            if(this->floatingSmoothingSigma!=0.0){
+                bool smoothAxis[8]={false,true,true,true,false,false,false,false};
+                reg_gaussianSmoothing<T>(this->floatingPyramid[l], this->floatingSmoothingSigma, smoothAxis);
+            }
+        }
+
+        if(this->useSSD){
+                this->maxSSD=new T[this->levelToPerform];
+                // THRESHOLD THE INPUT IMAGES IF REQUIRED
+                for(unsigned int l=0; l<this->levelToPerform; l++){
+                        reg_thresholdImage<T>(referencePyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
+                        reg_thresholdImage<T>(floatingPyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
+                        // The maximal difference image is extracted for normalisation
+                        T tempMaxSSD1 = (referencePyramid[l]->cal_min - floatingPyramid[l]->cal_max) *
+                                        (referencePyramid[l]->cal_min - floatingPyramid[l]->cal_max);
+                        T tempMaxSSD2 = (referencePyramid[l]->cal_max - floatingPyramid[l]->cal_min) *
+                                        (referencePyramid[l]->cal_max - floatingPyramid[l]->cal_min);
+                        this->maxSSD[l]=tempMaxSSD1>tempMaxSSD2?tempMaxSSD1:tempMaxSSD2;
+                }
+        }
+        else{
+            // RESCALE THE INPUT IMAGE INTENSITY
+            /* the target and source are resampled between 2 and bin-3
+             * The images are then shifted by two which is the suport of the spline used
+             * by the parzen window filling of the joint histogram */
+
+            float referenceRescalingArrayDown[10];
+            float referenceRescalingArrayUp[10];
+            float floatingRescalingArrayDown[10];
+            float floatingRescalingArrayUp[10];
+            for(int t=0;t<this->referencePyramid[0]->nt;t++){
+                // INCREASE THE BIN SIZES
+                this->referenceBinNumber[t] += 4;
+                referenceRescalingArrayDown[t] = 2.f;
+                referenceRescalingArrayUp[t] = this->referenceBinNumber[t]-3;
+            }
+            for(int t=0;t<this->floatingPyramid[0]->nt;t++){
+                // INCREASE THE BIN SIZES
+                this->floatingBinNumber[t] += 4;
+                floatingRescalingArrayDown[t] = 2.f;
+                floatingRescalingArrayUp[t] = this->floatingBinNumber[t]-3;
+            }
+            for(unsigned int l=0; l<this->levelToPerform; l++){
+                reg_intensityRescale(this->referencePyramid[l],referenceRescalingArrayDown,referenceRescalingArrayUp,
+                                     this->referenceThresholdLow, this->referenceThresholdUp);
+                reg_intensityRescale(this->floatingPyramid[l],floatingRescalingArrayDown,floatingRescalingArrayUp,
+                                     this->floatingThresholdLow, this->floatingThresholdUp);
+           }
+        }
+    }
+    else{ // NO PYRAMID
+        // Reference image is copied and converted to type T
+        this->referencePyramid[0]=nifti_copy_nim_info(this->inputReference);
+        this->referencePyramid[0]->data = (T *)calloc(this->referencePyramid[0]->nvox,
+                                                      this->referencePyramid[0]->nbyper);
+        memcpy(this->referencePyramid[0]->data, this->inputReference->data,
+               this->referencePyramid[0]->nvox* this->referencePyramid[0]->nbyper);
+        reg_changeDatatype<T>(this->referencePyramid[0]);
+
+        // Floating image is copied and converted to type T
+        this->floatingPyramid[0]=nifti_copy_nim_info(this->inputFloating);
+        this->floatingPyramid[0]->data = (T *)calloc(this->floatingPyramid[0]->nvox,
+                                                     this->floatingPyramid[0]->nbyper);
+        memcpy(this->floatingPyramid[0]->data, this->inputFloating->data,
+               this->floatingPyramid[0]->nvox* this->floatingPyramid[0]->nbyper);
+        reg_changeDatatype<T>(this->floatingPyramid[0]);
+
+        // Mask image is copied and converted to type unsigned char image
+        if(this->maskImage!=NULL){
+            tempMaskImagePyramid[0]=nifti_copy_nim_info(this->maskImage);
+            tempMaskImagePyramid[0]->data = (T *)calloc(tempMaskImagePyramid[0]->nvox,
+                                                        tempMaskImagePyramid[0]->nbyper);
+            memcpy(tempMaskImagePyramid[0]->data, this->maskImage->data,
+                   tempMaskImagePyramid[0]->nvox* tempMaskImagePyramid[0]->nbyper);
+            reg_tool_binarise_image(tempMaskImagePyramid[0]);
+            reg_changeDatatype<unsigned char>(tempMaskImagePyramid[0]);
+        }
+        else tempMaskImagePyramid[0]=NULL;
 
         // Create a target mask here with the same dimension
-        this->activeVoxelNumber[l]=this->referencePyramid[l]->nx *
-                                   this->referencePyramid[l]->ny *
-                                   this->referencePyramid[l]->nz;
-        this->maskPyramid[l]=(int *)calloc(activeVoxelNumber[l], sizeof(int));
-        if(tempMaskImagePyramid[l]!=NULL){
-            reg_tool_binaryImage2int(tempMaskImagePyramid[l],
-                                     this->maskPyramid[l],
-                                     this->activeVoxelNumber[l]);
+        this->activeVoxelNumber[0]=this->referencePyramid[0]->nx *
+                                   this->referencePyramid[0]->ny *
+                                   this->referencePyramid[0]->nz;
+        this->maskPyramid[0]=(int *)calloc(this->activeVoxelNumber[0], sizeof(int));
+        if(tempMaskImagePyramid[0]!=NULL){
+            reg_tool_binaryImage2int(tempMaskImagePyramid[0],
+                                     this->maskPyramid[0],
+                                     this->activeVoxelNumber[0]);
         }
-    }
-    for(unsigned int l=0; l<this->levelToPerform; l++){
-        nifti_image_free(tempMaskImagePyramid[l]);
-    }
-    free(tempMaskImagePyramid);
+        free(tempMaskImagePyramid[0]);free(tempMaskImagePyramid);
 
-    // SMOOTH THE INPUT IMAGES IF REQUIRED
-    for(unsigned int l=0; l<this->levelToPerform; l++){
+        // SMOOTH THE INPUT IMAGES IF REQUIRED
         if(this->referenceSmoothingSigma!=0.0){
             bool smoothAxis[8]={false,true,true,true,false,false,false,false};
-            reg_gaussianSmoothing<T>(this->referencePyramid[l], this->referenceSmoothingSigma, smoothAxis);
+            reg_gaussianSmoothing<T>(this->referencePyramid[0], this->referenceSmoothingSigma, smoothAxis);
         }
         if(this->floatingSmoothingSigma!=0.0){
             bool smoothAxis[8]={false,true,true,true,false,false,false,false};
-            reg_gaussianSmoothing<T>(this->floatingPyramid[l], this->floatingSmoothingSigma, smoothAxis);
+            reg_gaussianSmoothing<T>(this->floatingPyramid[0], this->floatingSmoothingSigma, smoothAxis);
         }
-    }
 
-	
-    if(this->useSSD){
-            this->maxSSD=new T[this->levelToPerform];
+        if(this->useSSD){
+            this->maxSSD=new T[1];
             // THRESHOLD THE INPUT IMAGES IF REQUIRED
-            for(unsigned int l=0; l<this->levelToPerform; l++){
-                    reg_thresholdImage<T>(referencePyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
-                    reg_thresholdImage<T>(floatingPyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
-                    // The maximal difference image is extracted for normalisation
-                    T tempMaxSSD1 = (referencePyramid[l]->cal_min - floatingPyramid[l]->cal_max) *
-                                    (referencePyramid[l]->cal_min - floatingPyramid[l]->cal_max);
-                    T tempMaxSSD2 = (referencePyramid[l]->cal_max - floatingPyramid[l]->cal_min) *
-                                    (referencePyramid[l]->cal_max - floatingPyramid[l]->cal_min);
-                    this->maxSSD[l]=tempMaxSSD1>tempMaxSSD2?tempMaxSSD1:tempMaxSSD2;
-            }
-    }
-    else{
-        // RESCALE THE INPUT IMAGE INTENSITY
-        /* the target and source are resampled between 2 and bin-3
-         * The images are then shifted by two which is the suport of the spline used
-         * by the parzen window filling of the joint histogram */
+            reg_thresholdImage<T>(referencePyramid[0],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
+            reg_thresholdImage<T>(floatingPyramid[0],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
+            // The maximal difference image is extracted for normalisation
+            T tempMaxSSD1 = (referencePyramid[0]->cal_min - floatingPyramid[0]->cal_max) *
+                            (referencePyramid[0]->cal_min - floatingPyramid[0]->cal_max);
+            T tempMaxSSD2 = (referencePyramid[0]->cal_max - floatingPyramid[0]->cal_min) *
+                            (referencePyramid[0]->cal_max - floatingPyramid[0]->cal_min);
+            this->maxSSD[0]=tempMaxSSD1>tempMaxSSD2?tempMaxSSD1:tempMaxSSD2;
+        }
+        else{
+            // RESCALE THE INPUT IMAGE INTENSITY
+            /* the target and source are resampled between 2 and bin-3
+             * The images are then shifted by two which is the suport of the spline used
+             * by the parzen window filling of the joint histogram */
 
-        float referenceRescalingArrayDown[10];
-        float referenceRescalingArrayUp[10];
-        float floatingRescalingArrayDown[10];
-        float floatingRescalingArrayUp[10];
-        for(int t=0;t<this->referencePyramid[0]->nt;t++){
-            // INCREASE THE BIN SIZES
-            this->referenceBinNumber[t] += 4;
-            referenceRescalingArrayDown[t] = 2.f;
-            referenceRescalingArrayUp[t] = this->referenceBinNumber[t]-3;
-        }
-        for(int t=0;t<this->floatingPyramid[0]->nt;t++){
-            // INCREASE THE BIN SIZES
-            this->floatingBinNumber[t] += 4;
-            floatingRescalingArrayDown[t] = 2.f;
-            floatingRescalingArrayUp[t] = this->floatingBinNumber[t]-3;
-        }
-        for(unsigned int l=0; l<this->levelToPerform; l++){
-            reg_intensityRescale(this->referencePyramid[l],referenceRescalingArrayDown,referenceRescalingArrayUp,
+            float referenceRescalingArrayDown[10];
+            float referenceRescalingArrayUp[10];
+            float floatingRescalingArrayDown[10];
+            float floatingRescalingArrayUp[10];
+            for(int t=0;t<this->referencePyramid[0]->nt;t++){
+                // INCREASE THE BIN SIZES
+                this->referenceBinNumber[t] += 4;
+                referenceRescalingArrayDown[t] = 2.f;
+                referenceRescalingArrayUp[t] = this->referenceBinNumber[t]-3;
+            }
+            for(int t=0;t<this->floatingPyramid[0]->nt;t++){
+                // INCREASE THE BIN SIZES
+                this->floatingBinNumber[t] += 4;
+                floatingRescalingArrayDown[t] = 2.f;
+                floatingRescalingArrayUp[t] = this->floatingBinNumber[t]-3;
+            }
+            reg_intensityRescale(this->referencePyramid[0],referenceRescalingArrayDown,referenceRescalingArrayUp,
                                  this->referenceThresholdLow, this->referenceThresholdUp);
-            reg_intensityRescale(this->floatingPyramid[l],floatingRescalingArrayDown,floatingRescalingArrayUp,
+            reg_intensityRescale(this->floatingPyramid[0],floatingRescalingArrayDown,floatingRescalingArrayUp,
                                  this->floatingThresholdLow, this->floatingThresholdUp);
        }
-    }
+    } // END NO PYRAMID
 
     // DETERMINE THE GRID SPACING AND CREATE THE GRID
     if(this->inputControlPointGrid==NULL){
         if(this->spacing[1]!=this->spacing[1]) this->spacing[1]=this->spacing[0];
         if(this->spacing[2]!=this->spacing[2]) this->spacing[2]=this->spacing[0];
         /* Convert the spacing from voxel to mm if necessary */
-        if(this->spacing[0]<0) this->spacing[0] *= -1.0f * this->referencePyramid[this->levelToPerform-1]->dx;
-        if(this->spacing[1]<0) this->spacing[1] *= -1.0f * this->referencePyramid[this->levelToPerform-1]->dy;
-        if(this->spacing[2]<0) this->spacing[2] *= -1.0f * this->referencePyramid[this->levelToPerform-1]->dz;
+        if(this->usePyramid){
+            if(this->spacing[0]<0) this->spacing[0] *= -1.0f * this->referencePyramid[this->levelToPerform-1]->dx;
+            if(this->spacing[1]<0) this->spacing[1] *= -1.0f * this->referencePyramid[this->levelToPerform-1]->dy;
+            if(this->spacing[2]<0) this->spacing[2] *= -1.0f * this->referencePyramid[this->levelToPerform-1]->dz;
+        }
+        else{
+            if(this->spacing[0]<0) this->spacing[0] *= -1.0f * this->referencePyramid[0]->dx;
+            if(this->spacing[1]<0) this->spacing[1] *= -1.0f * this->referencePyramid[0]->dy;
+            if(this->spacing[2]<0) this->spacing[2] *= -1.0f * this->referencePyramid[0]->dz;
+        }
 
         float gridSpacing[3];
         gridSpacing[0] = this->spacing[0] * powf(2.0f, (float)(this->levelToPerform-1));
@@ -1108,6 +1244,65 @@ int reg_f3d<T>::Initisalise_f3d()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
+int reg_f3d<T>::GetDeformationField()
+{
+    reg_spline(this->controlPointGrid,
+               this->currentReference,
+               this->deformationFieldImage,
+               this->currentMask,
+               false, //composition
+               true // bspline
+               );
+    return 0;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+int reg_f3d<T>::WarpFloatingImage(int inter)
+{
+    // Compute the deformation field
+    this->GetDeformationField();
+    // Resample the floating image
+    reg_resampleSourceImage(this->currentReference,
+                            this->currentFloating,
+                            this->warped,
+                            this->deformationFieldImage,
+                            this->currentMask,
+                            inter,
+                            this->warpedPaddingValue);
+    return 0;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+double reg_f3d<T>::ComputeSimilarityMeasure()
+{
+    double measure=0.;
+    if(this->useSSD){
+        measure = -reg_getSSD(this->currentReference,
+                              this->warped,
+                              this->currentMask);
+        if(this->usePyramid)
+            measure /= this->maxSSD[this->currentLevel];
+        else measure /= this->maxSSD[0];
+    }
+    else{
+        reg_getEntropies(this->currentReference,
+                         this->warped,
+                         2,
+                         this->referenceBinNumber,
+                         this->floatingBinNumber,
+                         this->probaJointHistogram,
+                         this->logJointHistogram,
+                         this->entropies,
+                         this->currentMask);
+    measure = (this->entropies[0]+this->entropies[1])/this->entropies[2];
+    }
+    return double(this->similarityWeight) * measure;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
 double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type)
 {
     double value=0.;
@@ -1180,81 +1375,27 @@ double reg_f3d<T>::ComputeLinearEnergyPenaltyTerm()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::GetDeformationField()
-{
-    reg_spline(this->controlPointGrid,
-               this->currentReference,
-               this->deformationFieldImage,
-               this->currentMask,
-               false, //composition
-               true // bspline
-               );
-    return 0;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-int reg_f3d<T>::WarpFloatingImage(int inter)
-{
-    // Compute the deformation field
-    this->GetDeformationField();
-    // Resample the floating image
-    reg_resampleSourceImage<T>( this->currentReference,
-                                this->currentFloating,
-                                this->warped,
-                                this->deformationFieldImage,
-                                this->currentMask,
-                                inter,
-                                this->warpedPaddingValue);
-    return 0;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-double reg_f3d<T>::ComputeSimilarityMeasure()
-{
-    double measure=0.;
-    if(this->useSSD){
-        measure = -reg_getSSD(this->currentReference,
-                              this->warped,
-                              this->currentMask);
-        measure /= this->maxSSD[this->currentLevel];
-    }
-    else{
-        reg_getEntropies(this->currentReference,
-                         this->warped,
-                         2,
-                         this->referenceBinNumber,
-                         this->floatingBinNumber,
-                         this->probaJointHistogram,
-                         this->logJointHistogram,
-                         this->entropies,
-                         this->currentMask);
-    measure = (this->entropies[0]+this->entropies[1])/this->entropies[2];
-    }
-    return double(this->similarityWeight) * measure;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-int reg_f3d<T>::GetSimilarityMeasureGradient()
+int reg_f3d<T>::GetVoxelBasedGradient()
 {
     // The intensity gradient is first computed
-    reg_getSourceImageGradient<T>(this->currentReference,
-                                  this->currentFloating,
-                                  this->warpedGradientImage,
-                                  this->deformationFieldImage,
-                                  this->currentMask,
-                                  USE_LINEAR_INTERPOLATION);
+    reg_getSourceImageGradient(this->currentReference,
+                               this->currentFloating,
+                               this->warpedGradientImage,
+                               this->deformationFieldImage,
+                               this->currentMask,
+                               USE_LINEAR_INTERPOLATION);
 
     if(this->useSSD){
         // Compute the voxel based SSD gradient
+        T localMaxSSD=this->maxSSD[0];
+        if(this->usePyramid) localMaxSSD=this->maxSSD[this->currentLevel];
         reg_getVoxelBasedSSDGradient(this->currentReference,
                                      this->warped,
                                      this->warpedGradientImage,
                                      this->voxelBasedMeasureGradientImage,
-                                     this->maxSSD[this->currentLevel],
-                                     this->currentMask);
+                                     localMaxSSD,
+                                     this->currentMask
+                                     );
     }
     else{
         // Compute the voxel based NMI gradient
@@ -1269,6 +1410,15 @@ int reg_f3d<T>::GetSimilarityMeasureGradient()
                                             this->voxelBasedMeasureGradientImage,
                                             this->currentMask);
     }
+    return 0;
+}
+
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+int reg_f3d<T>::GetSimilarityMeasureGradient()
+{
+    this->GetVoxelBasedGradient();
 
     // The voxel based NMI gradient is convolved with a spline kernel
     int smoothingRadius[3];
@@ -1322,13 +1472,6 @@ int reg_f3d<T>::GetSimilarityMeasureGradient()
             *gradientValuesY++ = newGradientValueY;
             *gradientValuesZ++ = newGradientValueZ;
         }
-    }
-
-    // The gradient is smoothed using a Gaussian kernel if it is required
-    if(this->gradientSmoothingSigma!=0){
-        reg_gaussianSmoothing<T>(this->nodeBasedMeasureGradientImage,
-                                 this->gradientSmoothingSigma,
-                                 NULL);
     }
 
     return 0;
@@ -1515,6 +1658,7 @@ int reg_f3d<T>::UpdateControlPointPosition(T scale)
             *controlPointValuesZ++ = *bestControlPointValuesZ++ + scale * *gradientValuesZ++;
         }
     }
+
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1533,13 +1677,35 @@ int reg_f3d<T>::Run_f3d()
     for(unsigned int level=0; level<this->levelToPerform; level++){
 
         this->currentLevel = level;
-        this->currentReference = this->referencePyramid[this->currentLevel];
-        this->currentFloating = this->floatingPyramid[this->currentLevel];
-        this->currentMask = this->maskPyramid[this->currentLevel];
+
+        if(this->usePyramid){
+            this->currentReference = this->referencePyramid[this->currentLevel];
+            this->currentFloating = this->floatingPyramid[this->currentLevel];
+            this->currentMask = this->maskPyramid[this->currentLevel];
+        }
+        else{
+            this->currentReference = this->referencePyramid[0];
+            this->currentFloating = this->floatingPyramid[0];
+            this->currentMask = this->maskPyramid[0];
+        }
+
+        // ALLOCATE IMAGES THAT DEPENDS ON THE TARGET IMAGE
+        this->AllocateWarped();
+        this->AllocateDeformationField();
+        this->AllocateWarpedGradient();
+        this->AllocateVoxelBasedMeasureGradient();
+        this->AllocateJointHistogram();
 
         // The grid is refined if necessary
         this->AllocateCurrentInputImage(level);
 
+        // ALLOCATE IMAGES THAT DEPENDS ON THE CONTROL POINT IMAGE
+        this->AllocateNodeBasedMeasureGradient();
+        this->AllocateBestControlPointArray();
+        this->SaveCurrentControlPoint();
+        if(this->useConjGradient){
+            this->AllocateConjugateGradientVariables();
+        }
 
 #ifdef NDEBUG
     if(this->verbose){
@@ -1584,19 +1750,6 @@ int reg_f3d<T>::Run_f3d()
             reg_mat44_disp(&(this->controlPointGrid->sto_xyz), (char *)"[NiftyReg DEBUG] CPP sform");
         else reg_mat44_disp(&(this->controlPointGrid->qto_xyz), (char *)"[NiftyReg DEBUG] CPP qform");
 #endif
-
-        // ALLOCATE IMAGES AND ARRAYS
-        this->AllocateWarped();
-        this->AllocateDeformationField();
-        this->AllocateWarpedGradient();
-        this->AllocateVoxelBasedMeasureGradient();
-        this->AllocateNodeBasedMeasureGradient();
-        this->AllocateBestControlPointArray();
-        this->SaveCurrentControlPoint();
-        this->AllocateJointHistogram();
-        if(this->useConjGradient){
-            this->AllocateConjugateGradientVariables();
-        }
 
         T maxStepSize = (this->currentReference->dx>this->currentReference->dy)?this->currentReference->dx:this->currentReference->dy;
         maxStepSize = (this->currentReference->dz>maxStepSize)?this->currentReference->dz:maxStepSize;
@@ -1652,19 +1805,30 @@ int reg_f3d<T>::Run_f3d()
                 this->WarpFloatingImage(USE_LINEAR_INTERPOLATION);
                 this->ComputeSimilarityMeasure();
                 this->GetSimilarityMeasureGradient();
-            } this->currentIteration++;
+            }
+            else{
+                T* nodeGradPtr = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
+                for(unsigned int i=0; i<this->nodeBasedMeasureGradientImage->nvox; ++i)
+                    *nodeGradPtr++=0;
+            }this->currentIteration++;
 
-            // Compute the bending energy gradient
+            // The gradient is smoothed using a Gaussian kernel if it is required
+            if(this->gradientSmoothingSigma!=0){
+                reg_gaussianSmoothing<T>(this->nodeBasedMeasureGradientImage,
+                                         fabs(this->gradientSmoothingSigma),
+                                         NULL);
+            }
+
+            // The conjugate gradient is computed, only on the similarity measure gradient
+            if(this->useConjGradient && this->similarityWeight>0) this->ComputeConjugateGradient();
+
+            // Compute the penalty term gradients if required
             if(this->bendingEnergyWeight>0)
                 this->GetBendingEnergyGradient();
             if(this->jacobianLogWeight>0)
                 this->GetJacobianBasedGradient();
             if(this->linearEnergyWeight0>0 || this->linearEnergyWeight1>0 || this->linearEnergyWeight2>0)
                 this->GetLinearEnergyGradient();
-
-            // The conjugate gradient is computed
-            if(this->useConjGradient)
-                this->ComputeConjugateGradient();
 
             T maxLength = this->GetMaximalGradientLength();
 #ifndef NDEBUG
@@ -1767,9 +1931,16 @@ int reg_f3d<T>::Run_f3d()
         this->ClearConjugateGradientVariables();
         this->ClearBestControlPointArray();
         this->ClearJointHistogram();
-        nifti_image_free(this->referencePyramid[level]);this->referencePyramid[level]=NULL;
-        nifti_image_free(this->floatingPyramid[level]);this->floatingPyramid[level]=NULL;
-        free(this->maskPyramid[level]);this->maskPyramid[level]=NULL;
+        if(this->usePyramid){
+            nifti_image_free(this->referencePyramid[level]);this->referencePyramid[level]=NULL;
+            nifti_image_free(this->floatingPyramid[level]);this->floatingPyramid[level]=NULL;
+            free(this->maskPyramid[level]);this->maskPyramid[level]=NULL;
+        }
+        else if(level==this->levelToPerform-1){
+            nifti_image_free(this->referencePyramid[0]);this->referencePyramid[0]=NULL;
+            nifti_image_free(this->floatingPyramid[0]);this->floatingPyramid[0]=NULL;
+            free(this->maskPyramid[0]);this->maskPyramid[0]=NULL;
+        }
 
         this->ClearCurrentInputImage();
 

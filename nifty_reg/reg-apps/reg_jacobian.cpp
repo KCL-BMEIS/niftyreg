@@ -181,8 +181,8 @@ int main(int argc, char **argv)
             }
         }
         else if(flag->inputDEFFlag){
-            reg_getJacobianMapFromDeformationField(deformationFieldImage,
-                                                   jacobianImage);
+            reg_defField_getJacobianMap(deformationFieldImage,
+                                        jacobianImage);
         }
         else{
             fprintf(stderr, "No transformation has been provided.\n");

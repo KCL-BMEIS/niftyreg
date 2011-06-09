@@ -18,17 +18,25 @@ template <class T>
 class reg_f3d2 : public reg_f3d<T>
 {
   protected:
-    nifti_image *inverseDeformationFieldImage;
-    nifti_image *negatedControlPointGrid;
-//    bool useSymmetry;
+    bool approxComp;
+    int stepNumber;
+    bool useSymmetry;
+    nifti_image **intermediateDeformationField;
+    nifti_image *jacobianMatrices;
+
+    int SetCompositionStepNumber(int);
+    int UseSimilaritySymmetry();
+    int ApproximateComposition();
 
     int AllocateDeformationField();
     int ClearDeformationField();
     int AllocateCurrentInputImage(int);
     int ClearCurrentInputImage();
 
+    int GetVoxelBasedGradient();
     int GetDeformationField();
     int CheckStoppingCriteria(bool);
+
 
 public:
     reg_f3d2(int refTimePoint,int floTimePoint);

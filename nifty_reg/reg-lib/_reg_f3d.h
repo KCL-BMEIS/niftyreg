@@ -61,6 +61,7 @@ class reg_f3d
     bool useSSD;
     bool useConjGradient;
     bool verbose;
+    bool usePyramid;
 //    int threadNumber;
 
     bool initialised;
@@ -87,8 +88,6 @@ class reg_f3d
     unsigned totalBinNumber;
 
     unsigned int currentIteration;
-    bool f3d2AppFreeStep;
-    int stepNumber;
 
     virtual int AllocateWarped();
     virtual int ClearWarped();
@@ -117,6 +116,7 @@ class reg_f3d
     virtual int GetDeformationField();
     virtual int WarpFloatingImage(int);
     virtual double ComputeSimilarityMeasure();
+    virtual int GetVoxelBasedGradient();
     virtual int GetSimilarityMeasureGradient();
     virtual int GetBendingEnergyGradient();
     virtual int GetLinearEnergyGradient();
@@ -162,8 +162,12 @@ public:
     int SetMaximalIterationNumber(unsigned int);
     int SetReferenceBinNumber(int, unsigned int);
     int SetFloatingBinNumber(int, unsigned int);
-    int SetCompositionStepNumber(int);
+    int DoNotUsePyramidalApproach();
 //    int SetThreadNumber(int t);
+
+    virtual int SetCompositionStepNumber(int){return 0;}
+    virtual int ApproximateComposition(){return 0;}
+    virtual int UseSimilaritySymmetry(){return 0;}
 
     int CheckParameters_f3d();
     int Initisalise_f3d();

@@ -24,21 +24,29 @@
   * The cubic spline interpolation assume a padding value of 0
   * The padding value for the NN and the LIN interpolation are user defined.
  */
-extern "C++" template <class PrecisionTYPE>
+extern "C++"
 void reg_resampleSourceImage(nifti_image *targetImage,
                              nifti_image *sourceImage,
                              nifti_image *resultImage,
                              nifti_image *positionField,
                              int *mask,
                              int interp,
-                             PrecisionTYPE backgroundValue);
+                             float backgroundValue);
 
-extern "C++" template <class PrecisionTYPE>
+extern "C++"
 void reg_getSourceImageGradient(nifti_image *targetImage,
                                 nifti_image *sourceImage,
                                 nifti_image *resultGradientImage,
                                 nifti_image *deformationField,
                                 int *mask,
                                 int interp);
+
+extern "C++"
+void reg_resampleImageGradient(nifti_image *inputGradientImage,
+                               nifti_image *outputGradientImage,
+                               nifti_image *deformationField,
+                               nifti_image *jacobianMatrices,
+                               int *mask,
+                               int interp);
 
 #endif

@@ -16,7 +16,7 @@
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
-void Get_BSplineBasisValue(DTYPE basis, int index, DTYPE &value)
+void get_BSplineBasisValue(DTYPE basis, int index, DTYPE &value)
 {
     switch(index){
         case 0: value = (DTYPE)((1.0-basis)*(1.0-basis)*(1.0-basis)/6.0);
@@ -34,9 +34,9 @@ void Get_BSplineBasisValue(DTYPE basis, int index, DTYPE &value)
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
-void Get_BSplineBasisValue(DTYPE basis, int index, DTYPE &value, DTYPE &first)
+void get_BSplineBasisValue(DTYPE basis, int index, DTYPE &value, DTYPE &first)
 {
-    Get_BSplineBasisValue<DTYPE>(basis, index, value);
+    get_BSplineBasisValue<DTYPE>(basis, index, value);
     switch(index){
         case 0: first = (DTYPE)((2.0*basis - basis*basis - 1.0)/2.0);
                 break;
@@ -53,9 +53,9 @@ void Get_BSplineBasisValue(DTYPE basis, int index, DTYPE &value, DTYPE &first)
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
-void Get_BSplineBasisValue(DTYPE basis, int index, DTYPE &value, DTYPE &first, DTYPE &second)
+void get_BSplineBasisValue(DTYPE basis, int index, DTYPE &value, DTYPE &first, DTYPE &second)
 {
-    Get_BSplineBasisValue<DTYPE>(basis, index, value, first);
+    get_BSplineBasisValue<DTYPE>(basis, index, value, first);
     switch(index){
         case 0: second = (DTYPE)(1.0 - basis);
                 break;
@@ -483,8 +483,8 @@ double reg_bspline_jacobianApproxValue2D(nifti_image *splineControlPoint)
     unsigned int coord=0;
     for(int b=0; b<3; b++){
         for(int a=0; a<3; a++){
-            basisX[coord]=normal[b]*first[a];   // y * x'
-            basisY[coord]=first[b]*normal[a];   // y'* x
+            basisX[coord]=first[a]*normal[b];
+            basisY[coord]=normal[a]*first[b];
             coord++;
         }
     }
@@ -496,13 +496,13 @@ double reg_bspline_jacobianApproxValue2D(nifti_image *splineControlPoint)
         for(int x=1;x<splineControlPoint->nx-2;x++){
 
             get_GridValuesApprox<DTYPE>(x-1,
-                                             y-1,
-                                             splineControlPoint,
-                                             controlPointPtrX,
-                                             controlPointPtrY,
-                                             xControlPointCoordinates,
-                                             yControlPointCoordinates,
-                                             false);
+                                        y-1,
+                                        splineControlPoint,
+                                        controlPointPtrX,
+                                        controlPointPtrY,
+                                        xControlPointCoordinates,
+                                        yControlPointCoordinates,
+                                        true);
 
             DTYPE Tx_x=0.0;
             DTYPE Ty_x=0.0;
@@ -525,7 +525,8 @@ double reg_bspline_jacobianApproxValue2D(nifti_image *splineControlPoint)
             jacobianMatrix.m[2][2]=1.0f;
 
             jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
-            DTYPE detJac = nifti_mat33_determ(jacobianMatrix);
+            DTYPE detJac = jacobianMatrix.m[0][0]*jacobianMatrix.m[1][1]-
+                           jacobianMatrix.m[0][1]*jacobianMatrix.m[1][0];
 
             if(detJac>0.0){
                 double logJac = log(detJac);
@@ -700,7 +701,7 @@ double reg_bspline_jacobian(nifti_image *splineControlPoint,
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void computeJacobianMatrices_2D(nifti_image *targetImage,
+void reg_bspline_computeJacobianMatrices_2D(nifti_image *targetImage,
                                 nifti_image *splineControlPoint,
                                 mat33 *jacobianMatrices,
                                 DTYPE *jacobianDeterminant)
@@ -720,15 +721,10 @@ void computeJacobianMatrices_2D(nifti_image *targetImage,
     gridVoxelSpacing[0] = splineControlPoint->dx / targetImage->dx;
     gridVoxelSpacing[1] = splineControlPoint->dy / targetImage->dy;
 
-    unsigned int coord=0;
-
     mat33 reorient, desorient, jacobianMatrix;
     getReorientationMatrix(splineControlPoint, &desorient, &reorient);
 
-    // The inverted Jacobian matrices are first computed for every voxel
-    mat33 *jacobianMatricesPtr = jacobianMatrices;
-    DTYPE *jacobianDeterminantPtr = jacobianDeterminant;
-
+    unsigned int index=0, coord;
     for(int y=0; y<targetImage->ny; y++){
 
         int yPre=(int)((DTYPE)y/gridVoxelSpacing[1]);
@@ -786,15 +782,18 @@ void computeJacobianMatrices_2D(nifti_image *targetImage,
 
             jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
 
-            *jacobianDeterminantPtr++ = (jacobianMatrix.m[0][0]*jacobianMatrix.m[1][1])
-                                        - (jacobianMatrix.m[0][1]*jacobianMatrix.m[1][0]);
-            *jacobianMatricesPtr++ = jacobianMatrix;
+            if(jacobianDeterminant!=NULL)
+                jacobianDeterminant[index] = jacobianMatrix.m[0][0]*jacobianMatrix.m[1][1] -
+                                             jacobianMatrix.m[0][1]*jacobianMatrix.m[1][0];
+            if(jacobianMatrices!=NULL)
+                jacobianMatrices[index] = jacobianMatrix;
+            index++;
         }
     }
 }
 /* *************************************************************** */
 template <class DTYPE>
-void computeJacobianMatrices_3D(nifti_image *targetImage,
+void reg_bspline_computeJacobianMatrices_3D(nifti_image *targetImage,
                                 nifti_image *splineControlPoint,
                                 mat33 *jacobianMatrices,
                                 DTYPE *jacobianDeterminant)
@@ -831,10 +830,10 @@ void computeJacobianMatrices_3D(nifti_image *targetImage,
     mat33 reorient, desorient, jacobianMatrix;
     getReorientationMatrix(splineControlPoint, &desorient, &reorient);
 
-    // The inverted Jacobian matrices are first computed for every voxel
-    mat33 *jacobianMatricesPtr = jacobianMatrices;
-    DTYPE *jacobianDeterminantPtr = jacobianDeterminant;
-
+    int index=0;
+#ifndef _USE_SSE
+    int coord;
+#endif
     for(int z=0; z<targetImage->nz; z++){
 
         int zPre=(int)((DTYPE)z/gridVoxelSpacing[2]);
@@ -848,7 +847,7 @@ void computeJacobianMatrices_3D(nifti_image *targetImage,
             basis=(DTYPE)y/gridVoxelSpacing[1]-(DTYPE)yPre;
             if(basis<0.0) basis=0.0; //rounding error
             Get_BSplineBasisValues<DTYPE>(basis, yBasis, yFirst);
-#if _USE_SSE
+#ifdef _USE_SSE
             val.f[0]=yBasis[0];
             val.f[1]=yBasis[1];
             val.f[2]=yBasis[2];
@@ -873,7 +872,7 @@ void computeJacobianMatrices_3D(nifti_image *targetImage,
                 ptrBasisZ++;
             }
 #else
-            unsigned int coord=0;
+            coord=0;
             for(int c=0; c<4; c++){
                 for(int b=0; b<4; b++){
                     tempX[coord]=zBasis[c]*yBasis[b]; // z * y
@@ -891,7 +890,7 @@ void computeJacobianMatrices_3D(nifti_image *targetImage,
                 if(basis<0.0) basis=0.0; //rounding error
                 Get_BSplineBasisValues<DTYPE>(basis, xBasis, xFirst);
 
-#if _USE_SSE
+#ifdef _USE_SSE
                 val.f[0]=xBasis[0];
                 val.f[1]=xBasis[1];
                 val.f[2]=xBasis[2];
@@ -953,7 +952,7 @@ void computeJacobianMatrices_3D(nifti_image *targetImage,
                 DTYPE Ty_z=0.0;
                 DTYPE Tz_z=0.0;
 
-#if _USE_SSE
+#ifdef _USE_SSE
                 __m128 tempX_x =  _mm_set_ps1(0.0);
                 __m128 tempX_y =  _mm_set_ps1(0.0);
                 __m128 tempX_z =  _mm_set_ps1(0.0);
@@ -1039,18 +1038,23 @@ void computeJacobianMatrices_3D(nifti_image *targetImage,
                 jacobianMatrix.m[2][2]= (float)(Tz_z / splineControlPoint->dz);
 
                 jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
-                *jacobianDeterminantPtr++ = nifti_mat33_determ(jacobianMatrix);
-                *jacobianMatricesPtr++ = jacobianMatrix;
+
+                if(jacobianDeterminant!=NULL)
+                    jacobianDeterminant[index] = nifti_mat33_determ(jacobianMatrix);
+                if(jacobianMatrices!=NULL)
+                    jacobianMatrices[index] = jacobianMatrix;
+                index++;
             }
         }
     }
 }
 /* *************************************************************** */
 template <class DTYPE>
-void computeApproximateJacobianMatrices_2D( nifti_image *splineControlPoint,
-                                            mat33 *jacobianMatrices,
-                                            DTYPE *jacobianDeterminant)
+void reg_bspline_computeApproximateJacobianMatrices_2D( nifti_image *splineControlPoint,
+                                                        mat33 *jacobianMatrices,
+                                                        DTYPE *jacobianDeterminant)
 {
+    unsigned int jacobianNumber = splineControlPoint->nx*splineControlPoint->ny;
     // As the contraint is only computed at the voxel position, the basis value of the spline are always the same
     DTYPE basisX[9], basisY[9], xControlPointCoordinates[9], yControlPointCoordinates[9];
     DTYPE normal[3]={1.0/6.0, 2.0/3.0, 1.0/6.0};
@@ -1058,8 +1062,8 @@ void computeApproximateJacobianMatrices_2D( nifti_image *splineControlPoint,
     unsigned int coord=0;
     for(int b=0; b<3; b++){
         for(int a=0; a<3; a++){
-            basisX[coord]=normal[b]*first[a];   // y * x'
-            basisY[coord]=first[b]*normal[a];   // y'* x
+            basisX[coord]=first[a]*normal[b];
+            basisY[coord]=normal[a]*first[b];
             coord++;
         }
     }
@@ -1070,14 +1074,13 @@ void computeApproximateJacobianMatrices_2D( nifti_image *splineControlPoint,
     jacobianMatrix.m[0][0]=jacobianMatrix.m[1][1]=jacobianMatrix.m[2][2]=1.f;
     jacobianMatrix.m[1][0]=jacobianMatrix.m[0][1]=jacobianMatrix.m[0][2]=0.f;
     jacobianMatrix.m[2][0]=jacobianMatrix.m[2][1]=jacobianMatrix.m[1][2]=0.f;
-    for(unsigned int i=0;i<splineControlPoint->nvox/2;++i){
-        jacobianMatrices[i]=jacobianMatrix;
+    for(unsigned int i=0;i<jacobianNumber;++i){
+        memcpy(&jacobianMatrices[i], &jacobianMatrix, sizeof(mat33));
         jacobianDeterminant[i]=1.f;
     }
 
     DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
-    DTYPE *controlPointPtrY = static_cast<DTYPE *>
-        (&controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny]);
+    DTYPE *controlPointPtrY = &controlPointPtrX[jacobianNumber];
 
     mat33 *jacobianMatricesPtr = jacobianMatrices;
     DTYPE *jacobianDeterminantPtr = jacobianDeterminant;
@@ -1099,7 +1102,7 @@ void computeApproximateJacobianMatrices_2D( nifti_image *splineControlPoint,
                                         controlPointPtrY,
                                         xControlPointCoordinates,
                                         yControlPointCoordinates,
-                                        false);
+                                        true);
 
             DTYPE Tx_x=(DTYPE)0.0;
             DTYPE Ty_x=(DTYPE)0.0;
@@ -1113,11 +1116,14 @@ void computeApproximateJacobianMatrices_2D( nifti_image *splineControlPoint,
                 Ty_y += basisY[a]*yControlPointCoordinates[a];
             }
 
-            memset(&jacobianMatrix, 0, sizeof(mat33));
             jacobianMatrix.m[0][0] = (float)(Tx_x / splineControlPoint->dx);
             jacobianMatrix.m[0][1] = (float)(Tx_y / splineControlPoint->dy);
+            jacobianMatrix.m[0][2] = 0.0f;
             jacobianMatrix.m[1][0] = (float)(Ty_x / splineControlPoint->dx);
             jacobianMatrix.m[1][1] = (float)(Ty_y / splineControlPoint->dy);
+            jacobianMatrix.m[1][2] = 0.0f;
+            jacobianMatrix.m[2][0] = 0.0f;
+            jacobianMatrix.m[2][1] = 0.0f;
             jacobianMatrix.m[2][2] = 1.0f;
 
             jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
@@ -1131,9 +1137,9 @@ void computeApproximateJacobianMatrices_2D( nifti_image *splineControlPoint,
 }
 /* *************************************************************** */
 template <class DTYPE>
-void computeApproximateJacobianMatrices_3D( nifti_image *splineControlPoint,
-                                            mat33 *jacobianMatrices,
-                                            DTYPE *jacobianDeterminant)
+void reg_bspline_computeApproximateJacobianMatrices_3D( nifti_image *splineControlPoint,
+                                                        mat33 *jacobianMatrices,
+                                                        DTYPE *jacobianDeterminant)
 {
     // As the contraint is only computed at the voxel position, the basis values of the spline are always the same
     float basisX[27], basisY[27], basisZ[27];
@@ -1247,10 +1253,10 @@ void reg_bspline_jacobianDeterminantGradient2D( nifti_image *splineControlPoint,
     mat33 *jacobianMatrices=(mat33 *)malloc(targetImage->nvox * sizeof(mat33));
     DTYPE *jacobianDeterminant=(DTYPE *)malloc(targetImage->nvox * sizeof(DTYPE));
 
-    computeJacobianMatrices_2D<DTYPE>(targetImage,
-                                           splineControlPoint,
-                                           jacobianMatrices,
-                                           jacobianDeterminant);
+    reg_bspline_computeJacobianMatrices_2D<DTYPE>(targetImage,
+                                                  splineControlPoint,
+                                                  jacobianMatrices,
+                                                  jacobianDeterminant);
 
     DTYPE gridVoxelSpacing[2];
     gridVoxelSpacing[0] = splineControlPoint->dx / targetImage->dx;
@@ -1271,44 +1277,46 @@ void reg_bspline_jacobianDeterminantGradient2D( nifti_image *splineControlPoint,
     for(int y=0;y<splineControlPoint->ny;y++){
         for(int x=0;x<splineControlPoint->nx;x++){
 
-            DTYPE jacobianConstraint[2]={0. ,0.};
+            DTYPE jacobianConstraint[2]={0, 0};
 
             // Loop over all the control points in the surrounding area
-            for(int pixelY=(int)reg_ceil((y-3)*gridVoxelSpacing[1]);pixelY<(int)reg_floor((y+1)*gridVoxelSpacing[1]); pixelY++){
+            for(int pixelY=(int)reg_ceil((y-3)*gridVoxelSpacing[1]);pixelY<(int)reg_ceil((y+1)*gridVoxelSpacing[1]); ++pixelY){
                 if(pixelY>-1 && pixelY<targetImage->ny){
 
                     int yPre=(int)((DTYPE)pixelY/gridVoxelSpacing[1]);
                     basis=(DTYPE)pixelY/gridVoxelSpacing[1]-(DTYPE)yPre;
-                    Get_BSplineBasisValue<DTYPE>(basis,y-yPre,yBasis,yFirst);
+                    get_BSplineBasisValue<DTYPE>(basis,y-yPre,yBasis,yFirst);
+                    if(yBasis!=0||yFirst!=0){
 
-                    for(int pixelX=(int)reg_ceil((x-3)*gridVoxelSpacing[0]);pixelX<(int)reg_floor((x+1)*gridVoxelSpacing[0]); pixelX++){
-                        if(pixelX>-1 && pixelX<targetImage->nx && (yBasis!=0||yFirst!=0)){
+                        for(int pixelX=(int)reg_ceil((x-3)*gridVoxelSpacing[0]);pixelX<(int)reg_ceil((x+1)*gridVoxelSpacing[0]); ++pixelX){
+                            if(pixelX>-1 && pixelX<targetImage->nx){
 
-                            int xPre=(int)((DTYPE)pixelX/gridVoxelSpacing[0]);
-                            basis=(DTYPE)pixelX/gridVoxelSpacing[0]-(DTYPE)xPre;
-                            Get_BSplineBasisValue<DTYPE>(basis,x-xPre,xBasis,xFirst);
+                                int xPre=(int)((DTYPE)pixelX/gridVoxelSpacing[0]);
+                                basis=(DTYPE)pixelX/gridVoxelSpacing[0]-(DTYPE)xPre;
+                                get_BSplineBasisValue<DTYPE>(basis,x-xPre,xBasis,xFirst);
 
-                            jacIndex = pixelY*targetImage->nx+pixelX;
-                            double detJac=jacobianDeterminant[jacIndex];
+                                jacIndex = pixelY*targetImage->nx+pixelX;
+                                double detJac=jacobianDeterminant[jacIndex];
 
-                            if(detJac>0.0 && (xBasis!=0||xFirst!=0)){
+                                if(detJac>0.0 && (xBasis!=0||xFirst!=0)){
 
-                                jacobianMatrix = jacobianMatrices[jacIndex];
-                                basisValues[0]= xFirst * yBasis;
-                                basisValues[1]= xBasis * yFirst;
+                                    jacobianMatrix = jacobianMatrices[jacIndex];
+                                    basisValues[0]= xFirst * yBasis;
+                                    basisValues[1]= xBasis * yFirst;
 #ifdef _USE_SQUARE_LOG_JAC
-                                detJac= 2.0*log(detJac) /detJac;
+                                    detJac= 2.0*log(detJac) /detJac;
 #else
-                                detJac = (log(detJac)>0?1.0:-1.0) / detjac;
+                                    detJac = (log(detJac)>0?1.0:-1.0) / detjac;
 #endif
-                                addJacobianGradientValues(jacobianMatrix,
-                                                          detJac,
-                                                          basisValues[0],
-                                                          basisValues[1],
-                                                          jacobianConstraint);
-                            }
-                         }// if x
-                    }// x
+                                    addJacobianGradientValues(jacobianMatrix,
+                                                              detJac,
+                                                              basisValues[0],
+                                                              basisValues[1],
+                                                              jacobianConstraint);
+                                }
+                             }// if x
+                        }// x
+                    }
                 }// if y
             }// y
             // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
@@ -1336,8 +1344,7 @@ void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlP
 
     mat33 *jacobianMatrices=(mat33 *)malloc(jacobianNumber * sizeof(mat33));
     DTYPE *jacobianDeterminant=(DTYPE *)malloc(jacobianNumber * sizeof(DTYPE));
-
-    computeApproximateJacobianMatrices_2D<DTYPE>(splineControlPoint,
+    reg_bspline_computeApproximateJacobianMatrices_2D<DTYPE>(splineControlPoint,
                                                  jacobianMatrices,
                                                  jacobianDeterminant);
 
@@ -1349,8 +1356,8 @@ void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlP
      // INVERTED ON PURPOSE
     for(int b=2; b>-1; --b){
         for(int a=2; a>-1; --a){
-            basisX[coord]=normal[b]*first[a];   // y * x'
-            basisY[coord]=first[b]*normal[a];   // y'* x
+            basisX[coord]=first[a]*normal[b];
+            basisY[coord]=normal[a]*first[b];
             coord++;
         }
     }
@@ -1373,10 +1380,10 @@ void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlP
             // Loop over all the control points in the surrounding area
             coord=0;
             for(int pixelY=(int)(y-1);pixelY<(int)(y+2); ++pixelY){
-                if(pixelY>0 && pixelY<splineControlPoint->ny-1){
+                if(pixelY>-1 && pixelY<splineControlPoint->ny){
 
                     for(int pixelX=(int)(x-1);pixelX<(int)(x+2); ++pixelX){
-                        if(pixelX>0 && pixelX<splineControlPoint->nx-1){
+                        if(pixelX>-1 && pixelX<splineControlPoint->nx){
 
                             jacIndex = pixelY*splineControlPoint->nx+pixelX;
                             double detJac=(double)jacobianDeterminant[jacIndex];
@@ -1385,9 +1392,9 @@ void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlP
 
                                 jacobianMatrix = jacobianMatrices[jacIndex];
 
-                                /* derivative of the squared log of the Jacobian determinant */
 #ifdef _USE_SQUARE_LOG_JAC
-                                detJac = 2.0*log(detJac) / detJac;
+                                /* derivative of the squared log of the Jacobian determinant */
+                                detJac = 2.0 * log(detJac) / detJac;
 #else
                                 detJac = (log(detJac)>0?1.0:-1.0) / detJac;
 #endif
@@ -1421,7 +1428,7 @@ void reg_bspline_jacobianDeterminantGradient3D( nifti_image *splineControlPoint,
     mat33 *jacobianMatrices=(mat33 *)malloc(targetImage->nvox * sizeof(mat33));
     DTYPE *jacobianDeterminant=(DTYPE *)malloc(targetImage->nvox * sizeof(DTYPE));
 
-    computeJacobianMatrices_3D<DTYPE>(targetImage,
+    reg_bspline_computeJacobianMatrices_3D<DTYPE>(targetImage,
                                            splineControlPoint,
                                            jacobianMatrices,
                                            jacobianDeterminant);
@@ -1451,30 +1458,30 @@ void reg_bspline_jacobianDeterminantGradient3D( nifti_image *splineControlPoint,
                 DTYPE jacobianConstraint[3]={0., 0., 0.};
 
                 // Loop over all the control points in the surrounding area
-                for(int pixelZ=(int)reg_ceil((z-3)*gridVoxelSpacing[2]);pixelZ<=(int)reg_floor((z+1)*gridVoxelSpacing[2]); pixelZ++){
+                for(int pixelZ=(int)reg_ceil((z-3)*gridVoxelSpacing[2]);pixelZ<=(int)reg_ceil((z+1)*gridVoxelSpacing[2]); pixelZ++){
                     if(pixelZ>-1 && pixelZ<targetImage->nz){
 
                         int zPre=(int)((DTYPE)pixelZ/gridVoxelSpacing[2]);
                         basis=(DTYPE)pixelZ/gridVoxelSpacing[2]-(DTYPE)zPre;
-                        Get_BSplineBasisValue<DTYPE>(basis,z-zPre,zBasis,zFirst);
+                        get_BSplineBasisValue<DTYPE>(basis,z-zPre,zBasis,zFirst);
 
-                        for(int pixelY=(int)reg_ceil((y-3)*gridVoxelSpacing[1]);pixelY<=(int)reg_floor((y+1)*gridVoxelSpacing[1]); pixelY++){
+                        for(int pixelY=(int)reg_ceil((y-3)*gridVoxelSpacing[1]);pixelY<=(int)reg_ceil((y+1)*gridVoxelSpacing[1]); pixelY++){
                             if(pixelY>-1 && pixelY<targetImage->ny && (zFirst!=0 || zBasis!=0)){
 
                                 int yPre=(int)((DTYPE)pixelY/gridVoxelSpacing[1]);
                                 basis=(DTYPE)pixelY/gridVoxelSpacing[1]-(DTYPE)yPre;
-                                Get_BSplineBasisValue<DTYPE>(basis,y-yPre,yBasis,yFirst);
+                                get_BSplineBasisValue<DTYPE>(basis,y-yPre,yBasis,yFirst);
 
                                 jacIndex = (pixelZ*targetImage->ny+pixelY)*targetImage->nx+(int)reg_ceil((x-3)*gridVoxelSpacing[0]);
 
-                                for(int pixelX=(int)reg_ceil((x-3)*gridVoxelSpacing[0]);pixelX<=(int)reg_floor((x+1)*gridVoxelSpacing[0]); pixelX++){
+                                for(int pixelX=(int)reg_ceil((x-3)*gridVoxelSpacing[0]);pixelX<=(int)reg_ceil((x+1)*gridVoxelSpacing[0]); pixelX++){
                                     if(pixelX>-1 && pixelX<targetImage->nx && (yFirst!=0 || yBasis!=0)){
 
                                         double detJac = jacobianDeterminant[jacIndex];
 
                                         int xPre=(int)((DTYPE)pixelX/gridVoxelSpacing[0]);
                                         basis=(DTYPE)pixelX/gridVoxelSpacing[0]-(DTYPE)xPre;
-                                        Get_BSplineBasisValue<DTYPE>(basis,x-xPre,xBasis,xFirst);
+                                        get_BSplineBasisValue<DTYPE>(basis,x-xPre,xBasis,xFirst);
 
                                         if(detJac>0.0 && (xBasis!=0 ||xFirst!=0)){
 
@@ -1536,7 +1543,7 @@ void reg_bspline_jacobianDeterminantGradientApprox3D(nifti_image *splineControlP
     mat33 *jacobianMatrices=(mat33 *)malloc(jacobianNumber * sizeof(mat33));
     DTYPE *jacobianDeterminant=(DTYPE *)malloc(jacobianNumber * sizeof(DTYPE));
 
-    computeApproximateJacobianMatrices_3D<DTYPE>(splineControlPoint,
+    reg_bspline_computeApproximateJacobianMatrices_3D<DTYPE>(splineControlPoint,
                                                       jacobianMatrices,
                                                       jacobianDeterminant);
 
@@ -1731,7 +1738,7 @@ double reg_bspline_correctFolding_2D(nifti_image *splineControlPoint,
     mat33 *jacobianMatrices=(mat33 *)malloc(targetImage->nvox * sizeof(mat33));
     DTYPE *jacobianDeterminant=(DTYPE *)malloc(targetImage->nvox * sizeof(DTYPE));
 
-    computeJacobianMatrices_2D<DTYPE>(targetImage,
+    reg_bspline_computeJacobianMatrices_2D<DTYPE>(targetImage,
                                            splineControlPoint,
                                            jacobianMatrices,
                                            jacobianDeterminant);
@@ -1786,11 +1793,11 @@ double reg_bspline_correctFolding_2D(nifti_image *splineControlPoint,
 
                                 int yPre=(int)((DTYPE)pixelY/gridVoxelSpacing[1]);
                                 basis=(DTYPE)pixelY/gridVoxelSpacing[1]-(DTYPE)yPre;
-                                Get_BSplineBasisValue<DTYPE>(basis, y-yPre,yBasis,yFirst);
+                                get_BSplineBasisValue<DTYPE>(basis, y-yPre,yBasis,yFirst);
 
                                 int xPre=(int)((DTYPE)pixelX/gridVoxelSpacing[0]);
                                 basis=(DTYPE)pixelX/gridVoxelSpacing[0]-(DTYPE)xPre;
-                                Get_BSplineBasisValue<DTYPE>(basis, x-xPre,xBasis,xFirst);
+                                get_BSplineBasisValue<DTYPE>(basis, x-xPre,xBasis,xFirst);
 
                                 basisValues[0]= xFirst * yBasis;
                                 basisValues[1]= xBasis * yFirst;
@@ -1841,7 +1848,7 @@ double reg_bspline_correctFoldingApprox_2D(nifti_image *splineControlPoint)
     mat33 *jacobianMatrices=(mat33 *)malloc(jacobianNumber * sizeof(mat33));
     DTYPE *jacobianDeterminant=(DTYPE *)malloc(jacobianNumber * sizeof(DTYPE));
 
-    computeApproximateJacobianMatrices_2D<DTYPE>(splineControlPoint,
+    reg_bspline_computeApproximateJacobianMatrices_2D<DTYPE>(splineControlPoint,
                                                       jacobianMatrices,
                                                       jacobianDeterminant);
 
@@ -1895,8 +1902,8 @@ double reg_bspline_correctFoldingApprox_2D(nifti_image *splineControlPoint)
 
                             if(logDet<=0.0){
 
-                                Get_BSplineBasisValue<DTYPE>(0, y-pixelY+1,yBasis,yFirst);
-                                Get_BSplineBasisValue<DTYPE>(0, x-pixelX+1,xBasis,xFirst);
+                                get_BSplineBasisValue<DTYPE>(0, y-pixelY+1,yBasis,yFirst);
+                                get_BSplineBasisValue<DTYPE>(0, x-pixelX+1,xBasis,xFirst);
 
                                 basisValues[0] = xFirst * yBasis ;
                                 basisValues[1] = xBasis * yFirst ;
@@ -1945,7 +1952,7 @@ double reg_bspline_correctFolding_3D(nifti_image *splineControlPoint,
     mat33 *jacobianMatrices=(mat33 *)malloc(targetImage->nvox * sizeof(mat33));
     DTYPE *jacobianDeterminant=(DTYPE *)malloc(targetImage->nvox * sizeof(DTYPE));
 
-    computeJacobianMatrices_3D<DTYPE>(targetImage,
+    reg_bspline_computeJacobianMatrices_3D<DTYPE>(targetImage,
                                            splineControlPoint,
                                            jacobianMatrices,
                                            jacobianDeterminant);
@@ -2006,15 +2013,15 @@ double reg_bspline_correctFolding_3D(nifti_image *splineControlPoint,
 
                                             int zPre=(int)((DTYPE)pixelZ/gridVoxelSpacing[2]);
                                             basis=(DTYPE)pixelZ/gridVoxelSpacing[2]-(DTYPE)zPre;
-                                            Get_BSplineBasisValue<DTYPE>(basis, z-zPre,zBasis,zFirst);
+                                            get_BSplineBasisValue<DTYPE>(basis, z-zPre,zBasis,zFirst);
 
                                             int yPre=(int)((DTYPE)pixelY/gridVoxelSpacing[1]);
                                             basis=(DTYPE)pixelY/gridVoxelSpacing[1]-(DTYPE)yPre;
-                                            Get_BSplineBasisValue<DTYPE>(basis, y-yPre,yBasis,yFirst);
+                                            get_BSplineBasisValue<DTYPE>(basis, y-yPre,yBasis,yFirst);
 
                                             int xPre=(int)((DTYPE)pixelX/gridVoxelSpacing[0]);
                                             basis=(DTYPE)pixelX/gridVoxelSpacing[0]-(DTYPE)xPre;
-                                            Get_BSplineBasisValue<DTYPE>(basis, x-xPre,xBasis,xFirst);
+                                            get_BSplineBasisValue<DTYPE>(basis, x-xPre,xBasis,xFirst);
 
                                             basisValues[0]= xFirst * yBasis * zBasis ;
                                             basisValues[1]= xBasis * yFirst * zBasis ;
@@ -2074,7 +2081,7 @@ double reg_bspline_correctFoldingApprox_3D(nifti_image *splineControlPoint)
     mat33 *jacobianMatrices=(mat33 *)malloc(jacobianNumber * sizeof(mat33));
     DTYPE *jacobianDeterminant=(DTYPE *)malloc(jacobianNumber * sizeof(DTYPE));
 
-    computeApproximateJacobianMatrices_3D<DTYPE>(splineControlPoint,
+    reg_bspline_computeApproximateJacobianMatrices_3D<DTYPE>(splineControlPoint,
                                                       jacobianMatrices,
                                                       jacobianDeterminant);
 
@@ -2132,9 +2139,9 @@ double reg_bspline_correctFoldingApprox_3D(nifti_image *splineControlPoint)
 
                                         if(detJac<=0.0){
 
-                                            Get_BSplineBasisValue<DTYPE>(0, z-pixelZ+1, zBasis, zFirst);
-                                            Get_BSplineBasisValue<DTYPE>(0, y-pixelY+1, yBasis, yFirst);
-                                            Get_BSplineBasisValue<DTYPE>(0, x-pixelX+1, xBasis, xFirst);
+                                            get_BSplineBasisValue<DTYPE>(0, z-pixelZ+1, zBasis, zFirst);
+                                            get_BSplineBasisValue<DTYPE>(0, y-pixelY+1, yBasis, yFirst);
+                                            get_BSplineBasisValue<DTYPE>(0, x-pixelX+1, xBasis, xFirst);
 
                                             basisValues[0] = xFirst * yBasis * zBasis ;
                                             basisValues[1] = xBasis * yFirst * zBasis ;
@@ -2533,144 +2540,6 @@ void reg_bspline_GetJacobianMap(nifti_image *splineControlPoint,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class DTYPE>
-void reg_bspline_GetJacobianMatrix2D(nifti_image *splineControlPoint,
-                                     nifti_image *jacobianImage)
-{
-    DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
-    DTYPE *controlPointPtrY = static_cast<DTYPE *>(&controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny]);
-
-    DTYPE *jacobianMatrixTxxPtr = static_cast<DTYPE *>(jacobianImage->data);
-    DTYPE *jacobianMatrixTyxPtr = &jacobianMatrixTxxPtr[jacobianImage->nx*jacobianImage->ny];
-
-    DTYPE *jacobianMatrixTxyPtr = &jacobianMatrixTyxPtr[jacobianImage->nx*jacobianImage->ny];
-    DTYPE *jacobianMatrixTyyPtr = &jacobianMatrixTxyPtr[jacobianImage->nx*jacobianImage->ny];
-
-    DTYPE yBasis[4],yFirst[4],temp[4],first[4];
-    DTYPE basisX[16], basisY[16];
-    DTYPE basis, oldBasis=(DTYPE)(1.1);
-
-    DTYPE xControlPointCoordinates[16];
-    DTYPE yControlPointCoordinates[16];
-
-    DTYPE gridVoxelSpacing[2];
-    gridVoxelSpacing[0] = splineControlPoint->dx / jacobianImage->dx;
-    gridVoxelSpacing[1] = splineControlPoint->dy / jacobianImage->dy;
-
-    unsigned int coord=0;
-
-    mat33 reorient, desorient, jacobianMatrix;
-    getReorientationMatrix(splineControlPoint, &desorient, &reorient);
-
-    for(int y=0; y<jacobianImage->ny; y++){
-
-        int yPre=(int)((DTYPE)y/gridVoxelSpacing[1]);
-        basis=(DTYPE)y/gridVoxelSpacing[1]-(DTYPE)yPre;
-        if(basis<0.0) basis=0.0; //rounding error
-        Get_BSplineBasisValues<DTYPE>(basis, yBasis, yFirst);
-
-        for(int x=0; x<jacobianImage->nx; x++){
-
-            int xPre=(int)((DTYPE)x/gridVoxelSpacing[0]);
-            basis=(DTYPE)x/gridVoxelSpacing[0]-(DTYPE)xPre;
-            if(basis<0.0) basis=0.0; //rounding error
-            Get_BSplineBasisValues<DTYPE>(basis, temp, first);
-            coord=0;
-            for(int b=0; b<4; b++){
-                for(int a=0; a<4; a++){
-                    basisX[coord]=yBasis[b]*first[a];   // y * x'
-                    basisY[coord]=yFirst[b]*temp[a];    // y'* x
-                    coord++;
-                }
-            }
-
-            if(basis<=oldBasis || x==0){
-                coord=0;
-                for(int Y=yPre; Y<yPre+4; Y++){
-                    int index = Y*splineControlPoint->nx;
-                    DTYPE *xPtr = &controlPointPtrX[index];
-                    DTYPE *yPtr = &controlPointPtrY[index];
-                    for(int X=xPre; X<xPre+4; X++){
-                        xControlPointCoordinates[coord] = (DTYPE)xPtr[X];
-                        yControlPointCoordinates[coord] = (DTYPE)yPtr[X];
-                        coord++;
-                    }
-                }
-            }
-            oldBasis=basis;
-            DTYPE Tx_x=0.0;
-            DTYPE Ty_x=0.0;
-            DTYPE Tx_y=0.0;
-            DTYPE Ty_y=0.0;
-
-            for(int a=0; a<16; a++){
-                Tx_x += basisX[a]*xControlPointCoordinates[a];
-                Tx_y += basisY[a]*xControlPointCoordinates[a];
-
-                Ty_x += basisX[a]*yControlPointCoordinates[a];
-                Ty_y += basisY[a]*yControlPointCoordinates[a];
-            }
-
-            memset(&jacobianMatrix, 0, sizeof(mat33));
-            jacobianMatrix.m[2][2]=1.0f;
-            jacobianMatrix.m[0][0]= (float)(Tx_x / splineControlPoint->dx);
-            jacobianMatrix.m[0][1]= (float)(Tx_y / splineControlPoint->dy);
-            jacobianMatrix.m[1][0]= (float)(Ty_x / splineControlPoint->dx);
-            jacobianMatrix.m[1][1]= (float)(Ty_y / splineControlPoint->dy);
-
-            jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
-
-            *jacobianMatrixTxxPtr++ = jacobianMatrix.m[0][0];
-            *jacobianMatrixTyxPtr++ = jacobianMatrix.m[0][1];
-
-            *jacobianMatrixTxyPtr++ = jacobianMatrix.m[1][0];
-            *jacobianMatrixTyyPtr++ = jacobianMatrix.m[1][1];
-        }
-    }
-}
-/* *************************************************************** */
-template <class DTYPE>
-void reg_bspline_GetJacobianMatrix3D(nifti_image *splineControlPoint,
-                                     nifti_image *jacobianImage)
-{
-    mat33 *invertedJacobianMatrices=(mat33 *)malloc(jacobianImage->nvox * sizeof(mat33));
-    DTYPE *jacobianDeterminant=(DTYPE *)malloc(jacobianImage->nvox * sizeof(DTYPE));
-
-    computeJacobianMatrices_3D<DTYPE>(jacobianImage,
-                                      splineControlPoint,
-                                      invertedJacobianMatrices,
-                                      jacobianDeterminant);
-
-    DTYPE *jacobianMatrixTxxPtr = static_cast<DTYPE *>(jacobianImage->data);
-    DTYPE *jacobianMatrixTyxPtr = &jacobianMatrixTxxPtr[jacobianImage->nx*jacobianImage->ny*jacobianImage->nz];
-    DTYPE *jacobianMatrixTzxPtr = &jacobianMatrixTyxPtr[jacobianImage->nx*jacobianImage->ny*jacobianImage->nz];
-
-    DTYPE *jacobianMatrixTxyPtr = &jacobianMatrixTzxPtr[jacobianImage->nx*jacobianImage->ny*jacobianImage->nz];
-    DTYPE *jacobianMatrixTyyPtr = &jacobianMatrixTxyPtr[jacobianImage->nx*jacobianImage->ny*jacobianImage->nz];
-    DTYPE *jacobianMatrixTzyPtr = &jacobianMatrixTyyPtr[jacobianImage->nx*jacobianImage->ny*jacobianImage->nz];
-
-    DTYPE *jacobianMatrixTxzPtr = &jacobianMatrixTzyPtr[jacobianImage->nx*jacobianImage->ny*jacobianImage->nz];
-    DTYPE *jacobianMatrixTyzPtr = &jacobianMatrixTxzPtr[jacobianImage->nx*jacobianImage->ny*jacobianImage->nz];
-    DTYPE *jacobianMatrixTzzPtr = &jacobianMatrixTyzPtr[jacobianImage->nx*jacobianImage->ny*jacobianImage->nz];
-
-    for(int i=0; i<jacobianImage->nx*jacobianImage->ny*jacobianImage->nz; i++){
-        *jacobianMatrixTxxPtr++ = invertedJacobianMatrices[i].m[0][0];
-        *jacobianMatrixTxyPtr++ = invertedJacobianMatrices[i].m[0][1];
-        *jacobianMatrixTxzPtr++ = invertedJacobianMatrices[i].m[0][2];
-
-        *jacobianMatrixTyxPtr++ = invertedJacobianMatrices[i].m[1][0];
-        *jacobianMatrixTyyPtr++ = invertedJacobianMatrices[i].m[1][1];
-        *jacobianMatrixTyzPtr++ = invertedJacobianMatrices[i].m[1][2];
-
-        *jacobianMatrixTzxPtr++ = invertedJacobianMatrices[i].m[2][0];
-        *jacobianMatrixTzyPtr++ = invertedJacobianMatrices[i].m[2][1];
-        *jacobianMatrixTzzPtr++ = invertedJacobianMatrices[i].m[2][2];
-    }
-    free(jacobianDeterminant);
-    free(invertedJacobianMatrices);
-
-}
-/* *************************************************************** */
 void reg_bspline_GetJacobianMatrix(nifti_image *splineControlPoint,
                                    nifti_image *jacobianImage)
 {
@@ -2680,16 +2549,18 @@ void reg_bspline_GetJacobianMatrix(nifti_image *splineControlPoint,
         exit(1);
     }
 
+    unsigned int voxelNumber = jacobianImage->nx*jacobianImage->ny*jacobianImage->nz;
+
+    mat33 *jacobianMatrices=(mat33 *)malloc(voxelNumber * sizeof(mat33));
+
     if(splineControlPoint->nz>1){
         switch(splineControlPoint->datatype){
             case NIFTI_TYPE_FLOAT32:
-                reg_bspline_GetJacobianMatrix3D<float>(splineControlPoint, jacobianImage);
+                reg_bspline_computeJacobianMatrices_3D<float>(jacobianImage,splineControlPoint,jacobianMatrices, NULL);
                 break;
-#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
-                reg_bspline_GetJacobianMatrix3D<double>(splineControlPoint, jacobianImage);
+                reg_bspline_computeJacobianMatrices_3D<double>(jacobianImage,splineControlPoint,jacobianMatrices, NULL);
                 break;
-#endif
             default:
                 fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the control point image\n");
                 fprintf(stderr,"[NiftyReg ERROR] The jacobian matrix image has not been computed\n");
@@ -2699,186 +2570,451 @@ void reg_bspline_GetJacobianMatrix(nifti_image *splineControlPoint,
     else{
         switch(splineControlPoint->datatype){
             case NIFTI_TYPE_FLOAT32:
-                reg_bspline_GetJacobianMatrix2D<float>(splineControlPoint, jacobianImage);
+                reg_bspline_computeJacobianMatrices_2D<float>(jacobianImage,splineControlPoint,jacobianMatrices, NULL);
                 break;
-#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
-                reg_bspline_GetJacobianMatrix2D<double>(splineControlPoint, jacobianImage);
+                reg_bspline_computeJacobianMatrices_2D<double>(jacobianImage,splineControlPoint,jacobianMatrices, NULL);
                 break;
-#endif
             default:
                 fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the control point image\n");
                 fprintf(stderr,"[NiftyReg ERROR] The jacobian matrix image has not been computed\n");
                 exit(1);
         }
     }
+
+    // The matrix are copied back in the nifti image
+    switch(splineControlPoint->datatype){
+        case NIFTI_TYPE_FLOAT32:
+        {
+            float *jacPtrXX=NULL;
+            float *jacPtrXY=NULL;
+            float *jacPtrXZ=NULL;
+            float *jacPtrYX=NULL;
+            float *jacPtrYY=NULL;
+            float *jacPtrYZ=NULL;
+            float *jacPtrZX=NULL;
+            float *jacPtrZY=NULL;
+            float *jacPtrZZ=NULL;
+            if(jacobianImage->nz>1){
+                jacPtrXX=static_cast<float *>(jacobianImage->data);
+                jacPtrXY=&jacPtrXX[voxelNumber];
+                jacPtrXZ=&jacPtrXY[voxelNumber];
+                jacPtrYX=&jacPtrXZ[voxelNumber];
+                jacPtrYY=&jacPtrYX[voxelNumber];
+                jacPtrYZ=&jacPtrYY[voxelNumber];
+                jacPtrZX=&jacPtrYZ[voxelNumber];
+                jacPtrZY=&jacPtrZX[voxelNumber];
+                jacPtrZZ=&jacPtrZY[voxelNumber];
+            }
+            else{
+                jacPtrXX=static_cast<float *>(jacobianImage->data);
+                jacPtrXY=&jacPtrXX[voxelNumber];
+                jacPtrYX=&jacPtrYX[voxelNumber];
+                jacPtrYY=&jacPtrXY[voxelNumber];
+            }
+            for(unsigned int i=0;i<voxelNumber;++i){
+                jacPtrXX[i]=jacobianMatrices[i].m[0][0];
+                jacPtrXY[i]=jacobianMatrices[i].m[0][1];
+                jacPtrYX[i]=jacobianMatrices[i].m[1][0];
+                jacPtrYY[i]=jacobianMatrices[i].m[1][1];
+                if(jacobianImage->nz>1){
+                    jacPtrXZ[i]=jacobianMatrices[i].m[0][2];
+                    jacPtrYZ[i]=jacobianMatrices[i].m[1][2];
+                    jacPtrZX[i]=jacobianMatrices[i].m[2][0];
+                    jacPtrZY[i]=jacobianMatrices[i].m[2][1];
+                    jacPtrZZ[i]=jacobianMatrices[i].m[2][2];
+                }
+            }
+        }
+        break;
+        case NIFTI_TYPE_FLOAT64:
+        {
+            double *jacPtrXX=NULL;
+            double *jacPtrXY=NULL;
+            double *jacPtrXZ=NULL;
+            double *jacPtrYX=NULL;
+            double *jacPtrYY=NULL;
+            double *jacPtrYZ=NULL;
+            double *jacPtrZX=NULL;
+            double *jacPtrZY=NULL;
+            double *jacPtrZZ=NULL;
+            if(jacobianImage->nz>1){
+                jacPtrXX=static_cast<double *>(jacobianImage->data);
+                jacPtrXY=&jacPtrXX[voxelNumber];
+                jacPtrXZ=&jacPtrXY[voxelNumber];
+                jacPtrYX=&jacPtrXZ[voxelNumber];
+                jacPtrYY=&jacPtrYX[voxelNumber];
+                jacPtrYZ=&jacPtrYY[voxelNumber];
+                jacPtrZX=&jacPtrYZ[voxelNumber];
+                jacPtrZY=&jacPtrZX[voxelNumber];
+                jacPtrZZ=&jacPtrZY[voxelNumber];
+            }
+            else{
+                jacPtrXX=static_cast<double *>(jacobianImage->data);
+                jacPtrXY=&jacPtrXX[voxelNumber];
+                jacPtrYX=&jacPtrYX[voxelNumber];
+                jacPtrYY=&jacPtrXY[voxelNumber];
+            }
+            for(unsigned int i=0;i<voxelNumber;++i){
+                jacPtrXX[i]=jacobianMatrices[i].m[0][0];
+                jacPtrXY[i]=jacobianMatrices[i].m[0][1];
+                jacPtrYX[i]=jacobianMatrices[i].m[1][0];
+                jacPtrYY[i]=jacobianMatrices[i].m[1][1];
+                if(jacobianImage->nz>1){
+                    jacPtrXZ[i]=jacobianMatrices[i].m[0][2];
+                    jacPtrYZ[i]=jacobianMatrices[i].m[1][2];
+                    jacPtrZX[i]=jacobianMatrices[i].m[2][0];
+                    jacPtrZY[i]=jacobianMatrices[i].m[2][1];
+                    jacPtrZZ[i]=jacobianMatrices[i].m[2][2];
+                }
+            }
+        }
+        break;
+    }
+    free(jacobianMatrices);
 }
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void reg_getJacobianMapFromDeformationField1(nifti_image *deformationField,
-                                             nifti_image *jacobianImage)
+void reg_defField_getJacobianMap2D(nifti_image *deformationField,
+                                   nifti_image *jacobianDeterminant,
+                                   nifti_image *jacobianMatrices)
 {
-    DTYPE *fieldPtrX = static_cast<DTYPE *>(deformationField->data);
-    DTYPE *fieldPtrY = &fieldPtrX[jacobianImage->nvox];
-    DTYPE *fieldPtrZ = NULL;
-    if(deformationField->nz>1)
-        fieldPtrZ = &fieldPtrY[jacobianImage->nvox];
-    DTYPE *jacobianPtr = static_cast<DTYPE *>(jacobianImage->data);
+    DTYPE *jacDetPtr = NULL;
+    DTYPE *jacXXPtr = NULL;
+    DTYPE *jacXYPtr = NULL;
+    DTYPE *jacYXPtr = NULL;
+    DTYPE *jacYYPtr = NULL;
 
-    DTYPE jacobianMatrix[3][3];
-    memset(jacobianMatrix,0,sizeof(jacobianMatrix));
+    if(jacobianDeterminant!=NULL)
+        jacDetPtr=static_cast<DTYPE *>(jacobianDeterminant->data);
 
-    int voxelIndex=0;
-    for(int z=0; z<deformationField->nz; z++){
-        for(int y=0; y<deformationField->ny; y++){
-            for(int x=0; x<deformationField->nx; x++){
+    unsigned int pixelNumber=deformationField->nx*deformationField->ny;
+    if(jacobianMatrices!=NULL){
+        jacXXPtr = static_cast<DTYPE *>(jacobianMatrices->data);
+        jacXYPtr = &jacXXPtr[pixelNumber];
+        jacYXPtr = &jacXYPtr[pixelNumber];
+        jacYYPtr = &jacYXPtr[pixelNumber];
+    }
 
-                // derivative of along the X axis
-                if(x==0){
-                    // forward difference
-                    jacobianMatrix[0][0]= (DTYPE)((fieldPtrX[voxelIndex+1] - fieldPtrX[voxelIndex] ) /
-                                          (deformationField->dx));// Tx/dx
-                    jacobianMatrix[1][0]= (DTYPE)((fieldPtrY[voxelIndex+1] - fieldPtrY[voxelIndex] ) /
-                                          (deformationField->dx));// Ty/dx
-                    if(deformationField->nz>1)
-                        jacobianMatrix[2][0]= (DTYPE)((fieldPtrZ[voxelIndex+1] - fieldPtrZ[voxelIndex] ) /
-                                              (deformationField->dx));// Tz/dx
-                }
-                else if(x==deformationField->nx-1){
-                    // backward difference
-                    jacobianMatrix[0][0]= (DTYPE)((fieldPtrX[voxelIndex] - fieldPtrX[voxelIndex-1] ) /
-                                          (deformationField->dx));// Tx/dx
-                    jacobianMatrix[1][0]= (DTYPE)((fieldPtrY[voxelIndex] - fieldPtrY[voxelIndex-1] ) /
-                                          (deformationField->dx));// Ty/dx
-                    if(deformationField->nz>1)
-                        jacobianMatrix[2][0]= (DTYPE)((fieldPtrZ[voxelIndex] - fieldPtrZ[voxelIndex-1] ) /
-                                              (deformationField->dx));// Tz/dx
-                }
-                else{
-                    // symmetric derivative
-                    jacobianMatrix[0][0]= (DTYPE)((fieldPtrX[voxelIndex+1] - fieldPtrX[voxelIndex-1] ) /
-                                          (2.0*deformationField->dx));// Tx/dx
-                    jacobianMatrix[1][0]= (DTYPE)((fieldPtrY[voxelIndex+1] - fieldPtrY[voxelIndex-1] ) /
-                                          (2.0*deformationField->dx));// Ty/dx
-                    if(deformationField->nz>1)
-                        jacobianMatrix[2][0]= (DTYPE)((fieldPtrZ[voxelIndex+1] - fieldPtrZ[voxelIndex-1] ) /
-                                              (2.0*deformationField->dx));// Tz/dx
-                }
+    mat33 reorient, desorient, jacobianMatrix;
+    getReorientationMatrix(deformationField, &desorient, &reorient);
 
-                // derivative of along the Y axis
-                if(y==0){
-                    // forward difference
-                    jacobianMatrix[0][1]= (DTYPE)((fieldPtrX[voxelIndex+deformationField->nx] - fieldPtrX[voxelIndex] ) /
-                                          (deformationField->dy));// Tx/dy
-                    jacobianMatrix[1][1]= (DTYPE)((fieldPtrY[voxelIndex+deformationField->nx] - fieldPtrY[voxelIndex] ) /
-                                          (deformationField->dy));// Ty/dy
-                    if(deformationField->nz>1)
-                        jacobianMatrix[2][1]= (DTYPE)((fieldPtrZ[voxelIndex+deformationField->nx] - fieldPtrZ[voxelIndex] ) /
-                                              (deformationField->dy));// Tz/dy
-                }
-                else if(y==deformationField->ny-1){
-                    // backward difference
-                    jacobianMatrix[0][1]= (DTYPE)((fieldPtrX[voxelIndex] - fieldPtrX[voxelIndex-deformationField->nx] ) /
-                                          (deformationField->dy));// Tx/dy
-                    jacobianMatrix[1][1]= (DTYPE)((fieldPtrY[voxelIndex] - fieldPtrY[voxelIndex-deformationField->nx] ) /
-                                          (deformationField->dy));// Ty/dy
-                    if(deformationField->nz>1)
-                        jacobianMatrix[2][1]= (DTYPE)((fieldPtrZ[voxelIndex] - fieldPtrZ[voxelIndex-deformationField->nx] ) /
-                                              (deformationField->dy));// Tz/dy
-                }
-                else{
-                    // symmetric derivative
-                    jacobianMatrix[0][1]= (DTYPE)((fieldPtrX[voxelIndex+deformationField->nx] - fieldPtrX[voxelIndex-deformationField->nx] ) /
-                                          (2.0*deformationField->dy));// Tx/dy
-                    jacobianMatrix[1][1]= (DTYPE)((fieldPtrY[voxelIndex+deformationField->nx] - fieldPtrY[voxelIndex-deformationField->nx] ) /
-                                          (2.0*deformationField->dy));// Ty/dy
-                    if(deformationField->nz>1)
-                        jacobianMatrix[2][1]= (DTYPE)((fieldPtrZ[voxelIndex+deformationField->nx] - fieldPtrZ[voxelIndex-deformationField->nx] ) /
-                                              (2.0*deformationField->dy));// Tz/dy
-                }
+    mat44 *real2voxel=NULL;
+    mat44 *voxel2real=NULL;
+    if(deformationField->sform_code){
+        real2voxel=&(deformationField->sto_ijk);
+        voxel2real=&(deformationField->sto_xyz);
+    }
+    else{
+        real2voxel=&(deformationField->qto_ijk);
+        voxel2real=&(deformationField->qto_xyz);
+    }
 
-                // derivative of along the Z axis
-                if(deformationField->nz>1){
-                    if(z==0){
-                        // forward difference
-                        jacobianMatrix[0][2]= (DTYPE)((fieldPtrX[voxelIndex+deformationField->nx*deformationField->ny] -
-                                              fieldPtrX[voxelIndex] ) / (deformationField->dz));// Tx/dz
-                        jacobianMatrix[1][2]= (DTYPE)((fieldPtrY[voxelIndex+deformationField->nx*deformationField->ny] -
-                                              fieldPtrY[voxelIndex] ) / (deformationField->dz));// Ty/dz
-                        jacobianMatrix[2][2]= (DTYPE)((fieldPtrZ[voxelIndex+deformationField->nx*deformationField->ny] -
-                                              fieldPtrZ[voxelIndex] ) / (deformationField->dz));// Tz/dz
+    DTYPE *deformationPtrX = static_cast<DTYPE *>(deformationField->data);
+    DTYPE *deformationPtrY = &deformationPtrX[pixelNumber];
 
-                    }
-                    else if(z==deformationField->nz-1){
-                        // backward difference
-                        jacobianMatrix[0][2]= (DTYPE)((fieldPtrX[voxelIndex] -
-                                              fieldPtrX[voxelIndex-deformationField->nx*deformationField->ny] ) /
-                                              (deformationField->dz));// Tx/dz
-                        jacobianMatrix[1][2]= (DTYPE)((fieldPtrY[voxelIndex] -
-                                              fieldPtrY[voxelIndex-deformationField->nx*deformationField->ny] ) /
-                                              (deformationField->dz));// Ty/dz
-                        jacobianMatrix[2][2]= (DTYPE)((fieldPtrZ[voxelIndex] -
-                                              fieldPtrZ[voxelIndex-deformationField->nx*deformationField->ny] ) /
-                                              (deformationField->dz));// Tz/dz
+    unsigned int currentIndex=0;
+    for(int y=0;y<deformationField->ny;++y){
+        for(int x=0;x<deformationField->nx;++x){
 
+            // Extract the current voxel deformation
+            DTYPE realPosition[2]={deformationPtrX[currentIndex],
+                                   deformationPtrY[currentIndex]};
+
+            // Get the corresponding voxel position
+            DTYPE voxelPosition[2];
+            voxelPosition[0]=real2voxel->m[0][0] * realPosition[0] +
+                             real2voxel->m[0][1] * realPosition[1] +
+                             real2voxel->m[0][3];
+            voxelPosition[1]=real2voxel->m[1][0] * realPosition[0] +
+                             real2voxel->m[1][1] * realPosition[1] +
+                             real2voxel->m[1][3];
+
+            // Compute the relative positions
+            int previous[2];
+            previous[0]=(int)floor(voxelPosition[0]);
+            previous[1]=(int)floor(voxelPosition[1]);
+            DTYPE basisX[2], basisY[2], first[2]={-1.0,1.0};
+            basisX[1]=voxelPosition[0]-(DTYPE)previous[0];basisX[0]=1.0-basisX[1];
+            basisY[1]=voxelPosition[1]-(DTYPE)previous[1];basisY[0]=1.0-basisY[1];
+
+            DTYPE firstX, firstY, defX, defY;
+            memset(&jacobianMatrix,0,sizeof(mat33));
+            for(int b=0;b<2;++b){
+                int currentY=previous[1]+b;
+                for(int a=0;a<2;++a){
+                    int currentX=previous[0]+a;
+
+                    firstX=first[a]*basisY[b];
+                    firstY=basisX[a]*first[b];
+
+                    if(currentX>-1 && currentX<deformationField->nx &&
+                       currentY>-1 && currentY<deformationField->ny){
+                        // Uses the deformation field if voxel is in its space
+                        unsigned int index=currentY*deformationField->nx+currentX;
+                        defX = deformationPtrX[index];
+                        defY = deformationPtrY[index];
                     }
                     else{
-                        // symmetric derivative
-                        jacobianMatrix[0][2]= (DTYPE)((fieldPtrX[voxelIndex+deformationField->nx*deformationField->ny] -
-                                              fieldPtrX[voxelIndex-deformationField->nx*deformationField->ny] ) /
-                                              (2.0*deformationField->dz));// Tx/dz
-                        jacobianMatrix[1][2]= (DTYPE)((fieldPtrY[voxelIndex+deformationField->nx*deformationField->ny] -
-                                              fieldPtrY[voxelIndex-deformationField->nx*deformationField->ny] ) /
-                                              (2.0*deformationField->dz));// Ty/dz
-                        jacobianMatrix[2][2]= (DTYPE)((fieldPtrZ[voxelIndex+deformationField->nx*deformationField->ny] -
-                                              fieldPtrZ[voxelIndex-deformationField->nx*deformationField->ny] ) /
-                                              (2.0*deformationField->dz));// Tz/dz
-                    }
-                }
+                        // Uses the deformation field affine transformation
+                        defX = voxel2real->m[0][0] * currentX +
+                               voxel2real->m[0][1] * currentY +
+                               voxel2real->m[0][3];
+                        defY = voxel2real->m[1][0] * currentX +
+                               voxel2real->m[1][1] * currentY +
+                               voxel2real->m[1][3];
+                    }//in space
 
-                DTYPE jacobianValue = 1;
+                    jacobianMatrix.m[0][0] += firstX*defX;
+                    jacobianMatrix.m[0][1] += firstY*defX;
+                    jacobianMatrix.m[1][0] += firstX*defY;
+                    jacobianMatrix.m[1][1] += firstY*defY;
+                }//a
+            }//b
+            jacobianMatrix.m[0][0] /= deformationField->dx;
+            jacobianMatrix.m[0][1] /= deformationField->dy;
+            jacobianMatrix.m[1][0] /= deformationField->dx;
+            jacobianMatrix.m[1][1] /= deformationField->dy;
+            jacobianMatrix.m[2][2]=1.f;
 
-                if(deformationField->nz>1){
-                    jacobianValue =  jacobianMatrix[0][0]*jacobianMatrix[1][1]*jacobianMatrix[2][2];
-                    jacobianValue += jacobianMatrix[0][1]*jacobianMatrix[1][2]*jacobianMatrix[2][0];
-                    jacobianValue += jacobianMatrix[0][2]*jacobianMatrix[1][0]*jacobianMatrix[2][1];
-                    jacobianValue -= jacobianMatrix[0][0]*jacobianMatrix[1][2]*jacobianMatrix[2][1];
-                    jacobianValue -= jacobianMatrix[0][1]*jacobianMatrix[1][0]*jacobianMatrix[2][2];
-                    jacobianValue -= jacobianMatrix[0][2]*jacobianMatrix[1][1]*jacobianMatrix[2][0];
-                }
-                else{
-                    jacobianValue =  jacobianMatrix[0][0]*jacobianMatrix[1][1];
-                    jacobianValue -= jacobianMatrix[0][1]*jacobianMatrix[1][0];
-                }
+            jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
 
-                *jacobianPtr++ = jacobianValue;
-                voxelIndex++;
+            if(jacobianDeterminant!=NULL)
+                jacDetPtr[currentIndex] = nifti_mat33_determ(jacobianMatrix);
+            if(jacobianMatrices!=NULL){
+                jacXXPtr[currentIndex]=jacobianMatrix.m[0][0];
+                jacXYPtr[currentIndex]=jacobianMatrix.m[0][1];
+                jacYXPtr[currentIndex]=jacobianMatrix.m[1][0];
+                jacYYPtr[currentIndex]=jacobianMatrix.m[1][1];
             }
-        }
-    }
+
+            currentIndex++;
+
+        }// x jacImage
+    }//y jacImage
 }
 /* *************************************************************** */
-void reg_getJacobianMapFromDeformationField(nifti_image *deformationField,
-                                            nifti_image *jacobianImage)
+template <class DTYPE>
+void reg_defField_getJacobianMap3D(nifti_image *deformationField,
+                                   nifti_image *jacobianDeterminant,
+                                   nifti_image *jacobianMatrices)
+{
+    DTYPE *jacDetPtr = NULL;
+    DTYPE *jacXXPtr = NULL;
+    DTYPE *jacXYPtr = NULL;
+    DTYPE *jacXZPtr = NULL;
+    DTYPE *jacYXPtr = NULL;
+    DTYPE *jacYYPtr = NULL;
+    DTYPE *jacYZPtr = NULL;
+    DTYPE *jacZXPtr = NULL;
+    DTYPE *jacZYPtr = NULL;
+    DTYPE *jacZZPtr = NULL;
+
+    if(jacobianDeterminant!=NULL)
+        jacDetPtr=static_cast<DTYPE *>(jacobianDeterminant->data);
+
+    unsigned int voxelNumber=deformationField->nx*deformationField->ny*deformationField->nz;
+    if(jacobianMatrices!=NULL){
+        jacXXPtr = static_cast<DTYPE *>(jacobianMatrices->data);
+        jacXYPtr = &jacXXPtr[voxelNumber];
+        jacXZPtr = &jacXYPtr[voxelNumber];
+        jacYXPtr = &jacXZPtr[voxelNumber];
+        jacYYPtr = &jacYXPtr[voxelNumber];
+        jacYZPtr = &jacYYPtr[voxelNumber];
+        jacZXPtr = &jacYZPtr[voxelNumber];
+        jacZYPtr = &jacZXPtr[voxelNumber];
+        jacZZPtr = &jacZYPtr[voxelNumber];
+    }
+
+    mat33 reorient, desorient, jacobianMatrix;
+    getReorientationMatrix(deformationField, &desorient, &reorient);
+
+    mat44 *real2voxel=NULL;
+    mat44 *voxel2real=NULL;
+    if(deformationField->sform_code){
+        real2voxel=&(deformationField->sto_ijk);
+        voxel2real=&(deformationField->sto_xyz);
+    }
+    else{
+        real2voxel=&(deformationField->qto_ijk);
+        voxel2real=&(deformationField->qto_xyz);
+    }
+
+    DTYPE *deformationPtrX = static_cast<DTYPE *>(deformationField->data);
+    DTYPE *deformationPtrY = &deformationPtrX[voxelNumber];
+    DTYPE *deformationPtrZ = &deformationPtrY[voxelNumber];
+
+    unsigned int currentIndex=0;
+    for(int z=0;z<deformationField->nz;++z){
+        for(int y=0;y<deformationField->ny;++y){
+            for(int x=0;x<deformationField->nx;++x){
+
+                // Extract the current voxel deformation
+                DTYPE realPosition[3]={deformationPtrX[currentIndex],
+                                       deformationPtrY[currentIndex],
+                                       deformationPtrZ[currentIndex]};
+
+                // Get the corresponding voxel position
+                DTYPE voxelPosition[3];
+                voxelPosition[0]=real2voxel->m[0][0] * realPosition[0] +
+                                 real2voxel->m[0][1] * realPosition[1] +
+                                 real2voxel->m[0][2] * realPosition[2] +
+                                 real2voxel->m[0][3];
+                voxelPosition[1]=real2voxel->m[1][0] * realPosition[0] +
+                                 real2voxel->m[1][1] * realPosition[1] +
+                                 real2voxel->m[1][2] * realPosition[2] +
+                                 real2voxel->m[1][3];
+                voxelPosition[2]=real2voxel->m[2][0] * realPosition[0] +
+                                 real2voxel->m[2][1] * realPosition[1] +
+                                 real2voxel->m[2][2] * realPosition[2] +
+                                 real2voxel->m[2][3];
+
+                // Compute the relative positions
+                int previous[3];
+                previous[0]=(int)floor(voxelPosition[0]);
+                previous[1]=(int)floor(voxelPosition[1]);
+                previous[2]=(int)floor(voxelPosition[2]);
+                DTYPE basisX[2], basisY[2], basisZ[2], first[2]={-1.0,1.0};
+                basisX[1]=voxelPosition[0]-(DTYPE)previous[0];basisX[0]=1.0-basisX[1];
+                basisY[1]=voxelPosition[1]-(DTYPE)previous[1];basisY[0]=1.0-basisY[1];
+                basisZ[1]=voxelPosition[2]-(DTYPE)previous[2];basisZ[0]=1.0-basisZ[1];
+
+                DTYPE firstX, firstY, firstZ, defX, defY, defZ;
+                memset(&jacobianMatrix,0,sizeof(mat33));
+                for(int c=0;c<2;++c){
+                    int currentZ=previous[2]+c;
+                    for(int b=0;b<2;++b){
+                        int currentY=previous[1]+b;
+                        for(int a=0;a<2;++a){
+                            int currentX=previous[0]+a;
+
+                            firstX=first[a]*basisY[b]*basisZ[c];
+                            firstY=basisX[a]*first[b]*basisZ[c];
+                            firstZ=basisX[a]*basisY[b]*first[c];
+
+                            if(currentX>-1 && currentX<deformationField->nx &&
+                               currentY>-1 && currentY<deformationField->ny &&
+                               currentZ>-1 && currentZ<deformationField->nz){
+                                // Uses the deformation field if voxel is in its space
+                                unsigned int index=(currentZ*deformationField->ny+currentY)*deformationField->nx+currentX;
+                                defX = deformationPtrX[index];
+                                defY = deformationPtrY[index];
+                                defZ = deformationPtrZ[index];
+                            }
+                            else{
+                                // Uses the deformation field affine transformation
+                                defX = voxel2real->m[0][0] * currentX +
+                                       voxel2real->m[0][1] * currentY +
+                                       voxel2real->m[0][2] * currentZ +
+                                       voxel2real->m[0][3];
+                                defY = voxel2real->m[1][0] * currentX +
+                                       voxel2real->m[1][1] * currentY +
+                                       voxel2real->m[1][2] * currentZ +
+                                       voxel2real->m[1][3];
+                                defZ = voxel2real->m[2][0] * currentX +
+                                       voxel2real->m[2][1] * currentY +
+                                       voxel2real->m[2][2] * currentZ +
+                                       voxel2real->m[2][3];
+                            }//in space
+
+                            jacobianMatrix.m[0][0] += firstX*defX;
+                            jacobianMatrix.m[0][1] += firstY*defX;
+                            jacobianMatrix.m[0][2] += firstZ*defX;
+                            jacobianMatrix.m[1][0] += firstX*defY;
+                            jacobianMatrix.m[1][1] += firstY*defY;
+                            jacobianMatrix.m[1][2] += firstZ*defY;
+                            jacobianMatrix.m[2][0] += firstX*defZ;
+                            jacobianMatrix.m[2][1] += firstY*defZ;
+                            jacobianMatrix.m[2][2] += firstZ*defZ;
+                        }//a
+                    }//b
+                }//c
+                jacobianMatrix.m[0][0] /= deformationField->dx;
+                jacobianMatrix.m[0][1] /= deformationField->dy;
+                jacobianMatrix.m[0][2] /= deformationField->dz;
+                jacobianMatrix.m[1][0] /= deformationField->dx;
+                jacobianMatrix.m[1][1] /= deformationField->dy;
+                jacobianMatrix.m[1][2] /= deformationField->dz;
+                jacobianMatrix.m[2][0] /= deformationField->dx;
+                jacobianMatrix.m[2][1] /= deformationField->dy;
+                jacobianMatrix.m[2][2] /= deformationField->dz;
+
+                jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
+                if(jacobianDeterminant!=NULL)
+                    jacDetPtr[currentIndex] = nifti_mat33_determ(jacobianMatrix);
+                if(jacobianMatrices!=NULL){
+                    jacXXPtr[currentIndex]=jacobianMatrix.m[0][0];
+                    jacXYPtr[currentIndex]=jacobianMatrix.m[0][1];
+                    jacXZPtr[currentIndex]=jacobianMatrix.m[0][2];
+                    jacYXPtr[currentIndex]=jacobianMatrix.m[1][0];
+                    jacYYPtr[currentIndex]=jacobianMatrix.m[1][1];
+                    jacYZPtr[currentIndex]=jacobianMatrix.m[1][2];
+                    jacZXPtr[currentIndex]=jacobianMatrix.m[2][0];
+                    jacZYPtr[currentIndex]=jacobianMatrix.m[2][1];
+                    jacZZPtr[currentIndex]=jacobianMatrix.m[2][2];
+                }
+
+                currentIndex++;
+
+            }// x jacImage
+        }//y jacImage
+    }//z jacImage
+}
+/* *************************************************************** */
+void reg_defField_getJacobianMap(nifti_image *deformationField,
+                                 nifti_image *jacobianImage)
 {
     if(deformationField->datatype!=jacobianImage->datatype){
-        printf("[NiftyReg ERROR] reg_getSourceImageGradient");
-        printf("[NiftyReg ERROR] Both input images have different type. Exit");
+        printf("[NiftyReg ERROR] reg_defField_getJacobianMap\n");
+        printf("[NiftyReg ERROR] Both input images have different type. Exit\n");
         exit(1);
     }
     switch(deformationField->datatype){
         case NIFTI_TYPE_FLOAT32:
-            reg_getJacobianMapFromDeformationField1<float>(deformationField,jacobianImage);
+            if(deformationField->nz>1)
+                reg_defField_getJacobianMap3D<float>(deformationField,jacobianImage,NULL);
+            else reg_defField_getJacobianMap2D<float>(deformationField,jacobianImage,NULL);
             break;
 #ifdef _NR_DEV
         case NIFTI_TYPE_FLOAT64:
-            reg_getJacobianMapFromDeformationField1<double>(deformationField,jacobianImage);
+            if(deformationField->nz>1)
+                reg_defField_getJacobianMap3D<double>(deformationField,jacobianImage,NULL);
+            else reg_defField_getJacobianMap2D<double>(deformationField,jacobianImage,NULL);
             break;
 #endif
         default:
-            printf("[NiftyReg ERROR] reg_getSourceImageGradient");
-            printf("[NiftyReg ERROR] Voxel type unsupported.");
+            printf("[NiftyReg ERROR] reg_defField_getJacobianMap\n");
+            printf("[NiftyReg ERROR] Voxel type unsupported.\n");
+            exit(1);
+    }
+}
+/* *************************************************************** */
+/* *************************************************************** */
+void reg_defField_getJacobianMatrix(nifti_image *deformationField,
+                                    nifti_image *jacobianImage)
+{
+    if(deformationField->datatype!=jacobianImage->datatype){
+        printf("[NiftyReg ERROR] reg_defField_getJacobianMap\n");
+        printf("[NiftyReg ERROR] Both input images have different type. Exit\n");
+        exit(1);
+    }
+    switch(deformationField->datatype){
+        case NIFTI_TYPE_FLOAT32:
+            if(deformationField->nz>1)
+                reg_defField_getJacobianMap3D<float>(deformationField,NULL,jacobianImage);
+            else reg_defField_getJacobianMap2D<float>(deformationField,NULL,jacobianImage);
+            break;
+#ifdef _NR_DEV
+        case NIFTI_TYPE_FLOAT64:
+            if(deformationField->nz>1)
+                reg_defField_getJacobianMap3D<double>(deformationField,NULL,jacobianImage);
+            else reg_defField_getJacobianMap2D<double>(deformationField,NULL,jacobianImage);
+            break;
+#endif
+        default:
+            printf("[NiftyReg ERROR] reg_defField_getJacobianMap\n");
+            printf("[NiftyReg ERROR] Voxel type unsupported.\n");
             exit(1);
     }
 }

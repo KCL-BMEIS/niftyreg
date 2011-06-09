@@ -177,8 +177,17 @@ int reg_getDeformationFromDisplacement(nifti_image *controlPointImage);
  * assumed
  */
 extern "C++"
-void reg_getJacobianMapFromDeformationField(nifti_image *deformationField,
-                                            nifti_image *jacobianImage);
+void reg_defField_getJacobianMap(nifti_image *deformationField,
+                                 nifti_image *jacobianImage);
+/* *************************************************************** */
+/** reg_getJacobianImage
+ * Compute the Jacobian matrix at every voxel position
+ * from a deformation field. A linear interpolation is
+ * assumed
+ */
+extern "C++"
+void reg_defField_getJacobianMatrix(nifti_image *deformationField,
+                                    nifti_image *jacobianImage);
 /* *************************************************************** */
 /** reg_composeDefField
   * Preforms a deformation field composition.
@@ -188,7 +197,7 @@ void reg_getJacobianMapFromDeformationField(nifti_image *deformationField,
   * Only voxel within the mask are considered.
   */
 extern "C++"
-void reg_composeDefField(nifti_image *deformationField,
+void reg_defField_compose(nifti_image *deformationField,
                          nifti_image *dfToUpdate,
                          int *mask);
 /* *************************************************************** */
@@ -220,7 +229,14 @@ int reg_bspline_GetJacobianMapFromVelocityField(nifti_image* velocityFieldImage,
 extern "C++"
 void reg_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                              nifti_image *deformationFieldImage,
+                                             nifti_image **intermediateDeformationField,
                                              int *currentMask,
                                              bool approx);
+extern "C++"
+void reg_getInverseDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
+                                                    nifti_image *deformationFieldImage,
+                                                    nifti_image **intermediateDeformationField,
+                                                    int *currentMask,
+                                                    bool approx);
 /* *************************************************************** */
 #endif

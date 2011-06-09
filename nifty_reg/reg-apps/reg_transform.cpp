@@ -33,6 +33,7 @@ typedef struct{
     char *inputFirstCPPName;
     char *inputSecondCPPName;
     char *inputDeformationName;
+    char *inputSeconDefName;
     char *inputDisplacementName;
     char *outputSourceImageName;
     char *outputDeformationName;
@@ -47,6 +48,7 @@ typedef struct{
     bool cpp2defFlag;
     bool composeTransformation1Flag;
     bool composeTransformation2Flag;
+    bool composeTransformation3Flag;
     bool def2dispFlag;
     bool disp2defFlag;
     bool updateSformFlag;
@@ -79,10 +81,15 @@ void Usage(char *exec)
         printf("\t\tFilename1 of lattice of control point that contains the second deformation (CPP2).\n");
         printf("\t\tFilename2 of lattice of control point that contains the initial deformation (CPP1).\n");
         printf("\t\tFilename3 of the output deformation field.\n");
-	printf("\t-comp2 <filename1>  <filename2> <filename3>\n");
-    printf("\t\tComposition of a deformation field with a lattice of control points. CPP(DEF(x)).\n");
+    printf("\t-comp2 <filename1>  <filename2> <filename3>\n");
+        printf("\t\tComposition of a deformation field with a lattice of control points. CPP(DEF(x)).\n");
         printf("\t\tFilename1 of lattice of control point that contains the second deformation (CPP).\n");
         printf("\t\tFilename2 of the deformation field to be used as initial deformation (DEF).\n");
+        printf("\t\tFilename3 of the output deformation field.\n");
+    printf("\t-comp3 <filename1>  <filename2> <filename3>\n");
+        printf("\t\tComposition of two deformation fields. DEF2(DEF1(x)).\n");
+        printf("\t\tFilename1 of the second deformation field (DEF2).\n");
+        printf("\t\tFilename2 of the first deformation field (DEF1).\n");
         printf("\t\tFilename3 of the output deformation field.\n");
     printf("\t-def2disp <filename1>  <filename2>\n");
         printf("\t\tConvert a deformation field into a displacement field.\n");
@@ -145,6 +152,12 @@ int main(int argc, char **argv)
             param->inputDeformationName=argv[++i];
             param->outputDeformationName=argv[++i];
             flag->composeTransformation2Flag=1;
+        }
+        else if(strcmp(argv[i], "-comp3") == 0){
+            param->inputSeconDefName=argv[++i];
+            param->inputDeformationName=argv[++i];
+            param->outputDeformationName=argv[++i];
+            flag->composeTransformation3Flag=1;
         }
         else if(strcmp(argv[i], "-def2disp") == 0){
             param->inputDeformationName=argv[++i];
@@ -239,6 +252,7 @@ int main(int argc, char **argv)
         if(controlPointImage->pixdim[5]>1)
             reg_getDeformationFieldFromVelocityGrid(controlPointImage,
                                                     deformationFieldImage,
+                                                    NULL, // intermediate
                                                     NULL, //mask
                                                     false // approximation
                                                     );
@@ -261,13 +275,13 @@ int main(int argc, char **argv)
     /* ********************* */
     /* START THE COMPOSITION */
     /* ********************* */
-	if(flag->composeTransformation1Flag || flag->composeTransformation2Flag){
+    if(flag->composeTransformation1Flag || flag->composeTransformation2Flag){
 
-            nifti_image *secondControlPointImage = nifti_image_read(param->inputSecondCPPName,true);
-            if(secondControlPointImage == NULL){
-            fprintf(stderr,"[NiftyReg ERROR] Error when reading the control point image: %s\n",param->inputSecondCPPName);
-			PetitUsage(argv[0]);
-			return 1;
+        nifti_image *secondControlPointImage = nifti_image_read(param->inputSecondCPPName,true);
+        if(secondControlPointImage == NULL){
+        fprintf(stderr,"[NiftyReg ERROR] Error when reading the control point image: %s\n",param->inputSecondCPPName);
+            PetitUsage(argv[0]);
+            return 1;
         }
         reg_checkAndCorrectDimension(secondControlPointImage);
 
@@ -350,6 +364,20 @@ int main(int argc, char **argv)
         nifti_image_free(deformationFieldImage);
         printf("Composed deformation field has been saved: %s\n", param->outputDeformationName);
 	}
+
+    if(flag->composeTransformation3Flag){
+        // Read both deformation field
+        nifti_image *def1=nifti_image_read(param->inputDeformationName,true);
+        nifti_image *def2=nifti_image_read(param->inputSeconDefName,true);
+
+        reg_defField_compose(def2,def1,NULL);
+
+        nifti_set_filenames(def1, param->outputDeformationName, 0, 0);
+        nifti_image_write(def1);
+
+        nifti_image_free(def1);
+        nifti_image_free(def2);
+    }
 	
 	/* ******************** */
 	/* START THE CONVERSION */

@@ -151,7 +151,9 @@ void reg_tool_ReadAffineFile(	mat44 *mat,
     }
     affineFile.close();
 
-    reg_mat44_disp(mat, (char *)"affineTransformation");
+#ifndef NDEBUG
+    reg_mat44_disp(mat, (char *)"[NiftyReg DEBUG] 3Read affine transformation");
+#endif
 
     if(flirtFile){
         mat44 absoluteTarget;
@@ -240,15 +242,14 @@ void reg_tool_ReadAffineFile(	mat44 *mat,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-void reg_tool_WriteAffineFile(	mat44 *mat,
-								char *fileName)
+void reg_tool_WriteAffineFile(mat44 *mat,
+                              char *fileName)
 {
-	FILE *affineFile;
-	affineFile=fopen(fileName, "w");
-	for(int i=0;i<4;i++){
-		fprintf(affineFile, "%g %g %g %g\n", mat->m[i][0], mat->m[i][1], mat->m[i][2], mat->m[i][3]);
-	}
-	fclose(affineFile);
+    FILE *affineFile;
+    affineFile=fopen(fileName, "w");
+    for(int i=0;i<4;i++)
+        fprintf(affineFile, "%g %g %g %g\n", mat->m[i][0], mat->m[i][1], mat->m[i][2], mat->m[i][3]);
+    fclose(affineFile);
 }
 /* *************************************************************** */
 /* *************************************************************** */
