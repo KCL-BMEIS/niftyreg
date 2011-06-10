@@ -2426,7 +2426,7 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
             basis=(DTYPE)xVoxel-(DTYPE)xPre;
             if(basis<0.0) basis=0.0; //rounding error
             if(bspline) Get_BSplineBasisValues<DTYPE>(basis, xBasis);
-            else Get_SplineBasisValues<DTYPE>(basis, yBasis);
+            else Get_SplineBasisValues<DTYPE>(basis, xBasis);
 
             int yPre=(int)(floor(yVoxel));
             basis=(DTYPE)yVoxel-(DTYPE)yPre;

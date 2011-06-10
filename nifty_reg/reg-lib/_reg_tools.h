@@ -54,7 +54,7 @@ void reg_changeDatatype(nifti_image *image);
 
 extern "C++"
 double reg_tool_GetIntensityValue(nifti_image *,
-								 int *);
+                                  int *);
 
 extern "C++"
 void reg_tools_addSubMulDivImages(  nifti_image *,
