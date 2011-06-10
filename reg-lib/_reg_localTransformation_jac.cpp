@@ -160,13 +160,13 @@ double reg_bspline_jacobianValue2D(nifti_image *splineControlPoint,
 
             if(basis<=oldBasis || x==0){
                 get_GridValues<DTYPE>(xPre,
-                                           yPre,
-                                           splineControlPoint,
-                                           controlPointPtrX,
-                                           controlPointPtrY,
-                                           xControlPointCoordinates,
-                                           yControlPointCoordinates,
-                                           false);
+                                       yPre,
+                                       splineControlPoint,
+                                       controlPointPtrX,
+                                       controlPointPtrY,
+                                       xControlPointCoordinates,
+                                       yControlPointCoordinates,
+                                       false);
             }
             oldBasis=basis;
 
@@ -2328,17 +2328,14 @@ void reg_bspline_GetJacobianMap2D(nifti_image *splineControlPoint,
             }
 
             if(basis<=oldBasis || x==0){
-                coord=0;
-                for(int Y=yPre; Y<yPre+4; Y++){
-                    int index = Y*splineControlPoint->nx;
-                    DTYPE *xPtr = &controlPointPtrX[index];
-                    DTYPE *yPtr = &controlPointPtrY[index];
-                    for(int X=xPre; X<xPre+4; X++){
-                        xControlPointCoordinates[coord] = (DTYPE)xPtr[X];
-                        yControlPointCoordinates[coord] = (DTYPE)yPtr[X];
-                        coord++;
-                    }
-                }
+                get_GridValues<DTYPE>(xPre,
+                                      yPre,
+                                      splineControlPoint,
+                                      controlPointPtrX,
+                                      controlPointPtrY,
+                                      xControlPointCoordinates,
+                                      yControlPointCoordinates,
+                                      false);
             }
             oldBasis=basis;
             DTYPE Tx_x=0.0;
@@ -2438,25 +2435,17 @@ void reg_bspline_GetJacobianMap3D(nifti_image *splineControlPoint,
                 }
 
                 if(basis<=oldBasis || x==0){
-                    coord=0;
-                    for(int Z=zPre; Z<zPre+4; Z++){
-                        unsigned int index=Z*splineControlPoint->nx*splineControlPoint->ny;
-                        DTYPE *xPtr = &controlPointPtrX[index];
-                        DTYPE *yPtr = &controlPointPtrY[index];
-                        DTYPE *zPtr = &controlPointPtrZ[index];
-                        for(int Y=yPre; Y<yPre+4; Y++){
-                            index = Y*splineControlPoint->nx;
-                            DTYPE *xxPtr = &xPtr[index];
-                            DTYPE *yyPtr = &yPtr[index];
-                            DTYPE *zzPtr = &zPtr[index];
-                            for(int X=xPre; X<xPre+4; X++){
-                                xControlPointCoordinates[coord] = (DTYPE)xxPtr[X];
-                                yControlPointCoordinates[coord] = (DTYPE)yyPtr[X];
-                                zControlPointCoordinates[coord] = (DTYPE)zzPtr[X];
-                                coord++;
-                            }
-                        }
-                    }
+                    get_GridValues<DTYPE>(xPre,
+                                          yPre,
+                                          zPre,
+                                          splineControlPoint,
+                                          controlPointPtrX,
+                                          controlPointPtrY,
+                                          controlPointPtrZ,
+                                          xControlPointCoordinates,
+                                          yControlPointCoordinates,
+                                          zControlPointCoordinates,
+                                          false);
                 }
                 oldBasis=basis;
 
