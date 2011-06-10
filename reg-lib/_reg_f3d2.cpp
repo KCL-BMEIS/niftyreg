@@ -216,7 +216,23 @@ int reg_f3d2<T>::GetVoxelBasedGradient()
 {
     /* COMPUTE THE GRADIENT BETWEEN THE REFERENCE AND THE WARPED FLOATING */
     reg_f3d<T>::GetVoxelBasedGradient();
-
+//{
+//// modulate gradient by the jacobian determiant
+//nifti_image *jacobianMap = nifti_copy_nim_info(this->currentReference);
+//jacobianMap->data=(void *)malloc(jacobianMap->nvox*jacobianMap->nbyper);
+//reg_bspline_GetJacobianMapFromVelocityField(this->controlPointGrid,
+//                                            jacobianMap);
+//T *jacPtr=static_cast<T *>(jacobianMap->data);
+//T *gxPtr=static_cast<T *>(this->voxelBasedMeasureGradientImage->data);
+//T *gyPtr=&(gxPtr[jacobianMap->nvox]);
+//for(unsigned int i=0; i<jacobianMap->nvox; ++i){
+//    gxPtr[i] *= jacPtr[i];
+//    gyPtr[i] *= jacPtr[i];
+//}
+//nifti_set_filenames(jacobianMap, "forJacDet.nii", 0, 0);
+//nifti_image_write(jacobianMap);
+//nifti_image_free(jacobianMap);
+//}
     // All the inverse intermediate deformation fields are computed
     reg_getInverseDeformationFieldFromVelocityGrid(this->controlPointGrid,
                                                    this->deformationFieldImage,
@@ -288,6 +304,30 @@ int reg_f3d2<T>::GetVoxelBasedGradient()
                                                 this->currentMask);
         }
         reg_tools_addSubMulDivValue(tempGradientImage,tempGradientImage,-1,2);
+//{
+//// modulate gradient by the jacobian determiant
+//nifti_image *negatedVel = nifti_copy_nim_info(this->controlPointGrid);
+//negatedVel->data=(void *)malloc(negatedVel->nvox*negatedVel->nbyper);
+//memcpy(negatedVel->data,this->controlPointGrid->data,negatedVel->nvox*negatedVel->nbyper);
+//reg_getDisplacementFromDeformation(negatedVel);
+//reg_tools_addSubMulDivValue(negatedVel,negatedVel,-1,2);
+//reg_getDeformationFromDisplacement(negatedVel);
+//nifti_image *jacobianMap = nifti_copy_nim_info(this->currentReference);
+//jacobianMap->data=(void *)malloc(jacobianMap->nvox*jacobianMap->nbyper);
+//reg_bspline_GetJacobianMapFromVelocityField(negatedVel,
+//                                            jacobianMap);
+//T *jacPtr=static_cast<T *>(jacobianMap->data);
+//T *gxPtr=static_cast<T *>(tempGradientImage->data);
+//T *gyPtr=&(gxPtr[jacobianMap->nvox]);
+//for(unsigned int i=0; i<jacobianMap->nvox; ++i){
+//    gxPtr[i] *= jacPtr[i];
+//    gyPtr[i] *= jacPtr[i];
+//}
+//nifti_set_filenames(jacobianMap, "bckJacDet.nii", 0, 0);
+//nifti_image_write(jacobianMap);
+//nifti_image_free(negatedVel);
+//nifti_image_free(jacobianMap);
+//}
     }
 
 

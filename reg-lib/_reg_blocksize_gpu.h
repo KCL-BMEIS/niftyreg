@@ -14,7 +14,7 @@
 
 #include "nifti1_io.h"
 #include "cuda_runtime.h"
-#include <cutil.h>
+
 
 #ifndef __VECTOR_TYPES_H__
 #define __VECTOR_TYPES_H__
@@ -187,6 +187,19 @@
 #endif
 
 
-
+#define CUDA_SAFE_CALL( call) { \
+    cudaError err = call; \
+    if( cudaSuccess != err) { \
+        fprintf(stderr, "Cuda error in file '%s' in line %i : %s.\n", \
+        __FILE__, __LINE__, cudaGetErrorString( err) ); \
+        exit(1); \
+    }                                        \
+    err = cudaThreadSynchronize();                                 \
+    if( cudaSuccess != err) {                                                \
+        fprintf(stderr, "Cuda error in file '%s' in line %i : %s.\n",        \
+        __FILE__, __LINE__, cudaGetErrorString( err) );              \
+        exit(1  );                                                  \
+    } \
+}
 
 #endif

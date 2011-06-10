@@ -71,13 +71,6 @@ IF(USE_CUDA)
 
     INCLUDE_DIRECTORIES(${CUDA_CUT_INCLUDE_DIR})
     CUDA_INCLUDE_DIRECTORIES(${CUDA_CUT_INCLUDE_DIR})
-
-    IF(NOT EXISTS "${CUDA_SDK_ROOT_DIR}/C/common/inc/cutil.h")
-        MESSAGE(FATAL_ERROR "Please define the CUDA_SDK_ROOT_DIR variable\nsuch as CUDA_SDK_ROOT_DIR/C/common/inc/cutil.h exists")
-    ENDIF(NOT EXISTS "${CUDA_SDK_ROOT_DIR}/C/common/inc/cutil.h")
-
-    INCLUDE_DIRECTORIES(${CUDA_SDK_ROOT_DIR}/C/common/inc)
-    CUDA_INCLUDE_DIRECTORIES(${CUDA_SDK_ROOT_DIR}/C/common/inc)
 	
     if(CUDA_CHECK_CAP)
         try_run(RUN_RESULT_VAR COMPILE_RESULT_VAR
