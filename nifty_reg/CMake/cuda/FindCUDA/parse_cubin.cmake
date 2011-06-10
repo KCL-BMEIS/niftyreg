@@ -105,8 +105,8 @@ if (${file_text} MATCHES ".+")
 
   endforeach(line)
 
-else(${file_text} MATCHES ".+")
+else()
   # message("FOUND NO DEPENDS")
-endif(${file_text} MATCHES ".+")
+endif()
 
 
