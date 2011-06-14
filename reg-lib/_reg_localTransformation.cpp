@@ -2310,9 +2310,9 @@ void reg_defField_compose(nifti_image *deformationField,
 
     bool freeMask=false;
     if(mask==NULL){
-        mask=(int *)calloc(deformationField->nx*
-                           deformationField->ny*
-                           deformationField->nz,
+        mask=(int *)calloc(dfToUpdate->nx*
+                           dfToUpdate->ny*
+                           dfToUpdate->nz,
                            sizeof(int));
         freeMask=true;
     }
