@@ -71,6 +71,9 @@ void Usage(char *exec)
     printf("\t-target <filename>\tFilename of the target image (mandatory)\n");
     printf("\t-source <filename>\tFilename of the source image (mandatory)\n");
     printf("\n***************\n*** OPTIONS ***\n***************\n");
+#ifdef _SVN_REV
+    fprintf(stderr,"\n-v Print the subversion revision number\n");
+#endif
 
     printf("\n*** Initial transformation options (One option will be considered):\n");
     printf("\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Target=Source)\n");
@@ -210,6 +213,14 @@ int main(int argc, char **argv)
             Usage(argv[0]);
             return 0;
         }
+#ifdef _SVN_REV
+        if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
+           strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
+           strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0){
+            printf("NiftyReg revision number: %i\n",_SVN_REV);
+            return 0;
+        }
+#endif
         if(strcmp(argv[i], "-helpPenalty")==0){
             HelpPenaltyTerm();
             return 0;

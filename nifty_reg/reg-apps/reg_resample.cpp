@@ -59,6 +59,9 @@ void Usage(char *exec)
     printf("Usage:\t%s -target <filename> -source <filename> [OPTIONS].\n",exec);
     printf("\t-target <filename>\tFilename of the target image (mandatory)\n");
     printf("\t-source <filename>\tFilename of the source image (mandatory)\n\n");
+#ifdef _SVN_REV
+    fprintf(stderr,"\n-v Print the subversion revision number\n");
+#endif
 
     printf("* * OPTIONS * *\n");
     printf("\t*\tOnly one of the following tranformation is taken into account\n");
@@ -91,6 +94,14 @@ int main(int argc, char **argv)
             Usage(argv[0]);
             return 0;
         }
+#ifdef _SVN_REV
+        if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
+           strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
+           strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0){
+            printf("NiftyReg revision number: %i\n",_SVN_REV);
+            return 0;
+        }
+#endif
         else if(strcmp(argv[i], "-target") == 0){
             param->targetImageName=argv[++i];
             flag->targetImageFlag=1;
