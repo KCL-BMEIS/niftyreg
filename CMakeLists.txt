@@ -32,8 +32,6 @@ INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/zlib)
 
 #-----------------------------------------------------------------------------
 
-ADD_DEFINITIONS(-fPIC)
-
 IF(USE_DOUBLE)
     ADD_DEFINITIONS(-D_USE_NR_DOUBLE)
     IF(USE_SSE)
@@ -109,6 +107,15 @@ IF(USE_CUDA)
     CUDA_INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/nifti)
 ENDIF(USE_CUDA)
 
+#-----------------------------------------------------------------------------
+IF(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/.svn)
+    FIND_PACKAGE(Subversion)
+    IF(Subversion_FOUND)
+        Subversion_WC_INFO(${CMAKE_SOURCE_DIR} NiftyReg)
+        MESSAGE("Current SVN revision is ${NiftyReg_WC_REVISION}")
+        ADD_DEFINITIONS(-D_SVN_REV=${NiftyReg_WC_REVISION})
+    ENDIF(Subversion_FOUND)
+ENDIF(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/.svn)
 #-----------------------------------------------------------------------------
 
 SUBDIRS(zlib)

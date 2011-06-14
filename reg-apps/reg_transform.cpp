@@ -70,8 +70,11 @@ void Usage(char *exec)
 {
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     printf("Usage:\t%s -target <filename> [OPTIONS].\n",exec);
-        printf("\t-target <filename>\tFilename of the target image (mandatory)\n");
-	
+    printf("\t-target <filename>\tFilename of the target image (mandatory)\n");
+
+#ifdef _SVN_REV
+    fprintf(stderr,"\n-v Print the subversion revision number\n");
+#endif
     printf("\n* * OPTIONS * *\n");
     printf("\t-cpp2def <filename1>  <filename2>\n");
         printf("\t\tConversion from control point position to deformation field.\n");
@@ -138,6 +141,14 @@ int main(int argc, char **argv)
             Usage(argv[0]);
             return 0;
         }
+#ifdef _SVN_REV
+        if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
+           strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
+           strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0){
+            printf("NiftyReg revision number: %i\n",_SVN_REV);
+            return 0;
+        }
+#endif
         else if(strcmp(argv[i], "-target") == 0){
             param->targetImageName=argv[++i];
             flag->targetImageFlag=1;
@@ -574,7 +585,7 @@ int main(int argc, char **argv)
         reg_mat44_disp(affineTransformation, (char *)"affineTransformation");
 
         // An initial deformation field is created
-        nifti_image *deformationFieldImage = nifti_copy_nim_info(targetImage);
+        nifti_image *deformationFieldImage = nifti_copy_nim_info(targetImage2);
         deformationFieldImage->cal_min=0;
         deformationFieldImage->cal_max=0;
         deformationFieldImage->scl_slope = 1.0f;
@@ -632,8 +643,11 @@ int main(int argc, char **argv)
                 return 1;
             }
             reg_checkAndCorrectDimension(secondDef);
-            // The deformation field is composed with the CPP file
-            reg_defField_compose(secondDef,deformationFieldImage,NULL);
+
+            reg_defField_compose(secondDef,
+                                 deformationFieldImage,
+                                 NULL);
+
             nifti_image_free(secondDef);
         }
 

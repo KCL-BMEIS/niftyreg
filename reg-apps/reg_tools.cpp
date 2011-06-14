@@ -61,12 +61,15 @@ void PetitUsage(char *exec)
 }
 void Usage(char *exec)
 {
-	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-	printf("Usage:\t%s -in <filename> -out <filename> [OPTIONS].\n",exec);
-	printf("\t-in <filename>\tFilename of the input image image (mandatory)\n");
-	printf("* * OPTIONS * *\n");
+    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+    printf("Usage:\t%s -in <filename> -out <filename> [OPTIONS].\n",exec);
+    printf("\t-in <filename>\tFilename of the input image image (mandatory)\n");
+    printf("* * OPTIONS * *\n");
+#ifdef _SVN_REV
+    fprintf(stderr,"\n-v Print the subversion revision number\n");
+#endif
     printf("\t-out <filename>\t\tFilename out the output image [output.nii]\n");
-	printf("\t-grad\t\t\t4D spatial gradient of the input image\n");
+    printf("\t-grad\t\t\t4D spatial gradient of the input image\n");
     printf("\t-add <filename>\t\tThis image is added to the input\n");
     printf("\t-sub <filename>\t\tThis image is subtracted to the input\n");
     printf("\t-mul <filename>\t\tThis image is multiplied to the input\n");
@@ -94,6 +97,14 @@ int main(int argc, char **argv)
 			Usage(argv[0]);
 			return 0;
 		}
+#ifdef _SVN_REV
+        if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
+           strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
+           strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0){
+            printf("NiftyReg revision number: %i\n",_SVN_REV);
+            return 0;
+        }
+#endif
 		else if(strcmp(argv[i], "-in") == 0){
 			param->inputImageName=argv[++i];
 			flag->inputImageFlag=1;
