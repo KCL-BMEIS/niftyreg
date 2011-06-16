@@ -31,7 +31,7 @@ void getReorientationMatrix(nifti_image *splineControlPoint,
                             mat33 *desorient,
                             mat33 *reorient);
 /* *************************************************************** */
-/** getReorientationMatrix
+/** reg_spline_getDeformationField
  * Compute a dense deformation field in the space of a reference
  * image from a grid of control point.
  * - The computation is performed only at the voxel in the mask
@@ -40,13 +40,13 @@ void getReorientationMatrix(nifti_image *splineControlPoint,
  * - Cubic B-Spline are used if bspline is true, cubic spline otherwise
  */
 extern "C++"
-void reg_spline(nifti_image *splineControlPoint,
-                nifti_image *referenceImage,
-                nifti_image *deformationField,
-                int *mask,
-                bool composition,
-                bool bspline
-                );
+void reg_spline_getDeformationField(nifti_image *splineControlPoint,
+                                    nifti_image *referenceImage,
+                                    nifti_image *deformationField,
+                                    int *mask,
+                                    bool composition,
+                                    bool bspline
+                                    );
 /* *************************************************************** */
 /** reg_bspline_bendingEnergy
  * Compute and return the average bending energy computed using cubic b-spline

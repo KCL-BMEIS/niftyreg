@@ -24,7 +24,7 @@
 #endif
 
 typedef struct{
-    char *targetImageName;
+    char *referenceImageName;
     char *sourceImageName;
     char *affineMatrixName;
     char *inputCPPName;
@@ -34,7 +34,7 @@ typedef struct{
     PrecisionTYPE sourceBGValue;
 }PARAM;
 typedef struct{
-    bool targetImageFlag;
+    bool referenceImageFlag;
     bool sourceImageFlag;
     bool affineMatrixFlag;
     bool affineFlirtFlag;
@@ -49,7 +49,7 @@ typedef struct{
 
 void PetitUsage(char *exec)
 {
-    fprintf(stderr,"Usage:\t%s -target <targetImageName> -source <sourceImageName> [OPTIONS].\n",exec);
+    fprintf(stderr,"Usage:\t%s -target <referenceImageName> -source <sourceImageName> [OPTIONS].\n",exec);
     fprintf(stderr,"\tSee the help for more details (-h).\n");
     return;
 }
@@ -103,8 +103,8 @@ int main(int argc, char **argv)
         }
 #endif
         else if(strcmp(argv[i], "-target") == 0){
-            param->targetImageName=argv[++i];
-            flag->targetImageFlag=1;
+            param->referenceImageName=argv[++i];
+            flag->referenceImageFlag=1;
         }
         else if(strcmp(argv[i], "-source") == 0){
             param->sourceImageName=argv[++i];
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
         }
     }
 
-    if(!flag->targetImageFlag || !flag->sourceImageFlag){
+    if(!flag->referenceImageFlag || !flag->sourceImageFlag){
     fprintf(stderr,"[NiftyReg ERROR] The target and the source image have both to be defined.\n");
             PetitUsage(argv[0]);
             return 1;
@@ -164,13 +164,13 @@ int main(int argc, char **argv)
     }
 
 	/* Read the target image */
-    nifti_image *targetImage = nifti_image_read(param->targetImageName,false);
-    if(targetImage == NULL){
+    nifti_image *referenceImage = nifti_image_read(param->referenceImageName,false);
+    if(referenceImage == NULL){
         fprintf(stderr,"[NiftyReg ERROR] Error when reading the target image: %s\n",
-                param->targetImageName);
+                param->referenceImageName);
         return 1;
     }
-    reg_checkAndCorrectDimension(targetImage);
+    reg_checkAndCorrectDimension(referenceImage);
 	
     /* Read the source image */
     nifti_image *sourceImage = nifti_image_read(param->sourceImageName,true);
@@ -189,9 +189,9 @@ int main(int argc, char **argv)
     for(int i=0;i<argc;i++) printf(" %s", argv[i]);
     printf("\n\n");
     printf("Parameters\n");
-    printf("Target image name: %s\n",targetImage->fname);
-    printf("\t%ix%ix%i voxels, %i volumes\n",targetImage->nx,targetImage->ny,targetImage->nz,targetImage->nt);
-    printf("\t%gx%gx%g mm\n",targetImage->dx,targetImage->dy,targetImage->dz);
+    printf("Target image name: %s\n",referenceImage->fname);
+    printf("\t%ix%ix%i voxels, %i volumes\n",referenceImage->nx,referenceImage->ny,referenceImage->nz,referenceImage->nt);
+    printf("\t%gx%gx%g mm\n",referenceImage->dx,referenceImage->dy,referenceImage->dz);
     printf("Source image name: %s\n",sourceImage->fname);
     printf("\t%ix%ix%i voxels, %i volumes\n",sourceImage->nx,sourceImage->ny,sourceImage->nz,sourceImage->nt);
     printf("\t%gx%gx%g mm\n",sourceImage->dx,sourceImage->dy,sourceImage->dz);
@@ -237,7 +237,7 @@ int main(int argc, char **argv)
             return 1;
         }
         reg_tool_ReadAffineFile(	affineTransformationMatrix,
-                                    targetImage,
+                                    referenceImage,
                                     sourceImage,
                                     param->affineMatrixName,
                                     flag->affineFlirtFlag);
@@ -256,13 +256,13 @@ int main(int argc, char **argv)
         printf("[NiftyReg DEBUG] Allocation of the deformation field\n");
 #endif
         // Allocate
-        deformationFieldImage = nifti_copy_nim_info(targetImage);
+        deformationFieldImage = nifti_copy_nim_info(referenceImage);
         deformationFieldImage->dim[0]=deformationFieldImage->ndim=5;
-        deformationFieldImage->dim[1]=deformationFieldImage->nx=targetImage->nx;
-        deformationFieldImage->dim[2]=deformationFieldImage->ny=targetImage->ny;
-        deformationFieldImage->dim[3]=deformationFieldImage->nz=targetImage->nz;
+        deformationFieldImage->dim[1]=deformationFieldImage->nx=referenceImage->nx;
+        deformationFieldImage->dim[2]=deformationFieldImage->ny=referenceImage->ny;
+        deformationFieldImage->dim[3]=deformationFieldImage->nz=referenceImage->nz;
         deformationFieldImage->dim[4]=deformationFieldImage->nt=1;deformationFieldImage->pixdim[4]=deformationFieldImage->dt=1.0;
-        if(targetImage->nz>1) deformationFieldImage->dim[5]=deformationFieldImage->nu=3;
+        if(referenceImage->nz>1) deformationFieldImage->dim[5]=deformationFieldImage->nu=3;
         else deformationFieldImage->dim[5]=deformationFieldImage->nu=2;
         deformationFieldImage->pixdim[5]=deformationFieldImage->du=1.0;
         deformationFieldImage->dim[6]=deformationFieldImage->nv=1;deformationFieldImage->pixdim[6]=deformationFieldImage->dv=1.0;
@@ -286,13 +286,13 @@ int main(int argc, char **argv)
                                                         );
             }
             else{
-                reg_spline(controlPointImage,
-                           targetImage,
-                           deformationFieldImage,
-                           NULL, // mask
-                           false, //composition
-                           true // bspline
-                           );
+                reg_spline_getDeformationField(controlPointImage,
+                                               referenceImage,
+                                               deformationFieldImage,
+                                               NULL, // mask
+                                               false, //composition
+                                               true // bspline
+                                               );
             }
         }
         else{
@@ -300,7 +300,7 @@ int main(int argc, char **argv)
             printf("[NiftyReg DEBUG] Computation of the deformation field from the affine transformation\n");
 #endif
             reg_affine_positionField(   affineTransformationMatrix,
-                                        targetImage,
+                                        referenceImage,
                                         deformationFieldImage);
         }
     }
@@ -313,7 +313,7 @@ int main(int argc, char **argv)
         if(flag->TRIInterpolationFlag) inter=1;
         else if(flag->NNInterpolationFlag) inter=0;
 
-        nifti_image *resultImage = nifti_copy_nim_info(targetImage);
+        nifti_image *resultImage = nifti_copy_nim_info(referenceImage);
         resultImage->dim[0]=resultImage->ndim=sourceImage->dim[0];
         resultImage->dim[4]=resultImage->nt=sourceImage->dim[4];
         resultImage->cal_min=sourceImage->cal_min;
@@ -324,7 +324,7 @@ int main(int argc, char **argv)
         resultImage->nbyper = sourceImage->nbyper;
         resultImage->nvox = resultImage->dim[1] * resultImage->dim[2] * resultImage->dim[3] * resultImage->dim[4];
         resultImage->data = (void *)calloc(resultImage->nvox, resultImage->nbyper);
-        reg_resampleSourceImage(targetImage,
+        reg_resampleSourceImage(referenceImage,
                                         sourceImage,
                                         resultImage,
                                         deformationFieldImage,
@@ -353,12 +353,12 @@ int main(int argc, char **argv)
         for(int z=0; z<gridImage->nz;z++){
             for(int y=0; y<gridImage->ny;y++){
                 for(int x=0; x<gridImage->nx;x++){
-                    if(targetImage->nz>1){
+                    if(referenceImage->nz>1){
                         if( x/10==(float)x/10.0 || y/10==(float)y/10.0 || z/10==(float)z/10.0)
                             *gridImageValuePtr = 255;
                     }
                     else{
-                        if( x/10==(float)x/10.0 || x==targetImage->nx-1 || y/10==(float)y/10.0 || y==targetImage->ny-1)
+                        if( x/10==(float)x/10.0 || x==referenceImage->nx-1 || y/10==(float)y/10.0 || y==referenceImage->ny-1)
                             *gridImageValuePtr = 255;
                     }
                     gridImageValuePtr++;
@@ -366,7 +366,7 @@ int main(int argc, char **argv)
             }
         }
 
-        nifti_image *resultImage = nifti_copy_nim_info(targetImage);
+        nifti_image *resultImage = nifti_copy_nim_info(referenceImage);
         resultImage->dim[0]=resultImage->ndim=3;
         resultImage->dim[4]=resultImage->nt=1;
         resultImage->cal_min=sourceImage->cal_min;
@@ -376,7 +376,7 @@ int main(int argc, char **argv)
         resultImage->datatype =NIFTI_TYPE_UINT8;
         resultImage->nbyper = sizeof(unsigned char);
         resultImage->data = (void *)calloc(resultImage->nvox, resultImage->nbyper);
-        reg_resampleSourceImage(targetImage,
+        reg_resampleSourceImage(referenceImage,
                                         gridImage,
                                         resultImage,
                                         deformationFieldImage,
@@ -392,7 +392,7 @@ int main(int argc, char **argv)
         printf("[NiftyReg] Resampled grid has been saved: %s\n", param->outputBlankName);
     }
 
-    nifti_image_free(targetImage);
+    nifti_image_free(referenceImage);
     nifti_image_free(sourceImage);
     nifti_image_free(controlPointImage);
     nifti_image_free(deformationFieldImage);
