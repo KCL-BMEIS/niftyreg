@@ -610,7 +610,7 @@ int main(int argc, char **argv)
         // The deformation field is filled with the affine transformation
         reg_affine_positionField(affineTransformation, referenceImage, deformationFieldImage);
 
-/*        // Read the input control point position or deformation field
+        // Read the input control point position or deformation field
         nifti_image *nrr_transformation = nifti_image_read(param->inputFirstCPPName,true);
         if(nrr_transformation == NULL){
             fprintf(stderr,"[NiftyReg ERROR] Error when reading the non-rigid transformation image: %s\n",param->inputFirstCPPName);
@@ -634,7 +634,7 @@ int main(int argc, char **argv)
                                            );
         }
         nifti_image_free(nrr_transformation);
-*/
+
         nifti_set_filenames(deformationFieldImage, param->outputDeformationName, 0, 0);
         nifti_image_write(deformationFieldImage);
         nifti_image_free(deformationFieldImage);

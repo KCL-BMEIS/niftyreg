@@ -99,7 +99,7 @@ int reg_f3d2<T>::AllocateCurrentInputImage(int level)
         this->controlPointGrid->pixdim[5]=this->stepNumber;
         this->controlPointGrid->du=this->stepNumber;
     }
-    else this->stepNumber=this->controlPointGrid->du;
+    else this->stepNumber=(int)this->controlPointGrid->du;
 
 #ifdef NDEBUG
     if(this->verbose){
