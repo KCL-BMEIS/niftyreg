@@ -746,7 +746,7 @@ void reg_bspline_approxLinearEnergyGradient2D(nifti_image *splineControlPoint,
     }
 
     mat33 reorient, desorient, jacobianMatrix;
-    getReorientationMatrix(splineControlPoint, &desorient, &reorient);
+    reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
 
     unsigned int index=0;
     for(int y=0;y<splineControlPoint->ny;y++){
@@ -844,7 +844,7 @@ void reg_bspline_approxLinearEnergyGradient3D(nifti_image *splineControlPoint,
     }
 
     mat33 reorient, desorient, jacobianMatrix;
-    getReorientationMatrix(splineControlPoint, &desorient, &reorient);
+    reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
 
     unsigned int index=0;
     for(int z=0;z<splineControlPoint->nz;z++){

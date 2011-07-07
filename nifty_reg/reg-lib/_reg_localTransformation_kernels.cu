@@ -14,9 +14,10 @@
 
 #include "_reg_blocksize_gpu.h"
 
+__device__ __constant__ int c_UseBSpline;
 __device__ __constant__ int c_VoxelNumber;
 __device__ __constant__ int c_ControlPointNumber;
-__device__ __constant__ int3 c_TargetImageDim;
+__device__ __constant__ int3 c_ReferenceImageDim;
 __device__ __constant__ int3 c_ControlPointImageDim;
 __device__ __constant__ float3 c_ControlPointVoxelSpacing;
 __device__ __constant__ float3 c_ControlPointSpacing;
@@ -26,182 +27,340 @@ __device__ __constant__ bool c_Type;
 __device__ __constant__ float3 c_AffineMatrix0;
 __device__ __constant__ float3 c_AffineMatrix1;
 __device__ __constant__ float3 c_AffineMatrix2;
-
 /* *************************************************************** */
 /* *************************************************************** */
-
 texture<float4, 1, cudaReadModeElementType> controlPointTexture;
-texture<float4, 1, cudaReadModeElementType> basisValueATexture;
-texture<float2, 1, cudaReadModeElementType> basisValueBTexture;
+texture<float4, 1, cudaReadModeElementType> secondDerivativesTexture;
 texture<int, 1, cudaReadModeElementType> maskTexture;
 texture<float4, 1, cudaReadModeElementType> txVoxelToRealMatrix;
 texture<float4, 1, cudaReadModeElementType> txRealToVoxelMatrix;
-
-texture<float,1, cudaReadModeElementType> xBasisTexture;
-texture<float,1, cudaReadModeElementType> yBasisTexture;
-texture<float,1, cudaReadModeElementType> zBasisTexture;
-
 texture<float,1, cudaReadModeElementType> jacobianDeterminantTexture;
 texture<float,1, cudaReadModeElementType> jacobianMatricesTexture;
 texture<float4,1, cudaReadModeElementType> voxelDisplacementTexture;
-
 /* *************************************************************** */
 /* *************************************************************** */
-
 __device__ float3 operator*(float a, float3 b){
     return make_float3(a*b.x, a*b.y, a*b.z);
+}
+__device__ float3 operator*(float3 a, float3 b){
+    return make_float3(a.x*b.x, a.y*b.y, a.z*b.z);
+}
+__device__ float4 operator*(float4 a, float4 b){
+    return make_float4(a.x*b.x, a.y*b.y, a.z*b.z, a.w*b.w);
 }
 __device__ float4 operator*(float a, float4 b){
     return make_float4(a*b.x, a*b.y, a*b.z, 0.0f);
 }
-__device__ float3 operator/(float3 b, float a){
-    return make_float3(b.x/a, b.y/a, b.z/a);
+/* *************************************************************** */
+__device__ float3 operator/(float3 a, float b){
+    return make_float3(a.x/b, a.y/b, a.z/b);
 }
+__device__ float3 operator/(float3 a, float3 b){
+    return make_float3(a.x/b.x, a.y/b.y, a.z/b.z);
+}
+/* *************************************************************** */
 __device__ float4 operator+(float4 a, float4 b){
     return make_float4(a.x+b.x, a.y+b.y, a.z+b.z, 0.0f);
 }
 __device__ float3 operator+(float3 a, float3 b){
     return make_float3(a.x+b.x, a.y+b.y, a.z+b.z);
 }
+/* *************************************************************** */
 __device__ float3 operator-(float3 a, float3 b){
     return make_float3(a.x-b.x, a.y-b.y, a.z-b.z);
 }
-__device__ float3 operator*(float3 a, float3 b){
-    return make_float3(a.x*b.x, a.y*b.y, a.z*b.z);
-}
-
 /* *************************************************************** */
 /* *************************************************************** */
-
-__device__ void bendingEnergyMult(	float3 *XX,
-                    float3 *YY,
-                    float3 *ZZ,
-                    float3 *XY,
-                    float3 *YZ,
-                    float3 *XZ,
-                    float basisXX,
-                    float basisYY,
-                    float basisZZ,
-                    float basisXY,
-                    float basisYZ,
-                    float basisXZ,
-                    int index)
+__device__ void GetBasisBSplineValues(float basis, float *values)
 {
-    float4 position = tex1Dfetch(controlPointTexture,index);
-    (*XX).x += basisXX * position.x;
-    (*XX).y += basisXX * position.y;
-    (*XX).z += basisXX * position.z;
-
-    (*YY).x += basisYY * position.x;
-    (*YY).y += basisYY * position.y;
-    (*YY).z += basisYY * position.z;
-
-    (*ZZ).x += basisZZ * position.x;
-    (*ZZ).y += basisZZ * position.y;
-    (*ZZ).z += basisZZ * position.z;
-
-    (*XY).x += basisXY * position.x;
-    (*XY).y += basisXY * position.y;
-    (*XY).z += basisXY * position.z;
-
-    (*YZ).x += basisYZ * position.x;
-    (*YZ).y += basisYZ * position.y;
-    (*YZ).z += basisYZ * position.z;
-
-    (*XZ).x += basisXZ * position.x;
-    (*XZ).y += basisXZ * position.y;
-    (*XZ).z += basisXZ * position.z;
-
-    return;
+    float FF= basis*basis;
+    float FFF= FF*basis;
+    float MF=1.f-basis;
+    values[0] = (MF)*(MF)*(MF)/(6.f);
+    values[1] = (3.f*FFF - 6.f*FF + 4.f)/6.f;
+    values[2] = (-3.f*FFF + 3.f*FF + 3.f*basis + 1.f)/6.f;
+    values[3] = (FFF/6.f);
 }
-
 /* *************************************************************** */
-/* *************************************************************** */
-
-__global__ void reg_freeForm_deformationField_kernel(float4 *positionField)
+__device__ void GetFirstBSplineValues(float basis, float *values, float *first)
 {
+    GetBasisBSplineValues(basis, values);
+    first[3]= basis * basis / 2.f;
+    first[0]= basis - 0.5f - first[3];
+    first[2]= 1.f + first[0] - 2.f*first[3];
+    first[1]= - first[0] - first[2] - first[3];
+}
+/* *************************************************************** */
+/* *************************************************************** */
+__device__ void GetBasisSplineValues(float basis, float *values)
+{
+    float FF= basis*basis;
+    values[0] = (basis * ((2.f-basis)*basis - 1.f))/2.f;
+    values[1] = (FF * (3.f*basis-5.f) + 2.f)/2.f;
+    values[2] = (basis * ((4.f-3.f*basis)*basis + 1.f))/2.f;
+    values[3] = (basis-1.f) * FF/2.f;
+}
+/* *************************************************************** */
+__device__ void GetBasisSplineValuesX(float basis, float4 *values)
+{
+    float FF= basis*basis;
+    values->x = (basis * ((2.f-basis)*basis - 1.f))/2.f;
+    values->y = (FF * (3.f*basis-5.f) + 2.f)/2.f;
+    values->z = (basis * ((4.f-3.f*basis)*basis + 1.f))/2.f;
+    values->w = (basis-1.f) * FF/2.f;
+}
+/* *************************************************************** */
+__device__ void getBSplineBasisValue(float basis, int index, float *value, float *first)
+{
+    switch(index){
+        case 0:
+            *value = (1.f-basis)*(1.f-basis)*(1.f-basis)/6.f;
+            *first = (2.f*basis - basis*basis - 1.f)/2.f;
+            break;
+        case 1:
+            *value = (3.f*basis*basis*basis - 6.f*basis*basis + 4.f)/6.f;
+            *first = (3.f*basis*basis - 4.f*basis)/2.f;
+            break;
+        case 2:
+            *value = (3.f*basis*basis - 3.f*basis*basis*basis + 3.f*basis + 1.f)/6.f;
+            *first = (2.f*basis - 3.f*basis*basis + 1.f)/2.f;
+            break;
+        case 3:
+            *value = basis*basis*basis/6.f;
+            *first = basis*basis/2.f;
+            break;
+         default:
+            *value = 0.f;
+            *first = 0.f;
+            break;
+    }
+}
+/* *************************************************************** */
+__device__ void GetFirstDerivativeBasisValues(int index,
+                                              float *xBasis,
+                                              float *yBasis,
+                                              float *zBasis){
+    switch(index){
+        case 0: xBasis[0]=-0.013889f;yBasis[0]=-0.013889f;zBasis[0]=-0.013889f;break;
+        case 1: xBasis[1]=0.000000f;yBasis[1]=-0.055556f;zBasis[1]=-0.055556f;break;
+        case 2: xBasis[2]=0.013889f;yBasis[2]=-0.013889f;zBasis[2]=-0.013889f;break;
+        case 3: xBasis[3]=-0.055556f;yBasis[3]=0.000000f;zBasis[3]=-0.055556f;break;
+        case 4: xBasis[4]=0.000000f;yBasis[4]=0.000000f;zBasis[4]=-0.222222f;break;
+        case 5: xBasis[5]=0.055556f;yBasis[5]=0.000000f;zBasis[5]=-0.055556f;break;
+        case 6: xBasis[6]=-0.013889f;yBasis[6]=0.013889f;zBasis[6]=-0.013889f;break;
+        case 7: xBasis[7]=0.000000f;yBasis[7]=0.055556f;zBasis[7]=-0.055556f;break;
+        case 8: xBasis[8]=0.013889f;yBasis[8]=0.013889f;zBasis[8]=-0.013889f;break;
+        case 9: xBasis[9]=-0.055556f;yBasis[9]=-0.055556f;zBasis[9]=0.000000f;break;
+        case 10: xBasis[10]=0.000000f;yBasis[10]=-0.222222f;zBasis[10]=0.000000f;break;
+        case 11: xBasis[11]=0.055556f;yBasis[11]=-0.055556f;zBasis[11]=0.000000f;break;
+        case 12: xBasis[12]=-0.222222f;yBasis[12]=0.000000f;zBasis[12]=0.000000f;break;
+        case 13: xBasis[13]=0.000000f;yBasis[13]=0.000000f;zBasis[13]=0.000000f;break;
+        case 14: xBasis[14]=0.222222f;yBasis[14]=0.000000f;zBasis[14]=0.000000f;break;
+        case 15: xBasis[15]=-0.055556f;yBasis[15]=0.055556f;zBasis[15]=0.000000f;break;
+        case 16: xBasis[16]=0.000000f;yBasis[16]=0.222222f;zBasis[16]=0.000000f;break;
+        case 17: xBasis[17]=0.055556f;yBasis[17]=0.055556f;zBasis[17]=0.000000f;break;
+        case 18: xBasis[18]=-0.013889f;yBasis[18]=-0.013889f;zBasis[18]=0.013889f;break;
+        case 19: xBasis[19]=0.000000f;yBasis[19]=-0.055556f;zBasis[19]=0.055556f;break;
+        case 20: xBasis[20]=0.013889f;yBasis[20]=-0.013889f;zBasis[20]=0.013889f;break;
+        case 21: xBasis[21]=-0.055556f;yBasis[21]=0.000000f;zBasis[21]=0.055556f;break;
+        case 22: xBasis[22]=0.000000f;yBasis[22]=0.000000f;zBasis[22]=0.222222f;break;
+        case 23: xBasis[23]=0.055556f;yBasis[23]=0.000000f;zBasis[23]=0.055556f;break;
+        case 24: xBasis[24]=-0.013889f;yBasis[24]=0.013889f;zBasis[24]=0.013889f;break;
+        case 25: xBasis[25]=0.000000f;yBasis[25]=0.055556f;zBasis[25]=0.055556f;break;
+        case 26: xBasis[26]=0.013889f;yBasis[26]=0.013889f;zBasis[26]=0.013889f;break;
+    }
+}
+/* *************************************************************** */
+__device__ void GetSecondDerivativeBasisValues(int index,
+                                               float *xxBasis,
+                                               float *yyBasis,
+                                               float *zzBasis,
+                                               float *xyBasis,
+                                               float *yzBasis,
+                                               float *xzBasis){
+    switch(index){
+        case 0:
+            xxBasis[0]=0.027778f;yyBasis[0]=0.027778f;zzBasis[0]=0.027778f;
+            xyBasis[0]=0.041667f;yzBasis[0]=0.041667f;xzBasis[0]=0.041667f;
+            break;
+        case 1:
+            xxBasis[1]=-0.055556f;yyBasis[1]=0.111111f;zzBasis[1]=0.111111f;
+            xyBasis[1]=-0.000000f;yzBasis[1]=0.166667f;xzBasis[1]=-0.000000f;
+            break;
+        case 2:
+            xxBasis[2]=0.027778f;yyBasis[2]=0.027778f;zzBasis[2]=0.027778f;
+            xyBasis[2]=-0.041667f;yzBasis[2]=0.041667f;xzBasis[2]=-0.041667f;
+            break;
+        case 3:
+            xxBasis[3]=0.111111f;yyBasis[3]=-0.055556f;zzBasis[3]=0.111111f;
+            xyBasis[3]=-0.000000f;yzBasis[3]=-0.000000f;xzBasis[3]=0.166667f;
+            break;
+        case 4:
+            xxBasis[4]=-0.222222f;yyBasis[4]=-0.222222f;zzBasis[4]=0.444444f;
+            xyBasis[4]=0.000000f;yzBasis[4]=-0.000000f;xzBasis[4]=-0.000000f;
+            break;
+        case 5:
+            xxBasis[5]=0.111111f;yyBasis[5]=-0.055556f;zzBasis[5]=0.111111f;
+            xyBasis[5]=0.000000f;yzBasis[5]=-0.000000f;xzBasis[5]=-0.166667f;
+            break;
+        case 6:
+            xxBasis[6]=0.027778f;yyBasis[6]=0.027778f;zzBasis[6]=0.027778f;
+            xyBasis[6]=-0.041667f;yzBasis[6]=-0.041667f;xzBasis[6]=0.041667f;
+            break;
+        case 7:
+            xxBasis[7]=-0.055556f;yyBasis[7]=0.111111f;zzBasis[7]=0.111111f;
+            xyBasis[7]=0.000000f;yzBasis[7]=-0.166667f;xzBasis[7]=-0.000000f;
+            break;
+        case 8:
+            xxBasis[8]=0.027778f;yyBasis[8]=0.027778f;zzBasis[8]=0.027778f;
+            xyBasis[8]=0.041667f;yzBasis[8]=-0.041667f;xzBasis[8]=-0.041667f;
+            break;
+        case 9:
+            xxBasis[9]=0.111111f;yyBasis[9]=0.111111f;zzBasis[9]=-0.055556f;
+            xyBasis[9]=0.166667f;yzBasis[9]=-0.000000f;xzBasis[9]=-0.000000f;
+            break;
+        case 10:
+            xxBasis[10]=-0.222222f;yyBasis[10]=0.444444f;zzBasis[10]=-0.222222f;
+            xyBasis[10]=-0.000000f;yzBasis[10]=-0.000000f;xzBasis[10]=0.000000f;
+            break;
+        case 11:
+            xxBasis[11]=0.111111f;yyBasis[11]=0.111111f;zzBasis[11]=-0.055556f;
+            xyBasis[11]=-0.166667f;yzBasis[11]=-0.000000f;xzBasis[11]=0.000000f;
+            break;
+        case 12:
+            xxBasis[12]=0.444444f;yyBasis[12]=-0.222222f;zzBasis[12]=-0.222222f;
+            xyBasis[12]=-0.000000f;yzBasis[12]=0.000000f;xzBasis[12]=-0.000000f;
+            break;
+        case 13:
+            xxBasis[13]=-0.888889f;yyBasis[13]=-0.888889f;zzBasis[13]=-0.888889f;
+            xyBasis[13]=0.000000f;yzBasis[13]=0.000000f;xzBasis[13]=0.000000f;
+            break;
+        case 14:
+            xxBasis[14]=0.444444f;yyBasis[14]=-0.222222f;zzBasis[14]=-0.222222f;
+            xyBasis[14]=0.000000f;yzBasis[14]=0.000000f;xzBasis[14]=0.000000f;
+            break;
+        case 15:
+            xxBasis[15]=0.111111f;yyBasis[15]=0.111111f;zzBasis[15]=-0.055556f;
+            xyBasis[15]=-0.166667f;yzBasis[15]=0.000000f;xzBasis[15]=-0.000000f;
+            break;
+        case 16:
+            xxBasis[16]=-0.222222f;yyBasis[16]=0.444444f;zzBasis[16]=-0.222222f;
+            xyBasis[16]=0.000000f;yzBasis[16]=0.000000f;xzBasis[16]=0.000000f;
+            break;
+        case 17:
+            xxBasis[17]=0.111111f;yyBasis[17]=0.111111f;zzBasis[17]=-0.055556f;
+            xyBasis[17]=0.166667f;yzBasis[17]=0.000000f;xzBasis[17]=0.000000f;
+            break;
+        case 18:
+            xxBasis[18]=0.027778f;yyBasis[18]=0.027778f;zzBasis[18]=0.027778f;
+            xyBasis[18]=0.041667f;yzBasis[18]=-0.041667f;xzBasis[18]=-0.041667f;
+            break;
+        case 19:
+            xxBasis[19]=-0.055556f;yyBasis[19]=0.111111f;zzBasis[19]=0.111111f;
+            xyBasis[19]=-0.000000f;yzBasis[19]=-0.166667f;xzBasis[19]=0.000000f;
+            break;
+        case 20:
+            xxBasis[20]=0.027778f;yyBasis[20]=0.027778f;zzBasis[20]=0.027778f;
+            xyBasis[20]=-0.041667f;yzBasis[20]=-0.041667f;xzBasis[20]=0.041667f;
+            break;
+        case 21:
+            xxBasis[21]=0.111111f;yyBasis[21]=-0.055556f;zzBasis[21]=0.111111f;
+            xyBasis[21]=-0.000000f;yzBasis[21]=0.000000f;xzBasis[21]=-0.166667f;
+            break;
+        case 22:
+            xxBasis[22]=-0.222222f;yyBasis[22]=-0.222222f;zzBasis[22]=0.444444f;
+            xyBasis[22]=0.000000f;yzBasis[22]=0.000000f;xzBasis[22]=0.000000f;
+            break;
+        case 23:
+            xxBasis[23]=0.111111f;yyBasis[23]=-0.055556f;zzBasis[23]=0.111111f;
+            xyBasis[23]=0.000000f;yzBasis[23]=0.000000f;xzBasis[23]=0.166667f;
+            break;
+        case 24:
+            xxBasis[24]=0.027778f;yyBasis[24]=0.027778f;zzBasis[24]=0.027778f;
+            xyBasis[24]=-0.041667f;yzBasis[24]=0.041667f;xzBasis[24]=-0.041667f;
+            break;
+        case 25:
+            xxBasis[25]=-0.055556f;yyBasis[25]=0.111111f;zzBasis[25]=0.111111f;
+            xyBasis[25]=0.000000f;yzBasis[25]=0.166667f;xzBasis[25]=0.000000f;
+            break;
+        case 26:
+            xxBasis[26]=0.027778f;yyBasis[26]=0.027778f;zzBasis[26]=0.027778f;
+            xyBasis[26]=0.041667f;yzBasis[26]=0.041667f;xzBasis[26]=0.041667f;
+            break;
+    }
+}
+/* *************************************************************** */
+/* *************************************************************** */
+__global__ void reg_bspline_getDeformationField(float4 *positionField)
+{
+    __shared__ float zBasis[Block_reg_bspline_getDeformationField*4];
+    __shared__ float yBasis[Block_reg_bspline_getDeformationField*4];
+
     const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
-	if(tid<c_ActiveVoxelNumber){
+    if(tid<c_ActiveVoxelNumber){
 
-		int3 imageSize = c_TargetImageDim;
+        int3 imageSize = c_ReferenceImageDim;
 
-		unsigned int tempIndex=tex1Dfetch(maskTexture,tid);
-		const unsigned short z =(unsigned short)(tempIndex/(imageSize.x*imageSize.y));
-		tempIndex -= z*(imageSize.x)*(imageSize.y);
-		const unsigned short y =(unsigned short)(tempIndex/(imageSize.x));
-		const unsigned short x = tempIndex - y*(imageSize.x);
-	
-		// the "nearest previous" node is determined [0,0,0]
-		short3 nodeAnte;
-		float3 gridVoxelSpacing = c_ControlPointVoxelSpacing;
-		nodeAnte.x = (short)floorf((float)x/gridVoxelSpacing.x);
-		nodeAnte.y = (short)floorf((float)y/gridVoxelSpacing.y);
-		nodeAnte.z = (short)floorf((float)z/gridVoxelSpacing.z);
+        unsigned int tempIndex=tex1Dfetch(maskTexture,tid);
+        const int z = tempIndex/(imageSize.x*imageSize.y);
+        tempIndex  -= z*imageSize.x*imageSize.y;
+        const int y = tempIndex/imageSize.x;
+        const int x = tempIndex - y*imageSize.x;
+
+        // the "nearest previous" node is determined [0,0,0]
+        int3 nodeAnte;
+        float3 gridVoxelSpacing = c_ControlPointVoxelSpacing;
+        nodeAnte.x = (int)floorf((float)x/gridVoxelSpacing.x);
+        nodeAnte.y = (int)floorf((float)y/gridVoxelSpacing.y);
+        nodeAnte.z = (int)floorf((float)z/gridVoxelSpacing.z);
+
+        const int shareMemIndex = 4*threadIdx.x;
 
         // Z basis values
-        const unsigned short shareMemIndex = 4*threadIdx.x;
-        __shared__ float zBasis[Block_reg_freeForm_deformationField*4];
         float relative = fabsf((float)z/gridVoxelSpacing.z-(float)nodeAnte.z);
-        float FF= relative*relative;
-        float FFF= FF*relative;
-        float MF=1.0f-relative;
-        zBasis[shareMemIndex] = MF*MF*MF/6.0f;
-        zBasis[shareMemIndex+1] = (3.0f*FFF - 6.0f*FF +4.0f)/6.0f;
-        zBasis[shareMemIndex+2] = (-3.0f*FFF + 3.0f*FF + 3.0f*relative + 1.0f)/6.0f;
-        zBasis[shareMemIndex+3] = FFF/6.0f;
-
+        if(c_UseBSpline) GetBasisBSplineValues(relative, &zBasis[shareMemIndex]);
+        else GetBasisSplineValues(relative, &zBasis[shareMemIndex]);
         // Y basis values
-        __shared__ float yBasis[Block_reg_freeForm_deformationField*4];
         relative = fabsf((float)y/gridVoxelSpacing.y-(float)nodeAnte.y);
-        FF= relative*relative;
-        FFF= FF*relative;
-        MF=1.0f-relative;
-        yBasis[shareMemIndex] = MF*MF*MF/6.0f;
-        yBasis[shareMemIndex+1] = (3.0f*FFF - 6.0f*FF +4.0f)/6.0f;
-        yBasis[shareMemIndex+2] = (-3.0f*FFF + 3.0f*FF + 3.0f*relative + 1.0f)/6.0f;
-        yBasis[shareMemIndex+3] = FFF/6.0f;
-
+        if(c_UseBSpline) GetBasisBSplineValues(relative, &yBasis[shareMemIndex]);
+        else GetBasisSplineValues(relative, &yBasis[shareMemIndex]);
         // X basis values
+        float xBasis[4];
         relative = fabsf((float)x/gridVoxelSpacing.x-(float)nodeAnte.x);
-        float4 xBasis;
-        xBasis.w= relative * relative * relative / 6.0f;
-        xBasis.x= 1.0f/6.0f + relative*(relative-1.0f)/2.0f - xBasis.w;
-        xBasis.z= relative + xBasis.x - 2.0f*xBasis.w;
-        xBasis.y= 1.0f - xBasis.x - xBasis.z - xBasis.w;
+        if(c_UseBSpline) GetBasisBSplineValues(relative, xBasis);
+        else GetBasisSplineValues(relative, xBasis);
 
         int3 controlPointImageDim = c_ControlPointImageDim;
         float4 displacement=make_float4(0.0f,0.0f,0.0f,0.0f);
         float basis;
-
         float3 tempDisplacement;
 
-        int indexYZ, indexXYZ;
-        for(short c=0; c<4; c++){
+        for(int c=0; c<4; c++){
             tempDisplacement=make_float3(0.0f,0.0f,0.0f);
-            indexYZ= ( (nodeAnte.z + c) * controlPointImageDim.y + nodeAnte.y) * controlPointImageDim.x;
-            for(short b=0; b<4; b++){
+            int indexYZ= ( (nodeAnte.z + c) * controlPointImageDim.y + nodeAnte.y) * controlPointImageDim.x;
+            for(int b=0; b<4; b++){
 
-                indexXYZ = indexYZ + nodeAnte.x;
+                int indexXYZ = indexYZ + nodeAnte.x;
                 float4 nodeCoefficientA = tex1Dfetch(controlPointTexture,indexXYZ++);
                 float4 nodeCoefficientB = tex1Dfetch(controlPointTexture,indexXYZ++);
                 float4 nodeCoefficientC = tex1Dfetch(controlPointTexture,indexXYZ++);
                 float4 nodeCoefficientD = tex1Dfetch(controlPointTexture,indexXYZ);
 
                 basis=yBasis[shareMemIndex+b];
-                tempDisplacement.x += (nodeCoefficientA.x * xBasis.x
-                    + nodeCoefficientB.x * xBasis.y
-                    + nodeCoefficientC.x * xBasis.z
-                    + nodeCoefficientD.x * xBasis.w) * basis;
+                tempDisplacement.x += (nodeCoefficientA.x * xBasis[0]
+                    + nodeCoefficientB.x * xBasis[1]
+                    + nodeCoefficientC.x * xBasis[2]
+                    + nodeCoefficientD.x * xBasis[3]) * basis;
 
-                tempDisplacement.y += (nodeCoefficientA.y * xBasis.x
-                    + nodeCoefficientB.y * xBasis.y
-                    + nodeCoefficientC.y * xBasis.z
-                    + nodeCoefficientD.y * xBasis.w) * basis;
+                tempDisplacement.y += (nodeCoefficientA.y * xBasis[0]
+                    + nodeCoefficientB.y * xBasis[1]
+                    + nodeCoefficientC.y * xBasis[2]
+                    + nodeCoefficientD.y * xBasis[3]) * basis;
 
-                tempDisplacement.z += (nodeCoefficientA.z * xBasis.x
-                    + nodeCoefficientB.z * xBasis.y
-                    + nodeCoefficientC.z * xBasis.z
-                    + nodeCoefficientD.z * xBasis.w) * basis;
+                tempDisplacement.z += (nodeCoefficientA.z * xBasis[0]
+                    + nodeCoefficientB.z * xBasis[1]
+                    + nodeCoefficientC.z * xBasis[2]
+                    + nodeCoefficientD.z * xBasis[3]) * basis;
 
                 indexYZ += controlPointImageDim.x;
             }
@@ -215,1746 +374,777 @@ __global__ void reg_freeForm_deformationField_kernel(float4 *positionField)
     }
     return;
 }
-
 /* *************************************************************** */
 /* *************************************************************** */
-
-__global__ void reg_bspline_ApproxBendingEnergy_kernel(float *penaltyTerm)
+__global__ void reg_bspline_getApproxSecondDerivatives(float4 *secondDerivativeValues)
 {
-	const int tid= blockIdx.x*blockDim.x + threadIdx.x;
-	if(tid<c_ControlPointNumber){
+    __shared__ float xxbasis[27];
+    __shared__ float yybasis[27];
+    __shared__ float zzbasis[27];
+    __shared__ float xybasis[27];
+    __shared__ float yzbasis[27];
+    __shared__ float xzbasis[27];
 
-		int3 gridSize = c_ControlPointImageDim;
+    if(threadIdx.x<27)
+        GetSecondDerivativeBasisValues(threadIdx.x,
+                                       xxbasis,
+                                       yybasis,
+                                       zzbasis,
+                                       xybasis,
+                                       yzbasis,
+                                       xzbasis);
+    __syncthreads();
 
-		int tempIndex=tid;
-		const short z =(int)(tempIndex/(gridSize.x*gridSize.y));
-		tempIndex -= z*(gridSize.x)*(gridSize.y);
-		const short y =(int)(tempIndex/(gridSize.x));
-		const short x = tempIndex - y*(gridSize.x);
+    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    if(tid<c_ControlPointNumber){
 
-		if(	0<x && x<gridSize.x-1 &&
-			0<y && y<gridSize.y-1 &&
-			0<z && z<gridSize.z-1){
+        int3 gridSize = c_ControlPointImageDim;
 
-			float3 XX = make_float3(0.0f,0.0f,0.0f);
-			float3 YY = make_float3(0.0f,0.0f,0.0f);
-			float3 ZZ = make_float3(0.0f,0.0f,0.0f);
-			float3 XY = make_float3(0.0f,0.0f,0.0f);
-			float3 YZ = make_float3(0.0f,0.0f,0.0f);
-			float3 XZ = make_float3(0.0f,0.0f,0.0f);
+        int tempIndex=tid;
+        const int z =(int)(tempIndex/(gridSize.x*gridSize.y));
+        tempIndex -= int(z*gridSize.x*gridSize.y);
+        const int y =(int)(tempIndex/gridSize.x);
+        const int x = int(tempIndex - y*gridSize.x);
 
+        float4 XX = make_float4(0.0f,0.0f,0.0f,0.0f);
+        float4 YY = make_float4(0.0f,0.0f,0.0f,0.0f);
+        float4 ZZ = make_float4(0.0f,0.0f,0.0f,0.0f);
+        float4 XY = make_float4(0.0f,0.0f,0.0f,0.0f);
+        float4 YZ = make_float4(0.0f,0.0f,0.0f,0.0f);
+        float4 XZ = make_float4(0.0f,0.0f,0.0f,0.0f);
 
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.027778f,0.027778f,0.027778f,0.041667f,0.041667f,0.041667f,((z-1)*gridSize.y+y-1)*gridSize.x+x-1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,-0.055556f,0.111111f,0.111111f,-0.000000f,0.166667f,-0.000000f,((z-1)*gridSize.y+y-1)*gridSize.x+x);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.027778f,0.027778f,0.027778f,-0.041667f,0.041667f,-0.041667f,((z-1)*gridSize.y+y-1)*gridSize.x+x+1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.111111f,-0.055556f,0.111111f,-0.000000f,-0.000000f,0.166667f,((z-1)*gridSize.y+y)*gridSize.x+x-1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,-0.222222f,-0.222222f,0.444444f,0.000000f,-0.000000f,-0.000000f,((z-1)*gridSize.y+y)*gridSize.x+x);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.111111f,-0.055556f,0.111111f,0.000000f,-0.000000f,-0.166667f,((z-1)*gridSize.y+y)*gridSize.x+x+1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.027778f,0.027778f,0.027778f,-0.041667f,-0.041667f,0.041667f,((z-1)*gridSize.y+y+1)*gridSize.x+x-1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,-0.055556f,0.111111f,0.111111f,0.000000f,-0.166667f,-0.000000f,((z-1)*gridSize.y+y+1)*gridSize.x+x);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.027778f,0.027778f,0.027778f,0.041667f,-0.041667f,-0.041667f,((z-1)*gridSize.y+y+1)*gridSize.x+x+1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.111111f,0.111111f,-0.055556f,0.166667f,-0.000000f,-0.000000f,((z)*gridSize.y+y-1)*gridSize.x+x-1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,-0.222222f,0.444444f,-0.222222f,-0.000000f,-0.000000f,0.000000f,((z)*gridSize.y+y-1)*gridSize.x+x);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.111111f,0.111111f,-0.055556f,-0.166667f,-0.000000f,0.000000f,((z)*gridSize.y+y-1)*gridSize.x+x+1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.444444f,-0.222222f,-0.222222f,-0.000000f,0.000000f,-0.000000f,((z)*gridSize.y+y)*gridSize.x+x-1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,-0.888889f,-0.888889f,-0.888889f,0.000000f,0.000000f,0.000000f,((z)*gridSize.y+y)*gridSize.x+x);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.444444f,-0.222222f,-0.222222f,0.000000f,0.000000f,0.000000f,((z)*gridSize.y+y)*gridSize.x+x+1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.111111f,0.111111f,-0.055556f,-0.166667f,0.000000f,-0.000000f,((z)*gridSize.y+y+1)*gridSize.x+x-1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,-0.222222f,0.444444f,-0.222222f,0.000000f,0.000000f,0.000000f,((z)*gridSize.y+y+1)*gridSize.x+x);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.111111f,0.111111f,-0.055556f,0.166667f,0.000000f,0.000000f,((z)*gridSize.y+y+1)*gridSize.x+x+1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.027778f,0.027778f,0.027778f,0.041667f,-0.041667f,-0.041667f,((z+1)*gridSize.y+y-1)*gridSize.x+x-1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,-0.055556f,0.111111f,0.111111f,-0.000000f,-0.166667f,0.000000f,((z+1)*gridSize.y+y-1)*gridSize.x+x);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.027778f,0.027778f,0.027778f,-0.041667f,-0.041667f,0.041667f,((z+1)*gridSize.y+y-1)*gridSize.x+x+1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.111111f,-0.055556f,0.111111f,-0.000000f,0.000000f,-0.166667f,((z+1)*gridSize.y+y)*gridSize.x+x-1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,-0.222222f,-0.222222f,0.444444f,0.000000f,0.000000f,0.000000f,((z+1)*gridSize.y+y)*gridSize.x+x);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.111111f,-0.055556f,0.111111f,0.000000f,0.000000f,0.166667f,((z+1)*gridSize.y+y)*gridSize.x+x+1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.027778f,0.027778f,0.027778f,-0.041667f,0.041667f,-0.041667f,((z+1)*gridSize.y+y+1)*gridSize.x+x-1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,-0.055556f,0.111111f,0.111111f,0.000000f,0.166667f,0.000000f,((z+1)*gridSize.y+y+1)*gridSize.x+x);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.027778f,0.027778f,0.027778f,0.041667f,0.041667f,0.041667f,((z+1)*gridSize.y+y+1)*gridSize.x+x+1);
+        if(0<x && x<gridSize.x-1 &&
+           0<y && y<gridSize.y-1 &&
+           0<z && z<gridSize.z-1){
 
-			float penalty = XX.x*XX.x + YY.x*YY.x + ZZ.x*ZZ.x + 2.0f*(XY.x*XY.x + YZ.x*YZ.x + XZ.x*XZ.x);
-			penalty += XX.y*XX.y + YY.y*YY.y + ZZ.y*ZZ.y + 2.0f*(XY.y*XY.y + YZ.y*YZ.y + XZ.y*XZ.y);
-			penalty += XX.z*XX.z + YY.z*YY.z + ZZ.z*ZZ.z + 2.0f*(XY.z*XY.z + YZ.z*YZ.z + XZ.z*XZ.z);
-			penaltyTerm[tid]=penalty;
-		}
-		else penaltyTerm[tid]=0.0f;
-	}
-	return;
+            tempIndex=0;
+            for(int c=z-1; c<z+2; ++c){
+                for(int b=y-1; b<y+2; ++b){
+                    for(int a=x-1; a<x+2; ++a){
+                        int indexXYZ = (c*gridSize.y+b)*gridSize.x+a;
+                        float4 controlPointValues = tex1Dfetch(controlPointTexture,indexXYZ);
+                        XX = XX + xxbasis[tempIndex] * controlPointValues;
+                        YY = YY + yybasis[tempIndex] * controlPointValues;
+                        ZZ = ZZ + zzbasis[tempIndex] * controlPointValues;
+                        XY = XY + xybasis[tempIndex] * controlPointValues;
+                        YZ = YZ + yzbasis[tempIndex] * controlPointValues;
+                        XZ = XZ + xzbasis[tempIndex] * controlPointValues;
+                        tempIndex++;
+                    }
+                }
+            }
+        }
+
+        tempIndex=6*tid;
+        secondDerivativeValues[tempIndex++]=XX;
+        secondDerivativeValues[tempIndex++]=YY;
+        secondDerivativeValues[tempIndex++]=ZZ;
+        secondDerivativeValues[tempIndex++]=XY;
+        secondDerivativeValues[tempIndex++]=YZ;
+        secondDerivativeValues[tempIndex] = XZ;
+    }
+    return;
+}
+/* *************************************************************** */
+__global__ void reg_bspline_getApproxBendingEnergy_kernel(float *penaltyTerm)
+{
+    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    if(tid<c_ControlPointNumber){
+        int index=tid*6;
+        float4 XX = tex1Dfetch(secondDerivativesTexture,index++);XX=XX*XX;
+        float4 YY = tex1Dfetch(secondDerivativesTexture,index++);YY=YY*YY;
+        float4 ZZ = tex1Dfetch(secondDerivativesTexture,index++);ZZ=ZZ*ZZ;
+        float4 XY = tex1Dfetch(secondDerivativesTexture,index++);XY=XY*XY;
+        float4 YZ = tex1Dfetch(secondDerivativesTexture,index++);YZ=YZ*YZ;
+        float4 XZ = tex1Dfetch(secondDerivativesTexture,index);XZ=XZ*XZ;
+
+        penaltyTerm[tid]= XX.x + XX.y + XX.z + YY.x + YY.y + YY.z + ZZ.x + ZZ.y + ZZ.z +
+                          2.f*(XY.x + XY.y + XY.z + YZ.x + YZ.y + YZ.z + XZ.x + XZ.y + XZ.z);
+    }
+    return;
+}
+/* *************************************************************** */
+__global__ void reg_bspline_getApproxBendingEnergyGradient_kernel(float4 *nodeNMIGradientArray)
+{
+    __shared__ float xxbasis[27];
+    __shared__ float yybasis[27];
+    __shared__ float zzbasis[27];
+    __shared__ float xybasis[27];
+    __shared__ float yzbasis[27];
+    __shared__ float xzbasis[27];
+
+    if(threadIdx.x<27)
+        GetSecondDerivativeBasisValues(threadIdx.x,
+                                       xxbasis,
+                                       yybasis,
+                                       zzbasis,
+                                       xybasis,
+                                       yzbasis,
+                                       xzbasis);
+    __syncthreads();
+
+    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    if(tid<c_ControlPointNumber){
+
+        int3 gridSize = c_ControlPointImageDim;
+
+        int tempIndex=tid;
+        const int z = tempIndex/(gridSize.x*gridSize.y);
+        tempIndex  -= z*gridSize.x*gridSize.y;
+        const int y = tempIndex/gridSize.x;
+        const int x = tempIndex - y*gridSize.x;
+
+        float3 gradientValue=make_float3(0.0f,0.0f,0.0f);
+        float4 secondDerivativeValues;
+
+        int coord=0;
+        for(int c=z-1; c<z+2; ++c){
+            for(int b=y-1; b<y+2; ++b){
+                for(int a=x-1; a<x+2; ++a){
+                    if(-1<a && -1<b && -1<c && a<gridSize.x && b<gridSize.y && c<gridSize.z){
+                        int indexXYZ = 6*((c*gridSize.y+b)*gridSize.x+a);
+                        secondDerivativeValues = tex1Dfetch(secondDerivativesTexture,indexXYZ++); // XX
+                        secondDerivativeValues=2.f*secondDerivativeValues;
+                        gradientValue.x += secondDerivativeValues.x * xxbasis[coord];
+                        gradientValue.y += secondDerivativeValues.y * xxbasis[coord];
+                        gradientValue.z += secondDerivativeValues.z * xxbasis[coord];
+                        secondDerivativeValues = tex1Dfetch(secondDerivativesTexture,indexXYZ++); // YY
+                        secondDerivativeValues=2.f*secondDerivativeValues;
+                        gradientValue.x += secondDerivativeValues.x * yybasis[coord];
+                        gradientValue.y += secondDerivativeValues.y * yybasis[coord];
+                        gradientValue.z += secondDerivativeValues.z * yybasis[coord];
+                        secondDerivativeValues = tex1Dfetch(secondDerivativesTexture,indexXYZ++); //ZZ
+                        secondDerivativeValues=2.f*secondDerivativeValues;
+                        gradientValue.x += secondDerivativeValues.x * zzbasis[coord];
+                        gradientValue.y += secondDerivativeValues.y * zzbasis[coord];
+                        gradientValue.z += secondDerivativeValues.z * zzbasis[coord];
+                        secondDerivativeValues = tex1Dfetch(secondDerivativesTexture,indexXYZ++); // XY
+                        secondDerivativeValues=4.f*secondDerivativeValues;
+                        gradientValue.x += secondDerivativeValues.x * xybasis[coord];
+                        gradientValue.y += secondDerivativeValues.y * xybasis[coord];
+                        gradientValue.z += secondDerivativeValues.z * xybasis[coord];
+                        secondDerivativeValues = tex1Dfetch(secondDerivativesTexture,indexXYZ++); // YZ
+                        secondDerivativeValues=4.f*secondDerivativeValues;
+                        gradientValue.x += secondDerivativeValues.x * yzbasis[coord];
+                        gradientValue.y += secondDerivativeValues.y * yzbasis[coord];
+                        gradientValue.z += secondDerivativeValues.z * yzbasis[coord];
+                        secondDerivativeValues = tex1Dfetch(secondDerivativesTexture,indexXYZ); //XZ
+                        secondDerivativeValues=4.f*secondDerivativeValues;
+                        gradientValue.x += secondDerivativeValues.x * xzbasis[coord];
+                        gradientValue.y += secondDerivativeValues.y * xzbasis[coord];
+                        gradientValue.z += secondDerivativeValues.z * xzbasis[coord];
+                    }
+                    coord++;
+                }
+            }
+        }
+        float4 metricGradientValue;
+        metricGradientValue = nodeNMIGradientArray[tid];
+        float weight = c_Weight;
+        // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way
+        metricGradientValue.x += weight*gradientValue.x;
+        metricGradientValue.y += weight*gradientValue.y;
+        metricGradientValue.z += weight*gradientValue.z;
+        nodeNMIGradientArray[tid]=metricGradientValue;
+    }
+}
+/* *************************************************************** */
+/* *************************************************************** */
+__global__ void reg_bspline_getApproxJacobianValues_kernel(float *jacobianMatrices,
+                                                           float *jacobianDet)
+{
+    __shared__ float xbasis[27];
+    __shared__ float ybasis[27];
+    __shared__ float zbasis[27];
+
+    if(threadIdx.x<27)
+        GetFirstDerivativeBasisValues(threadIdx.x,
+                                      xbasis,
+                                      ybasis,
+                                      zbasis);
+    __syncthreads();
+
+    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    if(tid<c_ControlPointNumber){
+
+        int3 gridSize = c_ControlPointImageDim;
+
+        int tempIndex=tid;
+        const int z =tempIndex/(gridSize.x*gridSize.y);
+        tempIndex -= z*gridSize.x*gridSize.y;
+        const int y =tempIndex/gridSize.x;
+        const int x = tempIndex - y*gridSize.x;
+
+        if(0<x && x<gridSize.x-1 &&
+           0<y && y<gridSize.y-1 &&
+           0<z && z<gridSize.z-1){
+
+            float Tx_x=0, Tx_y=0, Tx_z=0;
+            float Ty_x=0, Ty_y=0, Ty_z=0;
+            float Tz_x=0, Tz_y=0, Tz_z=0;
+
+            tempIndex=0;
+            for(int c=z-1; c<z+2; ++c){
+                for(int b=y-1; b<y+2; ++b){
+                    for(int a=x-1; a<x+2; ++a){
+                        int indexXYZ = (c*gridSize.y+b)*gridSize.x+a;
+                        float4 controlPointValues = tex1Dfetch(controlPointTexture,indexXYZ);
+                        Tx_x += xbasis[tempIndex]*controlPointValues.x;
+                        Tx_y += ybasis[tempIndex]*controlPointValues.x;
+                        Tx_z += zbasis[tempIndex]*controlPointValues.x;
+                        Ty_x += xbasis[tempIndex]*controlPointValues.y;
+                        Ty_y += ybasis[tempIndex]*controlPointValues.y;
+                        Ty_z += zbasis[tempIndex]*controlPointValues.y;
+                        Tz_x += xbasis[tempIndex]*controlPointValues.z;
+                        Tz_y += ybasis[tempIndex]*controlPointValues.z;
+                        Tz_z += zbasis[tempIndex]*controlPointValues.z;
+                        tempIndex++;
+                    }
+                }
+            }
+            Tx_x /= c_ControlPointSpacing.x;
+            Tx_y /= c_ControlPointSpacing.y;
+            Tx_z /= c_ControlPointSpacing.z;
+            Ty_x /= c_ControlPointSpacing.x;
+            Ty_y /= c_ControlPointSpacing.y;
+            Ty_z /= c_ControlPointSpacing.z;
+            Tz_x /= c_ControlPointSpacing.x;
+            Tz_y /= c_ControlPointSpacing.y;
+            Tz_z /= c_ControlPointSpacing.z;
+
+            // The jacobian matrix is reoriented
+            float Tx_x2=c_AffineMatrix0.x*Tx_x + c_AffineMatrix0.y*Ty_x + c_AffineMatrix0.z*Tz_x;
+            float Tx_y2=c_AffineMatrix0.x*Tx_y + c_AffineMatrix0.y*Ty_y + c_AffineMatrix0.z*Tz_y;
+            float Tx_z2=c_AffineMatrix0.x*Tx_z + c_AffineMatrix0.y*Ty_z + c_AffineMatrix0.z*Tz_z;
+            float Ty_x2=c_AffineMatrix1.x*Tx_x + c_AffineMatrix1.y*Ty_x + c_AffineMatrix1.z*Tz_x;
+            float Ty_y2=c_AffineMatrix1.x*Tx_y + c_AffineMatrix1.y*Ty_y + c_AffineMatrix1.z*Tz_y;
+            float Ty_z2=c_AffineMatrix1.x*Tx_z + c_AffineMatrix1.y*Ty_z + c_AffineMatrix1.z*Tz_z;
+            float Tz_x2=c_AffineMatrix2.x*Tx_x + c_AffineMatrix2.y*Ty_x + c_AffineMatrix2.z*Tz_x;
+            float Tz_y2=c_AffineMatrix2.x*Tx_y + c_AffineMatrix2.y*Ty_y + c_AffineMatrix2.z*Tz_y;
+            float Tz_z2=c_AffineMatrix2.x*Tx_z + c_AffineMatrix2.y*Ty_z + c_AffineMatrix2.z*Tz_z;
+
+            // The Jacobian matrix is stored
+            tempIndex=tid*9;
+            jacobianMatrices[tempIndex++]=Tx_x2;
+            jacobianMatrices[tempIndex++]=Tx_y2;
+            jacobianMatrices[tempIndex++]=Tx_z2;
+            jacobianMatrices[tempIndex++]=Ty_x2;
+            jacobianMatrices[tempIndex++]=Ty_y2;
+            jacobianMatrices[tempIndex++]=Ty_z2;
+            jacobianMatrices[tempIndex++]=Tz_x2;
+            jacobianMatrices[tempIndex++]=Tz_y2;
+            jacobianMatrices[tempIndex] = Tz_z2;
+
+            // The Jacobian determinant is computed and stored
+            jacobianDet[tid]= Tx_x2*Ty_y2*Tz_z2
+                            + Tx_y2*Ty_z2*Tz_x2
+                            + Tx_z2*Ty_x2*Tz_y2
+                            - Tx_x2*Ty_z2*Tz_y2
+                            - Tx_y2*Ty_x2*Tz_z2
+                            - Tx_z2*Ty_y2*Tz_x2;
+        }
+        else{
+            tempIndex=tid*9;
+            jacobianMatrices[tempIndex++]=1.f;
+            jacobianMatrices[tempIndex++]=0.f;
+            jacobianMatrices[tempIndex++]=0.f;
+            jacobianMatrices[tempIndex++]=0.f;
+            jacobianMatrices[tempIndex++]=1.f;
+            jacobianMatrices[tempIndex++]=0.f;
+            jacobianMatrices[tempIndex++]=0.f;
+            jacobianMatrices[tempIndex++]=0.f;
+            jacobianMatrices[tempIndex]=1.f;
+            jacobianDet[tid]= 1.0f;
+        }
+    }
+    return;
 }
 
 /* *************************************************************** */
-/* *************************************************************** */
-
-__global__ void reg_bspline_JacDet_kernel(float *jacobianMap)
+__global__ void reg_bspline_getJacobianValues_kernel(float *jacobianMatrices,
+                                                     float *jacobianDet)
 {
     const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_VoxelNumber){
 
-        int3 imageSize = c_TargetImageDim;
+        int3 imageSize = c_ReferenceImageDim;
 
         unsigned int tempIndex=tid;
-        const unsigned short z =(unsigned short)(tempIndex/(imageSize.x*imageSize.y));
-        tempIndex -= z*(imageSize.x)*(imageSize.y);
-        const unsigned short y =(unsigned short)(tempIndex/(imageSize.x));
-        const unsigned short x = tempIndex - y*(imageSize.x);
+        const int z = tempIndex/(imageSize.x*imageSize.y);
+        tempIndex  -= z*imageSize.x*imageSize.y;
+        const int y = tempIndex/imageSize.x;
+        const int x = tempIndex - y*imageSize.x;
 
         // the "nearest previous" node is determined [0,0,0]
-        short3 nodeAnte;
+        int3 nodeAnte;
         float3 gridVoxelSpacing = c_ControlPointVoxelSpacing;
-        nodeAnte.x = (short)floorf((float)x/gridVoxelSpacing.x);
-        nodeAnte.y = (short)floorf((float)y/gridVoxelSpacing.y);
-        nodeAnte.z = (short)floorf((float)z/gridVoxelSpacing.z);
+        nodeAnte.x = (int)floorf((float)x/gridVoxelSpacing.x);
+        nodeAnte.y = (int)floorf((float)y/gridVoxelSpacing.y);
+        nodeAnte.z = (int)floorf((float)z/gridVoxelSpacing.z);
 
-        // Z basis values
-        const unsigned short shareMemIndex = 4*threadIdx.x;
-        __shared__ float zBasis[Block_reg_bspline_JacDet*4];
-        __shared__ float zFirst[Block_reg_bspline_JacDet*4];
-        float relative = fabsf((float)z/gridVoxelSpacing.z-(float)nodeAnte.z);
-        float FF= relative*relative;
-        float FFF= FF*relative;
-        float MF=1.0f-relative;
-        zBasis[shareMemIndex] = MF*MF*MF/6.0f;
-        zBasis[shareMemIndex+1] = (3.0f*FFF - 6.0f*FF +4.0f)/6.0f;
-        zBasis[shareMemIndex+2] = (-3.0f*FFF + 3.0f*FF + 3.0f*relative + 1.0f)/6.0f;
-        zBasis[shareMemIndex+3] = FFF/6.0f;
-        zFirst[shareMemIndex] = (2.0f*relative - FF - 1.0f)/2.0f;
-        zFirst[shareMemIndex+1] = (3.0f*FF - 4.0f*relative)/2.0f;
-        zFirst[shareMemIndex+2] = (2.0f*relative - 3.0f*FF + 1.0f)/2.0f;
-        zFirst[shareMemIndex+3] = FF/2.0f;
+        __shared__ float yFirst[Block_reg_bspline_getJacobianValues*4];
+        __shared__ float zFirst[Block_reg_bspline_getJacobianValues*4];
 
-        // Y basis values
-        __shared__ float yBasis[Block_reg_bspline_JacDet*4];
-        __shared__ float yFirst[Block_reg_bspline_JacDet*4];
-        relative = fabsf((float)y/gridVoxelSpacing.y-(float)nodeAnte.y);
-        FF= relative*relative;
-        FFF= FF*relative;
-        MF=1.0f-relative;
-        yBasis[shareMemIndex] = MF*MF*MF/6.0f;
-        yBasis[shareMemIndex+1] = (3.0f*FFF - 6.0f*FF +4.0f)/6.0f;
-        yBasis[shareMemIndex+2] = (-3.0f*FFF + 3.0f*FF + 3.0f*relative + 1.0f)/6.0f;
-        yBasis[shareMemIndex+3] = FFF/6.0f;
-        yFirst[shareMemIndex] = (2.0f*relative - FF - 1.0f)/2.0f;
-        yFirst[shareMemIndex+1] = (3.0f*FF - 4.0f*relative)/2.0f;
-        yFirst[shareMemIndex+2] = (2.0f*relative - 3.0f*FF + 1.0f)/2.0f;
-        yFirst[shareMemIndex+3] = FF/2.0f;
+        float xBasis[4], yBasis[4], zBasis[4], xFirst[4], relative;
 
-        // X basis values
+        const int shareMemIndex = 4*threadIdx.x;
+
         relative = fabsf((float)x/gridVoxelSpacing.x-(float)nodeAnte.x);
-        float4 xBasis;
-        float4 xFirst;
-        xBasis.w= relative * relative * relative / 6.0f;
-        xBasis.x= 1.0f/6.0f + relative*(relative-1.0f)/2.0f - xBasis.w;
-        xBasis.z= relative + xBasis.x - 2.0f*xBasis.w;
-        xBasis.y= 1.0f - xBasis.x - xBasis.z - xBasis.w;
-        xFirst.w= relative * relative / 2.0f;
-        xFirst.x= relative - 0.5f - xFirst.w;
-        xFirst.z= 1.0f + xFirst.x - 2.0f*xFirst.w;
-        xFirst.y= - xFirst.x - xFirst.z - xFirst.w;
+        GetFirstBSplineValues(relative, xBasis, xFirst);
+
+        relative = fabsf((float)y/gridVoxelSpacing.y-(float)nodeAnte.y);
+        GetFirstBSplineValues(relative, yBasis, &yFirst[shareMemIndex]);
+
+        relative = fabsf((float)z/gridVoxelSpacing.z-(float)nodeAnte.z);
+        GetFirstBSplineValues(relative, zBasis, &zFirst[shareMemIndex]);
 
         int3 controlPointImageDim = c_ControlPointImageDim;
+        float3 Tx=make_float3(0.f,0.f,0.f);
+        float3 Ty=make_float3(0.f,0.f,0.f);
+        float3 Tz=make_float3(0.f,0.f,0.f);
 
-        float Tx_x=0.0f;
-        float Ty_x=0.0f;
-        float Tz_x=0.0f;
-        float Tx_y=0.0f;
-        float Ty_y=0.0f;
-        float Tz_y=0.0f;
-        float Tx_z=0.0f;
-        float Ty_z=0.0f;
-        float Tz_z=0.0f;
+        for(int c=0; c<4; ++c){
+            for(int b=0; b<4; ++b){
+                int indexXYZ= ( (nodeAnte.z + c) * controlPointImageDim.y + nodeAnte.y + b) * controlPointImageDim.x + nodeAnte.x;
+                float3 tempBasisXY=make_float3(yBasis[b]*zBasis[c],
+                                        yFirst[shareMemIndex+b]*zBasis[c],
+                                        yBasis[b]*zFirst[shareMemIndex+c]);
 
-        float4 nodeCoefficient;
-        float3 tempBasis;
-        float basis;
+                float4 nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ++);
+                float3 tempBasis = make_float3(xFirst[0],xBasis[0],xBasis[0])*tempBasisXY;
+                Tx = Tx + nodeCoefficient.x * tempBasis;
+                Ty = Ty + nodeCoefficient.y * tempBasis;
+                Tz = Tz + nodeCoefficient.z * tempBasis;
 
-        int indexYZ, indexXYZ;
-        for(short c=0; c<4; c++){
-            indexYZ= ( (nodeAnte.z + c) * controlPointImageDim.y + nodeAnte.y) * controlPointImageDim.x;
-            for(short b=0; b<4; b++){
-
-                tempBasis.x = zBasis[shareMemIndex+c] * yBasis[shareMemIndex+b];
-                tempBasis.y = zBasis[shareMemIndex+c] * yFirst[shareMemIndex+b];
-                tempBasis.z = zFirst[shareMemIndex+c] * yBasis[shareMemIndex+b];
-
-                indexXYZ = indexYZ + nodeAnte.x;
                 nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ++);
-                basis = xFirst.x * tempBasis.x;
-                Tx_x+=nodeCoefficient.x * basis;
-                Ty_x+=nodeCoefficient.y * basis;
-                Tz_x+=nodeCoefficient.z * basis;
-                basis = xBasis.x * tempBasis.y;
-                Tx_y+=nodeCoefficient.x * basis;
-                Ty_y+=nodeCoefficient.y * basis;
-                Tz_y+=nodeCoefficient.z * basis;
-                basis = xBasis.x * tempBasis.z;
-                Tx_z+=nodeCoefficient.x * basis;
-                Ty_z+=nodeCoefficient.y * basis;
-                Tz_z+=nodeCoefficient.z * basis;
+                tempBasis = make_float3(xFirst[1],xBasis[1],xBasis[1])*tempBasisXY;
+                Tx = Tx + nodeCoefficient.x * tempBasis;
+                Ty = Ty + nodeCoefficient.y * tempBasis;
+                Tz = Tz + nodeCoefficient.z * tempBasis;
+
                 nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ++);
-                basis = xFirst.y * tempBasis.x;
-                Tx_x+=nodeCoefficient.x * basis;
-                Ty_x+=nodeCoefficient.y * basis;
-                Tz_x+=nodeCoefficient.z * basis;
-                basis = xBasis.y * tempBasis.y;
-                Tx_y+=nodeCoefficient.x * basis;
-                Ty_y+=nodeCoefficient.y * basis;
-                Tz_y+=nodeCoefficient.z * basis;
-                basis = xBasis.y * tempBasis.z;
-                Tx_z+=nodeCoefficient.x * basis;
-                Ty_z+=nodeCoefficient.y * basis;
-                Tz_z+=nodeCoefficient.z * basis;
-                nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ++);
-                basis = xFirst.z * tempBasis.x;
-                Tx_x+=nodeCoefficient.x * basis;
-                Ty_x+=nodeCoefficient.y * basis;
-                Tz_x+=nodeCoefficient.z * basis;
-                basis = xBasis.z * tempBasis.y;
-                Tx_y+=nodeCoefficient.x * basis;
-                Ty_y+=nodeCoefficient.y * basis;
-                Tz_y+=nodeCoefficient.z * basis;
-                basis = xBasis.z * tempBasis.z;
-                Tx_z+=nodeCoefficient.x * basis;
-                Ty_z+=nodeCoefficient.y * basis;
-                Tz_z+=nodeCoefficient.z * basis;
+                tempBasis = make_float3(xFirst[2],xBasis[2],xBasis[2])*tempBasisXY;
+                Tx = Tx + nodeCoefficient.x * tempBasis;
+                Ty = Ty + nodeCoefficient.y * tempBasis;
+                Tz = Tz + nodeCoefficient.z * tempBasis;
+
                 nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ);
-                basis = xFirst.w * tempBasis.x;
-                Tx_x+=nodeCoefficient.x * basis;
-                Ty_x+=nodeCoefficient.y * basis;
-                Tz_x+=nodeCoefficient.z * basis;
-                basis = xBasis.w * tempBasis.y;
-                Tx_y+=nodeCoefficient.x * basis;
-                Ty_y+=nodeCoefficient.y * basis;
-                Tz_y+=nodeCoefficient.z * basis;
-                basis = xBasis.w * tempBasis.z;
-                Tx_z+=nodeCoefficient.x * basis;
-                Ty_z+=nodeCoefficient.y * basis;
-                Tz_z+=nodeCoefficient.z * basis;
-
-                indexYZ += controlPointImageDim.x;
+                tempBasis = make_float3(xFirst[3],xBasis[3],xBasis[3])*tempBasisXY;
+                Tx = Tx + nodeCoefficient.x * tempBasis;
+                Ty = Ty + nodeCoefficient.y * tempBasis;
+                Tz = Tz + nodeCoefficient.z * tempBasis;
             }
         }
+        Tx = Tx / c_ControlPointSpacing;
+        Ty = Ty / c_ControlPointSpacing;
+        Tz = Tz / c_ControlPointSpacing;
 
-        Tx_x /= c_ControlPointSpacing.x;
-        Ty_x /= c_ControlPointSpacing.x;
-        Tz_x /= c_ControlPointSpacing.x;
-        Tx_y /= c_ControlPointSpacing.y;
-        Ty_y /= c_ControlPointSpacing.y;
-        Tz_y /= c_ControlPointSpacing.y;
-        Tx_z /= c_ControlPointSpacing.z;
-        Ty_z /= c_ControlPointSpacing.z;
-        Tz_z /= c_ControlPointSpacing.z;
+        // The jacobian matrix is reoriented
+        float Tx_x2=c_AffineMatrix0.x*Tx.x + c_AffineMatrix0.y*Ty.x + c_AffineMatrix0.z*Tz.x;
+        float Tx_y2=c_AffineMatrix0.x*Tx.y + c_AffineMatrix0.y*Ty.y + c_AffineMatrix0.z*Tz.y;
+        float Tx_z2=c_AffineMatrix0.x*Tx.z + c_AffineMatrix0.y*Ty.z + c_AffineMatrix0.z*Tz.z;
+        float Ty_x2=c_AffineMatrix1.x*Tx.x + c_AffineMatrix1.y*Ty.x + c_AffineMatrix1.z*Tz.x;
+        float Ty_y2=c_AffineMatrix1.x*Tx.y + c_AffineMatrix1.y*Ty.y + c_AffineMatrix1.z*Tz.y;
+        float Ty_z2=c_AffineMatrix1.x*Tx.z + c_AffineMatrix1.y*Ty.z + c_AffineMatrix1.z*Tz.z;
+        float Tz_x2=c_AffineMatrix2.x*Tx.x + c_AffineMatrix2.y*Ty.x + c_AffineMatrix2.z*Tz.x;
+        float Tz_y2=c_AffineMatrix2.x*Tx.y + c_AffineMatrix2.y*Ty.y + c_AffineMatrix2.z*Tz.y;
+        float Tz_z2=c_AffineMatrix2.x*Tx.z + c_AffineMatrix2.y*Ty.z + c_AffineMatrix2.z*Tz.z;
 
-        float Tx_x2=c_AffineMatrix0.x*Tx_x + c_AffineMatrix0.y*Ty_x + c_AffineMatrix0.z*Tz_x;
-        float Ty_x2=c_AffineMatrix0.x*Tx_y + c_AffineMatrix0.y*Ty_y + c_AffineMatrix0.z*Tz_y;
-        float Tz_x2=c_AffineMatrix0.x*Tx_z + c_AffineMatrix0.y*Ty_z + c_AffineMatrix0.z*Tz_z;
+        // The Jacobian matrix is stored
+        tempIndex=tid*9;
+        jacobianMatrices[tempIndex++]=Tx_x2;
+        jacobianMatrices[tempIndex++]=Tx_y2;
+        jacobianMatrices[tempIndex++]=Tx_z2;
+        jacobianMatrices[tempIndex++]=Ty_x2;
+        jacobianMatrices[tempIndex++]=Ty_y2;
+        jacobianMatrices[tempIndex++]=Ty_z2;
+        jacobianMatrices[tempIndex++]=Tz_x2;
+        jacobianMatrices[tempIndex++]=Tz_y2;
+        jacobianMatrices[tempIndex] = Tz_z2;
 
-        float Tx_y2=c_AffineMatrix1.x*Tx_x + c_AffineMatrix1.y*Ty_x + c_AffineMatrix1.z*Tz_x;
-        float Ty_y2=c_AffineMatrix1.x*Tx_y + c_AffineMatrix1.y*Ty_y + c_AffineMatrix1.z*Tz_y;
-        float Tz_y2=c_AffineMatrix1.x*Tx_z + c_AffineMatrix1.y*Ty_z + c_AffineMatrix1.z*Tz_z;
-
-        float Tx_z2=c_AffineMatrix2.x*Tx_x + c_AffineMatrix2.y*Ty_x + c_AffineMatrix2.z*Tz_x;
-        float Ty_z2=c_AffineMatrix2.x*Tx_y + c_AffineMatrix2.y*Ty_y + c_AffineMatrix2.z*Tz_y;
-        float Tz_z2=c_AffineMatrix2.x*Tx_z + c_AffineMatrix2.y*Ty_z + c_AffineMatrix2.z*Tz_z;
-
-
-        /* The Jacobian determinant is computed and stored */
-        jacobianMap[tid]= Tx_x2*Ty_y2*Tz_z2
+        // The Jacobian determinant is computed and stored
+        jacobianDet[tid]= Tx_x2*Ty_y2*Tz_z2
                         + Tx_y2*Ty_z2*Tz_x2
                         + Tx_z2*Ty_x2*Tz_y2
                         - Tx_x2*Ty_z2*Tz_y2
                         - Tx_y2*Ty_x2*Tz_z2
                         - Tx_z2*Ty_y2*Tz_x2;
     }
-    return;
 }
-
 /* *************************************************************** */
-/* *************************************************************** */
-
-__global__ void reg_bspline_ApproxJacDet_kernel(float *penaltyTerm)
+__global__ void reg_bspline_logSquaredValues_kernel(float *det)
 {
-    __shared__ float basisX[27];
-    __shared__ float basisY[27];
-    __shared__ float basisZ[27];
-    if(threadIdx.x<27){
-        basisX[threadIdx.x] = tex1Dfetch(xBasisTexture,threadIdx.x);
-        basisY[threadIdx.x] = tex1Dfetch(yBasisTexture,threadIdx.x);
-        basisZ[threadIdx.x] = tex1Dfetch(zBasisTexture,threadIdx.x);
+    const unsigned int tid = blockIdx.x*blockDim.x + threadIdx.x;
+    if(tid<c_VoxelNumber){
+        float val = logf(det[tid]);
+        det[tid]=val*val;
     }
+}
+/* *************************************************************** */
+__device__ void getJacobianGradientValues(float *jacobianMatrix,
+                                          float detJac,
+                                          float basisX,
+                                          float basisY,
+                                          float basisZ,
+                                          float3 *jacobianConstraint)
+{
+    jacobianConstraint->x += detJac * (
+            basisX * (jacobianMatrix[4]*jacobianMatrix[8] - jacobianMatrix[5]*jacobianMatrix[7]) +
+            basisY * (jacobianMatrix[5]*jacobianMatrix[6] - jacobianMatrix[3]*jacobianMatrix[8]) +
+            basisZ * (jacobianMatrix[3]*jacobianMatrix[7] - jacobianMatrix[4]*jacobianMatrix[6]) );
+
+    jacobianConstraint->y += detJac * (
+            basisX * (jacobianMatrix[2]*jacobianMatrix[7] - jacobianMatrix[1]*jacobianMatrix[8]) +
+            basisY * (jacobianMatrix[0]*jacobianMatrix[8] - jacobianMatrix[2]*jacobianMatrix[6]) +
+            basisZ * (jacobianMatrix[1]*jacobianMatrix[6] - jacobianMatrix[0]*jacobianMatrix[7]) );
+
+    jacobianConstraint->z += detJac * (
+            basisX * (jacobianMatrix[1]*jacobianMatrix[5] - jacobianMatrix[2]*jacobianMatrix[4]) +
+            basisY * (jacobianMatrix[2]*jacobianMatrix[3] - jacobianMatrix[0]*jacobianMatrix[5]) +
+            basisZ * (jacobianMatrix[0]*jacobianMatrix[4] - jacobianMatrix[1]*jacobianMatrix[3]) );
+}
+/* *************************************************************** */
+__global__ void reg_bspline_computeApproxJacGradient_kernel(float4 *gradient)
+{
+    __shared__ float xbasis[27];
+    __shared__ float ybasis[27];
+    __shared__ float zbasis[27];
+
+    if(threadIdx.x<27)
+        GetFirstDerivativeBasisValues(threadIdx.x,
+                                      xbasis,
+                                      ybasis,
+                                      zbasis);
     __syncthreads();
 
-    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_ControlPointNumber){
 
         int3 gridSize = c_ControlPointImageDim;
-
-        int tempIndex=tid;
-        const int z =(int)(tempIndex/(gridSize.x*gridSize.y));
-        tempIndex -= z*(gridSize.x)*(gridSize.y);
-        const int y =(int)(tempIndex/(gridSize.x));
-        const int x = tempIndex - y*(gridSize.x) ;
-
-        if( 0<x && x<gridSize.x-1 &&
-            0<y && y<gridSize.y-1 &&
-            0<z && z<gridSize.z-1){
-
-            /* The Jacobian matrix is computed */
-            float Tx_x=0.0f;
-            float Ty_x=0.0f;
-            float Tz_x=0.0f;
-            float Tx_y=0.0f;
-            float Ty_y=0.0f;
-            float Tz_y=0.0f;
-            float Tx_z=0.0f;
-            float Ty_z=0.0f;
-            float Tz_z=0.0f;
-            float4 controlPointPosition;
-            float tempBasis;
-            int index2=0;
-            for(int c=z-1; c<z+2; c++){
-                for(int b=y-1; b<y+2; b++){
-                    int index = (c*gridSize.y+b)*gridSize.x+x-1;
-                    for(int a=x-1; a<x+2; a++){
-                        controlPointPosition = tex1Dfetch(controlPointTexture,index++);
-                        tempBasis=basisX[index2];
-                        Tx_x+=controlPointPosition.x * tempBasis;
-                        Ty_x+=controlPointPosition.y * tempBasis;
-                        Tz_x+=controlPointPosition.z * tempBasis;
-                        tempBasis=basisY[index2];
-                        Tx_y+=controlPointPosition.x * tempBasis;
-                        Ty_y+=controlPointPosition.y * tempBasis;
-                        Tz_y+=controlPointPosition.z * tempBasis;
-                        tempBasis=basisZ[index2++];
-                        Tx_z+=controlPointPosition.x * tempBasis;
-                        Ty_z+=controlPointPosition.y * tempBasis;
-                        Tz_z+=controlPointPosition.z * tempBasis;
-                    }
-                }
-            }
-            Tx_x /= c_ControlPointSpacing.x;
-            Ty_x /= c_ControlPointSpacing.x;
-            Tz_x /= c_ControlPointSpacing.x;
-            Tx_y /= c_ControlPointSpacing.y;
-            Ty_y /= c_ControlPointSpacing.y;
-            Tz_y /= c_ControlPointSpacing.y;
-            Tx_z /= c_ControlPointSpacing.z;
-            Ty_z /= c_ControlPointSpacing.z;
-            Tz_z /= c_ControlPointSpacing.z;
-
-            /* The Jacobian matrix is reoriented */
-            float Tx_x2=c_AffineMatrix0.x*Tx_x + c_AffineMatrix0.y*Ty_x + c_AffineMatrix0.z*Tz_x;
-            float Ty_x2=c_AffineMatrix0.x*Tx_y + c_AffineMatrix0.y*Ty_y + c_AffineMatrix0.z*Tz_y;
-            float Tz_x2=c_AffineMatrix0.x*Tx_z + c_AffineMatrix0.y*Ty_z + c_AffineMatrix0.z*Tz_z;
-
-            float Tx_y2=c_AffineMatrix1.x*Tx_x + c_AffineMatrix1.y*Ty_x + c_AffineMatrix1.z*Tz_x;
-            float Ty_y2=c_AffineMatrix1.x*Tx_y + c_AffineMatrix1.y*Ty_y + c_AffineMatrix1.z*Tz_y;
-            float Tz_y2=c_AffineMatrix1.x*Tx_z + c_AffineMatrix1.y*Ty_z + c_AffineMatrix1.z*Tz_z;
-
-            float Tx_z2=c_AffineMatrix2.x*Tx_x + c_AffineMatrix2.y*Ty_x + c_AffineMatrix2.z*Tz_x;
-            float Ty_z2=c_AffineMatrix2.x*Tx_y + c_AffineMatrix2.y*Ty_y + c_AffineMatrix2.z*Tz_y;
-            float Tz_z2=c_AffineMatrix2.x*Tx_z + c_AffineMatrix2.y*Ty_z + c_AffineMatrix2.z*Tz_z;
-
-            /* The Jacobian determinant is computed and stored */
-            penaltyTerm[tid]=Tx_x2*Ty_y2*Tz_z2 + Tx_y2*Ty_z2*Tz_x2 + Tx_z2*Ty_x2*Tz_y2
-                - Tx_x2*Ty_z2*Tz_y2 - Tx_y2*Ty_x2*Tz_z2 - Tx_z2*Ty_y2*Tz_x2;
-        }
-        else penaltyTerm[tid]=1.0f;
-    }
-}
-
-/* *************************************************************** */
-/* *************************************************************** */
-
-__global__ void reg_bspline_JacDetFromVelField_kernel( float *jacobianMap,
-                                                        float4 *displacementField_d)
-{
-    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
-    if(tid<c_VoxelNumber){
-
-        int3 targetImageDim = c_TargetImageDim;
-
-        int tempIndex=tid;
-        float z = floorf(tempIndex/(targetImageDim.x*targetImageDim.y));
-        tempIndex -= (int)z*(targetImageDim.x)*(targetImageDim.y);
-        float y = floorf(tempIndex/(targetImageDim.x));
-        float x = tempIndex - y*(targetImageDim.x);
-
-        // The displacement of the voxel is updated
-        float4 position = displacementField_d[tid];
-        float4 matrix = tex1Dfetch(txRealToVoxelMatrix,0);
-        x +=    matrix.x*position.x + matrix.y*position.y  +
-                matrix.z*position.z  +  matrix.w;
-        matrix = tex1Dfetch(txRealToVoxelMatrix,1);
-        y +=    matrix.x*position.x + matrix.y*position.y  +
-                matrix.z*position.z  +  matrix.w;
-        matrix = tex1Dfetch(txRealToVoxelMatrix,2);
-        z +=    matrix.x*position.x + matrix.y*position.y  +
-                matrix.z*position.z  +  matrix.w;
-
-        // the "nearest previous" node is determined [0,0,0]
-        short3 nodeAnte;
-        float3 gridVoxelSpacing = c_ControlPointVoxelSpacing;
-        nodeAnte.x = (short)floorf(x/gridVoxelSpacing.x);
-        nodeAnte.y = (short)floorf(y/gridVoxelSpacing.y);
-        nodeAnte.z = (short)floorf(z/gridVoxelSpacing.z);
-
-        int3 controlPointImageDim = c_ControlPointImageDim;
-
-        if(nodeAnte.x>=0 && nodeAnte.x<controlPointImageDim.x-3 &&
-           nodeAnte.y>=0 && nodeAnte.y<controlPointImageDim.y-3 &&
-           nodeAnte.z>=0 && nodeAnte.z<controlPointImageDim.z-3){
-
-            // Z basis values
-            const unsigned short shareMemIndex = 4*threadIdx.x;
-            __shared__ float zBasis[Block_reg_bspline_JacDetFromVelField*4];
-            __shared__ float zFirst[Block_reg_bspline_JacDetFromVelField*4];
-            float relative = fabsf(z/gridVoxelSpacing.z-(float)nodeAnte.z);
-            float FF= relative*relative;
-            float FFF= FF*relative;
-            float MF=1.0f-relative;
-            zBasis[shareMemIndex] = MF*MF*MF/6.0f;
-            zBasis[shareMemIndex+1] = (3.0f*FFF - 6.0f*FF +4.0f)/6.0f;
-            zBasis[shareMemIndex+2] = (-3.0f*FFF + 3.0f*FF + 3.0f*relative + 1.0f)/6.0f;
-            zBasis[shareMemIndex+3] = FFF/6.0f;
-            zFirst[shareMemIndex] = (2.0f*relative - FF - 1.0f)/2.0f;
-            zFirst[shareMemIndex+1] = (3.0f*FF - 4.0f*relative)/2.0f;
-            zFirst[shareMemIndex+2] = (2.0f*relative - 3.0f*FF + 1.0f)/2.0f;
-            zFirst[shareMemIndex+3] = FF/2.0f;
-
-            // Y basis values
-            __shared__ float yBasis[Block_reg_bspline_JacDetFromVelField*4];
-            __shared__ float yFirst[Block_reg_bspline_JacDetFromVelField*4];
-            relative = fabsf(y/gridVoxelSpacing.y-(float)nodeAnte.y);
-            FF= relative*relative;
-            FFF= FF*relative;
-            MF=1.0f-relative;
-            yBasis[shareMemIndex] = MF*MF*MF/6.0f;
-            yBasis[shareMemIndex+1] = (3.0f*FFF - 6.0f*FF +4.0f)/6.0f;
-            yBasis[shareMemIndex+2] = (-3.0f*FFF + 3.0f*FF + 3.0f*relative + 1.0f)/6.0f;
-            yBasis[shareMemIndex+3] = FFF/6.0f;
-            yFirst[shareMemIndex] = (2.0f*relative - FF - 1.0f)/2.0f;
-            yFirst[shareMemIndex+1] = (3.0f*FF - 4.0f*relative)/2.0f;
-            yFirst[shareMemIndex+2] = (2.0f*relative - 3.0f*FF + 1.0f)/2.0f;
-            yFirst[shareMemIndex+3] = FF/2.0f;
-
-            // X basis values
-            relative = fabsf(x/gridVoxelSpacing.x-(float)nodeAnte.x);
-            float4 xBasis;
-            float4 xFirst;
-            xBasis.w= relative * relative * relative / 6.0f;
-            xBasis.x= 1.0f/6.0f + relative*(relative-1.0f)/2.0f - xBasis.w;
-            xBasis.z= relative + xBasis.x - 2.0f*xBasis.w;
-            xBasis.y= 1.0f - xBasis.x - xBasis.z - xBasis.w;
-            xFirst.w= relative * relative / 2.0f;
-            xFirst.x= relative - 0.5f - xFirst.w;
-            xFirst.z= 1.0f + xFirst.x - 2.0f*xFirst.w;
-            xFirst.y= - xFirst.x - xFirst.z - xFirst.w;
-
-            float Tx_x=0.0f;
-            float Ty_x=0.0f;
-            float Tz_x=0.0f;
-            float Tx_y=0.0f;
-            float Ty_y=0.0f;
-            float Tz_y=0.0f;
-            float Tx_z=0.0f;
-            float Ty_z=0.0f;
-            float Tz_z=0.0f;
-            float3 displacement=make_float3(.0f, .0f, .0f);
-
-            float4 nodeCoefficient;
-            float3 tempBasis;
-            float basis;
-
-            int indexYZ, indexXYZ;
-            for(short c=0; c<4; c++){
-                indexYZ= ( (nodeAnte.z + c) * controlPointImageDim.y + nodeAnte.y) * controlPointImageDim.x;
-                for(short b=0; b<4; b++){
-
-                    tempBasis.x = zBasis[shareMemIndex+c] * yBasis[shareMemIndex+b]; // x derivative and no derivative
-                    tempBasis.y = zBasis[shareMemIndex+c] * yFirst[shareMemIndex+b]; // y derivative
-                    tempBasis.z = zFirst[shareMemIndex+c] * yBasis[shareMemIndex+b]; // z derivative
-
-                    indexXYZ = indexYZ + nodeAnte.x;
-                    nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ++);
-                    basis = xBasis.x * tempBasis.x;
-                    displacement.x+=nodeCoefficient.x * basis;
-                    displacement.y+=nodeCoefficient.y * basis;
-                    displacement.z+=nodeCoefficient.z * basis;
-                    basis = xFirst.x * tempBasis.x;
-                    Tx_x+=nodeCoefficient.x * basis;
-                    Ty_x+=nodeCoefficient.y * basis;
-                    Tz_x+=nodeCoefficient.z * basis;
-                    basis = xBasis.x * tempBasis.y;
-                    Tx_y+=nodeCoefficient.x * basis;
-                    Ty_y+=nodeCoefficient.y * basis;
-                    Tz_y+=nodeCoefficient.z * basis;
-                    basis = xBasis.x * tempBasis.z;
-                    Tx_z+=nodeCoefficient.x * basis;
-                    Ty_z+=nodeCoefficient.y * basis;
-                    Tz_z+=nodeCoefficient.z * basis;
-                    nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ++);
-                    basis = xBasis.y * tempBasis.x;
-                    displacement.x+=nodeCoefficient.x * basis;
-                    displacement.y+=nodeCoefficient.y * basis;
-                    displacement.z+=nodeCoefficient.z * basis;
-                    basis = xFirst.y * tempBasis.x;
-                    Tx_x+=nodeCoefficient.x * basis;
-                    Ty_x+=nodeCoefficient.y * basis;
-                    Tz_x+=nodeCoefficient.z * basis;
-                    basis = xBasis.y * tempBasis.y;
-                    Tx_y+=nodeCoefficient.x * basis;
-                    Ty_y+=nodeCoefficient.y * basis;
-                    Tz_y+=nodeCoefficient.z * basis;
-                    basis = xBasis.y * tempBasis.z;
-                    Tx_z+=nodeCoefficient.x * basis;
-                    Ty_z+=nodeCoefficient.y * basis;
-                    Tz_z+=nodeCoefficient.z * basis;
-                    nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ++);
-                    basis = xBasis.z * tempBasis.x;
-                    displacement.x+=nodeCoefficient.x * basis;
-                    displacement.y+=nodeCoefficient.y * basis;
-                    displacement.z+=nodeCoefficient.z * basis;
-                    basis = xFirst.z * tempBasis.x;
-                    Tx_x+=nodeCoefficient.x * basis;
-                    Ty_x+=nodeCoefficient.y * basis;
-                    Tz_x+=nodeCoefficient.z * basis;
-                    basis = xBasis.z * tempBasis.y;
-                    Tx_y+=nodeCoefficient.x * basis;
-                    Ty_y+=nodeCoefficient.y * basis;
-                    Tz_y+=nodeCoefficient.z * basis;
-                    basis = xBasis.z * tempBasis.z;
-                    Tx_z+=nodeCoefficient.x * basis;
-                    Ty_z+=nodeCoefficient.y * basis;
-                    Tz_z+=nodeCoefficient.z * basis;
-                    nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ);
-                    basis = xBasis.w * tempBasis.x;
-                    displacement.x+=nodeCoefficient.x * basis;
-                    displacement.y+=nodeCoefficient.y * basis;
-                    displacement.z+=nodeCoefficient.z * basis;
-                    basis = xFirst.w * tempBasis.x;
-                    Tx_x+=nodeCoefficient.x * basis;
-                    Ty_x+=nodeCoefficient.y * basis;
-                    Tz_x+=nodeCoefficient.z * basis;
-                    basis = xBasis.w * tempBasis.y;
-                    Tx_y+=nodeCoefficient.x * basis;
-                    Ty_y+=nodeCoefficient.y * basis;
-                    Tz_y+=nodeCoefficient.z * basis;
-                    basis = xBasis.w * tempBasis.z;
-                    Tx_z+=nodeCoefficient.x * basis;
-                    Ty_z+=nodeCoefficient.y * basis;
-                    Tz_z+=nodeCoefficient.z * basis;
-
-                    indexYZ += controlPointImageDim.x;
-                }
-            }
-
-
-            Tx_x /= c_ControlPointSpacing.x;
-            Ty_x /= c_ControlPointSpacing.x;
-            Tz_x /= c_ControlPointSpacing.x;
-            Tx_y /= c_ControlPointSpacing.y;
-            Ty_y /= c_ControlPointSpacing.y;
-            Tz_y /= c_ControlPointSpacing.y;
-            Tx_z /= c_ControlPointSpacing.z;
-            Ty_z /= c_ControlPointSpacing.z;
-            Tz_z /= c_ControlPointSpacing.z;
-
-            float Tx_x2=c_AffineMatrix0.x*Tx_x + c_AffineMatrix0.y*Ty_x + c_AffineMatrix0.z*Tz_x + 1.f;
-            float Ty_x2=c_AffineMatrix0.x*Tx_y + c_AffineMatrix0.y*Ty_y + c_AffineMatrix0.z*Tz_y;
-            float Tz_x2=c_AffineMatrix0.x*Tx_z + c_AffineMatrix0.y*Ty_z + c_AffineMatrix0.z*Tz_z;
-
-            float Tx_y2=c_AffineMatrix1.x*Tx_x + c_AffineMatrix1.y*Ty_x + c_AffineMatrix1.z*Tz_x;
-            float Ty_y2=c_AffineMatrix1.x*Tx_y + c_AffineMatrix1.y*Ty_y + c_AffineMatrix1.z*Tz_y + 1.f;
-            float Tz_y2=c_AffineMatrix1.x*Tx_z + c_AffineMatrix1.y*Ty_z + c_AffineMatrix1.z*Tz_z;
-
-            float Tx_z2=c_AffineMatrix2.x*Tx_x + c_AffineMatrix2.y*Ty_x + c_AffineMatrix2.z*Tz_x;
-            float Ty_z2=c_AffineMatrix2.x*Tx_y + c_AffineMatrix2.y*Ty_y + c_AffineMatrix2.z*Tz_y;
-            float Tz_z2=c_AffineMatrix2.x*Tx_z + c_AffineMatrix2.y*Ty_z + c_AffineMatrix2.z*Tz_z + 1.f;
-
-
-            /* The Jacobian determinant is computed and stored */
-            jacobianMap[tid] *= Tx_x2*Ty_y2*Tz_z2
-                                + Tx_y2*Ty_z2*Tz_x2
-                                + Tx_z2*Ty_x2*Tz_y2
-                                - Tx_x2*Ty_z2*Tz_y2
-                                - Tx_y2*Ty_x2*Tz_z2
-                                - Tx_z2*Ty_y2*Tz_x2;
-            displacementField_d[tid] = make_float4(position.x+displacement.x,
-                                                   position.y+displacement.y,
-                                                   position.z+displacement.z,
-                                                   0.f);
-        }
-    }
-}
-
-/* *************************************************************** */
-/* *************************************************************** */
-
-__global__ void reg_bspline_ApproxJacDetFromVelField_kernel(   float *jacobianMap,
-                                                                float4 *displacementField_d)
-{
-    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
-    if(tid<c_ControlPointNumber){
-
-        int3 controlPointImageDim = c_ControlPointImageDim;
-
-        int tempIndex=tid;
-        float z = floorf(tempIndex/(controlPointImageDim.x*controlPointImageDim.y));
-        tempIndex -= (int)z*(controlPointImageDim.x)*(controlPointImageDim.y);
-        float y = floorf(tempIndex/(controlPointImageDim.x));
-        float x = tempIndex - y*(controlPointImageDim.x);
-
-        // The position of the control point is updated
-        float4 position = displacementField_d[tid];
-        float4 matrix = tex1Dfetch(txRealToVoxelMatrix,0);
-        x +=    matrix.x*position.x + matrix.y*position.y  +
-                matrix.z*position.z  +  matrix.w;
-        matrix = tex1Dfetch(txRealToVoxelMatrix,1);
-        y +=    matrix.x*position.x + matrix.y*position.y  +
-                matrix.z*position.z  +  matrix.w;
-        matrix = tex1Dfetch(txRealToVoxelMatrix,2);
-        z +=    matrix.x*position.x + matrix.y*position.y  +
-                matrix.z*position.z  +  matrix.w;
-
-        if(x>=1 && x <controlPointImageDim.x-2 &&
-           y>=1 && y <controlPointImageDim.y-2 &&
-           z>=1 && z <controlPointImageDim.z-2){
-
-            // the "nearest previous" node is determined [0,0,0]
-            short3 nodeAnte;
-            nodeAnte.x = (short)floorf((float)x);
-            nodeAnte.y = (short)floorf((float)y);
-            nodeAnte.z = (short)floorf((float)z);
-
-            // Z basis values
-            const unsigned short shareMemIndex = 4*threadIdx.x;
-            __shared__ float zBasis[Block_reg_bspline_ApproxJacDetFromVelField*4];
-            __shared__ float zFirst[Block_reg_bspline_ApproxJacDetFromVelField*4];
-            float relative = fabsf(z-(float)nodeAnte.z);
-            float FF= relative*relative;
-            float FFF= FF*relative;
-            float MF=1.0f-relative;
-            zBasis[shareMemIndex] = MF*MF*MF/6.0f;
-            zBasis[shareMemIndex+1] = (3.0f*FFF - 6.0f*FF +4.0f)/6.0f;
-            zBasis[shareMemIndex+2] = (-3.0f*FFF + 3.0f*FF + 3.0f*relative + 1.0f)/6.0f;
-            zBasis[shareMemIndex+3] = FFF/6.0f;
-            zFirst[shareMemIndex] = (2.0f*relative - FF - 1.0f)/2.0f;
-            zFirst[shareMemIndex+1] = (3.0f*FF - 4.0f*relative)/2.0f;
-            zFirst[shareMemIndex+2] = (2.0f*relative - 3.0f*FF + 1.0f)/2.0f;
-            zFirst[shareMemIndex+3] = FF/2.0f;
-
-            // Y basis values
-            __shared__ float yBasis[Block_reg_bspline_ApproxJacDetFromVelField*4];
-            __shared__ float yFirst[Block_reg_bspline_ApproxJacDetFromVelField*4];
-            relative = fabsf(y-(float)nodeAnte.y);
-            FF= relative*relative;
-            FFF= FF*relative;
-            MF=1.0f-relative;
-            yBasis[shareMemIndex] = MF*MF*MF/6.0f;
-            yBasis[shareMemIndex+1] = (3.0f*FFF - 6.0f*FF +4.0f)/6.0f;
-            yBasis[shareMemIndex+2] = (-3.0f*FFF + 3.0f*FF + 3.0f*relative + 1.0f)/6.0f;
-            yBasis[shareMemIndex+3] = FFF/6.0f;
-            yFirst[shareMemIndex] = (2.0f*relative - FF - 1.0f)/2.0f;
-            yFirst[shareMemIndex+1] = (3.0f*FF - 4.0f*relative)/2.0f;
-            yFirst[shareMemIndex+2] = (2.0f*relative - 3.0f*FF + 1.0f)/2.0f;
-            yFirst[shareMemIndex+3] = FF/2.0f;
-
-            // X basis values
-            relative = fabsf(x-(float)nodeAnte.x);
-            float4 xBasis;
-            float4 xFirst;
-            xBasis.w= relative * relative * relative / 6.0f;
-            xBasis.x= 1.0f/6.0f + relative*(relative-1.0f)/2.0f - xBasis.w;
-            xBasis.z= relative + xBasis.x - 2.0f*xBasis.w;
-            xBasis.y= 1.0f - xBasis.x - xBasis.z - xBasis.w;
-            xFirst.w= relative * relative / 2.0f;
-            xFirst.x= relative - 0.5f - xFirst.w;
-            xFirst.z= 1.0f + xFirst.x - 2.0f*xFirst.w;
-            xFirst.y= - xFirst.x - xFirst.z - xFirst.w;
-
-            --nodeAnte.x;
-            --nodeAnte.y;
-            --nodeAnte.z;
-
-            float Tx_x=0.0f;
-            float Ty_x=0.0f;
-            float Tz_x=0.0f;
-            float Tx_y=0.0f;
-            float Ty_y=0.0f;
-            float Tz_y=0.0f;
-            float Tx_z=0.0f;
-            float Ty_z=0.0f;
-            float Tz_z=0.0f;
-            float3 displacement=make_float3(.0f, .0f, .0f);
-
-            float4 nodeCoefficient;
-            float3 tempBasis;
-            float basis;
-
-            int indexYZ, indexXYZ;
-            for(short c=0; c<4; c++){
-                indexYZ= ( (nodeAnte.z + c) * controlPointImageDim.y + nodeAnte.y) * controlPointImageDim.x;
-                for(short b=0; b<4; b++){
-
-                    tempBasis.x = zBasis[shareMemIndex+c] * yBasis[shareMemIndex+b]; // x derivative and no derivative
-                    tempBasis.y = zBasis[shareMemIndex+c] * yFirst[shareMemIndex+b]; // y derivative
-                    tempBasis.z = zFirst[shareMemIndex+c] * yBasis[shareMemIndex+b]; // z derivative
-
-                    indexXYZ = indexYZ + nodeAnte.x;
-                    nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ++);
-                    basis = xBasis.x * tempBasis.x;
-                    displacement.x+=nodeCoefficient.x * basis;
-                    displacement.y+=nodeCoefficient.y * basis;
-                    displacement.z+=nodeCoefficient.z * basis;
-                    basis = xFirst.x * tempBasis.x;
-                    Tx_x+=nodeCoefficient.x * basis;
-                    Ty_x+=nodeCoefficient.y * basis;
-                    Tz_x+=nodeCoefficient.z * basis;
-                    basis = xBasis.x * tempBasis.y;
-                    Tx_y+=nodeCoefficient.x * basis;
-                    Ty_y+=nodeCoefficient.y * basis;
-                    Tz_y+=nodeCoefficient.z * basis;
-                    basis = xBasis.x * tempBasis.z;
-                    Tx_z+=nodeCoefficient.x * basis;
-                    Ty_z+=nodeCoefficient.y * basis;
-                    Tz_z+=nodeCoefficient.z * basis;
-                    nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ++);
-                    basis = xBasis.y * tempBasis.x;
-                    displacement.x+=nodeCoefficient.x * basis;
-                    displacement.y+=nodeCoefficient.y * basis;
-                    displacement.z+=nodeCoefficient.z * basis;
-                    basis = xFirst.y * tempBasis.x;
-                    Tx_x+=nodeCoefficient.x * basis;
-                    Ty_x+=nodeCoefficient.y * basis;
-                    Tz_x+=nodeCoefficient.z * basis;
-                    basis = xBasis.y * tempBasis.y;
-                    Tx_y+=nodeCoefficient.x * basis;
-                    Ty_y+=nodeCoefficient.y * basis;
-                    Tz_y+=nodeCoefficient.z * basis;
-                    basis = xBasis.y * tempBasis.z;
-                    Tx_z+=nodeCoefficient.x * basis;
-                    Ty_z+=nodeCoefficient.y * basis;
-                    Tz_z+=nodeCoefficient.z * basis;
-                    nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ++);
-                    basis = xBasis.z * tempBasis.x;
-                    displacement.x+=nodeCoefficient.x * basis;
-                    displacement.y+=nodeCoefficient.y * basis;
-                    displacement.z+=nodeCoefficient.z * basis;
-                    basis = xFirst.z * tempBasis.x;
-                    Tx_x+=nodeCoefficient.x * basis;
-                    Ty_x+=nodeCoefficient.y * basis;
-                    Tz_x+=nodeCoefficient.z * basis;
-                    basis = xBasis.z * tempBasis.y;
-                    Tx_y+=nodeCoefficient.x * basis;
-                    Ty_y+=nodeCoefficient.y * basis;
-                    Tz_y+=nodeCoefficient.z * basis;
-                    basis = xBasis.z * tempBasis.z;
-                    Tx_z+=nodeCoefficient.x * basis;
-                    Ty_z+=nodeCoefficient.y * basis;
-                    Tz_z+=nodeCoefficient.z * basis;
-                    nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ);
-                    basis = xBasis.w * tempBasis.x;
-                    displacement.x+=nodeCoefficient.x * basis;
-                    displacement.y+=nodeCoefficient.y * basis;
-                    displacement.z+=nodeCoefficient.z * basis;
-                    basis = xFirst.w * tempBasis.x;
-                    Tx_x+=nodeCoefficient.x * basis;
-                    Ty_x+=nodeCoefficient.y * basis;
-                    Tz_x+=nodeCoefficient.z * basis;
-                    basis = xBasis.w * tempBasis.y;
-                    Tx_y+=nodeCoefficient.x * basis;
-                    Ty_y+=nodeCoefficient.y * basis;
-                    Tz_y+=nodeCoefficient.z * basis;
-                    basis = xBasis.w * tempBasis.z;
-                    Tx_z+=nodeCoefficient.x * basis;
-                    Ty_z+=nodeCoefficient.y * basis;
-                    Tz_z+=nodeCoefficient.z * basis;
-
-                    indexYZ += controlPointImageDim.x;
-                }
-            }
-
-            Tx_x /= c_ControlPointSpacing.x;
-            Ty_x /= c_ControlPointSpacing.x;
-            Tz_x /= c_ControlPointSpacing.x;
-            Tx_y /= c_ControlPointSpacing.y;
-            Ty_y /= c_ControlPointSpacing.y;
-            Tz_y /= c_ControlPointSpacing.y;
-            Tx_z /= c_ControlPointSpacing.z;
-            Ty_z /= c_ControlPointSpacing.z;
-            Tz_z /= c_ControlPointSpacing.z;
-
-            float Tx_x2=c_AffineMatrix0.x*Tx_x + c_AffineMatrix0.y*Ty_x + c_AffineMatrix0.z*Tz_x + 1.f;
-            float Ty_x2=c_AffineMatrix0.x*Tx_y + c_AffineMatrix0.y*Ty_y + c_AffineMatrix0.z*Tz_y;
-            float Tz_x2=c_AffineMatrix0.x*Tx_z + c_AffineMatrix0.y*Ty_z + c_AffineMatrix0.z*Tz_z;
-
-            float Tx_y2=c_AffineMatrix1.x*Tx_x + c_AffineMatrix1.y*Ty_x + c_AffineMatrix1.z*Tz_x;
-            float Ty_y2=c_AffineMatrix1.x*Tx_y + c_AffineMatrix1.y*Ty_y + c_AffineMatrix1.z*Tz_y + 1.f;
-            float Tz_y2=c_AffineMatrix1.x*Tx_z + c_AffineMatrix1.y*Ty_z + c_AffineMatrix1.z*Tz_z;
-
-            float Tx_z2=c_AffineMatrix2.x*Tx_x + c_AffineMatrix2.y*Ty_x + c_AffineMatrix2.z*Tz_x;
-            float Ty_z2=c_AffineMatrix2.x*Tx_y + c_AffineMatrix2.y*Ty_y + c_AffineMatrix2.z*Tz_y;
-            float Tz_z2=c_AffineMatrix2.x*Tx_z + c_AffineMatrix2.y*Ty_z + c_AffineMatrix2.z*Tz_z + 1.f;
-
-
-            /* The Jacobian determinant is computed and stored */
-            jacobianMap[tid] *= Tx_x2*Ty_y2*Tz_z2
-                                + Tx_y2*Ty_z2*Tz_x2
-                                + Tx_z2*Ty_x2*Tz_y2
-                                - Tx_x2*Ty_z2*Tz_y2
-                                - Tx_y2*Ty_x2*Tz_z2
-                                - Tx_z2*Ty_y2*Tz_x2;
-            displacementField_d[tid] = make_float4(position.x+displacement.x,
-                                                   position.y+displacement.y,
-                                                   position.z+displacement.z,
-                                                   0.f);
-        }
-    }
-}
-
-/* *************************************************************** */
-/* *************************************************************** */
-
-__global__ void reg_bspline_JacobianMatrix_kernel(float *jacobianMatrices, float *jacobianDeterminant)
-{
-    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
-    if(tid<c_VoxelNumber){
-
-        int3 imageSize = c_TargetImageDim;
 
         unsigned int tempIndex=tid;
-        const unsigned short z =(unsigned short)(tempIndex/(imageSize.x*imageSize.y));
-        tempIndex -= z*(imageSize.x)*(imageSize.y);
-        const unsigned short y =(unsigned short)(tempIndex/(imageSize.x));
-        const unsigned short x = tempIndex - y*(imageSize.x);
-
-        // the "nearest previous" node is determined [0,0,0]
-        short3 nodeAnte;
-        float3 gridVoxelSpacing = c_ControlPointVoxelSpacing;
-        nodeAnte.x = (short)floorf((float)x/gridVoxelSpacing.x);
-        nodeAnte.y = (short)floorf((float)y/gridVoxelSpacing.y);
-        nodeAnte.z = (short)floorf((float)z/gridVoxelSpacing.z);
-
-        // Z basis values
-        const unsigned short shareMemIndex = 4*threadIdx.x;
-        __shared__ float zBasis[Block_reg_bspline_JacobianMatrix*4];
-        __shared__ float zFirst[Block_reg_bspline_JacobianMatrix*4];
-        float relative = fabsf((float)z/gridVoxelSpacing.z-(float)nodeAnte.z);
-        float FF= relative*relative;
-        float FFF= FF*relative;
-        float MF=1.0f-relative;
-        zBasis[shareMemIndex] = MF*MF*MF/6.0f;
-        zBasis[shareMemIndex+1] = (3.0f*FFF - 6.0f*FF +4.0f)/6.0f;
-        zBasis[shareMemIndex+2] = (-3.0f*FFF + 3.0f*FF + 3.0f*relative + 1.0f)/6.0f;
-        zBasis[shareMemIndex+3] = FFF/6.0f;
-        zFirst[shareMemIndex] = (2.0f*relative - FF - 1.0f)/2.0f;
-        zFirst[shareMemIndex+1] = (3.0f*FF - 4.0f*relative)/2.0f;
-        zFirst[shareMemIndex+2] = (2.0f*relative - 3.0f*FF + 1.0f)/2.0f;
-        zFirst[shareMemIndex+3] = FF/2.0f;
-
-        // Y basis values
-        __shared__ float yBasis[Block_reg_bspline_JacobianMatrix*4];
-        __shared__ float yFirst[Block_reg_bspline_JacobianMatrix*4];
-        relative = fabsf((float)y/gridVoxelSpacing.y-(float)nodeAnte.y);
-        FF= relative*relative;
-        FFF= FF*relative;
-        MF=1.0f-relative;
-        yBasis[shareMemIndex] = MF*MF*MF/6.0f;
-        yBasis[shareMemIndex+1] = (3.0f*FFF - 6.0f*FF +4.0f)/6.0f;
-        yBasis[shareMemIndex+2] = (-3.0f*FFF + 3.0f*FF + 3.0f*relative + 1.0f)/6.0f;
-        yBasis[shareMemIndex+3] = FFF/6.0f;
-        yFirst[shareMemIndex] = (2.0f*relative - FF - 1.0f)/2.0f;
-        yFirst[shareMemIndex+1] = (3.0f*FF - 4.0f*relative)/2.0f;
-        yFirst[shareMemIndex+2] = (2.0f*relative - 3.0f*FF + 1.0f)/2.0f;
-        yFirst[shareMemIndex+3] = FF/2.0f;
-
-        // X basis values
-        relative = fabsf((float)x/gridVoxelSpacing.x-(float)nodeAnte.x);
-        float4 xBasis;
-        float4 xFirst;
-        xBasis.w= relative * relative * relative / 6.0f;
-        xBasis.x= 1.0f/6.0f + relative*(relative-1.0f)/2.0f - xBasis.w;
-        xBasis.z= relative + xBasis.x - 2.0f*xBasis.w;
-        xBasis.y= 1.0f - xBasis.x - xBasis.z - xBasis.w;
-        xFirst.w= relative * relative / 2.0f;
-        xFirst.x= relative - 0.5f - xFirst.w;
-        xFirst.z= 1.0f + xFirst.x - 2.0f*xFirst.w;
-        xFirst.y= - xFirst.x - xFirst.z - xFirst.w;
-
-        int3 controlPointImageDim = c_ControlPointImageDim;
-
-        float Tx_x=0.0f;
-        float Ty_x=0.0f;
-        float Tz_x=0.0f;
-        float Tx_y=0.0f;
-        float Ty_y=0.0f;
-        float Tz_y=0.0f;
-        float Tx_z=0.0f;
-        float Ty_z=0.0f;
-        float Tz_z=0.0f;
-
-        float4 nodeCoefficient;
-        float3 tempBasis;
-        float basis;
-
-        int indexYZ, indexXYZ;
-        for(short c=0; c<4; c++){
-            indexYZ= ( (nodeAnte.z + c) * controlPointImageDim.y + nodeAnte.y) * controlPointImageDim.x;
-            for(short b=0; b<4; b++){
-
-                tempBasis.x = zBasis[shareMemIndex+c] * yBasis[shareMemIndex+b];
-                tempBasis.y = zBasis[shareMemIndex+c] * yFirst[shareMemIndex+b];
-                tempBasis.z = zFirst[shareMemIndex+c] * yBasis[shareMemIndex+b];
-
-                indexXYZ = indexYZ + nodeAnte.x;
-                nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ++);
-                basis = xFirst.x * tempBasis.x;
-                Tx_x+=nodeCoefficient.x * basis;
-                Ty_x+=nodeCoefficient.y * basis;
-                Tz_x+=nodeCoefficient.z * basis;
-                basis = xBasis.x * tempBasis.y;
-                Tx_y+=nodeCoefficient.x * basis;
-                Ty_y+=nodeCoefficient.y * basis;
-                Tz_y+=nodeCoefficient.z * basis;
-                basis = xBasis.x * tempBasis.z;
-                Tx_z+=nodeCoefficient.x * basis;
-                Ty_z+=nodeCoefficient.y * basis;
-                Tz_z+=nodeCoefficient.z * basis;
-                nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ++);
-                basis = xFirst.y * tempBasis.x;
-                Tx_x+=nodeCoefficient.x * basis;
-                Ty_x+=nodeCoefficient.y * basis;
-                Tz_x+=nodeCoefficient.z * basis;
-                basis = xBasis.y * tempBasis.y;
-                Tx_y+=nodeCoefficient.x * basis;
-                Ty_y+=nodeCoefficient.y * basis;
-                Tz_y+=nodeCoefficient.z * basis;
-                basis = xBasis.y * tempBasis.z;
-                Tx_z+=nodeCoefficient.x * basis;
-                Ty_z+=nodeCoefficient.y * basis;
-                Tz_z+=nodeCoefficient.z * basis;
-                nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ++);
-                basis = xFirst.z * tempBasis.x;
-                Tx_x+=nodeCoefficient.x * basis;
-                Ty_x+=nodeCoefficient.y * basis;
-                Tz_x+=nodeCoefficient.z * basis;
-                basis = xBasis.z * tempBasis.y;
-                Tx_y+=nodeCoefficient.x * basis;
-                Ty_y+=nodeCoefficient.y * basis;
-                Tz_y+=nodeCoefficient.z * basis;
-                basis = xBasis.z * tempBasis.z;
-                Tx_z+=nodeCoefficient.x * basis;
-                Ty_z+=nodeCoefficient.y * basis;
-                Tz_z+=nodeCoefficient.z * basis;
-                nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ);
-                basis = xFirst.w * tempBasis.x;
-                Tx_x+=nodeCoefficient.x * basis;
-                Ty_x+=nodeCoefficient.y * basis;
-                Tz_x+=nodeCoefficient.z * basis;
-                basis = xBasis.w * tempBasis.y;
-                Tx_y+=nodeCoefficient.x * basis;
-                Ty_y+=nodeCoefficient.y * basis;
-                Tz_y+=nodeCoefficient.z * basis;
-                basis = xBasis.w * tempBasis.z;
-                Tx_z+=nodeCoefficient.x * basis;
-                Ty_z+=nodeCoefficient.y * basis;
-                Tz_z+=nodeCoefficient.z * basis;
-
-                indexYZ += controlPointImageDim.x;
-            }
-        }
-
-        Tx_x /= c_ControlPointSpacing.x;
-        Ty_x /= c_ControlPointSpacing.x;
-        Tz_x /= c_ControlPointSpacing.x;
-        Tx_y /= c_ControlPointSpacing.y;
-        Ty_y /= c_ControlPointSpacing.y;
-        Tz_y /= c_ControlPointSpacing.y;
-        Tx_z /= c_ControlPointSpacing.z;
-        Ty_z /= c_ControlPointSpacing.z;
-        Tz_z /= c_ControlPointSpacing.z;
-
-        float Tx_x2=c_AffineMatrix0.x*Tx_x + c_AffineMatrix0.y*Ty_x + c_AffineMatrix0.z*Tz_x;
-        float Ty_x2=c_AffineMatrix0.x*Tx_y + c_AffineMatrix0.y*Ty_y + c_AffineMatrix0.z*Tz_y;
-        float Tz_x2=c_AffineMatrix0.x*Tx_z + c_AffineMatrix0.y*Ty_z + c_AffineMatrix0.z*Tz_z;
-
-        float Tx_y2=c_AffineMatrix1.x*Tx_x + c_AffineMatrix1.y*Ty_x + c_AffineMatrix1.z*Tz_x;
-        float Ty_y2=c_AffineMatrix1.x*Tx_y + c_AffineMatrix1.y*Ty_y + c_AffineMatrix1.z*Tz_y;
-        float Tz_y2=c_AffineMatrix1.x*Tx_z + c_AffineMatrix1.y*Ty_z + c_AffineMatrix1.z*Tz_z;
-
-        float Tx_z2=c_AffineMatrix2.x*Tx_x + c_AffineMatrix2.y*Ty_x + c_AffineMatrix2.z*Tz_x;
-        float Ty_z2=c_AffineMatrix2.x*Tx_y + c_AffineMatrix2.y*Ty_y + c_AffineMatrix2.z*Tz_y;
-        float Tz_z2=c_AffineMatrix2.x*Tx_z + c_AffineMatrix2.y*Ty_z + c_AffineMatrix2.z*Tz_z;
-
-        /* The Jacobian matrix is inverted and stored */
-        float det= Tx_x2*Ty_y2*Tz_z2
-                + Tx_y2*Ty_z2*Tz_x2
-                + Tx_z2*Ty_x2*Tz_y2
-                - Tx_x2*Ty_z2*Tz_y2
-                - Tx_y2*Ty_x2*Tz_z2
-                - Tx_z2*Ty_y2*Tz_x2;
-
-        jacobianDeterminant[tid]= det;
-
-        det = 1.f / det;
-        int id = 9*tid;
-        jacobianMatrices[id++] = det * (Ty_y2* Tz_z2 - Tz_y2*Ty_z2);
-        jacobianMatrices[id++] = det * (Tz_y2* Tx_z2 - Tx_y2*Tz_z2);
-        jacobianMatrices[id++] = det * (Tx_y2* Ty_z2 - Ty_y2*Tx_z2);
-
-        jacobianMatrices[id++] = det * (Tz_x2* Ty_z2 - Ty_x2*Tz_z2);
-        jacobianMatrices[id++] = det * (Tx_x2* Tz_z2 - Tz_x2*Tx_z2);
-        jacobianMatrices[id++] = det * (Ty_x2* Tx_z2 - Tx_x2*Ty_z2);
-
-        jacobianMatrices[id++] = det * (Ty_x2* Tz_y2 - Tz_x2*Ty_y2);
-        jacobianMatrices[id++] = det * (Tz_x2* Tx_y2 - Tx_x2*Tz_y2);
-        jacobianMatrices[id]  =  det * (Tx_x2* Ty_y2 - Ty_x2*Tx_y2);
-
-    }
-    return;
-}
-
-/* *************************************************************** */
-/* *************************************************************** */
-
-__global__ void reg_bspline_ApproxJacobianMatrix_kernel(float *matrices, float *determinant)
-{
-    __shared__ float basisX[27];
-    __shared__ float basisY[27];
-    __shared__ float basisZ[27];
-    if(threadIdx.x<27){
-        basisX[threadIdx.x] = tex1Dfetch(xBasisTexture,threadIdx.x);
-        basisY[threadIdx.x] = tex1Dfetch(yBasisTexture,threadIdx.x);
-        basisZ[threadIdx.x] = tex1Dfetch(zBasisTexture,threadIdx.x);
-    }
-    __syncthreads();
-
-    const int3 gridSize = c_ControlPointImageDim;
-
-    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
-    int tempIndex=tid;
-    const int z =(int)(tempIndex/(gridSize.x*gridSize.y));
-    tempIndex -= z*(gridSize.x)*(gridSize.y);
-    const int y =(int)(tempIndex/(gridSize.x));
-    const int x = tempIndex - y*(gridSize.x) ;
-
-    if( 0<x && x<gridSize.x-1 &&
-        0<y && y<gridSize.y-1 &&
-        0<z && z<gridSize.z-1){
-
-        /* The Jacobian matrix is computed */
-        float Tx_x=0.0f;
-        float Ty_x=0.0f;
-        float Tz_x=0.0f;
-        float Tx_y=0.0f;
-        float Ty_y=0.0f;
-        float Tz_y=0.0f;
-        float Tx_z=0.0f;
-        float Ty_z=0.0f;
-        float Tz_z=0.0f;
-        float4 controlPointPosition;
-        float tempBasis;
-        int index2=0;
-        for(int c=z-1; c<z+2; c++){
-            for(int b=y-1; b<y+2; b++){
-                int index = (c*gridSize.y+b)*gridSize.x+x-1;
-                for(int a=x-1; a<x+2; a++){
-                    controlPointPosition = tex1Dfetch(controlPointTexture,index++);
-                    tempBasis=basisX[index2];
-                    Tx_x+=controlPointPosition.x * tempBasis;
-                    Ty_x+=controlPointPosition.y * tempBasis;
-                    Tz_x+=controlPointPosition.z * tempBasis;
-                    tempBasis=basisY[index2];
-                    Tx_y+=controlPointPosition.x * tempBasis;
-                    Ty_y+=controlPointPosition.y * tempBasis;
-                    Tz_y+=controlPointPosition.z * tempBasis;
-                    tempBasis=basisZ[index2++];
-                    Tx_z+=controlPointPosition.x * tempBasis;
-                    Ty_z+=controlPointPosition.y * tempBasis;
-                    Tz_z+=controlPointPosition.z * tempBasis;
-                }
-            }
-        }
-        Tx_x /= c_ControlPointSpacing.x;
-        Ty_x /= c_ControlPointSpacing.x;
-        Tz_x /= c_ControlPointSpacing.x;
-        Tx_y /= c_ControlPointSpacing.y;
-        Ty_y /= c_ControlPointSpacing.y;
-        Tz_y /= c_ControlPointSpacing.y;
-        Tx_z /= c_ControlPointSpacing.z;
-        Ty_z /= c_ControlPointSpacing.z;
-        Tz_z /= c_ControlPointSpacing.z;
-
-        /* The Jacobian matrix is reoriented */
-        float Tx_x2=c_AffineMatrix0.x*Tx_x + c_AffineMatrix0.y*Ty_x + c_AffineMatrix0.z*Tz_x;
-        float Ty_x2=c_AffineMatrix0.x*Tx_y + c_AffineMatrix0.y*Ty_y + c_AffineMatrix0.z*Tz_y;
-        float Tz_x2=c_AffineMatrix0.x*Tx_z + c_AffineMatrix0.y*Ty_z + c_AffineMatrix0.z*Tz_z;
-
-        float Tx_y2=c_AffineMatrix1.x*Tx_x + c_AffineMatrix1.y*Ty_x + c_AffineMatrix1.z*Tz_x;
-        float Ty_y2=c_AffineMatrix1.x*Tx_y + c_AffineMatrix1.y*Ty_y + c_AffineMatrix1.z*Tz_y;
-        float Tz_y2=c_AffineMatrix1.x*Tx_z + c_AffineMatrix1.y*Ty_z + c_AffineMatrix1.z*Tz_z;
-
-        float Tx_z2=c_AffineMatrix2.x*Tx_x + c_AffineMatrix2.y*Ty_x + c_AffineMatrix2.z*Tz_x;
-        float Ty_z2=c_AffineMatrix2.x*Tx_y + c_AffineMatrix2.y*Ty_y + c_AffineMatrix2.z*Tz_y;
-        float Tz_z2=c_AffineMatrix2.x*Tx_z + c_AffineMatrix2.y*Ty_z + c_AffineMatrix2.z*Tz_z;
-
-        /* The Jacobian determinant is computed and stored */
-
-        float det= Tx_x2*Ty_y2*Tz_z2
-                + Tx_y2*Ty_z2*Tz_x2
-                + Tx_z2*Ty_x2*Tz_y2
-                - Tx_x2*Ty_z2*Tz_y2
-                - Tx_y2*Ty_x2*Tz_z2
-                - Tx_z2*Ty_y2*Tz_x2;
-
-        int id = ((z-1)*(gridSize.y-2)+y-1)*(gridSize.x-2)+x-1;
-        determinant[id]= det ;
-        id *= 9;
-
-        det = 1.f / det;
-        matrices[id++] = det * (Ty_y2*Tz_z2 - Tz_y2*Ty_z2);
-        matrices[id++] = det * (Tz_y2*Tx_z2 - Tx_y2*Tz_z2);
-        matrices[id++] = det * (Tx_y2*Ty_z2 - Ty_y2*Tx_z2);
-
-        matrices[id++] = det * (Tz_x2*Ty_z2 - Ty_x2*Tz_z2);
-        matrices[id++] = det * (Tx_x2*Tz_z2 - Tz_x2*Tx_z2);
-        matrices[id++] = det * (Ty_x2*Tx_z2 - Tx_x2*Ty_z2);
-
-        matrices[id++] = det * (Ty_x2*Tz_y2 - Tz_x2*Ty_y2);
-        matrices[id++] = det * (Tz_x2*Tx_y2 - Tx_x2*Tz_y2);
-        matrices[id]  =  det * (Tx_x2*Ty_y2 - Ty_x2*Tx_y2);
-
-    }
-}
-
-/* *************************************************************** */
-/* *************************************************************** */
-
-__global__ void reg_bspline_JacobianMatrixFromVel_kernel(  float *jacobianMatrices,
-                                                            float *jacobianDeterminant,
-                                                            float4 *voxelPosition_array)
-{
-    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
-    if(tid<c_VoxelNumber){
-
-        float4 voxelPosition = voxelPosition_array[tid];
-
-        // the "nearest previous" node is determined [0,0,0]
-        short3 nodeAnte;
-        float3 gridVoxelSpacing = c_ControlPointVoxelSpacing;
-        nodeAnte.x = (short)floorf((float)voxelPosition.x/gridVoxelSpacing.x);
-        nodeAnte.y = (short)floorf((float)voxelPosition.y/gridVoxelSpacing.y);
-        nodeAnte.z = (short)floorf((float)voxelPosition.z/gridVoxelSpacing.z);
-
-        int3 controlPointImageDim = c_ControlPointImageDim;
-
-        if(nodeAnte.x<0 || nodeAnte.y<0 || nodeAnte.z<0 ||
-           nodeAnte.x>controlPointImageDim.x-4 ||
-           nodeAnte.y>controlPointImageDim.y-4 ||
-           nodeAnte.z>controlPointImageDim.z-4){
-           return;
-        }
-
-        // Z basis values
-        const unsigned short shareMemIndex = 4*threadIdx.x;
-        __shared__ float zBasis[Block_reg_bspline_JacobianMatrixFromVel*4];
-        __shared__ float zFirst[Block_reg_bspline_JacobianMatrixFromVel*4];
-        float relative = fabsf(voxelPosition.z/gridVoxelSpacing.z-(float)nodeAnte.z);
-        float FF= relative*relative;
-        float FFF= FF*relative;
-        float MF=1.0f-relative;
-        zBasis[shareMemIndex] = MF*MF*MF/6.0f;
-        zBasis[shareMemIndex+1] = (3.0f*FFF - 6.0f*FF +4.0f)/6.0f;
-        zBasis[shareMemIndex+2] = (-3.0f*FFF + 3.0f*FF + 3.0f*relative + 1.0f)/6.0f;
-        zBasis[shareMemIndex+3] = FFF/6.0f;
-        zFirst[shareMemIndex] = (2.0f*relative - FF - 1.0f)/2.0f;
-        zFirst[shareMemIndex+1] = (3.0f*FF - 4.0f*relative)/2.0f;
-        zFirst[shareMemIndex+2] = (2.0f*relative - 3.0f*FF + 1.0f)/2.0f;
-        zFirst[shareMemIndex+3] = FF/2.0f;
-
-        // Y basis values
-        __shared__ float yBasis[Block_reg_bspline_JacobianMatrixFromVel*4];
-        __shared__ float yFirst[Block_reg_bspline_JacobianMatrixFromVel*4];
-        relative = fabsf(voxelPosition.y/gridVoxelSpacing.y-(float)nodeAnte.y);
-        FF= relative*relative;
-        FFF= FF*relative;
-        MF=1.0f-relative;
-        yBasis[shareMemIndex] = MF*MF*MF/6.0f;
-        yBasis[shareMemIndex+1] = (3.0f*FFF - 6.0f*FF +4.0f)/6.0f;
-        yBasis[shareMemIndex+2] = (-3.0f*FFF + 3.0f*FF + 3.0f*relative + 1.0f)/6.0f;
-        yBasis[shareMemIndex+3] = FFF/6.0f;
-        yFirst[shareMemIndex] = (2.0f*relative - FF - 1.0f)/2.0f;
-        yFirst[shareMemIndex+1] = (3.0f*FF - 4.0f*relative)/2.0f;
-        yFirst[shareMemIndex+2] = (2.0f*relative - 3.0f*FF + 1.0f)/2.0f;
-        yFirst[shareMemIndex+3] = FF/2.0f;
-
-        // X basis values
-        relative = fabsf(voxelPosition.x/gridVoxelSpacing.x-(float)nodeAnte.x);
-        float4 xBasis;
-        float4 xFirst;
-        xBasis.w= relative * relative * relative / 6.0f;
-        xBasis.x= 1.0f/6.0f + relative*(relative-1.0f)/2.0f - xBasis.w;
-        xBasis.z= relative + xBasis.x - 2.0f*xBasis.w;
-        xBasis.y= 1.0f - xBasis.x - xBasis.z - xBasis.w;
-        xFirst.w= relative * relative / 2.0f;
-        xFirst.x= relative - 0.5f - xFirst.w;
-        xFirst.z= 1.0f + xFirst.x - 2.0f*xFirst.w;
-        xFirst.y= - xFirst.x - xFirst.z - xFirst.w;
-
-        float4 position=make_float4(0.f,0.f,0.f,0.f);
-        float Tx_x=0.0f;
-        float Ty_x=0.0f;
-        float Tz_x=0.0f;
-        float Tx_y=0.0f;
-        float Ty_y=0.0f;
-        float Tz_y=0.0f;
-        float Tx_z=0.0f;
-        float Ty_z=0.0f;
-        float Tz_z=0.0f;
-
-        float4 nodeCoefficient;
-        float3 tempBasis;
-        float basis;
-
-        int indexYZ, indexXYZ;
-        for(short c=0; c<4; c++){
-            indexYZ= ( (nodeAnte.z + c) * controlPointImageDim.y + nodeAnte.y) * controlPointImageDim.x;
-            for(short b=0; b<4; b++){
-
-                tempBasis.x = zBasis[shareMemIndex+c] * yBasis[shareMemIndex+b];
-                tempBasis.y = zBasis[shareMemIndex+c] * yFirst[shareMemIndex+b];
-                tempBasis.z = zFirst[shareMemIndex+c] * yBasis[shareMemIndex+b];
-
-                indexXYZ = indexYZ + nodeAnte.x;
-                nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ++);
-                basis = xBasis.x * tempBasis.x;
-                position.x += nodeCoefficient.x * basis;
-                position.y += nodeCoefficient.y * basis;
-                position.z += nodeCoefficient.z * basis;
-                basis = xFirst.x * tempBasis.x;
-                Tx_x+=nodeCoefficient.x * basis;
-                Ty_x+=nodeCoefficient.y * basis;
-                Tz_x+=nodeCoefficient.z * basis;
-                basis = xBasis.x * tempBasis.y;
-                Tx_y+=nodeCoefficient.x * basis;
-                Ty_y+=nodeCoefficient.y * basis;
-                Tz_y+=nodeCoefficient.z * basis;
-                basis = xBasis.x * tempBasis.z;
-                Tx_z+=nodeCoefficient.x * basis;
-                Ty_z+=nodeCoefficient.y * basis;
-                Tz_z+=nodeCoefficient.z * basis;
-                nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ++);
-                basis = xBasis.y * tempBasis.x;
-                position.x += nodeCoefficient.x * basis;
-                position.y += nodeCoefficient.y * basis;
-                position.z += nodeCoefficient.z * basis;
-                basis = xFirst.y * tempBasis.x;
-                Tx_x+=nodeCoefficient.x * basis;
-                Ty_x+=nodeCoefficient.y * basis;
-                Tz_x+=nodeCoefficient.z * basis;
-                basis = xBasis.y * tempBasis.y;
-                Tx_y+=nodeCoefficient.x * basis;
-                Ty_y+=nodeCoefficient.y * basis;
-                Tz_y+=nodeCoefficient.z * basis;
-                basis = xBasis.y * tempBasis.z;
-                Tx_z+=nodeCoefficient.x * basis;
-                Ty_z+=nodeCoefficient.y * basis;
-                Tz_z+=nodeCoefficient.z * basis;
-                nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ++);
-                basis = xBasis.z * tempBasis.x;
-                position.x += nodeCoefficient.x * basis;
-                position.y += nodeCoefficient.y * basis;
-                position.z += nodeCoefficient.z * basis;
-                basis = xFirst.z * tempBasis.x;
-                Tx_x+=nodeCoefficient.x * basis;
-                Ty_x+=nodeCoefficient.y * basis;
-                Tz_x+=nodeCoefficient.z * basis;
-                basis = xBasis.z * tempBasis.y;
-                Tx_y+=nodeCoefficient.x * basis;
-                Ty_y+=nodeCoefficient.y * basis;
-                Tz_y+=nodeCoefficient.z * basis;
-                basis = xBasis.z * tempBasis.z;
-                Tx_z+=nodeCoefficient.x * basis;
-                Ty_z+=nodeCoefficient.y * basis;
-                Tz_z+=nodeCoefficient.z * basis;
-                nodeCoefficient = tex1Dfetch(controlPointTexture,indexXYZ);
-                basis = xBasis.w * tempBasis.x;
-                position.x += nodeCoefficient.x * basis;
-                position.y += nodeCoefficient.y * basis;
-                position.z += nodeCoefficient.z * basis;
-                basis = xFirst.w * tempBasis.x;
-                Tx_x+=nodeCoefficient.x * basis;
-                Ty_x+=nodeCoefficient.y * basis;
-                Tz_x+=nodeCoefficient.z * basis;
-                basis = xBasis.w * tempBasis.y;
-                Tx_y+=nodeCoefficient.x * basis;
-                Ty_y+=nodeCoefficient.y * basis;
-                Tz_y+=nodeCoefficient.z * basis;
-                basis = xBasis.w * tempBasis.z;
-                Tx_z+=nodeCoefficient.x * basis;
-                Ty_z+=nodeCoefficient.y * basis;
-                Tz_z+=nodeCoefficient.z * basis;
-
-                indexYZ += controlPointImageDim.x;
-            }
-        }
-        voxelPosition_array[tid]=position;
-
-        Tx_x /= c_ControlPointSpacing.x;
-        Ty_x /= c_ControlPointSpacing.x;
-        Tz_x /= c_ControlPointSpacing.x;
-        Tx_y /= c_ControlPointSpacing.y;
-        Ty_y /= c_ControlPointSpacing.y;
-        Tz_y /= c_ControlPointSpacing.y;
-        Tx_z /= c_ControlPointSpacing.z;
-        Ty_z /= c_ControlPointSpacing.z;
-        Tz_z /= c_ControlPointSpacing.z;
-
-        float Tx_x2=c_AffineMatrix0.x*Tx_x + c_AffineMatrix0.y*Ty_x + c_AffineMatrix0.z*Tz_x;
-        float Ty_x2=c_AffineMatrix0.x*Tx_y + c_AffineMatrix0.y*Ty_y + c_AffineMatrix0.z*Tz_y;
-        float Tz_x2=c_AffineMatrix0.x*Tx_z + c_AffineMatrix0.y*Ty_z + c_AffineMatrix0.z*Tz_z;
-
-        float Tx_y2=c_AffineMatrix1.x*Tx_x + c_AffineMatrix1.y*Ty_x + c_AffineMatrix1.z*Tz_x;
-        float Ty_y2=c_AffineMatrix1.x*Tx_y + c_AffineMatrix1.y*Ty_y + c_AffineMatrix1.z*Tz_y;
-        float Tz_y2=c_AffineMatrix1.x*Tx_z + c_AffineMatrix1.y*Ty_z + c_AffineMatrix1.z*Tz_z;
-
-        float Tx_z2=c_AffineMatrix2.x*Tx_x + c_AffineMatrix2.y*Ty_x + c_AffineMatrix2.z*Tz_x;
-        float Ty_z2=c_AffineMatrix2.x*Tx_y + c_AffineMatrix2.y*Ty_y + c_AffineMatrix2.z*Tz_y;
-        float Tz_z2=c_AffineMatrix2.x*Tx_z + c_AffineMatrix2.y*Ty_z + c_AffineMatrix2.z*Tz_z;
-
-        /* The Jacobian matrix is inverted and stored */
-        float det= Tx_x2*Ty_y2*Tz_z2
-                + Tx_y2*Ty_z2*Tz_x2
-                + Tx_z2*Ty_x2*Tz_y2
-                - Tx_x2*Ty_z2*Tz_y2
-                - Tx_y2*Ty_x2*Tz_z2
-                - Tx_z2*Ty_y2*Tz_x2;
-
-        jacobianDeterminant[tid]= det;
-
-        det = 1.f / det;
-        int id = 9*tid;
-        jacobianMatrices[id++] = det * (Ty_y2* Tz_z2 - Tz_y2*Ty_z2);
-        jacobianMatrices[id++] = det * (Tz_y2* Tx_z2 - Tx_y2*Tz_z2);
-        jacobianMatrices[id++] = det * (Tx_y2* Ty_z2 - Ty_y2*Tx_z2);
-
-        jacobianMatrices[id++] = det * (Tz_x2* Ty_z2 - Ty_x2*Tz_z2);
-        jacobianMatrices[id++] = det * (Tx_x2* Tz_z2 - Tz_x2*Tx_z2);
-        jacobianMatrices[id++] = det * (Ty_x2* Tx_z2 - Tx_x2*Ty_z2);
-
-        jacobianMatrices[id++] = det * (Ty_x2* Tz_y2 - Tz_x2*Ty_y2);
-        jacobianMatrices[id++] = det * (Tz_x2* Tx_y2 - Tx_x2*Tz_y2);
-        jacobianMatrices[id]  =  det * (Tx_x2* Ty_y2 - Ty_x2*Tx_y2);
-
-    }
-    return;
-}
-
-/* *************************************************************** */
-/* *************************************************************** */
-
-__global__ void reg_bspline_JacobianGradient_kernel(float4 *gradient)
-{
-    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
-    if(tid<c_ControlPointNumber){
-
-        int3 gridSize = c_ControlPointImageDim;
-
-        int tempIndex=tid;
         const int z =(int)(tempIndex/(gridSize.x*gridSize.y));
         tempIndex -= z*(gridSize.x)*(gridSize.y);
         const int y =(int)(tempIndex/(gridSize.x));
-        const int x = tempIndex - y*(gridSize.x) ;
+        const int x = tempIndex - y*(gridSize.x);
 
-        float3 jacobianConstraint=make_float3(0.0f,0.0f,0.0f);
-        float3 basisValues;
-        float3 basis;
-        float3 first;
-        float relative;
-        int pre;
+        float3 jacobianGradient=make_float3(0.f,0.f,0.f);
+        tempIndex=26;
+        for(int pixelZ=(int)(z-1); pixelZ<(int)(z+2); ++pixelZ){
+            if(pixelZ>0 && pixelZ<gridSize.z-1){
 
-        int3 targetSize = c_TargetImageDim;
-        float3 gridVoxelSpacing = c_ControlPointVoxelSpacing;
+                for(int pixelY=(int)(y-1); pixelY<(int)(y+2); ++pixelY){
+                    if(pixelY>0 && pixelY<gridSize.y-1){
 
-        // Loop over all the control points in the surrounding area
-        for(int pixelZ=(int)((z-3)*gridVoxelSpacing.z);pixelZ<(int)((z+1)*gridVoxelSpacing.z); pixelZ++){
-            if(pixelZ>-1 && pixelZ<targetSize.z){
+                        int jacIndex = (pixelZ*gridSize.y+pixelY)*gridSize.x+x-1;
+                        for(int pixelX=(int)(x-1); pixelX<(int)(x+2); ++pixelX){
+                            if(pixelX>0 && pixelX<gridSize.x-1){
 
-                pre=(int)((float)pixelZ/gridVoxelSpacing.z);
-                relative =(float)pixelZ/gridVoxelSpacing.z-(float)pre;
-                switch(z-pre){
-                    case 0:
-                        basis.z=(relative-1.0f)*(relative-1.0f)*(relative-1.0f)/6.0f;
-                        first.z=(2.0f*relative - relative*relative - 1.0f) / 2.0f;
-                        break;
-                    case 1:
-                        basis.z=(3.0f*relative*relative*relative - 6.0f*relative*relative + 4.0f)/6.0f;
-                        first.z=(3.0f*relative*relative - 4.0f*relative) / 2.0f;
-                        break;
-                    case 2:
-                        basis.z=(-3.0f*relative*relative*relative + 3.0f*relative*relative + 3.0f*relative + 1.0f)/6.0f;
-                        first.z=(-3.0f*relative*relative + 2.0f*relative + 1.0f) / 2.0f;
-                        break;
-                    case 3:
-                        basis.z=relative*relative*relative/6.0f;
-                        first.z=relative*relative/2.0f;
-                        break;
-                    default:
-                        basis.z=0.0f;
-                        first.z=0.0f;
-                        break;
-                }
-                for(int pixelY=(int)((y-3)*gridVoxelSpacing.y);pixelY<(int)((y+1)*gridVoxelSpacing.y); pixelY++){
-                    if(pixelY>-1 && pixelY<targetSize.y){
+                                float detJac = tex1Dfetch(jacobianDeterminantTexture,jacIndex);
 
-                        pre=(int)((float)pixelY/gridVoxelSpacing.y);
-                        relative =(float)pixelY/gridVoxelSpacing.y-(float)pre;
-                        switch(y-pre){
-                            case 0:
-                                basis.y=(relative-1.0f)*(relative-1.0f)*(relative-1.0f)/6.0f;
-                                first.y=(2.0f*relative - relative*relative - 1.0f) / 2.0f;
-                                break;
-                            case 1:
-                                basis.y=(3.0f*relative*relative*relative - 6.0f*relative*relative + 4.0f)/6.0f;
-                                first.y=(3.0f*relative*relative - 4.0f*relative) / 2.0f;
-                                break;
-                            case 2:
-                                basis.y=(-3.0f*relative*relative*relative + 3.0f*relative*relative + 3.0f*relative + 1.0f)/6.0f;
-                                first.y=(-3.0f*relative*relative + 2.0f*relative + 1.0f) / 2.0f;
-                                break;
-                            case 3:
-                                basis.y=relative*relative*relative/6.0f;
-                                first.y=relative*relative/2.0f;
-                                break;
-                            default:
-                                basis.y=0.0f;
-                                first.y=0.0f;
-                                break;
-                        }
-                        for(int pixelX=(int)((x-3)*gridVoxelSpacing.x);pixelX<(int)((x+1)*gridVoxelSpacing.x); pixelX++){
-                            if(pixelX>-1 && pixelX<targetSize.x){
+                                if(detJac>0.f){
+                                    detJac = 2.f*logf(detJac) / detJac;
+                                    float jacobianMatrix[9];
+                                    jacobianMatrix[0] = tex1Dfetch(jacobianMatricesTexture,jacIndex*9);
+                                    jacobianMatrix[1] = tex1Dfetch(jacobianMatricesTexture,jacIndex*9+1);
+                                    jacobianMatrix[2] = tex1Dfetch(jacobianMatricesTexture,jacIndex*9+2);
+                                    jacobianMatrix[3] = tex1Dfetch(jacobianMatricesTexture,jacIndex*9+3);
+                                    jacobianMatrix[4] = tex1Dfetch(jacobianMatricesTexture,jacIndex*9+4);
+                                    jacobianMatrix[5] = tex1Dfetch(jacobianMatricesTexture,jacIndex*9+5);
+                                    jacobianMatrix[6] = tex1Dfetch(jacobianMatricesTexture,jacIndex*9+6);
+                                    jacobianMatrix[7] = tex1Dfetch(jacobianMatricesTexture,jacIndex*9+7);
+                                    jacobianMatrix[8] = tex1Dfetch(jacobianMatricesTexture,jacIndex*9+8);
 
-                                pre=(int)((float)pixelX/gridVoxelSpacing.x);
-                                relative =(float)pixelX/gridVoxelSpacing.x-(float)pre;
-                                switch(x-pre){
-                                    case 0:
-                                        basis.x=(relative-1.0f)*(relative-1.0f)*(relative-1.0f)/6.0f;
-                                        first.x=(2.0f*relative - relative*relative - 1.0f) / 2.0f;
-                                        break;
-                                    case 1:
-                                        basis.x=(3.0f*relative*relative*relative - 6.0f*relative*relative + 4.0f)/6.0f;
-                                        first.x=(3.0f*relative*relative - 4.0f*relative) / 2.0f;
-                                        break;
-                                    case 2:
-                                        basis.x=(-3.0f*relative*relative*relative + 3.0f*relative*relative + 3.0f*relative + 1.0f)/6.0f;
-                                        first.x=(-3.0f*relative*relative + 2.0f*relative + 1.0f) / 2.0f;
-                                        break;
-                                    case 3:
-                                        basis.x=relative*relative*relative/6.0f;
-                                        first.x=relative*relative/2.0f;
-                                        break;
-                                    default:
-                                        basis.x=0.0f;
-                                        first.x=0.0f;
-                                        break;
+                                    getJacobianGradientValues(jacobianMatrix,
+                                                              detJac,
+                                                              xbasis[tempIndex],
+                                                              ybasis[tempIndex],
+                                                              zbasis[tempIndex],
+                                                              &jacobianGradient);
                                 }
-                                basisValues.x = first.x * basis.y * basis.z;
-                                basisValues.y = basis.x * first.y * basis.z;
-                                basisValues.z = basis.x * basis.y * first.z;
-
-                                int storageIndex =(pixelZ*targetSize.y+pixelY)*targetSize.x+pixelX;
-                                float jacDeterminant = tex1Dfetch(jacobianDeterminantTexture,storageIndex);
-                                if(jacDeterminant>0) jacDeterminant = 2.f * log(jacDeterminant);
-                                storageIndex *= 9;
-                                jacobianConstraint.x += jacDeterminant
-                                    * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.x
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.y
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.z);
-                                jacobianConstraint.y += jacDeterminant
-                                    * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.x
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.y
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.z);
-                                jacobianConstraint.z += jacDeterminant
-                                    * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.x
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.y
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex)*basisValues.z);
                             }
+                            jacIndex++;
+                            tempIndex--;
                         }
                     }
+                    else tempIndex-=3;
                 }
             }
+            else tempIndex-=9;
         }
         gradient[tid] = gradient[tid] + make_float4(c_Weight
-                                                    * (c_AffineMatrix0.x *jacobianConstraint.x
-                                                    + c_AffineMatrix0.y *jacobianConstraint.y
-                                                    + c_AffineMatrix0.z *jacobianConstraint.z),
+                                                    * (c_AffineMatrix0.x * jacobianGradient.x
+                                                       + c_AffineMatrix0.y * jacobianGradient.y
+                                                       + c_AffineMatrix0.z * jacobianGradient.z),
                                                     c_Weight
-                                                    * (c_AffineMatrix1.x *jacobianConstraint.x
-                                                    + c_AffineMatrix1.y *jacobianConstraint.y
-                                                    + c_AffineMatrix1.z *jacobianConstraint.z),
+                                                    * (c_AffineMatrix1.x * jacobianGradient.x
+                                                       + c_AffineMatrix1.y * jacobianGradient.y
+                                                       + c_AffineMatrix1.z * jacobianGradient.z),
                                                     c_Weight
-                                                    * (c_AffineMatrix2.x *jacobianConstraint.x
-                                                    + c_AffineMatrix2.y *jacobianConstraint.y
-                                                    + c_AffineMatrix2.z *jacobianConstraint.z),
-                                                    0.0f);
+                                                    * (c_AffineMatrix2.x * jacobianGradient.x
+                                                       + c_AffineMatrix2.y * jacobianGradient.y
+                                                       + c_AffineMatrix2.z * jacobianGradient.z),
+                                                    0.f);
+
     }
 }
-
 /* *************************************************************** */
-/* *************************************************************** */
-
-__global__ void reg_bspline_ApproxJacobianGradient_kernel(float4 *gradient)
+__global__ void reg_bspline_computeJacGradient_kernel(float4 *gradient)
 {
-    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_ControlPointNumber){
 
         int3 gridSize = c_ControlPointImageDim;
 
         int tempIndex=tid;
-        const int z =(int)(tempIndex/(gridSize.x*gridSize.y));
-        tempIndex -= z*(gridSize.x)*(gridSize.y);
-        const int y =(int)(tempIndex/(gridSize.x));
-        const int x = tempIndex - y*(gridSize.x) ;
+        const int z = tempIndex/(gridSize.x*gridSize.y);
+        tempIndex  -= z*gridSize.x*gridSize.y;
+        const int y = tempIndex/gridSize.x;
+        const int x = tempIndex - y*gridSize.x;
 
-        float3 jacobianConstraint=make_float3(0.0f,0.0f,0.0f);
-        float3 basisValues;
-        float3 basis;
-        float3 first;
+        float3 jacobianGradient=make_float3(0.f,0.f,0.f);
 
-        // Loop over all the control points in the surrounding area
-        for(int pixelZ=(z-1);pixelZ<(z+2); pixelZ++){
+        float3 spacingVoxel = c_ControlPointVoxelSpacing;
+
+        for(int pixelZ=(int)ceilf((z-3)*spacingVoxel.z);
+            pixelZ<=(int)ceilf((z+1)*spacingVoxel.z);
+            ++pixelZ){
+            if(pixelZ>-1 && pixelZ<c_ReferenceImageDim.z){
+
+                int zPre = (int)(pixelZ/spacingVoxel.z);
+                float basis = (float)pixelZ/spacingVoxel.z - (float)zPre;
+                float zBasis, zFirst;
+                getBSplineBasisValue(basis,z-zPre,&zBasis,&zFirst);
+
+                for(int pixelY=(int)ceilf((y-3)*spacingVoxel.y);
+                    pixelY<=(int)ceilf((y+1)*spacingVoxel.y);
+                    ++pixelY){
+                    if(pixelY>-1 && pixelY<c_ReferenceImageDim.y && (zFirst!=0.f || zBasis!=0.f)){
+
+                        int yPre = (int)(pixelY/spacingVoxel.y);
+                        basis = (float)pixelY/spacingVoxel.y - (float)yPre;
+                        float yBasis, yFirst;
+                        getBSplineBasisValue(basis,y-yPre,&yBasis,&yFirst);
+
+                        for(int pixelX=(int)ceilf((x-3)*spacingVoxel.x);
+                            pixelX<=(int)ceilf((x+1)*spacingVoxel.x);
+                            ++pixelX){
+                            if(pixelX>-1 && pixelX<c_ReferenceImageDim.x && (yFirst!=0.f || yBasis!=0.f)){
+
+                                int xPre = (int)(pixelX/spacingVoxel.x);
+                                basis = (float)pixelX/spacingVoxel.x - (float)xPre;
+                                float xBasis, xFirst;
+                                getBSplineBasisValue(basis,x-xPre,&xBasis,&xFirst);
+
+                                int jacIndex = (pixelZ*c_ReferenceImageDim.y+pixelY)*c_ReferenceImageDim.x + pixelX;
+
+                                float detJac = tex1Dfetch(jacobianDeterminantTexture,jacIndex);
+
+                                if(detJac>0.f && (xFirst!=0.f || xBasis!=0.f)){
+                                    detJac = 2.f*logf(detJac) / detJac;
+                                    float jacobianMatrix[9];
+                                    jacIndex *= 9;
+                                    jacobianMatrix[0] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[1] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[2] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[3] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[4] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[5] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[6] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[7] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[8] = tex1Dfetch(jacobianMatricesTexture,jacIndex);
+
+                                    float3 basisValues = make_float3(
+                                            xFirst*yBasis*zBasis,
+                                            xBasis*yFirst*zBasis,
+                                            xBasis*yBasis*zFirst);
+                                    getJacobianGradientValues(jacobianMatrix,
+                                                              detJac,
+                                                              basisValues.x,
+                                                              basisValues.y,
+                                                              basisValues.z,
+                                                              &jacobianGradient);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        gradient[tid] = gradient[tid] + make_float4(
+                        c_Weight
+                        * (c_AffineMatrix0.x * jacobianGradient.x
+                           + c_AffineMatrix0.y * jacobianGradient.y
+                           + c_AffineMatrix0.z * jacobianGradient.z),
+                        c_Weight
+                        * (c_AffineMatrix1.x * jacobianGradient.x
+                           + c_AffineMatrix1.y * jacobianGradient.y
+                           + c_AffineMatrix1.z * jacobianGradient.z),
+                        c_Weight
+                        * (c_AffineMatrix2.x * jacobianGradient.x
+                           + c_AffineMatrix2.y * jacobianGradient.y
+                           + c_AffineMatrix2.z * jacobianGradient.z),
+                        0.f);
+   }
+}
+/* *************************************************************** */
+__global__ void reg_bspline_approxCorrectFolding_kernel(float4 *controlPointGrid_d)
+{
+    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    if(tid<c_ControlPointNumber){
+
+        int3 gridSize = c_ControlPointImageDim;
+
+        unsigned int tempIndex=tid;
+        const int z = tempIndex/(gridSize.x*gridSize.y);
+        tempIndex  -= z*gridSize.x*gridSize.y;
+        const int y = tempIndex/gridSize.x;
+        const int x = tempIndex - y*gridSize.x;
+
+        float3 foldingCorrection=make_float3(0.f,0.f,0.f);
+        for(int pixelZ=(int)(z-1); pixelZ<(int)(z+2); ++pixelZ){
             if(pixelZ>0 && pixelZ<gridSize.z-1){
 
-                switch(pixelZ-z){
-                    case -1:
-                        basis.z=0.1666667f;
-                        first.z=0.5f;
-                        break;
-                    case 0:
-                        basis.z=0.6666667f;
-                        first.z=0.0f;
-                        break;
-                    case 1:
-                        basis.z=0.1666667f;
-                        first.z=-0.5f;
-                        break;
-                    default:
-                        basis.z=0.0f;
-                        first.z=0.0f;
-                        break;
-                }
-                for(int pixelY=(y-1);pixelY<(y+2); pixelY++){
+                for(int pixelY=(int)(y-1); pixelY<(int)(y+2); ++pixelY){
                     if(pixelY>0 && pixelY<gridSize.y-1){
 
-                        switch(pixelY-y){
-                            case -1:
-                                basis.y=0.1666667f;
-                                first.y=0.5f;
-                                break;
-                            case 0:
-                                basis.y=0.6666667f;
-                                first.y=0.0f;
-                                break;
-                            case 1:
-                                basis.y=0.1666667f;
-                                first.y=-0.5f;
-                                break;
-                            default:
-                                basis.y=0.0f;
-                                first.y=0.0f;
-                                break;
-                        }
-                        for(int pixelX=(x-1);pixelX<(x+2); pixelX++){
+                        for(int pixelX=(int)(x-1); pixelX<(int)(x+2); ++pixelX){
                             if(pixelX>0 && pixelX<gridSize.x-1){
 
-                                switch(pixelX-x){
-                                    case -1:
-                                        basis.x=0.1666667f;
-                                        first.x=0.5f;
-                                        break;
-                                    case 0:
-                                        basis.x=0.6666667f;
-                                        first.x=0.0f;
-                                        break;
-                                    case 1:
-                                        basis.x=0.1666667f;
-                                        first.x=-0.5f;
-                                        break;
-                                    default:
-                                        basis.x=0.0f;
-                                        first.x=0.0f;
-                                        break;
-                                }
-                                basisValues.x = first.x * basis.y * basis.z;
-                                basisValues.y = basis.x * first.y * basis.z;
-                                basisValues.z = basis.x * basis.y * first.z;
+                                int jacIndex = (pixelZ*gridSize.y+pixelY)*gridSize.x+pixelX;
+                                float detJac = tex1Dfetch(jacobianDeterminantTexture,jacIndex);
 
-                                int storageIndex = ((pixelZ-1)*(gridSize.y-2)+pixelY-1)*(gridSize.x-2)+pixelX-1;
-                                float jacDeterminant = tex1Dfetch(jacobianDeterminantTexture,storageIndex);
-                                if(jacDeterminant>0) jacDeterminant = 2.f * log(jacDeterminant);
-                                storageIndex *= 9;
-                                jacobianConstraint.x += jacDeterminant
-                                    * (tex1Dfetch(jacobianMatricesTexture,storageIndex)*basisValues.x
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+1)*basisValues.y
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+2)*basisValues.z);
-                                jacobianConstraint.y += jacDeterminant
-                                    * (tex1Dfetch(jacobianMatricesTexture,storageIndex+3)*basisValues.x
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+4)*basisValues.y
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+5)*basisValues.z);
-                                jacobianConstraint.z += jacDeterminant
-                                    * (tex1Dfetch(jacobianMatricesTexture,storageIndex+6)*basisValues.x
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+7)*basisValues.y
-                                    +  tex1Dfetch(jacobianMatricesTexture,storageIndex+8)*basisValues.z);
+                                if(detJac<=0.f){
+
+                                    float jacobianMatrix[9];
+                                    jacIndex*=9;
+                                    jacobianMatrix[0] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[1] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[2] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[3] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[4] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[5] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[6] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[7] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[8] = tex1Dfetch(jacobianMatricesTexture,jacIndex);
+
+                                    float xBasis, xFirst, yBasis, yFirst, zBasis, zFirst;
+                                    getBSplineBasisValue(0.f,x-pixelX+1,&xBasis,&xFirst);
+                                    getBSplineBasisValue(0.f,y-pixelY+1,&yBasis,&yFirst);
+                                    getBSplineBasisValue(0.f,z-pixelZ+1,&zBasis,&zFirst);
+
+                                    float3 basisValue = make_float3(
+                                            xFirst*yBasis*zBasis,
+                                            xBasis*yFirst*zBasis,
+                                            xBasis*yBasis*zFirst);
+
+                                    getJacobianGradientValues(jacobianMatrix,
+                                                              1.f,
+                                                              basisValue.x,
+                                                              basisValue.y,
+                                                              basisValue.z,
+                                                              &foldingCorrection);
+                                }
                             }
                         }
                     }
                 }
             }
         }
-        gradient[tid] = gradient[tid]
-            + make_float4(c_Weight
-            * (c_AffineMatrix0.x *jacobianConstraint.x
-            + c_AffineMatrix0.y *jacobianConstraint.y
-            + c_AffineMatrix0.z *jacobianConstraint.z),
-            c_Weight
-            * (c_AffineMatrix1.x *jacobianConstraint.x
-            + c_AffineMatrix1.y *jacobianConstraint.y
-            + c_AffineMatrix1.z *jacobianConstraint.z),
-            c_Weight
-            * (c_AffineMatrix2.x *jacobianConstraint.x
-            + c_AffineMatrix2.y *jacobianConstraint.y
-            + c_AffineMatrix2.z *jacobianConstraint.z),
-            0.0f);
+        if(foldingCorrection.x!=0.f && foldingCorrection.y!=0.f && foldingCorrection.z!=0.f){
+            float3 gradient = make_float3(
+                c_AffineMatrix0.x * foldingCorrection.x
+                + c_AffineMatrix0.y * foldingCorrection.y
+                + c_AffineMatrix0.z * foldingCorrection.z,
+                c_AffineMatrix1.x * foldingCorrection.x
+               + c_AffineMatrix1.y * foldingCorrection.y
+               + c_AffineMatrix1.z * foldingCorrection.z,
+               c_AffineMatrix2.x * foldingCorrection.x
+               + c_AffineMatrix2.y * foldingCorrection.y
+               + c_AffineMatrix2.z * foldingCorrection.z);
+
+            float norm = 5.f * sqrtf(gradient.x*gradient.x
+                                     + gradient.y*gradient.y
+                                     + gradient.z*gradient.z);
+            controlPointGrid_d[tid] = controlPointGrid_d[tid] +
+                                      make_float4(gradient.x*c_ControlPointSpacing.x/norm,
+                                                  gradient.y*c_ControlPointSpacing.y/norm,
+                                                  gradient.z*c_ControlPointSpacing.z/norm,
+                                                  0.f);
+        }
     }
 }
 /* *************************************************************** */
-/* *************************************************************** */
-
-__global__ void reg_bspline_CorrectFolding_kernel(float4 *controlPointArray)
+__global__ void reg_bspline_correctFolding_kernel(float4 *controlPointGrid_d)
 {
-    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
     if(tid<c_ControlPointNumber){
 
         int3 gridSize = c_ControlPointImageDim;
 
-        int tempIndex=tid;
-        const int z =(int)(tempIndex/(gridSize.x*gridSize.y));
-        tempIndex -= z*(gridSize.x)*(gridSize.y);
-        const int y =(int)(tempIndex/(gridSize.x));
-        const int x = tempIndex - y*(gridSize.x) ;
+        unsigned int tempIndex=tid;
+        const int z = tempIndex/(gridSize.x*gridSize.y);
+        tempIndex  -= z*gridSize.x*gridSize.y;
+        const int y = tempIndex/gridSize.x;
+        const int x = tempIndex - y*gridSize.x;
 
-        float3 jacobianConstraint=make_float3(0.0f,0.0f,0.0f);
-        float3 basisValues;
-        float3 basis;
-        float3 first;
-        float relative;
-        int pre;
+        float3 spacingVoxel = c_ControlPointVoxelSpacing;
+        float3 foldingCorrection=make_float3(0.f,0.f,0.f);
 
-        int3 targetSize = c_TargetImageDim;
-        float3 gridVoxelSpacing = c_ControlPointVoxelSpacing;
+        for(int pixelZ=(int)ceilf((z-3)*spacingVoxel.z);
+            pixelZ<(int)ceilf((z+1)*spacingVoxel.z);
+            ++pixelZ){
+            if(pixelZ>-1 && pixelZ<c_ReferenceImageDim.z){
 
-        // Loop over all the control points in the surrounding area
-        for(int pixelZ=(int)((z-2)*gridVoxelSpacing.z);pixelZ<(int)((z)*gridVoxelSpacing.z); pixelZ++){
-            if(pixelZ>-1 && pixelZ<targetSize.z){
+                for(int pixelY=(int)ceilf((y-3)*spacingVoxel.y);
+                    pixelY<(int)ceilf((y+1)*spacingVoxel.y);
+                    ++pixelY){
+                    if(pixelY>-1 && pixelY<c_ReferenceImageDim.y){
 
-                pre=(int)((float)pixelZ/gridVoxelSpacing.z);
-                relative =(float)pixelZ/gridVoxelSpacing.z-(float)pre;
-                switch(z-pre){
-                    case 0:
-                        basis.z=(relative-1.0f)*(relative-1.0f)*(relative-1.0f)/6.0f;
-                        first.z=(2.0f*relative - relative*relative - 1.0f) / 2.0f;
-                        break;
-                    case 1:
-                        basis.z=(3.0f*relative*relative*relative - 6.0f*relative*relative + 4.0f)/6.0f;
-                        first.z=(3.0f*relative*relative - 4.0f*relative) / 2.0f;
-                        break;
-                    case 2:
-                        basis.z=(-3.0f*relative*relative*relative + 3.0f*relative*relative + 3.0f*relative + 1.0f)/6.0f;
-                        first.z=(-3.0f*relative*relative + 2.0f*relative + 1.0f) / 2.0f;
-                        break;
-                    case 3:
-                        basis.z=relative*relative*relative/6.0f;
-                        first.z=relative*relative/2.0f;
-                        break;
-                    default:
-                        basis.z=0.0f;
-                        first.z=0.0f;
-                        break;
-                }
-                for(int pixelY=(int)((y-2)*gridVoxelSpacing.y);pixelY<(int)((y)*gridVoxelSpacing.y); pixelY++){
-                    if(pixelY>-1 && pixelY<targetSize.y){
+                        for(int pixelX=(int)ceilf((x-3)*spacingVoxel.x);
+                            pixelX<(int)ceilf((x+1)*spacingVoxel.x);
+                            ++pixelX){
+                            if(pixelX>-1 && pixelX<c_ReferenceImageDim.x){
 
-                        pre=(int)((float)pixelY/gridVoxelSpacing.y);
-                        relative =(float)pixelY/gridVoxelSpacing.y-(float)pre;
-                        switch(y-pre){
-                            case 0:
-                                basis.y=(relative-1.0f)*(relative-1.0f)*(relative-1.0f)/6.0f;
-                                first.y=(2.0f*relative - relative*relative - 1.0f) / 2.0f;
-                                break;
-                            case 1:
-                                basis.y=(3.0f*relative*relative*relative - 6.0f*relative*relative + 4.0f)/6.0f;
-                                first.y=(3.0f*relative*relative - 4.0f*relative) / 2.0f;
-                                break;
-                            case 2:
-                                basis.y=(-3.0f*relative*relative*relative + 3.0f*relative*relative + 3.0f*relative + 1.0f)/6.0f;
-                                first.y=(-3.0f*relative*relative + 2.0f*relative + 1.0f) / 2.0f;
-                                break;
-                            case 3:
-                                basis.y=relative*relative*relative/6.0f;
-                                first.y=relative*relative/2.0f;
-                                break;
-                            default:
-                                basis.y=0.0f;
-                                first.y=0.0f;
-                                break;
-                        }
-                        for(int pixelX=(int)((x-2)*gridVoxelSpacing.x);pixelX<(int)((x)*gridVoxelSpacing.x); pixelX++){
-                            if(pixelX>-1 && pixelX<targetSize.x){
+                                int jacIndex = (pixelZ*c_ReferenceImageDim.y+pixelY)*c_ReferenceImageDim.x+pixelX;
+                                float detJac = tex1Dfetch(jacobianDeterminantTexture,jacIndex);
 
-                                pre=(int)((float)pixelX/gridVoxelSpacing.x);
-                                relative =(float)pixelX/gridVoxelSpacing.x-(float)pre;
-                                switch(x-pre){
-                                    case 0:
-                                        basis.x=(relative-1.0f)*(relative-1.0f)*(relative-1.0f)/6.0f;
-                                        first.x=(2.0f*relative - relative*relative - 1.0f) / 2.0f;
-                                        break;
-                                    case 1:
-                                        basis.x=(3.0f*relative*relative*relative - 6.0f*relative*relative + 4.0f)/6.0f;
-                                        first.x=(3.0f*relative*relative - 4.0f*relative) / 2.0f;
-                                        break;
-                                    case 2:
-                                        basis.x=(-3.0f*relative*relative*relative + 3.0f*relative*relative + 3.0f*relative + 1.0f)/6.0f;
-                                        first.x=(-3.0f*relative*relative + 2.0f*relative + 1.0f) / 2.0f;
-                                        break;
-                                    case 3:
-                                        basis.x=relative*relative*relative/6.0f;
-                                        first.x=relative*relative/2.0f;
-                                        break;
-                                    default:
-                                        basis.x=0.0f;
-                                        first.x=0.0f;
-                                        break;
-                                }
-                                basisValues.x = first.x * basis.y * basis.z;
-                                basisValues.y = basis.x * first.y * basis.z;
-                                basisValues.z = basis.x * basis.y * first.z;
+                                if(detJac<=0.f){
 
-                                int storageIndex =(pixelZ*targetSize.y+pixelY)*targetSize.x+pixelX;
-                                float jacDeterminant = tex1Dfetch(jacobianDeterminantTexture,storageIndex);
-                                if(jacDeterminant<=0){
-                                    storageIndex *= 9;
-                                    jacobianConstraint.x += jacDeterminant
-                                        * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.x
-                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.y
-                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.z);
-                                    jacobianConstraint.y += jacDeterminant
-                                        * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.x
-                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.y
-                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.z);
-                                    jacobianConstraint.z += jacDeterminant
-                                        * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.x
-                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.y
-                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex)*basisValues.z);
+                                    float jacobianMatrix[9];
+                                    jacIndex*=9;
+                                    jacobianMatrix[0] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[1] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[2] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[3] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[4] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[5] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[6] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[7] = tex1Dfetch(jacobianMatricesTexture,jacIndex++);
+                                    jacobianMatrix[8] = tex1Dfetch(jacobianMatricesTexture,jacIndex);
+
+                                    float xBasis, xFirst, yBasis, yFirst, zBasis, zFirst;
+                                    int pre=(int)((float)pixelX/spacingVoxel.x);
+                                    float basis=(float)pixelX/spacingVoxel.x-(float)pre;
+                                    getBSplineBasisValue(basis,x-pre,&xBasis,&xFirst);
+                                    pre=(int)((float)pixelY/spacingVoxel.y);
+                                    basis=(float)pixelY/spacingVoxel.y-(float)pre;
+                                    getBSplineBasisValue(basis,y-pre,&yBasis,&yFirst);
+                                    pre=(int)((float)pixelZ/spacingVoxel.z);
+                                    basis=(float)pixelZ/spacingVoxel.z-(float)pre;
+                                    getBSplineBasisValue(basis,z-pre,&zBasis,&zFirst);
+
+                                    float3 basisValue = make_float3(
+                                            xFirst*yBasis*zBasis,
+                                            xBasis*yFirst*zBasis,
+                                            xBasis*yBasis*zFirst);
+
+                                    getJacobianGradientValues(jacobianMatrix,
+                                                              1.f,
+                                                              basisValue.x,
+                                                              basisValue.y,
+                                                              basisValue.z,
+                                                              &foldingCorrection);
                                 }
                             }
                         }
@@ -1962,749 +1152,28 @@ __global__ void reg_bspline_CorrectFolding_kernel(float4 *controlPointArray)
                 }
             }
         }
-        float norm = sqrt(  jacobianConstraint.x*jacobianConstraint.x
-                          + jacobianConstraint.y*jacobianConstraint.y
-                          + jacobianConstraint.z*jacobianConstraint.z);
-        if(norm>0.f){
-            controlPointArray[tid] = controlPointArray[tid] + make_float4(
-                                                            (c_ControlPointSpacing.x
-                                                            * c_AffineMatrix0.x * jacobianConstraint.x
-                                                            + c_AffineMatrix0.y * jacobianConstraint.y
-                                                            + c_AffineMatrix0.z * jacobianConstraint.z)
-                                                            / norm,
-                                                            (c_ControlPointSpacing.y
-                                                            * c_AffineMatrix1.x * jacobianConstraint.x
-                                                            + c_AffineMatrix1.y * jacobianConstraint.y
-                                                            + c_AffineMatrix1.z * jacobianConstraint.z)
-                                                            / norm,
-                                                            (c_ControlPointSpacing.z
-                                                            * c_AffineMatrix2.x * jacobianConstraint.x
-                                                            + c_AffineMatrix2.y * jacobianConstraint.y
-                                                            + c_AffineMatrix2.z * jacobianConstraint.z)
-                                                            / norm,
-                                                            0.0f);
+        if(foldingCorrection.x!=0.f && foldingCorrection.y!=0.f && foldingCorrection.z!=0.f){
+            float3 gradient = make_float3(
+                c_AffineMatrix0.x * foldingCorrection.x
+                + c_AffineMatrix0.y * foldingCorrection.y
+                + c_AffineMatrix0.z * foldingCorrection.z,
+                c_AffineMatrix1.x * foldingCorrection.x
+               + c_AffineMatrix1.y * foldingCorrection.y
+               + c_AffineMatrix1.z * foldingCorrection.z,
+               c_AffineMatrix2.x * foldingCorrection.x
+               + c_AffineMatrix2.y * foldingCorrection.y
+               + c_AffineMatrix2.z * foldingCorrection.z);
+
+            float norm = 5.f * sqrtf(gradient.x*gradient.x
+                                     + gradient.y*gradient.y
+                                     + gradient.z*gradient.z);
+            controlPointGrid_d[tid] = controlPointGrid_d[tid] +
+                                      make_float4(gradient.x*c_ControlPointSpacing.x/norm,
+                                                  gradient.y*c_ControlPointSpacing.y/norm,
+                                                  gradient.z*c_ControlPointSpacing.z/norm,
+                                                  0.f);
         }
     }
 }
-
-/* *************************************************************** */
-/* *************************************************************** */
-
-__global__ void reg_bspline_ApproxCorrectFolding_kernel(float4 *controlPointArray)
-{
-    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
-    if(tid<c_ControlPointNumber){
-
-        int3 gridSize = c_ControlPointImageDim;
-
-        int tempIndex=tid;
-        const int z =(int)(tempIndex/(gridSize.x*gridSize.y));
-        tempIndex -= z*(gridSize.x)*(gridSize.y);
-        const int y =(int)(tempIndex/(gridSize.x));
-        const int x = tempIndex - y*(gridSize.x) ;
-
-        float3 jacobianConstraint=make_float3(0.0f,0.0f,0.0f);
-        float3 basisValues;
-        float3 basis;
-        float3 first;
-
-        // Loop over all the control points in the surrounding area
-        for(int pixelZ=(z-1);pixelZ<(z+2); pixelZ++){
-            if(pixelZ>0 && pixelZ<gridSize.z-1){
-
-                switch(pixelZ-z){
-                    case -1:
-                        basis.z=0.1666667f;
-                        first.z=0.5f;
-                        break;
-                    case 0:
-                        basis.z=0.6666667f;
-                        first.z=0.0f;
-                        break;
-                    case 1:
-                        basis.z=0.1666667f;
-                        first.z=-0.5f;
-                        break;
-                    default:
-                        basis.z=0.0f;
-                        first.z=0.0f;
-                        break;
-                }
-                for(int pixelY=(y-1);pixelY<(y+2); pixelY++){
-                    if(pixelY>0 && pixelY<gridSize.y-1){
-
-                        switch(pixelY-y){
-                            case -1:
-                                basis.y=0.1666667f;
-                                first.y=0.5f;
-                                break;
-                            case 0:
-                                basis.y=0.6666667f;
-                                first.y=0.0f;
-                                break;
-                            case 1:
-                                basis.y=0.1666667f;
-                                first.y=-0.5f;
-                                break;
-                            default:
-                                basis.y=0.0f;
-                                first.y=0.0f;
-                                break;
-                        }
-                        for(int pixelX=(x-1);pixelX<(x+2); pixelX++){
-                            if(pixelX>0 && pixelX<gridSize.x-1){
-
-                                switch(pixelX-x){
-                                    case -1:
-                                        basis.x=0.1666667f;
-                                        first.x=0.5f;
-                                        break;
-                                    case 0:
-                                        basis.x=0.6666667f;
-                                        first.x=0.0f;
-                                        break;
-                                    case 1:
-                                        basis.x=0.1666667f;
-                                        first.x=-0.5f;
-                                        break;
-                                    default:
-                                        basis.x=0.0f;
-                                        first.x=0.0f;
-                                        break;
-                                }
-                                basisValues.x = first.x * basis.y * basis.z;
-                                basisValues.y = basis.x * first.y * basis.z;
-                                basisValues.z = basis.x * basis.y * first.z;
-
-                                int storageIndex = ((pixelZ-1)*(gridSize.y-2)+pixelY-1)*(gridSize.x-2)+pixelX-1;
-                                float jacDeterminant = tex1Dfetch(jacobianDeterminantTexture,storageIndex);
-                                if(jacDeterminant<=0){
-                                    storageIndex *= 9;
-                                    jacobianConstraint.x += jacDeterminant
-                                        * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.x
-                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.y
-                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.z);
-                                    jacobianConstraint.y += jacDeterminant
-                                        * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.x
-                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.y
-                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex+5)*basisValues.z);
-                                    jacobianConstraint.z += jacDeterminant
-                                        * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.x
-                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.y
-                                        +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*basisValues.z);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        float norm = sqrt(  jacobianConstraint.x*jacobianConstraint.x
-                          + jacobianConstraint.y*jacobianConstraint.y
-                          + jacobianConstraint.z*jacobianConstraint.z);
-        if(norm>0){
-            controlPointArray[tid] = controlPointArray[tid] + make_float4(
-                                                            (c_ControlPointSpacing.x
-                                                            * c_AffineMatrix0.x *jacobianConstraint.x
-                                                            + c_AffineMatrix0.y *jacobianConstraint.y
-                                                            + c_AffineMatrix0.z *jacobianConstraint.z)
-                                                            / norm,
-                                                            (c_ControlPointSpacing.y
-                                                            * c_AffineMatrix1.x *jacobianConstraint.x
-                                                            + c_AffineMatrix1.y *jacobianConstraint.y
-                                                            + c_AffineMatrix1.z *jacobianConstraint.z)
-                                                            / norm,
-                                                            (c_ControlPointSpacing.z
-                                                            * c_AffineMatrix2.x *jacobianConstraint.x
-                                                            + c_AffineMatrix2.y *jacobianConstraint.y
-                                                            + c_AffineMatrix2.z *jacobianConstraint.z)
-                                                            / norm,
-                                                            0.0f);
-        }
-    }
-}
-
-/* *************************************************************** */
-/* *************************************************************** */
-
-__global__ void reg_bspline_storeApproxBendingEnergy_kernel(float3 *beValues)
-{
-	const int tid= blockIdx.x*blockDim.x + threadIdx.x;
-	if(tid<c_ControlPointNumber){
-
-		int3 gridSize = c_ControlPointImageDim;
-
-		int tempIndex=tid;
-		const short z =(int)(tempIndex/(gridSize.x*gridSize.y));
-		tempIndex -= z*(gridSize.x)*(gridSize.y);
-		const short y =(int)(tempIndex/(gridSize.x));
-		const short x = tempIndex - y*(gridSize.x);
-
-		if(	0<x && x<gridSize.x-1 &&
-			0<y && y<gridSize.y-1 &&
-			0<z && z<gridSize.z-1){
-
-			float3 XX = make_float3(0.0f,0.0f,0.0f);
-			float3 YY = make_float3(0.0f,0.0f,0.0f);
-			float3 ZZ = make_float3(0.0f,0.0f,0.0f);
-			float3 XY = make_float3(0.0f,0.0f,0.0f);
-			float3 YZ = make_float3(0.0f,0.0f,0.0f);
-			float3 XZ = make_float3(0.0f,0.0f,0.0f);
-
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.027778f,0.027778f,0.027778f,0.041667f,0.041667f,0.041667f,((z-1)*gridSize.y+y-1)*gridSize.x+x-1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,-0.055556f,0.111111f,0.111111f,-0.000000f,0.166667f,-0.000000f,((z-1)*gridSize.y+y-1)*gridSize.x+x);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.027778f,0.027778f,0.027778f,-0.041667f,0.041667f,-0.041667f,((z-1)*gridSize.y+y-1)*gridSize.x+x+1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.111111f,-0.055556f,0.111111f,-0.000000f,-0.000000f,0.166667f,((z-1)*gridSize.y+y)*gridSize.x+x-1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,-0.222222f,-0.222222f,0.444444f,0.000000f,-0.000000f,-0.000000f,((z-1)*gridSize.y+y)*gridSize.x+x);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.111111f,-0.055556f,0.111111f,0.000000f,-0.000000f,-0.166667f,((z-1)*gridSize.y+y)*gridSize.x+x+1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.027778f,0.027778f,0.027778f,-0.041667f,-0.041667f,0.041667f,((z-1)*gridSize.y+y+1)*gridSize.x+x-1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,-0.055556f,0.111111f,0.111111f,0.000000f,-0.166667f,-0.000000f,((z-1)*gridSize.y+y+1)*gridSize.x+x);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.027778f,0.027778f,0.027778f,0.041667f,-0.041667f,-0.041667f,((z-1)*gridSize.y+y+1)*gridSize.x+x+1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.111111f,0.111111f,-0.055556f,0.166667f,-0.000000f,-0.000000f,((z)*gridSize.y+y-1)*gridSize.x+x-1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,-0.222222f,0.444444f,-0.222222f,-0.000000f,-0.000000f,0.000000f,((z)*gridSize.y+y-1)*gridSize.x+x);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.111111f,0.111111f,-0.055556f,-0.166667f,-0.000000f,0.000000f,((z)*gridSize.y+y-1)*gridSize.x+x+1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.444444f,-0.222222f,-0.222222f,-0.000000f,0.000000f,-0.000000f,((z)*gridSize.y+y)*gridSize.x+x-1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,-0.888889f,-0.888889f,-0.888889f,0.000000f,0.000000f,0.000000f,((z)*gridSize.y+y)*gridSize.x+x);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.444444f,-0.222222f,-0.222222f,0.000000f,0.000000f,0.000000f,((z)*gridSize.y+y)*gridSize.x+x+1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.111111f,0.111111f,-0.055556f,-0.166667f,0.000000f,-0.000000f,((z)*gridSize.y+y+1)*gridSize.x+x-1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,-0.222222f,0.444444f,-0.222222f,0.000000f,0.000000f,0.000000f,((z)*gridSize.y+y+1)*gridSize.x+x);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.111111f,0.111111f,-0.055556f,0.166667f,0.000000f,0.000000f,((z)*gridSize.y+y+1)*gridSize.x+x+1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.027778f,0.027778f,0.027778f,0.041667f,-0.041667f,-0.041667f,((z+1)*gridSize.y+y-1)*gridSize.x+x-1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,-0.055556f,0.111111f,0.111111f,-0.000000f,-0.166667f,0.000000f,((z+1)*gridSize.y+y-1)*gridSize.x+x);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.027778f,0.027778f,0.027778f,-0.041667f,-0.041667f,0.041667f,((z+1)*gridSize.y+y-1)*gridSize.x+x+1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.111111f,-0.055556f,0.111111f,-0.000000f,0.000000f,-0.166667f,((z+1)*gridSize.y+y)*gridSize.x+x-1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,-0.222222f,-0.222222f,0.444444f,0.000000f,0.000000f,0.000000f,((z+1)*gridSize.y+y)*gridSize.x+x);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.111111f,-0.055556f,0.111111f,0.000000f,0.000000f,0.166667f,((z+1)*gridSize.y+y)*gridSize.x+x+1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.027778f,0.027778f,0.027778f,-0.041667f,0.041667f,-0.041667f,((z+1)*gridSize.y+y+1)*gridSize.x+x-1);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,-0.055556f,0.111111f,0.111111f,0.000000f,0.166667f,0.000000f,((z+1)*gridSize.y+y+1)*gridSize.x+x);
-			bendingEnergyMult(&XX,&YY,&ZZ,&XY,&YZ,&XZ,0.027778f,0.027778f,0.027778f,0.041667f,0.041667f,0.041667f,((z+1)*gridSize.y+y+1)*gridSize.x+x+1);
-
-			int index=6*tid;
-			beValues[index++]=2.0f*XX;
-			beValues[index++]=2.0f*YY;
-			beValues[index++]=2.0f*ZZ;
-			beValues[index++]=4.0f*XY;
-			beValues[index++]=4.0f*YZ;
-			beValues[index]=4.0f*XZ;
-		}
-	}
-	return;
-}
-
-/* *************************************************************** */
-/* *************************************************************** */
-
-__global__ void reg_bspline_getApproxBendingEnergyGradient_kernel(  float3 *bendingEnergyValue,
-                                                                    float4 *nodeNMIGradientArray_d)
-{
-    __shared__ float basisXX[27];
-    __shared__ float basisYY[27];
-    __shared__ float basisZZ[27];
-    __shared__ float basisXY[27];
-    __shared__ float basisYZ[27];
-    __shared__ float basisXZ[27];
-
-    if(threadIdx.x<27){
-        float4 tempA = tex1Dfetch(basisValueATexture,threadIdx.x);
-        basisXX[threadIdx.x] = tempA.x;
-        basisYY[threadIdx.x] = tempA.y;
-        basisZZ[threadIdx.x] = tempA.z;
-        basisXY[threadIdx.x] = tempA.w;
-        float2 tempB = tex1Dfetch(basisValueBTexture,threadIdx.x);
-        basisYZ[threadIdx.x] = tempB.x;
-        basisXZ[threadIdx.x] = tempB.y;
-    }
-    __syncthreads();
-
-	const int tid= blockIdx.x*blockDim.x + threadIdx.x;
-	if(tid<c_ControlPointNumber){
-
-		int3 gridSize = c_ControlPointImageDim;
-
-		int tempIndex=tid;
-		const short z =(int)(tempIndex/(gridSize.x*gridSize.y));
-		tempIndex -= z*(gridSize.x)*(gridSize.y);
-		const short y =(int)(tempIndex/(gridSize.x));
-		const short x = tempIndex - y*(gridSize.x);
-
-		float3 gradientValue=make_float3(0.0f,0.0f,0.0f);
-
-		float3 *bendingEnergyValuePtr;
-		float3 bendingEnergyCurrentValue;
-
-		short coord=0;
-		for(short Z=z-1; Z<z+2; Z++){
-			for(short Y=y-1; Y<y+2; Y++){
-				for(short X=x-1; X<x+2; X++){
-					if(-1<X && -1<Y && -1<Z && X<gridSize.x && Y<gridSize.y && Z<gridSize.z){
-						bendingEnergyValuePtr = &bendingEnergyValue[6 * ((Z*gridSize.y + Y)*gridSize.x + X)];
-
-						bendingEnergyCurrentValue =  *bendingEnergyValuePtr++;
-						gradientValue.x += bendingEnergyCurrentValue.x * basisXX[coord];
-						gradientValue.y += bendingEnergyCurrentValue.y * basisXX[coord];
-						gradientValue.z += bendingEnergyCurrentValue.z * basisXX[coord];
-			
-						bendingEnergyCurrentValue =  *bendingEnergyValuePtr++;
-						gradientValue.x += bendingEnergyCurrentValue.x * basisYY[coord];
-						gradientValue.y += bendingEnergyCurrentValue.y * basisYY[coord];
-						gradientValue.z += bendingEnergyCurrentValue.z * basisYY[coord];
-			
-						bendingEnergyCurrentValue =  *bendingEnergyValuePtr++;
-						gradientValue.x += bendingEnergyCurrentValue.x * basisZZ[coord];
-						gradientValue.y += bendingEnergyCurrentValue.y * basisZZ[coord];
-						gradientValue.z += bendingEnergyCurrentValue.z * basisZZ[coord];
-			
-						bendingEnergyCurrentValue =  *bendingEnergyValuePtr++;
-						gradientValue.x += bendingEnergyCurrentValue.x * basisXY[coord];
-						gradientValue.y += bendingEnergyCurrentValue.y * basisXY[coord];
-						gradientValue.z += bendingEnergyCurrentValue.z * basisXY[coord];
-			
-						bendingEnergyCurrentValue =  *bendingEnergyValuePtr++;
-						gradientValue.x += bendingEnergyCurrentValue.x * basisYZ[coord];
-						gradientValue.y += bendingEnergyCurrentValue.y * basisYZ[coord];
-						gradientValue.z += bendingEnergyCurrentValue.z * basisYZ[coord];
-			
-						bendingEnergyCurrentValue =  *bendingEnergyValuePtr;
-						gradientValue.x += bendingEnergyCurrentValue.x * basisXZ[coord];
-						gradientValue.y += bendingEnergyCurrentValue.y * basisXZ[coord];
-						gradientValue.z += bendingEnergyCurrentValue.z * basisXZ[coord];
-					}
-					coord++;
-				}
-			}
-		}
-		float4 metricGradientValue;
-		metricGradientValue = nodeNMIGradientArray_d[tid];
-		float weight = c_Weight;
-		// (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way
-		metricGradientValue.x += weight*gradientValue.x;
-		metricGradientValue.y += weight*gradientValue.y;
-		metricGradientValue.z += weight*gradientValue.z;
-		nodeNMIGradientArray_d[tid]=metricGradientValue;
-	}
-}
-
-/* *************************************************************** */
-/* *************************************************************** */
-
-__global__ void reg_spline_cppComposition_kernel(float4 *toUpdateArray)
-{
-    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
-    if(tid<c_ControlPointNumber){
-
-        int3 controlPointImageDim = c_ControlPointImageDim;
-
-        // The current position is extracted
-        float4 matrix;
-        float3 voxel;
-        float4 position=toUpdateArray[tid];
-        if(c_Type==0){ // input node contains displacement
-            int tempIndex=tid;
-            voxel.z =(int)(tempIndex/(controlPointImageDim.x*controlPointImageDim.y));
-            tempIndex -= (int)voxel.z*(controlPointImageDim.x)*(controlPointImageDim.y);
-            voxel.y =(int)(tempIndex/(controlPointImageDim.x));
-            voxel.x = tempIndex - (int)voxel.y*(controlPointImageDim.x);
-
-            matrix = tex1Dfetch(txVoxelToRealMatrix,0);
-            position.x +=   matrix.x*voxel.x + matrix.y*voxel.y  +
-                            matrix.z*voxel.z  +  matrix.w;
-            matrix = tex1Dfetch(txVoxelToRealMatrix,1);
-            position.y +=   matrix.x*voxel.x + matrix.y*voxel.y  +
-                            matrix.z*voxel.z  +  matrix.w;
-            matrix = tex1Dfetch(txVoxelToRealMatrix,2);
-            position.z +=   matrix.x*voxel.x + matrix.y*voxel.y  +
-                            matrix.z*voxel.z  +  matrix.w;
-        }
-
-        // The voxel position is computed
-        matrix = tex1Dfetch(txRealToVoxelMatrix,0);
-        voxel.x =   matrix.x*position.x + matrix.y*position.y  +
-                    matrix.z*position.z  +  matrix.w;
-        matrix = tex1Dfetch(txRealToVoxelMatrix,1);
-        voxel.y =   matrix.x*position.x + matrix.y*position.y  +
-                    matrix.z*position.z  +  matrix.w;
-        matrix = tex1Dfetch(txRealToVoxelMatrix,2);
-        voxel.z =   matrix.x*position.x + matrix.y*position.y  +
-                    matrix.z*position.z  +  matrix.w;
-
-        // the "nearest previous" node is determined [0,0,0]
-        int3 nodeAnte;
-        nodeAnte.x = (int)floorf(voxel.x);
-        nodeAnte.y = (int)floorf(voxel.y);
-        nodeAnte.z = (int)floorf(voxel.z);
-
-        float relative = fabsf(voxel.x - (float)nodeAnte.x);
-        float xBasis[4];
-        xBasis[3]= relative * relative * relative / 6.0f;
-        xBasis[0]= 1.0f/6.0f + relative*(relative-1.0f)/2.0f - xBasis[3];
-        xBasis[2]= relative + xBasis[0] - 2.0f*xBasis[3];
-        xBasis[1]= 1.0f - xBasis[0] - xBasis[2] - xBasis[3];
-
-        relative = fabsf((float)voxel.y-(float)nodeAnte.y);
-        float yBasis[4];
-        yBasis[3]= relative * relative * relative / 6.0f;
-        yBasis[0]= 1.0f/6.0f + relative*(relative-1.0f)/2.0f - yBasis[3];
-        yBasis[2]= relative + yBasis[0] - 2.0f*yBasis[3];
-        yBasis[1]= 1.0f - yBasis[0] - yBasis[2] - yBasis[3];
-
-        relative = fabsf((float)voxel.z-(float)nodeAnte.z);
-        float zBasis[4];
-        zBasis[3]= relative * relative * relative / 6.0f;
-        zBasis[0]= 1.0f/6.0f + relative*(relative-1.0f)/2.0f - zBasis[3];
-        zBasis[2]= relative + zBasis[0] - 2.0f*zBasis[3];
-        zBasis[1]= 1.0f - zBasis[0] - zBasis[2] - zBasis[3];
-
-        float4 displacement=make_float4(0.0f,0.0f,0.0f,0.0f);
-
-        nodeAnte.x--;
-        nodeAnte.y--;
-        nodeAnte.z--;
-
-        int indexYZ, indexXYZ;
-        for(short c=0; c<4; c++){
-            float4 tempValueY=make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-            indexYZ= ( (nodeAnte.z + c) * controlPointImageDim.y + nodeAnte.y ) * controlPointImageDim.x;
-            for(short b=0; b<4; b++){
-                float4 tempValueX=make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-                indexXYZ= indexYZ + nodeAnte.x;
-                for(short a=0; a<4; a++){
-                    float4 nodeCoefficient = tex1Dfetch(controlPointTexture, indexXYZ);
-                    tempValueX.x +=  nodeCoefficient.x* xBasis[a];
-                    tempValueX.y +=  nodeCoefficient.y* xBasis[a];
-                    tempValueX.z +=  nodeCoefficient.z* xBasis[a];
-                    indexXYZ++;
-                }
-                tempValueY.x += tempValueX.x * yBasis[b];
-                tempValueY.y += tempValueX.y * yBasis[b];
-                tempValueY.z += tempValueX.z * yBasis[b];
-                indexYZ += controlPointImageDim.x;
-            }
-            displacement.x += tempValueY.x * zBasis[c];
-            displacement.y += tempValueY.y * zBasis[c];
-            displacement.z += tempValueY.z * zBasis[c];
-        }
-        toUpdateArray[tid] = toUpdateArray[tid] + c_Weight * displacement;
-    }
-    return;
-}
-
-/* *************************************************************** */
-/* *************************************************************** */
-__global__ void reg_spline_cppDeconvolve_kernel(   float3 *temporaryGridImage_d,
-                                                    float4 *outputControlPointArray_d,
-                                                    int axis)
-{
-
-    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
-    const int3 gridSize = c_ControlPointImageDim;
-
-    int controlPointNumber;
-    int start;
-    int last;
-    int number;
-    int increment;
-    switch(axis){
-        case 0: // X axis is assumed
-            start = tid * gridSize.x;
-            last = start + gridSize.x;
-            number=gridSize.x;
-            increment=1;
-            controlPointNumber = gridSize.y * gridSize.z;
-            break;
-        case 1: // y axis is assumed
-            start = tid + tid/gridSize.x * gridSize.x * (gridSize.y - 1);
-            last = start + gridSize.x*gridSize.y;
-            number=gridSize.y;
-            increment=gridSize.x;
-            controlPointNumber = gridSize.x* gridSize.z;
-            break;
-        case 2: // X axis is assumed
-            start = tid;
-            last = start + gridSize.x*gridSize.y*gridSize.z;
-            number=gridSize.z;
-            increment=gridSize.x*gridSize.y;
-            controlPointNumber = gridSize.x * gridSize.y;
-            break;
-    }
-    if(tid<controlPointNumber){
-        const int newStart = tid * number;
-        const float pole = -0.26794919f;//sqrt(3.0) - 2.0
-
-        unsigned int coord=newStart;
-        for(unsigned int i=start; i<last; i+=increment){
-            memcpy(&temporaryGridImage_d[coord++], &outputControlPointArray_d[i], sizeof(float3));
-        }
-
-        float3 currentPole=make_float3(pole,pole,pole);
-        float3 currentOpposite = make_float3(pow(pole,(2.f*(float)(number)-1.f)),0.f,0.f);
-        currentOpposite.z=currentOpposite.y=currentOpposite.x;
-        float3 sum=make_float3(0.f,0.f,0.f);
-        for(int i=newStart+1; i<newStart+number; i++){
-            sum = sum + (currentPole - currentOpposite) * temporaryGridImage_d[i];
-            currentPole = pole *currentPole;
-            currentOpposite = currentOpposite / pole;
-        }
-
-        temporaryGridImage_d[newStart] = (temporaryGridImage_d[newStart] - pole*pole*(temporaryGridImage_d[newStart] + sum)) / (1.f - pow(pole,(2.f*number+2.f)));
-
-        //other values forward
-        for(int i=newStart+1; i<newStart+number; i++){
-            temporaryGridImage_d[i] = temporaryGridImage_d[i] + pole * temporaryGridImage_d[i-1];
-        }
-
-        float ipp=(1.f-pole);
-        ipp*=ipp;
-
-        //last value
-        temporaryGridImage_d[newStart+number-1] = ipp * temporaryGridImage_d[newStart+number-1];
-
-        //other values backward
-        for(int i=newStart+number-2; newStart<=i; i--){
-            temporaryGridImage_d[i] = pole * temporaryGridImage_d[i+1] + ipp*temporaryGridImage_d[i];
-        }
-
-        // Data are transfered back in the original image
-        coord=newStart;
-        for(int i=start; i<last; i+=increment){
-            memcpy(&outputControlPointArray_d[i], &temporaryGridImage_d[coord++], sizeof(float3));
-        }
-    }
-    return;
-}
-/* *************************************************************** */
-/* *************************************************************** */
-__global__ void reg_spline_getDeformationFromDisplacement_kernel(float4 *imageArray_d)
-{
-    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
-    if(tid<c_ControlPointNumber){
-
-        // The current displacement is extracted
-        float3 position;
-        memcpy(&position, &imageArray_d[tid], sizeof(float3));
-
-        // The voxel index is computed
-        float3 voxel;
-        int tempIndex=tid;
-        int3 imageDim = c_ControlPointImageDim;
-        voxel.z =tempIndex/(imageDim.x*imageDim.y);
-        tempIndex -= (int)voxel.z*(imageDim.x)*(imageDim.y);
-        voxel.y = tempIndex/imageDim.x;
-        voxel.x = tempIndex - (int)voxel.y*(imageDim.x);
-
-        // The initial voxel position is added to the displacmeent
-        float4 matrix = tex1Dfetch(txVoxelToRealMatrix,0);
-        position.x +=   matrix.x*voxel.x + matrix.y*voxel.y  +
-                        matrix.z*voxel.z  +  matrix.w;
-        matrix = tex1Dfetch(txVoxelToRealMatrix,1);
-        position.y +=   matrix.x*voxel.x + matrix.y*voxel.y  +
-                        matrix.z*voxel.z  +  matrix.w;
-        matrix = tex1Dfetch(txVoxelToRealMatrix,2);
-        position.z +=   matrix.x*voxel.x + matrix.y*voxel.y  +
-                        matrix.z*voxel.z  +  matrix.w;
-
-        imageArray_d[tid] = make_float4(position.x, position.y, position.z, 0.f);
-    }
-}
-/* *************************************************************** */
-/* *************************************************************** */
-__global__ void reg_bspline_SetJacDetToOne_kernel(float *array)
-{
-    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
-    if(tid<c_VoxelNumber){
-        array[tid]=1.f;
-    }
-}
-/* *************************************************************** */
-
-__global__ void reg_bspline_GetSquaredLogJacDet_kernel(float *array)
-{
-    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
-    if(tid<c_VoxelNumber){
-        float val = log(array[tid]);
-        array[tid]=val*val;
-    }
-}
-
-/* *************************************************************** */
-/* *************************************************************** */
-
-__global__ void reg_bspline_JacobianGradFromVel_kernel(float4 *gradientImageArray_d)
-{
-    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
-    if(tid<c_ControlPointNumber){
-
-        int3 controlPointIndex;
-        int3 controlPointImageDim = c_ControlPointImageDim;
-        int tempIndex=tid;
-        controlPointIndex.z =tempIndex/(controlPointImageDim.x*controlPointImageDim.y);
-        tempIndex -= (int)controlPointIndex.z*(controlPointImageDim.x)*(controlPointImageDim.y);
-        controlPointIndex.y = tempIndex/controlPointImageDim.x;
-        controlPointIndex.x = tempIndex - (int)controlPointIndex.y*(controlPointImageDim.x);
-
-        /* For each control point (thread), I need to loop over every voxel in order to
-           know which one are in the area of interest */
-
-        float4 JacobianGradient=make_float4(0.f,0.f,0.f,0.f);
-
-        for(int i=0;i<c_VoxelNumber;i++){
-            float4 voxelIndex = tex1Dfetch(voxelDisplacementTexture,i);
-
-            int zPre = (int)floorf((float)voxelIndex.z/(float)c_ControlPointVoxelSpacing.z);
-            if(controlPointIndex.z>=zPre && controlPointIndex.z<zPre+4){
-
-                int yPre = (int)floorf((float)voxelIndex.y/(float)c_ControlPointVoxelSpacing.y);
-                if(controlPointIndex.y>=yPre && controlPointIndex.y<yPre+4){
-
-                    int xPre = (int)floorf((float)voxelIndex.x/(float)c_ControlPointVoxelSpacing.x);
-                    if(controlPointIndex.x>=xPre && controlPointIndex.x<xPre+4){
-
-                        float3 basisValues, firstValues;
-                        float basis=(float)voxelIndex.x/c_ControlPointVoxelSpacing.x-(float)xPre;
-                        switch(controlPointIndex.x-xPre){
-                            case 0:
-                                basisValues.x=(basis-1.f)*(basis-1.f)*(basis-1.f)/6.f;
-                                firstValues.x=(-basis*basis + 2.f*basis - 1.f) / 2.f;
-                                break;
-                            case 1:
-                                basisValues.x=(3.f*basis*basis*basis - 6.f*basis*basis + 4.f)/6.f;
-                                firstValues.x=(3.f*basis*basis - 4.f*basis) / 2.f;
-                                break;
-                            case 2:
-                                basisValues.x=(-3.f*basis*basis*basis + 3.f*basis*basis + 3.f*basis + 1.f)/6.f;
-                                firstValues.x=(-3.f*basis*basis + 2.f*basis + 1.f) / 2.f;
-                                break;
-                            case 3:
-                                basisValues.x=basis*basis*basis/6.f;
-                                firstValues.x=basis*basis/2.f;
-                                break;
-                            default:
-                                basisValues.x=0.f;
-                                firstValues.x=0.f;
-                                break;
-                        }
-
-                        basis=(float)voxelIndex.y/c_ControlPointVoxelSpacing.y-(float)yPre;
-                        switch(controlPointIndex.y-yPre){
-                            case 0:
-                                basisValues.y=(basis-1.f)*(basis-1.f)*(basis-1.f)/6.f;
-                                firstValues.y=(-basis*basis + 2.f*basis - 1.f) / 2.f;
-                                break;
-                            case 1:
-                                basisValues.y=(3.f*basis*basis*basis - 6.f*basis*basis + 4.f)/6.f;
-                                firstValues.y=(3.f*basis*basis - 4.f*basis) / 2.f;
-                                break;
-                            case 2:
-                                basisValues.y=(-3.f*basis*basis*basis + 3.f*basis*basis + 3.f*basis + 1.f)/6.f;
-                                firstValues.y=(-3.f*basis*basis + 2.f*basis + 1.f) / 2.f;
-                                break;
-                            case 3:
-                                basisValues.y=basis*basis*basis/6.f;
-                                firstValues.y=basis*basis/2.f;
-                                break;
-                            default:
-                                basisValues.y=0.f;
-                                firstValues.y=0.f;
-                                break;
-                        }
-
-                        basis=(float)voxelIndex.z/c_ControlPointVoxelSpacing.z-(float)zPre;
-                        switch(controlPointIndex.z-zPre){
-                            case 0:
-                                basisValues.z=(basis-1.f)*(basis-1.f)*(basis-1.f)/6.f;
-                                firstValues.z=(-basis*basis + 2.f*basis - 1.f) / 2.f;
-                                break;
-                            case 1:
-                                basisValues.z=(3.f*basis*basis*basis - 6.f*basis*basis + 4.f)/6.f;
-                                firstValues.z=(3.f*basis*basis - 4.f*basis) / 2.f;
-                                break;
-                            case 2:
-                                basisValues.z=(-3.f*basis*basis*basis + 3.f*basis*basis + 3.f*basis + 1.f)/6.f;
-                                firstValues.z=(-3.f*basis*basis + 2.f*basis + 1.f) / 2.f;
-                                break;
-                            case 3:
-                                basisValues.z=basis*basis*basis/6.f;
-                                firstValues.z=basis*basis/2.f;
-                                break;
-                            default:
-                                basisValues.z=0.f;
-                                firstValues.z=0.f;
-                                break;
-                        }
-
-                        float3 currentBasisValues = make_float3(
-                            firstValues.x * basisValues.y * basisValues.z,
-                            basisValues.x * firstValues.y * basisValues.z,
-                            basisValues.x * basisValues.y * firstValues.z);
-
-                        int storageIndex = i;
-                        float jacDeterminant = tex1Dfetch(jacobianDeterminantTexture,i);
-                        if(jacDeterminant>0) jacDeterminant = 2.f * log(jacDeterminant);
-                        storageIndex *= 9;
-                        JacobianGradient.x += jacDeterminant
-                            * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*currentBasisValues.x
-                            +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*currentBasisValues.y
-                            +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*currentBasisValues.z);
-                        JacobianGradient.y += jacDeterminant
-                            * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*currentBasisValues.x
-                            +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*currentBasisValues.y
-                            +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*currentBasisValues.z);
-                        JacobianGradient.z += jacDeterminant
-                            * (tex1Dfetch(jacobianMatricesTexture,storageIndex++)*currentBasisValues.x
-                            +  tex1Dfetch(jacobianMatricesTexture,storageIndex++)*currentBasisValues.y
-                            +  tex1Dfetch(jacobianMatricesTexture,storageIndex)*currentBasisValues.z);
-
-                    } //z in the range
-                } //y in the range
-            } //x in the range
-        } //i
-
-        gradientImageArray_d[tid] = gradientImageArray_d[tid]
-                                    + make_float4(c_Weight
-                                    * (c_AffineMatrix0.x *JacobianGradient.x
-                                    + c_AffineMatrix0.y *JacobianGradient.y
-                                    + c_AffineMatrix0.z *JacobianGradient.z),
-                                    c_Weight
-                                    * (c_AffineMatrix1.x *JacobianGradient.x
-                                    + c_AffineMatrix1.y *JacobianGradient.y
-                                    + c_AffineMatrix1.z *JacobianGradient.z),
-                                    c_Weight
-                                    * (c_AffineMatrix2.x *JacobianGradient.x
-                                    + c_AffineMatrix2.y *JacobianGradient.y
-                                    + c_AffineMatrix2.z *JacobianGradient.z),
-                                    0.0f);
-    } //tid
-}
-
-/* *************************************************************** */
-/* *************************************************************** */
-__global__ void reg_bspline_PositionToIndices_kernel(float4 *position)
-{
-    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
-    if(tid<c_VoxelNumber){
-
-        float4 voxelPosition = position[tid];
-        float3 voxelIndices;
-
-        float4 matrix = tex1Dfetch(txRealToVoxelMatrix,0);
-        voxelIndices.x =   matrix.x*voxelPosition.x + matrix.y*voxelPosition.y  +
-                        matrix.z*voxelPosition.z  +  matrix.w;
-
-        matrix = tex1Dfetch(txRealToVoxelMatrix,1);
-        voxelIndices.y =   matrix.x*voxelPosition.x + matrix.y*voxelPosition.y  +
-                        matrix.z*voxelPosition.z  +  matrix.w;
-
-        matrix = tex1Dfetch(txRealToVoxelMatrix,2);
-        voxelIndices.z =   matrix.x*voxelPosition.x + matrix.y*voxelPosition.y  +
-                        matrix.z*voxelPosition.z  +  matrix.w;
-
-        position[tid] = make_float4(voxelIndices.x,
-                                    voxelIndices.y,
-                                    voxelIndices.z,
-                                    0.f);
-    }
-}
-
-/* *************************************************************** */
 /* *************************************************************** */
 #endif
-

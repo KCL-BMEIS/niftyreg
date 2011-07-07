@@ -8,6 +8,7 @@
  *  See the LICENSE.txt file in the nifty_reg root folder
  *
  */
+#ifdef _NR_DEV
 
 #ifndef _REG_F3D2_H
 #define _REG_F3D2_H
@@ -48,3 +49,4 @@ public:
 #include "_reg_f3d2.cpp"
 
 #endif
+#endif // _NR_DEV

@@ -1322,9 +1322,7 @@ void reg_downsampleImage(nifti_image *image, int type, bool downsampleAxis[8])
 	}
 }
 template void reg_downsampleImage<float>(nifti_image *, int, bool[8]);
-#ifdef _NR_DEV
 template void reg_downsampleImage<double>(nifti_image *, int, bool[8]);
-#endif
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>

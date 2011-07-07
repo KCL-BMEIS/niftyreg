@@ -438,41 +438,6 @@ void get_GridValuesApprox(int startX,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-void getReorientationMatrix(nifti_image *splineControlPoint, mat33 *desorient, mat33 *reorient)
-{
-    /* In case the matrix is not diagonal, the jacobian has to be reoriented */
-    reorient->m[0][0]=splineControlPoint->dx; reorient->m[0][1]=0.0f; reorient->m[0][2]=0.0f;
-    reorient->m[1][0]=0.0f; reorient->m[1][1]=splineControlPoint->dy; reorient->m[1][2]=0.0f;
-    reorient->m[2][0]=0.0f; reorient->m[2][1]=0.0f; reorient->m[2][2]=splineControlPoint->dz;
-    mat33 spline_ijk;
-    if(splineControlPoint->sform_code>0){
-        spline_ijk.m[0][0]=splineControlPoint->sto_ijk.m[0][0];
-        spline_ijk.m[0][1]=splineControlPoint->sto_ijk.m[0][1];
-        spline_ijk.m[0][2]=splineControlPoint->sto_ijk.m[0][2];
-        spline_ijk.m[1][0]=splineControlPoint->sto_ijk.m[1][0];
-        spline_ijk.m[1][1]=splineControlPoint->sto_ijk.m[1][1];
-        spline_ijk.m[1][2]=splineControlPoint->sto_ijk.m[1][2];
-        spline_ijk.m[2][0]=splineControlPoint->sto_ijk.m[2][0];
-        spline_ijk.m[2][1]=splineControlPoint->sto_ijk.m[2][1];
-        spline_ijk.m[2][2]=splineControlPoint->sto_ijk.m[2][2];
-    }
-    else{
-        spline_ijk.m[0][0]=splineControlPoint->qto_ijk.m[0][0];
-        spline_ijk.m[0][1]=splineControlPoint->qto_ijk.m[0][1];
-        spline_ijk.m[0][2]=splineControlPoint->qto_ijk.m[0][2];
-        spline_ijk.m[1][0]=splineControlPoint->qto_ijk.m[1][0];
-        spline_ijk.m[1][1]=splineControlPoint->qto_ijk.m[1][1];
-        spline_ijk.m[1][2]=splineControlPoint->qto_ijk.m[1][2];
-        spline_ijk.m[2][0]=splineControlPoint->qto_ijk.m[2][0];
-        spline_ijk.m[2][1]=splineControlPoint->qto_ijk.m[2][1];
-        spline_ijk.m[2][2]=splineControlPoint->qto_ijk.m[2][2];
-    }
-    *desorient=nifti_mat33_mul(spline_ijk, *reorient);
-    *reorient=nifti_mat33_inverse(*desorient);
-}
-/* *************************************************************** */
-/* *************************************************************** */
-
 template<class DTYPE>
 void reg_spline_getDeformationField2D(nifti_image *splineControlPoint,
                                       nifti_image *referenceImage,
@@ -1242,11 +1207,9 @@ void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
                 case NIFTI_TYPE_FLOAT32:
                     reg_voxelCentric2NodeCentric2D<float>(nodeImage, voxelImage, weight, update);
                     break;
-#ifdef _NR_DEV
                 case NIFTI_TYPE_FLOAT64:
                     reg_voxelCentric2NodeCentric2D<double>(nodeImage, voxelImage, weight, update);
                     break;
-#endif
                 default:
                     fprintf(stderr,"[NiftyReg ERROR] reg_voxelCentric2NodeCentric:\tdata type not supported\n");
                     exit(1);
@@ -1257,11 +1220,9 @@ void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
                 case NIFTI_TYPE_FLOAT32:
                     reg_voxelCentric2NodeCentric3D<float>(nodeImage, voxelImage, weight, update);
                     break;
-#ifdef _NR_DEV
                 case NIFTI_TYPE_FLOAT64:
                     reg_voxelCentric2NodeCentric3D<double>(nodeImage, voxelImage, weight, update);
                     break;
-#endif
                 default:
                     fprintf(stderr,"[NiftyReg ERROR] reg_voxelCentric2NodeCentric:\tdata type not supported\n");
                     exit(1);
@@ -1714,11 +1675,9 @@ void reg_bspline_refineControlPointGrid(nifti_image *referenceImage,
             case NIFTI_TYPE_FLOAT32:
                 reg_bspline_refineControlPointGrid2D<float>(referenceImage,controlPointGrid);
                 break;
-#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 reg_bspline_refineControlPointGrid2D<double>(referenceImage,controlPointGrid);
                 break;
-#endif
             default:
                 fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the bending energy gradient\n");
                 fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not computed\n");
@@ -1729,11 +1688,9 @@ void reg_bspline_refineControlPointGrid(nifti_image *referenceImage,
             case NIFTI_TYPE_FLOAT32:
                 reg_bspline_refineControlPointGrid3D<float>(referenceImage,controlPointGrid);
                 break;
-#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 reg_bspline_refineControlPointGrid3D<double>(referenceImage,controlPointGrid);
                 break;
-#endif
             default:
                 fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the bending energy gradient\n");
                 fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not computed\n");
@@ -1863,12 +1820,10 @@ int reg_bspline_initialiseControlPointGridWithAffine(   mat44 *affineTransformat
 		switch(controlPointImage->datatype){
 			case NIFTI_TYPE_FLOAT32:
 				reg_bspline_initialiseControlPointGridWithAffine2D<float>(affineTransformation, controlPointImage);
-				break;
-#ifdef _NR_DEV
+                                break;
 			case NIFTI_TYPE_FLOAT64:
 				reg_bspline_initialiseControlPointGridWithAffine2D<double>(affineTransformation, controlPointImage);
-				break;
-#endif
+                                break;
 			default:
                 fprintf(stderr,"[NiftyReg ERROR] reg_bspline_initialiseControlPointGridWithAffine\n");
                 fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the control point image\n");
@@ -1879,12 +1834,10 @@ int reg_bspline_initialiseControlPointGridWithAffine(   mat44 *affineTransformat
 		switch(controlPointImage->datatype){
 			case NIFTI_TYPE_FLOAT32:
 				reg_bspline_initialiseControlPointGridWithAffine3D<float>(affineTransformation, controlPointImage);
-				break;
-#ifdef _NR_DEV
+                                break;
 			case NIFTI_TYPE_FLOAT64:
 				reg_bspline_initialiseControlPointGridWithAffine3D<double>(affineTransformation, controlPointImage);
-				break;
-#endif
+                                break;
 			default:
                 fprintf(stderr,"[NiftyReg ERROR] reg_bspline_initialiseControlPointGridWithAffine\n");
                 fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the control point image\n");
@@ -2314,11 +2267,9 @@ void reg_defField_compose(nifti_image *deformationField,
                 case NIFTI_TYPE_FLOAT32:
                         reg_defField_compose2D<float>(deformationField,dfToUpdate,mask);
                         break;
-#ifdef _NR_DEV
                 case NIFTI_TYPE_FLOAT64:
                         reg_defField_compose2D<double>(deformationField,dfToUpdate,mask);
                         break;
-#endif
                 default:
                         printf("[NiftyReg ERROR] reg_composeDefField2D\tDeformation field pixel type unsupported.");
                         exit(1);
@@ -2329,11 +2280,9 @@ void reg_defField_compose(nifti_image *deformationField,
                 case NIFTI_TYPE_FLOAT32:
                         reg_defField_compose3D<float>(deformationField,dfToUpdate,mask);
                         break;
-#ifdef _NR_DEV
                 case NIFTI_TYPE_FLOAT64:
                         reg_defField_compose3D<double>(deformationField,dfToUpdate,mask);
                         break;
-#endif
                 default:
                         printf("[NiftyReg ERROR] reg_composeDefField3D\tDeformation field pixel type unsupported.");
                         exit(1);

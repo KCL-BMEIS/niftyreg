@@ -227,27 +227,13 @@ void initialise_block_matching_method(  nifti_image * target,
 
     params->activeBlock = (int *)malloc(params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2] * sizeof(int));
     switch(target->datatype){
-#ifdef _NR_DEV
-                case NIFTI_TYPE_UINT8:
-        _reg_set_active_blocks<unsigned char>(target, params, mask, runningOnGPU);break;
-                case NIFTI_TYPE_INT8:
-        _reg_set_active_blocks<char>(target, params, mask, runningOnGPU);break;
-                case NIFTI_TYPE_UINT16:
-        _reg_set_active_blocks<unsigned short>(target, params, mask, runningOnGPU);break;
-                case NIFTI_TYPE_INT16:
-        _reg_set_active_blocks<short>(target, params, mask, runningOnGPU);break;
-                case NIFTI_TYPE_UINT32:
-        _reg_set_active_blocks<unsigned int>(target, params, mask, runningOnGPU);break;
-                case NIFTI_TYPE_INT32:
-        _reg_set_active_blocks<int>(target, params, mask, runningOnGPU);break;
-                case NIFTI_TYPE_FLOAT64:
-        _reg_set_active_blocks<double>(target, params, mask, runningOnGPU);break;
-#endif
-                case NIFTI_TYPE_FLOAT32:
-        _reg_set_active_blocks<float>(target, params, mask, runningOnGPU);break;
-                default:
-        fprintf(stderr,"[NiftyReg ERROR] initialise_block_matching_method\tThe target image data type is not supported\n");
-        exit(1);
+        case NIFTI_TYPE_FLOAT32:
+            _reg_set_active_blocks<float>(target, params, mask, runningOnGPU);break;
+        case NIFTI_TYPE_FLOAT64:
+            _reg_set_active_blocks<double>(target, params, mask, runningOnGPU);break;
+        default:
+            fprintf(stderr,"[NiftyReg ERROR] initialise_block_matching_method\tThe target image data type is not supported\n");
+            exit(1);
     }
     if(params->activeBlockNumber<2){
         fprintf(stderr,"[NiftyReg ERROR] There are no active blocks\n");
@@ -648,36 +634,10 @@ template<typename PrecisionTYPE, typename TargetImageType>
 {
     if(target->nz==1){
         switch(result->datatype){
-#ifdef _NR_DEV
-        case NIFTI_TYPE_UINT8:
-            block_matching_method2D<PrecisionTYPE, TargetImageType, unsigned char>
-                    (target, result, params, mask);
-            break;
-        case NIFTI_TYPE_INT8:
-            block_matching_method2D<PrecisionTYPE, TargetImageType, char>
-                    (target, result, params, mask);
-            break;
-        case NIFTI_TYPE_UINT16:
-            block_matching_method2D<PrecisionTYPE, TargetImageType, unsigned short>
-                    (target, result, params, mask);
-            break;
-        case NIFTI_TYPE_INT16:
-            block_matching_method2D<PrecisionTYPE, TargetImageType, short>
-                    (target, result, params, mask);
-            break;
-        case NIFTI_TYPE_UINT32:
-            block_matching_method2D<PrecisionTYPE, TargetImageType, unsigned int>
-                    (target, result, params, mask);
-            break;
-        case NIFTI_TYPE_INT32:
-            block_matching_method2D<PrecisionTYPE, TargetImageType, int>
-                    (target, result, params, mask);
-            break;
         case NIFTI_TYPE_FLOAT64:
             block_matching_method2D<PrecisionTYPE, TargetImageType, double>
                     (target, result, params, mask);
             break;
-#endif
         case NIFTI_TYPE_FLOAT32:
             block_matching_method2D<PrecisionTYPE, TargetImageType, float>
                     (target, result, params, mask);
@@ -689,44 +649,18 @@ template<typename PrecisionTYPE, typename TargetImageType>
     }
     else{
         switch(result->datatype){
-#ifdef _NR_DEV
-        case NIFTI_TYPE_UINT8:
-            block_matching_method3D<PrecisionTYPE, TargetImageType, unsigned char>
-                    (target, result, params, mask);
-            break;
-        case NIFTI_TYPE_INT8:
-            block_matching_method3D<PrecisionTYPE, TargetImageType, char>
-                    (target, result, params, mask);
-            break;
-        case NIFTI_TYPE_UINT16:
-            block_matching_method3D<PrecisionTYPE, TargetImageType, unsigned short>
-                    (target, result, params, mask);
-            break;
-        case NIFTI_TYPE_INT16:
-            block_matching_method3D<PrecisionTYPE, TargetImageType, short>
-                    (target, result, params, mask);
-            break;
-        case NIFTI_TYPE_UINT32:
-            block_matching_method3D<PrecisionTYPE, TargetImageType, unsigned int>
-                    (target, result, params, mask);
-            break;
-        case NIFTI_TYPE_INT32:
-            block_matching_method3D<PrecisionTYPE, TargetImageType, int>
-                    (target, result, params, mask);
-            break;
-        case NIFTI_TYPE_FLOAT64:
-            block_matching_method3D<PrecisionTYPE, TargetImageType, double>
-                    (target, result, params, mask);
-            break;
-#endif
-        case NIFTI_TYPE_FLOAT32:
-            block_matching_method3D<PrecisionTYPE, TargetImageType, float>
-                    (target, result, params, mask);
-            break;
-        default:
-            printf("[NiftyReg ERROR] block_match\tThe target image data type is not "
-                   "supported\n");
-            return;
+            case NIFTI_TYPE_FLOAT64:
+                block_matching_method3D<PrecisionTYPE, TargetImageType, double>
+                        (target, result, params, mask);
+                break;
+            case NIFTI_TYPE_FLOAT32:
+                block_matching_method3D<PrecisionTYPE, TargetImageType, float>
+                        (target, result, params, mask);
+                break;
+            default:
+                printf("[NiftyReg ERROR] block_match\tThe target image data type is not "
+                       "supported\n");
+                return;
         }
     }
 }
@@ -739,36 +673,10 @@ template<typename PrecisionTYPE>
                                         int *mask)
 {
     switch(target->datatype){
-#ifdef _NR_DEV
-                case NIFTI_TYPE_UINT8:
-        block_matching_method2<PrecisionTYPE, unsigned char>
-                (target, result, params, mask);
-        break;
-                case NIFTI_TYPE_INT8:
-        block_matching_method2<PrecisionTYPE, char>
-                (target, result, params, mask);
-        break;
-                case NIFTI_TYPE_UINT16:
-        block_matching_method2<PrecisionTYPE, unsigned short>
-                (target, result, params, mask);
-        break;
-                case NIFTI_TYPE_INT16:
-        block_matching_method2<PrecisionTYPE, short>
-                (target, result, params, mask);
-        break;
-                case NIFTI_TYPE_UINT32:
-        block_matching_method2<PrecisionTYPE, unsigned int>
-                (target, result, params, mask);
-        break;
-                case NIFTI_TYPE_INT32:
-        block_matching_method2<PrecisionTYPE, int>
-                (target, result, params, mask);
-        break;
                 case NIFTI_TYPE_FLOAT64:
         block_matching_method2<PrecisionTYPE, double>
                 (target, result, params, mask);
         break;
-#endif
             case NIFTI_TYPE_FLOAT32:
         block_matching_method2<PrecisionTYPE, float>
             (target, result, params, mask);
@@ -780,9 +688,7 @@ template<typename PrecisionTYPE>
     }
 }
 template void block_matching_method<float>(nifti_image *, nifti_image *, _reg_blockMatchingParam *, int *);
-#ifdef _NR_DEV
 template void block_matching_method<double>(nifti_image *, nifti_image *, _reg_blockMatchingParam *, int *);
-#endif
 /* *************************************************************** */
 /* *************************************************************** */
 

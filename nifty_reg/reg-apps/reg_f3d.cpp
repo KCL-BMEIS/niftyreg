@@ -115,11 +115,13 @@ void Usage(char *exec)
     printf("\t-lp <int>\t\tOnly perform the first levels [ln]\n");
     printf("\t-nopy\t\t\tDo not use a pyramidal approach\n");
 
+#ifdef _NR_DEV
     printf("\n*** F3D2 options:\n");
     printf("\t-vel \t\t\tUse a velocity field integrationto generate the deformation\n");
     printf("\t-useSym \t\tUse similarity measure gradient symmetry\n");
     printf("\t-approxComp \t\tApproximate the composition step\n");
     printf("\t-step <int>\t\tNumber of composition step [6].\n");
+#endif
 
     printf("\n*** Other options:\n");
     printf("\t-smoothGrad <float>\tTo smooth the metric derivative (in mm) [0]\n");
@@ -149,7 +151,7 @@ int main(int argc, char **argv)
     printf("[NiftyReg DEBUG] *******************************************\n");
     printf("[NiftyReg DEBUG] *******************************************\n");
 #endif
-	time_t start; time(&start);
+    time_t start; time(&start);
 
     char *referenceName=NULL;
     char *floatingName=NULL;
@@ -194,18 +196,19 @@ int main(int argc, char **argv)
     bool useConjugate=true;
     bool useSSD=false;
     bool noPyramid=0;
+#ifdef _NR_DEV
+    int stepNumber=-1;
+    bool useVel=false;
+    bool useSymmetry=false;
+    bool approxComposition=false;
+#endif
 #ifdef _USE_CUDA
     bool useGPU=false;
     bool checkMem=false;
     int cardNumber=-1;
 #endif
-
-    int stepNumber=-1;
-    bool useVel=false;
-    bool useSymmetry=false;
-    bool approxComposition=false;
 	
-	/* read the input parameter */
+    /* read the input parameter */
     for(int i=1;i<argc;i++){
         if(strcmp(argv[i], "-help")==0 || strcmp(argv[i], "-Help")==0 ||
            strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
@@ -252,9 +255,6 @@ int main(int argc, char **argv)
         }
         else if(strcmp(argv[i], "-cpp") == 0){
             outputControlPointGridName=argv[++i];
-        }
-        else if(strcmp(argv[i], "-vel") == 0){
-            useVel=true;
         }
         else if(strcmp(argv[i], "-maxit") == 0){
             maxiterationNumber=atoi(argv[++i]);
@@ -333,17 +333,6 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-noConj") == 0){
            useConjugate=false;
         }
-        else if(strcmp(argv[i], "-step") == 0){
-           stepNumber=atoi(argv[++i]);
-           useVel=true;
-        }
-        else if(strcmp(argv[i], "-approxComp") ==0){
-            approxComposition=true;
-            useVel=true;
-        }
-        else if(strcmp(argv[i], "-useSym") ==0){
-            useSymmetry=true;
-        }
 #ifdef _USE_CUDA
         else if(strcmp(argv[i], "-gpu") == 0){
             useGPU=true;
@@ -355,6 +344,23 @@ int main(int argc, char **argv)
             checkMem=true;
         }
 #endif
+#ifdef _NR_DEV
+        else if(strcmp(argv[i], "-vel") == 0){
+            useVel=true;
+        }
+        else if(strcmp(argv[i], "-approxComp") ==0){
+            approxComposition=true;
+            useVel=true;
+        }
+        else if(strcmp(argv[i], "-useSym") ==0){
+            useSymmetry=true;
+            useVel=true;
+        }
+        else if(strcmp(argv[i], "-step") == 0){
+           stepNumber=atoi(argv[++i]);
+           useVel=true;
+        }
+#endif
         else{
             fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
             PetitUsage(argv[0]);
@@ -364,16 +370,15 @@ int main(int argc, char **argv)
 
     // Output the command line
 #ifdef NDEBUG
-        if(verbose==true){
+    if(verbose==true){
 #endif
-            printf("\n[NiftyReg F3D] Command line:\n\t");
-            for(int i=0;i<argc;i++)
-                printf(" %s", argv[i]);
-            printf("\n\n");
+        printf("\n[NiftyReg F3D] Command line:\n\t");
+        for(int i=0;i<argc;i++)
+            printf(" %s", argv[i]);
+        printf("\n\n");
 #ifdef NDEBUG
-        }
+    }
 #endif
-
 
     // Read the reference image
     if(referenceName==NULL){
@@ -419,8 +424,10 @@ int main(int argc, char **argv)
             return 1;
         }
         reg_checkAndCorrectDimension(controlPointGridImage);
+#ifdef _NR_DEV
         if(controlPointGridImage->pixdim[5]>1)
             useVel=true;
+#endif
     }
 
     // Read the affine transformation
@@ -458,7 +465,6 @@ int main(int argc, char **argv)
         if((referenceImage->dim[4]==1&&floatingImage->dim[4]==1) || (referenceImage->dim[4]==2&&floatingImage->dim[4]==2)){
 
             // The CUDA card is setup
-
             struct cudaDeviceProp deviceProp;
             int device_count = 0;
             cudaGetDeviceCount( &device_count );
@@ -468,9 +474,6 @@ int main(int argc, char **argv)
                 int max_gflops_device = 0;
                 int max_gflops = 0;
                 int current_device = 0;
-                cudaGetDeviceProperties( &deviceProp, current_device );
-                max_gflops = deviceProp.multiProcessorCount * deviceProp.clockRate;
-                ++current_device;
                 while( current_device < device_count ){
                     cudaGetDeviceProperties( &deviceProp, current_device );
                     int gflops = deviceProp.multiProcessorCount * deviceProp.clockRate;
@@ -482,10 +485,10 @@ int main(int argc, char **argv)
                 }
                 device = max_gflops_device;
             }
-            CUDA_SAFE_CALL(cudaSetDevice( device ));
-            CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, device ));
+            NR_CUDA_SAFE_CALL(cudaSetDevice( device ));
+            NR_CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, device ));
             if (deviceProp.major < 1){
-                printf("NiftyReg ERROR CUDA] The specified graphical card does not exist.\n");
+                printf("[NiftyReg ERROR CUDA] The specified graphical card does not exist.\n");
                 return 1;
             }
 #ifdef NDEBUG
@@ -516,6 +519,8 @@ int main(int argc, char **argv)
     else
 #endif
     {
+
+#ifdef _NR_DEV
         if(useVel){
             REG = new reg_f3d2<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
@@ -526,7 +531,9 @@ int main(int argc, char **argv)
             }
 #endif
         }
-        else{
+        else
+#endif
+        {
             REG = new reg_f3d<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
             if(verbose==true){
@@ -619,9 +626,6 @@ int main(int argc, char **argv)
 
     if(gradientSmoothingSigma==gradientSmoothingSigma)
         REG->SetGradientSmoothingSigma(gradientSmoothingSigma);
-
-    if(stepNumber>0)
-        REG->SetCompositionStepNumber(stepNumber);
 	
     if(useSSD)
         REG->UseSSD();
@@ -634,14 +638,18 @@ int main(int argc, char **argv)
     if(noPyramid==1)
         REG->DoNotUsePyramidalApproach();
 
+#ifdef _NR_DEV
+    if(stepNumber>0)
+        REG->SetCompositionStepNumber(stepNumber);
+
     if(approxComposition)
         REG->ApproximateComposition();
 
     if(useSymmetry)
         REG->UseSimilaritySymmetry();
+#endif
 
     // Run the registration
-
 #ifdef _USE_CUDA
     if(useGPU && checkMem){
         int requiredMemory = REG->CheckMemoryMB_f3d();
@@ -656,9 +664,11 @@ int main(int argc, char **argv)
         if(outputControlPointGridName==NULL) outputControlPointGridName=(char *)"outputCPP.nii";
         nifti_set_filenames(outputControlPointGridImage, outputControlPointGridName, 0, 0);
         memset(outputControlPointGridImage->descrip, 0, 80);
+        strcpy (outputControlPointGridImage->descrip,"Control point position from NiftyReg (reg_f3d)");
+#ifdef _NR_DEV
         if(useVel)
             strcpy (outputControlPointGridImage->descrip,"Velocity field grid from NiftyReg (reg_f3d2)");
-        else strcpy (outputControlPointGridImage->descrip,"Control point position from NiftyReg (reg_f3d)");
+#endif
         nifti_image_write(outputControlPointGridImage);
         nifti_image_free(outputControlPointGridImage);outputControlPointGridImage=NULL;
 
@@ -667,9 +677,11 @@ int main(int argc, char **argv)
         if(outputWarpedName==NULL) outputWarpedName=(char *)"outputResult.nii";
         nifti_set_filenames(outputWarpedImage, outputWarpedName, 0, 0);
         memset(outputWarpedImage->descrip, 0, 80);
+        strcpy (outputWarpedImage->descrip,"Warped image using NiftyReg (reg_f3d)");
+#ifdef _NR_DEV
         if(useVel)
             strcpy (outputWarpedImage->descrip,"Warped image using NiftyReg (reg_f3d2)");
-        else strcpy (outputWarpedImage->descrip,"Warped image using NiftyReg (reg_f3d)");
+#endif
         nifti_image_write(outputWarpedImage);
         nifti_image_free(outputWarpedImage);outputWarpedImage=NULL;
 #ifdef _USE_CUDA

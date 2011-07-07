@@ -100,11 +100,9 @@ void reg_affine_positionField(mat44 *affineTransformation,
             case NIFTI_TYPE_FLOAT32:
                 reg_affine_positionField2D<float>(affineTransformation, targetImage, positionFieldImage);
                 break;
-#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 reg_affine_positionField2D<double>(affineTransformation, targetImage, positionFieldImage);
                 break;
-#endif
             default:
                 fprintf(stderr,"[NiftyReg ERROR] reg_affine_positionField\tThe deformation field data type is not supported\n");
                 return;
@@ -115,11 +113,9 @@ void reg_affine_positionField(mat44 *affineTransformation,
             case NIFTI_TYPE_FLOAT32:
                 reg_affine_positionField3D<float>(affineTransformation, targetImage, positionFieldImage);
                 break;
-#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 reg_affine_positionField3D<double>(affineTransformation, targetImage, positionFieldImage);
                 break;
-#endif
             default:
                 fprintf(stderr,"[NiftyReg ERROR] reg_affine_positionField\tThe deformation field data type is not supported\n");
                 return;

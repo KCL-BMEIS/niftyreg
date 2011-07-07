@@ -109,7 +109,7 @@ int reg_f3d_gpu<T>::AllocateWarped()
                         this->warped->nt;
     this->warped->datatype = this->currentFloating->datatype;
     this->warped->nbyper = this->currentFloating->nbyper;
-    CUDA_SAFE_CALL(cudaMallocHost(&(this->warped->data), this->warped->nvox*this->warped->nbyper));
+    NR_CUDA_SAFE_CALL(cudaMallocHost(&(this->warped->data), this->warped->nvox*this->warped->nbyper))
     if(this->warped->nt==1){
         if(cudaCommon_allocateArrayToDevice<float>(&this->warped_gpu, this->warped->dim)) return 1;
     }
@@ -130,7 +130,7 @@ template <class T>
 int reg_f3d_gpu<T>::ClearWarped()
 {
     if(this->warped!=NULL){
-        CUDA_SAFE_CALL(cudaFreeHost(this->warped->data));
+        NR_CUDA_SAFE_CALL(cudaFreeHost(this->warped->data))
         this->warped->data = NULL;
         nifti_image_free(this->warped);
         this->warped=NULL;
@@ -154,7 +154,8 @@ int reg_f3d_gpu<T>::AllocateDeformationField()
     printf("[NiftyReg DEBUG] reg_f3d_gpu<T>::AllocateDeformationField called.\n");
 #endif
     this->ClearDeformationField();
-    CUDA_SAFE_CALL(cudaMalloc(&this->deformationFieldImage_gpu, this->activeVoxelNumber[this->currentLevel]*sizeof(float4)));
+    NR_CUDA_SAFE_CALL(cudaMalloc(&this->deformationFieldImage_gpu,
+                                 this->activeVoxelNumber[this->currentLevel]*sizeof(float4)))
 
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_gpu<T>::AllocateDeformationField done.\n");
@@ -181,11 +182,14 @@ int reg_f3d_gpu<T>::AllocateWarpedGradient()
 #endif
     this->ClearWarpedGradient();
     if(this->inputFloating->nt==1){
-        CUDA_SAFE_CALL(cudaMalloc(&this->warpedGradientImage_gpu, this->activeVoxelNumber[this->currentLevel]*sizeof(float4)));
+        NR_CUDA_SAFE_CALL(cudaMalloc(&this->warpedGradientImage_gpu,
+                                     this->activeVoxelNumber[this->currentLevel]*sizeof(float4)))
     }
     else if(this->inputFloating->nt==2){
-        CUDA_SAFE_CALL(cudaMalloc(&this->warpedGradientImage_gpu, this->activeVoxelNumber[this->currentLevel]*sizeof(float4)));
-        CUDA_SAFE_CALL(cudaMalloc(&this->warpedGradientImage2_gpu, this->activeVoxelNumber[this->currentLevel]*sizeof(float4)));
+        NR_CUDA_SAFE_CALL(cudaMalloc(&this->warpedGradientImage_gpu,
+                                     this->activeVoxelNumber[this->currentLevel]*sizeof(float4)))
+        NR_CUDA_SAFE_CALL(cudaMalloc(&this->warpedGradientImage2_gpu,
+                                     this->activeVoxelNumber[this->currentLevel]*sizeof(float4)))
     }
     else{
         printf("[NiftyReg ERROR] reg_f3d_gpu does not handle more than 2 time points in the floating image.\n");
@@ -220,7 +224,8 @@ int reg_f3d_gpu<T>::AllocateVoxelBasedMeasureGradient()
     printf("[NiftyReg DEBUG] reg_f3d_gpu<T>::AllocateVoxelBasedMeasureGradient called.\n");
 #endif
     this->ClearVoxelBasedMeasureGradient();
-    if(cudaCommon_allocateArrayToDevice(&this->voxelBasedMeasureGradientImage_gpu, this->currentReference->dim)) return 1;
+    if(cudaCommon_allocateArrayToDevice(&this->voxelBasedMeasureGradientImage_gpu,
+                                        this->currentReference->dim)) return 1;
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_gpu<T>::AllocateVoxelBasedMeasureGradient done.\n");
 #endif
@@ -245,7 +250,8 @@ int reg_f3d_gpu<T>::AllocateNodeBasedMeasureGradient()
     printf("[NiftyReg DEBUG] reg_f3d_gpu<T>::AllocateNodeBasedMeasureGradient called.\n");
 #endif
     this->ClearNodeBasedMeasureGradient();
-    if(cudaCommon_allocateArrayToDevice(&this->nodeBasedMeasureGradientImage_gpu, this->controlPointGrid->dim)) return 1;
+    if(cudaCommon_allocateArrayToDevice(&this->nodeBasedMeasureGradientImage_gpu,
+                                        this->controlPointGrid->dim)) return 1;
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_gpu<T>::AllocateNodeBasedMeasureGradient done.\n");
 #endif
@@ -272,8 +278,10 @@ int reg_f3d_gpu<T>::AllocateConjugateGradientVariables()
     if(this->controlPointGrid==NULL)
         return 1;
     this->ClearConjugateGradientVariables();
-    if(cudaCommon_allocateArrayToDevice(&this->conjugateG_gpu, this->controlPointGrid->dim)) return 1;
-    if(cudaCommon_allocateArrayToDevice(&this->conjugateH_gpu, this->controlPointGrid->dim)) return 1;
+    if(cudaCommon_allocateArrayToDevice(&this->conjugateG_gpu,
+                                        this->controlPointGrid->dim)) return 1;
+    if(cudaCommon_allocateArrayToDevice(&this->conjugateH_gpu,
+                                        this->controlPointGrid->dim)) return 1;
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_gpu<T>::AllocateConjugateGradientVariables done.\n");
 #endif
@@ -304,7 +312,8 @@ int reg_f3d_gpu<T>::AllocateBestControlPointArray()
     if(this->controlPointGrid==NULL)
         return 1;
     this->ClearBestControlPointArray();
-    if(cudaCommon_allocateArrayToDevice(&this->bestControlPointPosition_gpu, this->controlPointGrid->dim)) return 1;
+    if(cudaCommon_allocateArrayToDevice(&this->bestControlPointPosition_gpu,
+                                        this->controlPointGrid->dim)) return 1;
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_gpu<T>::AllocateBestControlPointArray done.\n");
 #endif
@@ -328,7 +337,8 @@ int reg_f3d_gpu<T>::AllocateJointHistogram()
 #endif
     this->ClearJointHistogram();
     reg_f3d<T>::AllocateJointHistogram();
-    CUDA_SAFE_CALL(cudaMalloc(&this->logJointHistogram_gpu, this->totalBinNumber*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaMalloc(&this->logJointHistogram_gpu,
+                                 this->totalBinNumber*sizeof(float)))
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_gpu<T>::AllocateJointHistogram done.\n");
 #endif
@@ -350,18 +360,20 @@ int reg_f3d_gpu<T>::ClearJointHistogram()
 template <class T>
 int reg_f3d_gpu<T>::SaveCurrentControlPoint()
 {
-    CUDA_SAFE_CALL(cudaMemcpy(this->bestControlPointPosition_gpu, this->controlPointGrid_gpu,
-                    this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz*sizeof(float4),
-                    cudaMemcpyDeviceToDevice));
+    NR_CUDA_SAFE_CALL(cudaMemcpy(this->bestControlPointPosition_gpu, this->controlPointGrid_gpu,
+                    this->controlPointGrid->nx*this->controlPointGrid->ny*
+                    this->controlPointGrid->nz*sizeof(float4),
+                    cudaMemcpyDeviceToDevice))
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 int reg_f3d_gpu<T>::RestoreCurrentControlPoint()
 {
-    CUDA_SAFE_CALL(cudaMemcpy(this->controlPointGrid_gpu, this->bestControlPointPosition_gpu,
-                    this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz*sizeof(float4),
-                    cudaMemcpyDeviceToDevice));
+    NR_CUDA_SAFE_CALL(cudaMemcpy(this->controlPointGrid_gpu, this->bestControlPointPosition_gpu,
+                    this->controlPointGrid->nx*this->controlPointGrid->ny*
+                    this->controlPointGrid->nz*sizeof(float4),
+                    cudaMemcpyDeviceToDevice))
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -445,7 +457,9 @@ int reg_f3d_gpu<T>::GetDeformationField()
                         &this->controlPointGrid_gpu,
                         &this->deformationFieldImage_gpu,
                         &this->currentMask_gpu,
-                        this->activeVoxelNumber[this->currentLevel]);
+                        this->activeVoxelNumber[this->currentLevel],
+                        true // use B-splines
+                        );
     }
     return 0;
 }
@@ -485,10 +499,12 @@ template <class T>
 double reg_f3d_gpu<T>::ComputeSimilarityMeasure()
 {
     if(this->currentFloating->nt==1){
-        if(cudaCommon_transferFromDeviceToNifti<float>(this->warped, &this->warped_gpu)) return 1;
+        if(cudaCommon_transferFromDeviceToNifti<float>
+           (this->warped, &this->warped_gpu)) return 1;
     }
     else if(this->currentFloating->nt==2){
-        if(cudaCommon_transferFromDeviceToNifti<float>(this->warped, &this->warped_gpu, &this->warped2_gpu)) return 1;
+        if(cudaCommon_transferFromDeviceToNifti<float>
+           (this->warped, &this->warped_gpu, &this->warped2_gpu)) return 1;
     }
 
     double measure=0.;
@@ -528,15 +544,16 @@ int reg_f3d_gpu<T>::GetSimilarityMeasureGradient()
 {
     // The log joint jistogram is first transfered to the GPU
     float *tempB=NULL;
-    CUDA_SAFE_CALL(cudaMallocHost(&tempB, this->totalBinNumber*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaMallocHost(&tempB, this->totalBinNumber*sizeof(float)))
     for(unsigned int i=0; i<this->totalBinNumber;i++){
         tempB[i]=(float)this->logJointHistogram[i];
     }
-    CUDA_SAFE_CALL(cudaMemcpy(this->logJointHistogram_gpu, tempB, this->totalBinNumber*sizeof(float), cudaMemcpyHostToDevice));
-    CUDA_SAFE_CALL(cudaFreeHost(tempB));
+    NR_CUDA_SAFE_CALL(cudaMemcpy(this->logJointHistogram_gpu, tempB,
+                                 this->totalBinNumber*sizeof(float), cudaMemcpyHostToDevice))
+    NR_CUDA_SAFE_CALL(cudaFreeHost(tempB))
 
     // The intensity gradient is first computed
-    reg_getSourceImageGradient_gpu(	this->currentReference,
+    reg_getSourceImageGradient_gpu(this->currentReference,
                                     this->currentFloating,
                                     &this->currentFloating_gpu,
                                     &this->deformationFieldImage_gpu,
@@ -544,7 +561,7 @@ int reg_f3d_gpu<T>::GetSimilarityMeasureGradient()
                                     this->activeVoxelNumber[this->currentLevel]);
 
     if(this->currentFloating->nt==2){
-        reg_getSourceImageGradient_gpu(	this->currentReference,
+        reg_getSourceImageGradient_gpu(this->currentReference,
                                         this->currentFloating,
                                         &this->currentFloating2_gpu,
                                         &this->deformationFieldImage_gpu,
@@ -633,12 +650,12 @@ int reg_f3d_gpu<T>::GetBendingEnergyGradient()
 template <class T>
 int reg_f3d_gpu<T>::GetJacobianBasedGradient()
 {
-    reg_bspline_ComputeJacobianGradient_gpu(this->currentReference,
-                                            this->controlPointGrid,
-                                            &this->controlPointGrid_gpu,
-                                            &this->nodeBasedMeasureGradientImage_gpu,
-                                            this->jacobianLogWeight,
-                                            this->jacobianLogApproximation);
+    reg_bspline_ComputeJacobianPenaltyTermGradient_gpu(this->currentReference,
+                                                       this->controlPointGrid,
+                                                       &this->controlPointGrid_gpu,
+                                                       &this->nodeBasedMeasureGradientImage_gpu,
+                                                       this->jacobianLogWeight,
+                                                       this->jacobianLogApproximation);
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -697,51 +714,65 @@ int reg_f3d_gpu<T>::AllocateCurrentInputImage(int level)
     if(this->currentReference_gpu!=NULL) cudaCommon_free<float>(&this->currentReference_gpu);
     if(this->currentReference2_gpu!=NULL) cudaCommon_free<float>(&this->currentReference2_gpu);
     if(this->currentReference->nt==1){
-        if(cudaCommon_allocateArrayToDevice<float>(&this->currentReference_gpu, this->currentReference->dim)) return 1;
-        if(cudaCommon_transferNiftiToArrayOnDevice<float>(&this->currentReference_gpu, this->currentReference)) return 1;
+        if(cudaCommon_allocateArrayToDevice<float>
+           (&this->currentReference_gpu, this->currentReference->dim)) return 1;
+        if(cudaCommon_transferNiftiToArrayOnDevice<float>
+           (&this->currentReference_gpu, this->currentReference)) return 1;
     }
     else if(this->currentReference->nt==2){
-        if(cudaCommon_allocateArrayToDevice<float>(&this->currentReference_gpu,&this->currentReference2_gpu, this->currentReference->dim)) return 1;
-        if(cudaCommon_transferNiftiToArrayOnDevice<float>(&this->currentReference_gpu, &this->currentReference2_gpu, this->currentReference)) return 1;
+        if(cudaCommon_allocateArrayToDevice<float>
+           (&this->currentReference_gpu,&this->currentReference2_gpu, this->currentReference->dim)) return 1;
+        if(cudaCommon_transferNiftiToArrayOnDevice<float>
+           (&this->currentReference_gpu, &this->currentReference2_gpu, this->currentReference)) return 1;
     }
 
     if(this->currentFloating_gpu!=NULL) cudaCommon_free(&this->currentFloating_gpu);
     if(this->currentFloating2_gpu!=NULL) cudaCommon_free(&this->currentFloating2_gpu);
     if(this->currentReference->nt==1){
-        if(cudaCommon_allocateArrayToDevice<float>(&this->currentFloating_gpu, this->currentFloating->dim)) return 1;
-        if(cudaCommon_transferNiftiToArrayOnDevice<float>(&this->currentFloating_gpu, this->currentFloating)) return 1;
+        if(cudaCommon_allocateArrayToDevice<float>
+           (&this->currentFloating_gpu, this->currentFloating->dim)) return 1;
+        if(cudaCommon_transferNiftiToArrayOnDevice<float>
+           (&this->currentFloating_gpu, this->currentFloating)) return 1;
     }
     else if(this->currentReference->nt==2){
-        if(cudaCommon_allocateArrayToDevice<float>(&this->currentFloating_gpu, &this->currentFloating2_gpu, this->currentFloating->dim)) return 1;
-        if(cudaCommon_transferNiftiToArrayOnDevice<float>(&this->currentFloating_gpu, &this->currentFloating2_gpu, this->currentFloating)) return 1;
+        if(cudaCommon_allocateArrayToDevice<float>
+           (&this->currentFloating_gpu, &this->currentFloating2_gpu, this->currentFloating->dim)) return 1;
+        if(cudaCommon_transferNiftiToArrayOnDevice<float>
+           (&this->currentFloating_gpu, &this->currentFloating2_gpu, this->currentFloating)) return 1;
     }
     if(this->controlPointGrid_gpu!=NULL) cudaCommon_free<float4>(&this->controlPointGrid_gpu);
-    if(cudaCommon_allocateArrayToDevice<float4>(&this->controlPointGrid_gpu, this->controlPointGrid->dim)) return 1;
-    if(cudaCommon_transferNiftiToArrayOnDevice<float4>(&this->controlPointGrid_gpu, this->controlPointGrid)) return 1;
+    if(cudaCommon_allocateArrayToDevice<float4>
+       (&this->controlPointGrid_gpu, this->controlPointGrid->dim)) return 1;
+    if(cudaCommon_transferNiftiToArrayOnDevice<float4>
+       (&this->controlPointGrid_gpu, this->controlPointGrid)) return 1;
 
     int *targetMask_h;
-    CUDA_SAFE_CALL(cudaMallocHost(&targetMask_h,this->activeVoxelNumber[this->currentLevel]*sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMallocHost(&targetMask_h,this->activeVoxelNumber[this->currentLevel]*sizeof(int)))
     int *targetMask_h_ptr = &targetMask_h[0];
     for(int i=0;i<this->currentReference->nx*this->currentReference->ny*this->currentReference->nz;i++){
         if( this->currentMask[i]!=-1) *targetMask_h_ptr++=i;
     }
-    CUDA_SAFE_CALL(cudaMalloc(&this->currentMask_gpu, this->activeVoxelNumber[this->currentLevel]*sizeof(int)));
-    CUDA_SAFE_CALL(cudaMemcpy(this->currentMask_gpu, targetMask_h, this->activeVoxelNumber[this->currentLevel]*sizeof(int), cudaMemcpyHostToDevice));
-    CUDA_SAFE_CALL(cudaFreeHost(targetMask_h));
+    NR_CUDA_SAFE_CALL(cudaMalloc(&this->currentMask_gpu,
+                                 this->activeVoxelNumber[this->currentLevel]*sizeof(int)))
+    NR_CUDA_SAFE_CALL(cudaMemcpy(this->currentMask_gpu, targetMask_h,
+                                 this->activeVoxelNumber[this->currentLevel]*sizeof(int),
+                                 cudaMemcpyHostToDevice))
+    NR_CUDA_SAFE_CALL(cudaFreeHost(targetMask_h))
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 int reg_f3d_gpu<T>::ClearCurrentInputImage()
 {
-    if(cudaCommon_transferFromDeviceToNifti<float4>(this->controlPointGrid, &this->controlPointGrid_gpu)) return 1;
+    if(cudaCommon_transferFromDeviceToNifti<float4>
+       (this->controlPointGrid, &this->controlPointGrid_gpu)) return 1;
     cudaCommon_free<float4>(&this->controlPointGrid_gpu);
     this->controlPointGrid_gpu=NULL;
     cudaCommon_free(&this->currentReference_gpu);
     this->currentReference_gpu=NULL;
     cudaCommon_free(&this->currentFloating_gpu);
     this->currentFloating_gpu=NULL;
-    CUDA_SAFE_CALL(cudaFree(this->currentMask_gpu));
+    NR_CUDA_SAFE_CALL(cudaFree(this->currentMask_gpu))
     this->currentMask_gpu=NULL;
 
     if(this->currentReference->nt==2){
@@ -789,10 +820,16 @@ int reg_f3d_gpu<T>::CheckMemoryMB_f3d()
 
     // control point grid
     unsigned int cp=1;
-    cp *= (int)floor(this->referencePyramid[this->levelToPerform-1]->nx*this->referencePyramid[this->levelToPerform-1]->dx/this->spacing[0])+5;
-    cp *= (int)floor(this->referencePyramid[this->levelToPerform-1]->ny*this->referencePyramid[this->levelToPerform-1]->dy/this->spacing[1])+5;
+    cp *= (int)floor(this->referencePyramid[this->levelToPerform-1]->nx*
+                     this->referencePyramid[this->levelToPerform-1]->dx/
+                     this->spacing[0])+5;
+    cp *= (int)floor(this->referencePyramid[this->levelToPerform-1]->ny*
+                     this->referencePyramid[this->levelToPerform-1]->dy/
+                     this->spacing[1])+5;
     if(this->referencePyramid[this->levelToPerform-1]->nz>1)
-        cp *= (int)floor(this->referencePyramid[this->levelToPerform-1]->nz*this->referencePyramid[this->levelToPerform-1]->dz/this->spacing[2])+5;
+        cp *= (int)floor(this->referencePyramid[this->levelToPerform-1]->nz*
+                         this->referencePyramid[this->levelToPerform-1]->dz/
+                         this->spacing[2])+5;
     totalMemoryRequiered += cp * sizeof(float4);
 
     // node based NMI gradient
@@ -816,7 +853,8 @@ int reg_f3d_gpu<T>::CheckMemoryMB_f3d()
 
     // jacobian array
     if(this->jacobianLogWeight>0)
-        totalMemoryRequiered += 10 * this->referencePyramid[this->levelToPerform-1]->nvox * sizeof(float);
+        totalMemoryRequiered += 10 * this->referencePyramid[this->levelToPerform-1]->nvox*
+                                sizeof(float);
 
     return (int)(ceil((float)totalMemoryRequiered/1000000.0f));
 

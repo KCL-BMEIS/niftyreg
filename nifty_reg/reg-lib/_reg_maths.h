@@ -40,4 +40,12 @@ extern "C++"
 void reg_mat33_disp(mat33 *mat,
                     char * title);
 /* *************************************************************** */
+/** getReorientationMatrix
+ * Compute the transformation matrix to diagonalise the input matrix
+ */
+extern "C++"
+void reg_getReorientationMatrix(nifti_image *splineControlPoint,
+                                mat33 *desorient,
+                                mat33 *reorient);
+/* *************************************************************** */
 #endif // _REG_MATHS_H
