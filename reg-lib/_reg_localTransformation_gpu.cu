@@ -149,6 +149,7 @@ void reg_bspline_ApproxBendingEnergyGradient_gpu(nifti_image *referenceImage,
     reg_bspline_getApproxBendingEnergyGradient_kernel <<< G2, B2 >>>(*nodeNMIGradientArray_d);
     NR_CUDA_CHECK_KERNEL(G2,B2)
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(secondDerivativesTexture))
+    NR_CUDA_SAFE_CALL(cudaFree(secondDerivativeValues_d))
 
     return;
 }
