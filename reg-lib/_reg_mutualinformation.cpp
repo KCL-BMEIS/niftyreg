@@ -390,13 +390,11 @@ void reg_getEntropies(nifti_image *targetImage,
                 (targetImage, resultImage, type, target_bins, result_bins, probaJointHistogram,
                  logJointHistogram, entropies, mask);
         break;
-#ifdef _NR_DEV
         case NIFTI_TYPE_FLOAT64:
             reg_getEntropies1<double>
                     (targetImage, resultImage, type, target_bins, result_bins, probaJointHistogram,
                      logJointHistogram, entropies, mask);
             break;
-#endif
         default:
             fprintf(stderr,"[NiftyReg ERROR] reg_getEntropies\tThe target image data type is not supported\n");
             exit(1);
@@ -887,13 +885,11 @@ void reg_getVoxelBasedNMIGradientUsingPW1(nifti_image *targetImage,
                         (targetImage, resultImage, type, resultImageGradient, target_bins, result_bins, logJointHistogram,
                          entropies, nmiGradientImage, mask);
                 break;
-#ifdef _NR_DEV
                 case NIFTI_TYPE_FLOAT64:
                 reg_getVoxelBasedNMIGradientUsingPW2D<DTYPE,double>
                         (targetImage, resultImage, type, resultImageGradient, target_bins, result_bins, logJointHistogram,
                          entropies, nmiGradientImage, mask);
                 break;
-#endif
             default:
                 fprintf(stderr,"[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe gradient images data type is not supported\n");
                 exit(1);
@@ -906,13 +902,11 @@ void reg_getVoxelBasedNMIGradientUsingPW1(nifti_image *targetImage,
                     (targetImage, resultImage, type, resultImageGradient, target_bins, result_bins, logJointHistogram,
                      entropies, nmiGradientImage, mask);
                 break;
-#ifdef _NR_DEV
                 case NIFTI_TYPE_FLOAT64:
                 reg_getVoxelBasedNMIGradientUsingPW3D<DTYPE,double>
                     (targetImage, resultImage, type, resultImageGradient, target_bins, result_bins, logJointHistogram,
                      entropies, nmiGradientImage, mask);
                 break;
-#endif
             default:
                 fprintf(stderr,"[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe gradient images data type is not supported\n");
                 exit(1);
@@ -944,13 +938,11 @@ void reg_getVoxelBasedNMIGradientUsingPW(nifti_image *targetImage,
                     (targetImage, resultImage, type, resultImageGradient, target_bins, result_bins, logJointHistogram,
                      entropies, nmiGradientImage, mask);
             break;
-#ifdef _NR_DEV
         case NIFTI_TYPE_FLOAT64:
             reg_getVoxelBasedNMIGradientUsingPW1<double>
                     (targetImage, resultImage, type, resultImageGradient, target_bins, result_bins, logJointHistogram,
                      entropies, nmiGradientImage, mask);
             break;
-#endif
         default:
             fprintf(stderr,"[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe input image data type is not supported\n");
             exit(1);

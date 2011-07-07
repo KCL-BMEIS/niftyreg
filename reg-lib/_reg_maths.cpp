@@ -201,4 +201,38 @@ void reg_mat33_disp(mat33 *mat, char * title)
 }
 /* *************************************************************** */
 /* *************************************************************** */
+void reg_getReorientationMatrix(nifti_image *splineControlPoint, mat33 *desorient, mat33 *reorient)
+{
+    /* In case the matrix is not diagonal, the jacobian has to be reoriented */
+    reorient->m[0][0]=splineControlPoint->dx; reorient->m[0][1]=0.0f; reorient->m[0][2]=0.0f;
+    reorient->m[1][0]=0.0f; reorient->m[1][1]=splineControlPoint->dy; reorient->m[1][2]=0.0f;
+    reorient->m[2][0]=0.0f; reorient->m[2][1]=0.0f; reorient->m[2][2]=splineControlPoint->dz;
+    mat33 spline_ijk;
+    if(splineControlPoint->sform_code>0){
+        spline_ijk.m[0][0]=splineControlPoint->sto_ijk.m[0][0];
+        spline_ijk.m[0][1]=splineControlPoint->sto_ijk.m[0][1];
+        spline_ijk.m[0][2]=splineControlPoint->sto_ijk.m[0][2];
+        spline_ijk.m[1][0]=splineControlPoint->sto_ijk.m[1][0];
+        spline_ijk.m[1][1]=splineControlPoint->sto_ijk.m[1][1];
+        spline_ijk.m[1][2]=splineControlPoint->sto_ijk.m[1][2];
+        spline_ijk.m[2][0]=splineControlPoint->sto_ijk.m[2][0];
+        spline_ijk.m[2][1]=splineControlPoint->sto_ijk.m[2][1];
+        spline_ijk.m[2][2]=splineControlPoint->sto_ijk.m[2][2];
+    }
+    else{
+        spline_ijk.m[0][0]=splineControlPoint->qto_ijk.m[0][0];
+        spline_ijk.m[0][1]=splineControlPoint->qto_ijk.m[0][1];
+        spline_ijk.m[0][2]=splineControlPoint->qto_ijk.m[0][2];
+        spline_ijk.m[1][0]=splineControlPoint->qto_ijk.m[1][0];
+        spline_ijk.m[1][1]=splineControlPoint->qto_ijk.m[1][1];
+        spline_ijk.m[1][2]=splineControlPoint->qto_ijk.m[1][2];
+        spline_ijk.m[2][0]=splineControlPoint->qto_ijk.m[2][0];
+        spline_ijk.m[2][1]=splineControlPoint->qto_ijk.m[2][1];
+        spline_ijk.m[2][2]=splineControlPoint->qto_ijk.m[2][2];
+    }
+    *desorient=nifti_mat33_mul(spline_ijk, *reorient);
+    *reorient=nifti_mat33_inverse(*desorient);
+}
+/* *************************************************************** */
+/* *************************************************************** */
 #endif // _REG_MATHS_CPP

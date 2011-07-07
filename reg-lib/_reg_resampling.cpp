@@ -743,7 +743,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
                                 int interp,
                                 float bgValue)
 {
-	if(sourceImage->datatype != resultImage->datatype){
+    if(sourceImage->datatype != resultImage->datatype){
         printf("NiftyReg ERROR] reg_resampleSourceImage\tSource and result image should have the same data type\n");
         printf("NiftyReg ERROR] reg_resampleSourceImage\tNothing has been done\n");
         exit(1);
@@ -841,8 +841,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 					printf("Source pixel type unsupported.");
 					break;
 			}
-			break;
-#ifdef _NR_DEV
+                        break;
 		case NIFTI_TYPE_FLOAT64:
 			switch ( sourceImage->datatype ){
 				case NIFTI_TYPE_UINT8:
@@ -921,8 +920,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
 					printf("Source pixel type unsupported.");
 					break;
 			}
-			break;
-#endif
+                        break;
 		default:
 			printf("Deformation field pixel type unsupported.");
 			break;
@@ -1588,13 +1586,11 @@ void reg_getSourceImageGradient(nifti_image *targetImage,
 		case NIFTI_TYPE_FLOAT32:
                         reg_getSourceImageGradient1<float>
                                 (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
-			break;
-#ifdef _NR_DEV
+                        break;
 		case NIFTI_TYPE_FLOAT64:
                         reg_getSourceImageGradient1<double>
                                 (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
-			break;
-#endif
+                        break;
 		default:
                         printf("[NiftyReg ERROR] reg_getSourceImageGradient\tDeformation field pixel type unsupported.\n");
 			break;

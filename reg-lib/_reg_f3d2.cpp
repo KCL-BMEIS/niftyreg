@@ -8,6 +8,7 @@
  *  See the LICENSE.txt file in the nifty_reg root folder
  *
  */
+#ifdef _NR_DEV
 
 #ifndef _REG_F3D2_CPP
 #define _REG_F3D2_CPP
@@ -420,3 +421,4 @@ int reg_f3d2<T>::CheckStoppingCriteria(bool convergence)
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 #endif
+#endif //_NR_DEV

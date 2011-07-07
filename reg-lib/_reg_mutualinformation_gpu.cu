@@ -69,104 +69,80 @@ void reg_getEntropies2x2_gpu(nifti_image *targetImages,
 
     // The joint histogram is normalised and tranfered to the device
     float *logJointHistogram_float=NULL;
-    CUDA_SAFE_CALL(cudaMallocHost(&logJointHistogram_float,binNumber*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaMallocHost(&logJointHistogram_float,binNumber*sizeof(float)));
     for(unsigned int i=0;i<target_bins[0]*target_bins[1]*result_bins[0]*result_bins[1];++i)
         logJointHistogram_float[i]=float(probaJointHistogram[i]/voxelSum);
 
-    CUDA_SAFE_CALL(cudaMemcpy(*logJointHistogram_d,logJointHistogram_float,binNumber*sizeof(float),cudaMemcpyHostToDevice));
-    CUDA_SAFE_CALL(cudaFreeHost(logJointHistogram_float));
+    NR_CUDA_SAFE_CALL(cudaMemcpy(*logJointHistogram_d,logJointHistogram_float,binNumber*sizeof(float),cudaMemcpyHostToDevice));
+    NR_CUDA_SAFE_CALL(cudaFreeHost(logJointHistogram_float));
 
     float *tempHistogram=NULL;
-    CUDA_SAFE_CALL(cudaMalloc(&tempHistogram,binNumber*sizeof(float)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_firstTargetBin,&target_bins[0],sizeof(int)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_secondTargetBin,&target_bins[1],sizeof(int)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_firstResultBin,&result_bins[0],sizeof(int)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_secondResultBin,&result_bins[1],sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMalloc(&tempHistogram,binNumber*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_firstTargetBin,&target_bins[0],sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_secondTargetBin,&target_bins[1],sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_firstResultBin,&result_bins[0],sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_secondResultBin,&result_bins[1],sizeof(int)));
 
 
     // The joint histogram is smoothed along the x axis
-    CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
     dim3 B1(Block_reg_smoothJointHistogramX,1,1);
     dim3 G1((int)ceil((float)(target_bins[1]*result_bins[0]*result_bins[1])/(float)B1.x),1,1);
     reg_smoothJointHistogramX_kernel <<< G1, B1 >>> (tempHistogram);
-    CUDA_SAFE_CALL(cudaThreadSynchronize());
-#ifndef NDEBUG
-    printf("[NiftyReg CUDA DEBUG] reg_smoothJointHistogramX_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
-           cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
-#endif
-    CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
+    NR_CUDA_CHECK_KERNEL(G1,B1)
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
 
     // The joint histogram is smoothed along the y axis
-    CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, tempHistogram, binNumber*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, tempHistogram, binNumber*sizeof(float)));
     dim3 B2(Block_reg_smoothJointHistogramY,1,1);
     dim3 G2((int)ceil((float)(target_bins[0]*result_bins[0]*result_bins[1])/(float)B2.x),1,1);
     reg_smoothJointHistogramY_kernel <<< G2, B2 >>> (*logJointHistogram_d);
-    CUDA_SAFE_CALL(cudaThreadSynchronize());
-#ifndef NDEBUG
-    printf("[NiftyReg CUDA DEBUG] reg_smoothJointHistogramY_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
-           cudaGetErrorString(cudaGetLastError()),G2.x,G2.y,G2.z,B2.x,B2.y,B2.z);
-#endif
-    CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
+    NR_CUDA_CHECK_KERNEL(G2,B2)
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
 
     // The joint histogram is smoothed along the z axis
-    CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
     dim3 B3(Block_reg_smoothJointHistogramZ,1,1);
     dim3 G3((int)ceil((float)(target_bins[0]*target_bins[1]*result_bins[1])/(float)B3.x),1,1);
     reg_smoothJointHistogramZ_kernel <<< G3, B3 >>> (tempHistogram);
-    CUDA_SAFE_CALL(cudaThreadSynchronize());
-#ifndef NDEBUG
-    printf("[NiftyReg CUDA DEBUG] reg_smoothJointHistogramZ_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
-           cudaGetErrorString(cudaGetLastError()),G3.x,G3.y,G3.z,B3.x,B3.y,B3.z);
-#endif
-    CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
+    NR_CUDA_CHECK_KERNEL(G3,B3)
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
 
     // The joint histogram is smoothed along the w axis
-    CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, tempHistogram, binNumber*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, tempHistogram, binNumber*sizeof(float)));
     dim3 B4(Block_reg_smoothJointHistogramW,1,1);
     dim3 G4((int)ceil((float)(target_bins[0]*target_bins[1]*result_bins[0])/(float)B4.x),1,1);
     reg_smoothJointHistogramW_kernel <<< G4, B4 >>> (*logJointHistogram_d);
-    CUDA_SAFE_CALL(cudaThreadSynchronize());
-#ifndef NDEBUG
-    printf("[NiftyReg CUDA DEBUG] reg_smoothJointHistogramW_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
-           cudaGetErrorString(cudaGetLastError()),G4.x,G4.y,G4.z,B4.x,B4.y,B4.z);
-#endif
-    CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
+    NR_CUDA_CHECK_KERNEL(G4,B4)
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
 
-    CUDA_SAFE_CALL(cudaFree(tempHistogram));
-    CUDA_SAFE_CALL(cudaMallocHost(&logJointHistogram_float,binNumber*sizeof(float)));
-    CUDA_SAFE_CALL(cudaMemcpy(logJointHistogram_float,*logJointHistogram_d,binNumber*sizeof(float),cudaMemcpyDeviceToHost));
+    NR_CUDA_SAFE_CALL(cudaFree(tempHistogram));
+    NR_CUDA_SAFE_CALL(cudaMallocHost(&logJointHistogram_float,binNumber*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaMemcpy(logJointHistogram_float,*logJointHistogram_d,binNumber*sizeof(float),cudaMemcpyDeviceToHost));
     for(unsigned int i=0;i<target_bins[0]*target_bins[1]*result_bins[0]*result_bins[1];++i)
         probaJointHistogram[i]=logJointHistogram_float[i];
-    CUDA_SAFE_CALL(cudaFreeHost(logJointHistogram_float));
+    NR_CUDA_SAFE_CALL(cudaFreeHost(logJointHistogram_float));
 
     // The 4D joint histogram is first marginalised along the x axis (target_bins[0])
     float *temp3DHistogram=NULL;
-    CUDA_SAFE_CALL(cudaMalloc(&temp3DHistogram,target_bins[1]*result_bins[0]*result_bins[1]*sizeof(float)));
-    CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaMalloc(&temp3DHistogram,target_bins[1]*result_bins[0]*result_bins[1]*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
     dim3 B5(Block_reg_marginaliseTargetX,1,1);
     dim3 G5((int)ceil((float)(target_bins[1]*result_bins[0]*result_bins[1])/(float)B5.x),1,1);
     reg_marginaliseTargetX_kernel <<< G5, B5 >>> (temp3DHistogram);
-    CUDA_SAFE_CALL(cudaThreadSynchronize());
-#ifndef NDEBUG
-    printf("[NiftyReg CUDA DEBUG] reg_marginaliseTargetX_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
-           cudaGetErrorString(cudaGetLastError()),G5.x,G5.y,G5.z,B5.x,B5.y,B5.z);
-#endif
-    CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
+    NR_CUDA_CHECK_KERNEL(G5,B5)
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
 
     // The 3D joint histogram is then marginalised along the y axis (target_bins[1])
     float *temp2DHistogram=NULL;
-    CUDA_SAFE_CALL(cudaMalloc(&temp2DHistogram,result_bins[0]*result_bins[1]*sizeof(float)));
-    CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, temp3DHistogram, target_bins[1]*result_bins[0]*result_bins[1]*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaMalloc(&temp2DHistogram,result_bins[0]*result_bins[1]*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, temp3DHistogram, target_bins[1]*result_bins[0]*result_bins[1]*sizeof(float)));
     dim3 B6(Block_reg_marginaliseTargetXY,1,1);
     dim3 G6((int)ceil((float)(result_bins[0]*result_bins[1])/(float)B6.x),1,1);
     reg_marginaliseTargetXY_kernel <<< G6, B6 >>> (temp2DHistogram);
-    CUDA_SAFE_CALL(cudaThreadSynchronize());
-#ifndef NDEBUG
-    printf("[NiftyReg CUDA DEBUG] reg_marginaliseTargetXY_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
-           cudaGetErrorString(cudaGetLastError()),G6.x,G6.y,G6.z,B6.x,B6.y,B6.z);
-#endif    
-    CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
-    CUDA_SAFE_CALL(cudaFree(temp3DHistogram));
+    NR_CUDA_CHECK_KERNEL(G6,B6)
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
+    NR_CUDA_SAFE_CALL(cudaFree(temp3DHistogram));
 
     // We need to transfer it to an array of floats (cannot directly copy it to probaJointHistogram
     // as that is an array of doubles) and cudaMemcpy will produce unpredictable results
@@ -180,37 +156,29 @@ void reg_getEntropies2x2_gpu(nifti_image *targetImages,
         probaJointHistogram[offset + i] = temp2DHistogram_h[i];
     }
     delete[] temp2DHistogram_h;
-    CUDA_SAFE_CALL(cudaFree(temp2DHistogram));
+    NR_CUDA_SAFE_CALL(cudaFree(temp2DHistogram));
 
 
     // Now marginalise over the result axes.
     // First over W axes. (result_bins[1])
     temp3DHistogram=NULL;
-    CUDA_SAFE_CALL(cudaMalloc(&temp3DHistogram, target_bins[0]*target_bins[1]*result_bins[0]*sizeof(float)));
-    CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaMalloc(&temp3DHistogram, target_bins[0]*target_bins[1]*result_bins[0]*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
     dim3 B7(Block_reg_marginaliseResultX,1,1);
     dim3 G7((int)ceil((float)(target_bins[0]*target_bins[1]*result_bins[0])/(float)B7.x),1,1);
     reg_marginaliseResultX_kernel <<< G7, B7 >>> (temp3DHistogram);
-    CUDA_SAFE_CALL(cudaThreadSynchronize());
-#ifndef NDEBUG
-    printf("[NiftyReg CUDA DEBUG] reg_marginaliseResultX_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
-           cudaGetErrorString(cudaGetLastError()),G7.x,G7.y,G7.z,B7.x,B7.y,B7.z);
-#endif
-    CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
+    NR_CUDA_CHECK_KERNEL(G7,B7)
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
 
     // Now over Z axes. (result_bins[0])
     temp2DHistogram=NULL;
-    CUDA_SAFE_CALL(cudaMalloc(&temp2DHistogram,target_bins[0]*target_bins[1]*sizeof(float)));
-    CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, temp3DHistogram, target_bins[0]*target_bins[1]*result_bins[0]*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaMalloc(&temp2DHistogram,target_bins[0]*target_bins[1]*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, temp3DHistogram, target_bins[0]*target_bins[1]*result_bins[0]*sizeof(float)));
     dim3 B8(Block_reg_marginaliseResultXY,1,1);
     dim3 G8((int)ceil((float)(target_bins[0]*target_bins[1])/(float)B8.x),1,1);
     reg_marginaliseResultXY_kernel <<< G8, B8 >>> (temp2DHistogram);
-    CUDA_SAFE_CALL(cudaThreadSynchronize());
-#ifndef NDEBUG
-    printf("[NiftyReg CUDA DEBUG] reg_marginaliseResultXY_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
-           cudaGetErrorString(cudaGetLastError()),G8.x,G8.y,G8.z,B8.x,B8.y,B8.z);
-#endif
-    CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
+    NR_CUDA_CHECK_KERNEL(G8,B8)
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
 
     cudaFree(temp3DHistogram);
     // Transfer the data to CPU
@@ -287,20 +255,20 @@ void reg_getVoxelBasedNMIGradientUsingPW_gpu(   nifti_image *targetImage,
     const float NMI = (float)((entropies[0]+entropies[1])/entropies[2]);
 
     // Bind Symbols
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&voxelNumber,sizeof(int)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_firstTargetBin,&refBinning,sizeof(int)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_firstResultBin,&floBinning,sizeof(int)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Entropies,&entropies_h,sizeof(float4)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NMI,&NMI,sizeof(float)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber,&activeVoxelNumber,sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&voxelNumber,sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_firstTargetBin,&refBinning,sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_firstResultBin,&floBinning,sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Entropies,&entropies_h,sizeof(float4)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NMI,&NMI,sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber,&activeVoxelNumber,sizeof(int)));
 
     // Texture bindingcurrentFloating
-    CUDA_SAFE_CALL(cudaBindTexture(0, firstTargetImageTexture, *targetImageArray_d, voxelNumber*sizeof(float)));
-    CUDA_SAFE_CALL(cudaBindTexture(0, firstResultImageTexture, *resultImageArray_d, voxelNumber*sizeof(float)));
-    CUDA_SAFE_CALL(cudaBindTexture(0, firstResultImageGradientTexture, *resultGradientArray_d, voxelNumber*sizeof(float4)));
-    CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
-    CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, *mask_d, activeVoxelNumber*sizeof(int)));
-    CUDA_SAFE_CALL(cudaMemset(*voxelNMIGradientArray_d, 0, voxelNumber*sizeof(float4)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, firstTargetImageTexture, *targetImageArray_d, voxelNumber*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, firstResultImageTexture, *resultImageArray_d, voxelNumber*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, firstResultImageGradientTexture, *resultGradientArray_d, voxelNumber*sizeof(float4)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, *mask_d, activeVoxelNumber*sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMemset(*voxelNMIGradientArray_d, 0, voxelNumber*sizeof(float4)));
 
     const unsigned int Grid_reg_getVoxelBasedNMIGradientUsingPW =
         (unsigned int)ceil((float)activeVoxelNumber/(float)Block_reg_getVoxelBasedNMIGradientUsingPW);
@@ -308,16 +276,12 @@ void reg_getVoxelBasedNMIGradientUsingPW_gpu(   nifti_image *targetImage,
     dim3 G1(Grid_reg_getVoxelBasedNMIGradientUsingPW,1,1);
 
     reg_getVoxelBasedNMIGradientUsingPW_kernel <<< G1, B1 >>> (*voxelNMIGradientArray_d);
-    CUDA_SAFE_CALL(cudaThreadSynchronize());
-#ifndef NDEBUG
-    printf("[NiftyReg CUDA DEBUG] reg_getVoxelBasedNMIGradientUsingPW_kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
-           cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
-#endif
-    CUDA_SAFE_CALL(cudaUnbindTexture(firstTargetImageTexture));
-    CUDA_SAFE_CALL(cudaUnbindTexture(firstResultImageTexture));
-    CUDA_SAFE_CALL(cudaUnbindTexture(firstResultImageGradientTexture));
-    CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
-    CUDA_SAFE_CALL(cudaUnbindTexture(maskTexture));
+    NR_CUDA_CHECK_KERNEL(G1,B1)
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(firstTargetImageTexture));
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(firstResultImageTexture));
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(firstResultImageGradientTexture));
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(maskTexture));
 }
 /// Called when we have two target and two source image
 void reg_getVoxelBasedNMIGradientUsingPW2x2_gpu(nifti_image *targetImage,
@@ -346,25 +310,25 @@ void reg_getVoxelBasedNMIGradientUsingPW2x2_gpu(nifti_image *targetImage,
     const int binNumber = targetBinning[0]*targetBinning[1]*resultBinning[0]*resultBinning[1] + (targetBinning[0]*targetBinning[1]) + (resultBinning[0]*resultBinning[1]);
 
     // Bind Symbols
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&voxelNumber,sizeof(int)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_firstTargetBin,&targetBinning[0],sizeof(int)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_secondTargetBin,&targetBinning[1],sizeof(int)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_firstResultBin,&resultBinning[0],sizeof(int)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_secondResultBin,&resultBinning[1],sizeof(int)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Entropies,&entropies_h,sizeof(float4)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NMI,&NMI,sizeof(float)));
-    CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber,&activeVoxelNumber,sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&voxelNumber,sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_firstTargetBin,&targetBinning[0],sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_secondTargetBin,&targetBinning[1],sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_firstResultBin,&resultBinning[0],sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_secondResultBin,&resultBinning[1],sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Entropies,&entropies_h,sizeof(float4)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NMI,&NMI,sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber,&activeVoxelNumber,sizeof(int)));
 
     // Texture binding
-    CUDA_SAFE_CALL(cudaBindTexture(0, firstTargetImageTexture, *targetImageArray1_d, voxelNumber*sizeof(float)));
-    CUDA_SAFE_CALL(cudaBindTexture(0, secondTargetImageTexture, *targetImageArray2_d, voxelNumber*sizeof(float)));
-    CUDA_SAFE_CALL(cudaBindTexture(0, firstResultImageTexture, *resultImageArray1_d, voxelNumber*sizeof(float)));
-    CUDA_SAFE_CALL(cudaBindTexture(0, secondResultImageTexture, *resultImageArray2_d, voxelNumber*sizeof(float)));
-    CUDA_SAFE_CALL(cudaBindTexture(0, firstResultImageGradientTexture, *resultGradientArray1_d, voxelNumber*sizeof(float4)));
-    CUDA_SAFE_CALL(cudaBindTexture(0, secondResultImageGradientTexture, *resultGradientArray2_d, voxelNumber*sizeof(float4)));
-    CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
-    CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, *mask_d, activeVoxelNumber*sizeof(int)));
-    CUDA_SAFE_CALL(cudaMemset(*voxelNMIGradientArray_d, 0, voxelNumber*sizeof(float4)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, firstTargetImageTexture, *targetImageArray1_d, voxelNumber*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, secondTargetImageTexture, *targetImageArray2_d, voxelNumber*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, firstResultImageTexture, *resultImageArray1_d, voxelNumber*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, secondResultImageTexture, *resultImageArray2_d, voxelNumber*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, firstResultImageGradientTexture, *resultGradientArray1_d, voxelNumber*sizeof(float4)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, secondResultImageGradientTexture, *resultGradientArray2_d, voxelNumber*sizeof(float4)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, *mask_d, activeVoxelNumber*sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMemset(*voxelNMIGradientArray_d, 0, voxelNumber*sizeof(float4)));
 
     const unsigned int Grid_reg_getVoxelBasedNMIGradientUsingPW2x2 =
         (unsigned int)ceil((float)activeVoxelNumber/(float)Block_reg_getVoxelBasedNMIGradientUsingPW2x2);
@@ -372,20 +336,16 @@ void reg_getVoxelBasedNMIGradientUsingPW2x2_gpu(nifti_image *targetImage,
     dim3 G1(Grid_reg_getVoxelBasedNMIGradientUsingPW2x2,1,1);
 
     reg_getVoxelBasedNMIGradientUsingPW2x2_kernel <<< G1, B1 >>> (*voxelNMIGradientArray_d);
-    CUDA_SAFE_CALL(cudaThreadSynchronize());
-#ifndef NDEBUG
-    printf("[NiftyReg CUDA DEBUG] reg_getVoxelBasedNMIGradientUsingPW2x2_gpu: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
-           cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
-#endif
+    NR_CUDA_CHECK_KERNEL(G1,B1)
 
-    CUDA_SAFE_CALL(cudaUnbindTexture(firstTargetImageTexture));
-    CUDA_SAFE_CALL(cudaUnbindTexture(secondTargetImageTexture));
-    CUDA_SAFE_CALL(cudaUnbindTexture(firstResultImageTexture));
-    CUDA_SAFE_CALL(cudaUnbindTexture(secondResultImageTexture));
-    CUDA_SAFE_CALL(cudaUnbindTexture(firstResultImageGradientTexture));
-    CUDA_SAFE_CALL(cudaUnbindTexture(secondResultImageGradientTexture));
-    CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
-    CUDA_SAFE_CALL(cudaUnbindTexture(maskTexture));
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(firstTargetImageTexture));
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(secondTargetImageTexture));
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(firstResultImageTexture));
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(secondResultImageTexture));
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(firstResultImageGradientTexture));
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(secondResultImageGradientTexture));
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(maskTexture));
 }
 
 #endif

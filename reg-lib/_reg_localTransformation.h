@@ -24,13 +24,6 @@
 #endif
 
 /* *************************************************************** */
-/** getReorientationMatrix
- * Compute the transformation matrix to diagonalise the input matrix
- */
-void getReorientationMatrix(nifti_image *splineControlPoint,
-                            mat33 *desorient,
-                            mat33 *reorient);
-/* *************************************************************** */
 /** reg_spline_getDeformationField
  * Compute a dense deformation field in the space of a reference
  * image from a grid of control point.
