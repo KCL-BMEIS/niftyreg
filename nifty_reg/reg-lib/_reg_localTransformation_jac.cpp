@@ -2719,81 +2719,78 @@ void reg_defField_getJacobianMap2D(nifti_image *deformationField,
     DTYPE *deformationPtrX = static_cast<DTYPE *>(deformationField->data);
     DTYPE *deformationPtrY = &deformationPtrX[pixelNumber];
 
+    DTYPE basis[2]={1.0,0.0};
+    DTYPE first[2]={-1.0,1.0};
+    DTYPE firstX, firstY, defX, defY;
+
     unsigned int currentIndex=0;
     for(int y=0;y<deformationField->ny;++y){
         for(int x=0;x<deformationField->nx;++x){
 
-            // Extract the current voxel deformation
-            DTYPE realPosition[2]={deformationPtrX[currentIndex],
-                                   deformationPtrY[currentIndex]};
+            if(x==deformationField->nx-1 ||
+               y==deformationField->ny-1){
 
-            // Get the corresponding voxel position
-            DTYPE voxelPosition[2];
-            voxelPosition[0]=real2voxel->m[0][0] * realPosition[0] +
-                             real2voxel->m[0][1] * realPosition[1] +
-                             real2voxel->m[0][3];
-            voxelPosition[1]=real2voxel->m[1][0] * realPosition[0] +
-                             real2voxel->m[1][1] * realPosition[1] +
-                             real2voxel->m[1][3];
-
-            // Compute the relative positions
-            int previous[2];
-            previous[0]=(int)floor(voxelPosition[0]);
-            previous[1]=(int)floor(voxelPosition[1]);
-            DTYPE basisX[2], basisY[2], first[2]={-1.0,1.0};
-            basisX[1]=voxelPosition[0]-(DTYPE)previous[0];basisX[0]=1.0-basisX[1];
-            basisY[1]=voxelPosition[1]-(DTYPE)previous[1];basisY[0]=1.0-basisY[1];
-
-            DTYPE firstX, firstY, defX, defY;
-            memset(&jacobianMatrix,0,sizeof(mat33));
-            for(int b=0;b<2;++b){
-                int currentY=previous[1]+b;
-                for(int a=0;a<2;++a){
-                    int currentX=previous[0]+a;
-
-                    firstX=first[a]*basisY[b];
-                    firstY=basisX[a]*first[b];
-
-                    if(currentX>-1 && currentX<deformationField->nx &&
-                       currentY>-1 && currentY<deformationField->ny){
-                        // Uses the deformation field if voxel is in its space
-                        unsigned int index=currentY*deformationField->nx+currentX;
-                        defX = deformationPtrX[index];
-                        defY = deformationPtrY[index];
-                    }
-                    else{
-                        // Uses the deformation field affine transformation
-                        defX = voxel2real->m[0][0] * currentX +
-                               voxel2real->m[0][1] * currentY +
-                               voxel2real->m[0][3];
-                        defY = voxel2real->m[1][0] * currentX +
-                               voxel2real->m[1][1] * currentY +
-                               voxel2real->m[1][3];
-                    }//in space
-
-                    jacobianMatrix.m[0][0] += firstX*defX;
-                    jacobianMatrix.m[0][1] += firstY*defX;
-                    jacobianMatrix.m[1][0] += firstX*defY;
-                    jacobianMatrix.m[1][1] += firstY*defY;
-                }//a
-            }//b
-            jacobianMatrix.m[0][0] /= deformationField->dx;
-            jacobianMatrix.m[0][1] /= deformationField->dy;
-            jacobianMatrix.m[1][0] /= deformationField->dx;
-            jacobianMatrix.m[1][1] /= deformationField->dy;
-            jacobianMatrix.m[2][2]=1.f;
-
-            jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
-
-            if(jacobianDeterminant!=NULL)
-                jacDetPtr[currentIndex] = nifti_mat33_determ(jacobianMatrix);
-            if(jacobianMatrices!=NULL){
-                jacXXPtr[currentIndex]=jacobianMatrix.m[0][0];
-                jacXYPtr[currentIndex]=jacobianMatrix.m[0][1];
-                jacYXPtr[currentIndex]=jacobianMatrix.m[1][0];
-                jacYYPtr[currentIndex]=jacobianMatrix.m[1][1];
+                if(jacobianDeterminant!=NULL)
+                    jacDetPtr[currentIndex] = 1.0;
+                if(jacobianMatrices!=NULL){
+                    jacXXPtr[currentIndex]=1.0;
+                    jacXYPtr[currentIndex]=0.0;
+                    jacYXPtr[currentIndex]=0.0;
+                    jacYYPtr[currentIndex]=1.0;
+                }
             }
+            else{
 
+                memset(&jacobianMatrix,0,sizeof(mat33));
+
+                for(int b=0;b<2;++b){
+                    int currentY=y+b;
+                    for(int a=0;a<2;++a){
+                        int currentX=x+a;
+
+                        firstX=first[a]*basis[b];
+                        firstY=basis[a]*first[b];
+
+                        if(currentX>-1 && currentX<deformationField->nx &&
+                           currentY>-1 && currentY<deformationField->ny){
+                            // Uses the deformation field if voxel is in its space
+                            unsigned int index=currentY*deformationField->nx+currentX;
+                            defX = deformationPtrX[index];
+                            defY = deformationPtrY[index];
+                        }
+                        else{
+                            // Uses the deformation field affine transformation
+                            defX = voxel2real->m[0][0] * currentX +
+                                   voxel2real->m[0][1] * currentY +
+                                   voxel2real->m[0][3];
+                            defY = voxel2real->m[1][0] * currentX +
+                                   voxel2real->m[1][1] * currentY +
+                                   voxel2real->m[1][3];
+                        }//in space
+
+                        jacobianMatrix.m[0][0] += firstX*defX;
+                        jacobianMatrix.m[0][1] += firstY*defX;
+                        jacobianMatrix.m[1][0] += firstX*defY;
+                        jacobianMatrix.m[1][1] += firstY*defY;
+                    }//a
+                }//b
+                jacobianMatrix.m[0][0] /= deformationField->dx;
+                jacobianMatrix.m[0][1] /= deformationField->dy;
+                jacobianMatrix.m[1][0] /= deformationField->dx;
+                jacobianMatrix.m[1][1] /= deformationField->dy;
+                jacobianMatrix.m[2][2]=1.f;
+
+                jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
+
+                if(jacobianDeterminant!=NULL)
+                    jacDetPtr[currentIndex] = nifti_mat33_determ(jacobianMatrix);
+                if(jacobianMatrices!=NULL){
+                    jacXXPtr[currentIndex]=jacobianMatrix.m[0][0];
+                    jacXYPtr[currentIndex]=jacobianMatrix.m[0][1];
+                    jacYXPtr[currentIndex]=jacobianMatrix.m[1][0];
+                    jacYYPtr[currentIndex]=jacobianMatrix.m[1][1];
+                }
+            }
             currentIndex++;
 
         }// x jacImage
@@ -2835,133 +2832,95 @@ void reg_defField_getJacobianMap3D(nifti_image *deformationField,
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(deformationField, &desorient, &reorient);
 
-    mat44 *real2voxel=NULL;
-    mat44 *voxel2real=NULL;
-    if(deformationField->sform_code){
-        real2voxel=&(deformationField->sto_ijk);
-        voxel2real=&(deformationField->sto_xyz);
-    }
-    else{
-        real2voxel=&(deformationField->qto_ijk);
-        voxel2real=&(deformationField->qto_xyz);
-    }
-
     DTYPE *deformationPtrX = static_cast<DTYPE *>(deformationField->data);
     DTYPE *deformationPtrY = &deformationPtrX[voxelNumber];
     DTYPE *deformationPtrZ = &deformationPtrY[voxelNumber];
+
+    DTYPE basis[2]={1.0,0.0};
+    DTYPE first[2]={-1.0,1.0};
+    DTYPE firstX, firstY, firstZ, defX, defY, defZ;
 
     unsigned int currentIndex=0;
     for(int z=0;z<deformationField->nz;++z){
         for(int y=0;y<deformationField->ny;++y){
             for(int x=0;x<deformationField->nx;++x){
 
-                // Extract the current voxel deformation
-                DTYPE realPosition[3]={deformationPtrX[currentIndex],
-                                       deformationPtrY[currentIndex],
-                                       deformationPtrZ[currentIndex]};
+                if(x==deformationField->nx-1 ||
+                   y==deformationField->ny-1 ||
+                   z==deformationField->nz-1 ){
 
-                // Get the corresponding voxel position
-                DTYPE voxelPosition[3];
-                voxelPosition[0]=real2voxel->m[0][0] * realPosition[0] +
-                                 real2voxel->m[0][1] * realPosition[1] +
-                                 real2voxel->m[0][2] * realPosition[2] +
-                                 real2voxel->m[0][3];
-                voxelPosition[1]=real2voxel->m[1][0] * realPosition[0] +
-                                 real2voxel->m[1][1] * realPosition[1] +
-                                 real2voxel->m[1][2] * realPosition[2] +
-                                 real2voxel->m[1][3];
-                voxelPosition[2]=real2voxel->m[2][0] * realPosition[0] +
-                                 real2voxel->m[2][1] * realPosition[1] +
-                                 real2voxel->m[2][2] * realPosition[2] +
-                                 real2voxel->m[2][3];
+                    if(jacobianDeterminant!=NULL)
+                        jacDetPtr[currentIndex] = 1.0;
+                    if(jacobianMatrices!=NULL){
+                        jacXXPtr[currentIndex]=1.0;
+                        jacXYPtr[currentIndex]=0.0;
+                        jacXZPtr[currentIndex]=0.0;
+                        jacYXPtr[currentIndex]=0.0;
+                        jacYYPtr[currentIndex]=1.0;
+                        jacYZPtr[currentIndex]=0.0;
+                        jacZXPtr[currentIndex]=0.0;
+                        jacZYPtr[currentIndex]=0.0;
+                        jacZZPtr[currentIndex]=1.0;
+                    }
+                }
+                else{
+                    memset(&jacobianMatrix,0,sizeof(mat33));
 
-                // Compute the relative positions
-                int previous[3];
-                previous[0]=(int)floor(voxelPosition[0]);
-                previous[1]=(int)floor(voxelPosition[1]);
-                previous[2]=(int)floor(voxelPosition[2]);
-                DTYPE basisX[2], basisY[2], basisZ[2], first[2]={-1.0,1.0};
-                basisX[1]=voxelPosition[0]-(DTYPE)previous[0];basisX[0]=1.0-basisX[1];
-                basisY[1]=voxelPosition[1]-(DTYPE)previous[1];basisY[0]=1.0-basisY[1];
-                basisZ[1]=voxelPosition[2]-(DTYPE)previous[2];basisZ[0]=1.0-basisZ[1];
+                    for(int c=0;c<2;++c){
+                        int currentZ=z+c;
+                        for(int b=0;b<2;++b){
+                            int currentY=y+b;
+                            for(int a=0;a<2;++a){
+                                int currentX=x+a;
 
-                DTYPE firstX, firstY, firstZ, defX, defY, defZ;
-                memset(&jacobianMatrix,0,sizeof(mat33));
-                for(int c=0;c<2;++c){
-                    int currentZ=previous[2]+c;
-                    for(int b=0;b<2;++b){
-                        int currentY=previous[1]+b;
-                        for(int a=0;a<2;++a){
-                            int currentX=previous[0]+a;
+                                firstX=first[a]*basis[b]*basis[c];
+                                firstY=basis[a]*first[b]*basis[c];
+                                firstZ=basis[a]*basis[b]*first[c];
 
-                            firstX=first[a]*basisY[b]*basisZ[c];
-                            firstY=basisX[a]*first[b]*basisZ[c];
-                            firstZ=basisX[a]*basisY[b]*first[c];
-
-                            if(currentX>-1 && currentX<deformationField->nx &&
-                               currentY>-1 && currentY<deformationField->ny &&
-                               currentZ>-1 && currentZ<deformationField->nz){
                                 // Uses the deformation field if voxel is in its space
                                 unsigned int index=(currentZ*deformationField->ny+currentY)*deformationField->nx+currentX;
                                 defX = deformationPtrX[index];
                                 defY = deformationPtrY[index];
                                 defZ = deformationPtrZ[index];
-                            }
-                            else{
-                                // Uses the deformation field affine transformation
-                                defX = voxel2real->m[0][0] * currentX +
-                                       voxel2real->m[0][1] * currentY +
-                                       voxel2real->m[0][2] * currentZ +
-                                       voxel2real->m[0][3];
-                                defY = voxel2real->m[1][0] * currentX +
-                                       voxel2real->m[1][1] * currentY +
-                                       voxel2real->m[1][2] * currentZ +
-                                       voxel2real->m[1][3];
-                                defZ = voxel2real->m[2][0] * currentX +
-                                       voxel2real->m[2][1] * currentY +
-                                       voxel2real->m[2][2] * currentZ +
-                                       voxel2real->m[2][3];
-                            }//in space
 
-                            jacobianMatrix.m[0][0] += firstX*defX;
-                            jacobianMatrix.m[0][1] += firstY*defX;
-                            jacobianMatrix.m[0][2] += firstZ*defX;
-                            jacobianMatrix.m[1][0] += firstX*defY;
-                            jacobianMatrix.m[1][1] += firstY*defY;
-                            jacobianMatrix.m[1][2] += firstZ*defY;
-                            jacobianMatrix.m[2][0] += firstX*defZ;
-                            jacobianMatrix.m[2][1] += firstY*defZ;
-                            jacobianMatrix.m[2][2] += firstZ*defZ;
-                        }//a
-                    }//b
-                }//c
-                jacobianMatrix.m[0][0] /= deformationField->dx;
-                jacobianMatrix.m[0][1] /= deformationField->dy;
-                jacobianMatrix.m[0][2] /= deformationField->dz;
-                jacobianMatrix.m[1][0] /= deformationField->dx;
-                jacobianMatrix.m[1][1] /= deformationField->dy;
-                jacobianMatrix.m[1][2] /= deformationField->dz;
-                jacobianMatrix.m[2][0] /= deformationField->dx;
-                jacobianMatrix.m[2][1] /= deformationField->dy;
-                jacobianMatrix.m[2][2] /= deformationField->dz;
+                                jacobianMatrix.m[0][0] += firstX*defX;
+                                jacobianMatrix.m[0][1] += firstY*defX;
+                                jacobianMatrix.m[0][2] += firstZ*defX;
+                                jacobianMatrix.m[1][0] += firstX*defY;
+                                jacobianMatrix.m[1][1] += firstY*defY;
+                                jacobianMatrix.m[1][2] += firstZ*defY;
+                                jacobianMatrix.m[2][0] += firstX*defZ;
+                                jacobianMatrix.m[2][1] += firstY*defZ;
+                                jacobianMatrix.m[2][2] += firstZ*defZ;
+                            }//a
+                        }//b
+                    }//c
+                    jacobianMatrix.m[0][0] /= deformationField->dx;
+                    jacobianMatrix.m[0][1] /= deformationField->dy;
+                    jacobianMatrix.m[0][2] /= deformationField->dz;
+                    jacobianMatrix.m[1][0] /= deformationField->dx;
+                    jacobianMatrix.m[1][1] /= deformationField->dy;
+                    jacobianMatrix.m[1][2] /= deformationField->dz;
+                    jacobianMatrix.m[2][0] /= deformationField->dx;
+                    jacobianMatrix.m[2][1] /= deformationField->dy;
+                    jacobianMatrix.m[2][2] /= deformationField->dz;
 
-                jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
-                if(jacobianDeterminant!=NULL)
-                    jacDetPtr[currentIndex] = nifti_mat33_determ(jacobianMatrix);
-                if(jacobianMatrices!=NULL){
-                    jacXXPtr[currentIndex]=jacobianMatrix.m[0][0];
-                    jacXYPtr[currentIndex]=jacobianMatrix.m[0][1];
-                    jacXZPtr[currentIndex]=jacobianMatrix.m[0][2];
-                    jacYXPtr[currentIndex]=jacobianMatrix.m[1][0];
-                    jacYYPtr[currentIndex]=jacobianMatrix.m[1][1];
-                    jacYZPtr[currentIndex]=jacobianMatrix.m[1][2];
-                    jacZXPtr[currentIndex]=jacobianMatrix.m[2][0];
-                    jacZYPtr[currentIndex]=jacobianMatrix.m[2][1];
-                    jacZZPtr[currentIndex]=jacobianMatrix.m[2][2];
+                    jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
+                    if(jacobianDeterminant!=NULL)
+                        jacDetPtr[currentIndex] = nifti_mat33_determ(jacobianMatrix);
+                    if(jacobianMatrices!=NULL){
+                        jacXXPtr[currentIndex]=jacobianMatrix.m[0][0];
+                        jacXYPtr[currentIndex]=jacobianMatrix.m[0][1];
+                        jacXZPtr[currentIndex]=jacobianMatrix.m[0][2];
+                        jacYXPtr[currentIndex]=jacobianMatrix.m[1][0];
+                        jacYYPtr[currentIndex]=jacobianMatrix.m[1][1];
+                        jacYZPtr[currentIndex]=jacobianMatrix.m[1][2];
+                        jacZXPtr[currentIndex]=jacobianMatrix.m[2][0];
+                        jacZYPtr[currentIndex]=jacobianMatrix.m[2][1];
+                        jacZZPtr[currentIndex]=jacobianMatrix.m[2][2];
+                    }
                 }
-
                 currentIndex++;
-
             }// x jacImage
         }//y jacImage
     }//z jacImage
