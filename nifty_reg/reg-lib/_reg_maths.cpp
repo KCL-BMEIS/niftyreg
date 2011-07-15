@@ -171,15 +171,18 @@ mat44 reg_mat44_add(mat44 *A, mat44 *B)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-void reg_mat44_mul(	mat44 *mat,
-                    float in[3],
-                    float out[3])
+template <class DTYPE>
+void reg_mat44_mul(mat44 *mat,
+                    DTYPE in[3],
+                    DTYPE out[3])
 {
     out[0]=mat->m[0][0]*in[0] + mat->m[0][1]*in[1] + mat->m[0][2]*in[2] + mat->m[0][3];
     out[1]=mat->m[1][0]*in[0] + mat->m[1][1]*in[1] + mat->m[1][2]*in[2] + mat->m[1][3];
     out[2]=mat->m[2][0]*in[0] + mat->m[2][1]*in[1] + mat->m[2][2]*in[2] + mat->m[2][3];
     return;
 }
+template void reg_mat44_mul<float>(mat44 *, float*, float*);
+template void reg_mat44_mul<double>(mat44 *, double*, double*);
 /* *************************************************************** */
 /* *************************************************************** */
 void reg_mat44_disp(mat44 *mat, char * title)
