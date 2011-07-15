@@ -634,17 +634,17 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *targetImage,
                                            nifti_image *nmiGradientImage,
                                            int *mask)
 {
-    unsigned int num_target_volumes=targetImage->nt;
-    unsigned int num_result_volumes=resultImage->nt;
-    unsigned int num_loops = num_target_volumes + num_result_volumes;
+    int num_target_volumes=targetImage->nt;
+    int num_result_volumes=resultImage->nt;
+    int num_loops = num_target_volumes + num_result_volumes;
 
-    unsigned targetVoxelNumber = targetImage->nx * targetImage->ny * targetImage->nz;
+    int targetVoxelNumber = targetImage->nx * targetImage->ny * targetImage->nz;
 
     DTYPE *targetImagePtr = static_cast<DTYPE *>(targetImage->data);
     DTYPE *resultImagePtr = static_cast<DTYPE *>(resultImage->data);
-    GradTYPE *resulImageGradientPtrX = static_cast<GradTYPE *>(resultImageGradient->data);
-    GradTYPE *resulImageGradientPtrY = &resulImageGradientPtrX[targetVoxelNumber*num_result_volumes];
-    GradTYPE *resulImageGradientPtrZ = &resulImageGradientPtrY[targetVoxelNumber*num_result_volumes];
+    GradTYPE *resultImageGradientPtrX = static_cast<GradTYPE *>(resultImageGradient->data);
+    GradTYPE *resultImageGradientPtrY = &resultImageGradientPtrX[targetVoxelNumber*num_result_volumes];
+    GradTYPE *resultImageGradientPtrZ = &resultImageGradientPtrY[targetVoxelNumber*num_result_volumes];
 
     // Build up this arrays of offsets that will help us index the histogram entries
     int target_offsets[10];
@@ -654,13 +654,13 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *targetImage,
     int total_result_entries = 1;
 
     // The 4D
-    for (unsigned int i = 0; i < num_target_volumes; ++i) {
+    for (int i = 0; i < num_target_volumes; ++i) {
         total_target_entries *= target_bins[i];
         target_offsets[i] = 1;
         for (int j = i; j > 0; --j) target_offsets[i] *= target_bins[j - 1];
     }
 
-    for (unsigned int i = 0; i < num_result_volumes; ++i) {
+    for (int i = 0; i < num_result_volumes; ++i) {
         total_result_entries *= result_bins[i];
         result_offsets[i] = 1;
         for (int j = i; j > 0; --j) result_offsets[i] *= result_bins[j - 1];
@@ -668,7 +668,6 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *targetImage,
 
     int num_probabilities = total_target_entries * total_result_entries;
 
-    int *maskPtr = &mask[0];
     double NMI = (entropies[0] + entropies[1]) / entropies[2];
 
     // Hold current values.
@@ -703,11 +702,11 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *targetImage,
 
     // Set up the multi loop
     Multi_Loop<int> loop;
-    for (unsigned int i = 0; i < num_loops; ++i) loop.Add(-1, 2);
+    for (int i = 0; i < num_loops; ++i) loop.Add(-1, 2);
 
     SafeArray<int> bins(num_loops);
-    for (unsigned int i = 0; i < num_target_volumes; ++i) bins[i] = target_bins[i];
-    for (unsigned int i = 0; i < num_result_volumes; ++i) bins[i + num_target_volumes] = result_bins[i];
+    for (int i = 0; i < num_target_volumes; ++i) bins[i] = target_bins[i];
+    for (int i = 0; i < num_result_volumes; ++i) bins[i + num_target_volumes] = result_bins[i];
 
     GradTYPE coefficients[20];
     GradTYPE positions[20];
@@ -716,12 +715,34 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *targetImage,
     GradTYPE result_common[3];
     GradTYPE der_term[3];
 
+    int index, currentIndex, relative_pos, i, j, lc, jc;
+    int target_flat_index, result_flat_index;
+    DTYPE temp;
+    GradTYPE reg;
+
     // Loop over all the voxels
-    for (unsigned int index = 0; index < targetVoxelNumber; ++index) {
-        if(*maskPtr++>-1){
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        firstprivate(loop) \
+        private(index, valid_values, i, j, lc, jc, voxel_values, currentIndex, temp, \
+                result_gradient_x_values, result_gradient_y_values, result_gradient_z_values, \
+                jointEntropyDerivative_X, jointEntropyDerivative_Y, jointEntropyDerivative_Z, \
+                movingEntropyDerivative_X, movingEntropyDerivative_Y, movingEntropyDerivative_Z, \
+                fixedEntropyDerivative_X, fixedEntropyDerivative_Y, fixedEntropyDerivative_Z, \
+                target_flat_index, result_flat_index, relative_pos, coefficients, reg, \
+                positions, relative_positions, common_target_value, result_common, der_term, \
+                jointLog, targetLog, resultLog) \
+        shared(targetImagePtr, targetVoxelNumber, mask, num_target_volumes, target_bins, \
+               num_result_volumes, result_bins, resultImagePtr, bins, num_loops, num_probabilities, \
+               result_offsets, target_offsets, total_target_entries, logJointHistogram, \
+               resultImageGradientPtrX, resultImageGradientPtrY, resultImageGradientPtrZ, \
+               nmiGradientPtrX, nmiGradientPtrY, nmiGradientPtrZ, NMI, joint_entropy)
+#endif // _OPENMP
+    for (index = 0; index < targetVoxelNumber; ++index){
+        if(mask[index]>-1){
             valid_values = true;
             // Collect the target intensities and do some sanity checking
-            for (unsigned int i = 0; i < num_target_volumes; ++i) {
+            for (i = 0; i < num_target_volumes; ++i) {
                 voxel_values[i] = targetImagePtr[index+i*targetVoxelNumber];
                 if (voxel_values[i] <= (DTYPE)0 ||
                     voxel_values[i] >= (DTYPE)target_bins[i] ||
@@ -734,12 +755,12 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *targetImage,
 
             // Collect the result intensities and do some sanity checking
             if (valid_values) {
-                for (unsigned int i = 0; i < num_result_volumes; ++i) {
-                    unsigned int currentIndex = index+i*targetVoxelNumber;
-                    DTYPE temp = resultImagePtr[currentIndex];
-                    result_gradient_x_values[i] = resulImageGradientPtrX[currentIndex];
-                    result_gradient_y_values[i] = resulImageGradientPtrY[currentIndex];
-                    result_gradient_z_values[i] = resulImageGradientPtrZ[currentIndex];
+                for (i = 0; i < num_result_volumes; ++i) {
+                    currentIndex = index+i*targetVoxelNumber;
+                    temp = resultImagePtr[currentIndex];
+                    result_gradient_x_values[i] = resultImageGradientPtrX[currentIndex];
+                    result_gradient_y_values[i] = resultImageGradientPtrY[currentIndex];
+                    result_gradient_z_values[i] = resultImageGradientPtrZ[currentIndex];
 
                     if (temp <= (DTYPE)0 ||
                         temp >= (DTYPE)result_bins[i] ||
@@ -766,14 +787,12 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *targetImage,
                 movingEntropyDerivative_Z = 0.0;
                 fixedEntropyDerivative_Z = 0.0;
 
-                int target_flat_index, result_flat_index;
-
                 for (loop.Initialise(); loop.Continue(); loop.Next()) {
                     target_flat_index = result_flat_index = 0;
                     valid_values = true;
 
-                    for(unsigned int lc = 0; lc < num_target_volumes; ++lc){
-                        int relative_pos = int(voxel_values[lc] + loop.Index(lc));
+                    for(lc = 0; lc < num_target_volumes; ++lc){
+                        relative_pos = int(voxel_values[lc] + loop.Index(lc));
                         if(relative_pos< 0 || relative_pos >= bins[lc]){
                             valid_values = false; break;
                         }
@@ -783,8 +802,8 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *targetImage,
                         relative_positions[lc] = relative_pos;
                     }
 
-                    for(unsigned int jc = num_target_volumes; jc < num_loops; ++jc){
-                        int relative_pos = int(voxel_values[jc] + loop.Index(jc));
+                    for(jc = num_target_volumes; jc < num_loops; ++jc){
+                        relative_pos = int(voxel_values[jc] + loop.Index(jc));
                         if(relative_pos< 0 || relative_pos >= bins[jc]){
                             valid_values = false; break;
                         }
@@ -798,17 +817,16 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *targetImage,
 
                     if(valid_values) {
                         common_target_value = (GradTYPE)1.0;
-                        for (unsigned int i = 0; i < num_target_volumes; ++i) common_target_value *= coefficients[i];
+                        for (i = 0; i < num_target_volumes; ++i)
+                            common_target_value *= coefficients[i];
 
                         result_common[0] = result_common[1] = result_common[2] = (GradTYPE)0.0;
 
-                        for (unsigned int i = 0; i < num_result_volumes; ++i)
-                        {
+                        for (i = 0; i < num_result_volumes; ++i){
                             der_term[0] = der_term[1] = der_term[2] = (GradTYPE)1.0;
-                            for (unsigned int j = 0; j < num_result_volumes; ++j)
-                            {
+                            for (j = 0; j < num_result_volumes; ++j){
                                 if (i == j) {
-                                    GradTYPE reg = GetBasisSplineDerivativeValue<GradTYPE>
+                                    reg = GetBasisSplineDerivativeValue<GradTYPE>
                                                         ((GradTYPE)positions[j + num_target_volumes]);
                                     der_term[0] *= reg * (GradTYPE)result_gradient_x_values[j];
                                     der_term[1] *= reg * (GradTYPE)result_gradient_y_values[j];
@@ -829,8 +847,10 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *targetImage,
                         result_common[1] *= common_target_value;
                         result_common[2] *= common_target_value;
 
-                        for (unsigned int i = 0; i < num_target_volumes; ++i) target_flat_index += relative_positions[i] * target_offsets[i];
-                        for (unsigned int i = 0; i < num_result_volumes; ++i) result_flat_index += relative_positions[i + num_target_volumes] * result_offsets[i];
+                        for (i = 0; i < num_target_volumes; ++i)
+                            target_flat_index += relative_positions[i] * target_offsets[i];
+                        for (i = 0; i < num_result_volumes; ++i)
+                            result_flat_index += relative_positions[i + num_target_volumes] * result_offsets[i];
 
                         jointLog = logJointHistogram[target_flat_index + (result_flat_index * total_target_entries)];
                         targetLog = logJointHistogram[num_probabilities + target_flat_index];
@@ -849,14 +869,12 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *targetImage,
                         movingEntropyDerivative_Z -= result_common[2] * resultLog;
                     }
 
-                    *nmiGradientPtrX = (GradTYPE)((fixedEntropyDerivative_X + movingEntropyDerivative_X - NMI * jointEntropyDerivative_X) / joint_entropy);
-                    *nmiGradientPtrY = (GradTYPE)((fixedEntropyDerivative_Y + movingEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / joint_entropy);
-                    *nmiGradientPtrZ = (GradTYPE)((fixedEntropyDerivative_Z + movingEntropyDerivative_Z - NMI * jointEntropyDerivative_Z) / joint_entropy);
+                    nmiGradientPtrX[index] = (GradTYPE)((fixedEntropyDerivative_X + movingEntropyDerivative_X - NMI * jointEntropyDerivative_X) / joint_entropy);
+                    nmiGradientPtrY[index] = (GradTYPE)((fixedEntropyDerivative_Y + movingEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / joint_entropy);
+                    nmiGradientPtrZ[index] = (GradTYPE)((fixedEntropyDerivative_Z + movingEntropyDerivative_Z - NMI * jointEntropyDerivative_Z) / joint_entropy);
                 }
             }
         }
-
-        nmiGradientPtrX++; nmiGradientPtrY++; nmiGradientPtrZ++;
     }
 }
 /* *************************************************************** */
