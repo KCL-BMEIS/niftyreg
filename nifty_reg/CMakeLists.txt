@@ -22,6 +22,7 @@ OPTION(BUILD_NIFTYREG "To build the NiftyReg executables" ON)
 OPTION(BUILD_NR_DEV "To build code under development" OFF)
 
 OPTION(USE_SSE "To use SSE computation in some case" OFF)
+OPTION(USE_OPENMP "To use openMP for multi-CPU processing" OFF)
 OPTION(USE_CUDA "To use CUDA for a GPU implementation of the code" OFF)
 OPTION(USE_DOUBLE "To use double precision instead of single precision" OFF)
 #-----------------------------------------------------------------------------
@@ -51,6 +52,11 @@ ENDIF(USE_SSE)
 IF(BUILD_NR_DEV)
     ADD_DEFINITIONS(-D_NR_DEV)
 ENDIF(BUILD_NR_DEV)
+
+IF(USE_OPENMP)
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+ENDIF(USE_OPENMP)
 
 #-----------------------------------------------------------------------------
 IF(USE_CUDA)

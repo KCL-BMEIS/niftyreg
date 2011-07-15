@@ -697,6 +697,10 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
     __m128 m;
     float f[4];
     } val;
+    __m128 tempX, tempY, tempZ, *ptrX, *ptrY, *ptrZ, tempCurrent, *ptrBasis;
+    __m128 xBasis_sse, yBasis_sse, zBasis_sse, temp_basis_sse, basis_sse;
+#else
+    int a, coord;
 #endif
 
     DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
@@ -707,8 +711,6 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
     DTYPE *fieldPtrY=&fieldPtrX[deformationField->nx*deformationField->ny*deformationField->nz];
     DTYPE *fieldPtrZ=&fieldPtrY[deformationField->nx*deformationField->ny*deformationField->nz];
 
-    int *maskPtr = &mask[0];
-    
     DTYPE gridVoxelSpacing[3];
     gridVoxelSpacing[0] = splineControlPoint->dx / referenceImage->dx;
     gridVoxelSpacing[1] = splineControlPoint->dy / referenceImage->dy;
@@ -728,6 +730,9 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
     DTYPE zControlPointCoordinates[64] __attribute__((aligned(16)));
 #endif
 
+    int x, y, z, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, index;
+    DTYPE real[3];
+
     if(composition){ // Composition of deformation fields
 
         // read the ijk sform or qform, as appropriate
@@ -743,54 +748,63 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
         DTYPE xBasis[4] __attribute__((aligned(16)));
         DTYPE yBasis[4] __attribute__((aligned(16)));
 #endif
+        DTYPE voxel[3];
 
-        int oldPreX=-99; int oldPreY=-99; int oldPreZ=-99;
-		
-        for(int z=0; z<deformationField->nz; z++){
-            for(int y=0; y<deformationField->ny; y++){
-                for(int x=0; x<deformationField->nx; x++){
+#ifdef _OPENMP
+#ifdef _USE_SSE
+#pragma omp parallel for default(none) \
+        private(x, y, z, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
+                index, voxel, basis, xBasis, yBasis, zBasis, xControlPointCoordinates, \
+                yControlPointCoordinates, zControlPointCoordinates,  \
+                tempX, tempY, tempZ, ptrX, ptrY, ptrZ, xBasis_sse, yBasis_sse, zBasis_sse, \
+                temp_basis_sse, basis_sse, val) \
+        shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, targetMatrix_real_to_voxel, \
+               gridVoxelSpacing, bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ, \
+               splineControlPoint, mask)
+#else
+#pragma omp parallel for default(none) \
+        private(x, y, z, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
+                index, voxel, basis, xBasis, yBasis, zBasis, xControlPointCoordinates, \
+                yControlPointCoordinates, zControlPointCoordinates, coord, a) \
+        shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, targetMatrix_real_to_voxel, \
+               gridVoxelSpacing, bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ, \
+               splineControlPoint, mask)
+#endif // _USE_SSE
+#endif // _OPENMP
+        for(z=0; z<deformationField->nz; z++){
+
+            index=z*deformationField->nx*deformationField->dy;
+            oldPreX=-99; oldPreY=-99; oldPreZ=-99;
+            for(y=0; y<deformationField->ny; y++){
+                for(x=0; x<deformationField->nx; x++){
 
                     // The previous position at the current pixel position is read
-                    DTYPE xReal = (DTYPE)(*fieldPtrX);
-                    DTYPE yReal = (DTYPE)(*fieldPtrY);
-                    DTYPE zReal = (DTYPE)(*fieldPtrZ);
+                    real[0] = fieldPtrX[index];
+                    real[1] = fieldPtrY[index];
+                    real[2] = fieldPtrZ[index];
 
                     // From real to pixel position
-                    DTYPE xVoxel
-                        = targetMatrix_real_to_voxel->m[0][0]*xReal
-                        + targetMatrix_real_to_voxel->m[0][1]*yReal
-                        + targetMatrix_real_to_voxel->m[0][2]*zReal
-                        + targetMatrix_real_to_voxel->m[0][3];
-                    DTYPE yVoxel
-                        = targetMatrix_real_to_voxel->m[1][0]*xReal
-                        + targetMatrix_real_to_voxel->m[1][1]*yReal
-                        + targetMatrix_real_to_voxel->m[1][2]*zReal
-                        + targetMatrix_real_to_voxel->m[1][3];
-                    DTYPE zVoxel
-                        = targetMatrix_real_to_voxel->m[2][0]*xReal
-                        + targetMatrix_real_to_voxel->m[2][1]*yReal
-                        + targetMatrix_real_to_voxel->m[2][2]*zReal
-                        + targetMatrix_real_to_voxel->m[2][3];
+                    reg_mat44_mul(targetMatrix_real_to_voxel, real, voxel);
 
-                    if(xVoxel>=0 && xVoxel<=referenceImage->nx-1 &&
-                       yVoxel>=0 && yVoxel<=referenceImage->ny-1 &&
-                       zVoxel>=0 && zVoxel<=referenceImage->nz-1){
+                    if(voxel[0]>=0 && voxel[0]<=deformationField->nx-1 &&
+                       voxel[1]>=0 && voxel[1]<=deformationField->ny-1 &&
+                       voxel[2]>=0 && voxel[2]<=deformationField->nz-1){
 
                         // The spline coefficients are computed
-                        int xPre=(int)((DTYPE)xVoxel/gridVoxelSpacing[0]);
-                        basis=(DTYPE)xVoxel/gridVoxelSpacing[0]-(DTYPE)xPre;
+                        xPre=(int)(voxel[0]/gridVoxelSpacing[0]);
+                        basis=voxel[0]/gridVoxelSpacing[0]-(DTYPE)xPre;
                         if(basis<0.0) basis=0.0; //rounding error
                         if(bspline) Get_BSplineBasisValues<DTYPE>(basis, xBasis);
                         else Get_SplineBasisValues<DTYPE>(basis, xBasis);
 
-                        int yPre=(int)((DTYPE)yVoxel/gridVoxelSpacing[1]);
-                        basis=(DTYPE)yVoxel/gridVoxelSpacing[1]-(DTYPE)yPre;
+                        yPre=(int)(voxel[1]/gridVoxelSpacing[1]);
+                        basis=voxel[1]/gridVoxelSpacing[1]-(DTYPE)yPre;
                         if(basis<0.0) basis=0.0; //rounding error
                         if(bspline) Get_BSplineBasisValues<DTYPE>(basis, yBasis);
                         else Get_SplineBasisValues<DTYPE>(basis, yBasis);
 
-                        int zPre=(int)((DTYPE)zVoxel/gridVoxelSpacing[2]);
-                        basis=(DTYPE)zVoxel/gridVoxelSpacing[2]-(DTYPE)zPre;
+                        zPre=(int)(voxel[2]/gridVoxelSpacing[2]);
+                        basis=voxel[2]/gridVoxelSpacing[2]-(DTYPE)zPre;
                         if(basis<0.0) basis=0.0; //rounding error
                         if(bspline) Get_BSplineBasisValues<DTYPE>(basis, zBasis);
                         else Get_SplineBasisValues<DTYPE>(basis, zBasis);
@@ -814,32 +828,32 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
                         }
 
 
-                        if(*maskPtr>-1){
+                        if(mask[index]>-1){
 #if _USE_SSE
-                            __m128 tempX =  _mm_set_ps1(0.0);
-                            __m128 tempY =  _mm_set_ps1(0.0);
-                            __m128 tempZ =  _mm_set_ps1(0.0);
-                            __m128 *ptrX = (__m128 *) &xControlPointCoordinates[0];
-                            __m128 *ptrY = (__m128 *) &yControlPointCoordinates[0];
-                            __m128 *ptrZ = (__m128 *) &zControlPointCoordinates[0];
+                            tempX =  _mm_set_ps1(0.0);
+                            tempY =  _mm_set_ps1(0.0);
+                            tempZ =  _mm_set_ps1(0.0);
+                            ptrX = (__m128 *) &xControlPointCoordinates[0];
+                            ptrY = (__m128 *) &yControlPointCoordinates[0];
+                            ptrZ = (__m128 *) &zControlPointCoordinates[0];
 
                             val.f[0] = xBasis[0];
                             val.f[1] = xBasis[1];
                             val.f[2] = xBasis[2];
                             val.f[3] = xBasis[3];
-                            __m128 _xBasis_sse = val.m;
+                            xBasis_sse = val.m;
 
                             //addition and multiplication of the 16 basis value and CP position for each axis
-                            for(int c=0; c<4; c++){
-                                for(int b=0; b<4; b++){
-                                    __m128 _yBasis_sse  = _mm_set_ps1(yBasis[b]);
-                                    __m128 _zBasis_sse  = _mm_set_ps1(zBasis[c]);
-                                    __m128 _temp_basis_sse = _mm_mul_ps(_yBasis_sse, _zBasis_sse);
-                                    __m128 _basis = _mm_mul_ps(_temp_basis_sse, _xBasis_sse);
+                            for(c=0; c<4; c++){
+                                for(b=0; b<4; b++){
+                                    yBasis_sse  = _mm_set_ps1(yBasis[b]);
+                                    zBasis_sse  = _mm_set_ps1(zBasis[c]);
+                                    temp_basis_sse = _mm_mul_ps(yBasis_sse, zBasis_sse);
+                                    basis_sse = _mm_mul_ps(temp_basis_sse, xBasis_sse);
 
-                                    tempX = _mm_add_ps(_mm_mul_ps(_basis, *ptrX), tempX );
-                                    tempY = _mm_add_ps(_mm_mul_ps(_basis, *ptrY), tempY );
-                                    tempZ = _mm_add_ps(_mm_mul_ps(_basis, *ptrZ), tempZ );
+                                    tempX = _mm_add_ps(_mm_mul_ps(basis_sse, *ptrX), tempX );
+                                    tempY = _mm_add_ps(_mm_mul_ps(basis_sse, *ptrY), tempY );
+                                    tempZ = _mm_add_ps(_mm_mul_ps(basis_sse, *ptrZ), tempZ );
 
                                     ptrX++;
                                     ptrY++;
@@ -848,40 +862,37 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
                             }
                             //the values stored in SSE variables are transfered to normal float
                             val.m = tempX;
-                            xReal = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                            real[0] = val.f[0]+val.f[1]+val.f[2]+val.f[3];
                             val.m = tempY;
-                            yReal = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                            real[1] = val.f[0]+val.f[1]+val.f[2]+val.f[3];
                             val.m = tempZ;
-                            zReal = val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                            real[2] = val.f[0]+val.f[1]+val.f[2]+val.f[3];
 #else
-                            xReal=0.0;
-                            yReal=0.0;
-                            zReal=0.0;
-                            unsigned int coord=0;
-                            for(unsigned int c=0; c<4; c++){
-                                for(unsigned int b=0; b<4; b++){
-                                    for(unsigned int a=0; a<4; a++){
+                            real[0]=0.0;
+                            real[1]=0.0;
+                            real[2]=0.0;
+                            coord=0;
+                            for(c=0; c<4; c++){
+                                for(b=0; b<4; b++){
+                                    for(a=0; a<4; a++){
                                         DTYPE tempValue = xBasis[a] * yBasis[b] * zBasis[c];
-                                        xReal += xControlPointCoordinates[coord] * tempValue;
-                                        yReal += yControlPointCoordinates[coord] * tempValue;
-                                        zReal += zControlPointCoordinates[coord] * tempValue;
+                                        real[0] += xControlPointCoordinates[coord] * tempValue;
+                                        real[1] += yControlPointCoordinates[coord] * tempValue;
+                                        real[2] += zControlPointCoordinates[coord] * tempValue;
                                         coord++;
                                     }
                                 }
                             }
 #endif
                         }
-                        *fieldPtrX = (DTYPE)xReal;
-                        *fieldPtrY = (DTYPE)yReal;
-                        *fieldPtrZ = (DTYPE)zReal;
+                        fieldPtrX[index] = real[0];
+                        fieldPtrY[index] = real[1];
+                        fieldPtrZ[index] = real[2];
+                        index++;
                     }
-                    fieldPtrX++;
-                    fieldPtrY++;
-                    fieldPtrZ++;
-                    maskPtr++;
-				}
-			}
-		}
+                }
+            }
+        }
     }//Composition of deformation
     else{ // !composition
 
@@ -894,10 +905,32 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
         DTYPE xyzBasis[64] __attribute__((aligned(16)));
         DTYPE temp[4] __attribute__((aligned(16)));
 #endif
-		
+
+#ifdef _OPENMP
+#ifdef _USE_SSE
+#pragma omp parallel for default(none) \
+        private(x, y, z, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
+                index, basis, xyzBasis, yzBasis, zBasis, temp, xControlPointCoordinates, \
+                yControlPointCoordinates, zControlPointCoordinates, oldBasis, \
+                tempX, tempY, tempZ, ptrX, ptrY, ptrZ, xBasis_sse, yBasis_sse, zBasis_sse, \
+                temp_basis_sse, basis_sse, val, tempCurrent, ptrBasis) \
+        shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, splineControlPoint, mask, \
+               gridVoxelSpacing, bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ)
+#else
+#pragma omp parallel for default(none) \
+        private(x, y, z, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
+                index, basis, xyzBasis, yzBasis, zBasis, temp, xControlPointCoordinates, \
+                yControlPointCoordinates, zControlPointCoordinates, oldBasis, coord) \
+        shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, splineControlPoint, mask, \
+               gridVoxelSpacing, bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ)
+#endif // _USE_SSE
+#endif // _OPENMP
         for(int z=0; z<deformationField->nz; z++){
 
-            int zPre=(int)((DTYPE)z/gridVoxelSpacing[2]);
+            index=z*deformationField->nx*deformationField->ny;
+            oldBasis=1.1;
+
+            zPre=(int)((DTYPE)z/gridVoxelSpacing[2]);
             basis=(DTYPE)z/gridVoxelSpacing[2]-(DTYPE)zPre;
             if(basis<0.0) basis=0.0; //rounding error
             if(bspline) Get_BSplineBasisValues<DTYPE>(basis, zBasis);
@@ -905,7 +938,7 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
         
             for(int y=0; y<deformationField->ny; y++){
 
-                int yPre=(int)((DTYPE)y/gridVoxelSpacing[1]);
+                yPre=(int)((DTYPE)y/gridVoxelSpacing[1]);
                 basis=(DTYPE)y/gridVoxelSpacing[1]-(DTYPE)yPre;
                 if(basis<0.0) basis=0.0; //rounding error
                 if(bspline) Get_BSplineBasisValues<DTYPE>(basis, temp);
@@ -916,16 +949,15 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
                 val.f[1] = temp[1];
                 val.f[2] = temp[2];
                 val.f[3] = temp[3];
-                __m128 tempCurrent=val.m;
-                __m128* ptrBasis   = (__m128 *) &yzBasis[0];
+                tempCurrent=val.m;
+                ptrBasis   = (__m128 *) &yzBasis[0];
                 for(int a=0;a<4;a++){
                     val.m=_mm_set_ps1(zBasis[a]);
                     *ptrBasis=_mm_mul_ps(tempCurrent,val.m);
                     ptrBasis++;
                 }
 #else
-
-                unsigned int coord=0;
+                coord=0;
                 for(int a=0;a<4;a++){
                     yzBasis[coord++]=temp[0]*zBasis[a];
                     yzBasis[coord++]=temp[1]*zBasis[a];
@@ -936,7 +968,7 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
 
                 for(int x=0; x<deformationField->nx; x++){
 
-                    int xPre=(int)((DTYPE)x/gridVoxelSpacing[0]);
+                    xPre=(int)((DTYPE)x/gridVoxelSpacing[0]);
                     basis=(DTYPE)x/gridVoxelSpacing[0]-(DTYPE)xPre;
                     if(basis<0.0) basis=0.0; //rounding error
                     if(bspline) Get_BSplineBasisValues<DTYPE>(basis, temp);
@@ -978,19 +1010,19 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
                     }
                     oldBasis=basis;
 
-                    DTYPE xReal=0.0;
-                    DTYPE yReal=0.0;
-                    DTYPE zReal=0.0;
+                    real[0]=0.0;
+                    real[1]=0.0;
+                    real[2]=0.0;
 
-                    if(*maskPtr++>-1){
+                    if(mask[index]>-1){
 #if _USE_SSE
-                        __m128 tempX =  _mm_set_ps1(0.0);
-                        __m128 tempY =  _mm_set_ps1(0.0);
-                        __m128 tempZ =  _mm_set_ps1(0.0);
-                        __m128 *ptrX = (__m128 *) &xControlPointCoordinates[0];
-                        __m128 *ptrY = (__m128 *) &yControlPointCoordinates[0];
-                        __m128 *ptrZ = (__m128 *) &zControlPointCoordinates[0];
-                        __m128 *ptrBasis   = (__m128 *) &xyzBasis[0];
+                        tempX =  _mm_set_ps1(0.0);
+                        tempY =  _mm_set_ps1(0.0);
+                        tempZ =  _mm_set_ps1(0.0);
+                        ptrX = (__m128 *) &xControlPointCoordinates[0];
+                        ptrY = (__m128 *) &yControlPointCoordinates[0];
+                        ptrZ = (__m128 *) &zControlPointCoordinates[0];
+                        ptrBasis   = (__m128 *) &xyzBasis[0];
                         //addition and multiplication of the 64 basis value and CP displacement for each axis
                         for(unsigned int a=0; a<16; a++){
                             tempX = _mm_add_ps(_mm_mul_ps(*ptrBasis, *ptrX), tempX );
@@ -1003,22 +1035,23 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
                         }
                         //the values stored in SSE variables are transfered to normal float
                         val.m=tempX;
-                        xReal=val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                        real[0]=val.f[0]+val.f[1]+val.f[2]+val.f[3];
                         val.m=tempY;
-                        yReal= val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                        real[1]= val.f[0]+val.f[1]+val.f[2]+val.f[3];
                         val.m=tempZ;
-                        zReal= val.f[0]+val.f[1]+val.f[2]+val.f[3];
+                        real[2]= val.f[0]+val.f[1]+val.f[2]+val.f[3];
 #else
                         for(unsigned int i=0; i<64; i++){
-                            xReal += xControlPointCoordinates[i] * xyzBasis[i];
-                            yReal += yControlPointCoordinates[i] * xyzBasis[i];
-                            zReal += zControlPointCoordinates[i] * xyzBasis[i];
+                            real[0] += xControlPointCoordinates[i] * xyzBasis[i];
+                            real[1] += yControlPointCoordinates[i] * xyzBasis[i];
+                            real[2] += zControlPointCoordinates[i] * xyzBasis[i];
                         }
 #endif
                     }// mask
-                    *fieldPtrX++ = (DTYPE)xReal;
-                    *fieldPtrY++ = (DTYPE)yReal;
-                    *fieldPtrZ++ = (DTYPE)zReal;
+                    fieldPtrX[index] = (DTYPE)real[0];
+                    fieldPtrY[index] = (DTYPE)real[1];
+                    fieldPtrZ[index] = (DTYPE)real[2];
+                    index++;
                 } // x
             } // y
         } // z

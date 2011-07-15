@@ -248,165 +248,190 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
 								    int radius[]
 								   )
 {
-	DTYPE *imageArray = static_cast<DTYPE *>(image->data);
-	
-	/* a temp image array is first created */
-	DTYPE *tempArray  = (DTYPE *)malloc(image->nvox * sizeof(DTYPE));
-	
-	int timePoint = image->nt;
-	if(timePoint==0) timePoint=1;
-	int field = image->nu;
-	if(field==0) field=1;
-	
-	/* Smoothing along the X axis */
-	int windowSize = 2*radius[0] + 1;
-	PrecisionTYPE *window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
+    DTYPE *imageArray = static_cast<DTYPE *>(image->data);
+
+    /* a temp image array is first created */
+    DTYPE *tempArray  = (DTYPE *)malloc(image->nvox * sizeof(DTYPE));
+
+    int timePoint = image->nt;
+    if(timePoint==0) timePoint=1;
+    int field = image->nu;
+    if(field==0) field=1;
+
+    /* Smoothing along the X axis */
+    int windowSize = 2*radius[0] + 1;
+    PrecisionTYPE *window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
 //    PrecisionTYPE coeffSum=0.0;
-	for(int it=-radius[0]; it<=radius[0]; it++){
-		PrecisionTYPE coeff = (PrecisionTYPE)(fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[0]));
-		if(coeff<1.0)	window[it+radius[0]] = (PrecisionTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
-		else		window[it+radius[0]] = (PrecisionTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
+    for(int it=-radius[0]; it<=radius[0]; it++){
+            PrecisionTYPE coeff = (PrecisionTYPE)(fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[0]));
+            if(coeff<1.0)	window[it+radius[0]] = (PrecisionTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
+            else		window[it+radius[0]] = (PrecisionTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
 //        coeffSum += window[it+radius[0]];
-	}
+    }
 //	for(int it=0;it<windowSize;it++) window[it] /= coeffSum;
-	for(int t=0;t<timePoint;t++){
-		for(int u=0;u<field;u++){
-			
-			DTYPE *readingValue=&imageArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
-			DTYPE *writtingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
-			int i=0;
-			for(int z=0; z<image->nz; z++){
-				for(int y=0; y<image->ny; y++){
-					for(int x=0; x<image->nx; x++){
+    for(int t=0;t<timePoint;t++){
+        for(int u=0;u<field;u++){
 
-						
-						int index = i - radius[0];
-						int X = x - radius[0];
+            DTYPE *readingValue=&imageArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
+            DTYPE *writtingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
+            int index, i, X, it, x, y, z;
+            PrecisionTYPE finalValue, windowValue;
+            DTYPE imageValue, t, c, temp;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+            private(index, i, X, it, x, y, z, finalValue, windowValue, c, t, temp, imageValue) \
+            shared(image, readingValue, writtingValue, radius, windowSize, window)
+#endif // _OPENMP
+            for(z=0; z<image->nz; z++){
+                i=z*image->nx*image->ny;
+                for(y=0; y<image->ny; y++){
+                    for(x=0; x<image->nx; x++){
 
-                        PrecisionTYPE finalValue=0.0;
+
+                        index = i - radius[0];
+                        X = x - radius[0];
+
+                        finalValue=0.0;
                         // Kahan summation used here
-                        PrecisionTYPE c = 0., y, t, windowValue;
-						for(int it=0; it<windowSize; it++){
-							if(-1<X && X<image->nx){
-								DTYPE imageValue = readingValue[index];
+                        c = 0.;
+                        for(it=0; it<windowSize; it++){
+                            if(-1<X && X<image->nx){
+                                imageValue = readingValue[index];
                                 windowValue = window[it];
-                                y = (PrecisionTYPE)imageValue * windowValue - c;
-                                t = finalValue + y;
-                                c = (t - finalValue) - y;
+                                temp = (PrecisionTYPE)imageValue * windowValue - c;
+                                t = finalValue + temp;
+                                c = (t - finalValue) - temp;
                                 finalValue = t;
-							}
-							index++;
-							X++;
-						}
-						
-						writtingValue[i++] = (DTYPE)finalValue;
-					}
-				}
-			}
-		}
-	}
-	
-	/* Smoothing along the Y axis */
-	windowSize = 2*radius[1] + 1;
-	free(window);
-	window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
-//    coeffSum=0.0;
-	for(int it=-radius[1]; it<=radius[1]; it++){
-		PrecisionTYPE coeff = (PrecisionTYPE)(fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[1]));
-		if(coeff<1.0)	window[it+radius[1]] = (PrecisionTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
-		else		window[it+radius[1]] = (PrecisionTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
-//        coeffSum += window[it+radius[1]];
-	}
-//    for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
-	for(int t=0;t<timePoint;t++){
-		for(int u=0;u<field;u++){
-			
-			DTYPE *readingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
-			DTYPE *writtingValue=&imageArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
-			int i=0;
-			for(int z=0; z<image->nz; z++){
-				for(int y=0; y<image->ny; y++){
-					for(int x=0; x<image->nx; x++){
-						
-						PrecisionTYPE finalValue=0.0;
-						
-						int index = i - image->nx*radius[1];
-						int Y = y - radius[1];
+                            }
+                            index++;
+                            X++;
+                        }
+                        writtingValue[i++] = (DTYPE)finalValue;
+                    }
+                }
+            }
+        }
+    }
+
+    /* Smoothing along the Y axis */
+    windowSize = 2*radius[1] + 1;
+    free(window);
+    window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
+    //    coeffSum=0.0;
+    for(int it=-radius[1]; it<=radius[1]; it++){
+        PrecisionTYPE coeff = (PrecisionTYPE)(fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[1]));
+        if(coeff<1.0)	window[it+radius[1]] = (PrecisionTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
+        else		window[it+radius[1]] = (PrecisionTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
+        //        coeffSum += window[it+radius[1]];
+    }
+    //    for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
+    for(int t=0;t<timePoint;t++){
+        for(int u=0;u<field;u++){
+
+            DTYPE *readingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
+            DTYPE *writtingValue=&imageArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
+            int index, i, Y, it, x, y, z;
+            PrecisionTYPE finalValue, windowValue;
+            DTYPE imageValue, t, c, temp;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+            private(index, i, Y, it, x, y, z, finalValue, windowValue, c, t, temp, imageValue) \
+            shared(image, readingValue, writtingValue, radius, windowSize, window)
+#endif // _OPENMP
+            for(z=0; z<image->nz; z++){
+                i=z*image->nx*image->ny;
+                for(y=0; y<image->ny; y++){
+                    for(x=0; x<image->nx; x++){
+
+                        finalValue=0.0;
+
+                        index = i - image->nx*radius[1];
+                        Y = y - radius[1];
 
                         // Kahan summation used here
-                        PrecisionTYPE c = 0., y, t, windowValue;
-                        for(int it=0; it<windowSize; it++){
+                        c = 0.;
+                        for(it=0; it<windowSize; it++){
                             if(-1<Y && Y<image->ny){
-                                DTYPE imageValue = readingValue[index];
+                                imageValue = readingValue[index];
                                 windowValue = window[it];
-                                y = (PrecisionTYPE)imageValue * windowValue - c;
-                                t = finalValue + y;
-                                c = (t - finalValue) - y;
+                                temp = (PrecisionTYPE)imageValue * windowValue - c;
+                                t = finalValue + temp;
+                                c = (t - finalValue) - temp;
                                 finalValue = t;
-							}
-							index+=image->nx;
-							Y++;
-						}
-						
-						writtingValue[i++] = (DTYPE)finalValue;
-					}
-				}
-			}
-		}
-	}
-	if(image->nz>1){
-		/* Smoothing along the Z axis */
-		windowSize = 2*radius[2] + 1;
-		free(window);
-		window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
-//	    coeffSum=0.0;
-		for(int it=-radius[2]; it<=radius[2]; it++){
-			PrecisionTYPE coeff = (PrecisionTYPE)(fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[2]));
-			if(coeff<1.0)	window[it+radius[2]] = (PrecisionTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
-			else		window[it+radius[2]] = (PrecisionTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
-//			coeffSum += window[it+radius[2]];
-		}
-//	    for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
-		for(int t=0;t<timePoint;t++){
-			for(int u=0;u<field;u++){
-				
-				DTYPE *readingValue=&imageArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
-				DTYPE *writtingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
-				int i=0;
-				for(int z=0; z<image->nz; z++){
-					for(int y=0; y<image->ny; y++){
-						for(int x=0; x<image->nx; x++){
-							
-							PrecisionTYPE finalValue=0.0;
-							
-							int index = i - image->nx*image->ny*radius[2];
-							int Z = z - radius[2];
+                            }
+                            index+=image->nx;
+                            Y++;
+                        }
+
+                        writtingValue[i++] = (DTYPE)finalValue;
+                    }
+                }
+            }
+        }
+    }
+    if(image->nz>1){
+        /* Smoothing along the Z axis */
+        windowSize = 2*radius[2] + 1;
+        free(window);
+        window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
+        //	    coeffSum=0.0;
+        for(int it=-radius[2]; it<=radius[2]; it++){
+            PrecisionTYPE coeff = (PrecisionTYPE)(fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[2]));
+            if(coeff<1.0)	window[it+radius[2]] = (PrecisionTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
+            else		window[it+radius[2]] = (PrecisionTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
+            //			coeffSum += window[it+radius[2]];
+        }
+        //	    for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
+        for(int t=0;t<timePoint;t++){
+            for(int u=0;u<field;u++){
+
+                DTYPE *readingValue=&imageArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
+                DTYPE *writtingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
+
+                int index, i, Z, it, x, y, z;
+                PrecisionTYPE finalValue, windowValue;
+                DTYPE imageValue, t, c, temp;
+    #ifdef _OPENMP
+    #pragma omp parallel for default(none) \
+                private(index, i, Z, it, x, y, z, finalValue, windowValue, c, t, temp, imageValue) \
+                shared(image, readingValue, writtingValue, radius, windowSize, window)
+    #endif // _OPENMP
+
+                for(z=0; z<image->nz; z++){
+                    i=z*image->nx*image->ny;
+                    for(y=0; y<image->ny; y++){
+                        for(x=0; x<image->nx; x++){
+
+                            finalValue=0.0;
+
+                            index = i - image->nx*image->ny*radius[2];
+                            Z = z - radius[2];
 
                             // Kahan summation used here
-                            PrecisionTYPE c = 0., y, t, windowValue;
-                            for(int it=0; it<windowSize; it++){
+                            c = 0;
+                            for(it=0; it<windowSize; it++){
                                 if(-1<Z && Z<image->nz){
-                                    DTYPE imageValue = readingValue[index];
+                                    imageValue = readingValue[index];
                                     windowValue = window[it];
-                                    y = (PrecisionTYPE)imageValue * windowValue - c;
-                                    t = finalValue + y;
-                                    c = (t - finalValue) - y;
+                                    temp = (PrecisionTYPE)imageValue * windowValue - c;
+                                    t = finalValue + temp;
+                                    c = (t - finalValue) - temp;
                                     finalValue = t;
-								}
-								index+=image->nx*image->ny;
-								Z++;
-							}
-							
-							writtingValue[i++] = (DTYPE)finalValue;
-						}
-					}
-				}
-			}
-		}
+                                }
+                                index+=image->nx*image->ny;
+                                Z++;
+                            }
+
+                            writtingValue[i++] = (DTYPE)finalValue;
+                        }
+                    }
+                }
+            }
+        }
         memcpy(imageArray,tempArray,image->nvox * sizeof(DTYPE));
-	}
-	free(window);
-	free(tempArray);
+    }
+    free(window);
+    free(tempArray);
 }
 /* *************************************************************** */
 template <class PrecisionTYPE>

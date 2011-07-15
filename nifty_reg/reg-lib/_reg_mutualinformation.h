@@ -57,59 +57,34 @@ class Multi_Loop
 {
 public:
     /// Add a for loop to the list
-    void Add(T begin_value, T end_value)
-    {
-//        if (begin_value > end_value)
-//        {
-//            throw;
-//        }
-
+    void Add(T begin_value, T end_value){
         begin.push_back(begin_value);
         end.push_back(end_value);
     }
 
     // Initialises the loops before use.
-    void Initialise()
-    {
+    void Initialise(){
         current.resize(Count());
         std::copy(begin.begin(), begin.end(), current.begin());
     }
 
     /// Gets the index or iterator for the specified loop.
-    T Index(int index) const
-    {
+    T Index(int index) const{
         return (current[index]);
     }
 
     /// Gets the index or iterator for the specified loop.
-    const T &operator [](int index) const
-    {
+    const T &operator [](int index) const{
         return (current[index]);
     }
 
-
     /// Tests to see if the loops continue.
-    bool Continue() const
-    {
-        // Just in case we are called with no entries
-        /*if (begin.size() == 0)
-        {
-            return (false);
-        }*/
+    bool Continue() const{
         return (current[0] != end[0]);
     }
 
-
     /// Compute the next set of indexes or iterators in the sequence.
-    void Next()
-    {
-        // Nothing to increment?
-        /*if (Count() == 0)
-        {
-            return;
-        }*/
-        // Loop over the array of loop indices
-        // starting from the last one added
+    void Next(){
         int position = begin.size() - 1;
         bool finished = false;
 
@@ -117,12 +92,10 @@ public:
         {
             ++current[position];
             // Finished incrementing?
-            if ((current[position] != end[position]) || (position == 0))
-            {
+            if ((current[position] != end[position]) || (position == 0)){
                 finished = true;
             }
-            else
-            {
+            else{
                 // Reset this index, and move on to the previous one.
                 current[position] = begin[position];
                 --position;
@@ -131,8 +104,7 @@ public:
     }
 
     /// Returns the number of 'for' loops added.
-    int Count() const
-    {
+    int Count() const{
         return (static_cast<int>(begin.size()));
     }
 
