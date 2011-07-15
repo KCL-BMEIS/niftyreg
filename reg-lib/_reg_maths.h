@@ -27,10 +27,10 @@ extern "C++"
 mat44 reg_mat44_mul(mat44 *A,
                      mat44 *B);
 /* *************************************************************** */
-extern "C++"
+extern "C++" template <class DTYPE>
 void reg_mat44_mul(mat44 *mat,
-                   float in[3],
-                   float out[3]);
+                   DTYPE in[3],
+                   DTYPE out[3]);
 /* *************************************************************** */
 extern "C++"
 void reg_mat44_disp(mat44 *mat,
