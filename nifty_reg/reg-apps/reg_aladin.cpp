@@ -832,6 +832,8 @@ int main(int argc, char **argv)
             resultImage->scl_inter=sourceImage->scl_inter;
             resultImage->datatype = sourceImage->datatype;
             resultImage->nbyper = sourceImage->nbyper;
+            resultImage->nt = resultImage->dim[4] = sourceImage->nt;
+            resultImage->nvox=resultImage->nx*resultImage->ny*resultImage->nz*resultImage->nt;
             resultImage->data = (void *)calloc(resultImage->nvox, resultImage->nbyper);
             reg_resampleSourceImage(targetHeader,
                                     sourceImage,
