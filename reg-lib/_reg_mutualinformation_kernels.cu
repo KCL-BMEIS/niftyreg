@@ -187,10 +187,10 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW2x2_kernel(float4 *voxelNMIGr
             voxelValues.y == voxelValues.y &&
             voxelValues.z == voxelValues.z &&
             voxelValues.w == voxelValues.w &&
-            voxelValues.x > 0.0f &&
-            voxelValues.y > 0.0f &&
-            voxelValues.z > 0.0f &&
-            voxelValues.w > 0.0f &&
+            voxelValues.x >= 0.0f &&
+            voxelValues.y >= 0.0f &&
+            voxelValues.z >= 0.0f &&
+            voxelValues.w >= 0.0f &&
             voxelValues.x < c_firstTargetBin &&
             voxelValues.y < c_secondTargetBin &&
             voxelValues.z < c_firstResultBin &&

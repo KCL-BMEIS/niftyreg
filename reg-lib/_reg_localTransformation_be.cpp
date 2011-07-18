@@ -38,9 +38,19 @@ double reg_bspline_bendingEnergyApproxValue2D(nifti_image *splineControlPoint)
 
     SplineTYPE xControlPointCoordinates[9];
     SplineTYPE yControlPointCoordinates[9];
+    int x, y, z, a;
+    SplineTYPE XX_x, YY_x, XY_x;
+    SplineTYPE XX_y, YY_y, XY_y;
 
-    for(int y=1;y<splineControlPoint->ny-1;y++){
-        for(int x=1;x<splineControlPoint->nx-1;x++){
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(splineControlPoint, controlPointPtrX, controlPointPtrY,  basisXX, basisYY, basisXY) \
+    private(XX_x, YY_x, XY_x, XX_y, YY_y, XY_y, x, y, z, a, \
+    xControlPointCoordinates, yControlPointCoordinates) \
+    reduction(+:constraintValue)
+#endif
+    for(y=1;y<splineControlPoint->ny-1;y++){
+        for(x=1;x<splineControlPoint->nx-1;x++){
 
             get_GridValuesApprox<SplineTYPE>(x-1,
                                              y-1,
@@ -51,12 +61,12 @@ double reg_bspline_bendingEnergyApproxValue2D(nifti_image *splineControlPoint)
                                              yControlPointCoordinates,
                                              false);
 
-            SplineTYPE XX_x=0.0;
-            SplineTYPE YY_x=0.0;
-            SplineTYPE XY_x=0.0;
-            SplineTYPE XX_y=0.0;
-            SplineTYPE YY_y=0.0;
-            SplineTYPE XY_y=0.0;
+            XX_x=0.0;
+            YY_x=0.0;
+            XY_x=0.0;
+            XX_y=0.0;
+            YY_y=0.0;
+            XY_y=0.0;
 
             for(int a=0; a<9; a++){
                 XX_x += basisXX[a]*xControlPointCoordinates[a];
@@ -122,10 +132,23 @@ double reg_bspline_bendingEnergyApproxValue3D(nifti_image *splineControlPoint)
     SplineTYPE xControlPointCoordinates[27];
     SplineTYPE yControlPointCoordinates[27];
     SplineTYPE zControlPointCoordinates[27];
+    int x, y, z, a;
+    SplineTYPE XX_x, YY_x, ZZ_x, XY_x, YZ_x, XZ_x;
+    SplineTYPE XX_y, YY_y, ZZ_y, XY_y, YZ_y, XZ_y;
+    SplineTYPE XX_z, YY_z, ZZ_z, XY_z, YZ_z, XZ_z;
 
-    for(int z=1;z<splineControlPoint->nz-1;z++){
-        for(int y=1;y<splineControlPoint->ny-1;y++){
-            for(int x=1;x<splineControlPoint->nx-1;x++){
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(splineControlPoint, controlPointPtrX, controlPointPtrY, controlPointPtrZ, \
+    basisXX, basisYY, basisZZ, basisXY, basisYZ, basisXZ) \
+    private(XX_x, YY_x, ZZ_x, XY_x, YZ_x, XZ_x, XX_y, YY_y, ZZ_y, XY_y, YZ_y, XZ_y, \
+    XX_z, YY_z, ZZ_z, XY_z, YZ_z, XZ_z, x, y, z, a, \
+    xControlPointCoordinates, yControlPointCoordinates, zControlPointCoordinates) \
+    reduction(+:constraintValue)
+#endif
+    for(z=1;z<splineControlPoint->nz-1;z++){
+        for(y=1;y<splineControlPoint->ny-1;y++){
+            for(x=1;x<splineControlPoint->nx-1;x++){
 
                 get_GridValuesApprox<SplineTYPE>(x-1,
                                                  y-1,
@@ -139,14 +162,14 @@ double reg_bspline_bendingEnergyApproxValue3D(nifti_image *splineControlPoint)
                                                  zControlPointCoordinates,
                                                  false);
 
-                SplineTYPE XX_x=0.0, YY_x=0.0, ZZ_x=0.0;
-                SplineTYPE XY_x=0.0, YZ_x=0.0, XZ_x=0.0;
-                SplineTYPE XX_y=0.0, YY_y=0.0, ZZ_y=0.0;
-                SplineTYPE XY_y=0.0, YZ_y=0.0, XZ_y=0.0;
-                SplineTYPE XX_z=0.0, YY_z=0.0, ZZ_z=0.0;
-                SplineTYPE XY_z=0.0, YZ_z=0.0, XZ_z=0.0;
+                XX_x=0.0, YY_x=0.0, ZZ_x=0.0;
+                XY_x=0.0, YZ_x=0.0, XZ_x=0.0;
+                XX_y=0.0, YY_y=0.0, ZZ_y=0.0;
+                XY_y=0.0, YZ_y=0.0, XZ_y=0.0;
+                XX_z=0.0, YY_z=0.0, ZZ_z=0.0;
+                XY_z=0.0, YZ_z=0.0, XZ_z=0.0;
 
-                for(int a=0; a<27; a++){
+                for(a=0; a<27; a++){
                     XX_x += basisXX[a]*xControlPointCoordinates[a];
                     YY_x += basisYY[a]*xControlPointCoordinates[a];
                     ZZ_x += basisZZ[a]*xControlPointCoordinates[a];
@@ -330,6 +353,7 @@ void reg_bspline_approxBendingEnergyGradient3D( nifti_image *splineControlPoint,
                                                 nifti_image *gradientImage,
                                                 float weight)
 {
+    int a, b, c, bc, x, y, z, X, Y, Z;
     // As the contraint is only computed at the voxel position, the basis value of the spline are always the same
     SplineTYPE basisXX[27], basisYY[27], basisZZ[27], basisXY[27], basisYZ[27], basisXZ[27];
     SplineTYPE normal[3]={1.0/6.0, 2.0/3.0, 1.0/6.0};
@@ -338,8 +362,8 @@ void reg_bspline_approxBendingEnergyGradient3D( nifti_image *splineControlPoint,
     // There are six different values taken into account
     SplineTYPE tempXX[9], tempYY[9], tempZZ[9], tempXY[9], tempYZ[9], tempXZ[9];
     int coord=0;
-    for(int c=0; c<3; c++){
-        for(int b=0; b<3; b++){
+    for(c=0; c<3; c++){
+        for(b=0; b<3; b++){
             tempXX[coord]=normal[c]*normal[b];  // z * y
             tempYY[coord]=normal[c]*second[b];  // z * y"
             tempZZ[coord]=second[c]*normal[b];  // z"* y
@@ -350,8 +374,8 @@ void reg_bspline_approxBendingEnergyGradient3D( nifti_image *splineControlPoint,
         }
     }
     coord=0;
-    for(int bc=0; bc<9; bc++){
-        for(int a=0; a<3; a++){
+    for(bc=0; bc<9; bc++){
+        for(a=0; a<3; a++){
             basisXX[coord]=tempXX[bc]*second[a];    // z * y * x"
             basisYY[coord]=tempYY[bc]*normal[a];    // z * y"* x
             basisZZ[coord]=tempZZ[bc]*normal[a];    // z"* y * x
@@ -373,11 +397,22 @@ void reg_bspline_approxBendingEnergyGradient3D( nifti_image *splineControlPoint,
     SplineTYPE xControlPointCoordinates[27];
     SplineTYPE yControlPointCoordinates[27];
     SplineTYPE zControlPointCoordinates[27];
+    SplineTYPE XX_x, YY_x, ZZ_x, XY_x, YZ_x, XZ_x;
+    SplineTYPE XX_y, YY_y, ZZ_y, XY_y, YZ_y, XZ_y;
+    SplineTYPE XX_z, YY_z, ZZ_z, XY_z, YZ_z, XZ_z;
 
-    for(int z=1;z<splineControlPoint->nz-1;z++){
-        for(int y=1;y<splineControlPoint->ny-1;y++){
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(splineControlPoint,controlPointPtrX,controlPointPtrY,controlPointPtrZ, derivativeValues, \
+    basisXX, basisYY, basisZZ, basisXY, basisYZ, basisXZ) \
+    private(a, x, y, z, derivativeValuesPtr, xControlPointCoordinates, yControlPointCoordinates, \
+    zControlPointCoordinates, XX_x, YY_x, ZZ_x, XY_x, YZ_x, XZ_x, XX_y, YY_y, \
+    ZZ_y, XY_y, YZ_y, XZ_y, XX_z, YY_z, ZZ_z, XY_z, YZ_z, XZ_z)
+#endif
+    for(z=1;z<splineControlPoint->nz-1;z++){
+        for(y=1;y<splineControlPoint->ny-1;y++){
             derivativeValuesPtr = &derivativeValues[18*((z*splineControlPoint->ny+y)*splineControlPoint->nx+1)];
-            for(int x=1;x<splineControlPoint->nx-1;x++){
+            for(x=1;x<splineControlPoint->nx-1;x++){
 
                 get_GridValuesApprox<SplineTYPE>(x-1,
                                                  y-1,
@@ -390,26 +425,15 @@ void reg_bspline_approxBendingEnergyGradient3D( nifti_image *splineControlPoint,
                                                  yControlPointCoordinates,
                                                  zControlPointCoordinates,
                                                  false);
-                SplineTYPE XX_x=0.0;
-                SplineTYPE YY_x=0.0;
-                SplineTYPE ZZ_x=0.0;
-                SplineTYPE XY_x=0.0;
-                SplineTYPE YZ_x=0.0;
-                SplineTYPE XZ_x=0.0;
-                SplineTYPE XX_y=0.0;
-                SplineTYPE YY_y=0.0;
-                SplineTYPE ZZ_y=0.0;
-                SplineTYPE XY_y=0.0;
-                SplineTYPE YZ_y=0.0;
-                SplineTYPE XZ_y=0.0;
-                SplineTYPE XX_z=0.0;
-                SplineTYPE YY_z=0.0;
-                SplineTYPE ZZ_z=0.0;
-                SplineTYPE XY_z=0.0;
-                SplineTYPE YZ_z=0.0;
-                SplineTYPE XZ_z=0.0;
 
-                for(int a=0; a<27; a++){
+                XX_x=0.0, YY_x=0.0, ZZ_x=0.0;
+                XY_x=0.0, YZ_x=0.0, XZ_x=0.0;
+                XX_y=0.0, YY_y=0.0, ZZ_y=0.0;
+                XY_y=0.0, YZ_y=0.0, XZ_y=0.0;
+                XX_z=0.0, YY_z=0.0, ZZ_z=0.0;
+                XY_z=0.0, YZ_z=0.0, XZ_z=0.0;
+
+                for(a=0; a<27; a++){
                     XX_x += basisXX[a]*xControlPointCoordinates[a];
                     YY_x += basisYY[a]*xControlPointCoordinates[a];
                     ZZ_x += basisZZ[a]*xControlPointCoordinates[a];
@@ -465,16 +489,24 @@ void reg_bspline_approxBendingEnergyGradient3D( nifti_image *splineControlPoint,
 
     SplineTYPE gradientValue[3];
 
-    for(int z=0;z<splineControlPoint->nz;z++){
-        for(int y=0;y<splineControlPoint->ny;y++){
-            for(int x=0;x<splineControlPoint->nx;x++){
+    int index;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(splineControlPoint, derivativeValues, gradientXPtr, gradientYPtr, gradientZPtr, \
+    basisXX, basisYY, basisZZ, basisXY, basisYZ, basisXZ, approxRatio) \
+    private(index, X, Y, Z, x, y, z, derivativeValuesPtr, coord, gradientValue)
+#endif
+    for(z=0;z<splineControlPoint->nz;z++){
+        index=z*splineControlPoint->nx*splineControlPoint->ny;
+        for(y=0;y<splineControlPoint->ny;y++){
+            for(x=0;x<splineControlPoint->nx;x++){
 
                 gradientValue[0]=gradientValue[1]=gradientValue[2]=0.0;
 
                 coord=0;
-                for(int Z=z-1; Z<z+2; Z++){
-                    for(int Y=y-1; Y<y+2; Y++){
-                        for(int X=x-1; X<x+2; X++){
+                for(Z=z-1; Z<z+2; Z++){
+                    for(Y=y-1; Y<y+2; Y++){
+                        for(X=x-1; X<x+2; X++){
                             if(-1<X && -1<Y && -1<Z && X<splineControlPoint->nx && Y<splineControlPoint->ny && Z<splineControlPoint->nz){
                                 derivativeValuesPtr = &derivativeValues[18 * ((Z*splineControlPoint->ny + Y)*splineControlPoint->nx + X)];
                                 gradientValue[0] += (*derivativeValuesPtr++) * basisXX[coord];
@@ -506,9 +538,10 @@ void reg_bspline_approxBendingEnergyGradient3D( nifti_image *splineControlPoint,
                     }
                 }
                 // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
-                *gradientXPtr++ += (SplineTYPE)(approxRatio*gradientValue[0]);
-                *gradientYPtr++ += (SplineTYPE)(approxRatio*gradientValue[1]);
-                *gradientZPtr++ += (SplineTYPE)(approxRatio*gradientValue[2]);
+                gradientXPtr[index] += (SplineTYPE)(approxRatio*gradientValue[0]);
+                gradientYPtr[index] += (SplineTYPE)(approxRatio*gradientValue[1]);
+                gradientZPtr[index] += (SplineTYPE)(approxRatio*gradientValue[2]);
+                index++;
             }
         }
     }

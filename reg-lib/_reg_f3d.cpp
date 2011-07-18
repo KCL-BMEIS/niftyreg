@@ -1436,41 +1436,53 @@ int reg_f3d<T>::GetSimilarityMeasureGradient()
 
     /* The gradient is converted from voxel space to real space */
     mat44 *floatingMatrix_xyz=NULL;
+    int controlPointNumber=this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz;
+    int i;
     if(this->currentFloating->sform_code>0)
         floatingMatrix_xyz = &(this->currentFloating->sto_xyz);
     else floatingMatrix_xyz = &(this->currentFloating->qto_xyz);
     if(this->currentReference->nz==1){
         T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
-        T *gradientValuesY = &gradientValuesX[this->controlPointGrid->nx*this->controlPointGrid->ny];
+        T *gradientValuesY = &gradientValuesX[controlPointNumber];
         T newGradientValueX, newGradientValueY;
-        for(int i=0; i<this->controlPointGrid->nx*this->controlPointGrid->ny; i++){
-            newGradientValueX = 	*gradientValuesX * floatingMatrix_xyz->m[0][0] +
-                        *gradientValuesY * floatingMatrix_xyz->m[0][1];
-            newGradientValueY = 	*gradientValuesX * floatingMatrix_xyz->m[1][0] +
-                        *gradientValuesY * floatingMatrix_xyz->m[1][1];
-            *gradientValuesX++ = newGradientValueX;
-            *gradientValuesY++ = newGradientValueY;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(gradientValuesX, gradientValuesY, floatingMatrix_xyz, controlPointNumber) \
+    private(newGradientValueX, newGradientValueY, i)
+#endif
+        for(i=0; i<controlPointNumber; i++){
+            newGradientValueX = gradientValuesX[i] * floatingMatrix_xyz->m[0][0] +
+                    gradientValuesY[i] * floatingMatrix_xyz->m[0][1];
+            newGradientValueY = gradientValuesX[i] * floatingMatrix_xyz->m[1][0] +
+                    gradientValuesY[i] * floatingMatrix_xyz->m[1][1];
+            gradientValuesX[i] = newGradientValueX;
+            gradientValuesY[i] = newGradientValueY;
         }
     }
     else{
         T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
-        T *gradientValuesY = &gradientValuesX[this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz];
-        T *gradientValuesZ = &gradientValuesY[this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz];
+        T *gradientValuesY = &gradientValuesX[controlPointNumber];
+        T *gradientValuesZ = &gradientValuesY[controlPointNumber];
         T newGradientValueX, newGradientValueY, newGradientValueZ;
-        for(int i=0; i<this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz; i++){
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(gradientValuesX, gradientValuesY, gradientValuesZ, floatingMatrix_xyz, controlPointNumber) \
+    private(newGradientValueX, newGradientValueY, newGradientValueZ, i)
+#endif
+        for(i=0; i<controlPointNumber; i++){
 
-            newGradientValueX = *gradientValuesX * floatingMatrix_xyz->m[0][0] +
-                                *gradientValuesY * floatingMatrix_xyz->m[0][1] +
-                                *gradientValuesZ * floatingMatrix_xyz->m[0][2];
-            newGradientValueY = *gradientValuesX * floatingMatrix_xyz->m[1][0] +
-                                *gradientValuesY * floatingMatrix_xyz->m[1][1] +
-                                *gradientValuesZ * floatingMatrix_xyz->m[1][2];
-            newGradientValueZ = *gradientValuesX * floatingMatrix_xyz->m[2][0] +
-                                *gradientValuesY * floatingMatrix_xyz->m[2][1] +
-                                *gradientValuesZ * floatingMatrix_xyz->m[2][2];
-            *gradientValuesX++ = newGradientValueX;
-            *gradientValuesY++ = newGradientValueY;
-            *gradientValuesZ++ = newGradientValueZ;
+            newGradientValueX = gradientValuesX[i] * floatingMatrix_xyz->m[0][0] +
+                                gradientValuesY[i] * floatingMatrix_xyz->m[0][1] +
+                                gradientValuesZ[i] * floatingMatrix_xyz->m[0][2];
+            newGradientValueY = gradientValuesX[i] * floatingMatrix_xyz->m[1][0] +
+                                gradientValuesY[i] * floatingMatrix_xyz->m[1][1] +
+                                gradientValuesZ[i] * floatingMatrix_xyz->m[1][2];
+            newGradientValueZ = gradientValuesX[i] * floatingMatrix_xyz->m[2][0] +
+                                gradientValuesY[i] * floatingMatrix_xyz->m[2][1] +
+                                gradientValuesZ[i] * floatingMatrix_xyz->m[2][2];
+            gradientValuesX[i] = newGradientValueX;
+            gradientValuesY[i] = newGradientValueY;
+            gradientValuesZ[i] = newGradientValueZ;
         }
     }
 
@@ -1520,6 +1532,7 @@ int reg_f3d<T>::ComputeConjugateGradient()
     int nodeNumber = this->nodeBasedMeasureGradientImage->nx *
                      this->nodeBasedMeasureGradientImage->ny *
                      this->nodeBasedMeasureGradientImage->nz;
+    int i;
     if(this->currentIteration==1){
 #ifndef NDEBUG
             printf("[NiftyReg DEBUG] Conjugate gradient initialisation\n");
@@ -1532,9 +1545,15 @@ int reg_f3d<T>::ComputeConjugateGradient()
             T *conjHPtrY = &conjHPtrX[nodeNumber];
             T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
             T *gradientValuesY = &gradientValuesX[nodeNumber];
-            for(int i=0; i<nodeNumber;i++){
-                *conjHPtrX++ = *conjGPtrX++ = - *gradientValuesX++;
-                *conjHPtrY++ = *conjGPtrY++ = - *gradientValuesY++;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(conjHPtrX, conjHPtrY, conjGPtrX, conjGPtrY, \
+    gradientValuesX, gradientValuesY, nodeNumber) \
+    private(i)
+#endif
+            for(i=0; i<nodeNumber;i++){
+                conjHPtrX[i] = conjGPtrX[i] = - gradientValuesX[i];
+                conjHPtrY[i] = conjGPtrY[i] = - gradientValuesY[i];
             }
         }else{
             T *conjGPtrX = &conjugateG[0];
@@ -1546,10 +1565,16 @@ int reg_f3d<T>::ComputeConjugateGradient()
             T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
             T *gradientValuesY = &gradientValuesX[nodeNumber];
             T *gradientValuesZ = &gradientValuesY[nodeNumber];
-            for(int i=0; i<nodeNumber;i++){
-                *conjHPtrX++ = *conjGPtrX++ = - *gradientValuesX++;
-                *conjHPtrY++ = *conjGPtrY++ = - *gradientValuesY++;
-                *conjHPtrZ++ = *conjGPtrZ++ = - *gradientValuesZ++;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(conjHPtrX, conjHPtrY, conjHPtrZ, conjGPtrX, conjGPtrY, conjGPtrZ, \
+    gradientValuesX, gradientValuesY, gradientValuesZ, nodeNumber) \
+    private(i)
+#endif
+            for(i=0; i<nodeNumber;i++){
+                conjHPtrX[i] = conjGPtrX[i] = - gradientValuesX[i];
+                conjHPtrY[i] = conjGPtrY[i] = - gradientValuesY[i];
+                conjHPtrZ[i] = conjGPtrZ[i] = - gradientValuesZ[i];
             }
         }
     }
@@ -1565,14 +1590,28 @@ int reg_f3d<T>::ComputeConjugateGradient()
             T *conjHPtrY = &conjHPtrX[nodeNumber];
             T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
             T *gradientValuesY = &gradientValuesX[nodeNumber];
-            for(int i=0; i<nodeNumber;i++){
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(conjHPtrX, conjHPtrY, conjGPtrX, conjGPtrY, \
+    gradientValuesX, gradientValuesY, nodeNumber) \
+    private(i) \
+    reduction(+:gg) \
+    reduction(+:dgg)
+#endif
+            for(i=0; i<nodeNumber;i++){
                 gg += conjHPtrX[i] * conjGPtrX[i];
                 gg += conjHPtrY[i] * conjGPtrY[i];
                 dgg += (gradientValuesX[i] + conjGPtrX[i]) * gradientValuesX[i];
                 dgg += (gradientValuesY[i] + conjGPtrY[i]) * gradientValuesY[i];
             }
             double gam = dgg/gg;
-            for(int i=0; i<nodeNumber;i++){
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(conjHPtrX, conjHPtrY, conjGPtrX, conjGPtrY, \
+    gradientValuesX, gradientValuesY, nodeNumber, gam) \
+    private(i)
+#endif
+            for(i=0; i<nodeNumber;i++){
                 conjGPtrX[i] = - gradientValuesX[i];
                 conjGPtrY[i] = - gradientValuesY[i];
                 conjHPtrX[i] = (float)(conjGPtrX[i] + gam * conjHPtrX[i]);
@@ -1591,7 +1630,15 @@ int reg_f3d<T>::ComputeConjugateGradient()
             T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
             T *gradientValuesY = &gradientValuesX[nodeNumber];
             T *gradientValuesZ = &gradientValuesY[nodeNumber];
-            for(int i=0; i<nodeNumber;i++){
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(conjHPtrX, conjHPtrY, conjHPtrZ, conjGPtrX, conjGPtrY, conjGPtrZ, \
+    gradientValuesX, gradientValuesY, gradientValuesZ, nodeNumber) \
+    private(i) \
+    reduction(+:gg) \
+    reduction(+:dgg)
+#endif
+            for(i=0; i<nodeNumber;i++){
                 gg += conjHPtrX[i] * conjGPtrX[i];
                 gg += conjHPtrY[i] * conjGPtrY[i];
                 gg += conjHPtrZ[i] * conjGPtrZ[i];
@@ -1600,7 +1647,13 @@ int reg_f3d<T>::ComputeConjugateGradient()
                 dgg += (gradientValuesZ[i] + conjGPtrZ[i]) * gradientValuesZ[i];
             }
             double gam = dgg/gg;
-            for(int i=0; i<nodeNumber;i++){
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(conjHPtrX, conjHPtrY, conjHPtrZ, conjGPtrX, conjGPtrY, conjGPtrZ, \
+    gradientValuesX, gradientValuesY, gradientValuesZ, nodeNumber, gam) \
+    private(i)
+#endif
+            for(i=0; i<nodeNumber;i++){
                 conjGPtrX[i] = - gradientValuesX[i];
                 conjGPtrY[i] = - gradientValuesY[i];
                 conjGPtrZ[i] = - gradientValuesZ[i];
@@ -1627,9 +1680,10 @@ T reg_f3d<T>::GetMaximalGradientLength()
 template <class T>
 int reg_f3d<T>::UpdateControlPointPosition(T scale)
 {
-    unsigned int nodeNumber = this->controlPointGrid->nx *
-                              this->controlPointGrid->ny *
-                              this->controlPointGrid->nz;
+    int nodeNumber = this->controlPointGrid->nx *
+            this->controlPointGrid->ny *
+            this->controlPointGrid->nz;
+    int i;
     if(this->currentReference->nz==1){
         T *controlPointValuesX = static_cast<T *>(this->controlPointGrid->data);
         T *controlPointValuesY = &controlPointValuesX[nodeNumber];
@@ -1637,9 +1691,15 @@ int reg_f3d<T>::UpdateControlPointPosition(T scale)
         T *bestControlPointValuesY = &bestControlPointValuesX[nodeNumber];
         T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
         T *gradientValuesY = &gradientValuesX[nodeNumber];
-        for(unsigned int i=0; i<nodeNumber;i++){
-            *controlPointValuesX++ = *bestControlPointValuesX++ + scale * *gradientValuesX++;
-            *controlPointValuesY++ = *bestControlPointValuesY++ + scale * *gradientValuesY++;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(controlPointValuesX, controlPointValuesY, bestControlPointValuesX, \
+    bestControlPointValuesY, gradientValuesX, gradientValuesY, nodeNumber, scale) \
+    private(i)
+#endif
+        for(i=0; i<nodeNumber;i++){
+            controlPointValuesX[i] = bestControlPointValuesX[i] + scale * gradientValuesX[i];
+            controlPointValuesY[i] = bestControlPointValuesY[i] + scale * gradientValuesY[i];
         }
     }
     else{
@@ -1652,10 +1712,17 @@ int reg_f3d<T>::UpdateControlPointPosition(T scale)
         T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
         T *gradientValuesY = &gradientValuesX[nodeNumber];
         T *gradientValuesZ = &gradientValuesY[nodeNumber];
-        for(unsigned int i=0; i<nodeNumber;i++){
-            *controlPointValuesX++ = *bestControlPointValuesX++ + scale * *gradientValuesX++;
-            *controlPointValuesY++ = *bestControlPointValuesY++ + scale * *gradientValuesY++;
-            *controlPointValuesZ++ = *bestControlPointValuesZ++ + scale * *gradientValuesZ++;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(controlPointValuesX, controlPointValuesY, controlPointValuesZ, \
+    bestControlPointValuesX, bestControlPointValuesY, bestControlPointValuesZ, \
+    gradientValuesX, gradientValuesY, gradientValuesZ, nodeNumber, scale) \
+    private(i)
+#endif
+        for(i=0; i<nodeNumber;i++){
+            controlPointValuesX[i] = bestControlPointValuesX[i] + scale * gradientValuesX[i];
+            controlPointValuesY[i] = bestControlPointValuesY[i] + scale * gradientValuesY[i];
+            controlPointValuesZ[i] = bestControlPointValuesZ[i] + scale * gradientValuesZ[i];
         }
     }
 
