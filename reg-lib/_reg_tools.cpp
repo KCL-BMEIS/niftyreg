@@ -275,8 +275,8 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
             DTYPE *readingValue=&imageArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
             DTYPE *writtingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
             int index, i, X, it, x, y, z;
-            PrecisionTYPE finalValue, windowValue;
-            DTYPE imageValue, t, c, temp;
+            PrecisionTYPE finalValue, windowValue, t, c, temp;
+            DTYPE imageValue;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(index, i, X, it, x, y, z, finalValue, windowValue, c, t, temp, imageValue) \
@@ -293,7 +293,7 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
 
                         finalValue=0.0;
                         // Kahan summation used here
-                        c = (DTYPE)0;
+                        c = (PrecisionTYPE)0;
                         for(it=0; it<windowSize; it++){
                             if(-1<X && X<image->nx){
                                 imageValue = readingValue[index];
@@ -331,8 +331,8 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
             DTYPE *readingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
             DTYPE *writtingValue=&imageArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
             int index, i, Y, it, x, y, z;
-            PrecisionTYPE finalValue, windowValue;
-            DTYPE imageValue, t, c, temp;
+            PrecisionTYPE finalValue, windowValue, t, c, temp;
+            DTYPE imageValue;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(index, i, Y, it, x, y, z, finalValue, windowValue, c, t, temp, imageValue) \
@@ -349,7 +349,7 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
                         Y = y - radius[1];
 
                         // Kahan summation used here
-                        c = (DTYPE)0;
+                        c = (PrecisionTYPE)0;
                         for(it=0; it<windowSize; it++){
                             if(-1<Y && Y<image->ny){
                                 imageValue = readingValue[index];
@@ -389,8 +389,8 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
                 DTYPE *writtingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
 
                 int index, i, Z, it, x, y, z;
-                PrecisionTYPE finalValue, windowValue;
-                DTYPE imageValue, t, c, temp;
+                PrecisionTYPE finalValue, windowValue, t, c, temp;
+                DTYPE imageValue;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(index, i, Z, it, x, y, z, finalValue, windowValue, c, t, temp, imageValue) \
@@ -408,7 +408,7 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
                             Z = z - radius[2];
 
                             // Kahan summation used here
-                            c = (DTYPE)0;
+                            c = (PrecisionTYPE)0;
                             for(it=0; it<windowSize; it++){
                                 if(-1<Z && Z<image->nz){
                                     imageValue = readingValue[index];
