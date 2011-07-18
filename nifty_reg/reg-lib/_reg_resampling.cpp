@@ -744,14 +744,14 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
                                 float bgValue)
 {
     if(sourceImage->datatype != resultImage->datatype){
-        printf("NiftyReg ERROR] reg_resampleSourceImage\tSource and result image should have the same data type\n");
-        printf("NiftyReg ERROR] reg_resampleSourceImage\tNothing has been done\n");
+        printf("[NiftyReg ERROR] reg_resampleSourceImage\tSource and result image should have the same data type\n");
+        printf("[NiftyReg ERROR] reg_resampleSourceImage\tNothing has been done\n");
         exit(1);
 	}
 
     if(sourceImage->nt != resultImage->nt){
         printf("[NiftyReg ERROR] reg_resampleSourceImage\tThe source and result images have different dimension along the time axis\n");
-        printf("NiftyReg ERROR] reg_resampleSourceImage\tNothing has been done\n");
+        printf("[NiftyReg ERROR] reg_resampleSourceImage\tNothing has been done\n");
         exit(1);
     }
 

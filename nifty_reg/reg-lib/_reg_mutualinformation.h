@@ -13,6 +13,7 @@
 #define _REG_MUTUALINFORMATION_H
 
 #include "nifti1_io.h"
+#include "omp.h"
 #include <vector>
 
 // Simple class to dynamically manage an array of pointers
@@ -40,8 +41,8 @@ public:
     }
 
 private:
-    void operator=(const SafeArray &);
-    SafeArray(const SafeArray &);
+    void operator=(const SafeArray &){};
+    SafeArray(const SafeArray &){};
 
     DataTYPE *data;
 };
