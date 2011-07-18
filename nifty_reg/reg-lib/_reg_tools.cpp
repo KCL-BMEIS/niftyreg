@@ -293,7 +293,7 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
 
                         finalValue=0.0;
                         // Kahan summation used here
-                        c = 0.;
+                        c = (DTYPE)0;
                         for(it=0; it<windowSize; it++){
                             if(-1<X && X<image->nx){
                                 imageValue = readingValue[index];
@@ -349,7 +349,7 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
                         Y = y - radius[1];
 
                         // Kahan summation used here
-                        c = 0.;
+                        c = (DTYPE)0;
                         for(it=0; it<windowSize; it++){
                             if(-1<Y && Y<image->ny){
                                 imageValue = readingValue[index];
@@ -408,7 +408,7 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
                             Z = z - radius[2];
 
                             // Kahan summation used here
-                            c = 0;
+                            c = (DTYPE)0;
                             for(it=0; it<windowSize; it++){
                                 if(-1<Z && Z<image->nz){
                                     imageValue = readingValue[index];

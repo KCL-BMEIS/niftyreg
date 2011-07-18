@@ -773,7 +773,7 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
 #endif // _OPENMP
         for(z=0; z<deformationField->nz; z++){
 
-            index=z*deformationField->nx*deformationField->dy;
+            index=z*deformationField->nx*deformationField->ny;
             oldPreX=-99; oldPreY=-99; oldPreZ=-99;
             for(y=0; y<deformationField->ny; y++){
                 for(x=0; x<deformationField->nx; x++){
