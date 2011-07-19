@@ -737,7 +737,7 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
 
         // read the ijk sform or qform, as appropriate
         mat44 *targetMatrix_real_to_voxel;
-        if(referenceImage->sform_code>0)
+        if(splineControlPoint->sform_code>0)
             targetMatrix_real_to_voxel=&(splineControlPoint->sto_ijk);
         else targetMatrix_real_to_voxel=&(splineControlPoint->qto_ijk);
 
@@ -788,19 +788,19 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
 
                     // The spline coefficients are computed
                     xPre=(int)floor(voxel[0]);
-                    basis=voxel[0]-(DTYPE)xPre;
+                    basis=voxel[0]-(DTYPE)xPre;--xPre;
                     if(basis<0.0) basis=0.0; //rounding error
                     if(bspline) Get_BSplineBasisValues<DTYPE>(basis, xBasis);
                     else Get_SplineBasisValues<DTYPE>(basis, xBasis);
 
                     yPre=(int)floor(voxel[1]);
-                    basis=voxel[1]-(DTYPE)yPre;
+                    basis=voxel[1]-(DTYPE)yPre;--yPre;
                     if(basis<0.0) basis=0.0; //rounding error
                     if(bspline) Get_BSplineBasisValues<DTYPE>(basis, yBasis);
                     else Get_SplineBasisValues<DTYPE>(basis, yBasis);
 
                     zPre=(int)floor(voxel[2]);
-                    basis=voxel[2]-(DTYPE)zPre;
+                    basis=voxel[2]-(DTYPE)zPre;--zPre;
                     if(basis<0.0) basis=0.0; //rounding error
                     if(bspline) Get_BSplineBasisValues<DTYPE>(basis, zBasis);
                     else Get_SplineBasisValues<DTYPE>(basis, zBasis);
@@ -1886,21 +1886,30 @@ void reg_getDisplacementFromDeformation_2D(nifti_image *splineControlPoint)
     if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
     else splineMatrix=&(splineControlPoint->qto_xyz);
 
-
-    for(int y=0; y<splineControlPoint->ny; y++){
-        for(int x=0; x<splineControlPoint->nx; x++){
+    int x, y,  index;
+    DTYPE xInit, yInit;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        shared(splineControlPoint, splineMatrix, \
+        controlPointPtrX, controlPointPtrY) \
+        private(x, y, index, xInit, yInit)
+#endif
+    for(y=0; y<splineControlPoint->ny; y++){
+        index=y*splineControlPoint->nx;
+        for(x=0; x<splineControlPoint->nx; x++){
 
             // Get the initial control point position
-            DTYPE xInit = splineMatrix->m[0][0]*(DTYPE)x
+            xInit = splineMatrix->m[0][0]*(DTYPE)x
                     + splineMatrix->m[0][1]*(DTYPE)y
                     + splineMatrix->m[0][3];
-            DTYPE yInit = splineMatrix->m[1][0]*(DTYPE)x
+            yInit = splineMatrix->m[1][0]*(DTYPE)x
                     + splineMatrix->m[1][1]*(DTYPE)y
                     + splineMatrix->m[1][3];
 
             // The initial position is subtracted from every values
-            *controlPointPtrX++ -= xInit;
-            *controlPointPtrY++ -= yInit;
+            controlPointPtrX[index] -= xInit;
+            controlPointPtrY[index] -= yInit;
+            index++;
         }
     }
 }
@@ -1917,28 +1926,38 @@ void reg_getDisplacementFromDeformation_3D(nifti_image *splineControlPoint)
     else splineMatrix=&(splineControlPoint->qto_xyz);
 
 
-    for(int z=0; z<splineControlPoint->nz; z++){
-        for(int y=0; y<splineControlPoint->ny; y++){
-            for(int x=0; x<splineControlPoint->nx; x++){
+    int x, y, z, index;
+    DTYPE xInit, yInit, zInit;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        shared(splineControlPoint, splineMatrix, \
+        controlPointPtrX, controlPointPtrY, controlPointPtrZ) \
+        private(x, y, z, index, xInit, yInit, zInit)
+#endif
+    for(z=0; z<splineControlPoint->nz; z++){
+        index=z*splineControlPoint->nx*splineControlPoint->ny;
+        for(y=0; y<splineControlPoint->ny; y++){
+            for(x=0; x<splineControlPoint->nx; x++){
 
                 // Get the initial control point position
-                DTYPE xInit = splineMatrix->m[0][0]*(DTYPE)x
+                xInit = splineMatrix->m[0][0]*(DTYPE)x
                         + splineMatrix->m[0][1]*(DTYPE)y
                         + splineMatrix->m[0][2]*(DTYPE)z
                         + splineMatrix->m[0][3];
-                DTYPE yInit = splineMatrix->m[1][0]*(DTYPE)x
+                yInit = splineMatrix->m[1][0]*(DTYPE)x
                         + splineMatrix->m[1][1]*(DTYPE)y
                         + splineMatrix->m[1][2]*(DTYPE)z
                         + splineMatrix->m[1][3];
-                DTYPE zInit = splineMatrix->m[2][0]*(DTYPE)x
+                zInit = splineMatrix->m[2][0]*(DTYPE)x
                         + splineMatrix->m[2][1]*(DTYPE)y
                         + splineMatrix->m[2][2]*(DTYPE)z
                         + splineMatrix->m[2][3];
 
                 // The initial position is subtracted from every values
-                *controlPointPtrX++ -= xInit;
-                *controlPointPtrY++ -= yInit;
-                *controlPointPtrZ++ -= zInit;
+                controlPointPtrX[index] -= xInit;
+                controlPointPtrY[index] -= yInit;
+                controlPointPtrZ[index] -= zInit;
+                index++;
             }
         }
     }
@@ -1996,20 +2015,30 @@ void reg_getDeformationFromDisplacement_2D(nifti_image *splineControlPoint)
     else splineMatrix=&(splineControlPoint->qto_xyz);
 
 
-    for(int y=0; y<splineControlPoint->ny; y++){
-        for(int x=0; x<splineControlPoint->nx; x++){
+    int x, y, index;
+    DTYPE xInit, yInit;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        shared(splineControlPoint, splineMatrix, \
+        controlPointPtrX, controlPointPtrY) \
+        private(x, y, index, xInit, yInit)
+#endif
+    for(y=0; y<splineControlPoint->ny; y++){
+        index=y*splineControlPoint->nx;
+        for(x=0; x<splineControlPoint->nx; x++){
 
             // Get the initial control point position
-            DTYPE xInit = splineMatrix->m[0][0]*(DTYPE)x
+            xInit = splineMatrix->m[0][0]*(DTYPE)x
                     + splineMatrix->m[0][1]*(DTYPE)y
                     + splineMatrix->m[0][3];
-            DTYPE yInit = splineMatrix->m[1][0]*(DTYPE)x
+            yInit = splineMatrix->m[1][0]*(DTYPE)x
                     + splineMatrix->m[1][1]*(DTYPE)y
                     + splineMatrix->m[1][3];
 
             // The initial position is added from every values
-            *controlPointPtrX++ += xInit;
-            *controlPointPtrY++ += yInit;
+            controlPointPtrX[index] += xInit;
+            controlPointPtrY[index] += yInit;
+            index++;
         }
     }
 }
@@ -2026,29 +2055,38 @@ void reg_getDeformationFromDisplacement_3D(nifti_image *splineControlPoint)
     if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
     else splineMatrix=&(splineControlPoint->qto_xyz);
 
-
-    for(int z=0; z<splineControlPoint->nz; z++){
-        for(int y=0; y<splineControlPoint->ny; y++){
-            for(int x=0; x<splineControlPoint->nx; x++){
+    int x, y, z, index;
+    DTYPE xInit, yInit, zInit;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        shared(splineControlPoint, splineMatrix, \
+        controlPointPtrX, controlPointPtrY, controlPointPtrZ) \
+        private(x, y, z, index, xInit, yInit, zInit)
+#endif
+    for(z=0; z<splineControlPoint->nz; z++){
+        index=z*splineControlPoint->nx*splineControlPoint->ny;
+        for(y=0; y<splineControlPoint->ny; y++){
+            for(x=0; x<splineControlPoint->nx; x++){
 
                 // Get the initial control point position
-                DTYPE xInit = splineMatrix->m[0][0]*(DTYPE)x
+                xInit = splineMatrix->m[0][0]*(DTYPE)x
                         + splineMatrix->m[0][1]*(DTYPE)y
                         + splineMatrix->m[0][2]*(DTYPE)z
                         + splineMatrix->m[0][3];
-                DTYPE yInit = splineMatrix->m[1][0]*(DTYPE)x
+                yInit = splineMatrix->m[1][0]*(DTYPE)x
                         + splineMatrix->m[1][1]*(DTYPE)y
                         + splineMatrix->m[1][2]*(DTYPE)z
                         + splineMatrix->m[1][3];
-                DTYPE zInit = splineMatrix->m[2][0]*(DTYPE)x
+                zInit = splineMatrix->m[2][0]*(DTYPE)x
                         + splineMatrix->m[2][1]*(DTYPE)y
                         + splineMatrix->m[2][2]*(DTYPE)z
                         + splineMatrix->m[2][3];
 
                 // The initial position is subtracted from every values
-                *controlPointPtrX++ += xInit;
-                *controlPointPtrY++ += yInit;
-                *controlPointPtrZ++ += zInit;
+                controlPointPtrX[index] += xInit;
+                controlPointPtrY[index] += yInit;
+                controlPointPtrZ[index] += zInit;
+                index++;
             }
         }
     }
@@ -2099,8 +2137,8 @@ void reg_defField_compose2D(nifti_image *deformationField,
                             nifti_image *dfToUpdate,
                             int *mask)
 {
-    unsigned int DFVoxelNumber=deformationField->nx*deformationField->ny;
-    unsigned int resVoxelNumber=dfToUpdate->nx*dfToUpdate->ny;
+    int DFVoxelNumber=deformationField->nx*deformationField->ny;
+    int resVoxelNumber=dfToUpdate->nx*dfToUpdate->ny;
     DTYPE *defPtrX = static_cast<DTYPE *>(deformationField->data);
     DTYPE *defPtrY = &defPtrX[DFVoxelNumber];
 
@@ -2117,34 +2155,43 @@ void reg_defField_compose2D(nifti_image *deformationField,
         df_real2Voxel=&(dfToUpdate->qto_ijk);
         df_voxel2Real=&(deformationField->qto_xyz);
     }
-    for(unsigned int i=0;i<resVoxelNumber;++i){
+
+    int i, a, b, index, pre[2];
+    DTYPE realDefX, realDefY, voxelX, voxelY;
+    DTYPE defX, defY, relX[2], relY[2], basis;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(resVoxelNumber, mask, df_real2Voxel, df_voxel2Real, \
+    deformationField, defPtrX, defPtrY, resPtrX, resPtrY) \
+    private(i, a, b, index, pre,realDefX, realDefY, voxelX, voxelY, \
+    defX, defY, relX, relY, basis)
+#endif
+    for(i=0;i<resVoxelNumber;++i){
         if(mask[i]>-1){
-            DTYPE realDefX = resPtrX[i];
-            DTYPE realDefY = resPtrY[i];
+            realDefX = resPtrX[i];
+            realDefY = resPtrY[i];
 
             // Conversion from real to voxel in the deformation field
-            DTYPE voxelX = realDefX * df_real2Voxel->m[0][0]
+            voxelX = realDefX * df_real2Voxel->m[0][0]
                     + realDefY * df_real2Voxel->m[0][1]
                     + df_real2Voxel->m[0][3];
-            DTYPE voxelY = realDefX * df_real2Voxel->m[1][0]
+            voxelY = realDefX * df_real2Voxel->m[1][0]
                     + realDefY * df_real2Voxel->m[1][1]
                     + df_real2Voxel->m[1][3];
 
             // Linear interpolation to compute the new deformation
-            int pre[2];
-            pre[0]=(int)floor(voxelX); pre[1]=(int)floor(voxelY);
-            DTYPE relX[2], relY[2];
+            pre[0]=(int)floor(voxelX);
+            pre[1]=(int)floor(voxelY);
             relX[1]=voxelX-(DTYPE)pre[0];relX[0]=1.f-relX[1];
             relY[1]=voxelY-(DTYPE)pre[1];relY[0]=1.f-relY[1];
             realDefX=realDefY=0.f;
-            for(int b=0;b<2;++b){
-                for(int a=0;a<2;++a){
-                    DTYPE basis = relX[a] * relY[b];
-                    DTYPE defX, defY;
+            for(b=0;b<2;++b){
+                for(a=0;a<2;++a){
+                    basis = relX[a] * relY[b];
                     if(pre[0]+a>-1 && pre[0]+a<deformationField->nx &&
                             pre[1]+b>-1 && pre[1]+b<deformationField->ny){
                         // Uses the deformation field if voxel is in its space
-                        unsigned int index=(pre[1]+b)*deformationField->nx+pre[0]+a;
+                        index=(pre[1]+b)*deformationField->nx+pre[0]+a;
                         defX = defPtrX[index];
                         defY = defPtrY[index];
                     }
@@ -2172,9 +2219,9 @@ void reg_defField_compose3D(nifti_image *deformationField,
                             nifti_image *dfToUpdate,
                             int *mask)
 {
-    unsigned int DFVoxelNumber=deformationField->nx*deformationField->ny*
+    int DFVoxelNumber=deformationField->nx*deformationField->ny*
             deformationField->nz;
-    unsigned int resVoxelNumber=dfToUpdate->nx*dfToUpdate->ny*
+    int resVoxelNumber=dfToUpdate->nx*dfToUpdate->ny*
             dfToUpdate->nz;
     DTYPE *defPtrX = static_cast<DTYPE *>(deformationField->data);
     DTYPE *defPtrY = &defPtrX[DFVoxelNumber];
@@ -2194,48 +2241,57 @@ void reg_defField_compose3D(nifti_image *deformationField,
         df_real2Voxel=&(deformationField->qto_ijk);
         df_voxel2Real=&(deformationField->qto_xyz);
     }
-
-    for(unsigned int i=0;i<resVoxelNumber;++i){
+    int i, a, b, c, currentX, currentY, currentZ, index, pre[3];
+    DTYPE realDefX, realDefY, realDefZ, voxelX, voxelY, voxelZ, tempBasis;
+    DTYPE defX, defY, defZ, relX[2], relY[2], relZ[2], basis;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(resVoxelNumber, mask, df_real2Voxel, df_voxel2Real, deformationField, \
+    defPtrX, defPtrY, defPtrZ, resPtrX, resPtrY, resPtrZ) \
+    private(i, a, b, c, currentX, currentY, currentZ, index, pre, \
+    realDefX, realDefY, realDefZ, voxelX, voxelY, voxelZ, tempBasis, \
+    defX, defY, defZ, relX, relY, relZ, basis)
+#endif
+    for(i=0;i<resVoxelNumber;++i){
         if(mask[i]>-1){
-            DTYPE realDefX = resPtrX[i];
-            DTYPE realDefY = resPtrY[i];
-            DTYPE realDefZ = resPtrZ[i];
+            realDefX = resPtrX[i];
+            realDefY = resPtrY[i];
+            realDefZ = resPtrZ[i];
 
             // Conversion from real to voxel in the deformation field
-            DTYPE voxelX = realDefX * df_real2Voxel->m[0][0]
+            voxelX = realDefX * df_real2Voxel->m[0][0]
                     + realDefY * df_real2Voxel->m[0][1]
                     + realDefZ * df_real2Voxel->m[0][2]
                     + df_real2Voxel->m[0][3];
-            DTYPE voxelY = realDefX * df_real2Voxel->m[1][0]
+            voxelY = realDefX * df_real2Voxel->m[1][0]
                     + realDefY * df_real2Voxel->m[1][1]
                     + realDefZ * df_real2Voxel->m[1][2]
                     + df_real2Voxel->m[1][3];
-            DTYPE voxelZ = realDefX * df_real2Voxel->m[2][0]
+            voxelZ = realDefX * df_real2Voxel->m[2][0]
                     + realDefY * df_real2Voxel->m[2][1]
                     + realDefZ * df_real2Voxel->m[2][2]
                     + df_real2Voxel->m[2][3];
 
             // Linear interpolation to compute the new deformation
-            int pre[3];
-            pre[0]=(int)floor(voxelX); pre[1]=(int)floor(voxelY); pre[2]=(int)floor(voxelZ);
-            DTYPE relX[2], relY[2], relZ[2];
+            pre[0]=(int)floor(voxelX);
+            pre[1]=(int)floor(voxelY);
+            pre[2]=(int)floor(voxelZ);
             relX[1]=voxelX-(DTYPE)pre[0];relX[0]=1.-relX[1];
             relY[1]=voxelY-(DTYPE)pre[1];relY[0]=1.-relY[1];
             relZ[1]=voxelZ-(DTYPE)pre[2];relZ[0]=1.-relZ[1];
             realDefX=realDefY=realDefZ=0.;
-            for(int c=0;c<2;++c){
-                int currentZ = pre[2]+c;
-                for(int b=0;b<2;++b){
-                    int currentY = pre[1]+b;
-                    DTYPE tempBasis= relY[b] * relZ[c];
-                    for(int a=0;a<2;++a){
-                        int currentX = pre[0]+a;
-                        DTYPE defX, defY, defZ;
+            for(c=0;c<2;++c){
+                currentZ = pre[2]+c;
+                for(b=0;b<2;++b){
+                    currentY = pre[1]+b;
+                    tempBasis= relY[b] * relZ[c];
+                    for(a=0;a<2;++a){
+                        currentX = pre[0]+a;
                         if(currentX>-1 && currentX<deformationField->nx &&
                                 currentY>-1 && currentY<deformationField->ny &&
                                 currentZ>-1 && currentZ<deformationField->nz){
                             // Uses the deformation field if voxel is in its space
-                            unsigned int index=(currentZ*deformationField->ny+currentY)
+                            index=(currentZ*deformationField->ny+currentY)
                                     *deformationField->nx+currentX;
                             defX = defPtrX[index];
                             defY = defPtrY[index];
@@ -2256,7 +2312,7 @@ void reg_defField_compose3D(nifti_image *deformationField,
                                     + df_voxel2Real->m[2][2] * currentZ
                                     + df_voxel2Real->m[2][3];
                         }
-                        DTYPE basis = relX[a] * tempBasis;
+                        basis = relX[a] * tempBasis;
                         realDefX += defX * basis;
                         realDefY += defY * basis;
                         realDefZ += defZ * basis;

@@ -118,8 +118,7 @@ double reg_bspline_jacobianValue2D(nifti_image *splineControlPoint,
             (&controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny]);
 
     DTYPE yBasis[4],yFirst[4],temp[4],first[4];
-    DTYPE basisX[16], basisY[16];
-    DTYPE basis, oldBasis=(DTYPE)(1.1);
+    DTYPE basisX[16], basisY[16], basis;
 
     DTYPE xControlPointCoordinates[16];
     DTYPE yControlPointCoordinates[16];
@@ -128,37 +127,48 @@ double reg_bspline_jacobianValue2D(nifti_image *splineControlPoint,
     gridVoxelSpacing[0] = splineControlPoint->dx / referenceImage->dx;
     gridVoxelSpacing[1] = splineControlPoint->dy / referenceImage->dy;
 
-    unsigned int coord=0;
-
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
 
-    double constraintValue=0;
+    int x, y, a, b, xPre, yPre, coord, oldXpre, oldYpre;
+    DTYPE Tx_x, Tx_y, Ty_x, Ty_y;
+    double detJac, logJac, constraintValue=0;
 
-    for(int y=0; y<referenceImage->ny; y++){
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(referenceImage, gridVoxelSpacing, splineControlPoint, \
+    controlPointPtrX, controlPointPtrY, reorient) \
+    private(x, y, a, b, xPre, yPre, oldXpre, oldYpre, basis, \
+    temp, first, yBasis, yFirst, coord, jacobianMatrix, detJac, logJac, \
+    xControlPointCoordinates, yControlPointCoordinates, basisX, basisY, \
+    Tx_x, Tx_y, Ty_x, Ty_y) \
+    reduction(+:constraintValue)
+#endif
+    for(y=0; y<referenceImage->ny; y++){
+        oldXpre=oldYpre=9999999;
 
-        int yPre=(int)((DTYPE)y/gridVoxelSpacing[1]);
+        yPre=(int)((DTYPE)y/gridVoxelSpacing[1]);
         basis=(DTYPE)y/gridVoxelSpacing[1]-(DTYPE)yPre;
         if(basis<0.0) basis=0.0; //rounding error
         Get_BSplineBasisValues<DTYPE>(basis, yBasis, yFirst);
 
-        for(int x=0; x<referenceImage->nx; x++){
+        for(x=0; x<referenceImage->nx; x++){
 
-            int xPre=(int)((DTYPE)x/gridVoxelSpacing[0]);
+            xPre=(int)((DTYPE)x/gridVoxelSpacing[0]);
             basis=(DTYPE)x/gridVoxelSpacing[0]-(DTYPE)xPre;
             if(basis<0.0) basis=0.0; //rounding error
             Get_BSplineBasisValues<DTYPE>(basis, temp, first);
 
             coord=0;
-            for(int b=0; b<4; b++){
-                for(int a=0; a<4; a++){
+            for(b=0; b<4; b++){
+                for(a=0; a<4; a++){
                     basisX[coord]=yBasis[b]*first[a];   // y * x'
                     basisY[coord]=yFirst[b]*temp[a];    // y'* x
                     coord++;
                 }
             }
 
-            if(basis<=oldBasis || x==0){
+            if(xPre!=oldXpre || yPre!=oldYpre){
                 get_GridValues<DTYPE>(xPre,
                                       yPre,
                                       splineControlPoint,
@@ -167,15 +177,12 @@ double reg_bspline_jacobianValue2D(nifti_image *splineControlPoint,
                                       xControlPointCoordinates,
                                       yControlPointCoordinates,
                                       false);
+                oldXpre=xPre;oldYpre=yPre;
             }
-            oldBasis=basis;
 
-            DTYPE Tx_x=0.0;
-            DTYPE Ty_x=0.0;
-            DTYPE Tx_y=0.0;
-            DTYPE Ty_y=0.0;
+            Tx_x=0.0; Ty_x=0.0; Tx_y=0.0; Ty_y=0.0;
 
-            for(int a=0; a<16; a++){
+            for(a=0; a<16; a++){
                 Tx_x += basisX[a]*xControlPointCoordinates[a];
                 Tx_y += basisY[a]*xControlPointCoordinates[a];
 
@@ -191,16 +198,21 @@ double reg_bspline_jacobianValue2D(nifti_image *splineControlPoint,
             jacobianMatrix.m[1][1]= (float)(Ty_y / splineControlPoint->dy);
 
             jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
-            double detJac = nifti_mat33_determ(jacobianMatrix);
+            detJac = nifti_mat33_determ(jacobianMatrix);
             if(detJac>0.0){
-                double logJac = log(detJac);
+                logJac = log(detJac);
 #ifdef _USE_SQUARE_LOG_JAC
                 constraintValue += logJac*logJac;
 #else
                 constraintValue +=  fabs(logJac);
 #endif
             }
-            else return std::numeric_limits<double>::quiet_NaN();
+            else
+#ifdef _OPENMP
+                constraintValue=std::numeric_limits<double>::quiet_NaN();
+#else // _OPENMP
+                return std::numeric_limits<double>::quiet_NaN();
+#endif // _OPENMP
         }
     }
     return constraintValue/(double)(referenceImage->nx*referenceImage->ny*referenceImage->nz);
@@ -496,9 +508,12 @@ double reg_bspline_jacobianValue3D(nifti_image *splineControlPoint,
                     constraintValue +=  fabs(log(detJac));
 #endif
                 }
-#ifndef _OPENMP
-                else return std::numeric_limits<double>::quiet_NaN();
-#endif
+                else
+#ifdef _OPENMP
+                    constraintValue=std::numeric_limits<double>::quiet_NaN();
+#else // _OPENMP
+                    return std::numeric_limits<double>::quiet_NaN();
+#endif // _OPENMP
             }
         }
     }
@@ -513,7 +528,7 @@ double reg_bspline_jacobianApproxValue2D(nifti_image *splineControlPoint)
     DTYPE *controlPointPtrY = static_cast<DTYPE *>(&controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny]);
 
     // As the contraint is only computed at the voxel position, the basis value of the spline are always the same
-    DTYPE basisX[9], basisY[9], constraintValue=0, xControlPointCoordinates[9], yControlPointCoordinates[9];
+    DTYPE basisX[9], basisY[9], xControlPointCoordinates[9], yControlPointCoordinates[9];
     DTYPE normal[3]={1.0/6.0, 2.0/3.0, 1.0/6.0};
     DTYPE first[3]={-0.5, 0.0, 0.5};
     unsigned int coord=0;
@@ -528,8 +543,18 @@ double reg_bspline_jacobianApproxValue2D(nifti_image *splineControlPoint)
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
 
-    for(int y=1;y<splineControlPoint->ny-2;y++){
-        for(int x=1;x<splineControlPoint->nx-2;x++){
+    double constraintValue=0, logJac, detJac;
+    int x, y, a;
+    DTYPE Tx_x, Ty_y, Tx_y, Ty_x;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(splineControlPoint, controlPointPtrX, controlPointPtrY, reorient, basisX, basisY) \
+    private(x, y, a, jacobianMatrix, detJac, logJac, Tx_x, Ty_y, Tx_y, Ty_x, \
+    xControlPointCoordinates, yControlPointCoordinates) \
+    reduction(+:constraintValue)
+#endif
+    for(y=1;y<splineControlPoint->ny-2;y++){
+        for(x=1;x<splineControlPoint->nx-2;x++){
 
             get_GridValuesApprox<DTYPE>(x-1,
                                         y-1,
@@ -540,12 +565,12 @@ double reg_bspline_jacobianApproxValue2D(nifti_image *splineControlPoint)
                                         yControlPointCoordinates,
                                         true);
 
-            DTYPE Tx_x=0.0;
-            DTYPE Ty_x=0.0;
-            DTYPE Tx_y=0.0;
-            DTYPE Ty_y=0.0;
+            Tx_x=0.0;
+            Ty_x=0.0;
+            Tx_y=0.0;
+            Ty_y=0.0;
 
-            for(int a=0; a<9; a++){
+            for(a=0; a<9; a++){
                 Tx_x += basisX[a]*xControlPointCoordinates[a];
                 Tx_y += basisY[a]*xControlPointCoordinates[a];
 
@@ -561,18 +586,23 @@ double reg_bspline_jacobianApproxValue2D(nifti_image *splineControlPoint)
             jacobianMatrix.m[2][2]=1.0f;
 
             jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
-            DTYPE detJac = jacobianMatrix.m[0][0]*jacobianMatrix.m[1][1]-
+            detJac = jacobianMatrix.m[0][0]*jacobianMatrix.m[1][1]-
                     jacobianMatrix.m[0][1]*jacobianMatrix.m[1][0];
 
             if(detJac>0.0){
-                double logJac = log(detJac);
+                logJac = log(detJac);
 #ifdef _USE_SQUARE_LOG_JAC
                 constraintValue += logJac*logJac;
 #else
                 constraintValue +=  fabs(log(detJac));
 #endif
             }
-            else return std::numeric_limits<double>::quiet_NaN();
+            else
+#ifdef _OPENMP
+                constraintValue=std::numeric_limits<double>::quiet_NaN();
+#else // _OPENMP
+                return std::numeric_limits<double>::quiet_NaN();
+#endif // _OPENMP
         }
     }
     return constraintValue/(double)((splineControlPoint->nx-2)*(splineControlPoint->ny-2));
@@ -687,9 +717,12 @@ double reg_bspline_jacobianApproxValue3D(nifti_image *splineControlPoint)
                     constraintValue +=  fabs(log(detJac));
 #endif
                 }
-#ifndef _OPENMP
-                else return std::numeric_limits<double>::quiet_NaN();
-#endif
+                else
+#ifdef _OPENMP
+                    constraintValue=std::numeric_limits<double>::quiet_NaN();
+#else // _OPENMP
+                    return std::numeric_limits<double>::quiet_NaN();
+#endif // _OPENMP
             }
         }
     }
@@ -759,7 +792,6 @@ void reg_bspline_computeJacobianMatrices_2D(nifti_image *referenceImage,
 
     DTYPE yBasis[4],yFirst[4],xBasis[4],xFirst[4];
     DTYPE basisX[16], basisY[16], basis;
-    int oldXpre=9999999, oldYpre=9999999;
 
     DTYPE xControlPointCoordinates[16];
     DTYPE yControlPointCoordinates[16];
@@ -771,24 +803,35 @@ void reg_bspline_computeJacobianMatrices_2D(nifti_image *referenceImage,
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
 
-    unsigned int index=0, coord;
-    for(int y=0; y<referenceImage->ny; y++){
+    int index, coord, x, y, a, b, xPre, yPre, oldXpre, oldYpre;
+    DTYPE Tx_x, Tx_y, Ty_x, Ty_y;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(referenceImage, gridVoxelSpacing, splineControlPoint, reorient, \
+    controlPointPtrX, controlPointPtrY, jacobianDeterminant, jacobianMatrices) \
+    private(index, coord, x, y, a, b, xPre, yPre, basis, xBasis, xFirst, yBasis, yFirst, \
+    oldXpre, oldYpre, basisX, basisY, xControlPointCoordinates, yControlPointCoordinates, \
+    Tx_x, Tx_y, Ty_x, Ty_y, jacobianMatrix)
+#endif
+    for(y=0; y<referenceImage->ny; y++){
+        index=y*referenceImage->nx;
+        oldXpre=oldYpre=9999999;
 
-        int yPre=(int)((DTYPE)y/gridVoxelSpacing[1]);
+        yPre=(int)((DTYPE)y/gridVoxelSpacing[1]);
         basis=(DTYPE)y/gridVoxelSpacing[1]-(DTYPE)yPre;
         if(basis<0.0) basis=0.0; //rounding error
         Get_BSplineBasisValues<DTYPE>(basis, yBasis, yFirst);
 
-        for(int x=0; x<referenceImage->nx; x++){
+        for(x=0; x<referenceImage->nx; x++){
 
-            int xPre=(int)((DTYPE)x/gridVoxelSpacing[0]);
+            xPre=(int)((DTYPE)x/gridVoxelSpacing[0]);
             basis=(DTYPE)x/gridVoxelSpacing[0]-(DTYPE)xPre;
             if(basis<0.0) basis=0.0; //rounding error
             Get_BSplineBasisValues<DTYPE>(basis, xBasis, xFirst);
 
             coord=0;
-            for(int b=0; b<4; b++){
-                for(int a=0; a<4; a++){
+            for(b=0; b<4; b++){
+                for(a=0; a<4; a++){
                     basisX[coord]=yBasis[b]*xFirst[a];   // y * x'
                     basisY[coord]=yFirst[b]*xBasis[a];    // y'* x
                     coord++;
@@ -807,12 +850,12 @@ void reg_bspline_computeJacobianMatrices_2D(nifti_image *referenceImage,
                 oldXpre=xPre;oldYpre=yPre;
             }
 
-            DTYPE Tx_x=0.0;
-            DTYPE Ty_x=0.0;
-            DTYPE Tx_y=0.0;
-            DTYPE Ty_y=0.0;
+            Tx_x=0.0;
+            Ty_x=0.0;
+            Tx_y=0.0;
+            Ty_y=0.0;
 
-            for(int a=0; a<16; a++){
+            for(a=0; a<16; a++){
                 Tx_x += basisX[a]*xControlPointCoordinates[a];
                 Tx_y += basisY[a]*xControlPointCoordinates[a];
 
@@ -1166,11 +1209,20 @@ void reg_bspline_computeApproximateJacobianMatrices_2D( nifti_image *splineContr
     /* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
     /* All the Jacobian matrices are computed */
     /* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+    int x, y, jacIndex, a;
+    DTYPE Tx_x, Tx_y, Ty_x, Ty_y;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(splineControlPoint, controlPointPtrX, controlPointPtrY, \
+    jacobianMatricesPtr, jacobianDeterminantPtr, reorient, basisX, basisY) \
+    private(x, y, jacIndex, a, xControlPointCoordinates, yControlPointCoordinates, \
+    Tx_x, Tx_y, Ty_x, Ty_y, jacobianMatrix)
+#endif
 
     // Loop over (almost) each control point
-    for(int y=1;y<splineControlPoint->ny-1;y++){
-        unsigned int jacIndex = y*splineControlPoint->nx + 1;
-        for(int x=1;x<splineControlPoint->nx-1;x++){
+    for(y=1;y<splineControlPoint->ny-1;y++){
+        jacIndex = y*splineControlPoint->nx + 1;
+        for(x=1;x<splineControlPoint->nx-1;x++){
 
             // The control points are stored
             get_GridValuesApprox<DTYPE>(x-1,
@@ -1182,12 +1234,12 @@ void reg_bspline_computeApproximateJacobianMatrices_2D( nifti_image *splineContr
                                         yControlPointCoordinates,
                                         true);
 
-            DTYPE Tx_x=(DTYPE)0.0;
-            DTYPE Ty_x=(DTYPE)0.0;
-            DTYPE Tx_y=(DTYPE)0.0;
-            DTYPE Ty_y=(DTYPE)0.0;
+            Tx_x=(DTYPE)0.0;
+            Ty_x=(DTYPE)0.0;
+            Tx_y=(DTYPE)0.0;
+            Ty_y=(DTYPE)0.0;
 
-            for(int a=0; a<9; a++){
+            for(a=0; a<9; a++){
                 Tx_x += basisX[a]*xControlPointCoordinates[a];
                 Tx_y += basisY[a]*xControlPointCoordinates[a];
                 Ty_x += basisX[a]*yControlPointCoordinates[a];
@@ -1353,10 +1405,8 @@ void reg_bspline_jacobianDeterminantGradient2D( nifti_image *splineControlPoint,
     gridVoxelSpacing[0] = splineControlPoint->dx / referenceImage->dx;
     gridVoxelSpacing[1] = splineControlPoint->dy / referenceImage->dy;
 
-    DTYPE basisValues[2];
-    DTYPE xBasis=0, yBasis=0, basis;
-    DTYPE xFirst=0, yFirst=0;
-    unsigned int jacIndex;
+    DTYPE basisValues[2], jacobianConstraint[2], detJac;
+    DTYPE xBasis, yBasis, basis, xFirst, yFirst;
 
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
@@ -1365,29 +1415,39 @@ void reg_bspline_jacobianDeterminantGradient2D( nifti_image *splineControlPoint,
     DTYPE *gradientImagePtrX = static_cast<DTYPE *>(gradientImage->data);
     DTYPE *gradientImagePtrY = &gradientImagePtrX[gradientImage->nx*gradientImage->ny];
 
-    for(int y=0;y<splineControlPoint->ny;y++){
-        for(int x=0;x<splineControlPoint->nx;x++){
+    int jacIndex, x, y, index, pixelX, pixelY, xPre, yPre;
 
-            DTYPE jacobianConstraint[2]={0, 0};
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(splineControlPoint, gridVoxelSpacing, jacobianDeterminant, jacobianMatrices, \
+    referenceImage, desorient, gradientImagePtrX, gradientImagePtrY, weight) \
+    private(jacIndex, x, y, index, pixelX, pixelY, xPre, yPre, basisValues, basis, \
+    jacobianConstraint, detJac, xBasis, xFirst, yBasis, yFirst, jacobianMatrix)
+#endif
+    for(y=0;y<splineControlPoint->ny;y++){
+        index=y*splineControlPoint->nx;
+        for(x=0;x<splineControlPoint->nx;x++){
+
+            jacobianConstraint[0]=jacobianConstraint[1]=0;
 
             // Loop over all the control points in the surrounding area
-            for(int pixelY=(int)reg_ceil((y-3)*gridVoxelSpacing[1]);pixelY<(int)reg_ceil((y+1)*gridVoxelSpacing[1]); ++pixelY){
+            for(pixelY=(int)reg_ceil((y-3)*gridVoxelSpacing[1]);pixelY<(int)reg_ceil((y+1)*gridVoxelSpacing[1]); ++pixelY){
                 if(pixelY>-1 && pixelY<referenceImage->ny){
 
-                    int yPre=(int)((DTYPE)pixelY/gridVoxelSpacing[1]);
+                    yPre=(int)((DTYPE)pixelY/gridVoxelSpacing[1]);
                     basis=(DTYPE)pixelY/gridVoxelSpacing[1]-(DTYPE)yPre;
                     get_BSplineBasisValue<DTYPE>(basis,y-yPre,yBasis,yFirst);
                     if(yBasis!=0||yFirst!=0){
 
-                        for(int pixelX=(int)reg_ceil((x-3)*gridVoxelSpacing[0]);pixelX<(int)reg_ceil((x+1)*gridVoxelSpacing[0]); ++pixelX){
+                        for(pixelX=(int)reg_ceil((x-3)*gridVoxelSpacing[0]);pixelX<(int)reg_ceil((x+1)*gridVoxelSpacing[0]); ++pixelX){
                             if(pixelX>-1 && pixelX<referenceImage->nx){
 
-                                int xPre=(int)((DTYPE)pixelX/gridVoxelSpacing[0]);
+                                xPre=(int)((DTYPE)pixelX/gridVoxelSpacing[0]);
                                 basis=(DTYPE)pixelX/gridVoxelSpacing[0]-(DTYPE)xPre;
                                 get_BSplineBasisValue<DTYPE>(basis,x-xPre,xBasis,xFirst);
 
                                 jacIndex = pixelY*referenceImage->nx+pixelX;
-                                double detJac=jacobianDeterminant[jacIndex];
+                                detJac=jacobianDeterminant[jacIndex];
 
                                 if(detJac>0.0 && (xBasis!=0||xFirst!=0)){
 
@@ -1411,12 +1471,13 @@ void reg_bspline_jacobianDeterminantGradient2D( nifti_image *splineControlPoint,
                 }// if y
             }// y
             // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
-            *gradientImagePtrX++ += weight *
+            gradientImagePtrX[index] += weight *
                     (desorient.m[0][0]*jacobianConstraint[0] +
                      desorient.m[0][1]*jacobianConstraint[1]);
-            *gradientImagePtrY++ += weight *
+            gradientImagePtrY[index] += weight *
                     (desorient.m[1][0]*jacobianConstraint[0] +
                      desorient.m[1][1]*jacobianConstraint[1]);
+            index++;
         }
     }
     free(jacobianDeterminant);
@@ -1440,7 +1501,7 @@ void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlP
                                                              jacobianDeterminant);
 
 
-    DTYPE basisX[9], basisY[9];
+    DTYPE basisX[9], basisY[9], detJac, jacobianConstraint[2];
     DTYPE normal[3]={1.0/6.0, 2.0/3.0, 1.0/6.0};
     DTYPE first[3]={-0.5, 0.0, 0.5};
     unsigned int coord=0;
@@ -1452,7 +1513,6 @@ void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlP
             coord++;
         }
     }
-    unsigned int jacIndex;
 
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
@@ -1463,21 +1523,30 @@ void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlP
     DTYPE approxRatio = weight * (DTYPE)(referenceImage->nx*referenceImage->ny)
             / (DTYPE)(jacobianNumber);
 
-    for(int y=0;y<splineControlPoint->ny;y++){
-        for(int x=0;x<splineControlPoint->nx;x++){
+    int jacIndex, index, x, y, pixelX, pixelY;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(splineControlPoint, jacobianMatrices, jacobianDeterminant, basisX, basisY, \
+    gradientImagePtrX, gradientImagePtrY, desorient, approxRatio) \
+    private(jacIndex, index, x, y, pixelX, pixelY, jacobianMatrix, \
+    detJac, jacobianConstraint, coord)
+#endif
+    for(y=0;y<splineControlPoint->ny;y++){
+        index=y*splineControlPoint->nx;
+        for(x=0;x<splineControlPoint->nx;x++){
 
-            DTYPE jacobianConstraint[2]={0. , 0.};
+            jacobianConstraint[0]=jacobianConstraint[1]=0;
 
             // Loop over all the control points in the surrounding area
             coord=0;
-            for(int pixelY=(int)(y-1);pixelY<(int)(y+2); ++pixelY){
+            for(pixelY=(int)(y-1);pixelY<(int)(y+2); ++pixelY){
                 if(pixelY>-1 && pixelY<splineControlPoint->ny){
 
-                    for(int pixelX=(int)(x-1);pixelX<(int)(x+2); ++pixelX){
+                    for(pixelX=(int)(x-1);pixelX<(int)(x+2); ++pixelX){
                         if(pixelX>-1 && pixelX<splineControlPoint->nx){
 
                             jacIndex = pixelY*splineControlPoint->nx+pixelX;
-                            double detJac=(double)jacobianDeterminant[jacIndex];
+                            detJac=jacobianDeterminant[jacIndex];
 
                             if(detJac>0.0){
 
@@ -1502,8 +1571,9 @@ void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlP
                 else coord+=3;
             }// y
             // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
-            *gradientImagePtrX++ += approxRatio * (desorient.m[0][0]*jacobianConstraint[0] + desorient.m[0][1]*jacobianConstraint[1]);
-            *gradientImagePtrY++ += approxRatio * (desorient.m[1][0]*jacobianConstraint[0] + desorient.m[1][1]*jacobianConstraint[1]);
+            gradientImagePtrX[index] += approxRatio * (desorient.m[0][0]*jacobianConstraint[0] + desorient.m[0][1]*jacobianConstraint[1]);
+            gradientImagePtrY[index] += approxRatio * (desorient.m[1][0]*jacobianConstraint[0] + desorient.m[1][1]*jacobianConstraint[1]);
+            index++;
         }
     }
     free(jacobianMatrices);
@@ -1859,9 +1929,16 @@ double reg_bspline_correctFolding_2D(nifti_image *splineControlPoint,
                                                   jacobianDeterminant);
 
     // The current Penalty term value is computed
-    double penaltyTerm =0.0;
-    for(int i=0; i< (referenceImage->nx*referenceImage->ny*referenceImage->nz); i++){
-        double logDet = log(jacobianDeterminant[i]);
+    double penaltyTerm =0.0, logDet;
+    int i;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(referenceImage, jacobianDeterminant) \
+    private(i, logDet) \
+    reduction(+:penaltyTerm)
+#endif
+    for(i=0; i< (referenceImage->nx*referenceImage->ny*referenceImage->nz); i++){
+        logDet = log(jacobianDeterminant[i]);
 #ifdef _USE_SQUARE_LOG_JAC
         penaltyTerm += logDet*logDet;
 #else
@@ -1878,10 +1955,12 @@ double reg_bspline_correctFolding_2D(nifti_image *splineControlPoint,
     gridVoxelSpacing[0] = splineControlPoint->dx / referenceImage->dx;
     gridVoxelSpacing[1] = splineControlPoint->dy / referenceImage->dy;
 
-    DTYPE basisValues[2];
-    DTYPE xBasis=0, yBasis=0, basis;
+    DTYPE basisValues[2], gradient[2], norm;
+    DTYPE xBasis=0, yBasis=0, basis, foldingCorrection[2];
     DTYPE xFirst=0, yFirst=0;
-    unsigned int jacIndex;
+    int jacIndex, id, x, y, pixelX, pixelY, xPre, yPre;
+    bool correctFolding;
+    double detJac;
 
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
@@ -1890,31 +1969,37 @@ double reg_bspline_correctFolding_2D(nifti_image *splineControlPoint,
     DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
     DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny];
 
-    for(int y=0;y<splineControlPoint->ny;y++){
-        for(int x=0;x<splineControlPoint->nx;x++){
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(splineControlPoint, gridVoxelSpacing, jacobianDeterminant, jacobianMatrices, \
+    referenceImage, desorient, controlPointPtrX, controlPointPtrY) \
+    private(x, y, pixelX, pixelY, jacIndex, detJac, xPre, yPre, xBasis, xFirst, yBasis, yFirst, \
+    basisValues, correctFolding, jacobianMatrix, gradient, norm, id, foldingCorrection, basis)
+#endif
+    for(y=0;y<splineControlPoint->ny;y++){
+        for(x=0;x<splineControlPoint->nx;x++){
 
-            DTYPE foldingCorrection[2]={0.0, 0.0};
+            foldingCorrection[0]=foldingCorrection[1]=0;
 
-            bool correctFolding=false;
+            correctFolding=false;
 
             // Loop over all the control points in the surrounding area
-            for(int pixelY=(int)reg_ceil((y-3)*gridVoxelSpacing[1]);pixelY<(int)reg_floor((y+1)*gridVoxelSpacing[1]); pixelY++){
+            for(pixelY=(int)reg_ceil((y-3)*gridVoxelSpacing[1]);pixelY<(int)reg_floor((y+1)*gridVoxelSpacing[1]); pixelY++){
                 if(pixelY>-1 && pixelY<referenceImage->ny){
 
-
-                    for(int pixelX=(int)reg_ceil((x-3)*gridVoxelSpacing[0]);pixelX<(int)reg_floor((x+1)*gridVoxelSpacing[0]); pixelX++){
+                    for(pixelX=(int)reg_ceil((x-3)*gridVoxelSpacing[0]);pixelX<(int)reg_floor((x+1)*gridVoxelSpacing[0]); pixelX++){
                         if(pixelX>-1 && pixelX<referenceImage->nx){
 
                             jacIndex = pixelY*referenceImage->nx+pixelX;
-                            double detJac=jacobianDeterminant[jacIndex];
+                            detJac=jacobianDeterminant[jacIndex];
 
                             if(detJac<=0.0){
 
-                                int yPre=(int)((DTYPE)pixelY/gridVoxelSpacing[1]);
+                                yPre=(int)((DTYPE)pixelY/gridVoxelSpacing[1]);
                                 basis=(DTYPE)pixelY/gridVoxelSpacing[1]-(DTYPE)yPre;
                                 get_BSplineBasisValue<DTYPE>(basis, y-yPre,yBasis,yFirst);
 
-                                int xPre=(int)((DTYPE)pixelX/gridVoxelSpacing[0]);
+                                xPre=(int)((DTYPE)pixelX/gridVoxelSpacing[0]);
                                 basis=(DTYPE)pixelX/gridVoxelSpacing[0]-(DTYPE)xPre;
                                 get_BSplineBasisValue<DTYPE>(basis, x-xPre,xBasis,xFirst);
 
@@ -1937,14 +2022,13 @@ double reg_bspline_correctFolding_2D(nifti_image *splineControlPoint,
             }// y
             // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
             if(correctFolding){
-                DTYPE gradient[2];
                 gradient[0] = desorient.m[0][0]*foldingCorrection[0] +
                         desorient.m[0][1]*foldingCorrection[1];
                 gradient[1] = desorient.m[1][0]*foldingCorrection[0] +
                         desorient.m[1][1]*foldingCorrection[1];
-                DTYPE norm = 5.0 * sqrt(gradient[0]*gradient[0] + gradient[1]*gradient[1]);
+                norm = 5.0 * sqrt(gradient[0]*gradient[0] + gradient[1]*gradient[1]);
                 if(norm>0.0){
-                    const unsigned int id = y*splineControlPoint->nx+x;
+                    id = y*splineControlPoint->nx+x;
                     controlPointPtrX[id] += (DTYPE)(splineControlPoint->dx*gradient[0]/norm);
                     controlPointPtrY[id] += (DTYPE)(splineControlPoint->dy*gradient[1]/norm);
                 }
@@ -1972,12 +2056,18 @@ double reg_bspline_correctFoldingApprox_2D(nifti_image *splineControlPoint)
                                                              jacobianDeterminant);
 
     // The current Penalty term value is computed
-    unsigned int jacIndex;
-    double penaltyTerm =0.0;
-    for(int j=1; j< splineControlPoint->ny-1; j++){
+    int jacIndex, i, j;
+    double penaltyTerm=0.0, logDet;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(splineControlPoint, jacobianDeterminant) \
+    private(i, j, logDet, jacIndex) \
+    reduction(+:penaltyTerm)
+#endif
+    for(j=1; j< splineControlPoint->ny-1; j++){
         jacIndex = j*splineControlPoint->nx+1;
-        for(int i=1; i< splineControlPoint->nx-1; i++){
-            double logDet = log(jacobianDeterminant[jacIndex++]);
+        for(i=1; i< splineControlPoint->nx-1; i++){
+            logDet = log(jacobianDeterminant[jacIndex++]);
 #ifdef _USE_SQUARE_LOG_JAC
             penaltyTerm += logDet*logDet;
 #else
@@ -1992,9 +2082,8 @@ double reg_bspline_correctFoldingApprox_2D(nifti_image *splineControlPoint)
         return penaltyTerm/(double)jacobianNumber;
     }
 
-    DTYPE basisValues[2];
-    DTYPE xBasis=0, yBasis=0;
-    DTYPE xFirst=0, yFirst=0;
+    DTYPE basisValues[2], foldingCorrection[2], gradient[2], norm;
+    DTYPE xBasis=0, yBasis=0, xFirst=0, yFirst=0;
 
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
@@ -2006,22 +2095,30 @@ double reg_bspline_correctFoldingApprox_2D(nifti_image *splineControlPoint)
     /* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
     /* The actual gradient are now computed */
     /* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+    int x, y, pixelX, pixelY, id;
+    bool correctFolding;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(splineControlPoint, jacobianDeterminant, jacobianMatrices, desorient, \
+    controlPointPtrX, controlPointPtrY) \
+    private(x, y, id, jacIndex, pixelX, pixelY, logDet, xBasis, xFirst, yBasis, yFirst, \
+    basisValues, foldingCorrection, correctFolding, gradient, jacobianMatrix, norm)
+#endif
+    for(y=0;y<splineControlPoint->ny;y++){
+        for(x=0;x<splineControlPoint->nx;x++){
 
-    for(int y=0;y<splineControlPoint->ny;y++){
-        for(int x=0;x<splineControlPoint->nx;x++){
-
-            DTYPE foldingCorrection[2]={0., 0.};
-            bool correctFolding=false;
+            foldingCorrection[0]=foldingCorrection[1]=0;
+            correctFolding=false;
 
             // Loop over all the control points in the surrounding area
-            for(int pixelY=(y-1);pixelY<(y+2); pixelY++){
+            for(pixelY=(y-1);pixelY<(y+2); pixelY++){
                 if(pixelY>0 && pixelY<splineControlPoint->ny-1){
 
-                    for(int pixelX=(int)((x-1));pixelX<(int)((x+2)); pixelX++){
+                    for(pixelX=(int)((x-1));pixelX<(int)((x+2)); pixelX++){
                         if(pixelX>0 && pixelX<splineControlPoint->nx-1){
 
                             jacIndex = pixelY*splineControlPoint->nx+pixelX;
-                            DTYPE logDet=jacobianDeterminant[jacIndex];
+                            logDet=jacobianDeterminant[jacIndex];
 
                             if(logDet<=0.0){
 
@@ -2047,14 +2144,13 @@ double reg_bspline_correctFoldingApprox_2D(nifti_image *splineControlPoint)
             }// y
             // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way (NMI, BE, JAC)
             if(correctFolding){
-                DTYPE gradient[2];
                 gradient[0] = desorient.m[0][0]*foldingCorrection[0]
                         + desorient.m[0][1]*foldingCorrection[1];
                 gradient[1] = desorient.m[1][0]*foldingCorrection[0]
                         + desorient.m[1][1]*foldingCorrection[1];
-                DTYPE norm = 5.0 * sqrt(gradient[0]*gradient[0] + gradient[1]*gradient[1]);
+                norm = 5.0 * sqrt(gradient[0]*gradient[0] + gradient[1]*gradient[1]);
                 if(norm>0.0){
-                    const unsigned int id = y*splineControlPoint->nx+x;
+                    id = y*splineControlPoint->nx+x;
                     controlPointPtrX[id] += splineControlPoint->dx*gradient[0]/norm;
                     controlPointPtrY[id] += splineControlPoint->dy*gradient[1]/norm;
                 }
@@ -2865,12 +2961,21 @@ void reg_defField_getJacobianMap2D(nifti_image *deformationField,
     DTYPE first[2]={-1.0,1.0};
     DTYPE firstX, firstY, defX, defY;
 
-    unsigned int currentIndex=0;
-    for(int y=0;y<deformationField->ny;++y){
-        for(int x=0;x<deformationField->nx;++x){
+    int currentIndex, x, y, a, b, currentX, currentY, index;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(deformationField, deformationPtrX, deformationPtrY, reorient, \
+    jacobianDeterminant, jacobianMatrices, jacDetPtr, jacXXPtr, jacYYPtr, \
+    jacXYPtr, jacYXPtr, basis, first, voxel2real) \
+    private(x, y, a, b, currentIndex, index, currentX, currentY, jacobianMatrix, \
+    defX, defY, firstX, firstY)
+#endif
+    for(y=0;y<deformationField->ny;++y){
+        currentIndex=y*deformationField->nx;
+        for(x=0;x<deformationField->nx;++x){
 
-            if(x==deformationField->nx-1 ||
-                    y==deformationField->ny-1){
+            if( x==deformationField->nx-1 ||
+                y==deformationField->ny-1){
 
                 if(jacobianDeterminant!=NULL)
                     jacDetPtr[currentIndex] = 1.0;
@@ -2885,10 +2990,10 @@ void reg_defField_getJacobianMap2D(nifti_image *deformationField,
 
                 memset(&jacobianMatrix,0,sizeof(mat33));
 
-                for(int b=0;b<2;++b){
-                    int currentY=y+b;
-                    for(int a=0;a<2;++a){
-                        int currentX=x+a;
+                for(b=0;b<2;++b){
+                    currentY=y+b;
+                    for(a=0;a<2;++a){
+                        currentX=x+a;
 
                         firstX=first[a]*basis[b];
                         firstY=basis[a]*first[b];
@@ -2896,7 +3001,7 @@ void reg_defField_getJacobianMap2D(nifti_image *deformationField,
                         if(currentX>-1 && currentX<deformationField->nx &&
                                 currentY>-1 && currentY<deformationField->ny){
                             // Uses the deformation field if voxel is in its space
-                            unsigned int index=currentY*deformationField->nx+currentX;
+                            index=currentY*deformationField->nx+currentX;
                             defX = deformationPtrX[index];
                             defY = deformationPtrY[index];
                         }
@@ -2982,14 +3087,23 @@ void reg_defField_getJacobianMap3D(nifti_image *deformationField,
     DTYPE first[2]={-1.0,1.0};
     DTYPE firstX, firstY, firstZ, defX, defY, defZ;
 
-    unsigned int currentIndex=0;
-    for(int z=0;z<deformationField->nz;++z){
-        for(int y=0;y<deformationField->ny;++y){
-            for(int x=0;x<deformationField->nx;++x){
+    int currentIndex, x, y, z, a, b, c, currentX, currentY, currentZ, index;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(deformationField, jacobianDeterminant, jacobianMatrices, reorient, \
+    jacXXPtr, jacYYPtr, jacZZPtr, jacXYPtr, jacXZPtr, jacYXPtr, jacYZPtr, jacZXPtr, jacZYPtr, \
+    basis, first, jacDetPtr, deformationPtrX, deformationPtrY, deformationPtrZ) \
+    private(currentIndex, x, y, z, a, b, c, currentX, currentY, currentZ, index, \
+    jacobianMatrix, defX, defY, defZ, firstX, firstY, firstZ)
+#endif
+    for(z=0;z<deformationField->nz;++z){
+        currentIndex=z*deformationField->nx*deformationField->ny;
+        for(y=0;y<deformationField->ny;++y){
+            for(x=0;x<deformationField->nx;++x){
 
-                if(x==deformationField->nx-1 ||
-                        y==deformationField->ny-1 ||
-                        z==deformationField->nz-1 ){
+                if( x==deformationField->nx-1 ||
+                    y==deformationField->ny-1 ||
+                    z==deformationField->nz-1 ){
 
                     if(jacobianDeterminant!=NULL)
                         jacDetPtr[currentIndex] = 1.0;
@@ -3008,19 +3122,19 @@ void reg_defField_getJacobianMap3D(nifti_image *deformationField,
                 else{
                     memset(&jacobianMatrix,0,sizeof(mat33));
 
-                    for(int c=0;c<2;++c){
-                        int currentZ=z+c;
-                        for(int b=0;b<2;++b){
-                            int currentY=y+b;
-                            for(int a=0;a<2;++a){
-                                int currentX=x+a;
+                    for(c=0;c<2;++c){
+                        currentZ=z+c;
+                        for(b=0;b<2;++b){
+                            currentY=y+b;
+                            for(a=0;a<2;++a){
+                                currentX=x+a;
 
                                 firstX=first[a]*basis[b]*basis[c];
                                 firstY=basis[a]*first[b]*basis[c];
                                 firstZ=basis[a]*basis[b]*first[c];
 
                                 // Uses the deformation field if voxel is in its space
-                                unsigned int index=(currentZ*deformationField->ny+currentY)*deformationField->nx+currentX;
+                                index=(currentZ*deformationField->ny+currentY)*deformationField->nx+currentX;
                                 defX = deformationPtrX[index];
                                 defY = deformationPtrY[index];
                                 defZ = deformationPtrZ[index];
