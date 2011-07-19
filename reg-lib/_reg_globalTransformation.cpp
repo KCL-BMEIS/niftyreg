@@ -19,8 +19,8 @@
 /* *************************************************************** */
 template <class FieldTYPE>
 void reg_affine_positionField2D(mat44 *affineTransformation,
-                    nifti_image *targetImage,
-                    nifti_image *positionFieldImage)
+                                nifti_image *targetImage,
+                                nifti_image *positionFieldImage)
 {
     FieldTYPE *positionFieldPtr = static_cast<FieldTYPE *>(positionFieldImage->data);
 
@@ -54,81 +54,87 @@ void reg_affine_positionField2D(mat44 *affineTransformation,
 /* *************************************************************** */
 template <class FieldTYPE>
 void reg_affine_positionField3D(mat44 *affineTransformation,
-                    nifti_image *targetImage,
-                    nifti_image *positionFieldImage)
+                                nifti_image *targetImage,
+                                nifti_image *positionFieldImage)
 {
-    FieldTYPE *positionFieldPtr = static_cast<FieldTYPE *>(positionFieldImage->data);
-    
-    unsigned int positionFieldXIndex=0;
-    unsigned int positionFieldYIndex=targetImage->nx*targetImage->ny*targetImage->nz;
-    unsigned int positionFieldZIndex=2*targetImage->nx*targetImage->ny*targetImage->nz;
-    
+    int voxelNumber=positionFieldImage->nx*positionFieldImage->ny*positionFieldImage->nz;
+    FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionFieldImage->data);
+    FieldTYPE *positionFieldPtrY = &positionFieldPtrX[voxelNumber];
+    FieldTYPE *positionFieldPtrZ = &positionFieldPtrY[voxelNumber];
+
     mat44 *targetMatrix;
-    if(targetImage->sform_code>0){
-        targetMatrix=&(targetImage->sto_xyz);
+    if(positionFieldImage->sform_code>0){
+        targetMatrix=&(positionFieldImage->sto_xyz);
     }
-    else targetMatrix=&(targetImage->qto_xyz);
+    else targetMatrix=&(positionFieldImage->qto_xyz);
     
     mat44 voxelToRealDeformed = reg_mat44_mul(affineTransformation, targetMatrix);
 
-    float index[3];
-    float position[3];
-    for(int z=0; z<targetImage->nz; z++){
-        index[2]=(float)z;
-        for(int y=0; y<targetImage->ny; y++){
-            index[1]=(float)y;
-            for(int x=0; x<targetImage->nx; x++){
-                index[0]=(float)x;
+    float voxel[3], position[3];
+    int x, y, z, index;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(positionFieldImage, voxelToRealDeformed, positionFieldPtrX, positionFieldPtrY, positionFieldPtrZ) \
+    private(voxel, position, x, y, z, index)
+#endif
+    for(z=0; z<positionFieldImage->nz; z++){
+        index=z*positionFieldImage->nx*positionFieldImage->ny;
+        voxel[2]=(float)z;
+        for(y=0; y<positionFieldImage->ny; y++){
+            voxel[1]=(float)y;
+            for(x=0; x<positionFieldImage->nx; x++){
+                voxel[0]=(float)x;
 
-                reg_mat44_mul(&voxelToRealDeformed, index, position);
+                reg_mat44_mul(&voxelToRealDeformed, voxel, position);
 
                 /* the deformation field (real coordinates) is stored */
-                positionFieldPtr[positionFieldXIndex++] = position[0];
-                positionFieldPtr[positionFieldYIndex++] = position[1];
-                positionFieldPtr[positionFieldZIndex++] = position[2];
+                positionFieldPtrX[index] = position[0];
+                positionFieldPtrY[index] = position[1];
+                positionFieldPtrZ[index] = position[2];
+                index++;
             }
         }
     }
 }
 /* *************************************************************** */
 void reg_affine_positionField(mat44 *affineTransformation,
-								nifti_image *targetImage,
-								nifti_image *positionFieldImage)
+                              nifti_image *targetImage,
+                              nifti_image *positionFieldImage)
 {
     if(targetImage->nz==1){
         switch(positionFieldImage->datatype){
-            case NIFTI_TYPE_FLOAT32:
-                reg_affine_positionField2D<float>(affineTransformation, targetImage, positionFieldImage);
-                break;
-            case NIFTI_TYPE_FLOAT64:
-                reg_affine_positionField2D<double>(affineTransformation, targetImage, positionFieldImage);
-                break;
-            default:
-                fprintf(stderr,"[NiftyReg ERROR] reg_affine_positionField\tThe deformation field data type is not supported\n");
-                return;
+        case NIFTI_TYPE_FLOAT32:
+            reg_affine_positionField2D<float>(affineTransformation, targetImage, positionFieldImage);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            reg_affine_positionField2D<double>(affineTransformation, targetImage, positionFieldImage);
+            break;
+        default:
+            fprintf(stderr,"[NiftyReg ERROR] reg_affine_positionField\tThe deformation field data type is not supported\n");
+            return;
         }
     }
     else{
         switch(positionFieldImage->datatype){
-            case NIFTI_TYPE_FLOAT32:
-                reg_affine_positionField3D<float>(affineTransformation, targetImage, positionFieldImage);
-                break;
-            case NIFTI_TYPE_FLOAT64:
-                reg_affine_positionField3D<double>(affineTransformation, targetImage, positionFieldImage);
-                break;
-            default:
-                fprintf(stderr,"[NiftyReg ERROR] reg_affine_positionField\tThe deformation field data type is not supported\n");
-                return;
+        case NIFTI_TYPE_FLOAT32:
+            reg_affine_positionField3D<float>(affineTransformation, targetImage, positionFieldImage);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            reg_affine_positionField3D<double>(affineTransformation, targetImage, positionFieldImage);
+            break;
+        default:
+            fprintf(stderr,"[NiftyReg ERROR] reg_affine_positionField\tThe deformation field data type is not supported\n");
+            return;
         }
     }
 }
 /* *************************************************************** */
 /* *************************************************************** */
 void reg_tool_ReadAffineFile(	mat44 *mat,
-                                nifti_image* target,
-                                nifti_image* source,
-                                char *fileName,
-                                bool flirtFile)
+                             nifti_image* target,
+                             nifti_image* source,
+                             char *fileName,
+                             bool flirtFile)
 {
     std::ifstream affineFile;
     affineFile.open(fileName);
@@ -180,11 +186,11 @@ void reg_tool_ReadAffineFile(	mat44 *mat,
 
         for(int i=0;i<3;i++){
             absoluteTarget.m[i][i]=sqrt(targetMatrix->m[0][i]*targetMatrix->m[0][i]
-                        + targetMatrix->m[1][i]*targetMatrix->m[1][i]
-                        + targetMatrix->m[2][i]*targetMatrix->m[2][i]);
+                                        + targetMatrix->m[1][i]*targetMatrix->m[1][i]
+                                        + targetMatrix->m[2][i]*targetMatrix->m[2][i]);
             absoluteSource.m[i][i]=sqrt(sourceMatrix->m[0][i]*sourceMatrix->m[0][i]
-                        + sourceMatrix->m[1][i]*sourceMatrix->m[1][i]
-                        + sourceMatrix->m[2][i]*sourceMatrix->m[2][i]);
+                                        + sourceMatrix->m[1][i]*sourceMatrix->m[1][i]
+                                        + sourceMatrix->m[2][i]*sourceMatrix->m[2][i]);
         }
         absoluteTarget.m[3][3]=absoluteSource.m[3][3]=1.0;
 #ifndef NDEBUG
@@ -213,7 +219,7 @@ void reg_tool_ReadAffineFile(	mat44 *mat,
 /* *************************************************************** */
 /* *************************************************************** */
 void reg_tool_ReadAffineFile(	mat44 *mat,
-                                char *fileName)
+                             char *fileName)
 {
     std::ifstream affineFile;
     affineFile.open(fileName);

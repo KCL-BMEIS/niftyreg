@@ -68,7 +68,7 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->entropies[0]=this->entropies[1]=this->entropies[2]=this->entropies[3]=0.;
     this->currentIteration=0;
     this->usePyramid=true;
-//	this->threadNumber=1;
+    //	this->threadNumber=1;
 
     this->initialised=false;
     this->referencePyramid=NULL;
@@ -169,13 +169,13 @@ reg_f3d<T>::~reg_f3d()
         this->activeVoxelNumber=NULL;
     }
     if(this->referenceThresholdUp!=NULL){delete []this->referenceThresholdUp;this->referenceThresholdUp=NULL;}
-	if(this->referenceThresholdLow!=NULL){delete []this->referenceThresholdLow;this->referenceThresholdLow=NULL;}
-	if(this->referenceBinNumber!=NULL){delete []this->referenceBinNumber;this->referenceBinNumber=NULL;}
-	if(this->floatingThresholdUp!=NULL){delete []this->floatingThresholdUp;this->floatingThresholdUp=NULL;}
-	if(this->floatingThresholdLow!=NULL){delete []this->floatingThresholdLow;this->floatingThresholdLow=NULL;}
-	if(this->floatingBinNumber!=NULL){delete []this->floatingBinNumber;this->floatingBinNumber=NULL;}
+    if(this->referenceThresholdLow!=NULL){delete []this->referenceThresholdLow;this->referenceThresholdLow=NULL;}
+    if(this->referenceBinNumber!=NULL){delete []this->referenceBinNumber;this->referenceBinNumber=NULL;}
+    if(this->floatingThresholdUp!=NULL){delete []this->floatingThresholdUp;this->floatingThresholdUp=NULL;}
+    if(this->floatingThresholdLow!=NULL){delete []this->floatingThresholdLow;this->floatingThresholdLow=NULL;}
+    if(this->floatingBinNumber!=NULL){delete []this->floatingBinNumber;this->floatingBinNumber=NULL;}
     if(this->floatingBinNumber!=NULL){delete []this->activeVoxelNumber;this->activeVoxelNumber=NULL;}
-	if(this->maxSSD!=NULL){delete []this->maxSSD;this->maxSSD=NULL;}
+    if(this->maxSSD!=NULL){delete []this->maxSSD;this->maxSSD=NULL;}
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d destructor called\n");
 #endif
@@ -193,7 +193,7 @@ template<class T>
 int reg_f3d<T>::SetFloatingImage(nifti_image *f)
 {
     this->inputFloating = f;
-	return 0;	
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
@@ -221,14 +221,14 @@ template<class T>
 int reg_f3d<T>::SetControlPointGridImage(nifti_image *cp)
 {
     this->inputControlPointGrid = cp;
-	return 0;	
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 int reg_f3d<T>::SetReferenceMask(nifti_image *m)
 {
     this->maskImage = m;
-	return 0;	
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
@@ -265,63 +265,63 @@ template<class T>
 int reg_f3d<T>::ApproximateJacobianLog()
 {
     this->jacobianLogApproximation = true;
-	return 0;	
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 int reg_f3d<T>::DoNotApproximateJacobianLog()
 {
     this->jacobianLogApproximation = false;
-	return 0;	
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 int reg_f3d<T>::SetReferenceSmoothingSigma(T s)
 {
     this->referenceSmoothingSigma = s;
-	return 0;	
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 int reg_f3d<T>::SetFloatingSmoothingSigma(T s)
 {
     this->floatingSmoothingSigma = s;
-	return 0;	
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 int reg_f3d<T>::SetReferenceThresholdUp(unsigned int i, T t)
 {
     this->referenceThresholdUp[i] = t;
-	return 0;	
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 int reg_f3d<T>::SetReferenceThresholdLow(unsigned int i, T t)
 {
     this->referenceThresholdLow[i] = t;
-	return 0;	
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 int reg_f3d<T>::SetFloatingThresholdUp(unsigned int i, T t)
 {
     this->floatingThresholdUp[i] = t;
-	return 0;	
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 int reg_f3d<T>::SetFloatingThresholdLow(unsigned int i, T t)
 {
     this->floatingThresholdLow[i] = t;
-	return 0;	
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 int reg_f3d<T>::SetWarpedPaddingValue(T p)
 {
     this->warpedPaddingValue = p;
-	return 0;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
@@ -356,7 +356,7 @@ template<class T>
 int reg_f3d<T>::UseSSD()
 {
     this->useSSD = true;
-	return 0;	
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
@@ -384,14 +384,14 @@ template<class T>
 int reg_f3d<T>::PrintOutInformation()
 {
     this->verbose = true;
-	return 0;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 int reg_f3d<T>::DoNotPrintOutInformation()
 {
     this->verbose = false;
-	return 0;	
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 //template<class T>
@@ -438,13 +438,13 @@ int reg_f3d<T>::AllocateWarped()
     this->warped->dim[4]=this->warped->nt=this->currentFloating->nt;
     this->warped->pixdim[4]=this->warped->dt=1.0;
     this->warped->nvox = this->warped->nx *
-                        this->warped->ny *
-                        this->warped->nz *
-                        this->warped->nt;
+            this->warped->ny *
+            this->warped->nz *
+            this->warped->nt;
     this->warped->datatype = this->currentFloating->datatype;
     this->warped->nbyper = this->currentFloating->nbyper;
     this->warped->data = (void *)calloc(this->warped->nvox, this->warped->nbyper);
-	return 0;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -454,7 +454,7 @@ int reg_f3d<T>::ClearWarped()
         nifti_image_free(this->warped);
         this->warped=NULL;
     }
-	return 0;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -482,15 +482,15 @@ int reg_f3d<T>::AllocateDeformationField()
     this->deformationFieldImage->dim[7]=this->deformationFieldImage->nw=1;
     this->deformationFieldImage->pixdim[7]=this->deformationFieldImage->dw=1.0;
     this->deformationFieldImage->nvox=	this->deformationFieldImage->nx *
-                                        this->deformationFieldImage->ny *
-                                        this->deformationFieldImage->nz *
-                                        this->deformationFieldImage->nt *
-                                        this->deformationFieldImage->nu;
+            this->deformationFieldImage->ny *
+            this->deformationFieldImage->nz *
+            this->deformationFieldImage->nt *
+            this->deformationFieldImage->nu;
     this->deformationFieldImage->nbyper = this->controlPointGrid->nbyper;
     this->deformationFieldImage->datatype = this->controlPointGrid->datatype;
     this->deformationFieldImage->data = (void *)calloc(this->deformationFieldImage->nvox, this->deformationFieldImage->nbyper);
 
-	return 0;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -500,7 +500,7 @@ int reg_f3d<T>::ClearDeformationField()
         nifti_image_free(this->deformationFieldImage);
         this->deformationFieldImage=NULL;
     }
-	return 0;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -508,19 +508,19 @@ template <class T>
 int reg_f3d<T>::AllocateWarpedGradient()
 {
     if(this->deformationFieldImage==NULL){
-		return 1;
-	}
+        return 1;
+    }
     reg_f3d<T>::ClearWarpedGradient();
     this->warpedGradientImage = nifti_copy_nim_info(this->deformationFieldImage);
     this->warpedGradientImage->dim[0]=this->warpedGradientImage->ndim=5;
     this->warpedGradientImage->nt = this->warpedGradientImage->dim[4] = this->currentFloating->nt;
     this->warpedGradientImage->nvox =	this->warpedGradientImage->nx *
-                                        this->warpedGradientImage->ny *
-                                        this->warpedGradientImage->nz *
-                                        this->warpedGradientImage->nt *
-                                        this->warpedGradientImage->nu;
+            this->warpedGradientImage->ny *
+            this->warpedGradientImage->nz *
+            this->warpedGradientImage->nt *
+            this->warpedGradientImage->nu;
     this->warpedGradientImage->data = (void *)calloc(this->warpedGradientImage->nvox, this->warpedGradientImage->nbyper);
-	return 0;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -530,7 +530,7 @@ int reg_f3d<T>::ClearWarpedGradient()
         nifti_image_free(this->warpedGradientImage);
         this->warpedGradientImage=NULL;
     }
-	return 0;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -538,8 +538,8 @@ template <class T>
 int reg_f3d<T>::AllocateVoxelBasedMeasureGradient()
 {
     if(this->deformationFieldImage==NULL){
-		return 1;
-	}
+        return 1;
+    }
     reg_f3d<T>::ClearVoxelBasedMeasureGradient();
     this->voxelBasedMeasureGradientImage = nifti_copy_nim_info(this->deformationFieldImage);
     this->voxelBasedMeasureGradientImage->data = (void *)calloc(this->voxelBasedMeasureGradientImage->nvox,
@@ -554,7 +554,7 @@ int reg_f3d<T>::ClearVoxelBasedMeasureGradient()
         nifti_image_free(this->voxelBasedMeasureGradientImage);
         this->voxelBasedMeasureGradientImage=NULL;
     }
-	return 0;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -562,7 +562,7 @@ template <class T>
 int reg_f3d<T>::AllocateNodeBasedMeasureGradient()
 {
     if(this->controlPointGrid==NULL){
-		return 1;
+        return 1;
     }
     reg_f3d<T>::ClearNodeBasedMeasureGradient();
     this->nodeBasedMeasureGradientImage = nifti_copy_nim_info(this->controlPointGrid);
@@ -578,7 +578,7 @@ int reg_f3d<T>::ClearNodeBasedMeasureGradient()
         nifti_image_free(this->nodeBasedMeasureGradientImage);
         this->nodeBasedMeasureGradientImage=NULL;
     }
-	return 0;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -590,7 +590,7 @@ int reg_f3d<T>::AllocateConjugateGradientVariables()
     reg_f3d<T>::ClearConjugateGradientVariables();
     this->conjugateG = (T *)calloc(this->nodeBasedMeasureGradientImage->nvox, sizeof(T));
     this->conjugateH = (T *)calloc(this->nodeBasedMeasureGradientImage->nvox, sizeof(T));
-	return 0;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -604,7 +604,7 @@ int reg_f3d<T>::ClearConjugateGradientVariables()
         free(this->conjugateH);
         this->conjugateH=NULL;
     }
-	return 0;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -612,11 +612,11 @@ template <class T>
 int reg_f3d<T>::AllocateBestControlPointArray()
 {
     if(this->controlPointGrid==NULL)
-		return 1;
+        return 1;
     reg_f3d<T>::ClearBestControlPointArray();
     this->bestControlPointPosition = (T *)malloc(this->nodeBasedMeasureGradientImage->nvox*
-                                                this->nodeBasedMeasureGradientImage->nbyper);
-	return 0;
+                                                 this->nodeBasedMeasureGradientImage->nbyper);
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -626,7 +626,7 @@ int reg_f3d<T>::ClearBestControlPointArray()
         free(this->bestControlPointPosition);
         this->bestControlPointPosition=NULL;
     }
-	return 0;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -634,20 +634,20 @@ template <class T>
 int reg_f3d<T>::AllocateJointHistogram()
 {
     reg_f3d<T>::ClearJointHistogram();
-	unsigned int histogramSize[3]={1,1,1};
+    unsigned int histogramSize[3]={1,1,1};
     for(int i=0;i<this->currentReference->nt;i++){
         histogramSize[0] *= this->referenceBinNumber[i];
         histogramSize[1] *= this->referenceBinNumber[i];
-	}
+    }
     for(int i=0;i<this->currentFloating->nt;i++){
         histogramSize[0] *= this->floatingBinNumber[i];
         histogramSize[2] *= this->floatingBinNumber[i];
-	}
-	histogramSize[0] += histogramSize[1] + histogramSize[2];
+    }
+    histogramSize[0] += histogramSize[1] + histogramSize[2];
     this->totalBinNumber = histogramSize[0];
     this->probaJointHistogram = (double *)malloc(histogramSize[0]*sizeof(double));
     this->logJointHistogram = (double *)malloc(histogramSize[0]*sizeof(double));
-	return 0;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -661,7 +661,7 @@ int reg_f3d<T>::ClearJointHistogram()
         free(this->logJointHistogram);
         this->logJointHistogram=NULL;
     }
-	return 0;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -670,7 +670,7 @@ int reg_f3d<T>::SaveCurrentControlPoint()
 {
     memcpy(this->bestControlPointPosition, this->controlPointGrid->data,
            this->controlPointGrid->nvox*this->controlPointGrid->nbyper);
-	return 0;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -678,7 +678,7 @@ int reg_f3d<T>::RestoreCurrentControlPoint()
 {
     memcpy(this->controlPointGrid->data, this->bestControlPointPosition,
            this->controlPointGrid->nvox*this->controlPointGrid->nbyper);
-	return 0;
+    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -705,8 +705,8 @@ int reg_f3d<T>::CheckParameters_f3d()
     // CHECK THE MASK DIMENSION IF IT IS DEFINED
     if(this->maskImage!=NULL){
         if(this->inputReference->nx != maskImage->nx ||
-           this->inputReference->ny != maskImage->ny ||
-           this->inputReference->nz != maskImage->nz)
+                this->inputReference->ny != maskImage->ny ||
+                this->inputReference->nz != maskImage->nz)
             fprintf(stderr,"* The mask image has different x, y or z dimension than the reference image.\n");
     }
 
@@ -774,7 +774,7 @@ int reg_f3d<T>::Initisalise_f3d()
         // Floating image is copied and converted to type T
         this->floatingPyramid[this->levelToPerform-1]=nifti_copy_nim_info(this->inputFloating);
         this->floatingPyramid[this->levelToPerform-1]->data = (T *)calloc(this->floatingPyramid[this->levelToPerform-1]->nvox,
-                                                                           this->floatingPyramid[this->levelToPerform-1]->nbyper);
+                                                                          this->floatingPyramid[this->levelToPerform-1]->nbyper);
         memcpy(this->floatingPyramid[this->levelToPerform-1]->data, this->inputFloating->data,
                this->floatingPyramid[this->levelToPerform-1]->nvox* this->floatingPyramid[this->levelToPerform-1]->nbyper);
         reg_changeDatatype<T>(this->floatingPyramid[this->levelToPerform-1]);
@@ -811,8 +811,8 @@ int reg_f3d<T>::Initisalise_f3d()
         }
         // Create a target mask here with the same dimension
         this->activeVoxelNumber[this->levelToPerform-1]=this->referencePyramid[this->levelToPerform-1]->nx *
-                                                  this->referencePyramid[this->levelToPerform-1]->ny *
-                                                  this->referencePyramid[this->levelToPerform-1]->nz;
+                this->referencePyramid[this->levelToPerform-1]->ny *
+                this->referencePyramid[this->levelToPerform-1]->nz;
         this->maskPyramid[this->levelToPerform-1]=(int *)calloc(this->activeVoxelNumber[this->levelToPerform-1], sizeof(int));
         if(tempMaskImagePyramid[this->levelToPerform-1]!=NULL){
             reg_tool_binaryImage2int(tempMaskImagePyramid[this->levelToPerform-1],
@@ -825,16 +825,16 @@ int reg_f3d<T>::Initisalise_f3d()
             // Allocation of the reference image
             this->referencePyramid[l]=nifti_copy_nim_info(this->referencePyramid[l+1]);
             this->referencePyramid[l]->data = (T *)calloc(  this->referencePyramid[l]->nvox,
-                                                            this->referencePyramid[l]->nbyper);
+                                                          this->referencePyramid[l]->nbyper);
             memcpy( this->referencePyramid[l]->data, this->referencePyramid[l+1]->data,
-                    this->referencePyramid[l]->nvox* this->referencePyramid[l]->nbyper);
+                   this->referencePyramid[l]->nvox* this->referencePyramid[l]->nbyper);
 
             // Allocation of the floating image
             this->floatingPyramid[l]=nifti_copy_nim_info(this->floatingPyramid[l+1]);
             this->floatingPyramid[l]->data = (T *)calloc(   this->floatingPyramid[l]->nvox,
-                                                            this->floatingPyramid[l]->nbyper);
+                                                         this->floatingPyramid[l]->nbyper);
             memcpy( this->floatingPyramid[l]->data, this->floatingPyramid[l+1]->data,
-                    this->floatingPyramid[l]->nvox* this->floatingPyramid[l]->nbyper);
+                   this->floatingPyramid[l]->nvox* this->floatingPyramid[l]->nbyper);
 
             // Allocation of the mask image
             if(this->maskImage!=NULL){
@@ -864,8 +864,8 @@ int reg_f3d<T>::Initisalise_f3d()
 
             // Create a target mask here with the same dimension
             this->activeVoxelNumber[l]=this->referencePyramid[l]->nx *
-                                       this->referencePyramid[l]->ny *
-                                       this->referencePyramid[l]->nz;
+                    this->referencePyramid[l]->ny *
+                    this->referencePyramid[l]->nz;
             this->maskPyramid[l]=(int *)calloc(activeVoxelNumber[l], sizeof(int));
             if(tempMaskImagePyramid[l]!=NULL){
                 reg_tool_binaryImage2int(tempMaskImagePyramid[l],
@@ -891,18 +891,18 @@ int reg_f3d<T>::Initisalise_f3d()
         }
 
         if(this->useSSD){
-                this->maxSSD=new T[this->levelToPerform];
-                // THRESHOLD THE INPUT IMAGES IF REQUIRED
-                for(unsigned int l=0; l<this->levelToPerform; l++){
-                        reg_thresholdImage<T>(referencePyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
-                        reg_thresholdImage<T>(floatingPyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
-                        // The maximal difference image is extracted for normalisation
-                        T tempMaxSSD1 = (referencePyramid[l]->cal_min - floatingPyramid[l]->cal_max) *
-                                        (referencePyramid[l]->cal_min - floatingPyramid[l]->cal_max);
-                        T tempMaxSSD2 = (referencePyramid[l]->cal_max - floatingPyramid[l]->cal_min) *
-                                        (referencePyramid[l]->cal_max - floatingPyramid[l]->cal_min);
-                        this->maxSSD[l]=tempMaxSSD1>tempMaxSSD2?tempMaxSSD1:tempMaxSSD2;
-                }
+            this->maxSSD=new T[this->levelToPerform];
+            // THRESHOLD THE INPUT IMAGES IF REQUIRED
+            for(unsigned int l=0; l<this->levelToPerform; l++){
+                reg_thresholdImage<T>(referencePyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
+                reg_thresholdImage<T>(floatingPyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
+                // The maximal difference image is extracted for normalisation
+                T tempMaxSSD1 = (referencePyramid[l]->cal_min - floatingPyramid[l]->cal_max) *
+                        (referencePyramid[l]->cal_min - floatingPyramid[l]->cal_max);
+                T tempMaxSSD2 = (referencePyramid[l]->cal_max - floatingPyramid[l]->cal_min) *
+                        (referencePyramid[l]->cal_max - floatingPyramid[l]->cal_min);
+                this->maxSSD[l]=tempMaxSSD1>tempMaxSSD2?tempMaxSSD1:tempMaxSSD2;
+            }
         }
         else{
             // RESCALE THE INPUT IMAGE INTENSITY
@@ -931,7 +931,7 @@ int reg_f3d<T>::Initisalise_f3d()
                                      this->referenceThresholdLow, this->referenceThresholdUp);
                 reg_intensityRescale(this->floatingPyramid[l],floatingRescalingArrayDown,floatingRescalingArrayUp,
                                      this->floatingThresholdLow, this->floatingThresholdUp);
-           }
+            }
         }
     }
     else{ // NO PYRAMID
@@ -965,8 +965,8 @@ int reg_f3d<T>::Initisalise_f3d()
 
         // Create a target mask here with the same dimension
         this->activeVoxelNumber[0]=this->referencePyramid[0]->nx *
-                                   this->referencePyramid[0]->ny *
-                                   this->referencePyramid[0]->nz;
+                this->referencePyramid[0]->ny *
+                this->referencePyramid[0]->nz;
         this->maskPyramid[0]=(int *)calloc(this->activeVoxelNumber[0], sizeof(int));
         if(tempMaskImagePyramid[0]!=NULL){
             reg_tool_binaryImage2int(tempMaskImagePyramid[0],
@@ -992,9 +992,9 @@ int reg_f3d<T>::Initisalise_f3d()
             reg_thresholdImage<T>(floatingPyramid[0],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
             // The maximal difference image is extracted for normalisation
             T tempMaxSSD1 = (referencePyramid[0]->cal_min - floatingPyramid[0]->cal_max) *
-                            (referencePyramid[0]->cal_min - floatingPyramid[0]->cal_max);
+                    (referencePyramid[0]->cal_min - floatingPyramid[0]->cal_max);
             T tempMaxSSD2 = (referencePyramid[0]->cal_max - floatingPyramid[0]->cal_min) *
-                            (referencePyramid[0]->cal_max - floatingPyramid[0]->cal_min);
+                    (referencePyramid[0]->cal_max - floatingPyramid[0]->cal_min);
             this->maxSSD[0]=tempMaxSSD1>tempMaxSSD2?tempMaxSSD1:tempMaxSSD2;
         }
         else{
@@ -1023,7 +1023,7 @@ int reg_f3d<T>::Initisalise_f3d()
                                  this->referenceThresholdLow, this->referenceThresholdUp);
             reg_intensityRescale(this->floatingPyramid[0],floatingRescalingArrayDown,floatingRescalingArrayUp,
                                  this->floatingThresholdLow, this->floatingThresholdUp);
-       }
+        }
     } // END NO PYRAMID
 
     // DETERMINE THE GRID SPACING AND CREATE THE GRID
@@ -1087,7 +1087,7 @@ int reg_f3d<T>::Initisalise_f3d()
         this->controlPointGrid->qfac=qfac;
 
         this->controlPointGrid->qto_xyz = nifti_quatern_to_mat44(qb, qc, qd, qx, qy, qz,
-            this->controlPointGrid->dx, this->controlPointGrid->dy, this->controlPointGrid->dz, qfac);
+                                                                 this->controlPointGrid->dx, this->controlPointGrid->dy, this->controlPointGrid->dz, qfac);
 
         // Origin is shifted from 1 control point in the qform
         float originIndex[3];
@@ -1109,7 +1109,7 @@ int reg_f3d<T>::Initisalise_f3d()
                                    &qy, &qz, &dx, &dy, &dz, &qfac);
 
             this->controlPointGrid->sto_xyz = nifti_quatern_to_mat44(qb, qc, qd, qx, qy, qz,
-                this->controlPointGrid->dx, this->controlPointGrid->dy, this->controlPointGrid->dz, qfac);
+                                                                     this->controlPointGrid->dx, this->controlPointGrid->dy, this->controlPointGrid->dz, qfac);
 
             // Origin is shifted from 1 control point in the sform
             originIndex[0] = -1.0f;
@@ -1152,9 +1152,9 @@ int reg_f3d<T>::Initisalise_f3d()
         // The control point grid image is initialised with the provided grid
         this->controlPointGrid = nifti_copy_nim_info(this->inputControlPointGrid);
         this->controlPointGrid->data = (void *)malloc( this->controlPointGrid->nvox *
-                                                    this->controlPointGrid->nbyper);
+                                                      this->controlPointGrid->nbyper);
         memcpy( this->controlPointGrid->data, this->inputControlPointGrid->data,
-                this->controlPointGrid->nvox * this->controlPointGrid->nbyper);
+               this->controlPointGrid->nvox * this->controlPointGrid->nbyper);
         // The final grid spacing is computed
         this->spacing[0] = this->controlPointGrid->dx / powf(2.0f, (float)(this->levelToPerform-1));
         this->spacing[1] = this->controlPointGrid->dy / powf(2.0f, (float)(this->levelToPerform-1));
@@ -1296,7 +1296,7 @@ double reg_f3d<T>::ComputeSimilarityMeasure()
                          this->logJointHistogram,
                          this->entropies,
                          this->currentMask);
-    measure = (this->entropies[0]+this->entropies[1])/this->entropies[2];
+        measure = (this->entropies[0]+this->entropies[1])/this->entropies[2];
     }
     return double(this->similarityWeight) * measure;
 }
@@ -1332,7 +1332,7 @@ double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type)
                                                this->jacobianLogApproximation);
         }
 #ifndef NDEBUG
-                    printf("[NiftyReg DEBUG] Folding correction\n");
+        printf("[NiftyReg DEBUG] Folding correction\n");
 #endif
         it++;
     }
@@ -1369,8 +1369,8 @@ double reg_f3d<T>::ComputeLinearEnergyPenaltyTerm()
     double values[3];
     reg_bspline_linearEnergy(this->controlPointGrid, values);
     return this->linearEnergyWeight0*values[0] +
-           this->linearEnergyWeight1*values[1] +
-           this->linearEnergyWeight2*values[2];
+            this->linearEnergyWeight1*values[1] +
+            this->linearEnergyWeight2*values[2];
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1472,14 +1472,14 @@ int reg_f3d<T>::GetSimilarityMeasureGradient()
         for(i=0; i<controlPointNumber; i++){
 
             newGradientValueX = gradientValuesX[i] * floatingMatrix_xyz->m[0][0] +
-                                gradientValuesY[i] * floatingMatrix_xyz->m[0][1] +
-                                gradientValuesZ[i] * floatingMatrix_xyz->m[0][2];
+                    gradientValuesY[i] * floatingMatrix_xyz->m[0][1] +
+                    gradientValuesZ[i] * floatingMatrix_xyz->m[0][2];
             newGradientValueY = gradientValuesX[i] * floatingMatrix_xyz->m[1][0] +
-                                gradientValuesY[i] * floatingMatrix_xyz->m[1][1] +
-                                gradientValuesZ[i] * floatingMatrix_xyz->m[1][2];
+                    gradientValuesY[i] * floatingMatrix_xyz->m[1][1] +
+                    gradientValuesZ[i] * floatingMatrix_xyz->m[1][2];
             newGradientValueZ = gradientValuesX[i] * floatingMatrix_xyz->m[2][0] +
-                                gradientValuesY[i] * floatingMatrix_xyz->m[2][1] +
-                                gradientValuesZ[i] * floatingMatrix_xyz->m[2][2];
+                    gradientValuesY[i] * floatingMatrix_xyz->m[2][1] +
+                    gradientValuesZ[i] * floatingMatrix_xyz->m[2][2];
             gradientValuesX[i] = newGradientValueX;
             gradientValuesY[i] = newGradientValueY;
             gradientValuesZ[i] = newGradientValueZ;
@@ -1530,14 +1530,14 @@ template <class T>
 int reg_f3d<T>::ComputeConjugateGradient()
 {
     int nodeNumber = this->nodeBasedMeasureGradientImage->nx *
-                     this->nodeBasedMeasureGradientImage->ny *
-                     this->nodeBasedMeasureGradientImage->nz;
+            this->nodeBasedMeasureGradientImage->ny *
+            this->nodeBasedMeasureGradientImage->nz;
     int i;
     if(this->currentIteration==1){
 #ifndef NDEBUG
-            printf("[NiftyReg DEBUG] Conjugate gradient initialisation\n");
+        printf("[NiftyReg DEBUG] Conjugate gradient initialisation\n");
 #endif
-    // first conjugate gradient iteration
+        // first conjugate gradient iteration
         if(this->currentReference->nz==1){
             T *conjGPtrX = &conjugateG[0];
             T *conjGPtrY = &conjGPtrX[nodeNumber];
@@ -1580,7 +1580,7 @@ int reg_f3d<T>::ComputeConjugateGradient()
     }
     else{
 #ifndef NDEBUG
-            printf("[NiftyReg DEBUG] Conjugate gradient update\n");
+        printf("[NiftyReg DEBUG] Conjugate gradient update\n");
 #endif
         double dgg=0.0, gg=0.0;
         if(this->currentReference->nz==1){
@@ -1775,33 +1775,33 @@ int reg_f3d<T>::Run_f3d()
         }
 
 #ifdef NDEBUG
-    if(this->verbose){
+        if(this->verbose){
 #endif
-        printf("[%s] **************************************************\n", this->executableName);
-        printf("[%s] Current level: %i / %i\n", this->executableName, level+1, this->levelNumber);
-        printf("[%s] Current reference image\n", this->executableName);
-        printf("[%s] \t* image dimension: %i x %i x %i x %i\n", this->executableName,
-               this->currentReference->nx, this->currentReference->ny,
-               this->currentReference->nz,this->currentReference->nt);
-        printf("[%s] \t* image spacing: %g x %g x %g mm\n", this->executableName,
-               this->currentReference->dx, this->currentReference->dy,
-               this->currentReference->dz);
-        printf("[%s] Current floating image\n", this->executableName);
-        printf("[%s] \t* image dimension: %i x %i x %i x %i\n", this->executableName,
-               this->currentFloating->nx, this->currentFloating->ny,
-               this->currentFloating->nz,this->currentFloating->nt);
-        printf("[%s] \t* image spacing: %g x %g x %g mm\n", this->executableName,
-               this->currentFloating->dx, this->currentFloating->dy,
-               this->currentFloating->dz);
-        printf("[%s] Current control point image\n", this->executableName);
-        printf("[%s] \t* image dimension: %i x %i x %i\n", this->executableName,
-               this->controlPointGrid->nx, this->controlPointGrid->ny,
-               this->controlPointGrid->nz);
-        printf("[%s] \t* image spacing: %g x %g x %g mm\n", this->executableName,
-               this->controlPointGrid->dx, this->controlPointGrid->dy,
-               this->controlPointGrid->dz);
+            printf("[%s] **************************************************\n", this->executableName);
+            printf("[%s] Current level: %i / %i\n", this->executableName, level+1, this->levelNumber);
+            printf("[%s] Current reference image\n", this->executableName);
+            printf("[%s] \t* image dimension: %i x %i x %i x %i\n", this->executableName,
+                   this->currentReference->nx, this->currentReference->ny,
+                   this->currentReference->nz,this->currentReference->nt);
+            printf("[%s] \t* image spacing: %g x %g x %g mm\n", this->executableName,
+                   this->currentReference->dx, this->currentReference->dy,
+                   this->currentReference->dz);
+            printf("[%s] Current floating image\n", this->executableName);
+            printf("[%s] \t* image dimension: %i x %i x %i x %i\n", this->executableName,
+                   this->currentFloating->nx, this->currentFloating->ny,
+                   this->currentFloating->nz,this->currentFloating->nt);
+            printf("[%s] \t* image spacing: %g x %g x %g mm\n", this->executableName,
+                   this->currentFloating->dx, this->currentFloating->dy,
+                   this->currentFloating->dz);
+            printf("[%s] Current control point image\n", this->executableName);
+            printf("[%s] \t* image dimension: %i x %i x %i\n", this->executableName,
+                   this->controlPointGrid->nx, this->controlPointGrid->ny,
+                   this->controlPointGrid->nz);
+            printf("[%s] \t* image spacing: %g x %g x %g mm\n", this->executableName,
+                   this->controlPointGrid->dx, this->controlPointGrid->dy,
+                   this->controlPointGrid->dz);
 #ifdef NDEBUG
-    }
+        }
 #endif
 
 #ifndef NDEBUG
@@ -1913,7 +1913,7 @@ int reg_f3d<T>::Run_f3d()
             while(currentSize>smallestSize && lineIteration<12){
                 T currentLength = -currentSize/maxLength;
 #ifndef NDEBUG
-            printf("[NiftyReg DEBUG] Current added max step: %g\n", currentSize);
+                printf("[NiftyReg DEBUG] Current added max step: %g\n", currentSize);
 #endif
                 this->UpdateControlPointPosition(currentLength);
 
@@ -2012,12 +2012,12 @@ int reg_f3d<T>::Run_f3d()
         this->ClearCurrentInputImage();
 
 #ifdef NDEBUG
-    if(this->verbose){
+        if(this->verbose){
 #endif
-        printf("[%s] Current registration level done\n", this->executableName);
-        printf("[%s] --------------------------------------------------\n", this->executableName);
+            printf("[%s] Current registration level done\n", this->executableName);
+            printf("[%s] --------------------------------------------------\n", this->executableName);
 #ifdef NDEBUG
-    }
+        }
 #endif
 
     } // level this->levelToPerform
@@ -2034,8 +2034,8 @@ nifti_image *reg_f3d<T>::GetWarpedImage()
 {
     // The initial images are used
     if(this->inputReference==NULL ||
-       this->inputFloating==NULL ||
-       this->controlPointGrid==NULL){
+            this->inputFloating==NULL ||
+            this->controlPointGrid==NULL){
         fprintf(stderr,"[NiftyReg ERROR] reg_f3d::GetWarpedImage()\n");
         fprintf(stderr," * The reference, floating and control point grid images have to be defined\n");
     }
