@@ -22,22 +22,26 @@ double reg_getSSD1(nifti_image *targetImage,
     DTYPE *targetPtr=static_cast<DTYPE *>(targetImage->data);
     DTYPE *resultPtr=static_cast<DTYPE *>(resultImage->data);
 
-    int *maskPtr = &mask[0];
-
-    double SSD=0.0;
-    double n=0.0;
-    for(unsigned int i=0; i<targetImage->nvox;i++){
-        if(*maskPtr++>-1){
-            double targetValue = (double)*targetPtr;
-            double resultValue = (double)*resultPtr;
+    int i;
+    double SSD=0.0, n=0.0;
+    double targetValue, resultValue, diff;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(targetImage, targetPtr, resultPtr, mask) \
+    private(i, targetValue, resultValue, diff) \
+    reduction(+:SSD) \
+    reduction(+:n)
+#endif
+    for(i=0; i<(int)targetImage->nvox;i++){
+        if(mask[i]>-1){
+            targetValue = (double)targetPtr[i];
+            resultValue = (double)resultPtr[i];
             if(targetValue==targetValue && resultValue==resultValue){
-                double diff = (targetValue-resultValue);
+                diff = (targetValue-resultValue);
                 SSD += diff * diff;
                 n += 1.0;
             }
         }
-        targetPtr++;
-        resultPtr++;
     }
 
     return SSD/n;
@@ -91,34 +95,32 @@ void reg_getVoxelBasedSSDGradient1(nifti_image *targetImage,
     DTYPE *ssdGradPtrZ = NULL;
     if(targetImage->nz>1) ssdGradPtrZ = &ssdGradPtrY[ssdGradientImage->nx*ssdGradientImage->ny*ssdGradientImage->nz];
 
-    int *maskPtr = &mask[0];
 
-    for(unsigned int i=0; i<targetImage->nvox;i++){
-        if(*maskPtr++>-1){
-            double targetValue = *targetPtr;
-            double resultValue = *resultPtr;
-            DTYPE gradX=0;
-            DTYPE gradY=0;
-            DTYPE gradZ=0;
+    DTYPE gradX, gradY, gradZ;
+    double targetValue, resultValue, common;
+    int i;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(targetImage, targetPtr, resultPtr, maxSD, mask, \
+    spatialGradPtrX, spatialGradPtrY, spatialGradPtrZ, ssdGradPtrX, ssdGradPtrY, ssdGradPtrZ) \
+    private(i, targetValue, resultValue, common, gradX, gradY, gradZ)
+#endif
+    for(i=0; i<(int)targetImage->nvox;i++){
+        if(mask[i]>-1){
+            targetValue = targetPtr[i];
+            resultValue = resultPtr[i];
+            gradX=0;
+            gradY=0;
+            gradZ=0;
             if(targetValue==targetValue && resultValue==resultValue){
-                double common = - 2.0 * (targetValue - resultValue);
-                gradX = (DTYPE)(common * *spatialGradPtrX/maxSD);
-                gradY = (DTYPE)(common * *spatialGradPtrY/maxSD);
-                if(targetImage->nz>1) gradZ = (DTYPE)(common * *spatialGradPtrZ/maxSD);
+                common = - 2.0 * (targetValue - resultValue);
+                gradX = (DTYPE)(common * spatialGradPtrX[i]/maxSD);
+                gradY = (DTYPE)(common * spatialGradPtrY[i]/maxSD);
+                if(targetImage->nz>1) gradZ = (DTYPE)(common * spatialGradPtrZ[i]/maxSD);
             }
-            *ssdGradPtrX = gradX;
-            *ssdGradPtrY = gradY;
-            if(targetImage->nz>1) *ssdGradPtrZ = gradZ;
-        }
-        targetPtr++;
-        resultPtr++;
-        ssdGradPtrX++;
-        ssdGradPtrY++;
-        spatialGradPtrX++;
-        spatialGradPtrY++;
-        if(targetImage->nz>1){
-            ssdGradPtrZ++;
-            spatialGradPtrZ++;
+            ssdGradPtrX[i] = gradX;
+            ssdGradPtrY[i] = gradY;
+            if(targetImage->nz>1) ssdGradPtrZ[i] = gradZ;
         }
     }
 }
