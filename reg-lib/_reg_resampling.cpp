@@ -635,7 +635,7 @@ void NearestNeighborResampleSourceImage2D(nifti_image *sourceImage,
                 world[0]=(FieldTYPE) deformationFieldPtrX[index];
                 world[1]=(FieldTYPE) deformationFieldPtrY[index];
                 /* real -> voxel; source space */
-                position[0] = world[0]*sourceIJKMatrix->m[0][0] + world[2]*sourceIJKMatrix->m[0][1] +
+                position[0] = world[0]*sourceIJKMatrix->m[0][0] + world[1]*sourceIJKMatrix->m[0][1] +
                               sourceIJKMatrix->m[0][3];
                 position[1] = world[0]*sourceIJKMatrix->m[1][0] + world[1]*sourceIJKMatrix->m[1][1] +
                               sourceIJKMatrix->m[1][3];
