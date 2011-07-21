@@ -58,11 +58,20 @@ void CubicSplineResampleSourceImage(nifti_image *sourceImage,
     // The spline decomposition assumes a background set to 0 the bgValue variable is thus not use here
 
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
-
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
+    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+    int targetVoxelNumber = resultImage->nx*resultImage->ny*resultImage->nz;
+    int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
+    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
+    FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[targetVoxelNumber];
 
-    unsigned int targetVoxelNumber = resultImage->nx*resultImage->ny*resultImage->nz;
-    unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
+
+    int *maskPtr = &mask[0];
+
+    mat44 *sourceIJKMatrix;
+    if(sourceImage->sform_code>0)
+        sourceIJKMatrix=&(sourceImage->sto_ijk);
+    else sourceIJKMatrix=&(sourceImage->qto_ijk);
 
     // Iteration over the different volume along the 4th axis
     for(int t=0; t<resultImage->nt;t++){
@@ -70,42 +79,32 @@ void CubicSplineResampleSourceImage(nifti_image *sourceImage,
         printf("[NiftyReg DEBUG] 3D Cubic spline resampling of volume number %i\n",t);
 #endif
 
-        FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-        FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
-        FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[targetVoxelNumber];
-
         SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
-        SourceTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
+        SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-        int *maskPtr = &mask[0];
+        FieldTYPE xBasis[4], yBasis[4], zBasis[4], relative;
+        int a, b, c, Y, Z, previous[3], index;
+        SourceTYPE *zPointer, *yzPointer, *xyzPointer;
+        FieldTYPE xTempNewValue, yTempNewValue, intensity, world[3], position[3];
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        private(index, intensity, world, position, previous, xBasis, yBasis, zBasis, relative, \
+                a, b, c, Y, Z, zPointer, yzPointer, xyzPointer, xTempNewValue, yTempNewValue) \
+        shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
+               deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
+               sourceIJKMatrix, sourceImage)
+#endif // _OPENMP
+        for(index=0;index<targetVoxelNumber; index++){
 
-        FieldTYPE position[3];
-        int previous[3];
-        FieldTYPE xBasis[4];
-        FieldTYPE yBasis[4];
-        FieldTYPE zBasis[4];
-        FieldTYPE relative;
+            intensity=(FieldTYPE)(0.0);
 
-        mat44 sourceIJKMatrix;
-        if(sourceImage->sform_code>0)
-            sourceIJKMatrix=sourceImage->sto_ijk;
-        else sourceIJKMatrix=sourceImage->qto_ijk;
+            if((maskPtr[index])>-1){
+                world[0]=(FieldTYPE) deformationFieldPtrX[index];
+                world[1]=(FieldTYPE) deformationFieldPtrY[index];
+                world[2]=(FieldTYPE) deformationFieldPtrZ[index];
 
-        for(unsigned int index=0;index<targetVoxelNumber; index++){
-
-            FieldTYPE intensity=(FieldTYPE)(0.0);
-
-            if((*maskPtr++)>-1){
-                FieldTYPE worldX=(FieldTYPE) *deformationFieldPtrX;
-                FieldTYPE worldY=(FieldTYPE) *deformationFieldPtrY;
-                FieldTYPE worldZ=(FieldTYPE) *deformationFieldPtrZ;
                 /* real -> voxel; source space */
-                position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
-                    worldZ*sourceIJKMatrix.m[0][2] +  sourceIJKMatrix.m[0][3];
-                position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
-                    worldZ*sourceIJKMatrix.m[1][2] +  sourceIJKMatrix.m[1][3];
-                position[2] = worldX*sourceIJKMatrix.m[2][0] + worldY*sourceIJKMatrix.m[2][1] +
-                    worldZ*sourceIJKMatrix.m[2][2] +  sourceIJKMatrix.m[2][3];
+                reg_mat44_mul(sourceIJKMatrix, world, position);
 
                 previous[0] = static_cast<int>(floor(position[0]));
                 previous[1] = static_cast<int>(floor(position[1]));
@@ -123,21 +122,20 @@ void CubicSplineResampleSourceImage(nifti_image *sourceImage,
 
                 --previous[0];--previous[1];--previous[2];
 
-                for(short c=0; c<4; c++){
-                    short Z= previous[2]+c;
+                for(c=0; c<4; c++){
+                    Z= previous[2]+c;
                     if(-1<Z && Z<sourceImage->nz){
-                        SourceTYPE *zPointer = &sourceCoefficients[Z*sourceImage->nx*sourceImage->ny];
-                        FieldTYPE yTempNewValue=0.0;
-                        for(short b=0; b<4; b++){
-                            short Y= previous[1]+b;
-                            SourceTYPE *yzPointer = &zPointer[Y*sourceImage->nx];
+                        zPointer = &sourceIntensity[Z*sourceImage->nx*sourceImage->ny];
+                        yTempNewValue=0.0;
+                        for(b=0; b<4; b++){
+                            Y= previous[1]+b;
+                            yzPointer = &zPointer[Y*sourceImage->nx];
                             if(-1<Y && Y<sourceImage->ny){
-                                SourceTYPE *xyzPointer = &yzPointer[previous[0]];
-                                FieldTYPE xTempNewValue=0.0;
-                                for(short a=0; a<4; a++){
+                                xyzPointer = &yzPointer[previous[0]];
+                                xTempNewValue=0.0;
+                                for(a=0; a<4; a++){
                                     if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
-                                        const FieldTYPE coeff = *xyzPointer;
-                                        xTempNewValue +=  coeff * xBasis[a];
+                                        xTempNewValue +=  (FieldTYPE)*xyzPointer * xBasis[a];
                                     }
                                     xyzPointer++;
                                 }
@@ -151,28 +149,24 @@ void CubicSplineResampleSourceImage(nifti_image *sourceImage,
 
             switch(sourceImage->datatype){
                 case NIFTI_TYPE_FLOAT32:
-                    (*resultIntensity)=(SourceTYPE)intensity;
+                    resultIntensity[index]=(SourceTYPE)intensity;
                     break;
                 case NIFTI_TYPE_FLOAT64:
-                    (*resultIntensity)=(SourceTYPE)intensity;
+                    resultIntensity[index]=(SourceTYPE)intensity;
                     break;
                 case NIFTI_TYPE_UINT8:
-                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
                     break;
                 case NIFTI_TYPE_UINT16:
-                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
                     break;
                 case NIFTI_TYPE_UINT32:
-                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
                     break;
                 default:
-                    (*resultIntensity)=(SourceTYPE)round(intensity);
+                    resultIntensity[index]=(SourceTYPE)round(intensity);
                     break;
             }
-            resultIntensity++;
-            deformationFieldPtrX++;
-            deformationFieldPtrY++;
-            deformationFieldPtrZ++;
         }
     }
 }
@@ -188,47 +182,52 @@ void CubicSplineResampleSourceImage2D(  nifti_image *sourceImage,
 
     // The resampling scheme is applied along each time
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
-
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
-    unsigned int targetVoxelNumber = resultImage->nx*resultImage->ny;
-    unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny;
+    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+    int targetVoxelNumber = resultImage->nx*resultImage->ny;
+    int sourceVoxelNumber = sourceImage->nx*sourceImage->ny;
+    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
+
+    int *maskPtr = &mask[0];
+
+    mat44 sourceIJKMatrix;
+    if(sourceImage->sform_code>0)
+        sourceIJKMatrix=sourceImage->sto_ijk;
+    else sourceIJKMatrix=sourceImage->qto_ijk;
 
     for(int t=0; t<resultImage->nt;t++){
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] 2D Cubic spline resampling of volume number %i\n",t);
 #endif
 
-        FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-        FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
-
         SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
-        SourceTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
+        SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-        int *maskPtr = &mask[0];
 
-        FieldTYPE position[2];
-        int previous[2];
-        FieldTYPE xBasis[4];
-        FieldTYPE yBasis[4];
-        FieldTYPE relative;
+        FieldTYPE xBasis[4], yBasis[4], relative;
+        int a, b, Y, previous[2], index;
+        SourceTYPE *yPointer, *xyPointer;
+        FieldTYPE xTempNewValue, intensity, world[2], position[2];
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        private(index, intensity, world, position, previous, xBasis, yBasis, relative, \
+                a, b, Y, yPointer, xyPointer, xTempNewValue) \
+        shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
+               deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
+               sourceIJKMatrix, sourceImage)
+#endif // _OPENMP
+        for(index=0;index<targetVoxelNumber; index++){
 
-        mat44 sourceIJKMatrix;
-        if(sourceImage->sform_code>0)
-            sourceIJKMatrix=sourceImage->sto_ijk;
-        else sourceIJKMatrix=sourceImage->qto_ijk;
+            intensity=0.0;
 
-        for(unsigned int index=0;index<targetVoxelNumber; index++){
+            if((maskPtr[index])>-1){
 
-            FieldTYPE intensity=0.0;
-
-            if((*maskPtr++)>-1){
-
-                FieldTYPE worldX=(FieldTYPE) *deformationFieldPtrX;
-                FieldTYPE worldY=(FieldTYPE) *deformationFieldPtrY;
+                world[0]=(FieldTYPE) deformationFieldPtrX[index];
+                world[1]=(FieldTYPE) deformationFieldPtrY[index];
                 /* real -> voxel; source space */
-                position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
+                position[0] = world[0]*sourceIJKMatrix.m[0][0] + world[1]*sourceIJKMatrix.m[0][1] +
                 sourceIJKMatrix.m[0][3];
-                position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
+                position[1] = world[0]*sourceIJKMatrix.m[1][0] + world[1]*sourceIJKMatrix.m[1][1] +
                 sourceIJKMatrix.m[1][3];
 
                 previous[0] = (int)floor(position[0]);
@@ -243,16 +242,15 @@ void CubicSplineResampleSourceImage2D(  nifti_image *sourceImage,
 
                 previous[0]--;previous[1]--;
 
-                for(short b=0; b<4; b++){
-                    short Y= previous[1]+b;
-                    SourceTYPE *yPointer = &sourceCoefficients[Y*sourceImage->nx];
+                for(b=0; b<4; b++){
+                    Y= previous[1]+b;
+                    yPointer = &sourceIntensity[Y*sourceImage->nx];
                     if(-1<Y && Y<sourceImage->ny){
-                        SourceTYPE *xyPointer = &yPointer[previous[0]];
-                        FieldTYPE xTempNewValue=0.0;
-                        for(short a=0; a<4; a++){
+                        xyPointer = &yPointer[previous[0]];
+                        xTempNewValue=0.0;
+                        for(a=0; a<4; a++){
                             if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
-                                const FieldTYPE coeff = *xyPointer;
-                                xTempNewValue +=  coeff * xBasis[a];
+                                xTempNewValue +=  (FieldTYPE)*xyPointer * xBasis[a];
                             }
                             xyPointer++;
                         }
@@ -263,27 +261,24 @@ void CubicSplineResampleSourceImage2D(  nifti_image *sourceImage,
 
             switch(sourceImage->datatype){
                 case NIFTI_TYPE_FLOAT32:
-                    (*resultIntensity)=(SourceTYPE)intensity;
+                    resultIntensity[index]=(SourceTYPE)intensity;
                     break;
                 case NIFTI_TYPE_FLOAT64:
-                    (*resultIntensity)=(SourceTYPE)intensity;
+                    resultIntensity[index]=(SourceTYPE)intensity;
                     break;
                 case NIFTI_TYPE_UINT8:
-                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
                     break;
                 case NIFTI_TYPE_UINT16:
-                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
                     break;
                 case NIFTI_TYPE_UINT32:
-                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
                     break;
                 default:
-                    (*resultIntensity)=(SourceTYPE)round(intensity);
+                    resultIntensity[index]=(SourceTYPE)round(intensity);
                     break;
             }
-            resultIntensity++;
-            deformationFieldPtrX++;
-            deformationFieldPtrY++;
         }
     }
 }
@@ -297,51 +292,51 @@ void TrilinearResampleSourceImage(  nifti_image *sourceImage,
 {
     // The resampling scheme is applied along each time
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
-
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
-    unsigned int targetVoxelNumber = resultImage->nx*resultImage->ny*resultImage->nz;
-    unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
+    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+    int targetVoxelNumber = resultImage->nx*resultImage->ny*resultImage->nz;
+    int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
+    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
+    FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[targetVoxelNumber];
+
+    int *maskPtr = &mask[0];
+    mat44 *sourceIJKMatrix;
+    if(sourceImage->sform_code>0)
+        sourceIJKMatrix=&(sourceImage->sto_ijk);
+    else sourceIJKMatrix=&(sourceImage->qto_ijk);
 
     for(int t=0; t<resultImage->nt;t++){
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] 3D linear resampling of volume number %i\n",t);
 #endif
 
-        FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-        FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
-        FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[targetVoxelNumber];
-
         SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
-        SourceTYPE *intensityPtr = &sourceIntensityPtr[t*sourceVoxelNumber];
+        SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-        int *maskPtr = &mask[0];
+        FieldTYPE xBasis[2], yBasis[2], zBasis[2], relative;
+        int a, b, c, Y, Z, previous[3], index;
+        SourceTYPE *zPointer, *xyzPointer;
+        FieldTYPE xTempNewValue, yTempNewValue, intensity, world[3], position[3];
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        private(index, intensity, world, position, previous, xBasis, yBasis, zBasis, relative, \
+                a, b, c, Y, Z, zPointer, xyzPointer, xTempNewValue, yTempNewValue) \
+        shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
+               deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
+               sourceIJKMatrix, sourceImage, bgValue)
+#endif // _OPENMP
+        for(index=0;index<targetVoxelNumber; index++){
 
-        float voxelIndex[3];
-        float position[3];
-        int previous[3];
-        FieldTYPE xBasis[2];
-        FieldTYPE yBasis[2];
-        FieldTYPE zBasis[2];
-        FieldTYPE relative;
+            intensity=0.0;
 
-        mat44 *sourceIJKMatrix;
-        if(sourceImage->sform_code>0)
-            sourceIJKMatrix=&(sourceImage->sto_ijk);
-        else sourceIJKMatrix=&(sourceImage->qto_ijk);
+            if(maskPtr[index]>-1){
 
-
-        for(unsigned int index=0;index<targetVoxelNumber; index++){
-
-            FieldTYPE intensity=0.0;
-
-            if((*maskPtr++)>-1){
-
-                voxelIndex[0]=(float) *deformationFieldPtrX;
-                voxelIndex[1]=(float) *deformationFieldPtrY;
-                voxelIndex[2]=(float) *deformationFieldPtrZ;
+                world[0]=(FieldTYPE) deformationFieldPtrX[index];
+                world[1]=(FieldTYPE) deformationFieldPtrY[index];
+                world[2]=(FieldTYPE) deformationFieldPtrZ[index];
 
                 /* real -> voxel; source space */
-                reg_mat44_mul(sourceIJKMatrix, voxelIndex, position);
+                reg_mat44_mul(sourceIJKMatrix, world, position);
 
                 if( position[0]>=0.f && position[0]<(FieldTYPE)(sourceImage->nx-1) &&
                     position[1]>=0.f && position[1]<(FieldTYPE)(sourceImage->ny-1) &&
@@ -366,17 +361,16 @@ void TrilinearResampleSourceImage(  nifti_image *sourceImage,
                     zBasis[0]= (FieldTYPE)(1.0-relative);
                     zBasis[1]= relative;
 
-                    for(short c=0; c<2; c++){
-                        short Z= previous[2]+c;
-                        SourceTYPE *zPointer = &intensityPtr[Z*sourceImage->nx*sourceImage->ny];
-                        FieldTYPE yTempNewValue=0.0;
-                        for(short b=0; b<2; b++){
-                            short Y= previous[1]+b;
-                            SourceTYPE *xyzPointer = &zPointer[Y*sourceImage->nx+previous[0]];
-                            FieldTYPE xTempNewValue=0.0;
-                            for(short a=0; a<2; a++){
-                                const SourceTYPE coeff = *xyzPointer;
-                                xTempNewValue +=  (FieldTYPE)(coeff * xBasis[a]);
+                    for(c=0; c<2; c++){
+                        Z= previous[2]+c;
+                        zPointer = &sourceIntensity[Z*sourceImage->nx*sourceImage->ny];
+                        yTempNewValue=0.0;
+                        for(b=0; b<2; b++){
+                            Y= previous[1]+b;
+                            xyzPointer = &zPointer[Y*sourceImage->nx+previous[0]];
+                            xTempNewValue=0.0;
+                            for(a=0; a<2; a++){
+                                xTempNewValue +=  (FieldTYPE)*xyzPointer * xBasis[a];
                                 xyzPointer++;
                             }
                             yTempNewValue += (xTempNewValue * yBasis[b]);
@@ -389,28 +383,24 @@ void TrilinearResampleSourceImage(  nifti_image *sourceImage,
 
             switch(sourceImage->datatype){
                 case NIFTI_TYPE_FLOAT32:
-                    (*resultIntensity)=(SourceTYPE)intensity;
+                    resultIntensity[index]=(SourceTYPE)intensity;
                     break;
                 case NIFTI_TYPE_FLOAT64:
-                    (*resultIntensity)=(SourceTYPE)intensity;
+                    resultIntensity[index]=(SourceTYPE)intensity;
                     break;
                 case NIFTI_TYPE_UINT8:
-                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
                     break;
                 case NIFTI_TYPE_UINT16:
-                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
                     break;
                 case NIFTI_TYPE_UINT32:
-                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
                     break;
                 default:
-                    (*resultIntensity)=(SourceTYPE)round(intensity);
+                    resultIntensity[index]=(SourceTYPE)round(intensity);
                     break;
             }
-            resultIntensity++;
-            deformationFieldPtrX++;
-            deformationFieldPtrY++;
-            deformationFieldPtrZ++;
         }
     }
 }
@@ -424,72 +414,77 @@ void TrilinearResampleSourceImage2D(nifti_image *sourceImage,
 {
     // The resampling scheme is applied along each time
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
-
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
-    unsigned int targetVoxelNumber = resultImage->nx*resultImage->ny*resultImage->nz;
-    unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
+    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+    int targetVoxelNumber = resultImage->nx*resultImage->ny*resultImage->nz;
+    int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
+    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
+
+    int *maskPtr = &mask[0];
+
+    mat44 *sourceIJKMatrix;
+    if(sourceImage->sform_code>0)
+        sourceIJKMatrix=&(sourceImage->sto_ijk);
+    else sourceIJKMatrix=&(sourceImage->qto_ijk);
 
     for(int t=0; t<resultImage->nt;t++){
 
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] 3D linear resampling of volume number %i\n",t);
 #endif
-        FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-        FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
 
         SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
-        SourceTYPE *intensityPtr = &sourceIntensityPtr[t*sourceVoxelNumber];
+        SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-        int *maskPtr = &mask[0];
+        FieldTYPE xBasis[2], yBasis[2], relative;
+        int a, b, Y, previous[3], index;
+        SourceTYPE *xyPointer;
+        FieldTYPE xTempNewValue, intensity, world[2], voxel[2];
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        private(index, intensity, world, voxel, previous, xBasis, yBasis, relative, \
+                a, b, Y, xyPointer, xTempNewValue) \
+        shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
+               deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
+               sourceIJKMatrix, sourceImage, bgValue)
+#endif // _OPENMP
 
-        FieldTYPE position[2];
-        int previous[2];
-        FieldTYPE xBasis[2];
-        FieldTYPE yBasis[2];
-        FieldTYPE relative;
+        for(index=0;index<targetVoxelNumber; index++){
 
-        mat44 sourceIJKMatrix;
-        if(sourceImage->sform_code>0)
-            sourceIJKMatrix=sourceImage->sto_ijk;
-        else sourceIJKMatrix=sourceImage->qto_ijk;
+            intensity=0.0;
 
-        for(unsigned int index=0;index<targetVoxelNumber; index++){
-
-            FieldTYPE intensity=0.0;
-
-            if((*maskPtr++)>-1){
-                FieldTYPE worldX=(FieldTYPE) *deformationFieldPtrX;
-                FieldTYPE worldY=(FieldTYPE) *deformationFieldPtrY;
+            if(maskPtr[index]>-1){
+                world[0]=(FieldTYPE) deformationFieldPtrX[index];
+                world[1]=(FieldTYPE) deformationFieldPtrY[index];
 
                 /* real -> voxel; source space */
-                position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
-                sourceIJKMatrix.m[0][3];
-                position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
-                sourceIJKMatrix.m[1][3];
+                voxel[0] = world[0]*sourceIJKMatrix->m[0][0] + world[1]*sourceIJKMatrix->m[0][1] +
+                sourceIJKMatrix->m[0][3];
+                voxel[1] = world[0]*sourceIJKMatrix->m[1][0] + world[1]*sourceIJKMatrix->m[1][1] +
+                sourceIJKMatrix->m[1][3];
 
-                if( position[0]>=0.0f && position[0]<(FieldTYPE)(sourceImage->nx-1) &&
-                    position[1]>=0.0f && position[1]<(FieldTYPE)(sourceImage->ny-1)) {
+                if( voxel[0]>=0.0f && voxel[0]<(FieldTYPE)(sourceImage->nx-1) &&
+                    voxel[1]>=0.0f && voxel[1]<(FieldTYPE)(sourceImage->ny-1)) {
 
-                    previous[0] = (int)position[0];
-                    previous[1] = (int)position[1];
+                    previous[0] = (int)voxel[0];
+                    previous[1] = (int)voxel[1];
                     // basis values along the x axis
-                    relative=position[0]-(FieldTYPE)previous[0];
+                    relative=voxel[0]-(FieldTYPE)previous[0];
                     if(relative<0) relative=0.0; // rounding error correction
                     xBasis[0]= (FieldTYPE)(1.0-relative);
                     xBasis[1]= relative;
                     // basis values along the y axis
-                    relative=position[1]-(FieldTYPE)previous[1];
+                    relative=voxel[1]-(FieldTYPE)previous[1];
                     if(relative<0) relative=0.0; // rounding error correction
                     yBasis[0]= (FieldTYPE)(1.0-relative);
                     yBasis[1]= relative;
 
-                    for(short b=0; b<2; b++){
-                        short Y= previous[1]+b;
-                        SourceTYPE *xyPointer = &intensityPtr[Y*sourceImage->nx+previous[0]];
-                        FieldTYPE xTempNewValue=0.0;
-                        for(short a=0; a<2; a++){
-                            const SourceTYPE coeff = *xyPointer;
-                            xTempNewValue +=  (FieldTYPE)(coeff * xBasis[a]);
+                    for(b=0; b<2; b++){
+                        Y= previous[1]+b;
+                        xyPointer = &sourceIntensity[Y*sourceImage->nx+previous[0]];
+                        xTempNewValue=0.0;
+                        for(a=0; a<2; a++){
+                            xTempNewValue +=  (FieldTYPE)*xyPointer * xBasis[a];
                             xyPointer++;
                         }
                         intensity += (xTempNewValue * yBasis[b]);
@@ -500,27 +495,24 @@ void TrilinearResampleSourceImage2D(nifti_image *sourceImage,
 
             switch(sourceImage->datatype){
                 case NIFTI_TYPE_FLOAT32:
-                    (*resultIntensity)=(SourceTYPE)intensity;
+                    resultIntensity[index]=(SourceTYPE)intensity;
                     break;
                 case NIFTI_TYPE_FLOAT64:
-                    (*resultIntensity)=(SourceTYPE)intensity;
+                    resultIntensity[index]=(SourceTYPE)intensity;
                     break;
                 case NIFTI_TYPE_UINT8:
-                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
                     break;
                 case NIFTI_TYPE_UINT16:
-                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
                     break;
                 case NIFTI_TYPE_UINT32:
-                    (*resultIntensity)=(SourceTYPE)(intensity>0?round(intensity):0);
+                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
                     break;
                 default:
-                    (*resultIntensity)=(SourceTYPE)round(intensity);
+                    resultIntensity[index]=(SourceTYPE)round(intensity);
                     break;
             }
-            resultIntensity++;
-            deformationFieldPtrX++;
-            deformationFieldPtrY++;
         }
     }
 }
@@ -534,64 +526,64 @@ void NearestNeighborResampleSourceImage(nifti_image *sourceImage,
 {
     // The resampling scheme is applied along each time
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
-
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
-    unsigned int targetVoxelNumber = resultImage->nx*resultImage->ny*resultImage->nz;
-    unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
+    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+    int targetVoxelNumber = resultImage->nx*resultImage->ny*resultImage->nz;
+    int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
+    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
+    FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[targetVoxelNumber];
+
+    int *maskPtr = &mask[0];
+
+    mat44 *sourceIJKMatrix;
+    if(sourceImage->sform_code>0)
+        sourceIJKMatrix=&(sourceImage->sto_ijk);
+    else sourceIJKMatrix=&(sourceImage->qto_ijk);
 
     for(int t=0; t<resultImage->nt;t++){
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] 3D nearest neighbor resampling of volume number %i\n",t);
 #endif
 
-        FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-        FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
-        FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[targetVoxelNumber];
-
         SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
-        SourceTYPE *intensityPtr = &sourceIntensityPtr[t*sourceVoxelNumber];
+        SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-        int *maskPtr = &mask[0];
-
+        FieldTYPE intensity;
+        FieldTYPE world[3];
         FieldTYPE position[3];
         int previous[3];
+        int index;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        private(index, intensity, world, position, previous) \
+        shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
+               deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
+               sourceIJKMatrix, sourceImage, bgValue)
+#endif // _OPENMP
+        for(index=0; index<targetVoxelNumber; index++){
 
-        mat44 sourceIJKMatrix;
-        if(sourceImage->sform_code>0)
-            sourceIJKMatrix=sourceImage->sto_ijk;
-        else sourceIJKMatrix=sourceImage->qto_ijk;
+            if(maskPtr[index]>-1){
+                world[0]=(FieldTYPE) deformationFieldPtrX[index];
+                world[1]=(FieldTYPE) deformationFieldPtrY[index];
+                world[2]=(FieldTYPE) deformationFieldPtrZ[index];
 
-        for(unsigned int index=0; index<targetVoxelNumber; index++){
-
-            if((*maskPtr++)>-1){
-                FieldTYPE worldX=(FieldTYPE) *deformationFieldPtrX;
-                FieldTYPE worldY=(FieldTYPE) *deformationFieldPtrY;
-                FieldTYPE worldZ=(FieldTYPE) *deformationFieldPtrZ;
                 /* real -> voxel; source space */
-                position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
-                worldZ*sourceIJKMatrix.m[0][2] +  sourceIJKMatrix.m[0][3];
-                position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
-                worldZ*sourceIJKMatrix.m[1][2] +  sourceIJKMatrix.m[1][3];
-                position[2] = worldX*sourceIJKMatrix.m[2][0] + worldY*sourceIJKMatrix.m[2][1] +
-                worldZ*sourceIJKMatrix.m[2][2] +  sourceIJKMatrix.m[2][3];
+                reg_mat44_mul(sourceIJKMatrix, world, position);
 
                 previous[0] = (int)round(position[0]);
                 previous[1] = (int)round(position[1]);
                 previous[2] = (int)round(position[2]);
 
                 if( -1<previous[2] && previous[2]<sourceImage->nz &&
-                -1<previous[1] && previous[1]<sourceImage->ny &&
-                -1<previous[0] && previous[0]<sourceImage->nx){
-                    SourceTYPE intensity = intensityPtr[(previous[2]*sourceImage->ny+previous[1])*sourceImage->nx+previous[0]];
-                    (*resultIntensity)=intensity;
+                    -1<previous[1] && previous[1]<sourceImage->ny &&
+                    -1<previous[0] && previous[0]<sourceImage->nx){
+                    intensity = sourceIntensity[(previous[2]*sourceImage->ny+previous[1]) *
+                                                sourceImage->nx+previous[0]];
+                    resultIntensity[index]=intensity;
                 }
-                else (*resultIntensity)=(SourceTYPE)bgValue;
+                else resultIntensity[index]=(SourceTYPE)bgValue;
             }
-            else (*resultIntensity)=(SourceTYPE)bgValue;
-            resultIntensity++;
-            deformationFieldPtrX++;
-            deformationFieldPtrY++;
-            deformationFieldPtrZ++;
+            else resultIntensity[index]=(SourceTYPE)bgValue;
         }
     }
 }
@@ -604,57 +596,61 @@ void NearestNeighborResampleSourceImage2D(nifti_image *sourceImage,
                                           FieldTYPE bgValue)
 {
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
-
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
-    unsigned int targetVoxelNumber = resultImage->nx*resultImage->ny;
-    unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny;
+    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+    int targetVoxelNumber = resultImage->nx*resultImage->ny;
+    int sourceVoxelNumber = sourceImage->nx*sourceImage->ny;
+    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
+
+    int *maskPtr = &mask[0];
+
+    mat44 *sourceIJKMatrix;
+    if(sourceImage->sform_code>0)
+        sourceIJKMatrix=&(sourceImage->sto_ijk);
+    else sourceIJKMatrix=&(sourceImage->qto_ijk);
 
     for(int t=0; t<resultImage->nt;t++){
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] 2D nearest neighbor resampling of volume number %i\n",t);
 #endif
 
-        FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-        FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
-
         SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
-        SourceTYPE *intensityPtr = &sourceIntensityPtr[t*sourceVoxelNumber];
+        SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-        int *maskPtr = &mask[0];
-
+        FieldTYPE intensity;
+        FieldTYPE world[2];
         FieldTYPE position[2];
         int previous[2];
-
-        mat44 sourceIJKMatrix;
-        if(sourceImage->sform_code>0)
-            sourceIJKMatrix=sourceImage->sto_ijk;
-        else sourceIJKMatrix=sourceImage->qto_ijk;
-
-        for(unsigned int index=0;index<targetVoxelNumber; index++){
+        int index;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        private(index, intensity, world, position, previous) \
+        shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
+               deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
+               sourceIJKMatrix, sourceImage, bgValue)
+#endif // _OPENMP
+        for(index=0;index<targetVoxelNumber; index++){
 
             if((*maskPtr++)>-1){
-                FieldTYPE worldX=(FieldTYPE) *deformationFieldPtrX;
-                FieldTYPE worldY=(FieldTYPE) *deformationFieldPtrY;
+                world[0]=(FieldTYPE) deformationFieldPtrX[index];
+                world[1]=(FieldTYPE) deformationFieldPtrY[index];
                 /* real -> voxel; source space */
-                position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
-                sourceIJKMatrix.m[0][3];
-                position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
-                sourceIJKMatrix.m[1][3];
+                position[0] = world[0]*sourceIJKMatrix->m[0][0] + world[2]*sourceIJKMatrix->m[0][1] +
+                              sourceIJKMatrix->m[0][3];
+                position[1] = world[0]*sourceIJKMatrix->m[1][0] + world[1]*sourceIJKMatrix->m[1][1] +
+                              sourceIJKMatrix->m[1][3];
 
                 previous[0] = (int)round(position[0]);
                 previous[1] = (int)round(position[1]);
 
                 if( -1<previous[1] && previous[1]<sourceImage->ny &&
                 -1<previous[0] && previous[0]<sourceImage->nx){
-                    SourceTYPE intensity = intensityPtr[previous[1]*sourceImage->nx+previous[0]];
-                    (*resultIntensity)=intensity;
+                    intensity = sourceIntensity[previous[1]*sourceImage->nx+previous[0]];
+                    resultIntensity[index]=intensity;
                 }
-                else (*resultIntensity)=(SourceTYPE)bgValue;
+                else resultIntensity[index]=(SourceTYPE)bgValue;
             }
-            else (*resultIntensity)=(SourceTYPE)bgValue;
-            resultIntensity++;
-            deformationFieldPtrX++;
-            deformationFieldPtrY++;
+            else resultIntensity[index]=(SourceTYPE)bgValue;
         }
     }
 }
@@ -935,13 +931,21 @@ void TrilinearGradientResultImage(  nifti_image *sourceImage,
                                     nifti_image *resultGradientImage,
                                     int *mask)
 {
-    unsigned int targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz;
-    unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
-    unsigned int gradientOffSet = targetVoxelNumber*resultGradientImage->nt;
-
+    int targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz;
+    int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
+    int gradientOffSet = targetVoxelNumber*resultGradientImage->nt;
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
-
     GradientTYPE *resultGradientImagePtr = static_cast<GradientTYPE *>(resultGradientImage->data);
+    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
+    FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[targetVoxelNumber];
+
+    int *maskPtr = &mask[0];
+
+    mat44 *sourceIJKMatrix;
+    if(sourceImage->sform_code>0)
+        sourceIJKMatrix=&(sourceImage->sto_ijk);
+    else sourceIJKMatrix=&(sourceImage->qto_ijk);
 
     // Iteration over the different volume along the 4th axis
     for(int t=0; t<resultGradientImage->nt;t++){
@@ -949,50 +953,39 @@ void TrilinearGradientResultImage(  nifti_image *sourceImage,
         printf("[NiftyReg DEBUG] 3D linear gradient computation of volume number %i\n",t);
 #endif
 
-        FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-        FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
-        FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[targetVoxelNumber];
-
         GradientTYPE *resultGradientPtrX = &resultGradientImagePtr[targetVoxelNumber*t];
         GradientTYPE *resultGradientPtrY = &resultGradientPtrX[gradientOffSet];
         GradientTYPE *resultGradientPtrZ = &resultGradientPtrY[gradientOffSet];
 
-        SourceTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
+        SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-        int *maskPtr = &mask[0];
-
-        FieldTYPE position[3];
-        int previous[3];
-        FieldTYPE xBasis[2];
-        FieldTYPE yBasis[2];
-        FieldTYPE zBasis[2];
+        int previous[3], index, c, Z, b, Y, a;
+        FieldTYPE position[3], xBasis[2], yBasis[2], zBasis[2];
         FieldTYPE deriv[2];deriv[0]=-1;deriv[1]=1;
-        FieldTYPE relative;
+        FieldTYPE relative, world[3], grad[3], coeff;
+        FieldTYPE xxTempNewValue, yyTempNewValue, zzTempNewValue, xTempNewValue, yTempNewValue;
+        SourceTYPE *zPointer, *xyzPointer;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        private(index, world, position, previous, xBasis, yBasis, zBasis, relative, grad, coeff, \
+                a, b, c, Y, Z, zPointer, xyzPointer, xTempNewValue, yTempNewValue, xxTempNewValue, yyTempNewValue, zzTempNewValue) \
+        shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, deriv, \
+               deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
+               sourceIJKMatrix, sourceImage, resultGradientPtrX, resultGradientPtrY, resultGradientPtrZ)
+#endif // _OPENMP
+        for(index=0;index<targetVoxelNumber; index++){
 
-        mat44 sourceIJKMatrix;
-        if(sourceImage->sform_code>0)
-            sourceIJKMatrix=sourceImage->sto_ijk;
-        else sourceIJKMatrix=sourceImage->qto_ijk;
+            grad[0]=0.0;
+            grad[1]=0.0;
+            grad[2]=0.0;
 
-        for(unsigned int index=0;index<targetVoxelNumber; index++){
-
-            FieldTYPE gradX=0.0;
-            FieldTYPE gradY=0.0;
-            FieldTYPE gradZ=0.0;
-
-            if((*maskPtr++)>-1){
-                FieldTYPE worldX=(FieldTYPE) *deformationFieldPtrX;
-                FieldTYPE worldY=(FieldTYPE) *deformationFieldPtrY;
-                FieldTYPE worldZ=(FieldTYPE) *deformationFieldPtrZ;
+            if(maskPtr[index]>-1){
+                world[0]=(FieldTYPE) deformationFieldPtrX[index];
+                world[1]=(FieldTYPE) deformationFieldPtrY[index];
+                world[2]=(FieldTYPE) deformationFieldPtrZ[index];
 
                 /* real -> voxel; source space */
-                position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
-                worldZ*sourceIJKMatrix.m[0][2] +  sourceIJKMatrix.m[0][3];
-                position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
-                worldZ*sourceIJKMatrix.m[1][2] +  sourceIJKMatrix.m[1][3];
-                position[2] = worldX*sourceIJKMatrix.m[2][0] + worldY*sourceIJKMatrix.m[2][1] +
-                worldZ*sourceIJKMatrix.m[2][2] +  sourceIJKMatrix.m[2][3];
-
+                reg_mat44_mul(sourceIJKMatrix, world, position);
 
                 if( position[0]>=0.0f && position[0]<(FieldTYPE)(sourceImage->nx-1) &&
                     position[1]>=0.0f && position[1]<(FieldTYPE)(sourceImage->ny-1) &&
@@ -1017,45 +1010,37 @@ void TrilinearGradientResultImage(  nifti_image *sourceImage,
                     zBasis[0]= (FieldTYPE)(1.0-relative);
                     zBasis[1]= relative;
 
-                    for(short c=0; c<2; c++){
-                        short Z= previous[2]+c;
-                        SourceTYPE *zPointer = &sourceCoefficients[Z*sourceImage->nx*sourceImage->ny];
-                        FieldTYPE xxTempNewValue=0.0;
-                        FieldTYPE yyTempNewValue=0.0;
-                        FieldTYPE zzTempNewValue=0.0;
-                        for(short b=0; b<2; b++){
-                            short Y= previous[1]+b;
-                            SourceTYPE *yzPointer = &zPointer[Y*sourceImage->nx];
-                            SourceTYPE *xyzPointer = &yzPointer[previous[0]];
-                            FieldTYPE xTempNewValue=0.0;
-                            FieldTYPE yTempNewValue=0.0;
-                            for(short a=0; a<2; a++){
-                                const SourceTYPE coeff = *xyzPointer;
-                                xTempNewValue +=  (FieldTYPE)(coeff * deriv[a]);
-                                yTempNewValue +=  (FieldTYPE)(coeff * xBasis[a]);
+                    for(c=0; c<2; c++){
+                        Z= previous[2]+c;
+                        zPointer = &sourceIntensity[Z*sourceImage->nx*sourceImage->ny];
+                        xxTempNewValue=0.0;
+                        yyTempNewValue=0.0;
+                        zzTempNewValue=0.0;
+                        for(b=0; b<2; b++){
+                            Y= previous[1]+b;
+                            xyzPointer = &zPointer[Y*sourceImage->nx+previous[0]];
+                            xTempNewValue=0.0;
+                            yTempNewValue=0.0;
+                            for(a=0; a<2; a++){
+                                coeff = (FieldTYPE)*xyzPointer;
+                                xTempNewValue +=  coeff * deriv[a];
+                                yTempNewValue +=  coeff * xBasis[a];
                                 xyzPointer++;
                             }
                             xxTempNewValue += xTempNewValue * yBasis[b];
                             yyTempNewValue += yTempNewValue * deriv[b];
                             zzTempNewValue += yTempNewValue * yBasis[b];
                         }
-                        gradX += xxTempNewValue * zBasis[c];
-                        gradY += yyTempNewValue * zBasis[c];
-                        gradZ += zzTempNewValue * deriv[c];
+                        grad[0] += xxTempNewValue * zBasis[c];
+                        grad[1] += yyTempNewValue * zBasis[c];
+                        grad[2] += zzTempNewValue * deriv[c];
                     }
                 }
             }
 
-            *resultGradientPtrX = (GradientTYPE)gradX;
-            *resultGradientPtrY = (GradientTYPE)gradY;
-            *resultGradientPtrZ = (GradientTYPE)gradZ;
-
-            resultGradientPtrX++;
-            resultGradientPtrY++;
-            resultGradientPtrZ++;
-            deformationFieldPtrX++;
-            deformationFieldPtrY++;
-            deformationFieldPtrZ++;
+            resultGradientPtrX[index] = (GradientTYPE)grad[0];
+            resultGradientPtrY[index] = (GradientTYPE)grad[1];
+            resultGradientPtrZ[index] = (GradientTYPE)grad[2];
         }
     }
 }
@@ -1066,109 +1051,96 @@ void TrilinearGradientResultImage2D(	nifti_image *sourceImage,
                                         nifti_image *resultGradientImage,
                                         int *mask)
 {
-    unsigned int targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny;
-    unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny;
+    int targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny;
+    int sourceVoxelNumber = sourceImage->nx*sourceImage->ny;
     unsigned int gradientOffSet = targetVoxelNumber*resultGradientImage->nt;
 
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
-
     GradientTYPE *resultGradientImagePtr = static_cast<GradientTYPE *>(resultGradientImage->data);
+    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
+
+    int *maskPtr = &mask[0];
+
+    mat44 sourceIJKMatrix;
+    if(sourceImage->sform_code>0)
+        sourceIJKMatrix=sourceImage->sto_ijk;
+    else sourceIJKMatrix=sourceImage->qto_ijk;
 
     // Iteration over the different volume along the 4th axis
     for(int t=0; t<resultGradientImage->nt;t++){
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] 2D linear gradient computation of volume number %i\n",t);
 #endif
-
-        FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-        FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
-
         GradientTYPE *resultGradientPtrX = &resultGradientImagePtr[targetVoxelNumber*t];
         GradientTYPE *resultGradientPtrY = &resultGradientPtrX[gradientOffSet];
 
-        SourceTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
+        SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-        int *maskPtr = &mask[0];
-
-        FieldTYPE position[2];
-        int previous[2];
-        FieldTYPE xBasis[2];
-        FieldTYPE yBasis[2];
+        FieldTYPE voxel[3], xBasis[2], yBasis[2], relative, world[2], grad[2];
         FieldTYPE deriv[2];deriv[0]=-1;deriv[1]=1;
-        FieldTYPE relative;
+        FieldTYPE coeff, xTempNewValue, yTempNewValue;
+        int previous[3], index, b, Y, a;
+        SourceTYPE *xyPointer;
 
-        mat44 sourceIJKMatrix;
-        if(sourceImage->sform_code>0)
-            sourceIJKMatrix=sourceImage->sto_ijk;
-        else sourceIJKMatrix=sourceImage->qto_ijk;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        private(index, world, voxel, previous, xBasis, yBasis, relative, grad, coeff, \
+                a, b, Y,xyPointer, xTempNewValue, yTempNewValue) \
+        shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, deriv, \
+               deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
+               sourceIJKMatrix, sourceImage, resultGradientPtrX, resultGradientPtrY)
+#endif // _OPENMP
+        for(index=0;index<targetVoxelNumber; index++){
 
-        for(unsigned int index=0;index<targetVoxelNumber; index++){
+            grad[0]=0.0;
+            grad[1]=0.0;
 
-            FieldTYPE gradX=0.0;
-            FieldTYPE gradY=0.0;
-
-            if((*maskPtr++)>-1){
-                FieldTYPE worldX=(FieldTYPE) *deformationFieldPtrX;
-                FieldTYPE worldY=(FieldTYPE) *deformationFieldPtrY;
+            if(maskPtr[index]>-1){
+                world[0]=(FieldTYPE) deformationFieldPtrX[index];
+                world[1]=(FieldTYPE) deformationFieldPtrY[index];
 
                 /* real -> voxel; source space */
-                position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
-                sourceIJKMatrix.m[0][3];
-                position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
-                sourceIJKMatrix.m[1][3];
+                voxel[0] = world[0]*sourceIJKMatrix.m[0][0] + world[1]*sourceIJKMatrix.m[0][1] +
+                           sourceIJKMatrix.m[0][3];
+                voxel[1] = world[0]*sourceIJKMatrix.m[1][0] + world[1]*sourceIJKMatrix.m[1][1] +
+                           sourceIJKMatrix.m[1][3];
 
-                if( position[0]>=0.0f && position[0]<(FieldTYPE)(sourceImage->nx-1) &&
-                    position[1]>=0.0f && position[1]<(FieldTYPE)(sourceImage->ny-1) ){
+                if( voxel[0]>=0.0f && voxel[0]<(FieldTYPE)(sourceImage->nx-1) &&
+                    voxel[1]>=0.0f && voxel[1]<(FieldTYPE)(sourceImage->ny-1) ){
 
-                    previous[0] = (int)position[0];
-                    previous[1] = (int)position[1];
+                    previous[0] = (int)voxel[0];
+                    previous[1] = (int)voxel[1];
                     // basis values along the x axis
-                    relative=position[0]-(FieldTYPE)previous[0];
+                    relative=voxel[0]-(FieldTYPE)previous[0];
                     if(relative<0) relative=0.0; // rounding error correction
                     xBasis[0]= (FieldTYPE)(1.0-relative);
                     xBasis[1]= relative;
                     // basis values along the y axis
-                    relative=position[1]-(FieldTYPE)previous[1];
+                    relative=voxel[1]-(FieldTYPE)previous[1];
                     if(relative<0) relative=0.0; // rounding error correction
                     yBasis[0]= (FieldTYPE)(1.0-relative);
                     yBasis[1]= relative;
 
-                    for(short b=0; b<2; b++){
-                        short Y= previous[1]+b;
-                        SourceTYPE *yPointer = &sourceCoefficients[Y*sourceImage->nx];
-                        SourceTYPE *xyPointer = &yPointer[previous[0]];
-                        FieldTYPE xTempNewValue=0.0;
-                        FieldTYPE yTempNewValue=0.0;
-                        for(short a=0; a<2; a++){
-                            const SourceTYPE coeff = *xyPointer;
-                            xTempNewValue +=  (FieldTYPE)(coeff * deriv[a]);
-                            yTempNewValue +=  (FieldTYPE)(coeff * xBasis[a]);
+                    for(b=0; b<2; b++){
+                        Y= previous[1]+b;
+                        xyPointer = &sourceIntensity[Y*sourceImage->nx+previous[0]];
+                        xTempNewValue=0.0;
+                        yTempNewValue=0.0;
+                        for(a=0; a<2; a++){
+                            coeff = (FieldTYPE)*xyPointer;
+                            xTempNewValue +=  coeff* deriv[a];
+                            yTempNewValue +=  coeff * xBasis[a];
                             xyPointer++;
                         }
-                        gradX += xTempNewValue * yBasis[b];
-                        gradY += yTempNewValue * deriv[b];
+                        grad[0] += xTempNewValue * yBasis[b];
+                        grad[1] += yTempNewValue * deriv[b];
                     }
                 }
             }
 
-            switch(resultGradientImage->datatype){
-                case NIFTI_TYPE_FLOAT32:
-                    *resultGradientPtrX = (GradientTYPE)gradX;
-                    *resultGradientPtrY = (GradientTYPE)gradY;
-                    break;
-                case NIFTI_TYPE_FLOAT64:
-                    *resultGradientPtrX = (GradientTYPE)gradX;
-                    *resultGradientPtrY = (GradientTYPE)gradY;
-                    break;
-                default:
-                    *resultGradientPtrX=(GradientTYPE)round(gradX);
-                    *resultGradientPtrY=(GradientTYPE)round(gradY);
-                    break;
-            }
-            resultGradientPtrX++;
-            resultGradientPtrY++;
-            deformationFieldPtrX++;
-            deformationFieldPtrY++;
+            resultGradientPtrX[index] = (GradientTYPE)grad[0];
+            resultGradientPtrY[index] = (GradientTYPE)grad[1];
         }
     }
 }
@@ -1179,13 +1151,23 @@ void CubicSplineGradientResultImage(nifti_image *sourceImage,
                                     nifti_image *resultGradientImage,
                                     int *mask)
 {
-    unsigned int targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz;
-    unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
+    int targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz;
+    int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
     unsigned int gradientOffSet = targetVoxelNumber*resultGradientImage->nt;
 
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
-
     GradientTYPE *resultGradientImagePtr = static_cast<GradientTYPE *>(resultGradientImage->data);
+    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
+    FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[targetVoxelNumber];
+
+    int *maskPtr = &mask[0];
+
+    mat44 *sourceIJKMatrix;
+    if(sourceImage->sform_code>0)
+        sourceIJKMatrix=&(sourceImage->sto_ijk);
+    else sourceIJKMatrix=&(sourceImage->qto_ijk);
+
 
     // Iteration over the different volume along the 4th axis
     for(int t=0; t<resultGradientImage->nt;t++){
@@ -1193,49 +1175,39 @@ void CubicSplineGradientResultImage(nifti_image *sourceImage,
         printf("[NiftyReg DEBUG] 3D cubic spline gradient computation of volume number %i\n",t);
 #endif
 
-        FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-        FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
-        FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[targetVoxelNumber];
-
         GradientTYPE *resultGradientPtrX = &resultGradientImagePtr[targetVoxelNumber*t];
         GradientTYPE *resultGradientPtrY = &resultGradientPtrX[gradientOffSet];
         GradientTYPE *resultGradientPtrZ = &resultGradientPtrY[gradientOffSet];
 
-        SourceTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
+        SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-        int *maskPtr = &mask[0];
+        int previous[3], index, c, Z, b, Y, a; bool bg;
+        FieldTYPE xBasis[4], yBasis[4], zBasis[4], xDeriv[4], yDeriv[4], zDeriv[4];
+        FieldTYPE coeff, position[3], relative, world[3], grad[3];
+        FieldTYPE xxTempNewValue, yyTempNewValue, zzTempNewValue, xTempNewValue, yTempNewValue;
+        SourceTYPE *zPointer, *yzPointer, *xyzPointer;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        private(index, world, position, previous, xBasis, yBasis, zBasis, xDeriv, yDeriv, zDeriv, relative, grad, coeff, bg, \
+                a, b, c, Y, Z, zPointer, yzPointer, xyzPointer, xTempNewValue, yTempNewValue, xxTempNewValue, yyTempNewValue, zzTempNewValue) \
+        shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, \
+               deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
+               sourceIJKMatrix, sourceImage, resultGradientPtrX, resultGradientPtrY, resultGradientPtrZ)
+#endif // _OPENMP
+        for(index=0;index<targetVoxelNumber; index++){
 
-        FieldTYPE position[3];
-        int previous[3];
-        FieldTYPE xBasis[4], xDeriv[4];
-        FieldTYPE yBasis[4], yDeriv[4];
-        FieldTYPE zBasis[4], zDeriv[4];
-        FieldTYPE relative;
-
-        mat44 sourceIJKMatrix;
-        if(sourceImage->sform_code>0)
-            sourceIJKMatrix=sourceImage->sto_ijk;
-        else sourceIJKMatrix=sourceImage->qto_ijk;
-
-        for(unsigned int index=0;index<targetVoxelNumber; index++){
-
-            FieldTYPE gradX=0.0;
-            FieldTYPE gradY=0.0;
-            FieldTYPE gradZ=0.0;
+            grad[0]=0.0;
+            grad[1]=0.0;
+            grad[2]=0.0;
 
             if((*maskPtr++)>-1){
 
-                FieldTYPE worldX=(FieldTYPE) *deformationFieldPtrX;
-                FieldTYPE worldY=(FieldTYPE) *deformationFieldPtrY;
-                FieldTYPE worldZ=(FieldTYPE) *deformationFieldPtrZ;
+                world[0]=(FieldTYPE) deformationFieldPtrX[index];
+                world[1]=(FieldTYPE) deformationFieldPtrY[index];
+                world[2]=(FieldTYPE) deformationFieldPtrZ[index];
 
                 /* real -> voxel; source space */
-                position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
-                worldZ*sourceIJKMatrix.m[0][2] +  sourceIJKMatrix.m[0][3];
-                position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
-                worldZ*sourceIJKMatrix.m[1][2] +  sourceIJKMatrix.m[1][3];
-                position[2] = worldX*sourceIJKMatrix.m[2][0] + worldY*sourceIJKMatrix.m[2][1] +
-                worldZ*sourceIJKMatrix.m[2][2] +  sourceIJKMatrix.m[2][3];
+                reg_mat44_mul(sourceIJKMatrix, world, position);
 
                 previous[0] = (int)floor(position[0]);
                 previous[1] = (int)floor(position[1]);
@@ -1255,74 +1227,53 @@ void CubicSplineGradientResultImage(nifti_image *sourceImage,
 
                 previous[0]--;previous[1]--;previous[2]--;
 
-                bool bg=false;
-                for(short c=0; c<4; c++){
-                    short Z= previous[2]+c;
+                bg=false;
+                for(c=0; c<4; c++){
+                    Z= previous[2]+c;
                     if(-1<Z && Z<sourceImage->nz){
-                        SourceTYPE *zPointer = &sourceCoefficients[Z*sourceImage->nx*sourceImage->ny];
-                        FieldTYPE xxTempNewValue=0.0;
-                        FieldTYPE yyTempNewValue=0.0;
-                        FieldTYPE zzTempNewValue=0.0;
-                        for(short b=0; b<4; b++){
-                            short Y= previous[1]+b;
-                            SourceTYPE *yzPointer = &zPointer[Y*sourceImage->nx];
+                        zPointer = &sourceIntensity[Z*sourceImage->nx*sourceImage->ny];
+                        xxTempNewValue=0.0;
+                        yyTempNewValue=0.0;
+                        zzTempNewValue=0.0;
+                        for(b=0; b<4; b++){
+                            Y= previous[1]+b;
+                            yzPointer = &zPointer[Y*sourceImage->nx];
                             if(-1<Y && Y<sourceImage->ny){
-                                SourceTYPE *xyzPointer = &yzPointer[previous[0]];
-                                FieldTYPE xTempNewValue=0.0;
-                                FieldTYPE yTempNewValue=0.0;
-                                FieldTYPE zTempNewValue=0.0;
-                                for(short a=0; a<4; a++){
+                                xyzPointer = &yzPointer[previous[0]];
+                                xTempNewValue=0.0;
+                                yTempNewValue=0.0;
+                                for(a=0; a<4; a++){
                                     if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
-                                        const FieldTYPE coeff = *xyzPointer;
+                                        coeff = (FieldTYPE)*xyzPointer;
                                         xTempNewValue +=  coeff * xDeriv[a];
                                         yTempNewValue +=  coeff * xBasis[a];
-                                        zTempNewValue +=  coeff * xBasis[a];
                                     }
                                     else bg=true;
                                     xyzPointer++;
                                 }
                                 xxTempNewValue += (xTempNewValue * yBasis[b]);
                                 yyTempNewValue += (yTempNewValue * yDeriv[b]);
-                                zzTempNewValue += (zTempNewValue * yBasis[b]);
+                                zzTempNewValue += (yTempNewValue * yBasis[b]);
                             }
                             else bg=true;
                         }
-                        gradX += xxTempNewValue * zBasis[c];
-                        gradY += yyTempNewValue * zBasis[c];
-                        gradZ += zzTempNewValue * zDeriv[c];
+                        grad[0] += xxTempNewValue * zBasis[c];
+                        grad[1] += yyTempNewValue * zBasis[c];
+                        grad[2] += zzTempNewValue * zDeriv[c];
                     }
                     else bg=true;
                 }
 
                 if(bg==true){
-                    gradX=0.0;
-                    gradY=0.0;
-                    gradZ=0.0;
+                    grad[0]=0.0;
+                    grad[0]=0.0;
+                    grad[0]=0.0;
                 }
             }
-            switch(resultGradientImage->datatype){
-                case NIFTI_TYPE_FLOAT32:
-                    *resultGradientPtrX = (GradientTYPE)gradX;
-                    *resultGradientPtrY = (GradientTYPE)gradY;
-                    *resultGradientPtrZ = (GradientTYPE)gradZ;
-                    break;
-                case NIFTI_TYPE_FLOAT64:
-                    *resultGradientPtrX = (GradientTYPE)gradX;
-                    *resultGradientPtrY = (GradientTYPE)gradY;
-                    *resultGradientPtrZ = (GradientTYPE)gradZ;
-                    break;
-                default:
-                    *resultGradientPtrX=(GradientTYPE)round(gradX);
-                    *resultGradientPtrY=(GradientTYPE)round(gradY);
-                    *resultGradientPtrZ=(GradientTYPE)round(gradZ);
-                    break;
-            }
-            resultGradientPtrX++;
-            resultGradientPtrY++;
-            resultGradientPtrZ++;
-            deformationFieldPtrX++;
-            deformationFieldPtrY++;
-            deformationFieldPtrZ++;
+
+            resultGradientPtrX[index] = (GradientTYPE)grad[0];
+            resultGradientPtrY[index] = (GradientTYPE)grad[1];
+            resultGradientPtrZ[index] = (GradientTYPE)grad[2];
         }
     }
 }
@@ -1333,13 +1284,21 @@ void CubicSplineGradientResultImage2D(nifti_image *sourceImage,
                                       nifti_image *resultGradientImage,
                                       int *mask)
 {
-    unsigned int targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny;
-    unsigned int sourceVoxelNumber = sourceImage->nx*sourceImage->ny;
+    int targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny;
+    int sourceVoxelNumber = sourceImage->nx*sourceImage->ny;
     unsigned int gradientOffSet = targetVoxelNumber*resultGradientImage->nt;
 
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
-
     GradientTYPE *resultGradientImagePtr = static_cast<GradientTYPE *>(resultGradientImage->data);
+    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
+
+    int *maskPtr = &mask[0];
+
+    mat44 *sourceIJKMatrix;
+    if(sourceImage->sform_code>0)
+        sourceIJKMatrix=&(sourceImage->sto_ijk);
+    else sourceIJKMatrix=&(sourceImage->qto_ijk);
 
     // Iteration over the different volume along the 4th axis
     for(int t=0; t<resultGradientImage->nt;t++){
@@ -1347,41 +1306,37 @@ void CubicSplineGradientResultImage2D(nifti_image *sourceImage,
         printf("[NiftyReg DEBUG] 2D cubic spline gradient computation of volume number %i\n",t);
 #endif
 
-        FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-        FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
-
         GradientTYPE *resultGradientPtrX = &resultGradientImagePtr[targetVoxelNumber*t];
         GradientTYPE *resultGradientPtrY = &resultGradientPtrX[gradientOffSet];
+        SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-        SourceTYPE *sourceCoefficients = &sourceIntensityPtr[t*sourceVoxelNumber];
+        int previous[3], index, b, Y, a; bool bg;
+        FieldTYPE xBasis[4], yBasis[4], xDeriv[4], yDeriv[4];
+        FieldTYPE coeff, position[3], relative, world[3], grad[3];
+        FieldTYPE xTempNewValue, yTempNewValue;
+        SourceTYPE *yPointer, *xyPointer;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        private(index, world, position, previous, xBasis, yBasis, xDeriv, yDeriv, relative, grad, coeff, bg, \
+                a, b, Y, yPointer, xyPointer, xTempNewValue, yTempNewValue) \
+        shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, \
+               deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
+               sourceIJKMatrix, sourceImage, resultGradientPtrX, resultGradientPtrY)
+#endif // _OPENMP
+        for(index=0;index<targetVoxelNumber; index++){
 
-        int *maskPtr = &mask[0];
+            grad[index]=0.0;
+            grad[index]=0.0;
 
-        FieldTYPE position[2];
-        int previous[2];
-        FieldTYPE xBasis[4], xDeriv[4];
-        FieldTYPE yBasis[4], yDeriv[4];
-        FieldTYPE relative;
-
-        mat44 sourceIJKMatrix;
-        if(sourceImage->sform_code>0)
-            sourceIJKMatrix=sourceImage->sto_ijk;
-        else sourceIJKMatrix=sourceImage->qto_ijk;
-
-        for(unsigned int index=0;index<targetVoxelNumber; index++){
-
-            FieldTYPE gradX=0.0;
-            FieldTYPE gradY=0.0;
-
-            if((*maskPtr++)>-1){
-                FieldTYPE worldX=(FieldTYPE) *deformationFieldPtrX;
-                FieldTYPE worldY=(FieldTYPE) *deformationFieldPtrY;
+            if(maskPtr[index]>-1){
+                world[0]=(FieldTYPE) deformationFieldPtrX[index];
+                world[1]=(FieldTYPE) deformationFieldPtrY[index];
 
                 /* real -> voxel; source space */
-                position[0] = worldX*sourceIJKMatrix.m[0][0] + worldY*sourceIJKMatrix.m[0][1] +
-                sourceIJKMatrix.m[0][3];
-                position[1] = worldX*sourceIJKMatrix.m[1][0] + worldY*sourceIJKMatrix.m[1][1] +
-                sourceIJKMatrix.m[1][3];
+                position[0] = world[0]*sourceIJKMatrix->m[0][0] + world[1]*sourceIJKMatrix->m[0][1] +
+                sourceIJKMatrix->m[0][3];
+                position[1] = world[0]*sourceIJKMatrix->m[1][0] + world[1]*sourceIJKMatrix->m[1][1] +
+                sourceIJKMatrix->m[1][3];
 
                 previous[0] = (int)floor(position[0]);
                 previous[1] = (int)floor(position[1]);
@@ -1394,52 +1349,36 @@ void CubicSplineGradientResultImage2D(nifti_image *sourceImage,
 
                 previous[0]--;previous[1]--;
 
-                bool bg=false;
-                for(short b=0; b<4; b++){
-                    short Y= previous[1]+b;
-                    SourceTYPE *yPointer = &sourceCoefficients[Y*sourceImage->nx];
+                bg=false;
+                for(b=0; b<4; b++){
+                    Y= previous[1]+b;
+                    yPointer = &sourceIntensity[Y*sourceImage->nx];
                     if(-1<Y && Y<sourceImage->ny){
-                        SourceTYPE *xyPointer = &yPointer[previous[0]];
-                        FieldTYPE xTempNewValue=0.0;
-                        FieldTYPE yTempNewValue=0.0;
-                        for(short a=0; a<4; a++){
+                        xyPointer = &yPointer[previous[0]];
+                        xTempNewValue=0.0;
+                        yTempNewValue=0.0;
+                        for(a=0; a<4; a++){
                             if(-1<(previous[0]+a) && (previous[0]+a)<sourceImage->nx){
-                                const SourceTYPE coeff = *xyPointer;
+                                coeff = (FieldTYPE)*xyPointer;
                                 xTempNewValue +=  coeff * xDeriv[a];
                                 yTempNewValue +=  coeff * xBasis[a];
                             }
                             else bg=true;
                             xyPointer++;
                         }
-                        gradX += (xTempNewValue * yBasis[b]);
-                        gradY += (yTempNewValue * yDeriv[b]);
+                        grad[0] += (xTempNewValue * yBasis[b]);
+                        grad[1] += (yTempNewValue * yDeriv[b]);
                     }
                     else bg=true;
                 }
 
                 if(bg==true){
-                    gradX=0.0;
-                    gradY=0.0;
+                    grad[0]=0.0;
+                    grad[1]=0.0;
                 }
             }
-            switch(resultGradientImage->datatype){
-                case NIFTI_TYPE_FLOAT32:
-                    *resultGradientPtrX = (GradientTYPE)gradX;
-                    *resultGradientPtrY = (GradientTYPE)gradY;
-                    break;
-                case NIFTI_TYPE_FLOAT64:
-                    *resultGradientPtrX = (GradientTYPE)gradX;
-                    *resultGradientPtrY = (GradientTYPE)gradY;
-                    break;
-                default:
-                    *resultGradientPtrX=(GradientTYPE)round(gradX);
-                    *resultGradientPtrY=(GradientTYPE)round(gradY);
-                    break;
-            }
-            resultGradientPtrX++;
-            resultGradientPtrY++;
-            deformationFieldPtrX++;
-            deformationFieldPtrY++;
+            resultGradientPtrX[index] = (GradientTYPE)grad[0];
+            resultGradientPtrY[index] = (GradientTYPE)grad[1];
         }
     }
 }
@@ -1457,33 +1396,33 @@ void reg_getSourceImageGradient3(   nifti_image *targetImage,
     if(interp==3){
         if(targetImage->nz>1){
             CubicSplineGradientResultImage
-                    <SourceTYPE,GradientTYPE,FieldTYPE>(  sourceImage,
-                                                                        deformationField,
-                                                                        resultGradientImage,
-                                                                        mask);
+                    <SourceTYPE,GradientTYPE,FieldTYPE>(sourceImage,
+                                                        deformationField,
+                                                        resultGradientImage,
+                                                        mask);
         }
         else{
             CubicSplineGradientResultImage2D
                     <SourceTYPE,GradientTYPE,FieldTYPE>(sourceImage,
-                                                                      deformationField,
-                                                                      resultGradientImage,
-                                                                      mask);
+                                                        deformationField,
+                                                        resultGradientImage,
+                                                        mask);
         }
     }
     else{ // trilinear interpolation [ by default ]
         if(targetImage->nz>1){
             TrilinearGradientResultImage
-                    <SourceTYPE,GradientTYPE,FieldTYPE>(   sourceImage,
-                                                                         deformationField,
-                                                                         resultGradientImage,
-                                                                         mask);
+                    <SourceTYPE,GradientTYPE,FieldTYPE>(sourceImage,
+                                                        deformationField,
+                                                        resultGradientImage,
+                                                        mask);
         }
         else{
             TrilinearGradientResultImage2D
-                    <SourceTYPE,GradientTYPE,FieldTYPE>( sourceImage,
-                                                                       deformationField,
-                                                                       resultGradientImage,
-                                                                       mask);
+                    <SourceTYPE,GradientTYPE,FieldTYPE>(sourceImage,
+                                                        deformationField,
+                                                        resultGradientImage,
+                                                        mask);
         }
     }
 }
@@ -1497,19 +1436,19 @@ void reg_getSourceImageGradient2(nifti_image *targetImage,
 								int interp
 							)
 {
-	switch(resultGradientImage->datatype){
-		case NIFTI_TYPE_FLOAT32:
-                        reg_getSourceImageGradient3<FieldTYPE,SourceTYPE,float>
-                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
-			break;
-		case NIFTI_TYPE_FLOAT64:
-                        reg_getSourceImageGradient3<FieldTYPE,SourceTYPE,double>
-                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
-			break;
-		default:
-                        printf("[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe result image data type is not supported\n");
-			return;
-	}
+    switch(resultGradientImage->datatype){
+        case NIFTI_TYPE_FLOAT32:
+            reg_getSourceImageGradient3<FieldTYPE,SourceTYPE,float>
+            (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            reg_getSourceImageGradient3<FieldTYPE,SourceTYPE,double>
+            (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
+            break;
+        default:
+            printf("[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe result image data type is not supported\n");
+            return;
+    }
 }
 /* *************************************************************** */
 template <class FieldTYPE>
@@ -1604,7 +1543,7 @@ void reg_resampleImageGradient2D(nifti_image *outputGradientImage,
                                  nifti_image *jacobianMatrices,
                                  int *mask)
 {
-    unsigned int pixelNumber = outputGradientImage->nx*outputGradientImage->ny;
+    int pixelNumber = outputGradientImage->nx*outputGradientImage->ny, i;
     DTYPE *gradientPtrX = static_cast<DTYPE *>(outputGradientImage->data);
     DTYPE *gradientPtrY = &gradientPtrX[pixelNumber];
 
@@ -1614,10 +1553,14 @@ void reg_resampleImageGradient2D(nifti_image *outputGradientImage,
     DTYPE *jacPtrYY = &jacPtrYX[pixelNumber];
 
     mat33 jacobianMatrix;
-
     DTYPE oldGradientValue[2];
-
-    for(unsigned int i=0; i<pixelNumber; ++i){
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        private(jacobianMatrix, oldGradientValue, i) \
+        shared(jacPtrXX, jacPtrYY, jacPtrXY, jacPtrYX, pixelNumber, \
+               gradientPtrX, gradientPtrY, mask)
+#endif // _OPENMP
+    for(i=0; i<pixelNumber; ++i){
         if(mask[i]>-1){
             jacobianMatrix.m[0][0] = jacPtrXX[i];
             jacobianMatrix.m[0][1] = jacPtrXY[i];
@@ -1641,7 +1584,7 @@ void reg_resampleImageGradient3D(nifti_image *outputGradientImage,
                                  nifti_image *jacobianMatrices,
                                  int *mask)
 {
-    unsigned int voxelNumber = outputGradientImage->nx*outputGradientImage->ny*outputGradientImage->nz;
+    int voxelNumber = outputGradientImage->nx*outputGradientImage->ny*outputGradientImage->nz, i;
     DTYPE *gradientPtrX = static_cast<DTYPE *>(outputGradientImage->data);
     DTYPE *gradientPtrY = &gradientPtrX[voxelNumber];
     DTYPE *gradientPtrZ = &gradientPtrY[voxelNumber];
@@ -1657,10 +1600,15 @@ void reg_resampleImageGradient3D(nifti_image *outputGradientImage,
     DTYPE *jacPtrZZ = &jacPtrZY[voxelNumber];
 
     mat33 jacobianMatrix;
-
     DTYPE oldGradientValue[3];
 
-    for(unsigned int i=0; i<voxelNumber; ++i){
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        private(jacobianMatrix, oldGradientValue, i) \
+        shared(jacPtrXX, jacPtrYY, jacPtrZZ, jacPtrXY, jacPtrXZ, jacPtrYX, jacPtrYZ, jacPtrZX, jacPtrZY, \
+               voxelNumber, gradientPtrX, gradientPtrY, gradientPtrZ, mask)
+#endif // _OPENMP
+    for(i=0; i<voxelNumber; ++i){
         if(mask[i]>-1){
             jacobianMatrix.m[0][0] = jacPtrXX[i];
             jacobianMatrix.m[0][1] = jacPtrXY[i];
