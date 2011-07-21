@@ -324,6 +324,7 @@ int main(int argc, char **argv)
         resultImage->nbyper = sourceImage->nbyper;
         resultImage->nvox = resultImage->dim[1] * resultImage->dim[2] * resultImage->dim[3] * resultImage->dim[4];
         resultImage->data = (void *)calloc(resultImage->nvox, resultImage->nbyper);
+
         reg_resampleSourceImage(referenceImage,
                                         sourceImage,
                                         resultImage,

@@ -10,9 +10,14 @@
  */
 
 #include "_reg_f3d.h"
+#ifdef _NR_DEV
 #include "_reg_f3d2.h"
+#endif
 #ifdef _USE_CUDA
-    #include "_reg_f3d_gpu.h"
+#include "_reg_f3d_gpu.h"
+#ifdef _NR_DEV
+#include "_reg_f3d2_gpu.h"
+#endif
 #endif
 #include "float.h"
 #include <limits>
@@ -501,15 +506,29 @@ int main(int argc, char **argv)
 #endif
             gpuMemoryAvailable = deviceProp.totalGlobalMem;
 
-            // The CUDA reg_f3d object is created
-            REG = new reg_f3d_gpu<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
+#ifdef _NR_DEV
+            if(useVel){
+                REG = new reg_f3d2_gpu<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
-            if(verbose==true){
+                if(verbose==true){
+  #endif
+                    printf("\n[NiftyReg F3D2] GPU implementation is used\n");
+#ifdef NDEBUG
+                }
 #endif
-                printf("\n[NiftyReg F3D] GPU implementation is used\n\n");
-#ifdef NDEBUG
             }
+            else
 #endif
+            {
+                REG = new reg_f3d_gpu<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
+#ifdef NDEBUG
+                if(verbose==true){
+  #endif
+                    printf("\n[NiftyReg F3D] GPU implementation is used\n");
+#ifdef NDEBUG
+                }
+#endif
+            }
         }
         else{
             fprintf(stderr,"[NiftyReg ERROR] The GPU implementation only handle 1 to 1 or 2 to 2 image(s) registration\n");
