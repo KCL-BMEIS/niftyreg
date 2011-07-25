@@ -143,7 +143,7 @@ inline int previous(int current, int num_dims){
 extern "C++"
 void reg_getEntropies(nifti_image *targetImages,
                       nifti_image *resultImages,
-                      int type,
+                      //int type,
                       unsigned int *target_bins, // should be an array of size num_target_volumes
                       unsigned int *result_bins, // should be an array of size num_result_volumes
                       double *probaJointHistogram,
@@ -155,7 +155,7 @@ void reg_getEntropies(nifti_image *targetImages,
 extern "C++"
 void reg_getVoxelBasedNMIGradientUsingPW(nifti_image *targetImages,
                                          nifti_image *resultImages,
-                                         int type,
+                                         //int type,
                                          nifti_image *resultImageGradient,
                                          unsigned int *target_bins,
                                          unsigned int *result_bins,

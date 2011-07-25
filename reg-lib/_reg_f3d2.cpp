@@ -70,22 +70,6 @@ int reg_f3d2<T>::ApproximateComposition()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d2<T>::AllocateDeformationField()
-{
-    this->ClearDeformationField();
-    reg_f3d<T>::AllocateDeformationField();
-    return 0;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-int reg_f3d2<T>::ClearDeformationField()
-{
-    reg_f3d<T>::ClearDeformationField();
-    return 0;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
 int reg_f3d2<T>::AllocateCurrentInputImage(int level)
 {
     if(this->affineTransformation!=NULL){
@@ -216,7 +200,10 @@ template<class T>
 int reg_f3d2<T>::GetVoxelBasedGradient()
 {
     /* COMPUTE THE GRADIENT BETWEEN THE REFERENCE AND THE WARPED FLOATING */
-    reg_f3d<T>::GetVoxelBasedGradient();
+    reg_f3d<T>::GetVoxelBasedGradient();    
+    nifti_set_filenames(this->voxelBasedMeasureGradientImage, "grad_init.nii", 0, 0);
+    nifti_image_write(this->voxelBasedMeasureGradientImage);
+
 //{
 //// modulate gradient by the jacobian determiant
 //nifti_image *jacobianMap = nifti_copy_nim_info(this->currentReference);
@@ -284,7 +271,7 @@ int reg_f3d2<T>::GetVoxelBasedGradient()
             // Fill the joint histogram reversed
             reg_getEntropies(this->currentFloating,
                              this->warped,
-                             2,
+                             //2,
                              this->floatingBinNumber,
                              this->referenceBinNumber,
                              this->probaJointHistogram,
@@ -295,7 +282,7 @@ int reg_f3d2<T>::GetVoxelBasedGradient()
             // reference and floating are swapped
             reg_getVoxelBasedNMIGradientUsingPW(this->currentFloating,
                                                 this->warped,
-                                                2,
+                                                //2,
                                                 this->warpedGradientImage,
                                                 this->floatingBinNumber,
                                                 this->referenceBinNumber,
@@ -333,7 +320,7 @@ int reg_f3d2<T>::GetVoxelBasedGradient()
 
 
     /* EXPONENTIATE THE R/F(T) GRADIENT */
-    for(int i=0; i<this->stepNumber; ++i){
+    for(int i=0; i<this->stepNumber-1; ++i){
 
         // The jacobian matrices are computed from the deformation field
         reg_defField_getJacobianMatrix(this->intermediateDeformationField[i],
@@ -360,7 +347,7 @@ int reg_f3d2<T>::GetVoxelBasedGradient()
                                                        false // No approximation here
                                                        );
 
-        for(int i=0; i<this->stepNumber; ++i){
+        for(int i=0; i<this->stepNumber-1; ++i){
 
             // The jacobian matrices are computed from the deformation field
             reg_defField_getJacobianMap(this->intermediateDeformationField[i],
@@ -382,6 +369,10 @@ int reg_f3d2<T>::GetVoxelBasedGradient()
         reg_tools_addSubMulDivImages(this->voxelBasedMeasureGradientImage, tempGradientImage, this->voxelBasedMeasureGradientImage, 0); // addition
         nifti_image_free(tempGradientImage);
     }
+
+    char name[255]="grad.nii";
+    nifti_set_filenames(this->voxelBasedMeasureGradientImage, name, 0, 0);
+    nifti_image_write(this->voxelBasedMeasureGradientImage);
 
     return 0;
 }

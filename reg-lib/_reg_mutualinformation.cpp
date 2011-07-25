@@ -140,7 +140,7 @@ PrecisionTYPE GetBasisSplineDerivativeValue(PrecisionTYPE ori)
 template<class DTYPE>
 void reg_getEntropies1(nifti_image *targetImage,
                        nifti_image *resultImage,
-                       int type, //! Not used at the moment
+                       //int type, //! Not used at the moment
                        unsigned int *target_bins,
                        unsigned int *result_bins,
                        double *probaJointHistogram,
@@ -403,7 +403,7 @@ void reg_getEntropies1(nifti_image *targetImage,
 extern "C++"
 void reg_getEntropies(nifti_image *targetImage,
                       nifti_image *resultImage,
-                      int type, //! Not used at the moment
+                      //int type, //! Not used at the moment
                       unsigned int *target_bins, // should be an array of size num_target_volumes
                       unsigned int *result_bins, // should be an array of size num_result_volumes
                       double *probaJointHistogram,
@@ -420,12 +420,12 @@ void reg_getEntropies(nifti_image *targetImage,
     switch(targetImage->datatype){
     case NIFTI_TYPE_FLOAT32:
         reg_getEntropies1<float>
-                (targetImage, resultImage, type, target_bins, result_bins, probaJointHistogram,
+                (targetImage, resultImage, /*type,*/ target_bins, result_bins, probaJointHistogram,
                  logJointHistogram, entropies, mask);
         break;
     case NIFTI_TYPE_FLOAT64:
         reg_getEntropies1<double>
-                (targetImage, resultImage, type, target_bins, result_bins, probaJointHistogram,
+                (targetImage, resultImage, /*type,*/ target_bins, result_bins, probaJointHistogram,
                  logJointHistogram, entropies, mask);
         break;
     default:
@@ -440,7 +440,7 @@ void reg_getEntropies(nifti_image *targetImage,
 template<class DTYPE,class GradTYPE>
 void reg_getVoxelBasedNMIGradientUsingPW2D(nifti_image *targetImage,
                                            nifti_image *resultImage,
-                                           int type, //! Not used at the moment
+                                           //int type, //! Not used at the moment
                                            nifti_image *resultImageGradient,
                                            unsigned int *target_bins,
                                            unsigned int *result_bins,
@@ -658,7 +658,7 @@ void reg_getVoxelBasedNMIGradientUsingPW2D(nifti_image *targetImage,
 template<class DTYPE,class GradTYPE>
 void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *targetImage,
                                            nifti_image *resultImage,
-                                           int type, //! Not used at the moment
+                                           //int type, //! Not used at the moment
                                            nifti_image *resultImageGradient,
                                            unsigned int *target_bins,
                                            unsigned int *result_bins,
@@ -914,7 +914,7 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *targetImage,
 template<class DTYPE>
 void reg_getVoxelBasedNMIGradientUsingPW1(nifti_image *targetImage,
                                           nifti_image *resultImage,
-                                          int type,
+                                          //int type,
                                           nifti_image *resultImageGradient,
                                           unsigned int *target_bins,
                                           unsigned int *result_bins,
@@ -933,12 +933,12 @@ void reg_getVoxelBasedNMIGradientUsingPW1(nifti_image *targetImage,
         switch(resultImageGradient->datatype){
         case NIFTI_TYPE_FLOAT32:
             reg_getVoxelBasedNMIGradientUsingPW2D<DTYPE,float>
-                    (targetImage, resultImage, type, resultImageGradient, target_bins, result_bins, logJointHistogram,
+                    (targetImage, resultImage, /*type,*/ resultImageGradient, target_bins, result_bins, logJointHistogram,
                      entropies, nmiGradientImage, mask);
             break;
         case NIFTI_TYPE_FLOAT64:
             reg_getVoxelBasedNMIGradientUsingPW2D<DTYPE,double>
-                    (targetImage, resultImage, type, resultImageGradient, target_bins, result_bins, logJointHistogram,
+                    (targetImage, resultImage, /*type,*/ resultImageGradient, target_bins, result_bins, logJointHistogram,
                      entropies, nmiGradientImage, mask);
             break;
         default:
@@ -950,12 +950,12 @@ void reg_getVoxelBasedNMIGradientUsingPW1(nifti_image *targetImage,
         switch(resultImageGradient->datatype){
         case NIFTI_TYPE_FLOAT32:
             reg_getVoxelBasedNMIGradientUsingPW3D<DTYPE,float>
-                    (targetImage, resultImage, type, resultImageGradient, target_bins, result_bins, logJointHistogram,
+                    (targetImage, resultImage, /*type,*/ resultImageGradient, target_bins, result_bins, logJointHistogram,
                      entropies, nmiGradientImage, mask);
             break;
         case NIFTI_TYPE_FLOAT64:
             reg_getVoxelBasedNMIGradientUsingPW3D<DTYPE,double>
-                    (targetImage, resultImage, type, resultImageGradient, target_bins, result_bins, logJointHistogram,
+                    (targetImage, resultImage, /*type,*/ resultImageGradient, target_bins, result_bins, logJointHistogram,
                      entropies, nmiGradientImage, mask);
             break;
         default:
@@ -968,7 +968,7 @@ void reg_getVoxelBasedNMIGradientUsingPW1(nifti_image *targetImage,
 /* *************************************************************** */
 void reg_getVoxelBasedNMIGradientUsingPW(nifti_image *targetImage,
                                          nifti_image *resultImage,
-                                         int type,
+                                         //int type,
                                          nifti_image *resultImageGradient,
                                          unsigned int *target_bins,
                                          unsigned int *result_bins,
@@ -986,12 +986,12 @@ void reg_getVoxelBasedNMIGradientUsingPW(nifti_image *targetImage,
     switch(targetImage->datatype){
     case NIFTI_TYPE_FLOAT32:
         reg_getVoxelBasedNMIGradientUsingPW1<float>
-                (targetImage, resultImage, type, resultImageGradient, target_bins, result_bins, logJointHistogram,
+                (targetImage, resultImage, /*type,*/ resultImageGradient, target_bins, result_bins, logJointHistogram,
                  entropies, nmiGradientImage, mask);
         break;
     case NIFTI_TYPE_FLOAT64:
         reg_getVoxelBasedNMIGradientUsingPW1<double>
-                (targetImage, resultImage, type, resultImageGradient, target_bins, result_bins, logJointHistogram,
+                (targetImage, resultImage, /*type,*/ resultImageGradient, target_bins, result_bins, logJointHistogram,
                  entropies, nmiGradientImage, mask);
         break;
     default:
