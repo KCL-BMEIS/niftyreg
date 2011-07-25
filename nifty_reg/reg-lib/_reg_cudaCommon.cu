@@ -212,7 +212,7 @@ int cudaCommon_transferNiftiToArrayOnDevice(cudaArray **cuArray_d, nifti_image *
                                                 copyParams.extent.height);
         copyParams.dstArray = *cuArray_d;
         copyParams.kind = cudaMemcpyHostToDevice;
-        NR_CUDA_SAFE_CALL(cudaMemcpy3D(&copyParams));
+        NR_CUDA_SAFE_CALL(cudaMemcpy3D(&copyParams))
         free(array_h);
     }
     else{ // All these else could be removed but the nvcc compiler would warn for unreachable statement
