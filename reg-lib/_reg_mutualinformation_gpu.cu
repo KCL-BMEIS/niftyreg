@@ -22,7 +22,7 @@
 /// Called when we have two target and two source image
 void reg_getEntropies2x2_gpu(nifti_image *targetImages,
                              nifti_image *resultImages,
-                             int type,
+                             //int type,
                              unsigned int *target_bins, // should be an array of size num_target_volumes
                              unsigned int *result_bins, // should be an array of size num_result_volumes
                              double *probaJointHistogram,
