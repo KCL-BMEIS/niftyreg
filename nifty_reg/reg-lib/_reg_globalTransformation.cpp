@@ -57,7 +57,7 @@ void reg_affine_positionField3D(mat44 *affineTransformation,
                                 nifti_image *targetImage,
                                 nifti_image *positionFieldImage)
 {
-    int voxelNumber=positionFieldImage->nx*positionFieldImage->ny*positionFieldImage->nz;
+    int voxelNumber=targetImage->nx*targetImage->ny*targetImage->nz;
     FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionFieldImage->data);
     FieldTYPE *positionFieldPtrY = &positionFieldPtrX[voxelNumber];
     FieldTYPE *positionFieldPtrZ = &positionFieldPtrY[voxelNumber];

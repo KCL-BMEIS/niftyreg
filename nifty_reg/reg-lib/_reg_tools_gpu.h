@@ -59,5 +59,18 @@ extern "C++"
 void reg_smoothImageForCubicSpline_gpu( nifti_image *resultImage,
                     float4 **voxelNMIGradientArray_d,
                     int *smoothingRadius);
+
+extern "C++"
+void reg_multiplyValue_gpu(int num, float4 **array_d, float value);
+
+extern "C++"
+void reg_addValue_gpu(int num, float4 **array_d, float value);
+
+extern "C++"
+void reg_multiplyArrays_gpu(int num, float4 **array1_d, float4 **array2_d);
+
+extern "C++"
+void reg_addArrays_gpu(int num, float4 **array1_d, float4 **array2_d);
+
 #endif
 

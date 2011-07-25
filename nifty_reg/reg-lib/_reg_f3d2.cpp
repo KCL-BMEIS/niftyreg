@@ -201,8 +201,6 @@ int reg_f3d2<T>::GetVoxelBasedGradient()
 {
     /* COMPUTE THE GRADIENT BETWEEN THE REFERENCE AND THE WARPED FLOATING */
     reg_f3d<T>::GetVoxelBasedGradient();    
-    nifti_set_filenames(this->voxelBasedMeasureGradientImage, "grad_init.nii", 0, 0);
-    nifti_image_write(this->voxelBasedMeasureGradientImage);
 
 //{
 //// modulate gradient by the jacobian determiant
@@ -369,10 +367,6 @@ int reg_f3d2<T>::GetVoxelBasedGradient()
         reg_tools_addSubMulDivImages(this->voxelBasedMeasureGradientImage, tempGradientImage, this->voxelBasedMeasureGradientImage, 0); // addition
         nifti_image_free(tempGradientImage);
     }
-
-    char name[255]="grad.nii";
-    nifti_set_filenames(this->voxelBasedMeasureGradientImage, name, 0, 0);
-    nifti_image_write(this->voxelBasedMeasureGradientImage);
 
     return 0;
 }

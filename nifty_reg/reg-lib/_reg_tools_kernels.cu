@@ -294,7 +294,77 @@ __global__ void _reg_ApplyConvolutionWindowAlongZ_kernel(float4 *smoothedImage,
     }
     return;
 }
-
+/* *************************************************************** */
+__global__ void reg_multiplyValue_kernel_float(float *array_d)
+{
+    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    if(tid < c_VoxelNumber){
+        array_d[tid] *= c_Weight;
+    }
+}
+/* *************************************************************** */
+__global__ void reg_multiplyValue_kernel_float4(float4 *array_d)
+{
+    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    if(tid < c_VoxelNumber){
+        float4 temp = array_d[tid];
+        array_d[tid] = make_float4(temp.x*c_Weight,temp.y*c_Weight,temp.z*c_Weight,temp.w*c_Weight);
+    }
+}
+/* *************************************************************** */
+__global__ void reg_addValue_kernel_float(float *array_d)
+{
+    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    if(tid < c_VoxelNumber){
+        array_d[tid] += c_Weight;
+    }
+}
+/* *************************************************************** */
+__global__ void reg_addValue_kernel_float4(float4 *array_d)
+{
+    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    if(tid < c_VoxelNumber){
+        float4 temp = array_d[tid];
+        array_d[tid] = make_float4(temp.x+c_Weight,temp.y+c_Weight,temp.z+c_Weight,temp.w+c_Weight);
+    }
+}
+/* *************************************************************** */
+__global__ void reg_multiplyArrays_kernel_float(float *array1_d, float *array2_d)
+{
+    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    if(tid < c_VoxelNumber){
+        array1_d[tid] *= array2_d[tid];
+    }
+}
+/* *************************************************************** */
+__global__ void reg_multiplyArrays_kernel_float4(float4 *array1_d, float4 *array2_d)
+{
+    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    if(tid < c_VoxelNumber){
+        float4 a = array1_d[tid];
+        float4 b = array1_d[tid];
+        array1_d[tid] = make_float4(a.x*b.x,a.y*b.y,a.z*b.z,a.w*b.w);
+    }
+}
+/* *************************************************************** */
+__global__ void reg_addArrays_kernel_float(float *array1_d, float *array2_d)
+{
+    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    if(tid < c_VoxelNumber){
+        array1_d[tid] += array2_d[tid];
+    }
+}
+/* *************************************************************** */
+__global__ void reg_addArrays_kernel_float4(float4 *array1_d, float4 *array2_d)
+{
+    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    if(tid < c_VoxelNumber){
+        float4 a = array1_d[tid];
+        float4 b = array1_d[tid];
+        array1_d[tid] = make_float4(a.x+b.x,a.y+b.y,a.z+b.z,a.w+b.w);
+    }
+}
+/* *************************************************************** */
 
 #endif
 

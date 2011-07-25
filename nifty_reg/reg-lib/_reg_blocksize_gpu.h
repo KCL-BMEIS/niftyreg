@@ -41,6 +41,8 @@
 #define Block_reg_bspline_computeJacGradient 416                    // 38 regs
 #define Block_reg_bspline_approxCorrectFolding 416                  // 37 regs
 #define Block_reg_bspline_correctFolding 416                        // 37 regs
+#define Block_reg_defField_compose 512                              // 18 regs
+#define Block_reg_defField_getJacobianMatrix 448                    // ?? regs
 /* ************************************************************************ */
 #define Block_reg_getVoxelBasedNMIGradientUsingPW 384               // 28 regs
 #define Block_reg_getVoxelBasedNMIGradientUsingPW2x2 288            // 52 regs
@@ -84,6 +86,8 @@
 #define Block_reg_bspline_computeJacGradient 512                    // 32 regs
 #define Block_reg_bspline_approxCorrectFolding 512                  // 32 regs
 #define Block_reg_bspline_correctFolding 512                        // 31 regs
+#define Block_reg_defField_compose 448                              // 18 regs
+#define Block_reg_defField_getJacobianMatrix 512                    // ?? regs
 /* ************************************************************************ */
 #define Block_reg_getVoxelBasedNMIGradientUsingPW 320               // 25 regs
 #define Block_reg_getVoxelBasedNMIGradientUsingPW2x2 384            // 42 regs
@@ -128,6 +132,8 @@
 #define Block_reg_bspline_computeJacGradient 256                    // 32 regs
 #define Block_reg_bspline_approxCorrectFolding 256                  // 32 regs
 #define Block_reg_bspline_correctFolding 256                        // 31 regs
+#define Block_reg_defField_compose 448                              // 18 regs
+#define Block_reg_defField_getJacobianMatrix 512                    // 16 regs
 /* ************************************************************************ */
 #define Block_reg_getVoxelBasedNMIGradientUsingPW 320               // 25 regs
 #define Block_reg_getVoxelBasedNMIGradientUsingPW2x2 192            // 42 regs
@@ -156,7 +162,7 @@
 /* ************************************************************************ */
 #endif // __CUDA_ARCH__ >= 200
 
-
+#if CUDART_VERSION >= 3200
 #define NR_CUDA_SAFE_CALL(call) { \
     call; \
     cudaError err = cudaPeekAtLastError(); \
@@ -177,5 +183,25 @@
         exit(EXIT_FAILURE); \
     } \
 }
-
+#else //CUDART_VERSION >= 3200
+#define NR_CUDA_SAFE_CALL(call) { \
+    call; \
+    cudaError err = cudaThreadSynchronize(); \
+    if( cudaSuccess != err) { \
+        fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
+        __FILE__, __LINE__, cudaGetErrorString(err)); \
+        exit(EXIT_FAILURE); \
+    } \
+}
+#define NR_CUDA_CHECK_KERNEL(grid,block) { \
+    cudaError err = cudaThreadSynchronize(); \
+    if( err != cudaSuccess) { \
+        fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
+        __FILE__, __LINE__, cudaGetErrorString(err)); \
+        fprintf(stderr, "Grid [%ix%ix%i] | Block [%ix%ix%i]\n", \
+        grid.x,grid.y,grid.z,block.x,block.y,block.z); \
+        exit(EXIT_FAILURE); \
+    } \
+}
+#endif //CUDART_VERSION >= 3200
 #endif

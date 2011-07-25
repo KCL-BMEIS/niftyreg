@@ -192,7 +192,7 @@ void reg_updateControlPointPosition_gpu(nifti_image *controlPointImage,
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(controlPointTexture))
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(gradientImageTexture))
 }
-
+/* *************************************************************** */
 void reg_gaussianSmoothing_gpu( nifti_image *image,
                                 float4 **imageArray_d,
                                 float sigma,
@@ -276,10 +276,8 @@ void reg_gaussianSmoothing_gpu( nifti_image *image,
             }
         }
     }
-
 }
-
-
+/* *************************************************************** */
 void reg_smoothImageForCubicSpline_gpu( nifti_image *image,
                                         float4 **imageArray_d,
                                         int *smoothingRadius)
@@ -350,6 +348,53 @@ void reg_smoothImageForCubicSpline_gpu( nifti_image *image,
         }
     }
 }
+/* *************************************************************** */
+void reg_multiplyValue_gpu(int num, float4 **array_d, float value)
+{
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&num,sizeof(int)))
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Weight,&value,sizeof(float)))
+
+    const unsigned int Grid_reg_multiplyValues = (unsigned int)ceil((float)num/512.f);
+    dim3 G=dim3(Grid_reg_multiplyValues,1,1);
+    dim3 B=dim3(512,1,1);
+    reg_multiplyValue_kernel_float4<<<G,B>>>(*array_d);
+    NR_CUDA_CHECK_KERNEL(G,B)
+}
+/* *************************************************************** */
+void reg_addValue_gpu(int num, float4 **array_d, float value)
+{
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&num,sizeof(int)))
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Weight,&value,sizeof(float)))
+
+    const unsigned int Grid_reg_addValues = (unsigned int)ceil((float)num/512.f);
+    dim3 G=dim3(Grid_reg_addValues,1,1);
+    dim3 B=dim3(512,1,1);
+    reg_addValue_kernel_float4<<<G,B>>>(*array_d);
+    NR_CUDA_CHECK_KERNEL(G,B)
+}
+/* *************************************************************** */
+void reg_multiplyArrays_gpu(int num, float4 **array1_d, float4 **array2_d)
+{
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&num,sizeof(int)))
+
+    const unsigned int Grid_reg_multiplyArrays = (unsigned int)ceil((float)num/512.f);
+    dim3 G=dim3(Grid_reg_multiplyArrays,1,1);
+    dim3 B=dim3(512,1,1);
+    reg_multiplyArrays_kernel_float4<<<G,B>>>(*array1_d,*array2_d);
+    NR_CUDA_CHECK_KERNEL(G,B)
+}
+/* *************************************************************** */
+void reg_addArrays_gpu(int num, float4 **array1_d, float4 **array2_d)
+{
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&num,sizeof(int)))
+
+    const unsigned int Grid_reg_addArrays = (unsigned int)ceil((float)num/512.f);
+    dim3 G=dim3(Grid_reg_addArrays,1,1);
+    dim3 B=dim3(512,1,1);
+    reg_addArrays_kernel_float4<<<G,B>>>(*array1_d,*array2_d);
+    NR_CUDA_CHECK_KERNEL(G,B)
+}
+/* *************************************************************** */
 
 #endif
 
