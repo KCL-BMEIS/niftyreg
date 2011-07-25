@@ -1289,7 +1289,7 @@ double reg_f3d<T>::ComputeSimilarityMeasure()
     else{
         reg_getEntropies(this->currentReference,
                          this->warped,
-                         2,
+                         //2,
                          this->referenceBinNumber,
                          this->floatingBinNumber,
                          this->probaJointHistogram,
@@ -1401,7 +1401,7 @@ int reg_f3d<T>::GetVoxelBasedGradient()
         // Compute the voxel based NMI gradient
         reg_getVoxelBasedNMIGradientUsingPW(this->currentReference,
                                             this->warped,
-                                            2,
+                                            //2,
                                             this->warpedGradientImage,
                                             this->referenceBinNumber,
                                             this->floatingBinNumber,

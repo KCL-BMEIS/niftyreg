@@ -29,15 +29,12 @@ class reg_f3d2 : public reg_f3d<T>
     int UseSimilaritySymmetry();
     int ApproximateComposition();
 
-    int AllocateDeformationField();
-    int ClearDeformationField();
     int AllocateCurrentInputImage(int);
     int ClearCurrentInputImage();
 
     int GetVoxelBasedGradient();
     int GetDeformationField();
     int CheckStoppingCriteria(bool);
-
 
 public:
     reg_f3d2(int refTimePoint,int floTimePoint);

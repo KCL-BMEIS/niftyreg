@@ -25,7 +25,7 @@ int round(DTYPE x)
 
 /* *************************************************************** */
 template <class FieldTYPE>
-void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *basis)
+        void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *basis)
 {
     if(ratio<0.0) ratio=0.0; //rounding error
     FieldTYPE FF= ratio*ratio;
@@ -36,7 +36,7 @@ void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *basis)
 }
 /* *************************************************************** */
 template <class FieldTYPE>
-void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *basis, FieldTYPE *derivative)
+        void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *basis, FieldTYPE *derivative)
 {
     interpolantCubicSpline<FieldTYPE>(ratio,basis);
     if(ratio<0.0) ratio=0.0; //rounding error
@@ -52,8 +52,7 @@ template<class SourceTYPE, class FieldTYPE>
 void CubicSplineResampleSourceImage(nifti_image *sourceImage,
                                     nifti_image *deformationField,
                                     nifti_image *resultImage,
-                                    int *mask,
-                                    FieldTYPE bgValue)
+                                    int *mask)
 {
     // The spline decomposition assumes a background set to 0 the bgValue variable is thus not use here
 
@@ -90,11 +89,11 @@ void CubicSplineResampleSourceImage(nifti_image *sourceImage,
 #pragma omp parallel for default(none) \
         private(index, intensity, world, position, previous, xBasis, yBasis, zBasis, relative, \
                 a, b, c, Y, Z, zPointer, yzPointer, xyzPointer, xTempNewValue, yTempNewValue) \
-        shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
-               deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
-               sourceIJKMatrix, sourceImage)
+                shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
+                       deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
+                       sourceIJKMatrix, sourceImage)
 #endif // _OPENMP
-        for(index=0;index<targetVoxelNumber; index++){
+                for(index=0;index<targetVoxelNumber; index++){
 
             intensity=(FieldTYPE)(0.0);
 
@@ -148,24 +147,24 @@ void CubicSplineResampleSourceImage(nifti_image *sourceImage,
             }
 
             switch(sourceImage->datatype){
-                case NIFTI_TYPE_FLOAT32:
-                    resultIntensity[index]=(SourceTYPE)intensity;
-                    break;
-                case NIFTI_TYPE_FLOAT64:
-                    resultIntensity[index]=(SourceTYPE)intensity;
-                    break;
-                case NIFTI_TYPE_UINT8:
-                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
-                    break;
+            case NIFTI_TYPE_FLOAT32:
+                resultIntensity[index]=(SourceTYPE)intensity;
+                break;
+            case NIFTI_TYPE_FLOAT64:
+                resultIntensity[index]=(SourceTYPE)intensity;
+                break;
+            case NIFTI_TYPE_UINT8:
+                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                break;
                 case NIFTI_TYPE_UINT16:
-                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
-                    break;
+                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                break;
                 case NIFTI_TYPE_UINT32:
-                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
-                    break;
+                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                break;
                 default:
-                    resultIntensity[index]=(SourceTYPE)round(intensity);
-                    break;
+                resultIntensity[index]=(SourceTYPE)round(intensity);
+                break;
             }
         }
     }
@@ -175,8 +174,7 @@ template<class SourceTYPE, class FieldTYPE>
 void CubicSplineResampleSourceImage2D(  nifti_image *sourceImage,
                                         nifti_image *deformationField,
                                         nifti_image *resultImage,
-                                        int *mask,
-                                        FieldTYPE bgValue)
+                                        int *mask)
 {
     // The spline decomposition assumes a background set to 0 the bgValue variable is thus not use here
 
@@ -212,11 +210,11 @@ void CubicSplineResampleSourceImage2D(  nifti_image *sourceImage,
 #pragma omp parallel for default(none) \
         private(index, intensity, world, position, previous, xBasis, yBasis, relative, \
                 a, b, Y, yPointer, xyPointer, xTempNewValue) \
-        shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
-               deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
-               sourceIJKMatrix, sourceImage)
+                shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
+                       deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
+                       sourceIJKMatrix, sourceImage)
 #endif // _OPENMP
-        for(index=0;index<targetVoxelNumber; index++){
+                for(index=0;index<targetVoxelNumber; index++){
 
             intensity=0.0;
 
@@ -226,9 +224,9 @@ void CubicSplineResampleSourceImage2D(  nifti_image *sourceImage,
                 world[1]=(FieldTYPE) deformationFieldPtrY[index];
                 /* real -> voxel; source space */
                 position[0] = world[0]*sourceIJKMatrix.m[0][0] + world[1]*sourceIJKMatrix.m[0][1] +
-                sourceIJKMatrix.m[0][3];
+                              sourceIJKMatrix.m[0][3];
                 position[1] = world[0]*sourceIJKMatrix.m[1][0] + world[1]*sourceIJKMatrix.m[1][1] +
-                sourceIJKMatrix.m[1][3];
+                              sourceIJKMatrix.m[1][3];
 
                 previous[0] = (int)floor(position[0]);
                 previous[1] = (int)floor(position[1]);
@@ -260,24 +258,24 @@ void CubicSplineResampleSourceImage2D(  nifti_image *sourceImage,
             }
 
             switch(sourceImage->datatype){
-                case NIFTI_TYPE_FLOAT32:
-                    resultIntensity[index]=(SourceTYPE)intensity;
-                    break;
-                case NIFTI_TYPE_FLOAT64:
-                    resultIntensity[index]=(SourceTYPE)intensity;
-                    break;
-                case NIFTI_TYPE_UINT8:
-                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
-                    break;
+            case NIFTI_TYPE_FLOAT32:
+                resultIntensity[index]=(SourceTYPE)intensity;
+                break;
+            case NIFTI_TYPE_FLOAT64:
+                resultIntensity[index]=(SourceTYPE)intensity;
+                break;
+            case NIFTI_TYPE_UINT8:
+                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                break;
                 case NIFTI_TYPE_UINT16:
-                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
-                    break;
+                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                break;
                 case NIFTI_TYPE_UINT32:
-                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
-                    break;
+                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                break;
                 default:
-                    resultIntensity[index]=(SourceTYPE)round(intensity);
-                    break;
+                resultIntensity[index]=(SourceTYPE)round(intensity);
+                break;
             }
         }
     }
@@ -321,11 +319,11 @@ void TrilinearResampleSourceImage(  nifti_image *sourceImage,
 #pragma omp parallel for default(none) \
         private(index, intensity, world, position, previous, xBasis, yBasis, zBasis, relative, \
                 a, b, c, Y, Z, zPointer, xyzPointer, xTempNewValue, yTempNewValue) \
-        shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
-               deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
-               sourceIJKMatrix, sourceImage, bgValue)
+                shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
+                       deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
+                       sourceIJKMatrix, sourceImage, bgValue)
 #endif // _OPENMP
-        for(index=0;index<targetVoxelNumber; index++){
+                for(index=0;index<targetVoxelNumber; index++){
 
             intensity=0.0;
 
@@ -382,24 +380,24 @@ void TrilinearResampleSourceImage(  nifti_image *sourceImage,
             }
 
             switch(sourceImage->datatype){
-                case NIFTI_TYPE_FLOAT32:
-                    resultIntensity[index]=(SourceTYPE)intensity;
-                    break;
-                case NIFTI_TYPE_FLOAT64:
-                    resultIntensity[index]=(SourceTYPE)intensity;
-                    break;
-                case NIFTI_TYPE_UINT8:
-                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
-                    break;
+            case NIFTI_TYPE_FLOAT32:
+                resultIntensity[index]=(SourceTYPE)intensity;
+                break;
+            case NIFTI_TYPE_FLOAT64:
+                resultIntensity[index]=(SourceTYPE)intensity;
+                break;
+            case NIFTI_TYPE_UINT8:
+                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                break;
                 case NIFTI_TYPE_UINT16:
-                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
-                    break;
+                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                break;
                 case NIFTI_TYPE_UINT32:
-                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
-                    break;
+                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                break;
                 default:
-                    resultIntensity[index]=(SourceTYPE)round(intensity);
-                    break;
+                resultIntensity[index]=(SourceTYPE)round(intensity);
+                break;
             }
         }
     }
@@ -459,9 +457,9 @@ void TrilinearResampleSourceImage2D(nifti_image *sourceImage,
 
                 /* real -> voxel; source space */
                 voxel[0] = world[0]*sourceIJKMatrix->m[0][0] + world[1]*sourceIJKMatrix->m[0][1] +
-                sourceIJKMatrix->m[0][3];
+                           sourceIJKMatrix->m[0][3];
                 voxel[1] = world[0]*sourceIJKMatrix->m[1][0] + world[1]*sourceIJKMatrix->m[1][1] +
-                sourceIJKMatrix->m[1][3];
+                           sourceIJKMatrix->m[1][3];
 
                 if( voxel[0]>=0.0f && voxel[0]<(FieldTYPE)(sourceImage->nx-1) &&
                     voxel[1]>=0.0f && voxel[1]<(FieldTYPE)(sourceImage->ny-1)) {
@@ -494,24 +492,24 @@ void TrilinearResampleSourceImage2D(nifti_image *sourceImage,
             }
 
             switch(sourceImage->datatype){
-                case NIFTI_TYPE_FLOAT32:
-                    resultIntensity[index]=(SourceTYPE)intensity;
-                    break;
-                case NIFTI_TYPE_FLOAT64:
-                    resultIntensity[index]=(SourceTYPE)intensity;
-                    break;
-                case NIFTI_TYPE_UINT8:
-                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
-                    break;
+            case NIFTI_TYPE_FLOAT32:
+                resultIntensity[index]=(SourceTYPE)intensity;
+                break;
+            case NIFTI_TYPE_FLOAT64:
+                resultIntensity[index]=(SourceTYPE)intensity;
+                break;
+            case NIFTI_TYPE_UINT8:
+                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                break;
                 case NIFTI_TYPE_UINT16:
-                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
-                    break;
+                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                break;
                 case NIFTI_TYPE_UINT32:
-                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
-                    break;
+                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                break;
                 default:
-                    resultIntensity[index]=(SourceTYPE)round(intensity);
-                    break;
+                resultIntensity[index]=(SourceTYPE)round(intensity);
+                break;
             }
         }
     }
@@ -548,7 +546,7 @@ void NearestNeighborResampleSourceImage(nifti_image *sourceImage,
         SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
         SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-        FieldTYPE intensity;
+        SourceTYPE intensity;
         FieldTYPE world[3];
         FieldTYPE position[3];
         int previous[3];
@@ -556,11 +554,11 @@ void NearestNeighborResampleSourceImage(nifti_image *sourceImage,
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
         private(index, intensity, world, position, previous) \
-        shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
-               deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
-               sourceIJKMatrix, sourceImage, bgValue)
+                shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
+                       deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
+                       sourceIJKMatrix, sourceImage, bgValue)
 #endif // _OPENMP
-        for(index=0; index<targetVoxelNumber; index++){
+                for(index=0; index<targetVoxelNumber; index++){
 
             if(maskPtr[index]>-1){
                 world[0]=(FieldTYPE) deformationFieldPtrX[index];
@@ -617,7 +615,7 @@ void NearestNeighborResampleSourceImage2D(nifti_image *sourceImage,
         SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
         SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-        FieldTYPE intensity;
+        SourceTYPE intensity;
         FieldTYPE world[2];
         FieldTYPE position[2];
         int previous[2];
@@ -625,11 +623,11 @@ void NearestNeighborResampleSourceImage2D(nifti_image *sourceImage,
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
         private(index, intensity, world, position, previous) \
-        shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
-               deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
-               sourceIJKMatrix, sourceImage, bgValue)
+                shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
+                       deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
+                       sourceIJKMatrix, sourceImage, bgValue)
 #endif // _OPENMP
-        for(index=0;index<targetVoxelNumber; index++){
+                for(index=0;index<targetVoxelNumber; index++){
 
             if((*maskPtr++)>-1){
                 world[0]=(FieldTYPE) deformationFieldPtrX[index];
@@ -644,7 +642,7 @@ void NearestNeighborResampleSourceImage2D(nifti_image *sourceImage,
                 previous[1] = (int)round(position[1]);
 
                 if( -1<previous[1] && previous[1]<sourceImage->ny &&
-                -1<previous[0] && previous[0]<sourceImage->nx){
+                    -1<previous[0] && previous[0]<sourceImage->nx){
                     intensity = sourceIntensity[previous[1]*sourceImage->nx+previous[0]];
                     resultIntensity[index]=intensity;
                 }
@@ -667,65 +665,63 @@ void NearestNeighborResampleSourceImage2D(nifti_image *sourceImage,
  * background value.
  */
 template <class FieldTYPE, class SourceTYPE>
-void reg_resampleSourceImage2(	nifti_image *targetImage,
-                                nifti_image *sourceImage,
-                                nifti_image *resultImage,
-                                nifti_image *deformationFieldImage,
-                                int *mask,
-                                int interp,
-                                FieldTYPE bgValue
-                                )
+        void reg_resampleSourceImage2(	nifti_image *targetImage,
+                                        nifti_image *sourceImage,
+                                        nifti_image *resultImage,
+                                        nifti_image *deformationFieldImage,
+                                        int *mask,
+                                        int interp,
+                                        FieldTYPE bgValue
+                                        )
 {
     /* The deformation field contains the position in the real world */
     if(interp==3){
         if(targetImage->nz>1){
-                CubicSplineResampleSourceImage<SourceTYPE,FieldTYPE>( sourceImage,
-                                                                                    deformationFieldImage,
-                                                                                    resultImage,
-                                                                                    mask,
-                                                                                    bgValue);
+            CubicSplineResampleSourceImage<SourceTYPE,FieldTYPE>( sourceImage,
+                                                                  deformationFieldImage,
+                                                                  resultImage,
+                                                                  mask);
         }
         else
         {
             CubicSplineResampleSourceImage2D<SourceTYPE,FieldTYPE>(  sourceImage,
-                                                                                    deformationFieldImage,
-                                                                                    resultImage,
-                                                                                    mask,
-                                                                                    bgValue);
+                                                                     deformationFieldImage,
+                                                                     resultImage,
+                                                                     mask);
         }
     }
     else if(interp==0){ // Nearest neighbor interpolation
         if(targetImage->nz>1){
-                NearestNeighborResampleSourceImage<SourceTYPE, FieldTYPE>( sourceImage,
-                                                                                         deformationFieldImage,
-                                                                                         resultImage,
-                                                                                         mask,
-                                                                                         bgValue);
+            NearestNeighborResampleSourceImage<SourceTYPE, FieldTYPE>( sourceImage,
+                                                                       deformationFieldImage,
+                                                                       resultImage,
+                                                                       mask,
+                                                                       bgValue);
         }
         else
         {
-                NearestNeighborResampleSourceImage2D<SourceTYPE, FieldTYPE>( sourceImage,
-                                                                                           deformationFieldImage,
-                                                                                           resultImage,
-                                                                                           mask,
-                                                                                           bgValue);
+            NearestNeighborResampleSourceImage2D<SourceTYPE, FieldTYPE>( sourceImage,
+                                                                         deformationFieldImage,
+                                                                         resultImage,
+                                                                         mask,
+                                                                         bgValue);
         }
 
     }
     else{ // trilinear interpolation [ by default ]
         if(targetImage->nz>1){
-                TrilinearResampleSourceImage<SourceTYPE, FieldTYPE>( sourceImage,
-                                                                                   deformationFieldImage,
-                                                                                   resultImage,
-                                                                                   mask,
-                                                                                   bgValue);
+            TrilinearResampleSourceImage<SourceTYPE, FieldTYPE>( sourceImage,
+                                                                 deformationFieldImage,
+                                                                 resultImage,
+                                                                 mask,
+                                                                 bgValue);
         }
         else{
-                TrilinearResampleSourceImage2D<SourceTYPE, FieldTYPE>( sourceImage,
-                                                                                     deformationFieldImage,
-                                                                                     resultImage,
-                                                                                     mask,
-                                                                                     bgValue);
+            TrilinearResampleSourceImage2D<SourceTYPE, FieldTYPE>( sourceImage,
+                                                                   deformationFieldImage,
+                                                                   resultImage,
+                                                                   mask,
+                                                                   bgValue);
         }
     }
 }
@@ -743,7 +739,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
         printf("[NiftyReg ERROR] reg_resampleSourceImage\tSource and result image should have the same data type\n");
         printf("[NiftyReg ERROR] reg_resampleSourceImage\tNothing has been done\n");
         exit(1);
-	}
+    }
 
     if(sourceImage->nt != resultImage->nt){
         printf("[NiftyReg ERROR] reg_resampleSourceImage\tThe source and result images have different dimension along the time axis\n");
@@ -758,169 +754,169 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
         MrPropreRules = true;
     }
 
-        switch ( deformationField->datatype ){
-		case NIFTI_TYPE_FLOAT32:
-			switch ( sourceImage->datatype ){
-				case NIFTI_TYPE_UINT8:
-                                        reg_resampleSourceImage2<float,unsigned char>(	targetImage,
-													sourceImage,
-													resultImage,
-                                                                                                        deformationField,
-                                                    mask,
-													interp,
-										bgValue);
-					break;
-				case NIFTI_TYPE_INT8:
-                                        reg_resampleSourceImage2<float,char>(	targetImage,
-												sourceImage,
-												resultImage,
-                                                                                                deformationField,
-                                                    mask,
-												interp,
-										bgValue);
-					break;
-				case NIFTI_TYPE_UINT16:
-                                        reg_resampleSourceImage2<float,unsigned short>(	targetImage,
-													sourceImage,
-													resultImage,
-                                                                                                        deformationField,
-                                                    mask,
-													interp,
-										bgValue);
-					break;
-				case NIFTI_TYPE_INT16:
-                                        reg_resampleSourceImage2<float,short>(	targetImage,
-												sourceImage,
-												resultImage,
-                                                                                                deformationField,
-                                                    mask,
-												interp,
-										bgValue);
-					break;
-				case NIFTI_TYPE_UINT32:
-                                        reg_resampleSourceImage2<float,unsigned int>(	targetImage,
-													sourceImage,
-													resultImage,
-                                                                                                        deformationField,
-                                                    mask,
-													interp,
-										bgValue);
-					break;
-				case NIFTI_TYPE_INT32:
-                                        reg_resampleSourceImage2<float,int>(	targetImage,
-												sourceImage,
-												resultImage,
-                                                                                                deformationField,
-                                                    mask,
-												interp,
-										bgValue);
-					break;
-				case NIFTI_TYPE_FLOAT32:
-                                        reg_resampleSourceImage2<float,float>(	targetImage,
-												sourceImage,
-												resultImage,
-                                                                                                deformationField,
-                                                    mask,
-												interp,
-										bgValue);
-					break;
-				case NIFTI_TYPE_FLOAT64:
-                                        reg_resampleSourceImage2<float,double>(	targetImage,
-												sourceImage,
-												resultImage,
-                                                                                                deformationField,
-                                                    mask,
-												interp,
-										bgValue);
-					break;
-				default:
-					printf("Source pixel type unsupported.");
-					break;
-			}
-                        break;
+    switch ( deformationField->datatype ){
+    case NIFTI_TYPE_FLOAT32:
+        switch ( sourceImage->datatype ){
+        case NIFTI_TYPE_UINT8:
+            reg_resampleSourceImage2<float,unsigned char>(	targetImage,
+                                                                sourceImage,
+                                                                resultImage,
+                                                                deformationField,
+                                                                mask,
+                                                                interp,
+                                                                bgValue);
+            break;
+        case NIFTI_TYPE_INT8:
+            reg_resampleSourceImage2<float,char>(	targetImage,
+                                                        sourceImage,
+                                                        resultImage,
+                                                        deformationField,
+                                                        mask,
+                                                        interp,
+                                                        bgValue);
+            break;
+        case NIFTI_TYPE_UINT16:
+            reg_resampleSourceImage2<float,unsigned short>(	targetImage,
+                                                                sourceImage,
+                                                                resultImage,
+                                                                deformationField,
+                                                                mask,
+                                                                interp,
+                                                                bgValue);
+            break;
+        case NIFTI_TYPE_INT16:
+            reg_resampleSourceImage2<float,short>(	targetImage,
+                                                        sourceImage,
+                                                        resultImage,
+                                                        deformationField,
+                                                        mask,
+                                                        interp,
+                                                        bgValue);
+            break;
+        case NIFTI_TYPE_UINT32:
+            reg_resampleSourceImage2<float,unsigned int>(	targetImage,
+                                                                sourceImage,
+                                                                resultImage,
+                                                                deformationField,
+                                                                mask,
+                                                                interp,
+                                                                bgValue);
+            break;
+        case NIFTI_TYPE_INT32:
+            reg_resampleSourceImage2<float,int>(	targetImage,
+                                                        sourceImage,
+                                                        resultImage,
+                                                        deformationField,
+                                                        mask,
+                                                        interp,
+                                                        bgValue);
+            break;
+        case NIFTI_TYPE_FLOAT32:
+            reg_resampleSourceImage2<float,float>(	targetImage,
+                                                        sourceImage,
+                                                        resultImage,
+                                                        deformationField,
+                                                        mask,
+                                                        interp,
+                                                        bgValue);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            reg_resampleSourceImage2<float,double>(	targetImage,
+                                                        sourceImage,
+                                                        resultImage,
+                                                        deformationField,
+                                                        mask,
+                                                        interp,
+                                                        bgValue);
+            break;
+        default:
+            printf("Source pixel type unsupported.");
+            break;
+        }
+        break;
 		case NIFTI_TYPE_FLOAT64:
-			switch ( sourceImage->datatype ){
-				case NIFTI_TYPE_UINT8:
-                                        reg_resampleSourceImage2<double,unsigned char>(	targetImage,
-																	sourceImage,
-																	resultImage,
-                                                                                                                                        deformationField,
-                                                    mask,
-																	interp,
-										bgValue);
-					break;
-				case NIFTI_TYPE_INT8:
-                                        reg_resampleSourceImage2<double,char>(	targetImage,
-															sourceImage,
-															resultImage,
-                                                                                                                        deformationField,
-                                                    mask,
-															interp,
-										bgValue);
-					break;
-				case NIFTI_TYPE_UINT16:
-                                        reg_resampleSourceImage2<double,unsigned short>(	targetImage,
-																	sourceImage,
-																	resultImage,
-                                                                                                                                        deformationField,
-                                                    mask,
-																	interp,
-										bgValue);
-					break;
-				case NIFTI_TYPE_INT16:
-                                        reg_resampleSourceImage2<double,short>(	targetImage,
-															sourceImage,
-															resultImage,
-                                                                                                                        deformationField,
-                                                    mask,
-															interp,
-										bgValue);
-					break;
-				case NIFTI_TYPE_UINT32:
-                                        reg_resampleSourceImage2<double,unsigned int>(	targetImage,
-																	sourceImage,
-																	resultImage,
-                                                                                                                                        deformationField,
-                                                    mask,
-																	interp,
-										bgValue);
-					break;
-				case NIFTI_TYPE_INT32:
-                                        reg_resampleSourceImage2<double,int>(	targetImage,
-														sourceImage,
-														resultImage,
-                                                                                                                deformationField,
-                                                    mask,
-														interp,
-										bgValue);
-					break;
-				case NIFTI_TYPE_FLOAT32:
-                                        reg_resampleSourceImage2<double,float>(	targetImage,
-															sourceImage,
-															resultImage,
-                                                                                                                        deformationField,
-                                                    mask,
-															interp,
-										bgValue);
-					break;
-				case NIFTI_TYPE_FLOAT64:
-                                        reg_resampleSourceImage2<double,double>(	targetImage,
-															sourceImage,
-															resultImage,
-                                                                                                                        deformationField,
-                                                    mask,
-															interp,
-										bgValue);
-					break;
-				default:
-					printf("Source pixel type unsupported.");
-					break;
-			}
-                        break;
+        switch ( sourceImage->datatype ){
+        case NIFTI_TYPE_UINT8:
+            reg_resampleSourceImage2<double,unsigned char>(	targetImage,
+                                                                sourceImage,
+                                                                resultImage,
+                                                                deformationField,
+                                                                mask,
+                                                                interp,
+                                                                bgValue);
+            break;
+        case NIFTI_TYPE_INT8:
+            reg_resampleSourceImage2<double,char>(	targetImage,
+                                                        sourceImage,
+                                                        resultImage,
+                                                        deformationField,
+                                                        mask,
+                                                        interp,
+                                                        bgValue);
+            break;
+        case NIFTI_TYPE_UINT16:
+            reg_resampleSourceImage2<double,unsigned short>(	targetImage,
+                                                                sourceImage,
+                                                                resultImage,
+                                                                deformationField,
+                                                                mask,
+                                                                interp,
+                                                                bgValue);
+            break;
+        case NIFTI_TYPE_INT16:
+            reg_resampleSourceImage2<double,short>(	targetImage,
+                                                        sourceImage,
+                                                        resultImage,
+                                                        deformationField,
+                                                        mask,
+                                                        interp,
+                                                        bgValue);
+            break;
+        case NIFTI_TYPE_UINT32:
+            reg_resampleSourceImage2<double,unsigned int>(	targetImage,
+                                                                sourceImage,
+                                                                resultImage,
+                                                                deformationField,
+                                                                mask,
+                                                                interp,
+                                                                bgValue);
+            break;
+        case NIFTI_TYPE_INT32:
+            reg_resampleSourceImage2<double,int>(	targetImage,
+                                                        sourceImage,
+                                                        resultImage,
+                                                        deformationField,
+                                                        mask,
+                                                        interp,
+                                                        bgValue);
+            break;
+        case NIFTI_TYPE_FLOAT32:
+            reg_resampleSourceImage2<double,float>(	targetImage,
+                                                        sourceImage,
+                                                        resultImage,
+                                                        deformationField,
+                                                        mask,
+                                                        interp,
+                                                        bgValue);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            reg_resampleSourceImage2<double,double>(	targetImage,
+                                                        sourceImage,
+                                                        resultImage,
+                                                        deformationField,
+                                                        mask,
+                                                        interp,
+                                                        bgValue);
+            break;
+        default:
+            printf("Source pixel type unsupported.");
+            break;
+        }
+        break;
 		default:
-			printf("Deformation field pixel type unsupported.");
-			break;
-	}
+        printf("Deformation field pixel type unsupported.");
+        break;
+    }
     if(MrPropreRules==true) free(mask);
 }
 /* *************************************************************** */
@@ -969,11 +965,11 @@ void TrilinearGradientResultImage(  nifti_image *sourceImage,
 #pragma omp parallel for default(none) \
         private(index, world, position, previous, xBasis, yBasis, zBasis, relative, grad, coeff, \
                 a, b, c, Y, Z, zPointer, xyzPointer, xTempNewValue, yTempNewValue, xxTempNewValue, yyTempNewValue, zzTempNewValue) \
-        shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, deriv, \
-               deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
-               sourceIJKMatrix, sourceImage, resultGradientPtrX, resultGradientPtrY, resultGradientPtrZ)
+                shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, deriv, \
+                       deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
+                       sourceIJKMatrix, sourceImage, resultGradientPtrX, resultGradientPtrY, resultGradientPtrZ)
 #endif // _OPENMP
-        for(index=0;index<targetVoxelNumber; index++){
+                for(index=0;index<targetVoxelNumber; index++){
 
             grad[0]=0.0;
             grad[1]=0.0;
@@ -1087,11 +1083,11 @@ void TrilinearGradientResultImage2D(	nifti_image *sourceImage,
 #pragma omp parallel for default(none) \
         private(index, world, voxel, previous, xBasis, yBasis, relative, grad, coeff, \
                 a, b, Y,xyPointer, xTempNewValue, yTempNewValue) \
-        shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, deriv, \
-               deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
-               sourceIJKMatrix, sourceImage, resultGradientPtrX, resultGradientPtrY)
+                shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, deriv, \
+                       deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
+                       sourceIJKMatrix, sourceImage, resultGradientPtrX, resultGradientPtrY)
 #endif // _OPENMP
-        for(index=0;index<targetVoxelNumber; index++){
+                for(index=0;index<targetVoxelNumber; index++){
 
             grad[0]=0.0;
             grad[1]=0.0;
@@ -1190,11 +1186,11 @@ void CubicSplineGradientResultImage(nifti_image *sourceImage,
 #pragma omp parallel for default(none) \
         private(index, world, position, previous, xBasis, yBasis, zBasis, xDeriv, yDeriv, zDeriv, relative, grad, coeff, bg, \
                 a, b, c, Y, Z, zPointer, yzPointer, xyzPointer, xTempNewValue, yTempNewValue, xxTempNewValue, yyTempNewValue, zzTempNewValue) \
-        shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, \
-               deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
-               sourceIJKMatrix, sourceImage, resultGradientPtrX, resultGradientPtrY, resultGradientPtrZ)
+                shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, \
+                       deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
+                       sourceIJKMatrix, sourceImage, resultGradientPtrX, resultGradientPtrY, resultGradientPtrZ)
 #endif // _OPENMP
-        for(index=0;index<targetVoxelNumber; index++){
+                for(index=0;index<targetVoxelNumber; index++){
 
             grad[0]=0.0;
             grad[1]=0.0;
@@ -1319,11 +1315,11 @@ void CubicSplineGradientResultImage2D(nifti_image *sourceImage,
 #pragma omp parallel for default(none) \
         private(index, world, position, previous, xBasis, yBasis, xDeriv, yDeriv, relative, grad, coeff, bg, \
                 a, b, Y, yPointer, xyPointer, xTempNewValue, yTempNewValue) \
-        shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, \
-               deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
-               sourceIJKMatrix, sourceImage, resultGradientPtrX, resultGradientPtrY)
+                shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, \
+                       deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
+                       sourceIJKMatrix, sourceImage, resultGradientPtrX, resultGradientPtrY)
 #endif // _OPENMP
-        for(index=0;index<targetVoxelNumber; index++){
+                for(index=0;index<targetVoxelNumber; index++){
 
             grad[index]=0.0;
             grad[index]=0.0;
@@ -1334,9 +1330,9 @@ void CubicSplineGradientResultImage2D(nifti_image *sourceImage,
 
                 /* real -> voxel; source space */
                 position[0] = world[0]*sourceIJKMatrix->m[0][0] + world[1]*sourceIJKMatrix->m[0][1] +
-                sourceIJKMatrix->m[0][3];
+                              sourceIJKMatrix->m[0][3];
                 position[1] = world[0]*sourceIJKMatrix->m[1][0] + world[1]*sourceIJKMatrix->m[1][1] +
-                sourceIJKMatrix->m[1][3];
+                              sourceIJKMatrix->m[1][3];
 
                 previous[0] = (int)floor(position[0]);
                 previous[1] = (int)floor(position[1]);
@@ -1384,14 +1380,14 @@ void CubicSplineGradientResultImage2D(nifti_image *sourceImage,
 }
 /* *************************************************************** */
 template <class FieldTYPE, class SourceTYPE, class GradientTYPE>
-void reg_getSourceImageGradient3(   nifti_image *targetImage,
-                                    nifti_image *sourceImage,
-                                    nifti_image *resultGradientImage,
-                                    nifti_image *deformationField,
-                                    int *mask,
-                                    int interp)
+        void reg_getSourceImageGradient3(   nifti_image *targetImage,
+                                            nifti_image *sourceImage,
+                                            nifti_image *resultGradientImage,
+                                            nifti_image *deformationField,
+                                            int *mask,
+                                            int interp)
 {
-	/* The deformation field contains the position in the real world */
+    /* The deformation field contains the position in the real world */
 
     if(interp==3){
         if(targetImage->nz>1){
@@ -1428,75 +1424,75 @@ void reg_getSourceImageGradient3(   nifti_image *targetImage,
 }
 /* *************************************************************** */
 template <class FieldTYPE, class SourceTYPE>
-void reg_getSourceImageGradient2(nifti_image *targetImage,
-								nifti_image *sourceImage,
-								nifti_image *resultGradientImage,
-                                                                nifti_image *deformationField,
-                                int *mask,
-								int interp
-							)
+        void reg_getSourceImageGradient2(nifti_image *targetImage,
+                                         nifti_image *sourceImage,
+                                         nifti_image *resultGradientImage,
+                                         nifti_image *deformationField,
+                                         int *mask,
+                                         int interp
+                                         )
 {
     switch(resultGradientImage->datatype){
-        case NIFTI_TYPE_FLOAT32:
-            reg_getSourceImageGradient3<FieldTYPE,SourceTYPE,float>
-            (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
-            break;
-        case NIFTI_TYPE_FLOAT64:
-            reg_getSourceImageGradient3<FieldTYPE,SourceTYPE,double>
-            (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
-            break;
-        default:
-            printf("[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe result image data type is not supported\n");
-            return;
+    case NIFTI_TYPE_FLOAT32:
+        reg_getSourceImageGradient3<FieldTYPE,SourceTYPE,float>
+                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        reg_getSourceImageGradient3<FieldTYPE,SourceTYPE,double>
+                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
+        break;
+    default:
+        printf("[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe result image data type is not supported\n");
+        return;
     }
 }
 /* *************************************************************** */
 template <class FieldTYPE>
-void reg_getSourceImageGradient1(nifti_image *targetImage,
-								nifti_image *sourceImage,
-								nifti_image *resultGradientImage,
-                                                                nifti_image *deformationField,
-                                int *mask,
-								int interp
-							)
+        void reg_getSourceImageGradient1(nifti_image *targetImage,
+                                         nifti_image *sourceImage,
+                                         nifti_image *resultGradientImage,
+                                         nifti_image *deformationField,
+                                         int *mask,
+                                         int interp
+                                         )
 {
-	switch(sourceImage->datatype){
-		case NIFTI_TYPE_UINT8:
-                        reg_getSourceImageGradient2<FieldTYPE,unsigned char>
-                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
-			break;
-		case NIFTI_TYPE_INT8:
-                        reg_getSourceImageGradient2<FieldTYPE,char>
-                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
-			break;
-		case NIFTI_TYPE_UINT16:
-                        reg_getSourceImageGradient2<FieldTYPE,unsigned short>
-                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
-			break;
-		case NIFTI_TYPE_INT16:
-                        reg_getSourceImageGradient2<FieldTYPE,short>
-                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
-			break;
-		case NIFTI_TYPE_UINT32:
-                        reg_getSourceImageGradient2<FieldTYPE,unsigned int>
-                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
-			break;
-		case NIFTI_TYPE_INT32:
-                        reg_getSourceImageGradient2<FieldTYPE,int>
-                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
-			break;
-		case NIFTI_TYPE_FLOAT32:
-                        reg_getSourceImageGradient2<FieldTYPE,float>
-                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
-			break;
-		case NIFTI_TYPE_FLOAT64:
-                        reg_getSourceImageGradient2<FieldTYPE,double>
-                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
-			break;
-		default:
-                        printf("[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe result image data type is not supported\n");
-			return;
-	}
+    switch(sourceImage->datatype){
+    case NIFTI_TYPE_UINT8:
+        reg_getSourceImageGradient2<FieldTYPE,unsigned char>
+                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
+        break;
+    case NIFTI_TYPE_INT8:
+        reg_getSourceImageGradient2<FieldTYPE,char>
+                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
+        break;
+    case NIFTI_TYPE_UINT16:
+        reg_getSourceImageGradient2<FieldTYPE,unsigned short>
+                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
+        break;
+    case NIFTI_TYPE_INT16:
+        reg_getSourceImageGradient2<FieldTYPE,short>
+                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
+        break;
+    case NIFTI_TYPE_UINT32:
+        reg_getSourceImageGradient2<FieldTYPE,unsigned int>
+                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
+        break;
+    case NIFTI_TYPE_INT32:
+        reg_getSourceImageGradient2<FieldTYPE,int>
+                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
+        break;
+    case NIFTI_TYPE_FLOAT32:
+        reg_getSourceImageGradient2<FieldTYPE,float>
+                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        reg_getSourceImageGradient2<FieldTYPE,double>
+                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
+        break;
+    default:
+        printf("[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe result image data type is not supported\n");
+        return;
+    }
 }
 /* *************************************************************** */
 void reg_getSourceImageGradient(nifti_image *targetImage,
@@ -1521,27 +1517,27 @@ void reg_getSourceImageGradient(nifti_image *targetImage,
         return;
     }
 
-        switch(deformationField->datatype){
-		case NIFTI_TYPE_FLOAT32:
-                        reg_getSourceImageGradient1<float>
-                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
-                        break;
-		case NIFTI_TYPE_FLOAT64:
-                        reg_getSourceImageGradient1<double>
-                                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
-                        break;
-		default:
-                        printf("[NiftyReg ERROR] reg_getSourceImageGradient\tDeformation field pixel type unsupported.\n");
-			break;
-	}
+    switch(deformationField->datatype){
+    case NIFTI_TYPE_FLOAT32:
+        reg_getSourceImageGradient1<float>
+                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        reg_getSourceImageGradient1<double>
+                (targetImage,sourceImage,resultGradientImage,deformationField,mask,interp);
+        break;
+    default:
+        printf("[NiftyReg ERROR] reg_getSourceImageGradient\tDeformation field pixel type unsupported.\n");
+        break;
+    }
     if(MrPropreRule==true) free(mask);
 }
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void reg_resampleImageGradient2D(nifti_image *outputGradientImage,
-                                 nifti_image *jacobianMatrices,
-                                 int *mask)
+        void reg_resampleImageGradient2D(nifti_image *outputGradientImage,
+                                         nifti_image *jacobianMatrices,
+                                         int *mask)
 {
     int pixelNumber = outputGradientImage->nx*outputGradientImage->ny, i;
     DTYPE *gradientPtrX = static_cast<DTYPE *>(outputGradientImage->data);
@@ -1556,33 +1552,38 @@ void reg_resampleImageGradient2D(nifti_image *outputGradientImage,
     DTYPE oldGradientValue[2];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-        private(jacobianMatrix, oldGradientValue, i) \
-        shared(jacPtrXX, jacPtrYY, jacPtrXY, jacPtrYX, pixelNumber, \
-               gradientPtrX, gradientPtrY, mask)
+    private(jacobianMatrix, oldGradientValue, i) \
+    shared(jacPtrXX, jacPtrYY, jacPtrXY, jacPtrYX, pixelNumber, \
+   gradientPtrX, gradientPtrY, mask)
 #endif // _OPENMP
     for(i=0; i<pixelNumber; ++i){
         if(mask[i]>-1){
             jacobianMatrix.m[0][0] = jacPtrXX[i];
             jacobianMatrix.m[0][1] = jacPtrXY[i];
+            jacobianMatrix.m[0][2] = 0;
             jacobianMatrix.m[1][0] = jacPtrYX[i];
             jacobianMatrix.m[1][1] = jacPtrYY[i];
+            jacobianMatrix.m[1][2] = 0;
+            jacobianMatrix.m[2][0] = 0;
+            jacobianMatrix.m[2][1] = 0;
+            jacobianMatrix.m[2][2] = 1;
+            jacobianMatrix=nifti_mat33_polar(jacobianMatrix);
 
             oldGradientValue[0] = gradientPtrX[i];
             oldGradientValue[1] = gradientPtrY[i];
 
             gradientPtrX[i] = oldGradientValue[0] * jacobianMatrix.m[0][0] +
-                              oldGradientValue[1] * jacobianMatrix.m[1][0] ;
-
-            gradientPtrY[i] = oldGradientValue[0] * jacobianMatrix.m[0][1] +
+                              oldGradientValue[1] * jacobianMatrix.m[0][1] ;
+            gradientPtrY[i] = oldGradientValue[0] * jacobianMatrix.m[1][0] +
                               oldGradientValue[1] * jacobianMatrix.m[1][1] ;
         }
     }
 }
 /* *************************************************************** */
 template <class DTYPE>
-void reg_resampleImageGradient3D(nifti_image *outputGradientImage,
-                                 nifti_image *jacobianMatrices,
-                                 int *mask)
+        void reg_resampleImageGradient3D(nifti_image *outputGradientImage,
+                                         nifti_image *jacobianMatrices,
+                                         int *mask)
 {
     int voxelNumber = outputGradientImage->nx*outputGradientImage->ny*outputGradientImage->nz, i;
     DTYPE *gradientPtrX = static_cast<DTYPE *>(outputGradientImage->data);
@@ -1604,9 +1605,9 @@ void reg_resampleImageGradient3D(nifti_image *outputGradientImage,
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-        private(jacobianMatrix, oldGradientValue, i) \
-        shared(jacPtrXX, jacPtrYY, jacPtrZZ, jacPtrXY, jacPtrXZ, jacPtrYX, jacPtrYZ, jacPtrZX, jacPtrZY, \
-               voxelNumber, gradientPtrX, gradientPtrY, gradientPtrZ, mask)
+    private(jacobianMatrix, oldGradientValue, i) \
+    shared(jacPtrXX, jacPtrYY, jacPtrZZ, jacPtrXY, jacPtrXZ, jacPtrYX, jacPtrYZ, jacPtrZX, jacPtrZY, \
+    voxelNumber, gradientPtrX, gradientPtrY, gradientPtrZ, mask)
 #endif // _OPENMP
     for(i=0; i<voxelNumber; ++i){
         if(mask[i]>-1){
@@ -1619,19 +1620,20 @@ void reg_resampleImageGradient3D(nifti_image *outputGradientImage,
             jacobianMatrix.m[2][0] = jacPtrZX[i];
             jacobianMatrix.m[2][1] = jacPtrZY[i];
             jacobianMatrix.m[2][2] = jacPtrZZ[i];
+            jacobianMatrix=nifti_mat33_polar(jacobianMatrix);
 
             oldGradientValue[0] = gradientPtrX[i];
             oldGradientValue[1] = gradientPtrY[i];
             oldGradientValue[2] = gradientPtrZ[i];
 
             gradientPtrX[i] = oldGradientValue[0] * jacobianMatrix.m[0][0] +
-                              oldGradientValue[1] * jacobianMatrix.m[1][0]  +
-                              oldGradientValue[2] * jacobianMatrix.m[2][0] ;
-            gradientPtrY[i] = oldGradientValue[0] * jacobianMatrix.m[0][1] +
+                              oldGradientValue[1] * jacobianMatrix.m[0][1]  +
+                              oldGradientValue[2] * jacobianMatrix.m[0][2] ;
+            gradientPtrY[i] = oldGradientValue[0] * jacobianMatrix.m[1][0] +
                               oldGradientValue[1] * jacobianMatrix.m[1][1] +
-                              oldGradientValue[2] * jacobianMatrix.m[2][1] ;
-            gradientPtrZ[i] = oldGradientValue[0] * jacobianMatrix.m[0][2] +
-                              oldGradientValue[1] * jacobianMatrix.m[1][2] +
+                              oldGradientValue[2] * jacobianMatrix.m[1][2] ;
+            gradientPtrZ[i] = oldGradientValue[0] * jacobianMatrix.m[2][0] +
+                              oldGradientValue[1] * jacobianMatrix.m[2][1] +
                               oldGradientValue[2] * jacobianMatrix.m[2][2] ;
         }
     }
@@ -1666,20 +1668,20 @@ void reg_resampleImageGradient(nifti_image *inputGradientImage,
                             );
 
     switch(deformationField->datatype){
-        case NIFTI_TYPE_FLOAT32:
-            if(deformationField->nz>1)
-                reg_resampleImageGradient3D<float>(outputGradientImage, jacobianMatrices, mask);
-            else reg_resampleImageGradient2D<float>(outputGradientImage, jacobianMatrices, mask);
-            break;
-        case NIFTI_TYPE_FLOAT64:
-            if(deformationField->nz>1)
-                reg_resampleImageGradient3D<double>(outputGradientImage, jacobianMatrices, mask);
-            else reg_resampleImageGradient2D<double>(outputGradientImage, jacobianMatrices, mask);
-            break;
-        default:
-            printf("[NiftyReg ERROR] reg_resampleImageGradient\n");
-            printf("[NiftyReg ERROR] Only floating and double precision have been implemented. Exit\n");
-            exit(1);
+    case NIFTI_TYPE_FLOAT32:
+        if(deformationField->nz>1)
+            reg_resampleImageGradient3D<float>(outputGradientImage, jacobianMatrices, mask);
+        else reg_resampleImageGradient2D<float>(outputGradientImage, jacobianMatrices, mask);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        if(deformationField->nz>1)
+            reg_resampleImageGradient3D<double>(outputGradientImage, jacobianMatrices, mask);
+        else reg_resampleImageGradient2D<double>(outputGradientImage, jacobianMatrices, mask);
+        break;
+    default:
+        printf("[NiftyReg ERROR] reg_resampleImageGradient\n");
+        printf("[NiftyReg ERROR] Only floating and double precision have been implemented. Exit\n");
+        exit(1);
     }
 
     inputGradientImage->nu=inputGradientImage->dim[5]=inputGradientImage->nt;
