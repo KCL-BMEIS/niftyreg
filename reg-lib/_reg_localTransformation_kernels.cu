@@ -21,19 +21,24 @@ __device__ __constant__ int3 c_ReferenceImageDim;
 __device__ __constant__ int3 c_ControlPointImageDim;
 __device__ __constant__ float3 c_ControlPointVoxelSpacing;
 __device__ __constant__ float3 c_ControlPointSpacing;
+__device__ __constant__ float3 c_ReferenceSpacing;
 __device__ __constant__ float c_Weight;
 __device__ __constant__ int c_ActiveVoxelNumber;
 __device__ __constant__ bool c_Type;
 __device__ __constant__ float3 c_AffineMatrix0;
 __device__ __constant__ float3 c_AffineMatrix1;
 __device__ __constant__ float3 c_AffineMatrix2;
+__device__ __constant__ float4 c_AffineMatrix0b;
+__device__ __constant__ float4 c_AffineMatrix1b;
+__device__ __constant__ float4 c_AffineMatrix2b;
+__device__ __constant__ float4 c_AffineMatrix0c;
+__device__ __constant__ float4 c_AffineMatrix1c;
+__device__ __constant__ float4 c_AffineMatrix2c;
 /* *************************************************************** */
 /* *************************************************************** */
 texture<float4, 1, cudaReadModeElementType> controlPointTexture;
 texture<float4, 1, cudaReadModeElementType> secondDerivativesTexture;
 texture<int, 1, cudaReadModeElementType> maskTexture;
-texture<float4, 1, cudaReadModeElementType> txVoxelToRealMatrix;
-texture<float4, 1, cudaReadModeElementType> txRealToVoxelMatrix;
 texture<float,1, cudaReadModeElementType> jacobianDeterminantTexture;
 texture<float,1, cudaReadModeElementType> jacobianMatricesTexture;
 texture<float4,1, cudaReadModeElementType> voxelDisplacementTexture;
@@ -68,6 +73,9 @@ __device__ float3 operator+(float3 a, float3 b){
 /* *************************************************************** */
 __device__ float3 operator-(float3 a, float3 b){
     return make_float3(a.x-b.x, a.y-b.y, a.z-b.z);
+}
+__device__ float4 operator-(float4 a, float4 b){
+    return make_float4(a.x-b.x, a.y-b.y, a.z-b.z, 0.f);
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -1175,5 +1183,186 @@ __global__ void reg_bspline_correctFolding_kernel(float4 *controlPointGrid_d)
         }
     }
 }
+/* *************************************************************** */
+__global__ void reg_getDeformationFromDisplacement_kernel(float4 *imageArray_d)
+{
+    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    if(tid<c_VoxelNumber){
+
+        int3 imageSize = c_ReferenceImageDim;
+
+        unsigned int tempIndex=tid;
+        const int z = tempIndex/(imageSize.x*imageSize.y);
+        tempIndex  -= z*imageSize.x*imageSize.y;
+        const int y = tempIndex/imageSize.x;
+        const int x = tempIndex - y*imageSize.x;
+
+        float4 initialPosition;
+        initialPosition.x=x*c_AffineMatrix0b.x + y*c_AffineMatrix0b.y + z*c_AffineMatrix0b.z + c_AffineMatrix0b.w;
+        initialPosition.y=x*c_AffineMatrix1b.x + y*c_AffineMatrix1b.y + z*c_AffineMatrix1b.z + c_AffineMatrix1b.w;
+        initialPosition.z=x*c_AffineMatrix2b.x + y*c_AffineMatrix2b.y + z*c_AffineMatrix2b.z + c_AffineMatrix2b.w;
+        initialPosition.w=0.f;
+
+        imageArray_d[tid] = imageArray_d[tid] + initialPosition;
+    }
+}
+/* *************************************************************** */
+__global__ void reg_getDisplacementFromDeformation_kernel(float4 *imageArray_d)
+{
+    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    if(tid<c_VoxelNumber){
+
+        int3 imageSize = c_ReferenceImageDim;
+
+        unsigned int tempIndex=tid;
+        const int z = tempIndex/(imageSize.x*imageSize.y);
+        tempIndex  -= z*imageSize.x*imageSize.y;
+        const int y = tempIndex/imageSize.x;
+        const int x = tempIndex - y*imageSize.x;
+
+        float4 initialPosition;
+        initialPosition.x=x*c_AffineMatrix0b.x + y*c_AffineMatrix0b.y + z*c_AffineMatrix0b.z + c_AffineMatrix0b.w;
+        initialPosition.y=x*c_AffineMatrix1b.x + y*c_AffineMatrix1b.y + z*c_AffineMatrix1b.z + c_AffineMatrix1b.w;
+        initialPosition.z=x*c_AffineMatrix2b.x + y*c_AffineMatrix2b.y + z*c_AffineMatrix2b.z + c_AffineMatrix2b.w;
+        initialPosition.w=0.f;
+
+        imageArray_d[tid] = imageArray_d[tid] - initialPosition;
+    }
+}
+/* *************************************************************** */
+__global__ void reg_defField_compose_kernel(float4 *outDef)
+{
+    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    if(tid<c_VoxelNumber){
+
+        float4 position=outDef[tid];
+
+        float4 voxelPosition;
+        voxelPosition.x=position.x*c_AffineMatrix0b.x + position.y*c_AffineMatrix0b.y
+                        + position.z*c_AffineMatrix0b.z + c_AffineMatrix0b.w;
+        voxelPosition.y=position.x*c_AffineMatrix1b.x + position.y*c_AffineMatrix1b.y
+                        + position.z*c_AffineMatrix1b.z + c_AffineMatrix1b.w;
+        voxelPosition.z=position.x*c_AffineMatrix2b.x + position.y*c_AffineMatrix2b.y
+                        + position.z*c_AffineMatrix2b.z + c_AffineMatrix2b.w;
+        voxelPosition.w=0.f;
+
+        // linear interpolation
+        int3 ante=make_int3(floorf(voxelPosition.x),floorf(voxelPosition.y),floorf(voxelPosition.z));
+
+        float relX[2], relY[2], relZ[2];
+        relX[1]=voxelPosition.x-(float)ante.x;relX[0]=1.f-relX[1];
+        relY[1]=voxelPosition.y-(float)ante.y;relY[0]=1.f-relY[1];
+        relZ[1]=voxelPosition.z-(float)ante.z;relZ[0]=1.f-relZ[1];
+
+        position=make_float4(0.f,0.f,0.f,0.f);
+
+        for(int c=0;c<2;++c){
+            for(int b=0;b<2;++b){
+                for(int a=0;a<2;++a){
+                    unsigned int index=((ante.z+c)*c_ReferenceImageDim.y+ante.y+b)*c_ReferenceImageDim.x+ante.x+a;
+                    float4 deformation;
+                    if((ante.x+a)>-1 && (ante.y+b)>-1 && (ante.z+c)>-1 &&
+                       (ante.x+a)<c_ReferenceImageDim.x &&
+                       (ante.y+b)<c_ReferenceImageDim.y &&
+                       (ante.z+c)<c_ReferenceImageDim.z){
+                        deformation=tex1Dfetch(voxelDisplacementTexture,index);
+                    }
+                    else{
+                        deformation.x = float(ante.x+a)*c_AffineMatrix0c.x + float(ante.y+b)*c_AffineMatrix0c.y
+                                      + float(ante.z+c)*c_AffineMatrix0c.z + c_AffineMatrix0c.w;
+                        deformation.y = float(ante.x+a)*c_AffineMatrix1c.x + float(ante.y+b)*c_AffineMatrix1c.y
+                                      + float(ante.z+c)*c_AffineMatrix1c.z + c_AffineMatrix1c.w;
+                        deformation.z = float(ante.x+a)*c_AffineMatrix2c.x + float(ante.y+b)*c_AffineMatrix2c.y
+                                      + float(ante.z+c)*c_AffineMatrix2c.z + c_AffineMatrix2c.w;
+                    }
+                    float basis=relX[a]*relY[b]*relZ[c];
+                    position=position+basis*deformation;
+                }
+            }
+        }
+        outDef[tid]=position;
+    }
+}
+/* *************************************************************** */
+__global__ void reg_defField_getJacobianMatrix_kernel(float *jacobianMatrices)
+{
+    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    if(tid<c_VoxelNumber){
+
+        int3 imageSize = c_ReferenceImageDim;
+
+        unsigned int tempIndex=tid;
+        const int z = tempIndex/(imageSize.x*imageSize.y);
+        tempIndex  -= z*imageSize.x*imageSize.y;
+        const int y = tempIndex/imageSize.x;
+        const int x = tempIndex - y*imageSize.x;
+
+        if(x==imageSize.x-1 ||
+           y==imageSize.y-1 ||
+           z==imageSize.z-1 ){
+            int index=tid*9;
+            jacobianMatrices[index++]=1.0;
+            jacobianMatrices[index++]=0.0;
+            jacobianMatrices[index++]=0.0;
+            jacobianMatrices[index++]=0.0;
+            jacobianMatrices[index++]=1.0;
+            jacobianMatrices[index++]=0.0;
+            jacobianMatrices[index++]=0.0;
+            jacobianMatrices[index++]=0.0;
+            jacobianMatrices[index]=1.0;
+            return;
+        }
+
+        float matrix[9];
+        int index=(z*imageSize.y+y)*imageSize.x+x;
+        float4 deformation = tex1Dfetch(voxelDisplacementTexture,index);
+        matrix[0] = deformation.x * -1.f;
+        matrix[1] = deformation.x * -1.f;
+        matrix[2] = deformation.x * -1.f;
+        matrix[3] = deformation.y * -1.f;
+        matrix[4] = deformation.y * -1.f;
+        matrix[5] = deformation.y * -1.f;
+        matrix[6] = deformation.z * -1.f;
+        matrix[7] = deformation.z * -1.f;
+        matrix[8] = deformation.z * -1.f;
+        deformation = tex1Dfetch(voxelDisplacementTexture,index+1);
+        matrix[0] += deformation.x * 1.f;
+        matrix[3] += deformation.y * 1.f;
+        matrix[6] += deformation.z * 1.f;
+        index=(z*imageSize.y+y+1)*imageSize.x+x;
+        deformation = tex1Dfetch(voxelDisplacementTexture,index);
+        matrix[1] += deformation.x * 1.f;
+        matrix[4] += deformation.y * 1.f;
+        matrix[7] += deformation.z * 1.f;
+        index=((z+1)*imageSize.y+y)*imageSize.x+x;
+        deformation = tex1Dfetch(voxelDisplacementTexture,index);
+        matrix[2] += deformation.x * 1.f;
+        matrix[5] += deformation.y * 1.f;
+        matrix[8] += deformation.z * 1.f;
+
+        matrix[0] /= c_ReferenceSpacing.x;
+        matrix[1] /= c_ReferenceSpacing.y;
+        matrix[2] /= c_ReferenceSpacing.z;
+        matrix[3] /= c_ReferenceSpacing.x;
+        matrix[4] /= c_ReferenceSpacing.y;
+        matrix[5] /= c_ReferenceSpacing.z;
+        matrix[6] /= c_ReferenceSpacing.x;
+        matrix[7] /= c_ReferenceSpacing.y;
+        matrix[8] /= c_ReferenceSpacing.z;
+
+        index=tid*9;
+        jacobianMatrices[index++]=c_AffineMatrix0.x*matrix[0] + c_AffineMatrix0.y*matrix[3] + c_AffineMatrix0.z*matrix[6];
+        jacobianMatrices[index++]=c_AffineMatrix0.x*matrix[1] + c_AffineMatrix0.y*matrix[4] + c_AffineMatrix0.z*matrix[7];
+        jacobianMatrices[index++]=c_AffineMatrix0.x*matrix[2] + c_AffineMatrix0.y*matrix[5] + c_AffineMatrix0.z*matrix[8];
+        jacobianMatrices[index++]=c_AffineMatrix1.x*matrix[0] + c_AffineMatrix1.y*matrix[3] + c_AffineMatrix1.z*matrix[6];
+        jacobianMatrices[index++]=c_AffineMatrix1.x*matrix[1] + c_AffineMatrix1.y*matrix[4] + c_AffineMatrix1.z*matrix[7];
+        jacobianMatrices[index++]=c_AffineMatrix1.x*matrix[2] + c_AffineMatrix1.y*matrix[5] + c_AffineMatrix1.z*matrix[8];
+        jacobianMatrices[index++]=c_AffineMatrix2.x*matrix[0] + c_AffineMatrix2.y*matrix[3] + c_AffineMatrix2.z*matrix[6];
+        jacobianMatrices[index++]=c_AffineMatrix2.x*matrix[1] + c_AffineMatrix2.y*matrix[4] + c_AffineMatrix2.z*matrix[7];
+        jacobianMatrices[index] = c_AffineMatrix2.x*matrix[2] + c_AffineMatrix2.y*matrix[5] + c_AffineMatrix2.z*matrix[8];
+    }
+}
+/* *************************************************************** */
+/* *************************************************************** */
 /* *************************************************************** */
 #endif

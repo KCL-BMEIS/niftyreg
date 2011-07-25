@@ -14,6 +14,7 @@
 
 #include "_reg_blocksize_gpu.h"
 #include "_reg_maths.h"
+#include "_reg_tools_gpu.h"
 #include <limits>
 
 extern "C++"
@@ -60,11 +61,40 @@ double reg_bspline_correctFolding_gpu(  nifti_image *targetImage,
                                         float4 **controlPointImageArray_d,
                                         bool approx);
 
-///** reg_spline_getDeformationFromDisplacement_gpu
-// * Convert a displacement image into a deformation image using the image orientation header
-// */
-//extern "C++"
-//void reg_spline_getDeformationFromDisplacement_gpu( nifti_image *image,
-//                                                    float4 **imageArray_d);
+extern "C++"
+void reg_getDeformationFieldFromVelocityGrid_gpu(nifti_image *cpp_h,
+                                                 nifti_image *def_h,
+                                                 float4 **cpp_gpu,
+                                                 float4 **def_gpu,
+                                                 float4 **interDef_gpu,
+                                                 int **mask,
+                                                 int activeVoxelNumber,
+                                                 bool approxComp);
 
+extern "C++"
+void reg_getInverseDeformationFieldFromVelocityGrid_gpu(nifti_image *cpp_h,
+                                                        nifti_image *def_h,
+                                                        float4 **cpp_gpu,
+                                                        float4 **def_gpu,
+                                                        float4 **interDef_gpu,
+                                                        int **mask,
+                                                        int activeVoxelNumber,
+                                                        bool approxComp);
+
+extern "C++"
+void reg_defField_compose_gpu(nifti_image *def,
+                              float4 **def_gpu,
+                              float4 **defOut_gpu,
+                              int **mask_gpu,
+                              int activeVoxel);
+
+extern "C++"
+void reg_getDeformationFromDisplacement_gpu( nifti_image *image, float4 **imageArray_d);
+extern "C++"
+void reg_getDisplacementFromDeformation_gpu( nifti_image *image, float4 **imageArray_d);
+
+extern "C++"
+void reg_defField_getJacobianMatrix_gpu(nifti_image *deformationField,
+                                        float4 **deformationField_gpu,
+                                        float **jacobianMatrices_gpu);
 #endif

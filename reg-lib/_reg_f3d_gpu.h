@@ -72,6 +72,7 @@ class reg_f3d_gpu : public reg_f3d<T>
     int GetDeformationField();
     int WarpFloatingImage(int);
     double ComputeSimilarityMeasure();
+    int GetVoxelBasedGradient();
     int GetSimilarityMeasureGradient();
     int GetBendingEnergyGradient();
     int GetJacobianBasedGradient();

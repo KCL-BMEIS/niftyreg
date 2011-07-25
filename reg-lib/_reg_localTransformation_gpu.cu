@@ -493,5 +493,260 @@ double reg_bspline_correctFolding_gpu(nifti_image *referenceImage,
     return std::numeric_limits<double>::quiet_NaN();
 }
 /* *************************************************************** */
+/* *************************************************************** */
+void reg_getDeformationFromDisplacement_gpu( nifti_image *image, float4 **imageArray_d)
+{
+    // Bind the qform or sform
+    mat44 temp_mat=image->qto_xyz;
+    if(image->sform_code>0) temp_mat=image->sto_xyz;
+    float4 temp=make_float4(temp_mat.m[0][0],temp_mat.m[0][1],temp_mat.m[0][2],temp_mat.m[0][3]);
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0b,&temp,sizeof(float4)))
+    temp=make_float4(temp_mat.m[1][0],temp_mat.m[1][1],temp_mat.m[1][2],temp_mat.m[1][3]);
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix1b,&temp,sizeof(float4)))
+    temp=make_float4(temp_mat.m[2][0],temp_mat.m[2][1],temp_mat.m[2][2],temp_mat.m[2][3]);
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix2b,&temp,sizeof(float4)))
 
+    const int voxelNumber=image->nx*image->ny*image->nz;
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&voxelNumber,sizeof(int)))
+
+    const int3 imageDim=make_int3(image->nx,image->ny,image->nz);
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim,&imageDim,sizeof(int3)))
+
+    const unsigned int Grid_reg_getDeformationFromDisplacement =
+    (unsigned int)ceilf((float)voxelNumber/(float)(512));
+    dim3 G1(Grid_reg_getDeformationFromDisplacement,1,1);
+    dim3 B1(512,1,1);
+    reg_getDeformationFromDisplacement_kernel<<< G1, B1>>>(*imageArray_d);
+    NR_CUDA_CHECK_KERNEL(G1,B1)
+}
+/* *************************************************************** */
+/* *************************************************************** */
+void reg_getDisplacementFromDeformation_gpu( nifti_image *image, float4 **imageArray_d)
+{
+    // Bind the qform or sform
+    mat44 temp_mat=image->qto_xyz;
+    if(image->sform_code>0) temp_mat=image->sto_xyz;
+    float4 temp=make_float4(temp_mat.m[0][0],temp_mat.m[0][1],temp_mat.m[0][2],temp_mat.m[0][3]);
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0b,&temp,sizeof(float4)))
+    temp=make_float4(temp_mat.m[1][0],temp_mat.m[1][1],temp_mat.m[1][2],temp_mat.m[1][3]);
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix1b,&temp,sizeof(float4)))
+    temp=make_float4(temp_mat.m[2][0],temp_mat.m[2][1],temp_mat.m[2][2],temp_mat.m[2][3]);
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix2b,&temp,sizeof(float4)))
+
+    const int voxelNumber=image->nx*image->ny*image->nz;
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&voxelNumber,sizeof(int)))
+
+    const int3 imageDim=make_int3(image->nx,image->ny,image->nz);
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim,&imageDim,sizeof(int3)))
+
+    const unsigned int Grid_reg_getDisplacementFromDeformation =
+        (unsigned int)ceilf((float)voxelNumber/(float)(512));
+    dim3 G1(Grid_reg_getDisplacementFromDeformation,1,1);
+    dim3 B1(512,1,1);
+    reg_getDisplacementFromDeformation_kernel<<< G1, B1>>>(*imageArray_d);
+    NR_CUDA_CHECK_KERNEL(G1,B1)
+}
+/* *************************************************************** */
+/* *************************************************************** */
+void reg_getDeformationFieldFromVelocityGrid_gpu(nifti_image *cpp_h,
+                                                 nifti_image *def_h,
+                                                 float4 **cpp_gpu,
+                                                 float4 **def_gpu,
+                                                 float4 **interDef_gpu,
+                                                 int **mask_gpu,
+                                                 int activeVoxel,
+                                                 bool approxComp)
+{
+    if(approxComp){
+        fprintf(stderr, "[NiftyReg] reg_getDeformationFieldFromVelocityGrid_gpu\n");
+        fprintf(stderr, "[NiftyReg] ERROR Approximation not implemented yet on the GPU\n");
+        exit(1);
+    }
+
+    const int controlPointNumber = cpp_h->nx * cpp_h->ny * cpp_h->nz;
+    const int voxelNumber = def_h->nx * def_h->ny * def_h->nz;
+
+    if(voxelNumber != activeVoxel){
+        fprintf(stderr, "[NiftyReg] reg_getDeformationFieldFromVelocityGrid_gpu\n");
+        fprintf(stderr, "[NiftyReg] ERROR The mask must contains all voxel\n");
+        exit(1);
+    }
+
+    // A scaled down velocity field is first store
+    float4 *scaledVelocityField_d=NULL;
+    NR_CUDA_SAFE_CALL(cudaMalloc(&scaledVelocityField_d,controlPointNumber*sizeof(float4)))
+    NR_CUDA_SAFE_CALL(cudaMemcpy(scaledVelocityField_d,*cpp_gpu,controlPointNumber*sizeof(float4),cudaMemcpyDeviceToDevice))
+    reg_getDisplacementFromDeformation_gpu(cpp_h, &scaledVelocityField_d);
+    reg_multiplyValue_gpu(controlPointNumber,&scaledVelocityField_d,1.f/cpp_h->pixdim[5]);
+    reg_getDeformationFromDisplacement_gpu(cpp_h, &scaledVelocityField_d);
+
+    if(!approxComp){
+        float4 *tempDef=NULL;
+        float4 *currentDefPtr0=NULL;
+        float4 *currentDefPtr1=NULL;
+        if(interDef_gpu==NULL){
+            NR_CUDA_SAFE_CALL(cudaMalloc(&tempDef,voxelNumber*sizeof(float4)))
+            currentDefPtr0 = *def_gpu;
+            currentDefPtr1 = tempDef;
+        }
+        else{
+            currentDefPtr0 = interDef_gpu[0];
+            currentDefPtr1 = interDef_gpu[1];
+        }
+        reg_bspline_gpu(cpp_h,
+                        def_h,
+                        &scaledVelocityField_d,
+                        &currentDefPtr0,
+                        mask_gpu,
+                        activeVoxel,
+                        true);
+
+        for(unsigned int i=0;i<cpp_h->pixdim[5];++i){
+
+            NR_CUDA_SAFE_CALL(cudaMemcpy(currentDefPtr1,currentDefPtr0,voxelNumber*sizeof(float4),cudaMemcpyDeviceToDevice))
+
+            if(interDef_gpu==NULL){
+                reg_defField_compose_gpu(def_h,
+                                         &currentDefPtr1,
+                                         &currentDefPtr0,
+                                         mask_gpu,
+                                         activeVoxel);
+            }
+            else{
+                reg_defField_compose_gpu(def_h,
+                                         &currentDefPtr0,
+                                         &currentDefPtr1,
+                                         mask_gpu,
+                                         activeVoxel);
+                if(i==cpp_h->pixdim[5]-2){
+                    currentDefPtr0 = interDef_gpu[i+1];
+                    currentDefPtr1 = *def_gpu;
+                }
+                else if(i<cpp_h->pixdim[5]-2){
+                    currentDefPtr0 = interDef_gpu[i+1];
+                    currentDefPtr1 = interDef_gpu[i+2];
+                }
+            }
+        }
+        if(tempDef!=NULL) NR_CUDA_SAFE_CALL(cudaFree(tempDef));
+    }
+    NR_CUDA_SAFE_CALL(cudaFree(scaledVelocityField_d))
+}
+/* *************************************************************** */
+/* *************************************************************** */
+void reg_getInverseDeformationFieldFromVelocityGrid_gpu(nifti_image *cpp_h,
+                                                        nifti_image *def_h,
+                                                        float4 **cpp_gpu,
+                                                        float4 **def_gpu,
+                                                        float4 **interDef_gpu,
+                                                        int **mask_gpu,
+                                                        int activeVoxel,
+                                                        bool approxComp)
+{
+    const int controlPointNumber = cpp_h->nx * cpp_h->ny * cpp_h->nz;
+    // The CPP file is first negated
+    float4 *invertedCpp_gpu=NULL;
+    NR_CUDA_SAFE_CALL(cudaMalloc(&invertedCpp_gpu,controlPointNumber*sizeof(float4)))
+    NR_CUDA_SAFE_CALL(cudaMemcpy(invertedCpp_gpu,*cpp_gpu,controlPointNumber*sizeof(float4),cudaMemcpyDeviceToDevice))
+    reg_getDisplacementFromDeformation_gpu(cpp_h, &invertedCpp_gpu);
+    reg_multiplyValue_gpu(controlPointNumber,&invertedCpp_gpu,-1.f);
+    reg_getDeformationFromDisplacement_gpu(cpp_h, &invertedCpp_gpu);
+
+    reg_getDeformationFieldFromVelocityGrid_gpu(cpp_h,
+                                                def_h,
+                                                &invertedCpp_gpu,
+                                                def_gpu,
+                                                interDef_gpu,
+                                                mask_gpu,
+                                                activeVoxel,
+                                                approxComp);
+    NR_CUDA_SAFE_CALL(cudaFree(invertedCpp_gpu))
+}
+/* *************************************************************** */
+/* *************************************************************** */
+void reg_defField_compose_gpu(nifti_image *def,
+                              float4 **def_gpu,
+                              float4 **defOut_gpu,
+                              int **mask_gpu,
+                              int activeVoxel)
+{
+    const int voxelNumber=def->nx*def->ny*def->nz;
+    if(voxelNumber != activeVoxel){
+        fprintf(stderr, "[NiftyReg] reg_defField_compose_gpu\n");
+        fprintf(stderr, "[NiftyReg] ERROR no mask can be used\n");
+        exit(1);
+    }
+
+    // Bind the qform or sform
+    mat44 temp_mat=def->qto_ijk;
+    if(def->sform_code>0) temp_mat=def->sto_ijk;
+    float4 temp=make_float4(temp_mat.m[0][0],temp_mat.m[0][1],temp_mat.m[0][2],temp_mat.m[0][3]);
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0b,&temp,sizeof(float4)))
+    temp=make_float4(temp_mat.m[1][0],temp_mat.m[1][1],temp_mat.m[1][2],temp_mat.m[1][3]);
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix1b,&temp,sizeof(float4)))
+    temp=make_float4(temp_mat.m[2][0],temp_mat.m[2][1],temp_mat.m[2][2],temp_mat.m[2][3]);
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix2b,&temp,sizeof(float4)))
+
+    temp_mat=def->qto_xyz;
+    if(def->sform_code>0) temp_mat=def->sto_xyz;
+    temp=make_float4(temp_mat.m[0][0],temp_mat.m[0][1],temp_mat.m[0][2],temp_mat.m[0][3]);
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0c,&temp,sizeof(float4)))
+    temp=make_float4(temp_mat.m[1][0],temp_mat.m[1][1],temp_mat.m[1][2],temp_mat.m[1][3]);
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix1c,&temp,sizeof(float4)))
+    temp=make_float4(temp_mat.m[2][0],temp_mat.m[2][1],temp_mat.m[2][2],temp_mat.m[2][3]);
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix2c,&temp,sizeof(float4)))
+
+    const int3 referenceImageDim=make_int3(def->nx,def->ny,def->nz);
+
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0,voxelDisplacementTexture,*def_gpu,activeVoxel*sizeof(float4)))
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0,maskTexture,*mask_gpu,activeVoxel*sizeof(int)))
+
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&voxelNumber,sizeof(int)))
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim,&referenceImageDim,sizeof(int)))
+
+    const unsigned int Grid_reg_defField_compose =
+        (unsigned int)ceilf((float)voxelNumber/(float)(Block_reg_defField_compose));
+    dim3 G1(Grid_reg_defField_compose,1,1);
+    dim3 B1(Block_reg_defField_compose,1,1);
+    reg_defField_compose_kernel<<< G1, B1>>>(*defOut_gpu);
+    NR_CUDA_CHECK_KERNEL(G1,B1)
+
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(voxelDisplacementTexture))
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(maskTexture))
+}
+/* *************************************************************** */
+/* *************************************************************** */
+void reg_defField_getJacobianMatrix_gpu(nifti_image *deformationField,
+                                        float4 **deformationField_gpu,
+                                        float **jacobianMatrices_gpu)
+{
+    const int3 referenceDim=make_int3(deformationField->nx,deformationField->ny,deformationField->nz);
+    const float3 referenceSpacing=make_float3(deformationField->dx,deformationField->dy,deformationField->dz);
+    const int voxelNumber = referenceDim.x*referenceDim.y*referenceDim.z;
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&voxelNumber,sizeof(int)))
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim,&referenceDim,sizeof(int3)))
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceSpacing,&referenceSpacing,sizeof(float3)))
+
+    mat33 reorient, desorient;
+    reg_getReorientationMatrix(deformationField, &desorient, &reorient);
+    float3 temp=make_float3(reorient.m[0][0],reorient.m[0][1],reorient.m[0][2]);
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0,&temp,sizeof(float3)))
+    temp=make_float3(reorient.m[1][0],reorient.m[1][1],reorient.m[1][2]);
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix1,&temp,sizeof(float3)))
+    temp=make_float3(reorient.m[2][0],reorient.m[2][1],reorient.m[2][2]);
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix2,&temp,sizeof(float3)))
+
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0,voxelDisplacementTexture,*deformationField_gpu,voxelNumber*sizeof(float4)))
+
+    const unsigned int Grid_reg_defField_getJacobianMatrix =
+        (unsigned int)ceilf((float)voxelNumber/(float)(Block_reg_defField_getJacobianMatrix));
+    dim3 G1(Grid_reg_defField_getJacobianMatrix,1,1);
+    dim3 B1(Block_reg_defField_getJacobianMatrix);
+    reg_defField_getJacobianMatrix_kernel<<<G1,B1>>>(*jacobianMatrices_gpu);
+    NR_CUDA_CHECK_KERNEL(G1,B1)
+
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(voxelDisplacementTexture))
+}
+/* *************************************************************** */
+/* *************************************************************** */
 #endif

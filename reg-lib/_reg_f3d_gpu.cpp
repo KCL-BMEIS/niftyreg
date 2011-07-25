@@ -42,7 +42,7 @@ reg_f3d_gpu<T>::reg_f3d_gpu(int refTimePoint,int floTimePoint)
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_gpu constructor called\n");
 #endif
-                                                                            }
+}
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -540,9 +540,9 @@ double reg_f3d_gpu<T>::ComputeSimilarityMeasure()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d_gpu<T>::GetSimilarityMeasureGradient()
+int reg_f3d_gpu<T>::GetVoxelBasedGradient()
 {
-    // The log joint jistogram is first transfered to the GPU
+    // The log joint histogram is first transfered to the GPU
     float *tempB=NULL;
     NR_CUDA_SAFE_CALL(cudaMallocHost(&tempB, this->totalBinNumber*sizeof(float)))
     for(unsigned int i=0; i<this->totalBinNumber;i++){
@@ -601,6 +601,15 @@ int reg_f3d_gpu<T>::GetSimilarityMeasureGradient()
                                                     this->referenceBinNumber,
                                                     this->floatingBinNumber);
     }
+    return 0;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+int reg_f3d_gpu<T>::GetSimilarityMeasureGradient()
+{
+
+    this->GetVoxelBasedGradient();
 
     // The voxel based gradient is smoothed
     int smoothingRadius[3];
