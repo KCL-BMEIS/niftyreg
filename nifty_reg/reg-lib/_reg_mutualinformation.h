@@ -13,8 +13,10 @@
 #define _REG_MUTUALINFORMATION_H
 
 #include "nifti1_io.h"
-#include "omp.h"
 #include <vector>
+#ifdef _OPENMP
+    #include "omp.h"
+#endif
 
 // Simple class to dynamically manage an array of pointers
 // Needed for multi channel NMI
