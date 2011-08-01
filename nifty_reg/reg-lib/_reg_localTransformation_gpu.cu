@@ -432,7 +432,6 @@ double reg_bspline_correctFolding_gpu(nifti_image *referenceImage,
     for(int i=0;i<jacNumber;++i) penaltyTermValue += jacobianDet_h[i];
     NR_CUDA_SAFE_CALL(cudaFreeHost(jacobianDet_h))
     penaltyTermValue /= jacSum;
-    printf("value %g\n", penaltyTermValue);
     if(penaltyTermValue==penaltyTermValue){
         NR_CUDA_SAFE_CALL(cudaFree(jacobianDet_d))
         NR_CUDA_SAFE_CALL(cudaFree(jacobianMatrices_d))

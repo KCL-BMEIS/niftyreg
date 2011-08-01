@@ -2780,7 +2780,8 @@ void reg_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
     scaledVelocityField->data= (void *)malloc(scaledVelocityField->nvox*scaledVelocityField->nbyper);
     memcpy(scaledVelocityField->data,velocityFieldGrid->data,scaledVelocityField->nvox*scaledVelocityField->nbyper);
     reg_getDisplacementFromDeformation(scaledVelocityField);
-    reg_tools_addSubMulDivValue(scaledVelocityField,scaledVelocityField,scaledVelocityField->pixdim[5],3);
+    reg_tools_addSubMulDivValue(scaledVelocityField,scaledVelocityField,
+                                POW2(scaledVelocityField->pixdim[5]),3);
     reg_getDeformationFromDisplacement(scaledVelocityField);
 
     if(approx){ // The transformation is applied to a lattice of control point
