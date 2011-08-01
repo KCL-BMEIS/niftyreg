@@ -3274,7 +3274,7 @@ void reg_bspline_GetJacobianMapFromVelocityField_2D(nifti_image* velocityFieldIm
     scaledVelocityField->data=(void *)malloc(scaledVelocityField->nvox*scaledVelocityField->nbyper);
     memcpy(scaledVelocityField->data, velocityFieldImage->data, scaledVelocityField->nvox*scaledVelocityField->nbyper);
     reg_getDisplacementFromDeformation(scaledVelocityField);
-    reg_tools_addSubMulDivValue(scaledVelocityField, scaledVelocityField, pow(2,scaledVelocityField->pixdim[5]), 3);
+    reg_tools_addSubMulDivValue(scaledVelocityField, scaledVelocityField, POW2(scaledVelocityField->pixdim[5]), 3);
     reg_getDeformationFromDisplacement(scaledVelocityField);
 
     // The initial deformation field is computed
@@ -3429,18 +3429,27 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
             deformationFieldA->nu;
     deformationFieldA->nbyper = jacobianImage->nbyper;
     deformationFieldA->datatype = jacobianImage->datatype;
-    deformationFieldA->data = (void *)calloc(deformationFieldA->nvox, deformationFieldA->nbyper);
+    deformationFieldA->data = (void *)malloc(deformationFieldA->nvox * deformationFieldA->nbyper);
     nifti_image *deformationFieldB = nifti_copy_nim_info(deformationFieldA);
-    deformationFieldB->data = (void *)calloc(deformationFieldB->nvox, deformationFieldB->nbyper);
+    deformationFieldB->data = (void *)malloc(deformationFieldB->nvox * deformationFieldB->nbyper);
+
+    // The velocity field is scaled down
+    nifti_image *scaledVelocityField = nifti_copy_nim_info(velocityFieldImage);
+    scaledVelocityField->data = (void *)malloc(scaledVelocityField->nvox * scaledVelocityField->nbyper);
+    memcpy(scaledVelocityField->data, velocityFieldImage->data, scaledVelocityField->nvox*scaledVelocityField->nbyper);
+    reg_getDisplacementFromDeformation(scaledVelocityField);
+    reg_tools_addSubMulDivValue(scaledVelocityField, scaledVelocityField, POW2(scaledVelocityField->pixdim[5]), 3);
+    reg_getDeformationFromDisplacement(scaledVelocityField);
 
     // The initial deformation field is computed
-    reg_spline_getDeformationField(velocityFieldImage,
+    reg_spline_getDeformationField(scaledVelocityField,
                                    jacobianImage,
                                    deformationFieldA,
                                    NULL, // mask
                                    false, //composition
                                    true // bspline
                                    );
+    nifti_image_free(scaledVelocityField);
 
     // The Jacobian determinant values are initialised to 1
     DTYPE *jacobianPtr = static_cast<DTYPE *>(jacobianImage->data);
