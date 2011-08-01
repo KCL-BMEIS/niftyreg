@@ -281,7 +281,6 @@ int main(int argc, char **argv)
                 reg_getDeformationFieldFromVelocityGrid(controlPointImage,
                                                         deformationFieldImage,
                                                         NULL, // intermediate
-                                                        NULL, // mask
                                                         false // approximation
                                                         );
             }

@@ -223,13 +223,11 @@ extern "C++"
 void reg_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                              nifti_image *deformationFieldImage,
                                              nifti_image **intermediateDeformationField,
-                                             int *currentMask,
                                              bool approx);
 extern "C++"
 void reg_getInverseDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                                     nifti_image *deformationFieldImage,
                                                     nifti_image **intermediateDeformationField,
-                                                    int *currentMask,
                                                     bool approx);
 /* *************************************************************** */
 #endif
