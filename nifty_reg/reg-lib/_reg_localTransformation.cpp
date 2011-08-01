@@ -2766,7 +2766,6 @@ int reg_spline_cppComposition(nifti_image *grid1,
 void reg_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                              nifti_image *deformationFieldImage,
                                              nifti_image **intermediateDeformationField,
-                                             int *currentMask,
                                              bool approx)
 {
 
@@ -2811,7 +2810,7 @@ void reg_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
         reg_spline_getDeformationField(controlPointGrid,
                                        deformationFieldImage,
                                        deformationFieldImage,
-                                       currentMask,
+                                       NULL, // mask
                                        false, // composition
                                        false // bspline
                                        );
@@ -2850,12 +2849,12 @@ void reg_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
             if(intermediateDeformationField==NULL){
                 reg_defField_compose(*currentDefPtr1,
                                      *currentDefPtr0,
-                                     currentMask);
+                                     NULL);
             }
             else{
                 reg_defField_compose(*currentDefPtr0,
                                      *currentDefPtr1,
-                                     currentMask);
+                                     NULL);
 
                 if(i==(velocityFieldGrid->pixdim[5]-2)){
                     currentDefPtr0 = &intermediateDeformationField[i+1];
@@ -2876,7 +2875,6 @@ void reg_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
 void reg_getInverseDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                                     nifti_image *deformationFieldImage,
                                                     nifti_image **intermediateDeformationField,
-                                                    int *currentMask,
                                                     bool approx)
 {
     // The velocity field is inverted
@@ -2890,7 +2888,6 @@ void reg_getInverseDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGr
     reg_getDeformationFieldFromVelocityGrid(invertedVelcoityField,
                                             deformationFieldImage,
                                             intermediateDeformationField,
-                                            currentMask,
                                             approx);
 
     nifti_image_free(invertedVelcoityField);

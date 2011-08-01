@@ -159,7 +159,6 @@ int reg_f3d2<T>::GetDeformationField()
     reg_getDeformationFieldFromVelocityGrid(this->controlPointGrid,
                                             this->deformationFieldImage,
                                             NULL, // intermediate
-                                            this->currentMask,
                                             this->approxComp
                                             );
     return 0;
@@ -223,7 +222,6 @@ int reg_f3d2<T>::GetVoxelBasedGradient()
     reg_getInverseDeformationFieldFromVelocityGrid(this->controlPointGrid,
                                                    this->deformationFieldImage,
                                                    this->intermediateDeformationField,
-                                                   this->currentMask,
                                                    false // No approximation here
                                                    );
 
@@ -341,7 +339,6 @@ int reg_f3d2<T>::GetVoxelBasedGradient()
         reg_getDeformationFieldFromVelocityGrid(this->controlPointGrid,
                                                        this->deformationFieldImage,
                                                        this->intermediateDeformationField,
-                                                       this->currentMask,
                                                        false // No approximation here
                                                        );
 
