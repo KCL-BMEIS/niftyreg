@@ -47,8 +47,8 @@ void reg_bspline_gpu(nifti_image *controlPointImage,
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, *mask_d, activeVoxelNumber*sizeof(int)))
 
     const unsigned int Grid_reg_bspline_getDeformationField =
-        (unsigned int)ceilf((float)activeVoxelNumber/(float)(Block_reg_bspline_getDeformationField));
-    dim3 G1(Grid_reg_bspline_getDeformationField,1,1);
+        (unsigned int)ceilf(sqrtf((float)activeVoxelNumber/(float)(Block_reg_bspline_getDeformationField)));
+    dim3 G1(Grid_reg_bspline_getDeformationField,Grid_reg_bspline_getDeformationField,1);
     dim3 B1(Block_reg_bspline_getDeformationField,1,1);
     reg_bspline_getDeformationField <<< G1, B1 >>>(*positionFieldImageArray_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
@@ -74,8 +74,8 @@ float reg_bspline_ApproxBendingEnergy_gpu(nifti_image *controlPointImage,
     float4 *secondDerivativeValues_d;
     NR_CUDA_SAFE_CALL(cudaMalloc(&secondDerivativeValues_d, 6*controlPointGridMem))
     const unsigned int Grid_bspline_getApproxSecondDerivatives =
-        (unsigned int)ceilf((float)controlPointNumber/(float)(Block_reg_bspline_getApproxSecondDerivatives));
-    dim3 G1(Grid_bspline_getApproxSecondDerivatives,1,1);
+        (unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(Block_reg_bspline_getApproxSecondDerivatives)));
+    dim3 G1(Grid_bspline_getApproxSecondDerivatives,Grid_bspline_getApproxSecondDerivatives,1);
     dim3 B1(Block_reg_bspline_getApproxSecondDerivatives,1,1);
     reg_bspline_getApproxSecondDerivatives <<< G1, B1 >>>(secondDerivativeValues_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
@@ -88,8 +88,8 @@ float reg_bspline_ApproxBendingEnergy_gpu(nifti_image *controlPointImage,
                                       secondDerivativeValues_d,
                                       6*controlPointGridMem))
     const unsigned int Grid_reg_bspline_ApproxBendingEnergy =
-        (unsigned int)ceilf((float)controlPointNumber/(float)(Block_reg_bspline_getApproxBendingEnergy));
-    dim3 G2(Grid_reg_bspline_ApproxBendingEnergy,1,1);
+        (unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(Block_reg_bspline_getApproxBendingEnergy)));
+    dim3 G2(Grid_reg_bspline_ApproxBendingEnergy,Grid_reg_bspline_ApproxBendingEnergy,1);
     dim3 B2(Block_reg_bspline_getApproxBendingEnergy,1,1);
     reg_bspline_getApproxBendingEnergy_kernel <<< G2, B2 >>>(penaltyTerm_d);
     NR_CUDA_CHECK_KERNEL(G2,B2)
@@ -128,8 +128,8 @@ void reg_bspline_ApproxBendingEnergyGradient_gpu(nifti_image *referenceImage,
     float4 *secondDerivativeValues_d;
     NR_CUDA_SAFE_CALL(cudaMalloc(&secondDerivativeValues_d, 6*controlPointNumber*sizeof(float4)))
     const unsigned int Grid_bspline_getApproxSecondDerivatives =
-        (unsigned int)ceilf((float)controlPointNumber/(float)(Block_reg_bspline_getApproxSecondDerivatives));
-    dim3 G1(Grid_bspline_getApproxSecondDerivatives,1,1);
+        (unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(Block_reg_bspline_getApproxSecondDerivatives)));
+    dim3 G1(Grid_bspline_getApproxSecondDerivatives,Grid_bspline_getApproxSecondDerivatives,1);
     dim3 B1(Block_reg_bspline_getApproxSecondDerivatives,1,1);
     reg_bspline_getApproxSecondDerivatives <<< G1, B1 >>>(secondDerivativeValues_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
@@ -143,8 +143,8 @@ void reg_bspline_ApproxBendingEnergyGradient_gpu(nifti_image *referenceImage,
                                       secondDerivativeValues_d,
                                       6*controlPointNumber*sizeof(float4)))
     const unsigned int Grid_reg_bspline_getApproxBendingEnergyGradient =
-        (unsigned int)ceilf((float)controlPointNumber/(float)(Block_reg_bspline_getApproxBendingEnergyGradient));
-    dim3 G2(Grid_reg_bspline_getApproxBendingEnergyGradient,1,1);
+        (unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(Block_reg_bspline_getApproxBendingEnergyGradient)));
+    dim3 G2(Grid_reg_bspline_getApproxBendingEnergyGradient,Grid_reg_bspline_getApproxBendingEnergyGradient,1);
     dim3 B2(Block_reg_bspline_getApproxBendingEnergyGradient,1,1);
     reg_bspline_getApproxBendingEnergyGradient_kernel <<< G2, B2 >>>(*nodeNMIGradientArray_d);
     NR_CUDA_CHECK_KERNEL(G2,B2)
@@ -182,8 +182,8 @@ void reg_bspline_ComputeApproxJacobianValues(nifti_image *controlPointImage,
 
     // The Jacobian matrix is computed for every control point
     const unsigned int Grid_reg_bspline_getApproxJacobianValues =
-        (unsigned int)ceilf((float)controlPointNumber/(float)(Block_reg_bspline_getApproxJacobianValues));
-    dim3 G1(Grid_reg_bspline_getApproxJacobianValues,1,1);
+        (unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(Block_reg_bspline_getApproxJacobianValues)));
+    dim3 G1(Grid_reg_bspline_getApproxJacobianValues,Grid_reg_bspline_getApproxJacobianValues,1);
     dim3 B1(Block_reg_bspline_getApproxJacobianValues,1,1);
     reg_bspline_getApproxJacobianValues_kernel<<< G1, B1>>>(*jacobianMatrices_d, *jacobianDet_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
@@ -226,8 +226,8 @@ void reg_bspline_ComputeJacobianValues(nifti_image *controlPointImage,
 
     // The Jacobian matrix is computed for every voxel
     const unsigned int Grid_reg_bspline_getJacobianValues =
-        (unsigned int)ceilf((float)voxelNumber/(float)(Block_reg_bspline_getJacobianValues));
-    dim3 G1(Grid_reg_bspline_getJacobianValues,1,1);
+        (unsigned int)ceilf(sqrtf((float)voxelNumber/(float)(Block_reg_bspline_getJacobianValues)));
+    dim3 G1(Grid_reg_bspline_getJacobianValues,Grid_reg_bspline_getJacobianValues,1);
     dim3 B1(Block_reg_bspline_getJacobianValues,1,1);
     reg_bspline_getJacobianValues_kernel<<< G1, B1>>>(*jacobianMatrices_d, *jacobianDet_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
@@ -272,8 +272,8 @@ double reg_bspline_ComputeJacobianPenaltyTerm_gpu(nifti_image *referenceImage,
     // The Jacobian determinant are squared and logged (might not be english but will do)
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&jacNumber,sizeof(int)))
     const unsigned int Grid_reg_bspline_logSquaredValues =
-        (unsigned int)ceilf((float)jacNumber/(float)(Block_reg_bspline_logSquaredValues));
-    dim3 G1(Grid_reg_bspline_logSquaredValues,1,1);
+        (unsigned int)ceilf(sqrtf((float)jacNumber/(float)(Block_reg_bspline_logSquaredValues)));
+    dim3 G1(Grid_reg_bspline_logSquaredValues,Grid_reg_bspline_logSquaredValues,1);
     dim3 B1(Block_reg_bspline_logSquaredValues,1,1);
     reg_bspline_logSquaredValues_kernel<<< G1, B1>>>(jacobianDet_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
@@ -350,8 +350,8 @@ void reg_bspline_ComputeJacobianPenaltyTermGradient_gpu(nifti_image *referenceIm
                  / (float)( controlPointImage->nx*controlPointImage->ny*controlPointImage->nz);
         NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Weight,&weight,sizeof(float)))
         const unsigned int Grid_reg_bspline_computeApproxJacGradient =
-            (unsigned int)ceilf((float)controlPointNumber/(float)(Block_reg_bspline_computeApproxJacGradient));
-        dim3 G1(Grid_reg_bspline_computeApproxJacGradient,1,1);
+            (unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(Block_reg_bspline_computeApproxJacGradient)));
+        dim3 G1(Grid_reg_bspline_computeApproxJacGradient,Grid_reg_bspline_computeApproxJacGradient,1);
         dim3 B1(Block_reg_bspline_computeApproxJacGradient,1,1);
         reg_bspline_computeApproxJacGradient_kernel<<< G1, B1>>>(*nodeNMIGradientArray_d);
         NR_CUDA_CHECK_KERNEL(G1,B1)
@@ -368,8 +368,8 @@ void reg_bspline_ComputeJacobianPenaltyTermGradient_gpu(nifti_image *referenceIm
         NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointVoxelSpacing,&controlPointVoxelSpacing,sizeof(float3)))
         NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Weight,&jacobianWeight,sizeof(float)))
         const unsigned int Grid_reg_bspline_computeJacGradient =
-            (unsigned int)ceilf((float)controlPointNumber/(float)(Block_reg_bspline_computeJacGradient));
-        dim3 G1(Grid_reg_bspline_computeJacGradient,1,1);
+            (unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(Block_reg_bspline_computeJacGradient)));
+        dim3 G1(Grid_reg_bspline_computeJacGradient,Grid_reg_bspline_computeJacGradient,1);
         dim3 B1(Block_reg_bspline_computeJacGradient,1,1);
         reg_bspline_computeJacGradient_kernel<<< G1, B1>>>(*nodeNMIGradientArray_d);
         NR_CUDA_CHECK_KERNEL(G1,B1)
@@ -417,8 +417,8 @@ double reg_bspline_correctFolding_gpu(nifti_image *referenceImage,
     NR_CUDA_SAFE_CALL(cudaMalloc(&jacobianDet2_d,jacNumber*sizeof(float)))
     NR_CUDA_SAFE_CALL(cudaMemcpy(jacobianDet2_d,jacobianDet_d,jacNumber*sizeof(float),cudaMemcpyDeviceToDevice))
     const unsigned int Grid_reg_bspline_logSquaredValues =
-        (unsigned int)ceilf((float)jacNumber/(float)(Block_reg_bspline_logSquaredValues));
-    dim3 G1(Grid_reg_bspline_logSquaredValues,1,1);
+        (unsigned int)ceilf(sqrtf((float)jacNumber/(float)(Block_reg_bspline_logSquaredValues)));
+    dim3 G1(Grid_reg_bspline_logSquaredValues,Grid_reg_bspline_logSquaredValues,1);
     dim3 B1(Block_reg_bspline_logSquaredValues,1,1);
     reg_bspline_logSquaredValues_kernel<<< G1, B1>>>(jacobianDet2_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
@@ -462,8 +462,8 @@ double reg_bspline_correctFolding_gpu(nifti_image *referenceImage,
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointSpacing,&controlPointSpacing,sizeof(float3)))
     if(approx){
         const unsigned int Grid_reg_bspline_approxCorrectFolding =
-            (unsigned int)ceilf((float)controlPointNumber/(float)(Block_reg_bspline_approxCorrectFolding));
-        dim3 G1(Grid_reg_bspline_approxCorrectFolding,1,1);
+            (unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(Block_reg_bspline_approxCorrectFolding)));
+        dim3 G1(Grid_reg_bspline_approxCorrectFolding,Grid_reg_bspline_approxCorrectFolding,1);
         dim3 B1(Block_reg_bspline_approxCorrectFolding,1,1);
         reg_bspline_approxCorrectFolding_kernel<<< G1, B1>>>(*controlPointImageArray_d);
         NR_CUDA_CHECK_KERNEL(G1,B1)
@@ -479,8 +479,8 @@ double reg_bspline_correctFolding_gpu(nifti_image *referenceImage,
         NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim,&referenceImageDim,sizeof(int3)))
         NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ControlPointVoxelSpacing,&controlPointVoxelSpacing,sizeof(float3)))
         const unsigned int Grid_reg_bspline_correctFolding =
-        (unsigned int)ceilf((float)controlPointNumber/(float)(Block_reg_bspline_correctFolding));
-        dim3 G1(Grid_reg_bspline_correctFolding,1,1);
+        (unsigned int)ceilf(sqrtf((float)controlPointNumber/(float)(Block_reg_bspline_correctFolding)));
+        dim3 G1(Grid_reg_bspline_correctFolding,Grid_reg_bspline_correctFolding,1);
         dim3 B1(Block_reg_bspline_correctFolding,1,1);
         reg_bspline_correctFolding_kernel<<< G1, B1>>>(*controlPointImageArray_d);
         NR_CUDA_CHECK_KERNEL(G1,B1)
@@ -512,8 +512,8 @@ void reg_getDeformationFromDisplacement_gpu( nifti_image *image, float4 **imageA
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim,&imageDim,sizeof(int3)))
 
     const unsigned int Grid_reg_getDeformationFromDisplacement =
-    (unsigned int)ceilf((float)voxelNumber/(float)(512));
-    dim3 G1(Grid_reg_getDeformationFromDisplacement,1,1);
+    (unsigned int)ceilf(sqrtf((float)voxelNumber/(float)(512)));
+    dim3 G1(Grid_reg_getDeformationFromDisplacement,Grid_reg_getDeformationFromDisplacement,1);
     dim3 B1(512,1,1);
     reg_getDeformationFromDisplacement_kernel<<< G1, B1>>>(*imageArray_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
@@ -539,8 +539,8 @@ void reg_getDisplacementFromDeformation_gpu( nifti_image *image, float4 **imageA
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim,&imageDim,sizeof(int3)))
 
     const unsigned int Grid_reg_getDisplacementFromDeformation =
-        (unsigned int)ceilf((float)voxelNumber/(float)(512));
-    dim3 G1(Grid_reg_getDisplacementFromDeformation,1,1);
+        (unsigned int)ceilf(sqrtf((float)voxelNumber/(float)(512)));
+    dim3 G1(Grid_reg_getDisplacementFromDeformation,Grid_reg_getDisplacementFromDeformation,1);
     dim3 B1(512,1,1);
     reg_getDisplacementFromDeformation_kernel<<< G1, B1>>>(*imageArray_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
@@ -704,8 +704,8 @@ void reg_defField_compose_gpu(nifti_image *def,
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim,&referenceImageDim,sizeof(int)))
 
     const unsigned int Grid_reg_defField_compose =
-        (unsigned int)ceilf((float)voxelNumber/(float)(Block_reg_defField_compose));
-    dim3 G1(Grid_reg_defField_compose,1,1);
+        (unsigned int)ceilf(sqrtf((float)voxelNumber/(float)(Block_reg_defField_compose)));
+    dim3 G1(Grid_reg_defField_compose,Grid_reg_defField_compose,1);
     dim3 B1(Block_reg_defField_compose,1,1);
     reg_defField_compose_kernel<<< G1, B1>>>(*defOut_gpu);
     NR_CUDA_CHECK_KERNEL(G1,B1)
@@ -738,8 +738,8 @@ void reg_defField_getJacobianMatrix_gpu(nifti_image *deformationField,
     NR_CUDA_SAFE_CALL(cudaBindTexture(0,voxelDisplacementTexture,*deformationField_gpu,voxelNumber*sizeof(float4)))
 
     const unsigned int Grid_reg_defField_getJacobianMatrix =
-        (unsigned int)ceilf((float)voxelNumber/(float)(Block_reg_defField_getJacobianMatrix));
-    dim3 G1(Grid_reg_defField_getJacobianMatrix,1,1);
+        (unsigned int)ceilf(sqrtf((float)voxelNumber/(float)(Block_reg_defField_getJacobianMatrix)));
+    dim3 G1(Grid_reg_defField_getJacobianMatrix,Grid_reg_defField_getJacobianMatrix,1);
     dim3 B1(Block_reg_defField_getJacobianMatrix);
     reg_defField_getJacobianMatrix_kernel<<<G1,B1>>>(*jacobianMatrices_gpu);
     NR_CUDA_CHECK_KERNEL(G1,B1)

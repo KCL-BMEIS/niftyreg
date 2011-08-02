@@ -66,10 +66,9 @@ void reg_resampleSourceImage_gpu(nifti_image *resultImage,
     NR_CUDA_SAFE_CALL(cudaFreeHost((void *)sourceRealToVoxel_h))
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, sourceMatrixTexture, sourceRealToVoxel_d, 3*sizeof(float4)))
 
-    const unsigned int Grid_reg_resampleSourceImage = (unsigned int)ceil((float)activeVoxelNumber/(float)Block_reg_resampleSourceImage);
+    const unsigned int Grid_reg_resampleSourceImage = (unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)Block_reg_resampleSourceImage));
     dim3 B1(Block_reg_resampleSourceImage,1,1);
-    dim3 G1(Grid_reg_resampleSourceImage,1,1);
-
+    dim3 G1(Grid_reg_resampleSourceImage,Grid_reg_resampleSourceImage,1);
     reg_resampleSourceImage_kernel <<< G1, B1 >>> (*resultImageArray_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
 
@@ -125,10 +124,9 @@ void reg_getSourceImageGradient_gpu(nifti_image *targetImage,
     NR_CUDA_SAFE_CALL(cudaFreeHost((void *)sourceRealToVoxel_h))
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, sourceMatrixTexture, sourceRealToVoxel_d, 3*sizeof(float4)))
 
-    const unsigned int Grid_reg_getSourceImageGradient = (unsigned int)ceil((float)activeVoxelNumber/(float)Block_reg_getSourceImageGradient);
+    const unsigned int Grid_reg_getSourceImageGradient = (unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)Block_reg_getSourceImageGradient));
     dim3 B1(Block_reg_getSourceImageGradient,1,1);
-    dim3 G1(Grid_reg_getSourceImageGradient,1,1);
-
+    dim3 G1(Grid_reg_getSourceImageGradient,Grid_reg_getSourceImageGradient,1);
     reg_getSourceImageGradient_kernel <<< G1, B1 >>> (*resultGradientArray_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(sourceTexture))

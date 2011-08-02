@@ -304,7 +304,7 @@ __global__ void reg_bspline_getDeformationField(float4 *positionField)
     __shared__ float zBasis[Block_reg_bspline_getDeformationField*4];
     __shared__ float yBasis[Block_reg_bspline_getDeformationField*4];
 
-    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_ActiveVoxelNumber){
 
         int3 imageSize = c_ReferenceImageDim;
@@ -403,7 +403,7 @@ __global__ void reg_bspline_getApproxSecondDerivatives(float4 *secondDerivativeV
                                        xzbasis);
     __syncthreads();
 
-    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_ControlPointNumber){
 
         int3 gridSize = c_ControlPointImageDim;
@@ -456,7 +456,7 @@ __global__ void reg_bspline_getApproxSecondDerivatives(float4 *secondDerivativeV
 /* *************************************************************** */
 __global__ void reg_bspline_getApproxBendingEnergy_kernel(float *penaltyTerm)
 {
-    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_ControlPointNumber){
         int index=tid*6;
         float4 XX = tex1Dfetch(secondDerivativesTexture,index++);XX=XX*XX;
@@ -491,7 +491,7 @@ __global__ void reg_bspline_getApproxBendingEnergyGradient_kernel(float4 *nodeNM
                                        xzbasis);
     __syncthreads();
 
-    const int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_ControlPointNumber){
 
         int3 gridSize = c_ControlPointImageDim;
@@ -572,7 +572,7 @@ __global__ void reg_bspline_getApproxJacobianValues_kernel(float *jacobianMatric
                                       zbasis);
     __syncthreads();
 
-    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_ControlPointNumber){
 
         int3 gridSize = c_ControlPointImageDim;
@@ -672,7 +672,7 @@ __global__ void reg_bspline_getApproxJacobianValues_kernel(float *jacobianMatric
 __global__ void reg_bspline_getJacobianValues_kernel(float *jacobianMatrices,
                                                      float *jacobianDet)
 {
-    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_VoxelNumber){
 
         int3 imageSize = c_ReferenceImageDim;
@@ -782,7 +782,7 @@ __global__ void reg_bspline_getJacobianValues_kernel(float *jacobianMatrices,
 /* *************************************************************** */
 __global__ void reg_bspline_logSquaredValues_kernel(float *det)
 {
-    const unsigned int tid = blockIdx.x*blockDim.x + threadIdx.x;
+    const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_VoxelNumber){
         float val = logf(det[tid]);
         det[tid]=val*val;
@@ -825,7 +825,7 @@ __global__ void reg_bspline_computeApproxJacGradient_kernel(float4 *gradient)
                                       zbasis);
     __syncthreads();
 
-    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_ControlPointNumber){
 
         int3 gridSize = c_ControlPointImageDim;
@@ -899,7 +899,7 @@ __global__ void reg_bspline_computeApproxJacGradient_kernel(float4 *gradient)
 /* *************************************************************** */
 __global__ void reg_bspline_computeJacGradient_kernel(float4 *gradient)
 {
-    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_ControlPointNumber){
 
         int3 gridSize = c_ControlPointImageDim;
@@ -998,7 +998,7 @@ __global__ void reg_bspline_computeJacGradient_kernel(float4 *gradient)
 /* *************************************************************** */
 __global__ void reg_bspline_approxCorrectFolding_kernel(float4 *controlPointGrid_d)
 {
-    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_ControlPointNumber){
 
         int3 gridSize = c_ControlPointImageDim;
@@ -1085,7 +1085,7 @@ __global__ void reg_bspline_approxCorrectFolding_kernel(float4 *controlPointGrid
 /* *************************************************************** */
 __global__ void reg_bspline_correctFolding_kernel(float4 *controlPointGrid_d)
 {
-    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_ControlPointNumber){
 
         int3 gridSize = c_ControlPointImageDim;
@@ -1186,7 +1186,7 @@ __global__ void reg_bspline_correctFolding_kernel(float4 *controlPointGrid_d)
 /* *************************************************************** */
 __global__ void reg_getDeformationFromDisplacement_kernel(float4 *imageArray_d)
 {
-    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_VoxelNumber){
 
         int3 imageSize = c_ReferenceImageDim;
@@ -1209,7 +1209,7 @@ __global__ void reg_getDeformationFromDisplacement_kernel(float4 *imageArray_d)
 /* *************************************************************** */
 __global__ void reg_getDisplacementFromDeformation_kernel(float4 *imageArray_d)
 {
-    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_VoxelNumber){
 
         int3 imageSize = c_ReferenceImageDim;
@@ -1232,7 +1232,7 @@ __global__ void reg_getDisplacementFromDeformation_kernel(float4 *imageArray_d)
 /* *************************************************************** */
 __global__ void reg_defField_compose_kernel(float4 *outDef)
 {
-    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_VoxelNumber){
 
         float4 position=outDef[tid];
@@ -1286,7 +1286,7 @@ __global__ void reg_defField_compose_kernel(float4 *outDef)
 /* *************************************************************** */
 __global__ void reg_defField_getJacobianMatrix_kernel(float *jacobianMatrices)
 {
-    const unsigned int tid= blockIdx.x*blockDim.x + threadIdx.x;
+    const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_VoxelNumber){
 
         int3 imageSize = c_ReferenceImageDim;

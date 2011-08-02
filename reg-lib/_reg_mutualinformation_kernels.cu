@@ -75,7 +75,7 @@ __device__ float GetBasisSplineDerivativeValue(float ori)
 
 __global__ void reg_getVoxelBasedNMIGradientUsingPW_kernel(float4 *voxelNMIGradientArray_d)
 {
-    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_ActiveVoxelNumber){
 
         const int targetIndex = tex1Dfetch(maskTexture,tid);
@@ -167,7 +167,7 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW_kernel(float4 *voxelNMIGradi
 // Multichannel NMI gradient. Hardcoded for 2x2 NMI channels.
 __global__ void reg_getVoxelBasedNMIGradientUsingPW2x2_kernel(float4 *voxelNMIGradientArray_d)
 {
-    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_ActiveVoxelNumber){
         const int targetIndex = tex1Dfetch(maskTexture,tid);
 
@@ -300,7 +300,7 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW2x2_kernel(float4 *voxelNMIGr
 
 __global__ void reg_smoothJointHistogramX_kernel(float *tempHistogram)
 {
-    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_secondTargetBin*c_firstResultBin*c_secondResultBin){
         // The starting index is computed
         unsigned int startingPoint=tid*c_firstTargetBin;
@@ -324,7 +324,7 @@ __global__ void reg_smoothJointHistogramX_kernel(float *tempHistogram)
 
 __global__ void reg_smoothJointHistogramY_kernel(float *tempHistogram)
 {
-    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_firstTargetBin*c_firstResultBin*c_secondResultBin){
         // The starting index is computed
         unsigned int startingPoint=tid + c_firstTargetBin*(c_secondTargetBin-1)*(c_firstResultBin*(int)(tid/(c_firstTargetBin*c_firstResultBin)) +
@@ -350,7 +350,7 @@ __global__ void reg_smoothJointHistogramY_kernel(float *tempHistogram)
 
 __global__ void reg_smoothJointHistogramZ_kernel(float *tempHistogram)
 {
-    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_firstTargetBin*c_secondTargetBin*c_secondResultBin){
         // The starting index is computed
         unsigned int startingPoint=tid+c_firstTargetBin*c_secondTargetBin*(c_firstResultBin-1)*(int)(tid/(c_firstTargetBin*c_secondTargetBin));
@@ -375,7 +375,7 @@ __global__ void reg_smoothJointHistogramZ_kernel(float *tempHistogram)
 
 __global__ void reg_smoothJointHistogramW_kernel(float *tempHistogram)
 {
-    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_firstTargetBin*c_secondTargetBin*c_firstResultBin){
         // The starting index is computed
         unsigned int startingPoint=tid;
@@ -401,7 +401,7 @@ __global__ void reg_smoothJointHistogramW_kernel(float *tempHistogram)
 /// Kernels for marginalisation along the different axes
 __global__ void reg_marginaliseTargetX_kernel(float *babyHisto)
 {
-    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_secondTargetBin*c_firstResultBin*c_secondResultBin){
         unsigned int startingPoint=tid*c_firstTargetBin;
         unsigned int finishPoint=startingPoint+c_firstTargetBin;
@@ -420,7 +420,7 @@ __global__ void reg_marginaliseTargetX_kernel(float *babyHisto)
 
 __global__ void reg_marginaliseTargetXY_kernel(float *babyHisto)
 {
-    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_firstResultBin*c_secondResultBin){
         unsigned int startingPoint=tid*c_secondTargetBin;
         unsigned int finishPoint=startingPoint+c_secondTargetBin;
@@ -439,7 +439,7 @@ __global__ void reg_marginaliseTargetXY_kernel(float *babyHisto)
 
 __global__ void reg_marginaliseResultX_kernel(float *babyHisto)
 {
-    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_firstTargetBin*c_secondTargetBin*c_firstResultBin){
         unsigned int startingPoint = tid;
         float sum=tex1Dfetch(histogramTexture, startingPoint);
@@ -460,7 +460,7 @@ __global__ void reg_marginaliseResultX_kernel(float *babyHisto)
 
 __global__ void reg_marginaliseResultXY_kernel(float *babyHisto)
 {
-    const int tid=blockIdx.x*blockDim.x+threadIdx.x;
+    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_firstTargetBin*c_secondTargetBin){
         unsigned int startingPoint=tid;
         float sum=tex1Dfetch(histogramTexture, startingPoint);

@@ -39,8 +39,8 @@ void reg_voxelCentric2NodeCentric_gpu(	nifti_image *targetImage,
 
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *voxelNMIGradientArray_d, voxelNumber*sizeof(float4)))
 
-    const unsigned int Grid_reg_voxelCentric2NodeCentric = (unsigned int)ceil((float)nodeNumber/(float)Block_reg_voxelCentric2NodeCentric);
-    dim3 B1(Block_reg_voxelCentric2NodeCentric,1,1);
+    const unsigned int Grid_reg_voxelCentric2NodeCentric = (unsigned int)ceil(sqrtf((float)nodeNumber/(float)Block_reg_voxelCentric2NodeCentric));
+    dim3 B1(Block_reg_voxelCentric2NodeCentric,Block_reg_voxelCentric2NodeCentric,1);
     dim3 G1(Grid_reg_voxelCentric2NodeCentric,1,1);
 
     reg_voxelCentric2NodeCentric_kernel <<< G1, B1 >>> (*nodeNMIGradientArray_d);
@@ -67,8 +67,8 @@ void reg_convertNMIGradientFromVoxelToRealSpace_gpu(	mat44 *sourceMatrix_xyz,
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, matrixTexture, matrix_d, 3*sizeof(float4)))
 
     const unsigned int Grid_reg_convertNMIGradientFromVoxelToRealSpace =
-        (unsigned int)ceil((float)nodeNumber/(float)Block_reg_convertNMIGradientFromVoxelToRealSpace);
-    dim3 B1(Grid_reg_convertNMIGradientFromVoxelToRealSpace,1,1);
+        (unsigned int)ceil(sqrtf((float)nodeNumber/(float)Block_reg_convertNMIGradientFromVoxelToRealSpace));
+    dim3 B1(Grid_reg_convertNMIGradientFromVoxelToRealSpace,Grid_reg_convertNMIGradientFromVoxelToRealSpace,1);
     dim3 G1(Block_reg_convertNMIGradientFromVoxelToRealSpace,1,1);
 
     _reg_convertNMIGradientFromVoxelToRealSpace_kernel <<< G1, B1 >>> (*nodeNMIGradientArray_d);
@@ -87,8 +87,8 @@ void reg_initialiseConjugateGradient(	float4 **nodeNMIGradientArray_d,
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *nodeNMIGradientArray_d, nodeNumber*sizeof(float4)))
 
     const unsigned int Grid_reg_initialiseConjugateGradient =
-            (unsigned int)ceil((float)nodeNumber/(float)Block_reg_initialiseConjugateGradient);
-    dim3 B1(Grid_reg_initialiseConjugateGradient,1,1);
+            (unsigned int)ceil(sqrtf((float)nodeNumber/(float)Block_reg_initialiseConjugateGradient));
+    dim3 B1(Grid_reg_initialiseConjugateGradient,Grid_reg_initialiseConjugateGradient,1);
     dim3 G1(Block_reg_initialiseConjugateGradient,1,1);
 
     reg_initialiseConjugateGradient_kernel <<< G1, B1 >>> (*conjugateG_d);
@@ -108,8 +108,8 @@ void reg_GetConjugateGradient(	float4 **nodeNMIGradientArray_d,
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *nodeNMIGradientArray_d, nodeNumber*sizeof(float4)))
 
     // gam = sum((grad+g)*grad)/sum(HxG);
-    const unsigned int Grid_reg_GetConjugateGradient1 = (unsigned int)ceil((float)nodeNumber/(float)Block_reg_GetConjugateGradient1);
-    dim3 B1(Block_reg_GetConjugateGradient1,1,1);
+    const unsigned int Grid_reg_GetConjugateGradient1 = (unsigned int)ceil(sqrtf((float)nodeNumber/(float)Block_reg_GetConjugateGradient1));
+    dim3 B1(Block_reg_GetConjugateGradient1,Block_reg_GetConjugateGradient1,1);
     dim3 G1(Grid_reg_GetConjugateGradient1,1,1);
 
     float2 *sum_d;
@@ -129,8 +129,8 @@ void reg_GetConjugateGradient(	float4 **nodeNMIGradientArray_d,
     NR_CUDA_SAFE_CALL(cudaFreeHost((void *)sum_h))
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ScalingFactor,&gam,sizeof(float)))
-    const unsigned int Grid_reg_GetConjugateGradient2 = (unsigned int)ceil((float)nodeNumber/(float)Block_reg_GetConjugateGradient2);
-    dim3 B2(Block_reg_GetConjugateGradient2,1,1);
+    const unsigned int Grid_reg_GetConjugateGradient2 = (unsigned int)ceil(sqrtf((float)nodeNumber/(float)Block_reg_GetConjugateGradient2));
+    dim3 B2(Block_reg_GetConjugateGradient2,Block_reg_GetConjugateGradient2,1);
     dim3 G2(Grid_reg_GetConjugateGradient2,1,1);
     reg_GetConjugateGradient2_kernel <<< G2, B2 >>> (*nodeNMIGradientArray_d, *conjugateG_d, *conjugateH_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
@@ -150,8 +150,8 @@ float reg_getMaximalLength_gpu(	float4 **nodeNMIGradientArray_d,
 
     // each thread extract the maximal value out of 128
     const int threadNumber = (int)ceil((float)nodeNumber/128.0f);
-    const unsigned int Grid_reg_getMaximalLength = (unsigned int)ceil((float)threadNumber/(float)Block_reg_getMaximalLength);
-    dim3 B1(Block_reg_getMaximalLength,1,1);
+    const unsigned int Grid_reg_getMaximalLength = (unsigned int)ceil(sqrtf((float)threadNumber/(float)Block_reg_getMaximalLength));
+    dim3 B1(Block_reg_getMaximalLength,Block_reg_getMaximalLength,1);
     dim3 G1(Grid_reg_getMaximalLength,1,1);
 
     float *all_d;
@@ -183,8 +183,8 @@ void reg_updateControlPointPosition_gpu(nifti_image *controlPointImage,
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, controlPointTexture, *bestControlPointPosition_d, nodeNumber*sizeof(float4)))
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *nodeNMIGradientArray_d, nodeNumber*sizeof(float4)))
 
-    const unsigned int Grid_reg_updateControlPointPosition = (unsigned int)ceil((float)nodeNumber/(float)Block_reg_updateControlPointPosition);
-    dim3 B1(Block_reg_updateControlPointPosition,1,1);
+    const unsigned int Grid_reg_updateControlPointPosition = (unsigned int)ceil(sqrtf((float)nodeNumber/(float)Block_reg_updateControlPointPosition));
+    dim3 B1(Block_reg_updateControlPointPosition,Block_reg_updateControlPointPosition,1);
     dim3 G1(Grid_reg_updateControlPointPosition,1,1);
 
     reg_updateControlPointPosition_kernel <<< G1, B1 >>> (*controlPointImageArray_d);
@@ -245,24 +245,24 @@ void reg_gaussianSmoothing_gpu( nifti_image *image,
                 switch(n){
                     case 1:
                         Grid_reg_ApplyConvolutionWindow =
-                            (unsigned int)ceil((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongX);
-                        B=dim3(Block_reg_ApplyConvolutionWindowAlongX,1,1);
+                            (unsigned int)ceil(sqrtf((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongX));
+                        B=dim3(Block_reg_ApplyConvolutionWindowAlongX,Block_reg_ApplyConvolutionWindowAlongX,1);
                         G=dim3(Grid_reg_ApplyConvolutionWindow,1,1);
                         _reg_ApplyConvolutionWindowAlongX_kernel <<< G, B >>> (smoothedImage, kernelSize);
                         NR_CUDA_CHECK_KERNEL(G,B)
                         break;
                     case 2:
                         Grid_reg_ApplyConvolutionWindow =
-                            (unsigned int)ceil((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongY);
-                        B=dim3(Block_reg_ApplyConvolutionWindowAlongY,1,1);
+                            (unsigned int)ceil(sqrtf((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongY));
+                        B=dim3(Block_reg_ApplyConvolutionWindowAlongY,Block_reg_ApplyConvolutionWindowAlongY,1);
                         G=dim3(Grid_reg_ApplyConvolutionWindow,1,1);
                         _reg_ApplyConvolutionWindowAlongY_kernel <<< G, B >>> (smoothedImage, kernelSize);
                         NR_CUDA_CHECK_KERNEL(G,B)
                         break;
                     case 3:
                         Grid_reg_ApplyConvolutionWindow =
-                            (unsigned int)ceil((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongZ);
-                        B=dim3(Block_reg_ApplyConvolutionWindowAlongZ,1,1);
+                            (unsigned int)ceil(sqrtf((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongZ));
+                        B=dim3(Block_reg_ApplyConvolutionWindowAlongZ,Block_reg_ApplyConvolutionWindowAlongZ,1);
                         G=dim3(Grid_reg_ApplyConvolutionWindow,1,1);
                         _reg_ApplyConvolutionWindowAlongZ_kernel <<< G, B >>> (smoothedImage, kernelSize);
                         NR_CUDA_CHECK_KERNEL(G,B)
@@ -317,24 +317,24 @@ void reg_smoothImageForCubicSpline_gpu( nifti_image *image,
             switch(n){
                 case 0:
                     Grid_reg_ApplyConvolutionWindow =
-                        (unsigned int)ceil((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongX);
+                        (unsigned int)ceil(sqrtf((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongX));
                     B=dim3(Block_reg_ApplyConvolutionWindowAlongX,1,1);
-                    G=dim3(Grid_reg_ApplyConvolutionWindow,1,1);
+                    G=dim3(Grid_reg_ApplyConvolutionWindow,Grid_reg_ApplyConvolutionWindow,1);
                     _reg_ApplyConvolutionWindowAlongX_kernel <<< G, B >>> (smoothedImage_d, kernelSize);
                     NR_CUDA_CHECK_KERNEL(G,B)
                     break;
                 case 1:
                     Grid_reg_ApplyConvolutionWindow =
-                        (unsigned int)ceil((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongY);
-                    B=dim3(Block_reg_ApplyConvolutionWindowAlongY,1,1);
+                        (unsigned int)ceil(sqrtf((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongY));
+                    B=dim3(Block_reg_ApplyConvolutionWindowAlongY,Block_reg_ApplyConvolutionWindowAlongY,1);
                     G=dim3(Grid_reg_ApplyConvolutionWindow,1,1);
                     _reg_ApplyConvolutionWindowAlongY_kernel <<< G, B >>> (smoothedImage_d, kernelSize);
                     NR_CUDA_CHECK_KERNEL(G,B)
                     break;
                 case 2:
                     Grid_reg_ApplyConvolutionWindow =
-                        (unsigned int)ceil((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongZ);
-                    B=dim3(Block_reg_ApplyConvolutionWindowAlongZ,1,1);
+                        (unsigned int)ceil(sqrtf((float)voxelNumber/(float)Block_reg_ApplyConvolutionWindowAlongZ));
+                    B=dim3(Block_reg_ApplyConvolutionWindowAlongZ,Block_reg_ApplyConvolutionWindowAlongZ,1);
                     G=dim3(Grid_reg_ApplyConvolutionWindow,1,1);
                     _reg_ApplyConvolutionWindowAlongZ_kernel <<< G, B >>> (smoothedImage_d, kernelSize);
                     NR_CUDA_CHECK_KERNEL(G,B)
@@ -354,8 +354,8 @@ void reg_multiplyValue_gpu(int num, float4 **array_d, float value)
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&num,sizeof(int)))
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Weight,&value,sizeof(float)))
 
-    const unsigned int Grid_reg_multiplyValues = (unsigned int)ceil((float)num/512.f);
-    dim3 G=dim3(Grid_reg_multiplyValues,1,1);
+    const unsigned int Grid_reg_multiplyValues = (unsigned int)ceil(sqrtf((float)num/512.f));
+    dim3 G=dim3(Grid_reg_multiplyValues,Grid_reg_multiplyValues,1);
     dim3 B=dim3(512,1,1);
     reg_multiplyValue_kernel_float4<<<G,B>>>(*array_d);
     NR_CUDA_CHECK_KERNEL(G,B)
@@ -366,8 +366,8 @@ void reg_addValue_gpu(int num, float4 **array_d, float value)
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&num,sizeof(int)))
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Weight,&value,sizeof(float)))
 
-    const unsigned int Grid_reg_addValues = (unsigned int)ceil((float)num/512.f);
-    dim3 G=dim3(Grid_reg_addValues,1,1);
+    const unsigned int Grid_reg_addValues = (unsigned int)ceil(sqrtf((float)num/512.f));
+    dim3 G=dim3(Grid_reg_addValues,Grid_reg_addValues,1);
     dim3 B=dim3(512,1,1);
     reg_addValue_kernel_float4<<<G,B>>>(*array_d);
     NR_CUDA_CHECK_KERNEL(G,B)
@@ -377,8 +377,8 @@ void reg_multiplyArrays_gpu(int num, float4 **array1_d, float4 **array2_d)
 {
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&num,sizeof(int)))
 
-    const unsigned int Grid_reg_multiplyArrays = (unsigned int)ceil((float)num/512.f);
-    dim3 G=dim3(Grid_reg_multiplyArrays,1,1);
+    const unsigned int Grid_reg_multiplyArrays = (unsigned int)ceil(sqrtf((float)num/512.f));
+    dim3 G=dim3(Grid_reg_multiplyArrays,Grid_reg_multiplyArrays,1);
     dim3 B=dim3(512,1,1);
     reg_multiplyArrays_kernel_float4<<<G,B>>>(*array1_d,*array2_d);
     NR_CUDA_CHECK_KERNEL(G,B)
@@ -388,8 +388,8 @@ void reg_addArrays_gpu(int num, float4 **array1_d, float4 **array2_d)
 {
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&num,sizeof(int)))
 
-    const unsigned int Grid_reg_addArrays = (unsigned int)ceil((float)num/512.f);
-    dim3 G=dim3(Grid_reg_addArrays,1,1);
+    const unsigned int Grid_reg_addArrays = (unsigned int)ceil(sqrtf((float)num/512.f));
+    dim3 G=dim3(Grid_reg_addArrays,Grid_reg_addArrays,1);
     dim3 B=dim3(512,1,1);
     reg_addArrays_kernel_float4<<<G,B>>>(*array1_d,*array2_d);
     NR_CUDA_CHECK_KERNEL(G,B)
