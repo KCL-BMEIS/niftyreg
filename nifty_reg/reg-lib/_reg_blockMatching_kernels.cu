@@ -52,7 +52,7 @@ __device__ inline void apply_affine(const float4 &pt, float * result)
 __global__ void process_target_blocks_gpu(float *targetPosition_d,
                                           float *targetValues)
 {
-    const int tid = (blockIdx.x * blockDim.x + threadIdx.x) + (blockIdx.y * gridDim.x);
+    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     const int3 bDim = c_BlockDim;
 
     if (tid < bDim.x * bDim.y * bDim.z){
@@ -109,7 +109,7 @@ __global__ void process_target_blocks_gpu(float *targetPosition_d,
 __global__ void process_result_blocks_gpu(float *resultPosition_d,
                                           float *targetValues)
 {
-    const int tid = (blockIdx.x * blockDim.x + threadIdx.x) + (blockIdx.y * gridDim.x);
+    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     const int3 bDim = c_BlockDim;
     int tempIndex = tid % NUM_BLOCKS_TO_COMPARE;
     __shared__ int ctid;

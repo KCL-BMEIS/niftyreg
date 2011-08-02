@@ -859,7 +859,7 @@ int main(int argc, char **argv)
                 tempMat.m[i][j] = affineTransformation->m[i][j];
             }
         }
-        printf("[DEBUG] Matrix determinant %g\n", nifti_mat33_determ	(tempMat));
+        printf("[DEBUG] Matrix determinant %g\n", nifti_mat33_determ(tempMat));
 #endif
         printf("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n\n");
     }

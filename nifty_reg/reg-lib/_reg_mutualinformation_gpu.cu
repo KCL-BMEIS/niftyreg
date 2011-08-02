@@ -87,7 +87,8 @@ void reg_getEntropies2x2_gpu(nifti_image *targetImages,
     // The joint histogram is smoothed along the x axis
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
     dim3 B1(Block_reg_smoothJointHistogramX,1,1);
-    dim3 G1((int)ceil((float)(target_bins[1]*result_bins[0]*result_bins[1])/(float)B1.x),1,1);
+    const int gridSizesmoothJointHistogramX=(int)ceil(sqrtf((float)(target_bins[1]*result_bins[0]*result_bins[1])/(float)B1.x));
+    dim3 G1(gridSizesmoothJointHistogramX,gridSizesmoothJointHistogramX,1);
     reg_smoothJointHistogramX_kernel <<< G1, B1 >>> (tempHistogram);
     NR_CUDA_CHECK_KERNEL(G1,B1)
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
@@ -95,7 +96,8 @@ void reg_getEntropies2x2_gpu(nifti_image *targetImages,
     // The joint histogram is smoothed along the y axis
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, tempHistogram, binNumber*sizeof(float)));
     dim3 B2(Block_reg_smoothJointHistogramY,1,1);
-    dim3 G2((int)ceil((float)(target_bins[0]*result_bins[0]*result_bins[1])/(float)B2.x),1,1);
+    const int gridSizesmoothJointHistogramY=(int)ceil(sqrtf((float)(target_bins[1]*result_bins[0]*result_bins[1])/(float)B2.x));
+    dim3 G2(gridSizesmoothJointHistogramY,gridSizesmoothJointHistogramY,1);
     reg_smoothJointHistogramY_kernel <<< G2, B2 >>> (*logJointHistogram_d);
     NR_CUDA_CHECK_KERNEL(G2,B2)
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
@@ -103,7 +105,8 @@ void reg_getEntropies2x2_gpu(nifti_image *targetImages,
     // The joint histogram is smoothed along the z axis
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
     dim3 B3(Block_reg_smoothJointHistogramZ,1,1);
-    dim3 G3((int)ceil((float)(target_bins[0]*target_bins[1]*result_bins[1])/(float)B3.x),1,1);
+    const int gridSizesmoothJointHistogramZ=(int)ceil(sqrtf((float)(target_bins[1]*result_bins[0]*result_bins[1])/(float)B3.x));
+    dim3 G3(gridSizesmoothJointHistogramZ,gridSizesmoothJointHistogramZ,1);
     reg_smoothJointHistogramZ_kernel <<< G3, B3 >>> (tempHistogram);
     NR_CUDA_CHECK_KERNEL(G3,B3)
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
@@ -111,7 +114,8 @@ void reg_getEntropies2x2_gpu(nifti_image *targetImages,
     // The joint histogram is smoothed along the w axis
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, tempHistogram, binNumber*sizeof(float)));
     dim3 B4(Block_reg_smoothJointHistogramW,1,1);
-    dim3 G4((int)ceil((float)(target_bins[0]*target_bins[1]*result_bins[0])/(float)B4.x),1,1);
+    const int gridSizesmoothJointHistogramW=(int)ceil(sqrtf((float)(target_bins[1]*result_bins[0]*result_bins[1])/(float)B4.x));
+    dim3 G4(gridSizesmoothJointHistogramW,gridSizesmoothJointHistogramW,1);
     reg_smoothJointHistogramW_kernel <<< G4, B4 >>> (*logJointHistogram_d);
     NR_CUDA_CHECK_KERNEL(G4,B4)
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
@@ -128,7 +132,8 @@ void reg_getEntropies2x2_gpu(nifti_image *targetImages,
     NR_CUDA_SAFE_CALL(cudaMalloc(&temp3DHistogram,target_bins[1]*result_bins[0]*result_bins[1]*sizeof(float)));
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
     dim3 B5(Block_reg_marginaliseTargetX,1,1);
-    dim3 G5((int)ceil((float)(target_bins[1]*result_bins[0]*result_bins[1])/(float)B5.x),1,1);
+    const int gridSizesmoothJointHistogramA=(int)ceil(sqrtf((float)(target_bins[1]*result_bins[0]*result_bins[1])/(float)B5.x));
+    dim3 G5(gridSizesmoothJointHistogramA,gridSizesmoothJointHistogramA,1);
     reg_marginaliseTargetX_kernel <<< G5, B5 >>> (temp3DHistogram);
     NR_CUDA_CHECK_KERNEL(G5,B5)
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
@@ -138,7 +143,8 @@ void reg_getEntropies2x2_gpu(nifti_image *targetImages,
     NR_CUDA_SAFE_CALL(cudaMalloc(&temp2DHistogram,result_bins[0]*result_bins[1]*sizeof(float)));
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, temp3DHistogram, target_bins[1]*result_bins[0]*result_bins[1]*sizeof(float)));
     dim3 B6(Block_reg_marginaliseTargetXY,1,1);
-    dim3 G6((int)ceil((float)(result_bins[0]*result_bins[1])/(float)B6.x),1,1);
+    const int gridSizesmoothJointHistogramB=(int)ceil(sqrtf((float)(target_bins[1]*result_bins[0]*result_bins[1])/(float)B6.x));
+    dim3 G6(gridSizesmoothJointHistogramB,gridSizesmoothJointHistogramB,1);
     reg_marginaliseTargetXY_kernel <<< G6, B6 >>> (temp2DHistogram);
     NR_CUDA_CHECK_KERNEL(G6,B6)
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
@@ -165,7 +171,8 @@ void reg_getEntropies2x2_gpu(nifti_image *targetImages,
     NR_CUDA_SAFE_CALL(cudaMalloc(&temp3DHistogram, target_bins[0]*target_bins[1]*result_bins[0]*sizeof(float)));
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
     dim3 B7(Block_reg_marginaliseResultX,1,1);
-    dim3 G7((int)ceil((float)(target_bins[0]*target_bins[1]*result_bins[0])/(float)B7.x),1,1);
+    const int gridSizesmoothJointHistogramC=(int)ceil(sqrtf((float)(target_bins[1]*result_bins[0]*result_bins[1])/(float)B7.x));
+    dim3 G7(gridSizesmoothJointHistogramC,gridSizesmoothJointHistogramC,1);
     reg_marginaliseResultX_kernel <<< G7, B7 >>> (temp3DHistogram);
     NR_CUDA_CHECK_KERNEL(G7,B7)
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
@@ -175,7 +182,8 @@ void reg_getEntropies2x2_gpu(nifti_image *targetImages,
     NR_CUDA_SAFE_CALL(cudaMalloc(&temp2DHistogram,target_bins[0]*target_bins[1]*sizeof(float)));
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, temp3DHistogram, target_bins[0]*target_bins[1]*result_bins[0]*sizeof(float)));
     dim3 B8(Block_reg_marginaliseResultXY,1,1);
-    dim3 G8((int)ceil((float)(target_bins[0]*target_bins[1])/(float)B8.x),1,1);
+    const int gridSizesmoothJointHistogramD=(int)ceil(sqrtf((float)(target_bins[1]*result_bins[0]*result_bins[1])/(float)B8.x));
+    dim3 G8(gridSizesmoothJointHistogramD,gridSizesmoothJointHistogramD,1);
     reg_marginaliseResultXY_kernel <<< G8, B8 >>> (temp2DHistogram);
     NR_CUDA_CHECK_KERNEL(G8,B8)
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
@@ -271,9 +279,9 @@ void reg_getVoxelBasedNMIGradientUsingPW_gpu(   nifti_image *targetImage,
     NR_CUDA_SAFE_CALL(cudaMemset(*voxelNMIGradientArray_d, 0, voxelNumber*sizeof(float4)));
 
     const unsigned int Grid_reg_getVoxelBasedNMIGradientUsingPW =
-        (unsigned int)ceil((float)activeVoxelNumber/(float)Block_reg_getVoxelBasedNMIGradientUsingPW);
+        (unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)Block_reg_getVoxelBasedNMIGradientUsingPW));
     dim3 B1(Block_reg_getVoxelBasedNMIGradientUsingPW,1,1);
-    dim3 G1(Grid_reg_getVoxelBasedNMIGradientUsingPW,1,1);
+    dim3 G1(Grid_reg_getVoxelBasedNMIGradientUsingPW,Grid_reg_getVoxelBasedNMIGradientUsingPW,1);
 
     reg_getVoxelBasedNMIGradientUsingPW_kernel <<< G1, B1 >>> (*voxelNMIGradientArray_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
@@ -331,9 +339,9 @@ void reg_getVoxelBasedNMIGradientUsingPW2x2_gpu(nifti_image *targetImage,
     NR_CUDA_SAFE_CALL(cudaMemset(*voxelNMIGradientArray_d, 0, voxelNumber*sizeof(float4)));
 
     const unsigned int Grid_reg_getVoxelBasedNMIGradientUsingPW2x2 =
-        (unsigned int)ceil((float)activeVoxelNumber/(float)Block_reg_getVoxelBasedNMIGradientUsingPW2x2);
+        (unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)Block_reg_getVoxelBasedNMIGradientUsingPW2x2));
     dim3 B1(Block_reg_getVoxelBasedNMIGradientUsingPW2x2,1,1);
-    dim3 G1(Grid_reg_getVoxelBasedNMIGradientUsingPW2x2,1,1);
+    dim3 G1(Grid_reg_getVoxelBasedNMIGradientUsingPW2x2,Grid_reg_getVoxelBasedNMIGradientUsingPW2x2,1);
 
     reg_getVoxelBasedNMIGradientUsingPW2x2_kernel <<< G1, B1 >>> (*voxelNMIGradientArray_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)

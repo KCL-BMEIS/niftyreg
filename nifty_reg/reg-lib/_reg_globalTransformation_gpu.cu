@@ -50,9 +50,9 @@ void reg_affine_positionField_gpu(	mat44 *affineMatrix,
 	cudaBindTexture(0,txAffineTransformation,transformationMatrix_d,3*sizeof(float4));
     NR_CUDA_SAFE_CALL(cudaFreeHost((void *)transformationMatrix_h));
 	
-	const unsigned int Grid_reg_affine_deformationField = (unsigned int)ceil((float)targetImage->nvox/(float)Block_reg_affine_deformationField);
+        const unsigned int Grid_reg_affine_deformationField = (unsigned int)ceil(sqrtf((float)targetImage->nvox/(float)Block_reg_affine_deformationField));
 	dim3 B1(Block_reg_affine_deformationField,1,1);
-	dim3 G1(Grid_reg_affine_deformationField,1,1);
+        dim3 G1(Grid_reg_affine_deformationField,Grid_reg_affine_deformationField,1);
 
     reg_affine_deformationField_kernel <<< G1, B1 >>> (*array_d);
         NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
