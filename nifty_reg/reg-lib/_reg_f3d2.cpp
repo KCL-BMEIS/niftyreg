@@ -119,6 +119,7 @@ int reg_f3d2<T>::AllocateCurrentInputImage(int level)
    this->jacobianMatrices->data=(void *)malloc(this->jacobianMatrices->nvox *
                                                this->jacobianMatrices->nbyper);
 
+    this->currentApproxComp=this->approxComp;
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -151,7 +152,7 @@ template <class T>
 int reg_f3d2<T>::GetDeformationField()
 {
 #ifndef NDEBUG
-    if(this->approxComp==true)
+    if(this->currentApproxComp==true)
         printf("[NiftyReg DEBUG] Velocity integration performed with approximation\n");
     else printf("[NiftyReg DEBUG] Velocity integration performed without approximation\n");
 #endif
@@ -159,7 +160,7 @@ int reg_f3d2<T>::GetDeformationField()
     reg_getDeformationFieldFromVelocityGrid(this->controlPointGrid,
                                             this->deformationFieldImage,
                                             NULL, // intermediate
-                                            this->approxComp
+                                            this->currentApproxComp
                                             );
     return 0;
 }
@@ -373,8 +374,8 @@ template<class T>
 int reg_f3d2<T>::CheckStoppingCriteria(bool convergence)
 {
     if(convergence){
-        if(this->approxComp==true){
-            this->approxComp=false;
+        if(this->currentApproxComp==true){
+            this->currentApproxComp=false;
 #ifdef NDEBUG
             if(this->verbose)
 #endif
@@ -384,9 +385,9 @@ int reg_f3d2<T>::CheckStoppingCriteria(bool convergence)
         else return 1;
     }
     else{
-        if(this->approxComp==true){
+        if(this->currentApproxComp==true){
             if( this->currentIteration>=(this->maxiterationNumber-(float)this->maxiterationNumber*0.1f) ){
-                this->approxComp=false;
+                this->currentApproxComp=false;
 #ifdef NDEBUG
                 if(this->verbose)
 #endif
