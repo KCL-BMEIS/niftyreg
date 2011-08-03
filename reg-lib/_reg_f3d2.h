@@ -20,6 +20,7 @@ class reg_f3d2 : public reg_f3d<T>
 {
   protected:
     bool approxComp;
+    bool currentApproxComp;
     int stepNumber;
     bool useSymmetry;
     nifti_image **intermediateDeformationField;
