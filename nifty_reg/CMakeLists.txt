@@ -16,6 +16,7 @@ endif(COMMAND cmake_policy)
 
 #-----------------------------------------------------------------------------
 SET(ZLIB "z")
+ADD_DEFINITIONS(-fPIC)
 #-----------------------------------------------------------------------------
 
 OPTION(BUILD_NIFTYREG "To build the NiftyReg executables" ON)
