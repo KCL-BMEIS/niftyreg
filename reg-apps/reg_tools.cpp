@@ -17,14 +17,14 @@
 #include "_reg_tools.h"
 
 #ifdef _USE_NR_DOUBLE
-    #define PrecisionTYPE double
+#define PrecisionTYPE double
 #else
-    #define PrecisionTYPE float
+#define PrecisionTYPE float
 #endif
 
 typedef struct{
-	char *inputImageName;
-	char *outputImageName;
+    char *inputImageName;
+    char *outputImageName;
     char *addImageName;
     char *subImageName;
     char *mulImageName;
@@ -34,11 +34,12 @@ typedef struct{
     float mulValue;
     float divValue;
     char *rmsImageName;
-	int smoothValue;
+    int smoothValue;
+    float thresholdImageValue;
 }PARAM;
 typedef struct{
-	bool inputImageFlag;
-	bool outputImageFlag;
+    bool inputImageFlag;
+    bool outputImageFlag;
     bool addImageFlag;
     bool subImageFlag;
     bool mulImageFlag;
@@ -48,16 +49,18 @@ typedef struct{
     bool mulValueFlag;
     bool divValueFlag;
     bool rmsImageFlag;
-	bool smoothValueFlag;
-	bool gradientImageFlag;
+    bool smoothValueFlag;
+    bool gradientImageFlag;
+    bool binarisedImageFlag;
+    bool thresholdImageFlag;
 }FLAG;
 
 
 void PetitUsage(char *exec)
 {
-	fprintf(stderr,"Usage:\t%s -in  <targetImageName> [OPTIONS].\n",exec);
-	fprintf(stderr,"\tSee the help for more details (-h).\n");
-	return;
+    fprintf(stderr,"Usage:\t%s -in  <targetImageName> [OPTIONS].\n",exec);
+    fprintf(stderr,"\tSee the help for more details (-h).\n");
+    return;
 }
 void Usage(char *exec)
 {
@@ -80,23 +83,25 @@ void Usage(char *exec)
     printf("\t-divV <float>\t\tThis value is divided to the input\n");
     printf("\t-smo <int>\t\tThe input image is smoothed using a b-spline curve\n");
     printf("\t-rms <filename>\tCompute the mean rms between both image\n");
-	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-	return;
+    printf("\t-bin \t\tBinarise the input image (val!=0?val=1:val=0)\n");
+    printf("\t-thr <float>\tThresold the input image (val<thr?val=0:val=1)\n");
+    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+    return;
 }
 
 int main(int argc, char **argv)
 {
-	PARAM *param = (PARAM *)calloc(1,sizeof(PARAM));
-	FLAG *flag = (FLAG *)calloc(1,sizeof(FLAG));
-	
-	/* read the input parameter */
-	for(int i=1;i<argc;i++){
-		if(strcmp(argv[i], "-help")==0 || strcmp(argv[i], "-Help")==0 ||
-			strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
-			strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0){
-			Usage(argv[0]);
-			return 0;
-		}
+    PARAM *param = (PARAM *)calloc(1,sizeof(PARAM));
+    FLAG *flag = (FLAG *)calloc(1,sizeof(FLAG));
+
+    /* read the input parameter */
+    for(int i=1;i<argc;i++){
+        if(strcmp(argv[i], "-help")==0 || strcmp(argv[i], "-Help")==0 ||
+           strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
+           strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0){
+            Usage(argv[0]);
+            return 0;
+        }
 #ifdef _SVN_REV
         if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
            strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
@@ -105,17 +110,17 @@ int main(int argc, char **argv)
             return 0;
         }
 #endif
-		else if(strcmp(argv[i], "-in") == 0){
-			param->inputImageName=argv[++i];
-			flag->inputImageFlag=1;
-		}
-		else if(strcmp(argv[i], "-out") == 0){
-			param->outputImageName=argv[++i];
-			flag->outputImageFlag=1;
-		}
-		else if(strcmp(argv[i], "-grad") == 0){
-			flag->gradientImageFlag=1;
-		}
+        else if(strcmp(argv[i], "-in") == 0){
+            param->inputImageName=argv[++i];
+            flag->inputImageFlag=1;
+        }
+        else if(strcmp(argv[i], "-out") == 0){
+            param->outputImageName=argv[++i];
+            flag->outputImageFlag=1;
+        }
+        else if(strcmp(argv[i], "-grad") == 0){
+            flag->gradientImageFlag=1;
+        }
 
         else if(strcmp(argv[i], "-add") == 0){
             param->addImageName=argv[++i];
@@ -155,80 +160,94 @@ int main(int argc, char **argv)
             param->rmsImageName=argv[++i];
             flag->rmsImageFlag=1;
         }
-		else if(strcmp(argv[i], "-smo") == 0){
-			param->smoothValue=atoi(argv[++i]);
-			flag->smoothValueFlag=1;
-		}
-		 else{
-			 fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
-			 PetitUsage(argv[0]);
-			 return 1;
-		 }
-	}
-		
-	/* Read the image */
-	nifti_image *image = nifti_image_read(param->inputImageName,true);
-	if(image == NULL){
-		fprintf(stderr,"** ERROR Error when reading the target image: %s\n",param->inputImageName);
-		return 1;
-	}
+        else if(strcmp(argv[i], "-smo") == 0){
+            param->smoothValue=atoi(argv[++i]);
+            flag->smoothValueFlag=1;
+        }
+        else if(strcmp(argv[i], "-bin") == 0){
+            flag->binarisedImageFlag=1;
+        }
+        else if(strcmp(argv[i], "-thr") == 0){
+            param->thresholdImageValue=atof(argv[++i]);
+            flag->thresholdImageFlag=1;
+        }
+        else{
+            fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
+            PetitUsage(argv[0]);
+            return 1;
+        }
+    }
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+
+    /* Read the image */
+    nifti_image *image = nifti_image_read(param->inputImageName,true);
+    if(image == NULL){
+        fprintf(stderr,"** ERROR Error when reading the target image: %s\n",param->inputImageName);
+        return 1;
+    }
     reg_checkAndCorrectDimension(image);
-	
-	/* spatial gradient image */
-	if(flag->gradientImageFlag){
-		nifti_image *spatialGradientImage = nifti_copy_nim_info(image);
-		spatialGradientImage->dim[0]=spatialGradientImage->ndim=4;
-		spatialGradientImage->dim[1]=spatialGradientImage->nx=image->nx;
-		spatialGradientImage->dim[2]=spatialGradientImage->ny=image->ny;
-		spatialGradientImage->dim[3]=spatialGradientImage->nz=image->nz;
-		spatialGradientImage->dim[4]=spatialGradientImage->nt=3;spatialGradientImage->pixdim[4]=spatialGradientImage->dt=1.0;
-		spatialGradientImage->dim[5]=spatialGradientImage->nu=1;spatialGradientImage->pixdim[5]=spatialGradientImage->du=1.0;
-		spatialGradientImage->dim[6]=spatialGradientImage->nv=1;spatialGradientImage->pixdim[6]=spatialGradientImage->dv=1.0;
-		spatialGradientImage->dim[7]=spatialGradientImage->nw=1;spatialGradientImage->pixdim[7]=spatialGradientImage->dw=1.0;
-		spatialGradientImage->nvox=spatialGradientImage->nx*spatialGradientImage->ny*spatialGradientImage->nz*spatialGradientImage->nt*spatialGradientImage->nu;
-		if(sizeof(PrecisionTYPE)==4) spatialGradientImage->datatype = NIFTI_TYPE_FLOAT32;
-		else spatialGradientImage->datatype = NIFTI_TYPE_FLOAT64;
-		spatialGradientImage->nbyper = sizeof(PrecisionTYPE);
-		spatialGradientImage->data = (void *)malloc(spatialGradientImage->nvox * spatialGradientImage->nbyper);
-		if(flag->outputImageFlag)
-			nifti_set_filenames(spatialGradientImage, param->outputImageName, 0, 0);
-		else nifti_set_filenames(spatialGradientImage, "output.nii", 0, 0);
-		
-		mat44 *affineTransformation = (mat44 *)calloc(1,sizeof(mat44));
-		affineTransformation->m[0][0]=1.0;
-		affineTransformation->m[1][1]=1.0;
-		affineTransformation->m[2][2]=1.0;
-		affineTransformation->m[3][3]=1.0;
-		nifti_image *fakepositionField = nifti_copy_nim_info(spatialGradientImage);
-		fakepositionField->data = (void *)malloc(fakepositionField->nvox * fakepositionField->nbyper);
-		reg_affine_positionField(	affineTransformation,
-						            image,
-						            fakepositionField);
-		free(affineTransformation);
-                reg_getSourceImageGradient(	image,
-								                    image,
-								                    spatialGradientImage,
-								                    fakepositionField,
-                                                    NULL,
-								                    3); // cubic spline interpolation
-		nifti_image_free(fakepositionField);
-		nifti_image_write(spatialGradientImage);
-		nifti_image_free(spatialGradientImage);
-	}
-	
-	if(flag->smoothValueFlag){
-		nifti_image *smoothImg = nifti_copy_nim_info(image);
-		smoothImg->data = (void *)malloc(smoothImg->nvox * smoothImg->nbyper);
-		memcpy(smoothImg->data, image->data, smoothImg->nvox*smoothImg->nbyper);
-		if(flag->outputImageFlag)
-			nifti_set_filenames(smoothImg, param->outputImageName, 0, 0);
-		else nifti_set_filenames(smoothImg, "output.nii", 0, 0);
-		printf("%i\n", param->smoothValue);
-		int radius[3];radius[0]=radius[1]=radius[2]=param->smoothValue;
-		reg_smoothImageForCubicSpline<PrecisionTYPE>(smoothImg, radius);
-		nifti_image_write(smoothImg);
-		nifti_image_free(smoothImg);
-	}
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+
+    /* spatial gradient image */
+    if(flag->gradientImageFlag){
+        nifti_image *spatialGradientImage = nifti_copy_nim_info(image);
+        spatialGradientImage->dim[0]=spatialGradientImage->ndim=4;
+        spatialGradientImage->dim[1]=spatialGradientImage->nx=image->nx;
+        spatialGradientImage->dim[2]=spatialGradientImage->ny=image->ny;
+        spatialGradientImage->dim[3]=spatialGradientImage->nz=image->nz;
+        spatialGradientImage->dim[4]=spatialGradientImage->nt=3;spatialGradientImage->pixdim[4]=spatialGradientImage->dt=1.0;
+        spatialGradientImage->dim[5]=spatialGradientImage->nu=1;spatialGradientImage->pixdim[5]=spatialGradientImage->du=1.0;
+        spatialGradientImage->dim[6]=spatialGradientImage->nv=1;spatialGradientImage->pixdim[6]=spatialGradientImage->dv=1.0;
+        spatialGradientImage->dim[7]=spatialGradientImage->nw=1;spatialGradientImage->pixdim[7]=spatialGradientImage->dw=1.0;
+        spatialGradientImage->nvox=spatialGradientImage->nx*spatialGradientImage->ny*spatialGradientImage->nz*spatialGradientImage->nt*spatialGradientImage->nu;
+        if(sizeof(PrecisionTYPE)==4) spatialGradientImage->datatype = NIFTI_TYPE_FLOAT32;
+        else spatialGradientImage->datatype = NIFTI_TYPE_FLOAT64;
+        spatialGradientImage->nbyper = sizeof(PrecisionTYPE);
+        spatialGradientImage->data = (void *)malloc(spatialGradientImage->nvox * spatialGradientImage->nbyper);
+        if(flag->outputImageFlag)
+            nifti_set_filenames(spatialGradientImage, param->outputImageName, 0, 0);
+        else nifti_set_filenames(spatialGradientImage, "output.nii", 0, 0);
+
+        mat44 *affineTransformation = (mat44 *)calloc(1,sizeof(mat44));
+        affineTransformation->m[0][0]=1.0;
+        affineTransformation->m[1][1]=1.0;
+        affineTransformation->m[2][2]=1.0;
+        affineTransformation->m[3][3]=1.0;
+        nifti_image *fakepositionField = nifti_copy_nim_info(spatialGradientImage);
+        fakepositionField->data = (void *)malloc(fakepositionField->nvox * fakepositionField->nbyper);
+        reg_affine_positionField(	affineTransformation,
+                                        image,
+                                        fakepositionField);
+        free(affineTransformation);
+        reg_getSourceImageGradient(	image,
+                                        image,
+                                        spatialGradientImage,
+                                        fakepositionField,
+                                        NULL,
+                                        3); // cubic spline interpolation
+        nifti_image_free(fakepositionField);
+        nifti_image_write(spatialGradientImage);
+        nifti_image_free(spatialGradientImage);
+    }
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+
+    if(flag->smoothValueFlag){
+        nifti_image *smoothImg = nifti_copy_nim_info(image);
+        smoothImg->data = (void *)malloc(smoothImg->nvox * smoothImg->nbyper);
+        memcpy(smoothImg->data, image->data, smoothImg->nvox*smoothImg->nbyper);
+        if(flag->outputImageFlag)
+            nifti_set_filenames(smoothImg, param->outputImageName, 0, 0);
+        else nifti_set_filenames(smoothImg, "output.nii", 0, 0);
+        int radius[3];radius[0]=radius[1]=radius[2]=param->smoothValue;
+        reg_smoothImageForCubicSpline<PrecisionTYPE>(smoothImg, radius);
+        nifti_image_write(smoothImg);
+        nifti_image_free(smoothImg);
+    }
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 
     if(flag->addImageFlag || flag->subImageFlag || flag->mulImageFlag || flag->divImageFlag){
         nifti_image *image2=NULL;
@@ -276,6 +295,8 @@ int main(int argc, char **argv)
         nifti_image_free(image2);
     }
 
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+
     if(flag->addValueFlag || flag->subValueFlag || flag->mulValueFlag || flag->divValueFlag){
 
         nifti_image *resultImage = nifti_copy_nim_info(image);
@@ -292,6 +313,8 @@ int main(int argc, char **argv)
         nifti_image_write(resultImage);
         nifti_image_free(resultImage);
     }
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 
     if(flag->rmsImageFlag){
         nifti_image *image2 = nifti_image_read(param->rmsImageName,true);
@@ -318,8 +341,32 @@ int main(int argc, char **argv)
         nifti_image_free(image2);
     }
 
-	nifti_image_free(image);
-	return 0;
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+
+    if(flag->binarisedImageFlag){
+        reg_tool_binarise_image(image);
+        reg_changeDatatype<unsigned char>(image);
+        if(flag->outputImageFlag)
+            nifti_set_filenames(image, param->outputImageName, 0, 0);
+        else nifti_set_filenames(image, "output.nii", 0, 0);
+        nifti_image_write(image);
+    }
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+
+    if(flag->thresholdImageFlag){
+        reg_tool_binarise_image(image, param->thresholdImageValue);
+        reg_changeDatatype<unsigned char>(image);
+        if(flag->outputImageFlag)
+            nifti_set_filenames(image, param->outputImageName, 0, 0);
+        else nifti_set_filenames(image, "output.nii", 0, 0);
+        nifti_image_write(image);
+    }
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+
+    nifti_image_free(image);
+    return 0;
 }
 
 #endif
