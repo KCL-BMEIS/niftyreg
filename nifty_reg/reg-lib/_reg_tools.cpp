@@ -1404,7 +1404,50 @@ void reg_tool_binarise_image(nifti_image *image)
         exit(1);
     }
 }
-
+/* *************************************************************** */
+/* *************************************************************** */
+template <class DTYPE>
+void reg_tool_binarise_image1(nifti_image *image, float threshold)
+{
+    DTYPE *dataPtr=static_cast<DTYPE *>(image->data);
+    for(unsigned i=0; i<image->nvox; i++){
+        *dataPtr = (*dataPtr)<threshold?(DTYPE)0:(DTYPE)1;
+        dataPtr++;
+    }
+}
+/* *************************************************************** */
+void reg_tool_binarise_image(nifti_image *image, float threshold)
+{
+    switch(image->datatype){
+    case NIFTI_TYPE_UINT8:
+        reg_tool_binarise_image1<unsigned char>(image, threshold);
+        break;
+    case NIFTI_TYPE_INT8:
+        reg_tool_binarise_image1<char>(image, threshold);
+        break;
+    case NIFTI_TYPE_UINT16:
+        reg_tool_binarise_image1<unsigned short>(image, threshold);
+        break;
+    case NIFTI_TYPE_INT16:
+        reg_tool_binarise_image1<short>(image, threshold);
+        break;
+    case NIFTI_TYPE_UINT32:
+        reg_tool_binarise_image1<unsigned int>(image, threshold);
+        break;
+    case NIFTI_TYPE_INT32:
+        reg_tool_binarise_image1<int>(image, threshold);
+        break;
+    case NIFTI_TYPE_FLOAT32:
+        reg_tool_binarise_image1<float>(image, threshold);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        reg_tool_binarise_image1<double>(image, threshold);
+        break;
+    default:
+        fprintf(stderr,"[NiftyReg ERROR] reg_tool_binarise_image\tThe image data type is not supported\n");
+        exit(1);
+    }
+}
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
