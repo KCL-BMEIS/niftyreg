@@ -267,28 +267,18 @@ int main(int argc, char **argv)
             return 1;
         }
         reg_checkAndCorrectDimension(image2);
-        // Check image dimension
-        if(image->dim[0]!=image2->dim[0] ||
-           image->dim[1]!=image2->dim[1] ||
-           image->dim[2]!=image2->dim[2] ||
-           image->dim[3]!=image2->dim[3] ||
-           image->dim[4]!=image2->dim[4] ||
-           image->dim[5]!=image2->dim[5] ||
-           image->dim[6]!=image2->dim[6] ||
-           image->dim[7]!=image2->dim[7]){
-            fprintf(stderr,"Both images do not have the same dimension\n");
-            return 1;
-        }
+
         nifti_image *resultImage = nifti_copy_nim_info(image);
         resultImage->data = (void *)malloc(resultImage->nvox * resultImage->nbyper);
-        if(flag->outputImageFlag)
-            nifti_set_filenames(resultImage, param->outputImageName, 0, 0);
-        else nifti_set_filenames(resultImage, "output.nii", 0, 0);
 
         if(flag->addImageFlag) reg_tools_addSubMulDivImages(image, image2, resultImage, 0);
         if(flag->subImageFlag) reg_tools_addSubMulDivImages(image, image2, resultImage, 1);
         if(flag->mulImageFlag) reg_tools_addSubMulDivImages(image, image2, resultImage, 2);
         if(flag->divImageFlag) reg_tools_addSubMulDivImages(image, image2, resultImage, 3);
+
+        if(flag->outputImageFlag)
+            nifti_set_filenames(resultImage, param->outputImageName, 0, 0);
+        else nifti_set_filenames(resultImage, "output.nii", 0, 0);
 
         nifti_image_write(resultImage);
         nifti_image_free(resultImage);
