@@ -131,11 +131,11 @@ void reg_intensityRescale2(nifti_image *image,
 }
 /* *************************************************************** */
 void reg_intensityRescale(	nifti_image *image,
-                          float *newMin,
-                          float *newMax,
-                          float *lowThr,
-                          float *upThr
-                          )
+                                float *newMin,
+                                float *newMax,
+                                float *lowThr,
+                                float *upThr
+                                )
 {
     switch(image->datatype){
     case NIFTI_TYPE_UINT8:
@@ -174,9 +174,9 @@ void reg_intensityRescale(	nifti_image *image,
 //and sets cal_min and cal_max to have the min/max image data values
 template<class T,class DTYPE>
 void reg_thresholdImage2(	nifti_image *image,
-                         T lowThr,
-                         T upThr
-                         )
+                                T lowThr,
+                                T upThr
+                                )
 {
     DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
     T currentMin=std::numeric_limits<T>::max();
@@ -205,9 +205,9 @@ void reg_thresholdImage2(	nifti_image *image,
 /* *************************************************************** */
 template<class T>
 void reg_thresholdImage(	nifti_image *image,
-                        T lowThr,
-                        T upThr
-			)
+                                T lowThr,
+                                T upThr
+                                )
 {
     switch(image->datatype){
     case NIFTI_TYPE_UINT8:
@@ -244,9 +244,9 @@ template void reg_thresholdImage<double>(nifti_image *, double, double);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class DTYPE>
-void reg_smoothImageForCubicSpline1(nifti_image *image,
-                                    int radius[]
-                                    )
+        void reg_smoothImageForCubicSpline1(nifti_image *image,
+                                            int radius[]
+                                            )
 {
     DTYPE *imageArray = static_cast<DTYPE *>(image->data);
 
@@ -279,10 +279,10 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
             DTYPE imageValue;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    private(index, i, X, it, x, y, z, finalValue, windowValue, c, t, temp, imageValue) \
-    shared(image, readingValue, writtingValue, radius, windowSize, window)
+            private(index, i, X, it, x, y, z, finalValue, windowValue, c, t, temp, imageValue) \
+                    shared(image, readingValue, writtingValue, radius, windowSize, window)
 #endif // _OPENMP
-            for(z=0; z<image->nz; z++){
+                    for(z=0; z<image->nz; z++){
                 i=z*image->nx*image->ny;
                 for(y=0; y<image->ny; y++){
                     for(x=0; x<image->nx; x++){
@@ -335,10 +335,10 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
             DTYPE imageValue;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    private(index, i, Y, it, x, y, z, finalValue, windowValue, c, t, temp, imageValue) \
-    shared(image, readingValue, writtingValue, radius, windowSize, window)
+            private(index, i, Y, it, x, y, z, finalValue, windowValue, c, t, temp, imageValue) \
+                    shared(image, readingValue, writtingValue, radius, windowSize, window)
 #endif // _OPENMP
-            for(z=0; z<image->nz; z++){
+                    for(z=0; z<image->nz; z++){
                 i=z*image->nx*image->ny;
                 for(y=0; y<image->ny; y++){
                     for(x=0; x<image->nx; x++){
@@ -393,11 +393,11 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
                 DTYPE imageValue;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    private(index, i, Z, it, x, y, z, finalValue, windowValue, c, t, temp, imageValue) \
-    shared(image, readingValue, writtingValue, radius, windowSize, window)
+                private(index, i, Z, it, x, y, z, finalValue, windowValue, c, t, temp, imageValue) \
+                        shared(image, readingValue, writtingValue, radius, windowSize, window)
 #endif // _OPENMP
 
-                for(z=0; z<image->nz; z++){
+                        for(z=0; z<image->nz; z++){
                     i=z*image->nx*image->ny;
                     for(y=0; y<image->ny; y++){
                         for(x=0; x<image->nx; x++){
@@ -435,9 +435,9 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
 }
 /* *************************************************************** */
 template <class PrecisionTYPE>
-void reg_smoothImageForCubicSpline(	nifti_image *image,
-                                   int radius[]
-                                   )
+        void reg_smoothImageForCubicSpline(	nifti_image *image,
+                                                int radius[]
+                                                )
 {
     switch(image->datatype){
     case NIFTI_TYPE_UINT8:
@@ -475,9 +475,9 @@ template void reg_smoothImageForCubicSpline<double>(nifti_image *, int[]);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class DTYPE>
-void reg_smoothImageForTrilinear1(	nifti_image *image,
-                                  int radius[]
-                                  )
+        void reg_smoothImageForTrilinear1(	nifti_image *image,
+                                                int radius[]
+                                                )
 {
     DTYPE *imageArray = static_cast<DTYPE *>(image->data);
 
@@ -632,9 +632,9 @@ void reg_smoothImageForTrilinear1(	nifti_image *image,
 }
 /* *************************************************************** */
 template <class PrecisionTYPE>
-void reg_smoothImageForTrilinear(	nifti_image *image,
-                                 int radius[]
-                                 )
+        void reg_smoothImageForTrilinear(	nifti_image *image,
+                                                int radius[]
+                                                )
 {
     switch(image->datatype){
     case NIFTI_TYPE_UINT8:
@@ -672,7 +672,7 @@ template void reg_smoothImageForTrilinear<double>(nifti_image *, int[]);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class DTYPE>
-PrecisionTYPE reg_getMaximalLength2D(nifti_image *image)
+        PrecisionTYPE reg_getMaximalLength2D(nifti_image *image)
 {
     DTYPE *dataPtrX = static_cast<DTYPE *>(image->data);
     DTYPE *dataPtrY = &dataPtrX[image->nx*image->ny*image->nz];
@@ -689,7 +689,7 @@ PrecisionTYPE reg_getMaximalLength2D(nifti_image *image)
 }
 /* *************************************************************** */
 template <class PrecisionTYPE, class DTYPE>
-PrecisionTYPE reg_getMaximalLength3D(nifti_image *image)
+        PrecisionTYPE reg_getMaximalLength3D(nifti_image *image)
 {
     DTYPE *dataPtrX = static_cast<DTYPE *>(image->data);
     DTYPE *dataPtrY = &dataPtrX[image->nx*image->ny*image->nz];
@@ -708,7 +708,7 @@ PrecisionTYPE reg_getMaximalLength3D(nifti_image *image)
 }
 /* *************************************************************** */
 template <class PrecisionTYPE>
-PrecisionTYPE reg_getMaximalLength(nifti_image *image)
+        PrecisionTYPE reg_getMaximalLength(nifti_image *image)
 {
     if(image->nz==1){
         switch(image->datatype){
@@ -738,7 +738,7 @@ template double reg_getMaximalLength<double>(nifti_image *);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class NewTYPE, class DTYPE>
-void reg_changeDatatype1(nifti_image *image)
+        void reg_changeDatatype1(nifti_image *image)
 {
     // the initial array is saved and freeed
     DTYPE *initialValue = (DTYPE *)malloc(image->nvox*sizeof(DTYPE));
@@ -763,7 +763,7 @@ void reg_changeDatatype1(nifti_image *image)
 }
 /* *************************************************************** */
 template <class NewTYPE>
-void reg_changeDatatype(nifti_image *image)
+        void reg_changeDatatype(nifti_image *image)
 {
     switch(image->datatype){
     case NIFTI_TYPE_UINT8:
@@ -802,8 +802,8 @@ template void reg_changeDatatype<double>(nifti_image *);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class ImageTYPE>
-double reg_tool_GetIntensityValue1(nifti_image *image,
-                                   int *index)
+        double reg_tool_GetIntensityValue1(nifti_image *image,
+                                           int *index)
 {
     ImageTYPE *imgPtr = static_cast<ImageTYPE *>(image->data);
     return (double) imgPtr[(index[2]*image->ny+index[1])*image->nx+index[0]];
@@ -847,22 +847,22 @@ double reg_tool_GetIntensityValue(nifti_image *image,
 /* *************************************************************** */
 /* *************************************************************** */
 template <class TYPE1, class TYPE2>
-void reg_tools_addSubMulDivImages2( nifti_image *img1,
-                                   nifti_image *img2,
-                                   nifti_image *res,
-                                   int type)
+        void reg_tools_addSubMulDivImages2( nifti_image *img1,
+                                            nifti_image *img2,
+                                            nifti_image *res,
+                                            int type)
 {
     TYPE1 *img1Ptr = static_cast<TYPE1 *>(img1->data);
-    TYPE2 *img2Ptr = static_cast<TYPE2 *>(img2->data);
     TYPE1 *resPtr = static_cast<TYPE1 *>(res->data);
+    TYPE2 *img2Ptr = static_cast<TYPE2 *>(img2->data);
     switch(type){
     case 0:
         for(unsigned int i=0; i<res->nvox; i++)
-            *resPtr++ = (TYPE1)(*img1Ptr++ + *img2Ptr++);
+            *resPtr++ = (TYPE1)((double)*img1Ptr++ + (double)*img2Ptr++);
         break;
     case 1:
         for(unsigned int i=0; i<res->nvox; i++)
-            *resPtr++ = (TYPE1)(*img1Ptr++ - *img2Ptr++);
+            *resPtr++ = (TYPE1)((double)*img1Ptr++ - (double)*img2Ptr++);
         break;
     case 2:
         for(unsigned int i=0; i<res->nvox; i++)
@@ -876,12 +876,12 @@ void reg_tools_addSubMulDivImages2( nifti_image *img1,
 }
 /* *************************************************************** */
 template <class TYPE1>
-void reg_tools_addSubMulDivImages1( nifti_image *img1,
-                                   nifti_image *img2,
-                                   nifti_image *res,
-                                   int type)
+        void reg_tools_addSubMulDivImages1( nifti_image *img1,
+                                            nifti_image *img2,
+                                            nifti_image *res,
+                                            int type)
 {
-    switch(img1->datatype){
+    switch(img2->datatype){
     case NIFTI_TYPE_UINT8:
         reg_tools_addSubMulDivImages2<TYPE1,unsigned char>(img1, img2, res, type);
         break;
@@ -913,19 +913,18 @@ void reg_tools_addSubMulDivImages1( nifti_image *img1,
 }
 /* *************************************************************** */
 void reg_tools_addSubMulDivImages(  nifti_image *img1,
-                                  nifti_image *img2,
-                                  nifti_image *res,
-                                  int type)
+                                    nifti_image *img2,
+                                    nifti_image *res,
+                                    int type)
 {
     
-    if(img1->dim[0]!=img2->dim[0] ||
-            img1->dim[1]!=img2->dim[1] ||
-            img1->dim[2]!=img2->dim[2] ||
-            img1->dim[3]!=img2->dim[3] ||
-            img1->dim[4]!=img2->dim[4] ||
-            img1->dim[5]!=img2->dim[5] ||
-            img1->dim[6]!=img2->dim[6] ||
-            img1->dim[7]!=img2->dim[7]){
+    if(img1->dim[1]!=img2->dim[1] ||
+       img1->dim[2]!=img2->dim[2] ||
+       img1->dim[3]!=img2->dim[3] ||
+       img1->dim[4]!=img2->dim[4] ||
+       img1->dim[5]!=img2->dim[5] ||
+       img1->dim[6]!=img2->dim[6] ||
+       img1->dim[7]!=img2->dim[7]){
         fprintf(stderr,"[NiftyReg ERROR] reg_tools_addSubMulDivImages\tBoth images do not have the same dimension\n");
         exit(1);
     }
@@ -967,10 +966,10 @@ void reg_tools_addSubMulDivImages(  nifti_image *img1,
 /* *************************************************************** */
 /* *************************************************************** */
 template <class TYPE1>
-void reg_tools_addSubMulDivValue1(  nifti_image *img1,
-                                  nifti_image *res,
-                                  float val,
-                                  int type)
+        void reg_tools_addSubMulDivValue1(  nifti_image *img1,
+                                            nifti_image *res,
+                                            float val,
+                                            int type)
 {
     TYPE1 *img1Ptr = static_cast<TYPE1 *>(img1->data);
     TYPE1 *resPtr = static_cast<TYPE1 *>(res->data);
@@ -995,9 +994,9 @@ void reg_tools_addSubMulDivValue1(  nifti_image *img1,
 }
 /* *************************************************************** */
 void reg_tools_addSubMulDivValue(   nifti_image *img1,
-                                 nifti_image *res,
-                                 float val,
-                                 int type)
+                                    nifti_image *res,
+                                    float val,
+                                    int type)
 {
     if(img1->datatype != res->datatype){
         fprintf(stderr,"[NiftyReg ERROR] reg_tools_addSubMulDivValue\tInput and result image do not have the same data type\n");
@@ -1044,9 +1043,9 @@ void reg_tools_addSubMulDivValue(   nifti_image *img1,
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class ImageTYPE>
-void reg_gaussianSmoothing1(nifti_image *image,
-                            PrecisionTYPE sigma,
-                            bool axisToSmooth[8])
+        void reg_gaussianSmoothing1(nifti_image *image,
+                                    PrecisionTYPE sigma,
+                                    bool axisToSmooth[8])
 {
     ImageTYPE *imagePtr = static_cast<ImageTYPE *>(image->data);
 
@@ -1087,21 +1086,21 @@ void reg_gaussianSmoothing1(nifti_image *image,
                     // Define the variable to increment in the 1D array
                     increment=1;
                     switch(n){
-                        case 1: increment=1;break;
-                        case 2: increment=image->nx;break;
-                        case 3: increment=image->nx*image->ny;break;
-                        case 4: increment=image->nx*image->ny*image->nz;break;
-                        case 5: increment=image->nx*image->ny*image->nz*image->nt;break;
-                        case 6: increment=image->nx*image->ny*image->nz*image->nt*image->nu;break;
-                        case 7: increment=image->nx*image->ny*image->nz*image->nt*image->nu*image->nv;break;
+                    case 1: increment=1;break;
+                    case 2: increment=image->nx;break;
+                    case 3: increment=image->nx*image->ny;break;
+                    case 4: increment=image->nx*image->ny*image->nz;break;
+                    case 5: increment=image->nx*image->ny*image->nz*image->nt;break;
+                    case 6: increment=image->nx*image->ny*image->nz*image->nt*image->nu;break;
+                    case 7: increment=image->nx*image->ny*image->nz*image->nt*image->nu*image->nv;break;
                     }
                     // Loop over the different voxel
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(voxelNumber,image,n,increment,radius,timeImagePtr,kernel,resultValue) \
-    private(index, startingIndex,x,current,value,j)
+                    shared(voxelNumber,image,n,increment,radius,timeImagePtr,kernel,resultValue) \
+                            private(index, startingIndex,x,current,value,j)
 #endif
-                    for(index=0;index<voxelNumber;index+=image->dim[n]){
+                            for(index=0;index<voxelNumber;index+=image->dim[n]){
                         for(x=0; x<image->dim[n]; x++){
                             startingIndex=index+x;
 
@@ -1125,10 +1124,10 @@ void reg_gaussianSmoothing1(nifti_image *image,
                     }
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(voxelNumber, timeImagePtr, resultValue) \
-    private(i)
+                    shared(voxelNumber, timeImagePtr, resultValue) \
+                            private(i)
 #endif
-                    for(i=0; i<voxelNumber; i++) timeImagePtr[i]=(ImageTYPE)resultValue[i];
+                            for(i=0; i<voxelNumber; i++) timeImagePtr[i]=(ImageTYPE)resultValue[i];
                     delete[] kernel;
                 }
             }
@@ -1138,9 +1137,9 @@ void reg_gaussianSmoothing1(nifti_image *image,
 }
 /* *************************************************************** */
 template <class PrecisionTYPE>
-void reg_gaussianSmoothing(	nifti_image *image,
-                           PrecisionTYPE sigma,
-                           bool smoothXYZ[8])
+        void reg_gaussianSmoothing(	nifti_image *image,
+                                        PrecisionTYPE sigma,
+                                        bool smoothXYZ[8])
 {
     bool axisToSmooth[8];
     if(smoothXYZ==NULL){
@@ -1186,7 +1185,7 @@ template void reg_gaussianSmoothing<double>(nifti_image *, double, bool[8]);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class ImageTYPE>
-void reg_downsampleImage1(nifti_image *image, int type, bool downsampleAxis[8])
+        void reg_downsampleImage1(nifti_image *image, int type, bool downsampleAxis[8])
 {
     if(type==1){
         /* the input image is first smooth */
@@ -1326,7 +1325,7 @@ void reg_downsampleImage1(nifti_image *image, int type, bool downsampleAxis[8])
 }
 /* *************************************************************** */
 template <class PrecisionTYPE>
-void reg_downsampleImage(nifti_image *image, int type, bool downsampleAxis[8])
+        void reg_downsampleImage(nifti_image *image, int type, bool downsampleAxis[8])
 {
     switch(image->datatype){
     case NIFTI_TYPE_UINT8:
@@ -1363,7 +1362,7 @@ template void reg_downsampleImage<double>(nifti_image *, int, bool[8]);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void reg_tool_binarise_image1(nifti_image *image)
+        void reg_tool_binarise_image1(nifti_image *image)
 {
     DTYPE *dataPtr=static_cast<DTYPE *>(image->data);
     for(unsigned i=0; i<image->nvox; i++){
@@ -1407,7 +1406,7 @@ void reg_tool_binarise_image(nifti_image *image)
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void reg_tool_binarise_image1(nifti_image *image, float threshold)
+        void reg_tool_binarise_image1(nifti_image *image, float threshold)
 {
     DTYPE *dataPtr=static_cast<DTYPE *>(image->data);
     for(unsigned i=0; i<image->nvox; i++){
@@ -1451,7 +1450,7 @@ void reg_tool_binarise_image(nifti_image *image, float threshold)
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void reg_tool_binaryImage2int1(nifti_image *image, int *array, int &activeVoxelNumber)
+        void reg_tool_binaryImage2int1(nifti_image *image, int *array, int &activeVoxelNumber)
 {
     // Active voxel are different from -1
     activeVoxelNumber=0;
@@ -1502,7 +1501,7 @@ void reg_tool_binaryImage2int(nifti_image *image, int *array, int &activeVoxelNu
 /* *************************************************************** */
 /* *************************************************************** */
 template <class ATYPE,class BTYPE>
-double reg_tools_getMeanRMS2(nifti_image *imageA, nifti_image *imageB)
+        double reg_tools_getMeanRMS2(nifti_image *imageA, nifti_image *imageB)
 {
     ATYPE *imageAPtrX = static_cast<ATYPE *>(imageA->data);
     BTYPE *imageBPtrX = static_cast<BTYPE *>(imageB->data);
@@ -1538,7 +1537,7 @@ double reg_tools_getMeanRMS2(nifti_image *imageA, nifti_image *imageB)
 }
 /* *************************************************************** */
 template <class ATYPE>
-double reg_tools_getMeanRMS1(nifti_image *imageA, nifti_image *imageB)
+        double reg_tools_getMeanRMS1(nifti_image *imageA, nifti_image *imageB)
 {
     switch(imageB->datatype){
     case NIFTI_TYPE_UINT8:
