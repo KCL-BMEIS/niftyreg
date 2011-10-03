@@ -246,7 +246,7 @@ void reg_getEntropies2x2_gpu(nifti_image *targetImages,
 /// Called when we only have one target and one source image
 void reg_getVoxelBasedNMIGradientUsingPW_gpu(   nifti_image *targetImage,
                                                 nifti_image *resultImage,
-                                                float **targetImageArray_d,
+                                                cudaArray **targetImageArray_d,
                                                 float **resultImageArray_d,
                                                 float4 **resultGradientArray_d,
                                                 float **logJointHistogram_d,
@@ -258,12 +258,14 @@ void reg_getVoxelBasedNMIGradientUsingPW_gpu(   nifti_image *targetImage,
                                                 int floBinning)
 {
     const int voxelNumber = targetImage->nx*targetImage->ny*targetImage->nz;
+    const int3 imageSize=make_int3(targetImage->nx,targetImage->ny,targetImage->nz);
     const int binNumber = refBinning*floBinning+refBinning+floBinning;
     const float4 entropies_h=make_float4((float)entropies[0],(float)entropies[1],(float)entropies[2],(float)entropies[3]);
     const float NMI = (float)((entropies[0]+entropies[1])/entropies[2]);
 
     // Bind Symbols
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&voxelNumber,sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ImageSize,&imageSize,sizeof(int3)));
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_firstTargetBin,&refBinning,sizeof(int)));
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_firstResultBin,&floBinning,sizeof(int)));
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_Entropies,&entropies_h,sizeof(float4)));
@@ -271,7 +273,14 @@ void reg_getVoxelBasedNMIGradientUsingPW_gpu(   nifti_image *targetImage,
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber,&activeVoxelNumber,sizeof(int)));
 
     // Texture bindingcurrentFloating
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, firstTargetImageTexture, *targetImageArray_d, voxelNumber*sizeof(float)));
+    //Bind target image array to a 3D texture
+    firstTargetImageTexture.normalized = true;
+    firstTargetImageTexture.filterMode = cudaFilterModeLinear;
+    firstTargetImageTexture.addressMode[0] = cudaAddressModeWrap;
+    firstTargetImageTexture.addressMode[1] = cudaAddressModeWrap;
+    firstTargetImageTexture.addressMode[2] = cudaAddressModeWrap;
+    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
+    NR_CUDA_SAFE_CALL(cudaBindTextureToArray(firstTargetImageTexture, *targetImageArray_d, channelDesc))
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, firstResultImageTexture, *resultImageArray_d, voxelNumber*sizeof(float)));
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, firstResultImageGradientTexture, *resultGradientArray_d, voxelNumber*sizeof(float4)));
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
@@ -294,8 +303,8 @@ void reg_getVoxelBasedNMIGradientUsingPW_gpu(   nifti_image *targetImage,
 /// Called when we have two target and two source image
 void reg_getVoxelBasedNMIGradientUsingPW2x2_gpu(nifti_image *targetImage,
                                                 nifti_image *resultImage,
-                                                float **targetImageArray1_d,
-                                                float **targetImageArray2_d,
+                                                cudaArray **targetImageArray1_d,
+                                                cudaArray **targetImageArray2_d,
                                                 float **resultImageArray1_d,
                                                 float **resultImageArray2_d,
                                                 float4 **resultGradientArray1_d,
@@ -313,12 +322,14 @@ void reg_getVoxelBasedNMIGradientUsingPW2x2_gpu(nifti_image *targetImage,
         return;
     }
     const int voxelNumber = targetImage->nx*targetImage->ny*targetImage->nz;
+    const int3 imageSize=make_int3(targetImage->nx,targetImage->ny,targetImage->nz);
     const float4 entropies_h=make_float4((float)entropies[0],(float)entropies[1],(float)entropies[2],(float)entropies[3]);
     const float NMI = (float)((entropies[0]+entropies[1])/entropies[2]);
     const int binNumber = targetBinning[0]*targetBinning[1]*resultBinning[0]*resultBinning[1] + (targetBinning[0]*targetBinning[1]) + (resultBinning[0]*resultBinning[1]);
 
     // Bind Symbols
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&voxelNumber,sizeof(int)));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ImageSize,&imageSize,sizeof(int3)));
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_firstTargetBin,&targetBinning[0],sizeof(int)));
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_secondTargetBin,&targetBinning[1],sizeof(int)));
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_firstResultBin,&resultBinning[0],sizeof(int)));
@@ -328,8 +339,14 @@ void reg_getVoxelBasedNMIGradientUsingPW2x2_gpu(nifti_image *targetImage,
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber,&activeVoxelNumber,sizeof(int)));
 
     // Texture binding
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, firstTargetImageTexture, *targetImageArray1_d, voxelNumber*sizeof(float)));
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, secondTargetImageTexture, *targetImageArray2_d, voxelNumber*sizeof(float)));
+    firstTargetImageTexture.normalized = true;
+    firstTargetImageTexture.filterMode = cudaFilterModeLinear;
+    firstTargetImageTexture.addressMode[0] = cudaAddressModeWrap;
+    firstTargetImageTexture.addressMode[1] = cudaAddressModeWrap;
+    firstTargetImageTexture.addressMode[2] = cudaAddressModeWrap;
+    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
+    NR_CUDA_SAFE_CALL(cudaBindTextureToArray(firstTargetImageTexture, *targetImageArray1_d, channelDesc))
+    NR_CUDA_SAFE_CALL(cudaBindTextureToArray(secondTargetImageTexture, *targetImageArray2_d, channelDesc))
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, firstResultImageTexture, *resultImageArray1_d, voxelNumber*sizeof(float)));
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, secondResultImageTexture, *resultImageArray2_d, voxelNumber*sizeof(float)));
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, firstResultImageGradientTexture, *resultGradientArray1_d, voxelNumber*sizeof(float4)));

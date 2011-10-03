@@ -26,7 +26,7 @@ class reg_f3d_gpu : public reg_f3d<T>
   protected:
 
     // cuda variables
-    float *currentReference_gpu;
+    cudaArray *currentReference_gpu;
     cudaArray *currentFloating_gpu;
     int *currentMask_gpu;
     float *warped_gpu;
@@ -41,7 +41,7 @@ class reg_f3d_gpu : public reg_f3d<T>
     float *logJointHistogram_gpu;
 
     // cuda variable for multispectral registration
-    float *currentReference2_gpu;
+    cudaArray *currentReference2_gpu;
     cudaArray *currentFloating2_gpu;
     float *warped2_gpu;
     float4 *warpedGradientImage2_gpu;

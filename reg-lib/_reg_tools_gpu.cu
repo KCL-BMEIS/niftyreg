@@ -16,11 +16,11 @@
 #include "_reg_tools_kernels.cu"
 
 
-void reg_voxelCentric2NodeCentric_gpu(	nifti_image *targetImage,
-                    nifti_image *controlPointImage,
-                    float4 **voxelNMIGradientArray_d,
-                    float4 **nodeNMIGradientArray_d,
-                    float weight)
+void reg_voxelCentric2NodeCentric_gpu(nifti_image *targetImage,
+                                      nifti_image *controlPointImage,
+                                      float4 **voxelNMIGradientArray_d,
+                                      float4 **nodeNMIGradientArray_d,
+                                      float weight)
 {
     const int nodeNumber = controlPointImage->nx * controlPointImage->ny * controlPointImage->nz;
     const int voxelNumber = targetImage->nx * targetImage->ny * targetImage->nz;
