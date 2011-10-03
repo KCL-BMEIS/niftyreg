@@ -51,18 +51,14 @@ typedef struct{
     char *inputAffineName;
     char *outputResultName;
     char *outputAffineName;
-    char *targetMaskName;
-
-    int maxIteration;
-
+    char *targetMaskName;    
+    int maxIteration;    
     int backgroundIndex[3];
-    PrecisionTYPE sourceBGValue;
-
+    PrecisionTYPE sourceBGValue;    
     float targetSigmaValue;
     float sourceSigmaValue;
     int levelNumber;
-    int level2Perform;
-
+    int level2Perform;    
     int block_percent_to_use;
     int inlier_lts;
 }PARAM;
@@ -76,17 +72,12 @@ typedef struct{
     bool level2PerformFlag;
     bool outputResultFlag;
     bool outputAffineFlag;
-    bool targetMaskFlag;
-
-    bool maxIterationFlag;
-
-    bool backgroundIndexFlag;
-
-    bool alignCenterFlag;
-
+    bool targetMaskFlag;    
+    bool maxIterationFlag;    
+    bool backgroundIndexFlag;    
+    bool alignCenterFlag;    
     bool rigidFlag;
-    bool affineFlag;
-
+    bool affineFlag;    
     bool targetSigmaFlag;
     bool sourceSigmaFlag;
     bool pyramidFlag;
@@ -177,8 +168,8 @@ int main(int argc, char **argv)
     /* read the input parameter */
     for(int i=1;i<argc;i++){
         if(strcmp(argv[i], "-help")==0 || strcmp(argv[i], "-Help")==0 ||
-                strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
-                strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0){
+           strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
+           strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0){
             Usage(argv[0]);
             return 0;
         }
@@ -309,7 +300,7 @@ int main(int argc, char **argv)
     if(!flag->backgroundIndexFlag) param->sourceBGValue = 0.0;
     else{
         if(param->backgroundIndex[0] < 0 || param->backgroundIndex[1] < 0 || param->backgroundIndex[2] < 0
-                || param->backgroundIndex[0] >= sourceHeader->dim[1] || param->backgroundIndex[1] >= sourceHeader->dim[2] || param->backgroundIndex[2] >= sourceHeader->dim[3]){
+           || param->backgroundIndex[0] >= sourceHeader->dim[1] || param->backgroundIndex[1] >= sourceHeader->dim[2] || param->backgroundIndex[2] >= sourceHeader->dim[3]){
             fprintf(stderr,"The specified index (%i %i %i) for background does not belong to the source image (out of bondary)\n",
                     param->backgroundIndex[0], param->backgroundIndex[1], param->backgroundIndex[2]);
             return 1;
@@ -356,10 +347,10 @@ int main(int argc, char **argv)
             return 1;
         }
         reg_tool_ReadAffineFile(	affineTransformation,
-                                targetHeader,
-                                sourceHeader,
-                                param->inputAffineName,
-                                flag->flirtAffineFlag);
+                                        targetHeader,
+                                        sourceHeader,
+                                        param->inputAffineName,
+                                        flag->flirtAffineFlag);
     }
 
     /* read and binarise the target mask image */
@@ -634,8 +625,8 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
                 if(flag->useGPUFlag){
                     reg_affine_positionField_gpu(	affineTransformation,
-                                                 targetImage,
-                                                 &positionFieldImageArray_d);
+                                                        targetImage,
+                                                        &positionFieldImageArray_d);
                     /* Resample the source image */
                     reg_resampleSourceImage_gpu(resultImage,
                                                 sourceImage,
@@ -647,25 +638,25 @@ int main(int argc, char **argv)
                                                 param->sourceBGValue);
                     /* Compute the correspondances between blocks */
                     block_matching_method_gpu(	targetImage,
-                                              resultImage,
-                                              &blockMatchingParams,
-                                              &targetImageArray_d,
-                                              &resultImageArray_d,
-                                              &targetPosition_d,
-                                              &resultPosition_d,
-                                              &activeBlock_d);
+                                                resultImage,
+                                                &blockMatchingParams,
+                                                &targetImageArray_d,
+                                                &resultImageArray_d,
+                                                &targetPosition_d,
+                                                &resultPosition_d,
+                                                &activeBlock_d);
                     /* update  the affine transformation matrix */
                     optimize_gpu(	&blockMatchingParams,
-                                 &updateAffineMatrix,
-                                 &targetPosition_d,
-                                 &resultPosition_d,
-                                 RIGID);
+                                        &updateAffineMatrix,
+                                        &targetPosition_d,
+                                        &resultPosition_d,
+                                        RIGID);
                 }
                 else{
 #endif
                     reg_affine_positionField(	affineTransformation,
-                                             targetImage,
-                                             positionFieldImage);
+                                                targetImage,
+                                                positionFieldImage);
                     /* Resample the source image */
                     reg_resampleSourceImage(targetImage,
                                             sourceImage,
@@ -676,9 +667,9 @@ int main(int argc, char **argv)
                                             param->sourceBGValue);
                     /* Compute the correspondances between blocks */
                     block_matching_method<PrecisionTYPE>(   targetImage,
-                                                         resultImage,
-                                                         &blockMatchingParams,
-                                                         targetMask);
+                                                            resultImage,
+                                                            &blockMatchingParams,
+                                                            targetMask);
                     /* update  the affine transformation matrix */
                     optimize(&blockMatchingParams,
                              &updateAffineMatrix,
@@ -709,56 +700,56 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
                 if(flag->useGPUFlag){
                     reg_affine_positionField_gpu(	affineTransformation,
-                                                 targetImage,
-                                                 &positionFieldImageArray_d);
+                                                        targetImage,
+                                                        &positionFieldImageArray_d);
                     /* Resample the source image */
                     reg_resampleSourceImage_gpu(	resultImage,
-                                                sourceImage,
-                                                &resultImageArray_d,
-                                                &sourceImageArray_d,
-                                                &positionFieldImageArray_d,
-                                                &targetMask_d,
-                                                activeVoxelNumber,
-                                                param->sourceBGValue);
+                                                        sourceImage,
+                                                        &resultImageArray_d,
+                                                        &sourceImageArray_d,
+                                                        &positionFieldImageArray_d,
+                                                        &targetMask_d,
+                                                        activeVoxelNumber,
+                                                        param->sourceBGValue);
                     /* Compute the correspondances between blocks */
                     block_matching_method_gpu(	targetImage,
-                                              resultImage,
-                                              &blockMatchingParams,
-                                              &targetImageArray_d,
-                                              &resultImageArray_d,
-                                              &targetPosition_d,
-                                              &resultPosition_d,
-                                              &activeBlock_d);
+                                                resultImage,
+                                                &blockMatchingParams,
+                                                &targetImageArray_d,
+                                                &resultImageArray_d,
+                                                &targetPosition_d,
+                                                &resultPosition_d,
+                                                &activeBlock_d);
 
                     /* update  the affine transformation matrix */
                     optimize_gpu(	&blockMatchingParams,
-                                 &updateAffineMatrix,
-                                 &targetPosition_d,
-                                 &resultPosition_d,
-                                 AFFINE);
+                                        &updateAffineMatrix,
+                                        &targetPosition_d,
+                                        &resultPosition_d,
+                                        AFFINE);
                 }
                 else{
 #endif
                     reg_affine_positionField(	affineTransformation,
-                                             targetImage,
-                                             positionFieldImage);
+                                                targetImage,
+                                                positionFieldImage);
                     /* Resample the source image */
                     reg_resampleSourceImage(	targetImage,
-                                            sourceImage,
-                                            resultImage,
-                                            positionFieldImage,
-                                            targetMask,
-                                            1,
-                                            param->sourceBGValue);
+                                                sourceImage,
+                                                resultImage,
+                                                positionFieldImage,
+                                                targetMask,
+                                                1,
+                                                param->sourceBGValue);
                     /* Compute the correspondances between blocks */
                     block_matching_method<PrecisionTYPE>(	targetImage,
-                                                         resultImage,
-                                                         &blockMatchingParams,
-                                                         targetMask);
+                                                                resultImage,
+                                                                &blockMatchingParams,
+                                                                targetMask);
                     /* update  the affine transformation matrix */
                     optimize(	&blockMatchingParams,
-                             &updateAffineMatrix,
-                             AFFINE);
+                                &updateAffineMatrix,
+                                AFFINE);
 #ifdef _USE_CUDA
                 }
 #endif
@@ -798,28 +789,38 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
             if(flag->useGPUFlag && param->level2Perform==param->levelNumber)
                 positionFieldImage->data = (void *)calloc(positionFieldImage->nvox, positionFieldImage->nbyper);
-            else
 #endif
-                if(param->level2Perform != param->levelNumber){
-                    if(positionFieldImage->data)free(positionFieldImage->data);
-                    positionFieldImage->dim[1]=positionFieldImage->nx=targetHeader->nx;
-                    positionFieldImage->dim[2]=positionFieldImage->ny=targetHeader->ny;
-                    positionFieldImage->dim[3]=positionFieldImage->nz=targetHeader->nz;
-                    positionFieldImage->dim[4]=positionFieldImage->nt=1;positionFieldImage->pixdim[4]=positionFieldImage->dt=1.0;
-                    if(flag->twoDimRegistration)
-                        positionFieldImage->dim[5]=positionFieldImage->nu=2;
-                    else positionFieldImage->dim[5]=positionFieldImage->nu=3;
-                    positionFieldImage->pixdim[5]=positionFieldImage->du=1.0;
-                    positionFieldImage->dim[6]=positionFieldImage->nv=1;positionFieldImage->pixdim[6]=positionFieldImage->dv=1.0;
-                    positionFieldImage->dim[7]=positionFieldImage->nw=1;positionFieldImage->pixdim[7]=positionFieldImage->dw=1.0;
-                    positionFieldImage->nvox=positionFieldImage->nx*positionFieldImage->ny*positionFieldImage->nz*positionFieldImage->nt*positionFieldImage->nu;
-                    positionFieldImage->data = (void *)calloc(positionFieldImage->nvox, positionFieldImage->nbyper);
-                }
+            if(param->level2Perform != param->levelNumber){
+                if(positionFieldImage->data)free(positionFieldImage->data);
+                if(positionFieldImage) free(positionFieldImage);
+
+                positionFieldImage = nifti_copy_nim_info(targetHeader);
+                positionFieldImage->dim[0]=positionFieldImage->ndim=5;
+                positionFieldImage->dim[1]=positionFieldImage->nx=targetHeader->nx;
+                positionFieldImage->dim[2]=positionFieldImage->ny=targetHeader->ny;
+                positionFieldImage->dim[3]=positionFieldImage->nz=targetHeader->nz;
+                positionFieldImage->dim[4]=positionFieldImage->nt=1;
+                if(flag->twoDimRegistration) positionFieldImage->dim[5]=positionFieldImage->nu=2;
+                else positionFieldImage->dim[5]=positionFieldImage->nu=3;
+                positionFieldImage->dim[6]=positionFieldImage->nv=1;
+                positionFieldImage->dim[7]=positionFieldImage->nw=1;
+                positionFieldImage->nvox=positionFieldImage->nx*positionFieldImage->ny*
+                                         positionFieldImage->nz*positionFieldImage->nt*
+                                         positionFieldImage->nu;
+                positionFieldImage->pixdim[5]=positionFieldImage->du=1.0;
+                positionFieldImage->pixdim[4]=positionFieldImage->dt=1.0;
+                positionFieldImage->pixdim[6]=positionFieldImage->dv=1.0;
+                positionFieldImage->pixdim[7]=positionFieldImage->dw=1.0;
+                if(sizeof(PrecisionTYPE)==4) positionFieldImage->datatype = NIFTI_TYPE_FLOAT32;
+                else positionFieldImage->datatype = NIFTI_TYPE_FLOAT64;
+                positionFieldImage->nbyper = sizeof(PrecisionTYPE);
+                positionFieldImage->data = (void *)calloc(positionFieldImage->nvox, positionFieldImage->nbyper);
+            }
 
             /* The corresponding deformation field is evaluated and saved */
             reg_affine_positionField(	affineTransformation,
-                                     targetHeader,
-                                     positionFieldImage);
+                                        targetHeader,
+                                        positionFieldImage);
 
             /* The result image is resampled using a cubic spline interpolation */
             nifti_image_free(sourceImage);

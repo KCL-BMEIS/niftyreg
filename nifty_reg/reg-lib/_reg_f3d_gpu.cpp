@@ -49,7 +49,7 @@ template <class T>
 reg_f3d_gpu<T>::~reg_f3d_gpu()
 {
     if(this->currentReference_gpu!=NULL)
-        cudaCommon_free<float>(&this->currentReference_gpu);
+        cudaCommon_free(&this->currentReference_gpu);
     if(this->currentFloating_gpu!=NULL)
         cudaCommon_free(&this->currentFloating_gpu);
     if(this->currentMask_gpu!=NULL)
@@ -76,7 +76,7 @@ reg_f3d_gpu<T>::~reg_f3d_gpu()
         cudaCommon_free<float>(&this->logJointHistogram_gpu);
 
     if(this->currentReference2_gpu!=NULL)
-        cudaCommon_free<float>(&this->currentReference2_gpu);
+        cudaCommon_free(&this->currentReference2_gpu);
     if(this->currentFloating2_gpu!=NULL)
         cudaCommon_free(&this->currentFloating2_gpu);
     if(this->warped2_gpu!=NULL)
@@ -720,8 +720,8 @@ int reg_f3d_gpu<T>::AllocateCurrentInputImage(int level)
 {
     reg_f3d<T>::AllocateCurrentInputImage(level);
 
-    if(this->currentReference_gpu!=NULL) cudaCommon_free<float>(&this->currentReference_gpu);
-    if(this->currentReference2_gpu!=NULL) cudaCommon_free<float>(&this->currentReference2_gpu);
+    if(this->currentReference_gpu!=NULL) cudaCommon_free(&this->currentReference_gpu);
+    if(this->currentReference2_gpu!=NULL) cudaCommon_free(&this->currentReference2_gpu);
     if(this->currentReference->nt==1){
         if(cudaCommon_allocateArrayToDevice<float>
            (&this->currentReference_gpu, this->currentReference->dim)) return 1;

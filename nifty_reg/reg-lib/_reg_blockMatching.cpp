@@ -17,6 +17,8 @@
 
 
 
+/* *************************************************************** */
+/* *************************************************************** */
 void copy_transformation_4x4(const mat44 & source, mat44 & dest)
 {
     dest.m[0][0] = source.m[0][0];
@@ -39,7 +41,7 @@ void copy_transformation_4x4(const mat44 & source, mat44 & dest)
     dest.m[3][2] = source.m[3][2];
     dest.m[3][3] = source.m[3][3];
 }
-
+/* *************************************************************** */
 /* *************************************************************** */
 // Helper function: Get the square of the Euclidean distance
 double get_square_distance(float * first_point3D, float * second_point3D)
@@ -290,6 +292,7 @@ template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageT
 
     unsigned int blockIndex=0;
     unsigned int activeBlockIndex=0;
+    params->definedActiveBlock=0;
     int index;
 
     for(int j=0; j<params->blockNumber[1]; j++){
@@ -326,7 +329,8 @@ template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageT
                     else targetIndex+=BLOCK_WIDTH;
                 }
                 PrecisionTYPE bestCC=0.0;
-                float bestDisplacement[3] = {0.0f, 0.0f, 0.0f};
+                float bestDisplacement[3] = {std::numeric_limits<float>::quiet_NaN(),
+                                             0.f, 0.f};
 
                 // iteration over the result blocks
                 for(int m=-OVERLAP_SIZE; m<=OVERLAP_SIZE; m+=STEP_SIZE){
@@ -399,23 +403,26 @@ template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageT
                     }
                 }
 
-                float targetPosition_temp[3];
-                targetPosition_temp[0] = (float)(i*BLOCK_WIDTH);
-                targetPosition_temp[1] = (float)(j*BLOCK_WIDTH);
-                targetPosition_temp[2] = 0.0f;
+                if(bestDisplacement[0]==bestDisplacement[0]){
+                    float targetPosition_temp[3];
+                    targetPosition_temp[0] = (float)(i*BLOCK_WIDTH);
+                    targetPosition_temp[1] = (float)(j*BLOCK_WIDTH);
+                    targetPosition_temp[2] = 0.0f;
 
-                bestDisplacement[0] += targetPosition_temp[0];
-                bestDisplacement[1] += targetPosition_temp[1];
-                bestDisplacement[2] = 0.0f;
+                    bestDisplacement[0] += targetPosition_temp[0];
+                    bestDisplacement[1] += targetPosition_temp[1];
+                    bestDisplacement[2] = 0.0f;
 
-                float tempPosition[3];
-                apply_affine(targetMatrix_xyz, targetPosition_temp, tempPosition);
-                params->targetPosition[activeBlockIndex] = tempPosition[0];
-                params->targetPosition[activeBlockIndex+1] = tempPosition[1];
-                apply_affine(targetMatrix_xyz, bestDisplacement, tempPosition);
-                params->resultPosition[activeBlockIndex] = tempPosition[0];
-                params->resultPosition[activeBlockIndex+1] = tempPosition[1];
-                activeBlockIndex += 2;
+                    float tempPosition[3];
+                    apply_affine(targetMatrix_xyz, targetPosition_temp, tempPosition);
+                    params->targetPosition[activeBlockIndex] = tempPosition[0];
+                    params->targetPosition[activeBlockIndex+1] = tempPosition[1];
+                    apply_affine(targetMatrix_xyz, bestDisplacement, tempPosition);
+                    params->resultPosition[activeBlockIndex] = tempPosition[0];
+                    params->resultPosition[activeBlockIndex+1] = tempPosition[1];
+                    activeBlockIndex += 2;
+                    params->definedActiveBlock++;
+                }
             }
             blockIndex++;
         }
@@ -464,6 +471,7 @@ template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageT
     unsigned int blockIndex=0;
     unsigned int activeBlockIndex=0;
     int index;
+    params->definedActiveBlock=0;
 
     for(int k=0; k<params->blockNumber[2]; k++){
         targetIndex_start_z=k*BLOCK_WIDTH;
@@ -493,7 +501,7 @@ template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageT
                                     for(int x=targetIndex_start_x; x<targetIndex_end_x; x++){
                                         if(-1<x && x<target->nx){
                                             TargetImageType value = *targetPtr_XYZ;
-                                            if(value==value && value!=0. && *maskPtr_XYZ>-1){
+                                            if(value==value && *maskPtr_XYZ>-1){
                                                 targetValues[targetIndex]=value;
                                                 targetOverlap[targetIndex]=1;
                                             }
@@ -509,7 +517,8 @@ template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageT
                         else targetIndex+=BLOCK_WIDTH*BLOCK_WIDTH;
                     }
                     PrecisionTYPE bestCC=0.0;
-                    float bestDisplacement[3] = {0.0f, 0.0f, 0.0f};
+                    float bestDisplacement[3] = {std::numeric_limits<float>::quiet_NaN(),
+                                                 0.f, 0.f};
 
                     // iteration over the result blocks
                     for(int n=-OVERLAP_SIZE; n<=OVERLAP_SIZE; n+=STEP_SIZE){
@@ -538,7 +547,7 @@ template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageT
                                                 for(int x=resultIndex_start_x; x<resultIndex_end_x; x++){
                                                     if(-1<x && x<result->nx){
                                                         ResultImageType value = *resultPtr_XYZ;
-                                                        if(value==value && value!=0. && *maskPtr_XYZ>-1){
+                                                        if(value==value && *maskPtr_XYZ>-1){
                                                             resultValues[resultIndex]=value;
                                                             resultOverlap[resultIndex]=1;
                                                         }
@@ -594,26 +603,28 @@ template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageT
                             }
                         }
                     }
+                    if(bestDisplacement[0]==bestDisplacement[0]){
+                        float targetPosition_temp[3];
+                        targetPosition_temp[0] = (float)(i*BLOCK_WIDTH);
+                        targetPosition_temp[1] = (float)(j*BLOCK_WIDTH);
+                        targetPosition_temp[2] = (float)(k*BLOCK_WIDTH);
 
-                    float targetPosition_temp[3];
-                    targetPosition_temp[0] = (float)(i*BLOCK_WIDTH);
-                    targetPosition_temp[1] = (float)(j*BLOCK_WIDTH);
-                    targetPosition_temp[2] = (float)(k*BLOCK_WIDTH);
+                        bestDisplacement[0] += targetPosition_temp[0];
+                        bestDisplacement[1] += targetPosition_temp[1];
+                        bestDisplacement[2] += targetPosition_temp[2];
 
-                    bestDisplacement[0] += targetPosition_temp[0];
-                    bestDisplacement[1] += targetPosition_temp[1];
-                    bestDisplacement[2] += targetPosition_temp[2];
-
-                    float tempPosition[3];
-                    apply_affine(targetMatrix_xyz, targetPosition_temp, tempPosition);
-                    params->targetPosition[activeBlockIndex] = tempPosition[0];
-                    params->targetPosition[activeBlockIndex+1] = tempPosition[1];
-                    params->targetPosition[activeBlockIndex+2] = tempPosition[2];
-                    apply_affine(targetMatrix_xyz, bestDisplacement, tempPosition);
-                    params->resultPosition[activeBlockIndex] = tempPosition[0];
-                    params->resultPosition[activeBlockIndex+1] = tempPosition[1];
-                    params->resultPosition[activeBlockIndex+2] = tempPosition[2];
-                    activeBlockIndex += 3;
+                        float tempPosition[3];
+                        apply_affine(targetMatrix_xyz, targetPosition_temp, tempPosition);
+                        params->targetPosition[activeBlockIndex] = tempPosition[0];
+                        params->targetPosition[activeBlockIndex+1] = tempPosition[1];
+                        params->targetPosition[activeBlockIndex+2] = tempPosition[2];
+                        apply_affine(targetMatrix_xyz, bestDisplacement, tempPosition);
+                        params->resultPosition[activeBlockIndex] = tempPosition[0];
+                        params->resultPosition[activeBlockIndex+1] = tempPosition[1];
+                        params->resultPosition[activeBlockIndex+2] = tempPosition[2];
+                        activeBlockIndex += 3;
+                        params->definedActiveBlock++;
+                    }
                 }
                 blockIndex++;
             }
@@ -691,7 +702,6 @@ template void block_matching_method<float>(nifti_image *, nifti_image *, _reg_bl
 template void block_matching_method<double>(nifti_image *, nifti_image *, _reg_blockMatchingParam *, int *);
 /* *************************************************************** */
 /* *************************************************************** */
-
 // Apply the suppled affine transformation to a 3D point
 void apply_affine(mat44 * mat, float *pt, float *result)
 {
@@ -699,12 +709,13 @@ void apply_affine(mat44 * mat, float *pt, float *result)
     result[1] = (mat->m[1][0] * pt[0]) + (mat->m[1][1]*pt[1]) + (mat->m[1][2]*pt[2]) + (mat->m[1][3]);
     result[2] = (mat->m[2][0] * pt[0]) + (mat->m[2][1]*pt[1]) + (mat->m[2][2]*pt[2]) + (mat->m[2][3]);
 }
+/* *************************************************************** */
 void apply_affine2D(mat44 * mat, float *pt, float *result)
 {
     result[0] = (mat->m[0][0] * pt[0]) + (mat->m[0][1]*pt[1]) + (mat->m[0][3]);
     result[1] = (mat->m[1][0] * pt[0]) + (mat->m[1][1]*pt[1]) + (mat->m[1][3]);
 }
-
+/* *************************************************************** */
 struct _reg_sorted_point3D
 {
     float target[3];
@@ -729,6 +740,7 @@ struct _reg_sorted_point3D
         return (sp.distance < distance);
     }
 };
+/* *************************************************************** */
 struct _reg_sorted_point2D
 {
     float target[2];
@@ -750,7 +762,7 @@ struct _reg_sorted_point2D
         return (sp.distance < distance);
     }
 };
-
+/* *************************************************************** */
 // Multiply matrices A and B together and store the result in r.
 // We assume that the input pointers are valid and can store the result.
 // A = ar * ac
@@ -782,6 +794,7 @@ void mul_matrices(float ** a, float ** b, int ar, int ac, int bc, float ** r, bo
         }
     }
 }
+/* *************************************************************** */
 
 // Multiply a matrix with a vctor
 void mul_matvec(float ** a, int ar, int ac, float * b, float * r)
@@ -793,7 +806,7 @@ void mul_matvec(float ** a, int ar, int ac, float * b, float * r)
         }
     }
 }
-
+/* *************************************************************** */
 // Compute determinant of a 3x3 matrix
 float compute_determinant3x3(float ** mat)
 {
@@ -801,8 +814,7 @@ float compute_determinant3x3(float ** mat)
             (mat[0][1]*(mat[1][0]*mat[2][2]-mat[1][2]*mat[2][0]))+
             (mat[0][2]*(mat[1][0]*mat[2][1]-mat[1][1]*mat[2][0]));
 }
-
-
+/* *************************************************************** */
 // estimate an affine transformation using least square
 void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> & points,
                                       mat44 * transformation,
@@ -1010,7 +1022,8 @@ void optimize_affine2D(_reg_blockMatchingParam * params,
     final->m[2][0] = final->m[2][1] = final->m[2][3] = 0.0f;
     final->m[3][0] = final->m[3][1] = final->m[3][2] = 0.0f;
 
-    const unsigned num_points = params->activeBlockNumber;
+//    const unsigned num_points = params->activeBlockNumber;
+    const unsigned num_points = params->definedActiveBlock;
     unsigned long num_equations = num_points * 2;
     std::multimap<double, _reg_sorted_point2D> queue;
     std::vector<_reg_sorted_point2D> top_points;
@@ -1164,7 +1177,8 @@ void optimize_affine3D(_reg_blockMatchingParam *params,
     final->m[2][0] = final->m[2][1] = final->m[2][3] = 0.0f;
     final->m[3][0] = final->m[3][1] = final->m[3][2] = 0.0f;
 
-    const unsigned num_points = params->activeBlockNumber;
+//    const unsigned num_points = params->activeBlockNumber;
+    const unsigned num_points = params->definedActiveBlock;
     unsigned long num_equations = num_points * 3;
     std::multimap<double, _reg_sorted_point3D> queue;
     std::vector<_reg_sorted_point3D> top_points;
@@ -1585,7 +1599,8 @@ void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> & points,
 void optimize_rigid2D(  _reg_blockMatchingParam *params,
                         mat44 * final)
 {
-    unsigned num_points = params->activeBlockNumber;
+//    unsigned num_points = params->activeBlockNumber;
+    const unsigned num_points = params->definedActiveBlock;
     // Keep a sorted list of the distance measure
     std::multimap<double, _reg_sorted_point2D> queue;
 
@@ -1652,7 +1667,8 @@ void optimize_rigid2D(  _reg_blockMatchingParam *params,
 void optimize_rigid3D(  _reg_blockMatchingParam *params,
                         mat44 * final)
 {
-    unsigned num_points = params->activeBlockNumber;
+//    const unsigned num_points = params->activeBlockNumber;
+    const unsigned num_points = params->definedActiveBlock;
     // Keep a sorted list of the distance measure
     std::multimap<double, _reg_sorted_point3D> queue;
     std::vector<_reg_sorted_point3D> top_points;
@@ -1688,8 +1704,8 @@ void optimize_rigid3D(  _reg_blockMatchingParam *params,
         for (unsigned j = 0; j < num_points * 3; j+= 3){
             distance = get_square_distance(&newResultPosition[j], &(params->resultPosition[j]));
             queue.insert(std::pair<double, _reg_sorted_point3D>(distance,
-                    _reg_sorted_point3D(&(params->targetPosition[j]),
-                                        &(params->resultPosition[j]), distance)));
+                                                                _reg_sorted_point3D(&(params->targetPosition[j]),
+                                                                                    &(params->resultPosition[j]), distance)));
         }
 
         distance = 0.0;

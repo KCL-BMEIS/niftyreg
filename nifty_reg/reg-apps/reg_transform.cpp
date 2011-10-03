@@ -107,7 +107,6 @@ void Usage(char *exec)
     printf("\t\tFilename1: Image to be updated\n");
     printf("\t\tFilename2: Affine transformation defined as Affine x Reference = Floating\n");
     printf("\t\tFilename3: Updated image.\n");
-    printf("\t\tFilename2: deformation field x'=T(x)\n");
     printf("\t-aff2def <filename1> <filename2> <filename3> <filename3>\n");
     printf("\t\tCompose a non-rigid with an affine. Non-rigid between A and B\n");
     printf("\t\tAffine from B to C. Returns a deformation field to deform A in the space of C\n");

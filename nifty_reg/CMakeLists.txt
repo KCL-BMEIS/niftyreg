@@ -54,9 +54,16 @@ IF(BUILD_NR_DEV)
     ADD_DEFINITIONS(-D_NR_DEV)
 ENDIF(BUILD_NR_DEV)
 
+
 IF(USE_OPENMP)
-    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+    EXECUTE_PROCESS(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
+    IF(GCC_VERSION VERSION_GREATER 4.2 OR GCC_VERSION VERSION_EQUAL 4.2)
+        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+   ELSE()
+        MESSAGE("Can not use Open-MP with gcc version lower than 4.2. Current version ${GCC_VERSION}")
+        MESSAGE(FATAL_ERROR "Please turn USE_OPENMP OFF")
+    ENDIF()
 ENDIF(USE_OPENMP)
 
 #-----------------------------------------------------------------------------

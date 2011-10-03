@@ -31,7 +31,7 @@ __device__ __constant__ float4 c_Entropies;
 __device__ __constant__ float c_NMI;
 __device__ __constant__ int c_ActiveVoxelNumber;
 
-texture<float, 1, cudaReadModeElementType> firstTargetImageTexture;
+texture<float, 3, cudaReadModeElementType> firstTargetImageTexture;
 texture<float, 1, cudaReadModeElementType> firstResultImageTexture;
 texture<float4, 1, cudaReadModeElementType> firstResultImageGradientTexture;
 texture<float, 1, cudaReadModeElementType> histogramTexture;
@@ -40,7 +40,7 @@ texture<int, 1, cudaReadModeElementType> maskTexture;
 
 /// Added for the multichannel stuff. We currently only support 2 target and 2 source channels.
 /// So we need another texture for the second target and source channel respectively.
-texture<float, 1, cudaReadModeElementType> secondTargetImageTexture;
+texture<float, 3, cudaReadModeElementType> secondTargetImageTexture;
 texture<float, 1, cudaReadModeElementType> secondResultImageTexture;
 texture<float4, 1, cudaReadModeElementType> secondResultImageGradientTexture;
 
@@ -79,7 +79,16 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW_kernel(float4 *voxelNMIGradi
     if(tid<c_ActiveVoxelNumber){
 
         const int targetIndex = tex1Dfetch(maskTexture,tid);
-        float targetImageValue = tex1Dfetch(firstTargetImageTexture,targetIndex);
+        int tempIndex=targetIndex;
+        const int z = tempIndex/(c_ImageSize.x*c_ImageSize.y);
+        tempIndex  -= z*c_ImageSize.x*c_ImageSize.y;
+        const int y = tempIndex/c_ImageSize.x;
+        const int x = tempIndex - y*c_ImageSize.x;
+
+        float targetImageValue = tex3D(firstTargetImageTexture,
+                                       ((float)x+0.5f)/(float)c_ImageSize.x,
+                                       ((float)y+0.5f)/(float)c_ImageSize.y,
+                                       ((float)z+0.5f)/(float)c_ImageSize.z);
         float resultImageValue = tex1Dfetch(firstResultImageTexture,targetIndex);
         float4 resultImageGradient = tex1Dfetch(firstResultImageGradientTexture,tid);
 
@@ -170,10 +179,21 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW2x2_kernel(float4 *voxelNMIGr
     const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_ActiveVoxelNumber){
         const int targetIndex = tex1Dfetch(maskTexture,tid);
+        int tempIndex=targetIndex;
+        const int z = tempIndex/(c_ImageSize.x*c_ImageSize.y);
+        tempIndex  -= z*c_ImageSize.x*c_ImageSize.y;
+        const int y = tempIndex/c_ImageSize.x;
+        const int x = tempIndex - y*c_ImageSize.x;
 
         float4 voxelValues = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-        voxelValues.x = tex1Dfetch(firstTargetImageTexture,targetIndex);
-        voxelValues.y = tex1Dfetch(secondTargetImageTexture,targetIndex);
+        voxelValues.x = tex3D(firstTargetImageTexture,
+                              ((float)x+0.5f)/(float)c_ImageSize.x,
+                              ((float)y+0.5f)/(float)c_ImageSize.y,
+                              ((float)z+0.5f)/(float)c_ImageSize.z);
+        voxelValues.x = tex3D(secondTargetImageTexture,
+                              ((float)x+0.5f)/(float)c_ImageSize.x,
+                              ((float)y+0.5f)/(float)c_ImageSize.y,
+                              ((float)z+0.5f)/(float)c_ImageSize.z);
         voxelValues.z = tex1Dfetch(firstResultImageTexture,targetIndex);
         voxelValues.w = tex1Dfetch(secondResultImageTexture,targetIndex);
 

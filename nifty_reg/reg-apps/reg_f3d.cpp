@@ -15,9 +15,6 @@
 #endif
 #ifdef _USE_CUDA
 #include "_reg_f3d_gpu.h"
-#ifdef _NR_DEV
-#include "_reg_f3d2_gpu.h"
-#endif
 #endif
 #include "float.h"
 #include <limits>
@@ -463,9 +460,16 @@ int main(int argc, char **argv)
         if(linearEnergyWeight0==linearEnergyWeight0 ||
            linearEnergyWeight1==linearEnergyWeight1 ||
            linearEnergyWeight2==linearEnergyWeight2){
-            printf("NiftyReg ERROR CUDA] The linear elasticity has not been implemented with CUDA yet. Exit.\n");
+            fprintf(stderr,"NiftyReg ERROR CUDA] The linear elasticity has not been implemented with CUDA yet. Exit.\n");
             exit(0);
         }
+
+#ifdef _NR_DEV
+        if(useVel){
+            fprintf(stderr,"\n[NiftyReg ERROR CUDA] GPU implementation of velocity field parametrisartion is not available. Exit\n");
+            exit(0);
+        }
+#endif
 
         if((referenceImage->dim[4]==1&&floatingImage->dim[4]==1) || (referenceImage->dim[4]==2&&floatingImage->dim[4]==2)){
 
@@ -506,29 +510,14 @@ int main(int argc, char **argv)
             }
 #endif
 
-#ifdef _NR_DEV
-            if(useVel){
-                REG = new reg_f3d2_gpu<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
+            REG = new reg_f3d_gpu<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
-                if(verbose==true){
+            if(verbose==true){
   #endif
-                    printf("\n[NiftyReg F3D2] GPU implementation is used\n");
+                printf("\n[NiftyReg F3D] GPU implementation is used\n");
 #ifdef NDEBUG
-                }
-#endif
             }
-            else
 #endif
-            {
-                REG = new reg_f3d_gpu<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
-#ifdef NDEBUG
-                if(verbose==true){
-  #endif
-                    printf("\n[NiftyReg F3D] GPU implementation is used\n");
-#ifdef NDEBUG
-                }
-#endif
-            }
         }
         else{
             fprintf(stderr,"[NiftyReg ERROR] The GPU implementation only handle 1 to 1 or 2 to 2 image(s) registration\n");
@@ -722,8 +711,15 @@ int main(int argc, char **argv)
         time_t end; time( &end );
         int minutes = (int)floorf(float(end-start)/60.0f);
         int seconds = (int)(end-start - 60*minutes);
-        printf("[NiftyReg F3D] Registration Performed in %i min %i sec\n", minutes, seconds);
-        printf("[NiftyReg F3D] Have a good day !\n");
+
+#ifdef _USE_CUDA
+        if(!checkMem){
+#endif
+            printf("[NiftyReg F3D] Registration Performed in %i min %i sec\n", minutes, seconds);
+            printf("[NiftyReg F3D] Have a good day !\n");
+#ifdef _USE_CUDA
+        }
+#endif
 #ifdef NDEBUG
     }
 #endif

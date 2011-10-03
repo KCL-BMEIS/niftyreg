@@ -124,7 +124,7 @@
 #define Block_reg_bspline_getDeformationField 192                   // 37 regs - 06152+16
 #define Block_reg_bspline_getApproxSecondDerivatives 192            // 35 regs - 00656+16
 #define Block_reg_bspline_getApproxBendingEnergy 320                // 12 regs
-#define Block_reg_bspline_getApproxBendingEnergyGradient 320        // 23 regs
+#define Block_reg_bspline_getApproxBendingEnergyGradient 256        // 27 regs
 #define Block_reg_bspline_getApproxJacobianValues 256               // 27 regs
 #define Block_reg_bspline_getJacobianValues 192                     // 41 regs - 09280+16
 #define Block_reg_bspline_logSquaredValues 384                      // 07 regs

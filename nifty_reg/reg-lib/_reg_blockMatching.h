@@ -67,15 +67,16 @@ struct _reg_blockMatchingParam{
         int blockNumber[3];
         int percent_to_keep;
 
-        float * targetPosition;
-        float * resultPosition;
+        float *targetPosition;
+        float *resultPosition;
 
         int activeBlockNumber;
         int *activeBlock;
 
+        int definedActiveBlock;
+
         _reg_blockMatchingParam()
-                :targetPosition(0), resultPosition(0), activeBlock(0)
-        {}
+                :targetPosition(0), resultPosition(0), activeBlock(0){}
 
 
         ~_reg_blockMatchingParam(){
