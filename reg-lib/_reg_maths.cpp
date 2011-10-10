@@ -173,8 +173,8 @@ mat44 reg_mat44_add(mat44 *A, mat44 *B)
 /* *************************************************************** */
 template <class DTYPE>
 void reg_mat44_mul(mat44 *mat,
-                    DTYPE in[3],
-                    DTYPE out[3])
+                    DTYPE *in,
+                    DTYPE *out)
 {
     out[0]=mat->m[0][0]*in[0] + mat->m[0][1]*in[1] + mat->m[0][2]*in[2] + mat->m[0][3];
     out[1]=mat->m[1][0]*in[0] + mat->m[1][1]*in[1] + mat->m[1][2]*in[2] + mat->m[1][3];

@@ -29,8 +29,8 @@ mat44 reg_mat44_mul(mat44 *A,
 /* *************************************************************** */
 extern "C++" template <class DTYPE>
 void reg_mat44_mul(mat44 *mat,
-                   DTYPE in[3],
-                   DTYPE out[3]);
+                   DTYPE *in,
+                   DTYPE *out);
 /* *************************************************************** */
 extern "C++"
 void reg_mat44_disp(mat44 *mat,
