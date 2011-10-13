@@ -21,8 +21,6 @@
 #include "float.h"
 #include <limits>
 
-#define USE_LINEAR_INTERPOLATION 1
-
 template <class T>
 class reg_f3d
 {
@@ -62,6 +60,7 @@ class reg_f3d
     bool useConjGradient;
     bool verbose;
     bool usePyramid;
+    int interpolation;
 //    int threadNumber;
 
     bool initialised;
@@ -163,6 +162,9 @@ public:
     int SetReferenceBinNumber(int, unsigned int);
     int SetFloatingBinNumber(int, unsigned int);
     int DoNotUsePyramidalApproach();
+    int UseNeareatNeighborInterpolation();
+    int UseLinearInterpolation();
+    int UseCubicSplineInterpolation();
 //    int SetThreadNumber(int t);
 
     virtual int SetCompositionStepNumber(int){return 0;}

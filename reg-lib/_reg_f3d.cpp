@@ -89,6 +89,8 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->probaJointHistogram=NULL;
     this->logJointHistogram=NULL;
 
+    this->interpolation=1;
+
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d constructor called\n");
 #endif
@@ -405,6 +407,28 @@ template<class T>
 int reg_f3d<T>::DoNotUsePyramidalApproach()
 {
     this->usePyramid=false;
+    return 0;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+int reg_f3d<T>::UseNeareatNeighborInterpolation()
+{
+    this->interpolation=0;
+    return 0;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+int reg_f3d<T>::UseLinearInterpolation()
+{
+    this->interpolation=1;
+    return 0;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+int reg_f3d<T>::UseCubicSplineInterpolation()
+{
+    this->interpolation=3;
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1383,7 +1407,7 @@ int reg_f3d<T>::GetVoxelBasedGradient()
                                this->warpedGradientImage,
                                this->deformationFieldImage,
                                this->currentMask,
-                               USE_LINEAR_INTERPOLATION);
+                               this->interpolation);
 
     if(this->useSSD){
         // Compute the voxel based SSD gradient
@@ -1839,7 +1863,7 @@ int reg_f3d<T>::Run_f3d()
         // Compute initial similarity measure
         double bestWMeasure = 0.0;
         if(this->similarityWeight>0){
-            this->WarpFloatingImage(USE_LINEAR_INTERPOLATION);
+            this->WarpFloatingImage(this->interpolation);
             bestWMeasure = this->ComputeSimilarityMeasure();
         }
 
@@ -1869,7 +1893,7 @@ int reg_f3d<T>::Run_f3d()
 
             // Compute the gradient of the similarity measure
             if(this->similarityWeight>0){
-                this->WarpFloatingImage(USE_LINEAR_INTERPOLATION);
+                this->WarpFloatingImage(this->interpolation);
                 this->ComputeSimilarityMeasure();
                 this->GetSimilarityMeasureGradient();
             }
@@ -1933,7 +1957,7 @@ int reg_f3d<T>::Run_f3d()
 
                 double currentWMeasure = 0.0;
                 if(this->similarityWeight>0){
-                    this->WarpFloatingImage(USE_LINEAR_INTERPOLATION);
+                    this->WarpFloatingImage(this->interpolation);
                     currentWMeasure = this->ComputeSimilarityMeasure();
                 } this->currentIteration++;
                 double currentValue = currentWMeasure - currentWBE - currentWLE - currentWJac;

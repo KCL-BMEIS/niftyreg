@@ -1586,7 +1586,102 @@ double reg_tools_getMeanRMS(nifti_image *imageA, nifti_image *imageB)
         exit(1);
     }
 }
+/* *************************************************************** */
+/* *************************************************************** */
+template <class TYPE1, class TYPE2>
+int reg_tool_nanMask_image2(nifti_image *image, nifti_image *maskImage, nifti_image *resultImage)
+{
+    TYPE1 *imagePtr = static_cast<TYPE1 *>(image->data);
+    TYPE2 *maskPtr = static_cast<TYPE2 *>(maskImage->data);
+    TYPE1 *resPtr = static_cast<TYPE1 *>(resultImage->data);
+    for(unsigned int i=0; i<image->nvox; ++i){
+        if(*maskPtr == 0)
+            *resPtr=std::numeric_limits<TYPE1>::quiet_NaN();
+        else *resPtr=*imagePtr;
+        maskPtr++;
+        imagePtr++;
+        resPtr++;
+    }
+    return 0;
+}
+/* *************************************************************** */
+template <class TYPE1>
+int reg_tool_nanMask_image1(nifti_image *image, nifti_image *maskImage, nifti_image *resultImage){
 
+    switch(maskImage->datatype){
+    case NIFTI_TYPE_UINT8:
+        return reg_tool_nanMask_image2<TYPE1,unsigned char>
+                (image, maskImage, resultImage);
+    case NIFTI_TYPE_INT8:
+        return reg_tool_nanMask_image2<TYPE1,char>
+                (image, maskImage, resultImage);
+    case NIFTI_TYPE_UINT16:
+        return reg_tool_nanMask_image2<TYPE1,unsigned short>
+                (image, maskImage, resultImage);
+    case NIFTI_TYPE_INT16:
+        return reg_tool_nanMask_image2<TYPE1,short>
+                (image, maskImage, resultImage);
+    case NIFTI_TYPE_UINT32:
+        return reg_tool_nanMask_image2<TYPE1,unsigned int>
+                (image, maskImage, resultImage);
+    case NIFTI_TYPE_INT32:
+        return reg_tool_nanMask_image2<TYPE1,int>
+                (image, maskImage, resultImage);
+    case NIFTI_TYPE_FLOAT32:
+        return reg_tool_nanMask_image2<TYPE1,float>
+                (image, maskImage, resultImage);
+    case NIFTI_TYPE_FLOAT64:
+        return reg_tool_nanMask_image2<TYPE1,double>
+                (image, maskImage, resultImage);
+    default:
+        fprintf(stderr,"[NiftyReg ERROR] reg_tool_nanMask_image\tThe image data type is not supported\n");
+        exit(1);
+    }
+}
+/* *************************************************************** */
+int reg_tool_nanMask_image(nifti_image *image, nifti_image *maskImage, nifti_image *resultImage)
+{
+    // Check dimension
+    if(image->nvox != maskImage->nvox || image->nvox != resultImage->nvox){
+        fprintf(stderr,"[NiftyReg ERROR] reg_tool_nanMask_image\tInput images have different size\n");
+        exit(1);
+    }
+    // Check output data type
+    if(image->datatype != resultImage->datatype){
+        fprintf(stderr,"[NiftyReg ERROR] reg_tool_nanMask_image\tInput and result images have different data type\n");
+        exit(1);
+    }
+    switch(image->datatype){
+    case NIFTI_TYPE_UINT8:
+        return reg_tool_nanMask_image1<unsigned char>
+                (image, maskImage, resultImage);
+    case NIFTI_TYPE_INT8:
+        return reg_tool_nanMask_image1<char>
+                (image, maskImage, resultImage);
+    case NIFTI_TYPE_UINT16:
+        return reg_tool_nanMask_image1<unsigned short>
+                (image, maskImage, resultImage);
+    case NIFTI_TYPE_INT16:
+        return reg_tool_nanMask_image1<short>
+                (image, maskImage, resultImage);
+    case NIFTI_TYPE_UINT32:
+        return reg_tool_nanMask_image1<unsigned int>
+                (image, maskImage, resultImage);
+    case NIFTI_TYPE_INT32:
+        return reg_tool_nanMask_image1<int>
+                (image, maskImage, resultImage);
+    case NIFTI_TYPE_FLOAT32:
+        return reg_tool_nanMask_image1<float>
+                (image, maskImage, resultImage);
+    case NIFTI_TYPE_FLOAT64:
+        return reg_tool_nanMask_image1<double>
+                (image, maskImage, resultImage);
+    default:
+        fprintf(stderr,"[NiftyReg ERROR] reg_tool_nanMask_image\tThe image data type is not supported\n");
+        exit(1);
+    }
+}
 /* *************************************************************** */
 /* *************************************************************** */
+
 #endif

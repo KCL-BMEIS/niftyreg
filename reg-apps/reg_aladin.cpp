@@ -61,6 +61,7 @@ typedef struct{
     int level2Perform;    
     int block_percent_to_use;
     int inlier_lts;
+    int interpolation;
 }PARAM;
 
 typedef struct{
@@ -164,6 +165,7 @@ int main(int argc, char **argv)
     param->block_percent_to_use=50;
     param->inlier_lts=50;
     flag->alignCenterFlag=1;
+    param->interpolation=1; // linear interpolation by default
 
     /* read the input parameter */
     for(int i=1;i<argc;i++){
@@ -242,6 +244,15 @@ int main(int argc, char **argv)
         }
         else if(strcmp(argv[i], "-%i") == 0){
             param->inlier_lts=atoi(argv[++i]);
+        }
+        else if(strcmp(argv[i], "-NN") == 0){
+            param->interpolation=0;
+        }
+        else if(strcmp(argv[i], "-LIN") == 0){
+            param->interpolation=1;
+        }
+        else if(strcmp(argv[i], "-CUB") == 0){
+            param->interpolation=3;
         }
 #ifdef _USE_CUDA
         else if(strcmp(argv[i], "-gpu") == 0){
@@ -663,7 +674,7 @@ int main(int argc, char **argv)
                                             resultImage,
                                             positionFieldImage,
                                             targetMask,
-                                            1,
+                                            param->interpolation,
                                             param->sourceBGValue);
                     /* Compute the correspondances between blocks */
                     block_matching_method<PrecisionTYPE>(   targetImage,
@@ -739,7 +750,7 @@ int main(int argc, char **argv)
                                                 resultImage,
                                                 positionFieldImage,
                                                 targetMask,
-                                                1,
+                                                param->interpolation,
                                                 param->sourceBGValue);
                     /* Compute the correspondances between blocks */
                     block_matching_method<PrecisionTYPE>(	targetImage,
