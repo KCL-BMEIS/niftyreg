@@ -26,7 +26,7 @@ __device__ __constant__ int c_VoxelNumber;
 __device__ __constant__ float c_PaddingValue;
 __device__ __constant__ int c_ActiveVoxelNumber;
 /* *************************************************************** */
-
+/* *************************************************************** */
 __global__ void reg_resampleSourceImage_kernel(float *resultArray)
 {
     const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
@@ -60,8 +60,8 @@ __global__ void reg_resampleSourceImage_kernel(float *resultArray)
         else resultArray[tex1Dfetch(maskTexture,tid)]=c_PaddingValue;
     }
 }
-
-
+/* *************************************************************** */
+/* *************************************************************** */
 __global__ void reg_getSourceImageGradient_kernel(float4 *gradientArray)
 {
     const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
@@ -136,5 +136,6 @@ __global__ void reg_getSourceImageGradient_kernel(float4 *gradientArray)
         else gradientArray[tid]=make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     }
 }
-
+/* *************************************************************** */
+/* *************************************************************** */
 #endif

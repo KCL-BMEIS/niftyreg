@@ -198,6 +198,9 @@ int main(int argc, char **argv)
     bool useConjugate=true;
     bool useSSD=false;
     bool noPyramid=0;
+    bool useCubicSplineInterpolation=false;
+    bool useLinearInterpolation=true;
+    bool useNearestNeighorInterpolation=false;
 #ifdef _NR_DEV
     int stepNumber=-1;
     bool useVel=false;
@@ -334,6 +337,21 @@ int main(int argc, char **argv)
         }
         else if(strcmp(argv[i], "-noConj") == 0){
            useConjugate=false;
+        }
+        else if(strcmp(argv[i], "-CUB") == 0){
+            useCubicSplineInterpolation=true;
+            useLinearInterpolation=false;
+            useNearestNeighorInterpolation=false;
+        }
+        else if(strcmp(argv[i], "-LIN") == 0){
+            useCubicSplineInterpolation=false;
+            useLinearInterpolation=true;
+            useNearestNeighorInterpolation=false;
+        }
+        else if(strcmp(argv[i], "-NN") == 0){
+            useCubicSplineInterpolation=false;
+            useLinearInterpolation=false;
+            useNearestNeighorInterpolation=true;
         }
 #ifdef _USE_CUDA
         else if(strcmp(argv[i], "-gpu") == 0){
@@ -645,6 +663,15 @@ int main(int argc, char **argv)
 
     if(noPyramid==1)
         REG->DoNotUsePyramidalApproach();
+
+    if(useCubicSplineInterpolation)
+        REG->UseCubicSplineInterpolation();
+
+    if(useLinearInterpolation)
+        REG->UseLinearInterpolation();
+
+    if(useNearestNeighorInterpolation)
+        REG->UseNeareatNeighborInterpolation();
 
 #ifdef _NR_DEV
     if(stepNumber>0)

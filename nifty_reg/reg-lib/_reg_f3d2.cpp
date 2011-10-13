@@ -238,7 +238,7 @@ int reg_f3d2<T>::GetVoxelBasedGradient()
                                 this->warped,
                                 this->deformationFieldImage,
                                 this->currentMask,
-                                USE_LINEAR_INTERPOLATION,
+                                this->interpolation,
                                 this->warpedPaddingValue);
 
         // The intensity gradient is first computed
@@ -248,7 +248,7 @@ int reg_f3d2<T>::GetVoxelBasedGradient()
                                    this->warpedGradientImage,
                                    this->deformationFieldImage,
                                    this->currentMask,
-                                   USE_LINEAR_INTERPOLATION);
+                                   this->interpolation);
 
         if(this->useSSD){
             // Compute the voxel based SSD gradient
@@ -329,7 +329,7 @@ int reg_f3d2<T>::GetVoxelBasedGradient()
                                   this->intermediateDeformationField[i],
                                   this->jacobianMatrices,
                                   this->currentMask,
-                                  USE_LINEAR_INTERPOLATION);
+                                  this->interpolation);
 
         // The reoriented gradient is added to the previous gradient
         reg_tools_addSubMulDivImages(this->voxelBasedMeasureGradientImage, this->warpedGradientImage, this->voxelBasedMeasureGradientImage, 0);
@@ -355,7 +355,7 @@ int reg_f3d2<T>::GetVoxelBasedGradient()
                                       this->intermediateDeformationField[i],
                                       this->jacobianMatrices,
                                       this->currentMask,
-                                      USE_LINEAR_INTERPOLATION);
+                                      this->interpolation);
 
             // The reoriented gradient is added to the previous gradient
             reg_tools_addSubMulDivImages(tempGradientImage, this->warpedGradientImage, tempGradientImage, 0);

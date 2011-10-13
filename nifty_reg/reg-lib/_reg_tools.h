@@ -79,6 +79,9 @@ void reg_tool_binaryImage2int(nifti_image *, int *, int &);
 extern "C++"
 double reg_tools_getMeanRMS(nifti_image *, nifti_image *);
 
+extern "C++"
+int reg_tool_nanMask_image(nifti_image *, nifti_image *, nifti_image *);
+
 /** JM functions for ssd */
 //this function will threshold an image to the values provided,
 //set the scl_slope and sct_inter of the image to 1 and 0 (SSD uses actual image data values),

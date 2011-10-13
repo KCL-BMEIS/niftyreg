@@ -43,7 +43,7 @@ typedef struct{
     bool outputResultFlag;
     bool outputBlankFlag;
     bool NNInterpolationFlag;
-    bool TRIInterpolationFlag;
+    bool LINInterpolationFlag;
 }FLAG;
 
 
@@ -76,7 +76,7 @@ void Usage(char *exec)
 
     printf("\t*\tOthers\n");
     printf("\t-NN \t\t\tUse a Nearest Neighbor interpolation for the source resampling (cubic spline by default)\n");
-    printf("\t-TRI \t\t\tUse a Trilinear interpolation for the source resampling (cubic spline by default)\n");
+    printf("\t-LIN \t\t\tUse a Linear interpolation for the source resampling (cubic spline by default)\n");
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     return;
 }
@@ -134,8 +134,8 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-NN") == 0){
             flag->NNInterpolationFlag=1;
         }
-        else if(strcmp(argv[i], "-TRI") == 0){
-            flag->TRIInterpolationFlag=1;
+        else if((strcmp(argv[i], "-LIN")==0) || (strcmp(argv[i], "-TRI")==0)){
+            flag->LINInterpolationFlag=1;
         }
         else if(strcmp(argv[i], "-blank") == 0){
             param->outputBlankName=argv[++i];
@@ -309,7 +309,7 @@ int main(int argc, char **argv)
     /* ************************* */
     if(flag->outputResultFlag){
         int inter=3;
-        if(flag->TRIInterpolationFlag) inter=1;
+        if(flag->LINInterpolationFlag) inter=1;
         else if(flag->NNInterpolationFlag) inter=0;
 
         nifti_image *resultImage = nifti_copy_nim_info(referenceImage);

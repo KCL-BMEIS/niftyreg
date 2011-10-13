@@ -22,37 +22,33 @@
 #define PrecisionTYPE float
 #endif
 
+int isNumeric (const char *s)
+{
+    if(s==NULL || *s=='\0' || isspace(*s))
+      return 0;
+    char * p;
+    strtod (s, &p);
+    return *p == '\0';
+}
+
 typedef struct{
     char *inputImageName;
     char *outputImageName;
-    char *addImageName;
-    char *subImageName;
-    char *mulImageName;
-    char *divImageName;
-    float addValue;
-    float subValue;
-    float mulValue;
-    float divValue;
+    char *operationImageName;
     char *rmsImageName;
+    float operationValue;
     int smoothValue;
     float thresholdImageValue;
 }PARAM;
 typedef struct{
     bool inputImageFlag;
     bool outputImageFlag;
-    bool addImageFlag;
-    bool subImageFlag;
-    bool mulImageFlag;
-    bool divImageFlag;
-    bool addValueFlag;
-    bool subValueFlag;
-    bool mulValueFlag;
-    bool divValueFlag;
     bool rmsImageFlag;
     bool smoothValueFlag;
-    bool gradientImageFlag;
     bool binarisedImageFlag;
     bool thresholdImageFlag;
+    bool nanMaskFlag;
+    int operationTypeFlag;
 }FLAG;
 
 
@@ -68,23 +64,19 @@ void Usage(char *exec)
     printf("Usage:\t%s -in <filename> -out <filename> [OPTIONS].\n",exec);
     printf("\t-in <filename>\tFilename of the input image image (mandatory)\n");
     printf("* * OPTIONS * *\n");
-#ifdef _SVN_REV
-    fprintf(stderr,"\n-v Print the subversion revision number\n");
-#endif
     printf("\t-out <filename>\t\tFilename out the output image [output.nii]\n");
-    printf("\t-grad\t\t\t4D spatial gradient of the input image\n");
-    printf("\t-add <filename>\t\tThis image is added to the input\n");
-    printf("\t-sub <filename>\t\tThis image is subtracted to the input\n");
-    printf("\t-mul <filename>\t\tThis image is multiplied to the input\n");
-    printf("\t-div <filename>\t\tThis image is divided to the input\n");
-    printf("\t-addV <float>\t\tThis value is added to the input\n");
-    printf("\t-subV <float>\t\tThis value is subtracted to the input\n");
-    printf("\t-mulV <float>\t\tThis value is multiplied to the input\n");
-    printf("\t-divV <float>\t\tThis value is divided to the input\n");
+    printf("\t-add <filename/float>\tThis image (or value) is added to the input\n");
+    printf("\t-sub <filename/float>\tThis image (or value) is subtracted to the input\n");
+    printf("\t-mul <filename/float>\tThis image (or value) is multiplied to the input\n");
+    printf("\t-div <filename/float>\tThis image (or value) is divided to the input\n");
     printf("\t-smo <int>\t\tThe input image is smoothed using a b-spline curve\n");
-    printf("\t-rms <filename>\tCompute the mean rms between both image\n");
-    printf("\t-bin \t\tBinarise the input image (val!=0?val=1:val=0)\n");
-    printf("\t-thr <float>\tThresold the input image (val<thr?val=0:val=1)\n");
+    printf("\t-rms <filename>\t\tCompute the mean rms between both image\n");
+    printf("\t-bin \t\t\tBinarise the input image (val!=0?val=1:val=0)\n");
+    printf("\t-thr <float>\t\tThresold the input image (val<thr?val=0:val=1)\n");
+    printf("\t-nan <filename>\t\tThis image is used to mask the input image.\n\t\t\t\tVoxels outside of the mask are set to nan\n");
+#ifdef _SVN_REV
+    printf("\t-v Print the subversion revision number\n");
+#endif
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     return;
 }
@@ -93,6 +85,7 @@ int main(int argc, char **argv)
 {
     PARAM *param = (PARAM *)calloc(1,sizeof(PARAM));
     FLAG *flag = (FLAG *)calloc(1,sizeof(FLAG));
+    flag->operationTypeFlag=-1;
 
     /* read the input parameter */
     for(int i=1;i<argc;i++){
@@ -118,42 +111,38 @@ int main(int argc, char **argv)
             param->outputImageName=argv[++i];
             flag->outputImageFlag=1;
         }
-        else if(strcmp(argv[i], "-grad") == 0){
-            flag->gradientImageFlag=1;
-        }
 
         else if(strcmp(argv[i], "-add") == 0){
-            param->addImageName=argv[++i];
-            flag->addImageFlag=1;
+            param->operationImageName=argv[++i];
+            if(isNumeric(param->operationImageName)==true){
+                param->operationValue=(float)atof(param->operationImageName);
+                param->operationImageName=NULL;
+            }
+            flag->operationTypeFlag=0;
         }
         else if(strcmp(argv[i], "-sub") == 0){
-            param->subImageName=argv[++i];
-            flag->subImageFlag=1;
+            param->operationImageName=argv[++i];
+            if(isNumeric(param->operationImageName)){
+                param->operationValue=(float)atof(param->operationImageName);
+                param->operationImageName=NULL;
+            }
+            flag->operationTypeFlag=1;
         }
         else if(strcmp(argv[i], "-mul") == 0){
-            param->mulImageName=argv[++i];
-            flag->mulImageFlag=1;
+            param->operationImageName=argv[++i];
+            if(isNumeric(param->operationImageName)){
+                param->operationValue=(float)atof(param->operationImageName);
+                param->operationImageName=NULL;
+            }
+            flag->operationTypeFlag=2;
         }
         else if(strcmp(argv[i], "-div") == 0){
-            param->divImageName=argv[++i];
-            flag->divImageFlag=1;
-        }
-
-        else if(strcmp(argv[i], "-addV") == 0){
-            param->addValue=(float)atof(argv[++i]);
-            flag->addValueFlag=1;
-        }
-        else if(strcmp(argv[i], "-subV") == 0){
-            param->subValue=(float)atof(argv[++i]);
-            flag->subValueFlag=1;
-        }
-        else if(strcmp(argv[i], "-mulV") == 0){
-            param->mulValue=(float)atof(argv[++i]);
-            flag->mulValueFlag=1;
-        }
-        else if(strcmp(argv[i], "-divV") == 0){
-            param->divValue=(float)atof(argv[++i]);
-            flag->divValueFlag=1;
+            param->operationImageName=argv[++i];
+            if(isNumeric(param->operationImageName)){
+                param->operationValue=(float)atof(param->operationImageName);
+                param->operationImageName=NULL;
+            }
+            flag->operationTypeFlag=3;
         }
 
         else if(strcmp(argv[i], "-rms") == 0){
@@ -170,6 +159,10 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-thr") == 0){
             param->thresholdImageValue=atof(argv[++i]);
             flag->thresholdImageFlag=1;
+        }
+        else if(strcmp(argv[i], "-nan") == 0){
+            param->operationImageName=argv[++i];
+            flag->nanMaskFlag=1;
         }
         else{
             fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
@@ -190,50 +183,6 @@ int main(int argc, char **argv)
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 
-    /* spatial gradient image */
-    if(flag->gradientImageFlag){
-        nifti_image *spatialGradientImage = nifti_copy_nim_info(image);
-        spatialGradientImage->dim[0]=spatialGradientImage->ndim=4;
-        spatialGradientImage->dim[1]=spatialGradientImage->nx=image->nx;
-        spatialGradientImage->dim[2]=spatialGradientImage->ny=image->ny;
-        spatialGradientImage->dim[3]=spatialGradientImage->nz=image->nz;
-        spatialGradientImage->dim[4]=spatialGradientImage->nt=3;spatialGradientImage->pixdim[4]=spatialGradientImage->dt=1.0;
-        spatialGradientImage->dim[5]=spatialGradientImage->nu=1;spatialGradientImage->pixdim[5]=spatialGradientImage->du=1.0;
-        spatialGradientImage->dim[6]=spatialGradientImage->nv=1;spatialGradientImage->pixdim[6]=spatialGradientImage->dv=1.0;
-        spatialGradientImage->dim[7]=spatialGradientImage->nw=1;spatialGradientImage->pixdim[7]=spatialGradientImage->dw=1.0;
-        spatialGradientImage->nvox=spatialGradientImage->nx*spatialGradientImage->ny*spatialGradientImage->nz*spatialGradientImage->nt*spatialGradientImage->nu;
-        if(sizeof(PrecisionTYPE)==4) spatialGradientImage->datatype = NIFTI_TYPE_FLOAT32;
-        else spatialGradientImage->datatype = NIFTI_TYPE_FLOAT64;
-        spatialGradientImage->nbyper = sizeof(PrecisionTYPE);
-        spatialGradientImage->data = (void *)malloc(spatialGradientImage->nvox * spatialGradientImage->nbyper);
-        if(flag->outputImageFlag)
-            nifti_set_filenames(spatialGradientImage, param->outputImageName, 0, 0);
-        else nifti_set_filenames(spatialGradientImage, "output.nii", 0, 0);
-
-        mat44 *affineTransformation = (mat44 *)calloc(1,sizeof(mat44));
-        affineTransformation->m[0][0]=1.0;
-        affineTransformation->m[1][1]=1.0;
-        affineTransformation->m[2][2]=1.0;
-        affineTransformation->m[3][3]=1.0;
-        nifti_image *fakepositionField = nifti_copy_nim_info(spatialGradientImage);
-        fakepositionField->data = (void *)malloc(fakepositionField->nvox * fakepositionField->nbyper);
-        reg_affine_positionField(	affineTransformation,
-                                        image,
-                                        fakepositionField);
-        free(affineTransformation);
-        reg_getSourceImageGradient(	image,
-                                        image,
-                                        spatialGradientImage,
-                                        fakepositionField,
-                                        NULL,
-                                        3); // cubic spline interpolation
-        nifti_image_free(fakepositionField);
-        nifti_image_write(spatialGradientImage);
-        nifti_image_free(spatialGradientImage);
-    }
-
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
-
     if(flag->smoothValueFlag){
         nifti_image *smoothImg = nifti_copy_nim_info(image);
         smoothImg->data = (void *)malloc(smoothImg->nvox * smoothImg->nbyper);
@@ -249,32 +198,23 @@ int main(int argc, char **argv)
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 
-    if(flag->addImageFlag || flag->subImageFlag || flag->mulImageFlag || flag->divImageFlag){
+    if(flag->operationTypeFlag>-1){
         nifti_image *image2=NULL;
-        if(flag->addImageFlag) image2 = nifti_image_read(param->addImageName,true);
-        if(flag->subImageFlag) image2 = nifti_image_read(param->subImageName,true);
-        if(flag->mulImageFlag) image2 = nifti_image_read(param->mulImageName,true);
-        if(flag->divImageFlag) image2 = nifti_image_read(param->divImageName,true);
-        if(image2 == NULL){
-            if(flag->addImageFlag)
-                fprintf(stderr,"** ERROR Error when reading the image to add: %s\n",param->addImageName);
-            if(flag->subImageFlag)
-                fprintf(stderr,"** ERROR Error when reading the image to sub: %s\n",param->subImageName);
-            if(flag->mulImageFlag)
-                fprintf(stderr,"** ERROR Error when reading the image to mul: %s\n",param->mulImageName);
-            if(flag->divImageFlag)
-                fprintf(stderr,"** ERROR Error when reading the image to div: %s\n",param->divImageName);
-            return 1;
+        if(param->operationImageName!=NULL){
+            image2 = nifti_image_read(param->operationImageName,true);
+            if(image2 == NULL){
+                fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->operationImageName);
+                return 1;
+            }
+            reg_checkAndCorrectDimension(image2);
         }
-        reg_checkAndCorrectDimension(image2);
 
         nifti_image *resultImage = nifti_copy_nim_info(image);
         resultImage->data = (void *)malloc(resultImage->nvox * resultImage->nbyper);
 
-        if(flag->addImageFlag) reg_tools_addSubMulDivImages(image, image2, resultImage, 0);
-        if(flag->subImageFlag) reg_tools_addSubMulDivImages(image, image2, resultImage, 1);
-        if(flag->mulImageFlag) reg_tools_addSubMulDivImages(image, image2, resultImage, 2);
-        if(flag->divImageFlag) reg_tools_addSubMulDivImages(image, image2, resultImage, 3);
+        if(image2!=NULL)
+            reg_tools_addSubMulDivImages(image, image2, resultImage, flag->operationTypeFlag);
+        else reg_tools_addSubMulDivValue(image, resultImage, param->operationValue, flag->operationTypeFlag);
 
         if(flag->outputImageFlag)
             nifti_set_filenames(resultImage, param->outputImageName, 0, 0);
@@ -282,26 +222,7 @@ int main(int argc, char **argv)
 
         nifti_image_write(resultImage);
         nifti_image_free(resultImage);
-        nifti_image_free(image2);
-    }
-
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
-
-    if(flag->addValueFlag || flag->subValueFlag || flag->mulValueFlag || flag->divValueFlag){
-
-        nifti_image *resultImage = nifti_copy_nim_info(image);
-        resultImage->data = (void *)malloc(resultImage->nvox * resultImage->nbyper);
-        if(flag->outputImageFlag)
-            nifti_set_filenames(resultImage, param->outputImageName, 0, 0);
-        else nifti_set_filenames(resultImage, "output.nii", 0, 0);
-
-        if(flag->addValueFlag) reg_tools_addSubMulDivValue(image, resultImage, param->addValue, 0);
-        if(flag->subValueFlag) reg_tools_addSubMulDivValue(image, resultImage, param->subValue, 1);
-        if(flag->mulValueFlag) reg_tools_addSubMulDivValue(image, resultImage, param->mulValue, 2);
-        if(flag->divValueFlag) reg_tools_addSubMulDivValue(image, resultImage, param->divValue, 3);
-
-        nifti_image_write(resultImage);
-        nifti_image_free(resultImage);
+        if(image2!=NULL) nifti_image_free(image2);
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
@@ -309,7 +230,7 @@ int main(int argc, char **argv)
     if(flag->rmsImageFlag){
         nifti_image *image2 = nifti_image_read(param->rmsImageName,true);
         if(image2 == NULL){
-            fprintf(stderr,"** ERROR Error when reading the image to add: %s\n",param->rmsImageName);
+            fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->rmsImageName);
             return 1;
         }
         reg_checkAndCorrectDimension(image2);
@@ -330,9 +251,7 @@ int main(int argc, char **argv)
         printf("%g\n", meanRMSerror);
         nifti_image_free(image2);
     }
-
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
-
     if(flag->binarisedImageFlag){
         reg_tool_binarise_image(image);
         reg_changeDatatype<unsigned char>(image);
@@ -341,9 +260,7 @@ int main(int argc, char **argv)
         else nifti_set_filenames(image, "output.nii", 0, 0);
         nifti_image_write(image);
     }
-
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
-
     if(flag->thresholdImageFlag){
         reg_tool_binarise_image(image, param->thresholdImageValue);
         reg_changeDatatype<unsigned char>(image);
@@ -352,7 +269,28 @@ int main(int argc, char **argv)
         else nifti_set_filenames(image, "output.nii", 0, 0);
         nifti_image_write(image);
     }
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+    if(flag->nanMaskFlag){
+        nifti_image *maskImage = nifti_image_read(param->operationImageName,true);
+        if(maskImage == NULL){
+            fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->operationImageName);
+            return 1;
+        }
+        reg_checkAndCorrectDimension(maskImage);
 
+        nifti_image *resultImage = nifti_copy_nim_info(image);
+        resultImage->data = (void *)malloc(resultImage->nvox * resultImage->nbyper);
+
+        reg_tool_nanMask_image(image,maskImage,resultImage);
+
+        if(flag->outputImageFlag)
+            nifti_set_filenames(resultImage, param->outputImageName, 0, 0);
+        else nifti_set_filenames(resultImage, "output.nii", 0, 0);
+
+        nifti_image_write(resultImage);
+        nifti_image_free(resultImage);
+        nifti_image_free(maskImage);
+    }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 
     nifti_image_free(image);
