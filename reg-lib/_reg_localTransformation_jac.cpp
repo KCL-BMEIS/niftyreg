@@ -743,13 +743,11 @@ double reg_bspline_jacobian(nifti_image *splineControlPoint,
                 return reg_bspline_jacobianApproxValue2D<float>(splineControlPoint);
             else return reg_bspline_jacobianValue2D<float>(splineControlPoint, referenceImage);
             break;
-#ifdef _NR_DEV
         case NIFTI_TYPE_FLOAT64:
             if(approx)
                 return reg_bspline_jacobianApproxValue2D<double>(splineControlPoint);
             else return reg_bspline_jacobianValue2D<double>(splineControlPoint, referenceImage);
             break;
-#endif
         default:
             fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the jacobian value\n");
             fprintf(stderr,"[NiftyReg ERROR] The jacobian value is not computed\n");
@@ -763,13 +761,11 @@ double reg_bspline_jacobian(nifti_image *splineControlPoint,
                 return reg_bspline_jacobianApproxValue3D<float>(splineControlPoint);
             else return reg_bspline_jacobianValue3D<float>(splineControlPoint, referenceImage);
             break;
-#ifdef _NR_DEV
         case NIFTI_TYPE_FLOAT64:
             if(approx)
                 return reg_bspline_jacobianApproxValue3D<double>(splineControlPoint);
             else return reg_bspline_jacobianValue3D<double>(splineControlPoint, referenceImage);
             break;
-#endif
         default:
             fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the jacobian value\n");
             fprintf(stderr,"[NiftyReg ERROR] The jacobian value is not computed\n");
@@ -1843,12 +1839,10 @@ void reg_bspline_jacobianDeterminantGradient(nifti_image *splineControlPoint,
                 reg_bspline_jacobianDeterminantGradientApprox2D<float>
                         (splineControlPoint, referenceImage, gradientImage, weight);
                 break;
-#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 reg_bspline_jacobianDeterminantGradientApprox2D<double>
                         (splineControlPoint, referenceImage, gradientImage, weight);
                 break;
-#endif
             default:
                 fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the Jacobian determinant gradient\n");
                 fprintf(stderr,"[NiftyReg ERROR] The jacobian penalty gradient has not computed\n");
@@ -1861,12 +1855,10 @@ void reg_bspline_jacobianDeterminantGradient(nifti_image *splineControlPoint,
                 reg_bspline_jacobianDeterminantGradient2D<float>
                         (splineControlPoint, referenceImage, gradientImage, weight);
                 break;
-#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 reg_bspline_jacobianDeterminantGradient2D<double>
                         (splineControlPoint, referenceImage, gradientImage, weight);
                 break;
-#endif
             default:
                 fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the Jacobian determinant gradient\n");
                 fprintf(stderr,"[NiftyReg ERROR] The jacobian penalty gradient has not computed\n");
@@ -1881,12 +1873,10 @@ void reg_bspline_jacobianDeterminantGradient(nifti_image *splineControlPoint,
                 reg_bspline_jacobianDeterminantGradientApprox3D<float>
                         (splineControlPoint, referenceImage, gradientImage, weight);
                 break;
-#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 reg_bspline_jacobianDeterminantGradientApprox3D<double>
                         (splineControlPoint, referenceImage, gradientImage, weight);
                 break;
-#endif
             default:
                 fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the Jacobian determinant gradient\n");
                 fprintf(stderr,"[NiftyReg ERROR] The jacobian penalty gradient has not computed\n");
@@ -1899,12 +1889,10 @@ void reg_bspline_jacobianDeterminantGradient(nifti_image *splineControlPoint,
                 reg_bspline_jacobianDeterminantGradient3D<float>
                         (splineControlPoint, referenceImage, gradientImage, weight);
                 break;
-#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 reg_bspline_jacobianDeterminantGradient3D<double>
                         (splineControlPoint, referenceImage, gradientImage, weight);
                 break;
-#endif
             default:
                 fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the Jacobian determinant gradient\n");
                 fprintf(stderr,"[NiftyReg ERROR] The jacobian penalty gradient has not computed\n");
@@ -2460,12 +2448,10 @@ double reg_bspline_correctFolding(nifti_image *splineControlPoint,
                 return reg_bspline_correctFoldingApprox_2D<float>
                         (splineControlPoint);
                 break;
-#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 return reg_bspline_correctFoldingApprox_2D<double>
                         (splineControlPoint);
                 break;
-#endif
             default:
                 fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the Jacobian determinant gradient\n");
                 fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not computed\n");
@@ -2478,12 +2464,10 @@ double reg_bspline_correctFolding(nifti_image *splineControlPoint,
                 return reg_bspline_correctFolding_2D<float>
                         (splineControlPoint, referenceImage);
                 break;
-#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 return reg_bspline_correctFolding_2D<double>
                         (splineControlPoint, referenceImage);
                 break;
-#endif
             default:
                 fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the Jacobian determinant gradient\n");
                 fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not computed\n");
@@ -2498,12 +2482,10 @@ double reg_bspline_correctFolding(nifti_image *splineControlPoint,
                 return reg_bspline_correctFoldingApprox_3D<float>
                         (splineControlPoint);
                 break;
-#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 return reg_bspline_correctFoldingApprox_3D<double>
                         (splineControlPoint);
                 break;
-#endif
             default:
                 fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the Jacobian determinant gradient\n");
                 fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not computed\n");
@@ -2516,12 +2498,10 @@ double reg_bspline_correctFolding(nifti_image *splineControlPoint,
                 return reg_bspline_correctFolding_3D<float>
                         (splineControlPoint, referenceImage);
                 break;
-#ifdef _NR_DEV
             case NIFTI_TYPE_FLOAT64:
                 return reg_bspline_correctFolding_3D<double>
                         (splineControlPoint, referenceImage);
                 break;
-#endif
             default:
                 fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the Jacobian determinant gradient\n");
                 fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not computed\n");
@@ -2754,11 +2734,9 @@ void reg_bspline_GetJacobianMap(nifti_image *splineControlPoint,
         case NIFTI_TYPE_FLOAT32:
             reg_bspline_GetJacobianMap2D<float>(splineControlPoint, jacobianImage);
             break;
-#ifdef _NR_DEV
         case NIFTI_TYPE_FLOAT64:
             reg_bspline_GetJacobianMap2D<double>(splineControlPoint, jacobianImage);
             break;
-#endif
         default:
             fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the jacobian map image\n");
             fprintf(stderr,"[NiftyReg ERROR] The jacobian map has not computed\n");
@@ -2769,11 +2747,9 @@ void reg_bspline_GetJacobianMap(nifti_image *splineControlPoint,
         case NIFTI_TYPE_FLOAT32:
             reg_bspline_GetJacobianMap3D<float>(splineControlPoint, jacobianImage);
             break;
-#ifdef _NR_DEV
         case NIFTI_TYPE_FLOAT64:
             reg_bspline_GetJacobianMap3D<double>(splineControlPoint, jacobianImage);
             break;
-#endif
         default:
             fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the jacobian map image\n");
             fprintf(stderr,"[NiftyReg ERROR] The jacobian map has not computed\n");
@@ -3196,7 +3172,6 @@ void reg_defField_getJacobianMap(nifti_image *deformationField,
             reg_defField_getJacobianMap3D<float>(deformationField,jacobianImage,NULL);
         else reg_defField_getJacobianMap2D<float>(deformationField,jacobianImage,NULL);
         break;
-#ifdef _NR_DEV
     case NIFTI_TYPE_FLOAT64:
         if(deformationField->nz>1)
             reg_defField_getJacobianMap3D<double>(deformationField,jacobianImage,NULL);
@@ -3225,7 +3200,6 @@ void reg_defField_getJacobianMatrix(nifti_image *deformationField,
             reg_defField_getJacobianMap3D<float>(deformationField,NULL,jacobianImage);
         else reg_defField_getJacobianMap2D<float>(deformationField,NULL,jacobianImage);
         break;
-#ifdef _NR_DEV
     case NIFTI_TYPE_FLOAT64:
         if(deformationField->nz>1)
             reg_defField_getJacobianMap3D<double>(deformationField,NULL,jacobianImage);
@@ -3618,11 +3592,9 @@ int reg_bspline_GetJacobianMapFromVelocityField(nifti_image* velocityFieldImage,
         case NIFTI_TYPE_FLOAT32:
             reg_bspline_GetJacobianMapFromVelocityField_3D<float>(velocityFieldImage, jacobianImage);
             break;
-#ifdef _NR_DEV
         case NIFTI_TYPE_FLOAT64:
             reg_bspline_GetJacobianMapFromVelocityField_3D<double>(velocityFieldImage, jacobianImage);
             break;
-#endif
         default:
             fprintf(stderr,"[NiftyReg ERROR] reg_bspline_GetJacobianMapFromVelocityField_3D\n");
             fprintf(stderr,"[NiftyReg ERROR] Only implemented for float or double precision\n");
@@ -3635,11 +3607,9 @@ int reg_bspline_GetJacobianMapFromVelocityField(nifti_image* velocityFieldImage,
         case NIFTI_TYPE_FLOAT32:
             reg_bspline_GetJacobianMapFromVelocityField_2D<float>(velocityFieldImage, jacobianImage);
             break;
-#ifdef _NR_DEV
         case NIFTI_TYPE_FLOAT64:
             reg_bspline_GetJacobianMapFromVelocityField_2D<double>(velocityFieldImage, jacobianImage);
             break;
-#endif
         default:
             fprintf(stderr,"[NiftyReg ERROR] reg_bspline_GetJacobianMapFromVelocityField_3D\n");
             fprintf(stderr,"[NiftyReg ERROR] Only implemented for float or double precision\n");

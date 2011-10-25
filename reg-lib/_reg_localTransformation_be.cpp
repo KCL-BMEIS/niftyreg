@@ -209,10 +209,8 @@ double reg_bspline_bendingEnergy(nifti_image *splineControlPoint)
         switch(splineControlPoint->datatype){
         case NIFTI_TYPE_FLOAT32:
             return reg_bspline_bendingEnergyApproxValue2D<float>(splineControlPoint);
-#ifdef _NR_DEV
         case NIFTI_TYPE_FLOAT64:
             return reg_bspline_bendingEnergyApproxValue2D<double>(splineControlPoint);
-#endif
         default:
             fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the bending energy\n");
             fprintf(stderr,"[NiftyReg ERROR] The bending energy is not computed\n");
@@ -223,10 +221,8 @@ double reg_bspline_bendingEnergy(nifti_image *splineControlPoint)
         switch(splineControlPoint->datatype){
         case NIFTI_TYPE_FLOAT32:
             return reg_bspline_bendingEnergyApproxValue3D<float>(splineControlPoint);
-#ifdef _NR_DEV
         case NIFTI_TYPE_FLOAT64:
             return reg_bspline_bendingEnergyApproxValue3D<double>(splineControlPoint);
-#endif
         default:
             fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the bending energy\n");
             fprintf(stderr,"[NiftyReg ERROR] The bending energy is not computed\n");
@@ -582,12 +578,10 @@ void reg_bspline_bendingEnergyGradient( nifti_image *splineControlPoint,
             reg_bspline_approxBendingEnergyGradient2D<float>
                     (splineControlPoint, targetImage, gradientImage, weight);
             break;
-#ifdef _NR_DEV
         case NIFTI_TYPE_FLOAT64:
             reg_bspline_approxBendingEnergyGradient2D<double>
                     (splineControlPoint, targetImage, gradientImage, weight);
             break;
-#endif
         default:
             fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the bending energy gradient\n");
             fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not been computed\n");
@@ -600,12 +594,10 @@ void reg_bspline_bendingEnergyGradient( nifti_image *splineControlPoint,
             reg_bspline_approxBendingEnergyGradient3D<float>
                     (splineControlPoint, targetImage, gradientImage, weight);
             break;
-#ifdef _NR_DEV
         case NIFTI_TYPE_FLOAT64:
             reg_bspline_approxBendingEnergyGradient3D<double>
                     (splineControlPoint, targetImage, gradientImage, weight);
             break;
-#endif
         default:
             fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the bending energy gradient\n");
             fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not been computed\n");
@@ -738,11 +730,9 @@ void reg_bspline_linearEnergy(nifti_image *splineControlPoint, double *val)
         case NIFTI_TYPE_FLOAT32:
             reg_bspline_linearEnergyApproxValue2D<float>(splineControlPoint, val);
             break;
-#ifdef _NR_DEV
         case NIFTI_TYPE_FLOAT64:
             reg_bspline_linearEnergyApproxValue2D<double>(splineControlPoint, val);
             break;
-#endif
         default:
             fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the linear energy\n");
             fprintf(stderr,"[NiftyReg ERROR] The linear energy is not computed\n");
@@ -754,11 +744,9 @@ void reg_bspline_linearEnergy(nifti_image *splineControlPoint, double *val)
         case NIFTI_TYPE_FLOAT32:
             reg_bspline_linearEnergyApproxValue3D<float>(splineControlPoint, val);
             break;
-#ifdef _NR_DEV
         case NIFTI_TYPE_FLOAT64:
             reg_bspline_linearEnergyApproxValue3D<double>(splineControlPoint, val);
             break;
-#endif
         default:
             fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the linear energy\n");
             fprintf(stderr,"[NiftyReg ERROR] The linear energy is not computed\n");
@@ -1013,12 +1001,10 @@ void reg_bspline_linearEnergyGradient(nifti_image *splineControlPoint,
             reg_bspline_approxLinearEnergyGradient2D<float>
                     (splineControlPoint, targetImage, gradientImage, weight0, weight1, weight2);
             break;
-#ifdef _NR_DEV
         case NIFTI_TYPE_FLOAT64:
             reg_bspline_approxLinearEnergyGradient2D<double>
                     (splineControlPoint, targetImage, gradientImage, weight0, weight1, weight2);
             break;
-#endif
         default:
             fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the bending energy gradient\n");
             fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not been computed\n");
@@ -1031,12 +1017,10 @@ void reg_bspline_linearEnergyGradient(nifti_image *splineControlPoint,
             reg_bspline_approxLinearEnergyGradient3D<float>
                     (splineControlPoint, targetImage, gradientImage, weight0, weight1, weight2);
             break;
-#ifdef _NR_DEV
         case NIFTI_TYPE_FLOAT64:
             reg_bspline_approxLinearEnergyGradient3D<double>
                     (splineControlPoint, targetImage, gradientImage, weight0, weight1, weight2);
             break;
-#endif
         default:
             fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the bending energy gradient\n");
             fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not been computed\n");
