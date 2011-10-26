@@ -570,6 +570,16 @@ int main(int argc, char **argv)
 #endif
         }
     }
+#ifdef _OPENMP
+    int maxThreadNumber = omp_get_max_threads();
+#ifdef NDEBUG
+    if(verbose==true){
+#endif // NDEBUG
+        printf("[NiftyReg F3D] OpenMP is used with %i thread(s)\n", maxThreadNumber);
+#ifdef NDEBUG
+    }
+#endif // NDEBUG
+#endif // _OPENMP
 
     // Set the reg_f3d parameters
     REG->SetReferenceImage(referenceImage);
