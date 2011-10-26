@@ -735,7 +735,7 @@ struct _reg_sorted_point3D
         result[2] = r[2];
     }
 
-    const bool operator <(const _reg_sorted_point3D & sp) const
+    bool operator <(const _reg_sorted_point3D & sp) const
     {
         return (sp.distance < distance);
     }
@@ -757,7 +757,7 @@ struct _reg_sorted_point2D
         result[0] = r[0];
         result[1] = r[1];
     }
-    const bool operator <(const _reg_sorted_point2D & sp) const
+    bool operator <(const _reg_sorted_point2D & sp) const
     {
         return (sp.distance < distance);
     }

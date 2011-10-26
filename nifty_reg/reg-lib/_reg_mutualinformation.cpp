@@ -522,7 +522,7 @@ void reg_getVoxelBasedNMIGradientUsingPW2D(nifti_image *targetImage,
     int relative_positions[20];
 
     double result_common[2];
-    double der_term[2];
+    double der_term[3];
 
     // Loop over all the voxels
     for (unsigned int index = 0; index < targetVoxelNumber; ++index) {

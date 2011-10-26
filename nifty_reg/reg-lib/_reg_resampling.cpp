@@ -49,7 +49,7 @@ template <class FieldTYPE>
 /* *************************************************************** */
 /* *************************************************************** */
 template<class SourceTYPE, class FieldTYPE>
-void CubicSplineResampleSourceImage(nifti_image *sourceImage,
+void CubicSplineResampleSourceImage3D(nifti_image *sourceImage,
                                     nifti_image *deformationField,
                                     nifti_image *resultImage,
                                     int *mask)
@@ -677,7 +677,7 @@ template <class FieldTYPE, class SourceTYPE>
     /* The deformation field contains the position in the real world */
     if(interp==3){
         if(targetImage->nz>1){
-            CubicSplineResampleSourceImage<SourceTYPE,FieldTYPE>( sourceImage,
+            CubicSplineResampleSourceImage3D<SourceTYPE,FieldTYPE>( sourceImage,
                                                                   deformationFieldImage,
                                                                   resultImage,
                                                                   mask);

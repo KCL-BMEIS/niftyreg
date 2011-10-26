@@ -228,16 +228,38 @@ double reg_bspline_jacobianValue3D(nifti_image *splineControlPoint,
         fprintf(stderr, "[NiftyReg ERROR] The SSE implementation assume single precision... Exit\n");
         exit(1);
     }
-    union u{
-        __m128 m;
-        float f[4];
-    } val;
+    union{__m128 m;float f[4];} val;
     __m128 _xBasis, _xFirst, _yBasis, _yFirst;
     __m128 tempX_x, tempX_y, tempX_z, tempY_x, tempY_y, tempY_z, tempZ_x, tempZ_y, tempZ_z;
-    __m128 *ptrBasisX, *ptrBasisY, *ptrBasisZ, *ptrX, *ptrY, *ptrZ;
+#ifdef _WINDOWS
+    union{__m128 m[4];__declspec(align(16)) DTYPE f[16];} tempX;
+    union{__m128 m[4];__declspec(align(16)) DTYPE f[16];} tempY;
+    union{__m128 m[4];__declspec(align(16)) DTYPE f[16];} tempZ;
+    union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} basisX;
+    union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} basisY;
+    union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} basisZ;
+    union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} xControlPointCoordinates;
+    union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} yControlPointCoordinates;
+    union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} zControlPointCoordinates;
+#else // _WINDOWS
+    union{__m128 m[4];DTYPE f[16] __attribute__((aligned(16)));} tempX;
+    union{__m128 m[4];DTYPE f[16] __attribute__((aligned(16)));} tempY;
+    union{__m128 m[4];DTYPE f[16] __attribute__((aligned(16)));} tempZ;
+    union{__m128 m[16];DTYPE f[64] __attribute__((aligned(16)));} basisX;
+    union{__m128 m[16];DTYPE f[64] __attribute__((aligned(16)));} basisY;
+    union{__m128 m[16];DTYPE f[64] __attribute__((aligned(16)));} basisZ;
+    union{__m128 m[16];DTYPE f[64] __attribute__((aligned(16)));} xControlPointCoordinates;
+    union{__m128 m[16];DTYPE f[64] __attribute__((aligned(16)));} yControlPointCoordinates;
+    union{__m128 m[16];DTYPE f[64] __attribute__((aligned(16)));} zControlPointCoordinates;
+
+#endif // _WINDOWS
 #else
     int coord, b, c, bc;
-    DTYPE xBasis[4], xFirst[4], yBasis[4], yFirst[4];
+    DTYPE tempX[16], tempY[16], tempZ[16];
+    DTYPE basisX[64], basisY[64], basisZ[64];
+    DTYPE xControlPointCoordinates[64];
+    DTYPE yControlPointCoordinates[64];
+    DTYPE zControlPointCoordinates[64];
 #endif
 
     DTYPE *controlPointPtrX = static_cast<DTYPE *>
@@ -247,13 +269,7 @@ double reg_bspline_jacobianValue3D(nifti_image *splineControlPoint,
     DTYPE *controlPointPtrZ = static_cast<DTYPE *>
             (&controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz]);
 
-    DTYPE zBasis[4],zFirst[4],temp[4],first[4], basis;
-    DTYPE tempX[16], tempY[16], tempZ[16];
-    DTYPE basisX[64], basisY[64], basisZ[64];
-
-    DTYPE xControlPointCoordinates[64];
-    DTYPE yControlPointCoordinates[64];
-    DTYPE zControlPointCoordinates[64];
+    DTYPE zBasis[4],zFirst[4],temp[4], first[4], basis;
 
     DTYPE gridVoxelSpacing[3];
     gridVoxelSpacing[0] = splineControlPoint->dx / referenceImage->dx;
@@ -274,8 +290,8 @@ double reg_bspline_jacobianValue3D(nifti_image *splineControlPoint,
     shared(referenceImage, gridVoxelSpacing, splineControlPoint, \
     controlPointPtrX, controlPointPtrY, controlPointPtrZ, reorient) \
     private(x, y, z, xPre, yPre, zPre, a, basis, val, \
-    _xBasis, _xFirst, _yBasis, _yFirst, ptrBasisX,  ptrBasisY,  ptrBasisZ, \
-    ptrX, ptrY, ptrZ, tempX, tempY, tempZ, basisX, basisY, basisZ, \
+    _xBasis, _xFirst, _yBasis, _yFirst, \
+    tempX, tempY, tempZ, basisX, basisY, basisZ, \
     oldXpre, oldYpre, oldZpre, zBasis, zFirst, temp, first, detJac, logJac, \
     xControlPointCoordinates, yControlPointCoordinates, zControlPointCoordinates, \
     Tx_x, Tx_y, Tx_z, Ty_x, Ty_y, Ty_z, Tz_x, Tz_y, Tz_z, jacobianMatrix, \
@@ -287,7 +303,7 @@ double reg_bspline_jacobianValue3D(nifti_image *splineControlPoint,
     controlPointPtrX, controlPointPtrY, controlPointPtrZ, reorient) \
     private(x, y, z, xPre, yPre, zPre, a, b, c, bc, basis, detJac, logJac,\
     basisX, basisY, basisZ, coord, tempX, tempY, tempZ, temp, first, \
-    xBasis, yBasis, zBasis, xFirst, yFirst, zFirst, oldXpre, oldYpre, oldZpre, \
+    zBasis, zFirst, oldXpre, oldYpre, oldZpre, \
     xControlPointCoordinates, yControlPointCoordinates, zControlPointCoordinates, \
     Tx_x, Tx_y, Tx_z, Ty_x, Ty_y, Ty_z, Tz_x, Tz_y, Tz_z, jacobianMatrix) \
     reduction(+:constraintValue)
@@ -319,18 +335,12 @@ double reg_bspline_jacobianValue3D(nifti_image *splineControlPoint,
             val.f[2]=first[2];
             val.f[3]=first[3];
             _yFirst=val.m;
-            ptrBasisX = (__m128 *) &tempX[0];
-            ptrBasisY = (__m128 *) &tempY[0];
-            ptrBasisZ = (__m128 *) &tempZ[0];
             for(a=0;a<4;++a){
                 val.m=_mm_set_ps1(zBasis[a]);
-                *ptrBasisX=_mm_mul_ps(_yBasis,val.m);
-                *ptrBasisY=_mm_mul_ps(_yFirst,val.m);
+                tempX.m[a]=_mm_mul_ps(_yBasis,val.m);
+                tempY.m[a]=_mm_mul_ps(_yFirst,val.m);
                 val.m=_mm_set_ps1(zFirst[a]);
-                *ptrBasisZ=_mm_mul_ps(_yBasis,val.m);
-                ptrBasisX++;
-                ptrBasisY++;
-                ptrBasisZ++;
+                tempZ.m[a]=_mm_mul_ps(_yBasis,val.m);
             }
 #else
             coord=0;
@@ -361,19 +371,13 @@ double reg_bspline_jacobianValue3D(nifti_image *splineControlPoint,
                 val.f[2]=first[2];
                 val.f[3]=first[3];
                 _xFirst=val.m;
-                ptrBasisX = (__m128 *) &basisX[0];
-                ptrBasisY = (__m128 *) &basisY[0];
-                ptrBasisZ = (__m128 *) &basisZ[0];
                 for(a=0;a<16;++a){
-                    val.m=_mm_set_ps1(tempX[a]);
-                    *ptrBasisX=_mm_mul_ps(_xFirst,val.m);
-                    val.m=_mm_set_ps1(tempY[a]);
-                    *ptrBasisY=_mm_mul_ps(_xBasis,val.m);
-                    val.m=_mm_set_ps1(tempZ[a]);
-                    *ptrBasisZ=_mm_mul_ps(_xBasis,val.m);
-                    ptrBasisX++;
-                    ptrBasisY++;
-                    ptrBasisZ++;
+                    val.m=_mm_set_ps1(tempX.f[a]);
+                    basisX.m[a]=_mm_mul_ps(_xFirst,val.m);
+                    val.m=_mm_set_ps1(tempY.f[a]);
+                    basisY.m[a]=_mm_mul_ps(_xBasis,val.m);
+                    val.m=_mm_set_ps1(tempZ.f[a]);
+                    basisZ.m[a]=_mm_mul_ps(_xBasis,val.m);
                 }
 #else
                 coord=0;
@@ -388,6 +392,19 @@ double reg_bspline_jacobianValue3D(nifti_image *splineControlPoint,
 #endif
 
                 if(oldXpre!=xPre || oldYpre!=yPre || oldZpre!=zPre){
+#ifdef _USE_SSE
+                    get_GridValues<DTYPE>(xPre,
+                                          yPre,
+                                          zPre,
+                                          splineControlPoint,
+                                          controlPointPtrX,
+                                          controlPointPtrY,
+                                          controlPointPtrZ,
+                                          xControlPointCoordinates.f,
+                                          yControlPointCoordinates.f,
+                                          zControlPointCoordinates.f,
+                                          false);
+#else // _USE_SSE
                     get_GridValues<DTYPE>(xPre,
                                           yPre,
                                           zPre,
@@ -399,6 +416,7 @@ double reg_bspline_jacobianValue3D(nifti_image *splineControlPoint,
                                           yControlPointCoordinates,
                                           zControlPointCoordinates,
                                           false);
+#endif // _USE_SSE
                     oldXpre=xPre;oldYpre=yPre;oldZpre=zPre;
                 }
 
@@ -422,32 +440,19 @@ double reg_bspline_jacobianValue3D(nifti_image *splineControlPoint,
                 tempZ_x =  _mm_set_ps1(0.0);
                 tempZ_y =  _mm_set_ps1(0.0);
                 tempZ_z =  _mm_set_ps1(0.0);
-                ptrX = (__m128 *) &xControlPointCoordinates[0];
-                ptrY = (__m128 *) &yControlPointCoordinates[0];
-                ptrZ = (__m128 *) &zControlPointCoordinates[0];
-                ptrBasisX   = (__m128 *) &basisX[0];
-                ptrBasisY   = (__m128 *) &basisY[0];
-                ptrBasisZ   = (__m128 *) &basisZ[0];
                 //addition and multiplication of the 16 basis value and CP position for each axis
                 for(a=0; a<16; a++){
-                    tempX_x = _mm_add_ps(_mm_mul_ps(*ptrBasisX, *ptrX), tempX_x );
-                    tempX_y = _mm_add_ps(_mm_mul_ps(*ptrBasisY, *ptrX), tempX_y );
-                    tempX_z = _mm_add_ps(_mm_mul_ps(*ptrBasisZ, *ptrX), tempX_z );
+                    tempX_x = _mm_add_ps(_mm_mul_ps(basisX.m[a], xControlPointCoordinates.m[a]), tempX_x );
+                    tempX_y = _mm_add_ps(_mm_mul_ps(basisY.m[a], xControlPointCoordinates.m[a]), tempX_y );
+                    tempX_z = _mm_add_ps(_mm_mul_ps(basisZ.m[a], xControlPointCoordinates.m[a]), tempX_z );
 
-                    tempY_x = _mm_add_ps(_mm_mul_ps(*ptrBasisX, *ptrY), tempY_x );
-                    tempY_y = _mm_add_ps(_mm_mul_ps(*ptrBasisY, *ptrY), tempY_y );
-                    tempY_z = _mm_add_ps(_mm_mul_ps(*ptrBasisZ, *ptrY), tempY_z );
+                    tempY_x = _mm_add_ps(_mm_mul_ps(basisX.m[a], yControlPointCoordinates.m[a]), tempY_x );
+                    tempY_y = _mm_add_ps(_mm_mul_ps(basisY.m[a], yControlPointCoordinates.m[a]), tempY_y );
+                    tempY_z = _mm_add_ps(_mm_mul_ps(basisZ.m[a], yControlPointCoordinates.m[a]), tempY_z );
 
-                    tempZ_x = _mm_add_ps(_mm_mul_ps(*ptrBasisX, *ptrZ), tempZ_x );
-                    tempZ_y = _mm_add_ps(_mm_mul_ps(*ptrBasisY, *ptrZ), tempZ_y );
-                    tempZ_z = _mm_add_ps(_mm_mul_ps(*ptrBasisZ, *ptrZ), tempZ_z );
-
-                    ptrBasisX++;
-                    ptrBasisY++;
-                    ptrBasisZ++;
-                    ptrX++;
-                    ptrY++;
-                    ptrZ++;
+                    tempZ_x = _mm_add_ps(_mm_mul_ps(basisX.m[a], zControlPointCoordinates.m[a]), tempZ_x );
+                    tempZ_y = _mm_add_ps(_mm_mul_ps(basisY.m[a], zControlPointCoordinates.m[a]), tempZ_y );
+                    tempZ_z = _mm_add_ps(_mm_mul_ps(basisZ.m[a], zControlPointCoordinates.m[a]), tempZ_z );
                 }
 
                 //the values stored in SSE variables are transfered to normal float
@@ -890,27 +895,45 @@ void reg_bspline_computeJacobianMatrices_3D(nifti_image *referenceImage,
         fprintf(stderr, "[NiftyReg ERROR] The SSE implementation assume single precision... Exit\n");
         exit(1);
     }
-    union u{
+    union{
         __m128 m;
         float f[4];
     } val;
     __m128 _xBasis, _xFirst, _yBasis, _yFirst;
     __m128 tempX_x, tempX_y, tempX_z, tempY_x, tempY_y, tempY_z, tempZ_x, tempZ_y, tempZ_z;
-    __m128 *ptrBasisX, *ptrBasisY, *ptrBasisZ, *ptrX, *ptrY, *ptrZ;
+#ifdef _WINDOWS
+    union{__m128 m[4];__declspec(align(16)) DTYPE f[16];} tempX;
+    union{__m128 m[4];__declspec(align(16)) DTYPE f[16];} tempY;
+    union{__m128 m[4];__declspec(align(16)) DTYPE f[16];} tempZ;
+    union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} basisX;
+    union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} basisY;
+    union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} basisZ;
+    union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} xControlPointCoordinates;
+    union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} yControlPointCoordinates;
+    union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} zControlPointCoordinates;
+#else // _WINDOWS
+    union{__m128 m[4];DTYPE f[16] __attribute__((aligned(16)));} tempX;
+    union{__m128 m[4];DTYPE f[16] __attribute__((aligned(16)));} tempY;
+    union{__m128 m[4];DTYPE f[16] __attribute__((aligned(16)));} tempZ;
+    union{__m128 m[16];DTYPE f[64] __attribute__((aligned(16)));} basisX;
+    union{__m128 m[16];DTYPE f[64] __attribute__((aligned(16)));} basisY;
+    union{__m128 m[16];DTYPE f[64] __attribute__((aligned(16)));} basisZ;
+    union{__m128 m[16];DTYPE f[64] __attribute__((aligned(16)));} xControlPointCoordinates;
+    union{__m128 m[16];DTYPE f[64] __attribute__((aligned(16)));} yControlPointCoordinates;
+    union{__m128 m[16];DTYPE f[64] __attribute__((aligned(16)));} zControlPointCoordinates;
+#endif // _WINDOWS
 #else
     int coord, b, c, bc;
+    DTYPE tempX[16], tempY[16], tempZ[16], basisX[64], basisY[64], basisZ[64];
+    DTYPE xControlPointCoordinates[64];
+    DTYPE yControlPointCoordinates[64];
+    DTYPE zControlPointCoordinates[64];
 #endif
+    DTYPE yBasis[4], yFirst[4], xBasis[4], xFirst[4] ,zBasis[4] ,zFirst[4], basis;
 
     DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
     DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
     DTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
-
-    DTYPE yBasis[4], yFirst[4], xBasis[4], xFirst[4] ,zBasis[4] ,zFirst[4], basis;
-    DTYPE tempX[16], tempY[16], tempZ[16], basisX[64], basisY[64], basisZ[64];
-
-    DTYPE xControlPointCoordinates[64];
-    DTYPE yControlPointCoordinates[64];
-    DTYPE zControlPointCoordinates[64];
 
     DTYPE gridVoxelSpacing[3];
     gridVoxelSpacing[0] = splineControlPoint->dx / referenceImage->dx;
@@ -931,8 +954,8 @@ void reg_bspline_computeJacobianMatrices_3D(nifti_image *referenceImage,
     controlPointPtrX, controlPointPtrY, controlPointPtrZ, reorient, \
     jacobianDeterminant, jacobianMatrices) \
     private(x, y, z, xPre, yPre, zPre, a, index, basis, val, \
-    _xBasis, _xFirst, _yBasis, _yFirst, ptrBasisX,  ptrBasisY,  ptrBasisZ, \
-    ptrX, ptrY, ptrZ, tempX, tempY, tempZ, basisX, basisY, basisZ, \
+    _xBasis, _xFirst, _yBasis, _yFirst, \
+    tempX, tempY, tempZ, basisX, basisY, basisZ, \
     xBasis, yBasis, zBasis, xFirst, yFirst, zFirst, oldXpre, oldYpre, oldZpre, \
     xControlPointCoordinates, yControlPointCoordinates, zControlPointCoordinates, \
     Tx_x, Tx_y, Tx_z, Ty_x, Ty_y, Ty_z, Tz_x, Tz_y, Tz_z, jacobianMatrix, \
@@ -975,18 +998,12 @@ void reg_bspline_computeJacobianMatrices_3D(nifti_image *referenceImage,
             val.f[2]=yFirst[2];
             val.f[3]=yFirst[3];
             _yFirst=val.m;
-            ptrBasisX = (__m128 *) &tempX[0];
-            ptrBasisY = (__m128 *) &tempY[0];
-            ptrBasisZ = (__m128 *) &tempZ[0];
             for(a=0;a<4;++a){
                 val.m=_mm_set_ps1(zBasis[a]);
-                *ptrBasisX=_mm_mul_ps(_yBasis,val.m);
-                *ptrBasisY=_mm_mul_ps(_yFirst,val.m);
+                tempX.m[a]=_mm_mul_ps(_yBasis,val.m);
+                tempY.m[a]=_mm_mul_ps(_yFirst,val.m);
                 val.m=_mm_set_ps1(zFirst[a]);
-                *ptrBasisZ=_mm_mul_ps(_yBasis,val.m);
-                ptrBasisX++;
-                ptrBasisY++;
-                ptrBasisZ++;
+                tempZ.m[a]=_mm_mul_ps(_yBasis,val.m);
             }
 #else
             coord=0;
@@ -1018,19 +1035,13 @@ void reg_bspline_computeJacobianMatrices_3D(nifti_image *referenceImage,
                 val.f[2]=xFirst[2];
                 val.f[3]=xFirst[3];
                 _xFirst=val.m;
-                ptrBasisX = (__m128 *) &basisX[0];
-                ptrBasisY = (__m128 *) &basisY[0];
-                ptrBasisZ = (__m128 *) &basisZ[0];
                 for(a=0;a<16;++a){
-                    val.m=_mm_set_ps1(tempX[a]);
-                    *ptrBasisX=_mm_mul_ps(_xFirst,val.m);
-                    val.m=_mm_set_ps1(tempY[a]);
-                    *ptrBasisY=_mm_mul_ps(_xBasis,val.m);
-                    val.m=_mm_set_ps1(tempZ[a]);
-                    *ptrBasisZ=_mm_mul_ps(_xBasis,val.m);
-                    ptrBasisX++;
-                    ptrBasisY++;
-                    ptrBasisZ++;
+                    val.m=_mm_set_ps1(tempX.f[a]);
+                    basisX.m[a]=_mm_mul_ps(_xFirst,val.m);
+                    val.m=_mm_set_ps1(tempY.f[a]);
+                    basisY.m[a]=_mm_mul_ps(_xBasis,val.m);
+                    val.m=_mm_set_ps1(tempZ.f[a]);
+                    basisZ.m[a]=_mm_mul_ps(_xBasis,val.m);
                 }
 #else
                 coord=0;
@@ -1045,6 +1056,19 @@ void reg_bspline_computeJacobianMatrices_3D(nifti_image *referenceImage,
 #endif
 
                 if(xPre!=oldXpre || yPre!=oldYpre || zPre!=oldZpre){
+#ifdef _USE_SSE
+                    get_GridValues<DTYPE>(xPre,
+                                          yPre,
+                                          zPre,
+                                          splineControlPoint,
+                                          controlPointPtrX,
+                                          controlPointPtrY,
+                                          controlPointPtrZ,
+                                          xControlPointCoordinates.f,
+                                          yControlPointCoordinates.f,
+                                          zControlPointCoordinates.f,
+                                          false);
+#else // _USE_SSE
                     get_GridValues<DTYPE>(xPre,
                                           yPre,
                                           zPre,
@@ -1056,6 +1080,7 @@ void reg_bspline_computeJacobianMatrices_3D(nifti_image *referenceImage,
                                           yControlPointCoordinates,
                                           zControlPointCoordinates,
                                           false);
+#endif // _USE_SSE
                     oldXpre=xPre; oldYpre=yPre; oldZpre=zPre;
                 }
 
@@ -1079,32 +1104,19 @@ void reg_bspline_computeJacobianMatrices_3D(nifti_image *referenceImage,
                 tempZ_x =  _mm_set_ps1(0.0);
                 tempZ_y =  _mm_set_ps1(0.0);
                 tempZ_z =  _mm_set_ps1(0.0);
-                ptrX = (__m128 *) &xControlPointCoordinates[0];
-                ptrY = (__m128 *) &yControlPointCoordinates[0];
-                ptrZ = (__m128 *) &zControlPointCoordinates[0];
-                ptrBasisX   = (__m128 *) &basisX[0];
-                ptrBasisY   = (__m128 *) &basisY[0];
-                ptrBasisZ   = (__m128 *) &basisZ[0];
                 //addition and multiplication of the 16 basis value and CP position for each axis
                 for(a=0; a<16; a++){
-                    tempX_x = _mm_add_ps(_mm_mul_ps(*ptrBasisX, *ptrX), tempX_x );
-                    tempX_y = _mm_add_ps(_mm_mul_ps(*ptrBasisY, *ptrX), tempX_y );
-                    tempX_z = _mm_add_ps(_mm_mul_ps(*ptrBasisZ, *ptrX), tempX_z );
+                    tempX_x = _mm_add_ps(_mm_mul_ps(basisX.m[a], xControlPointCoordinates.m[a]), tempX_x );
+                    tempX_y = _mm_add_ps(_mm_mul_ps(basisY.m[a], xControlPointCoordinates.m[a]), tempX_y );
+                    tempX_z = _mm_add_ps(_mm_mul_ps(basisZ.m[a], xControlPointCoordinates.m[a]), tempX_z );
 
-                    tempY_x = _mm_add_ps(_mm_mul_ps(*ptrBasisX, *ptrY), tempY_x );
-                    tempY_y = _mm_add_ps(_mm_mul_ps(*ptrBasisY, *ptrY), tempY_y );
-                    tempY_z = _mm_add_ps(_mm_mul_ps(*ptrBasisZ, *ptrY), tempY_z );
+                    tempY_x = _mm_add_ps(_mm_mul_ps(basisX.m[a], yControlPointCoordinates.m[a]), tempY_x );
+                    tempY_y = _mm_add_ps(_mm_mul_ps(basisY.m[a], yControlPointCoordinates.m[a]), tempY_y );
+                    tempY_z = _mm_add_ps(_mm_mul_ps(basisZ.m[a], yControlPointCoordinates.m[a]), tempY_z );
 
-                    tempZ_x = _mm_add_ps(_mm_mul_ps(*ptrBasisX, *ptrZ), tempZ_x );
-                    tempZ_y = _mm_add_ps(_mm_mul_ps(*ptrBasisY, *ptrZ), tempZ_y );
-                    tempZ_z = _mm_add_ps(_mm_mul_ps(*ptrBasisZ, *ptrZ), tempZ_z );
-
-                    ptrBasisX++;
-                    ptrBasisY++;
-                    ptrBasisZ++;
-                    ptrX++;
-                    ptrY++;
-                    ptrZ++;
+                    tempZ_x = _mm_add_ps(_mm_mul_ps(basisX.m[a], zControlPointCoordinates.m[a]), tempZ_x );
+                    tempZ_y = _mm_add_ps(_mm_mul_ps(basisY.m[a], zControlPointCoordinates.m[a]), tempZ_y );
+                    tempZ_z = _mm_add_ps(_mm_mul_ps(basisZ.m[a], zControlPointCoordinates.m[a]), tempZ_z );
                 }
 
                 //the values stored in SSE variables are transfered to normal float
@@ -3177,7 +3189,6 @@ void reg_defField_getJacobianMap(nifti_image *deformationField,
             reg_defField_getJacobianMap3D<double>(deformationField,jacobianImage,NULL);
         else reg_defField_getJacobianMap2D<double>(deformationField,jacobianImage,NULL);
         break;
-#endif
     default:
         printf("[NiftyReg ERROR] reg_defField_getJacobianMap\n");
         printf("[NiftyReg ERROR] Voxel type unsupported.\n");
@@ -3205,7 +3216,6 @@ void reg_defField_getJacobianMatrix(nifti_image *deformationField,
             reg_defField_getJacobianMap3D<double>(deformationField,NULL,jacobianImage);
         else reg_defField_getJacobianMap2D<double>(deformationField,NULL,jacobianImage);
         break;
-#endif
     default:
         printf("[NiftyReg ERROR] reg_defField_getJacobianMap\n");
         printf("[NiftyReg ERROR] Voxel type unsupported.\n");
