@@ -25,7 +25,7 @@ int round(DTYPE x)
 
 /* *************************************************************** */
 template <class FieldTYPE>
-        void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *basis)
+void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *basis)
 {
     if(ratio<0.0) ratio=0.0; //rounding error
     FieldTYPE FF= ratio*ratio;
@@ -36,7 +36,7 @@ template <class FieldTYPE>
 }
 /* *************************************************************** */
 template <class FieldTYPE>
-        void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *basis, FieldTYPE *derivative)
+void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *basis, FieldTYPE *derivative)
 {
     interpolantCubicSpline<FieldTYPE>(ratio,basis);
     if(ratio<0.0) ratio=0.0; //rounding error
