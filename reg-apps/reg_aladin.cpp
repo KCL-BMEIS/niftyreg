@@ -631,7 +631,9 @@ int main(int argc, char **argv)
         int iteration=0;
 
         if((flag->rigidFlag && !flag->affineFlag) || (flag->affineFlag && flag->rigidFlag && level==0)){
-            while(iteration<maxNumberOfIterationToPerform){
+            int ratio=1;
+            if(flag->affineFlag && flag->rigidFlag && level==0) ratio=4;
+            while(iteration<maxNumberOfIterationToPerform*ratio){
                 /* Compute the affine transformation deformation field */
 #ifdef _USE_CUDA
                 if(flag->useGPUFlag){
