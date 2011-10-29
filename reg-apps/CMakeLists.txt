@@ -1,8 +1,12 @@
 IF(BUILD_NIFTYREG)
 #-----------------------------------------------------------------------------
-	ADD_EXECUTABLE(reg_tools reg_tools.cpp)
+        ADD_EXECUTABLE(reg_average reg_average.cpp)
+        TARGET_LINK_LIBRARIES(reg_average _reg_tools reg_nifti ${ZLIB})
+        INSTALL_TARGETS(/bin reg_average)
+#-----------------------------------------------------------------------------
+        ADD_EXECUTABLE(reg_tools reg_tools.cpp)
         TARGET_LINK_LIBRARIES(reg_tools _reg_resampling _reg_localTransformation _reg_tools _reg_globalTransformation reg_nifti ${ZLIB})
-	INSTALL_TARGETS(/bin reg_tools)
+        INSTALL_TARGETS(/bin reg_tools)
 #-----------------------------------------------------------------------------
 	ADD_EXECUTABLE(reg_resample reg_resample.cpp)
         TARGET_LINK_LIBRARIES(reg_resample _reg_resampling _reg_localTransformation _reg_tools _reg_globalTransformation reg_nifti ${ZLIB})
