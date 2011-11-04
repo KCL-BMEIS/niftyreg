@@ -29,7 +29,6 @@ typedef struct{
     char *sourceImageName;
 
     char *inputSourceImageName;
-    char *inputAffineName;
     char *inputFirstCPPName;
     char *inputSecondCPPName;
     char *inputDeformationName;
@@ -38,10 +37,12 @@ typedef struct{
     char *outputSourceImageName;
     char *outputDeformationName;
     char *outputDisplacementName;
-    char *outputAffineName;
     char *cpp2defInputName;
     char *cpp2defOutputName;
     char *outputVelName;
+    char *inputAffineName;
+    char *inputAffineName2;
+    char *outputAffineName;
 }PARAM;
 typedef struct{
     bool referenceImageFlag;
@@ -54,6 +55,7 @@ typedef struct{
     bool updateSformFlag;
     bool aff2defFlag;
     bool invertAffineFlag;
+    bool composeAffineFlag;
     bool invertVelFlag;
     bool invertDefFlag;
 }FLAG;
@@ -123,6 +125,11 @@ void Usage(char *exec)
     //        printf("\t\tFilename1: Input deformation field filename\n");
     //        printf("\t\tFilename2: Source image filename\n");
     //        printf("\t\tFilename3: output deformation field filename\n");
+    printf("\t-compAff <filename1> <filename2> <filename3>\n");
+    printf("\t\tInvert an affine transformation matrix\n");
+    printf("\t\tFilename1: First affine matrix\n");
+    printf("\t\tFilename2: Second affine matrix\n");
+    printf("\t\tFilename3: Composed affine matrix result\n");
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     return;
 }
@@ -208,6 +215,12 @@ int main(int argc, char **argv)
             param->cpp2defInputName=argv[++i];
             param->cpp2defOutputName=argv[++i];
             flag->cpp2defFlag=1;
+        }
+        else if(strcmp(argv[i], "-compAff") == 0){
+            param->inputAffineName=argv[++i];
+            param->inputAffineName2=argv[++i];
+            param->outputAffineName=argv[++i];
+            flag->composeAffineFlag=1;
         }
         else{
             fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
@@ -637,6 +650,20 @@ int main(int argc, char **argv)
         nifti_image_write(deformationFieldImage);
         nifti_image_free(deformationFieldImage);
         nifti_image_free(middleImage);
+    }
+    if(flag->composeAffineFlag){
+        // Read the first affine
+        mat44 affine1;
+        reg_tool_ReadAffineFile(&affine1,
+                                param->inputAffineName);
+        // Read the second affine
+        mat44 affine2;
+        reg_tool_ReadAffineFile(&affine2,
+                                param->inputAffineName2);
+        // Compose both affine and save the result
+        mat44 affineResult = reg_mat44_mul(&affine1, &affine2);
+        reg_tool_WriteAffineFile(&affineResult,
+                                 param->outputAffineName);
     }
 
     nifti_image_free(referenceImage);
