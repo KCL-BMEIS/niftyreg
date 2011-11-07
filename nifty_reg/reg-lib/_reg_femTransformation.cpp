@@ -197,8 +197,8 @@ void reg_fem_voxelToNodeGradient(nifti_image *voxelBasedGradient,
                                voxelBasedGradient->ny *
                                voxelBasedGradient->nz;
     float *voxGradPtrX = static_cast<float *>(voxelBasedGradient->data);
-    float *voxGradPtrY = &voxGradPtrX[0];
-    float *voxGradPtrZ = &voxGradPtrY[0];
+    float *voxGradPtrY = &voxGradPtrX[voxelNumber];
+    float *voxGradPtrZ = &voxGradPtrY[voxelNumber];
 
     for(unsigned int node=0; node<3*nodeNumber; ++node)
         femBasedGradient[node]=0.f;
@@ -220,12 +220,12 @@ void reg_fem_voxelToNodeGradient(nifti_image *voxelBasedGradient,
 
         currentGradient[0]=voxGradPtrX[voxel];
         currentGradient[1]=voxGradPtrY[voxel];
-        currentGradient[1]=voxGradPtrZ[voxel];
+        currentGradient[2]=voxGradPtrZ[voxel];
 
         for(unsigned int i=0; i<4; ++i){
-            femBasedGradient[3*currentNodes[i]]+=currentGradient[0]*coefficients[i];
-            femBasedGradient[3*currentNodes[i]+1]+=currentGradient[1]*coefficients[i];
-            femBasedGradient[3*currentNodes[i]+2]+=currentGradient[2]*coefficients[i];
+            femBasedGradient[3*currentNodes[i]  ] += currentGradient[0]*coefficients[i];
+            femBasedGradient[3*currentNodes[i]+1] += currentGradient[1]*coefficients[i];
+            femBasedGradient[3*currentNodes[i]+2] += currentGradient[2]*coefficients[i];
         }
     }// voxel
 
