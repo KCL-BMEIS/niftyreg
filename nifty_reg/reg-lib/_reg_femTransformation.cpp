@@ -40,7 +40,7 @@ void reg_fem_InitialiseTransformation(int *elementNodes,
                                       )
 {
     // Set all the closest nodes and coefficients to zero
-    for(unsigned int i=0;i<deformationFieldImage->nx*deformationFieldImage->ny*deformationFieldImage->nz*4; ++i){
+    for(unsigned int i=0;i<4*deformationFieldImage->nx*deformationFieldImage->ny*deformationFieldImage->nz; ++i){
         closestNodes[i]=0;
         femInterpolationWeight[i]=0.f;
     }
