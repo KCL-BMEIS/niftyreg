@@ -27,6 +27,7 @@ typedef struct{
     char *referenceImageName;
     char *inputDEFName;
     char *inputCPPName;
+    char *inputAFFName;
     char *jacobianMapName;
     char *jacobianMatrixName;
     char *logJacobianMapName;
@@ -35,6 +36,7 @@ typedef struct{
     bool referenceImageFlag;
     bool inputDEFFlag;
     bool inputCPPFlag;
+    bool inputAFFFlag;
     bool jacobianMapFlag;
     bool jacobianMatrixFlag;
     bool logJacobianMapFlag;
@@ -66,8 +68,11 @@ void Usage(char *exec)
         printf("\t\tFilename of the Jacobian determinant map.\n");
     printf("\t-jacM <filename>\n");
         printf("\t\tFilename of the Jacobian matrix map. (9 values are stored as a 5D nifti).\n");
-    printf("\t-jacL <filename>\n");
+        printf("\t-jacL <filename>\n");
         printf("\t\tFilename of the Log of the Jacobian determinant map.\n");
+    printf("\n* * EXTRA * *\n");
+    printf("\t-aff <filename>\n");
+        printf("\t\tFilename of the affine matrix that will be used to modulate the Jacobian determinant map.\n");
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     return;
 }
@@ -116,6 +121,10 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-jacL") == 0){
             param->logJacobianMapName=argv[++i];
             flag->logJacobianMapFlag=1;
+        }
+        else if(strcmp(argv[i], "-aff") == 0){
+            param->inputAFFName=argv[++i];
+            flag->inputAFFFlag=1;
         }
          else{
              fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
@@ -199,6 +208,24 @@ int main(int argc, char **argv)
             fprintf(stderr, "No transformation has been provided.\n");
             nifti_image_free(image);
             return 1;
+        }
+
+        // Modulate the Jacobian map
+        if(flag->inputAFFFlag){
+            mat44 affineMatrix;
+            mat33 affineMatrix2;
+            reg_tool_ReadAffineFile(&affineMatrix, param->inputAFFName);
+            affineMatrix2.m[0][0]=affineMatrix.m[0][0];
+            affineMatrix2.m[0][1]=affineMatrix.m[0][1];
+            affineMatrix2.m[0][2]=affineMatrix.m[0][2];
+            affineMatrix2.m[1][0]=affineMatrix.m[1][0];
+            affineMatrix2.m[1][1]=affineMatrix.m[1][1];
+            affineMatrix2.m[1][2]=affineMatrix.m[1][2];
+            affineMatrix2.m[2][0]=affineMatrix.m[2][0];
+            affineMatrix2.m[2][1]=affineMatrix.m[2][1];
+            affineMatrix2.m[2][2]=affineMatrix.m[2][2];
+            float affineDet = nifti_mat33_determ(affineMatrix2);
+            reg_tools_addSubMulDivValue(jacobianImage,jacobianImage,affineDet,2);
         }
 
         // Export the Jacobian determinant map
