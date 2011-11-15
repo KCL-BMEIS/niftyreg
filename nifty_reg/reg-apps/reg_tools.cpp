@@ -37,7 +37,10 @@ typedef struct{
     char *operationImageName;
     char *rmsImageName;
     float operationValue;
-    int smoothValue;
+    float smoothValue;
+    float smoothValueX;
+    float smoothValueY;
+    float smoothValueZ;
     float thresholdImageValue;
 }PARAM;
 typedef struct{
@@ -45,6 +48,7 @@ typedef struct{
     bool outputImageFlag;
     bool rmsImageFlag;
     bool smoothValueFlag;
+    bool smoothGaussianFlag;
     bool binarisedImageFlag;
     bool thresholdImageFlag;
     bool nanMaskFlag;
@@ -69,7 +73,8 @@ void Usage(char *exec)
     printf("\t-sub <filename/float>\tThis image (or value) is subtracted to the input\n");
     printf("\t-mul <filename/float>\tThis image (or value) is multiplied to the input\n");
     printf("\t-div <filename/float>\tThis image (or value) is divided to the input\n");
-    printf("\t-smo <int>\t\tThe input image is smoothed using a b-spline curve\n");
+    printf("\t-smo <float>\t\tThe input image is smoothed using a b-spline curve\n");
+    printf("\t-smoG <float> <float> <float>\tThe input image is smoothed using Gaussian kernel\n");
     printf("\t-rms <filename>\t\tCompute the mean rms between both image\n");
     printf("\t-bin \t\t\tBinarise the input image (val!=0?val=1:val=0)\n");
     printf("\t-thr <float>\t\tThresold the input image (val<thr?val=0:val=1)\n");
@@ -150,8 +155,14 @@ int main(int argc, char **argv)
             flag->rmsImageFlag=1;
         }
         else if(strcmp(argv[i], "-smo") == 0){
-            param->smoothValue=atoi(argv[++i]);
+            param->smoothValue=atof(argv[++i]);
             flag->smoothValueFlag=1;
+        }
+        else if(strcmp(argv[i], "-smoG") == 0){
+            param->smoothValueX=atof(argv[++i]);
+            param->smoothValueY=atof(argv[++i]);
+            param->smoothValueZ=atof(argv[++i]);
+            flag->smoothGaussianFlag=1;
         }
         else if(strcmp(argv[i], "-bin") == 0){
             flag->binarisedImageFlag=1;
@@ -192,6 +203,26 @@ int main(int argc, char **argv)
         else nifti_set_filenames(smoothImg, "output.nii", 0, 0);
         int radius[3];radius[0]=radius[1]=radius[2]=param->smoothValue;
         reg_smoothImageForCubicSpline<PrecisionTYPE>(smoothImg, radius);
+        nifti_image_write(smoothImg);
+        nifti_image_free(smoothImg);
+    }
+
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+
+    if(flag->smoothGaussianFlag){
+        nifti_image *smoothImg = nifti_copy_nim_info(image);
+        smoothImg->data = (void *)malloc(smoothImg->nvox * smoothImg->nbyper);
+        memcpy(smoothImg->data, image->data, smoothImg->nvox*smoothImg->nbyper);
+        if(flag->outputImageFlag)
+            nifti_set_filenames(smoothImg, param->outputImageName, 0, 0);
+        else nifti_set_filenames(smoothImg, "output.nii", 0, 0);
+        bool boolX[8]={3,1,0,0,0,0,0,0};
+        reg_gaussianSmoothing(smoothImg,param->smoothValueX,boolX);
+        bool boolY[8]={3,0,1,0,0,0,0,0};
+        reg_gaussianSmoothing(smoothImg,param->smoothValueY,boolY);
+        bool boolZ[8]={3,0,0,1,0,0,0,0};
+        reg_gaussianSmoothing(smoothImg,param->smoothValueZ,boolZ);
         nifti_image_write(smoothImg);
         nifti_image_free(smoothImg);
     }
