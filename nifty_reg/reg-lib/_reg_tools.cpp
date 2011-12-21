@@ -855,22 +855,43 @@ template <class TYPE1, class TYPE2>
     TYPE1 *img1Ptr = static_cast<TYPE1 *>(img1->data);
     TYPE1 *resPtr = static_cast<TYPE1 *>(res->data);
     TYPE2 *img2Ptr = static_cast<TYPE2 *>(img2->data);
+
+
+    if(img1->scl_slope==0){
+        img1->scl_slope=1.f;
+        res->scl_slope=1.f;
+    }
+    if(img2->scl_slope==0)
+        img2->scl_slope=1.f;
+
     switch(type){
     case 0:
         for(unsigned int i=0; i<res->nvox; i++)
-            *resPtr++ = (TYPE1)((double)*img1Ptr++ + (double)*img2Ptr++);
+            *resPtr++ = (TYPE1)((((double)*img1Ptr++ * (double)img1->scl_slope + (double)img1->scl_inter) +
+                                  ((double)*img2Ptr++ * (double)img2->scl_slope + (double)img2->scl_inter) -
+                                 (double)img1->scl_inter)/(double)img1->scl_slope);
+//            *resPtr++ = (TYPE1)((double)*img1Ptr++ + (double)*img2Ptr++);
         break;
     case 1:
         for(unsigned int i=0; i<res->nvox; i++)
-            *resPtr++ = (TYPE1)((double)*img1Ptr++ - (double)*img2Ptr++);
+            *resPtr++ = (TYPE1)((((double)*img1Ptr++ * (double)img1->scl_slope + (double)img1->scl_inter) -
+                                  ((double)*img2Ptr++ * (double)img2->scl_slope + (double)img2->scl_inter) -
+                                 (double)img1->scl_inter)/(double)img1->scl_slope);
+//            *resPtr++ = (TYPE1)((double)*img1Ptr++ - (double)*img2Ptr++);
         break;
     case 2:
         for(unsigned int i=0; i<res->nvox; i++)
-            *resPtr++ = (TYPE1)((double)*img1Ptr++ * (double)*img2Ptr++);
+            *resPtr++ = (TYPE1)((((double)*img1Ptr++ * (double)img1->scl_slope + (double)img1->scl_inter) *
+                                  ((double)*img2Ptr++ * (double)img2->scl_slope + (double)img2->scl_inter) -
+                                 (double)img1->scl_inter)/(double)img1->scl_slope);
+//            *resPtr++ = (TYPE1)((double)*img1Ptr++ * (double)*img2Ptr++);
         break;
     case 3:
         for(unsigned int i=0; i<res->nvox; i++)
-            *resPtr++ = (TYPE1)((double)*img1Ptr++ / (double)*img2Ptr++);
+            *resPtr++ = (TYPE1)((((double)*img1Ptr++ * (double)img1->scl_slope + (double)img1->scl_inter) /
+                                  ((double)*img2Ptr++ * (double)img2->scl_slope + (double)img2->scl_inter) -
+                                 (double)img1->scl_inter)/(double)img1->scl_slope);
+//            *resPtr++ = (TYPE1)((double)*img1Ptr++ / (double)*img2Ptr++);
         break;
     }
 }
@@ -973,22 +994,32 @@ template <class TYPE1>
 {
     TYPE1 *img1Ptr = static_cast<TYPE1 *>(img1->data);
     TYPE1 *resPtr = static_cast<TYPE1 *>(res->data);
+
+    if(img1->scl_slope==0){
+        img1->scl_slope=1.f;
+        res->scl_slope=1.f;
+    }
+
     switch(type){
     case 0:
         for(unsigned int i=0; i<res->nvox; i++)
-            *resPtr++ = (TYPE1)(*img1Ptr++ + val);
+            *resPtr++ = (TYPE1)(((((double)*img1Ptr++ * (double)img1->scl_slope + (double)img1->scl_inter) +
+                                  (double)val) - (double)img1->scl_inter)/(double)img1->scl_slope);
         break;
     case 1:
         for(unsigned int i=0; i<res->nvox; i++)
-            *resPtr++ = (TYPE1)(*img1Ptr++ - val);
+            *resPtr++ = (TYPE1)(((((double)*img1Ptr++ * (double)img1->scl_slope + (double)img1->scl_inter) -
+                                  (double)val) - (double)img1->scl_inter)/(double)img1->scl_slope);
         break;
     case 2:
         for(unsigned int i=0; i<res->nvox; i++)
-            *resPtr++ = (TYPE1)((double)*img1Ptr++ * (double)val);
+            *resPtr++ = (TYPE1)(((((double)*img1Ptr++ * (double)img1->scl_slope + (double)img1->scl_inter) *
+                                  (double)val) - (double)img1->scl_inter)/(double)img1->scl_slope);
         break;
     case 3:
         for(unsigned int i=0; i<res->nvox; i++)
-            *resPtr++ = (TYPE1)((double)*img1Ptr++ / (double)val);
+            *resPtr++ = (TYPE1)(((((double)*img1Ptr++ * (double)img1->scl_slope + (double)img1->scl_inter) /
+                                  (double)val) - (double)img1->scl_inter)/(double)img1->scl_slope);
         break;
     }
 }
