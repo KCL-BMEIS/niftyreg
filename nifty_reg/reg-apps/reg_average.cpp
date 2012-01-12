@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 {
     if(argc<3){
         usage(argv[0]);
-        EXIT_SUCCESS;
+        return EXIT_SUCCESS;
     }
     // Read the first image to average
     nifti_image *tempImage=nifti_image_read(argv[2],false);
@@ -50,7 +50,7 @@ int main(int argc, char **argv)
     reg_tools_addSubMulDivValue(average_image,average_image,0.f,2);
 
     int imageTotalNumber=0;
-    for(unsigned int i=2;i<argc;++i){
+    for(int i=2;i<argc;++i){
         nifti_image *tempImage=nifti_image_read(argv[i],true);
         if(tempImage==NULL){
             fprintf(stderr, "[!] The following image can not be read: %s\n", argv[i]);

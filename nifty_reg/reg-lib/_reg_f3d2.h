@@ -26,21 +26,21 @@ class reg_f3d2 : public reg_f3d<T>
     nifti_image **intermediateDeformationField;
     nifti_image *jacobianMatrices;
 
-    int SetCompositionStepNumber(int);
-    int UseSimilaritySymmetry();
-    int ApproximateComposition();
+    void SetCompositionStepNumber(int);
+    void UseSimilaritySymmetry();
+    void ApproximateComposition();
 
-    int AllocateCurrentInputImage(int);
-    int ClearCurrentInputImage();
+    void AllocateCurrentInputImage(int);
+    void ClearCurrentInputImage();
 
-    int GetVoxelBasedGradient();
-    int GetDeformationField();
+    void GetVoxelBasedGradient();
+    void GetDeformationField();
     int CheckStoppingCriteria(bool);
 
 public:
     reg_f3d2(int refTimePoint,int floTimePoint);
     ~reg_f3d2();
-    int Run_f3d();
+    void Run_f3d();
     nifti_image *GetWarpedImage();
 };
 

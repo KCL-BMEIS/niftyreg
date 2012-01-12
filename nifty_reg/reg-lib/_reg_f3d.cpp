@@ -114,7 +114,7 @@ reg_f3d<T>::~reg_f3d()
     }
     if(this->referencePyramid!=NULL){
         if(this->usePyramid){
-            for(unsigned int i=0;i<levelToPerform;i++){
+            for(unsigned int i=0;i<this->levelToPerform;i++){
                 if(referencePyramid[i]!=NULL){
                     nifti_image_free(referencePyramid[i]);
                     referencePyramid[i]=NULL;
@@ -132,7 +132,7 @@ reg_f3d<T>::~reg_f3d()
     }
     if(this->maskPyramid!=NULL){
         if(this->usePyramid){
-            for(unsigned int i=0;i<levelToPerform;i++){
+            for(unsigned int i=0;i<this->levelToPerform;i++){
                 if(this->maskPyramid[i]!=NULL){
                     free(this->maskPyramid[i]);
                     this->maskPyramid[i]=NULL;
@@ -150,7 +150,7 @@ reg_f3d<T>::~reg_f3d()
     }
     if(this->floatingPyramid!=NULL){
         if(this->usePyramid){
-            for(unsigned int i=0;i<levelToPerform;i++){
+            for(unsigned int i=0;i<this->levelToPerform;i++){
                 if(floatingPyramid[i]!=NULL){
                     nifti_image_free(floatingPyramid[i]);
                     floatingPyramid[i]=NULL;
@@ -185,277 +185,279 @@ reg_f3d<T>::~reg_f3d()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetReferenceImage(nifti_image *r)
+void reg_f3d<T>::SetReferenceImage(nifti_image *r)
 {
     this->inputReference = r;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetFloatingImage(nifti_image *f)
+void reg_f3d<T>::SetFloatingImage(nifti_image *f)
 {
     this->inputFloating = f;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetMaximalIterationNumber(unsigned int dance)
+void reg_f3d<T>::SetMaximalIterationNumber(unsigned int dance)
 {
     this->maxiterationNumber=dance;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetReferenceBinNumber(int l, unsigned int v)
+void reg_f3d<T>::SetReferenceBinNumber(int l, unsigned int v)
 {
     this->referenceBinNumber[l] = v;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetFloatingBinNumber(int l, unsigned int v)
+void reg_f3d<T>::SetFloatingBinNumber(int l, unsigned int v)
 {
     this->floatingBinNumber[l] = v;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetControlPointGridImage(nifti_image *cp)
+void reg_f3d<T>::SetControlPointGridImage(nifti_image *cp)
 {
     this->inputControlPointGrid = cp;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetReferenceMask(nifti_image *m)
+void reg_f3d<T>::SetReferenceMask(nifti_image *m)
 {
     this->maskImage = m;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetAffineTransformation(mat44 *a)
+void reg_f3d<T>::SetAffineTransformation(mat44 *a)
 {
     this->affineTransformation=a;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetBendingEnergyWeight(T be)
+void reg_f3d<T>::SetBendingEnergyWeight(T be)
 {
     this->bendingEnergyWeight = be;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetLinearEnergyWeights(T w0, T w1, T w2)
+void reg_f3d<T>::SetLinearEnergyWeights(T w0, T w1, T w2)
 {
     this->linearEnergyWeight0=w0;
     this->linearEnergyWeight1=w1;
     this->linearEnergyWeight2=w2;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetJacobianLogWeight(T j)
+void reg_f3d<T>::SetJacobianLogWeight(T j)
 {
     this->jacobianLogWeight = j;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::ApproximateJacobianLog()
+void reg_f3d<T>::ApproximateJacobianLog()
 {
     this->jacobianLogApproximation = true;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::DoNotApproximateJacobianLog()
+void reg_f3d<T>::DoNotApproximateJacobianLog()
 {
     this->jacobianLogApproximation = false;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetReferenceSmoothingSigma(T s)
+void reg_f3d<T>::SetReferenceSmoothingSigma(T s)
 {
     this->referenceSmoothingSigma = s;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetFloatingSmoothingSigma(T s)
+void reg_f3d<T>::SetFloatingSmoothingSigma(T s)
 {
     this->floatingSmoothingSigma = s;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetReferenceThresholdUp(unsigned int i, T t)
+void reg_f3d<T>::SetReferenceThresholdUp(unsigned int i, T t)
 {
     this->referenceThresholdUp[i] = t;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetReferenceThresholdLow(unsigned int i, T t)
+void reg_f3d<T>::SetReferenceThresholdLow(unsigned int i, T t)
 {
     this->referenceThresholdLow[i] = t;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetFloatingThresholdUp(unsigned int i, T t)
+void reg_f3d<T>::SetFloatingThresholdUp(unsigned int i, T t)
 {
     this->floatingThresholdUp[i] = t;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetFloatingThresholdLow(unsigned int i, T t)
+void reg_f3d<T>::SetFloatingThresholdLow(unsigned int i, T t)
 {
     this->floatingThresholdLow[i] = t;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetWarpedPaddingValue(T p)
+void reg_f3d<T>::SetWarpedPaddingValue(T p)
 {
     this->warpedPaddingValue = p;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetSpacing(unsigned int i, T s)
+void reg_f3d<T>::SetSpacing(unsigned int i, T s)
 {
     this->spacing[i] = s;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetLevelNumber(unsigned int l)
+void reg_f3d<T>::SetLevelNumber(unsigned int l)
 {
     this->levelNumber = l;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetLevelToPerform(unsigned int l)
+void reg_f3d<T>::SetLevelToPerform(unsigned int l)
 {
     this->levelToPerform = l;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::SetGradientSmoothingSigma(T g)
+void reg_f3d<T>::SetGradientSmoothingSigma(T g)
 {
     this->gradientSmoothingSigma = g;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::UseSSD()
+void reg_f3d<T>::UseSSD()
 {
     this->useSSD = true;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::DoNotUseSSD()
+void reg_f3d<T>::DoNotUseSSD()
 {
     this->useSSD = false;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::UseConjugateGradient()
+void reg_f3d<T>::UseConjugateGradient()
 {
     this->useConjGradient = true;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::DoNotUseConjugateGradient()
+void reg_f3d<T>::DoNotUseConjugateGradient()
 {
     this->useConjGradient = false;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::PrintOutInformation()
+void reg_f3d<T>::PrintOutInformation()
 {
     this->verbose = true;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::DoNotPrintOutInformation()
+void reg_f3d<T>::DoNotPrintOutInformation()
 {
     this->verbose = false;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 //template<class T>
-//int reg_f3d<T>::SetThreadNumber(int t)
+//void reg_f3d<T>::SetThreadNumber(int t)
 //{
 //	this->threadNumber = t;
 //	return 0;
 //}
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::DoNotUsePyramidalApproach()
+void reg_f3d<T>::DoNotUsePyramidalApproach()
 {
     this->usePyramid=false;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::UseNeareatNeighborInterpolation()
+void reg_f3d<T>::UseNeareatNeighborInterpolation()
 {
     this->interpolation=0;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::UseLinearInterpolation()
+void reg_f3d<T>::UseLinearInterpolation()
 {
     this->interpolation=1;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::UseCubicSplineInterpolation()
+void reg_f3d<T>::UseCubicSplineInterpolation()
 {
     this->interpolation=3;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::AllocateCurrentInputImage(int level)
+void reg_f3d<T>::AllocateCurrentInputImage()
 {
-    if(level!=0)
+    if(this->currentLevel!=0)
         reg_bspline_refineControlPointGrid(this->currentReference, this->controlPointGrid);
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::ClearCurrentInputImage()
+void reg_f3d<T>::ClearCurrentInputImage()
 {
     this->currentReference=NULL;
     this->currentMask=NULL;
     this->currentFloating=NULL;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::AllocateWarped()
+void reg_f3d<T>::AllocateWarped()
 {
-    if(this->currentReference==NULL)
-        return 1;
+    if(this->currentReference==NULL){
+        fprintf(stderr, "[NiftyReg ERROR] The reference image is not defined\n");
+        exit(1);
+    }
     reg_f3d<T>::ClearWarped();
     this->warped = nifti_copy_nim_info(this->currentReference);
     this->warped->dim[0]=this->warped->ndim=this->currentFloating->ndim;
@@ -468,27 +470,31 @@ int reg_f3d<T>::AllocateWarped()
     this->warped->datatype = this->currentFloating->datatype;
     this->warped->nbyper = this->currentFloating->nbyper;
     this->warped->data = (void *)calloc(this->warped->nvox, this->warped->nbyper);
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::ClearWarped()
+void reg_f3d<T>::ClearWarped()
 {
     if(this->warped!=NULL){
         nifti_image_free(this->warped);
         this->warped=NULL;
     }
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::AllocateDeformationField()
+void reg_f3d<T>::AllocateDeformationField()
 {
-    if(this->currentReference==NULL)
-        return 1;
-    if(this->controlPointGrid==NULL)
-        return 1;
+    if(this->currentReference==NULL){
+        fprintf(stderr, "[NiftyReg ERROR] The reference image is not defined\n");
+        exit(1);
+    }
+    if(this->controlPointGrid==NULL){
+        fprintf(stderr, "[NiftyReg ERROR] The control point image is not defined\n");
+        exit(1);
+    }
     reg_f3d<T>::ClearDeformationField();
     this->deformationFieldImage = nifti_copy_nim_info(this->currentReference);
     this->deformationFieldImage->dim[0]=this->deformationFieldImage->ndim=5;
@@ -513,26 +519,26 @@ int reg_f3d<T>::AllocateDeformationField()
     this->deformationFieldImage->nbyper = this->controlPointGrid->nbyper;
     this->deformationFieldImage->datatype = this->controlPointGrid->datatype;
     this->deformationFieldImage->data = (void *)calloc(this->deformationFieldImage->nvox, this->deformationFieldImage->nbyper);
-
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::ClearDeformationField()
+void reg_f3d<T>::ClearDeformationField()
 {
     if(this->deformationFieldImage!=NULL){
         nifti_image_free(this->deformationFieldImage);
         this->deformationFieldImage=NULL;
     }
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::AllocateWarpedGradient()
+void reg_f3d<T>::AllocateWarpedGradient()
 {
     if(this->deformationFieldImage==NULL){
-        return 1;
+        fprintf(stderr, "[NiftyReg ERROR] The deformation field image is not defined\n");
+        exit(1);
     }
     reg_f3d<T>::ClearWarpedGradient();
     this->warpedGradientImage = nifti_copy_nim_info(this->deformationFieldImage);
@@ -544,81 +550,85 @@ int reg_f3d<T>::AllocateWarpedGradient()
             this->warpedGradientImage->nt *
             this->warpedGradientImage->nu;
     this->warpedGradientImage->data = (void *)calloc(this->warpedGradientImage->nvox, this->warpedGradientImage->nbyper);
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::ClearWarpedGradient()
+void reg_f3d<T>::ClearWarpedGradient()
 {
     if(this->warpedGradientImage!=NULL){
         nifti_image_free(this->warpedGradientImage);
         this->warpedGradientImage=NULL;
     }
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::AllocateVoxelBasedMeasureGradient()
+void reg_f3d<T>::AllocateVoxelBasedMeasureGradient()
 {
     if(this->deformationFieldImage==NULL){
-        return 1;
+        fprintf(stderr, "[NiftyReg ERROR] The deformation field image is not defined\n");
+        exit(1);
     }
     reg_f3d<T>::ClearVoxelBasedMeasureGradient();
     this->voxelBasedMeasureGradientImage = nifti_copy_nim_info(this->deformationFieldImage);
     this->voxelBasedMeasureGradientImage->data = (void *)calloc(this->voxelBasedMeasureGradientImage->nvox,
                                                                 this->voxelBasedMeasureGradientImage->nbyper);
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::ClearVoxelBasedMeasureGradient()
+void reg_f3d<T>::ClearVoxelBasedMeasureGradient()
 {
     if(this->voxelBasedMeasureGradientImage!=NULL){
         nifti_image_free(this->voxelBasedMeasureGradientImage);
         this->voxelBasedMeasureGradientImage=NULL;
     }
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::AllocateNodeBasedMeasureGradient()
+void reg_f3d<T>::AllocateNodeBasedMeasureGradient()
 {
     if(this->controlPointGrid==NULL){
-        return 1;
+        fprintf(stderr, "[NiftyReg ERROR] The control point image is not defined\n");
+        exit(1);
     }
     reg_f3d<T>::ClearNodeBasedMeasureGradient();
     this->nodeBasedMeasureGradientImage = nifti_copy_nim_info(this->controlPointGrid);
     this->nodeBasedMeasureGradientImage->data = (void *)calloc(this->nodeBasedMeasureGradientImage->nvox,
                                                                this->nodeBasedMeasureGradientImage->nbyper);
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::ClearNodeBasedMeasureGradient()
+void reg_f3d<T>::ClearNodeBasedMeasureGradient()
 {
     if(this->nodeBasedMeasureGradientImage!=NULL){
         nifti_image_free(this->nodeBasedMeasureGradientImage);
         this->nodeBasedMeasureGradientImage=NULL;
     }
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::AllocateConjugateGradientVariables()
+void reg_f3d<T>::AllocateConjugateGradientVariables()
 {
-    if(this->nodeBasedMeasureGradientImage==NULL)
-        return 1;
+    if(this->controlPointGrid==NULL){
+        fprintf(stderr, "[NiftyReg ERROR] The control point image is not defined\n");
+        exit(1);
+    }
     reg_f3d<T>::ClearConjugateGradientVariables();
-    this->conjugateG = (T *)calloc(this->nodeBasedMeasureGradientImage->nvox, sizeof(T));
-    this->conjugateH = (T *)calloc(this->nodeBasedMeasureGradientImage->nvox, sizeof(T));
-    return 0;
+    this->conjugateG = (T *)calloc(this->controlPointGrid->nvox, sizeof(T));
+    this->conjugateH = (T *)calloc(this->controlPointGrid->nvox, sizeof(T));
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::ClearConjugateGradientVariables()
+void reg_f3d<T>::ClearConjugateGradientVariables()
 {
     if(this->conjugateG!=NULL){
         free(this->conjugateG);
@@ -628,34 +638,36 @@ int reg_f3d<T>::ClearConjugateGradientVariables()
         free(this->conjugateH);
         this->conjugateH=NULL;
     }
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::AllocateBestControlPointArray()
+void reg_f3d<T>::AllocateBestControlPointArray()
 {
-    if(this->controlPointGrid==NULL)
-        return 1;
+    if(this->controlPointGrid==NULL){
+        fprintf(stderr, "[NiftyReg ERROR] The control point image is not defined\n");
+        exit(1);
+    }
     reg_f3d<T>::ClearBestControlPointArray();
     this->bestControlPointPosition = (T *)malloc(this->nodeBasedMeasureGradientImage->nvox*
                                                  this->nodeBasedMeasureGradientImage->nbyper);
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::ClearBestControlPointArray()
+void reg_f3d<T>::ClearBestControlPointArray()
 {
     if(this->bestControlPointPosition!=NULL){
         free(this->bestControlPointPosition);
         this->bestControlPointPosition=NULL;
     }
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::AllocateJointHistogram()
+void reg_f3d<T>::AllocateJointHistogram()
 {
     reg_f3d<T>::ClearJointHistogram();
     unsigned int histogramSize[3]={1,1,1};
@@ -671,11 +683,11 @@ int reg_f3d<T>::AllocateJointHistogram()
     this->totalBinNumber = histogramSize[0];
     this->probaJointHistogram = (double *)malloc(histogramSize[0]*sizeof(double));
     this->logJointHistogram = (double *)malloc(histogramSize[0]*sizeof(double));
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::ClearJointHistogram()
+void reg_f3d<T>::ClearJointHistogram()
 {
     if(this->probaJointHistogram!=NULL){
         free(this->probaJointHistogram);
@@ -685,44 +697,44 @@ int reg_f3d<T>::ClearJointHistogram()
         free(this->logJointHistogram);
         this->logJointHistogram=NULL;
     }
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::SaveCurrentControlPoint()
+void reg_f3d<T>::SaveCurrentControlPoint()
 {
     memcpy(this->bestControlPointPosition, this->controlPointGrid->data,
            this->controlPointGrid->nvox*this->controlPointGrid->nbyper);
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::RestoreCurrentControlPoint()
+void reg_f3d<T>::RestoreCurrentControlPoint()
 {
     memcpy(this->controlPointGrid->data, this->bestControlPointPosition,
            this->controlPointGrid->nvox*this->controlPointGrid->nbyper);
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::CheckParameters_f3d()
+void reg_f3d<T>::CheckParameters_f3d()
 {
     // CHECK THAT BOTH INPUT IMAGES ARE DEFINED
     if(this->inputReference==NULL){
         fprintf(stderr,"[NiftyReg ERROR] No reference image has been defined.\n");
-        return 1;
+        exit(1);
     }
     if(this->inputFloating==NULL){
         fprintf(stderr,"[NiftyReg ERROR] No floating image has been defined.\n");
-        return 1;
+        exit(1);
     }
 
     if(this->useSSD){
         if(inputReference->nt>1 || inputFloating->nt>1){
             fprintf(stderr,"[NiftyReg ERROR] SSD is not available for multi-spectral registration.\n");
-            return 1;
+            exit(1);
         }
     }
 
@@ -730,8 +742,10 @@ int reg_f3d<T>::CheckParameters_f3d()
     if(this->maskImage!=NULL){
         if(this->inputReference->nx != maskImage->nx ||
                 this->inputReference->ny != maskImage->ny ||
-                this->inputReference->nz != maskImage->nz)
+                this->inputReference->nz != maskImage->nz){
             fprintf(stderr,"* The mask image has different x, y or z dimension than the reference image.\n");
+            exit(1);
+        }
     }
 
     // CHECK THE NUMBER OF LEVEL TO PERFORM
@@ -756,13 +770,15 @@ int reg_f3d<T>::CheckParameters_f3d()
     if(this->levelToPerform==0 || this->levelToPerform>this->levelNumber)
         this->levelToPerform=this->levelNumber;
 
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d<T>::Initisalise_f3d()
+void reg_f3d<T>::Initisalise_f3d()
 {
+    if(this->initialised) return;
+
     this->CheckParameters_f3d();
 
 #ifndef NDEBUG
@@ -1119,7 +1135,7 @@ int reg_f3d<T>::Initisalise_f3d()
         originIndex[0] = -1.0f;
         originIndex[1] = -1.0f;
         originIndex[2] = 0.0f;
-        if(referencePyramid[0]->nz>1) originIndex[2] = -1.0f;
+        if(this->referencePyramid[0]->nz>1) originIndex[2] = -1.0f;
         reg_mat44_mul(&(this->controlPointGrid->qto_xyz), originIndex, originReal);
         if(this->controlPointGrid->qform_code==0) this->controlPointGrid->qform_code=1;
         this->controlPointGrid->qto_xyz.m[0][3] = this->controlPointGrid->qoffset_x = originReal[0];
@@ -1167,10 +1183,10 @@ int reg_f3d<T>::Initisalise_f3d()
             identityAffine.m[3][2]=0.f;
             identityAffine.m[3][3]=1.f;
             if(reg_bspline_initialiseControlPointGridWithAffine(&identityAffine, this->controlPointGrid))
-                return 1;
+                exit(1);
         }
         else if(reg_bspline_initialiseControlPointGridWithAffine(this->affineTransformation, this->controlPointGrid))
-            return 1;
+            exit(1);
     }
     else{
         // The control point grid image is initialised with the provided grid
@@ -1263,12 +1279,12 @@ int reg_f3d<T>::Initisalise_f3d()
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d::Initialise_f3d() done\n");
 #endif
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::GetDeformationField()
+void reg_f3d<T>::GetDeformationField()
 {
     reg_spline_getDeformationField(this->controlPointGrid,
                                    this->currentReference,
@@ -1277,12 +1293,12 @@ int reg_f3d<T>::GetDeformationField()
                                    false, //composition
                                    true // bspline
                                    );
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::WarpFloatingImage(int inter)
+void reg_f3d<T>::WarpFloatingImage(int inter)
 {
     // Compute the deformation field
     this->GetDeformationField();
@@ -1294,7 +1310,7 @@ int reg_f3d<T>::WarpFloatingImage(int inter)
                             this->currentMask,
                             inter,
                             this->warpedPaddingValue);
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1329,6 +1345,8 @@ double reg_f3d<T>::ComputeSimilarityMeasure()
 template <class T>
 double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type)
 {
+    if(this->jacobianLogWeight<=0) return 0.;
+
     double value=0.;
 
     if(type==2){
@@ -1382,6 +1400,8 @@ double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type)
 template <class T>
 double reg_f3d<T>::ComputeBendingEnergyPenaltyTerm()
 {
+    if(this->bendingEnergyWeight<=0) return 0.;
+
     double value = reg_bspline_bendingEnergy(this->controlPointGrid);
     return this->bendingEnergyWeight * value;
 }
@@ -1390,6 +1410,8 @@ double reg_f3d<T>::ComputeBendingEnergyPenaltyTerm()
 template <class T>
 double reg_f3d<T>::ComputeLinearEnergyPenaltyTerm()
 {
+    if(this->linearEnergyWeight0<=0 && this->linearEnergyWeight1<=0 && this->linearEnergyWeight2<=0) return 0.;
+
     double values[3];
     reg_bspline_linearEnergy(this->controlPointGrid, values);
     return this->linearEnergyWeight0*values[0] +
@@ -1399,7 +1421,7 @@ double reg_f3d<T>::ComputeLinearEnergyPenaltyTerm()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::GetVoxelBasedGradient()
+void reg_f3d<T>::GetVoxelBasedGradient()
 {
     // The intensity gradient is first computed
     reg_getSourceImageGradient(this->currentReference,
@@ -1434,13 +1456,13 @@ int reg_f3d<T>::GetVoxelBasedGradient()
                                             this->voxelBasedMeasureGradientImage,
                                             this->currentMask);
     }
-    return 0;
+    return;
 }
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::GetSimilarityMeasureGradient()
+void reg_f3d<T>::GetSimilarityMeasureGradient()
 {
     this->GetVoxelBasedGradient();
 
@@ -1510,48 +1532,54 @@ int reg_f3d<T>::GetSimilarityMeasureGradient()
         }
     }
 
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::GetBendingEnergyGradient()
+void reg_f3d<T>::GetBendingEnergyGradient()
 {
+    if(this->bendingEnergyWeight<=0) return;
+
     reg_bspline_bendingEnergyGradient(this->controlPointGrid,
                                       this->currentReference,
                                       this->nodeBasedMeasureGradientImage,
                                       this->bendingEnergyWeight);
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::GetLinearEnergyGradient()
+void reg_f3d<T>::GetLinearEnergyGradient()
 {
+    if(this->linearEnergyWeight0<=0 && this->linearEnergyWeight1<=0 && this->linearEnergyWeight2<=0) return;
+
     reg_bspline_linearEnergyGradient(this->controlPointGrid,
                                      this->currentReference,
                                      this->nodeBasedMeasureGradientImage,
                                      this->linearEnergyWeight0,
                                      this->linearEnergyWeight1,
                                      this->linearEnergyWeight2);
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::GetJacobianBasedGradient()
+void reg_f3d<T>::GetJacobianBasedGradient()
 {
+    if(this->jacobianLogWeight<=0) return;
+
     reg_bspline_jacobianDeterminantGradient(this->controlPointGrid,
                                             this->currentReference,
                                             this->nodeBasedMeasureGradientImage,
                                             this->jacobianLogWeight,
                                             this->jacobianLogApproximation);
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::ComputeConjugateGradient()
+void reg_f3d<T>::ComputeConjugateGradient()
 {
     int nodeNumber = this->nodeBasedMeasureGradientImage->nx *
             this->nodeBasedMeasureGradientImage->ny *
@@ -1563,9 +1591,9 @@ int reg_f3d<T>::ComputeConjugateGradient()
 #endif
         // first conjugate gradient iteration
         if(this->currentReference->nz==1){
-            T *conjGPtrX = &conjugateG[0];
+            T *conjGPtrX = &this->conjugateG[0];
             T *conjGPtrY = &conjGPtrX[nodeNumber];
-            T *conjHPtrX = &conjugateH[0];
+            T *conjHPtrX = &this->conjugateH[0];
             T *conjHPtrY = &conjHPtrX[nodeNumber];
             T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
             T *gradientValuesY = &gradientValuesX[nodeNumber];
@@ -1580,10 +1608,10 @@ int reg_f3d<T>::ComputeConjugateGradient()
                 conjHPtrY[i] = conjGPtrY[i] = - gradientValuesY[i];
             }
         }else{
-            T *conjGPtrX = &conjugateG[0];
+            T *conjGPtrX = &this->conjugateG[0];
             T *conjGPtrY = &conjGPtrX[nodeNumber];
             T *conjGPtrZ = &conjGPtrY[nodeNumber];
-            T *conjHPtrX = &conjugateH[0];
+            T *conjHPtrX = &this->conjugateH[0];
             T *conjHPtrY = &conjHPtrX[nodeNumber];
             T *conjHPtrZ = &conjHPtrY[nodeNumber];
             T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
@@ -1690,7 +1718,17 @@ int reg_f3d<T>::ComputeConjugateGradient()
             }
         }
     }
-    return 0;
+    return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+void reg_f3d<T>::SetGradientImageToZero()
+{
+    T* nodeGradPtr = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
+    for(unsigned int i=0; i<this->nodeBasedMeasureGradientImage->nvox; ++i)
+        *nodeGradPtr++=0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1702,7 +1740,7 @@ T reg_f3d<T>::GetMaximalGradientLength()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::UpdateControlPointPosition(T scale)
+void reg_f3d<T>::UpdateControlPointPosition(T scale)
 {
     int nodeNumber = this->controlPointGrid->nx *
             this->controlPointGrid->ny *
@@ -1750,59 +1788,18 @@ int reg_f3d<T>::UpdateControlPointPosition(T scale)
         }
     }
 
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d<T>::Run_f3d()
+void reg_f3d<T>::DisplayCurrentLevelParameters()
 {
-#ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_f3d::Run_f3d() called\n");
-#endif
-    if(!this->initialised){
-        if( this->Initisalise_f3d() )
-            return 1;
-    }
-
-    for(unsigned int level=0; level<this->levelToPerform; level++){
-
-        this->currentLevel = level;
-
-        if(this->usePyramid){
-            this->currentReference = this->referencePyramid[this->currentLevel];
-            this->currentFloating = this->floatingPyramid[this->currentLevel];
-            this->currentMask = this->maskPyramid[this->currentLevel];
-        }
-        else{
-            this->currentReference = this->referencePyramid[0];
-            this->currentFloating = this->floatingPyramid[0];
-            this->currentMask = this->maskPyramid[0];
-        }
-
-        // ALLOCATE IMAGES THAT DEPENDS ON THE TARGET IMAGE
-        this->AllocateWarped();
-        this->AllocateDeformationField();
-        this->AllocateWarpedGradient();
-        this->AllocateVoxelBasedMeasureGradient();
-        this->AllocateJointHistogram();
-
-        // The grid is refined if necessary
-        this->AllocateCurrentInputImage(level);
-
-        // ALLOCATE IMAGES THAT DEPENDS ON THE CONTROL POINT IMAGE
-        this->AllocateNodeBasedMeasureGradient();
-        this->AllocateBestControlPointArray();
-        this->SaveCurrentControlPoint();
-        if(this->useConjGradient){
-            this->AllocateConjugateGradientVariables();
-        }
-
 #ifdef NDEBUG
         if(this->verbose){
 #endif
             printf("[%s] **************************************************\n", this->executableName);
-            printf("[%s] Current level: %i / %i\n", this->executableName, level+1, this->levelNumber);
+            printf("[%s] Current level: %i / %i\n", this->executableName, this->currentLevel+1, this->levelNumber);
             printf("[%s] Current reference image\n", this->executableName);
             printf("[%s] \t* image dimension: %i x %i x %i x %i\n", this->executableName,
                    this->currentReference->nx, this->currentReference->ny,
@@ -1841,6 +1838,53 @@ int reg_f3d<T>::Run_f3d()
             reg_mat44_disp(&(this->controlPointGrid->sto_xyz), (char *)"[NiftyReg DEBUG] CPP sform");
         else reg_mat44_disp(&(this->controlPointGrid->qto_xyz), (char *)"[NiftyReg DEBUG] CPP qform");
 #endif
+    return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+void reg_f3d<T>::Run_f3d()
+{
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] reg_f3d::Run_f3d() called\n");
+#endif
+
+    if(!this->initialised) this->Initisalise_f3d();
+
+    for(this->currentLevel=0;
+        this->currentLevel<this->levelToPerform;
+        this->currentLevel++){
+
+        if(this->usePyramid){
+            this->currentReference = this->referencePyramid[this->currentLevel];
+            this->currentFloating = this->floatingPyramid[this->currentLevel];
+            this->currentMask = this->maskPyramid[this->currentLevel];
+        }
+        else{
+            this->currentReference = this->referencePyramid[0];
+            this->currentFloating = this->floatingPyramid[0];
+            this->currentMask = this->maskPyramid[0];
+        }
+
+        // ALLOCATE IMAGES THAT DEPENDS ON THE TARGET IMAGE
+        this->AllocateWarped();
+        this->AllocateDeformationField();
+        this->AllocateWarpedGradient();
+        this->AllocateVoxelBasedMeasureGradient();
+        this->AllocateJointHistogram();
+
+        // The grid is refined if necessary
+        this->AllocateCurrentInputImage();
+
+        // ALLOCATE IMAGES THAT DEPENDS ON THE CONTROL POINT IMAGE
+        this->AllocateNodeBasedMeasureGradient();
+        this->AllocateBestControlPointArray();
+        this->SaveCurrentControlPoint();
+        if(this->useConjGradient){
+            this->AllocateConjugateGradientVariables();
+        }
+
+        this->DisplayCurrentLevelParameters();
 
         T maxStepSize = (this->currentReference->dx>this->currentReference->dy)?this->currentReference->dx:this->currentReference->dy;
         maxStepSize = (this->currentReference->dz>maxStepSize)?this->currentReference->dz:maxStepSize;
@@ -1848,17 +1892,11 @@ int reg_f3d<T>::Run_f3d()
         T smallestSize = maxStepSize / 100.0f;
 
         // Compute initial penalty terms
-        double bestWJac = 0.0;
-        if(this->jacobianLogWeight>0)
-            bestWJac = this->ComputeJacobianBasedPenaltyTerm(1); // 20 iterations
+        double bestWJac = this->ComputeJacobianBasedPenaltyTerm(1); // 20 iterations
 
-        double bestWBE = 0.0;
-        if(this->bendingEnergyWeight>0)
-            bestWBE = this->ComputeBendingEnergyPenaltyTerm();
+        double bestWBE = this->ComputeBendingEnergyPenaltyTerm();
 
-        double bestWLE = 0.0;
-        if(this->linearEnergyWeight0>0 || this->linearEnergyWeight1>0 || this->linearEnergyWeight2>0)
-            bestWLE = this->ComputeLinearEnergyPenaltyTerm();
+        double bestWLE = this->ComputeLinearEnergyPenaltyTerm();
 
         // Compute initial similarity measure
         double bestWMeasure = 0.0;
@@ -1867,8 +1905,11 @@ int reg_f3d<T>::Run_f3d()
             bestWMeasure = this->ComputeSimilarityMeasure();
         }
 
+        // Compute the Inverse consistency penalty term if required
+        double bestIC = this->GetInverseConsistencyPenaltyTerm();
+
         // Evalulate the objective function value
-        double bestValue = bestWMeasure - bestWBE - bestWLE - bestWJac;
+        double bestValue = bestWMeasure - bestWBE - bestWLE - bestWJac - bestIC;
 
 #ifdef NDEBUG
         if(this->verbose){
@@ -1878,6 +1919,8 @@ int reg_f3d<T>::Run_f3d()
                        this->executableName, bestValue, bestWMeasure, bestWBE, bestWLE, bestWJac);
             else printf("[%s] Initial objective function: %g = (wNMI)%g - (wBE)%g - (wLE)%g - (wJAC)%g\n",
                         this->executableName, bestValue, bestWMeasure, bestWBE, bestWLE, bestWJac);
+            if(bestIC!=0)
+                printf("[%s] Initial Inverse consistency value: %g\n", this->executableName, bestIC);
 #ifdef NDEBUG
         }
 #endif
@@ -1889,7 +1932,14 @@ int reg_f3d<T>::Run_f3d()
             if(currentSize<=smallestSize)
                 // The algorithm converged and will stop in f3d.
                 // It will stop approximation in f3d2
-                if(this->CheckStoppingCriteria(true)) break;
+                // It will use the inverse consistency penalty term in f3d_sym
+                if(this->CheckStoppingCriteria(true)){
+                    break;
+                }
+                else{
+                    bestIC = this->GetInverseConsistencyPenaltyTerm();
+                    bestValue -= bestIC;
+                }
 
             // Compute the gradient of the similarity measure
             if(this->similarityWeight>0){
@@ -1898,9 +1948,7 @@ int reg_f3d<T>::Run_f3d()
                 this->GetSimilarityMeasureGradient();
             }
             else{
-                T* nodeGradPtr = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
-                for(unsigned int i=0; i<this->nodeBasedMeasureGradientImage->nvox; ++i)
-                    *nodeGradPtr++=0;
+                this->SetGradientImageToZero();
             }this->currentIteration++;
 
             // The gradient is smoothed using a Gaussian kernel if it is required
@@ -1914,12 +1962,10 @@ int reg_f3d<T>::Run_f3d()
             if(this->useConjGradient && this->similarityWeight>0) this->ComputeConjugateGradient();
 
             // Compute the penalty term gradients if required
-            if(this->bendingEnergyWeight>0)
-                this->GetBendingEnergyGradient();
-            if(this->jacobianLogWeight>0)
-                this->GetJacobianBasedGradient();
-            if(this->linearEnergyWeight0>0 || this->linearEnergyWeight1>0 || this->linearEnergyWeight2>0)
-                this->GetLinearEnergyGradient();
+            this->GetBendingEnergyGradient();
+            this->GetJacobianBasedGradient();
+            this->GetLinearEnergyGradient();
+            this->GetInverseConsistencyGradient();
 
             T maxLength = this->GetMaximalGradientLength();
 #ifndef NDEBUG
@@ -1942,25 +1988,21 @@ int reg_f3d<T>::Run_f3d()
                 this->UpdateControlPointPosition(currentLength);
 
                 // The new objective function value is computed
-                double currentWJac=0;
-                if(this->jacobianLogWeight>0){
-                    currentWJac = this->ComputeJacobianBasedPenaltyTerm(0); // 5 iterations
-                }
+                double currentWJac = this->ComputeJacobianBasedPenaltyTerm(0); // 5 iterations
 
-                double currentWBE=0;
-                if(this->bendingEnergyWeight>0)
-                    currentWBE = this->ComputeBendingEnergyPenaltyTerm();
+                double currentWBE = this->ComputeBendingEnergyPenaltyTerm();
 
-                double currentWLE = 0.0;
-                if(this->linearEnergyWeight0>0 || this->linearEnergyWeight1>0 || this->linearEnergyWeight2>0)
-                    currentWLE = this->ComputeLinearEnergyPenaltyTerm();
+                double currentWLE = this->ComputeLinearEnergyPenaltyTerm();
 
                 double currentWMeasure = 0.0;
                 if(this->similarityWeight>0){
                     this->WarpFloatingImage(this->interpolation);
                     currentWMeasure = this->ComputeSimilarityMeasure();
                 } this->currentIteration++;
-                double currentValue = currentWMeasure - currentWBE - currentWLE - currentWJac;
+
+                double currentIC = this->GetInverseConsistencyPenaltyTerm();
+
+                double currentValue = currentWMeasure - currentWBE - currentWLE - currentWJac - currentIC;
 
                 if(currentValue>bestValue){
                     bestValue = currentValue;
@@ -1968,6 +2010,7 @@ int reg_f3d<T>::Run_f3d()
                     bestWBE = currentWBE;
                     bestWLE = currentWLE;
                     bestWJac = currentWJac;
+                    bestIC = currentIC;
                     addedStep += currentSize;
                     currentSize*=1.1f;
                     currentSize = (currentSize<maxStepSize)?currentSize:maxStepSize;
@@ -1985,7 +2028,14 @@ int reg_f3d<T>::Run_f3d()
 #endif
                 }
                 lineIteration++;
-                if(this->CheckStoppingCriteria(false)) break;
+                switch(this->CheckStoppingCriteria(false)){
+                    case 1: break; break;
+                    case 2:{
+                        bestIC = this->GetInverseConsistencyPenaltyTerm();
+                        bestValue -= bestIC;
+                        break;
+                    }
+                }
             }
             this->RestoreCurrentControlPoint();
             currentSize=addedStep;
@@ -2003,6 +2053,8 @@ int reg_f3d<T>::Run_f3d()
                     printf(" - (wLE)%.2e", bestWLE);
                 if(this->jacobianLogWeight>0)
                     printf(" - (wJAC)%.2e", bestWJac);
+                if(bestIC!=0)
+                    printf(" - (IC)%.2e", bestIC);
                 printf(" [+ %g mm]\n", addedStep);
 #ifdef NDEBUG
             }
@@ -2023,11 +2075,11 @@ int reg_f3d<T>::Run_f3d()
         this->ClearBestControlPointArray();
         this->ClearJointHistogram();
         if(this->usePyramid){
-            nifti_image_free(this->referencePyramid[level]);this->referencePyramid[level]=NULL;
-            nifti_image_free(this->floatingPyramid[level]);this->floatingPyramid[level]=NULL;
-            free(this->maskPyramid[level]);this->maskPyramid[level]=NULL;
+            nifti_image_free(this->referencePyramid[this->currentLevel]);this->referencePyramid[this->currentLevel]=NULL;
+            nifti_image_free(this->floatingPyramid[this->currentLevel]);this->floatingPyramid[this->currentLevel]=NULL;
+            free(this->maskPyramid[this->currentLevel]);this->maskPyramid[this->currentLevel]=NULL;
         }
-        else if(level==this->levelToPerform-1){
+        else if(this->currentLevel==this->levelToPerform-1){
             nifti_image_free(this->referencePyramid[0]);this->referencePyramid[0]=NULL;
             nifti_image_free(this->floatingPyramid[0]);this->floatingPyramid[0]=NULL;
             free(this->maskPyramid[0]);this->maskPyramid[0]=NULL;
@@ -2049,7 +2101,7 @@ int reg_f3d<T>::Run_f3d()
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d::Run_f3d() done\n");
 #endif
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
