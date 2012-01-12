@@ -45,15 +45,15 @@ typedef struct{
 
 void PetitUsage(char *exec)
 {
-    fprintf(stderr,"Usage:\t%s -target <referenceImage> [OPTIONS].\n",exec);
+    fprintf(stderr,"Usage:\t%s -ref <referenceImage> [OPTIONS].\n",exec);
     fprintf(stderr,"\tSee the help for more details (-h).\n");
     return;
 }
 void Usage(char *exec)
 {
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-    printf("Usage:\t%s -target <filename> [OPTIONS].\n",exec);
-    printf("\t-target <filename>\tFilename of the target image (mandatory)\n");
+    printf("Usage:\t%s -ref <filename> [OPTIONS].\n",exec);
+    printf("\t-target <filename>\tFilename of the reference image (mandatory)\n");
 #ifdef _SVN_REV
     fprintf(stderr,"\n-v Print the subversion revision number\n");
 #endif
@@ -98,7 +98,7 @@ int main(int argc, char **argv)
             return 0;
         }
 #endif
-        else if(strcmp(argv[i], "-target") == 0){
+        else if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0)){
             param->referenceImageName=argv[++i];
             flag->referenceImageFlag=1;
         }

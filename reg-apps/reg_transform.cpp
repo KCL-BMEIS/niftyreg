@@ -63,15 +63,15 @@ typedef struct{
 
 void PetitUsage(char *exec)
 {
-    fprintf(stderr,"Usage:\t%s -target <referenceImageName> [OPTIONS].\n",exec);
+    fprintf(stderr,"Usage:\t%s -ref <referenceImageName> [OPTIONS].\n",exec);
     fprintf(stderr,"\tSee the help for more details (-h).\n");
     return;
 }
 void Usage(char *exec)
 {
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-    printf("Usage:\t%s -target <filename> [OPTIONS].\n",exec);
-    printf("\t-target <filename>\tFilename of the target image (mandatory)\n");
+    printf("Usage:\t%s -ref <filename> [OPTIONS].\n",exec);
+    printf("\t-target <filename>\tFilename of the reference image (mandatory)\n");
 
 #ifdef _SVN_REV
     fprintf(stderr,"\n-v Print the subversion revision number\n");
@@ -155,7 +155,7 @@ int main(int argc, char **argv)
             return 0;
         }
 #endif
-        else if(strcmp(argv[i], "-target") == 0){
+        else if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0)){
             param->referenceImageName=argv[++i];
             flag->referenceImageFlag=1;
         }
@@ -230,15 +230,15 @@ int main(int argc, char **argv)
     }
 
     if(!flag->referenceImageFlag){
-        fprintf(stderr,"Err:\tThe target image has to be defined.\n");
+        fprintf(stderr,"Err:\tThe reference image has to be defined.\n");
         PetitUsage(argv[0]);
         return 1;
     }
 
-    /* Read the target image */
+    /* Read the reference image */
     nifti_image *referenceImage = nifti_image_read(param->referenceImageName,false);
     if(referenceImage == NULL){
-        fprintf(stderr,"[NiftyReg ERROR] Error when reading the target image: %s\n",param->referenceImageName);
+        fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference image: %s\n",param->referenceImageName);
         PetitUsage(argv[0]);
         return 1;
     }

@@ -1396,6 +1396,8 @@ template <class DTYPE>
         void reg_tool_binarise_image1(nifti_image *image)
 {
     DTYPE *dataPtr=static_cast<DTYPE *>(image->data);
+    image->scl_inter=0.f;
+    image->scl_slope=1.f;
     for(unsigned i=0; i<image->nvox; i++){
         *dataPtr = (*dataPtr)!=0?(DTYPE)1:(DTYPE)0;
         dataPtr++;
@@ -1486,7 +1488,7 @@ template <class DTYPE>
     // Active voxel are different from -1
     activeVoxelNumber=0;
     DTYPE *dataPtr=static_cast<DTYPE *>(image->data);
-    for(unsigned i=0; i<image->nvox; i++){
+    for(int i=0; i<image->nx*image->ny*image->nz; i++){
         if(*dataPtr++ != 0){
             array[i]=1;
             activeVoxelNumber++;

@@ -44,33 +44,33 @@ reg_f3d2<T>::~reg_f3d2()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d2<T>::SetCompositionStepNumber(int s)
+void reg_f3d2<T>::SetCompositionStepNumber(int s)
 {
     this->stepNumber = s;
-    return 0;
+    return;
 
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d2<T>::UseSimilaritySymmetry()
+void reg_f3d2<T>::UseSimilaritySymmetry()
 {
     this->useSymmetry=true;
-    return 0;
+    return;
 
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d2<T>::ApproximateComposition()
+void reg_f3d2<T>::ApproximateComposition()
 {
     this->approxComp=true;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d2<T>::AllocateCurrentInputImage(int level)
+void reg_f3d2<T>::AllocateCurrentInputImage(int level)
 {
     if(this->affineTransformation!=NULL){
         fprintf(stderr, "[NiftyReg ERROR] The velocity field parametrisation does not handle affine input\n");
@@ -120,12 +120,12 @@ int reg_f3d2<T>::AllocateCurrentInputImage(int level)
                                                this->jacobianMatrices->nbyper);
 
     this->currentApproxComp=this->approxComp;
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d2<T>::ClearCurrentInputImage()
+void reg_f3d2<T>::ClearCurrentInputImage()
 {
     if(this->intermediateDeformationField!=NULL){
         for(int i=0;i<this->stepNumber;++i){
@@ -144,12 +144,12 @@ int reg_f3d2<T>::ClearCurrentInputImage()
 
     reg_f3d<T>::ClearCurrentInputImage();
 
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-int reg_f3d2<T>::GetDeformationField()
+void reg_f3d2<T>::GetDeformationField()
 {
 #ifndef NDEBUG
     if(this->currentApproxComp==true)
@@ -162,7 +162,7 @@ int reg_f3d2<T>::GetDeformationField()
                                             NULL, // intermediate
                                             this->currentApproxComp
                                             );
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -197,7 +197,7 @@ nifti_image *reg_f3d2<T>::GetWarpedImage()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-int reg_f3d2<T>::GetVoxelBasedGradient()
+void reg_f3d2<T>::GetVoxelBasedGradient()
 {
     /* COMPUTE THE GRADIENT BETWEEN THE REFERENCE AND THE WARPED FLOATING */
     reg_f3d<T>::GetVoxelBasedGradient();    
@@ -366,7 +366,7 @@ int reg_f3d2<T>::GetVoxelBasedGradient()
         nifti_image_free(tempGradientImage);
     }
 
-    return 0;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
