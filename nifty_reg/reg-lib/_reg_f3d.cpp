@@ -1929,7 +1929,7 @@ void reg_f3d<T>::Run_f3d()
         this->currentIteration = 0;
         while(this->currentIteration<this->maxiterationNumber){
 
-            if(currentSize<=smallestSize)
+            if(currentSize<=smallestSize){
                 // The algorithm converged and will stop in f3d.
                 // It will stop approximation in f3d2
                 // It will use the inverse consistency penalty term in f3d_sym
@@ -1940,6 +1940,7 @@ void reg_f3d<T>::Run_f3d()
                     bestIC = this->GetInverseConsistencyPenaltyTerm();
                     bestValue -= bestIC;
                 }
+            }
 
             // Compute the gradient of the similarity measure
             if(this->similarityWeight>0){

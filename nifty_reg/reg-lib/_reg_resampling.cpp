@@ -89,11 +89,11 @@ void CubicSplineResampleSourceImage3D(nifti_image *sourceImage,
 #pragma omp parallel for default(none) \
         private(index, intensity, world, position, previous, xBasis, yBasis, zBasis, relative, \
                 a, b, c, Y, Z, zPointer, yzPointer, xyzPointer, xTempNewValue, yTempNewValue) \
-                shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
-                       deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
-                       sourceIJKMatrix, sourceImage)
+        shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
+               deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
+               sourceIJKMatrix, sourceImage)
 #endif // _OPENMP
-                for(index=0;index<targetVoxelNumber; index++){
+        for(index=0;index<targetVoxelNumber; index++){
 
             intensity=(FieldTYPE)(0.0);
 

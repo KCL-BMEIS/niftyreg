@@ -147,27 +147,36 @@ void reg_fem_getDeformationField(float *nodePositions,
     float *defPtrY = &defPtrX[voxelNumber];
     float *defPtrZ = &defPtrY[voxelNumber];
 
-    for(unsigned int voxel=0;voxel<voxelNumber;++voxel){
-        float coefficients[4]={femInterpolationWeight[4*voxel],
-                               femInterpolationWeight[4*voxel+1],
-                               femInterpolationWeight[4*voxel+2],
-                               femInterpolationWeight[4*voxel+3]};
+    unsigned int voxel;
+    float coefficients[4];
+    float positionA[3], positionB[3], positionC[3], positionD[3];
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(defPtrX, defPtrY, defPtrZ, femInterpolationWeight, \
+        nodePositions, closestNodes, voxelNumber) \
+    private(voxel, coefficients, positionA, positionB, positionC, positionD)
+#endif
+    for(voxel=0;voxel<voxelNumber;++voxel){
+        coefficients[0]=femInterpolationWeight[4*voxel];
+        coefficients[1]=femInterpolationWeight[4*voxel+1];
+        coefficients[2]= femInterpolationWeight[4*voxel+2];
+        coefficients[3]=femInterpolationWeight[4*voxel+3];
 
-        float positionA[3]={nodePositions[3*closestNodes[4*voxel]],
-                            nodePositions[3*closestNodes[4*voxel]+1],
-                            nodePositions[3*closestNodes[4*voxel]+2]};
+        positionA[0]=nodePositions[3*closestNodes[4*voxel]];
+        positionA[1]=nodePositions[3*closestNodes[4*voxel]+1];
+        positionA[2]=nodePositions[3*closestNodes[4*voxel]+2];
 
-        float positionB[3]={nodePositions[3*closestNodes[4*voxel+1]],
-                            nodePositions[3*closestNodes[4*voxel+1]+1],
-                            nodePositions[3*closestNodes[4*voxel+1]+2]};
+        positionB[0]=nodePositions[3*closestNodes[4*voxel+1]];
+        positionB[1]=nodePositions[3*closestNodes[4*voxel+1]+1];
+        positionB[2]=nodePositions[3*closestNodes[4*voxel+1]+2];
 
-        float positionC[3]={nodePositions[3*closestNodes[4*voxel+2]],
-                            nodePositions[3*closestNodes[4*voxel+2]+1],
-                            nodePositions[3*closestNodes[4*voxel+2]+2]};
+        positionC[0]=nodePositions[3*closestNodes[4*voxel+2]];
+        positionC[1]=nodePositions[3*closestNodes[4*voxel+2]+1];
+        positionC[2]=nodePositions[3*closestNodes[4*voxel+2]+2];
 
-        float positionD[3]={nodePositions[3*closestNodes[4*voxel+3]],
-                            nodePositions[3*closestNodes[4*voxel+3]+1],
-                            nodePositions[3*closestNodes[4*voxel+3]+2]};
+        positionD[0]=nodePositions[3*closestNodes[4*voxel+3]];
+        positionD[1]=nodePositions[3*closestNodes[4*voxel+3]+1];
+        positionD[2]=nodePositions[3*closestNodes[4*voxel+3]+2];
 
         defPtrX[voxel]=positionA[0]*coefficients[0] +
                        positionB[0]*coefficients[1] +
@@ -203,11 +212,10 @@ void reg_fem_voxelToNodeGradient(nifti_image *voxelBasedGradient,
     for(unsigned int node=0; node<3*nodeNumber; ++node)
         femBasedGradient[node]=0.f;
 
-    unsigned int currentNodes[4];
+    unsigned int currentNodes[4], voxel;
     float currentGradient[3];
     float coefficients[4];
-
-    for(unsigned int voxel=0; voxel<voxelNumber; ++voxel){
+    for(voxel=0; voxel<voxelNumber; ++voxel){
         currentNodes[0]=closestNodes[4*voxel];
         currentNodes[1]=closestNodes[4*voxel+1];
         currentNodes[2]=closestNodes[4*voxel+2];
