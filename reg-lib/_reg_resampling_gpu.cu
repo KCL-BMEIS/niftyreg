@@ -17,8 +17,7 @@
 
 /* *************************************************************** */
 /* *************************************************************** */
-void reg_resampleSourceImage_gpu(nifti_image *resultImage,
-                                nifti_image *sourceImage,
+void reg_resampleSourceImage_gpu(nifti_image *sourceImage,
                                 float **resultImageArray_d,
                                 cudaArray **sourceImageArray_d,
                                 float4 **positionFieldImageArray_d,
@@ -81,8 +80,7 @@ void reg_resampleSourceImage_gpu(nifti_image *resultImage,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-void reg_getSourceImageGradient_gpu(nifti_image *targetImage,
-                                    nifti_image *sourceImage,
+void reg_getSourceImageGradient_gpu(nifti_image *sourceImage,
                                     cudaArray **sourceImageArray_d,
                                     float4 **positionFieldImageArray_d,
                                     float4 **resultGradientArray_d,

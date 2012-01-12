@@ -641,8 +641,7 @@ int main(int argc, char **argv)
                                                         targetImage,
                                                         &positionFieldImageArray_d);
                     /* Resample the source image */
-                    reg_resampleSourceImage_gpu(resultImage,
-                                                sourceImage,
+                    reg_resampleSourceImage_gpu(sourceImage,
                                                 &resultImageArray_d,
                                                 &sourceImageArray_d,
                                                 &positionFieldImageArray_d,
@@ -716,8 +715,7 @@ int main(int argc, char **argv)
                                                         targetImage,
                                                         &positionFieldImageArray_d);
                     /* Resample the source image */
-                    reg_resampleSourceImage_gpu(	resultImage,
-                                                        sourceImage,
+                    reg_resampleSourceImage_gpu(	sourceImage,
                                                         &resultImageArray_d,
                                                         &sourceImageArray_d,
                                                         &positionFieldImageArray_d,
