@@ -422,6 +422,13 @@ void reg_f3d_sym<T>::CheckParameters_f3d()
 
     reg_f3d<T>::CheckParameters_f3d();
 
+    if(this->affineTransformation!=NULL){
+        fprintf(stderr, "[NiftyReg F3D_SYM ERROR] The inverse consistency parametrisation does not handle affine input\n");
+        fprintf(stderr, "[NiftyReg F3D_SYM ERROR] Please update your source image sform using reg_transform\n");
+        fprintf(stderr, "[NiftyReg F3D_SYM ERROR] and use the updated source image as an input\n.");
+        exit(1);
+    }
+
     // CHECK THE FLOATING MASK DIMENSION IF IT IS DEFINED
     if(this->floatingMaskImage!=NULL){
         if(this->inputFloating->nx != this->floatingMaskImage->nx ||
@@ -542,31 +549,28 @@ void reg_f3d_sym<T>::Initisalise_f3d()
 
     // the backward control point is initialised using an affine transformation
     mat44 matrixAffine;
-    if(this->affineTransformation==NULL){
-        matrixAffine.m[0][0]=1.f;
-        matrixAffine.m[0][1]=0.f;
-        matrixAffine.m[0][2]=0.f;
-        matrixAffine.m[0][3]=0.f;
-        matrixAffine.m[1][0]=0.f;
-        matrixAffine.m[1][1]=1.f;
-        matrixAffine.m[1][2]=0.f;
-        matrixAffine.m[1][3]=0.f;
-        matrixAffine.m[2][0]=0.f;
-        matrixAffine.m[2][1]=0.f;
-        matrixAffine.m[2][2]=1.f;
-        matrixAffine.m[2][3]=0.f;
-        matrixAffine.m[3][0]=0.f;
-        matrixAffine.m[3][1]=0.f;
-        matrixAffine.m[3][2]=0.f;
-        matrixAffine.m[3][3]=1.f;
-        if(reg_bspline_initialiseControlPointGridWithAffine(&matrixAffine, this->backwardControlPointGrid))
-            exit(1);
-    }
-    else{
-        matrixAffine=nifti_mat44_inverse(*(this->affineTransformation));
-        if(reg_bspline_initialiseControlPointGridWithAffine(&matrixAffine, this->backwardControlPointGrid))
-            exit(1);
-    }
+    matrixAffine.m[0][0]=1.f;
+    matrixAffine.m[0][1]=0.f;
+    matrixAffine.m[0][2]=0.f;
+    matrixAffine.m[0][3]=0.f;
+    matrixAffine.m[1][0]=0.f;
+    matrixAffine.m[1][1]=1.f;
+    matrixAffine.m[1][2]=0.f;
+    matrixAffine.m[1][3]=0.f;
+    matrixAffine.m[2][0]=0.f;
+    matrixAffine.m[2][1]=0.f;
+    matrixAffine.m[2][2]=1.f;
+    matrixAffine.m[2][3]=0.f;
+    matrixAffine.m[3][0]=0.f;
+    matrixAffine.m[3][1]=0.f;
+    matrixAffine.m[3][2]=0.f;
+    matrixAffine.m[3][3]=1.f;
+    if(reg_bspline_initialiseControlPointGridWithAffine(&matrixAffine, this->controlPointGrid))
+        exit(1);
+    if(reg_bspline_initialiseControlPointGridWithAffine(&matrixAffine, this->backwardControlPointGrid))
+        exit(1);
+
+
     // Set the floating mask image pyramid
     nifti_image **tempMaskImagePyramid=NULL;
     if(this->usePyramid){
@@ -1278,14 +1282,14 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
         reg_spline_getDeformationField(this->controlPointGrid,
                                        this->currentReference,
                                        this->deformationFieldImage,
-                                       this->currentMask,
+                                       NULL,//this->currentMask,
                                        false, // composition
                                        true // use B-Spline
                                        );
         reg_spline_getDeformationField(this->backwardControlPointGrid,
                                        this->currentFloating,
                                        this->backwardDeformationFieldImage,
-                                       this->currentFloatingMask,
+                                       NULL,//this->currentFloatingMask,
                                        false, // composition
                                        true // use B-Spline
                                        );
@@ -1294,7 +1298,7 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
     reg_spline_getDeformationField(this->backwardControlPointGrid,
                                    this->currentReference,
                                    this->deformationFieldImage,
-                                   this->currentMask,
+                                   NULL,//this->currentMask,
                                    true, // composition
                                    true // use B-Spline
                                    );
@@ -1302,7 +1306,7 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
     reg_spline_getDeformationField(this->controlPointGrid,
                                    this->currentFloating,
                                    this->backwardDeformationFieldImage,
-                                   this->currentFloatingMask,
+                                   NULL,//this->currentFloatingMask,
                                    true, // composition
                                    true // use B-Spline
                                    );
@@ -1369,14 +1373,14 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
     reg_spline_getDeformationField(this->controlPointGrid,
                                    this->currentReference,
                                    this->deformationFieldImage,
-                                   this->currentMask,
+                                   NULL,//this->currentMask,
                                    false, // composition
                                    true // use B-Spline
                                    );
     reg_spline_getDeformationField(this->backwardControlPointGrid,
                                    this->currentReference,
                                    this->deformationFieldImage,
-                                   this->currentMask,
+                                   NULL,//this->currentMask,
                                    true, // composition
                                    true // use B-Spline
                                    );
@@ -1409,14 +1413,14 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
     reg_spline_getDeformationField(this->controlPointGrid,
                                    this->currentFloating,
                                    this->backwardDeformationFieldImage,
-                                   this->currentFloatingMask,
+                                   NULL,//this->currentFloatingMask,
                                    true, // composition
                                    true // use B-Spline
                                    );
     reg_spline_getDeformationField(this->backwardControlPointGrid,
                                    this->currentFloating,
                                    this->backwardDeformationFieldImage,
-                                   this->currentFloatingMask,
+                                   NULL,//this->currentFloatingMask,
                                    true, // composition
                                    true // use B-Spline
                                    );
@@ -1446,14 +1450,14 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
     reg_spline_getDeformationField(this->backwardControlPointGrid,
                                    this->currentFloating,
                                    this->backwardDeformationFieldImage,
-                                   this->currentFloatingMask,
+                                   NULL,//this->currentFloatingMask,
                                    false, // composition
                                    true // use B-Spline
                                    );
     reg_spline_getDeformationField(this->controlPointGrid,
                                    this->currentFloating,
                                    this->backwardDeformationFieldImage,
-                                   this->currentFloatingMask,
+                                   NULL,//this->currentFloatingMask,
                                    true, // composition
                                    true // use B-Spline
                                    );
@@ -1484,14 +1488,14 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
     reg_spline_getDeformationField(this->backwardControlPointGrid,
                                    this->currentReference,
                                    this->deformationFieldImage,
-                                   this->currentMask,
+                                   NULL,//this->currentMask,
                                    true, // composition
                                    true // use B-Spline
                                    );
     reg_spline_getDeformationField(this->controlPointGrid,
                                    this->currentReference,
                                    this->deformationFieldImage,
-                                   this->currentMask,
+                                   NULL,//this->currentMask,
                                    true, // composition
                                    true // use B-Spline
                                    );
