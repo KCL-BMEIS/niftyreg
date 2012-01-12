@@ -10,6 +10,7 @@
  */
 
 #include "_reg_f3d.h"
+
 #include "_reg_f3d_sym.h"
 #ifdef _NR_DEV
 #include "_reg_f3d2.h"
@@ -772,9 +773,21 @@ int main(int argc, char **argv)
 
         // Save the backward control point result
         if(useSym){
+            // _backward is added to the forward control point grid image name
+            std::string b(outputControlPointGridName);
+            if(b.find( ".nii.gz") != std::string::npos)
+                b.replace(b.find( ".nii.gz"),7,"_backward.nii.gz");
+            else if(b.find( ".nii") != std::string::npos)
+                b.replace(b.find( ".nii"),4,"_backward.nii");
+            else if(b.find( ".hdr") != std::string::npos)
+                b.replace(b.find( ".hdr"),4,"_backward.hdr");
+            else if(b.find( ".img.gz") != std::string::npos)
+                b.replace(b.find( ".img.gz"),7,"_backward.img.gz");
+            else if(b.find( ".img") != std::string::npos)
+                b.replace(b.find( ".img"),4,"_backward.img");
+            else b.append("_backward.nii");
             nifti_image *outputBackwardControlPointGridImage = REG->GetBackwardControlPointPositionImage();
-            char *outputBackwardControlPointGridName=(char *)"backwardCPP.nii";
-            nifti_set_filenames(outputBackwardControlPointGridImage, outputBackwardControlPointGridName, 0, 0);
+            nifti_set_filenames(outputBackwardControlPointGridImage, b.c_str(), 0, 0);
             memset(outputBackwardControlPointGridImage->descrip, 0, 80);
             strcpy (outputBackwardControlPointGridImage->descrip,"Backward Control point position from NiftyReg (reg_f3d)");
             nifti_image_write(outputBackwardControlPointGridImage);
