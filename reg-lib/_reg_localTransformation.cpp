@@ -811,67 +811,66 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
             for(y=0; y<deformationField->ny; y++){
                 for(x=0; x<deformationField->nx; x++){
 
-                    // The previous position at the current pixel position is read
-                    real[0] = fieldPtrX[index];
-                    real[1] = fieldPtrY[index];
-                    real[2] = fieldPtrZ[index];
-
-                    // From real to pixel position in the control point space
-                    reg_mat44_mul(targetMatrix_real_to_voxel, real, voxel);
-
-                    // The spline coefficients are computed
-                    xPre=(int)floor(voxel[0]);
-                    basis=voxel[0]-(DTYPE)xPre;--xPre;
-                    if(basis<0.0) basis=0.0; //rounding error
-                    if(bspline) Get_BSplineBasisValues<DTYPE>(basis, xBasis);
-                    else Get_SplineBasisValues<DTYPE>(basis, xBasis);
-
-                    yPre=(int)floor(voxel[1]);
-                    basis=voxel[1]-(DTYPE)yPre;--yPre;
-                    if(basis<0.0) basis=0.0; //rounding error
-                    if(bspline) Get_BSplineBasisValues<DTYPE>(basis, yBasis);
-                    else Get_SplineBasisValues<DTYPE>(basis, yBasis);
-
-                    zPre=(int)floor(voxel[2]);
-                    basis=voxel[2]-(DTYPE)zPre;--zPre;
-                    if(basis<0.0) basis=0.0; //rounding error
-                    if(bspline) Get_BSplineBasisValues<DTYPE>(basis, zBasis);
-                    else Get_SplineBasisValues<DTYPE>(basis, zBasis);
-
-                    // The control point postions are extracted
-                    if(xPre!=oldPreX || yPre!=oldPreY || zPre!=oldPreZ){
-#ifdef _USE_SSE
-                        get_GridValues<DTYPE>(xPre,
-                                              yPre,
-                                              zPre,
-                                              splineControlPoint,
-                                              controlPointPtrX,
-                                              controlPointPtrY,
-                                              controlPointPtrZ,
-                                              xControlPointCoordinates.f,
-                                              yControlPointCoordinates.f,
-                                              zControlPointCoordinates.f,
-                                              true);
-#else // _USE_SSE
-                        get_GridValues<DTYPE>(xPre,
-                                              yPre,
-                                              zPre,
-                                              splineControlPoint,
-                                              controlPointPtrX,
-                                              controlPointPtrY,
-                                              controlPointPtrZ,
-                                              xControlPointCoordinates,
-                                              yControlPointCoordinates,
-                                              zControlPointCoordinates,
-                                              true);
-#endif // _USE_SSE
-                        oldPreX=xPre;
-                        oldPreY=yPre;
-                        oldPreZ=zPre;
-                    }
-
-
                     if(mask[index]>-1){
+                        // The previous position at the current pixel position is read
+                        real[0] = fieldPtrX[index];
+                        real[1] = fieldPtrY[index];
+                        real[2] = fieldPtrZ[index];
+
+                        // From real to pixel position in the control point space
+                        reg_mat44_mul(targetMatrix_real_to_voxel, real, voxel);
+
+                        // The spline coefficients are computed
+                        xPre=(int)floor(voxel[0]);
+                        basis=voxel[0]-(DTYPE)xPre;--xPre;
+                        if(basis<0.0) basis=0.0; //rounding error
+                        if(bspline) Get_BSplineBasisValues<DTYPE>(basis, xBasis);
+                        else Get_SplineBasisValues<DTYPE>(basis, xBasis);
+
+                        yPre=(int)floor(voxel[1]);
+                        basis=voxel[1]-(DTYPE)yPre;--yPre;
+                        if(basis<0.0) basis=0.0; //rounding error
+                        if(bspline) Get_BSplineBasisValues<DTYPE>(basis, yBasis);
+                        else Get_SplineBasisValues<DTYPE>(basis, yBasis);
+
+                        zPre=(int)floor(voxel[2]);
+                        basis=voxel[2]-(DTYPE)zPre;--zPre;
+                        if(basis<0.0) basis=0.0; //rounding error
+                        if(bspline) Get_BSplineBasisValues<DTYPE>(basis, zBasis);
+                        else Get_SplineBasisValues<DTYPE>(basis, zBasis);
+
+                        // The control point postions are extracted
+                        if(xPre!=oldPreX || yPre!=oldPreY || zPre!=oldPreZ){
+#ifdef _USE_SSE
+                            get_GridValues<DTYPE>(xPre,
+                                                  yPre,
+                                                  zPre,
+                                                  splineControlPoint,
+                                                  controlPointPtrX,
+                                                  controlPointPtrY,
+                                                  controlPointPtrZ,
+                                                  xControlPointCoordinates.f,
+                                                  yControlPointCoordinates.f,
+                                                  zControlPointCoordinates.f,
+                                                  true);
+#else // _USE_SSE
+                            get_GridValues<DTYPE>(xPre,
+                                                  yPre,
+                                                  zPre,
+                                                  splineControlPoint,
+                                                  controlPointPtrX,
+                                                  controlPointPtrY,
+                                                  controlPointPtrZ,
+                                                  xControlPointCoordinates,
+                                                  yControlPointCoordinates,
+                                                  zControlPointCoordinates,
+                                                  true);
+#endif // _USE_SSE
+                            oldPreX=xPre;
+                            oldPreY=yPre;
+                            oldPreZ=zPre;
+                        }
+
 #if _USE_SSE
                         tempX =  _mm_set_ps1(0.0);
                         tempY =  _mm_set_ps1(0.0);
@@ -922,8 +921,8 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
                         fieldPtrX[index] = real[0];
                         fieldPtrY[index] = real[1];
                         fieldPtrZ[index] = real[2];
-                        index++;
                     }
+                    index++;
                 }
             }
         }

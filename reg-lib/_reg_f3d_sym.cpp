@@ -1298,7 +1298,7 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
     reg_spline_getDeformationField(this->backwardControlPointGrid,
                                    this->currentReference,
                                    this->deformationFieldImage,
-                                   NULL,//this->currentMask,
+                                   this->currentMask,
                                    true, // composition
                                    true // use B-Spline
                                    );
@@ -1306,7 +1306,7 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
     reg_spline_getDeformationField(this->controlPointGrid,
                                    this->currentFloating,
                                    this->backwardDeformationFieldImage,
-                                   NULL,//this->currentFloatingMask,
+                                   this->currentFloatingMask,
                                    true, // composition
                                    true // use B-Spline
                                    );
@@ -1373,14 +1373,14 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
     reg_spline_getDeformationField(this->controlPointGrid,
                                    this->currentReference,
                                    this->deformationFieldImage,
-                                   NULL,//this->currentMask,
+                                   this->currentMask,
                                    false, // composition
                                    true // use B-Spline
                                    );
     reg_spline_getDeformationField(this->backwardControlPointGrid,
                                    this->currentReference,
                                    this->deformationFieldImage,
-                                   NULL,//this->currentMask,
+                                   this->currentMask,
                                    true, // composition
                                    true // use B-Spline
                                    );
@@ -1413,14 +1413,14 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
     reg_spline_getDeformationField(this->controlPointGrid,
                                    this->currentFloating,
                                    this->backwardDeformationFieldImage,
-                                   NULL,//this->currentFloatingMask,
+                                   this->currentFloatingMask,
                                    true, // composition
                                    true // use B-Spline
                                    );
     reg_spline_getDeformationField(this->backwardControlPointGrid,
                                    this->currentFloating,
                                    this->backwardDeformationFieldImage,
-                                   NULL,//this->currentFloatingMask,
+                                   this->currentFloatingMask,
                                    true, // composition
                                    true // use B-Spline
                                    );
@@ -1450,14 +1450,14 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
     reg_spline_getDeformationField(this->backwardControlPointGrid,
                                    this->currentFloating,
                                    this->backwardDeformationFieldImage,
-                                   NULL,//this->currentFloatingMask,
+                                   this->currentFloatingMask,
                                    false, // composition
                                    true // use B-Spline
                                    );
     reg_spline_getDeformationField(this->controlPointGrid,
                                    this->currentFloating,
                                    this->backwardDeformationFieldImage,
-                                   NULL,//this->currentFloatingMask,
+                                   this->currentFloatingMask,
                                    true, // composition
                                    true // use B-Spline
                                    );
@@ -1488,14 +1488,14 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
     reg_spline_getDeformationField(this->backwardControlPointGrid,
                                    this->currentReference,
                                    this->deformationFieldImage,
-                                   NULL,//this->currentMask,
+                                   this->currentMask,
                                    true, // composition
                                    true // use B-Spline
                                    );
     reg_spline_getDeformationField(this->controlPointGrid,
                                    this->currentReference,
                                    this->deformationFieldImage,
-                                   NULL,//this->currentMask,
+                                   this->currentMask,
                                    true, // composition
                                    true // use B-Spline
                                    );
