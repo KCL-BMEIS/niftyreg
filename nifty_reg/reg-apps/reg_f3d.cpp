@@ -264,7 +264,7 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-incpp") == 0){
             inputControlPointGridName=argv[++i];
         }
-        else if((strcmp(argv[i],"-rmask")==0) || (strcmp(argv[i],"tmask")==0)){
+        else if((strcmp(argv[i],"-rmask")==0) || (strcmp(argv[i],"-tmask")==0)){
             referenceMaskName=argv[++i];
         }
         else if((strcmp(argv[i],"-res")==0) || (strcmp(argv[i],"-result")==0)){
@@ -368,7 +368,7 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-useSym") ==0){
             useSym=true;
         }
-        else if((strcmp(argv[i],"-fmask")==0) || (strcmp(argv[i],"smask")==0)){
+        else if((strcmp(argv[i],"-fmask")==0) || (strcmp(argv[i],"-smask")==0)){
             floatingMaskName=argv[++i];
             useSym=true;
         }
