@@ -1794,21 +1794,40 @@ void reg_bspline_refineControlPointGrid(nifti_image *referenceImage,
     controlPointGrid->qto_ijk = nifti_mat44_inverse(controlPointGrid->qto_xyz);
 
     if(controlPointGrid->sform_code>0){
-        nifti_mat44_to_quatern( referenceImage->sto_xyz, &qb, &qc, &qd, &qx, &qy, &qz, &dx, &dy, &dz, &qfac);
+        originReal[0]=originReal[1]=originReal[2]=0;
+        reg_mat44_mul(&(referenceImage->sto_ijk), originReal, originIndex);
+        originIndex[0] *= referenceImage->dx / controlPointGrid->dx;originIndex[0]++;
+        originIndex[1] *= referenceImage->dy / controlPointGrid->dy;originIndex[1]++;
+        originIndex[2] *= referenceImage->dz / controlPointGrid->dz;originIndex[2]++;
 
-        controlPointGrid->sto_xyz = nifti_quatern_to_mat44(qb, qc, qd, qx, qy, qz,
-                                                           controlPointGrid->dx, controlPointGrid->dy, controlPointGrid->dz, qfac);
+        controlPointGrid->sto_xyz.m[0][0]=referenceImage->sto_xyz.m[0][0];
+        controlPointGrid->sto_xyz.m[1][0]=referenceImage->sto_xyz.m[1][0];
+        controlPointGrid->sto_xyz.m[2][0]=referenceImage->sto_xyz.m[2][0];
+        controlPointGrid->sto_xyz.m[0][1]=referenceImage->sto_xyz.m[0][1];
+        controlPointGrid->sto_xyz.m[1][1]=referenceImage->sto_xyz.m[1][1];
+        controlPointGrid->sto_xyz.m[2][1]=referenceImage->sto_xyz.m[2][1];
+        controlPointGrid->sto_xyz.m[0][2]=referenceImage->sto_xyz.m[0][2];
+        controlPointGrid->sto_xyz.m[1][2]=referenceImage->sto_xyz.m[1][2];
+        controlPointGrid->sto_xyz.m[2][2]=referenceImage->sto_xyz.m[2][2];
+        controlPointGrid->sto_xyz.m[0][3]=0.f;
+        controlPointGrid->sto_xyz.m[1][3]=0.f;
+        controlPointGrid->sto_xyz.m[2][3]=0.f;
+        mat44 rotationMatrix = nifti_make_orthog_mat44(
+            referenceImage->sto_ijk.m[0][0], referenceImage->sto_ijk.m[0][1], referenceImage->sto_ijk.m[0][2],
+            referenceImage->sto_ijk.m[1][0], referenceImage->sto_ijk.m[1][1], referenceImage->sto_ijk.m[1][2],
+            referenceImage->sto_ijk.m[2][0], referenceImage->sto_ijk.m[2][1], referenceImage->sto_ijk.m[2][2]);
+        mat44 invRotationMatrix = nifti_mat44_inverse(rotationMatrix);
 
-        // Origin is shifted from 1 control point in the sform
-        originIndex[0] = -1.0f;
-        originIndex[1] = -1.0f;
-        originIndex[2] = 0.0f;
-        if(referenceImage->nz>1) originIndex[2] = -1.0f;
+        mat44 shearingScalingMatrix = reg_mat44_mul(&rotationMatrix,&controlPointGrid->sto_xyz);
+        shearingScalingMatrix.m[0][0] *= controlPointGrid->dx / referenceImage->dx;
+        shearingScalingMatrix.m[1][1] *= controlPointGrid->dy / referenceImage->dy;
+        shearingScalingMatrix.m[2][2] *= controlPointGrid->dz / referenceImage->dz;
+
+        controlPointGrid->sto_xyz = reg_mat44_mul(&invRotationMatrix,&shearingScalingMatrix);
         reg_mat44_mul(&(controlPointGrid->sto_xyz), originIndex, originReal);
-        controlPointGrid->sto_xyz.m[0][3] = originReal[0];
-        controlPointGrid->sto_xyz.m[1][3] = originReal[1];
-        controlPointGrid->sto_xyz.m[2][3] = originReal[2];
-
+        controlPointGrid->sto_xyz.m[0][3] = -originReal[0];
+        controlPointGrid->sto_xyz.m[1][3] = -originReal[1];
+        controlPointGrid->sto_xyz.m[2][3] = -originReal[2];
         controlPointGrid->sto_ijk = nifti_mat44_inverse(controlPointGrid->sto_xyz);
     }
 #ifndef NDEBUG

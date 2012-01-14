@@ -472,28 +472,48 @@ void reg_f3d_sym<T>::Initisalise_f3d()
     reg_f3d<T>::Initisalise_f3d();
 
     /* allocate the backward control point image */
+
+    /* Convert the spacing from voxel to mm if necessary */
+    float spacingInMillimeter[3]={this->spacing[0],this->spacing[1],this->spacing[2]};
+    if(this->usePyramid){
+        if(spacingInMillimeter[0]<0) spacingInMillimeter[0] *= -1.0f * this->floatingPyramid[this->levelToPerform-1]->dx;
+        if(spacingInMillimeter[1]<0) spacingInMillimeter[1] *= -1.0f * this->floatingPyramid[this->levelToPerform-1]->dy;
+        if(spacingInMillimeter[2]<0) spacingInMillimeter[2] *= -1.0f * this->floatingPyramid[this->levelToPerform-1]->dz;
+    }
+    else{
+        if(spacingInMillimeter[0]<0) spacingInMillimeter[0] *= -1.0f * this->floatingPyramid[0]->dx;
+        if(spacingInMillimeter[1]<0) spacingInMillimeter[1] *= -1.0f * this->floatingPyramid[0]->dy;
+        if(spacingInMillimeter[2]<0) spacingInMillimeter[2] *= -1.0f * this->floatingPyramid[0]->dz;
+    }
+
+    float gridSpacing[3];
+    gridSpacing[0] = spacingInMillimeter[0] * powf(2.0f, (float)(this->levelToPerform-1));
+    gridSpacing[1] = spacingInMillimeter[1] * powf(2.0f, (float)(this->levelToPerform-1));
+    gridSpacing[2] = 1.0f;
+
     int dim_cpp[8];
     dim_cpp[0]=5;
-    dim_cpp[1]=(int)floor(this->floatingPyramid[0]->nx*this->floatingPyramid[0]->dx/this->controlPointGrid->dx)+5;
-    dim_cpp[2]=(int)floor(this->floatingPyramid[0]->ny*this->floatingPyramid[0]->dy/this->controlPointGrid->dy)+5;
+    dim_cpp[1]=(int)floor(this->floatingPyramid[0]->nx*this->floatingPyramid[0]->dx/gridSpacing[0])+5;
+    dim_cpp[2]=(int)floor(this->floatingPyramid[0]->ny*this->floatingPyramid[0]->dy/gridSpacing[1])+5;
     dim_cpp[3]=1;
     dim_cpp[5]=2;
     if(this->floatingPyramid[0]->nz>1){
-        dim_cpp[3]=(int)floor(this->floatingPyramid[0]->nz*this->floatingPyramid[0]->dz/this->controlPointGrid->dz)+5;
+        gridSpacing[2] = spacingInMillimeter[2] * powf(2.0f, (float)(this->levelToPerform-1));
+        dim_cpp[3]=(int)floor(this->floatingPyramid[0]->nz*this->floatingPyramid[0]->dz/gridSpacing[2])+5;
         dim_cpp[5]=3;
     }
     dim_cpp[4]=dim_cpp[6]=dim_cpp[7]=1;
-    if(sizeof(T)==4) this->backwardControlPointGrid = nifti_make_new_nim(dim_cpp, NIFTI_TYPE_FLOAT32, true);
-    else this->backwardControlPointGrid = nifti_make_new_nim(dim_cpp, NIFTI_TYPE_FLOAT64, true);
+    if(sizeof(T)==4) this->backwardControlPointGrid = nifti_make_new_nim(dim_cpp, NIFTI_TYPE_FLOAT32, false);
+    else this->backwardControlPointGrid = nifti_make_new_nim(dim_cpp, NIFTI_TYPE_FLOAT64, false);
     this->backwardControlPointGrid->cal_min=0;
     this->backwardControlPointGrid->cal_max=0;
     this->backwardControlPointGrid->pixdim[0]=1.0f;
-    this->backwardControlPointGrid->pixdim[1]=this->backwardControlPointGrid->dx=this->controlPointGrid->dx;
-    this->backwardControlPointGrid->pixdim[2]=this->backwardControlPointGrid->dy=this->controlPointGrid->dy;
+    this->backwardControlPointGrid->pixdim[1]=this->backwardControlPointGrid->dx=gridSpacing[0];
+    this->backwardControlPointGrid->pixdim[2]=this->backwardControlPointGrid->dy=gridSpacing[1];
     if(this->floatingPyramid[0]->nz==1){
         this->backwardControlPointGrid->pixdim[3]=this->backwardControlPointGrid->dz=1.0f;
     }
-    else this->backwardControlPointGrid->pixdim[3]=this->backwardControlPointGrid->dz=this->controlPointGrid->dz;
+    else this->backwardControlPointGrid->pixdim[3]=this->backwardControlPointGrid->dz=gridSpacing[2];
     this->backwardControlPointGrid->pixdim[4]=this->backwardControlPointGrid->dt=1.0f;
     this->backwardControlPointGrid->pixdim[5]=this->backwardControlPointGrid->du=1.0f;
     this->backwardControlPointGrid->pixdim[6]=this->backwardControlPointGrid->dv=1.0f;
@@ -508,7 +528,7 @@ void reg_f3d_sym<T>::Initisalise_f3d()
     this->backwardControlPointGrid->quatern_c=qc;
     this->backwardControlPointGrid->quatern_d=qd;
     this->backwardControlPointGrid->qfac=qfac;
-    this->controlPointGrid->qto_xyz = nifti_quatern_to_mat44(qb, qc, qd, qx, qy, qz,
+    this->backwardControlPointGrid->qto_xyz = nifti_quatern_to_mat44(qb, qc, qd, qx, qy, qz,
                                                              this->backwardControlPointGrid->dx,
                                                              this->backwardControlPointGrid->dy,
                                                              this->backwardControlPointGrid->dz, qfac);
@@ -527,25 +547,43 @@ void reg_f3d_sym<T>::Initisalise_f3d()
     this->backwardControlPointGrid->qto_ijk = nifti_mat44_inverse(this->backwardControlPointGrid->qto_xyz);
 
     if(this->backwardControlPointGrid->sform_code>0){
-        nifti_mat44_to_quatern(this->floatingPyramid[0]->sto_xyz, &qb, &qc, &qd, &qx,
-                               &qy, &qz, &dx, &dy, &dz, &qfac);
+        originReal[0]=originReal[1]=originReal[2]=0;
+        reg_mat44_mul(&(this->floatingPyramid[0]->sto_ijk), originReal, originIndex);
+        originIndex[0] *= this->floatingPyramid[0]->dx / this->backwardControlPointGrid->dx;originIndex[0]++;
+        originIndex[1] *= this->floatingPyramid[0]->dy / this->backwardControlPointGrid->dy;originIndex[1]++;
+        originIndex[2] *= this->floatingPyramid[0]->dz / this->backwardControlPointGrid->dz;originIndex[2]++;
 
-        this->backwardControlPointGrid->sto_xyz = nifti_quatern_to_mat44(qb, qc, qd, qx, qy, qz,
-                                                                         this->backwardControlPointGrid->dx,
-                                                                         this->backwardControlPointGrid->dy,
-                                                                         this->backwardControlPointGrid->dz, qfac);
+        this->backwardControlPointGrid->sto_xyz.m[0][0]=this->floatingPyramid[0]->sto_xyz.m[0][0];
+        this->backwardControlPointGrid->sto_xyz.m[1][0]=this->floatingPyramid[0]->sto_xyz.m[1][0];
+        this->backwardControlPointGrid->sto_xyz.m[2][0]=this->floatingPyramid[0]->sto_xyz.m[2][0];
+        this->backwardControlPointGrid->sto_xyz.m[0][1]=this->floatingPyramid[0]->sto_xyz.m[0][1];
+        this->backwardControlPointGrid->sto_xyz.m[1][1]=this->floatingPyramid[0]->sto_xyz.m[1][1];
+        this->backwardControlPointGrid->sto_xyz.m[2][1]=this->floatingPyramid[0]->sto_xyz.m[2][1];
+        this->backwardControlPointGrid->sto_xyz.m[0][2]=this->floatingPyramid[0]->sto_xyz.m[0][2];
+        this->backwardControlPointGrid->sto_xyz.m[1][2]=this->floatingPyramid[0]->sto_xyz.m[1][2];
+        this->backwardControlPointGrid->sto_xyz.m[2][2]=this->floatingPyramid[0]->sto_xyz.m[2][2];
+        this->backwardControlPointGrid->sto_xyz.m[0][3]=0.f;
+        this->backwardControlPointGrid->sto_xyz.m[1][3]=0.f;
+        this->backwardControlPointGrid->sto_xyz.m[2][3]=0.f;
+        mat44 rotationMatrix = nifti_make_orthog_mat44(
+            this->floatingPyramid[0]->sto_ijk.m[0][0], this->floatingPyramid[0]->sto_ijk.m[0][1], this->floatingPyramid[0]->sto_ijk.m[0][2],
+            this->floatingPyramid[0]->sto_ijk.m[1][0], this->floatingPyramid[0]->sto_ijk.m[1][1], this->floatingPyramid[0]->sto_ijk.m[1][2],
+            this->floatingPyramid[0]->sto_ijk.m[2][0], this->floatingPyramid[0]->sto_ijk.m[2][1], this->floatingPyramid[0]->sto_ijk.m[2][2]);
+        mat44 invRotationMatrix = nifti_mat44_inverse(rotationMatrix);
 
-        // Origin is shifted from 1 control point in the sform
-        originIndex[0] = -1.0f;
-        originIndex[1] = -1.0f;
-        originIndex[2] = 0.0f;
-        if(this->floatingPyramid[0]->nz>1) originIndex[2] = -1.0f;
+        mat44 shearingScalingMatrix = reg_mat44_mul(&rotationMatrix,&this->backwardControlPointGrid->sto_xyz);
+        shearingScalingMatrix.m[0][0] *= this->backwardControlPointGrid->dx / this->floatingPyramid[0]->dx;
+        shearingScalingMatrix.m[1][1] *= this->backwardControlPointGrid->dy / this->floatingPyramid[0]->dy;
+        shearingScalingMatrix.m[2][2] *= this->backwardControlPointGrid->dz / this->floatingPyramid[0]->dz;
+
+        this->backwardControlPointGrid->sto_xyz = reg_mat44_mul(&invRotationMatrix,&shearingScalingMatrix);
         reg_mat44_mul(&(this->backwardControlPointGrid->sto_xyz), originIndex, originReal);
-        this->backwardControlPointGrid->sto_xyz.m[0][3] = originReal[0];
-        this->backwardControlPointGrid->sto_xyz.m[1][3] = originReal[1];
-        this->backwardControlPointGrid->sto_xyz.m[2][3] = originReal[2];
+        this->backwardControlPointGrid->sto_xyz.m[0][3] = -originReal[0];
+        this->backwardControlPointGrid->sto_xyz.m[1][3] = -originReal[1];
+        this->backwardControlPointGrid->sto_xyz.m[2][3] = -originReal[2];
         this->backwardControlPointGrid->sto_ijk = nifti_mat44_inverse(this->backwardControlPointGrid->sto_xyz);
     }
+    this->backwardControlPointGrid->data=(void *)malloc(this->backwardControlPointGrid->nvox*this->backwardControlPointGrid->nbyper);
 
     // the backward control point is initialised using an affine transformation
     mat44 matrixAffine;
@@ -1282,14 +1320,14 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
         reg_spline_getDeformationField(this->controlPointGrid,
                                        this->currentReference,
                                        this->deformationFieldImage,
-                                       NULL,//this->currentMask,
+                                       this->currentMask,
                                        false, // composition
                                        true // use B-Spline
                                        );
         reg_spline_getDeformationField(this->backwardControlPointGrid,
                                        this->currentFloating,
                                        this->backwardDeformationFieldImage,
-                                       NULL,//this->currentFloatingMask,
+                                       this->currentFloatingMask,
                                        false, // composition
                                        true // use B-Spline
                                        );
