@@ -1120,17 +1120,23 @@ void reg_f3d<T>::Initisalise_f3d()
         this->controlPointGrid->sform_code=this->referencePyramid[0]->sform_code;
 
         // The qform (and sform) are set for the control point position image
-        float qb, qc, qd, qx, qy, qz, dx, dy, dz, qfac;
-        nifti_mat44_to_quatern( this->referencePyramid[0]->qto_xyz, &qb, &qc, &qd, &qx, &qy, &qz, &dx, &dy, &dz, &qfac);
-        this->controlPointGrid->quatern_b=qb;
-        this->controlPointGrid->quatern_c=qc;
-        this->controlPointGrid->quatern_d=qd;
-        this->controlPointGrid->qfac=qfac;
-
-        this->controlPointGrid->qto_xyz = nifti_quatern_to_mat44(qb, qc, qd, qx, qy, qz,
+        this->controlPointGrid->quatern_b=this->referencePyramid[0]->quatern_b;
+        this->controlPointGrid->quatern_c=this->referencePyramid[0]->quatern_c;
+        this->controlPointGrid->quatern_d=this->referencePyramid[0]->quatern_d;
+        this->controlPointGrid->qoffset_x=this->referencePyramid[0]->qoffset_x;
+        this->controlPointGrid->qoffset_y=this->referencePyramid[0]->qoffset_y;
+        this->controlPointGrid->qoffset_z=this->referencePyramid[0]->qoffset_z;
+        this->controlPointGrid->qfac=this->referencePyramid[0]->qfac;
+        this->controlPointGrid->qto_xyz = nifti_quatern_to_mat44(this->controlPointGrid->quatern_b,
+                                                                 this->controlPointGrid->quatern_c,
+                                                                 this->controlPointGrid->quatern_d,
+                                                                 this->controlPointGrid->qoffset_x,
+                                                                 this->controlPointGrid->qoffset_y,
+                                                                 this->controlPointGrid->qoffset_z,
                                                                  this->controlPointGrid->dx,
                                                                  this->controlPointGrid->dy,
-                                                                 this->controlPointGrid->dz, qfac);
+                                                                 this->controlPointGrid->dz,
+                                                                 this->controlPointGrid->qfac);
 
         // Origin is shifted from 1 control point in the qform
         float originIndex[3];
