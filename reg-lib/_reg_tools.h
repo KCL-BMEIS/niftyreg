@@ -16,6 +16,7 @@
 #include <fstream>
 #include <limits>
 
+#include "_reg_maths.h"
 
 extern "C++"
 void reg_checkAndCorrectDimension(nifti_image *image);

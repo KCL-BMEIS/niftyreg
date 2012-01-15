@@ -1229,6 +1229,15 @@ template <class PrecisionTYPE, class ImageTYPE>
     memcpy(oldValues, imagePtr, image->nvox*image->nbyper);
     free(image->data);
 
+    // Keep the previous real to voxel qform
+    mat44 real2Voxel_qform;
+    for(int i=0; i<4; i++){
+        for(int j=0; j<4; j++){
+            real2Voxel_qform.m[i][j]=image->qto_ijk.m[i][j];
+        }
+    }
+
+    // Update the axis dimension
     int oldDim[4];
     for(int i=1; i<4; i++){
         oldDim[i]=image->dim[i];
@@ -1245,32 +1254,45 @@ template <class PrecisionTYPE, class ImageTYPE>
     if(image->nu<=0 || image->dim[5]<=0) image->nu=image->dim[5]=1;
     if(image->nv<=0 || image->dim[6]<=0) image->nv=image->dim[6]=1;
     if(image->nw<=0 || image->dim[7]<=0) image->nw=image->dim[7]=1;
-    mat44 oldMat; memset(&oldMat, 0, sizeof(mat44));
-    for(int i=0; i<3; i++){
-        for(int j=0; j<3; j++){
-            oldMat.m[i][j]=image->qto_ijk.m[i][j];
-            if(downsampleAxis[j+1]==true){
-                image->qto_xyz.m[i][j]=image->qto_xyz.m[i][j]*2.0f;
-                image->sto_xyz.m[i][j]=image->sto_xyz.m[i][j]*2.0f;
-            }
-        }
-    }
-    oldMat.m[0][3]=image->qto_ijk.m[0][3];
-    oldMat.m[1][3]=image->qto_ijk.m[1][3];
-    oldMat.m[2][3]=image->qto_ijk.m[2][3];
-    oldMat.m[3][3]=image->qto_ijk.m[3][3];
 
+    // update the qform matrix
+    image->qto_xyz = nifti_quatern_to_mat44(image->quatern_b,
+                                            image->quatern_c,
+                                            image->quatern_d,
+                                            image->qoffset_x,
+                                            image->qoffset_y,
+                                            image->qoffset_z,
+                                            image->dx,
+                                            image->dy,
+                                            image->dz,
+                                            image->qfac);
     image->qto_ijk = nifti_mat44_inverse(image->qto_xyz);
+
+    // update the sform matrix
+    mat44 scalingMatrix;
+    scalingMatrix.m[0][0]=scalingMatrix.m[1][1]=scalingMatrix.m[2][2]=scalingMatrix.m[3][3]=1;
+    scalingMatrix.m[0][1]=scalingMatrix.m[1][0]=scalingMatrix.m[2][0]=scalingMatrix.m[3][0]=0;
+    scalingMatrix.m[0][2]=scalingMatrix.m[1][2]=scalingMatrix.m[2][1]=scalingMatrix.m[3][1]=0;
+    scalingMatrix.m[0][3]=scalingMatrix.m[1][3]=scalingMatrix.m[2][3]=scalingMatrix.m[3][2]=0;
+    if(downsampleAxis[1]) scalingMatrix.m[0][0]=2.f;
+    if(downsampleAxis[2]) scalingMatrix.m[1][1]=2.f;
+    if(downsampleAxis[3]) scalingMatrix.m[2][2]=2.f;
+    float origin_sform[3]={image->sto_xyz.m[0][3], image->sto_xyz.m[1][3], image->sto_xyz.m[2][3]};
+    image->sto_xyz =  reg_mat44_mul(&scalingMatrix, &(image->sto_xyz));
+    image->sto_xyz.m[0][3]=origin_sform[0];
+    image->sto_xyz.m[1][3]=origin_sform[1];
+    image->sto_xyz.m[2][3]=origin_sform[2];
     image->sto_ijk = nifti_mat44_inverse(image->sto_xyz);
 
+    // Reallocate the image
     image->nvox=image->nx*image->ny*image->nz*image->nt*image->nu*image->nv*image->nw;
-
     image->data=(void *)calloc(image->nvox, image->nbyper);
     imagePtr = static_cast<ImageTYPE *>(image->data);
 
     PrecisionTYPE real[3], position[3], relative, xBasis[2], yBasis[2], zBasis[2], intensity;
     int previous[3];
 
+    // qform is used for resampling
     for(int tuvw=0; tuvw<image->nt*image->nu*image->nv*image->nw; tuvw++){
         ImageTYPE *valuesPtrTUVW = &oldValues[tuvw*oldDim[1]*oldDim[2]*oldDim[3]];
         for(int z=0; z<image->nz; z++){
@@ -1279,13 +1301,13 @@ template <class PrecisionTYPE, class ImageTYPE>
                     real[0]=x*image->qto_xyz.m[0][0] + y*image->qto_xyz.m[0][1] + z*image->qto_xyz.m[0][2] + image->qto_xyz.m[0][3];
                     real[1]=x*image->qto_xyz.m[1][0] + y*image->qto_xyz.m[1][1] + z*image->qto_xyz.m[1][2] + image->qto_xyz.m[1][3];
                     real[2]=x*image->qto_xyz.m[2][0] + y*image->qto_xyz.m[2][1] + z*image->qto_xyz.m[2][2] + image->qto_xyz.m[2][3];
-                    position[0]=real[0]*oldMat.m[0][0] + real[1]*oldMat.m[0][1] + real[2]*oldMat.m[0][2] + oldMat.m[0][3];
-                    position[1]=real[0]*oldMat.m[1][0] + real[1]*oldMat.m[1][1] + real[2]*oldMat.m[1][2] + oldMat.m[1][3];
-                    position[2]=real[0]*oldMat.m[2][0] + real[1]*oldMat.m[2][1] + real[2]*oldMat.m[2][2] + oldMat.m[2][3];
+                    position[0]=real[0]*real2Voxel_qform.m[0][0] + real[1]*real2Voxel_qform.m[0][1] + real[2]*real2Voxel_qform.m[0][2] + real2Voxel_qform.m[0][3];
+                    position[1]=real[0]*real2Voxel_qform.m[1][0] + real[1]*real2Voxel_qform.m[1][1] + real[2]*real2Voxel_qform.m[1][2] + real2Voxel_qform.m[1][3];
+                    position[2]=real[0]*real2Voxel_qform.m[2][0] + real[1]*real2Voxel_qform.m[2][1] + real[2]*real2Voxel_qform.m[2][2] + real2Voxel_qform.m[2][3];
                     /* trilinear interpolation */
-                    previous[0] = (int)floor(position[0]);
-                    previous[1] = (int)floor(position[1]);
-                    previous[2] = (int)floor(position[2]);
+                    previous[0] = (int)round(position[0]);
+                    previous[1] = (int)round(position[1]);
+                    previous[2] = (int)round(position[2]);
 
                     // basis values along the x axis
                     relative=position[0]-(PrecisionTYPE)previous[0];
