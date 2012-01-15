@@ -565,18 +565,19 @@ void reg_f3d_sym<T>::Initisalise_f3d()
         this->backwardControlPointGrid->sto_xyz.m[0][3]=0.f;
         this->backwardControlPointGrid->sto_xyz.m[1][3]=0.f;
         this->backwardControlPointGrid->sto_xyz.m[2][3]=0.f;
-        mat44 rotationMatrix = nifti_make_orthog_mat44(
-            this->floatingPyramid[0]->sto_ijk.m[0][0], this->floatingPyramid[0]->sto_ijk.m[0][1], this->floatingPyramid[0]->sto_ijk.m[0][2],
-            this->floatingPyramid[0]->sto_ijk.m[1][0], this->floatingPyramid[0]->sto_ijk.m[1][1], this->floatingPyramid[0]->sto_ijk.m[1][2],
-            this->floatingPyramid[0]->sto_ijk.m[2][0], this->floatingPyramid[0]->sto_ijk.m[2][1], this->floatingPyramid[0]->sto_ijk.m[2][2]);
-        mat44 invRotationMatrix = nifti_mat44_inverse(rotationMatrix);
 
-        mat44 shearingScalingMatrix = reg_mat44_mul(&rotationMatrix,&this->backwardControlPointGrid->sto_xyz);
-        shearingScalingMatrix.m[0][0] *= this->backwardControlPointGrid->dx / this->floatingPyramid[0]->dx;
-        shearingScalingMatrix.m[1][1] *= this->backwardControlPointGrid->dy / this->floatingPyramid[0]->dy;
-        shearingScalingMatrix.m[2][2] *= this->backwardControlPointGrid->dz / this->floatingPyramid[0]->dz;
+        mat44 scalingMatrix;
+        scalingMatrix.m[0][0]=this->backwardControlPointGrid->dx / this->floatingPyramid[0]->dx;
+        scalingMatrix.m[1][1]=this->backwardControlPointGrid->dy / this->floatingPyramid[0]->dy;
+        scalingMatrix.m[2][2]=this->backwardControlPointGrid->dz / this->floatingPyramid[0]->dz;
+        scalingMatrix.m[3][3]=1;
+        scalingMatrix.m[0][1]=scalingMatrix.m[0][2]=scalingMatrix.m[0][3]=0;
+        scalingMatrix.m[1][0]=scalingMatrix.m[1][2]=scalingMatrix.m[1][3]=0;
+        scalingMatrix.m[2][0]=scalingMatrix.m[2][1]=scalingMatrix.m[2][3]=0;
+        scalingMatrix.m[3][0]=scalingMatrix.m[3][1]=scalingMatrix.m[3][2]=0;
 
-        this->backwardControlPointGrid->sto_xyz = reg_mat44_mul(&invRotationMatrix,&shearingScalingMatrix);
+        this->backwardControlPointGrid->sto_xyz = reg_mat44_mul(&scalingMatrix,&(this->backwardControlPointGrid->sto_xyz));
+
         reg_mat44_mul(&(this->backwardControlPointGrid->sto_xyz), originIndex, originReal);
         this->backwardControlPointGrid->sto_xyz.m[0][3] = -originReal[0];
         this->backwardControlPointGrid->sto_xyz.m[1][3] = -originReal[1];

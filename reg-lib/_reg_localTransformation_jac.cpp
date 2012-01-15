@@ -109,6 +109,30 @@ void addJacobianGradientValues(mat33 jacobianMatrix,
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
+void reg_getRealImageSpacing(nifti_image *image,
+                             DTYPE *spacingValues)
+{
+    float indexVoxel1[3]={0,0,0};
+    float indexVoxel2[3], realVoxel1[3], realVoxel2[3];
+    reg_mat44_mul(&(image->sto_xyz), indexVoxel1, realVoxel1);
+
+    indexVoxel2[1]=indexVoxel2[2]=0;indexVoxel2[0]=1;
+    reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
+    spacingValues[0]=sqrt(POW2(realVoxel1[0]-realVoxel2[0])+POW2(realVoxel1[1]-realVoxel2[1])+POW2(realVoxel1[2]-realVoxel2[2]));
+
+    indexVoxel2[0]=indexVoxel2[2]=0;indexVoxel2[1]=1;
+    reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
+    spacingValues[1]=sqrt(POW2(realVoxel1[0]-realVoxel2[0])+POW2(realVoxel1[1]-realVoxel2[1])+POW2(realVoxel1[2]-realVoxel2[2]));
+
+    if(image->nz>1){
+        indexVoxel2[0]=indexVoxel2[1]=0;indexVoxel2[2]=1;
+        reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
+        spacingValues[2]=sqrt(POW2(realVoxel1[0]-realVoxel2[0])+POW2(realVoxel1[1]-realVoxel2[1])+POW2(realVoxel1[2]-realVoxel2[2]));
+    }
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template<class DTYPE>
 double reg_bspline_jacobianValue2D(nifti_image *splineControlPoint,
                                    nifti_image *referenceImage)
 {
@@ -134,10 +158,19 @@ double reg_bspline_jacobianValue2D(nifti_image *splineControlPoint,
     DTYPE Tx_x, Tx_y, Ty_x, Ty_y;
     double detJac, logJac, constraintValue=0;
 
+    DTYPE realSpacing[2];
+    if(splineControlPoint->sform_code>0){
+        reg_getRealImageSpacing(splineControlPoint,realSpacing);
+    }
+    else{
+        realSpacing[0]=splineControlPoint->dx;
+        realSpacing[1]=splineControlPoint->dy;
+    }
+
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(referenceImage, gridVoxelSpacing, splineControlPoint, \
-    controlPointPtrX, controlPointPtrY, reorient) \
+    controlPointPtrX, controlPointPtrY, reorient, realSpacing) \
     private(x, y, a, b, xPre, yPre, oldXpre, oldYpre, basis, \
     temp, first, yBasis, yFirst, coord, jacobianMatrix, detJac, logJac, \
     xControlPointCoordinates, yControlPointCoordinates, basisX, basisY, \
@@ -192,10 +225,10 @@ double reg_bspline_jacobianValue2D(nifti_image *splineControlPoint,
 
             memset(&jacobianMatrix, 0, sizeof(mat33));
             jacobianMatrix.m[2][2]=1.0f;
-            jacobianMatrix.m[0][0]= (float)(Tx_x / splineControlPoint->dx);
-            jacobianMatrix.m[0][1]= (float)(Tx_y / splineControlPoint->dy);
-            jacobianMatrix.m[1][0]= (float)(Ty_x / splineControlPoint->dx);
-            jacobianMatrix.m[1][1]= (float)(Ty_y / splineControlPoint->dy);
+            jacobianMatrix.m[0][0]= (float)(Tx_x / realSpacing[0]);
+            jacobianMatrix.m[0][1]= (float)(Tx_y / realSpacing[1]);
+            jacobianMatrix.m[1][0]= (float)(Ty_x / realSpacing[0]);
+            jacobianMatrix.m[1][1]= (float)(Ty_y / realSpacing[1]);
 
             jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
             detJac = nifti_mat33_determ(jacobianMatrix);
@@ -275,6 +308,15 @@ double reg_bspline_jacobianValue3D(nifti_image *splineControlPoint,
     gridVoxelSpacing[0] = splineControlPoint->dx / referenceImage->dx;
     gridVoxelSpacing[1] = splineControlPoint->dy / referenceImage->dy;
     gridVoxelSpacing[2] = splineControlPoint->dz / referenceImage->dz;
+    DTYPE realSpacing[3];
+    if(splineControlPoint->sform_code>0){
+        reg_getRealImageSpacing(splineControlPoint,realSpacing);
+    }
+    else{
+        realSpacing[0]=splineControlPoint->dx;
+        realSpacing[1]=splineControlPoint->dy;
+        realSpacing[2]=splineControlPoint->dz;
+    }
 
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
@@ -287,7 +329,7 @@ double reg_bspline_jacobianValue3D(nifti_image *splineControlPoint,
 #ifdef _OPENMP
 #ifdef _USE_SSE
 #pragma omp parallel for default(none) \
-    shared(referenceImage, gridVoxelSpacing, splineControlPoint, \
+    shared(referenceImage, gridVoxelSpacing, splineControlPoint, realSpacing, \
     controlPointPtrX, controlPointPtrY, controlPointPtrZ, reorient) \
     private(x, y, z, xPre, yPre, zPre, a, basis, val, \
     _xBasis, _xFirst, _yBasis, _yFirst, \
@@ -299,7 +341,7 @@ double reg_bspline_jacobianValue3D(nifti_image *splineControlPoint,
     reduction(+:constraintValue)
 #else // _USE_SEE
 #pragma omp parallel for default(none) \
-    shared(referenceImage, gridVoxelSpacing, splineControlPoint, \
+    shared(referenceImage, gridVoxelSpacing, splineControlPoint, realSpacing, \
     controlPointPtrX, controlPointPtrY, controlPointPtrZ, reorient) \
     private(x, y, z, xPre, yPre, zPre, a, b, c, bc, basis, detJac, logJac,\
     basisX, basisY, basisZ, coord, tempX, tempY, tempZ, temp, first, \
@@ -492,15 +534,15 @@ double reg_bspline_jacobianValue3D(nifti_image *splineControlPoint,
                 }
 #endif
 
-                jacobianMatrix.m[0][0]= (float)(Tx_x / splineControlPoint->dx);
-                jacobianMatrix.m[0][1]= (float)(Tx_y / splineControlPoint->dy);
-                jacobianMatrix.m[0][2]= (float)(Tx_z / splineControlPoint->dz);
-                jacobianMatrix.m[1][0]= (float)(Ty_x / splineControlPoint->dx);
-                jacobianMatrix.m[1][1]= (float)(Ty_y / splineControlPoint->dy);
-                jacobianMatrix.m[1][2]= (float)(Ty_z / splineControlPoint->dz);
-                jacobianMatrix.m[2][0]= (float)(Tz_x / splineControlPoint->dx);
-                jacobianMatrix.m[2][1]= (float)(Tz_y / splineControlPoint->dy);
-                jacobianMatrix.m[2][2]= (float)(Tz_z / splineControlPoint->dz);
+                jacobianMatrix.m[0][0]= (float)(Tx_x / realSpacing[0]);
+                jacobianMatrix.m[0][1]= (float)(Tx_y / realSpacing[1]);
+                jacobianMatrix.m[0][2]= (float)(Tx_z / realSpacing[2]);
+                jacobianMatrix.m[1][0]= (float)(Ty_x / realSpacing[0]);
+                jacobianMatrix.m[1][1]= (float)(Ty_y / realSpacing[1]);
+                jacobianMatrix.m[1][2]= (float)(Ty_z / realSpacing[2]);
+                jacobianMatrix.m[2][0]= (float)(Tz_x / realSpacing[0]);
+                jacobianMatrix.m[2][1]= (float)(Tz_y / realSpacing[1]);
+                jacobianMatrix.m[2][2]= (float)(Tz_z / realSpacing[2]);
 
                 jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
                 detJac = nifti_mat33_determ(jacobianMatrix);
@@ -545,6 +587,15 @@ double reg_bspline_jacobianApproxValue2D(nifti_image *splineControlPoint)
         }
     }
 
+    DTYPE realSpacing[2];
+    if(splineControlPoint->sform_code>0){
+        reg_getRealImageSpacing(splineControlPoint,realSpacing);
+    }
+    else{
+        realSpacing[0]=splineControlPoint->dx;
+        realSpacing[1]=splineControlPoint->dy;
+    }
+
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
 
@@ -553,7 +604,7 @@ double reg_bspline_jacobianApproxValue2D(nifti_image *splineControlPoint)
     DTYPE Tx_x, Ty_y, Tx_y, Ty_x;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(splineControlPoint, controlPointPtrX, controlPointPtrY, reorient, basisX, basisY) \
+    shared(splineControlPoint, controlPointPtrX, controlPointPtrY, reorient, basisX, basisY, realSpacing) \
     private(x, y, a, jacobianMatrix, detJac, logJac, Tx_x, Ty_y, Tx_y, Ty_x, \
     xControlPointCoordinates, yControlPointCoordinates) \
     reduction(+:constraintValue)
@@ -584,10 +635,10 @@ double reg_bspline_jacobianApproxValue2D(nifti_image *splineControlPoint)
             }
 
             memset(&jacobianMatrix, 0, sizeof(mat33));
-            jacobianMatrix.m[0][0]= (float)(Tx_x / splineControlPoint->dx);
-            jacobianMatrix.m[0][1]= (float)(Tx_y / splineControlPoint->dy);
-            jacobianMatrix.m[1][0]= (float)(Ty_x / splineControlPoint->dx);
-            jacobianMatrix.m[1][1]= (float)(Ty_y / splineControlPoint->dy);
+            jacobianMatrix.m[0][0]= (float)(Tx_x / realSpacing[0]);
+            jacobianMatrix.m[0][1]= (float)(Tx_y / realSpacing[1]);
+            jacobianMatrix.m[1][0]= (float)(Ty_x / realSpacing[0]);
+            jacobianMatrix.m[1][1]= (float)(Ty_y / realSpacing[1]);
             jacobianMatrix.m[2][2]=1.0f;
 
             jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
@@ -651,6 +702,16 @@ double reg_bspline_jacobianApproxValue3D(nifti_image *splineControlPoint)
     DTYPE *controlPointPtrZ = static_cast<DTYPE *>
             (&controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz]);
 
+    DTYPE realSpacing[3];
+    if(splineControlPoint->sform_code>0){
+        reg_getRealImageSpacing(splineControlPoint,realSpacing);
+    }
+    else{
+        realSpacing[0]=splineControlPoint->dx;
+        realSpacing[1]=splineControlPoint->dy;
+        realSpacing[2]=splineControlPoint->dz;
+    }
+
     DTYPE Tx_x, Ty_x, Tz_x;
     DTYPE Tx_y, Ty_y, Tz_y;
     DTYPE Tx_z, Ty_z, Tz_z;
@@ -661,7 +722,7 @@ double reg_bspline_jacobianApproxValue3D(nifti_image *splineControlPoint)
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(splineControlPoint, controlPointPtrX, controlPointPtrY, controlPointPtrZ, \
-    basisX, basisY, basisZ, reorient) \
+    basisX, basisY, basisZ, reorient, realSpacing) \
     private(x, y, z, a, Tx_x, Ty_x, Tz_x, Tx_y, Ty_y, Tz_y, Tx_z, Ty_z, Tz_z, \
     xControlPointCoordinates, yControlPointCoordinates, zControlPointCoordinates, \
     jacobianMatrix, detJac, logJac) \
@@ -701,15 +762,15 @@ double reg_bspline_jacobianApproxValue3D(nifti_image *splineControlPoint)
                     Tz_z += basisZ[a]*zControlPointCoordinates[a];
                 }
 
-                jacobianMatrix.m[0][0]= (float)(Tx_x / splineControlPoint->dx);
-                jacobianMatrix.m[0][1]= (float)(Tx_y / splineControlPoint->dy);
-                jacobianMatrix.m[0][2]= (float)(Tx_z / splineControlPoint->dz);
-                jacobianMatrix.m[1][0]= (float)(Ty_x / splineControlPoint->dx);
-                jacobianMatrix.m[1][1]= (float)(Ty_y / splineControlPoint->dy);
-                jacobianMatrix.m[1][2]= (float)(Ty_z / splineControlPoint->dz);
-                jacobianMatrix.m[2][0]= (float)(Tz_x / splineControlPoint->dx);
-                jacobianMatrix.m[2][1]= (float)(Tz_y / splineControlPoint->dy);
-                jacobianMatrix.m[2][2]= (float)(Tz_z / splineControlPoint->dz);
+                jacobianMatrix.m[0][0]= (float)(Tx_x / realSpacing[0]);
+                jacobianMatrix.m[0][1]= (float)(Tx_y / realSpacing[1]);
+                jacobianMatrix.m[0][2]= (float)(Tx_z / realSpacing[2]);
+                jacobianMatrix.m[1][0]= (float)(Ty_x / realSpacing[0]);
+                jacobianMatrix.m[1][1]= (float)(Ty_y / realSpacing[1]);
+                jacobianMatrix.m[1][2]= (float)(Ty_z / realSpacing[2]);
+                jacobianMatrix.m[2][0]= (float)(Tz_x / realSpacing[0]);
+                jacobianMatrix.m[2][1]= (float)(Tz_y / realSpacing[1]);
+                jacobianMatrix.m[2][2]= (float)(Tz_z / realSpacing[2]);
 
                 jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
                 detJac = nifti_mat33_determ(jacobianMatrix);
@@ -801,6 +862,15 @@ void reg_bspline_computeJacobianMatrices_2D(nifti_image *referenceImage,
     gridVoxelSpacing[0] = splineControlPoint->dx / referenceImage->dx;
     gridVoxelSpacing[1] = splineControlPoint->dy / referenceImage->dy;
 
+    DTYPE realSpacing[2];
+    if(splineControlPoint->sform_code>0){
+        reg_getRealImageSpacing(splineControlPoint,realSpacing);
+    }
+    else{
+        realSpacing[0]=splineControlPoint->dx;
+        realSpacing[1]=splineControlPoint->dy;
+    }
+
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
 
@@ -808,7 +878,7 @@ void reg_bspline_computeJacobianMatrices_2D(nifti_image *referenceImage,
     DTYPE Tx_x, Tx_y, Ty_x, Ty_y;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(referenceImage, gridVoxelSpacing, splineControlPoint, reorient, \
+    shared(referenceImage, gridVoxelSpacing, splineControlPoint, reorient, realSpacing, \
     controlPointPtrX, controlPointPtrY, jacobianDeterminant, jacobianMatrices) \
     private(index, coord, x, y, a, b, xPre, yPre, basis, xBasis, xFirst, yBasis, yFirst, \
     oldXpre, oldYpre, basisX, basisY, xControlPointCoordinates, yControlPointCoordinates, \
@@ -865,10 +935,10 @@ void reg_bspline_computeJacobianMatrices_2D(nifti_image *referenceImage,
             }
 
             memset(&jacobianMatrix, 0, sizeof(mat33));
-            jacobianMatrix.m[0][0]= (float)(Tx_x / splineControlPoint->dx);
-            jacobianMatrix.m[0][1]= (float)(Tx_y / splineControlPoint->dy);
-            jacobianMatrix.m[1][0]= (float)(Ty_x / splineControlPoint->dx);
-            jacobianMatrix.m[1][1]= (float)(Ty_y / splineControlPoint->dy);
+            jacobianMatrix.m[0][0]= (float)(Tx_x / realSpacing[0]);
+            jacobianMatrix.m[0][1]= (float)(Tx_y / realSpacing[1]);
+            jacobianMatrix.m[1][0]= (float)(Ty_x / realSpacing[0]);
+            jacobianMatrix.m[1][1]= (float)(Ty_y / realSpacing[1]);
             jacobianMatrix.m[2][2]=1.0f;
 
             jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
@@ -940,6 +1010,16 @@ void reg_bspline_computeJacobianMatrices_3D(nifti_image *referenceImage,
     gridVoxelSpacing[1] = splineControlPoint->dy / referenceImage->dy;
     gridVoxelSpacing[2] = splineControlPoint->dz / referenceImage->dz;
 
+    DTYPE realSpacing[3];
+    if(splineControlPoint->sform_code>0){
+        reg_getRealImageSpacing(splineControlPoint,realSpacing);
+    }
+    else{
+        realSpacing[0]=splineControlPoint->dx;
+        realSpacing[1]=splineControlPoint->dy;
+        realSpacing[2]=splineControlPoint->dz;
+    }
+
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
 
@@ -952,7 +1032,7 @@ void reg_bspline_computeJacobianMatrices_3D(nifti_image *referenceImage,
 #pragma omp parallel for default(none) \
     shared(referenceImage, gridVoxelSpacing, splineControlPoint, \
     controlPointPtrX, controlPointPtrY, controlPointPtrZ, reorient, \
-    jacobianDeterminant, jacobianMatrices) \
+    jacobianDeterminant, jacobianMatrices, realSpacing) \
     private(x, y, z, xPre, yPre, zPre, a, index, basis, val, \
     _xBasis, _xFirst, _yBasis, _yFirst, \
     tempX, tempY, tempZ, basisX, basisY, basisZ, \
@@ -964,7 +1044,7 @@ void reg_bspline_computeJacobianMatrices_3D(nifti_image *referenceImage,
 #pragma omp parallel for default(none) \
     shared(referenceImage, gridVoxelSpacing, splineControlPoint, \
     controlPointPtrX, controlPointPtrY, controlPointPtrZ, reorient, \
-    jacobianDeterminant, jacobianMatrices) \
+    jacobianDeterminant, jacobianMatrices, realSpacing) \
     private(x, y, z, xPre, yPre, zPre, a, b, c, bc, index, basis, \
     basisX, basisY, basisZ, coord, tempX, tempY, tempZ, \
     xBasis, yBasis, zBasis, xFirst, yFirst, zFirst, oldXpre, oldYpre, oldZpre, \
@@ -1156,15 +1236,15 @@ void reg_bspline_computeJacobianMatrices_3D(nifti_image *referenceImage,
                 }
 #endif
 
-                jacobianMatrix.m[0][0]= (float)(Tx_x / splineControlPoint->dx);
-                jacobianMatrix.m[0][1]= (float)(Tx_y / splineControlPoint->dy);
-                jacobianMatrix.m[0][2]= (float)(Tx_z / splineControlPoint->dz);
-                jacobianMatrix.m[1][0]= (float)(Ty_x / splineControlPoint->dx);
-                jacobianMatrix.m[1][1]= (float)(Ty_y / splineControlPoint->dy);
-                jacobianMatrix.m[1][2]= (float)(Ty_z / splineControlPoint->dz);
-                jacobianMatrix.m[2][0]= (float)(Tz_x / splineControlPoint->dx);
-                jacobianMatrix.m[2][1]= (float)(Tz_y / splineControlPoint->dy);
-                jacobianMatrix.m[2][2]= (float)(Tz_z / splineControlPoint->dz);
+                jacobianMatrix.m[0][0]= (float)(Tx_x / realSpacing[0]);
+                jacobianMatrix.m[0][1]= (float)(Tx_y / realSpacing[1]);
+                jacobianMatrix.m[0][2]= (float)(Tx_z / realSpacing[2]);
+                jacobianMatrix.m[1][0]= (float)(Ty_x / realSpacing[0]);
+                jacobianMatrix.m[1][1]= (float)(Ty_y / realSpacing[1]);
+                jacobianMatrix.m[1][2]= (float)(Ty_z / realSpacing[2]);
+                jacobianMatrix.m[2][0]= (float)(Tz_x / realSpacing[0]);
+                jacobianMatrix.m[2][1]= (float)(Tz_y / realSpacing[1]);
+                jacobianMatrix.m[2][2]= (float)(Tz_z / realSpacing[2]);
 
                 jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
 
@@ -1197,6 +1277,15 @@ void reg_bspline_computeApproximateJacobianMatrices_2D( nifti_image *splineContr
         }
     }
 
+    DTYPE realSpacing[2];
+    if(splineControlPoint->sform_code>0){
+        reg_getRealImageSpacing(splineControlPoint,realSpacing);
+    }
+    else{
+        realSpacing[0]=splineControlPoint->dx;
+        realSpacing[1]=splineControlPoint->dy;
+    }
+
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
 
@@ -1221,7 +1310,7 @@ void reg_bspline_computeApproximateJacobianMatrices_2D( nifti_image *splineContr
     DTYPE Tx_x, Tx_y, Ty_x, Ty_y;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(splineControlPoint, controlPointPtrX, controlPointPtrY, \
+    shared(splineControlPoint, controlPointPtrX, controlPointPtrY, realSpacing, \
     jacobianMatricesPtr, jacobianDeterminantPtr, reorient, basisX, basisY) \
     private(x, y, jacIndex, a, xControlPointCoordinates, yControlPointCoordinates, \
     Tx_x, Tx_y, Ty_x, Ty_y, jacobianMatrix)
@@ -1254,11 +1343,11 @@ void reg_bspline_computeApproximateJacobianMatrices_2D( nifti_image *splineContr
                 Ty_y += basisY[a]*yControlPointCoordinates[a];
             }
 
-            jacobianMatrix.m[0][0] = (float)(Tx_x / splineControlPoint->dx);
-            jacobianMatrix.m[0][1] = (float)(Tx_y / splineControlPoint->dy);
+            jacobianMatrix.m[0][0] = (float)(Tx_x / realSpacing[0]);
+            jacobianMatrix.m[0][1] = (float)(Tx_y / realSpacing[1]);
             jacobianMatrix.m[0][2] = 0.0f;
-            jacobianMatrix.m[1][0] = (float)(Ty_x / splineControlPoint->dx);
-            jacobianMatrix.m[1][1] = (float)(Ty_y / splineControlPoint->dy);
+            jacobianMatrix.m[1][0] = (float)(Ty_x / realSpacing[0]);
+            jacobianMatrix.m[1][1] = (float)(Ty_y / realSpacing[1]);
             jacobianMatrix.m[1][2] = 0.0f;
             jacobianMatrix.m[2][0] = 0.0f;
             jacobianMatrix.m[2][1] = 0.0f;
@@ -1305,6 +1394,16 @@ void reg_bspline_computeApproximateJacobianMatrices_3D(nifti_image *splineContro
         }
     }
 
+    DTYPE realSpacing[3];
+    if(splineControlPoint->sform_code>0){
+        reg_getRealImageSpacing(splineControlPoint,realSpacing);
+    }
+    else{
+        realSpacing[0]=splineControlPoint->dx;
+        realSpacing[1]=splineControlPoint->dy;
+        realSpacing[2]=splineControlPoint->dz;
+    }
+
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
 
@@ -1336,7 +1435,7 @@ void reg_bspline_computeApproximateJacobianMatrices_3D(nifti_image *splineContro
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(splineControlPoint, controlPointPtrX, controlPointPtrY, controlPointPtrZ, \
-    basisX, basisY, basisZ, reorient, jacobianMatricesPtr, jacobianDeterminantPtr) \
+    basisX, basisY, basisZ, reorient, jacobianMatricesPtr, jacobianDeterminantPtr, realSpacing) \
     private(x,y,z,jacIndex, Tx_x, Ty_x, Tz_x, Tx_y, Ty_y, Tz_y, Tx_z, Ty_z, Tz_z, \
     jacobianMatrix, a, \
     xControlPointCoordinates, yControlPointCoordinates, zControlPointCoordinates)
@@ -1375,15 +1474,15 @@ void reg_bspline_computeApproximateJacobianMatrices_3D(nifti_image *splineContro
                     Tz_z += basisZ[a]*zControlPointCoordinates[a];
                 }
 
-                jacobianMatrix.m[0][0]= (float)(Tx_x / splineControlPoint->dx);
-                jacobianMatrix.m[0][1]= (float)(Tx_y / splineControlPoint->dy);
-                jacobianMatrix.m[0][2]= (float)(Tx_z / splineControlPoint->dz);
-                jacobianMatrix.m[1][0]= (float)(Ty_x / splineControlPoint->dx);
-                jacobianMatrix.m[1][1]= (float)(Ty_y / splineControlPoint->dy);
-                jacobianMatrix.m[1][2]= (float)(Ty_z / splineControlPoint->dz);
-                jacobianMatrix.m[2][0]= (float)(Tz_x / splineControlPoint->dx);
-                jacobianMatrix.m[2][1]= (float)(Tz_y / splineControlPoint->dy);
-                jacobianMatrix.m[2][2]= (float)(Tz_z / splineControlPoint->dz);
+                jacobianMatrix.m[0][0]= (float)(Tx_x / realSpacing[0]);
+                jacobianMatrix.m[0][1]= (float)(Tx_y / realSpacing[1]);
+                jacobianMatrix.m[0][2]= (float)(Tx_z / realSpacing[2]);
+                jacobianMatrix.m[1][0]= (float)(Ty_x / realSpacing[0]);
+                jacobianMatrix.m[1][1]= (float)(Ty_y / realSpacing[1]);
+                jacobianMatrix.m[1][2]= (float)(Ty_z / realSpacing[2]);
+                jacobianMatrix.m[2][0]= (float)(Tz_x / realSpacing[0]);
+                jacobianMatrix.m[2][1]= (float)(Tz_y / realSpacing[1]);
+                jacobianMatrix.m[2][2]= (float)(Tz_z / realSpacing[2]);
 
                 jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
                 jacobianDeterminantPtr[jacIndex] = nifti_mat33_determ(jacobianMatrix);
@@ -1962,6 +2061,15 @@ double reg_bspline_correctFolding_2D(nifti_image *splineControlPoint,
     bool correctFolding;
     double detJac;
 
+    DTYPE realSpacing[2];
+    if(splineControlPoint->sform_code>0){
+        reg_getRealImageSpacing(splineControlPoint,realSpacing);
+    }
+    else{
+        realSpacing[0]=splineControlPoint->dx;
+        realSpacing[1]=splineControlPoint->dy;
+    }
+
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
 
@@ -1972,7 +2080,7 @@ double reg_bspline_correctFolding_2D(nifti_image *splineControlPoint,
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(splineControlPoint, gridVoxelSpacing, jacobianDeterminant, jacobianMatrices, \
-    referenceImage, desorient, controlPointPtrX, controlPointPtrY) \
+    referenceImage, desorient, controlPointPtrX, controlPointPtrY, realSpacing) \
     private(x, y, pixelX, pixelY, jacIndex, detJac, xPre, yPre, xBasis, xFirst, yBasis, yFirst, \
     basisValues, correctFolding, jacobianMatrix, gradient, norm, id, foldingCorrection, basis)
 #endif
@@ -2029,8 +2137,8 @@ double reg_bspline_correctFolding_2D(nifti_image *splineControlPoint,
                 norm = 5.0 * sqrt(gradient[0]*gradient[0] + gradient[1]*gradient[1]);
                 if(norm>0.0){
                     id = y*splineControlPoint->nx+x;
-                    controlPointPtrX[id] += (DTYPE)(splineControlPoint->dx*gradient[0]/norm);
-                    controlPointPtrY[id] += (DTYPE)(splineControlPoint->dy*gradient[1]/norm);
+                    controlPointPtrX[id] += (DTYPE)(realSpacing[0]*gradient[0]/norm);
+                    controlPointPtrY[id] += (DTYPE)(realSpacing[1]*gradient[1]/norm);
                 }
             }
 
@@ -2085,6 +2193,15 @@ double reg_bspline_correctFoldingApprox_2D(nifti_image *splineControlPoint)
     DTYPE basisValues[2], foldingCorrection[2], gradient[2], norm;
     DTYPE xBasis=0, yBasis=0, xFirst=0, yFirst=0;
 
+    DTYPE realSpacing[2];
+    if(splineControlPoint->sform_code>0){
+        reg_getRealImageSpacing(splineControlPoint,realSpacing);
+    }
+    else{
+        realSpacing[0]=splineControlPoint->dx;
+        realSpacing[1]=splineControlPoint->dy;
+    }
+
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
 
@@ -2100,7 +2217,7 @@ double reg_bspline_correctFoldingApprox_2D(nifti_image *splineControlPoint)
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(splineControlPoint, jacobianDeterminant, jacobianMatrices, desorient, \
-    controlPointPtrX, controlPointPtrY) \
+    controlPointPtrX, controlPointPtrY, realSpacing) \
     private(x, y, id, jacIndex, pixelX, pixelY, logDet, xBasis, xFirst, yBasis, yFirst, \
     basisValues, foldingCorrection, correctFolding, gradient, jacobianMatrix, norm)
 #endif
@@ -2151,8 +2268,8 @@ double reg_bspline_correctFoldingApprox_2D(nifti_image *splineControlPoint)
                 norm = 5.0 * sqrt(gradient[0]*gradient[0] + gradient[1]*gradient[1]);
                 if(norm>0.0){
                     id = y*splineControlPoint->nx+x;
-                    controlPointPtrX[id] += splineControlPoint->dx*gradient[0]/norm;
-                    controlPointPtrY[id] += splineControlPoint->dy*gradient[1]/norm;
+                    controlPointPtrX[id] += realSpacing[0]*gradient[0]/norm;
+                    controlPointPtrY[id] += realSpacing[1]*gradient[1]/norm;
                 }
             }
 
@@ -2200,7 +2317,16 @@ double reg_bspline_correctFolding_3D(nifti_image *splineControlPoint,
         return penaltyTerm/(double)(referenceImage->nx*referenceImage->ny*referenceImage->nz);
     }
 
-    /*  */
+    DTYPE realSpacing[3];
+    if(splineControlPoint->sform_code>0){
+        reg_getRealImageSpacing(splineControlPoint,realSpacing);
+    }
+    else{
+        realSpacing[0]=splineControlPoint->dx;
+        realSpacing[1]=splineControlPoint->dy;
+        realSpacing[2]=splineControlPoint->dz;
+    }
+
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
 
@@ -2220,7 +2346,7 @@ double reg_bspline_correctFolding_3D(nifti_image *splineControlPoint,
     double detJac;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(splineControlPoint, gridVoxelSpacing, referenceImage, jacobianDeterminant, \
+    shared(splineControlPoint, gridVoxelSpacing, referenceImage, jacobianDeterminant, realSpacing, \
     jacobianMatrices, controlPointPtrX, controlPointPtrY, controlPointPtrZ, desorient) \
     private(x, y, z, xPre, yPre, zPre, pixelX, pixelY, pixelZ, foldingCorrection, \
     basis, xBasis, yBasis, zBasis, xFirst, yFirst, zFirst, jacIndex, detJac, \
@@ -2297,9 +2423,9 @@ double reg_bspline_correctFolding_3D(nifti_image *splineControlPoint,
 
                     if(norm>0.0){
                         id = (z*splineControlPoint->ny+y)*splineControlPoint->nx+x;
-                        controlPointPtrX[id] += (DTYPE)(splineControlPoint->dx*gradient[0]/norm);
-                        controlPointPtrY[id] += (DTYPE)(splineControlPoint->dy*gradient[1]/norm);
-                        controlPointPtrZ[id] += (DTYPE)(splineControlPoint->dz*gradient[2]/norm);
+                        controlPointPtrX[id] += (DTYPE)(realSpacing[0]*gradient[0]/norm);
+                        controlPointPtrY[id] += (DTYPE)(realSpacing[1]*gradient[1]/norm);
+                        controlPointPtrZ[id] += (DTYPE)(realSpacing[2]*gradient[2]/norm);
                     }
                 }
             }
@@ -2352,6 +2478,16 @@ double reg_bspline_correctFoldingApprox_3D(nifti_image *splineControlPoint)
         return penaltyTerm/(double)jacobianNumber;
     }
 
+    DTYPE realSpacing[3];
+    if(splineControlPoint->sform_code>0){
+        reg_getRealImageSpacing(splineControlPoint,realSpacing);
+    }
+    else{
+        realSpacing[0]=splineControlPoint->dx;
+        realSpacing[1]=splineControlPoint->dy;
+        realSpacing[2]=splineControlPoint->dz;
+    }
+
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
 
@@ -2367,7 +2503,7 @@ double reg_bspline_correctFoldingApprox_3D(nifti_image *splineControlPoint)
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(splineControlPoint, jacobianDeterminant, jacobianMatrices, \
-    controlPointPtrX, controlPointPtrY, controlPointPtrZ, desorient) \
+    controlPointPtrX, controlPointPtrY, controlPointPtrZ, desorient, realSpacing) \
     private(x, y, z, pixelX, pixelY, pixelZ, foldingCorrection, \
     xBasis, yBasis, zBasis, xFirst, yFirst, zFirst, jacIndex, detJac, \
     jacobianMatrix, basisValues, norm, correctFolding, id, gradient)
@@ -2434,9 +2570,9 @@ double reg_bspline_correctFoldingApprox_3D(nifti_image *splineControlPoint)
 
                     if(norm>(DTYPE)0.0){
                         id = (z*splineControlPoint->ny+y)*splineControlPoint->nx+x;
-                        controlPointPtrX[id] += (DTYPE)(splineControlPoint->dx*gradient[0]/norm);
-                        controlPointPtrY[id] += (DTYPE)(splineControlPoint->dy*gradient[1]/norm);
-                        controlPointPtrZ[id] += (DTYPE)(splineControlPoint->dz*gradient[2]/norm);
+                        controlPointPtrX[id] += (DTYPE)(realSpacing[0]*gradient[0]/norm);
+                        controlPointPtrY[id] += (DTYPE)(realSpacing[1]*gradient[1]/norm);
+                        controlPointPtrZ[id] += (DTYPE)(realSpacing[2]*gradient[2]/norm);
                     }
                 }
             }
@@ -2546,6 +2682,15 @@ void reg_bspline_GetJacobianMap2D(nifti_image *splineControlPoint,
 
     unsigned int coord=0;
 
+    DTYPE realSpacing[2];
+    if(splineControlPoint->sform_code>0){
+        reg_getRealImageSpacing(splineControlPoint,realSpacing);
+    }
+    else{
+        realSpacing[0]=splineControlPoint->dx;
+        realSpacing[1]=splineControlPoint->dy;
+    }
+
     /* In case the matrix is not diagonal, the jacobian has to be reoriented */
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
@@ -2599,10 +2744,10 @@ void reg_bspline_GetJacobianMap2D(nifti_image *splineControlPoint,
 
             memset(&jacobianMatrix, 0, sizeof(mat33));
             jacobianMatrix.m[2][2]=1.0f;
-            jacobianMatrix.m[0][0]= (float)(Tx_x / splineControlPoint->dx);
-            jacobianMatrix.m[0][1]= (float)(Tx_y / splineControlPoint->dy);
-            jacobianMatrix.m[1][0]= (float)(Ty_x / splineControlPoint->dx);
-            jacobianMatrix.m[1][1]= (float)(Ty_y / splineControlPoint->dy);
+            jacobianMatrix.m[0][0]= (float)(Tx_x / realSpacing[0]);
+            jacobianMatrix.m[0][1]= (float)(Tx_y / realSpacing[1]);
+            jacobianMatrix.m[1][0]= (float)(Ty_x / realSpacing[0]);
+            jacobianMatrix.m[1][1]= (float)(Ty_y / realSpacing[1]);
 
             jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
 
@@ -2635,6 +2780,16 @@ void reg_bspline_GetJacobianMap3D(nifti_image *splineControlPoint,
     gridVoxelSpacing[1] = splineControlPoint->dy / jacobianImage->dy;
     gridVoxelSpacing[2] = splineControlPoint->dz / jacobianImage->dz;
     unsigned int coord=0;
+
+    DTYPE realSpacing[3];
+    if(splineControlPoint->sform_code>0){
+        reg_getRealImageSpacing(splineControlPoint,realSpacing);
+    }
+    else{
+        realSpacing[0]=splineControlPoint->dx;
+        realSpacing[1]=splineControlPoint->dy;
+        realSpacing[2]=splineControlPoint->dz;
+    }
 
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
@@ -2719,15 +2874,15 @@ void reg_bspline_GetJacobianMap3D(nifti_image *splineControlPoint,
                     Tz_z += basisZ[a]*zControlPointCoordinates[a];
                 }
 
-                jacobianMatrix.m[0][0]= (float)(Tx_x / splineControlPoint->dx);
-                jacobianMatrix.m[0][1]= (float)(Tx_y / splineControlPoint->dy);
-                jacobianMatrix.m[0][2]= (float)(Tx_z / splineControlPoint->dz);
-                jacobianMatrix.m[1][0]= (float)(Ty_x / splineControlPoint->dx);
-                jacobianMatrix.m[1][1]= (float)(Ty_y / splineControlPoint->dy);
-                jacobianMatrix.m[1][2]= (float)(Ty_z / splineControlPoint->dz);
-                jacobianMatrix.m[2][0]= (float)(Tz_x / splineControlPoint->dx);
-                jacobianMatrix.m[2][1]= (float)(Tz_y / splineControlPoint->dy);
-                jacobianMatrix.m[2][2]= (float)(Tz_z / splineControlPoint->dz);
+                jacobianMatrix.m[0][0]= (float)(Tx_x / realSpacing[0]);
+                jacobianMatrix.m[0][1]= (float)(Tx_y / realSpacing[1]);
+                jacobianMatrix.m[0][2]= (float)(Tx_z / realSpacing[2]);
+                jacobianMatrix.m[1][0]= (float)(Ty_x / realSpacing[0]);
+                jacobianMatrix.m[1][1]= (float)(Ty_y / realSpacing[1]);
+                jacobianMatrix.m[1][2]= (float)(Ty_z / realSpacing[2]);
+                jacobianMatrix.m[2][0]= (float)(Tz_x / realSpacing[0]);
+                jacobianMatrix.m[2][1]= (float)(Tz_y / realSpacing[1]);
+                jacobianMatrix.m[2][2]= (float)(Tz_z / realSpacing[2]);
 
                 jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
                 DTYPE detJac = nifti_mat33_determ(jacobianMatrix);
@@ -2928,6 +3083,15 @@ void reg_defField_getJacobianMap2D(nifti_image *deformationField,
         jacYYPtr = &jacYXPtr[pixelNumber];
     }
 
+    DTYPE realSpacing[2];
+    if(deformationField->sform_code>0){
+        reg_getRealImageSpacing(deformationField,realSpacing);
+    }
+    else{
+        realSpacing[0]=deformationField->dx;
+        realSpacing[1]=deformationField->dy;
+    }
+
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(deformationField, &desorient, &reorient);
 
@@ -2954,7 +3118,7 @@ void reg_defField_getJacobianMap2D(nifti_image *deformationField,
 #pragma omp parallel for default(none) \
     shared(deformationField, deformationPtrX, deformationPtrY, reorient, \
     jacobianDeterminant, jacobianMatrices, jacDetPtr, jacXXPtr, jacYYPtr, \
-    jacXYPtr, jacYXPtr, basis, first, voxel2real) \
+    jacXYPtr, jacYXPtr, basis, first, voxel2real, realSpacing) \
     private(x, y, a, b, currentIndex, index, currentX, currentY, jacobianMatrix, \
     defX, defY, firstX, firstY)
 #endif
@@ -3009,10 +3173,10 @@ void reg_defField_getJacobianMap2D(nifti_image *deformationField,
                         jacobianMatrix.m[1][1] += firstY*defY;
                     }//a
                 }//b
-                jacobianMatrix.m[0][0] /= deformationField->dx;
-                jacobianMatrix.m[0][1] /= deformationField->dy;
-                jacobianMatrix.m[1][0] /= deformationField->dx;
-                jacobianMatrix.m[1][1] /= deformationField->dy;
+                jacobianMatrix.m[0][0] /= realSpacing[0];
+                jacobianMatrix.m[0][1] /= realSpacing[1];
+                jacobianMatrix.m[1][0] /= realSpacing[0];
+                jacobianMatrix.m[1][1] /= realSpacing[1];
                 jacobianMatrix.m[2][2]=1.f;
 
                 jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
@@ -3064,6 +3228,16 @@ void reg_defField_getJacobianMap3D(nifti_image *deformationField,
         jacZZPtr = &jacZYPtr[voxelNumber];
     }
 
+    DTYPE realSpacing[3];
+    if(deformationField->sform_code>0){
+        reg_getRealImageSpacing(deformationField,realSpacing);
+    }
+    else{
+        realSpacing[0]=deformationField->dx;
+        realSpacing[1]=deformationField->dy;
+        realSpacing[2]=deformationField->dz;
+    }
+
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(deformationField, &desorient, &reorient);
 
@@ -3080,7 +3254,7 @@ void reg_defField_getJacobianMap3D(nifti_image *deformationField,
 #pragma omp parallel for default(none) \
     shared(deformationField, jacobianDeterminant, jacobianMatrices, reorient, \
     jacXXPtr, jacYYPtr, jacZZPtr, jacXYPtr, jacXZPtr, jacYXPtr, jacYZPtr, jacZXPtr, jacZYPtr, \
-    basis, first, jacDetPtr, deformationPtrX, deformationPtrY, deformationPtrZ) \
+    basis, first, jacDetPtr, deformationPtrX, deformationPtrY, deformationPtrZ, realSpacing) \
     private(currentIndex, x, y, z, a, b, c, currentX, currentY, currentZ, index, \
     jacobianMatrix, defX, defY, defZ, firstX, firstY, firstZ)
 #endif
@@ -3139,15 +3313,15 @@ void reg_defField_getJacobianMap3D(nifti_image *deformationField,
                             }//a
                         }//b
                     }//c
-                    jacobianMatrix.m[0][0] /= deformationField->dx;
-                    jacobianMatrix.m[0][1] /= deformationField->dy;
-                    jacobianMatrix.m[0][2] /= deformationField->dz;
-                    jacobianMatrix.m[1][0] /= deformationField->dx;
-                    jacobianMatrix.m[1][1] /= deformationField->dy;
-                    jacobianMatrix.m[1][2] /= deformationField->dz;
-                    jacobianMatrix.m[2][0] /= deformationField->dx;
-                    jacobianMatrix.m[2][1] /= deformationField->dy;
-                    jacobianMatrix.m[2][2] /= deformationField->dz;
+                    jacobianMatrix.m[0][0] /= realSpacing[0];
+                    jacobianMatrix.m[0][1] /= realSpacing[1];
+                    jacobianMatrix.m[0][2] /= realSpacing[2];
+                    jacobianMatrix.m[1][0] /= realSpacing[0];
+                    jacobianMatrix.m[1][1] /= realSpacing[1];
+                    jacobianMatrix.m[1][2] /= realSpacing[2];
+                    jacobianMatrix.m[2][0] /= realSpacing[0];
+                    jacobianMatrix.m[2][1] /= realSpacing[1];
+                    jacobianMatrix.m[2][2] /= realSpacing[2];
 
                     jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
                     if(jacobianDeterminant!=NULL)
@@ -3275,6 +3449,15 @@ void reg_bspline_GetJacobianMapFromVelocityField_2D(nifti_image* velocityFieldIm
     DTYPE *jacobianPtr = static_cast<DTYPE *>(jacobianImage->data);
     for(unsigned int i=0;i<jacobianImage->nvox;++i) jacobianPtr[i]=1;
 
+    DTYPE realSpacing[3];
+    if(jacobianImage->sform_code>0){
+        reg_getRealImageSpacing(jacobianImage,realSpacing);
+    }
+    else{
+        realSpacing[0]=jacobianImage->dx;
+        realSpacing[1]=jacobianImage->dy;
+    }
+
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(deformationFieldA, &desorient, &reorient);
 
@@ -3362,10 +3545,10 @@ void reg_bspline_GetJacobianMapFromVelocityField_2D(nifti_image* velocityFieldIm
                         jacobianMatrix.m[1][1] += firstY*defY;
                     }//a
                 }//b
-                jacobianMatrix.m[0][0] /= deformationFieldA->dx;
-                jacobianMatrix.m[0][1] /= deformationFieldA->dy;
-                jacobianMatrix.m[1][0] /= deformationFieldA->dx;
-                jacobianMatrix.m[1][1] /= deformationFieldA->dy;
+                jacobianMatrix.m[0][0] /= realSpacing[0];
+                jacobianMatrix.m[0][1] /= realSpacing[1];
+                jacobianMatrix.m[1][0] /= realSpacing[0];
+                jacobianMatrix.m[1][1] /= realSpacing[1];
                 jacobianMatrix.m[2][2]=1.f;
 
                 jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
@@ -3438,6 +3621,16 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
     // The Jacobian determinant values are initialised to 1
     DTYPE *jacobianPtr = static_cast<DTYPE *>(jacobianImage->data);
     for(unsigned int i=0;i<jacobianImage->nvox;++i) jacobianPtr[i]=1;
+
+    DTYPE realSpacing[3];
+    if(jacobianImage->sform_code>0){
+        reg_getRealImageSpacing(jacobianImage,realSpacing);
+    }
+    else{
+        realSpacing[0]=jacobianImage->dx;
+        realSpacing[1]=jacobianImage->dy;
+        realSpacing[2]=jacobianImage->dz;
+    }
 
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(jacobianImage, &desorient, &reorient);
@@ -3557,15 +3750,15 @@ void reg_bspline_GetJacobianMapFromVelocityField_3D(nifti_image* velocityFieldIm
                             }//a
                         }//b
                     }//c
-                    jacobianMatrix.m[0][0] /= deformationFieldA->dx;
-                    jacobianMatrix.m[0][1] /= deformationFieldA->dy;
-                    jacobianMatrix.m[0][2] /= deformationFieldA->dz;
-                    jacobianMatrix.m[1][0] /= deformationFieldA->dx;
-                    jacobianMatrix.m[1][1] /= deformationFieldA->dy;
-                    jacobianMatrix.m[1][2] /= deformationFieldA->dz;
-                    jacobianMatrix.m[2][0] /= deformationFieldA->dx;
-                    jacobianMatrix.m[2][1] /= deformationFieldA->dy;
-                    jacobianMatrix.m[2][2] /= deformationFieldA->dz;
+                    jacobianMatrix.m[0][0] /= realSpacing[0];
+                    jacobianMatrix.m[0][1] /= realSpacing[1];
+                    jacobianMatrix.m[0][2] /= realSpacing[2];
+                    jacobianMatrix.m[1][0] /= realSpacing[0];
+                    jacobianMatrix.m[1][1] /= realSpacing[1];
+                    jacobianMatrix.m[1][2] /= realSpacing[2];
+                    jacobianMatrix.m[2][0] /= realSpacing[0];
+                    jacobianMatrix.m[2][1] /= realSpacing[1];
+                    jacobianMatrix.m[2][2] /= realSpacing[2];
 
                     jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
                     DTYPE detJac = nifti_mat33_determ(jacobianMatrix);
