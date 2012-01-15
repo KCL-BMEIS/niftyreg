@@ -1128,7 +1128,9 @@ void reg_f3d<T>::Initisalise_f3d()
         this->controlPointGrid->qfac=qfac;
 
         this->controlPointGrid->qto_xyz = nifti_quatern_to_mat44(qb, qc, qd, qx, qy, qz,
-                                                                 this->controlPointGrid->dx, this->controlPointGrid->dy, this->controlPointGrid->dz, qfac);
+                                                                 this->controlPointGrid->dx,
+                                                                 this->controlPointGrid->dy,
+                                                                 this->controlPointGrid->dz, qfac);
 
         // Origin is shifted from 1 control point in the qform
         float originIndex[3];
@@ -1152,6 +1154,7 @@ void reg_f3d<T>::Initisalise_f3d()
             originIndex[1] *= this->referencePyramid[0]->dy / this->controlPointGrid->dy;originIndex[1]++;
             originIndex[2] *= this->referencePyramid[0]->dz / this->controlPointGrid->dz;originIndex[2]++;
 
+
             this->controlPointGrid->sto_xyz.m[0][0]=this->referencePyramid[0]->sto_xyz.m[0][0];
             this->controlPointGrid->sto_xyz.m[1][0]=this->referencePyramid[0]->sto_xyz.m[1][0];
             this->controlPointGrid->sto_xyz.m[2][0]=this->referencePyramid[0]->sto_xyz.m[2][0];
@@ -1164,18 +1167,19 @@ void reg_f3d<T>::Initisalise_f3d()
             this->controlPointGrid->sto_xyz.m[0][3]=0.f;
             this->controlPointGrid->sto_xyz.m[1][3]=0.f;
             this->controlPointGrid->sto_xyz.m[2][3]=0.f;
-            mat44 rotationMatrix = nifti_make_orthog_mat44(
-                this->referencePyramid[0]->sto_ijk.m[0][0], this->referencePyramid[0]->sto_ijk.m[0][1], this->referencePyramid[0]->sto_ijk.m[0][2],
-                this->referencePyramid[0]->sto_ijk.m[1][0], this->referencePyramid[0]->sto_ijk.m[1][1], this->referencePyramid[0]->sto_ijk.m[1][2],
-                this->referencePyramid[0]->sto_ijk.m[2][0], this->referencePyramid[0]->sto_ijk.m[2][1], this->referencePyramid[0]->sto_ijk.m[2][2]);
-            mat44 invRotationMatrix = nifti_mat44_inverse(rotationMatrix);
 
-            mat44 shearingScalingMatrix = reg_mat44_mul(&rotationMatrix,&this->controlPointGrid->sto_xyz);
-            shearingScalingMatrix.m[0][0] *= this->controlPointGrid->dx / this->referencePyramid[0]->dx;
-            shearingScalingMatrix.m[1][1] *= this->controlPointGrid->dy / this->referencePyramid[0]->dy;
-            shearingScalingMatrix.m[2][2] *= this->controlPointGrid->dz / this->referencePyramid[0]->dz;
+            mat44 scalingMatrix;
+            scalingMatrix.m[0][0]= this->controlPointGrid->dx / this->referencePyramid[0]->dx;
+            scalingMatrix.m[1][1]= this->controlPointGrid->dy / this->referencePyramid[0]->dy;
+            scalingMatrix.m[2][2]= this->controlPointGrid->dz / this->referencePyramid[0]->dz;
+            scalingMatrix.m[3][3]=1;
+            scalingMatrix.m[0][1]=scalingMatrix.m[0][2]=scalingMatrix.m[0][3]=0;
+            scalingMatrix.m[1][0]=scalingMatrix.m[1][2]=scalingMatrix.m[1][3]=0;
+            scalingMatrix.m[2][0]=scalingMatrix.m[2][1]=scalingMatrix.m[2][3]=0;
+            scalingMatrix.m[3][0]=scalingMatrix.m[3][1]=scalingMatrix.m[3][2]=0;
 
-            this->controlPointGrid->sto_xyz = reg_mat44_mul(&invRotationMatrix,&shearingScalingMatrix);
+            this->controlPointGrid->sto_xyz = reg_mat44_mul(&scalingMatrix,&(this->controlPointGrid->sto_xyz));
+
             reg_mat44_mul(&(this->controlPointGrid->sto_xyz), originIndex, originReal);
             this->controlPointGrid->sto_xyz.m[0][3] = -originReal[0];
             this->controlPointGrid->sto_xyz.m[1][3] = -originReal[1];
