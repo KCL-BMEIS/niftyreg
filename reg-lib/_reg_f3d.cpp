@@ -1154,44 +1154,35 @@ void reg_f3d<T>::Initisalise_f3d()
         this->controlPointGrid->qto_ijk = nifti_mat44_inverse(this->controlPointGrid->qto_xyz);
 
         if(this->controlPointGrid->sform_code>0){
-            originReal[0]=originReal[1]=originReal[2]=0;
-            reg_mat44_mul(&(this->referencePyramid[0]->sto_ijk), originReal, originIndex);
-            originIndex[0] *= this->referencePyramid[0]->dx / this->controlPointGrid->dx;originIndex[0]++;
-            originIndex[1] *= this->referencePyramid[0]->dy / this->controlPointGrid->dy;originIndex[1]++;
-            originIndex[2] *= this->referencePyramid[0]->dz / this->controlPointGrid->dz;originIndex[2]++;
-
-
-            this->controlPointGrid->sto_xyz.m[0][0]=this->referencePyramid[0]->sto_xyz.m[0][0];
-            this->controlPointGrid->sto_xyz.m[1][0]=this->referencePyramid[0]->sto_xyz.m[1][0];
-            this->controlPointGrid->sto_xyz.m[2][0]=this->referencePyramid[0]->sto_xyz.m[2][0];
-            this->controlPointGrid->sto_xyz.m[0][1]=this->referencePyramid[0]->sto_xyz.m[0][1];
-            this->controlPointGrid->sto_xyz.m[1][1]=this->referencePyramid[0]->sto_xyz.m[1][1];
-            this->controlPointGrid->sto_xyz.m[2][1]=this->referencePyramid[0]->sto_xyz.m[2][1];
-            this->controlPointGrid->sto_xyz.m[0][2]=this->referencePyramid[0]->sto_xyz.m[0][2];
-            this->controlPointGrid->sto_xyz.m[1][2]=this->referencePyramid[0]->sto_xyz.m[1][2];
-            this->controlPointGrid->sto_xyz.m[2][2]=this->referencePyramid[0]->sto_xyz.m[2][2];
-            this->controlPointGrid->sto_xyz.m[0][3]=0.f;
-            this->controlPointGrid->sto_xyz.m[1][3]=0.f;
-            this->controlPointGrid->sto_xyz.m[2][3]=0.f;
-
             float scalingRatio[3];
             scalingRatio[0]= this->controlPointGrid->dx / this->referencePyramid[0]->dx;
             scalingRatio[1]= this->controlPointGrid->dy / this->referencePyramid[0]->dy;
             scalingRatio[2]= this->controlPointGrid->dz / this->referencePyramid[0]->dz;
-            this->controlPointGrid->sto_xyz.m[0][0] *= scalingRatio[0];
-            this->controlPointGrid->sto_xyz.m[1][0] *= scalingRatio[0];
-            this->controlPointGrid->sto_xyz.m[2][0] *= scalingRatio[0];
-            this->controlPointGrid->sto_xyz.m[0][1] *= scalingRatio[1];
-            this->controlPointGrid->sto_xyz.m[1][1] *= scalingRatio[1];
-            this->controlPointGrid->sto_xyz.m[2][1] *= scalingRatio[1];
-            this->controlPointGrid->sto_xyz.m[0][2] *= scalingRatio[2];
-            this->controlPointGrid->sto_xyz.m[1][2] *= scalingRatio[2];
-            this->controlPointGrid->sto_xyz.m[2][2] *= scalingRatio[2];
 
+            this->controlPointGrid->sto_xyz.m[0][0]=this->referencePyramid[0]->sto_xyz.m[0][0] * scalingRatio[0];
+            this->controlPointGrid->sto_xyz.m[1][0]=this->referencePyramid[0]->sto_xyz.m[1][0] * scalingRatio[0];
+            this->controlPointGrid->sto_xyz.m[2][0]=this->referencePyramid[0]->sto_xyz.m[2][0] * scalingRatio[0];
+            this->controlPointGrid->sto_xyz.m[3][0]=this->referencePyramid[0]->sto_xyz.m[3][0];
+            this->controlPointGrid->sto_xyz.m[0][1]=this->referencePyramid[0]->sto_xyz.m[0][1] * scalingRatio[1];
+            this->controlPointGrid->sto_xyz.m[1][1]=this->referencePyramid[0]->sto_xyz.m[1][1] * scalingRatio[1];
+            this->controlPointGrid->sto_xyz.m[2][1]=this->referencePyramid[0]->sto_xyz.m[2][1] * scalingRatio[1];
+            this->controlPointGrid->sto_xyz.m[3][1]=this->referencePyramid[0]->sto_xyz.m[3][1];
+            this->controlPointGrid->sto_xyz.m[0][2]=this->referencePyramid[0]->sto_xyz.m[0][2] * scalingRatio[2];
+            this->controlPointGrid->sto_xyz.m[1][2]=this->referencePyramid[0]->sto_xyz.m[1][2] * scalingRatio[2];
+            this->controlPointGrid->sto_xyz.m[2][2]=this->referencePyramid[0]->sto_xyz.m[2][2] * scalingRatio[2];
+            this->controlPointGrid->sto_xyz.m[3][2]=this->referencePyramid[0]->sto_xyz.m[3][2];
+            this->controlPointGrid->sto_xyz.m[0][3]=this->referencePyramid[0]->sto_xyz.m[0][3];
+            this->controlPointGrid->sto_xyz.m[1][3]=this->referencePyramid[0]->sto_xyz.m[1][3];
+            this->controlPointGrid->sto_xyz.m[2][3]=this->referencePyramid[0]->sto_xyz.m[2][3];
+            this->controlPointGrid->sto_xyz.m[3][3]=this->referencePyramid[0]->sto_xyz.m[3][3];
+
+            // The origin is shifted by one compare to the reference image
+            float originIndex[3];originIndex[0]=originIndex[1]=originIndex[2]=-1;
+            if(this->referencePyramid[0]->nz<=1) originIndex[2]=0;
             reg_mat44_mul(&(this->controlPointGrid->sto_xyz), originIndex, originReal);
-            this->controlPointGrid->sto_xyz.m[0][3] = -originReal[0];
-            this->controlPointGrid->sto_xyz.m[1][3] = -originReal[1];
-            this->controlPointGrid->sto_xyz.m[2][3] = -originReal[2];
+            this->controlPointGrid->sto_xyz.m[0][3] = originReal[0];
+            this->controlPointGrid->sto_xyz.m[1][3] = originReal[1];
+            this->controlPointGrid->sto_xyz.m[2][3] = originReal[2];
             this->controlPointGrid->sto_ijk = nifti_mat44_inverse(this->controlPointGrid->sto_xyz);
         }
         this->controlPointGrid->data=(void *)malloc(this->controlPointGrid->nvox*this->controlPointGrid->nbyper);

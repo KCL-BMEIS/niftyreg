@@ -547,43 +547,35 @@ void reg_f3d_sym<T>::Initisalise_f3d()
     this->backwardControlPointGrid->qto_ijk = nifti_mat44_inverse(this->backwardControlPointGrid->qto_xyz);
 
     if(this->backwardControlPointGrid->sform_code>0){
-        originReal[0]=originReal[1]=originReal[2]=0;
-        reg_mat44_mul(&(this->floatingPyramid[0]->sto_ijk), originReal, originIndex);
-        originIndex[0] *= this->floatingPyramid[0]->dx / this->backwardControlPointGrid->dx;originIndex[0]++;
-        originIndex[1] *= this->floatingPyramid[0]->dy / this->backwardControlPointGrid->dy;originIndex[1]++;
-        originIndex[2] *= this->floatingPyramid[0]->dz / this->backwardControlPointGrid->dz;originIndex[2]++;
-
-        this->backwardControlPointGrid->sto_xyz.m[0][0]=this->floatingPyramid[0]->sto_xyz.m[0][0];
-        this->backwardControlPointGrid->sto_xyz.m[1][0]=this->floatingPyramid[0]->sto_xyz.m[1][0];
-        this->backwardControlPointGrid->sto_xyz.m[2][0]=this->floatingPyramid[0]->sto_xyz.m[2][0];
-        this->backwardControlPointGrid->sto_xyz.m[0][1]=this->floatingPyramid[0]->sto_xyz.m[0][1];
-        this->backwardControlPointGrid->sto_xyz.m[1][1]=this->floatingPyramid[0]->sto_xyz.m[1][1];
-        this->backwardControlPointGrid->sto_xyz.m[2][1]=this->floatingPyramid[0]->sto_xyz.m[2][1];
-        this->backwardControlPointGrid->sto_xyz.m[0][2]=this->floatingPyramid[0]->sto_xyz.m[0][2];
-        this->backwardControlPointGrid->sto_xyz.m[1][2]=this->floatingPyramid[0]->sto_xyz.m[1][2];
-        this->backwardControlPointGrid->sto_xyz.m[2][2]=this->floatingPyramid[0]->sto_xyz.m[2][2];
-        this->backwardControlPointGrid->sto_xyz.m[0][3]=0.f;
-        this->backwardControlPointGrid->sto_xyz.m[1][3]=0.f;
-        this->backwardControlPointGrid->sto_xyz.m[2][3]=0.f;
-
         float scalingRatio[3];
         scalingRatio[0]= this->backwardControlPointGrid->dx / this->floatingPyramid[0]->dx;
         scalingRatio[1]= this->backwardControlPointGrid->dy / this->floatingPyramid[0]->dy;
         scalingRatio[2]= this->backwardControlPointGrid->dz / this->floatingPyramid[0]->dz;
-        this->backwardControlPointGrid->sto_xyz.m[0][0] *= scalingRatio[0];
-        this->backwardControlPointGrid->sto_xyz.m[1][0] *= scalingRatio[0];
-        this->backwardControlPointGrid->sto_xyz.m[2][0] *= scalingRatio[0];
-        this->backwardControlPointGrid->sto_xyz.m[0][1] *= scalingRatio[1];
-        this->backwardControlPointGrid->sto_xyz.m[1][1] *= scalingRatio[1];
-        this->backwardControlPointGrid->sto_xyz.m[2][1] *= scalingRatio[1];
-        this->backwardControlPointGrid->sto_xyz.m[0][2] *= scalingRatio[2];
-        this->backwardControlPointGrid->sto_xyz.m[1][2] *= scalingRatio[2];
-        this->backwardControlPointGrid->sto_xyz.m[2][2] *= scalingRatio[2];
 
+        this->backwardControlPointGrid->sto_xyz.m[0][0]=this->floatingPyramid[0]->sto_xyz.m[0][0] * scalingRatio[0];
+        this->backwardControlPointGrid->sto_xyz.m[1][0]=this->floatingPyramid[0]->sto_xyz.m[1][0] * scalingRatio[0];
+        this->backwardControlPointGrid->sto_xyz.m[2][0]=this->floatingPyramid[0]->sto_xyz.m[2][0] * scalingRatio[0];
+        this->backwardControlPointGrid->sto_xyz.m[3][0]=this->floatingPyramid[0]->sto_xyz.m[3][0];
+        this->backwardControlPointGrid->sto_xyz.m[0][1]=this->floatingPyramid[0]->sto_xyz.m[0][1] * scalingRatio[1];
+        this->backwardControlPointGrid->sto_xyz.m[1][1]=this->floatingPyramid[0]->sto_xyz.m[1][1] * scalingRatio[1];
+        this->backwardControlPointGrid->sto_xyz.m[2][1]=this->floatingPyramid[0]->sto_xyz.m[2][1] * scalingRatio[1];
+        this->backwardControlPointGrid->sto_xyz.m[3][1]=this->floatingPyramid[0]->sto_xyz.m[3][1];
+        this->backwardControlPointGrid->sto_xyz.m[0][2]=this->floatingPyramid[0]->sto_xyz.m[0][2] * scalingRatio[2];
+        this->backwardControlPointGrid->sto_xyz.m[1][2]=this->floatingPyramid[0]->sto_xyz.m[1][2] * scalingRatio[2];
+        this->backwardControlPointGrid->sto_xyz.m[2][2]=this->floatingPyramid[0]->sto_xyz.m[2][2] * scalingRatio[2];
+        this->backwardControlPointGrid->sto_xyz.m[3][2]=this->floatingPyramid[0]->sto_xyz.m[3][2];
+        this->backwardControlPointGrid->sto_xyz.m[0][3]=this->floatingPyramid[0]->sto_xyz.m[0][3];
+        this->backwardControlPointGrid->sto_xyz.m[1][3]=this->floatingPyramid[0]->sto_xyz.m[1][3];
+        this->backwardControlPointGrid->sto_xyz.m[2][3]=this->floatingPyramid[0]->sto_xyz.m[2][3];
+        this->backwardControlPointGrid->sto_xyz.m[3][3]=this->floatingPyramid[0]->sto_xyz.m[3][3];
+
+        // The origin is shifted by one compare to the reference image
+        float originIndex[3];originIndex[0]=originIndex[1]=originIndex[2]=-1;
+        if(this->floatingPyramid[0]->nz<=1) originIndex[2]=0;
         reg_mat44_mul(&(this->backwardControlPointGrid->sto_xyz), originIndex, originReal);
-        this->backwardControlPointGrid->sto_xyz.m[0][3] = -originReal[0];
-        this->backwardControlPointGrid->sto_xyz.m[1][3] = -originReal[1];
-        this->backwardControlPointGrid->sto_xyz.m[2][3] = -originReal[2];
+        this->backwardControlPointGrid->sto_xyz.m[0][3] = originReal[0];
+        this->backwardControlPointGrid->sto_xyz.m[1][3] = originReal[1];
+        this->backwardControlPointGrid->sto_xyz.m[2][3] = originReal[2];
         this->backwardControlPointGrid->sto_ijk = nifti_mat44_inverse(this->backwardControlPointGrid->sto_xyz);
     }
     this->backwardControlPointGrid->data=(void *)malloc(this->backwardControlPointGrid->nvox*this->backwardControlPointGrid->nbyper);
