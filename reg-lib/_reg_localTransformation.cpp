@@ -1814,17 +1814,19 @@ void reg_bspline_refineControlPointGrid(nifti_image *referenceImage,
         controlPointGrid->sto_xyz.m[1][3]=0.f;
         controlPointGrid->sto_xyz.m[2][3]=0.f;
 
-        mat44 scalingMatrix;
-        scalingMatrix.m[0][0]= controlPointGrid->dx / referenceImage->dx;
-        scalingMatrix.m[1][1]= controlPointGrid->dy / referenceImage->dy;
-        scalingMatrix.m[2][2]= controlPointGrid->dz / referenceImage->dz;
-        scalingMatrix.m[3][3]=1;
-        scalingMatrix.m[0][1]=scalingMatrix.m[0][2]=scalingMatrix.m[0][3]=0;
-        scalingMatrix.m[1][0]=scalingMatrix.m[1][2]=scalingMatrix.m[1][3]=0;
-        scalingMatrix.m[2][0]=scalingMatrix.m[2][1]=scalingMatrix.m[2][3]=0;
-        scalingMatrix.m[3][0]=scalingMatrix.m[3][1]=scalingMatrix.m[3][2]=0;
-
-        controlPointGrid->sto_xyz = reg_mat44_mul(&scalingMatrix,&(controlPointGrid->sto_xyz));
+        float scalingRatio[3];
+        scalingRatio[0]= controlPointGrid->dx / referenceImage->dx;
+        scalingRatio[1]= controlPointGrid->dy / referenceImage->dy;
+        scalingRatio[2]= controlPointGrid->dz / referenceImage->dz;
+        controlPointGrid->sto_xyz.m[0][0] *= scalingRatio[0];
+        controlPointGrid->sto_xyz.m[1][0] *= scalingRatio[0];
+        controlPointGrid->sto_xyz.m[2][0] *= scalingRatio[0];
+        controlPointGrid->sto_xyz.m[0][1] *= scalingRatio[1];
+        controlPointGrid->sto_xyz.m[1][1] *= scalingRatio[1];
+        controlPointGrid->sto_xyz.m[2][1] *= scalingRatio[1];
+        controlPointGrid->sto_xyz.m[0][2] *= scalingRatio[2];
+        controlPointGrid->sto_xyz.m[1][2] *= scalingRatio[2];
+        controlPointGrid->sto_xyz.m[2][2] *= scalingRatio[2];
 
         reg_mat44_mul(&(controlPointGrid->sto_xyz), originIndex, originReal);
         controlPointGrid->sto_xyz.m[0][3] = -originReal[0];
