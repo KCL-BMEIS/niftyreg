@@ -1269,16 +1269,16 @@ template <class PrecisionTYPE, class ImageTYPE>
     image->qto_ijk = nifti_mat44_inverse(image->qto_xyz);
 
     // update the sform matrix
-    mat44 scalingMatrix;
-    scalingMatrix.m[0][0]=scalingMatrix.m[1][1]=scalingMatrix.m[2][2]=scalingMatrix.m[3][3]=1;
-    scalingMatrix.m[0][1]=scalingMatrix.m[1][0]=scalingMatrix.m[2][0]=scalingMatrix.m[3][0]=0;
-    scalingMatrix.m[0][2]=scalingMatrix.m[1][2]=scalingMatrix.m[2][1]=scalingMatrix.m[3][1]=0;
-    scalingMatrix.m[0][3]=scalingMatrix.m[1][3]=scalingMatrix.m[2][3]=scalingMatrix.m[3][2]=0;
-    if(downsampleAxis[1]) scalingMatrix.m[0][0]=2.f;
-    if(downsampleAxis[2]) scalingMatrix.m[1][1]=2.f;
-    if(downsampleAxis[3]) scalingMatrix.m[2][2]=2.f;
+    if(downsampleAxis[1]){
+        image->sto_xyz.m[0][0] *= 2.f;image->sto_xyz.m[1][0] *= 2.f;image->sto_xyz.m[2][0] *= 2.f;
+    }
+    if(downsampleAxis[2]){
+        image->sto_xyz.m[0][1] *= 2.f;image->sto_xyz.m[1][1] *= 2.f;image->sto_xyz.m[2][1] *= 2.f;
+    }
+    if(downsampleAxis[3]){
+        image->sto_xyz.m[0][2] *= 2.f;image->sto_xyz.m[1][2] *= 2.f;image->sto_xyz.m[2][2] *= 2.f;
+    }
     float origin_sform[3]={image->sto_xyz.m[0][3], image->sto_xyz.m[1][3], image->sto_xyz.m[2][3]};
-    image->sto_xyz =  reg_mat44_mul(&scalingMatrix, &(image->sto_xyz));
     image->sto_xyz.m[0][3]=origin_sform[0];
     image->sto_xyz.m[1][3]=origin_sform[1];
     image->sto_xyz.m[2][3]=origin_sform[2];

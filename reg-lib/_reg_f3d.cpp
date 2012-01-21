@@ -1174,17 +1174,19 @@ void reg_f3d<T>::Initisalise_f3d()
             this->controlPointGrid->sto_xyz.m[1][3]=0.f;
             this->controlPointGrid->sto_xyz.m[2][3]=0.f;
 
-            mat44 scalingMatrix;
-            scalingMatrix.m[0][0]= this->controlPointGrid->dx / this->referencePyramid[0]->dx;
-            scalingMatrix.m[1][1]= this->controlPointGrid->dy / this->referencePyramid[0]->dy;
-            scalingMatrix.m[2][2]= this->controlPointGrid->dz / this->referencePyramid[0]->dz;
-            scalingMatrix.m[3][3]=1;
-            scalingMatrix.m[0][1]=scalingMatrix.m[0][2]=scalingMatrix.m[0][3]=0;
-            scalingMatrix.m[1][0]=scalingMatrix.m[1][2]=scalingMatrix.m[1][3]=0;
-            scalingMatrix.m[2][0]=scalingMatrix.m[2][1]=scalingMatrix.m[2][3]=0;
-            scalingMatrix.m[3][0]=scalingMatrix.m[3][1]=scalingMatrix.m[3][2]=0;
-
-            this->controlPointGrid->sto_xyz = reg_mat44_mul(&scalingMatrix,&(this->controlPointGrid->sto_xyz));
+            float scalingRatio[3];
+            scalingRatio[0]= this->controlPointGrid->dx / this->referencePyramid[0]->dx;
+            scalingRatio[1]= this->controlPointGrid->dy / this->referencePyramid[0]->dy;
+            scalingRatio[2]= this->controlPointGrid->dz / this->referencePyramid[0]->dz;
+            this->controlPointGrid->sto_xyz.m[0][0] *= scalingRatio[0];
+            this->controlPointGrid->sto_xyz.m[1][0] *= scalingRatio[0];
+            this->controlPointGrid->sto_xyz.m[2][0] *= scalingRatio[0];
+            this->controlPointGrid->sto_xyz.m[0][1] *= scalingRatio[1];
+            this->controlPointGrid->sto_xyz.m[1][1] *= scalingRatio[1];
+            this->controlPointGrid->sto_xyz.m[2][1] *= scalingRatio[1];
+            this->controlPointGrid->sto_xyz.m[0][2] *= scalingRatio[2];
+            this->controlPointGrid->sto_xyz.m[1][2] *= scalingRatio[2];
+            this->controlPointGrid->sto_xyz.m[2][2] *= scalingRatio[2];
 
             reg_mat44_mul(&(this->controlPointGrid->sto_xyz), originIndex, originReal);
             this->controlPointGrid->sto_xyz.m[0][3] = -originReal[0];

@@ -566,17 +566,19 @@ void reg_f3d_sym<T>::Initisalise_f3d()
         this->backwardControlPointGrid->sto_xyz.m[1][3]=0.f;
         this->backwardControlPointGrid->sto_xyz.m[2][3]=0.f;
 
-        mat44 scalingMatrix;
-        scalingMatrix.m[0][0]=this->backwardControlPointGrid->dx / this->floatingPyramid[0]->dx;
-        scalingMatrix.m[1][1]=this->backwardControlPointGrid->dy / this->floatingPyramid[0]->dy;
-        scalingMatrix.m[2][2]=this->backwardControlPointGrid->dz / this->floatingPyramid[0]->dz;
-        scalingMatrix.m[3][3]=1;
-        scalingMatrix.m[0][1]=scalingMatrix.m[0][2]=scalingMatrix.m[0][3]=0;
-        scalingMatrix.m[1][0]=scalingMatrix.m[1][2]=scalingMatrix.m[1][3]=0;
-        scalingMatrix.m[2][0]=scalingMatrix.m[2][1]=scalingMatrix.m[2][3]=0;
-        scalingMatrix.m[3][0]=scalingMatrix.m[3][1]=scalingMatrix.m[3][2]=0;
-
-        this->backwardControlPointGrid->sto_xyz = reg_mat44_mul(&scalingMatrix,&(this->backwardControlPointGrid->sto_xyz));
+        float scalingRatio[3];
+        scalingRatio[0]= this->backwardControlPointGrid->dx / this->floatingPyramid[0]->dx;
+        scalingRatio[1]= this->backwardControlPointGrid->dy / this->floatingPyramid[0]->dy;
+        scalingRatio[2]= this->backwardControlPointGrid->dz / this->floatingPyramid[0]->dz;
+        this->backwardControlPointGrid->sto_xyz.m[0][0] *= scalingRatio[0];
+        this->backwardControlPointGrid->sto_xyz.m[1][0] *= scalingRatio[0];
+        this->backwardControlPointGrid->sto_xyz.m[2][0] *= scalingRatio[0];
+        this->backwardControlPointGrid->sto_xyz.m[0][1] *= scalingRatio[1];
+        this->backwardControlPointGrid->sto_xyz.m[1][1] *= scalingRatio[1];
+        this->backwardControlPointGrid->sto_xyz.m[2][1] *= scalingRatio[1];
+        this->backwardControlPointGrid->sto_xyz.m[0][2] *= scalingRatio[2];
+        this->backwardControlPointGrid->sto_xyz.m[1][2] *= scalingRatio[2];
+        this->backwardControlPointGrid->sto_xyz.m[2][2] *= scalingRatio[2];
 
         reg_mat44_mul(&(this->backwardControlPointGrid->sto_xyz), originIndex, originReal);
         this->backwardControlPointGrid->sto_xyz.m[0][3] = -originReal[0];
