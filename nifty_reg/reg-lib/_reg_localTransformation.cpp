@@ -1768,6 +1768,13 @@ void reg_bspline_refineControlPointGrid(nifti_image *referenceImage,
     }
     // Compute the new control point header
     // The qform (and sform) are set for the control point position image
+    controlPointGrid->quatern_b=referenceImage->quatern_b;
+    controlPointGrid->quatern_c=referenceImage->quatern_c;
+    controlPointGrid->quatern_d=referenceImage->quatern_d;
+    controlPointGrid->qoffset_x=referenceImage->qoffset_x;
+    controlPointGrid->qoffset_y=referenceImage->qoffset_y;
+    controlPointGrid->qoffset_z=referenceImage->qoffset_z;
+    controlPointGrid->qfac=referenceImage->qfac;
     controlPointGrid->qto_xyz = nifti_quatern_to_mat44(controlPointGrid->quatern_b,
                                                        controlPointGrid->quatern_c,
                                                        controlPointGrid->quatern_d,
@@ -1795,43 +1802,35 @@ void reg_bspline_refineControlPointGrid(nifti_image *referenceImage,
     controlPointGrid->qto_ijk = nifti_mat44_inverse(controlPointGrid->qto_xyz);
 
     if(controlPointGrid->sform_code>0){
-        originReal[0]=originReal[1]=originReal[2]=0;
-        reg_mat44_mul(&(referenceImage->sto_ijk), originReal, originIndex);
-        originIndex[0] *= referenceImage->dx / controlPointGrid->dx;originIndex[0]++;
-        originIndex[1] *= referenceImage->dy / controlPointGrid->dy;originIndex[1]++;
-        originIndex[2] *= referenceImage->dz / controlPointGrid->dz;originIndex[2]++;
-
-        controlPointGrid->sto_xyz.m[0][0]=referenceImage->sto_xyz.m[0][0];
-        controlPointGrid->sto_xyz.m[1][0]=referenceImage->sto_xyz.m[1][0];
-        controlPointGrid->sto_xyz.m[2][0]=referenceImage->sto_xyz.m[2][0];
-        controlPointGrid->sto_xyz.m[0][1]=referenceImage->sto_xyz.m[0][1];
-        controlPointGrid->sto_xyz.m[1][1]=referenceImage->sto_xyz.m[1][1];
-        controlPointGrid->sto_xyz.m[2][1]=referenceImage->sto_xyz.m[2][1];
-        controlPointGrid->sto_xyz.m[0][2]=referenceImage->sto_xyz.m[0][2];
-        controlPointGrid->sto_xyz.m[1][2]=referenceImage->sto_xyz.m[1][2];
-        controlPointGrid->sto_xyz.m[2][2]=referenceImage->sto_xyz.m[2][2];
-        controlPointGrid->sto_xyz.m[0][3]=0.f;
-        controlPointGrid->sto_xyz.m[1][3]=0.f;
-        controlPointGrid->sto_xyz.m[2][3]=0.f;
-
         float scalingRatio[3];
         scalingRatio[0]= controlPointGrid->dx / referenceImage->dx;
         scalingRatio[1]= controlPointGrid->dy / referenceImage->dy;
         scalingRatio[2]= controlPointGrid->dz / referenceImage->dz;
-        controlPointGrid->sto_xyz.m[0][0] *= scalingRatio[0];
-        controlPointGrid->sto_xyz.m[1][0] *= scalingRatio[0];
-        controlPointGrid->sto_xyz.m[2][0] *= scalingRatio[0];
-        controlPointGrid->sto_xyz.m[0][1] *= scalingRatio[1];
-        controlPointGrid->sto_xyz.m[1][1] *= scalingRatio[1];
-        controlPointGrid->sto_xyz.m[2][1] *= scalingRatio[1];
-        controlPointGrid->sto_xyz.m[0][2] *= scalingRatio[2];
-        controlPointGrid->sto_xyz.m[1][2] *= scalingRatio[2];
-        controlPointGrid->sto_xyz.m[2][2] *= scalingRatio[2];
 
+        controlPointGrid->sto_xyz.m[0][0]=referenceImage->sto_xyz.m[0][0] * scalingRatio[0];
+        controlPointGrid->sto_xyz.m[1][0]=referenceImage->sto_xyz.m[1][0] * scalingRatio[0];
+        controlPointGrid->sto_xyz.m[2][0]=referenceImage->sto_xyz.m[2][0] * scalingRatio[0];
+        controlPointGrid->sto_xyz.m[3][0]=0.f;
+        controlPointGrid->sto_xyz.m[0][1]=referenceImage->sto_xyz.m[0][1] * scalingRatio[1];
+        controlPointGrid->sto_xyz.m[1][1]=referenceImage->sto_xyz.m[1][1] * scalingRatio[1];
+        controlPointGrid->sto_xyz.m[2][1]=referenceImage->sto_xyz.m[2][1] * scalingRatio[1];
+        controlPointGrid->sto_xyz.m[3][1]=0.f;
+        controlPointGrid->sto_xyz.m[0][2]=referenceImage->sto_xyz.m[0][2] * scalingRatio[2];
+        controlPointGrid->sto_xyz.m[1][2]=referenceImage->sto_xyz.m[1][2] * scalingRatio[2];
+        controlPointGrid->sto_xyz.m[2][2]=referenceImage->sto_xyz.m[2][2] * scalingRatio[2];
+        controlPointGrid->sto_xyz.m[3][2]=0.f;
+        controlPointGrid->sto_xyz.m[0][3]=referenceImage->sto_xyz.m[0][3];
+        controlPointGrid->sto_xyz.m[1][3]=referenceImage->sto_xyz.m[1][3];
+        controlPointGrid->sto_xyz.m[2][3]=referenceImage->sto_xyz.m[2][3];
+        controlPointGrid->sto_xyz.m[3][3]=1.f;
+
+        // The origin is shifted by one compare to the reference image
+        float originIndex[3];originIndex[0]=originIndex[1]=originIndex[2]=-1;
+        if(referenceImage->nz<=1) originIndex[2]=0;
         reg_mat44_mul(&(controlPointGrid->sto_xyz), originIndex, originReal);
-        controlPointGrid->sto_xyz.m[0][3] = -originReal[0];
-        controlPointGrid->sto_xyz.m[1][3] = -originReal[1];
-        controlPointGrid->sto_xyz.m[2][3] = -originReal[2];
+        controlPointGrid->sto_xyz.m[0][3] = originReal[0];
+        controlPointGrid->sto_xyz.m[1][3] = originReal[1];
+        controlPointGrid->sto_xyz.m[2][3] = originReal[2];
         controlPointGrid->sto_ijk = nifti_mat44_inverse(controlPointGrid->sto_xyz);
     }
 #ifndef NDEBUG
