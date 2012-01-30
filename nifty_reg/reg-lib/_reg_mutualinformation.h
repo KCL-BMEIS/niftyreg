@@ -145,25 +145,25 @@ inline int previous(int current, int num_dims){
 extern "C++"
 void reg_getEntropies(nifti_image *targetImages,
                       nifti_image *resultImages,
-                      //int type,
                       unsigned int *target_bins, // should be an array of size num_target_volumes
                       unsigned int *result_bins, // should be an array of size num_result_volumes
                       double *probaJointHistogram,
                       double *logJointHistogram,
                       double *entropies,
-                      int *mask);
+                      int *mask,
+                      bool approx);
 
 /// Multi channel NMI version - Gradient
 extern "C++"
 void reg_getVoxelBasedNMIGradientUsingPW(nifti_image *targetImages,
                                          nifti_image *resultImages,
-                                         //int type,
                                          nifti_image *resultImageGradient,
                                          unsigned int *target_bins,
                                          unsigned int *result_bins,
                                          double *logJointHistogram,
                                          double *entropies,
                                          nifti_image *nmiGradientImage,
-                                         int *mask);
+                                         int *mask,
+                                         bool approx);
 
 #endif

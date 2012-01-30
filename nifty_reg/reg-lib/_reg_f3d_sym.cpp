@@ -762,31 +762,46 @@ void reg_f3d_sym<T>::WarpFloatingImage(int inter)
 template <class T>
 double reg_f3d_sym<T>::ComputeSimilarityMeasure()
 {
-    double forwardMeasure=reg_f3d<T>::ComputeSimilarityMeasure();
+
 
     double measure=0.;
     if(this->useSSD){
-        measure = -reg_getSSD(this->currentFloating,
+        // forward
+        measure = -reg_getSSD(this->currentReference,
+                              this->warped,
+                              this->currentMask);
+        // backward
+        measure+= -reg_getSSD(this->currentFloating,
                               this->backwardWarped,
                               this->currentFloatingMask);
         if(this->usePyramid)
             measure /= this->maxSSD[this->currentLevel];
         else measure /= this->maxSSD[0];
+
     }
     else{
+        reg_getEntropies(this->currentReference,
+                         this->warped,
+                         this->referenceBinNumber,
+                         this->floatingBinNumber,
+                         this->probaJointHistogram,
+                         this->logJointHistogram,
+                         this->entropies,
+                         this->currentMask,
+                         this->approxParzenWindow);
         reg_getEntropies(this->currentFloating,
                          this->backwardWarped,
-                         //2,
                          this->floatingBinNumber,
                          this->referenceBinNumber,
                          this->backwardProbaJointHistogram,
                          this->backwardLogJointHistogram,
                          this->backwardEntropies,
-                         this->currentFloatingMask);
-        measure = (this->backwardEntropies[0]+this->backwardEntropies[1])/this->backwardEntropies[2];
+                         this->currentFloatingMask,
+                         this->approxParzenWindow);
+        measure = (this->entropies[0]+this->entropies[1])/this->entropies[2];
+        measure += (this->backwardEntropies[0]+this->backwardEntropies[1])/this->backwardEntropies[2];
     }
-
-    return (double(this->similarityWeight) * measure + forwardMeasure);
+    return double(this->similarityWeight) * measure;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -881,6 +896,14 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
 {
     reg_f3d<T>::GetVoxelBasedGradient();
 
+    // The intensity gradient is first computed
+    reg_getSourceImageGradient(this->currentReference,
+                               this->currentFloating,
+                               this->warpedGradientImage,
+                               this->deformationFieldImage,
+                               this->currentMask,
+                               this->interpolation);
+
     // The floating image intensity gradient is first computed
     reg_getSourceImageGradient(this->currentFloating,
                                this->currentReference,
@@ -893,6 +916,13 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
         // Compute the voxel based SSD gradient
         T localMaxSSD=this->maxSSD[0];
         if(this->usePyramid) localMaxSSD=this->maxSSD[this->currentLevel];
+        reg_getVoxelBasedSSDGradient(this->currentReference,
+                                     this->warped,
+                                     this->warpedGradientImage,
+                                     this->voxelBasedMeasureGradientImage,
+                                     localMaxSSD,
+                                     this->currentMask
+                                     );
         reg_getVoxelBasedSSDGradient(this->currentFloating,
                                      this->backwardWarped,
                                      this->backwardWarpedGradientImage,
@@ -902,7 +932,18 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
                                      );
     }
     else{
-        // Compute the voxel based NMI gradient
+        // Compute the voxel based NMI gradient - forward
+        reg_getVoxelBasedNMIGradientUsingPW(this->currentReference,
+                                            this->warped,
+                                            this->warpedGradientImage,
+                                            this->referenceBinNumber,
+                                            this->floatingBinNumber,
+                                            this->logJointHistogram,
+                                            this->entropies,
+                                            this->voxelBasedMeasureGradientImage,
+                                            this->currentMask,
+                                            this->approxParzenWindow);
+        // Compute the voxel based NMI gradient - backward
         reg_getVoxelBasedNMIGradientUsingPW(this->currentFloating,
                                             this->backwardWarped,
                                             this->backwardWarpedGradientImage,
@@ -911,7 +952,8 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
                                             this->backwardLogJointHistogram,
                                             this->backwardEntropies,
                                             this->backwardVoxelBasedMeasureGradientImage,
-                                            this->currentFloatingMask);
+                                            this->currentFloatingMask,
+                                            this->approxParzenWindow);
     }
 
     return;

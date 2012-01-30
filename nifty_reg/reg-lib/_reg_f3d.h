@@ -82,6 +82,7 @@ class reg_f3d
     double *probaJointHistogram;
     double *logJointHistogram;
     double entropies[4];
+    bool approxParzenWindow;
     T *maxSSD;
     unsigned int currentLevel;
     unsigned totalBinNumber;
@@ -141,6 +142,8 @@ public:
     void SetJacobianLogWeight(T);
     void ApproximateJacobianLog();
     void DoNotApproximateJacobianLog();
+    void ApproximateParzenWindow();
+    void DoNotApproximateParzenWindow();
     void SetReferenceSmoothingSigma(T);
     void SetFloatingSmoothingSigma(T);
     void SetReferenceThresholdUp(unsigned int,T);
