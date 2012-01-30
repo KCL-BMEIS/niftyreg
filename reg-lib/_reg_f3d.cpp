@@ -66,6 +66,7 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->useConjGradient=true;
     this->maxSSD=NULL;
     this->entropies[0]=this->entropies[1]=this->entropies[2]=this->entropies[3]=0.;
+    this->approxParzenWindow=true;
     this->currentIteration=0;
     this->usePyramid=true;
     //	this->threadNumber=1;
@@ -263,6 +264,19 @@ void reg_f3d<T>::SetJacobianLogWeight(T j)
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+void reg_f3d<T>::ApproximateParzenWindow()
+{
+    this->approxParzenWindow = true;
+    return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+void reg_f3d<T>::DoNotApproximateParzenWindow()
+{
+    this->approxParzenWindow = false;
+    return;
+}/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_f3d<T>::ApproximateJacobianLog()
 {
@@ -1280,7 +1294,12 @@ void reg_f3d<T>::Initisalise_f3d()
         printf("[%s]\n", this->executableName);
         if(this->useSSD)
             printf("[%s] The SSD is used as a similarity measure.\n", this->executableName);
-        else printf("[%s] The NMI is used as a similarity measure.\n", this->executableName);
+        else{
+            printf("[%s] The NMI is used as a similarity measure.\n", this->executableName);
+            if(this->approxParzenWindow || this->inputReference->nt>1 || this->inputFloating->nt>1)
+                printf("[%s] The Parzen window joint histogram filling is approximated\n", this->executableName);
+            else printf("[%s] The Parzen window joint histogram filling is not approximated\n", this->executableName);
+        }
         printf("[%s] Similarity measure term weight: %g\n", this->executableName, this->similarityWeight);
         printf("[%s]\n", this->executableName);
         printf("[%s] Bending energy penalty term weight: %g\n", this->executableName, this->bendingEnergyWeight);
@@ -1353,13 +1372,13 @@ double reg_f3d<T>::ComputeSimilarityMeasure()
     else{
         reg_getEntropies(this->currentReference,
                          this->warped,
-                         //2,
                          this->referenceBinNumber,
                          this->floatingBinNumber,
                          this->probaJointHistogram,
                          this->logJointHistogram,
                          this->entropies,
-                         this->currentMask);
+                         this->currentMask,
+                         this->approxParzenWindow);
         measure = (this->entropies[0]+this->entropies[1])/this->entropies[2];
     }
     return double(this->similarityWeight) * measure;
@@ -1471,14 +1490,14 @@ void reg_f3d<T>::GetVoxelBasedGradient()
         // Compute the voxel based NMI gradient
         reg_getVoxelBasedNMIGradientUsingPW(this->currentReference,
                                             this->warped,
-                                            //2,
                                             this->warpedGradientImage,
                                             this->referenceBinNumber,
                                             this->floatingBinNumber,
                                             this->logJointHistogram,
                                             this->entropies,
                                             this->voxelBasedMeasureGradientImage,
-                                            this->currentMask);
+                                            this->currentMask,
+                                            this->approxParzenWindow);
     }
     return;
 }
@@ -2153,6 +2172,10 @@ nifti_image *reg_f3d<T>::GetWarpedImage()
     reg_f3d<T>::ClearDeformationField();
 
     nifti_image *resultImage = nifti_copy_nim_info(this->warped);
+    resultImage->cal_min=this->inputFloating->cal_min;
+    resultImage->cal_max=this->inputFloating->cal_max;
+    resultImage->scl_slope=this->inputFloating->scl_slope;
+    resultImage->scl_inter=this->inputFloating->scl_inter;
     resultImage->data=(void *)malloc(resultImage->nvox*resultImage->nbyper);
     memcpy(resultImage->data, this->warped->data, resultImage->nvox*resultImage->nbyper);
 

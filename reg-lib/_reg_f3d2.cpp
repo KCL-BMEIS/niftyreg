@@ -188,6 +188,10 @@ nifti_image *reg_f3d2<T>::GetWarpedImage()
     reg_f3d2<T>::ClearDeformationField();
 
     nifti_image *resultImage = nifti_copy_nim_info(this->warped);
+    resultImage->cal_min=this->inputFloating->cal_min;
+    resultImage->cal_max=this->inputFloating->cal_max;
+    resultImage->scl_slope=this->inputFloating->scl_slope;
+    resultImage->scl_inter=this->inputFloating->scl_inter;
     resultImage->data=(void *)malloc(resultImage->nvox*resultImage->nbyper);
     memcpy(resultImage->data, this->warped->data, resultImage->nvox*resultImage->nbyper);
 
@@ -268,25 +272,25 @@ void reg_f3d2<T>::GetVoxelBasedGradient()
             // Fill the joint histogram reversed
             reg_getEntropies(this->currentFloating,
                              this->warped,
-                             //2,
                              this->floatingBinNumber,
                              this->referenceBinNumber,
                              this->probaJointHistogram,
                              this->logJointHistogram,
                              this->entropies,
-                             this->currentMask);
+                             this->currentMask,
+                             this->approxParzenWindow);
             // Compute the voxel based NMI gradient
             // reference and floating are swapped
             reg_getVoxelBasedNMIGradientUsingPW(this->currentFloating,
                                                 this->warped,
-                                                //2,
                                                 this->warpedGradientImage,
                                                 this->floatingBinNumber,
                                                 this->referenceBinNumber,
                                                 this->logJointHistogram,
                                                 this->entropies,
                                                 tempGradientImage,
-                                                this->currentMask);
+                                                this->currentMask,
+                                                this->approxParzenWindow);
         }
         reg_tools_addSubMulDivValue(tempGradientImage,tempGradientImage,-1,2);
 //{

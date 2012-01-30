@@ -193,6 +193,7 @@ int main(int argc, char **argv)
         referenceBinNumber[i]=0;
         floatingBinNumber[i]=0;
     }
+    bool parzenWindowApproximation=true;
     PrecisionTYPE warpedPaddingValue=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
     PrecisionTYPE spacing[3];
     spacing[0]=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
@@ -364,6 +365,9 @@ int main(int argc, char **argv)
             useCubicSplineInterpolation=false;
             useLinearInterpolation=false;
             useNearestNeighorInterpolation=true;
+        }
+        else if(strcmp(argv[i], "-noAppPW") == 0){
+            parzenWindowApproximation=false;
         }
         else if(strcmp(argv[i], "-useSym") ==0){
             useSym=true;
@@ -659,6 +663,10 @@ int main(int argc, char **argv)
     if(jacobianLogApproximation)
         REG->ApproximateJacobianLog();
     else REG->DoNotApproximateJacobianLog();
+
+    if(parzenWindowApproximation)
+        REG->ApproximateParzenWindow();
+    else REG->DoNotApproximateParzenWindow();
 
     if(maxiterationNumber>-1)
         REG->SetMaximalIterationNumber(maxiterationNumber);
