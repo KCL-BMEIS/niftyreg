@@ -215,7 +215,7 @@ void reg_getEntropies1(nifti_image *targetImage,
 #pragma omp parallel for default(none) \
     shared(tempHistogram, num_target_volumes, num_result_volumes, mask, \
     targetImagePtr, resultImagePtr, targetVoxelNumber, target_bins, result_bins, \
-    target_offsets, result_offsets, total_target_entries) \
+    target_offsets, result_offsets, total_target_entries, targetImage, resultImage, approx) \
     private(index, i, valid_values, target_flat_index, tid, \
     result_flat_index, target_values, result_values) \
     reduction(+:voxel_number)
@@ -258,9 +258,9 @@ void reg_getEntropies1(nifti_image *targetImage,
             if (valid_values) {
                 if(approx || targetImage->nt>1 || resultImage->nt>1){ // standard joint histogram filling
 #ifdef _OPENMP
-                    tempHistogram[tid][(int)target_flat_index + ((int)result_flat_index * total_target_entries)]++;
+                    tempHistogram[tid][(int)target_flat_index + (static_cast<int>(result_flat_index) * total_target_entries)]++;
 #else
-                    probaJointHistogram[(int)target_flat_index + ((int)result_flat_index * total_target_entries)]++;
+                    probaJointHistogram[(int)target_flat_index + (static_cast<int>(result_flat_index) * total_target_entries)]++;
 #endif
                     added_value=1;
                 }
@@ -801,7 +801,7 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *targetImage,
     num_result_volumes, result_bins, resultImagePtr, bins, num_loops, num_probabilities, \
     result_offsets, target_offsets, total_target_entries, logJointHistogram, \
     resultImageGradientPtrX, resultImageGradientPtrY, resultImageGradientPtrZ, \
-    nmiGradientPtrX, nmiGradientPtrY, nmiGradientPtrZ, NMI, joint_entropy)
+    nmiGradientPtrX, nmiGradientPtrY, nmiGradientPtrZ, NMI, joint_entropy, targetImage, resultImage, approx)
 #endif // _OPENMP
     for (index = 0; index < targetVoxelNumber; ++index){
         if(mask[index]>-1){
