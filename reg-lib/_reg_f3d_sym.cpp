@@ -894,7 +894,7 @@ double reg_f3d_sym<T>::ComputeLinearEnergyPenaltyTerm()
 template <class T>
 void reg_f3d_sym<T>::GetVoxelBasedGradient()
 {
-    reg_f3d<T>::GetVoxelBasedGradient();
+//    reg_f3d<T>::GetVoxelBasedGradient();
 
     // The intensity gradient is first computed
     reg_getSourceImageGradient(this->currentReference,
@@ -1387,8 +1387,7 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
                                    );
     reg_getDisplacementFromDeformation(this->backwardDeformationFieldImage);
 
-    double error=0.;
-
+    double ferror=0.;
     unsigned int voxelNumber=this->deformationFieldImage->nx *
             this->deformationFieldImage->ny *
             this->deformationFieldImage->nz;
@@ -1399,7 +1398,7 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
         for(unsigned int i=0; i<voxelNumber; ++i){
             if(this->currentMask[i]>-1){
                 double dist=POW2(dispPtrX[i]) + POW2(dispPtrY[i]) + POW2(dispPtrZ[i]);
-                error += dist;
+                ferror += dist;
             }
         }
     }
@@ -1407,11 +1406,12 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
         for(unsigned int i=0; i<voxelNumber; ++i){
             if(this->currentMask[i]>-1){
                 double dist=POW2(dispPtrX[i]) + POW2(dispPtrY[i]);
-                error += dist;
+                ferror += dist;
             }
         }
     }
 
+    double berror=0.;
     voxelNumber=this->backwardDeformationFieldImage->nx *
             this->backwardDeformationFieldImage->ny *
             this->backwardDeformationFieldImage->nz;
@@ -1422,7 +1422,7 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
         for(unsigned int i=0; i<voxelNumber; ++i){
             if(this->currentFloatingMask[i]>-1){
                 double dist=POW2(dispPtrX[i]) + POW2(dispPtrY[i]) + POW2(dispPtrZ[i]);
-                error += dist;
+                berror += dist;
             }
         }
     }
@@ -1430,11 +1430,11 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
         for(unsigned int i=0; i<voxelNumber; ++i){
             if(this->currentFloatingMask[i]>-1){
                 double dist=POW2(dispPtrX[i]) + POW2(dispPtrY[i]);
-                error += dist;
+                berror += dist;
             }
         }
     }
-    error /=  double(this->activeVoxelNumber[this->currentLevel]+this->backwardActiveVoxelNumber[this->currentLevel]);
+    double error = (ferror + berror) / double(this->activeVoxelNumber[this->currentLevel]+this->backwardActiveVoxelNumber[this->currentLevel]);
     return double(this->inverseConsistencyWeight) * error;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1443,6 +1443,9 @@ template<class T>
 void reg_f3d_sym<T>::GetInverseConsistencyGradient()
 {
     if(this->inverseConsistencyWeight<=0 || this->useInverseConsitency==false) return;
+
+
+    /* FORWARD CONTROL POINT GRADIENT */
 
     // Derivative of || Backward(Forward(x)) ||^2 against the forward control point position
     reg_spline_getDeformationField(this->controlPointGrid,
@@ -1478,6 +1481,83 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
     reg_smoothImageForCubicSpline<T>(this->deformationFieldImage, smoothingRadius);
     reg_voxelCentric2NodeCentric(this->nodeBasedMeasureGradientImage,
                                  this->deformationFieldImage,
+                                 2.f * this->inverseConsistencyWeight,
+                                 true); // update?
+
+    // Derivative of || Forward(Backward(x)) ||^2 against the forward control point position
+    reg_tools_addSubMulDivValue(this->deformationFieldImage,this->deformationFieldImage, 0.f, 2); // multiplication by 0
+    reg_getDeformationFromDisplacement(this->deformationFieldImage);
+    reg_spline_getDeformationField(this->backwardControlPointGrid,
+                                   this->currentReference,
+                                   this->deformationFieldImage,
+                                   this->currentMask,
+                                   true, // composition
+                                   true // use B-Spline
+                                   );
+    reg_spline_getDeformationField(this->controlPointGrid,
+                                   this->currentReference,
+                                   this->deformationFieldImage,
+                                   this->currentMask,
+                                   true, // composition
+                                   true // use B-Spline
+                                   );
+    reg_getDisplacementFromDeformation(this->deformationFieldImage);
+    voxelNumber=this->deformationFieldImage->nx *this->deformationFieldImage->ny *this->deformationFieldImage->nz;
+    defPtrX=static_cast<T* >(this->deformationFieldImage->data);
+    defPtrY=&defPtrX[voxelNumber];
+    defPtrZ=&defPtrY[voxelNumber];
+    for(unsigned int i=0; i<voxelNumber; ++i){
+        if(this->currentMask[i]<0){
+            defPtrX[i]=0;
+            defPtrY[i]=0;
+            if(this->deformationFieldImage->nz>1) defPtrZ[i]=0;
+        }
+    }
+    smoothingRadius[0] = (int)( 2.0*this->controlPointGrid->dx/this->currentReference->dx );
+    smoothingRadius[1] = (int)( 2.0*this->controlPointGrid->dy/this->currentReference->dy );
+    smoothingRadius[2] = (int)( 2.0*this->controlPointGrid->dz/this->currentReference->dz );
+    reg_smoothImageForCubicSpline<T>(this->deformationFieldImage, smoothingRadius);
+    reg_voxelCentric2NodeCentric(this->nodeBasedMeasureGradientImage,
+                                 this->deformationFieldImage,
+                                 2.f * this->inverseConsistencyWeight,
+                                 true); // update?
+
+
+    /* BACKWARD CONTROL POINT GRADIENT */
+
+    // Derivative of || Forward(Backward(x)) ||^2 against the backward control point position
+    reg_spline_getDeformationField(this->backwardControlPointGrid,
+                                   this->currentFloating,
+                                   this->backwardDeformationFieldImage,
+                                   this->currentFloatingMask,
+                                   false, // composition
+                                   true // use B-Spline
+                                   );
+    reg_spline_getDeformationField(this->controlPointGrid,
+                                   this->currentFloating,
+                                   this->backwardDeformationFieldImage,
+                                   this->currentFloatingMask,
+                                   true, // composition
+                                   true // use B-Spline
+                                   );
+    reg_getDisplacementFromDeformation(this->backwardDeformationFieldImage);
+    voxelNumber=this->backwardDeformationFieldImage->nx *this->backwardDeformationFieldImage->ny *this->backwardDeformationFieldImage->nz;
+    defPtrX=static_cast<T* >(this->backwardDeformationFieldImage->data);
+    defPtrY=&defPtrX[voxelNumber];
+    defPtrZ=&defPtrY[voxelNumber];
+    for(unsigned int i=0; i<voxelNumber; ++i){
+        if(this->currentFloatingMask[i]<0){
+            defPtrX[i]=0;
+            defPtrY[i]=0;
+            if(this->backwardDeformationFieldImage->nz>1) defPtrZ[i]=0;
+        }
+    }
+    smoothingRadius[0] = (int)( 2.0*this->backwardControlPointGrid->dx/this->currentFloating->dx );
+    smoothingRadius[1] = (int)( 2.0*this->backwardControlPointGrid->dy/this->currentFloating->dy );
+    smoothingRadius[2] = (int)( 2.0*this->backwardControlPointGrid->dz/this->currentFloating->dz );
+    reg_smoothImageForCubicSpline<T>(this->backwardDeformationFieldImage, smoothingRadius);
+    reg_voxelCentric2NodeCentric(this->backwardNodeBasedMeasureGradientImage,
+                                 this->backwardDeformationFieldImage,
                                  2.f * this->inverseConsistencyWeight,
                                  true); // update?
 
@@ -1520,80 +1600,6 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
                                  2.f * this->inverseConsistencyWeight,
                                  true); // update?
 
-
-    // Derivative of || Forward(Backward(x)) ||^2 against the backward control point position
-    reg_spline_getDeformationField(this->backwardControlPointGrid,
-                                   this->currentFloating,
-                                   this->backwardDeformationFieldImage,
-                                   this->currentFloatingMask,
-                                   false, // composition
-                                   true // use B-Spline
-                                   );
-    reg_spline_getDeformationField(this->controlPointGrid,
-                                   this->currentFloating,
-                                   this->backwardDeformationFieldImage,
-                                   this->currentFloatingMask,
-                                   true, // composition
-                                   true // use B-Spline
-                                   );
-    reg_getDisplacementFromDeformation(this->backwardDeformationFieldImage);
-    voxelNumber=this->backwardDeformationFieldImage->nx *this->backwardDeformationFieldImage->ny *this->backwardDeformationFieldImage->nz;
-    defPtrX=static_cast<T* >(this->backwardDeformationFieldImage->data);
-    defPtrY=&defPtrX[voxelNumber];
-    defPtrZ=&defPtrY[voxelNumber];
-    for(unsigned int i=0; i<voxelNumber; ++i){
-        if(this->currentFloatingMask[i]<0){
-            defPtrX[i]=0;
-            defPtrY[i]=0;
-            if(this->backwardDeformationFieldImage->nz>1) defPtrZ[i]=0;
-        }
-    }
-    smoothingRadius[0] = (int)( 2.0*this->backwardControlPointGrid->dx/this->currentFloating->dx );
-    smoothingRadius[1] = (int)( 2.0*this->backwardControlPointGrid->dy/this->currentFloating->dy );
-    smoothingRadius[2] = (int)( 2.0*this->backwardControlPointGrid->dz/this->currentFloating->dz );
-    reg_smoothImageForCubicSpline<T>(this->backwardDeformationFieldImage, smoothingRadius);
-    reg_voxelCentric2NodeCentric(this->backwardNodeBasedMeasureGradientImage,
-                                 this->backwardDeformationFieldImage,
-                                 2.f * this->inverseConsistencyWeight,
-                                 true); // update?
-
-    // Derivative of || Forward(Backward(x)) ||^2 against the forward control point position
-    reg_tools_addSubMulDivValue(this->deformationFieldImage,this->deformationFieldImage, 0.f, 2); // multiplication by 0
-    reg_getDeformationFromDisplacement(this->deformationFieldImage);
-    reg_spline_getDeformationField(this->backwardControlPointGrid,
-                                   this->currentReference,
-                                   this->deformationFieldImage,
-                                   this->currentMask,
-                                   true, // composition
-                                   true // use B-Spline
-                                   );
-    reg_spline_getDeformationField(this->controlPointGrid,
-                                   this->currentReference,
-                                   this->deformationFieldImage,
-                                   this->currentMask,
-                                   true, // composition
-                                   true // use B-Spline
-                                   );
-    reg_getDisplacementFromDeformation(this->deformationFieldImage);
-    voxelNumber=this->deformationFieldImage->nx *this->deformationFieldImage->ny *this->deformationFieldImage->nz;
-    defPtrX=static_cast<T* >(this->deformationFieldImage->data);
-    defPtrY=&defPtrX[voxelNumber];
-    defPtrZ=&defPtrY[voxelNumber];
-    for(unsigned int i=0; i<voxelNumber; ++i){
-        if(this->currentMask[i]<0){
-            defPtrX[i]=0;
-            defPtrY[i]=0;
-            if(this->deformationFieldImage->nz>1) defPtrZ[i]=0;
-        }
-    }
-    smoothingRadius[0] = (int)( 2.0*this->controlPointGrid->dx/this->currentReference->dx );
-    smoothingRadius[1] = (int)( 2.0*this->controlPointGrid->dy/this->currentReference->dy );
-    smoothingRadius[2] = (int)( 2.0*this->controlPointGrid->dz/this->currentReference->dz );
-    reg_smoothImageForCubicSpline<T>(this->deformationFieldImage, smoothingRadius);
-    reg_voxelCentric2NodeCentric(this->nodeBasedMeasureGradientImage,
-                                 this->deformationFieldImage,
-                                 2.f * this->inverseConsistencyWeight,
-                                 true); // update?
 
     return;
 }
