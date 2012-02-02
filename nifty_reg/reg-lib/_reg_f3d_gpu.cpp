@@ -544,13 +544,13 @@ double reg_f3d_gpu<T>::ComputeSimilarityMeasure()
     if(this->currentFloating->nt==1){
         reg_getEntropies(this->currentReference,
                          this->warped,
-                         //2,
                          this->referenceBinNumber,
                          this->floatingBinNumber,
                          this->probaJointHistogram,
                          this->logJointHistogram,
                          this->entropies,
-                         this->currentMask);
+                         this->currentMask,
+                         this->approxParzenWindow);
     }
     else if(this->currentFloating->nt==2){
         reg_getEntropies2x2_gpu(this->currentReference,
