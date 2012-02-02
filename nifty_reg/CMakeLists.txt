@@ -23,9 +23,13 @@ OPTION(BUILD_NIFTYREG "To build the NiftyReg executables" ON)
 OPTION(BUILD_NR_DEV "To build code under development" OFF)
 
 OPTION(USE_SSE "To use SSE computation in some case" OFF)
-OPTION(USE_OPENMP "To use openMP for multi-CPU processing" OFF)
 OPTION(USE_CUDA "To use CUDA for a GPU implementation of the code" OFF)
 OPTION(USE_DOUBLE "To use double precision instead of single precision" OFF)
+IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    IF(NOT CMAKE_SYSTEM_VERSION VERSION_GREATER 11.0 OR CMAKE_SYSTEM_VERSION VERSION_EQUAL 11.0.0)
+        OPTION(USE_OPENMP "To use openMP for multi-CPU processing" OFF)
+    ENDIF()
+ENDIF()
 #-----------------------------------------------------------------------------
 
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/nifti)
@@ -54,8 +58,6 @@ IF(BUILD_NR_DEV)
     ADD_DEFINITIONS(-D_NR_DEV)
 ENDIF(BUILD_NR_DEV)
 
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 IF(USE_OPENMP)
     IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
         IF(CMAKE_SYSTEM_VERSION VERSION_GREATER 11.0 OR CMAKE_SYSTEM_VERSION VERSION_EQUAL 11.0.0)
