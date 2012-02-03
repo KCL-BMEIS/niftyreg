@@ -143,7 +143,7 @@ int reg_aladin<T>::Print()
     if(this->UseGpu) printf("The GPU implementation is used\n");
     else printf("The CPU implementation is used\n");
 #endif
-
+    return 0;
 }
 
 template <class T>
@@ -216,6 +216,7 @@ int reg_aladin<T>::SetInputTransform(char *filename, int flirtFlag)
     }
     if(this->OutputTransform == 0)
         this->OutputTransform = new mat44;
+    return 0;
 }
 
 template <class T>

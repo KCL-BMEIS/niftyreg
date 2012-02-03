@@ -36,14 +36,5 @@ IF(BUILD_NIFTYREG)
          TARGET_LINK_LIBRARIES(reg_aladin _reg_aladin )
 INSTALL_TARGETS(/bin reg_aladin)
 #-----------------------------------------------------------------------------
-#	IF(USE_CUDA)
-#		CUDA_ADD_EXECUTABLE(reg_benchmark reg_benchmark.cpp)
-#		TARGET_LINK_LIBRARIES(reg_benchmark _reg_resampling _reg_bspline _reg_mutualinformation _reg_ssd _reg_affineTransformation _reg_blockMatching _reg_tools ${ZLIB} reg_nifti _reg_resampling_gpu _reg_bspline_gpu _reg_mutualinformation_gpu _reg_affineTransformation_gpu _reg_blockMatching_gpu _reg_tools_gpu _reg_cudaCommon)
-#	ELSE(USE_CUDA)
-#		ADD_EXECUTABLE(reg_benchmark reg_benchmark.cpp)
-#		TARGET_LINK_LIBRARIES(reg_benchmark _reg_resampling _reg_bspline _reg_mutualinformation _reg_ssd _reg_affineTransformation _reg_blockMatching _reg_tools ${ZLIB} reg_nifti)
-#	ENDIF(USE_CUDA)
-#	INSTALL_TARGETS(/bin reg_benchmark)
-#-----------------------------------------------------------------------------
 ENDIF(BUILD_NIFTYREG)
 

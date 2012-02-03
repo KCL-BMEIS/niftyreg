@@ -130,7 +130,7 @@ IF(BUILD_NIFTYREG)
             ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
     )
     INSTALL(FILES ${NAME}.h DESTINATION include)
-    INSTALL(FILES ${NAME}2.h DESTINATION include)
+    #INSTALL(FILES ${NAME}2.h DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
