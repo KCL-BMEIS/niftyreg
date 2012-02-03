@@ -1874,6 +1874,110 @@ double reg_tools_getMeanRMS(nifti_image *imageA, nifti_image *imageB)
 }
 /* *************************************************************** */
 /* *************************************************************** */
+template <class DTYPE>
+int reg_createImagePyramid(nifti_image *inputImage, nifti_image **pyramid, int unsigned levelNumber, int unsigned levelToPerform)
+{
+    // FINEST LEVEL OF REGISTRATION
+    pyramid[levelToPerform-1]=nifti_copy_nim_info(inputImage);
+    pyramid[levelToPerform-1]->data = (void *)calloc(pyramid[levelToPerform-1]->nvox,
+                                                     pyramid[levelToPerform-1]->nbyper);
+    memcpy(pyramid[levelToPerform-1]->data, inputImage->data,
+           pyramid[levelToPerform-1]->nvox* pyramid[levelToPerform-1]->nbyper);
+    reg_changeDatatype<DTYPE>(pyramid[levelToPerform-1]);
+
+    // Images are downsampled if appropriate
+    for(unsigned int l=levelToPerform; l<levelNumber; l++){
+        bool downsampleAxis[8]={false,true,true,true,false,false,false,false};
+        if((pyramid[levelToPerform-1]->nx/2) < 32) downsampleAxis[1]=false;
+        if((pyramid[levelToPerform-1]->ny/2) < 32) downsampleAxis[2]=false;
+        if((pyramid[levelToPerform-1]->nz/2) < 32) downsampleAxis[3]=false;
+        reg_downsampleImage<DTYPE>(pyramid[levelToPerform-1], 1, downsampleAxis);
+    }
+
+    // Images for each subsequent levels are allocated and downsampled if appropriate
+    for(int l=levelToPerform-2; l>=0; l--){
+        // Allocation of the image
+        pyramid[l]=nifti_copy_nim_info(pyramid[l+1]);
+        pyramid[l]->data = (void *)calloc(pyramid[l]->nvox,
+                                       pyramid[l]->nbyper);
+        memcpy(pyramid[l]->data, pyramid[l+1]->data,
+               pyramid[l]->nvox* pyramid[l]->nbyper);
+
+        // Downsample the image if appropriate
+        bool downsampleAxis[8]={false,true,true,true,false,false,false,false};
+        if((pyramid[l]->nx/2) < 32) downsampleAxis[1]=false;
+        if((pyramid[l]->ny/2) < 32) downsampleAxis[2]=false;
+        if((pyramid[l]->nz/2) < 32) downsampleAxis[3]=false;
+        reg_downsampleImage<DTYPE>(pyramid[l], 1, downsampleAxis);
+    }
+    return 0;
+}
+template int reg_createImagePyramid<float>(nifti_image *, nifti_image **, unsigned int , unsigned int);
+template int reg_createImagePyramid<double>(nifti_image *, nifti_image **, unsigned int , unsigned int);
+/* *************************************************************** */
+/* *************************************************************** */
+template <class DTYPE>
+int reg_createMaskPyramid(nifti_image *inputMaskImage, int **maskPyramid, int unsigned levelNumber, int unsigned levelToPerform, int *activeVoxelNumber)
+{
+    // FINEST LEVEL OF REGISTRATION
+    nifti_image **tempMaskImagePyramid=NULL;
+    tempMaskImagePyramid[levelToPerform-1]=nifti_copy_nim_info(inputMaskImage);
+    tempMaskImagePyramid[levelToPerform-1]->data = (void *)calloc(tempMaskImagePyramid[levelToPerform-1]->nvox,
+                                                                  tempMaskImagePyramid[levelToPerform-1]->nbyper);
+    memcpy(tempMaskImagePyramid[levelToPerform-1]->data, inputMaskImage->data,
+           tempMaskImagePyramid[levelToPerform-1]->nvox* tempMaskImagePyramid[levelToPerform-1]->nbyper);
+    reg_tool_binarise_image(tempMaskImagePyramid[levelToPerform-1]);
+    reg_changeDatatype<unsigned char>(tempMaskImagePyramid[levelToPerform-1]);
+
+    // Image is downsampled if appropriate
+    for(unsigned int l=levelToPerform; l<levelNumber; l++){
+        bool downsampleAxis[8]={false,true,true,true,false,false,false,false};
+        if((tempMaskImagePyramid[levelToPerform-1]->nx/2) < 32) downsampleAxis[1]=false;
+        if((tempMaskImagePyramid[levelToPerform-1]->ny/2) < 32) downsampleAxis[2]=false;
+        if((tempMaskImagePyramid[levelToPerform-1]->nz/2) < 32) downsampleAxis[3]=false;
+        reg_downsampleImage<DTYPE>(tempMaskImagePyramid[levelToPerform-1], 1, downsampleAxis);
+    }
+    activeVoxelNumber[levelToPerform-1]=tempMaskImagePyramid[levelToPerform-1]->nx *
+            tempMaskImagePyramid[levelToPerform-1]->ny *
+            tempMaskImagePyramid[levelToPerform-1]->nz;
+    maskPyramid[levelToPerform-1]=(int *)malloc(activeVoxelNumber[levelToPerform-1] * sizeof(int));
+    reg_tool_binaryImage2int(tempMaskImagePyramid[levelToPerform-1],
+                             maskPyramid[levelToPerform-1],
+                             activeVoxelNumber[levelToPerform-1]);
+
+    // Images for each subsequent levels are allocated and downsampled if appropriate
+    for(int l=levelToPerform-2; l>=0; l--){
+        // Allocation of the reference image
+        tempMaskImagePyramid[l]=nifti_copy_nim_info(tempMaskImagePyramid[l+1]);
+        tempMaskImagePyramid[l]->data = (void *)calloc(tempMaskImagePyramid[l]->nvox,
+                                       tempMaskImagePyramid[l]->nbyper);
+        memcpy(tempMaskImagePyramid[l]->data, tempMaskImagePyramid[l+1]->data,
+               tempMaskImagePyramid[l]->nvox* tempMaskImagePyramid[l]->nbyper);
+
+        // Downsample the image if appropriate
+        bool downsampleAxis[8]={false,true,true,true,false,false,false,false};
+        if((tempMaskImagePyramid[l]->nx/2) < 32) downsampleAxis[1]=false;
+        if((tempMaskImagePyramid[l]->ny/2) < 32) downsampleAxis[2]=false;
+        if((tempMaskImagePyramid[l]->nz/2) < 32) downsampleAxis[3]=false;
+        reg_downsampleImage<DTYPE>(tempMaskImagePyramid[l], 1, downsampleAxis);
+
+        activeVoxelNumber[levelToPerform-1]=tempMaskImagePyramid[levelToPerform-1]->nx *
+                tempMaskImagePyramid[levelToPerform-1]->ny *
+                tempMaskImagePyramid[levelToPerform-1]->nz;
+        maskPyramid[levelToPerform-1]=(int *)malloc(activeVoxelNumber[levelToPerform-1] * sizeof(int));
+        reg_tool_binaryImage2int(tempMaskImagePyramid[levelToPerform-1],
+                                 maskPyramid[levelToPerform-1],
+                                 activeVoxelNumber[levelToPerform-1]);
+    }
+    for(int i=0; i<levelToPerform; ++i)
+        nifti_image_free(tempMaskImagePyramid[i]);
+    free(tempMaskImagePyramid);
+    return 0;
+}
+template int reg_createMaskPyramid<float>(nifti_image *, int **, unsigned int , unsigned int , int *);
+template int reg_createMaskPyramid<double>(nifti_image *, int **, unsigned int , unsigned int , int *);
+/* *************************************************************** */
+/* *************************************************************** */
 template <class TYPE1, class TYPE2>
 int reg_tool_nanMask_image2(nifti_image *image, nifti_image *maskImage, nifti_image *resultImage)
 {
@@ -1892,8 +1996,8 @@ int reg_tool_nanMask_image2(nifti_image *image, nifti_image *maskImage, nifti_im
 }
 /* *************************************************************** */
 template <class TYPE1>
-int reg_tool_nanMask_image1(nifti_image *image, nifti_image *maskImage, nifti_image *resultImage){
-
+int reg_tool_nanMask_image1(nifti_image *image, nifti_image *maskImage, nifti_image *resultImage)
+{
     switch(maskImage->datatype){
     case NIFTI_TYPE_UINT8:
         return reg_tool_nanMask_image2<TYPE1,unsigned char>
