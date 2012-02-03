@@ -202,7 +202,8 @@ int main(int argc, char **argv)
     /* *********************** */
     nifti_image *controlPointImage = NULL;
     nifti_image *deformationFieldImage = NULL;
-    mat44 *affineTransformationMatrix = (mat44 *)calloc(1,sizeof(mat44));if(flag->inputCPPFlag){
+    mat44 *affineTransformationMatrix = (mat44 *)calloc(1,sizeof(mat44));
+    if(flag->inputCPPFlag){
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] Name of the control point image: %s\n", param->inputCPPName);
 #endif

@@ -202,11 +202,10 @@ int main(int argc, char **argv)
             nifti_set_filenames(smoothImg, param->outputImageName, 0, 0);
         else nifti_set_filenames(smoothImg, "output.nii", 0, 0);
         int radius[3];radius[0]=radius[1]=radius[2]=param->smoothValue;
-        reg_smoothImageForCubicSpline<PrecisionTYPE>(smoothImg, radius);
+        reg_smoothNormImageForCubicSpline<PrecisionTYPE>(smoothImg, radius);
         nifti_image_write(smoothImg);
         nifti_image_free(smoothImg);
     }
-
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 

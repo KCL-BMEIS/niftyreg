@@ -35,6 +35,11 @@ void reg_smoothImageForCubicSpline(nifti_image *image,
                                    );
 
 extern "C++" template <class PrecisionTYPE>
+void reg_smoothNormImageForCubicSpline(nifti_image *image,
+                                   int radius[3]
+                                   );
+
+extern "C++" template <class PrecisionTYPE>
 void reg_smoothImageForTrilinear(	nifti_image *image,
 								int radius[3]
 								);
