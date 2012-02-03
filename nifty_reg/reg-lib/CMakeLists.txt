@@ -101,6 +101,37 @@ IF(BUILD_NIFTYREG)
     INSTALL(FILES ${NAME}.h DESTINATION include)
     INSTALL(FILES ${NAME}2.h DESTINATION include)
 #-----------------------------------------------------------------------------
+## BUILD THE F3D LIBRARY CPU OR GPU
+    SET(NAME _reg_aladin)
+    IF(USE_CUDA)
+#-----------------------------------------------------------------------------
+        IF(WIN32)
+            CUDA_ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp ) #${NAME}2.h ${NAME}2.cpp ${NAME}_gpu.h ${NAME}_gpu.cpp)
+        ELSE(WIN32)
+            CUDA_ADD_LIBRARY(${NAME} SHARED ${NAME}.h ${NAME}.cpp) # ${NAME}2.h ${NAME}2.cpp ${NAME}_gpu.h ${NAME}_gpu.cpp)
+        ENDIF(WIN32)
+            TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_blockMatching _reg_resampling _reg_globalTransformation _reg_ssd _reg_mutualinformation _reg_tools reg_nifti ${ZLIB} _reg_localTransformation_gpu _reg_resampling_gpu _reg_globalTransformation_gpu _reg_mutualinformation_gpu _reg_tools_gpu _reg_cudaCommon)
+            INSTALL(FILES ${NAME}_gpu.h DESTINATION include)
+#-----------------------------------------------------------------------------
+    ELSE(USE_CUDA)
+#-----------------------------------------------------------------------------
+        IF(WIN32)
+            ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp) # ${NAME}2.h ${NAME}2.cpp)
+        ELSE(WIN32)
+            ADD_LIBRARY(${NAME} SHARED ${NAME}.h ${NAME}.cpp) # ${NAME}2.h ${NAME}2.cpp)
+        ENDIF(WIN32)
+            TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_blockMatching _reg_resampling _reg_globalTransformation _reg_ssd _reg_mutualinformation _reg_tools reg_nifti ${ZLIB})
+#-----------------------------------------------------------------------------
+    ENDIF(USE_CUDA)
+#-----------------------------------------------------------------------------
+    INSTALL(TARGETS ${NAME}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+            LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+    )
+    INSTALL(FILES ${NAME}.h DESTINATION include)
+    INSTALL(FILES ${NAME}2.h DESTINATION include)
+#-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 ENDIF(BUILD_NIFTYREG)
