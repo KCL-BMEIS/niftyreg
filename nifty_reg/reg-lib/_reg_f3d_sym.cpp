@@ -605,110 +605,33 @@ void reg_f3d_sym<T>::Initisalise_f3d()
 
 
     // Set the floating mask image pyramid
-    nifti_image **tempMaskImagePyramid=NULL;
     if(this->usePyramid){
-        tempMaskImagePyramid = (nifti_image **)malloc(this->levelToPerform*sizeof(nifti_image *));
         this->floatingMaskPyramid = (int **)malloc(this->levelToPerform*sizeof(int *));
         this->backwardActiveVoxelNumber= (int *)malloc(this->levelToPerform*sizeof(int));
     }
     else{
-        tempMaskImagePyramid = (nifti_image **)malloc(sizeof(nifti_image *));
         this->floatingMaskPyramid = (int **)malloc(sizeof(int *));
         this->backwardActiveVoxelNumber= (int *)malloc(sizeof(int));
     }
 
     if(this->usePyramid){
-        // Mask image is copied and converted to type unsigned char image
-        if(this->floatingMaskImage!=NULL){
-            tempMaskImagePyramid[this->levelToPerform-1]=nifti_copy_nim_info(this->floatingMaskImage);
-            tempMaskImagePyramid[this->levelToPerform-1]->data = (T *)malloc(tempMaskImagePyramid[this->levelToPerform-1]->nvox *
-                                                                             tempMaskImagePyramid[this->levelToPerform-1]->nbyper);
-            memcpy(tempMaskImagePyramid[this->levelToPerform-1]->data, this->floatingMaskImage->data,
-                   tempMaskImagePyramid[this->levelToPerform-1]->nvox* tempMaskImagePyramid[this->levelToPerform-1]->nbyper);
-            reg_tool_binarise_image(tempMaskImagePyramid[this->levelToPerform-1]);
-            reg_changeDatatype<unsigned char>(tempMaskImagePyramid[this->levelToPerform-1]);
-
-            // Mask image is downsampled if appropriate
-            for(unsigned int l=this->levelToPerform; l<this->levelNumber; l++){
-                bool floatingDownsampleAxis[8]={false,true,true,true,false,false,false,false};
-                if((tempMaskImagePyramid[this->levelToPerform-1]->nx/2) < 32) floatingDownsampleAxis[1]=false;
-                if((tempMaskImagePyramid[this->levelToPerform-1]->ny/2) < 32) floatingDownsampleAxis[2]=false;
-                if((tempMaskImagePyramid[this->levelToPerform-1]->nz/2) < 32) floatingDownsampleAxis[3]=false;
-                reg_downsampleImage<T>(tempMaskImagePyramid[this->levelToPerform-1], 0, floatingDownsampleAxis);
+        if (this->floatingMaskImage!=NULL)
+            reg_createMaskPyramid<T>(this->floatingMaskImage, this->floatingMaskPyramid, this->levelNumber, this->levelToPerform, this->backwardActiveVoxelNumber);
+        else{
+            for(unsigned int l=0;l<this->levelToPerform;++l){
+                this->backwardActiveVoxelNumber[l]=this->floatingPyramid[l]->nx*this->floatingPyramid[l]->ny*this->floatingPyramid[l]->nz;
+                this->floatingMaskPyramid[l]=(int *)calloc(backwardActiveVoxelNumber[l],sizeof(int));
             }
         }
-        else tempMaskImagePyramid[this->levelToPerform-1]=NULL;
-
-        // Create a floating mask here with the same dimension
-        this->backwardActiveVoxelNumber[this->levelToPerform-1] =
-                this->floatingPyramid[this->levelToPerform-1]->nx *
-                this->floatingPyramid[this->levelToPerform-1]->ny *
-                this->floatingPyramid[this->levelToPerform-1]->nz;
-        this->floatingMaskPyramid[this->levelToPerform-1]=(int *)calloc(this->backwardActiveVoxelNumber[this->levelToPerform-1], sizeof(int));
-        if(tempMaskImagePyramid[this->levelToPerform-1]!=NULL){
-            reg_tool_binaryImage2int(tempMaskImagePyramid[this->levelToPerform-1],
-                                     this->floatingMaskPyramid[this->levelToPerform-1],
-                                     this->backwardActiveVoxelNumber[this->levelToPerform-1]);
-        }
-
-        // Images for each subsequent levels are allocated and downsampled if appropriate
-        for(int l=this->levelToPerform-2; l>=0; l--){
-
-            this->backwardActiveVoxelNumber[l]=this->floatingPyramid[l]->nx *
-                    this->floatingPyramid[l]->ny *
-                    this->floatingPyramid[l]->nz;
-            this->floatingMaskPyramid[l]=(int *)calloc(this->backwardActiveVoxelNumber[l], sizeof(int));
-
-            // Allocation of the mask image
-            if(this->floatingMaskImage!=NULL){
-                tempMaskImagePyramid[l]=nifti_copy_nim_info(tempMaskImagePyramid[l+1]);
-                tempMaskImagePyramid[l]->data = (unsigned char *)malloc(tempMaskImagePyramid[l]->nvox *
-                                                                        tempMaskImagePyramid[l]->nbyper);
-                memcpy(tempMaskImagePyramid[l]->data, tempMaskImagePyramid[l+1]->data,
-                       tempMaskImagePyramid[l]->nvox* tempMaskImagePyramid[l]->nbyper);
-
-                bool floatingDownsampleAxis[8]={false,true,true,true,false,false,false,false};
-                if((tempMaskImagePyramid[l]->nx/2) < 32) floatingDownsampleAxis[1]=false;
-                if((tempMaskImagePyramid[l]->ny/2) < 32) floatingDownsampleAxis[2]=false;
-                if((tempMaskImagePyramid[l]->nz/2) < 32) floatingDownsampleAxis[3]=false;
-                reg_downsampleImage<T>(tempMaskImagePyramid[l], 0, floatingDownsampleAxis);
-
-                reg_tool_binaryImage2int(tempMaskImagePyramid[l],
-                                         this->floatingMaskPyramid[l],
-                                         this->backwardActiveVoxelNumber[l]);
-            }
-            else tempMaskImagePyramid[l]=NULL;
-        }
-        for(unsigned int l=0; l<this->levelToPerform; l++){
-            nifti_image_free(tempMaskImagePyramid[l]);
-        }
-        free(tempMaskImagePyramid);
     }
-    else{ // NO PYRAMID
-        // Mask image is copied and converted to type unsigned char image
-        if(this->floatingMaskImage!=NULL){
-            tempMaskImagePyramid[0]=nifti_copy_nim_info(this->floatingMaskImage);
-            tempMaskImagePyramid[0]->data = (T *)calloc(tempMaskImagePyramid[0]->nvox,
-                                                        tempMaskImagePyramid[0]->nbyper);
-            memcpy(tempMaskImagePyramid[0]->data, this->floatingMaskImage->data,
-                   tempMaskImagePyramid[0]->nvox* tempMaskImagePyramid[0]->nbyper);
-            reg_tool_binarise_image(tempMaskImagePyramid[0]);
-            reg_changeDatatype<unsigned char>(tempMaskImagePyramid[0]);
+    else{
+        if (this->floatingMaskImage!=NULL)
+            reg_createMaskPyramid<T>(this->floatingMaskImage, this->floatingMaskPyramid, 1, 1, this->backwardActiveVoxelNumber);
+        else{
+            this->backwardActiveVoxelNumber[0]=this->floatingPyramid[0]->nx*this->floatingPyramid[0]->ny*this->floatingPyramid[0]->nz;
+            this->floatingMaskPyramid[0]=(int *)calloc(backwardActiveVoxelNumber[0],sizeof(int));
         }
-        else tempMaskImagePyramid[0]=NULL;
-
-        // Create a target mask here with the same dimension
-        this->backwardActiveVoxelNumber[0]=this->floatingPyramid[0]->nx *
-                this->floatingPyramid[0]->ny *
-                this->floatingPyramid[0]->nz;
-        this->floatingMaskPyramid[0]=(int *)calloc(this->backwardActiveVoxelNumber[0], sizeof(int));
-        if(tempMaskImagePyramid[0]!=NULL){
-            reg_tool_binaryImage2int(tempMaskImagePyramid[0],
-                                     this->floatingMaskPyramid[0],
-                                     this->backwardActiveVoxelNumber[0]);
-        }
-        free(tempMaskImagePyramid[0]);free(tempMaskImagePyramid);
-    } // END NO PYRAMID
+    }
 
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_sym::Initialise_f3d() done\n");

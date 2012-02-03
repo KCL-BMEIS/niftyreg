@@ -88,6 +88,12 @@ double reg_tools_getMeanRMS(nifti_image *, nifti_image *);
 extern "C++"
 int reg_tool_nanMask_image(nifti_image *, nifti_image *, nifti_image *);
 
+extern "C++" template<class DTYPE>
+int reg_createImagePyramid(nifti_image *, nifti_image **, unsigned int, unsigned int);
+
+extern "C++" template<class DTYPE>
+int reg_createMaskPyramid(nifti_image *, int **, unsigned int , unsigned int , int *);
+
 /** JM functions for ssd */
 //this function will threshold an image to the values provided,
 //set the scl_slope and sct_inter of the image to 1 and 0 (SSD uses actual image data values),
