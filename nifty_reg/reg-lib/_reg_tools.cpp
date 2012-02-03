@@ -1969,7 +1969,7 @@ int reg_createMaskPyramid(nifti_image *inputMaskImage, int **maskPyramid, int un
                                  maskPyramid[levelToPerform-1],
                                  activeVoxelNumber[levelToPerform-1]);
     }
-    for(int i=0; i<levelToPerform; ++i)
+    for(unsigned int i=0; i<levelToPerform; ++i)
         nifti_image_free(tempMaskImagePyramid[i]);
     free(tempMaskImagePyramid);
     return 0;
