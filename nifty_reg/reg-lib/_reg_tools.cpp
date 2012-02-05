@@ -1920,7 +1920,7 @@ template <class DTYPE>
 int reg_createMaskPyramid(nifti_image *inputMaskImage, int **maskPyramid, int unsigned levelNumber, int unsigned levelToPerform, int *activeVoxelNumber)
 {
     // FINEST LEVEL OF REGISTRATION
-    nifti_image **tempMaskImagePyramid=NULL;
+    nifti_image **tempMaskImagePyramid=(nifti_image **)malloc(levelToPerform*sizeof(nifti_image *));
     tempMaskImagePyramid[levelToPerform-1]=nifti_copy_nim_info(inputMaskImage);
     tempMaskImagePyramid[levelToPerform-1]->data = (void *)calloc(tempMaskImagePyramid[levelToPerform-1]->nvox,
                                                                   tempMaskImagePyramid[levelToPerform-1]->nbyper);
@@ -1935,11 +1935,11 @@ int reg_createMaskPyramid(nifti_image *inputMaskImage, int **maskPyramid, int un
         if((tempMaskImagePyramid[levelToPerform-1]->nx/2) < 32) downsampleAxis[1]=false;
         if((tempMaskImagePyramid[levelToPerform-1]->ny/2) < 32) downsampleAxis[2]=false;
         if((tempMaskImagePyramid[levelToPerform-1]->nz/2) < 32) downsampleAxis[3]=false;
-        reg_downsampleImage<DTYPE>(tempMaskImagePyramid[levelToPerform-1], 1, downsampleAxis);
+        reg_downsampleImage<DTYPE>(tempMaskImagePyramid[levelToPerform-1], 0, downsampleAxis);
     }
     activeVoxelNumber[levelToPerform-1]=tempMaskImagePyramid[levelToPerform-1]->nx *
-            tempMaskImagePyramid[levelToPerform-1]->ny *
-            tempMaskImagePyramid[levelToPerform-1]->nz;
+                                        tempMaskImagePyramid[levelToPerform-1]->ny *
+                                        tempMaskImagePyramid[levelToPerform-1]->nz;
     maskPyramid[levelToPerform-1]=(int *)malloc(activeVoxelNumber[levelToPerform-1] * sizeof(int));
     reg_tool_binaryImage2int(tempMaskImagePyramid[levelToPerform-1],
                              maskPyramid[levelToPerform-1],
@@ -1950,7 +1950,7 @@ int reg_createMaskPyramid(nifti_image *inputMaskImage, int **maskPyramid, int un
         // Allocation of the reference image
         tempMaskImagePyramid[l]=nifti_copy_nim_info(tempMaskImagePyramid[l+1]);
         tempMaskImagePyramid[l]->data = (void *)calloc(tempMaskImagePyramid[l]->nvox,
-                                       tempMaskImagePyramid[l]->nbyper);
+                                                       tempMaskImagePyramid[l]->nbyper);
         memcpy(tempMaskImagePyramid[l]->data, tempMaskImagePyramid[l+1]->data,
                tempMaskImagePyramid[l]->nvox* tempMaskImagePyramid[l]->nbyper);
 
@@ -1959,18 +1959,18 @@ int reg_createMaskPyramid(nifti_image *inputMaskImage, int **maskPyramid, int un
         if((tempMaskImagePyramid[l]->nx/2) < 32) downsampleAxis[1]=false;
         if((tempMaskImagePyramid[l]->ny/2) < 32) downsampleAxis[2]=false;
         if((tempMaskImagePyramid[l]->nz/2) < 32) downsampleAxis[3]=false;
-        reg_downsampleImage<DTYPE>(tempMaskImagePyramid[l], 1, downsampleAxis);
+        reg_downsampleImage<DTYPE>(tempMaskImagePyramid[l], 0, downsampleAxis);
 
-        activeVoxelNumber[levelToPerform-1]=tempMaskImagePyramid[levelToPerform-1]->nx *
-                tempMaskImagePyramid[levelToPerform-1]->ny *
-                tempMaskImagePyramid[levelToPerform-1]->nz;
-        maskPyramid[levelToPerform-1]=(int *)malloc(activeVoxelNumber[levelToPerform-1] * sizeof(int));
-        reg_tool_binaryImage2int(tempMaskImagePyramid[levelToPerform-1],
-                                 maskPyramid[levelToPerform-1],
-                                 activeVoxelNumber[levelToPerform-1]);
+        activeVoxelNumber[l]=tempMaskImagePyramid[l]->nx *
+                             tempMaskImagePyramid[l]->ny *
+                             tempMaskImagePyramid[l]->nz;
+        maskPyramid[l]=(int *)malloc(activeVoxelNumber[l] * sizeof(int));
+        reg_tool_binaryImage2int(tempMaskImagePyramid[l],
+                                 maskPyramid[l],
+                                 activeVoxelNumber[l]);
     }
-    for(unsigned int i=0; i<levelToPerform; ++i)
-        nifti_image_free(tempMaskImagePyramid[i]);
+    for(unsigned int l=0; l<levelToPerform; ++l)
+        nifti_image_free(tempMaskImagePyramid[l]);
     free(tempMaskImagePyramid);
     return 0;
 }
