@@ -616,7 +616,11 @@ void reg_f3d_sym<T>::Initisalise_f3d()
 
     if(this->usePyramid){
         if (this->floatingMaskImage!=NULL)
-            reg_createMaskPyramid<T>(this->floatingMaskImage, this->floatingMaskPyramid, this->levelNumber, this->levelToPerform, this->backwardActiveVoxelNumber);
+            reg_createMaskPyramid<T>(this->floatingMaskImage,
+                                     this->floatingMaskPyramid,
+                                     this->levelNumber,
+                                     this->levelToPerform,
+                                     this->backwardActiveVoxelNumber);
         else{
             for(unsigned int l=0;l<this->levelToPerform;++l){
                 this->backwardActiveVoxelNumber[l]=this->floatingPyramid[l]->nx*this->floatingPyramid[l]->ny*this->floatingPyramid[l]->nz;
@@ -624,7 +628,7 @@ void reg_f3d_sym<T>::Initisalise_f3d()
             }
         }
     }
-    else{
+    else{ // no pyramid
         if (this->floatingMaskImage!=NULL)
             reg_createMaskPyramid<T>(this->floatingMaskImage, this->floatingMaskPyramid, 1, 1, this->backwardActiveVoxelNumber);
         else{
