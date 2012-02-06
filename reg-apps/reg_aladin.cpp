@@ -22,17 +22,7 @@
 
 
 #include "_reg_aladin.h"
-#include "_reg_resampling.h"
-#include "_reg_globalTransformation.h"
-#include "_reg_blockMatching.h"
 #include "_reg_tools.h"
-
-#ifdef _USE_CUDA
-#include "_reg_cudaCommon.h"
-#include "_reg_resampling_gpu.h"
-#include "_reg_globalTransformation_gpu.h"
-#include "_reg_blockMatching_gpu.h"
-#endif
 
 #ifdef _WINDOWS
 #include <time.h>
@@ -79,8 +69,6 @@ void Usage(char *exec)
 
     printf("\t-nac\t\t\tUse the nifti header origins to initialise the translation\n");
 
-    printf("\t-bgi <int> <int> <int>\tForce the background value during\n\t\t\t\tresampling to have the same value as this voxel in the source image [none]\n");
-
     printf("\t-%%v <int>\t\tPercentage of block to use [50]\n");
     printf("\t-%%i <int>\t\tPercentage of inlier for the LTS [50]\n");
 #ifdef _USE_CUDA	
@@ -112,8 +100,6 @@ int main(int argc, char **argv)
 
     char *outputResultName=NULL;
     int outputResultFlag=0;
-
-    int backgroundIndex[3] = {0, 0, 0};
 
     /* read the input parameter */
     for(int i=1;i<argc;i++){
@@ -162,12 +148,10 @@ int main(int argc, char **argv)
             REG->SetLevelsToPerform(atoi(argv[++i]));
         }
         else if(strcmp(argv[i], "-smooT") == 0){
-            REG->SetTargetSigma((float)(atof(argv[++i])));
-            REG->SmoothTargetOn();
+            REG->SetReferenceSigma((float)(atof(argv[++i])));
         }
         else if(strcmp(argv[i], "-smooS") == 0){
-            REG->SetSourceSigma((float)(atof(argv[++i])));
-            REG->SmoothSourceOn();
+            REG->SetFloatingSigma((float)(atof(argv[++i])));
         }
         else if(strcmp(argv[i], "-rigOnly") == 0){
             REG->PerformAffineOff();
@@ -180,18 +164,11 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-nac") == 0){
             REG->AlignCentreOff();
         }
-        else if(strcmp(argv[i], "-bgi") == 0){
-            backgroundIndex[0]=atoi(argv[++i]);
-            backgroundIndex[1]=atoi(argv[++i]);
-            backgroundIndex[2]=atoi(argv[++i]);
-            REG->SetBackgroundIndex(backgroundIndex);
-            REG->UseBackgroundIndexOn();
-        }
         else if(strcmp(argv[i], "-%v") == 0){
-            REG->SetBlockPercentage(atoi(argv[++i]));
+            REG->SetBlockPercentage(atof(argv[++i]));
         }
         else if(strcmp(argv[i], "-%i") == 0){
-            REG->SetInlierLts(atoi(argv[++i]));
+            REG->SetInlierLts(atof(argv[++i]));
         }
         else if(strcmp(argv[i], "-NN") == 0){
             REG->SetInterpolationToNearestNeighbor();
@@ -229,11 +206,10 @@ int main(int argc, char **argv)
     nifti_image *sourceHeader = nifti_image_read(sourceImageName,true);
     REG->SetInputReference(targetHeader);
     REG->SetInputFloating(sourceHeader);
-    REG->Check();
 
     REG->SetInputTransform(inputAffineName,flirtAffineFlag);
 
-    /* read and binarise the target mask image */
+    /* read the target mask image */
     nifti_image *targetMaskImage=NULL;
     if(targetMaskFlag){
         targetMaskImage = nifti_image_read(targetMaskName,true);
@@ -249,35 +225,21 @@ int main(int argc, char **argv)
                 return 1;
             }
         }
-        reg_tool_binarise_image(targetMaskImage);
         REG->SetInputMask(targetMaskImage);
-        REG->UseTargetMaskOn();
     }
-
-    REG->Print();
     REG->Run();
-    fprintf(stderr,"Completed RUN\n");
+
+    // The warped image is saved
+    nifti_image *outputResultImage=REG->GetFinalWarpedImage();
     if(!outputResultFlag) outputResultName=(char *)"outputResult.nii";
-    nifti_set_filenames(REG->GetOutputImage(),outputResultName,0,0);
-    nifti_image_write(REG->GetOutputImage());
-
-    reg_mat44_disp(REG->GetOutputTransform(), (char *)"Final affine transformation:");
-
-#ifndef NDEBUG
-    mat33 tempMat;
-    for(int i=0; i<3; i++){
-        for(int j=0; j<3; j++){
-            tempMat.m[i][j] = REG->GetOutputTransform()->m[i][j];
-        }
-    }
-    printf("[DEBUG] Matrix determinant %g\n", nifti_mat33_determ(tempMat));
-#endif
-    printf("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n\n");
+    nifti_set_filenames(outputResultImage,outputResultName,0,0);
+    nifti_image_write(outputResultImage);
+    nifti_image_free(outputResultImage);
 
     /* The affine transformation is saved */
     if(outputAffineFlag)
-        reg_tool_WriteAffineFile(REG->GetOutputTransform(), outputAffineName);
-    else reg_tool_WriteAffineFile(REG->GetOutputTransform(), (char *)"outputAffine.txt");
+        reg_tool_WriteAffineFile(REG->GetTransformationMatrix(), outputAffineName);
+    else reg_tool_WriteAffineFile(REG->GetTransformationMatrix(), (char *)"outputAffine.txt");
 
     nifti_image_free(targetHeader);
     nifti_image_free(sourceHeader);

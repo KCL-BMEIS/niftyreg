@@ -29,51 +29,65 @@ class reg_aladin
 {
     protected:
       char *ExecutableName;
-      nifti_image* InputReference;
-      nifti_image* InputFloating;
-      nifti_image *InputMask;
-      nifti_image *OutputImage;
-      mat44 *InputTransform;
-      mat44 *OutputTransform;
-      int Verbose;
-      int *ActiveVoxelNumber;
-      int MaxIterations;
-      int BackgroundIndex[3];
-      T SourceBackgroundValue;
-      float TargetSigma;
-      float SourceSigma;
-      int NumberOfLevels;
-      int LevelsToPerform;
+      nifti_image *InputReference;
+      nifti_image *InputFloating;
+      nifti_image *InputReferenceMask;
+      nifti_image **ReferencePyramid;
+      nifti_image **FloatingPyramid;
+      int **ReferenceMaskPyramid;
+      nifti_image *CurrentReference;
+      nifti_image *CurrentFloating;
+      nifti_image *CurrentWarped;
+      nifti_image *deformationFieldImage;
+      int *CurrentReferenceMask;
+      int *activeVoxelNumber;
+
+      char *InputTransformName;
+      bool InputTransformFromFlirt;
+      mat44 *TransformationMatrix;
+
+      bool Verbose;
+
+      unsigned int MaxIterations;
+
+      unsigned int CurrentLevel;
+      unsigned int NumberOfLevels;
+      unsigned int LevelsToPerform;
+
+      bool PerformRigid;
+      bool PerformAffine;
+
       int BlockPercentage;
       int InlierLts;
-      int UseBackgroundIndex;
-      int Interpolation; //enumerated
-      int PerformRigid; //flag
-      int PerformAffine; //flag
-      int AlignCentre; //flag
-      int ImageDimension; //flag
-      int UseInputTransform; //flag
-      int UseGpu; //flag
-      int UseTargetMask; //flag
-      int SmoothTarget;
-      int SmoothSource;
-      //Maybe need one for Two D Registration
+      _reg_blockMatchingParam blockMatchingParams;
+
+      bool AlignCentre;
+
+      int Interpolation;
+
+      float FloatingSigma;
+
+      float ReferenceSigma;
 
       bool TestMatrixConvergence(mat44 *mat);
-      SetMacro(UseBackgroundIndex,int);
-      SetMacro(PerformRigid,int);
-      SetMacro(PerformAffine,int);
-      SetMacro(AlignCentre,int);
-      SetMacro(UseGpu,int);
-      SetMacro(UseTargetMask,int);
-      SetMacro(UseInputTransform,int);
-      SetMacro(SmoothTarget,int);
-      SetMacro(SmoothSource,int);
+
+      void InitialiseRegistration();
+      void SetCurrentImages();
+      void ClearCurrentInputImage();
+      void AllocateWarpedImage();
+      void ClearWarpedImage();
+      void AllocateDeformationField();
+      void ClearDeformationField();
+
+      void InitialiseBlockMatching(int);
+      void GetDeformationField();
+      void GetWarpedImage(int);
+      mat44 GetUpdateTransformationMatrix(int);
+      void UpdateTransformationMatrix(mat44);
 
     public:
       reg_aladin();
-      //reg_aladin(char* reference, char* floating);
-~reg_aladin();
+      ~reg_aladin();
       GetStringMacro(ExecutableName);
 
       //No allocating of the images here...
@@ -83,68 +97,47 @@ class reg_aladin
       void SetInputFloating(nifti_image *input) {this->InputFloating=input;}
       nifti_image *GetInputFloating() {return this->InputFloating;}
 
-      void SetInputMask(nifti_image *input) {this->InputMask=input;}
-      nifti_image *GetInputMask() {return this->InputMask;}
+      void SetInputMask(nifti_image *input) {this->InputReferenceMask=input;}
+      nifti_image *GetInputMask() {return this->InputReferenceMask;}
 
-      int SetInputTransform(char *filename,int flirtFlag);
+      void SetInputTransform(char *filename, bool IsFlirt);
       mat44* GetInputTransform() {return this->InputTransform;}
 
-      mat44* GetOutputTransform() {return this->OutputTransform;}
-      nifti_image *GetOutputImage() {return this->OutputImage;}
+      mat44* GetTransformationMatrix() {return this->TransformationMatrix;}
+      nifti_image *GetFinalWarpedImage();
 
-      SetMacro(MaxIterations,int);
-      GetMacro(MaxIterations,int);
+      SetMacro(MaxIterations,unsigned int);
+      GetMacro(MaxIterations,unsigned int);
 
-      SetMacro(NumberOfLevels,int);
-      GetMacro(NumberOfLevels,int);
+      SetMacro(NumberOfLevels,unsigned int);
+      GetMacro(NumberOfLevels,unsigned int);
 
-      SetMacro(LevelsToPerform,int);
-      GetMacro(LevelsToPerform,int);
+      SetMacro(LevelsToPerform,unsigned int);
+      GetMacro(LevelsToPerform,unsigned int);
 
-      SetMacro(BlockPercentage,int);
-      GetMacro(BlockPercentage,int);
+      SetMacro(BlockPercentage,float);
+      GetMacro(BlockPercentage,float);
 
-      SetMacro(InlierLts,int);
-      GetMacro(InlierLts,int);
+      SetMacro(InlierLts,float);
+      GetMacro(InlierLts,float);
 
-      SetMacro(TargetSigma,float);
-      GetMacro(TargetSigma,float);
+      SetMacro(ReferenceSigma,float);
+      GetMacro(ReferenceSigma,float);
 
-      SetMacro(SourceSigma,float);
-      GetMacro(SourceSigma,float);
+      SetMacro(FloatingSigma,float);
+      GetMacro(FloatingSigma,float);
 
-      SetVector3Macro(BackgroundIndex,int);
-      GetVector3Macro(BackgroundIndex,int);
-
-      BooleanMacro(UseBackgroundIndex,int);
-      GetMacro(UseBackgroundIndex,int);
-
-      BooleanMacro(PerformRigid, int);
+      SetMacro(PerformRigid,int);
       GetMacro(PerformRigid,int);
+      BooleanMacro(PerformRigid, int);
 
-      BooleanMacro(PerformAffine, int);
+      SetMacro(PerformAffine,int);
       GetMacro(PerformAffine,int);
+      BooleanMacro(PerformAffine, int);
 
-      BooleanMacro(AlignCentre, int);
       GetMacro(AlignCentre,int);
-
-      BooleanMacro(UseGpu, int);
-      GetMacro(UseGpu,int);
-
-      BooleanMacro(UseTargetMask, int);
-      GetMacro(UseTargetMask,int);
-
-      BooleanMacro(SmoothTarget,int);
-      GetMacro(SmoothTarget,int);
-
-      BooleanMacro(SmoothSource,int);
-      GetMacro(SmoothSource,int);
-
-      BooleanMacro(UseInputTransform,int);
-      GetMacro(UseInputTransform,int);
-
-      SetClampMacro(ImageDimension,int,2,3);
-      GetMacro(ImageDimension,int);
+      SetMacro(AlignCentre,int);
+      BooleanMacro(AlignCentre, int);
 
       SetClampMacro(Interpolation,int,0,2);
       GetMacro(Interpolation, int);
