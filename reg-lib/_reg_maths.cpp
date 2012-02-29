@@ -2,103 +2,101 @@
 #define _REG_MATHS_CPP
 
 #include "_reg_maths.h"
+#define mat(i,j,dim) mat[i*dim+j]
 
 /* *************************************************************** */
 /* *************************************************************** */
-void reg_LUdecomposition(float *mat,
-                         int dim,
-                         int *index)
+template <class T>
+void reg_LUdecomposition(T *mat,
+                         size_t dim,
+                         size_t *index)
 {
-    if(index!=NULL)
-        free(index);
-    index=(int *)calloc(dim,sizeof(int));
+    T *vv=(T *)malloc(dim*sizeof(T));
+    size_t i,j,k,imax;
 
-    /***** WARNING *****/
-    // Implementation from Numerical recipies, might be changed in the future
-    /***** WARNING *****/
-
-    float *vv=(float *)malloc(dim*sizeof(float));
-
-    for(int i=0;i<dim;++i){
-        float big=0.f;
-        float temp;
-        for(int j=0;j<dim;++j)
-            if( (temp=fabs(mat[i*dim+j]))>big) big=temp;
+    for(i=0;i<dim;++i){
+        T big=0.f;
+        T temp;
+        for(j=0;j<dim;++j)
+            if( (temp=fabs(mat(i,j,dim)))>big) big=temp;
         if(big==0.f){
             fprintf(stderr, "[NiftyReg] ERROR Singular matrix in the LU decomposition\n");
             exit(1);
         }
         vv[i]=1.f/big;
     }
-    for(int j=0;j<dim;++j){
-        for(int i=0;i<j;++i){
-            float sum=mat[i*dim+j];
-            for(int k=0;k<i;k++) sum -= mat[i*dim+k]*mat[k*dim+j];
-            mat[i*dim+j]=sum;
+    for(j=0;j<dim;++j){
+        for(i=0;i<j;++i){
+            T sum=mat(i,j,dim);
+            for(k=0;k<i;k++) sum -= mat(i,k,dim)*mat(k,j,dim);
+            mat(i,j,dim)=sum;
         }
-        float big=0.f;
-        float dum;
-        int imax=0;
-        for(int i=j;i<dim;++i){
-            float sum=mat[i*dim+j];
-            for(int k=0;k<j;++k ) sum -= mat[i*dim+k]*mat[k*dim+j];
-            mat[i*dim+j]=sum;
+        T big=0.f;
+        T dum;
+        for(i=j;i<dim;++i){
+            T sum=mat(i,j,dim);
+            for(k=0;k<j;++k ) sum -= mat(i,k,dim)*mat(k,j,dim);
+            mat(i,j,dim)=sum;
             if( (dum=vv[i]*fabs(sum)) >= big ){
                 big=dum;
                 imax=i;
             }
         }
         if(j != imax){
-            for(int k=0;k<dim;++k){
-                dum=mat[imax*dim+k];
-                mat[imax*dim+k]=mat[j*dim+k];
-                mat[j*dim+k]=dum;
+            for(k=0;k<dim;++k){
+                dum=mat(imax,k,dim);
+                mat(imax,k,dim)=mat(j,k,dim);
+                mat(j,k,dim)=dum;
             }
             vv[imax]=vv[j];
         }
         index[j]=imax;
-        if(mat[j*dim+j]==0) mat[j*dim+j]=1.0e-20f;
+        if(mat(j,j,dim)==0) mat(j,j,dim)=1.0e-20f;
         if(j!=dim-1){
-            dum=1.f/mat[j*dim+j];
-            for(int i=j+1; i<dim;++i) mat[i*dim+j] *= dum;
+            dum=1.f/mat(j,j,dim);
+            for(i=j+1; i<dim;++i) mat(i,j,dim) *= dum;
         }
     }
-
     free(vv);
     return;
 }
+template void reg_LUdecomposition<float>(float *, size_t , size_t *);
+template void reg_LUdecomposition<double>(double *, size_t , size_t *);
 /* *************************************************************** */
 /* *************************************************************** */
-
-void reg_matrixInvertMultiply(float *mat,
-                              int dim,
-                              int *index,
-                              float *vec)
+template <class T>
+void reg_matrixInvertMultiply(T *mat,
+                              size_t dim,
+                              size_t *index,
+                              T *vec)
 {
     // Perform the LU decomposition if necessary
-    if(index==NULL) reg_LUdecomposition(mat, dim, index);
+    if(index==NULL)
+        reg_LUdecomposition(mat, dim, index);
 
     /***** WARNING *****/
     // Implementation from Numerical recipies, might be changed in the future
     /***** WARNING *****/
 
-    int ii=-1;
+//    int ii=-1;
 
-    for(int i=0;i<dim;++i){
-        int ip=index[i];
-        float sum = vec[ip];
+    for(size_t i=0;i<dim;++i){
+        size_t ip=index[i];
+        T sum = vec[ip];
         vec[ip]=vec[i];
-        if(ii!=-1)
-            for(int j=ii;j<i;++j) sum -= mat[i*dim+j]*vec[j];
-        else if(sum) ii=i;
+//        if(ii)
+        for(size_t j=0;j<i;++j) sum -= mat[i*dim+j]*vec[j];
+//        else if(sum) ii=i;
         vec[i]=sum;
     }
     for(int i=dim-1;i>-1;--i){
-        float sum=vec[i];
-        for(int j=i+1;j<dim;j++) sum -= mat[i*dim+j]*vec[j];
+        T sum=vec[i];
+        for(size_t j=i+1;j<dim;j++) sum -= mat[i*dim+j]*vec[j];
         vec[i]=sum/mat[i*dim+i];
     }
 }
+template void reg_matrixInvertMultiply<float>(float *, size_t , size_t *, float *);
+template void reg_matrixInvertMultiply<double>(double *, size_t , size_t *, double *);
 /* *************************************************************** */
 /* *************************************************************** */
 // Heap sort
@@ -259,4 +257,267 @@ void reg_getReorientationMatrix(nifti_image *splineControlPoint, mat33 *desorien
 }
 /* *************************************************************** */
 /* *************************************************************** */
+#define SIGN(a,b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
+
+static double maxarg1,maxarg2;
+#define FMAX(a,b) (maxarg1=(a),maxarg2=(b),(maxarg1) > (maxarg2) ?\
+(maxarg1) : (maxarg2))
+
+static int iminarg1,iminarg2;
+#define IMIN(a,b) (iminarg1=(a),iminarg2=(b),(iminarg1) < (iminarg2) ?\
+(iminarg1) : (iminarg2))
+
+static double sqrarg;
+#define SQR(a) ((sqrarg=(a)) == 0.0 ? 0.0 : sqrarg*sqrarg)
+
+// Calculate pythagorean distance
+template <class T>
+T pythag(T a, T b)
+{
+    T absa, absb;
+    absa = fabs(a);
+    absb = fabs(b);
+
+    if (absa > absb) return (T)(absa * sqrt(1.0f+SQR(absb/absa)));
+    else return (absb == 0.0f ? 0.0f : (T)(absb * sqrt(1.0f+SQR(absa/absb))));
+}
+template <class T>
+void svd(T ** in, size_t m, size_t n, T * w, T ** v)
+{
+    T * rv1 = (T *)malloc(sizeof(T) * n);
+    T anorm, c, f, g, h, s, scale, x, y, z;
+    size_t flag,i,its,j,jj,k,l=0,nm=0;
+
+    g = scale = anorm = 0.0f;
+    for (i = 1; i <= n; ++i)
+    {
+        l = i + 1;
+        rv1[i-1] = scale * g;
+        g = s = scale = 0.0f;
+
+        if ( i <= m)
+        {
+            for (k = i; k <= m; ++k)
+            {
+                scale += fabs(in[k-1][i-1]);
+            }
+            if (scale)
+            {
+                for (k = i; k <= m; ++k)
+                {
+                    in[k-1][i-1] /= scale;
+                    s += in[k-1][i-1] * in[k-1][i-1];
+                }
+                f = in[i-1][i-1];
+                g = -SIGN(sqrt(s), f);
+                h = f * g - s;
+                in[i-1][i-1] = f - g;
+
+                for (j = l; j <= n; ++j)
+                {
+                    for (s = 0.0, k=i; k<=m; ++k) s += in[k-1][i-1]*in[k-1][j-1];
+                    f = s/h;
+                    for (k = i; k <= m; ++k) in[k-1][j-1] += f * in[k-1][i-1];
+                }
+                for (k = i; k <= m; ++k)
+                {
+                    in[k-1][i-1] *= scale;
+                }
+            }
+        }
+        w[i-1] = scale * g;
+        g = s = scale = 0.0;
+        if ((i <= m) && (i != n))
+        {
+            for (k = l; k <= n; ++k)
+            {
+                scale += fabs(in[i-1][k-1]);
+            }
+            if (scale)
+            {
+                for (k = l; k <= n; ++k)
+                {
+                    in[i-1][k-1] /= scale;
+                    s += in[i-1][k-1] * in[i-1][k-1];
+                }
+                f = in[i-1][l-1];
+                g = -SIGN(sqrt(s), f);
+                h = f*g-s;
+                in[i-1][l-1] = f - g;
+
+                for (k = l; k <= n; ++k) rv1[k-1] = in[i-1][k-1]/h;
+                for (j = l; j <= m; ++j)
+                {
+                    for (s = 0.0, k = l; k <= n; ++k)
+                    {
+                        s += in[j-1][k-1] * in[i-1][k-1];
+                    }
+                    for (k = l; k <= n; ++k)
+                    {
+                        in[j-1][k-1] += s * rv1[k-1];
+                    }
+                }
+
+                for (k=l;k<=n;++k) in[i-1][k-1] *= scale;
+            }
+        }
+        anorm = FMAX(anorm, (fabs(w[i-1])+fabs(rv1[i-1])));
+    }
+
+    for (i = n; i >= 1; --i)
+    {
+        if (i < n)
+        {
+            if (g)
+            {
+                for (j = l; j <= n; ++j)
+                {
+                    v[j-1][i-1] = (in[i-1][j-1]/in[i-1][l-1])/g;
+                }
+                for (j = l; j <= n; ++j)
+                {
+                    for (s = 0.0, k = l; k <= n; ++k) s += in[i-1][k-1] * v[k-1][j-1];
+                    for (k=l;k<=n;++k) v[k-1][j-1] += s * v[k-1][i-1];
+                }
+            }
+            for (j = l; j <= n; ++j) v[i-1][j-1] = v[j-1][i-1] = 0.0;
+        }
+        v[i-1][i-1] = 1.0f;
+        g = rv1[i-1];
+        l = i;
+    }
+
+    for (i = IMIN(m, n); i >= 1; --i)
+    {
+        l = i+1;
+        g = w[i-1];
+        for (j = l; j <= n; ++j) in[i-1][j-1] = 0.0f;
+        if (g)
+        {
+            g = 1.0f/g;
+            for (j = l; j <= n; ++j)
+            {
+                for (s = 0.0, k = l; k <= m; ++k) s += in[k-1][i-1] * in[k-1][j-1];
+                f = (s/in[i-1][i-1])*g;
+                for (k=i; k <=m; ++k) in[k-1][j-1] += f * in[k-1][i-1];
+            }
+            for (j=i; j <= m; ++j) in[j-1][i-1] *= g;
+        }
+        else for (j = i; j <= m; ++j) in[j-1][i-1] = 0.0;
+        ++in[i-1][i-1];
+    }
+
+    for (k = n; k >= 1; --k)
+    {
+        for (its = 0; its < 30; ++its)
+        {
+            flag = 1;
+            for (l=k; l >= 1; --l)
+            {
+                nm = l - 1;
+                if ((T)(fabs(rv1[l-1])+anorm) == anorm)
+                {
+                    flag = 0;
+                    break;
+                }
+                if ((T)(fabs(w[nm-1])+anorm) == anorm) break;
+            }
+
+            if (flag)
+            {
+                c = 0.0f;
+                s = 1.0f;
+                for (i=l; i<=k; ++i) // changed
+                {
+                    f = s * rv1[i-1];
+                    rv1[i-1] = c * rv1[i-1];
+                    if ((T)(fabs(f)+anorm) == anorm) break;
+                    g=w[i-1];
+                    h=pythag(f,g);
+                    w[i-1]=h;
+                    h=1.0f/h;
+                    c=g*h;
+                    s = -f*h;
+
+                    for (j = 1; j <= m; ++j)
+                    {
+                        y=in[j-1][nm-1];
+                        z=in[j-1][i-1];
+                        in[j-1][nm-1]=y*c+z*s;
+                        in[j-1][i-1]=z*c-y*s;
+                    }
+                }
+            }
+            z = w[k-1];
+            if (l == k)
+            {
+                if (z < 0.0f)
+                {
+                    w[k-1] = -z;
+                    for (j = 1; j <= n; ++j) v[j-1][k-1] = -v[j-1][k-1];
+                }
+                break;
+            }
+
+            x = w[l-1];
+            nm = k - 1;
+            y = w[nm-1];
+            g = rv1[nm-1];
+            h = rv1[k-1];
+
+            f = ((y-z)*(y+z)+(g-h)*(g+h))/(2.0f*h*y);
+            g = pythag(f, (T)1);
+            f = ((x-z)*(x+z)+h*((y/(f+SIGN(g,f)))-h))/x;
+            c = s = 1.0f;
+            for (j = l; j <= nm; ++j)
+            {
+                i = j + 1;
+                g = rv1[i-1];
+                y = w[i-1];
+                h = s * g;
+                g = c * g;
+                z = pythag(f, h);
+                rv1[j-1] = z;
+                c = f/z;
+                s = h/z;
+                f = x*c+g*s;
+                g = g*c-x*s;
+                h = y*s;
+                y *= c;
+
+                for (jj = 1; jj <= n; ++jj)
+                {
+                    x = v[jj-1][j-1];
+                    z = v[jj-1][i-1];
+                    v[jj-1][j-1] = x*c+z*s;
+                    v[jj-1][i-1] = z*c-x*s;
+                }
+                z = pythag(f, h);
+                w[j-1] = z;
+                if (z)
+                {
+                    z = 1.0f/z;
+                    c = f * z;
+                    s = h * z;
+                }
+                f = c*g+s*y;
+                x = c*y-s*g;
+
+                for (jj = 1; jj <= m; ++jj)
+                {
+                    y = in[jj-1][j-1];
+                    z = in[jj-1][i-1];
+                    in[jj-1][j-1] = y*c+z*s;
+                    in[jj-1][i-1] = z*c-y*s;
+                }
+            }
+            rv1[l-1] = 0.0f;
+            rv1[k-1] = f;
+            w[k-1] = x;
+        }
+    }
+    free (rv1);
+}
+template void svd<float>(float ** in, size_t m, size_t n, float * w, float ** v);
+template void svd<double>(double ** in, size_t m, size_t n, double * w, double ** v);
 #endif // _REG_MATHS_CPP

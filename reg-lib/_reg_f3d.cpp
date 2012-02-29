@@ -92,6 +92,11 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
 
     this->interpolation=1;
 
+    this->xOptimisation=true;
+    this->yOptimisation=true;
+    this->zOptimisation=true;
+    this->gridRefinement=true;
+
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d constructor called\n");
 #endif
@@ -450,7 +455,7 @@ void reg_f3d<T>::UseCubicSplineInterpolation()
 template <class T>
 void reg_f3d<T>::AllocateCurrentInputImage()
 {
-    if(this->currentLevel!=0)
+    if(this->currentLevel!=0 && this->gridRefinement==true)
         reg_bspline_refineControlPointGrid(this->currentReference, this->controlPointGrid);
     return;
 }
@@ -1184,16 +1189,69 @@ double reg_f3d<T>::ComputeSimilarityMeasure()
         else measure /= this->maxSSD[0];
     }
     else{
-        reg_getEntropies(this->currentReference,
-                         this->warped,
-                         this->referenceBinNumber,
-                         this->floatingBinNumber,
-                         this->probaJointHistogram,
-                         this->logJointHistogram,
-                         this->entropies,
-                         this->currentMask,
-                         this->approxParzenWindow);
-        measure = (this->entropies[0]+this->entropies[1])/this->entropies[2];
+        if(this->currentReference->nt>1 &&
+           this->currentReference->nt == this->warped->nt ){
+
+            fprintf(stderr, "WARNING: Modification for Jorge - reg_f3d<T>::ComputeSimilarityMeasure()\n");
+
+            T *referencePtr=static_cast<T *>(this->currentReference->data);
+            T *warpedPtr=static_cast<T *>(this->warped->data);
+
+            measure=0.;
+            for(int t=0;t<this->currentReference->nt;++t){
+
+                nifti_image *temp_referenceImage = nifti_copy_nim_info(this->currentReference);
+                temp_referenceImage->dim[0]=temp_referenceImage->ndim=3;
+                temp_referenceImage->dim[4]=temp_referenceImage->nt=1;
+                temp_referenceImage->nvox=
+                        temp_referenceImage->nx*
+                        temp_referenceImage->ny*
+                        temp_referenceImage->nz;
+                temp_referenceImage->data=(void *)malloc(temp_referenceImage->nvox*temp_referenceImage->nbyper);
+                T *tempRefPtr=static_cast<T *>(temp_referenceImage->data);
+                memcpy(tempRefPtr, &referencePtr[t*temp_referenceImage->nvox],
+                       temp_referenceImage->nvox*temp_referenceImage->nbyper);
+
+                nifti_image *temp_warpedImage = nifti_copy_nim_info(this->warped);
+                temp_warpedImage->dim[0]=temp_warpedImage->ndim=3;
+                temp_warpedImage->dim[4]=temp_warpedImage->nt=1;
+                temp_warpedImage->nvox=
+                        temp_warpedImage->nx*
+                        temp_warpedImage->ny*
+                        temp_warpedImage->nz;
+                temp_warpedImage->data=(void *)malloc(temp_warpedImage->nvox*temp_warpedImage->nbyper);
+                T *tempWarPtr=static_cast<T *>(temp_warpedImage->data);
+                memcpy(tempWarPtr, &warpedPtr[t*temp_warpedImage->nvox],
+                       temp_warpedImage->nvox*temp_warpedImage->nbyper);
+
+                reg_getEntropies(temp_referenceImage,
+                                 temp_warpedImage,
+                                 this->referenceBinNumber,
+                                 this->floatingBinNumber,
+                                 this->probaJointHistogram,
+                                 this->logJointHistogram,
+                                 this->entropies,
+                                 this->currentMask,
+                                 this->approxParzenWindow);
+                measure += (this->entropies[0]+this->entropies[1])/this->entropies[2];
+
+                nifti_image_free(temp_referenceImage);
+                nifti_image_free(temp_warpedImage);
+            }
+            measure /= (double)(this->currentReference->nt);
+        }
+        else {
+            reg_getEntropies(this->currentReference,
+                             this->warped,
+                             this->referenceBinNumber,
+                             this->floatingBinNumber,
+                             this->probaJointHistogram,
+                             this->logJointHistogram,
+                             this->entropies,
+                             this->currentMask,
+                             this->approxParzenWindow);
+            measure = (this->entropies[0]+this->entropies[1])/this->entropies[2];
+        }
     }
     return double(this->similarityWeight) * measure;
 }
@@ -1301,17 +1359,112 @@ void reg_f3d<T>::GetVoxelBasedGradient()
                                      );
     }
     else{
-        // Compute the voxel based NMI gradient
-        reg_getVoxelBasedNMIGradientUsingPW(this->currentReference,
-                                            this->warped,
-                                            this->warpedGradientImage,
-                                            this->referenceBinNumber,
-                                            this->floatingBinNumber,
-                                            this->logJointHistogram,
-                                            this->entropies,
-                                            this->voxelBasedMeasureGradientImage,
-                                            this->currentMask,
-                                            this->approxParzenWindow);
+        if(this->currentReference->nt>1 &&
+           this->currentReference->nt == this->warped->nt ){
+
+            fprintf(stderr, "WARNING: Modification for Jorge - reg_f3d<T>::GetVoxelBasedGradient()\n");
+
+            T *referencePtr=static_cast<T *>(this->currentReference->data);
+            T *warpedPtr=static_cast<T *>(this->currentFloating->data);
+            T *gradientPtr=static_cast<T *>(this->warpedGradientImage->data);
+
+            reg_tools_addSubMulDivValue(this->voxelBasedMeasureGradientImage,
+                                        this->voxelBasedMeasureGradientImage,
+                                        0.f,2);
+
+            for(int t=0;t<this->currentReference->nt;++t){
+
+                nifti_image *temp_referenceImage = nifti_copy_nim_info(this->currentReference);
+                temp_referenceImage->dim[0]=temp_referenceImage->ndim=3;
+                temp_referenceImage->dim[4]=temp_referenceImage->nt=1;
+                temp_referenceImage->nvox=
+                        temp_referenceImage->nx*
+                        temp_referenceImage->ny*
+                        temp_referenceImage->nz;
+                temp_referenceImage->data=(void *)malloc(temp_referenceImage->nvox*temp_referenceImage->nbyper);
+                T *tempRefPtr=static_cast<T *>(temp_referenceImage->data);
+                memcpy(tempRefPtr, &referencePtr[t*temp_referenceImage->nvox],
+                       temp_referenceImage->nvox*temp_referenceImage->nbyper);
+
+                nifti_image *temp_warpedImage = nifti_copy_nim_info(this->warped);
+                temp_warpedImage->dim[0]=temp_warpedImage->ndim=3;
+                temp_warpedImage->dim[4]=temp_warpedImage->nt=1;
+                temp_warpedImage->nvox=
+                        temp_warpedImage->nx*
+                        temp_warpedImage->ny*
+                        temp_warpedImage->nz;
+                temp_warpedImage->data=(void *)malloc(temp_warpedImage->nvox*temp_warpedImage->nbyper);
+                T *tempWarPtr=static_cast<T *>(temp_warpedImage->data);
+                memcpy(tempWarPtr, &warpedPtr[t*temp_warpedImage->nvox],
+                       temp_warpedImage->nvox*temp_warpedImage->nbyper);
+
+                nifti_image *temp_gradientImage = nifti_copy_nim_info(this->warpedGradientImage);
+                temp_gradientImage->dim[4]=temp_gradientImage->nt=1;
+                temp_gradientImage->nvox=
+                        temp_gradientImage->nx*
+                        temp_gradientImage->ny*
+                        temp_gradientImage->nz*
+                        temp_gradientImage->nt*
+                        temp_gradientImage->nu;
+                temp_gradientImage->data=(void *)malloc(temp_gradientImage->nvox*temp_gradientImage->nbyper);
+                T *tempGraPtr=static_cast<T *>(temp_gradientImage->data);
+                for(int u=0;u<temp_gradientImage->nu;++u){
+                    size_t index=(u*this->warpedGradientImage->nt+t)*temp_referenceImage->nvox;
+                    memcpy(&tempGraPtr[u*temp_referenceImage->nvox],
+                           &gradientPtr[index],
+                           temp_referenceImage->nvox*temp_referenceImage->nbyper);
+                }
+
+                reg_getEntropies(temp_referenceImage,
+                                 temp_warpedImage,
+                                 this->referenceBinNumber,
+                                 this->floatingBinNumber,
+                                 this->probaJointHistogram,
+                                 this->logJointHistogram,
+                                 this->entropies,
+                                 this->currentMask,
+                                 this->approxParzenWindow);
+
+                nifti_image *temp_nmiGradientImage = nifti_copy_nim_info(this->voxelBasedMeasureGradientImage);
+                temp_nmiGradientImage->data=(void *)malloc(temp_nmiGradientImage->nvox*temp_nmiGradientImage->nbyper);
+
+                reg_getVoxelBasedNMIGradientUsingPW(temp_referenceImage,
+                                                    temp_warpedImage,
+                                                    temp_gradientImage,
+                                                    this->referenceBinNumber,
+                                                    this->floatingBinNumber,
+                                                    this->logJointHistogram,
+                                                    this->entropies,
+                                                    temp_nmiGradientImage,
+                                                    this->currentMask,
+                                                    this->approxParzenWindow);
+
+                reg_tools_addSubMulDivImages(temp_nmiGradientImage,
+                                             this->voxelBasedMeasureGradientImage,
+                                             this->voxelBasedMeasureGradientImage,0);
+
+                nifti_image_free(temp_referenceImage);
+                nifti_image_free(temp_warpedImage);
+                nifti_image_free(temp_gradientImage);
+                nifti_image_free(temp_nmiGradientImage);
+            }
+            reg_tools_addSubMulDivValue(this->voxelBasedMeasureGradientImage,
+                                        this->voxelBasedMeasureGradientImage,
+                                        (float)(this->currentReference->nt),3);
+        }
+        else{
+            // Compute the voxel based NMI gradient
+            reg_getVoxelBasedNMIGradientUsingPW(this->currentReference,
+                                                this->warped,
+                                                this->warpedGradientImage,
+                                                this->referenceBinNumber,
+                                                this->floatingBinNumber,
+                                                this->logJointHistogram,
+                                                this->entropies,
+                                                this->voxelBasedMeasureGradientImage,
+                                                this->currentMask,
+                                                this->approxParzenWindow);
+        }
     }
     return;
 }
@@ -1617,8 +1770,10 @@ void reg_f3d<T>::UpdateControlPointPosition(T scale)
     private(i)
 #endif
         for(i=0; i<nodeNumber;i++){
-            controlPointValuesX[i] = bestControlPointValuesX[i] + scale * gradientValuesX[i];
-            controlPointValuesY[i] = bestControlPointValuesY[i] + scale * gradientValuesY[i];
+            if(this->xOptimisation)
+                controlPointValuesX[i] = bestControlPointValuesX[i] + scale * gradientValuesX[i];
+            if(this->yOptimisation)
+                controlPointValuesY[i] = bestControlPointValuesY[i] + scale * gradientValuesY[i];
         }
     }
     else{
@@ -1635,13 +1790,17 @@ void reg_f3d<T>::UpdateControlPointPosition(T scale)
 #pragma omp parallel for default(none) \
     shared(controlPointValuesX, controlPointValuesY, controlPointValuesZ, \
     bestControlPointValuesX, bestControlPointValuesY, bestControlPointValuesZ, \
-    gradientValuesX, gradientValuesY, gradientValuesZ, nodeNumber, scale) \
+    gradientValuesX, gradientValuesY, gradientValuesZ, nodeNumber, scale, \
+    xOptimisation, yOptimisation, zOptimisation) \
     private(i)
 #endif
         for(i=0; i<nodeNumber;i++){
-            controlPointValuesX[i] = bestControlPointValuesX[i] + scale * gradientValuesX[i];
-            controlPointValuesY[i] = bestControlPointValuesY[i] + scale * gradientValuesY[i];
-            controlPointValuesZ[i] = bestControlPointValuesZ[i] + scale * gradientValuesZ[i];
+            if(this->xOptimisation)
+                controlPointValuesX[i] = bestControlPointValuesX[i] + scale * gradientValuesX[i];
+            if(this->yOptimisation)
+                controlPointValuesY[i] = bestControlPointValuesY[i] + scale * gradientValuesY[i];
+            if(this->zOptimisation)
+                controlPointValuesZ[i] = bestControlPointValuesZ[i] + scale * gradientValuesZ[i];
         }
     }
 

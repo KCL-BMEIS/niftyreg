@@ -13,7 +13,7 @@ IF(BUILD_NIFTYREG)
 	INSTALL_TARGETS(/bin reg_resample)
 #-----------------------------------------------------------------------------
 	ADD_EXECUTABLE(reg_transform reg_transform.cpp)
-        TARGET_LINK_LIBRARIES(reg_transform _reg_resampling _reg_localTransformation _reg_tools _reg_globalTransformation _reg_maths reg_nifti ${ZLIB})
+        TARGET_LINK_LIBRARIES(reg_transform _reg_thinPlateSpline _reg_resampling _reg_localTransformation _reg_tools _reg_globalTransformation _reg_maths reg_nifti ${ZLIB})
 	INSTALL_TARGETS(/bin reg_transform)
 #-----------------------------------------------------------------------------
 	ADD_EXECUTABLE(reg_jacobian reg_jacobian.cpp)

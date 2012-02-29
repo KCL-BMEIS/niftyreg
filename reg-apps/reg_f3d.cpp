@@ -209,6 +209,10 @@ int main(int argc, char **argv)
     bool useCubicSplineInterpolation=false;
     bool useLinearInterpolation=true;
     bool useNearestNeighorInterpolation=false;
+    bool xOptimisation=true;
+    bool yOptimisation=true;
+    bool zOptimisation=true;
+    bool gridRefinement=true;
 
     bool useSym=false;
     char *floatingMaskName=NULL;
@@ -379,6 +383,18 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-ic") ==0){
             useSym=true;
             inverseConsistencyWeight=atof(argv[++i]);
+        }
+        else if(strcmp(argv[i], "-nox") ==0){
+            xOptimisation=false;
+        }
+        else if(strcmp(argv[i], "-noy") ==0){
+            yOptimisation=false;
+        }
+        else if(strcmp(argv[i], "-noz") ==0){
+            zOptimisation=false;
+        }
+        else if(strcmp(argv[i], "-nogr") ==0){
+            gridRefinement=false;
         }
 #ifdef _USE_CUDA
         else if(strcmp(argv[i], "-gpu") == 0){
@@ -736,6 +752,18 @@ int main(int argc, char **argv)
 
     if(useNearestNeighorInterpolation)
         REG->UseNeareatNeighborInterpolation();
+
+    if(xOptimisation==false)
+        REG->NoOptimisationAlongX();
+
+    if(yOptimisation==false)
+        REG->NoOptimisationAlongY();
+
+    if(zOptimisation==false)
+        REG->NoOptimisationAlongZ();
+
+    if(gridRefinement==false)
+        REG->NoGridRefinement();
 
     // F3D SYM arguments
     if(floatingMaskImage!=NULL)
