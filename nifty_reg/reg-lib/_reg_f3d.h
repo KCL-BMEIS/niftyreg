@@ -86,6 +86,10 @@ class reg_f3d
     T *maxSSD;
     unsigned int currentLevel;
     unsigned totalBinNumber;
+    bool xOptimisation;
+    bool yOptimisation;
+    bool zOptimisation;
+    bool gridRefinement;
 
     unsigned int currentIteration;
 
@@ -170,6 +174,10 @@ public:
     void UseNeareatNeighborInterpolation();
     void UseLinearInterpolation();
     void UseCubicSplineInterpolation();
+    void NoOptimisationAlongX(){this->xOptimisation=false;}
+    void NoOptimisationAlongY(){this->yOptimisation=false;}
+    void NoOptimisationAlongZ(){this->zOptimisation=false;}
+    void NoGridRefinement(){this->gridRefinement=false;}
 //    int SetThreadNumber(int t);
 
     // F3D2 specific options

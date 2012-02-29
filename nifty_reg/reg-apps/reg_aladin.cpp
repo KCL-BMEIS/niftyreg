@@ -179,11 +179,6 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-CUB") == 0){
             REG->SetInterpolationToCubic();
         }
-#ifdef _USE_CUDA
-        else if(strcmp(argv[i], "-gpu") == 0){
-            REG->UseGpuOn();
-        }
-#endif
         else{
             fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
             PetitUsage(argv[0]);

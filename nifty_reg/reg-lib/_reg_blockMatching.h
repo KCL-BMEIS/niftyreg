@@ -116,12 +116,6 @@ void apply_affine(mat44 * mat, float *pt, float *);
 */
 void optimize(_reg_blockMatchingParam *params, mat44 * final, bool affine = true);
 
-/**
-* A routine to perform Singular Value Decomposition on a m x n matrix.
-* Inspired from Numerical recipes
-*/
-void svd(float ** in, int m, int n, float * w, float ** v);
-
 
 
 #endif

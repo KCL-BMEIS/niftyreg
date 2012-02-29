@@ -182,7 +182,7 @@ extern "C++"
 void reg_defField_getJacobianMatrix(nifti_image *deformationField,
                                     nifti_image *jacobianImage);
 /* *************************************************************** */
-/** reg_composeDefField
+/** reg_defField_compose
   * Preforms a deformation field composition.
   * The deformation field image is applied to the second image:
   * dfToUpdate. Both images are expected to contain deformation

@@ -9,16 +9,16 @@
 #define POW2(a) ((a)*(a))
 
 /* *************************************************************** */
-extern "C++"
-void reg_LUdecomposition(float *inputMatrix,
-                         int dim,
-                         int *index);
+extern "C++" template <class T>
+void reg_LUdecomposition(T *inputMatrix,
+                         size_t dim,
+                         size_t *index);
 /* *************************************************************** */
-extern "C++"
-void reg_matrixInvertMultiply(float *mat,
-                              int dim,
-                              int *index,
-                              float *vec);
+extern "C++" template <class T>
+void reg_matrixInvertMultiply(T *mat,
+                              size_t dim,
+                              size_t *index,
+                              T *vec);
 /* *************************************************************** */
 extern "C++"
 void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum);
@@ -47,5 +47,8 @@ extern "C++"
 void reg_getReorientationMatrix(nifti_image *splineControlPoint,
                                 mat33 *desorient,
                                 mat33 *reorient);
+/* *************************************************************** */
+extern "C++" template <class T>
+void svd(T ** in, size_t m, size_t n, T * w, T ** v);
 /* *************************************************************** */
 #endif // _REG_MATHS_H
