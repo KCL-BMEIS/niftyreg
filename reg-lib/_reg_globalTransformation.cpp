@@ -55,18 +55,18 @@ void reg_affine_positionField2D(mat44 *affineTransformation,
 template <class FieldTYPE>
 void reg_affine_positionField3D(mat44 *affineTransformation,
                                 nifti_image *targetImage,
-                                nifti_image *positionFieldImage)
+                                nifti_image *deformationFieldImage)
 {
     int voxelNumber=targetImage->nx*targetImage->ny*targetImage->nz;
-    FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(positionFieldImage->data);
+    FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(deformationFieldImage->data);
     FieldTYPE *positionFieldPtrY = &positionFieldPtrX[voxelNumber];
     FieldTYPE *positionFieldPtrZ = &positionFieldPtrY[voxelNumber];
 
     mat44 *targetMatrix;
-    if(positionFieldImage->sform_code>0){
-        targetMatrix=&(positionFieldImage->sto_xyz);
+    if(deformationFieldImage->sform_code>0){
+        targetMatrix=&(deformationFieldImage->sto_xyz);
     }
-    else targetMatrix=&(positionFieldImage->qto_xyz);
+    else targetMatrix=&(deformationFieldImage->qto_xyz);
     
     mat44 voxelToRealDeformed = reg_mat44_mul(affineTransformation, targetMatrix);
 
@@ -74,15 +74,16 @@ void reg_affine_positionField3D(mat44 *affineTransformation,
     int x, y, z, index;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(positionFieldImage, voxelToRealDeformed, positionFieldPtrX, positionFieldPtrY, positionFieldPtrZ) \
+    shared(deformationFieldImage, voxelToRealDeformed, positionFieldPtrX, \
+    positionFieldPtrY, positionFieldPtrZ) \
     private(voxel, position, x, y, z, index)
 #endif
-    for(z=0; z<positionFieldImage->nz; z++){
-        index=z*positionFieldImage->nx*positionFieldImage->ny;
+    for(z=0; z<deformationFieldImage->nz; z++){
+        index=z*deformationFieldImage->nx*deformationFieldImage->ny;
         voxel[2]=(float)z;
-        for(y=0; y<positionFieldImage->ny; y++){
+        for(y=0; y<deformationFieldImage->ny; y++){
             voxel[1]=(float)y;
-            for(x=0; x<positionFieldImage->nx; x++){
+            for(x=0; x<deformationFieldImage->nx; x++){
                 voxel[0]=(float)x;
 
                 reg_mat44_mul(&voxelToRealDeformed, voxel, position);

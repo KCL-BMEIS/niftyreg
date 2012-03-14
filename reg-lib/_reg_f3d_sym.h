@@ -29,7 +29,7 @@ class reg_f3d_sym : public reg_f3d<T>
     nifti_image *backwardWarped;
     nifti_image *backwardWarpedGradientImage;
     nifti_image *backwardVoxelBasedMeasureGradientImage;
-    nifti_image *backwardNodeBasedMeasureGradientImage;
+    nifti_image *backwardNodeBasedGradientImage;
 
     T *backwardBestControlPointPosition;
     T *backwardConjugateG;
@@ -50,8 +50,8 @@ class reg_f3d_sym : public reg_f3d<T>
     virtual void ClearWarpedGradient();
     virtual void AllocateVoxelBasedMeasureGradient();
     virtual void ClearVoxelBasedMeasureGradient();
-    virtual void AllocateNodeBasedMeasureGradient();
-    virtual void ClearNodeBasedMeasureGradient();
+    virtual void AllocateNodeBasedGradient();
+    virtual void ClearNodeBasedGradient();
     virtual void AllocateConjugateGradientVariables();
     virtual void ClearConjugateGradientVariables();
     virtual void AllocateBestControlPointArray();
@@ -79,21 +79,20 @@ class reg_f3d_sym : public reg_f3d<T>
     virtual void SetGradientImageToZero();
     virtual void UpdateControlPointPosition(T);
     virtual void DisplayCurrentLevelParameters();
-    virtual int CheckStoppingCriteria(bool);
 
-    double GetInverseConsistencyPenaltyTerm();
-    void GetInverseConsistencyGradient();
+    virtual void GetInverseConsistencyErrorField();
+    virtual double GetInverseConsistencyPenaltyTerm();
+    virtual void GetInverseConsistencyGradient();
 
 public:
-    void SetFloatingMask(nifti_image *);
-    void SetInverseConsistencyWeight(T);
+    virtual void SetFloatingMask(nifti_image *);
+    virtual void SetInverseConsistencyWeight(T);
 
     reg_f3d_sym(int refTimePoint,int floTimePoint);
     ~reg_f3d_sym();
-    void CheckParameters_f3d();
-    void Run_f3d();
-    void Initisalise_f3d();
-    nifti_image *GetBackwardControlPointPositionImage();
+    virtual void CheckParameters_f3d();
+    virtual void Initisalise_f3d();
+    virtual nifti_image *GetBackwardControlPointPositionImage();
 };
 
 #include "_reg_f3d_sym.cpp"

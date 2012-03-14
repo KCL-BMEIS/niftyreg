@@ -8,43 +8,33 @@
  *  See the LICENSE.txt file in the nifty_reg root folder
  *
  */
-#ifdef _NR_DEV
 
 #ifndef _REG_F3D2_H
 #define _REG_F3D2_H
 
-#include "_reg_f3d.h"
+#include "_reg_f3d_sym.h"
 
 template <class T>
-class reg_f3d2 : public reg_f3d<T>
+class reg_f3d2 : public reg_f3d_sym<T>
 {
   protected:
-    bool approxComp;
-    bool currentApproxComp;
     int stepNumber;
-    bool useSymmetry;
-    nifti_image **intermediateDeformationField;
-    nifti_image *jacobianMatrices;
 
-    void SetCompositionStepNumber(int);
-    void UseSimilaritySymmetry();
-    void ApproximateComposition();
+    virtual void GetDeformationField();
 
-    void AllocateCurrentInputImage(int);
-    void ClearCurrentInputImage();
+    virtual void GetInverseConsistencyErrorField();
+    virtual void GetInverseConsistencyGradient();
+    virtual void UpdateControlPointPosition(T);
 
-    void GetVoxelBasedGradient();
-    void GetDeformationField();
-    int CheckStoppingCriteria(bool);
+public:    
+    virtual void SetCompositionStepNumber(int);
 
-public:
     reg_f3d2(int refTimePoint,int floTimePoint);
     ~reg_f3d2();
-    void Run_f3d();
-    nifti_image *GetWarpedImage();
+    virtual void Initisalise_f3d();
+    virtual nifti_image *GetWarpedImage();
 };
 
 #include "_reg_f3d2.cpp"
 
 #endif
-#endif // _NR_DEV
