@@ -67,7 +67,7 @@ void Usage(char *exec)
     printf("\t-jac <filename>\n");
         printf("\t\tFilename of the Jacobian determinant map.\n");
     printf("\t-jacM <filename>\n");
-        printf("\t\tFilename of the Jacobian matrix map. (9 values are stored as a 5D nifti).\n");
+        printf("\t\tFilename of the Jacobian matrix map. (9 or 4 values are stored as a 5D nifti).\n");
         printf("\t-jacL <filename>\n");
         printf("\t\tFilename of the Log of the Jacobian determinant map.\n");
     printf("\n* * EXTRA * *\n");
@@ -190,9 +190,10 @@ int main(int argc, char **argv)
 
         // Compute the determinant
         if(flag->inputCPPFlag){
-            if(controlPointImage->pixdim[5]>1){
-                reg_bspline_GetJacobianMapFromVelocityField(controlPointImage,
-                                                            jacobianImage);
+            if(fabs(controlPointImage->intent_code)>1){
+                reg_bspline_GetJacobianDetFromVelocityField(jacobianImage,
+                                                            controlPointImage
+                                                            );
             }
             else{
                 reg_bspline_GetJacobianMap(controlPointImage,
@@ -261,31 +262,87 @@ int main(int argc, char **argv)
         jacobianImage->cal_max=0;
         jacobianImage->scl_slope = 1.0f;
         jacobianImage->scl_inter = 0.0f;
-        jacobianImage->dim[0] = 5;
-        if(image->nz>1) jacobianImage->dim[5] = jacobianImage->nu = 3;
-        else jacobianImage->dim[5] = jacobianImage->nu = 2;
+        jacobianImage->dim[0] = jacobianImage->ndim = 5;
+        jacobianImage->dim[4] = jacobianImage->nt = 1;
+        if(image->nz>1)
+            jacobianImage->dim[5] = jacobianImage->nu = 9;
+        else jacobianImage->dim[5] = jacobianImage->nu = 4;
         if(sizeof(PrecisionTYPE)==8)
             jacobianImage->datatype = NIFTI_TYPE_FLOAT64;
         else jacobianImage->datatype = NIFTI_TYPE_FLOAT32;
         jacobianImage->nbyper = sizeof(PrecisionTYPE);
-        jacobianImage->nvox *= jacobianImage->nu;
+        jacobianImage->nvox = jacobianImage->nx * jacobianImage->ny * jacobianImage->nz *
+                jacobianImage->nt * jacobianImage->nu;
         jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
 
-        // Compute the determinant
+        size_t voxelNumber=image->nx*image->ny*image->nz;
+        mat33* jacobianMatricesArray=(mat33 *)malloc(voxelNumber*sizeof(mat33));
+
+        // Compute the matrices
         if(flag->inputCPPFlag){
-            reg_bspline_GetJacobianMatrix(controlPointImage,
-                                          jacobianImage
-                                          );
+            if(fabs(controlPointImage->intent_code)>1){
+                reg_bspline_GetJacobianMatricesFromVelocityField(image,
+                                                                 controlPointImage,
+                                                                 jacobianMatricesArray
+                                                                 );
+            }
+            else{
+#warning todo
+            }
         }
-        else{//TODO
+        else if(flag->inputDEFFlag){
+#warning todo
+        }
+        else{
+            fprintf(stderr, "No transformation has been provided.\n");
+            nifti_image_free(image);
+            return 1;
         }
 
         // Export the Jacobian matrix image
+        PrecisionTYPE *jacMatXXPtr=static_cast<PrecisionTYPE *>(jacobianImage->data);
+        if(image->nz>1){
+            PrecisionTYPE *jacMatXYPtr=&jacMatXXPtr[voxelNumber];
+            PrecisionTYPE *jacMatXZPtr=&jacMatXYPtr[voxelNumber];
+            PrecisionTYPE *jacMatYXPtr=&jacMatXZPtr[voxelNumber];
+            PrecisionTYPE *jacMatYYPtr=&jacMatYXPtr[voxelNumber];
+            PrecisionTYPE *jacMatYZPtr=&jacMatYYPtr[voxelNumber];
+            PrecisionTYPE *jacMatZXPtr=&jacMatYZPtr[voxelNumber];
+            PrecisionTYPE *jacMatZYPtr=&jacMatZXPtr[voxelNumber];
+            PrecisionTYPE *jacMatZZPtr=&jacMatZYPtr[voxelNumber];
+            for(size_t voxel=0;voxel<voxelNumber;++voxel){
+                mat33 jacobianMatrix=jacobianMatricesArray[voxel];
+                jacMatXXPtr[voxel]=jacobianMatrix.m[0][0];
+                jacMatXYPtr[voxel]=jacobianMatrix.m[0][1];
+                jacMatXZPtr[voxel]=jacobianMatrix.m[0][2];
+                jacMatYXPtr[voxel]=jacobianMatrix.m[1][0];
+                jacMatYYPtr[voxel]=jacobianMatrix.m[1][1];
+                jacMatYZPtr[voxel]=jacobianMatrix.m[1][2];
+                jacMatZXPtr[voxel]=jacobianMatrix.m[2][0];
+                jacMatZYPtr[voxel]=jacobianMatrix.m[2][1];
+                jacMatZZPtr[voxel]=jacobianMatrix.m[2][2];
+            }
+        }
+        else{
+            PrecisionTYPE *jacMatXYPtr=&jacMatXXPtr[voxelNumber];
+            PrecisionTYPE *jacMatYXPtr=&jacMatXYPtr[voxelNumber];
+            PrecisionTYPE *jacMatYYPtr=&jacMatYXPtr[voxelNumber];
+            for(size_t voxel=0;voxel<voxelNumber;++voxel){
+                mat33 jacobianMatrix=jacobianMatricesArray[voxel];
+                jacMatXXPtr[voxel]=jacobianMatrix.m[0][0];
+                jacMatXYPtr[voxel]=jacobianMatrix.m[0][1];
+                jacMatYXPtr[voxel]=jacobianMatrix.m[1][0];
+                jacMatYYPtr[voxel]=jacobianMatrix.m[1][1];
+            }
+
+        }
+        free(jacobianMatricesArray);
+
         nifti_set_filenames(jacobianImage, param->jacobianMatrixName, 0, 0);
-        strcpy (jacobianImage->descrip,"Jacobian determinant matrix created using NiftyReg");
+        strcpy (jacobianImage->descrip,"Jacobian matrices image created using NiftyReg");
         nifti_image_write(jacobianImage);
         nifti_image_write(jacobianImage);
-        printf("Jacobian map image has been saved: %s\n", param->jacobianMatrixName);
+        printf("Jacobian matrices image has been saved: %s\n", param->jacobianMatrixName);
         nifti_image_free(jacobianImage);
     }
 

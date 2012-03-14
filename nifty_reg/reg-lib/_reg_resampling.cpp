@@ -59,10 +59,10 @@ void CubicSplineResampleSourceImage3D(nifti_image *sourceImage,
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
     FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-    int targetVoxelNumber = resultImage->nx*resultImage->ny*resultImage->nz;
+    int resultVoxelNumber = resultImage->nx*resultImage->ny*resultImage->nz;
     int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
-    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
-    FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[targetVoxelNumber];
+    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[resultVoxelNumber];
+    FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[resultVoxelNumber];
 
 
     int *maskPtr = &mask[0];
@@ -73,12 +73,12 @@ void CubicSplineResampleSourceImage3D(nifti_image *sourceImage,
     else sourceIJKMatrix=&(sourceImage->qto_ijk);
 
     // Iteration over the different volume along the 4th axis
-    for(int t=0; t<resultImage->nt;t++){
+    for(int t=0; t<resultImage->nt*resultImage->nu;t++){
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] 3D Cubic spline resampling of volume number %i\n",t);
 #endif
 
-        SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
+        SourceTYPE *resultIntensity = &resultIntensityPtr[t*resultVoxelNumber];
         SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
         FieldTYPE xBasis[4], yBasis[4], zBasis[4], relative;
@@ -89,11 +89,11 @@ void CubicSplineResampleSourceImage3D(nifti_image *sourceImage,
 #pragma omp parallel for default(none) \
         private(index, intensity, world, position, previous, xBasis, yBasis, zBasis, relative, \
                 a, b, c, Y, Z, zPointer, yzPointer, xyzPointer, xTempNewValue, yTempNewValue) \
-        shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
+        shared(sourceIntensity, resultIntensity, resultVoxelNumber, sourceVoxelNumber, \
                deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
                sourceIJKMatrix, sourceImage)
 #endif // _OPENMP
-        for(index=0;index<targetVoxelNumber; index++){
+        for(index=0;index<resultVoxelNumber; index++){
 
             intensity=(FieldTYPE)(0.0);
 
@@ -193,7 +193,7 @@ void CubicSplineResampleSourceImage2D(  nifti_image *sourceImage,
         sourceIJKMatrix=sourceImage->sto_ijk;
     else sourceIJKMatrix=sourceImage->qto_ijk;
 
-    for(int t=0; t<resultImage->nt;t++){
+    for(int t=0; t<resultImage->nt*resultImage->nu;t++){
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] 2D Cubic spline resampling of volume number %i\n",t);
 #endif
@@ -303,7 +303,7 @@ void TrilinearResampleSourceImage(  nifti_image *sourceImage,
         sourceIJKMatrix=&(sourceImage->sto_ijk);
     else sourceIJKMatrix=&(sourceImage->qto_ijk);
 
-    for(int t=0; t<resultImage->nt;t++){
+    for(int t=0; t<resultImage->nt*resultImage->nu;t++){
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] 3D linear resampling of volume number %i\n",t);
 #endif
@@ -425,7 +425,7 @@ void TrilinearResampleSourceImage2D(nifti_image *sourceImage,
         sourceIJKMatrix=&(sourceImage->sto_ijk);
     else sourceIJKMatrix=&(sourceImage->qto_ijk);
 
-    for(int t=0; t<resultImage->nt;t++){
+    for(int t=0; t<resultImage->nt*resultImage->nu;t++){
 
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] 3D linear resampling of volume number %i\n",t);
@@ -538,7 +538,7 @@ void NearestNeighborResampleSourceImage(nifti_image *sourceImage,
         sourceIJKMatrix=&(sourceImage->sto_ijk);
     else sourceIJKMatrix=&(sourceImage->qto_ijk);
 
-    for(int t=0; t<resultImage->nt;t++){
+    for(int t=0; t<resultImage->nt*resultImage->nu;t++){
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] 3D nearest neighbor resampling of volume number %i\n",t);
 #endif
@@ -607,7 +607,7 @@ void NearestNeighborResampleSourceImage2D(nifti_image *sourceImage,
         sourceIJKMatrix=&(sourceImage->sto_ijk);
     else sourceIJKMatrix=&(sourceImage->qto_ijk);
 
-    for(int t=0; t<resultImage->nt;t++){
+    for(int t=0; t<resultImage->nt*resultImage->nu;t++){
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] 2D nearest neighbor resampling of volume number %i\n",t);
 #endif
@@ -1531,163 +1531,6 @@ void reg_getSourceImageGradient(nifti_image *targetImage,
         break;
     }
     if(MrPropreRule==true) free(mask);
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template <class DTYPE>
-        void reg_resampleImageGradient2D(nifti_image *outputGradientImage,
-                                         nifti_image *jacobianMatrices,
-                                         int *mask)
-{
-    int pixelNumber = outputGradientImage->nx*outputGradientImage->ny, i;
-    DTYPE *gradientPtrX = static_cast<DTYPE *>(outputGradientImage->data);
-    DTYPE *gradientPtrY = &gradientPtrX[pixelNumber];
-
-    DTYPE *jacPtrXX = static_cast<DTYPE *>(jacobianMatrices->data);
-    DTYPE *jacPtrXY = &jacPtrXX[pixelNumber];
-    DTYPE *jacPtrYX = &jacPtrXY[pixelNumber];
-    DTYPE *jacPtrYY = &jacPtrYX[pixelNumber];
-
-    mat33 jacobianMatrix;
-    DTYPE oldGradientValue[2];
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    private(jacobianMatrix, oldGradientValue, i) \
-    shared(jacPtrXX, jacPtrYY, jacPtrXY, jacPtrYX, pixelNumber, \
-   gradientPtrX, gradientPtrY, mask)
-#endif // _OPENMP
-    for(i=0; i<pixelNumber; ++i){
-        if(mask[i]>-1){
-            jacobianMatrix.m[0][0] = jacPtrXX[i];
-            jacobianMatrix.m[0][1] = jacPtrXY[i];
-            jacobianMatrix.m[0][2] = 0;
-            jacobianMatrix.m[1][0] = jacPtrYX[i];
-            jacobianMatrix.m[1][1] = jacPtrYY[i];
-            jacobianMatrix.m[1][2] = 0;
-            jacobianMatrix.m[2][0] = 0;
-            jacobianMatrix.m[2][1] = 0;
-            jacobianMatrix.m[2][2] = 1;
-            jacobianMatrix=nifti_mat33_polar(jacobianMatrix);
-
-            oldGradientValue[0] = gradientPtrX[i];
-            oldGradientValue[1] = gradientPtrY[i];
-
-            gradientPtrX[i] = oldGradientValue[0] * jacobianMatrix.m[0][0] +
-                              oldGradientValue[1] * jacobianMatrix.m[0][1] ;
-            gradientPtrY[i] = oldGradientValue[0] * jacobianMatrix.m[1][0] +
-                              oldGradientValue[1] * jacobianMatrix.m[1][1] ;
-        }
-    }
-}
-/* *************************************************************** */
-template <class DTYPE>
-        void reg_resampleImageGradient3D(nifti_image *outputGradientImage,
-                                         nifti_image *jacobianMatrices,
-                                         int *mask)
-{
-    int voxelNumber = outputGradientImage->nx*outputGradientImage->ny*outputGradientImage->nz, i;
-    DTYPE *gradientPtrX = static_cast<DTYPE *>(outputGradientImage->data);
-    DTYPE *gradientPtrY = &gradientPtrX[voxelNumber];
-    DTYPE *gradientPtrZ = &gradientPtrY[voxelNumber];
-
-    DTYPE *jacPtrXX = static_cast<DTYPE *>(jacobianMatrices->data);
-    DTYPE *jacPtrXY = &jacPtrXX[voxelNumber];
-    DTYPE *jacPtrXZ = &jacPtrXY[voxelNumber];
-    DTYPE *jacPtrYX = &jacPtrXZ[voxelNumber];
-    DTYPE *jacPtrYY = &jacPtrYX[voxelNumber];
-    DTYPE *jacPtrYZ = &jacPtrYY[voxelNumber];
-    DTYPE *jacPtrZX = &jacPtrYZ[voxelNumber];
-    DTYPE *jacPtrZY = &jacPtrZX[voxelNumber];
-    DTYPE *jacPtrZZ = &jacPtrZY[voxelNumber];
-
-    mat33 jacobianMatrix;
-    DTYPE oldGradientValue[3];
-
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    private(jacobianMatrix, oldGradientValue, i) \
-    shared(jacPtrXX, jacPtrYY, jacPtrZZ, jacPtrXY, jacPtrXZ, jacPtrYX, jacPtrYZ, jacPtrZX, jacPtrZY, \
-    voxelNumber, gradientPtrX, gradientPtrY, gradientPtrZ, mask)
-#endif // _OPENMP
-    for(i=0; i<voxelNumber; ++i){
-        if(mask[i]>-1){
-            jacobianMatrix.m[0][0] = jacPtrXX[i];
-            jacobianMatrix.m[0][1] = jacPtrXY[i];
-            jacobianMatrix.m[0][2] = jacPtrXZ[i];
-            jacobianMatrix.m[1][0] = jacPtrYX[i];
-            jacobianMatrix.m[1][1] = jacPtrYY[i];
-            jacobianMatrix.m[1][2] = jacPtrYZ[i];
-            jacobianMatrix.m[2][0] = jacPtrZX[i];
-            jacobianMatrix.m[2][1] = jacPtrZY[i];
-            jacobianMatrix.m[2][2] = jacPtrZZ[i];
-            jacobianMatrix=nifti_mat33_polar(jacobianMatrix);
-
-            oldGradientValue[0] = gradientPtrX[i];
-            oldGradientValue[1] = gradientPtrY[i];
-            oldGradientValue[2] = gradientPtrZ[i];
-
-            gradientPtrX[i] = oldGradientValue[0] * jacobianMatrix.m[0][0] +
-                              oldGradientValue[1] * jacobianMatrix.m[0][1]  +
-                              oldGradientValue[2] * jacobianMatrix.m[0][2] ;
-            gradientPtrY[i] = oldGradientValue[0] * jacobianMatrix.m[1][0] +
-                              oldGradientValue[1] * jacobianMatrix.m[1][1] +
-                              oldGradientValue[2] * jacobianMatrix.m[1][2] ;
-            gradientPtrZ[i] = oldGradientValue[0] * jacobianMatrix.m[2][0] +
-                              oldGradientValue[1] * jacobianMatrix.m[2][1] +
-                              oldGradientValue[2] * jacobianMatrix.m[2][2] ;
-        }
-    }
-}
-/* *************************************************************** */
-void reg_resampleImageGradient(nifti_image *inputGradientImage,
-                               nifti_image *outputGradientImage,
-                               nifti_image *deformationField,
-                               nifti_image *jacobianMatrices,
-                               int *mask,
-                               int interp)
-{
-    // Check the input datatype
-    if(outputGradientImage->datatype!=jacobianMatrices->datatype){
-        printf("[NiftyReg ERROR] reg_resampleImageGradient\n");
-        printf("[NiftyReg ERROR] Input image have different datatype. Exit\n");
-        exit(1);
-    }
-
-    inputGradientImage->nt=inputGradientImage->dim[4]=inputGradientImage->nu;
-    outputGradientImage->nt=outputGradientImage->dim[4]=outputGradientImage->nu;
-    inputGradientImage->nu=inputGradientImage->dim[5]=1;
-    outputGradientImage->nu=outputGradientImage->dim[5]=1;
-
-    reg_resampleSourceImage(inputGradientImage,
-                            inputGradientImage,
-                            outputGradientImage,
-                            deformationField,
-                            mask,
-                            interp,
-                            0
-                            );
-
-    switch(deformationField->datatype){
-    case NIFTI_TYPE_FLOAT32:
-        if(deformationField->nz>1)
-            reg_resampleImageGradient3D<float>(outputGradientImage, jacobianMatrices, mask);
-        else reg_resampleImageGradient2D<float>(outputGradientImage, jacobianMatrices, mask);
-        break;
-    case NIFTI_TYPE_FLOAT64:
-        if(deformationField->nz>1)
-            reg_resampleImageGradient3D<double>(outputGradientImage, jacobianMatrices, mask);
-        else reg_resampleImageGradient2D<double>(outputGradientImage, jacobianMatrices, mask);
-        break;
-    default:
-        printf("[NiftyReg ERROR] reg_resampleImageGradient\n");
-        printf("[NiftyReg ERROR] Only floating and double precision have been implemented. Exit\n");
-        exit(1);
-    }
-
-    inputGradientImage->nu=inputGradientImage->dim[5]=inputGradientImage->nt;
-    outputGradientImage->nu=outputGradientImage->dim[5]=outputGradientImage->nt;
-    inputGradientImage->nt=inputGradientImage->dim[4]=1;
-    outputGradientImage->nt=outputGradientImage->dim[4]=1;
 }
 /* *************************************************************** */
 /* *************************************************************** */

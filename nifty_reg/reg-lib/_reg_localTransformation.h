@@ -23,6 +23,11 @@
 	#include <emmintrin.h>
 #endif
 
+
+/* *********************************************** */
+/* ****      CUBIC SPLINE BASED FUNCTIONS     **** */
+/* *********************************************** */
+
 /* *************************************************************** */
 /** reg_spline_getDeformationField
  * Compute a dense deformation field in the space of a reference
@@ -64,7 +69,9 @@ void reg_bspline_bendingEnergyGradient(nifti_image *splineControlPoint,
   * at the control point positions only.
   */
 extern "C++"
-void reg_bspline_linearEnergy(nifti_image *splineControlPoint, double *values);
+void reg_bspline_linearEnergy(nifti_image *splineControlPoint,
+                              double *values
+                              );
 /* *************************************************************** */
 extern "C++"
 void reg_bspline_linearEnergyGradient(nifti_image *splineControlPoint,
@@ -110,8 +117,9 @@ void reg_bspline_jacobianDeterminantGradient(nifti_image *splineControlPoint,
  * using a cubic b-spline parametrisation
  */
 extern "C++"
-void reg_bspline_GetJacobianMatrix(nifti_image *splineControlPoint,
-                                   nifti_image *jacobianImage
+void reg_bspline_GetJacobianMatrix(nifti_image *referenceImage,
+                                   nifti_image *splineControlPoint,
+                                   mat33 *jacobianImage
                                    );
 /* *************************************************************** */
 /** reg_bspline_correctFolding
@@ -150,19 +158,26 @@ int reg_bspline_initialiseControlPointGridWithAffine(mat44 *affineTransformation
                                                      nifti_image *controlPointImage
                                                      );
 /* *************************************************************** */
-/** reg_getDisplacementFromDeformation(nifti_image *)
-  * This function converts a control point grid containing deformation
-  * into a control point grid containing displacements.
-  * The conversion is done using the appropriate qform/sform
-**/
-int reg_getDisplacementFromDeformation(nifti_image *controlPointImage);
+/** reg_spline_cppComposition(nifti_image* img1, nifti_image* img2, bool type)
+  * This function compose the a first control point image with a second one:
+  * T(x)=Grid1(Grid2(x)).
+  * Grid1 and Grid2 have to contain either displacement or deformation.
+  * Cubic B-Spline can be used (bspline=true) or Cubic Spline (bspline=false)
+ **/
+extern "C++"
+int reg_spline_cppComposition(nifti_image *grid1,
+                              nifti_image *grid2,
+                              bool displacement1,
+                              bool displacement2,
+                              bool bspline
+                              );
 /* *************************************************************** */
-/** reg_getDeformationFromDisplacement(nifti_image *)
-  * This function converts a control point grid containing displacements
-  * into a control point grid containing deformation.
-  * The conversion is done using the appropriate qform/sform
-**/
-int reg_getDeformationFromDisplacement(nifti_image *controlPointImage);
+
+
+/* *********************************************** */
+/* ****   DEFORMATION FIELD BASED FUNCTIONS   **** */
+/* *********************************************** */
+
 /* *************************************************************** */
 /** reg_getJacobianImage
  * Compute the Jacobian determinant at every voxel position
@@ -180,7 +195,7 @@ void reg_defField_getJacobianMap(nifti_image *deformationField,
  */
 extern "C++"
 void reg_defField_getJacobianMatrix(nifti_image *deformationField,
-                                    nifti_image *jacobianImage);
+                                    mat33 *jacobianMatrices);
 /* *************************************************************** */
 /** reg_defField_compose
   * Preforms a deformation field composition.
@@ -194,24 +209,27 @@ void reg_defField_compose(nifti_image *deformationField,
                          nifti_image *dfToUpdate,
                          int *mask);
 /* *************************************************************** */
-/** reg_spline_cppComposition(nifti_image* img1, nifti_image* img2, bool type)
-  * This function compose the a first control point image with a second one:
-  * T(x)=Grid1(Grid2(x)).
-  * Grid1 and Grid2 have to contain deformation.
-  * Cubic B-Spline can be used (bspline=true) or Cubic Spline (bspline=false)
+
+/* *********************************************** */
+/* ****     VELOCITY FIELD BASED FUNCTIONS    **** */
+/* *********************************************** */
+
+/* *************************************************************** */
+/** reg_bspline_GetJacobianMatricesFromVelocityField(nifti_image *ref, nifti_image *vel, mat33 *mat)
+  * This function computed Jacobian matrices by integrating the velocity field
  **/
 extern "C++"
-int reg_spline_cppComposition(nifti_image *grid1,
-                              nifti_image *grid2,
-                              bool bspline
-                              );
+int reg_bspline_GetJacobianMatricesFromVelocityField(nifti_image* referenceImage,
+                                                    nifti_image* velocityFieldImage,
+                                                    mat33* jacobianMatrices
+                                                    );
 /* *************************************************************** */
-/** reg_bspline_GetJacobianMapFromVelocityField(nifti_image *img1, nifti_image *img2)
+/** reg_bspline_GetJacobianDetFromVelocityField(nifti_image *det, nifti_image *vel)
   * This function computed a Jacobian determinant map by integrating the velocity field
  **/
 extern "C++"
-int reg_bspline_GetJacobianMapFromVelocityField(nifti_image* velocityFieldImage,
-                                                nifti_image* jacobianImage
+int reg_bspline_GetJacobianDetFromVelocityField(nifti_image* jacobianDetImage,
+                                                nifti_image* velocityFieldImage
                                                 );
 /* *************************************************************** */
 /** reg_getDeformationFieldFromVelocityGrid(nifti_image *img1, nifti_image *img2, int *mask);
@@ -220,14 +238,27 @@ int reg_bspline_GetJacobianMapFromVelocityField(nifti_image* velocityFieldImage,
   * all the voxels will be included within the mask.
  **/
 extern "C++"
-void reg_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
-                                             nifti_image *deformationFieldImage,
-                                             nifti_image **intermediateDeformationField,
-                                             bool approx);
-extern "C++"
-void reg_getInverseDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
-                                                    nifti_image *deformationFieldImage,
-                                                    nifti_image **intermediateDeformationField,
-                                                    bool approx);
+void reg_bspline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
+                                                     nifti_image *deformationFieldImage);
 /* *************************************************************** */
+
+
+/* *********************************************** */
+/* ****            OTHER FUNCTIONS            **** */
+/* *********************************************** */
+
+/* *************************************************************** */
+/** reg_getDisplacementFromDeformation(nifti_image *)
+  * This function converts a control point grid containing deformation
+  * into a control point grid containing displacements.
+  * The conversion is done using the appropriate qform/sform
+**/
+int reg_getDisplacementFromDeformation(nifti_image *controlPointImage);
+/* *************************************************************** */
+/** reg_getDeformationFromDisplacement(nifti_image *)
+  * This function converts a control point grid containing displacements
+  * into a control point grid containing deformation.
+  * The conversion is done using the appropriate qform/sform
+**/
+int reg_getDeformationFromDisplacement(nifti_image *controlPointImage);
 #endif

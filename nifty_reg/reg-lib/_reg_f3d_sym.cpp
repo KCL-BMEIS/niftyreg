@@ -27,7 +27,7 @@ reg_f3d_sym<T>::reg_f3d_sym(int refTimePoint,int floTimePoint)
     this->backwardWarpedGradientImage=NULL;
     this->backwardDeformationFieldImage=NULL;
     this->backwardVoxelBasedMeasureGradientImage=NULL;
-    this->backwardNodeBasedMeasureGradientImage=NULL;
+    this->backwardNodeBasedGradientImage=NULL;
 
     this->backwardBestControlPointPosition=NULL;
     this->backwardConjugateG=NULL;
@@ -41,7 +41,7 @@ reg_f3d_sym<T>::reg_f3d_sym(int refTimePoint,int floTimePoint)
     this->floatingMaskPyramid=NULL;
     this->backwardActiveVoxelNumber=NULL;
 
-    this->inverseConsistencyWeight=0.01;
+    this->inverseConsistencyWeight=0.5;
 
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_sym constructor called\n");
@@ -283,29 +283,29 @@ void reg_f3d_sym<T>::ClearVoxelBasedMeasureGradient()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_f3d_sym<T>::AllocateNodeBasedMeasureGradient()
+void reg_f3d_sym<T>::AllocateNodeBasedGradient()
 {
-    this->ClearNodeBasedMeasureGradient();
+    this->ClearNodeBasedGradient();
 
-    reg_f3d<T>::AllocateNodeBasedMeasureGradient();
+    reg_f3d<T>::AllocateNodeBasedGradient();
     if(this->backwardControlPointGrid==NULL){
         fprintf(stderr, "[NiftyReg ERROR] The backward control point image is not defined\n");
         exit(1);
     }
-    this->backwardNodeBasedMeasureGradientImage = nifti_copy_nim_info(this->backwardControlPointGrid);
-    this->backwardNodeBasedMeasureGradientImage->data =
-            (void *)calloc(this->backwardNodeBasedMeasureGradientImage->nvox,
-                           this->backwardNodeBasedMeasureGradientImage->nbyper);
+    this->backwardNodeBasedGradientImage = nifti_copy_nim_info(this->backwardControlPointGrid);
+    this->backwardNodeBasedGradientImage->data =
+            (void *)calloc(this->backwardNodeBasedGradientImage->nvox,
+                           this->backwardNodeBasedGradientImage->nbyper);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_f3d_sym<T>::ClearNodeBasedMeasureGradient()
+void reg_f3d_sym<T>::ClearNodeBasedGradient()
 {
-    reg_f3d<T>::ClearNodeBasedMeasureGradient();
-    if(this->backwardNodeBasedMeasureGradientImage!=NULL){
-        nifti_image_free(this->backwardNodeBasedMeasureGradientImage);
-        this->backwardNodeBasedMeasureGradientImage=NULL;
+    reg_f3d<T>::ClearNodeBasedGradient();
+    if(this->backwardNodeBasedGradientImage!=NULL){
+        nifti_image_free(this->backwardNodeBasedGradientImage);
+        this->backwardNodeBasedGradientImage=NULL;
     }
     return;
 }
@@ -603,7 +603,6 @@ void reg_f3d_sym<T>::Initisalise_f3d()
     if(reg_bspline_initialiseControlPointGridWithAffine(&matrixAffine, this->backwardControlPointGrid))
         exit(1);
 
-
     // Set the floating mask image pyramid
     if(this->usePyramid){
         this->floatingMaskPyramid = (int **)malloc(this->levelToPerform*sizeof(int *));
@@ -689,7 +688,6 @@ void reg_f3d_sym<T>::WarpFloatingImage(int inter)
 template <class T>
 double reg_f3d_sym<T>::ComputeSimilarityMeasure()
 {
-
 
     double measure=0.;
     if(this->useSSD){
@@ -821,8 +819,6 @@ double reg_f3d_sym<T>::ComputeLinearEnergyPenaltyTerm()
 template <class T>
 void reg_f3d_sym<T>::GetVoxelBasedGradient()
 {
-//    reg_f3d<T>::GetVoxelBasedGradient();
-
     // The intensity gradient is first computed
     reg_getSourceImageGradient(this->currentReference,
                                this->currentFloating,
@@ -904,7 +900,7 @@ void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
                                      smoothingRadius);
 
     // The node based NMI gradient is extracted
-    reg_voxelCentric2NodeCentric(this->backwardNodeBasedMeasureGradientImage,
+    reg_voxelCentric2NodeCentric(this->backwardNodeBasedGradientImage,
                                  this->backwardVoxelBasedMeasureGradientImage,
                                  this->similarityWeight,
                                  false);
@@ -919,7 +915,7 @@ void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
         referenceMatrix_xyz = &(this->currentReference->sto_xyz);
     else referenceMatrix_xyz = &(this->currentReference->qto_xyz);
     if(this->currentFloating->nz==1){
-        T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedMeasureGradientImage->data);
+        T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
         T *gradientValuesY = &gradientValuesX[controlPointNumber];
         T newGradientValueX, newGradientValueY;
 #ifdef _OPENMP
@@ -937,7 +933,7 @@ void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
         }
     }
     else{
-        T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedMeasureGradientImage->data);
+        T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
         T *gradientValuesY = &gradientValuesX[controlPointNumber];
         T *gradientValuesZ = &gradientValuesY[controlPointNumber];
         T newGradientValueX, newGradientValueY, newGradientValueZ;
@@ -976,7 +972,7 @@ void reg_f3d_sym<T>::GetJacobianBasedGradient()
 
     reg_bspline_jacobianDeterminantGradient(this->backwardControlPointGrid,
                                             this->currentFloating,
-                                            this->backwardNodeBasedMeasureGradientImage,
+                                            this->backwardNodeBasedGradientImage,
                                             this->jacobianLogWeight,
                                             this->jacobianLogApproximation);
     return;
@@ -991,7 +987,7 @@ void reg_f3d_sym<T>::GetBendingEnergyGradient()
     reg_f3d<T>::GetBendingEnergyGradient();
     reg_bspline_bendingEnergyGradient(this->backwardControlPointGrid,
                                       this->currentFloating,
-                                      this->backwardNodeBasedMeasureGradientImage,
+                                      this->backwardNodeBasedGradientImage,
                                       this->bendingEnergyWeight);
     return;
 }
@@ -1006,7 +1002,7 @@ void reg_f3d_sym<T>::GetLinearEnergyGradient()
 
     reg_bspline_linearEnergyGradient(this->backwardControlPointGrid,
                                      this->currentFloating,
-                                     this->backwardNodeBasedMeasureGradientImage,
+                                     this->backwardNodeBasedGradientImage,
                                      this->linearEnergyWeight0,
                                      this->linearEnergyWeight1,
                                      this->linearEnergyWeight2);
@@ -1019,9 +1015,9 @@ void reg_f3d_sym<T>::ComputeConjugateGradient()
 {
     reg_f3d<T>::ComputeConjugateGradient();
 
-    int nodeNumber = this->backwardNodeBasedMeasureGradientImage->nx *
-            this->backwardNodeBasedMeasureGradientImage->ny *
-            this->backwardNodeBasedMeasureGradientImage->nz;
+    int nodeNumber = this->backwardNodeBasedGradientImage->nx *
+            this->backwardNodeBasedGradientImage->ny *
+            this->backwardNodeBasedGradientImage->nz;
     int i;
     if(this->currentIteration==1){
 #ifndef NDEBUG
@@ -1033,7 +1029,7 @@ void reg_f3d_sym<T>::ComputeConjugateGradient()
             T *conjGPtrY = &conjGPtrX[nodeNumber];
             T *conjHPtrX = &this->backwardConjugateH[0];
             T *conjHPtrY = &conjHPtrX[nodeNumber];
-            T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedMeasureGradientImage->data);
+            T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
             T *gradientValuesY = &gradientValuesX[nodeNumber];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -1052,7 +1048,7 @@ void reg_f3d_sym<T>::ComputeConjugateGradient()
             T *conjHPtrX = &this->backwardConjugateH[0];
             T *conjHPtrY = &conjHPtrX[nodeNumber];
             T *conjHPtrZ = &conjHPtrY[nodeNumber];
-            T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedMeasureGradientImage->data);
+            T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
             T *gradientValuesY = &gradientValuesX[nodeNumber];
             T *gradientValuesZ = &gradientValuesY[nodeNumber];
 #ifdef _OPENMP
@@ -1078,7 +1074,7 @@ void reg_f3d_sym<T>::ComputeConjugateGradient()
             T *conjGPtrY = &conjGPtrX[nodeNumber];
             T *conjHPtrX = &this->backwardConjugateH[0];
             T *conjHPtrY = &conjHPtrX[nodeNumber];
-            T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedMeasureGradientImage->data);
+            T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
             T *gradientValuesY = &gradientValuesX[nodeNumber];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -1117,7 +1113,7 @@ void reg_f3d_sym<T>::ComputeConjugateGradient()
             T *conjHPtrX = &this->backwardConjugateH[0];
             T *conjHPtrY = &conjHPtrX[nodeNumber];
             T *conjHPtrZ = &conjHPtrY[nodeNumber];
-            T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedMeasureGradientImage->data);
+            T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
             T *gradientValuesY = &gradientValuesX[nodeNumber];
             T *gradientValuesZ = &gradientValuesY[nodeNumber];
 #ifdef _OPENMP
@@ -1165,8 +1161,8 @@ void reg_f3d_sym<T>::SetGradientImageToZero()
 {
     reg_f3d<T>::SetGradientImageToZero();
 
-    T* nodeGradPtr = static_cast<T *>(this->backwardNodeBasedMeasureGradientImage->data);
-    for(unsigned int i=0; i<this->backwardNodeBasedMeasureGradientImage->nvox; ++i)
+    T* nodeGradPtr = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
+    for(unsigned int i=0; i<this->backwardNodeBasedGradientImage->nvox; ++i)
         *nodeGradPtr++=0;
     return;
 }
@@ -1176,7 +1172,7 @@ template <class T>
 T reg_f3d_sym<T>::GetMaximalGradientLength()
 {
     T forwardLength=reg_f3d<T>::GetMaximalGradientLength();
-    T backwardLength= reg_getMaximalLength<T>(this->backwardNodeBasedMeasureGradientImage);
+    T backwardLength= reg_getMaximalLength<T>(this->backwardNodeBasedGradientImage);
     return forwardLength>backwardLength?forwardLength:backwardLength;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1195,7 +1191,7 @@ void reg_f3d_sym<T>::UpdateControlPointPosition(T scale)
         T *controlPointValuesY = &controlPointValuesX[nodeNumber];
         T *bestControlPointValuesX = &this->backwardBestControlPointPosition[0];
         T *bestControlPointValuesY = &bestControlPointValuesX[nodeNumber];
-        T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedMeasureGradientImage->data);
+        T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
         T *gradientValuesY = &gradientValuesX[nodeNumber];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -1215,7 +1211,7 @@ void reg_f3d_sym<T>::UpdateControlPointPosition(T scale)
         T *bestControlPointValuesX = &this->backwardBestControlPointPosition[0];
         T *bestControlPointValuesY = &bestControlPointValuesX[nodeNumber];
         T *bestControlPointValuesZ = &bestControlPointValuesY[nodeNumber];
-        T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedMeasureGradientImage->data);
+        T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
         T *gradientValuesY = &gradientValuesX[nodeNumber];
         T *gradientValuesZ = &gradientValuesY[nodeNumber];
 #ifdef _OPENMP
@@ -1276,10 +1272,8 @@ nifti_image * reg_f3d_sym<T>::GetBackwardControlPointPositionImage()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
+void reg_f3d_sym<T>::GetInverseConsistencyErrorField()
 {
-    if (this->inverseConsistencyWeight<=0 || this->useInverseConsitency==false) return 0.;
-
     if(this->similarityWeight<=0){
         reg_spline_getDeformationField(this->controlPointGrid,
                                        this->currentReference,
@@ -1313,6 +1307,14 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
                                    true // use B-Spline
                                    );
     reg_getDisplacementFromDeformation(this->backwardDeformationFieldImage);
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
+{
+    if (this->inverseConsistencyWeight<=0 || this->useInverseConsitency==false) return 0.;
+
+    this->GetInverseConsistencyErrorField();
 
     double ferror=0.;
     unsigned int voxelNumber=this->deformationFieldImage->nx *
@@ -1406,7 +1408,7 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
     smoothingRadius[1] = (int)( 2.0*this->controlPointGrid->dy/this->currentReference->dy );
     smoothingRadius[2] = (int)( 2.0*this->controlPointGrid->dz/this->currentReference->dz );
     reg_smoothImageForCubicSpline<T>(this->deformationFieldImage, smoothingRadius);
-    reg_voxelCentric2NodeCentric(this->nodeBasedMeasureGradientImage,
+    reg_voxelCentric2NodeCentric(this->nodeBasedGradientImage,
                                  this->deformationFieldImage,
                                  2.f * this->inverseConsistencyWeight,
                                  true); // update?
@@ -1444,7 +1446,7 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
     smoothingRadius[1] = (int)( 2.0*this->controlPointGrid->dy/this->currentReference->dy );
     smoothingRadius[2] = (int)( 2.0*this->controlPointGrid->dz/this->currentReference->dz );
     reg_smoothImageForCubicSpline<T>(this->deformationFieldImage, smoothingRadius);
-    reg_voxelCentric2NodeCentric(this->nodeBasedMeasureGradientImage,
+    reg_voxelCentric2NodeCentric(this->nodeBasedGradientImage,
                                  this->deformationFieldImage,
                                  2.f * this->inverseConsistencyWeight,
                                  true); // update?
@@ -1483,7 +1485,7 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
     smoothingRadius[1] = (int)( 2.0*this->backwardControlPointGrid->dy/this->currentFloating->dy );
     smoothingRadius[2] = (int)( 2.0*this->backwardControlPointGrid->dz/this->currentFloating->dz );
     reg_smoothImageForCubicSpline<T>(this->backwardDeformationFieldImage, smoothingRadius);
-    reg_voxelCentric2NodeCentric(this->backwardNodeBasedMeasureGradientImage,
+    reg_voxelCentric2NodeCentric(this->backwardNodeBasedGradientImage,
                                  this->backwardDeformationFieldImage,
                                  2.f * this->inverseConsistencyWeight,
                                  true); // update?
@@ -1522,47 +1524,12 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
     smoothingRadius[1] = (int)( 2.0*this->backwardControlPointGrid->dy/this->currentFloating->dy );
     smoothingRadius[2] = (int)( 2.0*this->backwardControlPointGrid->dz/this->currentFloating->dz );
     reg_smoothImageForCubicSpline<T>(this->backwardDeformationFieldImage, smoothingRadius);
-    reg_voxelCentric2NodeCentric(this->backwardNodeBasedMeasureGradientImage,
+    reg_voxelCentric2NodeCentric(this->backwardNodeBasedGradientImage,
                                  this->backwardDeformationFieldImage,
                                  2.f * this->inverseConsistencyWeight,
                                  true); // update?
 
-
     return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template<class T>
-int reg_f3d_sym<T>::CheckStoppingCriteria(bool convergence)
-{
-    if(convergence){
-        if(this->useInverseConsitency==false){
-            this->useInverseConsitency=true;
-#ifdef NDEBUG
-            if(this->verbose)
-#endif
-                printf("[%s] First convergence reached - Inverse consistency penalty is used\n",
-                       this->executableName);
-        }
-        else return 1;
-    }
-    else{
-        if(this->useInverseConsitency==false){
-            if( this->currentIteration>=(this->maxiterationNumber-(float)this->maxiterationNumber*0.1f) ){
-                this->useInverseConsitency=true;
-#ifdef NDEBUG
-                if(this->verbose)
-#endif
-                    printf("[%s] Inverse consistency penalty is used for the last interations\n",
-                       this->executableName);
-                return 2;
-            }
-        }
-        else{
-            if(this->currentIteration>=this->maxiterationNumber) return 1;
-        }
-    }
-    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

@@ -41,12 +41,4 @@ void reg_getSourceImageGradient(nifti_image *targetImage,
                                 int *mask,
                                 int interp);
 
-extern "C++"
-void reg_resampleImageGradient(nifti_image *inputGradientImage,
-                               nifti_image *outputGradientImage,
-                               nifti_image *deformationField,
-                               nifti_image *jacobianMatrices,
-                               int *mask,
-                               int interp);
-
 #endif

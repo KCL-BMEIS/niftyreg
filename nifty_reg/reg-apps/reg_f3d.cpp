@@ -120,15 +120,13 @@ void Usage(char *exec)
     printf("\t-nopy\t\t\tDo not use a pyramidal approach\n");
 
     printf("\n*** F3D_SYM options:\n");
-    printf("\t-useSym \t\tUse symmetric approach\n");
+    printf("\t-sym \t\tUse symmetric approach\n");
     printf("\t-fmask <filename>\t\tFilename of a mask image in the floating space\n");
     printf("\t-ic <float>\t\tWeight of the inverse consistency penalty term [0.01]\n");
 
 #ifdef _NR_DEV
     printf("\n*** F3D2 options:\n");
     printf("\t-vel \t\t\tUse a velocity field integrationto generate the deformation\n");
-    printf("\t-useSymVel \t\tUse similarity measure gradient symmetry\n");
-    printf("\t-approxComp \t\tApproximate the composition step\n");
     printf("\t-step <int>\t\tNumber of composition step [6].\n");
 #endif
 
@@ -221,8 +219,6 @@ int main(int argc, char **argv)
 #ifdef _NR_DEV
     int stepNumber=-1;
     bool useVel=false;
-    bool useSymmetryVel=false;
-    bool approxComposition=false;
 #endif
 #ifdef _USE_CUDA
     bool useGPU=false;
@@ -373,7 +369,7 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-noAppPW") == 0){
             parzenWindowApproximation=false;
         }
-        else if(strcmp(argv[i], "-useSym") ==0){
+        else if(strcmp(argv[i], "-sym") ==0){
             useSym=true;
         }
         else if((strcmp(argv[i],"-fmask")==0) || (strcmp(argv[i],"-smask")==0)){
@@ -409,14 +405,6 @@ int main(int argc, char **argv)
 #endif
 #ifdef _NR_DEV
         else if(strcmp(argv[i], "-vel") == 0){
-            useVel=true;
-        }
-        else if(strcmp(argv[i], "-approxComp") ==0){
-            approxComposition=true;
-            useVel=true;
-        }
-        else if(strcmp(argv[i], "-useSymVel") ==0){
-            useSymmetryVel=true;
             useVel=true;
         }
         else if(strcmp(argv[i], "-step") == 0){
@@ -499,7 +487,7 @@ int main(int argc, char **argv)
         }
         reg_checkAndCorrectDimension(controlPointGridImage);
 #ifdef _NR_DEV
-        if(controlPointGridImage->pixdim[5]>1)
+        if(fabs(controlPointGridImage->intent_code)>1)
             useVel=true;
 #endif
     }
@@ -603,23 +591,23 @@ int main(int argc, char **argv)
     else
 #endif
     {
-        if(useSym){
-            REG = new reg_f3d_sym<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
+        if(useVel){
+            REG = new reg_f3d2<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
             if(verbose==true){
 #endif
-                printf("\n[NiftyReg F3D SYM] CPU implementation is used\n");
+                printf("\n[NiftyReg F3D2] CPU implementation is used\n");
 #ifdef NDEBUG
             }
 #endif
         }
 #ifdef _NR_DEV
-        else if(useVel){
-            REG = new reg_f3d2<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
+        else if(useSym){
+            REG = new reg_f3d_sym<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
             if(verbose==true){
   #endif
-                printf("\n[NiftyReg F3D2] CPU implementation is used\n");
+                printf("\n[NiftyReg F3D SYM] CPU implementation is used\n");
 #ifdef NDEBUG
             }
 #endif
@@ -776,12 +764,6 @@ int main(int argc, char **argv)
     // F3D2 arguments
     if(stepNumber>0)
         REG->SetCompositionStepNumber(stepNumber);
-
-    if(approxComposition)
-        REG->ApproximateComposition();
-
-    if(useSymmetryVel)
-        REG->UseSimilaritySymmetry();
 #endif
 
     // Run the registration
@@ -808,7 +790,7 @@ int main(int argc, char **argv)
         nifti_image_free(outputControlPointGridImage);outputControlPointGridImage=NULL;
 
         // Save the backward control point result
-        if(useSym){
+        if(useSym || useVel){
             // _backward is added to the forward control point grid image name
             std::string b(outputControlPointGridName);
             if(b.find( ".nii.gz") != std::string::npos)
@@ -826,6 +808,10 @@ int main(int argc, char **argv)
             nifti_set_filenames(outputBackwardControlPointGridImage, b.c_str(), 0, 0);
             memset(outputBackwardControlPointGridImage->descrip, 0, 80);
             strcpy (outputBackwardControlPointGridImage->descrip,"Backward Control point position from NiftyReg (reg_f3d)");
+#ifdef _NR_DEV
+            if(useVel)
+                strcpy (outputBackwardControlPointGridImage->descrip,"Backward velocity field grid from NiftyReg (reg_f3d2)");
+#endif
             nifti_image_write(outputBackwardControlPointGridImage);
             nifti_image_free(outputBackwardControlPointGridImage);outputBackwardControlPointGridImage=NULL;
         }

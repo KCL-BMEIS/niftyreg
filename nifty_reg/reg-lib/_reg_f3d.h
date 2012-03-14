@@ -75,7 +75,7 @@ class reg_f3d
     nifti_image *deformationFieldImage;
     nifti_image *warpedGradientImage;
     nifti_image *voxelBasedMeasureGradientImage;
-    nifti_image *nodeBasedMeasureGradientImage;
+    nifti_image *nodeBasedGradientImage;
     T *conjugateG;
     T *conjugateH;
     T *bestControlPointPosition;
@@ -101,8 +101,8 @@ class reg_f3d
     virtual void ClearWarpedGradient();
     virtual void AllocateVoxelBasedMeasureGradient();
     virtual void ClearVoxelBasedMeasureGradient();
-    virtual void AllocateNodeBasedMeasureGradient();
-    virtual void ClearNodeBasedMeasureGradient();
+    virtual void AllocateNodeBasedGradient();
+    virtual void ClearNodeBasedGradient();
     virtual void AllocateConjugateGradientVariables();
     virtual void ClearConjugateGradientVariables();
     virtual void AllocateBestControlPointArray();
@@ -129,7 +129,6 @@ class reg_f3d
     virtual T GetMaximalGradientLength();
     virtual void SetGradientImageToZero();
     virtual void UpdateControlPointPosition(T);
-    virtual int CheckStoppingCriteria(bool);
     virtual void DisplayCurrentLevelParameters();
 
 public:

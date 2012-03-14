@@ -278,12 +278,10 @@ int main(int argc, char **argv)
 #ifndef NDEBUG
             printf("[NiftyReg DEBUG] Computation of the deformation field from the CPP image\n");
 #endif
-            if(controlPointImage->pixdim[5]>1){
-                reg_getDeformationFieldFromVelocityGrid(controlPointImage,
-                                                        deformationFieldImage,
-                                                        NULL, // intermediate
-                                                        false // approximation
-                                                        );
+            if(fabs(controlPointImage->intent_code)>1){
+                reg_bspline_getDeformationFieldFromVelocityGrid(controlPointImage,
+                                                                deformationFieldImage
+                                                                );
             }
             else{
                 reg_spline_getDeformationField(controlPointImage,

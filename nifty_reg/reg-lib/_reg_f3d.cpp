@@ -83,7 +83,7 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->deformationFieldImage=NULL;
     this->warpedGradientImage=NULL;
     this->voxelBasedMeasureGradientImage=NULL;
-    this->nodeBasedMeasureGradientImage=NULL;
+    this->nodeBasedGradientImage=NULL;
     this->conjugateG=NULL;
     this->conjugateH=NULL;
     this->bestControlPointPosition=NULL;
@@ -112,7 +112,7 @@ reg_f3d<T>::~reg_f3d()
     this->ClearBestControlPointArray();
     this->ClearConjugateGradientVariables();
     this->ClearJointHistogram();
-    this->ClearNodeBasedMeasureGradient();
+    this->ClearNodeBasedGradient();
     this->ClearVoxelBasedMeasureGradient();
     if(this->controlPointGrid!=NULL){
         nifti_image_free(this->controlPointGrid);
@@ -609,25 +609,25 @@ void reg_f3d<T>::ClearVoxelBasedMeasureGradient()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_f3d<T>::AllocateNodeBasedMeasureGradient()
+void reg_f3d<T>::AllocateNodeBasedGradient()
 {
     if(this->controlPointGrid==NULL){
         fprintf(stderr, "[NiftyReg ERROR] The control point image is not defined\n");
         exit(1);
     }
-    reg_f3d<T>::ClearNodeBasedMeasureGradient();
-    this->nodeBasedMeasureGradientImage = nifti_copy_nim_info(this->controlPointGrid);
-    this->nodeBasedMeasureGradientImage->data = (void *)calloc(this->nodeBasedMeasureGradientImage->nvox,
-                                                               this->nodeBasedMeasureGradientImage->nbyper);
+    reg_f3d<T>::ClearNodeBasedGradient();
+    this->nodeBasedGradientImage = nifti_copy_nim_info(this->controlPointGrid);
+    this->nodeBasedGradientImage->data = (void *)calloc(this->nodeBasedGradientImage->nvox,
+                                                               this->nodeBasedGradientImage->nbyper);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_f3d<T>::ClearNodeBasedMeasureGradient()
+void reg_f3d<T>::ClearNodeBasedGradient()
 {
-    if(this->nodeBasedMeasureGradientImage!=NULL){
-        nifti_image_free(this->nodeBasedMeasureGradientImage);
-        this->nodeBasedMeasureGradientImage=NULL;
+    if(this->nodeBasedGradientImage!=NULL){
+        nifti_image_free(this->nodeBasedGradientImage);
+        this->nodeBasedGradientImage=NULL;
     }
     return;
 }
@@ -669,8 +669,8 @@ void reg_f3d<T>::AllocateBestControlPointArray()
         exit(1);
     }
     reg_f3d<T>::ClearBestControlPointArray();
-    this->bestControlPointPosition = (T *)malloc(this->nodeBasedMeasureGradientImage->nvox*
-                                                 this->nodeBasedMeasureGradientImage->nbyper);
+    this->bestControlPointPosition = (T *)malloc(this->controlPointGrid->nvox*
+                                                 this->controlPointGrid->nbyper);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1485,7 +1485,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
                                      smoothingRadius);
 
     // The node based NMI gradient is extracted
-    reg_voxelCentric2NodeCentric(this->nodeBasedMeasureGradientImage,
+    reg_voxelCentric2NodeCentric(this->nodeBasedGradientImage,
                                  this->voxelBasedMeasureGradientImage,
                                  this->similarityWeight,
                                  false);
@@ -1498,7 +1498,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
         floatingMatrix_xyz = &(this->currentFloating->sto_xyz);
     else floatingMatrix_xyz = &(this->currentFloating->qto_xyz);
     if(this->currentReference->nz==1){
-        T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
+        T *gradientValuesX = static_cast<T *>(this->nodeBasedGradientImage->data);
         T *gradientValuesY = &gradientValuesX[controlPointNumber];
         T newGradientValueX, newGradientValueY;
 #ifdef _OPENMP
@@ -1516,7 +1516,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
         }
     }
     else{
-        T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
+        T *gradientValuesX = static_cast<T *>(this->nodeBasedGradientImage->data);
         T *gradientValuesY = &gradientValuesX[controlPointNumber];
         T *gradientValuesZ = &gradientValuesY[controlPointNumber];
         T newGradientValueX, newGradientValueY, newGradientValueZ;
@@ -1553,7 +1553,7 @@ void reg_f3d<T>::GetBendingEnergyGradient()
 
     reg_bspline_bendingEnergyGradient(this->controlPointGrid,
                                       this->currentReference,
-                                      this->nodeBasedMeasureGradientImage,
+                                      this->nodeBasedGradientImage,
                                       this->bendingEnergyWeight);
     return;
 }
@@ -1566,7 +1566,7 @@ void reg_f3d<T>::GetLinearEnergyGradient()
 
     reg_bspline_linearEnergyGradient(this->controlPointGrid,
                                      this->currentReference,
-                                     this->nodeBasedMeasureGradientImage,
+                                     this->nodeBasedGradientImage,
                                      this->linearEnergyWeight0,
                                      this->linearEnergyWeight1,
                                      this->linearEnergyWeight2);
@@ -1581,7 +1581,7 @@ void reg_f3d<T>::GetJacobianBasedGradient()
 
     reg_bspline_jacobianDeterminantGradient(this->controlPointGrid,
                                             this->currentReference,
-                                            this->nodeBasedMeasureGradientImage,
+                                            this->nodeBasedGradientImage,
                                             this->jacobianLogWeight,
                                             this->jacobianLogApproximation);
     return;
@@ -1591,9 +1591,9 @@ void reg_f3d<T>::GetJacobianBasedGradient()
 template <class T>
 void reg_f3d<T>::ComputeConjugateGradient()
 {
-    int nodeNumber = this->nodeBasedMeasureGradientImage->nx *
-            this->nodeBasedMeasureGradientImage->ny *
-            this->nodeBasedMeasureGradientImage->nz;
+    int nodeNumber = this->nodeBasedGradientImage->nx *
+            this->nodeBasedGradientImage->ny *
+            this->nodeBasedGradientImage->nz;
     int i;
     if(this->currentIteration==1){
 #ifndef NDEBUG
@@ -1605,7 +1605,7 @@ void reg_f3d<T>::ComputeConjugateGradient()
             T *conjGPtrY = &conjGPtrX[nodeNumber];
             T *conjHPtrX = &this->conjugateH[0];
             T *conjHPtrY = &conjHPtrX[nodeNumber];
-            T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
+            T *gradientValuesX = static_cast<T *>(this->nodeBasedGradientImage->data);
             T *gradientValuesY = &gradientValuesX[nodeNumber];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -1624,7 +1624,7 @@ void reg_f3d<T>::ComputeConjugateGradient()
             T *conjHPtrX = &this->conjugateH[0];
             T *conjHPtrY = &conjHPtrX[nodeNumber];
             T *conjHPtrZ = &conjHPtrY[nodeNumber];
-            T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
+            T *gradientValuesX = static_cast<T *>(this->nodeBasedGradientImage->data);
             T *gradientValuesY = &gradientValuesX[nodeNumber];
             T *gradientValuesZ = &gradientValuesY[nodeNumber];
 #ifdef _OPENMP
@@ -1650,7 +1650,7 @@ void reg_f3d<T>::ComputeConjugateGradient()
             T *conjGPtrY = &conjGPtrX[nodeNumber];
             T *conjHPtrX = &conjugateH[0];
             T *conjHPtrY = &conjHPtrX[nodeNumber];
-            T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
+            T *gradientValuesX = static_cast<T *>(this->nodeBasedGradientImage->data);
             T *gradientValuesY = &gradientValuesX[nodeNumber];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -1689,7 +1689,7 @@ void reg_f3d<T>::ComputeConjugateGradient()
             T *conjHPtrX = &conjugateH[0];
             T *conjHPtrY = &conjHPtrX[nodeNumber];
             T *conjHPtrZ = &conjHPtrY[nodeNumber];
-            T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
+            T *gradientValuesX = static_cast<T *>(this->nodeBasedGradientImage->data);
             T *gradientValuesY = &gradientValuesX[nodeNumber];
             T *gradientValuesZ = &gradientValuesY[nodeNumber];
 #ifdef _OPENMP
@@ -1735,8 +1735,8 @@ void reg_f3d<T>::ComputeConjugateGradient()
 template <class T>
 void reg_f3d<T>::SetGradientImageToZero()
 {
-    T* nodeGradPtr = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
-    for(unsigned int i=0; i<this->nodeBasedMeasureGradientImage->nvox; ++i)
+    T* nodeGradPtr = static_cast<T *>(this->nodeBasedGradientImage->data);
+    for(unsigned int i=0; i<this->nodeBasedGradientImage->nvox; ++i)
         *nodeGradPtr++=0;
     return;
 }
@@ -1745,34 +1745,38 @@ void reg_f3d<T>::SetGradientImageToZero()
 template <class T>
 T reg_f3d<T>::GetMaximalGradientLength()
 {
-    return reg_getMaximalLength<T>(this->nodeBasedMeasureGradientImage);
+    return reg_getMaximalLength<T>(this->nodeBasedGradientImage);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_f3d<T>::UpdateControlPointPosition(T scale)
 {
-    int nodeNumber = this->controlPointGrid->nx *
+    size_t nodeNumber = this->controlPointGrid->nx *
             this->controlPointGrid->ny *
             this->controlPointGrid->nz;
-    int i;
+    size_t i;
+    bool xOpt=this->xOptimisation;
+    bool yOpt=this->yOptimisation;
+    bool zOpt=this->zOptimisation;
     if(this->currentReference->nz==1){
         T *controlPointValuesX = static_cast<T *>(this->controlPointGrid->data);
         T *controlPointValuesY = &controlPointValuesX[nodeNumber];
         T *bestControlPointValuesX = &this->bestControlPointPosition[0];
         T *bestControlPointValuesY = &bestControlPointValuesX[nodeNumber];
-        T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
+        T *gradientValuesX = static_cast<T *>(this->nodeBasedGradientImage->data);
         T *gradientValuesY = &gradientValuesX[nodeNumber];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(controlPointValuesX, controlPointValuesY, bestControlPointValuesX, \
-    bestControlPointValuesY, gradientValuesX, gradientValuesY, nodeNumber, scale) \
+    bestControlPointValuesY, gradientValuesX, gradientValuesY, nodeNumber, scale, \
+    xOpt,yOpt) \
     private(i)
 #endif
         for(i=0; i<nodeNumber;i++){
-            if(this->xOptimisation)
+            if(xOpt)
                 controlPointValuesX[i] = bestControlPointValuesX[i] + scale * gradientValuesX[i];
-            if(this->yOptimisation)
+            if(yOpt)
                 controlPointValuesY[i] = bestControlPointValuesY[i] + scale * gradientValuesY[i];
         }
     }
@@ -1783,7 +1787,7 @@ void reg_f3d<T>::UpdateControlPointPosition(T scale)
         T *bestControlPointValuesX = &this->bestControlPointPosition[0];
         T *bestControlPointValuesY = &bestControlPointValuesX[nodeNumber];
         T *bestControlPointValuesZ = &bestControlPointValuesY[nodeNumber];
-        T *gradientValuesX = static_cast<T *>(this->nodeBasedMeasureGradientImage->data);
+        T *gradientValuesX = static_cast<T *>(this->nodeBasedGradientImage->data);
         T *gradientValuesY = &gradientValuesX[nodeNumber];
         T *gradientValuesZ = &gradientValuesY[nodeNumber];
 #ifdef _OPENMP
@@ -1791,15 +1795,15 @@ void reg_f3d<T>::UpdateControlPointPosition(T scale)
     shared(controlPointValuesX, controlPointValuesY, controlPointValuesZ, \
     bestControlPointValuesX, bestControlPointValuesY, bestControlPointValuesZ, \
     gradientValuesX, gradientValuesY, gradientValuesZ, nodeNumber, scale, \
-    xOptimisation, yOptimisation, zOptimisation) \
+    xOpt,yOpt,zOpt) \
     private(i)
 #endif
         for(i=0; i<nodeNumber;i++){
-            if(this->xOptimisation)
+            if(xOpt)
                 controlPointValuesX[i] = bestControlPointValuesX[i] + scale * gradientValuesX[i];
-            if(this->yOptimisation)
+            if(yOpt)
                 controlPointValuesY[i] = bestControlPointValuesY[i] + scale * gradientValuesY[i];
-            if(this->zOptimisation)
+            if(zOpt)
                 controlPointValuesZ[i] = bestControlPointValuesZ[i] + scale * gradientValuesZ[i];
         }
     }
@@ -1862,7 +1866,7 @@ template <class T>
 void reg_f3d<T>::Run_f3d()
 {
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_f3d::Run_f3d() called\n");
+    printf("[NiftyReg DEBUG] %s::Run_f3d() called\n", this->executableName);
 #endif
 
     if(!this->initialised) this->Initisalise_f3d();
@@ -1893,7 +1897,7 @@ void reg_f3d<T>::Run_f3d()
         this->AllocateCurrentInputImage();
 
         // ALLOCATE IMAGES THAT DEPENDS ON THE CONTROL POINT IMAGE
-        this->AllocateNodeBasedMeasureGradient();
+        this->AllocateNodeBasedGradient();
         this->AllocateBestControlPointArray();
         this->SaveCurrentControlPoint();
         if(this->useConjGradient){
@@ -1945,18 +1949,8 @@ void reg_f3d<T>::Run_f3d()
         this->currentIteration = 0;
         while(this->currentIteration<this->maxiterationNumber){
 
-            if(currentSize<=smallestSize){
-                // The algorithm converged and will stop in f3d.
-                // It will stop approximation in f3d2
-                // It will use the inverse consistency penalty term in f3d_sym
-                if(this->CheckStoppingCriteria(true)){
-                    break;
-                }
-                else{
-                    bestIC = this->GetInverseConsistencyPenaltyTerm();
-                    bestValue -= bestIC;
-                }
-            }
+            if(currentSize<=smallestSize)
+                break;
 
             // Compute the gradient of the similarity measure
             if(this->similarityWeight>0){
@@ -1970,7 +1964,7 @@ void reg_f3d<T>::Run_f3d()
 
             // The gradient is smoothed using a Gaussian kernel if it is required
             if(this->gradientSmoothingSigma!=0){
-                reg_gaussianSmoothing<T>(this->nodeBasedMeasureGradientImage,
+                reg_gaussianSmoothing<T>(this->nodeBasedGradientImage,
                                          fabs(this->gradientSmoothingSigma),
                                          NULL);
             }
@@ -1997,7 +1991,9 @@ void reg_f3d<T>::Run_f3d()
             int lineIteration = 0;
             currentSize=maxStepSize;
             T addedStep=0.0f;
-            while(currentSize>smallestSize && lineIteration<12){
+            while(currentSize>smallestSize &&
+                  lineIteration<12 &&
+                  this->currentIteration<this->maxiterationNumber){
                 T currentLength = -currentSize/maxLength;
 #ifndef NDEBUG
                 printf("[NiftyReg DEBUG] Current added max step: %g\n", currentSize);
@@ -2045,14 +2041,6 @@ void reg_f3d<T>::Run_f3d()
 #endif
                 }
                 lineIteration++;
-                switch(this->CheckStoppingCriteria(false)){
-                    case 1: break; break;
-                    case 2:{
-                        bestIC = this->GetInverseConsistencyPenaltyTerm();
-                        bestValue -= bestIC;
-                        break;
-                    }
-                }
             }
             this->RestoreCurrentControlPoint();
             currentSize=addedStep;
@@ -2076,6 +2064,7 @@ void reg_f3d<T>::Run_f3d()
 #ifdef NDEBUG
             }
 #endif
+            if(addedStep==0.f) break;
         }
 
         // FINAL FOLDING CORRECTION
@@ -2087,7 +2076,7 @@ void reg_f3d<T>::Run_f3d()
         this->ClearDeformationField();
         this->ClearWarpedGradient();
         this->ClearVoxelBasedMeasureGradient();
-        this->ClearNodeBasedMeasureGradient();
+        this->ClearNodeBasedGradient();
         this->ClearConjugateGradientVariables();
         this->ClearBestControlPointArray();
         this->ClearJointHistogram();
@@ -2165,15 +2154,6 @@ nifti_image * reg_f3d<T>::GetControlPointPositionImage()
     memcpy(returnedControlPointGrid->data, this->controlPointGrid->data,
            returnedControlPointGrid->nvox*returnedControlPointGrid->nbyper);
     return returnedControlPointGrid;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template<class T>
-int reg_f3d<T>::CheckStoppingCriteria(bool convergence)
-{
-    if(convergence) return 1;
-    if(this->currentIteration>=this->maxiterationNumber) return 1;
-    return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
