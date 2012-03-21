@@ -591,23 +591,23 @@ int main(int argc, char **argv)
     else
 #endif
     {
-        if(useVel){
-            REG = new reg_f3d2<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
+        if(useSym){
+            REG = new reg_f3d_sym<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
             if(verbose==true){
 #endif
-                printf("\n[NiftyReg F3D2] CPU implementation is used\n");
+                printf("\n[NiftyReg F3D SYM] CPU implementation is used\n");
 #ifdef NDEBUG
             }
 #endif
         }
 #ifdef _NR_DEV
-        else if(useSym){
-            REG = new reg_f3d_sym<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
+        else if(useVel){
+            REG = new reg_f3d2<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
             if(verbose==true){
   #endif
-                printf("\n[NiftyReg F3D SYM] CPU implementation is used\n");
+                printf("\n[NiftyReg F3D2] CPU implementation is used\n");
 #ifdef NDEBUG
             }
 #endif
@@ -789,6 +789,7 @@ int main(int argc, char **argv)
         nifti_image_write(outputControlPointGridImage);
         nifti_image_free(outputControlPointGridImage);outputControlPointGridImage=NULL;
 
+#ifdef _NR_DEV
         // Save the backward control point result
         if(useSym || useVel){
             // _backward is added to the forward control point grid image name
@@ -815,6 +816,7 @@ int main(int argc, char **argv)
             nifti_image_write(outputBackwardControlPointGridImage);
             nifti_image_free(outputBackwardControlPointGridImage);outputBackwardControlPointGridImage=NULL;
         }
+#endif
 
         // Save the warped image result
         nifti_image *outputWarpedImage = REG->GetWarpedImage();
