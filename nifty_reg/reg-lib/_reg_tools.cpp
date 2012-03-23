@@ -15,17 +15,6 @@
 #include "_reg_tools.h"
 
 /* *************************************************************** */
-
-// No round() function available in windows.
-#ifdef _WINDOWS
-template<class PrecisionType>
-int round(PrecisionType x)
-{
-    return int(x > 0.0 ? x + 0.5 : x - 0.5);
-}
-#endif
-
-/* *************************************************************** */
 /* *************************************************************** */
 void reg_checkAndCorrectDimension(nifti_image *image)
 {

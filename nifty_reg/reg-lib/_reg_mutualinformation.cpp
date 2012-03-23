@@ -240,7 +240,7 @@ void reg_getEntropies1(nifti_image *targetImage,
                     valid_values = false;
                     break;
                 }
-                target_flat_index += target_values[i] * DTYPE(target_offsets[i]);
+                target_flat_index += target_values[i] * (DTYPE)(target_offsets[i]);
             }
 
             if (valid_values) {
@@ -254,7 +254,7 @@ void reg_getEntropies1(nifti_image *targetImage,
                         valid_values = false;
                         break;
                     }
-                    result_flat_index += result_values[i] * DTYPE(result_offsets[i]);
+                    result_flat_index += result_values[i] * (DTYPE)(result_offsets[i]);
                 }
             }
             if (valid_values) {

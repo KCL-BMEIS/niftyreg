@@ -16,7 +16,13 @@ endif(COMMAND cmake_policy)
 
 #-----------------------------------------------------------------------------
 SET(ZLIB "z")
-ADD_DEFINITIONS(-fPIC)
+
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Windows")	
+	ADD_DEFINITIONS(/W1)
+ELSE (${CMAKE_SYSTEM_NAME} MATCHES "Windows")	
+	ADD_DEFINITIONS(-fPIC)
+ENDIF()	
+
 #-----------------------------------------------------------------------------
 
 OPTION(BUILD_NIFTYREG "To build the NiftyReg executables" ON)
@@ -65,13 +71,17 @@ IF(USE_OPENMP)
             MESSAGE(FATAL_ERROR "Please turn USE_OPENMP OFF")
         ENDIF()
     ENDIF()
+	
     EXECUTE_PROCESS(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
+
     IF(GCC_VERSION VERSION_GREATER 4.2 OR GCC_VERSION VERSION_EQUAL 4.2)
         SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
-   ELSE()
-        MESSAGE("Can not use Open-MP with gcc version lower than 4.2. Current version ${GCC_VERSION}")
-        MESSAGE(FATAL_ERROR "Please turn USE_OPENMP OFF")
+	ENDIF()
+	
+	IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")	
+		SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /openmp")
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /openmp")
     ENDIF()
 ENDIF(USE_OPENMP)
 

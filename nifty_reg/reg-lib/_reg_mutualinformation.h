@@ -15,7 +15,7 @@
 #include "nifti1_io.h"
 #include <vector>
 #ifdef _OPENMP
-    #include "omp.h"
+  #include "omp.h"
 #endif
 
 // Simple class to dynamically manage an array of pointers

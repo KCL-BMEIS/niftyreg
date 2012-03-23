@@ -124,7 +124,9 @@ void reg_f3d2<T>::GetInverseConsistencyGradient()
 {
     if(this->inverseConsistencyWeight<=0 || this->useInverseConsitency==false) return;
 
+#if !defined(_WIN32)
 #warning TODO
+#endif
 
     return;
 }
@@ -142,7 +144,11 @@ void reg_f3d2<T>::UpdateControlPointPosition(T scale)
 
     nifti_image *lieBracket1=NULL;
 
-    size_t node;
+#if defined (_WIN32)
+  long int node;
+#else
+  size_t node;
+#endif
 
     /************************/
     /**** Forward update ****/
