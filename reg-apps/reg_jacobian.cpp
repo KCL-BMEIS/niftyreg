@@ -287,11 +287,15 @@ int main(int argc, char **argv)
                                                                  );
             }
             else{
+#if !defined(_WIN32)
 #warning todo
+#endif
             }
         }
         else if(flag->inputDEFFlag){
+#if !defined(_WIN32)
 #warning todo
+#endif
         }
         else{
             fprintf(stderr, "No transformation has been provided.\n");

@@ -2913,7 +2913,7 @@ void reg_bspline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldG
     else // forward deformation field
         reg_tools_addSubMulDivValue(tempDEFImage,
                                     tempDEFImage,
-                                    pow(2,fabs(scaledVelocityField->intent_code)),
+                                    pow(2.0f,(float)fabs(scaledVelocityField->intent_code)),
                                     3);
     reg_getDeformationFromDisplacement(tempDEFImage);
 

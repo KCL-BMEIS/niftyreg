@@ -1755,7 +1755,12 @@ void reg_f3d<T>::UpdateControlPointPosition(T scale)
     size_t nodeNumber = this->controlPointGrid->nx *
             this->controlPointGrid->ny *
             this->controlPointGrid->nz;
+#if defined (_WIN32)
+    long int i;
+#else
     size_t i;
+#endif
+
     bool xOpt=this->xOptimisation;
     bool yOpt=this->yOptimisation;
     bool zOpt=this->zOptimisation;

@@ -3258,7 +3258,9 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_2D(nifti_image* referenceI
                                                          nifti_image* velocityFieldImage,
                                                          mat33* jacobianMatrices)
 {
+#if !defined(_WIN32)
 #warning TODO
+#endif
 }
 /* *************************************************************** */
 template <class DTYPE>
@@ -3298,7 +3300,7 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceI
     reg_getDisplacementFromDeformation(scaledVelocityField);
     reg_tools_addSubMulDivValue(scaledVelocityField,
                                 scaledVelocityField,
-                                pow(2,fabs(scaledVelocityField->intent_code)),
+                                pow(2.0f, (float) fabs(scaledVelocityField->intent_code)),
                                 3);
     reg_getDeformationFromDisplacement(scaledVelocityField);
 
