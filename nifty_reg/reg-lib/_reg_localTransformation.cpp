@@ -979,7 +979,6 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
                 if(bspline) Get_BSplineBasisValues<DTYPE>(basis, temp);
                 else Get_SplineBasisValues<DTYPE>(basis, temp);
 #if _USE_SSE
-
                 val.f[0] = temp[0];
                 val.f[1] = temp[1];
                 val.f[2] = temp[2];
@@ -2282,10 +2281,10 @@ void reg_defField_compose3D(nifti_image *deformationField,
                             nifti_image *dfToUpdate,
                             int *mask)
 {
-    int DFVoxelNumber=deformationField->nx*deformationField->ny*
-            deformationField->nz;
-    int resVoxelNumber=dfToUpdate->nx*dfToUpdate->ny*
-            dfToUpdate->nz;
+    const int DefFieldDim[3]={deformationField->nx,deformationField->ny,deformationField->nz};
+    const size_t DFVoxelNumber=DefFieldDim[0]*DefFieldDim[1]*DefFieldDim[2];
+    size_t resVoxelNumber=dfToUpdate->nx*dfToUpdate->ny*dfToUpdate->nz;
+
     DTYPE *defPtrX = static_cast<DTYPE *>(deformationField->data);
     DTYPE *defPtrY = &defPtrX[DFVoxelNumber];
     DTYPE *defPtrZ = &defPtrY[DFVoxelNumber];
@@ -2294,22 +2293,24 @@ void reg_defField_compose3D(nifti_image *deformationField,
     DTYPE *resPtrY = &resPtrX[resVoxelNumber];
     DTYPE *resPtrZ = &resPtrY[resVoxelNumber];
 
-    mat44 *df_real2Voxel=NULL;
-    mat44 *df_voxel2Real=NULL;
+    mat44 df_real2Voxel;
+    mat44 df_voxel2Real;
     if(deformationField->sform_code>0){
-        df_real2Voxel=&(deformationField->sto_ijk);
-        df_voxel2Real=&(deformationField->sto_xyz);
+        df_real2Voxel=deformationField->sto_ijk;
+        df_voxel2Real=deformationField->sto_xyz;
     }
     else{
-        df_real2Voxel=&(deformationField->qto_ijk);
-        df_voxel2Real=&(deformationField->qto_xyz);
+        df_real2Voxel=deformationField->qto_ijk;
+        df_voxel2Real=deformationField->qto_xyz;
     }
-    int i, a, b, c, currentX, currentY, currentZ, index, pre[3];
+    size_t i;
+    short a, b, c;
+    int currentX, currentY, currentZ, pre[3], index[3];
     DTYPE realDefX, realDefY, realDefZ, voxelX, voxelY, voxelZ, tempBasis;
     DTYPE defX, defY, defZ, relX[2], relY[2], relZ[2], basis;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(resVoxelNumber, mask, df_real2Voxel, df_voxel2Real, deformationField, \
+    shared(resVoxelNumber, mask, df_real2Voxel, df_voxel2Real, DefFieldDim, \
     defPtrX, defPtrY, defPtrZ, resPtrX, resPtrY, resPtrZ) \
     private(i, a, b, c, currentX, currentY, currentZ, index, pre, \
     realDefX, realDefY, realDefZ, voxelX, voxelY, voxelZ, tempBasis, \
@@ -2322,18 +2323,18 @@ void reg_defField_compose3D(nifti_image *deformationField,
             realDefZ = resPtrZ[i];
 
             // Conversion from real to voxel in the deformation field
-            voxelX = realDefX * df_real2Voxel->m[0][0]
-                    + realDefY * df_real2Voxel->m[0][1]
-                    + realDefZ * df_real2Voxel->m[0][2]
-                    + df_real2Voxel->m[0][3];
-            voxelY = realDefX * df_real2Voxel->m[1][0]
-                    + realDefY * df_real2Voxel->m[1][1]
-                    + realDefZ * df_real2Voxel->m[1][2]
-                    + df_real2Voxel->m[1][3];
-            voxelZ = realDefX * df_real2Voxel->m[2][0]
-                    + realDefY * df_real2Voxel->m[2][1]
-                    + realDefZ * df_real2Voxel->m[2][2]
-                    + df_real2Voxel->m[2][3];
+            voxelX = realDefX * df_real2Voxel.m[0][0]
+                    + realDefY * df_real2Voxel.m[0][1]
+                    + realDefZ * df_real2Voxel.m[0][2]
+                    + df_real2Voxel.m[0][3];
+            voxelY = realDefX * df_real2Voxel.m[1][0]
+                    + realDefY * df_real2Voxel.m[1][1]
+                    + realDefZ * df_real2Voxel.m[1][2]
+                    + df_real2Voxel.m[1][3];
+            voxelZ = realDefX * df_real2Voxel.m[2][0]
+                    + realDefY * df_real2Voxel.m[2][1]
+                    + realDefZ * df_real2Voxel.m[2][2]
+                    + df_real2Voxel.m[2][3];
 
             // Linear interpolation to compute the new deformation
             pre[0]=(int)floor(voxelX);
@@ -2345,35 +2346,36 @@ void reg_defField_compose3D(nifti_image *deformationField,
             realDefX=realDefY=realDefZ=0.;
             for(c=0;c<2;++c){
                 currentZ = pre[2]+c;
+                index[0]=currentZ*DefFieldDim[0]*DefFieldDim[1];
                 for(b=0;b<2;++b){
                     currentY = pre[1]+b;
+                    index[1]=index[0]+currentY*DefFieldDim[0];
                     tempBasis= relY[b] * relZ[c];
                     for(a=0;a<2;++a){
                         currentX = pre[0]+a;
-                        if(currentX>-1 && currentX<deformationField->nx &&
-                                currentY>-1 && currentY<deformationField->ny &&
-                                currentZ>-1 && currentZ<deformationField->nz){
+                        if(currentX>-1 && currentX<DefFieldDim[0] &&
+                           currentY>-1 && currentY<DefFieldDim[1] &&
+                           currentZ>-1 && currentZ<DefFieldDim[2]){
                             // Uses the deformation field if voxel is in its space
-                            index=(currentZ*deformationField->ny+currentY)
-                                    *deformationField->nx+currentX;
-                            defX = defPtrX[index];
-                            defY = defPtrY[index];
-                            defZ = defPtrZ[index];
+                            index[2]=index[1]+currentX;
+                            defX = defPtrX[index[2]];
+                            defY = defPtrY[index[2]];
+                            defZ = defPtrZ[index[2]];
                         }
                         else{
                             // Uses the deformation field affine transformation
-                            defX = df_voxel2Real->m[0][0] * currentX
-                                    + df_voxel2Real->m[0][1] * currentY
-                                    + df_voxel2Real->m[0][2] * currentZ
-                                    + df_voxel2Real->m[0][3];
-                            defY = df_voxel2Real->m[1][0] * currentX
-                                    + df_voxel2Real->m[1][1] * currentY
-                                    + df_voxel2Real->m[1][2] * currentZ
-                                    + df_voxel2Real->m[1][3];
-                            defZ = df_voxel2Real->m[2][0] * currentX
-                                    + df_voxel2Real->m[2][1] * currentY
-                                    + df_voxel2Real->m[2][2] * currentZ
-                                    + df_voxel2Real->m[2][3];
+                            defX = df_voxel2Real.m[0][0] * currentX
+                                    + df_voxel2Real.m[0][1] * currentY
+                                    + df_voxel2Real.m[0][2] * currentZ
+                                    + df_voxel2Real.m[0][3];
+                            defY = df_voxel2Real.m[1][0] * currentX
+                                    + df_voxel2Real.m[1][1] * currentY
+                                    + df_voxel2Real.m[1][2] * currentZ
+                                    + df_voxel2Real.m[1][3];
+                            defZ = df_voxel2Real.m[2][0] * currentX
+                                    + df_voxel2Real.m[2][1] * currentY
+                                    + df_voxel2Real.m[2][2] * currentZ
+                                    + df_voxel2Real.m[2][3];
                         }
                         basis = relX[a] * tempBasis;
                         realDefX += defX * basis;
@@ -2908,12 +2910,12 @@ void reg_bspline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldG
     if(velocityFieldGrid->intent_code<0) // backward deformation field
         reg_tools_addSubMulDivValue(tempDEFImage,
                                     tempDEFImage,
-                                    -pow(2.,fabs(scaledVelocityField->intent_code)),
+                                    -pow(2.,fabs(velocityFieldGrid->intent_code)),
                                     3);
     else // forward deformation field
         reg_tools_addSubMulDivValue(tempDEFImage,
                                     tempDEFImage,
-                                    pow(2.0f,(float)fabs(scaledVelocityField->intent_code)),
+                                    pow(2,fabs(velocityFieldGrid->intent_code)),
                                     3);
     reg_getDeformationFromDisplacement(tempDEFImage);
 

@@ -93,6 +93,7 @@ public:
     virtual void CheckParameters_f3d();
     virtual void Initisalise_f3d();
     virtual nifti_image *GetBackwardControlPointPositionImage();
+    virtual nifti_image **GetWarpedImage();
 };
 
 #include "_reg_f3d_sym.cpp"
