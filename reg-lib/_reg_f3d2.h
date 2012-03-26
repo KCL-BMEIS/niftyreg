@@ -32,7 +32,7 @@ public:
     reg_f3d2(int refTimePoint,int floTimePoint);
     ~reg_f3d2();
     virtual void Initisalise_f3d();
-    virtual nifti_image *GetWarpedImage();
+    virtual nifti_image **GetWarpedImage();
 };
 
 #include "_reg_f3d2.cpp"

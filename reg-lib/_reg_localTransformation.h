@@ -112,9 +112,22 @@ void reg_bspline_jacobianDeterminantGradient(nifti_image *splineControlPoint,
                                              bool approx
                                              );
 /* *************************************************************** */
+/** reg_bspline_GetJacobianMatrixFull
+ * Compute the Jacobian matrix at every voxel position
+ * using a cubic b-spline parametrisation
+ */
+extern "C++"
+void reg_bspline_GetJacobianMatrixFull(nifti_image *referenceImage,
+                                       nifti_image *splineControlPoint,
+                                       mat33 *jacobianImage
+                                       );
+/* *************************************************************** */
 /** reg_bspline_GetJacobianMatrix
  * Compute the Jacobian matrix at every voxel position
  * using a cubic b-spline parametrisation
+ * This function is similar to reg_bspline_GetJacobianMatrixFull but it
+ * assumes that the splineControlPoint grid is used to parametrise the
+ * transformation in referenceImage. It leads to faster computation.
  */
 extern "C++"
 void reg_bspline_GetJacobianMatrix(nifti_image *referenceImage,
@@ -206,8 +219,8 @@ void reg_defField_getJacobianMatrix(nifti_image *deformationField,
   */
 extern "C++"
 void reg_defField_compose(nifti_image *deformationField,
-                         nifti_image *dfToUpdate,
-                         int *mask);
+                          nifti_image *dfToUpdate,
+                          int *mask);
 /* *************************************************************** */
 
 /* *********************************************** */

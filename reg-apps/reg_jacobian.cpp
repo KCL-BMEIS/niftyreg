@@ -287,15 +287,15 @@ int main(int argc, char **argv)
                                                                  );
             }
             else{
-#if !defined(_WIN32)
-#warning todo
-#endif
+                reg_bspline_GetJacobianMatrix(image,
+                                              controlPointImage,
+                                              jacobianMatricesArray
+                                              );
             }
         }
         else if(flag->inputDEFFlag){
-#if !defined(_WIN32)
-#warning todo
-#endif
+            reg_defField_getJacobianMatrix(deformationFieldImage,
+                                           jacobianMatricesArray);
         }
         else{
             fprintf(stderr, "No transformation has been provided.\n");

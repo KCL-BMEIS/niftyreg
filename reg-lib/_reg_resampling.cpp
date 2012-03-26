@@ -147,24 +147,18 @@ void CubicSplineResampleSourceImage3D(nifti_image *sourceImage,
             }
 
             switch(sourceImage->datatype){
-            case NIFTI_TYPE_FLOAT32:
-                resultIntensity[index]=(SourceTYPE)intensity;
-                break;
-            case NIFTI_TYPE_FLOAT64:
-                resultIntensity[index]=(SourceTYPE)intensity;
-                break;
-            case NIFTI_TYPE_UINT8:
-                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
-                break;
+                case NIFTI_TYPE_UINT8:
+                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                    break;
                 case NIFTI_TYPE_UINT16:
-                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
-                break;
+                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                    break;
                 case NIFTI_TYPE_UINT32:
-                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
-                break;
+                    resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                    break;
                 default:
-                resultIntensity[index]=(SourceTYPE)round(intensity);
-                break;
+                    resultIntensity[index]=(SourceTYPE)round(intensity);
+                    break;
             }
         }
     }

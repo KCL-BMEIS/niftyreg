@@ -103,17 +103,17 @@ IF(BUILD_NIFTYREG)
 #-----------------------------------------------------------------------------
 ## BUILD THE ALADIN LIBRARY CPU OR GPU
     SET(NAME _reg_aladin)
-    IF(USE_CUDA)
+#    IF(USE_CUDA)
 #-----------------------------------------------------------------------------
-        IF(WIN32)
-            CUDA_ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp )
-        ELSE(WIN32)
-            CUDA_ADD_LIBRARY(${NAME} SHARED ${NAME}.h ${NAME}.cpp)
-        ENDIF(WIN32)
-            TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_blockMatching _reg_resampling _reg_globalTransformation _reg_ssd _reg_mutualinformation _reg_tools reg_nifti ${ZLIB} _reg_localTransformation_gpu _reg_resampling_gpu _reg_globalTransformation_gpu _reg_mutualinformation_gpu _reg_tools_gpu _reg_cudaCommon)
-            INSTALL(FILES ${NAME}_gpu.h DESTINATION include)
+#        IF(WIN32)
+#            CUDA_ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp )
+#        ELSE(WIN32)
+#            CUDA_ADD_LIBRARY(${NAME} SHARED ${NAME}.h ${NAME}.cpp)
+#        ENDIF(WIN32)
+#            TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_blockMatching _reg_resampling _reg_globalTransformation _reg_ssd _reg_mutualinformation _reg_tools reg_nifti ${ZLIB} _reg_localTransformation_gpu _reg_resampling_gpu _reg_globalTransformation_gpu _reg_mutualinformation_gpu _reg_tools_gpu _reg_cudaCommon)
+#            INSTALL(FILES ${NAME}_gpu.h DESTINATION include)
 #-----------------------------------------------------------------------------
-    ELSE(USE_CUDA)
+#    ELSE(USE_CUDA)
 #-----------------------------------------------------------------------------
         IF(WIN32)
             ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp)
@@ -122,7 +122,7 @@ IF(BUILD_NIFTYREG)
         ENDIF(WIN32)
             TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_blockMatching _reg_resampling _reg_globalTransformation _reg_ssd _reg_mutualinformation _reg_tools reg_nifti ${ZLIB})
 #-----------------------------------------------------------------------------
-    ENDIF(USE_CUDA)
+#    ENDIF(USE_CUDA)
 #-----------------------------------------------------------------------------
     INSTALL(TARGETS ${NAME}
             RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin

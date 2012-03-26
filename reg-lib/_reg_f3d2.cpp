@@ -124,9 +124,8 @@ void reg_f3d2<T>::GetInverseConsistencyGradient()
 {
     if(this->inverseConsistencyWeight<=0 || this->useInverseConsitency==false) return;
 
-#if !defined(_WIN32)
-#warning TODO
-#endif
+    fprintf(stderr, "NR ERROR - reg_f3d2<T>::GetInverseConsistencyGradient() has to be implemented");
+    exit(1);
 
     return;
 }
@@ -184,20 +183,20 @@ void reg_f3d2<T>::UpdateControlPointPosition(T scale)
     // Allocate nifti_images to store the Lie bracket [grad,vel]
     lieBracket1=nifti_copy_nim_info(this->controlPointGrid);
     lieBracket1->data=(void *)malloc(lieBracket1->nvox*lieBracket1->nbyper);
-/*
+
     // Allocate some arrays to store jacobian matrices
     jacobianMatricesGrad=(mat33 *)malloc(nodeNumber*sizeof(mat33));
     jacobianMatricesVel=(mat33 *)malloc(nodeNumber*sizeof(mat33));
     jacobianMatricesBracket=(mat33 *)malloc(nodeNumber*sizeof(mat33));
 
     // Compute Jacobian matrices
-    reg_bspline_GetJacobianMatricesFromVelocityField(forwardScaledGradient,
-                                                     forwardScaledGradient,
-                                                     jacobianMatricesGrad);
+    reg_bspline_GetJacobianMatrixFull(forwardScaledGradient,
+                                      forwardScaledGradient,
+                                      jacobianMatricesGrad);
     reg_getDisplacementFromDeformation(forwardScaledGradient);
-    reg_bspline_GetJacobianMatricesFromVelocityField(this->controlPointGrid,
-                                                     this->controlPointGrid,
-                                                     jacobianMatricesVel);
+    reg_bspline_GetJacobianMatrixFull(this->controlPointGrid,
+                                      this->controlPointGrid,
+                                      jacobianMatricesVel);
     reg_getDisplacementFromDeformation(this->controlPointGrid);
 
     // Compute the first Lie bracket [grad,cpp] and add it to the new velocity grid
@@ -230,26 +229,26 @@ void reg_f3d2<T>::UpdateControlPointPosition(T scale)
 #endif // _OPENMP
         for(node=0;node<nodeNumber;++node){
             lieBracket1PtrX[node] =
-                    jacobianMatricesGrad[node].m[0][0] * currentVelFieldPtrX[node] +
+                    (jacobianMatricesVel[node].m[0][0] * scaledGradFieldPtrX[node] +
+                    jacobianMatricesVel[node].m[0][1] * scaledGradFieldPtrY[node] +
+                    jacobianMatricesVel[node].m[0][2] * scaledGradFieldPtrZ[node] ) -
+                    (jacobianMatricesGrad[node].m[0][0] * currentVelFieldPtrX[node] +
                     jacobianMatricesGrad[node].m[0][1] * currentVelFieldPtrY[node] +
-                    jacobianMatricesGrad[node].m[0][2] * currentVelFieldPtrZ[node] -
-                    jacobianMatricesVel[node].m[0][0] * scaledGradFieldPtrX[node] -
-                    jacobianMatricesVel[node].m[0][1] * scaledGradFieldPtrY[node] -
-                    jacobianMatricesVel[node].m[0][2] * scaledGradFieldPtrZ[node];
+                    jacobianMatricesGrad[node].m[0][2] * currentVelFieldPtrZ[node]);
             lieBracket1PtrY[node] =
-                    jacobianMatricesGrad[node].m[1][0] * currentVelFieldPtrX[node] +
+                    (jacobianMatricesVel[node].m[1][0] * scaledGradFieldPtrX[node] +
+                    jacobianMatricesVel[node].m[1][1] * scaledGradFieldPtrY[node] +
+                    jacobianMatricesVel[node].m[1][2] * scaledGradFieldPtrZ[node] ) -
+                    (jacobianMatricesGrad[node].m[1][0] * currentVelFieldPtrX[node] +
                     jacobianMatricesGrad[node].m[1][1] * currentVelFieldPtrY[node] +
-                    jacobianMatricesGrad[node].m[1][2] * currentVelFieldPtrZ[node] -
-                    jacobianMatricesVel[node].m[1][0] * scaledGradFieldPtrX[node] -
-                    jacobianMatricesVel[node].m[1][1] * scaledGradFieldPtrY[node] -
-                    jacobianMatricesVel[node].m[1][2] * scaledGradFieldPtrZ[node];
+                    jacobianMatricesGrad[node].m[1][2] * currentVelFieldPtrZ[node]);
             lieBracket1PtrZ[node] =
-                    jacobianMatricesGrad[node].m[2][0] * currentVelFieldPtrX[node] +
+                    (jacobianMatricesVel[node].m[2][0] * scaledGradFieldPtrX[node] +
+                    jacobianMatricesVel[node].m[2][1] * scaledGradFieldPtrY[node] +
+                    jacobianMatricesVel[node].m[2][2] * scaledGradFieldPtrZ[node] ) -
+                    (jacobianMatricesGrad[node].m[2][0] * currentVelFieldPtrX[node] +
                     jacobianMatricesGrad[node].m[2][1] * currentVelFieldPtrY[node] +
-                    jacobianMatricesGrad[node].m[2][2] * currentVelFieldPtrZ[node] -
-                    jacobianMatricesVel[node].m[2][0] * scaledGradFieldPtrX[node] -
-                    jacobianMatricesVel[node].m[2][1] * scaledGradFieldPtrY[node] -
-                    jacobianMatricesVel[node].m[2][2] * scaledGradFieldPtrZ[node];
+                    jacobianMatricesGrad[node].m[2][2] * currentVelFieldPtrZ[node]);
             newVelocityPtrX[node] += 0.5f * lieBracket1PtrX[node];
             newVelocityPtrY[node] += 0.5f * lieBracket1PtrY[node];
             newVelocityPtrZ[node] += 0.5f * lieBracket1PtrZ[node];
@@ -265,20 +264,20 @@ void reg_f3d2<T>::UpdateControlPointPosition(T scale)
 #endif // _OPENMP
         for(node=0;node<nodeNumber;++node){
             lieBracket1PtrX[node] =
-                    jacobianMatricesGrad[node].m[0][0] * currentVelFieldPtrX[node] +
-                    jacobianMatricesGrad[node].m[0][1] * currentVelFieldPtrY[node] -
-                    jacobianMatricesVel[node].m[0][0] * scaledGradFieldPtrX[node] -
-                    jacobianMatricesVel[node].m[0][1] * scaledGradFieldPtrY[node];
+                    jacobianMatricesVel[node].m[0][0] * scaledGradFieldPtrX[node] +
+                    jacobianMatricesVel[node].m[0][1] * scaledGradFieldPtrY[node] -
+                    (jacobianMatricesGrad[node].m[0][0] * currentVelFieldPtrX[node] +
+                    jacobianMatricesGrad[node].m[0][1] * currentVelFieldPtrY[node]);
             lieBracket1PtrY[node] =
-                    jacobianMatricesGrad[node].m[1][0] * currentVelFieldPtrX[node] +
-                    jacobianMatricesGrad[node].m[1][1] * currentVelFieldPtrY[node] -
-                    jacobianMatricesVel[node].m[1][0] * scaledGradFieldPtrX[node] -
-                    jacobianMatricesVel[node].m[1][1] * scaledGradFieldPtrY[node];
+                    jacobianMatricesVel[node].m[1][0] * scaledGradFieldPtrX[node] +
+                    jacobianMatricesVel[node].m[1][1] * scaledGradFieldPtrY[node] -
+                    (jacobianMatricesGrad[node].m[1][0] * currentVelFieldPtrX[node] +
+                    jacobianMatricesGrad[node].m[1][1] * currentVelFieldPtrY[node]);
             newVelocityPtrX[node] += 0.5f * lieBracket1PtrX[node];
             newVelocityPtrY[node] += 0.5f * lieBracket1PtrY[node];
         }
     }
-
+/*
     // Compute the Jacobian matrices from the the previously computed Lie bracket
     reg_getDeformationFromDisplacement(lieBracket1);
     reg_bspline_GetJacobianMatricesFromVelocityField(lieBracket1,
@@ -393,13 +392,13 @@ void reg_f3d2<T>::UpdateControlPointPosition(T scale)
             newVelocityPtrY[node] += tempLieBracket[1] / 12.f;
         }
     }
-
+*/
     // Transfer the newly computed velocity field and clean the temporary nifti_images
     free(jacobianMatricesGrad);
     free(jacobianMatricesVel);
     free(jacobianMatricesBracket);
     nifti_image_free(lieBracket1);lieBracket1=NULL;
-*/
+
     memcpy(this->controlPointGrid->data,forwardNewVelocityField->data,
            this->controlPointGrid->nbyper * this->controlPointGrid->nvox);
     nifti_image_free(forwardNewVelocityField);forwardNewVelocityField=NULL;
@@ -432,7 +431,7 @@ void reg_f3d2<T>::UpdateControlPointPosition(T scale)
                                  this->backwardControlPointGrid,
                                  backwardNewVelocityField,
                                  0); // addition
-/*
+
     // Convert the gradient into a deformation field to compute its Jacobian matrices
     reg_getDeformationFromDisplacement(backwardScaledGradient);
 
@@ -445,15 +444,27 @@ void reg_f3d2<T>::UpdateControlPointPosition(T scale)
     jacobianMatricesVel=(mat33 *)malloc(nodeNumber*sizeof(mat33));
     jacobianMatricesBracket=(mat33 *)malloc(nodeNumber*sizeof(mat33));
 
-    // Compute Jacobian matrices
-    reg_bspline_GetJacobianMatricesFromVelocityField(backwardScaledGradient,
-                                                     backwardScaledGradient,
-                                                     jacobianMatricesGrad);
-    reg_getDisplacementFromDeformation(backwardScaledGradient);
-    reg_bspline_GetJacobianMatricesFromVelocityField(this->backwardControlPointGrid,
-                                                     this->backwardControlPointGrid,
-                                                     jacobianMatricesVel);
+    // Negate the velocity field and gradient to compute the Jacobian matrices
     reg_getDisplacementFromDeformation(this->backwardControlPointGrid);
+    reg_getDisplacementFromDeformation(backwardScaledGradient);
+    reg_tools_addSubMulDivValue(this->backwardControlPointGrid,this->backwardControlPointGrid,-1,2); // *(-1)
+    reg_tools_addSubMulDivValue(backwardScaledGradient,backwardScaledGradient,-1,2); // *(-1)
+    reg_getDeformationFromDisplacement(this->backwardControlPointGrid);
+    reg_getDeformationFromDisplacement(backwardScaledGradient);
+
+    // Compute Jacobian matrices
+    reg_bspline_GetJacobianMatrixFull(backwardScaledGradient,
+                                      backwardScaledGradient,
+                                      jacobianMatricesGrad);
+    reg_getDisplacementFromDeformation(backwardScaledGradient);
+    reg_bspline_GetJacobianMatrixFull(this->backwardControlPointGrid,
+                                      this->backwardControlPointGrid,
+                                      jacobianMatricesVel);
+    reg_getDisplacementFromDeformation(this->backwardControlPointGrid);
+
+    // Negate the velocity field and gradient back
+    reg_tools_addSubMulDivValue(this->backwardControlPointGrid,this->backwardControlPointGrid,-1,2); // *(-1)
+    reg_tools_addSubMulDivValue(backwardScaledGradient,backwardScaledGradient,-1,2); // *(-1)
 
     // Compute the first Lie bracket [grad,cpp] and add it to the new velocity grid
     // new += 0.5 [grad,cpp]
@@ -485,26 +496,26 @@ void reg_f3d2<T>::UpdateControlPointPosition(T scale)
 #endif // _OPENMP
         for(node=0;node<nodeNumber;++node){
             lieBracket1PtrX[node] =
-                    jacobianMatricesGrad[node].m[0][0] * currentVelFieldPtrX[node] +
+                    (jacobianMatricesVel[node].m[0][0] * scaledGradFieldPtrX[node] +
+                    jacobianMatricesVel[node].m[0][1] * scaledGradFieldPtrY[node] +
+                    jacobianMatricesVel[node].m[0][2] * scaledGradFieldPtrZ[node] ) -
+                    (jacobianMatricesGrad[node].m[0][0] * currentVelFieldPtrX[node] +
                     jacobianMatricesGrad[node].m[0][1] * currentVelFieldPtrY[node] +
-                    jacobianMatricesGrad[node].m[0][2] * currentVelFieldPtrZ[node] -
-                    jacobianMatricesVel[node].m[0][0] * scaledGradFieldPtrX[node] -
-                    jacobianMatricesVel[node].m[0][1] * scaledGradFieldPtrY[node] -
-                    jacobianMatricesVel[node].m[0][2] * scaledGradFieldPtrZ[node];
+                    jacobianMatricesGrad[node].m[0][2] * currentVelFieldPtrZ[node]);
             lieBracket1PtrY[node] =
-                    jacobianMatricesGrad[node].m[1][0] * currentVelFieldPtrX[node] +
+                    (jacobianMatricesVel[node].m[1][0] * scaledGradFieldPtrX[node] +
+                    jacobianMatricesVel[node].m[1][1] * scaledGradFieldPtrY[node] +
+                    jacobianMatricesVel[node].m[1][2] * scaledGradFieldPtrZ[node] ) -
+                    (jacobianMatricesGrad[node].m[1][0] * currentVelFieldPtrX[node] +
                     jacobianMatricesGrad[node].m[1][1] * currentVelFieldPtrY[node] +
-                    jacobianMatricesGrad[node].m[1][2] * currentVelFieldPtrZ[node] -
-                    jacobianMatricesVel[node].m[1][0] * scaledGradFieldPtrX[node] -
-                    jacobianMatricesVel[node].m[1][1] * scaledGradFieldPtrY[node] -
-                    jacobianMatricesVel[node].m[1][2] * scaledGradFieldPtrZ[node];
+                    jacobianMatricesGrad[node].m[1][2] * currentVelFieldPtrZ[node]);
             lieBracket1PtrZ[node] =
-                    jacobianMatricesGrad[node].m[2][0] * currentVelFieldPtrX[node] +
+                    (jacobianMatricesVel[node].m[2][0] * scaledGradFieldPtrX[node] +
+                    jacobianMatricesVel[node].m[2][1] * scaledGradFieldPtrY[node] +
+                    jacobianMatricesVel[node].m[2][2] * scaledGradFieldPtrZ[node] ) -
+                    (jacobianMatricesGrad[node].m[2][0] * currentVelFieldPtrX[node] +
                     jacobianMatricesGrad[node].m[2][1] * currentVelFieldPtrY[node] +
-                    jacobianMatricesGrad[node].m[2][2] * currentVelFieldPtrZ[node] -
-                    jacobianMatricesVel[node].m[2][0] * scaledGradFieldPtrX[node] -
-                    jacobianMatricesVel[node].m[2][1] * scaledGradFieldPtrY[node] -
-                    jacobianMatricesVel[node].m[2][2] * scaledGradFieldPtrZ[node];
+                    jacobianMatricesGrad[node].m[2][2] * currentVelFieldPtrZ[node]);
             newVelocityPtrX[node] += 0.5f * lieBracket1PtrX[node];
             newVelocityPtrY[node] += 0.5f * lieBracket1PtrY[node];
             newVelocityPtrZ[node] += 0.5f * lieBracket1PtrZ[node];
@@ -520,20 +531,20 @@ void reg_f3d2<T>::UpdateControlPointPosition(T scale)
 #endif // _OPENMP
         for(node=0;node<nodeNumber;++node){
             lieBracket1PtrX[node] =
-                    jacobianMatricesGrad[node].m[0][0] * currentVelFieldPtrX[node] +
-                    jacobianMatricesGrad[node].m[0][1] * currentVelFieldPtrY[node] -
-                    jacobianMatricesVel[node].m[0][0] * scaledGradFieldPtrX[node] -
-                    jacobianMatricesVel[node].m[0][1] * scaledGradFieldPtrY[node];
+                    (jacobianMatricesVel[node].m[0][0] * scaledGradFieldPtrX[node] +
+                    jacobianMatricesVel[node].m[0][1] * scaledGradFieldPtrY[node]) -
+                    (jacobianMatricesGrad[node].m[0][0] * currentVelFieldPtrX[node] +
+                    jacobianMatricesGrad[node].m[0][1] * currentVelFieldPtrY[node]);
             lieBracket1PtrY[node] =
-                    jacobianMatricesGrad[node].m[1][0] * currentVelFieldPtrX[node] +
-                    jacobianMatricesGrad[node].m[1][1] * currentVelFieldPtrY[node] -
-                    jacobianMatricesVel[node].m[1][0] * scaledGradFieldPtrX[node] -
-                    jacobianMatricesVel[node].m[1][1] * scaledGradFieldPtrY[node];
+                    (jacobianMatricesVel[node].m[1][0] * scaledGradFieldPtrX[node] +
+                    jacobianMatricesVel[node].m[1][1] * scaledGradFieldPtrY[node]) -
+                    (jacobianMatricesGrad[node].m[1][0] * currentVelFieldPtrX[node] +
+                    jacobianMatricesGrad[node].m[1][1] * currentVelFieldPtrY[node]);
             newVelocityPtrX[node] += 0.5f * lieBracket1PtrX[node];
             newVelocityPtrY[node] += 0.5f * lieBracket1PtrY[node];
         }
     }
-
+/*
     // Compute the Jacobian matrices from the the previously computed Lie bracket
     reg_getDeformationFromDisplacement(lieBracket1);
     reg_bspline_GetJacobianMatricesFromVelocityField(lieBracket1,
@@ -648,19 +659,18 @@ void reg_f3d2<T>::UpdateControlPointPosition(T scale)
             newVelocityPtrY[node] += tempLieBracket[1] / 12.f;
         }
     }
-
+*/
     // Transfer the newly computed velocity field and clean the temporary nifti_images
     free(jacobianMatricesGrad);
     free(jacobianMatricesVel);
     free(jacobianMatricesBracket);
     nifti_image_free(lieBracket1);lieBracket1=NULL;
-*/
+
     memcpy(this->backwardControlPointGrid->data,backwardNewVelocityField->data,
            this->backwardControlPointGrid->nbyper * this->backwardControlPointGrid->nvox);
     nifti_image_free(backwardNewVelocityField);backwardNewVelocityField=NULL;
     nifti_image_free(backwardScaledGradient);backwardScaledGradient=NULL;
 
-return;
     /****************************/
     /******** Symmetrise ********/
     /****************************/
@@ -688,7 +698,7 @@ return;
     else real2vox_for=&this->controlPointGrid->qto_ijk;
     affine_forward2backward=reg_mat44_mul(real2vox_for,vox2real_bck);
     reg_affine_positionField(&affine_forward2backward, // affine transformation
-                             this->backwardControlPointGrid, // reference space
+                             forward2backwardDEF, // reference space
                              forward2backwardDEF); // deformation field
     reg_getDisplacementFromDeformation(this->controlPointGrid); // in order to use a zero padding
     reg_resampleSourceImage(this->backwardControlPointGrid, // reference
@@ -696,7 +706,7 @@ return;
                             forward2backward, // warped
                             forward2backwardDEF, // deformation field
                             NULL, // no mask
-                            3, // cubic spline interpolation
+                            1, // linear interpolation
                             0.f // padding
                             );
     nifti_image_free(forward2backwardDEF);forward2backwardDEF=NULL;
@@ -725,66 +735,105 @@ return;
                             backward2forward, // warped
                             backward2forwardDEF, // deformation field
                             NULL, // no mask
-                            3, // cubic spline interpolation
+                            1, // linear interpolation
                             0.f // padding
                             );
     nifti_image_free(backward2forwardDEF);backward2forwardDEF=NULL;
 
+    // Store the rotation matrices and their transpose matrices
+    mat33 polar_forward2backward;
+    mat33 polar_backward2forward;
+    for(size_t i=0;i<3;++i){
+        for(size_t j=0;j<3;++j){
+            polar_forward2backward.m[i][j]=affine_forward2backward.m[i][j];
+            polar_backward2forward.m[i][j]=affine_backward2forward.m[i][j];
+        }
+    }
+    polar_forward2backward=nifti_mat33_polar(polar_forward2backward);
+    polar_backward2forward=nifti_mat33_polar(polar_backward2forward);
+    mat33 polar_forward2backward_t;
+    mat33 polar_backward2forward_t;
+    for(size_t i=0;i<3;++i){
+        for(size_t j=0;j<3;++j){
+            polar_forward2backward_t.m[j][i]=polar_forward2backward.m[i][j];
+            polar_backward2forward_t.m[j][i]=polar_backward2forward.m[i][j];
+        }
+    }
+
     // Average the transformations in the backward space
     nodeNumber=this->backwardControlPointGrid->nx*this->backwardControlPointGrid->ny*this->backwardControlPointGrid->nz;
-    T *currentVelFieldPtrX=static_cast<T *>(this->backwardControlPointGrid->data);
-    T *currentVelFieldPtrY=&currentVelFieldPtrX[nodeNumber];
+    currentVelFieldPtrX=static_cast<T *>(this->backwardControlPointGrid->data);
+    currentVelFieldPtrY=&currentVelFieldPtrX[nodeNumber];
     T *propVelFieldPtrX=static_cast<T *>(forward2backward->data);
     T *propVelFieldPtrY=&propVelFieldPtrX[nodeNumber];
+
+    T reoriented1[3];
+    T reoriented2[3];
 
     if(this->backwardControlPointGrid->nz>1){
         T *currentVelFieldPtrZ=&currentVelFieldPtrY[nodeNumber];
         T *propVelFieldPtrZ=&propVelFieldPtrY[nodeNumber];
-        T reoriented[3];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-        private(node,reoriented) \
-        shared(affine_forward2backward,nodeNumber, \
+        private(node,reoriented1,reoriented2) \
+        shared(polar_forward2backward,polar_forward2backward_t,nodeNumber, \
         propVelFieldPtrX,propVelFieldPtrY,propVelFieldPtrZ, \
         currentVelFieldPtrX,currentVelFieldPtrY,currentVelFieldPtrZ)
 #endif // _OPENMP
         for(node=0;node<nodeNumber;++node){
-            reoriented[0] =
-                    affine_forward2backward.m[0][0] * propVelFieldPtrX[node] +
-                    affine_forward2backward.m[0][1] * propVelFieldPtrY[node] +
-                    affine_forward2backward.m[0][2] * propVelFieldPtrZ[node];
-            reoriented[1] =
-                    affine_forward2backward.m[1][0] * propVelFieldPtrX[node] +
-                    affine_forward2backward.m[1][1] * propVelFieldPtrY[node] +
-                    affine_forward2backward.m[1][2] * propVelFieldPtrZ[node];
-            reoriented[2] =
-                    affine_forward2backward.m[2][0] * propVelFieldPtrX[node] +
-                    affine_forward2backward.m[2][1] * propVelFieldPtrY[node] +
-                    affine_forward2backward.m[2][2] * propVelFieldPtrZ[node];
+            reoriented1[0] =
+                    polar_forward2backward_t.m[0][0] * propVelFieldPtrX[node] +
+                    polar_forward2backward_t.m[0][1] * propVelFieldPtrY[node] +
+                    polar_forward2backward_t.m[0][2] * propVelFieldPtrZ[node];
+            reoriented1[1] =
+                    polar_forward2backward_t.m[1][0] * propVelFieldPtrX[node] +
+                    polar_forward2backward_t.m[1][1] * propVelFieldPtrY[node] +
+                    polar_forward2backward_t.m[1][2] * propVelFieldPtrZ[node];
+            reoriented1[2] =
+                    polar_forward2backward_t.m[2][0] * propVelFieldPtrX[node] +
+                    polar_forward2backward_t.m[2][1] * propVelFieldPtrY[node] +
+                    polar_forward2backward_t.m[2][2] * propVelFieldPtrZ[node];
+            reoriented2[0] =
+                    polar_forward2backward.m[0][0] * reoriented1[0] +
+                    polar_forward2backward.m[0][1] * reoriented1[1] +
+                    polar_forward2backward.m[0][2] * reoriented1[2];
+            reoriented2[1] =
+                    polar_forward2backward.m[1][0] * reoriented1[0] +
+                    polar_forward2backward.m[1][1] * reoriented1[1] +
+                    polar_forward2backward.m[1][2] * reoriented1[2];
+            reoriented2[2] =
+                    polar_forward2backward_t.m[2][0] * reoriented1[0] +
+                    polar_forward2backward_t.m[2][1] * reoriented1[1] +
+                    polar_forward2backward_t.m[2][2] * reoriented1[2];
             // The transformation will be negated while performing the exponentiation
-            currentVelFieldPtrX[node] = ( reoriented[0] - currentVelFieldPtrX[node] ) / 2.;
-            currentVelFieldPtrY[node] = ( reoriented[1] - currentVelFieldPtrY[node] ) / 2.;
-            currentVelFieldPtrZ[node] = ( reoriented[2] - currentVelFieldPtrZ[node] ) / 2.;
+            currentVelFieldPtrX[node] = ( currentVelFieldPtrX[node] + reoriented2[0] ) / 2.;
+            currentVelFieldPtrY[node] = ( currentVelFieldPtrY[node] + reoriented2[1] ) / 2.;
+            currentVelFieldPtrZ[node] = ( currentVelFieldPtrZ[node] + reoriented2[2] ) / 2.;
         }
     }
     else{
-        T reoriented[2];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-        private(node,reoriented) \
-        shared(affine_forward2backward,nodeNumber, \
+        private(node,reoriented1,reoriented2) \
+        shared(polar_forward2backward,polar_forward2backward_t,nodeNumber, \
         propVelFieldPtrX,propVelFieldPtrY, \
         currentVelFieldPtrX,currentVelFieldPtrY)
 #endif // _OPENMP
         for(node=0;node<nodeNumber;++node){
-            reoriented[0] =
-                    affine_forward2backward.m[0][0] * propVelFieldPtrX[node] +
-                    affine_forward2backward.m[0][1] * propVelFieldPtrY[node];
-            reoriented[1] =
-                    affine_forward2backward.m[1][0] * propVelFieldPtrX[node] +
-                    affine_forward2backward.m[1][1] * propVelFieldPtrY[node];
-            currentVelFieldPtrX[node] = ( currentVelFieldPtrX[node] - reoriented[0] ) / 2.;
-            currentVelFieldPtrY[node] = ( currentVelFieldPtrY[node] - reoriented[1] ) / 2.;
+            reoriented1[0] =
+                    polar_forward2backward_t.m[0][0] * propVelFieldPtrX[node] +
+                    polar_forward2backward_t.m[0][1] * propVelFieldPtrY[node];
+            reoriented1[1] =
+                    polar_forward2backward_t.m[1][0] * propVelFieldPtrX[node] +
+                    polar_forward2backward_t.m[1][1] * propVelFieldPtrY[node];
+            reoriented2[0] =
+                    polar_forward2backward.m[0][0] * reoriented1[0] +
+                    polar_forward2backward.m[0][1] * reoriented1[1];
+            reoriented2[1] =
+                    polar_forward2backward.m[1][0] * reoriented1[0] +
+                    polar_forward2backward.m[1][1] * reoriented1[1];
+            currentVelFieldPtrX[node] = ( currentVelFieldPtrX[node] + reoriented2[0] ) / 2.;
+            currentVelFieldPtrY[node] = ( currentVelFieldPtrY[node] + reoriented2[1] ) / 2.;
         }
     }
     nifti_image_free(forward2backward);forward2backward=NULL;
@@ -799,49 +848,65 @@ return;
     if(this->backwardControlPointGrid->nz>1){
         T *currentVelFieldPtrZ=&currentVelFieldPtrY[nodeNumber];
         T *propVelFieldPtrZ=&propVelFieldPtrY[nodeNumber];
-        T reoriented[3];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-        private(node,reoriented) \
-        shared(affine_backward2forward,nodeNumber, \
+        private(node,reoriented1,reoriented2) \
+        shared(polar_backward2forward,polar_backward2forward_t,nodeNumber, \
         propVelFieldPtrX,propVelFieldPtrY,propVelFieldPtrZ, \
         currentVelFieldPtrX,currentVelFieldPtrY,currentVelFieldPtrZ)
 #endif // _OPENMP
         for(node=0;node<nodeNumber;++node){
-            reoriented[0] =
-                    affine_backward2forward.m[0][0] * propVelFieldPtrX[node] +
-                    affine_backward2forward.m[0][1] * propVelFieldPtrY[node] +
-                    affine_backward2forward.m[0][2] * propVelFieldPtrZ[node];
-            reoriented[1] =
-                    affine_backward2forward.m[1][0] * propVelFieldPtrX[node] +
-                    affine_backward2forward.m[1][1] * propVelFieldPtrY[node] +
-                    affine_backward2forward.m[1][2] * propVelFieldPtrZ[node];
-            reoriented[2] =
-                    affine_backward2forward.m[2][0] * propVelFieldPtrX[node] +
-                    affine_backward2forward.m[2][1] * propVelFieldPtrY[node] +
-                    affine_backward2forward.m[2][2] * propVelFieldPtrZ[node];
-            currentVelFieldPtrX[node] = ( currentVelFieldPtrX[node] - reoriented[0] ) / 2.;
-            currentVelFieldPtrY[node] = ( currentVelFieldPtrY[node] - reoriented[1] ) / 2.;
-            currentVelFieldPtrZ[node] = ( currentVelFieldPtrZ[node] - reoriented[2] ) / 2.;
+            reoriented1[0] =
+                    polar_backward2forward_t.m[0][0] * propVelFieldPtrX[node] +
+                    polar_backward2forward_t.m[0][1] * propVelFieldPtrY[node] +
+                    polar_backward2forward_t.m[0][2] * propVelFieldPtrZ[node];
+            reoriented1[1] =
+                    polar_backward2forward_t.m[1][0] * propVelFieldPtrX[node] +
+                    polar_backward2forward_t.m[1][1] * propVelFieldPtrY[node] +
+                    polar_backward2forward_t.m[1][2] * propVelFieldPtrZ[node];
+            reoriented1[2] =
+                    polar_backward2forward_t.m[2][0] * propVelFieldPtrX[node] +
+                    polar_backward2forward_t.m[2][1] * propVelFieldPtrY[node] +
+                    polar_backward2forward_t.m[2][2] * propVelFieldPtrZ[node];
+            reoriented2[0] =
+                    polar_backward2forward.m[0][0] * reoriented1[0] +
+                    polar_backward2forward.m[0][1] * reoriented1[1] +
+                    polar_backward2forward.m[0][2] * reoriented1[2];
+            reoriented2[1] =
+                    polar_backward2forward.m[1][0] * reoriented1[0] +
+                    polar_backward2forward.m[1][1] * reoriented1[1] +
+                    polar_backward2forward.m[1][2] * reoriented1[2];
+            reoriented2[2] =
+                    polar_backward2forward.m[2][0] * reoriented1[0] +
+                    polar_backward2forward.m[2][1] * reoriented1[1] +
+                    polar_backward2forward.m[2][2] * reoriented1[2];
+            currentVelFieldPtrX[node] = ( currentVelFieldPtrX[node] + reoriented2[0] ) / 2.;
+            currentVelFieldPtrY[node] = ( currentVelFieldPtrY[node] + reoriented2[1] ) / 2.;
+            currentVelFieldPtrZ[node] = ( currentVelFieldPtrZ[node] + reoriented2[2] ) / 2.;
         }
     }
     else{
-        T reoriented[2];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-        private(node,reoriented) \
-        shared(affine_backward2forward,nodeNumber, \
+        private(node,reoriented1,reoriented2) \
+        shared(polar_backward2forward,polar_backward2forward_t,nodeNumber, \
         propVelFieldPtrX,propVelFieldPtrY,currentVelFieldPtrX,currentVelFieldPtrY)
 #endif // _OPENMP
         for(node=0;node<nodeNumber;++node){
-            reoriented[0] =
-                    affine_backward2forward.m[0][0] * propVelFieldPtrX[node] +
-                    affine_backward2forward.m[0][1] * propVelFieldPtrY[node];
-            reoriented[1] =
-                    affine_backward2forward.m[1][0] * propVelFieldPtrX[node] +
-                    affine_backward2forward.m[1][1] * propVelFieldPtrY[node];
-            currentVelFieldPtrX[node] = ( currentVelFieldPtrX[node] - reoriented[0] ) / 2.;
-            currentVelFieldPtrY[node] = ( currentVelFieldPtrY[node] - reoriented[1] ) / 2.;
+            reoriented1[0] =
+                    polar_backward2forward_t.m[0][0] * propVelFieldPtrX[node] +
+                    polar_backward2forward_t.m[0][1] * propVelFieldPtrY[node];
+            reoriented1[1] =
+                    polar_backward2forward_t.m[1][0] * propVelFieldPtrX[node] +
+                    polar_backward2forward_t.m[1][1] * propVelFieldPtrY[node];
+            reoriented2[0] =
+                    polar_backward2forward.m[0][0] * reoriented1[0] +
+                    polar_backward2forward.m[0][1] * reoriented1[1];
+            reoriented2[1] =
+                    polar_backward2forward.m[1][0] * reoriented1[0] +
+                    polar_backward2forward.m[1][1] * reoriented1[1];
+            currentVelFieldPtrX[node] = ( currentVelFieldPtrX[node] + reoriented2[0] ) / 2.;
+            currentVelFieldPtrY[node] = ( currentVelFieldPtrY[node] + reoriented2[1] ) / 2.;
         }
     }
     nifti_image_free(forward2backward);forward2backward=NULL;
@@ -854,20 +919,21 @@ return;
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-nifti_image *reg_f3d2<T>::GetWarpedImage()
+nifti_image **reg_f3d2<T>::GetWarpedImage()
 {
     // The initial images are used
     if(this->inputReference==NULL ||
        this->inputFloating==NULL ||
-       this->controlPointGrid==NULL){
-        fprintf(stderr,"[NiftyReg ERROR] reg_f3d2::GetWarpedImage()\n");
-        fprintf(stderr," * The reference, floating and control point grid images have to be defined\n");
+       this->controlPointGrid==NULL ||
+       this->backwardControlPointGrid==NULL){
+        fprintf(stderr,"[NiftyReg ERROR] reg_f3d_sym::GetWarpedImage()\n");
+        fprintf(stderr," * The reference, floating and both control point grid images have to be defined\n");
     }
 
-    this->currentReference = this->inputReference;
-    this->currentFloating = this->inputFloating;
-    this->currentMask = NULL;
-    this->currentFloatingMask = NULL;
+    reg_f3d2<T>::currentReference = this->inputReference;
+    reg_f3d2<T>::currentFloating = this->inputFloating;
+    reg_f3d2<T>::currentMask = NULL;
+    reg_f3d2<T>::currentFloatingMask = NULL;
 
     reg_f3d2<T>::AllocateWarped();
     reg_f3d2<T>::AllocateDeformationField();
@@ -876,13 +942,22 @@ nifti_image *reg_f3d2<T>::GetWarpedImage()
 
     reg_f3d2<T>::ClearDeformationField();
 
-    nifti_image *resultImage = nifti_copy_nim_info(this->warped);
-    resultImage->cal_min=this->inputFloating->cal_min;
-    resultImage->cal_max=this->inputFloating->cal_max;
-    resultImage->scl_slope=this->inputFloating->scl_slope;
-    resultImage->scl_inter=this->inputFloating->scl_inter;
-    resultImage->data=(void *)malloc(resultImage->nvox*resultImage->nbyper);
-    memcpy(resultImage->data, this->warped->data, resultImage->nvox*resultImage->nbyper);
+    nifti_image **resultImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
+    resultImage[0] = nifti_copy_nim_info(this->warped);
+    resultImage[0]->cal_min=this->inputFloating->cal_min;
+    resultImage[0]->cal_max=this->inputFloating->cal_max;
+    resultImage[0]->scl_slope=this->inputFloating->scl_slope;
+    resultImage[0]->scl_inter=this->inputFloating->scl_inter;
+    resultImage[0]->data=(void *)malloc(resultImage[0]->nvox*resultImage[0]->nbyper);
+    memcpy(resultImage[0]->data, this->warped->data, resultImage[0]->nvox*resultImage[0]->nbyper);
+
+    resultImage[1] = nifti_copy_nim_info(this->backwardWarped);
+    resultImage[1]->cal_min=this->inputReference->cal_min;
+    resultImage[1]->cal_max=this->inputReference->cal_max;
+    resultImage[1]->scl_slope=this->inputReference->scl_slope;
+    resultImage[1]->scl_inter=this->inputReference->scl_inter;
+    resultImage[1]->data=(void *)malloc(resultImage[1]->nvox*resultImage[1]->nbyper);
+    memcpy(resultImage[1]->data, this->backwardWarped->data, resultImage[1]->nvox*resultImage[1]->nbyper);
 
     reg_f3d2<T>::ClearWarped();
     return resultImage;

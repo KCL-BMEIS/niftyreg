@@ -2117,7 +2117,7 @@ void reg_f3d<T>::Run_f3d()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-nifti_image *reg_f3d<T>::GetWarpedImage()
+nifti_image **reg_f3d<T>::GetWarpedImage()
 {
     // The initial images are used
     if(this->inputReference==NULL ||
@@ -2133,18 +2133,17 @@ nifti_image *reg_f3d<T>::GetWarpedImage()
 
     reg_f3d<T>::AllocateWarped();
     reg_f3d<T>::AllocateDeformationField();
-
     reg_f3d<T>::WarpFloatingImage(3); // cubic spline interpolation
-
     reg_f3d<T>::ClearDeformationField();
 
-    nifti_image *resultImage = nifti_copy_nim_info(this->warped);
-    resultImage->cal_min=this->inputFloating->cal_min;
-    resultImage->cal_max=this->inputFloating->cal_max;
-    resultImage->scl_slope=this->inputFloating->scl_slope;
-    resultImage->scl_inter=this->inputFloating->scl_inter;
-    resultImage->data=(void *)malloc(resultImage->nvox*resultImage->nbyper);
-    memcpy(resultImage->data, this->warped->data, resultImage->nvox*resultImage->nbyper);
+    nifti_image **resultImage= (nifti_image **)malloc(sizeof(nifti_image *));
+    resultImage[0]=nifti_copy_nim_info(this->warped);
+    resultImage[0]->cal_min=this->inputFloating->cal_min;
+    resultImage[0]->cal_max=this->inputFloating->cal_max;
+    resultImage[0]->scl_slope=this->inputFloating->scl_slope;
+    resultImage[0]->scl_inter=this->inputFloating->scl_inter;
+    resultImage[0]->data=(void *)malloc(resultImage[0]->nvox*resultImage[0]->nbyper);
+    memcpy(resultImage[0]->data, this->warped->data, resultImage[0]->nvox*resultImage[0]->nbyper);
 
     reg_f3d<T>::ClearWarped();
     return resultImage;

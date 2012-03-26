@@ -12,7 +12,7 @@ void reg_LUdecomposition(T *mat,
                          size_t *index)
 {
     T *vv=(T *)malloc(dim*sizeof(T));
-    size_t i,j,k,imax;
+    size_t i,j,k,imax=0;
 
     for(i=0;i<dim;++i){
         T big=0.f;

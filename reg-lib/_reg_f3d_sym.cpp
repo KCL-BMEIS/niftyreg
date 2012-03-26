@@ -1261,17 +1261,6 @@ void reg_f3d_sym<T>::DisplayCurrentLevelParameters()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-nifti_image * reg_f3d_sym<T>::GetBackwardControlPointPositionImage()
-{
-    nifti_image *returnedControlPointGrid = nifti_copy_nim_info(this->backwardControlPointGrid);
-    returnedControlPointGrid->data=(void *)malloc(returnedControlPointGrid->nvox*returnedControlPointGrid->nbyper);
-    memcpy(returnedControlPointGrid->data, this->backwardControlPointGrid->data,
-           returnedControlPointGrid->nvox*returnedControlPointGrid->nbyper);
-    return returnedControlPointGrid;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template<class T>
 void reg_f3d_sym<T>::GetInverseConsistencyErrorField()
 {
     if(this->similarityWeight<=0){
@@ -1530,6 +1519,63 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
                                  true); // update?
 
     return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+nifti_image **reg_f3d_sym<T>::GetWarpedImage()
+{
+    // The initial images are used
+    if(this->inputReference==NULL ||
+       this->inputFloating==NULL ||
+       this->controlPointGrid==NULL ||
+       this->backwardControlPointGrid==NULL){
+        fprintf(stderr,"[NiftyReg ERROR] reg_f3d_sym::GetWarpedImage()\n");
+        fprintf(stderr," * The reference, floating and both control point grid images have to be defined\n");
+    }
+
+    reg_f3d_sym<T>::currentReference = this->inputReference;
+    reg_f3d_sym<T>::currentFloating = this->inputFloating;
+    reg_f3d_sym<T>::currentMask = NULL;
+    reg_f3d_sym<T>::currentFloatingMask = NULL;
+
+    reg_f3d_sym<T>::AllocateWarped();
+    reg_f3d_sym<T>::AllocateDeformationField();
+
+    reg_f3d_sym<T>::WarpFloatingImage(3); // cubic spline interpolation
+
+    reg_f3d_sym<T>::ClearDeformationField();
+
+    nifti_image **resultImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
+    resultImage[0] = nifti_copy_nim_info(this->warped);
+    resultImage[0]->cal_min=this->inputFloating->cal_min;
+    resultImage[0]->cal_max=this->inputFloating->cal_max;
+    resultImage[0]->scl_slope=this->inputFloating->scl_slope;
+    resultImage[0]->scl_inter=this->inputFloating->scl_inter;
+    resultImage[0]->data=(void *)malloc(resultImage[0]->nvox*resultImage[0]->nbyper);
+    memcpy(resultImage[0]->data, this->warped->data, resultImage[0]->nvox*resultImage[0]->nbyper);
+
+    resultImage[1] = nifti_copy_nim_info(this->backwardWarped);
+    resultImage[1]->cal_min=this->inputReference->cal_min;
+    resultImage[1]->cal_max=this->inputReference->cal_max;
+    resultImage[1]->scl_slope=this->inputReference->scl_slope;
+    resultImage[1]->scl_inter=this->inputReference->scl_inter;
+    resultImage[1]->data=(void *)malloc(resultImage[1]->nvox*resultImage[1]->nbyper);
+    memcpy(resultImage[1]->data, this->backwardWarped->data, resultImage[1]->nvox*resultImage[1]->nbyper);
+
+    reg_f3d_sym<T>::ClearWarped();
+    return resultImage;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+nifti_image * reg_f3d_sym<T>::GetBackwardControlPointPositionImage()
+{
+    nifti_image *returnedControlPointGrid = nifti_copy_nim_info(this->backwardControlPointGrid);
+    returnedControlPointGrid->data=(void *)malloc(returnedControlPointGrid->nvox*returnedControlPointGrid->nbyper);
+    memcpy(returnedControlPointGrid->data, this->backwardControlPointGrid->data,
+           returnedControlPointGrid->nvox*returnedControlPointGrid->nbyper);
+    return returnedControlPointGrid;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

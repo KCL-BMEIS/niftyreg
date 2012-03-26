@@ -139,11 +139,11 @@ class reg_aladin
       SetMacro(AlignCentre,int);
       BooleanMacro(AlignCentre, int);
 
-      SetClampMacro(Interpolation,int,0,2);
+      SetClampMacro(Interpolation,int,0,3);
       GetMacro(Interpolation, int);
       void SetInterpolationToNearestNeighbor() {this->SetInterpolation(0);}
       void SetInterpolationToTrilinear() {this->SetInterpolation(1);}
-      void SetInterpolationToCubic() {this->SetInterpolation(2);}
+      void SetInterpolationToCubic() {this->SetInterpolation(3);}
 
       int Check();
       int Print();
