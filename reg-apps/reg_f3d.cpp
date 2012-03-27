@@ -504,6 +504,8 @@ int main(int argc, char **argv)
     reg_f3d<PrecisionTYPE> *REG=NULL;
 #ifdef _USE_CUDA
     unsigned int gpuMemoryAvailable = 0;
+    CUdevice dev;
+    CUcontext ctx;
     if(useGPU){
 
         if(linearEnergyWeight0==linearEnergyWeight0 ||
@@ -525,6 +527,7 @@ int main(int argc, char **argv)
         if((referenceImage->dim[4]==1&&floatingImage->dim[4]==1) || (referenceImage->dim[4]==2&&floatingImage->dim[4]==2)){
 
             // The CUDA card is setup
+            cuInit(0);
             struct cudaDeviceProp deviceProp;
             int device_count = 0;
             cudaGetDeviceCount( &device_count );
@@ -547,20 +550,12 @@ int main(int argc, char **argv)
             }
             NR_CUDA_SAFE_CALL(cudaSetDevice( device ));
             NR_CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, device ));
+            cuDeviceGet(&dev,device);
+            cuCtxCreate(&ctx, 0, dev);
             if (deviceProp.major < 1){
                 printf("[NiftyReg ERROR CUDA] The specified graphical card does not exist.\n");
                 return 1;
             }
-            gpuMemoryAvailable = (unsigned int)floor(deviceProp.totalGlobalMem/1000000.0);
-#ifdef NDEBUG
-            if(verbose==true){
-#endif
-                printf("[NiftyReg F3D] Graphical card memory[%i/%i] = %iMo avail\n", device+1, device_count,
-                (int)gpuMemoryAvailable);
-#ifdef NDEBUG
-            }
-#endif
-
             REG = new reg_f3d_gpu<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
             if(verbose==true){
@@ -752,8 +747,11 @@ int main(int argc, char **argv)
     // Run the registration
 #ifdef _USE_CUDA
     if(useGPU && checkMem){
-        int requiredMemory = REG->CheckMemoryMB_f3d();
-        printf("[NiftyReg F3D] The registration require %i MB on the GPU and %i MB are available\n", requiredMemory, (int)gpuMemoryAvailable);
+        size_t free, total, requiredMemory = REG->CheckMemoryMB_f3d();
+        cuMemGetInfo(&free, &total);
+        printf("[NiftyReg CUDA] The required memory to run the registration is %lu Mb\n", requiredMemory);
+        printf("[NiftyReg CUDA] The GPU card has %lu Mb from which %lu Mb are currenlty free\n",
+               total/(1024*1024), free/(1024*1024));
     }
     else{
 #endif
@@ -835,6 +833,7 @@ int main(int argc, char **argv)
         free(outputWarpedImage);
 #ifdef _USE_CUDA
     }
+    cuCtxDetach(ctx);
 #endif
     // Erase the registration object
     delete REG;

@@ -39,6 +39,7 @@ reg_f3d_gpu<T>::reg_f3d_gpu(int refTimePoint,int floTimePoint)
     this->warped2_gpu=NULL;
     this->warpedGradientImage2_gpu=NULL;
 
+    NR_CUDA_SAFE_CALL(cudaThreadExit())
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_gpu constructor called\n");
 #endif
@@ -84,6 +85,7 @@ reg_f3d_gpu<T>::~reg_f3d_gpu()
     if(this->warpedGradientImage2_gpu!=NULL)
         cudaCommon_free<float4>(&this->warpedGradientImage2_gpu);
 
+    NR_CUDA_SAFE_CALL(cudaThreadExit())
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_gpu destructor called\n");
 #endif
@@ -887,7 +889,16 @@ int reg_f3d_gpu<T>::CheckMemoryMB_f3d()
 {
     if(!this->initialised) reg_f3d<T>::Initisalise_f3d();
 
-    unsigned int totalMemoryRequiered=0;
+    size_t referenceVoxelNumber=this->referencePyramid[this->levelToPerform-1]->nx *
+            this->referencePyramid[this->levelToPerform-1]->ny *
+            this->referencePyramid[this->levelToPerform-1]->nz;
+
+    size_t warpedVoxelNumber=this->referencePyramid[this->levelToPerform-1]->nx *
+            this->referencePyramid[this->levelToPerform-1]->ny *
+            this->referencePyramid[this->levelToPerform-1]->nz *
+            this->floatingPyramid[this->levelToPerform-1]->nt ;
+
+    size_t totalMemoryRequiered=0;
     // reference image
     totalMemoryRequiered += this->referencePyramid[this->levelToPerform-1]->nvox * sizeof(float);
 
@@ -895,22 +906,22 @@ int reg_f3d_gpu<T>::CheckMemoryMB_f3d()
     totalMemoryRequiered += this->floatingPyramid[this->levelToPerform-1]->nvox * sizeof(float);
 
     // warped image
-    totalMemoryRequiered += this->referencePyramid[this->levelToPerform-1]->nvox * sizeof(float);
+    totalMemoryRequiered += warpedVoxelNumber * sizeof(float);
 
     // mask image
     totalMemoryRequiered += this->activeVoxelNumber[this->levelToPerform-1] * sizeof(int);
 
     // deformation field
-    totalMemoryRequiered += this->activeVoxelNumber[this->levelToPerform-1] * sizeof(float4);
+    totalMemoryRequiered += referenceVoxelNumber * sizeof(float4);
 
     // voxel based intensity gradient
-    totalMemoryRequiered += this->referencePyramid[this->levelToPerform-1]->nvox * sizeof(float4);
+    totalMemoryRequiered += referenceVoxelNumber * sizeof(float4);
 
     // voxel based NMI gradient + smoothing
-    totalMemoryRequiered += 2 * this->referencePyramid[this->levelToPerform-1]->nvox * sizeof(float4);
+    totalMemoryRequiered += 2 * referenceVoxelNumber * sizeof(float4);
 
     // control point grid
-    unsigned int cp=1;
+    size_t cp=1;
     cp *= (int)floor(this->referencePyramid[this->levelToPerform-1]->nx*
                      this->referencePyramid[this->levelToPerform-1]->dx/
                      this->spacing[0])+5;
@@ -944,10 +955,10 @@ int reg_f3d_gpu<T>::CheckMemoryMB_f3d()
 
     // jacobian array
     if(this->jacobianLogWeight>0)
-        totalMemoryRequiered += 10 * this->referencePyramid[this->levelToPerform-1]->nvox*
+        totalMemoryRequiered += 10 * referenceVoxelNumber *
                                 sizeof(float);
 
-    return (int)(ceil((float)totalMemoryRequiered/1000000.0f));
+    return (int)(ceil((float)totalMemoryRequiered/float(1024*1024)));
 
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
