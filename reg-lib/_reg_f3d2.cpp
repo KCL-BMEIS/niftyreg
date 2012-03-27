@@ -143,8 +143,11 @@ void reg_f3d2<T>::UpdateControlPointPosition(T scale)
 
     nifti_image *lieBracket1=NULL;
 
+#ifdef _WIN32
+    long node, nodeNumber;
+#else
     size_t node, nodeNumber;
-
+#endif
     /************************/
     /**** Forward update ****/
     /************************/

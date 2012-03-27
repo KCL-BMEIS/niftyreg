@@ -2303,7 +2303,12 @@ void reg_defField_compose3D(nifti_image *deformationField,
         df_real2Voxel=deformationField->qto_ijk;
         df_voxel2Real=deformationField->qto_xyz;
     }
+#ifdef _WIN32
+    long i;
+#else
     size_t i;
+#endif
+
     short a, b, c;
     int currentX, currentY, currentZ, pre[3], index[3];
     DTYPE realDefX, realDefY, realDefZ, voxelX, voxelY, voxelZ, tempBasis;
@@ -2915,7 +2920,7 @@ void reg_bspline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldG
     else // forward deformation field
         reg_tools_addSubMulDivValue(tempDEFImage,
                                     tempDEFImage,
-                                    pow(2,fabs(velocityFieldGrid->intent_code)),
+                                    pow(2.0f,fabs(velocityFieldGrid->intent_code)),
                                     3);
     reg_getDeformationFromDisplacement(tempDEFImage);
 
