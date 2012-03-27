@@ -20,6 +20,8 @@
 #include "_reg_cudaCommon.h"
 #include "_reg_f3d.h"
 
+#include "cuda.h"
+
 template <class T>
 class reg_f3d_gpu : public reg_f3d<T>
 {
