@@ -41,7 +41,7 @@ reg_f3d_sym<T>::reg_f3d_sym(int refTimePoint,int floTimePoint)
     this->floatingMaskPyramid=NULL;
     this->backwardActiveVoxelNumber=NULL;
 
-    this->inverseConsistencyWeight=0.5;
+    this->inverseConsistencyWeight=0.1;
 
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_sym constructor called\n");

@@ -455,8 +455,15 @@ void reg_f3d<T>::UseCubicSplineInterpolation()
 template <class T>
 void reg_f3d<T>::AllocateCurrentInputImage()
 {
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] reg_f3d<T>::AllocateCurrentInputImage called.\n");
+#endif
     if(this->currentLevel!=0 && this->gridRefinement==true)
         reg_bspline_refineControlPointGrid(this->currentReference, this->controlPointGrid);
+
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] reg_f3d<T>::AllocateCurrentInputImage done.\n");
+#endif
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

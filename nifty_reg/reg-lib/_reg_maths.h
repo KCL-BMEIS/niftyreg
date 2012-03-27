@@ -8,6 +8,10 @@
 
 #define POW2(a) ((a)*(a))
 
+#ifdef _WIN32
+#define long int size_t;
+#endif
+
 /* *************************************************************** */
 extern "C++" template <class T>
 void reg_LUdecomposition(T *inputMatrix,

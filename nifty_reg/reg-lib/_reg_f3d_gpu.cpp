@@ -28,7 +28,7 @@ reg_f3d_gpu<T>::reg_f3d_gpu(int refTimePoint,int floTimePoint)
     this->deformationFieldImage_gpu=NULL;
     this->warpedGradientImage_gpu=NULL;
     this->voxelBasedMeasureGradientImage_gpu=NULL;
-    this->nodeBasedMeasureGradientImage_gpu=NULL;
+    this->nodeBasedGradientImage_gpu=NULL;
     this->conjugateG_gpu=NULL;
     this->conjugateH_gpu=NULL;
     this->bestControlPointPosition_gpu=NULL;
@@ -64,8 +64,8 @@ reg_f3d_gpu<T>::~reg_f3d_gpu()
         cudaCommon_free<float4>(&this->warpedGradientImage_gpu);
     if(this->voxelBasedMeasureGradientImage_gpu!=NULL)
         cudaCommon_free<float4>(&this->voxelBasedMeasureGradientImage_gpu);
-    if(this->nodeBasedMeasureGradientImage_gpu!=NULL)
-        cudaCommon_free<float4>(&this->nodeBasedMeasureGradientImage_gpu);
+    if(this->nodeBasedGradientImage_gpu!=NULL)
+        cudaCommon_free<float4>(&this->nodeBasedGradientImage_gpu);
     if(this->conjugateG_gpu!=NULL)
         cudaCommon_free<float4>(&this->conjugateG_gpu);
     if(this->conjugateH_gpu!=NULL)
@@ -255,29 +255,29 @@ void reg_f3d_gpu<T>::ClearVoxelBasedMeasureGradient()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_f3d_gpu<T>::AllocateNodeBasedMeasureGradient()
+void reg_f3d_gpu<T>::AllocateNodeBasedGradient()
 {
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_f3d_gpu<T>::AllocateNodeBasedMeasureGradient called.\n");
+    printf("[NiftyReg DEBUG] reg_f3d_gpu<T>::AllocateNodeBasedGradient called.\n");
 #endif
-    this->ClearNodeBasedMeasureGradient();
-    if(cudaCommon_allocateArrayToDevice(&this->nodeBasedMeasureGradientImage_gpu,
+    this->ClearNodeBasedGradient();
+    if(cudaCommon_allocateArrayToDevice(&this->nodeBasedGradientImage_gpu,
                                         this->controlPointGrid->dim)){
         printf("[NiftyReg ERROR] Error when allocating the node based gradient image.\n");
         exit(1);
     }
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_f3d_gpu<T>::AllocateNodeBasedMeasureGradient done.\n");
+    printf("[NiftyReg DEBUG] reg_f3d_gpu<T>::AllocateNodeBasedGradient done.\n");
 #endif
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_f3d_gpu<T>::ClearNodeBasedMeasureGradient()
+void reg_f3d_gpu<T>::ClearNodeBasedGradient()
 {
-    if(this->nodeBasedMeasureGradientImage_gpu!=NULL){
-        cudaCommon_free<float4>(&this->nodeBasedMeasureGradientImage_gpu);
-        this->nodeBasedMeasureGradientImage_gpu=NULL;
+    if(this->nodeBasedGradientImage_gpu!=NULL){
+        cudaCommon_free<float4>(&this->nodeBasedGradientImage_gpu);
+        this->nodeBasedGradientImage_gpu=NULL;
     }
     return;
 }
@@ -408,6 +408,7 @@ void reg_f3d_gpu<T>::RestoreCurrentControlPoint()
 template <class T>
 double reg_f3d_gpu<T>::ComputeJacobianBasedPenaltyTerm(int type)
 {
+    if(this->jacobianLogWeight<=0) return 0.;
 
     double value;
     if(type==2){
@@ -465,6 +466,8 @@ double reg_f3d_gpu<T>::ComputeJacobianBasedPenaltyTerm(int type)
 template <class T>
 double reg_f3d_gpu<T>::ComputeBendingEnergyPenaltyTerm()
 {
+    if(this->bendingEnergyWeight<=0) return 0.;
+
     double value = reg_bspline_ApproxBendingEnergy_gpu(this->controlPointGrid,
                                                        &this->controlPointGrid_gpu);
     return this->bendingEnergyWeight * value;
@@ -654,7 +657,7 @@ void reg_f3d_gpu<T>::GetSimilarityMeasureGradient()
     reg_voxelCentric2NodeCentric_gpu(   this->warped,
                                         this->controlPointGrid,
                                         &this->voxelBasedMeasureGradientImage_gpu,
-                                        &this->nodeBasedMeasureGradientImage_gpu,
+                                        &this->nodeBasedGradientImage_gpu,
                                         1.0-this->bendingEnergyWeight-this->jacobianLogWeight);
     /* The NMI gradient is converted from voxel space to real space */
     mat44 *floatingMatrix_xyz=NULL;
@@ -663,11 +666,11 @@ void reg_f3d_gpu<T>::GetSimilarityMeasureGradient()
     else floatingMatrix_xyz = &(this->currentFloating->qto_xyz);
     reg_convertNMIGradientFromVoxelToRealSpace_gpu( floatingMatrix_xyz,
                                                     this->controlPointGrid,
-                                                    &this->nodeBasedMeasureGradientImage_gpu);
+                                                    &this->nodeBasedGradientImage_gpu);
     // The gradient is smoothed using a Gaussian kernel if it is required
     if(this->gradientSmoothingSigma!=0){
         reg_gaussianSmoothing_gpu(this->controlPointGrid,
-                                  &this->nodeBasedMeasureGradientImage_gpu,
+                                  &this->nodeBasedGradientImage_gpu,
                                   this->gradientSmoothingSigma,
                                   NULL);
     }
@@ -678,10 +681,12 @@ void reg_f3d_gpu<T>::GetSimilarityMeasureGradient()
 template <class T>
 void reg_f3d_gpu<T>::GetBendingEnergyGradient()
 {
+    if(this->bendingEnergyWeight<=0) return;
+
     reg_bspline_ApproxBendingEnergyGradient_gpu(this->currentReference,
                                                  this->controlPointGrid,
                                                  &this->controlPointGrid_gpu,
-                                                 &this->nodeBasedMeasureGradientImage_gpu,
+                                                 &this->nodeBasedGradientImage_gpu,
                                                  this->bendingEnergyWeight);
     return;
 }
@@ -690,10 +695,12 @@ void reg_f3d_gpu<T>::GetBendingEnergyGradient()
 template <class T>
 void reg_f3d_gpu<T>::GetJacobianBasedGradient()
 {
+    if(this->jacobianLogWeight<=0) return;
+
     reg_bspline_ComputeJacobianPenaltyTermGradient_gpu(this->currentReference,
                                                        this->controlPointGrid,
                                                        &this->controlPointGrid_gpu,
-                                                       &this->nodeBasedMeasureGradientImage_gpu,
+                                                       &this->nodeBasedGradientImage_gpu,
                                                        this->jacobianLogWeight,
                                                        this->jacobianLogApproximation);
     return;
@@ -705,14 +712,14 @@ void reg_f3d_gpu<T>::ComputeConjugateGradient()
 {
     if(this->currentIteration==1){
         // first conjugate gradient iteration
-        reg_initialiseConjugateGradient(&this->nodeBasedMeasureGradientImage_gpu,
+        reg_initialiseConjugateGradient(&this->nodeBasedGradientImage_gpu,
                                         &this->conjugateG_gpu,
                                         &this->conjugateH_gpu,
                                         this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz);
     }
     else{
         // conjugate gradient computation if iteration != 1
-        reg_GetConjugateGradient(&this->nodeBasedMeasureGradientImage_gpu,
+        reg_GetConjugateGradient(&this->nodeBasedGradientImage_gpu,
                                  &this->conjugateG_gpu,
                                  &this->conjugateH_gpu,
                                  this->controlPointGrid->nx*
@@ -726,7 +733,7 @@ void reg_f3d_gpu<T>::ComputeConjugateGradient()
 template <class T>
 T reg_f3d_gpu<T>::GetMaximalGradientLength()
 {
-    T maxLength = reg_getMaximalLength_gpu(&this->nodeBasedMeasureGradientImage_gpu,
+    T maxLength = reg_getMaximalLength_gpu(&this->nodeBasedGradientImage_gpu,
                                            this->controlPointGrid->nx*
                                            this->controlPointGrid->ny*
                                            this->controlPointGrid->nz);
@@ -740,16 +747,20 @@ void reg_f3d_gpu<T>::UpdateControlPointPosition(T scale)
     reg_updateControlPointPosition_gpu(this->controlPointGrid,
                                        &this->controlPointGrid_gpu,
                                        &this->bestControlPointPosition_gpu,
-                                       &this->nodeBasedMeasureGradientImage_gpu,
+                                       &this->nodeBasedGradientImage_gpu,
                                        scale);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_f3d_gpu<T>::AllocateCurrentInputImage(int level)
+void reg_f3d_gpu<T>::AllocateCurrentInputImage()
 {
-    reg_f3d<T>::AllocateCurrentInputImage(level);
+    reg_f3d<T>::AllocateCurrentInputImage();
+
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] reg_f3d_gpu<T>::AllocateCurrentInputImage called.\n");
+#endif
 
     if(this->currentReference_gpu!=NULL) cudaCommon_free(&this->currentReference_gpu);
     if(this->currentReference2_gpu!=NULL) cudaCommon_free(&this->currentReference2_gpu);
@@ -810,6 +821,7 @@ void reg_f3d_gpu<T>::AllocateCurrentInputImage(int level)
         printf("[NiftyReg ERROR] Error when allocating the control point image.\n");
         exit(1);
     }
+
     if(cudaCommon_transferNiftiToArrayOnDevice<float4>
        (&this->controlPointGrid_gpu, this->controlPointGrid)){
         printf("[NiftyReg ERROR] Error when transfering the control point image.\n");
@@ -828,12 +840,18 @@ void reg_f3d_gpu<T>::AllocateCurrentInputImage(int level)
                                  this->activeVoxelNumber[this->currentLevel]*sizeof(int),
                                  cudaMemcpyHostToDevice))
     NR_CUDA_SAFE_CALL(cudaFreeHost(targetMask_h))
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] reg_f3d_gpu<T>::AllocateCurrentInputImage done.\n");
+#endif
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_f3d_gpu<T>::ClearCurrentInputImage()
 {
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] reg_f3d_gpu<T>::ClearCurrentInputImage called.\n");
+#endif
     if(cudaCommon_transferFromDeviceToNifti<float4>
        (this->controlPointGrid, &this->controlPointGrid_gpu)){
         printf("[NiftyReg ERROR] Error when transfering back the control point image.\n");
@@ -857,6 +875,9 @@ void reg_f3d_gpu<T>::ClearCurrentInputImage()
     this->currentReference=NULL;
     this->currentMask=NULL;
     this->currentFloating=NULL;
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] reg_f3d_gpu<T>::ClearCurrentInputImage done.\n");
+#endif
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
