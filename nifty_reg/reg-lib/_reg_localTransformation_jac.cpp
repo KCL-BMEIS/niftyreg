@@ -1279,7 +1279,7 @@ void reg_bspline_computeJacobianMatricesFull_3D(nifti_image *referenceImage,
     union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} basisY;
     union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} basisZ;
     union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} xControlPointCoordinates;
-    union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} yControlPointCoordinates;cd
+    union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} yControlPointCoordinates;
     union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} zControlPointCoordinates;
 #else // _WINDOWS
     union{__m128 m[16];DTYPE f[64] __attribute__((aligned(16)));} basisX;
@@ -3589,7 +3589,7 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_2D(nifti_image* referenceI
     reg_getDisplacementFromDeformation(scaledVelocityField);
     reg_tools_addSubMulDivValue(scaledVelocityField,
                                 scaledVelocityField,
-                                pow(2,fabs(scaledVelocityField->intent_code)),
+                                pow(2.f,fabs(scaledVelocityField->intent_code)),
                                 3); // div
     reg_getDeformationFromDisplacement(scaledVelocityField);
 
