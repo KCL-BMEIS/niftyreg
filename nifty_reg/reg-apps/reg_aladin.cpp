@@ -9,13 +9,6 @@
  *
  */
 
-/* TODO
- - All
- */
-
-/* TOFIX
- - None (so far)
- */
 
 #ifndef _MM_ALADIN_CPP
 #define _MM_ALADIN_CPP
@@ -37,7 +30,7 @@
 void PetitUsage(char *exec)
 {
     fprintf(stderr,"Aladin - Seb.\n");
-    fprintf(stderr,"Usage:\t%s -target <targetImageName> -source <sourceImageName> [OPTIONS].\n",exec);
+    fprintf(stderr,"Usage:\t%s -ref <referenceImageName> -flo <floatingImageName> [OPTIONS].\n",exec);
     fprintf(stderr,"\tSee the help for more details (-h).\n");
     return;
 }
@@ -50,20 +43,20 @@ void Usage(char *exec)
     printf("This code has been written by Marc Modat (m.modat@ucl.ac.uk) and Pankaj Daga,\n");
     printf("for any comment, please contact them.\n");
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-    printf("Usage:\t%s -target <filename> -source <filename> [OPTIONS].\n",exec);
-    printf("\t-target <filename>\tFilename of the target image (mandatory)\n");
-    printf("\t-source <filename>\tFilename of the source image (mandatory)\n");
+    printf("Usage:\t%s -ref <filename> -flo <filename> [OPTIONS].\n",exec);
+    printf("\t-ref <filename>\tFilename of the reference (target) image (mandatory)\n");
+    printf("\t-flo <filename>\tFilename of the floating (source) image (mandatory)\n");
     printf("* * OPTIONS * *\n");
     printf("\t-aff <filename>\t\tFilename which contains the output affine transformation [outputAffine.txt]\n");
     printf("\t-rigOnly\t\tTo perform a rigid registration only (rigid+affine by default)\n");
     printf("\t-affDirect\t\tDirectly optimize 12 DoF affine [default is rigid initially then affine]\n");
-    printf("\t-inaff <filename>\tFilename which contains an input affine transformation (Affine*Target=Source) [none]\n");
+    printf("\t-inaff <filename>\tFilename which contains an input affine transformation (Affine*Reference=Floating) [none]\n");
     printf("\t-affFlirt <filename>\tFilename which contains an input affine transformation from Flirt [none]\n");
-    printf("\t-tmask <filename>\tFilename of a mask image in the target space\n");
-    printf("\t-result <filename>\tFilename of the resampled image [outputResult.nii]\n");
+    printf("\t-rmask <filename>\tFilename of a mask image in the reference space\n");
+    printf("\t-res <filename>\tFilename of the resampled image [outputResult.nii]\n");
     printf("\t-maxit <int>\t\tNumber of iteration per level [5]\n");
-    printf("\t-smooT <float>\t\tSmooth the target image using the specified sigma (mm) [0]\n");
-    printf("\t-smooS <float>\t\tSmooth the source image using the specified sigma (mm) [0]\n");
+    printf("\t-smooR <float>\t\tSmooth the reference image using the specified sigma (mm) [0]\n");
+    printf("\t-smooF <float>\t\tSmooth the floating image using the specified sigma (mm) [0]\n");
     printf("\t-ln <int>\t\tNumber of level to perform [3]\n");
     printf("\t-lp <int>\t\tOnly perform the first levels [ln]\n");
 
@@ -82,11 +75,11 @@ int main(int argc, char **argv)
 {
     time_t start; time(&start);
     reg_aladin<PrecisionTYPE> *REG = new reg_aladin<PrecisionTYPE>;
-    char *targetImageName=NULL;
-    int targetImageFlag=0;
+    char *referenceImageName=NULL;
+    int referenceImageFlag=0;
 
-    char *sourceImageName=NULL;
-    int sourceImageFlag=0;
+    char *floatingImageName=NULL;
+    int floatingImageFlag=0;
 
     char *outputAffineName=NULL;
     int outputAffineFlag=0;
@@ -95,8 +88,8 @@ int main(int argc, char **argv)
     int inputAffineFlag=0;
     int flirtAffineFlag=0;
 
-    char *targetMaskName=NULL;
-    int targetMaskFlag=0;
+    char *referenceMaskName=NULL;
+    int referenceMaskFlag=0;
 
     char *outputResultName=NULL;
     int outputResultFlag=0;
@@ -109,13 +102,13 @@ int main(int argc, char **argv)
             Usage(argv[0]);
             return 0;
         }
-        else if(strcmp(argv[i], "-target") == 0){
-            targetImageName=argv[++i];
-            targetImageFlag=1;
+        else if(strcmp(argv[i], "-ref") == 0 || strcmp(argv[i], "-target") == 0){
+            referenceImageName=argv[++i];
+            referenceImageFlag=1;
         }
-        else if(strcmp(argv[i], "-source") == 0){
-            sourceImageName=argv[++i];
-            sourceImageFlag=1;
+        else if(strcmp(argv[i], "-flo") == 0 || strcmp(argv[i], "-source") == 0){
+            floatingImageName=argv[++i];
+            floatingImageFlag=1;
         }
         else if(strcmp(argv[i], "-aff") == 0){
             outputAffineName=argv[++i];
@@ -130,11 +123,11 @@ int main(int argc, char **argv)
             inputAffineFlag=1;
             flirtAffineFlag=1;
         }
-        else if(strcmp(argv[i], "-tmask") == 0){
-            targetMaskName=argv[++i];
-            targetMaskFlag=1;
+        else if(strcmp(argv[i], "-rmask") == 0 || strcmp(argv[i], "-tmask") == 0){
+            referenceMaskName=argv[++i];
+            referenceMaskFlag=1;
         }
-        else if(strcmp(argv[i], "-result") == 0){
+        else if(strcmp(argv[i], "-res") == 0 || strcmp(argv[i], "-result") == 0){
             outputResultName=argv[++i];
             outputResultFlag=1;
         }
@@ -147,10 +140,10 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-lp") == 0){
             REG->SetLevelsToPerform(atoi(argv[++i]));
         }
-        else if(strcmp(argv[i], "-smooT") == 0){
+        else if(strcmp(argv[i], "-smooR") == 0 || strcmp(argv[i], "-smooT") == 0){
             REG->SetReferenceSigma((float)(atof(argv[++i])));
         }
-        else if(strcmp(argv[i], "-smooS") == 0){
+        else if(strcmp(argv[i], "-smooF") == 0 || strcmp(argv[i], "-smooS") == 0){
             REG->SetFloatingSigma((float)(atof(argv[++i])));
         }
         else if(strcmp(argv[i], "-rigOnly") == 0){
@@ -186,8 +179,8 @@ int main(int argc, char **argv)
         }
     }
 
-    if(!targetImageFlag || !sourceImageFlag){
-        fprintf(stderr,"Err:\tThe target and the source image have to be defined.\n");
+    if(!referenceImageFlag || !floatingImageFlag){
+        fprintf(stderr,"Err:\tThe reference and the floating image have to be defined.\n");
         PetitUsage(argv[0]);
         return 1;
     }
@@ -196,31 +189,31 @@ int main(int argc, char **argv)
     if(REG->GetLevelsToPerform() > REG->GetNumberOfLevels())
         REG->SetLevelsToPerform(REG->GetNumberOfLevels());
 
-    /* Read the target and source images */
-    nifti_image *targetHeader = nifti_image_read(targetImageName,true);
-    nifti_image *sourceHeader = nifti_image_read(sourceImageName,true);
-    REG->SetInputReference(targetHeader);
-    REG->SetInputFloating(sourceHeader);
+    /* Read the reference and floating images */
+    nifti_image *referenceHeader = nifti_image_read(referenceImageName,true);
+    nifti_image *floatingHeader = nifti_image_read(floatingImageName,true);
+    REG->SetInputReference(referenceHeader);
+    REG->SetInputFloating(floatingHeader);
 
     REG->SetInputTransform(inputAffineName,flirtAffineFlag);
 
-    /* read the target mask image */
-    nifti_image *targetMaskImage=NULL;
-    if(targetMaskFlag){
-        targetMaskImage = nifti_image_read(targetMaskName,true);
-        if(targetMaskImage == NULL){
-            fprintf(stderr,"* ERROR Error when reading the target naask image: %s\n",targetImageName);
+    /* read the reference mask image */
+    nifti_image *referenceMaskImage=NULL;
+    if(referenceMaskFlag){
+        referenceMaskImage = nifti_image_read(referenceMaskName,true);
+        if(referenceMaskImage == NULL){
+            fprintf(stderr,"* ERROR Error when reading the reference mask image: %s\n",referenceMaskName);
             return 1;
         }
-        reg_checkAndCorrectDimension(targetMaskImage);
+        reg_checkAndCorrectDimension(referenceMaskImage);
         /* check the dimension */
-        for(int i=1; i<=targetHeader->dim[0]; i++){
-            if(targetHeader->dim[i]!=targetMaskImage->dim[i]){
-                fprintf(stderr,"* ERROR The target image and its mask do not have the same dimension\n");
+        for(int i=1; i<=referenceHeader->dim[0]; i++){
+            if(referenceHeader->dim[i]!=referenceMaskImage->dim[i]){
+                fprintf(stderr,"* ERROR The reference image and its mask do not have the same dimension\n");
                 return 1;
             }
         }
-        REG->SetInputMask(targetMaskImage);
+        REG->SetInputMask(referenceMaskImage);
     }
     REG->Run();
 
@@ -236,8 +229,8 @@ int main(int argc, char **argv)
         reg_tool_WriteAffineFile(REG->GetTransformationMatrix(), outputAffineName);
     else reg_tool_WriteAffineFile(REG->GetTransformationMatrix(), (char *)"outputAffine.txt");
 
-    nifti_image_free(targetHeader);
-    nifti_image_free(sourceHeader);
+    nifti_image_free(referenceHeader);
+    nifti_image_free(floatingHeader);
 
     delete REG;
     time_t end; time(&end);

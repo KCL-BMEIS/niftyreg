@@ -108,12 +108,12 @@ int reg_aladin<T>::Print()
 {
     if(this->InputReference == 0)
     {
-        fprintf(stderr,"** ERROR Error when reading the target image. No image is loaded\n");
+        fprintf(stderr,"** ERROR Error when reading the reference image. No image is loaded\n");
         return 1;
     }
     if(this->InputFloating == 0)
     {
-        fprintf(stderr,"** ERROR Error when reading the source image. No image is loaded\n");
+        fprintf(stderr,"** ERROR Error when reading the floating image. No image is loaded\n");
         return 1;
     }
 
@@ -121,10 +121,10 @@ int reg_aladin<T>::Print()
     /* DISPLAY THE REGISTRATION PARAMETERS */
     /* *********************************** */
     printf("[%s] Parameters\n", this->ExecutableName);
-    printf("[%s] Target image name: %s\n", this->ExecutableName, this->InputReference->fname);
+    printf("[%s] Reference image name: %s\n", this->ExecutableName, this->InputReference->fname);
     printf("[%s] \t%ix%ix%i voxels\n", this->ExecutableName, this->InputReference->nx,this->InputReference->ny,this->InputReference->nz);
     printf("[%s] \t%gx%gx%g mm\n", this->ExecutableName, this->InputReference->dx,this->InputReference->dy,this->InputReference->dz);
-    printf("[%s] Source image name: %s\n", this->ExecutableName, this->InputFloating->fname);
+    printf("[%s] floating image name: %s\n", this->ExecutableName, this->InputFloating->fname);
     printf("[%s] \t%ix%ix%i voxels\n", this->ExecutableName, this->InputFloating->nx,this->InputFloating->ny,this->InputFloating->nz);
     printf("[%s] \t%gx%gx%g mm\n", this->ExecutableName, this->InputFloating->dx,this->InputFloating->dy,this->InputFloating->dz);
     printf("[%s] Maximum iteration number: %i", this->ExecutableName, this->MaxIterations);
@@ -211,27 +211,27 @@ void reg_aladin<T>::InitialiseRegistration()
         }
         if(this->AlignCentre)
         {
-            mat44 *sourceMatrix;
+            mat44 *floatingMatrix;
             if(this->InputFloating->sform_code>0)
-                sourceMatrix = &(this->InputFloating->sto_xyz);
-            else sourceMatrix = &(this->InputFloating->qto_xyz);
-            mat44 *targetMatrix;
+                floatingMatrix = &(this->InputFloating->sto_xyz);
+            else floatingMatrix = &(this->InputFloating->qto_xyz);
+            mat44 *referenceMatrix;
             if(this->InputReference->sform_code>0)
-                targetMatrix = &(this->InputReference->sto_xyz);
-            else targetMatrix = &(this->InputReference->qto_xyz);
-            float sourceCenter[3];
-            sourceCenter[0]=(float)(this->InputFloating->nx)/2.0f;
-            sourceCenter[1]=(float)(this->InputFloating->ny)/2.0f;
-            sourceCenter[2]=(float)(this->InputFloating->nz)/2.0f;
-            float targetCenter[3];
-            targetCenter[0]=(float)(this->InputReference->nx)/2.0f;
-            targetCenter[1]=(float)(this->InputReference->ny)/2.0f;
-            targetCenter[2]=(float)(this->InputReference->nz)/2.0f;
-            float sourceRealPosition[3]; reg_mat44_mul(sourceMatrix, sourceCenter, sourceRealPosition);
-            float targetRealPosition[3]; reg_mat44_mul(targetMatrix, targetCenter, targetRealPosition);
-            this->TransformationMatrix->m[0][3]=sourceRealPosition[0]-targetRealPosition[0];
-            this->TransformationMatrix->m[1][3]=sourceRealPosition[1]-targetRealPosition[1];
-            this->TransformationMatrix->m[2][3]=sourceRealPosition[2]-targetRealPosition[2];
+                referenceMatrix = &(this->InputReference->sto_xyz);
+            else referenceMatrix = &(this->InputReference->qto_xyz);
+            float floatingCenter[3];
+            floatingCenter[0]=(float)(this->InputFloating->nx)/2.0f;
+            floatingCenter[1]=(float)(this->InputFloating->ny)/2.0f;
+            floatingCenter[2]=(float)(this->InputFloating->nz)/2.0f;
+            float referenceCenter[3];
+            referenceCenter[0]=(float)(this->InputReference->nx)/2.0f;
+            referenceCenter[1]=(float)(this->InputReference->ny)/2.0f;
+            referenceCenter[2]=(float)(this->InputReference->nz)/2.0f;
+            float floatingRealPosition[3]; reg_mat44_mul(floatingMatrix, floatingCenter, floatingRealPosition);
+            float referenceRealPosition[3]; reg_mat44_mul(referenceMatrix, referenceCenter, referenceRealPosition);
+            this->TransformationMatrix->m[0][3]=floatingRealPosition[0]-referenceRealPosition[0];
+            this->TransformationMatrix->m[1][3]=floatingRealPosition[1]-referenceRealPosition[1];
+            this->TransformationMatrix->m[2][3]=floatingRealPosition[2]-referenceRealPosition[2];
 
         }
     }
@@ -416,10 +416,10 @@ void reg_aladin<T>::Run()
 #endif
         /* Display some parameters specific to the current level */
         printf("[%s] Current level %i / %i\n", this->ExecutableName, CurrentLevel+1, this->NumberOfLevels);
-        printf("[%s] Target image size: \t%ix%ix%i voxels\t%gx%gx%g mm\n", this->ExecutableName,
+        printf("[%s] reference image size: \t%ix%ix%i voxels\t%gx%gx%g mm\n", this->ExecutableName,
                this->CurrentReference->nx, this->CurrentReference->ny, this->CurrentReference->nz,
                this->CurrentReference->dx, this->CurrentReference->dy, this->CurrentReference->dz);
-        printf("[%s] Source image size: \t%ix%ix%i voxels\t%gx%gx%g mm\n", this->ExecutableName,
+        printf("[%s] floating image size: \t%ix%ix%i voxels\t%gx%gx%g mm\n", this->ExecutableName,
                this->CurrentFloating->nx, this->CurrentFloating->ny, this->CurrentFloating->nz,
                this->CurrentFloating->dx, this->CurrentFloating->dy, this->CurrentFloating->dz);
         if(this->CurrentReference->nz==1)
