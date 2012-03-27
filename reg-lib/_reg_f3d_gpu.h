@@ -34,7 +34,7 @@ class reg_f3d_gpu : public reg_f3d<T>
     float4 *deformationFieldImage_gpu;
     float4 *warpedGradientImage_gpu;
     float4 *voxelBasedMeasureGradientImage_gpu;
-    float4 *nodeBasedMeasureGradientImage_gpu;
+    float4 *nodeBasedGradientImage_gpu;
     float4 *conjugateG_gpu;
     float4 *conjugateH_gpu;
     float4 *bestControlPointPosition_gpu;
@@ -46,7 +46,7 @@ class reg_f3d_gpu : public reg_f3d<T>
     float *warped2_gpu;
     float4 *warpedGradientImage2_gpu;
 
-    void AllocateCurrentInputImage(int);
+    void AllocateCurrentInputImage();
     void ClearCurrentInputImage();
     void AllocateWarped();
     void ClearWarped();
@@ -56,8 +56,8 @@ class reg_f3d_gpu : public reg_f3d<T>
     void ClearWarpedGradient();
     void AllocateVoxelBasedMeasureGradient();
     void ClearVoxelBasedMeasureGradient();
-    void AllocateNodeBasedMeasureGradient();
-    void ClearNodeBasedMeasureGradient();
+    void AllocateNodeBasedGradient();
+    void ClearNodeBasedGradient();
     void AllocateConjugateGradientVariables();
     void ClearConjugateGradientVariables();
     void AllocateBestControlPointArray();

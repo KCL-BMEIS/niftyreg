@@ -143,11 +143,7 @@ void reg_f3d2<T>::UpdateControlPointPosition(T scale)
 
     nifti_image *lieBracket1=NULL;
 
-#if defined (_WIN32)
-  long int node;
-#else
-  size_t node;
-#endif
+    size_t node, nodeNumber;
 
     /************************/
     /**** Forward update ****/
@@ -157,7 +153,7 @@ void reg_f3d2<T>::UpdateControlPointPosition(T scale)
     printf("[NiftyReg f3d2] Update the forward control point grid using BCH approximation\n");
 #endif
 
-    size_t nodeNumber=this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz;
+    nodeNumber=this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz;
 
     // Scale the gradient image
     nifti_image *forwardScaledGradient=nifti_copy_nim_info(this->nodeBasedGradientImage);
