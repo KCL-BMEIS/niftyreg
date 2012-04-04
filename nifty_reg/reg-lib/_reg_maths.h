@@ -24,13 +24,47 @@ extern "C++"
 void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum);
 /* *************************************************************** */
 extern "C++"
-mat44 reg_mat44_mul(mat44 *A,
-                     mat44 *B);
+mat44 reg_mat44_mul(mat44 const* A,
+                     mat44 const* B);
 /* *************************************************************** */
 extern "C++" template <class DTYPE>
-void reg_mat44_mul(mat44 *mat,
-                   DTYPE *in,
+void reg_mat44_mul(mat44 const* mat,
+                   DTYPE const* in,
                    DTYPE *out);
+/* *************************************************************** */
+extern "C++"
+mat44 reg_mat44_mul(mat44 const* mat,
+                    double scalar);
+/* *************************************************************** */
+extern "C++"
+mat44 reg_mat44_add(mat44 const* A, mat44 const* B);
+/* *************************************************************** */
+extern "C++"
+mat44 reg_mat44_minus(mat44 const* A, mat44 const* B);
+/* *************************************************************** */
+extern "C++"
+void reg_mat44_eye (mat44 *mat);
+/* *************************************************************** */
+extern "C++"
+float reg_mat44_det(mat44 const* A);
+/* *************************************************************** */
+extern "C++"
+mat44 reg_mat44_inv(mat44 const* A);
+/* *************************************************************** */
+extern "C++"
+double reg_mat44_norm_inf(mat44 const* mat);
+/* *************************************************************** */
+extern "C++"
+mat44 reg_mat44_sqrt(mat44 const* mat);
+/* *************************************************************** */
+extern "C++"
+mat44 reg_mat44_expm(mat44 const* mat, int maxit=6);
+/* *************************************************************** */
+extern "C++"
+mat44 reg_mat44_logm(mat44 const* mat);
+/* *************************************************************** */
+extern "C++"
+mat44 reg_mat44_avg2(mat44 const* A, mat44 const* b);
 /* *************************************************************** */
 extern "C++"
 void reg_mat44_disp(mat44 *mat,

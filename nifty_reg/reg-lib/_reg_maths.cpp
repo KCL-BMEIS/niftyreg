@@ -5,6 +5,20 @@
 #define mat(i,j,dim) mat[i*dim+j]
 
 /* *************************************************************** */
+#define SIGN(a,b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
+
+static double maxarg1,maxarg2;
+#define FMAX(a,b) (maxarg1=(a),maxarg2=(b),(maxarg1) > (maxarg2) ?\
+(maxarg1) : (maxarg2))
+
+static int iminarg1,iminarg2;
+#define IMIN(a,b) (iminarg1=(a),iminarg2=(b),(iminarg1) < (iminarg2) ?\
+(iminarg1) : (iminarg2))
+
+static double sqrarg;
+#define SQR(a) ((sqrarg=(a)) == 0.0 ? 0.0 : sqrarg*sqrarg)
+
+/* *************************************************************** */
 /* *************************************************************** */
 template <class T>
 void reg_LUdecomposition(T *mat,
@@ -141,8 +155,105 @@ void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum)
     }
 }
 /* *************************************************************** */
+//Ported from VNL
+float reg_mat44_det(mat44 const* A)
+{
+    return
+       + A->m[0][0]*A->m[1][1]*A->m[2][2]*A->m[3][3]
+       - A->m[0][0]*A->m[1][1]*A->m[3][2]*A->m[2][3]
+       - A->m[0][0]*A->m[2][1]*A->m[1][2]*A->m[3][3]
+       + A->m[0][0]*A->m[2][1]*A->m[3][2]*A->m[1][3]
+       + A->m[0][0]*A->m[3][1]*A->m[1][2]*A->m[2][3]
+       - A->m[0][0]*A->m[3][1]*A->m[2][2]*A->m[1][3]
+       - A->m[1][0]*A->m[0][1]*A->m[2][2]*A->m[3][3]
+       + A->m[1][0]*A->m[0][1]*A->m[3][2]*A->m[2][3]
+       + A->m[1][0]*A->m[2][1]*A->m[0][2]*A->m[3][3]
+       - A->m[1][0]*A->m[2][1]*A->m[3][2]*A->m[0][3]
+       - A->m[1][0]*A->m[3][1]*A->m[0][2]*A->m[2][3]
+       + A->m[1][0]*A->m[3][1]*A->m[2][2]*A->m[0][3]
+       + A->m[2][0]*A->m[0][1]*A->m[1][2]*A->m[3][3]
+       - A->m[2][0]*A->m[0][1]*A->m[3][2]*A->m[1][3]
+       - A->m[2][0]*A->m[1][1]*A->m[0][2]*A->m[3][3]
+       + A->m[2][0]*A->m[1][1]*A->m[3][2]*A->m[0][3]
+       + A->m[2][0]*A->m[3][1]*A->m[0][2]*A->m[1][3]
+       - A->m[2][0]*A->m[3][1]*A->m[1][2]*A->m[0][3]
+       - A->m[3][0]*A->m[0][1]*A->m[1][2]*A->m[2][3]
+       + A->m[3][0]*A->m[0][1]*A->m[2][2]*A->m[1][3]
+       + A->m[3][0]*A->m[1][1]*A->m[0][2]*A->m[2][3]
+       - A->m[3][0]*A->m[1][1]*A->m[2][2]*A->m[0][3]
+       - A->m[3][0]*A->m[2][1]*A->m[0][2]*A->m[1][3]
+       + A->m[3][0]*A->m[2][1]*A->m[1][2]*A->m[0][3];
+}
+
 /* *************************************************************** */
-mat44 reg_mat44_mul(mat44 *A, mat44 *B)
+//Ported from VNL
+mat44 reg_mat44_inv(mat44 const* A)
+{
+    mat44 R;
+    for(int i=0; i<4; i++)
+    {
+        R.m[i][0]=0.0f;R.m[i][1]=0.0f;R.m[i][2]=0.0f;R.m[i][3]=0.0f;
+    }
+    float detA = reg_mat44_det(A);
+    if (detA==0) {
+       printf("Cannot invert 4x4 matrix with zero determinant. Returning matrix of zeros");
+       return R;
+     }
+     detA = 1.0f / detA;
+     R.m[0][0] =  A->m[1][1]*A->m[2][2]*A->m[3][3] - A->m[1][1]*A->m[2][3]*A->m[3][2]
+             - A->m[2][1]*A->m[1][2]*A->m[3][3] + A->m[2][1]*A->m[1][3]*A->m[3][2]
+             + A->m[3][1]*A->m[1][2]*A->m[2][3] - A->m[3][1]*A->m[1][3]*A->m[2][2];
+     R.m[0][1] = -A->m[0][1]*A->m[2][2]*A->m[3][3] + A->m[0][1]*A->m[2][3]*A->m[3][2]
+             + A->m[2][1]*A->m[0][2]*A->m[3][3] - A->m[2][1]*A->m[0][3]*A->m[3][2]
+             - A->m[3][1]*A->m[0][2]*A->m[2][3] + A->m[3][1]*A->m[0][3]*A->m[2][2];
+     R.m[0][2] =  A->m[0][1]*A->m[1][2]*A->m[3][3] - A->m[0][1]*A->m[1][3]*A->m[3][2]
+             - A->m[1][1]*A->m[0][2]*A->m[3][3] + A->m[1][1]*A->m[0][3]*A->m[3][2]
+             + A->m[3][1]*A->m[0][2]*A->m[1][3] - A->m[3][1]*A->m[0][3]*A->m[1][2];
+     R.m[0][3] = -A->m[0][1]*A->m[1][2]*A->m[2][3] + A->m[0][1]*A->m[1][3]*A->m[2][2]
+             + A->m[1][1]*A->m[0][2]*A->m[2][3] - A->m[1][1]*A->m[0][3]*A->m[2][2]
+             - A->m[2][1]*A->m[0][2]*A->m[1][3] + A->m[2][1]*A->m[0][3]*A->m[1][2];
+     R.m[1][0] = -A->m[1][0]*A->m[2][2]*A->m[3][3] + A->m[1][0]*A->m[2][3]*A->m[3][2]
+             + A->m[2][0]*A->m[1][2]*A->m[3][3] - A->m[2][0]*A->m[1][3]*A->m[3][2]
+             - A->m[3][0]*A->m[1][2]*A->m[2][3] + A->m[3][0]*A->m[1][3]*A->m[2][2];
+     R.m[1][1] =  A->m[0][0]*A->m[2][2]*A->m[3][3] - A->m[0][0]*A->m[2][3]*A->m[3][2]
+             - A->m[2][0]*A->m[0][2]*A->m[3][3] + A->m[2][0]*A->m[0][3]*A->m[3][2]
+             + A->m[3][0]*A->m[0][2]*A->m[2][3] - A->m[3][0]*A->m[0][3]*A->m[2][2];
+     R.m[1][2] = -A->m[0][0]*A->m[1][2]*A->m[3][3] + A->m[0][0]*A->m[1][3]*A->m[3][2]
+             + A->m[1][0]*A->m[0][2]*A->m[3][3] - A->m[1][0]*A->m[0][3]*A->m[3][2]
+             - A->m[3][0]*A->m[0][2]*A->m[1][3] + A->m[3][0]*A->m[0][3]*A->m[1][2];
+     R.m[1][3] =  A->m[0][0]*A->m[1][2]*A->m[2][3] - A->m[0][0]*A->m[1][3]*A->m[2][2]
+             - A->m[1][0]*A->m[0][2]*A->m[2][3] + A->m[1][0]*A->m[0][3]*A->m[2][2]
+             + A->m[2][0]*A->m[0][2]*A->m[1][3] - A->m[2][0]*A->m[0][3]*A->m[1][2];
+     R.m[2][0] =  A->m[1][0]*A->m[2][1]*A->m[3][3] - A->m[1][0]*A->m[2][3]*A->m[3][1]
+             - A->m[2][0]*A->m[1][1]*A->m[3][3] + A->m[2][0]*A->m[1][3]*A->m[3][1]
+             + A->m[3][0]*A->m[1][1]*A->m[2][3] - A->m[3][0]*A->m[1][3]*A->m[2][1];
+     R.m[2][1] = -A->m[0][0]*A->m[2][1]*A->m[3][3] + A->m[0][0]*A->m[2][3]*A->m[3][1]
+             + A->m[2][0]*A->m[0][1]*A->m[3][3] - A->m[2][0]*A->m[0][3]*A->m[3][1]
+             - A->m[3][0]*A->m[0][1]*A->m[2][3] + A->m[3][0]*A->m[0][3]*A->m[2][1];
+     R.m[2][2]=  A->m[0][0]*A->m[1][1]*A->m[3][3] - A->m[0][0]*A->m[1][3]*A->m[3][1]
+             - A->m[1][0]*A->m[0][1]*A->m[3][3] + A->m[1][0]*A->m[0][3]*A->m[3][1]
+             + A->m[3][0]*A->m[0][1]*A->m[1][3] - A->m[3][0]*A->m[0][3]*A->m[1][1];
+     R.m[2][3]= -A->m[0][0]*A->m[1][1]*A->m[2][3] + A->m[0][0]*A->m[1][3]*A->m[2][1]
+             + A->m[1][0]*A->m[0][1]*A->m[2][3] - A->m[1][0]*A->m[0][3]*A->m[2][1]
+             - A->m[2][0]*A->m[0][1]*A->m[1][3] + A->m[2][0]*A->m[0][3]*A->m[1][1];
+     R.m[3][0]= -A->m[1][0]*A->m[2][1]*A->m[3][2] + A->m[1][0]*A->m[2][2]*A->m[3][1]
+             + A->m[2][0]*A->m[1][1]*A->m[3][2] - A->m[2][0]*A->m[1][2]*A->m[3][1]
+             - A->m[3][0]*A->m[1][1]*A->m[2][2] + A->m[3][0]*A->m[1][2]*A->m[2][1];
+     R.m[3][1]=  A->m[0][0]*A->m[2][1]*A->m[3][2] - A->m[0][0]*A->m[2][2]*A->m[3][1]
+             - A->m[2][0]*A->m[0][1]*A->m[3][2] + A->m[2][0]*A->m[0][2]*A->m[3][1]
+             + A->m[3][0]*A->m[0][1]*A->m[2][2] - A->m[3][0]*A->m[0][2]*A->m[2][1];
+     R.m[3][2]= -A->m[0][0]*A->m[1][1]*A->m[3][2] + A->m[0][0]*A->m[1][2]*A->m[3][1]
+             + A->m[1][0]*A->m[0][1]*A->m[3][2] - A->m[1][0]*A->m[0][2]*A->m[3][1]
+             - A->m[3][0]*A->m[0][1]*A->m[1][2] + A->m[3][0]*A->m[0][2]*A->m[1][1];
+     R.m[3][3]=  A->m[0][0]*A->m[1][1]*A->m[2][2] - A->m[0][0]*A->m[1][2]*A->m[2][1]
+             - A->m[1][0]*A->m[0][1]*A->m[2][2] + A->m[1][0]*A->m[0][2]*A->m[2][1]
+             + A->m[2][0]*A->m[0][1]*A->m[1][2] - A->m[2][0]*A->m[0][2]*A->m[1][1];
+     return reg_mat44_mul(&R,detA);
+}
+
+/* *************************************************************** */
+/* *************************************************************** */
+mat44 reg_mat44_mul(mat44 const* A, mat44 const* B)
 {
         mat44 R;
 
@@ -156,7 +267,7 @@ mat44 reg_mat44_mul(mat44 *A, mat44 *B)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-mat44 reg_mat44_add(mat44 *A, mat44 *B)
+mat44 reg_mat44_add(mat44 const* A, mat44 const* B)
 {
     mat44 R;
 
@@ -167,11 +278,48 @@ mat44 reg_mat44_add(mat44 *A, mat44 *B)
     }
     return R;
 }
+
+mat44 reg_mat44_minus(mat44 const* A, mat44 const* B)
+{
+    mat44 R;
+
+    for(int i=0; i<4; i++){
+        for(int j=0; j<4; j++){
+            R.m[i][j] = A->m[i][j]-B->m[i][j];
+        }
+    }
+    return R;
+}
+
 /* *************************************************************** */
+void reg_mat44_eye (mat44 *mat)
+{
+    for(int i=0; i < 4; i++)
+    {
+        mat->m[i][0] = mat->m[i][1] = mat->m[i][2] = mat->m[i][3] = 0.0;
+        mat->m[i][i] = 1.0;
+    }
+}
+
+double reg_mat44_norm_inf(mat44 const* mat)
+{
+    double maxval=0.0;
+    double newval=0.0;
+    for (int i=0; i < 4; i++)
+    {
+        for (int j=0; j < 4; j++)
+        {
+            newval= fabs(mat->m[i][j]);
+            maxval = (newval > maxval) ? newval : maxval;
+        }
+    }
+    return maxval;
+}
+
 /* *************************************************************** */
 template <class DTYPE>
-void reg_mat44_mul(mat44 *mat,
-                    DTYPE *in,
+void reg_mat44_mul(mat44 const* mat,
+                    DTYPE const* in,
                     DTYPE *out)
 {
     out[0]=mat->m[0][0]*in[0] + mat->m[0][1]*in[1] + mat->m[0][2]*in[2] + mat->m[0][3];
@@ -179,8 +327,128 @@ void reg_mat44_mul(mat44 *mat,
     out[2]=mat->m[2][0]*in[0] + mat->m[2][1]*in[1] + mat->m[2][2]*in[2] + mat->m[2][3];
     return;
 }
-template void reg_mat44_mul<float>(mat44 *, float*, float*);
-template void reg_mat44_mul<double>(mat44 *, double*, double*);
+template void reg_mat44_mul<float>(mat44 const*, float const*, float*);
+template void reg_mat44_mul<double>(mat44 const*, double const*, double*);
+
+mat44 reg_mat44_mul(mat44 const* A, double scalar)
+{
+    mat44 out;
+    out.m[0][0]=A->m[0][0]*scalar;out.m[0][1]=A->m[0][1]*scalar;out.m[0][2]=A->m[0][2]*scalar;out.m[0][3]=A->m[0][3]*scalar;
+    out.m[1][0]=A->m[1][0]*scalar;out.m[1][1]=A->m[1][1]*scalar;out.m[1][2]=A->m[1][2]*scalar;out.m[1][3]=A->m[1][3]*scalar;
+    out.m[2][0]=A->m[2][0]*scalar;out.m[2][1]=A->m[2][1]*scalar;out.m[2][2]=A->m[2][2]*scalar;out.m[2][3]=A->m[2][3]*scalar;
+    out.m[3][0]=A->m[3][0]*scalar;out.m[3][1]=A->m[3][1]*scalar;out.m[3][2]=A->m[3][2]*scalar;out.m[3][3]=A->m[3][3]*scalar;
+    return out;
+}
+
+mat44 reg_mat44_sqrt(mat44 const* mat)
+{
+    mat44 X=*mat;
+    mat44 Y;
+    int it=0;
+    int maxit=10;
+    reg_mat44_eye(&Y);
+    mat44 delX, delY;
+    double eps=1.0e-7;
+    mat44 Xsq=reg_mat44_mul(&X,&X);
+    mat44 diffMat = reg_mat44_minus(&Xsq,mat);
+    mat44 XdelY, YdelX;
+    while (reg_mat44_norm_inf(&diffMat) > eps)
+    {
+        delX=reg_mat44_inv(&X);
+        delY=reg_mat44_inv(&Y);
+        XdelY=reg_mat44_add(&X,&delY);
+        YdelX=reg_mat44_add(&Y,&delX);
+        X=reg_mat44_mul(&XdelY,0.5);
+        Y=reg_mat44_mul(&YdelX,0.5);
+        Xsq=reg_mat44_mul(&X,&X);
+        diffMat = reg_mat44_minus(&Xsq,mat);
+        it++;
+        if(it > maxit)
+            break;
+    }
+    return X;
+}
+
+/**
+   * Compute the matrix exponential according to "Linear combination of transformations", Marc Alex, Volume 21, Issue 3, ACM SIGGRAPH 2002.
+   * and from Kelvin's implementation of the code in NifTK
+   */
+mat44 reg_mat44_expm(mat44 const* mat, int maxit)
+{
+    double j = FMAX(0.0,1+floor(log2(reg_mat44_norm_inf(mat))));
+
+    mat44 A=reg_mat44_mul(mat,pow(2.0,-j));
+    mat44 D,N,X,cX;
+    reg_mat44_eye(&D);
+    reg_mat44_eye(&N);
+    reg_mat44_eye(&X);
+
+    double c = 1.0;
+    for(int k=1; k <= maxit; k++)
+    {
+        c = c * (maxit-k+1.0) / (k*(2*maxit-k+1.0));
+        X = reg_mat44_mul(&A,&X);
+        cX = reg_mat44_mul(&X,c);
+        N = reg_mat44_add(&N,&cX);
+        cX = reg_mat44_mul(&cX,pow(-1.0,k));
+        D = reg_mat44_add(&D,&cX);
+    }
+    D=reg_mat44_inv(&D);
+    X=reg_mat44_mul(&D,&N);
+    for(int i=0; i < round(j); i++)
+    {
+        X=reg_mat44_mul(&X,&X);
+    }
+    return X;
+}
+
+mat44 reg_mat44_logm(mat44 const* mat)
+{
+    int k = 0;
+    mat44 I;
+    reg_mat44_eye(&I);
+    mat44 A=*mat;
+    double eps=1.0e-7;
+    mat44 A_I = reg_mat44_minus(&A,&I);
+    while(reg_mat44_norm_inf(&A_I) > 0.5)
+    {
+        A=reg_mat44_sqrt(&A);
+        A_I = reg_mat44_minus(&A,&I);
+        k=k+1;
+    }
+    A = reg_mat44_minus(&I,&A);
+    mat44 Z = A;
+    mat44 X = A;
+    mat44 Z_i;
+    double i = 1.0;
+    while(reg_mat44_norm_inf(&Z) > eps)
+    {
+        Z = reg_mat44_mul(&Z,&A);
+        i += 1.0;
+        Z_i = reg_mat44_mul(&Z, 1.0/i);
+        X = reg_mat44_add(&X,&Z_i);
+    }
+    X=reg_mat44_mul(&X,-1.0);
+    X = reg_mat44_mul(&X
+
+                      ,pow(2.0,k));
+    return X;
+
+}
+
+
+mat44 reg_mat44_avg2(mat44 const* A, mat44 const* B)
+{
+    mat44 out;
+    mat44 logA=reg_mat44_logm(A);
+    mat44 logBinv=reg_mat44_inv(B);
+    logBinv=reg_mat44_logm(&logBinv);
+    logA = reg_mat44_add(&logA,&logBinv);
+    out = reg_mat44_mul(&logA,0.5);
+    return reg_mat44_expm(&out);
+
+}
+
 /* *************************************************************** */
 /* *************************************************************** */
 void reg_mat44_disp(mat44 *mat, char * title)
@@ -256,19 +524,6 @@ void reg_getReorientationMatrix(nifti_image *splineControlPoint, mat33 *desorien
     *reorient=nifti_mat33_inverse(*desorient);
 }
 /* *************************************************************** */
-/* *************************************************************** */
-#define SIGN(a,b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
-
-static double maxarg1,maxarg2;
-#define FMAX(a,b) (maxarg1=(a),maxarg2=(b),(maxarg1) > (maxarg2) ?\
-(maxarg1) : (maxarg2))
-
-static int iminarg1,iminarg2;
-#define IMIN(a,b) (iminarg1=(a),iminarg2=(b),(iminarg1) < (iminarg2) ?\
-(iminarg1) : (iminarg2))
-
-static double sqrarg;
-#define SQR(a) ((sqrarg=(a)) == 0.0 ? 0.0 : sqrarg*sqrarg)
 
 // Calculate pythagorean distance
 template <class T>
