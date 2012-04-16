@@ -2,6 +2,8 @@
 #define _REG_MATHS_CPP
 
 #include "_reg_maths.h"
+#include "_reg_tools.h"
+
 #define mat(i,j,dim) mat[i*dim+j]
 
 /* *************************************************************** */
@@ -375,7 +377,7 @@ mat44 reg_mat44_sqrt(mat44 const* mat)
    */
 mat44 reg_mat44_expm(mat44 const* mat, int maxit)
 {
-    double j = FMAX(0.0,1+floor(log2(reg_mat44_norm_inf(mat))));
+    double j = FMAX(0.0,1+floor(log(reg_mat44_norm_inf(mat))/log(2.0)));
 
     mat44 A=reg_mat44_mul(mat,pow(2.0,-j));
     mat44 D,N,X,cX;
