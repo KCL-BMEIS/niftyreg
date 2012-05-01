@@ -12,6 +12,7 @@ template <class T> reg_aladin<T>::reg_aladin ()
     CurrentWarped=NULL;
     CurrentReferenceMask = NULL;
 
+    this->deformationFieldImage=NULL;
     TransformationMatrix=new mat44;
     InputTransformName=NULL;
     InputTransformFromFlirt=false;
