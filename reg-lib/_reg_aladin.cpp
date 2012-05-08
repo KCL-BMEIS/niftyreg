@@ -415,21 +415,7 @@ void reg_aladin<T>::Run()
 #ifdef NDEBUG
         if(this->Verbose){
 #endif
-        /* Display some parameters specific to the current level */
-        printf("[%s] Current level %i / %i\n", this->ExecutableName, CurrentLevel+1, this->NumberOfLevels);
-        printf("[%s] reference image size: \t%ix%ix%i voxels\t%gx%gx%g mm\n", this->ExecutableName,
-               this->CurrentReference->nx, this->CurrentReference->ny, this->CurrentReference->nz,
-               this->CurrentReference->dx, this->CurrentReference->dy, this->CurrentReference->dz);
-        printf("[%s] floating image size: \t%ix%ix%i voxels\t%gx%gx%g mm\n", this->ExecutableName,
-               this->CurrentFloating->nx, this->CurrentFloating->ny, this->CurrentFloating->nz,
-               this->CurrentFloating->dx, this->CurrentFloating->dy, this->CurrentFloating->dz);
-        if(this->CurrentReference->nz==1)
-            printf("[%s] Block size = [4 4 1]\n", this->ExecutableName);
-        else printf("[%s] Block size = [4 4 4]\n", this->ExecutableName);
-        printf("[%s] Block number = [%i %i %i]\n", this->ExecutableName, this->blockMatchingParams.blockNumber[0],
-               this->blockMatchingParams.blockNumber[1], this->blockMatchingParams.blockNumber[2]);
-        printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-        reg_mat44_disp(this->TransformationMatrix, (char *)"[reg_aladin] Initial transformation matrix:");
+            this->DebugPrintLevelInfo(CurrentLevel);
 #ifdef NDEBUG
        }
 #endif
@@ -539,4 +525,26 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
     reg_aladin<T>::ClearWarpedImage();
     return resultImage;
 }
+
+template <class T>
+void reg_aladin<T>::DebugPrintLevelInfo (int CurrentLevel)
+{
+    /* Display some parameters specific to the current level */
+    printf("[%s] Current level %i / %i\n", this->ExecutableName, CurrentLevel+1, this->NumberOfLevels);
+    printf("[%s] reference image size: \t%ix%ix%i voxels\t%gx%gx%g mm\n", this->ExecutableName,
+           this->CurrentReference->nx, this->CurrentReference->ny, this->CurrentReference->nz,
+           this->CurrentReference->dx, this->CurrentReference->dy, this->CurrentReference->dz);
+    printf("[%s] floating image size: \t%ix%ix%i voxels\t%gx%gx%g mm\n", this->ExecutableName,
+           this->CurrentFloating->nx, this->CurrentFloating->ny, this->CurrentFloating->nz,
+           this->CurrentFloating->dx, this->CurrentFloating->dy, this->CurrentFloating->dz);
+    if(this->CurrentReference->nz==1)
+        printf("[%s] Block size = [4 4 1]\n", this->ExecutableName);
+    else printf("[%s] Block size = [4 4 4]\n", this->ExecutableName);
+    printf("[%s] Block number = [%i %i %i]\n", this->ExecutableName, this->blockMatchingParams.blockNumber[0],
+           this->blockMatchingParams.blockNumber[1], this->blockMatchingParams.blockNumber[2]);
+    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+    reg_mat44_disp(this->TransformationMatrix, (char *)"[reg_aladin] Initial transformation matrix:");
+
+}
+
 #endif //#ifndef _REG_ALADIN_CPP

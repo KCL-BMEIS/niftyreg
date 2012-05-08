@@ -71,19 +71,19 @@ class reg_aladin
 
       bool TestMatrixConvergence(mat44 *mat);
 
-      void InitialiseRegistration();
-      void SetCurrentImages();
-      void ClearCurrentInputImage();
-      void AllocateWarpedImage();
-      void ClearWarpedImage();
-      void AllocateDeformationField();
-      void ClearDeformationField();
+      virtual void InitialiseRegistration();
+      virtual void SetCurrentImages();
+      virtual void ClearCurrentInputImage();
+      virtual void AllocateWarpedImage();
+      virtual void ClearWarpedImage();
+      virtual void AllocateDeformationField();
+      virtual void ClearDeformationField();
 
-      void InitialiseBlockMatching(int);
-      void GetDeformationField();
-      void GetWarpedImage(int);
-      mat44 GetUpdateTransformationMatrix(int);
-      void UpdateTransformationMatrix(mat44);
+      virtual void InitialiseBlockMatching(int);
+      virtual void GetDeformationField();
+      virtual void GetWarpedImage(int);
+      virtual mat44 GetUpdateTransformationMatrix(int);
+      virtual void UpdateTransformationMatrix(mat44);
 
     public:
       reg_aladin();
@@ -141,14 +141,17 @@ class reg_aladin
 
       SetClampMacro(Interpolation,int,0,3);
       GetMacro(Interpolation, int);
+
+      virtual void SetInputFloatingMask (nifti_image* mask) {fprintf(stderr, "Floating mask not used in one way affine\n"); }
       void SetInterpolationToNearestNeighbor() {this->SetInterpolation(0);}
       void SetInterpolationToTrilinear() {this->SetInterpolation(1);}
       void SetInterpolationToCubic() {this->SetInterpolation(3);}
 
-      int Check();
-      int Print();
-      void Run();
+      virtual int Check();
+      virtual int Print();
+      virtual void Run();
 
+      virtual void DebugPrintLevelInfo(int);
 
 };
 

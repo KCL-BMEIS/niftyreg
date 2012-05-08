@@ -443,9 +443,8 @@ mat44 reg_mat44_avg2(mat44 const* A, mat44 const* B)
 {
     mat44 out;
     mat44 logA=reg_mat44_logm(A);
-    mat44 logBinv=reg_mat44_inv(B);
-    logBinv=reg_mat44_logm(&logBinv);
-    logA = reg_mat44_add(&logA,&logBinv);
+    mat44 logB=reg_mat44_logm(B);
+    logA = reg_mat44_add(&logA,&logB);
     out = reg_mat44_mul(&logA,0.5);
     return reg_mat44_expm(&out);
 
