@@ -14,7 +14,7 @@
 #define _MM_ALADIN_CPP
 
 
-#include "_reg_aladin.h"
+#include "_reg_aladin_sym.h"
 #include "_reg_tools.h"
 
 #ifdef _WINDOWS
@@ -47,12 +47,14 @@ void Usage(char *exec)
     printf("\t-ref <filename>\tFilename of the reference (target) image (mandatory)\n");
     printf("\t-flo <filename>\tFilename of the floating (source) image (mandatory)\n");
     printf("* * OPTIONS * *\n");
+    printf("\t-sym \t\t\tUses symmetric version of the algorithm.\n");
     printf("\t-aff <filename>\t\tFilename which contains the output affine transformation [outputAffine.txt]\n");
     printf("\t-rigOnly\t\tTo perform a rigid registration only (rigid+affine by default)\n");
     printf("\t-affDirect\t\tDirectly optimize 12 DoF affine [default is rigid initially then affine]\n");
     printf("\t-inaff <filename>\tFilename which contains an input affine transformation (Affine*Reference=Floating) [none]\n");
     printf("\t-affFlirt <filename>\tFilename which contains an input affine transformation from Flirt [none]\n");
     printf("\t-rmask <filename>\tFilename of a mask image in the reference space\n");
+    printf("\t-fmask <filename>\tFilename of a mask image in the floating space. Only used when symmetric turned on\n");
     printf("\t-res <filename>\tFilename of the resampled image [outputResult.nii]\n");
     printf("\t-maxit <int>\t\tNumber of iteration per level [5]\n");
     printf("\t-smooR <float>\t\tSmooth the reference image using the specified sigma (mm) [0]\n");
@@ -74,7 +76,10 @@ void Usage(char *exec)
 int main(int argc, char **argv)
 {
     time_t start; time(&start);
-    reg_aladin<PrecisionTYPE> *REG = new reg_aladin<PrecisionTYPE>;
+    reg_aladin<PrecisionTYPE> *REG;
+
+    int symFlag=0;
+
     char *referenceImageName=NULL;
     int referenceImageFlag=0;
 
@@ -91,8 +96,23 @@ int main(int argc, char **argv)
     char *referenceMaskName=NULL;
     int referenceMaskFlag=0;
 
+    char *floatingMaskName=NULL;
+    int floatingMaskFlag=0;
+
     char *outputResultName=NULL;
     int outputResultFlag=0;
+
+    int maxIter=5;
+    int nLevels=3;
+    int levelsToPerform=3;
+    int affineFlag=1;
+    int rigidFlag=1;
+    float blockPercentage=50.0f;
+    float inlierLts=50.0f;
+    int alignCentre=1;
+    int interpolation=1;
+    float floatingSigma=0.0;
+    float referenceSigma=0.0;
 
     /* read the input parameter */
     for(int i=1;i<argc;i++){
@@ -109,6 +129,9 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-flo") == 0 || strcmp(argv[i], "-source") == 0){
             floatingImageName=argv[++i];
             floatingImageFlag=1;
+        }
+        else if(strcmp(argv[i], "-sym") == 0){
+            symFlag=1;
         }
         else if(strcmp(argv[i], "-aff") == 0){
             outputAffineName=argv[++i];
@@ -127,50 +150,54 @@ int main(int argc, char **argv)
             referenceMaskName=argv[++i];
             referenceMaskFlag=1;
         }
+        else if(strcmp(argv[i], "-fmask") == 0 || strcmp(argv[i], "-smask") == 0){
+            floatingMaskName=argv[++i];
+            floatingMaskFlag=1;
+        }
         else if(strcmp(argv[i], "-res") == 0 || strcmp(argv[i], "-result") == 0){
             outputResultName=argv[++i];
             outputResultFlag=1;
         }
         else if(strcmp(argv[i], "-maxit") == 0){
-            REG->SetMaxIterations(atoi(argv[++i]));
+            maxIter = atoi(argv[++i]);
         }
         else if(strcmp(argv[i], "-ln") == 0){
-            REG->SetNumberOfLevels(atoi(argv[++i]));
+            nLevels=atoi(argv[++i]);
         }
         else if(strcmp(argv[i], "-lp") == 0){
-            REG->SetLevelsToPerform(atoi(argv[++i]));
+            levelsToPerform=atoi(argv[++i]);
         }
         else if(strcmp(argv[i], "-smooR") == 0 || strcmp(argv[i], "-smooT") == 0){
-            REG->SetReferenceSigma((float)(atof(argv[++i])));
+            referenceSigma = (float)(atof(argv[++i]));
         }
         else if(strcmp(argv[i], "-smooF") == 0 || strcmp(argv[i], "-smooS") == 0){
-            REG->SetFloatingSigma((float)(atof(argv[++i])));
+            floatingSigma=(float)(atof(argv[++i]));
         }
         else if(strcmp(argv[i], "-rigOnly") == 0){
-            REG->PerformAffineOff();
-            REG->PerformRigidOn();
+            rigidFlag=1;
+            affineFlag=0;
             }
         else if(strcmp(argv[i], "-affDirect") == 0){
-            REG->PerformAffineOn();
-            REG->PerformRigidOff();
+          rigidFlag=0;
+          affineFlag=1;
         }
         else if(strcmp(argv[i], "-nac") == 0){
-            REG->AlignCentreOff();
+            alignCentre=0;
         }
         else if(strcmp(argv[i], "-%v") == 0){
-            REG->SetBlockPercentage(atof(argv[++i]));
+            blockPercentage=atof(argv[++i]);
         }
         else if(strcmp(argv[i], "-%i") == 0){
-            REG->SetInlierLts(atof(argv[++i]));
+            inlierLts=atof(argv[++i]);
         }
         else if(strcmp(argv[i], "-NN") == 0){
-            REG->SetInterpolationToNearestNeighbor();
+            interpolation=0;
         }
         else if(strcmp(argv[i], "-LIN") == 0){
-            REG->SetInterpolationToTrilinear();
+            interpolation=1;
         }
         else if(strcmp(argv[i], "-CUB") == 0){
-            REG->SetInterpolationToCubic();
+            interpolation=3;
         }
         else{
             fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
@@ -184,6 +211,36 @@ int main(int argc, char **argv)
         PetitUsage(argv[0]);
         return 1;
     }
+
+
+    if(symFlag)
+    {
+        REG = new reg_aladin_sym<PrecisionTYPE>;
+        if ( (referenceMaskFlag && !floatingMaskName) || (!referenceMaskFlag && floatingMaskName) )
+        {
+            fprintf(stderr,"Warning: You have one image mask option turned on but not the other.\n");
+            fprintf(stderr,"This may affect the degree of symmetry achieved.\n");
+        }
+    }
+    else
+    {
+        REG = new reg_aladin<PrecisionTYPE>;
+        if (floatingMaskFlag)
+        {
+            fprintf(stderr,"Note: Floating mask flag only used in symmetric method. Ignoring this option\n");
+        }
+    }
+    REG->SetMaxIterations(maxIter);
+    REG->SetNumberOfLevels(nLevels);
+    REG->SetLevelsToPerform(levelsToPerform);
+    REG->SetReferenceSigma(referenceSigma);
+    REG->SetFloatingSigma(floatingSigma);
+    REG->SetAlignCentre(alignCentre);
+    REG->SetPerformAffine(affineFlag);
+    REG->SetPerformRigid(rigidFlag);
+    REG->SetBlockPercentage(blockPercentage);
+    REG->SetInlierLts(inlierLts);
+    REG->SetInterpolation(interpolation);
 
 
     if(REG->GetLevelsToPerform() > REG->GetNumberOfLevels())
@@ -214,6 +271,23 @@ int main(int argc, char **argv)
             }
         }
         REG->SetInputMask(referenceMaskImage);
+    }
+    nifti_image *floatingMaskImage=NULL;
+    if(floatingMaskFlag && symFlag){
+        floatingMaskImage = nifti_image_read(floatingMaskName,true);
+        if(floatingMaskImage == NULL){
+            fprintf(stderr,"* ERROR Error when reading the floating mask image: %s\n",referenceMaskName);
+            return 1;
+        }
+        reg_checkAndCorrectDimension(floatingMaskImage);
+        /* check the dimension */
+        for(int i=1; i<=floatingHeader->dim[0]; i++){
+            if(floatingHeader->dim[i]!=floatingMaskImage->dim[i]){
+                fprintf(stderr,"* ERROR The floating image and its mask do not have the same dimension\n");
+                return 1;
+            }
+        }
+        REG->SetInputFloatingMask(floatingMaskImage);
     }
     REG->Run();
 

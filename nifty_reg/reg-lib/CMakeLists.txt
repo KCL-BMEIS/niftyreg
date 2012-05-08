@@ -116,9 +116,9 @@ IF(BUILD_NIFTYREG)
 #    ELSE(USE_CUDA)
 #-----------------------------------------------------------------------------
         IF(WIN32)
-            ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp)
+            ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp ${NAME}_sym.h ${NAME}_sym.cpp)
         ELSE(WIN32)
-            ADD_LIBRARY(${NAME} SHARED ${NAME}.h ${NAME}.cpp)
+            ADD_LIBRARY(${NAME} SHARED ${NAME}.h ${NAME}.cpp ${NAME}_sym.h ${NAME}_sym.cpp)
         ENDIF(WIN32)
             TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_blockMatching _reg_resampling _reg_globalTransformation _reg_ssd _reg_mutualinformation _reg_tools reg_nifti ${ZLIB})
 #-----------------------------------------------------------------------------
