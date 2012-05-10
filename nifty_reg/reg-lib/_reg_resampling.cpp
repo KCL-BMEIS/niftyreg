@@ -744,7 +744,8 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
     // a mask array is created if no mask is specified
     bool MrPropreRules = false;
     if(mask==NULL){
-        mask=(int *)calloc(targetImage->nx*targetImage->ny*targetImage->nz,sizeof(int)); // voxels in the background are set to -1 so 0 will do the job here
+        // voxels in the background are set to -1 so 0 will do the job here
+        mask=(int *)calloc(targetImage->nx*targetImage->ny*targetImage->nz,sizeof(int));
         MrPropreRules = true;
     }
 

@@ -26,6 +26,7 @@ void reg_checkAndCorrectDimension(nifti_image *image)
     if(image->nu<1 || image->dim[5]<1) image->dim[5]=image->nu=1;
     if(image->nv<1 || image->dim[6]<1) image->dim[6]=image->nv=1;
     if(image->nw<1 || image->dim[7]<1) image->dim[7]=image->nw=1;
+    if(image->scl_slope==0) image->scl_slope=1.f;
 }
 /* *************************************************************** */
 /* *************************************************************** */
