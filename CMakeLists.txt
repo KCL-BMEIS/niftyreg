@@ -1,4 +1,4 @@
-PROJECT(nifty_reg)
+PROJECT(NiftyReg)
 
 cmake_minimum_required(VERSION 2.6.4)
 
@@ -27,6 +27,7 @@ ENDIF()
 
 OPTION(BUILD_NIFTYREG "To build the NiftyReg executables" ON)
 OPTION(BUILD_NR_DEV "To build code under development" OFF)
+OPTION(BUILD_TESTING "To build the unit tests" OFF)
 
 OPTION(USE_SSE "To use SSE computation in some case" OFF)
 OPTION(USE_CUDA "To use CUDA for a GPU implementation of the code" OFF)
@@ -107,8 +108,13 @@ ENDIF(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/.svn)
 SUBDIRS(zlib)
 SUBDIRS(nifti)
 IF(BUILD_NIFTYREG)
-	SUBDIRS(reg-lib)
-	SUBDIRS(reg-apps)
+    SUBDIRS(reg-lib)
+    SUBDIRS(reg-apps)
+    if(BUILD_TESTING)
+        ENABLE_TESTING()
+        INCLUDE(${CMAKE_ROOT}/Modules/Dart.cmake)
+        SUBDIRS(reg-test)
+    ENDIF(BUILD_TESTING)
 ENDIF(BUILD_NIFTYREG)
 
 #-----------------------------------------------------------------------------
