@@ -3,40 +3,46 @@
 #define _REG_ALADIN_CPP
 template <class T> reg_aladin<T>::reg_aladin ()
 {
-    ExecutableName=(char*) "reg_aladin";
-    InputReference = NULL;
-    InputFloating = NULL;
-    InputReferenceMask = NULL;
-    CurrentReference=NULL;
-    CurrentFloating=NULL;
-    CurrentWarped=NULL;
-    CurrentReferenceMask = NULL;
+    this->ExecutableName=(char*) "reg_aladin";
+    this->InputReference = NULL;
+    this->InputFloating = NULL;
+    this->InputReferenceMask = NULL;
+    this->CurrentReference=NULL;
+    this->CurrentFloating=NULL;
+    this->CurrentWarped=NULL;
+    this->CurrentReferenceMask = NULL;
+    this->ReferencePyramid=NULL;
+    this->FloatingPyramid=NULL;
+    this->ReferenceMaskPyramid=NULL;
+    this->CurrentWarped=NULL;
+    this->deformationFieldImage=NULL;
+    this->activeVoxelNumber=NULL;
 
     this->deformationFieldImage=NULL;
     TransformationMatrix=new mat44;
     InputTransformName=NULL;
     InputTransformFromFlirt=false;
 
-    Verbose = true;
+    this->Verbose = true;
 
-    MaxIterations = 5;
+    this->MaxIterations = 5;
 
-    NumberOfLevels = 3;
-    LevelsToPerform = 3;
+    this->NumberOfLevels = 3;
+    this->LevelsToPerform = 3;
 
-    PerformRigid=1;
-    PerformAffine=1;
+    this->PerformRigid=1;
+    this->PerformAffine=1;
 
-    BlockPercentage=50;
-    InlierLts=50;
+    this->BlockPercentage=50;
+    this->InlierLts=50;
 
-    AlignCentre=1;
+    this->AlignCentre=1;
 
-    Interpolation=1;
+    this->Interpolation=1;
 
-    FloatingSigma=0.0;
+    this->FloatingSigma=0.0;
 
-    ReferenceSigma=0.0;
+    this->ReferenceSigma=0.0;
 }
 
 template <class T> reg_aladin<T>::~reg_aladin()

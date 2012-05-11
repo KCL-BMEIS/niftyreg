@@ -25,7 +25,7 @@ void reg_affine_positionField2D(mat44 *affineTransformation,
     FieldTYPE *positionFieldPtr = static_cast<FieldTYPE *>(positionFieldImage->data);
 
     unsigned int positionFieldXIndex=0;
-    unsigned int positionFieldYIndex=targetImage->nvox;
+    unsigned int positionFieldYIndex=targetImage->nx*targetImage->ny;
 
     mat44 *targetMatrix;
     if(targetImage->sform_code>0){

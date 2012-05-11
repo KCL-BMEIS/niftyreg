@@ -16,18 +16,23 @@
 template<class DTYPE>
 double reg_getSSD1(nifti_image *targetImage,
                    nifti_image *resultImage,
+                   nifti_image *jacobianDetImage,
                    int *mask
                    )
 {
     DTYPE *targetPtr=static_cast<DTYPE *>(targetImage->data);
     DTYPE *resultPtr=static_cast<DTYPE *>(resultImage->data);
+    DTYPE *jacDetPtr=NULL;
+    if(jacobianDetImage!=NULL)
+        jacDetPtr=static_cast<DTYPE *>(jacobianDetImage->data);
 
     int i;
     double SSD=0.0, n=0.0;
     double targetValue, resultValue, diff;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(targetImage, targetPtr, resultPtr, mask) \
+    shared(targetImage, targetPtr, resultPtr, mask, \
+    jacobianDetImage, jacDetPtr) \
     private(i, targetValue, resultValue, diff) \
     reduction(+:SSD) \
     reduction(+:n)
@@ -38,8 +43,14 @@ double reg_getSSD1(nifti_image *targetImage,
             resultValue = (double)resultPtr[i];
             if(targetValue==targetValue && resultValue==resultValue){
                 diff = (targetValue-resultValue);
-                SSD += diff * diff;
-                n += 1.0;
+                if(jacobianDetImage!=NULL){
+                    SSD += diff * diff * jacDetPtr[i];
+                    n += jacDetPtr[i];
+                }
+                else{
+                    SSD += diff * diff;
+                    n += 1.0;
+                }
             }
         }
     }
@@ -49,21 +60,31 @@ double reg_getSSD1(nifti_image *targetImage,
 /* *************************************************************** */
 double reg_getSSD(nifti_image *targetImage,
                   nifti_image *resultImage,
+                  nifti_image *jacobianDetImage,
                   int *mask
                   )
 {
-    if(targetImage->datatype != resultImage->datatype){
-        fprintf(stderr,"[NiftyReg ERROR] reg_getSSD\n");
-        fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same type\n");
-        exit(1);
+    if(jacobianDetImage!=NULL){
+        if(targetImage->datatype != resultImage->datatype || targetImage->datatype != jacobianDetImage->datatype){
+            fprintf(stderr,"[NiftyReg ERROR] reg_getSSD\n");
+            fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same type\n");
+            exit(1);
+        }
+    }
+    else{
+        if(targetImage->datatype != resultImage->datatype){
+            fprintf(stderr,"[NiftyReg ERROR] reg_getSSD\n");
+            fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same type\n");
+            exit(1);
+        }
     }
 
     switch ( targetImage->datatype ){
         case NIFTI_TYPE_FLOAT32:
-            return reg_getSSD1<float>(targetImage,resultImage, mask);
+            return reg_getSSD1<float>(targetImage,resultImage, jacobianDetImage, mask);
             break;
         case NIFTI_TYPE_FLOAT64:
-            return reg_getSSD1<double>(targetImage,resultImage, mask);
+            return reg_getSSD1<double>(targetImage,resultImage, jacobianDetImage, mask);
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] Result pixel type unsupported in the SSD computation function.\n");
@@ -78,6 +99,7 @@ void reg_getVoxelBasedSSDGradient1(nifti_image *targetImage,
                                    nifti_image *resultImage,
                                    nifti_image *resultImageGradient,
                                    nifti_image *ssdGradientImage,
+                                   nifti_image *jacobianDetImage,
                                    float maxSD,
                                    int *mask
                                    )
@@ -95,13 +117,16 @@ void reg_getVoxelBasedSSDGradient1(nifti_image *targetImage,
     DTYPE *ssdGradPtrZ = NULL;
     if(targetImage->nz>1) ssdGradPtrZ = &ssdGradPtrY[ssdGradientImage->nx*ssdGradientImage->ny*ssdGradientImage->nz];
 
+    DTYPE *jacDetPtr=NULL;
+    if(jacobianDetImage!=NULL)
+        jacDetPtr=static_cast<DTYPE *>(jacobianDetImage->data);
 
     DTYPE gradX, gradY, gradZ;
     double targetValue, resultValue, common;
     int i;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(targetImage, targetPtr, resultPtr, maxSD, mask, \
+    shared(targetImage, targetPtr, resultPtr, maxSD, mask, jacDetPtr, jacobianDetImage, \
     spatialGradPtrX, spatialGradPtrY, spatialGradPtrZ, ssdGradPtrX, ssdGradPtrY, ssdGradPtrZ) \
     private(i, targetValue, resultValue, common, gradX, gradY, gradZ)
 #endif
@@ -118,9 +143,16 @@ void reg_getVoxelBasedSSDGradient1(nifti_image *targetImage,
                 gradY = (DTYPE)(common * spatialGradPtrY[i]/maxSD);
                 if(targetImage->nz>1) gradZ = (DTYPE)(common * spatialGradPtrZ[i]/maxSD);
             }
-            ssdGradPtrX[i] = gradX;
-            ssdGradPtrY[i] = gradY;
-            if(targetImage->nz>1) ssdGradPtrZ[i] = gradZ;
+            if(jacobianDetImage!=NULL){
+                ssdGradPtrX[i] = gradX * jacDetPtr[i];
+                ssdGradPtrY[i] = gradY * jacDetPtr[i];
+                if(targetImage->nz>1) ssdGradPtrZ[i] = gradZ * jacDetPtr[i];
+            }
+            else{
+                ssdGradPtrX[i] = gradX;
+                ssdGradPtrY[i] = gradY;
+                if(targetImage->nz>1) ssdGradPtrZ[i] = gradZ;
+            }
         }
     }
 }
@@ -129,6 +161,7 @@ void reg_getVoxelBasedSSDGradient(nifti_image *targetImage,
                                   nifti_image *resultImage,
                                   nifti_image *resultImageGradient,
                                   nifti_image *ssdGradientImage,
+                                  nifti_image *jacobianDeterminantImage,
                                   float maxSD,
                                   int *mask
                                   )
@@ -140,14 +173,21 @@ void reg_getVoxelBasedSSDGradient(nifti_image *targetImage,
         fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same type\n");
         exit(1);
     }
+    if(jacobianDeterminantImage!=NULL){
+        if(targetImage->datatype != jacobianDeterminantImage->datatype){
+            fprintf(stderr,"[NiftyReg ERROR] reg_getVoxelBasedSSDGradient\n");
+            fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same type\n");
+            exit(1);
+        }
+    }
     switch ( targetImage->datatype ){
         case NIFTI_TYPE_FLOAT32:
             reg_getVoxelBasedSSDGradient1<float>
-                (targetImage, resultImage, resultImageGradient, ssdGradientImage, maxSD, mask);
+                (targetImage, resultImage, resultImageGradient, ssdGradientImage, jacobianDeterminantImage,maxSD, mask);
             break;
         case NIFTI_TYPE_FLOAT64:
             reg_getVoxelBasedSSDGradient1<double>
-                (targetImage, resultImage, resultImageGradient, ssdGradientImage, maxSD, mask);
+                (targetImage, resultImage, resultImageGradient, ssdGradientImage, jacobianDeterminantImage,maxSD, mask);
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] Target pixel type unsupported in the SSD gradient computation function.\n");

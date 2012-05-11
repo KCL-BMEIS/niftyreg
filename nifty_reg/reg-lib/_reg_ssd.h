@@ -17,6 +17,7 @@
 extern "C++"
 double reg_getSSD(nifti_image *targetImage,
                   nifti_image *resultImage,
+                  nifti_image *jacobianDeterminantImage,
                   int *mask
                   );
 
@@ -25,6 +26,7 @@ void reg_getVoxelBasedSSDGradient(nifti_image *targetImage,
                                   nifti_image *resultImage,
                                   nifti_image *resultImageGradient,
                                   nifti_image *ssdGradientImage,
+                                  nifti_image *jacobianDeterminantImage,
                                   float maxSD,
                                   int *mask
                                   );

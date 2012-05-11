@@ -81,7 +81,7 @@ void Usage(char *exec)
 {
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     printf("Usage:\t%s -ref <filename> [OPTIONS].\n",exec);
-    printf("\t-target <filename>\tFilename of the reference image (mandatory)\n");
+    printf("\t-ref <filename>\tFilename of the reference image (mandatory)\n");
 
 #ifdef _SVN_REV
     fprintf(stderr,"\n-v Print the subversion revision number\n");
@@ -136,7 +136,7 @@ void Usage(char *exec)
     //        printf("\t\tFilename2: Source image filename\n");
     //        printf("\t\tFilename3: output deformation field filename\n");
     printf("\t-compAff <filename1> <filename2> <filename3>\n");
-    printf("\t\tInvert an affine transformation matrix\n");
+    printf("\t\tCompose two affine transformation matrices\n");
     printf("\t\tFilename1: First affine matrix\n");
     printf("\t\tFilename2: Second affine matrix\n");
     printf("\t\tFilename3: Composed affine matrix result\n");

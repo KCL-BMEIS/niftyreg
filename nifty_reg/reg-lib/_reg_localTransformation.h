@@ -171,10 +171,12 @@ int reg_bspline_initialiseControlPointGridWithAffine(mat44 *affineTransformation
                                                      nifti_image *controlPointImage
                                                      );
 /* *************************************************************** */
-/** reg_spline_cppComposition(nifti_image* img1, nifti_image* img2, bool type)
+/** reg_spline_cppComposition(nifti_image* grid1, nifti_image* grid2, bool type)
   * This function compose the a first control point image with a second one:
-  * T(x)=Grid1(Grid2(x)).
+  * Grid2(x) <= Grid1(Grid2(x)).
   * Grid1 and Grid2 have to contain either displacement or deformation.
+  * The output will be a deformation field if grid1 is a deformation,
+  * The output will be a displacement field if grid1 is a displacement.
   * Cubic B-Spline can be used (bspline=true) or Cubic Spline (bspline=false)
  **/
 extern "C++"
@@ -233,9 +235,9 @@ void reg_defField_compose(nifti_image *deformationField,
  **/
 extern "C++"
 int reg_bspline_GetJacobianMatricesFromVelocityField(nifti_image* referenceImage,
-                                                    nifti_image* velocityFieldImage,
-                                                    mat33* jacobianMatrices
-                                                    );
+                                                     nifti_image* velocityFieldImage,
+                                                     mat33* jacobianMatrices
+                                                     );
 /* *************************************************************** */
 /** reg_bspline_GetJacobianDetFromVelocityField(nifti_image *det, nifti_image *vel)
   * This function computed a Jacobian determinant map by integrating the velocity field
@@ -274,4 +276,22 @@ int reg_getDisplacementFromDeformation(nifti_image *controlPointImage);
   * The conversion is done using the appropriate qform/sform
 **/
 int reg_getDeformationFromDisplacement(nifti_image *controlPointImage);
+
+/* *************************************************************** */
+/** compute_BCH_update(nifti_image *,nifti_image *,int)
+  * to write
+**/
+extern "C++"
+void compute_BCH_update(nifti_image *img1,
+                        nifti_image *img2,
+                        int type);
+
+/* *************************************************************** */
+/** reg_GetDeconvolvedSplineCoefficents(nifti_image *)
+  * to write
+**/
+extern "C++"
+void reg_spline_GetDeconvolvedCoefficents(nifti_image *img);
+
+/* *************************************************************** */
 #endif

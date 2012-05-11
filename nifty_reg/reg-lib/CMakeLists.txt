@@ -14,7 +14,7 @@ IF(BUILD_NIFTYREG)
     SET(LIST ${LIST} _reg_femTransformation)
     FOREACH(NAME ${LIST})
         ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp)
-        TARGET_LINK_LIBRARIES(${NAME} _reg_maths)
+        TARGET_LINK_LIBRARIES(${NAME})
         INSTALL(TARGETS ${NAME}
                 RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
                 LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib

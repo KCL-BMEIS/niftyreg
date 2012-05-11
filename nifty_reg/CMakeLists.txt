@@ -78,10 +78,10 @@ IF(USE_OPENMP)
     IF(GCC_VERSION VERSION_GREATER 4.2 OR GCC_VERSION VERSION_EQUAL 4.2)
         SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
-	ENDIF()
+    ENDIF()
 	
-	IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")	
-		SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /openmp")
+    IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /openmp")
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /openmp")
     ENDIF()
 ENDIF(USE_OPENMP)
@@ -117,4 +117,4 @@ IF(BUILD_NIFTYREG)
     ENDIF(BUILD_TESTING)
 ENDIF(BUILD_NIFTYREG)
 
-#-----------------------------------------------------------------------------
+#=============================================================================

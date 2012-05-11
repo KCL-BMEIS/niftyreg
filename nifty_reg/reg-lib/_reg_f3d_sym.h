@@ -40,7 +40,6 @@ class reg_f3d_sym : public reg_f3d<T>
     double backwardEntropies[4];
 
     T inverseConsistencyWeight;
-    bool useInverseConsitency;
 
     virtual void AllocateWarped();
     virtual void ClearWarped();

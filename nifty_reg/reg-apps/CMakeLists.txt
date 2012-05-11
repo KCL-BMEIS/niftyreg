@@ -20,10 +20,6 @@ IF(BUILD_NIFTYREG)
         TARGET_LINK_LIBRARIES(reg_jacobian _reg_resampling _reg_localTransformation _reg_tools _reg_globalTransformation reg_nifti ${ZLIB})
 	INSTALL_TARGETS(/bin reg_jacobian)
 #-----------------------------------------------------------------------------
-        ADD_EXECUTABLE(reg_mat44_test reg_mat44_test.cpp)
-        TARGET_LINK_LIBRARIES(reg_mat44_test _reg_resampling reg_nifti)
-        INSTALL_TARGETS(/bin reg_mat44_test)
-#-----------------------------------------------------------------------------
 	IF(USE_CUDA)
 		CUDA_ADD_EXECUTABLE(reg_f3d reg_f3d.cpp)
 	ELSE(USE_CUDA)

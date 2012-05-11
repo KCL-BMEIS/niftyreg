@@ -102,7 +102,7 @@ void Usage(char *exec)
     printf("\t-sz <float>\t\tFinal grid spacing along the z axis in mm (in voxel if negative value) [sx value]\n");
 
     printf("\n*** Objective function options:\n");
-    printf("\t-be <float>\t\tWeight of the bending energy penalty term [0.01]\n");
+    printf("\t-be <float>\t\tWeight of the bending energy penalty term [0.005]\n");
     printf("\t-le <float> <float><float>\tWeights of linear elasticity penalty term [0.0 0.0 0.0]\n");
     printf("\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]\n");
     printf("\t-noAppJL\t\tTo not approximate the JL value only at the control point position\n");
@@ -120,9 +120,11 @@ void Usage(char *exec)
     printf("\t-fmask <filename>\tFilename of a mask image in the floating space\n");
     printf("\t-ic <float>\t\tWeight of the inverse consistency penalty term [0.01]\n");
 
+#ifdef BUILD_NR_DEV
     printf("\n*** F3D2 options:\n");
     printf("\t-vel \t\t\tUse a velocity field integrationto generate the deformation\n");
     printf("\t-step <int>\t\tNumber of composition step [6].\n");
+#endif // BUILD_NR_DEV
 
     printf("\n*** Other options:\n");
     printf("\t-smoothGrad <float>\tTo smooth the metric derivative (in mm) [0]\n");
@@ -370,7 +372,6 @@ int main(int argc, char **argv)
             useSym=true;
         }
         else if(strcmp(argv[i], "-ic") ==0){
-            useSym=true;
             inverseConsistencyWeight=atof(argv[++i]);
         }
         else if(strcmp(argv[i], "-nox") ==0){
@@ -503,7 +504,6 @@ int main(int argc, char **argv)
     // Create the reg_f3d object
     reg_f3d<PrecisionTYPE> *REG=NULL;
 #ifdef _USE_CUDA
-    unsigned int gpuMemoryAvailable = 0;
     CUdevice dev;
     CUcontext ctx;
     if(useGPU){
@@ -516,11 +516,11 @@ int main(int argc, char **argv)
         }
 
         if(useSym){
-            fprintf(stderr,"\n[NiftyReg ERROR CUDA] GPU implementation of the symmetric registration is not available. Exit\n");
+            fprintf(stderr,"\n[NiftyReg ERROR CUDA] GPU implementation of the symmetric registration is not available yet. Exit\n");
             exit(0);
         }
         if(useVel){
-            fprintf(stderr,"\n[NiftyReg ERROR CUDA] GPU implementation of velocity field parametrisartion is not available. Exit\n");
+            fprintf(stderr,"\n[NiftyReg ERROR CUDA] GPU implementation of velocity field parametrisartion is not available yet. Exit\n");
             exit(0);
         }
 
@@ -577,12 +577,13 @@ int main(int argc, char **argv)
             REG = new reg_f3d_sym<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
             if(verbose==true){
-#endif
+#endif // NDEBUG
                 printf("\n[NiftyReg F3D SYM] CPU implementation is used\n");
 #ifdef NDEBUG
             }
-#endif
+#endif // NDEBUG
         }
+#ifdef BUILD_NR_DEV
         else if(useVel){
             REG = new reg_f3d2<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
@@ -593,15 +594,16 @@ int main(int argc, char **argv)
             }
 #endif
         }
+#endif // BUILD_NR_DEV
         else{
             REG = new reg_f3d<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
             if(verbose==true){
-  #endif
+#endif // NDEBUG
                 printf("\n[NiftyReg F3D] CPU implementation is used\n");
 #ifdef NDEBUG
             }
-#endif
+#endif // NDEBUG
         }
     }
 #ifdef _OPENMP
@@ -749,9 +751,10 @@ int main(int argc, char **argv)
     if(useGPU && checkMem){
         size_t free, total, requiredMemory = REG->CheckMemoryMB_f3d();
         cuMemGetInfo(&free, &total);
-        printf("[NiftyReg CUDA] The required memory to run the registration is %lu Mb\n", requiredMemory);
+        printf("[NiftyReg CUDA] The required memory to run the registration is %lu Mb\n",
+               (unsigned long int)requiredMemory);
         printf("[NiftyReg CUDA] The GPU card has %lu Mb from which %lu Mb are currenlty free\n",
-               total/(1024*1024), free/(1024*1024));
+               (unsigned long int)total/(1024*1024), (unsigned long int)free/(1024*1024));
     }
     else{
 #endif

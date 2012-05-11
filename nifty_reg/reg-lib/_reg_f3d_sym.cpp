@@ -116,8 +116,6 @@ void reg_f3d_sym<T>::AllocateCurrentInputImage()
     else{
         this->currentFloatingMask = this->floatingMaskPyramid[0];
     }
-    this->useInverseConsitency=false;
-    this->useInverseConsitency=true;
 
     return;
 }
@@ -447,16 +445,16 @@ void reg_f3d_sym<T>::CheckParameters_f3d()
             +this->linearEnergyWeight2
             +this->jacobianLogWeight
             +this->inverseConsistencyWeight;
-    if(penaltySum>=1) this->similarityWeight=0;
+    if(penaltySum>=1){
+        this->similarityWeight=0;
+        this->bendingEnergyWeight /= penaltySum;
+        this->linearEnergyWeight0 /= penaltySum;
+        this->linearEnergyWeight1 /= penaltySum;
+        this->linearEnergyWeight2 /= penaltySum;
+        this->jacobianLogWeight /= penaltySum;
+        this->inverseConsistencyWeight /= penaltySum;
+    }
     else this->similarityWeight=1.0 - penaltySum;
-    penaltySum+=this->similarityWeight;
-    this->similarityWeight /= penaltySum;
-    this->bendingEnergyWeight /= penaltySum;
-    this->linearEnergyWeight0 /= penaltySum;
-    this->linearEnergyWeight1 /= penaltySum;
-    this->linearEnergyWeight2 /= penaltySum;
-    this->jacobianLogWeight /= penaltySum;
-    this->inverseConsistencyWeight /= penaltySum;
 
     return;
 }
@@ -465,10 +463,6 @@ void reg_f3d_sym<T>::CheckParameters_f3d()
 template<class T>
 void reg_f3d_sym<T>::Initisalise_f3d()
 {
-#ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_f3d_sym::Initialise_f3d() called\n");
-#endif
-
     reg_f3d<T>::Initisalise_f3d();
 
     /* allocate the backward control point image */
@@ -636,6 +630,16 @@ void reg_f3d_sym<T>::Initisalise_f3d()
         }
     }
 
+#ifdef NDEBUG
+    if(this->verbose){
+#endif
+    printf("[%s]\n", this->executableName);
+    printf("[%s] Inverse consistency error penalty term weight: %g\n",
+           this->executableName, this->inverseConsistencyWeight);
+#ifdef NDEBUG
+    }
+#endif
+
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_sym::Initialise_f3d() done\n");
 #endif
@@ -692,13 +696,23 @@ double reg_f3d_sym<T>::ComputeSimilarityMeasure()
     double measure=0.;
     if(this->useSSD){
         // forward
+nifti_image *jacobianDetImage=nifti_copy_nim_info(this->currentReference);
+jacobianDetImage->data=(void *)malloc(jacobianDetImage->nvox * sizeof(T));
+reg_bspline_GetJacobianDetFromVelocityField(jacobianDetImage,this->controlPointGrid);
         measure = -reg_getSSD(this->currentReference,
                               this->warped,
+                              jacobianDetImage,//NULL,
                               this->currentMask);
+nifti_image_free(jacobianDetImage);
         // backward
+jacobianDetImage=nifti_copy_nim_info(this->currentFloating);
+jacobianDetImage->data=(void *)malloc(jacobianDetImage->nvox * sizeof(T));
+reg_bspline_GetJacobianDetFromVelocityField(jacobianDetImage,this->controlPointGrid);
         measure+= -reg_getSSD(this->currentFloating,
                               this->backwardWarped,
+                              jacobianDetImage,//NULL,
                               this->currentFloatingMask);
+nifti_image_free(jacobianDetImage);
         if(this->usePyramid)
             measure /= this->maxSSD[this->currentLevel];
         else measure /= this->maxSSD[0];
@@ -836,6 +850,12 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
                                this->interpolation);
 
     if(this->useSSD){
+
+nifti_image *jacobianDetImage=nifti_copy_nim_info(this->currentReference);
+jacobianDetImage->data=(void *)malloc(jacobianDetImage->nvox * sizeof(T));
+reg_bspline_GetJacobianDetFromVelocityField(jacobianDetImage,
+                                            this->controlPointGrid);
+
         // Compute the voxel based SSD gradient
         T localMaxSSD=this->maxSSD[0];
         if(this->usePyramid) localMaxSSD=this->maxSSD[this->currentLevel];
@@ -843,16 +863,26 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
                                      this->warped,
                                      this->warpedGradientImage,
                                      this->voxelBasedMeasureGradientImage,
+                                     jacobianDetImage,//NULL,
                                      localMaxSSD,
                                      this->currentMask
                                      );
+nifti_image_free(jacobianDetImage);
+
+jacobianDetImage=nifti_copy_nim_info(this->currentFloating);
+jacobianDetImage->data=(void *)malloc(jacobianDetImage->nvox * sizeof(T));
+reg_bspline_GetJacobianDetFromVelocityField(jacobianDetImage,
+                                            this->backwardControlPointGrid);
+
         reg_getVoxelBasedSSDGradient(this->currentFloating,
                                      this->backwardWarped,
                                      this->backwardWarpedGradientImage,
                                      this->backwardVoxelBasedMeasureGradientImage,
+                                     jacobianDetImage,//NULL,
                                      localMaxSSD,
                                      this->currentFloatingMask
                                      );
+nifti_image_free(jacobianDetImage);
     }
     else{
         // Compute the voxel based NMI gradient - forward
@@ -1263,6 +1293,8 @@ void reg_f3d_sym<T>::DisplayCurrentLevelParameters()
 template<class T>
 void reg_f3d_sym<T>::GetInverseConsistencyErrorField()
 {
+    if (this->inverseConsistencyWeight<=0) return;
+
     if(this->similarityWeight<=0){
         reg_spline_getDeformationField(this->controlPointGrid,
                                        this->currentReference,
@@ -1301,7 +1333,7 @@ void reg_f3d_sym<T>::GetInverseConsistencyErrorField()
 template<class T>
 double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
 {
-    if (this->inverseConsistencyWeight<=0 || this->useInverseConsitency==false) return 0.;
+    if (this->inverseConsistencyWeight<=0) return 0.;
 
     this->GetInverseConsistencyErrorField();
 
@@ -1360,8 +1392,7 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
 template<class T>
 void reg_f3d_sym<T>::GetInverseConsistencyGradient()
 {
-    if(this->inverseConsistencyWeight<=0 || this->useInverseConsitency==false) return;
-
+    if(this->inverseConsistencyWeight<=0) return;
 
     /* FORWARD CONTROL POINT GRADIENT */
 
