@@ -905,17 +905,23 @@ void reg_f3d<T>::Initisalise_f3d()
             floatingRescalingArrayUp[t] = this->floatingBinNumber[t]-3;
         }
         for(unsigned int l=0; l<pyramidalLevelNumber; l++){
-            reg_intensityRescale(this->referencePyramid[l],referenceRescalingArrayDown,referenceRescalingArrayUp,
+            reg_intensityRescale(this->referencePyramid[l],
+                                 referenceRescalingArrayDown,referenceRescalingArrayUp,
                                  this->referenceThresholdLow, this->referenceThresholdUp);
-            reg_intensityRescale(this->floatingPyramid[l],floatingRescalingArrayDown,floatingRescalingArrayUp,
+            reg_intensityRescale(this->floatingPyramid[l],
+                                 floatingRescalingArrayDown,floatingRescalingArrayUp,
                                  this->floatingThresholdLow, this->floatingThresholdUp);
         }
     }
 
     // DETERMINE THE GRID SPACING AND CREATE THE GRID
     if(this->inputControlPointGrid==NULL){
+
+        // Set the spacing along y and z if undefined. Their values are set to match
+        // the spacing along the x axis
         if(this->spacing[1]!=this->spacing[1]) this->spacing[1]=this->spacing[0];
         if(this->spacing[2]!=this->spacing[2]) this->spacing[2]=this->spacing[0];
+
         /* Convert the spacing from voxel to mm if necessary */
         float spacingInMillimeter[3]={this->spacing[0],this->spacing[1],this->spacing[2]};
         if(this->usePyramid){
@@ -929,109 +935,18 @@ void reg_f3d<T>::Initisalise_f3d()
             if(spacingInMillimeter[2]<0) spacingInMillimeter[2] *= -1.0f * this->referencePyramid[0]->dz;
         }
 
+        // Define the spacing for the first level
         float gridSpacing[3];
         gridSpacing[0] = spacingInMillimeter[0] * powf(2.0f, (float)(this->levelToPerform-1));
         gridSpacing[1] = spacingInMillimeter[1] * powf(2.0f, (float)(this->levelToPerform-1));
         gridSpacing[2] = 1.0f;
-
-        /* allocate the control point image */
-        int dim_cpp[8];
-        dim_cpp[0]=5;
-        dim_cpp[1]=(int)floor(this->referencePyramid[0]->nx*this->referencePyramid[0]->dx/gridSpacing[0])+5;
-        dim_cpp[2]=(int)floor(this->referencePyramid[0]->ny*this->referencePyramid[0]->dy/gridSpacing[1])+5;
-        dim_cpp[3]=1;
-        dim_cpp[5]=2;
-        if(this->referencePyramid[0]->nz>1){
+        if(this->referencePyramid[0]->nz>1)
             gridSpacing[2] = spacingInMillimeter[2] * powf(2.0f, (float)(this->levelToPerform-1));
-            dim_cpp[3]=(int)floor(this->referencePyramid[0]->nz*this->referencePyramid[0]->dz/gridSpacing[2])+5;
-            dim_cpp[5]=3;
-        }
-        dim_cpp[4]=dim_cpp[6]=dim_cpp[7]=1;
-        if(sizeof(T)==4) this->controlPointGrid = nifti_make_new_nim(dim_cpp, NIFTI_TYPE_FLOAT32, false);
-        else this->controlPointGrid = nifti_make_new_nim(dim_cpp, NIFTI_TYPE_FLOAT64, false);
-        this->controlPointGrid->cal_min=0;
-        this->controlPointGrid->cal_max=0;
-        this->controlPointGrid->pixdim[0]=1.0f;
-        this->controlPointGrid->pixdim[1]=this->controlPointGrid->dx=gridSpacing[0];
-        this->controlPointGrid->pixdim[2]=this->controlPointGrid->dy=gridSpacing[1];
-        if(this->referencePyramid[0]->nz==1){
-            this->controlPointGrid->pixdim[3]=this->controlPointGrid->dz=1.0f;
-        }
-        else this->controlPointGrid->pixdim[3]=this->controlPointGrid->dz=gridSpacing[2];
-        this->controlPointGrid->pixdim[4]=this->controlPointGrid->dt=1.0f;
-        this->controlPointGrid->pixdim[5]=this->controlPointGrid->du=1.0f;
-        this->controlPointGrid->pixdim[6]=this->controlPointGrid->dv=1.0f;
-        this->controlPointGrid->pixdim[7]=this->controlPointGrid->dw=1.0f;
-        this->controlPointGrid->qform_code=this->referencePyramid[0]->qform_code;
-        this->controlPointGrid->sform_code=this->referencePyramid[0]->sform_code;
 
-        // The qform (and sform) are set for the control point position image
-        this->controlPointGrid->quatern_b=this->referencePyramid[0]->quatern_b;
-        this->controlPointGrid->quatern_c=this->referencePyramid[0]->quatern_c;
-        this->controlPointGrid->quatern_d=this->referencePyramid[0]->quatern_d;
-        this->controlPointGrid->qoffset_x=this->referencePyramid[0]->qoffset_x;
-        this->controlPointGrid->qoffset_y=this->referencePyramid[0]->qoffset_y;
-        this->controlPointGrid->qoffset_z=this->referencePyramid[0]->qoffset_z;
-        this->controlPointGrid->qfac=this->referencePyramid[0]->qfac;
-        this->controlPointGrid->qto_xyz = nifti_quatern_to_mat44(this->controlPointGrid->quatern_b,
-                                                                 this->controlPointGrid->quatern_c,
-                                                                 this->controlPointGrid->quatern_d,
-                                                                 this->controlPointGrid->qoffset_x,
-                                                                 this->controlPointGrid->qoffset_y,
-                                                                 this->controlPointGrid->qoffset_z,
-                                                                 this->controlPointGrid->dx,
-                                                                 this->controlPointGrid->dy,
-                                                                 this->controlPointGrid->dz,
-                                                                 this->controlPointGrid->qfac);
-
-        // Origin is shifted from 1 control point in the qform
-        float originIndex[3];
-        float originReal[3];
-        originIndex[0] = -1.0f;
-        originIndex[1] = -1.0f;
-        originIndex[2] = 0.0f;
-        if(this->referencePyramid[0]->nz>1) originIndex[2] = -1.0f;
-        reg_mat44_mul(&(this->controlPointGrid->qto_xyz), originIndex, originReal);
-        if(this->controlPointGrid->qform_code==0) this->controlPointGrid->qform_code=1;
-        this->controlPointGrid->qto_xyz.m[0][3] = this->controlPointGrid->qoffset_x = originReal[0];
-        this->controlPointGrid->qto_xyz.m[1][3] = this->controlPointGrid->qoffset_y = originReal[1];
-        this->controlPointGrid->qto_xyz.m[2][3] = this->controlPointGrid->qoffset_z = originReal[2];
-
-        this->controlPointGrid->qto_ijk = nifti_mat44_inverse(this->controlPointGrid->qto_xyz);
-
-        if(this->controlPointGrid->sform_code>0){
-            float scalingRatio[3];
-            scalingRatio[0]= this->controlPointGrid->dx / this->referencePyramid[0]->dx;
-            scalingRatio[1]= this->controlPointGrid->dy / this->referencePyramid[0]->dy;
-            scalingRatio[2]= this->controlPointGrid->dz / this->referencePyramid[0]->dz;
-
-            this->controlPointGrid->sto_xyz.m[0][0]=this->referencePyramid[0]->sto_xyz.m[0][0] * scalingRatio[0];
-            this->controlPointGrid->sto_xyz.m[1][0]=this->referencePyramid[0]->sto_xyz.m[1][0] * scalingRatio[0];
-            this->controlPointGrid->sto_xyz.m[2][0]=this->referencePyramid[0]->sto_xyz.m[2][0] * scalingRatio[0];
-            this->controlPointGrid->sto_xyz.m[3][0]=this->referencePyramid[0]->sto_xyz.m[3][0];
-            this->controlPointGrid->sto_xyz.m[0][1]=this->referencePyramid[0]->sto_xyz.m[0][1] * scalingRatio[1];
-            this->controlPointGrid->sto_xyz.m[1][1]=this->referencePyramid[0]->sto_xyz.m[1][1] * scalingRatio[1];
-            this->controlPointGrid->sto_xyz.m[2][1]=this->referencePyramid[0]->sto_xyz.m[2][1] * scalingRatio[1];
-            this->controlPointGrid->sto_xyz.m[3][1]=this->referencePyramid[0]->sto_xyz.m[3][1];
-            this->controlPointGrid->sto_xyz.m[0][2]=this->referencePyramid[0]->sto_xyz.m[0][2] * scalingRatio[2];
-            this->controlPointGrid->sto_xyz.m[1][2]=this->referencePyramid[0]->sto_xyz.m[1][2] * scalingRatio[2];
-            this->controlPointGrid->sto_xyz.m[2][2]=this->referencePyramid[0]->sto_xyz.m[2][2] * scalingRatio[2];
-            this->controlPointGrid->sto_xyz.m[3][2]=this->referencePyramid[0]->sto_xyz.m[3][2];
-            this->controlPointGrid->sto_xyz.m[0][3]=this->referencePyramid[0]->sto_xyz.m[0][3];
-            this->controlPointGrid->sto_xyz.m[1][3]=this->referencePyramid[0]->sto_xyz.m[1][3];
-            this->controlPointGrid->sto_xyz.m[2][3]=this->referencePyramid[0]->sto_xyz.m[2][3];
-            this->controlPointGrid->sto_xyz.m[3][3]=this->referencePyramid[0]->sto_xyz.m[3][3];
-
-            // The origin is shifted by one compare to the reference image
-            float originIndex[3];originIndex[0]=originIndex[1]=originIndex[2]=-1;
-            if(this->referencePyramid[0]->nz<=1) originIndex[2]=0;
-            reg_mat44_mul(&(this->controlPointGrid->sto_xyz), originIndex, originReal);
-            this->controlPointGrid->sto_xyz.m[0][3] = originReal[0];
-            this->controlPointGrid->sto_xyz.m[1][3] = originReal[1];
-            this->controlPointGrid->sto_xyz.m[2][3] = originReal[2];
-            this->controlPointGrid->sto_ijk = nifti_mat44_inverse(this->controlPointGrid->sto_xyz);
-        }
-        this->controlPointGrid->data=(void *)malloc(this->controlPointGrid->nvox*this->controlPointGrid->nbyper);
+        // Create and allocate the control point image
+        reg_createControlPointGrid<T>(&this->controlPointGrid,
+                                      this->referencePyramid[0],
+                                      gridSpacing);
 
         // The control point position image is initialised with the affine transformation
         if(this->affineTransformation==NULL){
@@ -1075,6 +990,7 @@ void reg_f3d<T>::Initisalise_f3d()
 #ifdef NDEBUG
     if(this->verbose){
 #endif
+        // Print out some global information about the registration
         printf("[%s] **************************************************\n", this->executableName);
         printf("[%s] INPUT PARAMETERS\n", this->executableName);
         printf("[%s] **************************************************\n", this->executableName);
