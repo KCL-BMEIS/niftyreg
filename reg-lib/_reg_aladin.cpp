@@ -140,7 +140,7 @@ int reg_aladin<T>::Print()
     printf(" (100%% during the first level)\n");
     return 0;
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::SetInputTransform(char *filename, bool flirtFlag)
 {
@@ -148,7 +148,7 @@ void reg_aladin<T>::SetInputTransform(char *filename, bool flirtFlag)
     this->InputTransformFromFlirt=flirtFlag;
     return;
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::InitialiseRegistration()
 {
@@ -243,6 +243,7 @@ void reg_aladin<T>::InitialiseRegistration()
         }
     }
 }
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::SetCurrentImages()
 {
@@ -253,6 +254,7 @@ void reg_aladin<T>::SetCurrentImages()
     this->AllocateWarpedImage();
     this->AllocateDeformationField();
 }
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::ClearCurrentInputImage()
 {
@@ -266,6 +268,7 @@ void reg_aladin<T>::ClearCurrentInputImage()
     this->ClearWarpedImage();
     this->ClearDeformationField();
 }
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::AllocateWarpedImage()
 {
@@ -351,6 +354,7 @@ void reg_aladin<T>::InitialiseBlockMatching(int CurrentPercentageOfBlockToUse)
                                      false // GPU is not used here
                                      );
 }
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::GetDeformationField()
 {
@@ -358,10 +362,12 @@ void reg_aladin<T>::GetDeformationField()
                              this->CurrentReference,
                              this->deformationFieldImage);
 }
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::GetWarpedImage(int interp)
 {
     this->GetDeformationField();
+
     reg_resampleSourceImage(this->CurrentReference,
                             this->CurrentFloating,
                             this->CurrentWarped,
@@ -370,6 +376,7 @@ void reg_aladin<T>::GetWarpedImage(int interp)
                             interp,
                             0);
 }
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 mat44 reg_aladin<T>::GetUpdateTransformationMatrix(int type)
 {
@@ -377,6 +384,7 @@ mat44 reg_aladin<T>::GetUpdateTransformationMatrix(int type)
                              this->CurrentWarped,
                              &this->blockMatchingParams,
                              this->CurrentReferenceMask);
+
     mat44 matrix;
     if(type==RIGID)
         optimize(&this->blockMatchingParams,
@@ -388,13 +396,13 @@ mat44 reg_aladin<T>::GetUpdateTransformationMatrix(int type)
                  AFFINE);
     return matrix;
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::UpdateTransformationMatrix(mat44 matrix)
 {
     *(this->TransformationMatrix) = reg_mat44_mul( this->TransformationMatrix, &(matrix));
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::Run()
 {
@@ -497,7 +505,7 @@ void reg_aladin<T>::Run()
 #endif
     return;
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 {
@@ -531,7 +539,7 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
     reg_aladin<T>::ClearWarpedImage();
     return resultImage;
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::DebugPrintLevelInfo (int CurrentLevel)
 {
@@ -546,9 +554,9 @@ void reg_aladin<T>::DebugPrintLevelInfo (int CurrentLevel)
     if(this->CurrentReference->nz==1)
         printf("[%s] Block size = [4 4 1]\n", this->ExecutableName);
     else printf("[%s] Block size = [4 4 4]\n", this->ExecutableName);
+    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     printf("[%s] Block number = [%i %i %i]\n", this->ExecutableName, this->blockMatchingParams.blockNumber[0],
            this->blockMatchingParams.blockNumber[1], this->blockMatchingParams.blockNumber[2]);
-    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     reg_mat44_disp(this->TransformationMatrix, (char *)"[reg_aladin] Initial transformation matrix:");
 
 }

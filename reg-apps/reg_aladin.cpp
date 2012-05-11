@@ -76,7 +76,6 @@ void Usage(char *exec)
 int main(int argc, char **argv)
 {
     time_t start; time(&start);
-    reg_aladin<PrecisionTYPE> *REG;
 
     int symFlag=0;
 
@@ -213,6 +212,7 @@ int main(int argc, char **argv)
     }
 
 
+    reg_aladin<PrecisionTYPE> *REG;
     if(symFlag)
     {
         REG = new reg_aladin_sym<PrecisionTYPE>;
@@ -248,7 +248,17 @@ int main(int argc, char **argv)
 
     /* Read the reference and floating images */
     nifti_image *referenceHeader = nifti_image_read(referenceImageName,true);
+    if(referenceHeader == NULL){
+        fprintf(stderr,"* ERROR Error when reading the reference  image: %s\n",referenceImageName);
+        return 1;
+    }
+    reg_checkAndCorrectDimension(referenceHeader);
     nifti_image *floatingHeader = nifti_image_read(floatingImageName,true);
+    if(floatingHeader == NULL){
+        fprintf(stderr,"* ERROR Error when reading the floating image: %s\n",floatingImageName);
+        return 1;
+    }
+    reg_checkAndCorrectDimension(floatingHeader);
     REG->SetInputReference(referenceHeader);
     REG->SetInputFloating(floatingHeader);
 

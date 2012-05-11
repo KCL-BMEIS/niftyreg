@@ -42,7 +42,6 @@ protected:
     virtual void SetCurrentImages();
     virtual void GetWarpedImage(int);
 
-
 public:
     reg_aladin_sym();
     ~reg_aladin_sym();

@@ -31,7 +31,7 @@ reg_aladin_sym<T>::~reg_aladin_sym()
     this->ClearBackwardDeformationField();
 
     if(this->BackwardTransform!=NULL)
-       delete this->BackwardTransform;
+        delete this->BackwardTransform;
     this->BackwardTransform=NULL;
 
     if(this->floatingMaskPyramid!=NULL){
@@ -139,7 +139,7 @@ void reg_aladin_sym<T>::ClearBackwardDeformationField()
 {
     if(this->BackwardDeformationFieldImage!=NULL)
         nifti_image_free(this->BackwardDeformationFieldImage);
-   this->BackwardDeformationFieldImage=NULL;
+    this->BackwardDeformationFieldImage=NULL;
 }
 
 template <class T>
@@ -190,7 +190,7 @@ void reg_aladin_sym<T>::InitialiseBlockMatching(int CurrentPercentageOfBlockToUs
     //so that the HalfwayFloating (Warped) now serves as the target
     //and the Mask is correct as well
     //Then do the same thing for the block matching algorithm
-   reg_aladin<T>::InitialiseBlockMatching(CurrentPercentageOfBlockToUse);
+    reg_aladin<T>::InitialiseBlockMatching(CurrentPercentageOfBlockToUse);
     initialise_block_matching_method(this->CurrentFloating,
                                      &this->BackwardBlockMatchingParams,
                                      CurrentPercentageOfBlockToUse,    // percentage of block kept
@@ -265,21 +265,21 @@ template <class T>
 void reg_aladin_sym<T>::UpdateTransformationMatrix(mat44 matrix)
 {
 #ifndef NDEBUG
-mat44 fTest = nifti_mat44_inverse(*(this->BackwardTransformationMatrix));
-reg_mat44_disp(this->TransformationMatrix,(char*) "Forward Transform");
-reg_mat44_disp(&fTest,(char*) "Check Inverse");
+    mat44 fTest = nifti_mat44_inverse(*(this->BackwardTransformationMatrix));
+    reg_mat44_disp(this->TransformationMatrix,(char*) "Forward Transform");
+    reg_mat44_disp(&fTest,(char*) "Check Inverse");
 #endif
-mat44 bMatrix=nifti_mat44_inverse(matrix);
+    mat44 bMatrix=nifti_mat44_inverse(matrix);
 #ifndef NDEBUG
-fTest = nifti_mat44_inverse(bMatrix);
-reg_mat44_disp(&matrix,(char*) "Forward Update");
-reg_mat44_disp(&fTest,(char*) "Backward Inverse Update");
-reg_mat44_disp(&bMatrix, (char*) "Backward Update");
+    fTest = nifti_mat44_inverse(bMatrix);
+    reg_mat44_disp(&matrix,(char*) "Forward Update");
+    reg_mat44_disp(&fTest,(char*) "Backward Inverse Update");
+    reg_mat44_disp(&bMatrix, (char*) "Backward Update");
 #endif
     reg_aladin<T>::UpdateTransformationMatrix(matrix);
     //Now that TransformationMatrix is updated just invert to provide backward.
     *(this->BackwardTransformationMatrix)=reg_mat44_mul(&bMatrix,this->BackwardTransformationMatrix);
-    #ifndef NDEBUG
+#ifndef NDEBUG
     fTest = nifti_mat44_inverse(*(this->BackwardTransformationMatrix));
     reg_mat44_disp(this->TransformationMatrix,(char*) "Forward Transform");
     reg_mat44_disp(&fTest,(char*) "Backward Inverse");
@@ -304,8 +304,9 @@ void reg_aladin_sym<T>::DebugPrintLevelInfo(int CurrentLevel)
     reg_aladin<T>::DebugPrintLevelInfo(CurrentLevel);
     printf("[%s] Backward Block number = [%i %i %i]\n", this->ExecutableName, this->BackwardBlockMatchingParams.blockNumber[0],
            this->BackwardBlockMatchingParams.blockNumber[1], this->BackwardBlockMatchingParams.blockNumber[2]);
+    reg_mat44_disp(this->BackwardTransformationMatrix,
+                   (char *)"[reg_aladin_sym] Initial backward transformation matrix:");
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-    reg_mat44_disp(this->BackwardTransformationMatrix, (char *)"[reg_aladin_sym] Initial backward transformation matrix:");
 
 }
 

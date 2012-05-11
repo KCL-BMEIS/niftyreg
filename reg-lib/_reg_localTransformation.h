@@ -29,6 +29,18 @@
 /* *********************************************** */
 
 /* *************************************************************** */
+/** reg_createControlPointGrid
+ * Generate a control point grid image based on the dimension of a
+ * reference image and on a spacing.
+ * The function set the qform and sform code to overlay the reference
+ * image.
+ */
+extern "C++" template <class DTYPE>
+void reg_createControlPointGrid(nifti_image **controlPointGridImage,
+                                nifti_image *referenceImage,
+                                float *spacingMillimeter);
+
+/* *************************************************************** */
 /** reg_spline_getDeformationField
  * Compute a dense deformation field in the space of a reference
  * image from a grid of control point.

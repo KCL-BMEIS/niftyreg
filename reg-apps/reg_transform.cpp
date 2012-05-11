@@ -330,106 +330,19 @@ int main(int argc, char **argv)
 
         nifti_image *outputImage=NULL;
         if(flag->tps2cppFlag){
-            // Create the CPP image
+            // Compute the cpp dimension
             float gridSpacing[3]={param->CPPSpacing,param->CPPSpacing,param->CPPSpacing};
             if(gridSpacing[0]<0) gridSpacing[0] *= -1.0f * referenceImage->dx;
             if(gridSpacing[1]<0) gridSpacing[1] *= -1.0f * referenceImage->dy;
-            int dim_cpp[8];
-            dim_cpp[0]=5;
-            dim_cpp[1]=(int)floor(referenceImage->nx*referenceImage->dx/gridSpacing[0])+5;
-            dim_cpp[2]=(int)floor(referenceImage->ny*referenceImage->dy/gridSpacing[1])+5;
-            dim_cpp[3]=1;
-            dim_cpp[5]=2;
-            if(referenceImage->nz>1){
-                if(gridSpacing[2]<0) gridSpacing[2] *= -1.0f * referenceImage->dz;
-                dim_cpp[3]=(int)floor(referenceImage->nz*referenceImage->dz/gridSpacing[2])+5;
-                dim_cpp[5]=3;
-            }
-            dim_cpp[4]=dim_cpp[6]=dim_cpp[7]=1;
-            if(sizeof(PrecisionTYPE)==4) outputImage = nifti_make_new_nim(dim_cpp, NIFTI_TYPE_FLOAT32, false);
-            else outputImage = nifti_make_new_nim(dim_cpp, NIFTI_TYPE_FLOAT64, false);
-            outputImage->cal_min=0;
-            outputImage->cal_max=0;
-            outputImage->pixdim[0]=1.0f;
-            outputImage->pixdim[1]=outputImage->dx=gridSpacing[0];
-            outputImage->pixdim[2]=outputImage->dy=gridSpacing[1];
-            if(referenceImage->nz==1){
-                outputImage->pixdim[3]=outputImage->dz=1.0f;
-            }
-            else outputImage->pixdim[3]=outputImage->dz=gridSpacing[2];
-            outputImage->pixdim[4]=outputImage->dt=1.0f;
-            outputImage->pixdim[5]=outputImage->du=1.0f;
-            outputImage->pixdim[6]=outputImage->dv=1.0f;
-            outputImage->pixdim[7]=outputImage->dw=1.0f;
-            outputImage->qform_code=referenceImage->qform_code;
-            outputImage->sform_code=referenceImage->sform_code;
+            if(referenceImage->nz>1)
+                if(gridSpacing[2]<0)
+                    gridSpacing[2] *= -1.0f * referenceImage->dz;
 
-            // The qform (and sform) are set for the control point position image
-            outputImage->quatern_b=referenceImage->quatern_b;
-            outputImage->quatern_c=referenceImage->quatern_c;
-            outputImage->quatern_d=referenceImage->quatern_d;
-            outputImage->qoffset_x=referenceImage->qoffset_x;
-            outputImage->qoffset_y=referenceImage->qoffset_y;
-            outputImage->qoffset_z=referenceImage->qoffset_z;
-            outputImage->qfac=referenceImage->qfac;
-            outputImage->qto_xyz = nifti_quatern_to_mat44(outputImage->quatern_b,
-                                                                     outputImage->quatern_c,
-                                                                     outputImage->quatern_d,
-                                                                     outputImage->qoffset_x,
-                                                                     outputImage->qoffset_y,
-                                                                     outputImage->qoffset_z,
-                                                                     outputImage->dx,
-                                                                     outputImage->dy,
-                                                                     outputImage->dz,
-                                                                     outputImage->qfac);
+            // Create and allocate the cpp image
+            reg_createControlPointGrid<PrecisionTYPE>(&outputImage,
+                                          referenceImage,
+                                          gridSpacing);
 
-            // Origin is shifted from 1 control point in the qform
-            float originIndex[3];
-            float originReal[3];
-            originIndex[0] = -1.0f;
-            originIndex[1] = -1.0f;
-            originIndex[2] = 0.0f;
-            if(referenceImage->nz>1) originIndex[2] = -1.0f;
-            reg_mat44_mul(&(outputImage->qto_xyz), originIndex, originReal);
-            if(outputImage->qform_code==0) outputImage->qform_code=1;
-            outputImage->qto_xyz.m[0][3] = outputImage->qoffset_x = originReal[0];
-            outputImage->qto_xyz.m[1][3] = outputImage->qoffset_y = originReal[1];
-            outputImage->qto_xyz.m[2][3] = outputImage->qoffset_z = originReal[2];
-
-            outputImage->qto_ijk = nifti_mat44_inverse(outputImage->qto_xyz);
-
-            if(outputImage->sform_code>0){
-                float scalingRatio[3];
-                scalingRatio[0]= outputImage->dx / referenceImage->dx;
-                scalingRatio[1]= outputImage->dy / referenceImage->dy;
-                scalingRatio[2]= outputImage->dz / referenceImage->dz;
-
-                outputImage->sto_xyz.m[0][0]=referenceImage->sto_xyz.m[0][0] * scalingRatio[0];
-                outputImage->sto_xyz.m[1][0]=referenceImage->sto_xyz.m[1][0] * scalingRatio[0];
-                outputImage->sto_xyz.m[2][0]=referenceImage->sto_xyz.m[2][0] * scalingRatio[0];
-                outputImage->sto_xyz.m[3][0]=referenceImage->sto_xyz.m[3][0];
-                outputImage->sto_xyz.m[0][1]=referenceImage->sto_xyz.m[0][1] * scalingRatio[1];
-                outputImage->sto_xyz.m[1][1]=referenceImage->sto_xyz.m[1][1] * scalingRatio[1];
-                outputImage->sto_xyz.m[2][1]=referenceImage->sto_xyz.m[2][1] * scalingRatio[1];
-                outputImage->sto_xyz.m[3][1]=referenceImage->sto_xyz.m[3][1];
-                outputImage->sto_xyz.m[0][2]=referenceImage->sto_xyz.m[0][2] * scalingRatio[2];
-                outputImage->sto_xyz.m[1][2]=referenceImage->sto_xyz.m[1][2] * scalingRatio[2];
-                outputImage->sto_xyz.m[2][2]=referenceImage->sto_xyz.m[2][2] * scalingRatio[2];
-                outputImage->sto_xyz.m[3][2]=referenceImage->sto_xyz.m[3][2];
-                outputImage->sto_xyz.m[0][3]=referenceImage->sto_xyz.m[0][3];
-                outputImage->sto_xyz.m[1][3]=referenceImage->sto_xyz.m[1][3];
-                outputImage->sto_xyz.m[2][3]=referenceImage->sto_xyz.m[2][3];
-                outputImage->sto_xyz.m[3][3]=referenceImage->sto_xyz.m[3][3];
-
-                // The origin is shifted by one compare to the reference image
-                float originIndex[3];originIndex[0]=originIndex[1]=originIndex[2]=-1;
-                if(referenceImage->nz<=1) originIndex[2]=0;
-                reg_mat44_mul(&(outputImage->sto_xyz), originIndex, originReal);
-                outputImage->sto_xyz.m[0][3] = originReal[0];
-                outputImage->sto_xyz.m[1][3] = originReal[1];
-                outputImage->sto_xyz.m[2][3] = originReal[2];
-                outputImage->sto_ijk = nifti_mat44_inverse(outputImage->sto_xyz);
-            }
             nifti_set_filenames(outputImage,param->outputCPPName,0,0);
         }
         else{
@@ -450,8 +363,9 @@ int main(int argc, char **argv)
                     outputImage->nt *
                     outputImage->nu;
             nifti_set_filenames(outputImage,param->outputDeformationName,0,0);
+            // allocate the deformation field data array
+            outputImage->data=(void *)malloc(outputImage->nvox*outputImage->nbyper);
         }
-        outputImage->data=(void *)malloc(outputImage->nvox*outputImage->nbyper);
 
         tps->FillDeformationField(outputImage);
 
