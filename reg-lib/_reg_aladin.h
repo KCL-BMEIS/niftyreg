@@ -142,7 +142,7 @@ class reg_aladin
       SetClampMacro(Interpolation,int,0,3);
       GetMacro(Interpolation, int);
 
-      virtual void SetInputFloatingMask (nifti_image* mask) {fprintf(stderr, "Floating mask not used in one way affine\n"); }
+      virtual void SetInputFloatingMask (nifti_image*) {fprintf(stderr, "Floating mask not used in one way affine\n"); }
       void SetInterpolationToNearestNeighbor() {this->SetInterpolation(0);}
       void SetInterpolationToTrilinear() {this->SetInterpolation(1);}
       void SetInterpolationToCubic() {this->SetInterpolation(3);}

@@ -29,7 +29,7 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->affineTransformation=NULL;  // pointer to external
     this->controlPointGrid=NULL;
     this->referenceMask=NULL;
-    this->bendingEnergyWeight=0.01;
+    this->bendingEnergyWeight=0.005;
     this->linearEnergyWeight0=0.;
     this->linearEnergyWeight1=0.;
     this->linearEnergyWeight2=0.;
@@ -781,21 +781,30 @@ void reg_f3d<T>::CheckParameters_f3d()
     else this->levelToPerform=this->levelNumber;
 
     // NORMALISE THE OBJECTIVE FUNCTION WEIGHTS
-    T penaltySum=this->bendingEnergyWeight+this->linearEnergyWeight0+this->linearEnergyWeight1+this->linearEnergyWeight2+this->jacobianLogWeight;
-    if(penaltySum>=1) this->similarityWeight=0;
-    else this->similarityWeight=1.0 - penaltySum;
-    penaltySum+=this->similarityWeight;
-    this->similarityWeight /= penaltySum;
-    this->bendingEnergyWeight /= penaltySum;
-    this->linearEnergyWeight0 /= penaltySum;
-    this->linearEnergyWeight1 /= penaltySum;
-    this->linearEnergyWeight2 /= penaltySum;
-    this->jacobianLogWeight /= penaltySum;
-
+    if(strcmp(this->executableName,"NiftyReg F3D")==0){
+        T penaltySum=this->bendingEnergyWeight +
+                this->linearEnergyWeight0 +
+                this->linearEnergyWeight1 +
+                this->linearEnergyWeight2 +
+                this->jacobianLogWeight;
+        if(penaltySum>=1.0){
+            this->similarityWeight=0;
+            this->similarityWeight /= penaltySum;
+            this->bendingEnergyWeight /= penaltySum;
+            this->linearEnergyWeight0 /= penaltySum;
+            this->linearEnergyWeight1 /= penaltySum;
+            this->linearEnergyWeight2 /= penaltySum;
+            this->jacobianLogWeight /= penaltySum;
+        }
+        else this->similarityWeight=1.0 - penaltySum;
+    }
     // CHECK THE NUMBER OF LEVEL TO PERFORM
     if(this->levelToPerform==0 || this->levelToPerform>this->levelNumber)
         this->levelToPerform=this->levelNumber;
 
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] reg_f3d::CheckParameters_f3d() done\n");
+#endif
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -807,9 +816,6 @@ void reg_f3d<T>::Initisalise_f3d()
 
     this->CheckParameters_f3d();
 
-#ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_f3d::Initialise_f3d() called\n");
-#endif
     // CREATE THE PYRAMIDE IMAGES
     if(this->usePyramid){
         this->referencePyramid = (nifti_image **)malloc(this->levelToPerform*sizeof(nifti_image *));
@@ -1139,7 +1145,6 @@ void reg_f3d<T>::Initisalise_f3d()
                                                       this->executableName);
             else printf("[%s] \t* Jacobian-based penalty term is not approximated\n", this->executableName);
         }
-        printf("[%s] --------------------------------------------------\n", this->executableName);
 #ifdef NDEBUG
     }
 #endif
@@ -1190,6 +1195,7 @@ double reg_f3d<T>::ComputeSimilarityMeasure()
     if(this->useSSD){
         measure = -reg_getSSD(this->currentReference,
                               this->warped,
+                              NULL,
                               this->currentMask);
         if(this->usePyramid)
             measure /= this->maxSSD[this->currentLevel];
@@ -1361,6 +1367,7 @@ void reg_f3d<T>::GetVoxelBasedGradient()
                                      this->warped,
                                      this->warpedGradientImage,
                                      this->voxelBasedMeasureGradientImage,
+                                     NULL,
                                      localMaxSSD,
                                      this->currentMask
                                      );
@@ -1996,7 +2003,7 @@ void reg_f3d<T>::Run_f3d()
 #endif
             if(maxLength==0){
                 printf("No Gradient ... exit\n");
-                break;
+                exit(1);
             }
 
             // A line ascent is performed

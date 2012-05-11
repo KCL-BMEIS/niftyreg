@@ -562,7 +562,7 @@ void reg_bspline_approxBendingEnergyGradient3D( nifti_image *splineControlPoint,
 }
 /* *************************************************************** */
 extern "C++"
-void reg_bspline_bendingEnergyGradient( nifti_image *splineControlPoint,
+void reg_bspline_bendingEnergyGradient(nifti_image *splineControlPoint,
                                        nifti_image *targetImage,
                                        nifti_image *gradientImage,
                                        float weight)

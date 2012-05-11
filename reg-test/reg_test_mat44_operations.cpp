@@ -75,4 +75,6 @@ int main ()
     reg_mat44_disp(&Ilog,(char*)"Log-Exp of Original");
     Iexp=reg_mat44_logm(&expI);
     reg_mat44_disp(&Iexp,(char*)"Exp-Log of Original");
+
+    return 0;
 }

@@ -280,7 +280,8 @@ mat44 reg_mat44_add(mat44 const* A, mat44 const* B)
     }
     return R;
 }
-
+/* *************************************************************** */
+/* *************************************************************** */
 mat44 reg_mat44_minus(mat44 const* A, mat44 const* B)
 {
     mat44 R;
@@ -302,7 +303,8 @@ void reg_mat44_eye (mat44 *mat)
         mat->m[i][i] = 1.0;
     }
 }
-
+/* *************************************************************** */
+/* *************************************************************** */
 double reg_mat44_norm_inf(mat44 const* mat)
 {
     double maxval=0.0;
@@ -332,6 +334,8 @@ void reg_mat44_mul(mat44 const* mat,
 template void reg_mat44_mul<float>(mat44 const*, float const*, float*);
 template void reg_mat44_mul<double>(mat44 const*, double const*, double*);
 
+/* *************************************************************** */
+/* *************************************************************** */
 mat44 reg_mat44_mul(mat44 const* A, double scalar)
 {
     mat44 out;
@@ -341,7 +345,8 @@ mat44 reg_mat44_mul(mat44 const* A, double scalar)
     out.m[3][0]=A->m[3][0]*scalar;out.m[3][1]=A->m[3][1]*scalar;out.m[3][2]=A->m[3][2]*scalar;out.m[3][3]=A->m[3][3]*scalar;
     return out;
 }
-
+/* *************************************************************** */
+/* *************************************************************** */
 mat44 reg_mat44_sqrt(mat44 const* mat)
 {
     mat44 X=*mat;
@@ -370,7 +375,8 @@ mat44 reg_mat44_sqrt(mat44 const* mat)
     }
     return X;
 }
-
+/* *************************************************************** */
+/* *************************************************************** */
 /**
    * Compute the matrix exponential according to "Linear combination of transformations", Marc Alex, Volume 21, Issue 3, ACM SIGGRAPH 2002.
    * and from Kelvin's implementation of the code in NifTK
@@ -403,7 +409,8 @@ mat44 reg_mat44_expm(mat44 const* mat, int maxit)
     }
     return X;
 }
-
+/* *************************************************************** */
+/* *************************************************************** */
 mat44 reg_mat44_logm(mat44 const* mat)
 {
     int k = 0;
@@ -437,8 +444,8 @@ mat44 reg_mat44_logm(mat44 const* mat)
     return X;
 
 }
-
-
+/* *************************************************************** */
+/* *************************************************************** */
 mat44 reg_mat44_avg2(mat44 const* A, mat44 const* B)
 {
     mat44 out;
@@ -449,7 +456,6 @@ mat44 reg_mat44_avg2(mat44 const* A, mat44 const* B)
     return reg_mat44_expm(&out);
 
 }
-
 /* *************************************************************** */
 /* *************************************************************** */
 void reg_mat44_disp(mat44 *mat, char * title)
@@ -525,7 +531,6 @@ void reg_getReorientationMatrix(nifti_image *splineControlPoint, mat33 *desorien
     *reorient=nifti_mat33_inverse(*desorient);
 }
 /* *************************************************************** */
-
 // Calculate pythagorean distance
 template <class T>
 T pythag(T a, T b)
@@ -537,6 +542,8 @@ T pythag(T a, T b)
     if (absa > absb) return (T)(absa * sqrt(1.0f+SQR(absb/absa)));
     else return (absb == 0.0f ? 0.0f : (T)(absb * sqrt(1.0f+SQR(absa/absb))));
 }
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void svd(T ** in, size_t m, size_t n, T * w, T ** v)
 {
@@ -776,4 +783,6 @@ void svd(T ** in, size_t m, size_t n, T * w, T ** v)
 }
 template void svd<float>(float ** in, size_t m, size_t n, float * w, float ** v);
 template void svd<double>(double ** in, size_t m, size_t n, double * w, double ** v);
+/* *************************************************************** */
+/* *************************************************************** */
 #endif // _REG_MATHS_CPP

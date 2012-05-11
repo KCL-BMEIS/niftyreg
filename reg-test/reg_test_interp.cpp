@@ -161,6 +161,8 @@ int main(int argc, char **argv)
 
     // Check if the test failed or passed
     if(difference>EPS_TEST){
+        fprintf(stderr, "Max difference: %g - Threshold: %g\n",
+                difference, EPS_TEST);
         return 1;
     }
 	return 0;

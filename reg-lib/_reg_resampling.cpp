@@ -195,7 +195,6 @@ void CubicSplineResampleSourceImage2D(  nifti_image *sourceImage,
         SourceTYPE *resultIntensity = &resultIntensityPtr[t*targetVoxelNumber];
         SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-
         FieldTYPE xBasis[4], yBasis[4], relative;
         int a, b, Y, previous[2], index;
         SourceTYPE *yPointer, *xyPointer;
@@ -317,7 +316,7 @@ void TrilinearResampleSourceImage(  nifti_image *sourceImage,
                        deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
                        sourceIJKMatrix, sourceImage, bgValue)
 #endif // _OPENMP
-                for(index=0;index<targetVoxelNumber; index++){
+        for(index=0;index<targetVoxelNumber; index++){
 
             intensity=0.0;
 
@@ -407,9 +406,9 @@ void TrilinearResampleSourceImage2D(nifti_image *sourceImage,
     // The resampling scheme is applied along each time
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
+    int targetVoxelNumber = resultImage->nx*resultImage->ny;
+    int sourceVoxelNumber = sourceImage->nx*sourceImage->ny;
     FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-    int targetVoxelNumber = resultImage->nx*resultImage->ny*resultImage->nz;
-    int sourceVoxelNumber = sourceImage->nx*sourceImage->ny*sourceImage->nz;
     FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
 
     int *maskPtr = &mask[0];
@@ -440,7 +439,6 @@ void TrilinearResampleSourceImage2D(nifti_image *sourceImage,
                deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
                sourceIJKMatrix, sourceImage, bgValue)
 #endif // _OPENMP
-
         for(index=0;index<targetVoxelNumber; index++){
 
             intensity=0.0;
@@ -495,13 +493,13 @@ void TrilinearResampleSourceImage2D(nifti_image *sourceImage,
             case NIFTI_TYPE_UINT8:
                 resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
                 break;
-                case NIFTI_TYPE_UINT16:
+            case NIFTI_TYPE_UINT16:
                 resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
                 break;
-                case NIFTI_TYPE_UINT32:
+            case NIFTI_TYPE_UINT32:
                 resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
                 break;
-                default:
+            default:
                 resultIntensity[index]=(SourceTYPE)round(intensity);
                 break;
             }
@@ -912,7 +910,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
         printf("Deformation field pixel type unsupported.");
         break;
     }
-    if(MrPropreRules==true) free(mask);
+    if(MrPropreRules==true){ free(mask);mask=NULL;}
 }
 /* *************************************************************** */
 /* *************************************************************** */

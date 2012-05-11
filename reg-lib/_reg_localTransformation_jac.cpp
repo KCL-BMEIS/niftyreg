@@ -1334,7 +1334,7 @@ void reg_bspline_computeJacobianMatricesFull_3D(nifti_image *referenceImage,
 #ifdef _USE_SSE
 #pragma omp parallel for default(none) \
     shared(referenceImage, splineControlPoint, \
-    controlPointPtrX, controlPointPtrY, controlPointPtrZ, reorient, \
+    controlPointPtrX, controlPointPtrY, controlPointPtrZ, reorient,desorient, \
     jacobianMatrices, realSpacing, refVox2GridVox_affine) \
     private(x, y, z, xPre, yPre, zPre, a, b, c, index, basis, val, \
     refPosition, gridPosition, basisX, basisY, basisZ, coord, \
@@ -1345,7 +1345,7 @@ void reg_bspline_computeJacobianMatricesFull_3D(nifti_image *referenceImage,
 #else // _USE_SEE
 #pragma omp parallel for default(none) \
     shared(referenceImage, splineControlPoint, \
-    controlPointPtrX, controlPointPtrY, controlPointPtrZ, reorient, \
+    controlPointPtrX, controlPointPtrY, controlPointPtrZ, reorient,desorient, \
     jacobianMatrices, realSpacing, refVox2GridVox_affine) \
     private(x, y, z, xPre, yPre, zPre, a, b, c, index, basis, \
     basisX, basisY, basisZ, coord, refPosition, gridPosition, \
@@ -1355,7 +1355,7 @@ void reg_bspline_computeJacobianMatricesFull_3D(nifti_image *referenceImage,
 #endif // _USE_SEE
 #endif // _USE_OPENMP
     for(z=0; z<referenceImage->nz; z++){
-        oldXpre=999999, oldYpre=999999, oldZpre=999999;
+        oldXpre=999999; oldYpre=999999; oldZpre=999999;
         index=z*referenceImage->nx*referenceImage->ny;
         refPosition[2]=z;
 
@@ -1366,17 +1366,17 @@ void reg_bspline_computeJacobianMatricesFull_3D(nifti_image *referenceImage,
 
                 reg_mat44_mul<DTYPE>(&refVox2GridVox_affine,refPosition,gridPosition);
 
-                xPre=(int)floor(gridPosition[0]);
+                xPre=static_cast<int>(floor(gridPosition[0]));
                 basis=gridPosition[0]-(DTYPE)xPre;xPre--;
                 if(basis<0.0) basis=0.0; //rounding error
                 Get_BSplineBasisValues<DTYPE>(basis, xBasis, xFirst);
 
-                yPre=(int)floor(gridPosition[1]);
+                yPre=static_cast<int>(floor(gridPosition[1]));
                 basis=gridPosition[1]-(DTYPE)yPre;yPre--;
                 if(basis<0.0) basis=0.0; //rounding error
                 Get_BSplineBasisValues<DTYPE>(basis, yBasis, yFirst);
 
-                zPre=(int)floor(gridPosition[2]);
+                zPre=static_cast<int>(floor(gridPosition[2]));
                 basis=gridPosition[2]-(DTYPE)zPre;zPre--;
                 if(basis<0.0) basis=0.0; //rounding error
                 Get_BSplineBasisValues<DTYPE>(basis, zBasis, zFirst);
@@ -1514,11 +1514,133 @@ void reg_bspline_computeJacobianMatricesFull_3D(nifti_image *referenceImage,
                 jacobianMatrix.m[2][1]= (float)(Tz_y / realSpacing[1]);
                 jacobianMatrix.m[2][2]= (float)(Tz_z / realSpacing[2]);
 
-                jacobianMatrices[index] = nifti_mat33_mul(reorient,jacobianMatrix);
+                jacobianMatrices[index] = jacobianMatrix;
                 index++;
-            }
-        }
+            } // x
+        } // y
+    } // x
+}
+/* *************************************************************** */
+template <class DTYPE>
+void reg_bspline_computeJacobianMatricesFull_2D(nifti_image *referenceImage,
+                                                nifti_image *splineControlPoint,
+                                                mat33 *jacobianMatrices)
+{
+    DTYPE basisX[16], basisY[16];
+    DTYPE xControlPointCoordinates[16], yControlPointCoordinates[16];
+    DTYPE yBasis[4], yFirst[4], xBasis[4], xFirst[4], basis;
+
+    DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
+    DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny];
+
+    mat44 refVox2GridVox_affine;
+    if(referenceImage->sform_code>0){
+        if(splineControlPoint->sform_code>0)
+            refVox2GridVox_affine=reg_mat44_mul(&splineControlPoint->sto_ijk,&referenceImage->sto_xyz);
+        else refVox2GridVox_affine=reg_mat44_mul(&splineControlPoint->qto_ijk,&referenceImage->sto_xyz);
     }
+    else{
+        if(splineControlPoint->sform_code>0)
+            refVox2GridVox_affine=reg_mat44_mul(&splineControlPoint->sto_ijk,&referenceImage->qto_xyz);
+        else refVox2GridVox_affine=reg_mat44_mul(&splineControlPoint->qto_ijk,&referenceImage->qto_xyz);
+    }
+
+    DTYPE realSpacing[2];
+    if(splineControlPoint->sform_code>0){
+        reg_getRealImageSpacing(splineControlPoint,realSpacing);
+    }
+    else{
+        realSpacing[0]=splineControlPoint->dx;
+        realSpacing[1]=splineControlPoint->dy;
+    }
+
+    mat33 reorient, desorient, jacobianMatrix;
+    reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
+
+    int index, x, y, xPre, yPre, a, b, coord, oldXpre, oldYpre;
+    DTYPE refPosition[3];
+    DTYPE gridPosition[3];
+    DTYPE Tx_x, Tx_y;
+    DTYPE Ty_x, Ty_y;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(referenceImage, splineControlPoint, \
+    controlPointPtrX, controlPointPtrY, reorient,desorient, \
+    jacobianMatrices, realSpacing, refVox2GridVox_affine) \
+    private(x, y, xPre, yPre, a, b, index, basis, \
+    refPosition, gridPosition, basisX, basisY, coord, \
+    xBasis, yBasis, xFirst, yFirst, oldXpre, oldYpre, \
+    xControlPointCoordinates, yControlPointCoordinates, \
+    Tx_x, Tx_y, Ty_x, Ty_y, jacobianMatrix)
+#endif // _USE_OPENMP
+    for(y=0; y<referenceImage->ny; y++){
+        oldXpre=999999; oldYpre=999999;
+        refPosition[1]=y;
+        refPosition[2]=0;
+        index=referenceImage->nx*y;
+        for(x=0; x<referenceImage->nx; x++){
+            refPosition[0]=x;
+
+            reg_mat44_mul<DTYPE>(&refVox2GridVox_affine,refPosition,gridPosition);
+
+            xPre=static_cast<int>(floor(gridPosition[0]));
+            basis=gridPosition[0]-(DTYPE)xPre;xPre--;
+            if(basis<0.0) basis=0.0; //rounding error
+            Get_BSplineBasisValues<DTYPE>(basis, xBasis, xFirst);
+
+            yPre=static_cast<int>(floor(gridPosition[1]));
+            basis=gridPosition[1]-(DTYPE)yPre;yPre--;
+            if(basis<0.0) basis=0.0; //rounding error
+            Get_BSplineBasisValues<DTYPE>(basis, yBasis, yFirst);
+
+            coord=0;
+            for(b=0; b<4; b++){
+                for(a=0; a<4; a++){
+                    basisX[coord]=xFirst[a]*yBasis[b];   // y * x'
+                    basisY[coord]=xBasis[a]*yFirst[b];   // y' * x
+                    coord++;
+                }
+            }
+
+            if(xPre!=oldXpre || yPre!=oldYpre){
+                get_GridValues<DTYPE>(xPre,
+                                      yPre,
+                                      splineControlPoint,
+                                      controlPointPtrX,
+                                      controlPointPtrY,
+                                      xControlPointCoordinates,
+                                      yControlPointCoordinates,
+                                      true);
+                oldXpre=xPre; oldYpre=yPre;
+            }
+
+            Tx_x=0.0;
+            Ty_x=0.0;
+            Tx_y=0.0;
+            Ty_y=0.0;
+
+            for(a=0; a<16; a++){
+                Tx_x += basisX[a]*xControlPointCoordinates[a];
+                Tx_y += basisY[a]*xControlPointCoordinates[a];
+
+                Ty_x += basisX[a]*yControlPointCoordinates[a];
+                Ty_y += basisY[a]*yControlPointCoordinates[a];
+            }
+
+            jacobianMatrix.m[0][0]= (float)(Tx_x / realSpacing[0]);
+            jacobianMatrix.m[0][1]= (float)(Tx_y / realSpacing[1]);
+            jacobianMatrix.m[0][2]= 0;
+            jacobianMatrix.m[1][0]= (float)(Ty_x / realSpacing[0]);
+            jacobianMatrix.m[1][1]= (float)(Ty_y / realSpacing[1]);
+            jacobianMatrix.m[1][2]= 0;
+            jacobianMatrix.m[2][0]= 0;
+            jacobianMatrix.m[2][1]= 0;
+            jacobianMatrix.m[2][2]= 1;
+
+            jacobianMatrices[index] = jacobianMatrix;
+            index++;
+        } // x
+    } // y
 }
 /* *************************************************************** */
 template <class DTYPE>
@@ -3243,20 +3365,18 @@ void reg_bspline_GetJacobianMatrixFull(nifti_image *referenceImage,
         }
     }
     else{
-        fprintf(stderr,"reg_bspline_computeJacobianMatricesFull_2D ... TODO ... Exit()");
-        exit(1);
-//        switch(splineControlPoint->datatype){
-//        case NIFTI_TYPE_FLOAT32:
-//            reg_bspline_computeJacobianMatricesFull_2D<float>(referenceImage,splineControlPoint,jacobianMatrices);
-//            break;
-//        case NIFTI_TYPE_FLOAT64:
-//            reg_bspline_computeJacobianMatricesFull_2D<double>(referenceImage,splineControlPoint,jacobianMatrices);
-//            break;
-//        default:
-//            fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the control point image\n");
-//            fprintf(stderr,"[NiftyReg ERROR] The jacobian matrix image has not been computed\n");
-//            exit(1);
-//        }
+        switch(splineControlPoint->datatype){
+        case NIFTI_TYPE_FLOAT32:
+            reg_bspline_computeJacobianMatricesFull_2D<float>(referenceImage,splineControlPoint,jacobianMatrices);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            reg_bspline_computeJacobianMatricesFull_2D<double>(referenceImage,splineControlPoint,jacobianMatrices);
+            break;
+        default:
+            fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the control point image\n");
+            fprintf(stderr,"[NiftyReg ERROR] The jacobian matrix image has not been computed\n");
+            exit(1);
+        }
     }
 }
 /* *************************************************************** */
@@ -4057,6 +4177,7 @@ int reg_bspline_GetJacobianDetFromVelocityField(nifti_image* jacobianDetImage,
             return 1;
             break;
     }
+    free(jacobianMatrices);
     return 0;
 }
 

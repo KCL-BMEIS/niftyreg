@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <iostream>
 #include "nifti1_io.h"
 
 #define POW2(a) ((a)*(a))
