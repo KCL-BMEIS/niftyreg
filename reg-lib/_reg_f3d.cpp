@@ -63,6 +63,7 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->gradientSmoothingSigma=0;
     this->verbose=true;
     this->useSSD=false;
+    this->useKLD=false;
     this->useConjGradient=true;
     this->maxSSD=NULL;
     this->entropies[0]=this->entropies[1]=this->entropies[2]=this->entropies[3]=0.;
@@ -384,6 +385,20 @@ template<class T>
 void reg_f3d<T>::DoNotUseSSD()
 {
     this->useSSD = false;
+    return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+void reg_f3d<T>::UseKLDivergence()
+{
+    this->useKLD = true;
+    return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+void reg_f3d<T>::DoNotUseKLDivergence()
+{
+    this->useKLD = false;
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -758,8 +773,8 @@ void reg_f3d<T>::CheckParameters_f3d()
     }
 
     if(this->useSSD){
-        if(inputReference->nt>1 || inputFloating->nt>1){
-            fprintf(stderr,"[NiftyReg ERROR] SSD is not available for multi-spectral registration.\n");
+        if(inputReference->nt!=inputFloating->nt){
+            fprintf(stderr,"[NiftyReg ERROR] SSD is only available with reference and floating images with same dimension along the t-axis.\n");
             exit(1);
         }
     }
@@ -868,21 +883,27 @@ void reg_f3d<T>::Initisalise_f3d()
         }
     }
 
-    if(this->useSSD){
-        this->maxSSD=new T[pyramidalLevelNumber];
+    if(this->useSSD || this->useKLD){
         // THRESHOLD THE INPUT IMAGES IF REQUIRED
+        this->maxSSD=new T[pyramidalLevelNumber];
         for(unsigned int l=0; l<pyramidalLevelNumber; l++){
             reg_thresholdImage<T>(referencePyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
             reg_thresholdImage<T>(floatingPyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
-            // The maximal difference image is extracted for normalisation
-            T tempMaxSSD1 = (referencePyramid[l]->cal_min - floatingPyramid[l]->cal_max) *
-                    (referencePyramid[l]->cal_min - floatingPyramid[l]->cal_max);
-            T tempMaxSSD2 = (referencePyramid[l]->cal_max - floatingPyramid[l]->cal_min) *
-                    (referencePyramid[l]->cal_max - floatingPyramid[l]->cal_min);
-            this->maxSSD[l]=tempMaxSSD1>tempMaxSSD2?tempMaxSSD1:tempMaxSSD2;
+        }
+        // The maximal difference image is extracted for normalisation of the SSD
+        if(this->useSSD){
+            this->maxSSD=new T[pyramidalLevelNumber];
+            for(unsigned int l=0; l<pyramidalLevelNumber; l++){
+                T tempMaxSSD1 = (referencePyramid[l]->cal_min - floatingPyramid[l]->cal_max) *
+                        (referencePyramid[l]->cal_min - floatingPyramid[l]->cal_max);
+                T tempMaxSSD2 = (referencePyramid[l]->cal_max - floatingPyramid[l]->cal_min) *
+                        (referencePyramid[l]->cal_max - floatingPyramid[l]->cal_min);
+                this->maxSSD[l]=tempMaxSSD1>tempMaxSSD2?tempMaxSSD1:tempMaxSSD2;
+            }
         }
     }
     else{
+        // NMI is used here
         // RESCALE THE INPUT IMAGE INTENSITY
         /* the target and source are resampled between 2 and bin-3
          * The images are then shifted by two which is the suport of the spline used
@@ -1042,6 +1063,8 @@ void reg_f3d<T>::Initisalise_f3d()
         printf("[%s]\n", this->executableName);
         if(this->useSSD)
             printf("[%s] The SSD is used as a similarity measure.\n", this->executableName);
+        if(this->useKLD)
+            printf("[%s] The KL divergence is used as a similarity measure.\n", this->executableName);
         else{
             printf("[%s] The NMI is used as a similarity measure.\n", this->executableName);
             if(this->approxParzenWindow || this->inputReference->nt>1 || this->inputFloating->nt>1)
@@ -1116,6 +1139,12 @@ double reg_f3d<T>::ComputeSimilarityMeasure()
         if(this->usePyramid)
             measure /= this->maxSSD[this->currentLevel];
         else measure /= this->maxSSD[0];
+    }
+    else if(this->useKLD){
+        measure = -reg_getKLDivergence(this->currentReference,
+                                       this->warped,
+                                       NULL,
+                                       this->currentMask);
     }
     else{
         if(this->currentReference->nt>1 &&
@@ -1287,6 +1316,16 @@ void reg_f3d<T>::GetVoxelBasedGradient()
                                      localMaxSSD,
                                      this->currentMask
                                      );
+    }
+    else if(this->useKLD){
+        // Compute the voxel based KL divergence gradient
+        reg_getKLDivergenceVoxelBasedGradient(this->currentReference,
+                                              this->warped,
+                                              this->warpedGradientImage,
+                                              this->voxelBasedMeasureGradientImage,
+                                              NULL,
+                                              this->currentMask
+                                              );
     }
     else{
         if(this->currentReference->nt>1 &&
@@ -1872,6 +1911,9 @@ void reg_f3d<T>::Run_f3d()
             if(this->useSSD)
                 printf("[%s] Initial objective function: %g = (wSSD)%g - (wBE)%g - (wLE)%g - (wJAC)%g\n",
                        this->executableName, bestValue, bestWMeasure, bestWBE, bestWLE, bestWJac);
+            else if(this->useKLD)
+                printf("[%s] Initial objective function: %g = (wKLD)%g - (wBE)%g - (wLE)%g - (wJAC)%g\n",
+                       this->executableName, bestValue, bestWMeasure, bestWBE, bestWLE, bestWJac);
             else printf("[%s] Initial objective function: %g = (wNMI)%g - (wBE)%g - (wLE)%g - (wJAC)%g\n",
                         this->executableName, bestValue, bestWMeasure, bestWBE, bestWLE, bestWJac);
             if(bestIC!=0)
@@ -1986,6 +2028,8 @@ void reg_f3d<T>::Run_f3d()
                        this->executableName, this->currentIteration, bestValue);
                 if(this->useSSD)
                     printf(" = (wSSD)%g", bestWMeasure);
+                else if(this->useKLD)
+                    printf(" = (wKLD)%g", bestWMeasure);
                 else printf(" = (wNMI)%g", bestWMeasure);
                 if(this->bendingEnergyWeight>0)
                     printf(" - (wBE)%.2e", bestWBE);

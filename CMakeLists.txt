@@ -25,7 +25,6 @@ ENDIF()
 
 #-----------------------------------------------------------------------------
 
-OPTION(BUILD_NIFTYREG "To build the NiftyReg executables" ON)
 OPTION(BUILD_NR_DEV "To build code under development" OFF)
 OPTION(BUILD_TESTING "To build the unit tests" OFF)
 
@@ -62,7 +61,7 @@ IF(USE_SSE)
 ENDIF(USE_SSE)
 
 IF(BUILD_NR_DEV)
-    ADD_DEFINITIONS(-D_NR_DEV)
+    ADD_DEFINITIONS(-D_BUILD_NR_DEV)
 ENDIF(BUILD_NR_DEV)
 
 IF(USE_OPENMP)
@@ -107,14 +106,12 @@ ENDIF(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/.svn)
 
 SUBDIRS(zlib)
 SUBDIRS(nifti)
-IF(BUILD_NIFTYREG)
-    SUBDIRS(reg-lib)
-    SUBDIRS(reg-apps)
-    if(BUILD_TESTING)
-        ENABLE_TESTING()
-        INCLUDE(${CMAKE_ROOT}/Modules/Dart.cmake)
-        SUBDIRS(reg-test)
-    ENDIF(BUILD_TESTING)
-ENDIF(BUILD_NIFTYREG)
+SUBDIRS(reg-lib)
+SUBDIRS(reg-apps)
+if(BUILD_TESTING)
+    ENABLE_TESTING()
+    INCLUDE(${CMAKE_ROOT}/Modules/Dart.cmake)
+    SUBDIRS(reg-test)
+ENDIF(BUILD_TESTING)
 
 #=============================================================================

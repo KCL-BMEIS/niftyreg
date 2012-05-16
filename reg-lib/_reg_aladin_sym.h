@@ -13,6 +13,7 @@
 #define _REG_ALADIN_SYM_H
 
 #include "_reg_aladin.h"
+#ifdef _BUILD_NR_DEV
 
 template <class T>
 class reg_aladin_sym : public reg_aladin<T>
@@ -56,4 +57,6 @@ public:
 };
 
 #include "_reg_aladin_sym.cpp"
+
+#endif // _BUILD_NR_DEV
 #endif // _REG_ALADIN_SYM_H

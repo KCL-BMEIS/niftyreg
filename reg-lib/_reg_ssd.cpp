@@ -14,42 +14,57 @@
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
-double reg_getSSD1(nifti_image *targetImage,
-                   nifti_image *resultImage,
+double reg_getSSD1(nifti_image *referenceImage,
+                   nifti_image *warpedImage,
                    nifti_image *jacobianDetImage,
                    int *mask
                    )
 {
-    DTYPE *targetPtr=static_cast<DTYPE *>(targetImage->data);
-    DTYPE *resultPtr=static_cast<DTYPE *>(resultImage->data);
+    size_t voxelNumber = referenceImage->nx*referenceImage->ny*referenceImage->nz;
+    // Create pointers to the reference and warped image data
+    DTYPE *referencePtr=static_cast<DTYPE *>(referenceImage->data);
+    DTYPE *warpedPtr=static_cast<DTYPE *>(warpedImage->data);
+    // Create a pointer to the Jacobian determinant image if defined
     DTYPE *jacDetPtr=NULL;
     if(jacobianDetImage!=NULL)
         jacDetPtr=static_cast<DTYPE *>(jacobianDetImage->data);
 
-    int i;
+    // Create some variables to be use in the openmp loop
+    size_t voxel;
     double SSD=0.0, n=0.0;
     double targetValue, resultValue, diff;
+
+    // Loop over the different time points
+    for(int time=0;time<referenceImage->nt;++time){
+
+        // Create pointers to the current time point of the reference and warped images
+        DTYPE *currentRefPtr=&referencePtr[time*voxelNumber];
+        DTYPE *currentWarPtr=&warpedPtr[time*voxelNumber];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(targetImage, targetPtr, resultPtr, mask, \
-    jacobianDetImage, jacDetPtr) \
-    private(i, targetValue, resultValue, diff) \
+    shared(referenceImage, currentRefPtr, currentWarPtr, mask, \
+    jacobianDetImage, jacDetPtr, voxelNumber) \
+    private(voxel, targetValue, resultValue, diff) \
     reduction(+:SSD) \
     reduction(+:n)
 #endif
-    for(i=0; i<(int)targetImage->nvox;i++){
-        if(mask[i]>-1){
-            targetValue = (double)targetPtr[i];
-            resultValue = (double)resultPtr[i];
-            if(targetValue==targetValue && resultValue==resultValue){
-                diff = (targetValue-resultValue);
-                if(jacobianDetImage!=NULL){
-                    SSD += diff * diff * jacDetPtr[i];
-                    n += jacDetPtr[i];
-                }
-                else{
-                    SSD += diff * diff;
-                    n += 1.0;
+        for(voxel=0; voxel<voxelNumber;++voxel){
+            // Check if the current voxel belongs to the mask
+            if(mask[voxel]>-1){
+                // Ensure that both ref and warped values are defined
+                targetValue = (double)currentRefPtr[voxel];
+                resultValue = (double)currentWarPtr[voxel];
+                if(targetValue==targetValue && resultValue==resultValue){
+                    diff = (targetValue-resultValue);
+                    // Jacobian determinant modulation of the ssd if required
+                    if(jacobianDetImage!=NULL){
+                        SSD += diff * diff * jacDetPtr[voxel];
+                        n += jacDetPtr[voxel];
+                    }
+                    else{
+                        SSD += diff * diff;
+                        n += 1.0;
+                    }
                 }
             }
         }
@@ -58,33 +73,42 @@ double reg_getSSD1(nifti_image *targetImage,
     return SSD/n;
 }
 /* *************************************************************** */
-double reg_getSSD(nifti_image *targetImage,
-                  nifti_image *resultImage,
+double reg_getSSD(nifti_image *referenceImage,
+                  nifti_image *warpedImage,
                   nifti_image *jacobianDetImage,
                   int *mask
                   )
 {
+    // Check that all input images are of the same type
     if(jacobianDetImage!=NULL){
-        if(targetImage->datatype != resultImage->datatype || targetImage->datatype != jacobianDetImage->datatype){
+        if(referenceImage->datatype != warpedImage->datatype || referenceImage->datatype != jacobianDetImage->datatype){
             fprintf(stderr,"[NiftyReg ERROR] reg_getSSD\n");
             fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same type\n");
             exit(1);
         }
     }
     else{
-        if(targetImage->datatype != resultImage->datatype){
+        if(referenceImage->datatype != warpedImage->datatype){
             fprintf(stderr,"[NiftyReg ERROR] reg_getSSD\n");
             fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same type\n");
             exit(1);
         }
     }
+    // Check that both input images have the same size
+    for(int i=0;i<5;++i){
+        if(referenceImage->dim[i] != warpedImage->dim[i]){
+            fprintf(stderr,"[NiftyReg ERROR] reg_getSSD\n");
+            fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same dimension");
+            exit(1);
+        }
+    }
 
-    switch ( targetImage->datatype ){
+    switch ( referenceImage->datatype ){
         case NIFTI_TYPE_FLOAT32:
-            return reg_getSSD1<float>(targetImage,resultImage, jacobianDetImage, mask);
+            return reg_getSSD1<float>(referenceImage,warpedImage, jacobianDetImage, mask);
             break;
         case NIFTI_TYPE_FLOAT64:
-            return reg_getSSD1<double>(targetImage,resultImage, jacobianDetImage, mask);
+            return reg_getSSD1<double>(referenceImage,warpedImage, jacobianDetImage, mask);
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] Result pixel type unsupported in the SSD computation function.\n");
@@ -95,99 +119,125 @@ double reg_getSSD(nifti_image *targetImage,
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void reg_getVoxelBasedSSDGradient1(nifti_image *targetImage,
-                                   nifti_image *resultImage,
-                                   nifti_image *resultImageGradient,
+void reg_getVoxelBasedSSDGradient1(nifti_image *referenceImage,
+                                   nifti_image *warpedImage,
+                                   nifti_image *warpedImageGradient,
                                    nifti_image *ssdGradientImage,
                                    nifti_image *jacobianDetImage,
                                    float maxSD,
                                    int *mask
                                    )
 {
-    DTYPE *targetPtr=static_cast<DTYPE *>(targetImage->data);
-    DTYPE *resultPtr=static_cast<DTYPE *>(resultImage->data);
+    // Create pointers to the reference and warped images
+    size_t voxelNumber = referenceImage->nx*referenceImage->ny*referenceImage->nz;
+    size_t voxel;
 
-    DTYPE *spatialGradPtrX=static_cast<DTYPE *>(resultImageGradient->data);
-    DTYPE *spatialGradPtrY = &spatialGradPtrX[resultImageGradient->nx*resultImageGradient->ny*resultImageGradient->nz];
-    DTYPE *spatialGradPtrZ = NULL;
-    if(targetImage->nz>1) spatialGradPtrZ = &spatialGradPtrY[resultImageGradient->nx*resultImageGradient->ny*resultImageGradient->nz];
+    DTYPE *refPtr=static_cast<DTYPE *>(referenceImage->data);
+    DTYPE *warPtr=static_cast<DTYPE *>(warpedImage->data);
 
+    // Pointer to the warped image gradient
+    DTYPE *spatialGradPtr=static_cast<DTYPE *>(warpedImageGradient->data);
+
+    // Create pointers to the voxel based gradient image - results
     DTYPE *ssdGradPtrX=static_cast<DTYPE *>(ssdGradientImage->data);
-    DTYPE *ssdGradPtrY = &ssdGradPtrX[ssdGradientImage->nx*ssdGradientImage->ny*ssdGradientImage->nz];
+    DTYPE *ssdGradPtrY = &ssdGradPtrX[voxelNumber];
     DTYPE *ssdGradPtrZ = NULL;
-    if(targetImage->nz>1) ssdGradPtrZ = &ssdGradPtrY[ssdGradientImage->nx*ssdGradientImage->ny*ssdGradientImage->nz];
 
+    // Create the z-axis pointers if the images are volume
+    if(referenceImage->nz>1)
+        ssdGradPtrZ = &ssdGradPtrY[voxelNumber];
+
+    // Set all the gradient values to zero
+    for(voxel=0;voxel<ssdGradientImage->nvox;++voxel)
+        ssdGradPtrX[voxel]=0;
+
+    // Create a pointer to the Jacobian determinant values if defined
     DTYPE *jacDetPtr=NULL;
     if(jacobianDetImage!=NULL)
         jacDetPtr=static_cast<DTYPE *>(jacobianDetImage->data);
 
     DTYPE gradX, gradY, gradZ;
-    double targetValue, resultValue, common;
-    int i;
+    double JacDetValue, targetValue, resultValue, common;
+
+    // Loop over the different time points
+    for(int time=0;time<referenceImage->nt;++time){
+        // Create some pointers to the current time point image to be accessed
+        DTYPE *currentRefPtr=&refPtr[time*voxelNumber];
+        DTYPE *currentWarPtr=&warPtr[time*voxelNumber];
+        // Create some pointers to the spatial gradient of the current warped volume
+        DTYPE *currentGradPtrX=&spatialGradPtr[time*voxelNumber];
+        DTYPE *currentGradPtrY=&currentGradPtrX[referenceImage->nt*voxelNumber];
+        DTYPE *currentGradPtrZ=NULL;
+        if(referenceImage->nz>1)
+            currentGradPtrZ=&currentGradPtrY[referenceImage->nt*voxelNumber];
+
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(targetImage, targetPtr, resultPtr, maxSD, mask, jacDetPtr, jacobianDetImage, \
-    spatialGradPtrX, spatialGradPtrY, spatialGradPtrZ, ssdGradPtrX, ssdGradPtrY, ssdGradPtrZ) \
-    private(i, targetValue, resultValue, common, gradX, gradY, gradZ)
+    shared(referenceImage, currentRefPtr, currentWarPtr, maxSD, mask, jacDetPtr, jacobianDetImage, \
+    currentGradPtrX, currentGradPtrY, currentGradPtrZ, ssdGradPtrX, ssdGradPtrY, ssdGradPtrZ, voxelNumber) \
+    private(voxel, targetValue, resultValue, common, gradX, gradY, gradZ, JacDetValue)
 #endif
-    for(i=0; i<(int)targetImage->nvox;i++){
-        if(mask[i]>-1){
-            targetValue = targetPtr[i];
-            resultValue = resultPtr[i];
-            gradX=0;
-            gradY=0;
-            gradZ=0;
-            if(targetValue==targetValue && resultValue==resultValue){
-                common = - 2.0 * (targetValue - resultValue);
-                gradX = (DTYPE)(common * spatialGradPtrX[i]/maxSD);
-                gradY = (DTYPE)(common * spatialGradPtrY[i]/maxSD);
-                if(targetImage->nz>1) gradZ = (DTYPE)(common * spatialGradPtrZ[i]/maxSD);
-            }
-            if(jacobianDetImage!=NULL){
-                ssdGradPtrX[i] = gradX * jacDetPtr[i];
-                ssdGradPtrY[i] = gradY * jacDetPtr[i];
-                if(targetImage->nz>1) ssdGradPtrZ[i] = gradZ * jacDetPtr[i];
-            }
-            else{
-                ssdGradPtrX[i] = gradX;
-                ssdGradPtrY[i] = gradY;
-                if(targetImage->nz>1) ssdGradPtrZ[i] = gradZ;
+        for(voxel=0; voxel<voxelNumber;voxel++){
+            if(mask[voxel]>-1){
+                targetValue = currentRefPtr[voxel];
+                resultValue = currentWarPtr[voxel];
+                gradX=0;
+                gradY=0;
+                gradZ=0;
+                if(targetValue==targetValue && resultValue==resultValue){
+                    common = - 2.0 * (targetValue - resultValue)/maxSD;
+                    gradX = (DTYPE)(common * currentGradPtrX[voxel]);
+                    gradY = (DTYPE)(common * currentGradPtrY[voxel]);
+                    if(referenceImage->nz>1)
+                        gradZ = (DTYPE)(common * currentGradPtrZ[voxel]);
+                    if(jacobianDetImage!=NULL){
+                        JacDetValue = jacDetPtr[voxel];
+                        gradX *= JacDetValue;
+                        gradY *= JacDetValue;
+                        if(referenceImage->nz>1)
+                            gradZ *= JacDetValue;
+                    }
+                    ssdGradPtrX[voxel] += gradX;
+                    ssdGradPtrY[voxel] += gradY;
+                    if(referenceImage->nz>1)
+                        ssdGradPtrZ[voxel] += gradZ;
+                }
             }
         }
-    }
+    }// loop over time points
 }
 /* *************************************************************** */
-void reg_getVoxelBasedSSDGradient(nifti_image *targetImage,
-                                  nifti_image *resultImage,
-                                  nifti_image *resultImageGradient,
+void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
+                                  nifti_image *warpedImage,
+                                  nifti_image *warpedImageGradient,
                                   nifti_image *ssdGradientImage,
                                   nifti_image *jacobianDeterminantImage,
                                   float maxSD,
                                   int *mask
                                   )
 {
-    if(targetImage->datatype != resultImage->datatype ||
-       resultImageGradient->datatype != ssdGradientImage->datatype ||
-       targetImage->datatype != resultImageGradient->datatype){
+    if(referenceImage->datatype != warpedImage->datatype ||
+       warpedImageGradient->datatype != ssdGradientImage->datatype ||
+       referenceImage->datatype != warpedImageGradient->datatype){
         fprintf(stderr,"[NiftyReg ERROR] reg_getVoxelBasedSSDGradient\n");
         fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same type\n");
         exit(1);
     }
     if(jacobianDeterminantImage!=NULL){
-        if(targetImage->datatype != jacobianDeterminantImage->datatype){
+        if(referenceImage->datatype != jacobianDeterminantImage->datatype){
             fprintf(stderr,"[NiftyReg ERROR] reg_getVoxelBasedSSDGradient\n");
             fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same type\n");
             exit(1);
         }
     }
-    switch ( targetImage->datatype ){
+    switch ( referenceImage->datatype ){
         case NIFTI_TYPE_FLOAT32:
             reg_getVoxelBasedSSDGradient1<float>
-                (targetImage, resultImage, resultImageGradient, ssdGradientImage, jacobianDeterminantImage,maxSD, mask);
+                (referenceImage, warpedImage, warpedImageGradient, ssdGradientImage, jacobianDeterminantImage,maxSD, mask);
             break;
         case NIFTI_TYPE_FLOAT64:
             reg_getVoxelBasedSSDGradient1<double>
-                (targetImage, resultImage, resultImageGradient, ssdGradientImage, jacobianDeterminantImage,maxSD, mask);
+                (referenceImage, warpedImage, warpedImageGradient, ssdGradientImage, jacobianDeterminantImage,maxSD, mask);
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] Target pixel type unsupported in the SSD gradient computation function.\n");

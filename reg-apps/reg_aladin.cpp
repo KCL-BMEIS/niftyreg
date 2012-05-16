@@ -47,7 +47,9 @@ void Usage(char *exec)
     printf("\t-ref <filename>\tFilename of the reference (target) image (mandatory)\n");
     printf("\t-flo <filename>\tFilename of the floating (source) image (mandatory)\n");
     printf("* * OPTIONS * *\n");
+#ifdef _BUILD_NR_DEV
     printf("\t-sym \t\t\tUses symmetric version of the algorithm.\n");
+#endif
     printf("\t-aff <filename>\t\tFilename which contains the output affine transformation [outputAffine.txt]\n");
     printf("\t-rigOnly\t\tTo perform a rigid registration only (rigid+affine by default)\n");
     printf("\t-affDirect\t\tDirectly optimize 12 DoF affine [default is rigid initially then affine]\n");
@@ -213,6 +215,7 @@ int main(int argc, char **argv)
 
 
     reg_aladin<PrecisionTYPE> *REG;
+#ifdef _BUILD_NR_DEV
     if(symFlag)
     {
         REG = new reg_aladin_sym<PrecisionTYPE>;
@@ -224,12 +227,15 @@ int main(int argc, char **argv)
     }
     else
     {
+#endif
         REG = new reg_aladin<PrecisionTYPE>;
+#ifdef _BUILD_NR_DEV
         if (floatingMaskFlag)
         {
             fprintf(stderr,"Note: Floating mask flag only used in symmetric method. Ignoring this option\n");
         }
     }
+#endif
     REG->SetMaxIterations(maxIter);
     REG->SetNumberOfLevels(nLevels);
     REG->SetLevelsToPerform(levelsToPerform);
@@ -246,22 +252,27 @@ int main(int argc, char **argv)
     if(REG->GetLevelsToPerform() > REG->GetNumberOfLevels())
         REG->SetLevelsToPerform(REG->GetNumberOfLevels());
 
-    /* Read the reference and floating images */
+    /* Read the reference image and check its dimension */
     nifti_image *referenceHeader = nifti_image_read(referenceImageName,true);
     if(referenceHeader == NULL){
         fprintf(stderr,"* ERROR Error when reading the reference  image: %s\n",referenceImageName);
         return 1;
     }
     reg_checkAndCorrectDimension(referenceHeader);
+
+    /* Read teh floating image and check its dimension */
     nifti_image *floatingHeader = nifti_image_read(floatingImageName,true);
     if(floatingHeader == NULL){
         fprintf(stderr,"* ERROR Error when reading the floating image: %s\n",floatingImageName);
         return 1;
     }
     reg_checkAndCorrectDimension(floatingHeader);
+
+    // Set the reference and floating image
     REG->SetInputReference(referenceHeader);
     REG->SetInputFloating(floatingHeader);
 
+    // Set the input affine transformation
     REG->SetInputTransform(inputAffineName,flirtAffineFlag);
 
     /* read the reference mask image */
@@ -282,6 +293,7 @@ int main(int argc, char **argv)
         }
         REG->SetInputMask(referenceMaskImage);
     }
+#ifdef _BUILD_NR_DEV
     nifti_image *floatingMaskImage=NULL;
     if(floatingMaskFlag && symFlag){
         floatingMaskImage = nifti_image_read(floatingMaskName,true);
@@ -299,6 +311,7 @@ int main(int argc, char **argv)
         }
         REG->SetInputFloatingMask(floatingMaskImage);
     }
+#endif
     REG->Run();
 
     // The warped image is saved

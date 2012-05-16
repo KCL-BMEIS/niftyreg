@@ -1,7 +1,4 @@
 #-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-IF(BUILD_NIFTYREG)
 ##BUILD THE CPU LIBRARIES
 #-----------------------------------------------------------------------------
     SET(LIST _reg_resampling)
@@ -9,6 +6,7 @@ IF(BUILD_NIFTYREG)
     SET(LIST ${LIST} _reg_globalTransformation)
     SET(LIST ${LIST} _reg_mutualinformation)
     SET(LIST ${LIST} _reg_ssd)
+    SET(LIST ${LIST} _reg_KLdivergence)
     SET(LIST ${LIST} _reg_tools)
     SET(LIST ${LIST} _reg_blockMatching)
     SET(LIST ${LIST} _reg_femTransformation)
@@ -78,7 +76,7 @@ IF(BUILD_NIFTYREG)
         ELSE(WIN32)
             CUDA_ADD_LIBRARY(${NAME} SHARED ${NAME}.h ${NAME}.cpp ${NAME}_sym.h ${NAME}_sym.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_gpu.h ${NAME}_gpu.cpp)
         ENDIF(WIN32)
-            TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation _reg_ssd _reg_mutualinformation _reg_tools reg_nifti ${ZLIB} _reg_localTransformation_gpu _reg_resampling_gpu _reg_globalTransformation_gpu _reg_mutualinformation_gpu _reg_tools_gpu _reg_cudaCommon)
+            TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation _reg_KLdivergence _reg_ssd _reg_mutualinformation _reg_tools reg_nifti ${ZLIB} _reg_localTransformation_gpu _reg_resampling_gpu _reg_globalTransformation_gpu _reg_mutualinformation_gpu _reg_tools_gpu _reg_cudaCommon)
             INSTALL(FILES ${NAME}_gpu.h DESTINATION include)
 #-----------------------------------------------------------------------------
     ELSE(USE_CUDA)
@@ -88,7 +86,7 @@ IF(BUILD_NIFTYREG)
         ELSE(WIN32)
             ADD_LIBRARY(${NAME} SHARED ${NAME}.h ${NAME}.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_sym.h ${NAME}_sym.cpp)
         ENDIF(WIN32)
-            TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation _reg_ssd _reg_mutualinformation _reg_tools reg_nifti ${ZLIB})
+            TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation _reg_KLdivergence _reg_ssd _reg_mutualinformation _reg_tools reg_nifti ${ZLIB})
 #-----------------------------------------------------------------------------
     ENDIF(USE_CUDA)
 #-----------------------------------------------------------------------------
@@ -147,5 +145,3 @@ IF(BUILD_NIFTYREG)
     INSTALL(FILES ${NAME}.h DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-ENDIF(BUILD_NIFTYREG)

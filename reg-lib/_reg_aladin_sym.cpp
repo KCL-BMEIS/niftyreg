@@ -1,3 +1,5 @@
+#ifdef _BUILD_NR_DEV
+
 #include "_reg_aladin_sym.h"
 #ifndef _REG_ALADIN_SYM_CPP
 #define _REG_ALADIN_SYM_CPP
@@ -311,3 +313,4 @@ void reg_aladin_sym<T>::DebugPrintLevelInfo(int CurrentLevel)
 }
 
 #endif //REG_ALADIN_SYM_CPP
+#endif //_BUILD_NR_DEV

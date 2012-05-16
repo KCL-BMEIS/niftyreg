@@ -615,27 +615,28 @@ double reg_f3d_sym<T>::ComputeSimilarityMeasure()
     double measure=0.;
     if(this->useSSD){
         // forward
-nifti_image *jacobianDetImage=nifti_copy_nim_info(this->currentReference);
-jacobianDetImage->data=(void *)malloc(jacobianDetImage->nvox * sizeof(T));
-reg_bspline_GetJacobianDetFromVelocityField(jacobianDetImage,this->controlPointGrid);
         measure = -reg_getSSD(this->currentReference,
                               this->warped,
-                              jacobianDetImage,//NULL,
+                              NULL,
                               this->currentMask);
-nifti_image_free(jacobianDetImage);
         // backward
-jacobianDetImage=nifti_copy_nim_info(this->currentFloating);
-jacobianDetImage->data=(void *)malloc(jacobianDetImage->nvox * sizeof(T));
-reg_bspline_GetJacobianDetFromVelocityField(jacobianDetImage,this->controlPointGrid);
         measure+= -reg_getSSD(this->currentFloating,
                               this->backwardWarped,
-                              jacobianDetImage,//NULL,
+                              NULL,
                               this->currentFloatingMask);
-nifti_image_free(jacobianDetImage);
         if(this->usePyramid)
             measure /= this->maxSSD[this->currentLevel];
         else measure /= this->maxSSD[0];
-
+    }
+    else if(this->useKLD){
+        measure = -reg_getKLDivergence(this->currentReference,
+                                       this->warped,
+                                       NULL,
+                                       this->currentMask);
+        measure += -reg_getKLDivergence(this->currentFloating,
+                                        this->backwardWarped,
+                                        NULL,
+                                        this->currentFloatingMask);
     }
     else{
         reg_getEntropies(this->currentReference,
@@ -769,12 +770,6 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
                                this->interpolation);
 
     if(this->useSSD){
-
-nifti_image *jacobianDetImage=nifti_copy_nim_info(this->currentReference);
-jacobianDetImage->data=(void *)malloc(jacobianDetImage->nvox * sizeof(T));
-reg_bspline_GetJacobianDetFromVelocityField(jacobianDetImage,
-                                            this->controlPointGrid);
-
         // Compute the voxel based SSD gradient
         T localMaxSSD=this->maxSSD[0];
         if(this->usePyramid) localMaxSSD=this->maxSSD[this->currentLevel];
@@ -782,26 +777,36 @@ reg_bspline_GetJacobianDetFromVelocityField(jacobianDetImage,
                                      this->warped,
                                      this->warpedGradientImage,
                                      this->voxelBasedMeasureGradientImage,
-                                     jacobianDetImage,//NULL,
+                                     NULL,
                                      localMaxSSD,
                                      this->currentMask
                                      );
-nifti_image_free(jacobianDetImage);
-
-jacobianDetImage=nifti_copy_nim_info(this->currentFloating);
-jacobianDetImage->data=(void *)malloc(jacobianDetImage->nvox * sizeof(T));
-reg_bspline_GetJacobianDetFromVelocityField(jacobianDetImage,
-                                            this->backwardControlPointGrid);
 
         reg_getVoxelBasedSSDGradient(this->currentFloating,
                                      this->backwardWarped,
                                      this->backwardWarpedGradientImage,
                                      this->backwardVoxelBasedMeasureGradientImage,
-                                     jacobianDetImage,//NULL,
+                                     NULL,
                                      localMaxSSD,
                                      this->currentFloatingMask
                                      );
-nifti_image_free(jacobianDetImage);
+    }
+    if(this->useKLD){
+        reg_getKLDivergenceVoxelBasedGradient(this->currentReference,
+                                              this->warped,
+                                              this->warpedGradientImage,
+                                              this->voxelBasedMeasureGradientImage,
+                                              NULL,
+                                              this->currentMask
+                                              );
+
+        reg_getKLDivergenceVoxelBasedGradient(this->currentFloating,
+                                              this->backwardWarped,
+                                              this->backwardWarpedGradientImage,
+                                              this->backwardVoxelBasedMeasureGradientImage,
+                                              NULL,
+                                              this->currentFloatingMask
+                                              );
     }
     else{
         // Compute the voxel based NMI gradient - forward
