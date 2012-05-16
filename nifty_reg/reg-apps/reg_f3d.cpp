@@ -108,6 +108,8 @@ void Usage(char *exec)
     printf("\t-noAppJL\t\tTo not approximate the JL value only at the control point position\n");
     printf("\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent\n");
     printf("\t-ssd\t\t\tTo use the SSD as the similiarity measure (NMI by default)\n");
+    printf("\t-kld\t\t\tTo use the KL divergence as the similiarity measure (NMI by default)*\n");
+    printf("\t* For the Kullback–Leibler divergence, reference and floating are expected to be probabilities\n");
 
     printf("\n*** Optimisation options:\n");
     printf("\t-maxit <int>\t\tMaximal number of iteration per level [300]\n");
@@ -120,11 +122,11 @@ void Usage(char *exec)
     printf("\t-fmask <filename>\tFilename of a mask image in the floating space\n");
     printf("\t-ic <float>\t\tWeight of the inverse consistency penalty term [0.01]\n");
 
-#ifdef BUILD_NR_DEV
+#ifdef _BUILD_NR_DEV
     printf("\n*** F3D2 options:\n");
     printf("\t-vel \t\t\tUse a velocity field integrationto generate the deformation\n");
     printf("\t-step <int>\t\tNumber of composition step [6].\n");
-#endif // BUILD_NR_DEV
+#endif // _BUILD_NR_DEV
 
     printf("\n*** Other options:\n");
     printf("\t-smoothGrad <float>\tTo smooth the metric derivative (in mm) [0]\n");
@@ -199,6 +201,7 @@ int main(int argc, char **argv)
     bool verbose=true;
     bool useConjugate=true;
     bool useSSD=false;
+    bool useKLD=false;
     bool noPyramid=0;
     bool useCubicSplineInterpolation=false;
     bool useLinearInterpolation=true;
@@ -212,8 +215,10 @@ int main(int argc, char **argv)
     char *floatingMaskName=NULL;
     float inverseConsistencyWeight=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
 
+#ifdef _BUILD_NR_DEV
     int stepNumber=-1;
     bool useVel=false;
+#endif
 
 #ifdef _USE_CUDA
     bool useGPU=false;
@@ -336,6 +341,11 @@ int main(int argc, char **argv)
         }
         else if(strcmp(argv[i], "-ssd") == 0){
             useSSD=true;
+            useKLD=false;
+        }
+        else if(strcmp(argv[i], "-kld") == 0){
+            useSSD=false;
+            useKLD=true;
         }
         else if(strcmp(argv[i], "-pad") == 0){
             warpedPaddingValue=(PrecisionTYPE)(atof(argv[++i]));
@@ -386,6 +396,7 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-nogr") ==0){
             gridRefinement=false;
         }
+#ifdef _BUILD_NR_DEV
         else if(strcmp(argv[i], "-vel") == 0){
             useVel=true;
         }
@@ -393,6 +404,7 @@ int main(int argc, char **argv)
            stepNumber=atoi(argv[++i]);
            useVel=true;
         }
+#endif
 #ifdef _USE_CUDA
         else if(strcmp(argv[i], "-gpu") == 0){
             useGPU=true;
@@ -478,8 +490,10 @@ int main(int argc, char **argv)
             return 1;
         }
         reg_checkAndCorrectDimension(controlPointGridImage);
+#ifdef _BUILD_NR_DEV
         if(fabs(controlPointGridImage->intent_code)>1)
             useVel=true;
+#endif
     }
 
     // Read the affine transformation
@@ -519,10 +533,12 @@ int main(int argc, char **argv)
             fprintf(stderr,"\n[NiftyReg ERROR CUDA] GPU implementation of the symmetric registration is not available yet. Exit\n");
             exit(0);
         }
+#ifdef _BUILD_NR_DEV
         if(useVel){
             fprintf(stderr,"\n[NiftyReg ERROR CUDA] GPU implementation of velocity field parametrisartion is not available yet. Exit\n");
             exit(0);
         }
+#endif
 
         if((referenceImage->dim[4]==1&&floatingImage->dim[4]==1) || (referenceImage->dim[4]==2&&floatingImage->dim[4]==2)){
 
@@ -583,7 +599,7 @@ int main(int argc, char **argv)
             }
 #endif // NDEBUG
         }
-#ifdef BUILD_NR_DEV
+#ifdef _BUILD_NR_DEV
         else if(useVel){
             REG = new reg_f3d2<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
@@ -594,7 +610,7 @@ int main(int argc, char **argv)
             }
 #endif
         }
-#endif // BUILD_NR_DEV
+#endif // _BUILD_NR_DEV
         else{
             REG = new reg_f3d<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
@@ -702,10 +718,14 @@ int main(int argc, char **argv)
 
     if(gradientSmoothingSigma==gradientSmoothingSigma)
         REG->SetGradientSmoothingSigma(gradientSmoothingSigma);
-	
+
     if(useSSD)
         REG->UseSSD();
     else REG->DoNotUseSSD();
+
+    if(useKLD)
+        REG->UseKLDivergence();
+    else REG->DoNotUseKLDivergence();
 
     if(useConjugate==true)
         REG->UseConjugateGradient();
@@ -742,9 +762,11 @@ int main(int argc, char **argv)
     if(inverseConsistencyWeight==inverseConsistencyWeight)
        REG->SetInverseConsistencyWeight(inverseConsistencyWeight);
 
+#ifdef _BUILD_NR_DEV
     // F3D2 arguments
     if(stepNumber>0)
         REG->SetCompositionStepNumber(stepNumber);
+#endif
 
     // Run the registration
 #ifdef _USE_CUDA
@@ -766,13 +788,19 @@ int main(int argc, char **argv)
         nifti_set_filenames(outputControlPointGridImage, outputControlPointGridName, 0, 0);
         memset(outputControlPointGridImage->descrip, 0, 80);
         strcpy (outputControlPointGridImage->descrip,"Control point position from NiftyReg (reg_f3d)");
+#ifdef _BUILD_NR_DEV
         if(useVel)
             strcpy (outputControlPointGridImage->descrip,"Velocity field grid from NiftyReg (reg_f3d2)");
+#endif
         nifti_image_write(outputControlPointGridImage);
         nifti_image_free(outputControlPointGridImage);outputControlPointGridImage=NULL;
 
         // Save the backward control point result
+#ifdef _BUILD_NR_DEV
         if(useSym || useVel){
+#else
+        if(useSym){
+#endif
             // _backward is added to the forward control point grid image name
             std::string b(outputControlPointGridName);
             if(b.find( ".nii.gz") != std::string::npos)
@@ -790,8 +818,10 @@ int main(int argc, char **argv)
             nifti_set_filenames(outputBackwardControlPointGridImage, b.c_str(), 0, 0);
             memset(outputBackwardControlPointGridImage->descrip, 0, 80);
             strcpy (outputBackwardControlPointGridImage->descrip,"Backward Control point position from NiftyReg (reg_f3d)");
+#ifdef _BUILD_NR_DEV
             if(useVel)
                 strcpy (outputBackwardControlPointGridImage->descrip,"Backward velocity field grid from NiftyReg (reg_f3d2)");
+#endif
             nifti_image_write(outputBackwardControlPointGridImage);
             nifti_image_free(outputBackwardControlPointGridImage);outputBackwardControlPointGridImage=NULL;
         }
@@ -804,11 +834,17 @@ int main(int argc, char **argv)
         nifti_set_filenames(outputWarpedImage[0], outputWarpedName, 0, 0);
         memset(outputWarpedImage[0]->descrip, 0, 80);
         strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d)");
-        if(useSym)
+        if(useSym){
             strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d_sym)");
-        if(useVel)
+            strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d_sym)");
+#ifdef _BUILD_NR_DEV
+        }
+        if(useVel){
             strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d2)");
+            strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d2)");
+        }
         if(useSym || useVel){
+#endif
             if(outputWarpedImage[1]!=NULL){
                 std::string b(outputWarpedName);
                 if(b.find( ".nii.gz") != std::string::npos)
@@ -825,8 +861,10 @@ int main(int argc, char **argv)
                 nifti_set_filenames(outputWarpedImage[1], b.c_str(), 0, 0);
                 if(useSym)
                     strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d_sym)");
+#ifdef _BUILD_NR_DEV
                 if(useVel)
                     strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d2)");
+#endif
                 nifti_image_write(outputWarpedImage[1]);
                 nifti_image_free(outputWarpedImage[1]);outputWarpedImage[1]=NULL;
             }

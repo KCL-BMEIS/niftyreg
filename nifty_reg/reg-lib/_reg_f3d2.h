@@ -11,7 +11,7 @@
 
 #include "_reg_f3d_sym.h"
 
-#ifdef BUILD_NR_DEV
+#ifdef _BUILD_NR_DEV
 
 #ifndef _REG_F3D2_H
 #define _REG_F3D2_H

@@ -9,7 +9,7 @@
  *
  */
 
-#ifdef BUILD_NR_DEV
+#ifdef _BUILD_NR_DEV
 
 #ifndef _REG_F3D2_CPP
 #define _REG_F3D2_CPP
@@ -138,7 +138,6 @@ void reg_f3d2<T>::GetInverseConsistencyGradient()
     if(this->inverseConsistencyWeight<=0) return;
 
 #warning TODO
-q
     fprintf(stderr, "NR ERROR - reg_f3d2<T>::GetInverseConsistencyGradient() has to be implemented");
     exit(1);
 

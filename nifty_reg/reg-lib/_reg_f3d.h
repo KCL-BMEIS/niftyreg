@@ -17,6 +17,7 @@
 #include "_reg_localTransformation.h"
 #include "_reg_mutualinformation.h"
 #include "_reg_ssd.h"
+#include "_reg_KLdivergence.h"
 #include "_reg_tools.h"
 #include "float.h"
 #include <limits>
@@ -57,6 +58,7 @@ class reg_f3d
     unsigned int levelToPerform;
     T gradientSmoothingSigma;
     bool useSSD;
+    bool useKLD;
     bool useConjGradient;
     bool verbose;
     bool usePyramid;
@@ -162,6 +164,8 @@ public:
     void DoNotUseComposition();
     void UseSSD();
     void DoNotUseSSD();
+    void UseKLDivergence();
+    void DoNotUseKLDivergence();
     void UseConjugateGradient();
     void DoNotUseConjugateGradient();
     void PrintOutInformation();
