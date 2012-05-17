@@ -291,7 +291,14 @@ int reg_getDeformationFromDisplacement(nifti_image *controlPointImage);
 
 /* *************************************************************** */
 /** compute_BCH_update(nifti_image *,nifti_image *,int)
-  * to write
+  * This function compute the BCH update using an initial verlocity field
+  * and its gradient.
+  * The type encodes the number of component of the serie to be considered:
+  * 0 - w=u+v
+  * 1 - w=u+v+0.5*[u,v]
+  * 2 - w=u+v+0.5*[u,v]+[u,[u,v]]/12
+  * 3 - w=u+v+0.5*[u,v]+[u,[u,v]]/12-[v,[u,v]]/12
+  * 4 - w=u+v+0.5*[u,v]+[u,[u,v]]/12-[v,[u,v]]/12-[v,[u,[u,g]]]/24
 **/
 extern "C++"
 void compute_BCH_update(nifti_image *img1,

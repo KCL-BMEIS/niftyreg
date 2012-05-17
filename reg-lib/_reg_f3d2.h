@@ -16,7 +16,6 @@
 #ifndef _REG_F3D2_H
 #define _REG_F3D2_H
 
-
 #define NR_F3D2_BCH_TYPE 1
 // 0 - w=u+v
 // 1 - w=u+v+0.5*[u,v]
@@ -33,6 +32,7 @@ class reg_f3d2 : public reg_f3d_sym<T>
     virtual void GetDeformationField();
     virtual void GetInverseConsistencyErrorField();
     virtual void GetInverseConsistencyGradient();
+    virtual void GetSimilarityMeasureGradient();
     virtual void UpdateControlPointPosition(T);
 
 public:

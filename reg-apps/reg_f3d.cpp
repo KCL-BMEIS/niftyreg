@@ -379,7 +379,6 @@ int main(int argc, char **argv)
         }
         else if((strcmp(argv[i],"-fmask")==0) || (strcmp(argv[i],"-smask")==0)){
             floatingMaskName=argv[++i];
-            useSym=true;
         }
         else if(strcmp(argv[i], "-ic") ==0){
             inverseConsistencyWeight=atof(argv[++i]);
@@ -756,15 +755,25 @@ int main(int argc, char **argv)
         REG->NoGridRefinement();
 
     // F3D SYM arguments
-    if(floatingMaskImage!=NULL)
-       REG->SetFloatingMask(floatingMaskImage);
+    if(floatingMaskImage!=NULL){
+        if(useSym)
+            REG->SetFloatingMask(floatingMaskImage);
+#ifdef _BUILD_NR_DEV
+        else if(useVel)
+            REG->SetFloatingMask(floatingMaskImage);
+#endif
+        else{
+            fprintf(stderr, "[NiftyReg WARNING] The floating mask image is only used for symmetric or velocity field parametrisation\n");
+            fprintf(stderr, "[NiftyReg WARNING] The floating mask image is ignored\n");
+        }
+    }
 
     if(inverseConsistencyWeight==inverseConsistencyWeight)
        REG->SetInverseConsistencyWeight(inverseConsistencyWeight);
 
 #ifdef _BUILD_NR_DEV
     // F3D2 arguments
-    if(stepNumber>0)
+    if(stepNumber>-1)
         REG->SetCompositionStepNumber(stepNumber);
 #endif
 

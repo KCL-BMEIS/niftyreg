@@ -146,6 +146,19 @@ void reg_f3d2<T>::GetInverseConsistencyGradient()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
+void reg_f3d2<T>::GetSimilarityMeasureGradient()
+{
+    reg_f3d_sym<T>::GetSimilarityMeasureGradient();
+
+    // Negate the backward measure gradient
+    reg_tools_addSubMulDivValue(this->backwardNodeBasedGradientImage,
+                                this->backwardNodeBasedGradientImage,
+                                -1.,
+                                2); // *(scale)
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
 void reg_f3d2<T>::UpdateControlPointPosition(T scale)
 {
     this->RestoreCurrentControlPoint();
@@ -175,8 +188,8 @@ void reg_f3d2<T>::UpdateControlPointPosition(T scale)
 
     // Compute the BCH update
     compute_BCH_update(this->controlPointGrid,
-                          forwardScaledGradient,
-                          NR_F3D2_BCH_TYPE);
+                       forwardScaledGradient,
+                       0);
 
     // Clean the temporary nifti_images
     nifti_image_free(forwardScaledGradient);forwardScaledGradient=NULL;
@@ -194,13 +207,13 @@ void reg_f3d2<T>::UpdateControlPointPosition(T scale)
     backwardScaledGradient->data=(void *)malloc(backwardScaledGradient->nvox*backwardScaledGradient->nbyper);
     reg_tools_addSubMulDivValue(this->backwardNodeBasedGradientImage,
                                 backwardScaledGradient,
-                                -scale,
-                                2); // *(-scale)
+                                scale,
+                                2); // *(scale)
 
     // Compute the BCH update
     compute_BCH_update(this->backwardControlPointGrid,
-                          backwardScaledGradient,
-                          NR_F3D2_BCH_TYPE);
+                       backwardScaledGradient,
+                       0);
 
     // Clean the temporary nifti_images
     nifti_image_free(backwardScaledGradient);backwardScaledGradient=NULL;
@@ -212,25 +225,21 @@ void reg_f3d2<T>::UpdateControlPointPosition(T scale)
     // In order to ensure symmetry the forward and backward velocity fields
     // are averaged in both image spaces: reference and floating
 
-    // Propagate the forward transformation within the backward space
+    /****************************/
+    /* Propagate the forward transformation within the backward space */
     nifti_image *forward2backward = nifti_copy_nim_info(this->backwardControlPointGrid);
     nifti_image *forward2backwardDEF = nifti_copy_nim_info(this->backwardControlPointGrid);
     forward2backward->data=(void *)malloc(forward2backward->nvox*forward2backward->nbyper);
     forward2backwardDEF->data=(void *)malloc(forward2backwardDEF->nvox*forward2backwardDEF->nbyper);
-    mat44 affine_forward2backward;
-    mat44 *vox2real_bck=NULL;
-    if(this->backwardControlPointGrid->sform_code>0)
-        vox2real_bck=&this->backwardControlPointGrid->sto_xyz;
-    else vox2real_bck=&this->backwardControlPointGrid->qto_xyz;
-    mat44 *real2vox_for=NULL;
-    if(this->controlPointGrid->sform_code>0)
-        real2vox_for=&this->controlPointGrid->sto_ijk;
-    else real2vox_for=&this->controlPointGrid->qto_ijk;
-    affine_forward2backward=reg_mat44_mul(real2vox_for,vox2real_bck);
-    reg_affine_positionField(&affine_forward2backward, // affine transformation
-                             forward2backwardDEF, // reference space
-                             forward2backwardDEF); // deformation field
-    reg_getDisplacementFromDeformation(this->controlPointGrid); // in order to use a zero padding
+
+    // Set the deformation field to identity
+    reg_tools_addSubMulDivValue(forward2backwardDEF,forward2backwardDEF,0.f,2);
+    reg_getDeformationFromDisplacement(forward2backwardDEF);
+
+    // Resample the forward grid in the space of the backward grid
+    // Set the forward deformation grid to displacement grid in order to
+    // enable zero padding
+    reg_getDisplacementFromDeformation(this->controlPointGrid);
     reg_resampleSourceImage(this->backwardControlPointGrid, // reference
                             this->controlPointGrid, // floating
                             forward2backward, // warped
@@ -241,24 +250,20 @@ void reg_f3d2<T>::UpdateControlPointPosition(T scale)
                             );
     nifti_image_free(forward2backwardDEF);forward2backwardDEF=NULL;
 
-    // Propagate the backward transformation within the forward space
+    /****************************/
+    /* Propagate the backward transformation within the forward space */
     nifti_image *backward2forward = nifti_copy_nim_info(this->controlPointGrid);
     nifti_image *backward2forwardDEF = nifti_copy_nim_info(this->controlPointGrid);
     backward2forward->data=(void *)malloc(backward2forward->nvox*backward2forward->nbyper);
     backward2forwardDEF->data=(void *)malloc(backward2forwardDEF->nvox*backward2forwardDEF->nbyper);
-    mat44 affine_backward2forward;
-    mat44 *vox2real_for=NULL;
-    if(this->controlPointGrid->sform_code>0)
-        vox2real_for=&this->controlPointGrid->sto_xyz;
-    else vox2real_for=&this->controlPointGrid->qto_xyz;
-    mat44 *real2vox_bck=NULL;
-    if(this->backwardControlPointGrid->sform_code>0)
-        real2vox_bck=&this->backwardControlPointGrid->sto_ijk;
-    else real2vox_bck=&this->backwardControlPointGrid->qto_ijk;
-    affine_backward2forward=reg_mat44_mul(real2vox_bck,vox2real_for);
-    reg_affine_positionField(&affine_backward2forward, // affine transformation
-                             this->controlPointGrid, // reference space
-                             backward2forwardDEF); // deformation field
+
+    // Set the deformation field to identity
+    reg_tools_addSubMulDivValue(backward2forwardDEF,backward2forwardDEF,0.f,2);
+    reg_getDeformationFromDisplacement(backward2forwardDEF);
+
+    // Resample the backward grid in the space of the forward grid
+    // Set the backward deformation grid to displacement grid in order to
+    // enable zero padding
     reg_getDisplacementFromDeformation(this->backwardControlPointGrid); // in order to use a zero padding
     reg_resampleSourceImage(this->controlPointGrid, // reference
                             this->backwardControlPointGrid, // floating
@@ -270,7 +275,54 @@ void reg_f3d2<T>::UpdateControlPointPosition(T scale)
                             );
     nifti_image_free(backward2forwardDEF);backward2forwardDEF=NULL;
 
-    // Store the rotation matrices and their transpose matrices
+    /* Average velocity fields into forward and backward space */
+    reg_tools_addSubMulDivImages(forward2backward,this->backwardControlPointGrid,this->backwardControlPointGrid,0);
+    reg_tools_addSubMulDivImages(backward2forward,this->controlPointGrid,this->controlPointGrid,0);
+    reg_tools_addSubMulDivValue(this->backwardControlPointGrid,this->backwardControlPointGrid,2.f,3);
+    reg_tools_addSubMulDivValue(this->controlPointGrid,this->controlPointGrid,2.f,3);
+
+    /* Clean the temporary allocated velocity field */
+    nifti_image_free(forward2backward);forward2backward=NULL;
+    nifti_image_free(backward2forward);backward2forward=NULL;
+
+    /* Transform the velocity field from displacement into deformation */
+    reg_getDeformationFromDisplacement(this->controlPointGrid);
+    reg_getDeformationFromDisplacement(this->backwardControlPointGrid);
+
+    return;
+
+    /****************************/
+    // Compute the transformation matrix to go from one space to the other
+
+    mat44 affine_backward2forward;
+    mat44 affine_forward2backward;
+    mat44 *vox2real_for=NULL;
+    mat44 *real2vox_for=NULL;
+    mat44 *vox2real_bck=NULL;
+    mat44 *real2vox_bck=NULL;
+    if(this->controlPointGrid->sform_code>0){
+        vox2real_for=&this->controlPointGrid->sto_xyz;
+        real2vox_for=&this->controlPointGrid->sto_ijk;
+    }
+    else{
+        vox2real_for=&this->controlPointGrid->qto_xyz;
+        real2vox_for=&this->controlPointGrid->qto_ijk;
+    }
+    if(this->backwardControlPointGrid->sform_code>0){
+        real2vox_bck=&this->backwardControlPointGrid->sto_ijk;
+        vox2real_bck=&this->backwardControlPointGrid->sto_xyz;
+    }
+    else{
+        real2vox_bck=&this->backwardControlPointGrid->qto_ijk;
+        vox2real_bck=&this->backwardControlPointGrid->qto_xyz;
+    }
+
+    affine_backward2forward=reg_mat44_mul(vox2real_bck,real2vox_for);
+    affine_forward2backward=reg_mat44_mul(vox2real_for,real2vox_bck);
+    reg_mat44_eye(&affine_backward2forward);
+    reg_mat44_eye(&affine_forward2backward);
+
+    // Store the rotation matrices and their transposed matrices
     mat33 polar_forward2backward;
     mat33 polar_backward2forward;
     for(size_t i=0;i<3;++i){
@@ -299,42 +351,60 @@ void reg_f3d2<T>::UpdateControlPointPosition(T scale)
 
     T reoriented1[3];
     T reoriented2[3];
+    T norm;
 
     if(this->backwardControlPointGrid->nz>1){
         T *velFieldPtrZ=&velFieldPtrY[nodeNumber];
         T *propVelFieldPtrZ=&propVelFieldPtrY[nodeNumber];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-private(node,reoriented1,reoriented2) \
+private(node,reoriented1,reoriented2, norm) \
 shared(polar_forward2backward,polar_forward2backward_t,nodeNumber, \
 propVelFieldPtrX,propVelFieldPtrY,propVelFieldPtrZ, \
-velFieldPtrX,velFieldPtrY,velFieldPtrZ)
+velFieldPtrX,velFieldPtrY,velFieldPtrZ, affine_forward2backward)
 #endif // _OPENMP
         for(node=0;node<nodeNumber;++node){
-            reoriented1[0] =
-                    polar_forward2backward_t.m[0][0] * propVelFieldPtrX[node] +
-                    polar_forward2backward_t.m[0][1] * propVelFieldPtrY[node] +
-                    polar_forward2backward_t.m[0][2] * propVelFieldPtrZ[node];
-            reoriented1[1] =
-                    polar_forward2backward_t.m[1][0] * propVelFieldPtrX[node] +
-                    polar_forward2backward_t.m[1][1] * propVelFieldPtrY[node] +
-                    polar_forward2backward_t.m[1][2] * propVelFieldPtrZ[node];
-            reoriented1[2] =
-                    polar_forward2backward_t.m[2][0] * propVelFieldPtrX[node] +
-                    polar_forward2backward_t.m[2][1] * propVelFieldPtrY[node] +
-                    polar_forward2backward_t.m[2][2] * propVelFieldPtrZ[node];
+//            norm=sqrt(POW2(propVelFieldPtrX[node])+POW2(propVelFieldPtrY[node])+POW2(propVelFieldPtrZ[node]));
+            norm=1.;
             reoriented2[0] =
-                    polar_forward2backward.m[0][0] * reoriented1[0] +
-                    polar_forward2backward.m[0][1] * reoriented1[1] +
-                    polar_forward2backward.m[0][2] * reoriented1[2];
+                    (affine_forward2backward.m[0][0] * propVelFieldPtrX[node] +
+                    affine_forward2backward.m[0][1] * propVelFieldPtrY[node] +
+                    affine_forward2backward.m[0][2] * propVelFieldPtrZ[node] ) /
+                    norm;
             reoriented2[1] =
-                    polar_forward2backward.m[1][0] * reoriented1[0] +
-                    polar_forward2backward.m[1][1] * reoriented1[1] +
-                    polar_forward2backward.m[1][2] * reoriented1[2];
+                    (affine_forward2backward.m[1][0] * propVelFieldPtrX[node] +
+                    affine_forward2backward.m[1][1] * propVelFieldPtrY[node] +
+                    affine_forward2backward.m[1][2] * propVelFieldPtrZ[node] ) /
+                    norm;
             reoriented2[2] =
-                    polar_forward2backward_t.m[2][0] * reoriented1[0] +
-                    polar_forward2backward_t.m[2][1] * reoriented1[1] +
-                    polar_forward2backward_t.m[2][2] * reoriented1[2];
+                    (affine_forward2backward.m[2][0] * propVelFieldPtrX[node] +
+                    affine_forward2backward.m[2][1] * propVelFieldPtrY[node] +
+                    affine_forward2backward.m[2][2] * propVelFieldPtrZ[node] ) /
+                    norm;
+//            reoriented1[0] =
+//                    polar_forward2backward_t.m[0][0] * propVelFieldPtrX[node] +
+//                    polar_forward2backward_t.m[0][1] * propVelFieldPtrY[node] +
+//                    polar_forward2backward_t.m[0][2] * propVelFieldPtrZ[node];
+//            reoriented1[1] =
+//                    polar_forward2backward_t.m[1][0] * propVelFieldPtrX[node] +
+//                    polar_forward2backward_t.m[1][1] * propVelFieldPtrY[node] +
+//                    polar_forward2backward_t.m[1][2] * propVelFieldPtrZ[node];
+//            reoriented1[2] =
+//                    polar_forward2backward_t.m[2][0] * propVelFieldPtrX[node] +
+//                    polar_forward2backward_t.m[2][1] * propVelFieldPtrY[node] +
+//                    polar_forward2backward_t.m[2][2] * propVelFieldPtrZ[node];
+//            reoriented2[0] =
+//                    polar_forward2backward.m[0][0] * reoriented1[0] +
+//                    polar_forward2backward.m[0][1] * reoriented1[1] +
+//                    polar_forward2backward.m[0][2] * reoriented1[2];
+//            reoriented2[1] =
+//                    polar_forward2backward.m[1][0] * reoriented1[0] +
+//                    polar_forward2backward.m[1][1] * reoriented1[1] +
+//                    polar_forward2backward.m[1][2] * reoriented1[2];
+//            reoriented2[2] =
+//                    polar_forward2backward_t.m[2][0] * reoriented1[0] +
+//                    polar_forward2backward_t.m[2][1] * reoriented1[1] +
+//                    polar_forward2backward_t.m[2][2] * reoriented1[2];
             // The transformation will be negated while performing the exponentiation
             velFieldPtrX[node] = ( velFieldPtrX[node] + reoriented2[0] ) / 2.;
             velFieldPtrY[node] = ( velFieldPtrY[node] + reoriented2[1] ) / 2.;
@@ -379,36 +449,53 @@ propVelFieldPtrX,propVelFieldPtrY, velFieldPtrX,velFieldPtrY)
         T *propVelFieldPtrZ=&propVelFieldPtrY[nodeNumber];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-private(node,reoriented1,reoriented2) \
+private(node,reoriented1,reoriented2, norm) \
 shared(polar_backward2forward,polar_backward2forward_t,nodeNumber, \
 propVelFieldPtrX,propVelFieldPtrY,propVelFieldPtrZ, \
-velFieldPtrX,velFieldPtrY,velFieldPtrZ)
+velFieldPtrX,velFieldPtrY,velFieldPtrZ,affine_backward2forward)
 #endif // _OPENMP
         for(node=0;node<nodeNumber;++node){
-            reoriented1[0] =
-                    polar_backward2forward_t.m[0][0] * propVelFieldPtrX[node] +
-                    polar_backward2forward_t.m[0][1] * propVelFieldPtrY[node] +
-                    polar_backward2forward_t.m[0][2] * propVelFieldPtrZ[node];
-            reoriented1[1] =
-                    polar_backward2forward_t.m[1][0] * propVelFieldPtrX[node] +
-                    polar_backward2forward_t.m[1][1] * propVelFieldPtrY[node] +
-                    polar_backward2forward_t.m[1][2] * propVelFieldPtrZ[node];
-            reoriented1[2] =
-                    polar_backward2forward_t.m[2][0] * propVelFieldPtrX[node] +
-                    polar_backward2forward_t.m[2][1] * propVelFieldPtrY[node] +
-                    polar_backward2forward_t.m[2][2] * propVelFieldPtrZ[node];
+//            norm=sqrt(POW2(propVelFieldPtrX[node])+POW2(propVelFieldPtrY[node])+POW2(propVelFieldPtrZ[node]));
+            norm=1.;
             reoriented2[0] =
-                    polar_backward2forward.m[0][0] * reoriented1[0] +
-                    polar_backward2forward.m[0][1] * reoriented1[1] +
-                    polar_backward2forward.m[0][2] * reoriented1[2];
+                    (affine_backward2forward.m[0][0] * propVelFieldPtrX[node] +
+                    affine_backward2forward.m[0][1] * propVelFieldPtrY[node] +
+                    affine_backward2forward.m[0][2] * propVelFieldPtrZ[node] ) /
+                    norm;
             reoriented2[1] =
-                    polar_backward2forward.m[1][0] * reoriented1[0] +
-                    polar_backward2forward.m[1][1] * reoriented1[1] +
-                    polar_backward2forward.m[1][2] * reoriented1[2];
+                    (affine_backward2forward.m[1][0] * propVelFieldPtrX[node] +
+                    affine_backward2forward.m[1][1] * propVelFieldPtrY[node] +
+                    affine_backward2forward.m[1][2] * propVelFieldPtrZ[node] ) /
+                    norm;
             reoriented2[2] =
-                    polar_backward2forward.m[2][0] * reoriented1[0] +
-                    polar_backward2forward.m[2][1] * reoriented1[1] +
-                    polar_backward2forward.m[2][2] * reoriented1[2];
+                    (affine_backward2forward.m[2][0] * propVelFieldPtrX[node] +
+                    affine_backward2forward.m[2][1] * propVelFieldPtrY[node] +
+                    affine_backward2forward.m[2][2] * propVelFieldPtrZ[node] ) /
+                    norm;
+//            reoriented1[0] =
+//                    polar_backward2forward_t.m[0][0] * propVelFieldPtrX[node] +
+//                    polar_backward2forward_t.m[0][1] * propVelFieldPtrY[node] +
+//                    polar_backward2forward_t.m[0][2] * propVelFieldPtrZ[node];
+//            reoriented1[1] =
+//                    polar_backward2forward_t.m[1][0] * propVelFieldPtrX[node] +
+//                    polar_backward2forward_t.m[1][1] * propVelFieldPtrY[node] +
+//                    polar_backward2forward_t.m[1][2] * propVelFieldPtrZ[node];
+//            reoriented1[2] =
+//                    polar_backward2forward_t.m[2][0] * propVelFieldPtrX[node] +
+//                    polar_backward2forward_t.m[2][1] * propVelFieldPtrY[node] +
+//                    polar_backward2forward_t.m[2][2] * propVelFieldPtrZ[node];
+//            reoriented2[0] =
+//                    polar_backward2forward.m[0][0] * reoriented1[0] +
+//                    polar_backward2forward.m[0][1] * reoriented1[1] +
+//                    polar_backward2forward.m[0][2] * reoriented1[2];
+//            reoriented2[1] =
+//                    polar_backward2forward.m[1][0] * reoriented1[0] +
+//                    polar_backward2forward.m[1][1] * reoriented1[1] +
+//                    polar_backward2forward.m[1][2] * reoriented1[2];
+//            reoriented2[2] =
+//                    polar_backward2forward.m[2][0] * reoriented1[0] +
+//                    polar_backward2forward.m[2][1] * reoriented1[1] +
+//                    polar_backward2forward.m[2][2] * reoriented1[2];
             velFieldPtrX[node] = ( velFieldPtrX[node] + reoriented2[0] ) / 2.;
             velFieldPtrY[node] = ( velFieldPtrY[node] + reoriented2[1] ) / 2.;
             velFieldPtrZ[node] = ( velFieldPtrZ[node] + reoriented2[2] ) / 2.;
