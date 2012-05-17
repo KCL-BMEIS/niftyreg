@@ -657,8 +657,15 @@ double reg_f3d_sym<T>::ComputeSimilarityMeasure()
                          this->backwardEntropies,
                          this->currentFloatingMask,
                          this->approxParzenWindow);
-        measure = (this->entropies[0]+this->entropies[1])/this->entropies[2];
-        measure += (this->backwardEntropies[0]+this->backwardEntropies[1])/this->backwardEntropies[2];
+        measure = (this->entropies[0]+this->entropies[1])/this->entropies[2] +
+                  (this->backwardEntropies[0]+this->backwardEntropies[1])/this->backwardEntropies[2];
+
+//        fprintf(stderr, "[%i] for %g - bck %g | for entropies : [%g %g %g] | bck entropies : [%g %g %g]\n",
+//                this->currentIteration,
+//                (this->entropies[0]+this->entropies[1])/this->entropies[2],
+//                (this->backwardEntropies[0]+this->backwardEntropies[1])/this->backwardEntropies[2],
+//                this->entropies[0], this->entropies[1], this->entropies[2],
+//                this->backwardEntropies[0], this->backwardEntropies[1], this->backwardEntropies[2]);
     }
     return double(this->similarityWeight) * measure;
 }

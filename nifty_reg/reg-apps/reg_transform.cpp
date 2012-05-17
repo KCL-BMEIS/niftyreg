@@ -779,6 +779,8 @@ int main(int argc, char **argv)
         nifti_image_free(deformationFieldImage);
         nifti_image_free(middleImage);
     }
+    /* Compose two affine transformations */
+    // It is basically a matrix multiplication
     if(flag->composeAffineFlag){
         // Read the first affine
         mat44 affine1;

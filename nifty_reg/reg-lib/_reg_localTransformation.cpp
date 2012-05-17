@@ -3052,6 +3052,7 @@ int reg_spline_cppComposition(nifti_image *grid1,
 void reg_bspline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                                      nifti_image *deformationFieldImage)
 {
+    /*
     // Euler integration for testing
     {
         printf("Euler integration, %i step(s)\n", (int)pow(2.f,fabs(velocityFieldGrid->intent_code)));
@@ -3094,7 +3095,7 @@ void reg_bspline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldG
         nifti_image_free(scaledControlPointGrid);
     }
     return;
-
+    */
 
     // The initial deformation is generated using cubic B-Spline parametrisation
     nifti_image *tempDEFImage = NULL;
@@ -3307,10 +3308,10 @@ void compute_BCH_update1(nifti_image *img1, // current field
     for(i=0; i<img1->nvox;++i)
         res[i] = img1Ptr[i] + img2Ptr[i];
 
-    // Convert the deformation field into a displacement field
-    reg_getDisplacementFromDeformation(img1);
-
     if(type>0){
+        // Convert the deformation field into a displacement field
+        reg_getDisplacementFromDeformation(img1);
+
         // r <- 2 + 1 + 0.5[2,1]
         nifti_image *lie_bracket_img2_img1=nifti_copy_nim_info(img1);
         lie_bracket_img2_img1->data=(void *)malloc(lie_bracket_img2_img1->nvox*lie_bracket_img2_img1->nbyper);
