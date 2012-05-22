@@ -1,6 +1,6 @@
 #-----------------------------------------------------------------------------
 ADD_EXECUTABLE(reg_average reg_average.cpp)
-TARGET_LINK_LIBRARIES(reg_average _reg_tools reg_nifti ${ZLIB})
+TARGET_LINK_LIBRARIES(reg_average _reg_globalTransformation _reg_maths _reg_tools reg_nifti ${ZLIB})
 INSTALL_TARGETS(/bin reg_average)
 #-----------------------------------------------------------------------------
 ADD_EXECUTABLE(reg_tools reg_tools.cpp)

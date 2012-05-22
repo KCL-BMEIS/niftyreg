@@ -442,7 +442,7 @@ void reg_f3d_sym<T>::CheckParameters_f3d()
             this->bendingEnergyWeight
             +this->linearEnergyWeight0
             +this->linearEnergyWeight1
-            +this->linearEnergyWeight2
+            +this->L2NormWeight
             +this->jacobianLogWeight
             +this->inverseConsistencyWeight;
     if(penaltySum>=1){
@@ -450,7 +450,7 @@ void reg_f3d_sym<T>::CheckParameters_f3d()
         this->bendingEnergyWeight /= penaltySum;
         this->linearEnergyWeight0 /= penaltySum;
         this->linearEnergyWeight1 /= penaltySum;
-        this->linearEnergyWeight2 /= penaltySum;
+        this->L2NormWeight /= penaltySum;
         this->jacobianLogWeight /= penaltySum;
         this->inverseConsistencyWeight /= penaltySum;
     }
@@ -745,14 +745,33 @@ double reg_f3d_sym<T>::ComputeBendingEnergyPenaltyTerm()
 template <class T>
 double reg_f3d_sym<T>::ComputeLinearEnergyPenaltyTerm()
 {
-    if(this->linearEnergyWeight0<=0 && this->linearEnergyWeight1<=0 && this->linearEnergyWeight2<=0) return 0.;
+    if(this->linearEnergyWeight0<=0 && this->linearEnergyWeight1<=0) return 0.;
 
     double forwardPenaltyTerm=reg_f3d<T>::ComputeLinearEnergyPenaltyTerm();
-    double values[3];
-    reg_bspline_linearEnergy(this->controlPointGrid, values);
-    double backwardPenaltyTerm = this->linearEnergyWeight0*values[0] +
-            this->linearEnergyWeight1*values[1] +
-            this->linearEnergyWeight2*values[2];
+
+    double values_le[2]={0.,0.};
+    reg_bspline_linearEnergy(this->backwardControlPointGrid, values_le);
+
+    double backwardPenaltyTerm = this->linearEnergyWeight0*values_le[0] +
+                                 this->linearEnergyWeight1*values_le[1];
+
+    return forwardPenaltyTerm+backwardPenaltyTerm;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+double reg_f3d_sym<T>::ComputeL2NormDispPenaltyTerm()
+{
+    if(this->L2NormWeight<=0) return 0.;
+
+    // Compute the L2 norm penalty term along the forward direction
+    double forwardPenaltyTerm=reg_f3d<T>::ComputeL2NormDispPenaltyTerm();
+
+    // Compute the L2 norm penalty term along the backward direction
+    double backwardPenaltyTerm= (double)this->L2NormWeight *
+            reg_bspline_L2norm_displacement(this->backwardControlPointGrid);
+
+    // Return the sum of the forward and backward squared L2 norm of the displacement
     return forwardPenaltyTerm+backwardPenaltyTerm;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -760,7 +779,7 @@ double reg_f3d_sym<T>::ComputeLinearEnergyPenaltyTerm()
 template <class T>
 void reg_f3d_sym<T>::GetVoxelBasedGradient()
 {
-    // The intensity gradient is first computed
+    // The intensity gradient is first computed - floating warped into reference
     reg_getSourceImageGradient(this->currentReference,
                                this->currentFloating,
                                this->warpedGradientImage,
@@ -768,7 +787,7 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
                                this->currentMask,
                                this->interpolation);
 
-    // The floating image intensity gradient is first computed
+    // The intensity gradient is first computed - reference warped into floating
     reg_getSourceImageGradient(this->currentFloating,
                                this->currentReference,
                                this->backwardWarpedGradientImage,
@@ -777,9 +796,9 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
                                this->interpolation);
 
     if(this->useSSD){
-        // Compute the voxel based SSD gradient
         T localMaxSSD=this->maxSSD[0];
         if(this->usePyramid) localMaxSSD=this->maxSSD[this->currentLevel];
+        // Compute the voxel based SSD gradient - forward
         reg_getVoxelBasedSSDGradient(this->currentReference,
                                      this->warped,
                                      this->warpedGradientImage,
@@ -788,7 +807,7 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
                                      localMaxSSD,
                                      this->currentMask
                                      );
-
+        // Compute the voxel based SSD gradient - backward
         reg_getVoxelBasedSSDGradient(this->currentFloating,
                                      this->backwardWarped,
                                      this->backwardWarpedGradientImage,
@@ -799,6 +818,7 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
                                      );
     }
     if(this->useKLD){
+        // Compute the voxel based KL divergence gradient - forward
         reg_getKLDivergenceVoxelBasedGradient(this->currentReference,
                                               this->warped,
                                               this->warpedGradientImage,
@@ -806,7 +826,7 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
                                               NULL,
                                               this->currentMask
                                               );
-
+        // Compute the voxel based KL divergence gradient - backward
         reg_getKLDivergenceVoxelBasedGradient(this->currentFloating,
                                               this->backwardWarped,
                                               this->backwardWarpedGradientImage,
@@ -957,20 +977,35 @@ void reg_f3d_sym<T>::GetBendingEnergyGradient()
 template <class T>
 void reg_f3d_sym<T>::GetLinearEnergyGradient()
 {
-    if(this->linearEnergyWeight0<=0 && this->linearEnergyWeight1<=0 && this->linearEnergyWeight2<=0) return;
+    if(this->linearEnergyWeight0<=0 && this->linearEnergyWeight1<=0 && this->L2NormWeight<=0) return;
 
     reg_f3d<T>::GetLinearEnergyGradient();
 
     reg_bspline_linearEnergyGradient(this->backwardControlPointGrid,
                                      this->currentFloating,
-                                     this->backwardNodeBasedGradientImage,
+                                     this->nodeBasedGradientImage,
                                      this->linearEnergyWeight0,
-                                     this->linearEnergyWeight1,
-                                     this->linearEnergyWeight2);
+                                     this->linearEnergyWeight1);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+void reg_f3d_sym<T>::GetL2NormDispGradient()
+{
+    if(this->L2NormWeight<=0) return;
+
+    reg_f3d<T>::GetL2NormDispGradient();
+
+    reg_bspline_L2norm_dispGradient(this->backwardControlPointGrid,
+                                    this->currentFloating,
+                                    this->backwardNodeBasedGradientImage,
+                                    this->L2NormWeight);
+    return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+
 template <class T>
 void reg_f3d_sym<T>::ComputeConjugateGradient()
 {
@@ -1533,10 +1568,14 @@ nifti_image **reg_f3d_sym<T>::GetWarpedImage()
 template<class T>
 nifti_image * reg_f3d_sym<T>::GetBackwardControlPointPositionImage()
 {
+    // Create a control point grid nifti image
     nifti_image *returnedControlPointGrid = nifti_copy_nim_info(this->backwardControlPointGrid);
+    // Allocate the new image data array
     returnedControlPointGrid->data=(void *)malloc(returnedControlPointGrid->nvox*returnedControlPointGrid->nbyper);
+    // Copy the final backward control point grid image
     memcpy(returnedControlPointGrid->data, this->backwardControlPointGrid->data,
            returnedControlPointGrid->nvox*returnedControlPointGrid->nbyper);
+    // Return the new control point grid
     return returnedControlPointGrid;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

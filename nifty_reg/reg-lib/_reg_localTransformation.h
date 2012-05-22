@@ -90,9 +90,25 @@ void reg_bspline_linearEnergyGradient(nifti_image *splineControlPoint,
                                       nifti_image *targetImage,
                                       nifti_image *gradientImage,
                                       float weight0,
-                                      float weight1,
-                                      float weight2
+                                      float weight1
                                       );
+/* *************************************************************** */
+/** reg_bspline_L2norm_displacement
+  * Compute and return the L2 norm of the displacement approximated
+  * at the control point positions only.
+  */
+extern "C++"
+double reg_bspline_L2norm_displacement(nifti_image *splineControlPoint);
+/* *************************************************************** */
+/** reg_bspline_L2norm_dispGradient
+  * Compute the gradient of the L2 norm of the displacement approximated
+  * at the control point positions only.
+  */
+extern "C++"
+void reg_bspline_L2norm_dispGradient(nifti_image *splineControlPoint,
+                                     nifti_image *referenceImage,
+                                     nifti_image *gradientImage,
+                                     float weight);
 /* *************************************************************** */
 /** reg_bspline_GetJacobianMap
  * Compute the Jacobian determinant map using a cubic b-spline parametrisation

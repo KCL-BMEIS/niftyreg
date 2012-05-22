@@ -1644,7 +1644,7 @@ void reg_bspline_computeJacobianMatricesFull_2D(nifti_image *referenceImage,
 }
 /* *************************************************************** */
 template <class DTYPE>
-void reg_bspline_computeApproximateJacobianMatrices_2D( nifti_image *splineControlPoint,
+void reg_bspline_computeApproximateJacobianMatrices_2D(nifti_image *splineControlPoint,
                                                        mat33 *jacobianMatrices,
                                                        DTYPE *jacobianDeterminant)
 {
@@ -3871,7 +3871,7 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceI
                                                          nifti_image* velocityFieldImage,
                                                          mat33* jacobianMatrices)
 {
-    // The initial deformation fields are allocated
+    // A first deformation field is allocated based on the reference image dimension
     nifti_image *deformationFieldA = nifti_copy_nim_info(referenceImage);
     deformationFieldA->dim[0]=deformationFieldA->ndim=5;
     deformationFieldA->dim[1]=deformationFieldA->nx=referenceImage->nx;
@@ -3893,50 +3893,50 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceI
     deformationFieldA->nbyper = velocityFieldImage->nbyper;
     deformationFieldA->datatype = velocityFieldImage->datatype;
     deformationFieldA->data = (void *)malloc(deformationFieldA->nvox * deformationFieldA->nbyper);
+    // A second deformation field is allocated based on the first deformation field
     nifti_image *deformationFieldB = nifti_copy_nim_info(deformationFieldA);
     deformationFieldB->data = (void *)malloc(deformationFieldB->nvox * deformationFieldB->nbyper);
 
-    // The velocity field is scaled down
-    nifti_image *scaledVelocityField = nifti_copy_nim_info(velocityFieldImage);
-    scaledVelocityField->data = (void *)malloc(scaledVelocityField->nvox * scaledVelocityField->nbyper);
-    memcpy(scaledVelocityField->data, velocityFieldImage->data, scaledVelocityField->nvox*scaledVelocityField->nbyper);
-    reg_getDisplacementFromDeformation(scaledVelocityField);
-    reg_tools_addSubMulDivValue(scaledVelocityField,
-                                scaledVelocityField,
-                                pow(2.0f, (float) fabs(scaledVelocityField->intent_code)),
-                                3);
-    reg_getDeformationFromDisplacement(scaledVelocityField);
 
     // The initial deformation field is computed
-    reg_spline_getDeformationField(scaledVelocityField,
+    reg_spline_getDeformationField(velocityFieldImage,
                                    referenceImage,
                                    deformationFieldA,
                                    NULL, // mask
                                    false, //composition
                                    true // bspline
                                    );
-    if(velocityFieldImage->intent_code<0){
-        reg_getDisplacementFromDeformation(deformationFieldA);
-        reg_tools_addSubMulDivValue(deformationFieldA,deformationFieldA,-1.f,2); // *(-1)
-        reg_getDeformationFromDisplacement(deformationFieldA);
-    }
-    nifti_image_free(scaledVelocityField);
+
+    // The deformation field is converted from deformation field to displacement field
+    reg_getDisplacementFromDeformation(deformationFieldA);
+
+    // The deformation field is scaled
+    float scalingValue = pow(2.,fabs(velocityFieldImage->intent_code));
+    if(velocityFieldImage->intent_code<0)
+        // backward deformation field is scaled down
+        reg_tools_addSubMulDivValue(deformationFieldA,
+                                    deformationFieldA,
+                                    -scalingValue,
+                                    3);
+    else
+        // forward deformation field is scaled down
+        reg_tools_addSubMulDivValue(deformationFieldA,
+                                    deformationFieldA,
+                                    scalingValue,
+                                    3);
+
+    // The displacement field is converted back into a deformation field
+    reg_getDeformationFromDisplacement(deformationFieldA);
 
     size_t voxelNumber=referenceImage->nx*referenceImage->ny*referenceImage->nz;
 
-    // The Jacobian matrices values are initialised to 1
+    // The Jacobian matrices values are initialised to identity
     mat33 jacobianMatrix;
-    jacobianMatrix.m[0][0]=1;
-    jacobianMatrix.m[0][1]=0;
-    jacobianMatrix.m[0][2]=0;
-    jacobianMatrix.m[1][0]=0;
-    jacobianMatrix.m[1][1]=1;
-    jacobianMatrix.m[1][2]=0;
-    jacobianMatrix.m[2][0]=0;
-    jacobianMatrix.m[2][1]=0;
-    jacobianMatrix.m[2][2]=1;
-    for(size_t i=0;i<voxelNumber;++i) jacobianMatrices[i]=jacobianMatrix;
+    reg_mat33_eye(&jacobianMatrix);
+    for(size_t i=0;i<voxelNumber;++i)
+        jacobianMatrices[i]=jacobianMatrix;
 
+    // The spacing is computed in case the sform if defined
     DTYPE realSpacing[3];
     if(referenceImage->sform_code>0){
         reg_getRealImageSpacing(referenceImage,realSpacing);
@@ -3947,9 +3947,11 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceI
         realSpacing[2]=referenceImage->dz;
     }
 
+    // Desorientation matrix is assessed in order to remove the orientation component
     mat33 reorient, desorient;
     reg_getReorientationMatrix(referenceImage, &desorient, &reorient);
 
+    // Extract the xyz and ijk matrices
     mat44 *real2voxel=NULL;
     mat44 *voxel2real=NULL;
     if(deformationFieldA->sform_code){
@@ -3961,6 +3963,7 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceI
         voxel2real=&(deformationFieldA->qto_xyz);
     }
 
+    // Pointer to the deformation field arrays are created
     DTYPE *deformationAPtrX = static_cast<DTYPE *>(deformationFieldA->data);
     DTYPE *deformationAPtrY = &deformationAPtrX[voxelNumber];
     DTYPE *deformationAPtrZ = &deformationAPtrY[voxelNumber];
@@ -3972,7 +3975,7 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceI
     for(size_t i=0;i<(size_t)fabs(velocityFieldImage->intent_code);++i){
 
         // The jacobian determinant is computed at every voxel
-        unsigned int currentIndex=0;
+        size_t currentIndex=0;
         for(int z=0;z<referenceImage->nz;++z){
             for(int y=0;y<referenceImage->ny;++y){
                 for(int x=0;x<referenceImage->nx;++x){
@@ -4004,6 +4007,7 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceI
                     previous[0]=(int)floor(voxelPosition[0]);
                     previous[1]=(int)floor(voxelPosition[1]);
                     previous[2]=(int)floor(voxelPosition[2]);
+                    // Compute the coefficients for linear interpolation
                     DTYPE basisX[2], basisY[2], basisZ[2], first[2]={-1,1};
                     basisX[1]=voxelPosition[0]-(DTYPE)previous[0];basisX[0]=1.-basisX[1];
                     basisY[1]=voxelPosition[1]-(DTYPE)previous[1];basisY[0]=1.-basisY[1];
@@ -4019,14 +4023,16 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceI
                             for(int a=0;a<2;++a){
                                 int currentX=previous[0]+a;
 
+                                // Compute the coefficients for linear interpolation
                                 basisCoeff[0]=basisX[a]*basisY[b]*basisZ[c];
                                 basisCoeff[1]=first[a]*basisY[b]*basisZ[c];
                                 basisCoeff[2]=basisX[a]*first[b]*basisZ[c];
                                 basisCoeff[3]=basisX[a]*basisY[b]*first[c];
 
+                                // Get the current voxel deformation
                                 if(currentX>-1 && currentX<deformationFieldA->nx &&
-                                        currentY>-1 && currentY<deformationFieldA->ny &&
-                                        currentZ>-1 && currentZ<deformationFieldA->nz){
+                                   currentY>-1 && currentY<deformationFieldA->ny &&
+                                   currentZ>-1 && currentZ<deformationFieldA->nz){
                                     // Uses the deformation field if voxel is in its space
                                     int index=(currentZ*deformationFieldA->ny+currentY)
                                             *deformationFieldA->nx+currentX;
@@ -4050,9 +4056,11 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceI
                                             voxel2real->m[2][3];
                                 }//padding
 
+                                // Weighted sum
                                 newDefX += basisCoeff[0] * defX;
                                 newDefY += basisCoeff[0] * defY;
                                 newDefZ += basisCoeff[0] * defZ;
+                                // Compute the derivatives using linear interpolation
                                 jacobianMatrix.m[0][0] += basisCoeff[1]*defX;
                                 jacobianMatrix.m[0][1] += basisCoeff[2]*defX;
                                 jacobianMatrix.m[0][2] += basisCoeff[3]*defX;
@@ -4165,10 +4173,12 @@ int reg_bspline_GetJacobianDetFromVelocityField(nifti_image* jacobianDetImage,
                                                      jacobianMatrices);
     // Compute and store all determinant
     switch(jacobianDetImage->datatype){
-        case NIFTI_TYPE_FLOAT32: reg_getDeterminantsFromMatrices<float>
+        case NIFTI_TYPE_FLOAT32:
+            reg_getDeterminantsFromMatrices<float>
                 (jacobianDetImage,jacobianMatrices);
             break;
-        case NIFTI_TYPE_FLOAT64: reg_getDeterminantsFromMatrices<double>
+        case NIFTI_TYPE_FLOAT64:
+            reg_getDeterminantsFromMatrices<double>
                 (jacobianDetImage,jacobianMatrices);
             break;
         default:

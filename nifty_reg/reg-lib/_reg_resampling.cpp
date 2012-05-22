@@ -334,8 +334,8 @@ void LinearResampleSourceImage(  nifti_image *sourceImage,
                 reg_mat44_mul(sourceIJKMatrix, world, position);
 
                 if( position[0]>=0.f && position[0]<(FieldTYPE)(sourceImage->nx-1) &&
-                        position[1]>=0.f && position[1]<(FieldTYPE)(sourceImage->ny-1) &&
-                        position[2]>=0.f && position[2]<(FieldTYPE)(sourceImage->nz-1) ){
+                    position[1]>=0.f && position[1]<(FieldTYPE)(sourceImage->ny-1) &&
+                    position[2]>=0.f && position[2]<(FieldTYPE)(sourceImage->nz-1) ){
 
                     previous[0] = (int)position[0];
                     previous[1] = (int)position[1];

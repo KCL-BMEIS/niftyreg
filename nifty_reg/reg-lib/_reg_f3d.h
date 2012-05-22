@@ -40,7 +40,7 @@ class reg_f3d
     T bendingEnergyWeight;
     T linearEnergyWeight0;
     T linearEnergyWeight1;
-    T linearEnergyWeight2;
+    T L2NormWeight;
     T jacobianLogWeight;
     bool jacobianLogApproximation;
     unsigned int maxiterationNumber;
@@ -119,6 +119,7 @@ class reg_f3d
     virtual double ComputeJacobianBasedPenaltyTerm(int);
     virtual double ComputeBendingEnergyPenaltyTerm();
     virtual double ComputeLinearEnergyPenaltyTerm();
+    virtual double ComputeL2NormDispPenaltyTerm();
     virtual void GetDeformationField();
     virtual void WarpFloatingImage(int);
     virtual double ComputeSimilarityMeasure();
@@ -126,6 +127,7 @@ class reg_f3d
     virtual void GetSimilarityMeasureGradient();
     virtual void GetBendingEnergyGradient();
     virtual void GetLinearEnergyGradient();
+    virtual void GetL2NormDispGradient();
     virtual void GetJacobianBasedGradient();
     virtual void ComputeConjugateGradient();
     virtual T GetMaximalGradientLength();
@@ -143,7 +145,8 @@ public:
     void SetReferenceMask(nifti_image *);
     void SetAffineTransformation(mat44 *);
     void SetBendingEnergyWeight(T);
-    void SetLinearEnergyWeights(T,T,T);
+    void SetLinearEnergyWeights(T,T);
+    void SetL2NormDisplacementWeight(T);
     void SetJacobianLogWeight(T);
     void ApproximateJacobianLog();
     void DoNotApproximateJacobianLog();
@@ -187,7 +190,6 @@ public:
     virtual void SetCompositionStepNumber(int){return;}
     virtual void ApproximateComposition(){return;}
     virtual void UseSimilaritySymmetry(){return;}
-    virtual int CheckMemoryMB_f3d(){return 0;}
 
     // F3D_SYM specific options
     virtual void SetFloatingMask(nifti_image *){return;}
@@ -195,6 +197,9 @@ public:
     virtual nifti_image *GetBackwardControlPointPositionImage(){return NULL;}
     virtual double GetInverseConsistencyPenaltyTerm(){return 0.;}
     virtual void GetInverseConsistencyGradient(){return;}
+
+    // F3D_gpu specific option
+    virtual int CheckMemoryMB_f3d(){return 0;}
 
     virtual void CheckParameters_f3d();
     void Run_f3d();

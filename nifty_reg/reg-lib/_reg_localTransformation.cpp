@@ -3109,32 +3109,43 @@ void reg_bspline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldG
                                    true // bspline
                                    );
 
-    // The deformation field is scaled
+    // The deformation field is converted from deformation field to displacement field
     reg_getDisplacementFromDeformation(tempDEFImage);
-    if(velocityFieldGrid->intent_code<0) // backward deformation field
+
+    // The deformation field is scaled
+    float scalingValue = pow(2.,fabs(velocityFieldGrid->intent_code));
+    if(velocityFieldGrid->intent_code<0)
+        // backward deformation field is scaled down
         reg_tools_addSubMulDivValue(tempDEFImage,
                                     tempDEFImage,
-                                    -pow(2.,fabs(velocityFieldGrid->intent_code)),
+                                    -scalingValue,
                                     3);
-    else // forward deformation field
+    else
+        // forward deformation field is scaled down
         reg_tools_addSubMulDivValue(tempDEFImage,
                                     tempDEFImage,
-                                    pow(2.f,fabs(velocityFieldGrid->intent_code)),
+                                    scalingValue,
                                     3);
+
+    // The displacement field is converted back into a deformation field
     reg_getDeformationFromDisplacement(tempDEFImage);
 
+    // The computed scaled deformation field is copied over
     memcpy(deformationFieldImage->data, tempDEFImage->data,
            deformationFieldImage->nvox*deformationFieldImage->nbyper);
 
     // The deformation field is squared
-    for(size_t i=0;i<(size_t)fabs(velocityFieldGrid->intent_code);++i){
+    size_t squaringNumber = (size_t)fabs(velocityFieldGrid->intent_code);
+    for(size_t i=0;i<squaringNumber;++i){
+        // The deformation field is applied to itself
         reg_defField_compose(deformationFieldImage,
                              tempDEFImage,
                              NULL);
+        // The computed scaled deformation field is copied over
         memcpy(deformationFieldImage->data, tempDEFImage->data,
                deformationFieldImage->nvox*deformationFieldImage->nbyper);
     }
-
+    // Free the temporary allocated deformation field
     nifti_image_free(tempDEFImage);
 }
 /* *************************************************************** */
@@ -3240,39 +3251,45 @@ void compute_lie_bracket(nifti_image *img1,
     }
 
 
+    // Allocate two temporary nifti images
     nifti_image *one_two = nifti_copy_nim_info(img2);
     nifti_image *two_one = nifti_copy_nim_info(img1);
+    // Set the temporary images to zero displacement
     one_two->data=(void *)calloc(one_two->nvox, one_two->nbyper);
     two_one->data=(void *)calloc(two_one->nvox, two_one->nbyper);
+    // Compute the displacement from img1
     reg_spline_cppComposition(img1,
                               two_one,
                               true, // displacement1?
                               true, // displacement2?
                               true // bspline?
                               );
+    // Compute the displacement from img2
     reg_spline_cppComposition(img2,
                               one_two,
                               true, // displacement1?
                               true, // displacement2?
                               true // bspline?
                               );
+    // Compose both transformations
     reg_spline_cppComposition(img1,
                               one_two,
                               true, // displacement1?
                               true, // displacement2?
                               true // bspline?
                               );
+    // Compose both transformations
     reg_spline_cppComposition(img2,
                               two_one,
                               true, // displacement1?
                               true, // displacement2?
                               true // bspline?
                               );
-
+    // Create the data pointers
     DTYPE *resPtr=static_cast<DTYPE *>(res->data);
     DTYPE *one_twoPtr=static_cast<DTYPE *>(one_two->data);
     DTYPE *two_onePtr=static_cast<DTYPE *>(two_one->data);
-
+    // Compute the lie bracket value using difference of composition
     size_t i;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -3281,7 +3298,7 @@ void compute_lie_bracket(nifti_image *img1,
 #endif
     for(i=0;i<res->nvox;++i)
         resPtr[i]=one_twoPtr[i]-two_onePtr[i];
-
+    // Free the temporary nifti images
     nifti_image_free(one_two);
     nifti_image_free(two_one);
 //    reg_spline_GetDeconvolvedCoefficents(res);

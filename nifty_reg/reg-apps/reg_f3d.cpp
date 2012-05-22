@@ -32,14 +32,14 @@ void HelpPenaltyTerm()
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     printf("Additional help on the penalty term that have been implemented in F3D\n");
     printf("\t-be\t Bending Energy, sum of the second derivatives of the transformation T\n");
-    printf("\t\t\t(d2T/dxx)^2 + (d2T/dyy)^2 + (d2T/dzz)^2 + 2*((d2T/dxy)^2 + (d2T/dyz)^2 + (d2T/dxz)^2)\n");
-    printf("\t-le\t Linear Elasticity, 3 parameters weighted differently:\n");
+    printf("\t\t\t (d2T/dxx)^2 + (d2T/dyy)^2 + (d2T/dzz)^2 + 2*((d2T/dxy)^2 + (d2T/dyz)^2 + (d2T/dxz)^2)\n");
+    printf("\t-le\t Linear Elasticity, 2 parameters weighted differently:\n");
     printf("\t\t\t 1: Squared member of the symmetric part of the Jacobian matrix\n");
     printf("\t\t\t 1: (dTx/dx)^2 + (dTy/dy)^2 + (dTz/dz)^2 + 1/2 * ( (dTx/dy+dTy/dx)^2 +  (dTx/dz+dTz/dx)^2 +  (dTy/dz+dTz/dy)^2 ) \n");
     printf("\t\t\t 2: Divergence\n");
     printf("\t\t\t 2: (dTx/dx)^2 + (dTy/dy)^2 + (dTz/dz)^2\n");
-    printf("\t\t\t 2: Squared Eucliean distance of the displacement field D\n");
-    printf("\t\t\t 3: (Dx)^2 + (Dy)^2 + (Dz)^2\n");
+    printf("\t-l2\t Squared Eucliean distance of the displacement field D\n");
+    printf("\t\t\t (Dx)^2 + (Dy)^2 + (Dz)^2\n");
     printf("\t-jl\t Penalty term based on the Jacobian determiant |J(T)|. Squared log of the Jacobian determinant\n");
     printf("\t\t\t log^2(|J(T)|)\n");
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
@@ -78,7 +78,7 @@ void Usage(char *exec)
     printf("\n*** Initial transformation options (One option will be considered):\n");
     printf("\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Reference=Floating)\n");
     printf("\t-affFlirt <filename>\tFilename which contains a flirt affine transformation (Flirt from the FSL package)\n");
-    printf("\t-incpp <filename>\tFilename of control point grid input\n\t\t\t\tThe coarse spacing is defined by this file.\n");
+    printf("\t-incpp <filename>\tFilename ofloatf control point grid input\n\t\t\t\tThe coarse spacing is defined by this file.\n");
 
     printf("\n*** Output options:\n");
     printf("\t-cpp <filename>\t\tFilename of control point grid [outputCPP.nii]\n");
@@ -103,7 +103,8 @@ void Usage(char *exec)
 
     printf("\n*** Objective function options:\n");
     printf("\t-be <float>\t\tWeight of the bending energy penalty term [0.005]\n");
-    printf("\t-le <float> <float><float>\tWeights of linear elasticity penalty term [0.0 0.0 0.0]\n");
+    printf("\t-le <float> <float>\tWeights of linear elasticity penalty term [0.0 0.0]\n");
+    printf("\t-l2 <float>\t\tWeights of L2 norm displacement penalty term [0.0]\n");
     printf("\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]\n");
     printf("\t-noAppJL\t\tTo not approximate the JL value only at the control point position\n");
     printf("\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent\n");
@@ -169,7 +170,7 @@ int main(int argc, char **argv)
     PrecisionTYPE bendingEnergyWeight=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
     PrecisionTYPE linearEnergyWeight0=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
     PrecisionTYPE linearEnergyWeight1=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
-    PrecisionTYPE linearEnergyWeight2=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
+    PrecisionTYPE L2NormWeight=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
     PrecisionTYPE jacobianLogWeight=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
     bool jacobianLogApproximation=true;
     int maxiterationNumber=-1;
@@ -225,7 +226,7 @@ int main(int argc, char **argv)
     bool checkMem=false;
     int cardNumber=-1;
 #endif
-	
+
     /* read the input parameter */
     for(int i=1;i<argc;i++){
         if(strcmp(argv[i], "-help")==0 || strcmp(argv[i], "-Help")==0 ||
@@ -306,7 +307,9 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-le") == 0){
             linearEnergyWeight0=(PrecisionTYPE)(atof(argv[++i]));
             linearEnergyWeight1=(PrecisionTYPE)(atof(argv[++i]));
-            linearEnergyWeight2=(PrecisionTYPE)(atof(argv[++i]));
+        }
+        else if(strcmp(argv[i], "-l2") == 0){
+            L2NormWeight=(PrecisionTYPE)(atof(argv[++i]));
         }
         else if(strcmp(argv[i], "-jl") == 0){
             jacobianLogWeight=(PrecisionTYPE)(atof(argv[++i]));
@@ -316,7 +319,7 @@ int main(int argc, char **argv)
         }
         else if((strcmp(argv[i],"-smooR")==0) || (strcmp(argv[i],"-smooT")==0)){
             referenceSmoothingSigma=(PrecisionTYPE)(atof(argv[++i]));
-		}
+        }
         else if((strcmp(argv[i],"-smooF")==0) || (strcmp(argv[i],"-smooS")==0)){
             floatingSmoothingSigma=(PrecisionTYPE)(atof(argv[++i]));
         }
@@ -523,7 +526,7 @@ int main(int argc, char **argv)
 
         if(linearEnergyWeight0==linearEnergyWeight0 ||
            linearEnergyWeight1==linearEnergyWeight1 ||
-           linearEnergyWeight2==linearEnergyWeight2){
+           L2NormWeight==L2NormWeight){
             fprintf(stderr,"NiftyReg ERROR CUDA] The linear elasticity has not been implemented with CUDA yet. Exit.\n");
             exit(0);
         }
@@ -651,12 +654,13 @@ int main(int argc, char **argv)
     if(bendingEnergyWeight==bendingEnergyWeight)
         REG->SetBendingEnergyWeight(bendingEnergyWeight);
 
-    if(linearEnergyWeight0==linearEnergyWeight0 || linearEnergyWeight1==linearEnergyWeight1 || linearEnergyWeight2==linearEnergyWeight2){
+    if(linearEnergyWeight0==linearEnergyWeight0 || linearEnergyWeight1==linearEnergyWeight1){
         if(linearEnergyWeight0!=linearEnergyWeight0) linearEnergyWeight0=0.0;
         if(linearEnergyWeight1!=linearEnergyWeight1) linearEnergyWeight1=0.0;
-        if(linearEnergyWeight2!=linearEnergyWeight2) linearEnergyWeight2=0.0;
-        REG->SetLinearEnergyWeights(linearEnergyWeight0,linearEnergyWeight1,linearEnergyWeight2);
+        REG->SetLinearEnergyWeights(linearEnergyWeight0,linearEnergyWeight1);
     }
+    if(L2NormWeight==L2NormWeight)
+        REG->SetL2NormDisplacementWeight(L2NormWeight);
 
     if(jacobianLogWeight==jacobianLogWeight)
         REG->SetJacobianLogWeight(jacobianLogWeight);
