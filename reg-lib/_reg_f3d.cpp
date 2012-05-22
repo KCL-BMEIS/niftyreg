@@ -32,7 +32,7 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->bendingEnergyWeight=0.005;
     this->linearEnergyWeight0=0.;
     this->linearEnergyWeight1=0.;
-    this->linearEnergyWeight2=0.;
+    this->L2NormWeight=0.;
     this->jacobianLogWeight=0.;
     this->jacobianLogApproximation=true;
     this->maxiterationNumber=300;
@@ -255,12 +255,17 @@ void reg_f3d<T>::SetBendingEnergyWeight(T be)
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-void reg_f3d<T>::SetLinearEnergyWeights(T w0, T w1, T w2)
+void reg_f3d<T>::SetLinearEnergyWeights(T w0, T w1)
 {
     this->linearEnergyWeight0=w0;
     this->linearEnergyWeight1=w1;
-    this->linearEnergyWeight2=w2;
     return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+void reg_f3d<T>::SetL2NormDisplacementWeight(T w)
+{
+    this->L2NormWeight=w;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
@@ -800,7 +805,7 @@ void reg_f3d<T>::CheckParameters_f3d()
         T penaltySum=this->bendingEnergyWeight +
                 this->linearEnergyWeight0 +
                 this->linearEnergyWeight1 +
-                this->linearEnergyWeight2 +
+                this->L2NormWeight +
                 this->jacobianLogWeight;
         if(penaltySum>=1.0){
             this->similarityWeight=0;
@@ -808,7 +813,7 @@ void reg_f3d<T>::CheckParameters_f3d()
             this->bendingEnergyWeight /= penaltySum;
             this->linearEnergyWeight0 /= penaltySum;
             this->linearEnergyWeight1 /= penaltySum;
-            this->linearEnergyWeight2 /= penaltySum;
+            this->L2NormWeight /= penaltySum;
             this->jacobianLogWeight /= penaltySum;
         }
         else this->similarityWeight=1.0 - penaltySum;
@@ -1075,8 +1080,11 @@ void reg_f3d<T>::Initisalise_f3d()
         printf("[%s]\n", this->executableName);
         printf("[%s] Bending energy penalty term weight: %g\n", this->executableName, this->bendingEnergyWeight);
         printf("[%s]\n", this->executableName);
-        printf("[%s] Linear energy penalty term weights: %g %g %g\n", this->executableName,
-               this->linearEnergyWeight0, this->linearEnergyWeight1, this->linearEnergyWeight2);
+        printf("[%s] Linear energy penalty term weights: %g %g\n", this->executableName,
+               this->linearEnergyWeight0, this->linearEnergyWeight1);
+        printf("[%s]\n", this->executableName);
+        printf("[%s] L2 norm of the displacement penalty term weights: %g\n", this->executableName,
+               this->L2NormWeight);
         printf("[%s]\n", this->executableName);
         printf("[%s] Jacobian-based penalty term weight: %g\n", this->executableName, this->jacobianLogWeight);
         if(this->jacobianLogWeight>0){
@@ -1283,13 +1291,26 @@ double reg_f3d<T>::ComputeBendingEnergyPenaltyTerm()
 template <class T>
 double reg_f3d<T>::ComputeLinearEnergyPenaltyTerm()
 {
-    if(this->linearEnergyWeight0<=0 && this->linearEnergyWeight1<=0 && this->linearEnergyWeight2<=0) return 0.;
+    if(this->linearEnergyWeight0<=0 && this->linearEnergyWeight1<=0)
+        return 0.;
 
-    double values[3];
-    reg_bspline_linearEnergy(this->controlPointGrid, values);
-    return this->linearEnergyWeight0*values[0] +
-            this->linearEnergyWeight1*values[1] +
-            this->linearEnergyWeight2*values[2];
+    double values_le[2]={0.,0.};
+    reg_bspline_linearEnergy(this->controlPointGrid, values_le);
+
+    return this->linearEnergyWeight0*values_le[0] +
+           this->linearEnergyWeight1*values_le[1];
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+double reg_f3d<T>::ComputeL2NormDispPenaltyTerm()
+{
+    if(this->L2NormWeight<=0)
+        return 0.;
+
+    double values_l2=reg_bspline_L2norm_displacement(this->controlPointGrid);
+
+    return (double)this->L2NormWeight*values_l2;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1531,14 +1552,26 @@ void reg_f3d<T>::GetBendingEnergyGradient()
 template <class T>
 void reg_f3d<T>::GetLinearEnergyGradient()
 {
-    if(this->linearEnergyWeight0<=0 && this->linearEnergyWeight1<=0 && this->linearEnergyWeight2<=0) return;
+    if(this->linearEnergyWeight0<=0 && this->linearEnergyWeight1<=0) return;
 
     reg_bspline_linearEnergyGradient(this->controlPointGrid,
                                      this->currentReference,
                                      this->nodeBasedGradientImage,
                                      this->linearEnergyWeight0,
-                                     this->linearEnergyWeight1,
-                                     this->linearEnergyWeight2);
+                                     this->linearEnergyWeight1);
+    return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+void reg_f3d<T>::GetL2NormDispGradient()
+{
+    if(this->L2NormWeight<=0) return;
+
+    reg_bspline_L2norm_dispGradient(this->controlPointGrid,
+                                    this->currentReference,
+                                    this->nodeBasedGradientImage,
+                                    this->L2NormWeight);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1892,6 +1925,8 @@ void reg_f3d<T>::Run_f3d()
 
         double bestWLE = this->ComputeLinearEnergyPenaltyTerm();
 
+        double bestWL2 = this->ComputeL2NormDispPenaltyTerm();
+
         // Compute initial similarity measure
         double bestWMeasure = 0.0;
         if(this->similarityWeight>0){
@@ -1903,19 +1938,19 @@ void reg_f3d<T>::Run_f3d()
         double bestIC = this->GetInverseConsistencyPenaltyTerm();
 
         // Evalulate the objective function value
-        double bestValue = bestWMeasure - bestWBE - bestWLE - bestWJac - bestIC;
+        double bestValue = bestWMeasure - bestWBE - bestWLE - bestWL2 - bestWJac - bestIC;
 
 #ifdef NDEBUG
         if(this->verbose){
 #endif
             if(this->useSSD)
-                printf("[%s] Initial objective function: %g = (wSSD)%g - (wBE)%g - (wLE)%g - (wJAC)%g\n",
-                       this->executableName, bestValue, bestWMeasure, bestWBE, bestWLE, bestWJac);
+                printf("[%s] Initial objective function: %g = (wSSD)%g - (wBE)%g - (wLE)%g - (wL2)%g - (wJAC)%g\n",
+                       this->executableName, bestValue, bestWMeasure, bestWBE, bestWLE, bestWL2, bestWJac);
             else if(this->useKLD)
-                printf("[%s] Initial objective function: %g = (wKLD)%g - (wBE)%g - (wLE)%g - (wJAC)%g\n",
-                       this->executableName, bestValue, bestWMeasure, bestWBE, bestWLE, bestWJac);
-            else printf("[%s] Initial objective function: %g = (wNMI)%g - (wBE)%g - (wLE)%g - (wJAC)%g\n",
-                        this->executableName, bestValue, bestWMeasure, bestWBE, bestWLE, bestWJac);
+                printf("[%s] Initial objective function: %g = (wKLD)%g - (wBE)%g - (wLE)%g - (wL2)%g - (wJAC)%g\n",
+                       this->executableName, bestValue, bestWMeasure, bestWBE, bestWLE, bestWL2, bestWJac);
+            else printf("[%s] Initial objective function: %g = (wNMI)%g - (wBE)%g - (wLE)%g - (wL2)%g - (wJAC)%g\n",
+                        this->executableName, bestValue, bestWMeasure, bestWBE, bestWLE, bestWL2, bestWJac);
             if(bestIC!=0)
                 printf("[%s] Initial Inverse consistency value: %g\n", this->executableName, bestIC);
 #ifdef NDEBUG
@@ -1953,6 +1988,7 @@ void reg_f3d<T>::Run_f3d()
             this->GetBendingEnergyGradient();
             this->GetJacobianBasedGradient();
             this->GetLinearEnergyGradient();
+            this->GetL2NormDispGradient();
             this->GetInverseConsistencyGradient();
 
             T maxLength = this->GetMaximalGradientLength();
@@ -1984,6 +2020,8 @@ void reg_f3d<T>::Run_f3d()
 
                 double currentWLE = this->ComputeLinearEnergyPenaltyTerm();
 
+                double currentWL2 = this->ComputeL2NormDispPenaltyTerm();
+
                 double currentWMeasure = 0.0;
                 if(this->similarityWeight>0){
                     this->WarpFloatingImage(this->interpolation);
@@ -1992,13 +2030,14 @@ void reg_f3d<T>::Run_f3d()
 
                 double currentIC = this->GetInverseConsistencyPenaltyTerm();
 
-                double currentValue = currentWMeasure - currentWBE - currentWLE - currentWJac - currentIC;
+                double currentValue = currentWMeasure - currentWBE - currentWLE - currentWL2 - currentWJac - currentIC;
 
                 if(currentValue>bestValue){
                     bestValue = currentValue;
                     bestWMeasure = currentWMeasure;
                     bestWBE = currentWBE;
                     bestWLE = currentWLE;
+                    bestWL2 = currentWL2;
                     bestWJac = currentWJac;
                     bestIC = currentIC;
                     addedStep += currentSize;
@@ -2006,15 +2045,15 @@ void reg_f3d<T>::Run_f3d()
                     currentSize = (currentSize<maxStepSize)?currentSize:maxStepSize;
                     this->SaveCurrentControlPoint();
 #ifndef NDEBUG
-                    printf("[NiftyReg DEBUG] [%i] objective function: %g = %g - %g - %g | KEPT\n",
-                           this->currentIteration, currentValue, currentWMeasure, currentWBE, currentWJac);
+                    printf("[NiftyReg DEBUG] [%i] objective function: %g = %g - %g - %g - %g - %g | KEPT\n",
+                           this->currentIteration, currentValue, currentWMeasure, currentWBE, currentWLE, currentWL2, currentWJac);
 #endif
                 }
                 else{
                     currentSize*=0.5;
 #ifndef NDEBUG
-                    printf("[NiftyReg DEBUG] [%i] objective function: %g = %g - %g - %g | REJECTED\n",
-                           this->currentIteration, currentValue, currentWMeasure, currentWBE, currentWJac);
+                    printf("[NiftyReg DEBUG] [%i] objective function: %g = %g - %g - %g - %g - %g | REJECTED\n",
+                           this->currentIteration, currentValue, currentWMeasure, currentWBE, currentWLE, currentWL2,  currentWJac);
 #endif
                 }
                 lineIteration++;
@@ -2033,8 +2072,10 @@ void reg_f3d<T>::Run_f3d()
                 else printf(" = (wNMI)%g", bestWMeasure);
                 if(this->bendingEnergyWeight>0)
                     printf(" - (wBE)%.2e", bestWBE);
-                if(this->linearEnergyWeight0>0 || this->linearEnergyWeight1>0 || this->linearEnergyWeight2>0)
+                if(this->linearEnergyWeight0>0 || this->linearEnergyWeight1>0)
                     printf(" - (wLE)%.2e", bestWLE);
+                if(this->L2NormWeight>0)
+                    printf(" - (wL2)%.2e", bestWL2);
                 if(this->jacobianLogWeight>0)
                     printf(" - (wJAC)%.2e", bestWJac);
                 if(bestIC!=0)

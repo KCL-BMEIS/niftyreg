@@ -65,6 +65,7 @@ class reg_f3d_sym : public reg_f3d<T>
     virtual double ComputeJacobianBasedPenaltyTerm(int);
     virtual double ComputeBendingEnergyPenaltyTerm();
     virtual double ComputeLinearEnergyPenaltyTerm();
+    virtual double ComputeL2NormDispPenaltyTerm();
     virtual void GetDeformationField();
     virtual void WarpFloatingImage(int);
     virtual double ComputeSimilarityMeasure();
@@ -72,6 +73,7 @@ class reg_f3d_sym : public reg_f3d<T>
     virtual void GetSimilarityMeasureGradient();
     virtual void GetBendingEnergyGradient();
     virtual void GetLinearEnergyGradient();
+    virtual void GetL2NormDispGradient();
     virtual void GetJacobianBasedGradient();
     virtual void ComputeConjugateGradient();
     virtual T GetMaximalGradientLength();

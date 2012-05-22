@@ -11,24 +11,21 @@
 
 #include "_reg_f3d_sym.h"
 
+#define _BUILD_NR_DEV
 #ifdef _BUILD_NR_DEV
 
 #ifndef _REG_F3D2_H
 #define _REG_F3D2_H
-
-#define NR_F3D2_BCH_TYPE 1
-// 0 - w=u+v
-// 1 - w=u+v+0.5*[u,v]
-// 2 - w=u+v+0.5*[u,v]+[u,[u,v]]/12
-// 3 - w=u+v+0.5*[u,v]+[u,[u,v]]/12-[v,[u,v]]/12
-// 4 - w=u+v+0.5*[u,v]+[u,[u,v]]/12-[v,[u,v]]/12-[v,[u,[u,g]]]/24
 
 template <class T>
 class reg_f3d2 : public reg_f3d_sym<T>
 {
   protected:
     int stepNumber;
+    mat33 *forward2backward_reorient;
+    mat33 *backward2forward_reorient;
 
+    virtual void DefineReorientationMatrices();
     virtual void GetDeformationField();
     virtual void GetInverseConsistencyErrorField();
     virtual void GetInverseConsistencyGradient();
