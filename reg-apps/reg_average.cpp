@@ -144,6 +144,23 @@ int main(int argc, char **argv)
             tempValue[14]+=(double)inputMatrices[m].m[3][2];
             tempValue[15]+=(double)inputMatrices[m].m[3][3];
         }
+        // Average matrix is computed
+        tempValue[0] /= (double)matrixNumber;
+        tempValue[1] /= (double)matrixNumber;
+        tempValue[2] /= (double)matrixNumber;
+        tempValue[3] /= (double)matrixNumber;
+        tempValue[4] /= (double)matrixNumber;
+        tempValue[5] /= (double)matrixNumber;
+        tempValue[6] /= (double)matrixNumber;
+        tempValue[7] /= (double)matrixNumber;
+        tempValue[8] /= (double)matrixNumber;
+        tempValue[9] /= (double)matrixNumber;
+        tempValue[10]/= (double)matrixNumber;
+        tempValue[11]/= (double)matrixNumber;
+        tempValue[12]/= (double)matrixNumber;
+        tempValue[13]/= (double)matrixNumber;
+        tempValue[14]/= (double)matrixNumber;
+        tempValue[15]/= (double)matrixNumber;
         // The final matrix is exponentiated
         mat44 outputMatrix;
         outputMatrix.m[0][0]=(float)tempValue[0];
