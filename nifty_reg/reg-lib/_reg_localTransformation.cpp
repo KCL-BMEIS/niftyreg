@@ -3290,7 +3290,13 @@ void compute_lie_bracket(nifti_image *img1,
     DTYPE *one_twoPtr=static_cast<DTYPE *>(one_two->data);
     DTYPE *two_onePtr=static_cast<DTYPE *>(two_one->data);
     // Compute the lie bracket value using difference of composition
+
+#ifdef _WINDOWS
+    int i;
+#else
     size_t i;
+#endif
+
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(res, resPtr, one_twoPtr, two_onePtr) \
@@ -3311,7 +3317,13 @@ void compute_BCH_update1(nifti_image *img1, // current field
                          int type)
 {
     DTYPE *res=(DTYPE *)malloc(img1->nvox*sizeof(DTYPE));
+
+#ifdef _WINDOWS
+    int i;
+#else
     size_t i;
+#endif
+    
     bool use_jac=false;
 
     // r <- 2 + 1
