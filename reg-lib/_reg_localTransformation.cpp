@@ -551,6 +551,10 @@ void reg_createControlPointGrid(nifti_image **controlPointGridImage,
         (*controlPointGridImage)->sto_xyz.m[2][3] = originReal[2];
         (*controlPointGridImage)->sto_ijk = nifti_mat44_inverse((*controlPointGridImage)->sto_xyz);
     }
+
+    (*controlPointGridImage)->intent_code=NIFTI_INTENT_VECTOR;
+    memset((*controlPointGridImage)->intent_name, 0, 16);
+    strcpy((*controlPointGridImage)->intent_name,"NREG_CPP_FILE");
 }
 template void reg_createControlPointGrid<float>(nifti_image **, nifti_image *, float *);
 template void reg_createControlPointGrid<double>(nifti_image **, nifti_image *, float *);
@@ -3052,10 +3056,17 @@ int reg_spline_cppComposition(nifti_image *grid1,
 void reg_bspline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                                      nifti_image *deformationFieldImage)
 {
+    // Check first if the velocity field is actually a velocity field
+    if( velocityFieldGrid->intent_code!=NIFTI_INTENT_VECTOR ||
+        strcmp(velocityFieldGrid->intent_name,"NREG_VEL_STEP")!=0 ){
+        fprintf(stderr, "[NiftyReg ERROR] reg_bspline_getDeformationFieldFromVelocityGrid - the provide grid is not a velocity field\n");
+        exit(1);
+    }
+
     /*
     // Euler integration for testing
     {
-        printf("Euler integration, %i step(s)\n", (int)pow(2.f,fabs(velocityFieldGrid->intent_code)));
+        printf("Euler integration, %i step(s)\n", (int)pow(2.f,fabs(velocityFieldGrid->intent_p1)));
 
         nifti_image *scaledControlPointGrid = nifti_copy_nim_info(velocityFieldGrid);
         scaledControlPointGrid->data=(void *)malloc(scaledControlPointGrid->nvox*scaledControlPointGrid->nbyper);
@@ -3063,15 +3074,15 @@ void reg_bspline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldG
                velocityFieldGrid->data,
                scaledControlPointGrid->nvox*scaledControlPointGrid->nbyper);
         reg_getDisplacementFromDeformation(scaledControlPointGrid);
-        if(velocityFieldGrid->intent_code<0) // backward deformation field
+        if(velocityFieldGrid->intent_p1<0) // backward deformation field
             reg_tools_addSubMulDivValue(scaledControlPointGrid,
                                         scaledControlPointGrid,
-                                        -pow(2.f,fabs(velocityFieldGrid->intent_code)),
+                                        -pow(2.f,fabs(velocityFieldGrid->intent_p1)),
                                         3);
         else // forward deformation field
             reg_tools_addSubMulDivValue(scaledControlPointGrid,
                                         scaledControlPointGrid,
-                                        pow(2.f,fabs(velocityFieldGrid->intent_code)),
+                                        pow(2.f,fabs(velocityFieldGrid->intent_p1)),
                                         3);
         reg_getDeformationFromDisplacement(scaledControlPointGrid);
 
@@ -3083,7 +3094,7 @@ void reg_bspline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldG
                                        true//bspline?
                                        );
 
-        for(size_t i=1;i<(size_t)pow(2.0f,fabs(velocityFieldGrid->intent_code));++i){
+        for(size_t i=1;i<(size_t)pow(2.0f,fabs(velocityFieldGrid->intent_p1));++i){
             reg_spline_getDeformationField(scaledControlPointGrid,
                                            deformationFieldImage,
                                            deformationFieldImage,
@@ -3113,8 +3124,8 @@ void reg_bspline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldG
     reg_getDisplacementFromDeformation(tempDEFImage);
 
     // The deformation field is scaled
-    float scalingValue = pow(2.,fabs(velocityFieldGrid->intent_code));
-    if(velocityFieldGrid->intent_code<0)
+    float scalingValue = pow(2.,fabs(velocityFieldGrid->intent_p1));
+    if(velocityFieldGrid->intent_p1<0)
         // backward deformation field is scaled down
         reg_tools_addSubMulDivValue(tempDEFImage,
                                     tempDEFImage,
@@ -3135,7 +3146,7 @@ void reg_bspline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldG
            deformationFieldImage->nvox*deformationFieldImage->nbyper);
 
     // The deformation field is squared
-    size_t squaringNumber = (size_t)fabs(velocityFieldGrid->intent_code);
+    size_t squaringNumber = (size_t)fabs(velocityFieldGrid->intent_p1);
     for(size_t i=0;i<squaringNumber;++i){
         // The deformation field is applied to itself
         reg_defField_compose(deformationFieldImage,

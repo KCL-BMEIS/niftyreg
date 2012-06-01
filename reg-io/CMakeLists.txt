@@ -1,0 +1,23 @@
+SUBDIRS(zlib)
+SUBDIRS(nifti)
+
+SET(LIBRARIES reg_nifti z)
+
+IF(USE_PNG)
+    SUBDIRS(png)
+    SET(LIBRARIES ${LIBRARIES} reg_png)
+ENDIF(USE_PNG)
+
+IF(USE_NRRD)
+    SUBDIRS(nrrd)
+    SET(LIBRARIES ${LIBRARIES} reg_nrrd)
+ENDIF(USE_NRRD)
+
+ADD_LIBRARY(_reg_ReadWriteImage _reg_ReadWriteImage.h _reg_ReadWriteImage.cpp)
+TARGET_LINK_LIBRARIES(_reg_ReadWriteImage ${LIBRARIES})
+INSTALL(TARGETS _reg_ReadWriteImage
+        RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+)
+INSTALL(FILES _reg_ReadWriteImage.h DESTINATION include)

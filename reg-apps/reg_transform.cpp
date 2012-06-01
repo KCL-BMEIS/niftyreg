@@ -12,6 +12,7 @@
 #ifndef _MM_TRANSFORM_CPP
 #define _MM_TRANSFORM_CPP
 
+#include "_reg_ReadWriteImage.h"
 #include "_reg_resampling.h"
 #include "_reg_globalTransformation.h"
 #include "_reg_localTransformation.h"
@@ -259,7 +260,7 @@ int main(int argc, char **argv)
     }
 
     /* Read the reference image */
-    nifti_image *referenceImage = nifti_image_read(param->referenceImageName,false);
+    nifti_image *referenceImage = reg_io_ReadImageHeader(param->referenceImageName);
     if(referenceImage == NULL){
         fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference image: %s\n",param->referenceImageName);
         PetitUsage(argv[0]);
@@ -362,14 +363,13 @@ int main(int argc, char **argv)
                     outputImage->nz *
                     outputImage->nt *
                     outputImage->nu;
-            nifti_set_filenames(outputImage,param->outputDeformationName,0,0);
             // allocate the deformation field data array
             outputImage->data=(void *)malloc(outputImage->nvox*outputImage->nbyper);
         }
 
         tps->FillDeformationField(outputImage);
 
-        nifti_image_write(outputImage);
+        reg_io_WriteImageFile(outputImage,param->outputDeformationName);
         nifti_image_free(outputImage);
         delete tps;
     }
@@ -379,7 +379,7 @@ int main(int argc, char **argv)
     /* *************************************** */
     if(flag->cpp2defFlag){
         // Read the control point image
-        nifti_image *controlPointImage = nifti_image_read(param->cpp2defInputName,true);
+        nifti_image *controlPointImage = reg_io_ReadImageFile(param->cpp2defInputName);
         if(controlPointImage == NULL){
             fprintf(stderr,"[NiftyReg ERROR] Error when reading the control point position image: %s\n",param->cpp2defInputName);
             PetitUsage(argv[0]);
@@ -403,7 +403,8 @@ int main(int argc, char **argv)
         deformationFieldImage->nbyper = controlPointImage->nbyper;
         deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
         //Computation of the deformation field
-        if(fabs(controlPointImage->intent_code)>1)
+        if( controlPointImage->intent_code==NIFTI_INTENT_VECTOR &&
+            strcmp(controlPointImage->intent_name,"NREG_VEL_STEP")==0 )
             reg_bspline_getDeformationFieldFromVelocityGrid(controlPointImage,
                                                             deformationFieldImage
                                                             );
@@ -417,8 +418,7 @@ int main(int argc, char **argv)
                                            );
         nifti_image_free(controlPointImage);
         // Ouput the deformation field image
-        nifti_set_filenames(deformationFieldImage, param->cpp2defOutputName, 0, 0);
-        nifti_image_write(deformationFieldImage);
+        reg_io_WriteImageFile(deformationFieldImage,param->cpp2defOutputName);
         printf("The deformation field has been saved: %s\n", param->cpp2defOutputName);
         nifti_image_free(deformationFieldImage);
     }
@@ -428,7 +428,7 @@ int main(int argc, char **argv)
     /* ********************* */
     if(flag->composeTransformation1Flag || flag->composeTransformation2Flag){
 
-        nifti_image *secondControlPointImage = nifti_image_read(param->inputSecondCPPName,true);
+        nifti_image *secondControlPointImage = reg_io_ReadImageFile(param->inputSecondCPPName);
         if(secondControlPointImage == NULL){
             fprintf(stderr,"[NiftyReg ERROR] Error when reading the control point image: %s\n",param->inputSecondCPPName);
             PetitUsage(argv[0]);
@@ -444,7 +444,7 @@ int main(int argc, char **argv)
 
         if(flag->composeTransformation1Flag){
             // Read the initial deformation control point grid
-            nifti_image *firstControlPointImage = nifti_image_read(param->inputFirstCPPName,true);
+            nifti_image *firstControlPointImage = reg_io_ReadImageFile(param->inputFirstCPPName);
             if(firstControlPointImage == NULL){
                 fprintf(stderr,"[NiftyReg ERROR] Error when reading the control point image: %s\n",param->inputFirstCPPName);
                 PetitUsage(argv[0]);
@@ -487,7 +487,7 @@ int main(int argc, char **argv)
         }
         else{
             // Read the deformation field
-            deformationFieldImage = nifti_image_read(param->inputDeformationName,true);
+            deformationFieldImage = reg_io_ReadImageFile(param->inputDeformationName);
             if(deformationFieldImage == NULL){
                 fprintf(stderr,"[NiftyReg ERROR] Error when reading the input deformation field image: %s\n",param->inputDeformationName);
                 PetitUsage(argv[0]);
@@ -510,21 +510,19 @@ int main(int argc, char **argv)
         nifti_image_free(secondControlPointImage);
 
         // Ouput the composed deformation field
-        nifti_set_filenames(deformationFieldImage, param->outputDeformationName, 0, 0);
-        nifti_image_write(deformationFieldImage);
+        reg_io_WriteImageFile(deformationFieldImage,param->outputDeformationName);
         nifti_image_free(deformationFieldImage);
         printf("Composed deformation field has been saved: %s\n", param->outputDeformationName);
     }
 
     if(flag->composeTransformation3Flag){
         // Read both deformation field
-        nifti_image *def1=nifti_image_read(param->inputDeformationName,true);
-        nifti_image *def2=nifti_image_read(param->inputSeconDefName,true);
+        nifti_image *def1=reg_io_ReadImageFile(param->inputDeformationName);
+        nifti_image *def2=reg_io_ReadImageFile(param->inputSeconDefName);
 
         reg_defField_compose(def2,def1,NULL);
 
-        nifti_set_filenames(def1, param->outputDeformationName, 0, 0);
-        nifti_image_write(def1);
+        reg_io_WriteImageFile(def1,param->outputDeformationName);
 
         nifti_image_free(def1);
         nifti_image_free(def2);
@@ -535,7 +533,7 @@ int main(int argc, char **argv)
     /* ******************** */
     if(flag->disp2defFlag){
         // Read the input displacement field
-        nifti_image *image = nifti_image_read(param->inputDisplacementName,true);
+        nifti_image *image = reg_io_ReadImageFile(param->inputDisplacementName);
         if(image == NULL){
             fprintf(stderr,"[NiftyReg ERROR] Error when reading the input displacement field image: %s\n",param->inputDisplacementName);
             PetitUsage(argv[0]);
@@ -546,14 +544,13 @@ int main(int argc, char **argv)
         reg_getDeformationFromDisplacement(image);
 
         // Ouput the deformation field
-        nifti_set_filenames(image, param->outputDeformationName, 0, 0);
-        nifti_image_write(image);
+        reg_io_WriteImageFile(image,param->outputDeformationName);
         nifti_image_free(image);
         printf("The deformation field has been saved: %s\n", param->outputDeformationName);
     }
     if(flag->def2dispFlag){
         // Read the input deformation field
-        nifti_image *image = nifti_image_read(param->inputDeformationName,true);
+        nifti_image *image = reg_io_ReadImageFile(param->inputDeformationName);
         if(image == NULL){
             fprintf(stderr,"[NiftyReg ERROR] Error when reading the input deformation field image: %s\n",param->inputDeformationName);
             PetitUsage(argv[0]);
@@ -564,8 +561,7 @@ int main(int argc, char **argv)
         reg_getDisplacementFromDeformation(image);
 
         // Ouput the deformation field
-        nifti_set_filenames(image, param->outputDisplacementName, 0, 0);
-        nifti_image_write(image);
+        reg_io_WriteImageFile(image,param->outputDisplacementName);
         nifti_image_free(image);
         printf("The displacement field has been saved: %s\n", param->outputDisplacementName);
     }
@@ -575,7 +571,7 @@ int main(int argc, char **argv)
     /* ******************* */
     if(flag->updateSformFlag){
         // Read the input image
-        nifti_image *image = nifti_image_read(param->inputSourceImageName,true);
+        nifti_image *image = reg_io_ReadImageFile(param->inputSourceImageName);
         if(image == NULL){
             fprintf(stderr,"[NiftyReg ERROR] Error when reading the input image: %s\n",
                     param->inputSourceImageName);
@@ -605,8 +601,7 @@ int main(int argc, char **argv)
         free(affineTransformation);
 
         // Write the output image
-        nifti_set_filenames(image, param->outputSourceImageName, 0, 0);
-        nifti_image_write(image);
+        reg_io_WriteImageFile(image,param->outputSourceImageName);
         nifti_image_free(image);
         printf("The sform has been updated and the image saved: %s\n", param->outputSourceImageName);
     }
@@ -701,7 +696,7 @@ int main(int argc, char **argv)
     *************************** */
     if(flag->aff2defFlag){
 
-        nifti_image *middleImage = nifti_image_read(param->sourceImageName,false);
+        nifti_image *middleImage = reg_io_ReadImageHeader(param->sourceImageName);
         if(middleImage == NULL){
             fprintf(stderr,"[NiftyReg ERROR] Error when reading the nrr-step target image: %s\n", param->sourceImageName);
             PetitUsage(argv[0]);
@@ -750,7 +745,7 @@ int main(int argc, char **argv)
         reg_affine_positionField(affineTransformation, referenceImage, deformationFieldImage);
 
         // Read the input control point position or deformation field
-        nifti_image *nrr_transformation = nifti_image_read(param->inputFirstCPPName,true);
+        nifti_image *nrr_transformation = reg_io_ReadImageFile(param->inputFirstCPPName);
         if(nrr_transformation == NULL){
             fprintf(stderr,"[NiftyReg ERROR] Error when reading the non-rigid transformation image: %s\n",param->inputFirstCPPName);
             PetitUsage(argv[0]);
@@ -774,8 +769,7 @@ int main(int argc, char **argv)
         }
         nifti_image_free(nrr_transformation);
 
-        nifti_set_filenames(deformationFieldImage, param->outputDeformationName, 0, 0);
-        nifti_image_write(deformationFieldImage);
+        reg_io_WriteImageFile(deformationFieldImage,param->outputDeformationName);
         nifti_image_free(deformationFieldImage);
         nifti_image_free(middleImage);
     }

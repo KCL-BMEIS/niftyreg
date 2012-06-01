@@ -9,6 +9,7 @@
  *
  */
 
+#include "_reg_ReadWriteImage.h"
 #include "_reg_f3d2.h"
 
 #ifdef _USE_CUDA
@@ -443,7 +444,7 @@ int main(int argc, char **argv)
         PetitUsage(argv[0]);
         return 1;
     }
-    nifti_image *referenceImage = nifti_image_read(referenceName,true);
+    nifti_image *referenceImage = reg_io_ReadImageFile(referenceName);
     if(referenceImage==NULL){
         fprintf(stderr, "Error when reading the reference image %s\n",referenceName);
         return 1;
@@ -456,7 +457,7 @@ int main(int argc, char **argv)
         PetitUsage(argv[0]);
         return 1;
     }
-    nifti_image *floatingImage = nifti_image_read(floatingName,true);
+    nifti_image *floatingImage = reg_io_ReadImageFile(floatingName);
     if(floatingImage==NULL){
         fprintf(stderr, "Error when reading the floating image %s\n",floatingName);
         return 1;
@@ -466,7 +467,7 @@ int main(int argc, char **argv)
     // Read the mask images
     nifti_image *referenceMaskImage=NULL;
     if(referenceMaskName!=NULL){
-        referenceMaskImage=nifti_image_read(referenceMaskName,true);
+        referenceMaskImage=reg_io_ReadImageFile(referenceMaskName);
         if(referenceMaskImage==NULL){
             fprintf(stderr, "Error when reading the reference mask image %s\n",referenceMaskName);
             return 1;
@@ -475,7 +476,7 @@ int main(int argc, char **argv)
     }
     nifti_image *floatingMaskImage=NULL;
     if(floatingMaskName!=NULL){
-        floatingMaskImage=nifti_image_read(floatingMaskName,true);
+        floatingMaskImage=reg_io_ReadImageFile(floatingMaskName);
         if(floatingMaskImage==NULL){
             fprintf(stderr, "Error when reading the reference mask image %s\n",floatingMaskName);
             return 1;
@@ -486,14 +487,16 @@ int main(int argc, char **argv)
     // Read the input control point grid image
     nifti_image *controlPointGridImage=NULL;
     if(inputControlPointGridName!=NULL){
-        controlPointGridImage=nifti_image_read(inputControlPointGridName,true);
+        controlPointGridImage=reg_io_ReadImageFile(inputControlPointGridName);
         if(controlPointGridImage==NULL){
             fprintf(stderr, "Error when reading the input control point grid image %s\n",inputControlPointGridName);
             return 1;
         }
         reg_checkAndCorrectDimension(controlPointGridImage);
 #ifdef _BUILD_NR_DEV
-        if(fabs(controlPointGridImage->intent_code)>1)
+        if( controlPointGridImage->intent_code==NIFTI_INTENT_VECTOR &&
+            strcmp(controlPointGridImage->intent_name,"NREG_VEL_STEP")==0 &&
+            fabs(controlPointGridImage->intent_p1)>1 )
             useVel=true;
 #endif
     }
@@ -798,14 +801,13 @@ int main(int argc, char **argv)
         // Save the control point result
         nifti_image *outputControlPointGridImage = REG->GetControlPointPositionImage();
         if(outputControlPointGridName==NULL) outputControlPointGridName=(char *)"outputCPP.nii";
-        nifti_set_filenames(outputControlPointGridImage, outputControlPointGridName, 0, 0);
         memset(outputControlPointGridImage->descrip, 0, 80);
         strcpy (outputControlPointGridImage->descrip,"Control point position from NiftyReg (reg_f3d)");
 #ifdef _BUILD_NR_DEV
         if(useVel)
             strcpy (outputControlPointGridImage->descrip,"Velocity field grid from NiftyReg (reg_f3d2)");
 #endif
-        nifti_image_write(outputControlPointGridImage);
+        reg_io_WriteImageFile(outputControlPointGridImage,outputControlPointGridName);
         nifti_image_free(outputControlPointGridImage);outputControlPointGridImage=NULL;
 
         // Save the backward control point result
@@ -817,25 +819,28 @@ int main(int argc, char **argv)
             // _backward is added to the forward control point grid image name
             std::string b(outputControlPointGridName);
             if(b.find( ".nii.gz") != std::string::npos)
-                b.replace(b.find( ".nii.gz"),7,"_backward.nii.gz");
+                b.replace(b.find_last_of( ".nii.gz"),7,"_backward.nii.gz");
             else if(b.find( ".nii") != std::string::npos)
-                b.replace(b.find( ".nii"),4,"_backward.nii");
+                b.replace(b.find_last_of( ".nii"),4,"_backward.nii");
             else if(b.find( ".hdr") != std::string::npos)
-                b.replace(b.find( ".hdr"),4,"_backward.hdr");
+                b.replace(b.find_last_of( ".hdr"),4,"_backward.hdr");
             else if(b.find( ".img.gz") != std::string::npos)
-                b.replace(b.find( ".img.gz"),7,"_backward.img.gz");
+                b.replace(b.find_last_of( ".img.gz"),7,"_backward.img.gz");
             else if(b.find( ".img") != std::string::npos)
-                b.replace(b.find( ".img"),4,"_backward.img");
+                b.replace(b.find_last_of( ".img"),4,"_backward.img");
+#ifdef _USE_NR_NRRD
+            else if(b.find( ".nrrd") != std::string::npos)
+                b.replace(b.find_last_of( ".nrrd"),4,"_backward.nrrd");
+#endif
             else b.append("_backward.nii");
             nifti_image *outputBackwardControlPointGridImage = REG->GetBackwardControlPointPositionImage();
-            nifti_set_filenames(outputBackwardControlPointGridImage, b.c_str(), 0, 0);
             memset(outputBackwardControlPointGridImage->descrip, 0, 80);
             strcpy (outputBackwardControlPointGridImage->descrip,"Backward Control point position from NiftyReg (reg_f3d)");
 #ifdef _BUILD_NR_DEV
             if(useVel)
                 strcpy (outputBackwardControlPointGridImage->descrip,"Backward velocity field grid from NiftyReg (reg_f3d2)");
 #endif
-            nifti_image_write(outputBackwardControlPointGridImage);
+            reg_io_WriteImageFile(outputBackwardControlPointGridImage,b.c_str());
             nifti_image_free(outputBackwardControlPointGridImage);outputBackwardControlPointGridImage=NULL;
         }
 
@@ -844,7 +849,6 @@ int main(int argc, char **argv)
         outputWarpedImage[0]=outputWarpedImage[1]=NULL;
         outputWarpedImage = REG->GetWarpedImage();
         if(outputWarpedName==NULL) outputWarpedName=(char *)"outputResult.nii";
-        nifti_set_filenames(outputWarpedImage[0], outputWarpedName, 0, 0);
         memset(outputWarpedImage[0]->descrip, 0, 80);
         strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d)");
         if(useSym){
@@ -862,27 +866,30 @@ int main(int argc, char **argv)
                 std::string b(outputWarpedName);
                 if(b.find( ".nii.gz") != std::string::npos)
                     b.replace(b.find( ".nii.gz"),7,"_backward.nii.gz");
-                else if(b.find( ".nii") != std::string::npos)
+                else if(b.find_last_of( ".nii") != std::string::npos)
                     b.replace(b.find( ".nii"),4,"_backward.nii");
-                else if(b.find( ".hdr") != std::string::npos)
+                else if(b.find_last_of( ".hdr") != std::string::npos)
                     b.replace(b.find( ".hdr"),4,"_backward.hdr");
-                else if(b.find( ".img.gz") != std::string::npos)
+                else if(b.find_last_of( ".img.gz") != std::string::npos)
                     b.replace(b.find( ".img.gz"),7,"_backward.img.gz");
-                else if(b.find( ".img") != std::string::npos)
+                else if(b.find_last_of( ".img") != std::string::npos)
                     b.replace(b.find( ".img"),4,"_backward.img");
+#ifdef _USE_NR_NRRD
+                else if(b.find_last_of( ".nrrd") != std::string::npos)
+                    b.replace(b.find( ".nrrd"),4,"_backward.nrrd");
+#endif
                 else b.append("_backward.nii");
-                nifti_set_filenames(outputWarpedImage[1], b.c_str(), 0, 0);
                 if(useSym)
                     strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d_sym)");
 #ifdef _BUILD_NR_DEV
                 if(useVel)
                     strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d2)");
 #endif
-                nifti_image_write(outputWarpedImage[1]);
+                reg_io_WriteImageFile(outputWarpedImage[1],b.c_str());
                 nifti_image_free(outputWarpedImage[1]);outputWarpedImage[1]=NULL;
             }
         }
-        nifti_image_write(outputWarpedImage[0]);
+        reg_io_WriteImageFile(outputWarpedImage[0],outputWarpedName);
         nifti_image_free(outputWarpedImage[0]);outputWarpedImage[0]=NULL;
         free(outputWarpedImage);
 #ifdef _USE_CUDA

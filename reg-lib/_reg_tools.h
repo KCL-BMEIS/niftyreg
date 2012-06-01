@@ -49,12 +49,12 @@ extern "C++"
 void reg_checkAndCorrectDimension(nifti_image *image);
 
 extern "C++"
-void reg_intensityRescale(	nifti_image *image,
-                            float *newMin,
-                            float *newMax,
-                            float *lowThr,
-                            float *upThr
-		 				);
+void reg_intensityRescale(nifti_image *image,
+                          float *newMin,
+                          float *newMax,
+                          float *lowThr,
+                          float *upThr
+                          );
 
 extern "C++" template <class PrecisionTYPE>
 void reg_smoothImageForCubicSpline(nifti_image *image,
@@ -63,18 +63,18 @@ void reg_smoothImageForCubicSpline(nifti_image *image,
 
 extern "C++" template <class PrecisionTYPE>
 void reg_smoothNormImageForCubicSpline(nifti_image *image,
-                                   int radius[3]
-                                   );
+                                       int radius[3]
+                                       );
 
 extern "C++" template <class PrecisionTYPE>
-void reg_smoothImageForTrilinear(	nifti_image *image,
-								int radius[3]
-								);
+void reg_smoothImageForTrilinear(nifti_image *image,
+                                 int radius[3]
+                                 );
 
 extern "C++" template <class PrecisionTYPE>
-void reg_gaussianSmoothing(	nifti_image *image,
-                            PrecisionTYPE sigma,
-                            bool[8]);
+void reg_gaussianSmoothing(nifti_image *image,
+                           PrecisionTYPE sigma,
+                           bool[8]);
 
 extern "C++" template <class PrecisionTYPE>
 void reg_downsampleImage(nifti_image *image, int, bool[8]);
@@ -83,37 +83,45 @@ extern "C++" template <class PrecisionTYPE>
 PrecisionTYPE reg_getMaximalLength(nifti_image *image);
 
 extern "C++" template <class NewTYPE>
-void reg_changeDatatype(nifti_image *image);
+void reg_tools_changeDatatype(nifti_image *image);
 
 extern "C++"
-double reg_tool_GetIntensityValue(nifti_image *,
-                                  int *);
+void reg_tools_addSubMulDivImages(nifti_image *,
+                                  nifti_image *,
+                                  nifti_image *,
+                                  int);
+extern "C++"
+void reg_tools_addSubMulDivValue(nifti_image *,
+                                 nifti_image *,
+                                 float,
+                                 int);
 
 extern "C++"
-void reg_tools_addSubMulDivImages(  nifti_image *,
-                                    nifti_image *,
-                                    nifti_image *,
-                                    int);
-extern "C++"
-void reg_tools_addSubMulDivValue(  nifti_image *,
-                                    nifti_image *,
-                                    float,
-                                    int);
+void reg_tools_binarise_image(nifti_image *);
 
 extern "C++"
-void reg_tool_binarise_image(nifti_image *);
+void reg_tools_binarise_image(nifti_image *, float);
 
 extern "C++"
-void reg_tool_binarise_image(nifti_image *, float);
-
-extern "C++"
-void reg_tool_binaryImage2int(nifti_image *, int *, int &);
+void reg_tools_binaryImage2int(nifti_image *, int *, int &);
 
 extern "C++"
 double reg_tools_getMeanRMS(nifti_image *, nifti_image *);
 
 extern "C++"
-int reg_tool_nanMask_image(nifti_image *, nifti_image *, nifti_image *);
+int reg_tools_nanMask_image(nifti_image *, nifti_image *, nifti_image *);
+
+/** reg_tools_getMinValue
+  * considering an input image, this function returns its minimal value
+  */
+extern "C++"
+float reg_tools_getMinValue(nifti_image *);
+
+/** reg_tools_getMaxValue
+  * considering an input image, this function returns its minimal value
+  */
+extern "C++"
+float reg_tools_getMaxValue(nifti_image *);
 
 extern "C++" template<class DTYPE>
 int reg_createImagePyramid(nifti_image *, nifti_image **, unsigned int, unsigned int);
@@ -121,13 +129,13 @@ int reg_createImagePyramid(nifti_image *, nifti_image **, unsigned int, unsigned
 extern "C++" template<class DTYPE>
 int reg_createMaskPyramid(nifti_image *, int **, unsigned int , unsigned int , int *);
 
-/** JM functions for ssd */
-//this function will threshold an image to the values provided,
-//set the scl_slope and sct_inter of the image to 1 and 0 (SSD uses actual image data values),
-//and sets cal_min and cal_max to have the min/max image data values
+/** this function will threshold an image to the values provided,
+ * set the scl_slope and sct_inter of the image to 1 and 0 (SSD uses actual image data values),
+ * and sets cal_min and cal_max to have the min/max image data values
+ */
 extern "C++" template<class T>
 void reg_thresholdImage(nifti_image *image,
-                            T lowThr,
-                            T upThr
-		 				);
+                        T lowThr,
+                        T upThr
+                        );
 #endif

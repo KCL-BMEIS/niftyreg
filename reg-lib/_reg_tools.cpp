@@ -959,7 +959,7 @@ template double reg_getMaximalLength<double>(nifti_image *);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class NewTYPE, class DTYPE>
-void reg_changeDatatype1(nifti_image *image)
+void reg_tools_changeDatatype1(nifti_image *image)
 {
     // the initial array is saved and freeed
     DTYPE *initialValue = (DTYPE *)malloc(image->nvox*sizeof(DTYPE));
@@ -970,7 +970,7 @@ void reg_changeDatatype1(nifti_image *image)
     else if(sizeof(NewTYPE)==sizeof(float)) image->datatype = NIFTI_TYPE_FLOAT32;
     else if(sizeof(NewTYPE)==sizeof(double)) image->datatype = NIFTI_TYPE_FLOAT64;
     else{
-        fprintf(stderr,"[NiftyReg ERROR] reg_changeDatatype\tOnly change to unsigned char, float or double are supported\n");
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_changeDatatype\tOnly change to unsigned char, float or double are supported\n");
         exit(1);
     }
     free(image->data);
@@ -984,87 +984,42 @@ void reg_changeDatatype1(nifti_image *image)
 }
 /* *************************************************************** */
 template <class NewTYPE>
-void reg_changeDatatype(nifti_image *image)
+void reg_tools_changeDatatype(nifti_image *image)
 {
     switch(image->datatype){
     case NIFTI_TYPE_UINT8:
-        reg_changeDatatype1<NewTYPE,unsigned char>(image);
+        reg_tools_changeDatatype1<NewTYPE,unsigned char>(image);
         break;
     case NIFTI_TYPE_INT8:
-        reg_changeDatatype1<NewTYPE,char>(image);
+        reg_tools_changeDatatype1<NewTYPE,char>(image);
         break;
     case NIFTI_TYPE_UINT16:
-        reg_changeDatatype1<NewTYPE,unsigned short>(image);
+        reg_tools_changeDatatype1<NewTYPE,unsigned short>(image);
         break;
     case NIFTI_TYPE_INT16:
-        reg_changeDatatype1<NewTYPE,short>(image);
+        reg_tools_changeDatatype1<NewTYPE,short>(image);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_changeDatatype1<NewTYPE,unsigned int>(image);
+        reg_tools_changeDatatype1<NewTYPE,unsigned int>(image);
         break;
     case NIFTI_TYPE_INT32:
-        reg_changeDatatype1<NewTYPE,int>(image);
+        reg_tools_changeDatatype1<NewTYPE,int>(image);
         break;
     case NIFTI_TYPE_FLOAT32:
-        reg_changeDatatype1<NewTYPE,float>(image);
+        reg_tools_changeDatatype1<NewTYPE,float>(image);
         break;
     case NIFTI_TYPE_FLOAT64:
-        reg_changeDatatype1<NewTYPE,double>(image);
+        reg_tools_changeDatatype1<NewTYPE,double>(image);
         break;
     default:
-        fprintf(stderr,"[NiftyReg ERROR] reg_changeDatatype\tThe initial image data type is not supported\n");
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_changeDatatype\tThe initial image data type is not supported\n");
         exit(1);
     }
 }
 /* *************************************************************** */
-template void reg_changeDatatype<unsigned char>(nifti_image *);
-template void reg_changeDatatype<float>(nifti_image *);
-template void reg_changeDatatype<double>(nifti_image *);
-/* *************************************************************** */
-/* *************************************************************** */
-template <class ImageTYPE>
-double reg_tool_GetIntensityValue1(nifti_image *image,
-                                   int *index)
-{
-    ImageTYPE *imgPtr = static_cast<ImageTYPE *>(image->data);
-    return (double) imgPtr[(index[2]*image->ny+index[1])*image->nx+index[0]];
-}
-/* *************************************************************** */
-double reg_tool_GetIntensityValue(nifti_image *image,
-                                  int *index)
-{
-    switch(image->datatype){
-    case NIFTI_TYPE_UINT8:
-        return reg_tool_GetIntensityValue1<unsigned char>(image, index);
-        break;
-    case NIFTI_TYPE_INT8:
-        return reg_tool_GetIntensityValue1<char>(image, index);
-        break;
-    case NIFTI_TYPE_UINT16:
-        return reg_tool_GetIntensityValue1<unsigned short>(image, index);
-        break;
-    case NIFTI_TYPE_INT16:
-        reg_tool_GetIntensityValue1<short>(image, index);
-        break;
-    case NIFTI_TYPE_UINT32:
-        return reg_tool_GetIntensityValue1<unsigned int>(image, index);
-        break;
-    case NIFTI_TYPE_INT32:
-        return reg_tool_GetIntensityValue1<int>(image, index);
-        break;
-    case NIFTI_TYPE_FLOAT32:
-        return reg_tool_GetIntensityValue1<float>(image, index);
-        break;
-    case NIFTI_TYPE_FLOAT64:
-        return reg_tool_GetIntensityValue1<double>(image, index);
-        break;
-    default:
-        fprintf(stderr,"[NiftyReg ERROR] reg_changeDatatype\tThe initial image data type is not supported\n");
-        exit(1);
-    }
-
-    return 0.0;
-}
+template void reg_tools_changeDatatype<unsigned char>(nifti_image *);
+template void reg_tools_changeDatatype<float>(nifti_image *);
+template void reg_tools_changeDatatype<double>(nifti_image *);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class TYPE1, class TYPE2>
@@ -1636,7 +1591,7 @@ template void reg_downsampleImage<double>(nifti_image *, int, bool[8]);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void reg_tool_binarise_image1(nifti_image *image)
+void reg_tools_binarise_image1(nifti_image *image)
 {
     DTYPE *dataPtr=static_cast<DTYPE *>(image->data);
     image->scl_inter=0.f;
@@ -1647,42 +1602,42 @@ void reg_tool_binarise_image1(nifti_image *image)
     }
 }
 /* *************************************************************** */
-void reg_tool_binarise_image(nifti_image *image)
+void reg_tools_binarise_image(nifti_image *image)
 {
     switch(image->datatype){
     case NIFTI_TYPE_UINT8:
-        reg_tool_binarise_image1<unsigned char>(image);
+        reg_tools_binarise_image1<unsigned char>(image);
         break;
     case NIFTI_TYPE_INT8:
-        reg_tool_binarise_image1<char>(image);
+        reg_tools_binarise_image1<char>(image);
         break;
     case NIFTI_TYPE_UINT16:
-        reg_tool_binarise_image1<unsigned short>(image);
+        reg_tools_binarise_image1<unsigned short>(image);
         break;
     case NIFTI_TYPE_INT16:
-        reg_tool_binarise_image1<short>(image);
+        reg_tools_binarise_image1<short>(image);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tool_binarise_image1<unsigned int>(image);
+        reg_tools_binarise_image1<unsigned int>(image);
         break;
     case NIFTI_TYPE_INT32:
-        reg_tool_binarise_image1<int>(image);
+        reg_tools_binarise_image1<int>(image);
         break;
     case NIFTI_TYPE_FLOAT32:
-        reg_tool_binarise_image1<float>(image);
+        reg_tools_binarise_image1<float>(image);
         break;
     case NIFTI_TYPE_FLOAT64:
-        reg_tool_binarise_image1<double>(image);
+        reg_tools_binarise_image1<double>(image);
         break;
     default:
-        fprintf(stderr,"[NiftyReg ERROR] reg_tool_binarise_image\tThe image data type is not supported\n");
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_binarise_image\tThe image data type is not supported\n");
         exit(1);
     }
 }
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void reg_tool_binarise_image1(nifti_image *image, float threshold)
+void reg_tools_binarise_image1(nifti_image *image, float threshold)
 {
     DTYPE *dataPtr=static_cast<DTYPE *>(image->data);
     for(unsigned i=0; i<image->nvox; i++){
@@ -1691,42 +1646,42 @@ void reg_tool_binarise_image1(nifti_image *image, float threshold)
     }
 }
 /* *************************************************************** */
-void reg_tool_binarise_image(nifti_image *image, float threshold)
+void reg_tools_binarise_image(nifti_image *image, float threshold)
 {
     switch(image->datatype){
     case NIFTI_TYPE_UINT8:
-        reg_tool_binarise_image1<unsigned char>(image, threshold);
+        reg_tools_binarise_image1<unsigned char>(image, threshold);
         break;
     case NIFTI_TYPE_INT8:
-        reg_tool_binarise_image1<char>(image, threshold);
+        reg_tools_binarise_image1<char>(image, threshold);
         break;
     case NIFTI_TYPE_UINT16:
-        reg_tool_binarise_image1<unsigned short>(image, threshold);
+        reg_tools_binarise_image1<unsigned short>(image, threshold);
         break;
     case NIFTI_TYPE_INT16:
-        reg_tool_binarise_image1<short>(image, threshold);
+        reg_tools_binarise_image1<short>(image, threshold);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tool_binarise_image1<unsigned int>(image, threshold);
+        reg_tools_binarise_image1<unsigned int>(image, threshold);
         break;
     case NIFTI_TYPE_INT32:
-        reg_tool_binarise_image1<int>(image, threshold);
+        reg_tools_binarise_image1<int>(image, threshold);
         break;
     case NIFTI_TYPE_FLOAT32:
-        reg_tool_binarise_image1<float>(image, threshold);
+        reg_tools_binarise_image1<float>(image, threshold);
         break;
     case NIFTI_TYPE_FLOAT64:
-        reg_tool_binarise_image1<double>(image, threshold);
+        reg_tools_binarise_image1<double>(image, threshold);
         break;
     default:
-        fprintf(stderr,"[NiftyReg ERROR] reg_tool_binarise_image\tThe image data type is not supported\n");
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_binarise_image\tThe image data type is not supported\n");
         exit(1);
     }
 }
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void reg_tool_binaryImage2int1(nifti_image *image, int *array, int &activeVoxelNumber)
+void reg_tools_binaryImage2int1(nifti_image *image, int *array, int &activeVoxelNumber)
 {
     // Active voxel are different from -1
     activeVoxelNumber=0;
@@ -1742,35 +1697,35 @@ void reg_tool_binaryImage2int1(nifti_image *image, int *array, int &activeVoxelN
     }
 }
 /* *************************************************************** */
-void reg_tool_binaryImage2int(nifti_image *image, int *array, int &activeVoxelNumber)
+void reg_tools_binaryImage2int(nifti_image *image, int *array, int &activeVoxelNumber)
 {
     switch(image->datatype){
     case NIFTI_TYPE_UINT8:
-        reg_tool_binaryImage2int1<unsigned char>(image, array, activeVoxelNumber);
+        reg_tools_binaryImage2int1<unsigned char>(image, array, activeVoxelNumber);
         break;
     case NIFTI_TYPE_INT8:
-        reg_tool_binaryImage2int1<char>(image, array, activeVoxelNumber);
+        reg_tools_binaryImage2int1<char>(image, array, activeVoxelNumber);
         break;
     case NIFTI_TYPE_UINT16:
-        reg_tool_binaryImage2int1<unsigned short>(image, array, activeVoxelNumber);
+        reg_tools_binaryImage2int1<unsigned short>(image, array, activeVoxelNumber);
         break;
     case NIFTI_TYPE_INT16:
-        reg_tool_binaryImage2int1<short>(image, array, activeVoxelNumber);
+        reg_tools_binaryImage2int1<short>(image, array, activeVoxelNumber);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tool_binaryImage2int1<unsigned int>(image, array, activeVoxelNumber);
+        reg_tools_binaryImage2int1<unsigned int>(image, array, activeVoxelNumber);
         break;
     case NIFTI_TYPE_INT32:
-        reg_tool_binaryImage2int1<int>(image, array, activeVoxelNumber);
+        reg_tools_binaryImage2int1<int>(image, array, activeVoxelNumber);
         break;
     case NIFTI_TYPE_FLOAT32:
-        reg_tool_binaryImage2int1<float>(image, array, activeVoxelNumber);
+        reg_tools_binaryImage2int1<float>(image, array, activeVoxelNumber);
         break;
     case NIFTI_TYPE_FLOAT64:
-        reg_tool_binaryImage2int1<double>(image, array, activeVoxelNumber);
+        reg_tools_binaryImage2int1<double>(image, array, activeVoxelNumber);
         break;
     default:
-        fprintf(stderr,"[NiftyReg ERROR] reg_tool_binarise_image\tThe image data type is not supported\n");
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_binarise_image\tThe image data type is not supported\n");
         exit(1);
     }
 }
@@ -1873,7 +1828,7 @@ int reg_createImagePyramid(nifti_image *inputImage, nifti_image **pyramid, int u
                                                      pyramid[levelToPerform-1]->nbyper);
     memcpy(pyramid[levelToPerform-1]->data, inputImage->data,
            pyramid[levelToPerform-1]->nvox* pyramid[levelToPerform-1]->nbyper);
-    reg_changeDatatype<DTYPE>(pyramid[levelToPerform-1]);
+    reg_tools_changeDatatype<DTYPE>(pyramid[levelToPerform-1]);
 
     // Images are downsampled if appropriate
     for(unsigned int l=levelToPerform; l<levelNumber; l++){
@@ -1916,8 +1871,8 @@ int reg_createMaskPyramid(nifti_image *inputMaskImage, int **maskPyramid, int un
                                                                   tempMaskImagePyramid[levelToPerform-1]->nbyper);
     memcpy(tempMaskImagePyramid[levelToPerform-1]->data, inputMaskImage->data,
            tempMaskImagePyramid[levelToPerform-1]->nvox* tempMaskImagePyramid[levelToPerform-1]->nbyper);
-    reg_tool_binarise_image(tempMaskImagePyramid[levelToPerform-1]);
-    reg_changeDatatype<unsigned char>(tempMaskImagePyramid[levelToPerform-1]);
+    reg_tools_binarise_image(tempMaskImagePyramid[levelToPerform-1]);
+    reg_tools_changeDatatype<unsigned char>(tempMaskImagePyramid[levelToPerform-1]);
 
     // Image is downsampled if appropriate
     for(unsigned int l=levelToPerform; l<levelNumber; l++){
@@ -1931,7 +1886,7 @@ int reg_createMaskPyramid(nifti_image *inputMaskImage, int **maskPyramid, int un
                                         tempMaskImagePyramid[levelToPerform-1]->ny *
                                         tempMaskImagePyramid[levelToPerform-1]->nz;
     maskPyramid[levelToPerform-1]=(int *)malloc(activeVoxelNumber[levelToPerform-1] * sizeof(int));
-    reg_tool_binaryImage2int(tempMaskImagePyramid[levelToPerform-1],
+    reg_tools_binaryImage2int(tempMaskImagePyramid[levelToPerform-1],
                              maskPyramid[levelToPerform-1],
                              activeVoxelNumber[levelToPerform-1]);
 
@@ -1955,7 +1910,7 @@ int reg_createMaskPyramid(nifti_image *inputMaskImage, int **maskPyramid, int un
                              tempMaskImagePyramid[l]->ny *
                              tempMaskImagePyramid[l]->nz;
         maskPyramid[l]=(int *)malloc(activeVoxelNumber[l] * sizeof(int));
-        reg_tool_binaryImage2int(tempMaskImagePyramid[l],
+        reg_tools_binaryImage2int(tempMaskImagePyramid[l],
                                  maskPyramid[l],
                                  activeVoxelNumber[l]);
     }
@@ -1969,7 +1924,7 @@ template int reg_createMaskPyramid<double>(nifti_image *, int **, unsigned int ,
 /* *************************************************************** */
 /* *************************************************************** */
 template <class TYPE1, class TYPE2>
-int reg_tool_nanMask_image2(nifti_image *image, nifti_image *maskImage, nifti_image *resultImage)
+int reg_tools_nanMask_image2(nifti_image *image, nifti_image *maskImage, nifti_image *resultImage)
 {
     TYPE1 *imagePtr = static_cast<TYPE1 *>(image->data);
     TYPE2 *maskPtr = static_cast<TYPE2 *>(maskImage->data);
@@ -1986,82 +1941,169 @@ int reg_tool_nanMask_image2(nifti_image *image, nifti_image *maskImage, nifti_im
 }
 /* *************************************************************** */
 template <class TYPE1>
-int reg_tool_nanMask_image1(nifti_image *image, nifti_image *maskImage, nifti_image *resultImage)
+int reg_tools_nanMask_image1(nifti_image *image, nifti_image *maskImage, nifti_image *resultImage)
 {
     switch(maskImage->datatype){
     case NIFTI_TYPE_UINT8:
-        return reg_tool_nanMask_image2<TYPE1,unsigned char>
+        return reg_tools_nanMask_image2<TYPE1,unsigned char>
                 (image, maskImage, resultImage);
     case NIFTI_TYPE_INT8:
-        return reg_tool_nanMask_image2<TYPE1,char>
+        return reg_tools_nanMask_image2<TYPE1,char>
                 (image, maskImage, resultImage);
     case NIFTI_TYPE_UINT16:
-        return reg_tool_nanMask_image2<TYPE1,unsigned short>
+        return reg_tools_nanMask_image2<TYPE1,unsigned short>
                 (image, maskImage, resultImage);
     case NIFTI_TYPE_INT16:
-        return reg_tool_nanMask_image2<TYPE1,short>
+        return reg_tools_nanMask_image2<TYPE1,short>
                 (image, maskImage, resultImage);
     case NIFTI_TYPE_UINT32:
-        return reg_tool_nanMask_image2<TYPE1,unsigned int>
+        return reg_tools_nanMask_image2<TYPE1,unsigned int>
                 (image, maskImage, resultImage);
     case NIFTI_TYPE_INT32:
-        return reg_tool_nanMask_image2<TYPE1,int>
+        return reg_tools_nanMask_image2<TYPE1,int>
                 (image, maskImage, resultImage);
     case NIFTI_TYPE_FLOAT32:
-        return reg_tool_nanMask_image2<TYPE1,float>
+        return reg_tools_nanMask_image2<TYPE1,float>
                 (image, maskImage, resultImage);
     case NIFTI_TYPE_FLOAT64:
-        return reg_tool_nanMask_image2<TYPE1,double>
+        return reg_tools_nanMask_image2<TYPE1,double>
                 (image, maskImage, resultImage);
     default:
-        fprintf(stderr,"[NiftyReg ERROR] reg_tool_nanMask_image\tThe image data type is not supported\n");
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_nanMask_image\tThe image data type is not supported\n");
         exit(1);
     }
 }
 /* *************************************************************** */
-int reg_tool_nanMask_image(nifti_image *image, nifti_image *maskImage, nifti_image *resultImage)
+int reg_tools_nanMask_image(nifti_image *image, nifti_image *maskImage, nifti_image *resultImage)
 {
     // Check dimension
     if(image->nvox != maskImage->nvox || image->nvox != resultImage->nvox){
-        fprintf(stderr,"[NiftyReg ERROR] reg_tool_nanMask_image\tInput images have different size\n");
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_nanMask_image\tInput images have different size\n");
         exit(1);
     }
     // Check output data type
     if(image->datatype != resultImage->datatype){
-        fprintf(stderr,"[NiftyReg ERROR] reg_tool_nanMask_image\tInput and result images have different data type\n");
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_nanMask_image\tInput and result images have different data type\n");
         exit(1);
     }
     switch(image->datatype){
     case NIFTI_TYPE_UINT8:
-        return reg_tool_nanMask_image1<unsigned char>
+        return reg_tools_nanMask_image1<unsigned char>
                 (image, maskImage, resultImage);
     case NIFTI_TYPE_INT8:
-        return reg_tool_nanMask_image1<char>
+        return reg_tools_nanMask_image1<char>
                 (image, maskImage, resultImage);
     case NIFTI_TYPE_UINT16:
-        return reg_tool_nanMask_image1<unsigned short>
+        return reg_tools_nanMask_image1<unsigned short>
                 (image, maskImage, resultImage);
     case NIFTI_TYPE_INT16:
-        return reg_tool_nanMask_image1<short>
+        return reg_tools_nanMask_image1<short>
                 (image, maskImage, resultImage);
     case NIFTI_TYPE_UINT32:
-        return reg_tool_nanMask_image1<unsigned int>
+        return reg_tools_nanMask_image1<unsigned int>
                 (image, maskImage, resultImage);
     case NIFTI_TYPE_INT32:
-        return reg_tool_nanMask_image1<int>
+        return reg_tools_nanMask_image1<int>
                 (image, maskImage, resultImage);
     case NIFTI_TYPE_FLOAT32:
-        return reg_tool_nanMask_image1<float>
+        return reg_tools_nanMask_image1<float>
                 (image, maskImage, resultImage);
     case NIFTI_TYPE_FLOAT64:
-        return reg_tool_nanMask_image1<double>
+        return reg_tools_nanMask_image1<double>
                 (image, maskImage, resultImage);
     default:
-        fprintf(stderr,"[NiftyReg ERROR] reg_tool_nanMask_image\tThe image data type is not supported\n");
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_nanMask_image\tThe image data type is not supported\n");
         exit(1);
     }
 }
 /* *************************************************************** */
 /* *************************************************************** */
+template <class DTYPE>
+float reg_tools_getMinValue1(nifti_image *image)
+{
+    // Create a pointer to the image data
+    DTYPE *imgPtr = static_cast<DTYPE *>(image->data);
+    // Set a variable to store the minimal value
+    float minValue=std::numeric_limits<DTYPE>::max();
+    // Loop over all voxel to find the lowest value
+    for(size_t i=0;i<image->nvox;++i){
+        DTYPE currentVal = imgPtr[i] * image->scl_slope + image->scl_inter;
+        minValue=currentVal<minValue?currentVal:minValue;
+    }
+    // The lowest value is returned
+    return minValue;
+}
+/* *************************************************************** */
+float reg_tools_getMinValue(nifti_image *image)
+{
+    // Check the image data type
+    switch(image->datatype){
+    case NIFTI_TYPE_UINT8:
+        return reg_tools_getMinValue1<unsigned char>(image);
+    case NIFTI_TYPE_INT8:
+        return reg_tools_getMinValue1<char>(image);
+    case NIFTI_TYPE_UINT16:
+        return reg_tools_getMinValue1<unsigned short>(image);
+    case NIFTI_TYPE_INT16:
+        return reg_tools_getMinValue1<short>(image);
+    case NIFTI_TYPE_UINT32:
+        return reg_tools_getMinValue1<unsigned int>(image);
+    case NIFTI_TYPE_INT32:
+        return reg_tools_getMinValue1<int>(image);
+    case NIFTI_TYPE_FLOAT32:
+        return reg_tools_getMinValue1<float>(image);
+    case NIFTI_TYPE_FLOAT64:
+        return reg_tools_getMinValue1<double>(image);
+    default:
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_getMinValue\tThe image data type is not supported\n");
+        exit(1);
+    }
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class DTYPE>
+float reg_tools_getMaxValue1(nifti_image *image)
+{
+    // Create a pointer to the image data
+    DTYPE *imgPtr = static_cast<DTYPE *>(image->data);
+    // Set a variable to store the maximal value
+    float maxValue=-std::numeric_limits<DTYPE>::max();
+    // Loop over all voxel to find the lowest value
+    for(size_t i=0;i<image->nvox;++i){
+        DTYPE currentVal = imgPtr[i] * image->scl_slope + image->scl_inter;
+        maxValue=currentVal>maxValue?currentVal:maxValue;
+    }
+    // The lowest value is returned
+    return maxValue;
+}
+/* *************************************************************** */
+float reg_tools_getMaxValue(nifti_image *image)
+{
+    // Check the image data type
+    switch(image->datatype){
+    case NIFTI_TYPE_UINT8:
+        return reg_tools_getMaxValue1<unsigned char>(image);
+    case NIFTI_TYPE_INT8:
+        return reg_tools_getMaxValue1<char>(image);
+    case NIFTI_TYPE_UINT16:
+        return reg_tools_getMaxValue1<unsigned short>(image);
+    case NIFTI_TYPE_INT16:
+        return reg_tools_getMaxValue1<short>(image);
+    case NIFTI_TYPE_UINT32:
+        return reg_tools_getMaxValue1<unsigned int>(image);
+    case NIFTI_TYPE_INT32:
+        return reg_tools_getMaxValue1<int>(image);
+    case NIFTI_TYPE_FLOAT32:
+        return reg_tools_getMaxValue1<float>(image);
+    case NIFTI_TYPE_FLOAT64:
+        return reg_tools_getMaxValue1<double>(image);
+    default:
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_getMaxValue1\tThe image data type is not supported\n");
+        exit(1);
+    }
+}
+/* *************************************************************** */
+/* *************************************************************** */
+
 
 #endif

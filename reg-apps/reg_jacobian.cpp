@@ -12,6 +12,7 @@
 #ifndef _MM_JACOBIAN_CPP
 #define _MM_JACOBIAN_CPP
 
+#include "_reg_ReadWriteImage.h"
 #include "_reg_globalTransformation.h"
 #include "_reg_localTransformation.h"
 #include "_reg_tools.h"
@@ -136,7 +137,7 @@ int main(int argc, char **argv)
     /* ************** */
     /* READ REFERENCE */
     /* ************** */
-    nifti_image *image = nifti_image_read(param->referenceImageName,false);
+    nifti_image *image = reg_io_ReadImageHeader(param->referenceImageName);
     if(image == NULL){
         fprintf(stderr,"** ERROR Error when reading the target image: %s\n",param->referenceImageName);
         return 1;
@@ -149,7 +150,7 @@ int main(int argc, char **argv)
     nifti_image *controlPointImage=NULL;
     nifti_image *deformationFieldImage=NULL;
     if(flag->inputCPPFlag){
-        controlPointImage = nifti_image_read(param->inputCPPName,true);
+        controlPointImage = reg_io_ReadImageFile(param->inputCPPName);
         if(controlPointImage == NULL){
             fprintf(stderr,"** ERROR Error when reading the control point image: %s\n",param->inputCPPName);
             nifti_image_free(image);
@@ -158,7 +159,7 @@ int main(int argc, char **argv)
         reg_checkAndCorrectDimension(controlPointImage);
     }
     else if(flag->inputDEFFlag){
-        deformationFieldImage = nifti_image_read(param->inputDEFName,true);
+        deformationFieldImage = reg_io_ReadImageFile(param->inputDEFName);
         if(deformationFieldImage == NULL){
             fprintf(stderr,"** ERROR Error when reading the deformation field image: %s\n",param->inputDEFName);
             nifti_image_free(image);
@@ -190,7 +191,8 @@ int main(int argc, char **argv)
 
         // Compute the determinant
         if(flag->inputCPPFlag){
-            if(fabs(controlPointImage->intent_code)>1){
+            if( controlPointImage->intent_code==NIFTI_INTENT_VECTOR &&
+                strcmp(controlPointImage->intent_name,"NREG_VEL_STEP")==0){
                 reg_bspline_GetJacobianDetFromVelocityField(jacobianImage,
                                                             controlPointImage
                                                             );
@@ -231,10 +233,9 @@ int main(int argc, char **argv)
 
         // Export the Jacobian determinant map
         if(flag->jacobianMapFlag){
-            nifti_set_filenames(jacobianImage, param->jacobianMapName, 0, 0);
             memset(jacobianImage->descrip, 0, 80);
             strcpy (jacobianImage->descrip,"Jacobian determinant map created using NiftyReg");
-            nifti_image_write(jacobianImage);
+            reg_io_WriteImageFile(jacobianImage,param->jacobianMapName);
             printf("Jacobian map image has been saved: %s\n", param->jacobianMapName);
         }
         else if(flag->logJacobianMapFlag){
@@ -243,10 +244,9 @@ int main(int argc, char **argv)
                 *jacPtr = log(*jacPtr);
                 jacPtr++;
             }
-            nifti_set_filenames(jacobianImage, param->logJacobianMapName, 0, 0);
             memset(jacobianImage->descrip, 0, 80);
             strcpy (jacobianImage->descrip,"Log Jacobian determinant map created using NiftyReg");
-            nifti_image_write(jacobianImage);
+            reg_io_WriteImageFile(jacobianImage,param->logJacobianMapName);
             printf("Log Jacobian map image has been saved: %s\n", param->logJacobianMapName);
         }
         nifti_image_free(jacobianImage);
@@ -280,7 +280,8 @@ int main(int argc, char **argv)
 
         // Compute the matrices
         if(flag->inputCPPFlag){
-            if(fabs(controlPointImage->intent_code)>1){
+            if( controlPointImage->intent_code==NIFTI_INTENT_VECTOR &&
+                strcmp(controlPointImage->intent_name,"NREG_VEL_STEP")==0){
                 reg_bspline_GetJacobianMatricesFromVelocityField(image,
                                                                  controlPointImage,
                                                                  jacobianMatricesArray
@@ -342,10 +343,8 @@ int main(int argc, char **argv)
         }
         free(jacobianMatricesArray);
 
-        nifti_set_filenames(jacobianImage, param->jacobianMatrixName, 0, 0);
         strcpy (jacobianImage->descrip,"Jacobian matrices image created using NiftyReg");
-        nifti_image_write(jacobianImage);
-        nifti_image_write(jacobianImage);
+        reg_io_WriteImageFile(jacobianImage,param->jacobianMatrixName);
         printf("Jacobian matrices image has been saved: %s\n", param->jacobianMatrixName);
         nifti_image_free(jacobianImage);
     }

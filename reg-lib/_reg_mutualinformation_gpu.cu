@@ -257,6 +257,9 @@ void reg_getVoxelBasedNMIGradientUsingPW_gpu(   nifti_image *targetImage,
                                                 int refBinning,
                                                 int floBinning)
 {
+    if(resultImage!=resultImage)
+        printf("Useless lines to avoid a warning");
+
     const int voxelNumber = targetImage->nx*targetImage->ny*targetImage->nz;
     const int3 imageSize=make_int3(targetImage->nx,targetImage->ny,targetImage->nz);
     const int binNumber = refBinning*floBinning+refBinning+floBinning;

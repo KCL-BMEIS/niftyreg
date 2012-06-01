@@ -76,7 +76,7 @@
         ELSE(WIN32)
             CUDA_ADD_LIBRARY(${NAME} SHARED ${NAME}.h ${NAME}.cpp ${NAME}_sym.h ${NAME}_sym.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_gpu.h ${NAME}_gpu.cpp)
         ENDIF(WIN32)
-            TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation _reg_KLdivergence _reg_ssd _reg_mutualinformation _reg_tools reg_nifti ${ZLIB} _reg_localTransformation_gpu _reg_resampling_gpu _reg_globalTransformation_gpu _reg_mutualinformation_gpu _reg_tools_gpu _reg_cudaCommon)
+            TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation _reg_KLdivergence _reg_ssd _reg_mutualinformation _reg_tools _reg_ReadWriteImage _reg_localTransformation_gpu _reg_resampling_gpu _reg_globalTransformation_gpu _reg_mutualinformation_gpu _reg_tools_gpu _reg_cudaCommon)
             INSTALL(FILES ${NAME}_gpu.h DESTINATION include)
 #-----------------------------------------------------------------------------
     ELSE(USE_CUDA)
@@ -86,7 +86,7 @@
         ELSE(WIN32)
             ADD_LIBRARY(${NAME} SHARED ${NAME}.h ${NAME}.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_sym.h ${NAME}_sym.cpp)
         ENDIF(WIN32)
-            TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation _reg_KLdivergence _reg_ssd _reg_mutualinformation _reg_tools reg_nifti ${ZLIB})
+            TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation _reg_KLdivergence _reg_ssd _reg_mutualinformation _reg_tools _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
     ENDIF(USE_CUDA)
 #-----------------------------------------------------------------------------
@@ -108,7 +108,7 @@
 #        ELSE(WIN32)
 #            CUDA_ADD_LIBRARY(${NAME} SHARED ${NAME}.h ${NAME}.cpp)
 #        ENDIF(WIN32)
-#            TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_blockMatching _reg_resampling _reg_globalTransformation _reg_ssd _reg_mutualinformation _reg_tools reg_nifti ${ZLIB} _reg_localTransformation_gpu _reg_resampling_gpu _reg_globalTransformation_gpu _reg_mutualinformation_gpu _reg_tools_gpu _reg_cudaCommon)
+#            TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_blockMatching _reg_resampling _reg_globalTransformation _reg_ssd _reg_mutualinformation _reg_tools reg_nifti z _reg_localTransformation_gpu _reg_resampling_gpu _reg_globalTransformation_gpu _reg_mutualinformation_gpu _reg_tools_gpu _reg_cudaCommon)
 #            INSTALL(FILES ${NAME}_gpu.h DESTINATION include)
 #-----------------------------------------------------------------------------
 #    ELSE(USE_CUDA)
@@ -118,7 +118,7 @@
         ELSE(WIN32)
             ADD_LIBRARY(${NAME} SHARED ${NAME}.h ${NAME}.cpp ${NAME}_sym.h ${NAME}_sym.cpp)
         ENDIF(WIN32)
-            TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_blockMatching _reg_resampling _reg_globalTransformation _reg_ssd _reg_mutualinformation _reg_tools reg_nifti ${ZLIB})
+            TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_blockMatching _reg_resampling _reg_globalTransformation _reg_ssd _reg_mutualinformation _reg_tools _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
 #    ENDIF(USE_CUDA)
 #-----------------------------------------------------------------------------
@@ -136,7 +136,7 @@
         ELSE(WIN32)
             ADD_LIBRARY(${NAME} SHARED ${NAME}.h ${NAME}.cpp)
         ENDIF(WIN32)
-            TARGET_LINK_LIBRARIES(${NAME} _reg_tools reg_nifti ${ZLIB})
+            TARGET_LINK_LIBRARIES(${NAME} _reg_tools _reg_ReadWriteImage)
     INSTALL(TARGETS ${NAME}
             RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
             LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib

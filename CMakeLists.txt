@@ -15,11 +15,10 @@ if(COMMAND cmake_policy)
 endif(COMMAND cmake_policy)
 
 #-----------------------------------------------------------------------------
-SET(ZLIB "z")
 
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Windows")	
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 	ADD_DEFINITIONS(/W1)
-ELSE (${CMAKE_SYSTEM_NAME} MATCHES "Windows")	
+ELSE (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 	ADD_DEFINITIONS(-fPIC)
 ENDIF()	
 
@@ -28,6 +27,8 @@ ENDIF()
 OPTION(BUILD_NR_DEV "To build code under development" OFF)
 OPTION(BUILD_TESTING "To build the unit tests" OFF)
 
+OPTION(USE_PNG "To support the png file format for 2D images" OFF)
+OPTION(USE_NRRD "To support the nrrd file format" OFF)
 OPTION(USE_SSE "To use SSE computation in some case" OFF)
 OPTION(USE_CUDA "To use CUDA for a GPU implementation of the code" OFF)
 OPTION(USE_DOUBLE "To use double precision instead of single precision" OFF)
@@ -38,11 +39,24 @@ IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 ENDIF()
 #-----------------------------------------------------------------------------
 
-INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/nifti)
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/zlib)
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/nifti)
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-lib)
-INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/zlib)
 
 #-----------------------------------------------------------------------------
+
+IF(USE_PNG)
+    ADD_DEFINITIONS(-D_USE_NR_PNG)
+    INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/png)
+ENDIF(USE_PNG)
+
+IF(USE_NRRD)
+    ADD_DEFINITIONS(-D_USE_NR_NRRD)
+    INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR})
+    INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/nrrd)
+    INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/nrrd/NrrdIO)
+ENDIF(USE_NRRD)
 
 IF(USE_DOUBLE)
     ADD_DEFINITIONS(-D_USE_NR_DOUBLE)
@@ -104,8 +118,7 @@ IF(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/.svn)
 ENDIF(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/.svn)
 #-----------------------------------------------------------------------------
 
-SUBDIRS(zlib)
-SUBDIRS(nifti)
+SUBDIRS(reg-io)
 SUBDIRS(reg-lib)
 SUBDIRS(reg-apps)
 if(BUILD_TESTING)

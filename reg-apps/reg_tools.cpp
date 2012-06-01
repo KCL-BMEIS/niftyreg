@@ -11,6 +11,7 @@
 #ifndef MM_TOOLS_CPP
 #define MM_TOOLS_CPP
 
+#include "_reg_ReadWriteImage.h"
 #include "_reg_resampling.h"
 #include "_reg_globalTransformation.h"
 #include "_reg_localTransformation.h"
@@ -27,7 +28,8 @@ int isNumeric (const char *s)
     if(s==NULL || *s=='\0' || isspace(*s))
       return 0;
     char * p;
-    strtod (s, &p);
+    double a=0; //useless - here to avoid a warning
+    a=strtod (s, &p);
     return *p == '\0';
 }
 
@@ -185,7 +187,7 @@ int main(int argc, char **argv)
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 
     /* Read the image */
-    nifti_image *image = nifti_image_read(param->inputImageName,true);
+    nifti_image *image = reg_io_ReadImageFile(param->inputImageName);
     if(image == NULL){
         fprintf(stderr,"** ERROR Error when reading the target image: %s\n",param->inputImageName);
         return 1;
@@ -198,12 +200,11 @@ int main(int argc, char **argv)
         nifti_image *smoothImg = nifti_copy_nim_info(image);
         smoothImg->data = (void *)malloc(smoothImg->nvox * smoothImg->nbyper);
         memcpy(smoothImg->data, image->data, smoothImg->nvox*smoothImg->nbyper);
-        if(flag->outputImageFlag)
-            nifti_set_filenames(smoothImg, param->outputImageName, 0, 0);
-        else nifti_set_filenames(smoothImg, "output.nii", 0, 0);
         int radius[3];radius[0]=radius[1]=radius[2]=param->smoothValue;
         reg_smoothNormImageForCubicSpline<PrecisionTYPE>(smoothImg, radius);
-        nifti_image_write(smoothImg);
+        if(flag->outputImageFlag)
+            reg_io_WriteImageFile(smoothImg, param->outputImageName);
+        else reg_io_WriteImageFile(smoothImg, "output.nii");
         nifti_image_free(smoothImg);
     }
 
@@ -213,16 +214,15 @@ int main(int argc, char **argv)
         nifti_image *smoothImg = nifti_copy_nim_info(image);
         smoothImg->data = (void *)malloc(smoothImg->nvox * smoothImg->nbyper);
         memcpy(smoothImg->data, image->data, smoothImg->nvox*smoothImg->nbyper);
-        if(flag->outputImageFlag)
-            nifti_set_filenames(smoothImg, param->outputImageName, 0, 0);
-        else nifti_set_filenames(smoothImg, "output.nii", 0, 0);
         bool boolX[8]={3,1,0,0,0,0,0,0};
         reg_gaussianSmoothing(smoothImg,param->smoothValueX,boolX);
         bool boolY[8]={3,0,1,0,0,0,0,0};
         reg_gaussianSmoothing(smoothImg,param->smoothValueY,boolY);
         bool boolZ[8]={3,0,0,1,0,0,0,0};
         reg_gaussianSmoothing(smoothImg,param->smoothValueZ,boolZ);
-        nifti_image_write(smoothImg);
+        if(flag->outputImageFlag)
+            reg_io_WriteImageFile(smoothImg, param->outputImageName);
+        else reg_io_WriteImageFile(smoothImg, "output.nii");
         nifti_image_free(smoothImg);
     }
 
@@ -231,7 +231,7 @@ int main(int argc, char **argv)
     if(flag->operationTypeFlag>-1){
         nifti_image *image2=NULL;
         if(param->operationImageName!=NULL){
-            image2 = nifti_image_read(param->operationImageName,true);
+            image2 = reg_io_ReadImageFile(param->operationImageName);
             if(image2 == NULL){
                 fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->operationImageName);
                 return 1;
@@ -247,10 +247,9 @@ int main(int argc, char **argv)
         else reg_tools_addSubMulDivValue(image, resultImage, param->operationValue, flag->operationTypeFlag);
 
         if(flag->outputImageFlag)
-            nifti_set_filenames(resultImage, param->outputImageName, 0, 0);
-        else nifti_set_filenames(resultImage, "output.nii", 0, 0);
+            reg_io_WriteImageFile(resultImage,param->outputImageName);
+        else reg_io_WriteImageFile(resultImage,"output.nii");
 
-        nifti_image_write(resultImage);
         nifti_image_free(resultImage);
         if(image2!=NULL) nifti_image_free(image2);
     }
@@ -258,7 +257,7 @@ int main(int argc, char **argv)
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 
     if(flag->rmsImageFlag){
-        nifti_image *image2 = nifti_image_read(param->rmsImageName,true);
+        nifti_image *image2 = reg_io_ReadImageFile(param->rmsImageName);
         if(image2 == NULL){
             fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->rmsImageName);
             return 1;
@@ -283,25 +282,23 @@ int main(int argc, char **argv)
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
     if(flag->binarisedImageFlag){
-        reg_tool_binarise_image(image);
-        reg_changeDatatype<unsigned char>(image);
+        reg_tools_binarise_image(image);
+        reg_tools_changeDatatype<unsigned char>(image);
         if(flag->outputImageFlag)
-            nifti_set_filenames(image, param->outputImageName, 0, 0);
-        else nifti_set_filenames(image, "output.nii", 0, 0);
-        nifti_image_write(image);
+            reg_io_WriteImageFile(image,param->outputImageName);
+        else reg_io_WriteImageFile(image,"output.nii");
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
     if(flag->thresholdImageFlag){
-        reg_tool_binarise_image(image, param->thresholdImageValue);
-        reg_changeDatatype<unsigned char>(image);
+        reg_tools_binarise_image(image, param->thresholdImageValue);
+        reg_tools_changeDatatype<unsigned char>(image);
         if(flag->outputImageFlag)
-            nifti_set_filenames(image, param->outputImageName, 0, 0);
-        else nifti_set_filenames(image, "output.nii", 0, 0);
-        nifti_image_write(image);
+            reg_io_WriteImageFile(image,param->outputImageName);
+        else reg_io_WriteImageFile(image,"output.nii");
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
     if(flag->nanMaskFlag){
-        nifti_image *maskImage = nifti_image_read(param->operationImageName,true);
+        nifti_image *maskImage = reg_io_ReadImageFile(param->operationImageName);
         if(maskImage == NULL){
             fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->operationImageName);
             return 1;
@@ -311,13 +308,12 @@ int main(int argc, char **argv)
         nifti_image *resultImage = nifti_copy_nim_info(image);
         resultImage->data = (void *)malloc(resultImage->nvox * resultImage->nbyper);
 
-        reg_tool_nanMask_image(image,maskImage,resultImage);
+        reg_tools_nanMask_image(image,maskImage,resultImage);
 
         if(flag->outputImageFlag)
-            nifti_set_filenames(resultImage, param->outputImageName, 0, 0);
-        else nifti_set_filenames(resultImage, "output.nii", 0, 0);
+            reg_io_WriteImageFile(resultImage,param->outputImageName);
+        else reg_io_WriteImageFile(resultImage,"output.nii");
 
-        nifti_image_write(resultImage);
         nifti_image_free(resultImage);
         nifti_image_free(maskImage);
     }

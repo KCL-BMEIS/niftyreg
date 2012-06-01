@@ -3677,7 +3677,14 @@ template <class DTYPE>
 void reg_bspline_GetJacobianMatricesFromVelocityField_2D(nifti_image* referenceImage,
                                                          nifti_image* velocityFieldImage,
                                                          mat33* jacobianMatrices)
-{    // The initial deformation fields are allocated
+{
+    if( velocityFieldImage->intent_code!=NIFTI_INTENT_VECTOR ||
+        strcmp(velocityFieldImage->intent_name,"NREG_VEL_STEP")!=0 ){
+        fprintf(stderr, "[NiftyReg ERROR] reg_bspline_GetJacobianMatricesFromVelocityField_2D - the provide grid is not a velocity field\n");
+        exit(1);
+    }
+
+    // The initial deformation fields are allocated
     nifti_image *deformationFieldA = nifti_copy_nim_info(referenceImage);
     deformationFieldA->dim[0]=deformationFieldA->ndim=5;
     deformationFieldA->dim[1]=deformationFieldA->nx=referenceImage->nx;
@@ -3709,7 +3716,7 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_2D(nifti_image* referenceI
     reg_getDisplacementFromDeformation(scaledVelocityField);
     reg_tools_addSubMulDivValue(scaledVelocityField,
                                 scaledVelocityField,
-                                pow(2.f,fabs(scaledVelocityField->intent_code)),
+                                pow(2.f,fabs(scaledVelocityField->intent_p1)),
                                 3); // div
     reg_getDeformationFromDisplacement(scaledVelocityField);
 
@@ -3721,7 +3728,7 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_2D(nifti_image* referenceI
                                    false, //composition
                                    true // bspline
                                    );
-    if(velocityFieldImage->intent_code<0){
+    if(velocityFieldImage->intent_p1<0){
         reg_getDisplacementFromDeformation(deformationFieldA);
         reg_tools_addSubMulDivValue(deformationFieldA,deformationFieldA,-1.f,2); // *(-1)
         reg_getDeformationFromDisplacement(deformationFieldA);
@@ -3772,7 +3779,7 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_2D(nifti_image* referenceI
     DTYPE *deformationBPtrX = static_cast<DTYPE *>(deformationFieldB->data);
     DTYPE *deformationBPtrY = &deformationBPtrX[voxelNumber];
 
-    for(size_t i=0;i<(size_t)fabs(velocityFieldImage->intent_code);++i){
+    for(size_t i=0;i<(size_t)fabs(velocityFieldImage->intent_p1);++i){
 
         // The jacobian determinant is computed at every voxel
         unsigned int currentIndex=0;
@@ -3857,7 +3864,7 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_2D(nifti_image* referenceI
 
             }// x jacImage
         }//y jacImage
-        if(i!=fabs(velocityFieldImage->intent_code)-1)
+        if(i!=fabs(velocityFieldImage->intent_p1)-1)
             memcpy(deformationFieldA->data,deformationFieldB->data,
                    deformationFieldA->nvox*deformationFieldA->nbyper);
     }//composition step
@@ -3871,6 +3878,12 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceI
                                                          nifti_image* velocityFieldImage,
                                                          mat33* jacobianMatrices)
 {
+    if( velocityFieldImage->intent_code!=NIFTI_INTENT_VECTOR ||
+        strcmp(velocityFieldImage->intent_name,"NREG_VEL_STEP")!=0 ){
+        fprintf(stderr, "[NiftyReg ERROR] reg_bspline_GetJacobianMatricesFromVelocityField_2D - the provide grid is not a velocity field\n");
+        exit(1);
+    }
+
     // A first deformation field is allocated based on the reference image dimension
     nifti_image *deformationFieldA = nifti_copy_nim_info(referenceImage);
     deformationFieldA->dim[0]=deformationFieldA->ndim=5;
@@ -3911,8 +3924,8 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceI
     reg_getDisplacementFromDeformation(deformationFieldA);
 
     // The deformation field is scaled
-    float scalingValue = pow(2.,fabs(velocityFieldImage->intent_code));
-    if(velocityFieldImage->intent_code<0)
+    float scalingValue = pow(2.,fabs(velocityFieldImage->intent_p1));
+    if(velocityFieldImage->intent_p1<0)
         // backward deformation field is scaled down
         reg_tools_addSubMulDivValue(deformationFieldA,
                                     deformationFieldA,
@@ -3972,7 +3985,7 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceI
     DTYPE *deformationBPtrY = &deformationBPtrX[voxelNumber];
     DTYPE *deformationBPtrZ = &deformationBPtrY[voxelNumber];
 
-    for(size_t i=0;i<(size_t)fabs(velocityFieldImage->intent_code);++i){
+    for(size_t i=0;i<(size_t)fabs(velocityFieldImage->intent_p1);++i){
 
         // The jacobian determinant is computed at every voxel
         size_t currentIndex=0;
@@ -4096,7 +4109,7 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceI
                 }// x jacImage
             }//y jacImage
         }//z jacImage
-        if(i!=fabs(velocityFieldImage->intent_code)-1)
+        if(i!=fabs(velocityFieldImage->intent_p1)-1)
             memcpy(deformationFieldA->data,deformationFieldB->data,
                    deformationFieldA->nvox*deformationFieldA->nbyper);
     }//composition step

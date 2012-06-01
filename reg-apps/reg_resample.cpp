@@ -12,6 +12,7 @@
 #ifndef _MM_RESAMPLE_CPP
 #define _MM_RESAMPLE_CPP
 
+#include "_reg_ReadWriteImage.h"
 #include "_reg_resampling.h"
 #include "_reg_globalTransformation.h"
 #include "_reg_localTransformation.h"
@@ -164,7 +165,7 @@ int main(int argc, char **argv)
     }
 
 	/* Read the target image */
-    nifti_image *referenceImage = nifti_image_read(param->referenceImageName,false);
+    nifti_image *referenceImage = reg_io_ReadImageHeader(param->referenceImageName);
     if(referenceImage == NULL){
         fprintf(stderr,"[NiftyReg ERROR] Error when reading the target image: %s\n",
                 param->referenceImageName);
@@ -173,7 +174,7 @@ int main(int argc, char **argv)
     reg_checkAndCorrectDimension(referenceImage);
 	
     /* Read the source image */
-    nifti_image *floatingImage = nifti_image_read(param->floatingImageName,true);
+    nifti_image *floatingImage = reg_io_ReadImageFile(param->floatingImageName);
     if(floatingImage == NULL){
         fprintf(stderr,"[NiftyReg ERROR] Error when reading the source image: %s\n",
                 param->floatingImageName);
@@ -207,7 +208,7 @@ int main(int argc, char **argv)
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] Name of the control point image: %s\n", param->inputCPPName);
 #endif
-        controlPointImage = nifti_image_read(param->inputCPPName,true);
+        controlPointImage = reg_io_ReadImageFile(param->inputCPPName);
         if(controlPointImage == NULL){
             fprintf(stderr,"[NiftyReg ERROR] Error when reading the control point image: %s\n",param->inputCPPName);
             return 1;
@@ -218,7 +219,7 @@ int main(int argc, char **argv)
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] Name of the deformation field image: %s\n", param->inputDEFName);
 #endif
-        deformationFieldImage = nifti_image_read(param->inputDEFName,true);
+        deformationFieldImage = reg_io_ReadImageFile(param->inputDEFName);
         if(deformationFieldImage == NULL){
             fprintf(stderr,"[NiftyReg ERROR] Error when reading the deformation field image: %s\n",param->inputDEFName);
             return 1;
@@ -278,7 +279,8 @@ int main(int argc, char **argv)
 #ifndef NDEBUG
             printf("[NiftyReg DEBUG] Computation of the deformation field from the CPP image\n");
 #endif
-            if(fabs(controlPointImage->intent_code)>1){
+            if( controlPointImage->intent_code==NIFTI_INTENT_VECTOR &&
+                strcmp(controlPointImage->intent_name,"NREG_VEL_STEP")==0){
                 reg_bspline_getDeformationFieldFromVelocityGrid(controlPointImage,
                                                                 deformationFieldImage
                                                                 );
@@ -330,10 +332,9 @@ int main(int argc, char **argv)
                                         NULL,
                                         inter,
                                         0);
-        nifti_set_filenames(resultImage, param->outputResultName, 0, 0);
         memset(resultImage->descrip, 0, 80);
         strcpy (resultImage->descrip,"Warped image using NiftyReg (reg_resample)");
-        nifti_image_write(resultImage);
+        reg_io_WriteImageFile(resultImage,param->outputResultName);
         printf("[NiftyReg] Resampled image has been saved: %s\n", param->outputResultName);
         nifti_image_free(resultImage);
     }
@@ -382,10 +383,9 @@ int main(int argc, char **argv)
                                         NULL,
                                         1,
                                        0);
-        nifti_set_filenames(resultImage, param->outputBlankName, 0, 0);
         memset(resultImage->descrip, 0, 80);
         strcpy (resultImage->descrip,"Warped regular grid using NiftyReg (reg_resample)");
-        nifti_image_write(resultImage);
+        reg_io_WriteImageFile(resultImage,param->outputBlankName);
         nifti_image_free(resultImage);
         nifti_image_free(gridImage);
         printf("[NiftyReg] Resampled grid has been saved: %s\n", param->outputBlankName);
