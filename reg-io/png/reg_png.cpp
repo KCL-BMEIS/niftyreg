@@ -205,7 +205,6 @@ void reg_io_writePNGfile(nifti_image *image, const char *filename)
         }
     }
     // Write the image data to the file
-    printf("Name : %s\n", filename);
     png_init_io (png_ptr, fp);
     png_set_rows (png_ptr, info_ptr, row_pointers);
     png_write_png (png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);

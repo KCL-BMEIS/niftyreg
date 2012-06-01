@@ -7,7 +7,6 @@
     SET(LIST ${LIST} _reg_mutualinformation)
     SET(LIST ${LIST} _reg_ssd)
     SET(LIST ${LIST} _reg_KLdivergence)
-    SET(LIST ${LIST} _reg_tools)
     SET(LIST ${LIST} _reg_blockMatching)
     SET(LIST ${LIST} _reg_femTransformation)
     FOREACH(NAME ${LIST})
@@ -21,15 +20,18 @@
         INSTALL(FILES ${NAME}.h DESTINATION include)
     ENDFOREACH(NAME)
 #-----------------------------------------------------------------------------
-    SET(NAME _reg_localTransformation)
-    ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp)
-    TARGET_LINK_LIBRARIES(${NAME} _reg_maths)
-    INSTALL(TARGETS ${NAME}
-            RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-            LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-    )
-    INSTALL(FILES ${NAME}.h DESTINATION include)
+    SET(LIST _reg_tools)
+    SET(LIST ${LIST} _reg_localTransformation)
+    FOREACH(NAME ${LIST})
+        ADD_LIBRARY(${NAME} ${NAME}.h ${NAME}.cpp)
+        TARGET_LINK_LIBRARIES(${NAME} _reg_maths)
+        INSTALL(TARGETS ${NAME}
+                RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+                LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+                ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        )
+        INSTALL(FILES ${NAME}.h DESTINATION include)
+    ENDFOREACH(NAME)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------

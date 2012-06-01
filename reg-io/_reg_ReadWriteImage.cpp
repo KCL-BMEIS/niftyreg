@@ -38,7 +38,7 @@ int reg_io_checkFileFormat(const char *filename)
     else if(b.find( ".nrrd") != std::string::npos)
         return NR_NRRD_FORMAT;
 #endif
-    else fprintf(stderr, "[NiftyReg WARNING: No filename extension provided - the Nifti library is used by default]\n");
+    else fprintf(stderr, "[NiftyReg WARNING]: No filename extension provided - the Nifti library is used by default\n");
 
     return NR_NII_FORMAT;
 }
@@ -69,6 +69,7 @@ nifti_image *reg_io_ReadImageFile(char *filename)
         break;
 #endif
     }
+    reg_checkAndCorrectDimension(image);
 
     // Return the nifti image
     return image;
@@ -100,6 +101,7 @@ nifti_image *reg_io_ReadImageHeader(char *filename)
         break;
 #endif
     }
+    reg_checkAndCorrectDimension(image);
 
     // Return the nifti image
     return image;

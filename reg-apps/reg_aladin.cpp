@@ -258,7 +258,6 @@ int main(int argc, char **argv)
         fprintf(stderr,"* ERROR Error when reading the reference  image: %s\n",referenceImageName);
         return 1;
     }
-    reg_checkAndCorrectDimension(referenceHeader);
 
     /* Read teh floating image and check its dimension */
     nifti_image *floatingHeader = reg_io_ReadImageFile(floatingImageName);
@@ -266,7 +265,6 @@ int main(int argc, char **argv)
         fprintf(stderr,"* ERROR Error when reading the floating image: %s\n",floatingImageName);
         return 1;
     }
-    reg_checkAndCorrectDimension(floatingHeader);
 
     // Set the reference and floating image
     REG->SetInputReference(referenceHeader);
@@ -283,7 +281,6 @@ int main(int argc, char **argv)
             fprintf(stderr,"* ERROR Error when reading the reference mask image: %s\n",referenceMaskName);
             return 1;
         }
-        reg_checkAndCorrectDimension(referenceMaskImage);
         /* check the dimension */
         for(int i=1; i<=referenceHeader->dim[0]; i++){
             if(referenceHeader->dim[i]!=referenceMaskImage->dim[i]){
@@ -301,7 +298,6 @@ int main(int argc, char **argv)
             fprintf(stderr,"* ERROR Error when reading the floating mask image: %s\n",referenceMaskName);
             return 1;
         }
-        reg_checkAndCorrectDimension(floatingMaskImage);
         /* check the dimension */
         for(int i=1; i<=floatingHeader->dim[0]; i++){
             if(floatingHeader->dim[i]!=floatingMaskImage->dim[i]){

@@ -18,7 +18,7 @@
 /* *************************************************************** */
 void reg_checkAndCorrectDimension(nifti_image *image)
 {
-
+    // Ensure that no dimension is set to zero
     if(image->nx<1 || image->dim[1]<1) image->dim[1]=image->nx=1;
     if(image->ny<1 || image->dim[2]<1) image->dim[2]=image->ny=1;
     if(image->nz<1 || image->dim[3]<1) image->dim[3]=image->nz=1;
@@ -26,7 +26,27 @@ void reg_checkAndCorrectDimension(nifti_image *image)
     if(image->nu<1 || image->dim[5]<1) image->dim[5]=image->nu=1;
     if(image->nv<1 || image->dim[6]<1) image->dim[6]=image->nv=1;
     if(image->nw<1 || image->dim[7]<1) image->dim[7]=image->nw=1;
+    // Set the slope to 1 if undefined
     if(image->scl_slope==0) image->scl_slope=1.f;
+    // Ensure that no spacing is set to zero
+    if(image->ny==1 && (image->dy==0 || image->pixdim[2]==0))
+        image->dy=image->pixdim[2]=1;
+    if(image->nz==1 && (image->dz==0 || image->pixdim[3]==0))
+        image->dz=image->pixdim[3]=1;
+    // Create the qform matrix if required
+    if(image->qform_code==0 && image->sform_code==0){
+        image->qto_xyz=nifti_quatern_to_mat44(image->quatern_b,
+                                              image->quatern_c,
+                                              image->quatern_d,
+                                              image->qoffset_x,
+                                              image->qoffset_y,
+                                              image->qoffset_z,
+                                              image->dx,
+                                              image->dy,
+                                              image->dz,
+                                              image->qfac);
+        image->qto_ijk=nifti_mat44_inverse(image->qto_xyz);
+    }
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -1426,22 +1446,22 @@ void reg_downsampleImage1(nifti_image *image, int type, bool downsampleAxis[8])
     image->dx=image->pixdim[1];
     image->dy=image->pixdim[2];
     image->dz=image->pixdim[3];
-    if(image->nt<=0 || image->dim[4]<=0) image->nt=image->dim[4]=1;
-    if(image->nu<=0 || image->dim[5]<=0) image->nu=image->dim[5]=1;
-    if(image->nv<=0 || image->dim[6]<=0) image->nv=image->dim[6]=1;
-    if(image->nw<=0 || image->dim[7]<=0) image->nw=image->dim[7]=1;
+    if(image->nt<1 || image->dim[4]<1) image->nt=image->dim[4]=1;
+    if(image->nu<1 || image->dim[5]<1) image->nu=image->dim[5]=1;
+    if(image->nv<1 || image->dim[6]<1) image->nv=image->dim[6]=1;
+    if(image->nw<1 || image->dim[7]<1) image->nw=image->dim[7]=1;
 
     // update the qform matrix
-    image->qto_xyz = nifti_quatern_to_mat44(image->quatern_b,
-                                            image->quatern_c,
-                                            image->quatern_d,
-                                            image->qoffset_x,
-                                            image->qoffset_y,
-                                            image->qoffset_z,
-                                            image->dx,
-                                            image->dy,
-                                            image->dz,
-                                            image->qfac);
+    image->qto_xyz=nifti_quatern_to_mat44(image->quatern_b,
+                                          image->quatern_c,
+                                          image->quatern_d,
+                                          image->qoffset_x,
+                                          image->qoffset_y,
+                                          image->qoffset_z,
+                                          image->dx,
+                                          image->dy,
+                                          image->dz,
+                                          image->qfac);
     image->qto_ijk = nifti_mat44_inverse(image->qto_xyz);
 
     // update the sform matrix
@@ -1474,9 +1494,20 @@ void reg_downsampleImage1(nifti_image *image, int type, bool downsampleAxis[8])
         for(int z=0; z<image->nz; z++){
             for(int y=0; y<image->ny; y++){
                 for(int x=0; x<image->nx; x++){
-                    real[0]=x*image->qto_xyz.m[0][0] + y*image->qto_xyz.m[0][1] + z*image->qto_xyz.m[0][2] + image->qto_xyz.m[0][3];
-                    real[1]=x*image->qto_xyz.m[1][0] + y*image->qto_xyz.m[1][1] + z*image->qto_xyz.m[1][2] + image->qto_xyz.m[1][3];
-                    real[2]=x*image->qto_xyz.m[2][0] + y*image->qto_xyz.m[2][1] + z*image->qto_xyz.m[2][2] + image->qto_xyz.m[2][3];
+                    // Extract the voxel coordinate in mm
+                    real[0]=x*image->qto_xyz.m[0][0] +
+                            y*image->qto_xyz.m[0][1] +
+                            z*image->qto_xyz.m[0][2] +
+                            image->qto_xyz.m[0][3];
+                    real[1]=x*image->qto_xyz.m[1][0] +
+                            y*image->qto_xyz.m[1][1] +
+                            z*image->qto_xyz.m[1][2] +
+                            image->qto_xyz.m[1][3];
+                    real[2]=x*image->qto_xyz.m[2][0] +
+                            y*image->qto_xyz.m[2][1] +
+                            z*image->qto_xyz.m[2][2] +
+                            image->qto_xyz.m[2][3];
+                    // Extract the position in voxel in the old image;
                     position[0]=real[0]*real2Voxel_qform.m[0][0] + real[1]*real2Voxel_qform.m[0][1] + real[2]*real2Voxel_qform.m[0][2] + real2Voxel_qform.m[0][3];
                     position[1]=real[0]*real2Voxel_qform.m[1][0] + real[1]*real2Voxel_qform.m[1][1] + real[2]*real2Voxel_qform.m[1][2] + real2Voxel_qform.m[1][3];
                     position[2]=real[0]*real2Voxel_qform.m[2][0] + real[1]*real2Voxel_qform.m[2][1] + real[2]*real2Voxel_qform.m[2][2] + real2Voxel_qform.m[2][3];

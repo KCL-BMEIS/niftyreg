@@ -449,7 +449,6 @@ int main(int argc, char **argv)
         fprintf(stderr, "Error when reading the reference image %s\n",referenceName);
         return 1;
     }
-    reg_checkAndCorrectDimension(referenceImage);
 
     // Read the floating image
     if(floatingName==NULL){
@@ -462,7 +461,6 @@ int main(int argc, char **argv)
         fprintf(stderr, "Error when reading the floating image %s\n",floatingName);
         return 1;
     }
-    reg_checkAndCorrectDimension(floatingImage);
 
     // Read the mask images
     nifti_image *referenceMaskImage=NULL;
@@ -472,7 +470,6 @@ int main(int argc, char **argv)
             fprintf(stderr, "Error when reading the reference mask image %s\n",referenceMaskName);
             return 1;
         }
-        reg_checkAndCorrectDimension(referenceMaskImage);
     }
     nifti_image *floatingMaskImage=NULL;
     if(floatingMaskName!=NULL){
@@ -481,7 +478,6 @@ int main(int argc, char **argv)
             fprintf(stderr, "Error when reading the reference mask image %s\n",floatingMaskName);
             return 1;
         }
-        reg_checkAndCorrectDimension(floatingMaskImage);
     }
 
     // Read the input control point grid image
@@ -492,7 +488,6 @@ int main(int argc, char **argv)
             fprintf(stderr, "Error when reading the input control point grid image %s\n",inputControlPointGridName);
             return 1;
         }
-        reg_checkAndCorrectDimension(controlPointGridImage);
 #ifdef _BUILD_NR_DEV
         if( controlPointGridImage->intent_code==NIFTI_INTENT_VECTOR &&
             strcmp(controlPointGridImage->intent_name,"NREG_VEL_STEP")==0 &&
@@ -819,18 +814,18 @@ int main(int argc, char **argv)
             // _backward is added to the forward control point grid image name
             std::string b(outputControlPointGridName);
             if(b.find( ".nii.gz") != std::string::npos)
-                b.replace(b.find_last_of( ".nii.gz"),7,"_backward.nii.gz");
+                b.replace(b.find( ".nii.gz"),7,"_backward.nii.gz");
             else if(b.find( ".nii") != std::string::npos)
-                b.replace(b.find_last_of( ".nii"),4,"_backward.nii");
+                b.replace(b.find( ".nii"),4,"_backward.nii");
             else if(b.find( ".hdr") != std::string::npos)
-                b.replace(b.find_last_of( ".hdr"),4,"_backward.hdr");
+                b.replace(b.find( ".hdr"),4,"_backward.hdr");
             else if(b.find( ".img.gz") != std::string::npos)
-                b.replace(b.find_last_of( ".img.gz"),7,"_backward.img.gz");
+                b.replace(b.find( ".img.gz"),7,"_backward.img.gz");
             else if(b.find( ".img") != std::string::npos)
-                b.replace(b.find_last_of( ".img"),4,"_backward.img");
+                b.replace(b.find( ".img"),4,"_backward.img");
 #ifdef _USE_NR_NRRD
             else if(b.find( ".nrrd") != std::string::npos)
-                b.replace(b.find_last_of( ".nrrd"),4,"_backward.nrrd");
+                b.replace(b.find( ".nrrd"),4,"_backward.nrrd");
 #endif
             else b.append("_backward.nii");
             nifti_image *outputBackwardControlPointGridImage = REG->GetBackwardControlPointPositionImage();
@@ -866,16 +861,16 @@ int main(int argc, char **argv)
                 std::string b(outputWarpedName);
                 if(b.find( ".nii.gz") != std::string::npos)
                     b.replace(b.find( ".nii.gz"),7,"_backward.nii.gz");
-                else if(b.find_last_of( ".nii") != std::string::npos)
+                else if(b.find( ".nii") != std::string::npos)
                     b.replace(b.find( ".nii"),4,"_backward.nii");
-                else if(b.find_last_of( ".hdr") != std::string::npos)
+                else if(b.find( ".hdr") != std::string::npos)
                     b.replace(b.find( ".hdr"),4,"_backward.hdr");
-                else if(b.find_last_of( ".img.gz") != std::string::npos)
+                else if(b.find( ".img.gz") != std::string::npos)
                     b.replace(b.find( ".img.gz"),7,"_backward.img.gz");
-                else if(b.find_last_of( ".img") != std::string::npos)
+                else if(b.find( ".img") != std::string::npos)
                     b.replace(b.find( ".img"),4,"_backward.img");
 #ifdef _USE_NR_NRRD
-                else if(b.find_last_of( ".nrrd") != std::string::npos)
+                else if(b.find( ".nrrd") != std::string::npos)
                     b.replace(b.find( ".nrrd"),4,"_backward.nrrd");
 #endif
                 else b.append("_backward.nii");
