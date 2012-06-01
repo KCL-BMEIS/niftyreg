@@ -47,7 +47,13 @@ INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-lib)
 #-----------------------------------------------------------------------------
 
 IF(USE_PNG)
+    FIND_PACKAGE(PNG)
+    IF(NOT PNG_FOUND)
+        MESSAGE("Can not find the PNG library")
+        MESSAGE(FATAL_ERROR "Please turn USE_PNG off")
+    ENDIF(NOT PNG_FOUND)
     ADD_DEFINITIONS(-D_USE_NR_PNG)
+    INCLUDE_DIRECTORIES(${PNG_PNG_INCLUDE_DIR})
     INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/png)
 ENDIF(USE_PNG)
 
