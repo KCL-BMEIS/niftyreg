@@ -3924,7 +3924,7 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceI
     reg_getDisplacementFromDeformation(deformationFieldA);
 
     // The deformation field is scaled
-    float scalingValue = pow(2.,fabs(velocityFieldImage->intent_p1));
+    float scalingValue = pow(2.0f,fabs(velocityFieldImage->intent_p1));
     if(velocityFieldImage->intent_p1<0)
         // backward deformation field is scaled down
         reg_tools_addSubMulDivValue(deformationFieldA,

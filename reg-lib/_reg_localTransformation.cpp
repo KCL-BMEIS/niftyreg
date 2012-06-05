@@ -3124,7 +3124,7 @@ void reg_bspline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldG
     reg_getDisplacementFromDeformation(tempDEFImage);
 
     // The deformation field is scaled
-    float scalingValue = pow(2.,fabs(velocityFieldGrid->intent_p1));
+    float scalingValue = pow(2.0f,fabs(velocityFieldGrid->intent_p1));
     if(velocityFieldGrid->intent_p1<0)
         // backward deformation field is scaled down
         reg_tools_addSubMulDivValue(tempDEFImage,

@@ -10,6 +10,7 @@
  */
 
 #include "_reg_resampling.h"
+#include "_reg_tools.h"
 
 #define EPS_TEST 0.001
 
@@ -29,7 +30,7 @@ double test_get_max_abs_difference(nifti_image *imgA, nifti_image *imgB)
 
     double maxDiff=0.;
     for(size_t i=0; i<imgA->nvox; ++i){
-        double diff=fabs(imgAPtr[i]-imgBPtr[i]);
+        double diff=fabs((double)imgAPtr[i]-(double)imgBPtr[i]);
         maxDiff=diff>maxDiff?diff:maxDiff;
     }
     return maxDiff;

@@ -67,7 +67,7 @@ nifti_image *reg_io_readPNGfile(char *pngFileName, bool readData)
             color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
         png_set_gray_to_rgb(png_ptr);
 
-    png_bytep  row_pointers[Height];
+    png_bytep *row_pointers= new png_bytep[Height];
 
     png_read_update_info(png_ptr, info_ptr);
 
@@ -125,6 +125,7 @@ nifti_image *reg_io_readPNGfile(char *pngFileName, bool readData)
     else{
         niiImage=nifti_make_new_nim(dim,NIFTI_TYPE_UINT8,false);
     }
+    delete []row_pointers;
     png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
     fclose (pngFile);
 
