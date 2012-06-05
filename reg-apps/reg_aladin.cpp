@@ -270,8 +270,9 @@ int main(int argc, char **argv)
     REG->SetInputReference(referenceHeader);
     REG->SetInputFloating(floatingHeader);
 
-    // Set the input affine transformation
-    REG->SetInputTransform(inputAffineName,flirtAffineFlag);
+    // Set the input affine transformation if defined
+    if(inputAffineFlag==1)
+        REG->SetInputTransform(inputAffineName,flirtAffineFlag);
 
     /* read the reference mask image */
     nifti_image *referenceMaskImage=NULL;

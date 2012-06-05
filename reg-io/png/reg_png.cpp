@@ -128,6 +128,7 @@ nifti_image *reg_io_readPNGfile(char *pngFileName, bool readData)
     png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
     fclose (pngFile);
 
+    nifti_set_filenames(niiImage, pngFileName,0,0);
     return niiImage;
 }
 

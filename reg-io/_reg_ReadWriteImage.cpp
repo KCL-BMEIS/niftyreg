@@ -59,6 +59,7 @@ nifti_image *reg_io_ReadImageFile(char *filename)
 #ifdef _USE_NR_PNG
     case NR_PNG_FORMAT:
         image=reg_io_readPNGfile(filename,true);
+        nifti_set_filenames(image,filename,0,0);
         break;
 #endif
 #ifdef _USE_NR_NRRD
@@ -66,6 +67,7 @@ nifti_image *reg_io_ReadImageFile(char *filename)
         Nrrd *nrrdImage = reg_io_readNRRDfile(filename);
         image = reg_io_nrdd2nifti(nrrdImage);
         nrrdNuke(nrrdImage);
+        nifti_set_filenames(image,filename,0,0);
         break;
 #endif
     }
@@ -91,6 +93,7 @@ nifti_image *reg_io_ReadImageHeader(char *filename)
 #ifdef _USE_NR_PNG
     case NR_PNG_FORMAT:
         image=reg_io_readPNGfile(filename,false);
+        nifti_set_filenames(image,filename,0,0);
     break;
 #endif
 #ifdef _USE_NR_NRRD
@@ -98,6 +101,7 @@ nifti_image *reg_io_ReadImageHeader(char *filename)
         Nrrd *nrrdImage = reg_io_readNRRDfile(filename);
         image = reg_io_nrdd2nifti(nrrdImage);
         nrrdNuke(nrrdImage);
+        nifti_set_filenames(image,filename,0,0);
         break;
 #endif
     }
@@ -122,7 +126,7 @@ void reg_io_WriteImageFile(nifti_image *image, const char *filename)
         // If the image has more than two dimension,
         // the filename is converted to nifti
         std::string b(filename);
-        b.replace(b.find( ".png"),7,".nii.gz");
+        b.replace(b.find( ".png"),4,".nii.gz");
         printf("[NiftyReg WARNING] The file can not be saved as png and is converted to nifti\n");
         printf("[NiftyReg WARNING] %s -> %s\n", filename, b.c_str());
         filename=b.c_str();

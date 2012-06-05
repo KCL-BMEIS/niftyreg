@@ -93,16 +93,14 @@ template <class T>
 int reg_aladin<T>::Check()
 {
     //This does all the initial checking
-    if(this->InputReference == NULL)
-    {
-        fprintf(stderr,"** ERROR Error when reading the reference image. No image specified or not able to read \n");
+    if(this->InputReference == NULL){
+        fprintf(stderr,"[NiftyReg ERROR] No reference image has been specified or it can not be read\n");
         return 1;
     }
     reg_checkAndCorrectDimension(this->InputReference);
 
-    if(this->InputFloating == NULL)
-    {
-        fprintf(stderr,"** ERROR Error when reading the floating image: No image specified or not able to read \n");
+    if(this->InputFloating == NULL){
+        fprintf(stderr,"[NiftyReg ERROR] No floating image has been specified or it can not be read\n");
         return 1;
     }
     reg_checkAndCorrectDimension(this->InputFloating);
@@ -113,14 +111,12 @@ int reg_aladin<T>::Check()
 template <class T>
 int reg_aladin<T>::Print()
 {
-    if(this->InputReference == 0)
-    {
-        fprintf(stderr,"** ERROR Error when reading the reference image. No image is loaded\n");
+    if(this->InputReference == NULL){
+        fprintf(stderr,"[NiftyReg ERROR] No reference image has been specified\n");
         return 1;
     }
-    if(this->InputFloating == 0)
-    {
-        fprintf(stderr,"** ERROR Error when reading the floating image. No image is loaded\n");
+    if(this->InputFloating == NULL){
+        fprintf(stderr,"[NiftyReg ERROR] No floating image has been specified\n");
         return 1;
     }
 

@@ -262,21 +262,25 @@ Nrrd *reg_io_nifti2nrrd(nifti_image *niiImage)
     if(niiImage->sform_code>0){
         nrrdImage->spaceOrigin[0]=niiImage->sto_xyz.m[0][3];
         nrrdImage->spaceOrigin[1]=niiImage->sto_xyz.m[1][3];
-        nrrdImage->spaceOrigin[2]=niiImage->sto_xyz.m[2][3];
+        if(niiImage->ndim>2)
+            nrrdImage->spaceOrigin[2]=niiImage->sto_xyz.m[2][3];
     }
     else if(niiImage->qform_code>0){
         nrrdImage->spaceOrigin[0]=niiImage->qoffset_x;
         nrrdImage->spaceOrigin[1]=niiImage->qoffset_y;
-        nrrdImage->spaceOrigin[2]=niiImage->qoffset_z;
+        if(niiImage->ndim>2)
+            nrrdImage->spaceOrigin[2]=niiImage->qoffset_z;
     }
     else{
         nrrdImage->spaceOrigin[0]=0;
         nrrdImage->spaceOrigin[1]=0;
-        nrrdImage->spaceOrigin[2]=0;
+        if(niiImage->ndim>2)
+            nrrdImage->spaceOrigin[2]=0;
     }
 
     // Set the space if suitable with the nrrd file format
-    if(niiImage->qform_code>0 || niiImage->sform_code>0){
+    //
+    if((niiImage->qform_code>0 || niiImage->sform_code>0) && niiImage->ndim>2){
         int i_orient, j_orient, k_orient;
         // Use the sform information if it is defined
         if(niiImage->sform_code>0)
@@ -297,12 +301,6 @@ Nrrd *reg_io_nifti2nrrd(nifti_image *niiImage)
             fprintf(stderr, "[NiftyReg WARNING] reg_io_nifti2nrrd - The nifti qform information can be stored in the space variable.\n");
             fprintf(stderr, "[NiftyReg WARNING] reg_io_nifti2nrrd - The space direction will be used.\n");
         }
-    }
-    else{
-        // if qform and sform are not defined the standard nifti orientation is used
-        if(niiImage->nt>1)
-            nrrdImage->space=nrrdSpaceRightAnteriorSuperiorTime;
-        else nrrdImage->space=nrrdSpaceRightAnteriorSuperior;
     }
 
     // Set the space direction if qform and sform are defined

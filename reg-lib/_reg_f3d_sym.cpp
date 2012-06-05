@@ -797,7 +797,8 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
 
     if(this->useSSD){
         T localMaxSSD=this->maxSSD[0];
-        if(this->usePyramid) localMaxSSD=this->maxSSD[this->currentLevel];
+        if(this->usePyramid)
+            localMaxSSD=this->maxSSD[this->currentLevel];
         // Compute the voxel based SSD gradient - forward
         reg_getVoxelBasedSSDGradient(this->currentReference,
                                      this->warped,
@@ -817,7 +818,7 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
                                      this->currentFloatingMask
                                      );
     }
-    if(this->useKLD){
+    else if(this->useKLD){
         // Compute the voxel based KL divergence gradient - forward
         reg_getKLDivergenceVoxelBasedGradient(this->currentReference,
                                               this->warped,

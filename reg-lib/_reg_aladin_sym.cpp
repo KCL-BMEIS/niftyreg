@@ -4,6 +4,7 @@
 #ifndef _REG_ALADIN_SYM_CPP
 #define _REG_ALADIN_SYM_CPP
 
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 reg_aladin_sym<T>::reg_aladin_sym ()
     :reg_aladin<T>::reg_aladin()
@@ -25,47 +26,39 @@ reg_aladin_sym<T>::reg_aladin_sym ()
 #endif
 
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 reg_aladin_sym<T>::~reg_aladin_sym()
 {
     this->ClearBackwardWarpedImage();
     this->ClearBackwardDeformationField();
 
-    if(this->BackwardTransform!=NULL)
-        delete this->BackwardTransform;
-    this->BackwardTransform=NULL;
+    if(this->BackwardTransformationMatrix!=NULL)
+        delete this->BackwardTransformationMatrix;
+    this->BackwardTransformationMatrix=NULL;
 
-    if(this->floatingMaskPyramid!=NULL){
-        if(this->usePyramid){
-            for(unsigned int i=0;i<this->levelToPerform;i++){
-                if(this->floatingMaskPyramid[i]!=NULL){
-                    free(this->floatingMaskPyramid[i]);
-                    this->floatingMaskPyramid[i]=NULL;
-                }
-            }
-        }
-        else{
-            if(this->floatingMaskPyramid[0]!=NULL){
-                free(this->floatingMaskPyramid[0]);
-                this->floatingMaskPyramid[0]=NULL;
+    if(this->FloatingMaskPyramid!=NULL){
+        for(unsigned int i=0;i<this->NumberOfLevels;++i){
+            if(this->FloatingMaskPyramid[i]!=NULL){
+                free(this->FloatingMaskPyramid[i]);
+                this->FloatingMaskPyramid[i]=NULL;
             }
         }
         free(this->FloatingMaskPyramid);
         this->FloatingMaskPyramid=NULL;
     }
-    free(this->backwardActiveVoxelNumber);
-    this->backwardActiveVoxelNumber=NULL;
+    free(this->BackwardActiveVoxelNumber);
+    this->BackwardActiveVoxelNumber=NULL;
 
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin_sym<T>::SetInputFloatingMask(nifti_image *m)
 {
     this->InputFloatingMask = m;
     return;
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin_sym<T>::AllocateBackwardWarpedImage()
 {
@@ -88,6 +81,7 @@ void reg_aladin_sym<T>::AllocateBackwardWarpedImage()
     this->CurrentBackwardWarped->data = (void*) calloc(this->CurrentBackwardWarped->nvox,this->CurrentBackwardWarped->nbyper);
 
 }
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin_sym<T>::ClearBackwardWarpedImage()
 {
@@ -96,7 +90,7 @@ void reg_aladin_sym<T>::ClearBackwardWarpedImage()
     this->CurrentBackwardWarped=NULL;
 
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin_sym<T>::AllocateBackwardDeformationField()
 {
@@ -135,7 +129,7 @@ void reg_aladin_sym<T>::AllocateBackwardDeformationField()
     }
     this->BackwardDeformationFieldImage->data = (void *)calloc(this->BackwardDeformationFieldImage->nvox, this->BackwardDeformationFieldImage->nbyper);
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin_sym<T>::ClearBackwardDeformationField()
 {
@@ -143,7 +137,7 @@ void reg_aladin_sym<T>::ClearBackwardDeformationField()
         nifti_image_free(this->BackwardDeformationFieldImage);
     this->BackwardDeformationFieldImage=NULL;
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin_sym<T>::InitialiseRegistration()
 {
@@ -182,7 +176,7 @@ void reg_aladin_sym<T>::InitialiseRegistration()
     //*(this->TransformationMatrix) = reg_mat44_sqrt(this->TransformationMatrix);
 
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin_sym<T>::InitialiseBlockMatching(int CurrentPercentageOfBlockToUse)
 {
@@ -201,7 +195,7 @@ void reg_aladin_sym<T>::InitialiseBlockMatching(int CurrentPercentageOfBlockToUs
                                      false // GPU is not used here
                                      );
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin_sym<T>::SetCurrentImages()
 {
@@ -210,7 +204,7 @@ void reg_aladin_sym<T>::SetCurrentImages()
     this->AllocateBackwardWarpedImage();
     this->AllocateBackwardDeformationField();
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin_sym<T>::GetBackwardDeformationField()
 {
@@ -218,7 +212,7 @@ void reg_aladin_sym<T>::GetBackwardDeformationField()
                              this->CurrentFloating,
                              this->BackwardDeformationFieldImage);
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin_sym<T>::GetWarpedImage(int interp)
 {
@@ -233,36 +227,46 @@ void reg_aladin_sym<T>::GetWarpedImage(int interp)
                             interp,
                             0);
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 mat44 reg_aladin_sym<T>::GetUpdateTransformationMatrix(int type)
 {
+    // Compute the matrix for the forward transformation
     mat44 fMatrix = reg_aladin<T>::GetUpdateTransformationMatrix(type);
+    
+    // Compute the matrix for the backward transformation
+    // Compute eh bloack matching correspondences
     block_matching_method<T>(this->CurrentFloating,
                              this->CurrentBackwardWarped,
                              &this->BackwardBlockMatchingParams,
                              this->CurrentFloatingMask);
+    // Run the TLS to extract the backward matrix using either rigid or affine parametrisation
     mat44 bMatrix;
-    //First we need to take the square root of each of these matrices to get them into halfway space
-    //Then we need to average them. Inverse will serve as update for next image.
-    if(type==RIGID)
+    if(type==RIGID){
         optimize(&this->BackwardBlockMatchingParams,
                  &bMatrix,
                  RIGID);
-    else
+    }
+    else{
         optimize(&this->BackwardBlockMatchingParams,
                  &bMatrix,
                  AFFINE);
-    //Inverse both backwards and fowards
+    }
+
+    // The backward matrix is inverted and then averaged with the forward
     mat44 biMatrix=nifti_mat44_inverse(bMatrix);
-    mat44 fiMatrix=nifti_mat44_inverse(fMatrix);
-    mat44 bAvgMatrix=reg_mat44_avg2(&fiMatrix,&bMatrix);
     mat44 fAvgMatrix=reg_mat44_avg2(&fMatrix,&biMatrix);
-    mat44 fTest=nifti_mat44_inverse(bAvgMatrix);
+    
+    //First we need to take the square root of each of these matrices to get them into halfway space
+    //Then we need to average them. Inverse will serve as update for next image.
+    //Inverse both backwards and fowards
+//    mat44 fiMatrix=nifti_mat44_inverse(fMatrix);
+//    mat44 bAvgMatrix=reg_mat44_avg2(&fiMatrix,&bMatrix);
+//    mat44 fTest=nifti_mat44_inverse(bAvgMatrix);
 
     return fAvgMatrix;
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin_sym<T>::UpdateTransformationMatrix(mat44 matrix)
 {
@@ -288,7 +292,7 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(mat44 matrix)
     reg_mat44_disp(this->BackwardTransformationMatrix, (char*) "Backward Transform");
 #endif
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin_sym<T>::ClearCurrentInputImage()
 {
@@ -299,7 +303,7 @@ void reg_aladin_sym<T>::ClearCurrentInputImage()
     this->ClearBackwardWarpedImage();
     this->ClearBackwardDeformationField();
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin_sym<T>::DebugPrintLevelInfo(int CurrentLevel)
 {
@@ -311,6 +315,6 @@ void reg_aladin_sym<T>::DebugPrintLevelInfo(int CurrentLevel)
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 #endif //REG_ALADIN_SYM_CPP
 #endif //_BUILD_NR_DEV

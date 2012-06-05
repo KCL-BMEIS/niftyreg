@@ -87,7 +87,7 @@ class reg_aladin
 
     public:
       reg_aladin();
-      ~reg_aladin();
+      virtual ~reg_aladin();
       GetStringMacro(ExecutableName);
 
       //No allocating of the images here...
