@@ -52,15 +52,11 @@ NrrdIO/privateAir.h NrrdIO/privateNrrd.h NrrdIO/teem32bit.h NrrdIO/teemDio.h Nrr
 NrrdIO/teemPng.h NrrdIO/teemQnanhibit.h)
 
 ADD_LIBRARY(reg_NrrdIO ${nrrdio_SRCS})
-TARGET_LINK_LIBRARIES(reg_NrrdIO ${ITKZLIB_LIBRARIES})
+TARGET_LINK_LIBRARIES(reg_NrrdIO z)
 ############################################################
 ############################################################
-IF(WIN32)
-    ADD_LIBRARY(reg_nrrd reg_nrrd.cpp reg_nrrd.h)
-ELSE(WIN32)
-    ADD_LIBRARY(reg_nrrd SHARED reg_nrrd.cpp reg_nrrd.h)
-ENDIF(WIN32)
-    TARGET_LINK_LIBRARIES(reg_nrrd _reg_tools _reg_maths reg_NrrdIO reg_nifti z)
+ADD_LIBRARY(reg_nrrd reg_nrrd.cpp reg_nrrd.h)
+TARGET_LINK_LIBRARIES(reg_nrrd _reg_tools _reg_maths reg_NrrdIO reg_nifti z)
 INSTALL(TARGETS reg_nrrd
         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
         LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
