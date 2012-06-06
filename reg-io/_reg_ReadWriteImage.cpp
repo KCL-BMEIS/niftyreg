@@ -13,6 +13,7 @@
 #define _REG_READWRITEIMAGE_CPP
 
 #include "_reg_ReadWriteImage.h"
+#include "_reg_tools.h"
 
 /* *************************************************************** */
 int reg_io_checkFileFormat(const char *filename)
