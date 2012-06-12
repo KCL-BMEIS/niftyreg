@@ -1,12 +1,13 @@
 PROJECT(NiftyReg)
 
-cmake_minimum_required(VERSION 2.6.4)
+#-----------------------------------------------------------------------------
 
-IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^2\\.6\\.4$")
+cmake_minimum_required(VERSION 2.8.0)
+IF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^2\\.8\\.0$")
  MARK_AS_ADVANCED(FORCE CMAKE_BACKWARDS_COMPATIBILITY)
-ELSE("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^2\\.6\\.4$")
+ELSE("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^2\\.8\\.0$")
  MARK_AS_ADVANCED(CLEAR CMAKE_BACKWARDS_COMPATIBILITY)
-ENDIF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^2\\.6\\.4$")
+ENDIF("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^2\\.8\\.0$")
 
 #-----------------------------------------------------------------------------
 
@@ -16,15 +17,15 @@ endif(COMMAND cmake_policy)
 
 #-----------------------------------------------------------------------------
 
-IF (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-	ADD_DEFINITIONS(/W1)
-ELSE (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-	ADD_DEFINITIONS(-fPIC)
-ENDIF()	
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+    ADD_DEFINITIONS(/W1)
+ELSE(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+    ADD_DEFINITIONS(-fPIC)
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 
 #-----------------------------------------------------------------------------
 
-OPTION(BUILD_NR_DEV "To build code under development" OFF)
+OPTION(BUILD_NR_DEV "To build NiftyReg code under development" OFF)
 OPTION(BUILD_TESTING "To build the unit tests" OFF)
 
 OPTION(USE_PNG "To support the png file format for 2D images" OFF)
@@ -39,14 +40,24 @@ IF(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 ENDIF()
 #-----------------------------------------------------------------------------
 
-INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/zlib)
-INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/nifti)
-INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-lib)
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io)
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/nifti)
 
 #-----------------------------------------------------------------------------
-
+# Z library
+# Try first to find the z library on the system and built is from the sources if it can not be find
+FIND_PACKAGE(ZLIB)
+IF(ZLIB_FOUND)
+    INCLUDE_DIRECTORIES(${ZLIB_INCLUDE_DIR})
+ELSE(ZLIB_FOUND)
+    INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/zlib)
+ENDIF(ZLIB_FOUND)
+#-----------------------------------------------------------------------------
+## PNG support - First try to find the PNG library on the system and build it if it is not found
+## I did not use the FindPNG.cmake here as the zlib is also included into the project
 IF(USE_PNG)
+    # Try to find the png library and header on the system
     SET(PNG_NAMES ${PNG_NAMES} png libpng png15 libpng15 png15d libpng15d png14 libpng14 png14d libpng14d png12 libpng12 png12d libpng12d)
     FIND_LIBRARY(PNG_LIBRARY NAMES ${PNG_NAMES})
     FIND_PATH(PNG_INCLUDE_DIR png.h
@@ -58,6 +69,7 @@ IF(USE_PNG)
             SET (PNG_DEFINITIONS -DPNG_STATIC)
         ENDIF(NOT BUILD_SHARED_LIBS)
     ENDIF(CYGWIN)
+    # If the png library and header can not be found, it is build from the sources
     IF( (NOT PNG_LIBRARY OR NOT PNG_INCLUDE_DIR) AND NOT BUILD_LIBPNG)
         OPTION(BUILD_LIBPNG "Build the PNG library" OFF)
         MESSAGE("Can not find the PNG library")
@@ -72,9 +84,10 @@ IF(USE_PNG)
     ADD_DEFINITIONS(-D_USE_NR_PNG)
     INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/png)
     INCLUDE_DIRECTORIES(${PNG_INCLUDE_DIR})
-
 ENDIF(USE_PNG)
 
+#-----------------------------------------------------------------------------
+# NRRD file format support - The nrrd file format has been embedded into the project
 IF(USE_NRRD)
     ADD_DEFINITIONS(-D_USE_NR_NRRD)
     INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR})
@@ -82,6 +95,9 @@ IF(USE_NRRD)
     INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/nrrd/NrrdIO)
 ENDIF(USE_NRRD)
 
+#-----------------------------------------------------------------------------
+# Double can not be used with SSE as it has only been implemented for single precision
+# Double can not be used with CUDA
 IF(USE_DOUBLE)
     ADD_DEFINITIONS(-D_USE_NR_DOUBLE)
     IF(USE_SSE)
@@ -115,22 +131,21 @@ IF(USE_OPENMP)
     IF(GCC_VERSION VERSION_GREATER 4.2 OR GCC_VERSION VERSION_EQUAL 4.2)
         SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
-    ENDIF()
+    ENDIF(GCC_VERSION VERSION_GREATER 4.2 OR GCC_VERSION VERSION_EQUAL 4.2)
 	
     IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
         SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /openmp")
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /openmp")
-    ENDIF()
+    ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 ENDIF(USE_OPENMP)
 
 #-----------------------------------------------------------------------------
 IF(USE_CUDA)
-   INCLUDE(${CMAKE_SOURCE_DIR}/CMake/cuda/FindCUDA.cmake)
-   INCLUDE_DIRECTORIES(${CUDA_CUT_INCLUDE_DIR})
-    CUDA_INCLUDE_DIRECTORIES(${CUDA_CUT_INCLUDE_DIR})
+    FIND_PACKAGE(CUDA)
+    IF(NOT CUDA_FOUND)
+        MESSAGE(FATAL_ERROR "CUDA not found. Please turn the USE_CUDA flag off.")
+    ENDIF(NOT CUDA_FOUND)
     ADD_DEFINITIONS(-D_USE_CUDA)
-    SET(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-D_USE_CUDA")
-    CUDA_INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/nifti)
 ENDIF(USE_CUDA)
 #-----------------------------------------------------------------------------
 IF(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/.svn)
