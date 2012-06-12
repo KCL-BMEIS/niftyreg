@@ -62,7 +62,6 @@
                 ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
         )
         INSTALL(FILES ${NAME}.h DESTINATION include)
-#-----------------------------------------------------------------------------
         INSTALL(FILES _reg_blocksize_gpu.h DESTINATION include)
 #-----------------------------------------------------------------------------
     ENDIF(USE_CUDA)
@@ -78,8 +77,8 @@
         ELSE(WIN32)
             CUDA_ADD_LIBRARY(${NAME} SHARED ${NAME}.h ${NAME}.cpp ${NAME}_sym.h ${NAME}_sym.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_gpu.h ${NAME}_gpu.cpp)
         ENDIF(WIN32)
-            TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation _reg_KLdivergence _reg_ssd _reg_mutualinformation _reg_tools _reg_ReadWriteImage _reg_localTransformation_gpu _reg_resampling_gpu _reg_globalTransformation_gpu _reg_mutualinformation_gpu _reg_tools_gpu _reg_cudaCommon)
-            INSTALL(FILES ${NAME}_gpu.h DESTINATION include)
+        TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation _reg_KLdivergence _reg_ssd _reg_mutualinformation _reg_tools _reg_ReadWriteImage _reg_localTransformation_gpu _reg_resampling_gpu _reg_globalTransformation_gpu _reg_mutualinformation_gpu _reg_tools_gpu _reg_cudaCommon)
+        INSTALL(FILES ${NAME}_gpu.h ${NAME}_gpu.cpp DESTINATION include)
 #-----------------------------------------------------------------------------
     ELSE(USE_CUDA)
 #-----------------------------------------------------------------------------
@@ -88,7 +87,7 @@
         ELSE(WIN32)
             ADD_LIBRARY(${NAME} SHARED ${NAME}.h ${NAME}.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_sym.h ${NAME}_sym.cpp)
         ENDIF(WIN32)
-            TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation _reg_KLdivergence _reg_ssd _reg_mutualinformation _reg_tools _reg_ReadWriteImage)
+        TARGET_LINK_LIBRARIES(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation _reg_KLdivergence _reg_ssd _reg_mutualinformation _reg_tools _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
     ENDIF(USE_CUDA)
 #-----------------------------------------------------------------------------
@@ -97,9 +96,9 @@
             LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
             ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
     )
-    INSTALL(FILES ${NAME}.h DESTINATION include)
-    INSTALL(FILES ${NAME}2.h DESTINATION include)
-    INSTALL(FILES ${NAME}_sym.h DESTINATION include)
+    INSTALL(FILES ${NAME}.h ${NAME}.cpp DESTINATION include)
+    INSTALL(FILES ${NAME}2.h ${NAME}2.cpp DESTINATION include)
+    INSTALL(FILES ${NAME}_sym.h ${NAME}_sym.cpp DESTINATION include)
 #-----------------------------------------------------------------------------
 ## BUILD THE ALADIN LIBRARY CPU OR GPU
     SET(NAME _reg_aladin)
@@ -129,7 +128,7 @@
             LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
             ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
     )
-    INSTALL(FILES ${NAME}.h DESTINATION include)
+    INSTALL(FILES ${NAME}.h ${NAME}.cpp _reg_macros.h DESTINATION include)
 #-----------------------------------------------------------------------------
 ## BUILD THE TPS LIBRARY CPU
     SET(NAME _reg_thinPlateSpline)
@@ -144,6 +143,6 @@
             LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
             ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
     )
-    INSTALL(FILES ${NAME}.h DESTINATION include)
+    INSTALL(FILES ${NAME}.h ${NAME}.cpp DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------

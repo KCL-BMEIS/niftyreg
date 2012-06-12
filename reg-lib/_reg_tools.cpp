@@ -101,6 +101,7 @@ void reg_intensityRescale2(nifti_image *image,
             break;
         }
 
+        // Extract the minimal and maximal values from the current volume
         if(image->scl_slope==0) image->scl_slope=1.0f;
         for(unsigned int index=0; index<voxelNumber; index++){
             DTYPE value = (DTYPE)(*volumePtr++ * image->scl_slope + image->scl_inter);
@@ -110,34 +111,47 @@ void reg_intensityRescale2(nifti_image *image,
             }
         }
 
+        // Check if the current extrama are outside of the user-specified threshold values
         if(currentMin<lowThr[t]) currentMin=(DTYPE)lowThr[t];
         if(currentMax>upThr[t]) currentMax=(DTYPE)upThr[t];
 
+        // Compute constant values to rescale image intensities
         double currentDiff = (double)(currentMax-currentMin);
         double newDiff = (double)(newMax[t]-newMin[t]);
 
+        // Set the image header information for appropriate display
         image->cal_min=newMin[t] * image->scl_slope + image->scl_inter;
         image->cal_max=newMax[t] * image->scl_slope + image->scl_inter;
 
+        // Reset the volume pointer to the start of the current volume
         volumePtr = &imagePtr[t*voxelNumber];
 
+        // Iterates over all voxels in the current volume
         for(unsigned int index=0; index<voxelNumber; index++){
             double value = (double)*volumePtr * image->scl_slope + image->scl_inter;
+            // Check if the value is defined
             if(value==value){
+                // Lower threshold is applied
                 if(value<currentMin){
                     value = newMin[t];
                 }
+                // upper threshold is applied
                 else if(value>currentMax){
                     value = newMax[t];
                 }
                 else{
+                    // Normalise the value between 0 and 1
                     value = (value-(double)currentMin)/currentDiff;
+                    // Rescale the value using the specified range
                     value = value * newDiff + newMin[t];
                 }
             }
             *volumePtr++=(DTYPE)value;
         }
     }//t
+    // The slope and offset information are cleared form the header
+    image->scl_slope=1.f;
+    image->scl_inter=0.f;
 }
 /* *************************************************************** */
 void reg_intensityRescale(	nifti_image *image,

@@ -70,7 +70,7 @@ double reg_getKLDivergence1(nifti_image *referenceImage,
             }
         }
     }
-    return measure/num;
+    return measure;
 }
 /* *************************************************************** */
 double reg_getKLDivergence(nifti_image *referenceImage,

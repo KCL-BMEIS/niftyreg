@@ -47,14 +47,32 @@ INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-lib)
 #-----------------------------------------------------------------------------
 
 IF(USE_PNG)
-    FIND_PACKAGE(PNG)
-    IF(NOT PNG_FOUND)
+    SET(PNG_NAMES ${PNG_NAMES} png libpng png15 libpng15 png15d libpng15d png14 libpng14 png14d libpng14d png12 libpng12 png12d libpng12d)
+    FIND_LIBRARY(PNG_LIBRARY NAMES ${PNG_NAMES})
+    FIND_PATH(PNG_INCLUDE_DIR png.h
+        /usr/local/include/libpng
+        /sw/include
+    )
+    IF(CYGWIN)
+        IF(NOT BUILD_SHARED_LIBS)
+            SET (PNG_DEFINITIONS -DPNG_STATIC)
+        ENDIF(NOT BUILD_SHARED_LIBS)
+    ENDIF(CYGWIN)
+    IF( (NOT PNG_LIBRARY OR NOT PNG_INCLUDE_DIR) AND NOT BUILD_LIBPNG)
+        OPTION(BUILD_LIBPNG "Build the PNG library" OFF)
         MESSAGE("Can not find the PNG library")
-        MESSAGE(FATAL_ERROR "Please turn USE_PNG off")
-    ENDIF(NOT PNG_FOUND)
+        MESSAGE(FATAL_ERROR "Please turn USE_PNG off, set PNG_LIBRARY and PNG_INCLUDE_DIR manually or turn on the BUILD_PNG")
+    ENDIF( (NOT PNG_LIBRARY OR NOT PNG_INCLUDE_DIR) AND NOT BUILD_LIBPNG)
+
+    IF(BUILD_LIBPNG)
+        SET(PNG_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/reg-io/png/lpng1510)
+        SET(PNG_LIBRARY png)
+    ENDIF(BUILD_LIBPNG)
+
     ADD_DEFINITIONS(-D_USE_NR_PNG)
-    INCLUDE_DIRECTORIES(${PNG_PNG_INCLUDE_DIR})
     INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/png)
+    INCLUDE_DIRECTORIES(${PNG_INCLUDE_DIR})
+
 ENDIF(USE_PNG)
 
 IF(USE_NRRD)

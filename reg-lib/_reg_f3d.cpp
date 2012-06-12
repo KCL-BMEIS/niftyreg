@@ -932,11 +932,15 @@ void reg_f3d<T>::Initisalise_f3d()
         }
         for(unsigned int l=0; l<pyramidalLevelNumber; l++){
             reg_intensityRescale(this->referencePyramid[l],
-                                 referenceRescalingArrayDown,referenceRescalingArrayUp,
-                                 this->referenceThresholdLow, this->referenceThresholdUp);
+                                 referenceRescalingArrayDown,
+                                 referenceRescalingArrayUp,
+                                 this->referenceThresholdLow,
+                                 this->referenceThresholdUp);
             reg_intensityRescale(this->floatingPyramid[l],
-                                 floatingRescalingArrayDown,floatingRescalingArrayUp,
-                                 this->floatingThresholdLow, this->floatingThresholdUp);
+                                 floatingRescalingArrayDown,
+                                 floatingRescalingArrayUp,
+                                 this->floatingThresholdLow,
+                                 this->floatingThresholdUp);
         }
     }
 
