@@ -38,7 +38,7 @@ reg_aladin_sym<T>::~reg_aladin_sym()
     this->BackwardTransformationMatrix=NULL;
 
     if(this->FloatingMaskPyramid!=NULL){
-        for(unsigned int i=0;i<this->NumberOfLevels;++i){
+        for(unsigned int i=0;i<this->LevelsToPerform;++i){
             if(this->FloatingMaskPyramid[i]!=NULL){
                 free(this->FloatingMaskPyramid[i]);
                 this->FloatingMaskPyramid[i]=NULL;
@@ -297,7 +297,9 @@ template <class T>
 void reg_aladin_sym<T>::ClearCurrentInputImage()
 {
     reg_aladin<T>::ClearCurrentInputImage();
-    free(this->FloatingMaskPyramid[this->CurrentLevel]);this->FloatingMaskPyramid[this->CurrentLevel]=NULL;
+    if(this->FloatingMaskPyramid[this->CurrentLevel]!=NULL)
+        free(this->FloatingMaskPyramid[this->CurrentLevel]);
+    this->FloatingMaskPyramid[this->CurrentLevel]=NULL;
     this->CurrentFloatingMask=NULL;
 
     this->ClearBackwardWarpedImage();

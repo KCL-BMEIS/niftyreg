@@ -214,6 +214,12 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    // Output the command line
+    printf("\n[NiftyReg ALADIN] Command line:\n\t");
+    for(int i=0;i<argc;i++)
+        printf(" %s", argv[i]);
+    printf("\n\n");
+
     reg_aladin<PrecisionTYPE> *REG;
 #ifdef _BUILD_NR_DEV
     if(symFlag)

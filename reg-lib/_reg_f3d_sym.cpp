@@ -878,8 +878,8 @@ void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
     smoothingRadius[0] = (int)( 2.0*this->backwardControlPointGrid->dx/this->currentFloating->dx );
     smoothingRadius[1] = (int)( 2.0*this->backwardControlPointGrid->dy/this->currentFloating->dy );
     smoothingRadius[2] = (int)( 2.0*this->backwardControlPointGrid->dz/this->currentFloating->dz );
-    reg_smoothImageForCubicSpline<T>(this->backwardVoxelBasedMeasureGradientImage,
-                                     smoothingRadius);
+    reg_tools_CubicSplineKernelConvolution<T>(this->backwardVoxelBasedMeasureGradientImage,
+                                              smoothingRadius);
 
     // The node based NMI gradient is extracted
     reg_voxelCentric2NodeCentric(this->backwardNodeBasedGradientImage,
@@ -1394,7 +1394,7 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
     smoothingRadius[0] = (int)( 2.0*this->controlPointGrid->dx/this->currentReference->dx );
     smoothingRadius[1] = (int)( 2.0*this->controlPointGrid->dy/this->currentReference->dy );
     smoothingRadius[2] = (int)( 2.0*this->controlPointGrid->dz/this->currentReference->dz );
-    reg_smoothImageForCubicSpline<T>(this->deformationFieldImage, smoothingRadius);
+    reg_tools_CubicSplineKernelConvolution<T>(this->deformationFieldImage, smoothingRadius);
     reg_voxelCentric2NodeCentric(this->nodeBasedGradientImage,
                                  this->deformationFieldImage,
                                  2.f * this->inverseConsistencyWeight,
@@ -1432,7 +1432,7 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
     smoothingRadius[0] = (int)( 2.0*this->controlPointGrid->dx/this->currentReference->dx );
     smoothingRadius[1] = (int)( 2.0*this->controlPointGrid->dy/this->currentReference->dy );
     smoothingRadius[2] = (int)( 2.0*this->controlPointGrid->dz/this->currentReference->dz );
-    reg_smoothImageForCubicSpline<T>(this->deformationFieldImage, smoothingRadius);
+    reg_tools_CubicSplineKernelConvolution<T>(this->deformationFieldImage, smoothingRadius);
     reg_voxelCentric2NodeCentric(this->nodeBasedGradientImage,
                                  this->deformationFieldImage,
                                  2.f * this->inverseConsistencyWeight,
@@ -1471,7 +1471,7 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
     smoothingRadius[0] = (int)( 2.0*this->backwardControlPointGrid->dx/this->currentFloating->dx );
     smoothingRadius[1] = (int)( 2.0*this->backwardControlPointGrid->dy/this->currentFloating->dy );
     smoothingRadius[2] = (int)( 2.0*this->backwardControlPointGrid->dz/this->currentFloating->dz );
-    reg_smoothImageForCubicSpline<T>(this->backwardDeformationFieldImage, smoothingRadius);
+    reg_tools_CubicSplineKernelConvolution<T>(this->backwardDeformationFieldImage, smoothingRadius);
     reg_voxelCentric2NodeCentric(this->backwardNodeBasedGradientImage,
                                  this->backwardDeformationFieldImage,
                                  2.f * this->inverseConsistencyWeight,
@@ -1510,7 +1510,7 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
     smoothingRadius[0] = (int)( 2.0*this->backwardControlPointGrid->dx/this->currentFloating->dx );
     smoothingRadius[1] = (int)( 2.0*this->backwardControlPointGrid->dy/this->currentFloating->dy );
     smoothingRadius[2] = (int)( 2.0*this->backwardControlPointGrid->dz/this->currentFloating->dz );
-    reg_smoothImageForCubicSpline<T>(this->backwardDeformationFieldImage, smoothingRadius);
+    reg_tools_CubicSplineKernelConvolution<T>(this->backwardDeformationFieldImage, smoothingRadius);
     reg_voxelCentric2NodeCentric(this->backwardNodeBasedGradientImage,
                                  this->backwardDeformationFieldImage,
                                  2.f * this->inverseConsistencyWeight,

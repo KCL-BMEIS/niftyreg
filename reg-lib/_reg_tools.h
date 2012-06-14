@@ -57,9 +57,9 @@ void reg_intensityRescale(nifti_image *image,
                           );
 
 extern "C++" template <class PrecisionTYPE>
-void reg_smoothImageForCubicSpline(nifti_image *image,
-                                   int radius[3]
-                                   );
+void reg_tools_CubicSplineKernelConvolution(nifti_image *image,
+                                      int radius[3]
+                                      );
 
 extern "C++" template <class PrecisionTYPE>
 void reg_smoothNormImageForCubicSpline(nifti_image *image,

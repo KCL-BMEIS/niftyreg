@@ -1475,8 +1475,8 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
     smoothingRadius[0] = (int)( 2.0*this->controlPointGrid->dx/this->currentReference->dx );
     smoothingRadius[1] = (int)( 2.0*this->controlPointGrid->dy/this->currentReference->dy );
     smoothingRadius[2] = (int)( 2.0*this->controlPointGrid->dz/this->currentReference->dz );
-    reg_smoothImageForCubicSpline<T>(this->voxelBasedMeasureGradientImage,
-                                     smoothingRadius);
+    reg_tools_CubicSplineKernelConvolution<T>(this->voxelBasedMeasureGradientImage,
+                                              smoothingRadius);
 
     // The node based NMI gradient is extracted
     reg_voxelCentric2NodeCentric(this->nodeBasedGradientImage,

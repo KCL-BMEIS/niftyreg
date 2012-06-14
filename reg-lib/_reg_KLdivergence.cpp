@@ -53,8 +53,8 @@ double reg_getKLDivergence1(nifti_image *referenceImage,
 #endif
         for(voxel=0; voxel<voxelNumber; ++voxel){
             if(maskPtr[voxel]>-1){
-                tempRefValue = currentRefPtr[voxel];
-                tempWarValue = currentWarPtr[voxel];
+                tempRefValue = currentRefPtr[voxel]+1e-16;
+                tempWarValue = currentWarPtr[voxel]+1e-16;
                 tempValue=tempRefValue*log(tempRefValue/tempWarValue);
                 if(tempValue==tempValue &&
                    tempValue!=std::numeric_limits<double>::infinity()){
@@ -70,7 +70,7 @@ double reg_getKLDivergence1(nifti_image *referenceImage,
             }
         }
     }
-    return measure;
+    return measure/num;
 }
 /* *************************************************************** */
 double reg_getKLDivergence(nifti_image *referenceImage,
@@ -181,7 +181,7 @@ void reg_getKLDivergenceVoxelBasedGradient1(nifti_image *referenceImage,
             // Check if the current voxel is in the mask
             if(maskPtr[voxel]>-1){
                 // Read referenceImage and warpedImage probabilities and compute the ratio
-                tempValue=currentRefPtr[voxel]/currentWarPtr[voxel];
+                tempValue=(currentRefPtr[voxel]+1e-16)/(currentWarPtr[voxel]+1e-16);
                 // Check if the intensity ratio is defined and different from zero
                 if(tempValue==tempValue &&
                    tempValue!=std::numeric_limits<double>::infinity() &&

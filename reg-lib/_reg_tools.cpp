@@ -268,9 +268,9 @@ template void reg_thresholdImage<double>(nifti_image *, double, double);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class DTYPE>
-void reg_smoothImageForCubicSpline1(nifti_image *image,
-                                    int radius[]
-                                    )
+void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
+                                             int radius[]
+                                             )
 {
     DTYPE *imageArray = static_cast<DTYPE *>(image->data);
 
@@ -285,14 +285,15 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
     /* Smoothing along the X axis */
     int windowSize = 2*radius[0] + 1;
     PrecisionTYPE *window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
-    //    PrecisionTYPE coeffSum=0.0;
+    PrecisionTYPE coeffSum=0.0;
     for(int it=-radius[0]; it<=radius[0]; it++){
         PrecisionTYPE coeff = (PrecisionTYPE)(fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[0]));
-        if(coeff<1.0)	window[it+radius[0]] = (PrecisionTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
-        else		window[it+radius[0]] = (PrecisionTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
-        //        coeffSum += window[it+radius[0]];
+        if(coeff<1.0) window[it+radius[0]] = (PrecisionTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
+        else if (coeff<2.0) window[it+radius[0]] = (PrecisionTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
+        else window[it+radius[0]]=0;
+        coeffSum += window[it+radius[0]];
     }
-    //	for(int it=0;it<windowSize;it++) window[it] /= coeffSum;
+//	for(int it=0;it<windowSize;it++) window[it] /= coeffSum;
     for(int t=0;t<timePoint;t++){
         for(int u=0;u<field;u++){
 
@@ -300,10 +301,12 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
             DTYPE *writtingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
             int index, i, X, it, x, y, z;
             PrecisionTYPE finalValue, windowValue, t, c, temp;
+            PrecisionTYPE currentCoeffSum;
             DTYPE imageValue;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    private(index, i, X, it, x, y, z, finalValue, windowValue, c, t, temp, imageValue) \
+    private(index, i, X, it, x, y, z, finalValue, windowValue, \
+    c, t, temp, imageValue, currentCoeffSum) \
     shared(image, readingValue, writtingValue, radius, windowSize, window)
 #endif // _OPENMP
             for(z=0; z<image->nz; z++){
@@ -311,11 +314,11 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
                 for(y=0; y<image->ny; y++){
                     for(x=0; x<image->nx; x++){
 
+                        finalValue=0.0;
+                        currentCoeffSum=0.0;
 
                         index = i - radius[0];
                         X = x - radius[0];
-
-                        finalValue=0.0;
                         // Kahan summation used here
                         c = (PrecisionTYPE)0;
                         for(it=0; it<windowSize; it++){
@@ -327,9 +330,12 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
                                 c = (t - finalValue) - temp;
                                 finalValue = t;
                             }
+                            else currentCoeffSum += window[it];
                             index++;
                             X++;
                         }
+                        if(currentCoeffSum!=0)
+                            finalValue *= coeffSum / (coeffSum-currentCoeffSum);
                         writtingValue[i++] = (DTYPE)finalValue;
                     }
                 }
@@ -341,14 +347,15 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
     windowSize = 2*radius[1] + 1;
     free(window);
     window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
-    //    coeffSum=0.0;
+    coeffSum=0.0;
     for(int it=-radius[1]; it<=radius[1]; it++){
         PrecisionTYPE coeff = (PrecisionTYPE)(fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[1]));
-        if(coeff<1.0)	window[it+radius[1]] = (PrecisionTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
-        else		window[it+radius[1]] = (PrecisionTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
-        //        coeffSum += window[it+radius[1]];
+        if(coeff<1.0) window[it+radius[1]] = (PrecisionTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
+        else if (coeff<2.0) window[it+radius[1]] = (PrecisionTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
+        else window[it+radius[1]]=0;
+        coeffSum += window[it+radius[1]];
     }
-    //    for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
+//    for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
     for(int t=0;t<timePoint;t++){
         for(int u=0;u<field;u++){
 
@@ -356,10 +363,12 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
             DTYPE *writtingValue=&imageArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
             int index, i, Y, it, x, y, z;
             PrecisionTYPE finalValue, windowValue, t, c, temp;
+            PrecisionTYPE currentCoeffSum;
             DTYPE imageValue;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    private(index, i, Y, it, x, y, z, finalValue, windowValue, c, t, temp, imageValue) \
+    private(index, i, Y, it, x, y, z, finalValue, windowValue, \
+    c, t, temp, imageValue, currentCoeffSum) \
     shared(image, readingValue, writtingValue, radius, windowSize, window)
 #endif // _OPENMP
             for(z=0; z<image->nz; z++){
@@ -368,6 +377,7 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
                     for(x=0; x<image->nx; x++){
 
                         finalValue=0.0;
+                        currentCoeffSum=0.0;
 
                         index = i - image->nx*radius[1];
                         Y = y - radius[1];
@@ -383,10 +393,12 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
                                 c = (t - finalValue) - temp;
                                 finalValue = t;
                             }
+                            else currentCoeffSum += window[it];
                             index+=image->nx;
                             Y++;
                         }
-
+                        if(currentCoeffSum!=0)
+                            finalValue *= coeffSum / (coeffSum-currentCoeffSum);
                         writtingValue[i++] = (DTYPE)finalValue;
                     }
                 }
@@ -398,14 +410,15 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
         windowSize = 2*radius[2] + 1;
         free(window);
         window = (PrecisionTYPE *)calloc(windowSize,sizeof(PrecisionTYPE));
-        //	    coeffSum=0.0;
+        coeffSum=0.0;
         for(int it=-radius[2]; it<=radius[2]; it++){
             PrecisionTYPE coeff = (PrecisionTYPE)(fabs(2.0*(PrecisionTYPE)it/(PrecisionTYPE)radius[2]));
-            if(coeff<1.0)	window[it+radius[2]] = (PrecisionTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
-            else		window[it+radius[2]] = (PrecisionTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
-            //			coeffSum += window[it+radius[2]];
+            if(coeff<1.0) window[it+radius[2]] = (PrecisionTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
+            else if (coeff<2.0) window[it+radius[2]] = (PrecisionTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
+            else window[it+radius[2]]=0;
+            coeffSum += window[it+radius[2]];
         }
-        //	    for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
+//	    for(int it=0;it<windowSize;it++)window[it] /= coeffSum;
         for(int t=0;t<timePoint;t++){
             for(int u=0;u<field;u++){
 
@@ -414,10 +427,12 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
 
                 int index, i, Z, it, x, y, z;
                 PrecisionTYPE finalValue, windowValue, t, c, temp;
+                PrecisionTYPE currentCoeffSum;
                 DTYPE imageValue;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    private(index, i, Z, it, x, y, z, finalValue, windowValue, c, t, temp, imageValue) \
+    private(index, i, Z, it, x, y, z, finalValue, windowValue, \
+    c, t, temp, imageValue, currentCoeffSum) \
     shared(image, readingValue, writtingValue, radius, windowSize, window)
 #endif // _OPENMP
 
@@ -427,6 +442,7 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
                         for(x=0; x<image->nx; x++){
 
                             finalValue=0.0;
+                            currentCoeffSum=0.0;
 
                             index = i - image->nx*image->ny*radius[2];
                             Z = z - radius[2];
@@ -442,10 +458,12 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
                                     c = (t - finalValue) - temp;
                                     finalValue = t;
                                 }
+                                else currentCoeffSum += window[it];
                                 index+=image->nx*image->ny;
                                 Z++;
                             }
-
+                            if(currentCoeffSum!=0)
+                                finalValue *= coeffSum / (coeffSum-currentCoeffSum);
                             writtingValue[i++] = (DTYPE)finalValue;
                         }
                     }
@@ -459,43 +477,43 @@ void reg_smoothImageForCubicSpline1(nifti_image *image,
 }
 /* *************************************************************** */
 template <class PrecisionTYPE>
-void reg_smoothImageForCubicSpline(	nifti_image *image,
-                                    int radius[]
-                                    )
+void reg_tools_CubicSplineKernelConvolution(nifti_image *image,
+                                            int radius[]
+                                            )
 {
     switch(image->datatype){
     case NIFTI_TYPE_UINT8:
-        reg_smoothImageForCubicSpline1<PrecisionTYPE,unsigned char>(image, radius);
+        reg_tools_CubicSplineKernelConvolution1<PrecisionTYPE,unsigned char>(image, radius);
         break;
     case NIFTI_TYPE_INT8:
-        reg_smoothImageForCubicSpline1<PrecisionTYPE,char>(image, radius);
+        reg_tools_CubicSplineKernelConvolution1<PrecisionTYPE,char>(image, radius);
         break;
     case NIFTI_TYPE_UINT16:
-        reg_smoothImageForCubicSpline1<PrecisionTYPE,unsigned short>(image, radius);
+        reg_tools_CubicSplineKernelConvolution1<PrecisionTYPE,unsigned short>(image, radius);
         break;
     case NIFTI_TYPE_INT16:
-        reg_smoothImageForCubicSpline1<PrecisionTYPE,short>(image, radius);
+        reg_tools_CubicSplineKernelConvolution1<PrecisionTYPE,short>(image, radius);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_smoothImageForCubicSpline1<PrecisionTYPE,unsigned int>(image, radius);
+        reg_tools_CubicSplineKernelConvolution1<PrecisionTYPE,unsigned int>(image, radius);
         break;
     case NIFTI_TYPE_INT32:
-        reg_smoothImageForCubicSpline1<PrecisionTYPE,int>(image, radius);
+        reg_tools_CubicSplineKernelConvolution1<PrecisionTYPE,int>(image, radius);
         break;
     case NIFTI_TYPE_FLOAT32:
-        reg_smoothImageForCubicSpline1<PrecisionTYPE,float>(image, radius);
+        reg_tools_CubicSplineKernelConvolution1<PrecisionTYPE,float>(image, radius);
         break;
     case NIFTI_TYPE_FLOAT64:
-        reg_smoothImageForCubicSpline1<PrecisionTYPE,double>(image, radius);
+        reg_tools_CubicSplineKernelConvolution1<PrecisionTYPE,double>(image, radius);
         break;
     default:
-        fprintf(stderr,"[NiftyReg ERROR] reg_smoothImage\tThe image data type is not supported\n");
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_CubicSplineKernelConvolution\tThe image data type is not supported\n");
         exit(1);
     }
 }
 /* *************************************************************** */
-template void reg_smoothImageForCubicSpline<float>(nifti_image *, int[]);
-template void reg_smoothImageForCubicSpline<double>(nifti_image *, int[]);
+template void reg_tools_CubicSplineKernelConvolution<float>(nifti_image *, int[]);
+template void reg_tools_CubicSplineKernelConvolution<double>(nifti_image *, int[]);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class DTYPE>
@@ -905,7 +923,7 @@ void reg_smoothImageForTrilinear(	nifti_image *image,
         reg_smoothImageForTrilinear1<PrecisionTYPE,short>(image, radius);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_smoothImageForCubicSpline1<PrecisionTYPE,unsigned int>(image, radius);
+        reg_smoothImageForTrilinear1<PrecisionTYPE,unsigned int>(image, radius);
         break;
     case NIFTI_TYPE_INT32:
         reg_smoothImageForTrilinear1<PrecisionTYPE,int>(image, radius);

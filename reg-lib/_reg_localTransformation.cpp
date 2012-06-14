@@ -1297,11 +1297,15 @@ void reg_voxelCentric2NodeCentric2D(nifti_image *nodeImage,
 
     for(int y=0;y<nodeImage->ny; y++){
         int Y = (int)reg_round((float)(y-1) * ratio[1]);
+        Y=Y<0?0:Y;
+        Y=Y>voxelImage->ny-1?voxelImage->ny-1:Y;
         DTYPE *yVoxelPtrX=&voxelPtrX[Y*voxelImage->nx];
         DTYPE *yVoxelPtrY=&voxelPtrY[Y*voxelImage->nx];
         for(int x=0;x<nodeImage->nx; x++){
             int X = (int)reg_round((float)(x-1) * ratio[0]);
-            if( -1<Y && Y<voxelImage->ny && -1<X && X<voxelImage->nx){
+            X=X<0?0:X;
+            X=X>voxelImage->nx-1?voxelImage->nx-1:X;
+//            if( -1<Y && Y<voxelImage->ny && -1<X && X<voxelImage->nx){
                 if(update){
                     *nodePtrX += (DTYPE)(yVoxelPtrX[X] * weight);
                     *nodePtrY += (DTYPE)(yVoxelPtrY[X] * weight);
@@ -1310,14 +1314,14 @@ void reg_voxelCentric2NodeCentric2D(nifti_image *nodeImage,
                     *nodePtrX = (DTYPE)(yVoxelPtrX[X] * weight);
                     *nodePtrY = (DTYPE)(yVoxelPtrY[X] * weight);
                 }
-            }
-            else{
-                if(!update){
-                    *nodePtrX = 0.0;
-                    *nodePtrY = 0.0;
-                }
-            }
-            nodePtrX++;nodePtrY++;
+//            }
+//            else{
+//                if(!update){
+//                    *nodePtrX = 0.0;
+//                    *nodePtrY = 0.0;
+//                }
+//            }
+                ++nodePtrX;++nodePtrY;
         }
     }
 }
@@ -1337,24 +1341,33 @@ void reg_voxelCentric2NodeCentric3D(nifti_image *nodeImage,
     DTYPE *voxelPtrY = &voxelPtrX[voxelImage->nx*voxelImage->ny*voxelImage->nz];
     DTYPE *voxelPtrZ = &voxelPtrY[voxelImage->nx*voxelImage->ny*voxelImage->nz];
 
-    DTYPE ratio[3];
+    float ratio[3];
     ratio[0] = nodeImage->dx / voxelImage->dx;
     ratio[1] = nodeImage->dy / voxelImage->dy;
     ratio[2] = nodeImage->dz / voxelImage->dz;
 
     for(int z=0;z<nodeImage->nz; z++){
         int Z = (int)reg_round((float)(z-1) * ratio[2]);
+        // sliding condition-ish along the Z-axis
+        Z=Z<0?0:Z;
+        Z=Z>=voxelImage->nz?voxelImage->nz-1:Z;
         DTYPE *zvoxelPtrX=&voxelPtrX[Z*voxelImage->nx*voxelImage->ny];
         DTYPE *zvoxelPtrY=&voxelPtrY[Z*voxelImage->nx*voxelImage->ny];
         DTYPE *zvoxelPtrZ=&voxelPtrZ[Z*voxelImage->nx*voxelImage->ny];
         for(int y=0;y<nodeImage->ny; y++){
             int Y = (int)reg_round((float)(y-1) * ratio[1]);
+            // sliding condition-ish along the Y-axis
+            Y=Y<0?0:Y;
+            Y=Y>=voxelImage->ny?voxelImage->ny-1:Y;
             DTYPE *yzvoxelPtrX=&zvoxelPtrX[Y*voxelImage->nx];
             DTYPE *yzvoxelPtrY=&zvoxelPtrY[Y*voxelImage->nx];
             DTYPE *yzvoxelPtrZ=&zvoxelPtrZ[Y*voxelImage->nx];
             for(int x=0;x<nodeImage->nx; x++){
                 int X = (int)reg_round((float)(x-1) * ratio[0]);
-                if(-1<Z && Z<voxelImage->nz && -1<Y && Y<voxelImage->ny && -1<X && X<voxelImage->nx){
+                // sliding condition-ish along the X-axis
+                X=X<0?0:X;
+                X=X>=voxelImage->nx?voxelImage->nx-1:X;
+//                if(-1<Z && Z<voxelImage->nz && -1<Y && Y<voxelImage->ny && -1<X && X<voxelImage->nx){
                     if(update){
                         *nodePtrX += (DTYPE)(yzvoxelPtrX[X]*weight);
                         *nodePtrY += (DTYPE)(yzvoxelPtrY[X]*weight);
@@ -1365,15 +1378,15 @@ void reg_voxelCentric2NodeCentric3D(nifti_image *nodeImage,
                         *nodePtrY = (DTYPE)(yzvoxelPtrY[X]*weight);
                         *nodePtrZ = (DTYPE)(yzvoxelPtrZ[X]*weight);
                     }
-                }
-                else{
-                    if(!update){
-                        *nodePtrX = 0.0;
-                        *nodePtrY = 0.0;
-                        *nodePtrZ = 0.0;
-                    }
-                }
-                nodePtrX++;nodePtrY++;nodePtrZ++;
+//                }
+//                else{
+//                    if(!update){
+//                        *nodePtrX = 0.0;
+//                        *nodePtrY = 0.0;
+//                        *nodePtrZ = 0.0;
+//                    }
+//                }
+                ++nodePtrX;++nodePtrY;++nodePtrZ;
             }
         }
     }
