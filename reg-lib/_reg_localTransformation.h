@@ -1,6 +1,7 @@
-/*
- *  _reg_bspline.h
- *  
+/**
+ * @file _reg_localTransformation.h
+ * @author Marc Modat
+ * @date 25/03/2009
  *
  *  Created by Marc Modat on 25/03/2009.
  *  Copyright (c) 2009, University College London. All rights reserved.

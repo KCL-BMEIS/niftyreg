@@ -1,7 +1,7 @@
-/*
- *  _reg_ReadWriteImage.h
- *
- *
+/**
+ * @file _reg_ReadWriteImage.h
+ * @author Marc Modat
+ * @date 30/05/2012
  *  Created by Marc Modat on 30/05/2012.
  *  Copyright (c) 2012, University College London. All rights reserved.
  *  Centre for Medical Image Computing (CMIC)
@@ -31,6 +31,8 @@
 /** reg_checkFileFormat
   * The function checks the file format using the provided filename
   * Nifti is returned by default if no format are specified
+  * @param filename Filename of the input images
+  * @return Code that encode the file format
   */
 int reg_io_checkFileFormat(const char *filename);
 /* *************************************************************** */

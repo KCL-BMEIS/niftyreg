@@ -50,6 +50,7 @@ INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/nifti)
 FIND_PACKAGE(ZLIB)
 IF(ZLIB_FOUND)
     INCLUDE_DIRECTORIES(${ZLIB_INCLUDE_DIR})
+        MESSAGE(STATUS "Found zlib - the z library will not be built")
 ELSE(ZLIB_FOUND)
     INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/zlib)
 ENDIF(ZLIB_FOUND)
@@ -74,6 +75,8 @@ IF(USE_PNG)
         OPTION(BUILD_LIBPNG "Build the PNG library" OFF)
         MESSAGE("Can not find the PNG library")
         MESSAGE(FATAL_ERROR "Please turn USE_PNG off, set PNG_LIBRARY and PNG_INCLUDE_DIR manually or turn on the BUILD_PNG")
+    ELSE( (NOT PNG_LIBRARY OR NOT PNG_INCLUDE_DIR) AND NOT BUILD_LIBPNG)
+        MESSAGE(STATUS "Found libpng - the png library will not be built")
     ENDIF( (NOT PNG_LIBRARY OR NOT PNG_INCLUDE_DIR) AND NOT BUILD_LIBPNG)
 
     IF(BUILD_LIBPNG)
@@ -142,10 +145,12 @@ ENDIF(USE_OPENMP)
 #-----------------------------------------------------------------------------
 IF(USE_CUDA)
     FIND_PACKAGE(CUDA)
-    IF(NOT CUDA_FOUND)
+    IF(CUDA_FOUND)
+        ADD_DEFINITIONS(-D_USE_CUDA)
+        MESSAGE(STATUS "Found CUDA - the GPU code will be compiled.")
+    ELSE(CUDA_FOUND)
         MESSAGE(FATAL_ERROR "CUDA not found. Please turn the USE_CUDA flag off.")
-    ENDIF(NOT CUDA_FOUND)
-    ADD_DEFINITIONS(-D_USE_CUDA)
+    ENDIF(CUDA_FOUND)
 ENDIF(USE_CUDA)
 #-----------------------------------------------------------------------------
 IF(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/.svn)
@@ -153,6 +158,7 @@ IF(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/.svn)
     IF(Subversion_FOUND)
         Subversion_WC_INFO(${CMAKE_SOURCE_DIR} NiftyReg)
         ADD_DEFINITIONS(-D_SVN_REV=${NiftyReg_WC_REVISION})
+        MESSAGE(STATUS "Found subversion - the revision number is added to the source.")
     ENDIF(Subversion_FOUND)
 ENDIF(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/.svn)
 #-----------------------------------------------------------------------------
@@ -165,5 +171,17 @@ if(BUILD_TESTING)
     INCLUDE(${CMAKE_ROOT}/Modules/Dart.cmake)
     SUBDIRS(reg-test)
 ENDIF(BUILD_TESTING)
+#-----------------------------------------------------------------------------
+
+# add a target to generate API documentation with Doxygen
+FIND_PACKAGE(Doxygen)
+IF(DOXYGEN_FOUND)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
+    add_custom_target(doc
+        ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        COMMENT "Generating API documentation with Doxygen" VERBATIM
+    )
+ENDIF(DOXYGEN_FOUND)
 
 #=============================================================================
