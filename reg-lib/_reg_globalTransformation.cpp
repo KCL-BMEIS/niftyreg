@@ -131,7 +131,7 @@ void reg_affine_positionField(mat44 *affineTransformation,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-void reg_tool_ReadAffineFile(	mat44 *mat,
+void reg_tool_ReadAffineFile(mat44 *mat,
                              nifti_image* target,
                              nifti_image* source,
                              char *fileName,
