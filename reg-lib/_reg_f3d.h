@@ -94,6 +94,8 @@ class reg_f3d
     bool zOptimisation;
     bool gridRefinement;
 
+    bool additive_mc_nmi; // Additive multi channel NMI
+
     unsigned int currentIteration;
 
     virtual void AllocateWarped();
@@ -164,6 +166,10 @@ public:
     void SetLevelNumber(unsigned int);
     void SetLevelToPerform(unsigned int);
     void SetGradientSmoothingSigma(T);
+
+    // Set the multi channel implementation to additive.
+    void SetAdditiveMC() { this->additive_mc_nmi = true; }
+
     void UseComposition();
     void DoNotUseComposition();
     void UseSSD();

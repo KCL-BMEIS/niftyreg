@@ -64,6 +64,7 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->verbose=true;
     this->useSSD=false;
     this->useKLD=false;
+    this->additive_mc_nmi = false;
     this->useConjGradient=true;
     this->maxSSD=NULL;
     this->entropies[0]=this->entropies[1]=this->entropies[2]=this->entropies[3]=0.;
@@ -1159,8 +1160,9 @@ double reg_f3d<T>::ComputeSimilarityMeasure()
                                        this->currentMask);
     }
     else{
+        // Use additive NMI when the flag is set and we have multi channel input
         if(this->currentReference->nt>1 &&
-           this->currentReference->nt == this->warped->nt ){
+           this->currentReference->nt == this->warped->nt && additive_mc_nmi){
 
             fprintf(stderr, "WARNING: Modification for Jorge - reg_f3d<T>::ComputeSimilarityMeasure()\n");
 
@@ -1353,8 +1355,9 @@ void reg_f3d<T>::GetVoxelBasedGradient()
                                               );
     }
     else{
+        // Use additive NMI when the flag is set and we have multi channel input
         if(this->currentReference->nt>1 &&
-           this->currentReference->nt == this->warped->nt ){
+           this->currentReference->nt == this->warped->nt && additive_mc_nmi){
 
             fprintf(stderr, "WARNING: Modification for Jorge - reg_f3d<T>::GetVoxelBasedGradient()\n");
 
