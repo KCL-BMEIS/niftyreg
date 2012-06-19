@@ -111,6 +111,7 @@ void Usage(char *exec)
     printf("\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent\n");
     printf("\t-ssd\t\t\tTo use the SSD as the similiarity measure (NMI by default)\n");
     printf("\t-kld\t\t\tTo use the KL divergence as the similiarity measure (NMI by default)*\n");
+    printf("\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)*\n");
     printf("\t* For the Kullback–Leibler divergence, reference and floating are expected to be probabilities\n");
 
     printf("\n*** Optimisation options:\n");
@@ -214,6 +215,7 @@ int main(int argc, char **argv)
     bool gridRefinement=true;
 
     bool useSym=false;
+    bool additiveNMI = false;
     char *floatingMaskName=NULL;
     float inverseConsistencyWeight=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
 
@@ -351,6 +353,10 @@ int main(int argc, char **argv)
             useSSD=false;
             useKLD=true;
         }
+        else if(strcmp(argv[i], "-amc") == 0){
+            additiveNMI = true;
+        }
+
         else if(strcmp(argv[i], "-pad") == 0){
             warpedPaddingValue=(PrecisionTYPE)(atof(argv[++i]));
         }
@@ -756,6 +762,8 @@ int main(int argc, char **argv)
     if(gridRefinement==false)
         REG->NoGridRefinement();
 
+    if (additiveNMI) REG->SetAdditiveMC();
+
     // F3D SYM arguments
     if(floatingMaskImage!=NULL){
         if(useSym)
@@ -928,6 +936,6 @@ int main(int argc, char **argv)
 #ifdef NDEBUG
     }
 #endif
-	return 0;
+    return 0;
 }
 
