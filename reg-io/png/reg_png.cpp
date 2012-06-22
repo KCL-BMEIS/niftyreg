@@ -15,7 +15,7 @@
 #include "reg_png.h"
 
 /* *************************************************************** */
-nifti_image *reg_io_readPNGfile(char *pngFileName, bool readData)
+nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
 {
     // We first read the png file
     FILE *pngFile=NULL;

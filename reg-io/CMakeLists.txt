@@ -9,23 +9,19 @@ SUBDIRS(nifti)
 SET(LIBRARIES reg_nifti ${ZLIB_LIBRARY})
 
 # Build the png library if required
-IF(USE_PNG)
-    SUBDIRS(png)
-    SET(LIBRARIES ${LIBRARIES} reg_png)
-ENDIF(USE_PNG)
+SUBDIRS(png)
+SET(LIBRARIES ${LIBRARIES} reg_png)
 
 # Build the NRRD file format library if required
-IF(USE_NRRD)
-    SUBDIRS(nrrd)
-    SET(LIBRARIES ${LIBRARIES} reg_nrrd)
-ENDIF(USE_NRRD)
+SUBDIRS(nrrd)
+SET(LIBRARIES ${LIBRARIES} reg_nrrd)
 
 # Create the reg_io library
 ADD_LIBRARY(_reg_ReadWriteImage _reg_ReadWriteImage.h _reg_ReadWriteImage.cpp)
 TARGET_LINK_LIBRARIES(_reg_ReadWriteImage ${LIBRARIES})
 INSTALL(TARGETS _reg_ReadWriteImage
-        RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
 )
-INSTALL(FILES _reg_ReadWriteImage.h DESTINATION include)
+INSTALL(FILES _reg_ReadWriteImage.h DESTINATION include COMPONENT Development)

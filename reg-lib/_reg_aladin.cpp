@@ -138,9 +138,9 @@ int reg_aladin<T>::Print()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_aladin<T>::SetInputTransform(char *filename, bool flirtFlag)
+void reg_aladin<T>::SetInputTransform(const char *filename, bool flirtFlag)
 {
-    this->InputTransformName=filename;
+    this->InputTransformName=(char *)filename;
     this->InputTransformFromFlirt=flirtFlag;
     return;
 }

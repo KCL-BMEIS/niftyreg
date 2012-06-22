@@ -17,6 +17,7 @@
 #include "_reg_ReadWriteImage.h"
 #include "_reg_aladin_sym.h"
 #include "_reg_tools.h"
+#include "reg_aladin.h"
 
 #ifdef _WINDOWS
 #include <time.h>
@@ -124,82 +125,80 @@ int main(int argc, char **argv)
             Usage(argv[0]);
             return 0;
         }
-        else if(strcmp(argv[i], "-ref") == 0 || strcmp(argv[i], "-target") == 0){
+        else if("--xml"){
+            printf("%s",xml_aladin);
+            return 0;
+        }
+        else if(strcmp(argv[i], "-ref")==0 || strcmp(argv[i], "-target")==0 || strcmp(argv[i], "--ref")==0){
             referenceImageName=argv[++i];
             referenceImageFlag=1;
         }
-        else if(strcmp(argv[i], "-flo") == 0 || strcmp(argv[i], "-source") == 0){
+        else if(strcmp(argv[i], "-flo")==0 || strcmp(argv[i], "-source")==0 || strcmp(argv[i], "--flo")==0){
             floatingImageName=argv[++i];
             floatingImageFlag=1;
         }
-        else if(strcmp(argv[i], "-sym") == 0){
+        else if(strcmp(argv[i], "-sym")==0 || strcmp(argv[i], "--sym")==0){
             symFlag=1;
         }
-        else if(strcmp(argv[i], "-aff") == 0){
+        else if(strcmp(argv[i], "-aff")==0 || strcmp(argv[i], "--aff")==0){
             outputAffineName=argv[++i];
             outputAffineFlag=1;
         }
-        else if(strcmp(argv[i], "-inaff") == 0){
+        else if(strcmp(argv[i], "-inaff")==0 || strcmp(argv[i], "--inaff")==0){
             inputAffineName=argv[++i];
             inputAffineFlag=1;
         }
-        else if(strcmp(argv[i], "-affFlirt") == 0){
+        else if(strcmp(argv[i], "-affFlirt")==0 || strcmp(argv[i], "--affFlirt")==0){
             inputAffineName=argv[++i];
             inputAffineFlag=1;
             flirtAffineFlag=1;
         }
-        else if(strcmp(argv[i], "-rmask") == 0 || strcmp(argv[i], "-tmask") == 0){
+        else if(strcmp(argv[i], "-rmask")==0 || strcmp(argv[i], "-tmask")==0 || strcmp(argv[i], "--rmask")==0){
             referenceMaskName=argv[++i];
             referenceMaskFlag=1;
         }
-        else if(strcmp(argv[i], "-fmask") == 0 || strcmp(argv[i], "-smask") == 0){
+        else if(strcmp(argv[i], "-fmask")==0 || strcmp(argv[i], "-smask")==0 || strcmp(argv[i], "--fmask")==0){
             floatingMaskName=argv[++i];
             floatingMaskFlag=1;
         }
-        else if(strcmp(argv[i], "-res") == 0 || strcmp(argv[i], "-result") == 0){
+        else if(strcmp(argv[i], "-res")==0 || strcmp(argv[i], "-result")==0 || strcmp(argv[i], "--res")==0){
             outputResultName=argv[++i];
             outputResultFlag=1;
         }
-        else if(strcmp(argv[i], "-maxit") == 0){
+        else if(strcmp(argv[i], "-maxit")==0 || strcmp(argv[i], "--maxit")==0){
             maxIter = atoi(argv[++i]);
         }
-        else if(strcmp(argv[i], "-ln") == 0){
+        else if(strcmp(argv[i], "-ln")==0 || strcmp(argv[i], "--ln")==0){
             nLevels=atoi(argv[++i]);
         }
-        else if(strcmp(argv[i], "-lp") == 0){
+        else if(strcmp(argv[i], "-lp")==0 || strcmp(argv[i], "--lp")==0){
             levelsToPerform=atoi(argv[++i]);
         }
-        else if(strcmp(argv[i], "-smooR") == 0 || strcmp(argv[i], "-smooT") == 0){
+        else if(strcmp(argv[i], "-smooR")==0 || strcmp(argv[i], "-smooT")==0 || strcmp(argv[i], "--smooR")==0){
             referenceSigma = (float)(atof(argv[++i]));
         }
-        else if(strcmp(argv[i], "-smooF") == 0 || strcmp(argv[i], "-smooS") == 0){
+        else if(strcmp(argv[i], "-smooF")==0 || strcmp(argv[i], "-smooS")==0 || strcmp(argv[i], "--smooF")==0){
             floatingSigma=(float)(atof(argv[++i]));
         }
-        else if(strcmp(argv[i], "-rigOnly") == 0){
+        else if(strcmp(argv[i], "-rigOnly") || strcmp(argv[i], "--rigOnly")==0){
             rigidFlag=1;
             affineFlag=0;
             }
-        else if(strcmp(argv[i], "-affDirect") == 0){
+        else if(strcmp(argv[i], "-affDirect")==0 || strcmp(argv[i], "--affDirect")==0){
           rigidFlag=0;
           affineFlag=1;
         }
-        else if(strcmp(argv[i], "-nac") == 0){
+        else if(strcmp(argv[i], "-nac")==0 || strcmp(argv[i], "--nac")==0){
             alignCentre=0;
         }
-        else if(strcmp(argv[i], "-%v") == 0){
+        else if(strcmp(argv[i], "-%v")==0 || strcmp(argv[i], "--v")==0){
             blockPercentage=atof(argv[++i]);
         }
-        else if(strcmp(argv[i], "-%i") == 0){
+        else if(strcmp(argv[i], "-%i")==0 || strcmp(argv[i], "--i")==0){
             inlierLts=atof(argv[++i]);
         }
-        else if(strcmp(argv[i], "-NN") == 0){
-            interpolation=0;
-        }
-        else if(strcmp(argv[i], "-LIN") == 0){
-            interpolation=1;
-        }
-        else if(strcmp(argv[i], "-CUB") == 0){
-            interpolation=3;
+        else if(strcmp(argv[i], "-interp")==0 || strcmp(argv[i], "--interp")==0){
+            interpolation=atoi(argv[++i]);
         }
         else{
             fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);

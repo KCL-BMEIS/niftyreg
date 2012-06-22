@@ -100,7 +100,7 @@ class reg_aladin
       void SetInputMask(nifti_image *input) {this->InputReferenceMask=input;}
       nifti_image *GetInputMask() {return this->InputReferenceMask;}
 
-      void SetInputTransform(char *filename, bool IsFlirt);
+      void SetInputTransform(const char *filename, bool IsFlirt);
       mat44* GetInputTransform() {return this->InputTransform;}
 
       mat44* GetTransformationMatrix() {return this->TransformationMatrix;}

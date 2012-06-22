@@ -70,6 +70,6 @@ void reg_tool_ReadAffineFile(	mat44 *mat,
  */
 extern "C++"
 void reg_tool_WriteAffineFile(	mat44 *mat,
-                                char *fileName);
+                                const char *fileName);
 
 #endif

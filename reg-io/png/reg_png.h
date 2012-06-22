@@ -26,7 +26,7 @@
   * @param readData The actual data is read if the flag is set to true
   * @return Returns a pointer to the nifti_image that contains the PNG file
   */
-nifti_image *reg_io_readPNGfile(char *filename, bool readData);
+nifti_image *reg_io_readPNGfile(const char *filename, bool readData);
 /* *************************************************************** */
 /** @brief This function first convert a nifti image into a png and then
   * save the png file.

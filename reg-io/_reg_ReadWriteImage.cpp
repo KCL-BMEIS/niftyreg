@@ -31,20 +31,16 @@ int reg_io_checkFileFormat(const char *filename)
         return NR_NII_FORMAT;
     else if(b.find( ".img") != std::string::npos)
         return NR_NII_FORMAT;
-#ifdef _USE_NR_PNG
     else if(b.find( ".png") != std::string::npos)
         return NR_PNG_FORMAT;
-#endif
-#ifdef _USE_NR_NRRD
     else if(b.find( ".nrrd") != std::string::npos)
         return NR_NRRD_FORMAT;
-#endif
     else fprintf(stderr, "[NiftyReg WARNING]: No filename extension provided - the Nifti library is used by default\n");
 
     return NR_NII_FORMAT;
 }
 /* *************************************************************** */
-nifti_image *reg_io_ReadImageFile(char *filename)
+nifti_image *reg_io_ReadImageFile(const char *filename)
 {
     // First read the fileformat in order to use the correct library
     int fileFormat=reg_io_checkFileFormat(filename);
@@ -57,20 +53,16 @@ nifti_image *reg_io_ReadImageFile(char *filename)
     case NR_NII_FORMAT:
         image=nifti_image_read(filename,true);
         break;
-#ifdef _USE_NR_PNG
     case NR_PNG_FORMAT:
         image=reg_io_readPNGfile(filename,true);
         nifti_set_filenames(image,filename,0,0);
         break;
-#endif
-#ifdef _USE_NR_NRRD
     case NR_NRRD_FORMAT:
         Nrrd *nrrdImage = reg_io_readNRRDfile(filename);
         image = reg_io_nrdd2nifti(nrrdImage);
         nrrdNuke(nrrdImage);
         nifti_set_filenames(image,filename,0,0);
         break;
-#endif
     }
     reg_checkAndCorrectDimension(image);
 
@@ -78,7 +70,7 @@ nifti_image *reg_io_ReadImageFile(char *filename)
     return image;
 }
 /* *************************************************************** */
-nifti_image *reg_io_ReadImageHeader(char *filename)
+nifti_image *reg_io_ReadImageHeader(const char *filename)
 {
     // First read the fileformat in order to use the correct library
     int fileFormat=reg_io_checkFileFormat(filename);
@@ -91,20 +83,16 @@ nifti_image *reg_io_ReadImageHeader(char *filename)
     case NR_NII_FORMAT:
         image=nifti_image_read(filename,false);
         break;
-#ifdef _USE_NR_PNG
     case NR_PNG_FORMAT:
         image=reg_io_readPNGfile(filename,false);
         nifti_set_filenames(image,filename,0,0);
     break;
-#endif
-#ifdef _USE_NR_NRRD
     case NR_NRRD_FORMAT:
         Nrrd *nrrdImage = reg_io_readNRRDfile(filename);
         image = reg_io_nrdd2nifti(nrrdImage);
         nrrdNuke(nrrdImage);
         nifti_set_filenames(image,filename,0,0);
         break;
-#endif
     }
     reg_checkAndCorrectDimension(image);
 
@@ -140,17 +128,13 @@ void reg_io_WriteImageFile(nifti_image *image, const char *filename)
         nifti_set_filenames(image,filename,0,0);
         nifti_image_write(image);
         break;
-#ifdef _USE_NR_PNG
     case NR_PNG_FORMAT:
         reg_io_writePNGfile(image,filename);
         break;
-#endif
-#ifdef _USE_NR_NRRD
     case NR_NRRD_FORMAT:
         Nrrd *nrrdImage = reg_io_nifti2nrrd(image);
         reg_io_writeNRRDfile(nrrdImage,filename);
         nrrdNuke(nrrdImage);
-#endif
     }
 
     // Return

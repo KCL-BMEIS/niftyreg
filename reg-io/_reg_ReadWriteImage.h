@@ -17,13 +17,8 @@
 #include "nifti1_io.h"
 #include <string>
 
-#ifdef _USE_NR_PNG
-    #include "reg_png.h"
-#endif
-
-#ifdef _USE_NR_NRRD
-    #include "reg_nrrd.h"
-#endif
+#include "reg_png.h"
+#include "reg_nrrd.h"
 
 /** \defgroup NIFTYREG_FILEFORMAT_TYPE
     \brief Codes to define the image file format
@@ -48,7 +43,7 @@ int reg_io_checkFileFormat(const char *filename);
   * @param filename Filename of the input images
   * @return Image as a nifti image
   */
-nifti_image *reg_io_ReadImageFile(char *filename);
+nifti_image *reg_io_ReadImageFile(const char *filename);
 /* *************************************************************** */
 /** The function expects a filename and returns a nifti_image structure
   * The function will use to correct library and will return a NULL image
@@ -57,7 +52,7 @@ nifti_image *reg_io_ReadImageFile(char *filename);
   * @param filename Filename of the input images
   * @return Image as a nifti image
   */
-nifti_image *reg_io_ReadImageHeader(char *filename);
+nifti_image *reg_io_ReadImageHeader(const char *filename);
 /* *************************************************************** */
 /** The function expects a filename and nifti_image structure
   * The image will be converted to the format specified in the

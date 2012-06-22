@@ -25,11 +25,10 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 
 #-----------------------------------------------------------------------------
 
-OPTION(BUILD_NR_DEV "To build NiftyReg code under development" OFF)
-OPTION(BUILD_TESTING "To build the unit tests" OFF)
+OPTION(BUILD_NR_DEV "To build NiftyReg code under development" ON)
+OPTION(BUILD_TESTING "To build the unit tests" ON)
+OPTION(BUILD_NR_SLICER_EXT "Where NiftyReg meets 3DSlicer" ${SLICER_ALIVE})
 
-OPTION(USE_PNG "To support the png file format for 2D images" OFF)
-OPTION(USE_NRRD "To support the nrrd file format" OFF)
 OPTION(USE_SSE "To use SSE computation in some case" OFF)
 OPTION(USE_CUDA "To use CUDA for a GPU implementation of the code" OFF)
 OPTION(USE_DOUBLE "To use double precision instead of single precision" OFF)
@@ -53,50 +52,43 @@ IF(ZLIB_FOUND)
         MESSAGE(STATUS "Found zlib - the z library will not be built")
 ELSE(ZLIB_FOUND)
     INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/zlib)
+        MESSAGE(STATUS "zlib not found - the z library will be built")
 ENDIF(ZLIB_FOUND)
 #-----------------------------------------------------------------------------
 ## PNG support - First try to find the PNG library on the system and build it if it is not found
 ## I did not use the FindPNG.cmake here as the zlib is also included into the project
-IF(USE_PNG)
-    # Try to find the png library and header on the system
-    SET(PNG_NAMES ${PNG_NAMES} png libpng png15 libpng15 png15d libpng15d png14 libpng14 png14d libpng14d png12 libpng12 png12d libpng12d)
-    FIND_LIBRARY(PNG_LIBRARY NAMES ${PNG_NAMES})
-    FIND_PATH(PNG_INCLUDE_DIR png.h
-        /usr/local/include/libpng
-        /sw/include
-    )
-    IF(CYGWIN)
-        IF(NOT BUILD_SHARED_LIBS)
-            SET (PNG_DEFINITIONS -DPNG_STATIC)
-        ENDIF(NOT BUILD_SHARED_LIBS)
-    ENDIF(CYGWIN)
-    # If the png library and header can not be found, it is build from the sources
-    IF( (NOT PNG_LIBRARY OR NOT PNG_INCLUDE_DIR) AND NOT BUILD_LIBPNG)
-        OPTION(BUILD_LIBPNG "Build the PNG library" OFF)
-        MESSAGE("Can not find the PNG library")
-        MESSAGE(FATAL_ERROR "Please turn USE_PNG off, set PNG_LIBRARY and PNG_INCLUDE_DIR manually or turn on the BUILD_PNG")
-    ELSE( (NOT PNG_LIBRARY OR NOT PNG_INCLUDE_DIR) AND NOT BUILD_LIBPNG)
-        MESSAGE(STATUS "Found libpng - the png library will not be built")
-    ENDIF( (NOT PNG_LIBRARY OR NOT PNG_INCLUDE_DIR) AND NOT BUILD_LIBPNG)
 
-    IF(BUILD_LIBPNG)
-        SET(PNG_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/reg-io/png/lpng1510)
-        SET(PNG_LIBRARY png)
-    ENDIF(BUILD_LIBPNG)
+# Try to find the png library and header on the system
+set(PNG_NAMES ${PNG_NAMES} png libpng png15 libpng15 png15d libpng15d png14 libpng14 png14d libpng14d png12 libpng12 png12d libpng12d)
+FIND_LIBRARY(PNG_LIBRARY NAMES ${PNG_NAMES})
+FIND_PATH(PNG_INCLUDE_DIR png.h
+    /usr/local/include/libpng
+    /sw/include
+)
+IF(CYGWIN)
+    IF(NOT BUILD_SHARED_LIBS)
+        set (PNG_DEFINITIONS -DPNG_STATIC)
+    ENDIF(NOT BUILD_SHARED_LIBS)
+ENDIF(CYGWIN)
+# If the png library and header can not be found, it is build from the sources
+IF( (NOT PNG_LIBRARY OR NOT PNG_INCLUDE_DIR) AND NOT BUILD_LIBPNG)
+    MESSAGE(STATUS "libpng not  - the png library will be built")
+ELSE( (NOT PNG_LIBRARY OR NOT PNG_INCLUDE_DIR) AND NOT BUILD_LIBPNG)
+    MESSAGE(STATUS "Found libpng - the png library will not be built")
+ENDIF( (NOT PNG_LIBRARY OR NOT PNG_INCLUDE_DIR) AND NOT BUILD_LIBPNG)
+IF(BUILD_LIBPNG)
+    set(PNG_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/reg-io/png/lpng1510)
+    set(PNG_LIBRARY png)
+ENDIF(BUILD_LIBPNG)
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/png)
+INCLUDE_DIRECTORIES(${PNG_INCLUDE_DIR})
 
-    ADD_DEFINITIONS(-D_USE_NR_PNG)
-    INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/png)
-    INCLUDE_DIRECTORIES(${PNG_INCLUDE_DIR})
-ENDIF(USE_PNG)
 
 #-----------------------------------------------------------------------------
 # NRRD file format support - The nrrd file format has been embedded into the project
-IF(USE_NRRD)
-    ADD_DEFINITIONS(-D_USE_NR_NRRD)
-    INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR})
-    INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/nrrd)
-    INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/nrrd/NrrdIO)
-ENDIF(USE_NRRD)
+INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR})
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/nrrd)
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/reg-io/nrrd/NrrdIO)
 
 #-----------------------------------------------------------------------------
 # Double can not be used with SSE as it has only been implemented for single precision
@@ -132,13 +124,13 @@ IF(USE_OPENMP)
     EXECUTE_PROCESS(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
 
     IF(GCC_VERSION VERSION_GREATER 4.2 OR GCC_VERSION VERSION_EQUAL 4.2)
-        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
     ENDIF(GCC_VERSION VERSION_GREATER 4.2 OR GCC_VERSION VERSION_EQUAL 4.2)
 	
     IF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /openmp")
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /openmp")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /openmp")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /openmp")
     ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 ENDIF(USE_OPENMP)
 
@@ -183,5 +175,4 @@ IF(DOXYGEN_FOUND)
         COMMENT "Generating API documentation with Doxygen" VERBATIM
     )
 ENDIF(DOXYGEN_FOUND)
-
 #=============================================================================
