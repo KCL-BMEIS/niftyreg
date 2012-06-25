@@ -11,6 +11,7 @@
 
 #include "_reg_ReadWriteImage.h"
 #include "_reg_f3d2.h"
+#include "reg_f3d.h"
 
 #ifdef _USE_CUDA
 #include "_reg_f3d_gpu.h"
@@ -89,8 +90,14 @@ void Usage(char *exec)
     printf("\t-rmask <filename>\t\tFilename of a mask image in the reference space\n");
     printf("\t-smooR <float>\t\t\tSmooth the reference image using the specified sigma (mm) [0]\n");
     printf("\t-smooF <float>\t\t\tSmooth the floating image using the specified sigma (mm) [0]\n");
-    printf("\t-rbn <timepoint> <bin>\t\tNumber of bin to use for the joint histogram [64]\n");
-    printf("\t-fbn <timepoint> <bin>\t\tNumber of bin to use for the joint histogram [64]\n");
+    printf("\t--rbn <int>\t\t\tNumber of bin to use for the joint histogram [64]. Identical value for every timepoint.\n");
+    printf("\t--fbn <int>\t\t\tNumber of bin to use for the joint histogram [64]. Identical value for every timepoint.\n");
+    printf("\t-rbn <timepoint> <int>\t\tNumber of bin to use for the joint histogram [64]\n");
+    printf("\t-fbn <timepoint> <int>\t\tNumber of bin to use for the joint histogram [64]\n");
+    printf("\t--rLwTh <float>\t\t\tLower threshold to apply to the reference image intensities [none]. Identical value for every timepoint.*\n");
+    printf("\t--rUpTh <float>\t\t\tUpper threshold to apply to the reference image intensities [none]. Identical value for every timepoint.*\n");
+    printf("\t--fLwTh <float>\t\t\tLower threshold to apply to the floating image intensities [none]. Identical value for every timepoint.*\n");
+    printf("\t--fUpTh <float>\t\t\tUpper threshold to apply to the floating image intensities [none]. Identical value for every timepoint.*\n");
     printf("\t-rLwTh <timepoint> <float>\tLower threshold to apply to the reference image intensities [none]*\n");
     printf("\t-rUpTh <timepoint> <float>\tUpper threshold to apply to the reference image intensities [none]*\n");
     printf("\t-fLwTh <timepoint> <float>\tLower threshold to apply to the floating image intensities [none]*\n");
@@ -121,7 +128,7 @@ void Usage(char *exec)
     printf("\t-nopy\t\t\tDo not use a pyramidal approach\n");
 
     printf("\n*** F3D_SYM options:\n");
-    printf("\t-sym \t\tUse symmetric approach\n");
+    printf("\t-sym \t\t\tUse symmetric approach\n");
     printf("\t-fmask <filename>\tFilename of a mask image in the floating space\n");
     printf("\t-ic <float>\t\tWeight of the inverse consistency penalty term [0.01]\n");
 
@@ -150,15 +157,10 @@ void Usage(char *exec)
 int main(int argc, char **argv)
 {
 
-#ifndef NDEBUG
-    printf("[NiftyReg DEBUG] *******************************************\n");
-    printf("[NiftyReg DEBUG] *******************************************\n");
-    printf("[NiftyReg DEBUG] NiftyReg has been compiled in DEBUG mode\n");
-    printf("[NiftyReg DEBUG] Please rerun cmake to set the variable\n");
-    printf("[NiftyReg DEBUG] CMAKE_BUILD_TYPE to \"Release\" if required\n");
-    printf("[NiftyReg DEBUG] *******************************************\n");
-    printf("[NiftyReg DEBUG] *******************************************\n");
-#endif
+    if(argc==1){
+        PetitUsage(argv[0]);
+        return 1;
+    }
     time_t start; time(&start);
 
     char *referenceName=NULL;
@@ -206,9 +208,7 @@ int main(int argc, char **argv)
     bool useSSD=false;
     bool useKLD=false;
     bool noPyramid=0;
-    bool useCubicSplineInterpolation=false;
-    bool useLinearInterpolation=true;
-    bool useNearestNeighorInterpolation=false;
+    int interpolation=1;
     bool xOptimisation=true;
     bool yOptimisation=true;
     bool zOptimisation=true;
@@ -238,10 +238,17 @@ int main(int argc, char **argv)
             Usage(argv[0]);
             return 0;
         }
+        else if(strcmp(argv[i], "--xml")==0){
+            printf("%s",xml_f3d);
+            return 0;
+        }
 #ifdef _SVN_REV
-        if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
-           strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
-           strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0){
+        if( strcmp(argv[i], "-version")==0 ||
+            strcmp(argv[i], "-Version")==0 ||
+            strcmp(argv[i], "-V")==0 ||
+            strcmp(argv[i], "-v")==0 ||
+            strcmp(argv[i], "--v")==0 ||
+            strcmp(argv[i], "--version")==0){
             printf("NiftyReg revision number: %i\n",_SVN_REV);
             return 0;
         }
@@ -250,80 +257,88 @@ int main(int argc, char **argv)
             HelpPenaltyTerm();
             return 0;
         }
-        else if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0)){
+        else if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0) || (strcmp(argv[i],"--ref")==0)){
             referenceName=argv[++i];
         }
-        else if((strcmp(argv[i],"-flo")==0) || (strcmp(argv[i],"-source")==0)){
+        else if((strcmp(argv[i],"-flo")==0) || (strcmp(argv[i],"-source")==0) || (strcmp(argv[i],"--flo")==0)){
             floatingName=argv[++i];
         }
-        else if(strcmp(argv[i], "-voff") == 0){
+        else if(strcmp(argv[i], "-voff")==0){
             verbose=false;
         }
-        else if(strcmp(argv[i], "-aff") == 0){
+        else if(strcmp(argv[i], "-aff")==0 || (strcmp(argv[i],"--aff")==0)){
             affineTransformationName=argv[++i];
         }
-        else if(strcmp(argv[i], "-affFlirt") == 0){
+        else if(strcmp(argv[i], "-affFlirt")==0 || (strcmp(argv[i],"--affFlirt")==0)){
             affineTransformationName=argv[++i];
             flirtAffine=1;
         }
-        else if(strcmp(argv[i], "-incpp") == 0){
+        else if(strcmp(argv[i], "-incpp")==0 || (strcmp(argv[i],"--incpp")==0)){
             inputControlPointGridName=argv[++i];
         }
-        else if((strcmp(argv[i],"-rmask")==0) || (strcmp(argv[i],"-tmask")==0)){
+        else if((strcmp(argv[i],"-rmask")==0) || (strcmp(argv[i],"-tmask")==0) || (strcmp(argv[i],"--rmask")==0)){
             referenceMaskName=argv[++i];
         }
-        else if((strcmp(argv[i],"-res")==0) || (strcmp(argv[i],"-result")==0)){
+        else if((strcmp(argv[i],"-res")==0) || (strcmp(argv[i],"-result")==0) || (strcmp(argv[i],"--res")==0)){
             outputWarpedName=argv[++i];
         }
-        else if(strcmp(argv[i], "-cpp") == 0){
+        else if(strcmp(argv[i], "-cpp")==0 || (strcmp(argv[i],"--cpp")==0)){
             outputControlPointGridName=argv[++i];
         }
-        else if(strcmp(argv[i], "-maxit") == 0){
+        else if(strcmp(argv[i], "-maxit")==0 || strcmp(argv[i], "--maxit")==0){
             maxiterationNumber=atoi(argv[++i]);
         }
-        else if(strcmp(argv[i], "-sx") == 0){
+        else if(strcmp(argv[i], "-sx")==0 || strcmp(argv[i], "--sx")==0){
             spacing[0]=(float)atof(argv[++i]);
         }
-        else if(strcmp(argv[i], "-sy") == 0){
+        else if(strcmp(argv[i], "-sy")==0 || strcmp(argv[i], "--sy")==0){
             spacing[1]=(float)atof(argv[++i]);
         }
-        else if(strcmp(argv[i], "-sz") == 0){
+        else if(strcmp(argv[i], "-sz")==0 || strcmp(argv[i], "--sz")==0){
             spacing[2]=(float)atof(argv[++i]);
         }
         else if((strcmp(argv[i],"-rbn")==0) || (strcmp(argv[i],"-tbn")==0)){
             referenceBinNumber[atoi(argv[i+1])]=atoi(argv[i+2]);
             i+=2;
         }
+        else if((strcmp(argv[i],"--rbn")==0) ){
+            referenceBinNumber[0]=atoi(argv[++i]);
+            for(unsigned j=1;j<10;++j) referenceBinNumber[j]=referenceBinNumber[0];
+        }
         else if((strcmp(argv[i],"-fbn")==0) || (strcmp(argv[i],"-sbn")==0)){
             floatingBinNumber[atoi(argv[i+1])]=atoi(argv[i+2]);
             i+=2;
         }
-        else if(strcmp(argv[i], "-ln") == 0){
+        else if((strcmp(argv[i],"--fbn")==0) ){
+            floatingBinNumber[0]=atoi(argv[++i]);
+            for(unsigned j=1;j<10;++j) floatingBinNumber[j]=floatingBinNumber[0];
+        }
+        else if(strcmp(argv[i], "-ln")==0 || strcmp(argv[i], "--ln")==0){
             levelNumber=atoi(argv[++i]);
         }
-        else if(strcmp(argv[i], "-lp") == 0){
+        else if(strcmp(argv[i], "-lp")==0 || strcmp(argv[i], "--lp")==0){
            levelToPerform=atoi(argv[++i]);
         }
-        else if(strcmp(argv[i], "-be") == 0){
+        else if(strcmp(argv[i], "-be")==0 || strcmp(argv[i], "--be")==0){
             bendingEnergyWeight=(PrecisionTYPE)(atof(argv[++i]));
         }
-        else if(strcmp(argv[i], "-le") == 0){
+        else if(strcmp(argv[i], "-le")==0){
             linearEnergyWeight0=(PrecisionTYPE)(atof(argv[++i]));
             linearEnergyWeight1=(PrecisionTYPE)(atof(argv[++i]));
         }
-        else if(strcmp(argv[i], "-l2") == 0){
+        else if(strcmp(argv[i], "-l2")==0 || strcmp(argv[i], "--l2")==0){
             L2NormWeight=(PrecisionTYPE)(atof(argv[++i]));
         }
-        else if(strcmp(argv[i], "-jl") == 0){
+        else if(strcmp(argv[i], "-jl")==0 || strcmp(argv[i], "--jl")==0){
             jacobianLogWeight=(PrecisionTYPE)(atof(argv[++i]));
         }
-        else if(strcmp(argv[i], "-noAppJL") == 0){
+        else if(strcmp(argv[i], "-noAppJL")==0 || strcmp(argv[i], "--noAppJL")==0){
             jacobianLogApproximation=false;
         }
-        else if((strcmp(argv[i],"-smooR")==0) || (strcmp(argv[i],"-smooT")==0)){
+        else if((strcmp(argv[i],"-smooR")==0) || (strcmp(argv[i],"-smooT")==0) || strcmp(argv[i], "--smooR")==0){
             referenceSmoothingSigma=(PrecisionTYPE)(atof(argv[++i]));
         }
-        else if((strcmp(argv[i],"-smooF")==0) || (strcmp(argv[i],"-smooS")==0)){
+        else if((strcmp(argv[i],"-smooF")==0) || (strcmp(argv[i],"-smooS")==0) || strcmp(argv[i], "--smooF")==0){
             floatingSmoothingSigma=(PrecisionTYPE)(atof(argv[++i]));
         }
         else if((strcmp(argv[i],"-rLwTh")==0) || (strcmp(argv[i],"-tLwTh")==0)){
@@ -342,55 +357,60 @@ int main(int argc, char **argv)
             floatingThresholdUp[atoi(argv[i+1])]=(PrecisionTYPE)(atof(argv[i+2]));
             i+=2;
         }
-        else if(strcmp(argv[i], "-smoothGrad") == 0){
+        else if((strcmp(argv[i],"--rLwTh")==0) ){
+            referenceThresholdLow[0]=atof(argv[++i]);
+            for(unsigned j=1;j<10;++j) referenceThresholdLow[j]=referenceThresholdLow[0];
+        }
+        else if((strcmp(argv[i],"--rUpTh")==0) ){
+            referenceThresholdUp[0]=atof(argv[++i]);
+            for(unsigned j=1;j<10;++j) referenceThresholdUp[j]=referenceThresholdUp[0];
+        }
+        else if((strcmp(argv[i],"--fLwTh")==0) ){
+            floatingThresholdLow[0]=atof(argv[++i]);
+            for(unsigned j=1;j<10;++j) floatingThresholdLow[j]=floatingThresholdLow[0];
+        }
+        else if((strcmp(argv[i],"--fUpTh")==0) ){
+            floatingThresholdUp[0]=atof(argv[++i]);
+            for(unsigned j=1;j<10;++j) floatingThresholdUp[j]=floatingThresholdUp[0];
+        }
+        else if(strcmp(argv[i], "-smoothGrad")==0){
             gradientSmoothingSigma=(PrecisionTYPE)(atof(argv[++i]));
         }
-        else if(strcmp(argv[i], "-ssd") == 0){
+        else if(strcmp(argv[i], "-ssd")==0 || strcmp(argv[i], "--ssd")==0){
             useSSD=true;
             useKLD=false;
         }
-        else if(strcmp(argv[i], "-kld") == 0){
+        else if(strcmp(argv[i], "-kld")==0 || strcmp(argv[i], "--kld")==0){
             useSSD=false;
             useKLD=true;
         }
-        else if(strcmp(argv[i], "-amc") == 0){
+        else if(strcmp(argv[i], "-amc")==0){
             additiveNMI = true;
         }
 
-        else if(strcmp(argv[i], "-pad") == 0){
+        else if(strcmp(argv[i], "-pad")==0){
             warpedPaddingValue=(PrecisionTYPE)(atof(argv[++i]));
         }
-        else if(strcmp(argv[i], "-nopy") == 0){
+        else if(strcmp(argv[i], "-nopy")==0 || strcmp(argv[i], "--nopy")==0){
             noPyramid=1;
         }
-        else if(strcmp(argv[i], "-noConj") == 0){
+        else if(strcmp(argv[i], "-noConj")==0 || strcmp(argv[i], "--noConj")==0){
            useConjugate=false;
         }
-        else if(strcmp(argv[i], "-CUB") == 0){
-            useCubicSplineInterpolation=true;
-            useLinearInterpolation=false;
-            useNearestNeighorInterpolation=false;
+        else if(strcmp(argv[i], "-interp")==0 || strcmp(argv[i], "--interp")==0){
+            interpolation=atoi(argv[++i]);
         }
-        else if(strcmp(argv[i], "-LIN") == 0){
-            useCubicSplineInterpolation=false;
-            useLinearInterpolation=true;
-            useNearestNeighorInterpolation=false;
-        }
-        else if(strcmp(argv[i], "-NN") == 0){
-            useCubicSplineInterpolation=false;
-            useLinearInterpolation=false;
-            useNearestNeighorInterpolation=true;
-        }
-        else if(strcmp(argv[i], "-noAppPW") == 0){
+        else if(strcmp(argv[i], "-noAppPW")==0){
             parzenWindowApproximation=false;
         }
-        else if(strcmp(argv[i], "-sym") ==0){
+        else if(strcmp(argv[i], "-sym") ==0 || strcmp(argv[i], "--sym") ==0){
             useSym=true;
         }
-        else if((strcmp(argv[i],"-fmask")==0) || (strcmp(argv[i],"-smask")==0)){
+        else if((strcmp(argv[i],"-fmask")==0) || (strcmp(argv[i],"-smask")==0) ||
+                (strcmp(argv[i],"--fmask")==0) || (strcmp(argv[i],"--smask")==0)){
             floatingMaskName=argv[++i];
         }
-        else if(strcmp(argv[i], "-ic") ==0){
+        else if(strcmp(argv[i], "-ic")==0 || strcmp(argv[i], "--ic")==0){
             inverseConsistencyWeight=atof(argv[++i]);
         }
         else if(strcmp(argv[i], "-nox") ==0){
@@ -406,22 +426,21 @@ int main(int argc, char **argv)
             gridRefinement=false;
         }
 #ifdef _BUILD_NR_DEV
-        else if(strcmp(argv[i], "-vel") == 0){
+        else if(strcmp(argv[i], "-vel")==0 || strcmp(argv[i], "--vel")==0){
             useVel=true;
         }
-        else if(strcmp(argv[i], "-step") == 0){
+        else if(strcmp(argv[i], "-step")==0 || strcmp(argv[i], "--step")==0){
            stepNumber=atoi(argv[++i]);
-           useVel=true;
         }
 #endif
 #ifdef _USE_CUDA
-        else if(strcmp(argv[i], "-gpu") == 0){
+        else if(strcmp(argv[i], "-gpu")==0){
             useGPU=true;
         }
-        else if(strcmp(argv[i], "-card") == 0){
+        else if(strcmp(argv[i], "-card")==0){
             cardNumber=atoi(argv[++i]);
         }
-        else if(strcmp(argv[i], "-mem") == 0){
+        else if(strcmp(argv[i], "-mem")==0){
             checkMem=true;
         }
 #endif
@@ -431,6 +450,22 @@ int main(int argc, char **argv)
             return 1;
         }
     }
+
+    if(referenceName==NULL || floatingName==NULL){
+        fprintf(stderr,"Err:\tThe reference and the floating image have to be defined.\n");
+        PetitUsage(argv[0]);
+        return 1;
+    }
+
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] *******************************************\n");
+    printf("[NiftyReg DEBUG] *******************************************\n");
+    printf("[NiftyReg DEBUG] NiftyReg has been compiled in DEBUG mode\n");
+    printf("[NiftyReg DEBUG] Please rerun cmake to set the variable\n");
+    printf("[NiftyReg DEBUG] CMAKE_BUILD_TYPE to \"Release\" if required\n");
+    printf("[NiftyReg DEBUG] *******************************************\n");
+    printf("[NiftyReg DEBUG] *******************************************\n");
+#endif
 
     // Output the command line
 #ifdef NDEBUG
@@ -741,14 +776,16 @@ int main(int argc, char **argv)
     if(noPyramid==1)
         REG->DoNotUsePyramidalApproach();
 
-    if(useCubicSplineInterpolation)
-        REG->UseCubicSplineInterpolation();
-
-    if(useLinearInterpolation)
-        REG->UseLinearInterpolation();
-
-    if(useNearestNeighorInterpolation)
-        REG->UseNeareatNeighborInterpolation();
+    switch(interpolation){
+    case 0:REG->UseNeareatNeighborInterpolation();
+        break;
+    case 1:REG->UseLinearInterpolation();
+        break;
+    case 3:REG->UseCubicSplineInterpolation();
+        break;
+    default:REG->UseLinearInterpolation();
+        break;
+    }
 
     if(xOptimisation==false)
         REG->NoOptimisationAlongX();

@@ -1,4 +1,4 @@
-IF(BUILD_LIBPNG)
+IF(BUILD_INTERNAL_PNG)
     # If the png library is not present on the machine, it is build from the sources
     # Most of the following lines are extracted from the libpng1510 CMakeLists.txt
     SET(PNGLIB_MAJOR 1)
@@ -52,7 +52,7 @@ IF(BUILD_LIBPNG)
     # Build the library
     ADD_LIBRARY(png ${png_SRCS})
     TARGET_LINK_LIBRARIES(png z)
-ENDIF(BUILD_LIBPNG)
+ENDIF(BUILD_INTERNAL_PNG)
 
 ADD_LIBRARY(reg_png reg_png.cpp reg_png.h readpng.cpp readpng.h)
 TARGET_LINK_LIBRARIES(reg_png ${PNG_LIBRARY} _reg_tools reg_nifti z)

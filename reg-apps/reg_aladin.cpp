@@ -31,9 +31,11 @@
 
 void PetitUsage(char *exec)
 {
-    fprintf(stderr,"Aladin - Seb.\n");
+    fprintf(stderr,"\n");
+    fprintf(stderr,"reg_aladin\n");
     fprintf(stderr,"Usage:\t%s -ref <referenceImageName> -flo <floatingImageName> [OPTIONS].\n",exec);
     fprintf(stderr,"\tSee the help for more details (-h).\n");
+    fprintf(stderr,"\n");
     return;
 }
 void Usage(char *exec)
@@ -79,6 +81,11 @@ void Usage(char *exec)
 
 int main(int argc, char **argv)
 {
+    if(argc==1){
+        PetitUsage(argv[0]);
+        return 1;
+    }
+
     time_t start; time(&start);
 
     int symFlag=0;
@@ -125,10 +132,21 @@ int main(int argc, char **argv)
             Usage(argv[0]);
             return 0;
         }
-        else if("--xml"){
+        else if(strcmp(argv[i], "--xml")==0){
             printf("%s",xml_aladin);
             return 0;
         }
+#ifdef _SVN_REV
+        if( strcmp(argv[i], "-version")==0 ||
+            strcmp(argv[i], "-Version")==0 ||
+            strcmp(argv[i], "-V")==0 ||
+            strcmp(argv[i], "-v")==0 ||
+            strcmp(argv[i], "--v")==0 ||
+            strcmp(argv[i], "--version")==0){
+            printf("NiftyReg revision number: %i\n",_SVN_REV);
+            return 0;
+        }
+#endif
         else if(strcmp(argv[i], "-ref")==0 || strcmp(argv[i], "-target")==0 || strcmp(argv[i], "--ref")==0){
             referenceImageName=argv[++i];
             referenceImageFlag=1;
@@ -191,10 +209,10 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-nac")==0 || strcmp(argv[i], "--nac")==0){
             alignCentre=0;
         }
-        else if(strcmp(argv[i], "-%v")==0 || strcmp(argv[i], "--v")==0){
+        else if(strcmp(argv[i], "-%v")==0 || strcmp(argv[i], "--vv")==0){
             blockPercentage=atof(argv[++i]);
         }
-        else if(strcmp(argv[i], "-%i")==0 || strcmp(argv[i], "--i")==0){
+        else if(strcmp(argv[i], "-%i")==0 || strcmp(argv[i], "--ii")==0){
             inlierLts=atof(argv[++i]);
         }
         else if(strcmp(argv[i], "-interp")==0 || strcmp(argv[i], "--interp")==0){
@@ -252,7 +270,6 @@ int main(int argc, char **argv)
     REG->SetBlockPercentage(blockPercentage);
     REG->SetInlierLts(inlierLts);
     REG->SetInterpolation(interpolation);
-
 
     if(REG->GetLevelsToPerform() > REG->GetNumberOfLevels())
         REG->SetLevelsToPerform(REG->GetNumberOfLevels());
