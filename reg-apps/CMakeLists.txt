@@ -40,7 +40,7 @@ if(BUILD_NR_SLICER_EXT)
     set(EXTENSION_NAME "NiftyRegExtension")
     set(EXTENSION_HOMEPAGE "https://sourceforge.net/projects/niftyreg")
     set(EXTENSION_CATEGORY "Registration")
-    set(EXTENSION_CONTRIBUTORS "Marc Modat, Pankaj Daga, David Cash, Sebastien Ourselin (UCL), Sonia Pujol (Harvard)")
+    set(EXTENSION_CONTRIBUTORS "Marc Modat, Pankaj Daga, David Cash, Sebastien Ourselin (UCL)")
     set(EXTENSION_DESCRIPTION "NiftyReg meets slicer, integration of a NiftyReg module within 3DSlicer")
     set(EXTENSION_ICONURL "https://dl.dropbox.com/u/2962833/nifty_reg_logo_128.png")
     set(EXTENSION_SCREENSHOTURLS "http://www.na-mic.org/Wiki/images/4/4c/Nifty_reg_logo.png")
@@ -54,9 +54,9 @@ if(BUILD_NR_SLICER_EXT)
 
     foreach(MODULE_NAME ${MODULE_LIST})
         install(TARGETS ${MODULE_NAME}
-            RUNTIME DESTINATION ${Slicer_INSTALL_CLIMODULES_BIN_DIR} COMPONENT RuntimeLibraries
-            LIBRARY DESTINATION ${Slicer_INSTALL_CLIMODULES_LIB_DIR} COMPONENT RuntimeLibraries
-            ARCHIVE DESTINATION ${Slicer_INSTALL_CLIMODULES_LIB_DIR} COMPONENT RuntimeLibraries
+            RUNTIME DESTINATION ${Slicer_INSTALL_CLIMODULES_BIN_DIR} COMPONENT Runtime
+            LIBRARY DESTINATION ${Slicer_INSTALL_CLIMODULES_LIB_DIR} COMPONENT Runtime
+            ARCHIVE DESTINATION ${Slicer_INSTALL_CLIMODULES_LIB_DIR} COMPONENT Runtime
             )
     endforeach(MODULE_NAME)
     include(${Slicer_EXTENSION_CPACK})
@@ -69,9 +69,9 @@ SET(MODULE_LIST
     )
 foreach(MODULE_NAME ${MODULE_LIST})
     install(TARGETS ${MODULE_NAME}
-        RUNTIME DESTINATION bin COMPONENT RuntimeLibraries
-        LIBRARY DESTINATION lib COMPONENT RuntimeLibraries
-        ARCHIVE DESTINATION lib COMPONENT RuntimeLibraries
+        RUNTIME DESTINATION bin COMPONENT Runtime
+        LIBRARY DESTINATION lib COMPONENT Runtime
+        ARCHIVE DESTINATION lib COMPONENT Runtime
         )
 endforeach(MODULE_NAME)
 #-----------------------------------------------------------------------------

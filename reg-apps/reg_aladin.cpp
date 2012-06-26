@@ -198,7 +198,7 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-smooF")==0 || strcmp(argv[i], "-smooS")==0 || strcmp(argv[i], "--smooF")==0){
             floatingSigma=(float)(atof(argv[++i]));
         }
-        else if(strcmp(argv[i], "-rigOnly") || strcmp(argv[i], "--rigOnly")==0){
+        else if(strcmp(argv[i], "-rigOnly")==0 || strcmp(argv[i], "--rigOnly")==0){
             rigidFlag=1;
             affineFlag=0;
             }

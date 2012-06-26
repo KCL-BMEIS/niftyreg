@@ -1,7 +1,7 @@
 # The z lib library is build only if it was not found on the system
-IF(NOT ZLIB_FOUND)
+IF(NOT ZLIB_FOUND OR BUILD_ALL_DEP)
     SUBDIRS(zlib)
-ENDIF(NOT ZLIB_FOUND)
+ENDIF(NOT ZLIB_FOUND OR BUILD_ALL_DEP)
 
 # Build the nifti file format library
 SUBDIRS(nifti)
