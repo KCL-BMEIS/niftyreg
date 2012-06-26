@@ -29,8 +29,6 @@ endif(USE_CUDA)
 TARGET_LINK_LIBRARIES(reg_aladin _reg_aladin)
 #-----------------------------------------------------------------------------
 SET(MODULE_LIST
-    reg_average
-    reg_tools
     reg_resample
     reg_transform
     reg_jacobian
@@ -64,6 +62,11 @@ if(BUILD_NR_SLICER_EXT)
     include(${Slicer_EXTENSION_CPACK})
 endif(BUILD_NR_SLICER_EXT)
 #-----------------------------------------------------------------------------
+SET(MODULE_LIST
+    ${MODULE_LIST}
+    reg_average
+    reg_tools
+    )
 foreach(MODULE_NAME ${MODULE_LIST})
     install(TARGETS ${MODULE_NAME}
         RUNTIME DESTINATION bin COMPONENT RuntimeLibraries

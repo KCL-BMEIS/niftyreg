@@ -1,6 +1,9 @@
-/*
- *  reg_jacobian.cpp
- *
+/**
+ * @file reg_jacobian.cpp
+ * @author Marc Modat
+ * @date 15/11/2010
+ * @brief Executable use to generate Jacobian matrices and determinant
+ * images.
  *
  *  Created by Marc Modat on 15/11/2010.
  *  Copyright (c) 2009, University College London. All rights reserved.
@@ -17,6 +20,7 @@
 #include "_reg_localTransformation.h"
 #include "_reg_tools.h"
 #include "_reg_resampling.h"
+#include "reg_jacobian.h"
 
 #ifdef _USE_NR_DOUBLE
     #define PrecisionTYPE double
@@ -91,39 +95,53 @@ int main(int argc, char **argv)
             Usage(argv[0]);
             return 0;
         }
+        else if(strcmp(argv[i], "--xml")==0){
+            printf("%s",xml_jacobian);
+            return 0;
+        }
 #ifdef _SVN_REV
-        if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
-           strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
-           strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0){
+        if( strcmp(argv[i], "-version")==0 ||
+            strcmp(argv[i], "-Version")==0 ||
+            strcmp(argv[i], "-V")==0 ||
+            strcmp(argv[i], "-v")==0 ||
+            strcmp(argv[i], "--v")==0 ||
+            strcmp(argv[i], "--version")==0){
             printf("NiftyReg revision number: %i\n",_SVN_REV);
             return 0;
         }
 #endif
-        else if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0)){
+        else if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0) ||
+                (strcmp(argv[i],"--ref")==0)){
             param->referenceImageName=argv[++i];
             flag->referenceImageFlag=1;
         }
-        else if(strcmp(argv[i], "-def") == 0){
+        else if(strcmp(argv[i], "-def") == 0 ||
+                (strcmp(argv[i],"--def")==0)){
             param->inputDEFName=argv[++i];
             flag->inputDEFFlag=1;
         }
-        else if(strcmp(argv[i], "-cpp") == 0){
+        else if(strcmp(argv[i], "-cpp") == 0 ||
+                (strcmp(argv[i],"--cpp")==0)){
             param->inputCPPName=argv[++i];
             flag->inputCPPFlag=1;
         }
-        else if(strcmp(argv[i], "-jac") == 0){
+        else if(strcmp(argv[i], "-jac") == 0 ||
+                (strcmp(argv[i],"--jac")==0)){
             param->jacobianMapName=argv[++i];
             flag->jacobianMapFlag=1;
         }
-        else if(strcmp(argv[i], "-jacM") == 0){
+        else if(strcmp(argv[i], "-jacM") == 0 ||
+                (strcmp(argv[i],"--jacM")==0)){
             param->jacobianMatrixName=argv[++i];
             flag->jacobianMatrixFlag=1;
         }
-        else if(strcmp(argv[i], "-jacL") == 0){
+        else if(strcmp(argv[i], "-jacL") == 0 ||
+                (strcmp(argv[i],"--jacL")==0)){
             param->logJacobianMapName=argv[++i];
             flag->logJacobianMapFlag=1;
         }
-        else if(strcmp(argv[i], "-aff") == 0){
+        else if(strcmp(argv[i], "-aff") == 0 ||
+                (strcmp(argv[i],"--aff")==0)){
             param->inputAFFName=argv[++i];
             flag->inputAFFFlag=1;
         }

@@ -1,6 +1,7 @@
-/*
- *  reg_resample.cpp
- *
+/**
+ * @file reg_resample.cpp
+ * @author Marc Modat
+ * @date 18/05/2009
  *
  *  Created by Marc Modat on 18/05/2009.
  *  Copyright (c) 2009, University College London. All rights reserved.
@@ -18,6 +19,8 @@
 #include "_reg_localTransformation.h"
 #include "_reg_tools.h"
 
+#include "reg_resample.h"
+
 #ifdef _USE_NR_DOUBLE
     #define PrecisionTYPE double
 #else
@@ -33,6 +36,7 @@ typedef struct{
     char *outputResultName;
     char *outputBlankName;
     PrecisionTYPE sourceBGValue;
+    int interpolation;
 }PARAM;
 typedef struct{
     bool referenceImageFlag;
@@ -43,8 +47,6 @@ typedef struct{
     bool inputDEFFlag;
     bool outputResultFlag;
     bool outputBlankFlag;
-    bool NNInterpolationFlag;
-    bool LINInterpolationFlag;
 }FLAG;
 
 
@@ -87,6 +89,8 @@ int main(int argc, char **argv)
     PARAM *param = (PARAM *)calloc(1,sizeof(PARAM));
     FLAG *flag = (FLAG *)calloc(1,sizeof(FLAG));
 
+    param->interpolation=3; // Cubic spline interpolation used by default
+
     /* read the input parameter */
     for(int i=1;i<argc;i++){
         if(strcmp(argv[i], "-help")==0 || strcmp(argv[i], "-Help")==0 ||
@@ -95,50 +99,63 @@ int main(int argc, char **argv)
             Usage(argv[0]);
             return 0;
         }
+        else if(strcmp(argv[i], "--xml")==0){
+            printf("%s",xml_resample);
+            return 0;
+        }
 #ifdef _SVN_REV
-        if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
-           strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
-           strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0){
+        if( strcmp(argv[i], "-version")==0 ||
+            strcmp(argv[i], "-Version")==0 ||
+            strcmp(argv[i], "-V")==0 ||
+            strcmp(argv[i], "-v")==0 ||
+            strcmp(argv[i], "--v")==0 ||
+            strcmp(argv[i], "--version")==0){
             printf("NiftyReg revision number: %i\n",_SVN_REV);
             return 0;
         }
 #endif
-        else if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0)){
+        else if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0) ||
+                (strcmp(argv[i],"--ref")==0)){
             param->referenceImageName=argv[++i];
             flag->referenceImageFlag=1;
         }
-        else if((strcmp(argv[i],"-flo")==0) || (strcmp(argv[i],"-source")==0)){
+        else if((strcmp(argv[i],"-flo")==0) || (strcmp(argv[i],"-source")==0) ||
+                (strcmp(argv[i],"--flo")==0)){
             param->floatingImageName=argv[++i];
             flag->floatingImageFlag=1;
         }
-        else if(strcmp(argv[i], "-aff") == 0){
+        else if(strcmp(argv[i], "-aff") == 0 ||
+                (strcmp(argv[i],"--aff")==0)){
             param->affineMatrixName=argv[++i];
             flag->affineMatrixFlag=1;
         }
-        else if(strcmp(argv[i], "-affFlirt") == 0){
+        else if(strcmp(argv[i], "-affFlirt") == 0 ||
+                (strcmp(argv[i],"--affFlirt")==0)){
             param->affineMatrixName=argv[++i];
             flag->affineMatrixFlag=1;
             flag->affineFlirtFlag=1;
         }
-        else if((strcmp(argv[i],"-res")==0) || (strcmp(argv[i],"-result")==0)){
+        else if((strcmp(argv[i],"-res")==0) || (strcmp(argv[i],"-result")==0) ||
+                (strcmp(argv[i],"--res")==0)){
                 param->outputResultName=argv[++i];
                 flag->outputResultFlag=1;
         }
-        else if(strcmp(argv[i], "-cpp") == 0){
+        else if(strcmp(argv[i], "-cpp") == 0 ||
+                (strcmp(argv[i],"--cpp")==0)){
             param->inputCPPName=argv[++i];
             flag->inputCPPFlag=1;
         }
-        else if(strcmp(argv[i], "-def") == 0){
+        else if(strcmp(argv[i], "-def") == 0 ||
+                (strcmp(argv[i],"--def")==0)){
             param->inputDEFName=argv[++i];
             flag->inputDEFFlag=1;
         }
-        else if(strcmp(argv[i], "-NN") == 0){
-            flag->NNInterpolationFlag=1;
+        else if(strcmp(argv[i], "-inter") == 0 ||
+                (strcmp(argv[i],"--inter")==0)){
+            param->interpolation=atoi(argv[++i]);
         }
-        else if((strcmp(argv[i], "-LIN")==0) || (strcmp(argv[i], "-TRI")==0)){
-            flag->LINInterpolationFlag=1;
-        }
-        else if(strcmp(argv[i], "-blank") == 0){
+        else if(strcmp(argv[i], "-blank") == 0 ||
+                (strcmp(argv[i],"--blank")==0)){
             param->outputBlankName=argv[++i];
             flag->outputBlankFlag=1;
         }
@@ -309,10 +326,17 @@ int main(int argc, char **argv)
     /* RESAMPLE THE SOURCE IMAGE */
     /* ************************* */
     if(flag->outputResultFlag){
-        int inter=3;
-        if(flag->LINInterpolationFlag) inter=1;
-        else if(flag->NNInterpolationFlag) inter=0;
-
+        switch(param->interpolation){
+        case 0:
+            param->interpolation=0;
+            break;
+        case 1:
+            param->interpolation=1;
+            break;
+        default:
+            param->interpolation=3;
+            break;
+        }
         nifti_image *resultImage = nifti_copy_nim_info(referenceImage);
         resultImage->dim[0]=resultImage->ndim=floatingImage->dim[0];
         resultImage->dim[4]=resultImage->nt=floatingImage->dim[4];
@@ -330,7 +354,7 @@ int main(int argc, char **argv)
                                         resultImage,
                                         deformationFieldImage,
                                         NULL,
-                                        inter,
+                                        param->interpolation,
                                         0);
         memset(resultImage->descrip, 0, 80);
         strcpy (resultImage->descrip,"Warped image using NiftyReg (reg_resample)");
@@ -381,7 +405,7 @@ int main(int argc, char **argv)
                                         resultImage,
                                         deformationFieldImage,
                                         NULL,
-                                        1,
+                                        1, // linear interpolation
                                        0);
         memset(resultImage->descrip, 0, 80);
         strcpy (resultImage->descrip,"Warped regular grid using NiftyReg (reg_resample)");
