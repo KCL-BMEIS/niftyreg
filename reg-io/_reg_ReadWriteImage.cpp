@@ -55,16 +55,28 @@ nifti_image *reg_io_ReadImageFile(const char *filename)
         break;
     case NR_PNG_FORMAT:
         image=reg_io_readPNGfile(filename,true);
-        nifti_set_filenames(image,filename,0,0);
+        if(image->fname) free(image->fname);
+        if(image->iname) free(image->iname);
+        image->fname=(char *)malloc(strlen(filename)*sizeof(char));
+        image->iname=(char *)malloc(strlen(filename)*sizeof(char));
+        strcpy(image->fname, filename);
+        strcpy(image->iname, filename);
         break;
     case NR_NRRD_FORMAT:
         Nrrd *nrrdImage = reg_io_readNRRDfile(filename);
         image = reg_io_nrdd2nifti(nrrdImage);
         nrrdNuke(nrrdImage);
-        nifti_set_filenames(image,filename,0,0);
+        if(image->fname) free(image->fname);
+        if(image->iname) free(image->iname);
+        image->fname=(char *)malloc(strlen(filename)*sizeof(char));
+        image->iname=(char *)malloc(strlen(filename)*sizeof(char));
+        strcpy(image->fname, filename);
+        strcpy(image->iname, filename);
         break;
     }
     reg_checkAndCorrectDimension(image);
+    printf("HERE\n");
+    disp_nifti_1_header("Converted image header", &nifti_convert_nim2nhdr(image));
 
     // Return the nifti image
     return image;

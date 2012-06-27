@@ -1,36 +1,35 @@
 #-----------------------------------------------------------------------------
-ADD_EXECUTABLE(reg_average reg_average.cpp)
-TARGET_LINK_LIBRARIES(reg_average _reg_globalTransformation _reg_maths _reg_tools _reg_ReadWriteImage)
+add_executable(reg_average reg_average.cpp)
+target_link_libraries(reg_average _reg_globalTransformation _reg_maths _reg_tools _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
-ADD_EXECUTABLE(reg_tools reg_tools.cpp)
-TARGET_LINK_LIBRARIES(reg_tools _reg_resampling _reg_localTransformation _reg_tools _reg_globalTransformation _reg_ReadWriteImage)
+add_executable(reg_tools reg_tools.cpp)
+target_link_libraries(reg_tools _reg_resampling _reg_localTransformation _reg_tools _reg_globalTransformation _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
-ADD_EXECUTABLE(reg_resample reg_resample.cpp)
-TARGET_LINK_LIBRARIES(reg_resample _reg_resampling _reg_localTransformation _reg_tools _reg_globalTransformation _reg_ReadWriteImage)
+add_executable(reg_resample reg_resample.cpp)
+target_link_libraries(reg_resample _reg_resampling _reg_localTransformation _reg_tools _reg_globalTransformation _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
-ADD_EXECUTABLE(reg_transform reg_transform.cpp)
-TARGET_LINK_LIBRARIES(reg_transform _reg_thinPlateSpline _reg_resampling _reg_localTransformation _reg_tools _reg_globalTransformation _reg_maths _reg_ReadWriteImage)
+add_executable(reg_transform reg_transform.cpp)
+target_link_libraries(reg_transform _reg_thinPlateSpline _reg_resampling _reg_localTransformation _reg_tools _reg_globalTransformation _reg_maths _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
-ADD_EXECUTABLE(reg_jacobian reg_jacobian.cpp)
-TARGET_LINK_LIBRARIES(reg_jacobian _reg_resampling _reg_localTransformation _reg_tools _reg_globalTransformation _reg_ReadWriteImage)
-#-----------------------------------------------------------------------------
-if(USE_CUDA)
-        CUDA_ADD_EXECUTABLE(reg_f3d reg_f3d.cpp)
-else(USE_CUDA)
-        ADD_EXECUTABLE(reg_f3d reg_f3d.cpp)
-endif(USE_CUDA)
-TARGET_LINK_LIBRARIES(reg_f3d _reg_f3d)
+add_executable(reg_jacobian reg_jacobian.cpp)
+target_link_libraries(reg_jacobian _reg_resampling _reg_localTransformation _reg_tools _reg_globalTransformation _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
 if(USE_CUDA)
-        CUDA_ADD_EXECUTABLE(reg_aladin reg_aladin.cpp)
+        cuda_add_executable(reg_f3d reg_f3d.cpp)
 else(USE_CUDA)
-        ADD_EXECUTABLE(reg_aladin reg_aladin.cpp)
+        add_executable(reg_f3d reg_f3d.cpp)
 endif(USE_CUDA)
-TARGET_LINK_LIBRARIES(reg_aladin _reg_aladin)
+target_link_libraries(reg_f3d _reg_f3d)
 #-----------------------------------------------------------------------------
-SET(MODULE_LIST
+if(USE_CUDA)
+        cuda_add_executable(reg_aladin reg_aladin.cpp)
+else(USE_CUDA)
+        add_executable(reg_aladin reg_aladin.cpp)
+endif(USE_CUDA)
+target_link_libraries(reg_aladin _reg_aladin)
+#-----------------------------------------------------------------------------
+set(MODULE_LIST
     reg_resample
-    reg_transform
     reg_jacobian
     reg_aladin
     reg_f3d
@@ -45,9 +44,9 @@ if(BUILD_NR_SLICER_EXT)
     set(EXTENSION_ICONURL "https://dl.dropbox.com/u/2962833/nifty_reg_logo_128.png")
     set(EXTENSION_SCREENSHOTURLS "http://www.na-mic.org/Wiki/images/4/4c/Nifty_reg_logo.png")
     set(EXTENSION_ACKNOWLEDGEMENTS "This work is partially funded through CBRC grant 168 (UK)")
-    set(EXTENSION_MAJOR_VERSION 0)
-    set(EXTENSION_MINOR_VERSION 1)
-    set(EXTENSION_PATCH_VERSION 0)
+    set(EXTENSION_MAJOR_VERSION ${NiftyReg_VERSION_MAJOR})
+    set(EXTENSION_MINOR_VERSION ${NiftyReg_VERSION_MINOR})
+    set(EXTENSION_PATCH_VERSION ${NiftyReg_VERSION_PATCH})
 
     find_package(Slicer REQUIRED)
     include(${Slicer_USE_FILE})
@@ -60,13 +59,15 @@ if(BUILD_NR_SLICER_EXT)
             )
     endforeach(MODULE_NAME)
     include(${Slicer_EXTENSION_CPACK})
+else(BUILD_NR_SLICER_EXT)
+    set(MODULE_LIST
+        ${MODULE_LIST}
+        reg_average
+        reg_tools
+        reg_transform
+        )
 endif(BUILD_NR_SLICER_EXT)
 #-----------------------------------------------------------------------------
-SET(MODULE_LIST
-    ${MODULE_LIST}
-    reg_average
-    reg_tools
-    )
 foreach(MODULE_NAME ${MODULE_LIST})
     install(TARGETS ${MODULE_NAME}
         RUNTIME DESTINATION bin COMPONENT Runtime
@@ -75,4 +76,3 @@ foreach(MODULE_NAME ${MODULE_LIST})
         )
 endforeach(MODULE_NAME)
 #-----------------------------------------------------------------------------
-
