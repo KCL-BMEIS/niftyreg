@@ -16,6 +16,23 @@
 #include "_reg_tools.h"
 
 /* *************************************************************** */
+void reg_hack_filename(nifti_image* image, const char *filename)
+{
+    std::string name(filename);
+    name.append("\0");
+    // Free the char arrays if already allocated
+    if(image->fname) free(image->fname);
+    if(image->iname) free(image->iname);
+    // Allocate the char arrays
+    image->fname = (char *)malloc((name.size()+1)*sizeof(char));
+    image->iname = (char *)malloc((name.size()+1)*sizeof(char));
+    // Copy the new name in the char arrays
+    strcpy(image->fname,name.c_str());
+    strcpy(image->iname,name.c_str());
+    // Returns at the end of the function
+    return;
+}
+/* *************************************************************** */
 int reg_io_checkFileFormat(const char *filename)
 {
     // Nifti format is used by default
@@ -35,6 +52,8 @@ int reg_io_checkFileFormat(const char *filename)
         return NR_PNG_FORMAT;
     else if(b.find( ".nrrd") != std::string::npos)
         return NR_NRRD_FORMAT;
+    else if(b.find( ".nhrd") != std::string::npos)
+        return NR_NRRD_FORMAT;
     else fprintf(stderr, "[NiftyReg WARNING]: No filename extension provided - the Nifti library is used by default\n");
 
     return NR_NII_FORMAT;
@@ -52,31 +71,20 @@ nifti_image *reg_io_ReadImageFile(const char *filename)
     switch(fileFormat){
     case NR_NII_FORMAT:
         image=nifti_image_read(filename,true);
+        reg_hack_filename(image,filename);
         break;
     case NR_PNG_FORMAT:
         image=reg_io_readPNGfile(filename,true);
-        if(image->fname) free(image->fname);
-        if(image->iname) free(image->iname);
-        image->fname=(char *)malloc(strlen(filename)*sizeof(char));
-        image->iname=(char *)malloc(strlen(filename)*sizeof(char));
-        strcpy(image->fname, filename);
-        strcpy(image->iname, filename);
+        reg_hack_filename(image,filename);
         break;
     case NR_NRRD_FORMAT:
         Nrrd *nrrdImage = reg_io_readNRRDfile(filename);
         image = reg_io_nrdd2nifti(nrrdImage);
         nrrdNuke(nrrdImage);
-        if(image->fname) free(image->fname);
-        if(image->iname) free(image->iname);
-        image->fname=(char *)malloc(strlen(filename)*sizeof(char));
-        image->iname=(char *)malloc(strlen(filename)*sizeof(char));
-        strcpy(image->fname, filename);
-        strcpy(image->iname, filename);
+        reg_hack_filename(image,filename);
         break;
     }
     reg_checkAndCorrectDimension(image);
-    printf("HERE\n");
-    disp_nifti_1_header("Converted image header", &nifti_convert_nim2nhdr(image));
 
     // Return the nifti image
     return image;
@@ -97,13 +105,13 @@ nifti_image *reg_io_ReadImageHeader(const char *filename)
         break;
     case NR_PNG_FORMAT:
         image=reg_io_readPNGfile(filename,false);
-        nifti_set_filenames(image,filename,0,0);
+        reg_hack_filename(image,filename);
     break;
     case NR_NRRD_FORMAT:
         Nrrd *nrrdImage = reg_io_readNRRDfile(filename);
         image = reg_io_nrdd2nifti(nrrdImage);
         nrrdNuke(nrrdImage);
-        nifti_set_filenames(image,filename,0,0);
+        reg_hack_filename(image,filename);
         break;
     }
     reg_checkAndCorrectDimension(image);

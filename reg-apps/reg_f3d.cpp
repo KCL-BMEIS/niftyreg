@@ -675,7 +675,9 @@ int main(int argc, char **argv)
 #endif // _OPENMP
 
     // Set the reg_f3d parameters
+
     REG->SetReferenceImage(referenceImage);
+
     REG->SetFloatingImage(floatingImage);
 
     if(verbose==false) REG->DoNotPrintOutInformation();

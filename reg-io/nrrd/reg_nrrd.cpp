@@ -70,13 +70,21 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
     memcpy(niiImage->data, nrrdImage->data, niiImage->nvox*niiImage->nbyper);
 
     // We set the spacing information for every axis
-    if(niiImage->ndim>=1) niiImage->dx=niiImage->pixdim[1]=nrrdImage->axis[0].spacing;
-    if(niiImage->ndim>=2) niiImage->dy=niiImage->pixdim[2]=nrrdImage->axis[1].spacing;
-    if(niiImage->ndim>=3) niiImage->dz=niiImage->pixdim[3]=nrrdImage->axis[2].spacing;
-    if(niiImage->ndim>=4) niiImage->dt=niiImage->pixdim[4]=nrrdImage->axis[3].spacing;
-    if(niiImage->ndim>=5) niiImage->du=niiImage->pixdim[5]=nrrdImage->axis[4].spacing;
-    if(niiImage->ndim>=6) niiImage->dv=niiImage->pixdim[6]=nrrdImage->axis[5].spacing;
-    if(niiImage->ndim>=7) niiImage->dw=niiImage->pixdim[7]=nrrdImage->axis[6].spacing;
+
+    double spaceDir[NRRD_SPACE_DIM_MAX], spacing;
+    for(int i=0;i<7;++i){
+        nrrdSpacingCalculate(nrrdImage,i,&spacing,spaceDir);
+        if(spacing==spacing)
+            niiImage->pixdim[i+1]=(float)spacing;
+        else niiImage->pixdim[i+1]=1.0f;
+    }
+    niiImage->dx=niiImage->pixdim[1];
+    niiImage->dy=niiImage->pixdim[2];
+    niiImage->dz=niiImage->pixdim[3];
+    niiImage->dt=niiImage->pixdim[4];
+    niiImage->du=niiImage->pixdim[5];
+    niiImage->dv=niiImage->pixdim[6];
+    niiImage->dw=niiImage->pixdim[7];
 
     // Set the slope and intersection
     niiImage->scl_inter=0;
@@ -86,17 +94,17 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
     niiImage->cal_min=reg_tools_getMinValue(niiImage);
     niiImage->cal_max=reg_tools_getMaxValue(niiImage);
 
-
     // The space orientation is extracted and converted into a matrix
     mat44 qform_orientation_matrix;
     reg_mat44_eye(&qform_orientation_matrix);
-    if(     nrrdImage->space==nrrdSpaceRightAnteriorSuperior ||
-            nrrdImage->space==nrrdSpaceRightAnteriorSuperiorTime ||
-            nrrdImage->space==nrrdSpace3DRightHanded ||
-            nrrdImage->space==nrrdSpace3DRightHandedTime ){
+    if(nrrdImage->space==nrrdSpaceRightAnteriorSuperior ||
+       nrrdImage->space==nrrdSpaceRightAnteriorSuperiorTime ||
+       nrrdImage->space==nrrdSpace3DRightHanded ||
+       nrrdImage->space==nrrdSpace3DRightHandedTime ){
         qform_orientation_matrix.m[0][0]=1.f; // NIFTI_L2R
         qform_orientation_matrix.m[1][1]=1.f; // NIFTI_P2A
         qform_orientation_matrix.m[2][2]=1.f; // NIFTI_I2S
+        niiImage->qform_code=1;
     }
     else if(nrrdImage->space==nrrdSpaceLeftAnteriorSuperior ||
             nrrdImage->space==nrrdSpaceLeftAnteriorSuperiorTime ||
@@ -105,44 +113,55 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
         qform_orientation_matrix.m[0][0]=-1.f;  //NIFTI_R2L
         qform_orientation_matrix.m[1][1]=1.f; // NIFTI_P2A
         qform_orientation_matrix.m[2][2]=1.f; // NIFTI_I2S
+        niiImage->qform_code=1;
     }
     else if(nrrdImage->space!=nrrdSpaceScannerXYZ &&
             nrrdImage->space!=nrrdSpaceScannerXYZTime ){
+        niiImage->qform_code=0;
         fprintf(stderr, "[NiftyReg WARNING] reg_io_nrdd2nifti - nrrd space value unrecognised: the Nifti qform is set to identity\n");
     }
+    if(niiImage->qform_code>0){
+        // The origin is set
+        if(niiImage->ndim>=1)
+            qform_orientation_matrix.m[0][3]=niiImage->qoffset_x=nrrdImage->spaceOrigin[0];
+        if(niiImage->ndim>=2)
+            qform_orientation_matrix.m[1][3]=niiImage->qoffset_y=nrrdImage->spaceOrigin[1];
+        if(niiImage->ndim>=3)
+            qform_orientation_matrix.m[2][3]=niiImage->qoffset_z=nrrdImage->spaceOrigin[2];
 
-    // The origin is set
-    if(niiImage->ndim>=1)
-        qform_orientation_matrix.m[0][3]=niiImage->qoffset_x=nrrdImage->spaceOrigin[0];
-    if(niiImage->ndim>=2)
-        qform_orientation_matrix.m[1][3]=niiImage->qoffset_y=nrrdImage->spaceOrigin[1];
-    if(niiImage->ndim>=3)
-        qform_orientation_matrix.m[2][3]=niiImage->qoffset_z=nrrdImage->spaceOrigin[2];
+        // Extract the quaternions and qfac values
+        nifti_mat44_to_quatern(qform_orientation_matrix,
+                               &niiImage->quatern_b,
+                               &niiImage->quatern_c,
+                               &niiImage->quatern_d,
+                               &niiImage->qoffset_x,
+                               &niiImage->qoffset_y,
+                               &niiImage->qoffset_z,
+                               &niiImage->dx,
+                               &niiImage->dy,
+                               &niiImage->dz,
+                               &niiImage->qfac);
 
-    // Extract the quaternions and qfac values
-    nifti_mat44_to_quatern(qform_orientation_matrix,
-                           &niiImage->quatern_b,
-                           &niiImage->quatern_c,
-                           &niiImage->quatern_d,
-                           &niiImage->qoffset_x,
-                           &niiImage->qoffset_y,
-                           &niiImage->qoffset_z,
-                           &niiImage->dx,
-                           &niiImage->dy,
-                           &niiImage->dz,
-                           &niiImage->qfac);
-
-    // Set the qform matrices
-    niiImage->qto_xyz=nifti_quatern_to_mat44(niiImage->quatern_b,
-                                             niiImage->quatern_c,
-                                             niiImage->quatern_d,
-                                             niiImage->qoffset_x,
-                                             niiImage->qoffset_y,
-                                             niiImage->qoffset_z,
-                                             niiImage->dx,
-                                             niiImage->dy,
-                                             niiImage->dz,
-                                             niiImage->qfac);
+        // Set the qform matrices
+        niiImage->qto_xyz=nifti_quatern_to_mat44(niiImage->quatern_b,
+                                                 niiImage->quatern_c,
+                                                 niiImage->quatern_d,
+                                                 niiImage->qoffset_x,
+                                                 niiImage->qoffset_y,
+                                                 niiImage->qoffset_z,
+                                                 niiImage->dx,
+                                                 niiImage->dy,
+                                                 niiImage->dz,
+                                                 niiImage->qfac);
+    }
+    else{
+        // diagonal matrix is assumed
+        niiImage->qto_xyz=qform_orientation_matrix;
+        niiImage->qto_xyz.m[0][0]=niiImage->dx;
+        niiImage->qto_xyz.m[1][1]=niiImage->dy;
+        if(niiImage->ndim>2)
+            niiImage->qto_xyz.m[2][2]=niiImage->dz;
+    }
     niiImage->qto_ijk=nifti_mat44_inverse(niiImage->qto_xyz);
 
     // The sform has to be set if required
@@ -279,7 +298,6 @@ Nrrd *reg_io_nifti2nrrd(nifti_image *niiImage)
     }
 
     // Set the space if suitable with the nrrd file format
-    //
     if((niiImage->qform_code>0 || niiImage->sform_code>0) && niiImage->ndim>2){
         int i_orient, j_orient, k_orient;
         // Use the sform information if it is defined
@@ -432,5 +450,4 @@ void reg_io_writeNRRDfile(Nrrd *image, const char *filename)
     return;
 }
 /* *************************************************************** */
-
 #endif
