@@ -85,6 +85,9 @@ class reg_aladin
       virtual mat44 GetUpdateTransformationMatrix(int);
       virtual void UpdateTransformationMatrix(mat44);
 
+      void (*funcProgressCallback)(float pcntProgress, void *params);
+      void *paramsProgressCallback;
+
     public:
       reg_aladin();
       virtual ~reg_aladin();
@@ -152,6 +155,13 @@ class reg_aladin
       virtual void Run();
 
       virtual void DebugPrintLevelInfo(int);
+
+      void SetProgressCallbackFunction( void (*funcProgCallback)(float pcntProgress,
+								 void *params), 
+					void *paramsProgCallback ) {
+	funcProgressCallback = funcProgCallback;
+	paramsProgressCallback = paramsProgCallback;
+      }
 
 };
 

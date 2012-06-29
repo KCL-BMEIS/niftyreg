@@ -43,6 +43,9 @@ template <class T> reg_aladin<T>::reg_aladin ()
     this->FloatingSigma=0.0;
 
     this->ReferenceSigma=0.0;
+
+    this->funcProgressCallback=NULL;
+    this->paramsProgressCallback=NULL;
 }
 
 template <class T> reg_aladin<T>::~reg_aladin()
@@ -405,6 +408,23 @@ void reg_aladin<T>::Run()
     // Initialise the registration parameters
     this->InitialiseRegistration();
 
+    // Compute the resolution of the progress bar
+    float iProgressStep=1, nProgressSteps;
+    if (this->PerformRigid && !this->PerformAffine) 
+    {
+      nProgressSteps = this->MaxIterations*(this->LevelsToPerform + 1);
+    }
+    else if (this->PerformAffine && this->PerformRigid)
+    {
+      nProgressSteps = this->MaxIterations*4*2 
+	+ this->MaxIterations*(this->LevelsToPerform + 1);
+    }
+    else 
+    {
+      nProgressSteps = this->MaxIterations*(this->LevelsToPerform + 1);
+    }
+
+
     //Main loop over the levels:
     for(this->CurrentLevel=0; this->CurrentLevel < this->LevelsToPerform; this->CurrentLevel++)
     {
@@ -456,8 +476,18 @@ void reg_aladin<T>::Run()
                 reg_mat44_disp(&updateMatrix, (char *)"[DEBUG] updateMatrix");
                 reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] updated affine");
 #endif
-                if(this->TestMatrixConvergence(&updateMatrix)) break;
+                if(this->TestMatrixConvergence(&updateMatrix)) 
+		{
+		  iProgressStep += maxNumberOfIterationToPerform*ratio - 1 - iteration;
+		  break;
+		}
+		if ( funcProgressCallback && paramsProgressCallback ) 
+		{
+		  (*funcProgressCallback)(100.*iProgressStep/nProgressSteps, 
+					  paramsProgressCallback);
+		}
                 iteration++;
+		iProgressStep++;
             }
         }
 
@@ -477,8 +507,18 @@ void reg_aladin<T>::Run()
                 reg_mat44_disp(&updateMatrix, (char *)"[DEBUG] updateMatrix");
                 reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] updated affine");
 #endif
-                if(this->TestMatrixConvergence(&updateMatrix)) break;
-                iteration++;
+                if(this->TestMatrixConvergence(&updateMatrix))
+		{
+		  iProgressStep += maxNumberOfIterationToPerform - 1 - iteration;
+		  break;
+		}
+		if ( funcProgressCallback && paramsProgressCallback ) 
+		{
+		  (*funcProgressCallback)(100.*iProgressStep/nProgressSteps,
+					  paramsProgressCallback);
+		}
+		iteration++;
+		iProgressStep++;
             }
         }
 
@@ -495,6 +535,11 @@ void reg_aladin<T>::Run()
 #endif
 
     } // level this->LevelsToPerform
+
+    if ( funcProgressCallback && paramsProgressCallback ) 
+    {
+      (*funcProgressCallback)( 100., paramsProgressCallback);
+    }
 
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_aladin::Run() done\n");

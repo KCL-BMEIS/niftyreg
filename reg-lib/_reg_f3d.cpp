@@ -1885,6 +1885,11 @@ void reg_f3d<T>::Run_f3d()
 
     if(!this->initialised) this->Initisalise_f3d();
 
+    // Compute the resolution of the progress bar
+    float iProgressStep=1, nProgressSteps;
+    nProgressSteps = this->levelToPerform*this->maxiterationNumber;
+
+
     for(this->currentLevel=0;
         this->currentLevel<this->levelToPerform;
         this->currentLevel++){
@@ -2091,7 +2096,26 @@ void reg_f3d<T>::Run_f3d()
 #ifdef NDEBUG
             }
 #endif
-            if(addedStep==0.f) break;
+
+            if(addedStep==0.f) 
+	    {
+	      iProgressStep += this->maxiterationNumber - 1 - this->currentIteration;
+	      if ( funcProgressCallback && paramsProgressCallback) 
+	      {
+		(*funcProgressCallback)(100.*iProgressStep/nProgressSteps, 
+					paramsProgressCallback);
+	      }
+	      break;
+	    }
+	    else 
+	    {
+	      iProgressStep++;	    
+	      if ( funcProgressCallback && paramsProgressCallback) 
+	      {
+		(*funcProgressCallback)(100.*iProgressStep/nProgressSteps, 
+					paramsProgressCallback);
+	      }
+	    }
         }
 
         // FINAL FOLDING CORRECTION
@@ -2130,6 +2154,11 @@ void reg_f3d<T>::Run_f3d()
 #endif
 
     } // level this->levelToPerform
+
+    if ( funcProgressCallback && paramsProgressCallback ) 
+    {
+      (*funcProgressCallback)( 100., paramsProgressCallback);
+    }
 
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d::Run_f3d() done\n");

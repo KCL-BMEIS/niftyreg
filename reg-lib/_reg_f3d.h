@@ -138,6 +138,9 @@ class reg_f3d
     virtual void UpdateControlPointPosition(T);
     virtual void DisplayCurrentLevelParameters();
 
+    void (*funcProgressCallback)(float pcntProgress, void *params);
+    void *paramsProgressCallback;
+
 public:
     reg_f3d(int refTimePoint,int floTimePoint);
     virtual ~reg_f3d();
@@ -213,6 +216,13 @@ public:
     virtual void Initisalise_f3d();
     nifti_image *GetControlPointPositionImage();
     virtual nifti_image **GetWarpedImage();
+
+    void SetProgressCallbackFunction( void (*funcProgCallback)(float pcntProgress,
+							       void *params), 
+				      void *paramsProgCallback ) {
+      funcProgressCallback = funcProgCallback;
+      paramsProgressCallback = paramsProgCallback;
+    }
 };
 
 #include "_reg_f3d.cpp"
