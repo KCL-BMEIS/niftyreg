@@ -99,6 +99,9 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->zOptimisation=true;
     this->gridRefinement=true;
 
+    this->funcProgressCallback=NULL;
+    this->paramsProgressCallback=NULL;
+
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d constructor called\n");
 #endif
