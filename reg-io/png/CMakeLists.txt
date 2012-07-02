@@ -61,4 +61,4 @@ install(TARGETS reg_png
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib
 )
-install(FILES reg_png.h DESTINATION include)
+install(FILES reg_png.h readpng.h DESTINATION include)
