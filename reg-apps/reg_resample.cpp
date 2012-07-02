@@ -154,6 +154,13 @@ int main(int argc, char **argv)
                 (strcmp(argv[i],"--inter")==0)){
             param->interpolation=atoi(argv[++i]);
         }
+        else if(strcmp(argv[i], "-NN") == 0){
+            param->interpolation=atoi(argv[++i]);
+        }
+        else if(strcmp(argv[i], "-LIN") == 0 ||
+                (strcmp(argv[i],"-TRI")==0)){
+            param->interpolation=1;
+        }
         else if(strcmp(argv[i], "-blank") == 0 ||
                 (strcmp(argv[i],"--blank")==0)){
             param->outputBlankName=argv[++i];

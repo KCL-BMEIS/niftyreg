@@ -16,6 +16,8 @@
 #include "_reg_maths.h"
 #include "_reg_globalTransformation.h"
 
+#include "reg_average.h"
+
 #ifdef _USE_NR_DOUBLE
 #define PrecisionTYPE double
 #else
@@ -32,6 +34,11 @@ void usage(char *exec)
 
 int main(int argc, char **argv)
 {
+    if(strcmp(argv[1], "--xml")==0){
+        printf("%s",xml_average);
+        return 0;
+    }
+
     if(argc<3){
         usage(argv[0]);
         return EXIT_SUCCESS;

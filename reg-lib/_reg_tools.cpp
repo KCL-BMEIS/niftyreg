@@ -307,7 +307,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
 #pragma omp parallel for default(none) \
     private(index, i, X, it, x, y, z, finalValue, windowValue, \
     c, t, temp, imageValue, currentCoeffSum) \
-    shared(image, readingValue, writtingValue, radius, windowSize, window)
+    shared(image, readingValue, writtingValue, radius, windowSize, window, coeffSum)
 #endif // _OPENMP
             for(z=0; z<image->nz; z++){
                 i=z*image->nx*image->ny;
@@ -369,7 +369,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
 #pragma omp parallel for default(none) \
     private(index, i, Y, it, x, y, z, finalValue, windowValue, \
     c, t, temp, imageValue, currentCoeffSum) \
-    shared(image, readingValue, writtingValue, radius, windowSize, window)
+    shared(image, readingValue, writtingValue, radius, windowSize, window, coeffSum)
 #endif // _OPENMP
             for(z=0; z<image->nz; z++){
                 i=z*image->nx*image->ny;
@@ -433,7 +433,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
 #pragma omp parallel for default(none) \
     private(index, i, Z, it, x, y, z, finalValue, windowValue, \
     c, t, temp, imageValue, currentCoeffSum) \
-    shared(image, readingValue, writtingValue, radius, windowSize, window)
+    shared(image, readingValue, writtingValue, radius, windowSize, window, coeffSum)
 #endif // _OPENMP
 
                 for(z=0; z<image->nz; z++){
@@ -2161,9 +2161,123 @@ float reg_tools_getMaxValue(nifti_image *image)
     case NIFTI_TYPE_FLOAT64:
         return reg_tools_getMaxValue1<double>(image);
     default:
-        fprintf(stderr,"[NiftyReg ERROR] reg_tools_getMaxValue1\tThe image data type is not supported\n");
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_getMaxValue\tThe image data type is not supported\n");
         exit(1);
     }
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class DTYPE>
+void reg_flippAxis_type(int nx,
+                        int ny,
+                        int nz,
+                        int nt,
+                        int nu,
+                        int nv,
+                        int nw,
+                        void *inputArray,
+                        void *outputArray,
+                        std::string cmd
+                        )
+{
+    // Allocate the outputArray if it is not allocated yet
+    if(outputArray==NULL)
+        outputArray=(void *)malloc(nx*ny*nz*nt*nu*nv*nw*sizeof(DTYPE));
+
+    // Parse the cmd to check which axis have to be flipped
+    char *axisName=(char *)"x\0y\0z\0t\0u\0v\0w\0";
+    int increment[7]={1,1,1,1,1,1,1};
+    int start[7]={0,0,0,0,0,0,0};
+    int end[7]={nx,ny,nz,nt,nu,nv,nw};
+    for(int i=0;i<7;++i){
+        if(cmd.find(axisName[i*2])!=std::string::npos){
+            increment[i]=-1;
+            start[i]=end[i]-1;
+        }
+    }
+
+    // Define the reading and writting pointers
+    DTYPE *inputPtr=static_cast<DTYPE *>(inputArray);
+    DTYPE *outputPtr=static_cast<DTYPE *>(outputArray);
+
+    // Copy the data and flipp axis if required
+    for(int w=0, w2=start[6];w<nw;++w, w2+=increment[6]){
+        size_t index_w=w2*nx*ny*nz*nt*nu*nv;
+        for(int v=0, v2=start[5];v<nv;++v, v2+=increment[5]){
+            size_t index_v=index_w + v2*nx*ny*nz*nt*nu;
+            for(int u=0, u2=start[4];u<nu;++u, u2+=increment[4]){
+                size_t index_u=index_v + u2*nx*ny*nz*nt;
+                for(int t=0, t2=start[3];t<nt;++t, t2+=increment[3]){
+                    size_t index_t=index_u + t2*nx*ny*nz;
+                    for(int z=0, z2=start[2];z<nz;++z, z2+=increment[2]){
+                        size_t index_z=index_t + z2*nx*ny;
+                        for(int y=0, y2=start[1];y<ny;++y, y2+=increment[1]){
+                            size_t index_y=index_z + y2*nx;
+                            for(int x=0, x2=start[0];x<nx;++x, x2+=increment[0]){
+                                size_t index=index_y + x2;
+                                *outputPtr++ = inputPtr[index];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return;
+}
+/* *************************************************************** */
+void reg_flippAxis(nifti_image *image,
+                   void *outputArray,
+                   std::string cmd
+                   )
+{
+    // Check the image data type
+    switch(image->datatype){
+    case NIFTI_TYPE_UINT8:
+        reg_flippAxis_type<unsigned char>
+                (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
+                 image->data, outputArray, cmd);
+        break;
+    case NIFTI_TYPE_INT8:
+        reg_flippAxis_type<char>
+                (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
+                 image->data, outputArray, cmd);
+        break;
+    case NIFTI_TYPE_UINT16:
+        reg_flippAxis_type<unsigned short>
+                (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
+                 image->data, outputArray, cmd);
+        break;
+    case NIFTI_TYPE_INT16:
+        reg_flippAxis_type<short>
+                (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
+                 image->data, outputArray, cmd);
+        break;
+    case NIFTI_TYPE_UINT32:
+        reg_flippAxis_type<unsigned int>
+                (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
+                 image->data, outputArray, cmd);
+        break;
+    case NIFTI_TYPE_INT32:
+        reg_flippAxis_type<int>
+                (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
+                 image->data, outputArray, cmd);
+        break;
+    case NIFTI_TYPE_FLOAT32:
+        reg_flippAxis_type<float>
+                (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
+                 image->data, outputArray, cmd);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        reg_flippAxis_type<double>
+                (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
+                 image->data, outputArray, cmd);
+        break;
+    default:
+        fprintf(stderr,"[NiftyReg ERROR] reg_flippAxis\tThe image data type is not supported\n");
+        exit(1);
+    }
+    return;
 }
 /* *************************************************************** */
 /* *************************************************************** */

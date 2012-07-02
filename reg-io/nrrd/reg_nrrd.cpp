@@ -14,7 +14,64 @@
 
 #include "reg_nrrd.h"
 
+/* *************************************************************** */
+template <class DTYPE>
+void reg_convertVectorField_nifti_to_nrrd(nifti_image *niiImage,
+                                          Nrrd *nrrdImage)
+{
+    size_t voxNumber = niiImage->nx*niiImage->ny*niiImage->nz;
 
+    DTYPE *inPtrX=static_cast<DTYPE *>(niiImage->data);
+    DTYPE *inPtrY=&inPtrX[voxNumber];
+    DTYPE *inPtrZ=NULL;
+
+    DTYPE *outPtr=static_cast<DTYPE *>(nrrdImage->data);
+
+    if(niiImage->nu==3){
+        inPtrZ=&inPtrY[voxNumber];
+        for(size_t vox=0;vox<voxNumber;++vox){
+            *outPtr++ = *inPtrX++;
+            *outPtr++ = *inPtrY++;
+            *outPtr++ = *inPtrZ++;
+        }
+    }
+    else{
+        for(size_t vox=0;vox<voxNumber;++vox){
+            *outPtr++ = *inPtrX++;
+            *outPtr++ = *inPtrY++;
+        }
+    }
+}
+/* *************************************************************** */
+template <class DTYPE>
+void reg_convertVectorField_nrrd_to_nifti(Nrrd *nrrdImage,
+                                          nifti_image *niiImage)
+{
+    size_t voxNumber = nrrdImage->axis[1].size *
+            nrrdImage->axis[2].size *
+            nrrdImage->axis[3].size;
+
+    DTYPE *outPtr=static_cast<DTYPE *>(nrrdImage->data);
+
+    DTYPE *inPtrX=static_cast<DTYPE *>(niiImage->data);
+    DTYPE *inPtrY=&inPtrX[voxNumber];
+    DTYPE *inPtrZ=NULL;
+
+    if(nrrdImage->axis[0].size==3){
+        inPtrZ=&inPtrY[voxNumber];
+        for(size_t vox=0;vox<voxNumber;++vox){
+            *inPtrX++=*outPtr++;
+            *inPtrY++=*outPtr++;
+            *inPtrZ++=*outPtr++;
+        }
+    }
+    else{
+        for(size_t vox=0;vox<voxNumber;++vox){
+            *inPtrX++=*outPtr++;
+            *inPtrY++=*outPtr++;
+        }
+    }
+}
 /* *************************************************************** */
 nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
 {
@@ -26,10 +83,19 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
 
     // Need first to extract the input image dimension
     int dim[8]={1,1,1,1,1,1,1,1};
-
     dim[0]=nrrdImage->dim;
-    for(int i=0;i<(dim[0]<7?dim[0]:7);++i){
-        dim[i+1]=(int)nrrdImage->axis[i].size;
+
+    int vectorIncrement=0;
+    if(nrrdImage->axis[0].kind==nrrdKindVector)
+        vectorIncrement=1;
+
+    for(int i=0;i<(dim[0]<7?dim[0]:7);++i)
+        dim[i+1]=(int)nrrdImage->axis[i+vectorIncrement].size;
+
+    if(vectorIncrement==1){
+        dim[0]=5;
+        dim[4]=1;
+        dim[5]=nrrdImage->axis[0].size;
     }
 
     // The nifti_image pointer is created
@@ -70,10 +136,9 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
     memcpy(niiImage->data, nrrdImage->data, niiImage->nvox*niiImage->nbyper);
 
     // We set the spacing information for every axis
-
     double spaceDir[NRRD_SPACE_DIM_MAX], spacing;
     for(int i=0;i<7;++i){
-        nrrdSpacingCalculate(nrrdImage,i,&spacing,spaceDir);
+        nrrdSpacingCalculate(nrrdImage,i+vectorIncrement,&spacing,spaceDir);
         if(spacing==spacing)
             niiImage->pixdim[i+1]=(float)spacing;
         else niiImage->pixdim[i+1]=1.0f;
@@ -122,12 +187,17 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
     }
     if(niiImage->qform_code>0){
         // The origin is set
+        // Note that x and y origin are negated to fit with ITK conversion
         if(niiImage->ndim>=1)
-            qform_orientation_matrix.m[0][3]=niiImage->qoffset_x=nrrdImage->spaceOrigin[0];
+            qform_orientation_matrix.m[0][3]=niiImage->qoffset_x=-nrrdImage->spaceOrigin[0];
         if(niiImage->ndim>=2)
-            qform_orientation_matrix.m[1][3]=niiImage->qoffset_y=nrrdImage->spaceOrigin[1];
+            qform_orientation_matrix.m[1][3]=niiImage->qoffset_y=-nrrdImage->spaceOrigin[1];
         if(niiImage->ndim>=3)
             qform_orientation_matrix.m[2][3]=niiImage->qoffset_z=nrrdImage->spaceOrigin[2];
+
+        // Flipp the orientation to fit ITK's filters
+        qform_orientation_matrix.m[0][0] *= -1.0f;
+        qform_orientation_matrix.m[1][1] *= -1.0f;
 
         // Extract the quaternions and qfac values
         nifti_mat44_to_quatern(qform_orientation_matrix,
@@ -166,25 +236,31 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
 
     // The sform has to be set if required
     // Check if the spaceDirection array is set
-    if(nrrdImage->axis[0].spaceDirection[0]!=std::numeric_limits<double>::quiet_NaN()){
+    // The check is performed in the dim in case you are dealing with a vector
+    if(nrrdImage->axis[1].spaceDirection[0]!=std::numeric_limits<double>::quiet_NaN()){
         niiImage->sform_code=1;
         reg_mat44_eye(&niiImage->sto_xyz);
         for(int i=0;i<(niiImage->ndim<3?niiImage->ndim:3);++i){
             for(int j=0;j<(niiImage->ndim<3?niiImage->ndim:3);++j){
-                niiImage->sto_xyz.m[i][j]=(float)nrrdImage->axis[i].spaceDirection[j];
+                niiImage->sto_xyz.m[i][j]=(float)nrrdImage->axis[i+vectorIncrement].spaceDirection[j];
             }
-            niiImage->sto_xyz.m[i][3]=niiImage->qto_xyz.m[i][3];
+            niiImage->sto_xyz.m[i][3]=(float)nrrdImage->spaceOrigin[i];
         }
+        // The matrix is flipped to go from nrrd to nifti
+        // and follow the ITK style
+        for(unsigned int i=0;i<2;++i)
+            for(unsigned int j=0;j<4;++j)
+                niiImage->sto_xyz.m[i][j]*=-1.0f;
         niiImage->sto_ijk=nifti_mat44_inverse(niiImage->sto_xyz);
     }
 
     // Set the space unit if it is defined
-    if(nrrdImage->spaceUnits[0]!=NULL){
-        if(strcmp(nrrdImage->spaceUnits[0],"m")==0)
+    if(nrrdImage->spaceUnits[1]!=NULL){
+        if(strcmp(nrrdImage->spaceUnits[1],"m")==0)
             niiImage->xyz_units=NIFTI_UNITS_METER;
-        else if(strcmp(nrrdImage->spaceUnits[0],"mm")==0)
+        else if(strcmp(nrrdImage->spaceUnits[1],"mm")==0)
             niiImage->xyz_units=NIFTI_UNITS_MM;
-        else if(strcmp(nrrdImage->spaceUnits[0],"um")==0)
+        else if(strcmp(nrrdImage->spaceUnits[1],"um")==0)
             niiImage->xyz_units=NIFTI_UNITS_MICRON;
     }
 
@@ -199,11 +275,30 @@ nifti_image *reg_io_nrdd2nifti(Nrrd *nrrdImage)
     }
 
     // Check if the nrrd image was a NiftyReg velocity field parametrisation
-    if(niiImage->nu>1){
+    if(vectorIncrement == 1){
+
+        // The intensity array has to be reoriented
+        switch(niiImage->datatype){
+        case NIFTI_TYPE_FLOAT32:
+            reg_convertVectorField_nrrd_to_nifti<float>(nrrdImage,niiImage);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            reg_convertVectorField_nrrd_to_nifti<double>(nrrdImage,niiImage);
+            break;
+        default:
+            fprintf(stderr, "[NiftyReg ERROR] - reg_convertVectorField_nrrd_to_nifti - unsupported datatype\n");
+            exit(1);
+        }
+        // The orientation flag are re-organised
+        niiImage->ndim=5;
+        niiImage->dim[4]=niiImage->nt=1;
+        niiImage->dim[5]=niiImage->nu=nrrdImage->axis[0].size;
+
         niiImage->intent_code=NIFTI_INTENT_VECTOR;
+
         // Check if the image is a stationary field from NiftyReg
-        if(nrrdImage->axis[4].label!=NULL){
-            std::string str=nrrdImage->axis[4].label;
+        if(nrrdImage->axis[0].label!=NULL){
+            std::string str=nrrdImage->axis[0].label;
             size_t it;
             if((it=str.find("NREG_VEL_STEP "))!=std::string::npos){
                 str=str.substr(it+13);
@@ -273,57 +368,52 @@ Nrrd *reg_io_nifti2nrrd(nifti_image *niiImage)
         niiImage->scl_inter=0;
     }
 
-    // Copy the data from the nifti image to the nrrd image
-    memcpy(nrrdImage->data, niiImage->data, niiImage->nvox*niiImage->nbyper);
-
-    // Set the origin of the image
-    nrrdImage->spaceDim=niiImage->ndim<3?niiImage->ndim:3;
-    if(niiImage->sform_code>0){
-        nrrdImage->spaceOrigin[0]=niiImage->sto_xyz.m[0][3];
-        nrrdImage->spaceOrigin[1]=niiImage->sto_xyz.m[1][3];
-        if(niiImage->ndim>2)
-            nrrdImage->spaceOrigin[2]=niiImage->sto_xyz.m[2][3];
-    }
-    else if(niiImage->qform_code>0){
-        nrrdImage->spaceOrigin[0]=niiImage->qoffset_x;
-        nrrdImage->spaceOrigin[1]=niiImage->qoffset_y;
-        if(niiImage->ndim>2)
-            nrrdImage->spaceOrigin[2]=niiImage->qoffset_z;
-    }
-    else{
-        nrrdImage->spaceOrigin[0]=0;
-        nrrdImage->spaceOrigin[1]=0;
-        if(niiImage->ndim>2)
-            nrrdImage->spaceOrigin[2]=0;
-    }
-
     // Set the space if suitable with the nrrd file format
-    if((niiImage->qform_code>0 || niiImage->sform_code>0) && niiImage->ndim>2){
-        int i_orient, j_orient, k_orient;
+    if(niiImage->qform_code>0 || niiImage->sform_code>0){
+        // Set the space dim variable
+        nrrdImage->spaceDim=niiImage->ndim<3?niiImage->ndim:3;
+        // Create a matrix to store the relevant information
+        mat44 currentAffineMatrix;
         // Use the sform information if it is defined
         if(niiImage->sform_code>0)
-            nifti_mat44_to_orientation(niiImage->sto_xyz,&i_orient,&j_orient,&k_orient);
+            currentAffineMatrix=niiImage->sto_xyz;
         // Use the qform orientation otherwise
-        else nifti_mat44_to_orientation(niiImage->qto_xyz,&i_orient,&j_orient,&k_orient);
-        if(i_orient==NIFTI_L2R && j_orient==NIFTI_P2A && k_orient==NIFTI_I2S){
-            if(niiImage->nt>1)
-                nrrdImage->space=nrrdSpaceRightAnteriorSuperiorTime;
-            else nrrdImage->space=nrrdSpaceRightAnteriorSuperior;
+        else currentAffineMatrix=niiImage->qto_xyz;
+        if(niiImage->ndim>2){
+/** @todo need to investigate what ITK is doing with the SPACE as all images seems to be LPS */
+//            // The space orientation is extracted
+//            int i_orient, j_orient, k_orient;
+//            nifti_mat44_to_orientation(currentAffineMatrix,&i_orient,&j_orient,&k_orient);
+//            if(i_orient==NIFTI_L2R && j_orient==NIFTI_P2A && k_orient==NIFTI_I2S){
+//                if(niiImage->nt>1)
+//                    nrrdImage->space=nrrdSpaceRightAnteriorSuperiorTime;
+//                else nrrdImage->space=nrrdSpaceRightAnteriorSuperior;
+//            }
+//            else if(i_orient==NIFTI_R2L && j_orient==NIFTI_P2A && k_orient==NIFTI_I2S){
+//                if(niiImage->nt>1)
+//                    nrrdImage->space=nrrdSpaceLeftAnteriorSuperiorTime;
+//                else nrrdImage->space=nrrdSpaceLeftAnteriorSuperior;
+//            }
+//            else if(i_orient==NIFTI_R2L && j_orient==NIFTI_A2P && k_orient==NIFTI_I2S){
+//                if(niiImage->nt>1)
+//                    nrrdImage->space=nrrdSpaceLeftPosteriorSuperiorTime;
+//                else nrrdImage->space=nrrdSpaceLeftPosteriorSuperior;
+//            }
+//            else{
+//                nrrdImage->space=nrrdSpaceUnknown;
+//                fprintf(stderr, "[NiftyReg WARNING] reg_io_nifti2nrrd - The nifti qform information can be stored in the space variable.\n");
+//                fprintf(stderr, "[NiftyReg WARNING] reg_io_nifti2nrrd - The space direction will be used.\n");
+//            }
+            nrrdImage->space=nrrdSpaceUnknown;
         }
-        else if(i_orient==NIFTI_R2L && j_orient==NIFTI_P2A && k_orient==NIFTI_I2S){
-            if(niiImage->nt>1)
-                nrrdImage->space=nrrdSpaceLeftAnteriorSuperiorTime;
-            else nrrdImage->space=nrrdSpaceLeftAnteriorSuperior;
-        }
-        else{
-            fprintf(stderr, "[NiftyReg WARNING] reg_io_nifti2nrrd - The nifti qform information can be stored in the space variable.\n");
-            fprintf(stderr, "[NiftyReg WARNING] reg_io_nifti2nrrd - The space direction will be used.\n");
-        }
-    }
 
-    // Set the space direction if qform and sform are defined
-    if(niiImage->qform_code>0 || niiImage->sform_code>0){
-        // the space direction is initialised to idensity
+        // The matrix is flipped to go from nifti to nrrd
+        // and follow the ITK style
+        for(unsigned int i=0;i<2;++i)
+            for(unsigned int j=0;j<4;++j)
+                currentAffineMatrix.m[i][j]*=-1.0f;
+
+        // the space direction is initialised to identity
         nrrdImage->axis[0].spaceDirection[0]=1;
         nrrdImage->axis[0].spaceDirection[1]=0;
         nrrdImage->axis[0].spaceDirection[2]=0;
@@ -333,20 +423,23 @@ Nrrd *reg_io_nifti2nrrd(nifti_image *niiImage)
         nrrdImage->axis[2].spaceDirection[0]=0;
         nrrdImage->axis[2].spaceDirection[1]=0;
         nrrdImage->axis[2].spaceDirection[2]=1;
-        for(int i=0;i<(niiImage->ndim<3?niiImage->ndim:3);++i){
-            for(int j=0;j<(niiImage->ndim<3?niiImage->ndim:3);++j){
-                // The sform is used if defined
-                if(niiImage->sform_code>0)
-                    nrrdImage->axis[i].spaceDirection[j]=niiImage->sto_xyz.m[i][j];
-                // The qform matrix is used otherwise
-                else nrrdImage->axis[i].spaceDirection[j]=niiImage->qto_xyz.m[i][j];
-            }
-        }
+        for(int i=0;i<(niiImage->ndim<3?niiImage->ndim:3);++i)
+            for(int j=0;j<(niiImage->ndim<3?niiImage->ndim:3);++j)
+                nrrdImage->axis[i].spaceDirection[j]=currentAffineMatrix.m[i][j];
+
+        // Set the origin of the image
+        nrrdImage->spaceOrigin[0]=currentAffineMatrix.m[0][3];
+        nrrdImage->spaceOrigin[1]=currentAffineMatrix.m[1][3];
+        if(niiImage->ndim>2)
+            nrrdImage->spaceOrigin[2]=currentAffineMatrix.m[2][3];
     }
     else{
-        // Set the spacing values if qform and sform are not defined
-        for(int i=0;i<niiImage->ndim;i++)
+        for(int i=0;i<niiImage->ndim;i++){
+            // Set the spacing values if qform and sform are not defined
             nrrdImage->axis[i].spacing=niiImage->pixdim[i+1];
+            // As well as the origin to zero
+            nrrdImage->spaceOrigin[i]=0;
+        }
     }
     // Set the units if they are defined
     for(int i=0; i<NRRD_SPACE_DIM_MAX; i++){
@@ -358,18 +451,21 @@ Nrrd *reg_io_nifti2nrrd(nifti_image *niiImage)
         for(int i=0;i<(niiImage->ndim<3?niiImage->ndim:3);++i){
             nrrdImage->spaceUnits[i]=(char *)malloc(200);
             sprintf(nrrdImage->spaceUnits[i],"m");
+            nrrdImage->axis[i].kind=nrrdKindDomain;
         }
         break;
     case NIFTI_UNITS_MM:
         for(int i=0;i<(niiImage->ndim<3?niiImage->ndim:3);++i){
             nrrdImage->spaceUnits[i]=(char *)malloc(200);
             sprintf(nrrdImage->spaceUnits[i],"mm");
+            nrrdImage->axis[i].kind=nrrdKindDomain;
         }
         break;
     case NIFTI_UNITS_MICRON:
         for(int i=0;i<(niiImage->ndim<3?niiImage->ndim:3);++i){
             nrrdImage->spaceUnits[i]=(char *)malloc(200);
             sprintf(nrrdImage->spaceUnits[i],"um");
+            nrrdImage->axis[i].kind=nrrdKindDomain;
         }
         break;
     }
@@ -379,34 +475,70 @@ Nrrd *reg_io_nifti2nrrd(nifti_image *niiImage)
         switch(niiImage->time_units){
         case NIFTI_UNITS_SEC:
             nrrdImage->spaceUnits[4]=(char *)"sec";
+            nrrdImage->axis[4].kind=nrrdKindTime;
             break;
         case NIFTI_UNITS_MSEC:
             nrrdImage->spaceUnits[4]=(char *)"msec";
+            nrrdImage->axis[4].kind=nrrdKindTime;
             break;
         }
     }
 
     // Check if the image is a vector field
-    if(niiImage->nu>1){
-        // Check if the image is a stationary field from NiftyReg
-        if(niiImage->intent_code==NIFTI_INTENT_VECTOR){
-            if(strcmp(niiImage->intent_name,"NREG_VEL_STEP")==0){
-                // The number of step is store in the nrrdImage->axis[4].label pointer
-                char temp[64];
-                sprintf(temp,"NREG_VEL_STEP %f",niiImage->intent_p1);
-                std::string str=temp;
-                if(nrrdImage->axis[4].label!=NULL) free(nrrdImage->axis[4].label);
-                nrrdImage->axis[4].label=(char *)malloc(str.length()*sizeof(char));
-                strcpy(nrrdImage->axis[4].label,str.c_str());
-
-            }
-            else if(strcmp(niiImage->intent_name,"NREG_CPP_FILE")==0){
-                std::string str="NREG_CPP_FILE";
-                if(nrrdImage->axis[4].label!=NULL) free(nrrdImage->axis[4].label);
-                nrrdImage->axis[4].label=(char *)malloc(str.length()*sizeof(char));
-                strcpy(nrrdImage->axis[4].label, str.c_str());
-            }
+    if(niiImage->intent_code==NIFTI_INTENT_VECTOR){
+        // The intensity array has to be reoriented
+        switch(niiImage->datatype){
+        case NIFTI_TYPE_FLOAT32:
+            reg_convertVectorField_nifti_to_nrrd<float>(niiImage,nrrdImage);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            reg_convertVectorField_nifti_to_nrrd<double>(niiImage,nrrdImage);
+            break;
+        default:
+            fprintf(stderr, "[NiftyReg ERROR] - reg_convertVectorField_nifti_to_nrrd - unsupported datatype\n");
+            exit(1);
         }
+
+        // The orientation flag are re-organised
+        for(int i=niiImage->nu;i>0;--i){
+            for(int j=0;j<niiImage->nu;++j){
+                nrrdImage->axis[i].spaceDirection[j]=nrrdImage->axis[i-1].spaceDirection[j];
+            }
+            nrrdImage->axis[i].size=nrrdImage->axis[i-1].size;
+            nrrdImage->axis[i].spacing=nrrdImage->axis[i-1].spacing;
+            nrrdImage->axis[i].kind=nrrdKindDomain;
+            nrrdImage->spaceUnits[i]=nrrdImage->spaceUnits[i-1];
+        }
+        nrrdImage->axis[0].size=niiImage->nu;
+        nrrdImage->axis[0].spaceDirection[0]=std::numeric_limits<double>::quiet_NaN();
+        nrrdImage->axis[0].spaceDirection[1]=std::numeric_limits<double>::quiet_NaN();
+        nrrdImage->axis[0].spaceDirection[2]=std::numeric_limits<double>::quiet_NaN();
+        nrrdImage->axis[0].kind=nrrdKindVector;
+        nrrdImage->spaceUnits[0]=NULL;
+
+        nrrdImage->dim=niiImage->nu+1;
+
+        // Check if the image is a stationary field from NiftyReg
+        if(strcmp(niiImage->intent_name,"NREG_VEL_STEP")==0){
+            // The number of step is store in the nrrdImage->axis[0].label pointer
+            char temp[64];
+            sprintf(temp,"NREG_VEL_STEP %f",niiImage->intent_p1);
+            std::string str=temp;
+            if(nrrdImage->axis[0].label!=NULL) free(nrrdImage->axis[0].label);
+            nrrdImage->axis[0].label=(char *)malloc(str.length()*sizeof(char));
+            strcpy(nrrdImage->axis[0].label,str.c_str());
+
+        }
+        else if(strcmp(niiImage->intent_name,"NREG_CPP_FILE")==0){
+            std::string str="NREG_CPP_FILE";
+            if(nrrdImage->axis[0].label!=NULL) free(nrrdImage->axis[0].label);
+            nrrdImage->axis[0].label=(char *)malloc(str.length()*sizeof(char));
+            strcpy(nrrdImage->axis[0].label, str.c_str());
+        }
+    }
+    else{
+        // Copy the data from the nifti image to the nrrd image
+        memcpy(nrrdImage->data, niiImage->data, niiImage->nvox*niiImage->nbyper);
     }
 
     return nrrdImage;

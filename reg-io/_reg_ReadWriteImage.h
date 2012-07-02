@@ -20,9 +20,9 @@
 #include "reg_png.h"
 #include "reg_nrrd.h"
 
-/** \defgroup NIFTYREG_FILEFORMAT_TYPE
-    \brief Codes to define the image file format
-    @{
+/** @defgroup NIFTYREG_FILEFORMAT_TYPE
+ *  @brief Codes to define the image file format
+ *  @{
  */
 #define NR_NII_FORMAT 0
 #define NR_PNG_FORMAT 1

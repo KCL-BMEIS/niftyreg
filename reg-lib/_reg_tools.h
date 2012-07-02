@@ -203,4 +203,13 @@ void reg_thresholdImage(nifti_image *image,
                         T lowThr,
                         T upThr
                         );
+
+/** @brief This function flipp the specified axis
+ * @param
+ */
+extern "C++"
+void reg_flippAxis(nifti_image *image,
+                   void *array,
+                   std::string cmd
+                   );
 #endif

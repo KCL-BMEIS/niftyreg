@@ -17,6 +17,8 @@
 #include "_reg_localTransformation.h"
 #include "_reg_tools.h"
 
+#include "reg_tools.h"
+
 #ifdef _USE_NR_DOUBLE
 #define PrecisionTYPE double
 #else
@@ -100,6 +102,10 @@ int main(int argc, char **argv)
            strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
            strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0){
             Usage(argv[0]);
+            return 0;
+        }
+        else if(strcmp(argv[i], "--xml")==0){
+            printf("%s",xml_tools);
             return 0;
         }
 #ifdef _SVN_REV

@@ -18,6 +18,7 @@
 #include "NrrdIO.h"
 #include "_reg_tools.h"
 #include "_reg_maths.h"
+#include <limits>
 
 /* *************************************************************** */
 /** @brief Convert a NRRD image into a nifti image

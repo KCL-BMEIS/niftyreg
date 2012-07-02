@@ -19,6 +19,8 @@
 #include "_reg_tools.h"
 #include "_reg_thinPlateSpline.h"
 
+#include "reg_transform.h"
+
 #include <fstream>
 #include <vector>
 #include <iostream>
@@ -156,6 +158,10 @@ int main(int argc, char **argv)
                 strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
                 strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0){
             Usage(argv[0]);
+            return 0;
+        }
+        else if(strcmp(argv[i], "--xml")==0){
+            printf("%s",xml_transform);
             return 0;
         }
 #ifdef _SVN_REV
