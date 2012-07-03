@@ -6,7 +6,7 @@ endif(NOT ZLIB_FOUND OR BUILD_ALL_DEP)
 # Build the nifti file format library
 subdirs(nifti)
 
-set(LIBRARIES reg_nifti ${ZLIB_LIBRARY})
+set(LIBRARIES reg_nifti z)
 
 # Build the png library if required
 subdirs(png)

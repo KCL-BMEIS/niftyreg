@@ -13,8 +13,12 @@ add_definitions(-DTEEM_BUILD=1)
 add_definitions(-DTEEM_DIO=0)
 add_definitions(-DTEEM_ZLIB=1)
 
-include(TestBigEndian)
-test_big_endian(CMAKE_WORDS_BIGENDIAN)
+if(WIN32)
+    include(TestBigEndian)
+    test_big_endian(CMAKE_WORDS_BIGENDIAN)
+else(WIN32)
+    set(CMAKE_WORDS_BIGENDIAN false)
+endif(WIN32)
 
 # Configure files with settings for use by the build.
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/NrrdIO/NrrdConfigure.h.in
