@@ -43,6 +43,9 @@ template <class T> reg_aladin<T>::reg_aladin ()
     this->FloatingSigma=0.0;
 
     this->ReferenceSigma=0.0;
+
+    this->funcProgressCallback=NULL;
+    this->paramsProgressCallback=NULL;
 }
 
 template <class T> reg_aladin<T>::~reg_aladin()
@@ -93,16 +96,14 @@ template <class T>
 int reg_aladin<T>::Check()
 {
     //This does all the initial checking
-    if(this->InputReference == NULL)
-    {
-        fprintf(stderr,"** ERROR Error when reading the reference image. No image specified or not able to read \n");
+    if(this->InputReference == NULL){
+        fprintf(stderr,"[NiftyReg ERROR] No reference image has been specified or it can not be read\n");
         return 1;
     }
     reg_checkAndCorrectDimension(this->InputReference);
 
-    if(this->InputFloating == NULL)
-    {
-        fprintf(stderr,"** ERROR Error when reading the floating image: No image specified or not able to read \n");
+    if(this->InputFloating == NULL){
+        fprintf(stderr,"[NiftyReg ERROR] No floating image has been specified or it can not be read\n");
         return 1;
     }
     reg_checkAndCorrectDimension(this->InputFloating);
@@ -113,14 +114,12 @@ int reg_aladin<T>::Check()
 template <class T>
 int reg_aladin<T>::Print()
 {
-    if(this->InputReference == 0)
-    {
-        fprintf(stderr,"** ERROR Error when reading the reference image. No image is loaded\n");
+    if(this->InputReference == NULL){
+        fprintf(stderr,"[NiftyReg ERROR] No reference image has been specified\n");
         return 1;
     }
-    if(this->InputFloating == 0)
-    {
-        fprintf(stderr,"** ERROR Error when reading the floating image. No image is loaded\n");
+    if(this->InputFloating == NULL){
+        fprintf(stderr,"[NiftyReg ERROR] No floating image has been specified\n");
         return 1;
     }
 
@@ -142,9 +141,9 @@ int reg_aladin<T>::Print()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_aladin<T>::SetInputTransform(char *filename, bool flirtFlag)
+void reg_aladin<T>::SetInputTransform(const char *filename, bool flirtFlag)
 {
-    this->InputTransformName=filename;
+    this->InputTransformName=(char *)filename;
     this->InputTransformFromFlirt=flirtFlag;
     return;
 }
@@ -409,6 +408,23 @@ void reg_aladin<T>::Run()
     // Initialise the registration parameters
     this->InitialiseRegistration();
 
+    // Compute the resolution of the progress bar
+    float iProgressStep=1, nProgressSteps;
+    if (this->PerformRigid && !this->PerformAffine) 
+    {
+      nProgressSteps = this->MaxIterations*(this->LevelsToPerform + 1);
+    }
+    else if (this->PerformAffine && this->PerformRigid)
+    {
+      nProgressSteps = this->MaxIterations*4*2 
+	+ this->MaxIterations*(this->LevelsToPerform + 1);
+    }
+    else 
+    {
+      nProgressSteps = this->MaxIterations*(this->LevelsToPerform + 1);
+    }
+
+
     //Main loop over the levels:
     for(this->CurrentLevel=0; this->CurrentLevel < this->LevelsToPerform; this->CurrentLevel++)
     {
@@ -460,8 +476,18 @@ void reg_aladin<T>::Run()
                 reg_mat44_disp(&updateMatrix, (char *)"[DEBUG] updateMatrix");
                 reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] updated affine");
 #endif
-                if(this->TestMatrixConvergence(&updateMatrix)) break;
+                if(this->TestMatrixConvergence(&updateMatrix)) 
+		{
+		  iProgressStep += maxNumberOfIterationToPerform*ratio - 1 - iteration;
+		  break;
+		}
+		if ( funcProgressCallback && paramsProgressCallback ) 
+		{
+		  (*funcProgressCallback)(100.*iProgressStep/nProgressSteps, 
+					  paramsProgressCallback);
+		}
                 iteration++;
+		iProgressStep++;
             }
         }
 
@@ -481,8 +507,18 @@ void reg_aladin<T>::Run()
                 reg_mat44_disp(&updateMatrix, (char *)"[DEBUG] updateMatrix");
                 reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] updated affine");
 #endif
-                if(this->TestMatrixConvergence(&updateMatrix)) break;
-                iteration++;
+                if(this->TestMatrixConvergence(&updateMatrix))
+		{
+		  iProgressStep += maxNumberOfIterationToPerform - 1 - iteration;
+		  break;
+		}
+		if ( funcProgressCallback && paramsProgressCallback ) 
+		{
+		  (*funcProgressCallback)(100.*iProgressStep/nProgressSteps,
+					  paramsProgressCallback);
+		}
+		iteration++;
+		iProgressStep++;
             }
         }
 
@@ -499,6 +535,11 @@ void reg_aladin<T>::Run()
 #endif
 
     } // level this->LevelsToPerform
+
+    if ( funcProgressCallback && paramsProgressCallback ) 
+    {
+      (*funcProgressCallback)( 100., paramsProgressCallback);
+    }
 
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_aladin::Run() done\n");

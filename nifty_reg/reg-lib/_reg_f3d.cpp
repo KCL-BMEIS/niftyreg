@@ -64,6 +64,7 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->verbose=true;
     this->useSSD=false;
     this->useKLD=false;
+    this->additive_mc_nmi = false;
     this->useConjGradient=true;
     this->maxSSD=NULL;
     this->entropies[0]=this->entropies[1]=this->entropies[2]=this->entropies[3]=0.;
@@ -97,6 +98,9 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->yOptimisation=true;
     this->zOptimisation=true;
     this->gridRefinement=true;
+
+    this->funcProgressCallback=NULL;
+    this->paramsProgressCallback=NULL;
 
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d constructor called\n");
@@ -932,11 +936,15 @@ void reg_f3d<T>::Initisalise_f3d()
         }
         for(unsigned int l=0; l<pyramidalLevelNumber; l++){
             reg_intensityRescale(this->referencePyramid[l],
-                                 referenceRescalingArrayDown,referenceRescalingArrayUp,
-                                 this->referenceThresholdLow, this->referenceThresholdUp);
+                                 referenceRescalingArrayDown,
+                                 referenceRescalingArrayUp,
+                                 this->referenceThresholdLow,
+                                 this->referenceThresholdUp);
             reg_intensityRescale(this->floatingPyramid[l],
-                                 floatingRescalingArrayDown,floatingRescalingArrayUp,
-                                 this->floatingThresholdLow, this->floatingThresholdUp);
+                                 floatingRescalingArrayDown,
+                                 floatingRescalingArrayUp,
+                                 this->floatingThresholdLow,
+                                 this->floatingThresholdUp);
         }
     }
 
@@ -1155,8 +1163,9 @@ double reg_f3d<T>::ComputeSimilarityMeasure()
                                        this->currentMask);
     }
     else{
+        // Use additive NMI when the flag is set and we have multi channel input
         if(this->currentReference->nt>1 &&
-           this->currentReference->nt == this->warped->nt ){
+           this->currentReference->nt == this->warped->nt && additive_mc_nmi){
 
             fprintf(stderr, "WARNING: Modification for Jorge - reg_f3d<T>::ComputeSimilarityMeasure()\n");
 
@@ -1349,8 +1358,9 @@ void reg_f3d<T>::GetVoxelBasedGradient()
                                               );
     }
     else{
+        // Use additive NMI when the flag is set and we have multi channel input
         if(this->currentReference->nt>1 &&
-           this->currentReference->nt == this->warped->nt ){
+           this->currentReference->nt == this->warped->nt && additive_mc_nmi){
 
             fprintf(stderr, "WARNING: Modification for Jorge - reg_f3d<T>::GetVoxelBasedGradient()\n");
 
@@ -1471,8 +1481,8 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
     smoothingRadius[0] = (int)( 2.0*this->controlPointGrid->dx/this->currentReference->dx );
     smoothingRadius[1] = (int)( 2.0*this->controlPointGrid->dy/this->currentReference->dy );
     smoothingRadius[2] = (int)( 2.0*this->controlPointGrid->dz/this->currentReference->dz );
-    reg_smoothImageForCubicSpline<T>(this->voxelBasedMeasureGradientImage,
-                                     smoothingRadius);
+    reg_tools_CubicSplineKernelConvolution<T>(this->voxelBasedMeasureGradientImage,
+                                              smoothingRadius);
 
     // The node based NMI gradient is extracted
     reg_voxelCentric2NodeCentric(this->nodeBasedGradientImage,
@@ -1878,6 +1888,11 @@ void reg_f3d<T>::Run_f3d()
 
     if(!this->initialised) this->Initisalise_f3d();
 
+    // Compute the resolution of the progress bar
+    float iProgressStep=1, nProgressSteps;
+    nProgressSteps = this->levelToPerform*this->maxiterationNumber;
+
+
     for(this->currentLevel=0;
         this->currentLevel<this->levelToPerform;
         this->currentLevel++){
@@ -2084,7 +2099,26 @@ void reg_f3d<T>::Run_f3d()
 #ifdef NDEBUG
             }
 #endif
-            if(addedStep==0.f) break;
+
+            if(addedStep==0.f) 
+	    {
+	      iProgressStep += this->maxiterationNumber - 1 - this->currentIteration;
+	      if ( funcProgressCallback && paramsProgressCallback) 
+	      {
+		(*funcProgressCallback)(100.*iProgressStep/nProgressSteps, 
+					paramsProgressCallback);
+	      }
+	      break;
+	    }
+	    else 
+	    {
+	      iProgressStep++;	    
+	      if ( funcProgressCallback && paramsProgressCallback) 
+	      {
+		(*funcProgressCallback)(100.*iProgressStep/nProgressSteps, 
+					paramsProgressCallback);
+	      }
+	    }
         }
 
         // FINAL FOLDING CORRECTION
@@ -2123,6 +2157,11 @@ void reg_f3d<T>::Run_f3d()
 #endif
 
     } // level this->levelToPerform
+
+    if ( funcProgressCallback && paramsProgressCallback ) 
+    {
+      (*funcProgressCallback)( 100., paramsProgressCallback);
+    }
 
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d::Run_f3d() done\n");

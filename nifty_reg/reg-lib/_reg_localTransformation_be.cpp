@@ -845,7 +845,7 @@ void reg_bspline_L2norm_dispGradient1(nifti_image *splineControlPoint,
                  }
                  else{
                      for(b=y-1;b<y+2;b++){
-                         currentIndex= (c*splineControlPoint->ny+b)*splineControlPoint->nx+x-1;
+                         currentIndex= b*splineControlPoint->nx+x-1;
                          for(a=x-1;a<x+2;a++){
 
                              if(b>-1 && a>-1 && b<splineControlPoint->ny && a<splineControlPoint->nx){

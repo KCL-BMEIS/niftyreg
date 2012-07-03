@@ -1,6 +1,7 @@
-/*
- *  _reg_f3d2.h
- *
+/**
+ * @file _reg_f3d2.h
+ * @author Marc Modat
+ * @date 19/11/2010
  *
  *  Created by Marc Modat on 19/11/2010.
  *  Copyright (c) 2009, University College London. All rights reserved.
@@ -11,7 +12,6 @@
 
 #include "_reg_f3d_sym.h"
 
-#define _BUILD_NR_DEV
 #ifdef _BUILD_NR_DEV
 
 #ifndef _REG_F3D2_H

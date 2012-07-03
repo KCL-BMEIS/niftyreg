@@ -9,7 +9,6 @@
  *
  */
 
-#define _BUILD_NR_DEV
 #ifdef _BUILD_NR_DEV
 
 #ifndef _REG_F3D2_CPP
@@ -236,8 +235,12 @@ void reg_f3d2<T>::Initisalise_f3d()
     reg_f3d_sym<T>::Initisalise_f3d();
 
     // Convert the deformation field into velocity field
-    this->controlPointGrid->intent_code=this->stepNumber;
-    this->backwardControlPointGrid->intent_code=-this->stepNumber;
+    this->controlPointGrid->intent_code=NIFTI_INTENT_VECTOR;
+    this->backwardControlPointGrid->intent_code=NIFTI_INTENT_VECTOR;
+
+    this->controlPointGrid->intent_p1=this->stepNumber;
+    this->backwardControlPointGrid->intent_p1=-this->stepNumber;
+
     memset(this->controlPointGrid->intent_name, 0, 16);
     memset(this->backwardControlPointGrid->intent_name, 0, 16);
     strcpy(this->controlPointGrid->intent_name,"NREG_VEL_STEP");

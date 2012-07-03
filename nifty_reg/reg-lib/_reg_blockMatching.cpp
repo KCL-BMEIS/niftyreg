@@ -1756,4 +1756,3 @@ void optimize(	_reg_blockMatchingParam *params,
         }
     }
 }
-

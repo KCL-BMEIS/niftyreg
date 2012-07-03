@@ -11,9 +11,12 @@
 #ifndef MM_AVERAGE_CPP
 #define MM_AVERAGE_CPP
 
+#include "_reg_ReadWriteImage.h"
 #include "_reg_tools.h"
 #include "_reg_maths.h"
 #include "_reg_globalTransformation.h"
+
+#include "reg_average.h"
 
 #ifdef _USE_NR_DOUBLE
 #define PrecisionTYPE double
@@ -23,6 +26,7 @@
 
 void usage(char *exec)
 {
+    printf("%s is a command line program to average either images or affine transformations\n", exec);
     printf("usage:\n\t%s <outputFileName> <inputFileName1> <inputFileName2> <inputFileName3> ...\n", exec);
     printf("\t If the input are images, the intensities are averaged\n");
     printf("\t If the input are affine matrices, out=expm(logm(M1)+logm(M2)+logm(M3)+...)\n");
@@ -30,6 +34,11 @@ void usage(char *exec)
 
 int main(int argc, char **argv)
 {
+    if(strcmp(argv[1], "--xml")==0){
+        printf("%s",xml_average);
+        return 0;
+    }
+
     if(argc<3){
         usage(argv[0]);
         return EXIT_SUCCESS;
@@ -45,7 +54,7 @@ int main(int argc, char **argv)
     {
         // Input arguments are image filename
         // Read the first image to average
-        nifti_image *tempImage=nifti_image_read(argv[2],false);
+        nifti_image *tempImage=reg_io_ReadImageHeader(argv[2]);
         if(tempImage==NULL){
             fprintf(stderr, "The following image can not be read: %s\n", argv[2]);
             return EXIT_FAILURE;
@@ -60,12 +69,11 @@ int main(int argc, char **argv)
             average_image->datatype=NIFTI_TYPE_FLOAT64;
         average_image->nbyper=sizeof(PrecisionTYPE);
         average_image->data=(void *)malloc(average_image->nvox*average_image->nbyper);
-        nifti_set_filenames(average_image,argv[1],0,0);
         reg_tools_addSubMulDivValue(average_image,average_image,0.f,2);
 
         int imageTotalNumber=0;
         for(int i=2;i<argc;++i){
-            nifti_image *tempImage=nifti_image_read(argv[i],true);
+            nifti_image *tempImage=reg_io_ReadImageFile(argv[i]);
             if(tempImage==NULL){
                 fprintf(stderr, "[!] The following image can not be read: %s\n", argv[i]);
                 return EXIT_FAILURE;
@@ -80,7 +88,7 @@ int main(int argc, char **argv)
             nifti_image_free(tempImage);tempImage=NULL;
         }
         reg_tools_addSubMulDivValue(average_image,average_image,(float)imageTotalNumber,3);
-        nifti_image_write(average_image);
+        reg_io_WriteImageFile(average_image,argv[1]);
         nifti_image_free(average_image);
     }
     else{

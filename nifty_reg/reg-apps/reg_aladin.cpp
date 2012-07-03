@@ -14,8 +14,10 @@
 #define _MM_ALADIN_CPP
 
 
+#include "_reg_ReadWriteImage.h"
 #include "_reg_aladin_sym.h"
 #include "_reg_tools.h"
+#include "reg_aladin.h"
 
 #ifdef _WINDOWS
 #include <time.h>
@@ -29,9 +31,11 @@
 
 void PetitUsage(char *exec)
 {
-    fprintf(stderr,"Aladin - Seb.\n");
+    fprintf(stderr,"\n");
+    fprintf(stderr,"reg_aladin\n");
     fprintf(stderr,"Usage:\t%s -ref <referenceImageName> -flo <floatingImageName> [OPTIONS].\n",exec);
     fprintf(stderr,"\tSee the help for more details (-h).\n");
+    fprintf(stderr,"\n");
     return;
 }
 void Usage(char *exec)
@@ -77,6 +81,11 @@ void Usage(char *exec)
 
 int main(int argc, char **argv)
 {
+    if(argc==1){
+        PetitUsage(argv[0]);
+        return 1;
+    }
+
     time_t start; time(&start);
 
     int symFlag=0;
@@ -123,82 +132,91 @@ int main(int argc, char **argv)
             Usage(argv[0]);
             return 0;
         }
-        else if(strcmp(argv[i], "-ref") == 0 || strcmp(argv[i], "-target") == 0){
+        else if(strcmp(argv[i], "--xml")==0){
+            printf("%s",xml_aladin);
+            return 0;
+        }
+#ifdef _SVN_REV
+        if( strcmp(argv[i], "-version")==0 ||
+            strcmp(argv[i], "-Version")==0 ||
+            strcmp(argv[i], "-V")==0 ||
+            strcmp(argv[i], "-v")==0 ||
+            strcmp(argv[i], "--v")==0 ||
+            strcmp(argv[i], "--version")==0){
+            printf("NiftyReg revision number: %i\n",_SVN_REV);
+            return 0;
+        }
+#endif
+        else if(strcmp(argv[i], "-ref")==0 || strcmp(argv[i], "-target")==0 || strcmp(argv[i], "--ref")==0){
             referenceImageName=argv[++i];
             referenceImageFlag=1;
         }
-        else if(strcmp(argv[i], "-flo") == 0 || strcmp(argv[i], "-source") == 0){
+        else if(strcmp(argv[i], "-flo")==0 || strcmp(argv[i], "-source")==0 || strcmp(argv[i], "--flo")==0){
             floatingImageName=argv[++i];
             floatingImageFlag=1;
         }
-        else if(strcmp(argv[i], "-sym") == 0){
+        else if(strcmp(argv[i], "-sym")==0 || strcmp(argv[i], "--sym")==0){
             symFlag=1;
         }
-        else if(strcmp(argv[i], "-aff") == 0){
+        else if(strcmp(argv[i], "-aff")==0 || strcmp(argv[i], "--aff")==0){
             outputAffineName=argv[++i];
             outputAffineFlag=1;
         }
-        else if(strcmp(argv[i], "-inaff") == 0){
+        else if(strcmp(argv[i], "-inaff")==0 || strcmp(argv[i], "--inaff")==0){
             inputAffineName=argv[++i];
             inputAffineFlag=1;
         }
-        else if(strcmp(argv[i], "-affFlirt") == 0){
+        else if(strcmp(argv[i], "-affFlirt")==0 || strcmp(argv[i], "--affFlirt")==0){
             inputAffineName=argv[++i];
             inputAffineFlag=1;
             flirtAffineFlag=1;
         }
-        else if(strcmp(argv[i], "-rmask") == 0 || strcmp(argv[i], "-tmask") == 0){
+        else if(strcmp(argv[i], "-rmask")==0 || strcmp(argv[i], "-tmask")==0 || strcmp(argv[i], "--rmask")==0){
             referenceMaskName=argv[++i];
             referenceMaskFlag=1;
         }
-        else if(strcmp(argv[i], "-fmask") == 0 || strcmp(argv[i], "-smask") == 0){
+        else if(strcmp(argv[i], "-fmask")==0 || strcmp(argv[i], "-smask")==0 || strcmp(argv[i], "--fmask")==0){
             floatingMaskName=argv[++i];
             floatingMaskFlag=1;
         }
-        else if(strcmp(argv[i], "-res") == 0 || strcmp(argv[i], "-result") == 0){
+        else if(strcmp(argv[i], "-res")==0 || strcmp(argv[i], "-result")==0 || strcmp(argv[i], "--res")==0){
             outputResultName=argv[++i];
             outputResultFlag=1;
         }
-        else if(strcmp(argv[i], "-maxit") == 0){
+        else if(strcmp(argv[i], "-maxit")==0 || strcmp(argv[i], "--maxit")==0){
             maxIter = atoi(argv[++i]);
         }
-        else if(strcmp(argv[i], "-ln") == 0){
+        else if(strcmp(argv[i], "-ln")==0 || strcmp(argv[i], "--ln")==0){
             nLevels=atoi(argv[++i]);
         }
-        else if(strcmp(argv[i], "-lp") == 0){
+        else if(strcmp(argv[i], "-lp")==0 || strcmp(argv[i], "--lp")==0){
             levelsToPerform=atoi(argv[++i]);
         }
-        else if(strcmp(argv[i], "-smooR") == 0 || strcmp(argv[i], "-smooT") == 0){
+        else if(strcmp(argv[i], "-smooR")==0 || strcmp(argv[i], "-smooT")==0 || strcmp(argv[i], "--smooR")==0){
             referenceSigma = (float)(atof(argv[++i]));
         }
-        else if(strcmp(argv[i], "-smooF") == 0 || strcmp(argv[i], "-smooS") == 0){
+        else if(strcmp(argv[i], "-smooF")==0 || strcmp(argv[i], "-smooS")==0 || strcmp(argv[i], "--smooF")==0){
             floatingSigma=(float)(atof(argv[++i]));
         }
-        else if(strcmp(argv[i], "-rigOnly") == 0){
+        else if(strcmp(argv[i], "-rigOnly")==0 || strcmp(argv[i], "--rigOnly")==0){
             rigidFlag=1;
             affineFlag=0;
             }
-        else if(strcmp(argv[i], "-affDirect") == 0){
+        else if(strcmp(argv[i], "-affDirect")==0 || strcmp(argv[i], "--affDirect")==0){
           rigidFlag=0;
           affineFlag=1;
         }
-        else if(strcmp(argv[i], "-nac") == 0){
+        else if(strcmp(argv[i], "-nac")==0 || strcmp(argv[i], "--nac")==0){
             alignCentre=0;
         }
-        else if(strcmp(argv[i], "-%v") == 0){
+        else if(strcmp(argv[i], "-%v")==0 || strcmp(argv[i], "--vv")==0){
             blockPercentage=atof(argv[++i]);
         }
-        else if(strcmp(argv[i], "-%i") == 0){
+        else if(strcmp(argv[i], "-%i")==0 || strcmp(argv[i], "--ii")==0){
             inlierLts=atof(argv[++i]);
         }
-        else if(strcmp(argv[i], "-NN") == 0){
-            interpolation=0;
-        }
-        else if(strcmp(argv[i], "-LIN") == 0){
-            interpolation=1;
-        }
-        else if(strcmp(argv[i], "-CUB") == 0){
-            interpolation=3;
+        else if(strcmp(argv[i], "-interp")==0 || strcmp(argv[i], "--interp")==0){
+            interpolation=atoi(argv[++i]);
         }
         else{
             fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
@@ -213,6 +231,11 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    // Output the command line
+    printf("\n[NiftyReg ALADIN] Command line:\n\t");
+    for(int i=0;i<argc;i++)
+        printf(" %s", argv[i]);
+    printf("\n\n");
 
     reg_aladin<PrecisionTYPE> *REG;
 #ifdef _BUILD_NR_DEV
@@ -221,8 +244,8 @@ int main(int argc, char **argv)
         REG = new reg_aladin_sym<PrecisionTYPE>;
         if ( (referenceMaskFlag && !floatingMaskName) || (!referenceMaskFlag && floatingMaskName) )
         {
-            fprintf(stderr,"Warning: You have one image mask option turned on but not the other.\n");
-            fprintf(stderr,"This may affect the degree of symmetry achieved.\n");
+            fprintf(stderr,"[NiftyReg Warning] You have one image mask option turned on but not the other.\n");
+            fprintf(stderr,"[NiftyReg Warning] This will affect the degree of symmetry achieved.\n");
         }
     }
     else
@@ -248,42 +271,39 @@ int main(int argc, char **argv)
     REG->SetInlierLts(inlierLts);
     REG->SetInterpolation(interpolation);
 
-
     if(REG->GetLevelsToPerform() > REG->GetNumberOfLevels())
         REG->SetLevelsToPerform(REG->GetNumberOfLevels());
 
     /* Read the reference image and check its dimension */
-    nifti_image *referenceHeader = nifti_image_read(referenceImageName,true);
+    nifti_image *referenceHeader = reg_io_ReadImageFile(referenceImageName);
     if(referenceHeader == NULL){
         fprintf(stderr,"* ERROR Error when reading the reference  image: %s\n",referenceImageName);
         return 1;
     }
-    reg_checkAndCorrectDimension(referenceHeader);
 
     /* Read teh floating image and check its dimension */
-    nifti_image *floatingHeader = nifti_image_read(floatingImageName,true);
+    nifti_image *floatingHeader = reg_io_ReadImageFile(floatingImageName);
     if(floatingHeader == NULL){
         fprintf(stderr,"* ERROR Error when reading the floating image: %s\n",floatingImageName);
         return 1;
     }
-    reg_checkAndCorrectDimension(floatingHeader);
 
     // Set the reference and floating image
     REG->SetInputReference(referenceHeader);
     REG->SetInputFloating(floatingHeader);
 
-    // Set the input affine transformation
-    REG->SetInputTransform(inputAffineName,flirtAffineFlag);
+    // Set the input affine transformation if defined
+    if(inputAffineFlag==1)
+        REG->SetInputTransform(inputAffineName,flirtAffineFlag);
 
     /* read the reference mask image */
     nifti_image *referenceMaskImage=NULL;
     if(referenceMaskFlag){
-        referenceMaskImage = nifti_image_read(referenceMaskName,true);
+        referenceMaskImage = reg_io_ReadImageFile(referenceMaskName);
         if(referenceMaskImage == NULL){
             fprintf(stderr,"* ERROR Error when reading the reference mask image: %s\n",referenceMaskName);
             return 1;
         }
-        reg_checkAndCorrectDimension(referenceMaskImage);
         /* check the dimension */
         for(int i=1; i<=referenceHeader->dim[0]; i++){
             if(referenceHeader->dim[i]!=referenceMaskImage->dim[i]){
@@ -296,12 +316,11 @@ int main(int argc, char **argv)
 #ifdef _BUILD_NR_DEV
     nifti_image *floatingMaskImage=NULL;
     if(floatingMaskFlag && symFlag){
-        floatingMaskImage = nifti_image_read(floatingMaskName,true);
+        floatingMaskImage = reg_io_ReadImageFile(floatingMaskName);
         if(floatingMaskImage == NULL){
             fprintf(stderr,"* ERROR Error when reading the floating mask image: %s\n",referenceMaskName);
             return 1;
         }
-        reg_checkAndCorrectDimension(floatingMaskImage);
         /* check the dimension */
         for(int i=1; i<=floatingHeader->dim[0]; i++){
             if(floatingHeader->dim[i]!=floatingMaskImage->dim[i]){
@@ -317,8 +336,7 @@ int main(int argc, char **argv)
     // The warped image is saved
     nifti_image *outputResultImage=REG->GetFinalWarpedImage();
     if(!outputResultFlag) outputResultName=(char *)"outputResult.nii";
-    nifti_set_filenames(outputResultImage,outputResultName,0,0);
-    nifti_image_write(outputResultImage);
+    reg_io_WriteImageFile(outputResultImage,outputResultName);
     nifti_image_free(outputResultImage);
 
     /* The affine transformation is saved */

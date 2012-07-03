@@ -85,9 +85,12 @@ class reg_aladin
       virtual mat44 GetUpdateTransformationMatrix(int);
       virtual void UpdateTransformationMatrix(mat44);
 
+      void (*funcProgressCallback)(float pcntProgress, void *params);
+      void *paramsProgressCallback;
+
     public:
       reg_aladin();
-      ~reg_aladin();
+      virtual ~reg_aladin();
       GetStringMacro(ExecutableName);
 
       //No allocating of the images here...
@@ -100,7 +103,7 @@ class reg_aladin
       void SetInputMask(nifti_image *input) {this->InputReferenceMask=input;}
       nifti_image *GetInputMask() {return this->InputReferenceMask;}
 
-      void SetInputTransform(char *filename, bool IsFlirt);
+      void SetInputTransform(const char *filename, bool IsFlirt);
       mat44* GetInputTransform() {return this->InputTransform;}
 
       mat44* GetTransformationMatrix() {return this->TransformationMatrix;}
@@ -152,6 +155,13 @@ class reg_aladin
       virtual void Run();
 
       virtual void DebugPrintLevelInfo(int);
+
+      void SetProgressCallbackFunction( void (*funcProgCallback)(float pcntProgress,
+								 void *params), 
+					void *paramsProgCallback ) {
+	funcProgressCallback = funcProgCallback;
+	paramsProgressCallback = paramsProgCallback;
+      }
 
 };
 

@@ -19,6 +19,7 @@
 #include "_reg_ssd.h"
 #include "_reg_KLdivergence.h"
 #include "_reg_tools.h"
+#include "_reg_ReadWriteImage.h"
 #include "float.h"
 #include <limits>
 
@@ -93,6 +94,8 @@ class reg_f3d
     bool zOptimisation;
     bool gridRefinement;
 
+    bool additive_mc_nmi; // Additive multi channel NMI
+
     unsigned int currentIteration;
 
     virtual void AllocateWarped();
@@ -135,6 +138,9 @@ class reg_f3d
     virtual void UpdateControlPointPosition(T);
     virtual void DisplayCurrentLevelParameters();
 
+    void (*funcProgressCallback)(float pcntProgress, void *params);
+    void *paramsProgressCallback;
+
 public:
     reg_f3d(int refTimePoint,int floTimePoint);
     virtual ~reg_f3d();
@@ -163,6 +169,10 @@ public:
     void SetLevelNumber(unsigned int);
     void SetLevelToPerform(unsigned int);
     void SetGradientSmoothingSigma(T);
+
+    // Set the multi channel implementation to additive.
+    void SetAdditiveMC() { this->additive_mc_nmi = true; }
+
     void UseComposition();
     void DoNotUseComposition();
     void UseSSD();
@@ -206,6 +216,13 @@ public:
     virtual void Initisalise_f3d();
     nifti_image *GetControlPointPositionImage();
     virtual nifti_image **GetWarpedImage();
+
+    void SetProgressCallbackFunction( void (*funcProgCallback)(float pcntProgress,
+							       void *params), 
+				      void *paramsProgCallback ) {
+      funcProgressCallback = funcProgCallback;
+      paramsProgressCallback = paramsProgCallback;
+    }
 };
 
 #include "_reg_f3d.cpp"

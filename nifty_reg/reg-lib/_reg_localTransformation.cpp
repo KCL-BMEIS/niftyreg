@@ -551,6 +551,10 @@ void reg_createControlPointGrid(nifti_image **controlPointGridImage,
         (*controlPointGridImage)->sto_xyz.m[2][3] = originReal[2];
         (*controlPointGridImage)->sto_ijk = nifti_mat44_inverse((*controlPointGridImage)->sto_xyz);
     }
+
+    (*controlPointGridImage)->intent_code=NIFTI_INTENT_VECTOR;
+    memset((*controlPointGridImage)->intent_name, 0, 16);
+    strcpy((*controlPointGridImage)->intent_name,"NREG_CPP_FILE");
 }
 template void reg_createControlPointGrid<float>(nifti_image **, nifti_image *, float *);
 template void reg_createControlPointGrid<double>(nifti_image **, nifti_image *, float *);
@@ -1293,11 +1297,15 @@ void reg_voxelCentric2NodeCentric2D(nifti_image *nodeImage,
 
     for(int y=0;y<nodeImage->ny; y++){
         int Y = (int)reg_round((float)(y-1) * ratio[1]);
+        Y=Y<0?0:Y;
+        Y=Y>voxelImage->ny-1?voxelImage->ny-1:Y;
         DTYPE *yVoxelPtrX=&voxelPtrX[Y*voxelImage->nx];
         DTYPE *yVoxelPtrY=&voxelPtrY[Y*voxelImage->nx];
         for(int x=0;x<nodeImage->nx; x++){
             int X = (int)reg_round((float)(x-1) * ratio[0]);
-            if( -1<Y && Y<voxelImage->ny && -1<X && X<voxelImage->nx){
+            X=X<0?0:X;
+            X=X>voxelImage->nx-1?voxelImage->nx-1:X;
+//            if( -1<Y && Y<voxelImage->ny && -1<X && X<voxelImage->nx){
                 if(update){
                     *nodePtrX += (DTYPE)(yVoxelPtrX[X] * weight);
                     *nodePtrY += (DTYPE)(yVoxelPtrY[X] * weight);
@@ -1306,14 +1314,14 @@ void reg_voxelCentric2NodeCentric2D(nifti_image *nodeImage,
                     *nodePtrX = (DTYPE)(yVoxelPtrX[X] * weight);
                     *nodePtrY = (DTYPE)(yVoxelPtrY[X] * weight);
                 }
-            }
-            else{
-                if(!update){
-                    *nodePtrX = 0.0;
-                    *nodePtrY = 0.0;
-                }
-            }
-            nodePtrX++;nodePtrY++;
+//            }
+//            else{
+//                if(!update){
+//                    *nodePtrX = 0.0;
+//                    *nodePtrY = 0.0;
+//                }
+//            }
+                ++nodePtrX;++nodePtrY;
         }
     }
 }
@@ -1333,24 +1341,33 @@ void reg_voxelCentric2NodeCentric3D(nifti_image *nodeImage,
     DTYPE *voxelPtrY = &voxelPtrX[voxelImage->nx*voxelImage->ny*voxelImage->nz];
     DTYPE *voxelPtrZ = &voxelPtrY[voxelImage->nx*voxelImage->ny*voxelImage->nz];
 
-    DTYPE ratio[3];
+    float ratio[3];
     ratio[0] = nodeImage->dx / voxelImage->dx;
     ratio[1] = nodeImage->dy / voxelImage->dy;
     ratio[2] = nodeImage->dz / voxelImage->dz;
 
     for(int z=0;z<nodeImage->nz; z++){
         int Z = (int)reg_round((float)(z-1) * ratio[2]);
+        // sliding condition-ish along the Z-axis
+        Z=Z<0?0:Z;
+        Z=Z>=voxelImage->nz?voxelImage->nz-1:Z;
         DTYPE *zvoxelPtrX=&voxelPtrX[Z*voxelImage->nx*voxelImage->ny];
         DTYPE *zvoxelPtrY=&voxelPtrY[Z*voxelImage->nx*voxelImage->ny];
         DTYPE *zvoxelPtrZ=&voxelPtrZ[Z*voxelImage->nx*voxelImage->ny];
         for(int y=0;y<nodeImage->ny; y++){
             int Y = (int)reg_round((float)(y-1) * ratio[1]);
+            // sliding condition-ish along the Y-axis
+            Y=Y<0?0:Y;
+            Y=Y>=voxelImage->ny?voxelImage->ny-1:Y;
             DTYPE *yzvoxelPtrX=&zvoxelPtrX[Y*voxelImage->nx];
             DTYPE *yzvoxelPtrY=&zvoxelPtrY[Y*voxelImage->nx];
             DTYPE *yzvoxelPtrZ=&zvoxelPtrZ[Y*voxelImage->nx];
             for(int x=0;x<nodeImage->nx; x++){
                 int X = (int)reg_round((float)(x-1) * ratio[0]);
-                if(-1<Z && Z<voxelImage->nz && -1<Y && Y<voxelImage->ny && -1<X && X<voxelImage->nx){
+                // sliding condition-ish along the X-axis
+                X=X<0?0:X;
+                X=X>=voxelImage->nx?voxelImage->nx-1:X;
+//                if(-1<Z && Z<voxelImage->nz && -1<Y && Y<voxelImage->ny && -1<X && X<voxelImage->nx){
                     if(update){
                         *nodePtrX += (DTYPE)(yzvoxelPtrX[X]*weight);
                         *nodePtrY += (DTYPE)(yzvoxelPtrY[X]*weight);
@@ -1361,15 +1378,15 @@ void reg_voxelCentric2NodeCentric3D(nifti_image *nodeImage,
                         *nodePtrY = (DTYPE)(yzvoxelPtrY[X]*weight);
                         *nodePtrZ = (DTYPE)(yzvoxelPtrZ[X]*weight);
                     }
-                }
-                else{
-                    if(!update){
-                        *nodePtrX = 0.0;
-                        *nodePtrY = 0.0;
-                        *nodePtrZ = 0.0;
-                    }
-                }
-                nodePtrX++;nodePtrY++;nodePtrZ++;
+//                }
+//                else{
+//                    if(!update){
+//                        *nodePtrX = 0.0;
+//                        *nodePtrY = 0.0;
+//                        *nodePtrZ = 0.0;
+//                    }
+//                }
+                ++nodePtrX;++nodePtrY;++nodePtrZ;
             }
         }
     }
@@ -3052,10 +3069,17 @@ int reg_spline_cppComposition(nifti_image *grid1,
 void reg_bspline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                                      nifti_image *deformationFieldImage)
 {
+    // Check first if the velocity field is actually a velocity field
+    if( velocityFieldGrid->intent_code!=NIFTI_INTENT_VECTOR ||
+        strcmp(velocityFieldGrid->intent_name,"NREG_VEL_STEP")!=0 ){
+        fprintf(stderr, "[NiftyReg ERROR] reg_bspline_getDeformationFieldFromVelocityGrid - the provide grid is not a velocity field\n");
+        exit(1);
+    }
+
     /*
     // Euler integration for testing
     {
-        printf("Euler integration, %i step(s)\n", (int)pow(2.f,fabs(velocityFieldGrid->intent_code)));
+        printf("Euler integration, %i step(s)\n", (int)pow(2.f,fabs(velocityFieldGrid->intent_p1)));
 
         nifti_image *scaledControlPointGrid = nifti_copy_nim_info(velocityFieldGrid);
         scaledControlPointGrid->data=(void *)malloc(scaledControlPointGrid->nvox*scaledControlPointGrid->nbyper);
@@ -3063,15 +3087,15 @@ void reg_bspline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldG
                velocityFieldGrid->data,
                scaledControlPointGrid->nvox*scaledControlPointGrid->nbyper);
         reg_getDisplacementFromDeformation(scaledControlPointGrid);
-        if(velocityFieldGrid->intent_code<0) // backward deformation field
+        if(velocityFieldGrid->intent_p1<0) // backward deformation field
             reg_tools_addSubMulDivValue(scaledControlPointGrid,
                                         scaledControlPointGrid,
-                                        -pow(2.f,fabs(velocityFieldGrid->intent_code)),
+                                        -pow(2.f,fabs(velocityFieldGrid->intent_p1)),
                                         3);
         else // forward deformation field
             reg_tools_addSubMulDivValue(scaledControlPointGrid,
                                         scaledControlPointGrid,
-                                        pow(2.f,fabs(velocityFieldGrid->intent_code)),
+                                        pow(2.f,fabs(velocityFieldGrid->intent_p1)),
                                         3);
         reg_getDeformationFromDisplacement(scaledControlPointGrid);
 
@@ -3083,7 +3107,7 @@ void reg_bspline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldG
                                        true//bspline?
                                        );
 
-        for(size_t i=1;i<(size_t)pow(2.0f,fabs(velocityFieldGrid->intent_code));++i){
+        for(size_t i=1;i<(size_t)pow(2.0f,fabs(velocityFieldGrid->intent_p1));++i){
             reg_spline_getDeformationField(scaledControlPointGrid,
                                            deformationFieldImage,
                                            deformationFieldImage,
@@ -3113,8 +3137,8 @@ void reg_bspline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldG
     reg_getDisplacementFromDeformation(tempDEFImage);
 
     // The deformation field is scaled
-    float scalingValue = pow(2.,fabs(velocityFieldGrid->intent_code));
-    if(velocityFieldGrid->intent_code<0)
+    float scalingValue = pow(2.0f,fabs(velocityFieldGrid->intent_p1));
+    if(velocityFieldGrid->intent_p1<0)
         // backward deformation field is scaled down
         reg_tools_addSubMulDivValue(tempDEFImage,
                                     tempDEFImage,
@@ -3135,7 +3159,7 @@ void reg_bspline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldG
            deformationFieldImage->nvox*deformationFieldImage->nbyper);
 
     // The deformation field is squared
-    size_t squaringNumber = (size_t)fabs(velocityFieldGrid->intent_code);
+    size_t squaringNumber = (size_t)fabs(velocityFieldGrid->intent_p1);
     for(size_t i=0;i<squaringNumber;++i){
         // The deformation field is applied to itself
         reg_defField_compose(deformationFieldImage,
