@@ -20,8 +20,8 @@ set(LIBRARIES ${LIBRARIES} reg_nrrd)
 add_library(_reg_ReadWriteImage _reg_ReadWriteImage.h _reg_ReadWriteImage.cpp)
 target_link_libraries(_reg_ReadWriteImage ${LIBRARIES})
 install(TARGETS _reg_ReadWriteImage
-        RUNTIME DESTINATION bin
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
+        RUNTIME DESTINATION bin COMPONENT Development
+        LIBRARY DESTINATION lib COMPONENT Development
+        ARCHIVE DESTINATION lib COMPONENT Development
 )
 install(FILES _reg_ReadWriteImage.h DESTINATION include COMPONENT Development)

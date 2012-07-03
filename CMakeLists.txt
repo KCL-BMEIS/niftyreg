@@ -9,7 +9,7 @@ endif("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MAT
 #-----------------------------------------------------------------------------
 set(NiftyReg_VERSION_MAJOR 1)
 set(NiftyReg_VERSION_MINOR 3)
-set(NiftyReg_VERSION_PATCH 0)
+set(NiftyReg_VERSION_PATCH 9)
 #-----------------------------------------------------------------------------
 if(COMMAND cmake_policy)
       cmake_policy(SET CMP0003 NEW)
@@ -36,9 +36,9 @@ else(BUILD_NR_SLICER_EXT)
     mark_as_advanced(CLEAR BUILD_NR_DEV)
 endif(BUILD_NR_SLICER_EXT)
 
-option(USE_SIMD "To use SIMD computation in some case" ON)
-option(USE_CUDA "To use CUDA for a GPU implementation of the code" OFF)
-option(USE_DOUBLE "To use double precision instead of single precision" OFF)
+option(USE_SSE "To enable SEE computation in some case" ON)
+option(USE_CUDA "To enable CUDA for a GPU implementation of the code" OFF)
+option(USE_DOUBLE "To force double precision instead of single precision" OFF)
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     # I removed openmp for Mac OS Lion
     if(NOT CMAKE_SYSTEM_VERSION VERSION_GREATER 11.0 OR CMAKE_SYSTEM_VERSION VERSION_EQUAL 11.0.0)

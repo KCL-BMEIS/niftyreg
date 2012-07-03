@@ -57,8 +57,8 @@ endif(BUILD_INTERNAL_PNG OR BUILD_ALL_DEP)
 add_library(reg_png reg_png.cpp reg_png.h readpng.cpp readpng.h)
 target_link_libraries(reg_png ${PNG_LIBRARY} _reg_tools reg_nifti z)
 install(TARGETS reg_png
-        RUNTIME DESTINATION bin
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
+        RUNTIME DESTINATION bin COMPONENT Development
+        LIBRARY DESTINATION lib COMPONENT Development
+        ARCHIVE DESTINATION lib COMPONENT Development
 )
-install(FILES reg_png.h readpng.h DESTINATION include)
+install(FILES reg_png.h readpng.h DESTINATION include COMPONENT Development)

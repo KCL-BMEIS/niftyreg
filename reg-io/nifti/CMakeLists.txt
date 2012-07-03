@@ -8,5 +8,5 @@ install(TARGETS ${NAME}
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib
 )
-install(FILES nifti1_io.h znzlib.h nifti1.h DESTINATION include)
+install(FILES nifti1_io.h znzlib.h nifti1.h DESTINATION include COMPONENT Development)
 #-----------------------------------------------------------------------------

@@ -58,8 +58,8 @@ target_link_libraries(reg_NrrdIO z)
 add_library(reg_nrrd reg_nrrd.cpp reg_nrrd.h)
 target_link_libraries(reg_nrrd _reg_tools _reg_maths reg_NrrdIO reg_nifti z)
 install(TARGETS reg_nrrd
-        RUNTIME DESTINATION bin
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
+        RUNTIME DESTINATION bin COMPONENT Development
+        LIBRARY DESTINATION lib COMPONENT Development
+        ARCHIVE DESTINATION lib COMPONENT Development
 )
-install(FILES reg_nrrd.h DESTINATION include)
+install(FILES reg_nrrd.h DESTINATION include COMPONENT Development)
