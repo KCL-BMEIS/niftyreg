@@ -14,7 +14,7 @@ add_definitions(-DTEEM_DIO=0)
 add_definitions(-DTEEM_ZLIB=1)
 
 if(WIN32)
-    set(CMAKE_WORDS_BIGENDIAN false)
+    set(CMAKE_WORDS_BIGENDIAN 1)
 else(WIN32)
     include(TestBigEndian)
     test_big_endian(CMAKE_WORDS_BIGENDIAN)
