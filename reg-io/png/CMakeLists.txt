@@ -1,3 +1,12 @@
+set(png_HDRS
+    lpng1510/png.h
+    lpng1510/pngconf.h
+    lpng1510/pngdebug.h
+    lpng1510/pnginfo.h
+    lpng1510/pngpriv.h
+    lpng1510/pngstruct.h
+)
+
 if(BUILD_INTERNAL_PNG OR BUILD_ALL_DEP)
     # If the png library is not present on the machine, it is build from the sources
     # Most of the following lines are extracted from the libpng1510 CMakeLists.txt
@@ -27,21 +36,15 @@ if(BUILD_INTERNAL_PNG OR BUILD_ALL_DEP)
     # Set the libpng sources
     set(png_SRCS
         lpng1510/png.c
-        lpng1510/png.h
-        lpng1510/pngconf.h
-        lpng1510/pngdebug.h
         lpng1510/pngerror.c
         lpng1510/pngget.c
-        lpng1510/pnginfo.h
         lpng1510/pngmem.c
         lpng1510/pngpread.c
-        lpng1510/pngpriv.h
         lpng1510/pngread.c
         lpng1510/pngrio.c
         lpng1510/pngrtran.c
         lpng1510/pngrutil.c
         lpng1510/pngset.c
-        lpng1510/pngstruct.h
         lpng1510/pngtest.c
         lpng1510/pngtrans.c
         lpng1510/pngwio.c
@@ -50,7 +53,7 @@ if(BUILD_INTERNAL_PNG OR BUILD_ALL_DEP)
         lpng1510/pngwutil.c
     )
     # Build the library
-    add_library(png ${png_SRCS})
+    add_library(png ${png_SRCS} ${png_HDRS})
     target_link_libraries(png z)
 endif(BUILD_INTERNAL_PNG OR BUILD_ALL_DEP)
 
@@ -61,4 +64,4 @@ install(TARGETS reg_png
         LIBRARY DESTINATION lib COMPONENT Development
         ARCHIVE DESTINATION lib COMPONENT Development
 )
-install(FILES reg_png.h readpng.h DESTINATION include COMPONENT Development)
+install(FILES reg_png.h readpng.h ${png_HDRS} DESTINATION include COMPONENT Development)
