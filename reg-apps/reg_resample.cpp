@@ -155,11 +155,15 @@ int main(int argc, char **argv)
             param->interpolation=atoi(argv[++i]);
         }
         else if(strcmp(argv[i], "-NN") == 0){
-            param->interpolation=atoi(argv[++i]);
+            param->interpolation=0;
         }
         else if(strcmp(argv[i], "-LIN") == 0 ||
                 (strcmp(argv[i],"-TRI")==0)){
             param->interpolation=1;
+        }
+        else if(strcmp(argv[i], "-CUB") == 0 ||
+                (strcmp(argv[i],"-SPL")==0)){
+            param->interpolation=3;
         }
         else if(strcmp(argv[i], "-blank") == 0 ||
                 (strcmp(argv[i],"--blank")==0)){
