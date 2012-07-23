@@ -55,7 +55,7 @@ if(BUILD_INTERNAL_PNG OR BUILD_ALL_DEP)
     # Build the library
     add_library(png ${png_SRCS} ${png_HDRS})
     target_link_libraries(png z)
-    install(FILES ${png_HDRS} DESTINATION include COMPONENT Development)
+    install(FILES ${png_HDRS} ${CMAKE_BINARY_DIR}/pnglibconf.h DESTINATION include COMPONENT Development)
 endif(BUILD_INTERNAL_PNG OR BUILD_ALL_DEP)
 
 add_library(reg_png reg_png.cpp reg_png.h readpng.cpp readpng.h)
