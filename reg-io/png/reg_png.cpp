@@ -13,6 +13,7 @@
 #define _REG_PNG_CPP
 
 #include "reg_png.h"
+#include "readpng.h"
 
 /* *************************************************************** */
 nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)

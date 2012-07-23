@@ -180,14 +180,15 @@ endif(BUILD_TESTING)
 #-----------------------------------------------------------------------------
 # add a target to generate API documentation with Doxygen
 find_package(Doxygen)
-if(Doxygen_FOUND)
+if(DOXYGEN_FOUND)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
     add_custom_target(doc
         ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         COMMENT "Generating API documentation with Doxygen" VERBATIM
     )
-endif(Doxygen_FOUND)
+    message(STATUS "Found doxygen")
+endif(DOXYGEN_FOUND)
 #-----------------------------------------------------------------------------
 # The package is only build if 3DSlicer package is not build as well
 if(NOT BUILD_NR_SLICER_EXT)

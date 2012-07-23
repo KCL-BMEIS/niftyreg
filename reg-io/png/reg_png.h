@@ -15,7 +15,6 @@
 #define _REG_PNG_H
 
 #include "nifti1_io.h"
-#include "readpng.h"
 #include "_reg_tools.h"
 
 /* *************************************************************** */
