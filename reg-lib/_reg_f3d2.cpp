@@ -347,10 +347,10 @@ void reg_f3d2<T>::GetSimilarityMeasureGradient()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_f3d2<T>::UpdateControlPointPosition(T scale)
+void reg_f3d2<T>::UpdateParameters(T scale)
 {
     // Restore the latest successfull control point grid
-    this->RestoreCurrentControlPoint();
+    this->optimiser->RestoreBestDOF();
 
     // The velocity field is here updated using the BCH formulation
     /************************/

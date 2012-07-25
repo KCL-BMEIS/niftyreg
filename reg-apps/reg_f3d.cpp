@@ -115,11 +115,12 @@ void Usage(char *exec)
     printf("\t-l2 <float>\t\tWeights of L2 norm displacement penalty term [0.0]\n");
     printf("\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]\n");
     printf("\t-noAppJL\t\tTo not approximate the JL value only at the control point position\n");
-    printf("\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent\n");
     printf("\t-ssd\t\t\tTo use the SSD as the similiarity measure (NMI by default)\n");
     printf("\t-kld\t\t\tTo use the KL divergence as the similiarity measure (NMI by default)*\n");
     printf("\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)*\n");
     printf("\t* For the Kullback–Leibler divergence, reference and floating are expected to be probabilities\n");
+    printf("\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent\n");
+    printf("\t-pert <int>\t\tTo add perturbation step(s) after each optimisation scheme\n");
 
     printf("\n*** Optimisation options:\n");
     printf("\t-maxit <int>\t\tMaximal number of iteration per level [300]\n");
@@ -213,6 +214,7 @@ int main(int argc, char **argv)
     bool yOptimisation=true;
     bool zOptimisation=true;
     bool gridRefinement=true;
+    size_t perturbation=0;
 
     bool useSym=false;
     bool additiveNMI = false;
@@ -422,6 +424,9 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-noz") ==0){
             zOptimisation=false;
         }
+        else if(strcmp(argv[i],"-pert")==0 || strcmp(argv[i],"--pert")==0){
+            perturbation=(size_t)atoi(argv[++i]);
+        }
         else if(strcmp(argv[i], "-nogr") ==0){
             gridRefinement=false;
         }
@@ -612,8 +617,9 @@ int main(int argc, char **argv)
             if (deviceProp.major < 1){
                 printf("[NiftyReg ERROR CUDA] The specified graphical card does not exist.\n");
                 return 1;
+
             }
-            REG = new reg_f3d_gpu<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
+            REG = new reg_f3d_gpu(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
             if(verbose==true){
   #endif
@@ -801,6 +807,9 @@ int main(int argc, char **argv)
     if(gridRefinement==false)
         REG->NoGridRefinement();
 
+    if(perturbation>0)
+        REG->SetPerturbationNumber(perturbation);
+
     if (additiveNMI) REG->SetAdditiveMC();
 
     // F3D SYM arguments
@@ -936,12 +945,17 @@ int main(int argc, char **argv)
                     strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d2)");
 #endif
                 reg_io_WriteImageFile(outputWarpedImage[1],b.c_str());
-                nifti_image_free(outputWarpedImage[1]);outputWarpedImage[1]=NULL;
             }
         }
         reg_io_WriteImageFile(outputWarpedImage[0],outputWarpedName);
-        nifti_image_free(outputWarpedImage[0]);outputWarpedImage[0]=NULL;
+        if(outputWarpedImage[0]!=NULL)
+            nifti_image_free(outputWarpedImage[0]);
+        outputWarpedImage[0]=NULL;
+        if(outputWarpedImage[1]!=NULL)
+            nifti_image_free(outputWarpedImage[1]);
+        outputWarpedImage[1]=NULL;
         free(outputWarpedImage);
+        outputWarpedImage=NULL;
 #ifdef _USE_CUDA
     }
     cuCtxDetach(ctx);

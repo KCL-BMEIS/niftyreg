@@ -20,13 +20,29 @@
 #include "_reg_KLdivergence.h"
 #include "_reg_tools.h"
 #include "_reg_ReadWriteImage.h"
+#ifdef _USE_CUDA
+#include "_reg_optimiser_gpu.h"
+#else
+#include "_reg_optimiser.h"
+#endif
 #include "float.h"
 #include <limits>
 
 template <class T>
-class reg_f3d
+class reg_f3d : public InterfaceOptimiser
 {
-  protected:
+protected:
+    reg_optimiser<T> *optimiser;
+#ifdef _USE_CUDA
+    reg_optimiser_gpu *optimiser_gpu;
+#endif
+    size_t maxiterationNumber;
+    size_t perturbationNumber;
+    bool optimiseX;
+    bool optimiseY;
+    bool optimiseZ;
+    virtual void SetOptimiser();
+
     char *executableName;
     int referenceTimePoint;
     int floatingTimePoint;
@@ -44,7 +60,6 @@ class reg_f3d
     T L2NormWeight;
     T jacobianLogWeight;
     bool jacobianLogApproximation;
-    unsigned int maxiterationNumber;
     T referenceSmoothingSigma;
     T floatingSmoothingSigma;
     float *referenceThresholdUp;
@@ -64,7 +79,7 @@ class reg_f3d
     bool verbose;
     bool usePyramid;
     int interpolation;
-//    int threadNumber;
+    //    int threadNumber;
 
     bool initialised;
     nifti_image **referencePyramid;
@@ -79,9 +94,6 @@ class reg_f3d
     nifti_image *warpedGradientImage;
     nifti_image *voxelBasedMeasureGradientImage;
     nifti_image *nodeBasedGradientImage;
-    T *conjugateG;
-    T *conjugateH;
-    T *bestControlPointPosition;
     double *probaJointHistogram;
     double *logJointHistogram;
     double entropies[4];
@@ -89,14 +101,21 @@ class reg_f3d
     T *maxSSD;
     unsigned int currentLevel;
     unsigned totalBinNumber;
-    bool xOptimisation;
-    bool yOptimisation;
-    bool zOptimisation;
     bool gridRefinement;
 
-    bool additive_mc_nmi; // Additive multi channel NMI
-
-    unsigned int currentIteration;
+    double currentWJac;
+    double currentWBE;
+    double currentWLE;
+    double currentWL2;
+    double currentWMeasure;
+    double currentIC;
+    double bestWJac;
+    double bestWBE;
+    double bestWLE;
+    double bestWL2;
+    double bestWMeasure;
+    double bestIC;
+    bool additive_mc_nmi;
 
     virtual void AllocateWarped();
     virtual void ClearWarped();
@@ -108,17 +127,11 @@ class reg_f3d
     virtual void ClearVoxelBasedMeasureGradient();
     virtual void AllocateNodeBasedGradient();
     virtual void ClearNodeBasedGradient();
-    virtual void AllocateConjugateGradientVariables();
-    virtual void ClearConjugateGradientVariables();
-    virtual void AllocateBestControlPointArray();
-    virtual void ClearBestControlPointArray();
     virtual void AllocateJointHistogram();
     virtual void ClearJointHistogram();
     virtual void AllocateCurrentInputImage();
     virtual void ClearCurrentInputImage();
 
-    virtual void SaveCurrentControlPoint();
-    virtual void RestoreCurrentControlPoint();
     virtual double ComputeJacobianBasedPenaltyTerm(int);
     virtual double ComputeBendingEnergyPenaltyTerm();
     virtual double ComputeLinearEnergyPenaltyTerm();
@@ -132,11 +145,11 @@ class reg_f3d
     virtual void GetLinearEnergyGradient();
     virtual void GetL2NormDispGradient();
     virtual void GetJacobianBasedGradient();
-    virtual void ComputeConjugateGradient();
-    virtual T GetMaximalGradientLength();
     virtual void SetGradientImageToZero();
-    virtual void UpdateControlPointPosition(T);
     virtual void DisplayCurrentLevelParameters();
+
+    virtual double GetObjectiveFunctionValue();
+    virtual void UpdateParameters(T);
 
     void (*funcProgressCallback)(float pcntProgress, void *params);
     void *paramsProgressCallback;
@@ -144,6 +157,12 @@ class reg_f3d
 public:
     reg_f3d(int refTimePoint,int floTimePoint);
     virtual ~reg_f3d();
+
+    void SetMaximalIterationNumber(unsigned int);
+    void NoOptimisationAlongX(){this->optimiseX=false;}
+    void NoOptimisationAlongY(){this->optimiseY=false;}
+    void NoOptimisationAlongZ(){this->optimiseZ=false;}
+    void SetPerturbationNumber(size_t v){this->perturbationNumber=v;}
 
     void SetReferenceImage(nifti_image *);
     void SetFloatingImage(nifti_image *);
@@ -183,18 +202,14 @@ public:
     void DoNotUseConjugateGradient();
     void PrintOutInformation();
     void DoNotPrintOutInformation();
-    void SetMaximalIterationNumber(unsigned int);
     void SetReferenceBinNumber(int, unsigned int);
     void SetFloatingBinNumber(int, unsigned int);
     void DoNotUsePyramidalApproach();
     void UseNeareatNeighborInterpolation();
     void UseLinearInterpolation();
     void UseCubicSplineInterpolation();
-    void NoOptimisationAlongX(){this->xOptimisation=false;}
-    void NoOptimisationAlongY(){this->yOptimisation=false;}
-    void NoOptimisationAlongZ(){this->zOptimisation=false;}
     void NoGridRefinement(){this->gridRefinement=false;}
-//    int SetThreadNumber(int t);
+    //    int SetThreadNumber(int t);
 
     // F3D2 specific options
     virtual void SetCompositionStepNumber(int){return;}
@@ -219,9 +234,9 @@ public:
 
     void SetProgressCallbackFunction( void (*funcProgCallback)(float pcntProgress,
 							       void *params), 
-				      void *paramsProgCallback ) {
-      funcProgressCallback = funcProgCallback;
-      paramsProgressCallback = paramsProgCallback;
+                                     void *paramsProgCallback ) {
+        funcProgressCallback = funcProgCallback;
+        paramsProgressCallback = paramsProgCallback;
     }
 };
 

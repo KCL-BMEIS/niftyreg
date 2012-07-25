@@ -9,7 +9,6 @@
  *
  */
 
-
 #ifndef _REG_F3D_SYM_H
 #define _REG_F3D_SYM_H
 
@@ -19,6 +18,8 @@ template <class T>
 class reg_f3d_sym : public reg_f3d<T>
 {
   protected:
+    virtual void SetOptimiser();
+
     nifti_image *floatingMaskImage;
     int **floatingMaskPyramid;
     int *currentFloatingMask;
@@ -30,10 +31,6 @@ class reg_f3d_sym : public reg_f3d<T>
     nifti_image *backwardWarpedGradientImage;
     nifti_image *backwardVoxelBasedMeasureGradientImage;
     nifti_image *backwardNodeBasedGradientImage;
-
-    T *backwardBestControlPointPosition;
-    T *backwardConjugateG;
-    T *backwardConjugateH;
 
     double *backwardProbaJointHistogram;
     double *backwardLogJointHistogram;
@@ -51,17 +48,11 @@ class reg_f3d_sym : public reg_f3d<T>
     virtual void ClearVoxelBasedMeasureGradient();
     virtual void AllocateNodeBasedGradient();
     virtual void ClearNodeBasedGradient();
-    virtual void AllocateConjugateGradientVariables();
-    virtual void ClearConjugateGradientVariables();
-    virtual void AllocateBestControlPointArray();
-    virtual void ClearBestControlPointArray();
     virtual void AllocateJointHistogram();
     virtual void ClearJointHistogram();
     virtual void AllocateCurrentInputImage();
     virtual void ClearCurrentInputImage();
 
-    virtual void SaveCurrentControlPoint();
-    virtual void RestoreCurrentControlPoint();
     virtual double ComputeJacobianBasedPenaltyTerm(int);
     virtual double ComputeBendingEnergyPenaltyTerm();
     virtual double ComputeLinearEnergyPenaltyTerm();
@@ -75,15 +66,14 @@ class reg_f3d_sym : public reg_f3d<T>
     virtual void GetLinearEnergyGradient();
     virtual void GetL2NormDispGradient();
     virtual void GetJacobianBasedGradient();
-    virtual void ComputeConjugateGradient();
-    virtual T GetMaximalGradientLength();
     virtual void SetGradientImageToZero();
-    virtual void UpdateControlPointPosition(T);
     virtual void DisplayCurrentLevelParameters();
 
     virtual void GetInverseConsistencyErrorField();
     virtual double GetInverseConsistencyPenaltyTerm();
     virtual void GetInverseConsistencyGradient();
+
+    virtual void UpdateParameters(T);
 
 public:
     virtual void SetFloatingMask(nifti_image *);

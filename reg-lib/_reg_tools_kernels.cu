@@ -16,13 +16,10 @@ __device__ __constant__ int3 c_TargetImageDim;
 __device__ __constant__ float3 c_VoxelNodeRatio;
 __device__ __constant__ int3 c_ControlPointImageDim;
 __device__ __constant__ int3 c_ImageDim;
-__device__ __constant__ float c_ScalingFactor;
 __device__ __constant__ float c_Weight;
 
 texture<float4, 1, cudaReadModeElementType> controlPointTexture;
 texture<float4, 1, cudaReadModeElementType> gradientImageTexture;
-texture<float4, 1, cudaReadModeElementType> conjugateGTexture;
-texture<float4, 1, cudaReadModeElementType> conjugateHTexture;
 texture<float4, 1, cudaReadModeElementType> matrixTexture;
 texture<float, 1, cudaReadModeElementType> convolutionKernelTexture;
 
@@ -76,90 +73,6 @@ __global__ void _reg_convertNMIGradientFromVoxelToRealSpace_kernel(float4 *gradi
     }
 }
 
-__global__ void reg_initialiseConjugateGradient_kernel(	float4 *conjugateG_d)
-{
-    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
-    if(tid < c_NodeNumber){
-        float4 gradValue = tex1Dfetch(gradientImageTexture,tid);
-        conjugateG_d[tid] = make_float4(-gradValue.x, -gradValue.y, -gradValue.z,0.0f);
-    }
-}
-
-
-__global__ void reg_GetConjugateGradient1_kernel(float2 *sum)
-{
-    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
-    if(tid < c_NodeNumber){
-        float4 valueH = tex1Dfetch(conjugateHTexture,tid);
-        float4 valueG = tex1Dfetch(conjugateGTexture,tid);
-        float gg= valueG.x*valueH.x + valueG.y*valueH.y + valueG.z*valueH.z;
-
-        float4 grad = tex1Dfetch(gradientImageTexture,tid);
-        float dgg= (grad.x+valueG.x)*grad.x + (grad.y+valueG.y)*grad.y + (grad.z+valueG.z)*grad.z;
-
-        sum[tid]=make_float2(dgg,gg);
-    }
-}
-
-__global__ void reg_GetConjugateGradient2_kernel(	float4 *nodeNMIGradientArray_d,
-							float4 *conjugateG_d,
-							float4 *conjugateH_d)
-{
-    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
-    if(tid < c_NodeNumber){
-        // G = - grad
-        float4 gradGValue = nodeNMIGradientArray_d[tid];
-        gradGValue = make_float4(-gradGValue.x, -gradGValue.y, -gradGValue.z, 0.0f);
-        conjugateG_d[tid]=gradGValue;
-
-        // H = G + gam * H
-        float4 gradHValue = conjugateH_d[tid];
-        gradHValue=make_float4(
-                gradGValue.x + c_ScalingFactor * gradHValue.x,
-                gradGValue.y + c_ScalingFactor * gradHValue.y,
-                gradGValue.z + c_ScalingFactor * gradHValue.z,
-                0.0f);
-        conjugateH_d[tid]=gradHValue;
-        nodeNMIGradientArray_d[tid]=make_float4(-gradHValue.x, -gradHValue.y, -gradHValue.z, 0.0f);
-    }
-}
-
-__global__ void reg_getMaximalLength_kernel(float *all_d)
-{
-    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
-    const int start = tid*128;
-    if(start < c_NodeNumber){
-        int stop = start+128;
-        stop = stop>c_NodeNumber?c_NodeNumber:stop;
-
-        float max=0.0f;
-        float distance;
-        float4 gradValue;
-        for(int i=start;i<stop;i++){
-            gradValue = tex1Dfetch(gradientImageTexture,i);
-            distance = sqrtf(gradValue.x*gradValue.x + gradValue.y*gradValue.y + gradValue.z*gradValue.z);
-            max = distance>max?distance:max;
-        }
-        all_d[tid]=max;
-    }
-}
-
-__global__ void reg_updateControlPointPosition_kernel(float4 *controlPointImageArray_d)
-{
-    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
-    if(tid < c_NodeNumber){
-        float scaling = c_ScalingFactor;
-        float4 gradValue = tex1Dfetch(gradientImageTexture,tid);
-        float4 position = tex1Dfetch(controlPointTexture,tid);
-        position.x += scaling * gradValue.x;
-        position.y += scaling * gradValue.y;
-        position.z += scaling * gradValue.z;
-        position.w = 0.0f;
-        controlPointImageArray_d[tid]=position;
-	
-    }
-}
-
 __global__ void _reg_ApplyConvolutionWindowAlongX_kernel(   float4 *smoothedImage,
                                                             int windowSize)
 {
@@ -206,7 +119,6 @@ __global__ void _reg_ApplyConvolutionWindowAlongX_kernel(   float4 *smoothedImag
     }
     return;
 }
-
 
 __global__ void _reg_ApplyConvolutionWindowAlongY_kernel(float4 *smoothedImage,
                                                          int windowSize)

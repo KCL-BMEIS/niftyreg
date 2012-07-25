@@ -218,6 +218,10 @@ void initialise_block_matching_method(  nifti_image * target,
                                         int *mask,
                                         bool runningOnGPU)
 {
+    if(params->activeBlock!=NULL){free(params->activeBlock); params->activeBlock=NULL;}
+    if(params->targetPosition!=NULL){free(params->targetPosition); params->targetPosition=NULL;}
+    if(params->resultPosition!=NULL){free(params->resultPosition); params->resultPosition=NULL;}
+
     params->blockNumber[0]=(int)ceil((float)target->nx / (float)BLOCK_WIDTH);
     params->blockNumber[1]=(int)ceil((float)target->ny / (float)BLOCK_WIDTH);
     if(target->nz>1)
@@ -227,7 +231,7 @@ void initialise_block_matching_method(  nifti_image * target,
     params->percent_to_keep=percentToKeep_opt;
     params->activeBlockNumber=params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2] * percentToKeep_block / 100;
 
-    params->activeBlock = (int *)malloc(params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2] * sizeof(int));
+    params->activeBlock = (int *)malloc(params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2]*sizeof(int));
     switch(target->datatype){
         case NIFTI_TYPE_FLOAT32:
             _reg_set_active_blocks<float>(target, params, mask, runningOnGPU);break;

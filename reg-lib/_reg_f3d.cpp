@@ -19,6 +19,16 @@
 template <class T>
 reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
 {
+    this->optimiser=NULL;
+#ifdef _USE_CUDA
+    this->optimiser_gpu=NULL;
+#endif
+    this->maxiterationNumber=300;
+    this->optimiseX=true;
+    this->optimiseY=true;
+    this->optimiseZ=true;
+    this->perturbationNumber=0;
+
     this->executableName=(char *)"NiftyReg F3D";
     this->referenceTimePoint=refTimePoint;
     this->floatingTimePoint=floTimePoint;
@@ -35,7 +45,6 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->L2NormWeight=0.;
     this->jacobianLogWeight=0.;
     this->jacobianLogApproximation=true;
-    this->maxiterationNumber=300;
     this->referenceSmoothingSigma=0.;
     this->floatingSmoothingSigma=0.;
     this->referenceThresholdUp=new float[this->referenceTimePoint];
@@ -69,7 +78,6 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->maxSSD=NULL;
     this->entropies[0]=this->entropies[1]=this->entropies[2]=this->entropies[3]=0.;
     this->approxParzenWindow=true;
-    this->currentIteration=0;
     this->usePyramid=true;
     //	this->threadNumber=1;
 
@@ -86,17 +94,11 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->warpedGradientImage=NULL;
     this->voxelBasedMeasureGradientImage=NULL;
     this->nodeBasedGradientImage=NULL;
-    this->conjugateG=NULL;
-    this->conjugateH=NULL;
-    this->bestControlPointPosition=NULL;
     this->probaJointHistogram=NULL;
     this->logJointHistogram=NULL;
 
     this->interpolation=1;
 
-    this->xOptimisation=true;
-    this->yOptimisation=true;
-    this->zOptimisation=true;
     this->gridRefinement=true;
 
     this->funcProgressCallback=NULL;
@@ -114,8 +116,6 @@ reg_f3d<T>::~reg_f3d()
     this->ClearWarped();
     this->ClearWarpedGradient();
     this->ClearDeformationField();
-    this->ClearBestControlPointArray();
-    this->ClearConjugateGradientVariables();
     this->ClearJointHistogram();
     this->ClearNodeBasedGradient();
     this->ClearVoxelBasedMeasureGradient();
@@ -189,6 +189,10 @@ reg_f3d<T>::~reg_f3d()
     if(this->floatingBinNumber!=NULL){delete []this->floatingBinNumber;this->floatingBinNumber=NULL;}
     if(this->floatingBinNumber!=NULL){delete []this->activeVoxelNumber;this->activeVoxelNumber=NULL;}
     if(this->maxSSD!=NULL){delete []this->maxSSD;this->maxSSD=NULL;}
+    if(this->optimiser!=NULL){delete this->optimiser;this->optimiser=NULL;}
+#ifdef _USE_CUDA
+    if(this->optimiser_gpu!=NULL){delete this->optimiser_gpu;this->optimiser_gpu=NULL;}
+#endif
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d destructor called\n");
 #endif
@@ -649,7 +653,7 @@ void reg_f3d<T>::AllocateNodeBasedGradient()
     reg_f3d<T>::ClearNodeBasedGradient();
     this->nodeBasedGradientImage = nifti_copy_nim_info(this->controlPointGrid);
     this->nodeBasedGradientImage->data = (void *)calloc(this->nodeBasedGradientImage->nvox,
-                                                               this->nodeBasedGradientImage->nbyper);
+                                                        this->nodeBasedGradientImage->nbyper);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -659,58 +663,6 @@ void reg_f3d<T>::ClearNodeBasedGradient()
     if(this->nodeBasedGradientImage!=NULL){
         nifti_image_free(this->nodeBasedGradientImage);
         this->nodeBasedGradientImage=NULL;
-    }
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-void reg_f3d<T>::AllocateConjugateGradientVariables()
-{
-    if(this->controlPointGrid==NULL){
-        fprintf(stderr, "[NiftyReg ERROR] The control point image is not defined\n");
-        exit(1);
-    }
-    reg_f3d<T>::ClearConjugateGradientVariables();
-    this->conjugateG = (T *)calloc(this->controlPointGrid->nvox, sizeof(T));
-    this->conjugateH = (T *)calloc(this->controlPointGrid->nvox, sizeof(T));
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-void reg_f3d<T>::ClearConjugateGradientVariables()
-{
-    if(this->conjugateG!=NULL){
-        free(this->conjugateG);
-        this->conjugateG=NULL;
-    }
-    if(this->conjugateH!=NULL){
-        free(this->conjugateH);
-        this->conjugateH=NULL;
-    }
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-void reg_f3d<T>::AllocateBestControlPointArray()
-{
-    if(this->controlPointGrid==NULL){
-        fprintf(stderr, "[NiftyReg ERROR] The control point image is not defined\n");
-        exit(1);
-    }
-    reg_f3d<T>::ClearBestControlPointArray();
-    this->bestControlPointPosition = (T *)malloc(this->controlPointGrid->nvox*
-                                                 this->controlPointGrid->nbyper);
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-void reg_f3d<T>::ClearBestControlPointArray()
-{
-    if(this->bestControlPointPosition!=NULL){
-        free(this->bestControlPointPosition);
-        this->bestControlPointPosition=NULL;
     }
     return;
 }
@@ -747,23 +699,6 @@ void reg_f3d<T>::ClearJointHistogram()
         free(this->logJointHistogram);
         this->logJointHistogram=NULL;
     }
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-void reg_f3d<T>::SaveCurrentControlPoint()
-{
-    memcpy(this->bestControlPointPosition, this->controlPointGrid->data,
-           this->controlPointGrid->nvox*this->controlPointGrid->nbyper);
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-void reg_f3d<T>::RestoreCurrentControlPoint()
-{
-    memcpy(this->controlPointGrid->data, this->bestControlPointPosition,
-           this->controlPointGrid->nvox*this->controlPointGrid->nbyper);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1069,7 +1004,7 @@ void reg_f3d<T>::Initisalise_f3d()
         if(this->levelNumber!=this->levelToPerform)
             printf("[%s] \t* Level to perform: %i\n", this->executableName, this->levelToPerform);
         printf("[%s]\n", this->executableName);
-        printf("[%s] Maximum iteration number per level: %i\n", this->executableName, this->maxiterationNumber);
+        printf("[%s] Maximum iteration number per level: %i\n", this->executableName, (int)this->maxiterationNumber);
         printf("[%s]\n", this->executableName);
         printf("[%s] Final spacing in mm: %g %g %g\n", this->executableName,
                this->spacing[0], this->spacing[1], this->spacing[2]);
@@ -1165,7 +1100,7 @@ double reg_f3d<T>::ComputeSimilarityMeasure()
     else{
         // Use additive NMI when the flag is set and we have multi channel input
         if(this->currentReference->nt>1 &&
-           this->currentReference->nt == this->warped->nt && additive_mc_nmi){
+                this->currentReference->nt == this->warped->nt && additive_mc_nmi){
 
             fprintf(stderr, "WARNING: Modification for Jorge - reg_f3d<T>::ComputeSimilarityMeasure()\n");
 
@@ -1270,7 +1205,7 @@ double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type)
     }
     if(type>0){
         if(value!=value){
-            this->RestoreCurrentControlPoint();
+            this->optimiser->RestoreBestDOF();
             fprintf(stderr, "[NiftyReg ERROR] The folding correction scheme failed\n");
         }
         else{
@@ -1307,7 +1242,7 @@ double reg_f3d<T>::ComputeLinearEnergyPenaltyTerm()
     reg_bspline_linearEnergy(this->controlPointGrid, values_le);
 
     return this->linearEnergyWeight0*values_le[0] +
-           this->linearEnergyWeight1*values_le[1];
+            this->linearEnergyWeight1*values_le[1];
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1360,7 +1295,7 @@ void reg_f3d<T>::GetVoxelBasedGradient()
     else{
         // Use additive NMI when the flag is set and we have multi channel input
         if(this->currentReference->nt>1 &&
-           this->currentReference->nt == this->warped->nt && additive_mc_nmi){
+                this->currentReference->nt == this->warped->nt && additive_mc_nmi){
 
             fprintf(stderr, "WARNING: Modification for Jorge - reg_f3d<T>::GetVoxelBasedGradient()\n");
 
@@ -1601,150 +1536,6 @@ void reg_f3d<T>::GetJacobianBasedGradient()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_f3d<T>::ComputeConjugateGradient()
-{
-    int nodeNumber = this->nodeBasedGradientImage->nx *
-            this->nodeBasedGradientImage->ny *
-            this->nodeBasedGradientImage->nz;
-    int i;
-    if(this->currentIteration==1){
-#ifndef NDEBUG
-        printf("[NiftyReg DEBUG] Conjugate gradient initialisation\n");
-#endif
-        // first conjugate gradient iteration
-        if(this->currentReference->nz==1){
-            T *conjGPtrX = &this->conjugateG[0];
-            T *conjGPtrY = &conjGPtrX[nodeNumber];
-            T *conjHPtrX = &this->conjugateH[0];
-            T *conjHPtrY = &conjHPtrX[nodeNumber];
-            T *gradientValuesX = static_cast<T *>(this->nodeBasedGradientImage->data);
-            T *gradientValuesY = &gradientValuesX[nodeNumber];
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    shared(conjHPtrX, conjHPtrY, conjGPtrX, conjGPtrY, \
-    gradientValuesX, gradientValuesY, nodeNumber) \
-    private(i)
-#endif
-            for(i=0; i<nodeNumber;i++){
-                conjHPtrX[i] = conjGPtrX[i] = - gradientValuesX[i];
-                conjHPtrY[i] = conjGPtrY[i] = - gradientValuesY[i];
-            }
-        }else{
-            T *conjGPtrX = &this->conjugateG[0];
-            T *conjGPtrY = &conjGPtrX[nodeNumber];
-            T *conjGPtrZ = &conjGPtrY[nodeNumber];
-            T *conjHPtrX = &this->conjugateH[0];
-            T *conjHPtrY = &conjHPtrX[nodeNumber];
-            T *conjHPtrZ = &conjHPtrY[nodeNumber];
-            T *gradientValuesX = static_cast<T *>(this->nodeBasedGradientImage->data);
-            T *gradientValuesY = &gradientValuesX[nodeNumber];
-            T *gradientValuesZ = &gradientValuesY[nodeNumber];
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    shared(conjHPtrX, conjHPtrY, conjHPtrZ, conjGPtrX, conjGPtrY, conjGPtrZ, \
-    gradientValuesX, gradientValuesY, gradientValuesZ, nodeNumber) \
-    private(i)
-#endif
-            for(i=0; i<nodeNumber;i++){
-                conjHPtrX[i] = conjGPtrX[i] = - gradientValuesX[i];
-                conjHPtrY[i] = conjGPtrY[i] = - gradientValuesY[i];
-                conjHPtrZ[i] = conjGPtrZ[i] = - gradientValuesZ[i];
-            }
-        }
-    }
-    else{
-#ifndef NDEBUG
-        printf("[NiftyReg DEBUG] Conjugate gradient update\n");
-#endif
-        double dgg=0.0, gg=0.0;
-        if(this->currentReference->nz==1){
-            T *conjGPtrX = &conjugateG[0];
-            T *conjGPtrY = &conjGPtrX[nodeNumber];
-            T *conjHPtrX = &conjugateH[0];
-            T *conjHPtrY = &conjHPtrX[nodeNumber];
-            T *gradientValuesX = static_cast<T *>(this->nodeBasedGradientImage->data);
-            T *gradientValuesY = &gradientValuesX[nodeNumber];
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    shared(conjHPtrX, conjHPtrY, conjGPtrX, conjGPtrY, \
-    gradientValuesX, gradientValuesY, nodeNumber) \
-    private(i) \
-    reduction(+:gg) \
-    reduction(+:dgg)
-#endif
-            for(i=0; i<nodeNumber;i++){
-                gg += conjHPtrX[i] * conjGPtrX[i];
-                gg += conjHPtrY[i] * conjGPtrY[i];
-                dgg += (gradientValuesX[i] + conjGPtrX[i]) * gradientValuesX[i];
-                dgg += (gradientValuesY[i] + conjGPtrY[i]) * gradientValuesY[i];
-            }
-            double gam = dgg/gg;
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    shared(conjHPtrX, conjHPtrY, conjGPtrX, conjGPtrY, \
-    gradientValuesX, gradientValuesY, nodeNumber, gam) \
-    private(i)
-#endif
-            for(i=0; i<nodeNumber;i++){
-                conjGPtrX[i] = - gradientValuesX[i];
-                conjGPtrY[i] = - gradientValuesY[i];
-                conjHPtrX[i] = (float)(conjGPtrX[i] + gam * conjHPtrX[i]);
-                conjHPtrY[i] = (float)(conjGPtrY[i] + gam * conjHPtrY[i]);
-                gradientValuesX[i] = - conjHPtrX[i];
-                gradientValuesY[i] = - conjHPtrY[i];
-            }
-        }
-        else{
-            T *conjGPtrX = &conjugateG[0];
-            T *conjGPtrY = &conjGPtrX[nodeNumber];
-            T *conjGPtrZ = &conjGPtrY[nodeNumber];
-            T *conjHPtrX = &conjugateH[0];
-            T *conjHPtrY = &conjHPtrX[nodeNumber];
-            T *conjHPtrZ = &conjHPtrY[nodeNumber];
-            T *gradientValuesX = static_cast<T *>(this->nodeBasedGradientImage->data);
-            T *gradientValuesY = &gradientValuesX[nodeNumber];
-            T *gradientValuesZ = &gradientValuesY[nodeNumber];
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    shared(conjHPtrX, conjHPtrY, conjHPtrZ, conjGPtrX, conjGPtrY, conjGPtrZ, \
-    gradientValuesX, gradientValuesY, gradientValuesZ, nodeNumber) \
-    private(i) \
-    reduction(+:gg) \
-    reduction(+:dgg)
-#endif
-            for(i=0; i<nodeNumber;i++){
-                gg += conjHPtrX[i] * conjGPtrX[i];
-                gg += conjHPtrY[i] * conjGPtrY[i];
-                gg += conjHPtrZ[i] * conjGPtrZ[i];
-                dgg += (gradientValuesX[i] + conjGPtrX[i]) * gradientValuesX[i];
-                dgg += (gradientValuesY[i] + conjGPtrY[i]) * gradientValuesY[i];
-                dgg += (gradientValuesZ[i] + conjGPtrZ[i]) * gradientValuesZ[i];
-            }
-            double gam = dgg/gg;
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    shared(conjHPtrX, conjHPtrY, conjHPtrZ, conjGPtrX, conjGPtrY, conjGPtrZ, \
-    gradientValuesX, gradientValuesY, gradientValuesZ, nodeNumber, gam) \
-    private(i)
-#endif
-            for(i=0; i<nodeNumber;i++){
-                conjGPtrX[i] = - gradientValuesX[i];
-                conjGPtrY[i] = - gradientValuesY[i];
-                conjGPtrZ[i] = - gradientValuesZ[i];
-                conjHPtrX[i] = (float)(conjGPtrX[i] + gam * conjHPtrX[i]);
-                conjHPtrY[i] = (float)(conjGPtrY[i] + gam * conjHPtrY[i]);
-                conjHPtrZ[i] = (float)(conjGPtrZ[i] + gam * conjHPtrZ[i]);
-                gradientValuesX[i] = - conjHPtrX[i];
-                gradientValuesY[i] = - conjHPtrY[i];
-                gradientValuesZ[i] = - conjHPtrZ[i];
-            }
-        }
-    }
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
 void reg_f3d<T>::SetGradientImageToZero()
 {
     T* nodeGradPtr = static_cast<T *>(this->nodeBasedGradientImage->data);
@@ -1755,127 +1546,146 @@ void reg_f3d<T>::SetGradientImageToZero()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-T reg_f3d<T>::GetMaximalGradientLength()
-{
-    return reg_getMaximalLength<T>(this->nodeBasedGradientImage);
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-void reg_f3d<T>::UpdateControlPointPosition(T scale)
-{
-    size_t nodeNumber = this->controlPointGrid->nx *
-            this->controlPointGrid->ny *
-            this->controlPointGrid->nz;
-#if defined (_WIN32)
-    long int i;
-#else
-    size_t i;
-#endif
-
-    bool xOpt=this->xOptimisation;
-    bool yOpt=this->yOptimisation;
-    bool zOpt=this->zOptimisation;
-    if(this->currentReference->nz==1){
-        T *controlPointValuesX = static_cast<T *>(this->controlPointGrid->data);
-        T *controlPointValuesY = &controlPointValuesX[nodeNumber];
-        T *bestControlPointValuesX = &this->bestControlPointPosition[0];
-        T *bestControlPointValuesY = &bestControlPointValuesX[nodeNumber];
-        T *gradientValuesX = static_cast<T *>(this->nodeBasedGradientImage->data);
-        T *gradientValuesY = &gradientValuesX[nodeNumber];
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    shared(controlPointValuesX, controlPointValuesY, bestControlPointValuesX, \
-    bestControlPointValuesY, gradientValuesX, gradientValuesY, nodeNumber, scale, \
-    xOpt,yOpt) \
-    private(i)
-#endif
-        for(i=0; i<nodeNumber;i++){
-            if(xOpt)
-                controlPointValuesX[i] = bestControlPointValuesX[i] + scale * gradientValuesX[i];
-            if(yOpt)
-                controlPointValuesY[i] = bestControlPointValuesY[i] + scale * gradientValuesY[i];
-        }
-    }
-    else{
-        T *controlPointValuesX = static_cast<T *>(this->controlPointGrid->data);
-        T *controlPointValuesY = &controlPointValuesX[nodeNumber];
-        T *controlPointValuesZ = &controlPointValuesY[nodeNumber];
-        T *bestControlPointValuesX = &this->bestControlPointPosition[0];
-        T *bestControlPointValuesY = &bestControlPointValuesX[nodeNumber];
-        T *bestControlPointValuesZ = &bestControlPointValuesY[nodeNumber];
-        T *gradientValuesX = static_cast<T *>(this->nodeBasedGradientImage->data);
-        T *gradientValuesY = &gradientValuesX[nodeNumber];
-        T *gradientValuesZ = &gradientValuesY[nodeNumber];
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    shared(controlPointValuesX, controlPointValuesY, controlPointValuesZ, \
-    bestControlPointValuesX, bestControlPointValuesY, bestControlPointValuesZ, \
-    gradientValuesX, gradientValuesY, gradientValuesZ, nodeNumber, scale, \
-    xOpt,yOpt,zOpt) \
-    private(i)
-#endif
-        for(i=0; i<nodeNumber;i++){
-            if(xOpt)
-                controlPointValuesX[i] = bestControlPointValuesX[i] + scale * gradientValuesX[i];
-            if(yOpt)
-                controlPointValuesY[i] = bestControlPointValuesY[i] + scale * gradientValuesY[i];
-            if(zOpt)
-                controlPointValuesZ[i] = bestControlPointValuesZ[i] + scale * gradientValuesZ[i];
-        }
-    }
-
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
 void reg_f3d<T>::DisplayCurrentLevelParameters()
 {
 #ifdef NDEBUG
-        if(this->verbose){
+    if(this->verbose){
 #endif
-            printf("[%s] **************************************************\n", this->executableName);
-            printf("[%s] Current level: %i / %i\n", this->executableName, this->currentLevel+1, this->levelNumber);
-            printf("[%s] Current reference image\n", this->executableName);
-            printf("[%s] \t* image dimension: %i x %i x %i x %i\n", this->executableName,
-                   this->currentReference->nx, this->currentReference->ny,
-                   this->currentReference->nz,this->currentReference->nt);
-            printf("[%s] \t* image spacing: %g x %g x %g mm\n", this->executableName,
-                   this->currentReference->dx, this->currentReference->dy,
-                   this->currentReference->dz);
-            printf("[%s] Current floating image\n", this->executableName);
-            printf("[%s] \t* image dimension: %i x %i x %i x %i\n", this->executableName,
-                   this->currentFloating->nx, this->currentFloating->ny,
-                   this->currentFloating->nz,this->currentFloating->nt);
-            printf("[%s] \t* image spacing: %g x %g x %g mm\n", this->executableName,
-                   this->currentFloating->dx, this->currentFloating->dy,
-                   this->currentFloating->dz);
-            printf("[%s] Current control point image\n", this->executableName);
-            printf("[%s] \t* image dimension: %i x %i x %i\n", this->executableName,
-                   this->controlPointGrid->nx, this->controlPointGrid->ny,
-                   this->controlPointGrid->nz);
-            printf("[%s] \t* image spacing: %g x %g x %g mm\n", this->executableName,
-                   this->controlPointGrid->dx, this->controlPointGrid->dy,
-                   this->controlPointGrid->dz);
+        printf("[%s] **************************************************\n", this->executableName);
+        printf("[%s] Current level: %i / %i\n", this->executableName, this->currentLevel+1, this->levelNumber);
+        printf("[%s] Current reference image\n", this->executableName);
+        printf("[%s] \t* image dimension: %i x %i x %i x %i\n", this->executableName,
+               this->currentReference->nx, this->currentReference->ny,
+               this->currentReference->nz,this->currentReference->nt);
+        printf("[%s] \t* image spacing: %g x %g x %g mm\n", this->executableName,
+               this->currentReference->dx, this->currentReference->dy,
+               this->currentReference->dz);
+        printf("[%s] Current floating image\n", this->executableName);
+        printf("[%s] \t* image dimension: %i x %i x %i x %i\n", this->executableName,
+               this->currentFloating->nx, this->currentFloating->ny,
+               this->currentFloating->nz,this->currentFloating->nt);
+        printf("[%s] \t* image spacing: %g x %g x %g mm\n", this->executableName,
+               this->currentFloating->dx, this->currentFloating->dy,
+               this->currentFloating->dz);
+        printf("[%s] Current control point image\n", this->executableName);
+        printf("[%s] \t* image dimension: %i x %i x %i\n", this->executableName,
+               this->controlPointGrid->nx, this->controlPointGrid->ny,
+               this->controlPointGrid->nz);
+        printf("[%s] \t* image spacing: %g x %g x %g mm\n", this->executableName,
+               this->controlPointGrid->dx, this->controlPointGrid->dy,
+               this->controlPointGrid->dz);
 #ifdef NDEBUG
-        }
+    }
 #endif
 
 #ifndef NDEBUG
-        if(this->currentReference->sform_code>0)
-            reg_mat44_disp(&(this->currentReference->sto_xyz), (char *)"[NiftyReg DEBUG] Reference sform");
-        else reg_mat44_disp(&(this->currentReference->qto_xyz), (char *)"[NiftyReg DEBUG] Reference qform");
+    if(this->currentReference->sform_code>0)
+        reg_mat44_disp(&(this->currentReference->sto_xyz), (char *)"[NiftyReg DEBUG] Reference sform");
+    else reg_mat44_disp(&(this->currentReference->qto_xyz), (char *)"[NiftyReg DEBUG] Reference qform");
 
-        if(this->currentFloating->sform_code>0)
-            reg_mat44_disp(&(this->currentFloating->sto_xyz), (char *)"[NiftyReg DEBUG] Floating sform");
-        else reg_mat44_disp(&(this->currentFloating->qto_xyz), (char *)"[NiftyReg DEBUG] Floating qform");
+    if(this->currentFloating->sform_code>0)
+        reg_mat44_disp(&(this->currentFloating->sto_xyz), (char *)"[NiftyReg DEBUG] Floating sform");
+    else reg_mat44_disp(&(this->currentFloating->qto_xyz), (char *)"[NiftyReg DEBUG] Floating qform");
 
-        if(this->controlPointGrid->sform_code>0)
-            reg_mat44_disp(&(this->controlPointGrid->sto_xyz), (char *)"[NiftyReg DEBUG] CPP sform");
-        else reg_mat44_disp(&(this->controlPointGrid->qto_xyz), (char *)"[NiftyReg DEBUG] CPP qform");
+    if(this->controlPointGrid->sform_code>0)
+        reg_mat44_disp(&(this->controlPointGrid->sto_xyz), (char *)"[NiftyReg DEBUG] CPP sform");
+    else reg_mat44_disp(&(this->controlPointGrid->qto_xyz), (char *)"[NiftyReg DEBUG] CPP qform");
 #endif
     return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+double reg_f3d<T>::GetObjectiveFunctionValue()
+{
+    this->currentWJac = this->ComputeJacobianBasedPenaltyTerm(1); // 20 iterations
+
+    this->currentWBE = this->ComputeBendingEnergyPenaltyTerm();
+
+    this->currentWLE = this->ComputeLinearEnergyPenaltyTerm();
+
+    this->currentWL2 = this->ComputeL2NormDispPenaltyTerm();
+
+    // Compute initial similarity measure
+    this->currentWMeasure = 0.0;
+    if(this->similarityWeight>0){
+        this->WarpFloatingImage(this->interpolation);
+        this->currentWMeasure = this->ComputeSimilarityMeasure();
+    }
+
+    // Compute the Inverse consistency penalty term if required
+    this->currentIC = this->GetInverseConsistencyPenaltyTerm();
+
+    // Store the global objective function value
+    return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWL2 - this->currentWJac;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+void reg_f3d<T>::UpdateParameters(T scale)
+{
+    T *currentDOF=this->optimiser->GetCurrentDOF();
+    T *bestDOF=this->optimiser->GetBestDOF();
+    T *gradient=this->optimiser->GetGradient();
+
+    // Update the control point position
+    if(this->optimiser->GetOptimiseX()==true &&
+       this->optimiser->GetOptimiseY()==true &&
+       this->optimiser->GetOptimiseZ()==true)
+    {
+        // Update the values for all axis displacement
+        for(size_t i=0;i<this->optimiser->GetDOFNumber();++i){
+            currentDOF[i] = bestDOF[i] + scale * gradient[i];
+        }
+    }
+    else
+    {
+        size_t voxNumber = this->optimiser->GetVoxNumber();
+        // Update the values for the x-axis displacement
+        if(this->optimiser->GetOptimiseX()==true){
+            for(size_t i=0;i<voxNumber;++i){
+                currentDOF[i] = bestDOF[i] + scale * gradient[i];
+            }
+        }
+        // Update the values for the y-axis displacement
+        if(this->optimiser->GetOptimiseY()==true){
+            T *currentDOFY=&currentDOF[voxNumber];
+            T *bestDOFY=&bestDOF[voxNumber];
+            T *gradientY=&gradient[voxNumber];
+            for(size_t i=0;i<voxNumber;++i){
+                currentDOFY[i] = bestDOFY[i] + scale * gradientY[i];
+            }
+        }
+        // Update the values for the z-axis displacement
+        if(this->optimiser->GetOptimiseZ()==true && this->optimiser->GetNDim()>2){
+            T *currentDOFZ=&currentDOF[2*voxNumber];
+            T *bestDOFZ=&bestDOF[2*voxNumber];
+            T *gradientZ=&gradient[2*voxNumber];
+            for(size_t i=0;i<voxNumber;++i){
+                currentDOFZ[i] = bestDOFZ[i] + scale * gradientZ[i];
+            }
+        }
+    }
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+void reg_f3d<T>::SetOptimiser()
+{
+    if(this->useConjGradient)
+        this->optimiser=new reg_conjugateGradient<T>();
+    else this->optimiser=new reg_optimiser<T>();
+    this->optimiser->Initialise(this->controlPointGrid->nvox,
+                                this->controlPointGrid->nz>1?3:2,
+                                this->optimiseX,
+                                this->optimiseY,
+                                this->optimiseZ,
+                                this->maxiterationNumber,
+                                0, // currentIterationNumber,
+                                this,
+                                static_cast<T *>(this->controlPointGrid->data),
+                                static_cast<T *>(this->nodeBasedGradientImage->data)
+                                );
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1891,7 +1701,6 @@ void reg_f3d<T>::Run_f3d()
     // Compute the resolution of the progress bar
     float iProgressStep=1, nProgressSteps;
     nProgressSteps = this->levelToPerform*this->maxiterationNumber;
-
 
     for(this->currentLevel=0;
         this->currentLevel<this->levelToPerform;
@@ -1912,19 +1721,10 @@ void reg_f3d<T>::Run_f3d()
         this->AllocateWarped();
         this->AllocateDeformationField();
         this->AllocateWarpedGradient();
-        this->AllocateVoxelBasedMeasureGradient();
         this->AllocateJointHistogram();
 
         // The grid is refined if necessary
         this->AllocateCurrentInputImage();
-
-        // ALLOCATE IMAGES THAT DEPENDS ON THE CONTROL POINT IMAGE
-        this->AllocateNodeBasedGradient();
-        this->AllocateBestControlPointArray();
-        this->SaveCurrentControlPoint();
-        if(this->useConjGradient){
-            this->AllocateConjugateGradientVariables();
-        }
 
         this->DisplayCurrentLevelParameters();
 
@@ -1933,206 +1733,216 @@ void reg_f3d<T>::Run_f3d()
         T currentSize = maxStepSize;
         T smallestSize = maxStepSize / 100.0f;
 
-        // Compute initial penalty terms
-        double bestWJac = this->ComputeJacobianBasedPenaltyTerm(1); // 20 iterations
+        // ALLOCATE IMAGES THAT ARE REQUIRED TO COMPUTE THE GRADIENT
+        this->AllocateVoxelBasedMeasureGradient();
+        this->AllocateNodeBasedGradient();
 
-        double bestWBE = this->ComputeBendingEnergyPenaltyTerm();
+        // initialise the optimiser
+        this->SetOptimiser();
 
-        double bestWLE = this->ComputeLinearEnergyPenaltyTerm();
+        // Loop over the number of perturbation to do
+        for(size_t perturbation=0;perturbation<=this->perturbationNumber;++perturbation){
 
-        double bestWL2 = this->ComputeL2NormDispPenaltyTerm();
+            // Evalulate the objective function value
+            this->bestWJac=this->currentWJac;
+            this->bestWBE=this->currentWBE;
+            this->bestWLE=this->currentWLE;
+            this->bestWL2=this->currentWL2;
+            this->bestWMeasure=this->currentWMeasure;
+            this->bestIC=this->currentIC;
 
-        // Compute initial similarity measure
-        double bestWMeasure = 0.0;
-        if(this->similarityWeight>0){
-            this->WarpFloatingImage(this->interpolation);
-            bestWMeasure = this->ComputeSimilarityMeasure();
-        }
-
-        // Compute the Inverse consistency penalty term if required
-        double bestIC = this->GetInverseConsistencyPenaltyTerm();
-
-        // Evalulate the objective function value
-        double bestValue = bestWMeasure - bestWBE - bestWLE - bestWL2 - bestWJac - bestIC;
-
-#ifdef NDEBUG
-        if(this->verbose){
+            double bestValue;
+#ifdef _USE_CUDA
+                if(this->optimiser_gpu!=NULL)
+                    bestValue=this->optimiser_gpu->GetBestObjFunctionValue();
+                else
 #endif
-            if(this->useSSD)
-                printf("[%s] Initial objective function: %g = (wSSD)%g - (wBE)%g - (wLE)%g - (wL2)%g - (wJAC)%g\n",
-                       this->executableName, bestValue, bestWMeasure, bestWBE, bestWLE, bestWL2, bestWJac);
-            else if(this->useKLD)
-                printf("[%s] Initial objective function: %g = (wKLD)%g - (wBE)%g - (wLE)%g - (wL2)%g - (wJAC)%g\n",
-                       this->executableName, bestValue, bestWMeasure, bestWBE, bestWLE, bestWL2, bestWJac);
-            else printf("[%s] Initial objective function: %g = (wNMI)%g - (wBE)%g - (wLE)%g - (wL2)%g - (wJAC)%g\n",
-                        this->executableName, bestValue, bestWMeasure, bestWBE, bestWLE, bestWL2, bestWJac);
-            if(bestIC!=0)
-                printf("[%s] Initial Inverse consistency value: %g\n", this->executableName, bestIC);
-#ifdef NDEBUG
-        }
-#endif
-        // The initial objective function values are kept
+                    bestValue=this->optimiser->GetBestObjFunctionValue();
 
-        this->currentIteration = 0;
-        while(this->currentIteration<this->maxiterationNumber){
-
-            if(currentSize<=smallestSize)
-                break;
-
-            // Compute the gradient of the similarity measure
-            if(this->similarityWeight>0){
-                this->WarpFloatingImage(this->interpolation);
-                this->ComputeSimilarityMeasure();
-                this->GetSimilarityMeasureGradient();
-            }
-            else{
-                this->SetGradientImageToZero();
-            }this->currentIteration++;
-
-            // The gradient is smoothed using a Gaussian kernel if it is required
-            if(this->gradientSmoothingSigma!=0){
-                reg_gaussianSmoothing<T>(this->nodeBasedGradientImage,
-                                         fabs(this->gradientSmoothingSigma),
-                                         NULL);
-            }
-
-            // The conjugate gradient is computed, only on the similarity measure gradient
-            if(this->useConjGradient && this->similarityWeight>0) this->ComputeConjugateGradient();
-
-            // Compute the penalty term gradients if required
-            this->GetBendingEnergyGradient();
-            this->GetJacobianBasedGradient();
-            this->GetLinearEnergyGradient();
-            this->GetL2NormDispGradient();
-            this->GetInverseConsistencyGradient();
-
-            T maxLength = this->GetMaximalGradientLength();
-#ifndef NDEBUG
-            printf("[NiftyReg DEBUG] Objective function gradient maximal length: %g\n",maxLength);
-#endif
-            if(maxLength==0){
-                printf("No Gradient ... exit\n");
-                exit(1);
-            }
-
-            // A line ascent is performed
-            int lineIteration = 0;
-            currentSize=maxStepSize;
-            T addedStep=0.0f;
-            while(currentSize>smallestSize &&
-                  lineIteration<12 &&
-                  this->currentIteration<this->maxiterationNumber){
-                T currentLength = -currentSize/maxLength;
-#ifndef NDEBUG
-                printf("[NiftyReg DEBUG] Current added max step: %g\n", currentSize);
-#endif
-                this->UpdateControlPointPosition(currentLength);
-
-                // The new objective function value is computed
-                double currentWJac = this->ComputeJacobianBasedPenaltyTerm(0); // 5 iterations
-
-                double currentWBE = this->ComputeBendingEnergyPenaltyTerm();
-
-                double currentWLE = this->ComputeLinearEnergyPenaltyTerm();
-
-                double currentWL2 = this->ComputeL2NormDispPenaltyTerm();
-
-                double currentWMeasure = 0.0;
-                if(this->similarityWeight>0){
-                    this->WarpFloatingImage(this->interpolation);
-                    currentWMeasure = this->ComputeSimilarityMeasure();
-                } this->currentIteration++;
-
-                double currentIC = this->GetInverseConsistencyPenaltyTerm();
-
-                double currentValue = currentWMeasure - currentWBE - currentWLE - currentWL2 - currentWJac - currentIC;
-
-                if(currentValue>bestValue){
-                    bestValue = currentValue;
-                    bestWMeasure = currentWMeasure;
-                    bestWBE = currentWBE;
-                    bestWLE = currentWLE;
-                    bestWL2 = currentWL2;
-                    bestWJac = currentWJac;
-                    bestIC = currentIC;
-                    addedStep += currentSize;
-                    currentSize*=1.1f;
-                    currentSize = (currentSize<maxStepSize)?currentSize:maxStepSize;
-                    this->SaveCurrentControlPoint();
-#ifndef NDEBUG
-                    printf("[NiftyReg DEBUG] [%i] objective function: %g = %g - %g - %g - %g - %g | KEPT\n",
-                           this->currentIteration, currentValue, currentWMeasure, currentWBE, currentWLE, currentWL2, currentWJac);
-#endif
-                }
-                else{
-                    currentSize*=0.5;
-#ifndef NDEBUG
-                    printf("[NiftyReg DEBUG] [%i] objective function: %g = %g - %g - %g - %g - %g | REJECTED\n",
-                           this->currentIteration, currentValue, currentWMeasure, currentWBE, currentWLE, currentWL2,  currentWJac);
-#endif
-                }
-                lineIteration++;
-            }
-            this->RestoreCurrentControlPoint();
-            currentSize=addedStep;
 #ifdef NDEBUG
             if(this->verbose){
 #endif
-                printf("[%s] [%i] Current objective function: %g",
-                       this->executableName, this->currentIteration, bestValue);
                 if(this->useSSD)
-                    printf(" = (wSSD)%g", bestWMeasure);
+                    printf("[%s] Initial objective function: %g = (wSSD)%g - (wBE)%g - (wLE)%g - (wL2)%g - (wJAC)%g\n",
+                           this->executableName, bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWL2, this->bestWJac);
                 else if(this->useKLD)
-                    printf(" = (wKLD)%g", bestWMeasure);
-                else printf(" = (wNMI)%g", bestWMeasure);
-                if(this->bendingEnergyWeight>0)
-                    printf(" - (wBE)%.2e", bestWBE);
-                if(this->linearEnergyWeight0>0 || this->linearEnergyWeight1>0)
-                    printf(" - (wLE)%.2e", bestWLE);
-                if(this->L2NormWeight>0)
-                    printf(" - (wL2)%.2e", bestWL2);
-                if(this->jacobianLogWeight>0)
-                    printf(" - (wJAC)%.2e", bestWJac);
-                if(bestIC!=0)
-                    printf(" - (IC)%.2e", bestIC);
-                printf(" [+ %g mm]\n", addedStep);
+                    printf("[%s] Initial objective function: %g = (wKLD)%g - (wBE)%g - (wLE)%g - (wL2)%g - (wJAC)%g\n",
+                           this->executableName, bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWL2, this->bestWJac);
+                else printf("[%s] Initial objective function: %g = (wNMI)%g - (wBE)%g - (wLE)%g - (wL2)%g - (wJAC)%g\n",
+                            this->executableName, bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWL2, this->bestWJac);
+                if(this->bestIC!=0)
+                    printf("[%s] Initial Inverse consistency value: %g\n", this->executableName, this->bestIC);
 #ifdef NDEBUG
             }
 #endif
 
-            if(addedStep==0.f) 
-	    {
-	      iProgressStep += this->maxiterationNumber - 1 - this->currentIteration;
-	      if ( funcProgressCallback && paramsProgressCallback) 
-	      {
-		(*funcProgressCallback)(100.*iProgressStep/nProgressSteps, 
-					paramsProgressCallback);
-	      }
-	      break;
-	    }
-	    else 
-	    {
-	      iProgressStep++;	    
-	      if ( funcProgressCallback && paramsProgressCallback) 
-	      {
-		(*funcProgressCallback)(100.*iProgressStep/nProgressSteps, 
-					paramsProgressCallback);
-	      }
-	    }
-        }
+            while(true){
+
+                if(currentSize==0)
+                    break;
+
+                // Compute the gradient of the similarity measure
+                if(this->similarityWeight>0){
+                    this->WarpFloatingImage(this->interpolation);
+                    this->ComputeSimilarityMeasure();
+                    this->GetSimilarityMeasureGradient();
+                }
+                else{
+                    this->SetGradientImageToZero();
+                }
+#ifdef _USE_CUDA
+                if(this->optimiser_gpu!=NULL)
+                    this->optimiser_gpu->IncrementCurrentIterationNumber();
+                else
+#endif
+                this->optimiser->IncrementCurrentIterationNumber();
+
+                // The gradient is smoothed using a Gaussian kernel if it is required
+                if(this->gradientSmoothingSigma!=0){
+                    reg_gaussianSmoothing<T>(this->nodeBasedGradientImage,
+                                             fabs(this->gradientSmoothingSigma),
+                                             NULL);
+                }
+
+                // Compute the penalty term gradients if required
+                this->GetBendingEnergyGradient();
+                this->GetJacobianBasedGradient();
+                this->GetLinearEnergyGradient();
+                this->GetL2NormDispGradient();
+                this->GetInverseConsistencyGradient();
+
+                // Initialise the line search initial step size
+                currentSize=currentSize>maxStepSize?maxStepSize:currentSize;
+//                currentSize=maxStepSize;
+
+                // A line search is performed
+#ifdef _USE_CUDA
+                if(this->optimiser_gpu!=NULL)
+                    this->optimiser_gpu->Optimise(maxStepSize,smallestSize,currentSize);
+                else
+#endif
+                this->optimiser->Optimise(maxStepSize,smallestSize,currentSize);
+
+#ifdef NDEBUG
+                if(this->verbose){
+#endif
+                    this->bestWMeasure=this->currentWMeasure;
+                    this->bestWBE=this->currentWBE;
+                    this->bestWLE=this->currentWLE;
+                    this->bestWL2=this->currentWL2;
+                    this->bestWJac=this->currentWJac;
+                    this->bestIC=this->currentIC;
+#ifdef _USE_CUDA
+                    if(this->optimiser_gpu!=NULL)
+                        printf("[%s] [%i] Current objective function: %g",
+                               this->executableName,
+                               (int)this->optimiser_gpu->GetCurrentIterationNumber(),
+                               this->optimiser_gpu->GetBestObjFunctionValue());
+                    else
+#endif
+                        printf("[%s] [%i] Current objective function: %g",
+                               this->executableName,
+                               (int)this->optimiser->GetCurrentIterationNumber(),
+                               this->optimiser->GetBestObjFunctionValue());
+                    if(this->useSSD)
+                        printf(" = (wSSD)%g", this->bestWMeasure);
+                    else if(this->useKLD)
+                        printf(" = (wKLD)%g", this->bestWMeasure);
+                    else printf(" = (wNMI)%g", this->bestWMeasure);
+                    if(this->bendingEnergyWeight>0)
+                        printf(" - (wBE)%.2e", this->bestWBE);
+                    if(this->linearEnergyWeight0>0 || this->linearEnergyWeight1>0)
+                        printf(" - (wLE)%.2e", this->bestWLE);
+                    if(this->L2NormWeight>0)
+                        printf(" - (wL2)%.2e", this->bestWL2);
+                    if(this->jacobianLogWeight>0)
+                        printf(" - (wJAC)%.2e", this->bestWJac);
+                    if(bestIC!=0)
+                        printf(" - (IC)%.2e", this->bestIC);
+                    printf(" [+ %g mm]\n", currentSize);
+#ifdef NDEBUG
+                }
+#endif
+
+                // Monitoring progression when f3d is ran as a library
+                if(currentSize==0.f){
+#ifdef _USE_CUDA
+                    if(this->optimiser_gpu!=NULL)
+                        iProgressStep += this->optimiser_gpu->GetMaxIterationNumber() - 1 - this->optimiser_gpu->GetCurrentIterationNumber();
+                    else
+#endif
+                        iProgressStep += this->optimiser->GetMaxIterationNumber() - 1 - this->optimiser->GetCurrentIterationNumber();
+                    if(funcProgressCallback && paramsProgressCallback)
+                    {
+                        (*funcProgressCallback)(100.*iProgressStep/nProgressSteps,
+                                                paramsProgressCallback);
+                    }
+                    break;
+                }
+                else{
+                    iProgressStep++;
+                    if(funcProgressCallback && paramsProgressCallback){
+                        (*funcProgressCallback)(100.*iProgressStep/nProgressSteps,
+                                                paramsProgressCallback);
+                    }
+                }
+#ifdef _USE_CUDA
+                if(this->optimiser_gpu!=NULL){
+                    if(this->optimiser_gpu->GetCurrentIterationNumber()>this->optimiser_gpu->GetMaxIterationNumber())
+                        break;
+                }
+                else
+#endif
+                {
+                    if(this->optimiser->GetCurrentIterationNumber()>this->optimiser->GetMaxIterationNumber())
+                        break;
+                }
+            } // while
+            if(perturbation<this->perturbationNumber){
+#ifdef _USE_CUDA
+                if(this->optimiser_gpu!=NULL)
+                    this->optimiser_gpu->Perturbation(smallestSize);
+                else
+#endif
+                this->optimiser->Perturbation(smallestSize);
+                currentSize=maxStepSize;
+#ifdef NDEBUG
+                if(this->verbose){
+#endif
+                    printf("[%s] Perturbation Step - The number of iteration is reset to 0\n",
+                           this->executableName);
+                    printf("[%s] Perturbation Step - Every control point positions is altered by [-%g %g]\n",
+                           this->executableName,
+                           smallestSize,
+                           smallestSize);
+
+#ifdef NDEBUG
+                }
+#endif
+            }
+        } // perturbation loop
 
         // FINAL FOLDING CORRECTION
         if(this->jacobianLogWeight>0 && this->jacobianLogApproximation==true)
             this->ComputeJacobianBasedPenaltyTerm(2); // 20 iterations without approximation
 
         // SOME CLEANING IS PERFORMED
+#ifdef _USE_CUDA
+        if(this->optimiser_gpu!=NULL){
+            delete this->optimiser_gpu;
+            this->optimiser_gpu=NULL;
+        }
+        else
+#endif
+        {
+            delete this->optimiser;
+            this->optimiser=NULL;
+        }
         this->ClearWarped();
         this->ClearDeformationField();
         this->ClearWarpedGradient();
         this->ClearVoxelBasedMeasureGradient();
         this->ClearNodeBasedGradient();
-        this->ClearConjugateGradientVariables();
-        this->ClearBestControlPointArray();
         this->ClearJointHistogram();
         if(this->usePyramid){
             nifti_image_free(this->referencePyramid[this->currentLevel]);this->referencePyramid[this->currentLevel]=NULL;
@@ -2160,7 +1970,7 @@ void reg_f3d<T>::Run_f3d()
 
     if ( funcProgressCallback && paramsProgressCallback ) 
     {
-      (*funcProgressCallback)( 100., paramsProgressCallback);
+        (*funcProgressCallback)( 100., paramsProgressCallback);
     }
 
 #ifndef NDEBUG
@@ -2198,6 +2008,8 @@ nifti_image **reg_f3d<T>::GetWarpedImage()
     resultImage[0]->scl_inter=this->inputFloating->scl_inter;
     resultImage[0]->data=(void *)malloc(resultImage[0]->nvox*resultImage[0]->nbyper);
     memcpy(resultImage[0]->data, this->warped->data, resultImage[0]->nvox*resultImage[0]->nbyper);
+
+    resultImage[1]=NULL;
 
     reg_f3d<T>::ClearWarped();
     return resultImage;

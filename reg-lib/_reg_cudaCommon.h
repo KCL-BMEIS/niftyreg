@@ -26,6 +26,10 @@ int cudaCommon_allocateArrayToDevice(cudaArray **, cudaArray **, int *);
 /* ******************************** */
 extern "C++"
 template <class DTYPE>
+int cudaCommon_allocateArrayToDevice(DTYPE **, int);
+/* ******************************** */
+extern "C++"
+template <class DTYPE>
 int cudaCommon_allocateArrayToDevice(DTYPE **, int *);
 /* ******************************** */
 extern "C++"

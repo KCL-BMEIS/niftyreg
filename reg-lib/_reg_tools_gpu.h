@@ -26,28 +26,6 @@ void reg_convertNMIGradientFromVoxelToRealSpace_gpu(	mat44 *sourceMatrix_xyz,
 							nifti_image *controlPointImage,
 							float4 **nodeNMIGradientArray_d);
 
-extern "C++"
-void reg_initialiseConjugateGradient(	float4 **nodeNMIGradientArray_d,
-					float4 **conjugateG_d,
-					float4 **conjugateH_d,
-					int nodeNumber);
-
-extern "C++"
-void reg_GetConjugateGradient(	float4 **nodeNMIGradientArray_d,
-				float4 **conjugateG_d,
-				float4 **conjugateH_d,
-				int nodeNumber);
-
-extern "C++"
-float reg_getMaximalLength_gpu(	float4 **nodeNMIGradientArray_d,
-				int nodeNumber);
-
-extern "C++"
-void reg_updateControlPointPosition_gpu(nifti_image *controlPointImage,
-					float4 **controlPointImageArray_d,
-					float4 **bestControlPointPosition_d,
-					float4 **nodeNMIGradientArray_d,
-					float currentLength);
 
 extern "C++"
 void reg_gaussianSmoothing_gpu( nifti_image *image,

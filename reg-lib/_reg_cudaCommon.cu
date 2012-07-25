@@ -374,6 +374,16 @@ int cudaCommon_allocateArrayToDevice(DTYPE **array_d, int *dim)
 template int cudaCommon_allocateArrayToDevice<float>(float **, int *);
 template int cudaCommon_allocateArrayToDevice<float4>(float4 **, int *); // for deformation field
 /* ******************************** */
+template <class DTYPE>
+int cudaCommon_allocateArrayToDevice(DTYPE **array_d, int vox)
+{
+    const unsigned int memSize = vox * sizeof(DTYPE);
+    NR_CUDA_SAFE_CALL(cudaMalloc(array_d, memSize));
+    return 0;
+}
+template int cudaCommon_allocateArrayToDevice<float>(float **, int);
+template int cudaCommon_allocateArrayToDevice<float4>(float4 **, int); // for deformation field
+/* ******************************** */
 /* ******************************** */
 template <class DTYPE>
 int cudaCommon_allocateArrayToDevice(DTYPE **array_d, DTYPE **array2_d, int *dim)

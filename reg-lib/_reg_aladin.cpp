@@ -342,6 +342,7 @@ void reg_aladin<T>::ClearDeformationField()
         nifti_image_free(this->deformationFieldImage);
     this->deformationFieldImage=NULL;
 }
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::InitialiseBlockMatching(int CurrentPercentageOfBlockToUse)
 {

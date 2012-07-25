@@ -30,7 +30,7 @@ class reg_f3d2 : public reg_f3d_sym<T>
     virtual void GetInverseConsistencyErrorField();
     virtual void GetInverseConsistencyGradient();
     virtual void GetSimilarityMeasureGradient();
-    virtual void UpdateControlPointPosition(T);
+    virtual void UpdateParameters(T);
 
 public:
     virtual void SetCompositionStepNumber(int);

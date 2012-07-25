@@ -29,10 +29,6 @@ reg_f3d_sym<T>::reg_f3d_sym(int refTimePoint,int floTimePoint)
     this->backwardVoxelBasedMeasureGradientImage=NULL;
     this->backwardNodeBasedGradientImage=NULL;
 
-    this->backwardBestControlPointPosition=NULL;
-    this->backwardConjugateG=NULL;
-    this->backwardConjugateH=NULL;
-
     this->backwardProbaJointHistogram=NULL;
     this->backwardLogJointHistogram=NULL;
 
@@ -310,65 +306,6 @@ void reg_f3d_sym<T>::ClearNodeBasedGradient()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_f3d_sym<T>::AllocateConjugateGradientVariables()
-{
-    this->ClearConjugateGradientVariables();
-
-    reg_f3d<T>::AllocateConjugateGradientVariables();
-    if(this->backwardControlPointGrid==NULL){
-        fprintf(stderr, "[NiftyReg ERROR] The backward control point image is not defined\n");
-        exit(1);
-    }
-    this->backwardConjugateG = (T *)calloc(this->backwardControlPointGrid->nvox, sizeof(T));
-    this->backwardConjugateH = (T *)calloc(this->backwardControlPointGrid->nvox, sizeof(T));
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-void reg_f3d_sym<T>::ClearConjugateGradientVariables()
-{
-    reg_f3d<T>::ClearConjugateGradientVariables();
-    if(this->backwardConjugateG!=NULL){
-        free(this->backwardConjugateG);
-        this->backwardConjugateG=NULL;
-    }
-    if(this->backwardConjugateH!=NULL){
-        free(this->backwardConjugateH);
-        this->backwardConjugateH=NULL;
-    }
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-void reg_f3d_sym<T>::AllocateBestControlPointArray()
-{
-    this->ClearBestControlPointArray();
-
-    reg_f3d<T>::AllocateBestControlPointArray();
-    if(this->backwardControlPointGrid==NULL){
-        fprintf(stderr, "[NiftyReg ERROR] The backward control point image is not defined\n");
-        exit(1);
-    }
-    this->backwardBestControlPointPosition =
-            (T *)malloc(this->backwardControlPointGrid->nvox *
-                        this->backwardControlPointGrid->nbyper);
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-void reg_f3d_sym<T>::ClearBestControlPointArray()
-{
-    reg_f3d<T>::ClearBestControlPointArray();
-    if(this->backwardBestControlPointPosition!=NULL){
-        free(this->backwardBestControlPointPosition);
-        this->backwardBestControlPointPosition=NULL;
-    }
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
 void reg_f3d_sym<T>::AllocateJointHistogram()
 {
     this->ClearJointHistogram();
@@ -391,25 +328,6 @@ void reg_f3d_sym<T>::ClearJointHistogram()
         free(this->backwardLogJointHistogram);
         this->backwardLogJointHistogram=NULL;
     }
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-void reg_f3d_sym<T>::SaveCurrentControlPoint()
-{
-    reg_f3d<T>::SaveCurrentControlPoint();
-    memcpy(this->backwardBestControlPointPosition, this->backwardControlPointGrid->data,
-           this->backwardControlPointGrid->nvox*this->backwardControlPointGrid->nbyper);
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-void reg_f3d_sym<T>::RestoreCurrentControlPoint()
-{
-    reg_f3d<T>::RestoreCurrentControlPoint();
-    memcpy(this->backwardControlPointGrid->data, this->backwardBestControlPointPosition,
-           this->backwardControlPointGrid->nvox*this->controlPointGrid->nbyper);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -711,7 +629,7 @@ double reg_f3d_sym<T>::ComputeJacobianBasedPenaltyTerm(int type)
     }
     if(type>0){
         if(backwardPenaltyTerm!=backwardPenaltyTerm){
-            this->RestoreCurrentControlPoint();
+            this->optimiser->RestoreBestDOF();
             fprintf(stderr, "[NiftyReg ERROR] The backward transformation folding correction scheme failed\n");
         }
         else{
@@ -1006,153 +924,6 @@ void reg_f3d_sym<T>::GetL2NormDispGradient()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-
-template <class T>
-void reg_f3d_sym<T>::ComputeConjugateGradient()
-{
-    reg_f3d<T>::ComputeConjugateGradient();
-
-    int nodeNumber = this->backwardNodeBasedGradientImage->nx *
-            this->backwardNodeBasedGradientImage->ny *
-            this->backwardNodeBasedGradientImage->nz;
-    int i;
-    if(this->currentIteration==1){
-#ifndef NDEBUG
-        printf("[NiftyReg DEBUG] Backward conjugate gradient initialisation\n");
-#endif
-        // first conjugate gradient iteration
-        if(this->currentFloating->nz==1){
-            T *conjGPtrX = &this->backwardConjugateG[0];
-            T *conjGPtrY = &conjGPtrX[nodeNumber];
-            T *conjHPtrX = &this->backwardConjugateH[0];
-            T *conjHPtrY = &conjHPtrX[nodeNumber];
-            T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
-            T *gradientValuesY = &gradientValuesX[nodeNumber];
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    shared(conjHPtrX, conjHPtrY, conjGPtrX, conjGPtrY, \
-    gradientValuesX, gradientValuesY, nodeNumber) \
-    private(i)
-#endif
-            for(i=0; i<nodeNumber;i++){
-                conjHPtrX[i] = conjGPtrX[i] = - gradientValuesX[i];
-                conjHPtrY[i] = conjGPtrY[i] = - gradientValuesY[i];
-            }
-        }else{
-            T *conjGPtrX = &this->backwardConjugateG[0];
-            T *conjGPtrY = &conjGPtrX[nodeNumber];
-            T *conjGPtrZ = &conjGPtrY[nodeNumber];
-            T *conjHPtrX = &this->backwardConjugateH[0];
-            T *conjHPtrY = &conjHPtrX[nodeNumber];
-            T *conjHPtrZ = &conjHPtrY[nodeNumber];
-            T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
-            T *gradientValuesY = &gradientValuesX[nodeNumber];
-            T *gradientValuesZ = &gradientValuesY[nodeNumber];
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    shared(conjHPtrX, conjHPtrY, conjHPtrZ, conjGPtrX, conjGPtrY, conjGPtrZ, \
-    gradientValuesX, gradientValuesY, gradientValuesZ, nodeNumber) \
-    private(i)
-#endif
-            for(i=0; i<nodeNumber;i++){
-                conjHPtrX[i] = conjGPtrX[i] = - gradientValuesX[i];
-                conjHPtrY[i] = conjGPtrY[i] = - gradientValuesY[i];
-                conjHPtrZ[i] = conjGPtrZ[i] = - gradientValuesZ[i];
-            }
-        }
-    }
-    else{
-#ifndef NDEBUG
-        printf("[NiftyReg DEBUG] Backward conjugate gradient update\n");
-#endif
-        double dgg=0.0, gg=0.0;
-        if(this->currentFloating->nz==1){
-            T *conjGPtrX = &this->backwardConjugateG[0];
-            T *conjGPtrY = &conjGPtrX[nodeNumber];
-            T *conjHPtrX = &this->backwardConjugateH[0];
-            T *conjHPtrY = &conjHPtrX[nodeNumber];
-            T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
-            T *gradientValuesY = &gradientValuesX[nodeNumber];
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    shared(conjHPtrX, conjHPtrY, conjGPtrX, conjGPtrY, \
-    gradientValuesX, gradientValuesY, nodeNumber) \
-    private(i) \
-    reduction(+:gg) \
-    reduction(+:dgg)
-#endif
-            for(i=0; i<nodeNumber;i++){
-                gg += conjHPtrX[i] * conjGPtrX[i];
-                gg += conjHPtrY[i] * conjGPtrY[i];
-                dgg += (gradientValuesX[i] + conjGPtrX[i]) * gradientValuesX[i];
-                dgg += (gradientValuesY[i] + conjGPtrY[i]) * gradientValuesY[i];
-            }
-            double gam = dgg/gg;
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    shared(conjHPtrX, conjHPtrY, conjGPtrX, conjGPtrY, \
-    gradientValuesX, gradientValuesY, nodeNumber, gam) \
-    private(i)
-#endif
-            for(i=0; i<nodeNumber;i++){
-                conjGPtrX[i] = - gradientValuesX[i];
-                conjGPtrY[i] = - gradientValuesY[i];
-                conjHPtrX[i] = (float)(conjGPtrX[i] + gam * conjHPtrX[i]);
-                conjHPtrY[i] = (float)(conjGPtrY[i] + gam * conjHPtrY[i]);
-                gradientValuesX[i] = - conjHPtrX[i];
-                gradientValuesY[i] = - conjHPtrY[i];
-            }
-        }
-        else{
-            T *conjGPtrX = &this->backwardConjugateG[0];
-            T *conjGPtrY = &conjGPtrX[nodeNumber];
-            T *conjGPtrZ = &conjGPtrY[nodeNumber];
-            T *conjHPtrX = &this->backwardConjugateH[0];
-            T *conjHPtrY = &conjHPtrX[nodeNumber];
-            T *conjHPtrZ = &conjHPtrY[nodeNumber];
-            T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
-            T *gradientValuesY = &gradientValuesX[nodeNumber];
-            T *gradientValuesZ = &gradientValuesY[nodeNumber];
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    shared(conjHPtrX, conjHPtrY, conjHPtrZ, conjGPtrX, conjGPtrY, conjGPtrZ, \
-    gradientValuesX, gradientValuesY, gradientValuesZ, nodeNumber) \
-    private(i) \
-    reduction(+:gg) \
-    reduction(+:dgg)
-#endif
-            for(i=0; i<nodeNumber;i++){
-                gg += conjHPtrX[i] * conjGPtrX[i];
-                gg += conjHPtrY[i] * conjGPtrY[i];
-                gg += conjHPtrZ[i] * conjGPtrZ[i];
-                dgg += (gradientValuesX[i] + conjGPtrX[i]) * gradientValuesX[i];
-                dgg += (gradientValuesY[i] + conjGPtrY[i]) * gradientValuesY[i];
-                dgg += (gradientValuesZ[i] + conjGPtrZ[i]) * gradientValuesZ[i];
-            }
-            double gam = dgg/gg;
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    shared(conjHPtrX, conjHPtrY, conjHPtrZ, conjGPtrX, conjGPtrY, conjGPtrZ, \
-    gradientValuesX, gradientValuesY, gradientValuesZ, nodeNumber, gam) \
-    private(i)
-#endif
-            for(i=0; i<nodeNumber;i++){
-                conjGPtrX[i] = - gradientValuesX[i];
-                conjGPtrY[i] = - gradientValuesY[i];
-                conjGPtrZ[i] = - gradientValuesZ[i];
-                conjHPtrX[i] = (float)(conjGPtrX[i] + gam * conjHPtrX[i]);
-                conjHPtrY[i] = (float)(conjGPtrY[i] + gam * conjHPtrY[i]);
-                conjHPtrZ[i] = (float)(conjGPtrZ[i] + gam * conjHPtrZ[i]);
-                gradientValuesX[i] = - conjHPtrX[i];
-                gradientValuesY[i] = - conjHPtrY[i];
-                gradientValuesZ[i] = - conjHPtrZ[i];
-            }
-        }
-    }
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_f3d_sym<T>::SetGradientImageToZero()
 {
@@ -1161,70 +932,6 @@ void reg_f3d_sym<T>::SetGradientImageToZero()
     T* nodeGradPtr = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
     for(unsigned int i=0; i<this->backwardNodeBasedGradientImage->nvox; ++i)
         *nodeGradPtr++=0;
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-T reg_f3d_sym<T>::GetMaximalGradientLength()
-{
-    T forwardLength=reg_f3d<T>::GetMaximalGradientLength();
-    T backwardLength= reg_getMaximalLength<T>(this->backwardNodeBasedGradientImage);
-    return forwardLength>backwardLength?forwardLength:backwardLength;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-void reg_f3d_sym<T>::UpdateControlPointPosition(T scale)
-{
-    reg_f3d<T>::UpdateControlPointPosition(scale);
-
-    int nodeNumber = this->backwardControlPointGrid->nx *
-            this->backwardControlPointGrid->ny *
-            this->backwardControlPointGrid->nz;
-    int i;
-    if(this->currentFloating->nz==1){
-        T *controlPointValuesX = static_cast<T *>(this->backwardControlPointGrid->data);
-        T *controlPointValuesY = &controlPointValuesX[nodeNumber];
-        T *bestControlPointValuesX = &this->backwardBestControlPointPosition[0];
-        T *bestControlPointValuesY = &bestControlPointValuesX[nodeNumber];
-        T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
-        T *gradientValuesY = &gradientValuesX[nodeNumber];
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    shared(controlPointValuesX, controlPointValuesY, bestControlPointValuesX, \
-    bestControlPointValuesY, gradientValuesX, gradientValuesY, nodeNumber, scale) \
-    private(i)
-#endif
-        for(i=0; i<nodeNumber;i++){
-            controlPointValuesX[i] = bestControlPointValuesX[i] + scale * gradientValuesX[i];
-            controlPointValuesY[i] = bestControlPointValuesY[i] + scale * gradientValuesY[i];
-        }
-    }
-    else{
-        T *controlPointValuesX = static_cast<T *>(this->backwardControlPointGrid->data);
-        T *controlPointValuesY = &controlPointValuesX[nodeNumber];
-        T *controlPointValuesZ = &controlPointValuesY[nodeNumber];
-        T *bestControlPointValuesX = &this->backwardBestControlPointPosition[0];
-        T *bestControlPointValuesY = &bestControlPointValuesX[nodeNumber];
-        T *bestControlPointValuesZ = &bestControlPointValuesY[nodeNumber];
-        T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
-        T *gradientValuesY = &gradientValuesX[nodeNumber];
-        T *gradientValuesZ = &gradientValuesY[nodeNumber];
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    shared(controlPointValuesX, controlPointValuesY, controlPointValuesZ, \
-    bestControlPointValuesX, bestControlPointValuesY, bestControlPointValuesZ, \
-    gradientValuesX, gradientValuesY, gradientValuesZ, nodeNumber, scale) \
-    private(i)
-#endif
-        for(i=0; i<nodeNumber;i++){
-            controlPointValuesX[i] = bestControlPointValuesX[i] + scale * gradientValuesX[i];
-            controlPointValuesY[i] = bestControlPointValuesY[i] + scale * gradientValuesY[i];
-            controlPointValuesZ[i] = bestControlPointValuesZ[i] + scale * gradientValuesZ[i];
-        }
-    }
-
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1517,6 +1224,77 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
                                  true); // update?
 
     return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+void reg_f3d_sym<T>::UpdateParameters(T scale)
+{
+    T *currentDOF_b=this->optimiser->GetCurrentDOF_b();
+    T *bestDOF_b=this->optimiser->GetBestDOF_b();
+    T *gradient_b=this->optimiser->GetGradient_b();
+
+    reg_f3d<T>::UpdateParameters(scale);
+    // Update the control point position
+    if(this->optimiser->GetOptimiseX()==true &&
+       this->optimiser->GetOptimiseY()==true &&
+       this->optimiser->GetOptimiseZ()==true)
+    {
+        // Update the values for all axis displacement
+        for(size_t i=0;i<this->optimiser->GetDOFNumber_b();++i){
+            currentDOF_b[i] =bestDOF_b[i] + scale * gradient_b[i];
+        }
+    }
+    else
+    {
+        size_t voxNumber_b = this->optimiser->GetVoxNumber_b();
+        // Update the values for the x-axis displacement
+        if(this->optimiser->GetOptimiseX()==true){
+            for(size_t i=0;i<voxNumber_b;++i){
+                currentDOF_b[i] =bestDOF_b[i] + scale * gradient_b[i];
+            }
+        }
+        // Update the values for the y-axis displacement
+        if(this->optimiser->GetOptimiseY()==true){
+            T *currentDOFY_b=&currentDOF_b[voxNumber_b];
+            T *bestDOFY_b=&bestDOF_b[voxNumber_b];
+            T *gradientY_b=&gradient_b[voxNumber_b];
+            for(size_t i=0;i<voxNumber_b;++i){
+                currentDOFY_b[i] = bestDOFY_b[i] + scale * gradientY_b[i];
+            }
+        }
+        // Update the values for the z-axis displacement
+        if(this->optimiser->GetOptimiseZ()==true && this->optimiser->GetNDim()>2){
+            T *currentDOFZ_b=&currentDOF_b[2*voxNumber_b];
+            T *bestDOFZ_b=&bestDOF_b[2*voxNumber_b];
+            T *gradientZ_b=&gradient_b[2*voxNumber_b];
+            for(size_t i=0;i<voxNumber_b;++i){
+                currentDOFZ_b[i] = bestDOFZ_b[i] + scale * gradientZ_b[i];
+            }
+        }
+    }
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+void reg_f3d_sym<T>::SetOptimiser()
+{
+    if(this->useConjGradient)
+        this->optimiser=new reg_conjugateGradient<T>();
+    else this->optimiser=new reg_optimiser<T>();
+    this->optimiser->Initialise(this->controlPointGrid->nvox,
+                                this->controlPointGrid->nz>1?3:2,
+                                this->optimiseX,
+                                this->optimiseY,
+                                this->optimiseZ,
+                                this->maxiterationNumber,
+                                0, // currentIterationNumber
+                                this,
+                                static_cast<T *>(this->controlPointGrid->data),
+                                static_cast<T *>(this->nodeBasedGradientImage->data),
+                                this->backwardControlPointGrid->nvox,
+                                static_cast<T *>(this->backwardControlPointGrid->data),
+                                static_cast<T *>(this->backwardNodeBasedGradientImage->data));
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
