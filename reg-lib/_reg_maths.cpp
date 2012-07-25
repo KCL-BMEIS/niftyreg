@@ -76,8 +76,7 @@ void reg_LUdecomposition(T *mat,
     free(vv);
     return;
 }
-template void reg_LUdecomposition<float>(float *, size_t , size_t *);
-template void reg_LUdecomposition<double>(double *, size_t , size_t *);
+
 /* *************************************************************** */
 /* *************************************************************** */
 template <class T>
@@ -111,8 +110,7 @@ void reg_matrixInvertMultiply(T *mat,
         vec[i]=sum/mat[i*dim+i];
     }
 }
-template void reg_matrixInvertMultiply<float>(float *, size_t , size_t *, float *);
-template void reg_matrixInvertMultiply<double>(double *, size_t , size_t *, double *);
+
 /* *************************************************************** */
 /* *************************************************************** */
 // Heap sort
@@ -337,8 +335,6 @@ void reg_mat44_mul(mat44 const* mat,
     out[2]=mat->m[2][0]*in[0] + mat->m[2][1]*in[1] + mat->m[2][2]*in[2] + mat->m[2][3];
     return;
 }
-template void reg_mat44_mul<float>(mat44 const*, float const*, float*);
-template void reg_mat44_mul<double>(mat44 const*, double const*, double*);
 
 /* *************************************************************** */
 /* *************************************************************** */
@@ -787,8 +783,7 @@ void svd(T ** in, size_t m, size_t n, T * w, T ** v)
     }
     free (rv1);
 }
-template void svd<float>(float ** in, size_t m, size_t n, float * w, float ** v);
-template void svd<double>(double ** in, size_t m, size_t n, double * w, double ** v);
+
 /* *************************************************************** */
 /* *************************************************************** */
 #endif // _REG_MATHS_CPP

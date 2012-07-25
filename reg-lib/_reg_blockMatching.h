@@ -122,6 +122,9 @@ void block_matching_method(	nifti_image * referenceImage,
                             _reg_blockMatchingParam *params,
                             int *mask);
 
+template void block_matching_method<float>(nifti_image *, nifti_image *, _reg_blockMatchingParam *, int *);
+template void block_matching_method<double>(nifti_image *, nifti_image *, _reg_blockMatchingParam *, int *);
+
 /** @brief Apply the given affine transformation to a point
  * @todo I should remove this function as it is redondant
  * @param mat Transformation matrix

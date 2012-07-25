@@ -263,8 +263,7 @@ void reg_thresholdImage(	nifti_image *image,
         exit(1);
     }
 }
-template void reg_thresholdImage<float>(nifti_image *, float, float);
-template void reg_thresholdImage<double>(nifti_image *, double, double);
+
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class DTYPE>
@@ -512,9 +511,6 @@ void reg_tools_CubicSplineKernelConvolution(nifti_image *image,
     }
 }
 /* *************************************************************** */
-template void reg_tools_CubicSplineKernelConvolution<float>(nifti_image *, int[]);
-template void reg_tools_CubicSplineKernelConvolution<double>(nifti_image *, int[]);
-/* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class DTYPE>
 void reg_smoothNormImageForCubicSpline1(nifti_image *image,
@@ -743,9 +739,6 @@ void reg_smoothNormImageForCubicSpline(	nifti_image *image,
     }
 }
 /* *************************************************************** */
-template void reg_smoothNormImageForCubicSpline<float>(nifti_image *, int[]);
-template void reg_smoothNormImageForCubicSpline<double>(nifti_image *, int[]);
-/* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class DTYPE>
 void reg_smoothImageForTrilinear1(	nifti_image *image,
@@ -940,9 +933,6 @@ void reg_smoothImageForTrilinear(	nifti_image *image,
     }
 }
 /* *************************************************************** */
-template void reg_smoothImageForTrilinear<float>(nifti_image *, int[]);
-template void reg_smoothImageForTrilinear<double>(nifti_image *, int[]);
-/* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class DTYPE>
 PrecisionTYPE reg_getMaximalLength2D(nifti_image *image)
@@ -1005,9 +995,7 @@ PrecisionTYPE reg_getMaximalLength(nifti_image *image)
     }
     return 0;
 }
-/* *************************************************************** */
-template float reg_getMaximalLength<float>(nifti_image *);
-template double reg_getMaximalLength<double>(nifti_image *);
+
 /* *************************************************************** */
 /* *************************************************************** */
 template <class NewTYPE, class DTYPE>
@@ -1068,10 +1056,7 @@ void reg_tools_changeDatatype(nifti_image *image)
         exit(1);
     }
 }
-/* *************************************************************** */
-template void reg_tools_changeDatatype<unsigned char>(nifti_image *);
-template void reg_tools_changeDatatype<float>(nifti_image *);
-template void reg_tools_changeDatatype<double>(nifti_image *);
+
 /* *************************************************************** */
 /* *************************************************************** */
 template <class TYPE1, class TYPE2>
@@ -1439,8 +1424,7 @@ void reg_gaussianSmoothing(	nifti_image *image,
         exit(1);
     }
 }
-template void reg_gaussianSmoothing<float>(nifti_image *, float, bool[8]);
-template void reg_gaussianSmoothing<double>(nifti_image *, double, bool[8]);
+
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class ImageTYPE>
@@ -1649,8 +1633,6 @@ void reg_downsampleImage(nifti_image *image, int type, bool downsampleAxis[8])
         exit(1);
     }
 }
-template void reg_downsampleImage<float>(nifti_image *, int, bool[8]);
-template void reg_downsampleImage<double>(nifti_image *, int, bool[8]);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
@@ -1920,8 +1902,6 @@ int reg_createImagePyramid(nifti_image *inputImage, nifti_image **pyramid, int u
     }
     return 0;
 }
-template int reg_createImagePyramid<float>(nifti_image *, nifti_image **, unsigned int , unsigned int);
-template int reg_createImagePyramid<double>(nifti_image *, nifti_image **, unsigned int , unsigned int);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
@@ -1982,8 +1962,6 @@ int reg_createMaskPyramid(nifti_image *inputMaskImage, int **maskPyramid, int un
     free(tempMaskImagePyramid);
     return 0;
 }
-template int reg_createMaskPyramid<float>(nifti_image *, int **, unsigned int , unsigned int , int *);
-template int reg_createMaskPyramid<double>(nifti_image *, int **, unsigned int , unsigned int , int *);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class TYPE1, class TYPE2>

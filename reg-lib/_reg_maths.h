@@ -14,12 +14,18 @@ extern "C++" template <class T>
 void reg_LUdecomposition(T *inputMatrix,
                          size_t dim,
                          size_t *index);
+						 
+template void reg_LUdecomposition<float>(float *, size_t , size_t *);
+template void reg_LUdecomposition<double>(double *, size_t , size_t *);						 
 /* *************************************************************** */
 extern "C++" template <class T>
 void reg_matrixInvertMultiply(T *mat,
                               size_t dim,
                               size_t *index,
                               T *vec);
+							  
+template void reg_matrixInvertMultiply<float>(float *, size_t , size_t *, float *);
+template void reg_matrixInvertMultiply<double>(double *, size_t , size_t *, double *);	
 /* *************************************************************** */
 extern "C++"
 void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum);
@@ -32,6 +38,9 @@ extern "C++" template <class DTYPE>
 void reg_mat44_mul(mat44 const* mat,
                    DTYPE const* in,
                    DTYPE *out);
+				   
+template void reg_mat44_mul<float>(mat44 const*, float const*, float*);
+template void reg_mat44_mul<double>(mat44 const*, double const*, double*);
 /* *************************************************************** */
 extern "C++"
 mat44 reg_mat44_mul(mat44 const* mat,
@@ -88,5 +97,8 @@ void reg_getReorientationMatrix(nifti_image *splineControlPoint,
 /* *************************************************************** */
 extern "C++" template <class T>
 void svd(T ** in, size_t m, size_t n, T * w, T ** v);
+
+template void svd<float>(float ** in, size_t m, size_t n, float * w, float ** v);
+template void svd<double>(double ** in, size_t m, size_t n, double * w, double ** v);
 /* *************************************************************** */
 #endif // _REG_MATHS_H

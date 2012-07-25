@@ -556,8 +556,7 @@ void reg_createControlPointGrid(nifti_image **controlPointGridImage,
     memset((*controlPointGridImage)->intent_name, 0, 16);
     strcpy((*controlPointGridImage)->intent_name,"NREG_CPP_FILE");
 }
-template void reg_createControlPointGrid<float>(nifti_image **, nifti_image *, float *);
-template void reg_createControlPointGrid<double>(nifti_image **, nifti_image *, float *);
+
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>

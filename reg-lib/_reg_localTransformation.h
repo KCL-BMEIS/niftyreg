@@ -46,6 +46,8 @@ void reg_createControlPointGrid(nifti_image **controlPointGridImage,
                                 nifti_image *referenceImage,
                                 float *spacingMillimeter);
 
+template void reg_createControlPointGrid<float>(nifti_image **, nifti_image *, float *);
+template void reg_createControlPointGrid<double>(nifti_image **, nifti_image *, float *);
 /* *************************************************************** */
 /** @brief Compute a dense deformation field in the space of a reference
  * image from a grid of control point.

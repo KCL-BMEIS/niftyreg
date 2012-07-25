@@ -702,8 +702,6 @@ template<typename PrecisionTYPE>
         return;
     }
 }
-template void block_matching_method<float>(nifti_image *, nifti_image *, _reg_blockMatchingParam *, int *);
-template void block_matching_method<double>(nifti_image *, nifti_image *, _reg_blockMatchingParam *, int *);
 /* *************************************************************** */
 /* *************************************************************** */
 // Apply the suppled affine transformation to a 3D point

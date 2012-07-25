@@ -77,6 +77,9 @@ void reg_tools_CubicSplineKernelConvolution(nifti_image *image,
                                             int radius[3]
                                             );
 
+template void reg_tools_CubicSplineKernelConvolution<float>(nifti_image *, int[]);
+template void reg_tools_CubicSplineKernelConvolution<double>(nifti_image *, int[]);
+											
 /** @brief Smooth an image using a cubic B-Spline kernel
  * @param image Image to be smoothed
  * @param radius Radius of the cubic spline kernel. The array
@@ -86,6 +89,8 @@ extern "C++" template <class PrecisionTYPE>
 void reg_smoothNormImageForCubicSpline(nifti_image *image,
                                        int radius[3]
                                        );
+template void reg_smoothNormImageForCubicSpline<float>(nifti_image *, int[]);
+template void reg_smoothNormImageForCubicSpline<double>(nifti_image *, int[]);
 
 /** @brief Smooth an image using a linear interpolation kernel
  * @param image Image to be smoothed
@@ -96,6 +101,9 @@ extern "C++" template <class PrecisionTYPE>
 void reg_smoothImageForTrilinear(nifti_image *image,
                                  int radius[3]
                                  );
+
+template void reg_smoothImageForTrilinear<float>(nifti_image *, int[]);
+template void reg_smoothImageForTrilinear<double>(nifti_image *, int[]);
 
 /** @brief Smooth an image using a Gaussian kernel
  * @param image Image to be smoothed
@@ -110,6 +118,9 @@ void reg_gaussianSmoothing(nifti_image *image,
                            bool *axis
                            );
 
+template void reg_gaussianSmoothing<float>(nifti_image *, float, bool[8]);
+template void reg_gaussianSmoothing<double>(nifti_image *, double, bool[8]);
+
 /** @brief Downsample an image by a ratio of two
  * @param image Image to be downsampled
  * @param type The image is first smoothed  using a Gaussian
@@ -123,6 +134,8 @@ void reg_downsampleImage(nifti_image *image,
                          int type,
                          bool *axis);
 
+template void reg_downsampleImage<float>(nifti_image *, int, bool[8]);
+template void reg_downsampleImage<double>(nifti_image *, int, bool[8]);
 /** @brief Returns the maximal euclidean distance from a
  * deformation field image
  * @param image Vector image to be considered
@@ -132,11 +145,18 @@ void reg_downsampleImage(nifti_image *image,
 extern "C++" template <class PrecisionTYPE>
 PrecisionTYPE reg_getMaximalLength(nifti_image *image);
 
+template float reg_getMaximalLength<float>(nifti_image *);
+template double reg_getMaximalLength<double>(nifti_image *);
+
 /** @brief Change the datatype of a nifti image
  * @param image Image to be updated.
  */
 extern "C++" template <class NewTYPE>
 void reg_tools_changeDatatype(nifti_image *image);
+
+template void reg_tools_changeDatatype<unsigned char>(nifti_image *);
+template void reg_tools_changeDatatype<float>(nifti_image *);
+template void reg_tools_changeDatatype<double>(nifti_image *);
 
 /** @brief Perform some basic arithmetic operation between
  * two images.
@@ -254,6 +274,9 @@ int reg_createImagePyramid(nifti_image * input,
                            unsigned int levelNumber,
                            unsigned int levelToPerform);
 
+template int reg_createImagePyramid<float>(nifti_image *, nifti_image **, unsigned int , unsigned int);
+template int reg_createImagePyramid<double>(nifti_image *, nifti_image **, unsigned int , unsigned int);
+
 /** @brief Generate a pyramid from an input mask image.
  * @param input Input image to be downsampled to create the pyramid
  * @param pyramid Output array of mask images that will contains the
@@ -272,6 +295,9 @@ int reg_createMaskPyramid(nifti_image *input,
                           unsigned int levelToPerform,
                           int *activeVoxelNumber);
 
+template int reg_createMaskPyramid<float>(nifti_image *, int **, unsigned int , unsigned int , int *);
+template int reg_createMaskPyramid<double>(nifti_image *, int **, unsigned int , unsigned int , int *);
+						  
 /** @brief this function will threshold an image to the values provided,
  * set the scl_slope and sct_inter of the image to 1 and 0
  * (SSD uses actual image data values),
@@ -287,6 +313,9 @@ void reg_thresholdImage(nifti_image *image,
                         T lowThr,
                         T upThr
                         );
+
+template void reg_thresholdImage<float>(nifti_image *, float, float);
+template void reg_thresholdImage<double>(nifti_image *, double, double);
 
 /** @brief This function flipp the specified axis
  * @param image Input image to be flipped
