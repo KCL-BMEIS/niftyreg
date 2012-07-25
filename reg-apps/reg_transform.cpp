@@ -67,6 +67,7 @@ typedef struct{
     bool aff2defFlag;
     bool invertAffineFlag;
     bool composeAffineFlag;
+    bool halfAffineFlag;
     bool invertVelFlag;
     bool invertDefFlag;
     bool tps2cppFlag;
@@ -143,6 +144,10 @@ void Usage(char *exec)
     printf("\t\tFilename1: First affine matrix\n");
     printf("\t\tFilename2: Second affine matrix\n");
     printf("\t\tFilename3: Composed affine matrix result\n");
+    printf("\t-halfAff <filename1> <filename2>\n");
+    printf("\t\tCompute the half way affine matrix from an input affine\n");
+    printf("\t\tFilename1: Input affine matrix\n");
+    printf("\t\tFilename2: half-way affine matrix\n");
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     return;
 }
@@ -238,6 +243,11 @@ int main(int argc, char **argv)
             param->inputAffineName2=argv[++i];
             param->outputAffineName=argv[++i];
             flag->composeAffineFlag=1;
+        }
+        else if(strcmp(argv[i], "-halfAff") == 0){
+            param->inputAffineName=argv[++i];
+            param->outputAffineName=argv[++i];
+            flag->halfAffineFlag=1;
         }
         else if(strcmp(argv[i], "-tps2cpp") == 0){
             param->tpsTextFilename=argv[++i];
@@ -794,6 +804,21 @@ int main(int argc, char **argv)
         mat44 affineResult = reg_mat44_mul(&affine1, &affine2);
         reg_tool_WriteAffineFile(&affineResult,
                                  param->outputAffineName);
+    }
+    /* Compute the half way transformation matrix */
+    if(flag->halfAffineFlag){
+        // Read the input affine
+        mat44 affine1;
+        reg_tool_ReadAffineFile(&affine1,
+                                param->inputAffineName);
+        // Compute the half-way transformation
+        mat44 halfWayAffine=reg_mat44_logm(&affine1);
+        halfWayAffine=reg_mat44_mul(&halfWayAffine,0.5);
+        halfWayAffine=reg_mat44_expm(&halfWayAffine);
+        // Save the computed matrix
+        reg_tool_WriteAffineFile(&halfWayAffine,
+                                 param->outputAffineName);
+
     }
 
     nifti_image_free(referenceImage);
