@@ -3,7 +3,7 @@
 #define _REG_ALADIN_CPP
 template <class T> reg_aladin<T>::reg_aladin ()
 {
-    this->ExecutableName=(char*) "reg_aladin";
+    this->ExecutableName=(char*) "Aladin";
     this->InputReference = NULL;
     this->InputFloating = NULL;
     this->InputReferenceMask = NULL;

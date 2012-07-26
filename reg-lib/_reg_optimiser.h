@@ -41,8 +41,8 @@ protected:
     size_t dofNumber;
     size_t dofNumber_b;
     size_t ndim;
-    T *currentDOF; // pointer to the cpp nifti image
-    T *currentDOF_b;
+    T *currentDOF; // pointer to the cpp nifti image array
+    T *currentDOF_b; // pointer to the cpp nifti image array (backward)
     T *bestDOF;
     T *bestDOF_b;
     T *gradient;
@@ -58,7 +58,7 @@ protected:
 
 public:
     reg_optimiser();
-    ~reg_optimiser();
+    virtual ~reg_optimiser();
     virtual void StoreCurrentDOF();
     virtual void RestoreBestDOF();
     virtual size_t GetDOFNumber(){return this->dofNumber;}
@@ -80,7 +80,6 @@ public:
     virtual double GetBestObjFunctionValue(){return this->bestObjFunctionValue;}
     virtual double GetCurrentObjFunctionValue(){return this->currentObjFunctionValue;}
     virtual void IncrementCurrentIterationNumber(){this->currentIterationNumber++;}
-
     virtual void Initialise(size_t nvox,
                             int dim,
                             bool optX,
@@ -108,7 +107,7 @@ public:
 template <class T>
 class reg_conjugateGradient : public reg_optimiser<T>
 {
-protected:
+  protected:
     T *array1;
     T *array1_b;
     T *array2;
@@ -117,7 +116,7 @@ protected:
 
     void UpdateGradientValues(); /// @brief Update the gradient array
 
-public:
+  public:
     reg_conjugateGradient();
     ~reg_conjugateGradient();
     virtual void Initialise(size_t nvox,
@@ -133,7 +132,6 @@ public:
                             size_t nvox_b=0,
                             T *cppData_b=NULL,
                             T *gradData_b=NULL);
-
     virtual void Optimise(float maxLength,
                           float smallLength,
                           float &startLength);

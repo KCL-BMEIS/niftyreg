@@ -80,7 +80,7 @@ public:
     virtual void SetInverseConsistencyWeight(T);
 
     reg_f3d_sym(int refTimePoint,int floTimePoint);
-    ~reg_f3d_sym();
+    virtual ~reg_f3d_sym();
     virtual void CheckParameters_f3d();
     virtual void Initisalise_f3d();
     virtual nifti_image *GetBackwardControlPointPositionImage();

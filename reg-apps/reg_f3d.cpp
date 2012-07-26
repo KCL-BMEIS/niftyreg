@@ -879,14 +879,10 @@ int main(int argc, char **argv)
                 b.replace(b.find( ".img.gz"),7,"_backward.img.gz");
             else if(b.find( ".img") != std::string::npos)
                 b.replace(b.find( ".img"),4,"_backward.img");
-#ifdef _USE_NR_PNG
             else if(b.find( ".png") != std::string::npos)
                 b.replace(b.find( ".png"),4,"_backward.png");
-#endif
-#ifdef _USE_NR_NRRD
             else if(b.find( ".nrrd") != std::string::npos)
                 b.replace(b.find( ".nrrd"),5,"_backward.nrrd");
-#endif
             else b.append("_backward.nii");
             nifti_image *outputBackwardControlPointGridImage = REG->GetBackwardControlPointPositionImage();
             memset(outputBackwardControlPointGridImage->descrip, 0, 80);
@@ -929,14 +925,10 @@ int main(int argc, char **argv)
                     b.replace(b.find( ".img.gz"),7,"_backward.img.gz");
                 else if(b.find( ".img") != std::string::npos)
                     b.replace(b.find( ".img"),4,"_backward.img");
-#ifdef _USE_NR_PNG
                 else if(b.find( ".png") != std::string::npos)
                     b.replace(b.find( ".png"),4,"_backward.png");
-#endif
-#ifdef _USE_NR_NRRD
                 else if(b.find( ".nrrd") != std::string::npos)
                     b.replace(b.find( ".nrrd"),5,"_backward.nrrd");
-#endif
                 else b.append("_backward.nii");
                 if(useSym)
                     strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d_sym)");

@@ -598,10 +598,7 @@ int main(int argc, char **argv)
         // Read the affine transformation
         mat44 *affineTransformation = (mat44 *)calloc(1,sizeof(mat44));
         reg_tool_ReadAffineFile(affineTransformation,
-                                referenceImage,
-                                image,
-                                param->inputAffineName,
-                                0);
+                                param->inputAffineName);
         //Invert the affine transformation since the flaoting is updated
         *affineTransformation = nifti_mat44_inverse(*affineTransformation);
 

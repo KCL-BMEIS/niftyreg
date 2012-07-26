@@ -24,6 +24,10 @@ reg_optimiser<T>::reg_optimiser()
     this->bestDOF=NULL;
     this->bestDOF_b=NULL;
     this->backward=false;
+
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] reg_optimiser<T>::reg_optimiser() called\n");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -36,6 +40,9 @@ reg_optimiser<T>::~reg_optimiser()
     if(this->bestDOF_b!=NULL)
         free(this->bestDOF_b);
     this->bestDOF_b=NULL;
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] reg_optimiser<T>::~reg_optimiser() called\n");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -62,28 +69,32 @@ void reg_optimiser<T>::Initialise(size_t nvox,
     this->optimiseZ=optZ;
     this->maxIterationNumber=maxit;
     this->currentIterationNumber=start;
-    this->currentDOF=static_cast<T *>(cppData);
+    this->currentDOF=cppData;
     if(this->bestDOF!=NULL) free(this->bestDOF);
     this->bestDOF=(T *)malloc(this->dofNumber*sizeof(T));
     memcpy(this->bestDOF,this->currentDOF,this->dofNumber*sizeof(T));
     if( gradData!=NULL)
-        this->gradient=static_cast<T *>(gradData);
+        this->gradient=gradData;
 
 
     if(nvox_b>0) this->dofNumber_b=nvox_b;
     if(cppData_b!=NULL){
-        this->currentDOF_b=static_cast<T *>(cppData_b);
+        this->currentDOF_b=cppData_b;
         this->backward=true;
         if(this->bestDOF_b!=NULL) free(this->bestDOF_b);
         this->bestDOF_b=(T *)malloc(this->dofNumber*sizeof(T));
         memcpy(this->bestDOF_b,this->currentDOF_b,this->dofNumber_b*sizeof(T));
     }
     if(gradData_b!=NULL)
-        this->gradient_b=static_cast<T *>(gradData_b);
+        this->gradient_b=gradData_b;
 
     this->objFunc=obj;
     this->bestObjFunctionValue = this->currentObjFunctionValue =
             this->objFunc->GetObjectiveFunctionValue();
+
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] reg_optimiser<T>::Initialise called\n");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -136,9 +147,9 @@ void reg_optimiser<T>::NormaliseGradient()
 {
     // First compute the gradient max length for normalisation purpose
     T maxGradValue=0;
-    size_t voxNumber = this->dofNumber / this->ndim;
-    size_t voxNumber_b = this->dofNumber_b / this->ndim;
-    T *ptrX = static_cast<T *>(this->gradient);
+    size_t voxNumber = this->GetVoxNumber();
+    size_t voxNumber_b = this->GetVoxNumber_b();
+    T *ptrX = this->gradient;
     T *ptrY = &ptrX[voxNumber];
     if(this->ndim>2){
         T *ptrZ = &ptrY[voxNumber];
@@ -167,7 +178,7 @@ void reg_optimiser<T>::NormaliseGradient()
     }
     if(this->backward){
         T maxGradValue_b=0;
-        T *ptrX_b = static_cast<T *>(this->gradient_b);
+        T *ptrX_b = this->gradient_b;
         T *ptrY_b = &ptrX[voxNumber_b];
         if(this->ndim>2){
             T *ptrZ_b = &ptrY_b[voxNumber_b];
@@ -281,6 +292,10 @@ reg_conjugateGradient<T>::reg_conjugateGradient()
     this->array2=NULL;
     this->array1_b=NULL;
     this->array2_b=NULL;
+
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] reg_conjugateGradient<T>::reg_conjugateGradient() called\n");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -302,6 +317,10 @@ reg_conjugateGradient<T>::~reg_conjugateGradient()
     if(this->array2_b!=NULL)
         free(this->array2_b);
     this->array2_b=NULL;
+
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] reg_conjugateGradient<T>::~reg_conjugateGradient() called\n");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -343,6 +362,10 @@ void reg_conjugateGradient<T>::Initialise(size_t nvox,
         this->array1_b=(T *)malloc(this->dofNumber_b*sizeof(T));
         this->array2_b=(T *)malloc(this->dofNumber_b*sizeof(T));
     }
+
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] reg_conjugateGradient<T>::Initialise called\n");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -356,13 +379,13 @@ void reg_conjugateGradient<T>::UpdateGradientValues()
 #endif
     size_t num=this->dofNumber;
     size_t num_b=this->dofNumber_b;
-    T *gradientPtr = static_cast<T *>(this->gradient);
-    T *array1Ptr = static_cast<T *>(this->array1);
-    T *array2Ptr = static_cast<T *>(this->array2);
+    T *gradientPtr = this->gradient;
+    T *array1Ptr = this->array1;
+    T *array2Ptr = this->array2;
 
-    T *gradientPtr_b = static_cast<T *>(this->gradient_b);
-    T *array1Ptr_b = static_cast<T *>(this->array1_b);
-    T *array2Ptr_b = static_cast<T *>(this->array2_b);
+    T *gradientPtr_b = this->gradient_b;
+    T *array1Ptr_b = this->array1_b;
+    T *array2Ptr_b = this->array2_b;
 
     if(this->firstcall==true){
 #ifndef NDEBUG
@@ -429,7 +452,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues()
 #endif
         for(i=0; i<num;i++){
             array1Ptr[i] = - gradientPtr[i];
-            array2Ptr[i] = (T)(array1Ptr[i] + gam * array2Ptr[i]);
+            array2Ptr[i] = (array1Ptr[i] + gam * array2Ptr[i]);
             gradientPtr[i] = - array2Ptr[i];
         }
         if(this->dofNumber_b>0){
@@ -440,7 +463,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues()
 #endif
             for(i=0; i<num_b;i++){
                 array1Ptr_b[i] = - gradientPtr_b[i];
-                array2Ptr_b[i] = (T)(array1Ptr_b[i] + gam * array2Ptr_b[i]);
+                array2Ptr_b[i] = (array1Ptr_b[i] + gam * array2Ptr_b[i]);
                 gradientPtr_b[i] = - array2Ptr_b[i];
             }
         }

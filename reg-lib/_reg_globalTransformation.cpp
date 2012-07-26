@@ -152,10 +152,14 @@ void reg_tool_ReadAffineFile(mat44 *mat,
             if(i>3) break;
         }
     }
+    else{
+        fprintf(stderr, "[NiftyReg ERROR] The affine file can not be read: %s\n", fileName);
+        exit(1);
+    }
     affineFile.close();
 
 #ifndef NDEBUG
-    reg_mat44_disp(mat, (char *)"[NiftyReg DEBUG] 3Read affine transformation");
+    reg_mat44_disp(mat, (char *)"[NiftyReg DEBUG] Read affine transformation");
 #endif
 
     if(flirtFile){
@@ -236,6 +240,10 @@ void reg_tool_ReadAffineFile(	mat44 *mat,
             i++;
             if(i>3) break;
         }
+    }
+    else{
+        fprintf(stderr, "[NiftyReg ERROR] The affine file can not be read: %s\n", fileName);
+        exit(1);
     }
     affineFile.close();
 

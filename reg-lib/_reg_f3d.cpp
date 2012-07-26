@@ -1781,6 +1781,18 @@ void reg_f3d<T>::Run_f3d()
                 if(currentSize==0)
                     break;
 
+#ifdef _USE_CUDA
+                if(this->optimiser_gpu!=NULL){
+                    if(this->optimiser_gpu->GetCurrentIterationNumber()>this->optimiser_gpu->GetMaxIterationNumber())
+                        break;
+                }
+                else
+#endif
+                {
+                    if(this->optimiser->GetCurrentIterationNumber()>=this->optimiser->GetMaxIterationNumber())
+                        break;
+                }
+
                 // Compute the gradient of the similarity measure
                 if(this->similarityWeight>0){
                     this->WarpFloatingImage(this->interpolation);
@@ -1886,17 +1898,6 @@ void reg_f3d<T>::Run_f3d()
                                                 paramsProgressCallback);
                     }
                 }
-#ifdef _USE_CUDA
-                if(this->optimiser_gpu!=NULL){
-                    if(this->optimiser_gpu->GetCurrentIterationNumber()>this->optimiser_gpu->GetMaxIterationNumber())
-                        break;
-                }
-                else
-#endif
-                {
-                    if(this->optimiser->GetCurrentIterationNumber()>this->optimiser->GetMaxIterationNumber())
-                        break;
-                }
             } // while
             if(perturbation<this->perturbationNumber){
 #ifdef _USE_CUDA
@@ -2000,7 +2001,7 @@ nifti_image **reg_f3d<T>::GetWarpedImage()
     reg_f3d<T>::WarpFloatingImage(3); // cubic spline interpolation
     reg_f3d<T>::ClearDeformationField();
 
-    nifti_image **resultImage= (nifti_image **)malloc(sizeof(nifti_image *));
+    nifti_image **resultImage= (nifti_image **)malloc(2*sizeof(nifti_image *));
     resultImage[0]=nifti_copy_nim_info(this->warped);
     resultImage[0]->cal_min=this->inputFloating->cal_min;
     resultImage[0]->cal_max=this->inputFloating->cal_max;
