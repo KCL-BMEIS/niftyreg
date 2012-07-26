@@ -125,7 +125,8 @@ void reg_gaussianSmoothing(nifti_image *image,
 extern "C++" template <class PrecisionTYPE>
 void reg_downsampleImage(nifti_image *image,
                          int type,
-                         bool *axis);
+                         bool *axis
+                         );
 
 /** @brief Returns the maximal euclidean distance from a
  * deformation field image

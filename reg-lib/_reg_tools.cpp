@@ -1303,7 +1303,7 @@ void reg_tools_addSubMulDivValue(   nifti_image *img1,
 template <class PrecisionTYPE, class ImageTYPE>
 void reg_gaussianSmoothing1(nifti_image *image,
                             PrecisionTYPE sigma,
-                            bool axisToSmooth[8])
+                            bool *axisToSmooth)
 {
     ImageTYPE *imagePtr = static_cast<ImageTYPE *>(image->data);
 
@@ -1397,7 +1397,7 @@ void reg_gaussianSmoothing1(nifti_image *image,
 template <class PrecisionTYPE>
 void reg_gaussianSmoothing(	nifti_image *image,
                             PrecisionTYPE sigma,
-                            bool smoothXYZ[8])
+                            bool *smoothXYZ)
 {
     bool axisToSmooth[8];
     if(smoothXYZ==NULL){
@@ -1438,12 +1438,12 @@ void reg_gaussianSmoothing(	nifti_image *image,
         exit(1);
     }
 }
-template void reg_gaussianSmoothing<float>(nifti_image *, float, bool[8]);
-template void reg_gaussianSmoothing<double>(nifti_image *, double, bool[8]);
+template void reg_gaussianSmoothing<float>(nifti_image *, float, bool *);
+template void reg_gaussianSmoothing<double>(nifti_image *, double, bool *);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class ImageTYPE>
-void reg_downsampleImage1(nifti_image *image, int type, bool downsampleAxis[8])
+void reg_downsampleImage1(nifti_image *image, int type, bool *downsampleAxis)
 {
     if(type==1){
         /* the input image is first smooth */
@@ -1616,7 +1616,7 @@ void reg_downsampleImage1(nifti_image *image, int type, bool downsampleAxis[8])
 }
 /* *************************************************************** */
 template <class PrecisionTYPE>
-void reg_downsampleImage(nifti_image *image, int type, bool downsampleAxis[8])
+void reg_downsampleImage(nifti_image *image, int type, bool *downsampleAxis)
 {
     switch(image->datatype){
     case NIFTI_TYPE_UINT8:
@@ -1648,8 +1648,8 @@ void reg_downsampleImage(nifti_image *image, int type, bool downsampleAxis[8])
         exit(1);
     }
 }
-template void reg_downsampleImage<float>(nifti_image *, int, bool[8]);
-template void reg_downsampleImage<double>(nifti_image *, int, bool[8]);
+template void reg_downsampleImage<float>(nifti_image *, int, bool *);
+template void reg_downsampleImage<double>(nifti_image *, int, bool *);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
