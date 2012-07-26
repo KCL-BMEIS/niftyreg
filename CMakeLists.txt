@@ -39,12 +39,13 @@ endif(BUILD_NR_SLICER_EXT)
 option(USE_SSE "To enable SEE computation in some case" ON)
 option(USE_CUDA "To enable CUDA for a GPU implementation of the code" OFF)
 option(USE_DOUBLE "To force double precision instead of single precision" OFF)
-if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    # I removed openmp for Mac OS Lion
-    if(NOT CMAKE_SYSTEM_VERSION VERSION_GREATER 11.0 OR CMAKE_SYSTEM_VERSION VERSION_EQUAL 11.0.0)
+if(NOT ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+    # OpenMP is disable when the compiler is based on Clang
+    find_package(OpenMP)
+    if(OPENMP_FOUND)
         option(USE_OPENMP "To use openMP for multi-CPU processing" ON)
-    endif()
-endif()
+    endif(OPENMP_FOUND)
+endif(NOT ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
 #-----------------------------------------------------------------------------
 include_directories(${CMAKE_SOURCE_DIR}/reg-lib)
 include_directories(${CMAKE_SOURCE_DIR}/reg-io)
@@ -65,16 +66,15 @@ else(NOT BUILD_ALL_DEP)
     include_directories(${CMAKE_SOURCE_DIR}/reg-io/zlib)
 endif(NOT BUILD_ALL_DEP)
 #-----------------------------------------------------------------------------
-## PNG support - First try to find the PNG library on the system and build it if it is not found
-## I did not use the FindPNG.cmake here as the zlib is also included into the project
-
 # Try to find the png library and header on the system
-if(CYGWIN)
-    if(NOT BUILD_SHARED_LIBS)
-        set (PNG_DEFINITIONS -DPNG_STATIC)
-    endif(NOT BUILD_SHARED_LIBS)
-endif(CYGWIN)
 if(NOT BUILD_ALL_DEP)
+    ## PNG support - First try to find the PNG library on the system and build it if it is not found
+    ## I did not use the FindPNG.cmake here as the zlib is also included into the project
+    if(CYGWIN)
+        if(NOT BUILD_SHARED_LIBS)
+            set (PNG_DEFINITIONS -DPNG_STATIC)
+        endif(NOT BUILD_SHARED_LIBS)
+    endif(CYGWIN)
     set(PNG_NAMES ${PNG_NAMES} png libpng png15 libpng15 png15d libpng15d png14 libpng14 png14d libpng14d png12 libpng12 png12d libpng12d)
     find_library(PNG_LIBRARY NAMES ${PNG_NAMES})
     find_path(PNG_INCLUDE_DIR png.h
@@ -98,26 +98,24 @@ endif(NOT BUILD_ALL_DEP)
 include_directories(${CMAKE_SOURCE_DIR}/reg-io/png)
 include_directories(${PNG_INCLUDE_DIR})
 
-
 #-----------------------------------------------------------------------------
 # NRRD file format support - The nrrd file format has been embedded into the project
 include_directories(${CMAKE_BINARY_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/reg-io/nrrd)
 include_directories(${CMAKE_SOURCE_DIR}/reg-io/nrrd/NrrdIO)
-
 #-----------------------------------------------------------------------------
-# Double can not be used with SSE as it has only been implemented for single precision
-# Double can not be used with CUDA
 if(USE_DOUBLE)
-    add_definitions(-D_USE_NR_DOUBLE)
     if(USE_SSE)
+        # Double can not be used with SSE as it has only been implemented for single precision
         message("Can not use double precision and SSE implementation concurrenlty")
         message(FATAL_ERROR "Please turn USE_SSE OFF to use double precision")
     endif(USE_SSE)
     if(USE_CUDA)
+        # Double can not be used with CUDA
         message("Can not use double precision and CUDA implementation concurrenlty")
         message(FATAL_ERROR "Please turn USE_CUDA OFF to use double precision")
     endif(USE_CUDA)
+    add_definitions(-D_USE_NR_DOUBLE)
 endif(USE_DOUBLE)
 
 if(USE_SSE)
@@ -129,24 +127,8 @@ if(BUILD_NR_DEV)
 endif(BUILD_NR_DEV)
 
 if(USE_OPENMP)
-    if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        if(CMAKE_SYSTEM_VERSION VERSION_GREATER 11.0 OR CMAKE_SYSTEM_VERSION VERSION_EQUAL 11.0.0)
-            message("OpenMP appears to be broken using Mac OS Lion")
-            message(FATAL_ERROR "Please turn USE_OPENMP OFF")
-        endif()
-    endif()
-	
-    execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
-
-    if(GCC_VERSION VERSION_GREATER 4.2 OR GCC_VERSION VERSION_EQUAL 4.2)
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
-    endif(GCC_VERSION VERSION_GREATER 4.2 OR GCC_VERSION VERSION_EQUAL 4.2)
-	
-    if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /openmp")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /openmp")
-    endif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif(USE_OPENMP)
 
 #-----------------------------------------------------------------------------

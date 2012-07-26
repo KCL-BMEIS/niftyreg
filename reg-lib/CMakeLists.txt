@@ -9,7 +9,6 @@ set(LIST ${LIST} _reg_ssd)
 set(LIST ${LIST} _reg_KLdivergence)
 set(LIST ${LIST} _reg_blockMatching)
 set(LIST ${LIST} _reg_femTransformation)
-set(LIST ${LIST} _reg_optimiser)
 foreach(NAME ${LIST})
     add_library(${NAME} ${NAME}.h ${NAME}.cpp)
     target_link_libraries(${NAME})
@@ -20,6 +19,20 @@ foreach(NAME ${LIST})
     )
     install(FILES ${NAME}.h DESTINATION include COMPONENT Development)
 endforeach(NAME)
+#-----------------------------------------------------------------------------
+set(NAME _reg_optimiser)
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    add_library(${NAME} SHARED ${NAME}.h ${NAME}.cpp)
+else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    add_library(${NAME} ${NAME}.h ${NAME}.cpp)
+endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+target_link_libraries(${NAME})
+install(TARGETS ${NAME}
+        RUNTIME DESTINATION bin COMPONENT Development
+        LIBRARY DESTINATION lib COMPONENT Development
+        ARCHIVE DESTINATION lib COMPONENT Development
+)
+install(FILES ${NAME}.h DESTINATION include COMPONENT Development)
 #-----------------------------------------------------------------------------
 set(LIST _reg_tools)
 set(LIST ${LIST} _reg_localTransformation)
@@ -56,7 +69,11 @@ if(USE_CUDA)
     endforeach(NAME)
 #-----------------------------------------------------------------------------
     set(NAME _reg_optimiser)
-    cuda_add_library(${NAME}_gpu ${NAME}_gpu.h ${NAME}_gpu.cu ${NAME}_kernels.cu)
+    if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+        cuda_add_library(${NAME}_gpu SHARED ${NAME}_gpu.h ${NAME}_gpu.cu ${NAME}_kernels.cu)
+    else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+        cuda_add_library(${NAME}_gpu ${NAME}_gpu.h ${NAME}_gpu.cu ${NAME}_kernels.cu)
+    endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     install(TARGETS ${NAME}_gpu
             RUNTIME DESTINATION bin COMPONENT Development
             LIBRARY DESTINATION lib COMPONENT Development
