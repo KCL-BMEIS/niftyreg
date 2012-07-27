@@ -48,7 +48,7 @@ void reg_optimiser_gpu::Initialise(size_t nvox,
 
     this->currentDOF=cppData;
 
-    if(gradient!=NULL)
+    if(gradData!=NULL)
         this->gradient=gradData;
 
     if(this->bestDOF!=NULL)
@@ -172,9 +172,9 @@ void reg_conjugateGradient_gpu::Initialise(size_t nvox,
 void reg_conjugateGradient_gpu::UpdateGradientValues()
 {
     if(this->firstcall==true){
-        reg_initialiseConjugateGradient(&this->gradient,
-                                        &this->array1,
-                                        &this->array2,
+        reg_initialiseConjugateGradient(&(this->gradient),
+                                        &(this->array1),
+                                        &(this->array2),
                                         (int)(this->GetVoxNumber()));
         this->firstcall=false;
     }
@@ -273,17 +273,17 @@ void reg_initialiseConjugateGradient(float4 **nodeNMIGradientArray_d,
                                      int nodeNumber)
 {
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber,&nodeNumber,sizeof(int)))
-            NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *nodeNMIGradientArray_d, nodeNumber*sizeof(float4)))
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *nodeNMIGradientArray_d, nodeNumber*sizeof(float4)))
 
-            const unsigned int Grid_reg_initialiseConjugateGradient =
-            (unsigned int)ceil(sqrtf((float)nodeNumber/(float)Block_reg_initialiseConjugateGradient));
+    const unsigned int Grid_reg_initialiseConjugateGradient =
+    (unsigned int)ceil(sqrtf((float)nodeNumber/(float)Block_reg_initialiseConjugateGradient));
     dim3 G1(Grid_reg_initialiseConjugateGradient,Grid_reg_initialiseConjugateGradient,1);
     dim3 B1(Block_reg_initialiseConjugateGradient,1,1);
 
     reg_initialiseConjugateGradient_kernel <<< G1, B1 >>> (*conjugateG_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
-            NR_CUDA_SAFE_CALL(cudaUnbindTexture(gradientImageTexture))
-            NR_CUDA_SAFE_CALL(cudaMemcpy(*conjugateH_d, *conjugateG_d, nodeNumber*sizeof(float4), cudaMemcpyDeviceToDevice))
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(gradientImageTexture))
+    NR_CUDA_SAFE_CALL(cudaMemcpy(*conjugateH_d, *conjugateG_d, nodeNumber*sizeof(float4), cudaMemcpyDeviceToDevice))
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -293,41 +293,41 @@ void reg_GetConjugateGradient(float4 **nodeNMIGradientArray_d,
                               int nodeNumber)
 {
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber,&nodeNumber,sizeof(int)))
-            NR_CUDA_SAFE_CALL(cudaBindTexture(0, conjugateGTexture, *conjugateG_d, nodeNumber*sizeof(float4)))
-            NR_CUDA_SAFE_CALL(cudaBindTexture(0, conjugateHTexture, *conjugateH_d, nodeNumber*sizeof(float4)))
-            NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *nodeNMIGradientArray_d, nodeNumber*sizeof(float4)))
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, conjugateGTexture, *conjugateG_d, nodeNumber*sizeof(float4)))
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, conjugateHTexture, *conjugateH_d, nodeNumber*sizeof(float4)))
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *nodeNMIGradientArray_d, nodeNumber*sizeof(float4)))
 
-            // gam = sum((grad+g)*grad)/sum(HxG);
-            const unsigned int Grid_reg_GetConjugateGradient1 = (unsigned int)ceil(sqrtf((float)nodeNumber/(float)Block_reg_GetConjugateGradient1));
+    // gam = sum((grad+g)*grad)/sum(HxG);
+    const unsigned int Grid_reg_GetConjugateGradient1 = (unsigned int)ceil(sqrtf((float)nodeNumber/(float)Block_reg_GetConjugateGradient1));
     dim3 B1(Block_reg_GetConjugateGradient1,1,1);
     dim3 G1(Grid_reg_GetConjugateGradient1,Grid_reg_GetConjugateGradient1,1);
 
     float2 *sum_d;
     NR_CUDA_SAFE_CALL(cudaMalloc(&sum_d, nodeNumber*sizeof(float2)))
-            reg_GetConjugateGradient1_kernel <<< G1, B1 >>> (sum_d);
+    reg_GetConjugateGradient1_kernel <<< G1, B1 >>> (sum_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
-            float2 *sum_h;NR_CUDA_SAFE_CALL(cudaMallocHost(&sum_h, nodeNumber*sizeof(float2)))
-            NR_CUDA_SAFE_CALL(cudaMemcpy(sum_h,sum_d, nodeNumber*sizeof(float2),cudaMemcpyDeviceToHost))
-            NR_CUDA_SAFE_CALL(cudaFree(sum_d))
-            double dgg = 0.0;
+    float2 *sum_h;NR_CUDA_SAFE_CALL(cudaMallocHost(&sum_h, nodeNumber*sizeof(float2)))
+    NR_CUDA_SAFE_CALL(cudaMemcpy(sum_h,sum_d, nodeNumber*sizeof(float2),cudaMemcpyDeviceToHost))
+    NR_CUDA_SAFE_CALL(cudaFree(sum_d))
+    double dgg = 0.0;
     double gg = 0.0;
     for(int i=0; i<nodeNumber; i++){
-        dgg += sum_h[i].x;
-        gg += sum_h[i].y;
+    dgg += sum_h[i].x;
+    gg += sum_h[i].y;
     }
     float gam = (float)(dgg / gg);
     NR_CUDA_SAFE_CALL(cudaFreeHost((void *)sum_h))
 
-            NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ScalingFactor,&gam,sizeof(float)))
-            const unsigned int Grid_reg_GetConjugateGradient2 = (unsigned int)ceil(sqrtf((float)nodeNumber/(float)Block_reg_GetConjugateGradient2));
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ScalingFactor,&gam,sizeof(float)))
+    const unsigned int Grid_reg_GetConjugateGradient2 = (unsigned int)ceil(sqrtf((float)nodeNumber/(float)Block_reg_GetConjugateGradient2));
     dim3 B2(Block_reg_GetConjugateGradient2,1,1);
     dim3 G2(Grid_reg_GetConjugateGradient2,Grid_reg_GetConjugateGradient2,1);
     reg_GetConjugateGradient2_kernel <<< G2, B2 >>> (*nodeNMIGradientArray_d, *conjugateG_d, *conjugateH_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
 
-            NR_CUDA_SAFE_CALL(cudaUnbindTexture(conjugateGTexture))
-            NR_CUDA_SAFE_CALL(cudaUnbindTexture(conjugateHTexture))
-            NR_CUDA_SAFE_CALL(cudaUnbindTexture(gradientImageTexture))
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(conjugateGTexture))
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(conjugateHTexture))
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(gradientImageTexture))
 
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -337,28 +337,28 @@ float reg_getMaximalLength_gpu(	float4 **nodeNMIGradientArray_d,
 {
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber,&nodeNumber,sizeof(int)))
-            NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *nodeNMIGradientArray_d, nodeNumber*sizeof(float4)))
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *nodeNMIGradientArray_d, nodeNumber*sizeof(float4)))
 
-            // each thread extract the maximal value out of 128
-            const int threadNumber = (int)ceil((float)nodeNumber/128.0f);
+    // each thread extract the maximal value out of 128
+    const int threadNumber = (int)ceil((float)nodeNumber/128.0f);
     const unsigned int Grid_reg_getMaximalLength = (unsigned int)ceil(sqrtf((float)threadNumber/(float)Block_reg_getMaximalLength));
     dim3 B1(Block_reg_getMaximalLength,1,1);
     dim3 G1(Grid_reg_getMaximalLength,Grid_reg_getMaximalLength,1);
 
     float *all_d;
     NR_CUDA_SAFE_CALL(cudaMalloc(&all_d, threadNumber*sizeof(float)))
-            reg_getMaximalLength_kernel <<< G1, B1 >>> (all_d);
+    reg_getMaximalLength_kernel <<< G1, B1 >>> (all_d);
     NR_CUDA_CHECK_KERNEL(G1,B1)
 
-            float *all_h;NR_CUDA_SAFE_CALL(cudaMallocHost(&all_h, nodeNumber*sizeof(float)))
-            NR_CUDA_SAFE_CALL(cudaMemcpy(all_h, all_d, threadNumber*sizeof(float),cudaMemcpyDeviceToHost))
-            NR_CUDA_SAFE_CALL(cudaFree(all_d))
-            double maxDistance = 0.0f;
+    float *all_h;NR_CUDA_SAFE_CALL(cudaMallocHost(&all_h, nodeNumber*sizeof(float)))
+    NR_CUDA_SAFE_CALL(cudaMemcpy(all_h, all_d, threadNumber*sizeof(float),cudaMemcpyDeviceToHost))
+    NR_CUDA_SAFE_CALL(cudaFree(all_d))
+    double maxDistance = 0.0f;
     for(int i=0; i<threadNumber; i++) maxDistance = all_h[i]>maxDistance?all_h[i]:maxDistance;
     NR_CUDA_SAFE_CALL(cudaFreeHost((void *)all_h))
 
-            NR_CUDA_SAFE_CALL(cudaUnbindTexture(gradientImageTexture))
-            return (float)maxDistance;
+    NR_CUDA_SAFE_CALL(cudaUnbindTexture(gradientImageTexture))
+    return (float)maxDistance;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

@@ -1783,7 +1783,7 @@ void reg_f3d<T>::Run_f3d()
 
 #ifdef _USE_CUDA
                 if(this->optimiser_gpu!=NULL){
-                    if(this->optimiser_gpu->GetCurrentIterationNumber()>this->optimiser_gpu->GetMaxIterationNumber())
+                    if(this->optimiser_gpu->GetCurrentIterationNumber()>=this->optimiser_gpu->GetMaxIterationNumber())
                         break;
                 }
                 else

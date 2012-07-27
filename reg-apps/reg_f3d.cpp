@@ -593,6 +593,10 @@ int main(int argc, char **argv)
             struct cudaDeviceProp deviceProp;
             int device_count = 0;
             cudaGetDeviceCount( &device_count );
+#ifdef NDEBUG
+            if(verbose==true)
+#endif
+            printf("[NiftyReg F3D] %i card(s) detected\n", device_count);
             int device=cardNumber;
             if(cardNumber==-1){
                 // following code is from cutGetMaxGflopsDeviceId()
@@ -621,12 +625,9 @@ int main(int argc, char **argv)
             }
             REG = new reg_f3d_gpu(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
-            if(verbose==true){
-  #endif
-                printf("\n[NiftyReg F3D] GPU implementation is used\n");
-#ifdef NDEBUG
-            }
+            if(verbose==true)
 #endif
+                printf("\n[NiftyReg F3D] GPU implementation is used\n");
         }
         else{
             fprintf(stderr,"[NiftyReg ERROR] The GPU implementation only handle 1 to 1 or 2 to 2 image(s) registration\n");
