@@ -17,7 +17,7 @@
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 reg_f3d_gpu::reg_f3d_gpu(int refTimePoint,int floTimePoint)
-    :reg_f3d<float>::reg_f3d<float>(refTimePoint,floTimePoint)
+    : reg_f3d<float>::reg_f3d(refTimePoint,floTimePoint)
 {
     this->currentReference_gpu=NULL;
     this->currentFloating_gpu=NULL;

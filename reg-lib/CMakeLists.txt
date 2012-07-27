@@ -69,11 +69,7 @@ if(USE_CUDA)
     endforeach(NAME)
 #-----------------------------------------------------------------------------
     set(NAME _reg_optimiser)
-    if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        cuda_add_library(${NAME}_gpu SHARED ${NAME}_gpu.h ${NAME}_gpu.cu ${NAME}_kernels.cu)
-    else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        cuda_add_library(${NAME}_gpu ${NAME}_gpu.h ${NAME}_gpu.cu ${NAME}_kernels.cu)
-    endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    cuda_add_library(${NAME}_gpu ${NAME}_gpu.h ${NAME}_gpu.cu ${NAME}_kernels.cu)
     install(TARGETS ${NAME}_gpu
             RUNTIME DESTINATION bin COMPONENT Development
             LIBRARY DESTINATION lib COMPONENT Development
