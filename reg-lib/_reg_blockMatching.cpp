@@ -222,10 +222,10 @@ void initialise_block_matching_method(  nifti_image * target,
     if(params->targetPosition!=NULL){free(params->targetPosition); params->targetPosition=NULL;}
     if(params->resultPosition!=NULL){free(params->resultPosition); params->resultPosition=NULL;}
 
-    params->blockNumber[0]=(int)ceil((float)target->nx / (float)BLOCK_WIDTH);
-    params->blockNumber[1]=(int)ceil((float)target->ny / (float)BLOCK_WIDTH);
+    params->blockNumber[0]=(int)reg_ceil((float)target->nx / (float)BLOCK_WIDTH);
+    params->blockNumber[1]=(int)reg_ceil((float)target->ny / (float)BLOCK_WIDTH);
     if(target->nz>1)
-        params->blockNumber[2]=(int)ceil((float)target->nz / (float)BLOCK_WIDTH);
+        params->blockNumber[2]=(int)reg_ceil((float)target->nz / (float)BLOCK_WIDTH);
     else params->blockNumber[2]=1;
 
     params->percent_to_keep=percentToKeep_opt;

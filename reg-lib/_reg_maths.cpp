@@ -389,7 +389,7 @@ mat44 reg_mat44_sqrt(mat44 const* mat)
    */
 mat44 reg_mat44_expm(mat44 const* mat, int maxit)
 {
-    double j = FMAX(0.0,1+floor(log(reg_mat44_norm_inf(mat))/log(2.0)));
+    double j = FMAX(0.0,1+reg_floor(log(reg_mat44_norm_inf(mat))/log(2.0)));
 
     mat44 A=reg_mat44_mul(mat,pow(2.0,-j));
     mat44 D,N,X,cX;
@@ -409,7 +409,7 @@ mat44 reg_mat44_expm(mat44 const* mat, int maxit)
     }
     D=reg_mat44_inv(&D);
     X=reg_mat44_mul(&D,&N);
-    for(int i=0; i < round(j); i++)
+    for(int i=0; i < reg_round(j); i++)
     {
         X=reg_mat44_mul(&X,&X);
     }
@@ -494,15 +494,15 @@ void reg_getReorientationMatrix(nifti_image *splineControlPoint, mat33 *desorien
 
         indexVoxel2[1]=indexVoxel2[2]=0;indexVoxel2[0]=1;
         reg_mat44_mul(&(splineControlPoint->sto_xyz), indexVoxel2, realVoxel2);
-        realSpacing[0]=sqrt(POW2(realVoxel1[0]-realVoxel2[0])+POW2(realVoxel1[1]-realVoxel2[1])+POW2(realVoxel1[2]-realVoxel2[2]));
+        realSpacing[0]=sqrt(reg_pow2(realVoxel1[0]-realVoxel2[0])+reg_pow2(realVoxel1[1]-realVoxel2[1])+reg_pow2(realVoxel1[2]-realVoxel2[2]));
 
         indexVoxel2[0]=indexVoxel2[2]=0;indexVoxel2[1]=1;
         reg_mat44_mul(&(splineControlPoint->sto_xyz), indexVoxel2, realVoxel2);
-        realSpacing[1]=sqrt(POW2(realVoxel1[0]-realVoxel2[0])+POW2(realVoxel1[1]-realVoxel2[1])+POW2(realVoxel1[2]-realVoxel2[2]));
+        realSpacing[1]=sqrt(reg_pow2(realVoxel1[0]-realVoxel2[0])+reg_pow2(realVoxel1[1]-realVoxel2[1])+reg_pow2(realVoxel1[2]-realVoxel2[2]));
 
         indexVoxel2[0]=indexVoxel2[1]=0;indexVoxel2[2]=1;
         reg_mat44_mul(&(splineControlPoint->sto_xyz), indexVoxel2, realVoxel2);
-        realSpacing[2]=sqrt(POW2(realVoxel1[0]-realVoxel2[0])+POW2(realVoxel1[1]-realVoxel2[1])+POW2(realVoxel1[2]-realVoxel2[2]));
+        realSpacing[2]=sqrt(reg_pow2(realVoxel1[0]-realVoxel2[0])+reg_pow2(realVoxel1[1]-realVoxel2[1])+reg_pow2(realVoxel1[2]-realVoxel2[2]));
 
         reorient->m[0][0]=realSpacing[0]; reorient->m[0][1]=0.0f; reorient->m[0][2]=0.0f;
         reorient->m[1][0]=0.0f; reorient->m[1][1]=realSpacing[1]; reorient->m[1][2]=0.0f;

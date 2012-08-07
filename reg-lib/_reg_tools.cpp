@@ -1328,7 +1328,7 @@ void reg_gaussianSmoothing1(nifti_image *image,
                 float currentSigma;
                 if(sigma>0) currentSigma=sigma/image->pixdim[n];
                 else currentSigma=fabs(sigma); // voxel based if negative value
-                radius=(int)ceil(currentSigma*3.0f);
+                radius=(int)reg_ceil(currentSigma*3.0f);
                 if(radius>0){
                     PrecisionTYPE *kernel = new PrecisionTYPE[2*radius+1];
                     PrecisionTYPE kernelSum=0;
@@ -1543,23 +1543,23 @@ void reg_downsampleImage1(nifti_image *image, int type, bool *downsampleAxis)
                     position[1]=real[0]*real2Voxel_qform.m[1][0] + real[1]*real2Voxel_qform.m[1][1] + real[2]*real2Voxel_qform.m[1][2] + real2Voxel_qform.m[1][3];
                     position[2]=real[0]*real2Voxel_qform.m[2][0] + real[1]*real2Voxel_qform.m[2][1] + real[2]*real2Voxel_qform.m[2][2] + real2Voxel_qform.m[2][3];
                     /* trilinear interpolation */
-                    previous[0] = (int)round(position[0]);
-                    previous[1] = (int)round(position[1]);
-                    previous[2] = (int)round(position[2]);
+                    previous[0] = (int)reg_round(position[0]);
+                    previous[1] = (int)reg_round(position[1]);
+                    previous[2] = (int)reg_round(position[2]);
 
                     // basis values along the x axis
                     relative=position[0]-(PrecisionTYPE)previous[0];
-                    if(relative<0) relative=0.0; // rounding error correction
+                    if(relative<0) relative=0.0; // reg_rounding error correction
                     xBasis[0]= (PrecisionTYPE)(1.0-relative);
                     xBasis[1]= relative;
                     // basis values along the y axis
                     relative=position[1]-(PrecisionTYPE)previous[1];
-                    if(relative<0) relative=0.0; // rounding error correction
+                    if(relative<0) relative=0.0; // reg_rounding error correction
                     yBasis[0]= (PrecisionTYPE)(1.0-relative);
                     yBasis[1]= relative;
                     // basis values along the z axis
                     relative=position[2]-(PrecisionTYPE)previous[2];
-                    if(relative<0) relative=0.0; // rounding error correction
+                    if(relative<0) relative=0.0; // reg_rounding error correction
                     zBasis[0]= (PrecisionTYPE)(1.0-relative);
                     zBasis[1]= relative;
                     intensity=0;
@@ -1595,16 +1595,16 @@ void reg_downsampleImage1(nifti_image *image, int type, bool *downsampleAxis)
                         (*imagePtr)=(ImageTYPE)intensity;
                         break;
                     case NIFTI_TYPE_UINT8:
-                        (*imagePtr)=(ImageTYPE)(intensity>0?round(intensity):0);
+                        (*imagePtr)=(ImageTYPE)(intensity>0?reg_round(intensity):0);
                         break;
                     case NIFTI_TYPE_UINT16:
-                        (*imagePtr)=(ImageTYPE)(intensity>0?round(intensity):0);
+                        (*imagePtr)=(ImageTYPE)(intensity>0?reg_round(intensity):0);
                         break;
                     case NIFTI_TYPE_UINT32:
-                        (*imagePtr)=(ImageTYPE)(intensity>0?round(intensity):0);
+                        (*imagePtr)=(ImageTYPE)(intensity>0?reg_round(intensity):0);
                         break;
                     default:
-                        (*imagePtr)=(ImageTYPE)round(intensity);
+                        (*imagePtr)=(ImageTYPE)reg_round(intensity);
                         break;
                     }
                     imagePtr++;

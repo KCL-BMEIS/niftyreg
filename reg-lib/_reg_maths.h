@@ -7,7 +7,33 @@
 #include <iostream>
 #include "nifti1_io.h"
 
-#define POW2(a) ((a)*(a))
+/* *************************************************************** */
+#define reg_pow2(a) ((a)*(a))
+#define reg_ceil(a) (ceil(a))
+#define reg_round(a) ((a)>0.0 ?(int)((a)+0.5):(int)((a)-0.5))
+#ifdef _WINDOWS
+    #define reg_floor(a) ((a)>0?(int)(a):(int)((a)-1))
+#else
+    #define reg_floor(a) ((a)>=0?(int)(a):floor(a))
+#endif
+/* *************************************************************** */
+
+#if defined(_WIN32) && !defined(__CYGWIN__)
+    #include <float.h>
+    #include <time.h>
+    #ifndef M_PI
+        #define M_PI (3.14159265358979323846)
+    #endif
+    #ifndef isnan(_X)
+        #define isnan(_X) _isnan(_X)
+    #endif
+    #ifndef strtof(_s, _t)
+        #define strtof(_s, _t) (float) strtod(_s, _t)
+    #endif
+    template<class PrecisionType> inline int round(PrecisionType x) { return int(x > 0.0 ? (x + 0.5) : (x - 0.5)); }
+    template<typename T> inline bool isinf(T value) { return std::numeric_limits<T>::has_infinity && value == std::numeric_limits<T>::infinity(); }
+    inline int fabs(int _x) { return (int)fabs((float)(_x)); }
+#endif // If on windows...
 
 /* *************************************************************** */
 extern "C++" template <class T>

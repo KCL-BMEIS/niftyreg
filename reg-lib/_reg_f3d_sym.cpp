@@ -1021,7 +1021,7 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
         T *dispPtrZ=&dispPtrY[voxelNumber];
         for(unsigned int i=0; i<voxelNumber; ++i){
             if(this->currentMask[i]>-1){
-                double dist=POW2(dispPtrX[i]) + POW2(dispPtrY[i]) + POW2(dispPtrZ[i]);
+                double dist=reg_pow2(dispPtrX[i]) + reg_pow2(dispPtrY[i]) + reg_pow2(dispPtrZ[i]);
                 ferror += dist;
             }
         }
@@ -1029,7 +1029,7 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
     else{
         for(unsigned int i=0; i<voxelNumber; ++i){
             if(this->currentMask[i]>-1){
-                double dist=POW2(dispPtrX[i]) + POW2(dispPtrY[i]);
+                double dist=reg_pow2(dispPtrX[i]) + reg_pow2(dispPtrY[i]);
                 ferror += dist;
             }
         }
@@ -1045,7 +1045,7 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
         T *dispPtrZ=&dispPtrY[voxelNumber];
         for(unsigned int i=0; i<voxelNumber; ++i){
             if(this->currentFloatingMask[i]>-1){
-                double dist=POW2(dispPtrX[i]) + POW2(dispPtrY[i]) + POW2(dispPtrZ[i]);
+                double dist=reg_pow2(dispPtrX[i]) + reg_pow2(dispPtrY[i]) + reg_pow2(dispPtrZ[i]);
                 berror += dist;
             }
         }
@@ -1053,7 +1053,7 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
     else{
         for(unsigned int i=0; i<voxelNumber; ++i){
             if(this->currentFloatingMask[i]>-1){
-                double dist=POW2(dispPtrX[i]) + POW2(dispPtrY[i]);
+                double dist=reg_pow2(dispPtrX[i]) + reg_pow2(dispPtrY[i]);
                 berror += dist;
             }
         }

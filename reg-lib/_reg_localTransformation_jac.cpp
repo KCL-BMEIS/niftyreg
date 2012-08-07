@@ -118,16 +118,16 @@ void reg_getRealImageSpacing(nifti_image *image,
 
     indexVoxel2[1]=indexVoxel2[2]=0;indexVoxel2[0]=1;
     reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
-    spacingValues[0]=sqrt(POW2(realVoxel1[0]-realVoxel2[0])+POW2(realVoxel1[1]-realVoxel2[1])+POW2(realVoxel1[2]-realVoxel2[2]));
+    spacingValues[0]=sqrt(reg_pow2(realVoxel1[0]-realVoxel2[0])+reg_pow2(realVoxel1[1]-realVoxel2[1])+reg_pow2(realVoxel1[2]-realVoxel2[2]));
 
     indexVoxel2[0]=indexVoxel2[2]=0;indexVoxel2[1]=1;
     reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
-    spacingValues[1]=sqrt(POW2(realVoxel1[0]-realVoxel2[0])+POW2(realVoxel1[1]-realVoxel2[1])+POW2(realVoxel1[2]-realVoxel2[2]));
+    spacingValues[1]=sqrt(reg_pow2(realVoxel1[0]-realVoxel2[0])+reg_pow2(realVoxel1[1]-realVoxel2[1])+reg_pow2(realVoxel1[2]-realVoxel2[2]));
 
     if(image->nz>1){
         indexVoxel2[0]=indexVoxel2[1]=0;indexVoxel2[2]=1;
         reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
-        spacingValues[2]=sqrt(POW2(realVoxel1[0]-realVoxel2[0])+POW2(realVoxel1[1]-realVoxel2[1])+POW2(realVoxel1[2]-realVoxel2[2]));
+        spacingValues[2]=sqrt(reg_pow2(realVoxel1[0]-realVoxel2[0])+reg_pow2(realVoxel1[1]-realVoxel2[1])+reg_pow2(realVoxel1[2]-realVoxel2[2]));
     }
 }
 /* *************************************************************** */

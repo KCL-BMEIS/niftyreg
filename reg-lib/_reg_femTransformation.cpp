@@ -69,16 +69,16 @@ void reg_fem_InitialiseTransformation(int *elementNodes,
             reg_mat44_mul(realToVoxel, nodeRealPosition, nodeVoxelIndices[i]);
         }
 
-        int xRange[2]={(int)ceil(nodeVoxelIndices[0][0]), (int)floor(nodeVoxelIndices[0][0])};
-        int yRange[2]={(int)ceil(nodeVoxelIndices[0][1]), (int)floor(nodeVoxelIndices[0][1])};
-        int zRange[2]={(int)ceil(nodeVoxelIndices[0][2]), (int)floor(nodeVoxelIndices[0][2])};
+        int xRange[2]={(int)reg_ceil(nodeVoxelIndices[0][0]), (int)reg_floor(nodeVoxelIndices[0][0])};
+        int yRange[2]={(int)reg_ceil(nodeVoxelIndices[0][1]), (int)reg_floor(nodeVoxelIndices[0][1])};
+        int zRange[2]={(int)reg_ceil(nodeVoxelIndices[0][2]), (int)reg_floor(nodeVoxelIndices[0][2])};
         for(unsigned int i=1; i<4; ++i){
-            xRange[0]=xRange[0]<(int)ceil(nodeVoxelIndices[i][0])?xRange[0]:(int)ceil(nodeVoxelIndices[i][0]);
-            xRange[1]=xRange[1]>(int)floor(nodeVoxelIndices[i][0])?xRange[1]:(int)floor(nodeVoxelIndices[i][0]);
-            yRange[0]=yRange[0]<(int)ceil(nodeVoxelIndices[i][1])?yRange[0]:(int)ceil(nodeVoxelIndices[i][1]);
-            yRange[1]=yRange[1]>(int)floor(nodeVoxelIndices[i][1])?yRange[1]:(int)floor(nodeVoxelIndices[i][1]);
-            zRange[0]=zRange[0]<(int)ceil(nodeVoxelIndices[i][2])?zRange[0]:(int)ceil(nodeVoxelIndices[i][2]);
-            zRange[1]=zRange[1]>(int)floor(nodeVoxelIndices[i][2])?zRange[1]:(int)floor(nodeVoxelIndices[i][2]);
+            xRange[0]=xRange[0]<(int)reg_ceil(nodeVoxelIndices[i][0])?xRange[0]:(int)reg_ceil(nodeVoxelIndices[i][0]);
+            xRange[1]=xRange[1]>(int)reg_floor(nodeVoxelIndices[i][0])?xRange[1]:(int)reg_floor(nodeVoxelIndices[i][0]);
+            yRange[0]=yRange[0]<(int)reg_ceil(nodeVoxelIndices[i][1])?yRange[0]:(int)reg_ceil(nodeVoxelIndices[i][1]);
+            yRange[1]=yRange[1]>(int)reg_floor(nodeVoxelIndices[i][1])?yRange[1]:(int)reg_floor(nodeVoxelIndices[i][1]);
+            zRange[0]=zRange[0]<(int)reg_ceil(nodeVoxelIndices[i][2])?zRange[0]:(int)reg_ceil(nodeVoxelIndices[i][2]);
+            zRange[1]=zRange[1]>(int)reg_floor(nodeVoxelIndices[i][2])?zRange[1]:(int)reg_floor(nodeVoxelIndices[i][2]);
         }
 
         xRange[0]=xRange[0]<0?0:xRange[0];

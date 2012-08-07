@@ -260,11 +260,11 @@ void reg_getEntropies1(nifti_image *targetImage,
             if (valid_values) {
                 if(approx){ // standard joint histogram filling
 #ifdef _OPENMP
-                    tempHistogram[tid][static_cast<int>(round(target_flat_index)) +
-                            (static_cast<int>(round(result_flat_index)) * total_target_entries)]++;
+                    tempHistogram[tid][static_cast<int>(reg_round(target_flat_index)) +
+                            (static_cast<int>(reg_round(result_flat_index)) * total_target_entries)]++;
 #else
-                    probaJointHistogram[static_cast<int>(round(target_flat_index)) +
-                            (static_cast<int>(round(result_flat_index)) * total_target_entries)]++;
+                    probaJointHistogram[static_cast<int>(reg_round(target_flat_index)) +
+                            (static_cast<int>(reg_round(result_flat_index)) * total_target_entries)]++;
 #endif
                     added_value=1;
                 }
@@ -573,7 +573,7 @@ void reg_getVoxelBasedNMIGradientUsingPW2D(nifti_image *targetImage,
                     break;
                 }
 //                if(approx) // standard joint histogram filling
-                    voxel_values[i] = (DTYPE)static_cast<int>(round(voxel_values[i]));
+                    voxel_values[i] = (DTYPE)static_cast<int>(reg_round(voxel_values[i]));
             }
 
             // Collect the result intensities and do some sanity checking
@@ -593,7 +593,7 @@ void reg_getVoxelBasedNMIGradientUsingPW2D(nifti_image *targetImage,
                         break;
                     }
 //                    if(approx) // standard joint histogram filling
-                        voxel_values[num_target_volumes + i] = (DTYPE)static_cast<int>(round(temp));
+                        voxel_values[num_target_volumes + i] = (DTYPE)static_cast<int>(reg_round(temp));
 //                    else voxel_values[num_target_volumes + i] = temp;
                 }
             }
@@ -824,7 +824,7 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *targetImage,
                     break;
                 }
 //                if(approx) // standard joint histogram filling
-                    voxel_values[i] = (DTYPE)static_cast<int>(round(voxel_values[i]));
+                    voxel_values[i] = (DTYPE)static_cast<int>(reg_round(voxel_values[i]));
             }
 
             // Collect the result intensities and do some sanity checking
@@ -846,7 +846,7 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *targetImage,
                         break;
                     }
 //                    if(approx) // standard joint histogram filling
-                        voxel_values[num_target_volumes + i] = (DTYPE)static_cast<int>(round(temp));
+                        voxel_values[num_target_volumes + i] = (DTYPE)static_cast<int>(reg_round(temp));
 //                    else voxel_values[num_target_volumes + i] = temp;
                 }
             }

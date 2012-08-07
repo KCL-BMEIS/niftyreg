@@ -14,10 +14,10 @@
 
 #include "_reg_resampling.h"
 
-// No round() function available in windows.
+// No reg_round() function available in windows.
 #ifdef _WINDOWS
 template<class DTYPE>
-int round(DTYPE x)
+int reg_round(DTYPE x)
 {
     return static_cast<int>(x > 0.0 ? x + 0.5 : x - 0.5);
 }
@@ -27,7 +27,7 @@ int round(DTYPE x)
 template <class FieldTYPE>
 void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *basis)
 {
-    if(ratio<0.0) ratio=0.0; //rounding error
+    if(ratio<0.0) ratio=0.0; //reg_rounding error
     FieldTYPE FF= ratio*ratio;
     basis[0] = (FieldTYPE)((ratio * ((2.0-ratio)*ratio - 1.0))/2.0);
     basis[1] = (FieldTYPE)((FF * (3.0*ratio-5.0) + 2.0)/2.0);
@@ -39,7 +39,7 @@ template <class FieldTYPE>
 void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *basis, FieldTYPE *derivative)
 {
     interpolantCubicSpline<FieldTYPE>(ratio,basis);
-    if(ratio<0.0) ratio=0.0; //rounding error
+    if(ratio<0.0) ratio=0.0; //reg_rounding error
     FieldTYPE FF= ratio*ratio;
     derivative[0] = (FieldTYPE)((4.0*ratio - 3.0*FF - 1.0)/2.0);
     derivative[1] = (FieldTYPE)((9.0*ratio - 10.0) * ratio/2.0);
@@ -54,7 +54,7 @@ void CubicSplineResampleSourceImage3D(nifti_image *sourceImage,
                                       nifti_image *resultImage,
                                       int *mask)
 {
-    // The spline decomposition assumes a background set to 0 the bgValue variable is thus not use here
+    // The spline decomposition assumes a backgreg_round set to 0 the bgValue variable is thus not use here
 
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(sourceImage->data);
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(resultImage->data);
@@ -105,9 +105,9 @@ void CubicSplineResampleSourceImage3D(nifti_image *sourceImage,
                 /* real -> voxel; source space */
                 reg_mat44_mul(sourceIJKMatrix, world, position);
 
-                previous[0] = static_cast<int>(floor(position[0]));
-                previous[1] = static_cast<int>(floor(position[1]));
-                previous[2] = static_cast<int>(floor(position[2]));
+                previous[0] = static_cast<int>(reg_floor(position[0]));
+                previous[1] = static_cast<int>(reg_floor(position[1]));
+                previous[2] = static_cast<int>(reg_floor(position[2]));
 
                 // basis values along the x axis
                 relative=position[0]-(FieldTYPE)previous[0];
@@ -154,16 +154,16 @@ void CubicSplineResampleSourceImage3D(nifti_image *sourceImage,
                 resultIntensity[index]=(SourceTYPE)intensity;
                 break;
             case NIFTI_TYPE_UINT8:
-                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                resultIntensity[index]=(SourceTYPE)(intensity>0?reg_round(intensity):0);
                 break;
             case NIFTI_TYPE_UINT16:
-                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                resultIntensity[index]=(SourceTYPE)(intensity>0?reg_round(intensity):0);
                 break;
             case NIFTI_TYPE_UINT32:
-                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                resultIntensity[index]=(SourceTYPE)(intensity>0?reg_round(intensity):0);
                 break;
             default:
-                resultIntensity[index]=(SourceTYPE)round(intensity);
+                resultIntensity[index]=(SourceTYPE)reg_round(intensity);
                 break;
             }
         }
@@ -225,8 +225,8 @@ void CubicSplineResampleSourceImage2D(  nifti_image *sourceImage,
                 position[1] = world[0]*sourceIJKMatrix.m[1][0] + world[1]*sourceIJKMatrix.m[1][1] +
                         sourceIJKMatrix.m[1][3];
 
-                previous[0] = (int)floor(position[0]);
-                previous[1] = (int)floor(position[1]);
+                previous[0] = (int)reg_floor(position[0]);
+                previous[1] = (int)reg_floor(position[1]);
 
                 // basis values along the x axis
                 relative=position[0]-(FieldTYPE)previous[0];
@@ -262,16 +262,16 @@ void CubicSplineResampleSourceImage2D(  nifti_image *sourceImage,
                 resultIntensity[index]=(SourceTYPE)intensity;
                 break;
             case NIFTI_TYPE_UINT8:
-                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                resultIntensity[index]=(SourceTYPE)(intensity>0?reg_round(intensity):0);
                 break;
             case NIFTI_TYPE_UINT16:
-                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                resultIntensity[index]=(SourceTYPE)(intensity>0?reg_round(intensity):0);
                 break;
             case NIFTI_TYPE_UINT32:
-                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                resultIntensity[index]=(SourceTYPE)(intensity>0?reg_round(intensity):0);
                 break;
             default:
-                resultIntensity[index]=(SourceTYPE)round(intensity);
+                resultIntensity[index]=(SourceTYPE)reg_round(intensity);
                 break;
             }
         }
@@ -342,17 +342,17 @@ void LinearResampleSourceImage(  nifti_image *sourceImage,
                     previous[2] = (int)position[2];
                     // basis values along the x axis
                     relative=position[0]-(FieldTYPE)previous[0];
-                    if(relative<0) relative=0.0; // rounding error correction
+                    if(relative<0) relative=0.0; // reg_rounding error correction
                     xBasis[0]= (FieldTYPE)(1.0-relative);
                     xBasis[1]= relative;
                     // basis values along the y axis
                     relative=position[1]-(FieldTYPE)previous[1];
-                    if(relative<0) relative=0.0; // rounding error correction
+                    if(relative<0) relative=0.0; // reg_rounding error correction
                     yBasis[0]= (FieldTYPE)(1.0-relative);
                     yBasis[1]= relative;
                     // basis values along the z axis
                     relative=position[2]-(FieldTYPE)previous[2];
-                    if(relative<0) relative=0.0; // rounding error correction
+                    if(relative<0) relative=0.0; // reg_rounding error correction
                     zBasis[0]= (FieldTYPE)(1.0-relative);
                     zBasis[1]= relative;
 
@@ -384,16 +384,16 @@ void LinearResampleSourceImage(  nifti_image *sourceImage,
                 resultIntensity[index]=(SourceTYPE)intensity;
                 break;
             case NIFTI_TYPE_UINT8:
-                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                resultIntensity[index]=(SourceTYPE)(intensity>0?reg_round(intensity):0);
                 break;
             case NIFTI_TYPE_UINT16:
-                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                resultIntensity[index]=(SourceTYPE)(intensity>0?reg_round(intensity):0);
                 break;
             case NIFTI_TYPE_UINT32:
-                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                resultIntensity[index]=(SourceTYPE)(intensity>0?reg_round(intensity):0);
                 break;
             default:
-                resultIntensity[index]=(SourceTYPE)round(intensity);
+                resultIntensity[index]=(SourceTYPE)reg_round(intensity);
                 break;
             }
         }
@@ -464,12 +464,12 @@ void LinearResampleSourceImage2D(nifti_image *sourceImage,
                     previous[1] = (int)voxel[1];
                     // basis values along the x axis
                     relative=voxel[0]-(FieldTYPE)previous[0];
-                    if(relative<0) relative=0.0; // rounding error correction
+                    if(relative<0) relative=0.0; // reg_rounding error correction
                     xBasis[0]= (FieldTYPE)(1.0-relative);
                     xBasis[1]= relative;
                     // basis values along the y axis
                     relative=voxel[1]-(FieldTYPE)previous[1];
-                    if(relative<0) relative=0.0; // rounding error correction
+                    if(relative<0) relative=0.0; // reg_rounding error correction
                     yBasis[0]= (FieldTYPE)(1.0-relative);
                     yBasis[1]= relative;
 
@@ -495,16 +495,16 @@ void LinearResampleSourceImage2D(nifti_image *sourceImage,
                 resultIntensity[index]=(SourceTYPE)intensity;
                 break;
             case NIFTI_TYPE_UINT8:
-                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                resultIntensity[index]=(SourceTYPE)(intensity>0?reg_round(intensity):0);
                 break;
             case NIFTI_TYPE_UINT16:
-                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                resultIntensity[index]=(SourceTYPE)(intensity>0?reg_round(intensity):0);
                 break;
             case NIFTI_TYPE_UINT32:
-                resultIntensity[index]=(SourceTYPE)(intensity>0?round(intensity):0);
+                resultIntensity[index]=(SourceTYPE)(intensity>0?reg_round(intensity):0);
                 break;
             default:
-                resultIntensity[index]=(SourceTYPE)round(intensity);
+                resultIntensity[index]=(SourceTYPE)reg_round(intensity);
                 break;
             }
         }
@@ -564,9 +564,9 @@ void NearestNeighborResampleSourceImage(nifti_image *sourceImage,
                 /* real -> voxel; source space */
                 reg_mat44_mul(sourceIJKMatrix, world, position);
 
-                previous[0] = (int)round(position[0]);
-                previous[1] = (int)round(position[1]);
-                previous[2] = (int)round(position[2]);
+                previous[0] = (int)reg_round(position[0]);
+                previous[1] = (int)reg_round(position[1]);
+                previous[2] = (int)reg_round(position[2]);
 
                 if( -1<previous[2] && previous[2]<sourceImage->nz &&
                         -1<previous[1] && previous[1]<sourceImage->ny &&
@@ -634,8 +634,8 @@ void NearestNeighborResampleSourceImage2D(nifti_image *sourceImage,
                 position[1] = world[0]*sourceIJKMatrix->m[1][0] + world[1]*sourceIJKMatrix->m[1][1] +
                         sourceIJKMatrix->m[1][3];
 
-                previous[0] = (int)round(position[0]);
-                previous[1] = (int)round(position[1]);
+                previous[0] = (int)reg_round(position[0]);
+                previous[1] = (int)reg_round(position[1]);
 
                 if( -1<previous[1] && previous[1]<sourceImage->ny &&
                         -1<previous[0] && previous[0]<sourceImage->nx){
@@ -658,7 +658,7 @@ void NearestNeighborResampleSourceImage2D(nifti_image *sourceImage,
  * interp can be either 0, 1 or 3 meaning nearest neighbor, linear
  * or cubic spline interpolation.
  * every voxel which is not fully in the source image takes the
- * background value.
+ * backgreg_round value.
  */
 template <class FieldTYPE, class SourceTYPE>
 void reg_resampleSourceImage2(	nifti_image *targetImage,
@@ -746,7 +746,7 @@ void reg_resampleSourceImage(	nifti_image *targetImage,
     // a mask array is created if no mask is specified
     bool MrPropreRules = false;
     if(mask==NULL){
-        // voxels in the background are set to -1 so 0 will do the job here
+        // voxels in the backgreg_round are set to -1 so 0 will do the job here
         mask=(int *)calloc(targetImage->nx*targetImage->ny*targetImage->nz,sizeof(int));
         MrPropreRules = true;
     }
@@ -989,17 +989,17 @@ void TrilinearGradientResultImage(  nifti_image *sourceImage,
                     previous[2] = (int)position[2];
                     // basis values along the x axis
                     relative=position[0]-(FieldTYPE)previous[0];
-                    if(relative<0) relative=0.0; // rounding error correction
+                    if(relative<0) relative=0.0; // reg_rounding error correction
                     xBasis[0]= (FieldTYPE)(1.0-relative);
                     xBasis[1]= relative;
                     // basis values along the y axis
                     relative=position[1]-(FieldTYPE)previous[1];
-                    if(relative<0) relative=0.0; // rounding error correction
+                    if(relative<0) relative=0.0; // reg_rounding error correction
                     yBasis[0]= (FieldTYPE)(1.0-relative);
                     yBasis[1]= relative;
                     // basis values along the z axis
                     relative=position[2]-(FieldTYPE)previous[2];
-                    if(relative<0) relative=0.0; // rounding error correction
+                    if(relative<0) relative=0.0; // reg_rounding error correction
                     zBasis[0]= (FieldTYPE)(1.0-relative);
                     zBasis[1]= relative;
 
@@ -1106,12 +1106,12 @@ void TrilinearGradientResultImage2D(	nifti_image *sourceImage,
                     previous[1] = (int)voxel[1];
                     // basis values along the x axis
                     relative=voxel[0]-(FieldTYPE)previous[0];
-                    if(relative<0) relative=0.0; // rounding error correction
+                    if(relative<0) relative=0.0; // reg_rounding error correction
                     xBasis[0]= (FieldTYPE)(1.0-relative);
                     xBasis[1]= relative;
                     // basis values along the y axis
                     relative=voxel[1]-(FieldTYPE)previous[1];
-                    if(relative<0) relative=0.0; // rounding error correction
+                    if(relative<0) relative=0.0; // reg_rounding error correction
                     yBasis[0]= (FieldTYPE)(1.0-relative);
                     yBasis[1]= relative;
 
@@ -1202,9 +1202,9 @@ void CubicSplineGradientResultImage(nifti_image *sourceImage,
                 /* real -> voxel; source space */
                 reg_mat44_mul(sourceIJKMatrix, world, position);
 
-                previous[0] = (int)floor(position[0]);
-                previous[1] = (int)floor(position[1]);
-                previous[2] = (int)floor(position[2]);
+                previous[0] = (int)reg_floor(position[0]);
+                previous[1] = (int)reg_floor(position[1]);
+                previous[2] = (int)reg_floor(position[2]);
 
                 // basis values along the x axis
                 relative=position[0]-(FieldTYPE)previous[0];
@@ -1331,8 +1331,8 @@ void CubicSplineGradientResultImage2D(nifti_image *sourceImage,
                 position[1] = world[0]*sourceIJKMatrix->m[1][0] + world[1]*sourceIJKMatrix->m[1][1] +
                         sourceIJKMatrix->m[1][3];
 
-                previous[0] = (int)floor(position[0]);
-                previous[1] = (int)floor(position[1]);
+                previous[0] = (int)reg_floor(position[0]);
+                previous[1] = (int)reg_floor(position[1]);
                 // basis values along the x axis
                 relative=position[0]-(FieldTYPE)previous[0];
                 interpolantCubicSpline<FieldTYPE>(relative, xBasis, xDeriv);
@@ -1503,7 +1503,7 @@ void reg_getSourceImageGradient(nifti_image *targetImage,
     // a mask array is created if no mask is specified
     bool MrPropreRule=false;
     if(mask==NULL){
-        mask=(int *)calloc(targetImage->nx*targetImage->ny*targetImage->nz,sizeof(int)); // voxels in the background are set to -1 so 0 will do the job here
+        mask=(int *)calloc(targetImage->nx*targetImage->ny*targetImage->nz,sizeof(int)); // voxels in the backgreg_round are set to -1 so 0 will do the job here
         MrPropreRule=true;
     }
 

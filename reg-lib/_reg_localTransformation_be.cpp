@@ -647,13 +647,13 @@ void reg_bspline_linearEnergyApproxValue1(nifti_image *splineControlPoint, doubl
                     jacobianMatrix.m[0][0]--;
                     jacobianMatrix.m[1][1]--;
                     jacobianMatrix.m[2][2]--;
-                    constraintValue0 += (double).5 * ( POW2(jacobianMatrix.m[0][1]+jacobianMatrix.m[1][0]) +
-                                                       POW2(jacobianMatrix.m[0][2]+jacobianMatrix.m[2][0]) +
-                                                       POW2(jacobianMatrix.m[1][2]+jacobianMatrix.m[2][1]) ) +
-                                                       POW2(jacobianMatrix.m[0][0]) +
-                                                       POW2(jacobianMatrix.m[1][1]) +
-                                                       POW2(jacobianMatrix.m[2][2]);
-                    constraintValue1 += (double)POW2(jacobianMatrix.m[0][0] +
+                    constraintValue0 += (double).5 * ( reg_pow2(jacobianMatrix.m[0][1]+jacobianMatrix.m[1][0]) +
+                                                       reg_pow2(jacobianMatrix.m[0][2]+jacobianMatrix.m[2][0]) +
+                                                       reg_pow2(jacobianMatrix.m[1][2]+jacobianMatrix.m[2][1]) ) +
+                                                       reg_pow2(jacobianMatrix.m[0][0]) +
+                                                       reg_pow2(jacobianMatrix.m[1][1]) +
+                                                       reg_pow2(jacobianMatrix.m[2][2]);
+                    constraintValue1 += (double)reg_pow2(jacobianMatrix.m[0][0] +
                                                      jacobianMatrix.m[1][1]+
                                                      jacobianMatrix.m[2][2]);
                 }
@@ -661,10 +661,10 @@ void reg_bspline_linearEnergyApproxValue1(nifti_image *splineControlPoint, doubl
                     jacobianMatrix=jacobianMatrices[index];
                     jacobianMatrix.m[0][0]--;
                     jacobianMatrix.m[1][1]--;
-                    constraintValue0 += (double).5 * ( POW2(jacobianMatrix.m[0][1]+jacobianMatrix.m[1][0]) ) +
-                                                       POW2(jacobianMatrix.m[0][0]) +
-                                                       POW2(jacobianMatrix.m[1][1]);
-                    constraintValue1 += (double)POW2(jacobianMatrix.m[0][0] +
+                    constraintValue0 += (double).5 * ( reg_pow2(jacobianMatrix.m[0][1]+jacobianMatrix.m[1][0]) ) +
+                                                       reg_pow2(jacobianMatrix.m[0][0]) +
+                                                       reg_pow2(jacobianMatrix.m[1][1]);
+                    constraintValue1 += (double)reg_pow2(jacobianMatrix.m[0][0] +
                                                      jacobianMatrix.m[1][1]);
                 }
                 index++;
@@ -718,10 +718,10 @@ double reg_bspline_L2norm_displacement1(nifti_image *splineControlPoint)
         for(y=0;y<splineControlPoint->ny;y++){
             index=(z*splineControlPoint->ny+y)*splineControlPoint->nx;
             for(x=0;x<splineControlPoint->nx;x++){
-                constraintValue += POW2((double)dispPointPtrX[index]);
-                constraintValue += POW2((double)dispPointPtrY[index]);
+                constraintValue += reg_pow2((double)dispPointPtrX[index]);
+                constraintValue += reg_pow2((double)dispPointPtrY[index]);
                 if(dispPointPtrZ!=NULL)
-                    constraintValue += POW2((double)dispPointPtrZ[index]);
+                    constraintValue += reg_pow2((double)dispPointPtrZ[index]);
 
                 ++index;
             }
