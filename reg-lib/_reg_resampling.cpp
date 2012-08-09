@@ -14,14 +14,14 @@
 
 #include "_reg_resampling.h"
 
-// No reg_round() function available in windows.
-#ifdef _WINDOWS
-template<class DTYPE>
-int reg_round(DTYPE x)
-{
-    return static_cast<int>(x > 0.0 ? x + 0.5 : x - 0.5);
-}
-#endif
+//// No reg_round() function available in windows.
+//#ifdef _WINDOWS
+//template<class DTYPE>
+//int reg_round(DTYPE x)
+//{
+//    return static_cast<int>(x > 0.0 ? x + 0.5 : x - 0.5);
+//}
+//#endif
 
 /* *************************************************************** */
 template <class FieldTYPE>
