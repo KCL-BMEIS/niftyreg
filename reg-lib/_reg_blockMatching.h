@@ -135,12 +135,13 @@ void apply_affine(mat44 * mat,
 /** @brief Find the optimal affine transformation that matches the points
  * in the target image to the point in the result image
  * @param params Block-matching structure that contains the relevant information
- * @param final Transformation matrix extracted from the block-matching
- * correspondences
+ * @param transformation_matrix Initial transformation matrix that is updated
  * @param affine Returns an affine transformation (12 DoFs) if set to true;
  * returns a rigid transformation (6 DoFs) otherwise
  */
-void optimize(_reg_blockMatchingParam *params, mat44 * final, bool affine = true);
+void optimize(_reg_blockMatchingParam *params,
+              mat44 * transformation_matrix,
+              bool affine = true);
 
 
 

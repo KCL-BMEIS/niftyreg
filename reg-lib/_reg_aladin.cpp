@@ -378,29 +378,23 @@ void reg_aladin<T>::GetWarpedImage(int interp)
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-mat44 reg_aladin<T>::GetUpdateTransformationMatrix(int type)
+void reg_aladin<T>::UpdateTransformationMatrix(int type)
 {
     block_matching_method<T>(this->CurrentReference,
                              this->CurrentWarped,
                              &this->blockMatchingParams,
                              this->CurrentReferenceMask);
-
-    mat44 matrix;
     if(type==RIGID)
         optimize(&this->blockMatchingParams,
-                 &matrix,
+                 this->TransformationMatrix,
                  RIGID);
     else
         optimize(&this->blockMatchingParams,
-                 &matrix,
+                 this->TransformationMatrix,
                  AFFINE);
-    return matrix;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-void reg_aladin<T>::UpdateTransformationMatrix(mat44 matrix)
-{
-    *(this->TransformationMatrix) = reg_mat44_mul( this->TransformationMatrix, &(matrix));
+#ifndef NDEBUG
+                reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] updated matrix");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -411,18 +405,18 @@ void reg_aladin<T>::Run()
 
     // Compute the resolution of the progress bar
     float iProgressStep=1, nProgressSteps;
-    if (this->PerformRigid && !this->PerformAffine) 
+    if (this->PerformRigid && !this->PerformAffine)
     {
-      nProgressSteps = this->MaxIterations*(this->LevelsToPerform + 1);
+        nProgressSteps = this->MaxIterations*(this->LevelsToPerform + 1);
     }
     else if (this->PerformAffine && this->PerformRigid)
     {
-      nProgressSteps = this->MaxIterations*4*2 
-	+ this->MaxIterations*(this->LevelsToPerform + 1);
+        nProgressSteps = this->MaxIterations*4*2
+                + this->MaxIterations*(this->LevelsToPerform + 1);
     }
-    else 
+    else
     {
-      nProgressSteps = this->MaxIterations*(this->LevelsToPerform + 1);
+        nProgressSteps = this->MaxIterations*(this->LevelsToPerform + 1);
     }
 
 
@@ -446,9 +440,9 @@ void reg_aladin<T>::Run()
 #ifdef NDEBUG
         if(this->Verbose){
 #endif
-            this->DebugPrintLevelInfo(CurrentLevel);
+            this->DebugPrintLevelInfoStart();
 #ifdef NDEBUG
-       }
+        }
 #endif
 
 #ifndef NDEBUG
@@ -469,26 +463,18 @@ void reg_aladin<T>::Run()
             if(this->PerformAffine && this->PerformRigid && CurrentLevel==0) ratio=4;
             while(iteration<maxNumberOfIterationToPerform*ratio)
             {
-                this->GetWarpedImage(this->Interpolation);
-                mat44 updateMatrix=this->GetUpdateTransformationMatrix(RIGID);
-                this->UpdateTransformationMatrix(updateMatrix);
 #ifndef NDEBUG
-                printf("[DEBUG] -Rigid- iteration %i - ",iteration);
-                reg_mat44_disp(&updateMatrix, (char *)"[DEBUG] updateMatrix");
-                reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] updated affine");
+                printf("[DEBUG] -Rigid- iteration %i\n",iteration);
 #endif
-                if(this->TestMatrixConvergence(&updateMatrix)) 
-		{
-		  iProgressStep += maxNumberOfIterationToPerform*ratio - 1 - iteration;
-		  break;
-		}
-		if ( funcProgressCallback && paramsProgressCallback ) 
-		{
-		  (*funcProgressCallback)(100.*iProgressStep/nProgressSteps, 
-					  paramsProgressCallback);
-		}
+                this->GetWarpedImage(this->Interpolation);
+                this->UpdateTransformationMatrix(RIGID);
+                if ( funcProgressCallback && paramsProgressCallback )
+                {
+                    (*funcProgressCallback)(100.*iProgressStep/nProgressSteps,
+                                            paramsProgressCallback);
+                }
                 iteration++;
-		iProgressStep++;
+                iProgressStep++;
             }
         }
 
@@ -500,26 +486,18 @@ void reg_aladin<T>::Run()
         {
             while(iteration<maxNumberOfIterationToPerform)
             {
-                this->GetWarpedImage(this->Interpolation);
-                mat44 updateMatrix=this->GetUpdateTransformationMatrix(AFFINE);
-                this->UpdateTransformationMatrix(updateMatrix);
 #ifndef NDEBUG
-                printf("[DEBUG] -AFFINE- iteration %i - ",iteration);
-                reg_mat44_disp(&updateMatrix, (char *)"[DEBUG] updateMatrix");
-                reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] updated affine");
+                printf("[DEBUG] -Affine- iteration %i\n",iteration);
 #endif
-                if(this->TestMatrixConvergence(&updateMatrix))
-		{
-		  iProgressStep += maxNumberOfIterationToPerform - 1 - iteration;
-		  break;
-		}
-		if ( funcProgressCallback && paramsProgressCallback ) 
-		{
-		  (*funcProgressCallback)(100.*iProgressStep/nProgressSteps,
-					  paramsProgressCallback);
-		}
-		iteration++;
-		iProgressStep++;
+                this->GetWarpedImage(this->Interpolation);
+                this->UpdateTransformationMatrix(AFFINE);
+                if ( funcProgressCallback && paramsProgressCallback )
+                {
+                    (*funcProgressCallback)(100.*iProgressStep/nProgressSteps,
+                                            paramsProgressCallback);
+                }
+                iteration++;
+                iProgressStep++;
             }
         }
 
@@ -529,7 +507,7 @@ void reg_aladin<T>::Run()
 #ifdef NDEBUG
         if(this->Verbose){
 #endif
-            reg_mat44_disp(this->TransformationMatrix, (char *)"[reg_aladin] Final transformation matrix:");
+            this->DebugPrintLevelInfoEnd();
             printf("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n");
 #ifdef NDEBUG
         }
@@ -537,9 +515,9 @@ void reg_aladin<T>::Run()
 
     } // level this->LevelsToPerform
 
-    if ( funcProgressCallback && paramsProgressCallback ) 
+    if ( funcProgressCallback && paramsProgressCallback )
     {
-      (*funcProgressCallback)( 100., paramsProgressCallback);
+        (*funcProgressCallback)( 100., paramsProgressCallback);
     }
 
 #ifndef NDEBUG
@@ -553,8 +531,8 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 {
     // The initial images are used
     if(this->InputReference==NULL ||
-       this->InputFloating==NULL ||
-       this->TransformationMatrix==NULL){
+            this->InputFloating==NULL ||
+            this->TransformationMatrix==NULL){
         fprintf(stderr,"[NiftyReg ERROR] reg_aladin::GetWarpedImage()\n");
         fprintf(stderr," * The reference, floating images and the transformation have to be defined\n");
     }
@@ -583,10 +561,10 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_aladin<T>::DebugPrintLevelInfo (int CurrentLevel)
+void reg_aladin<T>::DebugPrintLevelInfoStart()
 {
     /* Display some parameters specific to the current level */
-    printf("[%s] Current level %i / %i\n", this->ExecutableName, CurrentLevel+1, this->NumberOfLevels);
+    printf("[%s] Current level %i / %i\n", this->ExecutableName, this->CurrentLevel+1, this->NumberOfLevels);
     printf("[%s] reference image size: \t%ix%ix%i voxels\t%gx%gx%g mm\n", this->ExecutableName,
            this->CurrentReference->nx, this->CurrentReference->ny, this->CurrentReference->nz,
            this->CurrentReference->dx, this->CurrentReference->dy, this->CurrentReference->dz);
@@ -600,7 +578,13 @@ void reg_aladin<T>::DebugPrintLevelInfo (int CurrentLevel)
     printf("[%s] Block number = [%i %i %i]\n", this->ExecutableName, this->blockMatchingParams.blockNumber[0],
            this->blockMatchingParams.blockNumber[1], this->blockMatchingParams.blockNumber[2]);
     reg_mat44_disp(this->TransformationMatrix, (char *)"[reg_aladin] Initial transformation matrix:");
-
 }
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+void reg_aladin<T>::DebugPrintLevelInfoEnd()
+{
+    reg_mat44_disp(this->TransformationMatrix, (char *)"[reg_aladin] Final transformation matrix:");
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
 #endif //#ifndef _REG_ALADIN_CPP

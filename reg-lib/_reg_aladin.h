@@ -82,8 +82,7 @@ class reg_aladin
       virtual void InitialiseBlockMatching(int);
       virtual void GetDeformationField();
       virtual void GetWarpedImage(int);
-      virtual mat44 GetUpdateTransformationMatrix(int);
-      virtual void UpdateTransformationMatrix(mat44);
+      virtual void UpdateTransformationMatrix(int);
 
       void (*funcProgressCallback)(float pcntProgress, void *params);
       void *paramsProgressCallback;
@@ -154,7 +153,8 @@ class reg_aladin
       virtual int Print();
       virtual void Run();
 
-      virtual void DebugPrintLevelInfo(int);
+      virtual void DebugPrintLevelInfoStart();
+      virtual void DebugPrintLevelInfoEnd();
 
       void SetProgressCallbackFunction( void (*funcProgCallback)(float pcntProgress,
 								 void *params), 

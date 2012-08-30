@@ -229,67 +229,51 @@ void reg_aladin_sym<T>::GetWarpedImage(int interp)
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-mat44 reg_aladin_sym<T>::GetUpdateTransformationMatrix(int type)
+void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
 {
-    // Compute the matrix for the forward transformation
-    mat44 fMatrix = reg_aladin<T>::GetUpdateTransformationMatrix(type);
-    
-    // Compute the matrix for the backward transformation
-    // Compute eh bloack matching correspondences
+    // Update first the forward transformation matrix
+    block_matching_method<T>(this->CurrentReference,
+                             this->CurrentWarped,
+                             &this->blockMatchingParams,
+                             this->CurrentReferenceMask);
+    if(type==RIGID)
+        optimize(&this->blockMatchingParams,
+                 this->TransformationMatrix,
+                 RIGID);
+    else
+        optimize(&this->blockMatchingParams,
+                 this->TransformationMatrix,
+                 AFFINE);
+    // Update now the backward transformation matrix
     block_matching_method<T>(this->CurrentFloating,
                              this->CurrentBackwardWarped,
                              &this->BackwardBlockMatchingParams,
                              this->CurrentFloatingMask);
-    // Run the TLS to extract the backward matrix using either rigid or affine parametrisation
-    mat44 bMatrix;
     if(type==RIGID){
         optimize(&this->BackwardBlockMatchingParams,
-                 &bMatrix,
+                 this->BackwardTransformationMatrix,
                  RIGID);
     }
     else{
         optimize(&this->BackwardBlockMatchingParams,
-                 &bMatrix,
+                 this->BackwardTransformationMatrix,
                  AFFINE);
     }
+    // Forward and backward matrix are inverted
+    mat44 fInverted = nifti_mat44_inverse(*(this->TransformationMatrix));
+    mat44 bInverted = nifti_mat44_inverse(*(this->BackwardTransformationMatrix));
 
-    // The backward matrix is inverted and then averaged with the forward
-    mat44 biMatrix=nifti_mat44_inverse(bMatrix);
-    mat44 fAvgMatrix=reg_mat44_avg2(&fMatrix,&biMatrix);
-    
-    //First we need to take the square root of each of these matrices to get them into halfway space
-    //Then we need to average them. Inverse will serve as update for next image.
-    //Inverse both backwards and fowards
-//    mat44 fiMatrix=nifti_mat44_inverse(fMatrix);
-//    mat44 bAvgMatrix=reg_mat44_avg2(&fiMatrix,&bMatrix);
-//    mat44 fTest=nifti_mat44_inverse(bAvgMatrix);
-
-    return fAvgMatrix;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-void reg_aladin_sym<T>::UpdateTransformationMatrix(mat44 matrix)
-{
+    // We average the forward and inverted backward matrix
+    *(this->TransformationMatrix) =  reg_mat44_avg2 (this->TransformationMatrix,
+                                                     &bInverted
+                                                     );
+    // We average the inverted forward and backward matrix
+    *(this->BackwardTransformationMatrix) =  reg_mat44_avg2 (&fInverted,
+                                                             this->BackwardTransformationMatrix
+                                                             );
 #ifndef NDEBUG
-    mat44 fTest = nifti_mat44_inverse(*(this->BackwardTransformationMatrix));
-    reg_mat44_disp(this->TransformationMatrix,(char*) "Forward Transform");
-    reg_mat44_disp(&fTest,(char*) "Check Inverse");
-#endif
-    mat44 bMatrix=nifti_mat44_inverse(matrix);
-#ifndef NDEBUG
-    fTest = nifti_mat44_inverse(bMatrix);
-    reg_mat44_disp(&matrix,(char*) "Forward Update");
-    reg_mat44_disp(&fTest,(char*) "Backward Inverse Update");
-    reg_mat44_disp(&bMatrix, (char*) "Backward Update");
-#endif
-    reg_aladin<T>::UpdateTransformationMatrix(matrix);
-    //Now that TransformationMatrix is updated just invert to provide backward.
-    *(this->BackwardTransformationMatrix)=reg_mat44_mul(&bMatrix,this->BackwardTransformationMatrix);
-#ifndef NDEBUG
-    fTest = nifti_mat44_inverse(*(this->BackwardTransformationMatrix));
-    reg_mat44_disp(this->TransformationMatrix,(char*) "Forward Transform");
-    reg_mat44_disp(&fTest,(char*) "Backward Inverse");
-    reg_mat44_disp(this->BackwardTransformationMatrix, (char*) "Backward Transform");
+    reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] updated forward transformation matrix");
+    reg_mat44_disp(this->BackwardTransformationMatrix, (char *)"[DEBUG] updated backward transformation matrix");
 #endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -307,15 +291,38 @@ void reg_aladin_sym<T>::ClearCurrentInputImage()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_aladin_sym<T>::DebugPrintLevelInfo(int CurrentLevel)
+void reg_aladin_sym<T>::DebugPrintLevelInfoStart()
 {
-    reg_aladin<T>::DebugPrintLevelInfo(CurrentLevel);
+    printf("[%s] Current level %i / %i\n", this->ExecutableName, this->CurrentLevel+1, this->NumberOfLevels);
+     printf("[%s] reference image size: \t%ix%ix%i voxels\t%gx%gx%g mm\n", this->ExecutableName,
+            this->CurrentReference->nx, this->CurrentReference->ny, this->CurrentReference->nz,
+            this->CurrentReference->dx, this->CurrentReference->dy, this->CurrentReference->dz);
+     printf("[%s] floating image size: \t%ix%ix%i voxels\t%gx%gx%g mm\n", this->ExecutableName,
+            this->CurrentFloating->nx, this->CurrentFloating->ny, this->CurrentFloating->nz,
+            this->CurrentFloating->dx, this->CurrentFloating->dy, this->CurrentFloating->dz);
+     if(this->CurrentReference->nz==1)
+         printf("[%s] Block size = [4 4 1]\n", this->ExecutableName);
+     else printf("[%s] Block size = [4 4 4]\n", this->ExecutableName);
+     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+     printf("[%s] Forward Block number = [%i %i %i]\n", this->ExecutableName, this->blockMatchingParams.blockNumber[0],
+            this->blockMatchingParams.blockNumber[1], this->blockMatchingParams.blockNumber[2]);
     printf("[%s] Backward Block number = [%i %i %i]\n", this->ExecutableName, this->BackwardBlockMatchingParams.blockNumber[0],
            this->BackwardBlockMatchingParams.blockNumber[1], this->BackwardBlockMatchingParams.blockNumber[2]);
+    reg_mat44_disp(this->TransformationMatrix,
+                   (char *)"[reg_aladin_sym] Initial forward transformation matrix:");
     reg_mat44_disp(this->BackwardTransformationMatrix,
                    (char *)"[reg_aladin_sym] Initial backward transformation matrix:");
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+void reg_aladin_sym<T>::DebugPrintLevelInfoEnd()
+{
+    reg_mat44_disp(this->TransformationMatrix,
+                   (char *)"[reg_aladin_sym] Final forward transformation matrix:");
+    reg_mat44_disp(this->BackwardTransformationMatrix,
+                   (char *)"[reg_aladin_sym] Final backward transformation matrix:");
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 #endif //REG_ALADIN_SYM_CPP

@@ -1668,8 +1668,8 @@ void optimize_rigid2D(  _reg_blockMatchingParam *params,
     }
     delete [] newResultPosition;
 }
-void optimize_rigid3D(  _reg_blockMatchingParam *params,
-                        mat44 * final)
+void optimize_rigid3D(_reg_blockMatchingParam *params,
+                      mat44 *final)
 {
 //    const unsigned num_points = params->activeBlockNumber;
     const unsigned num_points = params->definedActiveBlock;
@@ -1740,23 +1740,42 @@ void optimize_rigid3D(  _reg_blockMatchingParam *params,
 
 // Find the optimal affine transformation
 void optimize(	_reg_blockMatchingParam *params,
-                mat44 * final,
+                mat44 *transformation_matrix,
                 bool affine)
 {
-    if(params->blockNumber[2]==1){
-        if (affine){
-            optimize_affine2D(params, final);
+    // The block matching provide correspondences in millimeters
+    // in the space of the reference image. All warped image coordinates
+    // are updated to be in the original floating space
+//    mat44 inverseMatrix = nifti_mat44_inverse(*transformation_matrix);
+    if(params->blockNumber[2]==1){ // 2D images
+        float in[2];
+        float out[2];
+        for(size_t i=0;i<params->activeBlockNumber;++i){
+            in[0]=params->resultPosition[2*i];
+            in[1]=params->resultPosition[2*i+1];
+            apply_affine2D(transformation_matrix,in,out);
+            params->resultPosition[2*i]=out[0];
+            params->resultPosition[2*i+1]=out[1];
         }
-        else{
-            optimize_rigid2D(params, final);
-        }
+        if(affine)
+            optimize_affine2D(params, transformation_matrix);
+        else optimize_rigid2D(params, transformation_matrix);
     }
-    else{
-        if (affine){
-            optimize_affine3D(params, final);
+    else{ // 3D images
+        float in[3];
+        float out[3];
+        for(size_t i=0;i<params->activeBlockNumber;++i){
+            size_t index=3*i;
+            in[0]=params->resultPosition[index];
+            in[1]=params->resultPosition[index+1];
+            in[2]=params->resultPosition[index+2];
+            apply_affine(transformation_matrix,in,out);
+            params->resultPosition[index++]=out[0];
+            params->resultPosition[index++]=out[1];
+            params->resultPosition[index]=out[2];
         }
-        else{
-            optimize_rigid3D(params, final);
-        }
+        if(affine)
+            optimize_affine3D(params, transformation_matrix);
+        else optimize_rigid3D(params, transformation_matrix);
     }
 }

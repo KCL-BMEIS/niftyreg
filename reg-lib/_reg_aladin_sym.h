@@ -13,6 +13,7 @@
 #define _REG_ALADIN_SYM_H
 
 #include "_reg_aladin.h"
+#define _BUILD_NR_DEV
 #ifdef _BUILD_NR_DEV
 
 template <class T>
@@ -36,8 +37,10 @@ protected:
     virtual void AllocateBackwardDeformationField();
     virtual void ClearBackwardDeformationField();
     virtual void GetBackwardDeformationField();
-    virtual void UpdateTransformationMatrix(mat44);
+    virtual void UpdateTransformationMatrix(int);
 
+    virtual void DebugPrintLevelInfoStart();
+    virtual void DebugPrintLevelInfoEnd();
     virtual void InitialiseRegistration();
     virtual void InitialiseBlockMatching(int);
     virtual void SetCurrentImages();
@@ -51,9 +54,6 @@ public:
     //void Run();
 
     virtual void SetInputFloatingMask(nifti_image *);
-    virtual mat44 GetUpdateTransformationMatrix(int);
-    virtual void DebugPrintLevelInfo(int);
-
 };
 
 #include "_reg_aladin_sym.cpp"
