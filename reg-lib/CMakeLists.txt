@@ -32,7 +32,7 @@ install(TARGETS ${NAME}
         LIBRARY DESTINATION lib COMPONENT Development
         ARCHIVE DESTINATION lib COMPONENT Development
 )
-install(FILES ${NAME}.h DESTINATION include COMPONENT Development)
+install(FILES ${NAME}.h ${NAME}.cpp DESTINATION include COMPONENT Development)
 #-----------------------------------------------------------------------------
 set(LIST _reg_tools)
 set(LIST ${LIST} _reg_localTransformation)
