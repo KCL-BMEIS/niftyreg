@@ -56,6 +56,11 @@ NrrdIO/privateAir.h NrrdIO/privateNrrd.h NrrdIO/teem32bit.h NrrdIO/teemDio.h Nrr
 NrrdIO/teemPng.h NrrdIO/teemQnanhibit.h)
 
 add_library(reg_NrrdIO ${nrrdio_SRCS})
+install(TARGETS reg_NrrdIO
+        LIBRARY DESTINATION lib COMPONENT Development
+        ARCHIVE DESTINATION lib COMPONENT Development
+)
+
 target_link_libraries(reg_NrrdIO z)
 ############################################################
 ############################################################
