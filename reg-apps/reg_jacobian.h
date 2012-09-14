@@ -19,7 +19,7 @@ char xml_jacobian[] =
 "  <title>RegJacobian (NiftyReg)</title>\n"
 "  <description><![CDATA[NiftyReg module to create Jacobian-based images]]></description>\n"
 "  <version>0.0.1</version>\n"
-"  <documentation-url> TODO</documentation-url>\n"
+"  <documentation-url>http://cmic.cs.ucl.ac.uk/home/software/</documentation-url>\n"
 "  <license>BSD</license>\n"
 "  <contributor>Marc Modat (UCL)</contributor>\n"
 "  <parameters advanced=\"false\">\n"

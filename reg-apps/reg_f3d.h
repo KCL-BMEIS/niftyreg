@@ -12,7 +12,7 @@ char xml_f3d[] =
 "  <title>RegF3D (NiftyReg)</title>\n"
 "  <description><![CDATA[Module/executable for local registration (non-rigid) based on a cubic B-Spline deformation model]]></description>\n"
 "  <version>0.0.1</version>\n"
-"  <documentation-url> TODO</documentation-url>\n"
+"  <documentation-url>http://cmic.cs.ucl.ac.uk/home/software/</documentation-url>\n"
 "  <license>BSD</license>\n"
 "  <contributor>Marc Modat, Pankaj Daga (UCL)</contributor>\n"
 "  <parameters advanced=\"false\">\n"

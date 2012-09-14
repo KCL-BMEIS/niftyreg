@@ -18,7 +18,7 @@ char xml_transform[] =
 "  <title>RegTransform (NiftyReg)</title>\n"
 "  <description><![CDATA[NiftyReg module under construction]]></description>\n"
 "  <version>0.0.1</version>\n"
-"  <documentation-url> TODO</documentation-url>\n"
+"  <documentation-url>http://cmic.cs.ucl.ac.uk/home/software/</documentation-url>\n"
 "  <license>BSD</license>\n"
 "  <contributor>Marc Modat (UCL)</contributor>\n"
 "</executable>"
