@@ -190,7 +190,7 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW2x2_kernel(float4 *voxelNMIGr
                               ((float)x+0.5f)/(float)c_ImageSize.x,
                               ((float)y+0.5f)/(float)c_ImageSize.y,
                               ((float)z+0.5f)/(float)c_ImageSize.z);
-        voxelValues.x = tex3D(secondTargetImageTexture,
+        voxelValues.y = tex3D(secondTargetImageTexture,
                               ((float)x+0.5f)/(float)c_ImageSize.x,
                               ((float)y+0.5f)/(float)c_ImageSize.y,
                               ((float)z+0.5f)/(float)c_ImageSize.z);
@@ -445,14 +445,14 @@ __global__ void reg_marginaliseTargetXY_kernel(float *babyHisto)
         unsigned int startingPoint=tid*c_secondTargetBin;
         unsigned int finishPoint=startingPoint+c_secondTargetBin;
 
-        float sum=tex1Dfetch(histogramTexture, startingPoint);        
+        float sum=tex1Dfetch(histogramTexture, startingPoint);
         float c=0.f,Y,t;
-        for(unsigned int i=startingPoint+1; i<finishPoint; ++i){            
+        for(unsigned int i=startingPoint+1; i<finishPoint; ++i){
             Y = tex1Dfetch(histogramTexture, i) - c;
             t = sum + Y;
             c = (t-sum)-Y;
             sum=t;
-        }        
+        }
         babyHisto[tid]=sum;
     }
 }
