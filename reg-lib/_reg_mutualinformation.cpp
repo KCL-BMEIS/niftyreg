@@ -148,6 +148,7 @@ void reg_getEntropies1(nifti_image *targetImage,
                        int *mask,
                        bool approx)
 {
+
     int num_target_volumes = targetImage->nt;
     int num_result_volumes = resultImage->nt;
     int i, j, index;
@@ -240,7 +241,8 @@ void reg_getEntropies1(nifti_image *targetImage,
                     valid_values = false;
                     break;
                 }
-                target_flat_index += target_values[i] * (DTYPE)(target_offsets[i]);
+                // This needs to be cast to a valid int position!
+                target_flat_index += static_cast<int>(target_values[i]) * (target_offsets[i]);
             }
 
             if (valid_values) {
@@ -254,7 +256,8 @@ void reg_getEntropies1(nifti_image *targetImage,
                         valid_values = false;
                         break;
                     }
-                    result_flat_index += result_values[i] * (DTYPE)(result_offsets[i]);
+                    // This needs to be cast to a valid int position!
+                    result_flat_index += static_cast<int>(result_values[i]) * (result_offsets[i]);
                 }
             }
             if (valid_values) {
@@ -263,12 +266,13 @@ void reg_getEntropies1(nifti_image *targetImage,
                     tempHistogram[tid][static_cast<int>(reg_round(target_flat_index)) +
                             (static_cast<int>(reg_round(result_flat_index)) * total_target_entries)]++;
 #else
-                    probaJointHistogram[static_cast<int>(reg_round(target_flat_index)) +
-                            (static_cast<int>(reg_round(result_flat_index)) * total_target_entries)]++;
+                    probaJointHistogram[static_cast<int>(target_flat_index) +
+                            (static_cast<int>(result_flat_index) * total_target_entries)]++;
 #endif
-                    added_value=1;
+                    ++voxel_number;
                 }
                 else{ // Parzen window joint histogram filling
+                    //std::cout << "Using Parzen windows to filll" << std::endl;
                     for(int t=static_cast<int>(target_values[0]-1.); t<static_cast<int>(target_values[0]+2.); ++t){
                         if(t>=0 || t<static_cast<int>(target_bins[0])){
                             double target_weight = GetBasisSplineValue<double>(double(target_values[0])-double(t));
@@ -280,6 +284,7 @@ void reg_getEntropies1(nifti_image *targetImage,
                                     tempHistogram[tid][t + r * total_target_entries]  += weight;
 #else
                                     probaJointHistogram[t + r * total_target_entries] += weight;
+                                    voxel_number+=added_value;
 #endif
                                 }
                             }
@@ -287,7 +292,6 @@ void reg_getEntropies1(nifti_image *targetImage,
                     }
                 }
             }
-            voxel_number+=added_value;
         } //mask
     }
 #ifdef _OPENMP
@@ -373,7 +377,7 @@ void reg_getEntropies1(nifti_image *targetImage,
 
         for (i = 0; i < total_target_entries; ++i)
         {
-            current_value = data[i];            
+            current_value = data[i];
             current_log = 0;
             if (current_value) current_log = log(current_value);
             target_entropy -= current_value * current_log;
@@ -405,7 +409,7 @@ void reg_getEntropies1(nifti_image *targetImage,
 
         for (i = 0; i < total_result_entries; ++i)
         {
-            current_value = data[i];            
+            current_value = data[i];
             current_log = 0;
             if (current_value) current_log = log(current_value);
             result_entropy -= current_value * current_log;
@@ -417,7 +421,7 @@ void reg_getEntropies1(nifti_image *targetImage,
     double joint_entropy = 0;
     for (i = 0; i < num_probabilities; ++i)
     {
-        current_value = probaJointHistogram[i];        
+        current_value = probaJointHistogram[i];
         current_log = 0;
         if (current_value) current_log = log(current_value);
         joint_entropy -= current_value * current_log;
