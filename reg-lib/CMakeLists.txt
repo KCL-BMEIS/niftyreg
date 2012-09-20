@@ -137,7 +137,7 @@ install(TARGETS ${NAME}
         LIBRARY DESTINATION lib COMPONENT RuntimeLibraries
         ARCHIVE DESTINATION lib COMPONENT RuntimeLibraries
 )
-install(FILES ${NAME}.h ${NAME}.cpp _reg_macros.h DESTINATION include COMPONENT Development)
+install(FILES ${NAME}.h ${NAME}_sym.h ${NAME}.cpp ${NAME}_sym.cpp _reg_macros.h DESTINATION include COMPONENT Development)
 #-----------------------------------------------------------------------------
 ## BUILD THE TPS LIBRARY CPU
 set(NAME _reg_thinPlateSpline)
