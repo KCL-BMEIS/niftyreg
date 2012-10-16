@@ -668,17 +668,17 @@ void reg_getVoxelBasedNMIGradientUsingPW2D(nifti_image *referenceImage,
                         for (unsigned int i = 0; i < num_fixed_volumes; ++i) fixed_flat_index += relative_positions[i] * fixed_offsets[i];
                         for (unsigned int i = 0; i < num_warped_volumes; ++i) warped_flat_index += relative_positions[i + num_fixed_volumes] * warped_offsets[i];
 
-                        jointLog = logJointHistogram[fixed_flat_index * total_warped_entries + warped_flat_index];
+                        jointLog = logJointHistogram[fixed_flat_index + total_fixed_entries * warped_flat_index];
                         fixedLog = logJointHistogram[num_probabilities + fixed_flat_index];
                         warpedLog = logJointHistogram[num_probabilities + total_fixed_entries + warped_flat_index];
 
-                        jointEntropyDerivative_X -= warped_common[0] * (jointLog + 1.0);
-                        fixedEntropyDerivative_X -= warped_common[0] * (fixedLog + 1.0);
-                        warpedEntropyDerivative_X -= warped_common[0] * (warpedLog + 1.0);
+                        jointEntropyDerivative_X += warped_common[0] * jointLog;
+                        fixedEntropyDerivative_X += warped_common[0] * fixedLog;
+                        warpedEntropyDerivative_X += warped_common[0] * warpedLog;
 
-                        jointEntropyDerivative_Y -= warped_common[1] * (jointLog + 1.0);
-                        fixedEntropyDerivative_Y -= warped_common[1] * (fixedLog + 1.0);
-                        warpedEntropyDerivative_Y -= warped_common[1] * (warpedLog + 1.0);
+                        jointEntropyDerivative_Y += warped_common[1] * jointLog;
+                        fixedEntropyDerivative_Y += warped_common[1] * fixedLog;
+                        warpedEntropyDerivative_Y += warped_common[1] * warpedLog;
                     }
                 }
                 *nmiGradientPtrX = (GradTYPE)((fixedEntropyDerivative_X + warpedEntropyDerivative_X - NMI * jointEntropyDerivative_X) / normalised_joint_entropy);
@@ -923,21 +923,21 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *referenceImage,
                         for (i = 0; i < num_warped_volumes; ++i)
                             warped_flat_index += relative_positions[i + num_fixed_volumes] * warped_offsets[i];
 
-                        jointLog = logJointHistogram[fixed_flat_index * total_warped_entries + warped_flat_index];
+                        jointLog = logJointHistogram[fixed_flat_index + total_fixed_entries * warped_flat_index];
                         fixedLog = logJointHistogram[num_probabilities + fixed_flat_index];
                         warpedLog = logJointHistogram[num_probabilities + total_fixed_entries + warped_flat_index];
 
-                        jointEntropyDerivative_X -= warped_common[0] * jointLog;
-                        fixedEntropyDerivative_X -= warped_common[0] * fixedLog;
-                        warpedEntropyDerivative_X -= warped_common[0] * warpedLog;
+                        jointEntropyDerivative_X += warped_common[0] * jointLog;
+                        fixedEntropyDerivative_X += warped_common[0] * fixedLog;
+                        warpedEntropyDerivative_X += warped_common[0] * warpedLog;
 
-                        jointEntropyDerivative_Y -= warped_common[1] * jointLog;
-                        fixedEntropyDerivative_Y -= warped_common[1] * fixedLog;
-                        warpedEntropyDerivative_Y -= warped_common[1] * warpedLog;
+                        jointEntropyDerivative_Y += warped_common[1] * jointLog;
+                        fixedEntropyDerivative_Y += warped_common[1] * fixedLog;
+                        warpedEntropyDerivative_Y += warped_common[1] * warpedLog;
 
-                        jointEntropyDerivative_Z -= warped_common[2] * jointLog;
-                        fixedEntropyDerivative_Z -= warped_common[2] * fixedLog;
-                        warpedEntropyDerivative_Z -= warped_common[2] * warpedLog;
+                        jointEntropyDerivative_Z += warped_common[2] * jointLog;
+                        fixedEntropyDerivative_Z += warped_common[2] * fixedLog;
+                        warpedEntropyDerivative_Z += warped_common[2] * warpedLog;
                     }
 
                     nmiGradientPtrX[index] = (GradTYPE)((fixedEntropyDerivative_X + warpedEntropyDerivative_X - NMI * jointEntropyDerivative_X) / joint_entropy);
