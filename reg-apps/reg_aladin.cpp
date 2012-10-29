@@ -51,9 +51,7 @@ void Usage(char *exec)
     printf("\t-ref <filename>\tFilename of the reference (target) image (mandatory)\n");
     printf("\t-flo <filename>\tFilename of the floating (source) image (mandatory)\n");
     printf("* * OPTIONS * *\n");
-#ifdef _BUILD_NR_DEV
-    printf("\t-sym \t\t\tUses symmetric version of the algorithm.\n");
-#endif
+    printf("\t-noSym \t\t\tThe symmetric version of the algorithm is used by default. Use this flag to disable it.\n");
     printf("\t-aff <filename>\t\tFilename which contains the output affine transformation [outputAffine.txt]\n");
     printf("\t-rigOnly\t\tTo perform a rigid registration only (rigid+affine by default)\n");
     printf("\t-affDirect\t\tDirectly optimize 12 DoF affine [default is rigid initially then affine]\n");
@@ -72,9 +70,6 @@ void Usage(char *exec)
 
     printf("\t-%%v <int>\t\tPercentage of block to use [50]\n");
     printf("\t-%%i <int>\t\tPercentage of inlier for the LTS [50]\n");
-#ifdef _USE_CUDA	
-    printf("\t-gpu \t\t\tTo use the GPU implementation [no]\n");
-#endif
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     return;
 }
@@ -88,7 +83,7 @@ int main(int argc, char **argv)
 
     time_t start; time(&start);
 
-    int symFlag=0;
+    int symFlag=1;
 
     char *referenceImageName=NULL;
     int referenceImageFlag=0;
@@ -155,7 +150,7 @@ int main(int argc, char **argv)
             floatingImageName=argv[++i];
             floatingImageFlag=1;
         }
-        else if(strcmp(argv[i], "-sym")==0 || strcmp(argv[i], "--sym")==0){
+        else if(strcmp(argv[i], "-noSym")==0 || strcmp(argv[i], "--noSym")==0){
             symFlag=1;
         }
         else if(strcmp(argv[i], "-aff")==0 || strcmp(argv[i], "--aff")==0){
@@ -238,7 +233,6 @@ int main(int argc, char **argv)
     printf("\n\n");
 
     reg_aladin<PrecisionTYPE> *REG;
-#ifdef _BUILD_NR_DEV
     if(symFlag)
     {
         REG = new reg_aladin_sym<PrecisionTYPE>;
@@ -250,15 +244,12 @@ int main(int argc, char **argv)
     }
     else
     {
-#endif
         REG = new reg_aladin<PrecisionTYPE>;
-#ifdef _BUILD_NR_DEV
         if (floatingMaskFlag)
         {
             fprintf(stderr,"Note: Floating mask flag only used in symmetric method. Ignoring this option\n");
         }
     }
-#endif
     REG->SetMaxIterations(maxIter);
     REG->SetNumberOfLevels(nLevels);
     REG->SetLevelsToPerform(levelsToPerform);
@@ -313,7 +304,6 @@ int main(int argc, char **argv)
         }
         REG->SetInputMask(referenceMaskImage);
     }
-#ifdef _BUILD_NR_DEV
     nifti_image *floatingMaskImage=NULL;
     if(floatingMaskFlag && symFlag){
         floatingMaskImage = reg_io_ReadImageFile(floatingMaskName);
@@ -330,7 +320,6 @@ int main(int argc, char **argv)
         }
         REG->SetInputFloatingMask(floatingMaskImage);
     }
-#endif
     REG->Run();
 
     // The warped image is saved

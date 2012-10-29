@@ -143,95 +143,13 @@ void reg_optimiser<T>::Perturbation(float length)
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_optimiser<T>::NormaliseGradient()
-{
-    // First compute the gradient max length for normalisation purpose
-    T maxGradValue=0;
-    size_t voxNumber = this->GetVoxNumber();
-    size_t voxNumber_b = this->GetVoxNumber_b();
-    T *ptrX = this->gradient;
-    T *ptrY = &ptrX[voxNumber];
-    if(this->ndim>2){
-        T *ptrZ = &ptrY[voxNumber];
-        for(int i=0; i<voxNumber; i++){
-            T valX=0,valY=0,valZ=0;
-            if(this->GetOptimiseX()==true)
-                valX = *ptrX++;
-            if(this->GetOptimiseY()==true)
-                valY = *ptrY++;
-            if(this->GetOptimiseZ()==true)
-                valZ = *ptrZ++;
-            float length = (float)(sqrt(valX*valX + valY*valY + valZ*valZ));
-            maxGradValue = (length>maxGradValue)?length:maxGradValue;
-        }
-    }
-    else{
-        for(int i=0; i<voxNumber; i++){
-            T valX=0,valY=0;
-            if(this->GetOptimiseX()==true)
-                valX = *ptrX++;
-            if(this->GetOptimiseY()==true)
-                valY = *ptrY++;
-            float length = (float)(sqrt(valX*valX + valY*valY));
-            maxGradValue = (length>maxGradValue)?length:maxGradValue;
-        }
-    }
-    if(this->backward){
-        T maxGradValue_b=0;
-        T *ptrX_b = this->gradient_b;
-        T *ptrY_b = &ptrX[voxNumber_b];
-        if(this->ndim>2){
-            T *ptrZ_b = &ptrY_b[voxNumber_b];
-            for(int i=0; i<voxNumber_b; i++){
-                T valX=0,valY=0,valZ=0;
-                if(this->optimiseX==true)
-                    valX = *ptrX_b++;
-                if(this->optimiseY==true)
-                    valY = *ptrY_b++;
-                if(this->optimiseZ==true)
-                    valZ = *ptrZ_b++;
-                float length = (float)(sqrt(valX*valX + valY*valY + valZ*valZ));
-                maxGradValue_b = (length>maxGradValue_b)?length:maxGradValue_b;
-            }
-        }
-        else{
-            for(int i=0; i<voxNumber_b; i++){
-                T valX=0,valY=0;
-                if(this->optimiseX==true)
-                    valX = *ptrX_b++;
-                if(this->optimiseY==true)
-                    valY = *ptrY_b++;
-                float length = (float)(sqrt(valX*valX + valY*valY));
-                maxGradValue_b = (length>maxGradValue_b)?length:maxGradValue_b;
-            }
-        }
-        maxGradValue = maxGradValue + maxGradValue_b;
-    }
-#ifndef NDEBUG
-    printf("[NiftyReg DEBUG] Objective function gradient maximal length: %g\n",maxGradValue);
-#endif
-
-    for(size_t i=0;i<this->dofNumber;++i){
-        this->gradient[i] = this->gradient[i] / maxGradValue;
-    }
-    if(this->backward){
-        for(size_t i=0;i<this->dofNumber_b;++i){
-            this->gradient_b[i] = this->gradient_b[i] / maxGradValue;
-        }
-    }
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-void reg_optimiser<T>::Optimise(float maxLength,
-                                float smallLength,
-                                float &startLength)
+void reg_optimiser<T>::Optimise(T maxLength,
+                                T smallLength,
+                                T &startLength)
 {
     size_t lineIteration=0;
     float addedLength=0;
     float currentLength=startLength;
-
-    this->NormaliseGradient();
 
     // Start performing the line search
     while(currentLength>smallLength &&
@@ -473,9 +391,9 @@ void reg_conjugateGradient<T>::UpdateGradientValues()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_conjugateGradient<T>::Optimise(float maxLength,
-                                        float smallLength,
-                                        float &startLength)
+void reg_conjugateGradient<T>::Optimise(T maxLength,
+                                        T smallLength,
+                                        T &startLength)
 {
     this->UpdateGradientValues();
     reg_optimiser<T>::Optimise(maxLength,
@@ -586,9 +504,9 @@ void reg_lbfgs<T>::UpdateGradientValues()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_lbfgs<T>::Optimise(float maxLength,
-                            float smallLength,
-                            float &startLength)
+void reg_lbfgs<T>::Optimise(T maxLength,
+                            T smallLength,
+                            T &startLength)
 {
 
     this->UpdateGradientValues();

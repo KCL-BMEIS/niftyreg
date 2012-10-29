@@ -368,13 +368,12 @@ void reg_aladin<T>::GetWarpedImage(int interp)
 {
     this->GetDeformationField();
 
-    reg_resampleSourceImage(this->CurrentReference,
-                            this->CurrentFloating,
-                            this->CurrentWarped,
-                            this->deformationFieldImage,
-                            this->CurrentReferenceMask,
-                            interp,
-                            0);
+    reg_resampleImage(this->CurrentFloating,
+                      this->CurrentWarped,
+                      this->deformationFieldImage,
+                      this->CurrentReferenceMask,
+                      interp,
+                      0);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>

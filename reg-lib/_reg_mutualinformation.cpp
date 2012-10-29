@@ -765,7 +765,7 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *referenceImage,
     double fixedEntropyDerivative_Z;
 
     double jointLog, fixedLog, warpedLog;
-    double joint_entropy = entropies[2]*entropies[3];
+    double normalised_joint_entropy = entropies[2]*entropies[3];
 
     GradTYPE *nmiGradientPtrX = static_cast<GradTYPE *>(nmiGradientImage->data);
     GradTYPE *nmiGradientPtrY = &nmiGradientPtrX[fixedVoxelNumber];
@@ -778,7 +778,8 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *referenceImage,
 
     SafeArray<int> bins(num_loops);
     for (int i = 0; i < num_fixed_volumes; ++i) bins[i] = fixed_bins[i];
-    for (int i = 0; i < num_warped_volumes; ++i) bins[i + num_fixed_volumes] = warped_bins[i];
+    for (int i = 0; i < num_warped_volumes; ++i)
+        bins[i + num_fixed_volumes] = warped_bins[i];
 
     GradTYPE coefficients[20];
     GradTYPE positions[20];
@@ -867,7 +868,8 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *referenceImage,
                         if(relative_pos< 0 || relative_pos >= bins[lc]){
                             valid_values = false; break;
                         }
-                        double common_value = GetBasisSplineValue<double>((double)voxel_values[lc]-(double)relative_pos);
+                        double common_value = GetBasisSplineValue<double>
+                                ( (double)voxel_values[lc]-(double)relative_pos );
                         coefficients[lc] = common_value;
                         positions[lc] = (GradTYPE)voxel_values[lc]-(GradTYPE)relative_pos;
                         relative_positions[lc] = relative_pos;
@@ -879,7 +881,8 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *referenceImage,
                             valid_values = false; break;
                         }
                         if (num_warped_volumes > 1) {
-                            double common_value = GetBasisSplineValue<double>((double)voxel_values[jc]-(double)relative_pos);
+                            double common_value = GetBasisSplineValue<double>
+                                    ( (double)voxel_values[jc]-(double)relative_pos );
                             coefficients[jc] = common_value;
                         }
                         positions[jc] = (GradTYPE)voxel_values[jc]-(GradTYPE)relative_pos;
@@ -939,14 +942,16 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *referenceImage,
                         fixedEntropyDerivative_Z += warped_common[2] * fixedLog;
                         warpedEntropyDerivative_Z += warped_common[2] * warpedLog;
                     }
-
-                    nmiGradientPtrX[index] = (GradTYPE)((fixedEntropyDerivative_X + warpedEntropyDerivative_X - NMI * jointEntropyDerivative_X) / joint_entropy);
-                    nmiGradientPtrY[index] = (GradTYPE)((fixedEntropyDerivative_Y + warpedEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / joint_entropy);
-                    nmiGradientPtrZ[index] = (GradTYPE)((fixedEntropyDerivative_Z + warpedEntropyDerivative_Z - NMI * jointEntropyDerivative_Z) / joint_entropy);
-                }
-            }
-        }
-    }
+                } // loop
+                nmiGradientPtrX[index] = (GradTYPE)( (fixedEntropyDerivative_X + warpedEntropyDerivative_X
+                                                     - NMI * jointEntropyDerivative_X ) / normalised_joint_entropy );
+                nmiGradientPtrY[index] = (GradTYPE)( (fixedEntropyDerivative_Y + warpedEntropyDerivative_Y
+                                                     - NMI * jointEntropyDerivative_Y ) / normalised_joint_entropy );
+                nmiGradientPtrZ[index] = (GradTYPE)( (fixedEntropyDerivative_Z + warpedEntropyDerivative_Z
+                                                     - NMI * jointEntropyDerivative_Z ) / normalised_joint_entropy );
+            } // valid_values
+        } // mask
+    } // voxel
 }
 /* *************************************************************** */
 template<class DTYPE>

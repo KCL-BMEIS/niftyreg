@@ -1,5 +1,3 @@
-#ifdef _BUILD_NR_DEV
-
 #include "_reg_aladin_sym.h"
 #ifndef _REG_ALADIN_SYM_CPP
 #define _REG_ALADIN_SYM_CPP
@@ -219,13 +217,12 @@ void reg_aladin_sym<T>::GetWarpedImage(int interp)
     reg_aladin<T>::GetWarpedImage(interp);
     this->GetBackwardDeformationField();
     //TODO: This needs correction, otherwise we are transforming an image that has already been warped
-    reg_resampleSourceImage(this->CurrentFloating,
-                            this->CurrentReference,
-                            this->CurrentBackwardWarped,
-                            this->BackwardDeformationFieldImage,
-                            this->CurrentFloatingMask,
-                            interp,
-                            0);
+    reg_resampleImage(this->CurrentReference,
+                      this->CurrentBackwardWarped,
+                      this->BackwardDeformationFieldImage,
+                      this->CurrentFloatingMask,
+                      interp,
+                      0);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -326,4 +323,3 @@ void reg_aladin_sym<T>::DebugPrintLevelInfoEnd()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 #endif //REG_ALADIN_SYM_CPP
-#endif //_BUILD_NR_DEV

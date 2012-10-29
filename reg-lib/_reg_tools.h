@@ -51,32 +51,9 @@ void reg_intensityRescale(nifti_image *image,
  * @param radius Radius of the cubic spline kernel. The array
  * contains the radius along each axis
  */
-extern "C++" template <class PrecisionTYPE>
 void reg_tools_CubicSplineKernelConvolution(nifti_image *image,
-                                            int radius[3]
+                                            float spacingVoxel[3]
                                             );
-
-/** @brief Smooth an image using a cubic B-Spline kernel
- * @param image Image to be smoothed
- * @param radius Radius of the cubic spline kernel. The array
- * contains the radius along each axis
- */
-extern "C++" template <class PrecisionTYPE>
-void reg_smoothNormImageForCubicSpline(nifti_image *image,
-                                       int radius[3]
-                                       );
-
-/** @brief Smooth an image using a linear interpolation kernel
- * @param image Image to be smoothed
- * @param radius Radius of the cubic spline kernel. The array
- * contains the radius along each axis
- */
-extern "C++" template <class PrecisionTYPE>
-void reg_smoothImageForTrilinear(nifti_image *image,
-                                 int radius[3]
-                                 );
-// void reg_smoothImageForTrilinear<float>(nifti_image *, int[]);
-// void reg_smoothImageForTrilinear<double>(nifti_image *, int[]);
 
 /** @brief Smooth an image using a Gaussian kernel
  * @param image Image to be smoothed

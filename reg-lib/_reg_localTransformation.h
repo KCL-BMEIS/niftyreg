@@ -62,7 +62,6 @@ void reg_createControlPointGrid(nifti_image **controlPointGridImage,
  */
 extern "C++"
 void reg_spline_getDeformationField(nifti_image *controlPointGridImage,
-                                    nifti_image *referenceImage,
                                     nifti_image *deformationField,
                                     int *mask,
                                     bool composition,
@@ -403,6 +402,9 @@ int reg_bspline_GetJacobianDetFromVelocityField(nifti_image* jacobianDetImage,
 extern "C++"
 void reg_bspline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                                      nifti_image *deformationFieldImage);
+extern "C++"
+void reg_bspline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGrid,
+                                                    nifti_image **deformationFieldImage);
 /* *************************************************************** */
 
 

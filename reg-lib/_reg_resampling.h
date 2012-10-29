@@ -23,7 +23,6 @@
  * Interpolation can be nearest Neighbor (0), linear (1) or cubic spline (3).
  * The cubic spline interpolation assume a padding value of 0
  * The padding value for the NN and the LIN interpolation are user defined.
- * @param referenceImage Reference image use to define the space of the warped image
  * @param floatingImage Floating image that is interpolated
  * @param warpedImage Warped image that is being generated
  * @param deformationField Vector field image that contains the dense correspondences
@@ -35,20 +34,24 @@
  * reference image space.
  */
 extern "C++"
-void reg_resampleSourceImage(nifti_image *referenceImage,
-                             nifti_image *floatingImage,
-                             nifti_image *warpedImage,
-                             nifti_image *deformationField,
-                             int *mask,
-                             int interp,
-                             float paddingValue);
-
+void reg_resampleImage(nifti_image *floatingImage,
+                       nifti_image *warpedImage,
+                       nifti_image *deformationField,
+                       int *mask,
+                       int interp,
+                       float paddingValue);
 extern "C++"
-void reg_getSourceImageGradient(nifti_image *targetImage,
-                                nifti_image *sourceImage,
-                                nifti_image *resultGradientImage,
-                                nifti_image *deformationField,
-                                int *mask,
-                                int interp);
+void reg_resampleGradient(nifti_image *floatingImage,
+                          nifti_image *warpedImage,
+                          nifti_image *deformationField,
+                          int interp,
+                          float paddingValue);
+extern "C++"
+void reg_getImageGradient(nifti_image *sourceImage,
+                          nifti_image *resultGradientImage,
+                          nifti_image *deformationField,
+                          int *mask,
+                          int interp,
+                          float paddingValue);
 
 #endif

@@ -93,11 +93,10 @@ public:
                             size_t nvox_b=0,
                             T *cppData_b=NULL,
                             T *gradData_b=NULL);
-    virtual void Optimise(float maxLength,
-                          float smallLength,
-                          float &startLength);
+    virtual void Optimise(T maxLength,
+                          T smallLength,
+                          T &startLength);
     virtual void Perturbation(float length);
-    virtual void NormaliseGradient();
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -132,9 +131,9 @@ class reg_conjugateGradient : public reg_optimiser<T>
                             size_t nvox_b=0,
                             T *cppData_b=NULL,
                             T *gradData_b=NULL);
-    virtual void Optimise(float maxLength,
-                          float smallLength,
-                          float &startLength);
+    virtual void Optimise(T maxLength,
+                          T smallLength,
+                          T &startLength);
     virtual void Perturbation(float length);
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -168,9 +167,9 @@ public:
                             size_t nvox_b=0,
                             T *cppData_b=NULL,
                             T *gradData_b=NULL);
-    virtual void Optimise(float maxLength,
-                          float smallLength,
-                          float &startLength);
+    virtual void Optimise(T maxLength,
+                          T smallLength,
+                          T &startLength);
     virtual void UpdateGradientValues();
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
