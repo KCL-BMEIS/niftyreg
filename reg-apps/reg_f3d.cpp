@@ -117,8 +117,8 @@ void Usage(char *exec)
     printf("\t-noAppJL\t\tTo not approximate the JL value only at the control point position\n");
     printf("\t-ssd\t\t\tTo use the SSD as the similiarity measure (NMI by default)\n");
     printf("\t-kld\t\t\tTo use the KL divergence as the similiarity measure (NMI by default)*\n");
-    printf("\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)*\n");
     printf("\t* For the Kullback–Leibler divergence, reference and floating are expected to be probabilities\n");
+    printf("\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)\n");
     printf("\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent\n");
     printf("\t-pert <int>\t\tTo add perturbation step(s) after each optimisation scheme\n");
 

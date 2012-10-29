@@ -315,7 +315,6 @@ int main(int argc, char **argv)
             }
             else{
                 reg_spline_getDeformationField(controlPointImage,
-                                               referenceImage,
                                                deformationFieldImage,
                                                NULL, // mask
                                                false, //composition
@@ -360,13 +359,12 @@ int main(int argc, char **argv)
         resultImage->nvox = resultImage->dim[1] * resultImage->dim[2] * resultImage->dim[3] * resultImage->dim[4];
         resultImage->data = (void *)calloc(resultImage->nvox, resultImage->nbyper);
 
-        reg_resampleSourceImage(referenceImage,
-                                        floatingImage,
-                                        resultImage,
-                                        deformationFieldImage,
-                                        NULL,
-                                        param->interpolation,
-                                        0);
+        reg_resampleImage(floatingImage,
+                          resultImage,
+                          deformationFieldImage,
+                          NULL,
+                          param->interpolation,
+                          0);
         memset(resultImage->descrip, 0, 80);
         strcpy (resultImage->descrip,"Warped image using NiftyReg (reg_resample)");
         reg_io_WriteImageFile(resultImage,param->outputResultName);
@@ -411,13 +409,12 @@ int main(int argc, char **argv)
         resultImage->datatype =NIFTI_TYPE_UINT8;
         resultImage->nbyper = sizeof(unsigned char);
         resultImage->data = (void *)calloc(resultImage->nvox, resultImage->nbyper);
-        reg_resampleSourceImage(referenceImage,
-                                        gridImage,
-                                        resultImage,
-                                        deformationFieldImage,
-                                        NULL,
-                                        1, // linear interpolation
-                                       0);
+        reg_resampleImage(gridImage,
+                          resultImage,
+                          deformationFieldImage,
+                          NULL,
+                          1, // linear interpolation
+                          0);
         memset(resultImage->descrip, 0, 80);
         strcpy (resultImage->descrip,"Warped regular grid using NiftyReg (reg_resample)");
         reg_io_WriteImageFile(resultImage,param->outputBlankName);

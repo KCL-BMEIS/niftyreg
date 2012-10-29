@@ -50,6 +50,8 @@ typedef struct{
 typedef struct{
     bool inputImageFlag;
     bool outputImageFlag;
+    bool floatFlag;
+    bool downsampleFlag;
     bool rmsImageFlag;
     bool smoothValueFlag;
     bool smoothGaussianFlag;
@@ -77,7 +79,7 @@ void Usage(char *exec)
     printf("\t-sub <filename/float>\tThis image (or value) is subtracted to the input\n");
     printf("\t-mul <filename/float>\tThis image (or value) is multiplied to the input\n");
     printf("\t-div <filename/float>\tThis image (or value) is divided to the input\n");
-    printf("\t-smo <float>\t\tThe input image is smoothed using a b-spline curve\n");
+    printf("\t-smo <float>\t\tThe input image is smoothed using a cubic b-spline kernel\n");
     printf("\t-smoG <float> <float> <float>\tThe input image is smoothed using Gaussian kernel\n");
     printf("\t-rms <filename>\t\tCompute the mean rms between both image\n");
     printf("\t-bin \t\t\tBinarise the input image (val!=0?val=1:val=0)\n");
@@ -157,10 +159,15 @@ int main(int argc, char **argv)
             }
             flag->operationTypeFlag=3;
         }
-
         else if(strcmp(argv[i], "-rms") == 0){
             param->rmsImageName=argv[++i];
             flag->rmsImageFlag=1;
+        }
+        else if(strcmp(argv[i], "-down") == 0){
+            flag->downsampleFlag=1;
+        }
+        else if(strcmp(argv[i], "-float") == 0){
+            flag->floatFlag=1;
         }
         else if(strcmp(argv[i], "-smo") == 0){
             param->smoothValue=atof(argv[++i]);
@@ -206,12 +213,31 @@ int main(int argc, char **argv)
         nifti_image *smoothImg = nifti_copy_nim_info(image);
         smoothImg->data = (void *)malloc(smoothImg->nvox * smoothImg->nbyper);
         memcpy(smoothImg->data, image->data, smoothImg->nvox*smoothImg->nbyper);
-        int radius[3];radius[0]=radius[1]=radius[2]=param->smoothValue;
-        reg_smoothNormImageForCubicSpline<PrecisionTYPE>(smoothImg, radius);
+        float spacing[3];spacing[0]=spacing[1]=spacing[2]=param->smoothValue;
+        reg_tools_CubicSplineKernelConvolution(smoothImg, spacing);
         if(flag->outputImageFlag)
             reg_io_WriteImageFile(smoothImg, param->outputImageName);
         else reg_io_WriteImageFile(smoothImg, "output.nii");
         nifti_image_free(smoothImg);
+    }
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+
+    if(flag->floatFlag){
+        reg_tools_changeDatatype<float>(image);
+        if(flag->outputImageFlag)
+            reg_io_WriteImageFile(image, param->outputImageName);
+        else reg_io_WriteImageFile(image, "output.nii");
+    }
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+
+    if(flag->downsampleFlag){
+        bool dim[8]={true,true,true,true,true,true,true,true};
+        reg_downsampleImage<float>(image, true, dim);
+        if(flag->outputImageFlag)
+            reg_io_WriteImageFile(image, param->outputImageName);
+        else reg_io_WriteImageFile(image, "output.nii");
     }
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//

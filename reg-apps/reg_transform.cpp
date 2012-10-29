@@ -426,7 +426,6 @@ int main(int argc, char **argv)
                                                             );
         else
             reg_spline_getDeformationField(controlPointImage,
-                                           referenceImage,
                                            deformationFieldImage,
                                            NULL,
                                            false, //composition
@@ -493,7 +492,6 @@ int main(int argc, char **argv)
 
             //Compute the initial deformation
             reg_spline_getDeformationField(firstControlPointImage,
-                                           referenceImage,
                                            deformationFieldImage,
                                            NULL,
                                            false, //composition
@@ -517,7 +515,6 @@ int main(int argc, char **argv)
 
         // The deformation field is updated through composition
         reg_spline_getDeformationField(secondControlPointImage,
-                                       deformationFieldImage,
                                        deformationFieldImage,
                                        NULL,
                                        true, //composition
@@ -773,7 +770,6 @@ int main(int argc, char **argv)
         }
         else{ // control point position
             reg_spline_getDeformationField(nrr_transformation,
-                                           middleImage,
                                            deformationFieldImage,
                                            NULL,
                                            true, //composition
