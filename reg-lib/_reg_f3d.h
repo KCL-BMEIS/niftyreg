@@ -28,6 +28,8 @@
 #include "float.h"
 #include <limits>
 
+#define APPROX_GRAD false
+
 template <class T>
 class reg_f3d : public InterfaceOptimiser
 {
@@ -79,7 +81,7 @@ protected:
     bool verbose;
     bool usePyramid;
     int interpolation;
-    //    int threadNumber;
+//    int threadNumber;
 
     bool initialised;
     nifti_image **referencePyramid;
@@ -146,10 +148,15 @@ protected:
     virtual void GetL2NormDispGradient();
     virtual void GetJacobianBasedGradient();
     virtual void SetGradientImageToZero();
+    virtual T NormaliseGradient();
+    virtual void SmoothGradient();
+    virtual void GetApproximatedGradient();
     virtual void DisplayCurrentLevelParameters();
 
     virtual double GetObjectiveFunctionValue();
-    virtual void UpdateParameters(T);
+    virtual void UpdateParameters(float);
+
+    virtual void ExponentiateGradient(){return;}
 
     void (*funcProgressCallback)(float pcntProgress, void *params);
     void *paramsProgressCallback;

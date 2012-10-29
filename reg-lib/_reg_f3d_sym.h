@@ -67,13 +67,16 @@ class reg_f3d_sym : public reg_f3d<T>
     virtual void GetL2NormDispGradient();
     virtual void GetJacobianBasedGradient();
     virtual void SetGradientImageToZero();
+    virtual T NormaliseGradient();
+    virtual void SmoothGradient();
+    virtual void GetApproximatedGradient();
     virtual void DisplayCurrentLevelParameters();
 
     virtual void GetInverseConsistencyErrorField();
     virtual double GetInverseConsistencyPenaltyTerm();
     virtual void GetInverseConsistencyGradient();
 
-    virtual void UpdateParameters(T);
+    virtual void UpdateParameters(float);
 
 public:
     virtual void SetFloatingMask(nifti_image *);

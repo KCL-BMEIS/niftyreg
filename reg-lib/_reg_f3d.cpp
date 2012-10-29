@@ -847,8 +847,7 @@ void reg_f3d<T>::Initisalise_f3d()
         }
     }
     else{
-        // NMI is used here
-        // RESCALE THE INPUT IMAGE INTENSITY
+        // RESCALE THE INPUT IMAGE INTENSITY TO USE WITH NMI
         /* the target and source are resampled between 2 and bin-3
          * The images are then shifted by two which is the suport of the spline used
          * by the parzen window filling of the joint histogram */
@@ -1051,7 +1050,6 @@ template <class T>
 void reg_f3d<T>::GetDeformationField()
 {
     reg_spline_getDeformationField(this->controlPointGrid,
-                                   this->currentReference,
                                    this->deformationFieldImage,
                                    this->currentMask,
                                    false, //composition
@@ -1067,13 +1065,12 @@ void reg_f3d<T>::WarpFloatingImage(int inter)
     // Compute the deformation field
     this->GetDeformationField();
     // Resample the floating image
-    reg_resampleSourceImage(this->currentReference,
-                            this->currentFloating,
-                            this->warped,
-                            this->deformationFieldImage,
-                            this->currentMask,
-                            inter,
-                            this->warpedPaddingValue);
+    reg_resampleImage(this->currentFloating,
+                      this->warped,
+                      this->deformationFieldImage,
+                      this->currentMask,
+                      inter,
+                      this->warpedPaddingValue);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1209,12 +1206,8 @@ double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type)
             fprintf(stderr, "[NiftyReg ERROR] The folding correction scheme failed\n");
         }
         else{
-#ifdef NDEBUG
-            if(this->verbose){
-#endif
+#ifndef NDEBUG
                 printf("[%s] Folding correction, %i step(s)\n", this->executableName, it);
-#ifdef NDEBUG
-            }
 #endif
         }
     }
@@ -1262,12 +1255,12 @@ template <class T>
 void reg_f3d<T>::GetVoxelBasedGradient()
 {
     // The intensity gradient is first computed
-    reg_getSourceImageGradient(this->currentReference,
-                               this->currentFloating,
-                               this->warpedGradientImage,
-                               this->deformationFieldImage,
-                               this->currentMask,
-                               this->interpolation);
+    reg_getImageGradient(this->currentFloating,
+                         this->warpedGradientImage,
+                         this->deformationFieldImage,
+                         this->currentMask,
+                         this->interpolation,
+                         this->warpedPaddingValue);
 
     if(this->useSSD){
         // Compute the voxel based SSD gradient
@@ -1295,9 +1288,8 @@ void reg_f3d<T>::GetVoxelBasedGradient()
     else{
         // Use additive NMI when the flag is set and we have multi channel input
         if(this->currentReference->nt>1 &&
-                this->currentReference->nt == this->warped->nt && additive_mc_nmi){
-
-            fprintf(stderr, "WARNING: Modification for Jorge - reg_f3d<T>::GetVoxelBasedGradient()\n");
+                this->currentReference->nt == this->warped->nt &&
+                additive_mc_nmi){
 
             T *referencePtr=static_cast<T *>(this->currentReference->data);
             T *warpedPtr=static_cast<T *>(this->currentFloating->data);
@@ -1412,12 +1404,12 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
     this->GetVoxelBasedGradient();
 
     // The voxel based NMI gradient is convolved with a spline kernel
-    int smoothingRadius[3];
-    smoothingRadius[0] = (int)( 2.0*this->controlPointGrid->dx/this->currentReference->dx );
-    smoothingRadius[1] = (int)( 2.0*this->controlPointGrid->dy/this->currentReference->dy );
-    smoothingRadius[2] = (int)( 2.0*this->controlPointGrid->dz/this->currentReference->dz );
-    reg_tools_CubicSplineKernelConvolution<T>(this->voxelBasedMeasureGradientImage,
-                                              smoothingRadius);
+    float spacingVoxel[3]={
+        this->controlPointGrid->dx/this->currentReference->dx,
+        this->controlPointGrid->dy/this->currentReference->dy,
+        this->controlPointGrid->dz/this->currentReference->dz};
+    reg_tools_CubicSplineKernelConvolution(this->voxelBasedMeasureGradientImage,
+                                           spacingVoxel);
 
     // The node based NMI gradient is extracted
     reg_voxelCentric2NodeCentric(this->nodeBasedGradientImage,
@@ -1426,26 +1418,28 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
                                  false);
 
     /* The gradient is converted from voxel space to real space */
-    mat44 *floatingMatrix_xyz=NULL;
+    mat44 *referenceMatrix_xyz=NULL;
     int controlPointNumber=this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz;
     int i;
     if(this->currentFloating->sform_code>0)
-        floatingMatrix_xyz = &(this->currentFloating->sto_xyz);
-    else floatingMatrix_xyz = &(this->currentFloating->qto_xyz);
+        referenceMatrix_xyz = &(this->currentReference->sto_xyz);
+    else referenceMatrix_xyz = &(this->currentReference->qto_xyz);
     if(this->currentReference->nz==1){
         T *gradientValuesX = static_cast<T *>(this->nodeBasedGradientImage->data);
         T *gradientValuesY = &gradientValuesX[controlPointNumber];
         T newGradientValueX, newGradientValueY;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(gradientValuesX, gradientValuesY, floatingMatrix_xyz, controlPointNumber) \
+    shared(gradientValuesX, gradientValuesY, referenceMatrix_xyz, controlPointNumber) \
     private(newGradientValueX, newGradientValueY, i)
 #endif
         for(i=0; i<controlPointNumber; i++){
-            newGradientValueX = gradientValuesX[i] * floatingMatrix_xyz->m[0][0] +
-                    gradientValuesY[i] * floatingMatrix_xyz->m[0][1];
-            newGradientValueY = gradientValuesX[i] * floatingMatrix_xyz->m[1][0] +
-                    gradientValuesY[i] * floatingMatrix_xyz->m[1][1];
+            newGradientValueX =
+                    gradientValuesX[i] * referenceMatrix_xyz->m[0][0] +
+                    gradientValuesY[i] * referenceMatrix_xyz->m[0][1];
+            newGradientValueY =
+                    gradientValuesX[i] * referenceMatrix_xyz->m[1][0] +
+                    gradientValuesY[i] * referenceMatrix_xyz->m[1][1];
             gradientValuesX[i] = newGradientValueX;
             gradientValuesY[i] = newGradientValueY;
         }
@@ -1457,20 +1451,23 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
         T newGradientValueX, newGradientValueY, newGradientValueZ;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(gradientValuesX, gradientValuesY, gradientValuesZ, floatingMatrix_xyz, controlPointNumber) \
+    shared(gradientValuesX, gradientValuesY, gradientValuesZ, referenceMatrix_xyz, controlPointNumber) \
     private(newGradientValueX, newGradientValueY, newGradientValueZ, i)
 #endif
         for(i=0; i<controlPointNumber; i++){
 
-            newGradientValueX = gradientValuesX[i] * floatingMatrix_xyz->m[0][0] +
-                    gradientValuesY[i] * floatingMatrix_xyz->m[0][1] +
-                    gradientValuesZ[i] * floatingMatrix_xyz->m[0][2];
-            newGradientValueY = gradientValuesX[i] * floatingMatrix_xyz->m[1][0] +
-                    gradientValuesY[i] * floatingMatrix_xyz->m[1][1] +
-                    gradientValuesZ[i] * floatingMatrix_xyz->m[1][2];
-            newGradientValueZ = gradientValuesX[i] * floatingMatrix_xyz->m[2][0] +
-                    gradientValuesY[i] * floatingMatrix_xyz->m[2][1] +
-                    gradientValuesZ[i] * floatingMatrix_xyz->m[2][2];
+            newGradientValueX =
+                    gradientValuesX[i] * referenceMatrix_xyz->m[0][0] +
+                    gradientValuesY[i] * referenceMatrix_xyz->m[0][1] +
+                    gradientValuesZ[i] * referenceMatrix_xyz->m[0][2];
+            newGradientValueY =
+                    gradientValuesX[i] * referenceMatrix_xyz->m[1][0] +
+                    gradientValuesY[i] * referenceMatrix_xyz->m[1][1] +
+                    gradientValuesZ[i] * referenceMatrix_xyz->m[1][2];
+            newGradientValueZ =
+                    gradientValuesX[i] * referenceMatrix_xyz->m[2][0] +
+                    gradientValuesY[i] * referenceMatrix_xyz->m[2][1] +
+                    gradientValuesZ[i] * referenceMatrix_xyz->m[2][2];
             gradientValuesX[i] = newGradientValueX;
             gradientValuesY[i] = newGradientValueY;
             gradientValuesZ[i] = newGradientValueZ;
@@ -1542,6 +1539,59 @@ void reg_f3d<T>::SetGradientImageToZero()
     for(unsigned int i=0; i<this->nodeBasedGradientImage->nvox; ++i)
         *nodeGradPtr++=0;
     return;
+}
+
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+T reg_f3d<T>::NormaliseGradient()
+{
+    // First compute the gradient max length for normalisation purpose
+    T maxGradValue=0;
+    size_t voxNumber = this->nodeBasedGradientImage->nx *
+            this->nodeBasedGradientImage->ny *
+            this->nodeBasedGradientImage->nz;
+    T *ptrX = static_cast<T *>(this->nodeBasedGradientImage->data);
+    T *ptrY = &ptrX[voxNumber];
+    if(this->nodeBasedGradientImage->nz>1){
+        T *ptrZ = &ptrY[voxNumber];
+        for(int i=0; i<voxNumber; i++){
+            T valX=0,valY=0,valZ=0;
+            if(this->optimiseX==true)
+                valX = *ptrX++;
+            if(this->optimiseY==true)
+                valY = *ptrY++;
+            if(this->optimiseZ==true)
+                valZ = *ptrZ++;
+            T length = (T)(sqrt(valX*valX + valY*valY + valZ*valZ));
+            maxGradValue = (length>maxGradValue)?length:maxGradValue;
+        }
+    }
+    else{
+        for(int i=0; i<voxNumber; i++){
+            T valX=0,valY=0;
+            if(this->optimiseX==true)
+                valX = *ptrX++;
+            if(this->optimiseY==true)
+                valY = *ptrY++;
+            T length = (T)(sqrt(valX*valX + valY*valY));
+            maxGradValue = (length>maxGradValue)?length:maxGradValue;
+        }
+    }
+
+    if(strcmp(this->executableName,"NiftyReg F3D")==0){
+        // The gradient is normalised if we are running F3D
+        // It will be normalised later when running symmetric or F3D2
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] Objective function gradient maximal length: %g\n",maxGradValue);
+#endif
+        ptrX = static_cast<T *>(this->nodeBasedGradientImage->data);
+        for(size_t i=0;i<this->nodeBasedGradientImage->nvox;++i){
+            *ptrX++ /= maxGradValue;
+        }
+    }
+    // Returns the largest gradient distance
+    return maxGradValue;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1616,13 +1666,23 @@ double reg_f3d<T>::GetObjectiveFunctionValue()
     // Compute the Inverse consistency penalty term if required
     this->currentIC = this->GetInverseConsistencyPenaltyTerm();
 
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] (wMeasure) %g | (wBE) %g | (wLE) %g | (wL2) %g | (wJac) %g | (wIC) %g \n",
+           this->currentWMeasure,
+           this->currentWBE,
+           this->currentWLE,
+           this->currentWL2,
+           this->currentWJac,
+           this->currentIC);
+#endif
+
     // Store the global objective function value
-    return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWL2 - this->currentWJac;
+    return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWL2 - this->currentWJac - this->currentIC;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_f3d<T>::UpdateParameters(T scale)
+void reg_f3d<T>::UpdateParameters(float scale)
 {
     T *currentDOF=this->optimiser->GetCurrentDOF();
     T *bestDOF=this->optimiser->GetBestDOF();
@@ -1690,6 +1750,38 @@ void reg_f3d<T>::SetOptimiser()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
+void reg_f3d<T>::SmoothGradient()
+{
+    // The gradient is smoothed using a Gaussian kernel if it is required
+    if(this->gradientSmoothingSigma!=0){
+        reg_gaussianSmoothing<T>(this->nodeBasedGradientImage,
+                                 fabs(this->gradientSmoothingSigma),
+                                 NULL);
+    }
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+void reg_f3d<T>::GetApproximatedGradient()
+{
+    // Loop over every control point
+    T *gridPtr = static_cast<T *>(this->controlPointGrid->data);
+    T *gradPtr = static_cast<T *>(this->nodeBasedGradientImage->data);
+    T eps = this->controlPointGrid->dx / 1000.f;
+    for(size_t i=0; i<this->controlPointGrid->nvox;i++)
+    {
+        T currentValue = this->optimiser->GetBestDOF()[i];
+        gridPtr[i] = currentValue + eps;
+        double valPlus = this->GetObjectiveFunctionValue();
+        gridPtr[i] = currentValue - eps;
+        double valMinus = this->GetObjectiveFunctionValue();
+        gridPtr[i] = currentValue;
+        gradPtr[i] = -(T)((valPlus - valMinus ) / (2.0*eps));
+    }
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
 void reg_f3d<T>::Run_f3d()
 {
 #ifndef NDEBUG
@@ -1728,10 +1820,11 @@ void reg_f3d<T>::Run_f3d()
 
         this->DisplayCurrentLevelParameters();
 
-        T maxStepSize = (this->currentReference->dx>this->currentReference->dy)?this->currentReference->dx:this->currentReference->dy;
-        maxStepSize = (this->currentReference->dz>maxStepSize)?this->currentReference->dz:maxStepSize;
+        T maxStepSize = this->currentReference->dx>this->currentReference->dy?this->currentReference->dx:this->currentReference->dy;
+        if(this->currentReference->ndim>2)
+            maxStepSize = (this->currentReference->dz>maxStepSize)?this->currentReference->dz:maxStepSize;
         T currentSize = maxStepSize;
-        T smallestSize = maxStepSize / 100.0f;
+        T smallestSize = maxStepSize / (T)100.0;
 
         // ALLOCATE IMAGES THAT ARE REQUIRED TO COMPUTE THE GRADIENT
         this->AllocateVoxelBasedMeasureGradient();
@@ -1793,14 +1886,16 @@ void reg_f3d<T>::Run_f3d()
                         break;
                 }
 
-                // Compute the gradient of the similarity measure
-                if(this->similarityWeight>0){
-                    this->WarpFloatingImage(this->interpolation);
-                    this->ComputeSimilarityMeasure();
-                    this->GetSimilarityMeasureGradient();
-                }
-                else{
-                    this->SetGradientImageToZero();
+                if(!APPROX_GRAD){
+                    // Compute the gradient of the similarity measure
+                    if(this->similarityWeight>0){
+                        this->WarpFloatingImage(this->interpolation);
+                        this->ComputeSimilarityMeasure();
+                        this->GetSimilarityMeasureGradient();
+                    }
+                    else{
+                        this->SetGradientImageToZero();
+                    }
                 }
 #ifdef _USE_CUDA
                 if(this->optimiser_gpu!=NULL)
@@ -1809,23 +1904,27 @@ void reg_f3d<T>::Run_f3d()
 #endif
                 this->optimiser->IncrementCurrentIterationNumber();
 
-                // The gradient is smoothed using a Gaussian kernel if it is required
-                if(this->gradientSmoothingSigma!=0){
-                    reg_gaussianSmoothing<T>(this->nodeBasedGradientImage,
-                                             fabs(this->gradientSmoothingSigma),
-                                             NULL);
-                }
+                // Smooth the gradient if require
+                this->SmoothGradient();
 
-                // Compute the penalty term gradients if required
-                this->GetBendingEnergyGradient();
-                this->GetJacobianBasedGradient();
-                this->GetLinearEnergyGradient();
-                this->GetL2NormDispGradient();
-                this->GetInverseConsistencyGradient();
+                if(!APPROX_GRAD){
+                    // Exponentiate the gradient for F3D2 if required
+                    this->ExponentiateGradient();
+
+                    // Compute the penalty term gradients if required
+                    this->GetBendingEnergyGradient();
+                    this->GetJacobianBasedGradient();
+                    this->GetLinearEnergyGradient();
+                    this->GetL2NormDispGradient();
+                    this->GetInverseConsistencyGradient();
+                }
+                else this->GetApproximatedGradient();
+
+                // Normalise the gradient
+                this->NormaliseGradient();
 
                 // Initialise the line search initial step size
                 currentSize=currentSize>maxStepSize?maxStepSize:currentSize;
-//                currentSize=maxStepSize;
 
                 // A line search is performed
 #ifdef _USE_CUDA
@@ -1923,6 +2022,32 @@ void reg_f3d<T>::Run_f3d()
             }
         } // perturbation loop
 
+/*
+        this->similarityWeight=1;
+        this->SetBendingEnergyWeight(0);
+        this->SetGradientImageToZero();
+        this->WarpFloatingImage(this->interpolation);
+        this->ComputeSimilarityMeasure();
+        this->GetSimilarityMeasureGradient();
+        nifti_set_filenames(this->nodeBasedGradientImage, "grad_an_meas.nii",0,0);
+        nifti_image_write(this->nodeBasedGradientImage);
+        this->SetGradientImageToZero();
+        this->GetApproximatedGradient();
+        nifti_set_filenames(this->nodeBasedGradientImage, "grad_ap_meas.nii",0,0);
+        nifti_image_write(this->nodeBasedGradientImage);
+
+        this->similarityWeight=0;
+        this->SetBendingEnergyWeight(1);
+        this->SetGradientImageToZero();
+        this->GetBendingEnergyGradient();
+        nifti_set_filenames(this->nodeBasedGradientImage, "grad_an_be.nii",0,0);
+        nifti_image_write(this->nodeBasedGradientImage);
+        this->SetGradientImageToZero();
+        this->GetApproximatedGradient();
+        nifti_set_filenames(this->nodeBasedGradientImage, "grad_ap_be.nii",0,0);
+        nifti_image_write(this->nodeBasedGradientImage);
+*/
+
         // FINAL FOLDING CORRECTION
         if(this->jacobianLogWeight>0 && this->jacobianLogApproximation==true)
             this->ComputeJacobianBasedPenaltyTerm(2); // 20 iterations without approximation
@@ -1939,6 +2064,7 @@ void reg_f3d<T>::Run_f3d()
             delete this->optimiser;
             this->optimiser=NULL;
         }
+
         this->ClearWarped();
         this->ClearDeformationField();
         this->ClearWarpedGradient();

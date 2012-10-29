@@ -12,10 +12,13 @@
 
 #include "_reg_f3d_sym.h"
 
+//#define _BUILD_NR_DEV
 #ifdef _BUILD_NR_DEV
 
 #ifndef _REG_F3D2_H
 #define _REG_F3D2_H
+
+#define BCH true
 
 template <class T>
 class reg_f3d2 : public reg_f3d_sym<T>
@@ -30,7 +33,8 @@ class reg_f3d2 : public reg_f3d_sym<T>
     virtual void GetInverseConsistencyErrorField();
     virtual void GetInverseConsistencyGradient();
     virtual void GetSimilarityMeasureGradient();
-    virtual void UpdateParameters(T);
+    virtual void UpdateParameters(float);
+    virtual void ExponentiateGradient();
 
 public:
     virtual void SetCompositionStepNumber(int);

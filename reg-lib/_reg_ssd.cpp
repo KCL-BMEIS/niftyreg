@@ -168,7 +168,7 @@ void reg_getVoxelBasedSSDGradient1(nifti_image *referenceImage,
         jacDetPtr=static_cast<DTYPE *>(jacobianDetImage->data);
 
     DTYPE gradX, gradY, gradZ;
-    double JacDetValue, targetValue, resultValue, common;
+    double JacDetValue, targetValue, resultValue, common, n=0.0;
 
     // Loop over the different time points
     for(int time=0;time<referenceImage->nt;++time){
@@ -186,7 +186,8 @@ void reg_getVoxelBasedSSDGradient1(nifti_image *referenceImage,
 #pragma omp parallel for default(none) \
     shared(referenceImage, currentRefPtr, currentWarPtr, maxSD, mask, jacDetPtr, jacobianDetImage, \
     currentGradPtrX, currentGradPtrY, currentGradPtrZ, ssdGradPtrX, ssdGradPtrY, ssdGradPtrZ, voxelNumber) \
-    private(voxel, targetValue, resultValue, common, gradX, gradY, gradZ, JacDetValue)
+    private(voxel, targetValue, resultValue, common, gradX, gradY, gradZ, JacDetValue) \
+    reduction(+:n)
 #endif
         for(voxel=0; voxel<voxelNumber;voxel++){
             if(mask[voxel]>-1){
@@ -197,25 +198,29 @@ void reg_getVoxelBasedSSDGradient1(nifti_image *referenceImage,
                 gradZ=0;
                 if(targetValue==targetValue && resultValue==resultValue){
                     common = - 2.0 * (targetValue - resultValue)/maxSD;
+                    if(jacobianDetImage!=NULL){
+                        common *= jacDetPtr[voxel];
+                        n+=jacDetPtr[voxel];
+                    }
+                    else n++;
+
                     gradX = (DTYPE)(common * currentGradPtrX[voxel]);
                     gradY = (DTYPE)(common * currentGradPtrY[voxel]);
-                    if(referenceImage->nz>1)
-                        gradZ = (DTYPE)(common * currentGradPtrZ[voxel]);
-                    if(jacobianDetImage!=NULL){
-                        JacDetValue = jacDetPtr[voxel];
-                        gradX *= JacDetValue;
-                        gradY *= JacDetValue;
-                        if(referenceImage->nz>1)
-                            gradZ *= JacDetValue;
-                    }
+
                     ssdGradPtrX[voxel] += gradX;
                     ssdGradPtrY[voxel] += gradY;
-                    if(referenceImage->nz>1)
+
+                    if(referenceImage->nz>1){
+                        gradZ = (DTYPE)(common * currentGradPtrZ[voxel]);
                         ssdGradPtrZ[voxel] += gradZ;
+                    }
                 }
             }
         }
     }// loop over time points
+
+    for(voxel=0; voxel<ssdGradientImage->nvox;++voxel)
+        ssdGradPtrX[voxel]/=n;
 }
 /* *************************************************************** */
 void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,

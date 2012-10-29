@@ -340,8 +340,8 @@ void reg_f3d_sym<T>::CheckParameters_f3d()
 
     if(this->affineTransformation!=NULL){
         fprintf(stderr, "[NiftyReg F3D_SYM ERROR] The inverse consistency parametrisation does not handle affine input\n");
-        fprintf(stderr, "[NiftyReg F3D_SYM ERROR] Please update your source image sform using reg_transform\n");
-        fprintf(stderr, "[NiftyReg F3D_SYM ERROR] and use the updated source image as an input\n.");
+        fprintf(stderr, "[NiftyReg F3D_SYM ERROR] Please update your floating image sform using reg_transform\n");
+        fprintf(stderr, "[NiftyReg F3D_SYM ERROR] and use the updated floating image as an input\n.");
         exit(1);
     }
 
@@ -480,6 +480,7 @@ void reg_f3d_sym<T>::Initisalise_f3d()
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_sym::Initialise_f3d() done\n");
 #endif
+
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -490,7 +491,6 @@ void reg_f3d_sym<T>::GetDeformationField()
     reg_f3d<T>::GetDeformationField();
     if(this->backwardDeformationFieldImage!=NULL)
         reg_spline_getDeformationField(this->backwardControlPointGrid,
-                                       this->currentFloating,
                                        this->backwardDeformationFieldImage,
                                        this->currentFloatingMask,
                                        false, //composition
@@ -507,21 +507,19 @@ void reg_f3d_sym<T>::WarpFloatingImage(int inter)
     this->GetDeformationField();
 
     // Resample the floating image
-    reg_resampleSourceImage(this->currentReference,
-                            this->currentFloating,
-                            this->warped,
-                            this->deformationFieldImage,
-                            this->currentMask,
-                            inter,
-                            this->warpedPaddingValue);
+    reg_resampleImage(this->currentFloating, // input image
+                      this->warped, // warped input image
+                      this->deformationFieldImage, // deformation field
+                      this->currentMask, // mask
+                      inter, // interpolation
+                      this->warpedPaddingValue); // padding value
     // Resample the reference image
-    reg_resampleSourceImage(this->currentFloating,
-                            this->currentReference,
-                            this->backwardWarped,
-                            this->backwardDeformationFieldImage,
-                            this->currentFloatingMask,
-                            inter,
-                            this->warpedPaddingValue);
+    reg_resampleImage(this->currentReference, // input image
+                      this->backwardWarped, // warped input image
+                      this->backwardDeformationFieldImage, // deformation field
+                      this->currentFloatingMask, // mask
+                      inter, // interpolation type
+                      this->warpedPaddingValue); // padding value
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -547,16 +545,19 @@ double reg_f3d_sym<T>::ComputeSimilarityMeasure()
         else measure /= this->maxSSD[0];
     }
     else if(this->useKLD){
+        // forward
         measure = -reg_getKLDivergence(this->currentReference,
                                        this->warped,
                                        NULL,
                                        this->currentMask);
-        measure += -reg_getKLDivergence(this->currentFloating,
-                                        this->backwardWarped,
-                                        NULL,
-                                        this->currentFloatingMask);
+        // backward
+        measure+= -reg_getKLDivergence(this->currentFloating,
+                                       this->backwardWarped,
+                                       NULL,
+                                       this->currentFloatingMask);
     }
     else{
+        // forward
         reg_getEntropies(this->currentReference,
                          this->warped,
                          this->referenceBinNumber,
@@ -566,6 +567,7 @@ double reg_f3d_sym<T>::ComputeSimilarityMeasure()
                          this->entropies,
                          this->currentMask,
                          this->approxParzenWindow);
+        // backward
         reg_getEntropies(this->currentFloating,
                          this->backwardWarped,
                          this->floatingBinNumber,
@@ -575,15 +577,9 @@ double reg_f3d_sym<T>::ComputeSimilarityMeasure()
                          this->backwardEntropies,
                          this->currentFloatingMask,
                          this->approxParzenWindow);
+        // overall measure
         measure = (this->entropies[0]+this->entropies[1])/this->entropies[2] +
                   (this->backwardEntropies[0]+this->backwardEntropies[1])/this->backwardEntropies[2];
-
-//        fprintf(stderr, "[%i] for %g - bck %g | for entropies : [%g %g %g] | bck entropies : [%g %g %g]\n",
-//                this->currentIteration,
-//                (this->entropies[0]+this->entropies[1])/this->entropies[2],
-//                (this->backwardEntropies[0]+this->backwardEntropies[1])/this->backwardEntropies[2],
-//                this->entropies[0], this->entropies[1], this->entropies[2],
-//                this->backwardEntropies[0], this->backwardEntropies[1], this->backwardEntropies[2]);
     }
     return double(this->similarityWeight) * measure;
 }
@@ -627,10 +623,12 @@ double reg_f3d_sym<T>::ComputeJacobianBasedPenaltyTerm(int type)
 #endif
         it++;
     }
-    if(type>0){
+    if(type>0 && it>0){
         if(backwardPenaltyTerm!=backwardPenaltyTerm){
             this->optimiser->RestoreBestDOF();
+#ifndef NDEBUG
             fprintf(stderr, "[NiftyReg ERROR] The backward transformation folding correction scheme failed\n");
+#endif
         }
         else{
 #ifdef NDEBUG
@@ -686,7 +684,7 @@ double reg_f3d_sym<T>::ComputeL2NormDispPenaltyTerm()
     double forwardPenaltyTerm=reg_f3d<T>::ComputeL2NormDispPenaltyTerm();
 
     // Compute the L2 norm penalty term along the backward direction
-    double backwardPenaltyTerm= (double)this->L2NormWeight *
+    double backwardPenaltyTerm = (double)this->L2NormWeight *
             reg_bspline_L2norm_displacement(this->backwardControlPointGrid);
 
     // Return the sum of the forward and backward squared L2 norm of the displacement
@@ -698,20 +696,20 @@ template <class T>
 void reg_f3d_sym<T>::GetVoxelBasedGradient()
 {
     // The intensity gradient is first computed - floating warped into reference
-    reg_getSourceImageGradient(this->currentReference,
-                               this->currentFloating,
-                               this->warpedGradientImage,
-                               this->deformationFieldImage,
-                               this->currentMask,
-                               this->interpolation);
+    reg_getImageGradient(this->currentFloating,
+                         this->warpedGradientImage,
+                         this->deformationFieldImage,
+                         this->currentMask,
+                         this->interpolation,
+                         this->warpedPaddingValue);
 
     // The intensity gradient is first computed - reference warped into floating
-    reg_getSourceImageGradient(this->currentFloating,
-                               this->currentReference,
-                               this->backwardWarpedGradientImage,
-                               this->backwardDeformationFieldImage,
-                               this->currentFloatingMask,
-                               this->interpolation);
+    reg_getImageGradient(this->currentReference,
+                         this->backwardWarpedGradientImage,
+                         this->backwardDeformationFieldImage,
+                         this->currentFloatingMask,
+                         this->interpolation,
+                         this->warpedPaddingValue);
 
     if(this->useSSD){
         T localMaxSSD=this->maxSSD[0];
@@ -787,17 +785,17 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
 template <class T>
 void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
 {
-    this->GetVoxelBasedGradient();
+//    this->GetVoxelBasedGradient();
 
     reg_f3d<T>::GetSimilarityMeasureGradient();
 
     // The voxel based NMI gradient is convolved with a spline kernel
-    int smoothingRadius[3];
-    smoothingRadius[0] = (int)( 2.0*this->backwardControlPointGrid->dx/this->currentFloating->dx );
-    smoothingRadius[1] = (int)( 2.0*this->backwardControlPointGrid->dy/this->currentFloating->dy );
-    smoothingRadius[2] = (int)( 2.0*this->backwardControlPointGrid->dz/this->currentFloating->dz );
-    reg_tools_CubicSplineKernelConvolution<T>(this->backwardVoxelBasedMeasureGradientImage,
-                                              smoothingRadius);
+    float spacingVoxel[3]={
+        this->backwardControlPointGrid->dx/this->currentFloating->dx,
+        this->backwardControlPointGrid->dy/this->currentFloating->dy,
+        this->backwardControlPointGrid->dz/this->currentFloating->dz};
+    reg_tools_CubicSplineKernelConvolution(this->backwardVoxelBasedMeasureGradientImage,
+                                           spacingVoxel);
 
     // The node based NMI gradient is extracted
     reg_voxelCentric2NodeCentric(this->backwardNodeBasedGradientImage,
@@ -806,28 +804,30 @@ void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
                                  false);
 
     /* The gradient is converted from voxel space to real space */
-    mat44 *referenceMatrix_xyz=NULL;
+    mat44 *floatingMatrix_xyz=NULL;
     int controlPointNumber=this->backwardControlPointGrid->nx *
             this->backwardControlPointGrid->ny *
             this->backwardControlPointGrid->nz;
     int i;
     if(this->currentReference->sform_code>0)
-        referenceMatrix_xyz = &(this->currentReference->sto_xyz);
-    else referenceMatrix_xyz = &(this->currentReference->qto_xyz);
+        floatingMatrix_xyz = &(this->currentFloating->sto_xyz);
+    else floatingMatrix_xyz = &(this->currentFloating->qto_xyz);
     if(this->currentFloating->nz==1){
         T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
         T *gradientValuesY = &gradientValuesX[controlPointNumber];
         T newGradientValueX, newGradientValueY;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(gradientValuesX, gradientValuesY, referenceMatrix_xyz, controlPointNumber) \
+    shared(gradientValuesX, gradientValuesY, floatingMatrix_xyz, controlPointNumber) \
     private(newGradientValueX, newGradientValueY, i)
 #endif
         for(i=0; i<controlPointNumber; i++){
-            newGradientValueX = gradientValuesX[i] * referenceMatrix_xyz->m[0][0] +
-                    gradientValuesY[i] * referenceMatrix_xyz->m[0][1];
-            newGradientValueY = gradientValuesX[i] * referenceMatrix_xyz->m[1][0] +
-                    gradientValuesY[i] * referenceMatrix_xyz->m[1][1];
+            newGradientValueX =
+                    gradientValuesX[i] * floatingMatrix_xyz->m[0][0] +
+                    gradientValuesY[i] * floatingMatrix_xyz->m[0][1];
+            newGradientValueY =
+                    gradientValuesX[i] * floatingMatrix_xyz->m[1][0] +
+                    gradientValuesY[i] * floatingMatrix_xyz->m[1][1];
             gradientValuesX[i] = newGradientValueX;
             gradientValuesY[i] = newGradientValueY;
         }
@@ -839,20 +839,23 @@ void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
         T newGradientValueX, newGradientValueY, newGradientValueZ;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(gradientValuesX, gradientValuesY, gradientValuesZ, referenceMatrix_xyz, controlPointNumber) \
+    shared(gradientValuesX, gradientValuesY, gradientValuesZ, floatingMatrix_xyz, controlPointNumber) \
     private(newGradientValueX, newGradientValueY, newGradientValueZ, i)
 #endif
         for(i=0; i<controlPointNumber; i++){
 
-            newGradientValueX = gradientValuesX[i] * referenceMatrix_xyz->m[0][0] +
-                    gradientValuesY[i] * referenceMatrix_xyz->m[0][1] +
-                    gradientValuesZ[i] * referenceMatrix_xyz->m[0][2];
-            newGradientValueY = gradientValuesX[i] * referenceMatrix_xyz->m[1][0] +
-                    gradientValuesY[i] * referenceMatrix_xyz->m[1][1] +
-                    gradientValuesZ[i] * referenceMatrix_xyz->m[1][2];
-            newGradientValueZ = gradientValuesX[i] * referenceMatrix_xyz->m[2][0] +
-                    gradientValuesY[i] * referenceMatrix_xyz->m[2][1] +
-                    gradientValuesZ[i] * referenceMatrix_xyz->m[2][2];
+            newGradientValueX =
+                    gradientValuesX[i] * floatingMatrix_xyz->m[0][0] +
+                    gradientValuesY[i] * floatingMatrix_xyz->m[0][1] +
+                    gradientValuesZ[i] * floatingMatrix_xyz->m[0][2];
+            newGradientValueY =
+                    gradientValuesX[i] * floatingMatrix_xyz->m[1][0] +
+                    gradientValuesY[i] * floatingMatrix_xyz->m[1][1] +
+                    gradientValuesZ[i] * floatingMatrix_xyz->m[1][2];
+            newGradientValueZ =
+                    gradientValuesX[i] * floatingMatrix_xyz->m[2][0] +
+                    gradientValuesY[i] * floatingMatrix_xyz->m[2][1] +
+                    gradientValuesZ[i] * floatingMatrix_xyz->m[2][2];
             gradientValuesX[i] = newGradientValueX;
             gradientValuesY[i] = newGradientValueY;
             gradientValuesZ[i] = newGradientValueZ;
@@ -896,7 +899,7 @@ void reg_f3d_sym<T>::GetBendingEnergyGradient()
 template <class T>
 void reg_f3d_sym<T>::GetLinearEnergyGradient()
 {
-    if(this->linearEnergyWeight0<=0 && this->linearEnergyWeight1<=0 && this->L2NormWeight<=0) return;
+    if(this->linearEnergyWeight0<=0 && this->linearEnergyWeight1<=0) return;
 
     reg_f3d<T>::GetLinearEnergyGradient();
 
@@ -937,6 +940,102 @@ void reg_f3d_sym<T>::SetGradientImageToZero()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
+void reg_f3d_sym<T>::SmoothGradient()
+{
+    if(this->gradientSmoothingSigma!=0){
+        reg_f3d<T>::SmoothGradient();
+        // The gradient is smoothed using a Gaussian kernel if it is required
+        reg_gaussianSmoothing<T>(this->backwardNodeBasedGradientImage,
+                                 fabs(this->gradientSmoothingSigma),
+                                 NULL);
+    }
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+void reg_f3d_sym<T>::GetApproximatedGradient()
+{
+    reg_f3d<T>::GetApproximatedGradient();
+
+    // Loop over every control points
+    T *gridPtr = static_cast<T *>(this->backwardControlPointGrid->data);
+    T *gradPtr = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
+    T eps = this->currentFloating->dx/1000.f;
+    for(size_t i=0; i<this->backwardControlPointGrid->nvox;i++)
+    {
+        T currentValue = this->optimiser->GetBestDOF_b()[i];
+        gridPtr[i] = currentValue+eps;
+        double valPlus = this->GetObjectiveFunctionValue();
+        gridPtr[i] = currentValue-eps;
+        double valMinus = this->GetObjectiveFunctionValue();
+        gridPtr[i] = currentValue;
+        gradPtr[i] = -(T)((valPlus - valMinus ) / (2.0*eps));
+    }
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+T reg_f3d_sym<T>::NormaliseGradient()
+{
+    // The forward gradient max length is computed
+    T forwardMaxGradient = reg_f3d<T>::NormaliseGradient();
+
+    // The backward gradient max length is computed
+    T maxGradValue=0;
+    size_t voxNumber = this->backwardNodeBasedGradientImage->nx *
+            this->backwardNodeBasedGradientImage->ny *
+            this->backwardNodeBasedGradientImage->nz;
+    T *bckPtrX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
+    T *bckPtrY = &bckPtrX[voxNumber];
+    if(this->backwardNodeBasedGradientImage->nz>1){
+        T *bckPtrZ = &bckPtrY[voxNumber];
+        for(int i=0; i<voxNumber; i++){
+            T valX=0,valY=0,valZ=0;
+            if(this->optimiseX==true)
+                valX = *bckPtrX++;
+            if(this->optimiseY==true)
+                valY = *bckPtrY++;
+            if(this->optimiseZ==true)
+                valZ = *bckPtrZ++;
+            T length = (T)(sqrt(valX*valX + valY*valY + valZ*valZ));
+            maxGradValue = (length>maxGradValue)?length:maxGradValue;
+        }
+    }
+    else{
+        for(int i=0; i<voxNumber; i++){
+            T valX=0,valY=0;
+            if(this->optimiseX==true)
+                valX = *bckPtrX++;
+            if(this->optimiseY==true)
+                valY = *bckPtrY++;
+            T length = (T)(sqrt(valX*valX + valY*valY));
+            maxGradValue = (length>maxGradValue)?length:maxGradValue;
+        }
+    }
+
+    // The largest value between the forward and backward gradient is kept
+    maxGradValue = maxGradValue>forwardMaxGradient?maxGradValue:forwardMaxGradient;
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] Objective function gradient maximal length: %g\n", maxGradValue);
+#endif
+
+    // The forward gradient is normalised
+    T *forPtrX = static_cast<T *>(this->nodeBasedGradientImage->data);
+    for(size_t i=0;i<this->nodeBasedGradientImage->nvox;++i){
+        *forPtrX++ /= maxGradValue;
+    }
+    // The backward gradient is normalised
+    bckPtrX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
+    for(size_t i=0;i<this->backwardNodeBasedGradientImage->nvox;++i){
+        *bckPtrX++ /= maxGradValue;
+    }
+
+    // Returns the largest gradient distance
+    return maxGradValue;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
 void reg_f3d_sym<T>::DisplayCurrentLevelParameters()
 {
     reg_f3d<T>::DisplayCurrentLevelParameters();
@@ -971,14 +1070,12 @@ void reg_f3d_sym<T>::GetInverseConsistencyErrorField()
 
     if(this->similarityWeight<=0){
         reg_spline_getDeformationField(this->controlPointGrid,
-                                       this->currentReference,
                                        this->deformationFieldImage,
                                        this->currentMask,
                                        false, // composition
                                        true // use B-Spline
                                        );
         reg_spline_getDeformationField(this->backwardControlPointGrid,
-                                       this->currentFloating,
                                        this->backwardDeformationFieldImage,
                                        this->currentFloatingMask,
                                        false, // composition
@@ -987,20 +1084,18 @@ void reg_f3d_sym<T>::GetInverseConsistencyErrorField()
     }
 
     reg_spline_getDeformationField(this->backwardControlPointGrid,
-                                   this->currentReference,
                                    this->deformationFieldImage,
                                    this->currentMask,
                                    true, // composition
                                    true // use B-Spline
                                    );
-    reg_getDisplacementFromDeformation(this->deformationFieldImage);
     reg_spline_getDeformationField(this->controlPointGrid,
-                                   this->currentFloating,
                                    this->backwardDeformationFieldImage,
                                    this->currentFloatingMask,
                                    true, // composition
                                    true // use B-Spline
                                    );
+    reg_getDisplacementFromDeformation(this->deformationFieldImage);
     reg_getDisplacementFromDeformation(this->backwardDeformationFieldImage);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1012,14 +1107,14 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
     this->GetInverseConsistencyErrorField();
 
     double ferror=0.;
-    unsigned int voxelNumber=this->deformationFieldImage->nx *
+    size_t voxelNumber=this->deformationFieldImage->nx *
             this->deformationFieldImage->ny *
             this->deformationFieldImage->nz;
     T *dispPtrX=static_cast<T *>(this->deformationFieldImage->data);
     T *dispPtrY=&dispPtrX[voxelNumber];
     if(this->deformationFieldImage->nz>1){
         T *dispPtrZ=&dispPtrY[voxelNumber];
-        for(unsigned int i=0; i<voxelNumber; ++i){
+        for(size_t i=0; i<voxelNumber; ++i){
             if(this->currentMask[i]>-1){
                 double dist=reg_pow2(dispPtrX[i]) + reg_pow2(dispPtrY[i]) + reg_pow2(dispPtrZ[i]);
                 ferror += dist;
@@ -1027,7 +1122,7 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
         }
     }
     else{
-        for(unsigned int i=0; i<voxelNumber; ++i){
+        for(size_t i=0; i<voxelNumber; ++i){
             if(this->currentMask[i]>-1){
                 double dist=reg_pow2(dispPtrX[i]) + reg_pow2(dispPtrY[i]);
                 ferror += dist;
@@ -1043,7 +1138,7 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
     dispPtrY=&dispPtrX[voxelNumber];
     if(this->backwardDeformationFieldImage->nz>1){
         T *dispPtrZ=&dispPtrY[voxelNumber];
-        for(unsigned int i=0; i<voxelNumber; ++i){
+        for(size_t i=0; i<voxelNumber; ++i){
             if(this->currentFloatingMask[i]>-1){
                 double dist=reg_pow2(dispPtrX[i]) + reg_pow2(dispPtrY[i]) + reg_pow2(dispPtrZ[i]);
                 berror += dist;
@@ -1051,14 +1146,15 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
         }
     }
     else{
-        for(unsigned int i=0; i<voxelNumber; ++i){
+        for(size_t i=0; i<voxelNumber; ++i){
             if(this->currentFloatingMask[i]>-1){
                 double dist=reg_pow2(dispPtrX[i]) + reg_pow2(dispPtrY[i]);
                 berror += dist;
             }
         }
     }
-    double error = (ferror + berror) / double(this->activeVoxelNumber[this->currentLevel]+this->backwardActiveVoxelNumber[this->currentLevel]);
+    double error = ferror/double(this->activeVoxelNumber[this->currentLevel])
+                 + berror / (double)(this->backwardActiveVoxelNumber[this->currentLevel]);
     return double(this->inverseConsistencyWeight) * error;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1068,167 +1164,139 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
 {
     if(this->inverseConsistencyWeight<=0) return;
 
-    /* FORWARD CONTROL POINT GRADIENT */
+    // Two images are created to store the inverse consistency error fields
+    nifti_image *forwardVoxelIC=nifti_copy_nim_info(this->deformationFieldImage);
+    nifti_image *backwardVoxelIC=nifti_copy_nim_info(this->backwardDeformationFieldImage);
+    forwardVoxelIC->data=(void *)malloc(forwardVoxelIC->nvox*forwardVoxelIC->nbyper);
+    backwardVoxelIC->data=(void *)malloc(backwardVoxelIC->nvox*backwardVoxelIC->nbyper);
 
-    // Derivative of || Backward(Forward(x)) ||^2 against the forward control point position
+    // We first compute the forward and backward inverse consistency error fields
     reg_spline_getDeformationField(this->controlPointGrid,
-                                   this->currentReference,
                                    this->deformationFieldImage,
                                    this->currentMask,
                                    false, // composition
                                    true // use B-Spline
                                    );
     reg_spline_getDeformationField(this->backwardControlPointGrid,
-                                   this->currentReference,
-                                   this->deformationFieldImage,
-                                   this->currentMask,
-                                   true, // composition
-                                   true // use B-Spline
-                                   );
-    reg_getDisplacementFromDeformation(this->deformationFieldImage);
-    unsigned int voxelNumber=this->deformationFieldImage->nx *this->deformationFieldImage->ny *this->deformationFieldImage->nz;
-    T *defPtrX=static_cast<T* >(this->deformationFieldImage->data);
-    T *defPtrY=&defPtrX[voxelNumber];
-    T *defPtrZ=&defPtrY[voxelNumber];
-    for(unsigned int i=0; i<voxelNumber; ++i){
-        if(this->currentMask[i]<0){
-            defPtrX[i]=0;
-            defPtrY[i]=0;
-            if(this->deformationFieldImage->nz>1) defPtrZ[i]=0;
-        }
-    }
-    int smoothingRadius[3];
-    smoothingRadius[0] = (int)( 2.0*this->controlPointGrid->dx/this->currentReference->dx );
-    smoothingRadius[1] = (int)( 2.0*this->controlPointGrid->dy/this->currentReference->dy );
-    smoothingRadius[2] = (int)( 2.0*this->controlPointGrid->dz/this->currentReference->dz );
-    reg_tools_CubicSplineKernelConvolution<T>(this->deformationFieldImage, smoothingRadius);
-    reg_voxelCentric2NodeCentric(this->nodeBasedGradientImage,
-                                 this->deformationFieldImage,
-                                 2.f * this->inverseConsistencyWeight,
-                                 true); // update?
-
-    // Derivative of || Forward(Backward(x)) ||^2 against the forward control point position
-    reg_tools_addSubMulDivValue(this->deformationFieldImage,this->deformationFieldImage, 0.f, 2); // multiplication by 0
-    reg_getDeformationFromDisplacement(this->deformationFieldImage);
-    reg_spline_getDeformationField(this->backwardControlPointGrid,
-                                   this->currentReference,
-                                   this->deformationFieldImage,
-                                   this->currentMask,
-                                   true, // composition
-                                   true // use B-Spline
-                                   );
-    reg_spline_getDeformationField(this->controlPointGrid,
-                                   this->currentReference,
-                                   this->deformationFieldImage,
-                                   this->currentMask,
-                                   true, // composition
-                                   true // use B-Spline
-                                   );
-    reg_getDisplacementFromDeformation(this->deformationFieldImage);
-    voxelNumber=this->deformationFieldImage->nx *this->deformationFieldImage->ny *this->deformationFieldImage->nz;
-    defPtrX=static_cast<T* >(this->deformationFieldImage->data);
-    defPtrY=&defPtrX[voxelNumber];
-    defPtrZ=&defPtrY[voxelNumber];
-    for(unsigned int i=0; i<voxelNumber; ++i){
-        if(this->currentMask[i]<0){
-            defPtrX[i]=0;
-            defPtrY[i]=0;
-            if(this->deformationFieldImage->nz>1) defPtrZ[i]=0;
-        }
-    }
-    smoothingRadius[0] = (int)( 2.0*this->controlPointGrid->dx/this->currentReference->dx );
-    smoothingRadius[1] = (int)( 2.0*this->controlPointGrid->dy/this->currentReference->dy );
-    smoothingRadius[2] = (int)( 2.0*this->controlPointGrid->dz/this->currentReference->dz );
-    reg_tools_CubicSplineKernelConvolution<T>(this->deformationFieldImage, smoothingRadius);
-    reg_voxelCentric2NodeCentric(this->nodeBasedGradientImage,
-                                 this->deformationFieldImage,
-                                 2.f * this->inverseConsistencyWeight,
-                                 true); // update?
-
-
-    /* BACKWARD CONTROL POINT GRADIENT */
-
-    // Derivative of || Forward(Backward(x)) ||^2 against the backward control point position
-    reg_spline_getDeformationField(this->backwardControlPointGrid,
-                                   this->currentFloating,
                                    this->backwardDeformationFieldImage,
                                    this->currentFloatingMask,
                                    false, // composition
                                    true // use B-Spline
                                    );
-    reg_spline_getDeformationField(this->controlPointGrid,
-                                   this->currentFloating,
-                                   this->backwardDeformationFieldImage,
-                                   this->currentFloatingMask,
-                                   true, // composition
-                                   true // use B-Spline
-                                   );
-    reg_getDisplacementFromDeformation(this->backwardDeformationFieldImage);
-    voxelNumber=this->backwardDeformationFieldImage->nx *this->backwardDeformationFieldImage->ny *this->backwardDeformationFieldImage->nz;
-    defPtrX=static_cast<T* >(this->backwardDeformationFieldImage->data);
-    defPtrY=&defPtrX[voxelNumber];
-    defPtrZ=&defPtrY[voxelNumber];
-    for(unsigned int i=0; i<voxelNumber; ++i){
-        if(this->currentFloatingMask[i]<0){
-            defPtrX[i]=0;
-            defPtrY[i]=0;
-            if(this->backwardDeformationFieldImage->nz>1) defPtrZ[i]=0;
-        }
-    }
-    smoothingRadius[0] = (int)( 2.0*this->backwardControlPointGrid->dx/this->currentFloating->dx );
-    smoothingRadius[1] = (int)( 2.0*this->backwardControlPointGrid->dy/this->currentFloating->dy );
-    smoothingRadius[2] = (int)( 2.0*this->backwardControlPointGrid->dz/this->currentFloating->dz );
-    reg_tools_CubicSplineKernelConvolution<T>(this->backwardDeformationFieldImage, smoothingRadius);
-    reg_voxelCentric2NodeCentric(this->backwardNodeBasedGradientImage,
-                                 this->backwardDeformationFieldImage,
-                                 2.f * this->inverseConsistencyWeight,
-                                 true); // update?
-
-
-    // Derivative of || Backward(Forward(x)) ||^2 against the backward control point position
-    reg_tools_addSubMulDivValue(this->backwardDeformationFieldImage,this->backwardDeformationFieldImage, 0.f, 2); // multiplication by 0
-    reg_getDeformationFromDisplacement(this->backwardDeformationFieldImage);
-    reg_spline_getDeformationField(this->controlPointGrid,
-                                   this->currentFloating,
-                                   this->backwardDeformationFieldImage,
-                                   this->currentFloatingMask,
-                                   true, // composition
-                                   true // use B-Spline
-                                   );
+    // The forward and backward transformations are saved for later use
+    memcpy(forwardVoxelIC->data,this->deformationFieldImage->data,
+           forwardVoxelIC->nvox*forwardVoxelIC->nbyper);
+    memcpy(backwardVoxelIC->data,this->backwardDeformationFieldImage->data,
+           backwardVoxelIC->nvox*backwardVoxelIC->nbyper);
     reg_spline_getDeformationField(this->backwardControlPointGrid,
-                                   this->currentFloating,
-                                   this->backwardDeformationFieldImage,
-                                   this->currentFloatingMask,
+                                   forwardVoxelIC,
+                                   NULL, // no mask
                                    true, // composition
                                    true // use B-Spline
                                    );
-    reg_getDisplacementFromDeformation(this->backwardDeformationFieldImage);
-    voxelNumber=this->backwardDeformationFieldImage->nx *this->backwardDeformationFieldImage->ny *this->backwardDeformationFieldImage->nz;
-    defPtrX=static_cast<T* >(this->backwardDeformationFieldImage->data);
-    defPtrY=&defPtrX[voxelNumber];
-    defPtrZ=&defPtrY[voxelNumber];
-    for(unsigned int i=0; i<voxelNumber; ++i){
+    reg_spline_getDeformationField(this->controlPointGrid,
+                                   backwardVoxelIC,
+                                   NULL, // no mask
+                                   true, // composition
+                                   true // use B-Spline
+                                   );
+    reg_getDisplacementFromDeformation(forwardVoxelIC);
+    reg_getDisplacementFromDeformation(backwardVoxelIC);
+
+    // The forward inverse consistency field is masked
+    size_t forwardVoxelNumber=forwardVoxelIC->nx *
+            forwardVoxelIC->ny *
+            forwardVoxelIC->nz ;
+    T *defPtrX=static_cast<T* >(forwardVoxelIC->data);
+    T *defPtrY=&defPtrX[forwardVoxelNumber];
+    T *defPtrZ=&defPtrY[forwardVoxelNumber];
+    for(size_t i=0; i<forwardVoxelNumber; ++i){
+        if(this->currentMask[i]<0){
+            defPtrX[i]=0;
+            defPtrY[i]=0;
+            if(forwardVoxelIC->nz>1) defPtrZ[i]=0;
+        }
+    }
+    // The backward inverse consistency field is masked
+    size_t backwardVoxelNumber = backwardVoxelIC->nx *
+            backwardVoxelIC->ny *
+            backwardVoxelIC->nz ;
+    defPtrX=static_cast<T* >(backwardVoxelIC->data);
+    defPtrY=&defPtrX[backwardVoxelNumber];
+    defPtrZ=&defPtrY[backwardVoxelNumber];
+    for(size_t i=0; i<backwardVoxelNumber; ++i){
         if(this->currentFloatingMask[i]<0){
             defPtrX[i]=0;
             defPtrY[i]=0;
-            if(this->backwardDeformationFieldImage->nz>1) defPtrZ[i]=0;
+            if(backwardVoxelIC->nz>1) defPtrZ[i]=0;
         }
     }
-    smoothingRadius[0] = (int)( 2.0*this->backwardControlPointGrid->dx/this->currentFloating->dx );
-    smoothingRadius[1] = (int)( 2.0*this->backwardControlPointGrid->dy/this->currentFloating->dy );
-    smoothingRadius[2] = (int)( 2.0*this->backwardControlPointGrid->dz/this->currentFloating->dz );
-    reg_tools_CubicSplineKernelConvolution<T>(this->backwardDeformationFieldImage, smoothingRadius);
-    reg_voxelCentric2NodeCentric(this->backwardNodeBasedGradientImage,
-                                 this->backwardDeformationFieldImage,
-                                 2.f * this->inverseConsistencyWeight,
+
+    // The backward inverse consistency error field is propagated in the space of the forward space
+    nifti_image *tempVoxelIC=nifti_copy_nim_info(this->deformationFieldImage);
+    tempVoxelIC->data=(void *)calloc(tempVoxelIC->nvox,tempVoxelIC->nbyper);
+    reg_resampleGradient(backwardVoxelIC, // input
+                         tempVoxelIC, // output
+                         this->deformationFieldImage, // deformation field
+                         this->interpolation, // interpolation type
+                         0); // padding value
+
+    // The propagated backward and the forward inverse consistency error fields are summed
+    reg_tools_addSubMulDivImages(tempVoxelIC, // in 1
+                                 forwardVoxelIC, // in 2
+                                 tempVoxelIC, // out
+                                 0); // addition
+
+    // We convolve the inverse consistency map with a cubic B-Spline kernel
+    float spacingVoxel[3];
+    spacingVoxel[0]=this->controlPointGrid->dx/this->currentReference->dx;
+    spacingVoxel[1]=this->controlPointGrid->dy/this->currentReference->dy;
+    spacingVoxel[2]=this->controlPointGrid->dz/this->currentReference->dz;
+    reg_tools_CubicSplineKernelConvolution(tempVoxelIC, spacingVoxel);
+    // The forward inverse consistency gradient is extracted at the node position
+    reg_voxelCentric2NodeCentric(this->nodeBasedGradientImage,
+                                 tempVoxelIC,
+                                 2.f * this->inverseConsistencyWeight / (float)(this->activeVoxelNumber[this->currentLevel]),
                                  true); // update?
+    nifti_image_free(tempVoxelIC);tempVoxelIC=NULL;
+
+    // The forward inverse consistency error field is propagated in the space of the backward space
+    tempVoxelIC=nifti_copy_nim_info(this->backwardDeformationFieldImage);
+    tempVoxelIC->data=(void *)calloc(tempVoxelIC->nvox,tempVoxelIC->nbyper);
+    reg_resampleGradient(forwardVoxelIC,
+                         tempVoxelIC,
+                         this->backwardDeformationFieldImage,
+                         this->interpolation,
+                         0); // padding value
+
+    // The propagated forward and the backward inverse consistency error fields are summed
+    reg_tools_addSubMulDivImages(tempVoxelIC, // in 1
+                                 backwardVoxelIC, // in 2
+                                 tempVoxelIC, // out
+                                 0); // addition
+
+    // We convolve the inverse consistency map with a cubic B-Spline kernel
+    spacingVoxel[0]=this->backwardControlPointGrid->dx/this->currentFloating->dx;
+    spacingVoxel[1]=this->backwardControlPointGrid->dy/this->currentFloating->dy;
+    spacingVoxel[2]=this->backwardControlPointGrid->dz/this->currentFloating->dz;
+    reg_tools_CubicSplineKernelConvolution(tempVoxelIC, spacingVoxel);
+    // The backward inverse consistency gradient is extracted at the node position
+    reg_voxelCentric2NodeCentric(this->backwardNodeBasedGradientImage,
+                                 tempVoxelIC,
+                                 2.f * this->inverseConsistencyWeight / (float)(this->backwardActiveVoxelNumber[this->currentLevel]),
+                                 true); // update?
+    nifti_image_free(tempVoxelIC);tempVoxelIC=NULL;
+
+    // Clean the allocated nifti images
+    nifti_image_free(forwardVoxelIC);forwardVoxelIC=NULL;
+    nifti_image_free(backwardVoxelIC);backwardVoxelIC=NULL;
 
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_f3d_sym<T>::UpdateParameters(T scale)
+void reg_f3d_sym<T>::UpdateParameters(float scale)
 {
     T *currentDOF_b=this->optimiser->GetCurrentDOF_b();
     T *bestDOF_b=this->optimiser->GetBestDOF_b();
