@@ -105,13 +105,12 @@ int main(int argc, char **argv)
     warpedImage->data=(void *)malloc(warpedImage->nvox*warpedImage->nbyper);
 
     // Resample the floating image in the space of the expected image
-    reg_resampleSourceImage(expectedImage,
-                            floatingImage,
-                            warpedImage,
-                            deformationFieldImage,
-                            NULL, // no mask is used
-                            interpolationType,
-                            0.f); // padding value
+    reg_resampleImage(floatingImage,
+                      warpedImage,
+                      deformationFieldImage,
+                      NULL, // no mask is used
+                      interpolationType,
+                      0.f); // padding value
 
     // Compute the maximal difference between the warped and expected image
     double difference=0.;
