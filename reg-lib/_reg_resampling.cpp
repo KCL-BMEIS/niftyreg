@@ -1308,7 +1308,7 @@ void TrilinearImageGradient(nifti_image *floatingImage,
 #pragma omp parallel for default(none) \
     private(index, world, position, previous, xBasis, yBasis, zBasis, relative, grad, coeff, \
     a, b, c, X, Y, Z, zPointer, xyzPointer, xTempNewValue, yTempNewValue, xxTempNewValue, yyTempNewValue, zzTempNewValue) \
-    shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, deriv, \
+    shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, deriv, paddingValue, \
     deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
     sourceIJKMatrix, floatingImage, resultGradientPtrX, resultGradientPtrY, resultGradientPtrZ)
 #endif // _OPENMP
@@ -1475,7 +1475,7 @@ void BilinearImageGradient(nifti_image *floatingImage,
     private(index, world, position, previous, xBasis, yBasis, relative, grad, coeff, \
     a, b, X, Y, xyPointer, xTempNewValue, yTempNewValue) \
     shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, deriv, \
-    deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
+    deformationFieldPtrX, deformationFieldPtrY, maskPtr, paddingValue, \
     sourceIJKMatrix, floatingImage, resultGradientPtrX, resultGradientPtrY)
 #endif // _OPENMP
         for(index=0;index<targetVoxelNumber; index++){
@@ -1589,7 +1589,7 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
 #pragma omp parallel for default(none) \
     private(index, world, position, previous, xBasis, yBasis, zBasis, xDeriv, yDeriv, zDeriv, relative, grad, coeff, \
     a, b, c, Y, Z, zPointer, yzPointer, xyzPointer, xTempNewValue, yTempNewValue, xxTempNewValue, yyTempNewValue, zzTempNewValue) \
-    shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, \
+    shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, paddingValue, \
     deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
     sourceIJKMatrix, floatingImage, resultGradientPtrX, resultGradientPtrY, resultGradientPtrZ)
 #endif // _OPENMP

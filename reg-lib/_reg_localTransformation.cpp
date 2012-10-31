@@ -2338,7 +2338,7 @@ void reg_defField_compose3D(nifti_image *deformationField,
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(warVoxelNumber, mask, df_real2Voxel, df_voxel2Real, DefFieldDim, \
-    defPtrX, defPtrY, defPtrZ, resPtrX, resPtrY, resPtrZ) \
+    defPtrX, defPtrY, defPtrZ, resPtrX, resPtrY, resPtrZ, deformationField) \
     private(i, a, b, c, currentX, currentY, currentZ, index, tempIndex, pre, \
     realDefX, realDefY, realDefZ, voxelX, voxelY, voxelZ, tempBasis, \
     defX, defY, defZ, relX, relY, relZ, basis, inY, inZ)

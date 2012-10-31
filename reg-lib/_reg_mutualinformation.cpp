@@ -809,7 +809,7 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *referenceImage,
     num_warped_volumes, warped_bins, warpedImagePtr, bins, num_loops, num_probabilities, \
     warped_offsets, fixed_offsets, total_fixed_entries, logJointHistogram, \
     warpedImageGradientPtrX, warpedImageGradientPtrY, warpedImageGradientPtrZ, \
-    nmiGradientPtrX, nmiGradientPtrY, nmiGradientPtrZ, NMI, joint_entropy, approx)
+    nmiGradientPtrX, nmiGradientPtrY, nmiGradientPtrZ, NMI, normalised_joint_entropy, approx)
 #endif // _OPENMP
     for (index = 0; index < fixedVoxelNumber; ++index){
         if(mask[index]>-1){
