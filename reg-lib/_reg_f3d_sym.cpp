@@ -1064,11 +1064,11 @@ void reg_f3d_sym<T>::DisplayCurrentLevelParameters()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-void reg_f3d_sym<T>::GetInverseConsistencyErrorField()
+void reg_f3d_sym<T>::GetInverseConsistencyErrorField(bool forceAll)
 {
     if (this->inverseConsistencyWeight<=0) return;
 
-    if(this->similarityWeight<=0){
+    if(this->similarityWeight<=0 || forceAll){
         reg_spline_getDeformationField(this->controlPointGrid,
                                        this->deformationFieldImage,
                                        this->currentMask,
@@ -1104,7 +1104,7 @@ double reg_f3d_sym<T>::GetInverseConsistencyPenaltyTerm()
 {
     if (this->inverseConsistencyWeight<=0) return 0.;
 
-    this->GetInverseConsistencyErrorField();
+    this->GetInverseConsistencyErrorField(false);
 
     double ferror=0.;
     size_t voxelNumber=this->deformationFieldImage->nx *
@@ -1164,132 +1164,74 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
 {
     if(this->inverseConsistencyWeight<=0) return;
 
-    // Two images are created to store the inverse consistency error fields
-    nifti_image *forwardVoxelIC=nifti_copy_nim_info(this->deformationFieldImage);
-    nifti_image *backwardVoxelIC=nifti_copy_nim_info(this->backwardDeformationFieldImage);
-    forwardVoxelIC->data=(void *)malloc(forwardVoxelIC->nvox*forwardVoxelIC->nbyper);
-    backwardVoxelIC->data=(void *)malloc(backwardVoxelIC->nvox*backwardVoxelIC->nbyper);
+    // Note: I simplified the gradient computation in order to include
+    // only d(B(F(x)))/d(forwardNode) and d(F(B(x)))/d(backwardNode)
+    // I ignored d(F(B(x)))/d(forwardNode) and d(B(F(x)))/d(backwardNode)
+    // cause it would only be an approximation since I don't have the
+    // real inverses
+    this->GetInverseConsistencyErrorField(true);
 
-    // We first compute the forward and backward inverse consistency error fields
-    reg_spline_getDeformationField(this->controlPointGrid,
-                                   this->deformationFieldImage,
-                                   this->currentMask,
-                                   false, // composition
-                                   true // use B-Spline
-                                   );
-    reg_spline_getDeformationField(this->backwardControlPointGrid,
-                                   this->backwardDeformationFieldImage,
-                                   this->currentFloatingMask,
-                                   false, // composition
-                                   true // use B-Spline
-                                   );
-    // The forward and backward transformations are saved for later use
-    memcpy(forwardVoxelIC->data,this->deformationFieldImage->data,
-           forwardVoxelIC->nvox*forwardVoxelIC->nbyper);
-    memcpy(backwardVoxelIC->data,this->backwardDeformationFieldImage->data,
-           backwardVoxelIC->nvox*backwardVoxelIC->nbyper);
-    reg_spline_getDeformationField(this->backwardControlPointGrid,
-                                   forwardVoxelIC,
-                                   NULL, // no mask
-                                   true, // composition
-                                   true // use B-Spline
-                                   );
-    reg_spline_getDeformationField(this->controlPointGrid,
-                                   backwardVoxelIC,
-                                   NULL, // no mask
-                                   true, // composition
-                                   true // use B-Spline
-                                   );
-    reg_getDisplacementFromDeformation(forwardVoxelIC);
-    reg_getDisplacementFromDeformation(backwardVoxelIC);
+    nifti_set_filenames(this->deformationFieldImage, "def_test_for.nii",0,0);
+    nifti_image_write(this->deformationFieldImage);
+
+    nifti_set_filenames(this->backwardDeformationFieldImage, "def_test_bck.nii",0,0);
+    nifti_image_write(this->backwardDeformationFieldImage);
 
     // The forward inverse consistency field is masked
-    size_t forwardVoxelNumber=forwardVoxelIC->nx *
-            forwardVoxelIC->ny *
-            forwardVoxelIC->nz ;
-    T *defPtrX=static_cast<T* >(forwardVoxelIC->data);
+    size_t forwardVoxelNumber=
+            this->deformationFieldImage->nx *
+            this->deformationFieldImage->ny *
+            this->deformationFieldImage->nz ;
+    T *defPtrX=static_cast<T* >(this->deformationFieldImage->data);
     T *defPtrY=&defPtrX[forwardVoxelNumber];
     T *defPtrZ=&defPtrY[forwardVoxelNumber];
     for(size_t i=0; i<forwardVoxelNumber; ++i){
         if(this->currentMask[i]<0){
             defPtrX[i]=0;
             defPtrY[i]=0;
-            if(forwardVoxelIC->nz>1) defPtrZ[i]=0;
+            if(this->deformationFieldImage->nz>1)
+                defPtrZ[i]=0;
         }
     }
     // The backward inverse consistency field is masked
-    size_t backwardVoxelNumber = backwardVoxelIC->nx *
-            backwardVoxelIC->ny *
-            backwardVoxelIC->nz ;
-    defPtrX=static_cast<T* >(backwardVoxelIC->data);
+    size_t backwardVoxelNumber =
+            this->backwardDeformationFieldImage->nx *
+            this->backwardDeformationFieldImage->ny *
+            this->backwardDeformationFieldImage->nz ;
+    defPtrX=static_cast<T* >(this->backwardDeformationFieldImage->data);
     defPtrY=&defPtrX[backwardVoxelNumber];
     defPtrZ=&defPtrY[backwardVoxelNumber];
     for(size_t i=0; i<backwardVoxelNumber; ++i){
         if(this->currentFloatingMask[i]<0){
             defPtrX[i]=0;
             defPtrY[i]=0;
-            if(backwardVoxelIC->nz>1) defPtrZ[i]=0;
+            if(this->backwardDeformationFieldImage->nz>1)
+                defPtrZ[i]=0;
         }
     }
-
-    // The backward inverse consistency error field is propagated in the space of the forward space
-    nifti_image *tempVoxelIC=nifti_copy_nim_info(this->deformationFieldImage);
-    tempVoxelIC->data=(void *)calloc(tempVoxelIC->nvox,tempVoxelIC->nbyper);
-    reg_resampleGradient(backwardVoxelIC, // input
-                         tempVoxelIC, // output
-                         this->deformationFieldImage, // deformation field
-                         this->interpolation, // interpolation type
-                         0); // padding value
-
-    // The propagated backward and the forward inverse consistency error fields are summed
-    reg_tools_addSubMulDivImages(tempVoxelIC, // in 1
-                                 forwardVoxelIC, // in 2
-                                 tempVoxelIC, // out
-                                 0); // addition
 
     // We convolve the inverse consistency map with a cubic B-Spline kernel
     float spacingVoxel[3];
     spacingVoxel[0]=this->controlPointGrid->dx/this->currentReference->dx;
     spacingVoxel[1]=this->controlPointGrid->dy/this->currentReference->dy;
     spacingVoxel[2]=this->controlPointGrid->dz/this->currentReference->dz;
-    reg_tools_CubicSplineKernelConvolution(tempVoxelIC, spacingVoxel);
+    reg_tools_CubicSplineKernelConvolution(this->deformationFieldImage, spacingVoxel);
     // The forward inverse consistency gradient is extracted at the node position
     reg_voxelCentric2NodeCentric(this->nodeBasedGradientImage,
-                                 tempVoxelIC,
+                                 this->deformationFieldImage, //tempVoxelIC,
                                  2.f * this->inverseConsistencyWeight / (float)(this->activeVoxelNumber[this->currentLevel]),
                                  true); // update?
-    nifti_image_free(tempVoxelIC);tempVoxelIC=NULL;
-
-    // The forward inverse consistency error field is propagated in the space of the backward space
-    tempVoxelIC=nifti_copy_nim_info(this->backwardDeformationFieldImage);
-    tempVoxelIC->data=(void *)calloc(tempVoxelIC->nvox,tempVoxelIC->nbyper);
-    reg_resampleGradient(forwardVoxelIC,
-                         tempVoxelIC,
-                         this->backwardDeformationFieldImage,
-                         this->interpolation,
-                         0); // padding value
-
-    // The propagated forward and the backward inverse consistency error fields are summed
-    reg_tools_addSubMulDivImages(tempVoxelIC, // in 1
-                                 backwardVoxelIC, // in 2
-                                 tempVoxelIC, // out
-                                 0); // addition
 
     // We convolve the inverse consistency map with a cubic B-Spline kernel
     spacingVoxel[0]=this->backwardControlPointGrid->dx/this->currentFloating->dx;
     spacingVoxel[1]=this->backwardControlPointGrid->dy/this->currentFloating->dy;
     spacingVoxel[2]=this->backwardControlPointGrid->dz/this->currentFloating->dz;
-    reg_tools_CubicSplineKernelConvolution(tempVoxelIC, spacingVoxel);
+    reg_tools_CubicSplineKernelConvolution(this->backwardDeformationFieldImage, spacingVoxel);
     // The backward inverse consistency gradient is extracted at the node position
     reg_voxelCentric2NodeCentric(this->backwardNodeBasedGradientImage,
-                                 tempVoxelIC,
+                                 this->backwardDeformationFieldImage, //tempVoxelIC,
                                  2.f * this->inverseConsistencyWeight / (float)(this->backwardActiveVoxelNumber[this->currentLevel]),
                                  true); // update?
-    nifti_image_free(tempVoxelIC);tempVoxelIC=NULL;
-
-    // Clean the allocated nifti images
-    nifti_image_free(forwardVoxelIC);forwardVoxelIC=NULL;
-    nifti_image_free(backwardVoxelIC);backwardVoxelIC=NULL;
 
     return;
 }

@@ -72,7 +72,7 @@ class reg_f3d_sym : public reg_f3d<T>
     virtual void GetApproximatedGradient();
     virtual void DisplayCurrentLevelParameters();
 
-    virtual void GetInverseConsistencyErrorField();
+    virtual void GetInverseConsistencyErrorField(bool forceAll);
     virtual double GetInverseConsistencyPenaltyTerm();
     virtual void GetInverseConsistencyGradient();
 

@@ -168,7 +168,7 @@ void reg_getVoxelBasedSSDGradient1(nifti_image *referenceImage,
         jacDetPtr=static_cast<DTYPE *>(jacobianDetImage->data);
 
     DTYPE gradX, gradY, gradZ;
-    double JacDetValue, targetValue, resultValue, common, n=0.0;
+    double targetValue, resultValue, common, n=0.0;
 
     // Loop over the different time points
     for(int time=0;time<referenceImage->nt;++time){
@@ -186,16 +186,13 @@ void reg_getVoxelBasedSSDGradient1(nifti_image *referenceImage,
 #pragma omp parallel for default(none) \
     shared(referenceImage, currentRefPtr, currentWarPtr, maxSD, mask, jacDetPtr, jacobianDetImage, \
     currentGradPtrX, currentGradPtrY, currentGradPtrZ, ssdGradPtrX, ssdGradPtrY, ssdGradPtrZ, voxelNumber) \
-    private(voxel, targetValue, resultValue, common, gradX, gradY, gradZ, JacDetValue) \
+    private(voxel, targetValue, resultValue, common, gradX, gradY, gradZ) \
     reduction(+:n)
 #endif
         for(voxel=0; voxel<voxelNumber;voxel++){
             if(mask[voxel]>-1){
                 targetValue = currentRefPtr[voxel];
                 resultValue = currentWarPtr[voxel];
-                gradX=0;
-                gradY=0;
-                gradZ=0;
                 if(targetValue==targetValue && resultValue==resultValue){
                     common = - 2.0 * (targetValue - resultValue)/maxSD;
                     if(jacobianDetImage!=NULL){

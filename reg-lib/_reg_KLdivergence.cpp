@@ -30,8 +30,11 @@ double reg_getKLDivergence1(nifti_image *referenceImage,
     DTYPE *refPtr=static_cast<DTYPE *>(referenceImage->data);
     DTYPE *warPtr=static_cast<DTYPE *>(warpedImage->data);
     int *maskPtr=NULL;
-    if(mask==NULL)
+    bool MrClean=false;
+    if(mask==NULL){
         maskPtr=(int *)calloc(voxelNumber,sizeof(int));
+        MrClean=true;
+    }
     else maskPtr = &mask[0];
 
     DTYPE *jacPtr=NULL;
@@ -70,6 +73,7 @@ double reg_getKLDivergence1(nifti_image *referenceImage,
             }
         }
     }
+    if(MrClean==true) free(maskPtr);
     return measure/num;
 }
 /* *************************************************************** */
@@ -133,8 +137,11 @@ void reg_getKLDivergenceVoxelBasedGradient1(nifti_image *referenceImage,
     DTYPE *refPtr=static_cast<DTYPE *>(referenceImage->data);
     DTYPE *warPtr=static_cast<DTYPE *>(warpedImage->data);
     int *maskPtr=NULL;
-    if(mask==NULL)
+    bool MrClean=false;
+    if(mask==NULL){
         maskPtr=(int *)calloc(voxelNumber,sizeof(int));
+        MrClean=true;
+    }
     else maskPtr = &mask[0];
 
     DTYPE *jacPtr=NULL;
@@ -215,6 +222,7 @@ void reg_getKLDivergenceVoxelBasedGradient1(nifti_image *referenceImage,
             }
         }
     }
+    if(MrClean==true) free(maskPtr);
 }
 /* *************************************************************** */
 void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,

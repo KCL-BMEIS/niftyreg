@@ -2021,10 +2021,13 @@ void reg_f3d<T>::Run_f3d()
 #endif
             }
         } // perturbation loop
-
 /*
         this->similarityWeight=1;
         this->SetBendingEnergyWeight(0);
+        this->SetJacobianLogWeight(0);
+        this->SetInverseConsistencyWeight(0);
+        this->SetL2NormDisplacementWeight(0);
+        this->SetLinearEnergyWeights(0,0);
         this->SetGradientImageToZero();
         this->WarpFloatingImage(this->interpolation);
         this->ComputeSimilarityMeasure();
@@ -2037,17 +2040,20 @@ void reg_f3d<T>::Run_f3d()
         nifti_image_write(this->nodeBasedGradientImage);
 
         this->similarityWeight=0;
-        this->SetBendingEnergyWeight(1);
+        this->SetBendingEnergyWeight(0);
+        this->SetJacobianLogWeight(0);
+        this->SetInverseConsistencyWeight(1);
+        this->SetL2NormDisplacementWeight(0);
+        this->SetLinearEnergyWeights(0,0);
         this->SetGradientImageToZero();
-        this->GetBendingEnergyGradient();
-        nifti_set_filenames(this->nodeBasedGradientImage, "grad_an_be.nii",0,0);
+        this->GetInverseConsistencyGradient();
+        nifti_set_filenames(this->nodeBasedGradientImage, "grad_an_ice.nii",0,0);
         nifti_image_write(this->nodeBasedGradientImage);
         this->SetGradientImageToZero();
         this->GetApproximatedGradient();
-        nifti_set_filenames(this->nodeBasedGradientImage, "grad_ap_be.nii",0,0);
+        nifti_set_filenames(this->nodeBasedGradientImage, "grad_ap_ice.nii",0,0);
         nifti_image_write(this->nodeBasedGradientImage);
 */
-
         // FINAL FOLDING CORRECTION
         if(this->jacobianLogWeight>0 && this->jacobianLogApproximation==true)
             this->ComputeJacobianBasedPenaltyTerm(2); // 20 iterations without approximation
