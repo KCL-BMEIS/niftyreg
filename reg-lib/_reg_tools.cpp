@@ -288,7 +288,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
     DTYPE *window = (DTYPE *)calloc(windowSize,sizeof(DTYPE));
     DTYPE coeffSum=0.0;
     for(int it=-radius; it<=radius; it++){
-        DTYPE coeff = (DTYPE)(fabs((DTYPE)it/(DTYPE)spacingVoxel[0]));
+        DTYPE coeff = (DTYPE)(fabs((float)(DTYPE)it/(DTYPE)spacingVoxel[0]));
         if(coeff<1.0) window[it+radius] = (DTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
         else if (coeff<2.0) window[it+radius] = (DTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
         else window[it+radius]=0;
@@ -346,7 +346,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
     window = (DTYPE *)calloc(windowSize,sizeof(DTYPE));
     coeffSum=0.0;
     for(int it=-radius; it<=radius; it++){
-        DTYPE coeff = (DTYPE)(fabs((DTYPE)it/(DTYPE)spacingVoxel[1]));
+        DTYPE coeff = (DTYPE)(fabs((float)(DTYPE)it/(DTYPE)spacingVoxel[1]));
         if(coeff<1.0) window[it+radius] = (DTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
         else if (coeff<2.0) window[it+radius] = (DTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
         else window[it+radius]=0;
@@ -405,7 +405,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
         window = (DTYPE *)calloc(windowSize,sizeof(DTYPE));
         coeffSum=0.0;
         for(int it=-radius; it<=radius; it++){
-            DTYPE coeff = (DTYPE)(fabs((DTYPE)it/(DTYPE)spacingVoxel[2]));
+            DTYPE coeff = (DTYPE)(fabs((float)(DTYPE)it/(DTYPE)spacingVoxel[2]));
             if(coeff<1.0) window[it+radius] = (DTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
             else if (coeff<2.0) window[it+radius] = (DTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
             else window[it+radius]=0;
