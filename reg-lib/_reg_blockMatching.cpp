@@ -1750,7 +1750,7 @@ void optimize(	_reg_blockMatchingParam *params,
     if(params->blockNumber[2]==1){ // 2D images
         float in[2];
         float out[2];
-        for(size_t i=0;i<params->activeBlockNumber;++i){
+        for(size_t i=0;i<static_cast<size_t>(params->activeBlockNumber);++i){
             in[0]=params->resultPosition[2*i];
             in[1]=params->resultPosition[2*i+1];
             apply_affine2D(transformation_matrix,in,out);
@@ -1764,7 +1764,7 @@ void optimize(	_reg_blockMatchingParam *params,
     else{ // 3D images
         float in[3];
         float out[3];
-        for(size_t i=0;i<params->activeBlockNumber;++i){
+        for(size_t i=0;i<static_cast<size_t>(params->activeBlockNumber);++i){
             size_t index=3*i;
             in[0]=params->resultPosition[index];
             in[1]=params->resultPosition[index+1];

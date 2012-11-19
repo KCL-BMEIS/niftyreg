@@ -344,7 +344,7 @@ void TrilinearResampleImage(nifti_image *floatingImage,
                 yBasis[0]= (FieldTYPE)(1.0-relative);
                 yBasis[1]= relative;
                 // basis values along the z axis
-                relative=relative>0?relative:0;
+                relative=position[2]-(FieldTYPE)previous[2];
                 zBasis[0]= (FieldTYPE)(1.0-relative);
                 zBasis[1]= relative;
 
@@ -668,8 +668,8 @@ void NearestNeighborResampleImage2D(nifti_image *floatingImage,
                 position[1] = world[0]*sourceIJKMatrix->m[1][0] + world[1]*sourceIJKMatrix->m[1][1] +
                         sourceIJKMatrix->m[1][3];
 
-                previous[0] = static_cast<int>(reg_floor(position[0]));
-                previous[1] = static_cast<int>(reg_floor(position[1]));
+                previous[0] = static_cast<int>(reg_round(position[0]));
+                previous[1] = static_cast<int>(reg_round(position[1]));
 
                 if( -1<previous[1] && previous[1]<floatingImage->ny &&
                         -1<previous[0] && previous[0]<floatingImage->nx){
@@ -1040,8 +1040,8 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
                             val_y += paddingValue * basisY[b];
                         }
                     } // b
-                    warpedIntensityX[warpedIndex]=jacMat.m[0][0]*val_x+jacMat.m[0][1]*val_y;
-                    warpedIntensityY[warpedIndex]=jacMat.m[1][0]*val_x+jacMat.m[1][1]*val_y;
+					warpedIntensityX[warpedIndex]=jacMat.m[0][0]*val_x+jacMat.m[1][0]*val_y;
+					warpedIntensityY[warpedIndex]=jacMat.m[0][1]*val_x+jacMat.m[1][1]*val_y;
                 } // anteX not in deformation field space
             } // anteY not in deformation field space
             ++warpedIndex;
@@ -1220,6 +1220,7 @@ void reg_resampleGradient(nifti_image *floatingImage,
                           int interp,
                           float paddingValue)
 {
+    interp=interp; // to avoid a warning - need to add the spline interpolation
     if(floatingImage->datatype!=warpedImage->datatype ||
             floatingImage->datatype!=deformationField->datatype){
         fprintf(stderr, "[NiftyReg ERROR] reg_resampleGradient - Input images are expected to have the same type\n");
@@ -1689,8 +1690,7 @@ template<class SourceTYPE, class GradientTYPE, class FieldTYPE>
 void CubicSplineImageGradient2D(nifti_image *floatingImage,
                                 nifti_image *deformationField,
                                 nifti_image *resultGradientImage,
-                                int *mask,
-                                float paddingValue)
+                                int *mask)
 {
     int targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny;
     int sourceVoxelNumber = floatingImage->nx*floatingImage->ny;
@@ -1817,8 +1817,7 @@ void reg_getImageGradient3(nifti_image *floatingImage,
                     <SourceTYPE,GradientTYPE,FieldTYPE>(floatingImage,
                                                         deformationField,
                                                         resultGradientImage,
-                                                        mask,
-                                                        paddingValue);
+                                                        mask);
         }
     }
     else{ // trilinear interpolation [ by default ]

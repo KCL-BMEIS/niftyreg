@@ -211,12 +211,11 @@ int main(int argc, char **argv)
         if(flag->inputCPPFlag){
             if( controlPointImage->intent_code==NIFTI_INTENT_VECTOR &&
                 strcmp(controlPointImage->intent_name,"NREG_VEL_STEP")==0){
-                reg_bspline_GetJacobianDetFromVelocityField(jacobianImage,
-                                                            controlPointImage
-                                                            );
+                reg_spline_GetJacobianDetFromVelocityField(jacobianImage,
+                                                           controlPointImage);
             }
             else{
-                reg_bspline_GetJacobianMap(controlPointImage,
+                reg_spline_GetJacobianMap(controlPointImage,
                                            jacobianImage
                                            );
             }
@@ -300,13 +299,13 @@ int main(int argc, char **argv)
         if(flag->inputCPPFlag){
             if( controlPointImage->intent_code==NIFTI_INTENT_VECTOR &&
                 strcmp(controlPointImage->intent_name,"NREG_VEL_STEP")==0){
-                reg_bspline_GetJacobianMatricesFromVelocityField(image,
+                reg_spline_GetJacobianMatricesFromVelocityField(image,
                                                                  controlPointImage,
                                                                  jacobianMatricesArray
                                                                  );
             }
             else{
-                reg_bspline_GetJacobianMatrix(image,
+                reg_spline_GetJacobianMatrix(image,
                                               controlPointImage,
                                               jacobianMatricesArray
                                               );

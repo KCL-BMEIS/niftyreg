@@ -26,9 +26,8 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
         exit(1);
     }
 
-    uch sig[8];
-    size_t a=0; // useless - here to avoid a warning
-    a=fread(sig, 1, 8, fopen (pngFileName, "r"));
+	uch sig[8];
+	size_t a=fread(sig, 1, 8, fopen (pngFileName, "r"));a=a;
     if(!png_check_sig(sig, 8)) exit(1);
 
     png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
@@ -83,7 +82,7 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
         printf("[NiftyReg WARNING]: the PNG file has 2 channels. They will be average into one single channel.\n");
     }
 
-    int dim[8]={2,Width,Height,1,1,1,1,1};
+    int dim[8]={2,static_cast<int>(Width),static_cast<int>(Height),1,1,1,1,1};
     nifti_image *niiImage=NULL;
     if(readData){
 

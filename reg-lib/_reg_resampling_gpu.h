@@ -15,18 +15,19 @@
 #include "_reg_blocksize_gpu.h"
 
 extern "C++"
-void reg_resampleSourceImage_gpu(   nifti_image *sourceImage,
-                                    float **resultImageArray_d,
-                                    cudaArray **sourceImageArray_d,
-                                    float4 **positionFieldImageArray_d,
-                                    int **mask_d,
-                                    int activeVoxelNumber,
-                                    float sourceBGValue);
+void reg_resampleImage_gpu(nifti_image *sourceImage,
+                           float **resultImageArray_d,
+                           cudaArray **sourceImageArray_d,
+                           float4 **positionFieldImageArray_d,
+                           int **mask_d,
+                           int activeVoxelNumber,
+                           float paddingValue);
 
 extern "C++"
-void reg_getSourceImageGradient_gpu(nifti_image *sourceImage,
-                                    cudaArray **sourceImageArray_d,
-                                    float4 **positionFieldImageArray_d,
-                                    float4 **resultGradientArray_d,
-                                    int activeVoxelNumber);
+void reg_getImageGradient_gpu(nifti_image *sourceImage,
+							  cudaArray **sourceImageArray_d,
+							  float4 **positionFieldImageArray_d,
+							  float4 **resultGradientArray_d,
+							  int activeVoxelNumber,
+							  float paddingValue);
 #endif

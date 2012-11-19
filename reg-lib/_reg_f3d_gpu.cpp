@@ -27,7 +27,7 @@ reg_f3d_gpu::reg_f3d_gpu(int refTimePoint,int floTimePoint)
     this->deformationFieldImage_gpu=NULL;
     this->warpedGradientImage_gpu=NULL;
     this->voxelBasedMeasureGradientImage_gpu=NULL;
-    this->nodeBasedGradientImage_gpu=NULL;
+    this->transformationGradient_gpu=NULL;
     this->logJointHistogram_gpu=NULL;
 
     this->currentReference2_gpu=NULL;
@@ -60,8 +60,8 @@ reg_f3d_gpu::~reg_f3d_gpu()
         cudaCommon_free<float4>(&this->warpedGradientImage_gpu);
     if(this->voxelBasedMeasureGradientImage_gpu!=NULL)
         cudaCommon_free<float4>(&this->voxelBasedMeasureGradientImage_gpu);
-    if(this->nodeBasedGradientImage_gpu!=NULL)
-        cudaCommon_free<float4>(&this->nodeBasedGradientImage_gpu);
+    if(this->transformationGradient_gpu!=NULL)
+        cudaCommon_free<float4>(&this->transformationGradient_gpu);
     if(this->logJointHistogram_gpu!=NULL)
         cudaCommon_free<float>(&this->logJointHistogram_gpu);
 
@@ -74,8 +74,8 @@ reg_f3d_gpu::~reg_f3d_gpu()
     if(this->warpedGradientImage2_gpu!=NULL)
         cudaCommon_free<float4>(&this->warpedGradientImage2_gpu);
 
-    if(this->optimiser_gpu!=NULL){
-        delete this->optimiser_gpu;this->optimiser_gpu=NULL;
+    if(this->optimiser!=NULL){
+        delete this->optimiser;this->optimiser=NULL;
     }
 
     NR_CUDA_SAFE_CALL(cudaThreadExit())
@@ -241,13 +241,13 @@ void reg_f3d_gpu::ClearVoxelBasedMeasureGradient()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-void reg_f3d_gpu::AllocateNodeBasedGradient()
+void reg_f3d_gpu::AllocateTransformationGradient()
 {
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_gpu::AllocateNodeBasedGradient called.\n");
 #endif
-    this->ClearNodeBasedGradient();
-    if(cudaCommon_allocateArrayToDevice(&this->nodeBasedGradientImage_gpu,
+    this->ClearTransformationGradient();
+    if(cudaCommon_allocateArrayToDevice(&this->transformationGradient_gpu,
                                         this->controlPointGrid->dim)){
         printf("[NiftyReg ERROR] Error when allocating the node based gradient image.\n");
         exit(1);
@@ -258,11 +258,11 @@ void reg_f3d_gpu::AllocateNodeBasedGradient()
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-void reg_f3d_gpu::ClearNodeBasedGradient()
+void reg_f3d_gpu::ClearTransformationGradient()
 {
-    if(this->nodeBasedGradientImage_gpu!=NULL){
-        cudaCommon_free<float4>(&this->nodeBasedGradientImage_gpu);
-        this->nodeBasedGradientImage_gpu=NULL;
+    if(this->transformationGradient_gpu!=NULL){
+        cudaCommon_free<float4>(&this->transformationGradient_gpu);
+        this->transformationGradient_gpu=NULL;
     }
     return;
 }
@@ -300,29 +300,29 @@ double reg_f3d_gpu::ComputeJacobianBasedPenaltyTerm(int type)
 
     double value;
     if(type==2){
-        value = reg_bspline_ComputeJacobianPenaltyTerm_gpu(this->currentReference,
-                                                           this->controlPointGrid,
-                                                           &this->controlPointGrid_gpu,
-                                                           false);
+        value = reg_spline_getJacobianPenaltyTerm_gpu(this->currentReference,
+                                                      this->controlPointGrid,
+                                                      &this->controlPointGrid_gpu,
+                                                      false);
     }
     else{
-        value = reg_bspline_ComputeJacobianPenaltyTerm_gpu(this->currentReference,
-                                                           this->controlPointGrid,
-                                                           &this->controlPointGrid_gpu,
-                                                           this->jacobianLogApproximation);
+        value = reg_spline_getJacobianPenaltyTerm_gpu(this->currentReference,
+                                                      this->controlPointGrid,
+                                                      &this->controlPointGrid_gpu,
+                                                      this->jacobianLogApproximation);
     }
     unsigned int maxit=5;
     if(type>0) maxit=20;
     unsigned int it=0;
     while(value!=value && it<maxit){
         if(type==2){
-            value = reg_bspline_correctFolding_gpu(this->currentReference,
+            value = reg_spline_correctFolding_gpu(this->currentReference,
                                                    this->controlPointGrid,
                                                    &this->controlPointGrid_gpu,
                                                    false);
         }
         else{
-            value = reg_bspline_correctFolding_gpu(this->currentReference,
+            value = reg_spline_correctFolding_gpu(this->currentReference,
                                                    this->controlPointGrid,
                                                    &this->controlPointGrid_gpu,
                                                    this->jacobianLogApproximation);
@@ -355,7 +355,7 @@ double reg_f3d_gpu::ComputeBendingEnergyPenaltyTerm()
 {
     if(this->bendingEnergyWeight<=0) return 0.;
 
-    double value = reg_bspline_ApproxBendingEnergy_gpu(this->controlPointGrid,
+    double value = reg_spline_approxBendingEnergy_gpu(this->controlPointGrid,
                                                        &this->controlPointGrid_gpu);
     return this->bendingEnergyWeight * value;
 }
@@ -368,14 +368,14 @@ void reg_f3d_gpu::GetDeformationField()
     }
     else{
        // Compute the deformation field
-        reg_bspline_gpu(this->controlPointGrid,
-                        this->currentReference,
-                        &this->controlPointGrid_gpu,
-                        &this->deformationFieldImage_gpu,
-                        &this->currentMask_gpu,
-                        this->activeVoxelNumber[this->currentLevel],
-                        true // use B-splines
-                        );
+        reg_spline_getDeformationField_gpu(this->controlPointGrid,
+                                           this->currentReference,
+                                           &this->controlPointGrid_gpu,
+                                           &this->deformationFieldImage_gpu,
+                                           &this->currentMask_gpu,
+                                           this->activeVoxelNumber[this->currentLevel],
+                                           true // use B-splines
+                                           );
     }
     return;
 }
@@ -390,21 +390,21 @@ void reg_f3d_gpu::WarpFloatingImage(int inter)
     this->GetDeformationField();
 
     // Resample the floating image
-    reg_resampleSourceImage_gpu(this->currentFloating,
-                                &this->warped_gpu,
-                                &this->currentFloating_gpu,
-                                &this->deformationFieldImage_gpu,
-                                &this->currentMask_gpu,
-                                this->activeVoxelNumber[this->currentLevel],
-                                this->warpedPaddingValue);
+    reg_resampleImage_gpu(this->currentFloating,
+                          &this->warped_gpu,
+                          &this->currentFloating_gpu,
+                          &this->deformationFieldImage_gpu,
+                          &this->currentMask_gpu,
+                          this->activeVoxelNumber[this->currentLevel],
+                          this->warpedPaddingValue);
     if(this->currentFloating->nt==2){
-        reg_resampleSourceImage_gpu(this->currentFloating,
-                                    &this->warped2_gpu,
-                                    &this->currentFloating2_gpu,
-                                    &this->deformationFieldImage_gpu,
-                                    &this->currentMask_gpu,
-                                    this->activeVoxelNumber[this->currentLevel],
-                                    this->warpedPaddingValue);
+        reg_resampleImage_gpu(this->currentFloating,
+                              &this->warped2_gpu,
+                              &this->currentFloating2_gpu,
+                              &this->deformationFieldImage_gpu,
+                              &this->currentMask_gpu,
+                              this->activeVoxelNumber[this->currentLevel],
+                              this->warpedPaddingValue);
     }
     return;
 }
@@ -451,8 +451,6 @@ double reg_f3d_gpu::ComputeSimilarityMeasure()
                                  this->entropies,
                                  this->currentMask);
     }
-
-
     measure = double(this->entropies[0]+this->entropies[1])/double(this->entropies[2]);
 
     return double(1.0-this->bendingEnergyWeight-this->jacobianLogWeight) * measure;
@@ -465,25 +463,27 @@ void reg_f3d_gpu::GetVoxelBasedGradient()
     float *tempB=NULL;
     NR_CUDA_SAFE_CALL(cudaMallocHost(&tempB, this->totalBinNumber*sizeof(float)))
     for(unsigned int i=0; i<this->totalBinNumber;i++){
-        tempB[i]=(float)this->logJointHistogram[i];
+		tempB[i]=static_cast<float>(this->logJointHistogram[i]);
     }
     NR_CUDA_SAFE_CALL(cudaMemcpy(this->logJointHistogram_gpu, tempB,
                                  this->totalBinNumber*sizeof(float), cudaMemcpyHostToDevice))
     NR_CUDA_SAFE_CALL(cudaFreeHost(tempB))
 
     // The intensity gradient is first computed
-    reg_getSourceImageGradient_gpu( this->currentFloating,
-                                    &this->currentFloating_gpu,
-                                    &this->deformationFieldImage_gpu,
-                                    &this->warpedGradientImage_gpu,
-                                    this->activeVoxelNumber[this->currentLevel]);
+	reg_getImageGradient_gpu(this->currentFloating,
+							 &this->currentFloating_gpu,
+							 &this->deformationFieldImage_gpu,
+							 &this->warpedGradientImage_gpu,
+							 this->activeVoxelNumber[this->currentLevel],
+							 this->warpedPaddingValue);
 
     if(this->currentFloating->nt==2){
-        reg_getSourceImageGradient_gpu( this->currentFloating,
-                                        &this->currentFloating2_gpu,
-                                        &this->deformationFieldImage_gpu,
-                                        &this->warpedGradientImage2_gpu,
-                                        this->activeVoxelNumber[this->currentLevel]);
+	reg_getImageGradient_gpu(this->currentFloating,
+							 &this->currentFloating2_gpu,
+							 &this->deformationFieldImage_gpu,
+							 &this->warpedGradientImage2_gpu,
+							 this->activeVoxelNumber[this->currentLevel],
+							 this->warpedPaddingValue);
     }
 
     // The voxel based NMI gradient
@@ -539,7 +539,7 @@ void reg_f3d_gpu::GetSimilarityMeasureGradient()
     reg_voxelCentric2NodeCentric_gpu(   this->warped,
                                         this->controlPointGrid,
                                         &this->voxelBasedMeasureGradientImage_gpu,
-                                        &this->nodeBasedGradientImage_gpu,
+                                        &this->transformationGradient_gpu,
                                         1.0-this->bendingEnergyWeight-this->jacobianLogWeight);
     /* The NMI gradient is converted from voxel space to real space */
     mat44 *floatingMatrix_xyz=NULL;
@@ -548,11 +548,11 @@ void reg_f3d_gpu::GetSimilarityMeasureGradient()
     else floatingMatrix_xyz = &(this->currentFloating->qto_xyz);
     reg_convertNMIGradientFromVoxelToRealSpace_gpu( floatingMatrix_xyz,
                                                     this->controlPointGrid,
-                                                    &this->nodeBasedGradientImage_gpu);
+                                                    &this->transformationGradient_gpu);
     // The gradient is smoothed using a Gaussian kernel if it is required
     if(this->gradientSmoothingSigma!=0){
         reg_gaussianSmoothing_gpu(this->controlPointGrid,
-                                  &this->nodeBasedGradientImage_gpu,
+                                  &this->transformationGradient_gpu,
                                   this->gradientSmoothingSigma,
                                   NULL);
     }
@@ -564,11 +564,10 @@ void reg_f3d_gpu::GetBendingEnergyGradient()
 {
     if(this->bendingEnergyWeight<=0) return;
 
-    reg_bspline_ApproxBendingEnergyGradient_gpu(this->currentReference,
-                                                 this->controlPointGrid,
-                                                 &this->controlPointGrid_gpu,
-                                                 &this->nodeBasedGradientImage_gpu,
-                                                 this->bendingEnergyWeight);
+    reg_spline_approxBendingEnergyGradient_gpu(this->controlPointGrid,
+                                               &this->controlPointGrid_gpu,
+                                               &this->transformationGradient_gpu,
+                                               this->bendingEnergyWeight);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -577,21 +576,21 @@ void reg_f3d_gpu::GetJacobianBasedGradient()
 {
     if(this->jacobianLogWeight<=0) return;
 
-    reg_bspline_ComputeJacobianPenaltyTermGradient_gpu(this->currentReference,
-                                                       this->controlPointGrid,
-                                                       &this->controlPointGrid_gpu,
-                                                       &this->nodeBasedGradientImage_gpu,
-                                                       this->jacobianLogWeight,
-                                                       this->jacobianLogApproximation);
+    reg_spline_getJacobianPenaltyTermGradient_gpu(this->currentReference,
+                                                  this->controlPointGrid,
+                                                  &this->controlPointGrid_gpu,
+                                                  &this->transformationGradient_gpu,
+                                                  this->jacobianLogWeight,
+                                                  this->jacobianLogApproximation);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::UpdateParameters(float scale)
 {
-    float4 *currentDOF=this->optimiser_gpu->GetCurrentDOF();
-    float4 *bestDOF=this->optimiser_gpu->GetBestDOF();
-    float4 *gradient=this->optimiser_gpu->GetGradient();
+    float4 *currentDOF=reinterpret_cast<float4 *>(this->optimiser->GetCurrentDOF());
+    float4 *bestDOF=reinterpret_cast<float4 *>(this->optimiser->GetBestDOF());
+    float4 *gradient=reinterpret_cast<float4 *>(this->optimiser->GetGradient());
     reg_updateControlPointPosition_gpu(this->controlPointGrid,
                                        &currentDOF,
                                        &bestDOF,
@@ -601,9 +600,9 @@ void reg_f3d_gpu::UpdateParameters(float scale)
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-void reg_f3d_gpu::AllocateCurrentInputImage()
+float reg_f3d_gpu::InitialiseCurrentLevel()
 {
-    reg_f3d<float>::AllocateCurrentInputImage();
+    float maxStepSize=reg_f3d<float>::InitialiseCurrentLevel();
 
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_gpu::AllocateCurrentInputImage called.\n");
@@ -690,7 +689,7 @@ void reg_f3d_gpu::AllocateCurrentInputImage()
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_gpu::AllocateCurrentInputImage done.\n");
 #endif
-    return;
+    return maxStepSize;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::ClearCurrentInputImage()
@@ -731,25 +730,47 @@ void reg_f3d_gpu::ClearCurrentInputImage()
 void reg_f3d_gpu::SetOptimiser()
 {
     if(this->useConjGradient)
-        this->optimiser_gpu=new reg_conjugateGradient_gpu();
-    else this->optimiser_gpu=new reg_optimiser_gpu();
-    this->optimiser_gpu->Initialise(this->controlPointGrid->nvox,
-                                    this->controlPointGrid->nz>1?3:2,
-                                    this->optimiseX,
-                                    this->optimiseY,
-                                    this->optimiseZ,
-                                    this->maxiterationNumber,
-                                    0, // currentIterationNumber,
-                                    this,
-                                    this->controlPointGrid_gpu,
-                                    this->nodeBasedGradientImage_gpu
-                                    );
+        this->optimiser=new reg_conjugateGradient_gpu();
+    else this->optimiser=new reg_optimiser_gpu();
+    this->optimiser->Initialise(this->controlPointGrid->nvox,
+                                this->controlPointGrid->nz>1?3:2,
+                                this->optimiseX,
+                                this->optimiseY,
+                                this->optimiseZ,
+                                this->maxiterationNumber,
+                                0, // currentIterationNumber,
+                                this,
+                                reinterpret_cast<float *>(this->controlPointGrid_gpu),
+                                reinterpret_cast<float *>(this->transformationGradient_gpu)
+                                );
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-int reg_f3d_gpu::CheckMemoryMB_f3d()
+float reg_f3d_gpu::NormaliseGradient()
 {
-    if(!this->initialised) reg_f3d<float>::Initisalise_f3d();
+    // First compute the gradient max length for normalisation purpose
+    float length = reg_getMaximalLength_gpu(&this->transformationGradient_gpu,
+                                            this->optimiser->GetDOFNumber()
+                                            );
+
+    if(strcmp(this->executableName,"NiftyReg F3D")==0){
+        // The gradient is normalised if we are running F3D
+        // It will be normalised later when running symmetric or F3D2
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] Objective function gradient_gpu maximal length: %g\n", length);
+#endif
+        reg_multiplyValue_gpu(this->optimiser->GetDOFNumber(),
+                              &this->transformationGradient_gpu,
+                              length);
+    }
+    // Returns the largest gradient distance
+    return length;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+int reg_f3d_gpu::CheckMemoryMB()
+{
+    if(!this->initialised) reg_f3d<float>::Initisalise();
 
     size_t referenceVoxelNumber=this->referencePyramid[this->levelToPerform-1]->nx *
             this->referencePyramid[this->levelToPerform-1]->ny *

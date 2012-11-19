@@ -17,7 +17,7 @@
 #include "_reg_localTransformation_gpu.h"
 #include "_reg_mutualinformation_gpu.h"
 #include "_reg_tools_gpu.h"
-#include "_reg_cudaCommon.h"
+#include "_reg_common_gpu.h"
 #include "_reg_optimiser_gpu.h"
 #include "_reg_f3d.h"
 
@@ -35,7 +35,7 @@ class reg_f3d_gpu : public reg_f3d<float>
     float4 *deformationFieldImage_gpu;
     float4 *warpedGradientImage_gpu;
     float4 *voxelBasedMeasureGradientImage_gpu;
-    float4 *nodeBasedGradientImage_gpu;
+    float4 *transformationGradient_gpu;
     float *logJointHistogram_gpu;
 
     // cuda variable for multispectral registration
@@ -44,7 +44,7 @@ class reg_f3d_gpu : public reg_f3d<float>
     float *warped2_gpu;
     float4 *warpedGradientImage2_gpu;
 
-    void AllocateCurrentInputImage();
+    float InitialiseCurrentLevel();
     void ClearCurrentInputImage();
     void AllocateWarped();
     void ClearWarped();
@@ -54,8 +54,8 @@ class reg_f3d_gpu : public reg_f3d<float>
     void ClearWarpedGradient();
     void AllocateVoxelBasedMeasureGradient();
     void ClearVoxelBasedMeasureGradient();
-    void AllocateNodeBasedGradient();
-    void ClearNodeBasedGradient();
+    void AllocateTransformationGradient();
+    void ClearTransformationGradient();
     void AllocateJointHistogram();
     void ClearJointHistogram();
 
@@ -70,12 +70,13 @@ class reg_f3d_gpu : public reg_f3d<float>
     void GetJacobianBasedGradient();
     void UpdateParameters(float);
     void SetOptimiser();
+    float NormaliseGradient();
 
 public:
     reg_f3d_gpu(int refTimePoint,int floTimePoint);
     ~reg_f3d_gpu();
-    void Run_f3d();
-    int CheckMemoryMB_f3d();
+    void Run();
+    int CheckMemoryMB();
 };
 
 #include "_reg_f3d_gpu.cpp"

@@ -15,8 +15,8 @@
 #include "_reg_blocksize_gpu.h"
 
 extern "C++"
-void reg_getEntropies2x2_gpu(nifti_image *targetImages,
-                             nifti_image *resultImages,
+void reg_getEntropies2x2_gpu(nifti_image *referenceImages,
+							 nifti_image *warpedImages,
                              //int type,
                              unsigned int *target_bins, // should be an array of size num_target_volumes
                              unsigned int *result_bins, // should be an array of size num_result_volumes
@@ -27,26 +27,26 @@ void reg_getEntropies2x2_gpu(nifti_image *targetImages,
                              int *mask);
 
 extern "C++"
-void reg_getVoxelBasedNMIGradientUsingPW_gpu(nifti_image *targetImage,
-                                            nifti_image *resultImage,
-                                            cudaArray **targetImageArray_d,
-                                            float **resultImageArray_d,
-                                            float4 **resultGradientArray_d,
-                                            float **logJointHistogram_d,
-                                            float4 **voxelNMIGradientArray_d,
-                                            int **targetMask_d,
-                                            int activeVoxelNumber,
-                                            double *entropies,
-                                            int refBinning,
-                                            int floBinning);
+void reg_getVoxelBasedNMIGradientUsingPW_gpu(nifti_image *referenceImage,
+											 nifti_image *warpedImage,
+											 cudaArray **referenceImageArray_d,
+											 float **warpedImageArray_d,
+											 float4 **resultGradientArray_d,
+											 float **logJointHistogram_d,
+											 float4 **voxelNMIGradientArray_d,
+											 int **targetMask_d,
+											 int activeVoxelNumber,
+											 double *entropies,
+											 int refBinning,
+											 int floBinning);
 
 extern "C++"
-void reg_getVoxelBasedNMIGradientUsingPW2x2_gpu(nifti_image *targetImage,
-                                                nifti_image *resultImage,
-                                                cudaArray **targetImageArray1_d,
-                                                cudaArray **targetImageArray2_d,
-                                                float **resultImageArray1_d,
-                                                float **resultImageArray2_d,
+void reg_getVoxelBasedNMIGradientUsingPW2x2_gpu(nifti_image *referenceImage,
+												nifti_image *warpedImage,
+												cudaArray **referenceImageArray1_d,
+												cudaArray **referenceImageArray2_d,
+												float **warpedImageArray1_d,
+												float **warpedImageArray2_d,
                                                 float4 **resultGradientArray1_d,
                                                 float4 **resultGradientArray2_d,
                                                 float **logJointHistogram_d,

@@ -128,7 +128,7 @@ PrecisionTYPE GetBasisSplineDerivativeValue(PrecisionTYPE ori)
         else{
             x-=2.0f;
             value = -0.5f * x * x;
-            if(ori<0.0f)value =-value;
+			if(ori<0.0f) value =-value;
         }
     }
     return value;
@@ -485,6 +485,7 @@ void reg_getVoxelBasedNMIGradientUsingPW2D(nifti_image *referenceImage,
                                            int *mask,
                                            bool approx)
 {
+    approx=approx;
     unsigned int num_fixed_volumes=referenceImage->nt;
     unsigned int num_warped_volumes=warpedImage->nt;
     unsigned int num_loops = num_fixed_volumes + num_warped_volumes;
@@ -612,7 +613,7 @@ void reg_getVoxelBasedNMIGradientUsingPW2D(nifti_image *referenceImage,
                     valid_values = true;
 
                     for(unsigned int lc = 0; lc < num_fixed_volumes; ++lc){
-                        int relative_pos = int(voxel_values[lc] + loop.Index(lc));
+						int relative_pos = int(voxel_values[lc]) + loop.Index(lc);
                         if(relative_pos< 0 || relative_pos >= bins[lc]){
                             valid_values = false; break;
                         }
@@ -623,7 +624,7 @@ void reg_getVoxelBasedNMIGradientUsingPW2D(nifti_image *referenceImage,
                     }
 
                     for(unsigned int jc = num_fixed_volumes; jc < num_loops; ++jc){
-                        int relative_pos = int(voxel_values[jc] + loop.Index(jc));
+						int relative_pos = int(voxel_values[jc]) + loop.Index(jc);
                         if(relative_pos< 0 || relative_pos >= bins[jc]){
                             valid_values = false; break;
                         }
@@ -704,6 +705,7 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *referenceImage,
                                            int *mask,
                                            bool approx)
 {
+    approx=approx;
     int num_fixed_volumes=referenceImage->nt;
     int num_warped_volumes=warpedImage->nt;
     int num_loops = num_fixed_volumes + num_warped_volumes;
@@ -864,7 +866,7 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *referenceImage,
                     valid_values = true;
 
                     for(lc = 0; lc < num_fixed_volumes; ++lc){
-                        relative_pos = static_cast<int>(voxel_values[lc] + loop.Index(lc));
+						relative_pos = static_cast<int>(voxel_values[lc]) + loop.Index(lc);
                         if(relative_pos< 0 || relative_pos >= bins[lc]){
                             valid_values = false; break;
                         }
@@ -876,7 +878,7 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *referenceImage,
                     }
 
                     for(jc = num_fixed_volumes; jc < num_loops; ++jc){
-                        relative_pos = static_cast<int>(voxel_values[jc] + loop.Index(jc));
+						relative_pos = static_cast<int>(voxel_values[jc]) + loop.Index(jc);
                         if(relative_pos< 0 || relative_pos >= bins[jc]){
                             valid_values = false; break;
                         }
@@ -940,9 +942,9 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *referenceImage,
 
                         jointEntropyDerivative_Z += warped_common[2] * jointLog;
                         fixedEntropyDerivative_Z += warped_common[2] * fixedLog;
-                        warpedEntropyDerivative_Z += warped_common[2] * warpedLog;
+						warpedEntropyDerivative_Z += warped_common[2] * warpedLog;
                     }
-                } // loop
+				} // loop
                 nmiGradientPtrX[index] = (GradTYPE)( (fixedEntropyDerivative_X + warpedEntropyDerivative_X
                                                      - NMI * jointEntropyDerivative_X ) / normalised_joint_entropy );
                 nmiGradientPtrY[index] = (GradTYPE)( (fixedEntropyDerivative_Y + warpedEntropyDerivative_Y

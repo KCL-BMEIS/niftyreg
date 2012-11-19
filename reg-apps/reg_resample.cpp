@@ -309,9 +309,8 @@ int main(int argc, char **argv)
 #endif
             if( controlPointImage->intent_code==NIFTI_INTENT_VECTOR &&
                 strcmp(controlPointImage->intent_name,"NREG_VEL_STEP")==0){
-                reg_bspline_getDeformationFieldFromVelocityGrid(controlPointImage,
-                                                                deformationFieldImage
-                                                                );
+                reg_spline_getDeformationFieldFromVelocityGrid(controlPointImage,
+                                                               deformationFieldImage);
             }
             else{
                 reg_spline_getDeformationField(controlPointImage,

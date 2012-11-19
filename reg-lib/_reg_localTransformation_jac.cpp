@@ -133,7 +133,7 @@ void reg_getRealImageSpacing(nifti_image *image,
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
-double reg_bspline_jacobianValue2D(nifti_image *splineControlPoint,
+double reg_spline_jacobianValue2D(nifti_image *splineControlPoint,
                                    nifti_image *referenceImage)
 {
     DTYPE *controlPointPtrX = static_cast<DTYPE *>
@@ -254,7 +254,7 @@ double reg_bspline_jacobianValue2D(nifti_image *splineControlPoint,
 }
 /* *************************************************************** */
 template<class DTYPE>
-double reg_bspline_jacobianValue3D(nifti_image *splineControlPoint,
+double reg_spline_jacobianValue3D(nifti_image *splineControlPoint,
                                    nifti_image *referenceImage)
 {
 #if _USE_SSE
@@ -575,7 +575,7 @@ double reg_bspline_jacobianValue3D(nifti_image *splineControlPoint,
 }
 /* *************************************************************** */
 template<class DTYPE>
-double reg_bspline_jacobianApproxValue2D(nifti_image *splineControlPoint)
+double reg_spline_jacobianApproxValue2D(nifti_image *splineControlPoint)
 {
     DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
     DTYPE *controlPointPtrY = static_cast<DTYPE *>(&controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny]);
@@ -588,7 +588,7 @@ double reg_bspline_jacobianApproxValue2D(nifti_image *splineControlPoint)
     for(int b=0; b<3; b++){
         for(int a=0; a<3; a++){
             basisX[coord]=first[a]*normal[b];
-            basisY[coord]=normal[a]*first[b];
+			basisY[coord]=normal[a]*first[b];
             coord++;
         }
     }
@@ -610,13 +610,14 @@ double reg_bspline_jacobianApproxValue2D(nifti_image *splineControlPoint)
     DTYPE Tx_x, Ty_y, Tx_y, Ty_x;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(splineControlPoint, controlPointPtrX, controlPointPtrY, reorient, basisX, basisY, realSpacing) \
+	shared(splineControlPoint, controlPointPtrX, controlPointPtrY, \
+	reorient, basisX, basisY, realSpacing) \
     private(x, y, a, jacobianMatrix, detJac, logJac, Tx_x, Ty_y, Tx_y, Ty_x, \
     xControlPointCoordinates, yControlPointCoordinates) \
     reduction(+:constraintValue)
 #endif
-    for(y=1;y<splineControlPoint->ny-2;y++){
-        for(x=1;x<splineControlPoint->nx-2;x++){
+	for(y=1;y<splineControlPoint->ny-1;y++){
+		for(x=1;x<splineControlPoint->nx-1;x++){
 
             get_GridValues<DTYPE>(x-1,
                                   y-1,
@@ -656,9 +657,9 @@ double reg_bspline_jacobianApproxValue2D(nifti_image *splineControlPoint)
             if(detJac>0.0){
                 logJac = log(detJac);
 #ifdef _USE_SQUARE_LOG_JAC
-                constraintValue += logJac*logJac;
+				constraintValue += logJac*logJac;
 #else
-                constraintValue +=  fabs(log(detJac));
+				constraintValue +=  fabs(detJac);
 #endif
             }
             else
@@ -668,12 +669,12 @@ double reg_bspline_jacobianApproxValue2D(nifti_image *splineControlPoint)
                 return std::numeric_limits<double>::quiet_NaN();
 #endif // _OPENMP
         }
-    }
+	}
     return constraintValue/(double)((splineControlPoint->nx-2)*(splineControlPoint->ny-2));
 }
 /* *************************************************************** */
 template<class DTYPE>
-double reg_bspline_jacobianApproxValue3D(nifti_image *splineControlPoint)
+double reg_spline_jacobianApproxValue3D(nifti_image *splineControlPoint)
 {
     // As the contraint is only computed at the voxel position, the basis value of the spline are always the same
     float basisX[27], basisY[27], basisZ[27];
@@ -807,22 +808,22 @@ double reg_bspline_jacobianApproxValue3D(nifti_image *splineControlPoint)
 }
 /* *************************************************************** */
 extern "C++"
-double reg_bspline_jacobian(nifti_image *splineControlPoint,
-                            nifti_image *referenceImage,
-                            bool approx
-                            )
+double reg_spline_getJacobianPenaltyTerm(nifti_image *splineControlPoint,
+                                         nifti_image *referenceImage,
+                                         bool approx
+                                         )
 {
     if(splineControlPoint->nz==1){
         switch(splineControlPoint->datatype){
         case NIFTI_TYPE_FLOAT32:
             if(approx)
-                return reg_bspline_jacobianApproxValue2D<float>(splineControlPoint);
-            else return reg_bspline_jacobianValue2D<float>(splineControlPoint, referenceImage);
+                return reg_spline_jacobianApproxValue2D<float>(splineControlPoint);
+            else return reg_spline_jacobianValue2D<float>(splineControlPoint, referenceImage);
             break;
         case NIFTI_TYPE_FLOAT64:
             if(approx)
-                return reg_bspline_jacobianApproxValue2D<double>(splineControlPoint);
-            else return reg_bspline_jacobianValue2D<double>(splineControlPoint, referenceImage);
+                return reg_spline_jacobianApproxValue2D<double>(splineControlPoint);
+            else return reg_spline_jacobianValue2D<double>(splineControlPoint, referenceImage);
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the jacobian value\n");
@@ -834,13 +835,13 @@ double reg_bspline_jacobian(nifti_image *splineControlPoint,
         switch(splineControlPoint->datatype){
         case NIFTI_TYPE_FLOAT32:
             if(approx)
-                return reg_bspline_jacobianApproxValue3D<float>(splineControlPoint);
-            else return reg_bspline_jacobianValue3D<float>(splineControlPoint, referenceImage);
+                return reg_spline_jacobianApproxValue3D<float>(splineControlPoint);
+            else return reg_spline_jacobianValue3D<float>(splineControlPoint, referenceImage);
             break;
         case NIFTI_TYPE_FLOAT64:
             if(approx)
-                return reg_bspline_jacobianApproxValue3D<double>(splineControlPoint);
-            else return reg_bspline_jacobianValue3D<double>(splineControlPoint, referenceImage);
+                return reg_spline_jacobianApproxValue3D<double>(splineControlPoint);
+            else return reg_spline_jacobianValue3D<double>(splineControlPoint, referenceImage);
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the jacobian value\n");
@@ -853,7 +854,7 @@ double reg_bspline_jacobian(nifti_image *splineControlPoint,
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void reg_bspline_computeJacobianMatrices_2D(nifti_image *referenceImage,
+void reg_spline_computeJacobianMatrices_2D(nifti_image *referenceImage,
                                             nifti_image *splineControlPoint,
                                             mat33 *jacobianMatrices,
                                             DTYPE *jacobianDeterminant)
@@ -966,7 +967,7 @@ void reg_bspline_computeJacobianMatrices_2D(nifti_image *referenceImage,
 }
 /* *************************************************************** */
 template <class DTYPE>
-void reg_bspline_computeJacobianMatrices_3D(nifti_image *referenceImage,
+void reg_spline_computeJacobianMatrices_3D(nifti_image *referenceImage,
                                             nifti_image *splineControlPoint,
                                             mat33 *jacobianMatrices,
                                             DTYPE *jacobianDeterminant)
@@ -1275,7 +1276,7 @@ void reg_bspline_computeJacobianMatrices_3D(nifti_image *referenceImage,
 }
 /* *************************************************************** */
 template <class DTYPE>
-void reg_bspline_computeJacobianMatricesFull_3D(nifti_image *referenceImage,
+void reg_spline_computeJacobianMatricesFull_3D(nifti_image *referenceImage,
                                                 nifti_image *splineControlPoint,
                                                 mat33 *jacobianMatrices)
 {
@@ -1542,7 +1543,7 @@ void reg_bspline_computeJacobianMatricesFull_3D(nifti_image *referenceImage,
 }
 /* *************************************************************** */
 template <class DTYPE>
-void reg_bspline_computeJacobianMatricesFull_2D(nifti_image *referenceImage,
+void reg_spline_computeJacobianMatricesFull_2D(nifti_image *referenceImage,
                                                 nifti_image *splineControlPoint,
                                                 mat33 *jacobianMatrices)
 {
@@ -1666,7 +1667,7 @@ void reg_bspline_computeJacobianMatricesFull_2D(nifti_image *referenceImage,
 }
 /* *************************************************************** */
 template <class DTYPE>
-void reg_bspline_computeApproximateJacobianMatrices_2D(nifti_image *splineControlPoint,
+void reg_spline_computeApproximateJacobianMatrices_2D(nifti_image *splineControlPoint,
                                                        mat33 *jacobianMatrices,
                                                        DTYPE *jacobianDeterminant)
 {
@@ -1773,7 +1774,7 @@ void reg_bspline_computeApproximateJacobianMatrices_2D(nifti_image *splineContro
 }
 /* *************************************************************** */
 template <class DTYPE>
-void reg_bspline_computeApproximateJacobianMatrices_3D(nifti_image *splineControlPoint,
+void reg_spline_computeApproximateJacobianMatrices_3D(nifti_image *splineControlPoint,
                                                        mat33 *jacobianMatrices,
                                                        DTYPE *jacobianDeterminant)
 {
@@ -1906,7 +1907,7 @@ void reg_bspline_computeApproximateJacobianMatrices_3D(nifti_image *splineContro
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
-void reg_bspline_jacobianDeterminantGradient2D(nifti_image *splineControlPoint,
+void reg_spline_jacobianDeterminantGradient2D(nifti_image *splineControlPoint,
                                                nifti_image *referenceImage,
                                                nifti_image *gradientImage,
                                                float weight)
@@ -1914,7 +1915,7 @@ void reg_bspline_jacobianDeterminantGradient2D(nifti_image *splineControlPoint,
     mat33 *jacobianMatrices=(mat33 *)malloc((referenceImage->nx*referenceImage->ny*referenceImage->nz) * sizeof(mat33));
     DTYPE *jacobianDeterminant=(DTYPE *)malloc((referenceImage->nx*referenceImage->ny*referenceImage->nz) * sizeof(DTYPE));
 
-    reg_bspline_computeJacobianMatrices_2D<DTYPE>(referenceImage,
+    reg_spline_computeJacobianMatrices_2D<DTYPE>(referenceImage,
                                                   splineControlPoint,
                                                   jacobianMatrices,
                                                   jacobianDeterminant);
@@ -2009,7 +2010,7 @@ void reg_bspline_jacobianDeterminantGradient2D(nifti_image *splineControlPoint,
 }
 /* *************************************************************** */
 template<class DTYPE>
-void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlPoint,
+void reg_spline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlPoint,
                                                      nifti_image *referenceImage,
                                                      nifti_image *gradientImage,
                                                      float weight
@@ -2019,7 +2020,7 @@ void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlP
 
     mat33 *jacobianMatrices=(mat33 *)malloc(jacobianNumber * sizeof(mat33));
     DTYPE *jacobianDeterminant=(DTYPE *)malloc(jacobianNumber * sizeof(DTYPE));
-    reg_bspline_computeApproximateJacobianMatrices_2D<DTYPE>(splineControlPoint,
+    reg_spline_computeApproximateJacobianMatrices_2D<DTYPE>(splineControlPoint,
                                                              jacobianMatrices,
                                                              jacobianDeterminant);
 
@@ -2105,7 +2106,7 @@ void reg_bspline_jacobianDeterminantGradientApprox2D(nifti_image *splineControlP
 }
 /* *************************************************************** */
 template<class DTYPE>
-void reg_bspline_jacobianDeterminantGradient3D( nifti_image *splineControlPoint,
+void reg_spline_jacobianDeterminantGradient3D( nifti_image *splineControlPoint,
                                                nifti_image *referenceImage,
                                                nifti_image *gradientImage,
                                                float weight)
@@ -2113,7 +2114,7 @@ void reg_bspline_jacobianDeterminantGradient3D( nifti_image *splineControlPoint,
     mat33 *jacobianMatrices=(mat33 *)malloc((referenceImage->nx*referenceImage->ny*referenceImage->nz) * sizeof(mat33));
     DTYPE *jacobianDeterminant=(DTYPE *)malloc((referenceImage->nx*referenceImage->ny*referenceImage->nz) * sizeof(DTYPE));
 
-    reg_bspline_computeJacobianMatrices_3D<DTYPE>(referenceImage,
+    reg_spline_computeJacobianMatrices_3D<DTYPE>(referenceImage,
                                                   splineControlPoint,
                                                   jacobianMatrices,
                                                   jacobianDeterminant);
@@ -2237,7 +2238,7 @@ void reg_bspline_jacobianDeterminantGradient3D( nifti_image *splineControlPoint,
 }
 /* *************************************************************** */
 template<class DTYPE>
-void reg_bspline_jacobianDeterminantGradientApprox3D(nifti_image *splineControlPoint,
+void reg_spline_jacobianDeterminantGradientApprox3D(nifti_image *splineControlPoint,
                                                      nifti_image *referenceImage,
                                                      nifti_image *gradientImage,
                                                      float weight)
@@ -2248,7 +2249,7 @@ void reg_bspline_jacobianDeterminantGradientApprox3D(nifti_image *splineControlP
     mat33 *jacobianMatrices=(mat33 *)malloc(jacobianNumber * sizeof(mat33));
     DTYPE *jacobianDeterminant=(DTYPE *)malloc(jacobianNumber * sizeof(DTYPE));
 
-    reg_bspline_computeApproximateJacobianMatrices_3D<DTYPE>(splineControlPoint,
+    reg_spline_computeApproximateJacobianMatrices_3D<DTYPE>(splineControlPoint,
                                                              jacobianMatrices,
                                                              jacobianDeterminant);
 
@@ -2276,9 +2277,9 @@ void reg_bspline_jacobianDeterminantGradientApprox3D(nifti_image *splineControlP
     DTYPE *gradientImagePtrZ = &gradientImagePtrY[jacobianNumber];
 
     DTYPE approxRatio[3] = {
-        referenceImage->dx*weight / ((DTYPE)(jacobianNumber*splineControlPoint->dx)),
-        referenceImage->dy*weight / ((DTYPE)(jacobianNumber*splineControlPoint->dy)),
-        referenceImage->dz*weight / ((DTYPE)(jacobianNumber*splineControlPoint->dz))};
+        referenceImage->dx*weight / ((DTYPE)jacobianNumber*splineControlPoint->dx),
+        referenceImage->dy*weight / ((DTYPE)jacobianNumber*splineControlPoint->dy),
+        referenceImage->dz*weight / ((DTYPE)jacobianNumber*splineControlPoint->dz)};
 
     int x, y, z, jacIndex, pixelX, pixelY, pixelZ, index;
     DTYPE jacobianConstraint[3];
@@ -2357,11 +2358,11 @@ void reg_bspline_jacobianDeterminantGradientApprox3D(nifti_image *splineControlP
 }
 /* *************************************************************** */
 extern "C++"
-void reg_bspline_jacobianDeterminantGradient(nifti_image *splineControlPoint,
-                                             nifti_image *referenceImage,
-                                             nifti_image *gradientImage,
-                                             float weight,
-                                             bool approx)
+void reg_spline_getJacobianPenaltyTermGradient(nifti_image *splineControlPoint,
+                                               nifti_image *referenceImage,
+                                               nifti_image *gradientImage,
+                                               float weight,
+                                               bool approx)
 {
     if(splineControlPoint->datatype != gradientImage->datatype){
         fprintf(stderr,"[NiftyReg ERROR] The spline control point image and the gradient image were expected to have the same datatype\n");
@@ -2373,11 +2374,11 @@ void reg_bspline_jacobianDeterminantGradient(nifti_image *splineControlPoint,
         if(approx){
             switch(splineControlPoint->datatype){
             case NIFTI_TYPE_FLOAT32:
-                reg_bspline_jacobianDeterminantGradientApprox2D<float>
+                reg_spline_jacobianDeterminantGradientApprox2D<float>
                         (splineControlPoint, referenceImage, gradientImage, weight);
                 break;
             case NIFTI_TYPE_FLOAT64:
-                reg_bspline_jacobianDeterminantGradientApprox2D<double>
+                reg_spline_jacobianDeterminantGradientApprox2D<double>
                         (splineControlPoint, referenceImage, gradientImage, weight);
                 break;
             default:
@@ -2389,11 +2390,11 @@ void reg_bspline_jacobianDeterminantGradient(nifti_image *splineControlPoint,
         else{
             switch(splineControlPoint->datatype){
             case NIFTI_TYPE_FLOAT32:
-                reg_bspline_jacobianDeterminantGradient2D<float>
+                reg_spline_jacobianDeterminantGradient2D<float>
                         (splineControlPoint, referenceImage, gradientImage, weight);
                 break;
             case NIFTI_TYPE_FLOAT64:
-                reg_bspline_jacobianDeterminantGradient2D<double>
+                reg_spline_jacobianDeterminantGradient2D<double>
                         (splineControlPoint, referenceImage, gradientImage, weight);
                 break;
             default:
@@ -2407,11 +2408,11 @@ void reg_bspline_jacobianDeterminantGradient(nifti_image *splineControlPoint,
         if(approx){
             switch(splineControlPoint->datatype){
             case NIFTI_TYPE_FLOAT32:
-                reg_bspline_jacobianDeterminantGradientApprox3D<float>
+                reg_spline_jacobianDeterminantGradientApprox3D<float>
                         (splineControlPoint, referenceImage, gradientImage, weight);
                 break;
             case NIFTI_TYPE_FLOAT64:
-                reg_bspline_jacobianDeterminantGradientApprox3D<double>
+                reg_spline_jacobianDeterminantGradientApprox3D<double>
                         (splineControlPoint, referenceImage, gradientImage, weight);
                 break;
             default:
@@ -2423,11 +2424,11 @@ void reg_bspline_jacobianDeterminantGradient(nifti_image *splineControlPoint,
         else{
             switch(splineControlPoint->datatype){
             case NIFTI_TYPE_FLOAT32:
-                reg_bspline_jacobianDeterminantGradient3D<float>
+                reg_spline_jacobianDeterminantGradient3D<float>
                         (splineControlPoint, referenceImage, gradientImage, weight);
                 break;
             case NIFTI_TYPE_FLOAT64:
-                reg_bspline_jacobianDeterminantGradient3D<double>
+                reg_spline_jacobianDeterminantGradient3D<double>
                         (splineControlPoint, referenceImage, gradientImage, weight);
                 break;
             default:
@@ -2441,14 +2442,14 @@ void reg_bspline_jacobianDeterminantGradient(nifti_image *splineControlPoint,
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
-double reg_bspline_correctFolding_2D(nifti_image *splineControlPoint,
+double reg_spline_correctFolding_2D(nifti_image *splineControlPoint,
                                      nifti_image *referenceImage)
 {
 
     mat33 *jacobianMatrices=(mat33 *)malloc((referenceImage->nx*referenceImage->ny*referenceImage->nz) * sizeof(mat33));
     DTYPE *jacobianDeterminant=(DTYPE *)malloc((referenceImage->nx*referenceImage->ny*referenceImage->nz) * sizeof(DTYPE));
 
-    reg_bspline_computeJacobianMatrices_2D<DTYPE>(referenceImage,
+    reg_spline_computeJacobianMatrices_2D<DTYPE>(referenceImage,
                                                   splineControlPoint,
                                                   jacobianMatrices,
                                                   jacobianDeterminant);
@@ -2577,7 +2578,7 @@ double reg_bspline_correctFolding_2D(nifti_image *splineControlPoint,
 }
 /* *************************************************************** */
 template<class DTYPE>
-double reg_bspline_correctFoldingApprox_2D(nifti_image *splineControlPoint)
+double reg_spline_correctFoldingApprox_2D(nifti_image *splineControlPoint)
 {
 
     unsigned int jacobianNumber = splineControlPoint->nx * splineControlPoint->ny;
@@ -2585,7 +2586,7 @@ double reg_bspline_correctFoldingApprox_2D(nifti_image *splineControlPoint)
     mat33 *jacobianMatrices=(mat33 *)malloc(jacobianNumber * sizeof(mat33));
     DTYPE *jacobianDeterminant=(DTYPE *)malloc(jacobianNumber * sizeof(DTYPE));
 
-    reg_bspline_computeApproximateJacobianMatrices_2D<DTYPE>(splineControlPoint,
+    reg_spline_computeApproximateJacobianMatrices_2D<DTYPE>(splineControlPoint,
                                                              jacobianMatrices,
                                                              jacobianDeterminant);
 
@@ -2707,14 +2708,14 @@ double reg_bspline_correctFoldingApprox_2D(nifti_image *splineControlPoint)
 }
 /* *************************************************************** */
 template<class DTYPE>
-double reg_bspline_correctFolding_3D(nifti_image *splineControlPoint,
+double reg_spline_correctFolding_3D(nifti_image *splineControlPoint,
                                      nifti_image *referenceImage)
 {
 
     mat33 *jacobianMatrices=(mat33 *)malloc((referenceImage->nx*referenceImage->ny*referenceImage->nz) * sizeof(mat33));
     DTYPE *jacobianDeterminant=(DTYPE *)malloc((referenceImage->nx*referenceImage->ny*referenceImage->nz) * sizeof(DTYPE));
 
-    reg_bspline_computeJacobianMatrices_3D<DTYPE>(referenceImage,
+    reg_spline_computeJacobianMatrices_3D<DTYPE>(referenceImage,
                                                   splineControlPoint,
                                                   jacobianMatrices,
                                                   jacobianDeterminant);
@@ -2863,7 +2864,7 @@ double reg_bspline_correctFolding_3D(nifti_image *splineControlPoint,
 }
 /* *************************************************************** */
 template<class DTYPE>
-double reg_bspline_correctFoldingApprox_3D(nifti_image *splineControlPoint)
+double reg_spline_correctFoldingApprox_3D(nifti_image *splineControlPoint)
 {
 
     unsigned int jacobianNumber = splineControlPoint->nx * splineControlPoint->ny * splineControlPoint->nz;
@@ -2871,7 +2872,7 @@ double reg_bspline_correctFoldingApprox_3D(nifti_image *splineControlPoint)
     mat33 *jacobianMatrices=(mat33 *)malloc(jacobianNumber * sizeof(mat33));
     DTYPE *jacobianDeterminant=(DTYPE *)malloc(jacobianNumber * sizeof(DTYPE));
 
-    reg_bspline_computeApproximateJacobianMatrices_3D<DTYPE>(splineControlPoint,
+    reg_spline_computeApproximateJacobianMatrices_3D<DTYPE>(splineControlPoint,
                                                              jacobianMatrices,
                                                              jacobianDeterminant);
 
@@ -3010,7 +3011,7 @@ double reg_bspline_correctFoldingApprox_3D(nifti_image *splineControlPoint)
 }
 /* *************************************************************** */
 extern "C++"
-double reg_bspline_correctFolding(nifti_image *splineControlPoint,
+double reg_spline_correctFolding(nifti_image *splineControlPoint,
                                   nifti_image *referenceImage,
                                   bool approx)
 {
@@ -3019,11 +3020,11 @@ double reg_bspline_correctFolding(nifti_image *splineControlPoint,
         if(approx){
             switch(splineControlPoint->datatype){
             case NIFTI_TYPE_FLOAT32:
-                return reg_bspline_correctFoldingApprox_2D<float>
+                return reg_spline_correctFoldingApprox_2D<float>
                         (splineControlPoint);
                 break;
             case NIFTI_TYPE_FLOAT64:
-                return reg_bspline_correctFoldingApprox_2D<double>
+                return reg_spline_correctFoldingApprox_2D<double>
                         (splineControlPoint);
                 break;
             default:
@@ -3035,11 +3036,11 @@ double reg_bspline_correctFolding(nifti_image *splineControlPoint,
         else{
             switch(splineControlPoint->datatype){
             case NIFTI_TYPE_FLOAT32:
-                return reg_bspline_correctFolding_2D<float>
+                return reg_spline_correctFolding_2D<float>
                         (splineControlPoint, referenceImage);
                 break;
             case NIFTI_TYPE_FLOAT64:
-                return reg_bspline_correctFolding_2D<double>
+                return reg_spline_correctFolding_2D<double>
                         (splineControlPoint, referenceImage);
                 break;
             default:
@@ -3053,11 +3054,11 @@ double reg_bspline_correctFolding(nifti_image *splineControlPoint,
         if(approx){
             switch(splineControlPoint->datatype){
             case NIFTI_TYPE_FLOAT32:
-                return reg_bspline_correctFoldingApprox_3D<float>
+                return reg_spline_correctFoldingApprox_3D<float>
                         (splineControlPoint);
                 break;
             case NIFTI_TYPE_FLOAT64:
-                return reg_bspline_correctFoldingApprox_3D<double>
+                return reg_spline_correctFoldingApprox_3D<double>
                         (splineControlPoint);
                 break;
             default:
@@ -3069,11 +3070,11 @@ double reg_bspline_correctFolding(nifti_image *splineControlPoint,
         else{
             switch(splineControlPoint->datatype){
             case NIFTI_TYPE_FLOAT32:
-                return reg_bspline_correctFolding_3D<float>
+                return reg_spline_correctFolding_3D<float>
                         (splineControlPoint, referenceImage);
                 break;
             case NIFTI_TYPE_FLOAT64:
-                return reg_bspline_correctFolding_3D<double>
+                return reg_spline_correctFolding_3D<double>
                         (splineControlPoint, referenceImage);
                 break;
             default:
@@ -3087,7 +3088,7 @@ double reg_bspline_correctFolding(nifti_image *splineControlPoint,
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void reg_bspline_GetJacobianMap2D(nifti_image *splineControlPoint,
+void reg_spline_GetJacobianMap2D(nifti_image *splineControlPoint,
                                   nifti_image *jacobianImage)
 {
     DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
@@ -3185,7 +3186,7 @@ void reg_bspline_GetJacobianMap2D(nifti_image *splineControlPoint,
 }
 /* *************************************************************** */
 template <class DTYPE>
-void reg_bspline_GetJacobianMap3D(nifti_image *splineControlPoint,
+void reg_spline_GetJacobianMap3D(nifti_image *splineControlPoint,
                                   nifti_image *jacobianImage)
 {
     DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
@@ -3323,16 +3324,16 @@ void reg_bspline_GetJacobianMap3D(nifti_image *splineControlPoint,
     }
 }
 /* *************************************************************** */
-void reg_bspline_GetJacobianMap(nifti_image *splineControlPoint,
+void reg_spline_GetJacobianMap(nifti_image *splineControlPoint,
                                 nifti_image *jacobianImage)
 {
     if(splineControlPoint->nz==1){
         switch(jacobianImage->datatype){
         case NIFTI_TYPE_FLOAT32:
-            reg_bspline_GetJacobianMap2D<float>(splineControlPoint, jacobianImage);
+            reg_spline_GetJacobianMap2D<float>(splineControlPoint, jacobianImage);
             break;
         case NIFTI_TYPE_FLOAT64:
-            reg_bspline_GetJacobianMap2D<double>(splineControlPoint, jacobianImage);
+            reg_spline_GetJacobianMap2D<double>(splineControlPoint, jacobianImage);
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the jacobian map image\n");
@@ -3342,10 +3343,10 @@ void reg_bspline_GetJacobianMap(nifti_image *splineControlPoint,
     }else{
         switch(jacobianImage->datatype){
         case NIFTI_TYPE_FLOAT32:
-            reg_bspline_GetJacobianMap3D<float>(splineControlPoint, jacobianImage);
+            reg_spline_GetJacobianMap3D<float>(splineControlPoint, jacobianImage);
             break;
         case NIFTI_TYPE_FLOAT64:
-            reg_bspline_GetJacobianMap3D<double>(splineControlPoint, jacobianImage);
+            reg_spline_GetJacobianMap3D<double>(splineControlPoint, jacobianImage);
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the jacobian map image\n");
@@ -3356,17 +3357,17 @@ void reg_bspline_GetJacobianMap(nifti_image *splineControlPoint,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-void reg_bspline_GetJacobianMatrix(nifti_image *referenceImage,
+void reg_spline_GetJacobianMatrix(nifti_image *referenceImage,
                                    nifti_image *splineControlPoint,
                                    mat33 *jacobianMatrices)
 {
     if(splineControlPoint->nz>1){
         switch(splineControlPoint->datatype){
         case NIFTI_TYPE_FLOAT32:
-            reg_bspline_computeJacobianMatrices_3D<float>(referenceImage,splineControlPoint,jacobianMatrices, NULL);
+            reg_spline_computeJacobianMatrices_3D<float>(referenceImage,splineControlPoint,jacobianMatrices, NULL);
             break;
         case NIFTI_TYPE_FLOAT64:
-            reg_bspline_computeJacobianMatrices_3D<double>(referenceImage,splineControlPoint,jacobianMatrices, NULL);
+            reg_spline_computeJacobianMatrices_3D<double>(referenceImage,splineControlPoint,jacobianMatrices, NULL);
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the control point image\n");
@@ -3377,10 +3378,10 @@ void reg_bspline_GetJacobianMatrix(nifti_image *referenceImage,
     else{
         switch(splineControlPoint->datatype){
         case NIFTI_TYPE_FLOAT32:
-            reg_bspline_computeJacobianMatrices_2D<float>(referenceImage,splineControlPoint,jacobianMatrices, NULL);
+            reg_spline_computeJacobianMatrices_2D<float>(referenceImage,splineControlPoint,jacobianMatrices, NULL);
             break;
         case NIFTI_TYPE_FLOAT64:
-            reg_bspline_computeJacobianMatrices_2D<double>(referenceImage,splineControlPoint,jacobianMatrices, NULL);
+            reg_spline_computeJacobianMatrices_2D<double>(referenceImage,splineControlPoint,jacobianMatrices, NULL);
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the control point image\n");
@@ -3391,17 +3392,17 @@ void reg_bspline_GetJacobianMatrix(nifti_image *referenceImage,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-void reg_bspline_GetJacobianMatrixFull(nifti_image *referenceImage,
+void reg_spline_GetJacobianMatrixFull(nifti_image *referenceImage,
                                        nifti_image *splineControlPoint,
                                        mat33 *jacobianMatrices)
 {
     if(splineControlPoint->nz>1){
         switch(splineControlPoint->datatype){
         case NIFTI_TYPE_FLOAT32:
-            reg_bspline_computeJacobianMatricesFull_3D<float>(referenceImage,splineControlPoint,jacobianMatrices);
+            reg_spline_computeJacobianMatricesFull_3D<float>(referenceImage,splineControlPoint,jacobianMatrices);
             break;
         case NIFTI_TYPE_FLOAT64:
-            reg_bspline_computeJacobianMatricesFull_3D<double>(referenceImage,splineControlPoint,jacobianMatrices);
+            reg_spline_computeJacobianMatricesFull_3D<double>(referenceImage,splineControlPoint,jacobianMatrices);
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the control point image\n");
@@ -3412,10 +3413,10 @@ void reg_bspline_GetJacobianMatrixFull(nifti_image *referenceImage,
     else{
         switch(splineControlPoint->datatype){
         case NIFTI_TYPE_FLOAT32:
-            reg_bspline_computeJacobianMatricesFull_2D<float>(referenceImage,splineControlPoint,jacobianMatrices);
+            reg_spline_computeJacobianMatricesFull_2D<float>(referenceImage,splineControlPoint,jacobianMatrices);
             break;
         case NIFTI_TYPE_FLOAT64:
-            reg_bspline_computeJacobianMatricesFull_2D<double>(referenceImage,splineControlPoint,jacobianMatrices);
+            reg_spline_computeJacobianMatricesFull_2D<double>(referenceImage,splineControlPoint,jacobianMatrices);
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the control point image\n");
@@ -3449,14 +3450,11 @@ void reg_defField_getJacobianMap2D(nifti_image *deformationField,
     mat33 reorient, desorient, jacobianMatrix;
     reg_getReorientationMatrix(deformationField, &desorient, &reorient);
 
-    mat44 *real2voxel=NULL;
     mat44 *voxel2real=NULL;
     if(deformationField->sform_code){
-        real2voxel=&(deformationField->sto_ijk);
         voxel2real=&(deformationField->sto_xyz);
     }
     else{
-        real2voxel=&(deformationField->qto_ijk);
         voxel2real=&(deformationField->qto_xyz);
     }
 
@@ -3719,13 +3717,13 @@ void reg_defField_getJacobianMatrix(nifti_image *deformationField,
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void reg_bspline_GetJacobianMatricesFromVelocityField_2D(nifti_image* referenceImage,
+void reg_spline_GetJacobianMatricesFromVelocityField_2D(nifti_image* referenceImage,
                                                          nifti_image* velocityFieldImage,
                                                          mat33* jacobianMatrices)
 {
     if( velocityFieldImage->intent_code!=NIFTI_INTENT_VECTOR ||
         strcmp(velocityFieldImage->intent_name,"NREG_VEL_STEP")!=0 ){
-        fprintf(stderr, "[NiftyReg ERROR] reg_bspline_GetJacobianMatricesFromVelocityField_2D - the provide grid is not a velocity field\n");
+        fprintf(stderr, "[NiftyReg ERROR] reg_spline_GetJacobianMatricesFromVelocityField_2D - the provide grid is not a velocity field\n");
         exit(1);
     }
 
@@ -3918,13 +3916,13 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_2D(nifti_image* referenceI
 }
 /* *************************************************************** */
 template <class DTYPE>
-void reg_bspline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceImage,
+void reg_spline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceImage,
                                                          nifti_image* velocityFieldImage,
                                                          mat33* jacobianMatrices)
 {
     if( velocityFieldImage->intent_code!=NIFTI_INTENT_VECTOR ||
         strcmp(velocityFieldImage->intent_name,"NREG_VEL_STEP")!=0 ){
-        fprintf(stderr, "[NiftyReg ERROR] reg_bspline_GetJacobianMatricesFromVelocityField_2D - the provide grid is not a velocity field\n");
+        fprintf(stderr, "[NiftyReg ERROR] reg_spline_GetJacobianMatricesFromVelocityField_2D - the provide grid is not a velocity field\n");
         exit(1);
     }
 
@@ -4162,22 +4160,22 @@ void reg_bspline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceI
 
 }
 /* *************************************************************** */
-int reg_bspline_GetJacobianMatricesFromVelocityField(nifti_image* referenceImage,
+int reg_spline_GetJacobianMatricesFromVelocityField(nifti_image* referenceImage,
                                                      nifti_image* velocityFieldImage,
                                                      mat33* jacobianMatrices)
 {
     if(velocityFieldImage->nz>1){
         switch(velocityFieldImage->datatype){
         case NIFTI_TYPE_FLOAT32:
-            reg_bspline_GetJacobianMatricesFromVelocityField_3D<float>
+            reg_spline_GetJacobianMatricesFromVelocityField_3D<float>
                     (referenceImage,velocityFieldImage, jacobianMatrices);
             break;
         case NIFTI_TYPE_FLOAT64:
-            reg_bspline_GetJacobianMatricesFromVelocityField_3D<double>
+            reg_spline_GetJacobianMatricesFromVelocityField_3D<double>
                     (referenceImage,velocityFieldImage, jacobianMatrices);
             break;
         default:
-            fprintf(stderr,"[NiftyReg ERROR] reg_bspline_GetJacobianMatricesFromVelocityField_3D\n");
+            fprintf(stderr,"[NiftyReg ERROR] reg_spline_GetJacobianMatricesFromVelocityField_3D\n");
             fprintf(stderr,"[NiftyReg ERROR] Only implemented for float or double precision\n");
             return 1;
             break;
@@ -4186,15 +4184,15 @@ int reg_bspline_GetJacobianMatricesFromVelocityField(nifti_image* referenceImage
     else{
         switch(velocityFieldImage->datatype){
         case NIFTI_TYPE_FLOAT32:
-            reg_bspline_GetJacobianMatricesFromVelocityField_2D<float>
+            reg_spline_GetJacobianMatricesFromVelocityField_2D<float>
                     (referenceImage,velocityFieldImage, jacobianMatrices);
             break;
         case NIFTI_TYPE_FLOAT64:
-            reg_bspline_GetJacobianMatricesFromVelocityField_2D<double>
+            reg_spline_GetJacobianMatricesFromVelocityField_2D<double>
                     (referenceImage,velocityFieldImage, jacobianMatrices);
             break;
         default:
-            fprintf(stderr,"[NiftyReg ERROR] reg_bspline_GetJacobianMatricesFromVelocityField_2D\n");
+            fprintf(stderr,"[NiftyReg ERROR] reg_spline_GetJacobianMatricesFromVelocityField_2D\n");
             fprintf(stderr,"[NiftyReg ERROR] Only implemented for float or double precision\n");
             return 1;
             break;
@@ -4215,7 +4213,7 @@ void reg_getDeterminantsFromMatrices(nifti_image *jacobianDetImage,
         jacDetPtr[voxel]=nifti_mat33_determ(jacobianMatrices[voxel]);
 }
 /* *************************************************************** */
-int reg_bspline_GetJacobianDetFromVelocityField(nifti_image* jacobianDetImage,
+int reg_spline_GetJacobianDetFromVelocityField(nifti_image* jacobianDetImage,
                                                 nifti_image* velocityFieldImage
                                                 )
 {
@@ -4224,7 +4222,7 @@ int reg_bspline_GetJacobianDetFromVelocityField(nifti_image* jacobianDetImage,
     mat33 *jacobianMatrices=(mat33 *)malloc(voxelNumber*sizeof(mat33));
 
     // Compute all Jacobian matrices
-    reg_bspline_GetJacobianMatricesFromVelocityField(jacobianDetImage,
+    reg_spline_GetJacobianMatricesFromVelocityField(jacobianDetImage,
                                                      velocityFieldImage,
                                                      jacobianMatrices);
     // Compute and store all determinant

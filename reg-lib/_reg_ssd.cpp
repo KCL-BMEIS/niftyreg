@@ -60,7 +60,7 @@ double reg_getSSD1(nifti_image *referenceImage,
                 targetValue = (double)currentRefPtr[voxel];
                 resultValue = (double)currentWarPtr[voxel];
                 if(targetValue==targetValue && resultValue==resultValue){
-                    diff = (targetValue-resultValue);
+					diff = targetValue-resultValue;
                     // Jacobian determinant modulation of the ssd if required
                     if(jacobianDetImage!=NULL){
                         SSD += diff * diff * jacDetPtr[voxel];

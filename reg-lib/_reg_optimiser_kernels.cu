@@ -56,26 +56,17 @@ __global__ void reg_GetConjugateGradient2_kernel(	float4 *nodeNMIGradientArray_d
         nodeNMIGradientArray_d[tid]=make_float4(-gradHValue.x, -gradHValue.y, -gradHValue.z, 0.0f);
     }
 }
-
-__global__ void reg_getMaximalLength_kernel(float *all_d)
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+__global__ void reg_getEuclideanDistance_kernel(float *distance_d)
 {
     const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
-    const int start = tid*128;
-    if(start < c_NodeNumber){
-        int stop = start+128;
-        stop = stop>c_NodeNumber?c_NodeNumber:stop;
+    if(tid < c_NodeNumber){
 
-        float max=0.0f;
-        float distance;
-        float4 gradValue;
-        for(int i=start;i<stop;i++){
-            gradValue = tex1Dfetch(gradientImageTexture,i);
-            distance = sqrtf(gradValue.x*gradValue.x + gradValue.y*gradValue.y + gradValue.z*gradValue.z);
-            max = distance>max?distance:max;
-        }
-        all_d[tid]=max;
+        float4 gradValue = tex1Dfetch(gradientImageTexture,tid);
+        distance_d[tid] = sqrtf(gradValue.x*gradValue.x + gradValue.y*gradValue.y + gradValue.z*gradValue.z);
     }
 }
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
 __global__ void reg_updateControlPointPosition_kernel(float4 *controlPointImageArray_d)
 {

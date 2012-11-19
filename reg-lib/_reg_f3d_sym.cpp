@@ -27,7 +27,7 @@ reg_f3d_sym<T>::reg_f3d_sym(int refTimePoint,int floTimePoint)
     this->backwardWarpedGradientImage=NULL;
     this->backwardDeformationFieldImage=NULL;
     this->backwardVoxelBasedMeasureGradientImage=NULL;
-    this->backwardNodeBasedGradientImage=NULL;
+    this->backwardTransformationGradient=NULL;
 
     this->backwardProbaJointHistogram=NULL;
     this->backwardLogJointHistogram=NULL;
@@ -100,11 +100,11 @@ void reg_f3d_sym<T>::SetInverseConsistencyWeight(T w)
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_f3d_sym<T>::AllocateCurrentInputImage()
+T reg_f3d_sym<T>::InitialiseCurrentLevel()
 {
-    reg_f3d<T>::AllocateCurrentInputImage();
+    T maxStepSize=reg_f3d<T>::InitialiseCurrentLevel();
     if(this->currentLevel!=0)
-        reg_bspline_refineControlPointGrid(this->currentFloating, this->backwardControlPointGrid);
+        reg_spline_refineControlPointGrid(this->currentFloating, this->backwardControlPointGrid);
 
     if(this->usePyramid){
         this->currentFloatingMask = this->floatingMaskPyramid[this->currentLevel];
@@ -113,7 +113,12 @@ void reg_f3d_sym<T>::AllocateCurrentInputImage()
         this->currentFloatingMask = this->floatingMaskPyramid[0];
     }
 
-    return;
+    maxStepSize = this->currentFloating->dx>maxStepSize?this->currentFloating->dx:maxStepSize;
+    maxStepSize = this->currentFloating->dy>maxStepSize?this->currentFloating->dy:maxStepSize;
+    if(this->currentReference->ndim>2)
+        maxStepSize = (this->currentFloating->dz>maxStepSize)?this->currentFloating->dz:maxStepSize;
+
+    return maxStepSize;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -277,29 +282,29 @@ void reg_f3d_sym<T>::ClearVoxelBasedMeasureGradient()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_f3d_sym<T>::AllocateNodeBasedGradient()
+void reg_f3d_sym<T>::AllocateTransformationGradient()
 {
-    this->ClearNodeBasedGradient();
+    this->ClearTransformationGradient();
 
-    reg_f3d<T>::AllocateNodeBasedGradient();
+    reg_f3d<T>::AllocateTransformationGradient();
     if(this->backwardControlPointGrid==NULL){
         fprintf(stderr, "[NiftyReg ERROR] The backward control point image is not defined\n");
         exit(1);
     }
-    this->backwardNodeBasedGradientImage = nifti_copy_nim_info(this->backwardControlPointGrid);
-    this->backwardNodeBasedGradientImage->data =
-            (void *)calloc(this->backwardNodeBasedGradientImage->nvox,
-                           this->backwardNodeBasedGradientImage->nbyper);
+    this->backwardTransformationGradient = nifti_copy_nim_info(this->backwardControlPointGrid);
+    this->backwardTransformationGradient->data =
+            (void *)calloc(this->backwardTransformationGradient->nvox,
+                           this->backwardTransformationGradient->nbyper);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_f3d_sym<T>::ClearNodeBasedGradient()
+void reg_f3d_sym<T>::ClearTransformationGradient()
 {
-    reg_f3d<T>::ClearNodeBasedGradient();
-    if(this->backwardNodeBasedGradientImage!=NULL){
-        nifti_image_free(this->backwardNodeBasedGradientImage);
-        this->backwardNodeBasedGradientImage=NULL;
+    reg_f3d<T>::ClearTransformationGradient();
+    if(this->backwardTransformationGradient!=NULL){
+        nifti_image_free(this->backwardTransformationGradient);
+        this->backwardTransformationGradient=NULL;
     }
     return;
 }
@@ -333,10 +338,10 @@ void reg_f3d_sym<T>::ClearJointHistogram()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-void reg_f3d_sym<T>::CheckParameters_f3d()
+void reg_f3d_sym<T>::CheckParameters()
 {
 
-    reg_f3d<T>::CheckParameters_f3d();
+    reg_f3d<T>::CheckParameters();
 
     if(this->affineTransformation!=NULL){
         fprintf(stderr, "[NiftyReg F3D_SYM ERROR] The inverse consistency parametrisation does not handle affine input\n");
@@ -379,9 +384,9 @@ void reg_f3d_sym<T>::CheckParameters_f3d()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-void reg_f3d_sym<T>::Initisalise_f3d()
+void reg_f3d_sym<T>::Initisalise()
 {
-    reg_f3d<T>::Initisalise_f3d();
+    reg_f3d<T>::Initisalise();
 
     /* allocate the backward control point image */
 
@@ -429,9 +434,9 @@ void reg_f3d_sym<T>::Initisalise_f3d()
     matrixAffine.m[3][1]=0.f;
     matrixAffine.m[3][2]=0.f;
     matrixAffine.m[3][3]=1.f;
-    if(reg_bspline_initialiseControlPointGridWithAffine(&matrixAffine, this->controlPointGrid))
+    if(reg_spline_initialiseControlPointGridWithAffine(&matrixAffine, this->controlPointGrid))
         exit(1);
-    if(reg_bspline_initialiseControlPointGridWithAffine(&matrixAffine, this->backwardControlPointGrid))
+    if(reg_spline_initialiseControlPointGridWithAffine(&matrixAffine, this->backwardControlPointGrid))
         exit(1);
 
     // Set the floating mask image pyramid
@@ -580,6 +585,12 @@ double reg_f3d_sym<T>::ComputeSimilarityMeasure()
         // overall measure
         measure = (this->entropies[0]+this->entropies[1])/this->entropies[2] +
                   (this->backwardEntropies[0]+this->backwardEntropies[1])/this->backwardEntropies[2];
+//        printf("NMI A: ( %f + %f )/ %f = %f\n",
+//               this->entropies[0], this->entropies[1], this->entropies[2],
+//               (this->entropies[0]+this->entropies[1])/this->entropies[2]);
+//        printf("NMI B: ( %f + %f )/ %f = %f\n",
+//               this->backwardEntropies[0], this->backwardEntropies[1], this->backwardEntropies[2],
+//               (this->backwardEntropies[0]+this->backwardEntropies[1])/this->backwardEntropies[2]);
     }
     return double(this->similarityWeight) * measure;
 }
@@ -595,26 +606,26 @@ double reg_f3d_sym<T>::ComputeJacobianBasedPenaltyTerm(int type)
     double backwardPenaltyTerm=0.;
 
     if(type==2){
-        backwardPenaltyTerm = reg_bspline_jacobian(this->backwardControlPointGrid,
-                                     this->currentFloating,
-                                     false);
+        backwardPenaltyTerm = reg_spline_getJacobianPenaltyTerm(this->backwardControlPointGrid,
+                                                                this->currentFloating,
+                                                                false);
     }
     else{
-        backwardPenaltyTerm = reg_bspline_jacobian(this->backwardControlPointGrid,
-                                     this->currentFloating,
-                                     this->jacobianLogApproximation);
+        backwardPenaltyTerm = reg_spline_getJacobianPenaltyTerm(this->backwardControlPointGrid,
+                                                                this->currentFloating,
+                                                                this->jacobianLogApproximation);
     }
     unsigned int maxit=5;
     if(type>0) maxit=20;
     unsigned int it=0;
     while(backwardPenaltyTerm!=backwardPenaltyTerm && it<maxit){
         if(type==2){
-            backwardPenaltyTerm = reg_bspline_correctFolding(this->backwardControlPointGrid,
+            backwardPenaltyTerm = reg_spline_correctFolding(this->backwardControlPointGrid,
                                                this->currentFloating,
                                                false);
         }
         else{
-            backwardPenaltyTerm = reg_bspline_correctFolding(this->backwardControlPointGrid,
+            backwardPenaltyTerm = reg_spline_correctFolding(this->backwardControlPointGrid,
                                                this->currentFloating,
                                                this->jacobianLogApproximation);
         }
@@ -653,7 +664,7 @@ double reg_f3d_sym<T>::ComputeBendingEnergyPenaltyTerm()
 
     double forwardPenaltyTerm=reg_f3d<T>::ComputeBendingEnergyPenaltyTerm();
 
-    double value = reg_bspline_bendingEnergy(this->backwardControlPointGrid);
+    double value = reg_spline_approxBendingEnergy(this->backwardControlPointGrid);
     return forwardPenaltyTerm + this->bendingEnergyWeight * value;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -666,7 +677,7 @@ double reg_f3d_sym<T>::ComputeLinearEnergyPenaltyTerm()
     double forwardPenaltyTerm=reg_f3d<T>::ComputeLinearEnergyPenaltyTerm();
 
     double values_le[2]={0.,0.};
-    reg_bspline_linearEnergy(this->backwardControlPointGrid, values_le);
+    reg_spline_linearEnergy(this->backwardControlPointGrid, values_le);
 
     double backwardPenaltyTerm = this->linearEnergyWeight0*values_le[0] +
                                  this->linearEnergyWeight1*values_le[1];
@@ -685,7 +696,7 @@ double reg_f3d_sym<T>::ComputeL2NormDispPenaltyTerm()
 
     // Compute the L2 norm penalty term along the backward direction
     double backwardPenaltyTerm = (double)this->L2NormWeight *
-            reg_bspline_L2norm_displacement(this->backwardControlPointGrid);
+            reg_spline_L2norm_displacement(this->backwardControlPointGrid);
 
     // Return the sum of the forward and backward squared L2 norm of the displacement
     return forwardPenaltyTerm+backwardPenaltyTerm;
@@ -798,7 +809,7 @@ void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
                                            spacingVoxel);
 
     // The node based NMI gradient is extracted
-    reg_voxelCentric2NodeCentric(this->backwardNodeBasedGradientImage,
+    reg_voxelCentric2NodeCentric(this->backwardTransformationGradient,
                                  this->backwardVoxelBasedMeasureGradientImage,
                                  this->similarityWeight,
                                  false);
@@ -813,7 +824,7 @@ void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
         floatingMatrix_xyz = &(this->currentFloating->sto_xyz);
     else floatingMatrix_xyz = &(this->currentFloating->qto_xyz);
     if(this->currentFloating->nz==1){
-        T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
+        T *gradientValuesX = static_cast<T *>(this->backwardTransformationGradient->data);
         T *gradientValuesY = &gradientValuesX[controlPointNumber];
         T newGradientValueX, newGradientValueY;
 #ifdef _OPENMP
@@ -833,7 +844,7 @@ void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
         }
     }
     else{
-        T *gradientValuesX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
+        T *gradientValuesX = static_cast<T *>(this->backwardTransformationGradient->data);
         T *gradientValuesY = &gradientValuesX[controlPointNumber];
         T *gradientValuesZ = &gradientValuesY[controlPointNumber];
         T newGradientValueX, newGradientValueY, newGradientValueZ;
@@ -873,11 +884,11 @@ void reg_f3d_sym<T>::GetJacobianBasedGradient()
 
     reg_f3d<T>::GetJacobianBasedGradient();
 
-    reg_bspline_jacobianDeterminantGradient(this->backwardControlPointGrid,
-                                            this->currentFloating,
-                                            this->backwardNodeBasedGradientImage,
-                                            this->jacobianLogWeight,
-                                            this->jacobianLogApproximation);
+    reg_spline_getJacobianPenaltyTermGradient(this->backwardControlPointGrid,
+                                              this->currentFloating,
+                                              this->backwardTransformationGradient,
+                                              this->jacobianLogWeight,
+                                              this->jacobianLogApproximation);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -888,10 +899,9 @@ void reg_f3d_sym<T>::GetBendingEnergyGradient()
     if(this->bendingEnergyWeight<=0) return;
 
     reg_f3d<T>::GetBendingEnergyGradient();
-    reg_bspline_bendingEnergyGradient(this->backwardControlPointGrid,
-                                      this->currentFloating,
-                                      this->backwardNodeBasedGradientImage,
-                                      this->bendingEnergyWeight);
+    reg_spline_approxBendingEnergyGradient(this->backwardControlPointGrid,
+                                           this->backwardTransformationGradient,
+                                           this->bendingEnergyWeight);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -903,9 +913,9 @@ void reg_f3d_sym<T>::GetLinearEnergyGradient()
 
     reg_f3d<T>::GetLinearEnergyGradient();
 
-    reg_bspline_linearEnergyGradient(this->backwardControlPointGrid,
+    reg_spline_linearEnergyGradient(this->backwardControlPointGrid,
                                      this->currentFloating,
-                                     this->nodeBasedGradientImage,
+                                     this->transformationGradient,
                                      this->linearEnergyWeight0,
                                      this->linearEnergyWeight1);
     return;
@@ -919,9 +929,9 @@ void reg_f3d_sym<T>::GetL2NormDispGradient()
 
     reg_f3d<T>::GetL2NormDispGradient();
 
-    reg_bspline_L2norm_dispGradient(this->backwardControlPointGrid,
+    reg_spline_L2norm_dispGradient(this->backwardControlPointGrid,
                                     this->currentFloating,
-                                    this->backwardNodeBasedGradientImage,
+                                    this->backwardTransformationGradient,
                                     this->L2NormWeight);
     return;
 }
@@ -932,8 +942,8 @@ void reg_f3d_sym<T>::SetGradientImageToZero()
 {
     reg_f3d<T>::SetGradientImageToZero();
 
-    T* nodeGradPtr = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
-    for(unsigned int i=0; i<this->backwardNodeBasedGradientImage->nvox; ++i)
+    T* nodeGradPtr = static_cast<T *>(this->backwardTransformationGradient->data);
+    for(unsigned int i=0; i<this->backwardTransformationGradient->nvox; ++i)
         *nodeGradPtr++=0;
     return;
 }
@@ -945,7 +955,7 @@ void reg_f3d_sym<T>::SmoothGradient()
     if(this->gradientSmoothingSigma!=0){
         reg_f3d<T>::SmoothGradient();
         // The gradient is smoothed using a Gaussian kernel if it is required
-        reg_gaussianSmoothing<T>(this->backwardNodeBasedGradientImage,
+        reg_gaussianSmoothing<T>(this->backwardTransformationGradient,
                                  fabs(this->gradientSmoothingSigma),
                                  NULL);
     }
@@ -959,7 +969,7 @@ void reg_f3d_sym<T>::GetApproximatedGradient()
 
     // Loop over every control points
     T *gridPtr = static_cast<T *>(this->backwardControlPointGrid->data);
-    T *gradPtr = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
+    T *gradPtr = static_cast<T *>(this->backwardTransformationGradient->data);
     T eps = this->currentFloating->dx/1000.f;
     for(size_t i=0; i<this->backwardControlPointGrid->nvox;i++)
     {
@@ -978,16 +988,16 @@ template <class T>
 T reg_f3d_sym<T>::NormaliseGradient()
 {
     // The forward gradient max length is computed
-    T forwardMaxGradient = reg_f3d<T>::NormaliseGradient();
+    T forwardMaxValue = reg_f3d<T>::NormaliseGradient();
 
     // The backward gradient max length is computed
     T maxGradValue=0;
-    size_t voxNumber = this->backwardNodeBasedGradientImage->nx *
-            this->backwardNodeBasedGradientImage->ny *
-            this->backwardNodeBasedGradientImage->nz;
-    T *bckPtrX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
+    size_t voxNumber = this->backwardTransformationGradient->nx *
+            this->backwardTransformationGradient->ny *
+            this->backwardTransformationGradient->nz;
+    T *bckPtrX = static_cast<T *>(this->backwardTransformationGradient->data);
     T *bckPtrY = &bckPtrX[voxNumber];
-    if(this->backwardNodeBasedGradientImage->nz>1){
+    if(this->backwardTransformationGradient->nz>1){
         T *bckPtrZ = &bckPtrY[voxNumber];
         for(int i=0; i<voxNumber; i++){
             T valX=0,valY=0,valZ=0;
@@ -1014,24 +1024,55 @@ T reg_f3d_sym<T>::NormaliseGradient()
     }
 
     // The largest value between the forward and backward gradient is kept
-    maxGradValue = maxGradValue>forwardMaxGradient?maxGradValue:forwardMaxGradient;
+    maxGradValue = maxGradValue>forwardMaxValue?maxGradValue:forwardMaxValue;
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] Objective function gradient maximal length: %g\n", maxGradValue);
 #endif
 
     // The forward gradient is normalised
-    T *forPtrX = static_cast<T *>(this->nodeBasedGradientImage->data);
-    for(size_t i=0;i<this->nodeBasedGradientImage->nvox;++i){
+    T *forPtrX = static_cast<T *>(this->transformationGradient->data);
+    for(size_t i=0;i<this->transformationGradient->nvox;++i){
         *forPtrX++ /= maxGradValue;
     }
     // The backward gradient is normalised
-    bckPtrX = static_cast<T *>(this->backwardNodeBasedGradientImage->data);
-    for(size_t i=0;i<this->backwardNodeBasedGradientImage->nvox;++i){
+    bckPtrX = static_cast<T *>(this->backwardTransformationGradient->data);
+    for(size_t i=0;i<this->backwardTransformationGradient->nvox;++i){
         *bckPtrX++ /= maxGradValue;
     }
 
     // Returns the largest gradient distance
     return maxGradValue;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+void reg_f3d_sym<T>::GetObjectiveFunctionGradient()
+{
+    if(!this->useApproxGradient){
+        // Compute the gradient of the similarity measure
+        if(this->similarityWeight>0){
+            this->WarpFloatingImage(this->interpolation);
+            this->ComputeSimilarityMeasure();
+            this->GetSimilarityMeasureGradient();
+        }
+        else{
+            this->SetGradientImageToZero();
+        }
+    }
+    this->optimiser->IncrementCurrentIterationNumber();
+
+    // Smooth the gradient if require
+    this->SmoothGradient();
+
+    if(!this->useApproxGradient){
+        // Compute the penalty term gradients if required
+        this->GetBendingEnergyGradient();
+        this->GetJacobianBasedGradient();
+        this->GetLinearEnergyGradient();
+        this->GetL2NormDispGradient();
+        this->GetInverseConsistencyGradient();
+    }
+    else this->GetApproximatedGradient();
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1217,7 +1258,7 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
     spacingVoxel[2]=this->controlPointGrid->dz/this->currentReference->dz;
     reg_tools_CubicSplineKernelConvolution(this->deformationFieldImage, spacingVoxel);
     // The forward inverse consistency gradient is extracted at the node position
-    reg_voxelCentric2NodeCentric(this->nodeBasedGradientImage,
+    reg_voxelCentric2NodeCentric(this->transformationGradient,
                                  this->deformationFieldImage, //tempVoxelIC,
                                  2.f * this->inverseConsistencyWeight / (float)(this->activeVoxelNumber[this->currentLevel]),
                                  true); // update?
@@ -1228,7 +1269,7 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
     spacingVoxel[2]=this->backwardControlPointGrid->dz/this->currentFloating->dz;
     reg_tools_CubicSplineKernelConvolution(this->backwardDeformationFieldImage, spacingVoxel);
     // The backward inverse consistency gradient is extracted at the node position
-    reg_voxelCentric2NodeCentric(this->backwardNodeBasedGradientImage,
+    reg_voxelCentric2NodeCentric(this->backwardTransformationGradient,
                                  this->backwardDeformationFieldImage, //tempVoxelIC,
                                  2.f * this->inverseConsistencyWeight / (float)(this->backwardActiveVoxelNumber[this->currentLevel]),
                                  true); // update?
@@ -1240,11 +1281,14 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
 template <class T>
 void reg_f3d_sym<T>::UpdateParameters(float scale)
 {
+    // Update first the forward transformation
+    reg_f3d<T>::UpdateParameters(scale);
+
+    // Create some pointers to the relevant arrays
     T *currentDOF_b=this->optimiser->GetCurrentDOF_b();
     T *bestDOF_b=this->optimiser->GetBestDOF_b();
     T *gradient_b=this->optimiser->GetGradient_b();
 
-    reg_f3d<T>::UpdateParameters(scale);
     // Update the control point position
     if(this->optimiser->GetOptimiseX()==true &&
        this->optimiser->GetOptimiseY()==true &&
@@ -1301,10 +1345,91 @@ void reg_f3d_sym<T>::SetOptimiser()
                                 0, // currentIterationNumber
                                 this,
                                 static_cast<T *>(this->controlPointGrid->data),
-                                static_cast<T *>(this->nodeBasedGradientImage->data),
+                                static_cast<T *>(this->transformationGradient->data),
                                 this->backwardControlPointGrid->nvox,
                                 static_cast<T *>(this->backwardControlPointGrid->data),
-                                static_cast<T *>(this->backwardNodeBasedGradientImage->data));
+                                static_cast<T *>(this->backwardTransformationGradient->data));
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+void reg_f3d_sym<T>::PrintCurrentObjFunctionValue(T currentSize)
+{
+    if(!this->verbose) return;
+
+    printf("[%s] [%i] Current objective function: %g",
+           this->executableName,
+           (int)this->optimiser->GetCurrentIterationNumber(),
+           this->optimiser->GetBestObjFunctionValue());
+    if(this->useSSD)
+        printf(" = (wSSD)%g", this->bestWMeasure);
+    else if(this->useKLD)
+        printf(" = (wKLD)%g", this->bestWMeasure);
+    else printf(" = (wNMI)%g", this->bestWMeasure);
+    if(this->bendingEnergyWeight>0)
+        printf(" - (wBE)%.2e", this->bestWBE);
+    if(this->linearEnergyWeight0>0 || this->linearEnergyWeight1>0)
+        printf(" - (wLE)%.2e", this->bestWLE);
+    if(this->L2NormWeight>0)
+        printf(" - (wL2)%.2e", this->bestWL2);
+    if(this->jacobianLogWeight>0)
+        printf(" - (wJAC)%.2e", this->bestWJac);
+    if(bestIC!=0)
+        printf(" - (IC)%.2e", this->bestIC);
+    printf(" [+ %g mm]\n", currentSize);
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+void reg_f3d_sym<T>::UpdateBestObjFunctionValue()
+{
+    reg_f3d<T>::UpdateBestObjFunctionValue();
+    this->bestIC=this->currentIC;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+void reg_f3d_sym<T>::PrintInitialObjFunctionValue()
+{
+    if(!this->verbose) return;
+    reg_f3d<T>::PrintInitialObjFunctionValue();
+    printf("[%s] Initial Inverse consistency value: %g\n", this->executableName, this->bestIC);
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+double reg_f3d_sym<T>::GetObjectiveFunctionValue()
+{
+    this->currentWJac = this->ComputeJacobianBasedPenaltyTerm(1); // 20 iterations
+
+    this->currentWBE = this->ComputeBendingEnergyPenaltyTerm();
+
+    this->currentWLE = this->ComputeLinearEnergyPenaltyTerm();
+
+    this->currentWL2 = this->ComputeL2NormDispPenaltyTerm();
+
+    // Compute initial similarity measure
+    this->currentWMeasure = 0.0;
+    if(this->similarityWeight>0){
+        this->WarpFloatingImage(this->interpolation);
+        this->currentWMeasure = this->ComputeSimilarityMeasure();
+    }
+
+    // Compute the Inverse consistency penalty term if required
+    this->currentIC = this->GetInverseConsistencyPenaltyTerm();
+
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] (wMeasure) %g | (wBE) %g | (wLE) %g | (wL2) %g | (wJac) %g | (wIC) %g \n",
+           this->currentWMeasure,
+           this->currentWBE,
+           this->currentWLE,
+           this->currentWL2,
+           this->currentWJac,
+           this->currentIC);
+#endif
+
+    // Store the global objective function value
+    return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWL2 - this->currentWJac - this->currentIC;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

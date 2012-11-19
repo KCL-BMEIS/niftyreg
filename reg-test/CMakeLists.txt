@@ -33,6 +33,27 @@ target_link_libraries(${EXEC} _reg_maths reg_nifti ${ZLIB})
 add_test(mat44_operations ${EXEC})
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
-
-
+if(USE_CUDA)
+    set(EXEC reg_test_def_gpu)
+    cuda_add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_common_gpu _reg_localTransformation _reg_localTransformation_gpu _reg_tools _reg_tools_gpu reg_nifti ${ZLIB})
+    foreach(dim 2 3)
+        foreach(type def comp exp be beg ajac ajac jac ajacg jacg)
+			add_test(${EXEC}_${dim}D_${type} ${EXEC} ${dim} ${type})
+        endforeach(type)
+    endforeach(dim)
+#-----------------------------------------------------------------------------
+	set(EXEC reg_test_measure_gpu)
+	cuda_add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_common_gpu _reg_ssd _reg_ssd_gpu _reg_localTransformation _reg_localTransformation_gpu  _reg_mutualinformation
+		_reg_mutualinformation_gpu _reg_resampling _reg_resampling_gpu _reg_tools _reg_tools_gpu reg_nifti ${ZLIB})
+	foreach(dim 2 3)
+		foreach(type spa nmig ssd ssdg)
+			add_test(${EXEC}_${dim}D_${type} ${EXEC} ${dim} ${type})
+		endforeach(type)
+	endforeach(dim)
+#-----------------------------------------------------------------------------
+endif(USE_CUDA)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 

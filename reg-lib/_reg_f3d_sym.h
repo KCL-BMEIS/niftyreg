@@ -1,9 +1,9 @@
 /*
- *  _reg_f3d_sym.h
+ * @file _reg_f3d_sym.h
+ * @author Marc Modat
+ * @date 10/11/2011
  *
- *
- *  Created by Marc Modat on 10/11/2011.
- *  Copyright (c) 2009, University College London. All rights reserved.
+ *  Copyright (c) 2011, University College London. All rights reserved.
  *  Centre for Medical Image Computing (CMIC)
  *  See the LICENSE.txt file in the nifty_reg root folder
  *
@@ -30,13 +30,15 @@ class reg_f3d_sym : public reg_f3d<T>
     nifti_image *backwardWarped;
     nifti_image *backwardWarpedGradientImage;
     nifti_image *backwardVoxelBasedMeasureGradientImage;
-    nifti_image *backwardNodeBasedGradientImage;
+    nifti_image *backwardTransformationGradient;
 
     double *backwardProbaJointHistogram;
     double *backwardLogJointHistogram;
     double backwardEntropies[4];
 
     T inverseConsistencyWeight;
+    double currentIC;
+    double bestIC;
 
     virtual void AllocateWarped();
     virtual void ClearWarped();
@@ -46,11 +48,11 @@ class reg_f3d_sym : public reg_f3d<T>
     virtual void ClearWarpedGradient();
     virtual void AllocateVoxelBasedMeasureGradient();
     virtual void ClearVoxelBasedMeasureGradient();
-    virtual void AllocateNodeBasedGradient();
-    virtual void ClearNodeBasedGradient();
+    virtual void AllocateTransformationGradient();
+    virtual void ClearTransformationGradient();
     virtual void AllocateJointHistogram();
     virtual void ClearJointHistogram();
-    virtual void AllocateCurrentInputImage();
+    virtual T InitialiseCurrentLevel();
     virtual void ClearCurrentInputImage();
 
     virtual double ComputeJacobianBasedPenaltyTerm(int);
@@ -62,6 +64,7 @@ class reg_f3d_sym : public reg_f3d<T>
     virtual double ComputeSimilarityMeasure();
     virtual void GetVoxelBasedGradient();
     virtual void GetSimilarityMeasureGradient();
+    virtual void GetObjectiveFunctionGradient();
     virtual void GetBendingEnergyGradient();
     virtual void GetLinearEnergyGradient();
     virtual void GetL2NormDispGradient();
@@ -71,6 +74,10 @@ class reg_f3d_sym : public reg_f3d<T>
     virtual void SmoothGradient();
     virtual void GetApproximatedGradient();
     virtual void DisplayCurrentLevelParameters();
+    virtual void PrintInitialObjFunctionValue();
+    virtual void PrintCurrentObjFunctionValue(T);
+    virtual void UpdateBestObjFunctionValue();
+    virtual double GetObjectiveFunctionValue();
 
     virtual void GetInverseConsistencyErrorField(bool forceAll);
     virtual double GetInverseConsistencyPenaltyTerm();
@@ -84,8 +91,8 @@ public:
 
     reg_f3d_sym(int refTimePoint,int floTimePoint);
     virtual ~reg_f3d_sym();
-    virtual void CheckParameters_f3d();
-    virtual void Initisalise_f3d();
+    virtual void CheckParameters();
+    virtual void Initisalise();
     virtual nifti_image *GetBackwardControlPointPositionImage();
     virtual nifti_image **GetWarpedImage();
 };

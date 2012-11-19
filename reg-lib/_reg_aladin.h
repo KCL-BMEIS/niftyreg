@@ -1,11 +1,11 @@
 /*
- *  _reg_aladin.h
+ * @file _reg_aladin.h
+ * @author Marc Modat
+ * @date 08/12/2011
  *
- *
- *  Created by Marc Modat on 08/12/2011.
- *  Copyright (c) 2009, University College London. All rights reserved.
- *  Centre for Medical Image Computing (CMIC)
- *  See the LICENSE.txt file in the nifty_reg root folder
+ * Copyright (c) 2009, University College London. All rights reserved.
+ * Centre for Medical Image Computing (CMIC)
+ * See the LICENSE.txt file in the nifty_reg root folder
  *
  */
 

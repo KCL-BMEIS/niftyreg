@@ -43,7 +43,7 @@ foreach(NAME ${LIST})
             RUNTIME DESTINATION bin COMPONENT Development
             LIBRARY DESTINATION lib COMPONENT Development
             ARCHIVE DESTINATION lib COMPONENT Development
-    )
+	)
     install(FILES ${NAME}.h DESTINATION include COMPONENT Development)
 endforeach(NAME)
 #-----------------------------------------------------------------------------
@@ -52,12 +52,13 @@ endforeach(NAME)
 ##BUILD THE GPU LIBRARIES
 if(USE_CUDA)
 #-----------------------------------------------------------------------------
-    set(LIST _reg_globalTransformation)
-    set(LIST ${LIST} _reg_blockMatching)
+	set(LIST _reg_globalTransformation)
+	set(LIST ${LIST} _reg_blockMatching)
     set(LIST ${LIST} _reg_localTransformation)
     set(LIST ${LIST} _reg_mutualinformation)
-    set(LIST ${LIST} _reg_resampling)
-    set(LIST ${LIST} _reg_tools)
+	set(LIST ${LIST} _reg_ssd)
+	set(LIST ${LIST} _reg_resampling)
+	set(LIST ${LIST} _reg_tools)
     foreach(NAME ${LIST})
         cuda_add_library(${NAME}_gpu ${NAME}_gpu.h ${NAME}_gpu.cu ${NAME}_kernels.cu)
         install(TARGETS ${NAME}_gpu
@@ -75,16 +76,16 @@ if(USE_CUDA)
             LIBRARY DESTINATION lib COMPONENT Development
             ARCHIVE DESTINATION lib COMPONENT Development
     )
-    install(FILES ${NAME}_gpu.h DESTINATION include)
+	install(FILES ${NAME}_gpu.h DESTINATION include)
 #-----------------------------------------------------------------------------
-    set(NAME _reg_cudaCommon)
-    cuda_add_library(${NAME} ${NAME}.h ${NAME}.cu)
-    install(TARGETS ${NAME}
-            RUNTIME DESTINATION bin COMPONENT Development
-            LIBRARY DESTINATION lib COMPONENT Development
-            ARCHIVE DESTINATION lib COMPONENT Development
-    )
-    install(FILES ${NAME}.h DESTINATION include)
+	set(NAME _reg_common_gpu)
+	cuda_add_library(${NAME} ${NAME}.h ${NAME}.cu)
+	install(TARGETS ${NAME}
+			RUNTIME DESTINATION bin COMPONENT Development
+			LIBRARY DESTINATION lib COMPONENT Development
+			ARCHIVE DESTINATION lib COMPONENT Development
+	)
+	install(FILES ${NAME}.h DESTINATION include)
 #-----------------------------------------------------------------------------
     install(FILES _reg_blocksize_gpu.h DESTINATION include COMPONENT Development)
 #-----------------------------------------------------------------------------
@@ -97,19 +98,19 @@ set(NAME _reg_f3d)
 if(USE_CUDA)
 #-----------------------------------------------------------------------------
     if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        cuda_add_library(${NAME} SHARED ${NAME}.h ${NAME}.cpp ${NAME}_sym.h ${NAME}_sym.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_gpu.h ${NAME}_gpu.cpp)
+        cuda_add_library(${NAME} SHARED _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp ${NAME}_sym.h ${NAME}_sym.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_gpu.h ${NAME}_gpu.cpp)
     else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        cuda_add_library(${NAME} ${NAME}.h ${NAME}.cpp ${NAME}_sym.h ${NAME}_sym.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_gpu.h ${NAME}_gpu.cpp)
+        cuda_add_library(${NAME} _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp ${NAME}_sym.h ${NAME}_sym.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_gpu.h ${NAME}_gpu.cpp)
     endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    target_link_libraries(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation _reg_KLdivergence _reg_ssd _reg_mutualinformation _reg_optimiser _reg_tools _reg_ReadWriteImage _reg_optimiser_gpu _reg_localTransformation_gpu _reg_resampling_gpu _reg_globalTransformation_gpu _reg_mutualinformation_gpu _reg_tools_gpu _reg_cudaCommon)
+	target_link_libraries(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation _reg_KLdivergence _reg_ssd _reg_mutualinformation _reg_optimiser _reg_tools _reg_ReadWriteImage _reg_optimiser_gpu _reg_localTransformation_gpu _reg_resampling_gpu _reg_globalTransformation_gpu _reg_mutualinformation_gpu _reg_tools_gpu _reg_common_gpu)
     install(FILES ${NAME}_gpu.h ${NAME}_gpu.cpp DESTINATION include COMPONENT Development)
 #-----------------------------------------------------------------------------
 else(USE_CUDA)
 #-----------------------------------------------------------------------------
     if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        add_library(${NAME} SHARED ${NAME}.h ${NAME}.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_sym.h ${NAME}_sym.cpp)
+        add_library(${NAME} SHARED _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_sym.h ${NAME}_sym.cpp)
     else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        add_library(${NAME} ${NAME}.h ${NAME}.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_sym.h ${NAME}_sym.cpp)
+        add_library(${NAME} _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_sym.h ${NAME}_sym.cpp)
     endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation _reg_KLdivergence _reg_ssd _reg_mutualinformation _reg_optimiser _reg_tools _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
@@ -145,6 +146,21 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     add_library(${NAME} SHARED ${NAME}.h ${NAME}.cpp)
 else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     add_library(${NAME} ${NAME}.h ${NAME}.cpp)
+endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    target_link_libraries(${NAME} _reg_tools _reg_ReadWriteImage)
+install(TARGETS ${NAME}
+        RUNTIME DESTINATION bin COMPONENT RuntimeLibraries
+        LIBRARY DESTINATION lib COMPONENT RuntimeLibraries
+        ARCHIVE DESTINATION lib COMPONENT RuntimeLibraries
+)
+install(FILES ${NAME}.h ${NAME}.cpp DESTINATION include COMPONENT Development)
+#-----------------------------------------------------------------------------
+## BUILD THE POLYAFFINE LIBRARY CPU
+set(NAME _reg_polyAffine)
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    add_library(${NAME} SHARED _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
+else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    add_library(${NAME} _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     target_link_libraries(${NAME} _reg_tools _reg_ReadWriteImage)
 install(TARGETS ${NAME}

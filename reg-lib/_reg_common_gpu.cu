@@ -12,8 +12,73 @@
 #ifndef _REG_CUDACOMMON_CPP
 #define _REG_CUDACOMMON_CPP
 
-#include "_reg_cudaCommon.h"
+#include "_reg_common_gpu.h"
 
+/* ******************************** */
+/* ******************************** */
+int cudaCommon_setCUDACard(CUdevice *dev,
+                           CUcontext *ctx,
+                           int &major,
+                           int &minor,
+                           bool verbose)
+{
+    // The CUDA card is setup
+    cuInit(0);
+    struct cudaDeviceProp deviceProp;
+    int device_count=0;
+    cudaGetDeviceCount( &device_count );
+    if(verbose)
+        printf("[NiftyReg CUDA] %i card(s) detected\n", device_count);
+    // following code is from cutGetMaxGflopsDeviceId()
+    int max_gflops_device = 0;
+    int max_gflops = 0;
+    int current_device = 0;
+    while(current_device<device_count ){
+        cudaGetDeviceProperties( &deviceProp, current_device );
+        int gflops = deviceProp.multiProcessorCount * deviceProp.clockRate;
+        if( gflops > max_gflops ){
+            max_gflops = gflops;
+            max_gflops_device = current_device;
+        }
+        ++current_device;
+    }
+    NR_CUDA_SAFE_CALL(cudaSetDevice( max_gflops_device ));
+
+    NR_CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, max_gflops_device ));
+    cuDeviceGet(dev,max_gflops_device);
+    cuCtxCreate(ctx, 0, *dev);
+    if(deviceProp.major<1){
+        fprintf(stderr, "[NiftyReg ERROR CUDA] The specified graphical card does not exist.\n");
+        return EXIT_FAILURE;
+    }
+    else{
+        size_t free=0;
+        size_t total=0;
+        cuMemGetInfo(&free, &total);
+        major=deviceProp.major;
+        minor=deviceProp.minor;
+        if(deviceProp.totalGlobalMem != total){
+            printf("[NiftyReg CUDA ERROR] The CUDA card %s does not seem to be active\n",
+                   deviceProp.name);
+            return EXIT_FAILURE;
+        }
+        if(verbose){
+            printf("[NiftyReg CUDA] The following device is used: %s\n",
+                   deviceProp.name);
+            printf("[NiftyReg CUDA] It has %lu Mb free out of %lu Mb\n",
+                   (unsigned long int)free/(1024*1024),
+                   (unsigned long int)total/(1024*1024));
+            printf("[NiftyReg CUDA] Card compute capability: %i.%i\n",
+                   major,
+                   minor);
+            printf("[NiftyReg CUDA] Card clock rate: %i MHz\n",
+                   deviceProp.clockRate/1000);
+            printf("[NiftyReg CUDA] Card has %i multiprocessor(s)\n",
+                   deviceProp.multiProcessorCount);
+        }
+    }
+    return EXIT_SUCCESS;
+}
 /* ******************************** */
 /* ******************************** */
 template <class DTYPE, class NIFTI_TYPE>

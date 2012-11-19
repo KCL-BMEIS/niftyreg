@@ -30,7 +30,7 @@ int isNumeric (const char *s)
     if(s==NULL || *s=='\0' || isspace(*s))
       return 0;
     char * p;
-    double a=0; //useless - here to avoid a warning
+    double a=0;a=a; //useless - here to avoid a warning
     a=strtod (s, &p);
     return *p == '\0';
 }
@@ -246,11 +246,11 @@ int main(int argc, char **argv)
         nifti_image *smoothImg = nifti_copy_nim_info(image);
         smoothImg->data = (void *)malloc(smoothImg->nvox * smoothImg->nbyper);
         memcpy(smoothImg->data, image->data, smoothImg->nvox*smoothImg->nbyper);
-        bool boolX[8]={3,1,0,0,0,0,0,0};
+        bool boolX[8]={1,1,0,0,0,0,0,0};
         reg_gaussianSmoothing(smoothImg,param->smoothValueX,boolX);
-        bool boolY[8]={3,0,1,0,0,0,0,0};
+        bool boolY[8]={1,0,1,0,0,0,0,0};
         reg_gaussianSmoothing(smoothImg,param->smoothValueY,boolY);
-        bool boolZ[8]={3,0,0,1,0,0,0,0};
+        bool boolZ[8]={1,0,0,1,0,0,0,0};
         reg_gaussianSmoothing(smoothImg,param->smoothValueZ,boolZ);
         if(flag->outputImageFlag)
             reg_io_WriteImageFile(smoothImg, param->outputImageName);

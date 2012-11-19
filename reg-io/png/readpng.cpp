@@ -91,8 +91,7 @@ int readpng_init(FILE *infile, ulg *pWidth, ulg *pHeight)
     /* first do a quick check that the file really is a PNG image; could
      * have used slightly more general png_sig_cmp() function instead */
 
-    size_t a=0; // Completely useless - just here to avoid a warning
-    a=fread(sig, 1, 8, infile);
+	size_t a=fread(sig, 1, 8, infile);a=a;
     if (!png_check_sig(sig, 8))
         return 1;   /* bad signature */
 

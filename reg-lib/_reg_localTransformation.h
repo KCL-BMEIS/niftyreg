@@ -76,7 +76,7 @@ void reg_spline_getDeformationField(nifti_image *controlPointGridImage,
  * @return The normalised bending energy. Normalised by the number of voxel
  */
 extern "C++"
-double reg_bspline_bendingEnergy(nifti_image *controlPointGridImage);
+double reg_spline_approxBendingEnergy(nifti_image *controlPointGridImage);
 /* *************************************************************** */
 /** @brief Compute and return the approximated (at the control point position)
  * bending energy gradient for each control point
@@ -89,11 +89,10 @@ double reg_bspline_bendingEnergy(nifti_image *controlPointGridImage);
  * @param weight Scalar which will be multiplied by the bending-energy gradient
  */
 extern "C++"
-void reg_bspline_bendingEnergyGradient(nifti_image *controlPointGridImage,
-                                       nifti_image *referenceImage,
-                                       nifti_image *gradientImage,
-                                       float weight
-                                       );
+void reg_spline_approxBendingEnergyGradient(nifti_image *controlPointGridImage,
+                                            nifti_image *gradientImage,
+                                            float weight
+                                            );
 /* *************************************************************** */
 /** @brief Compute and return the linear elastic energy terms approximated
  * at the control point positions only.
@@ -104,7 +103,7 @@ void reg_bspline_bendingEnergyGradient(nifti_image *controlPointGridImage,
  * trace of the Jacobian matrices
  */
 extern "C++"
-void reg_bspline_linearEnergy(nifti_image *controlPointGridImage,
+void reg_spline_linearEnergy(nifti_image *controlPointGridImage,
                               double *values
                               );
 /* *************************************************************** */
@@ -122,7 +121,7 @@ void reg_bspline_linearEnergy(nifti_image *controlPointGridImage,
  * @param weight1 Weight to apply to the second term of the penalty
  */
 extern "C++"
-void reg_bspline_linearEnergyGradient(nifti_image *controlPointGridImage,
+void reg_spline_linearEnergyGradient(nifti_image *controlPointGridImage,
                                       nifti_image *referenceImage,
                                       nifti_image *gradientImage,
                                       float weight0,
@@ -136,7 +135,7 @@ void reg_bspline_linearEnergyGradient(nifti_image *controlPointGridImage,
   * point position
   */
 extern "C++"
-double reg_bspline_L2norm_displacement(nifti_image *controlPointGridImage);
+double reg_spline_L2norm_displacement(nifti_image *controlPointGridImage);
 /* *************************************************************** */
 /** @brief Compute the gradient of the L2 norm of the displacement approximated
  * at the control point positions only.
@@ -150,7 +149,7 @@ double reg_bspline_L2norm_displacement(nifti_image *controlPointGridImage);
  * point position is weighted by this value
  */
 extern "C++"
-void reg_bspline_L2norm_dispGradient(nifti_image *controlPointGridImage,
+void reg_spline_L2norm_dispGradient(nifti_image *controlPointGridImage,
                                      nifti_image *referenceImage,
                                      nifti_image *gradientImage,
                                      float weight);
@@ -162,7 +161,7 @@ void reg_bspline_L2norm_dispGradient(nifti_image *controlPointGridImage,
  * of the Jacobian matrix of the transformation at every voxel posision.
  */
 extern "C++"
-void reg_bspline_GetJacobianMap(nifti_image *controlPointGridImage,
+void reg_spline_GetJacobianMap(nifti_image *controlPointGridImage,
                                 nifti_image *jacobianImage
                                 );
 /* *************************************************************** */
@@ -176,10 +175,10 @@ void reg_bspline_GetJacobianMap(nifti_image *controlPointGridImage,
  * all voxels are considered if the value is set to false.
  */
 extern "C++"
-double reg_bspline_jacobian(nifti_image *controlPointGridImage,
-                            nifti_image *referenceImage,
-                            bool approx
-                            );
+double reg_spline_getJacobianPenaltyTerm(nifti_image *controlPointGridImage,
+                                         nifti_image *referenceImage,
+                                         bool approx
+                                         );
 /* *************************************************************** */
 /** @brief Compute the gradient at every control point position of the
  * Jacobian determinant based penalty term
@@ -198,12 +197,12 @@ double reg_bspline_jacobian(nifti_image *controlPointGridImage,
  * considered if the value is set to false.
  */
 extern "C++"
-void reg_bspline_jacobianDeterminantGradient(nifti_image *controlPointGridImage,
-                                             nifti_image *referenceImage,
-                                             nifti_image *gradientImage,
-                                             float weight,
-                                             bool approx
-                                             );
+void reg_spline_getJacobianPenaltyTermGradient(nifti_image *controlPointGridImage,
+                                               nifti_image *referenceImage,
+                                               nifti_image *gradientImage,
+                                               float weight,
+                                               bool approx
+                                               );
 /* *************************************************************** */
 /** @brief Compute the Jacobian matrix at every voxel position
  * using a cubic b-spline parametrisation. This function does not require
@@ -216,7 +215,7 @@ void reg_bspline_jacobianDeterminantGradient(nifti_image *controlPointGridImage,
  * for every voxel.
  */
 extern "C++"
-void reg_bspline_GetJacobianMatrixFull(nifti_image *referenceImage,
+void reg_spline_GetJacobianMatrixFull(nifti_image *referenceImage,
                                        nifti_image *controlPointGridImage,
                                        mat33 *jacobianImage
                                        );
@@ -232,7 +231,7 @@ void reg_bspline_GetJacobianMatrixFull(nifti_image *referenceImage,
  * for every voxel.
  */
 extern "C++"
-void reg_bspline_GetJacobianMatrix(nifti_image *referenceImage,
+void reg_spline_GetJacobianMatrix(nifti_image *referenceImage,
                                    nifti_image *controlPointGridImage,
                                    mat33 *jacobianImage
                                    );
@@ -246,7 +245,7 @@ void reg_bspline_GetJacobianMatrix(nifti_image *referenceImage,
  * point position (approx==false) or every voxel (approx==true)
  */
 extern "C++"
-double reg_bspline_correctFolding(nifti_image *controlPointGridImage,
+double reg_spline_correctFolding(nifti_image *controlPointGridImage,
                                   nifti_image *referenceImage,
                                   bool approx
                                   );
@@ -277,7 +276,7 @@ void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
  * by dividing the control point spacing by a ratio of 2
  */
 extern "C++"
-void reg_bspline_refineControlPointGrid(nifti_image *referenceImage,
+void reg_spline_refineControlPointGrid(nifti_image *referenceImage,
                                         nifti_image *controlPointGridImage
                                         );
 /* *************************************************************** */
@@ -287,7 +286,7 @@ void reg_bspline_refineControlPointGrid(nifti_image *referenceImage,
  * the global transformation define by the matrix
  */
 extern "C++"
-int reg_bspline_initialiseControlPointGridWithAffine(mat44 *affineTransformation,
+int reg_spline_initialiseControlPointGridWithAffine(mat44 *affineTransformation,
                                                      nifti_image *controlPointGridImage
                                                      );
 /* *************************************************************** */
@@ -375,7 +374,7 @@ void reg_defField_compose(nifti_image *deformationField,
  * the Jacobian matrices of the transformation
  */
 extern "C++"
-int reg_bspline_GetJacobianMatricesFromVelocityField(nifti_image* referenceImage,
+int reg_spline_GetJacobianMatricesFromVelocityField(nifti_image* referenceImage,
                                                      nifti_image* velocityFieldImage,
                                                      mat33* jacobianMatrices
                                                      );
@@ -388,7 +387,7 @@ int reg_bspline_GetJacobianMatricesFromVelocityField(nifti_image* referenceImage
  * parametrised using a grid of control points
  */
 extern "C++"
-int reg_bspline_GetJacobianDetFromVelocityField(nifti_image* jacobianDetImage,
+int reg_spline_GetJacobianDetFromVelocityField(nifti_image* jacobianDetImage,
                                                 nifti_image* velocityFieldImage
                                                 );
 /* *************************************************************** */
@@ -400,10 +399,10 @@ int reg_bspline_GetJacobianDetFromVelocityField(nifti_image* jacobianDetImage,
  * be filled using the exponentiation of the velocity field.
  */
 extern "C++"
-void reg_bspline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
+void reg_spline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                                      nifti_image *deformationFieldImage);
 extern "C++"
-void reg_bspline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGrid,
+void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGrid,
                                                     nifti_image **deformationFieldImage);
 /* *************************************************************** */
 

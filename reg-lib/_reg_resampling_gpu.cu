@@ -17,18 +17,18 @@
 
 /* *************************************************************** */
 /* *************************************************************** */
-void reg_resampleSourceImage_gpu(nifti_image *sourceImage,
-                                float **resultImageArray_d,
-                                cudaArray **sourceImageArray_d,
-                                float4 **positionFieldImageArray_d,
-                                int **mask_d,
-                                int activeVoxelNumber,
-                                float sourceBGValue)
+void reg_resampleImage_gpu(nifti_image *sourceImage,
+                           float **resultImageArray_d,
+                           cudaArray **sourceImageArray_d,
+                           float4 **positionFieldImageArray_d,
+                           int **mask_d,
+                           int activeVoxelNumber,
+                           float paddingValue)
 {
     int3 sourceDim = make_int3(sourceImage->nx, sourceImage->ny, sourceImage->nz);
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_SourceDim,&sourceDim,sizeof(int3)))
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_PaddingValue,&sourceBGValue,sizeof(float)))
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_PaddingValue,&paddingValue,sizeof(float)))
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber,&activeVoxelNumber,sizeof(int)))
 
     //Bind source image array to a 3D texture
@@ -65,31 +65,44 @@ void reg_resampleSourceImage_gpu(nifti_image *sourceImage,
     NR_CUDA_SAFE_CALL(cudaFreeHost((void *)sourceRealToVoxel_h))
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, sourceMatrixTexture, sourceRealToVoxel_d, 3*sizeof(float4)))
 
-    const unsigned int Grid_reg_resampleSourceImage = (unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)Block_reg_resampleSourceImage));
-    dim3 B1(Block_reg_resampleSourceImage,1,1);
-    dim3 G1(Grid_reg_resampleSourceImage,Grid_reg_resampleSourceImage,1);
-    reg_resampleSourceImage_kernel <<< G1, B1 >>> (*resultImageArray_d);
-    NR_CUDA_CHECK_KERNEL(G1,B1)
+	if(sourceImage->nz>1){
+		const unsigned int Grid_reg_resampleSourceImage3D =
+				(unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)Block_reg_resampleSourceImage3D));
+		dim3 B1(Block_reg_resampleSourceImage3D,1,1);
+		dim3 G1(Grid_reg_resampleSourceImage3D,Grid_reg_resampleSourceImage3D,1);
+		reg_resampleImage3D_kernel <<< G1, B1 >>> (*resultImageArray_d);
+		NR_CUDA_CHECK_KERNEL(G1,B1)
+	}
+	else{
+		const unsigned int Grid_reg_resampleSourceImage2D =
+				(unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)Block_reg_resampleSourceImage2D));
+		dim3 B1(Block_reg_resampleSourceImage2D,1,1);
+		dim3 G1(Grid_reg_resampleSourceImage2D,Grid_reg_resampleSourceImage2D,1);
+		reg_resampleImage2D_kernel <<< G1, B1 >>> (*resultImageArray_d);
+		NR_CUDA_CHECK_KERNEL(G1,B1)
+	}
 
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(sourceTexture))
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(positionFieldTexture))
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(maskTexture))
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(sourceMatrixTexture))
 
-    cudaFree(sourceRealToVoxel_d);
+	NR_CUDA_SAFE_CALL(cudaFree(sourceRealToVoxel_d))
 }
 /* *************************************************************** */
 /* *************************************************************** */
-void reg_getSourceImageGradient_gpu(nifti_image *sourceImage,
-                                    cudaArray **sourceImageArray_d,
-                                    float4 **positionFieldImageArray_d,
-                                    float4 **resultGradientArray_d,
-                                    int activeVoxelNumber)
+void reg_getImageGradient_gpu(nifti_image *sourceImage,
+							  cudaArray **sourceImageArray_d,
+							  float4 **positionFieldImageArray_d,
+							  float4 **resultGradientArray_d,
+							  int activeVoxelNumber,
+							  float paddingValue)
 {
     int3 sourceDim = make_int3(sourceImage->nx, sourceImage->ny, sourceImage->nz);
 
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_SourceDim, &sourceDim, sizeof(int3)))
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber, &activeVoxelNumber, sizeof(int)))
+	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_SourceDim, &sourceDim, sizeof(int3)))
+	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber, &activeVoxelNumber, sizeof(int)))
+	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_PaddingValue, &paddingValue, sizeof(float)))
 
     //Bind source image array to a 3D texture
     sourceTexture.normalized = true;
@@ -121,12 +134,20 @@ void reg_getSourceImageGradient_gpu(nifti_image *sourceImage,
     NR_CUDA_SAFE_CALL(cudaMemcpy(sourceRealToVoxel_d, sourceRealToVoxel_h, 3*sizeof(float4), cudaMemcpyHostToDevice))
     NR_CUDA_SAFE_CALL(cudaFreeHost((void *)sourceRealToVoxel_h))
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, sourceMatrixTexture, sourceRealToVoxel_d, 3*sizeof(float4)))
-
-    const unsigned int Grid_reg_getSourceImageGradient = (unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)Block_reg_getSourceImageGradient));
-    dim3 B1(Block_reg_getSourceImageGradient,1,1);
-    dim3 G1(Grid_reg_getSourceImageGradient,Grid_reg_getSourceImageGradient,1);
-    reg_getSourceImageGradient_kernel <<< G1, B1 >>> (*resultGradientArray_d);
-    NR_CUDA_CHECK_KERNEL(G1,B1)
+	if(sourceImage->nz>1){
+		const unsigned int Grid_reg_getImageGradient3D = (unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)Block_reg_getImageGradient3D));
+		dim3 B1(Block_reg_getImageGradient3D,1,1);
+		dim3 G1(Grid_reg_getImageGradient3D,Grid_reg_getImageGradient3D,1);
+		reg_getImageGradient3D_kernel <<< G1, B1 >>> (*resultGradientArray_d);
+		NR_CUDA_CHECK_KERNEL(G1,B1)
+	}
+	else{
+		const unsigned int Grid_reg_getImageGradient2D = (unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)Block_reg_getImageGradient2D));
+		dim3 B1(Block_reg_getImageGradient2D,1,1);
+		dim3 G1(Grid_reg_getImageGradient2D,Grid_reg_getImageGradient2D,1);
+		reg_getImageGradient2D_kernel <<< G1, B1 >>> (*resultGradientArray_d);
+		NR_CUDA_CHECK_KERNEL(G1,B1)
+	}
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(sourceTexture))
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(positionFieldTexture))
     NR_CUDA_SAFE_CALL(cudaUnbindTexture(sourceMatrixTexture))

@@ -20,13 +20,13 @@
 #include <limits>
 
 #ifdef _WINDOWS
-    #include <time.h>
+#include <time.h>
 #endif
 
 #ifdef _USE_NR_DOUBLE
-    #define PrecisionTYPE double
+#define PrecisionTYPE double
 #else
-    #define PrecisionTYPE float
+#define PrecisionTYPE float
 #endif
 
 void HelpPenaltyTerm()
@@ -133,11 +133,9 @@ void Usage(char *exec)
     printf("\t-fmask <filename>\tFilename of a mask image in the floating space\n");
     printf("\t-ic <float>\t\tWeight of the inverse consistency penalty term [0.01]\n");
 
-#ifdef _BUILD_NR_DEV
     printf("\n*** F3D2 options:\n");
     printf("\t-vel \t\t\tUse a velocity field integrationto generate the deformation\n");
     printf("\t-step <int>\t\tNumber of composition step [6].\n");
-#endif // _BUILD_NR_DEV
 
     printf("\n*** Other options:\n");
     printf("\t-smoothGrad <float>\tTo smooth the metric derivative (in mm) [0]\n");
@@ -206,6 +204,7 @@ int main(int argc, char **argv)
     PrecisionTYPE gradientSmoothingSigma=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
     bool verbose=true;
     bool useConjugate=true;
+    bool useApproxGradient=false;
     bool useSSD=false;
     bool useKLD=false;
     bool noPyramid=0;
@@ -221,10 +220,11 @@ int main(int argc, char **argv)
     char *floatingMaskName=NULL;
     float inverseConsistencyWeight=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
 
-#ifdef _BUILD_NR_DEV
     int stepNumber=-1;
-    bool useVel=false;
-#endif
+	bool useVel=false;
+	bool useISS=false;
+	bool useBCHUpdate=false;
+    int BCHUpdateValue=0;
 
 #ifdef _USE_CUDA
     bool useGPU=false;
@@ -235,8 +235,8 @@ int main(int argc, char **argv)
     /* read the input parameter */
     for(int i=1;i<argc;i++){
         if(strcmp(argv[i], "-help")==0 || strcmp(argv[i], "-Help")==0 ||
-           strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
-           strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0){
+                strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
+                strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0){
             Usage(argv[0]);
             return 0;
         }
@@ -246,11 +246,11 @@ int main(int argc, char **argv)
         }
 #ifdef _SVN_REV
         if( strcmp(argv[i], "-version")==0 ||
-            strcmp(argv[i], "-Version")==0 ||
-            strcmp(argv[i], "-V")==0 ||
-            strcmp(argv[i], "-v")==0 ||
-            strcmp(argv[i], "--v")==0 ||
-            strcmp(argv[i], "--version")==0){
+                strcmp(argv[i], "-Version")==0 ||
+                strcmp(argv[i], "-V")==0 ||
+                strcmp(argv[i], "-v")==0 ||
+                strcmp(argv[i], "--v")==0 ||
+                strcmp(argv[i], "--version")==0){
             printf("NiftyReg revision number: %i\n",_SVN_REV);
             return 0;
         }
@@ -319,7 +319,7 @@ int main(int argc, char **argv)
             levelNumber=atoi(argv[++i]);
         }
         else if(strcmp(argv[i], "-lp")==0 || strcmp(argv[i], "--lp")==0){
-           levelToPerform=atoi(argv[++i]);
+            levelToPerform=atoi(argv[++i]);
         }
         else if(strcmp(argv[i], "-be")==0 || strcmp(argv[i], "--be")==0){
             bendingEnergyWeight=(PrecisionTYPE)(atof(argv[++i]));
@@ -344,8 +344,8 @@ int main(int argc, char **argv)
             floatingSmoothingSigma=(PrecisionTYPE)(atof(argv[++i]));
         }
         else if((strcmp(argv[i],"-rLwTh")==0) || (strcmp(argv[i],"-tLwTh")==0)){
-           referenceThresholdLow[atoi(argv[i+1])]=(PrecisionTYPE)(atof(argv[i+2]));
-           i+=2;
+            referenceThresholdLow[atoi(argv[i+1])]=(PrecisionTYPE)(atof(argv[i+2]));
+            i+=2;
         }
         else if((strcmp(argv[i],"-rUpTh")==0) || strcmp(argv[i],"-tUpTh")==0){
             referenceThresholdUp[atoi(argv[i+1])]=(PrecisionTYPE)(atof(argv[i+2]));
@@ -397,7 +397,11 @@ int main(int argc, char **argv)
             noPyramid=1;
         }
         else if(strcmp(argv[i], "-noConj")==0 || strcmp(argv[i], "--noConj")==0){
-           useConjugate=false;
+            useConjugate=false;
+        }
+        else if(strcmp(argv[i], "-approxGrad")==0 || strcmp(argv[i], "--approxGrad")==0){
+            useApproxGradient=true;
+			useConjugate=false;
         }
         else if(strcmp(argv[i], "-interp")==0 || strcmp(argv[i], "--interp")==0){
             interpolation=atoi(argv[++i]);
@@ -430,14 +434,21 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-nogr") ==0){
             gridRefinement=false;
         }
-#ifdef _BUILD_NR_DEV
         else if(strcmp(argv[i], "-vel")==0 || strcmp(argv[i], "--vel")==0){
             useVel=true;
         }
         else if(strcmp(argv[i], "-step")==0 || strcmp(argv[i], "--step")==0){
-           stepNumber=atoi(argv[++i]);
+            stepNumber=atoi(argv[++i]);
+		}
+		else if(strcmp(argv[i], "-iss")==0 || strcmp(argv[i], "--iss")==0){
+			useISS=true;
+			useBCHUpdate=false;
+		}
+		else if(strcmp(argv[i], "-bch")==0 || strcmp(argv[i], "--bch")==0){
+			useISS=false;
+			useBCHUpdate=true;
+			BCHUpdateValue=atoi(argv[++i]);
         }
-#endif
 #ifdef _USE_CUDA
         else if(strcmp(argv[i], "-gpu")==0){
             useGPU=true;
@@ -446,6 +457,7 @@ int main(int argc, char **argv)
             cardNumber=atoi(argv[++i]);
         }
         else if(strcmp(argv[i], "-mem")==0){
+            useGPU=true;
             checkMem=true;
         }
 #endif
@@ -534,12 +546,10 @@ int main(int argc, char **argv)
             fprintf(stderr, "Error when reading the input control point grid image %s\n",inputControlPointGridName);
             return 1;
         }
-#ifdef _BUILD_NR_DEV
         if( controlPointGridImage->intent_code==NIFTI_INTENT_VECTOR &&
-            strcmp(controlPointGridImage->intent_name,"NREG_VEL_STEP")==0 &&
-            fabs(controlPointGridImage->intent_p1)>1 )
+                strcmp(controlPointGridImage->intent_name,"NREG_VEL_STEP")==0 &&
+                fabs(controlPointGridImage->intent_p1)>1 )
             useVel=true;
-#endif
     }
 
     // Read the affine transformation
@@ -569,65 +579,28 @@ int main(int argc, char **argv)
     if(useGPU){
 
         if(linearEnergyWeight0==linearEnergyWeight0 ||
-           linearEnergyWeight1==linearEnergyWeight1 ||
-           L2NormWeight==L2NormWeight){
+                linearEnergyWeight1==linearEnergyWeight1 ||
+                L2NormWeight==L2NormWeight){
             fprintf(stderr,"NiftyReg ERROR CUDA] The linear elasticity has not been implemented with CUDA yet. Exit.\n");
-            exit(0);
+            exit(1);
         }
 
         if(useSym){
             fprintf(stderr,"\n[NiftyReg ERROR CUDA] GPU implementation of the symmetric registration is not available yet. Exit\n");
-            exit(0);
+            exit(1);
         }
-#ifdef _BUILD_NR_DEV
         if(useVel){
             fprintf(stderr,"\n[NiftyReg ERROR CUDA] GPU implementation of velocity field parametrisartion is not available yet. Exit\n");
-            exit(0);
+            exit(1);
         }
-#endif
 
-        if((referenceImage->dim[4]==1&&floatingImage->dim[4]==1) || (referenceImage->dim[4]==2&&floatingImage->dim[4]==2)){
-
-            // The CUDA card is setup
-            cuInit(0);
-            struct cudaDeviceProp deviceProp;
-            int device_count = 0;
-            cudaGetDeviceCount( &device_count );
-#ifdef NDEBUG
-            if(verbose==true)
-#endif
-            printf("[NiftyReg F3D] %i card(s) detected\n", device_count);
-            int device=cardNumber;
-            if(cardNumber==-1){
-                // following code is from cutGetMaxGflopsDeviceId()
-                int max_gflops_device = 0;
-                int max_gflops = 0;
-                int current_device = 0;
-                while( current_device < device_count ){
-                    cudaGetDeviceProperties( &deviceProp, current_device );
-                    int gflops = deviceProp.multiProcessorCount * deviceProp.clockRate;
-                    if( gflops > max_gflops ){
-                        max_gflops = gflops;
-                        max_gflops_device = current_device;
-                    }
-                    ++current_device;
-                }
-                device = max_gflops_device;
-            }
-            NR_CUDA_SAFE_CALL(cudaSetDevice( device ));
-            NR_CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, device ));
-            cuDeviceGet(&dev,device);
-            cuCtxCreate(&ctx, 0, dev);
-            if (deviceProp.major < 1){
-                printf("[NiftyReg ERROR CUDA] The specified graphical card does not exist.\n");
-                return 1;
-
-            }
+        if((referenceImage->dim[4]==1 && floatingImage->dim[4]==1) ||
+           (referenceImage->dim[4]==2 && floatingImage->dim[4]==2)){
+            // Set up the cuda card and display some relevant information
+            int major, minor;
+            if(cudaCommon_setCUDACard(&dev, &ctx, major, minor, verbose)) exit(1);
+            // Creat the registration object using the GPU class
             REG = new reg_f3d_gpu(referenceImage->nt, floatingImage->nt);
-#ifdef NDEBUG
-            if(verbose==true)
-#endif
-                printf("\n[NiftyReg F3D] GPU implementation is used\n");
         }
         else{
             fprintf(stderr,"[NiftyReg ERROR] The GPU implementation only handle 1 to 1 or 2 to 2 image(s) registration\n");
@@ -647,18 +620,16 @@ int main(int argc, char **argv)
             }
 #endif // NDEBUG
         }
-#ifdef _BUILD_NR_DEV
         else if(useVel){
             REG = new reg_f3d2<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
             if(verbose==true){
-  #endif
+#endif
                 printf("\n[NiftyReg F3D2] CPU implementation is used\n");
 #ifdef NDEBUG
             }
 #endif
         }
-#endif // _BUILD_NR_DEV
         else{
             REG = new reg_f3d<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
@@ -691,13 +662,13 @@ int main(int argc, char **argv)
     else REG->PrintOutInformation();
 
     if(referenceMaskImage!=NULL)
-       REG->SetReferenceMask(referenceMaskImage);
+        REG->SetReferenceMask(referenceMaskImage);
 
     if(controlPointGridImage!=NULL)
-       REG->SetControlPointGridImage(controlPointGridImage);
+        REG->SetControlPointGridImage(controlPointGridImage);
 
     if(affineTransformation!=NULL)
-       REG->SetAffineTransformation(affineTransformation);
+        REG->SetAffineTransformation(affineTransformation);
 
     if(bendingEnergyWeight==bendingEnergyWeight)
         REG->SetBendingEnergyWeight(bendingEnergyWeight);
@@ -778,7 +749,11 @@ int main(int argc, char **argv)
         REG->UseKLDivergence();
     else REG->DoNotUseKLDivergence();
 
-    if(useConjugate==true)
+    if(useApproxGradient){
+		REG->DoNotUseConjugateGradient();
+		REG->UseApproximatedGradient();
+    }
+    else if(useConjugate==true)
         REG->UseConjugateGradient();
     else REG->DoNotUseConjugateGradient();
 
@@ -817,10 +792,8 @@ int main(int argc, char **argv)
     if(floatingMaskImage!=NULL){
         if(useSym)
             REG->SetFloatingMask(floatingMaskImage);
-#ifdef _BUILD_NR_DEV
         else if(useVel)
             REG->SetFloatingMask(floatingMaskImage);
-#endif
         else{
             fprintf(stderr, "[NiftyReg WARNING] The floating mask image is only used for symmetric or velocity field parametrisation\n");
             fprintf(stderr, "[NiftyReg WARNING] The floating mask image is ignored\n");
@@ -828,18 +801,20 @@ int main(int argc, char **argv)
     }
 
     if(inverseConsistencyWeight==inverseConsistencyWeight)
-       REG->SetInverseConsistencyWeight(inverseConsistencyWeight);
+        REG->SetInverseConsistencyWeight(inverseConsistencyWeight);
 
-#ifdef _BUILD_NR_DEV
     // F3D2 arguments
     if(stepNumber>-1)
-        REG->SetCompositionStepNumber(stepNumber);
-#endif
+		REG->SetCompositionStepNumber(stepNumber);
+	if(useBCHUpdate)
+		REG->UseBCHUpdate(BCHUpdateValue);
+	if(useISS)
+        REG->UseInverseSclalingSquaring();
 
     // Run the registration
 #ifdef _USE_CUDA
     if(useGPU && checkMem){
-        size_t free, total, requiredMemory = REG->CheckMemoryMB_f3d();
+        size_t free, total, requiredMemory = REG->CheckMemoryMB();
         cuMemGetInfo(&free, &total);
         printf("[NiftyReg CUDA] The required memory to run the registration is %lu Mb\n",
                (unsigned long int)requiredMemory);
@@ -848,26 +823,20 @@ int main(int argc, char **argv)
     }
     else{
 #endif
-        REG->Run_f3d();
+        REG->Run();
 
         // Save the control point result
         nifti_image *outputControlPointGridImage = REG->GetControlPointPositionImage();
         if(outputControlPointGridName==NULL) outputControlPointGridName=(char *)"outputCPP.nii";
         memset(outputControlPointGridImage->descrip, 0, 80);
         strcpy (outputControlPointGridImage->descrip,"Control point position from NiftyReg (reg_f3d)");
-#ifdef _BUILD_NR_DEV
         if(useVel)
             strcpy (outputControlPointGridImage->descrip,"Velocity field grid from NiftyReg (reg_f3d2)");
-#endif
         reg_io_WriteImageFile(outputControlPointGridImage,outputControlPointGridName);
         nifti_image_free(outputControlPointGridImage);outputControlPointGridImage=NULL;
 
         // Save the backward control point result
-#ifdef _BUILD_NR_DEV
         if(useSym || useVel){
-#else
-        if(useSym){
-#endif
             // _backward is added to the forward control point grid image name
             std::string b(outputControlPointGridName);
             if(b.find( ".nii.gz") != std::string::npos)
@@ -888,10 +857,8 @@ int main(int argc, char **argv)
             nifti_image *outputBackwardControlPointGridImage = REG->GetBackwardControlPointPositionImage();
             memset(outputBackwardControlPointGridImage->descrip, 0, 80);
             strcpy (outputBackwardControlPointGridImage->descrip,"Backward Control point position from NiftyReg (reg_f3d)");
-#ifdef _BUILD_NR_DEV
             if(useVel)
                 strcpy (outputBackwardControlPointGridImage->descrip,"Backward velocity field grid from NiftyReg (reg_f3d2)");
-#endif
             reg_io_WriteImageFile(outputBackwardControlPointGridImage,b.c_str());
             nifti_image_free(outputBackwardControlPointGridImage);outputBackwardControlPointGridImage=NULL;
         }
@@ -906,14 +873,12 @@ int main(int argc, char **argv)
         if(useSym){
             strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d_sym)");
             strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d_sym)");
-#ifdef _BUILD_NR_DEV
         }
         if(useVel){
             strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d2)");
             strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d2)");
         }
         if(useSym || useVel){
-#endif
             if(outputWarpedImage[1]!=NULL){
                 std::string b(outputWarpedName);
                 if(b.find( ".nii.gz") != std::string::npos)
@@ -933,10 +898,8 @@ int main(int argc, char **argv)
                 else b.append("_backward.nii");
                 if(useSym)
                     strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d_sym)");
-#ifdef _BUILD_NR_DEV
                 if(useVel)
                     strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d2)");
-#endif
                 reg_io_WriteImageFile(outputWarpedImage[1],b.c_str());
             }
         }

@@ -1,148 +1,54 @@
-/*
- *  _reg_f3d.h
+/**
+ * @file _reg_f3d.h
+ * @author Marc Modat
+ * @date 19/11/2010
  *
- *
- *  Created by Marc Modat on 19/11/2010.
- *  Copyright (c) 2009, University College London. All rights reserved.
- *  Centre for Medical Image Computing (CMIC)
- *  See the LICENSE.txt file in the nifty_reg root folder
+ * Copyright (c) 2010, University College London. All rights reserved.
+ * Centre for Medical Image Computing (CMIC)
+ * See the LICENSE.txt file in the nifty_reg root folder
  *
  */
 
 #ifndef _REG_F3D_H
 #define _REG_F3D_H
 
-#include "_reg_resampling.h"
-#include "_reg_globalTransformation.h"
-#include "_reg_localTransformation.h"
-#include "_reg_mutualinformation.h"
-#include "_reg_ssd.h"
-#include "_reg_KLdivergence.h"
-#include "_reg_tools.h"
-#include "_reg_ReadWriteImage.h"
-#ifdef _USE_CUDA
-#include "_reg_optimiser_gpu.h"
-#else
-#include "_reg_optimiser.h"
-#endif
-#include "float.h"
-#include <limits>
-
-#define APPROX_GRAD false
+#include "_reg_base.h"
 
 template <class T>
-class reg_f3d : public InterfaceOptimiser
+class reg_f3d : public reg_base<T>
 {
 protected:
-    reg_optimiser<T> *optimiser;
-#ifdef _USE_CUDA
-    reg_optimiser_gpu *optimiser_gpu;
-#endif
-    size_t maxiterationNumber;
-    size_t perturbationNumber;
-    bool optimiseX;
-    bool optimiseY;
-    bool optimiseZ;
-    virtual void SetOptimiser();
-
-    char *executableName;
-    int referenceTimePoint;
-    int floatingTimePoint;
-    nifti_image *inputReference; // pointer to external
-    nifti_image *inputFloating; // pointer to external
     nifti_image *inputControlPointGrid; // pointer to external
-    nifti_image *maskImage; // pointer to external
-    mat44 *affineTransformation; // pointer to external
-    int *referenceMask;
     nifti_image *controlPointGrid;
-    T similarityWeight;
     T bendingEnergyWeight;
     T linearEnergyWeight0;
     T linearEnergyWeight1;
     T L2NormWeight;
     T jacobianLogWeight;
     bool jacobianLogApproximation;
-    T referenceSmoothingSigma;
-    T floatingSmoothingSigma;
-    float *referenceThresholdUp;
-    float *referenceThresholdLow;
-    float *floatingThresholdUp;
-    float *floatingThresholdLow;
-    unsigned int *referenceBinNumber;
-    unsigned int *floatingBinNumber;
-    T warpedPaddingValue;
     T spacing[3];
-    unsigned int levelNumber;
-    unsigned int levelToPerform;
-    T gradientSmoothingSigma;
-    bool useSSD;
-    bool useKLD;
-    bool useConjGradient;
-    bool verbose;
-    bool usePyramid;
-    int interpolation;
-//    int threadNumber;
 
-    bool initialised;
-    nifti_image **referencePyramid;
-    nifti_image **floatingPyramid;
-    int **maskPyramid;
-    int *activeVoxelNumber;
-    nifti_image *currentReference;
-    nifti_image *currentFloating;
-    int *currentMask;
-    nifti_image *warped;
-    nifti_image *deformationFieldImage;
-    nifti_image *warpedGradientImage;
-    nifti_image *voxelBasedMeasureGradientImage;
-    nifti_image *nodeBasedGradientImage;
-    double *probaJointHistogram;
-    double *logJointHistogram;
-    double entropies[4];
-    bool approxParzenWindow;
-    T *maxSSD;
-    unsigned int currentLevel;
-    unsigned totalBinNumber;
+    nifti_image *transformationGradient;
     bool gridRefinement;
 
     double currentWJac;
     double currentWBE;
     double currentWLE;
     double currentWL2;
-    double currentWMeasure;
-    double currentIC;
     double bestWJac;
     double bestWBE;
     double bestWLE;
     double bestWL2;
-    double bestWMeasure;
-    double bestIC;
-    bool additive_mc_nmi;
 
-    virtual void AllocateWarped();
-    virtual void ClearWarped();
-    virtual void AllocateDeformationField();
-    virtual void ClearDeformationField();
-    virtual void AllocateWarpedGradient();
-    virtual void ClearWarpedGradient();
-    virtual void AllocateVoxelBasedMeasureGradient();
-    virtual void ClearVoxelBasedMeasureGradient();
-    virtual void AllocateNodeBasedGradient();
-    virtual void ClearNodeBasedGradient();
-    virtual void AllocateJointHistogram();
-    virtual void ClearJointHistogram();
-    virtual void AllocateCurrentInputImage();
-    virtual void ClearCurrentInputImage();
+    virtual void AllocateTransformationGradient();
+    virtual void ClearTransformationGradient();
+    virtual T InitialiseCurrentLevel();
 
     virtual double ComputeJacobianBasedPenaltyTerm(int);
     virtual double ComputeBendingEnergyPenaltyTerm();
     virtual double ComputeLinearEnergyPenaltyTerm();
     virtual double ComputeL2NormDispPenaltyTerm();
-    virtual void GetDeformationField();
-    virtual void WarpFloatingImage(int);
-    virtual double ComputeSimilarityMeasure();
-    virtual void GetVoxelBasedGradient();
-    virtual void GetSimilarityMeasureGradient();
+
     virtual void GetBendingEnergyGradient();
     virtual void GetLinearEnergyGradient();
     virtual void GetL2NormDispGradient();
@@ -150,13 +56,22 @@ protected:
     virtual void SetGradientImageToZero();
     virtual T NormaliseGradient();
     virtual void SmoothGradient();
+    virtual void GetObjectiveFunctionGradient();
     virtual void GetApproximatedGradient();
+    void GetSimilarityMeasureGradient();
+
+    virtual void GetDeformationField();
     virtual void DisplayCurrentLevelParameters();
 
     virtual double GetObjectiveFunctionValue();
-    virtual void UpdateParameters(float);
+    virtual void UpdateBestObjFunctionValue();
+	virtual void UpdateParameters(float);
+    virtual void SetOptimiser();
 
-    virtual void ExponentiateGradient(){return;}
+    virtual void PrintInitialObjFunctionValue();
+    virtual void PrintCurrentObjFunctionValue(T);
+
+    virtual void CorrectTransformation();
 
     void (*funcProgressCallback)(float pcntProgress, void *params);
     void *paramsProgressCallback;
@@ -165,86 +80,38 @@ public:
     reg_f3d(int refTimePoint,int floTimePoint);
     virtual ~reg_f3d();
 
-    void SetMaximalIterationNumber(unsigned int);
-    void NoOptimisationAlongX(){this->optimiseX=false;}
-    void NoOptimisationAlongY(){this->optimiseY=false;}
-    void NoOptimisationAlongZ(){this->optimiseZ=false;}
-    void SetPerturbationNumber(size_t v){this->perturbationNumber=v;}
-
-    void SetReferenceImage(nifti_image *);
-    void SetFloatingImage(nifti_image *);
     void SetControlPointGridImage(nifti_image *);
-    void SetReferenceMask(nifti_image *);
-    void SetAffineTransformation(mat44 *);
     void SetBendingEnergyWeight(T);
     void SetLinearEnergyWeights(T,T);
     void SetL2NormDisplacementWeight(T);
     void SetJacobianLogWeight(T);
     void ApproximateJacobianLog();
     void DoNotApproximateJacobianLog();
-    void ApproximateParzenWindow();
-    void DoNotApproximateParzenWindow();
-    void SetReferenceSmoothingSigma(T);
-    void SetFloatingSmoothingSigma(T);
-    void SetReferenceThresholdUp(unsigned int,T);
-    void SetReferenceThresholdLow(unsigned int,T);
-    void SetFloatingThresholdUp(unsigned int, T);
-    void SetFloatingThresholdLow(unsigned int,T);
-    void SetWarpedPaddingValue(T);
     void SetSpacing(unsigned int ,T);
-    void SetLevelNumber(unsigned int);
-    void SetLevelToPerform(unsigned int);
-    void SetGradientSmoothingSigma(T);
-
-    // Set the multi channel implementation to additive.
-    void SetAdditiveMC() { this->additive_mc_nmi = true; }
 
     void UseComposition();
     void DoNotUseComposition();
-    void UseSSD();
-    void DoNotUseSSD();
-    void UseKLDivergence();
-    void DoNotUseKLDivergence();
-    void UseConjugateGradient();
-    void DoNotUseConjugateGradient();
-    void PrintOutInformation();
-    void DoNotPrintOutInformation();
-    void SetReferenceBinNumber(int, unsigned int);
-    void SetFloatingBinNumber(int, unsigned int);
-    void DoNotUsePyramidalApproach();
-    void UseNeareatNeighborInterpolation();
-    void UseLinearInterpolation();
-    void UseCubicSplineInterpolation();
     void NoGridRefinement(){this->gridRefinement=false;}
-    //    int SetThreadNumber(int t);
 
     // F3D2 specific options
     virtual void SetCompositionStepNumber(int){return;}
     virtual void ApproximateComposition(){return;}
-    virtual void UseSimilaritySymmetry(){return;}
+	virtual void UseSimilaritySymmetry(){return;}
+	virtual void UseBCHUpdate(int){return;}
+	virtual void UseInverseSclalingSquaring(){return;}
 
     // F3D_SYM specific options
     virtual void SetFloatingMask(nifti_image *){return;}
     virtual void SetInverseConsistencyWeight(T){return;}
     virtual nifti_image *GetBackwardControlPointPositionImage(){return NULL;}
-    virtual double GetInverseConsistencyPenaltyTerm(){return 0.;}
-    virtual void GetInverseConsistencyGradient(){return;}
 
     // F3D_gpu specific option
-    virtual int CheckMemoryMB_f3d(){return 0;}
+    virtual int CheckMemoryMB(){return 0;}
 
-    virtual void CheckParameters_f3d();
-    void Run_f3d();
-    virtual void Initisalise_f3d();
+    virtual void CheckParameters();
+    virtual void Initisalise();
     nifti_image *GetControlPointPositionImage();
     virtual nifti_image **GetWarpedImage();
-
-    void SetProgressCallbackFunction( void (*funcProgCallback)(float pcntProgress,
-							       void *params), 
-                                     void *paramsProgCallback ) {
-        funcProgressCallback = funcProgCallback;
-        paramsProgressCallback = paramsProgCallback;
-    }
 };
 
 #include "_reg_f3d.cpp"

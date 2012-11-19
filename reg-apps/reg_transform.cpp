@@ -421,9 +421,9 @@ int main(int argc, char **argv)
         //Computation of the deformation field
         if( controlPointImage->intent_code==NIFTI_INTENT_VECTOR &&
             strcmp(controlPointImage->intent_name,"NREG_VEL_STEP")==0 )
-            reg_bspline_getDeformationFieldFromVelocityGrid(controlPointImage,
-                                                            deformationFieldImage
-                                                            );
+            reg_spline_getDeformationFieldFromVelocityGrid(controlPointImage,
+                                                           deformationFieldImage
+                                                           );
         else
             reg_spline_getDeformationField(controlPointImage,
                                            deformationFieldImage,
@@ -491,12 +491,20 @@ int main(int argc, char **argv)
             deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
 
             //Compute the initial deformation
-            reg_spline_getDeformationField(firstControlPointImage,
-                                           deformationFieldImage,
-                                           NULL,
-                                           false, //composition
-                                           true // bspline
-                                           );
+            if( firstControlPointImage->intent_code==NIFTI_INTENT_VECTOR &&
+                strcmp(firstControlPointImage->intent_name,"NREG_VEL_STEP")==0 ){
+                reg_spline_getDeformationFieldFromVelocityGrid(firstControlPointImage,
+                                                                deformationFieldImage
+                                                                );
+            }
+            else{
+                reg_spline_getDeformationField(firstControlPointImage,
+                                               deformationFieldImage,
+                                               NULL,
+                                               false, //composition
+                                               true // bspline
+                                               );
+            }
             nifti_image_free(firstControlPointImage);
         }
         else{
@@ -514,12 +522,26 @@ int main(int argc, char **argv)
         //TODO
 
         // The deformation field is updated through composition
-        reg_spline_getDeformationField(secondControlPointImage,
-                                       deformationFieldImage,
-                                       NULL,
-                                       true, //composition
-                                       true // bspline
-                                       );
+        if( secondControlPointImage->intent_code==NIFTI_INTENT_VECTOR &&
+            strcmp(secondControlPointImage->intent_name,"NREG_VEL_STEP")==0 ){
+            nifti_image * tempDeformationFieldImage = nifti_copy_nim_info(deformationFieldImage);
+            tempDeformationFieldImage->data = (void *)calloc(tempDeformationFieldImage->nvox, tempDeformationFieldImage->nbyper);
+            reg_spline_getDeformationFieldFromVelocityGrid(secondControlPointImage,
+                                                            tempDeformationFieldImage
+                                                            );
+            reg_defField_compose(tempDeformationFieldImage,
+                                 deformationFieldImage,
+                                 NULL);
+            nifti_image_free(tempDeformationFieldImage);
+        }
+        else{
+            reg_spline_getDeformationField(secondControlPointImage,
+                                           deformationFieldImage,
+                                           NULL,
+                                           true, //composition
+                                           true // bspline
+                                           );
+        }
         nifti_image_free(secondControlPointImage);
 
         // Ouput the composed deformation field

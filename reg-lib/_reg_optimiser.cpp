@@ -293,7 +293,8 @@ void reg_conjugateGradient<T>::UpdateGradientValues()
 #if defined (_WIN32)
     int i;
 #else
-    size_t i;
+//    size_t i;
+    int i;
 #endif
     size_t num=this->dofNumber;
     size_t num_b=this->dofNumber_b;

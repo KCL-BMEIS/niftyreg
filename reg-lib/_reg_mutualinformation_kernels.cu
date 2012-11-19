@@ -27,24 +27,24 @@ __device__ __constant__ int c_secondTargetBin;
 __device__ __constant__ int c_firstResultBin;
 __device__ __constant__ int c_secondResultBin;
 
-__device__ __constant__ float4 c_Entropies;
+__device__ __constant__ float c_NormalisedJE;
 __device__ __constant__ float c_NMI;
 __device__ __constant__ int c_ActiveVoxelNumber;
 
-texture<float, 3, cudaReadModeElementType> firstTargetImageTexture;
-texture<float, 1, cudaReadModeElementType> firstResultImageTexture;
-texture<float4, 1, cudaReadModeElementType> firstResultImageGradientTexture;
+texture<float, 3, cudaReadModeElementType> firstreferenceImageTexture;
+texture<float, 1, cudaReadModeElementType> firstwarpedImageTexture;
+texture<float4, 1, cudaReadModeElementType> firstwarpedImageGradientTexture;
 texture<float, 1, cudaReadModeElementType> histogramTexture;
 texture<float4, 1, cudaReadModeElementType> gradientImageTexture;
 texture<int, 1, cudaReadModeElementType> maskTexture;
 
 /// Added for the multichannel stuff. We currently only support 2 target and 2 source channels.
 /// So we need another texture for the second target and source channel respectively.
-texture<float, 3, cudaReadModeElementType> secondTargetImageTexture;
-texture<float, 1, cudaReadModeElementType> secondResultImageTexture;
-texture<float4, 1, cudaReadModeElementType> secondResultImageGradientTexture;
+texture<float, 3, cudaReadModeElementType> secondreferenceImageTexture;
+texture<float, 1, cudaReadModeElementType> secondwarpedImageTexture;
+texture<float4, 1, cudaReadModeElementType> secondwarpedImageGradientTexture;
 
-
+/* *************************************************************** */
 __device__ float GetBasisSplineValue(float x)
 {
     x=fabsf(x);
@@ -58,6 +58,7 @@ __device__ float GetBasisSplineValue(float x)
     }
     return value;
 }
+/* *************************************************************** */
 __device__ float GetBasisSplineDerivativeValue(float ori)
 {
     float x=fabsf(ori);
@@ -68,111 +69,197 @@ __device__ float GetBasisSplineDerivativeValue(float ori)
         else{
             x-=2.0f;
             value = -0.5f * x * x;
-            if(ori<0.0f)value =-value;
+			if(ori<0.0f) value =-value;
     }
     return value;
 }
-
-__global__ void reg_getVoxelBasedNMIGradientUsingPW_kernel(float4 *voxelNMIGradientArray_d)
+/* *************************************************************** */
+__global__ void reg_getVoxelBasedNMIGradientUsingPW2D_kernel(float4 *voxelNMIGradientArray_d)
 {
-    const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
-    if(tid<c_ActiveVoxelNumber){
+	const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
+	if(tid<c_ActiveVoxelNumber){
 
-        const int targetIndex = tex1Dfetch(maskTexture,tid);
-        int tempIndex=targetIndex;
-        const int z = tempIndex/(c_ImageSize.x*c_ImageSize.y);
-        tempIndex  -= z*c_ImageSize.x*c_ImageSize.y;
-        const int y = tempIndex/c_ImageSize.x;
-        const int x = tempIndex - y*c_ImageSize.x;
+		const int targetIndex = tex1Dfetch(maskTexture,tid);
+		int tempIndex=targetIndex;
+		const int y = tempIndex/c_ImageSize.x;
+		const int x = tempIndex - y*c_ImageSize.x;
 
-        float targetImageValue = tex3D(firstTargetImageTexture,
-                                       ((float)x+0.5f)/(float)c_ImageSize.x,
-                                       ((float)y+0.5f)/(float)c_ImageSize.y,
-                                       ((float)z+0.5f)/(float)c_ImageSize.z);
-        float resultImageValue = tex1Dfetch(firstResultImageTexture,targetIndex);
-        float4 resultImageGradient = tex1Dfetch(firstResultImageGradientTexture,tid);
+		float referenceImageValue = tex3D(firstreferenceImageTexture,
+									   ((float)x+0.5f)/(float)c_ImageSize.x,
+									   ((float)y+0.5f)/(float)c_ImageSize.y,
+									   0.5f);
+		float warpedImageValue = tex1Dfetch(firstwarpedImageTexture,targetIndex);
+		float4 warpedImageGradient = tex1Dfetch(firstwarpedImageGradientTexture,tid);
 
-        float4 gradValue = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+		float4 gradValue = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 
-        // No computation is performed if any of the point is part of the background
-        // The two is added because the image is resample between 2 and bin +2
-        // if 64 bins are used the histogram will have 68 bins et the image will be between 2 and 65
-        if( targetImageValue>0.0f &&
-            resultImageValue>0.0f &&
-            targetImageValue<c_firstTargetBin &&
-            resultImageValue<c_firstResultBin &&
-            targetImageValue==targetImageValue &&
-            resultImageValue==resultImageValue){
+		// No computation is performed if any of the point is part of the background
+		// The two is added because the image is resample between 2 and bin +2
+		// if 64 bins are used the histogram will have 68 bins et the image will be between 2 and 65
+		if( referenceImageValue>0.0f &&
+			warpedImageValue>0.0f &&
+			referenceImageValue<c_firstTargetBin &&
+			warpedImageValue<c_firstResultBin &&
+			referenceImageValue==referenceImageValue &&
+			warpedImageValue==warpedImageValue){
 
-            targetImageValue = floor(targetImageValue);
-            resultImageValue = floor(resultImageValue);
+//			referenceImageValue = floor(referenceImageValue);
+//			warpedImageValue = floor(warpedImageValue);
 
-            float3 resDeriv = make_float3(
-                resultImageGradient.x,
-                resultImageGradient.y,
-                resultImageGradient.z);
+			float2 resDeriv = make_float2(
+				warpedImageGradient.x,
+				warpedImageGradient.y);
 
-            if( resultImageGradient.x==resultImageGradient.x &&
-                resultImageGradient.y==resultImageGradient.y &&
-                resultImageGradient.z==resultImageGradient.z){
+			if(resDeriv.x==resDeriv.x &&
+			   resDeriv.y==resDeriv.y){
 
-                float jointEntropyDerivative_X = 0.0f;
-                float movingEntropyDerivative_X = 0.0f;
-                float fixedEntropyDerivative_X = 0.0f;
+				float jointEntropyDerivative_X = 0.0f;
+				float warpedEntropyDerivative_X = 0.0f;
+				float referenceEntropyDerivative_X = 0.0f;
 
-                float jointEntropyDerivative_Y = 0.0f;
-                float movingEntropyDerivative_Y = 0.0f;
-                float fixedEntropyDerivative_Y = 0.0f;
+				float jointEntropyDerivative_Y = 0.0f;
+				float warpedEntropyDerivative_Y = 0.0f;
+				float referenceEntropyDerivative_Y = 0.0f;
 
-                float jointEntropyDerivative_Z = 0.0f;
-                float movingEntropyDerivative_Z = 0.0f;
-                float fixedEntropyDerivative_Z = 0.0f;
+				for(int r=static_cast<int>(referenceImageValue)-1; r<static_cast<int>(referenceImageValue)+3; ++r){
+					if(-1<r && r<c_firstTargetBin){
+						for(int w=static_cast<int>(warpedImageValue)-1; w<static_cast<int>(warpedImageValue)+3; ++w){
+							if(-1<w && w<c_firstResultBin){
+								float commonValue =
+										GetBasisSplineValue(referenceImageValue-(float)r) *
+										GetBasisSplineDerivativeValue(warpedImageValue-(float)w);
 
-                for(int t=(int)(targetImageValue-1.0f); t<(int)(targetImageValue+2.0f); t++){
-                    if(-1<t && t<c_firstTargetBin){
-                        for(int r=(int)(resultImageValue-1.0f); r<(int)(resultImageValue+2.0f); r++){
-                            if(-1<r && r<c_firstResultBin){
-                                float commonValue = GetBasisSplineValue((float)t-targetImageValue) *
-                                    GetBasisSplineDerivativeValue((float)r-resultImageValue);
+								float jointLog =  tex1Dfetch(histogramTexture, w*c_firstResultBin+r);
+								float targetLog = tex1Dfetch(histogramTexture, c_firstTargetBin*c_firstResultBin+r);
+								float resultLog = tex1Dfetch(histogramTexture, c_firstTargetBin*c_firstResultBin+c_firstTargetBin+w);
 
-                                float jointLog = tex1Dfetch(histogramTexture, r*c_firstResultBin+t);
-                                float targetLog = tex1Dfetch(histogramTexture, c_firstTargetBin*c_firstResultBin+t);
-                                float resultLog = tex1Dfetch(histogramTexture, c_firstTargetBin*c_firstResultBin+c_firstTargetBin+r);
+								float temp = commonValue * resDeriv.x;
+								jointEntropyDerivative_X += temp * jointLog;
+								referenceEntropyDerivative_X += temp * targetLog;
+								warpedEntropyDerivative_X += temp * resultLog;
 
-                                float temp = commonValue * resDeriv.x;
-                                jointEntropyDerivative_X -= temp * jointLog;
-                                fixedEntropyDerivative_X -= temp * targetLog;
-                                movingEntropyDerivative_X -= temp * resultLog;
+								temp = commonValue * resDeriv.y;
+								jointEntropyDerivative_Y += temp * jointLog;
+								referenceEntropyDerivative_Y += temp * targetLog;
+								warpedEntropyDerivative_Y += temp * resultLog;
+							} // O<t<bin
+						} // t
+					} // 0<r<bin
+				} // r
 
-                                temp = commonValue * resDeriv.y;
-                                jointEntropyDerivative_Y -= temp * jointLog;
-                                fixedEntropyDerivative_Y -= temp * targetLog;
-                                movingEntropyDerivative_Y -= temp * resultLog;
+				float NMI= c_NMI;
+				// (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way
+				gradValue.x = (referenceEntropyDerivative_X + warpedEntropyDerivative_X - NMI * jointEntropyDerivative_X) / c_NormalisedJE;
+				gradValue.y = (referenceEntropyDerivative_Y + warpedEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / c_NormalisedJE;
 
-                                temp = commonValue * resDeriv.z;
-                                jointEntropyDerivative_Z -= temp * jointLog;
-                                fixedEntropyDerivative_Z -= temp * targetLog;
-                                movingEntropyDerivative_Z -= temp * resultLog;
-                            } // O<t<bin
-                        } // t
-                    } // 0<r<bin
-                } // r
+			}
+		}
+		voxelNMIGradientArray_d[targetIndex]=gradValue;
 
-                float NMI= c_NMI;
-                float temp = c_Entropies.z;
-                // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way
-                gradValue.x = (fixedEntropyDerivative_X + movingEntropyDerivative_X - NMI * jointEntropyDerivative_X) / temp;
-                gradValue.y = (fixedEntropyDerivative_Y + movingEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / temp;
-                gradValue.z = (fixedEntropyDerivative_Z + movingEntropyDerivative_Z - NMI * jointEntropyDerivative_Z) / temp;
-
-            }
-        }
-        voxelNMIGradientArray_d[targetIndex]=gradValue;
-
-    }
-    return;
+	}
+	return;
 }
+/* *************************************************************** */
+__global__ void reg_getVoxelBasedNMIGradientUsingPW3D_kernel(float4 *voxelNMIGradientArray_d)
+{
+	const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
+	if(tid<c_ActiveVoxelNumber){
 
+		const int targetIndex = tex1Dfetch(maskTexture,tid);
+		int tempIndex=targetIndex;
+		const int z = tempIndex/(c_ImageSize.x*c_ImageSize.y);
+		tempIndex  -= z*c_ImageSize.x*c_ImageSize.y;
+		const int y = tempIndex/c_ImageSize.x;
+		const int x = tempIndex - y*c_ImageSize.x;
+
+		float referenceImageValue = tex3D(firstreferenceImageTexture,
+									   ((float)x+0.5f)/(float)c_ImageSize.x,
+									   ((float)y+0.5f)/(float)c_ImageSize.y,
+									   ((float)z+0.5f)/(float)c_ImageSize.z);
+		float warpedImageValue = tex1Dfetch(firstwarpedImageTexture,targetIndex);
+		float4 warpedImageGradient = tex1Dfetch(firstwarpedImageGradientTexture,tid);
+
+		float4 gradValue = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+
+		// No computation is performed if any of the point is part of the background
+		// The two is added because the image is resample between 2 and bin +2
+		// if 64 bins are used the histogram will have 68 bins et the image will be between 2 and 65
+		if( referenceImageValue>0.0f &&
+			warpedImageValue>0.0f &&
+			referenceImageValue<c_firstTargetBin &&
+			warpedImageValue<c_firstResultBin &&
+			referenceImageValue==referenceImageValue &&
+			warpedImageValue==warpedImageValue){
+
+//			referenceImageValue = floor(referenceImageValue);
+//			warpedImageValue = floor(warpedImageValue);
+
+			float3 resDeriv = make_float3(
+				warpedImageGradient.x,
+				warpedImageGradient.y,
+				warpedImageGradient.z);
+
+			if( resDeriv.x==resDeriv.x &&
+				resDeriv.y==resDeriv.y &&
+				resDeriv.z==resDeriv.z){
+
+				float jointEntropyDerivative_X = 0.0f;
+				float warpedEntropyDerivative_X = 0.0f;
+				float referenceEntropyDerivative_X = 0.0f;
+
+				float jointEntropyDerivative_Y = 0.0f;
+				float warpedEntropyDerivative_Y = 0.0f;
+				float referenceEntropyDerivative_Y = 0.0f;
+
+				float jointEntropyDerivative_Z = 0.0f;
+				float warpedEntropyDerivative_Z = 0.0f;
+				float referenceEntropyDerivative_Z = 0.0f;
+
+				for(int r=static_cast<int>(referenceImageValue)-1; r<static_cast<int>(referenceImageValue)+3; ++r){
+					if(-1<r && r<c_firstTargetBin){
+						for(int w=static_cast<int>(warpedImageValue)-1; w<static_cast<int>(warpedImageValue)+3; ++w){
+							if(-1<w && w<c_firstResultBin){
+								float commonValue =
+										GetBasisSplineValue(referenceImageValue-(float)r) *
+										GetBasisSplineDerivativeValue(warpedImageValue-(float)w);
+
+								float jointLog =  tex1Dfetch(histogramTexture, w*c_firstResultBin+r);
+								float targetLog = tex1Dfetch(histogramTexture, c_firstTargetBin*c_firstResultBin+r);
+								float resultLog = tex1Dfetch(histogramTexture, c_firstTargetBin*c_firstResultBin+c_firstTargetBin+w);
+
+								float temp = commonValue * resDeriv.x;
+								jointEntropyDerivative_X += temp * jointLog;
+								referenceEntropyDerivative_X += temp * targetLog;
+								warpedEntropyDerivative_X += temp * resultLog;
+
+								temp = commonValue * resDeriv.y;
+								jointEntropyDerivative_Y += temp * jointLog;
+								referenceEntropyDerivative_Y += temp * targetLog;
+								warpedEntropyDerivative_Y += temp * resultLog;
+
+								temp = commonValue * resDeriv.z;
+								jointEntropyDerivative_Z += temp * jointLog;
+								referenceEntropyDerivative_Z += temp * targetLog;
+								warpedEntropyDerivative_Z += temp * resultLog;
+							} // O<t<bin
+						} // t
+					} // 0<r<bin
+				} // r
+
+				float NMI= c_NMI;
+				// (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way
+				gradValue.x = (referenceEntropyDerivative_X + warpedEntropyDerivative_X - NMI * jointEntropyDerivative_X) / c_NormalisedJE;
+				gradValue.y = (referenceEntropyDerivative_Y + warpedEntropyDerivative_Y - NMI * jointEntropyDerivative_Y) / c_NormalisedJE;
+				gradValue.z = (referenceEntropyDerivative_Z + warpedEntropyDerivative_Z - NMI * jointEntropyDerivative_Z) / c_NormalisedJE;
+
+			}
+		}
+		voxelNMIGradientArray_d[targetIndex]=gradValue;
+
+	}
+	return;
+}
+/* *************************************************************** */
 // Multichannel NMI gradient. Hardcoded for 2x2 NMI channels.
 __global__ void reg_getVoxelBasedNMIGradientUsingPW2x2_kernel(float4 *voxelNMIGradientArray_d)
 {
@@ -186,19 +273,19 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW2x2_kernel(float4 *voxelNMIGr
         const int x = tempIndex - y*c_ImageSize.x;
 
         float4 voxelValues = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-        voxelValues.x = tex3D(firstTargetImageTexture,
+		voxelValues.x = tex3D(firstreferenceImageTexture,
                               ((float)x+0.5f)/(float)c_ImageSize.x,
                               ((float)y+0.5f)/(float)c_ImageSize.y,
                               ((float)z+0.5f)/(float)c_ImageSize.z);
-        voxelValues.y = tex3D(secondTargetImageTexture,
+		voxelValues.y = tex3D(secondreferenceImageTexture,
                               ((float)x+0.5f)/(float)c_ImageSize.x,
                               ((float)y+0.5f)/(float)c_ImageSize.y,
                               ((float)z+0.5f)/(float)c_ImageSize.z);
-        voxelValues.z = tex1Dfetch(firstResultImageTexture,targetIndex);
-        voxelValues.w = tex1Dfetch(secondResultImageTexture,targetIndex);
+		voxelValues.z = tex1Dfetch(firstwarpedImageTexture,targetIndex);
+		voxelValues.w = tex1Dfetch(secondwarpedImageTexture,targetIndex);
 
-        float4 firstResultImageGradient = tex1Dfetch(firstResultImageGradientTexture,tid);
-        float4 secondResultImageGradient = tex1Dfetch(secondResultImageGradientTexture,tid);
+		float4 firstwarpedImageGradient = tex1Dfetch(firstwarpedImageGradientTexture,tid);
+		float4 secondwarpedImageGradient = tex1Dfetch(secondwarpedImageGradientTexture,tid);
         float4 gradValue = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 
         // Could remove some tests (which are not really needed) to reduce register
@@ -221,24 +308,24 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW2x2_kernel(float4 *voxelNMIGr
             voxelValues.z = (float)((int)voxelValues.z);
             voxelValues.w = (float)((int)voxelValues.w);
 
-            if( firstResultImageGradient.x==firstResultImageGradient.x &&
-                firstResultImageGradient.y==firstResultImageGradient.y &&
-                firstResultImageGradient.z==firstResultImageGradient.z &&
-                secondResultImageGradient.x==secondResultImageGradient.x &&
-                secondResultImageGradient.y==secondResultImageGradient.y &&
-                secondResultImageGradient.z==secondResultImageGradient.z)
+			if( firstwarpedImageGradient.x==firstwarpedImageGradient.x &&
+				firstwarpedImageGradient.y==firstwarpedImageGradient.y &&
+				firstwarpedImageGradient.z==firstwarpedImageGradient.z &&
+				secondwarpedImageGradient.x==secondwarpedImageGradient.x &&
+				secondwarpedImageGradient.y==secondwarpedImageGradient.y &&
+				secondwarpedImageGradient.z==secondwarpedImageGradient.z)
             {
                 float jointEntropyDerivative_X = 0.0f;
-                float movingEntropyDerivative_X = 0.0f;
-                float fixedEntropyDerivative_X = 0.0f;
+				float warpedEntropyDerivative_X = 0.0f;
+				float referenceEntropyDerivative_X = 0.0f;
 
                 float jointEntropyDerivative_Y = 0.0f;
-                float movingEntropyDerivative_Y = 0.0f;
-                float fixedEntropyDerivative_Y = 0.0f;
+				float warpedEntropyDerivative_Y = 0.0f;
+				float referenceEntropyDerivative_Y = 0.0f;
 
                 float jointEntropyDerivative_Z = 0.0f;
-                float movingEntropyDerivative_Z = 0.0f;
-                float fixedEntropyDerivative_Z = 0.0f;
+				float warpedEntropyDerivative_Z = 0.0f;
+				float referenceEntropyDerivative_Z = 0.0f;
 
                 float jointLog, targetLog, resultLog, temp;
                 float4 relative_pos = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -279,27 +366,27 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW2x2_kernel(float4 *voxelNMIGr
                                                 // a lot of registers. Need to look into whether this can be reduced somehow.
                                                 s_y = GetBasisSplineValue(relative_pos.w-voxelValues.w);
                                                 s_z = GetBasisSplineDerivativeValue(relative_pos.w-voxelValues.w);
-                                                temp = (s_x * firstResultImageGradient.x * s_y) +
-                                                       (s_z * secondResultImageGradient.x * s_w);
+												temp = (s_x * firstwarpedImageGradient.x * s_y) +
+													   (s_z * secondwarpedImageGradient.x * s_w);
                                                 temp *= common_target_value;
 
                                                 jointEntropyDerivative_X -= temp * jointLog;
-                                                fixedEntropyDerivative_X -= temp * targetLog;
-                                                movingEntropyDerivative_X -= temp * resultLog;
+												referenceEntropyDerivative_X -= temp * targetLog;
+												warpedEntropyDerivative_X -= temp * resultLog;
 
-                                                temp = (s_x * firstResultImageGradient.y * s_y) +
-                                                       (s_z * secondResultImageGradient.y * s_w);
+												temp = (s_x * firstwarpedImageGradient.y * s_y) +
+													   (s_z * secondwarpedImageGradient.y * s_w);
                                                 temp *= common_target_value;
                                                 jointEntropyDerivative_Y -= temp * jointLog;
-                                                fixedEntropyDerivative_Y -= temp * targetLog;
-                                                movingEntropyDerivative_Y -= temp * resultLog;
+												referenceEntropyDerivative_Y -= temp * targetLog;
+												warpedEntropyDerivative_Y -= temp * resultLog;
 
-                                                temp = (s_x * firstResultImageGradient.z * s_y) +
-                                                       (s_z * secondResultImageGradient.z * s_w);
+												temp = (s_x * firstwarpedImageGradient.z * s_y) +
+													   (s_z * secondwarpedImageGradient.z * s_w);
                                                 temp *= common_target_value;
                                                 jointEntropyDerivative_Z -= temp * jointLog;
-                                                fixedEntropyDerivative_Z -= temp * targetLog;
-                                                movingEntropyDerivative_Z -= temp * resultLog;
+												referenceEntropyDerivative_Z -= temp * targetLog;
+												warpedEntropyDerivative_Z -= temp * resultLog;
                                             }
                                         }
                                     }
@@ -309,15 +396,15 @@ __global__ void reg_getVoxelBasedNMIGradientUsingPW2x2_kernel(float4 *voxelNMIGr
                     }
                 }
 
-                gradValue.x = (fixedEntropyDerivative_X + movingEntropyDerivative_X - c_NMI * jointEntropyDerivative_X) / c_Entropies.z;
-                gradValue.y = (fixedEntropyDerivative_Y + movingEntropyDerivative_Y - c_NMI * jointEntropyDerivative_Y) / c_Entropies.z;
-                gradValue.z = (fixedEntropyDerivative_Z + movingEntropyDerivative_Z - c_NMI * jointEntropyDerivative_Z) / c_Entropies.z;
+				gradValue.x = (referenceEntropyDerivative_X + warpedEntropyDerivative_X - c_NMI * jointEntropyDerivative_X) / c_NormalisedJE;
+				gradValue.y = (referenceEntropyDerivative_Y + warpedEntropyDerivative_Y - c_NMI * jointEntropyDerivative_Y) / c_NormalisedJE;
+				gradValue.z = (referenceEntropyDerivative_Z + warpedEntropyDerivative_Z - c_NMI * jointEntropyDerivative_Z) / c_NormalisedJE;
             }
         }
         voxelNMIGradientArray_d[targetIndex]=gradValue;
     }
 }
-
+/* *************************************************************** */
 __global__ void reg_smoothJointHistogramX_kernel(float *tempHistogram)
 {
     const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;

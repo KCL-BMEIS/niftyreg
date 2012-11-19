@@ -184,7 +184,6 @@ char xml_aladin[] =
 "      <element>3</element>\n"
 "    </integer-enumeration>\n"
 "  </parameters>\n"
-#ifdef _BUILD_NR_DEV
 "  <parameters advanced=\"true\">\n"
 "    <label>Symmetric registration</label>\n"
 "    <description>Options to active a symmetric registration optimisation.</description>\n"
@@ -204,6 +203,5 @@ char xml_aladin[] =
 "      <channel>input</channel>\n"
 "    </image>\n"
 "  </parameters>\n"
-#endif // _BUILD_NR_DEV
 "</executable>"
 ;

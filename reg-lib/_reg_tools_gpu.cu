@@ -13,6 +13,7 @@
 #define _REG_TOOLS_GPU_CU
 
 #include "_reg_blocksize_gpu.h"
+#include "_reg_tools_gpu.h"
 #include "_reg_tools_kernels.cu"
 
 
@@ -280,6 +281,28 @@ void reg_addArrays_gpu(int num, float4 **array1_d, float4 **array2_d)
     NR_CUDA_CHECK_KERNEL(G,B)
 }
 /* *************************************************************** */
+void reg_fillMaskArray_gpu(int num, int **array1_d)
+{
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&num,sizeof(int)))
 
+    const unsigned int Grid_reg_fillMaskArray = (unsigned int)ceil(sqrtf((float)num/512.f));
+    dim3 G=dim3(Grid_reg_fillMaskArray,Grid_reg_fillMaskArray,1);
+    dim3 B=dim3(512,1,1);
+    reg_fillMaskArray_kernel<<<G,B>>>(*array1_d);
+    NR_CUDA_CHECK_KERNEL(G,B)
+}
+/* *************************************************************** */
+float reg_sumReduction_gpu(float *array_d,int size)
+{
+    thrust::device_ptr<float> dptr(array_d);
+    return thrust::reduce(dptr,dptr+size);
+}
+/* *************************************************************** */
+float reg_maxReduction_gpu(float *array_d,int size)
+{
+    thrust::device_ptr<float> dptr(array_d);
+    return thrust::reduce(dptr, dptr+size, 0.f, thrust::maximum<float>());
+}
+/* *************************************************************** */
 #endif
 

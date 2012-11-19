@@ -16,6 +16,13 @@
 
 /* ******************************** */
 /* ******************************** */
+int cudaCommon_setCUDACard(CUdevice *dev,
+                           CUcontext *ctx,
+                           int &major,
+                           int &minor,
+                           bool verbose);
+/* ******************************** */
+/* ******************************** */
 extern "C++"
 template <class DTYPE>
 int cudaCommon_allocateArrayToDevice(cudaArray **, int *);

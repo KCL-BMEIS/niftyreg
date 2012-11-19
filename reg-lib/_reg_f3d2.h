@@ -1,10 +1,9 @@
 /**
  * @file _reg_f3d2.h
  * @author Marc Modat
- * @date 19/11/2010
+ * @date 19/11/2011
  *
- *  Created by Marc Modat on 19/11/2010.
- *  Copyright (c) 2009, University College London. All rights reserved.
+ *  Copyright (c) 2011, University College London. All rights reserved.
  *  Centre for Medical Image Computing (CMIC)
  *  See the LICENSE.txt file in the nifty_reg root folder
  *
@@ -12,19 +11,17 @@
 
 #include "_reg_f3d_sym.h"
 
-//#define _BUILD_NR_DEV
-#ifdef _BUILD_NR_DEV
-
 #ifndef _REG_F3D2_H
 #define _REG_F3D2_H
-
-#define BCH true
 
 template <class T>
 class reg_f3d2 : public reg_f3d_sym<T>
 {
   protected:
     int stepNumber;
+    bool BCHUpdate;
+	bool ISS;
+    int BCHUpdateValue;
     mat33 *forward2backward_reorient;
     mat33 *backward2forward_reorient;
 
@@ -35,17 +32,17 @@ class reg_f3d2 : public reg_f3d_sym<T>
     virtual void GetSimilarityMeasureGradient();
     virtual void UpdateParameters(float);
     virtual void ExponentiateGradient();
+    virtual void UseBCHUpdate(int);
+	virtual void UseInverseSclalingSquaring();
 
 public:
     virtual void SetCompositionStepNumber(int);
     reg_f3d2(int refTimePoint,int floTimePoint);
     ~reg_f3d2();
-    virtual void Initisalise_f3d();
+    virtual void Initisalise();
     virtual nifti_image **GetWarpedImage();
 };
 
 #include "_reg_f3d2.cpp"
-
-#endif
 
 #endif
