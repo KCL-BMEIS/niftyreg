@@ -10,16 +10,6 @@
  *
  */
 
-#ifndef _MM_F3D_CPP
-#define _MM_F3D_CPP
-//#undef NDEBUG
-
-//#include "_reg_resampling.h"
-//#include "_reg_affineTransformation.h"
-//#include "_reg_bspline.h"
-//#include "_reg_bspline_comp.h"
-//#include "_reg_mutualinformation.h"
-//#include "_reg_ssd.h"
 #include "_reg_tools.h"
 #include "float.h"
 #include <limits>
@@ -59,6 +49,7 @@ typedef struct{
 	bool aladin;
 	bool flirt;
     bool autolevel;
+    bool makesourcex;
 }FLAG;
 
 
@@ -79,18 +70,12 @@ void Usage(char *exec)
     printf("This implementation is a re-factoring of the PPCR algorithm in:\n");
 	printf("Melbourne et al., \"Registration of dynamic contrast-enhanced MRI using a \n");
 	printf(" progressive principal component registration (PPCR)\", Phys Med Biol, 2007.\n");		
-//	printf("The code is built on Niftyreg developed by Modat et al., \"Fast Free-Form Deformation using\n");
-//    printf("graphics processing units\", CMPB, 2009.\n");
-//	printf("Cubic B-Spline are used to deform a source image in order to optimise a objective function\n");
-//	printf("based on the Normalised Mutual Information and a penalty term. The penalty term could\n");
-//	printf("be either the bending energy or the squared Jacobian determinant log.\n");
 	printf("This code has been written by Andrew Melbourne (a.melbourne@cs.ucl.ac.uk)\n");
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 	printf("Usage:\t%s -source <filename> [OPTIONS].\n",exec);
 	printf("\t-source <filename>\tFilename of the source image (mandatory)\n");
-	printf("\t\t\t\t*Note that no target image is needed!\n");
-    //printf("\n***************\n*** OPTIONS ***\n***************\n");
-
+    printf("     Or -makesource <n> <filenames> \tThis will generate a 4D volume from the n filenames (saved to 'source4D.nii'.\n");
+	printf("\t*Note that no target image is needed!\n");
     printf("\n*** Main options:\n");
     printf("\t-result <filename> \tFilename of the resampled image [outputResult.nii].\n");
     printf("\t-cpp <filename>\t\tFilename of final 5D control point grid (non-rigid registration only).\n");
@@ -124,6 +109,7 @@ int main(int argc, char **argv)
     flag->autolevel=0;
 	flag->outputCPPFlag=0;
 	flag->outputResultFlag=0;
+    flag->makesourcex=0;
     param->maxIteration=-1;
 
 	char regCommandAll[1055]="";
@@ -143,7 +129,29 @@ int main(int argc, char **argv)
 		else if(strcmp(argv[i], "-source") == 0){
 			param->sourceImageName=argv[++i];
 			flag->sourceImageFlag=1;
-		}
+        }
+        else if(strcmp(argv[i], "-makesource") == 0 || strcmp(argv[i], "-makesourcex")==0){
+            if(strcmp(argv[i], "-makesourcex")==0){flag->makesourcex=1;}
+            nifti_image *source = nifti_image_read(argv[i+2],false);
+            nifti_image *makesource = nifti_copy_nim_info(source);
+            nifti_image_free(source);
+            makesource->ndim=makesource->dim[0] = 4;
+            makesource->nt = makesource->dim[4] = atoi(argv[++i]);
+            makesource->nvox=makesource->nx*makesource->nz*makesource->ny*makesource->nt;
+            makesource->data = (void *)malloc(makesource->nvox * makesource->nbyper);
+            for(int ii=0;ii<makesource->nt;ii++){ // fill with file data
+                source = nifti_image_read(argv[++i],true);
+                memcpy(&makesource->data[ii*source->nvox*source->nbyper], source->data, source->nbyper*source->nvox);
+                nifti_image_free(source); 
+            }
+            nifti_set_filenames(makesource,"source4D.nii", 0, 0); // might want to set this 
+            nifti_image_write(makesource);
+            nifti_image_free(makesource);
+            char buffer[20];
+            int n=sprintf(buffer,"source4D.nii");            
+            param->sourceImageName=buffer;
+            flag->sourceImageFlag=1;  
+        }
 		else if(strcmp(argv[i], "-target") == 0){
 		    printf("Target image is not necessary!");
 			PetitUsage(argv[0]);
@@ -152,9 +160,6 @@ int main(int argc, char **argv)
 			param->outputCPPName=argv[++i];
 			flag->outputCPPFlag=1;
             flag->aladin=1;
-		}
-		else if(strcmp(argv[i], "-affFlirt") == 0){ // remove flirt option
-			printf("-affFlirt will not be used, using Aladin instead..!");
 		}
         else if(strcmp(argv[i], "-incpp") == 0){ // remove -incpp option
 			printf("-incpp will not be used!");
@@ -203,11 +208,10 @@ int main(int argc, char **argv)
         else{
             strcat(regCommand," ");
 			strcat(regCommand,argv[i]);
-            //strcat(regCommand," ");
-			//strcat(regCommand,argv[i+1]);
             ++i;
         }
 	}
+    if(flag->makesourcex){return 0;}
 
 	if(!flag->sourceImageFlag){
 		fprintf(stderr,"Error:\tAt least define a source image!\n");
@@ -663,7 +667,7 @@ int main(int argc, char **argv)
                 remove(buffer);                
             }
             std::ofstream ofs(param->outputCPPName);
-            ofs<<final_string;
+            ofs<<final_string.c_str();
         }
             
         // DELETE
@@ -692,5 +696,3 @@ int main(int argc, char **argv)
 
 	return 0;
 }
-
-#endif
