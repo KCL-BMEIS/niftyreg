@@ -8,6 +8,11 @@ target_link_libraries(reg_tools _reg_resampling _reg_localTransformation _reg_to
 add_executable(reg_resample reg_resample.cpp)
 target_link_libraries(reg_resample _reg_resampling _reg_localTransformation _reg_tools _reg_globalTransformation _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+	add_executable(reg_ppcnr reg_ppcnr.cpp)
+	target_link_libraries(reg_ppcnr _reg_ReadWriteImage)
+endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+#-----------------------------------------------------------------------------
 add_executable(reg_transform reg_transform.cpp)
 target_link_libraries(reg_transform _reg_thinPlateSpline _reg_resampling _reg_localTransformation _reg_tools _reg_globalTransformation _reg_maths _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
