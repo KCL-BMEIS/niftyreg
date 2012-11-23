@@ -139,11 +139,12 @@ int main(int argc, char **argv)
             makesource->nt = makesource->dim[4] = atoi(argv[++i]);
             makesource->nvox=makesource->nx*makesource->nz*makesource->ny*makesource->nt;
             makesource->data = (void *)malloc(makesource->nvox * makesource->nbyper);
+			char *temp_data = reinterpret_cast<char *>(makesource->data);
             for(int ii=0;ii<makesource->nt;ii++){ // fill with file data
-                source = nifti_image_read(argv[++i],true);
-                memcpy(&makesource->data[ii*source->nvox*source->nbyper], source->data, source->nbyper*source->nvox);
+                source = nifti_image_read(argv[++i],true);				
+                memcpy(&(temp_data[ii*source->nvox*source->nbyper]), source->data, source->nbyper*source->nvox);
                 nifti_image_free(source); 
-            }
+            }            
             nifti_set_filenames(makesource,"source4D.nii", 0, 0); // might want to set this 
             nifti_image_write(makesource);
             nifti_image_free(makesource);
@@ -224,6 +225,8 @@ int main(int argc, char **argv)
 		fprintf(stderr,"* ERROR Error when reading image: %s\n",param->sourceImageName);
 		return 1;
 	}
+    reg_tools_changeDatatype<PrecisionTYPE>(image); // FIX DATA TYPE - DOES THIS WORK?
+    
 	if(!flag->prinCompFlag) param->prinComp=(int)(image->nt/2);// Check the number of components
 	if(param->prinComp>=image->nt) param->prinComp=image->nt-1;
 	if(!flag->outputResultFlag) param->outputResultName="outputResult-ppcnrfinal.nii";
@@ -506,7 +509,7 @@ int main(int argc, char **argv)
 			printf("Iterative registration to mean only - eigenvector matrix overwritten.\n");
 			for(int i=0;i<image->nt;i++){
 				for(int j=0;j<image->nt;j++){
-					z[i+image->nt*j]=1.0/sqrt(image->nt*prinCompNumber); // is this right?! - if using NMI it's rather moot so I'm not too bothered at the moment...
+					z[i+image->nt*j]=1.0/sqrtf(image->nt*prinCompNumber); // is this right?! - if using NMI it's rather moot so I'm not too bothered at the moment...
 				}
 			}
 		}
