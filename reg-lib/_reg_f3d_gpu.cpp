@@ -428,47 +428,50 @@ double reg_f3d_gpu::ComputeSimilarityMeasure()
     }
 
     double measure=0.;
-    if(this->currentFloating->nt==1){
-        reg_getEntropies(this->currentReference,
-                         this->warped,
-                         this->referenceBinNumber,
-                         this->floatingBinNumber,
-                         this->probaJointHistogram,
-                         this->logJointHistogram,
-                         this->entropies,
-                         this->currentMask,
-                         this->approxParzenWindow);
-    }
-    else if(this->currentFloating->nt==2){
-        reg_getEntropies2x2_gpu(this->currentReference,
-                                 this->warped,
-                                 //2,
-                                 this->referenceBinNumber,
-                                 this->floatingBinNumber,
-                                 this->probaJointHistogram,
-                                 this->logJointHistogram,
-                                 &this->logJointHistogram_gpu,
-                                 this->entropies,
-                                 this->currentMask);
-    }
-    measure = double(this->entropies[0]+this->entropies[1])/double(this->entropies[2]);
+	if(this->useSSD){
+		measure = -reg_getSSD_gpu(this->currentReference,
+								  &this->currentReference_gpu,
+								  &this->warped_gpu,
+								  &this->currentMask_gpu,
+								  this->activeVoxelNumber[this->currentLevel]
+								  );
+		if(this->usePyramid)
+			measure /= this->maxSSD[this->currentLevel];
+		else measure /= this->maxSSD[0];
+	}
+	else{
+		if(this->currentFloating->nt==1){
+			reg_getEntropies(this->currentReference,
+							 this->warped,
+							 this->referenceBinNumber,
+							 this->floatingBinNumber,
+							 this->probaJointHistogram,
+							 this->logJointHistogram,
+							 this->entropies,
+							 this->currentMask,
+							 this->approxParzenWindow);
+		}
+		else if(this->currentFloating->nt==2){
+			reg_getEntropies2x2_gpu(this->currentReference,
+									 this->warped,
+									 //2,
+									 this->referenceBinNumber,
+									 this->floatingBinNumber,
+									 this->probaJointHistogram,
+									 this->logJointHistogram,
+									 &this->logJointHistogram_gpu,
+									 this->entropies,
+									 this->currentMask);
+		}
+		measure = double(this->entropies[0]+this->entropies[1])/double(this->entropies[2]);
+	}
 
-    return double(1.0-this->bendingEnergyWeight-this->jacobianLogWeight) * measure;
+	return double(this->similarityWeight) * measure;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::GetVoxelBasedGradient()
 {
-    // The log joint histogram is first transfered to the GPU
-    float *tempB=NULL;
-    NR_CUDA_SAFE_CALL(cudaMallocHost(&tempB, this->totalBinNumber*sizeof(float)))
-    for(unsigned int i=0; i<this->totalBinNumber;i++){
-		tempB[i]=static_cast<float>(this->logJointHistogram[i]);
-    }
-    NR_CUDA_SAFE_CALL(cudaMemcpy(this->logJointHistogram_gpu, tempB,
-                                 this->totalBinNumber*sizeof(float), cudaMemcpyHostToDevice))
-    NR_CUDA_SAFE_CALL(cudaFreeHost(tempB))
-
     // The intensity gradient is first computed
 	reg_getImageGradient_gpu(this->currentFloating,
 							 &this->currentFloating_gpu,
@@ -478,46 +481,69 @@ void reg_f3d_gpu::GetVoxelBasedGradient()
 							 this->warpedPaddingValue);
 
     if(this->currentFloating->nt==2){
-	reg_getImageGradient_gpu(this->currentFloating,
-							 &this->currentFloating2_gpu,
-							 &this->deformationFieldImage_gpu,
-							 &this->warpedGradientImage2_gpu,
-							 this->activeVoxelNumber[this->currentLevel],
-							 this->warpedPaddingValue);
+		reg_getImageGradient_gpu(this->currentFloating,
+								 &this->currentFloating2_gpu,
+								 &this->deformationFieldImage_gpu,
+								 &this->warpedGradientImage2_gpu,
+								 this->activeVoxelNumber[this->currentLevel],
+								 this->warpedPaddingValue);
     }
 
-    // The voxel based NMI gradient
-    if(this->currentFloating->nt==1){
-        reg_getVoxelBasedNMIGradientUsingPW_gpu(this->currentReference,
-                                                this->warped,
-                                                &this->currentReference_gpu,
-                                                &this->warped_gpu,
-                                                &this->warpedGradientImage_gpu,
-                                                &this->logJointHistogram_gpu,
-                                                &this->voxelBasedMeasureGradientImage_gpu,
-                                                &this->currentMask_gpu,
-                                                this->activeVoxelNumber[this->currentLevel],
-                                                this->entropies,
-                                                this->referenceBinNumber[0],
-                                                this->floatingBinNumber[0]);
-    }
-    else if(this->currentFloating->nt==2){
-        reg_getVoxelBasedNMIGradientUsingPW2x2_gpu( this->currentReference,
-                                                    this->warped,
-                                                    &this->currentReference_gpu,
-                                                    &this->currentReference2_gpu,
-                                                    &this->warped_gpu,
-                                                    &this->warped2_gpu,
-                                                    &this->warpedGradientImage_gpu,
-                                                    &this->warpedGradientImage2_gpu,
-                                                    &this->logJointHistogram_gpu,
-                                                    &this->voxelBasedMeasureGradientImage_gpu,
-                                                    &this->currentMask_gpu,
-                                                    this->activeVoxelNumber[this->currentLevel],
-                                                    this->entropies,
-                                                    this->referenceBinNumber,
-                                                    this->floatingBinNumber);
-    }
+	if(this->useSSD){
+		// The voxel based SSD gradient
+		reg_getVoxelBasedSSDGradient_gpu(this->currentReference,
+										 &this->currentReference_gpu,
+										 &this->warped_gpu,
+										 &this->warpedGradientImage_gpu,
+										 &this->voxelBasedMeasureGradientImage_gpu,
+										 this->maxSSD[this->currentLevel],
+										 &this->currentMask_gpu,
+										 this->activeVoxelNumber[this->currentLevel]
+										 );
+	}
+	else{
+		// The log joint histogram is first transfered to the GPU
+		float *tempB=NULL;
+		NR_CUDA_SAFE_CALL(cudaMallocHost(&tempB, this->totalBinNumber*sizeof(float)))
+		for(unsigned int i=0; i<this->totalBinNumber;i++){
+			tempB[i]=static_cast<float>(this->logJointHistogram[i]);
+		}
+		NR_CUDA_SAFE_CALL(cudaMemcpy(this->logJointHistogram_gpu, tempB,
+									 this->totalBinNumber*sizeof(float), cudaMemcpyHostToDevice))
+		NR_CUDA_SAFE_CALL(cudaFreeHost(tempB))
+		// The voxel based NMI gradient
+		if(this->currentFloating->nt==1){
+			reg_getVoxelBasedNMIGradientUsingPW_gpu(this->currentReference,
+													this->warped,
+													&this->currentReference_gpu,
+													&this->warped_gpu,
+													&this->warpedGradientImage_gpu,
+													&this->logJointHistogram_gpu,
+													&this->voxelBasedMeasureGradientImage_gpu,
+													&this->currentMask_gpu,
+													this->activeVoxelNumber[this->currentLevel],
+													this->entropies,
+													this->referenceBinNumber[0],
+													this->floatingBinNumber[0]);
+		}
+		else if(this->currentFloating->nt==2){
+			reg_getVoxelBasedNMIGradientUsingPW2x2_gpu( this->currentReference,
+														this->warped,
+														&this->currentReference_gpu,
+														&this->currentReference2_gpu,
+														&this->warped_gpu,
+														&this->warped2_gpu,
+														&this->warpedGradientImage_gpu,
+														&this->warpedGradientImage2_gpu,
+														&this->logJointHistogram_gpu,
+														&this->voxelBasedMeasureGradientImage_gpu,
+														&this->currentMask_gpu,
+														this->activeVoxelNumber[this->currentLevel],
+														this->entropies,
+														this->referenceBinNumber,
+														this->floatingBinNumber);
+		}
+	}
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -588,15 +614,111 @@ void reg_f3d_gpu::GetJacobianBasedGradient()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void reg_f3d_gpu::UpdateParameters(float scale)
 {
-    float4 *currentDOF=reinterpret_cast<float4 *>(this->optimiser->GetCurrentDOF());
-    float4 *bestDOF=reinterpret_cast<float4 *>(this->optimiser->GetBestDOF());
-    float4 *gradient=reinterpret_cast<float4 *>(this->optimiser->GetGradient());
+
+	float4 *currentDOF=reinterpret_cast<float4 *>(this->optimiser->GetCurrentDOF());
+	float4 *bestDOF=reinterpret_cast<float4 *>(this->optimiser->GetBestDOF());
+	float4 *gradient=reinterpret_cast<float4 *>(this->optimiser->GetGradient());
+
     reg_updateControlPointPosition_gpu(this->controlPointGrid,
                                        &currentDOF,
                                        &bestDOF,
                                        &gradient,
-                                       scale);
+									   scale);
     return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+void reg_f3d_gpu::GetApproximatedGradient()
+{
+	float4 *gridValue=NULL;
+	float4 *modifiedValue=NULL;
+	float4 *gradientValue=NULL;
+	cudaMallocHost(&gridValue,sizeof(float4));
+	cudaMallocHost(&modifiedValue,sizeof(float4));
+	cudaMallocHost(&gradientValue,sizeof(float4));
+
+	float eps = this->controlPointGrid->dx / 1000.f;
+
+	for(size_t i=0; i<this->optimiser->GetVoxNumber();++i){
+		// Extract the current value
+		cudaMemcpy(gridValue,
+				   &this->controlPointGrid_gpu[i],
+				   sizeof(float),
+				   cudaMemcpyDeviceToHost);
+		modifiedValue[0]=gridValue[0];
+		// -- X axis
+		// Modify the current value along the x axis
+		modifiedValue[0].x = gridValue[0].x + eps;
+		cudaMemcpy(&this->controlPointGrid_gpu[i],
+				   modifiedValue,
+				   sizeof(float),
+				   cudaMemcpyHostToDevice);
+		// Evaluate the objective function value
+		gradientValue[0].x=this->GetObjectiveFunctionValue();
+		// Modify the current value along the x axis
+		modifiedValue[0].x = gridValue[0].x - eps;
+		cudaMemcpy(&this->controlPointGrid_gpu[i],
+				   modifiedValue,
+				   sizeof(float),
+				   cudaMemcpyHostToDevice);
+		// Evaluate the objective function value
+		gradientValue[0].x -= this->GetObjectiveFunctionValue();
+		gradientValue[0].x /= 2.f*eps;
+		modifiedValue[0].x = gridValue[0].x;
+		// -- Y axis
+		// Modify the current value along the y axis
+		modifiedValue[0].y = gridValue[0].y + eps;
+		cudaMemcpy(&this->controlPointGrid_gpu[i],
+				   modifiedValue,
+				   sizeof(float),
+				   cudaMemcpyHostToDevice);
+		// Evaluate the objective function value
+		gradientValue[0].y=this->GetObjectiveFunctionValue();
+		// Modify the current value the y axis
+		modifiedValue[0].y = gridValue[0].y - eps;
+		cudaMemcpy(&this->controlPointGrid_gpu[i],
+				   modifiedValue,
+				   sizeof(float),
+				   cudaMemcpyHostToDevice);
+		// Evaluate the objective function value
+		gradientValue[0].y -= this->GetObjectiveFunctionValue();
+		gradientValue[0].y /= 2.f*eps;
+		modifiedValue[0].y = gridValue[0].y;
+		if(this->optimiser->GetNDim()>2){
+			// -- Z axis
+			// Modify the current value along the y axis
+			modifiedValue[0].z = gridValue[0].z + eps;
+			cudaMemcpy(&this->controlPointGrid_gpu[i],
+					   modifiedValue,
+					   sizeof(float),
+					   cudaMemcpyHostToDevice);
+			// Evaluate the objective function value
+			gradientValue[0].z=this->GetObjectiveFunctionValue();
+			// Modify the current value the y axis
+			modifiedValue[0].z = gridValue[0].z - eps;
+			cudaMemcpy(&this->controlPointGrid_gpu[i],
+					   modifiedValue,
+					   sizeof(float),
+					   cudaMemcpyHostToDevice);
+			// Evaluate the objective function value
+			gradientValue[0].z -= this->GetObjectiveFunctionValue();
+			gradientValue[0].z /= 2.f*eps;
+		}
+		// Restore the initial parametrisation
+		cudaMemcpy(&this->controlPointGrid_gpu[i],
+				   gridValue,
+				   sizeof(float),
+				   cudaMemcpyHostToDevice);
+
+		// Save the assessed gradient
+		cudaMemcpy(&this->transformationGradient_gpu[i],
+				   gradientValue,
+				   sizeof(float),
+				   cudaMemcpyHostToDevice);
+	}
+	cudaFreeHost(gridValue);
+	cudaFreeHost(modifiedValue);
+	cudaFreeHost(gradientValue);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -714,7 +836,7 @@ void reg_f3d_gpu::ClearCurrentInputImage()
     if(this->currentReference->nt==2){
         cudaCommon_free(&this->currentReference2_gpu);
         this->currentReference2_gpu=NULL;
-        cudaCommon_free(&this->currentFloating2_gpu);
+		cudaCommon_free(&this->currentFloating2_gpu);
         this->currentFloating2_gpu=NULL;
     }
     this->currentReference=NULL;
@@ -731,7 +853,9 @@ void reg_f3d_gpu::SetOptimiser()
 {
     if(this->useConjGradient)
         this->optimiser=new reg_conjugateGradient_gpu();
-    else this->optimiser=new reg_optimiser_gpu();
+	else this->optimiser=new reg_optimiser_gpu();
+	// The cpp and grad images are converted to float * instead of float4
+	// to enable compatibility with cpu class
     this->optimiser->Initialise(this->controlPointGrid->nvox,
                                 this->controlPointGrid->nz>1?3:2,
                                 this->optimiseX,
@@ -750,21 +874,22 @@ float reg_f3d_gpu::NormaliseGradient()
 {
     // First compute the gradient max length for normalisation purpose
     float length = reg_getMaximalLength_gpu(&this->transformationGradient_gpu,
-                                            this->optimiser->GetDOFNumber()
+											this->optimiser->GetVoxNumber()
                                             );
 
-    if(strcmp(this->executableName,"NiftyReg F3D")==0){
-        // The gradient is normalised if we are running F3D
-        // It will be normalised later when running symmetric or F3D2
+	if(strcmp(this->executableName,"NiftyReg F3D")==0){
+		// The gradient is normalised if we are running F3D
+		// It will be normalised later when running symmetric or F3D2
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] Objective function gradient_gpu maximal length: %g\n", length);
+	printf("[NiftyReg DEBUG] Objective function gradient_gpu maximal length: %g\n", length);
 #endif
-        reg_multiplyValue_gpu(this->optimiser->GetDOFNumber(),
-                              &this->transformationGradient_gpu,
-                              length);
-    }
-    // Returns the largest gradient distance
-    return length;
+		reg_multiplyValue_gpu(this->optimiser->GetVoxNumber(),
+							  &this->transformationGradient_gpu,
+							  1.f/length);
+
+	}
+	// Returns the largest gradient distance
+    return length;	
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

@@ -339,12 +339,12 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
         }
     }
 
-    /* Smoothing along the Y axis */
-    windowSize = (int)reg_ceil(4.0*spacingVoxel[1] + 1.0);
+	/* Smoothing along the Y axis */
     radius = reg_ceil(2.0*spacingVoxel[1]);
+	windowSize = 2*radius + 1;
     free(window);
     window = (DTYPE *)calloc(windowSize,sizeof(DTYPE));
-    coeffSum=0.0;
+	coeffSum = 0.0;
     for(int it=-radius; it<=radius; it++){
         DTYPE coeff = (DTYPE)(fabs((float)(DTYPE)it/(DTYPE)spacingVoxel[1]));
         if(coeff<1.0) window[it+radius] = (DTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
@@ -398,9 +398,9 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
         }
     }
     if(image->nz>1){
-        /* Smoothing along the Z axis */
-        windowSize = (int)reg_ceil(4.0*spacingVoxel[2] + 1.0);
+		/* Smoothing along the Z axis */
         radius = reg_ceil(2.0*spacingVoxel[2]);
+		windowSize = 2*radius + 1;
         free(window);
         window = (DTYPE *)calloc(windowSize,sizeof(DTYPE));
         coeffSum=0.0;

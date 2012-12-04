@@ -102,7 +102,7 @@ if(USE_CUDA)
     else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
         cuda_add_library(${NAME} _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp ${NAME}_sym.h ${NAME}_sym.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_gpu.h ${NAME}_gpu.cpp)
     endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	target_link_libraries(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation _reg_KLdivergence _reg_ssd _reg_mutualinformation _reg_optimiser _reg_tools _reg_ReadWriteImage _reg_optimiser_gpu _reg_localTransformation_gpu _reg_resampling_gpu _reg_globalTransformation_gpu _reg_mutualinformation_gpu _reg_tools_gpu _reg_common_gpu)
+	target_link_libraries(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation _reg_KLdivergence _reg_ssd _reg_mutualinformation _reg_optimiser _reg_tools _reg_ReadWriteImage _reg_optimiser_gpu _reg_localTransformation_gpu _reg_resampling_gpu _reg_globalTransformation_gpu _reg_mutualinformation_gpu _reg_ssd_gpu _reg_tools_gpu _reg_common_gpu)
     install(FILES ${NAME}_gpu.h ${NAME}_gpu.cpp DESTINATION include COMPONENT Development)
 #-----------------------------------------------------------------------------
 else(USE_CUDA)

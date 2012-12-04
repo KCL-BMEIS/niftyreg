@@ -14,16 +14,17 @@
 class reg_optimiser_gpu : public reg_optimiser<float>
 {
 protected:
-  float4 *currentDOF_gpu; // pointer to the cpp nifti image
-  float4 *bestDOF_gpu;
+  float4 *currentDOF_gpu;
   float4 *gradient_gpu;
+  float4 *bestDOF_gpu; // Allocated in here
 
 public:
   reg_optimiser_gpu();
   ~reg_optimiser_gpu();
 
-  virtual float* GetBestDOF(){return reinterpret_cast<float *>(this->bestDOF_gpu);}
+  // Float4 are casted to float for compatibility with the cpu class
   virtual float* GetCurrentDOF(){return reinterpret_cast<float *>(this->currentDOF_gpu);}
+  virtual float* GetBestDOF(){return reinterpret_cast<float *>(this->bestDOF_gpu);}
   virtual float* GetGradient(){return reinterpret_cast<float *>(this->gradient_gpu);}
 
   virtual void RestoreBestDOF();
@@ -41,12 +42,8 @@ public:
                           float *gradData=NULL,
                           size_t a=0,
                           float *b=NULL,
-                          float *c=NULL);
-  virtual void Optimise(float maxLength,
-                        float smallLength,
-                        float &startLength);
+						  float *c=NULL);
   virtual void Perturbation(float length);
-  virtual void NormaliseGradient();
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -88,7 +85,7 @@ class reg_conjugateGradient_gpu : public reg_optimiser_gpu
 /** @brief
  */
 extern "C++"
-void reg_initialiseConjugateGradient_gpu(float4 **nodeNMIGradientArray_d,
+void reg_initialiseConjugateGradient_gpu(float4 **gradientArray_d,
                                          float4 **conjugateG_d,
                                          float4 **conjugateH_d,
                                          int nodeNumber);
@@ -96,7 +93,7 @@ void reg_initialiseConjugateGradient_gpu(float4 **nodeNMIGradientArray_d,
 /** @brief
  */
 extern "C++"
-void reg_GetConjugateGradient_gpu(float4 **nodeNMIGradientArray_d,
+void reg_GetConjugateGradient_gpu(float4 **gradientArray_d,
                                   float4 **conjugateG_d,
                                   float4 **conjugateH_d,
                                   int nodeNumber);
@@ -104,7 +101,7 @@ void reg_GetConjugateGradient_gpu(float4 **nodeNMIGradientArray_d,
 /** @brief
  */
 extern "C++"
-float reg_getMaximalLength_gpu(float4 **nodeNMIGradientArray_d,
+float reg_getMaximalLength_gpu(float4 **gradientArray_d,
                                int nodeNumber);
 
 /** @brief
@@ -113,7 +110,7 @@ extern "C++"
 void reg_updateControlPointPosition_gpu(nifti_image *controlPointImage,
                                         float4 **controlPointImageArray_d,
                                         float4 **bestControlPointPosition_d,
-                                        float4 **nodeNMIGradientArray_d,
+										float4 **gradientArray_d,
                                         float currentLength);
 
 #endif // _REG_OPTIMISER_GPU_H

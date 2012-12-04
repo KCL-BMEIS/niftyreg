@@ -41,7 +41,9 @@ __global__ void reg_getSquaredDifference3D_kernel(float *squaredDifference)
 									((float)y+0.5f)/(float)imageSize.y,
 									((float)z+0.5f)/(float)imageSize.z);
 		difference -= tex1Dfetch(warpedTexture,index);
-		squaredDifference[tid]= difference*difference;
+		if(difference==difference)
+			squaredDifference[tid]= difference*difference;
+		else squaredDifference[tid] = 0.f;
 	}
 }
 /* *************************************************************** */
@@ -60,7 +62,9 @@ __global__ void reg_getSquaredDifference2D_kernel(float *squaredDifference)
 									((float)y+0.5f)/(float)imageSize.y,
 									0.5f);
 		difference -= tex1Dfetch(warpedTexture,index);
-		squaredDifference[tid]= difference*difference;
+		if(difference==difference)
+			squaredDifference[tid]= difference*difference;
+		else squaredDifference[tid] = 0.f;
 	}
 }
 /* *************************************************************** */
@@ -92,7 +96,7 @@ __global__ void reg_getSSDGradient2D_kernel(float4 *ssdGradient)
 		float common = -2.f * (refValue - warpValue) /
 				(c_NormalisationNumber * (float)c_ActiveVoxelNumber);
 
-		ssdGradient[tid] = make_float4(
+		ssdGradient[index] = make_float4(
 					common * spaGradientValue.x,
 					common * spaGradientValue.y,
 					0.f,
@@ -119,6 +123,7 @@ __global__ void reg_getSSDGradient3D_kernel(float4 *ssdGradient)
 							   ((float)z+0.5f)/(float)imageSize.z);
 		if(refValue != refValue)
 			return;
+
 		float warpValue = tex1Dfetch(warpedTexture,index);
 		if(warpValue != warpValue)
 			return;
@@ -132,7 +137,7 @@ __global__ void reg_getSSDGradient3D_kernel(float4 *ssdGradient)
 		float common = -2.f * (refValue - warpValue) /
 				(c_NormalisationNumber * (float)c_ActiveVoxelNumber);
 
-		ssdGradient[tid] = make_float4(
+		ssdGradient[index] = make_float4(
 					common * spaGradientValue.x,
 					common * spaGradientValue.y,
 					common * spaGradientValue.z,

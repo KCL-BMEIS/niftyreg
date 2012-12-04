@@ -71,6 +71,7 @@ void reg_resampleImage_gpu(nifti_image *sourceImage,
 		dim3 B1(Block_reg_resampleSourceImage3D,1,1);
 		dim3 G1(Grid_reg_resampleSourceImage3D,Grid_reg_resampleSourceImage3D,1);
 		reg_resampleImage3D_kernel <<< G1, B1 >>> (*resultImageArray_d);
+		cudaThreadSynchronize();
 		NR_CUDA_CHECK_KERNEL(G1,B1)
 	}
 	else{

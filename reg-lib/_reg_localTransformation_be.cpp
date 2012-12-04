@@ -569,8 +569,8 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
 /* *************************************************************** */
 extern "C++"
 void reg_spline_approxBendingEnergyGradient(nifti_image *splineControlPoint,
-                                       nifti_image *gradientImage,
-                                       float weight)
+											nifti_image *gradientImage,
+											float weight)
 {
     if(splineControlPoint->datatype != gradientImage->datatype){
         fprintf(stderr,"[NiftyReg ERROR] The spline control point image and the gradient image were expected to have the same datatype\n");

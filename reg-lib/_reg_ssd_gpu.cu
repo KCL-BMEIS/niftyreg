@@ -25,6 +25,7 @@ float reg_getSSD_gpu(nifti_image *referenceImage,
 {
 	// Copy the constant memory variables
 	int3 referenceDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
+	int voxelNumber = referenceImage->nx * referenceImage->ny * referenceImage->nz;
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim,&referenceDim,sizeof(int3)))
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber,&activeVoxelNumber,sizeof(int)))
 	// Bind the required textures
@@ -35,7 +36,7 @@ float reg_getSSD_gpu(nifti_image *referenceImage,
 	referenceTexture.addressMode[2] = cudaAddressModeWrap;
 	cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
 	NR_CUDA_SAFE_CALL(cudaBindTextureToArray(referenceTexture, *reference_d, channelDesc))
-	NR_CUDA_SAFE_CALL(cudaBindTexture(0, warpedTexture, *warped_d, referenceImage->nvox*sizeof(float)))
+	NR_CUDA_SAFE_CALL(cudaBindTexture(0, warpedTexture, *warped_d, voxelNumber*sizeof(float)))
 	NR_CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, *mask_d, activeVoxelNumber*sizeof(int)))
 	// Create an array on the device to store the absolute difference values
 	float *absoluteValues_d;
@@ -73,6 +74,7 @@ void reg_getVoxelBasedSSDGradient_gpu(nifti_image *referenceImage,
 {
 	// Copy the constant memory variables
 	int3 referenceDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
+	int voxelNumber = referenceImage->nx*referenceImage->ny*referenceImage->nz;
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim,&referenceDim,sizeof(int3)))
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber,&activeVoxelNumber,sizeof(int)))
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NormalisationNumber,&maxSD,sizeof(float)))
@@ -84,9 +86,11 @@ void reg_getVoxelBasedSSDGradient_gpu(nifti_image *referenceImage,
 	referenceTexture.addressMode[2] = cudaAddressModeWrap;
 	cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
 	NR_CUDA_SAFE_CALL(cudaBindTextureToArray(referenceTexture, *reference_d, channelDesc))
-	NR_CUDA_SAFE_CALL(cudaBindTexture(0, warpedTexture, *warped_d, referenceImage->nvox*sizeof(float)))
+	NR_CUDA_SAFE_CALL(cudaBindTexture(0, warpedTexture, *warped_d, voxelNumber*sizeof(float)))
 	NR_CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, *mask_d, activeVoxelNumber*sizeof(int)))
-	NR_CUDA_SAFE_CALL(cudaBindTexture(0, spaGradientTexture, *spaGradient_d, activeVoxelNumber*sizeof(float4)))
+	NR_CUDA_SAFE_CALL(cudaBindTexture(0, spaGradientTexture, *spaGradient_d, voxelNumber*sizeof(float4)))
+	// Set the gradient image to zero
+	NR_CUDA_SAFE_CALL(cudaMemset(*ssdGradient_d,0,voxelNumber*sizeof(float4)))
 	const unsigned int Grid_reg_getSSDGradient =
 			(unsigned int)ceil(sqrtf((float)activeVoxelNumber/512.f));
 	dim3 B1(512,1,1);

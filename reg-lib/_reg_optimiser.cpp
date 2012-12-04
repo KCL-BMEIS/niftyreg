@@ -173,6 +173,7 @@ void reg_optimiser<T>::Optimise(T maxLength,
                    currentLength);
 #endif
             // Improvement - Save the new objective function value
+			this->objFunc->UpdateBestObjFunctionValue();
             this->bestObjFunctionValue=this->currentObjFunctionValue;
             // Update the total added length
             addedLength += currentLength;
@@ -184,10 +185,10 @@ void reg_optimiser<T>::Optimise(T maxLength,
         }
         else{
 #ifndef NDEBUG
-            printf("[NiftyReg DEBUG] [%i] objective function: %g | Increment %g | REJECTED\n",
-                   (int)this->currentIterationNumber,
-                   this->currentObjFunctionValue,
-                   currentLength);
+			printf("[NiftyReg DEBUG] [%i] objective function: %g | Increment %g | REJECTED\n",
+				   (int)this->currentIterationNumber,
+				   this->currentObjFunctionValue,
+				   currentLength);
 #endif
             // No improvement - Decrease the step size
             currentLength*=0.5;

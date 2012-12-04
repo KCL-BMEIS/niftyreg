@@ -705,7 +705,7 @@ void reg_base<T>::GetVoxelBasedGradient()
                                      NULL,
                                      localMaxSSD,
                                      this->currentMask
-                                     );
+									 );
     }
     else if(this->useKLD){
         // Compute the voxel based KL divergence gradient
@@ -971,7 +971,8 @@ void reg_base<T>::Run()
         this->AllocateWarped();
         this->AllocateDeformationField();
         this->AllocateWarpedGradient();
-        this->AllocateJointHistogram();
+		if(!this->useSSD && !this->useKLD)
+			this->AllocateJointHistogram();
 
         // The grid is refined if necessary
         T maxStepSize=this->InitialiseCurrentLevel();
@@ -992,7 +993,6 @@ void reg_base<T>::Run()
 
             // Evalulate the objective function value
             this->UpdateBestObjFunctionValue();
-
             this->PrintInitialObjFunctionValue();
 
             while(true){
@@ -1015,8 +1015,7 @@ void reg_base<T>::Run()
                 // A line search is performed
                 this->optimiser->Optimise(maxStepSize,smallestSize,currentSize);
 
-                // Update the obecjtive function variables and print some information
-                this->UpdateBestObjFunctionValue();
+				// Update the obecjtive function variables and print some information
                 this->PrintCurrentObjFunctionValue(currentSize);
 
                 // Monitoring progression when f3d is ran as a library

@@ -90,19 +90,11 @@ void reg_matrixInvertMultiply(T *mat,
     if(index==NULL)
         reg_LUdecomposition(mat, dim, index);
 
-    /***** WARNING *****/
-    // Implementation from Numerical recipies, might be changed in the future
-    /***** WARNING *****/
-
-//    int ii=-1;
-
     for(size_t i=0;i<dim;++i){
         size_t ip=index[i];
         T sum = vec[ip];
         vec[ip]=vec[i];
-//        if(ii)
         for(size_t j=0;j<i;++j) sum -= mat[i*dim+j]*vec[j];
-//        else if(sum) ii=i;
         vec[i]=sum;
     }
     for(int i=dim-1;i>-1;--i){
@@ -550,6 +542,13 @@ T pythag(T a, T b)
 }
 /* *************************************************************** */
 /* *************************************************************** */
+/** @brief SVD
+  * @param in input matrix to decompose - in place
+  * @param m row
+  * @param n colomn
+  * @param w diagonal term
+  * @param v rotation part
+  */
 template <class T>
 void svd(T ** in, size_t m, size_t n, T * w, T ** v)
 {

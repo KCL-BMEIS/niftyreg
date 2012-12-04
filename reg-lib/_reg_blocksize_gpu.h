@@ -145,14 +145,14 @@
 #define Block_reg_spline_getApproxSecondDerivatives 192             // 35 regs - 00656+16
 #define Block_reg_spline_getApproxBendingEnergy 320                 // 12 regs
 #define Block_reg_spline_getApproxBendingEnergyGradient 256         // 27 regs
-#define Block_reg_spline_getApproxJacobianValues2D 512              // 14 regs
+#define Block_reg_spline_getApproxJacobianValues2D 448              // 17 regs
 #define Block_reg_spline_getApproxJacobianValues3D 256              // 27 regs
 #define Block_reg_spline_getJacobianValues2D 256                    // 29 regs
 #define Block_reg_spline_getJacobianValues3D 192                    // 41 regs - 09280+16
 #define Block_reg_spline_logSquaredValues 384                       // 07 regs
-#define Block_reg_spline_computeApproxJacGradient2D 256             // 32 regs HERE
+#define Block_reg_spline_computeApproxJacGradient2D 320             // 23 regs
 #define Block_reg_spline_computeApproxJacGradient3D 256             // 32 regs
-#define Block_reg_spline_computeJacGradient2D 256                   // 32 regs HERE
+#define Block_reg_spline_computeJacGradient2D 384                   // 21 regs
 #define Block_reg_spline_computeJacGradient3D 256                   // 32 regs
 #define Block_reg_spline_approxCorrectFolding 256                   // 32 regs
 #define Block_reg_spline_correctFolding 256                         // 31 regs
@@ -192,24 +192,24 @@
 
 #if CUDART_VERSION >= 3200
 #define NR_CUDA_SAFE_CALL(call) { \
-    call; \
-    cudaError err = cudaPeekAtLastError(); \
-    if( cudaSuccess != err) { \
-        fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
-        __FILE__, __LINE__, cudaGetErrorString(err)); \
-        exit(EXIT_FAILURE); \
-    } \
+	call; \
+	cudaError err = cudaPeekAtLastError(); \
+	if( cudaSuccess != err) { \
+		fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
+		__FILE__, __LINE__, cudaGetErrorString(err)); \
+		exit(EXIT_FAILURE); \
+	} \
 }
 #define NR_CUDA_CHECK_KERNEL(grid,block) { \
-    cudaThreadSynchronize(); \
-    cudaError err = cudaPeekAtLastError(); \
-    if( err != cudaSuccess) { \
-        fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
-        __FILE__, __LINE__, cudaGetErrorString(err)); \
-        fprintf(stderr, "Grid [%ix%ix%i] | Block [%ix%ix%i]\n", \
-        grid.x,grid.y,grid.z,block.x,block.y,block.z); \
-        exit(EXIT_FAILURE); \
-    } \
+	cudaThreadSynchronize(); \
+	cudaError err = cudaPeekAtLastError(); \
+	if( err != cudaSuccess) { \
+		fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
+		__FILE__, __LINE__, cudaGetErrorString(err)); \
+		fprintf(stderr, "Grid [%ix%ix%i] | Block [%ix%ix%i]\n", \
+		grid.x,grid.y,grid.z,block.x,block.y,block.z); \
+		exit(EXIT_FAILURE); \
+	} \
 }
 #else //CUDART_VERSION >= 3200
 #define NR_CUDA_SAFE_CALL(call) { \

@@ -410,7 +410,7 @@ void reg_f3d<T>::Initisalise()
         printf("[%s]\n", this->executableName);
         if(this->useSSD)
             printf("[%s] The SSD is used as a similarity measure.\n", this->executableName);
-        if(this->useKLD)
+		else if(this->useKLD)
             printf("[%s] The KL divergence is used as a similarity measure.\n", this->executableName);
         else{
             printf("[%s] The NMI is used as a similarity measure.\n", this->executableName);

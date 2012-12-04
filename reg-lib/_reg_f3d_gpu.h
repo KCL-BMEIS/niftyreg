@@ -16,6 +16,7 @@
 #include "_reg_globalTransformation_gpu.h"
 #include "_reg_localTransformation_gpu.h"
 #include "_reg_mutualinformation_gpu.h"
+#include "_reg_ssd_gpu.h"
 #include "_reg_tools_gpu.h"
 #include "_reg_common_gpu.h"
 #include "_reg_optimiser_gpu.h"
@@ -68,14 +69,14 @@ class reg_f3d_gpu : public reg_f3d<float>
     void GetSimilarityMeasureGradient();
     void GetBendingEnergyGradient();
     void GetJacobianBasedGradient();
+	void GetApproximatedGradient();
     void UpdateParameters(float);
     void SetOptimiser();
     float NormaliseGradient();
 
 public:
     reg_f3d_gpu(int refTimePoint,int floTimePoint);
-    ~reg_f3d_gpu();
-    void Run();
+	~reg_f3d_gpu();
     int CheckMemoryMB();
 };
 

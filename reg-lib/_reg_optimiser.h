@@ -21,6 +21,8 @@ public:
     virtual double GetObjectiveFunctionValue() = 0;
     /// @brief The transformation parameters are optimised
     virtual void UpdateParameters(float) = 0;
+	/// @brief The best objective function values are stored
+	virtual void UpdateBestObjFunctionValue() = 0;
 
 protected:
     /// @brief Interface constructor
@@ -76,8 +78,9 @@ public:
     virtual bool GetOptimiseY(){return this->optimiseY;}
     virtual bool GetOptimiseZ(){return this->optimiseZ;}
     virtual size_t GetMaxIterationNumber(){return this->maxIterationNumber;}
-    virtual size_t GetCurrentIterationNumber(){return this->currentIterationNumber;}
-    virtual double GetBestObjFunctionValue(){return this->bestObjFunctionValue;}
+	virtual size_t GetCurrentIterationNumber(){return this->currentIterationNumber;}
+	virtual double GetBestObjFunctionValue(){return this->bestObjFunctionValue;}
+	virtual void SetBestObjFunctionValue(double i){this->bestObjFunctionValue=i;}
     virtual double GetCurrentObjFunctionValue(){return this->currentObjFunctionValue;}
     virtual void IncrementCurrentIterationNumber(){this->currentIterationNumber++;}
     virtual void Initialise(size_t nvox,

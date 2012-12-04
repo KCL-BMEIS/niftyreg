@@ -329,7 +329,7 @@ void reg_createControlPointGrid(nifti_image **controlPointGridImage,
         dim_cpp[3]=static_cast<int>(reg_ceil(referenceImage->nz*referenceImage->dz/spacingMillimeter[2])+3.f);
         dim_cpp[5]=3;
     }
-    dim_cpp[4]=dim_cpp[6]=dim_cpp[7]=1;
+	dim_cpp[4]=dim_cpp[6]=dim_cpp[7]=1;
 
     // Create the new control point grid image and allocate its space
     if(sizeof(DTYPE)==4)

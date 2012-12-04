@@ -67,21 +67,21 @@ __global__ void reg_getEuclideanDistance_kernel(float *distance_d)
     }
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-
 __global__ void reg_updateControlPointPosition_kernel(float4 *controlPointImageArray_d)
 {
     const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid < c_NodeNumber){
-        float scaling = c_ScalingFactor;
-        float4 gradValue = tex1Dfetch(gradientImageTexture,tid);
-        float4 position = tex1Dfetch(controlPointTexture,tid);
-        position.x += scaling * gradValue.x;
-        position.y += scaling * gradValue.y;
-        position.z += scaling * gradValue.z;
-        position.w = 0.0f;
-        controlPointImageArray_d[tid]=position;
+		float scaling = c_ScalingFactor;
+		float4 value = tex1Dfetch(controlPointTexture,tid);
+		float4 gradValue = tex1Dfetch(gradientImageTexture,tid);
+		value.x += scaling * gradValue.x;
+		value.y += scaling * gradValue.y;
+		value.z += scaling * gradValue.z;
+		value.w = 0.0f;
+		controlPointImageArray_d[tid]=value;
 
     }
 }
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
 #endif // _REG_OPTIMISER_KERNELS_CU
