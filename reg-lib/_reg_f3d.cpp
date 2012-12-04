@@ -564,30 +564,29 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
                                  this->voxelBasedMeasureGradientImage,
                                  this->similarityWeight,
                                  false);
-
     /* The gradient is converted from voxel space to real space */
-    mat44 *referenceMatrix_xyz=NULL;
+    mat44 *floatingMatrix_xyz=NULL;
     int controlPointNumber=this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz;
     int i;
     if(this->currentFloating->sform_code>0)
-        referenceMatrix_xyz = &(this->currentReference->sto_xyz);
-    else referenceMatrix_xyz = &(this->currentReference->qto_xyz);
+        floatingMatrix_xyz = &(this->currentFloating->sto_xyz);
+    else floatingMatrix_xyz = &(this->currentFloating->qto_xyz);
     if(this->currentReference->nz==1){
         T *gradientValuesX = static_cast<T *>(this->transformationGradient->data);
         T *gradientValuesY = &gradientValuesX[controlPointNumber];
         T newGradientValueX, newGradientValueY;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(gradientValuesX, gradientValuesY, referenceMatrix_xyz, controlPointNumber) \
+    shared(gradientValuesX, gradientValuesY, floatingMatrix_xyz, controlPointNumber) \
     private(newGradientValueX, newGradientValueY, i)
 #endif
         for(i=0; i<controlPointNumber; i++){
             newGradientValueX =
-                    gradientValuesX[i] * referenceMatrix_xyz->m[0][0] +
-                    gradientValuesY[i] * referenceMatrix_xyz->m[0][1];
+                    gradientValuesX[i] * floatingMatrix_xyz->m[0][0] +
+                    gradientValuesY[i] * floatingMatrix_xyz->m[0][1];
             newGradientValueY =
-                    gradientValuesX[i] * referenceMatrix_xyz->m[1][0] +
-                    gradientValuesY[i] * referenceMatrix_xyz->m[1][1];
+                    gradientValuesX[i] * floatingMatrix_xyz->m[1][0] +
+                    gradientValuesY[i] * floatingMatrix_xyz->m[1][1];
             gradientValuesX[i] = newGradientValueX;
             gradientValuesY[i] = newGradientValueY;
         }
@@ -599,23 +598,23 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
         T newGradientValueX, newGradientValueY, newGradientValueZ;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(gradientValuesX, gradientValuesY, gradientValuesZ, referenceMatrix_xyz, controlPointNumber) \
+    shared(gradientValuesX, gradientValuesY, gradientValuesZ, floatingMatrix_xyz, controlPointNumber) \
     private(newGradientValueX, newGradientValueY, newGradientValueZ, i)
 #endif
         for(i=0; i<controlPointNumber; i++){
 
             newGradientValueX =
-                    gradientValuesX[i] * referenceMatrix_xyz->m[0][0] +
-                    gradientValuesY[i] * referenceMatrix_xyz->m[0][1] +
-                    gradientValuesZ[i] * referenceMatrix_xyz->m[0][2];
+                    gradientValuesX[i] * floatingMatrix_xyz->m[0][0] +
+                    gradientValuesY[i] * floatingMatrix_xyz->m[0][1] +
+                    gradientValuesZ[i] * floatingMatrix_xyz->m[0][2];
             newGradientValueY =
-                    gradientValuesX[i] * referenceMatrix_xyz->m[1][0] +
-                    gradientValuesY[i] * referenceMatrix_xyz->m[1][1] +
-                    gradientValuesZ[i] * referenceMatrix_xyz->m[1][2];
+                    gradientValuesX[i] * floatingMatrix_xyz->m[1][0] +
+                    gradientValuesY[i] * floatingMatrix_xyz->m[1][1] +
+                    gradientValuesZ[i] * floatingMatrix_xyz->m[1][2];
             newGradientValueZ =
-                    gradientValuesX[i] * referenceMatrix_xyz->m[2][0] +
-                    gradientValuesY[i] * referenceMatrix_xyz->m[2][1] +
-                    gradientValuesZ[i] * referenceMatrix_xyz->m[2][2];
+                    gradientValuesX[i] * floatingMatrix_xyz->m[2][0] +
+                    gradientValuesY[i] * floatingMatrix_xyz->m[2][1] +
+                    gradientValuesZ[i] * floatingMatrix_xyz->m[2][2];
             gradientValuesX[i] = newGradientValueX;
             gradientValuesY[i] = newGradientValueY;
             gradientValuesZ[i] = newGradientValueZ;
