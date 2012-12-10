@@ -104,8 +104,7 @@ extern "C++"
 void reg_mat33_disp(mat33 *mat,
                     char * title);
 /* *************************************************************** */
-/** getReorientationMatrix
- * Compute the transformation matrix to diagonalise the input matrix
+/** @brief Compute the transformation matrix to diagonalise the input matrix
  */
 extern "C++"
 void reg_getReorientationMatrix(nifti_image *splineControlPoint,

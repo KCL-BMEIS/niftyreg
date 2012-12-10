@@ -72,6 +72,7 @@ typedef struct{
     bool invertDefFlag;
     bool tps2cppFlag;
     bool tps2defFlag;
+    bool aff2rigFlag;
 }FLAG;
 
 
@@ -134,11 +135,11 @@ void Usage(char *exec)
     printf("\t\tInvert an affine transformation matrix\n");
     printf("\t\tFilename1: Input affine matrix\n");
     printf("\t\tFilename2: Inverted affine matrix\n");
-    //    printf("\t-invDef <filename1> <filename2> <filename3>\n");
-    //        printf("\t\tInvert a deformation field\n");
-    //        printf("\t\tFilename1: Input deformation field filename\n");
-    //        printf("\t\tFilename2: Source image filename\n");
-    //        printf("\t\tFilename3: output deformation field filename\n");
+//    printf("\t-invDef <filename1> <filename2> <filename3>\n");
+//        printf("\t\tInvert a deformation field\n");
+//        printf("\t\tFilename1: Input deformation field filename\n");
+//        printf("\t\tFilename2: Source image filename\n");
+//        printf("\t\tFilename3: output deformation field filename\n");
     printf("\t-compAff <filename1> <filename2> <filename3>\n");
     printf("\t\tCompose two affine transformation matrices\n");
     printf("\t\tFilename1: First affine matrix\n");
@@ -261,6 +262,11 @@ int main(int argc, char **argv)
             param->ApproxTPSWeight=(float)atof(argv[++i]);
             param->outputDeformationName=argv[++i];
             flag->tps2defFlag=1;
+        }
+        else if(strcmp(argv[i], "-aff2rig") == 0){
+            param->inputAffineName=argv[++i];
+            param->outputAffineName=argv[++i];
+            flag->aff2rigFlag=1;
         }
         else{
             fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
@@ -818,6 +824,20 @@ int main(int argc, char **argv)
         // Compose both affine and save the result
         mat44 affineResult = reg_mat44_mul(&affine1, &affine2);
         reg_tool_WriteAffineFile(&affineResult,
+                                 param->outputAffineName);
+    }
+    /* Compose two affine transformations */
+    // It is basically a matrix multiplication
+    if(flag->aff2rigFlag){
+        // Read the first affine
+        mat44 affine;
+        reg_tool_ReadAffineFile(&affine,
+                                param->inputAffineName);
+        // Compute the orthonormal matrix
+        float qb,qc,qd,qx,qy,qz,dx,dy,dz,qfac;
+        nifti_mat44_to_quatern(affine,&qb,&qc,&qd,&qx,&qy,&qz,&dx,&dy,&dz,&qfac);
+        affine = nifti_quatern_to_mat44(qb,qc,qd,qx,qy,qz,dx,dy,dz,qfac);
+        reg_tool_WriteAffineFile(&affine,
                                  param->outputAffineName);
     }
     /* Compute the half way transformation matrix */

@@ -76,13 +76,13 @@ void reg_optimiser<T>::Initialise(size_t nvox,
     if( gradData!=NULL)
         this->gradient=gradData;
 
-
-    if(nvox_b>0) this->dofNumber_b=nvox_b;
+    if(nvox_b>0)
+        this->dofNumber_b=nvox_b;
     if(cppData_b!=NULL){
         this->currentDOF_b=cppData_b;
         this->backward=true;
         if(this->bestDOF_b!=NULL) free(this->bestDOF_b);
-        this->bestDOF_b=(T *)malloc(this->dofNumber*sizeof(T));
+        this->bestDOF_b=(T *)malloc(this->dofNumber_b*sizeof(T));
         memcpy(this->bestDOF_b,this->currentDOF_b,this->dofNumber_b*sizeof(T));
     }
     if(gradData_b!=NULL)
