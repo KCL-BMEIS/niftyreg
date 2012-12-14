@@ -41,8 +41,8 @@ void reg_resampleImage(nifti_image *floatingImage,
                        int interp,
                        float paddingValue);
 extern "C++"
-void reg_resampleGradient(nifti_image *floatingImage,
-                          nifti_image *warpedImage,
+void reg_resampleGradient(nifti_image *gradientImage,
+                          nifti_image *warpedGradientImage,
                           nifti_image *deformationField,
                           int interp,
                           float paddingValue);

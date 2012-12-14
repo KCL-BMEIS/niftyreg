@@ -65,6 +65,10 @@ void Usage(char *exec)
     printf("\t-smooF <float>\t\tSmooth the floating image using the specified sigma (mm) [0]\n");
     printf("\t-ln <int>\t\tNumber of level to perform [3]\n");
     printf("\t-lp <int>\t\tOnly perform the first levels [ln]\n");
+    printf("\t-refLowThr <float>\tLower threshold applied to the reference image [none]\n");
+    printf("\t-refUppThr <float>\tUpper threshold applied to the reference image [none]\n");
+    printf("\t-floLowThr <float>\tLower threshold applied to the floating image [none]\n");
+    printf("\t-floUppThr <float>\tUpper threshold applied to the floating image [none]\n");
 
     printf("\t-nac\t\t\tUse the nifti header origins to initialise the translation\n");
 
@@ -118,6 +122,11 @@ int main(int argc, char **argv)
     int interpolation=1;
     float floatingSigma=0.0;
     float referenceSigma=0.0;
+
+    float referenceLowerThr=-std::numeric_limits<PrecisionTYPE>::max();
+    float referenceUpperThr=std::numeric_limits<PrecisionTYPE>::max();
+    float floatingLowerThr=-std::numeric_limits<PrecisionTYPE>::max();
+    float floatingUpperThr=std::numeric_limits<PrecisionTYPE>::max();
 
     /* read the input parameter */
     for(int i=1;i<argc;i++){
@@ -213,6 +222,18 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-interp")==0 || strcmp(argv[i], "--interp")==0){
             interpolation=atoi(argv[++i]);
         }
+        else if(strcmp(argv[i], "-refLowThr")==0 || strcmp(argv[i], "--refLowThr")==0){
+            referenceLowerThr=atof(argv[++i]);
+        }
+        else if(strcmp(argv[i], "-refUppThr")==0 || strcmp(argv[i], "--refUppThr")==0){
+            referenceUpperThr=atof(argv[++i]);
+        }
+        else if(strcmp(argv[i], "-floLowThr")==0 || strcmp(argv[i], "--floLowThr")==0){
+            floatingLowerThr=atof(argv[++i]);
+        }
+        else if(strcmp(argv[i], "-floUppThr")==0 || strcmp(argv[i], "--floUppThr")==0){
+            floatingUpperThr=atof(argv[++i]);
+        }
         else{
             fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
             PetitUsage(argv[0]);
@@ -261,6 +282,10 @@ int main(int argc, char **argv)
     REG->SetBlockPercentage(blockPercentage);
     REG->SetInlierLts(inlierLts);
     REG->SetInterpolation(interpolation);
+    REG->SetReferenceLowerThreshold(referenceLowerThr);
+    REG->SetReferenceUpperThreshold(referenceUpperThr);
+    REG->SetFloatingLowerThreshold(floatingLowerThr);
+    REG->SetFloatingUpperThreshold(floatingUpperThr);
 
     if(REG->GetLevelsToPerform() > REG->GetNumberOfLevels())
         REG->SetLevelsToPerform(REG->GetNumberOfLevels());

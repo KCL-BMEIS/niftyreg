@@ -47,6 +47,9 @@ typedef struct{
     bool inputDEFFlag;
     bool outputResultFlag;
     bool outputBlankFlag;
+    bool outputBlankXYFlag;
+    bool outputBlankYZFlag;
+    bool outputBlankXZFlag;
 }FLAG;
 
 
@@ -169,6 +172,21 @@ int main(int argc, char **argv)
                 (strcmp(argv[i],"--blank")==0)){
             param->outputBlankName=argv[++i];
             flag->outputBlankFlag=1;
+        }
+        else if(strcmp(argv[i], "-blankXY") == 0 ||
+                (strcmp(argv[i],"--blankXY")==0)){
+            param->outputBlankName=argv[++i];
+            flag->outputBlankXYFlag=1;
+        }
+        else if(strcmp(argv[i], "-blankYZ") == 0 ||
+                (strcmp(argv[i],"--blankYZ")==0)){
+            param->outputBlankName=argv[++i];
+            flag->outputBlankYZFlag=1;
+        }
+        else if(strcmp(argv[i], "-blankXZ") == 0 ||
+                (strcmp(argv[i],"--blankXZ")==0)){
+            param->outputBlankName=argv[++i];
+            flag->outputBlankXZFlag=1;
         }
         else{
             fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
@@ -374,7 +392,10 @@ int main(int argc, char **argv)
     /* *********************** */
     /* RESAMPLE A REGULAR GRID */
     /* *********************** */
-    if(flag->outputBlankFlag){
+    if(flag->outputBlankFlag ||
+       flag->outputBlankXYFlag ||
+       flag->outputBlankYZFlag ||
+       flag->outputBlankXZFlag ){
         nifti_image *gridImage = nifti_copy_nim_info(floatingImage);
         gridImage->cal_min=0;
         gridImage->cal_max=255;
@@ -386,8 +407,22 @@ int main(int argc, char **argv)
             for(int y=0; y<gridImage->ny;y++){
                 for(int x=0; x<gridImage->nx;x++){
                     if(referenceImage->nz>1){
-                        if( x/10==(float)x/10.0 || y/10==(float)y/10.0 || z/10==(float)z/10.0)
-                            *gridImageValuePtr = 255;
+                        if(flag->outputBlankXYFlag){
+                            if( x/10==(float)x/10.0 || y/10==(float)y/10.0)
+                                *gridImageValuePtr = 255;
+                        }
+                        else if(flag->outputBlankYZFlag){
+                            if( y/10==(float)y/10.0 || z/10==(float)z/10.0)
+                                *gridImageValuePtr = 255;
+                        }
+                        else if(flag->outputBlankXZFlag){
+                            if( x/10==(float)x/10.0 || z/10==(float)z/10.0)
+                                *gridImageValuePtr = 255;
+                        }
+                        else{
+                            if( x/10==(float)x/10.0 || y/10==(float)y/10.0 || z/10==(float)z/10.0)
+                                *gridImageValuePtr = 255;
+                        }
                     }
                     else{
                         if( x/10==(float)x/10.0 || x==referenceImage->nx-1 || y/10==(float)y/10.0 || y==referenceImage->ny-1)

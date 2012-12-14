@@ -41,8 +41,10 @@ template <class T> reg_aladin<T>::reg_aladin ()
     this->Interpolation=1;
 
     this->FloatingSigma=0.0;
-
     this->ReferenceSigma=0.0;
+
+    this->ReferenceUpperThreshold=std::numeric_limits<T>::max();
+    this->ReferenceLowerThreshold=-std::numeric_limits<T>::max();
 
     this->funcProgressCallback=NULL;
     this->paramsProgressCallback=NULL;
@@ -176,6 +178,44 @@ void reg_aladin<T>::InitialiseRegistration()
         for(unsigned int l=0;l<this->LevelsToPerform;++l){
             this->activeVoxelNumber[l]=this->ReferencePyramid[l]->nx*this->ReferencePyramid[l]->ny*this->ReferencePyramid[l]->nz;
             this->ReferenceMaskPyramid[l]=(int *)calloc(activeVoxelNumber[l],sizeof(int));
+        }
+    }
+
+    // CHECK THE THRESHOLD VALUES TO UPDATE THE MASK
+    if(this->ReferenceUpperThreshold!=std::numeric_limits<T>::max()){
+        for(unsigned int l=0;l<this->LevelsToPerform;++l){
+            T *refPtr = static_cast<T *>(this->ReferencePyramid[l]->data);
+            int *mskPtr = this->ReferenceMaskPyramid[l];
+            size_t removedVoxel=0;
+            for(size_t i=0;
+                i<(size_t)this->ReferencePyramid[l]->nx*this->ReferencePyramid[l]->ny*this->ReferencePyramid[l]->nz;
+                ++i){
+                if(mskPtr[i]>-1){
+                    if(refPtr[i]>this->ReferenceUpperThreshold){
+                        ++removedVoxel;
+                        mskPtr[i]=-1;
+                    }
+                }
+            }
+            this->activeVoxelNumber[l] -= removedVoxel;
+        }
+    }
+    if(this->ReferenceLowerThreshold!=-std::numeric_limits<T>::max()){
+        for(unsigned int l=0;l<this->LevelsToPerform;++l){
+            T *refPtr = static_cast<T *>(this->ReferencePyramid[l]->data);
+            int *mskPtr = this->ReferenceMaskPyramid[l];
+            size_t removedVoxel=0;
+            for(size_t i=0;
+                i<(size_t)this->ReferencePyramid[l]->nx*this->ReferencePyramid[l]->ny*this->ReferencePyramid[l]->nz;
+                ++i){
+                if(mskPtr[i]>-1){
+                    if(refPtr[i]<this->ReferenceLowerThreshold){
+                        ++removedVoxel;
+                        mskPtr[i]=-1;
+                    }
+                }
+            }
+            this->activeVoxelNumber[l] -= removedVoxel;
         }
     }
 

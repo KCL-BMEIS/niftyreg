@@ -66,8 +66,12 @@ class reg_aladin
       int Interpolation;
 
       float FloatingSigma;
-
       float ReferenceSigma;
+
+      float ReferenceUpperThreshold;
+      float ReferenceLowerThreshold;
+      float FloatingUpperThreshold;
+      float FloatingLowerThreshold;
 
       bool TestMatrixConvergence(mat44 *mat);
 
@@ -125,6 +129,16 @@ class reg_aladin
 
       SetMacro(ReferenceSigma,float);
       GetMacro(ReferenceSigma,float);
+
+      SetMacro(ReferenceUpperThreshold,float);
+      GetMacro(ReferenceUpperThreshold,float);
+      SetMacro(ReferenceLowerThreshold,float);
+      GetMacro(ReferenceLowerThreshold,float);
+
+      SetMacro(FloatingUpperThreshold,float);
+      GetMacro(FloatingUpperThreshold,float);
+      SetMacro(FloatingLowerThreshold,float);
+      GetMacro(FloatingLowerThreshold,float);
 
       SetMacro(FloatingSigma,float);
       GetMacro(FloatingSigma,float);

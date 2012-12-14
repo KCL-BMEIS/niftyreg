@@ -18,6 +18,8 @@ reg_aladin_sym<T>::reg_aladin_sym ()
     this->CurrentBackwardWarped=NULL;
     this->BackwardTransformationMatrix=new mat44;
 
+    this->FloatingUpperThreshold=std::numeric_limits<T>::max();
+    this->FloatingLowerThreshold=-std::numeric_limits<T>::max();
 
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_aladin_sym constructor called\n");
@@ -162,6 +164,45 @@ void reg_aladin_sym<T>::InitialiseRegistration()
             this->FloatingMaskPyramid[l]=(int *)calloc(this->BackwardActiveVoxelNumber[l],sizeof(int));
         }
     }
+
+    // CHECK THE THRESHOLD VALUES TO UPDATE THE MASK
+    if(this->FloatingUpperThreshold!=std::numeric_limits<T>::max()){
+        for(unsigned int l=0;l<this->LevelsToPerform;++l){
+            T *refPtr = static_cast<T *>(this->FloatingPyramid[l]->data);
+            int *mskPtr = this->FloatingMaskPyramid[l];
+            size_t removedVoxel=0;
+            for(size_t i=0;
+                i<(size_t)this->FloatingPyramid[l]->nx*this->FloatingPyramid[l]->ny*this->FloatingPyramid[l]->nz;
+                ++i){
+                if(mskPtr[i]>-1){
+                    if(refPtr[i]>this->FloatingUpperThreshold){
+                        ++removedVoxel;
+                        mskPtr[i]=-1;
+                    }
+                }
+            }
+            this->BackwardActiveVoxelNumber[l] -= removedVoxel;
+        }
+    }
+    if(this->FloatingLowerThreshold!=-std::numeric_limits<T>::max()){
+        for(unsigned int l=0;l<this->LevelsToPerform;++l){
+            T *refPtr = static_cast<T *>(this->FloatingPyramid[l]->data);
+            int *mskPtr = this->FloatingMaskPyramid[l];
+            size_t removedVoxel=0;
+            for(size_t i=0;
+                i<(size_t)this->FloatingPyramid[l]->nx*this->FloatingPyramid[l]->ny*this->FloatingPyramid[l]->nz;
+                ++i){
+                if(mskPtr[i]>-1){
+                    if(refPtr[i]<this->FloatingLowerThreshold){
+                        ++removedVoxel;
+                        mskPtr[i]=-1;
+                    }
+                }
+            }
+            this->BackwardActiveVoxelNumber[l] -= removedVoxel;
+        }
+    }
+
     //TransformationMatrix maps the initial transform from reference to floating.
     //Invert to get initial transformation from floating to reference
     *(this->BackwardTransformationMatrix) = nifti_mat44_inverse(*(this->TransformationMatrix));
