@@ -45,7 +45,8 @@ typedef struct{
 	bool outputCPPFlag;
 	bool backgroundIndexFlag;
 	bool pca0;
-    bool pca1;	
+    bool pca1;
+	bool pca2;
 	bool aladin;
 	bool flirt;
     bool autolevel;
@@ -81,10 +82,11 @@ void Usage(char *exec)
     printf("\t-cpp <filename>\t\tFilename of final 5D control point grid (non-rigid registration only).\n");
     printf("     Or -aff <filename>\t\tFilename of final concatenated affine transformation (affine registration only).\n");
 	printf("\t-prinComp <int>\t\tNumber of principal component iterations to run [#timepoints/2].\n");
-    printf("\t-maxit <int>\t\tNumber of registration iterations to run [400/prinComp].\n");
+    printf("\t-maxit <int>\t\tNumber of registration iterations to run [max(400/prinComp,50)].\n");
     printf("\t-autolevel \t\tAutomatically increase registration level during PPCR (switched off with -ln or -lp options).\n"); // not with -FLIRT
     printf("\t-pca0 <filename> \tOutput pca images 1:prinComp for inspection [pcaX.nii].\n");
-    printf("\t-pca1 <filename> \tOutput pca images 1:prinComp without registration step [pcaX.nii].\n"); // i.e. just print out each PCA image.
+    printf("\t-pca1 <filename> \tOutput intermediate results 1:prinComp for inspection [outX.nii].\n");
+    printf("\t-pca2 <filename> \tOutput pca images 1:prinComp without registration step [pcaX.nii].\n"); // i.e. just print out each PCA image.
 	printf("\t-mean \t\t\tIterative registration to the mean image only (no PPCR).\n"); // registration to the mean is quite inefficient as it uses the ppcr 4D->4D model.
     //printf("\t-flirt \t\t\tfor PPCNR using Flirt affine registration (not tested)\n");
     printf("\n*** reg_f3d/reg_aladin options are carried through (use reg_f3d -h or reg_aladin -h to see these options).\n");
@@ -105,6 +107,7 @@ int main(int argc, char **argv)
 	flag->flirt=0;
 	flag->pca0=0;
     flag->pca1=0;
+    flag->pca2=0;
 	flag->meanonly=0;
     flag->autolevel=0;
 	flag->outputCPPFlag=0;
@@ -179,9 +182,13 @@ int main(int argc, char **argv)
 		} 
 		else if(strcmp(argv[i], "-pca0") == 0){ // write pca images during registration
 			flag->pca0=1;
+            flag->pca1=0; // force registration skipping off.
 		}
-        else if(strcmp(argv[i], "-pca1") == 0){ // write pca images without registration
+        else if(strcmp(argv[i], "-pca2") == 0){ // write pca images without registration
 			flag->pca1=1;
+		}
+        else if(strcmp(argv[i], "-pca1") == 0){ // write output images during registration
+			flag->pca2=1;
 		}
         else if(strcmp(argv[i], "-mean") == 0){ // iterative registration to the mean
 			flag->meanonly=1;
@@ -231,6 +238,7 @@ int main(int argc, char **argv)
 	if(param->prinComp>=image->nt) param->prinComp=image->nt-1;
 	if(!flag->outputResultFlag) param->outputResultName="outputResult-ppcnrfinal.nii";
 	if(param->maxIteration<0) param->maxIteration=(int)(400/param->prinComp); // number of registraton iterations is automatically set here...
+    param->maxIteration=(param->maxIteration<50)?50:param->maxIteration;
     if(!flag->outputCPPFlag){
 		char buffer[40];
 		int n=sprintf(buffer,"output%s-ppcnrfinal.nii",STYL3);
@@ -531,9 +539,9 @@ int main(int argc, char **argv)
 				}
 			}
 		}		
-		char pcaname[20];
+		char pcaname[20];        
         n=sprintf(pcaname,"pca%i.nii",prinCompNumber);
-		nifti_set_filenames(imagep,pcaname, 0, 0);
+        nifti_set_filenames(imagep,pcaname, 0, 0);
         if(flag->pca0 | flag->pca1){nifti_image_write(imagep);}
 	
 		if(!flag->pca1){
@@ -628,6 +636,10 @@ int main(int argc, char **argv)
             }
         }
 		nifti_image_free(imagep);
+        char outname[20];
+        n=sprintf(outname,"out%i.nii",prinCompNumber);
+        nifti_set_filenames(image,outname, 0, 0);
+        if(flag->pca2){nifti_image_write(image);}
 	} // End PC's
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     printf("Finished Iterations and now writing outputs...\n");
