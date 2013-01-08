@@ -201,9 +201,19 @@ int main(int argc, char **argv)
 		}
         else if(strcmp(argv[i], "-lp") == 0){  // force autolevel select off if lp or ln are present.
             flag->autolevel=0;
+            strcat(regCommand," ");
+			strcat(regCommand,argv[i]);
+            strcat(regCommand," ");
+			strcat(regCommand,argv[i+1]);
+            ++i;
         }
         else if(strcmp(argv[i], "-ln") == 0){  // force autolevel select off if lp or ln are present.
             flag->autolevel=0;
+            strcat(regCommand," ");
+			strcat(regCommand,argv[i]);
+            strcat(regCommand," ");
+			strcat(regCommand,argv[i+1]);
+            ++i;
         }
         else if(strcmp(argv[i], "-maxit") == 0){ // extract number of registration iterations for display
             param->maxIteration=atoi(argv[i]);
@@ -216,11 +226,10 @@ int main(int argc, char **argv)
         else{
             strcat(regCommand," ");
 			strcat(regCommand,argv[i]);
-            ++i;
         }
 	}
-    if(flag->makesourcex){return 0;}
-
+    if(flag->makesourcex){return 0;} // stop if being used to concatenate 3D images into 4D object.
+    
 	if(!flag->sourceImageFlag){
 		fprintf(stderr,"Error:\tAt least define a source image!\n");
 		Usage(argv[0]);
