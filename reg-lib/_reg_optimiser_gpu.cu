@@ -7,7 +7,7 @@
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 reg_optimiser_gpu::reg_optimiser_gpu()
-    :reg_optimiser<float>::reg_optimiser<float>()
+    :reg_optimiser<float>::reg_optimiser()
 {
     this->currentDOF_gpu=NULL;
     this->bestDOF_gpu=NULL;

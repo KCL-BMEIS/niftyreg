@@ -284,11 +284,11 @@ int main(int argc, char **argv)
             fprintf(stderr,"The specified input affine file (%s) can not be read\n",param->affineMatrixName);
             return 1;
         }
-        reg_tool_ReadAffineFile(	affineTransformationMatrix,
-                                    referenceImage,
-                                    floatingImage,
-                                    param->affineMatrixName,
-                                    flag->affineFlirtFlag);
+        reg_tool_ReadAffineFile(affineTransformationMatrix,
+                                referenceImage,
+                                floatingImage,
+                                param->affineMatrixName,
+                                flag->affineFlirtFlag);
     }
     else{
         // identity transformation is considered
