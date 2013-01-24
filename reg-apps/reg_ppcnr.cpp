@@ -819,15 +819,16 @@ int main(int argc, char **argv)
     nifti_image_free(images);
 
 	// CHECK CLEAN-UP    
-	free( flag );
-	free( param );
-
 	time_t end; time( &end );
 	int minutes = (int)floorf(float(end-start)/60.0f);
 	int seconds = (int)(end-start - 60*minutes);
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-	printf("PPCNR Registration Performed in %i min %i sec\n", minutes, seconds);
+	if(flag->localityFlag){printf("Registration to %i-local mean with %i iterations performed in %i min %i sec\n", param->locality, param->prinComp, minutes, seconds);}
+    if(flag->singleFlag){printf("Single timepoint registration to image %i performed in %i min %i sec\n", param->singletimepoint, minutes, seconds);}
+	if(flag->meanonly){printf("Registration to mean image with %i iterations performed in %i min %i sec\n", param->prinComp, minutes, seconds);}
+    if(!flag->localityFlag & !flag->meanonly & !flag->singleFlag){printf("PPCNR registration with %i iterations performed in %i min %i sec\n", param->prinComp, minutes, seconds);}
 	printf("Have a good day !\n");
-
+    free( flag );
+	free( param );
 	return 0;
 }
