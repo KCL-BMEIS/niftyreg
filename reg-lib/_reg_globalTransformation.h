@@ -61,15 +61,15 @@ void reg_tool_ReadAffineFile(mat44 *mat,
  * @param filename Filename of the text file that contains the matrix to read
  */
 extern "C++"
-void reg_tool_ReadAffineFile(	mat44 *mat,
-                                char *filename);
+void reg_tool_ReadAffineFile(mat44 *mat,
+                             char *filename);
 
 /** @brief This function save a 4-by-4 matrix to the disk as a text file
  * @param mat Matrix to be saved on the disk
  * @param filename Name of the text file to save on the disk
  */
 extern "C++"
-void reg_tool_WriteAffineFile(	mat44 *mat,
-                                const char *fileName);
+void reg_tool_WriteAffineFile(mat44 *mat,
+                              const char *fileName);
 
 #endif

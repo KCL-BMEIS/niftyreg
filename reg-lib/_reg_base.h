@@ -18,6 +18,7 @@
 #include "_reg_mutualinformation.h"
 #include "_reg_ssd.h"
 #include "_reg_KLdivergence.h"
+#include "_reg_lncc.h"
 #include "_reg_tools.h"
 #include "_reg_ReadWriteImage.h"
 #include "_reg_optimiser.h"
@@ -58,6 +59,7 @@ protected:
     bool additive_mc_nmi;
     bool useSSD;
     bool useKLD;
+    T useLNCC;
     bool useConjGradient;
     bool useApproxGradient;
     bool verbose;
@@ -183,6 +185,8 @@ public:
     void DoNotUseSSD();
     void UseKLDivergence();
     void DoNotUseKLDivergence();
+    void UseLNCC(T);
+    void DoNotUseLNCC();
     void SetAdditiveMC(){this->additive_mc_nmi=true;}
 
     virtual void CheckParameters();

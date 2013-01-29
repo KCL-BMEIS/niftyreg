@@ -57,6 +57,10 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
     this->useApproxGradient=false;
     this->usePyramid=true;
 
+    this->useSSD=false;
+    this->useKLD=false;
+    this->useLNCC = std::numeric_limits<T>::quiet_NaN();
+
     this->initialised=false;
     this->referencePyramid=NULL;
     this->floatingPyramid=NULL;
@@ -563,9 +567,10 @@ void reg_base<T>::Initisalise()
         }
     }
 
-    // SMOOTH THE INPUT IMAGES IF REQUIRED
     unsigned int pyramidalLevelNumber=1;
     if(this->usePyramid) pyramidalLevelNumber=this->levelToPerform;
+
+    // SMOOTH THE INPUT IMAGES IF REQUIRED
     for(unsigned int l=0; l<pyramidalLevelNumber; l++){
         if(this->referenceSmoothingSigma!=0.0){
             bool smoothAxis[8]={false,true,true,true,false,false,false,false};
@@ -574,6 +579,61 @@ void reg_base<T>::Initisalise()
         if(this->floatingSmoothingSigma!=0.0){
             bool smoothAxis[8]={false,true,true,true,false,false,false,false};
             reg_gaussianSmoothing<T>(this->floatingPyramid[l], this->floatingSmoothingSigma, smoothAxis);
+        }
+    }
+
+    if(this->useSSD || this->useKLD || this->useLNCC==this->useLNCC){
+        // THRESHOLD THE INPUT IMAGES IF REQUIRED
+        this->maxSSD=new T[pyramidalLevelNumber];
+        for(unsigned int l=0; l<pyramidalLevelNumber; l++){
+            reg_thresholdImage<T>(this->referencePyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
+            reg_thresholdImage<T>(this->floatingPyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
+        }
+        // The maximal difference image is extracted for normalisation of the SSD
+        if(this->useSSD){
+            this->maxSSD=new T[pyramidalLevelNumber];
+            for(unsigned int l=0; l<pyramidalLevelNumber; l++){
+                T tempMaxSSD1 = (this->referencePyramid[l]->cal_min - this->floatingPyramid[l]->cal_max) *
+                        (this->referencePyramid[l]->cal_min - this->floatingPyramid[l]->cal_max);
+                T tempMaxSSD2 = (this->referencePyramid[l]->cal_max - this->floatingPyramid[l]->cal_min) *
+                        (this->referencePyramid[l]->cal_max - this->floatingPyramid[l]->cal_min);
+                this->maxSSD[l]=tempMaxSSD1>tempMaxSSD2?tempMaxSSD1:tempMaxSSD2;
+            }
+        }
+    }
+    else{
+        // RESCALE THE INPUT IMAGE INTENSITY TO USE WITH NMI
+        /* the target and source are resampled between 2 and bin-3
+         * The images are then shifted by two which is the suport of the spline used
+         * by the parzen window filling of the joint histogram */
+
+        float referenceRescalingArrayDown[10];
+        float referenceRescalingArrayUp[10];
+        float floatingRescalingArrayDown[10];
+        float floatingRescalingArrayUp[10];
+        for(int t=0;t<this->referencePyramid[0]->nt;t++){
+            // INCREASE THE BIN SIZES
+            this->referenceBinNumber[t] += 4;
+            referenceRescalingArrayDown[t] = 2.f;
+            referenceRescalingArrayUp[t] = this->referenceBinNumber[t]-3;
+        }
+        for(int t=0;t<this->floatingPyramid[0]->nt;t++){
+            // INCREASE THE BIN SIZES
+            this->floatingBinNumber[t] += 4;
+            floatingRescalingArrayDown[t] = 2.f;
+            floatingRescalingArrayUp[t] = this->floatingBinNumber[t]-3;
+        }
+        for(unsigned int l=0; l<pyramidalLevelNumber; l++){
+            reg_intensityRescale(this->referencePyramid[l],
+                                 referenceRescalingArrayDown,
+                                 referenceRescalingArrayUp,
+                                 this->referenceThresholdLow,
+                                 this->referenceThresholdUp);
+            reg_intensityRescale(this->floatingPyramid[l],
+                                 floatingRescalingArrayDown,
+                                 floatingRescalingArrayUp,
+                                 this->floatingThresholdLow,
+                                 this->floatingThresholdUp);
         }
     }
 
@@ -612,6 +672,12 @@ double reg_base<T>::ComputeSimilarityMeasure()
                                        this->warped,
                                        NULL,
                                        this->currentMask);
+    }
+    else if(this->useLNCC==this->useLNCC){
+        measure = reg_getLNCC(this->currentReference,
+                              this->warped,
+                              this->useLNCC,
+                              this->currentMask);
     }
     else{
         // Use additive NMI when the flag is set and we have multi channel input
@@ -716,6 +782,15 @@ void reg_base<T>::GetVoxelBasedGradient()
                                               NULL,
                                               this->currentMask
                                               );
+    }
+    else if(this->useLNCC==this->useLNCC){
+        reg_getVoxelBasedLNCCGradient(this->currentReference,
+                                      this->warped,
+                                      this->warpedGradientImage,
+                                      this->voxelBasedMeasureGradientImage,
+                                      this->useLNCC,
+                                      this->currentMask
+                                      );
     }
     else{
         // Use additive NMI when the flag is set and we have multi channel input
@@ -887,6 +962,20 @@ void reg_base<T>::DoNotUseKLDivergence()
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+void reg_base<T>::UseLNCC(T stdev)
+{
+    this->useLNCC = stdev;
+    return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+void reg_base<T>::DoNotUseLNCC()
+{
+    this->useLNCC = std::numeric_limits<T>::quiet_NaN();
+    return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_base<T>::WarpFloatingImage(int inter)
@@ -971,7 +1060,7 @@ void reg_base<T>::Run()
         this->AllocateWarped();
         this->AllocateDeformationField();
         this->AllocateWarpedGradient();
-		if(!this->useSSD && !this->useKLD)
+        if(!this->useSSD && !this->useKLD && this->useLNCC!=this->useLNCC)
 			this->AllocateJointHistogram();
 
         // The grid is refined if necessary

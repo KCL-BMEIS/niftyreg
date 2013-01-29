@@ -35,7 +35,7 @@
     #include <float.h>
     #include <time.h>
     #ifndef M_PI
-        #define M_PI(3.14159265358979323846)
+        #define M_PI 3.14159265358979323846
     #endif
     #ifndef isnan(_X)
         #define isnan(_X) _isnan(_X)

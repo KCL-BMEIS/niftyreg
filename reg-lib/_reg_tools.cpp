@@ -872,7 +872,7 @@ void reg_gaussianSmoothing1(nifti_image *image,
 
     int voxelNumber = image->nx*image->ny*image->nz;
 
-    int index, startingIndex, x, i, j, t, current, n, radius, increment;
+    int temp, index, i, j, t, x, y, z, current, n, radius, increment;
     PrecisionTYPE value;
 
     // Loop over the dimension higher than 3
@@ -914,28 +914,49 @@ void reg_gaussianSmoothing1(nifti_image *image,
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(voxelNumber,image,n,increment,radius,timeImagePtr,kernel,resultValue) \
-    private(index, startingIndex,x,current,value,j)
+    private(index, temp, x, y, z, current,value,j)
 #endif
-                    for(index=0;index<voxelNumber;index+=image->dim[n]){
-                        for(x=0; x<image->dim[n]; x++){
-                            startingIndex=index+x;
+                    for(index=0;index<voxelNumber;++index){
 
-                            current = startingIndex - increment*radius;
-                            value=0;
-                            // Check if the central voxel is a NaN
-                            if(timeImagePtr[startingIndex]==timeImagePtr[startingIndex]){
-                                for(j=-radius; j<=radius; j++){
-                                    if(-1<current && current<(int)voxelNumber){
-                                        if(timeImagePtr[current]==timeImagePtr[current])
-                                            value += (PrecisionTYPE)(timeImagePtr[current]*kernel[j+radius]);
-                                    }
-                                    current += increment;
+                        z=index/(image->nx*image->ny);
+                        temp=index-z*image->nx*image->ny;
+                        y=temp/image->nx;
+                        x=temp-y*image->nx;
+
+                        current = index - increment*radius;
+                        value=0;
+
+                        // Check if the central voxel is a NaN
+                        if(timeImagePtr[index]==timeImagePtr[index]){
+                            PrecisionTYPE sum=0;
+                            // Loop over the kernel width
+                            for(j=-radius; j<=radius; j++){
+                                // Check if the current voxel is within the line
+                                int z2=current/(image->nx*image->ny);
+                                temp=current-z2*image->nx*image->ny;
+                                int y2=temp/image->nx;
+                                int x2=temp-y2*image->nx;
+                                bool goodLine=true;
+                                switch(n){
+                                case 1:if(y!=y2 || z!=z2) goodLine=false;break;
+                                case 2:if(x!=x2 || z!=z2) goodLine=false;break;
+                                case 3:if(x!=x2 || y!=y2) goodLine=false;break;
                                 }
-                                resultValue[startingIndex]=value;
+                                if(goodLine &&
+                                        x2>-1 && x2<image->nx &&
+                                        y2>-1 && y2<image->ny &&
+                                        z2>-1 && z2<image->nz &&
+                                        timeImagePtr[current]==timeImagePtr[current]){
+                                    value += (PrecisionTYPE)(timeImagePtr[current]*kernel[j+radius]);
+                                    sum += kernel[j+radius];
+                                }
+                                current += increment;
                             }
-                            else{
-                                resultValue[startingIndex]=timeImagePtr[startingIndex];
-                            }
+                            resultValue[index]=value / sum;
+                        }
+                        else{
+                            // voxel at index is a NaN
+                            resultValue[index]=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
                         }
                     }
 #ifdef _OPENMP

@@ -678,7 +678,7 @@ void reg_f3d2<T>::UpdateParameters(float scale)
     shared(nodeNumber, propVelFieldPtrX,propVelFieldPtrY, \
            forward2backward_matrix, normRatio)
 #endif // _OPENMP
-            for(node=0;node<nodeNumber;++node){
+            for(node=0;node<nodeNumber;++node)            {
                 velValues[0]=propVelFieldPtrX[node];
                 velValues[1]=propVelFieldPtrY[node];
                 reoriented[0] =

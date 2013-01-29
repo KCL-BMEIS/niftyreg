@@ -224,64 +224,6 @@ void reg_f3d<T>::Initisalise()
 
     reg_base<T>::Initisalise();
 
-    unsigned int pyramidalLevelNumber=1;
-    if(this->usePyramid) pyramidalLevelNumber=this->levelToPerform;
-
-    if(this->useSSD || this->useKLD){
-        // THRESHOLD THE INPUT IMAGES IF REQUIRED
-        this->maxSSD=new T[pyramidalLevelNumber];
-        for(unsigned int l=0; l<pyramidalLevelNumber; l++){
-            reg_thresholdImage<T>(this->referencePyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
-            reg_thresholdImage<T>(this->floatingPyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
-        }
-        // The maximal difference image is extracted for normalisation of the SSD
-        if(this->useSSD){
-            this->maxSSD=new T[pyramidalLevelNumber];
-            for(unsigned int l=0; l<pyramidalLevelNumber; l++){
-                T tempMaxSSD1 = (this->referencePyramid[l]->cal_min - this->floatingPyramid[l]->cal_max) *
-                        (this->referencePyramid[l]->cal_min - this->floatingPyramid[l]->cal_max);
-                T tempMaxSSD2 = (this->referencePyramid[l]->cal_max - this->floatingPyramid[l]->cal_min) *
-                        (this->referencePyramid[l]->cal_max - this->floatingPyramid[l]->cal_min);
-                this->maxSSD[l]=tempMaxSSD1>tempMaxSSD2?tempMaxSSD1:tempMaxSSD2;
-            }
-        }
-    }
-    else{
-        // RESCALE THE INPUT IMAGE INTENSITY TO USE WITH NMI
-        /* the target and source are resampled between 2 and bin-3
-         * The images are then shifted by two which is the suport of the spline used
-         * by the parzen window filling of the joint histogram */
-
-        float referenceRescalingArrayDown[10];
-        float referenceRescalingArrayUp[10];
-        float floatingRescalingArrayDown[10];
-        float floatingRescalingArrayUp[10];
-        for(int t=0;t<this->referencePyramid[0]->nt;t++){
-            // INCREASE THE BIN SIZES
-            this->referenceBinNumber[t] += 4;
-            referenceRescalingArrayDown[t] = 2.f;
-            referenceRescalingArrayUp[t] = this->referenceBinNumber[t]-3;
-        }
-        for(int t=0;t<this->floatingPyramid[0]->nt;t++){
-            // INCREASE THE BIN SIZES
-            this->floatingBinNumber[t] += 4;
-            floatingRescalingArrayDown[t] = 2.f;
-            floatingRescalingArrayUp[t] = this->floatingBinNumber[t]-3;
-        }
-        for(unsigned int l=0; l<pyramidalLevelNumber; l++){
-            reg_intensityRescale(this->referencePyramid[l],
-                                 referenceRescalingArrayDown,
-                                 referenceRescalingArrayUp,
-                                 this->referenceThresholdLow,
-                                 this->referenceThresholdUp);
-            reg_intensityRescale(this->floatingPyramid[l],
-                                 floatingRescalingArrayDown,
-                                 floatingRescalingArrayUp,
-                                 this->floatingThresholdLow,
-                                 this->floatingThresholdUp);
-        }
-    }
-
     // DETERMINE THE GRID SPACING AND CREATE THE GRID
     if(this->inputControlPointGrid==NULL){
 
@@ -991,6 +933,9 @@ void reg_f3d<T>::PrintInitialObjFunctionValue()
     else if(this->useKLD)
         printf("[%s] Initial objective function: %g = (wKLD)%g - (wBE)%g - (wLE)%g - (wL2)%g - (wJAC)%g\n",
                this->executableName, bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWL2, this->bestWJac);
+    else if(this->useLNCC==this->useLNCC)
+        printf("[%s] Initial objective function: %g = (wLNCC)%g - (wBE)%g - (wLE)%g - (wL2)%g - (wJAC)%g\n",
+               this->executableName, bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWL2, this->bestWJac);
     else printf("[%s] Initial objective function: %g = (wNMI)%g - (wBE)%g - (wLE)%g - (wL2)%g - (wJAC)%g\n",
                 this->executableName, bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWL2, this->bestWJac);
 }
@@ -1009,6 +954,8 @@ void reg_f3d<T>::PrintCurrentObjFunctionValue(T currentSize)
         printf(" = (wSSD)%g", this->bestWMeasure);
     else if(this->useKLD)
         printf(" = (wKLD)%g", this->bestWMeasure);
+    else if(this->useLNCC==this->useLNCC)
+        printf(" = (wLNCC)%g", this->bestWMeasure);
     else printf(" = (wNMI)%g", this->bestWMeasure);
     if(this->bendingEnergyWeight>0)
         printf(" - (wBE)%.2e", this->bestWBE);
