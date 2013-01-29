@@ -51,7 +51,7 @@ void PetitUsage(char *exec)
 {
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     fprintf(stderr,"Fast Free-Form Deformation algorithm for non-rigid registration.\n");
-    fprintf(stderr,"Usage:\t%s -target <targetImageName> -source <sourceImageName> [OPTIONS].\n",exec);
+    fprintf(stderr,"Usage:\t%s -ref <targetImageName> -flo <sourceImageName> [OPTIONS].\n",exec);
     fprintf(stderr,"\tSee the help for more details (-h).\n");
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     return;
@@ -115,6 +115,7 @@ void Usage(char *exec)
     printf("\t-l2 <float>\t\tWeights of L2 norm displacement penalty term [0.0]\n");
     printf("\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]\n");
     printf("\t-noAppJL\t\tTo not approximate the JL value only at the control point position\n");
+    printf("\t-lncc <float>\t\tTo use the LNCC as the similiarity measure (NMI by default) [Gaussian standard deviation]\n");
     printf("\t-ssd\t\t\tTo use the SSD as the similiarity measure (NMI by default)\n");
     printf("\t-kld\t\t\tTo use the KL divergence as the similiarity measure (NMI by default)*\n");
     printf("\t* For the Kullback–Leibler divergence, reference and floating are expected to be probabilities\n");
@@ -207,6 +208,7 @@ int main(int argc, char **argv)
     bool useApproxGradient=false;
     bool useSSD=false;
     bool useKLD=false;
+    float lnccStdDev=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
     bool noPyramid=0;
     int interpolation=1;
     bool xOptimisation=true;
@@ -381,15 +383,21 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-ssd")==0 || strcmp(argv[i], "--ssd")==0){
             useSSD=true;
             useKLD=false;
+            lnccStdDev=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
         }
         else if(strcmp(argv[i], "-kld")==0 || strcmp(argv[i], "--kld")==0){
             useSSD=false;
             useKLD=true;
+            lnccStdDev=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
         }
         else if(strcmp(argv[i], "-amc")==0){
             additiveNMI = true;
         }
-
+        else if(strcmp(argv[i], "-lncc")==0){
+            lnccStdDev = (PrecisionTYPE)(atof(argv[++i]));
+            useSSD=false;
+            useKLD=false;
+        }
         else if(strcmp(argv[i], "-pad")==0){
             warpedPaddingValue=(PrecisionTYPE)(atof(argv[++i]));
         }
@@ -748,6 +756,10 @@ int main(int argc, char **argv)
     if(useKLD)
         REG->UseKLDivergence();
     else REG->DoNotUseKLDivergence();
+
+    if(lnccStdDev==lnccStdDev)
+        REG->UseLNCC(lnccStdDev);
+    else REG->DoNotUseLNCC();
 
     if(useApproxGradient){
 		REG->DoNotUseConjugateGradient();
