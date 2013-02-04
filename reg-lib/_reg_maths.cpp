@@ -149,6 +149,41 @@ void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum)
     }
 }
 /* *************************************************************** */
+// Heap sort
+void reg_heapSort(float *array_tmp, int blockNum)
+{
+    float *array = &array_tmp[-1];
+    int l=(blockNum >> 1)+1;
+    int ir=blockNum;
+    float val;
+    for(;;){
+        if(l>1){
+            val=array[--l];
+        }
+        else{
+            val=array[ir];
+            array[ir]=array[1];
+            if(--ir == 1){
+                array[1]=val;
+                break;
+            }
+        }
+        int i=l;
+        int j=l+l;
+        while(j<=ir){
+            if(j<ir && array[j]<array[j+1]) j++;
+            if(val<array[j]){
+                array[i]=array[j];
+                i=j;
+                j<<=1;
+            }
+            else break;
+        }
+        array[i]=val;
+    }
+}
+/* *************************************************************** */
+/* *************************************************************** */
 //Ported from VNL
 float reg_mat44_det(mat44 const* A)
 {

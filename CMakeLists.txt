@@ -32,12 +32,9 @@ endif(NOT WIN32)
 # All dependencies are build to create the 3DSlicer package
 if(BUILD_NR_SLICER_EXT)
     set(BUILD_ALL_DEP ON)
-    option(BUILD_NR_DEV ON)
     mark_as_advanced(FORCE BUILD_ALL_DEP)
-    mark_as_advanced(FORCE BUILD_NR_DEV)
 else(BUILD_NR_SLICER_EXT)
     mark_as_advanced(CLEAR BUILD_ALL_DEP)
-    mark_as_advanced(CLEAR BUILD_NR_DEV)
 endif(BUILD_NR_SLICER_EXT)
 
 option(USE_SSE "To enable SEE computation in some case" ON)

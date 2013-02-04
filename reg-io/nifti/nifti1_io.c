@@ -4962,7 +4962,7 @@ size_t nifti_read_buffer(znzFile fp, void* dataptr, size_t ntot,
        fprintf(stderr,"+d nifti_read_buffer: swapping data bytes...\n");
     nifti_swap_Nbytes( ntot / nim->swapsize, nim->swapsize , dataptr ) ;
   }
-
+#ifndef USE_NII_NAN
 #ifdef isfinite
 {
   /* check input float arrays for goodness, and fix bad floats */
@@ -4999,6 +4999,7 @@ size_t nifti_read_buffer(znzFile fp, void* dataptr, size_t ntot,
   if( g_opts.debug > 1 )
      fprintf(stderr,"+d in image, %d bad floats were set to 0\n", fix_count);
 }
+#endif
 #endif
   
   return ii;

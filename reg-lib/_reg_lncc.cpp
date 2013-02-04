@@ -68,8 +68,8 @@ double reg_getLNCC1(nifti_image *referenceImage,
     }
 
     reg_gaussianSmoothing<DTYPE>(localMeanReferenceImage, gaussianStandardDeviation, axis);
-    reg_gaussianSmoothing<DTYPE>(localMeanWarpedImage, gaussianStandardDeviation, axis);
     reg_gaussianSmoothing<DTYPE>(localStdReferenceImage, gaussianStandardDeviation, axis);
+    reg_gaussianSmoothing<DTYPE>(localMeanWarpedImage, gaussianStandardDeviation, axis);
     reg_gaussianSmoothing<DTYPE>(localStdWarpedImage, gaussianStandardDeviation, axis);
     reg_gaussianSmoothing<DTYPE>(localCorrelationImage, gaussianStandardDeviation, axis);
 

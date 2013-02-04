@@ -63,6 +63,9 @@ void reg_matrixInvertMultiply(T *mat,
 extern "C++"
 void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum);
 /* *************************************************************** */
+extern "C++"
+void reg_heapSort(float *array_tmp,int blockNum);
+/* *************************************************************** */
 /** @brief Multipy two 4-by-4 matrices
  */
 extern "C++"

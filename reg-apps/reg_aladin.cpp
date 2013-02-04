@@ -1,11 +1,11 @@
-/*
- *  reg_aladin.cpp
+/**
+ * @file reg_aladin.cpp
+ * @author Marc Modat, David C Cash and Pankaj Daga
+ * @date 12/08/2009
  *
- *
- *  Created by Marc Modat and Pankaj Daga on 12/08/2009.
- *  Copyright (c) 2009, University College London. All rights reserved.
- *  Centre for Medical Image Computing (CMIC)
- *  See the LICENSE.txt file in the nifty_reg root folder
+ * Copyright (c) 2009, University College London. All rights reserved.
+ * Centre for Medical Image Computing (CMIC)
+ * See the LICENSE.txt file in the nifty_reg root folder
  *
  */
 

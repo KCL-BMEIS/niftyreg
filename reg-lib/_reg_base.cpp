@@ -607,10 +607,10 @@ void reg_base<T>::Initisalise()
          * The images are then shifted by two which is the suport of the spline used
          * by the parzen window filling of the joint histogram */
 
-        float referenceRescalingArrayDown[10];
-        float referenceRescalingArrayUp[10];
-        float floatingRescalingArrayDown[10];
-        float floatingRescalingArrayUp[10];
+        float *referenceRescalingArrayDown=new float[this->referenceTimePoint];
+        float *referenceRescalingArrayUp=new float[this->referenceTimePoint];
+        float *floatingRescalingArrayDown=new float[this->floatingTimePoint];
+        float *floatingRescalingArrayUp=new float[this->floatingTimePoint];
         for(int t=0;t<this->referencePyramid[0]->nt;t++){
             // INCREASE THE BIN SIZES
             this->referenceBinNumber[t] += 4;
@@ -635,6 +635,10 @@ void reg_base<T>::Initisalise()
                                  this->floatingThresholdLow,
                                  this->floatingThresholdUp);
         }
+        delete []referenceRescalingArrayDown;
+        delete []referenceRescalingArrayUp;
+        delete []floatingRescalingArrayDown;
+        delete []floatingRescalingArrayUp;
     }
 
     this->initialised=true;
