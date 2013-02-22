@@ -274,14 +274,16 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
                              this->CurrentWarped,
                              &this->blockMatchingParams,
                              this->CurrentReferenceMask);
-    if(type==RIGID)
+    if(type==RIGID){
         optimize(&this->blockMatchingParams,
                  this->TransformationMatrix,
                  RIGID);
-    else
+    }
+    else{
         optimize(&this->blockMatchingParams,
                  this->TransformationMatrix,
                  AFFINE);
+    }
     // Update now the backward transformation matrix
     block_matching_method<T>(this->CurrentFloating,
                              this->CurrentBackwardWarped,

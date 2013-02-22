@@ -1,8 +1,7 @@
 #-----------------------------------------------------------------------------
 ##BUILD THE CPU LIBRARIES
 #-----------------------------------------------------------------------------
-set(LIST _reg_resampling)
-set(LIST ${LIST} _reg_maths)
+set(LIST _reg_maths)
 set(LIST ${LIST} _reg_globalTransformation)
 set(LIST ${LIST} _reg_mutualinformation)
 set(LIST ${LIST} _reg_ssd)
@@ -26,6 +25,18 @@ set(LIST ${LIST} _reg_localTransformation)
 foreach(NAME ${LIST})
     add_library(${NAME} ${NAME}.h ${NAME}.cpp)
     target_link_libraries(${NAME} _reg_maths)
+    install(TARGETS ${NAME}
+            RUNTIME DESTINATION bin COMPONENT Development
+            LIBRARY DESTINATION lib COMPONENT Development
+            ARCHIVE DESTINATION lib COMPONENT Development
+        )
+    install(FILES ${NAME}.h DESTINATION include COMPONENT Development)
+endforeach(NAME)
+#-----------------------------------------------------------------------------
+set(LIST _reg_resampling)
+foreach(NAME ${LIST})
+    add_library(${NAME} ${NAME}.h ${NAME}.cpp)
+    target_link_libraries(${NAME} _reg_maths _reg_globalTransformation _reg_tools)
     install(TARGETS ${NAME}
             RUNTIME DESTINATION bin COMPONENT Development
             LIBRARY DESTINATION lib COMPONENT Development

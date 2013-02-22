@@ -23,6 +23,7 @@
 
 #if _USE_SSE
 	#include <emmintrin.h>
+    #include <xmmintrin.h>
 #endif
 
 

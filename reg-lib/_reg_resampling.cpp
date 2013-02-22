@@ -43,10 +43,9 @@ template<class SourceTYPE, class FieldTYPE>
 void CubicSplineResampleImage3D(nifti_image *floatingImage,
                                 nifti_image *deformationField,
                                 nifti_image *warpedImage,
-                                int *mask)
+                                int *mask,
+                                FieldTYPE paddingValue)
 {
-    // I here assume a zero padding by default
-
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(floatingImage->data);
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(warpedImage->data);
     FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
@@ -54,7 +53,6 @@ void CubicSplineResampleImage3D(nifti_image *floatingImage,
     int sourceVoxelNumber = floatingImage->nx*floatingImage->ny*floatingImage->nz;
     FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[resultVoxelNumber];
     FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[resultVoxelNumber];
-
 
     int *maskPtr = &mask[0];
 
@@ -82,7 +80,7 @@ void CubicSplineResampleImage3D(nifti_image *floatingImage,
     a, b, c, Y, Z, zPointer, yzPointer, xyzPointer, xTempNewValue, yTempNewValue) \
     shared(sourceIntensity, resultIntensity, resultVoxelNumber, sourceVoxelNumber, \
     deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
-    sourceIJKMatrix, floatingImage)
+    sourceIJKMatrix, floatingImage, paddingValue)
 #endif // _OPENMP
         for(index=0;index<resultVoxelNumber; index++){
 
@@ -117,26 +115,28 @@ void CubicSplineResampleImage3D(nifti_image *floatingImage,
 
                 for(c=0; c<4; c++){
                     Z= previous[2]+c;
-                    if(-1<Z && Z<floatingImage->nz){
-                        zPointer = &sourceIntensity[Z*floatingImage->nx*floatingImage->ny];
-                        yTempNewValue=0.0;
-                        for(b=0; b<4; b++){
-                            Y= previous[1]+b;
-                            yzPointer = &zPointer[Y*floatingImage->nx];
-                            if(-1<Y && Y<floatingImage->ny){
-                                xyzPointer = &yzPointer[previous[0]];
-                                xTempNewValue=0.0;
-                                for(a=0; a<4; a++){
-                                    if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx){
-                                        xTempNewValue +=  (FieldTYPE)*xyzPointer * xBasis[a];
-                                    }
-                                    xyzPointer++;
-                                }
-                                yTempNewValue += (xTempNewValue * yBasis[b]);
+                    zPointer = &sourceIntensity[Z*floatingImage->nx*floatingImage->ny];
+                    yTempNewValue=0.0;
+                    for(b=0; b<4; b++){
+                        Y= previous[1]+b;
+                        yzPointer = &zPointer[Y*floatingImage->nx];
+                        xyzPointer = &yzPointer[previous[0]];
+                        xTempNewValue=0.0;
+                        for(a=0; a<4; a++){
+                            if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx &&
+                               -1<Z && Z<floatingImage->nz &&
+                               -1<Y && Y<floatingImage->ny){
+                                xTempNewValue +=  (FieldTYPE)*xyzPointer * xBasis[a];
                             }
+                            else{
+                                // paddingValue
+                                xTempNewValue +=  paddingValue * xBasis[a];
+                            }
+                            xyzPointer++;
                         }
-                        intensity += yTempNewValue * zBasis[c];
+                        yTempNewValue += xTempNewValue * yBasis[b];
                     }
+                    intensity += yTempNewValue * zBasis[c];
                 }
             }
 
@@ -165,10 +165,11 @@ void CubicSplineResampleImage3D(nifti_image *floatingImage,
 }
 /* *************************************************************** */
 template<class SourceTYPE, class FieldTYPE>
-void CubicSplineResampleImage2D(  nifti_image *floatingImage,
-                                  nifti_image *deformationField,
-                                  nifti_image *warpedImage,
-                                  int *mask)
+void CubicSplineResampleImage2D(nifti_image *floatingImage,
+                                nifti_image *deformationField,
+                                nifti_image *warpedImage,
+                                int *mask,
+                                FieldTYPE paddingValue)
 {
     // The resampling scheme is applied along each time
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(floatingImage->data);
@@ -203,7 +204,7 @@ void CubicSplineResampleImage2D(  nifti_image *floatingImage,
     a, b, Y, yPointer, xyPointer, xTempNewValue) \
     shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
     deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
-    sourceIJKMatrix, floatingImage)
+    sourceIJKMatrix, floatingImage, paddingValue)
 #endif // _OPENMP
         for(index=0;index<targetVoxelNumber; index++){
 
@@ -236,17 +237,20 @@ void CubicSplineResampleImage2D(  nifti_image *floatingImage,
                 for(b=0; b<4; b++){
                     Y= previous[1]+b;
                     yPointer = &sourceIntensity[Y*floatingImage->nx];
-                    if(-1<Y && Y<floatingImage->ny){
-                        xyPointer = &yPointer[previous[0]];
-                        xTempNewValue=0.0;
-                        for(a=0; a<4; a++){
-                            if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx){
-                                xTempNewValue +=  (FieldTYPE)*xyPointer * xBasis[a];
-                            }
-                            xyPointer++;
+                    xyPointer = &yPointer[previous[0]];
+                    xTempNewValue=0.0;
+                    for(a=0; a<4; a++){
+                        if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx &&
+                                -1<Y && Y<floatingImage->ny){
+                            xTempNewValue +=  (FieldTYPE)*xyPointer * xBasis[a];
                         }
-                        intensity += (xTempNewValue * yBasis[b]);
+                        else{
+                            // paddingValue x
+                            xTempNewValue +=  paddingValue * xBasis[a];
+                        }
+                        xyPointer++;
                     }
+                    intensity += xTempNewValue * yBasis[b];
                 }
             }
 
@@ -709,14 +713,16 @@ void reg_resampleImage2(nifti_image *floatingImage,
             CubicSplineResampleImage3D<SourceTYPE,FieldTYPE>(floatingImage,
                                                              deformationFieldImage,
                                                              warpedImage,
-                                                             mask);
+                                                             mask,
+                                                             paddingValue);
         }
         else
         {
             CubicSplineResampleImage2D<SourceTYPE,FieldTYPE>(floatingImage,
                                                              deformationFieldImage,
                                                              warpedImage,
-                                                             mask);
+                                                             mask,
+                                                             paddingValue);
         }
     }
     else if(interp==0){ // Nearest neighbor interpolation
@@ -1949,6 +1955,101 @@ void reg_getImageGradient(nifti_image *floatingImage,
         break;
     }
     if(MrPropreRule==true) free(mask);
+}
+/* *************************************************************** */
+/* *************************************************************** */
+nifti_image *reg_makeIsotropic(nifti_image *img,
+                               int inter)
+{
+    // Get the smallest voxel size
+    float smallestPixDim=img->pixdim[1];
+    for(size_t i=2;i<4;++i)
+        if(i<img->dim[0]+2)
+        smallestPixDim=img->pixdim[i]<smallestPixDim?img->pixdim[i]:smallestPixDim;
+    // Define the size of the new image
+    int newDim[8];
+    for(size_t i=0;i<8;++i) newDim[i]=img->dim[i];
+    for(size_t i=1;i<4;++i){
+        if(i<img->dim[0]+1)
+            newDim[i]=(int)ceilf(img->dim[i]*img->pixdim[i]/smallestPixDim);
+    }
+    // Create the new image
+    nifti_image *newImg=nifti_make_new_nim(newDim,img->datatype,true);
+    newImg->pixdim[1]=newImg->dx=smallestPixDim;
+    newImg->pixdim[2]=newImg->dy=smallestPixDim;
+    newImg->pixdim[3]=newImg->dz=smallestPixDim;
+    newImg->qform_code=img->qform_code;
+    newImg->sform_code=img->sform_code;
+    // Update the qform matrix
+    newImg->qfac=img->qfac;
+    newImg->quatern_b=img->quatern_b;
+    newImg->quatern_c=img->quatern_c;
+    newImg->quatern_d=img->quatern_d;
+    newImg->qoffset_x=img->qoffset_x+smallestPixDim/2.f-img->dx/2.f;
+    newImg->qoffset_y=img->qoffset_y+smallestPixDim/2.f-img->dy/2.f;
+    newImg->qoffset_z=img->qoffset_z+smallestPixDim/2.f-img->dz/2.f;
+    newImg->qto_xyz=nifti_quatern_to_mat44(newImg->quatern_b,
+                                           newImg->quatern_c,
+                                           newImg->quatern_d,
+                                           newImg->qoffset_x,
+                                           newImg->qoffset_y,
+                                           newImg->qoffset_z,
+                                           smallestPixDim,
+                                           smallestPixDim,
+                                           smallestPixDim,
+                                           newImg->qfac);
+    newImg->qto_ijk=nifti_mat44_inverse(newImg->qto_xyz);
+    if(newImg->sform_code>0){
+        // Compute the new sform
+        float scalingRatio[3];
+        scalingRatio[0]= newImg->dx / img->dx;
+        scalingRatio[1]= newImg->dy / img->dy;
+        scalingRatio[2]= newImg->dz / img->dz;
+        newImg->sto_xyz.m[0][0]=img->sto_xyz.m[0][0] * scalingRatio[0];
+        newImg->sto_xyz.m[1][0]=img->sto_xyz.m[1][0] * scalingRatio[0];
+        newImg->sto_xyz.m[2][0]=img->sto_xyz.m[2][0] * scalingRatio[0];
+        newImg->sto_xyz.m[3][0]=img->sto_xyz.m[3][0];
+        newImg->sto_xyz.m[0][1]=img->sto_xyz.m[0][1] * scalingRatio[1];
+        newImg->sto_xyz.m[1][1]=img->sto_xyz.m[1][1] * scalingRatio[1];
+        newImg->sto_xyz.m[2][1]=img->sto_xyz.m[2][1] * scalingRatio[1];
+        newImg->sto_xyz.m[3][1]=img->sto_xyz.m[3][1];
+        newImg->sto_xyz.m[0][2]=img->sto_xyz.m[0][2] * scalingRatio[2];
+        newImg->sto_xyz.m[1][2]=img->sto_xyz.m[1][2] * scalingRatio[2];
+        newImg->sto_xyz.m[2][2]=img->sto_xyz.m[2][2] * scalingRatio[2];
+        newImg->sto_xyz.m[3][2]=img->sto_xyz.m[3][2];
+        newImg->sto_xyz.m[0][3]=img->sto_xyz.m[0][3]+smallestPixDim/2.f-img->dx/2.f;
+        newImg->sto_xyz.m[1][3]=img->sto_xyz.m[1][3]+smallestPixDim/2.f-img->dy/2.f;
+        newImg->sto_xyz.m[2][3]=img->sto_xyz.m[2][3]+smallestPixDim/2.f-img->dz/2.f;
+        newImg->sto_xyz.m[3][3]=img->sto_xyz.m[3][3];
+        newImg->sto_ijk=nifti_mat44_inverse(newImg->sto_xyz);
+    }
+    reg_checkAndCorrectDimension(newImg);
+    // Create a deformation field
+    nifti_image *def=nifti_copy_nim_info(newImg);
+    def->dim[0]=def->ndim=5;
+    def->dim[4]=def->nt=1;
+    def->pixdim[4]=def->dt=1.0;
+    if(newImg->nz==1)
+        def->dim[5]=def->nu=2;
+    else def->dim[5]=def->nu=3;
+    def->pixdim[5]=def->du=1.0;
+    def->dim[6]=def->nv=1;
+    def->pixdim[6]=def->dv=1.0;
+    def->dim[7]=def->nw=1;
+    def->pixdim[7]=def->dw=1.0;
+    def->nvox=	def->nx * def->ny * def->nz * def->nt * def->nu;
+    def->nbyper = sizeof(float);
+    def->datatype = NIFTI_TYPE_FLOAT32;
+    def->data = (void *)malloc(def->nvox*def->nbyper);
+    // Fill the deformation field with an identity transformation
+    mat44 identity;
+    reg_mat44_eye(&identity);
+    reg_affine_positionField(&identity,newImg,def);
+    // resample the original image into the space of the new image
+    reg_resampleImage(img,newImg,def,NULL,inter,0.f);
+    nifti_set_filenames(newImg,"tempIsotropicImage",0,0);
+    nifti_image_free(def);
+    return newImg;
 }
 /* *************************************************************** */
 /* *************************************************************** */

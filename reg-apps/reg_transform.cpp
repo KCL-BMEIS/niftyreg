@@ -54,6 +54,7 @@ typedef struct{
     float CPPSpacing;
     float ApproxTPSWeight;
     char *outputCPPName;
+    float makeAffineffineParam[12];
 }PARAM;
 typedef struct{
     bool referenceImageFlag;
@@ -73,6 +74,7 @@ typedef struct{
     bool tps2cppFlag;
     bool tps2defFlag;
     bool aff2rigFlag;
+    bool makeAffineFlag;
 }FLAG;
 
 
@@ -140,15 +142,17 @@ void Usage(char *exec)
 //        printf("\t\tFilename1: Input deformation field filename\n");
 //        printf("\t\tFilename2: Source image filename\n");
 //        printf("\t\tFilename3: output deformation field filename\n");
-    printf("\t-compAff <filename1> <filename2> <filename3>\n");
+    printf("\t-compAffine <filename1> <filename2> <filename3>\n");
     printf("\t\tCompose two affine transformation matrices\n");
     printf("\t\tFilename1: First affine matrix\n");
     printf("\t\tFilename2: Second affine matrix\n");
     printf("\t\tFilename3: Composed affine matrix result\n");
-    printf("\t-halfAff <filename1> <filename2>\n");
+    printf("\t-halfAffine <filename1> <filename2>\n");
     printf("\t\tCompute the half way affine matrix from an input affine\n");
     printf("\t\tFilename1: Input affine matrix\n");
     printf("\t\tFilename2: half-way affine matrix\n");
+    printf("\t-makeAffine <rx> <ry> <rz> <tx> <ty> <tz> <sx> <sy> <sz> <shx> <shy> <shz> <outputFilename>\n");
+    printf("\t\tCreate an affine transformation matrix\n");
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     return;
 }
@@ -239,13 +243,13 @@ int main(int argc, char **argv)
             param->cpp2defOutputName=argv[++i];
             flag->cpp2defFlag=1;
         }
-        else if(strcmp(argv[i], "-compAff") == 0){
+        else if(strcmp(argv[i], "-compAffine") == 0 || strcmp(argv[i], "-compAff") == 0){
             param->inputAffineName=argv[++i];
             param->inputAffineName2=argv[++i];
             param->outputAffineName=argv[++i];
             flag->composeAffineFlag=1;
         }
-        else if(strcmp(argv[i], "-halfAff") == 0){
+        else if(strcmp(argv[i], "-halfAffine") == 0 || strcmp(argv[i], "-halfAff") == 0){
             param->inputAffineName=argv[++i];
             param->outputAffineName=argv[++i];
             flag->halfAffineFlag=1;
@@ -267,6 +271,22 @@ int main(int argc, char **argv)
             param->inputAffineName=argv[++i];
             param->outputAffineName=argv[++i];
             flag->aff2rigFlag=1;
+        }
+        else if(strcmp(argv[i], "-makeAffine") == 0 || strcmp(argv[i], "-makeAff") == 0){
+            param->makeAffineffineParam[0]=atof(argv[++i]);
+            param->makeAffineffineParam[1]=atof(argv[++i]);
+            param->makeAffineffineParam[2]=atof(argv[++i]);
+            param->makeAffineffineParam[3]=atof(argv[++i]);
+            param->makeAffineffineParam[4]=atof(argv[++i]);
+            param->makeAffineffineParam[5]=atof(argv[++i]);
+            param->makeAffineffineParam[6]=atof(argv[++i]);
+            param->makeAffineffineParam[7]=atof(argv[++i]);
+            param->makeAffineffineParam[8]=atof(argv[++i]);
+            param->makeAffineffineParam[9]=atof(argv[++i]);
+            param->makeAffineffineParam[10]=atof(argv[++i]);
+            param->makeAffineffineParam[11]=atof(argv[++i]);
+            param->outputAffineName=argv[++i];
+            flag->makeAffineFlag=1;
         }
         else{
             fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
@@ -854,6 +874,50 @@ int main(int argc, char **argv)
         reg_tool_WriteAffineFile(&halfWayAffine,
                                  param->outputAffineName);
 
+    }
+    if(flag->makeAffineFlag){
+        mat44 rotationX;reg_mat44_eye(&rotationX);
+        mat44 translation;reg_mat44_eye(&translation);
+        mat44 rotationY;reg_mat44_eye(&rotationY);
+        mat44 rotationZ;reg_mat44_eye(&rotationZ);
+        mat44 scaling;reg_mat44_eye(&scaling);
+        mat44 shearing;reg_mat44_eye(&shearing);
+
+        rotationX.m[1][1]=cosf(param->makeAffineffineParam[0]);
+        rotationX.m[1][2]=-sinf(param->makeAffineffineParam[0]);
+        rotationX.m[2][1]=sinf(param->makeAffineffineParam[0]);
+        rotationX.m[2][2]=cosf(param->makeAffineffineParam[0]);
+
+        rotationY.m[0][0]=cosf(param->makeAffineffineParam[1]);
+        rotationY.m[0][2]=-sinf(param->makeAffineffineParam[1]);
+        rotationY.m[2][0]=sinf(param->makeAffineffineParam[1]);
+        rotationY.m[2][2]=cosf(param->makeAffineffineParam[1]);
+
+        rotationZ.m[0][0]=cosf(param->makeAffineffineParam[2]);
+        rotationZ.m[0][1]=-sinf(param->makeAffineffineParam[2]);
+        rotationZ.m[1][0]=sinf(param->makeAffineffineParam[2]);
+        rotationZ.m[1][1]=cosf(param->makeAffineffineParam[2]);
+
+        translation.m[0][3]=param->makeAffineffineParam[3];
+        translation.m[1][3]=param->makeAffineffineParam[4];
+        translation.m[2][3]=param->makeAffineffineParam[5];
+
+        scaling.m[0][0]=param->makeAffineffineParam[6];
+        scaling.m[1][1]=param->makeAffineffineParam[7];
+        scaling.m[2][2]=param->makeAffineffineParam[8];
+
+        shearing.m[1][0]=param->makeAffineffineParam[9];
+        shearing.m[2][0]=param->makeAffineffineParam[10];
+        shearing.m[2][1]=param->makeAffineffineParam[11];
+
+        mat44 affine=reg_mat44_mul(&rotationY,&rotationZ);
+        affine=reg_mat44_mul(&rotationX,&affine);
+        affine=reg_mat44_mul(&scaling,&affine);
+        affine=reg_mat44_mul(&shearing,&affine);
+        affine=reg_mat44_mul(&translation,&affine);
+
+        reg_tool_WriteAffineFile(&affine,
+                                 param->outputAffineName);
     }
 
     nifti_image_free(referenceImage);

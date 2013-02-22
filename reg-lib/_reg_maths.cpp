@@ -34,12 +34,13 @@ void reg_LUdecomposition(T *mat,
         T big=0.f;
         T temp;
         for(j=0;j<dim;++j)
-            if( (temp=fabs(mat(i,j,dim)))>big) big=temp;
+            if( (temp=fabs(mat(i,j,dim)))>big)
+                big=temp;
         if(big==0.f){
             fprintf(stderr, "[NiftyReg] ERROR Singular matrix in the LU decomposition\n");
             exit(1);
         }
-        vv[i]=1.f/big;
+        vv[i]=1.0/big;
     }
     for(j=0;j<dim;++j){
         for(i=0;i<j;++i){
@@ -67,17 +68,15 @@ void reg_LUdecomposition(T *mat,
             vv[imax]=vv[j];
         }
         index[j]=imax;
-        if(mat(j,j,dim)==0) mat(j,j,dim)=1.0e-20f;
+        if(mat(j,j,dim)==0) mat(j,j,dim)=1.0e-20;
         if(j!=dim-1){
-            dum=1.f/mat(j,j,dim);
+            dum=1.0/mat(j,j,dim);
             for(i=j+1; i<dim;++i) mat(i,j,dim) *= dum;
         }
     }
     free(vv);
     return;
 }
-template void reg_LUdecomposition<float>(float *, size_t , size_t *);
-template void reg_LUdecomposition<double>(double *, size_t , size_t *);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class T>
@@ -90,21 +89,125 @@ void reg_matrixInvertMultiply(T *mat,
     if(index==NULL)
         reg_LUdecomposition(mat, dim, index);
 
-    for(size_t i=0;i<dim;++i){
-        size_t ip=index[i];
+    int ii=0;
+    for(int i=0;i<dim;++i){
+        int ip=index[i];
         T sum = vec[ip];
         vec[ip]=vec[i];
-        for(size_t j=0;j<i;++j) sum -= mat[i*dim+j]*vec[j];
+        if(ii!=0){
+            for(int j=ii-1;j<i;++j)
+                sum -= mat(i,j,dim)*vec[j];
+        }
+        else if(sum!=0)
+            ii=i+1;
         vec[i]=sum;
     }
     for(int i=dim-1;i>-1;--i){
         T sum=vec[i];
-        for(size_t j=i+1;j<dim;j++) sum -= mat[i*dim+j]*vec[j];
-        vec[i]=sum/mat[i*dim+i];
+        for(int j=i+1;j<dim;++j)
+            sum -= mat(i,j,dim)*vec[j];
+        vec[i]=sum/mat(i,i,dim);
     }
 }
-template void reg_matrixInvertMultiply<float>(float *, size_t , size_t *, float *);
-template void reg_matrixInvertMultiply<double>(double *, size_t , size_t *, double *);
+template void reg_matrixInvertMultiply<float>(float *, size_t, size_t *, float *);
+template void reg_matrixInvertMultiply<double>(double *, size_t, size_t *, double *);
+/* *************************************************************** */
+/* *************************************************************** */
+extern "C++" template <class T>
+void reg_matrixMultiply(T *mat1,
+                        T *mat2,
+                        int *dim1,
+                        int *dim2,
+                        T *&res)
+{
+    // First check that the dimension are appropriate
+    if(dim1[1]!=dim2[0]){
+        fprintf(stderr, "Matrices can not be multiplied due to their size: [%i %i] [%i %i]\n",
+                dim1[0],dim1[1],dim2[0],dim2[1]);
+        exit(1);
+    }
+    int resDim[2]={dim1[0],dim2[1]};
+    // Allocate the result matrix
+    if(res!=NULL)
+        free(res);
+    res=(T *)calloc(resDim[0]*resDim[1],sizeof(T));
+    // Multiply both matrices
+    for(int j=0; j<resDim[1];++j){
+        for(int i=0; i<resDim[0];++i){
+            double sum=0.0;
+            for(int k=0;k<dim1[1];++k){
+                sum += mat1[k*dim1[0]+i] * mat2[j*dim2[0]+k];
+            }
+            res[j*resDim[0]+i]=sum;
+        } // i
+    } // j
+}
+template void reg_matrixMultiply<float>(float * ,float * ,int *, int * , float *&);
+template void reg_matrixMultiply<double>(double * ,double * ,int *, int * , double *&);
+/* *************************************************************** */
+/* *************************************************************** */
+extern "C++" template <class T>
+void reg_matrixInverse(T *mat,
+                       int *dim)
+{
+    // First check that the dimension are appropriate
+    if(dim[1]!=dim[0]){
+        fprintf(stderr, "Matrices is expected to be square [%i %i]. Return\n",
+                dim[0],dim[1]);
+        return;
+    }
+
+    for (int i=1; i < dim[0]; i++) {
+        mat[i] /= mat[0]; // normalize row 0
+    }
+    for (int i=1; i < dim[0]; i++)  {
+        for (int j=i; j < dim[0]; j++)  { // do a column of L
+            T sum = 0.0;
+            for (int k = 0; k < i; k++){
+                sum += mat[j*dim[0]+k] * mat[k*dim[0]+i];
+            }
+            mat[j*dim[0]+i] -= sum;
+        }
+        if (i == dim[0]-1) continue;
+        for (int j=i+1; j < dim[0]; j++)  {  // do a row of U
+            T sum = 0.0;
+            for (int k = 0; k < i; k++){
+                sum += mat[i*dim[0]+k]*mat[k*dim[0]+j];
+            }
+            mat[i*dim[0]+j] =(mat[i*dim[0]+j]-sum) / mat[i*dim[0]+i];
+        }
+    }
+    for ( int i = 0; i < dim[0]; i++ )  // invert L
+        for ( int j = i; j < dim[0]; j++ )  {
+            T x = 1.0;
+            if ( i != j ) {
+                x = 0.0;
+                for ( int k = i; k < j; k++ ){
+                    x -= mat[j*dim[0]+k]*mat[k*dim[0]+i];
+                }
+            }
+            mat[j*dim[0]+i] = x / mat[j*dim[0]+j];
+        }
+    for ( int i = 0; i < dim[0]; i++ )   // invert U
+        for ( int j = i; j < dim[0]; j++ )  {
+            if ( i == j ){continue;}
+            T sum = 0.0;
+            for ( int k = i; k < j; k++ ){
+                sum += mat[k*dim[0]+j]*( (i==k) ? 1.0 : mat[i*dim[0]+k] );
+            }
+            mat[i*dim[0]+j] = -sum;
+        }
+    for ( int i = 0; i < dim[0]; i++ )   // final inversion
+        for ( int j = 0; j < dim[0]; j++ )  {
+            T sum = 0.0;
+            for ( int k = ((i>j)?i:j); k < dim[0]; k++ ){
+                sum += ((j==k)?1.0:mat[j*dim[0]+k])*mat[k*dim[0]+i];
+            }
+            mat[j*dim[0]+i] = sum;
+        }
+}
+template void reg_matrixInverse<float>(float *, int *);
+template void reg_matrixInverse<double>(double *, int *);
 /* *************************************************************** */
 /* *************************************************************** */
 // Heap sort
@@ -469,11 +572,15 @@ mat44 reg_mat44_logm(mat44 const* mat)
         i += 1.0;
         Z_i = reg_mat44_mul(&Z, 1.0/i);
         X = reg_mat44_add(&X,&Z_i);
+        if(i>1.0e7){
+            fprintf(stderr, "reg_mat44_logm did not converge after 10e7 iterations.");
+            reg_mat44_eye(&X);
+            return X;
+        }
     }
     X=reg_mat44_mul(&X,-1.0);
-    X = reg_mat44_mul(&X
-
-                      ,pow(2.0,k));
+    X = reg_mat44_mul(&X,
+                      pow(2.0,k));
     return X;
 
 }

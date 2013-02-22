@@ -2978,7 +2978,6 @@ void reg_spline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGr
 
         reg_spline_getDeformationField(scaledControlPointGrid,
                                        deformationFieldImage,
-                                       deformationFieldImage,
                                        NULL,
                                        false,//composition?
                                        true//bspline?
@@ -2986,7 +2985,6 @@ void reg_spline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGr
 
         for(size_t i=1;i<(size_t)pow(2.0f,fabs(velocityFieldGrid->intent_p1));++i){
             reg_spline_getDeformationField(scaledControlPointGrid,
-                                           deformationFieldImage,
                                            deformationFieldImage,
                                            NULL,
                                            true,//composition?

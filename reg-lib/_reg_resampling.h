@@ -15,7 +15,7 @@
 
 #include "nifti1_io.h"
 #include "_reg_globalTransformation.h"
-#include "_reg_maths.h"
+#include "_reg_tools.h"
 
 /** @brief This function resample a source image into the space of a target/result image.
  * The deformation is provided by a 4D nifti image which is in the space of the target image.
@@ -53,5 +53,7 @@ void reg_getImageGradient(nifti_image *sourceImage,
                           int *mask,
                           int interp,
                           float paddingValue);
+extern "C++"
+nifti_image *reg_makeIsotropic(nifti_image *, int);
 
 #endif

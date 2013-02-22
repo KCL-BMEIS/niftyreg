@@ -3963,7 +3963,6 @@ void reg_spline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceIm
 
     // The deformation field is converted from deformation field to displacement field
     reg_getDisplacementFromDeformation(deformationFieldA);
-
     // The deformation field is scaled
     float scalingValue = pow(2.0f,fabs(velocityFieldImage->intent_p1));
     if(velocityFieldImage->intent_p1<0)

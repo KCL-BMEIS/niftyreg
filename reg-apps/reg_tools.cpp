@@ -59,6 +59,7 @@ typedef struct{
     bool thresholdImageFlag;
     bool nanMaskFlag;
     int operationTypeFlag;
+    bool iso;
 }FLAG;
 
 
@@ -150,6 +151,9 @@ int main(int argc, char **argv)
                 param->operationImageName=NULL;
             }
             flag->operationTypeFlag=2;
+        }
+        else if(strcmp(argv[i], "-iso") == 0){
+            flag->iso=true;
         }
         else if(strcmp(argv[i], "-div") == 0){
             param->operationImageName=argv[++i];
@@ -350,6 +354,98 @@ int main(int argc, char **argv)
         nifti_image_free(maskImage);
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+    if(flag->iso){
+        nifti_image *resultImage = reg_makeIsotropic(image,3);
+        if(flag->outputImageFlag)
+            reg_io_WriteImageFile(resultImage,param->outputImageName);
+        else reg_io_WriteImageFile(resultImage,"output.nii");
+        nifti_image_free(resultImage);
+    }
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+
+//    reg_tools_changeDatatype<float>(image);
+//    nifti_image *temp=nifti_copy_nim_info(image);
+//    temp->scl_inter=0.f;
+//    temp->scl_slope=1.f;
+//    temp->data=(void *)calloc(temp->nbyper,temp->nvox);
+//    float *imgPtr = static_cast<float *>(image->data);
+//    float *tmpPtr = static_cast<float *>(temp->data);
+
+//    size_t blockNumber=(image->nx/4)*(image->ny/4)*(image->nz/4);
+
+//    float *block_values=new float[blockNumber];
+
+//    size_t blockIndex=0;
+//    int znum=0;
+//    for(size_t z=0; z<image->nz; z+=4){
+//        int blockZ[2]={z,z+4};
+
+
+//        if(blockZ[1]<=image->nz){
+//            znum++;
+
+//            for(size_t y=0; y<image->ny; y+=4){
+//                int blockY[2]={y,y+4};
+
+//                if(blockY[1]<=image->ny){
+
+//                    for(size_t x=0; x<image->nx; x+=4){
+//                        int blockX[2]={x,x+4};
+
+//                        if(blockX[1]<=image->nx){
+
+//                            float mean=0;
+//                            for(int zz=blockZ[0];zz<blockZ[1];++zz){
+//                                for(int yy=blockY[0];yy<blockY[1];++yy){
+//                                    for(int xx=blockX[0];xx<blockX[1];++xx){
+//                                        mean+=imgPtr[(zz*image->ny+yy)*image->nx+xx];
+//                                    }
+//                                }
+//                            }
+//                            mean/=64.f;
+//                            float stddev=0;
+//                            for(int zz=blockZ[0];zz<blockZ[1];++zz){
+//                                for(int yy=blockY[0];yy<blockY[1];++yy){
+//                                    for(int xx=blockX[0];xx<blockX[1];++xx){
+//                                        stddev+=(mean-imgPtr[(zz*image->ny+yy)*image->nx+xx])*(mean-imgPtr[(zz*image->ny+yy)*image->nx+xx]);
+//                                    }
+//                                }
+//                            }
+//                            stddev/=64.f;
+//                            block_values[blockIndex]=stddev;
+//                            blockIndex++;
+//                        } //ifx
+//                    } //x
+//                } //ify
+//            } //y
+//        } //ifz
+//    } //z
+//    int *block_index=new int[blockNumber];
+//    for(int i=0;i<blockNumber;++i){
+//        block_index[i]=i;
+//    }
+
+//    reg_heapSort(block_values,block_index,blockNumber);
+
+//    for(int i=blockNumber-1;i>blockNumber/2;--i){
+
+//        int z=block_index[i]/((int)floor(image->nx/4)*(int)floor(image->ny/4));
+//        int temporary=block_index[i]-z*(int)floor(image->nx/4)*(int)floor(image->ny/4);
+//        int y=temporary/(int)floor(image->nx/4);
+//        int x=temporary-y*(int)floor(image->nx/4);
+//        for(int zz=z*4;zz<z*4+4;++zz){
+//            for(int yy=y*4;yy<y*4+4;++yy){
+//                for(int xx=x*4;xx<x*4+4;++xx){
+//                    tmpPtr[(zz*image->ny+yy)*image->nx+xx]=1.f;
+//                }
+//            }
+//        }
+//    }
+//    delete []block_index;
+//    delete []block_values;
+//    nifti_set_filenames(temp,param->outputImageName,0,0);
+//    nifti_image_write(temp);
+//    nifti_image_free(temp);
 
     nifti_image_free(image);
     return 0;

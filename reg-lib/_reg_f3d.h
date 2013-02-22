@@ -110,7 +110,7 @@ public:
 
     virtual void CheckParameters();
     virtual void Initisalise();
-    nifti_image *GetControlPointPositionImage();
+    virtual nifti_image *GetControlPointPositionImage();
     virtual nifti_image **GetWarpedImage();
 };
 

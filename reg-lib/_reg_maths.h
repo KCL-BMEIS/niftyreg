@@ -55,6 +55,17 @@ void reg_LUdecomposition(T *inputMatrix,
                          size_t *index);
 /* *************************************************************** */
 extern "C++" template <class T>
+void reg_matrixMultiply(T *mat1,
+                        T *mat2,
+                        int *dim1,
+                        int *dim2,
+                        T *&res);
+/* *************************************************************** */
+extern "C++" template <class T>
+void reg_matrixInverse(T *mat,
+                       int *dim);
+/* *************************************************************** */
+extern "C++" template <class T>
 void reg_matrixInvertMultiply(T *mat,
                               size_t dim,
                               size_t *index,

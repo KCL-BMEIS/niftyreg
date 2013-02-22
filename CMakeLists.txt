@@ -120,6 +120,8 @@ if(USE_DOUBLE)
 endif(USE_DOUBLE)
 
 if(USE_SSE)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse")
     add_definitions(-D_USE_SSE)
 endif(USE_SSE)
 

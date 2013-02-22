@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 
     int maxIter=5;
     int nLevels=3;
-    int levelsToPerform=3;
+    int levelsToPerform=std::numeric_limits<int>::max();
     int affineFlag=1;
     int rigidFlag=1;
     float blockPercentage=50.0f;
@@ -127,6 +127,8 @@ int main(int argc, char **argv)
     float referenceUpperThr=std::numeric_limits<PrecisionTYPE>::max();
     float floatingLowerThr=-std::numeric_limits<PrecisionTYPE>::max();
     float floatingUpperThr=std::numeric_limits<PrecisionTYPE>::max();
+
+    bool iso=false;
 
     /* read the input parameter */
     for(int i=1;i<argc;i++){
@@ -160,7 +162,7 @@ int main(int argc, char **argv)
             floatingImageFlag=1;
         }
         else if(strcmp(argv[i], "-noSym")==0 || strcmp(argv[i], "--noSym")==0){
-            symFlag=1;
+            symFlag=0;
         }
         else if(strcmp(argv[i], "-aff")==0 || strcmp(argv[i], "--aff")==0){
             outputAffineName=argv[++i];
@@ -234,6 +236,9 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-floUppThr")==0 || strcmp(argv[i], "--floUppThr")==0){
             floatingUpperThr=atof(argv[++i]);
         }
+        else if(strcmp(argv[i], "-iso")==0 || strcmp(argv[i], "--iso")==0){
+            iso=true;
+        }
         else{
             fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
             PetitUsage(argv[0]);
@@ -271,6 +276,82 @@ int main(int argc, char **argv)
             fprintf(stderr,"Note: Floating mask flag only used in symmetric method. Ignoring this option\n");
         }
     }
+
+    /* Read the reference image and check its dimension */
+    nifti_image *referenceHeader = reg_io_ReadImageFile(referenceImageName);
+    if(referenceHeader == NULL){
+        fprintf(stderr,"* ERROR Error when reading the reference  image: %s\n",referenceImageName);
+        return 1;
+    }
+
+    /* Read the floating image and check its dimension */
+    nifti_image *floatingHeader = reg_io_ReadImageFile(floatingImageName);
+    if(floatingHeader == NULL){
+        fprintf(stderr,"* ERROR Error when reading the floating image: %s\n",floatingImageName);
+        return 1;
+    }
+
+    // Set the reference and floating images
+    nifti_image *isoRefImage=NULL;
+    nifti_image *isoFloImage=NULL;
+    if(iso){
+        // make the images isotropic if required
+        isoRefImage=reg_makeIsotropic(referenceHeader,1);
+        isoFloImage=reg_makeIsotropic(floatingHeader,1);
+        REG->SetInputReference(isoRefImage);
+        REG->SetInputFloating(isoFloImage);
+    }
+    else{
+        REG->SetInputReference(referenceHeader);
+        REG->SetInputFloating(floatingHeader);
+    }
+
+    /* read the reference mask image */
+    nifti_image *referenceMaskImage=NULL;
+    nifti_image *isoRefMaskImage=NULL;
+    if(referenceMaskFlag){
+        referenceMaskImage = reg_io_ReadImageFile(referenceMaskName);
+        if(referenceMaskImage == NULL){
+            fprintf(stderr,"* ERROR Error when reading the reference mask image: %s\n",referenceMaskName);
+            return 1;
+        }
+        /* check the dimension */
+        for(int i=1; i<=referenceHeader->dim[0]; i++){
+            if(referenceHeader->dim[i]!=referenceMaskImage->dim[i]){
+                fprintf(stderr,"* ERROR The reference image and its mask do not have the same dimension\n");
+                return 1;
+            }
+        }
+        if(iso){
+            // make the image isotropic if required
+            isoRefMaskImage=reg_makeIsotropic(referenceMaskImage,0);
+            REG->SetInputMask(isoRefMaskImage);
+        }
+        else REG->SetInputMask(referenceMaskImage);
+    }
+    /* Read the floating mask image */
+    nifti_image *floatingMaskImage=NULL;
+    nifti_image *isoFloMaskImage=NULL;
+    if(floatingMaskFlag && symFlag){
+        floatingMaskImage = reg_io_ReadImageFile(floatingMaskName);
+        if(floatingMaskImage == NULL){
+            fprintf(stderr,"* ERROR Error when reading the floating mask image: %s\n",floatingMaskName);
+            return 1;
+        }
+        /* check the dimension */
+        for(int i=1; i<=floatingHeader->dim[0]; i++){
+            if(floatingHeader->dim[i]!=floatingMaskImage->dim[i]){
+                fprintf(stderr,"* ERROR The floating image and its mask do not have the same dimension\n");
+                return 1;
+            }
+        }
+        if(iso){
+            // make the image isotropic if required
+            isoFloMaskImage=reg_makeIsotropic(floatingMaskImage,0);
+            REG->SetInputFloatingMask(isoFloMaskImage);
+        }
+        else REG->SetInputFloatingMask(floatingMaskImage);
+    }
     REG->SetMaxIterations(maxIter);
     REG->SetNumberOfLevels(nLevels);
     REG->SetLevelsToPerform(levelsToPerform);
@@ -290,64 +371,18 @@ int main(int argc, char **argv)
     if(REG->GetLevelsToPerform() > REG->GetNumberOfLevels())
         REG->SetLevelsToPerform(REG->GetNumberOfLevels());
 
-    /* Read the reference image and check its dimension */
-    nifti_image *referenceHeader = reg_io_ReadImageFile(referenceImageName);
-    if(referenceHeader == NULL){
-        fprintf(stderr,"* ERROR Error when reading the reference  image: %s\n",referenceImageName);
-        return 1;
-    }
-
-    /* Read teh floating image and check its dimension */
-    nifti_image *floatingHeader = reg_io_ReadImageFile(floatingImageName);
-    if(floatingHeader == NULL){
-        fprintf(stderr,"* ERROR Error when reading the floating image: %s\n",floatingImageName);
-        return 1;
-    }
-
-    // Set the reference and floating image
-    REG->SetInputReference(referenceHeader);
-    REG->SetInputFloating(floatingHeader);
-
     // Set the input affine transformation if defined
     if(inputAffineFlag==1)
         REG->SetInputTransform(inputAffineName,flirtAffineFlag);
 
-    /* read the reference mask image */
-    nifti_image *referenceMaskImage=NULL;
-    if(referenceMaskFlag){
-        referenceMaskImage = reg_io_ReadImageFile(referenceMaskName);
-        if(referenceMaskImage == NULL){
-            fprintf(stderr,"* ERROR Error when reading the reference mask image: %s\n",referenceMaskName);
-            return 1;
-        }
-        /* check the dimension */
-        for(int i=1; i<=referenceHeader->dim[0]; i++){
-            if(referenceHeader->dim[i]!=referenceMaskImage->dim[i]){
-                fprintf(stderr,"* ERROR The reference image and its mask do not have the same dimension\n");
-                return 1;
-            }
-        }
-        REG->SetInputMask(referenceMaskImage);
-    }
-    nifti_image *floatingMaskImage=NULL;
-    if(floatingMaskFlag && symFlag){
-        floatingMaskImage = reg_io_ReadImageFile(floatingMaskName);
-        if(floatingMaskImage == NULL){
-            fprintf(stderr,"* ERROR Error when reading the floating mask image: %s\n",referenceMaskName);
-            return 1;
-        }
-        /* check the dimension */
-        for(int i=1; i<=floatingHeader->dim[0]; i++){
-            if(floatingHeader->dim[i]!=floatingMaskImage->dim[i]){
-                fprintf(stderr,"* ERROR The floating image and its mask do not have the same dimension\n");
-                return 1;
-            }
-        }
-        REG->SetInputFloatingMask(floatingMaskImage);
-    }
+    // Run the registration
     REG->Run();
 
     // The warped image is saved
+    if(iso){
+        REG->SetInputReference(referenceHeader);
+        REG->SetInputFloating(floatingHeader);
+    }
     nifti_image *outputResultImage=REG->GetFinalWarpedImage();
     if(!outputResultFlag) outputResultName=(char *)"outputResult.nii";
     reg_io_WriteImageFile(outputResultImage,outputResultName);
@@ -360,6 +395,18 @@ int main(int argc, char **argv)
 
     nifti_image_free(referenceHeader);
     nifti_image_free(floatingHeader);
+    if(isoRefImage!=NULL)
+        nifti_image_free(isoRefImage);
+    if(isoFloImage!=NULL)
+        nifti_image_free(isoFloImage);
+    if(referenceMaskImage!=NULL)
+        nifti_image_free(referenceMaskImage);
+    if(floatingMaskImage!=NULL)
+        nifti_image_free(floatingMaskImage);
+    if(isoRefMaskImage!=NULL)
+        nifti_image_free(isoRefMaskImage);
+    if(isoFloMaskImage!=NULL)
+        nifti_image_free(isoFloMaskImage);
 
     delete REG;
     time_t end; time(&end);

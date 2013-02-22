@@ -1,6 +1,7 @@
 #include "_reg_aladin.h"
 #ifndef _REG_ALADIN_CPP
 #define _REG_ALADIN_CPP
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T> reg_aladin<T>::reg_aladin ()
 {
     this->ExecutableName=(char*) "Aladin";
@@ -49,7 +50,7 @@ template <class T> reg_aladin<T>::reg_aladin ()
     this->funcProgressCallback=NULL;
     this->paramsProgressCallback=NULL;
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T> reg_aladin<T>::~reg_aladin()
 {
     this->ClearWarpedImage();
@@ -71,6 +72,7 @@ template <class T> reg_aladin<T>::~reg_aladin()
 
     free(activeVoxelNumber);
 }
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 bool reg_aladin<T>::TestMatrixConvergence(mat44 *mat)
 {
@@ -93,7 +95,7 @@ bool reg_aladin<T>::TestMatrixConvergence(mat44 *mat)
 
     return convergence;
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 int reg_aladin<T>::Check()
 {
@@ -112,7 +114,7 @@ int reg_aladin<T>::Check()
 
     return 0;
 }
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 int reg_aladin<T>::Print()
 {
@@ -329,6 +331,7 @@ void reg_aladin<T>::AllocateWarpedImage()
     this->CurrentWarped->nbyper = this->CurrentFloating->nbyper;
     this->CurrentWarped->data = (void *)calloc(this->CurrentWarped->nvox, this->CurrentWarped->nbyper);
 }
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::ClearWarpedImage()
 {
@@ -336,6 +339,7 @@ void reg_aladin<T>::ClearWarpedImage()
         nifti_image_free(this->CurrentWarped);
     this->CurrentWarped=NULL;
 }
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::AllocateDeformationField()
 {
@@ -375,6 +379,7 @@ void reg_aladin<T>::AllocateDeformationField()
     this->deformationFieldImage->data = (void *)calloc(this->deformationFieldImage->nvox, this->deformationFieldImage->nbyper);
     return;
 }
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::ClearDeformationField()
 {

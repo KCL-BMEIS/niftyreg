@@ -37,6 +37,7 @@ typedef struct{
     char *outputBlankName;
     PrecisionTYPE sourceBGValue;
     int interpolation;
+    PrecisionTYPE paddingValue;
 }PARAM;
 typedef struct{
     bool referenceImageFlag;
@@ -93,6 +94,7 @@ int main(int argc, char **argv)
     FLAG *flag = (FLAG *)calloc(1,sizeof(FLAG));
 
     param->interpolation=3; // Cubic spline interpolation used by default
+    param->paddingValue=0;
 
     /* read the input parameter */
     for(int i=1;i<argc;i++){
@@ -156,6 +158,10 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-inter") == 0 ||
                 (strcmp(argv[i],"--inter")==0)){
             param->interpolation=atoi(argv[++i]);
+        }
+        else if(strcmp(argv[i], "-pad") == 0 ||
+                (strcmp(argv[i],"--pad")==0)){
+            param->paddingValue=(PrecisionTYPE)atof(argv[++i]);
         }
         else if(strcmp(argv[i], "-NN") == 0){
             param->interpolation=0;
@@ -343,9 +349,9 @@ int main(int argc, char **argv)
 #ifndef NDEBUG
             printf("[NiftyReg DEBUG] Computation of the deformation field from the affine transformation\n");
 #endif
-            reg_affine_positionField(   affineTransformationMatrix,
-                                        referenceImage,
-                                        deformationFieldImage);
+            reg_affine_positionField(affineTransformationMatrix,
+                                     referenceImage,
+                                     deformationFieldImage);
         }
     }
 
@@ -381,7 +387,7 @@ int main(int argc, char **argv)
                           deformationFieldImage,
                           NULL,
                           param->interpolation,
-                          0);
+                          param->paddingValue);
         memset(resultImage->descrip, 0, 80);
         strcpy (resultImage->descrip,"Warped image using NiftyReg (reg_resample)");
         reg_io_WriteImageFile(resultImage,param->outputResultName);
