@@ -182,4 +182,14 @@ install(TARGETS ${NAME}
 )
 install(FILES ${NAME}.h ${NAME}.cpp DESTINATION include COMPONENT Development)
 #-----------------------------------------------------------------------------
+## Generate install commands for any extra include files
+set(ADDITIONAL_INCLUDE_LIST
+  _reg_base.h
+  _reg_base.cpp
+  )
+foreach(NAME ${ADDITIONAL_INCLUDE_LIST})
+  install(FILES ${NAME} DESTINATION include COMPONENT Development)  
+endforeach()
+
+#-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
