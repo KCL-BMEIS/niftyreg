@@ -27,6 +27,7 @@ __global__ void reg_resampleImage2D_kernel(float *resultArray)
 {
 	const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
 	if(tid<c_ActiveVoxelNumber){
+		const int tid2 = tex1Dfetch(maskTexture,tid);
 
 		//Get the real world position in the source space
 		float4 realPosition = tex1Dfetch(positionFieldTexture,tid);
@@ -50,9 +51,9 @@ __global__ void reg_resampleImage2D_kernel(float *resultArray)
 		relativePosition.y=(voxelPosition.y+0.5f)/(float)sourceImageSize.y;
 		if( relativePosition.x>=0.0f && relativePosition.x<=1.0f &&
 			relativePosition.y>=0.0f && relativePosition.y<=1.0f ){
-			resultArray[tex1Dfetch(maskTexture,tid)]=tex3D(sourceTexture, relativePosition.x, relativePosition.y, 0.5f);
+			resultArray[tid2]=tex3D(sourceTexture, relativePosition.x, relativePosition.y, 0.5f);
 		}
-		else resultArray[tex1Dfetch(maskTexture,tid)]=c_PaddingValue;
+		else resultArray[tid2]=c_PaddingValue;
 	}
 }
 /* *************************************************************** */
@@ -60,6 +61,7 @@ __global__ void reg_resampleImage3D_kernel(float *resultArray)
 {
 	const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
 	if(tid<c_ActiveVoxelNumber){
+		const int tid2 = tex1Dfetch(maskTexture,tid);
 
 		//Get the real world position in the source space
 		float4 realPosition = tex1Dfetch(positionFieldTexture,tid);
@@ -84,9 +86,9 @@ __global__ void reg_resampleImage3D_kernel(float *resultArray)
 		if( relativePosition.x>=0.0f && relativePosition.x<=1.0f &&
 			relativePosition.y>=0.0f && relativePosition.y<=1.0f &&
 			relativePosition.z>=0.0f && relativePosition.z<=1.0f ){
-			resultArray[tex1Dfetch(maskTexture,tid)]=tex3D(sourceTexture, relativePosition.x, relativePosition.y, relativePosition.z);
+			resultArray[tid2]=tex3D(sourceTexture, relativePosition.x, relativePosition.y, relativePosition.z);
 		}
-		else resultArray[tex1Dfetch(maskTexture,tid)]=c_PaddingValue;
+		else resultArray[tid2]=c_PaddingValue;
 	}
 }
 /* *************************************************************** */
