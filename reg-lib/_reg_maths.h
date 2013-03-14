@@ -37,10 +37,10 @@
     #ifndef M_PI
         #define M_PI 3.14159265358979323846
     #endif
-    #ifndef isnan(_X)
+    #ifndef isnan
         #define isnan(_X) _isnan(_X)
     #endif
-    #ifndef strtof(_s, _t)
+    #ifndef strtof
         #define strtof(_s, _t) (float) strtod(_s, _t)
     #endif
     template<class PrecisionType> inline int round(PrecisionType x){ return int(x > 0.0 ? (x + 0.5) : (x - 0.5));}
