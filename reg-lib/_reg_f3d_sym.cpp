@@ -1212,12 +1212,6 @@ void reg_f3d_sym<T>::GetInverseConsistencyGradient()
     // real inverses
     this->GetInverseConsistencyErrorField(true);
 
-    nifti_set_filenames(this->deformationFieldImage, "def_test_for.nii",0,0);
-    nifti_image_write(this->deformationFieldImage);
-
-    nifti_set_filenames(this->backwardDeformationFieldImage, "def_test_bck.nii",0,0);
-    nifti_image_write(this->backwardDeformationFieldImage);
-
     // The forward inverse consistency field is masked
     size_t forwardVoxelNumber=
             this->deformationFieldImage->nx *

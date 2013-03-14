@@ -31,16 +31,6 @@ double reg_getLNCC(nifti_image *referenceImage,
                    int *mask
                    );
 
-//double reg_getLNCC_wml(nifti_image *referenceImage,
-//                   nifti_image *warpedImage,
-//           nifti_image *localMeanTargetImage, //
-//           nifti_image *localStdTargetImage, //
-//           nifti_image *localMeanResultImage, //
-//           nifti_image *localStdResultImage, //
-//           nifti_image *localCorrelationImage, //
-//                   float gaussianStandardDeviation,
-//                   int *mask
-//                   , double alpha);
 
 /** @brief Compute a voxel based gradient of the LNCC.
  *  @param targetImage First input image to use to compute the metric
@@ -62,21 +52,6 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
                                    int *mask
                                    );
 
-
-//void reg_getVoxelBasedLNCCGradient_wml(nifti_image *referenceImage,
-//                                  nifti_image *warpedImage,
-//                   nifti_image *localMeanTargetImage, //
-//                           nifti_image *localStdTargetImage, //
-//                           nifti_image *localMeanWarpedImage, //
-//                           nifti_image *localStdWarpedImage, //
-//                           nifti_image *localCorrelationImage, //
-//                                  nifti_image *warpedImageGradient,
-//                                  nifti_image *lnccGradientImage,
-//                  float gaussianStandardDeviation,
-//                                  int *mask,
-//                                  double alpha
-//                                  );
-
 extern "C++"
 void reg_getLocalStd(nifti_image *image,
                      nifti_image *localMeanImage,
@@ -88,8 +63,7 @@ void reg_getLocalStd(nifti_image *image,
 extern "C++"
 void reg_getLocalMean(nifti_image *image,
                       nifti_image *localMeanImage,
-                      float gaussianStandardDeviation,
-                      int *mask
+                      float gaussianStandardDeviation
                       );
 
 extern "C++"
@@ -101,11 +75,5 @@ void reg_getLocalCorrelation(nifti_image *referenceImage,
                              float gaussianStandardDeviation,
                              int *mask
                              );
-
-extern "C++"             
-void reg_meanFilter(nifti_image *image, int radius, int *mask );
-
-extern "C++"
-void reg_sobelFilter(nifti_image *image, int axis);
 #endif
 

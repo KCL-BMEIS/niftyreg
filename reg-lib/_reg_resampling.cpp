@@ -1964,13 +1964,13 @@ nifti_image *reg_makeIsotropic(nifti_image *img,
     // Get the smallest voxel size
     float smallestPixDim=img->pixdim[1];
     for(size_t i=2;i<4;++i)
-        if(i<img->dim[0]+2)
+        if(i<static_cast<size_t>(img->dim[0]+2))
         smallestPixDim=img->pixdim[i]<smallestPixDim?img->pixdim[i]:smallestPixDim;
     // Define the size of the new image
     int newDim[8];
     for(size_t i=0;i<8;++i) newDim[i]=img->dim[i];
     for(size_t i=1;i<4;++i){
-        if(i<img->dim[0]+1)
+        if(i<static_cast<size_t>(img->dim[0]+1))
             newDim[i]=(int)ceilf(img->dim[i]*img->pixdim[i]/smallestPixDim);
     }
     // Create the new image

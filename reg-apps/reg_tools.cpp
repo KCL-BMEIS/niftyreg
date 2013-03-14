@@ -451,8 +451,7 @@ int main(int argc, char **argv)
 //    }
 //    delete []block_index;
 //    delete []block_values;
-//    nifti_set_filenames(temp,param->outputImageName,0,0);
-//    nifti_image_write(temp);
+//    reg_io_WriteImageFile(temp,param->outputImageName);
 //    nifti_image_free(temp);
 
     nifti_image_free(image);

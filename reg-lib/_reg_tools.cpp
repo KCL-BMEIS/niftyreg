@@ -283,10 +283,10 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
     if(field==0) field=1;
 
     /* Smoothing along the X axis */
-    int radius = reg_ceil(2.0*spacingVoxel[0]);
+    int radius = static_cast<int>(reg_ceil(2.0*spacingVoxel[0]));
     int windowSize = 2*radius + 1;
     DTYPE *window = (DTYPE *)calloc(windowSize,sizeof(DTYPE));
-    DTYPE coeffSum=0.0;
+    DTYPE coeffSum=0;
     for(int it=-radius; it<=radius; it++){
         DTYPE coeff = (DTYPE)(fabs((float)(DTYPE)it/(DTYPE)spacingVoxel[0]));
         if(coeff<1.0) window[it+radius] = (DTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
@@ -314,7 +314,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
                 for(y=0; y<image->ny; y++){
                     for(x=0; x<image->nx; x++){
 
-                        finalValue=0.0;
+                        finalValue=0;
 
                         index = i - radius;
                         X = x - radius;
@@ -340,11 +340,11 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
     }
 
 	/* Smoothing along the Y axis */
-    radius = reg_ceil(2.0*spacingVoxel[1]);
+    radius = static_cast<int>(reg_ceil(2.0*spacingVoxel[1]));
 	windowSize = 2*radius + 1;
     free(window);
     window = (DTYPE *)calloc(windowSize,sizeof(DTYPE));
-	coeffSum = 0.0;
+    coeffSum = 0;
     for(int it=-radius; it<=radius; it++){
         DTYPE coeff = (DTYPE)(fabs((float)(DTYPE)it/(DTYPE)spacingVoxel[1]));
         if(coeff<1.0) window[it+radius] = (DTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
@@ -372,7 +372,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
                 for(y=0; y<image->ny; y++){
                     for(x=0; x<image->nx; x++){
 
-                        finalValue=0.0;
+                        finalValue=0;
 
                         index = i - image->nx*radius;
                         Y = y - radius;
@@ -399,11 +399,11 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
     }
     if(image->nz>1){
 		/* Smoothing along the Z axis */
-        radius = reg_ceil(2.0*spacingVoxel[2]);
+        radius = static_cast<int>(reg_ceil(2.0*spacingVoxel[2]));
 		windowSize = 2*radius + 1;
         free(window);
         window = (DTYPE *)calloc(windowSize,sizeof(DTYPE));
-        coeffSum=0.0;
+        coeffSum=0;
         for(int it=-radius; it<=radius; it++){
             DTYPE coeff = (DTYPE)(fabs((float)(DTYPE)it/(DTYPE)spacingVoxel[2]));
             if(coeff<1.0) window[it+radius] = (DTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
@@ -433,7 +433,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
                     for(y=0; y<image->ny; y++){
                         for(x=0; x<image->nx; x++){
 
-                            finalValue=0.0;
+                            finalValue=0;
 
                             index = i - image->nx*image->ny*radius;
                             Z = z - radius;
@@ -1721,7 +1721,7 @@ float reg_tools_getMaxValue1(nifti_image *image)
     float maxValue=-std::numeric_limits<DTYPE>::max();
     // Loop over all voxel to find the lowest value
     for(size_t i=0;i<image->nvox;++i){
-        DTYPE currentVal = imgPtr[i] * image->scl_slope + image->scl_inter;
+        DTYPE currentVal = static_cast<DTYPE>(imgPtr[i] * image->scl_slope + image->scl_inter);
         maxValue=currentVal>maxValue?currentVal:maxValue;
     }
     // The lowest value is returned

@@ -121,8 +121,8 @@ class reg_aladin
       SetMacro(LevelsToPerform,unsigned int);
       GetMacro(LevelsToPerform,unsigned int);
 
-      SetMacro(BlockPercentage,float);
-      GetMacro(BlockPercentage,float);
+      SetMacro(BlockPercentage,int);
+      GetMacro(BlockPercentage,int);
 
       SetMacro(InlierLts,float);
       GetMacro(InlierLts,float);

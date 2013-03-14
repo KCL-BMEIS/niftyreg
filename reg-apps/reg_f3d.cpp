@@ -228,6 +228,8 @@ int main(int argc, char **argv)
 	bool useBCHUpdate=false;
     int BCHUpdateValue=0;
 
+//    bool iso=false;
+
 #ifdef _USE_CUDA
     bool useGPU=false;
     bool checkMem=false;
@@ -457,6 +459,9 @@ int main(int argc, char **argv)
 			useBCHUpdate=true;
 			BCHUpdateValue=atoi(argv[++i]);
         }
+//        else if(strcmp(argv[i], "-iso")==0 || strcmp(argv[i], "--iso")==0){
+//            iso=true;
+//        }
 #ifdef _USE_CUDA
         else if(strcmp(argv[i], "-gpu")==0){
             useGPU=true;

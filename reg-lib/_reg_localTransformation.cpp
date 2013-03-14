@@ -1199,10 +1199,10 @@ void reg_voxelCentric2NodeCentric2D(nifti_image *nodeImage,
 
 			DTYPE newValueX=0, newValueY=0;
 			for(int b=0;b<2;++b){
-				int Y = reg_floor(relY) + b;
+                int Y = static_cast<int>(reg_floor(relY)) + b;
 				if(-1<Y && Y<voxelImage->ny){
 					for(int a=0;a<2;++a){
-						int X = reg_floor(relX) + a;
+                        int X = static_cast<int>(reg_floor(relX)) + a;
 						if( -1<X && X<voxelImage->nx){
 							newValueX += voxelPtrX[Y*voxelImage->nx+X] * basisX[a] * basisY[b];
 							newValueY += voxelPtrY[Y*voxelImage->nx+X] * basisX[a] * basisY[b];
@@ -2982,6 +2982,10 @@ void reg_spline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGr
                                        false,//composition?
                                        true//bspline?
                                        );
+//        {
+//            nifti_set_filenames(deformationFieldImage,(char *)"/Users/mmodat/Data/Yuyeng_video/fields/field_100.nii",0,0);
+//            nifti_image_write(deformationFieldImage);
+//        }
 
         for(size_t i=1;i<(size_t)pow(2.0f,fabs(velocityFieldGrid->intent_p1));++i){
             reg_spline_getDeformationField(scaledControlPointGrid,
@@ -2990,6 +2994,14 @@ void reg_spline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGr
                                            true,//composition?
                                            true//bspline?
                                            );
+//            char name[256];
+//            if(100-i<10)
+//                sprintf(name,"/Users/mmodat/Data/Yuyeng_video/fields/field_00%i.nii",100-i);
+//            else if(100-i<100)
+//                sprintf(name,"/Users/mmodat/Data/Yuyeng_video/fields/field_0%i.nii",100-i);
+//            else sprintf(name,"/Users/mmodat/Data/Yuyeng_video/fields/field_%i.nii",100-i);
+//            nifti_set_filenames(deformationFieldImage,name,0,0);
+//            nifti_image_write(deformationFieldImage);
         }
         nifti_image_free(scaledControlPointGrid);
     }

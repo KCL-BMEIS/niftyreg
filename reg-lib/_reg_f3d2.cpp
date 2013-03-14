@@ -129,15 +129,6 @@ void reg_f3d2<T>::DefineReorientationMatrices()
         nifti_mat44_to_orientation(this->backwardControlPointGrid->qto_xyz, &orient_bck_i, &orient_bck_j, &orient_bck_k);
     }
 
-//    fprintf(stderr, "Orientation forward: %s - %s - %s\n",
-//            nifti_orientation_string(orient_for_i),
-//            nifti_orientation_string(orient_for_j),
-//            nifti_orientation_string(orient_for_k));
-//    fprintf(stderr, "Orientation bckward: %s - %s - %s\n",
-//            nifti_orientation_string(orient_bck_i),
-//            nifti_orientation_string(orient_bck_j),
-//            nifti_orientation_string(orient_bck_k));
-
     // Create two mat33 full of zero
     mat33 for_no_orient;
     mat33 bck_no_orient;
@@ -199,21 +190,15 @@ void reg_f3d2<T>::DefineReorientationMatrices()
     case NIFTI_S2I:bck_no_orient.m[2][2]=-1.f;break;
     }
 
-//    reg_mat33_disp(&for_no_orient, "for_no_orient");
-//    reg_mat33_disp(&bck_no_orient, "bck_no_orient");
-//    reg_mat33_disp(&nifti_mat33_mul(for_no_orient,vox2real_for), "forward");
-//    reg_mat33_disp(&nifti_mat33_mul(bck_no_orient,vox2real_bck), "backward");
-
-    // Compte the matrices to use to warps one vector field into the space of another
+    // Compute the matrices to use to warps one vector field into the space of another
     mat33 forward2backward = nifti_mat33_mul(for_no_orient,vox2real_for);
     mat33 backward2forward = nifti_mat33_mul(bck_no_orient,vox2real_bck);
     mat33 tempA=nifti_mat33_inverse(forward2backward);
     mat33 tempB=nifti_mat33_inverse(backward2forward);
     forward2backward=nifti_mat33_mul(tempB,forward2backward);
     backward2forward=nifti_mat33_mul(tempA,backward2forward);
-//    reg_mat33_disp(&forward2backward, "forward2backward");
-//    reg_mat33_disp(&backward2forward, "backward2forward");
-//    reg_mat33_disp(&nifti_mat33_mul(forward2backward,backward2forward), "mul");
+//    reg_mat33_disp(&forward2backward, (char *) "forward2backward");
+//    reg_mat33_disp(&backward2forward, (char *) "backward2forward");
 
     // Check if the matrices are different from identity
     bool identicalMatrices=true;
@@ -235,6 +220,9 @@ void reg_f3d2<T>::DefineReorientationMatrices()
         // Allocate the matrices
         this->forward2backward_reorient=new mat33[1];
         this->backward2forward_reorient=new mat33[1];
+        // Compute the rotation matrices for reorientation
+        forward2backward=nifti_mat33_polar(forward2backward);
+        backward2forward=nifti_mat33_polar(backward2forward);
         // Save the matrices
         for(int i=0;i<3;++i){
             for(int j=0;j<3;++j){
@@ -259,7 +247,7 @@ void reg_f3d2<T>::Initisalise()
     this->backwardControlPointGrid->intent_code=NIFTI_INTENT_VECTOR;
 
     this->controlPointGrid->intent_p1=this->stepNumber;
-    this->backwardControlPointGrid->intent_p1=-this->stepNumber;
+    this->backwardControlPointGrid->intent_p1=this->stepNumber;
 
     memset(this->controlPointGrid->intent_name, 0, 16);
     memset(this->backwardControlPointGrid->intent_name, 0, 16);
@@ -362,11 +350,6 @@ void reg_f3d2<T>::GetSimilarityMeasureGradient()
 	if(this->ISS)
 		this->ExponentiateGradient();
 
-    // Negate the backward measure gradient
-    reg_tools_addSubMulDivValue(this->backwardTransformationGradient,
-                                this->backwardTransformationGradient,
-                                -1.f,
-                                2); // *(-1)
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -585,8 +568,8 @@ void reg_f3d2<T>::UpdateParameters(float scale)
     // Set the forward deformation grid to displacement grid in order to
     // enable zero padding
     reg_getDisplacementFromDeformation(this->controlPointGrid);
-    reg_resampleImage(this->controlPointGrid, // floating
-                      forward2backward, // warped
+    reg_resampleImage(this->controlPointGrid, // floating displacement field
+                      forward2backward, // warped displacement field
                       forward2backwardDEF, // deformation field
                       NULL, // no mask
                       1, // linear interpolation
@@ -610,8 +593,8 @@ void reg_f3d2<T>::UpdateParameters(float scale)
     // Set the backward deformation grid to displacement grid in order to
     // enable zero padding
     reg_getDisplacementFromDeformation(this->backwardControlPointGrid); // in order to use a zero padding
-    reg_resampleImage(this->backwardControlPointGrid, // floating
-                      backward2forward, // warped
+    reg_resampleImage(this->backwardControlPointGrid, // floating displacement field
+                      backward2forward, // warped displacement field
                       backward2forwardDEF, // deformation field
                       NULL, // no mask
                       1, // linear interpolation
@@ -620,6 +603,7 @@ void reg_f3d2<T>::UpdateParameters(float scale)
     // Clean the temporary deformation field
     nifti_image_free(backward2forwardDEF);backward2forwardDEF=NULL;
 
+    /****************************/
     if(this->forward2backward_reorient!=NULL && this->backward2forward_reorient!=NULL){
 
         // Reorient the warped grids if necessary
@@ -758,17 +742,18 @@ void reg_f3d2<T>::UpdateParameters(float scale)
             }
         }
     } // End - reorient the warped grids if necessary
+    /****************************/
 
     /* Average velocity fields into forward and backward space */
-    // Addition
-    reg_tools_addSubMulDivImages(forward2backward, // displacement
-                                 this->backwardControlPointGrid, // displacement
+    // Substraction as the propagated has to be negated
+    reg_tools_addSubMulDivImages(this->backwardControlPointGrid, // displacement
+                                 forward2backward, // displacement
                                  this->backwardControlPointGrid, // displacement output
-                                 0); // addition
-    reg_tools_addSubMulDivImages(backward2forward, // displacement
-                                 this->controlPointGrid, // displacement
+                                 1); // substraction
+    reg_tools_addSubMulDivImages(this->controlPointGrid, // displacement
+                                 backward2forward, // displacement
                                  this->controlPointGrid, // displacement output
-                                 0); // addition
+                                 1); // substraction
     // Division by 2
     reg_tools_addSubMulDivValue(this->backwardControlPointGrid, // displacement
                                 this->backwardControlPointGrid, // displacement

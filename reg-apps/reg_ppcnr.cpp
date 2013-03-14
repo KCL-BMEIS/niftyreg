@@ -169,7 +169,7 @@ int main(int argc, char **argv)
             nifti_image_write(makesource);
             nifti_image_free(makesource);
             char buffer[20];
-            int n=sprintf(buffer,"source4D.nii");            
+            sprintf(buffer,"source4D.nii");
             param->sourceImageName=buffer;
             flag->sourceImageFlag=1;  
         }
@@ -287,7 +287,7 @@ int main(int argc, char **argv)
     param->maxIteration=(param->maxIteration<50)?50:param->maxIteration;
     if(!flag->outputCPPFlag){
 		char buffer[40];
-		int n=sprintf(buffer,"ppcnrfinal-%s.nii",STYL3);
+        sprintf(buffer,"ppcnrfinal-%s.nii",STYL3);
 		param->outputCPPName=buffer;
 	}
 	if(flag->aladin){ // decide whether to use affine or free-form
@@ -362,11 +362,11 @@ int main(int argc, char **argv)
 		printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 		
 		// Read images and find image means
-		unsigned int voxelNumber = image->nvox/image->nt;
+        size_t voxelNumber = image->nvox/image->nt;
 		PrecisionTYPE *intensityPtr = static_cast<PrecisionTYPE *>(image->data);
 		for(int t=0;t<image->nt;t++){
 			Mean[t]=0.f;
-			for(int i=0;i<voxelNumber; i++){
+            for(size_t i=0;i<voxelNumber; i++){
 				Mean[t] += *intensityPtr++;
 			}
 			Mean[t] /= (PrecisionTYPE)voxelNumber;
@@ -379,7 +379,7 @@ int main(int argc, char **argv)
 			for(int t2=t;t2<image->nt;t2++){
 				PrecisionTYPE *currentIntensityPtr1 = &intensityPtr[t*voxelNumber];
 				cov=0.f;
-				for(int i=0;i<voxelNumber; i++){
+                for(size_t i=0;i<voxelNumber; i++){
 					cov += (*currentIntensityPtr1++ - Mean[t]) * (*currentIntensityPtr2++ - Mean[t2]);
 				}
 				Cov[t+image->nt*t2]=cov/(PrecisionTYPE)voxelNumber;
@@ -577,7 +577,7 @@ int main(int argc, char **argv)
         float dotty,norman;
 		PrecisionTYPE *intensityPtr1 = static_cast<PrecisionTYPE *>(image->data);
         PrecisionTYPE *intensityPtr2 = static_cast<PrecisionTYPE *>(imagep->data);
-        for(int i=0;i<voxelNumber; i++){            
+        for(size_t i=0;i<voxelNumber; i++){
             if(flag->singleFlag){
                 for(int t=0;t<image->nt;t++){ // 4.3) Copy the correct image to the imagep data
                     intensityPtr2[t*voxelNumber+i] = intensityPtr1[(param->singletimepoint-1)*voxelNumber+i];			
@@ -610,13 +610,13 @@ int main(int argc, char **argv)
                 }              
             }
         }
-        if(flag->pca4 & prinCompNumber>2){
+        if(flag->pca4 & (prinCompNumber>2)){
             if(flag->pca0 | flag->pca1){remove(pcaname);} // easy to code, but this deletes previous output before writing the next which is a little risky...
             if(flag->pca2){remove(outname);}
             if(flag->pca3){remove(dofname);}
         }
 		char pcaname[20];        
-        n=sprintf(pcaname,"pca%i.nii",prinCompNumber);
+        sprintf(pcaname,"pca%i.nii",prinCompNumber);
         nifti_set_filenames(imagep,pcaname, 0, 0);
         if(flag->pca0 | flag->pca1){nifti_image_write(imagep);}
 	
@@ -658,38 +658,39 @@ int main(int argc, char **argv)
                 
                 char regCommandB[1055]="";
                 if(!flag->flirt){				
-                    int n=sprintf(regCommandB,"%s -%s ",regCommandAll,style);
+                    sprintf(regCommandB,"%s -%s ",regCommandAll,style);
                     char buffer[20];
                     if(flag->aladin){
-                        n=sprintf(buffer,"float%s%i.txt", style,imageNumber+1);
+                        sprintf(buffer,"float%s%i.txt", style,imageNumber+1);
                     }
                     else{
-                        n=sprintf(buffer,"float%s%i.nii", style,imageNumber+1);
+                        sprintf(buffer,"float%s%i.nii", style,imageNumber+1);
                     }
                     strcat(regCommandB,buffer);
                     char buffer2[30];
                     if(flag->autolevel){
-                        n=sprintf(buffer2," -ln %i",levelNumber);
+                        sprintf(buffer2," -ln %i",levelNumber);
                         strcat(regCommandB,buffer2);
                         char buffer3[20];
-                        if(!flag->aladin) n=sprintf(buffer3," -sx %g",param->spacing[0]);
+                        if(!flag->aladin)
+                            sprintf(buffer3," -sx %g",param->spacing[0]);
                         strcat(regCommandB,buffer3);
                     }
                     if(prinCompNumber>1){
                         char buffer4[8];
-                        n=sprintf(buffer4," -in%s ",style);
+                        sprintf(buffer4," -in%s ",style);
                         strcat(regCommandB,buffer4);
                         strcat(regCommandB,buffer);
                     }
                 }
                 else{ // flirt -ref -in -out -omat -init
-                    n=sprintf(regCommandB,"%s -omat ",regCommandF);
+                    sprintf(regCommandB,"%s -omat ",regCommandF);
                     char buffer[20];
-                    n=sprintf(buffer,"float%s%i.txt", style,imageNumber+1);
+                    sprintf(buffer,"float%s%i.txt", style,imageNumber+1);
                     strcat(regCommandB,buffer);
                     if(prinCompNumber>1){
                         char buffer3[8];
-                        n=sprintf(buffer3," -init ");
+                        sprintf(buffer3," -init ");
                         strcat(regCommandB,buffer3);
                         strcat(regCommandB,buffer);
                         strcat(regCommandB,";gunzip -f outputResult.nii.gz");
@@ -713,15 +714,15 @@ int main(int argc, char **argv)
         }
 		nifti_image_free(imagep);
         char outname[20];
-        n=sprintf(outname,"out%i.nii",prinCompNumber);
+        sprintf(outname,"out%i.nii",prinCompNumber);
         nifti_set_filenames(image,outname, 0, 0);
         if(!flag->pca0 & flag->pca2){nifti_image_write(image);}
         if(!flag->pca0 & flag->pca3){
             char dofname[20];
             if(!flag->aladin & !flag->flirt){
-                n=sprintf(dofname,"dof%i.nii",prinCompNumber);
+                sprintf(dofname,"dof%i.nii",prinCompNumber);
                 char buffer[20];
-                int n=sprintf(buffer,"float%s1.nii",style);
+                sprintf(buffer,"float%s1.nii",style);
                 nifti_image *dof = nifti_image_read(buffer,true);
                 nifti_image *dofs = nifti_copy_nim_info(dof);
                 dofs->nt = dofs->dim[4] = images->nt;
@@ -730,7 +731,7 @@ int main(int argc, char **argv)
                 PrecisionTYPE *intensityPtrD = static_cast<PrecisionTYPE *>(dofs->data);
                 for(int t=0;t<images->nt;t++){
                     char buffer[20];
-                    int n=sprintf(buffer,"float%s%i.nii",style, t+1);	
+                    sprintf(buffer,"float%s%i.nii",style, t+1);
                     nifti_image *dof = nifti_image_read(buffer,true);
                     PrecisionTYPE *intensityPtrDD = static_cast<PrecisionTYPE *>(dof->data);
                     int r=dof->nvox/3.0;
@@ -744,11 +745,11 @@ int main(int argc, char **argv)
                 nifti_image_free(dofs);
             }
             else{
-                n=sprintf(dofname,"dof%i.txt",prinCompNumber);
+                sprintf(dofname,"dof%i.txt",prinCompNumber);
                 std::string final_string = "";
                 for(int t=0;t<images->nt;t++){
                     char buffer[20];
-                    int n=sprintf(buffer,"float%s%i.txt",style,t+1);
+                    sprintf(buffer,"float%s%i.txt",style,t+1);
                     std::ifstream ifs(buffer);  
                     std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
                     final_string+=str;               
@@ -767,7 +768,7 @@ int main(int argc, char **argv)
 	if(!flag->pca0){
         if(!flag->aladin & !flag->flirt){
             char buffer[20];
-            int n=sprintf(buffer,"float%s1.nii",style);
+            sprintf(buffer,"float%s1.nii",style);
             nifti_image *dof = nifti_image_read(buffer,true);
             nifti_image *dofs = nifti_copy_nim_info(dof);
             dofs->nt = dofs->dim[4] = images->nt;
@@ -776,7 +777,7 @@ int main(int argc, char **argv)
             PrecisionTYPE *intensityPtrD = static_cast<PrecisionTYPE *>(dofs->data);
             for(int t=0;t<images->nt;t++){
                 char buffer[20];
-                int n=sprintf(buffer,"float%s%i.nii",style, t+1);	
+                sprintf(buffer,"float%s%i.nii",style, t+1);
                 nifti_image *dof = nifti_image_read(buffer,true);
                 PrecisionTYPE *intensityPtrDD = static_cast<PrecisionTYPE *>(dof->data);
                 int r=dof->nvox/3.0;
@@ -794,7 +795,7 @@ int main(int argc, char **argv)
             std::string final_string = "";
             for(int t=0;t<images->nt;t++){
                 char buffer[20];
-                int n=sprintf(buffer,"float%s%i.txt",style,t+1);
+                sprintf(buffer,"float%s%i.txt",style,t+1);
                 std::ifstream ifs(buffer);  
                 std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
                 final_string+=str; 
