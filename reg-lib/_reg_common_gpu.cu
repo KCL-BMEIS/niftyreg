@@ -66,8 +66,8 @@ int cudaCommon_setCUDACard(CUdevice *dev,
             printf("[NiftyReg CUDA] The following device is used: %s\n",
                    deviceProp.name);
             printf("[NiftyReg CUDA] It has %lu Mb free out of %lu Mb\n",
-                   (unsigned long int)free/(1024*1024),
-                   (unsigned long int)total/(1024*1024));
+                   (unsigned long int)(free/(1024*1024)),
+                   (unsigned long int)(total/(1024*1024)));
             printf("[NiftyReg CUDA] Card compute capability: %i.%i\n",
                    major,
                    minor);
