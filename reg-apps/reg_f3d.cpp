@@ -831,7 +831,7 @@ int main(int argc, char **argv)
         printf("[NiftyReg CUDA] The required memory to run the registration is %lu Mb\n",
                (unsigned long int)requiredMemory);
         printf("[NiftyReg CUDA] The GPU card has %lu Mb from which %lu Mb are currenlty free\n",
-               (unsigned long int)total/(1024*1024), (unsigned long int)free/(1024*1024));
+               (unsigned long int)(total/(1024*1024)), (unsigned long int)(free/(1024*1024)));
     }
     else{
 #endif
