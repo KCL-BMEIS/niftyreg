@@ -193,6 +193,32 @@ void reg_intensityRescale(	nifti_image *image,
 }
 /* *************************************************************** */
 /* *************************************************************** */
+template<class DTYPE>
+void reg_getRealImageSpacing(nifti_image *image,
+                             DTYPE *spacingValues)
+{
+    double indexVoxel1[3]={0,0,0};
+    double indexVoxel2[3], realVoxel1[3], realVoxel2[3];
+    reg_mat44_mul(&(image->sto_xyz), indexVoxel1, realVoxel1);
+
+    indexVoxel2[1]=indexVoxel2[2]=0;indexVoxel2[0]=1;
+    reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
+    spacingValues[0]=(DTYPE)sqrt(reg_pow2(realVoxel1[0]-realVoxel2[0])+reg_pow2(realVoxel1[1]-realVoxel2[1])+reg_pow2(realVoxel1[2]-realVoxel2[2]));
+
+    indexVoxel2[0]=indexVoxel2[2]=0;indexVoxel2[1]=1;
+    reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
+    spacingValues[1]=(DTYPE)sqrt(reg_pow2(realVoxel1[0]-realVoxel2[0])+reg_pow2(realVoxel1[1]-realVoxel2[1])+reg_pow2(realVoxel1[2]-realVoxel2[2]));
+
+    if(image->nz>1){
+        indexVoxel2[0]=indexVoxel2[1]=0;indexVoxel2[2]=1;
+        reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
+        spacingValues[2]=(DTYPE)sqrt(reg_pow2(realVoxel1[0]-realVoxel2[0])+reg_pow2(realVoxel1[1]-realVoxel2[1])+reg_pow2(realVoxel1[2]-realVoxel2[2]));
+    }
+}
+template void reg_getRealImageSpacing<float>(nifti_image *, float *);
+template void reg_getRealImageSpacing<double>(nifti_image *, double *);
+/* *************************************************************** */
+/* *************************************************************** */
 //this function will threshold an image to the values provided,
 //set the scl_slope and sct_inter of the image to 1 and 0 (SSD uses actual image data values),
 //and sets cal_min and cal_max to have the min/max image data values
@@ -1866,6 +1892,261 @@ void reg_flippAxis(nifti_image *image,
         exit(1);
     }
     return;
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template<class DTYPE>
+void reg_getDisplacementFromDeformation_2D(nifti_image *splineControlPoint)
+{
+    DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
+    DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny];
+
+    mat44 *splineMatrix;
+    if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
+    else splineMatrix=&(splineControlPoint->qto_xyz);
+
+    int x, y,  index;
+    DTYPE xInit, yInit;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        shared(splineControlPoint, splineMatrix, \
+        controlPointPtrX, controlPointPtrY) \
+        private(x, y, index, xInit, yInit)
+#endif
+    for(y=0; y<splineControlPoint->ny; y++){
+        index=y*splineControlPoint->nx;
+        for(x=0; x<splineControlPoint->nx; x++){
+
+            // Get the initial control point position
+            xInit = splineMatrix->m[0][0]*(DTYPE)x
+                    + splineMatrix->m[0][1]*(DTYPE)y
+                    + splineMatrix->m[0][3];
+            yInit = splineMatrix->m[1][0]*(DTYPE)x
+                    + splineMatrix->m[1][1]*(DTYPE)y
+                    + splineMatrix->m[1][3];
+
+            // The initial position is subtracted from every values
+            controlPointPtrX[index] -= xInit;
+            controlPointPtrY[index] -= yInit;
+            index++;
+        }
+    }
+}
+/* *************************************************************** */
+template<class DTYPE>
+void reg_getDisplacementFromDeformation_3D(nifti_image *splineControlPoint)
+{
+    DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
+    DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+    DTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+
+    mat44 *splineMatrix;
+    if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
+    else splineMatrix=&(splineControlPoint->qto_xyz);
+
+    int x, y, z, index;
+    float xInit, yInit, zInit;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        shared(splineControlPoint, splineMatrix, \
+        controlPointPtrX, controlPointPtrY, controlPointPtrZ) \
+        private(x, y, z, index, xInit, yInit, zInit)
+#endif
+    for(z=0; z<splineControlPoint->nz; z++){
+        index=z*splineControlPoint->nx*splineControlPoint->ny;
+        for(y=0; y<splineControlPoint->ny; y++){
+            for(x=0; x<splineControlPoint->nx; x++){
+
+                // Get the initial control point position
+                xInit = splineMatrix->m[0][0]*static_cast<float>(x)
+                        + splineMatrix->m[0][1]*static_cast<float>(y)
+                        + splineMatrix->m[0][2]*static_cast<float>(z)
+                        + splineMatrix->m[0][3];
+                yInit = splineMatrix->m[1][0]*static_cast<float>(x)
+                        + splineMatrix->m[1][1]*static_cast<float>(y)
+                        + splineMatrix->m[1][2]*static_cast<float>(z)
+                        + splineMatrix->m[1][3];
+                zInit = splineMatrix->m[2][0]*static_cast<float>(x)
+                        + splineMatrix->m[2][1]*static_cast<float>(y)
+                        + splineMatrix->m[2][2]*static_cast<float>(z)
+                        + splineMatrix->m[2][3];
+
+                // The initial position is subtracted from every values
+                controlPointPtrX[index] -= static_cast<DTYPE>(xInit);
+                controlPointPtrY[index] -= static_cast<DTYPE>(yInit);
+                controlPointPtrZ[index] -= static_cast<DTYPE>(zInit);
+                index++;
+            }
+        }
+    }
+}
+/* *************************************************************** */
+int reg_getDisplacementFromDeformation(nifti_image *splineControlPoint)
+{
+    if(splineControlPoint->datatype==NIFTI_TYPE_FLOAT32){
+        switch(splineControlPoint->nu){
+        case 2:
+            reg_getDisplacementFromDeformation_2D<float>(splineControlPoint);
+            break;
+        case 3:
+            reg_getDisplacementFromDeformation_3D<float>(splineControlPoint);
+            break;
+        default:
+            fprintf(stderr,"[NiftyReg ERROR] reg_getDisplacementFromPosition<float>\n");
+            fprintf(stderr,"[NiftyReg ERROR] Only implemented for 5D image\n");
+            fprintf(stderr,"[NiftyReg ERROR] with 2 or 3 components in the fifth dimension\n");
+            return 1;
+        }
+    }
+    else if(splineControlPoint->datatype==NIFTI_TYPE_FLOAT64){
+        switch(splineControlPoint->nu){
+        case 2:
+            reg_getDisplacementFromDeformation_2D<double>(splineControlPoint);
+            break;
+        case 3:
+            reg_getDisplacementFromDeformation_3D<double>(splineControlPoint);
+            break;
+        default:
+            fprintf(stderr,"[NiftyReg ERROR] reg_getDisplacementFromPosition<double>\n");
+            fprintf(stderr,"[NiftyReg ERROR] Only implemented for 5D image\n");
+            fprintf(stderr,"[NiftyReg ERROR] with 2 or 3 components in the fifth dimension\n");
+            return 1;
+        }
+    }
+    else{
+        fprintf(stderr,"[NiftyReg ERROR] reg_getDisplacementFromPosition\n");
+        fprintf(stderr,"[NiftyReg ERROR] Only single or double floating precision have been implemented. EXIT\n");
+        exit(1);
+    }
+    return 0;
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template<class DTYPE>
+void reg_getDeformationFromDisplacement_2D(nifti_image *splineControlPoint)
+{
+    DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
+    DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny];
+
+    mat44 *splineMatrix;
+    if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
+    else splineMatrix=&(splineControlPoint->qto_xyz);
+
+
+    int x, y, index;
+    DTYPE xInit, yInit;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        shared(splineControlPoint, splineMatrix, \
+        controlPointPtrX, controlPointPtrY) \
+        private(x, y, index, xInit, yInit)
+#endif
+    for(y=0; y<splineControlPoint->ny; y++){
+        index=y*splineControlPoint->nx;
+        for(x=0; x<splineControlPoint->nx; x++){
+
+            // Get the initial control point position
+            xInit = splineMatrix->m[0][0]*(DTYPE)x
+                    + splineMatrix->m[0][1]*(DTYPE)y
+                    + splineMatrix->m[0][3];
+            yInit = splineMatrix->m[1][0]*(DTYPE)x
+                    + splineMatrix->m[1][1]*(DTYPE)y
+                    + splineMatrix->m[1][3];
+
+            // The initial position is added from every values
+            controlPointPtrX[index] += xInit;
+            controlPointPtrY[index] += yInit;
+            index++;
+        }
+    }
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template<class DTYPE>
+void reg_getDeformationFromDisplacement_3D(nifti_image *splineControlPoint)
+{
+    DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
+    DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+    DTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+
+    mat44 *splineMatrix;
+    if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
+    else splineMatrix=&(splineControlPoint->qto_xyz);
+
+    int x, y, z, index;
+    float xInit, yInit, zInit;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+        shared(splineControlPoint, splineMatrix, \
+        controlPointPtrX, controlPointPtrY, controlPointPtrZ) \
+        private(x, y, z, index, xInit, yInit, zInit)
+#endif
+    for(z=0; z<splineControlPoint->nz; z++){
+        index=z*splineControlPoint->nx*splineControlPoint->ny;
+        for(y=0; y<splineControlPoint->ny; y++){
+            for(x=0; x<splineControlPoint->nx; x++){
+
+                // Get the initial control point position
+                xInit = splineMatrix->m[0][0]*static_cast<float>(x)
+                        + splineMatrix->m[0][1]*static_cast<float>(y)
+                        + splineMatrix->m[0][2]*static_cast<float>(z)
+                        + splineMatrix->m[0][3];
+                yInit = splineMatrix->m[1][0]*static_cast<float>(x)
+                        + splineMatrix->m[1][1]*static_cast<float>(y)
+                        + splineMatrix->m[1][2]*static_cast<float>(z)
+                        + splineMatrix->m[1][3];
+                zInit = splineMatrix->m[2][0]*static_cast<float>(x)
+                        + splineMatrix->m[2][1]*static_cast<float>(y)
+                        + splineMatrix->m[2][2]*static_cast<float>(z)
+                        + splineMatrix->m[2][3];
+
+                // The initial position is subtracted from every values
+                controlPointPtrX[index] += static_cast<DTYPE>(xInit);
+                controlPointPtrY[index] += static_cast<DTYPE>(yInit);
+                controlPointPtrZ[index] += static_cast<DTYPE>(zInit);
+                index++;
+            }
+        }
+    }
+}
+/* *************************************************************** */
+/* *************************************************************** */
+int reg_getDeformationFromDisplacement(nifti_image *splineControlPoint)
+{
+    if(splineControlPoint->datatype==NIFTI_TYPE_FLOAT32){
+        switch(splineControlPoint->nu){
+        case 2:
+            reg_getDeformationFromDisplacement_2D<float>(splineControlPoint);
+            break;
+        case 3:
+            reg_getDeformationFromDisplacement_3D<float>(splineControlPoint);
+            break;
+        default:
+            fprintf(stderr,"[NiftyReg ERROR] reg_getDeformationFromDisplacement\n");
+            fprintf(stderr,"[NiftyReg ERROR] Only implemented for 2 or 3D deformation fields. EXIT\n");
+            exit(1);
+        }
+    }
+    else if(splineControlPoint->datatype==NIFTI_TYPE_FLOAT64){
+        switch(splineControlPoint->nu){
+        case 2:
+            reg_getDeformationFromDisplacement_2D<double>(splineControlPoint);
+            break;
+        case 3:
+            reg_getDeformationFromDisplacement_3D<double>(splineControlPoint);
+            break;
+        default:
+            fprintf(stderr,"[NiftyReg ERROR] reg_getDeformationFromDisplacement\n");
+            fprintf(stderr,"[NiftyReg ERROR] Only implemented for 2 or 3D deformation fields. EXIT\n");
+            exit(1);
+        }
+    }
+    else{
+        fprintf(stderr,"[NiftyReg ERROR] reg_getPositionFromDisplacement\n");
+        fprintf(stderr,"[NiftyReg ERROR] Only single or double floating precision have been implemented. EXIT\n");
+        exit(1);
+    }
+    return 0;
 }
 /* *************************************************************** */
 /* *************************************************************** */

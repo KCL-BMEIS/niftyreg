@@ -2,13 +2,6 @@
 ##BUILD THE CPU LIBRARIES
 #-----------------------------------------------------------------------------
 set(LIST _reg_maths)
-set(LIST ${LIST} _reg_globalTransformation)
-set(LIST ${LIST} _reg_mutualinformation)
-set(LIST ${LIST} _reg_ssd)
-set(LIST ${LIST} _reg_KLdivergence)
-set(LIST ${LIST} _reg_lncc)
-set(LIST ${LIST} _reg_blockMatching)
-set(LIST ${LIST} _reg_femTransformation)
 foreach(NAME ${LIST})
     add_library(${NAME} ${NAME}.h ${NAME}.cpp)
     target_link_libraries(${NAME})
@@ -21,7 +14,6 @@ foreach(NAME ${LIST})
 endforeach(NAME)
 #-----------------------------------------------------------------------------
 set(LIST _reg_tools)
-set(LIST ${LIST} _reg_localTransformation)
 foreach(NAME ${LIST})
     add_library(${NAME} ${NAME}.h ${NAME}.cpp)
     target_link_libraries(${NAME} _reg_maths)
@@ -33,15 +25,23 @@ foreach(NAME ${LIST})
     install(FILES ${NAME}.h DESTINATION include COMPONENT Development)
 endforeach(NAME)
 #-----------------------------------------------------------------------------
-set(LIST _reg_resampling)
+set(LIST _reg_globalTransformation)
+set(LIST ${LIST} _reg_localTransformation)
+set(LIST ${LIST} _reg_resampling)
+set(LIST ${LIST} _reg_mutualinformation)
+set(LIST ${LIST} _reg_ssd)
+set(LIST ${LIST} _reg_KLdivergence)
+set(LIST ${LIST} _reg_lncc)
+set(LIST ${LIST} _reg_blockMatching)
+set(LIST ${LIST} _reg_femTransformation)
 foreach(NAME ${LIST})
     add_library(${NAME} ${NAME}.h ${NAME}.cpp)
-    target_link_libraries(${NAME} _reg_maths _reg_globalTransformation _reg_tools)
+    target_link_libraries(${NAME} _reg_tools _reg_maths)
     install(TARGETS ${NAME}
             RUNTIME DESTINATION bin COMPONENT Development
             LIBRARY DESTINATION lib COMPONENT Development
             ARCHIVE DESTINATION lib COMPONENT Development
-        )
+    )
     install(FILES ${NAME}.h DESTINATION include COMPONENT Development)
 endforeach(NAME)
 #-----------------------------------------------------------------------------

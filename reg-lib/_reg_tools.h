@@ -46,6 +46,15 @@ void reg_intensityRescale(nifti_image *image,
                           float *upThr
                           );
 
+
+/** @brief reg_getRealImageSpacing
+ * @param image image
+ * @param spacingValues spacingValues
+ */
+extern "C++" template <class DTYPE>
+void reg_getRealImageSpacing(nifti_image *image,
+                             DTYPE *spacingValues);
+
 /** @brief Convolve a cubic spline kernel with the provided image
  * @param image Image to be convolved with the kernel
  * @param radius Radius of the cubic spline kernel. The array
@@ -260,5 +269,26 @@ void reg_flippAxis(nifti_image *image,
                    void *array,
                    std::string cmd
                    );
+
+/* *************************************************************** */
+/** @brief This function converts an image containing deformation
+ * field into a displacement field
+ * The conversion is done using the appropriate qform/sform
+ * @param image Image that contains a deformation field and will be
+ * converted into a displacement field
+ */
+extern "C++"
+int reg_getDisplacementFromDeformation(nifti_image *image);
+/* *************************************************************** */
+/** @brief This function converts an image containing a displacement field
+ * into a displacement field.
+ * The conversion is done using the appropriate qform/sform
+ * @param image Image that contains a deformation field and will be
+ * converted into a displacement field
+ */
+extern "C++"
+int reg_getDeformationFromDisplacement(nifti_image *image);
+/* *************************************************************** */
+
 
 #endif

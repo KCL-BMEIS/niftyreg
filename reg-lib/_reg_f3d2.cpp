@@ -341,22 +341,20 @@ void reg_f3d2<T>::GetInverseConsistencyGradient()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_f3d2<T>::GetSimilarityMeasureGradient()
+void reg_f3d2<T>::GetVoxelBasedGradient()
 {
-    // Compute the forward and backward gradient
-    reg_f3d_sym<T>::GetSimilarityMeasureGradient();
+    reg_f3d_sym<T>::GetVoxelBasedGradient();
 
-	// Exponentiate the gradient if required
-	if(this->ISS)
-		this->ExponentiateGradient();
-
+    // Exponentiate the gradients if required
+    if(this->ISS)
+        this->ExponentiateGradient();
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_f3d2<T>::ExponentiateGradient()
 {
-	if(!this->ISS) return;
+    if(!this->ISS) return;
 
 	bool useNodeSpace = false;
 	if(useNodeSpace)
@@ -382,15 +380,16 @@ void reg_f3d2<T>::ExponentiateGradient()
 	nifti_image *tempGrad=nifti_copy_nim_info(this->voxelBasedMeasureGradientImage);
 	tempGrad->data=(void *)malloc(tempGrad->nvox*tempGrad->nbyper);
 	for(unsigned int i=0; i<(int)fabs(this->backwardControlPointGrid->intent_p1);++i){
+
 		reg_resampleGradient(this->voxelBasedMeasureGradientImage, // floating
 							 tempGrad, // warped - out
 							 tempDef[i], // deformation field
 							 1, // interpolation type - linear
 							 0.f); // padding value
-		reg_tools_addSubMulDivImages(tempGrad, // in1
-									 this->voxelBasedMeasureGradientImage, // in2
-									 this->voxelBasedMeasureGradientImage, // out
-									 0); // addition
+        reg_tools_addSubMulDivImages(tempGrad, // in1
+                                     this->voxelBasedMeasureGradientImage, // in2
+                                     this->voxelBasedMeasureGradientImage, // out
+                                     0); // addition
 	}
 	// Free the temporary deformation field
 	for(unsigned int i=0; i<=(int)fabs(this->backwardControlPointGrid->intent_p1);++i){
@@ -405,18 +404,6 @@ void reg_f3d2<T>::ExponentiateGradient()
 								this->voxelBasedMeasureGradientImage, // out
 								powf(2.f,fabsf(this->backwardControlPointGrid->intent_p1)), // value
 								3); // division
-	// Compute the node-wise gradient
-	float forwardSpacingVoxel[3]={
-		this->controlPointGrid->dx/this->currentReference->dx,
-		this->controlPointGrid->dy/this->currentReference->dy,
-		this->controlPointGrid->dz/this->currentReference->dz};
-	reg_tools_CubicSplineKernelConvolution(this->voxelBasedMeasureGradientImage,
-										   forwardSpacingVoxel);
-	// The node based NMI gradient is extracted
-    reg_voxelCentric2NodeCentric(this->transformationGradient,
-								 this->voxelBasedMeasureGradientImage,
-								 this->similarityWeight,
-								 false);
 
 	/* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\ */
 	/* Exponentiate the backward gradient using the forward transformation */
@@ -436,18 +423,19 @@ void reg_f3d2<T>::ExponentiateGradient()
 	}
 	// Generate all intermediate deformation fields
     reg_spline_getIntermediateDefFieldFromVelGrid(this->controlPointGrid,
-												   tempDef);
+                                                   tempDef);
 
 	for(unsigned int i=0; i<(int)fabs(this->controlPointGrid->intent_p1);++i){
+
 		reg_resampleGradient(this->backwardVoxelBasedMeasureGradientImage, // floating
 							 tempGrad, // warped - out
 							 tempDef[i], // deformation field
 							 1, // interpolation type - linear
-							 0.f); // padding value
-		reg_tools_addSubMulDivImages(tempGrad, // in1
-									 this->backwardVoxelBasedMeasureGradientImage, // in2
-									 this->backwardVoxelBasedMeasureGradientImage, // out
-									 0); // addition
+                             0.f); // padding value
+        reg_tools_addSubMulDivImages(tempGrad, // in1
+                                     this->backwardVoxelBasedMeasureGradientImage, // in2
+                                     this->backwardVoxelBasedMeasureGradientImage, // out
+                                     0); // addition
 	}
 	// Free the temporary deformation field
 	for(unsigned int i=0; i<=(int)fabs(this->controlPointGrid->intent_p1);++i){
@@ -461,19 +449,7 @@ void reg_f3d2<T>::ExponentiateGradient()
 	reg_tools_addSubMulDivValue(this->backwardVoxelBasedMeasureGradientImage, // in
 								this->backwardVoxelBasedMeasureGradientImage, // out
 								powf(2.f,fabsf(this->controlPointGrid->intent_p1)), // value
-								3); // division
-	// Compute the node-wise gradient
-	float backwardSpacingVoxel[3]={
-		this->backwardControlPointGrid->dx/this->currentFloating->dx,
-		this->backwardControlPointGrid->dy/this->currentFloating->dy,
-		this->backwardControlPointGrid->dz/this->currentFloating->dz};
-	reg_tools_CubicSplineKernelConvolution(this->backwardVoxelBasedMeasureGradientImage,
-										   backwardSpacingVoxel);
-	// The node based NMI gradient is extracted
-    reg_voxelCentric2NodeCentric(this->backwardTransformationGradient,
-								 this->backwardVoxelBasedMeasureGradientImage,
-								 this->similarityWeight,
-								 false);
+                                3); // division
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -618,8 +594,6 @@ void reg_f3d2<T>::UpdateParameters(float scale)
         T *propVelFieldPtrY=&propVelFieldPtrX[nodeNumber];
 
         mat33 *forward2backward_matrix=this->forward2backward_reorient;
-        // Use the Jacobian matrix determinant to normalised the vector length
-        T normRatio = (T)nifti_mat33_determ(*forward2backward_matrix);
 
         if(this->backwardControlPointGrid->nz>1){
             T velValues[3];
@@ -629,7 +603,7 @@ void reg_f3d2<T>::UpdateParameters(float scale)
 #pragma omp parallel for default(none) \
     private(node, reoriented, velValues) \
     shared(nodeNumber, propVelFieldPtrX,propVelFieldPtrY, \
-    propVelFieldPtrZ, forward2backward_matrix, normRatio)
+    propVelFieldPtrZ, forward2backward_matrix)
 #endif // _OPENMP
             for(node=0;node<nodeNumber;++node){
                 velValues[0]=propVelFieldPtrX[node];
@@ -648,9 +622,9 @@ void reg_f3d2<T>::UpdateParameters(float scale)
                          forward2backward_matrix->m[2][1] * velValues[1] +
                          forward2backward_matrix->m[2][2] * velValues[2] ;
 
-                propVelFieldPtrX[node] = reoriented[0] * normRatio;
-                propVelFieldPtrY[node] = reoriented[1] * normRatio;
-                propVelFieldPtrZ[node] = reoriented[2] * normRatio;
+                propVelFieldPtrX[node] = reoriented[0];
+                propVelFieldPtrY[node] = reoriented[1];
+                propVelFieldPtrZ[node] = reoriented[2];
             }
         }
         else{
@@ -660,7 +634,7 @@ void reg_f3d2<T>::UpdateParameters(float scale)
 #pragma omp parallel for default(none) \
     private(node, reoriented, velValues) \
     shared(nodeNumber, propVelFieldPtrX,propVelFieldPtrY, \
-           forward2backward_matrix, normRatio)
+           forward2backward_matrix)
 #endif // _OPENMP
             for(node=0;node<nodeNumber;++node)            {
                 velValues[0]=propVelFieldPtrX[node];
@@ -672,8 +646,8 @@ void reg_f3d2<T>::UpdateParameters(float scale)
                          forward2backward_matrix->m[1][0] * velValues[0] +
                          forward2backward_matrix->m[1][1] * velValues[1] ;
 
-                propVelFieldPtrX[node] = reoriented[0] * normRatio;
-                propVelFieldPtrY[node] = reoriented[1] * normRatio;
+                propVelFieldPtrX[node] = reoriented[0];
+                propVelFieldPtrY[node] = reoriented[1];
             }
         }
 
@@ -683,8 +657,6 @@ void reg_f3d2<T>::UpdateParameters(float scale)
         propVelFieldPtrY=&propVelFieldPtrX[nodeNumber];
 
         mat33 *backward2forward_matrix=this->backward2forward_reorient;
-        // Use the Jacobian matrix determinant to normalised the vector length
-        normRatio = (T)nifti_mat33_determ(*backward2forward_matrix);
 
         if(this->controlPointGrid->nz>1){
             T velValues[3];
@@ -694,7 +666,7 @@ void reg_f3d2<T>::UpdateParameters(float scale)
 #pragma omp parallel for default(none) \
     private(node, reoriented, velValues) \
     shared(nodeNumber, propVelFieldPtrX,propVelFieldPtrY, \
-    propVelFieldPtrZ, backward2forward_matrix, normRatio)
+    propVelFieldPtrZ, backward2forward_matrix)
 #endif // _OPENMP
             for(node=0;node<nodeNumber;++node){
                 velValues[0]=propVelFieldPtrX[node];
@@ -713,9 +685,9 @@ void reg_f3d2<T>::UpdateParameters(float scale)
                          backward2forward_matrix->m[2][1] * velValues[1] +
                          backward2forward_matrix->m[2][2] * velValues[2] ;
 
-                propVelFieldPtrX[node] = reoriented[0] * normRatio;
-                propVelFieldPtrY[node] = reoriented[1] * normRatio;
-                propVelFieldPtrZ[node] = reoriented[2] * normRatio;
+                propVelFieldPtrX[node] = reoriented[0];
+                propVelFieldPtrY[node] = reoriented[1];
+                propVelFieldPtrZ[node] = reoriented[2];
             }
         }
         else{
@@ -725,7 +697,7 @@ void reg_f3d2<T>::UpdateParameters(float scale)
 #pragma omp parallel for default(none) \
     private(node, reoriented, velValues) \
     shared(nodeNumber, propVelFieldPtrX,propVelFieldPtrY, \
-    backward2forward_matrix, normRatio)
+    backward2forward_matrix)
 #endif // _OPENMP
             for(node=0;node<nodeNumber;++node){
                 velValues[0]=propVelFieldPtrX[node];
@@ -737,8 +709,8 @@ void reg_f3d2<T>::UpdateParameters(float scale)
                          backward2forward_matrix->m[1][0] * velValues[0] +
                          backward2forward_matrix->m[1][1] * velValues[1] ;
 
-                propVelFieldPtrX[node] = reoriented[0] * normRatio;
-                propVelFieldPtrY[node] = reoriented[1] * normRatio;
+                propVelFieldPtrX[node] = reoriented[0];
+                propVelFieldPtrY[node] = reoriented[1];
             }
         }
     } // End - reorient the warped grids if necessary

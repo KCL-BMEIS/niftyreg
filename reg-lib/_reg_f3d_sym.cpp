@@ -796,8 +796,6 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
 template <class T>
 void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
 {
-//    this->GetVoxelBasedGradient();
-
     reg_f3d<T>::GetSimilarityMeasureGradient();
 
     // The voxel based NMI gradient is convolved with a spline kernel

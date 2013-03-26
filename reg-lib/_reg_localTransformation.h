@@ -413,23 +413,6 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
 /* *********************************************** */
 
 /* *************************************************************** */
-/** @brief This function converts an image containing deformation
- * field into a displacement field
- * The conversion is done using the appropriate qform/sform
- * @param image Image that contains a deformation field and will be
- * converted into a displacement field
- */
-int reg_getDisplacementFromDeformation(nifti_image *image);
-/* *************************************************************** */
-/** @brief This function converts an image containing a displacement field
- * into a displacement field.
- * The conversion is done using the appropriate qform/sform
- * @param image Image that contains a deformation field and will be
- * converted into a displacement field
- */
-int reg_getDeformationFromDisplacement(nifti_image *image);
-
-/* *************************************************************** */
 /** @brief This function compute the BCH update using an initial verlocity field
  * and its gradient.
  * @param img1 Image that contains the velocity field parametrisation

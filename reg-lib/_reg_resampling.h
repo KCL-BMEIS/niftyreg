@@ -14,7 +14,6 @@
 #define _REG_RESAMPLING_H
 
 #include "nifti1_io.h"
-#include "_reg_globalTransformation.h"
 #include "_reg_tools.h"
 
 /** @brief This function resample a source image into the space of a target/result image.

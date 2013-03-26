@@ -109,30 +109,6 @@ void addJacobianGradientValues(mat33 jacobianMatrix,
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
-void reg_getRealImageSpacing(nifti_image *image,
-                             DTYPE *spacingValues)
-{
-    float indexVoxel1[3]={0,0,0};
-    float indexVoxel2[3], realVoxel1[3], realVoxel2[3];
-    reg_mat44_mul(&(image->sto_xyz), indexVoxel1, realVoxel1);
-
-    indexVoxel2[1]=indexVoxel2[2]=0;indexVoxel2[0]=1;
-    reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
-    spacingValues[0]=sqrt(reg_pow2(realVoxel1[0]-realVoxel2[0])+reg_pow2(realVoxel1[1]-realVoxel2[1])+reg_pow2(realVoxel1[2]-realVoxel2[2]));
-
-    indexVoxel2[0]=indexVoxel2[2]=0;indexVoxel2[1]=1;
-    reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
-    spacingValues[1]=sqrt(reg_pow2(realVoxel1[0]-realVoxel2[0])+reg_pow2(realVoxel1[1]-realVoxel2[1])+reg_pow2(realVoxel1[2]-realVoxel2[2]));
-
-    if(image->nz>1){
-        indexVoxel2[0]=indexVoxel2[1]=0;indexVoxel2[2]=1;
-        reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
-        spacingValues[2]=sqrt(reg_pow2(realVoxel1[0]-realVoxel2[0])+reg_pow2(realVoxel1[1]-realVoxel2[1])+reg_pow2(realVoxel1[2]-realVoxel2[2]));
-    }
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template<class DTYPE>
 double reg_spline_jacobianValue2D(nifti_image *splineControlPoint,
                                    nifti_image *referenceImage)
 {
@@ -4042,24 +4018,27 @@ void reg_spline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceIm
 
                     // Get the corresponding voxel position
                     DTYPE voxelPosition[3];
-                    voxelPosition[0]=real2voxel->m[0][0] * realPosition[0] +
+                    voxelPosition[0]=
+                            real2voxel->m[0][0] * realPosition[0] +
                             real2voxel->m[0][1] * realPosition[1] +
                             real2voxel->m[0][2] * realPosition[2] +
                             real2voxel->m[0][3];
-                    voxelPosition[1]=real2voxel->m[1][0] * realPosition[0] +
+                    voxelPosition[1]=
+                            real2voxel->m[1][0] * realPosition[0] +
                             real2voxel->m[1][1] * realPosition[1] +
                             real2voxel->m[1][2] * realPosition[2] +
                             real2voxel->m[1][3];
-                    voxelPosition[2]=real2voxel->m[2][0] * realPosition[0] +
+                    voxelPosition[2]=
+                            real2voxel->m[2][0] * realPosition[0] +
                             real2voxel->m[2][1] * realPosition[1] +
                             real2voxel->m[2][2] * realPosition[2] +
                             real2voxel->m[2][3];
 
                     // Compute the relative positions
                     int previous[3];
-                    previous[0]=(int)floor(voxelPosition[0]);
-                    previous[1]=(int)floor(voxelPosition[1]);
-                    previous[2]=(int)floor(voxelPosition[2]);
+                    previous[0]=static_cast<int>(reg_floor(voxelPosition[0]));
+                    previous[1]=static_cast<int>(reg_floor(voxelPosition[1]));
+                    previous[2]=static_cast<int>(reg_floor(voxelPosition[2]));
                     // Compute the coefficients for linear interpolation
                     DTYPE basisX[2], basisY[2], basisZ[2], first[2]={-1,1};
                     basisX[1]=voxelPosition[0]-(DTYPE)previous[0];basisX[0]=1.-basisX[1];
@@ -4095,15 +4074,18 @@ void reg_spline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceIm
                                 }
                                 else{
                                     // Uses the deformation field affine transformation
-                                    defX = voxel2real->m[0][0] * currentX +
+                                    defX =
+                                            voxel2real->m[0][0] * currentX +
                                             voxel2real->m[0][1] * currentY +
                                             voxel2real->m[0][2] * currentZ +
                                             voxel2real->m[0][3];
-                                    defY = voxel2real->m[1][0] * currentX +
+                                    defY =
+                                            voxel2real->m[1][0] * currentX +
                                             voxel2real->m[1][1] * currentY +
                                             voxel2real->m[1][2] * currentZ +
                                             voxel2real->m[1][3];
-                                    defZ = voxel2real->m[2][0] * currentX +
+                                    defZ =
+                                            voxel2real->m[2][0] * currentX +
                                             voxel2real->m[2][1] * currentY +
                                             voxel2real->m[2][2] * currentZ +
                                             voxel2real->m[2][3];
@@ -4114,30 +4096,45 @@ void reg_spline_GetJacobianMatricesFromVelocityField_3D(nifti_image* referenceIm
                                 newDefY += basisCoeff[0] * defY;
                                 newDefZ += basisCoeff[0] * defZ;
                                 // Compute the derivatives using linear interpolation
-                                jacobianMatrix.m[0][0] += basisCoeff[1]*defX;
-                                jacobianMatrix.m[0][1] += basisCoeff[2]*defX;
-                                jacobianMatrix.m[0][2] += basisCoeff[3]*defX;
-                                jacobianMatrix.m[1][0] += basisCoeff[1]*defY;
-                                jacobianMatrix.m[1][1] += basisCoeff[2]*defY;
-                                jacobianMatrix.m[1][2] += basisCoeff[3]*defY;
-                                jacobianMatrix.m[2][0] += basisCoeff[1]*defZ;
-                                jacobianMatrix.m[2][1] += basisCoeff[2]*defZ;
-                                jacobianMatrix.m[2][2] += basisCoeff[3]*defZ;
+                                DTYPE defX2=
+                                        real2voxel->m[0][0] * defX +
+                                        real2voxel->m[0][1] * defY +
+                                        real2voxel->m[0][2] * defZ +
+                                        real2voxel->m[0][3];
+                                DTYPE defY2=
+                                        real2voxel->m[1][0] * defX +
+                                        real2voxel->m[1][1] * defY +
+                                        real2voxel->m[1][2] * defZ +
+                                        real2voxel->m[1][3];
+                                DTYPE defZ2=
+                                        real2voxel->m[2][0] * defX +
+                                        real2voxel->m[2][1] * defY +
+                                        real2voxel->m[2][2] * defZ +
+                                        real2voxel->m[2][3];
+                                jacobianMatrix.m[0][0] += basisCoeff[1]*defX2;
+                                jacobianMatrix.m[0][1] += basisCoeff[2]*defX2;
+                                jacobianMatrix.m[0][2] += basisCoeff[3]*defX2;
+                                jacobianMatrix.m[1][0] += basisCoeff[1]*defY2;
+                                jacobianMatrix.m[1][1] += basisCoeff[2]*defY2;
+                                jacobianMatrix.m[1][2] += basisCoeff[3]*defY2;
+                                jacobianMatrix.m[2][0] += basisCoeff[1]*defZ2;
+                                jacobianMatrix.m[2][1] += basisCoeff[2]*defZ2;
+                                jacobianMatrix.m[2][2] += basisCoeff[3]*defZ2;
                             }//a
                         }//b
                     }//c
-                    jacobianMatrix.m[0][0] /= realSpacing[0];
-                    jacobianMatrix.m[0][1] /= realSpacing[1];
-                    jacobianMatrix.m[0][2] /= realSpacing[2];
-                    jacobianMatrix.m[1][0] /= realSpacing[0];
-                    jacobianMatrix.m[1][1] /= realSpacing[1];
-                    jacobianMatrix.m[1][2] /= realSpacing[2];
-                    jacobianMatrix.m[2][0] /= realSpacing[0];
-                    jacobianMatrix.m[2][1] /= realSpacing[1];
-                    jacobianMatrix.m[2][2] /= realSpacing[2];
+//                    jacobianMatrix.m[0][0] /= realSpacing[0];
+//                    jacobianMatrix.m[0][1] /= realSpacing[1];
+//                    jacobianMatrix.m[0][2] /= realSpacing[2];
+//                    jacobianMatrix.m[1][0] /= realSpacing[0];
+//                    jacobianMatrix.m[1][1] /= realSpacing[1];
+//                    jacobianMatrix.m[1][2] /= realSpacing[2];
+//                    jacobianMatrix.m[2][0] /= realSpacing[0];
+//                    jacobianMatrix.m[2][1] /= realSpacing[1];
+//                    jacobianMatrix.m[2][2] /= realSpacing[2];
 
                     // Update the Jacobian matrices array
-                    jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
+//                    jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
                     jacobianMatrices[currentIndex] = nifti_mat33_mul(jacobianMatrix,jacobianMatrices[currentIndex]);
 
                     // Store the new voxel position

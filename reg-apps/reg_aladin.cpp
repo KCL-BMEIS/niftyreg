@@ -116,7 +116,7 @@ int main(int argc, char **argv)
     int levelsToPerform=std::numeric_limits<int>::max();
     int affineFlag=1;
     int rigidFlag=1;
-    float blockPercentage=50.0f;
+    int blockPercentage=50;
     float inlierLts=50.0f;
     int alignCentre=1;
     int interpolation=1;

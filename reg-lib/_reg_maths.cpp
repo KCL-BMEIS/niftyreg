@@ -560,6 +560,10 @@ mat44 reg_mat44_logm(mat44 const* mat)
         A=reg_mat44_sqrt(&A);
         A_I = reg_mat44_minus(&A,&I);
         k=k+1;
+        if(k>1.0e7){
+            fprintf(stderr, "reg_mat44_logm did not converge after 10e7 iterations.");
+            break;
+        }
     }
     A = reg_mat44_minus(&I,&A);
     mat44 Z = A;
@@ -574,8 +578,7 @@ mat44 reg_mat44_logm(mat44 const* mat)
         X = reg_mat44_add(&X,&Z_i);
         if(i>1.0e7){
             fprintf(stderr, "reg_mat44_logm did not converge after 10e7 iterations.");
-            reg_mat44_eye(&X);
-            return X;
+            break;
         }
     }
     X=reg_mat44_mul(&X,-1.0);

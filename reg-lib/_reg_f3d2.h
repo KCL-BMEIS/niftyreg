@@ -29,7 +29,7 @@ class reg_f3d2 : public reg_f3d_sym<T>
     virtual void GetDeformationField();
     virtual void GetInverseConsistencyErrorField();
     virtual void GetInverseConsistencyGradient();
-    virtual void GetSimilarityMeasureGradient();
+    virtual void GetVoxelBasedGradient();
     virtual void UpdateParameters(float);
     virtual void ExponentiateGradient();
     virtual void UseBCHUpdate(int);
