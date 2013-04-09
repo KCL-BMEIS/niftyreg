@@ -68,7 +68,7 @@ void Usage(char *exec)
     printf("\t-refLowThr <float>\tLower threshold applied to the reference image [none]\n");
     printf("\t-refUppThr <float>\tUpper threshold applied to the reference image [none]\n");
     printf("\t-floLowThr <float>\tLower threshold applied to the floating image [none]\n");
-    printf("\t-floUppThr <float>\tUpper threshold applied to the floating image [none]\n");
+    printf("\t-floUpThr <float>\tUpper threshold applied to the floating image [none]\n");
 
     printf("\t-nac\t\t\tUse the nifti header origins to initialise the translation\n");
 
@@ -233,7 +233,7 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-floLowThr")==0 || strcmp(argv[i], "--floLowThr")==0){
             floatingLowerThr=atof(argv[++i]);
         }
-        else if(strcmp(argv[i], "-floUppThr")==0 || strcmp(argv[i], "--floUppThr")==0){
+        else if(strcmp(argv[i], "-floUpThr")==0 || strcmp(argv[i], "--floUpThr")==0){
             floatingUpperThr=atof(argv[++i]);
         }
         else if(strcmp(argv[i], "-iso")==0 || strcmp(argv[i], "--iso")==0){
