@@ -65,10 +65,10 @@ void Usage(char *exec)
     printf("\t-smooF <float>\t\tSmooth the floating image using the specified sigma (mm) [0]\n");
     printf("\t-ln <int>\t\tNumber of level to perform [3]\n");
     printf("\t-lp <int>\t\tOnly perform the first levels [ln]\n");
-    printf("\t-refLowThr <float>\tLower threshold applied to the reference image [none]\n");
-    printf("\t-refUppThr <float>\tUpper threshold applied to the reference image [none]\n");
-    printf("\t-floLowThr <float>\tLower threshold applied to the floating image [none]\n");
-    printf("\t-floUpThr <float>\tUpper threshold applied to the floating image [none]\n");
+    printf("\t-refLowThr <float>\tLower threshold applied to the reference image [0]\n");
+    printf("\t-refUpThr <float>\tUpper threshold applied to the reference image [0]\n");
+    printf("\t-floLowThr <float>\tLower threshold applied to the floating image [0]\n");
+    printf("\t-floUpThr <float>\tUpper threshold applied to the floating image [0]\n");
 
     printf("\t-nac\t\t\tUse the nifti header origins to initialise the translation\n");
 
@@ -227,7 +227,7 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-refLowThr")==0 || strcmp(argv[i], "--refLowThr")==0){
             referenceLowerThr=atof(argv[++i]);
         }
-        else if(strcmp(argv[i], "-refUppThr")==0 || strcmp(argv[i], "--refUppThr")==0){
+        else if(strcmp(argv[i], "-refUpThr")==0 || strcmp(argv[i], "--refUpThr")==0){
             referenceUpperThr=atof(argv[++i]);
         }
         else if(strcmp(argv[i], "-floLowThr")==0 || strcmp(argv[i], "--floLowThr")==0){
@@ -363,10 +363,18 @@ int main(int argc, char **argv)
     REG->SetBlockPercentage(blockPercentage);
     REG->SetInlierLts(inlierLts);
     REG->SetInterpolation(interpolation);
-    REG->SetReferenceLowerThreshold(referenceLowerThr);
-    REG->SetReferenceUpperThreshold(referenceUpperThr);
-    REG->SetFloatingLowerThreshold(floatingLowerThr);
-    REG->SetFloatingUpperThreshold(floatingUpperThr);
+    
+    if (referenceLowerThr != referenceUpperThr)
+    {
+      REG->SetReferenceLowerThreshold(referenceLowerThr);
+      REG->SetReferenceUpperThreshold(referenceUpperThr);
+    }
+
+    if (floatingLowerThr != floatingUpperThr)
+    {
+      REG->SetFloatingLowerThreshold(floatingLowerThr);
+      REG->SetFloatingUpperThreshold(floatingUpperThr);
+    }
 
     if(REG->GetLevelsToPerform() > REG->GetNumberOfLevels())
         REG->SetLevelsToPerform(REG->GetNumberOfLevels());
