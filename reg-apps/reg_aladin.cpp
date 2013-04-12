@@ -47,33 +47,41 @@ void Usage(char *exec)
     printf("This code has been written by Marc Modat (m.modat@ucl.ac.uk) and Pankaj Daga,\n");
     printf("for any comment, please contact them.\n");
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+
     printf("Usage:\t%s -ref <filename> -flo <filename> [OPTIONS].\n",exec);
-    printf("\t-ref <filename>\tFilename of the reference (target) image (mandatory)\n");
-    printf("\t-flo <filename>\tFilename of the floating (source) image (mandatory)\n");
-    printf("* * OPTIONS * *\n");
+    printf("\t-ref <filename>\tReference image filename (also called Target or Fixed) (mandatory)\n");
+    printf("\t-flo <filename>\tFloating image filename (also called Source or moving) (mandatory)\n");
+
+    printf("\n* * OPTIONS * *\n");
     printf("\t-noSym \t\t\tThe symmetric version of the algorithm is used by default. Use this flag to disable it.\n");
-    printf("\t-aff <filename>\t\tFilename which contains the output affine transformation [outputAffine.txt]\n");
-    printf("\t-rigOnly\t\tTo perform a rigid registration only (rigid+affine by default)\n");
-    printf("\t-affDirect\t\tDirectly optimize 12 DoF affine [default is rigid initially then affine]\n");
-    printf("\t-inaff <filename>\tFilename which contains an input affine transformation (Affine*Reference=Floating) [none]\n");
-    printf("\t-affFlirt <filename>\tFilename which contains an input affine transformation from Flirt [none]\n");
-    printf("\t-rmask <filename>\tFilename of a mask image in the reference space\n");
-    printf("\t-fmask <filename>\tFilename of a mask image in the floating space. Only used when symmetric turned on\n");
-    printf("\t-res <filename>\tFilename of the resampled image [outputResult.nii]\n");
-    printf("\t-maxit <int>\t\tNumber of iteration per level [5]\n");
-    printf("\t-smooR <float>\t\tSmooth the reference image using the specified sigma (mm) [0]\n");
-    printf("\t-smooF <float>\t\tSmooth the floating image using the specified sigma (mm) [0]\n");
-    printf("\t-ln <int>\t\tNumber of level to perform [3]\n");
-    printf("\t-lp <int>\t\tOnly perform the first levels [ln]\n");
-    printf("\t-refLowThr <float>\tLower threshold applied to the reference image [0]\n");
-    printf("\t-refUpThr <float>\tUpper threshold applied to the reference image [0]\n");
-    printf("\t-floLowThr <float>\tLower threshold applied to the floating image [0]\n");
-    printf("\t-floUpThr <float>\tUpper threshold applied to the floating image [0]\n");
+    printf("\t-rigOnly\t\tTo perform a rigid registration only. (Rigid+affine by default)\n");
+    printf("\t-affDirect\t\tDirectly optimize 12 DoF affine. (Default is rigid initially then affine)\n");
 
-    printf("\t-nac\t\t\tUse the nifti header origins to initialise the translation\n");
+    printf("\t-aff <filename>\t\tFilename which contains the output affine transformation. [outputAffine.txt]\n");
+    printf("\t-inaff <filename>\tFilename which contains an input affine transformation. (Affine*Reference=Floating) [none]\n");
+    printf("\t-affFlirt <filename>\tFilename which contains an input affine transformation from Flirt. [none]\n");
 
-    printf("\t-%%v <int>\t\tPercentage of block to use [50]\n");
-    printf("\t-%%i <int>\t\tPercentage of inlier for the LTS [50]\n");
+    printf("\t-rmask <filename>\tFilename of a mask image in the reference space.\n");
+    printf("\t-fmask <filename>\tFilename of a mask image in the floating space. (Only used when symmetric turned on)\n");
+    printf("\t-res <filename>\t\tFilename of the resampled image. [outputResult.nii]\n");
+
+    printf("\t-maxit <int>\t\tMaximal number of iterations of the trimmed least square approach to perform per level. [5]\n");
+    printf("\t-ln <int>\t\tNumber of levels to use to generate the pyramids for the coarse-to-fine approach. [3]\n");
+    printf("\t-lp <int>\t\tNumber of levels to use to run the registration once the pyramids have been created. [ln]\n");
+    
+    printf("\t-smooR <float>\t\tStandard deviation in mm (voxel if negative) of the Gaussian kernel used to smooth the Reference image. [0]\n");
+    printf("\t-smooF <float>\t\tStandard deviation in mm (voxel if negative) of the Gaussian kernel used to smooth the Floating image. [0]\n");
+    printf("\t-refLowThr <float>\tLower threshold value applied to the reference image. [0]\n");
+    printf("\t-refUpThr <float>\tUpper threshold value applied to the reference image. [0]\n");
+    printf("\t-floLowThr <float>\tLower threshold value applied to the floating image. [0]\n");
+    printf("\t-floUpThr <float>\tUpper threshold value applied to the floating image. [0]\n");
+
+    printf("\t-nac\t\t\tUse the nifti header origin to initialise the transformation. (Image centres are used by default)\n");
+    printf("\t-interp\t\t\tInterpolation order to use internally to warp the floating image.\n");
+    printf("\t-iso\t\t\tMake floating and reference images isotropic if required.\n");
+
+    printf("\t-%%v <int>\t\tPercentage of blocks to use in the optimisation scheme. [50]\n");
+    printf("\t-%%i <int>\t\tPercentage of blocks to consider as inlier in the optimisation scheme. [50]\n");
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     return;
 }
