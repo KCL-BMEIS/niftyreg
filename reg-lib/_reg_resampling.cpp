@@ -124,8 +124,8 @@ void CubicSplineResampleImage3D(nifti_image *floatingImage,
                         xTempNewValue=0.0;
                         for(a=0; a<4; a++){
                             if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx &&
-                               -1<Z && Z<floatingImage->nz &&
-                               -1<Y && Y<floatingImage->ny){
+                                    -1<Z && Z<floatingImage->nz &&
+                                    -1<Y && Y<floatingImage->ny){
                                 xTempNewValue +=  (FieldTYPE)*xyzPointer * xBasis[a];
                             }
                             else{
@@ -946,120 +946,161 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
                                   nifti_image *deformationField,
                                   float paddingValue)
 {
-    unsigned int floatingPixelNumber = floatingImage->nx*floatingImage->ny;
-    unsigned int warpedPixelNumber = warpedImage->nx*warpedImage->ny;
+    size_t floatingVoxelNumber = floatingImage->nx*floatingImage->ny*floatingImage->nz;
+    size_t warpedVoxelNumber = warpedImage->nx*warpedImage->ny*warpedImage->nz;
     DTYPE *floatingIntensityX = static_cast<DTYPE *>(floatingImage->data);
-    DTYPE *floatingIntensityY = &floatingIntensityX[floatingPixelNumber];
+    DTYPE *floatingIntensityY = &floatingIntensityX[floatingVoxelNumber];
     DTYPE *warpedIntensityX = static_cast<DTYPE *>(warpedImage->data);
-    DTYPE *warpedIntensityY = &warpedIntensityX[warpedPixelNumber];
+    DTYPE *warpedIntensityY = &warpedIntensityX[warpedVoxelNumber];
     DTYPE *deformationFieldPtrX = static_cast<DTYPE *>(deformationField->data);
-    DTYPE *deformationFieldPtrY = &deformationFieldPtrX[deformationField->nx*deformationField->ny];
+    DTYPE *deformationFieldPtrY = &deformationFieldPtrX[deformationField->nx*deformationField->ny*deformationField->nz];
 
-    // Extract the relevant affine matrices
-    mat44 *warped_voxel_to_mm = &warpedImage->qto_xyz;
-    if(warpedImage->sform_code!=0)
-        warped_voxel_to_mm = &warpedImage->sto_xyz;
+    // Extract the relevant affine matrix
     mat44 *floating_mm_to_voxel = &floatingImage->qto_ijk;
     if(floatingImage->sform_code!=0)
         floating_mm_to_voxel = &floatingImage->sto_ijk;
-    mat44 *def_mm_to_voxel = &deformationField->qto_ijk;
-    if(deformationField->sform_code!=0)
-        def_mm_to_voxel = &deformationField->sto_ijk;
-    mat44 warped_to_def_voxel = reg_mat44_mul(def_mm_to_voxel,warped_voxel_to_mm);
 
-    // Some usefull variable
+    // The spacing is computed in case the sform if defined
+    DTYPE realSpacing[2];
+    if(warpedImage->sform_code>0){
+        reg_getRealImageSpacing(warpedImage,realSpacing);
+    }
+    else{
+        realSpacing[0]=warpedImage->dx;
+        realSpacing[1]=warpedImage->dy;
+    }
+
+    // Reorientation matrix is assessed in order to remove the rigid component
+    mat33 reorient=nifti_mat33_inverse(nifti_mat33_polar(reg_mat44_to_mat33(&deformationField->sto_xyz)));
+
+    // Some useful variables
     mat33 jacMat;
-    jacMat.m[0][0]=1;jacMat.m[0][1]=0;jacMat.m[0][2]=0;
-    jacMat.m[1][0]=0;jacMat.m[1][1]=1;jacMat.m[1][2]=0;
-    jacMat.m[2][0]=0;jacMat.m[2][1]=0;jacMat.m[2][2]=1;
+    DTYPE defX,defY;
+    DTYPE basisX[2], basisY[2], deriv[2], basis[2];
+    DTYPE xFloCoord,yFloCoord;
+    int anteIntX[2],anteIntY[2];
+    int x,y,a,b,defIndex,floIndex,warpedIndex;
+    DTYPE val_x,val_y,weight[2];
 
-    // Loop over all pixel
-    int warpedIndex=0;
-    for(int y=0; y<warpedImage->ny; ++y){
-        for(int x=0; x<warpedImage->nx; ++x){
+    // Loop over all voxel
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    private(x,y,a,b,val_x,val_y,defIndex,floIndex,warpedIndex, \
+    anteIntX,anteIntY,xFloCoord,yFloCoord, \
+    basisX,basisY,deriv,basis,defX,defY,jacMat,weight) \
+    shared(warpedImage,warpedIntensityX,warpedIntensityY, \
+    deformationField,deformationFieldPtrX,deformationFieldPtrY, \
+    floatingImage,floatingIntensityX,floatingIntensityY,floating_mm_to_voxel, \
+    paddingValue, reorient,realSpacing)
+#endif // _OPENMP
+    for(y=0; y<warpedImage->ny; ++y){
+        warpedIndex=y*warpedImage->nx;
+        deriv[0]=-1;
+        deriv[1]=1;
+        basis[0]=1;
+        basis[1]=0;
+        for(x=0; x<warpedImage->nx; ++x){
             warpedIntensityX[warpedIndex]=paddingValue;
             warpedIntensityY[warpedIndex]=paddingValue;
-            // Compte the index in the deformation field
-            DTYPE xDef = x*warped_to_def_voxel.m[0][0] +
-                    y*warped_to_def_voxel.m[0][1] +
-                    warped_to_def_voxel.m[0][3];
-            DTYPE yDef = x*warped_to_def_voxel.m[1][0] +
-                    y*warped_to_def_voxel.m[1][1] +
-                    warped_to_def_voxel.m[1][3];
-            // Extract the corresponding position using linear interpolation
-            int anteY = static_cast<int>(reg_floor(yDef));
-            if(anteY>-1 && anteY<deformationField->ny-1){
-                int anteX = static_cast<int>(reg_floor(xDef));
-                if(anteX>-1 && anteX<deformationField->nx-1){
-                    DTYPE xPos=0, yPos=0;
-                    jacMat.m[0][0]=0;jacMat.m[0][1]=0;
-                    jacMat.m[1][0]=0;jacMat.m[1][1]=0;
-                    DTYPE basisX[2], basisY[2], deriv[2]={-1,1};
-                    basisX[1]=xDef-anteX;
-                    basisY[1]=yDef-anteY;
-                    basisX[0]=1.f-basisX[1];
-                    basisY[0]=1.f-basisY[1];
-                    for(unsigned int b=0;b<2;++b){
-                        for(unsigned int a=0;a<2;++a){
-                            unsigned int defIndex = (anteY+b)*deformationField->nx+anteX+a;
-                            DTYPE defX2=deformationFieldPtrX[defIndex];
-                            DTYPE defY2=deformationFieldPtrY[defIndex];
-                            xPos += defX2 * basisX[a] * basisY[b];
-                            yPos += defY2 * basisX[a] * basisY[b];
-                            DTYPE defX =
-                                    def_mm_to_voxel->m[0][0] * defX2 +
-                                    def_mm_to_voxel->m[0][1] * defY2 +
-                                    def_mm_to_voxel->m[0][3];
-                            DTYPE defY =
-                                    def_mm_to_voxel->m[1][0] * defX2 +
-                                    def_mm_to_voxel->m[1][1] * defY2 +
-                                    def_mm_to_voxel->m[1][3];
-                            jacMat.m[0][0] += defX * deriv[a] * basisY[b];
-                            jacMat.m[0][1] += defY * deriv[a] * basisY[b];
-                            jacMat.m[1][0] += defX * basisX[a] * deriv[b];
-                            jacMat.m[1][1] += defY * basisX[a] * deriv[b];
-                        }
-                    }
-                    // Extract the corresponding coordinates in the floating image
-                    DTYPE xFloCoord = xPos * floating_mm_to_voxel->m[0][0] +
-                            yPos * floating_mm_to_voxel->m[0][1] +
-                            floating_mm_to_voxel->m[0][3];
-                    DTYPE yFloCoord = xPos * floating_mm_to_voxel->m[1][0] +
-                            yPos * floating_mm_to_voxel->m[1][1] +
-                            floating_mm_to_voxel->m[1][3];
-                    // Extract the floating value using bilinear interpolation
-                    int anteIntX = static_cast<int>(reg_floor(xFloCoord));
-                    int anteIntY = static_cast<int>(reg_floor(yFloCoord));
-                    DTYPE val_x=0, val_y=0;
-                    basisX[1]=fabs(xFloCoord-(DTYPE)anteIntX);
-                    basisY[1]=fabs(yFloCoord-(DTYPE)anteIntY);
-                    basisX[0]=1.f-basisX[1];
-                    basisY[0]=1.f-basisY[1];
-                    for(int b=0;b<2;++b){
-                        int B=anteIntY+b;
-                        if(B>-1 && B<floatingImage->ny){
-                            for(int a=0;a<2;++a){
-                                int A=anteIntX+a;
-                                if(A>-1 && A<floatingImage->nx){
-                                    unsigned int floIndex = (B)*floatingImage->nx+A;
-                                    val_x += floatingIntensityX[floIndex] * basisX[a] * basisY[b];
-                                    val_y += floatingIntensityY[floIndex] * basisX[a] * basisY[b];
-                                } // anteX not in the floating image space
-                                else{
-                                    val_x += paddingValue * basisX[a] * basisY[b];
-                                    val_y += paddingValue * basisX[a] * basisY[b];
-                                }
-                            } // a
-                        } // anteY not in the floating image space
+
+            // Compute the index in the floating image
+            defX=deformationFieldPtrX[warpedIndex];
+            defY=deformationFieldPtrY[warpedIndex];
+            xFloCoord =
+                    floating_mm_to_voxel->m[0][0] * defX +
+                    floating_mm_to_voxel->m[0][1] * defY +
+                    floating_mm_to_voxel->m[0][3];
+            yFloCoord =
+                    floating_mm_to_voxel->m[1][0] * defX +
+                    floating_mm_to_voxel->m[1][1] * defY +
+                    floating_mm_to_voxel->m[1][3];
+
+            // Extract the floating value using bilinear interpolation
+            anteIntX[0]=static_cast<int>(reg_floor(xFloCoord));
+            anteIntX[1]=static_cast<int>(reg_ceil(xFloCoord));
+            anteIntY[0]=static_cast<int>(reg_floor(yFloCoord));
+            anteIntY[1]=static_cast<int>(reg_ceil(yFloCoord));
+            val_x=0;val_y=0;
+            basisX[1]=fabs(xFloCoord-(DTYPE)anteIntX[0]);
+            basisY[1]=fabs(yFloCoord-(DTYPE)anteIntY[0]);
+            basisX[0]=1.0-basisX[1];
+            basisY[0]=1.0-basisY[1];
+            for(b=0;b<2;++b){
+                if(anteIntY[b]>-1 && anteIntY[b]<floatingImage->ny){
+                    for(a=0;a<2;++a){
+                        weight[0]=basisX[a] * basisY[b];
+                        if(anteIntX[a]>-1 && anteIntX[a]<floatingImage->nx){
+                            floIndex = anteIntY[b]*floatingImage->nx+anteIntX[a];
+                            val_x += floatingIntensityX[floIndex] * weight[0];
+                            val_y += floatingIntensityY[floIndex] * weight[0];
+                        } // anteIntX not in the floating image space
                         else{
-                            val_x += paddingValue * basisY[b];
-                            val_y += paddingValue * basisY[b];
+                            val_x += paddingValue * weight[0];
+                            val_y += paddingValue * weight[0];
                         }
-                    } // b
-					warpedIntensityX[warpedIndex]=jacMat.m[0][0]*val_x+jacMat.m[1][0]*val_y;
-					warpedIntensityY[warpedIndex]=jacMat.m[0][1]*val_x+jacMat.m[1][1]*val_y;
-                } // anteX not in deformation field space
-            } // anteY not in deformation field space
+                    } // a
+                } // anteIntY not in the floating image space
+                else{
+                    val_x += paddingValue * basisY[b];
+                    val_y += paddingValue * basisY[b];
+                }
+            } // b
+
+            // Compute the Jacobian matrix
+            memset(&jacMat,0,sizeof(mat33));
+            jacMat.m[2][2]=1.;
+            for(b=0;b<2;++b){
+                anteIntY[0]=y+b;
+                basisY[0]=basis[b];
+                basisY[1]=deriv[b];
+                // Boundary conditions along y - slidding
+                if(y==deformationField->ny-1){
+                    if(b==1)
+                        anteIntY[0]-=2;
+                    basisY[0]=fabs(basisY[0]-1.);
+                    basisY[1]*=-1.;
+                }
+                for(a=0;a<2;++a){
+                    anteIntX[0]=x+a;
+                    basisX[0]=basis[a];
+                    basisX[1]=deriv[a];
+                    // Boundary conditions along x - slidding
+                    if(x==deformationField->nx-1){
+                        if(a==1)
+                            anteIntX[0]-=2;
+                        basisX[0]=fabs(basisX[0]-1.);
+                        basisX[1]*=-1.;
+                    }
+
+                    // Compute the basis function values
+                    weight[0] = basisX[1]*basisY[0];
+                    weight[1] = basisX[0]*basisY[1];
+
+                    // Get the deformation field index
+                    defIndex=anteIntY[0]*deformationField->nx+anteIntX[0];
+
+                    // Get the deformation field values
+                    defX=deformationFieldPtrX[defIndex];
+                    defY=deformationFieldPtrY[defIndex];
+
+                    // Symmetric difference to compute the derivatives
+                    jacMat.m[0][0] += weight[0]*defX;
+                    jacMat.m[0][1] += weight[1]*defX;
+                    jacMat.m[1][0] += weight[0]*defY;
+                    jacMat.m[1][1] += weight[1]*defY;
+                }
+            }
+            // reorient and scale the Jacobian matrix
+            jacMat=nifti_mat33_mul(reorient,jacMat);
+            jacMat.m[0][0] /= realSpacing[0];
+            jacMat.m[0][1] /= realSpacing[1];
+            jacMat.m[1][0] /= realSpacing[0];
+            jacMat.m[1][1] /= realSpacing[1];
+
+            // Modulate the gradient scalar values
+            warpedIntensityX[warpedIndex]=jacMat.m[0][0]*val_x + jacMat.m[0][1]*val_y;
+            warpedIntensityY[warpedIndex]=jacMat.m[1][0]*val_x + jacMat.m[1][1]*val_y;
+
             ++warpedIndex;
         } // x
     } // y
@@ -1083,200 +1124,204 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
     DTYPE *deformationFieldPtrY = &deformationFieldPtrX[deformationField->nx*deformationField->ny*deformationField->nz];
     DTYPE *deformationFieldPtrZ = &deformationFieldPtrY[deformationField->nx*deformationField->ny*deformationField->nz];
 
-    // Extract the relevant affine matrices
-    mat44 *warped_voxel_to_mm = &warpedImage->qto_xyz;
-    if(warpedImage->sform_code!=0)
-        warped_voxel_to_mm = &warpedImage->sto_xyz;
+    // Extract the relevant affine matrix
     mat44 *floating_mm_to_voxel = &floatingImage->qto_ijk;
     if(floatingImage->sform_code!=0)
         floating_mm_to_voxel = &floatingImage->sto_ijk;
-    mat44 *def_mm_to_voxel = &deformationField->qto_ijk;
-    if(deformationField->sform_code!=0)
-        def_mm_to_voxel = &deformationField->sto_ijk;
-    mat44 warped_to_def_voxel = reg_mat44_mul(def_mm_to_voxel,warped_voxel_to_mm);
 
-    // Some usefull variable
+    // The spacing is computed in case the sform if defined
+    DTYPE realSpacing[3];
+    if(warpedImage->sform_code>0){
+        reg_getRealImageSpacing(warpedImage,realSpacing);
+    }
+    else{
+        realSpacing[0]=warpedImage->dx;
+        realSpacing[1]=warpedImage->dy;
+        realSpacing[2]=warpedImage->dz;
+    }
+
+    // Reorientation matrix is assessed in order to remove the rigid component
+    mat33 reorient=nifti_mat33_inverse(nifti_mat33_polar(reg_mat44_to_mat33(&deformationField->sto_xyz)));
+
+    // Some useful variables
     mat33 jacMat;
-    reg_mat33_eye(&jacMat);
-
-    DTYPE xDef,yDef,zDef,defX,defX2,defY,defY2,defZ,defZ2;
-    DTYPE xPos,yPos,zPos;
-    DTYPE basisX[2], basisY[2], basisZ[2], deriv[2];
+    DTYPE defX,defY,defZ;
+    DTYPE basisX[2], basisY[2], basisZ[2], deriv[2], basis[2];
     DTYPE xFloCoord,yFloCoord,zFloCoord;
-    int anteIntX[2],anteIntY[2],anteIntZ[2],anteX[2],anteY[2],anteZ[2];
+    int anteIntX[2],anteIntY[2],anteIntZ[2];
     int x,y,z,a,b,c,defIndex,floIndex,warpedIndex;
-    DTYPE val_x,val_y,val_z,weight;
+    DTYPE val_x,val_y,val_z,weight[3];
 
     // Loop over all voxel
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(x,y,z,a,b,c,val_x,val_y,val_z,defIndex,floIndex,warpedIndex, \
-    anteIntX,anteIntY,anteIntZ,anteX,anteY,anteZ,xFloCoord,yFloCoord,zFloCoord, \
-    basisX,basisY,basisZ,deriv,xPos,yPos,zPos,xDef,yDef,zDef,defX,defY,defZ, \
-    defX2,defY2,defZ2,jacMat,weight) \
-    shared(warpedImage,warped_to_def_voxel,warpedIntensityX,warpedIntensityY,warpedIntensityZ, \
-    deformationField,deformationFieldPtrX,deformationFieldPtrY,deformationFieldPtrZ,def_mm_to_voxel, \
+    anteIntX,anteIntY,anteIntZ,xFloCoord,yFloCoord,zFloCoord, \
+    basisX,basisY,basisZ,deriv,basis,defX,defY,defZ,jacMat,weight) \
+    shared(warpedImage,warpedIntensityX,warpedIntensityY,warpedIntensityZ, \
+    deformationField,deformationFieldPtrX,deformationFieldPtrY,deformationFieldPtrZ, \
     floatingImage,floatingIntensityX,floatingIntensityY,floatingIntensityZ,floating_mm_to_voxel, \
-    paddingValue)
+    paddingValue, reorient,realSpacing)
 #endif // _OPENMP
     for(z=0; z<warpedImage->nz; ++z){
         warpedIndex=z*warpedImage->nx*warpedImage->ny;
         deriv[0]=-1;
         deriv[1]=1;
+        basis[0]=1;
+        basis[1]=0;
         for(y=0; y<warpedImage->ny; ++y){
             for(x=0; x<warpedImage->nx; ++x){
                 warpedIntensityX[warpedIndex]=paddingValue;
                 warpedIntensityY[warpedIndex]=paddingValue;
                 warpedIntensityZ[warpedIndex]=paddingValue;
 
-                // Compte the index in the deformation field
-                xDef =
-                        x*warped_to_def_voxel.m[0][0] +
-                        y*warped_to_def_voxel.m[0][1] +
-                        z*warped_to_def_voxel.m[0][2] +
-                        warped_to_def_voxel.m[0][3];
-                yDef =
-                        x*warped_to_def_voxel.m[1][0] +
-                        y*warped_to_def_voxel.m[1][1] +
-                        z*warped_to_def_voxel.m[1][2] +
-                        warped_to_def_voxel.m[1][3];
-                zDef =
-                        x*warped_to_def_voxel.m[2][0] +
-                        y*warped_to_def_voxel.m[2][1] +
-                        z*warped_to_def_voxel.m[2][2] +
-                        warped_to_def_voxel.m[2][3];
+                // Compute the index in the floating image
+                defX=deformationFieldPtrX[warpedIndex];
+                defY=deformationFieldPtrY[warpedIndex];
+                defZ=deformationFieldPtrZ[warpedIndex];
+                xFloCoord =
+                        floating_mm_to_voxel->m[0][0] * defX +
+                        floating_mm_to_voxel->m[0][1] * defY +
+                        floating_mm_to_voxel->m[0][2] * defZ +
+                        floating_mm_to_voxel->m[0][3];
+                yFloCoord =
+                        floating_mm_to_voxel->m[1][0] * defX +
+                        floating_mm_to_voxel->m[1][1] * defY +
+                        floating_mm_to_voxel->m[1][2] * defZ +
+                        floating_mm_to_voxel->m[1][3];
+                zFloCoord =
+                        floating_mm_to_voxel->m[2][0] * defX +
+                        floating_mm_to_voxel->m[2][1] * defY +
+                        floating_mm_to_voxel->m[2][2] * defZ +
+                        floating_mm_to_voxel->m[2][3];
 
-                // Extract the corresponding position using linear interpolation
-                anteZ[0]=static_cast<int>(reg_floor(zDef));
-                anteZ[1]=anteZ[0]+1;
-                if(anteZ[0]>-1 && anteZ[1]<deformationField->nz){
-                    anteY[0]=static_cast<int>(reg_floor(yDef));
-                    anteY[1]=anteY[0]+1;
-                    if(anteY[0]>-1 && anteY[1]<deformationField->ny){
-                        anteX[0]=static_cast<int>(reg_floor(xDef));
-                        anteX[1]=anteX[0]+1;
-                        if(anteX[0]>-1 && anteX[1]<deformationField->nx){
-                            xPos=0;yPos=0;zPos=0;
-                            jacMat.m[0][0]=jacMat.m[0][1]=jacMat.m[0][2]=0;
-                            jacMat.m[1][0]=jacMat.m[1][1]=jacMat.m[1][2]=0;
-                            jacMat.m[2][0]=jacMat.m[2][1]=jacMat.m[2][2]=0;
-                            basisX[1]=xDef-anteX[0];
-                            basisY[1]=yDef-anteY[0];
-                            basisZ[1]=zDef-anteZ[0];
-                            basisX[0]=1.f-basisX[1];
-                            basisY[0]=1.f-basisY[1];
-                            basisZ[0]=1.f-basisZ[1];
-                            for(c=0;c<2;++c){
-                                for(b=0;b<2;++b){
-                                    for(a=0;a<2;++a){
-                                        defIndex = ((anteZ[c])*deformationField->ny+anteY[b])*deformationField->nx+anteX[a];
-                                        defX2=deformationFieldPtrX[defIndex];
-                                        defY2=deformationFieldPtrY[defIndex];
-                                        defZ2=deformationFieldPtrZ[defIndex];
-                                        weight=basisX[a] * basisY[b] * basisZ[c];
-                                        xPos += defX2 * weight;
-                                        yPos += defY2 * weight;
-                                        zPos += defZ2 * weight;
-                                        defX=
-                                                def_mm_to_voxel->m[0][0] * defX2 +
-                                                def_mm_to_voxel->m[0][1] * defY2 +
-                                                def_mm_to_voxel->m[0][2] * defZ2 +
-                                                def_mm_to_voxel->m[0][3];
-                                        defY=
-                                                def_mm_to_voxel->m[1][0] * defX2 +
-                                                def_mm_to_voxel->m[1][1] * defY2 +
-                                                def_mm_to_voxel->m[1][2] * defZ2 +
-                                                def_mm_to_voxel->m[1][3];
-                                        defZ=
-                                                def_mm_to_voxel->m[2][0] * defX2 +
-                                                def_mm_to_voxel->m[2][1] * defY2 +
-                                                def_mm_to_voxel->m[2][2] * defZ2 +
-                                                def_mm_to_voxel->m[2][3];
-                                        weight=deriv[a] * basisY[b] * basisZ[c];
-                                        jacMat.m[0][0] += defX * weight;
-                                        jacMat.m[0][1] += defY * weight;
-                                        jacMat.m[0][2] += defZ * weight;
-                                        weight=basisX[a] * deriv[b] * basisZ[c];
-                                        jacMat.m[1][0] += defX * weight;
-                                        jacMat.m[1][1] += defY * weight;
-                                        jacMat.m[1][2] += defZ * weight;
-                                        weight=basisX[a] * basisY[b] * deriv[c];
-                                        jacMat.m[2][0] += defX * weight;
-                                        jacMat.m[2][1] += defY * weight;
-                                        jacMat.m[2][2] += defZ * weight;
+                // Extract the floating value using bilinear interpolation
+                anteIntX[0]=static_cast<int>(reg_floor(xFloCoord));
+                anteIntX[1]=static_cast<int>(reg_ceil(xFloCoord));
+                anteIntY[0]=static_cast<int>(reg_floor(yFloCoord));
+                anteIntY[1]=static_cast<int>(reg_ceil(yFloCoord));
+                anteIntZ[0]=static_cast<int>(reg_floor(zFloCoord));
+                anteIntZ[1]=static_cast<int>(reg_ceil(zFloCoord));
+                val_x=0;val_y=0;val_z=0;
+                basisX[1]=fabs(xFloCoord-(DTYPE)anteIntX[0]);
+                basisY[1]=fabs(yFloCoord-(DTYPE)anteIntY[0]);
+                basisZ[1]=fabs(zFloCoord-(DTYPE)anteIntZ[0]);
+                basisX[0]=1.0-basisX[1];
+                basisY[0]=1.0-basisY[1];
+                basisZ[0]=1.0-basisZ[1];
+                for(c=0;c<2;++c){
+                    if(anteIntZ[c]>-1 && anteIntZ[c]<floatingImage->nz){
+                        for(b=0;b<2;++b){
+                            if(anteIntY[b]>-1 && anteIntY[b]<floatingImage->ny){
+                                for(a=0;a<2;++a){
+                                    weight[0]=basisX[a] * basisY[b] * basisZ[c];
+                                    if(anteIntX[a]>-1 && anteIntX[a]<floatingImage->nx){
+                                        floIndex = (anteIntZ[c]*floatingImage->ny+anteIntY[b])*floatingImage->nx+anteIntX[a];
+                                        val_x += floatingIntensityX[floIndex] * weight[0];
+                                        val_y += floatingIntensityY[floIndex] * weight[0];
+                                        val_z += floatingIntensityZ[floIndex] * weight[0];
+                                    } // anteIntX not in the floating image space
+                                    else{
+                                        val_x += paddingValue * weight[0];
+                                        val_y += paddingValue * weight[0];
+                                        val_z += paddingValue * weight[0];
                                     }
-                                }
+                                } // a
+                            } // anteIntY not in the floating image space
+                            else{
+                                val_x += paddingValue * basisY[b] * basisZ[c];
+                                val_y += paddingValue * basisY[b] * basisZ[c];
+                                val_z += paddingValue * basisY[b] * basisZ[c];
+                            }
+                        } // b
+                    } // anteIntZ not in the floating image space
+                    else{
+                        val_x += paddingValue * basisZ[c];
+                        val_y += paddingValue * basisZ[c];
+                        val_z += paddingValue * basisZ[c];
+                    }
+                } // c
+
+                // Compute the Jacobian matrix
+                memset(&jacMat,0,sizeof(mat33));
+                for(c=0;c<2;++c){
+                    anteIntZ[0]=z+c;
+                    basisZ[0]=basis[c];
+                    basisZ[1]=deriv[c];
+                    // Boundary conditions along z - slidding
+                    if(z==deformationField->nz-1){
+                        if(c==1)
+                            anteIntZ[0]-=2;
+                        basisZ[0]=fabs(basisZ[0]-1.);
+                        basisZ[1]*=-1.;
+                    }
+                    for(b=0;b<2;++b){
+                        anteIntY[0]=y+b;
+                        basisY[0]=basis[b];
+                        basisY[1]=deriv[b];
+                        // Boundary conditions along y - slidding
+                        if(y==deformationField->ny-1){
+                            if(b==1)
+                                anteIntY[0]-=2;
+                            basisY[0]=fabs(basisY[0]-1.);
+                            basisY[1]*=-1.;
+                        }
+                        for(a=0;a<2;++a){
+                            anteIntX[0]=x+a;
+                            basisX[0]=basis[a];
+                            basisX[1]=deriv[a];
+                            // Boundary conditions along x - slidding
+                            if(x==deformationField->nx-1){
+                                if(a==1)
+                                    anteIntX[0]-=2;
+                                basisX[0]=fabs(basisX[0]-1.);
+                                basisX[1]*=-1.;
                             }
 
-                            // Extract the corresponding coordinates in the floating image
-                            xFloCoord =
-                                    xPos * floating_mm_to_voxel->m[0][0] +
-                                    yPos * floating_mm_to_voxel->m[0][1] +
-                                    zPos * floating_mm_to_voxel->m[0][2] +
-                                    floating_mm_to_voxel->m[0][3];
-                            yFloCoord =
-                                    xPos * floating_mm_to_voxel->m[1][0] +
-                                    yPos * floating_mm_to_voxel->m[1][1] +
-                                    zPos * floating_mm_to_voxel->m[1][2] +
-                                    floating_mm_to_voxel->m[1][3];
-                            zFloCoord =
-                                    xPos * floating_mm_to_voxel->m[2][0] +
-                                    yPos * floating_mm_to_voxel->m[2][1] +
-                                    zPos * floating_mm_to_voxel->m[2][2] +
-                                    floating_mm_to_voxel->m[2][3];
+                            // Compute the basis function values
+                            weight[0] = basisX[1]*basisY[0]*basisZ[0];
+                            weight[1] = basisX[0]*basisY[1]*basisZ[0];
+                            weight[2] = basisX[0]*basisY[0]*basisZ[1];
 
-                            // Extract the floating value using bilinear interpolation
-                            anteIntX[0]=static_cast<int>(reg_floor(xFloCoord));
-                            anteIntX[1]=static_cast<int>(reg_ceil(xFloCoord));
-                            anteIntY[0]=static_cast<int>(reg_floor(yFloCoord));
-                            anteIntY[1]=static_cast<int>(reg_ceil(yFloCoord));
-                            anteIntZ[0]=static_cast<int>(reg_floor(zFloCoord));
-                            anteIntZ[1]=static_cast<int>(reg_ceil(zFloCoord));
-                            val_x=0;val_y=0;val_z=0;
-                            basisX[1]=fabs(xFloCoord-(DTYPE)anteIntX[0]);
-                            basisY[1]=fabs(yFloCoord-(DTYPE)anteIntY[0]);
-                            basisZ[1]=fabs(zFloCoord-(DTYPE)anteIntZ[0]);
-                            basisX[0]=1.0-basisX[1];
-                            basisY[0]=1.0-basisY[1];
-                            basisZ[0]=1.0-basisZ[1];
-                            for(c=0;c<2;++c){
-                                if(anteIntZ[c]>-1 && anteIntZ[c]<floatingImage->nz){
-                                    for(b=0;b<2;++b){
-                                        if(anteIntY[b]>-1 && anteIntY[b]<floatingImage->ny){
-                                            for(a=0;a<2;++a){
-                                                weight=basisX[a] * basisY[b] * basisZ[c];
-                                                if(anteIntX[a]>-1 && anteIntX[a]<floatingImage->nx){
-                                                    floIndex = (anteIntZ[c]*floatingImage->ny+anteIntY[b])*floatingImage->nx+anteIntX[a];
-                                                    val_x += floatingIntensityX[floIndex] * weight;
-                                                    val_y += floatingIntensityY[floIndex] * weight;
-                                                    val_z += floatingIntensityZ[floIndex] * weight;
-                                                } // anteIntX not in the floating image space
-                                                else{
-                                                    val_x += paddingValue * weight;
-                                                    val_y += paddingValue * weight;
-                                                    val_z += paddingValue * weight;
-                                                }
-                                            } // a
-                                        } // anteIntY not in the floating image space
-                                        else{
-                                            val_x += paddingValue * basisY[b] * basisZ[c];
-                                            val_y += paddingValue * basisY[b] * basisZ[c];
-                                            val_z += paddingValue * basisY[b] * basisZ[c];
-                                        }
-                                    } // b
-                                } // anteIntZ not in the floating image space
-                                else{
-                                    val_x += paddingValue * basisZ[c];
-                                    val_y += paddingValue * basisZ[c];
-                                    val_z += paddingValue * basisZ[c];
-                                }
-                            } // c
-                            warpedIntensityX[warpedIndex]=jacMat.m[0][0]*val_x+jacMat.m[0][1]*val_y+jacMat.m[0][2]*val_z;
-                            warpedIntensityY[warpedIndex]=jacMat.m[1][0]*val_x+jacMat.m[1][1]*val_y+jacMat.m[1][2]*val_z;
-                            warpedIntensityZ[warpedIndex]=jacMat.m[2][0]*val_x+jacMat.m[2][1]*val_y+jacMat.m[2][2]*val_z;
-                        } // anteX not in deformation field space
-                    } // anteY not in deformation field space
-                } // anteZ not in deformation field space
+                            // Get the deformation field index
+                            defIndex=(anteIntZ[0]*deformationField->ny+anteIntY[0]) *
+                                    deformationField->nx+anteIntX[0];
+
+                            // Get the deformation field values
+                            defX=deformationFieldPtrX[defIndex];
+                            defY=deformationFieldPtrY[defIndex];
+                            defZ=deformationFieldPtrZ[defIndex];
+
+                            // Symmetric difference to compute the derivatives
+                            jacMat.m[0][0] += weight[0]*defX;
+                            jacMat.m[0][1] += weight[1]*defX;
+                            jacMat.m[0][2] += weight[2]*defX;
+                            jacMat.m[1][0] += weight[0]*defY;
+                            jacMat.m[1][1] += weight[1]*defY;
+                            jacMat.m[1][2] += weight[2]*defY;
+                            jacMat.m[2][0] += weight[0]*defZ;
+                            jacMat.m[2][1] += weight[1]*defZ;
+                            jacMat.m[2][2] += weight[2]*defZ;
+                        }
+                    }
+                }
+                // reorient and scale the Jacobian matrix
+                jacMat=nifti_mat33_mul(reorient,jacMat);
+                jacMat.m[0][0] /= realSpacing[0];
+                jacMat.m[0][1] /= realSpacing[1];
+                jacMat.m[0][2] /= realSpacing[2];
+                jacMat.m[1][0] /= realSpacing[0];
+                jacMat.m[1][1] /= realSpacing[1];
+                jacMat.m[1][2] /= realSpacing[2];
+                jacMat.m[2][0] /= realSpacing[0];
+                jacMat.m[2][1] /= realSpacing[1];
+                jacMat.m[2][2] /= realSpacing[2];
+
+                // Modulate the gradient scalar values
+                warpedIntensityX[warpedIndex]=jacMat.m[0][0]*val_x+jacMat.m[0][1]*val_y+jacMat.m[0][2]*val_z;
+                warpedIntensityY[warpedIndex]=jacMat.m[1][0]*val_x+jacMat.m[1][1]*val_y+jacMat.m[1][2]*val_z;
+                warpedIntensityZ[warpedIndex]=jacMat.m[2][0]*val_x+jacMat.m[2][1]*val_y+jacMat.m[2][2]*val_z;
+
                 ++warpedIndex;
             } // x
         } // y
@@ -2028,7 +2073,7 @@ nifti_image *reg_makeIsotropic(nifti_image *img,
     float smallestPixDim=img->pixdim[1];
     for(size_t i=2;i<4;++i)
         if(i<static_cast<size_t>(img->dim[0]+2))
-        smallestPixDim=img->pixdim[i]<smallestPixDim?img->pixdim[i]:smallestPixDim;
+            smallestPixDim=img->pixdim[i]<smallestPixDim?img->pixdim[i]:smallestPixDim;
     // Define the size of the new image
     int newDim[8];
     for(size_t i=0;i<8;++i) newDim[i]=img->dim[i];

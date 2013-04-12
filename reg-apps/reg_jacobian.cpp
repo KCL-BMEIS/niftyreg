@@ -22,12 +22,6 @@
 #include "_reg_resampling.h"
 #include "reg_jacobian.h"
 
-#ifdef _USE_NR_DOUBLE
-    #define PrecisionTYPE double
-#else
-    #define PrecisionTYPE float
-#endif
-
 typedef struct{
     char *referenceImageName;
     char *inputDEFName;
@@ -167,6 +161,8 @@ int main(int argc, char **argv)
     /* ******************* */
     nifti_image *controlPointImage=NULL;
     nifti_image *deformationFieldImage=NULL;
+    int currentDatatype=NIFTI_TYPE_FLOAT32;
+    int currentNbyper=sizeof(float);
     if(flag->inputCPPFlag){
         controlPointImage = reg_io_ReadImageFile(param->inputCPPName);
         if(controlPointImage == NULL){
@@ -175,6 +171,8 @@ int main(int argc, char **argv)
             return 1;
         }
         reg_checkAndCorrectDimension(controlPointImage);
+        currentDatatype=controlPointImage->datatype;
+        currentNbyper=controlPointImage->nbyper;
     }
     else if(flag->inputDEFFlag){
         deformationFieldImage = reg_io_ReadImageFile(param->inputDEFName);
@@ -184,6 +182,8 @@ int main(int argc, char **argv)
             return 1;
         }
         reg_checkAndCorrectDimension(deformationFieldImage);
+        currentDatatype=deformationFieldImage->datatype;
+        currentNbyper=deformationFieldImage->nbyper;
     }
     else{
         fprintf(stderr, "No transformation has been provided.\n");
@@ -201,10 +201,8 @@ int main(int argc, char **argv)
         jacobianImage->cal_max=0;
         jacobianImage->scl_slope = 1.0f;
         jacobianImage->scl_inter = 0.0f;
-        if(sizeof(PrecisionTYPE)==8)
-            jacobianImage->datatype = NIFTI_TYPE_FLOAT64;
-        else jacobianImage->datatype = NIFTI_TYPE_FLOAT32;
-        jacobianImage->nbyper = sizeof(PrecisionTYPE);
+        jacobianImage->datatype = currentDatatype;
+        jacobianImage->nbyper = currentNbyper;
         jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
 
         // Compute the determinant
@@ -256,11 +254,27 @@ int main(int argc, char **argv)
             printf("Jacobian map image has been saved: %s\n", param->jacobianMapName);
         }
         else if(flag->logJacobianMapFlag){
-            PrecisionTYPE *jacPtr=static_cast<PrecisionTYPE *>(jacobianImage->data);
-            for(unsigned int i=0;i<jacobianImage->nvox;i++){
-                *jacPtr = log(*jacPtr);
-                jacPtr++;
+            switch(jacobianImage->datatype){
+            case NIFTI_TYPE_FLOAT32:
+            {
+                float *jacPtr=static_cast<float *>(jacobianImage->data);
+                for(unsigned int i=0;i<jacobianImage->nvox;i++){
+                    *jacPtr = log(*jacPtr);
+                    jacPtr++;
+                }
             }
+                break;
+            case NIFTI_TYPE_FLOAT64:
+            {
+                double *jacPtr=static_cast<double *>(jacobianImage->data);
+                for(unsigned int i=0;i<jacobianImage->nvox;i++){
+                    *jacPtr = log(*jacPtr);
+                    jacPtr++;
+                }
+            }
+                break;
+            }
+
             memset(jacobianImage->descrip, 0, 80);
             strcpy (jacobianImage->descrip,"Log Jacobian determinant map created using NiftyReg");
             reg_io_WriteImageFile(jacobianImage,param->logJacobianMapName);
@@ -284,10 +298,8 @@ int main(int argc, char **argv)
         if(image->nz>1)
             jacobianImage->dim[5] = jacobianImage->nu = 9;
         else jacobianImage->dim[5] = jacobianImage->nu = 4;
-        if(sizeof(PrecisionTYPE)==8)
-            jacobianImage->datatype = NIFTI_TYPE_FLOAT64;
-        else jacobianImage->datatype = NIFTI_TYPE_FLOAT32;
-        jacobianImage->nbyper = sizeof(PrecisionTYPE);
+        jacobianImage->datatype = currentDatatype;
+        jacobianImage->nbyper = currentNbyper;
         jacobianImage->nvox = jacobianImage->nx * jacobianImage->ny * jacobianImage->nz *
                 jacobianImage->nt * jacobianImage->nu;
         jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
@@ -322,41 +334,87 @@ int main(int argc, char **argv)
         }
 
         // Export the Jacobian matrix image
-        PrecisionTYPE *jacMatXXPtr=static_cast<PrecisionTYPE *>(jacobianImage->data);
-        if(image->nz>1){
-            PrecisionTYPE *jacMatXYPtr=&jacMatXXPtr[voxelNumber];
-            PrecisionTYPE *jacMatXZPtr=&jacMatXYPtr[voxelNumber];
-            PrecisionTYPE *jacMatYXPtr=&jacMatXZPtr[voxelNumber];
-            PrecisionTYPE *jacMatYYPtr=&jacMatYXPtr[voxelNumber];
-            PrecisionTYPE *jacMatYZPtr=&jacMatYYPtr[voxelNumber];
-            PrecisionTYPE *jacMatZXPtr=&jacMatYZPtr[voxelNumber];
-            PrecisionTYPE *jacMatZYPtr=&jacMatZXPtr[voxelNumber];
-            PrecisionTYPE *jacMatZZPtr=&jacMatZYPtr[voxelNumber];
-            for(size_t voxel=0;voxel<voxelNumber;++voxel){
-                mat33 jacobianMatrix=jacobianMatricesArray[voxel];
-                jacMatXXPtr[voxel]=jacobianMatrix.m[0][0];
-                jacMatXYPtr[voxel]=jacobianMatrix.m[0][1];
-                jacMatXZPtr[voxel]=jacobianMatrix.m[0][2];
-                jacMatYXPtr[voxel]=jacobianMatrix.m[1][0];
-                jacMatYYPtr[voxel]=jacobianMatrix.m[1][1];
-                jacMatYZPtr[voxel]=jacobianMatrix.m[1][2];
-                jacMatZXPtr[voxel]=jacobianMatrix.m[2][0];
-                jacMatZYPtr[voxel]=jacobianMatrix.m[2][1];
-                jacMatZZPtr[voxel]=jacobianMatrix.m[2][2];
+        switch(jacobianImage->datatype){
+        case NIFTI_TYPE_FLOAT32:
+        {
+            float *jacMatXXPtr=static_cast<float *>(jacobianImage->data);
+            if(image->nz>1){
+                float *jacMatXYPtr=&jacMatXXPtr[voxelNumber];
+                float *jacMatXZPtr=&jacMatXYPtr[voxelNumber];
+                float *jacMatYXPtr=&jacMatXZPtr[voxelNumber];
+                float *jacMatYYPtr=&jacMatYXPtr[voxelNumber];
+                float *jacMatYZPtr=&jacMatYYPtr[voxelNumber];
+                float *jacMatZXPtr=&jacMatYZPtr[voxelNumber];
+                float *jacMatZYPtr=&jacMatZXPtr[voxelNumber];
+                float *jacMatZZPtr=&jacMatZYPtr[voxelNumber];
+                for(size_t voxel=0;voxel<voxelNumber;++voxel){
+                    mat33 jacobianMatrix=jacobianMatricesArray[voxel];
+                    jacMatXXPtr[voxel]=jacobianMatrix.m[0][0];
+                    jacMatXYPtr[voxel]=jacobianMatrix.m[0][1];
+                    jacMatXZPtr[voxel]=jacobianMatrix.m[0][2];
+                    jacMatYXPtr[voxel]=jacobianMatrix.m[1][0];
+                    jacMatYYPtr[voxel]=jacobianMatrix.m[1][1];
+                    jacMatYZPtr[voxel]=jacobianMatrix.m[1][2];
+                    jacMatZXPtr[voxel]=jacobianMatrix.m[2][0];
+                    jacMatZYPtr[voxel]=jacobianMatrix.m[2][1];
+                    jacMatZZPtr[voxel]=jacobianMatrix.m[2][2];
+                }
+            }
+            else{
+                float *jacMatXYPtr=&jacMatXXPtr[voxelNumber];
+                float *jacMatYXPtr=&jacMatXYPtr[voxelNumber];
+                float *jacMatYYPtr=&jacMatYXPtr[voxelNumber];
+                for(size_t voxel=0;voxel<voxelNumber;++voxel){
+                    mat33 jacobianMatrix=jacobianMatricesArray[voxel];
+                    jacMatXXPtr[voxel]=jacobianMatrix.m[0][0];
+                    jacMatXYPtr[voxel]=jacobianMatrix.m[0][1];
+                    jacMatYXPtr[voxel]=jacobianMatrix.m[1][0];
+                    jacMatYYPtr[voxel]=jacobianMatrix.m[1][1];
+                }
+
             }
         }
-        else{
-            PrecisionTYPE *jacMatXYPtr=&jacMatXXPtr[voxelNumber];
-            PrecisionTYPE *jacMatYXPtr=&jacMatXYPtr[voxelNumber];
-            PrecisionTYPE *jacMatYYPtr=&jacMatYXPtr[voxelNumber];
-            for(size_t voxel=0;voxel<voxelNumber;++voxel){
-                mat33 jacobianMatrix=jacobianMatricesArray[voxel];
-                jacMatXXPtr[voxel]=jacobianMatrix.m[0][0];
-                jacMatXYPtr[voxel]=jacobianMatrix.m[0][1];
-                jacMatYXPtr[voxel]=jacobianMatrix.m[1][0];
-                jacMatYYPtr[voxel]=jacobianMatrix.m[1][1];
+            break;
+        case NIFTI_TYPE_FLOAT64:
+        {
+            double *jacMatXXPtr=static_cast<double *>(jacobianImage->data);
+            if(image->nz>1){
+                double *jacMatXYPtr=&jacMatXXPtr[voxelNumber];
+                double *jacMatXZPtr=&jacMatXYPtr[voxelNumber];
+                double *jacMatYXPtr=&jacMatXZPtr[voxelNumber];
+                double *jacMatYYPtr=&jacMatYXPtr[voxelNumber];
+                double *jacMatYZPtr=&jacMatYYPtr[voxelNumber];
+                double *jacMatZXPtr=&jacMatYZPtr[voxelNumber];
+                double *jacMatZYPtr=&jacMatZXPtr[voxelNumber];
+                double *jacMatZZPtr=&jacMatZYPtr[voxelNumber];
+                for(size_t voxel=0;voxel<voxelNumber;++voxel){
+                    mat33 jacobianMatrix=jacobianMatricesArray[voxel];
+                    jacMatXXPtr[voxel]=jacobianMatrix.m[0][0];
+                    jacMatXYPtr[voxel]=jacobianMatrix.m[0][1];
+                    jacMatXZPtr[voxel]=jacobianMatrix.m[0][2];
+                    jacMatYXPtr[voxel]=jacobianMatrix.m[1][0];
+                    jacMatYYPtr[voxel]=jacobianMatrix.m[1][1];
+                    jacMatYZPtr[voxel]=jacobianMatrix.m[1][2];
+                    jacMatZXPtr[voxel]=jacobianMatrix.m[2][0];
+                    jacMatZYPtr[voxel]=jacobianMatrix.m[2][1];
+                    jacMatZZPtr[voxel]=jacobianMatrix.m[2][2];
+                }
             }
+            else{
+                double *jacMatXYPtr=&jacMatXXPtr[voxelNumber];
+                double *jacMatYXPtr=&jacMatXYPtr[voxelNumber];
+                double *jacMatYYPtr=&jacMatYXPtr[voxelNumber];
+                for(size_t voxel=0;voxel<voxelNumber;++voxel){
+                    mat33 jacobianMatrix=jacobianMatricesArray[voxel];
+                    jacMatXXPtr[voxel]=jacobianMatrix.m[0][0];
+                    jacMatXYPtr[voxel]=jacobianMatrix.m[0][1];
+                    jacMatYXPtr[voxel]=jacobianMatrix.m[1][0];
+                    jacMatYYPtr[voxel]=jacobianMatrix.m[1][1];
+                }
 
+            }
+        }
+            break;
         }
         free(jacobianMatricesArray);
 

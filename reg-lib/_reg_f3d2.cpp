@@ -356,20 +356,17 @@ void reg_f3d2<T>::ExponentiateGradient()
 {
     if(!this->ISS) return;
 
-	bool useNodeSpace = false;
-	if(useNodeSpace)
-		printf("MORE TESTING NEEDED HERE\n");
-	/* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\ */
+    /* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\ */
 	// Exponentiate the forward gradient using the backward transformation
 #ifndef NDEBUG
 	printf("[NiftyReg f3d2] Update the forward measure gradient using a Dartel like approach\n");
 #endif
 	// Create all deformation field images needed for resampling
-	nifti_image **tempDef=(nifti_image **)malloc((unsigned int)(fabs(this->backwardControlPointGrid->intent_p1)+1) * sizeof(nifti_image *));
+    nifti_image **tempDef=(nifti_image **)malloc(
+                (unsigned int)(fabs(this->backwardControlPointGrid->intent_p1)+1) *
+                sizeof(nifti_image *));
 	for(unsigned int i=0; i<=(unsigned int)fabs(this->backwardControlPointGrid->intent_p1);++i){
-		if(useNodeSpace)
-			tempDef[i]=nifti_copy_nim_info(this->controlPointGrid);
-		else tempDef[i]=nifti_copy_nim_info(this->deformationFieldImage);
+        tempDef[i]=nifti_copy_nim_info(this->deformationFieldImage);
 		tempDef[i]->data=(void *)malloc(tempDef[i]->nvox*tempDef[i]->nbyper);
 	}
 	// Generate all intermediate deformation fields
@@ -377,7 +374,8 @@ void reg_f3d2<T>::ExponentiateGradient()
 												   tempDef);
 
 	/* Allocate a temporary gradient image to store the backward gradient */
-	nifti_image *tempGrad=nifti_copy_nim_info(this->voxelBasedMeasureGradientImage);
+    nifti_image *tempGrad=nifti_copy_nim_info(this->voxelBasedMeasureGradientImage);
+
 	tempGrad->data=(void *)malloc(tempGrad->nvox*tempGrad->nbyper);
 	for(unsigned int i=0; i<(int)fabs(this->backwardControlPointGrid->intent_p1);++i){
 
@@ -390,7 +388,8 @@ void reg_f3d2<T>::ExponentiateGradient()
                                      this->voxelBasedMeasureGradientImage, // in2
                                      this->voxelBasedMeasureGradientImage, // out
                                      0); // addition
-	}
+    }
+
 	// Free the temporary deformation field
 	for(unsigned int i=0; i<=(int)fabs(this->backwardControlPointGrid->intent_p1);++i){
 		nifti_image_free(tempDef[i]);
@@ -416,9 +415,7 @@ void reg_f3d2<T>::ExponentiateGradient()
 	// Create all deformation field images needed for resampling
 	tempDef=(nifti_image **)malloc((unsigned int)(fabs(this->controlPointGrid->intent_p1)+1) * sizeof(nifti_image *));
 	for(unsigned int i=0; i<=(unsigned int)fabs(this->controlPointGrid->intent_p1);++i){
-		if(useNodeSpace)
-			tempDef[i]=nifti_copy_nim_info(this->backwardControlPointGrid);
-		else tempDef[i]=nifti_copy_nim_info(this->backwardDeformationFieldImage);
+        tempDef[i]=nifti_copy_nim_info(this->backwardDeformationFieldImage);
 		tempDef[i]->data=(void *)malloc(tempDef[i]->nvox*tempDef[i]->nbyper);
 	}
 	// Generate all intermediate deformation fields
@@ -437,6 +434,7 @@ void reg_f3d2<T>::ExponentiateGradient()
                                      this->backwardVoxelBasedMeasureGradientImage, // out
                                      0); // addition
 	}
+
 	// Free the temporary deformation field
 	for(unsigned int i=0; i<=(int)fabs(this->controlPointGrid->intent_p1);++i){
 		nifti_image_free(tempDef[i]);
@@ -450,6 +448,7 @@ void reg_f3d2<T>::ExponentiateGradient()
 								this->backwardVoxelBasedMeasureGradientImage, // out
 								powf(2.f,fabsf(this->controlPointGrid->intent_p1)), // value
                                 3); // division
+
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

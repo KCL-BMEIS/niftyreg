@@ -21,12 +21,6 @@
 
 #include "reg_resample.h"
 
-#ifdef _USE_NR_DOUBLE
-    #define PrecisionTYPE double
-#else
-    #define PrecisionTYPE float
-#endif
-
 typedef struct{
     char *referenceImageName;
     char *floatingImageName;
@@ -35,9 +29,9 @@ typedef struct{
     char *inputDEFName;
     char *outputResultName;
     char *outputBlankName;
-    PrecisionTYPE sourceBGValue;
+    float sourceBGValue;
     int interpolation;
-    PrecisionTYPE paddingValue;
+    float paddingValue;
 }PARAM;
 typedef struct{
     bool referenceImageFlag;
@@ -161,7 +155,7 @@ int main(int argc, char **argv)
         }
         else if(strcmp(argv[i], "-pad") == 0 ||
                 (strcmp(argv[i],"--pad")==0)){
-            param->paddingValue=(PrecisionTYPE)atof(argv[++i]);
+            param->paddingValue=(float)atof(argv[++i]);
         }
         else if(strcmp(argv[i], "-NN") == 0){
             param->interpolation=0;
@@ -255,6 +249,8 @@ int main(int argc, char **argv)
     /* *********************** */
     nifti_image *controlPointImage = NULL;
     nifti_image *deformationFieldImage = NULL;
+    int currentDatatype=NIFTI_TYPE_FLOAT32;
+    int currentNbyper=sizeof(float);
     mat44 *affineTransformationMatrix = (mat44 *)calloc(1,sizeof(mat44));
     if(flag->inputCPPFlag){
 #ifndef NDEBUG
@@ -266,6 +262,8 @@ int main(int argc, char **argv)
             return 1;
         }
         reg_checkAndCorrectDimension(controlPointImage);
+        currentDatatype=controlPointImage->datatype;
+        currentNbyper=controlPointImage->nbyper;
     }
     else if(flag->inputDEFFlag){
 #ifndef NDEBUG
@@ -277,6 +275,8 @@ int main(int argc, char **argv)
             return 1;
         }
         reg_checkAndCorrectDimension(deformationFieldImage);
+        currentDatatype=deformationFieldImage->datatype;
+        currentNbyper=deformationFieldImage->nbyper;
     }
     else if(flag->affineMatrixFlag){
 #ifndef NDEBUG
@@ -322,9 +322,8 @@ int main(int argc, char **argv)
         deformationFieldImage->dim[6]=deformationFieldImage->nv=1;deformationFieldImage->pixdim[6]=deformationFieldImage->dv=1.0;
         deformationFieldImage->dim[7]=deformationFieldImage->nw=1;deformationFieldImage->pixdim[7]=deformationFieldImage->dw=1.0;
         deformationFieldImage->nvox=deformationFieldImage->nx*deformationFieldImage->ny*deformationFieldImage->nz*deformationFieldImage->nt*deformationFieldImage->nu;
-        if(sizeof(PrecisionTYPE)==8) deformationFieldImage->datatype = NIFTI_TYPE_FLOAT64;
-        else deformationFieldImage->datatype = NIFTI_TYPE_FLOAT32;
-        deformationFieldImage->nbyper = sizeof(PrecisionTYPE);
+        deformationFieldImage->datatype = currentDatatype;
+        deformationFieldImage->nbyper = currentNbyper;
         deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
         //Computation
         if(flag->inputCPPFlag){

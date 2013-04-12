@@ -19,12 +19,6 @@
 
 #include "reg_tools.h"
 
-#ifdef _USE_NR_DOUBLE
-#define PrecisionTYPE double
-#else
-#define PrecisionTYPE float
-#endif
-
 int isNumeric (const char *s)
 {
     if(s==NULL || *s=='\0' || isspace(*s))

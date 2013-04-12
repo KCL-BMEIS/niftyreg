@@ -620,21 +620,15 @@ void reg_spline_linearEnergyApproxValue1(nifti_image *splineControlPoint, double
 
     DTYPE *jacDeterminant=(DTYPE *)malloc(nodeNumber*sizeof(DTYPE));
     mat33 *jacobianMatrices=(mat33 *)malloc(nodeNumber*sizeof(mat33));
-    if(splineControlPoint->nz>1){
-        reg_spline_computeApproximateJacobianMatrices_3D(splineControlPoint,
-                                                          jacobianMatrices,
-                                                          jacDeterminant);
-    }
-    else{
-        reg_spline_computeApproximateJacobianMatrices_2D(splineControlPoint,
-                                                          jacobianMatrices,
-                                                          jacDeterminant);
-    }
 
     double constraintValue0, constraintValue1;
     constraintValue0=constraintValue1=0;
     mat33 jacobianMatrix;
 
+    if(splineControlPoint->nz>1){
+        reg_spline_computeApproximateJacobianMatrices_3D(splineControlPoint,
+                                                         jacobianMatrices,
+                                                         jacDeterminant);
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(splineControlPoint, jacobianMatrices) \
@@ -642,12 +636,11 @@ void reg_spline_linearEnergyApproxValue1(nifti_image *splineControlPoint, double
     reduction(+:constraintValue0) \
     reduction(+:constraintValue1)
 #endif
-    for(z=1;z<splineControlPoint->nz-1;z++){
-        for(y=1;y<splineControlPoint->ny-1;y++){
-            index=(z*splineControlPoint->ny+y)*splineControlPoint->nx+1;
-            for(x=1;x<splineControlPoint->nx-1;x++){
+        for(z=1;z<splineControlPoint->nz-1;z++){
+            for(y=1;y<splineControlPoint->ny-1;y++){
+                index=(z*splineControlPoint->ny+y)*splineControlPoint->nx+1;
+                for(x=1;x<splineControlPoint->nx-1;x++){
 
-                if(splineControlPoint->nz>1){
                     jacobianMatrix=jacobianMatrices[index];
                     jacobianMatrix.m[0][0]--;
                     jacobianMatrix.m[1][1]--;
@@ -655,31 +648,51 @@ void reg_spline_linearEnergyApproxValue1(nifti_image *splineControlPoint, double
                     constraintValue0 += (double).5 * ( reg_pow2(jacobianMatrix.m[0][1]+jacobianMatrix.m[1][0]) +
                                                        reg_pow2(jacobianMatrix.m[0][2]+jacobianMatrix.m[2][0]) +
                                                        reg_pow2(jacobianMatrix.m[1][2]+jacobianMatrix.m[2][1]) ) +
-                                                       reg_pow2(jacobianMatrix.m[0][0]) +
-                                                       reg_pow2(jacobianMatrix.m[1][1]) +
-                                                       reg_pow2(jacobianMatrix.m[2][2]);
+                            reg_pow2(jacobianMatrix.m[0][0]) +
+                            reg_pow2(jacobianMatrix.m[1][1]) +
+                            reg_pow2(jacobianMatrix.m[2][2]);
                     constraintValue1 += (double)reg_pow2(jacobianMatrix.m[0][0] +
-                                                     jacobianMatrix.m[1][1]+
-                                                     jacobianMatrix.m[2][2]);
-                }
-                else{
-                    jacobianMatrix=jacobianMatrices[index];
-                    jacobianMatrix.m[0][0]--;
-                    jacobianMatrix.m[1][1]--;
-                    constraintValue0 += (double).5 * ( reg_pow2(jacobianMatrix.m[0][1]+jacobianMatrix.m[1][0]) ) +
-                                                       reg_pow2(jacobianMatrix.m[0][0]) +
-                                                       reg_pow2(jacobianMatrix.m[1][1]);
-                    constraintValue1 += (double)reg_pow2(jacobianMatrix.m[0][0] +
-                                                     jacobianMatrix.m[1][1]);
-                }
-                index++;
-            }
-        }
+                                                         jacobianMatrix.m[1][1]+
+                                                         jacobianMatrix.m[2][2]);
+                    index++;
+                } // z
+            } // y
+        } // z
     }
+    else{
+        reg_spline_computeApproximateJacobianMatrices_2D(splineControlPoint,
+                                                         jacobianMatrices,
+                                                         jacDeterminant);
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(splineControlPoint, jacobianMatrices) \
+    private(x, y, index, jacobianMatrix) \
+    reduction(+:constraintValue0) \
+    reduction(+:constraintValue1)
+#endif
+        for(y=1;y<splineControlPoint->ny-1;y++){
+            index=y*splineControlPoint->nx+1;
+            for(x=1;x<splineControlPoint->nx-1;x++){
+
+
+                jacobianMatrix=jacobianMatrices[index];
+                jacobianMatrix.m[0][0]--;
+                jacobianMatrix.m[1][1]--;
+                constraintValue0 += (double).5 * ( reg_pow2(jacobianMatrix.m[0][1]+jacobianMatrix.m[1][0]) ) +
+                        reg_pow2(jacobianMatrix.m[0][0]) +
+                        reg_pow2(jacobianMatrix.m[1][1]);
+                constraintValue1 += (double)reg_pow2(jacobianMatrix.m[0][0] +
+                                                     jacobianMatrix.m[1][1]);
+                index++;
+            } // z
+        } // y
+    }
+
     constraintValue[0] = constraintValue0/(double)(splineControlPoint->nvox);
     constraintValue[1] = constraintValue1/(double)(splineControlPoint->nvox);
 
     free(jacobianMatrices);
+    free(jacDeterminant);
 }
 /* *************************************************************** */
 void reg_spline_linearEnergy(nifti_image *splineControlPoint, double *val)
@@ -946,7 +959,9 @@ void reg_spline_approxLinearEnergyGradient1(nifti_image *splineControlPoint,
 
     DTYPE gradX0, gradX1, gradY0, gradY1, gradZ0, gradZ1;
     mat33 reorient, desorient, jacobianMatrix;
-    reg_getReorientationMatrix(splineControlPoint, &desorient, &reorient);
+    reg_getReorientationMatrix(splineControlPoint, &reorient);
+    desorient=nifti_mat33_inverse(reorient);
+
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(splineControlPoint, jacobianMatrices, \

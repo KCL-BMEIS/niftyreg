@@ -77,6 +77,11 @@ void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum);
 extern "C++"
 void reg_heapSort(float *array_tmp,int blockNum);
 /* *************************************************************** */
+/** @brief here
+ */
+extern "C++"
+mat33 reg_mat44_to_mat33(mat44 const* A);
+/* *************************************************************** */
 /** @brief Multipy two 4-by-4 matrices
  */
 extern "C++"
@@ -166,7 +171,6 @@ void reg_mat33_disp(mat33 *mat,
  */
 extern "C++"
 void reg_getReorientationMatrix(nifti_image *splineControlPoint,
-                                mat33 *desorient,
                                 mat33 *reorient);
 /* *************************************************************** */
 extern "C++" template <class T>

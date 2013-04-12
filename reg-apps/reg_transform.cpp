@@ -25,12 +25,6 @@
 #include <vector>
 #include <iostream>
 
-#ifdef _USE_NR_DOUBLE
-#define PrecisionTYPE double
-#else
-#define PrecisionTYPE float
-#endif
-
 typedef struct{
     char *referenceImageName;
     char *sourceImageName;
@@ -315,13 +309,13 @@ int main(int argc, char **argv)
     /* ************************************************ */
     if(flag->tps2cppFlag || flag->tps2defFlag){
         // Read the text file that contains the landmark coordinates
-        std::vector<PrecisionTYPE> values;
+        std::vector<float> values;
         std::ifstream infile(param->tpsTextFilename);
         if(!infile){
             fprintf(stderr,"[ERROR] Can not open the file %s\n", param->tpsTextFilename);
             exit(1);
         }
-        PrecisionTYPE val;
+        float val;
         while(!infile.eof()){
             infile >> val;
             values.push_back(val);
@@ -336,15 +330,15 @@ int main(int argc, char **argv)
         }
         printf("[NiftyReg] Landmark number %i\n", (int)landmarkNumber);
 
-        PrecisionTYPE *px=(PrecisionTYPE *)malloc(landmarkNumber*sizeof(PrecisionTYPE));
-        PrecisionTYPE *py=(PrecisionTYPE *)malloc(landmarkNumber*sizeof(PrecisionTYPE));
-        PrecisionTYPE *cx=(PrecisionTYPE *)malloc(landmarkNumber*sizeof(PrecisionTYPE));
-        PrecisionTYPE *cy=(PrecisionTYPE *)malloc(landmarkNumber*sizeof(PrecisionTYPE));
-        PrecisionTYPE *pz=NULL;
-        PrecisionTYPE *cz=NULL;
+        float *px=(float *)malloc(landmarkNumber*sizeof(float));
+        float *py=(float *)malloc(landmarkNumber*sizeof(float));
+        float *cx=(float *)malloc(landmarkNumber*sizeof(float));
+        float *cy=(float *)malloc(landmarkNumber*sizeof(float));
+        float *pz=NULL;
+        float *cz=NULL;
         if(referenceImage->ndim==3){
-            pz=(PrecisionTYPE *)malloc(landmarkNumber*sizeof(PrecisionTYPE));
-            cz=(PrecisionTYPE *)malloc(landmarkNumber*sizeof(PrecisionTYPE));
+            pz=(float *)malloc(landmarkNumber*sizeof(float));
+            cz=(float *)malloc(landmarkNumber*sizeof(float));
         }
         size_t i=0, l=0;
         while(l<landmarkNumber){
@@ -358,8 +352,8 @@ int main(int argc, char **argv)
         }
 
         // Create the TPS object
-        reg_tps<PrecisionTYPE> *tps =
-                new reg_tps<PrecisionTYPE>(referenceImage->dim[0],landmarkNumber);
+        reg_tps<float> *tps =
+                new reg_tps<float>(referenceImage->dim[0],landmarkNumber);
         tps->SetAproxInter(param->ApproxTPSWeight);
         // Set the landmark initial and final positions
         if(referenceImage->ndim==3) tps->SetPosition(px,py,pz,cx,cy,cz);
@@ -382,19 +376,17 @@ int main(int argc, char **argv)
                     gridSpacing[2] *= -1.0f * referenceImage->dz;
 
             // Create and allocate the cpp image
-            reg_createControlPointGrid<PrecisionTYPE>(&outputImage,
-                                          referenceImage,
-                                          gridSpacing);
+            reg_createControlPointGrid<float>(&outputImage,
+                                              referenceImage,
+                                              gridSpacing);
 
             nifti_set_filenames(outputImage,param->outputCPPName,0,0);
         }
         else{
             // Creation of the deformation field image
             outputImage=nifti_copy_nim_info(referenceImage);
-            outputImage->nbyper=sizeof(PrecisionTYPE);
-            if(sizeof(PrecisionTYPE)==sizeof(float))
-                outputImage->datatype=NIFTI_TYPE_FLOAT32;
-            else outputImage->datatype=NIFTI_TYPE_FLOAT64;
+            outputImage->datatype=NIFTI_TYPE_FLOAT32;
+            outputImage->nbyper=sizeof(float);
             outputImage->ndim=outputImage->dim[0]=5;
             outputImage->nt=outputImage->dim[4]=1;
             if(referenceImage->nz>1)
@@ -511,9 +503,8 @@ int main(int argc, char **argv)
             deformationFieldImage->dim[6]=deformationFieldImage->nv=1;deformationFieldImage->pixdim[6]=deformationFieldImage->dv=1.0;
             deformationFieldImage->dim[7]=deformationFieldImage->nw=1;deformationFieldImage->pixdim[7]=deformationFieldImage->dw=1.0;
             deformationFieldImage->nvox=deformationFieldImage->nx*deformationFieldImage->ny*deformationFieldImage->nz*deformationFieldImage->nt*deformationFieldImage->nu;
-            if(sizeof(PrecisionTYPE)==4) deformationFieldImage->datatype = NIFTI_TYPE_FLOAT32;
-            else deformationFieldImage->datatype = NIFTI_TYPE_FLOAT64;
-            deformationFieldImage->nbyper = sizeof(PrecisionTYPE);
+            deformationFieldImage->datatype = firstControlPointImage->datatype;
+            deformationFieldImage->nbyper = firstControlPointImage->nbyper;
             deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
 
             //Compute the initial deformation
@@ -771,6 +762,15 @@ int main(int argc, char **argv)
                                 0);
         reg_mat44_disp(affineTransformation, (char *)"affineTransformation");
 
+        // Read the input control point position or deformation field
+        nifti_image *nrr_transformation = reg_io_ReadImageFile(param->inputFirstCPPName);
+        if(nrr_transformation == NULL){
+            fprintf(stderr,"[NiftyReg ERROR] Error when reading the non-rigid transformation image: %s\n",param->inputFirstCPPName);
+            PetitUsage(argv[0]);
+            return 1;
+        }
+        reg_checkAndCorrectDimension(nrr_transformation);
+
         // An initial deformation field is created
         nifti_image *deformationFieldImage = nifti_copy_nim_info(referenceImage);
         deformationFieldImage->cal_min=0;
@@ -794,22 +794,12 @@ int main(int argc, char **argv)
         deformationFieldImage->nvox=deformationFieldImage->nx*deformationFieldImage->ny
                 *deformationFieldImage->nz*deformationFieldImage->nt
                 *deformationFieldImage->nu;
-        if(sizeof(PrecisionTYPE)==4) deformationFieldImage->datatype = NIFTI_TYPE_FLOAT32;
-        else deformationFieldImage->datatype = NIFTI_TYPE_FLOAT64;
-        deformationFieldImage->nbyper = sizeof(PrecisionTYPE);
+        deformationFieldImage->datatype = nrr_transformation->datatype;
+        deformationFieldImage->nbyper = nrr_transformation->nbyper;
         deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox,
                                                      deformationFieldImage->nbyper);
         // The deformation field is filled with the affine transformation
         reg_affine_positionField(affineTransformation, referenceImage, deformationFieldImage);
-
-        // Read the input control point position or deformation field
-        nifti_image *nrr_transformation = reg_io_ReadImageFile(param->inputFirstCPPName);
-        if(nrr_transformation == NULL){
-            fprintf(stderr,"[NiftyReg ERROR] Error when reading the non-rigid transformation image: %s\n",param->inputFirstCPPName);
-            PetitUsage(argv[0]);
-            return 1;
-        }
-        reg_checkAndCorrectDimension(nrr_transformation);
 
         if(nrr_transformation->nx==middleImage->nx){ // Deformation field
             reg_defField_compose(nrr_transformation,
