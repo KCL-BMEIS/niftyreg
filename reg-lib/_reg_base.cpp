@@ -747,7 +747,7 @@ double reg_base<T>::ComputeSimilarityMeasure()
                              this->currentMask,
                              this->approxParzenWindow);
             measure = (this->entropies[0]+this->entropies[1])/this->entropies[2];
-        }
+		}
     }
     return double(this->similarityWeight) * measure;
 }
@@ -757,7 +757,7 @@ template <class T>
 void reg_base<T>::GetVoxelBasedGradient()
 {
     // The intensity gradient is first computed
-    reg_getImageGradient(this->currentFloating,
+	reg_getImageGradient(this->currentFloating,
                          this->warpedGradientImage,
                          this->deformationFieldImage,
                          this->currentMask,
@@ -904,6 +904,7 @@ void reg_base<T>::GetVoxelBasedGradient()
                                                 this->approxParzenWindow);
         }
     }
+
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -992,7 +993,8 @@ void reg_base<T>::WarpFloatingImage(int inter)
                       this->deformationFieldImage,
                       this->currentMask,
                       inter,
-                      this->warpedPaddingValue);
+					  this->warpedPaddingValue);
+
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1045,10 +1047,12 @@ void reg_base<T>::Run()
     float iProgressStep=1, nProgressSteps;
     nProgressSteps = this->levelToPerform*this->maxiterationNumber;
 
+	// Loop over the different resolution level to perform
     for(this->currentLevel=0;
         this->currentLevel<this->levelToPerform;
         this->currentLevel++){
 
+		// Set the current input images
         if(this->usePyramid){
             this->currentReference = this->referencePyramid[this->currentLevel];
             this->currentFloating = this->floatingPyramid[this->currentLevel];

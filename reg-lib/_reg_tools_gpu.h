@@ -12,6 +12,7 @@
 #ifndef _REG_TOOLS_GPU_H
 #define _REG_TOOLS_GPU_H
 
+#include "_reg_tools.h"
 #include "_reg_blocksize_gpu.h"
 #include <thrust/device_ptr.h>
 #include <thrust/reduce.h>
@@ -43,7 +44,7 @@ void reg_gaussianSmoothing_gpu( nifti_image *image,
 extern "C++"
 void reg_smoothImageForCubicSpline_gpu(nifti_image *resultImage,
                                        float4 **voxelNMIGradientArray_d,
-                                       int *smoothingRadius);
+									   float *smoothingRadius);
 /* ******************************** */
 /* ******************************** */
 extern "C++"

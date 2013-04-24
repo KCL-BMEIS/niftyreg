@@ -310,8 +310,9 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
 
     /* Smoothing along the X axis */
     int radius = static_cast<int>(reg_ceil(2.0*spacingVoxel[0]));
-    int windowSize = 2*radius + 1;
-    DTYPE *window = (DTYPE *)calloc(windowSize,sizeof(DTYPE));
+	int kernelSize = 2*radius + 1;
+
+	DTYPE *window = (DTYPE *)calloc(kernelSize,sizeof(DTYPE));
     DTYPE coeffSum=0;
     for(int it=-radius; it<=radius; it++){
         DTYPE coeff = (DTYPE)(fabs((float)(DTYPE)it/(DTYPE)spacingVoxel[0]));
@@ -320,7 +321,8 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
         else window[it+radius]=0;
         coeffSum += window[it+radius];
     }
-    for(int it=0;it<windowSize;it++) window[it] /= coeffSum;
+	for(int it=0;it<kernelSize;it++) window[it] /= coeffSum;
+
     for(int t=0;t<timePoint;t++){
         for(int u=0;u<field;u++){
 
@@ -333,7 +335,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
 #pragma omp parallel for default(none) \
     private(index, i, X, it, x, y, z, finalValue, windowValue, \
     c, t, temp, imageValue) \
-    shared(image, readingValue, writtingValue, radius, windowSize, window, coeffSum)
+	shared(image, readingValue, writtingValue, radius, kernelSize, window, coeffSum)
 #endif // _OPENMP
             for(z=0; z<image->nz; z++){
                 i=z*image->nx*image->ny;
@@ -346,7 +348,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
                         X = x - radius;
                         // Kahan summation used here
                         c = (DTYPE)0;
-                        for(it=0; it<windowSize; it++){
+						for(it=0; it<kernelSize; it++){
                             if(-1<X && X<image->nx){
                                 imageValue = readingValue[index];
                                 windowValue = window[it];
@@ -367,9 +369,9 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
 
 	/* Smoothing along the Y axis */
     radius = static_cast<int>(reg_ceil(2.0*spacingVoxel[1]));
-	windowSize = 2*radius + 1;
+	kernelSize = 2*radius + 1;
     free(window);
-    window = (DTYPE *)calloc(windowSize,sizeof(DTYPE));
+	window = (DTYPE *)calloc(kernelSize,sizeof(DTYPE));
     coeffSum = 0;
     for(int it=-radius; it<=radius; it++){
         DTYPE coeff = (DTYPE)(fabs((float)(DTYPE)it/(DTYPE)spacingVoxel[1]));
@@ -378,7 +380,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
         else window[it+radius]=0;
         coeffSum += window[it+radius];
     }
-    for(int it=0;it<windowSize;it++) window[it] /= coeffSum;
+	for(int it=0;it<kernelSize;it++) window[it] /= coeffSum;
     for(int t=0;t<timePoint;t++){
         for(int u=0;u<field;u++){
 
@@ -391,7 +393,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
 #pragma omp parallel for default(none) \
     private(index, i, Y, it, x, y, z, finalValue, windowValue, \
     c, t, temp, imageValue) \
-    shared(image, readingValue, writtingValue, radius, windowSize, window, coeffSum)
+	shared(image, readingValue, writtingValue, radius, kernelSize, window, coeffSum)
 #endif // _OPENMP
             for(z=0; z<image->nz; z++){
                 i=z*image->nx*image->ny;
@@ -405,7 +407,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
 
                         // Kahan summation used here
                         c = (DTYPE)0;
-                        for(it=0; it<windowSize; it++){
+						for(it=0; it<kernelSize; it++){
                             if(-1<Y && Y<image->ny){
                                 imageValue = readingValue[index];
                                 windowValue = window[it];
@@ -426,9 +428,9 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
     if(image->nz>1){
 		/* Smoothing along the Z axis */
         radius = static_cast<int>(reg_ceil(2.0*spacingVoxel[2]));
-		windowSize = 2*radius + 1;
+		kernelSize = 2*radius + 1;
         free(window);
-        window = (DTYPE *)calloc(windowSize,sizeof(DTYPE));
+		window = (DTYPE *)calloc(kernelSize,sizeof(DTYPE));
         coeffSum=0;
         for(int it=-radius; it<=radius; it++){
             DTYPE coeff = (DTYPE)(fabs((float)(DTYPE)it/(DTYPE)spacingVoxel[2]));
@@ -437,7 +439,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
             else window[it+radius]=0;
             coeffSum += window[it+radius];
         }
-        for(int it=0;it<windowSize;it++) window[it] /= coeffSum;
+		for(int it=0;it<kernelSize;it++) window[it] /= coeffSum;
         for(int t=0;t<timePoint;t++){
             for(int u=0;u<field;u++){
 
@@ -451,7 +453,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
 #pragma omp parallel for default(none) \
     private(index, i, Z, it, x, y, z, finalValue, windowValue, \
     c, t, temp, imageValue) \
-    shared(image, readingValue, writtingValue, radius, windowSize, window, coeffSum)
+	shared(image, readingValue, writtingValue, radius, kernelSize, window, coeffSum)
 #endif // _OPENMP
 
                 for(z=0; z<image->nz; z++){
@@ -466,7 +468,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
 
                             // Kahan summation used here
                             c = (DTYPE)0;
-                            for(it=0; it<windowSize; it++){
+							for(it=0; it<kernelSize; it++){
                                 if(-1<Z && Z<image->nz){
                                     imageValue = readingValue[index];
                                     windowValue = window[it];
@@ -920,8 +922,9 @@ void reg_gaussianSmoothing1(nifti_image *image,
                         kernel[radius+i]=(PrecisionTYPE)(exp( -((double)i*(double)i)/(2.0*currentSigma*currentSigma)) / (currentSigma*2.506628274631));
                         // 2.506... = sqrt(2*pi)
                         kernelSum += kernel[radius+i];
-                    }
-                    for(i=-radius; i<=radius; i++) kernel[radius+i] /= kernelSum;
+					}
+					for(i=-radius; i<=radius; i++)
+						kernel[radius+i] /= kernelSum;
 #ifndef NDEBUG
                     printf("[NiftyReg DEBUG] smoothing dim[%i] radius[%i] kernelSum[%g]\n", n, radius, kernelSum);
 #endif

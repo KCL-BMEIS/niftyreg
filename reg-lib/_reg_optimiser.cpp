@@ -149,7 +149,7 @@ void reg_optimiser<T>::Optimise(T maxLength,
 {
     size_t lineIteration=0;
     float addedLength=0;
-    float currentLength=startLength;
+	float currentLength=startLength;
 
     // Start performing the line search
     while(currentLength>smallLength &&

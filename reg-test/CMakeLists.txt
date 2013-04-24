@@ -53,6 +53,15 @@ if(USE_CUDA)
             endforeach(type)
     endforeach(dim)
 #-----------------------------------------------------------------------------
+	set(EXEC reg_test_convolution_gpu)
+	cuda_add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_common_gpu _reg_tools _reg_tools_gpu reg_nifti ${ZLIB})
+	foreach(dim 2 3)
+		foreach(type gaussian spline)
+			add_test(${EXEC}_${dim}D_${type} ${EXEC} ${dim} ${type})
+		endforeach(type)
+	endforeach(dim)
+#-----------------------------------------------------------------------------
 endif(USE_CUDA)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------

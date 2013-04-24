@@ -506,7 +506,8 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
                                  this->voxelBasedMeasureGradientImage,
                                  this->similarityWeight,
                                  false);
-    /* The gradient is converted from voxel space to real space */
+
+	/* The similarity measure gradient is converted from voxel space to real space */
     mat44 *floatingMatrix_xyz=NULL;
     int controlPointNumber=this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz;
     int i;

@@ -17,6 +17,8 @@
 #include "_reg_tools_kernels.cu"
 
 
+/* *************************************************************** */
+/* *************************************************************** */
 void reg_voxelCentric2NodeCentric_gpu(nifti_image *targetImage,
                                       nifti_image *controlPointImage,
                                       float4 **voxelNMIGradientArray_d,
@@ -27,10 +29,12 @@ void reg_voxelCentric2NodeCentric_gpu(nifti_image *targetImage,
     const int voxelNumber = targetImage->nx * targetImage->ny * targetImage->nz;
     const int3 targetImageDim = make_int3(targetImage->nx, targetImage->ny, targetImage->nz);
     const int3 gridSize = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
-    const float3 voxelNodeRatio_h = make_float3(
+	float3 voxelNodeRatio_h = make_float3(
             controlPointImage->dx / targetImage->dx,
             controlPointImage->dy / targetImage->dy,
             controlPointImage->dz / targetImage->dz);
+	// Ensure that Z=0 if 2D images
+	if(gridSize.z==1) voxelNodeRatio_h.z=0;
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NodeNumber,&nodeNumber,sizeof(int)))
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_TargetImageDim,&targetImageDim,sizeof(int3)))
@@ -42,14 +46,14 @@ void reg_voxelCentric2NodeCentric_gpu(nifti_image *targetImage,
 
     const unsigned int Grid_reg_voxelCentric2NodeCentric = (unsigned int)ceil(sqrtf((float)nodeNumber/(float)Block_reg_voxelCentric2NodeCentric));
     dim3 B1(Block_reg_voxelCentric2NodeCentric,1,1);
-    dim3 G1(Grid_reg_voxelCentric2NodeCentric,Grid_reg_voxelCentric2NodeCentric,1);
-
+	dim3 G1(Grid_reg_voxelCentric2NodeCentric,Grid_reg_voxelCentric2NodeCentric,1);
     reg_voxelCentric2NodeCentric_kernel <<< G1, B1 >>> (*nodeNMIGradientArray_d);
-    NR_CUDA_CHECK_KERNEL(G1,B1)
-    NR_CUDA_SAFE_CALL(cudaUnbindTexture(gradientImageTexture))
+	NR_CUDA_CHECK_KERNEL(G1,B1)
+
+	NR_CUDA_SAFE_CALL(cudaUnbindTexture(gradientImageTexture))
 }
-
-
+/* *************************************************************** */
+/* *************************************************************** */
 void reg_convertNMIGradientFromVoxelToRealSpace_gpu(	mat44 *sourceMatrix_xyz,
                             nifti_image *controlPointImage,
                             float4 **nodeNMIGradientArray_d)
@@ -85,7 +89,7 @@ void reg_gaussianSmoothing_gpu( nifti_image *image,
                                 bool smoothXYZ[8])
 
 {
-    const int voxelNumber = image->nx * image->ny * image->nz;
+	const unsigned int voxelNumber = image->nx * image->ny * image->nz;
     const int3 imageDim = make_int3(image->nx, image->ny, image->nz);
 
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ImageDim, &imageDim,sizeof(int3)))
@@ -99,8 +103,8 @@ void reg_gaussianSmoothing_gpu( nifti_image *image,
         for(int i=0; i<8; i++) axisToSmooth[i]=smoothXYZ[i];
     }
 
-    for(int n=1; n<4; n++){
-        if(axisToSmooth[n]==true){
+	for(int n=1; n<4; n++){
+		if(axisToSmooth[n]==true && image->dim[n]>1){
             float currentSigma;
             if(sigma>0) currentSigma=sigma/image->pixdim[n];
             else currentSigma=fabs(sigma); // voxel based if negative value
@@ -111,11 +115,14 @@ void reg_gaussianSmoothing_gpu( nifti_image *image,
                 NR_CUDA_SAFE_CALL(cudaMallocHost(&kernel_h, kernelSize*sizeof(float)))
                 float kernelSum=0;
                 for(int i=-radius; i<=radius; i++){
-                    kernel_h[radius+i]=(float)(exp( -(i*i)/(2.0*currentSigma*currentSigma)) / (currentSigma*2.506628274631)); // 2.506... = sqrt(2*pi)
+					kernel_h[radius+i]=(float)(exp( -((float)i*(float)i)/(2.0*currentSigma*currentSigma)) /
+											   (currentSigma*2.506628274631));
+					// 2.506... = sqrt(2*pi)
                     kernelSum += kernel_h[radius+i];
                 }
-                for(int i=0; i<kernelSize; i++)
-                    kernel_h[i] /= kernelSum;
+				for(int i=0; i<kernelSize; i++)
+					kernel_h[i] /= kernelSum;
+
                 float *kernel_d;
                 NR_CUDA_SAFE_CALL(cudaMalloc(&kernel_d, kernelSize*sizeof(float)))
                 NR_CUDA_SAFE_CALL(cudaMemcpy(kernel_d, kernel_h, kernelSize*sizeof(float), cudaMemcpyHostToDevice))
@@ -126,7 +133,8 @@ void reg_gaussianSmoothing_gpu( nifti_image *image,
 
                 NR_CUDA_SAFE_CALL(cudaBindTexture(0, convolutionKernelTexture, kernel_d, kernelSize*sizeof(float)))
                 NR_CUDA_SAFE_CALL(cudaBindTexture(0, gradientImageTexture, *imageArray_d, voxelNumber*sizeof(float4)))
-                unsigned int Grid_reg_ApplyConvolutionWindow;
+
+				unsigned int Grid_reg_ApplyConvolutionWindow;
                 dim3 B,G;
                 switch(n){
                     case 1:
@@ -160,13 +168,13 @@ void reg_gaussianSmoothing_gpu( nifti_image *image,
                 NR_CUDA_SAFE_CALL(cudaMemcpy(*imageArray_d, smoothedImage, voxelNumber*sizeof(float4), cudaMemcpyDeviceToDevice))
                 NR_CUDA_SAFE_CALL(cudaFree(smoothedImage))
             }
-        }
-    }
+		}
+	}
 }
 /* *************************************************************** */
 void reg_smoothImageForCubicSpline_gpu( nifti_image *image,
                                         float4 **imageArray_d,
-                                        int *smoothingRadius)
+										float *spacingVoxel)
 {
     const int voxelNumber = image->nx * image->ny * image->nz;
     const int3 imageDim = make_int3(image->nx, image->ny, image->nz);
@@ -174,19 +182,24 @@ void reg_smoothImageForCubicSpline_gpu( nifti_image *image,
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ImageDim, &imageDim,sizeof(int3)))
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber, &voxelNumber,sizeof(int)))
 
-    for(int n=0; n<3; n++){
-        if(smoothingRadius[n]>0){
-            int kernelSize = 1+smoothingRadius[n]*2;
+	for(int n=0; n<3; n++){
+		if(spacingVoxel[n]>0 && image->dim[n+1]>1){
+			int radius = static_cast<int>(reg_ceil(2.0*spacingVoxel[n]));
+			int kernelSize = 1+radius*2;
+
             float *kernel_h;
             NR_CUDA_SAFE_CALL(cudaMallocHost(&kernel_h, kernelSize*sizeof(float)))
-//             float kernelSum=0;
-            for(int i=-smoothingRadius[n]; i<=smoothingRadius[n]; i++){
-                float coeff = fabs(2.0f*(float)(i)/smoothingRadius[n]);
-                if(coeff<1.0f)  kernel_h[smoothingRadius[n]+i] = 2.0f/3.0f - coeff*coeff + 0.5f*coeff*coeff*coeff;
-                else        kernel_h[smoothingRadius[n]+i] = -(coeff-2.0f)*(coeff-2.0f)*(coeff-2.0f)/6.0f;
-//                 kernelSum += kernel_h[smoothingRadius[n]+i];
-            }
-//             for(int i=0; i<kernelSize; i++) kernel_h[i] /= kernelSum;
+
+			float coeffSum=0;
+			for(int it=-radius; it<=radius; it++){
+				float coeff = (float)(fabs((float)(float)it/(float)spacingVoxel[0]));
+				if(coeff<1.0) kernel_h[it+radius] = (float)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
+				else if (coeff<2.0) kernel_h[it+radius] = (float)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
+				else kernel_h[it+radius]=0;
+				coeffSum += kernel_h[it+radius];
+			}
+			for(int it=0;it<kernelSize;it++) kernel_h[it] /= coeffSum;
+
             float *kernel_d;
             NR_CUDA_SAFE_CALL(cudaMalloc(&kernel_d, kernelSize*sizeof(float)))
             NR_CUDA_SAFE_CALL(cudaMemcpy(kernel_d, kernel_h, kernelSize*sizeof(float), cudaMemcpyHostToDevice))

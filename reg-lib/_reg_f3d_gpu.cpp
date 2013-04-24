@@ -406,27 +406,13 @@ void reg_f3d_gpu::WarpFloatingImage(int inter)
                               this->activeVoxelNumber[this->currentLevel],
                               this->warpedPaddingValue);
     }
+
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 double reg_f3d_gpu::ComputeSimilarityMeasure()
 {
-    if(this->currentFloating->nt==1){
-        if(cudaCommon_transferFromDeviceToNifti<float>
-           (this->warped, &this->warped_gpu)){
-            printf("[NiftyReg ERROR] Error when computing the similarity measure.\n");
-            exit(1);
-        }
-    }
-    else if(this->currentFloating->nt==2){
-        if(cudaCommon_transferFromDeviceToNifti<float>
-           (this->warped, &this->warped_gpu, &this->warped2_gpu)){
-            printf("[NiftyReg ERROR] Error when computing the similarity measure.\n");
-            exit(1);
-        }
-    }
-
     double measure=0.;
 	if(this->useSSD){
 		measure = -reg_getSSD_gpu(this->currentReference,
@@ -441,6 +427,11 @@ double reg_f3d_gpu::ComputeSimilarityMeasure()
 	}
 	else{
 		if(this->currentFloating->nt==1){
+			if(cudaCommon_transferFromDeviceToNifti<float>
+			   (this->warped, &this->warped_gpu)){
+				printf("[NiftyReg ERROR] Error when computing the similarity measure.\n");
+				exit(1);
+			}
 			reg_getEntropies(this->currentReference,
 							 this->warped,
 							 this->referenceBinNumber,
@@ -452,6 +443,11 @@ double reg_f3d_gpu::ComputeSimilarityMeasure()
 							 this->approxParzenWindow);
 		}
 		else if(this->currentFloating->nt==2){
+			if(cudaCommon_transferFromDeviceToNifti<float>
+			   (this->warped, &this->warped_gpu, &this->warped2_gpu)){
+				printf("[NiftyReg ERROR] Error when computing the similarity measure.\n");
+				exit(1);
+			}
 			reg_getEntropies2x2_gpu(this->currentReference,
 									 this->warped,
 									 //2,
@@ -544,6 +540,7 @@ void reg_f3d_gpu::GetVoxelBasedGradient()
 														this->floatingBinNumber);
 		}
 	}
+
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -554,20 +551,22 @@ void reg_f3d_gpu::GetSimilarityMeasureGradient()
     this->GetVoxelBasedGradient();
 
     // The voxel based gradient is smoothed
-    int smoothingRadius[3];
-    smoothingRadius[0] = (int)( 2.0*this->controlPointGrid->dx/this->currentReference->dx );
-    smoothingRadius[1] = (int)( 2.0*this->controlPointGrid->dy/this->currentReference->dy );
-    smoothingRadius[2] = (int)( 2.0*this->controlPointGrid->dz/this->currentReference->dz );
-    reg_smoothImageForCubicSpline_gpu(  this->warped,
-                                        &this->voxelBasedMeasureGradientImage_gpu,
-                                        smoothingRadius);
+	float smoothingRadius[3]={
+		this->controlPointGrid->dx/this->currentReference->dx,
+		this->controlPointGrid->dy/this->currentReference->dy,
+		this->controlPointGrid->dz/this->currentReference->dz};
+	reg_smoothImageForCubicSpline_gpu(this->warped,
+									  &this->voxelBasedMeasureGradientImage_gpu,
+									  smoothingRadius);
+
     // The node gradient is extracted
-    reg_voxelCentric2NodeCentric_gpu(   this->warped,
-                                        this->controlPointGrid,
-                                        &this->voxelBasedMeasureGradientImage_gpu,
-                                        &this->transformationGradient_gpu,
-                                        1.0-this->bendingEnergyWeight-this->jacobianLogWeight);
-    /* The NMI gradient is converted from voxel space to real space */
+	reg_voxelCentric2NodeCentric_gpu(this->warped,
+									 this->controlPointGrid,
+									 &this->voxelBasedMeasureGradientImage_gpu,
+									 &this->transformationGradient_gpu,
+									 this->similarityWeight);
+
+	/* The similarity measure gradient is converted from voxel space to real space */
     mat44 *floatingMatrix_xyz=NULL;
     if(this->currentFloating->sform_code>0)
         floatingMatrix_xyz = &(this->currentFloating->sto_xyz);

@@ -9,7 +9,7 @@
 
 #ifndef _REG_TOOLS_KERNELS_CU
 #define _REG_TOOLS_KERNELS_CU
-
+/* *************************************************************** */
 __device__ __constant__ int c_NodeNumber;
 __device__ __constant__ int c_VoxelNumber;
 __device__ __constant__ int3 c_TargetImageDim;
@@ -17,12 +17,12 @@ __device__ __constant__ float3 c_VoxelNodeRatio;
 __device__ __constant__ int3 c_ControlPointImageDim;
 __device__ __constant__ int3 c_ImageDim;
 __device__ __constant__ float c_Weight;
-
+/* *************************************************************** */
 texture<float4, 1, cudaReadModeElementType> controlPointTexture;
 texture<float4, 1, cudaReadModeElementType> gradientImageTexture;
 texture<float4, 1, cudaReadModeElementType> matrixTexture;
 texture<float, 1, cudaReadModeElementType> convolutionKernelTexture;
-
+/* *************************************************************** */
 __global__ void reg_voxelCentric2NodeCentric_kernel(float4 *nodeNMIGradientArray_d)
 {
     const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
@@ -37,22 +37,23 @@ __global__ void reg_voxelCentric2NodeCentric_kernel(float4 *nodeNMIGradientArray
 
         const float3 ratio = c_VoxelNodeRatio;
         const short X = round((x-1)*ratio.x);
-        const short Y = round((y-1)*ratio.y);
-        const short Z = round((z-1)*ratio.z);
+		const short Y = round((y-1)*ratio.y);
+		const short Z = round((z-1)*ratio.z);
 
-        const int3 imageSize = c_TargetImageDim;
-        if(-1<X && X<imageSize.x && -1<Y && Y<imageSize.y && -1<Z && Z<imageSize.z){
-            int index = (Z*imageSize.y+Y)*imageSize.x+X;
-            float4 gradientValue = tex1Dfetch(gradientImageTexture,index);
-            nodeNMIGradientArray_d[tid] = make_float4(c_Weight*gradientValue.x,
-                                                      c_Weight*gradientValue.y,
-                                                      c_Weight*gradientValue.z,
-                                                      0.0f);
-        }
-        else nodeNMIGradientArray_d[tid]=make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+		const int3 imageSize = c_TargetImageDim;
+
+		if(-1<X && X<imageSize.x && -1<Y && Y<imageSize.y && -1<Z && Z<imageSize.z){
+			int index = (Z*imageSize.y+Y)*imageSize.x+X;
+			float4 gradientValue = tex1Dfetch(gradientImageTexture,index);
+			nodeNMIGradientArray_d[tid] = make_float4(c_Weight*gradientValue.x,
+													  c_Weight*gradientValue.y,
+													  c_Weight*gradientValue.z,
+													  0.0f);
+		}
+		else nodeNMIGradientArray_d[tid]=make_float4(0, 0.0f, 0.0f, 0.0f);
     }
 }
-
+/* *************************************************************** */
 __global__ void _reg_convertNMIGradientFromVoxelToRealSpace_kernel(float4 *gradient)
 {
     const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;

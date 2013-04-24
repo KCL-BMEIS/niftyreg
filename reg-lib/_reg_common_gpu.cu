@@ -102,7 +102,7 @@ int cudaCommon_transferNiftiToArrayOnDevice(DTYPE **array_d, nifti_image *img)
 {
     if( sizeof(DTYPE)==sizeof(float4) ){
         if( (img->datatype!=NIFTI_TYPE_FLOAT32) || (img->dim[5]<2) || (img->dim[4]>1)){
-            fprintf(stderr, "ERROR:\tcudaCommon_transferNiftiToDevice:\n");
+			fprintf(stderr, "ERROR:\tcudaCommon_transferNiftiToArrayOnDevice:\n");
             fprintf(stderr, "ERROR:\tThe specified image is not a single precision deformation field image\n");
             return 1;
         }
@@ -165,7 +165,7 @@ int cudaCommon_transferNiftiToArrayOnDevice(DTYPE **array_d, DTYPE **array2_d, n
 {
     if( sizeof(DTYPE)==sizeof(float4) ){
         if( (img->datatype!=NIFTI_TYPE_FLOAT32) || (img->dim[5]<2) || (img->dim[4]>1)){
-            fprintf(stderr, "ERROR:\tcudaCommon_transferNiftiToDevice:\n");
+			fprintf(stderr, "ERROR:\tcudaCommon_transferNiftiToArrayOnDevice\n");
             fprintf(stderr, "ERROR:\tThe specified image is not a single precision deformation field image\n");
             return 1;
         }
@@ -245,7 +245,7 @@ int cudaCommon_transferNiftiToArrayOnDevice(cudaArray **cuArray_d, nifti_image *
 {
     if( sizeof(DTYPE)==sizeof(float4) ){
         if( (img->datatype!=NIFTI_TYPE_FLOAT32) || (img->dim[5]<2) || (img->dim[4]>1) ){
-            fprintf(stderr, "ERROR:\tcudaCommon_transferNiftiToDevice:\n");
+			fprintf(stderr, "ERROR:\tcudaCommon_transferNiftiToArrayOnDevice\n");
             fprintf(stderr, "ERROR:\tThe specified image is not a single precision deformation field image\n");
             return 1;
         }
@@ -334,7 +334,7 @@ int cudaCommon_transferNiftiToArrayOnDevice(cudaArray **cuArray_d, cudaArray **c
 {
     if( sizeof(DTYPE)==sizeof(float4) ){
         if( (img->datatype!=NIFTI_TYPE_FLOAT32) || (img->dim[5]<2) || (img->dim[4]>1) ){
-            fprintf(stderr, "ERROR:\tcudaCommon_transferNiftiToDevice:\n");
+			fprintf(stderr, "ERROR:\tcudaCommon_transferNiftiToArrayOnDevice\n");
             fprintf(stderr, "ERROR:\tThe specified image is not a single precision deformation field image\n");
             return 1;
         }

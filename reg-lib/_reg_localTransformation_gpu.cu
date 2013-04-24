@@ -219,8 +219,8 @@ void reg_spline_ComputeApproxJacobianValues(nifti_image *controlPointImage,
                                              float **jacobianDet_d)
 {
     // Need to reorient the Jacobian matrix using the header information - real to voxel conversion
-    mat33 reorient, desorient;
-    reg_getReorientationMatrix(controlPointImage, &desorient, &reorient);
+    mat33 reorient;
+    reg_getReorientationMatrix(controlPointImage, &reorient);
     float3 temp=make_float3(reorient.m[0][0],reorient.m[0][1],reorient.m[0][2]);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0,&temp,sizeof(float3)))
     temp=make_float3(reorient.m[1][0],reorient.m[1][1],reorient.m[1][2]);
@@ -265,8 +265,8 @@ void reg_spline_ComputeJacobianValues(nifti_image *controlPointImage,
                                        float **jacobianDet_d)
 {
     // Need to reorient the Jacobian matrix using the header information - real to voxel conversion
-    mat33 reorient, desorient;
-    reg_getReorientationMatrix(controlPointImage, &desorient, &reorient);
+    mat33 reorient;
+    reg_getReorientationMatrix(controlPointImage, &reorient);
     float3 temp=make_float3(reorient.m[0][0],reorient.m[0][1],reorient.m[0][2]);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0,&temp,sizeof(float3)))
     temp=make_float3(reorient.m[1][0],reorient.m[1][1],reorient.m[1][2]);
@@ -413,7 +413,8 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(nifti_image *referenceImage,
 
     // Need to desorient the Jacobian matrix using the header information - voxel to real conversion
     mat33 reorient, desorient;
-    reg_getReorientationMatrix(controlPointImage, &desorient, &reorient);
+    reg_getReorientationMatrix(controlPointImage, &reorient);
+    desorient=nifti_mat33_inverse(reorient);
     float3 temp=make_float3(desorient.m[0][0],desorient.m[0][1],desorient.m[0][2]);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0,&temp,sizeof(float3)))
     temp=make_float3(desorient.m[1][0],desorient.m[1][1],desorient.m[1][2]);
@@ -552,7 +553,8 @@ double reg_spline_correctFolding_gpu(nifti_image *referenceImage,
 
     // Need to desorient the Jacobian matrix using the header information - voxel to real conversion
     mat33 reorient, desorient;
-    reg_getReorientationMatrix(controlPointImage, &desorient, &reorient);
+    reg_getReorientationMatrix(controlPointImage, &reorient);
+    desorient=nifti_mat33_inverse(reorient);
     float3 temp=make_float3(desorient.m[0][0],desorient.m[0][1],desorient.m[0][2]);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0,&temp,sizeof(float3)))
     temp=make_float3(desorient.m[1][0],desorient.m[1][1],desorient.m[1][2]);
@@ -793,8 +795,8 @@ void reg_defField_getJacobianMatrix_gpu(nifti_image *deformationField,
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim,&referenceDim,sizeof(int3)))
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceSpacing,&referenceSpacing,sizeof(float3)))
 
-    mat33 reorient, desorient;
-    reg_getReorientationMatrix(deformationField, &desorient, &reorient);
+    mat33 reorient;
+    reg_getReorientationMatrix(deformationField, &reorient);
     float3 temp=make_float3(reorient.m[0][0],reorient.m[0][1],reorient.m[0][2]);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0,&temp,sizeof(float3)))
     temp=make_float3(reorient.m[1][0],reorient.m[1][1],reorient.m[1][2]);

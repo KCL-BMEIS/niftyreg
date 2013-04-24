@@ -29,7 +29,11 @@
     #define reg_floor(a) ((a)>=0?(int)(a):floor(a))
 #endif
 /* *************************************************************** */
-
+#define reg_exit(val){ \
+	fprintf(stderr,"[NiftyReg] Exit here. File: %s. Line: %i\n",__FILE__, __LINE__); \
+	exit(val); \
+}
+/* *************************************************************** */
 #if defined(_WIN32) && !defined(__CYGWIN__)
     #include <limits>
     #include <float.h>
