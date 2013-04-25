@@ -45,7 +45,7 @@ char xml_jacobian[] =
 "      <default></default>\n"
 "      <channel>input</channel>\n"
 "    </file>\n"
-"    <file fileExtensions=\".nii,.nii.gz,.nrrd\">\n"
+"    <file fileExtensions=\"*.nii,*.nii.gz,*.nrrd\">\n"
 "      <name>DEF_image</name>\n"
 "      <longflag>def</longflag>\n"
 "      <description>Deformation field image</description>\n"
