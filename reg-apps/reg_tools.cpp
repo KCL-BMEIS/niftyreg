@@ -80,7 +80,7 @@ void Usage(char *exec)
     printf("\t-div <filename/float>\tThis image (or value) is divided to the input\n");
     printf("\t-rms <filename>\t\tCompute the mean rms between both image\n");
     printf("\t-bin \t\t\tBinarise the input image (val!=0?val=1:val=0)\n");
-    printf("\t-thr <float>\t\tThresold the input image (val<thr?val=0:val=1)\n");
+    printf("\t-thr <float>\t\tThreshold the input image (val<thr?val=0:val=1)\n");
     printf("\t-nan <filename>\t\tThis image is used to mask the input image.\n\t\t\t\tVoxels outside of the mask are set to nan\n");
     printf("\t-iso\t\t\tThe resulting image is made isotropic\n");
 #ifdef _SVN_REV
