@@ -169,6 +169,7 @@ class reg_aladin
 
       virtual void DebugPrintLevelInfoStart();
       virtual void DebugPrintLevelInfoEnd();
+      virtual void SetVerbose(bool _verbose);
 
       void SetProgressCallbackFunction( void (*funcProgCallback)(float pcntProgress,
 								 void *params), 

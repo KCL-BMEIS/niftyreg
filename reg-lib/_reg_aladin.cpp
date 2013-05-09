@@ -97,6 +97,12 @@ bool reg_aladin<T>::TestMatrixConvergence(mat44 *mat)
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
+void reg_aladin<T>::SetVerbose(bool _verbose){
+    this->Verbose=_verbose;
+}
+
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
 int reg_aladin<T>::Check()
 {
     //This does all the initial checking
