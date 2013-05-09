@@ -4,11 +4,13 @@
  * @author Marc Modat
  * @date 25/03/2009
  *
- *  Created by Marc Modat on 25/03/2009.
- *  Copyright (c) 2009, University College London. All rights reserved.
- *  Centre for Medical Image Computing (CMIC)
- *  See the LICENSE.txt file in the nifty_reg root folder
+ * Created by Marc Modat on 25/03/2009.
+ * Copyright (c) 2009, University College London. All rights reserved.
+ * Centre for Medical Image Computing (CMIC)
+ * See the LICENSE.txt file in the nifty_reg root folder
  *
+ * The reg_defFieldInvert function has been initially written by
+ * Marcel van Herk (CMIC / NKI / AVL)
  */
 
 #ifndef _REG_TRANSFORMATION_H
@@ -359,7 +361,19 @@ void reg_defField_compose(nifti_image *deformationField,
                           nifti_image *dfToUpdate,
                           int *mask);
 /* *************************************************************** */
-
+/** @brief Compute the inverse of a deformation field
+ * @author Marcel van Herk (CMIC / NKI / AVL)
+ * @param inputDeformationField Image that contains the deformation
+ * field to invert.
+ * @param outputDeformationField Image that will contains the inverse
+ * of the input deformation field
+ * @param tolerance Tolerance value for the optimisation. Set to nan
+ * for the default value.
+ */
+extern "C++"
+void reg_defFieldInvert(nifti_image *inputDeformationField,
+                        nifti_image *outputDeformationField,
+                        float tolerance);
 /* *********************************************** */
 /* ****     VELOCITY FIELD BASED FUNCTIONS    **** */
 /* *********************************************** */

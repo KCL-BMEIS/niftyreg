@@ -14,7 +14,7 @@
 #include "_reg_resampling.h"
 #include "_reg_resampling_gpu.h"
 
-#define EPS 0.005
+#define EPS 0.00001
 #define SIZE 128
 #define BIN 68
 

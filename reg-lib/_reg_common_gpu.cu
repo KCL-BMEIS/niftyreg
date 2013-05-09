@@ -71,6 +71,8 @@ int cudaCommon_setCUDACard(CUdevice *dev,
             printf("[NiftyReg CUDA] Card compute capability: %i.%i\n",
                    major,
                    minor);
+            printf("[NiftyReg CUDA] CUDA version %i\n",
+                   CUDART_VERSION);
             printf("[NiftyReg CUDA] Card clock rate: %i MHz\n",
                    deviceProp.clockRate/1000);
             printf("[NiftyReg CUDA] Card has %i multiprocessor(s)\n",

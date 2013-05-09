@@ -8,21 +8,21 @@
 #define SIZE 128
 #define SPAC 5
 
-#define EPS 0.005
+#define EPS 0.0005
 
 double getAbsoluteMaxDifference(nifti_image *image1,
-                                nifti_image *image2)
+								nifti_image *image2)
 {
     double maxDifference=0.;
     float *img1Ptr = static_cast<float *>(image1->data);
     float *img2Ptr = static_cast<float *>(image2->data);
     for(size_t i=0; i<image1->nvox; ++i){
         if(img1Ptr!=img1Ptr)
-            fprintf(stderr, "WARNING - getAbsoluteMaxDifference - NaN in the first image\n");
+			fprintf(stderr, "WARNING - getAbsoluteMaxDifference - NaN in the first image\n");
         if(img2Ptr!=img2Ptr)
-            fprintf(stderr, "WARNING - getAbsoluteMaxDifference - NaN in the second image\n");
-        float currentDiff = fabsf(*img1Ptr++ - *img2Ptr++);
-        maxDifference = currentDiff>maxDifference?currentDiff:maxDifference;
+			fprintf(stderr, "WARNING - getAbsoluteMaxDifference - NaN in the second image\n");
+		float currentDiff = 2.f * fabsf(*img1Ptr++ - *img2Ptr++);
+		maxDifference = currentDiff>maxDifference?currentDiff:maxDifference;
     }
     return maxDifference;
 }
@@ -167,7 +167,7 @@ int main(int argc, char **argv)
         // Transfer the device field on the host
         cudaCommon_transferFromDeviceToNifti<float4>(field2, &field_gpu);
         // Compute the difference between both fields
-        maxDifferenceCOMP=getAbsoluteMaxDifference(field,field2);
+		maxDifferenceCOMP=getAbsoluteMaxDifference(field,field2);
         // Free extra arrays allocated on the GPU
         nifti_image_free(field_comp_cpu);
         cudaCommon_free(&field_comp_gpu);
@@ -189,7 +189,7 @@ int main(int argc, char **argv)
         // Transfer the device field on the host
         cudaCommon_transferFromDeviceToNifti<float4>(field2, &field_gpu);
         // Compute the difference between both fields
-        maxDifferenceEXP=getAbsoluteMaxDifference(field,field2);
+		maxDifferenceEXP=getAbsoluteMaxDifference(field,field2);
     }
     else if(strcmp(type,"be")==0){
         double be_cpu = reg_spline_approxBendingEnergy(controlPointGrid);
@@ -284,9 +284,9 @@ int main(int argc, char **argv)
         cudaCommon_transferFromDeviceToNifti<float4>(jac_grad_gpu, &jac_grad_device);
         // Compute the difference between both gradient arrays
         if(approximation)
-            maxDifferenceAJACG = getAbsoluteMaxDifference(jac_grad_cpu,jac_grad_gpu);
+			maxDifferenceAJACG = getAbsoluteMaxDifference(jac_grad_cpu,jac_grad_gpu);
         else
-            maxDifferenceJACG = getAbsoluteMaxDifference(jac_grad_cpu,jac_grad_gpu);
+			maxDifferenceJACG = getAbsoluteMaxDifference(jac_grad_cpu,jac_grad_gpu);
 
         // Free the extra images and array
         nifti_image_free(jac_grad_cpu);

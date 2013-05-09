@@ -2226,6 +2226,580 @@ void reg_defField_compose(nifti_image *deformationField,
 }
 /* *************************************************************** */
 /* *************************************************************** */
+/* Internal data structure to pass user data into optimizer that get passed to cost_function */
+struct ddata
+{ nifti_image *deformationField;
+  double gx, gy, gz;
+  double *arrayy[4];
+  double values[4];
+};
+
+/* ************************************************************************** */
+/* internal routine : deform one point(x, y, x) according to deformationField */
+/* returns ERROR when the input point falls outside the deformation field     */
+/* ************************************************************************** */
+
+template<class FieldTYPE>
+static int inline FastWarp(double x, double y, double z, nifti_image *deformationField, double *px, double *py, double *pz)
+{ double wax, wbx, wcx, wdx, wex, wfx, wgx, whx, wf3x; FieldTYPE *wpx;
+  double way, wby, wcy, wdy, wey, wfy, wgy, why, wf3y; FieldTYPE *wpy;
+  double waz, wbz, wcz, wdz, wez, wfz, wgz, whz, wf3z; FieldTYPE *wpz;
+  int   xw, yw, zw, dxw, dyw, dxyw, dxyzw;
+  double wxf, wyf, wzf, wyzf;
+  double world[4], position[4];
+
+  FieldTYPE *warpdata = static_cast<FieldTYPE *>(deformationField->data);
+
+  mat44 *deformationFieldIJKMatrix;
+  if(deformationField->sform_code>0)
+      deformationFieldIJKMatrix=&(deformationField->sto_ijk);
+  else deformationFieldIJKMatrix=&(deformationField->qto_ijk);
+
+  dxw = deformationField->nx;
+  dyw = deformationField->ny;
+  dxyw = dxw * dyw;
+  dxyzw = dxw * dyw * deformationField->nz;
+
+  // first guess
+  *px = x;
+  *py = y;
+  *pz = z;
+
+  // detect NAN input
+  if (x!=x || y!=y || z!=z) return EXIT_FAILURE;
+
+  // convert x, y,z to indices in deformationField
+  world[0] = x;
+  world[1] = y;
+  world[2] = z;
+  world[3] = 1;
+  reg_mat44_mul(deformationFieldIJKMatrix, world, position);
+  x = position[0];
+  y = position[1];
+  z = position[2];
+
+  xw = (int)x;        /* get indices into DVF */
+  yw = (int)y;
+  zw = (int)z;
+
+  // if you block out the next three lines the routine will extrapolate indefinitively
+#if 0
+  if (x<0 || x>=deformationField->nx-1) return ERROR;
+  if (y<0 || y>=deformationField->ny-1) return ERROR;
+  if (z<0 || z>=deformationField->nz-1) return ERROR;
+#else
+  if (xw<0) xw=0;     /* clip */
+  if (yw<0) yw=0;
+  if (zw<0) zw=0;
+  if (xw>deformationField->nx-2) xw = deformationField->nx-2;
+  if (yw>deformationField->ny-2) yw = deformationField->ny-2;
+  if (zw>deformationField->nz-2) zw = deformationField->nz-2;
+#endif
+
+  wxf = x-xw;                  /* fractional coordinates */
+  wyf = y-yw;
+  wzf = z-zw;
+
+                                      /* cornerstone for warp coordinates */
+  wpx = warpdata + zw*dxyw + yw*dxw + xw;
+  wpy = wpx+dxyzw;
+  wpz = wpy+dxyzw;
+
+  wf3x = wpx[dxw+1];
+  wax  = wpx[0];
+  wbx  = wpx[1]      - wax;
+  wcx  = wpx[dxw]    - wax;
+  wdx  = wpx[dxyw]   - wax;
+  wex  = wpx[dxyw + dxw] - wax - wcx - wdx;
+  wfx  = wpx[dxyw + 1 ]  - wax - wbx - wdx;
+  wgx  = wf3x            - wax - wbx - wcx;
+  whx  = wpx[dxyw + dxw + 1] - wf3x - wdx - wex - wfx;
+
+  wf3y = wpy[dxw+1];
+  way  = wpy[0];
+  wby  = wpy[1]      - way;
+  wcy  = wpy[dxw]    - way;
+  wdy  = wpy[dxyw]   - way;
+  wey  = wpy[dxyw + dxw] - way - wcy - wdy;
+  wfy  = wpy[dxyw + 1 ]  - way - wby - wdy;
+  wgy  = wf3y            - way - wby - wcy;
+  why  = wpy[dxyw + dxw + 1] - wf3y - wdy - wey - wfy;
+
+  wf3z = wpz[dxw+1];
+  waz  = wpz[0];
+  wbz  = wpz[1]      - waz;
+  wcz  = wpz[dxw]    - waz;
+  wdz  = wpz[dxyw]   - waz;
+  wez  = wpz[dxyw + dxw] - waz - wcz - wdz;
+  wfz  = wpz[dxyw + 1 ]  - waz - wbz - wdz;
+  wgz  = wf3z            - waz - wbz - wcz;
+  whz  = wpz[dxyw + dxw + 1] - wf3z - wdz - wez - wfz;
+
+  wyzf = wyf * wzf;                   /* common term in interpolation     */
+
+                                        /* trilinear interpolation formulae  */
+  *px = wax + wbx*wxf + wcx*wyf + wdx*wzf + wex*wyzf + wfx*wxf*wzf + wgx*wxf*wyf + whx*wxf*wyzf;
+  *py = way + wby*wxf + wcy*wyf + wdy*wzf + wey*wyzf + wfy*wxf*wzf + wgy*wxf*wyf + why*wxf*wyzf;
+  *pz = waz + wbz*wxf + wcz*wyf + wdz*wzf + wez*wyzf + wfz*wxf*wzf + wgz*wxf*wyf + whz*wxf*wyzf;
+
+  return EXIT_SUCCESS;
+}
+
+/* Internal square distance cost function; supports NIFTI_TYPE_FLOAT32 and NIFTI_TYPE_FLOAT64 */
+static double cost_function(const double *vector, const void *data)
+{ struct ddata *dat = (struct ddata*) data;
+  double x, y, z;
+  if (dat->deformationField->datatype == NIFTI_TYPE_FLOAT64)
+    FastWarp<double>(vector[0], vector[1], vector[2], dat->deformationField, &x, &y, &z);
+  else
+    FastWarp<float>(vector[0], vector[1], vector[2], dat->deformationField, &x, &y, &z);
+
+  return (x-dat->gx)*(x-dat->gx) + (y-dat->gy)*(y-dat->gy) + (z-dat->gz)*(z-dat->gz);
+}
+
+/* multimin/simplex.c
+ *
+ * Copyright (C) 2002 Tuomo Keskitalo, Ivo Alxneit
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ */
+
+/*
+   - Originally written by Tuomo Keskitalo <tuomo.keskitalo@iki.fi>
+   - Corrections to nmsimplex_iterate and other functions
+     by Ivo Alxneit <ivo.alxneit@psi.ch>
+   - Additional help by Brian Gough <bjg@network-theory.co.uk>
+
+   Modified version by mvh to make it work standalone of GSL
+*/
+
+/* The Simplex method of Nelder and Mead,
+   also known as the polytope search alogorithm. Ref:
+   Nelder, J.A., Mead, R., Computer Journal 7 (1965) pp. 308-313.
+
+   This implementation uses 4 corner points in the simplex for a 3D search.
+*/
+
+typedef struct
+{
+  double x1[12];              /* simplex corner points nsimplex*nvec */
+  double y1[4];               /* function value at corner points */
+  double ws1[3];              /* workspace 1 for algorithm */
+  double ws2[3];              /* workspace 2 for algorithm */
+  int    nvec;
+  int    nsimplex;
+}
+nmsimplex_state_t;
+
+typedef double gsl_multimin_function(const double *, const void *);
+
+static double
+nmsimplex_move_corner (const double coeff, nmsimplex_state_t *state,
+                       size_t corner, double *xc,
+                       gsl_multimin_function *f, void *fdata)
+{
+  /* moves a simplex corner scaled by coeff (negative value represents
+     mirroring by the middle point of the "other" corner points)
+     and gives new corner in xc and function value at xc as a
+     return value
+   */
+
+  double *x1 = state->x1;
+
+  size_t i, j;
+  double newval, mp;
+
+  for (j = 0; j < state->nvec; j++)
+    {
+      mp = 0.0;
+      for (i = 0; i < state->nsimplex; i++)
+        {
+          if (i != corner)
+            {
+              mp += x1[i*state->nvec + j];
+            }
+        }
+      mp /= (double) (state->nsimplex - 1);
+      newval = mp - coeff * (mp - x1[corner*state->nvec + j]);
+      xc[j] = newval;
+    }
+
+  newval = f(xc, fdata);
+
+  return newval;
+}
+
+static void
+nmsimplex_contract_by_best (nmsimplex_state_t *state, size_t best,
+                            double *xc, gsl_multimin_function *f, void *fdata)
+{
+
+  /* Function contracts the simplex in respect to
+     best valued corner. That is, all corners besides the
+     best corner are moved. */
+
+  /* the xc vector is simply work space here */
+
+  double *x1 = state->x1;
+  double *y1 = state->y1;
+
+  size_t i, j;
+  double newval;
+
+  for (i = 0; i < state->nsimplex; i++)
+    {
+      if (i != best)
+        {
+          for (j = 0; j < state->nvec; j++)
+            {
+              newval = 0.5 * (x1[i*state->nvec + j] + x1[best*state->nvec + j]);
+              x1[i*state->nvec +  j] = newval;
+            }
+
+          /* evaluate function in the new point */
+
+          xc = x1 + i*state->nvec;
+          newval = f(xc, fdata);
+      y1[i] = newval;
+        }
+    }
+}
+
+static void
+nmsimplex_calc_center (const nmsimplex_state_t *state, double *mp)
+{
+  /* calculates the center of the simplex to mp */
+
+  const double *x1 = state->x1;
+
+  size_t i, j;
+  double val;
+
+  for (j = 0; j < state->nvec; j++)
+    {
+      val = 0.0;
+      for (i = 0; i < state->nsimplex; i++)
+        {
+          val += x1[i*state->nvec + j];
+        }
+      val /= state->nsimplex;
+      mp[j] = val;
+    }
+}
+
+static double
+nmsimplex_size (nmsimplex_state_t *state)
+{
+  /* calculates simplex size as average sum of length of vectors
+     from simplex center to corner points:
+
+     ( sum ( || y - y_middlepoint || ) ) / n
+   */
+
+  double *s = state->ws1;
+  double *mp = state->ws2;
+  double *x1 = state->x1;
+
+  size_t i, j;
+
+  double t, ss = 0.0;
+
+  /* Calculate middle point */
+  nmsimplex_calc_center (state, mp);
+
+  for (i = 0; i < state->nsimplex; i++)
+    {
+      for (j=0; j<state->nvec; j++) s[j] = x1[i*state->nvec + j] - mp[j];
+      t = 0;
+      for (j=0; j<state->nvec; j++) t += s[j]*s[j];
+      ss += sqrt(t);
+    }
+
+  return ss / (double) (state->nsimplex);
+}
+
+static void
+nmsimplex_set (void *vstate, gsl_multimin_function *f,
+               const double *x,
+               double *size, const double *step_size, void *fdata)
+{
+  int status;
+  size_t i, j;
+  double val;
+
+  nmsimplex_state_t *state = (nmsimplex_state_t *) vstate;
+
+  double *xtemp = state->ws1;
+
+  /* first point is the original x0 */
+
+  val = f(x, fdata);
+  for (j=0; j<state->nvec; j++) state->x1[j] = x[j];
+  state->y1[0] = val;
+
+  /* following points are initialized to x0 + step_size */
+
+  for (i = 0; i < state->nvec; i++)
+    {
+      for (j=0; j<state->nvec; j++) xtemp[j] = x[j];
+
+      val = xtemp[i] + step_size[i];
+      xtemp[i] = val;
+      val = f(xtemp, fdata);
+      for (j=0; j<state->nvec; j++)
+        state->x1[(i + 1)*state->nvec + j] = xtemp[j];
+      state->y1[i + 1] = val;
+    }
+
+  /* Initialize simplex size */
+
+  *size = nmsimplex_size (state);
+}
+
+static void
+nmsimplex_iterate (void *vstate, gsl_multimin_function *f,
+                   double *x, double *size, double *fval, void *fdata)
+{
+
+  /* Simplex iteration tries to minimize function f value */
+  /* Includes corrections from Ivo Alxneit <ivo.alxneit@psi.ch> */
+
+  nmsimplex_state_t *state = (nmsimplex_state_t *) vstate;
+
+  /* xc and xc2 vectors store tried corner point coordinates */
+
+  double *xc = state->ws1;
+  double *xc2 = state->ws2;
+  double *y1 = state->y1;
+  double *x1 = state->x1;
+
+  size_t n = state->nsimplex;
+  size_t i, j;
+  size_t hi = 0, s_hi = 0, lo = 0;
+  double dhi, ds_hi, dlo;
+  int status;
+  double val, val2;
+
+  /* get index of highest, second highest and lowest point */
+
+  dhi = ds_hi = dlo = y1[0];
+
+  for (i = 1; i < n; i++)
+    {
+      val = y1[i];
+      if (val < dlo)
+        {
+          dlo = val;
+          lo = i;
+        }
+      else if (val > dhi)
+        {
+          ds_hi = dhi;
+          s_hi = hi;
+          dhi = val;
+          hi = i;
+        }
+      else if (val > ds_hi)
+        {
+          ds_hi = val;
+          s_hi = i;
+        }
+    }
+
+  /* reflect the highest value */
+
+  val = nmsimplex_move_corner (-1.0, state, hi, xc, f, fdata);
+
+  if (val < y1[lo])
+    {
+
+      /* reflected point becomes lowest point, try expansion */
+
+      val2 = nmsimplex_move_corner (-2.0, state, hi, xc2, f, fdata);
+
+      if (val2 < y1[lo])
+        {
+          for (j=0; j<state->nvec; j++) x1[hi*state->nvec+j] = xc2[j];
+          y1[hi] = val2;
+        }
+      else
+        {
+          for (j=0; j<state->nvec; j++) x1[hi*state->nvec+j] = xc[j];
+          y1[hi] = val;
+        }
+    }
+
+  /* reflection does not improve things enough */
+
+  else if (val > y1[s_hi])
+    {
+      if (val <= y1[hi])
+        {
+
+          /* if trial point is better than highest point, replace
+             highest point */
+
+          for (j=0; j<state->nvec; j++) x1[hi*state->nvec+j] = xc[j];
+          y1[hi] = val;
+        }
+
+      /* try one dimensional contraction */
+
+      val2 = nmsimplex_move_corner (0.5, state, hi, xc2, f, fdata);
+
+      if (val2 <= y1[hi])
+        {
+          for (j=0; j<state->nvec; j++) x1[hi*state->nvec+j] = xc2[j];
+          y1[hi] = val2;
+        }
+
+      else
+        {
+          /* contract the whole simplex in respect to the best point */
+          nmsimplex_contract_by_best (state, lo, xc, f, fdata);
+        }
+    }
+  else
+    {
+
+      /* trial point is better than second highest point.
+         Replace highest point by it */
+
+      for (j=0; j<state->nvec; j++) x1[hi*state->nvec+j] = xc[j];
+      y1[hi] = val;
+    }
+
+  /* return lowest point of simplex as x */
+
+  lo=0; val=y1[0];
+  for (j=1; j<state->nsimplex; j++) if (y1[j]<val) lo=j, val=y1[j];
+  for (j=0; j<state->nvec; j++) x[j] = x1[lo*state->nvec+j];
+  *fval = y1[lo];
+
+
+  /* Update simplex size */
+
+  *size = nmsimplex_size (state);
+}
+
+/* Internal wrapper for nmsimplex_iterate */
+static void optimize(gsl_multimin_function *f, double *start, void *data, double tol)
+{ nmsimplex_state_t t;
+  double fval[4];
+  double offset[3] = {10, 10, 10};
+  double size;
+  int n=0;
+  t.nvec = 3;
+  t.nsimplex = 4;
+  nmsimplex_set (&t, f, start, &size, offset, data);
+  while (size>tol && n<300)
+  { nmsimplex_iterate (&t, f, start, &size, fval, data);
+    n++;
+  }
+  nmsimplex_calc_center (&t, start);
+}
+/* *************************************************************** */
+template <class DTYPE>
+void reg_defFieldInvert3D(nifti_image *inputDeformationField,
+                          nifti_image *outputDeformationField,
+                          float tolerance)
+{
+    int outputVoxelNumber = outputDeformationField->nx *
+            outputDeformationField->ny *
+            outputDeformationField->nz;
+
+    mat44 *OutXYZMatrix;
+    if(outputDeformationField->sform_code>0)
+        OutXYZMatrix=&(outputDeformationField->sto_xyz);
+    else OutXYZMatrix=&(outputDeformationField->qto_xyz);
+
+    int i,x,y,z;
+    double position[4], pars[4], arrayy[4][3];
+    struct ddata dat;
+    DTYPE *outData;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(outputDeformationField,tolerance,outputVoxelNumber, \
+    inputDeformationField, OutXYZMatrix) \
+    private(i,x,y,z,dat,outData,position,pars,arrayy)
+#endif
+    for (z=0; z<outputDeformationField->nz; ++z){
+        dat.deformationField = inputDeformationField;
+        for(i=0; i<4; ++i)              /* set up 2D array pointers */
+            dat.arrayy[i]= arrayy[i];
+
+        outData = (DTYPE *)(outputDeformationField->data) +
+                outputDeformationField->nx * outputDeformationField->ny * z;
+
+        for(y=0; y<outputDeformationField->ny; ++y){
+            for(x=0; x<outputDeformationField->nx; ++x){
+
+                // convert x, y,z to world coordinates
+                position[0] = x;
+                position[1] = y;
+                position[2] = z;
+                position[3] = 1;
+                reg_mat44_mul(OutXYZMatrix, position, pars);
+                dat.gx = pars[0];
+                dat.gy = pars[1];
+                dat.gz = pars[2];
+
+                optimize(cost_function, pars, (void *)&dat, tolerance);
+                // output = (warp-1)(input);
+
+                outData[0]        = pars[0];
+                outData[outputVoxelNumber]   = pars[1];
+                outData[outputVoxelNumber*2] = pars[2];
+                ++outData;
+            }
+        }
+    }
+}
+/* *************************************************************** */
+void reg_defFieldInvert(nifti_image *inputDeformationField,
+                        nifti_image *outputDeformationField,
+                        float tolerance)
+{
+    // Check the input image data types
+    if(inputDeformationField->datatype!=outputDeformationField->datatype){
+        fprintf(stderr, "[NiftyReg ERROR] reg_defFieldInvert\n");
+        fprintf(stderr, "[NiftyReg ERROR] Both deformation fields are expected to have the same data type. Exit\n");
+        exit(1);
+    }
+
+    if(inputDeformationField->nu!=3){
+        fprintf(stderr, "[NiftyReg ERROR] reg_defFieldInvert\n");
+        fprintf(stderr, "[NiftyReg ERROR] The function has only been implemented for 3D deformation field yet. Exit\n");
+        exit(1);
+    }
+
+    switch(inputDeformationField->datatype){
+    case NIFTI_TYPE_FLOAT32:
+        reg_defFieldInvert3D<float>
+                (inputDeformationField,outputDeformationField,tolerance);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        reg_defFieldInvert3D<double>
+                (inputDeformationField,outputDeformationField,tolerance);
+    default:
+        printf("[NiftyReg ERROR] reg_composeDefField2D\tDeformation field pixel type unsupported.");
+        exit(1);
+    }
+}
+/* *************************************************************** */
+/* *************************************************************** */
 template<class DTYPE>
 void reg_spline_cppComposition_2D(nifti_image *grid1,
                                   nifti_image *grid2,

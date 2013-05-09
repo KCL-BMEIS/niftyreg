@@ -642,7 +642,7 @@ void reg_f3d_gpu::GetApproximatedGradient()
 		// Extract the current value
 		cudaMemcpy(gridValue,
 				   &this->controlPointGrid_gpu[i],
-				   sizeof(float),
+				   sizeof(float4),
 				   cudaMemcpyDeviceToHost);
 		modifiedValue[0]=gridValue[0];
 		// -- X axis
@@ -650,7 +650,7 @@ void reg_f3d_gpu::GetApproximatedGradient()
 		modifiedValue[0].x = gridValue[0].x + eps;
 		cudaMemcpy(&this->controlPointGrid_gpu[i],
 				   modifiedValue,
-				   sizeof(float),
+				   sizeof(float4),
 				   cudaMemcpyHostToDevice);
 		// Evaluate the objective function value
 		gradientValue[0].x=this->GetObjectiveFunctionValue();
@@ -658,7 +658,7 @@ void reg_f3d_gpu::GetApproximatedGradient()
 		modifiedValue[0].x = gridValue[0].x - eps;
 		cudaMemcpy(&this->controlPointGrid_gpu[i],
 				   modifiedValue,
-				   sizeof(float),
+				   sizeof(float4),
 				   cudaMemcpyHostToDevice);
 		// Evaluate the objective function value
 		gradientValue[0].x -= this->GetObjectiveFunctionValue();
@@ -669,7 +669,7 @@ void reg_f3d_gpu::GetApproximatedGradient()
 		modifiedValue[0].y = gridValue[0].y + eps;
 		cudaMemcpy(&this->controlPointGrid_gpu[i],
 				   modifiedValue,
-				   sizeof(float),
+				   sizeof(float4),
 				   cudaMemcpyHostToDevice);
 		// Evaluate the objective function value
 		gradientValue[0].y=this->GetObjectiveFunctionValue();
@@ -677,7 +677,7 @@ void reg_f3d_gpu::GetApproximatedGradient()
 		modifiedValue[0].y = gridValue[0].y - eps;
 		cudaMemcpy(&this->controlPointGrid_gpu[i],
 				   modifiedValue,
-				   sizeof(float),
+				   sizeof(float4),
 				   cudaMemcpyHostToDevice);
 		// Evaluate the objective function value
 		gradientValue[0].y -= this->GetObjectiveFunctionValue();
@@ -689,7 +689,7 @@ void reg_f3d_gpu::GetApproximatedGradient()
 			modifiedValue[0].z = gridValue[0].z + eps;
 			cudaMemcpy(&this->controlPointGrid_gpu[i],
 					   modifiedValue,
-					   sizeof(float),
+					   sizeof(float4),
 					   cudaMemcpyHostToDevice);
 			// Evaluate the objective function value
 			gradientValue[0].z=this->GetObjectiveFunctionValue();
@@ -697,7 +697,7 @@ void reg_f3d_gpu::GetApproximatedGradient()
 			modifiedValue[0].z = gridValue[0].z - eps;
 			cudaMemcpy(&this->controlPointGrid_gpu[i],
 					   modifiedValue,
-					   sizeof(float),
+					   sizeof(float4),
 					   cudaMemcpyHostToDevice);
 			// Evaluate the objective function value
 			gradientValue[0].z -= this->GetObjectiveFunctionValue();
@@ -706,13 +706,13 @@ void reg_f3d_gpu::GetApproximatedGradient()
 		// Restore the initial parametrisation
 		cudaMemcpy(&this->controlPointGrid_gpu[i],
 				   gridValue,
-				   sizeof(float),
+				   sizeof(float4),
 				   cudaMemcpyHostToDevice);
 
 		// Save the assessed gradient
 		cudaMemcpy(&this->transformationGradient_gpu[i],
 				   gradientValue,
-				   sizeof(float),
+				   sizeof(float4),
 				   cudaMemcpyHostToDevice);
 	}
 	cudaFreeHost(gridValue);

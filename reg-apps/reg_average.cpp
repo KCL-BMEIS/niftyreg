@@ -68,8 +68,8 @@ int main(int argc, char **argv)
         if(sizeof(PrecisionTYPE)==sizeof(double))
             average_image->datatype=NIFTI_TYPE_FLOAT64;
         average_image->nbyper=sizeof(PrecisionTYPE);
-        average_image->data=(void *)malloc(average_image->nvox*average_image->nbyper);
-        reg_tools_addSubMulDivValue(average_image,average_image,0.f,2);
+		average_image->data=(void *)calloc(average_image->nvox,average_image->nbyper);
+//        reg_tools_addSubMulDivValue(average_image,average_image,0.f,2);
 
         int imageTotalNumber=0;
         for(int i=2;i<argc;++i){

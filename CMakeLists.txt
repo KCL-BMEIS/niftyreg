@@ -132,17 +132,41 @@ endif(USE_OPENMP)
 
 #-----------------------------------------------------------------------------
 if(USE_CUDA)
+    # Check if the CUDA driver are available
     find_package(CUDA)
     mark_as_advanced(CUDA_SDK_ROOT_DIR)
     if(CUDA_FOUND)
-        if(NOT ${CUDA_VERSION_MAJOR} MATCHES "4")
-            message("NiftyReg has only been tested with Cuda v4. You have v${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR}")
-        endif(NOT ${CUDA_VERSION_MAJOR} MATCHES "4")
-        add_definitions(-D_USE_CUDA)
-        message(STATUS "Found CUDA - the GPU code will be compiled.")
-    if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-            message("The CUDA version of NiftyReg cannot be used with a clang based compiler")
-    endif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+        # Display the CUDA version
+        message(STATUS "The CUDA version you have is v${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR}")
+        # Check that the compiler is not Clang based, it won't compile otherwise
+        if(${CUDA_HOST_COMPILER} MATCHES "Clang")
+            message(FATAL_ERROR "The CUDA version of NiftyReg cannot be used with a clang based compiler")
+        endif(${CUDA_HOST_COMPILER} MATCHES "Clang")
+        # Compile an executable to check if there is at least one suitable graphical card
+        try_run(RUN_RESULT_VAR COMPILE_RESULT_VAR
+                ${CMAKE_BINARY_DIR}
+                ${CMAKE_CURRENT_SOURCE_DIR}/cuda/checkCudaCard.cpp
+                CMAKE_FLAGS
+                -DINCLUDE_DIRECTORIES:STRING=${CUDA_INCLUDE_DIRS}
+                -DLINK_LIBRARIES:STRING=${CUDA_LIBRARIES}
+                COMPILE_OUTPUT_VARIABLE COMPILE_OUTPUT_VAR
+                RUN_OUTPUT_VARIABLE RUN_OUTPUT_VAR
+        )
+        # Check if the executable could not compile
+        if(NOT COMPILE_RESULT_VAR)
+            message(STATUS "The code to check the presence of a CUDA-enabled card failed.")
+            message(STATUS "The USE_CUDA flag has been turned OFF.")
+        else(NOT COMPILE_RESULT_VAR)
+            # Check if the executable return failure
+            if(RUN_RESULT_VAR)
+                message(STATUS "No CUDA-enabled card has been detected.")
+                message(STATUS "The USE_CUDA flag has been turned OFF.")
+            else(RUN_RESULT_VAR)
+                # The CUDA implementation is used
+                add_definitions(-D_USE_CUDA)
+                message(STATUS "Found CUDA and a CUDA-enabled card - the GPU code will be compiled.")
+            endif(RUN_RESULT_VAR)
+        endif(NOT COMPILE_RESULT_VAR)
     else(CUDA_FOUND)
         message(FATAL_ERROR "CUDA not found. Please turn the USE_CUDA flag off or set the variables manually.")
     endif(CUDA_FOUND)

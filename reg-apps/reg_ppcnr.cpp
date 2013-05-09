@@ -703,7 +703,10 @@ int main(int argc, char **argv)
                 printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
                 printf("Registering image %i of %i \n", imageNumber+1,images->nt);
                 printf("'%s' \n",regCommandB);
-                system(regCommandB);
+				if(!system(regCommandB)){
+					fprintf(stderr, "Error while running the following command:\n%s\n",regCommandB);
+					exit(EXIT_FAILURE);
+				}
                 
                 // READ IN RESULT AND MAKE A NEW CURRENT IMAGE 'image'			
                 stores = nifti_image_read("outputResult.nii",true); // TODO NAME

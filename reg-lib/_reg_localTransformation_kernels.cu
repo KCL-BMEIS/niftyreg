@@ -531,7 +531,7 @@ __global__ void reg_spline_getDeformationField3D(float4 *positionField)
 /* *************************************************************** */
 __global__ void reg_spline_getDeformationField2D(float4 *positionField)
 {
-    __shared__ float yBasis[Block_reg_spline_getDeformationField2D*4];
+	__shared__ float yBasis[Block_reg_spline_getDeformationField2D*4];
 
     const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_ActiveVoxelNumber){
@@ -549,12 +549,12 @@ __global__ void reg_spline_getDeformationField2D(float4 *positionField)
         nodeAnte.x = (int)floorf((float)x/gridVoxelSpacing.x);
         nodeAnte.y = (int)floorf((float)y/gridVoxelSpacing.y);
 
-        const int shareMemIndex = 4*threadIdx.x;
+		const int shareMemIndex = 4*threadIdx.x;
 
-        // Y basis values
-        float relative = fabsf((float)y/gridVoxelSpacing.y-(float)nodeAnte.y);
-        if(c_UseBSpline) GetBasisBSplineValues(relative, &yBasis[shareMemIndex]);
-        else GetBasisSplineValues(relative, &yBasis[shareMemIndex]);
+		// Y basis values
+		float relative = fabsf((float)y/gridVoxelSpacing.y-(float)nodeAnte.y);
+		if(c_UseBSpline) GetBasisBSplineValues(relative, &yBasis[shareMemIndex]);
+		else GetBasisSplineValues(relative, &yBasis[shareMemIndex]);
         // X basis values
         float xBasis[4];
         relative = fabsf((float)x/gridVoxelSpacing.x-(float)nodeAnte.x);
@@ -574,18 +574,18 @@ __global__ void reg_spline_getDeformationField2D(float4 *positionField)
             float4 nodeCoefficientC = tex1Dfetch(controlPointTexture,index++);
             float4 nodeCoefficientD = tex1Dfetch(controlPointTexture,index);
 
-            basis=yBasis[shareMemIndex+b];
+			basis=yBasis[shareMemIndex+b];
             displacement.x += basis * (
-                        nodeCoefficientA.x * xBasis[0]
-                        + nodeCoefficientB.x * xBasis[1]
-                        + nodeCoefficientC.x * xBasis[2]
-                        + nodeCoefficientD.x * xBasis[3]);
+						nodeCoefficientA.x * xBasis[0] +
+						nodeCoefficientB.x * xBasis[1] +
+						nodeCoefficientC.x * xBasis[2] +
+						nodeCoefficientD.x * xBasis[3]);
 
             displacement.y += basis * (
-                        nodeCoefficientA.y * xBasis[0]
-                        + nodeCoefficientB.y * xBasis[1]
-                        + nodeCoefficientC.y * xBasis[2]
-                        + nodeCoefficientD.y * xBasis[3]);
+						nodeCoefficientA.y * xBasis[0] +
+						nodeCoefficientB.y * xBasis[1] +
+						nodeCoefficientC.y * xBasis[2] +
+						nodeCoefficientD.y * xBasis[3]);
 
         }
         positionField[tid] = displacement;

@@ -12,7 +12,7 @@
 #include "_reg_resampling.h"
 #include "_reg_tools.h"
 
-#define EPS_TEST 0.001
+#define EPS 0.00001
 
 template <class DTYPE>
 double test_get_max_abs_difference(nifti_image *imgA, nifti_image *imgB)
@@ -160,9 +160,9 @@ int main(int argc, char **argv)
     nifti_image_free(expectedImage);
 
     // Check if the test failed or passed
-    if(difference>EPS_TEST){
+	if(difference>EPS){
         fprintf(stderr, "Max difference: %g - Threshold: %g\n",
-                difference, EPS_TEST);
+				difference, EPS);
         return 1;
     }
 	return 0;

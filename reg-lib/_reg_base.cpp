@@ -757,7 +757,7 @@ template <class T>
 void reg_base<T>::GetVoxelBasedGradient()
 {
     // The intensity gradient is first computed
-	reg_getImageGradient(this->currentFloating,
+    reg_getImageGradient(this->currentFloating,
                          this->warpedGradientImage,
                          this->deformationFieldImage,
                          this->currentMask,
@@ -1086,12 +1086,15 @@ void reg_base<T>::Run()
         this->SetOptimiser();
 
         // Loop over the number of perturbation to do
-        for(size_t perturbation=0;perturbation<=this->perturbationNumber;++perturbation){
+		for(size_t perturbation=0;
+			perturbation<=this->perturbationNumber;
+			++perturbation){
 
             // Evalulate the objective function value
             this->UpdateBestObjFunctionValue();
             this->PrintInitialObjFunctionValue();
 
+			// Iterate until convergence or until the max number of iteration is reach
             while(true){
 
                 if(currentSize==0)
