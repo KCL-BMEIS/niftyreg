@@ -228,6 +228,12 @@ int main(int argc, char **argv)
     }
     reg_checkAndCorrectDimension(floatingImage);
 
+    // Tell the CLI that the process has started
+    startProgress("reg_resample");
+
+    // Set up progress indicators
+    float iProgressStep=1, nProgressSteps;
+
     /* *********************************** */
     /* DISPLAY THE RESAMPLING PARAMETERS */
     /* *********************************** */
@@ -304,7 +310,10 @@ int main(int argc, char **argv)
         affineTransformationMatrix->m[3][3]=1.0;
     }
 
-    // Allocate and copmute the deformation field if necessary
+    // Update progress via CLI
+    progressXML(1, "Transform loaded...");
+
+    // Allocate and compute the deformation field if necessary
     if(!flag->inputDEFFlag){
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] Allocation of the deformation field\n");
@@ -353,6 +362,9 @@ int main(int argc, char **argv)
                                      deformationFieldImage);
         }
     }
+
+    // Update progress via CLI
+    progressXML(2, "Deformation field ready...");
 
     /* ************************* */
     /* RESAMPLE THE SOURCE IMAGE */
@@ -462,17 +474,18 @@ int main(int argc, char **argv)
         printf("[NiftyReg] Resampled grid has been saved: %s\n", param->outputBlankName);
     }
 
+    // Tell the CLI that we finished
+    closeProgress("reg_resample", "Normal exit");
+
     nifti_image_free(referenceImage);
     nifti_image_free(floatingImage);
     nifti_image_free(controlPointImage);
     nifti_image_free(deformationFieldImage);
     free(affineTransformationMatrix);
 
-	
-	free(flag);
-	free(param);
-	
-	return 0;
+    free(flag);
+    free(param);
+    return 0;
 }
 
 #endif

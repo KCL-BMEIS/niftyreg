@@ -288,7 +288,21 @@ int reg_getDisplacementFromDeformation(nifti_image *image);
  */
 extern "C++"
 int reg_getDeformationFromDisplacement(nifti_image *image);
-/* *************************************************************** */
 
+/* *************************************************************** */
+/** @brief This function tells the progress to the CLI */
+extern "C++"
+void progressXML(unsigned long p, std::string text);
+
+/* *************************************************************** */
+/** @brief This function initiates progress updates through the CLI */
+extern "C++"
+void startProgress(std::string name);
+
+/* *************************************************************** */
+/** @brief This function closes progress updates through the CLI */
+extern "C++"
+void closeProgress(std::string name, std::string status);
+/* *************************************************************** */
 
 #endif

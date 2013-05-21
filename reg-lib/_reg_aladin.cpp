@@ -454,7 +454,9 @@ void reg_aladin<T>::Run()
     this->InitialiseRegistration();
 
     // Compute the resolution of the progress bar
-    float iProgressStep=1, nProgressSteps;
+    unsigned long iProgressStep = 1;
+    unsigned long nProgressSteps = 1;
+    
     if (this->PerformRigid && !this->PerformAffine)
     {
         nProgressSteps = this->MaxIterations*(this->LevelsToPerform + 1);
@@ -469,6 +471,8 @@ void reg_aladin<T>::Run()
         nProgressSteps = this->MaxIterations*(this->LevelsToPerform + 1);
     }
 
+    // Compute the progress unit
+    unsigned long progressUnit = (unsigned long)ceil((float)nProgressSteps / 100.0f);
 
     //Main loop over the levels:
     for(this->CurrentLevel=0; this->CurrentLevel < this->LevelsToPerform; this->CurrentLevel++)
@@ -520,9 +524,14 @@ void reg_aladin<T>::Run()
                 this->UpdateTransformationMatrix(RIGID);
                 if ( funcProgressCallback && paramsProgressCallback )
                 {
-                    (*funcProgressCallback)(100.*iProgressStep/nProgressSteps,
+                    (*funcProgressCallback)(100.0f * (float)iProgressStep / (float)nProgressSteps,
                                             paramsProgressCallback);
                 }
+
+                // Announce the progress via CLI
+                if ((int)(iProgressStep % progressUnit) == 0)
+                  progressXML(100 * iProgressStep / nProgressSteps, "Performing Rigid Registration...");
+
                 iteration++;
                 iProgressStep++;
             }
@@ -543,9 +552,16 @@ void reg_aladin<T>::Run()
                 this->UpdateTransformationMatrix(AFFINE);
                 if ( funcProgressCallback && paramsProgressCallback )
                 {
-                    (*funcProgressCallback)(100.*iProgressStep/nProgressSteps,
+                    (*funcProgressCallback)(100.0f * (float)iProgressStep / (float)nProgressSteps,
                                             paramsProgressCallback);
                 }
+
+                // Announce the progress via CLI
+                if ((int)(iProgressStep % progressUnit) == 0)
+                {
+                  progressXML(100 * iProgressStep / nProgressSteps, "Performing Affine Registration...");
+                }
+
                 iteration++;
                 iProgressStep++;
             }

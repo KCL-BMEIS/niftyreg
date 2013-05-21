@@ -260,6 +260,9 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    // Update the CLI progress bar that the registration has started
+    startProgress("reg_aladin");
+
     // Output the command line
     printf("\n[NiftyReg ALADIN] Command line:\n\t");
     for(int i=0;i<argc;i++)
@@ -360,6 +363,10 @@ int main(int argc, char **argv)
         }
         else REG->SetInputFloatingMask(floatingMaskImage);
     }
+
+    // Update the CLI progress bar
+    progressXML(2, "Input data ready...");
+
     REG->SetMaxIterations(maxIter);
     REG->SetNumberOfLevels(nLevels);
     REG->SetLevelsToPerform(levelsToPerform);
@@ -408,6 +415,10 @@ int main(int argc, char **argv)
     if(outputAffineFlag)
         reg_tool_WriteAffineFile(REG->GetTransformationMatrix(), outputAffineName);
     else reg_tool_WriteAffineFile(REG->GetTransformationMatrix(), (char *)"outputAffine.txt");
+
+    // Tell the CLI that we finished
+    closeProgress("reg_aladin", "Normal exit");
+
 
     nifti_image_free(referenceHeader);
     nifti_image_free(floatingHeader);

@@ -2153,5 +2153,41 @@ int reg_getDeformationFromDisplacement(nifti_image *splineControlPoint)
 }
 /* *************************************************************** */
 /* *************************************************************** */
+static char * CLI_PROGRESS_UPDATES = getenv("NIFTK_CLI_PROGRESS_UPD");
+
+void startProgress(std::string name)
+{
+  if (strcmp(CLI_PROGRESS_UPDATES, "ON") == 0 || strcmp(CLI_PROGRESS_UPDATES, "1") == 0)
+  {
+    std::cout<< "<filter-start>\n";
+    std::cout<< "<filter-name>"    <<name.c_str() <<"</filter-name>\n";
+    std::cout<< "<filter-comment>" <<name.c_str() <<"</filter-comment>\n";
+    std::cout<< "</filter-start>\n";
+    std::cout << std::flush;
+  }
+}
+
+void progressXML(unsigned long p, std::string text)
+{
+  if (strcmp(CLI_PROGRESS_UPDATES, "ON") == 0 || strcmp(CLI_PROGRESS_UPDATES, "1") == 0)
+  {
+    float val = static_cast<float>((float)p/100.0f);
+    std::cout << "<filter-progress>" << val <<"</filter-progress>\n";
+    std::cout << std::flush;
+  }
+}
+
+void closeProgress(std::string name, std::string status)
+{
+  if (strcmp(CLI_PROGRESS_UPDATES, "ON") == 0 || strcmp(CLI_PROGRESS_UPDATES, "1") == 0)
+  {
+    std::cout << "<filter-result name=exitStatusOutput>" << status.c_str() << "</filter-result>\n";
+    std::cout << "<filter-progress>100</filter-progress>\n";
+    std::cout << "<filter-end>\n";
+    std::cout << "<filter-name>" <<name.c_str() <<"</filter-name>\n";
+    std::cout << "<filter-comment>Finished</filter-comment></filter-end>\n";
+    std::cout << std::flush;
+  }
+}
 
 #endif
