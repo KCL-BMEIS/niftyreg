@@ -310,9 +310,9 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
 
     /* Smoothing along the X axis */
     int radius = static_cast<int>(reg_ceil(2.0*spacingVoxel[0]));
-	int kernelSize = 2*radius + 1;
+  int kernelSize = 2*radius + 1;
 
-	DTYPE *window = (DTYPE *)calloc(kernelSize,sizeof(DTYPE));
+  DTYPE *window = (DTYPE *)calloc(kernelSize,sizeof(DTYPE));
     DTYPE coeffSum=0;
     for(int it=-radius; it<=radius; it++){
         DTYPE coeff = (DTYPE)(fabs((float)(DTYPE)it/(DTYPE)spacingVoxel[0]));
@@ -321,7 +321,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
         else window[it+radius]=0;
         coeffSum += window[it+radius];
     }
-	for(int it=0;it<kernelSize;it++) window[it] /= coeffSum;
+  for(int it=0;it<kernelSize;it++) window[it] /= coeffSum;
 
     for(int t=0;t<timePoint;t++){
         for(int u=0;u<field;u++){
@@ -335,7 +335,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
 #pragma omp parallel for default(none) \
     private(index, i, X, it, x, y, z, finalValue, windowValue, \
     c, t, temp, imageValue) \
-	shared(image, readingValue, writtingValue, radius, kernelSize, window, coeffSum)
+  shared(image, readingValue, writtingValue, radius, kernelSize, window, coeffSum)
 #endif // _OPENMP
             for(z=0; z<image->nz; z++){
                 i=z*image->nx*image->ny;
@@ -348,7 +348,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
                         X = x - radius;
                         // Kahan summation used here
                         c = (DTYPE)0;
-						for(it=0; it<kernelSize; it++){
+            for(it=0; it<kernelSize; it++){
                             if(-1<X && X<image->nx){
                                 imageValue = readingValue[index];
                                 windowValue = window[it];
@@ -367,11 +367,11 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
         }
     }
 
-	/* Smoothing along the Y axis */
+  /* Smoothing along the Y axis */
     radius = static_cast<int>(reg_ceil(2.0*spacingVoxel[1]));
-	kernelSize = 2*radius + 1;
+  kernelSize = 2*radius + 1;
     free(window);
-	window = (DTYPE *)calloc(kernelSize,sizeof(DTYPE));
+  window = (DTYPE *)calloc(kernelSize,sizeof(DTYPE));
     coeffSum = 0;
     for(int it=-radius; it<=radius; it++){
         DTYPE coeff = (DTYPE)(fabs((float)(DTYPE)it/(DTYPE)spacingVoxel[1]));
@@ -380,7 +380,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
         else window[it+radius]=0;
         coeffSum += window[it+radius];
     }
-	for(int it=0;it<kernelSize;it++) window[it] /= coeffSum;
+  for(int it=0;it<kernelSize;it++) window[it] /= coeffSum;
     for(int t=0;t<timePoint;t++){
         for(int u=0;u<field;u++){
 
@@ -393,7 +393,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
 #pragma omp parallel for default(none) \
     private(index, i, Y, it, x, y, z, finalValue, windowValue, \
     c, t, temp, imageValue) \
-	shared(image, readingValue, writtingValue, radius, kernelSize, window, coeffSum)
+  shared(image, readingValue, writtingValue, radius, kernelSize, window, coeffSum)
 #endif // _OPENMP
             for(z=0; z<image->nz; z++){
                 i=z*image->nx*image->ny;
@@ -407,7 +407,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
 
                         // Kahan summation used here
                         c = (DTYPE)0;
-						for(it=0; it<kernelSize; it++){
+            for(it=0; it<kernelSize; it++){
                             if(-1<Y && Y<image->ny){
                                 imageValue = readingValue[index];
                                 windowValue = window[it];
@@ -426,11 +426,11 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
         }
     }
     if(image->nz>1){
-		/* Smoothing along the Z axis */
+    /* Smoothing along the Z axis */
         radius = static_cast<int>(reg_ceil(2.0*spacingVoxel[2]));
-		kernelSize = 2*radius + 1;
+    kernelSize = 2*radius + 1;
         free(window);
-		window = (DTYPE *)calloc(kernelSize,sizeof(DTYPE));
+    window = (DTYPE *)calloc(kernelSize,sizeof(DTYPE));
         coeffSum=0;
         for(int it=-radius; it<=radius; it++){
             DTYPE coeff = (DTYPE)(fabs((float)(DTYPE)it/(DTYPE)spacingVoxel[2]));
@@ -439,7 +439,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
             else window[it+radius]=0;
             coeffSum += window[it+radius];
         }
-		for(int it=0;it<kernelSize;it++) window[it] /= coeffSum;
+    for(int it=0;it<kernelSize;it++) window[it] /= coeffSum;
         for(int t=0;t<timePoint;t++){
             for(int u=0;u<field;u++){
 
@@ -453,7 +453,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
 #pragma omp parallel for default(none) \
     private(index, i, Z, it, x, y, z, finalValue, windowValue, \
     c, t, temp, imageValue) \
-	shared(image, readingValue, writtingValue, radius, kernelSize, window, coeffSum)
+  shared(image, readingValue, writtingValue, radius, kernelSize, window, coeffSum)
 #endif // _OPENMP
 
                 for(z=0; z<image->nz; z++){
@@ -468,7 +468,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
 
                             // Kahan summation used here
                             c = (DTYPE)0;
-							for(it=0; it<kernelSize; it++){
+              for(it=0; it<kernelSize; it++){
                                 if(-1<Z && Z<image->nz){
                                     imageValue = readingValue[index];
                                     windowValue = window[it];
@@ -751,7 +751,7 @@ void reg_tools_addSubMulDivImages(  nifti_image *img1,
                                     nifti_image *res,
                                     int type)
 {
-    
+
     if(img1->dim[1]!=img2->dim[1] ||
             img1->dim[2]!=img2->dim[2] ||
             img1->dim[3]!=img2->dim[3] ||
@@ -922,9 +922,9 @@ void reg_gaussianSmoothing1(nifti_image *image,
                         kernel[radius+i]=(PrecisionTYPE)(exp( -((double)i*(double)i)/(2.0*currentSigma*currentSigma)) / (currentSigma*2.506628274631));
                         // 2.506... = sqrt(2*pi)
                         kernelSum += kernel[radius+i];
-					}
-					for(i=-radius; i<=radius; i++)
-						kernel[radius+i] /= kernelSum;
+          }
+          for(i=-radius; i<=radius; i++)
+            kernel[radius+i] /= kernelSum;
 #ifndef NDEBUG
                     printf("[NiftyReg DEBUG] smoothing dim[%i] radius[%i] kernelSum[%g]\n", n, radius, kernelSum);
 #endif
@@ -2153,11 +2153,13 @@ int reg_getDeformationFromDisplacement(nifti_image *splineControlPoint)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-static char * CLI_PROGRESS_UPDATES = getenv("NIFTK_CLI_PROGRESS_UPD");
+
+static std::string CLI_PROGRESS_UPDATES = std::string(getenv("NIFTK_CLI_PROGRESS_UPD") != 0 ? getenv("NIFTK_CLI_PROGRESS_UPD") : "");
 
 void startProgress(std::string name)
 {
-  if (strcmp(CLI_PROGRESS_UPDATES, "ON") == 0 || strcmp(CLI_PROGRESS_UPDATES, "1") == 0)
+  if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
+      CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
   {
     std::cout<< "<filter-start>\n";
     std::cout<< "<filter-name>"    <<name.c_str() <<"</filter-name>\n";
@@ -2169,7 +2171,8 @@ void startProgress(std::string name)
 
 void progressXML(unsigned long p, std::string text)
 {
-  if (strcmp(CLI_PROGRESS_UPDATES, "ON") == 0 || strcmp(CLI_PROGRESS_UPDATES, "1") == 0)
+  if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
+      CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
   {
     float val = static_cast<float>((float)p/100.0f);
     std::cout << "<filter-progress>" << val <<"</filter-progress>\n";
@@ -2179,7 +2182,8 @@ void progressXML(unsigned long p, std::string text)
 
 void closeProgress(std::string name, std::string status)
 {
-  if (strcmp(CLI_PROGRESS_UPDATES, "ON") == 0 || strcmp(CLI_PROGRESS_UPDATES, "1") == 0)
+  if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
+      CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
   {
     std::cout << "<filter-result name=exitStatusOutput>" << status.c_str() << "</filter-result>\n";
     std::cout << "<filter-progress>100</filter-progress>\n";
