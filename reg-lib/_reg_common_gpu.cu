@@ -15,10 +15,7 @@
 
 /* ******************************** */
 /* ******************************** */
-int cudaCommon_setCUDACard(CUdevice *dev,
-                           CUcontext *ctx,
-                           int &major,
-                           int &minor,
+int cudaCommon_setCUDACard(CUcontext *ctx,
                            bool verbose)
 {
     // The CUDA card is setup
@@ -42,7 +39,7 @@ int cudaCommon_setCUDACard(CUdevice *dev,
         ++current_device;
     }
     NR_CUDA_SAFE_CALL(cudaSetDevice(max_gflops_device));
-    NR_CUDA_SAFE_CALL(cuCtxCreate(ctx, 0, *dev))
+    NR_CUDA_SAFE_CALL(cuCtxCreate(ctx, CU_CTX_SCHED_SPIN, max_gflops_device))
     NR_CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, max_gflops_device));
 
     if(deviceProp.major<1){
@@ -53,8 +50,6 @@ int cudaCommon_setCUDACard(CUdevice *dev,
         size_t free=0;
         size_t total=0;
         cuMemGetInfo(&free, &total);
-        major=deviceProp.major;
-        minor=deviceProp.minor;
         if(deviceProp.totalGlobalMem != total){
             fprintf(stderr,"[NiftyReg CUDA ERROR] The CUDA card %s does not seem to be available\n",
                    deviceProp.name);
@@ -69,8 +64,8 @@ int cudaCommon_setCUDACard(CUdevice *dev,
                    (unsigned long int)(free/(1024*1024)),
                    (unsigned long int)(total/(1024*1024)));
             printf("[NiftyReg CUDA] Card compute capability: %i.%i\n",
-                   major,
-                   minor);
+                   deviceProp.major,
+                   deviceProp.minor);
             printf("[NiftyReg CUDA] Shared memory size in bytes: %lu\n",
                    deviceProp.sharedMemPerBlock);
             printf("[NiftyReg CUDA] CUDA version %i\n",
@@ -80,7 +75,7 @@ int cudaCommon_setCUDACard(CUdevice *dev,
             printf("[NiftyReg CUDA] Card has %i multiprocessor(s)\n",
                    deviceProp.multiProcessorCount);
         }
-        NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(major);
+        NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(deviceProp.major);
     }
     return EXIT_SUCCESS;
 }

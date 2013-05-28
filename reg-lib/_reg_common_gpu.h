@@ -13,10 +13,7 @@
 
 /* ******************************** */
 /* ******************************** */
-int cudaCommon_setCUDACard(CUdevice *dev,
-                           CUcontext *ctx,
-                           int &major,
-                           int &minor,
+int cudaCommon_setCUDACard(CUcontext *ctx,
                            bool verbose);
 /* ******************************** */
 void cudaCommon_unsetCUDACard(CUcontext *ctx);

@@ -19,12 +19,9 @@ int main(int argc, char **argv)
     if(strcmp(type,"conjugate")!=0)
         type=(char *)"descent";
 
-	// Check and setup the GPU card
-	CUdevice dev;
-	CUcontext ctx;
-	int major;
-	int minor;
-	if(cudaCommon_setCUDACard(&dev,&ctx, major, minor, true))
+    // Check and setup the GPU card
+    CUcontext ctx;
+    if(cudaCommon_setCUDACard(&ctx, true))
 		return EXIT_FAILURE;
 
     // Create fake registration objects

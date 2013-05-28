@@ -22,11 +22,8 @@ int main(int argc, char **argv)
     char *type=argv[4];
 
     // Check and setup the GPU card
-    CUdevice dev;
     CUcontext ctx;
-    int major;
-    int minor;
-    if(cudaCommon_setCUDACard(&dev,&ctx, major, minor, true))
+    if(cudaCommon_setCUDACard(&ctx, true))
         return EXIT_FAILURE;
 
     // Read the input floating image and converts it to a float

@@ -587,51 +587,50 @@ int main(int argc, char **argv)
     // Create the reg_f3d object
     reg_f3d<PrecisionTYPE> *REG=NULL;
 #ifdef _USE_CUDA
-    CUdevice dev;
     CUcontext ctx;
     if(useGPU){
 
         if(linearEnergyWeight0==linearEnergyWeight0 ||
                 linearEnergyWeight1==linearEnergyWeight1 ||
                 L2NormWeight==L2NormWeight){
-            fprintf(stderr,"\n[NiftyReg WARNING CUDA] The linear elasticity has not been implemented with CUDA yet.\n");
-            fprintf(stderr,"[NiftyReg WARNING CUDA] GPU implementation has been turned off.\n");
+            fprintf(stderr,"\n[NiftyReg CUDA WARNING] The linear elasticity has not been implemented with CUDA yet.\n");
+            fprintf(stderr,"[NiftyReg CUDA WARNING] GPU implementation has been turned off.\n");
             useGPU=false;
         }
 
         if(useSym){
-            fprintf(stderr,"\n[NiftyReg WARNING CUDA] GPU implementation of the symmetric registration is not available yet.\n");
-            fprintf(stderr,"[NiftyReg WARNING CUDA] GPU implementation has been turned off.\n");
+            fprintf(stderr,"\n[NiftyReg CUDA WARNING] GPU implementation of the symmetric registration is not available yet.\n");
+            fprintf(stderr,"[NiftyReg CUDA WARNING] GPU implementation has been turned off.\n");
             useGPU=false;
         }
         if(useVel){
-            fprintf(stderr,"\n[NiftyReg WARNING CUDA] GPU implementation of velocity field parametrisartion is not available yet.\n");
-            fprintf(stderr,"[NiftyReg WARNING CUDA] GPU implementation has been turned off.\n");
+            fprintf(stderr,"\n[NiftyReg CUDA WARNING] GPU implementation of velocity field parametrisartion is not available yet.\n");
+            fprintf(stderr,"[NiftyReg CUDA WARNING] GPU implementation has been turned off.\n");
             useGPU=false;
         }
 
         if(!(referenceImage->dim[4]==1 && floatingImage->dim[4]==1) &&
            !(referenceImage->dim[4]==2 && floatingImage->dim[4]==2)){
-            fprintf(stderr,"\n[NiftyReg WARNING CUDA] The GPU implementation only handle 1 to 1 or 2 to 2 image(s) registration\n");
-            fprintf(stderr,"[NiftyReg WARNING CUDA] GPU implementation has been turned off.\n");
+            fprintf(stderr,"\n[NiftyReg CUDA WARNING] The GPU implementation only handle 1 to 1 or 2 to 2 image(s) registration\n");
+            fprintf(stderr,"[NiftyReg CUDA WARNING] GPU implementation has been turned off.\n");
             useGPU=false;
         }
 
         // Set up the cuda card and display some relevant information and check if the card is suitable
-        int major, minor;
-        if(cudaCommon_setCUDACard(&dev, &ctx, major, minor, verbose)){
-            fprintf(stderr,"\n[NiftyReg ERROR CUDA] Error while detecting a CUDA card\n");
-            fprintf(stderr,"[NiftyReg WARNING CUDA] GPU implementation has been turned off.\n");
+        if(cudaCommon_setCUDACard(&ctx, verbose)){
+            fprintf(stderr,"\n[NiftyReg CUDA ERROR] Error while detecting a CUDA card\n");
+            fprintf(stderr,"[NiftyReg CUDA WARNING] GPU implementation has been turned off.\n");
             useGPU=false;
         }
 
         // Create the registration object using the GPU class
-        if(useGPU)
+        if(useGPU){
             REG = new reg_f3d_gpu(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
-        if(verbose==true)
+            if(verbose==true)
 #endif // NDEBUG
-            printf("\n[NiftyReg F3D GPU] GPU implementation is used\n");
+                printf("\n[NiftyReg F3D GPU] GPU implementation is used\n");
+        }
     }
 #endif
     if(useSym && REG==NULL){
