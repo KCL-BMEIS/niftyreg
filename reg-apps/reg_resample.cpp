@@ -340,16 +340,18 @@ int main(int argc, char **argv)
 #ifndef NDEBUG
             printf("[NiftyReg DEBUG] Computation of the deformation field from the CPP image\n");
 #endif
-            if( controlPointImage->intent_code==NIFTI_INTENT_VECTOR &&
-                strcmp(controlPointImage->intent_name,"NREG_VEL_STEP")==0){
+            if(controlPointImage->intent_code==NIFTI_INTENT_VECTOR &&
+               strcmp(controlPointImage->intent_name,"NREG_VEL_STEP")==0){
                 reg_spline_getDeformationFieldFromVelocityGrid(controlPointImage,
                                                                deformationFieldImage);
             }
             else{
+                reg_tools_multiplyValueToImage(deformationFieldImage,deformationFieldImage,0.f);
+                reg_getDeformationFromDisplacement(deformationFieldImage);
                 reg_spline_getDeformationField(controlPointImage,
                                                deformationFieldImage,
                                                NULL, // mask
-                                               false, //composition
+                                               true, //composition
                                                true // bspline
                                                );
             }
