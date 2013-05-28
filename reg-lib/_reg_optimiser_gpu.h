@@ -1,22 +1,22 @@
 #ifndef _REG_OPTIMISER_GPU_H
 #define _REG_OPTIMISER_GPU_H
 
-#include "_reg_optimiser.h"
 #include "_reg_common_gpu.h"
+#include "_reg_optimiser.h"
 #include "_reg_tools_gpu.h"
 
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/** @class Global optimisation class for GPU
- * @brief Standard gradient acent optimisation
+/** @class reg_optimiser_gpu
+ * @brief Standard gradient acent optimisation for GPU
  */
 class reg_optimiser_gpu : public reg_optimiser<float>
 {
 protected:
-  float4 *currentDOF_gpu;
-  float4 *gradient_gpu;
-  float4 *bestDOF_gpu; // Allocated in here
+  float4 *currentDOF_gpu; // pointers
+  float4 *gradient_gpu; // pointers
+  float4 *bestDOF_gpu; // allocated here
 
 public:
   reg_optimiser_gpu();
@@ -47,8 +47,8 @@ public:
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/** @class Conjugate gradient optimisation class for GPU
- * @brief
+/** @class reg_conjugateGradient_gpu
+ * @brief Conjugate gradient acent optimisation for GPU
  */
 class reg_conjugateGradient_gpu : public reg_optimiser_gpu
 {
@@ -79,6 +79,9 @@ class reg_conjugateGradient_gpu : public reg_optimiser_gpu
                           float smallLength,
                           float &startLength);
     virtual void Perturbation(float length);
+
+    // Function used for testing
+    virtual void reg_test_optimiser();
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

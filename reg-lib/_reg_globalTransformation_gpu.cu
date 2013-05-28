@@ -21,6 +21,9 @@ void reg_affine_positionField_gpu(	mat44 *affineMatrix,
 					nifti_image *targetImage,
 					float4 **array_d)
 {
+    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+
     int3 imageSize = make_int3(targetImage->nx,targetImage->ny,targetImage->nz);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ImageSize,&imageSize,sizeof(int3)));
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&(targetImage->nvox),sizeof(int)));
@@ -50,8 +53,8 @@ void reg_affine_positionField_gpu(	mat44 *affineMatrix,
 	cudaBindTexture(0,txAffineTransformation,transformationMatrix_d,3*sizeof(float4));
     NR_CUDA_SAFE_CALL(cudaFreeHost((void *)transformationMatrix_h));
 	
-        const unsigned int Grid_reg_affine_deformationField = (unsigned int)ceil(sqrtf((float)targetImage->nvox/(float)Block_reg_affine_deformationField));
-	dim3 B1(Block_reg_affine_deformationField,1,1);
+        const unsigned int Grid_reg_affine_deformationField = (unsigned int)ceil(sqrtf((float)targetImage->nvox/(float)NR_BLOCK->Block_reg_affine_deformationField));
+    dim3 B1(NR_BLOCK->Block_reg_affine_deformationField,1,1);
         dim3 G1(Grid_reg_affine_deformationField,Grid_reg_affine_deformationField,1);
 
     reg_affine_deformationField_kernel <<< G1, B1 >>> (*array_d);

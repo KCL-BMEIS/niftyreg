@@ -243,7 +243,7 @@ int main(int argc, char **argv)
             affineMatrix2.m[2][1]=affineMatrix.m[2][1];
             affineMatrix2.m[2][2]=affineMatrix.m[2][2];
             float affineDet = nifti_mat33_determ(affineMatrix2);
-            reg_tools_addSubMulDivValue(jacobianImage,jacobianImage,affineDet,2);
+            reg_tools_multiplyValueToImage(jacobianImage,jacobianImage,affineDet);
         }
 
         // Export the Jacobian determinant map
@@ -300,11 +300,11 @@ int main(int argc, char **argv)
         else jacobianImage->dim[5] = jacobianImage->nu = 4;
         jacobianImage->datatype = currentDatatype;
         jacobianImage->nbyper = currentNbyper;
-        jacobianImage->nvox = jacobianImage->nx * jacobianImage->ny * jacobianImage->nz *
-                jacobianImage->nt * jacobianImage->nu;
+        jacobianImage->nvox = (size_t)jacobianImage->nx * (size_t)jacobianImage->ny * (size_t)jacobianImage->nz *
+                (size_t)jacobianImage->nt * (size_t)jacobianImage->nu;
         jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
 
-        size_t voxelNumber=image->nx*image->ny*image->nz;
+        size_t voxelNumber=(size_t)image->nx*image->ny*image->nz;
         mat33* jacobianMatricesArray=(mat33 *)malloc(voxelNumber*sizeof(mat33));
 
         // Compute the matrices

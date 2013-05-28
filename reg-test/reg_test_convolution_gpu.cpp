@@ -1,26 +1,10 @@
-#include "_reg_common_gpu.h"
 #include "_reg_tools.h"
 #include "_reg_tools_gpu.h"
 
-#define EPS 0.005
-#define SIZE 128
+#include "_reg_common_gpu.h"
 
-double getAbsoluteMaxDifference(nifti_image *image1,
-								nifti_image *image2)
-{
-	double maxDifference=0.;
-	float *img1Ptr = static_cast<float *>(image1->data);
-	float *img2Ptr = static_cast<float *>(image2->data);
-	for(size_t i=0; i<image1->nvox; ++i){
-		if(img1Ptr!=img1Ptr)
-			fprintf(stderr, "WARNING - getAbsoluteMaxDifference - NaN in the first image\n");
-		if(img2Ptr!=img2Ptr)
-			fprintf(stderr, "WARNING - getAbsoluteMaxDifference - NaN in the second image\n");
-		float currentDiff = fabsf(*img1Ptr++ - *img2Ptr++);
-		maxDifference = currentDiff>maxDifference?currentDiff:maxDifference;
-	}
-	return maxDifference;
-}
+#define EPS 0.001
+#define SIZE 128
 
 int main(int argc, char **argv)
 {
@@ -40,7 +24,7 @@ int main(int argc, char **argv)
 	CUcontext ctx;
 	int major;
 	int minor;
-	if(cudaCommon_setCUDACard(&dev,&ctx, major, minor, true))
+    if(cudaCommon_setCUDACard(&dev, &ctx, major, minor, true))
 		return EXIT_FAILURE;
 
 	// Create the input images
@@ -79,7 +63,7 @@ int main(int argc, char **argv)
 		nifti_image *tempImage = nifti_make_new_nim(nii_dim, NIFTI_TYPE_FLOAT32, true);
 		reg_checkAndCorrectDimension(tempImage);
 		cudaCommon_transferFromDeviceToNifti<float4>(tempImage, &input_gpu);
-		maxDifferenceGAUSSIAN=getAbsoluteMaxDifference(input,tempImage);
+        maxDifferenceGAUSSIAN=reg_test_compare_images(input,tempImage);
 
 		char name[255];
 		sprintf(name, "gaussian_%i_cpu.nii",dimension);
@@ -105,7 +89,7 @@ int main(int argc, char **argv)
 		nifti_image *tempImage = nifti_make_new_nim(nii_dim, NIFTI_TYPE_FLOAT32, true);
 		reg_checkAndCorrectDimension(tempImage);
 		cudaCommon_transferFromDeviceToNifti<float4>(tempImage, &input_gpu);
-		maxDifferenceSPLINE=getAbsoluteMaxDifference(input,tempImage);
+        maxDifferenceSPLINE=reg_test_compare_images(input,tempImage);
 
 		char name[255];
 		sprintf(name, "spline_%i_cpu.nii",dimension);
@@ -118,6 +102,11 @@ int main(int argc, char **argv)
 
 		nifti_image_free(tempImage);
 	}
+
+    // Clean the allocate arrays and images
+    nifti_image_free(input);
+    cudaCommon_free(&input_gpu);
+    cudaCommon_unsetCUDACard(&ctx);
 
 	if(maxDifferenceGAUSSIAN>EPS){
 		fprintf(stderr,
@@ -132,11 +121,7 @@ int main(int argc, char **argv)
 				dimension,
 				maxDifferenceSPLINE);
 		return EXIT_FAILURE;
-	}
-
-	// Clean the allocate arrays and images
-	nifti_image_free(input);
-	cudaCommon_free(&input_gpu);
+    }
 
 	return EXIT_SUCCESS;
 }

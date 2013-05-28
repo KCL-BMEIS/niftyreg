@@ -136,7 +136,7 @@ void reg_tps<T>::InitialiseTPS()
         fprintf(stderr,"[NiftyReg] ERROR Size should be %g GB (%i x %i) ... Exit\n",
                 (T)(matrix_side*matrix_side)*sizeof(T)/1000000000.f,
                 (int)matrix_side,(int)matrix_side);
-        exit(1);
+        reg_exit(1);
     }
 
     // Distance matrix is computed

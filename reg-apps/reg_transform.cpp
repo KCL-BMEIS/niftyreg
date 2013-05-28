@@ -311,7 +311,7 @@ int main(int argc, char **argv)
         std::ifstream infile(param->tpsTextFilename);
         if(!infile){
             fprintf(stderr,"[ERROR] Can not open the file %s\n", param->tpsTextFilename);
-            exit(1);
+            reg_exit(1);
         }
         float val;
         while(!infile.eof()){
@@ -324,7 +324,7 @@ int main(int argc, char **argv)
         else if(referenceImage->ndim==3) landmarkNumber=values.size()/6;
         else{
             fprintf(stderr,"[ERROR] The reference image is expected to be of dimension 2 or 3\n");
-            exit(1);
+            reg_exit(1);
         }
         printf("[NiftyReg] Landmark number %i\n", (int)landmarkNumber);
 
@@ -390,7 +390,7 @@ int main(int argc, char **argv)
             if(referenceImage->nz>1)
                 outputImage->nu=outputImage->dim[5]=3;
             else outputImage->nu=outputImage->dim[5]=2;
-            outputImage->nvox=outputImage->nx*
+            outputImage->nvox =outputImage->nx*
                     outputImage->ny *
                     outputImage->nz *
                     outputImage->nt *
@@ -430,7 +430,8 @@ int main(int argc, char **argv)
         deformationFieldImage->pixdim[5]=deformationFieldImage->du=1.0;
         deformationFieldImage->dim[6]=deformationFieldImage->nv=1;deformationFieldImage->pixdim[6]=deformationFieldImage->dv=1.0;
         deformationFieldImage->dim[7]=deformationFieldImage->nw=1;deformationFieldImage->pixdim[7]=deformationFieldImage->dw=1.0;
-        deformationFieldImage->nvox=deformationFieldImage->nx*deformationFieldImage->ny*deformationFieldImage->nz*deformationFieldImage->nt*deformationFieldImage->nu;
+        deformationFieldImage->nvox =(size_t)deformationFieldImage->nx*(size_t)deformationFieldImage->ny*(size_t)deformationFieldImage->nz*
+                (size_t)deformationFieldImage->nt*(size_t)deformationFieldImage->nu;
         deformationFieldImage->datatype = controlPointImage->datatype;
         deformationFieldImage->nbyper = controlPointImage->nbyper;
         deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
@@ -500,7 +501,8 @@ int main(int argc, char **argv)
             deformationFieldImage->pixdim[5]=deformationFieldImage->du=1.0;
             deformationFieldImage->dim[6]=deformationFieldImage->nv=1;deformationFieldImage->pixdim[6]=deformationFieldImage->dv=1.0;
             deformationFieldImage->dim[7]=deformationFieldImage->nw=1;deformationFieldImage->pixdim[7]=deformationFieldImage->dw=1.0;
-            deformationFieldImage->nvox=deformationFieldImage->nx*deformationFieldImage->ny*deformationFieldImage->nz*deformationFieldImage->nt*deformationFieldImage->nu;
+            deformationFieldImage->nvox =(size_t)deformationFieldImage->nx*(size_t)deformationFieldImage->ny*(size_t)deformationFieldImage->nz*
+                    (size_t)deformationFieldImage->nt*(size_t)deformationFieldImage->nu;
             deformationFieldImage->datatype = firstControlPointImage->datatype;
             deformationFieldImage->nbyper = firstControlPointImage->nbyper;
             deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
@@ -705,9 +707,9 @@ int main(int argc, char **argv)
         outputDeformationFieldImage->pixdim[6]=outputDeformationFieldImage->dv=1.0;
         outputDeformationFieldImage->dim[7]=outputDeformationFieldImage->nw=1;
         outputDeformationFieldImage->pixdim[7]=outputDeformationFieldImage->dw=1.0;
-        outputDeformationFieldImage->nvox=outputDeformationFieldImage->nx*outputDeformationFieldImage->ny*
-                outputDeformationFieldImage->nz*outputDeformationFieldImage->nt*
-                outputDeformationFieldImage->nu;
+        outputDeformationFieldImage->nvox =(size_t)outputDeformationFieldImage->nx*(size_t)outputDeformationFieldImage->ny*
+                (size_t)outputDeformationFieldImage->nz*(size_t)outputDeformationFieldImage->nt*
+                (size_t)outputDeformationFieldImage->nu;
         outputDeformationFieldImage->datatype = deformationField->datatype;
         outputDeformationFieldImage->nbyper = deformationField->nbyper;
         outputDeformationFieldImage->data = (void *)calloc(outputDeformationFieldImage->nvox,
@@ -778,9 +780,9 @@ int main(int argc, char **argv)
         deformationFieldImage->pixdim[6]=deformationFieldImage->dv=1.0;
         deformationFieldImage->dim[7]=deformationFieldImage->nw=1;
         deformationFieldImage->pixdim[7]=deformationFieldImage->dw=1.0;
-        deformationFieldImage->nvox=deformationFieldImage->nx*deformationFieldImage->ny
-                *deformationFieldImage->nz*deformationFieldImage->nt
-                *deformationFieldImage->nu;
+        deformationFieldImage->nvox =(size_t)deformationFieldImage->nx*(size_t)deformationFieldImage->ny
+                *(size_t)deformationFieldImage->nz*(size_t)deformationFieldImage->nt
+                *(size_t)deformationFieldImage->nu;
         deformationFieldImage->datatype = nrr_transformation->datatype;
         deformationFieldImage->nbyper = nrr_transformation->nbyper;
         deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox,

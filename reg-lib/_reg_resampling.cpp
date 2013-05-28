@@ -49,8 +49,8 @@ void CubicSplineResampleImage3D(nifti_image *floatingImage,
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(floatingImage->data);
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(warpedImage->data);
     FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-    int resultVoxelNumber = warpedImage->nx*warpedImage->ny*warpedImage->nz;
-    int sourceVoxelNumber = floatingImage->nx*floatingImage->ny*floatingImage->nz;
+    size_t resultVoxelNumber = warpedImage->nx*warpedImage->ny*warpedImage->nz;
+    size_t sourceVoxelNumber = floatingImage->nx*floatingImage->ny*floatingImage->nz;
     FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[resultVoxelNumber];
     FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[resultVoxelNumber];
 
@@ -67,7 +67,7 @@ void CubicSplineResampleImage3D(nifti_image *floatingImage,
     else sourceIJKMatrix=&(floatingImage->qto_ijk);
 
     // Iteration over the different volume along the 4th axis
-    for(int t=0; t<warpedImage->nt*warpedImage->nu;t++){
+    for(size_t t=0; t<warpedImage->nt*warpedImage->nu;t++){
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] 3D Cubic spline resampling of volume number %i\n",t);
 #endif
@@ -76,7 +76,8 @@ void CubicSplineResampleImage3D(nifti_image *floatingImage,
         SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
         FieldTYPE xBasis[4], yBasis[4], zBasis[4], relative;
-        int a, b, c, Y, Z, previous[3], index;
+        int a, b, c, Y, Z, previous[3];
+        size_t index;
         SourceTYPE *zPointer, *yzPointer, *xyzPointer;
         FieldTYPE xTempNewValue, yTempNewValue, intensity, world[3], position[3];
 #ifdef _OPENMP
@@ -188,8 +189,8 @@ void CubicSplineResampleImage2D(nifti_image *floatingImage,
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(floatingImage->data);
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(warpedImage->data);
     FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-    int targetVoxelNumber = warpedImage->nx*warpedImage->ny;
-    int sourceVoxelNumber = floatingImage->nx*floatingImage->ny;
+    size_t targetVoxelNumber = warpedImage->nx*warpedImage->ny;
+    size_t sourceVoxelNumber = floatingImage->nx*floatingImage->ny;
     FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
 
     int *maskPtr = &mask[0];
@@ -213,7 +214,8 @@ void CubicSplineResampleImage2D(nifti_image *floatingImage,
         SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
         FieldTYPE xBasis[4], yBasis[4], relative;
-        int a, b, Y, previous[2], index;
+        int a, b, Y, previous[2];
+        size_t index;
         SourceTYPE *yPointer, *xyPointer;
         FieldTYPE xTempNewValue, intensity, world[2], position[2];
 #ifdef _OPENMP
@@ -315,8 +317,8 @@ void TrilinearResampleImage(nifti_image *floatingImage,
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(floatingImage->data);
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(warpedImage->data);
     FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-    int targetVoxelNumber = warpedImage->nx*warpedImage->ny*warpedImage->nz;
-    int sourceVoxelNumber = floatingImage->nx*floatingImage->ny*floatingImage->nz;
+    size_t targetVoxelNumber = warpedImage->nx*warpedImage->ny*warpedImage->nz;
+    size_t sourceVoxelNumber = floatingImage->nx*floatingImage->ny*floatingImage->nz;
     FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
     FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[targetVoxelNumber];
 
@@ -340,7 +342,8 @@ void TrilinearResampleImage(nifti_image *floatingImage,
         SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
         FieldTYPE xBasis[2], yBasis[2], zBasis[2], relative;
-        int a, b, c, X, Y, Z, previous[3], index;
+        int a, b, c, X, Y, Z, previous[3];
+        size_t index;
         SourceTYPE *zPointer, *xyzPointer;
         FieldTYPE xTempNewValue, yTempNewValue, intensity, world[3], position[3];
 #ifdef _OPENMP
@@ -480,8 +483,8 @@ void BilinearResampleImage(nifti_image *floatingImage,
     // The resampling scheme is applied along each time
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(floatingImage->data);
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(warpedImage->data);
-    int targetVoxelNumber = warpedImage->nx*warpedImage->ny;
-    int sourceVoxelNumber = floatingImage->nx*floatingImage->ny;
+    size_t  targetVoxelNumber = warpedImage->nx*warpedImage->ny;
+    size_t  sourceVoxelNumber = floatingImage->nx*floatingImage->ny;
     FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
     FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
 
@@ -507,7 +510,8 @@ void BilinearResampleImage(nifti_image *floatingImage,
         SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
         FieldTYPE xBasis[2], yBasis[2], relative;
-        int a, b, X, Y, previous[3], index;
+        int a, b, X, Y, previous[3];
+        size_t index;
         SourceTYPE *xyPointer;
         FieldTYPE xTempNewValue, intensity, world[2], position[2];
 #ifdef _OPENMP
@@ -612,8 +616,8 @@ void NearestNeighborResampleImage(nifti_image *floatingImage,
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(floatingImage->data);
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(warpedImage->data);
     FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-    int targetVoxelNumber = warpedImage->nx*warpedImage->ny*warpedImage->nz;
-    int sourceVoxelNumber = floatingImage->nx*floatingImage->ny*floatingImage->nz;
+    size_t targetVoxelNumber = warpedImage->nx*warpedImage->ny*warpedImage->nz;
+    size_t sourceVoxelNumber = floatingImage->nx*floatingImage->ny*floatingImage->nz;
     FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
     FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[targetVoxelNumber];
 
@@ -641,7 +645,7 @@ void NearestNeighborResampleImage(nifti_image *floatingImage,
         FieldTYPE world[3];
         FieldTYPE position[3];
         int previous[3];
-        int index;
+        size_t index;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(index, intensity, world, position, previous) \
@@ -695,8 +699,8 @@ void NearestNeighborResampleImage2D(nifti_image *floatingImage,
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(floatingImage->data);
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(warpedImage->data);
     FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-    int targetVoxelNumber = warpedImage->nx*warpedImage->ny;
-    int sourceVoxelNumber = floatingImage->nx*floatingImage->ny;
+    size_t targetVoxelNumber = warpedImage->nx*warpedImage->ny;
+    size_t sourceVoxelNumber = floatingImage->nx*floatingImage->ny;
     FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
 
     int *maskPtr = &mask[0];
@@ -723,7 +727,7 @@ void NearestNeighborResampleImage2D(nifti_image *floatingImage,
         FieldTYPE world[2];
         FieldTYPE position[2];
         int previous[2];
-        int index;
+        size_t index;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(index, intensity, world, position, previous) \
@@ -850,13 +854,13 @@ void reg_resampleImage(nifti_image *floatingImage,
     if(floatingImage->datatype != warpedImage->datatype){
         printf("[NiftyReg ERROR] reg_resampleImage\tSource and result image should have the same data type\n");
         printf("[NiftyReg ERROR] reg_resampleImage\tNothing has been done\n");
-        exit(1);
+        reg_exit(1);
     }
 
     if(floatingImage->nt != warpedImage->nt){
         printf("[NiftyReg ERROR] reg_resampleImage\tThe source and result images have different dimension along the time axis\n");
         printf("[NiftyReg ERROR] reg_resampleImage\tNothing has been done\n");
-        exit(1);
+        reg_exit(1);
     }
 
     // a mask array is created if no mask is specified
@@ -1444,7 +1448,7 @@ void reg_resampleGradient(nifti_image *floatingImage,
     if(floatingImage->datatype!=warpedImage->datatype ||
             floatingImage->datatype!=deformationField->datatype){
         fprintf(stderr, "[NiftyReg ERROR] reg_resampleGradient - Input images are expected to have the same type\n");
-        exit(1);
+        reg_exit(1);
     }
     switch(floatingImage->datatype){
     case NIFTI_TYPE_FLOAT32:
@@ -1479,7 +1483,7 @@ void reg_resampleGradient(nifti_image *floatingImage,
         break;
     default:
         fprintf(stderr, "[NiftyReg ERROR] reg_resampleGradient - Only single and double floating precision are supported\n");
-        exit(1);
+        reg_exit(1);
     }
 }
 /* *************************************************************** */
@@ -2302,7 +2306,12 @@ nifti_image *reg_makeIsotropic(nifti_image *img,
     def->pixdim[6]=def->dv=1.0;
     def->dim[7]=def->nw=1;
     def->pixdim[7]=def->dw=1.0;
-    def->nvox=	def->nx * def->ny * def->nz * def->nt * def->nu;
+    def->nvox =
+            (size_t)def->nx *
+            (size_t)def->ny *
+            (size_t)def->nz *
+            (size_t)def->nt *
+            (size_t)def->nu;
     def->nbyper = sizeof(float);
     def->datatype = NIFTI_TYPE_FLOAT32;
     def->data = (void *)calloc(def->nvox,def->nbyper);

@@ -19,6 +19,7 @@
 reg_f3d_gpu::reg_f3d_gpu(int refTimePoint,int floTimePoint)
     : reg_f3d<float>::reg_f3d(refTimePoint,floTimePoint)
 {
+    this->executableName=(char *)"NiftyReg F3D GPU";
     this->currentReference_gpu=NULL;
     this->currentFloating_gpu=NULL;
     this->currentMask_gpu=NULL;
@@ -35,7 +36,6 @@ reg_f3d_gpu::reg_f3d_gpu(int refTimePoint,int floTimePoint)
     this->warped2_gpu=NULL;
     this->warpedGradientImage2_gpu=NULL;
 
-    NR_CUDA_SAFE_CALL(cudaThreadExit())
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_gpu constructor called\n");
 #endif
@@ -92,7 +92,7 @@ void reg_f3d_gpu::AllocateWarped()
 #endif
     if(this->currentReference==NULL){
         printf("[NiftyReg ERROR] Error when allocating the warped image.\n");
-        exit(1);
+        reg_exit(1);
     }
     this->ClearWarped();
     this->warped = nifti_copy_nim_info(this->currentReference);
@@ -109,18 +109,18 @@ void reg_f3d_gpu::AllocateWarped()
     if(this->warped->nt==1){
         if(cudaCommon_allocateArrayToDevice<float>(&this->warped_gpu, this->warped->dim)){
             printf("[NiftyReg ERROR] Error when allocating the warped image.\n");
-            exit(1);
+            reg_exit(1);
         }
     }
     else if(this->warped->nt==2){
         if(cudaCommon_allocateArrayToDevice<float>(&this->warped_gpu, &this->warped2_gpu, this->warped->dim)){
             printf("[NiftyReg ERROR] Error when allocating the warped image.\n");
-            exit(1);
+            reg_exit(1);
         }
     }
     else{
         printf("[NiftyReg ERROR] reg_f3d_gpu does not handle more than 2 time points in the floating image.\n");
-        exit(1);
+        reg_exit(1);
     }
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_gpu::AllocateWarped done.\n");
@@ -191,7 +191,7 @@ void reg_f3d_gpu::AllocateWarpedGradient()
     }
     else{
         printf("[NiftyReg ERROR] reg_f3d_gpu does not handle more than 2 time points in the floating image.\n");
-        exit(1);
+        reg_exit(1);
     }
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_gpu::AllocateWarpedGradient done.\n");
@@ -223,7 +223,7 @@ void reg_f3d_gpu::AllocateVoxelBasedMeasureGradient()
     if(cudaCommon_allocateArrayToDevice(&this->voxelBasedMeasureGradientImage_gpu,
                                         this->currentReference->dim)){
         printf("[NiftyReg ERROR] Error when allocating the voxel based measure gradient image.\n");
-        exit(1);
+        reg_exit(1);
     }
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_gpu::AllocateVoxelBasedMeasureGradient done.\n");
@@ -250,7 +250,7 @@ void reg_f3d_gpu::AllocateTransformationGradient()
     if(cudaCommon_allocateArrayToDevice(&this->transformationGradient_gpu,
                                         this->controlPointGrid->dim)){
         printf("[NiftyReg ERROR] Error when allocating the node based gradient image.\n");
-        exit(1);
+        reg_exit(1);
     }
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d_gpu::AllocateNodeBasedGradient done.\n");
@@ -418,8 +418,8 @@ double reg_f3d_gpu::ComputeSimilarityMeasure()
 		measure = -reg_getSSD_gpu(this->currentReference,
 								  &this->currentReference_gpu,
 								  &this->warped_gpu,
-								  &this->currentMask_gpu,
-								  this->activeVoxelNumber[this->currentLevel]
+                                  &this->currentMask_gpu,
+                                  this->activeVoxelNumber[this->currentLevel]
 								  );
 		if(this->usePyramid)
 			measure /= this->maxSSD[this->currentLevel];
@@ -430,7 +430,7 @@ double reg_f3d_gpu::ComputeSimilarityMeasure()
 			if(cudaCommon_transferFromDeviceToNifti<float>
 			   (this->warped, &this->warped_gpu)){
 				printf("[NiftyReg ERROR] Error when computing the similarity measure.\n");
-				exit(1);
+                reg_exit(1);
 			}
 			reg_getEntropies(this->currentReference,
 							 this->warped,
@@ -446,7 +446,7 @@ double reg_f3d_gpu::ComputeSimilarityMeasure()
 			if(cudaCommon_transferFromDeviceToNifti<float>
 			   (this->warped, &this->warped_gpu, &this->warped2_gpu)){
 				printf("[NiftyReg ERROR] Error when computing the similarity measure.\n");
-				exit(1);
+                reg_exit(1);
 			}
 			reg_getEntropies2x2_gpu(this->currentReference,
 									 this->warped,
@@ -469,20 +469,20 @@ double reg_f3d_gpu::ComputeSimilarityMeasure()
 void reg_f3d_gpu::GetVoxelBasedGradient()
 {
     // The intensity gradient is first computed
-	reg_getImageGradient_gpu(this->currentFloating,
-							 &this->currentFloating_gpu,
-							 &this->deformationFieldImage_gpu,
-							 &this->warpedGradientImage_gpu,
-							 this->activeVoxelNumber[this->currentLevel],
-							 this->warpedPaddingValue);
+    reg_getImageGradient_gpu(this->currentFloating,
+                             &this->currentFloating_gpu,
+                             &this->deformationFieldImage_gpu,
+                             &this->warpedGradientImage_gpu,
+                             this->activeVoxelNumber[this->currentLevel],
+                             this->warpedPaddingValue);
 
     if(this->currentFloating->nt==2){
-		reg_getImageGradient_gpu(this->currentFloating,
-								 &this->currentFloating2_gpu,
-								 &this->deformationFieldImage_gpu,
-								 &this->warpedGradientImage2_gpu,
-								 this->activeVoxelNumber[this->currentLevel],
-								 this->warpedPaddingValue);
+        reg_getImageGradient_gpu(this->currentFloating,
+                                 &this->currentFloating2_gpu,
+                                 &this->deformationFieldImage_gpu,
+                                 &this->warpedGradientImage2_gpu,
+                                 this->activeVoxelNumber[this->currentLevel],
+                                 this->warpedPaddingValue);
     }
 
 	if(this->useSSD){
@@ -493,8 +493,8 @@ void reg_f3d_gpu::GetVoxelBasedGradient()
 										 &this->warpedGradientImage_gpu,
 										 &this->voxelBasedMeasureGradientImage_gpu,
 										 this->maxSSD[this->currentLevel],
-										 &this->currentMask_gpu,
-										 this->activeVoxelNumber[this->currentLevel]
+                                         &this->currentMask_gpu,
+                                         this->activeVoxelNumber[this->currentLevel]
 										 );
 	}
 	else{
@@ -735,24 +735,24 @@ float reg_f3d_gpu::InitialiseCurrentLevel()
         if(cudaCommon_allocateArrayToDevice<float>
            (&this->currentReference_gpu, this->currentReference->dim)){
             printf("[NiftyReg ERROR] Error when allocating the reference image.\n");
-            exit(1);
+            reg_exit(1);
         }
         if(cudaCommon_transferNiftiToArrayOnDevice<float>
            (&this->currentReference_gpu, this->currentReference)){
             printf("[NiftyReg ERROR] Error when transfering the reference image.\n");
-            exit(1);
+            reg_exit(1);
         }
     }
     else if(this->currentReference->nt==2){
         if(cudaCommon_allocateArrayToDevice<float>
            (&this->currentReference_gpu,&this->currentReference2_gpu, this->currentReference->dim)){
             printf("[NiftyReg ERROR] Error when allocating the reference image.\n");
-            exit(1);
+            reg_exit(1);
         }
         if(cudaCommon_transferNiftiToArrayOnDevice<float>
            (&this->currentReference_gpu, &this->currentReference2_gpu, this->currentReference)){
             printf("[NiftyReg ERROR] Error when transfering the reference image.\n");
-            exit(1);
+            reg_exit(1);
         }
     }
 
@@ -762,37 +762,37 @@ float reg_f3d_gpu::InitialiseCurrentLevel()
         if(cudaCommon_allocateArrayToDevice<float>
            (&this->currentFloating_gpu, this->currentFloating->dim)){
             printf("[NiftyReg ERROR] Error when allocating the floating image.\n");
-            exit(1);
+            reg_exit(1);
         }
         if(cudaCommon_transferNiftiToArrayOnDevice<float>
            (&this->currentFloating_gpu, this->currentFloating)){
             printf("[NiftyReg ERROR] Error when transfering the floating image.\n");
-            exit(1);
+            reg_exit(1);
         }
     }
     else if(this->currentReference->nt==2){
         if(cudaCommon_allocateArrayToDevice<float>
            (&this->currentFloating_gpu, &this->currentFloating2_gpu, this->currentFloating->dim)){
             printf("[NiftyReg ERROR] Error when allocating the floating image.\n");
-            exit(1);
+            reg_exit(1);
         }
         if(cudaCommon_transferNiftiToArrayOnDevice<float>
            (&this->currentFloating_gpu, &this->currentFloating2_gpu, this->currentFloating)){
             printf("[NiftyReg ERROR] Error when transfering the floating image.\n");
-            exit(1);
+            reg_exit(1);
         }
     }
     if(this->controlPointGrid_gpu!=NULL) cudaCommon_free<float4>(&this->controlPointGrid_gpu);
     if(cudaCommon_allocateArrayToDevice<float4>
        (&this->controlPointGrid_gpu, this->controlPointGrid->dim)){
         printf("[NiftyReg ERROR] Error when allocating the control point image.\n");
-        exit(1);
+        reg_exit(1);
     }
 
     if(cudaCommon_transferNiftiToArrayOnDevice<float4>
        (&this->controlPointGrid_gpu, this->controlPointGrid)){
         printf("[NiftyReg ERROR] Error when transfering the control point image.\n");
-        exit(1);
+        reg_exit(1);
     }
 
     int *targetMask_h;
@@ -821,7 +821,7 @@ void reg_f3d_gpu::ClearCurrentInputImage()
     if(cudaCommon_transferFromDeviceToNifti<float4>
        (this->controlPointGrid, &this->controlPointGrid_gpu)){
         printf("[NiftyReg ERROR] Error when transfering back the control point image.\n");
-        exit(1);
+        reg_exit(1);
     }
     cudaCommon_free<float4>(&this->controlPointGrid_gpu);
     this->controlPointGrid_gpu=NULL;
@@ -876,7 +876,7 @@ float reg_f3d_gpu::NormaliseGradient()
 											this->optimiser->GetVoxNumber()
                                             );
 
-	if(strcmp(this->executableName,"NiftyReg F3D")==0){
+    if(strcmp(this->executableName,"NiftyReg F3D GPU")==0){
 		// The gradient is normalised if we are running F3D
 		// It will be normalised later when running symmetric or F3D2
 #ifndef NDEBUG

@@ -468,7 +468,7 @@ void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
 
                             // Kahan summation used here
                             c = (DTYPE)0;
-              for(it=0; it<kernelSize; it++){
+                            for(it=0; it<kernelSize; it++){
                                 if(-1<Z && Z<image->nz){
                                     imageValue = readingValue[index];
                                     windowValue = window[it];
@@ -659,229 +659,480 @@ template void reg_tools_changeDatatype<float>(nifti_image *);
 template void reg_tools_changeDatatype<double>(nifti_image *);
 /* *************************************************************** */
 /* *************************************************************** */
-template <class TYPE1, class TYPE2>
-void reg_tools_addSubMulDivImages2( nifti_image *img1,
-                                    nifti_image *img2,
-                                    nifti_image *res,
-                                    int type)
+template <class TYPE1>
+void reg_tools_operationImageToImage(nifti_image *img1,
+                                     nifti_image *img2,
+                                     nifti_image *res,
+                                     int type)
 {
     TYPE1 *img1Ptr = static_cast<TYPE1 *>(img1->data);
     TYPE1 *resPtr = static_cast<TYPE1 *>(res->data);
-    TYPE2 *img2Ptr = static_cast<TYPE2 *>(img2->data);
+    TYPE1 *img2Ptr = static_cast<TYPE1 *>(img2->data);
 
 
     if(img1->scl_slope==0){
         img1->scl_slope=1.f;
-        res->scl_slope=1.f;
     }
     if(img2->scl_slope==0)
         img2->scl_slope=1.f;
 
+    res->scl_slope=img1->scl_slope;
+    res->scl_inter=img1->scl_inter;
+
+    size_t i;
+
     switch(type){
     case 0:
-        for(unsigned int i=0; i<res->nvox; i++)
-            *resPtr++ = (TYPE1)((((double)*img1Ptr++ * (double)img1->scl_slope + (double)img1->scl_inter) +
-                                 ((double)*img2Ptr++ * (double)img2->scl_slope + (double)img2->scl_inter) -
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    private(i) \
+    shared(res,resPtr,img1Ptr,img2Ptr,img1,img2)
+#endif // _OPENMP
+        for(i=0; i<res->nvox; i++)
+            resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) +
+                                 ((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
                                  (double)img1->scl_inter)/(double)img1->scl_slope);
-        //            *resPtr++ = (TYPE1)((double)*img1Ptr++ + (double)*img2Ptr++);
         break;
     case 1:
-        for(unsigned int i=0; i<res->nvox; i++)
-            *resPtr++ = (TYPE1)((((double)*img1Ptr++ * (double)img1->scl_slope + (double)img1->scl_inter) -
-                                 ((double)*img2Ptr++ * (double)img2->scl_slope + (double)img2->scl_inter) -
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    private(i) \
+    shared(res,resPtr,img1Ptr,img2Ptr,img1,img2)
+#endif // _OPENMP
+        for(i=0; i<res->nvox; i++)
+            resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) -
+                                 ((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
                                  (double)img1->scl_inter)/(double)img1->scl_slope);
-        //            *resPtr++ = (TYPE1)((double)*img1Ptr++ - (double)*img2Ptr++);
         break;
     case 2:
-        for(unsigned int i=0; i<res->nvox; i++)
-            *resPtr++ = (TYPE1)((((double)*img1Ptr++ * (double)img1->scl_slope + (double)img1->scl_inter) *
-                                 ((double)*img2Ptr++ * (double)img2->scl_slope + (double)img2->scl_inter) -
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    private(i) \
+    shared(res,resPtr,img1Ptr,img2Ptr,img1,img2)
+#endif // _OPENMP
+        for(i=0; i<res->nvox; i++)
+            resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) *
+                                 ((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
                                  (double)img1->scl_inter)/(double)img1->scl_slope);
-        //            *resPtr++ = (TYPE1)((double)*img1Ptr++ * (double)*img2Ptr++);
         break;
     case 3:
-        for(unsigned int i=0; i<res->nvox; i++)
-            *resPtr++ = (TYPE1)((((double)*img1Ptr++ * (double)img1->scl_slope + (double)img1->scl_inter) /
-                                 ((double)*img2Ptr++ * (double)img2->scl_slope + (double)img2->scl_inter) -
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    private(i) \
+    shared(res,resPtr,img1Ptr,img2Ptr,img1,img2)
+#endif // _OPENMP
+        for(i=0; i<res->nvox; i++)
+            resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) /
+                                 ((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
                                  (double)img1->scl_inter)/(double)img1->scl_slope);
-        //            *resPtr++ = (TYPE1)((double)*img1Ptr++ / (double)*img2Ptr++);
         break;
     }
 }
 /* *************************************************************** */
-template <class TYPE1>
-void reg_tools_addSubMulDivImages1( nifti_image *img1,
-                                    nifti_image *img2,
-                                    nifti_image *res,
-                                    int type)
+void reg_tools_addImageToImage(nifti_image *img1,
+                               nifti_image *img2,
+                               nifti_image *res)
 {
-    switch(img2->datatype){
-    case NIFTI_TYPE_UINT8:
-        reg_tools_addSubMulDivImages2<TYPE1,unsigned char>(img1, img2, res, type);
-        break;
-    case NIFTI_TYPE_INT8:
-        reg_tools_addSubMulDivImages2<TYPE1,char>(img1, img2, res, type);
-        break;
-    case NIFTI_TYPE_UINT16:
-        reg_tools_addSubMulDivImages2<TYPE1,unsigned short>(img1, img2, res, type);
-        break;
-    case NIFTI_TYPE_INT16:
-        reg_tools_addSubMulDivImages2<TYPE1,short>(img1, img2, res, type);
-        break;
-    case NIFTI_TYPE_UINT32:
-        reg_tools_addSubMulDivImages2<TYPE1,unsigned int>(img1, img2, res, type);
-        break;
-    case NIFTI_TYPE_INT32:
-        reg_tools_addSubMulDivImages2<TYPE1,int>(img1, img2, res, type);
-        break;
-    case NIFTI_TYPE_FLOAT32:
-        reg_tools_addSubMulDivImages2<TYPE1,float>(img1, img2, res, type);
-        break;
-    case NIFTI_TYPE_FLOAT64:
-        reg_tools_addSubMulDivImages2<TYPE1,double>(img1, img2, res, type);
-        break;
-    default:
-        fprintf(stderr,"[NiftyReg ERROR] reg_tools_addSubMulDivImages1\tSecond image data type is not supported\n");
-        exit(1);
+    if(img1->datatype != res->datatype || img2->datatype != res->datatype){
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_addImageToImage\tAll images do not have the same data type\n");
+        reg_exit(1);
     }
-}
-/* *************************************************************** */
-void reg_tools_addSubMulDivImages(  nifti_image *img1,
-                                    nifti_image *img2,
-                                    nifti_image *res,
-                                    int type)
-{
-
-    if(img1->dim[1]!=img2->dim[1] ||
-            img1->dim[2]!=img2->dim[2] ||
-            img1->dim[3]!=img2->dim[3] ||
-            img1->dim[4]!=img2->dim[4] ||
-            img1->dim[5]!=img2->dim[5] ||
-            img1->dim[6]!=img2->dim[6] ||
-            img1->dim[7]!=img2->dim[7]){
-        fprintf(stderr,"[NiftyReg ERROR] reg_tools_addSubMulDivImages\tBoth images do not have the same dimension\n");
-        exit(1);
-    }
-
-    if(img1->datatype != res->datatype){
-        fprintf(stderr,"[NiftyReg ERROR] reg_tools_addSubMulDivImages\tFirst and result image do not have the same data type\n");
-        exit(1);
+    if(img1->nvox != res->nvox || img2->nvox != res->nvox){
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_addImageToImage\tAllimages do not have the same size\n");
+        reg_exit(1);
     }
     switch(img1->datatype){
     case NIFTI_TYPE_UINT8:
-        reg_tools_addSubMulDivImages1<unsigned char>(img1, img2, res, type);
+        reg_tools_operationImageToImage<unsigned char>(img1, img2, res, 0);
         break;
     case NIFTI_TYPE_INT8:
-        reg_tools_addSubMulDivImages1<char>(img1, img1, res, type);
+        reg_tools_operationImageToImage<char>(img1, img2, res, 0);
         break;
     case NIFTI_TYPE_UINT16:
-        reg_tools_addSubMulDivImages1<unsigned short>(img1, img2, res, type);
+        reg_tools_operationImageToImage<unsigned short>(img1, img2, res, 0);
         break;
     case NIFTI_TYPE_INT16:
-        reg_tools_addSubMulDivImages1<short>(img1, img2, res, type);
+        reg_tools_operationImageToImage<short>(img1, img2, res, 0);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_addSubMulDivImages1<unsigned int>(img1, img2, res, type);
+        reg_tools_operationImageToImage<unsigned int>(img1, img2, res, 0);
         break;
     case NIFTI_TYPE_INT32:
-        reg_tools_addSubMulDivImages1<int>(img1, img2, res, type);
+        reg_tools_operationImageToImage<int>(img1, img2, res, 0);
         break;
     case NIFTI_TYPE_FLOAT32:
-        reg_tools_addSubMulDivImages1<float>(img1, img2, res, type);
+        reg_tools_operationImageToImage<float>(img1, img2, res, 0);
         break;
     case NIFTI_TYPE_FLOAT64:
-        reg_tools_addSubMulDivImages1<double>(img1, img2, res, type);
+        reg_tools_operationImageToImage<double>(img1, img2, res, 0);
         break;
     default:
-        fprintf(stderr,"[NiftyReg ERROR] reg_tools_addSubMulDivImages1\tFirst image data type is not supported\n");
-        exit(1);
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_addImageToImage\tImage data type is not supported\n");
+        reg_exit(1);
+    }
+}
+/* *************************************************************** */
+void reg_tools_substractImageToImage(nifti_image *img1,
+                                     nifti_image *img2,
+                                     nifti_image *res)
+{
+    if(img1->datatype != res->datatype || img2->datatype != res->datatype){
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_substractImageToImage\tAll images do not have the same data type\n");
+        reg_exit(1);
+    }
+    if(img1->nvox != res->nvox || img2->nvox != res->nvox){
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_substractImageToImage\tAllimages do not have the same size\n");
+        reg_exit(1);
+    }
+    switch(img1->datatype){
+    case NIFTI_TYPE_UINT8:
+        reg_tools_operationImageToImage<unsigned char>(img1, img2, res, 1);
+        break;
+    case NIFTI_TYPE_INT8:
+        reg_tools_operationImageToImage<char>(img1, img2, res, 1);
+        break;
+    case NIFTI_TYPE_UINT16:
+        reg_tools_operationImageToImage<unsigned short>(img1, img2, res, 1);
+        break;
+    case NIFTI_TYPE_INT16:
+        reg_tools_operationImageToImage<short>(img1, img2, res, 1);
+        break;
+    case NIFTI_TYPE_UINT32:
+        reg_tools_operationImageToImage<unsigned int>(img1, img2, res, 1);
+        break;
+    case NIFTI_TYPE_INT32:
+        reg_tools_operationImageToImage<int>(img1, img2, res, 1);
+        break;
+    case NIFTI_TYPE_FLOAT32:
+        reg_tools_operationImageToImage<float>(img1, img2, res, 1);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        reg_tools_operationImageToImage<double>(img1, img2, res, 1);
+        break;
+    default:
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_substractImageToImage\tImage data type is not supported\n");
+        reg_exit(1);
+    }
+}
+/* *************************************************************** */
+void reg_tools_multiplyImageToImage(nifti_image *img1,
+                                    nifti_image *img2,
+                                    nifti_image *res)
+{
+    if(img1->datatype != res->datatype || img2->datatype != res->datatype){
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_multiplyImageToImage\tAll images do not have the same data type\n");
+        reg_exit(1);
+    }
+    if(img1->nvox != res->nvox || img2->nvox != res->nvox){
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_multiplyImageToImage\tAllimages do not have the same size\n");
+        reg_exit(1);
+    }
+    switch(img1->datatype){
+    case NIFTI_TYPE_UINT8:
+        reg_tools_operationImageToImage<unsigned char>(img1, img2, res, 2);
+        break;
+    case NIFTI_TYPE_INT8:
+        reg_tools_operationImageToImage<char>(img1, img2, res, 2);
+        break;
+    case NIFTI_TYPE_UINT16:
+        reg_tools_operationImageToImage<unsigned short>(img1, img2, res, 2);
+        break;
+    case NIFTI_TYPE_INT16:
+        reg_tools_operationImageToImage<short>(img1, img2, res, 2);
+        break;
+    case NIFTI_TYPE_UINT32:
+        reg_tools_operationImageToImage<unsigned int>(img1, img2, res, 2);
+        break;
+    case NIFTI_TYPE_INT32:
+        reg_tools_operationImageToImage<int>(img1, img2, res, 2);
+        break;
+    case NIFTI_TYPE_FLOAT32:
+        reg_tools_operationImageToImage<float>(img1, img2, res, 2);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        reg_tools_operationImageToImage<double>(img1, img2, res, 2);
+        break;
+    default:
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_multiplyImageToImage\tImage data type is not supported\n");
+        reg_exit(1);
+    }
+}
+/* *************************************************************** */
+void reg_tools_divideImageToImage(nifti_image *img1,
+                                  nifti_image *img2,
+                                  nifti_image *res)
+{
+    if(img1->datatype != res->datatype || img2->datatype != res->datatype){
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_divideImageToImage\tAll images do not have the same data type\n");
+        reg_exit(1);
+    }
+    if(img1->nvox != res->nvox || img2->nvox != res->nvox){
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_divideImageToImage\tAllimages do not have the same size\n");
+        reg_exit(1);
+    }
+    switch(img1->datatype){
+    case NIFTI_TYPE_UINT8:
+        reg_tools_operationImageToImage<unsigned char>(img1, img2, res, 3);
+        break;
+    case NIFTI_TYPE_INT8:
+        reg_tools_operationImageToImage<char>(img1, img2, res, 3);
+        break;
+    case NIFTI_TYPE_UINT16:
+        reg_tools_operationImageToImage<unsigned short>(img1, img2, res, 3);
+        break;
+    case NIFTI_TYPE_INT16:
+        reg_tools_operationImageToImage<short>(img1, img2, res, 3);
+        break;
+    case NIFTI_TYPE_UINT32:
+        reg_tools_operationImageToImage<unsigned int>(img1, img2, res, 3);
+        break;
+    case NIFTI_TYPE_INT32:
+        reg_tools_operationImageToImage<int>(img1, img2, res, 3);
+        break;
+    case NIFTI_TYPE_FLOAT32:
+        reg_tools_operationImageToImage<float>(img1, img2, res, 3);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        reg_tools_operationImageToImage<double>(img1, img2, res, 3);
+        break;
+    default:
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_divideImageToImage\tImage data type is not supported\n");
+        reg_exit(1);
     }
 }
 /* *************************************************************** */
 /* *************************************************************** */
 template <class TYPE1>
-void reg_tools_addSubMulDivValue1(  nifti_image *img1,
-                                    nifti_image *res,
-                                    float val,
-                                    int type)
+void reg_tools_operationValueToImage(nifti_image *img1,
+                                     nifti_image *res,
+                                     float val,
+                                     int type)
 {
     TYPE1 *img1Ptr = static_cast<TYPE1 *>(img1->data);
     TYPE1 *resPtr = static_cast<TYPE1 *>(res->data);
 
     if(img1->scl_slope==0){
         img1->scl_slope=1.f;
-        res->scl_slope=1.f;
     }
+
+    res->scl_slope=img1->scl_slope;
+    res->scl_inter=img1->scl_inter;
+
+    size_t i;
 
     switch(type){
     case 0:
-        for(unsigned int i=0; i<res->nvox; i++)
-            *resPtr++ = (TYPE1)(((((double)*img1Ptr++ * (double)img1->scl_slope + (double)img1->scl_inter) +
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    private(i) \
+    shared(res,resPtr,img1Ptr,img1,val)
+#endif // _OPENMP
+        for(i=0; i<res->nvox; i++)
+            resPtr[i] = (TYPE1)(((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) +
                                   (double)val) - (double)img1->scl_inter)/(double)img1->scl_slope);
         break;
     case 1:
-        for(unsigned int i=0; i<res->nvox; i++)
-            *resPtr++ = (TYPE1)(((((double)*img1Ptr++ * (double)img1->scl_slope + (double)img1->scl_inter) -
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    private(i) \
+    shared(res,resPtr,img1Ptr,img1,val)
+#endif // _OPENMP
+        for(i=0; i<res->nvox; i++)
+            resPtr[i] = (TYPE1)(((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) -
                                   (double)val) - (double)img1->scl_inter)/(double)img1->scl_slope);
         break;
     case 2:
-        for(unsigned int i=0; i<res->nvox; i++)
-            *resPtr++ = (TYPE1)(((((double)*img1Ptr++ * (double)img1->scl_slope + (double)img1->scl_inter) *
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    private(i) \
+    shared(res,resPtr,img1Ptr,img1,val)
+#endif // _OPENMP
+        for(i=0; i<res->nvox; i++)
+            resPtr[i] = (TYPE1)(((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) *
                                   (double)val) - (double)img1->scl_inter)/(double)img1->scl_slope);
         break;
     case 3:
-        for(unsigned int i=0; i<res->nvox; i++)
-            *resPtr++ = (TYPE1)(((((double)*img1Ptr++ * (double)img1->scl_slope + (double)img1->scl_inter) /
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    private(i) \
+    shared(res,resPtr,img1Ptr,img1,val)
+#endif // _OPENMP
+        for(i=0; i<res->nvox; i++)
+            resPtr[i] = (TYPE1)(((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) /
                                   (double)val) - (double)img1->scl_inter)/(double)img1->scl_slope);
         break;
     }
 }
 /* *************************************************************** */
-void reg_tools_addSubMulDivValue(   nifti_image *img1,
-                                    nifti_image *res,
-                                    float val,
-                                    int type)
+void reg_tools_addValueToImage(nifti_image *img1,
+                               nifti_image *res,
+                               float val)
 {
     if(img1->datatype != res->datatype){
-        fprintf(stderr,"[NiftyReg ERROR] reg_tools_addSubMulDivValue\tInput and result image do not have the same data type\n");
-        exit(1);
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_addValueToImage\tInput and result image do not have the same data type\n");
+        reg_exit(1);
+    }
+    if(img1->nvox != res->nvox){
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_addValueToImage\tInput and result image do not have the same size\n");
+        reg_exit(1);
     }
     switch(img1->datatype){
     case NIFTI_TYPE_UINT8:
-        reg_tools_addSubMulDivValue1<unsigned char>
-                (img1, res, val, type);
+        reg_tools_operationValueToImage<unsigned char>(img1, res, val, 0);
         break;
     case NIFTI_TYPE_INT8:
-        reg_tools_addSubMulDivValue1<char>
-                (img1, res, val, type);
+        reg_tools_operationValueToImage<char>(img1, res, val, 0);
         break;
     case NIFTI_TYPE_UINT16:
-        reg_tools_addSubMulDivValue1<unsigned short>
-                (img1, res, val, type);
+        reg_tools_operationValueToImage<unsigned short>(img1, res, val, 0);
         break;
     case NIFTI_TYPE_INT16:
-        reg_tools_addSubMulDivValue1<short>
-                (img1, res, val, type);
+        reg_tools_operationValueToImage<short>(img1, res, val, 0);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_addSubMulDivValue1<unsigned int>
-                (img1, res, val, type);
+        reg_tools_operationValueToImage<unsigned int>(img1, res, val, 0);
         break;
     case NIFTI_TYPE_INT32:
-        reg_tools_addSubMulDivValue1<int>
-                (img1, res, val, type);
+        reg_tools_operationValueToImage<int>(img1, res, val, 0);
         break;
     case NIFTI_TYPE_FLOAT32:
-        reg_tools_addSubMulDivValue1<float>
-                (img1, res, val, type);
+        reg_tools_operationValueToImage<float>(img1, res, val, 0);
         break;
     case NIFTI_TYPE_FLOAT64:
-        reg_tools_addSubMulDivValue1<double>
-                (img1, res, val, type);
+        reg_tools_operationValueToImage<double>(img1, res, val, 0);
         break;
     default:
-        fprintf(stderr,"[NiftyReg ERROR] reg_tools_addSubMulDivImages1\tFirst image data type is not supported\n");
-        exit(1);
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_addValueToImage\t Image data type is not supported\n");
+        reg_exit(1);
+    }
+}
+/* *************************************************************** */
+void reg_tools_substractValueToImage(nifti_image *img1,
+                               nifti_image *res,
+                               float val)
+{
+    if(img1->datatype != res->datatype){
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_substractValueToImage\tInput and result image do not have the same data type\n");
+        reg_exit(1);
+    }
+    if(img1->nvox != res->nvox){
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_substracValueToImage\tInput and result image do not have the same size\n");
+        reg_exit(1);
+    }
+    switch(img1->datatype){
+    case NIFTI_TYPE_UINT8:
+        reg_tools_operationValueToImage<unsigned char>(img1, res, val, 1);
+        break;
+    case NIFTI_TYPE_INT8:
+        reg_tools_operationValueToImage<char>(img1, res, val, 1);
+        break;
+    case NIFTI_TYPE_UINT16:
+        reg_tools_operationValueToImage<unsigned short>(img1, res, val, 1);
+        break;
+    case NIFTI_TYPE_INT16:
+        reg_tools_operationValueToImage<short>(img1, res, val, 1);
+        break;
+    case NIFTI_TYPE_UINT32:
+        reg_tools_operationValueToImage<unsigned int>(img1, res, val, 1);
+        break;
+    case NIFTI_TYPE_INT32:
+        reg_tools_operationValueToImage<int>(img1, res, val, 1);
+        break;
+    case NIFTI_TYPE_FLOAT32:
+        reg_tools_operationValueToImage<float>(img1, res, val, 1);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        reg_tools_operationValueToImage<double>(img1, res, val, 1);
+        break;
+    default:
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_substractValueToImage\t Image data type is not supported\n");
+        reg_exit(1);
+    }
+}
+/* *************************************************************** */
+void reg_tools_multiplyValueToImage(nifti_image *img1,
+                               nifti_image *res,
+                               float val)
+{
+    if(img1->datatype != res->datatype){
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_multiplyValueToImage\tInput and result image do not have the same data type\n");
+        reg_exit(1);
+    }
+    if(img1->nvox != res->nvox){
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_multiplyValueToImage\tInput and result image do not have the same size\n");
+        reg_exit(1);
+    }
+    switch(img1->datatype){
+    case NIFTI_TYPE_UINT8:
+        reg_tools_operationValueToImage<unsigned char>(img1, res, val, 2);
+        break;
+    case NIFTI_TYPE_INT8:
+        reg_tools_operationValueToImage<char>(img1, res, val, 2);
+        break;
+    case NIFTI_TYPE_UINT16:
+        reg_tools_operationValueToImage<unsigned short>(img1, res, val, 2);
+        break;
+    case NIFTI_TYPE_INT16:
+        reg_tools_operationValueToImage<short>(img1, res, val, 2);
+        break;
+    case NIFTI_TYPE_UINT32:
+        reg_tools_operationValueToImage<unsigned int>(img1, res, val, 2);
+        break;
+    case NIFTI_TYPE_INT32:
+        reg_tools_operationValueToImage<int>(img1, res, val, 2);
+        break;
+    case NIFTI_TYPE_FLOAT32:
+        reg_tools_operationValueToImage<float>(img1, res, val, 2);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        reg_tools_operationValueToImage<double>(img1, res, val, 2);
+        break;
+    default:
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_multiplyValueToImage\t Image data type is not supported\n");
+        reg_exit(1);
+    }
+}
+/* *************************************************************** */
+void reg_tools_divideValueToImage(nifti_image *img1,
+                                     nifti_image *res,
+                                     float val)
+{
+    if(img1->datatype != res->datatype){
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_divideValueToImage\tInput and result image do not have the same data type\n");
+        reg_exit(1);
+    }
+    if(img1->nvox != res->nvox){
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_divideValueToImage\tInput and result image do not have the same size\n");
+        reg_exit(1);
+    }
+    switch(img1->datatype){
+    case NIFTI_TYPE_UINT8:
+        reg_tools_operationValueToImage<unsigned char>(img1, res, val, 3);
+        break;
+    case NIFTI_TYPE_INT8:
+        reg_tools_operationValueToImage<char>(img1, res, val, 3);
+        break;
+    case NIFTI_TYPE_UINT16:
+        reg_tools_operationValueToImage<unsigned short>(img1, res, val, 3);
+        break;
+    case NIFTI_TYPE_INT16:
+        reg_tools_operationValueToImage<short>(img1, res, val, 3);
+        break;
+    case NIFTI_TYPE_UINT32:
+        reg_tools_operationValueToImage<unsigned int>(img1, res, val, 3);
+        break;
+    case NIFTI_TYPE_INT32:
+        reg_tools_operationValueToImage<int>(img1, res, val, 3);
+        break;
+    case NIFTI_TYPE_FLOAT32:
+        reg_tools_operationValueToImage<float>(img1, res, val, 3);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        reg_tools_operationValueToImage<double>(img1, res, val, 3);
+        break;
+    default:
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_divideValueToImage\t Image data type is not supported\n");
+        reg_exit(1);
     }
 }
 /* *************************************************************** */
@@ -922,9 +1173,9 @@ void reg_gaussianSmoothing1(nifti_image *image,
                         kernel[radius+i]=(PrecisionTYPE)(exp( -((double)i*(double)i)/(2.0*currentSigma*currentSigma)) / (currentSigma*2.506628274631));
                         // 2.506... = sqrt(2*pi)
                         kernelSum += kernel[radius+i];
-          }
-          for(i=-radius; i<=radius; i++)
-            kernel[radius+i] /= kernelSum;
+                    }
+                    for(i=-radius; i<=radius; i++)
+                        kernel[radius+i] /= kernelSum;
 #ifndef NDEBUG
                     printf("[NiftyReg DEBUG] smoothing dim[%i] radius[%i] kernelSum[%g]\n", n, radius, kernelSum);
 #endif
@@ -934,10 +1185,10 @@ void reg_gaussianSmoothing1(nifti_image *image,
                     case 1: increment=1;break;
                     case 2: increment=image->nx;break;
                     case 3: increment=image->nx*image->ny;break;
-//                    case 4: increment=image->nx*image->ny*image->nz;break;
-//                    case 5: increment=image->nx*image->ny*image->nz*image->nt;break;
-//                    case 6: increment=image->nx*image->ny*image->nz*image->nt*image->nu;break;
-//                    case 7: increment=image->nx*image->ny*image->nz*image->nt*image->nu*image->nv;break;
+                        //                    case 4: increment=image->nx*image->ny*image->nz;break;
+                        //                    case 5: increment=image->nx*image->ny*image->nz*image->nt;break;
+                        //                    case 6: increment=image->nx*image->ny*image->nz*image->nt*image->nu;break;
+                        //                    case 7: increment=image->nx*image->ny*image->nz*image->nt*image->nu*image->nv;break;
                     }
                     // Loop over the different voxel
 #ifdef _OPENMP
@@ -1121,7 +1372,14 @@ void reg_downsampleImage1(nifti_image *image, int type, bool *downsampleAxis)
     image->sto_ijk = nifti_mat44_inverse(image->sto_xyz);
 
     // Reallocate the image
-    image->nvox=image->nx*image->ny*image->nz*image->nt*image->nu*image->nv*image->nw;
+    image->nvox =
+            (size_t)image->nx*
+            (size_t)image->ny*
+            (size_t)image->nz*
+            (size_t)image->nt*
+            (size_t)image->nu*
+            (size_t)image->nv*
+            (size_t)image->nw;
     image->data=(void *)calloc(image->nvox, image->nbyper);
     imagePtr = static_cast<ImageTYPE *>(image->data);
 
@@ -1129,7 +1387,7 @@ void reg_downsampleImage1(nifti_image *image, int type, bool *downsampleAxis)
     int previous[3];
 
     // qform is used for resampling
-    for(int tuvw=0; tuvw<image->nt*image->nu*image->nv*image->nw; tuvw++){
+    for(size_t tuvw=0; tuvw<image->nt*image->nu*image->nv*image->nw; tuvw++){
         ImageTYPE *valuesPtrTUVW = &oldValues[tuvw*oldDim[1]*oldDim[2]*oldDim[3]];
         for(int z=0; z<image->nz; z++){
             for(int y=0; y<image->ny; y++){
@@ -1276,7 +1534,7 @@ void reg_tools_binarise_image1(nifti_image *image)
     DTYPE *dataPtr=static_cast<DTYPE *>(image->data);
     image->scl_inter=0.f;
     image->scl_slope=1.f;
-    for(unsigned i=0; i<image->nvox; i++){
+    for(size_t i=0; i<image->nvox; i++){
         *dataPtr = (*dataPtr)!=0?(DTYPE)1:(DTYPE)0;
         dataPtr++;
     }
@@ -1320,7 +1578,7 @@ template <class DTYPE>
 void reg_tools_binarise_image1(nifti_image *image, float threshold)
 {
     DTYPE *dataPtr=static_cast<DTYPE *>(image->data);
-    for(unsigned i=0; i<image->nvox; i++){
+    for(size_t i=0; i<image->nvox; i++){
         *dataPtr = (*dataPtr)<threshold?(DTYPE)0:(DTYPE)1;
         dataPtr++;
     }
@@ -1609,7 +1867,7 @@ int reg_tools_nanMask_image2(nifti_image *image, nifti_image *maskImage, nifti_i
     TYPE1 *imagePtr = static_cast<TYPE1 *>(image->data);
     TYPE2 *maskPtr = static_cast<TYPE2 *>(maskImage->data);
     TYPE1 *resPtr = static_cast<TYPE1 *>(resultImage->data);
-    for(unsigned int i=0; i<image->nvox; ++i){
+    for(size_t i=0; i<image->nvox; ++i){
         if(*maskPtr == 0)
             *resPtr=std::numeric_limits<TYPE1>::quiet_NaN();
         else *resPtr=*imagePtr;
@@ -2153,9 +2411,8 @@ int reg_getDeformationFromDisplacement(nifti_image *splineControlPoint)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-
 static std::string CLI_PROGRESS_UPDATES = std::string(getenv("NIFTK_CLI_PROGRESS_UPD") != 0 ? getenv("NIFTK_CLI_PROGRESS_UPD") : "");
-
+/* *************************************************************** */
 void startProgress(std::string name)
 {
   if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
@@ -2193,5 +2450,119 @@ void closeProgress(std::string name, std::string status)
     std::cout << std::flush;
   }
 }
+/* *************************************************************** */
+/* *************************************************************** */
+template <class DTYPE>
+float reg_test_compare_arrays(DTYPE *ptrA,
+                              DTYPE *ptrB,
+                              size_t nvox)
+{
+    float maxDifference=0.f;
 
+    for(size_t i=0; i<nvox;++i){
+        double valA=(double)ptrA[i];
+        double valB=(double)ptrB[i];
+        if(valA!=valA || valB!=valB){
+            if(valA==valA || valB==valB){
+                fprintf(stderr, "[NiftyReg ERROR] reg_test_compare_images\t Unexpected NaN in only one of the array\n");
+                return std::numeric_limits<float>::max();
+            }
+        }
+        else{
+            if(valA!=0 && valB!=0){
+                float diffRatio=valA/valB;
+                if(diffRatio<0){
+                    diffRatio=fabsf(valA-valB);
+                    maxDifference=maxDifference>diffRatio?maxDifference:diffRatio;
+                }
+                diffRatio-=1.f;
+                maxDifference=maxDifference>diffRatio?maxDifference:diffRatio;
+            }
+            else{
+                float diffRatio=fabsf(valA-valB);
+                maxDifference=maxDifference>diffRatio?maxDifference:diffRatio;
+            }
+        }
+    }
+    return maxDifference;
+}
+template float reg_test_compare_arrays<float>(float *ptrA, float *ptrB, size_t nvox);
+template float reg_test_compare_arrays<double>(double *ptrA, double *ptrB, size_t nvox);
+/* *************************************************************** */
+template <class DTYPE>
+float reg_test_compare_images1(nifti_image *imgA,
+                               nifti_image *imgB)
+{
+    DTYPE *imgAPtr = static_cast<DTYPE *>(imgA->data);
+    DTYPE *imgBPtr = static_cast<DTYPE *>(imgB->data);
+    return reg_test_compare_arrays<DTYPE>(imgAPtr,imgBPtr,imgA->nvox);
+}
+/* *************************************************************** */
+float reg_test_compare_images(nifti_image *imgA,
+                              nifti_image *imgB)
+{
+    if(imgA->datatype!=imgB->datatype){
+        reg_exit(1);
+    }
+    if(imgA->nvox!=imgB->nvox){
+        reg_exit(1);
+    }
+    switch(imgA->datatype){
+    case NIFTI_TYPE_UINT8:
+        return reg_test_compare_images1<unsigned char>(imgA,imgB);
+    case NIFTI_TYPE_UINT16:
+        return reg_test_compare_images1<unsigned short>(imgA,imgB);
+    case NIFTI_TYPE_UINT32:
+        return reg_test_compare_images1<unsigned int>(imgA,imgB);
+    case NIFTI_TYPE_INT8:
+        return reg_test_compare_images1<char>(imgA,imgB);
+    case NIFTI_TYPE_INT16:
+        return reg_test_compare_images1<short>(imgA,imgB);
+    case NIFTI_TYPE_INT32:
+        return reg_test_compare_images1<int>(imgA,imgB);
+    case NIFTI_TYPE_FLOAT32:
+        return reg_test_compare_images1<float>(imgA,imgB);
+    case NIFTI_TYPE_FLOAT64:
+        return reg_test_compare_images1<double>(imgA,imgB);
+    default:
+        fprintf(stderr, "[NiftyReg ERROR] reg_test_compare_images\t Unsupported data type\n");
+        return std::numeric_limits<float>::max();
+    }
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class DTYPE>
+float reg_tools_abs_image1(nifti_image *img)
+{
+    DTYPE *ptr = static_cast<DTYPE *>(img->data);
+    for(size_t i=0; i<img->nvox;++i)
+        ptr[i]=fabs(ptr[i]);
+}
+/* *************************************************************** */
+void reg_tools_abs_image(nifti_image *img)
+{
+    switch(img->datatype){
+    case NIFTI_TYPE_UINT8:
+        reg_tools_abs_image1<unsigned char>(img);break;
+    case NIFTI_TYPE_UINT16:
+        reg_tools_abs_image1<unsigned short>(img);break;
+    case NIFTI_TYPE_UINT32:
+        reg_tools_abs_image1<unsigned int>(img);break;
+    case NIFTI_TYPE_INT8:
+        reg_tools_abs_image1<char>(img);break;
+    case NIFTI_TYPE_INT16:
+        reg_tools_abs_image1<short>(img);break;
+    case NIFTI_TYPE_INT32:
+        reg_tools_abs_image1<int>(img);break;
+    case NIFTI_TYPE_FLOAT32:
+        reg_tools_abs_image1<float>(img);break;
+    case NIFTI_TYPE_FLOAT64:
+        reg_tools_abs_image1<double>(img);break;
+    default:
+        fprintf(stderr, "[NiftyReg ERROR] reg_tools_abs_image\t Unsupported data type\n");
+        reg_exit(1);
+    }
+}
+/* *************************************************************** */
+/* *************************************************************** */
 #endif

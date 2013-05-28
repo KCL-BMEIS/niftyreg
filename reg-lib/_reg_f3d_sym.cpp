@@ -137,16 +137,17 @@ void reg_f3d_sym<T>::AllocateWarped()
     reg_f3d<T>::AllocateWarped();
     if(this->currentFloating==NULL){
         fprintf(stderr, "[NiftyReg ERROR] The floating image is not defined\n");
-        exit(1);
+        reg_exit(1);
     }
     this->backwardWarped = nifti_copy_nim_info(this->currentFloating);
     this->backwardWarped->dim[0]=this->backwardWarped->ndim=this->currentReference->ndim;
     this->backwardWarped->dim[4]=this->backwardWarped->nt=this->currentReference->nt;
     this->backwardWarped->pixdim[4]=this->backwardWarped->dt=1.0;
-    this->backwardWarped->nvox = this->backwardWarped->nx *
-            this->backwardWarped->ny *
-            this->backwardWarped->nz *
-            this->backwardWarped->nt;
+    this->backwardWarped->nvox =
+            (size_t)this->backwardWarped->nx *
+            (size_t)this->backwardWarped->ny *
+            (size_t)this->backwardWarped->nz *
+            (size_t)this->backwardWarped->nt;
     this->backwardWarped->datatype = this->currentReference->datatype;
     this->backwardWarped->nbyper = this->currentReference->nbyper;
     this->backwardWarped->data = (void *)calloc(this->backwardWarped->nvox, this->backwardWarped->nbyper);
@@ -173,11 +174,11 @@ void reg_f3d_sym<T>::AllocateDeformationField()
     reg_f3d<T>::AllocateDeformationField();
     if(this->currentFloating==NULL){
         fprintf(stderr, "[NiftyReg ERROR] The floating image is not defined\n");
-        exit(1);
+        reg_exit(1);
     }
     if(this->backwardControlPointGrid==NULL){
         fprintf(stderr, "[NiftyReg ERROR] The backward control point image is not defined\n");
-        exit(1);
+        reg_exit(1);
     }
     this->backwardDeformationFieldImage = nifti_copy_nim_info(this->currentFloating);
     this->backwardDeformationFieldImage->dim[0]=this->backwardDeformationFieldImage->ndim=5;
@@ -194,11 +195,12 @@ void reg_f3d_sym<T>::AllocateDeformationField()
     this->backwardDeformationFieldImage->pixdim[6]=this->backwardDeformationFieldImage->dv=1.0;
     this->backwardDeformationFieldImage->dim[7]=this->backwardDeformationFieldImage->nw=1;
     this->backwardDeformationFieldImage->pixdim[7]=this->backwardDeformationFieldImage->dw=1.0;
-    this->backwardDeformationFieldImage->nvox=	this->backwardDeformationFieldImage->nx *
-            this->backwardDeformationFieldImage->ny *
-            this->backwardDeformationFieldImage->nz *
-            this->backwardDeformationFieldImage->nt *
-            this->backwardDeformationFieldImage->nu;
+    this->backwardDeformationFieldImage->nvox =
+            (size_t)this->backwardDeformationFieldImage->nx *
+            (size_t)this->backwardDeformationFieldImage->ny *
+            (size_t)this->backwardDeformationFieldImage->nz *
+            (size_t)this->backwardDeformationFieldImage->nt *
+            (size_t)this->backwardDeformationFieldImage->nu;
     this->backwardDeformationFieldImage->nbyper = this->backwardControlPointGrid->nbyper;
     this->backwardDeformationFieldImage->datatype = this->backwardControlPointGrid->datatype;
     this->backwardDeformationFieldImage->data = (void *)calloc(this->backwardDeformationFieldImage->nvox, this->backwardDeformationFieldImage->nbyper);
@@ -226,16 +228,17 @@ void reg_f3d_sym<T>::AllocateWarpedGradient()
     reg_f3d<T>::AllocateWarpedGradient();
     if(this->backwardDeformationFieldImage==NULL){
         fprintf(stderr, "[NiftyReg ERROR] The backward control point image is not defined\n");
-        exit(1);
+        reg_exit(1);
     }
     this->backwardWarpedGradientImage = nifti_copy_nim_info(this->backwardDeformationFieldImage);
     this->backwardWarpedGradientImage->dim[0]=this->backwardWarpedGradientImage->ndim=5;
     this->backwardWarpedGradientImage->nt = this->backwardWarpedGradientImage->dim[4] = this->currentReference->nt;
-    this->backwardWarpedGradientImage->nvox =	this->backwardWarpedGradientImage->nx *
-            this->backwardWarpedGradientImage->ny *
-            this->backwardWarpedGradientImage->nz *
-            this->backwardWarpedGradientImage->nt *
-            this->backwardWarpedGradientImage->nu;
+    this->backwardWarpedGradientImage->nvox =
+            (size_t)this->backwardWarpedGradientImage->nx *
+            (size_t)this->backwardWarpedGradientImage->ny *
+            (size_t)this->backwardWarpedGradientImage->nz *
+            (size_t)this->backwardWarpedGradientImage->nt *
+            (size_t)this->backwardWarpedGradientImage->nu;
     this->backwardWarpedGradientImage->data = (void *)calloc(this->backwardWarpedGradientImage->nvox, this->backwardWarpedGradientImage->nbyper);
     return;
 }
@@ -260,7 +263,7 @@ void reg_f3d_sym<T>::AllocateVoxelBasedMeasureGradient()
     reg_f3d<T>::AllocateVoxelBasedMeasureGradient();
     if(this->backwardDeformationFieldImage==NULL){
         fprintf(stderr, "[NiftyReg ERROR] The backward control point image is not defined\n");
-        exit(1);
+        reg_exit(1);
     }
     this->backwardVoxelBasedMeasureGradientImage = nifti_copy_nim_info(this->backwardDeformationFieldImage);
     this->backwardVoxelBasedMeasureGradientImage->data =
@@ -289,7 +292,7 @@ void reg_f3d_sym<T>::AllocateTransformationGradient()
     reg_f3d<T>::AllocateTransformationGradient();
     if(this->backwardControlPointGrid==NULL){
         fprintf(stderr, "[NiftyReg ERROR] The backward control point image is not defined\n");
-        exit(1);
+        reg_exit(1);
     }
     this->backwardTransformationGradient = nifti_copy_nim_info(this->backwardControlPointGrid);
     this->backwardTransformationGradient->data =
@@ -347,7 +350,7 @@ void reg_f3d_sym<T>::CheckParameters()
         fprintf(stderr, "[NiftyReg F3D_SYM ERROR] The inverse consistency parametrisation does not handle affine input\n");
         fprintf(stderr, "[NiftyReg F3D_SYM ERROR] Please update your floating image sform using reg_transform\n");
         fprintf(stderr, "[NiftyReg F3D_SYM ERROR] and use the updated floating image as an input\n.");
-        exit(1);
+        reg_exit(1);
     }
 
     // CHECK THE FLOATING MASK DIMENSION IF IT IS DEFINED
@@ -356,7 +359,7 @@ void reg_f3d_sym<T>::CheckParameters()
                 this->inputFloating->ny != this->floatingMaskImage->ny ||
                 this->inputFloating->nz != this->floatingMaskImage->nz){
             fprintf(stderr,"* The floating mask image has different x, y or z dimension than the floating image.\n");
-            exit(1);
+            reg_exit(1);
         }
     }
 
@@ -435,9 +438,9 @@ void reg_f3d_sym<T>::Initisalise()
     matrixAffine.m[3][2]=0.f;
     matrixAffine.m[3][3]=1.f;
     if(reg_spline_initialiseControlPointGridWithAffine(&matrixAffine, this->controlPointGrid))
-        exit(1);
+        reg_exit(1);
     if(reg_spline_initialiseControlPointGridWithAffine(&matrixAffine, this->backwardControlPointGrid))
-        exit(1);
+        reg_exit(1);
 
     // Set the floating mask image pyramid
     if(this->usePyramid){
@@ -941,7 +944,7 @@ void reg_f3d_sym<T>::SetGradientImageToZero()
     reg_f3d<T>::SetGradientImageToZero();
 
     T* nodeGradPtr = static_cast<T *>(this->backwardTransformationGradient->data);
-    for(unsigned int i=0; i<this->backwardTransformationGradient->nvox; ++i)
+    for(size_t i=0; i<this->backwardTransformationGradient->nvox; ++i)
         *nodeGradPtr++=0;
     return;
 }

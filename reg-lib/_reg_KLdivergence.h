@@ -13,6 +13,7 @@
 #define _REG_KLDIV_H
 
 #include "nifti1_io.h"
+#include "_reg_maths.h"
 #include <limits>
 
 extern "C++"

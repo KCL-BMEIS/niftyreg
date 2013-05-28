@@ -4,7 +4,7 @@ set(DATA_FOLDER ${CMAKE_SOURCE_DIR}/reg-test/reg-test-data)
 #-----------------------------------------------------------------------------
 set(EXEC reg_test_interp)
 add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_resampling _reg_maths reg_nifti ${ZLIB})
+target_link_libraries(${EXEC} _reg_f3d)
 #-----------------------------------------------------------------------------
 add_test(interpolation_3D_NN ${EXEC} ${DATA_FOLDER}/brainweb_3D.nii.gz
     ${DATA_FOLDER}/test_DEF_BW_3D.nii.gz 0
@@ -28,7 +28,7 @@ add_test(interpolation_2D_SPL ${EXEC} ${DATA_FOLDER}/brainweb_2D.nii.gz
 #-----------------------------------------------------------------------------
 set(EXEC reg_test_mat44_operations)
 add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_maths reg_nifti ${ZLIB})
+target_link_libraries(${EXEC} _reg_f3d)
 #-----------------------------------------------------------------------------
 add_test(mat44_operations ${EXEC})
 #-----------------------------------------------------------------------------
@@ -36,31 +36,55 @@ add_test(mat44_operations ${EXEC})
 if(USE_CUDA)
     set(EXEC reg_test_def_gpu)
     cuda_add_executable(${EXEC} ${EXEC}.cpp)
-	target_link_libraries(${EXEC} _reg_common_gpu _reg_localTransformation _reg_localTransformation_gpu _reg_tools _reg_tools_gpu reg_nifti ${ZLIB})
+        target_link_libraries(${EXEC} _reg_f3d)
     foreach(dim 2 3)
         foreach(type def comp exp be beg ajac ajac jac ajacg jacg)
-			add_test(${EXEC}_${dim}D_${type} ${EXEC} ${dim} ${type})
+            add_test(${EXEC}_${dim}D_${type} ${EXEC} ${dim} ${type})
         endforeach(type)
     endforeach(dim)
 #-----------------------------------------------------------------------------
     set(EXEC reg_test_measure_gpu)
     cuda_add_executable(${EXEC} ${EXEC}.cpp)
-    target_link_libraries(${EXEC} _reg_common_gpu _reg_ssd _reg_ssd_gpu _reg_localTransformation _reg_localTransformation_gpu  _reg_mutualinformation
-            _reg_mutualinformation_gpu _reg_resampling _reg_resampling_gpu _reg_tools _reg_tools_gpu reg_nifti ${ZLIB})
+    target_link_libraries(${EXEC} _reg_f3d)
     foreach(dim 2 3)
-            foreach(type spa nmig ssd ssdg)
-                    add_test(${EXEC}_${dim}D_${type} ${EXEC} ${dim} ${type})
-            endforeach(type)
+        foreach(type spa nmig ssd ssdg)
+            add_test(${EXEC}_${dim}D_${type} ${EXEC} ${dim} ${type})
+        endforeach(type)
     endforeach(dim)
 #-----------------------------------------------------------------------------
-	set(EXEC reg_test_convolution_gpu)
-	cuda_add_executable(${EXEC} ${EXEC}.cpp)
-	target_link_libraries(${EXEC} _reg_common_gpu _reg_tools _reg_tools_gpu reg_nifti ${ZLIB})
-	foreach(dim 2 3)
-		foreach(type gaussian spline)
-			add_test(${EXEC}_${dim}D_${type} ${EXEC} ${dim} ${type})
-		endforeach(type)
-	endforeach(dim)
+    set(EXEC reg_test_convolution_gpu)
+    cuda_add_executable(${EXEC} ${EXEC}.cpp)
+    target_link_libraries(${EXEC} _reg_f3d)
+    foreach(dim 2 3)
+        foreach(type gaussian spline)
+            add_test(${EXEC}_${dim}D_${type} ${EXEC} ${dim} ${type})
+        endforeach(type)
+    endforeach(dim)
+#-----------------------------------------------------------------------------
+    set(EXEC reg_test_optimiser_gpu)
+    cuda_add_executable(${EXEC} ${EXEC}.cpp)
+    target_link_libraries(${EXEC} _reg_f3d)
+    foreach(dim 2 3)
+        foreach(type descent conjugate)
+                add_test(${EXEC}_${dim}D_${type} ${EXEC} ${dim} ${type})
+        endforeach(type)
+    endforeach(dim)
+#-----------------------------------------------------------------------------
+    set(EXEC reg_test_interp_gpu)
+    cuda_add_executable(${EXEC} ${EXEC}.cpp)
+    target_link_libraries(${EXEC} _reg_f3d)
+    add_test(reg_test_interp_gpu_2D_lin ${EXEC}
+        ${DATA_FOLDER}/brainweb_2D.nii.gz
+        ${DATA_FOLDER}/test_DEF_BW_2D.nii.gz 2 lin)
+    add_test(reg_test_interp_gpu_3D_lin ${EXEC}
+        ${DATA_FOLDER}/brainweb_3D.nii.gz
+        ${DATA_FOLDER}/test_DEF_BW_3D.nii.gz 3 lin)
+    add_test(reg_test_interp_gpu_2D_lgrad ${EXEC}
+        ${DATA_FOLDER}/brainweb_2D.nii.gz
+        ${DATA_FOLDER}/test_DEF_BW_2D.nii.gz 2 lgrad)
+    add_test(reg_test_interp_gpu_3D_lgrad ${EXEC}
+        ${DATA_FOLDER}/brainweb_3D.nii.gz
+        ${DATA_FOLDER}/test_DEF_BW_3D.nii.gz 3 lgrad)
 #-----------------------------------------------------------------------------
 endif(USE_CUDA)
 #-----------------------------------------------------------------------------

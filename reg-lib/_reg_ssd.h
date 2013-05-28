@@ -15,6 +15,7 @@
 #define _REG_SSD_H
 
 #include "nifti1_io.h"
+#include "_reg_maths.h"
 
 /** @brief Copmutes and returns the SSD between two input image
  * @param targetImage First input image to use to compute the metric

@@ -112,6 +112,9 @@ public:
     virtual void Initisalise();
     virtual nifti_image *GetControlPointPositionImage();
     virtual nifti_image **GetWarpedImage();
+
+    // Function used for testing
+    virtual void reg_test_setControlPointGrid(nifti_image *cpp){this->controlPointGrid=cpp;}
 };
 
 #include "_reg_f3d.cpp"

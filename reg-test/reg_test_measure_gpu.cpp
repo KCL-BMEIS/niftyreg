@@ -1,5 +1,4 @@
 #include "_reg_common_gpu.h"
-#include "cuda.h"
 #include "_reg_tools.h"
 
 #include "_reg_mutualinformation.h"
@@ -7,33 +6,14 @@
 
 #include "_reg_ssd.h"
 #include "_reg_ssd_gpu.h"
-
 #include "_reg_localTransformation.h"
 #include "_reg_localTransformation_gpu.h"
-
 #include "_reg_resampling.h"
 #include "_reg_resampling_gpu.h"
 
-#define EPS 0.00001
+#define EPS 0.001
 #define SIZE 128
 #define BIN 68
-
-double getAbsoluteMaxDifference(nifti_image *image1,
-								nifti_image *image2)
-{
-	double maxDifference=0.;
-	float *img1Ptr = static_cast<float *>(image1->data);
-	float *img2Ptr = static_cast<float *>(image2->data);
-	for(size_t i=0; i<image1->nvox; ++i){
-		if(img1Ptr!=img1Ptr)
-			fprintf(stderr, "WARNING - getAbsoluteMaxDifference - NaN in the first image\n");
-		if(img2Ptr!=img2Ptr)
-			fprintf(stderr, "WARNING - getAbsoluteMaxDifference - NaN in the second image\n");
-		float currentDiff = fabsf(*img1Ptr++ - *img2Ptr++);
-		maxDifference = currentDiff>maxDifference?currentDiff:maxDifference;
-	}
-	return maxDifference;
-}
 
 int main(int argc, char **argv)
 {
@@ -138,7 +118,7 @@ int main(int argc, char **argv)
 		nifti_image *spaGradient2 = nifti_make_new_nim(nii_dim, NIFTI_TYPE_FLOAT32, true);
 		reg_checkAndCorrectDimension(spaGradient2);
 		cudaCommon_transferFromDeviceToNifti<float4>(spaGradient2, &spaGradient_gpu);
-		maxDifferenceSPA=getAbsoluteMaxDifference(spaGradient,spaGradient2);
+        maxDifferenceSPA=reg_test_compare_images(spaGradient,spaGradient2);
 		nifti_image_free(spaGradient2);
 		cudaCommon_free(&field_gpu);
 	}
@@ -211,9 +191,9 @@ int main(int argc, char **argv)
 		// Transfer the result from the device to the hosts
 		cudaCommon_transferFromDeviceToNifti<float4>(nmiGradient2, &nmiGradient_gpu);
 		//Compare the result
-		reg_tools_addSubMulDivValue(nmiGradient1,nmiGradient1,reference->nvox,2); // xnvox
-		reg_tools_addSubMulDivValue(nmiGradient2,nmiGradient2,reference->nvox,2); // xnvox
-		maxDifferenceNMIG=getAbsoluteMaxDifference(nmiGradient1,nmiGradient2);
+        reg_tools_multiplyValueToImage(nmiGradient1,nmiGradient1,reference->nvox); // xnvox
+        reg_tools_multiplyValueToImage(nmiGradient2,nmiGradient2,reference->nvox); // xnvox
+        maxDifferenceNMIG=reg_test_compare_images(nmiGradient1,nmiGradient2);
 		// Free arrays
 		free(proJHisto);
 		free(logJHisto);
@@ -264,9 +244,9 @@ int main(int argc, char **argv)
 		// Transfer the result from the device to the hosts
 		cudaCommon_transferFromDeviceToNifti<float4>(ssdGradient2, &ssdGradient_gpu);
 		//Compare the result
-		reg_tools_addSubMulDivValue(ssdGradient1,ssdGradient1,reference->nvox,2); // xnvox
-		reg_tools_addSubMulDivValue(ssdGradient2,ssdGradient2,reference->nvox,2); // xnvox
-		maxDifferenceSSDG=getAbsoluteMaxDifference(ssdGradient1,ssdGradient2);
+        reg_tools_multiplyValueToImage(ssdGradient1,ssdGradient1,reference->nvox); // * nvox
+        reg_tools_multiplyValueToImage(ssdGradient2,ssdGradient2,reference->nvox); // * nvox
+        maxDifferenceSSDG=reg_test_compare_images(ssdGradient1,ssdGradient2);
 		// Free allocate images and array
 		cudaCommon_free(&ssdGradient_gpu);
 		nifti_image_free(ssdGradient1);
@@ -311,6 +291,8 @@ int main(int argc, char **argv)
 	cudaCommon_free(&floating_cuda_array_gpu);
 	cudaCommon_free(&floating_gpu);
 	cudaCommon_free(&mask_gpu);
+
+    cudaCommon_unsetCUDACard(&ctx);
 
 	return EXIT_SUCCESS;
 }

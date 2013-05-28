@@ -21,18 +21,15 @@ double reg_spline_bendingEnergyApproxValue2D(nifti_image *splineControlPoint)
 
     // As the contraint is only computed at the control point positions, the basis value of the spline are always the same
     SplineTYPE basisXX[9], basisYY[9], basisXY[9];
-    SplineTYPE normal[3]={1.0/6.0, 2.0/3.0, 1.0/6.0};
-    SplineTYPE first[3]={-0.5, 0, 0.5};
-    SplineTYPE second[3]={1.0, -2.0, 1.0};
-    int coord = 0;
-    for(int b=0; b<3; b++){
-        for(int a=0; a<3; a++){
-            basisXX[coord] = second[a] * normal[b];
-            basisYY[coord] = normal[a] * second[b];
-            basisXY[coord] = first[a] * first[b];
-            coord++;
-        }
-    }
+    basisXX[0]=0.166667f;basisYY[0]=0.166667f;basisXY[0]=0.25f;
+    basisXX[1]=-0.333333f;basisYY[1]=0.666667f;basisXY[1]=-0.f;
+    basisXX[2]=0.166667f;basisYY[2]=0.166667f;basisXY[2]=-0.25f;
+    basisXX[3]=0.666667f;basisYY[3]=-0.333333f;basisXY[3]=-0.f;
+    basisXX[4]=-1.33333f;basisYY[4]=-1.33333f;basisXY[4]=0.f;
+    basisXX[5]=0.666667f;basisYY[5]=-0.333333f;basisXY[5]=0.f;
+    basisXX[6]=0.166667f;basisYY[6]=0.166667f;basisXY[6]=-0.25f;
+    basisXX[7]=-0.333333f;basisYY[7]=0.666667f;basisXY[7]=0.f;
+    basisXX[8]=0.166667f;basisYY[8]=0.166667f;basisXY[8]=0.25f;
 
     SplineTYPE constraintValue=0.0;
 
@@ -84,7 +81,7 @@ double reg_spline_bendingEnergyApproxValue2D(nifti_image *splineControlPoint)
             constraintValue += (double)(XX_y*XX_y + YY_y*YY_y + 2.0*XY_y*XY_y);
         }
     }
-    return constraintValue/(double)(2.0*splineControlPoint->nx*splineControlPoint->ny);
+	return constraintValue/(double)(splineControlPoint->nvox);
 }
 /* *************************************************************** */
 template<class SplineTYPE>
@@ -99,35 +96,60 @@ double reg_spline_bendingEnergyApproxValue3D(nifti_image *splineControlPoint)
 
     // As the contraint is only computed at the control point positions, the basis value of the spline are always the same
     SplineTYPE basisXX[27], basisYY[27], basisZZ[27], basisXY[27], basisYZ[27], basisXZ[27];
-    SplineTYPE normal[3]={1.0/6.0, 2.0/3.0, 1.0/6.0};
-    SplineTYPE first[3]={-0.5, 0, 0.5};
-    SplineTYPE second[3]={1.0, -2.0, 1.0};
-    // There are six different values taken into account
-    SplineTYPE tempXX[9], tempYY[9], tempZZ[9], tempXY[9], tempYZ[9], tempXZ[9];
-    int coord=0;
-    for(int c=0; c<3; c++){
-        for(int b=0; b<3; b++){
-            tempXX[coord]=normal[c]*normal[b];  // z * y
-            tempYY[coord]=normal[c]*second[b];  // z * y"
-            tempZZ[coord]=second[c]*normal[b];  // z"* y
-            tempXY[coord]=normal[c]*first[b];   // z * y'
-            tempYZ[coord]=first[c]*first[b];    // z'* y'
-            tempXZ[coord]=first[c]*normal[b];   // z'* y
-            coord++;
-        }
-    }
-    coord=0;
-    for(int bc=0; bc<9; bc++){
-        for(int a=0; a<3; a++){
-            basisXX[coord]=tempXX[bc]*second[a];    // z * y * x"
-            basisYY[coord]=tempYY[bc]*normal[a];    // z * y"* x
-            basisZZ[coord]=tempZZ[bc]*normal[a];    // z"* y * x
-            basisXY[coord]=tempXY[bc]*first[a];     // z * y'* x'
-            basisYZ[coord]=tempYZ[bc]*normal[a];    // z'* y'* x
-            basisXZ[coord]=tempXZ[bc]*first[a];     // z'* y * x'
-            coord++;
-        }
-    }
+    basisXX[0]=0.027778f;basisYY[0]=0.027778f;basisZZ[0]=0.027778f;
+    basisXY[0]=0.041667f;basisYZ[0]=0.041667f;basisXZ[0]=0.041667f;
+    basisXX[1]=-0.055556f;basisYY[1]=0.111111f;basisZZ[1]=0.111111f;
+    basisXY[1]=-0.000000f;basisYZ[1]=0.166667f;basisXZ[1]=-0.000000f;
+    basisXX[2]=0.027778f;basisYY[2]=0.027778f;basisZZ[2]=0.027778f;
+    basisXY[2]=-0.041667f;basisYZ[2]=0.041667f;basisXZ[2]=-0.041667f;
+    basisXX[3]=0.111111f;basisYY[3]=-0.055556f;basisZZ[3]=0.111111f;
+    basisXY[3]=-0.000000f;basisYZ[3]=-0.000000f;basisXZ[3]=0.166667f;
+    basisXX[4]=-0.222222f;basisYY[4]=-0.222222f;basisZZ[4]=0.444444f;
+    basisXY[4]=0.000000f;basisYZ[4]=-0.000000f;basisXZ[4]=-0.000000f;
+    basisXX[5]=0.111111f;basisYY[5]=-0.055556f;basisZZ[5]=0.111111f;
+    basisXY[5]=0.000000f;basisYZ[5]=-0.000000f;basisXZ[5]=-0.166667f;
+    basisXX[6]=0.027778f;basisYY[6]=0.027778f;basisZZ[6]=0.027778f;
+    basisXY[6]=-0.041667f;basisYZ[6]=-0.041667f;basisXZ[6]=0.041667f;
+    basisXX[7]=-0.055556f;basisYY[7]=0.111111f;basisZZ[7]=0.111111f;
+    basisXY[7]=0.000000f;basisYZ[7]=-0.166667f;basisXZ[7]=-0.000000f;
+    basisXX[8]=0.027778f;basisYY[8]=0.027778f;basisZZ[8]=0.027778f;
+    basisXY[8]=0.041667f;basisYZ[8]=-0.041667f;basisXZ[8]=-0.041667f;
+    basisXX[9]=0.111111f;basisYY[9]=0.111111f;basisZZ[9]=-0.055556f;
+    basisXY[9]=0.166667f;basisYZ[9]=-0.000000f;basisXZ[9]=-0.000000f;
+    basisXX[10]=-0.222222f;basisYY[10]=0.444444f;basisZZ[10]=-0.222222f;
+    basisXY[10]=-0.000000f;basisYZ[10]=-0.000000f;basisXZ[10]=0.000000f;
+    basisXX[11]=0.111111f;basisYY[11]=0.111111f;basisZZ[11]=-0.055556f;
+    basisXY[11]=-0.166667f;basisYZ[11]=-0.000000f;basisXZ[11]=0.000000f;
+    basisXX[12]=0.444444f;basisYY[12]=-0.222222f;basisZZ[12]=-0.222222f;
+    basisXY[12]=-0.000000f;basisYZ[12]=0.000000f;basisXZ[12]=-0.000000f;
+    basisXX[13]=-0.888889f;basisYY[13]=-0.888889f;basisZZ[13]=-0.888889f;
+    basisXY[13]=0.000000f;basisYZ[13]=0.000000f;basisXZ[13]=0.000000f;
+    basisXX[14]=0.444444f;basisYY[14]=-0.222222f;basisZZ[14]=-0.222222f;
+    basisXY[14]=0.000000f;basisYZ[14]=0.000000f;basisXZ[14]=0.000000f;
+    basisXX[15]=0.111111f;basisYY[15]=0.111111f;basisZZ[15]=-0.055556f;
+    basisXY[15]=-0.166667f;basisYZ[15]=0.000000f;basisXZ[15]=-0.000000f;
+    basisXX[16]=-0.222222f;basisYY[16]=0.444444f;basisZZ[16]=-0.222222f;
+    basisXY[16]=0.000000f;basisYZ[16]=0.000000f;basisXZ[16]=0.000000f;
+    basisXX[17]=0.111111f;basisYY[17]=0.111111f;basisZZ[17]=-0.055556f;
+    basisXY[17]=0.166667f;basisYZ[17]=0.000000f;basisXZ[17]=0.000000f;
+    basisXX[18]=0.027778f;basisYY[18]=0.027778f;basisZZ[18]=0.027778f;
+    basisXY[18]=0.041667f;basisYZ[18]=-0.041667f;basisXZ[18]=-0.041667f;
+    basisXX[19]=-0.055556f;basisYY[19]=0.111111f;basisZZ[19]=0.111111f;
+    basisXY[19]=-0.000000f;basisYZ[19]=-0.166667f;basisXZ[19]=0.000000f;
+    basisXX[20]=0.027778f;basisYY[20]=0.027778f;basisZZ[20]=0.027778f;
+    basisXY[20]=-0.041667f;basisYZ[20]=-0.041667f;basisXZ[20]=0.041667f;
+    basisXX[21]=0.111111f;basisYY[21]=-0.055556f;basisZZ[21]=0.111111f;
+    basisXY[21]=-0.000000f;basisYZ[21]=0.000000f;basisXZ[21]=-0.166667f;
+    basisXX[22]=-0.222222f;basisYY[22]=-0.222222f;basisZZ[22]=0.444444f;
+    basisXY[22]=0.000000f;basisYZ[22]=0.000000f;basisXZ[22]=0.000000f;
+    basisXX[23]=0.111111f;basisYY[23]=-0.055556f;basisZZ[23]=0.111111f;
+    basisXY[23]=0.000000f;basisYZ[23]=0.000000f;basisXZ[23]=0.166667f;
+    basisXX[24]=0.027778f;basisYY[24]=0.027778f;basisZZ[24]=0.027778f;
+    basisXY[24]=-0.041667f;basisYZ[24]=0.041667f;basisXZ[24]=-0.041667f;
+    basisXX[25]=-0.055556f;basisYY[25]=0.111111f;basisZZ[25]=0.111111f;
+    basisXY[25]=0.000000f;basisYZ[25]=0.166667f;basisXZ[25]=0.000000f;
+    basisXX[26]=0.027778f;basisYY[26]=0.027778f;basisZZ[26]=0.027778f;
+    basisXY[26]=0.041667f;basisYZ[26]=0.041667f;basisXZ[26]=0.041667f;
 
     double constraintValue=0.0;
 
@@ -203,7 +225,7 @@ double reg_spline_bendingEnergyApproxValue3D(nifti_image *splineControlPoint)
         }
     }
 
-    return constraintValue/(double)(3.0*splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz);
+	return constraintValue/(double)(splineControlPoint->nvox);
 }
 /* *************************************************************** */
 extern "C++"
@@ -244,18 +266,17 @@ void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
 {
     // As the contraint is only computed at the voxel position, the basis value of the spline are always the same
     SplineTYPE basisXX[9], basisYY[9], basisXY[9];
-    SplineTYPE normal[3]={1.0/6.0, 2.0/3.0, 1.0/6.0};
-    SplineTYPE first[3]={-0.5, 0, 0.5};
-    SplineTYPE second[3]={1.0, -2.0, 1.0};
-    int coord=0, x, y, a, b, X, Y, index;
-    for(b=0; b<3; b++){
-        for(a=0; a<3; a++){
-            basisXX[coord] = second[a] * normal[b];
-            basisYY[coord] = normal[a] * second[b];
-            basisXY[coord] = first[a] * first[b];
-            coord++;
-        }
-    }
+    basisXX[0]=0.166667f;basisYY[0]=0.166667f;basisXY[0]=0.25f;
+    basisXX[1]=-0.333333f;basisYY[1]=0.666667f;basisXY[1]=-0.f;
+    basisXX[2]=0.166667f;basisYY[2]=0.166667f;basisXY[2]=-0.25f;
+    basisXX[3]=0.666667f;basisYY[3]=-0.333333f;basisXY[3]=-0.f;
+    basisXX[4]=-1.33333f;basisYY[4]=-1.33333f;basisXY[4]=0.f;
+    basisXX[5]=0.666667f;basisYY[5]=-0.333333f;basisXY[5]=0.f;
+    basisXX[6]=0.166667f;basisYY[6]=0.166667f;basisXY[6]=-0.25f;
+    basisXX[7]=-0.333333f;basisYY[7]=0.666667f;basisXY[7]=0.f;
+    basisXX[8]=0.166667f;basisYY[8]=0.166667f;basisXY[8]=0.25f;
+
+    int coord=0, x, y, a, X, Y, index;
 
     int nodeNumber = splineControlPoint->nx*splineControlPoint->ny;
     SplineTYPE *derivativeValues = (SplineTYPE *)calloc(6*nodeNumber, sizeof(SplineTYPE));
@@ -314,7 +335,7 @@ void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
             derivativeValuesPtr[2] = (SplineTYPE)(2.0*XY_x);
             derivativeValuesPtr[3] = (SplineTYPE)(1.0*XX_y);
             derivativeValuesPtr[4] = (SplineTYPE)(1.0*YY_y);
-            derivativeValuesPtr[5] = (SplineTYPE)(2.0*XY_y);
+			derivativeValuesPtr[5] = (SplineTYPE)(2.0*XY_y);
         }
     }
 
@@ -344,15 +365,15 @@ void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
                         if(-1<X && X<splineControlPoint->nx){
                             derivativeValuesPtr = &derivativeValues[6 * (Y*splineControlPoint->nx + X)];
                             gradientValue[0] +=
-                                    derivativeValuesPtr[0] * basisXX[coord] +
-                                    derivativeValuesPtr[1] * basisYY[coord] +
-                                    derivativeValuesPtr[2] * basisXY[coord] ;
+									derivativeValuesPtr[0] * basisXX[coord] +
+									derivativeValuesPtr[1] * basisYY[coord] +
+									derivativeValuesPtr[2] * basisXY[coord] ;
 
                             gradientValue[1] +=
-                                    derivativeValuesPtr[3] * basisXX[coord] +
-                                    derivativeValuesPtr[4] * basisYY[coord] +
-                                    derivativeValuesPtr[5] * basisXY[coord] ;
-                        } // X outside
+									derivativeValuesPtr[3] * basisXX[coord] +
+									derivativeValuesPtr[4] * basisYY[coord] +
+									derivativeValuesPtr[5] * basisXY[coord] ;
+						} // X outside
                         ++coord;
                     }
                 } // Y outside
@@ -379,30 +400,63 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
     SplineTYPE second[3]={1.0, -2.0, 1.0};
     // There are six different values taken into account
     SplineTYPE tempXX[9], tempYY[9], tempZZ[9], tempXY[9], tempYZ[9], tempXZ[9];
-    int coord=0;
-    for(c=0; c<3; c++){
-        for(b=0; b<3; b++){
-            tempXX[coord]=normal[c]*normal[b];  // z * y
-            tempYY[coord]=normal[c]*second[b];  // z * y"
-            tempZZ[coord]=second[c]*normal[b];  // z"* y
-            tempXY[coord]=normal[c]*first[b];   // z * y'
-            tempYZ[coord]=first[c]*first[b];    // z'* y'
-            tempXZ[coord]=first[c]*normal[b];   // z'* y
-            coord++;
-        }
-    }
-    coord=0;
-    for(bc=0; bc<9; bc++){
-        for(a=0; a<3; a++){
-            basisXX[coord]=tempXX[bc]*second[a];    // z * y * x"
-            basisYY[coord]=tempYY[bc]*normal[a];    // z * y"* x
-            basisZZ[coord]=tempZZ[bc]*normal[a];    // z"* y * x
-            basisXY[coord]=tempXY[bc]*first[a];     // z * y'* x'
-            basisYZ[coord]=tempYZ[bc]*normal[a];    // z'* y'* x
-            basisXZ[coord]=tempXZ[bc]*first[a];     // z'* y * x'
-            coord++;
-        }
-    }
+
+    basisXX[0]=0.027778f;basisYY[0]=0.027778f;basisZZ[0]=0.027778f;
+    basisXY[0]=0.041667f;basisYZ[0]=0.041667f;basisXZ[0]=0.041667f;
+    basisXX[1]=-0.055556f;basisYY[1]=0.111111f;basisZZ[1]=0.111111f;
+    basisXY[1]=-0.000000f;basisYZ[1]=0.166667f;basisXZ[1]=-0.000000f;
+    basisXX[2]=0.027778f;basisYY[2]=0.027778f;basisZZ[2]=0.027778f;
+    basisXY[2]=-0.041667f;basisYZ[2]=0.041667f;basisXZ[2]=-0.041667f;
+    basisXX[3]=0.111111f;basisYY[3]=-0.055556f;basisZZ[3]=0.111111f;
+    basisXY[3]=-0.000000f;basisYZ[3]=-0.000000f;basisXZ[3]=0.166667f;
+    basisXX[4]=-0.222222f;basisYY[4]=-0.222222f;basisZZ[4]=0.444444f;
+    basisXY[4]=0.000000f;basisYZ[4]=-0.000000f;basisXZ[4]=-0.000000f;
+    basisXX[5]=0.111111f;basisYY[5]=-0.055556f;basisZZ[5]=0.111111f;
+    basisXY[5]=0.000000f;basisYZ[5]=-0.000000f;basisXZ[5]=-0.166667f;
+    basisXX[6]=0.027778f;basisYY[6]=0.027778f;basisZZ[6]=0.027778f;
+    basisXY[6]=-0.041667f;basisYZ[6]=-0.041667f;basisXZ[6]=0.041667f;
+    basisXX[7]=-0.055556f;basisYY[7]=0.111111f;basisZZ[7]=0.111111f;
+    basisXY[7]=0.000000f;basisYZ[7]=-0.166667f;basisXZ[7]=-0.000000f;
+    basisXX[8]=0.027778f;basisYY[8]=0.027778f;basisZZ[8]=0.027778f;
+    basisXY[8]=0.041667f;basisYZ[8]=-0.041667f;basisXZ[8]=-0.041667f;
+    basisXX[9]=0.111111f;basisYY[9]=0.111111f;basisZZ[9]=-0.055556f;
+    basisXY[9]=0.166667f;basisYZ[9]=-0.000000f;basisXZ[9]=-0.000000f;
+    basisXX[10]=-0.222222f;basisYY[10]=0.444444f;basisZZ[10]=-0.222222f;
+    basisXY[10]=-0.000000f;basisYZ[10]=-0.000000f;basisXZ[10]=0.000000f;
+    basisXX[11]=0.111111f;basisYY[11]=0.111111f;basisZZ[11]=-0.055556f;
+    basisXY[11]=-0.166667f;basisYZ[11]=-0.000000f;basisXZ[11]=0.000000f;
+    basisXX[12]=0.444444f;basisYY[12]=-0.222222f;basisZZ[12]=-0.222222f;
+    basisXY[12]=-0.000000f;basisYZ[12]=0.000000f;basisXZ[12]=-0.000000f;
+    basisXX[13]=-0.888889f;basisYY[13]=-0.888889f;basisZZ[13]=-0.888889f;
+    basisXY[13]=0.000000f;basisYZ[13]=0.000000f;basisXZ[13]=0.000000f;
+    basisXX[14]=0.444444f;basisYY[14]=-0.222222f;basisZZ[14]=-0.222222f;
+    basisXY[14]=0.000000f;basisYZ[14]=0.000000f;basisXZ[14]=0.000000f;
+    basisXX[15]=0.111111f;basisYY[15]=0.111111f;basisZZ[15]=-0.055556f;
+    basisXY[15]=-0.166667f;basisYZ[15]=0.000000f;basisXZ[15]=-0.000000f;
+    basisXX[16]=-0.222222f;basisYY[16]=0.444444f;basisZZ[16]=-0.222222f;
+    basisXY[16]=0.000000f;basisYZ[16]=0.000000f;basisXZ[16]=0.000000f;
+    basisXX[17]=0.111111f;basisYY[17]=0.111111f;basisZZ[17]=-0.055556f;
+    basisXY[17]=0.166667f;basisYZ[17]=0.000000f;basisXZ[17]=0.000000f;
+    basisXX[18]=0.027778f;basisYY[18]=0.027778f;basisZZ[18]=0.027778f;
+    basisXY[18]=0.041667f;basisYZ[18]=-0.041667f;basisXZ[18]=-0.041667f;
+    basisXX[19]=-0.055556f;basisYY[19]=0.111111f;basisZZ[19]=0.111111f;
+    basisXY[19]=-0.000000f;basisYZ[19]=-0.166667f;basisXZ[19]=0.000000f;
+    basisXX[20]=0.027778f;basisYY[20]=0.027778f;basisZZ[20]=0.027778f;
+    basisXY[20]=-0.041667f;basisYZ[20]=-0.041667f;basisXZ[20]=0.041667f;
+    basisXX[21]=0.111111f;basisYY[21]=-0.055556f;basisZZ[21]=0.111111f;
+    basisXY[21]=-0.000000f;basisYZ[21]=0.000000f;basisXZ[21]=-0.166667f;
+    basisXX[22]=-0.222222f;basisYY[22]=-0.222222f;basisZZ[22]=0.444444f;
+    basisXY[22]=0.000000f;basisYZ[22]=0.000000f;basisXZ[22]=0.000000f;
+    basisXX[23]=0.111111f;basisYY[23]=-0.055556f;basisZZ[23]=0.111111f;
+    basisXY[23]=0.000000f;basisYZ[23]=0.000000f;basisXZ[23]=0.166667f;
+    basisXX[24]=0.027778f;basisYY[24]=0.027778f;basisZZ[24]=0.027778f;
+    basisXY[24]=-0.041667f;basisYZ[24]=0.041667f;basisXZ[24]=-0.041667f;
+    basisXX[25]=-0.055556f;basisYY[25]=0.111111f;basisZZ[25]=0.111111f;
+    basisXY[25]=0.000000f;basisYZ[25]=0.166667f;basisXZ[25]=0.000000f;
+    basisXX[26]=0.027778f;basisYY[26]=0.027778f;basisZZ[26]=0.027778f;
+    basisXY[26]=0.041667f;basisYZ[26]=0.041667f;basisXZ[26]=0.041667f;
+
+    int coord;
 
     int nodeNumber = splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz;
     SplineTYPE *derivativeValues = (SplineTYPE *)calloc(18*nodeNumber, sizeof(SplineTYPE));

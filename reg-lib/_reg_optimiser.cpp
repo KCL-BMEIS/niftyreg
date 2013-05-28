@@ -204,6 +204,13 @@ void reg_optimiser<T>::Optimise(T maxLength,
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
+void reg_optimiser<T>::reg_test_optimiser()
+{
+    this->objFunc->UpdateParameters(1.f);
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
 reg_conjugateGradient<T>::reg_conjugateGradient()
     :reg_optimiser<T>::reg_optimiser()
 {
@@ -413,6 +420,14 @@ void reg_conjugateGradient<T>::Perturbation(float length)
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
+void reg_conjugateGradient<T>::reg_test_optimiser()
+{
+    this->UpdateGradientValues();
+    reg_optimiser<T>::reg_test_optimiser();
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
 reg_lbfgs<T>::reg_lbfgs()
     :reg_optimiser<T>::reg_optimiser()
 {
@@ -478,7 +493,7 @@ void reg_lbfgs<T>::Initialise(size_t nvox,
                                  nvox_b,
                                  cppData_b,
                                  gradData_b);
-    this->stepToKeep=6;
+    this->stepToKeep=5;
     this->diffDOF=(T **)malloc(this->stepToKeep*sizeof(T *));
     this->diffGrad=(T **)malloc(this->stepToKeep*sizeof(T *));
     for(size_t i=0;i<this->stepToKeep;++i){
@@ -486,14 +501,14 @@ void reg_lbfgs<T>::Initialise(size_t nvox,
         this->diffGrad[i]=(T *)malloc(this->dofNumber*sizeof(T));
         if(this->diffDOF[i]==NULL || this->diffGrad[i]==NULL){
             fprintf(stderr, "[NiftyReg ERROR] reg_lbfgs running out of memory. Exit");
-            exit(1);
+            reg_exit(1);
         }
     }
     this->oldDOF=(T *)malloc(this->dofNumber*sizeof(T));
     this->oldGrad=(T *)malloc(this->dofNumber*sizeof(T));
     if(this->oldDOF==NULL || this->oldGrad==NULL){
         fprintf(stderr, "[NiftyReg ERROR] reg_lbfgs running out of memory. Exit");
-        exit(1);
+        reg_exit(1);
     }
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

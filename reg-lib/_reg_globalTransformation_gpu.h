@@ -12,12 +12,12 @@
 #ifndef _REG_AFFINETRANSFORMATION_GPU_H
 #define _REG_AFFINETRANSFORMATION_GPU_H
 
+#include "_reg_common_gpu.h"
 #include "_reg_globalTransformation.h"
-#include "_reg_blocksize_gpu.h"
 
 extern "C++"
-void reg_affine_positionField_gpu(	mat44 *,
-					nifti_image *,
-					float4 **);
+void reg_affine_positionField_gpu(mat44 *,
+                                  nifti_image *,
+                                  float4 **);
 
 #endif

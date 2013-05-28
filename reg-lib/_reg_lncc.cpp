@@ -138,7 +138,7 @@ double reg_getLNCC(nifti_image *referenceImage,
     if(referenceImage->datatype != warpedImage->datatype){
         fprintf(stderr,"[NiftyReg ERROR] reg_getLNCC\n");
         fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same type\n");
-        exit(1);
+        reg_exit(1);
     }
 
     // Check that both input images have the same size
@@ -146,7 +146,7 @@ double reg_getLNCC(nifti_image *referenceImage,
         if(referenceImage->dim[i] != warpedImage->dim[i]){
             fprintf(stderr,"[NiftyReg ERROR] reg_getLNCC\n");
             fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same dimension");
-            exit(1);
+            reg_exit(1);
         }
     }
 
@@ -159,7 +159,7 @@ double reg_getLNCC(nifti_image *referenceImage,
         break;
     default:
         fprintf(stderr,"[NiftyReg ERROR] warped pixel type unsupported in the LNCC computation function.\n");
-        exit(1);
+        reg_exit(1);
     }
     return 0.0;
 }
@@ -377,7 +377,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
             referenceImage->datatype != warpedImageGradient->datatype){
         fprintf(stderr,"[NiftyReg ERROR] reg_getVoxelBasedLNCCGradient\n");
         fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same type\n");
-        exit(1);
+        reg_exit(1);
     }
     
     switch ( referenceImage->datatype ){
@@ -391,7 +391,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
         break;
     default:
         fprintf(stderr,"[NiftyReg ERROR] reference pixel type unsupported in the LNCC gradient computation function.\n");
-        exit(1);
+        reg_exit(1);
     }
 }
 /* *************************************************************** */
@@ -442,7 +442,7 @@ void reg_getLocalStd(nifti_image *image,
         if(image->dim[i] != localStdImage->dim[i] || image->dim[i] != localMeanImage->dim[i]){
             fprintf(stderr,"[NiftyReg ERROR] reg_getLocalStd\n");
             fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same dimension");
-            exit(1);
+            reg_exit(1);
         }
     }
 
@@ -457,7 +457,7 @@ void reg_getLocalStd(nifti_image *image,
         break;
     default:
         fprintf(stderr,"[NiftyReg ERROR] reference pixel type unsupported in the local standard deviation computation function.\n");
-        exit(1);
+        reg_exit(1);
     }
 }
 
@@ -489,7 +489,7 @@ void reg_getLocalMean(nifti_image *image,
         if(image->dim[i] != localMeanImage->dim[i]){
             fprintf(stderr,"[NiftyReg ERROR] reg_getLocalMean\n");
             fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same dimension");
-            exit(1);
+            reg_exit(1);
         }
     }
 
@@ -504,7 +504,7 @@ void reg_getLocalMean(nifti_image *image,
         break;
     default:
         fprintf(stderr,"[NiftyReg ERROR] reference pixel type unsupported in the local mean computation function.\n");
-        exit(1);
+        reg_exit(1);
     }
 }
 
@@ -559,7 +559,7 @@ void reg_getLocalCorrelation(nifti_image *referenceImage,
         if(referenceImage->dim[i] != warpedImage->dim[i]){
             fprintf(stderr,"[NiftyReg ERROR] reg_getLocalCorrelation\n");
             fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same dimension");
-            exit(1);
+            reg_exit(1);
         }
     }
 
@@ -574,7 +574,7 @@ void reg_getLocalCorrelation(nifti_image *referenceImage,
         break;
     default:
         fprintf(stderr,"[NiftyReg ERROR] reference pixel type unsupported in the local correlation computation function.\n");
-        exit(1);
+        reg_exit(1);
     }
 }
 
@@ -717,7 +717,7 @@ void reg_meanFilter(nifti_image *image, int radius, int *mask)
         break;
     default:
         fprintf(stderr,"[NiftyReg ERROR] reference pixel type unsupported in the mean filter computation function.\n");
-        exit(1);
+        reg_exit(1);
     }
 }
 /* *************************************************************** */

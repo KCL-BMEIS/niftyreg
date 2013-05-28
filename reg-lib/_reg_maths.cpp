@@ -38,7 +38,7 @@ void reg_LUdecomposition(T *mat,
                 big=temp;
         if(big==0.f){
             fprintf(stderr, "[NiftyReg] ERROR Singular matrix in the LU decomposition\n");
-            exit(1);
+            reg_exit(1);
         }
         vv[i]=1.0/big;
     }
@@ -124,7 +124,7 @@ void reg_matrixMultiply(T *mat1,
     if(dim1[1]!=dim2[0]){
         fprintf(stderr, "Matrices can not be multiplied due to their size: [%i %i] [%i %i]\n",
                 dim1[0],dim1[1],dim2[0],dim2[1]);
-        exit(1);
+        reg_exit(1);
     }
     int resDim[2]={dim1[0],dim2[1]};
     // Allocate the result matrix

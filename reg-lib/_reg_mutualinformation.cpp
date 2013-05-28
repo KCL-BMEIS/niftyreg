@@ -449,7 +449,7 @@ void reg_getEntropies(nifti_image *referenceImage,
     if(referenceImage->datatype != warpedImage->datatype){
         fprintf(stderr, "[NiftyReg ERROR] reg_getEntropies\n");
         fprintf(stderr, "[NiftyReg ERROR] Both input images are exepected to have the same type\n");
-        exit(1);
+        reg_exit(1);
     }
 
     switch(referenceImage->datatype){
@@ -465,7 +465,7 @@ void reg_getEntropies(nifti_image *referenceImage,
         break;
     default:
         fprintf(stderr,"[NiftyReg ERROR] reg_getEntropies\tThe fixed image data type is not supported\n");
-        exit(1);
+        reg_exit(1);
     }
     return;
 }
@@ -971,7 +971,7 @@ void reg_getVoxelBasedNMIGradientUsingPW1(nifti_image *referenceImage,
     if(warpedImageGradient->datatype != nmiGradientImage->datatype){
         fprintf(stderr, "[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\n");
         fprintf(stderr, "[NiftyReg ERROR] Both gradient images are exepected to have the same type\n");
-        exit(1);
+        reg_exit(1);
     }
 
     if(nmiGradientImage->nz==1){
@@ -988,7 +988,7 @@ void reg_getVoxelBasedNMIGradientUsingPW1(nifti_image *referenceImage,
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe gradient images data type is not supported\n");
-            exit(1);
+            reg_exit(1);
         }
     }
     else{
@@ -1005,7 +1005,7 @@ void reg_getVoxelBasedNMIGradientUsingPW1(nifti_image *referenceImage,
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe gradient images data type is not supported\n");
-            exit(1);
+            reg_exit(1);
         }
 
     }
@@ -1025,7 +1025,7 @@ void reg_getVoxelBasedNMIGradientUsingPW(nifti_image *referenceImage,
     if(referenceImage->datatype != warpedImage->datatype){
         fprintf(stderr, "[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\n");
         fprintf(stderr, "[NiftyReg ERROR] Both input images are exepected to have the same type\n");
-        exit(1);
+        reg_exit(1);
     }
 
     switch(referenceImage->datatype){
@@ -1041,7 +1041,7 @@ void reg_getVoxelBasedNMIGradientUsingPW(nifti_image *referenceImage,
         break;
     default:
         fprintf(stderr,"[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe input image data type is not supported\n");
-        exit(1);
+        reg_exit(1);
     }
 }
 /* *************************************************************** */

@@ -76,8 +76,6 @@ void reg_gaussianSmoothing(nifti_image *image,
                            PrecisionTYPE sigma,
                            bool *axis
                            );
-// void reg_gaussianSmoothing<float>(nifti_image *, float, bool[8]);
-// void reg_gaussianSmoothing<double>(nifti_image *, double, bool[8]);
 
 /** @brief Downsample an image by a ratio of two
  * @param image Image to be downsampled
@@ -108,36 +106,83 @@ PrecisionTYPE reg_getMaximalLength(nifti_image *image);
 extern "C++" template <class NewTYPE>
 void reg_tools_changeDatatype(nifti_image *image);
 
-/** @brief Perform some basic arithmetic operation between
- * two images.
+/** @brief Add two images.
  * @param img1 First image to consider
  * @param img2 Second image to consider
  * @param out Result image that contains the result of the operation
  * between the first and second image.
- * @param type Type of operation to be performed between 0 and 3
- * with 0, 1, 2 and 3 corresponding to addition, substraction,
- * multiplication and division respectively.
  */
 extern "C++"
-void reg_tools_addSubMulDivImages(nifti_image *img1,
+void reg_tools_addImageToImage(nifti_image *img1,
+                               nifti_image *img2,
+                               nifti_image *out);
+/** @brief Substract two images.
+ * @param img1 First image to consider
+ * @param img2 Second image to consider
+ * @param out Result image that contains the result of the operation
+ * between the first and second image.
+ */
+extern "C++"
+void reg_tools_substractImageToImage(nifti_image *img1,
+                                     nifti_image *img2,
+                                     nifti_image *out);
+/** @brief Multiply two images.
+ * @param img1 First image to consider
+ * @param img2 Second image to consider
+ * @param out Result image that contains the result of the operation
+ * between the first and second image.
+ */
+extern "C++"
+void reg_tools_multiplyImageToImage(nifti_image *img1,
+                                    nifti_image *img2,
+                                    nifti_image *out);
+/** @brief Divide two images.
+ * @param img1 First image to consider
+ * @param img2 Second image to consider
+ * @param out Result image that contains the result of the operation
+ * between the first and second image.
+ */
+extern "C++"
+void reg_tools_divideImageToImage(nifti_image *img1,
                                   nifti_image *img2,
-                                  nifti_image *out,
-                                  int type);
+                                  nifti_image *out);
 
-/** @brief Perform some basic arithmetic operation to an image
- * @param img1 Input image to consider
+/** @brief Add a scalar to all image intensity
+ * @param img1 Input image
  * @param out Result image that contains the result of the operation.
- * @param val Value to be added/substracted/multiplied/divided to
- * input image
- * @param type Type of operation to be performed between 0 and 3
- * with 0, 1, 2 and 3 corresponding to addition, substraction,
- * multiplication and division respectively.
+ * @param val Value to be added to input image
  */
 extern "C++"
-void reg_tools_addSubMulDivValue(nifti_image *img1,
-                                 nifti_image *out,
-                                 float val,
-                                 int type);
+void reg_tools_addValueToImage(nifti_image *img1,
+                               nifti_image *out,
+                               float val);
+/** @brief Substract a scalar to all image intensity
+ * @param img1 Input image
+ * @param out Result image that contains the result of the operation.
+ * @param val Value to be substracted to input image
+ */
+extern "C++"
+void reg_tools_substractValueToImage(nifti_image *img1,
+                                     nifti_image *out,
+                                     float val);
+/** @brief Multiply a scalar to all image intensity
+ * @param img1 Input image
+ * @param out Result image that contains the result of the operation.
+ * @param val Value to be multiplied to input image
+ */
+extern "C++"
+void reg_tools_multiplyValueToImage(nifti_image *img1,
+                                    nifti_image *out,
+                                    float val);
+/** @brief Mivide a scalar to all image intensity
+ * @param img1 Input image
+ * @param out Result image that contains the result of the operation.
+ * @param val Value to be divided to input image
+ */
+extern "C++"
+void reg_tools_divideValueToImage(nifti_image *img1,
+                                  nifti_image *out,
+                                  float val);
 
 /** @brief Binarise an input image. All values different
  * from 0 are set to 1, 0 otherwise.
@@ -293,16 +338,36 @@ int reg_getDeformationFromDisplacement(nifti_image *image);
 /** @brief This function tells the progress to the CLI */
 extern "C++"
 void progressXML(unsigned long p, std::string text);
-
 /* *************************************************************** */
 /** @brief This function initiates progress updates through the CLI */
 extern "C++"
 void startProgress(std::string name);
-
 /* *************************************************************** */
 /** @brief This function closes progress updates through the CLI */
 extern "C++"
 void closeProgress(std::string name, std::string status);
+/* *************************************************************** */
+/** @brief The functions returns the largest ratio between two arrays
+ * The returned value is the largest value computed as ((A/B)-1)
+ * If A or B are zeros then the (A-B) value is returned.
+ */
+extern "C++" template<class DTYPE>
+float reg_test_compare_arrays(DTYPE *ptrA,
+                              DTYPE *ptrB,
+                              size_t nvox);
+/* *************************************************************** */
+/** @brief The functions returns the largest ratio between input image intensities
+ * The returned value is the largest value computed as ((A/B)-1)
+ * If A or B are zeros then the (A-B) value is returned.
+ */
+extern "C++"
+float reg_test_compare_images(nifti_image *imgA,
+                              nifti_image *imgB);
+/* *************************************************************** */
+/** @brief The absolute operator is applied to the input image
+ */
+extern "C++"
+void reg_tools_abs_image(nifti_image *img);
 /* *************************************************************** */
 
 #endif

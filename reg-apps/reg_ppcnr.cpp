@@ -157,7 +157,7 @@ int main(int argc, char **argv)
             nifti_image_free(source);
             makesource->ndim=makesource->dim[0] = 4;
             makesource->nt = makesource->dim[4] = atoi(argv[++i]);
-            makesource->nvox=makesource->nx*makesource->nz*makesource->ny*makesource->nt;
+            makesource->nvox =(size_t)makesource->nx*(size_t)makesource->nz*(size_t)makesource->ny*(size_t)makesource->nt;
             makesource->data = (void *)malloc(makesource->nvox * makesource->nbyper);
 			char *temp_data = reinterpret_cast<char *>(makesource->data);
             for(int ii=0;ii<makesource->nt;ii++){ // fill with file data
@@ -635,7 +635,7 @@ int main(int argc, char **argv)
                 nifti_image *stores = nifti_copy_nim_info(images);
                 stores->ndim=stores->dim[0]=3;
                 stores->nt=stores->dim[4]=1;
-                stores->nvox=stores->nx*stores->ny*stores->nz;
+                stores->nvox =(size_t)stores->nx*(size_t)stores->ny*(size_t)stores->nz;
                 stores->data = (void *)calloc(stores->nvox,images->nbyper);
 
                 nifti_image *storet = nifti_copy_nim_info(stores);
@@ -703,7 +703,7 @@ int main(int argc, char **argv)
                 printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
                 printf("Registering image %i of %i \n", imageNumber+1,images->nt);
                 printf("'%s' \n",regCommandB);
-				if(!system(regCommandB)){
+				if(system(regCommandB)){
 					fprintf(stderr, "Error while running the following command:\n%s\n",regCommandB);
 					exit(EXIT_FAILURE);
 				}

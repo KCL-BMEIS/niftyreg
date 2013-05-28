@@ -1,16 +1,15 @@
-/*
- *  _reg_cudaCommon.cpp
- *  
- *
- *  Created by Marc Modat on 25/03/2009.
- *  Copyright (c) 2009, University College London. All rights reserved.
- *  Centre for Medical Image Computing (CMIC)
- *  See the LICENSE.txt file in the nifty_reg root folder
+/**
+ * @file _reg_comon_gpu.cu
+ * @author Marc Modat
+ * @date 25/03/2009
+ * Copyright (c) 2009, University College London. All rights reserved.
+ * Centre for Medical Image Computing (CMIC)
+ * See the LICENSE.txt file in the nifty_reg root folder
  *
  */
 
-#ifndef _REG_CUDACOMMON_CPP
-#define _REG_CUDACOMMON_CPP
+#ifndef _REG_COMMON_GPU_CU
+#define _REG_COMMON_GPU_CU
 
 #include "_reg_common_gpu.h"
 
@@ -42,11 +41,10 @@ int cudaCommon_setCUDACard(CUdevice *dev,
         }
         ++current_device;
     }
-    NR_CUDA_SAFE_CALL(cudaSetDevice( max_gflops_device ));
+    NR_CUDA_SAFE_CALL(cudaSetDevice(max_gflops_device));
+    NR_CUDA_SAFE_CALL(cuCtxCreate(ctx, 0, *dev))
+    NR_CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, max_gflops_device));
 
-    NR_CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, max_gflops_device ));
-    cuDeviceGet(dev,max_gflops_device);
-    cuCtxCreate(ctx, 0, *dev);
     if(deviceProp.major<1){
         fprintf(stderr, "[NiftyReg ERROR CUDA] The specified graphical card does not exist.\n");
         return EXIT_FAILURE;
@@ -58,8 +56,10 @@ int cudaCommon_setCUDACard(CUdevice *dev,
         major=deviceProp.major;
         minor=deviceProp.minor;
         if(deviceProp.totalGlobalMem != total){
-            printf("[NiftyReg CUDA ERROR] The CUDA card %s does not seem to be active\n",
+            fprintf(stderr,"[NiftyReg CUDA ERROR] The CUDA card %s does not seem to be available\n",
                    deviceProp.name);
+            fprintf(stderr,"[NiftyReg CUDA ERROR] Expected total memory: %lu Mb - Recovered total memory: %lu Mb\n",
+                    deviceProp.totalGlobalMem/(1024*1024), total/(1024*1024));
             return EXIT_FAILURE;
         }
         if(verbose){
@@ -71,6 +71,8 @@ int cudaCommon_setCUDACard(CUdevice *dev,
             printf("[NiftyReg CUDA] Card compute capability: %i.%i\n",
                    major,
                    minor);
+            printf("[NiftyReg CUDA] Shared memory size in bytes: %lu\n",
+                   deviceProp.sharedMemPerBlock);
             printf("[NiftyReg CUDA] CUDA version %i\n",
                    CUDART_VERSION);
             printf("[NiftyReg CUDA] Card clock rate: %i MHz\n",
@@ -78,8 +80,15 @@ int cudaCommon_setCUDACard(CUdevice *dev,
             printf("[NiftyReg CUDA] Card has %i multiprocessor(s)\n",
                    deviceProp.multiProcessorCount);
         }
+        NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(major);
     }
     return EXIT_SUCCESS;
+}
+/* ******************************** */
+void cudaCommon_unsetCUDACard(CUcontext *ctx)
+{
+//    cuCtxDetach(*ctx);
+    cuCtxDestroy(*ctx);
 }
 /* ******************************** */
 /* ******************************** */
@@ -467,16 +476,16 @@ template int  cudaCommon_allocateArrayToDevice<float4>(float4 **, float4 **, int
 template <class DTYPE, class NIFTI_TYPE>
 int cudaCommon_transferFromDeviceToNifti1(nifti_image *img, DTYPE **array_d)
 {
-	if(sizeof(DTYPE)!=sizeof(NIFTI_TYPE)){
-		fprintf(stderr, "ERROR:\tcudaCommon_transferFromDeviceToNifti:\n");
-		fprintf(stderr, "ERROR:\tThe host and device arrays are of different types.\n");
-		return 1;
-	}
-	else{
-		NIFTI_TYPE *array_h=static_cast<NIFTI_TYPE *>(img->data);
+    if(sizeof(DTYPE)!=sizeof(NIFTI_TYPE)){
+        fprintf(stderr, "ERROR:\tcudaCommon_transferFromDeviceToNifti:\n");
+        fprintf(stderr, "ERROR:\tThe host and device arrays are of different types.\n");
+        return 1;
+    }
+    else{
+        NIFTI_TYPE *array_h=static_cast<NIFTI_TYPE *>(img->data);
         NR_CUDA_SAFE_CALL(cudaMemcpy((void *)array_h, (void *)*array_d, img->nvox*sizeof(DTYPE), cudaMemcpyDeviceToHost));
-	}
-	return 0;
+    }
+    return 0;
 }
 /* ******************************** */
 template <class DTYPE>
@@ -490,10 +499,12 @@ int cudaCommon_transferFromDeviceToNifti(nifti_image *img, DTYPE **array_d)
             return 1;
         }
         const int voxelNumber = img->nx*img->ny*img->nz;
+
         float4 *array_h;
         NR_CUDA_SAFE_CALL(cudaMallocHost(&array_h, voxelNumber*sizeof(float4)));
         NR_CUDA_SAFE_CALL(cudaMemcpy((void *)array_h, (const void *)*array_d, voxelNumber*sizeof(float4), cudaMemcpyDeviceToHost));
         float *niftiImgValues = static_cast<float *>(img->data);
+
         for(int i=0; i<voxelNumber; i++)
             *niftiImgValues++ = array_h[i].x;
         if(img->dim[5]>=2){

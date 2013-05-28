@@ -6,6 +6,7 @@
 #ifndef _REG_OPTIMISER_H
 #define _REG_OPTIMISER_H
 
+#include "_reg_maths.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
@@ -32,9 +33,9 @@ protected:
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/** @class Global optimisation class
-     * @brief Standard gradient acent optimisation
-     */
+/** @class reg_optimiser
+ * @brief Standard gradient acent optimisation
+ */
 template <class T>
 class reg_optimiser
 {
@@ -100,11 +101,14 @@ public:
                           T smallLength,
                           T &startLength);
     virtual void Perturbation(float length);
+
+    // Function used for testing
+    virtual void reg_test_optimiser();
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/** @class Global optimisation class
- * @brief
+/** @class reg_conjugateGradient
+ * @brief Conjugate gradient acent optimisation
  */
 template <class T>
 class reg_conjugateGradient : public reg_optimiser<T>
@@ -138,6 +142,9 @@ class reg_conjugateGradient : public reg_optimiser<T>
                           T smallLength,
                           T &startLength);
     virtual void Perturbation(float length);
+
+    // Function used for testing
+    virtual void reg_test_optimiser();
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

@@ -12,8 +12,8 @@
 #ifndef _REG_TOOLS_GPU_H
 #define _REG_TOOLS_GPU_H
 
+#include "_reg_common_gpu.h"
 #include "_reg_tools.h"
-#include "_reg_blocksize_gpu.h"
 #include <thrust/device_ptr.h>
 #include <thrust/reduce.h>
 
@@ -74,6 +74,11 @@ float reg_sumReduction_gpu(float *array_d,
 /* ******************************** */
 extern "C++"
 float reg_maxReduction_gpu(float *array_d,
+                           int size);
+/* ******************************** */
+/* ******************************** */
+extern "C++"
+float reg_minReduction_gpu(float *array_d,
                            int size);
 /* ******************************** */
 /* ******************************** */

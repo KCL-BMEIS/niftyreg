@@ -9,10 +9,8 @@
  *
  */
 
-
 #ifndef _MM_ALADIN_CPP
 #define _MM_ALADIN_CPP
-
 
 #include "_reg_ReadWriteImage.h"
 #include "_reg_aladin_sym.h"
@@ -20,13 +18,13 @@
 #include "reg_aladin.h"
 
 #ifdef _WINDOWS
-#include <time.h>
+#   include <time.h>
 #endif
 
 #ifdef _USE_NR_DOUBLE
-#define PrecisionTYPE double
+#   define PrecisionTYPE double
 #else
-#define PrecisionTYPE float
+#   define PrecisionTYPE float
 #endif
 
 void PetitUsage(char *exec)

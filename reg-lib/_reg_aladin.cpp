@@ -246,7 +246,7 @@ void reg_aladin<T>::InitialiseRegistration()
         }
         else{
             fprintf(stderr,"The specified input affine file (%s) can not be read\n",this->InputTransformName);
-            exit(1);
+            reg_exit(1);
         }
         reg_tool_ReadAffineFile(this->TransformationMatrix,
                                 this->InputReference,
@@ -322,17 +322,18 @@ void reg_aladin<T>::AllocateWarpedImage()
     if(this->CurrentReference==NULL || this->CurrentFloating==NULL){
         fprintf(stderr,"[NiftyReg ERROR] reg_aladin::AllocateWarpedImage()\n");
         fprintf(stderr,"[NiftyReg ERROR] Reference and FLoating images are not defined. Exit.\n");
-        exit(1);
+        reg_exit(1);
     }
     reg_aladin<T>::ClearWarpedImage();
     this->CurrentWarped = nifti_copy_nim_info(this->CurrentReference);
     this->CurrentWarped->dim[0]=this->CurrentWarped->ndim=this->CurrentFloating->ndim;
     this->CurrentWarped->dim[4]=this->CurrentWarped->nt=this->CurrentFloating->nt;
     this->CurrentWarped->pixdim[4]=this->CurrentWarped->dt=1.0;
-    this->CurrentWarped->nvox = this->CurrentWarped->nx *
-            this->CurrentWarped->ny *
-            this->CurrentWarped->nz *
-            this->CurrentWarped->nt;
+    this->CurrentWarped->nvox =
+            (size_t)this->CurrentWarped->nx *
+            (size_t)this->CurrentWarped->ny *
+            (size_t)this->CurrentWarped->nz *
+            (size_t)this->CurrentWarped->nt;
     this->CurrentWarped->datatype = this->CurrentFloating->datatype;
     this->CurrentWarped->nbyper = this->CurrentFloating->nbyper;
     this->CurrentWarped->data = (void *)calloc(this->CurrentWarped->nvox, this->CurrentWarped->nbyper);
@@ -352,7 +353,7 @@ void reg_aladin<T>::AllocateDeformationField()
     if(this->CurrentReference==NULL){
         fprintf(stderr,"[NiftyReg ERROR] reg_aladin::AllocateDeformationField()\n");
         fprintf(stderr,"[NiftyReg ERROR] Reference image is not defined. Exit.\n");
-        exit(1);
+        reg_exit(1);
     }
     reg_aladin<T>::ClearDeformationField();
     this->deformationFieldImage = nifti_copy_nim_info(this->CurrentReference);
@@ -367,11 +368,11 @@ void reg_aladin<T>::AllocateDeformationField()
     this->deformationFieldImage->pixdim[6]=this->deformationFieldImage->dv=1.0;
     this->deformationFieldImage->dim[7]=this->deformationFieldImage->nw=1;
     this->deformationFieldImage->pixdim[7]=this->deformationFieldImage->dw=1.0;
-    this->deformationFieldImage->nvox=	this->deformationFieldImage->nx *
-            this->deformationFieldImage->ny *
-            this->deformationFieldImage->nz *
-            this->deformationFieldImage->nt *
-            this->deformationFieldImage->nu;
+    this->deformationFieldImage->nvox =	(size_t)this->deformationFieldImage->nx *
+            (size_t)this->deformationFieldImage->ny *
+            (size_t)this->deformationFieldImage->nz *
+            (size_t)this->deformationFieldImage->nt *
+            (size_t)this->deformationFieldImage->nu;
     this->deformationFieldImage->nbyper = sizeof(T);
     if(sizeof(T)==4)
         this->deformationFieldImage->datatype = NIFTI_TYPE_FLOAT32;
@@ -380,7 +381,7 @@ void reg_aladin<T>::AllocateDeformationField()
     else{
         fprintf(stderr,"[NiftyReg ERROR] reg_aladin::AllocateDeformationField()\n");
         fprintf(stderr,"[NiftyReg ERROR] Only float or double are expected for the deformation field. Exit.\n");
-        exit(1);
+        reg_exit(1);
     }
     this->deformationFieldImage->data = (void *)calloc(this->deformationFieldImage->nvox, this->deformationFieldImage->nbyper);
     return;

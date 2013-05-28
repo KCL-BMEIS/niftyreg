@@ -12,7 +12,7 @@
 #ifndef _REG_MUTUALINFORMATION_GPU_H
 #define _REG_MUTUALINFORMATION_GPU_H
 
-#include "_reg_blocksize_gpu.h"
+#include "_reg_common_gpu.h"
 
 extern "C++"
 void reg_getEntropies2x2_gpu(nifti_image *referenceImages,
@@ -28,17 +28,17 @@ void reg_getEntropies2x2_gpu(nifti_image *referenceImages,
 
 extern "C++"
 void reg_getVoxelBasedNMIGradientUsingPW_gpu(nifti_image *referenceImage,
-											 nifti_image *warpedImage,
-											 cudaArray **referenceImageArray_d,
-											 float **warpedImageArray_d,
-											 float4 **resultGradientArray_d,
-											 float **logJointHistogram_d,
-											 float4 **voxelNMIGradientArray_d,
-											 int **targetMask_d,
-											 int activeVoxelNumber,
-											 double *entropies,
-											 int refBinning,
-											 int floBinning);
+                                             nifti_image *warpedImage,
+                                             cudaArray **referenceImageArray_d,
+                                             float **warpedImageArray_d,
+                                             float4 **resultGradientArray_d,
+                                             float **logJointHistogram_d,
+                                             float4 **voxelNMIGradientArray_d,
+                                             int **targetMask_d,
+                                             int activeVoxelNumber,
+                                             double *entropies,
+                                             int refBinning,
+                                             int floBinning);
 
 extern "C++"
 void reg_getVoxelBasedNMIGradientUsingPW2x2_gpu(nifti_image *referenceImage,

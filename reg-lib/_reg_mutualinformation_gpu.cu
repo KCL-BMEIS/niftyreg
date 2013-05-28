@@ -12,7 +12,7 @@
 #ifndef _REG_MUTUALINFORMATION_GPU_CU
 #define _REG_MUTUALINFORMATION_GPU_CU
 
-#include "_reg_blocksize_gpu.h"
+#include "_reg_common_gpu.h"
 #include "_reg_mutualinformation_gpu.h"
 #include "_reg_mutualinformation_kernels.cu"
 
@@ -32,10 +32,13 @@ void reg_getEntropies2x2_gpu(nifti_image *referenceImages,
                              double *entropies,
                              int *mask)
 {
+    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+
     // The joint histogram is filled using the CPU arrays
     //Check the type of the target and source images
 	if(referenceImages->datatype!=NIFTI_TYPE_FLOAT32 || warpedImages->datatype!=NIFTI_TYPE_FLOAT32){
-        printf("[NiftyReg CUDA] reg_getEntropies2x2_gpu: This kernel should only be used floating images.\n");
+        printf("[NiftyReg CUDA] reg_getEntropies2x2_gpu: This kernel should only be used with floating images.\n");
         exit(1);
     }
 	unsigned int voxelNumber = referenceImages->nx*referenceImages->ny*referenceImages->nz;
@@ -87,7 +90,7 @@ void reg_getEntropies2x2_gpu(nifti_image *referenceImages,
 
     // The joint histogram is smoothed along the x axis
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
-    dim3 B1(Block_reg_smoothJointHistogramX,1,1);
+    dim3 B1(NR_BLOCK->Block_reg_smoothJointHistogramX,1,1);
     const int gridSizesmoothJointHistogramX=(int)ceil(sqrtf((float)(target_bins[1]*result_bins[0]*result_bins[1])/(float)B1.x));
     dim3 G1(gridSizesmoothJointHistogramX,gridSizesmoothJointHistogramX,1);
     reg_smoothJointHistogramX_kernel <<< G1, B1 >>> (tempHistogram);
@@ -96,7 +99,7 @@ void reg_getEntropies2x2_gpu(nifti_image *referenceImages,
 
     // The joint histogram is smoothed along the y axis
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, tempHistogram, binNumber*sizeof(float)));
-    dim3 B2(Block_reg_smoothJointHistogramY,1,1);
+    dim3 B2(NR_BLOCK->Block_reg_smoothJointHistogramY,1,1);
     const int gridSizesmoothJointHistogramY=(int)ceil(sqrtf((float)(target_bins[1]*result_bins[0]*result_bins[1])/(float)B2.x));
     dim3 G2(gridSizesmoothJointHistogramY,gridSizesmoothJointHistogramY,1);
     reg_smoothJointHistogramY_kernel <<< G2, B2 >>> (*logJointHistogram_d);
@@ -105,7 +108,7 @@ void reg_getEntropies2x2_gpu(nifti_image *referenceImages,
 
     // The joint histogram is smoothed along the z axis
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
-    dim3 B3(Block_reg_smoothJointHistogramZ,1,1);
+    dim3 B3(NR_BLOCK->Block_reg_smoothJointHistogramZ,1,1);
     const int gridSizesmoothJointHistogramZ=(int)ceil(sqrtf((float)(target_bins[1]*result_bins[0]*result_bins[1])/(float)B3.x));
     dim3 G3(gridSizesmoothJointHistogramZ,gridSizesmoothJointHistogramZ,1);
     reg_smoothJointHistogramZ_kernel <<< G3, B3 >>> (tempHistogram);
@@ -114,7 +117,7 @@ void reg_getEntropies2x2_gpu(nifti_image *referenceImages,
 
     // The joint histogram is smoothed along the w axis
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, tempHistogram, binNumber*sizeof(float)));
-    dim3 B4(Block_reg_smoothJointHistogramW,1,1);
+    dim3 B4(NR_BLOCK->Block_reg_smoothJointHistogramW,1,1);
     const int gridSizesmoothJointHistogramW=(int)ceil(sqrtf((float)(target_bins[1]*result_bins[0]*result_bins[1])/(float)B4.x));
     dim3 G4(gridSizesmoothJointHistogramW,gridSizesmoothJointHistogramW,1);
     reg_smoothJointHistogramW_kernel <<< G4, B4 >>> (*logJointHistogram_d);
@@ -132,7 +135,7 @@ void reg_getEntropies2x2_gpu(nifti_image *referenceImages,
     float *temp3DHistogram=NULL;
     NR_CUDA_SAFE_CALL(cudaMalloc(&temp3DHistogram,target_bins[1]*result_bins[0]*result_bins[1]*sizeof(float)));
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
-    dim3 B5(Block_reg_marginaliseTargetX,1,1);
+    dim3 B5(NR_BLOCK->Block_reg_marginaliseTargetX,1,1);
     const int gridSizesmoothJointHistogramA=(int)ceil(sqrtf((float)(target_bins[1]*result_bins[0]*result_bins[1])/(float)B5.x));
     dim3 G5(gridSizesmoothJointHistogramA,gridSizesmoothJointHistogramA,1);
     reg_marginaliseTargetX_kernel <<< G5, B5 >>> (temp3DHistogram);
@@ -143,7 +146,7 @@ void reg_getEntropies2x2_gpu(nifti_image *referenceImages,
     float *temp2DHistogram=NULL;
     NR_CUDA_SAFE_CALL(cudaMalloc(&temp2DHistogram,result_bins[0]*result_bins[1]*sizeof(float)));
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, temp3DHistogram, target_bins[1]*result_bins[0]*result_bins[1]*sizeof(float)));
-    dim3 B6(Block_reg_marginaliseTargetXY,1,1);
+    dim3 B6(NR_BLOCK->Block_reg_marginaliseTargetXY,1,1);
     const int gridSizesmoothJointHistogramB=(int)ceil(sqrtf((float)(target_bins[1]*result_bins[0]*result_bins[1])/(float)B6.x));
     dim3 G6(gridSizesmoothJointHistogramB,gridSizesmoothJointHistogramB,1);
     reg_marginaliseTargetXY_kernel <<< G6, B6 >>> (temp2DHistogram);
@@ -171,7 +174,7 @@ void reg_getEntropies2x2_gpu(nifti_image *referenceImages,
     temp3DHistogram=NULL;
     NR_CUDA_SAFE_CALL(cudaMalloc(&temp3DHistogram, target_bins[0]*target_bins[1]*result_bins[0]*sizeof(float)));
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
-    dim3 B7(Block_reg_marginaliseResultX,1,1);
+    dim3 B7(NR_BLOCK->Block_reg_marginaliseResultX,1,1);
     const int gridSizesmoothJointHistogramC=(int)ceil(sqrtf((float)(target_bins[1]*result_bins[0]*result_bins[1])/(float)B7.x));
     dim3 G7(gridSizesmoothJointHistogramC,gridSizesmoothJointHistogramC,1);
     reg_marginaliseResultX_kernel <<< G7, B7 >>> (temp3DHistogram);
@@ -182,7 +185,7 @@ void reg_getEntropies2x2_gpu(nifti_image *referenceImages,
     temp2DHistogram=NULL;
     NR_CUDA_SAFE_CALL(cudaMalloc(&temp2DHistogram,target_bins[0]*target_bins[1]*sizeof(float)));
     NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, temp3DHistogram, target_bins[0]*target_bins[1]*result_bins[0]*sizeof(float)));
-    dim3 B8(Block_reg_marginaliseResultXY,1,1);
+    dim3 B8(NR_BLOCK->Block_reg_marginaliseResultXY,1,1);
     const int gridSizesmoothJointHistogramD=(int)ceil(sqrtf((float)(target_bins[1]*result_bins[0]*result_bins[1])/(float)B8.x));
     dim3 G8(gridSizesmoothJointHistogramD,gridSizesmoothJointHistogramD,1);
     reg_marginaliseResultXY_kernel <<< G8, B8 >>> (temp2DHistogram);
@@ -252,12 +255,15 @@ void reg_getVoxelBasedNMIGradientUsingPW_gpu(nifti_image *referenceImage,
 											 float4 **warpedGradientArray_d,
 											 float **logJointHistogram_d,
 											 float4 **voxelNMIGradientArray_d,
-											 int **mask_d,
-											 int activeVoxelNumber,
+                                             int **mask_d,
+                                             int activeVoxelNumber,
 											 double *entropies,
 											 int refBinning,
 											 int floBinning)
 {
+    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+
 	if(warpedImage!=warpedImage)
         printf("Useless lines to avoid a warning");
 
@@ -293,16 +299,16 @@ void reg_getVoxelBasedNMIGradientUsingPW_gpu(nifti_image *referenceImage,
 
 	if(referenceImage->nz>1){
 		const unsigned int Grid_reg_getVoxelBasedNMIGradientUsingPW3D =
-			(unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)Block_reg_getVoxelBasedNMIGradientUsingPW3D));
-		dim3 B1(Block_reg_getVoxelBasedNMIGradientUsingPW3D,1,1);
+            (unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)NR_BLOCK->Block_reg_getVoxelBasedNMIGradientUsingPW3D));
+        dim3 B1(NR_BLOCK->Block_reg_getVoxelBasedNMIGradientUsingPW3D,1,1);
 		dim3 G1(Grid_reg_getVoxelBasedNMIGradientUsingPW3D,Grid_reg_getVoxelBasedNMIGradientUsingPW3D,1);
 		reg_getVoxelBasedNMIGradientUsingPW3D_kernel <<< G1, B1 >>> (*voxelNMIGradientArray_d);
 		NR_CUDA_CHECK_KERNEL(G1,B1)
 	}
 	else{
 		const unsigned int Grid_reg_getVoxelBasedNMIGradientUsingPW2D =
-			(unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)Block_reg_getVoxelBasedNMIGradientUsingPW2D));
-		dim3 B1(Block_reg_getVoxelBasedNMIGradientUsingPW2D,1,1);
+            (unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)NR_BLOCK->Block_reg_getVoxelBasedNMIGradientUsingPW2D));
+        dim3 B1(NR_BLOCK->Block_reg_getVoxelBasedNMIGradientUsingPW2D,1,1);
 		dim3 G1(Grid_reg_getVoxelBasedNMIGradientUsingPW2D,Grid_reg_getVoxelBasedNMIGradientUsingPW2D,1);
 		reg_getVoxelBasedNMIGradientUsingPW2D_kernel <<< G1, B1 >>> (*voxelNMIGradientArray_d);
 		NR_CUDA_CHECK_KERNEL(G1,B1)
@@ -331,6 +337,9 @@ void reg_getVoxelBasedNMIGradientUsingPW2x2_gpu(nifti_image *referenceImage,
                                                 unsigned int *targetBinning,
                                                 unsigned int *resultBinning)
 {
+    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+
 	if (referenceImage->nt != 2 || warpedImage->nt != 2) {
         printf("[NiftyReg CUDA] reg_getVoxelBasedNMIGradientUsingPW2x2_gpu: This kernel should only be used with two target and source images\n");
         return;
@@ -370,8 +379,8 @@ void reg_getVoxelBasedNMIGradientUsingPW2x2_gpu(nifti_image *referenceImage,
     NR_CUDA_SAFE_CALL(cudaMemset(*voxelNMIGradientArray_d, 0, voxelNumber*sizeof(float4)));
 
     const unsigned int Grid_reg_getVoxelBasedNMIGradientUsingPW2x2 =
-        (unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)Block_reg_getVoxelBasedNMIGradientUsingPW2x2));
-    dim3 B1(Block_reg_getVoxelBasedNMIGradientUsingPW2x2,1,1);
+        (unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)NR_BLOCK->Block_reg_getVoxelBasedNMIGradientUsingPW2x2));
+    dim3 B1(NR_BLOCK->Block_reg_getVoxelBasedNMIGradientUsingPW2x2,1,1);
     dim3 G1(Grid_reg_getVoxelBasedNMIGradientUsingPW2x2,Grid_reg_getVoxelBasedNMIGradientUsingPW2x2,1);
 
     reg_getVoxelBasedNMIGradientUsingPW2x2_kernel <<< G1, B1 >>> (*voxelNMIGradientArray_d);

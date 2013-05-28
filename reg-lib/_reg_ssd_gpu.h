@@ -12,16 +12,15 @@
 #ifndef _REG_SSD_GPU_H
 #define _REG_SSD_GPU_H
 
-#include "_reg_blocksize_gpu.h"
 #include "_reg_tools_gpu.h"
 
 extern "C++"
 float reg_getSSD_gpu(nifti_image *referenceImage,
-					 cudaArray **reference_d,
-					 float **warped_d,
-					 int **mask_d,
-					 int activeVoxelNumber
-					 );
+                     cudaArray **reference_d,
+                     float **warped_d,
+                     int **mask_d,
+                     int activeVoxelNumber
+                     );
 
 
 extern "C++"
@@ -31,7 +30,7 @@ void reg_getVoxelBasedSSDGradient_gpu(nifti_image *referenceImage,
 									  float4 **spaGradient_d,
 									  float4 **ssdGradient_d,
 									  float maxSD,
-									  int **mask_d,
-									  int activeVoxelNumber
+                                      int **mask_d,
+                                      int activeVoxelNumber
 									  );
 #endif

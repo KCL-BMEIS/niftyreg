@@ -12,21 +12,21 @@
 #include "_reg_ReadWriteImage.h"
 #include "_reg_f3d2.h"
 #include "reg_f3d.h"
-
-#ifdef _USE_CUDA
-#include "_reg_f3d_gpu.h"
-#endif
-#include "float.h"
+#include <float.h>
 #include <limits>
 
+#ifdef _USE_CUDA
+#   include "_reg_f3d_gpu.h"
+#endif
+
 #ifdef _WINDOWS
-#include <time.h>
+#   include <time.h>
 #endif
 
 #ifdef _USE_NR_DOUBLE
-#define PrecisionTYPE double
+#   define PrecisionTYPE double
 #else
-#define PrecisionTYPE float
+#   define PrecisionTYPE float
 #endif
 
 void HelpPenaltyTerm()
@@ -594,75 +594,73 @@ int main(int argc, char **argv)
         if(linearEnergyWeight0==linearEnergyWeight0 ||
                 linearEnergyWeight1==linearEnergyWeight1 ||
                 L2NormWeight==L2NormWeight){
-            fprintf(stderr,"NiftyReg ERROR CUDA] The linear elasticity has not been implemented with CUDA yet. Exit.\n");
-            exit(1);
+            fprintf(stderr,"\n[NiftyReg WARNING CUDA] The linear elasticity has not been implemented with CUDA yet.\n");
+            fprintf(stderr,"[NiftyReg WARNING CUDA] GPU implementation has been turned off.\n");
+            useGPU=false;
         }
 
         if(useSym){
-            fprintf(stderr,"\n[NiftyReg ERROR CUDA] GPU implementation of the symmetric registration is not available yet. Exit\n");
-            exit(1);
+            fprintf(stderr,"\n[NiftyReg WARNING CUDA] GPU implementation of the symmetric registration is not available yet.\n");
+            fprintf(stderr,"[NiftyReg WARNING CUDA] GPU implementation has been turned off.\n");
+            useGPU=false;
         }
         if(useVel){
-            fprintf(stderr,"\n[NiftyReg ERROR CUDA] GPU implementation of velocity field parametrisartion is not available yet. Exit\n");
-            exit(1);
+            fprintf(stderr,"\n[NiftyReg WARNING CUDA] GPU implementation of velocity field parametrisartion is not available yet.\n");
+            fprintf(stderr,"[NiftyReg WARNING CUDA] GPU implementation has been turned off.\n");
+            useGPU=false;
         }
 
-        if((referenceImage->dim[4]==1 && floatingImage->dim[4]==1) ||
-           (referenceImage->dim[4]==2 && floatingImage->dim[4]==2)){
-            // Set up the cuda card and display some relevant information
-            int major, minor;
-            if(cudaCommon_setCUDACard(&dev, &ctx, major, minor, verbose)) exit(1);
-            // Creat the registration object using the GPU class
+        if(!(referenceImage->dim[4]==1 && floatingImage->dim[4]==1) &&
+           !(referenceImage->dim[4]==2 && floatingImage->dim[4]==2)){
+            fprintf(stderr,"\n[NiftyReg WARNING CUDA] The GPU implementation only handle 1 to 1 or 2 to 2 image(s) registration\n");
+            fprintf(stderr,"[NiftyReg WARNING CUDA] GPU implementation has been turned off.\n");
+            useGPU=false;
+        }
+
+        // Set up the cuda card and display some relevant information and check if the card is suitable
+        int major, minor;
+        if(cudaCommon_setCUDACard(&dev, &ctx, major, minor, verbose)){
+            fprintf(stderr,"\n[NiftyReg ERROR CUDA] Error while detecting a CUDA card\n");
+            fprintf(stderr,"[NiftyReg WARNING CUDA] GPU implementation has been turned off.\n");
+            useGPU=false;
+        }
+
+        // Create the registration object using the GPU class
+        if(useGPU)
             REG = new reg_f3d_gpu(referenceImage->nt, floatingImage->nt);
-        }
-        else{
-            fprintf(stderr,"[NiftyReg ERROR] The GPU implementation only handle 1 to 1 or 2 to 2 image(s) registration\n");
-            exit(1);
-        }
+#ifdef NDEBUG
+        if(verbose==true)
+#endif // NDEBUG
+            printf("\n[NiftyReg F3D GPU] GPU implementation is used\n");
     }
-    else
 #endif
-    {
-        if(useSym){
-            REG = new reg_f3d_sym<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
+    if(useSym && REG==NULL){
+        REG = new reg_f3d_sym<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
-            if(verbose==true){
+        if(verbose==true)
 #endif // NDEBUG
-                printf("\n[NiftyReg F3D SYM] CPU implementation is used\n");
+            printf("\n[NiftyReg F3D SYM] CPU implementation is used\n");
+    }
+    else if(useVel && REG==NULL){
+        REG = new reg_f3d2<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
-            }
-#endif // NDEBUG
-        }
-        else if(useVel){
-            REG = new reg_f3d2<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
-#ifdef NDEBUG
-            if(verbose==true){
+        if(verbose==true)
 #endif
-                printf("\n[NiftyReg F3D2] CPU implementation is used\n");
+            printf("\n[NiftyReg F3D2] CPU implementation is used\n");
+    }
+    else if(REG==NULL){
+        REG = new reg_f3d<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
 #ifdef NDEBUG
-            }
-#endif
-        }
-        else{
-            REG = new reg_f3d<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
-#ifdef NDEBUG
-            if(verbose==true){
+        if(verbose==true)
 #endif // NDEBUG
-                printf("\n[NiftyReg F3D] CPU implementation is used\n");
-#ifdef NDEBUG
-            }
-#endif // NDEBUG
-        }
+            printf("\n[NiftyReg F3D] CPU implementation is used\n");
     }
 #ifdef _OPENMP
     int maxThreadNumber = omp_get_max_threads();
 #ifdef NDEBUG
-    if(verbose==true){
+    if(verbose==true)
 #endif // NDEBUG
         printf("[NiftyReg F3D] OpenMP is used with %i thread(s)\n", maxThreadNumber);
-#ifdef NDEBUG
-    }
-#endif // NDEBUG
 #endif // _OPENMP
 
     // Set the reg_f3d parameters
@@ -931,7 +929,7 @@ int main(int argc, char **argv)
         outputWarpedImage=NULL;
 #ifdef _USE_CUDA
     }
-    cuCtxDetach(ctx);
+    cudaCommon_unsetCUDACard(&ctx);
 #endif
     // Erase the registration object
     delete REG;

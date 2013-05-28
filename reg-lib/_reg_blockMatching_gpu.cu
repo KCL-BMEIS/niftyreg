@@ -23,6 +23,9 @@ void block_matching_method_gpu(nifti_image *targetImage,
                                float **resultPosition_d,
                                int **activeBlock_d)
 {
+    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+
     if(resultImage!=resultImage)
         printf("Useless lines to avoid a warning");
 
@@ -56,7 +59,7 @@ void block_matching_method_gpu(nifti_image *targetImage,
     float * targetValues;NR_CUDA_SAFE_CALL(cudaMalloc(&targetValues, memSize * sizeof(float)));
     memSize = BLOCK_SIZE * params->activeBlockNumber;
     float * resultValues;NR_CUDA_SAFE_CALL(cudaMalloc(&resultValues, memSize * sizeof(float)));
-    unsigned int Grid_block_matching = (unsigned int)ceil((float)params->activeBlockNumber/(float)Block_target_block);
+    unsigned int Grid_block_matching = (unsigned int)ceil((float)params->activeBlockNumber/(float)NR_BLOCK->Block_target_block);
     unsigned int Grid_block_matching_2 = 1;
 
     // We have hit the limit in one dimension
@@ -65,10 +68,10 @@ void block_matching_method_gpu(nifti_image *targetImage,
         Grid_block_matching = 65335;
     }
 
-    dim3 B1(Block_target_block,1,1);
+    dim3 B1(NR_BLOCK->Block_target_block,1,1);
     dim3 G1(Grid_block_matching,Grid_block_matching_2,1);
     // process the target blocks
-    process_target_blocks_gpu<<<G1, B1>>>(  *targetPosition_d,
+    process_target_blocks_gpu<<<G1, B1>>>(*targetPosition_d,
                                           targetValues);
     NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
@@ -85,7 +88,7 @@ void block_matching_method_gpu(nifti_image *targetImage,
         Result_block_matching = 65335;
     }
 
-    dim3 B2(Block_result_block,1,1);
+    dim3 B2(NR_BLOCK->Block_result_block,1,1);
     dim3 G2(Result_block_matching,Result_block_matching_2,1);
     process_result_blocks_gpu<<<G2, B2>>>(*resultPosition_d, targetValues);
     NR_CUDA_SAFE_CALL(cudaThreadSynchronize());

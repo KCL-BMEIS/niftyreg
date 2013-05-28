@@ -19,15 +19,18 @@
 float reg_getSSD_gpu(nifti_image *referenceImage,
 					  cudaArray **reference_d,
 					  float **warped_d,
-					  int **mask_d,
-					  int activeVoxelNumber
+                      int **mask_d,
+                      int activeVoxelNumber
 					  )
 {
+    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+
 	// Copy the constant memory variables
 	int3 referenceDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
 	int voxelNumber = referenceImage->nx * referenceImage->ny * referenceImage->nz;
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim,&referenceDim,sizeof(int3)))
-	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber,&activeVoxelNumber,sizeof(int)))
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber,&activeVoxelNumber,sizeof(int)))
 	// Bind the required textures
 	referenceTexture.normalized = true;
 	referenceTexture.filterMode = cudaFilterModeLinear;
@@ -37,14 +40,14 @@ float reg_getSSD_gpu(nifti_image *referenceImage,
 	cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
 	NR_CUDA_SAFE_CALL(cudaBindTextureToArray(referenceTexture, *reference_d, channelDesc))
 	NR_CUDA_SAFE_CALL(cudaBindTexture(0, warpedTexture, *warped_d, voxelNumber*sizeof(float)))
-	NR_CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, *mask_d, activeVoxelNumber*sizeof(int)))
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, *mask_d, activeVoxelNumber*sizeof(int)))
 	// Create an array on the device to store the absolute difference values
 	float *absoluteValues_d;
-	NR_CUDA_SAFE_CALL(cudaMalloc(&absoluteValues_d, activeVoxelNumber*sizeof(float)))
+    NR_CUDA_SAFE_CALL(cudaMalloc(&absoluteValues_d, activeVoxelNumber*sizeof(float)))
 	// Compute the absolute values
 	const unsigned int Grid_reg_getSquaredDifference =
-			(unsigned int)ceil(sqrtf((float)activeVoxelNumber/512.f));
-	dim3 B1(512,1,1);
+            (unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)NR_BLOCK->Block_reg_getSquaredDifference));
+    dim3 B1(NR_BLOCK->Block_reg_getSquaredDifference,1,1);
 	dim3 G1(Grid_reg_getSquaredDifference,Grid_reg_getSquaredDifference,1);
 	if(referenceDim.z>1)
 		reg_getSquaredDifference3D_kernel <<< G1, B1 >>> (absoluteValues_d);
@@ -55,7 +58,7 @@ float reg_getSSD_gpu(nifti_image *referenceImage,
 	NR_CUDA_SAFE_CALL(cudaUnbindTexture(warpedTexture))
 	NR_CUDA_SAFE_CALL(cudaUnbindTexture(maskTexture))
 	// Perform a reduction on the absolute values
-	float ssd = (float)((double)reg_sumReduction_gpu(absoluteValues_d,activeVoxelNumber) / (double)activeVoxelNumber);
+    float ssd = (float)((double)reg_sumReduction_gpu(absoluteValues_d,activeVoxelNumber) / (double)activeVoxelNumber);
 	// Free the absolute value array
 	NR_CUDA_SAFE_CALL(cudaFree(absoluteValues_d))
 
@@ -72,11 +75,14 @@ void reg_getVoxelBasedSSDGradient_gpu(nifti_image *referenceImage,
 									  int activeVoxelNumber
 									  )
 {
+    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+
 	// Copy the constant memory variables
 	int3 referenceDim = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
 	int voxelNumber = referenceImage->nx*referenceImage->ny*referenceImage->nz;
-	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim,&referenceDim,sizeof(int3)))
-	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber,&activeVoxelNumber,sizeof(int)))
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim,&referenceDim,sizeof(int3)))
+    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber,&activeVoxelNumber,sizeof(int)))
 	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NormalisationNumber,&maxSD,sizeof(float)))
 	// Bind the required textures
 	referenceTexture.normalized = true;
@@ -87,13 +93,13 @@ void reg_getVoxelBasedSSDGradient_gpu(nifti_image *referenceImage,
 	cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
 	NR_CUDA_SAFE_CALL(cudaBindTextureToArray(referenceTexture, *reference_d, channelDesc))
 	NR_CUDA_SAFE_CALL(cudaBindTexture(0, warpedTexture, *warped_d, voxelNumber*sizeof(float)))
-	NR_CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, *mask_d, activeVoxelNumber*sizeof(int)))
+    NR_CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, *mask_d, activeVoxelNumber*sizeof(int)))
 	NR_CUDA_SAFE_CALL(cudaBindTexture(0, spaGradientTexture, *spaGradient_d, voxelNumber*sizeof(float4)))
 	// Set the gradient image to zero
 	NR_CUDA_SAFE_CALL(cudaMemset(*ssdGradient_d,0,voxelNumber*sizeof(float4)))
 	const unsigned int Grid_reg_getSSDGradient =
-			(unsigned int)ceil(sqrtf((float)activeVoxelNumber/512.f));
-	dim3 B1(512,1,1);
+            (unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)NR_BLOCK->Block_reg_getSSDGradient));
+    dim3 B1(NR_BLOCK->Block_reg_getSSDGradient,1,1);
 	dim3 G1(Grid_reg_getSSDGradient,Grid_reg_getSSDGradient,1);
 	if(referenceDim.z>1)
 		reg_getSSDGradient3D_kernel <<< G1, B1 >>> (*ssdGradient_d);

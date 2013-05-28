@@ -3737,16 +3737,14 @@ void reg_spline_GetJacobianMatricesFromVelocityField1(nifti_image* referenceImag
     float scalingValue = pow(2.0f,fabs(velocityFieldImage->intent_p1));
     if(velocityFieldImage->intent_p1<0)
         // backward deformation field is scaled down
-        reg_tools_addSubMulDivValue(deformationFieldA,
-                                    deformationFieldA,
-                                    -scalingValue,
-                                    3);
+        reg_tools_divideValueToImage(deformationFieldA,
+                                     deformationFieldA,
+                                     -scalingValue);
     else
         // forward deformation field is scaled down
-        reg_tools_addSubMulDivValue(deformationFieldA,
-                                    deformationFieldA,
-                                    scalingValue,
-                                    3);
+        reg_tools_divideValueToImage(deformationFieldA,
+                                     deformationFieldA,
+                                     scalingValue);
     // The displacement field is converted back into a deformation field
     reg_getDeformationFromDisplacement(deformationFieldA);
     memcpy(deformationFieldB->data,

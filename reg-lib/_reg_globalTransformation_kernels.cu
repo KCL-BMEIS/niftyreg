@@ -12,7 +12,7 @@
 #ifndef _REG_AFFINETRANSFORMATION_KERNELS_CU
 #define _REG_AFFINETRANSFORMATION_KERNELS_CU
 
-#include "_reg_blocksize_gpu.h"
+#include "_reg_common_gpu.h"
 
 /* *************************************************************** */
 /* *************************************************************** */

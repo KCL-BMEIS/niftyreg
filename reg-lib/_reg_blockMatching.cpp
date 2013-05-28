@@ -60,14 +60,14 @@ double get_square_distance2D(float * first_point2D, float * second_point2D)
 template <class DTYPE>
         void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *params, int *mask, bool runningOnGPU)
 {
-    const int totalBlockNumber = params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2];
+    const size_t totalBlockNumber = params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2];
     float *varianceArray=(float *)malloc(totalBlockNumber*sizeof(float));
     int *indexArray=(int *)malloc(totalBlockNumber*sizeof(int));
 
     int *maskPtr=&mask[0];
 
     int unusableBlock=0;
-    int index;
+    size_t index;
 
     DTYPE *targetValues = (DTYPE *)malloc(BLOCK_SIZE * sizeof(DTYPE));
     DTYPE *targetPtr = static_cast<DTYPE *>(targetImage->data);
@@ -239,12 +239,12 @@ void initialise_block_matching_method(  nifti_image * target,
             _reg_set_active_blocks<double>(target, params, mask, runningOnGPU);break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] initialise_block_matching_method\tThe target image data type is not supported\n");
-            exit(1);
+            reg_exit(1);
     }
     if(params->activeBlockNumber<2){
         fprintf(stderr,"[NiftyReg ERROR] There are no active blocks\n");
         fprintf(stderr,"[NiftyReg ERROR] ... Exit ...\n");
-        exit(1);
+        reg_exit(1);
     }
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG]: There are %i active block(s) out of %i.\n", params->activeBlockNumber, params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2]);

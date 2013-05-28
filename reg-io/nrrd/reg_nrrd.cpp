@@ -360,11 +360,11 @@ Nrrd *reg_io_nifti2nrrd(nifti_image *niiImage)
 
     // Rescale the nii image intensity if required
     if(niiImage->scl_slope!=1 && niiImage->scl_slope!=0){
-        reg_tools_addSubMulDivValue(niiImage, niiImage,niiImage->scl_slope,2); // *(niiImage->scl_slope)
+        reg_tools_multiplyValueToImage(niiImage,niiImage,niiImage->scl_slope);
         niiImage->scl_slope=1;
     }
     if(niiImage->scl_inter!=0){
-        reg_tools_addSubMulDivValue(niiImage, niiImage,niiImage->scl_inter,0); // +(niiImage->scl_inter)
+        reg_tools_addValueToImage(niiImage,niiImage,niiImage->scl_inter);
         niiImage->scl_inter=0;
     }
 

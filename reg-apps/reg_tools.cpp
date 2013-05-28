@@ -280,10 +280,22 @@ int main(int argc, char **argv)
         nifti_image *resultImage = nifti_copy_nim_info(image);
         resultImage->data = (void *)malloc(resultImage->nvox * resultImage->nbyper);
 
-        if(image2!=NULL)
-            reg_tools_addSubMulDivImages(image, image2, resultImage, flag->operationTypeFlag);
-        else reg_tools_addSubMulDivValue(image, resultImage, param->operationValue, flag->operationTypeFlag);
-
+        if(image2!=NULL){
+            switch(flag->operationTypeFlag){
+            case 0:reg_tools_addImageToImage(image, image2, resultImage);break;
+            case 1:reg_tools_substractImageToImage(image, image2, resultImage);break;
+            case 2:reg_tools_multiplyImageToImage(image, image2, resultImage);break;
+            case 3:reg_tools_divideImageToImage(image, image2, resultImage);break;
+            }
+        }
+        else{
+            switch(flag->operationTypeFlag){
+            case 0:reg_tools_addValueToImage(image, resultImage, param->operationValue);break;
+            case 1:reg_tools_substractValueToImage(image, resultImage, param->operationValue);break;
+            case 2:reg_tools_multiplyValueToImage(image, resultImage, param->operationValue);break;
+            case 3:reg_tools_divideValueToImage(image, resultImage, param->operationValue);break;
+            }
+        }
         if(flag->outputImageFlag)
             reg_io_WriteImageFile(resultImage,param->outputImageName);
         else reg_io_WriteImageFile(resultImage,"output.nii");

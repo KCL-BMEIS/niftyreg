@@ -334,7 +334,7 @@ void reg_f3d2<T>::GetInverseConsistencyGradient()
     if(this->inverseConsistencyWeight<=0) return;
 
     fprintf(stderr, "NR ERROR - reg_f3d2<T>::GetInverseConsistencyGradient() has to be implemented");
-    exit(1);
+    reg_exit(1);
 
     return;
 }
@@ -384,10 +384,9 @@ void reg_f3d2<T>::ExponentiateGradient()
 							 tempDef[i], // deformation field
 							 1, // interpolation type - linear
 							 0.f); // padding value
-        reg_tools_addSubMulDivImages(tempGrad, // in1
+        reg_tools_addImageToImage(tempGrad, // in1
                                      this->voxelBasedMeasureGradientImage, // in2
-                                     this->voxelBasedMeasureGradientImage, // out
-                                     0); // addition
+                                     this->voxelBasedMeasureGradientImage); // out
     }
 
 	// Free the temporary deformation field
@@ -399,10 +398,9 @@ void reg_f3d2<T>::ExponentiateGradient()
 	// Free the temporary gradient image
 	nifti_image_free(tempGrad); tempGrad=NULL;
 	// Normalise the forward gradient
-	reg_tools_addSubMulDivValue(this->voxelBasedMeasureGradientImage, // in
-								this->voxelBasedMeasureGradientImage, // out
-								powf(2.f,fabsf(this->backwardControlPointGrid->intent_p1)), // value
-								3); // division
+    reg_tools_divideValueToImage(this->voxelBasedMeasureGradientImage, // in
+                                 this->voxelBasedMeasureGradientImage, // out
+                                 powf(2.f,fabsf(this->backwardControlPointGrid->intent_p1))); // value
 
 	/* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\ */
 	/* Exponentiate the backward gradient using the forward transformation */
@@ -429,10 +427,9 @@ void reg_f3d2<T>::ExponentiateGradient()
 							 tempDef[i], // deformation field
 							 1, // interpolation type - linear
                              0.f); // padding value
-        reg_tools_addSubMulDivImages(tempGrad, // in1
-                                     this->backwardVoxelBasedMeasureGradientImage, // in2
-                                     this->backwardVoxelBasedMeasureGradientImage, // out
-                                     0); // addition
+        reg_tools_addImageToImage(tempGrad, // in1
+                                  this->backwardVoxelBasedMeasureGradientImage, // in2
+                                  this->backwardVoxelBasedMeasureGradientImage); // out
 	}
 
 	// Free the temporary deformation field
@@ -444,10 +441,9 @@ void reg_f3d2<T>::ExponentiateGradient()
 	// Free the temporary gradient image
 	nifti_image_free(tempGrad); tempGrad=NULL;
 	// Normalise the backward gradient
-	reg_tools_addSubMulDivValue(this->backwardVoxelBasedMeasureGradientImage, // in
-								this->backwardVoxelBasedMeasureGradientImage, // out
-								powf(2.f,fabsf(this->controlPointGrid->intent_p1)), // value
-                                3); // division
+    reg_tools_divideValueToImage(this->backwardVoxelBasedMeasureGradientImage, // in
+                                 this->backwardVoxelBasedMeasureGradientImage, // out
+                                 powf(2.f,fabsf(this->controlPointGrid->intent_p1))); // value
 
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -464,10 +460,9 @@ void reg_f3d2<T>::UpdateParameters(float scale)
     // Scale the gradient image
     nifti_image *forwardScaledGradient=nifti_copy_nim_info(this->transformationGradient);
     forwardScaledGradient->data=(void *)malloc(forwardScaledGradient->nvox*forwardScaledGradient->nbyper);
-    reg_tools_addSubMulDivValue(this->transformationGradient,
-                                forwardScaledGradient,
-                                scale,
-                                2); // *(scale)
+    reg_tools_multiplyValueToImage(this->transformationGradient,
+                                   forwardScaledGradient,
+                                   scale); // *(scale)
 
     if(this->BCHUpdate){
         // Compute the BCH update
@@ -481,10 +476,9 @@ void reg_f3d2<T>::UpdateParameters(float scale)
     }
     else{
         // Update the velocity field
-        reg_tools_addSubMulDivImages(this->controlPointGrid, // in1
-                                     forwardScaledGradient, // in2
-                                     this->controlPointGrid, // out
-                                     0); // addition
+        reg_tools_addImageToImage(this->controlPointGrid, // in1
+                                  forwardScaledGradient, // in2
+                                  this->controlPointGrid); // out
     }
     // Clean the temporary nifti_images
     nifti_image_free(forwardScaledGradient);forwardScaledGradient=NULL;
@@ -495,10 +489,9 @@ void reg_f3d2<T>::UpdateParameters(float scale)
     // Scale the gradient image
     nifti_image *backwardScaledGradient=nifti_copy_nim_info(this->backwardTransformationGradient);
     backwardScaledGradient->data=(void *)malloc(backwardScaledGradient->nvox*backwardScaledGradient->nbyper);
-    reg_tools_addSubMulDivValue(this->backwardTransformationGradient,
-                                backwardScaledGradient,
-                                scale,
-                                2); // *(scale)
+    reg_tools_multiplyValueToImage(this->backwardTransformationGradient,
+                                   backwardScaledGradient,
+                                   scale); // *(scale)
 
 
     if(this->BCHUpdate){
@@ -513,10 +506,9 @@ void reg_f3d2<T>::UpdateParameters(float scale)
     }
     else{
         // Update the velocity field
-        reg_tools_addSubMulDivImages(this->backwardControlPointGrid, // in1
-                                     backwardScaledGradient, // in2
-                                     this->backwardControlPointGrid, // out
-                                     0); // addition
+        reg_tools_addImageToImage(this->backwardControlPointGrid, // in1
+                                  backwardScaledGradient, // in2
+                                  this->backwardControlPointGrid); // out
     }
     // Clean the temporary nifti_images
     nifti_image_free(backwardScaledGradient);backwardScaledGradient=NULL;
@@ -536,7 +528,7 @@ void reg_f3d2<T>::UpdateParameters(float scale)
     forward2backwardDEF->data=(void *)calloc(forward2backwardDEF->nvox,forward2backwardDEF->nbyper);
 
     // Set the deformation field to identity
-    reg_tools_addSubMulDivValue(forward2backwardDEF,forward2backwardDEF,0.f,2); // (*0)
+    reg_tools_multiplyValueToImage(forward2backwardDEF,forward2backwardDEF,0.f); // (*0)
     reg_getDeformationFromDisplacement(forward2backwardDEF);
 
     // Resample the forward grid in the space of the backward grid
@@ -561,7 +553,7 @@ void reg_f3d2<T>::UpdateParameters(float scale)
     backward2forwardDEF->data=(void *)calloc(backward2forwardDEF->nvox,backward2forwardDEF->nbyper);
 
     // Set the deformation field to identity
-    reg_tools_addSubMulDivValue(backward2forwardDEF,backward2forwardDEF,0.f,2); // (*0)
+    reg_tools_multiplyValueToImage(backward2forwardDEF,backward2forwardDEF,0.f); // (*0)
     reg_getDeformationFromDisplacement(backward2forwardDEF);
 
     // Resample the backward grid in the space of the forward grid
@@ -717,23 +709,19 @@ void reg_f3d2<T>::UpdateParameters(float scale)
 
     /* Average velocity fields into forward and backward space */
     // Substraction as the propagated has to be negated
-    reg_tools_addSubMulDivImages(this->backwardControlPointGrid, // displacement
-                                 forward2backward, // displacement
-                                 this->backwardControlPointGrid, // displacement output
-                                 1); // substraction
-    reg_tools_addSubMulDivImages(this->controlPointGrid, // displacement
-                                 backward2forward, // displacement
-                                 this->controlPointGrid, // displacement output
-                                 1); // substraction
+    reg_tools_substractImageToImage(this->backwardControlPointGrid, // displacement
+                                    forward2backward, // displacement
+                                    this->backwardControlPointGrid); // displacement output
+    reg_tools_substractImageToImage(this->controlPointGrid, // displacement
+                                    backward2forward, // displacement
+                                    this->controlPointGrid); // displacement output
     // Division by 2
-    reg_tools_addSubMulDivValue(this->backwardControlPointGrid, // displacement
-                                this->backwardControlPointGrid, // displacement
-                                0.5f,
-                                2); // *(0.5)
-    reg_tools_addSubMulDivValue(this->controlPointGrid, // displacement
-                                this->controlPointGrid, // displacement
-                                0.5f,
-                                2); // *(0.5)
+    reg_tools_multiplyValueToImage(this->backwardControlPointGrid, // displacement
+                                   this->backwardControlPointGrid, // displacement
+                                   0.5f); // *(0.5)
+    reg_tools_multiplyValueToImage(this->controlPointGrid, // displacement
+                                   this->controlPointGrid, // displacement
+                                   0.5f); // *(0.5)
     // Clean the temporary allocated velocity field
     nifti_image_free(forward2backward);forward2backward=NULL;
     nifti_image_free(backward2forward);backward2forward=NULL;

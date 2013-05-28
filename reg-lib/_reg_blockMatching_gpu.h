@@ -12,7 +12,7 @@
 #ifndef _REG_BLOCKMATCHING_GPU_H
 #define _REG_BLOCKMATCHING_GPU_H
 
-#include "_reg_blocksize_gpu.h"
+#include "_reg_common_gpu.h"
 #include "_reg_blockMatching.h"
 
 // targetImage: The target/fixed/reference image.

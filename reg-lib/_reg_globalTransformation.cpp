@@ -24,8 +24,8 @@ void reg_affine_positionField2D(mat44 *affineTransformation,
 {
     FieldTYPE *positionFieldPtr = static_cast<FieldTYPE *>(positionFieldImage->data);
 
-    unsigned int positionFieldXIndex=0;
-    unsigned int positionFieldYIndex=targetImage->nx*targetImage->ny;
+    size_t positionFieldXIndex=0;
+    size_t positionFieldYIndex=targetImage->nx*targetImage->ny;
 
     mat44 *targetMatrix;
     if(targetImage->sform_code>0){
@@ -57,7 +57,7 @@ void reg_affine_positionField3D(mat44 *affineTransformation,
                                 nifti_image *targetImage,
                                 nifti_image *deformationFieldImage)
 {
-    int voxelNumber=targetImage->nx*targetImage->ny*targetImage->nz;
+    size_t voxelNumber=targetImage->nx*targetImage->ny*targetImage->nz;
     FieldTYPE *positionFieldPtrX = static_cast<FieldTYPE *>(deformationFieldImage->data);
     FieldTYPE *positionFieldPtrY = &positionFieldPtrX[voxelNumber];
     FieldTYPE *positionFieldPtrZ = &positionFieldPtrY[voxelNumber];
@@ -71,7 +71,8 @@ void reg_affine_positionField3D(mat44 *affineTransformation,
     mat44 voxelToRealDeformed = reg_mat44_mul(affineTransformation, targetMatrix);
 
     float voxel[3], position[3];
-    int x, y, z, index;
+    int x, y, z;
+    size_t index;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(deformationFieldImage, voxelToRealDeformed, positionFieldPtrX, \
@@ -154,7 +155,7 @@ void reg_tool_ReadAffineFile(mat44 *mat,
     }
     else{
         fprintf(stderr, "[NiftyReg ERROR] The affine file can not be read: %s\n", fileName);
-        exit(1);
+        reg_exit(1);
     }
     affineFile.close();
 
@@ -243,7 +244,7 @@ void reg_tool_ReadAffineFile(	mat44 *mat,
     }
     else{
         fprintf(stderr, "[NiftyReg ERROR] The affine file can not be read: %s\n", fileName);
-        exit(1);
+        reg_exit(1);
     }
     affineFile.close();
 

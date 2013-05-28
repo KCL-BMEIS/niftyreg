@@ -19,13 +19,8 @@ double reg_getKLDivergence1(nifti_image *referenceImage,
                             nifti_image *jacobianDetImg,
                             int *mask)
 {
-    size_t voxelNumber = referenceImage->nx*referenceImage->ny*referenceImage->nz;
-
-#ifdef _WINDOWS
-    int  voxel;
-#else
+    size_t voxelNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
     size_t  voxel;
-#endif
 
     DTYPE *refPtr=static_cast<DTYPE *>(referenceImage->data);
     DTYPE *warPtr=static_cast<DTYPE *>(warpedImage->data);
@@ -85,13 +80,13 @@ double reg_getKLDivergence(nifti_image *referenceImage,
     // Check that both images are of the same type
     if(referenceImage->datatype!=warpedImage->datatype){
         fprintf(stderr, "[NiftyReg ERROR] reg_getKLDivergence: both input images are expected to have the same type\n");
-        exit(1);
+        reg_exit(1);
     }
     // If the Jacobian determinant image if define, it checks it has the type of the referenceImage image
     if(jacobianDetImg!=NULL){
         if(referenceImage->datatype!=jacobianDetImg->datatype){
             fprintf(stderr, "[NiftyReg ERROR] reg_getKLDivergence: input images are expected to have the same type\n");
-            exit(1);
+            reg_exit(1);
         }
     }
     // Check that both input images have the same size
@@ -99,7 +94,7 @@ double reg_getKLDivergence(nifti_image *referenceImage,
         if(referenceImage->dim[i] != warpedImage->dim[i]){
             fprintf(stderr,"[NiftyReg ERROR] reg_getSSD\n");
             fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same dimension");
-            exit(1);
+            reg_exit(1);
         }
     }
     switch(referenceImage->datatype){
@@ -111,7 +106,7 @@ double reg_getKLDivergence(nifti_image *referenceImage,
         break;
     default:
         fprintf(stderr, "[NiftyReg ERROR] reg_getKLDivergence: unsupported datatype\n");
-        exit(1);
+        reg_exit(1);
         break;
     }
     return 0.;
@@ -126,13 +121,8 @@ void reg_getKLDivergenceVoxelBasedGradient1(nifti_image *referenceImage,
                                             nifti_image *jacobianDetImg,
                                             int *mask)
 {
-    size_t voxelNumber = referenceImage->nx*referenceImage->ny*referenceImage->nz;
-
-#ifdef _WINDOWS
-    int  voxel;
-#else
+    size_t voxelNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
     size_t  voxel;
-#endif
 
     DTYPE *refPtr=static_cast<DTYPE *>(referenceImage->data);
     DTYPE *warPtr=static_cast<DTYPE *>(warpedImage->data);
@@ -235,21 +225,21 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
     if(referenceImage->datatype!=warpedImage->datatype ||
        referenceImage->datatype!=warpedImageGradient->datatype){
         fprintf(stderr, "[NiftyReg ERROR] reg_getKLDivergenceVoxelBasedGradient: input images are expected to have the same type\n");
-        exit(1);
+        reg_exit(1);
     }
     if(jacobianDetImg!=NULL){
         if(referenceImage->datatype!=jacobianDetImg->datatype){
             fprintf(stderr, "[NiftyReg ERROR] reg_getKLDivergenceVoxelBasedGradient: input images are expected to have the same type\n");
-            exit(1);
+            reg_exit(1);
         }
     }
     if(referenceImage->nvox!=warpedImage->nvox){
         fprintf(stderr, "[NiftyReg ERROR] reg_getKLDivergenceVoxelBasedGradient: both input images have different size\n");
-        exit(1);
+        reg_exit(1);
     }
     if(referenceImage->nz>1 && warpedImageGradient->nu!=3 && KLdivGradient->nu!=3){
         fprintf(stderr, "[NiftyReg ERROR] reg_getKLDivergenceVoxelBasedGradient: check code\n");
-        exit(1);
+        reg_exit(1);
     }
     switch(referenceImage->datatype){
     case NIFTI_TYPE_FLOAT32:
@@ -262,7 +252,7 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
         break;
     default:
         fprintf(stderr, "[NiftyReg ERROR] reg_getKLDivergenceVoxelBasedGradient: unsupported datatype\n");
-        exit(1);
+        reg_exit(1);
         break;
     }
     return;

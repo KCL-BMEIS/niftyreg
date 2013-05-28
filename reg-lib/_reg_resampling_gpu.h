@@ -12,7 +12,7 @@
 #ifndef _REG_RESAMPLING_GPU_H
 #define _REG_RESAMPLING_GPU_H
 
-#include "_reg_blocksize_gpu.h"
+#include "_reg_common_gpu.h"
 
 extern "C++"
 void reg_resampleImage_gpu(nifti_image *sourceImage,
@@ -25,9 +25,9 @@ void reg_resampleImage_gpu(nifti_image *sourceImage,
 
 extern "C++"
 void reg_getImageGradient_gpu(nifti_image *sourceImage,
-							  cudaArray **sourceImageArray_d,
-							  float4 **positionFieldImageArray_d,
-							  float4 **resultGradientArray_d,
-							  int activeVoxelNumber,
-							  float paddingValue);
+                              cudaArray **sourceImageArray_d,
+                              float4 **positionFieldImageArray_d,
+                              float4 **resultGradientArray_d,
+                              int activeVoxelNumber,
+                              float paddingValue);
 #endif

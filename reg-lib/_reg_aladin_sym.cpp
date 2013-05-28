@@ -65,17 +65,18 @@ void reg_aladin_sym<T>::AllocateBackwardWarpedImage()
     if(this->CurrentReference==NULL || this->CurrentFloating==NULL){
         fprintf(stderr,"[NiftyReg ERROR] reg_aladin_sym::AllocateBackwardWarpedImage()\n");
         fprintf(stderr,"[NiftyReg ERROR] Reference and FLoating images are not defined. Exit.\n");
-        exit(1);
+        reg_exit(1);
     }
     this->ClearBackwardWarpedImage();
     this->CurrentBackwardWarped=nifti_copy_nim_info(this->CurrentFloating);
     this->CurrentBackwardWarped->dim[0]=this->CurrentBackwardWarped->ndim=this->CurrentReference->ndim;
     this->CurrentBackwardWarped->dim[4]=this->CurrentBackwardWarped->nt=this->CurrentReference->nt;
     this->CurrentBackwardWarped->pixdim[4]=this->CurrentBackwardWarped->dt=1.0;
-    this->CurrentBackwardWarped->nvox = this->CurrentBackwardWarped->nx *
-            this->CurrentBackwardWarped->ny *
-            this->CurrentBackwardWarped->nz *
-            this->CurrentBackwardWarped->nt;
+    this->CurrentBackwardWarped->nvox =
+            (size_t)this->CurrentBackwardWarped->nx *
+            (size_t)this->CurrentBackwardWarped->ny *
+            (size_t)this->CurrentBackwardWarped->nz *
+            (size_t)this->CurrentBackwardWarped->nt;
     this->CurrentBackwardWarped->datatype=this->CurrentReference->datatype;
     this->CurrentBackwardWarped->nbyper=this->CurrentReference->nbyper;
     this->CurrentBackwardWarped->data = (void*) calloc(this->CurrentBackwardWarped->nvox,this->CurrentBackwardWarped->nbyper);
@@ -97,7 +98,7 @@ void reg_aladin_sym<T>::AllocateBackwardDeformationField()
     if(this->CurrentFloating==NULL){
         fprintf(stderr,"[NiftyReg ERROR] reg_aladin_sym::AllocateBackwardDeformationField()\n");
         fprintf(stderr,"[NiftyReg ERROR] Floating image is not defined. Exit.\n");
-        exit(1);
+        reg_exit(1);
     }
     this->ClearBackwardDeformationField();
     this->BackwardDeformationFieldImage = nifti_copy_nim_info(this->CurrentFloating);
@@ -112,11 +113,12 @@ void reg_aladin_sym<T>::AllocateBackwardDeformationField()
     this->BackwardDeformationFieldImage->pixdim[6]=this->BackwardDeformationFieldImage->dv=1.0;
     this->BackwardDeformationFieldImage->dim[7]=this->BackwardDeformationFieldImage->nw=1;
     this->BackwardDeformationFieldImage->pixdim[7]=this->BackwardDeformationFieldImage->dw=1.0;
-    this->BackwardDeformationFieldImage->nvox=	this->BackwardDeformationFieldImage->nx *
-            this->BackwardDeformationFieldImage->ny *
-            this->BackwardDeformationFieldImage->nz *
-            this->BackwardDeformationFieldImage->nt *
-            this->BackwardDeformationFieldImage->nu;
+    this->BackwardDeformationFieldImage->nvox =
+            (size_t)this->BackwardDeformationFieldImage->nx *
+            (size_t)this->BackwardDeformationFieldImage->ny *
+            (size_t)this->BackwardDeformationFieldImage->nz *
+            (size_t)this->BackwardDeformationFieldImage->nt *
+            (size_t)this->BackwardDeformationFieldImage->nu;
     this->BackwardDeformationFieldImage->nbyper = sizeof(T);
     if(sizeof(T)==4)
         this->BackwardDeformationFieldImage->datatype = NIFTI_TYPE_FLOAT32;
@@ -125,7 +127,7 @@ void reg_aladin_sym<T>::AllocateBackwardDeformationField()
     else{
         fprintf(stderr,"[NiftyReg ERROR] reg_aladin_sym::AllocateBackwardDeformationField()\n");
         fprintf(stderr,"[NiftyReg ERROR] Only float or double are expected for the deformation field. Exit.\n");
-        exit(1);
+        reg_exit(1);
     }
     this->BackwardDeformationFieldImage->data = (void *)calloc(this->BackwardDeformationFieldImage->nvox, this->BackwardDeformationFieldImage->nbyper);
 }

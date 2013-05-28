@@ -79,15 +79,18 @@ int main(int argc, char **argv)
                 return EXIT_FAILURE;
             }
             reg_checkAndCorrectDimension(tempImage);
+            if(sizeof(PrecisionTYPE)==sizeof(double))
+                reg_tools_changeDatatype<double>(tempImage);
+            else reg_tools_changeDatatype<float>(tempImage);
             if(average_image->nvox!=tempImage->nvox){
                 fprintf(stderr, "[!] All images must have the same size. Error when processing: %s\n", argv[i]);
                 return EXIT_FAILURE;
             }
-            reg_tools_addSubMulDivImages(average_image,tempImage,average_image,0);
+            reg_tools_addImageToImage(average_image,tempImage,average_image);
             imageTotalNumber++;
             nifti_image_free(tempImage);tempImage=NULL;
         }
-        reg_tools_addSubMulDivValue(average_image,average_image,(float)imageTotalNumber,3);
+        reg_tools_divideValueToImage(average_image,average_image,(float)imageTotalNumber);
         reg_io_WriteImageFile(average_image,argv[1]);
         nifti_image_free(average_image);
     }
@@ -103,7 +106,7 @@ int main(int argc, char **argv)
             }
             else{
                 fprintf(stderr,"The specified input affine file (%s) can not be read\n",argv[m+2]);
-                exit(1);
+                reg_exit(1);
             }
             // Read the current matrix file
             std::ifstream affineFile;

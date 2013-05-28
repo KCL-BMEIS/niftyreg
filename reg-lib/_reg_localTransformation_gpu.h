@@ -12,7 +12,7 @@
 #ifndef _REG_LOCALTRANSFORMATION_GPU_H
 #define _REG_LOCALTRANSFORMATION_GPU_H
 
-#include "_reg_blocksize_gpu.h"
+#include "_reg_common_gpu.h"
 #include "_reg_maths.h"
 #include "_reg_tools_gpu.h"
 #include <limits>

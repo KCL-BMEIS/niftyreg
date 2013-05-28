@@ -30,11 +30,7 @@ double reg_getSSD1(nifti_image *referenceImage,
         jacDetPtr=static_cast<DTYPE *>(jacobianDetImage->data);
 
     // Create some variables to be use in the openmp loop
-#ifdef _WINDOWS
-    int  voxel;
-#else
     size_t  voxel;
-#endif
     
     double SSD=0.0, n=0.0;
     double targetValue, resultValue, diff;
@@ -89,14 +85,14 @@ double reg_getSSD(nifti_image *referenceImage,
         if(referenceImage->datatype != warpedImage->datatype || referenceImage->datatype != jacobianDetImage->datatype){
             fprintf(stderr,"[NiftyReg ERROR] reg_getSSD\n");
             fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same type\n");
-            exit(1);
+            reg_exit(1);
         }
     }
     else{
         if(referenceImage->datatype != warpedImage->datatype){
             fprintf(stderr,"[NiftyReg ERROR] reg_getSSD\n");
             fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same type\n");
-            exit(1);
+            reg_exit(1);
         }
     }
     // Check that both input images have the same size
@@ -104,7 +100,7 @@ double reg_getSSD(nifti_image *referenceImage,
         if(referenceImage->dim[i] != warpedImage->dim[i]){
             fprintf(stderr,"[NiftyReg ERROR] reg_getSSD\n");
             fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same dimension");
-            exit(1);
+            reg_exit(1);
         }
     }
 
@@ -117,7 +113,7 @@ double reg_getSSD(nifti_image *referenceImage,
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] Result pixel type unsupported in the SSD computation function.\n");
-            exit(1);
+            reg_exit(1);
 	}
 	return 0.0;
 }
@@ -135,13 +131,7 @@ void reg_getVoxelBasedSSDGradient1(nifti_image *referenceImage,
 {
     // Create pointers to the reference and warped images
     size_t voxelNumber = referenceImage->nx*referenceImage->ny*referenceImage->nz;
-
-#ifdef _WINDOWS
-    int  voxel;
-#else
     size_t  voxel;
-#endif
-
 
     DTYPE *refPtr=static_cast<DTYPE *>(referenceImage->data);
     DTYPE *warPtr=static_cast<DTYPE *>(warpedImage->data);
@@ -234,13 +224,13 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
        referenceImage->datatype != warpedImageGradient->datatype){
         fprintf(stderr,"[NiftyReg ERROR] reg_getVoxelBasedSSDGradient\n");
         fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same type\n");
-        exit(1);
+        reg_exit(1);
     }
     if(jacobianDeterminantImage!=NULL){
         if(referenceImage->datatype != jacobianDeterminantImage->datatype){
             fprintf(stderr,"[NiftyReg ERROR] reg_getVoxelBasedSSDGradient\n");
             fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same type\n");
-            exit(1);
+            reg_exit(1);
         }
     }
     switch ( referenceImage->datatype ){
@@ -254,7 +244,7 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] Target pixel type unsupported in the SSD gradient computation function.\n");
-            exit(1);
+            reg_exit(1);
 	}
 }
 /* *************************************************************** */

@@ -160,7 +160,7 @@ void reg_f3d<T>::AllocateTransformationGradient()
 {
     if(this->controlPointGrid==NULL){
         fprintf(stderr, "[NiftyReg ERROR] The control point image is not defined\n");
-        exit(1);
+        reg_exit(1);
     }
     reg_f3d<T>::ClearTransformationGradient();
     this->transformationGradient = nifti_copy_nim_info(this->controlPointGrid);
@@ -187,12 +187,13 @@ void reg_f3d<T>::CheckParameters()
     if(this->useSSD){
         if(this->inputReference->nt!=this->inputFloating->nt){
             fprintf(stderr,"[NiftyReg ERROR] SSD is only available with reference and floating images with same dimension along the t-axis.\n");
-            exit(1);
+            reg_exit(1);
         }
     }
 
     // NORMALISE THE OBJECTIVE FUNCTION WEIGHTS
-    if(strcmp(this->executableName,"NiftyReg F3D")==0){
+    if(strcmp(this->executableName,"NiftyReg F3D")==0 ||
+       strcmp(this->executableName,"NiftyReg F3D GPU")==0){
         T penaltySum=this->bendingEnergyWeight +
                 this->linearEnergyWeight0 +
                 this->linearEnergyWeight1 +
@@ -278,10 +279,10 @@ void reg_f3d<T>::Initisalise()
             identityAffine.m[3][2]=0.f;
             identityAffine.m[3][3]=1.f;
             if(reg_spline_initialiseControlPointGridWithAffine(&identityAffine, this->controlPointGrid))
-                exit(1);
+                reg_exit(1);
         }
         else if(reg_spline_initialiseControlPointGridWithAffine(this->affineTransformation, this->controlPointGrid))
-            exit(1);
+            reg_exit(1);
     }
     else{
         // The control point grid image is initialised with the provided grid
@@ -625,7 +626,7 @@ template <class T>
 void reg_f3d<T>::SetGradientImageToZero()
 {
     T* nodeGradPtr = static_cast<T *>(this->transformationGradient->data);
-    for(unsigned int i=0; i<this->transformationGradient->nvox; ++i)
+    for(size_t i=0; i<this->transformationGradient->nvox; ++i)
         *nodeGradPtr++=0;
     return;
 }

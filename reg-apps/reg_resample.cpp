@@ -330,7 +330,8 @@ int main(int argc, char **argv)
         deformationFieldImage->pixdim[5]=deformationFieldImage->du=1.0;
         deformationFieldImage->dim[6]=deformationFieldImage->nv=1;deformationFieldImage->pixdim[6]=deformationFieldImage->dv=1.0;
         deformationFieldImage->dim[7]=deformationFieldImage->nw=1;deformationFieldImage->pixdim[7]=deformationFieldImage->dw=1.0;
-        deformationFieldImage->nvox=deformationFieldImage->nx*deformationFieldImage->ny*deformationFieldImage->nz*deformationFieldImage->nt*deformationFieldImage->nu;
+        deformationFieldImage->nvox =(size_t)deformationFieldImage->nx*(size_t)deformationFieldImage->ny*(size_t)deformationFieldImage->nz*
+                (size_t)deformationFieldImage->nt*(size_t)deformationFieldImage->nu;
         deformationFieldImage->datatype = currentDatatype;
         deformationFieldImage->nbyper = currentNbyper;
         deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
@@ -390,7 +391,8 @@ int main(int argc, char **argv)
         resultImage->scl_inter=floatingImage->scl_inter;
         resultImage->datatype = floatingImage->datatype;
         resultImage->nbyper = floatingImage->nbyper;
-        resultImage->nvox = resultImage->dim[1] * resultImage->dim[2] * resultImage->dim[3] * resultImage->dim[4];
+        resultImage->nvox = (size_t)resultImage->dim[1] * (size_t)resultImage->dim[2] *
+                (size_t)resultImage->dim[3] * (size_t)resultImage->dim[4];
         resultImage->data = (void *)calloc(resultImage->nvox, resultImage->nbyper);
 
         reg_resampleImage(floatingImage,

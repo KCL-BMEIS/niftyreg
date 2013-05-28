@@ -57,6 +57,7 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
     this->useApproxGradient=false;
     this->usePyramid=true;
 
+    this->similarityWeight=0.; // is automatically set depending of the penalty term weights
     this->useSSD=false;
     this->useKLD=false;
     this->useLNCC = std::numeric_limits<T>::quiet_NaN();
@@ -355,17 +356,18 @@ void reg_base<T>::AllocateWarped()
 {
     if(this->currentReference==NULL){
         fprintf(stderr, "[NiftyReg ERROR] The reference image is not defined\n");
-        exit(1);
+        reg_exit(1);
     }
     reg_base<T>::ClearWarped();
     this->warped = nifti_copy_nim_info(this->currentReference);
     this->warped->dim[0]=this->warped->ndim=this->currentFloating->ndim;
     this->warped->dim[4]=this->warped->nt=this->currentFloating->nt;
     this->warped->pixdim[4]=this->warped->dt=1.0;
-    this->warped->nvox = this->warped->nx *
-            this->warped->ny *
-            this->warped->nz *
-            this->warped->nt;
+    this->warped->nvox =
+            (size_t)this->warped->nx *
+            (size_t)this->warped->ny *
+            (size_t)this->warped->nz *
+            (size_t)this->warped->nt;
     this->warped->datatype = this->currentFloating->datatype;
     this->warped->nbyper = this->currentFloating->nbyper;
     this->warped->data = (void *)calloc(this->warped->nvox, this->warped->nbyper);
@@ -388,7 +390,7 @@ void reg_base<T>::AllocateDeformationField()
 {
     if(this->currentReference==NULL){
         fprintf(stderr, "[NiftyReg ERROR] The reference image is not defined\n");
-        exit(1);
+        reg_exit(1);
     }
     reg_base<T>::ClearDeformationField();
     this->deformationFieldImage = nifti_copy_nim_info(this->currentReference);
@@ -406,11 +408,12 @@ void reg_base<T>::AllocateDeformationField()
     this->deformationFieldImage->pixdim[6]=this->deformationFieldImage->dv=1.0;
     this->deformationFieldImage->dim[7]=this->deformationFieldImage->nw=1;
     this->deformationFieldImage->pixdim[7]=this->deformationFieldImage->dw=1.0;
-    this->deformationFieldImage->nvox=	this->deformationFieldImage->nx *
-            this->deformationFieldImage->ny *
-            this->deformationFieldImage->nz *
-            this->deformationFieldImage->nt *
-            this->deformationFieldImage->nu;
+    this->deformationFieldImage->nvox =
+            (size_t)this->deformationFieldImage->nx *
+            (size_t)this->deformationFieldImage->ny *
+            (size_t)this->deformationFieldImage->nz *
+            (size_t)this->deformationFieldImage->nt *
+            (size_t)this->deformationFieldImage->nu;
     this->deformationFieldImage->nbyper = sizeof(T);
     if(sizeof(T)==sizeof(float))
         this->deformationFieldImage->datatype = NIFTI_TYPE_FLOAT32;
@@ -435,17 +438,18 @@ void reg_base<T>::AllocateWarpedGradient()
 {
     if(this->deformationFieldImage==NULL){
         fprintf(stderr, "[NiftyReg ERROR] The deformation field image is not defined\n");
-        exit(1);
+        reg_exit(1);
     }
     reg_base<T>::ClearWarpedGradient();
     this->warpedGradientImage = nifti_copy_nim_info(this->deformationFieldImage);
     this->warpedGradientImage->dim[0]=this->warpedGradientImage->ndim=5;
     this->warpedGradientImage->nt = this->warpedGradientImage->dim[4] = this->currentFloating->nt;
-    this->warpedGradientImage->nvox =	this->warpedGradientImage->nx *
-            this->warpedGradientImage->ny *
-            this->warpedGradientImage->nz *
-            this->warpedGradientImage->nt *
-            this->warpedGradientImage->nu;
+    this->warpedGradientImage->nvox =
+            (size_t)this->warpedGradientImage->nx *
+            (size_t)this->warpedGradientImage->ny *
+            (size_t)this->warpedGradientImage->nz *
+            (size_t)this->warpedGradientImage->nt *
+            (size_t)this->warpedGradientImage->nu;
     this->warpedGradientImage->data = (void *)calloc(this->warpedGradientImage->nvox,
                                                      this->warpedGradientImage->nbyper);
     return;
@@ -466,7 +470,7 @@ void reg_base<T>::AllocateVoxelBasedMeasureGradient()
 {
     if(this->deformationFieldImage==NULL){
         fprintf(stderr, "[NiftyReg ERROR] The deformation field image is not defined\n");
-        exit(1);
+        reg_exit(1);
     }
     reg_base<T>::ClearVoxelBasedMeasureGradient();
     this->voxelBasedMeasureGradientImage = nifti_copy_nim_info(this->deformationFieldImage);
@@ -491,11 +495,11 @@ void reg_base<T>::CheckParameters()
     // CHECK THAT BOTH INPUT IMAGES ARE DEFINED
     if(this->inputReference==NULL){
         fprintf(stderr,"[NiftyReg ERROR] No reference image has been defined.\n");
-        exit(1);
+        reg_exit(1);
     }
     if(this->inputFloating==NULL){
         fprintf(stderr,"[NiftyReg ERROR] No floating image has been defined.\n");
-        exit(1);
+        reg_exit(1);
     }
 
     // CHECK THE MASK DIMENSION IF IT IS DEFINED
@@ -504,7 +508,7 @@ void reg_base<T>::CheckParameters()
                 this->inputReference->ny != maskImage->ny ||
                 this->inputReference->nz != maskImage->nz){
             fprintf(stderr,"[NiftyReg ERROR] The mask image has different x, y or z dimension than the reference image.\n");
-            exit(1);
+            reg_exit(1);
         }
     }
 
@@ -699,10 +703,10 @@ double reg_base<T>::ComputeSimilarityMeasure()
                 nifti_image *temp_referenceImage = nifti_copy_nim_info(this->currentReference);
                 temp_referenceImage->dim[0]=temp_referenceImage->ndim=3;
                 temp_referenceImage->dim[4]=temp_referenceImage->nt=1;
-                temp_referenceImage->nvox=
-                        temp_referenceImage->nx*
-                        temp_referenceImage->ny*
-                        temp_referenceImage->nz;
+                temp_referenceImage->nvox =
+                        (size_t)temp_referenceImage->nx*
+                        (size_t)temp_referenceImage->ny*
+                        (size_t)temp_referenceImage->nz;
                 temp_referenceImage->data=(void *)malloc(temp_referenceImage->nvox*temp_referenceImage->nbyper);
                 T *tempRefPtr=static_cast<T *>(temp_referenceImage->data);
                 memcpy(tempRefPtr, &referencePtr[t*temp_referenceImage->nvox],
@@ -711,10 +715,10 @@ double reg_base<T>::ComputeSimilarityMeasure()
                 nifti_image *temp_warpedImage = nifti_copy_nim_info(this->warped);
                 temp_warpedImage->dim[0]=temp_warpedImage->ndim=3;
                 temp_warpedImage->dim[4]=temp_warpedImage->nt=1;
-                temp_warpedImage->nvox=
-                        temp_warpedImage->nx*
-                        temp_warpedImage->ny*
-                        temp_warpedImage->nz;
+                temp_warpedImage->nvox =
+                        (size_t)temp_warpedImage->nx*
+                        (size_t)temp_warpedImage->ny*
+                        (size_t)temp_warpedImage->nz;
                 temp_warpedImage->data=(void *)malloc(temp_warpedImage->nvox*temp_warpedImage->nbyper);
                 T *tempWarPtr=static_cast<T *>(temp_warpedImage->data);
                 memcpy(tempWarPtr, &warpedPtr[t*temp_warpedImage->nvox],
@@ -806,19 +810,19 @@ void reg_base<T>::GetVoxelBasedGradient()
             T *warpedPtr=static_cast<T *>(this->currentFloating->data);
             T *gradientPtr=static_cast<T *>(this->warpedGradientImage->data);
 
-            reg_tools_addSubMulDivValue(this->voxelBasedMeasureGradientImage,
-                                        this->voxelBasedMeasureGradientImage,
-                                        0.f,2);
+            reg_tools_multiplyValueToImage(this->voxelBasedMeasureGradientImage,
+                                           this->voxelBasedMeasureGradientImage,
+                                           0.f);
 
             for(int t=0;t<this->currentReference->nt;++t){
 
                 nifti_image *temp_referenceImage = nifti_copy_nim_info(this->currentReference);
                 temp_referenceImage->dim[0]=temp_referenceImage->ndim=3;
                 temp_referenceImage->dim[4]=temp_referenceImage->nt=1;
-                temp_referenceImage->nvox=
-                        temp_referenceImage->nx*
-                        temp_referenceImage->ny*
-                        temp_referenceImage->nz;
+                temp_referenceImage->nvox =
+                        (size_t)temp_referenceImage->nx*
+                        (size_t)temp_referenceImage->ny*
+                        (size_t)temp_referenceImage->nz;
                 temp_referenceImage->data=(void *)malloc(temp_referenceImage->nvox*temp_referenceImage->nbyper);
                 T *tempRefPtr=static_cast<T *>(temp_referenceImage->data);
                 memcpy(tempRefPtr, &referencePtr[t*temp_referenceImage->nvox],
@@ -827,10 +831,10 @@ void reg_base<T>::GetVoxelBasedGradient()
                 nifti_image *temp_warpedImage = nifti_copy_nim_info(this->warped);
                 temp_warpedImage->dim[0]=temp_warpedImage->ndim=3;
                 temp_warpedImage->dim[4]=temp_warpedImage->nt=1;
-                temp_warpedImage->nvox=
-                        temp_warpedImage->nx*
-                        temp_warpedImage->ny*
-                        temp_warpedImage->nz;
+                temp_warpedImage->nvox =
+                        (size_t)temp_warpedImage->nx*
+                        (size_t)temp_warpedImage->ny*
+                        (size_t)temp_warpedImage->nz;
                 temp_warpedImage->data=(void *)malloc(temp_warpedImage->nvox*temp_warpedImage->nbyper);
                 T *tempWarPtr=static_cast<T *>(temp_warpedImage->data);
                 memcpy(tempWarPtr, &warpedPtr[t*temp_warpedImage->nvox],
@@ -838,12 +842,12 @@ void reg_base<T>::GetVoxelBasedGradient()
 
                 nifti_image *temp_gradientImage = nifti_copy_nim_info(this->warpedGradientImage);
                 temp_gradientImage->dim[4]=temp_gradientImage->nt=1;
-                temp_gradientImage->nvox=
-                        temp_gradientImage->nx*
-                        temp_gradientImage->ny*
-                        temp_gradientImage->nz*
-                        temp_gradientImage->nt*
-                        temp_gradientImage->nu;
+                temp_gradientImage->nvox =
+                        (size_t)temp_gradientImage->nx*
+                        (size_t)temp_gradientImage->ny*
+                        (size_t)temp_gradientImage->nz*
+                        (size_t)temp_gradientImage->nt*
+                        (size_t)temp_gradientImage->nu;
                 temp_gradientImage->data=(void *)malloc(temp_gradientImage->nvox*temp_gradientImage->nbyper);
                 T *tempGraPtr=static_cast<T *>(temp_gradientImage->data);
                 for(int u=0;u<temp_gradientImage->nu;++u){
@@ -877,18 +881,18 @@ void reg_base<T>::GetVoxelBasedGradient()
                                                     this->currentMask,
                                                     this->approxParzenWindow);
 
-                reg_tools_addSubMulDivImages(temp_nmiGradientImage,
-                                             this->voxelBasedMeasureGradientImage,
-                                             this->voxelBasedMeasureGradientImage,0);
+                reg_tools_addImageToImage(temp_nmiGradientImage,
+                                          this->voxelBasedMeasureGradientImage,
+                                          this->voxelBasedMeasureGradientImage);
 
                 nifti_image_free(temp_referenceImage);
                 nifti_image_free(temp_warpedImage);
                 nifti_image_free(temp_gradientImage);
                 nifti_image_free(temp_nmiGradientImage);
             }
-            reg_tools_addSubMulDivValue(this->voxelBasedMeasureGradientImage,
+            reg_tools_divideValueToImage(this->voxelBasedMeasureGradientImage,
                                         this->voxelBasedMeasureGradientImage,
-                                        (float)(this->currentReference->nt),3);
+                                        (float)(this->currentReference->nt));
         }
         else{
             // Compute the voxel based NMI gradient

@@ -1,16 +1,13 @@
-/*
- *  _reg_cudaCommon.h
- *  
- *
- *  Created by Marc Modat on 25/03/2009.
- *  Copyright (c) 2009, University College London. All rights reserved.
- *  Centre for Medical Image Computing (CMIC)
- *  See the LICENSE.txt file in the nifty_reg root folder
- *
+/** @file _reg_common_gpu.h
+ * @author Marc Modat
+ * @date 25/03/2009.
+ * Copyright (c) 2009, University College London. All rights reserved.
+ * Centre for Medical Image Computing (CMIC)
+ * See the LICENSE.txt file in the nifty_reg root folder
  */
 
-#ifndef _REG_CUDACOMMON_H
-#define _REG_CUDACOMMON_H
+#ifndef _REG_COMMON_GPU_H
+#define _REG_COMMON_GPU_H
 
 #include "_reg_blocksize_gpu.h"
 
@@ -21,6 +18,8 @@ int cudaCommon_setCUDACard(CUdevice *dev,
                            int &major,
                            int &minor,
                            bool verbose);
+/* ******************************** */
+void cudaCommon_unsetCUDACard(CUcontext *ctx);
 /* ******************************** */
 /* ******************************** */
 extern "C++"
@@ -77,4 +76,5 @@ extern "C++" template <class DTYPE>
 void cudaCommon_free(DTYPE **);
 /* ******************************** */
 /* ******************************** */
+
 #endif

@@ -201,6 +201,9 @@ public:
         funcProgressCallback = funcProgCallback;
         paramsProgressCallback = paramsProgCallback;
     }
+
+    // Function used for testing
+    virtual void reg_test_setOptimiser(reg_optimiser<T> *opt){this->optimiser=opt;}
 };
 
 #include "_reg_base.cpp"

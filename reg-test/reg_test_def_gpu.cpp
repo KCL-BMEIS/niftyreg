@@ -3,29 +3,11 @@
 #include "_reg_tools.h"
 
 #include "_reg_common_gpu.h"
-#include "cuda.h"
 
 #define SIZE 128
 #define SPAC 5
 
-#define EPS 0.0005
-
-double getAbsoluteMaxDifference(nifti_image *image1,
-								nifti_image *image2)
-{
-    double maxDifference=0.;
-    float *img1Ptr = static_cast<float *>(image1->data);
-    float *img2Ptr = static_cast<float *>(image2->data);
-    for(size_t i=0; i<image1->nvox; ++i){
-        if(img1Ptr!=img1Ptr)
-			fprintf(stderr, "WARNING - getAbsoluteMaxDifference - NaN in the first image\n");
-        if(img2Ptr!=img2Ptr)
-			fprintf(stderr, "WARNING - getAbsoluteMaxDifference - NaN in the second image\n");
-		float currentDiff = 2.f * fabsf(*img1Ptr++ - *img2Ptr++);
-		maxDifference = currentDiff>maxDifference?currentDiff:maxDifference;
-    }
-    return maxDifference;
-}
+#define EPS 0.001
 
 int main(int argc, char **argv)
 {
@@ -74,7 +56,7 @@ int main(int argc, char **argv)
     float spacing[3]={SPAC,SPAC,SPAC};
     reg_createControlPointGrid<float>(&controlPointGrid,field,spacing);
     float *cppPtr = static_cast<float *>(controlPointGrid->data);
-	srand(0);
+    srand(time(0));
     for(size_t i=0;i<controlPointGrid->nvox; ++i)
 		cppPtr[i]= SPAC * ((float)rand()/(float)RAND_MAX - 0.5f); // [-0.5*SPAC ; 0.5*SPAC]
     reg_getDeformationFromDisplacement(controlPointGrid);
@@ -141,7 +123,21 @@ int main(int argc, char **argv)
         // Transfer the device field on the host
         cudaCommon_transferFromDeviceToNifti<float4>(field2, &field_gpu);
         // Compute the difference between both fields
-        maxDifferenceDEF=getAbsoluteMaxDifference(field,field2);
+        maxDifferenceDEF=reg_test_compare_images(field,field2);
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] [dim=%i] Deformation field difference: %g\n",
+               dimension,
+               maxDifferenceDEF);
+        nifti_set_filenames(field, "reg_test_def_cpu.nii",0,0);
+        nifti_set_filenames(field2,"reg_test_def_gpu.nii",0,0);
+        nifti_image_write(field);
+        nifti_image_write(field2);
+        reg_tools_divideImageToImage(field,field2,field);
+        reg_tools_substractValueToImage(field,field,1.f);
+        reg_tools_abs_image(field);
+        nifti_set_filenames(field,"reg_test_def_diff.nii",0,0);
+        nifti_image_write(field);
+#endif
     }
     else if(strcmp(type,"comp")==0){
         // generate a deformation field
@@ -167,10 +163,19 @@ int main(int argc, char **argv)
         // Transfer the device field on the host
         cudaCommon_transferFromDeviceToNifti<float4>(field2, &field_gpu);
         // Compute the difference between both fields
-		maxDifferenceCOMP=getAbsoluteMaxDifference(field,field2);
+        maxDifferenceCOMP=reg_test_compare_images(field,field2);
         // Free extra arrays allocated on the GPU
         nifti_image_free(field_comp_cpu);
         cudaCommon_free(&field_comp_gpu);
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] [dim=%i] Deformation field composition difference: %g\n",
+               dimension,
+               maxDifferenceCOMP);
+        nifti_set_filenames(field,"reg_test_def_cpu.nii",0,0);
+        nifti_set_filenames(field2,"reg_test_def_gpu.nii",0,0);
+        nifti_image_write(field);
+        nifti_image_write(field2);
+#endif
     }
     else if(strcmp(type,"exp")==0){
         // Convert the control point grid into a velocity field
@@ -189,27 +194,43 @@ int main(int argc, char **argv)
         // Transfer the device field on the host
         cudaCommon_transferFromDeviceToNifti<float4>(field2, &field_gpu);
         // Compute the difference between both fields
-		maxDifferenceEXP=getAbsoluteMaxDifference(field,field2);
+        maxDifferenceEXP=reg_test_compare_images(field,field2);
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] [dim=%i] Deformation field exponentiation difference: %g\n",
+               dimension,
+               maxDifferenceEXP);
+        nifti_set_filenames(field,"reg_test_def_cpu.nii",0,0);
+        nifti_set_filenames(field2,"reg_test_def_gpu.nii",0,0);
+        nifti_image_write(field);
+        nifti_image_write(field2);
+#endif
     }
     else if(strcmp(type,"be")==0){
         double be_cpu = reg_spline_approxBendingEnergy(controlPointGrid);
         double be_gpu = reg_spline_approxBendingEnergy_gpu(controlPointGrid,
-                                                   &controlPointGrid_gpu);
-        maxDifferenceBE = fabs(be_cpu - be_gpu) / be_cpu;
+                                                           &controlPointGrid_gpu);
+        maxDifferenceBE = (be_cpu / be_gpu) - 1.0;
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] [dim=%i] Bending energy difference: %g [=(%g/%g)-1]\n",
+               dimension,
+               maxDifferenceBE,
+               be_cpu,
+               be_gpu);
+#endif
     }
     else if(strcmp(type,"beg")==0){
         // Allocate two extra nifti_image to store the bending energy gradients
         nifti_image *be_grad_cpu=nifti_copy_nim_info(controlPointGrid);
         nifti_image *be_grad_gpu=nifti_copy_nim_info(controlPointGrid);
-        be_grad_cpu->data=(void *)malloc(be_grad_cpu->nvox*be_grad_cpu->nbyper);
-        be_grad_gpu->data=(void *)malloc(be_grad_gpu->nvox*be_grad_gpu->nbyper);
+        be_grad_cpu->data=(void *)calloc(be_grad_cpu->nvox,be_grad_cpu->nbyper);
+        be_grad_gpu->data=(void *)calloc(be_grad_gpu->nvox,be_grad_gpu->nbyper);
         // Allocate an extra cuda array to store the device gradient
         float4 *be_grad_device=NULL;
         cudaCommon_allocateArrayToDevice<float4>(&be_grad_device,
                                                  controlPointNumber);
         // Set the gradients arrays to zero
-        reg_tools_addSubMulDivValue(be_grad_cpu,be_grad_cpu,0.f,2);
-        reg_multiplyValue_gpu(controlPointNumber, &be_grad_device,0.f);
+        reg_tools_multiplyValueToImage(be_grad_cpu,be_grad_cpu,0.f);
+        cudaCommon_transferNiftiToArrayOnDevice<float4>(&be_grad_device,be_grad_cpu);
         // Compute the gradient on the host
         reg_spline_approxBendingEnergyGradient(controlPointGrid,
                                                be_grad_cpu,
@@ -222,7 +243,21 @@ int main(int argc, char **argv)
         // Transfer the device field on the host
         cudaCommon_transferFromDeviceToNifti<float4>(be_grad_gpu, &be_grad_device);
         // Compute the difference between both gradient arrays
-		maxDifferenceBEG=getAbsoluteMaxDifference(be_grad_cpu,be_grad_gpu);
+        maxDifferenceBEG=reg_test_compare_images(be_grad_cpu,be_grad_gpu);
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] [dim=%i] Bending energy gradient difference: %g\n",
+               dimension,
+               maxDifferenceBEG);
+        nifti_set_filenames(be_grad_cpu,"reg_test_def_cpu.nii",0,0);
+        nifti_set_filenames(be_grad_gpu,"reg_test_def_gpu.nii",0,0);
+        nifti_image_write(be_grad_cpu);
+        nifti_image_write(be_grad_gpu);
+        reg_tools_divideImageToImage(be_grad_cpu,be_grad_gpu,be_grad_cpu);
+        reg_tools_substractValueToImage(be_grad_cpu,be_grad_cpu,1.f);
+        reg_tools_abs_image(be_grad_cpu);
+        nifti_set_filenames(be_grad_cpu,"reg_test_def_diff.nii",0,0);
+        nifti_image_write(be_grad_cpu);
+#endif
         // Free the extra images and array
         nifti_image_free(be_grad_cpu);
         nifti_image_free(be_grad_gpu);
@@ -247,10 +282,22 @@ int main(int argc, char **argv)
                     "Error with the computation of the Jacobian based penalty term on the GPU\n");
 		}
         printf("approx[%i] | dim [%i] : %g %g\n", approximation, dimension, jac_cpu, jac_gpu);
-        if(approximation)
+        if(approximation){
             maxDifferenceAJAC = fabs(jac_cpu - jac_gpu) / jac_cpu;
-        else
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] [dim=%i] Approximated Jacobian difference: %g\n",
+               dimension,
+               maxDifferenceAJAC);
+#endif
+        }
+        else{
             maxDifferenceJAC = fabs(jac_cpu - jac_gpu) / jac_cpu;
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] [dim=%i] Jacobian difference: %g\n",
+               dimension,
+               maxDifferenceJAC);
+#endif
+        }
     }
     else if(strcmp(type,"ajacg")==0 || strcmp(type,"jacg")==0){
         bool approximation=false;
@@ -258,15 +305,15 @@ int main(int argc, char **argv)
         // Allocate two extra nifti_image to store the jacobian gradients
         nifti_image *jac_grad_cpu=nifti_copy_nim_info(controlPointGrid);
         nifti_image *jac_grad_gpu=nifti_copy_nim_info(controlPointGrid);
-        jac_grad_cpu->data=(void *)malloc(jac_grad_cpu->nvox*jac_grad_cpu->nbyper);
+        jac_grad_cpu->data=(void *)calloc(jac_grad_cpu->nvox,jac_grad_cpu->nbyper);
         jac_grad_gpu->data=(void *)malloc(jac_grad_gpu->nvox*jac_grad_gpu->nbyper);
         // Allocate an extra cuda array to store the device gradient
         float4 *jac_grad_device=NULL;
         cudaCommon_allocateArrayToDevice<float4>(&jac_grad_device,
                                                  controlPointNumber);
         // Set the gradients arrays to zero
-        reg_tools_addSubMulDivValue(jac_grad_cpu,jac_grad_cpu,0.f,2);
-        reg_multiplyValue_gpu(controlPointNumber, &jac_grad_device,0.f);
+        reg_tools_multiplyValueToImage(jac_grad_cpu,jac_grad_cpu,0.f);
+        cudaCommon_transferNiftiToArrayOnDevice<float4>(&jac_grad_device,jac_grad_cpu);
         // Compute the gradient on the host
         reg_spline_getJacobianPenaltyTermGradient(controlPointGrid,
                                                   field,
@@ -283,11 +330,30 @@ int main(int argc, char **argv)
         // Transfer the device field on the host
         cudaCommon_transferFromDeviceToNifti<float4>(jac_grad_gpu, &jac_grad_device);
         // Compute the difference between both gradient arrays
-        if(approximation)
-			maxDifferenceAJACG = getAbsoluteMaxDifference(jac_grad_cpu,jac_grad_gpu);
-        else
-			maxDifferenceJACG = getAbsoluteMaxDifference(jac_grad_cpu,jac_grad_gpu);
-
+        if(approximation){
+            maxDifferenceAJACG = reg_test_compare_images(jac_grad_cpu,jac_grad_gpu);
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] [dim=%i] Approximated Jacobian gradient difference: %g\n",
+               dimension,
+               maxDifferenceAJACG);
+        nifti_set_filenames(jac_grad_cpu,"reg_test_def_cpu.nii",0,0);
+        nifti_set_filenames(jac_grad_gpu,"reg_test_def_gpu.nii",0,0);
+        nifti_image_write(jac_grad_cpu);
+        nifti_image_write(jac_grad_gpu);
+#endif
+        }
+        else{
+            maxDifferenceJACG = reg_test_compare_images(jac_grad_cpu,jac_grad_gpu);
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] [dim=%i] Jacobian gradient difference: %g\n",
+               dimension,
+               maxDifferenceJACG);
+        nifti_set_filenames(jac_grad_cpu,"reg_test_def_cpu.nii",0,0);
+        nifti_set_filenames(jac_grad_gpu,"reg_test_def_gpu.nii",0,0);
+        nifti_image_write(jac_grad_cpu);
+        nifti_image_write(jac_grad_gpu);
+#endif
+        }
         // Free the extra images and array
         nifti_image_free(jac_grad_cpu);
         nifti_image_free(jac_grad_gpu);
@@ -305,6 +371,8 @@ int main(int argc, char **argv)
     cudaCommon_free(&field_gpu);
     cudaCommon_free(&controlPointGrid_gpu);
     cudaCommon_free(&mask_gpu);
+
+    cudaCommon_unsetCUDACard(&ctx);
 
     if(maxDifferenceDEF>EPS){
         fprintf(stderr,

@@ -12,7 +12,7 @@
 #ifndef _reg_spline_KERNELS_CU
 #define _reg_spline_KERNELS_CU
 
-#include "_reg_blocksize_gpu.h"
+#include "_reg_common_gpu.h"
 
 __device__ __constant__ int c_UseBSpline;
 __device__ __constant__ int c_VoxelNumber;
@@ -440,11 +440,13 @@ __device__ float4 get_SlidedValues_gpu(int x, int y, int z)
 /* *************************************************************** */
 __global__ void reg_spline_getDeformationField3D(float4 *positionField)
 {
-    __shared__ float zBasis[Block_reg_spline_getDeformationField3D*4];
-    __shared__ float yBasis[Block_reg_spline_getDeformationField3D*4];
-
     const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_ActiveVoxelNumber){
+
+        // Allocate the shared memory
+        extern __shared__ float yBasis[];
+        // Compute the shared memory offset which correspond to four times the number of thread per block
+        float *zBasis=&yBasis[4*blockDim.x*blockDim.y*blockDim.z];
 
         int3 imageSize = c_ReferenceImageDim;
 
@@ -531,10 +533,11 @@ __global__ void reg_spline_getDeformationField3D(float4 *positionField)
 /* *************************************************************** */
 __global__ void reg_spline_getDeformationField2D(float4 *positionField)
 {
-	__shared__ float yBasis[Block_reg_spline_getDeformationField2D*4];
-
     const unsigned int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
     if(tid<c_ActiveVoxelNumber){
+
+        // Allocate the shared memory
+        extern __shared__ float yBasis[];
 
         int3 imageSize = c_ReferenceImageDim;
 
@@ -549,12 +552,12 @@ __global__ void reg_spline_getDeformationField2D(float4 *positionField)
         nodeAnte.x = (int)floorf((float)x/gridVoxelSpacing.x);
         nodeAnte.y = (int)floorf((float)y/gridVoxelSpacing.y);
 
-		const int shareMemIndex = 4*threadIdx.x;
+        const int shareMemIndex = 4*threadIdx.x;
 
-		// Y basis values
-		float relative = fabsf((float)y/gridVoxelSpacing.y-(float)nodeAnte.y);
-		if(c_UseBSpline) GetBasisBSplineValues(relative, &yBasis[shareMemIndex]);
-		else GetBasisSplineValues(relative, &yBasis[shareMemIndex]);
+        // Y basis values
+        float relative = fabsf((float)y/gridVoxelSpacing.y-(float)nodeAnte.y);
+        if(c_UseBSpline) GetBasisBSplineValues(relative, &yBasis[shareMemIndex]);
+        else GetBasisSplineValues(relative, &yBasis[shareMemIndex]);
         // X basis values
         float xBasis[4];
         relative = fabsf((float)x/gridVoxelSpacing.x-(float)nodeAnte.x);
@@ -574,18 +577,18 @@ __global__ void reg_spline_getDeformationField2D(float4 *positionField)
             float4 nodeCoefficientC = tex1Dfetch(controlPointTexture,index++);
             float4 nodeCoefficientD = tex1Dfetch(controlPointTexture,index);
 
-			basis=yBasis[shareMemIndex+b];
+            basis=yBasis[shareMemIndex+b];
             displacement.x += basis * (
-						nodeCoefficientA.x * xBasis[0] +
-						nodeCoefficientB.x * xBasis[1] +
-						nodeCoefficientC.x * xBasis[2] +
-						nodeCoefficientD.x * xBasis[3]);
+                        nodeCoefficientA.x * xBasis[0] +
+                        nodeCoefficientB.x * xBasis[1] +
+                        nodeCoefficientC.x * xBasis[2] +
+                        nodeCoefficientD.x * xBasis[3]);
 
             displacement.y += basis * (
-						nodeCoefficientA.y * xBasis[0] +
-						nodeCoefficientB.y * xBasis[1] +
-						nodeCoefficientC.y * xBasis[2] +
-						nodeCoefficientD.y * xBasis[3]);
+                        nodeCoefficientA.y * xBasis[0] +
+                        nodeCoefficientB.y * xBasis[1] +
+                        nodeCoefficientC.y * xBasis[2] +
+                        nodeCoefficientD.y * xBasis[3]);
 
         }
         positionField[tid] = displacement;
@@ -612,14 +615,14 @@ __global__ void reg_spline_getApproxSecondDerivatives2D(float4 *secondDerivative
 
         int3 gridSize = c_ControlPointImageDim;
 
-        int tempIndex=tid;
-        const int y =(int)(tempIndex/gridSize.x);
-        const int x = int(tempIndex - y*gridSize.x);
+        const int y =(int)(tid/gridSize.x);
+        const int x = int(tid - y*gridSize.x);
 
         float4 XX = make_float4(0.0f,0.0f,0.0f,0.0f);
         float4 YY = make_float4(0.0f,0.0f,0.0f,0.0f);
         float4 XY = make_float4(0.0f,0.0f,0.0f,0.0f);
 
+        int tempIndex;
         if(0<x && x<gridSize.x-1 &&
            0<y && y<gridSize.y-1){
 
@@ -628,10 +631,13 @@ __global__ void reg_spline_getApproxSecondDerivatives2D(float4 *secondDerivative
                 for(int a=x-1; a<x+2; ++a){
                     int indexXY = b*gridSize.x+a;
                     float4 controlPointValues = tex1Dfetch(controlPointTexture,indexXY);
-                    XX = XX + xxbasis[tempIndex] * controlPointValues;
-                    YY = YY + yybasis[tempIndex] * controlPointValues;
-                    XY = XY + xybasis[tempIndex] * controlPointValues;
-                    tempIndex++;
+                    XX.x = XX.x + xxbasis[tempIndex] * controlPointValues.x;
+                    XX.y = XX.y + xxbasis[tempIndex] * controlPointValues.y;
+                    YY.x = YY.x + yybasis[tempIndex] * controlPointValues.x;
+                    YY.y = YY.y + yybasis[tempIndex] * controlPointValues.y;
+                    XY.x = XY.x + xybasis[tempIndex] * controlPointValues.x;
+                    XY.y = XY.y + xybasis[tempIndex] * controlPointValues.y;
+                    ++tempIndex;
                 }
             }
         }
@@ -639,7 +645,7 @@ __global__ void reg_spline_getApproxSecondDerivatives2D(float4 *secondDerivative
         tempIndex=3*tid;
         secondDerivativeValues[tempIndex++]=XX;
         secondDerivativeValues[tempIndex++]=YY;
-        secondDerivativeValues[tempIndex]=XY;
+        secondDerivativeValues[tempIndex] = XY;
     }
     return;
 }
@@ -712,7 +718,6 @@ __global__ void reg_spline_getApproxSecondDerivatives3D(float4 *secondDerivative
         secondDerivativeValues[tempIndex++]=YZ;
         secondDerivativeValues[tempIndex] = XZ;
     }
-    return;
 }
 /* *************************************************************** */
 __global__ void reg_spline_getApproxBendingEnergy2D_kernel(float *penaltyTerm)
@@ -773,9 +778,8 @@ __global__ void reg_spline_getApproxBendingEnergyGradient2D_kernel(float4 *nodeG
 
         int3 gridSize = c_ControlPointImageDim;
 
-        int tempIndex=tid;
-        const int y = tempIndex/gridSize.x;
-        const int x = tempIndex - y*gridSize.x;
+        const int y = tid/gridSize.x;
+        const int x = tid - y*gridSize.x;
 
         float2 gradientValue=make_float2(0.0f,0.0f);
         float4 secondDerivativeValues;
@@ -798,15 +802,9 @@ __global__ void reg_spline_getApproxBendingEnergyGradient2D_kernel(float4 *nodeG
                 coord++;
             }
         }
-        gradientValue = make_float2(c_Weight*gradientValue.x,
-                                    c_Weight*gradientValue.y);
 
-        float4 metricGradientValue;
-        metricGradientValue = nodeGradientArray[tid];
-        // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way
-        metricGradientValue.x += gradientValue.x;
-        metricGradientValue.y += gradientValue.y;
-        nodeGradientArray[tid]=metricGradientValue;
+        nodeGradientArray[tid].x += c_Weight*gradientValue.x;
+        nodeGradientArray[tid].y += c_Weight*gradientValue.y;
     }
 }
 /* *************************************************************** */
@@ -827,8 +825,6 @@ __global__ void reg_spline_getApproxBendingEnergyGradient3D_kernel(float4 *nodeG
                                          xybasis,
                                          yzbasis,
                                          xzbasis);
-    __syncthreads();
-    __syncthreads();
     __syncthreads();
 
     const int tid= (blockIdx.y*gridDim.x+blockIdx.x)*blockDim.x+threadIdx.x;
@@ -1171,8 +1167,8 @@ __global__ void reg_spline_getJacobianValues3D_kernel(float *jacobianMatrices,
 		nodeAnte.y = (int)floorf((float)y/gridVoxelSpacing.y);
 		nodeAnte.z = (int)floorf((float)z/gridVoxelSpacing.z);
 
-		__shared__ float yFirst[Block_reg_spline_getJacobianValues3D*4];
-		__shared__ float zFirst[Block_reg_spline_getJacobianValues3D*4];
+        extern __shared__ float yFirst[];
+        float *zFirst=&yFirst[4*blockDim.x*blockDim.y*blockDim.z];
 
 		float xBasis[4], yBasis[4], zBasis[4], xFirst[4], relative;
 
