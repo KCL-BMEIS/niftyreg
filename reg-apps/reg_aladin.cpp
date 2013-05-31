@@ -17,7 +17,7 @@
 #include "_reg_tools.h"
 #include "reg_aladin.h"
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 #   include <time.h>
 #endif
 

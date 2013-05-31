@@ -151,11 +151,16 @@ void reg_getEntropies1(nifti_image *referenceImage,
 
     int num_fixed_volumes = referenceImage->nt;
     int num_warped_volumes = warpedImage->nt;
-    int i, j, index;
+	int i, j;
+#ifdef _WINDOWS
+	int  index;
+#else
+	size_t  index;
+#endif
 
     if(num_fixed_volumes>1 || num_warped_volumes>1) approx=true;
 
-    int fixedVoxelNumber = referenceImage->nx * referenceImage->ny * referenceImage->nz;
+	size_t fixedVoxelNumber = (size_t)referenceImage->nx * referenceImage->ny * referenceImage->nz;
 
     DTYPE *referenceImagePtr = static_cast<DTYPE *>(referenceImage->data);
     DTYPE *warpedImagePtr = static_cast<DTYPE *>(warpedImage->data);
@@ -712,7 +717,7 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *referenceImage,
 
     if(num_fixed_volumes>1 || num_warped_volumes>1) approx=true;
 
-    int fixedVoxelNumber = referenceImage->nx * referenceImage->ny * referenceImage->nz;
+	size_t fixedVoxelNumber = (size_t)referenceImage->nx * referenceImage->ny * referenceImage->nz;
 
     DTYPE *referenceImagePtr = static_cast<DTYPE *>(referenceImage->data);
     DTYPE *warpedImagePtr = static_cast<DTYPE *>(warpedImage->data);
@@ -790,7 +795,12 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *referenceImage,
     GradTYPE warped_common[3];
     GradTYPE der_term[3];
 
-    int index, currentIndex, relative_pos, i, j, lc, jc;
+#ifdef _WINDOWS
+	int  index;
+#else
+	size_t  index;
+#endif
+	int currentIndex, relative_pos, i, j, lc, jc;
     int fixed_flat_index, warped_flat_index;
     DTYPE temp;
     GradTYPE reg;

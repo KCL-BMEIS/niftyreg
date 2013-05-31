@@ -49,8 +49,8 @@ void CubicSplineResampleImage3D(nifti_image *floatingImage,
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(floatingImage->data);
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(warpedImage->data);
     FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-    size_t resultVoxelNumber = warpedImage->nx*warpedImage->ny*warpedImage->nz;
-    size_t sourceVoxelNumber = floatingImage->nx*floatingImage->ny*floatingImage->nz;
+	size_t resultVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny*warpedImage->nz;
+	size_t sourceVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
     FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[resultVoxelNumber];
     FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[resultVoxelNumber];
 
@@ -76,8 +76,12 @@ void CubicSplineResampleImage3D(nifti_image *floatingImage,
         SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
         FieldTYPE xBasis[4], yBasis[4], zBasis[4], relative;
-        int a, b, c, Y, Z, previous[3];
-        size_t index;
+		int a, b, c, Y, Z, previous[3];
+#ifdef _WINDOWS
+	int  index;
+#else
+	size_t  index;
+#endif
         SourceTYPE *zPointer, *yzPointer, *xyzPointer;
         FieldTYPE xTempNewValue, yTempNewValue, intensity, world[3], position[3];
 #ifdef _OPENMP
@@ -214,8 +218,12 @@ void CubicSplineResampleImage2D(nifti_image *floatingImage,
         SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
         FieldTYPE xBasis[4], yBasis[4], relative;
-        int a, b, Y, previous[2];
-        size_t index;
+		int a, b, Y, previous[2];
+#ifdef _WINDOWS
+	int  index;
+#else
+	size_t  index;
+#endif
         SourceTYPE *yPointer, *xyPointer;
         FieldTYPE xTempNewValue, intensity, world[2], position[2];
 #ifdef _OPENMP
@@ -317,8 +325,8 @@ void TrilinearResampleImage(nifti_image *floatingImage,
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(floatingImage->data);
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(warpedImage->data);
     FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-    size_t targetVoxelNumber = warpedImage->nx*warpedImage->ny*warpedImage->nz;
-    size_t sourceVoxelNumber = floatingImage->nx*floatingImage->ny*floatingImage->nz;
+	size_t targetVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny*warpedImage->nz;
+	size_t sourceVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
     FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
     FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[targetVoxelNumber];
 
@@ -342,8 +350,12 @@ void TrilinearResampleImage(nifti_image *floatingImage,
         SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
         FieldTYPE xBasis[2], yBasis[2], zBasis[2], relative;
-        int a, b, c, X, Y, Z, previous[3];
-        size_t index;
+		int a, b, c, X, Y, Z, previous[3];
+#ifdef _WINDOWS
+	int  index;
+#else
+	size_t  index;
+#endif
         SourceTYPE *zPointer, *xyzPointer;
         FieldTYPE xTempNewValue, yTempNewValue, intensity, world[3], position[3];
 #ifdef _OPENMP
@@ -483,8 +495,8 @@ void BilinearResampleImage(nifti_image *floatingImage,
     // The resampling scheme is applied along each time
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(floatingImage->data);
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(warpedImage->data);
-    size_t  targetVoxelNumber = warpedImage->nx*warpedImage->ny;
-    size_t  sourceVoxelNumber = floatingImage->nx*floatingImage->ny;
+	size_t  targetVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny;
+	size_t  sourceVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
     FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
     FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
 
@@ -510,8 +522,12 @@ void BilinearResampleImage(nifti_image *floatingImage,
         SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
         FieldTYPE xBasis[2], yBasis[2], relative;
-        int a, b, X, Y, previous[3];
-        size_t index;
+		int a, b, X, Y, previous[3];
+#ifdef _WINDOWS
+	int  index;
+#else
+	size_t  index;
+#endif
         SourceTYPE *xyPointer;
         FieldTYPE xTempNewValue, intensity, world[2], position[2];
 #ifdef _OPENMP
@@ -616,8 +632,8 @@ void NearestNeighborResampleImage(nifti_image *floatingImage,
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(floatingImage->data);
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(warpedImage->data);
     FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-    size_t targetVoxelNumber = warpedImage->nx*warpedImage->ny*warpedImage->nz;
-    size_t sourceVoxelNumber = floatingImage->nx*floatingImage->ny*floatingImage->nz;
+	size_t targetVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny*warpedImage->nz;
+	size_t sourceVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
     FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
     FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[targetVoxelNumber];
 
@@ -644,8 +660,12 @@ void NearestNeighborResampleImage(nifti_image *floatingImage,
         SourceTYPE intensity;
         FieldTYPE world[3];
         FieldTYPE position[3];
-        int previous[3];
-        size_t index;
+		int previous[3];
+#ifdef _WINDOWS
+	int  index;
+#else
+	size_t  index;
+#endif
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(index, intensity, world, position, previous) \
@@ -699,8 +719,8 @@ void NearestNeighborResampleImage2D(nifti_image *floatingImage,
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(floatingImage->data);
     SourceTYPE *resultIntensityPtr = static_cast<SourceTYPE *>(warpedImage->data);
     FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-    size_t targetVoxelNumber = warpedImage->nx*warpedImage->ny;
-    size_t sourceVoxelNumber = floatingImage->nx*floatingImage->ny;
+	size_t targetVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny;
+	size_t sourceVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
     FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[targetVoxelNumber];
 
     int *maskPtr = &mask[0];
@@ -726,8 +746,12 @@ void NearestNeighborResampleImage2D(nifti_image *floatingImage,
         SourceTYPE intensity;
         FieldTYPE world[2];
         FieldTYPE position[2];
-        int previous[2];
-        size_t index;
+		int previous[2];
+#ifdef _WINDOWS
+	int  index;
+#else
+	size_t  index;
+#endif
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(index, intensity, world, position, previous) \
@@ -1028,8 +1052,8 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
                                   nifti_image *deformationField,
                                   float paddingValue)
 {
-    size_t floatingVoxelNumber = floatingImage->nx*floatingImage->ny*floatingImage->nz;
-    size_t warpedVoxelNumber = warpedImage->nx*warpedImage->ny*warpedImage->nz;
+	size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+	size_t warpedVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny*warpedImage->nz;
     DTYPE *floatingIntensityX = static_cast<DTYPE *>(floatingImage->data);
     DTYPE *floatingIntensityY = &floatingIntensityX[floatingVoxelNumber];
     DTYPE *warpedIntensityX = static_cast<DTYPE *>(warpedImage->data);
@@ -1208,8 +1232,8 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
                                    nifti_image *deformationField,
                                    float paddingValue)
 {
-    size_t floatingVoxelNumber = floatingImage->nx*floatingImage->ny*floatingImage->nz;
-    size_t warpedVoxelNumber = warpedImage->nx*warpedImage->ny*warpedImage->nz;
+	size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+	size_t warpedVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny*warpedImage->nz;
     DTYPE *floatingIntensityX = static_cast<DTYPE *>(floatingImage->data);
     DTYPE *floatingIntensityY = &floatingIntensityX[floatingVoxelNumber];
     DTYPE *floatingIntensityZ = &floatingIntensityY[floatingVoxelNumber];
@@ -1495,8 +1519,8 @@ void TrilinearImageGradient(nifti_image *floatingImage,
                             int *mask,
                             float paddingValue)
 {
-    int targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz;
-    int sourceVoxelNumber = floatingImage->nx*floatingImage->ny*floatingImage->nz;
+	size_t targetVoxelNumber = (size_t)resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz;
+	size_t sourceVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
     int gradientOffSet = targetVoxelNumber*resultGradientImage->nt;
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(floatingImage->data);
     GradientTYPE *resultGradientImagePtr = static_cast<GradientTYPE *>(resultGradientImage->data);
@@ -1528,7 +1552,12 @@ void TrilinearImageGradient(nifti_image *floatingImage,
 
         SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-        int previous[3], index, a, b, c, X, Y, Z;
+#ifdef _WINDOWS
+	int  index;
+#else
+	size_t  index;
+#endif
+		int previous[3], a, b, c, X, Y, Z;
         FieldTYPE position[3], xBasis[2], yBasis[2], zBasis[2];
         FieldTYPE deriv[2];deriv[0]=-1;deriv[1]=1;
         FieldTYPE relative, world[3], grad[3], coeff;
@@ -1676,8 +1705,8 @@ void BilinearImageGradient(nifti_image *floatingImage,
                            int *mask,
                            float paddingValue)
 {
-    int targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny;
-    int sourceVoxelNumber = floatingImage->nx*floatingImage->ny;
+	size_t targetVoxelNumber = (size_t)resultGradientImage->nx*resultGradientImage->ny;
+	size_t sourceVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
     unsigned int gradientOffSet = targetVoxelNumber*resultGradientImage->nt;
 
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(floatingImage->data);
@@ -1710,7 +1739,12 @@ void BilinearImageGradient(nifti_image *floatingImage,
         FieldTYPE position[3], xBasis[2], yBasis[2], relative, world[2], grad[2];
         FieldTYPE deriv[2];deriv[0]=-1;deriv[1]=1;
         FieldTYPE coeff, xTempNewValue, yTempNewValue;
-        int previous[3], index, a, b, X, Y;
+#ifdef _WINDOWS
+	int  index;
+#else
+	size_t  index;
+#endif
+		int previous[3], a, b, X, Y;
         SourceTYPE *xyPointer;
 
 #ifdef _OPENMP
@@ -1801,9 +1835,9 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
                                 int *mask,
                                 float paddingValue)
 {
-    size_t targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz;
-    size_t sourceVoxelNumber = floatingImage->nx*floatingImage->ny*floatingImage->nz;
-    size_t gradientOffSet = targetVoxelNumber*resultGradientImage->nt;
+	size_t targetVoxelNumber = (size_t)resultGradientImage->nx*resultGradientImage->ny*resultGradientImage->nz;
+	size_t sourceVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+	size_t gradientOffSet = (size_t)targetVoxelNumber*resultGradientImage->nt;
 
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(floatingImage->data);
     GradientTYPE *resultGradientImagePtr = static_cast<GradientTYPE *>(resultGradientImage->data);
@@ -1835,7 +1869,12 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
 
         SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-        int previous[3], index, c, Z, b, Y, a;
+		int previous[3], c, Z, b, Y, a;
+#ifdef _WINDOWS
+	int  index;
+#else
+	size_t  index;
+#endif
         FieldTYPE xBasis[4], yBasis[4], zBasis[4], xDeriv[4], yDeriv[4], zDeriv[4];
         FieldTYPE coeff, position[3], relative, world[3], grad[3];
         FieldTYPE xxTempNewValue, yyTempNewValue, zzTempNewValue, xTempNewValue, yTempNewValue;
@@ -1954,9 +1993,9 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
                                 nifti_image *resultGradientImage,
                                 int *mask)
 {
-    int targetVoxelNumber = resultGradientImage->nx*resultGradientImage->ny;
-    int sourceVoxelNumber = floatingImage->nx*floatingImage->ny;
-    unsigned int gradientOffSet = targetVoxelNumber*resultGradientImage->nt;
+	size_t targetVoxelNumber = (size_t)resultGradientImage->nx*resultGradientImage->ny;
+	size_t sourceVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
+	size_t gradientOffSet = (size_t)targetVoxelNumber*resultGradientImage->nt;
 
     SourceTYPE *sourceIntensityPtr = static_cast<SourceTYPE *>(floatingImage->data);
     GradientTYPE *resultGradientImagePtr = static_cast<GradientTYPE *>(resultGradientImage->data);
@@ -1983,11 +2022,16 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
 
         GradientTYPE *resultGradientPtrX = &resultGradientImagePtr[targetVoxelNumber*t];
         GradientTYPE *resultGradientPtrY = &resultGradientPtrX[gradientOffSet];
-        SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
+		SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-        int previous[3], index, b, Y, a; bool bg;
+#ifdef _WINDOWS
+	int  index;
+#else
+	size_t  index;
+#endif
+		int previous[2], b, Y, a; bool bg;
         FieldTYPE xBasis[4], yBasis[4], xDeriv[4], yDeriv[4];
-        FieldTYPE coeff, position[3], relative, world[3], grad[3];
+		FieldTYPE coeff, position[3], relative, world[3], grad[2];
         FieldTYPE xTempNewValue, yTempNewValue;
         SourceTYPE *yPointer, *xyPointer;
 #ifdef _OPENMP
@@ -2001,8 +2045,8 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
 #endif // _OPENMP
         for(index=0;index<targetVoxelNumber; index++){
 
-            grad[index]=0.0;
-            grad[index]=0.0;
+			grad[0]=0.0;
+			grad[1]=0.0;
 
             if(maskPtr[index]>-1){
                 world[0]=(FieldTYPE) deformationFieldPtrX[index];
@@ -2032,7 +2076,7 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
                     Y= previous[1]+b;
                     yPointer = &sourceIntensity[Y*floatingImage->nx];
                     if(-1<Y && Y<floatingImage->ny){
-                        xyPointer = &yPointer[previous[0]];
+						xyPointer = &yPointer[previous[0]];
                         xTempNewValue=0.0;
                         yTempNewValue=0.0;
                         for(a=0; a<4; a++){

@@ -2001,7 +2001,12 @@ void reg_defField_compose2D(nifti_image *deformationField,
         df_voxel2Real=&(deformationField->qto_xyz);
     }
 
-    size_t i, index;
+#ifdef _WINDOWS
+	int  i;
+#else
+	size_t  i;
+#endif
+	size_t index;
     int a, b, pre[2];
     DTYPE realDefX, realDefY, voxelX, voxelY;
     DTYPE defX, defY, relX[2], relY[2], basis;
@@ -2091,7 +2096,12 @@ void reg_defField_compose3D(nifti_image *deformationField,
         df_real2Voxel=&deformationField->qto_ijk;
         df_voxel2Real=&deformationField->qto_xyz;
     }
-    size_t i, tempIndex, index;
+#ifdef _WINDOWS
+	int  i;
+#else
+	size_t  i;
+#endif
+	size_t tempIndex, index;
 
     int a, b, c, currentX, currentY, currentZ, pre[3];
     DTYPE realDefX, realDefY, realDefZ, voxelX, voxelY, voxelZ, tempBasis;

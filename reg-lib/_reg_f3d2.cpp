@@ -575,12 +575,12 @@ void reg_f3d2<T>::UpdateParameters(float scale)
 
         // Reorient the warped grids if necessary
 #ifdef _WIN32
-        long node, nodeNumber;
+		long node;
 #else
-        size_t node, nodeNumber;
+		size_t node;
 #endif
         // Reorient the forward grid in the backward space
-        nodeNumber=this->backwardControlPointGrid->nx*this->backwardControlPointGrid->ny*this->backwardControlPointGrid->nz;
+		size_t nodeNumber=(size_t)this->backwardControlPointGrid->nx*this->backwardControlPointGrid->ny*this->backwardControlPointGrid->nz;
         T *propVelFieldPtrX=static_cast<T *>(forward2backward->data);
         T *propVelFieldPtrY=&propVelFieldPtrX[nodeNumber];
 

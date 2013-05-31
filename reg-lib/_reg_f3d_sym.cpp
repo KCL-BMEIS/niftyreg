@@ -817,10 +817,15 @@ void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
 
     /* The gradient is converted from voxel space to real space */
     mat44 *referenceMatrix_xyz=NULL;
-    int controlPointNumber=this->backwardControlPointGrid->nx *
+	size_t controlPointNumber=
+			(size_t)this->backwardControlPointGrid->nx *
             this->backwardControlPointGrid->ny *
-            this->backwardControlPointGrid->nz;
-    int i;
+			this->backwardControlPointGrid->nz;
+#ifdef _WINDOWS
+	int  i;
+#else
+	size_t  i;
+#endif
     if(this->currentReference->sform_code>0)
         referenceMatrix_xyz = &(this->currentReference->sto_xyz);
     else referenceMatrix_xyz = &(this->currentReference->qto_xyz);

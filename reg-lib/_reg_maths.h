@@ -23,7 +23,7 @@
 #define reg_pow2(a) ((a)*(a))
 #define reg_ceil(a) (ceil(a))
 #define reg_round(a) ((a)>0.0 ?(int)((a)+0.5):(int)((a)-0.5))
-#ifdef _WINDOWS
+#ifdef _WIN32
     #define reg_floor(a) ((a)>0?(int)(a):(int)((a)-1))
 #else
     #define reg_floor(a) ((a)>=0?(int)(a):floor(a))

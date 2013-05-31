@@ -510,8 +510,12 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
 
 	/* The similarity measure gradient is converted from voxel space to real space */
     mat44 *floatingMatrix_xyz=NULL;
-    int controlPointNumber=this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz;
-    int i;
+	size_t controlPointNumber=(size_t)this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz;
+#ifdef _WINDOWS
+	int  i;
+#else
+	size_t  i;
+#endif
     if(this->currentFloating->sform_code>0)
         floatingMatrix_xyz = &(this->currentFloating->sto_xyz);
     else floatingMatrix_xyz = &(this->currentFloating->qto_xyz);
@@ -635,38 +639,46 @@ void reg_f3d<T>::SetGradientImageToZero()
 template <class T>
 T reg_f3d<T>::NormaliseGradient()
 {
-    // First compute the gradient max length for normalisation purpose
-    T maxGradValue=0;
+	// First compute the gradient max length for normalisation purpose
+//	T maxGradValue=0;
     size_t voxNumber = this->transformationGradient->nx *
             this->transformationGradient->ny *
             this->transformationGradient->nz;
     T *ptrX = static_cast<T *>(this->transformationGradient->data);
     T *ptrY = &ptrX[voxNumber];
+	T *ptrZ = NULL;
+	float *length=(float *)calloc(voxNumber,sizeof(float));
     if(this->transformationGradient->nz>1){
-        T *ptrZ = &ptrY[voxNumber];
-        for(int i=0; i<voxNumber; i++){
+		ptrZ = &ptrY[voxNumber];
+		for(size_t i=0; i<voxNumber; i++){
             T valX=0,valY=0,valZ=0;
             if(this->optimiseX==true)
                 valX = *ptrX++;
             if(this->optimiseY==true)
                 valY = *ptrY++;
             if(this->optimiseZ==true)
-                valZ = *ptrZ++;
-            T length = (T)(sqrt(valX*valX + valY*valY + valZ*valZ));
-            maxGradValue = (length>maxGradValue)?length:maxGradValue;
+				valZ = *ptrZ++;
+			length[i] = (float)(sqrt(valX*valX + valY*valY + valZ*valZ));
+//            T length = (T)(sqrt(valX*valX + valY*valY + valZ*valZ));
+//            maxGradValue = (length>maxGradValue)?length:maxGradValue;
         }
     }
     else{
-        for(int i=0; i<voxNumber; i++){
+		for(size_t i=0; i<voxNumber; i++){
             T valX=0,valY=0;
             if(this->optimiseX==true)
                 valX = *ptrX++;
             if(this->optimiseY==true)
-                valY = *ptrY++;
-            T length = (T)(sqrt(valX*valX + valY*valY));
-            maxGradValue = (length>maxGradValue)?length:maxGradValue;
-        }
+				valY = *ptrY++;
+			length[i] = (float)(sqrt(valX*valX + valY*valY));
+//			T length = (T)(sqrt(valX*valX + valY*valY));
+//			maxGradValue = (length>maxGradValue)?length:maxGradValue;
+		}
     }
+	reg_heapSort(length,voxNumber);
+	T maxGradValue = (T)(length[90*voxNumber/100 - 1]);
+	free(length);
+
 
     if(strcmp(this->executableName,"NiftyReg F3D")==0){
         // The gradient is normalised if we are running F3D
@@ -675,9 +687,47 @@ T reg_f3d<T>::NormaliseGradient()
     printf("[NiftyReg DEBUG] Objective function gradient maximal length: %g\n",maxGradValue);
 #endif
         ptrX = static_cast<T *>(this->transformationGradient->data);
-        for(size_t i=0;i<this->transformationGradient->nvox;++i){
-            *ptrX++ /= maxGradValue;
-        }
+		if(this->transformationGradient->nz>1){
+			ptrX = static_cast<T *>(this->transformationGradient->data);
+			ptrY = &ptrX[voxNumber];
+			ptrZ = &ptrY[voxNumber];
+			for(size_t i=0;i<voxNumber;++i){
+				T valX=0,valY=0,valZ=0;
+				if(this->optimiseX==true)
+					valX = *ptrX;
+				if(this->optimiseY==true)
+					valY = *ptrY;
+				if(this->optimiseZ==true)
+					valZ = *ptrZ;
+				T tempLength = (float)(sqrt(valX*valX + valY*valY + valZ*valZ));
+				if(tempLength>maxGradValue){
+					*ptrX *= maxGradValue / tempLength;
+					*ptrY *= maxGradValue / tempLength;
+					*ptrZ *= maxGradValue / tempLength;
+				}
+				*ptrX++ /= maxGradValue;
+				*ptrY++ /= maxGradValue;
+				*ptrZ++ /= maxGradValue;
+			}
+		}
+		else{
+			ptrX = static_cast<T *>(this->transformationGradient->data);
+			ptrY = &ptrX[voxNumber];
+			for(size_t i=0;i<voxNumber;++i){
+				T valX=0,valY=0;
+				if(this->optimiseX==true)
+					valX = *ptrX;
+				if(this->optimiseY==true)
+					valY = *ptrY;
+				T tempLength = (float)(sqrt(valX*valX + valY*valY));
+				if(tempLength>maxGradValue){
+					*ptrX *= maxGradValue / tempLength;
+					*ptrY *= maxGradValue / tempLength;
+				}
+				*ptrX++ /= maxGradValue;
+				*ptrY++ /= maxGradValue;
+			}
+		}
     }
     // Returns the largest gradient distance
     return maxGradValue;
@@ -849,8 +899,8 @@ void reg_f3d<T>::GetApproximatedGradient()
 {
     // Loop over every control point
     T *gridPtr = static_cast<T *>(this->controlPointGrid->data);
-    T *gradPtr = static_cast<T *>(this->transformationGradient->data);
-    T eps = this->controlPointGrid->dx / 1000.f;
+	T *gradPtr = static_cast<T *>(this->transformationGradient->data);
+	T eps = this->controlPointGrid->dx / 1000.f;
     for(size_t i=0; i<this->controlPointGrid->nvox;i++)
     {
         T currentValue = this->optimiser->GetBestDOF()[i];
