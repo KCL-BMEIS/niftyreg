@@ -679,7 +679,7 @@ void reg_tools_operationImageToImage(nifti_image *img1,
     res->scl_inter=img1->scl_inter;
 
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  i;
 #else
 	size_t  i;
@@ -922,7 +922,7 @@ void reg_tools_operationValueToImage(nifti_image *img1,
     res->scl_slope=img1->scl_slope;
     res->scl_inter=img1->scl_inter;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  i;
 #else
 	size_t  i;
@@ -1159,7 +1159,7 @@ void reg_gaussianSmoothing1(nifti_image *image,
 
 	size_t voxelNumber = (size_t)image->nx*image->ny*image->nz;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  index;
 #else
 	size_t  index;
@@ -1401,7 +1401,7 @@ void reg_downsampleImage1(nifti_image *image, int type, bool *downsampleAxis)
     int previous[3];
 
     // qform is used for resampling
-    for(size_t tuvw=0; tuvw<image->nt*image->nu*image->nv*image->nw; tuvw++){
+	for(size_t tuvw=0; tuvw<(size_t)image->nt*image->nu*image->nv*image->nw; tuvw++){
         ImageTYPE *valuesPtrTUVW = &oldValues[tuvw*oldDim[1]*oldDim[2]*oldDim[3]];
         for(int z=0; z<image->nz; z++){
             for(int y=0; y<image->ny; y++){
@@ -2546,7 +2546,7 @@ float reg_test_compare_images(nifti_image *imgA,
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-float reg_tools_abs_image1(nifti_image *img)
+void reg_tools_abs_image1(nifti_image *img)
 {
     DTYPE *ptr = static_cast<DTYPE *>(img->data);
     for(size_t i=0; i<img->nvox;++i)

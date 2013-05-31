@@ -448,19 +448,19 @@ void reg_spline_getDeformationField2D(nifti_image *splineControlPoint,
         float f[4];
     } val;
     __m128 tempCurrent, tempX, tempY;
-#ifdef _WINDOWS
+#ifdef _WIN32
     __declspec(align(16)) DTYPE temp[4];
     __declspec(align(16)) DTYPE yBasis[4];
     union{__m128 m[16];__declspec(align(16)) DTYPE f[16];} xControlPointCoordinates;
     union{__m128 m[16];__declspec(align(16)) DTYPE f[16];} yControlPointCoordinates;
     union u1{__m128 m[4]; __declspec(align(16)) DTYPE f[16];}xyBasis;
-#else // _WINDOWS
+#else // _WIN32
     DTYPE temp[4] __attribute__((aligned(16)));
     DTYPE yBasis[4] __attribute__((aligned(16)));
     union{__m128 m[16];DTYPE f[16] __attribute__((aligned(16)));} xControlPointCoordinates;
     union{__m128 m[16];DTYPE f[16] __attribute__((aligned(16)));} yControlPointCoordinates;
     union u1{__m128 m[4]; DTYPE f[16] __attribute__((aligned(16)));}xyBasis;
-#endif // _WINDOWS
+#endif // _WIN32
 #else // _USE_SSE
     DTYPE temp[4];
     DTYPE yBasis[4];
@@ -726,19 +726,19 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
     __m128 tempX, tempY, tempZ, tempCurrent;
     __m128 xBasis_sse, yBasis_sse, zBasis_sse, temp_basis_sse, basis_sse;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
     __declspec(align(16)) DTYPE temp[4];
     __declspec(align(16)) DTYPE zBasis[4];
     union{__m128 m[16];__declspec(align(16)) DTYPE f[16];} xControlPointCoordinates;
     union{__m128 m[16];__declspec(align(16)) DTYPE f[16];} yControlPointCoordinates;
     union{__m128 m[16];__declspec(align(16)) DTYPE f[16];} zControlPointCoordinates;
-#else // _WINDOWS
+#else // _WIN32
     DTYPE temp[4] __attribute__((aligned(16)));
     DTYPE zBasis[4] __attribute__((aligned(16)));
     union{__m128 m[16];DTYPE f[16] __attribute__((aligned(16)));} xControlPointCoordinates;
     union{__m128 m[16];DTYPE f[16] __attribute__((aligned(16)));} yControlPointCoordinates;
     union{__m128 m[16];DTYPE f[16] __attribute__((aligned(16)));} zControlPointCoordinates;
-#endif // _WINDOWS
+#endif // _WIN32
 #else // _USE_SSE
     DTYPE temp[4];
     DTYPE zBasis[4];
@@ -775,7 +775,7 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
             referenceMatrix_real_to_voxel=&(splineControlPoint->sto_ijk);
         else referenceMatrix_real_to_voxel=&(splineControlPoint->qto_ijk);
 #ifdef _USE_SSE
-#ifdef _WINDOWS
+#ifdef _WIN32
         __declspec(align(16)) DTYPE xBasis[4];
         __declspec(align(16)) DTYPE yBasis[4];
 #else
@@ -938,13 +938,13 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
     }//Composition of deformation
     else{ // !composition
 #ifdef _USE_SSE
-    #ifdef _WINDOWS
+	#ifdef _WIN32
             union u1{__m128 m[4];__declspec(align(16)) DTYPE f[16];}yzBasis;
             union u2{__m128 m[16];__declspec(align(16)) DTYPE f[64];}xyzBasis;
-    #else // _WINDOWS
+	#else // _WIN32
             union u1{__m128 m[4];DTYPE f[16] __attribute__((aligned(16)));}yzBasis;
             union u2{__m128 m[16];DTYPE f[64] __attribute__((aligned(16)));}xyzBasis;
-    #endif // _WINDOWS
+	#endif // _WIN32
 #else // _USE_SSE
             DTYPE yzBasis[16], xyzBasis[64];
 #endif // _USE_SSE
@@ -2001,7 +2001,7 @@ void reg_defField_compose2D(nifti_image *deformationField,
         df_voxel2Real=&(deformationField->qto_xyz);
     }
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  i;
 #else
 	size_t  i;
@@ -2096,7 +2096,7 @@ void reg_defField_compose3D(nifti_image *deformationField,
         df_real2Voxel=&deformationField->qto_ijk;
         df_voxel2Real=&deformationField->qto_xyz;
     }
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  i;
 #else
 	size_t  i;
@@ -2439,10 +2439,10 @@ nmsimplex_move_corner (const double coeff, nmsimplex_state_t *state,
   size_t i, j;
   double newval, mp;
 
-  for (j = 0; j < state->nvec; j++)
+  for (j = 0; j < (size_t)state->nvec; j++)
     {
       mp = 0.0;
-      for (i = 0; i < state->nsimplex; i++)
+	  for (i = 0; i < (size_t)state->nsimplex; i++)
         {
           if (i != corner)
             {
@@ -2476,11 +2476,11 @@ nmsimplex_contract_by_best (nmsimplex_state_t *state, size_t best,
   size_t i, j;
   double newval;
 
-  for (i = 0; i < state->nsimplex; i++)
+  for (i = 0; i < (size_t)state->nsimplex; i++)
     {
       if (i != best)
         {
-          for (j = 0; j < state->nvec; j++)
+		  for (j = 0; j < (size_t)state->nvec; j++)
             {
               newval = 0.5 * (x1[i*state->nvec + j] + x1[best*state->nvec + j]);
               x1[i*state->nvec +  j] = newval;
@@ -2505,10 +2505,10 @@ nmsimplex_calc_center (const nmsimplex_state_t *state, double *mp)
   size_t i, j;
   double val;
 
-  for (j = 0; j < state->nvec; j++)
+  for (j = 0; j < (size_t)state->nvec; j++)
     {
       val = 0.0;
-      for (i = 0; i < state->nsimplex; i++)
+	  for (i = 0; i < (size_t)state->nsimplex; i++)
         {
           val += x1[i*state->nvec + j];
         }
@@ -2537,11 +2537,11 @@ nmsimplex_size (nmsimplex_state_t *state)
   /* Calculate middle point */
   nmsimplex_calc_center (state, mp);
 
-  for (i = 0; i < state->nsimplex; i++)
+  for (i = 0; i < (size_t)state->nsimplex; i++)
     {
-      for (j=0; j<state->nvec; j++) s[j] = x1[i*state->nvec + j] - mp[j];
+	  for (j=0; j<(size_t)state->nvec; j++) s[j] = x1[i*state->nvec + j] - mp[j];
       t = 0;
-      for (j=0; j<state->nvec; j++) t += s[j]*s[j];
+	  for (j=0; j<(size_t)state->nvec; j++) t += s[j]*s[j];
       ss += sqrt(t);
     }
 
@@ -2553,7 +2553,6 @@ nmsimplex_set (void *vstate, gsl_multimin_function *f,
                const double *x,
                double *size, const double *step_size, void *fdata)
 {
-  int status;
   size_t i, j;
   double val;
 
@@ -2564,19 +2563,19 @@ nmsimplex_set (void *vstate, gsl_multimin_function *f,
   /* first point is the original x0 */
 
   val = f(x, fdata);
-  for (j=0; j<state->nvec; j++) state->x1[j] = x[j];
+  for (j=0; j<(size_t)state->nvec; j++) state->x1[j] = x[j];
   state->y1[0] = val;
 
   /* following points are initialized to x0 + step_size */
 
-  for (i = 0; i < state->nvec; i++)
+  for (i = 0; i < (size_t)state->nvec; i++)
     {
-      for (j=0; j<state->nvec; j++) xtemp[j] = x[j];
+	  for (j=0; j<(size_t)state->nvec; j++) xtemp[j] = x[j];
 
       val = xtemp[i] + step_size[i];
       xtemp[i] = val;
       val = f(xtemp, fdata);
-      for (j=0; j<state->nvec; j++)
+	  for (j=0; j<(size_t)state->nvec; j++)
         state->x1[(i + 1)*state->nvec + j] = xtemp[j];
       state->y1[i + 1] = val;
     }
@@ -2607,7 +2606,6 @@ nmsimplex_iterate (void *vstate, gsl_multimin_function *f,
   size_t i, j;
   size_t hi = 0, s_hi = 0, lo = 0;
   double dhi, ds_hi, dlo;
-  int status;
   double val, val2;
 
   /* get index of highest, second highest and lowest point */
@@ -2649,12 +2647,12 @@ nmsimplex_iterate (void *vstate, gsl_multimin_function *f,
 
       if (val2 < y1[lo])
         {
-          for (j=0; j<state->nvec; j++) x1[hi*state->nvec+j] = xc2[j];
+		  for (j=0; j<(size_t)state->nvec; j++) x1[hi*state->nvec+j] = xc2[j];
           y1[hi] = val2;
         }
       else
         {
-          for (j=0; j<state->nvec; j++) x1[hi*state->nvec+j] = xc[j];
+		  for (j=0; j<(size_t)state->nvec; j++) x1[hi*state->nvec+j] = xc[j];
           y1[hi] = val;
         }
     }
@@ -2669,7 +2667,7 @@ nmsimplex_iterate (void *vstate, gsl_multimin_function *f,
           /* if trial point is better than highest point, replace
              highest point */
 
-          for (j=0; j<state->nvec; j++) x1[hi*state->nvec+j] = xc[j];
+		  for (j=0; j<(size_t)state->nvec; j++) x1[hi*state->nvec+j] = xc[j];
           y1[hi] = val;
         }
 
@@ -2679,7 +2677,7 @@ nmsimplex_iterate (void *vstate, gsl_multimin_function *f,
 
       if (val2 <= y1[hi])
         {
-          for (j=0; j<state->nvec; j++) x1[hi*state->nvec+j] = xc2[j];
+		  for (j=0; j<(size_t)state->nvec; j++) x1[hi*state->nvec+j] = xc2[j];
           y1[hi] = val2;
         }
 
@@ -2695,15 +2693,15 @@ nmsimplex_iterate (void *vstate, gsl_multimin_function *f,
       /* trial point is better than second highest point.
          Replace highest point by it */
 
-      for (j=0; j<state->nvec; j++) x1[hi*state->nvec+j] = xc[j];
+	  for (j=0; j<(size_t)state->nvec; j++) x1[hi*state->nvec+j] = xc[j];
       y1[hi] = val;
     }
 
   /* return lowest point of simplex as x */
 
   lo=0; val=y1[0];
-  for (j=1; j<state->nsimplex; j++) if (y1[j]<val) lo=j, val=y1[j];
-  for (j=0; j<state->nvec; j++) x[j] = x1[lo*state->nvec+j];
+  for (j=1; j<(size_t)state->nsimplex; j++) if (y1[j]<val) lo=j, val=y1[j];
+  for (j=0; j<(size_t)state->nvec; j++) x[j] = x1[lo*state->nvec+j];
   *fval = y1[lo];
 
 
@@ -2842,7 +2840,7 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
 
     DTYPE basis;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
     __declspec(align(16)) DTYPE xBasis[4];
     __declspec(align(16)) DTYPE yBasis[4];
     #if _USE_SSE
@@ -2851,7 +2849,7 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
 
     __declspec(align(16)) DTYPE xControlPointCoordinates[16];
     __declspec(align(16)) DTYPE yControlPointCoordinates[16];
-#else // _WINDOWS
+#else // _WIN32
     DTYPE xBasis[4] __attribute__((aligned(16)));
     DTYPE yBasis[4] __attribute__((aligned(16)));
     #if _USE_SSE
@@ -2860,7 +2858,7 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
 
     DTYPE xControlPointCoordinates[16] __attribute__((aligned(16)));
     DTYPE yControlPointCoordinates[16] __attribute__((aligned(16)));
-#endif // _WINDOWS
+#endif // _WIN32
 
     size_t coord;
 
@@ -3014,7 +3012,7 @@ void reg_spline_cppComposition_3D(nifti_image *grid1,
 
     DTYPE basis;
 
-#ifdef _WINDOWS
+#ifdef _WIN32
     __declspec(align(16)) DTYPE xBasis[4];
     __declspec(align(16)) DTYPE yBasis[4];
     __declspec(align(16)) DTYPE zBasis[4];
@@ -3595,7 +3593,7 @@ void compute_lie_bracket(nifti_image *img1,
     DTYPE *two_onePtr=static_cast<DTYPE *>(two_one->data);
     // Compute the lie bracket value using difference of composition
 
-#ifdef _WINDOWS
+#ifdef _WIN32
     int i;
 #else
     size_t i;
@@ -3622,7 +3620,7 @@ void compute_BCH_update1(nifti_image *img1, // current field
 {
     DTYPE *res=(DTYPE *)malloc(img1->nvox*sizeof(DTYPE));
 
-#ifdef _WINDOWS
+#ifdef _WIN32
     int i;
 #else
     size_t i;

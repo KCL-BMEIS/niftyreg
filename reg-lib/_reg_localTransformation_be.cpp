@@ -392,14 +392,9 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
                                                nifti_image *gradientImage,
                                                float weight)
 {
-    int a, b, c, bc, x, y, z, X, Y, Z;
+	int a, x, y, z, X, Y, Z;
     // As the contraint is only computed at the voxel position, the basis value of the spline are always the same
-    SplineTYPE basisXX[27], basisYY[27], basisZZ[27], basisXY[27], basisYZ[27], basisXZ[27];
-    SplineTYPE normal[3]={1.0/6.0, 2.0/3.0, 1.0/6.0};
-    SplineTYPE first[3]={-0.5, 0, 0.5};
-    SplineTYPE second[3]={1.0, -2.0, 1.0};
-    // There are six different values taken into account
-    SplineTYPE tempXX[9], tempYY[9], tempZZ[9], tempXY[9], tempYZ[9], tempXZ[9];
+	SplineTYPE basisXX[27], basisYY[27], basisZZ[27], basisXY[27], basisYZ[27], basisXZ[27];
 
     basisXX[0]=0.027778f;basisYY[0]=0.027778f;basisZZ[0]=0.027778f;
     basisXY[0]=0.041667f;basisYZ[0]=0.041667f;basisXZ[0]=0.041667f;

@@ -31,7 +31,7 @@ double reg_getSSD1(nifti_image *referenceImage,
 
     // Create some variables to be use in the openmp loop
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  voxel;
 #else
 	size_t  voxel;
@@ -136,7 +136,7 @@ void reg_getVoxelBasedSSDGradient1(nifti_image *referenceImage,
 {
     // Create pointers to the reference and warped images
 	size_t voxelNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  voxel;
 #else
 	size_t  voxel;

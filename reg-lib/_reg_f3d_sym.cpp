@@ -821,7 +821,7 @@ void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
 			(size_t)this->backwardControlPointGrid->nx *
             this->backwardControlPointGrid->ny *
 			this->backwardControlPointGrid->nz;
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  i;
 #else
 	size_t  i;
@@ -1005,7 +1005,7 @@ T reg_f3d_sym<T>::NormaliseGradient()
     T *bckPtrY = &bckPtrX[voxNumber];
     if(this->backwardTransformationGradient->nz>1){
         T *bckPtrZ = &bckPtrY[voxNumber];
-        for(int i=0; i<voxNumber; i++){
+		for(size_t i=0; i<voxNumber; i++){
             T valX=0,valY=0,valZ=0;
             if(this->optimiseX==true)
                 valX = *bckPtrX++;
@@ -1018,7 +1018,7 @@ T reg_f3d_sym<T>::NormaliseGradient()
         }
     }
     else{
-        for(int i=0; i<voxNumber; i++){
+		for(size_t i=0; i<voxNumber; i++){
             T valX=0,valY=0;
             if(this->optimiseX==true)
                 valX = *bckPtrX++;

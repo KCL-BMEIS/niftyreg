@@ -67,7 +67,7 @@ void CubicSplineResampleImage3D(nifti_image *floatingImage,
     else sourceIJKMatrix=&(floatingImage->qto_ijk);
 
     // Iteration over the different volume along the 4th axis
-    for(size_t t=0; t<warpedImage->nt*warpedImage->nu;t++){
+	for(size_t t=0; t<(size_t)warpedImage->nt*warpedImage->nu;t++){
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] 3D Cubic spline resampling of volume number %i\n",t);
 #endif
@@ -77,7 +77,7 @@ void CubicSplineResampleImage3D(nifti_image *floatingImage,
 
         FieldTYPE xBasis[4], yBasis[4], zBasis[4], relative;
 		int a, b, c, Y, Z, previous[3];
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  index;
 #else
 	size_t  index;
@@ -219,7 +219,7 @@ void CubicSplineResampleImage2D(nifti_image *floatingImage,
 
         FieldTYPE xBasis[4], yBasis[4], relative;
 		int a, b, Y, previous[2];
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  index;
 #else
 	size_t  index;
@@ -351,7 +351,7 @@ void TrilinearResampleImage(nifti_image *floatingImage,
 
         FieldTYPE xBasis[2], yBasis[2], zBasis[2], relative;
 		int a, b, c, X, Y, Z, previous[3];
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  index;
 #else
 	size_t  index;
@@ -523,7 +523,7 @@ void BilinearResampleImage(nifti_image *floatingImage,
 
         FieldTYPE xBasis[2], yBasis[2], relative;
 		int a, b, X, Y, previous[3];
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  index;
 #else
 	size_t  index;
@@ -661,7 +661,7 @@ void NearestNeighborResampleImage(nifti_image *floatingImage,
         FieldTYPE world[3];
         FieldTYPE position[3];
 		int previous[3];
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  index;
 #else
 	size_t  index;
@@ -747,7 +747,7 @@ void NearestNeighborResampleImage2D(nifti_image *floatingImage,
         FieldTYPE world[2];
         FieldTYPE position[2];
 		int previous[2];
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  index;
 #else
 	size_t  index;
@@ -1552,7 +1552,7 @@ void TrilinearImageGradient(nifti_image *floatingImage,
 
         SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  index;
 #else
 	size_t  index;
@@ -1739,7 +1739,7 @@ void BilinearImageGradient(nifti_image *floatingImage,
         FieldTYPE position[3], xBasis[2], yBasis[2], relative, world[2], grad[2];
         FieldTYPE deriv[2];deriv[0]=-1;deriv[1]=1;
         FieldTYPE coeff, xTempNewValue, yTempNewValue;
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  index;
 #else
 	size_t  index;
@@ -1870,7 +1870,7 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
         SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
 		int previous[3], c, Z, b, Y, a;
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  index;
 #else
 	size_t  index;
@@ -2024,7 +2024,7 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
         GradientTYPE *resultGradientPtrY = &resultGradientPtrX[gradientOffSet];
 		SourceTYPE *sourceIntensity = &sourceIntensityPtr[t*sourceVoxelNumber];
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  index;
 #else
 	size_t  index;

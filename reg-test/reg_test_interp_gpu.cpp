@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 
     // Create a mask on both the host and the device
     int *mask_host=(int *)malloc(floatingImage->nx*floatingImage->ny*floatingImage->nz*sizeof(int));
-    for(size_t i=0; i<floatingImage->nx*floatingImage->ny*floatingImage->nz; ++i)
+	for(size_t i=0; i<(size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz; ++i)
         mask_host[i]=i;
     int *mask_device=NULL;
     NR_CUDA_SAFE_CALL(cudaMalloc(&mask_device,floatingImage->nx*floatingImage->ny*floatingImage->nz*sizeof(int)))

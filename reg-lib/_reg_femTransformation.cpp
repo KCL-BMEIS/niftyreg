@@ -148,7 +148,7 @@ void reg_fem_getDeformationField(float *nodePositions,
     float *defPtrY = &defPtrX[voxelNumber];
     float *defPtrZ = &defPtrY[voxelNumber];
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  voxel;
 #else
 	size_t  voxel;

@@ -511,7 +511,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
 	/* The similarity measure gradient is converted from voxel space to real space */
     mat44 *floatingMatrix_xyz=NULL;
 	size_t controlPointNumber=(size_t)this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz;
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  i;
 #else
 	size_t  i;
@@ -647,7 +647,8 @@ T reg_f3d<T>::NormaliseGradient()
     T *ptrX = static_cast<T *>(this->transformationGradient->data);
     T *ptrY = &ptrX[voxNumber];
 	T *ptrZ = NULL;
-	float *length=(float *)calloc(voxNumber,sizeof(float));
+	T maxGradValue=0;
+//	float *length=(float *)calloc(voxNumber,sizeof(float));
     if(this->transformationGradient->nz>1){
 		ptrZ = &ptrY[voxNumber];
 		for(size_t i=0; i<voxNumber; i++){
@@ -658,9 +659,9 @@ T reg_f3d<T>::NormaliseGradient()
                 valY = *ptrY++;
             if(this->optimiseZ==true)
 				valZ = *ptrZ++;
-			length[i] = (float)(sqrt(valX*valX + valY*valY + valZ*valZ));
-//            T length = (T)(sqrt(valX*valX + valY*valY + valZ*valZ));
-//            maxGradValue = (length>maxGradValue)?length:maxGradValue;
+//			length[i] = (float)(sqrt(valX*valX + valY*valY + valZ*valZ));
+			T length = (T)(sqrt(valX*valX + valY*valY + valZ*valZ));
+			maxGradValue = (length>maxGradValue)?length:maxGradValue;
         }
     }
     else{
@@ -670,14 +671,14 @@ T reg_f3d<T>::NormaliseGradient()
                 valX = *ptrX++;
             if(this->optimiseY==true)
 				valY = *ptrY++;
-			length[i] = (float)(sqrt(valX*valX + valY*valY));
-//			T length = (T)(sqrt(valX*valX + valY*valY));
-//			maxGradValue = (length>maxGradValue)?length:maxGradValue;
+//			length[i] = (float)(sqrt(valX*valX + valY*valY));
+			T length = (T)(sqrt(valX*valX + valY*valY));
+			maxGradValue = (length>maxGradValue)?length:maxGradValue;
 		}
     }
-	reg_heapSort(length,voxNumber);
-	T maxGradValue = (T)(length[90*voxNumber/100 - 1]);
-	free(length);
+//	reg_heapSort(length,voxNumber);
+//	T maxGradValue = (T)(length[90*voxNumber/100 - 1]);
+//	free(length);
 
 
     if(strcmp(this->executableName,"NiftyReg F3D")==0){

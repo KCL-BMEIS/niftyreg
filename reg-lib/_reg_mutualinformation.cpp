@@ -152,7 +152,7 @@ void reg_getEntropies1(nifti_image *referenceImage,
     int num_fixed_volumes = referenceImage->nt;
     int num_warped_volumes = warpedImage->nt;
 	int i, j;
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  index;
 #else
 	size_t  index;
@@ -795,7 +795,7 @@ void reg_getVoxelBasedNMIGradientUsingPW3D(nifti_image *referenceImage,
     GradTYPE warped_common[3];
     GradTYPE der_term[3];
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  index;
 #else
 	size_t  index;

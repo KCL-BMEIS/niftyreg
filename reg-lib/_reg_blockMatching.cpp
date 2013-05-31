@@ -182,7 +182,7 @@ template <class DTYPE>
     }
     free(targetValues);
 
-    params->activeBlockNumber=params->activeBlockNumber<(totalBlockNumber-unusableBlock)?params->activeBlockNumber:(totalBlockNumber-unusableBlock);
+	params->activeBlockNumber=params->activeBlockNumber<((int)totalBlockNumber-unusableBlock)?params->activeBlockNumber:(totalBlockNumber-unusableBlock);
 
     reg_heapSort(varianceArray, indexArray, totalBlockNumber);
 
@@ -192,13 +192,13 @@ template <class DTYPE>
     for(int i=0; i<params->activeBlockNumber; i++){
         params->activeBlock[*indexArrayPtr--] = count++;
     }
-    for (int i = params->activeBlockNumber; i < totalBlockNumber; ++i){
+	for (size_t i = params->activeBlockNumber; i < totalBlockNumber; ++i){
         params->activeBlock[*indexArrayPtr--] = -1;
     }
 
     count = 0;
     if (runningOnGPU) {
-        for(int i = 0; i < totalBlockNumber; ++i){
+		for(size_t i = 0; i < totalBlockNumber; ++i){
             if(params->activeBlock[i] != -1){
                 params->activeBlock[i] = -1;
                 params->activeBlock[count] = i;

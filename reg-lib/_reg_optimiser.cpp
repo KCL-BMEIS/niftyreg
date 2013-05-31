@@ -299,7 +299,7 @@ template <class T>
 void reg_conjugateGradient<T>::UpdateGradientValues()
 {
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  i;
 #else
 	size_t  i;

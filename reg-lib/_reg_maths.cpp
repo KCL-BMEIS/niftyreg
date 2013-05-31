@@ -90,7 +90,7 @@ void reg_matrixInvertMultiply(T *mat,
         reg_LUdecomposition(mat, dim, index);
 
     int ii=0;
-    for(int i=0;i<dim;++i){
+	for(int i=0;i<(int)dim;++i){
         int ip=index[i];
         T sum = vec[ip];
         vec[ip]=vec[i];
@@ -102,9 +102,9 @@ void reg_matrixInvertMultiply(T *mat,
             ii=i+1;
         vec[i]=sum;
     }
-    for(int i=dim-1;i>-1;--i){
+	for(int i=(int)dim-1;i>-1;--i){
         T sum=vec[i];
-        for(int j=i+1;j<dim;++j)
+		for(int j=i+1;j<(int)dim;++j)
             sum -= mat(i,j,dim)*vec[j];
         vec[i]=sum/mat(i,i,dim);
     }

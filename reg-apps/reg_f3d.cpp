@@ -19,7 +19,7 @@
 #   include "_reg_f3d_gpu.h"
 #endif
 
-#ifdef _WINDOWS
+#ifdef _WIN32
 #   include <time.h>
 #endif
 

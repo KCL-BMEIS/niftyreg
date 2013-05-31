@@ -20,7 +20,7 @@ double reg_getKLDivergence1(nifti_image *referenceImage,
                             int *mask)
 {
     size_t voxelNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  voxel;
 #else
 	size_t  voxel;
@@ -126,7 +126,7 @@ void reg_getKLDivergenceVoxelBasedGradient1(nifti_image *referenceImage,
                                             int *mask)
 {
     size_t voxelNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;	
-#ifdef _WINDOWS
+#ifdef _WIN32
 	int  voxel;
 #else
 	size_t  voxel;
