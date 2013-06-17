@@ -41,7 +41,7 @@ int main(int argc, char **argv)
     reg_gpu->SetLinearEnergyWeights(0,0);
 
     // Useful variable
-    const size_t nodeNumber=pow(SIZE,dimension);
+    const size_t nodeNumber=(size_t)pow((double)SIZE,dimension)+.5;
 
     // Create the optimiser
     reg_optimiser<float> *optimiser_cpu=NULL;
