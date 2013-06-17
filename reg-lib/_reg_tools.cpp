@@ -2550,7 +2550,7 @@ void reg_tools_abs_image1(nifti_image *img)
 {
     DTYPE *ptr = static_cast<DTYPE *>(img->data);
     for(size_t i=0; i<img->nvox;++i)
-        ptr[i]=fabs(ptr[i]);
+        ptr[i]=static_cast<DTYPE>(fabs(static_cast<double>(ptr[i])));
 }
 /* *************************************************************** */
 void reg_tools_abs_image(nifti_image *img)
