@@ -2740,6 +2740,25 @@ void reg_defFieldInvert3D(nifti_image *inputDeformationField,
     if(outputDeformationField->sform_code>0)
         OutXYZMatrix=&(outputDeformationField->sto_xyz);
     else OutXYZMatrix=&(outputDeformationField->qto_xyz);
+    
+    // added:
+  mat44 *InXYZMatrix;
+  if(inputDeformationField->sform_code>0)
+      InXYZMatrix=&(inputDeformationField->sto_xyz);
+  else InXYZMatrix=&(inputDeformationField->qto_xyz);
+  float center[4], center2[4];
+  double centerout[4], delta[4];
+  center[0] = inputDeformationField->nx / 2;
+  center[1] = inputDeformationField->ny / 2;
+  center[2] = inputDeformationField->nz / 2;
+  center[3] = 1;
+  reg_mat44_mul(InXYZMatrix, center, center2);
+  FastWarp<float>(center2[0], center2[1], center2[2], inputDeformationField, &centerout[0], &centerout[1], &centerout[2]);
+  delta[0] = center2[0]-centerout[0];
+  delta[1] = center2[1]-centerout[1];
+  delta[2] = center2[2]-centerout[2];
+// end added
+    
 
     int i,x,y,z;
     double position[4], pars[4], arrayy[4][3];
@@ -2748,7 +2767,7 @@ void reg_defFieldInvert3D(nifti_image *inputDeformationField,
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(outputDeformationField,tolerance,outputVoxelNumber, \
-    inputDeformationField, OutXYZMatrix) \
+    inputDeformationField, OutXYZMatrix, delta) \
     private(i,x,y,z,dat,outData,position,pars,arrayy)
 #endif
     for (z=0; z<outputDeformationField->nz; ++z){
@@ -2771,6 +2790,12 @@ void reg_defFieldInvert3D(nifti_image *inputDeformationField,
                 dat.gx = pars[0];
                 dat.gy = pars[1];
                 dat.gz = pars[2];
+
+     // added
+      pars[0] += delta[0];
+      pars[1] += delta[1];
+      pars[2] += delta[2];
+     // end added
 
                 optimize(cost_function, pars, (void *)&dat, tolerance);
                 // output = (warp-1)(input);
