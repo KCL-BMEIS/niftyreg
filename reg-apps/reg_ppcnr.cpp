@@ -85,10 +85,10 @@ void Usage(char *exec)
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 	printf("Usage:\t%s -source <filename> [OPTIONS].\n",exec);
 	printf("\t-source <filename>\tFilename of the source image (mandatory)\n");
-    printf("   Or   -makesource <n> <filenames> \tThis will generate a 4D volume from the n filenames (saved to 'source4D.nii'.\n");
-    //printf("          -makesourcex <n> <filenames> \t\tAs above but exits before registration step'.\n");
-	//printf("     Also -distribute <filename> \tThis will generate individual 3D volumes from the 4D filename (saved to 'fileX.nii'.\n");
-    printf("\t*Note that no target image is needed!\n");
+    printf("\t*Note that no target image is needed!\n\n");
+    printf("   Or   -makesource <n> <filenames> \tThis will generate a 4D volume from the n filenames (saved to 'source4D.nii').\n");
+    printf("        -makesourcex <n> <filenames> \tAs above but exits before registration step'.\n");
+	printf("        -distribute <filename> \t\tThis will generate individual 3D volumes from the 4D filename (saved to 'fileX.nii').\n");
     printf("\n*** Main Options:\n");
     printf("\t-result <filename> \tFilename of the resampled image [outputResult.nii].\n");
     printf("\t-pmask <filename> \tFilename of the PCA mask region.\n");
@@ -180,22 +180,23 @@ int main(int argc, char **argv)
             flag->sourceImageFlag=1;
         }
         else if(strcmp(argv[i], "-distribute") == 0){ // not tested
-            nifti_image *source = nifti_image_read(argv[i+1],false);
+            nifti_image *source = nifti_image_read(argv[i+1],true);
             nifti_image *makesource = nifti_copy_nim_info(source);
             makesource->ndim=makesource->dim[0] = 3;
             makesource->nt = makesource->dim[4] = 1;
             makesource->nvox=makesource->nx*makesource->ny*makesource->nz;
             makesource->data = (void *)malloc(makesource->nvox * makesource->nbyper);
-			char *temp_data = reinterpret_cast<char *>(makesource->data);
+            char *temp_data = reinterpret_cast<char *>(source->data);
             for(int ii=0;ii<source->nt;ii++){ // fill with file data
-                memcpy(&(temp_data[ii*makesource->nvox*makesource->nbyper]), makesource->data, makesource->nbyper*makesource->nvox);
+                memcpy(makesource->data, &(temp_data[ii*makesource->nvox*source->nbyper]), makesource->nbyper*makesource->nvox);
                 char outname[20];
                 int n=sprintf(outname,"file%i.nii",ii);
+                printf("Writing '%s' (%i of %i)\n",outname,ii+1,source->nt+1);
                 nifti_set_filenames(makesource,outname, 0, 0); // might want to set this
                 nifti_image_write(makesource);
-                nifti_image_free(makesource);
             }
             nifti_image_free(source);
+            nifti_image_free(makesource);
             return 0;
         }
         else if(strcmp(argv[i], "-pmask") == 0){
@@ -341,6 +342,9 @@ int main(int argc, char **argv)
         PrecisionTYPE *intensityPtrM = static_cast<PrecisionTYPE *>(mask->data);
         for(int i=0;i<mask->nvox;i++) intensityPtrM[i]=1.0;
     }
+    PrecisionTYPE masksum=0.0;
+    PrecisionTYPE *intensityPtrM = static_cast<PrecisionTYPE *>(mask->data);
+    for(int i=0;i<mask->nvox;i++){if(intensityPtrM[i]) masksum++;}
     
 	if(!flag->prinCompFlag && !flag->locality && !flag->meanonly && !flag->tp){
         param->prinComp=min((int)(image->nt/2),25);// Check the number of components
@@ -419,7 +423,7 @@ int main(int argc, char **argv)
 	int levelNumber=1;if(images->nt<3) levelNumber=3;
 	PrecisionTYPE *Mean = new PrecisionTYPE [image->nt];
     PrecisionTYPE *Cov = new PrecisionTYPE [image->nt*image->nt];
-    PrecisionTYPE cov,sum;
+    PrecisionTYPE cov;
     char pcaname[20]; 
     char outname[20]; 
     
@@ -438,11 +442,11 @@ int main(int argc, char **argv)
 		PrecisionTYPE *intensityPtr = static_cast<PrecisionTYPE *>(image->data);
         PrecisionTYPE *intensityPtrM = static_cast<PrecisionTYPE *>(mask->data);
 		for(int t=0;t<image->nt;t++){
-			Mean[t]=0.f;sum=0.f;
+			Mean[t]=0.f;
 			for(int i=0;i<voxelNumber;i++){
-				if(intensityPtrM[i]){Mean[t] += *intensityPtr++;sum++;}
+				if(intensityPtrM[i]) Mean[t] += *intensityPtr++;
 			}
-			Mean[t]/=sum;
+			Mean[t]/=masksum;
 		}
 	
 		// calculate covariance matrix
@@ -452,11 +456,11 @@ int main(int argc, char **argv)
 			PrecisionTYPE *currentIntensityPtr2 = &intensityPtr[t*voxelNumber];
 			for(int t2=t;t2<image->nt;t2++){
 				PrecisionTYPE *currentIntensityPtr1 = &intensityPtr[t*voxelNumber];
-				cov=0.f;sum=0.f;
+				cov=0.f;
 				for(int i=0;i<voxelNumber; i++){
-					if(intensityPtrM[i]){cov += (*currentIntensityPtr1++ - Mean[t]) * (*currentIntensityPtr2++ - Mean[t2]);sum++;}
+					if(intensityPtrM[i]) cov += (*currentIntensityPtr1++ - Mean[t]) * (*currentIntensityPtr2++ - Mean[t2]);
 				}
-				Cov[t+image->nt*t2]=cov/sum;
+				Cov[t+image->nt*t2]=cov/masksum;
 				Cov[t2+image->nt*t]=Cov[t+image->nt*t2]; // covariance matrix is symmetric.
 			}
 		}
