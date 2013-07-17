@@ -29,6 +29,7 @@ typedef struct{
 	char *affineMatrixName;
 	char *inputCPPName;
     char *targetMaskName;
+    char *pcaMaskName;
 	const char *outputImageName;
 	char *currentImageName;
 	float spacing[3];
@@ -56,6 +57,7 @@ typedef struct{
 	bool aladin;
 	bool flirt;
     bool tp;
+    bool pmask;
     bool locality;
     bool autolevel;
     bool makesourcex;
@@ -83,14 +85,17 @@ void Usage(char *exec)
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 	printf("Usage:\t%s -source <filename> [OPTIONS].\n",exec);
 	printf("\t-source <filename>\tFilename of the source image (mandatory)\n");
-    printf("     Or -makesource <n> <filenames> \tThis will generate a 4D volume from the n filenames (saved to 'source4D.nii'.\n");
+    printf("   Or   -makesource <n> <filenames> \tThis will generate a 4D volume from the n filenames (saved to 'source4D.nii'.\n");
+    //printf("          -makesourcex <n> <filenames> \t\tAs above but exits before registration step'.\n");
 	//printf("     Also -distribute <filename> \tThis will generate individual 3D volumes from the 4D filename (saved to 'fileX.nii'.\n");
     printf("\t*Note that no target image is needed!\n");
     printf("\n*** Main Options:\n");
     printf("\t-result <filename> \tFilename of the resampled image [outputResult.nii].\n");
+    printf("\t-pmask <filename> \tFilename of the PCA mask region.\n");
     printf("\t-cpp <filename>\t\tFilename of final 5D control point grid (non-rigid registration only).\n");
     printf("     Or -aff <filename>\t\tFilename of final concatenated affine transformation (affine registration only).\n");
-	printf("\t-prinComp <int>\t\tNumber of principal component iterations to run [#timepoints/2].\n");
+	printf("\n*** Other Options:\n");
+    printf("\t-prinComp <int>\t\tNumber of principal component iterations to run [#timepoints/2].\n");
     printf("\t-maxit <int>\t\tNumber of registration iterations to run [max(400/prinComp,100)].\n");
     printf("\t-autolevel \t\tAutomatically increase registration level during PPCR (switched off with -ln or -lp options).\n"); // not with -FLIRT
     printf("\t-pca0 <filename> \tOutput pca images 1:prinComp without registration step [pcaX.nii].\n"); // i.e. just print out each PCA image.
@@ -192,6 +197,10 @@ int main(int argc, char **argv)
             }
             nifti_image_free(source);
             return 0;
+        }
+        else if(strcmp(argv[i], "-pmask") == 0){
+			param->pcaMaskName=argv[++i];
+			flag->pmask=1;
         }
 		else if(strcmp(argv[i], "-target") == 0){
 		    printf("Target image is not necessary!");
@@ -313,6 +322,26 @@ int main(int argc, char **argv)
 	}
     reg_tools_changeDatatype<PrecisionTYPE>(image); // FIX DATA TYPE - DOES THIS WORK?
     
+    // --- 2) READ/SET IMAGE MASK (4D VOLUME, [NS, SS]) ---
+    nifti_image *mask=NULL;
+    if(flag->pmask){
+    	mask = nifti_image_read(param->pcaMaskName,true);
+        if(mask == NULL){
+            fprintf(stderr,"* ERROR Error when reading image: %s\n",param->pcaMaskName);
+            return 1;
+        }
+        reg_tools_changeDatatype<PrecisionTYPE>(mask);
+    }
+    else{
+        mask = nifti_copy_nim_info(image);
+        mask->ndim=mask->dim[0]=3;
+        mask->nt=mask->dim[4]=1;
+        mask->nvox=mask->nx*mask->ny*mask->nz;
+        mask->data = (void *)malloc(mask->nvox*image->nbyper);
+        PrecisionTYPE *intensityPtrM = static_cast<PrecisionTYPE *>(mask->data);
+        for(int i=0;i<mask->nvox;i++) intensityPtrM[i]=1.0;
+    }
+    
 	if(!flag->prinCompFlag && !flag->locality && !flag->meanonly && !flag->tp){
         param->prinComp=min((int)(image->nt/2),25);// Check the number of components
     }
@@ -365,6 +394,7 @@ int main(int argc, char **argv)
 		printf("PPCNR Parameters\n----------------\n");
 	}
 	printf("Source image name: %s\n",param->sourceImageName);
+    if(flag->pmask) printf("PCA Mask image name: %s\n",param->pcaMaskName);
 	printf("Number of timepoints: %i \n", image->nt);
 	printf("Number of principal components: %i\n",param->prinComp);
 	printf("Registration max iterations: %i\n",param->maxIteration);
@@ -389,7 +419,7 @@ int main(int argc, char **argv)
 	int levelNumber=1;if(images->nt<3) levelNumber=3;
 	PrecisionTYPE *Mean = new PrecisionTYPE [image->nt];
     PrecisionTYPE *Cov = new PrecisionTYPE [image->nt*image->nt];
-    PrecisionTYPE cov;
+    PrecisionTYPE cov,sum;
     char pcaname[20]; 
     char outname[20]; 
     
@@ -406,25 +436,27 @@ int main(int argc, char **argv)
 		// Read images and find image means
 		unsigned int voxelNumber = image->nvox/image->nt;
 		PrecisionTYPE *intensityPtr = static_cast<PrecisionTYPE *>(image->data);
+        PrecisionTYPE *intensityPtrM = static_cast<PrecisionTYPE *>(mask->data);
 		for(int t=0;t<image->nt;t++){
-			Mean[t]=0.f;
-			for(int i=0;i<voxelNumber; i++){
-				Mean[t] += *intensityPtr++;
+			Mean[t]=0.f;sum=0.f;
+			for(int i=0;i<voxelNumber;i++){
+				if(intensityPtrM[i]){Mean[t] += *intensityPtr++;sum++;}
 			}
-			Mean[t] /= (PrecisionTYPE)voxelNumber;
+			Mean[t]/=sum;
 		}
 	
 		// calculate covariance matrix
 		intensityPtr = static_cast<PrecisionTYPE *>(image->data);
+        intensityPtrM = static_cast<PrecisionTYPE *>(mask->data);
 		for(int t=0;t<image->nt;t++){
 			PrecisionTYPE *currentIntensityPtr2 = &intensityPtr[t*voxelNumber];
 			for(int t2=t;t2<image->nt;t2++){
 				PrecisionTYPE *currentIntensityPtr1 = &intensityPtr[t*voxelNumber];
-				cov=0.f;
+				cov=0.f;sum=0.f;
 				for(int i=0;i<voxelNumber; i++){
-					cov += (*currentIntensityPtr1++ - Mean[t]) * (*currentIntensityPtr2++ - Mean[t2]);
+					if(intensityPtrM[i]){cov += (*currentIntensityPtr1++ - Mean[t]) * (*currentIntensityPtr2++ - Mean[t2]);sum++;}
 				}
-				Cov[t+image->nt*t2]=cov/(PrecisionTYPE)voxelNumber;
+				Cov[t+image->nt*t2]=cov/sum;
 				Cov[t2+image->nt*t]=Cov[t+image->nt*t2]; // covariance matrix is symmetric.
 			}
 		}
@@ -862,6 +894,7 @@ int main(int argc, char **argv)
         nifti_image_write(image);
     }
 	nifti_image_free(image);
+    nifti_image_free(mask);
 
 	// CHECK CLEAN-UP    
 	free( flag );
