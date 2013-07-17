@@ -874,7 +874,6 @@ int main(int argc, char **argv)
     if(flag->tp){printf("Single timepoint registration to image %i performed in %i min %i sec\n", param->tp, minutes, seconds);}
     if(flag->meanonly){printf("Registration to mean image with %i iterations performed in %i min %i sec\n", param->prinComp, minutes, seconds);}
     if(!flag->locality & !flag->meanonly & !flag->tp){printf("PPCNR registration with %i iterations performed in %i min %i sec\n", param->prinComp, minutes, seconds);}
-    printf("PPCNR Registration Performed in %i min %i sec\n", minutes, seconds);
 	printf("Have a good day !\n");
 
 	return 0;
