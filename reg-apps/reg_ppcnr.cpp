@@ -1,14 +1,15 @@
-/*
- *  reg_ppcnr.cpp
+/**
+ * @file reg_ppcnr.cpp
+ * @author Andrew Melbourne
+ * @brief Executable for 4D non-rigid and affine registration (Registration to a single timepoint, timeseries mean, local mean or Progressive Principal Component Registration)
+ * @date 17/07/2013
  *
- *
- *  Created by Andrew Melbourne on 16/11/2011.
- *  Copyright (c) 2009, University College London. All rights reserved.
- *  Centre for Medical Image Computing (CMIC)
- *  See the LICENSE.txt file in the nifty_reg root folder
- *  (Last modified 26/10/2012)
+ * Copyright (c) 2009, University College London. All rights reserved.
+ * Centre for Medical Image Computing (CMIC)
+ * See the LICENSE.txt file in the nifty_reg root folder
  *
  */
+
 
 #include "_reg_tools.h"
 #include "float.h"
@@ -428,7 +429,7 @@ int main(int argc, char **argv)
 			}
 		}
 
-		// calculate eigenvalues/vectors, courtesy of numerical recipes.
+		// calculate eigenvalues/vectors...
 		// 1. reduce
 		int n=image->nt;
 		float EPS=1e-15;
@@ -743,11 +744,11 @@ int main(int argc, char **argv)
                 printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
                 printf("Registering image %i of %i \n", imageNumber+1,images->nt);
                 printf("'%s' \n",regCommandB);
-                system(regCommandB);
+                //system(regCommandB);
                 
                 if(system(regCommandB)){
                     fprintf(stderr, "Error while running the following command:\n%s\n",regCommandB);
-                    exit(EXIT_FAILURE);
+                    reg_exit(1);
                 }
                 
                 // READ IN RESULT AND MAKE A NEW CURRENT IMAGE 'image'			
