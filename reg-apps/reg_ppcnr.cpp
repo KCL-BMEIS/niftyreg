@@ -127,6 +127,7 @@ int main(int argc, char **argv)
 	flag->outputCPPFlag=0;
 	flag->outputResultFlag=0;
     flag->makesourcex=0;
+    flag->prinCompFlag=0;
     flag->tp=0;
     param->tp=0;
     param->maxIteration=-1;
@@ -313,9 +314,6 @@ int main(int argc, char **argv)
     
 	if(!flag->prinCompFlag && !flag->locality && !flag->meanonly && !flag->tp){
         param->prinComp=min((int)(image->nt/2),25);// Check the number of components
-    }
-    else{
-        param->prinComp=3;
     }
     if(param->prinComp>=image->nt) param->prinComp=image->nt-1;
 	if(!flag->outputResultFlag) param->outputResultName="ppcnrfinal-img.nii";
@@ -747,6 +745,11 @@ int main(int argc, char **argv)
                 printf("'%s' \n",regCommandB);
                 system(regCommandB);
                 
+                if(system(regCommandB)){
+                    fprintf(stderr, "Error while running the following command:\n%s\n",regCommandB);
+                    exit(EXIT_FAILURE);
+                }
+                
                 // READ IN RESULT AND MAKE A NEW CURRENT IMAGE 'image'			
                 stores = nifti_image_read("outputResult.nii",true); // TODO NAME
                 PrecisionTYPE *intensityPtrCC = static_cast<PrecisionTYPE *>(stores->data); // 3D result image
@@ -867,7 +870,11 @@ int main(int argc, char **argv)
 	int minutes = (int)floorf(float(end-start)/60.0f);
 	int seconds = (int)(end-start - 60*minutes);
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-	printf("PPCNR Registration Performed in %i min %i sec\n", minutes, seconds);
+    if(flag->locality){printf("Registration to %i-local mean with %i iterations performed in %i min %i sec\n", param->locality, param->prinComp, minutes, seconds);}    
+    if(flag->tp){printf("Single timepoint registration to image %i performed in %i min %i sec\n", param->tp, minutes, seconds);}
+    if(flag->meanonly){printf("Registration to mean image with %i iterations performed in %i min %i sec\n", param->prinComp, minutes, seconds);}
+    if(!flag->locality & !flag->meanonly & !flag->tp){printf("PPCNR registration with %i iterations performed in %i min %i sec\n", param->prinComp, minutes, seconds);}
+    printf("PPCNR Registration Performed in %i min %i sec\n", minutes, seconds);
 	printf("Have a good day !\n");
 
 	return 0;
