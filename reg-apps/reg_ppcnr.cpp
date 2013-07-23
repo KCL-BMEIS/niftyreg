@@ -29,6 +29,7 @@ typedef struct{
 	char *affineMatrixName;
 	char *inputCPPName;
     char *targetMaskName;
+    char *finalResultName;
     char *pcaMaskName;
 	const char *outputImageName;
 	char *currentImageName;
@@ -57,6 +58,7 @@ typedef struct{
 	bool aladin;
 	bool flirt;
     bool tp;
+    bool noinit;
     bool pmask;
     bool locality;
     bool autolevel;
@@ -86,27 +88,28 @@ void Usage(char *exec)
 	printf("Usage:\t%s -source <filename> [OPTIONS].\n",exec);
 	printf("\t-source <filename>\tFilename of the source image (mandatory)\n");
     printf("\t*Note that no target image is needed!\n\n");
-    printf("   Or   -makesource <n> <filenames> \tThis will generate a 4D volume from the n filenames (saved to 'source4D.nii').\n");
-    printf("        -makesourcex <n> <filenames> \tAs above but exits before registration step'.\n");
-	printf("        -distribute <filename> \t\tThis will generate individual 3D volumes from the 4D filename (saved to 'fileX.nii').\n");
+    printf("   Or   -makesource  <outputname> <n> <filenames> \tThis will generate a 4D volume from the n filenames (saved to <outputname>).\n");
+    printf("        -makesourcex <outputname> <n> <filenames> \tAs above but exits before registration step'.\n");
+	printf("        -distribute  <filename> <basename>\t\tThis will generate individual 3D volumes from the 4D filename (saved to '<basename>X.nii', 4D only).\n");
     printf("\n*** Main Options:\n");
     printf("\t-result <filename> \tFilename of the resampled image [outputResult.nii].\n");
-    printf("\t-pmask <filename> \tFilename of the PCA mask region.\n");
-    printf("\t-cpp <filename>\t\tFilename of final 5D control point grid (non-rigid registration only).\n");
-    printf("     Or -aff <filename>\t\tFilename of final concatenated affine transformation (affine registration only).\n");
+    printf("\t-pmask  <filename> \tFilename of the PCA mask region.\n");
+    printf("\t-cpp    <filename>\tFilename of final 5D control point grid (non-rigid registration only).\n");
+    printf("     Or -aff    <filename>\tFilename of final concatenated affine transformation (affine registration only).\n");
 	printf("\n*** Other Options:\n");
     printf("\t-prinComp <int>\t\tNumber of principal component iterations to run [#timepoints/2].\n");
-    printf("\t-maxit <int>\t\tNumber of registration iterations to run [max(400/prinComp,100)].\n");
+    printf("\t-maxit    <int>\t\tNumber of registration iterations to run [max(400/prinComp,100)].\n");
     printf("\t-autolevel \t\tAutomatically increase registration level during PPCR (switched off with -ln or -lp options).\n"); // not with -FLIRT
-    printf("\t-pca0 <filename> \tOutput pca images 1:prinComp without registration step [pcaX.nii].\n"); // i.e. just print out each PCA image.
-    printf("\t-pca1 <filename> \tOutput pca images 1:prinComp for inspection [pcaX.nii].\n");
-    printf("\t-pca2 <filename> \tOutput intermediate results 1:prinComp for inspection [outX.nii].\n");
-	printf("\t-pca3 <filename> \tSave current deformation result [cppX.nii].\n"); // i.e. removes previous outputs...
-    printf("\t-pca123 <filename> \tWrite out everything!.\n"); // i.e. removes previous outputs...
+    printf("\t-pca0 \t\t\tOutput pca images 1:prinComp without registration step [pcaX.nii].\n"); // i.e. just print out each PCA image.
+    printf("\t-pca1 \t\t\tOutput pca images 1:prinComp for inspection [pcaX.nii].\n");
+    printf("\t-pca2 \t\t\tOutput intermediate results 1:prinComp for inspection [outX.nii].\n");
+	printf("\t-pca3 \t\t\tSave current deformation result [cppX.nii].\n"); 
+    printf("\t-pca123 \t\tWrite out everything!.\n");
     printf("\n*** Alternative Registration Options:\n");
     printf("\t-mean \t\t\tIterative registration to the mean image only (no PPCR).\n"); // registration to the mean is quite inefficient as it uses the ppcr 4D->4D model.
     printf("\t-locality <int>\t\tIterative registration to the local mean image (pm <int> images - no PPCR).\n");
-    printf("\t-tp <int>\t\tIterative registration to single timepoint (no PPCR).\n");
+    printf("\t-tp       <int>\t\tIterative registration to single timepoint (no PPCR).\n");
+    printf("\t-noinit \t\tTurn off cpp initialisation from previous iteration.\n");
     //printf("\t-flirt \t\t\tfor PPCNR using Flirt affine registration (not tested)\n");
     printf("\n*** reg_f3d/reg_aladin options are carried through (use reg_f3d -h or reg_aladin -h to see these options).\n");
     //system("reg_f3d -h");
@@ -135,6 +138,7 @@ int main(int argc, char **argv)
     flag->makesourcex=0;
     flag->prinCompFlag=0;
     flag->tp=0;
+    flag->noinit=0;
     param->tp=0;
     param->maxIteration=-1;
 
@@ -158,6 +162,7 @@ int main(int argc, char **argv)
         }
         else if(strcmp(argv[i], "-makesource") == 0 || strcmp(argv[i], "-makesourcex")==0){
             if(strcmp(argv[i], "-makesourcex")==0){flag->makesourcex=1;}
+            param->finalResultName=argv[++i];
             nifti_image *source = nifti_image_read(argv[i+2],false);
             nifti_image *makesource = nifti_copy_nim_info(source);
             nifti_image_free(source);
@@ -165,21 +170,21 @@ int main(int argc, char **argv)
             makesource->nt = makesource->dim[4] = atoi(argv[++i]);
             makesource->nvox=makesource->nx*makesource->nz*makesource->ny*makesource->nt;
             makesource->data = (void *)malloc(makesource->nvox * makesource->nbyper);
-			char *temp_data = reinterpret_cast<char *>(makesource->data);
+            char *temp_data = reinterpret_cast<char *>(makesource->data);
             for(int ii=0;ii<makesource->nt;ii++){ // fill with file data
+                printf("Reading '%s' (%i of %i)\n",argv[i+1],ii+1,makesource->nt);
                 source = nifti_image_read(argv[++i],true);				
                 memcpy(&(temp_data[ii*source->nvox*source->nbyper]), source->data, source->nbyper*source->nvox);
                 nifti_image_free(source); 
             }            
-            nifti_set_filenames(makesource,"source4D.nii", 0, 0); // might want to set this 
+            nifti_set_filenames(makesource,param->finalResultName, 0, 0); // might want to set this
             nifti_image_write(makesource);
             nifti_image_free(makesource);
-            char buffer[20];
-            int n=sprintf(buffer,"source4D.nii");            
-            param->sourceImageName=buffer;
+            param->sourceImageName=param->finalResultName;
             flag->sourceImageFlag=1;
         }
-        else if(strcmp(argv[i], "-distribute") == 0){ // not tested
+        else if(strcmp(argv[i], "-distribute") == 0){
+            param->finalResultName=argv[i+2];
             nifti_image *source = nifti_image_read(argv[i+1],true);
             nifti_image *makesource = nifti_copy_nim_info(source);
             makesource->ndim=makesource->dim[0] = 3;
@@ -189,9 +194,9 @@ int main(int argc, char **argv)
             char *temp_data = reinterpret_cast<char *>(source->data);
             for(int ii=0;ii<source->nt;ii++){ // fill with file data
                 memcpy(makesource->data, &(temp_data[ii*makesource->nvox*source->nbyper]), makesource->nbyper*makesource->nvox);
-                char outname[20];
-                int n=sprintf(outname,"file%i.nii",ii);
-                printf("Writing '%s' (%i of %i)\n",outname,ii+1,source->nt+1);
+                char outname[100];
+                int n=sprintf(outname,"%s%i.nii",param->finalResultName,ii);
+                printf("Writing '%s' (%i of %i)\n",outname,ii+1,source->nt);
                 nifti_set_filenames(makesource,outname, 0, 0); // might want to set this
                 nifti_image_write(makesource);
             }
@@ -238,7 +243,6 @@ int main(int argc, char **argv)
 			flag->locality=0;
             flag->meanonly=0;
             flag->tp=1;
-            param->prinComp=1;
 		}
 		else if(strcmp(argv[i], "-pca0") == 0){ // write pca images without registration
 			flag->pca0=1;
@@ -279,6 +283,9 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-autolevel") == 0){
 			flag->autolevel=1;
 		}
+        else if(strcmp(argv[i], "-noinit") == 0){
+			flag->noinit=1;
+		}
         else if(strcmp(argv[i], "-lp") == 0){  // force autolevel select off if lp or ln are present.
             flag->autolevel=0;
             strcat(regCommand," ");
@@ -309,7 +316,8 @@ int main(int argc, char **argv)
         }
 	}
     if(flag->makesourcex){return 0;} // stop if being used to concatenate 3D images into 4D object.
-        
+    if(flag->tp){param->prinComp=1;}
+    
 	if(!flag->sourceImageFlag){
 		fprintf(stderr,"Error:\tAt least define a source image!\n");
 		Usage(argv[0]);
@@ -338,7 +346,7 @@ int main(int argc, char **argv)
         mask->ndim=mask->dim[0]=3;
         mask->nt=mask->dim[4]=1;
         mask->nvox=mask->nx*mask->ny*mask->nz;
-        mask->data = (void *)malloc(mask->nvox*image->nbyper);
+        mask->data = (void *)malloc(mask->nvox*mask->nbyper);
         PrecisionTYPE *intensityPtrM = static_cast<PrecisionTYPE *>(mask->data);
         for(int i=0;i<mask->nvox;i++) intensityPtrM[i]=1.0;
     }
@@ -753,7 +761,7 @@ int main(int argc, char **argv)
                         if(!flag->aladin) n=sprintf(buffer3," -sx %g",param->spacing[0]);
                         strcat(regCommandB,buffer3);
                     }
-                    if(prinCompNumber>1){
+                    if(prinCompNumber>1 && !flag->noinit){
                         char buffer4[8];
                         n=sprintf(buffer4," -in%s ",style);
                         strcat(regCommandB,buffer4);
@@ -765,7 +773,7 @@ int main(int argc, char **argv)
                     char buffer[20];
                     n=sprintf(buffer,"float%s%i.txt", style,imageNumber+1);
                     strcat(regCommandB,buffer);
-                    if(prinCompNumber>1){
+                    if(prinCompNumber>1 && !flag->noinit){
                         char buffer3[8];
                         n=sprintf(buffer3," -init ");
                         strcat(regCommandB,buffer3);
@@ -900,19 +908,19 @@ int main(int argc, char **argv)
 	nifti_image_free(image);
     nifti_image_free(mask);
 
-	// CHECK CLEAN-UP    
-	free( flag );
-	free( param );
-
 	time_t end; time( &end );
 	int minutes = (int)floorf(float(end-start)/60.0f);
 	int seconds = (int)(end-start - 60*minutes);
 	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     if(flag->locality){printf("Registration to %i-local mean with %i iterations performed in %i min %i sec\n", param->locality, param->prinComp, minutes, seconds);}    
     if(flag->tp){printf("Single timepoint registration to image %i performed in %i min %i sec\n", param->tp, minutes, seconds);}
-    if(flag->meanonly){printf("Registration to mean image with %i iterations performed in %i min %i sec\n", param->prinComp, minutes, seconds);}
+    if(flag->meanonly & !flag->locality){printf("Registration to mean image with %i iterations performed in %i min %i sec\n", param->prinComp, minutes, seconds);}
     if(!flag->locality & !flag->meanonly & !flag->tp){printf("PPCNR registration with %i iterations performed in %i min %i sec\n", param->prinComp, minutes, seconds);}
 	printf("Have a good day !\n");
+    
+    // CHECK CLEAN-UP
+	free( flag );
+	free( param );
 
 	return 0;
 }
