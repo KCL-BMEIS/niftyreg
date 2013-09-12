@@ -1,8 +1,9 @@
-/*
- *  _reg_tools.h
+/**
+ * @file _reg_tools.cpp
+ * @author Marc Modat
+ * @date 25/03/2009
+ * @brief Set of useful functions
  *
- *
- *  Created by Marc Modat on 25/03/2009.
  *  Copyright (c) 2009, University College London. All rights reserved.
  *  Centre for Medical Image Computing (CMIC)
  *  See the LICENSE.txt file in the nifty_reg root folder
@@ -50,141 +51,141 @@ void reg_checkAndCorrectDimension(nifti_image *image)
 }
 /* *************************************************************** */
 /* *************************************************************** */
+bool reg_isAnImageFileName(char *name)
+{
+    std::string n(name);
+    if(n.find( ".nii") != std::string::npos)
+        return true;
+    if(n.find( ".nii.gz") != std::string::npos)
+        return true;
+    if(n.find( ".hdr") != std::string::npos)
+        return true;
+    if(n.find( ".img") != std::string::npos)
+        return true;
+    if(n.find( ".img.gz") != std::string::npos)
+        return true;
+    if(n.find( ".nrrd") != std::string::npos)
+        return true;
+    if(n.find( ".png") != std::string::npos)
+        return true;
+    return false;
+}
+/* *************************************************************** */
+/* *************************************************************** */
 template<class DTYPE>
 void reg_intensityRescale2(nifti_image *image,
-                           float *newMin,
-                           float *newMax,
-                           float *lowThr,
-                           float *upThr
+                           int timePoint,
+                           float newMin,
+                           float newMax
                            )
 {
     DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
     unsigned int voxelNumber = image->nx*image->ny*image->nz;
 
     // The rescasling is done for each volume independtly
-    for(int t=0;t<image->nt;t++){
-        DTYPE *volumePtr = &imagePtr[t*voxelNumber];
-        DTYPE currentMin=0;
-        DTYPE currentMax=0;
-        switch(image->datatype){
-        case NIFTI_TYPE_UINT8:
-            currentMin=(DTYPE)std::numeric_limits<unsigned char>::max();
-            currentMax=0;
-            break;
-        case NIFTI_TYPE_INT8:
-            currentMin=(DTYPE)std::numeric_limits<char>::max();
-            currentMax=(DTYPE)-std::numeric_limits<char>::max();
-            break;
-        case NIFTI_TYPE_UINT16:
-            currentMin=(DTYPE)std::numeric_limits<unsigned short>::max();
-            currentMax=0;
-            break;
-        case NIFTI_TYPE_INT16:
-            currentMin=(DTYPE)std::numeric_limits<char>::max();
-            currentMax=-(DTYPE)std::numeric_limits<char>::max();
-            break;
-        case NIFTI_TYPE_UINT32:
-            currentMin=(DTYPE)std::numeric_limits<unsigned int>::max();
-            currentMax=0;
-            break;
-        case NIFTI_TYPE_INT32:
-            currentMin=(DTYPE)std::numeric_limits<int>::max();
-            currentMax=-(DTYPE)std::numeric_limits<int>::max();
-            break;
-        case NIFTI_TYPE_FLOAT32:
-            currentMin=(DTYPE)std::numeric_limits<float>::max();
-            currentMax=-(DTYPE)std::numeric_limits<float>::max();
-            break;
-        case NIFTI_TYPE_FLOAT64:
-            currentMin=(DTYPE)std::numeric_limits<double>::max();
-            currentMax=-(DTYPE)std::numeric_limits<double>::max();
-            break;
+    DTYPE *volumePtr = &imagePtr[timePoint*voxelNumber];
+    DTYPE currentMin=0;
+    DTYPE currentMax=0;
+    switch(image->datatype){
+    case NIFTI_TYPE_UINT8:
+        currentMin=(DTYPE)std::numeric_limits<unsigned char>::max();
+        currentMax=0;
+        break;
+    case NIFTI_TYPE_INT8:
+        currentMin=(DTYPE)std::numeric_limits<char>::max();
+        currentMax=(DTYPE)-std::numeric_limits<char>::max();
+        break;
+    case NIFTI_TYPE_UINT16:
+        currentMin=(DTYPE)std::numeric_limits<unsigned short>::max();
+        currentMax=0;
+        break;
+    case NIFTI_TYPE_INT16:
+        currentMin=(DTYPE)std::numeric_limits<char>::max();
+        currentMax=-(DTYPE)std::numeric_limits<char>::max();
+        break;
+    case NIFTI_TYPE_UINT32:
+        currentMin=(DTYPE)std::numeric_limits<unsigned int>::max();
+        currentMax=0;
+        break;
+    case NIFTI_TYPE_INT32:
+        currentMin=(DTYPE)std::numeric_limits<int>::max();
+        currentMax=-(DTYPE)std::numeric_limits<int>::max();
+        break;
+    case NIFTI_TYPE_FLOAT32:
+        currentMin=(DTYPE)std::numeric_limits<float>::max();
+        currentMax=-(DTYPE)std::numeric_limits<float>::max();
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        currentMin=(DTYPE)std::numeric_limits<double>::max();
+        currentMax=-(DTYPE)std::numeric_limits<double>::max();
+        break;
+    }
+
+    // Extract the minimal and maximal values from the current volume
+    if(image->scl_slope==0) image->scl_slope=1.0f;
+    for(unsigned int index=0; index<voxelNumber; index++){
+        DTYPE value = (DTYPE)(*volumePtr++ * image->scl_slope + image->scl_inter);
+        if(value==value){
+            currentMin=(currentMin<value)?currentMin:value;
+            currentMax=(currentMax>value)?currentMax:value;
         }
+    }
 
-        // Extract the minimal and maximal values from the current volume
-        if(image->scl_slope==0) image->scl_slope=1.0f;
-        for(unsigned int index=0; index<voxelNumber; index++){
-            DTYPE value = (DTYPE)(*volumePtr++ * image->scl_slope + image->scl_inter);
-            if(value==value){
-                currentMin=(currentMin<value)?currentMin:value;
-                currentMax=(currentMax>value)?currentMax:value;
-            }
+    // Compute constant values to rescale image intensities
+    double currentDiff = (double)(currentMax-currentMin);
+    double newDiff = (double)(newMax-newMin);
+
+    // Set the image header information for appropriate display
+    image->cal_min=newMin;
+    image->cal_max=newMax;
+
+    // Reset the volume pointer to the start of the current volume
+    volumePtr = &imagePtr[timePoint*voxelNumber];
+
+    // Iterates over all voxels in the current volume
+    for(unsigned int index=0; index<voxelNumber; index++){
+        double value = (double)*volumePtr * image->scl_slope + image->scl_inter;
+        // Check if the value is defined
+        if(value==value){
+            // Normalise the value between 0 and 1
+            value = (value-(double)currentMin)/currentDiff;
+            // Rescale the value using the specified range
+            value = (value * newDiff + newMin)/image->scl_slope - image->scl_inter;
         }
-
-        // Check if the current extrama are outside of the user-specified threshold values
-        if(currentMin<lowThr[t]) currentMin=(DTYPE)lowThr[t];
-        if(currentMax>upThr[t]) currentMax=(DTYPE)upThr[t];
-
-        // Compute constant values to rescale image intensities
-        double currentDiff = (double)(currentMax-currentMin);
-        double newDiff = (double)(newMax[t]-newMin[t]);
-
-        // Set the image header information for appropriate display
-        image->cal_min=newMin[t] * image->scl_slope + image->scl_inter;
-        image->cal_max=newMax[t] * image->scl_slope + image->scl_inter;
-
-        // Reset the volume pointer to the start of the current volume
-        volumePtr = &imagePtr[t*voxelNumber];
-
-        // Iterates over all voxels in the current volume
-        for(unsigned int index=0; index<voxelNumber; index++){
-            double value = (double)*volumePtr * image->scl_slope + image->scl_inter;
-            // Check if the value is defined
-            if(value==value){
-                // Lower threshold is applied
-                if(value<currentMin){
-                    value = newMin[t];
-                }
-                // upper threshold is applied
-                else if(value>currentMax){
-                    value = newMax[t];
-                }
-                else{
-                    // Normalise the value between 0 and 1
-                    value = (value-(double)currentMin)/currentDiff;
-                    // Rescale the value using the specified range
-                    value = value * newDiff + newMin[t];
-                }
-            }
-            *volumePtr++=(DTYPE)value;
-        }
-    }//t
-    // The slope and offset information are cleared form the header
-    image->scl_slope=1.f;
-    image->scl_inter=0.f;
+        *volumePtr++=(DTYPE)value;
+    }
 }
 /* *************************************************************** */
-void reg_intensityRescale(	nifti_image *image,
-                            float *newMin,
-                            float *newMax,
-                            float *lowThr,
-                            float *upThr
-                            )
+void reg_intensityRescale(nifti_image *image,
+                          int timepoint,
+                          float newMin,
+                          float newMax
+                          )
 {
     switch(image->datatype){
     case NIFTI_TYPE_UINT8:
-        reg_intensityRescale2<unsigned char>(image, newMin, newMax, lowThr, upThr);
+        reg_intensityRescale2<unsigned char>(image, timepoint, newMin, newMax);
         break;
     case NIFTI_TYPE_INT8:
-        reg_intensityRescale2<char>(image, newMin, newMax, lowThr, upThr);
+        reg_intensityRescale2<char>(image, timepoint, newMin, newMax);
         break;
     case NIFTI_TYPE_UINT16:
-        reg_intensityRescale2<unsigned short>(image, newMin, newMax, lowThr, upThr);
+        reg_intensityRescale2<unsigned short>(image, timepoint, newMin, newMax);
         break;
     case NIFTI_TYPE_INT16:
-        reg_intensityRescale2<short>(image, newMin, newMax, lowThr, upThr);
+        reg_intensityRescale2<short>(image, timepoint, newMin, newMax);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_intensityRescale2<unsigned int>(image, newMin, newMax, lowThr, upThr);
+        reg_intensityRescale2<unsigned int>(image, timepoint, newMin, newMax);
         break;
     case NIFTI_TYPE_INT32:
-        reg_intensityRescale2<int>(image, newMin, newMax, lowThr, upThr);
+        reg_intensityRescale2<int>(image, timepoint, newMin, newMax);
         break;
     case NIFTI_TYPE_FLOAT32:
-        reg_intensityRescale2<float>(image, newMin, newMax, lowThr, upThr);
+        reg_intensityRescale2<float>(image, timepoint, newMin, newMax);
         break;
     case NIFTI_TYPE_FLOAT64:
-        reg_intensityRescale2<double>(image, newMin, newMax, lowThr, upThr);
+        reg_intensityRescale2<double>(image, timepoint, newMin, newMax);
         break;
     default:
         fprintf(stderr,"[NiftyReg ERROR] reg_intensityRescale\tThe image data type is not supported\n");
@@ -223,10 +224,10 @@ template void reg_getRealImageSpacing<double>(nifti_image *, double *);
 //set the scl_slope and sct_inter of the image to 1 and 0 (SSD uses actual image data values),
 //and sets cal_min and cal_max to have the min/max image data values
 template<class T,class DTYPE>
-void reg_thresholdImage2(	nifti_image *image,
-                            T lowThr,
-                            T upThr
-                            )
+void reg_thresholdImage2(nifti_image *image,
+                         T lowThr,
+                         T upThr
+                         )
 {
     DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
     T currentMin=std::numeric_limits<T>::max();
@@ -291,240 +292,6 @@ void reg_thresholdImage(nifti_image *image,
 }
 template void reg_thresholdImage<float>(nifti_image *, float, float);
 template void reg_thresholdImage<double>(nifti_image *, double, double);
-/* *************************************************************** */
-/* *************************************************************** */
-template <class DTYPE>
-void reg_tools_CubicSplineKernelConvolution1(nifti_image *image,
-                                             float spacingVoxel[]
-                                             )
-{
-    DTYPE *imageArray = static_cast<DTYPE *>(image->data);
-
-    /* a temp image array is first created */
-    DTYPE *tempArray  = (DTYPE *)malloc(image->nvox * sizeof(DTYPE));
-
-    int timePoint = image->nt;
-    if(timePoint==0) timePoint=1;
-    int field = image->nu;
-    if(field==0) field=1;
-
-    /* Smoothing along the X axis */
-    int radius = static_cast<int>(reg_ceil(2.0*spacingVoxel[0]));
-    int kernelSize = 2*radius + 1;
-
-    DTYPE *window = (DTYPE *)calloc(kernelSize,sizeof(DTYPE));
-    DTYPE coeffSum=0;
-    for(int it=-radius; it<=radius; it++){
-        DTYPE coeff = (DTYPE)(fabs((float)(DTYPE)it/(DTYPE)spacingVoxel[0]));
-        if(coeff<1.0) window[it+radius] = (DTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
-        else if (coeff<2.0) window[it+radius] = (DTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
-        else window[it+radius]=0;
-        coeffSum += window[it+radius];
-    }
-    for(int it=0;it<kernelSize;it++) window[it] /= coeffSum;
-
-    for(int t=0;t<timePoint;t++){
-        for(int u=0;u<field;u++){
-
-            DTYPE *readingValue=&imageArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
-            DTYPE *writtingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
-            int index, i, X, it, x, y, z;
-            DTYPE finalValue, windowValue, t, c, temp;
-            DTYPE imageValue;
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    private(index, i, X, it, x, y, z, finalValue, windowValue, \
-    c, t, temp, imageValue) \
-    shared(image, readingValue, writtingValue, radius, kernelSize, window, coeffSum)
-#endif // _OPENMP
-            for(z=0; z<image->nz; z++){
-                i=z*image->nx*image->ny;
-                for(y=0; y<image->ny; y++){
-                    for(x=0; x<image->nx; x++){
-
-                        finalValue=0;
-
-                        index = i - radius;
-                        X = x - radius;
-                        // Kahan summation used here
-                        c = (DTYPE)0;
-                        for(it=0; it<kernelSize; it++){
-                            if(-1<X && X<image->nx){
-                                imageValue = readingValue[index];
-                                windowValue = window[it];
-                                temp = (DTYPE)imageValue * windowValue - c;
-                                t = finalValue + temp;
-                                c = (t - finalValue) - temp;
-                                finalValue = t;
-                            }
-                            index++;
-                            X++;
-                        }
-                        writtingValue[i++] = (DTYPE)finalValue;
-                    }
-                }
-            }
-        }
-    }
-
-    /* Smoothing along the Y axis */
-    radius = static_cast<int>(reg_ceil(2.0*spacingVoxel[1]));
-    kernelSize = 2*radius + 1;
-    free(window);
-    window = (DTYPE *)calloc(kernelSize,sizeof(DTYPE));
-    coeffSum = 0;
-    for(int it=-radius; it<=radius; it++){
-        DTYPE coeff = (DTYPE)(fabs((float)(DTYPE)it/(DTYPE)spacingVoxel[1]));
-        if(coeff<1.0) window[it+radius] = (DTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
-        else if (coeff<2.0) window[it+radius] = (DTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
-        else window[it+radius]=0;
-        coeffSum += window[it+radius];
-    }
-    for(int it=0;it<kernelSize;it++) window[it] /= coeffSum;
-    for(int t=0;t<timePoint;t++){
-        for(int u=0;u<field;u++){
-
-            DTYPE *readingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
-            DTYPE *writtingValue=&imageArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
-            int index, i, Y, it, x, y, z;
-            DTYPE finalValue, windowValue, t, c, temp;
-            DTYPE imageValue;
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    private(index, i, Y, it, x, y, z, finalValue, windowValue, \
-    c, t, temp, imageValue) \
-    shared(image, readingValue, writtingValue, radius, kernelSize, window, coeffSum)
-#endif // _OPENMP
-            for(z=0; z<image->nz; z++){
-                i=z*image->nx*image->ny;
-                for(y=0; y<image->ny; y++){
-                    for(x=0; x<image->nx; x++){
-
-                        finalValue=0;
-
-                        index = i - image->nx*radius;
-                        Y = y - radius;
-
-                        // Kahan summation used here
-                        c = (DTYPE)0;
-                        for(it=0; it<kernelSize; it++){
-                            if(-1<Y && Y<image->ny){
-                                imageValue = readingValue[index];
-                                windowValue = window[it];
-                                temp = (DTYPE)imageValue * windowValue - c;
-                                t = finalValue + temp;
-                                c = (t - finalValue) - temp;
-                                finalValue = t;
-                            }
-                            index+=image->nx;
-                            Y++;
-                        }
-                        writtingValue[i++] = (DTYPE)finalValue;
-                    }
-                }
-            }
-        }
-    }
-    if(image->nz>1){
-        /* Smoothing along the Z axis */
-        radius = static_cast<int>(reg_ceil(2.0*spacingVoxel[2]));
-        kernelSize = 2*radius + 1;
-        free(window);
-        window = (DTYPE *)calloc(kernelSize,sizeof(DTYPE));
-        coeffSum=0;
-        for(int it=-radius; it<=radius; it++){
-            DTYPE coeff = (DTYPE)(fabs((float)(DTYPE)it/(DTYPE)spacingVoxel[2]));
-            if(coeff<1.0) window[it+radius] = (DTYPE)(2.0/3.0 - coeff*coeff + 0.5*coeff*coeff*coeff);
-            else if (coeff<2.0) window[it+radius] = (DTYPE)(-(coeff-2.0)*(coeff-2.0)*(coeff-2.0)/6.0);
-            else window[it+radius]=0;
-            coeffSum += window[it+radius];
-        }
-        for(int it=0;it<kernelSize;it++) window[it] /= coeffSum;
-        for(int t=0;t<timePoint;t++){
-            for(int u=0;u<field;u++){
-
-                DTYPE *readingValue=&imageArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
-                DTYPE *writtingValue=&tempArray[(t+u*timePoint)*image->nx*image->ny*image->nz];
-
-                int index, i, Z, it, x, y, z;
-                DTYPE finalValue, windowValue, t, c, temp;
-                DTYPE imageValue;
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    private(index, i, Z, it, x, y, z, finalValue, windowValue, \
-    c, t, temp, imageValue) \
-    shared(image, readingValue, writtingValue, radius, kernelSize, window, coeffSum)
-#endif // _OPENMP
-                for(z=0; z<image->nz; z++){
-                    i=z*image->nx*image->ny;
-                    for(y=0; y<image->ny; y++){
-                        for(x=0; x<image->nx; x++){
-
-                            finalValue=0;
-
-                            index = i - image->nx*image->ny*radius;
-                            Z = z - radius;
-
-                            // Kahan summation used here
-                            c = (DTYPE)0;
-                            for(it=0; it<kernelSize; it++){
-                                if(-1<Z && Z<image->nz){
-                                    imageValue = readingValue[index];
-                                    windowValue = window[it];
-                                    temp = (DTYPE)imageValue * windowValue - c;
-                                    t = finalValue + temp;
-                                    c = (t - finalValue) - temp;
-                                    finalValue = t;
-                                }
-                                index+=image->nx*image->ny;
-                                Z++;
-                            }
-                            writtingValue[i++] = (DTYPE)finalValue;
-                        }
-                    }
-                }
-            }
-        }
-        memcpy(imageArray,tempArray,image->nvox * sizeof(DTYPE));
-    }
-    free(window);
-    free(tempArray);
-}
-/* *************************************************************** */
-void reg_tools_CubicSplineKernelConvolution(nifti_image *image,
-                                            float spacingVoxel[]
-                                            )
-{
-    switch(image->datatype){
-    case NIFTI_TYPE_UINT8:
-        reg_tools_CubicSplineKernelConvolution1<unsigned char>(image, spacingVoxel);
-        break;
-    case NIFTI_TYPE_INT8:
-        reg_tools_CubicSplineKernelConvolution1<char>(image, spacingVoxel);
-        break;
-    case NIFTI_TYPE_UINT16:
-        reg_tools_CubicSplineKernelConvolution1<unsigned short>(image, spacingVoxel);
-        break;
-    case NIFTI_TYPE_INT16:
-        reg_tools_CubicSplineKernelConvolution1<short>(image, spacingVoxel);
-        break;
-    case NIFTI_TYPE_UINT32:
-        reg_tools_CubicSplineKernelConvolution1<unsigned int>(image, spacingVoxel);
-        break;
-    case NIFTI_TYPE_INT32:
-        reg_tools_CubicSplineKernelConvolution1<int>(image, spacingVoxel);
-        break;
-    case NIFTI_TYPE_FLOAT32:
-        reg_tools_CubicSplineKernelConvolution1<float>(image, spacingVoxel);
-        break;
-    case NIFTI_TYPE_FLOAT64:
-        reg_tools_CubicSplineKernelConvolution1<double>(image, spacingVoxel);
-        break;
-    default:
-        fprintf(stderr,"[NiftyReg ERROR] reg_tools_CubicSplineKernelConvolution\tThe image data type is not supported\n");
-        exit(1);
-    }
-}
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class DTYPE>
@@ -654,6 +421,7 @@ void reg_tools_changeDatatype(nifti_image *image)
 }
 /* *************************************************************** */
 template void reg_tools_changeDatatype<unsigned char>(nifti_image *);
+template void reg_tools_changeDatatype<int>(nifti_image *);
 template void reg_tools_changeDatatype<float>(nifti_image *);
 template void reg_tools_changeDatatype<double>(nifti_image *);
 /* *************************************************************** */
@@ -680,9 +448,9 @@ void reg_tools_operationImageToImage(nifti_image *img1,
 
 
 #ifdef _WIN32
-	int  i;
+    int  i;
 #else
-	size_t  i;
+    size_t  i;
 #endif
 
     switch(type){
@@ -923,9 +691,9 @@ void reg_tools_operationValueToImage(nifti_image *img1,
     res->scl_inter=img1->scl_inter;
 
 #ifdef _WIN32
-	int  i;
+    int  i;
 #else
-	size_t  i;
+    size_t  i;
 #endif
 
     switch(type){
@@ -1145,175 +913,276 @@ void reg_tools_divideValueToImage(nifti_image *img1,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class PrecisionTYPE, class ImageTYPE>
-void reg_gaussianSmoothing1(nifti_image *image,
-                            PrecisionTYPE sigma,
-                            bool *axisToSmooth)
+template <class DTYPE>
+void reg_tools_kernelConvolution_core(nifti_image *image,
+                                      float *size,
+                                      int kernelType,
+                                      bool *timePoint,
+                                      bool *axis)
 {
-    ImageTYPE *imagePtr = static_cast<ImageTYPE *>(image->data);
+    DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
+    size_t voxelNumber = (size_t)image->nx*image->ny*image->nz;
+    int imageDim[3]={image->nx,image->ny,image->nz};
 
-    int timePoint = image->nt;
-    if(timePoint==0) timePoint=1;
-    int field = image->nu;
-    if(field==0) field=1;
-
-	size_t voxelNumber = (size_t)image->nx*image->ny*image->nz;
-
-#ifdef _WIN32
-	int  index;
-#else
-	size_t  index;
-#endif
-	int temp, i, j, t, x, y, z, x2, y2, z2, current, n, radius, increment;
-    bool goodLine;
-    PrecisionTYPE value;
+    bool *nanImagePtr = (bool *)malloc(voxelNumber*sizeof(bool));
+    float *densityPtr = (float *)malloc(voxelNumber*sizeof(float));
 
     // Loop over the dimension higher than 3
-    for(t=0; t<timePoint*field; t++){
-        ImageTYPE *timeImagePtr = &imagePtr[t * voxelNumber];
-        PrecisionTYPE *resultValue=(PrecisionTYPE *)malloc(voxelNumber * sizeof(PrecisionTYPE));
-        // Loop over the 3 dimensions
-        for(n=1; n<4; n++){
-            if(axisToSmooth[n]==true && image->dim[n]>1){
-                // Define the Guassian kernel
-                double currentSigma;
-                if(sigma>0) currentSigma=sigma/image->pixdim[n];
-                else currentSigma=fabs(sigma); // voxel based if negative value
-                radius=(int)reg_ceil(currentSigma*3.0f);
-                if(radius>0){
-                    PrecisionTYPE *kernel = new PrecisionTYPE[2*radius+1];
-                    PrecisionTYPE kernelSum=0;
-                    for(i=-radius; i<=radius; i++){
-                        kernel[radius+i]=(PrecisionTYPE)(exp( -((double)i*(double)i)/(2.0*currentSigma*currentSigma)) / (currentSigma*2.506628274631));
-                        // 2.506... = sqrt(2*pi)
-                        kernelSum += kernel[radius+i];
+    for(int t=0; t<image->nt*image->nu; t++){
+        if(timePoint[t]){
+            DTYPE *intensityPtr = &imagePtr[t * voxelNumber];
+            size_t index;
+            for(index=0; index<voxelNumber; index++){
+                densityPtr[index] = intensityPtr[index]==intensityPtr[index]?1:0;
+                nanImagePtr[index] = static_cast<bool>(densityPtr[index]);
+                if(nanImagePtr[index]==0)
+                    intensityPtr[index]=static_cast<DTYPE>(0);
+            }
+            // Loop over the x, y and z dimensions
+            for(int n=0; n<3; n++){
+                if(axis[n] && image->dim[n]>1){
+                    double temp;
+                    if(size[t]>0) temp=size[t]/image->pixdim[n+1]; // mm to voxel
+                    else temp=fabs(size[t]); // voxel based if negative value
+                    int radius;
+                    // Define the kernel size
+                    if(kernelType==2){
+                        // Mean filtering
+                        radius = static_cast<int>(temp);
                     }
-                    for(i=-radius; i<=radius; i++)
-                        kernel[radius+i] /= kernelSum;
-#ifndef NDEBUG
-                    printf("[NiftyReg DEBUG] smoothing dim[%i] radius[%i] kernelSum[%g]\n", n, radius, kernelSum);
-#endif
-                    // Define the variable to increment in the 1D array
-                    increment=1;
-                    switch(n){
-                    case 1: increment=1;break;
-                    case 2: increment=image->nx;break;
-                    case 3: increment=image->nx*image->ny;break;
-                        //                    case 4: increment=image->nx*image->ny*image->nz;break;
-                        //                    case 5: increment=image->nx*image->ny*image->nz*image->nt;break;
-                        //                    case 6: increment=image->nx*image->ny*image->nz*image->nt*image->nu;break;
-                        //                    case 7: increment=image->nx*image->ny*image->nz*image->nt*image->nu*image->nv;break;
+                    else if(kernelType==1){
+                        // Cubic Spline kernel
+                        radius = static_cast<int>(temp*2.0f);
                     }
-                    // Loop over the different voxel
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-    shared(voxelNumber,image,n,increment,radius,timeImagePtr,kernel,resultValue) \
-    private(index, temp, x, y, z, x2, y2, z2, goodLine, current,value,j, kernelSum)
-#endif
-                    for(index=0;index<voxelNumber;++index){
-
-                        z=index/(image->nx*image->ny);
-                        temp=index-z*image->nx*image->ny;
-                        y=temp/image->nx;
-                        x=temp-y*image->nx;
-
-                        current = index - increment*radius;
-                        value=0;
-
-                        // Check if the central voxel is a NaN
-                        if(timeImagePtr[index]==timeImagePtr[index]){
-                            kernelSum=0;
-                            // Loop over the kernel width
-                            for(j=-radius; j<=radius; j++){
-                                // Check if the current voxel is within the line
-                                z2=current/(image->nx*image->ny);
-                                temp=current-z2*image->nx*image->ny;
-                                y2=temp/image->nx;
-                                x2=temp-y2*image->nx;
-                                goodLine=true;
-                                switch(n){
-                                case 1:if(y!=y2 || z!=z2) goodLine=false;break;
-                                case 2:if(x!=x2 || z!=z2) goodLine=false;break;
-                                case 3:if(x!=x2 || y!=y2) goodLine=false;break;
-                                }
-                                if(goodLine &&
-                                        x2>-1 && x2<image->nx &&
-                                        y2>-1 && y2<image->ny &&
-                                        z2>-1 && z2<image->nz &&
-                                        timeImagePtr[current]==timeImagePtr[current]){
-                                    value += (PrecisionTYPE)(timeImagePtr[current]*kernel[j+radius]);
-                                    kernelSum += kernel[j+radius];
-                                }
-                                current += increment;
+                    else{
+                        // Gaussian kernel
+                        radius=static_cast<int>(temp*3.0f);
+                    }
+                    if(radius>0){
+                        // Allocate the kernel
+                        float kernel[2024];
+                        double kernelSum=0;
+                        // Fill the kernel
+                        if(kernelType==2){
+                            // No kernel is required for the mean filtering
+                            NULL;
+                        }
+                        else if(kernelType==1){
+                            // Compute the Cubic Spline kernel
+                            for(int i=-radius; i<=radius; i++){
+                                // temp contains the kernel node spacing
+                                double relative = (double)(fabs((double)(double)i/(double)temp));
+                                if(relative<1.0) kernel[i+radius] = (float)(2.0/3.0 - relative*relative + 0.5*relative*relative*relative);
+                                else if (relative<2.0) kernel[i+radius] = (float)(-(relative-2.0)*(relative-2.0)*(relative-2.0)/6.0);
+                                else kernel[i+radius]=0;
+                                kernelSum += kernel[i+radius];
                             }
-                            resultValue[index]=value / kernelSum;
                         }
                         else{
-                            // voxel at index is a NaN
-                            resultValue[index]=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
+                            // Compute the Gaussian kernel
+                            for(int i=-radius; i<=radius; i++){
+                                // 2.506... = sqrt(2*pi)
+                                // temp contains the sigma in voxel
+                                kernel[radius+i]=static_cast<float>(exp(-(double)(i*i)/(2.0*reg_pow2(temp))) /
+                                        (temp*2.506628274631));
+                                kernelSum += kernel[radius+i];
+                            }
                         }
-                    }
+                        // No need for kernel normalisation as this is handle by the density function
+#ifndef NDEBUG
+                        printf("[NiftyReg DEBUG] Convolution type[%i] dim[%i] tp[%i] radius[%i] kernelSum[%g]\n", kernelType, n, t, radius, kernelSum);
+#endif
+                        int k, planeIndex, planeNumber, lineIndex, lineOffset;
+                        switch(n){
+                        case 0:
+                            planeNumber=imageDim[1]*imageDim[2];
+                            lineOffset  = 1;
+                            break;
+                        case 1:
+                            planeNumber = imageDim[0]*imageDim[2];
+                            lineOffset  = imageDim[0];
+                            break;
+                        case 2:
+                            planeNumber = imageDim[0]*imageDim[1];
+                            lineOffset  = planeNumber;
+                            break;
+                        }
+
+                        int shiftPre, shiftPst, realIndex;
+                        float *kernelPtr, kernelValue;
+                        double densitySum, intensitySum;
+                        DTYPE *currentIntensityPtr=NULL;
+                        float *currentDensityPtr = NULL;
+                        DTYPE bufferIntensity[1024];
+                        float bufferDensity[1024];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(voxelNumber, timeImagePtr, resultValue) \
-    private(i)
+    shared(imageDim, intensityPtr, densityPtr, radius, kernel, lineOffset, n, \
+    planeNumber,kernelSum) \
+    private(realIndex,currentIntensityPtr,currentDensityPtr,lineIndex,bufferIntensity, \
+    bufferDensity,shiftPre,shiftPst,kernelPtr,kernelValue,densitySum,intensitySum, \
+    k)
+#endif // _OPENMP
+                        // Loop over the different voxel
+                        for(planeIndex=0; planeIndex<planeNumber; ++planeIndex){
+                            switch(n){
+                            case 0: realIndex = planeIndex * imageDim[0];break;
+                            case 1: realIndex = (planeIndex/imageDim[0]) *
+                                        imageDim[0]*imageDim[1] +
+                                        planeIndex%imageDim[0]; break;
+                            case 2: realIndex = planeIndex;break;
+                            }
+                            // Fetch the current line into a stack buffer
+                            currentIntensityPtr= &intensityPtr[realIndex];
+                            currentDensityPtr  = &densityPtr[realIndex];
+                            for(lineIndex=0;lineIndex<imageDim[n];++lineIndex){
+                                bufferIntensity[lineIndex] = *currentIntensityPtr;
+                                bufferDensity[lineIndex]   = *currentDensityPtr;
+                                currentIntensityPtr       += lineOffset;
+                                currentDensityPtr         += lineOffset;
+                            }
+                            if(kernelSum>0){
+                                // Perform the kernel convolution along 1 line
+                                for(lineIndex=0;lineIndex<imageDim[n];++lineIndex){
+                                    // Define the kernel boundaries
+                                    shiftPre = lineIndex - radius;
+                                    shiftPst = lineIndex + radius + 1;
+                                    if(shiftPre<0){
+                                        kernelPtr = &kernel[-shiftPre];
+                                        shiftPre=0;
+                                    }
+                                    else kernelPtr = &kernel[0];
+                                    if(shiftPst>imageDim[n]) shiftPst=imageDim[n];
+                                    // Set the current values to zero
+                                    intensitySum=0;
+                                    densitySum=0;
+                                    // Increment the current value by performing the weighted sum
+                                    for(k=shiftPre;k<shiftPst;++k){
+                                        kernelValue   = *kernelPtr++;
+                                        intensitySum +=  kernelValue * bufferIntensity[k];
+                                        densitySum   +=  kernelValue * bufferDensity[k];
+                                    }
+                                    // Store the computed value inplace
+                                    intensityPtr[realIndex] = static_cast<DTYPE>(intensitySum);
+                                    densityPtr[realIndex] = static_cast<float>(densitySum);
+                                    realIndex += lineOffset;
+                                } // line convolution
+                            } // kernel type
+                            else{
+                                // Compute the mean at the first point
+                                intensitySum=0;
+                                densitySum = 0;
+                                if(imageDim[n]<=radius){
+                                    for(k=0;k<imageDim[n];++k){
+                                        intensitySum += bufferIntensity[k];
+                                        densitySum   += bufferDensity[k];
+                                    }
+                                }
+                                else{
+                                    for(k=0;k<=radius;++k){
+                                        intensitySum += bufferIntensity[k];
+                                        densitySum   += bufferDensity[k];
+                                    }
+                                }
+                                intensityPtr[realIndex] = static_cast<DTYPE>(intensitySum);
+                                densityPtr[realIndex]   = static_cast<float>(densitySum);
+                                realIndex += lineOffset;
+                                // Compute the mean along 1 line from the second point onward
+                                for(lineIndex=1;lineIndex<imageDim[n];++lineIndex){
+                                    shiftPre = lineIndex - radius - 1; // to be removed
+                                    shiftPst = lineIndex + radius; // to be added
+                                    if(shiftPre>=0){
+                                        intensitySum -= bufferIntensity[shiftPre];
+                                        densitySum   -= bufferDensity[shiftPre];
+                                    }
+                                    if(shiftPst<imageDim[n]){
+                                        intensitySum += bufferIntensity[shiftPst];
+                                        densitySum   += bufferDensity[shiftPst];
+                                    }
+                                    intensityPtr[realIndex] = static_cast<DTYPE>(intensitySum);
+                                    densityPtr[realIndex] = static_cast<float>(densitySum);
+                                    realIndex += lineOffset;
+                                } // line convolution of mean filter
+                            } // No kernel computation
+                        } // pixel in starting plane
+                    } // radius > 0
+                } // active axis
+            } // axes
+            // Normalise per timepoint
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(voxelNumber, intensityPtr, densityPtr, nanImagePtr) \
+    private(index)
 #endif
-					for(index=0; index<voxelNumber; index++)
-						timeImagePtr[index]=(ImageTYPE)resultValue[index];
-                    delete[] kernel;
-                }
+            for(index=0; index<voxelNumber; ++index){
+                if(nanImagePtr[index]!=0)
+                    intensityPtr[index] = static_cast<DTYPE>((float)intensityPtr[index]/densityPtr[index]);
+                else intensityPtr[index] = std::numeric_limits<DTYPE>::quiet_NaN();
             }
-        }
-        free(resultValue);
-    }
+        } // check if the time point is active
+    } // loop over the time points
+    free(nanImagePtr);
+    free(densityPtr);
 }
 /* *************************************************************** */
-template <class PrecisionTYPE>
-void reg_gaussianSmoothing(	nifti_image *image,
-                            PrecisionTYPE sigma,
-                            bool *smoothXYZ)
+void reg_tools_kernelConvolution(nifti_image *image,
+                           float *sigma,
+                           int kernelType,
+                           bool *timePoint,
+                           bool *axis)
 {
-    bool axisToSmooth[8];
-    if(smoothXYZ==NULL){
-        for(int i=0; i<8; i++) axisToSmooth[i]=true;
-    }
-    else{
-        for(int i=0; i<8; i++) axisToSmooth[i]=smoothXYZ[i];
-    }
 
-    if(sigma==0.0) return;
+
+    if(image->nt<=0) image->nt=image->dim[4]=1;
+    if(image->nu<=0) image->nu=image->dim[5]=1;
+
+    bool *axisToSmooth = new bool[3];
+    bool *activeTimePoint = new bool[image->nt*image->nu];
+    if(axis==NULL){
+        // All axis are smoothed by default
+        for(int i=0; i<3; i++) axisToSmooth[i]=true;
+    }
+    else for(int i=0; i<3; i++) axisToSmooth[i]=axis[i];
+
+    if(timePoint==NULL){
+        // All time points are considered as active
+        for(int i=0; i<image->nt*image->nu; i++) activeTimePoint[i]=true;
+    }
+    else for(int i=0; i<image->nt*image->nu; i++) activeTimePoint[i]=timePoint[i];
+
     switch(image->datatype){
     case NIFTI_TYPE_UINT8:
-        reg_gaussianSmoothing1<PrecisionTYPE,unsigned char>(image, sigma, axisToSmooth);
+        reg_tools_kernelConvolution_core<unsigned char>(image, sigma, kernelType, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_INT8:
-        reg_gaussianSmoothing1<PrecisionTYPE,char>(image, sigma, axisToSmooth);
+        reg_tools_kernelConvolution_core<char>(image, sigma, kernelType, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_UINT16:
-        reg_gaussianSmoothing1<PrecisionTYPE,unsigned short>(image, sigma, axisToSmooth);
+        reg_tools_kernelConvolution_core<unsigned short>(image, sigma, kernelType, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_INT16:
-        reg_gaussianSmoothing1<PrecisionTYPE,short>(image, sigma, axisToSmooth);
+        reg_tools_kernelConvolution_core<short>(image, sigma, kernelType, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_gaussianSmoothing1<PrecisionTYPE,unsigned int>(image, sigma, axisToSmooth);
+        reg_tools_kernelConvolution_core<unsigned int>(image, sigma, kernelType, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_INT32:
-        reg_gaussianSmoothing1<PrecisionTYPE,int>(image, sigma, axisToSmooth);
+        reg_tools_kernelConvolution_core<int>(image, sigma, kernelType, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_FLOAT32:
-        reg_gaussianSmoothing1<PrecisionTYPE,float>(image, sigma, axisToSmooth);
+        reg_tools_kernelConvolution_core<float>(image, sigma, kernelType, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_FLOAT64:
-        reg_gaussianSmoothing1<PrecisionTYPE,double>(image, sigma, axisToSmooth);
+        reg_tools_kernelConvolution_core<double>(image, sigma, kernelType, activeTimePoint, axisToSmooth);
         break;
     default:
-        fprintf(stderr,"[NiftyReg ERROR] reg_smoothImage\tThe image data type is not supported\n");
-        exit(1);
+        fprintf(stderr,"[NiftyReg ERROR] reg_gaussianSmoothing\tThe image data type is not supported\n");
+        reg_exit(1);
     }
+
+    delete []axisToSmooth;
+    delete []activeTimePoint;
 }
-template void reg_gaussianSmoothing<float>(nifti_image *, float, bool *);
-template void reg_gaussianSmoothing<double>(nifti_image *, double, bool *);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class PrecisionTYPE, class ImageTYPE>
@@ -1321,7 +1190,10 @@ void reg_downsampleImage1(nifti_image *image, int type, bool *downsampleAxis)
 {
     if(type==1){
         /* the input image is first smooth */
-        reg_gaussianSmoothing<float>(image, -0.7f, downsampleAxis);
+        float *sigma=new float[image->nt];
+        for(int i=0;i<image->nt;++i) sigma[i]=-0.7f;
+        reg_tools_kernelConvolution(image,sigma,0);
+        delete []sigma;
     }
 
     /* the values are copied */
@@ -1401,7 +1273,7 @@ void reg_downsampleImage1(nifti_image *image, int type, bool *downsampleAxis)
     int previous[3];
 
     // qform is used for resampling
-	for(size_t tuvw=0; tuvw<(size_t)image->nt*image->nu*image->nv*image->nw; tuvw++){
+    for(size_t tuvw=0; tuvw<(size_t)image->nt*image->nu*image->nv*image->nw; tuvw++){
         ImageTYPE *valuesPtrTUVW = &oldValues[tuvw*oldDim[1]*oldDim[2]*oldDim[3]];
         for(int z=0; z<image->nz; z++){
             for(int y=0; y<image->ny; y++){
@@ -1777,9 +1649,9 @@ int reg_createImagePyramid(nifti_image *inputImage, nifti_image **pyramid, int u
     // FINEST LEVEL OF REGISTRATION
     pyramid[levelToPerform-1]=nifti_copy_nim_info(inputImage);
     pyramid[levelToPerform-1]->data = (void *)calloc(pyramid[levelToPerform-1]->nvox,
-            pyramid[levelToPerform-1]->nbyper);
+                                                     pyramid[levelToPerform-1]->nbyper);
     memcpy(pyramid[levelToPerform-1]->data, inputImage->data,
-            pyramid[levelToPerform-1]->nvox* pyramid[levelToPerform-1]->nbyper);
+           pyramid[levelToPerform-1]->nvox* pyramid[levelToPerform-1]->nbyper);
     reg_tools_changeDatatype<DTYPE>(pyramid[levelToPerform-1]);
 
     // Images are downsampled if appropriate
@@ -1798,7 +1670,7 @@ int reg_createImagePyramid(nifti_image *inputImage, nifti_image **pyramid, int u
         pyramid[l]->data = (void *)calloc(pyramid[l]->nvox,
                                           pyramid[l]->nbyper);
         memcpy(pyramid[l]->data, pyramid[l+1]->data,
-                pyramid[l]->nvox* pyramid[l]->nbyper);
+               pyramid[l]->nvox* pyramid[l]->nbyper);
 
         // Downsample the image if appropriate
         bool downsampleAxis[8]={false,true,true,true,false,false,false,false};
@@ -1820,9 +1692,9 @@ int reg_createMaskPyramid(nifti_image *inputMaskImage, int **maskPyramid, int un
     nifti_image **tempMaskImagePyramid=(nifti_image **)malloc(levelToPerform*sizeof(nifti_image *));
     tempMaskImagePyramid[levelToPerform-1]=nifti_copy_nim_info(inputMaskImage);
     tempMaskImagePyramid[levelToPerform-1]->data = (void *)calloc(tempMaskImagePyramid[levelToPerform-1]->nvox,
-            tempMaskImagePyramid[levelToPerform-1]->nbyper);
+                                                                  tempMaskImagePyramid[levelToPerform-1]->nbyper);
     memcpy(tempMaskImagePyramid[levelToPerform-1]->data, inputMaskImage->data,
-            tempMaskImagePyramid[levelToPerform-1]->nvox* tempMaskImagePyramid[levelToPerform-1]->nbyper);
+           tempMaskImagePyramid[levelToPerform-1]->nvox* tempMaskImagePyramid[levelToPerform-1]->nbyper);
     reg_tools_binarise_image(tempMaskImagePyramid[levelToPerform-1]);
     reg_tools_changeDatatype<unsigned char>(tempMaskImagePyramid[levelToPerform-1]);
 
@@ -1839,8 +1711,8 @@ int reg_createMaskPyramid(nifti_image *inputMaskImage, int **maskPyramid, int un
             tempMaskImagePyramid[levelToPerform-1]->nz;
     maskPyramid[levelToPerform-1]=(int *)malloc(activeVoxelNumber[levelToPerform-1] * sizeof(int));
     reg_tools_binaryImage2int(tempMaskImagePyramid[levelToPerform-1],
-            maskPyramid[levelToPerform-1],
-            activeVoxelNumber[levelToPerform-1]);
+                              maskPyramid[levelToPerform-1],
+                              activeVoxelNumber[levelToPerform-1]);
 
     // Images for each subsequent levels are allocated and downsampled if appropriate
     for(int l=levelToPerform-2; l>=0; l--){
@@ -1849,7 +1721,7 @@ int reg_createMaskPyramid(nifti_image *inputMaskImage, int **maskPyramid, int un
         tempMaskImagePyramid[l]->data = (void *)calloc(tempMaskImagePyramid[l]->nvox,
                                                        tempMaskImagePyramid[l]->nbyper);
         memcpy(tempMaskImagePyramid[l]->data, tempMaskImagePyramid[l+1]->data,
-                tempMaskImagePyramid[l]->nvox* tempMaskImagePyramid[l]->nbyper);
+               tempMaskImagePyramid[l]->nvox* tempMaskImagePyramid[l]->nbyper);
 
         // Downsample the image if appropriate
         bool downsampleAxis[8]={false,true,true,true,false,false,false,false};
@@ -2256,15 +2128,15 @@ void reg_getDisplacementFromDeformation_3D(nifti_image *splineControlPoint)
     }
 }
 /* *************************************************************** */
-int reg_getDisplacementFromDeformation(nifti_image *splineControlPoint)
+int reg_getDisplacementFromDeformation(nifti_image *image)
 {
-    if(splineControlPoint->datatype==NIFTI_TYPE_FLOAT32){
-        switch(splineControlPoint->nu){
+    if(image->datatype==NIFTI_TYPE_FLOAT32){
+        switch(image->nu){
         case 2:
-            reg_getDisplacementFromDeformation_2D<float>(splineControlPoint);
+            reg_getDisplacementFromDeformation_2D<float>(image);
             break;
         case 3:
-            reg_getDisplacementFromDeformation_3D<float>(splineControlPoint);
+            reg_getDisplacementFromDeformation_3D<float>(image);
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] reg_getDisplacementFromPosition<float>\n");
@@ -2273,13 +2145,13 @@ int reg_getDisplacementFromDeformation(nifti_image *splineControlPoint)
             return 1;
         }
     }
-    else if(splineControlPoint->datatype==NIFTI_TYPE_FLOAT64){
-        switch(splineControlPoint->nu){
+    else if(image->datatype==NIFTI_TYPE_FLOAT64){
+        switch(image->nu){
         case 2:
-            reg_getDisplacementFromDeformation_2D<double>(splineControlPoint);
+            reg_getDisplacementFromDeformation_2D<double>(image);
             break;
         case 3:
-            reg_getDisplacementFromDeformation_3D<double>(splineControlPoint);
+            reg_getDisplacementFromDeformation_3D<double>(image);
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] reg_getDisplacementFromPosition<double>\n");
@@ -2293,6 +2165,13 @@ int reg_getDisplacementFromDeformation(nifti_image *splineControlPoint)
         fprintf(stderr,"[NiftyReg ERROR] Only single or double floating precision have been implemented. EXIT\n");
         exit(1);
     }
+    image->intent_code=NIFTI_INTENT_VECTOR;
+    memset(image->intent_name, 0, 16);
+    strcpy(image->intent_name,"NREG_TRANS");
+    if(image->intent_p1==DEF_FIELD)
+        image->intent_p1=DISP_FIELD;
+    if(image->intent_p1==DEF_VEL_FIELD)
+        image->intent_p1=DISP_VEL_FIELD;
     return 0;
 }
 /* *************************************************************** */
@@ -2386,15 +2265,15 @@ void reg_getDeformationFromDisplacement_3D(nifti_image *splineControlPoint)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-int reg_getDeformationFromDisplacement(nifti_image *splineControlPoint)
+int reg_getDeformationFromDisplacement(nifti_image *image)
 {
-    if(splineControlPoint->datatype==NIFTI_TYPE_FLOAT32){
-        switch(splineControlPoint->nu){
+    if(image->datatype==NIFTI_TYPE_FLOAT32){
+        switch(image->nu){
         case 2:
-            reg_getDeformationFromDisplacement_2D<float>(splineControlPoint);
+            reg_getDeformationFromDisplacement_2D<float>(image);
             break;
         case 3:
-            reg_getDeformationFromDisplacement_3D<float>(splineControlPoint);
+            reg_getDeformationFromDisplacement_3D<float>(image);
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] reg_getDeformationFromDisplacement\n");
@@ -2402,13 +2281,13 @@ int reg_getDeformationFromDisplacement(nifti_image *splineControlPoint)
             exit(1);
         }
     }
-    else if(splineControlPoint->datatype==NIFTI_TYPE_FLOAT64){
-        switch(splineControlPoint->nu){
+    else if(image->datatype==NIFTI_TYPE_FLOAT64){
+        switch(image->nu){
         case 2:
-            reg_getDeformationFromDisplacement_2D<double>(splineControlPoint);
+            reg_getDeformationFromDisplacement_2D<double>(image);
             break;
         case 3:
-            reg_getDeformationFromDisplacement_3D<double>(splineControlPoint);
+            reg_getDeformationFromDisplacement_3D<double>(image);
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] reg_getDeformationFromDisplacement\n");
@@ -2421,6 +2300,15 @@ int reg_getDeformationFromDisplacement(nifti_image *splineControlPoint)
         fprintf(stderr,"[NiftyReg ERROR] Only single or double floating precision have been implemented. EXIT\n");
         exit(1);
     }
+
+    image->intent_code=NIFTI_INTENT_VECTOR;
+    memset(image->intent_name, 0, 16);
+    strcpy(image->intent_name,"NREG_TRANS");
+    if(image->intent_p1==DISP_FIELD)
+        image->intent_p1=DEF_FIELD;
+    if(image->intent_p1==DISP_VEL_FIELD)
+        image->intent_p1=DEF_VEL_FIELD;
+
     return 0;
 }
 /* *************************************************************** */

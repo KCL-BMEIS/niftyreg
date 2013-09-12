@@ -1,12 +1,12 @@
 /**
  * @file  _reg_lncc.cpp
- *
- *
- *  Created by Aileen Cordes on 10/11/2012.
- *  Copyright (c) 2012, University College London. All rights reserved.
- *  Centre for Medical Image Computing (CMIC)
- *  See the LICENSE.txt file in the nifty_reg root folder
- *
+ * @author Aileen Corder
+ * @author Marc Modat
+ * @date 10/11/2012.
+ * @brief CPP file for the LNCC related class and functions
+ * Copyright (c) 2012, University College London. All rights reserved.
+ * Centre for Medical Image Computing (CMIC)
+ * See the LICENSE.txt file in the nifty_reg root folder
  */
 
 #ifndef _REG_LNCC_CPP
@@ -14,713 +14,629 @@
 
 #include "_reg_lncc.h"
 
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+reg_lncc::reg_lncc()
+	: reg_measure::reg_measure()
+{
+    this->forwardCorrelationImage=NULL;
+    this->referenceMeanImage=NULL;
+    this->referenceSdevImage=NULL;
+    this->warpedFloatingMeanImage=NULL;
+    this->warpedFloatingSdevImage=NULL;
+
+    this->backwardCorrelationImage=NULL;
+    this->floatingMeanImage=NULL;
+    this->floatingSdevImage=NULL;
+    this->warpedReferenceMeanImage=NULL;
+    this->warpedReferenceSdevImage=NULL;
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] reg_lncc constructor called\n");
+#endif
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+reg_lncc::~reg_lncc()
+{
+    if(this->forwardCorrelationImage!=NULL)
+        nifti_image_free(this->forwardCorrelationImage);
+    this->forwardCorrelationImage=NULL;
+    if(this->referenceMeanImage!=NULL)
+        nifti_image_free(this->referenceMeanImage);
+    this->referenceMeanImage=NULL;
+    if(this->referenceSdevImage!=NULL)
+        nifti_image_free(this->referenceSdevImage);
+    this->referenceSdevImage=NULL;
+    if(this->warpedFloatingMeanImage!=NULL)
+        nifti_image_free(this->warpedFloatingMeanImage);
+    this->warpedFloatingMeanImage=NULL;
+    if(this->warpedFloatingSdevImage!=NULL)
+        nifti_image_free(this->warpedFloatingSdevImage);
+    this->warpedFloatingSdevImage=NULL;
+
+    if(this->backwardCorrelationImage!=NULL)
+        nifti_image_free(this->backwardCorrelationImage);
+    this->backwardCorrelationImage=NULL;
+    if(this->floatingMeanImage!=NULL)
+        nifti_image_free(this->floatingMeanImage);
+    this->floatingMeanImage=NULL;
+    if(this->floatingSdevImage!=NULL)
+        nifti_image_free(this->floatingSdevImage);
+    this->floatingSdevImage=NULL;
+    if(this->warpedReferenceMeanImage!=NULL)
+        nifti_image_free(this->warpedReferenceMeanImage);
+    this->warpedReferenceMeanImage=NULL;
+    if(this->warpedReferenceSdevImage!=NULL)
+        nifti_image_free(this->warpedReferenceSdevImage);
+    this->warpedReferenceSdevImage=NULL;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class DTYPE>
+void reg_lncc::UpdateLocalStatImages(nifti_image *originalImage,
+                                     nifti_image *meanImage,
+                                     nifti_image *stdDevImage)
+{
+    DTYPE *origPtr = static_cast<DTYPE *>(originalImage->data);
+    DTYPE *meanPtr = static_cast<DTYPE *>(meanImage->data);
+    DTYPE *sdevPtr = static_cast<DTYPE *>(stdDevImage->data);
+    memcpy(meanPtr, origPtr, originalImage->nvox*originalImage->nbyper);
+    memcpy(sdevPtr, origPtr, originalImage->nvox*originalImage->nbyper);
+    reg_tools_multiplyImageToImage(stdDevImage, stdDevImage, stdDevImage);
+    reg_tools_kernelConvolution(meanImage, this->kernelStandardDeviation, KERNEL_TYPE, this->activeTimePoint);
+    reg_tools_kernelConvolution(stdDevImage, this->kernelStandardDeviation, KERNEL_TYPE, this->activeTimePoint);
+    for(size_t voxel=0;voxel<originalImage->nvox;++voxel){
+        // G*(I^2) - (G*I)^2
+        sdevPtr[voxel] = sqrt(sdevPtr[voxel] - reg_pow2(meanPtr[voxel]));
+        // Stabilise the computation
+        if(sdevPtr[voxel]<1.e-06) sdevPtr[voxel]=static_cast<DTYPE>(0);
+    }
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+void reg_lncc::InitialiseMeasure(nifti_image *refImgPtr,
+								 nifti_image *floImgPtr,
+								 int *maskRefPtr,
+								 nifti_image *warFloImgPtr,
+								 nifti_image *warFloGraPtr,
+								 nifti_image *forVoxBasedGraPtr,
+								 int *maskFloPtr,
+								 nifti_image *warRefImgPtr,
+								 nifti_image *warRefGraPtr,
+								 nifti_image *bckVoxBasedGraPtr)
+{
+	reg_measure::InitialiseMeasure(refImgPtr,
+								   floImgPtr,
+								   maskRefPtr,
+								   warFloImgPtr,
+								   warFloGraPtr,
+								   forVoxBasedGraPtr,
+								   maskFloPtr,
+								   warRefImgPtr,
+								   warRefGraPtr,
+								   bckVoxBasedGraPtr);
+
+    for(int i=0;i<this->referenceImagePointer->nt;++i){
+        if(this->activeTimePoint[i]){
+            reg_intensityRescale(this->referenceImagePointer,
+                                 i,
+                                 0.f,
+                                 1.f);
+            reg_intensityRescale(this->floatingImagePointer,
+                                 i,
+                                 0.f,
+                                 1.f);
+        }
+    }
+
+	// Check that no images are already allocated
+    if(this->forwardCorrelationImage!=NULL)
+        nifti_image_free(this->forwardCorrelationImage);
+    this->forwardCorrelationImage=NULL;
+	if(this->referenceMeanImage!=NULL)
+		nifti_image_free(this->referenceMeanImage);
+	this->referenceMeanImage=NULL;
+    if(this->referenceSdevImage!=NULL)
+        nifti_image_free(this->referenceSdevImage);
+    this->referenceSdevImage=NULL;
+    if(this->warpedFloatingMeanImage!=NULL)
+        nifti_image_free(this->warpedFloatingMeanImage);
+    this->warpedFloatingMeanImage=NULL;
+    if(this->warpedFloatingSdevImage!=NULL)
+        nifti_image_free(this->warpedFloatingSdevImage);
+    this->warpedFloatingSdevImage=NULL;
+    if(this->backwardCorrelationImage!=NULL)
+        nifti_image_free(this->backwardCorrelationImage);
+    this->backwardCorrelationImage=NULL;
+    if(this->floatingMeanImage!=NULL)
+        nifti_image_free(this->floatingMeanImage);
+    this->floatingMeanImage=NULL;
+    if(this->floatingSdevImage!=NULL)
+        nifti_image_free(this->floatingSdevImage);
+    this->floatingSdevImage=NULL;
+    if(this->warpedReferenceMeanImage!=NULL)
+        nifti_image_free(this->warpedReferenceMeanImage);
+    this->warpedReferenceMeanImage=NULL;
+    if(this->warpedReferenceSdevImage!=NULL)
+        nifti_image_free(this->warpedReferenceSdevImage);
+    this->warpedReferenceSdevImage=NULL;
+    // Allocate the required image to store mean and Sdev dev of the reference image
+    this->forwardCorrelationImage=nifti_copy_nim_info(this->referenceImagePointer);
+    this->forwardCorrelationImage->data=(void *)malloc(this->forwardCorrelationImage->nvox *
+                                                this->forwardCorrelationImage->nbyper);
+
+	this->referenceMeanImage=nifti_copy_nim_info(this->referenceImagePointer);
+	this->referenceMeanImage->data=(void *)malloc(this->referenceMeanImage->nvox *
+												  this->referenceMeanImage->nbyper);
+
+    this->referenceSdevImage=nifti_copy_nim_info(this->referenceImagePointer);
+    this->referenceSdevImage->data=(void *)malloc(this->referenceSdevImage->nvox *
+                                                 this->referenceSdevImage->nbyper);
+
+    this->warpedFloatingMeanImage=nifti_copy_nim_info(this->warpedFloatingImagePointer);
+    this->warpedFloatingMeanImage->data=(void *)malloc(this->warpedFloatingMeanImage->nvox *
+                                               this->warpedFloatingMeanImage->nbyper);
+
+    this->warpedFloatingSdevImage=nifti_copy_nim_info(this->warpedFloatingImagePointer);
+    this->warpedFloatingSdevImage->data=(void *)malloc(this->warpedFloatingSdevImage->nvox *
+                                              this->warpedFloatingSdevImage->nbyper);
+    // Compute local mean and reference image
+    switch(this->referenceImagePointer->datatype){
+    case NIFTI_TYPE_FLOAT32:
+        this->UpdateLocalStatImages<float>(this->referenceImagePointer,
+                                           this->referenceMeanImage,
+                                           this->referenceSdevImage);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        this->UpdateLocalStatImages<double>(this->referenceImagePointer,
+                                            this->referenceMeanImage,
+                                            this->referenceSdevImage);
+        break;
+    }
+    if(this->isSymmetric){
+        this->backwardCorrelationImage=nifti_copy_nim_info(this->floatingImagePointer);
+        this->backwardCorrelationImage->data=(void *)malloc(this->backwardCorrelationImage->nvox *
+                                                    this->backwardCorrelationImage->nbyper);
+
+        this->floatingMeanImage=nifti_copy_nim_info(this->floatingImagePointer);
+        this->floatingMeanImage->data=(void *)malloc(this->floatingMeanImage->nvox *
+                                                      this->floatingMeanImage->nbyper);
+
+        this->floatingSdevImage=nifti_copy_nim_info(this->floatingImagePointer);
+        this->floatingSdevImage->data=(void *)malloc(this->floatingSdevImage->nvox *
+                                                     this->floatingSdevImage->nbyper);
+
+        this->warpedReferenceMeanImage=nifti_copy_nim_info(this->warpedReferenceImagePointer);
+        this->warpedReferenceMeanImage->data=(void *)malloc(this->warpedReferenceMeanImage->nvox *
+                                                   this->warpedReferenceMeanImage->nbyper);
+
+        this->warpedReferenceSdevImage=nifti_copy_nim_info(this->warpedReferenceImagePointer);
+        this->warpedReferenceSdevImage->data=(void *)malloc(this->warpedReferenceSdevImage->nvox *
+                                                  this->warpedReferenceSdevImage->nbyper);
+        // Compute local mean and floating image
+        switch(this->floatingImagePointer->datatype){
+        case NIFTI_TYPE_FLOAT32:
+            this->UpdateLocalStatImages<float>(this->floatingImagePointer,
+                                               this->floatingMeanImage,
+                                               this->floatingSdevImage);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            this->UpdateLocalStatImages<double>(this->floatingImagePointer,
+                                                this->floatingMeanImage,
+                                                this->floatingSdevImage);
+            break;
+        }
+    }
+#ifndef NDEBUG
+        printf("[NiftyReg DEBUG] reg_lncc::InitialiseMeasure(). Active time point:");
+        for(int i=0;i<this->referenceImagePointer->nt;++i)
+            if(this->activeTimePoint[i])
+                printf(" %i",i);
+        printf("\n");
+#endif
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class DTYPE>
-double reg_getLNCC1(nifti_image *referenceImage,
-                    nifti_image *warpedImage,
-                    float gaussianStandardDeviation,
-                    int *mask
-                    )
+double reg_getLNCCValue(nifti_image *referenceImage,
+						nifti_image *referenceMeanImage,
+                        nifti_image *referenceSdevImage,
+						int *refMask,
+						nifti_image *warpedImage,
+						nifti_image *warpedMeanImage,
+                        nifti_image *warpedSdevImage,
+                        float *kernelStandardDeviation,
+						bool *activeTimePoint,
+						nifti_image *correlationImage)
 {
-    nifti_image *localMeanReferenceImage = nifti_copy_nim_info(referenceImage);
-    localMeanReferenceImage->data = (void *) malloc(referenceImage->nvox*sizeof(DTYPE));
-    DTYPE *localMeanReferenceImage_ptr = static_cast<DTYPE *>(localMeanReferenceImage->data);
-    memcpy(localMeanReferenceImage_ptr, referenceImage->data, referenceImage->nvox*sizeof(DTYPE));
+    // Compute the local correlation
+    reg_tools_multiplyImageToImage(referenceImage, warpedImage, correlationImage);
+    reg_tools_kernelConvolution(correlationImage, kernelStandardDeviation, KERNEL_TYPE, activeTimePoint);
 
-    nifti_image *localCorrelationImage = nifti_copy_nim_info(warpedImage);
-    localCorrelationImage->data = (void *) malloc(warpedImage->nvox*sizeof(DTYPE));
-    DTYPE *localCorrelationImage_ptr = static_cast<DTYPE *>(localCorrelationImage->data);
-    memcpy(localCorrelationImage_ptr, warpedImage->data, warpedImage->nvox*sizeof(DTYPE));
+    double lncc_value_sum  = 0., lncc_value;
+    double activeVoxel_num = 0.;
 
-    nifti_image *localMeanWarpedImage = nifti_copy_nim_info(warpedImage);
-    localMeanWarpedImage->data = (void *) malloc(warpedImage->nvox*sizeof(DTYPE));
-    DTYPE *localMeanWarpedImage_ptr = static_cast<DTYPE *>(localMeanWarpedImage->data);
-    memcpy(localMeanWarpedImage_ptr, warpedImage->data, warpedImage->nvox*sizeof(DTYPE));
+    DTYPE *refMeanPtr=static_cast<DTYPE *>(referenceMeanImage->data);
+    DTYPE *warMeanPtr=static_cast<DTYPE *>(warpedMeanImage->data);
+    DTYPE *refSdevPtr=static_cast<DTYPE *>(referenceSdevImage->data);
+    DTYPE *warSdevPtr=static_cast<DTYPE *>(warpedSdevImage->data);
+	DTYPE *correlaPtr=static_cast<DTYPE *>(correlationImage->data);
+    size_t voxel, voxelNumber = (size_t)referenceImage->nx*
+			referenceImage->ny*referenceImage->nz;
+    // Iteration over all time points
+    for(int t=0; t<referenceImage->nt; ++t){
+        if(activeTimePoint[t]==true){
+            DTYPE *refMeanPtr0 = &refMeanPtr[t*voxelNumber];
+            DTYPE *warMeanPtr0 = &warMeanPtr[t*voxelNumber];
+            DTYPE *refSdevPtr0 = &refSdevPtr[t*voxelNumber];
+            DTYPE *warSdevPtr0 = &warSdevPtr[t*voxelNumber];
+            DTYPE *correlaPtr0 = &correlaPtr[t*voxelNumber];
+            // Iteration over all voxels
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(voxelNumber,refMask,refMeanPtr0,warMeanPtr0, \
+    refSdevPtr0,warSdevPtr0,correlaPtr0) \
+    private(voxel,lncc_value) \
+    reduction(+:lncc_value_sum) \
+    reduction(+:activeVoxel_num)
+#endif
+            for(voxel=0; voxel<voxelNumber; ++voxel){
+                // Check if the current voxel belongs to the mask
+                if(refMask[voxel]>-1){
+                    lncc_value = (
+                                correlaPtr0[voxel] -
+                                (refMeanPtr0[voxel]*warMeanPtr0[voxel])
+                                ) /
+                            (refSdevPtr0[voxel]*warSdevPtr0[voxel]);
 
-    nifti_image *localStdReferenceImage = nifti_copy_nim_info(warpedImage);
-    localStdReferenceImage->data = (void *) malloc(warpedImage->nvox*sizeof(DTYPE));
-    DTYPE *localStdReferenceImage_ptr = static_cast<DTYPE *>(localStdReferenceImage->data);
-    memcpy(localStdReferenceImage_ptr, warpedImage->data, warpedImage->nvox*sizeof(DTYPE));
-
-    nifti_image *localStdWarpedImage = nifti_copy_nim_info(warpedImage);
-    localStdWarpedImage->data = (void *) malloc(referenceImage->nvox*sizeof(DTYPE));
-    DTYPE *localStdWarpedImage_ptr = static_cast<DTYPE *>(localStdWarpedImage->data);
-    memcpy(localStdWarpedImage_ptr, warpedImage->data, referenceImage->nvox*sizeof(DTYPE));
-
-    for(size_t voxel=0; voxel<referenceImage->nvox; ++voxel){
-        if(localMeanWarpedImage_ptr[voxel]!=localMeanWarpedImage_ptr[voxel])
-            localMeanReferenceImage_ptr[voxel]=std::numeric_limits<DTYPE>::quiet_NaN();
-        if(localMeanReferenceImage_ptr[voxel]!=localMeanReferenceImage_ptr[voxel])
-            localMeanWarpedImage_ptr[voxel]=std::numeric_limits<DTYPE>::quiet_NaN();
-    }
-
-    bool axis[8];
-    axis[1]=true;
-    axis[2]=true;
-    if(referenceImage->nz>1)
-        axis[3]=true;
-
-    for(size_t voxel=0; voxel<referenceImage->nvox; ++voxel){
-        if(mask[voxel]>-1){
-            localCorrelationImage_ptr[voxel] = localMeanReferenceImage_ptr[voxel]*localMeanWarpedImage_ptr[voxel];
-            localStdReferenceImage_ptr[voxel] = localMeanReferenceImage_ptr[voxel]*localMeanReferenceImage_ptr[voxel];
-            localStdWarpedImage_ptr[voxel] = localMeanWarpedImage_ptr[voxel]*localMeanWarpedImage_ptr[voxel];
-        }
-    }
-
-    reg_gaussianSmoothing<DTYPE>(localMeanReferenceImage, gaussianStandardDeviation, axis);
-    reg_gaussianSmoothing<DTYPE>(localStdReferenceImage, gaussianStandardDeviation, axis);
-    reg_gaussianSmoothing<DTYPE>(localMeanWarpedImage, gaussianStandardDeviation, axis);
-    reg_gaussianSmoothing<DTYPE>(localStdWarpedImage, gaussianStandardDeviation, axis);
-    reg_gaussianSmoothing<DTYPE>(localCorrelationImage, gaussianStandardDeviation, axis);
-
-    int n=0;
-    // We then iterate over every voxel to compute the LNCC
-    double lncc_value = 0;
-    double referenceMeanValue, warpedMeanValue, referenceVarValue, warpedVarValue, correlationValue;
-    for(size_t voxel=0; voxel<referenceImage->nvox; ++voxel){
-        // Check if the current voxel belongs to the mask
-        if(mask[voxel]>-1){
-
-            referenceMeanValue = localMeanReferenceImage_ptr[voxel];
-            warpedMeanValue = localMeanWarpedImage_ptr[voxel];
-            referenceVarValue = localStdReferenceImage_ptr[voxel];
-            warpedVarValue = localStdWarpedImage_ptr[voxel];
-            correlationValue = localCorrelationImage_ptr[voxel];
-            if(referenceMeanValue==referenceMeanValue &&
-               warpedMeanValue==warpedMeanValue &&
-               referenceVarValue==referenceVarValue &&
-               warpedVarValue==warpedVarValue &&
-               correlationValue==correlationValue){
-
-                referenceVarValue -= referenceMeanValue*referenceMeanValue;
-                warpedVarValue -= warpedMeanValue*warpedMeanValue;
-                // Sanity check
-                if (referenceVarValue < 1e-6) referenceVarValue = 0.;
-                if (warpedVarValue < 1e-6) warpedVarValue = 0.;
-
-                referenceVarValue=sqrt(referenceVarValue);
-                warpedVarValue=sqrt(warpedVarValue);
-                correlationValue -= referenceMeanValue * warpedMeanValue;
-
-                if (referenceVarValue !=0 && warpedVarValue !=0){
-                    lncc_value += fabs(correlationValue /
-                                       (referenceVarValue*warpedVarValue));
-                    n++;
-
-                    // to be removed
-                    localCorrelationImage_ptr[voxel]=fabs(correlationValue /
-                        (referenceVarValue*warpedVarValue));
+                    if(lncc_value==lncc_value && isinf(lncc_value)==0){
+                        lncc_value_sum += fabs(lncc_value);
+                        ++activeVoxel_num;
+                    }
                 }
-                // to be removed
-                else localCorrelationImage_ptr[voxel]=0;
             }
         }
     }
-
-    nifti_image_free(localMeanReferenceImage);
-    nifti_image_free(localCorrelationImage);
-    nifti_image_free(localMeanWarpedImage);
-    nifti_image_free(localStdReferenceImage);
-    nifti_image_free(localStdWarpedImage);
-
-    return lncc_value/(double)n;
+    return lncc_value_sum/activeVoxel_num;
 }
-
-/* *************************************************************** */
-
-double reg_getLNCC(nifti_image *referenceImage,
-                   nifti_image *warpedImage,
-                   float gaussianStandardDeviation,
-                   int *mask
-                   )
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+double reg_lncc::GetSimilarityMeasureValue()
 {
-    // Check that all input images are of the same type
-    if(referenceImage->datatype != warpedImage->datatype){
-        fprintf(stderr,"[NiftyReg ERROR] reg_getLNCC\n");
-        fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same type\n");
-        reg_exit(1);
-    }
-
-    // Check that both input images have the same size
-    for(int i=0;i<5;++i){
-        if(referenceImage->dim[i] != warpedImage->dim[i]){
-            fprintf(stderr,"[NiftyReg ERROR] reg_getLNCC\n");
-            fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same dimension");
-            reg_exit(1);
-        }
-    }
-
-    switch ( referenceImage->datatype ){
+    double lncc_value=0.f;
+    // Update the local statistic images - Forward
+    switch(this->referenceImagePointer->datatype){
     case NIFTI_TYPE_FLOAT32:
-        return reg_getLNCC1<float>(referenceImage,warpedImage,gaussianStandardDeviation,mask);
+        this->UpdateLocalStatImages<float>(this->warpedFloatingImagePointer,
+                                           this->warpedFloatingMeanImage,
+                                           this->warpedFloatingSdevImage);
         break;
     case NIFTI_TYPE_FLOAT64:
-        return reg_getLNCC1<double>(referenceImage,warpedImage,gaussianStandardDeviation,mask);
+        this->UpdateLocalStatImages<double>(this->warpedFloatingImagePointer,
+                                            this->warpedFloatingMeanImage,
+                                            this->warpedFloatingSdevImage);
         break;
-    default:
-        fprintf(stderr,"[NiftyReg ERROR] warped pixel type unsupported in the LNCC computation function.\n");
-        reg_exit(1);
     }
-    return 0.0;
+    // Compute the LNCC - Forward
+	switch(this->referenceImagePointer->datatype){
+    case NIFTI_TYPE_FLOAT32:
+        lncc_value += reg_getLNCCValue<float>(this->referenceImagePointer,
+                                              this->referenceMeanImage,
+                                              this->referenceSdevImage,
+                                              this->referenceMaskPointer,
+                                              this->warpedFloatingImagePointer,
+                                              this->warpedFloatingMeanImage,
+                                              this->warpedFloatingSdevImage,
+                                              this->kernelStandardDeviation,
+                                              this->activeTimePoint,
+                                              this->forwardCorrelationImage);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        lncc_value += reg_getLNCCValue<double>(this->referenceImagePointer,
+                                               this->referenceMeanImage,
+                                               this->referenceSdevImage,
+                                               this->referenceMaskPointer,
+                                               this->warpedFloatingImagePointer,
+                                               this->warpedFloatingMeanImage,
+                                               this->warpedFloatingSdevImage,
+                                               this->kernelStandardDeviation,
+                                               this->activeTimePoint,
+                                               this->forwardCorrelationImage);
+        break;
+	}
+    if(this->isSymmetric){
+        // Update the local statistic images - Backward
+        switch(this->floatingImagePointer->datatype){
+        case NIFTI_TYPE_FLOAT32:
+            this->UpdateLocalStatImages<float>(this->warpedReferenceImagePointer,
+                                               this->warpedReferenceMeanImage,
+                                               this->warpedReferenceSdevImage);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            this->UpdateLocalStatImages<double>(this->warpedReferenceImagePointer,
+                                                this->warpedReferenceMeanImage,
+                                                this->warpedReferenceSdevImage);
+            break;
+        }
+        // Compute the LNCC - Backward
+        switch(this->floatingImagePointer->datatype){
+        case NIFTI_TYPE_FLOAT32:
+            lncc_value += reg_getLNCCValue<float>(this->floatingImagePointer,
+                                                  this->floatingMeanImage,
+                                                  this->floatingSdevImage,
+                                                  this->floatingMaskPointer,
+                                                  this->warpedReferenceImagePointer,
+                                                  this->warpedReferenceMeanImage,
+                                                  this->warpedReferenceSdevImage,
+                                                  this->kernelStandardDeviation,
+                                                  this->activeTimePoint,
+                                                  this->backwardCorrelationImage);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            lncc_value += reg_getLNCCValue<double>(this->floatingImagePointer,
+                                                   this->floatingMeanImage,
+                                                   this->floatingSdevImage,
+                                                   this->floatingMaskPointer,
+                                                   this->warpedReferenceImagePointer,
+                                                   this->warpedReferenceMeanImage,
+                                                   this->warpedReferenceSdevImage,
+                                                   this->kernelStandardDeviation,
+                                                   this->activeTimePoint,
+                                                   this->backwardCorrelationImage);
+            break;
+        }
+    }
+    return lncc_value;
 }
-
-/* *************************************************************** */
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class DTYPE>
-void reg_getVoxelBasedLNCCGradient1(nifti_image *referenceImage,
-                                    nifti_image *warpedImage,
-                                    nifti_image *warpedImageGradient,
-                                    nifti_image *lnccGradientImage,
-                                    float gaussianStandardDeviation,
-                                    int *mask
-                                    )
-{
-    DTYPE *referenceImage_ptr = static_cast<DTYPE *>(referenceImage->data);
-    DTYPE *warpedImage_ptr = static_cast<DTYPE *>(warpedImage->data);
-
-    nifti_image *localMeanReferenceImage = nifti_copy_nim_info(referenceImage);
-    localMeanReferenceImage->data = (void *) malloc(referenceImage->nvox*sizeof(DTYPE));
-    DTYPE *localMeanReferenceImage_ptr = static_cast<DTYPE *>(localMeanReferenceImage->data);
-    memcpy(localMeanReferenceImage_ptr, referenceImage->data, referenceImage->nvox*sizeof(DTYPE));
-
-    nifti_image *localCorrelationImage = nifti_copy_nim_info(warpedImage);
-    localCorrelationImage->data = (void *) malloc(warpedImage->nvox*sizeof(DTYPE));
-    DTYPE *localCorrelationImage_ptr = static_cast<DTYPE *>(localCorrelationImage->data);
-    memcpy(localCorrelationImage_ptr, warpedImage->data, warpedImage->nvox*sizeof(DTYPE));
-
-    nifti_image *localMeanWarpedImage = nifti_copy_nim_info(warpedImage);
-    localMeanWarpedImage->data = (void *) malloc(warpedImage->nvox*sizeof(DTYPE));
-    DTYPE *localMeanWarpedImage_ptr = static_cast<DTYPE *>(localMeanWarpedImage->data);
-    memcpy(localMeanWarpedImage_ptr, warpedImage->data, warpedImage->nvox*sizeof(DTYPE));
-
-    nifti_image *localStdReferenceImage = nifti_copy_nim_info(warpedImage);
-    localStdReferenceImage->data = (void *) malloc(warpedImage->nvox*sizeof(DTYPE));
-    DTYPE *localStdReferenceImage_ptr = static_cast<DTYPE *>(localStdReferenceImage->data);
-    memcpy(localStdReferenceImage_ptr, warpedImage->data, warpedImage->nvox*sizeof(DTYPE));
-
-    nifti_image *localStdWarpedImage = nifti_copy_nim_info(warpedImage);
-    localStdWarpedImage->data = (void *) malloc(referenceImage->nvox*sizeof(DTYPE));
-    DTYPE *localStdWarpedImage_ptr = static_cast<DTYPE *>(localStdWarpedImage->data);
-    memcpy(localStdWarpedImage_ptr, warpedImage->data, referenceImage->nvox*sizeof(DTYPE));
-
-    for(size_t voxel=0; voxel<referenceImage->nvox; ++voxel){
-        if(localMeanReferenceImage_ptr[voxel]!=localMeanReferenceImage_ptr[voxel])
-            localMeanWarpedImage_ptr[voxel]=std::numeric_limits<DTYPE>::quiet_NaN();
-        if(localMeanWarpedImage_ptr[voxel]!=localMeanWarpedImage_ptr[voxel])
-            localMeanReferenceImage_ptr[voxel]=std::numeric_limits<DTYPE>::quiet_NaN();
-    }
-
-    bool axis[8];
-    axis[1]=true;
-    axis[2]=true;
-    if(referenceImage->nz>1)
-        axis[3]=true;
-
-    for(size_t voxel=0; voxel<referenceImage->nvox; ++voxel){
-        if(mask[voxel]>-1 && localMeanReferenceImage_ptr[voxel]==localMeanReferenceImage_ptr[voxel]){
-            localCorrelationImage_ptr[voxel] = localMeanReferenceImage_ptr[voxel]*localMeanWarpedImage_ptr[voxel];
-//            localCorrelationImage_ptr[voxel] = localMeanWarpedImage_ptr[voxel]*localMeanWarpedImage_ptr[voxel];
-            localStdReferenceImage_ptr[voxel] = localMeanReferenceImage_ptr[voxel]*localMeanReferenceImage_ptr[voxel];
-            localStdWarpedImage_ptr[voxel] = localMeanWarpedImage_ptr[voxel]*localMeanWarpedImage_ptr[voxel];
-        }     
-    }
-
-    reg_gaussianSmoothing<DTYPE>(localMeanReferenceImage, gaussianStandardDeviation, axis);
-    reg_gaussianSmoothing<DTYPE>(localMeanWarpedImage, gaussianStandardDeviation, axis);
-    reg_gaussianSmoothing<DTYPE>(localStdReferenceImage, gaussianStandardDeviation, axis);
-    reg_gaussianSmoothing<DTYPE>(localStdWarpedImage, gaussianStandardDeviation, axis);
-    reg_gaussianSmoothing<DTYPE>(localCorrelationImage, gaussianStandardDeviation, axis);
-
-    double referenceMeanValue, warpedMeanValue, referenceVarValue, warpedVarValue;
-    for(size_t voxel=0; voxel<referenceImage->nvox; ++voxel){
-        // Check if the current voxel belongs to the mask
-        if(mask[voxel]>-1){
-            referenceMeanValue = localMeanReferenceImage_ptr[voxel];
-            warpedMeanValue = localMeanWarpedImage_ptr[voxel];
-            referenceVarValue = localStdReferenceImage_ptr[voxel];
-            warpedVarValue = localStdWarpedImage_ptr[voxel];
-            if(referenceMeanValue==referenceMeanValue &&
-               warpedMeanValue==warpedMeanValue &&
-               referenceVarValue==referenceVarValue &&
-               warpedVarValue==warpedVarValue){
-
-                localStdReferenceImage_ptr[voxel] -= referenceMeanValue*referenceMeanValue;
-                localStdWarpedImage_ptr[voxel] -= warpedMeanValue*warpedMeanValue;
-                // Sanity check
-                if (localStdReferenceImage_ptr[voxel] < 1e-6) localStdReferenceImage_ptr[voxel] = 0;
-                if (localStdWarpedImage_ptr[voxel]< 1e-6) localStdWarpedImage_ptr[voxel] = 0;
-
-                localStdReferenceImage_ptr[voxel]=sqrt(localStdReferenceImage_ptr[voxel]);
-                localStdWarpedImage_ptr[voxel]=sqrt(localStdWarpedImage_ptr[voxel]);
-                localCorrelationImage_ptr[voxel] -= referenceMeanValue * warpedMeanValue;
-
-            }
-            else{
-                localStdReferenceImage_ptr[voxel]=std::numeric_limits<DTYPE>::quiet_NaN();
-                localStdWarpedImage_ptr[voxel]=std::numeric_limits<DTYPE>::quiet_NaN();
-                localCorrelationImage_ptr[voxel] = std::numeric_limits<DTYPE>::quiet_NaN();
-
-            }
-        }
-    } 
-
-
-    size_t voxelNumber = referenceImage->nx*referenceImage->ny*referenceImage->nz;
-
-    nifti_image *img1 = nifti_copy_nim_info(warpedImage);
-    img1->data=(void *)malloc(img1->nvox*img1->nbyper);
-    DTYPE *img1_ptr = static_cast<DTYPE *>(img1->data);
-
-    nifti_image *img2 = nifti_copy_nim_info(warpedImage);
-    img2->data=(void *)malloc(img2->nvox*img2->nbyper);
-    DTYPE *img2_ptr = static_cast<DTYPE *>(img2->data);
-
-    nifti_image *img3 = nifti_copy_nim_info(warpedImage);
-    img3->data=(void *)malloc(img3->nvox*img3->nbyper);
-    DTYPE *img3_ptr = static_cast<DTYPE *>(img3->data);
-
-
-    double ref_stdValue, war_stdValue;
-    for(size_t voxel=0; voxel<referenceImage->nvox; ++voxel){
-        // Check if the current voxel belongs to the mask
-        ref_stdValue = localStdReferenceImage_ptr[voxel];
-        war_stdValue = localStdWarpedImage_ptr[voxel];
-        if(mask[voxel]>-1){
-            img1_ptr[voxel] = 1.0/(ref_stdValue*war_stdValue);
-            img2_ptr[voxel] = localCorrelationImage_ptr[voxel]/(ref_stdValue*war_stdValue*war_stdValue*war_stdValue);
-            img3_ptr[voxel] = (localCorrelationImage_ptr[voxel]/(war_stdValue*war_stdValue)*localMeanWarpedImage_ptr[voxel] - localMeanReferenceImage_ptr[voxel])/(ref_stdValue*war_stdValue);
-            if(img1_ptr[voxel]!=img1_ptr[voxel] || isinf(img1_ptr[voxel])!=0 ||
-               img2_ptr[voxel]!=img2_ptr[voxel] || isinf(img2_ptr[voxel])!=0 ||
-               img3_ptr[voxel]!=img3_ptr[voxel] || isinf(img3_ptr[voxel])!=0)
-                img1_ptr[voxel]=img2_ptr[voxel]=img3_ptr[voxel]=std::numeric_limits<DTYPE>::quiet_NaN();
-        }
-        else{
-             img1_ptr[voxel]=img2_ptr[voxel]=img3_ptr[voxel]=0;
-        }
-    }
-
-    reg_gaussianSmoothing<DTYPE>(img1, gaussianStandardDeviation, axis);
-    reg_gaussianSmoothing<DTYPE>(img2, gaussianStandardDeviation, axis);
-    reg_gaussianSmoothing<DTYPE>(img3, gaussianStandardDeviation, axis);
-
-    // Create pointers to the voxel based gradient image - warpeds
-    DTYPE *lnccGradPtrX=static_cast<DTYPE *>(lnccGradientImage->data);
-    DTYPE *lnccGradPtrY = &lnccGradPtrX[voxelNumber];
-    DTYPE *lnccGradPtrZ = NULL;
-    // Create the z-axis pointers if the images are volume
-    if(referenceImage->nz>1)
-        lnccGradPtrZ = &lnccGradPtrY[voxelNumber];
-
-    // Set all the gradient values to zero
-    for(size_t voxel=0;voxel<lnccGradientImage->nvox;++voxel)
-        lnccGradPtrX[voxel]=0;
-
-    // Create some pointers to the spatial gradient of the warped volume
-    DTYPE *spatialGradPtrX=static_cast<DTYPE *>(warpedImageGradient->data);
-    DTYPE *spatialGradPtrY=&spatialGradPtrX[voxelNumber];
-    DTYPE *spatialGradPtrZ=NULL;
-    if(referenceImage->nz>1)
-        spatialGradPtrZ=&spatialGradPtrY[voxelNumber];
-
-    DTYPE gradX, gradY, gradZ;
-    double common,refImageValue,warImageValue,img1Value,img2Value,img3Value;
-    for(size_t voxel=0; voxel<voxelNumber; ++voxel){
-        if(mask[voxel]>-1){
-            refImageValue=referenceImage_ptr[voxel];
-            warImageValue=warpedImage_ptr[voxel];
-            img1Value=img1_ptr[voxel];
-            img2Value=img2_ptr[voxel];
-            img3Value=img3_ptr[voxel];
-            if(refImageValue==refImageValue &&
-               warImageValue==warImageValue && img1Value==img1Value && img2Value==img2Value && img2Value==img2Value){
-                common = refImageValue*img1Value
-                        - warImageValue*img2Value
-                        + img3Value;
-
-                //img3_ptr[voxel]=common;
-
-                gradX = (DTYPE)(common * spatialGradPtrX[voxel]);
-                gradY = (DTYPE)(common * spatialGradPtrY[voxel]);
-                if(referenceImage->nz>1)
-                    gradZ = (DTYPE)(common * spatialGradPtrZ[voxel]);                 
-                lnccGradPtrX[voxel] += -gradX;
-                lnccGradPtrY[voxel] += -gradY;
-                if(referenceImage->nz>1)
-                    lnccGradPtrZ[voxel] += -gradZ;
-
-            }
-        }
-    }
-
-    nifti_image_free(localMeanReferenceImage);
-    nifti_image_free(localCorrelationImage);
-    nifti_image_free(localMeanWarpedImage);
-    nifti_image_free(localStdReferenceImage);
-    nifti_image_free(localStdWarpedImage);
-
-    nifti_image_free(img1);
-    nifti_image_free(img2);
-    nifti_image_free(img3);
-}
-
-/* *************************************************************** */
 void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
-                                   nifti_image *warpedImage,
-                                   nifti_image *warpedImageGradient,
-                                   nifti_image *lnccGradientImage,
-                                   float gaussianStandardDeviation,
-                                   int *mask
-                                   )
+								   nifti_image *referenceMeanImage,
+                                   nifti_image *referenceSdevImage,
+								   int *refMask,
+								   nifti_image *warpedImage,
+								   nifti_image *warpedMeanImage,
+                                   nifti_image *warpedSdevImage,
+                                   float *kernelStandardDeviation,
+								   bool *activeTimePoint,
+								   nifti_image *correlationImage,
+								   nifti_image *warpedGradientImage,
+								   nifti_image *lnccGradientImage)
 {
-    if(referenceImage->datatype != warpedImage->datatype ||
-            warpedImageGradient->datatype != lnccGradientImage->datatype ||
-            referenceImage->datatype != warpedImageGradient->datatype){
-        fprintf(stderr,"[NiftyReg ERROR] reg_getVoxelBasedLNCCGradient\n");
-        fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same type\n");
-        reg_exit(1);
-    }
-    
-    switch ( referenceImage->datatype ){
-    case NIFTI_TYPE_FLOAT32:
-        reg_getVoxelBasedLNCCGradient1<float>
-                (referenceImage, warpedImage,warpedImageGradient,lnccGradientImage, gaussianStandardDeviation, mask);
-        break;
-    case NIFTI_TYPE_FLOAT64:
-        reg_getVoxelBasedLNCCGradient1<double>
-                (referenceImage, warpedImage,warpedImageGradient,lnccGradientImage, gaussianStandardDeviation, mask);
-        break;
-    default:
-        fprintf(stderr,"[NiftyReg ERROR] reference pixel type unsupported in the LNCC gradient computation function.\n");
-        reg_exit(1);
-    }
-}
-/* *************************************************************** */
-template <class DTYPE>
-void reg_getLocalStd1(nifti_image *image,
-                      nifti_image *localMeanImage,
-                      nifti_image *localStdImage,
-                      float gaussianStandardDeviation,
-                      int *mask
-                      )
-{
-    DTYPE *image_Ptr=static_cast<DTYPE *>(image->data);
-    DTYPE *localMeanImage_Ptr=static_cast<DTYPE *>(localMeanImage->data);
-    DTYPE *localStdImage_Ptr=static_cast<DTYPE *>(localStdImage->data);
+    // Compute the local correlation
+    reg_tools_multiplyImageToImage(referenceImage, warpedImage, correlationImage);
+    reg_tools_kernelConvolution(correlationImage, kernelStandardDeviation, KERNEL_TYPE, activeTimePoint);
 
-    for(size_t voxel=0; voxel<image->nvox; ++voxel){
-        if(mask[voxel]>-1 && image_Ptr[voxel]==image_Ptr[voxel] ){
-            localStdImage_Ptr[voxel] = image_Ptr[voxel]*image_Ptr[voxel];
-        }
-    }
+    DTYPE *refImagePtr=static_cast<DTYPE *>(referenceImage->data);
+	DTYPE *warImagePtr=static_cast<DTYPE *>(warpedImage->data);
+	DTYPE *refMeanPtr=static_cast<DTYPE *>(referenceMeanImage->data);
+	DTYPE *warMeanPtr=static_cast<DTYPE *>(warpedMeanImage->data);
+    DTYPE *refSdevPtr=static_cast<DTYPE *>(referenceSdevImage->data);
+    DTYPE *warSdevPtr=static_cast<DTYPE *>(warpedSdevImage->data);
+	DTYPE *correlaPtr=static_cast<DTYPE *>(correlationImage->data);
 
-    bool axis[8];
-    axis[1]=true;
-    axis[2]=true;
-    if(image->nz>1)
-        axis[3]=true;
-    reg_gaussianSmoothing<DTYPE>(localStdImage, gaussianStandardDeviation, axis);
+    size_t voxel, voxelNumber = (size_t)referenceImage->nx *
+            referenceImage->ny * referenceImage->nz;
 
-    for(size_t voxel=0; voxel<image->nvox; ++voxel){
-        if(mask[voxel]>-1 && localMeanImage_Ptr[voxel]==localMeanImage_Ptr[voxel] && localStdImage_Ptr[voxel]==localStdImage_Ptr[voxel] && image_Ptr[voxel]==image_Ptr[voxel]){
-            localStdImage_Ptr[voxel] -= localMeanImage_Ptr[voxel]*localMeanImage_Ptr[voxel];
-            if (localStdImage_Ptr[voxel] < 0) localStdImage_Ptr[voxel] = 0;
-            localStdImage_Ptr[voxel]=sqrt(localStdImage_Ptr[voxel]);
-        }
+	// Create some pointers to the gradient images
+	DTYPE *lnccGradPtrX = static_cast<DTYPE *>(lnccGradientImage->data);
+	DTYPE *warpGradPtrX = static_cast<DTYPE *>(warpedGradientImage->data);
+	DTYPE *lnccGradPtrY = &lnccGradPtrX[voxelNumber];
+	DTYPE *warpGradPtrY = &warpGradPtrX[voxelNumber];
+	DTYPE *lnccGradPtrZ = NULL;
+	DTYPE *warpGradPtrZ = NULL;
+	if(referenceImage->nz>1){
+		lnccGradPtrZ = &lnccGradPtrY[voxelNumber];
+		warpGradPtrZ = &warpGradPtrY[voxelNumber];
+	}
 
-    }
-}
+    // Iteration over all time points to compute new values
+    for(int t=0; t<referenceImage->nt; ++t){
+		DTYPE *refMeanPtr0 = &refMeanPtr[t*voxelNumber];
+		DTYPE *warMeanPtr0 = &warMeanPtr[t*voxelNumber];
+		DTYPE *refSdevPtr0 = &refSdevPtr[t*voxelNumber];
+		DTYPE *warSdevPtr0 = &warSdevPtr[t*voxelNumber];
+		DTYPE *correlaPtr0 = &correlaPtr[t*voxelNumber];
+        double refMeanValue, warMeanValue, refSdevValue,
+                warSdevValue, correlaValue;
+        double temp1, temp2, temp3;
+		// Iteration over all voxels
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(voxelNumber,refMask,refMeanPtr0,warMeanPtr0, \
+    refSdevPtr0,warSdevPtr0,correlaPtr0) \
+    private(voxel,refMeanValue,warMeanValue,refSdevValue, \
+    warSdevValue, correlaValue, temp1, temp2, temp3)
+#endif
+		for(voxel=0; voxel<voxelNumber; ++voxel){
+			// Check if the current voxel belongs to the mask
+			if(refMask[voxel]>-1){
 
-/* *************************************************************** */
-void reg_getLocalStd(nifti_image *image,
-                     nifti_image *localMeanImage,
-                     nifti_image *localStdImage,
-                     float gaussianStandardDeviation,
-                     int *mask
-                     )
-{
-    for(int i=0;i<5;++i){
-        if(image->dim[i] != localStdImage->dim[i] || image->dim[i] != localMeanImage->dim[i]){
-            fprintf(stderr,"[NiftyReg ERROR] reg_getLocalStd\n");
-            fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same dimension");
-            reg_exit(1);
-        }
-    }
+				refMeanValue = refMeanPtr0[voxel];
+				warMeanValue = warMeanPtr0[voxel];
+				refSdevValue = refSdevPtr0[voxel];
+				warSdevValue = warSdevPtr0[voxel];
+                correlaValue = correlaPtr0[voxel] - (refMeanValue*warMeanValue);
 
-    switch ( image->datatype ){
-    case NIFTI_TYPE_FLOAT32:
-        reg_getLocalStd1<float>
-                (image, localMeanImage, localStdImage, gaussianStandardDeviation, mask);
-        break;
-    case NIFTI_TYPE_FLOAT64:
-        reg_getLocalStd1<double>
-                (image, localMeanImage, localStdImage, gaussianStandardDeviation, mask);
-        break;
-    default:
-        fprintf(stderr,"[NiftyReg ERROR] reference pixel type unsupported in the local standard deviation computation function.\n");
-        reg_exit(1);
-    }
-}
-
-/* *************************************************************** */
-template <class DTYPE>
-void reg_getLocalMean1(nifti_image *image,
-                       nifti_image *localMeanImage,
-                       float gaussianStandardDeviation
-                       )
-{
-    bool axis[8];
-    axis[1]=true;
-    axis[2]=true;
-    if(image->nz>1)
-        axis[3]=true;
-
-    memcpy(localMeanImage->data, image->data, localMeanImage->nvox*localMeanImage->nbyper);
-    reg_gaussianSmoothing<DTYPE>(localMeanImage, gaussianStandardDeviation, axis);
-
-}
-
-/* *************************************************************** */
-void reg_getLocalMean(nifti_image *image,
-                      nifti_image *localMeanImage,
-                      float gaussianStandardDeviation
-                      )
-{ 
-    for(int i=0;i<5;++i){
-        if(image->dim[i] != localMeanImage->dim[i]){
-            fprintf(stderr,"[NiftyReg ERROR] reg_getLocalMean\n");
-            fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same dimension");
-            reg_exit(1);
-        }
-    }
-
-    switch ( image->datatype ){
-    case NIFTI_TYPE_FLOAT32:
-        reg_getLocalMean1<float>
-                (image, localMeanImage, gaussianStandardDeviation);
-        break;
-    case NIFTI_TYPE_FLOAT64:
-        reg_getLocalMean1<double>
-                (image, localMeanImage, gaussianStandardDeviation);
-        break;
-    default:
-        fprintf(stderr,"[NiftyReg ERROR] reference pixel type unsupported in the local mean computation function.\n");
-        reg_exit(1);
-    }
-}
-
-/* *************************************************************** */
-template <class DTYPE>
-void reg_getLocalCorrelation1(nifti_image *referenceImage,
-                              nifti_image *warpedImage,
-                              nifti_image *localMeanReferenceImage,
-                              nifti_image *localMeanWarpedImage,
-                              nifti_image *localCorrelationImage,
-                              float gaussianStandardDeviation,
-                              int *mask
-                              )
-{
-    DTYPE *refPtr=static_cast<DTYPE *>(referenceImage->data);
-    DTYPE *warPtr=static_cast<DTYPE *>(warpedImage->data);
-    DTYPE *reflocalMeanPtr=static_cast<DTYPE *>(localMeanReferenceImage->data);
-    DTYPE *warlocalMeanPtr=static_cast<DTYPE *>(localMeanWarpedImage->data);
-    DTYPE *localCorrelationPtr=static_cast<DTYPE *>(localCorrelationImage->data);
-
-    for(size_t voxel=0; voxel<referenceImage->nvox; ++voxel){
-        if(mask[voxel]>-1){
-            localCorrelationPtr[voxel] = refPtr[voxel]*warPtr[voxel];
-        }
-    }
-
-    bool axis[8];
-    axis[1]=true;
-    axis[2]=true;
-    if(referenceImage->nz>1)
-        axis[3]=true;
-    reg_gaussianSmoothing<DTYPE>(localCorrelationImage, gaussianStandardDeviation, axis);
-
-    for(size_t voxel=0; voxel<referenceImage->nvox; ++voxel){
-        if(mask[voxel]>-1){
-            localCorrelationPtr[voxel] -= reflocalMeanPtr[voxel]*warlocalMeanPtr[voxel];
-        }
-    }
-}
-
-/* *************************************************************** */
-void reg_getLocalCorrelation(nifti_image *referenceImage,
-                             nifti_image *warpedImage,
-                             nifti_image *localMeanReferenceImage,
-                             nifti_image *localMeanWarpedImage,
-                             nifti_image *localCorrelationImage,
-                             float gaussianStandardDeviation,
-                             int *mask
-                             )
-{
-    for(int i=0;i<5;++i){
-        if(referenceImage->dim[i] != warpedImage->dim[i]){
-            fprintf(stderr,"[NiftyReg ERROR] reg_getLocalCorrelation\n");
-            fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same dimension");
-            reg_exit(1);
-        }
-    }
-
-    switch ( referenceImage->datatype ){
-    case NIFTI_TYPE_FLOAT32:
-        reg_getLocalCorrelation1<float>
-                (referenceImage, warpedImage, localMeanReferenceImage, localMeanWarpedImage, localCorrelationImage, gaussianStandardDeviation, mask);
-        break;
-    case NIFTI_TYPE_FLOAT64:
-        reg_getLocalCorrelation1<double>
-                (referenceImage, warpedImage, localMeanReferenceImage, localMeanWarpedImage, localCorrelationImage, gaussianStandardDeviation, mask);
-        break;
-    default:
-        fprintf(stderr,"[NiftyReg ERROR] reference pixel type unsupported in the local correlation computation function.\n");
-        reg_exit(1);
-    }
-}
-
-/* *************************************************************** */
-/* *************************************************************** */
-template <class DTYPE>
-void reg_meanFilter1(nifti_image *image, int radius, int *mask){
-
-    DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
-    int voxelNumber = image->nx*image->ny*image->nz;
-
-    int block_size=radius*2+1;
-    
-    DTYPE value;
-    int current_index;
-
-    DTYPE *warpedValue=(DTYPE *)malloc(voxelNumber * sizeof(DTYPE));
-
-    //Smoothing along the X axis
-    int x,y,z,index;
-    for(z=0; z<image->nz; z++){
-        for(y=0; y<image->ny; y++){
-            index=z*image->nx*image->ny+y*image->nx;
-            value=0;
-            for (int i=0; i<=radius;i++){
-                if(imagePtr[index+i]==imagePtr[index+i])
-                    value += imagePtr[index+i];
+                temp1 = 1.0 / (refSdevValue * warSdevValue);
+                temp2 = correlaValue /
+                        (refSdevValue*warSdevValue*warSdevValue*warSdevValue);
+                temp3 = (correlaValue * warMeanValue) /
+                        (refSdevValue*warSdevValue*warSdevValue*warSdevValue)
+                        -
+                        refMeanValue / (refSdevValue * warSdevValue);
+                if(temp1==temp1 && isinf(temp1)==0 &&
+                   temp2==temp2 && isinf(temp2)==0 &&
+                   temp3==temp3 && isinf(temp3)==0){
+                    // Derivative of the absolute function
+                    if(correlaValue<0){
+                        temp1 *= -1.;
+                        temp2 *= -1.;
+                        temp3 *= -1.;
+                    }
+                    warMeanPtr0[voxel]=temp1;
+                    warSdevPtr0[voxel]=temp2;
+                    correlaPtr0[voxel]=temp3;
+                }
+                else warMeanPtr0[voxel]=warSdevPtr0[voxel]=correlaPtr0[voxel]=0.;
             }
-            value/=(block_size);
-            warpedValue[index]=value;
-            for(x=1; x<image->nx; x++){
-                current_index=index+x;
-                if (mask[current_index]>-1){
-                    if (imagePtr[current_index]==imagePtr[current_index]){
-                        if ((x-radius-1)>-1){
-                            if(imagePtr[current_index-radius-1]==imagePtr[current_index-radius-1])
-                                value-=imagePtr[current_index-radius-1]/block_size;
-                        }
-                        if ((x+radius)<image->nx){
-                            if(imagePtr[current_index+radius]==imagePtr[current_index+radius])
-                                value+=imagePtr[current_index+radius]/block_size;
-                        }
-                        warpedValue[current_index]=value;
-                    }
-                    else{
-                        if ((x-radius-1)>-1){
-                            if(imagePtr[current_index-radius-1]==imagePtr[current_index-radius-1])
-                                value-=imagePtr[current_index-radius-1]/block_size;
-                        }
-                        if ((x+radius)<image->nx){
-                            if(imagePtr[current_index+radius]==imagePtr[current_index+radius])
-                                value+=imagePtr[current_index+radius]/block_size;
-                        }
-                    }
-                    warpedValue[current_index]=imagePtr[current_index];
+            else warMeanPtr0[voxel]=warSdevPtr0[voxel]=correlaPtr0[voxel]=0.;
+        }
+    }
+    // Smooth the newly computed values
+    reg_tools_kernelConvolution(warpedMeanImage, kernelStandardDeviation, KERNEL_TYPE, activeTimePoint);
+    reg_tools_kernelConvolution(warpedSdevImage, kernelStandardDeviation, KERNEL_TYPE, activeTimePoint);
+    reg_tools_kernelConvolution(correlationImage, kernelStandardDeviation, KERNEL_TYPE, activeTimePoint);
 
+    // Iteration over all time points to compute new values
+    for(int t=0; t<referenceImage->nt; ++t){
+        // Pointers to the current reference and warped image time point
+        DTYPE *temp1Ptr = &warMeanPtr[t*voxelNumber];
+        DTYPE *temp2Ptr = &warSdevPtr[t*voxelNumber];
+        DTYPE *temp3Ptr = &correlaPtr[t*voxelNumber];
+        DTYPE *refImagePtr0 = &refImagePtr[t*voxelNumber];
+        DTYPE *warImagePtr0 = &warImagePtr[t*voxelNumber];
+        double common;
+        // Iteration over all voxels
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(voxelNumber,refMask,refImagePtr0,warImagePtr0, \
+    temp1Ptr,temp2Ptr,temp3Ptr,lnccGradPtrX,lnccGradPtrY,lnccGradPtrZ, \
+    warpGradPtrX, warpGradPtrY, warpGradPtrZ) \
+    private(voxel, common)
+#endif
+        for(voxel=0; voxel<voxelNumber; ++voxel){
+            // Check if the current voxel belongs to the mask
+            if(refMask[voxel]>-1){
+                common = temp1Ptr[voxel] * refImagePtr0[voxel] -
+                         temp2Ptr[voxel] * warImagePtr0[voxel] +
+                         temp3Ptr[voxel];
+                lnccGradPtrX[voxel] -= warpGradPtrX[voxel] * common;
+                lnccGradPtrY[voxel] -= warpGradPtrY[voxel] * common;
+                if(warpGradPtrZ!=NULL){
+                    lnccGradPtrZ[voxel] -= warpGradPtrZ[voxel] * common;
                 }
             }
         }
     }
-    
-    for(int i=0; i<voxelNumber; i++)
-        imagePtr[i]=(DTYPE)warpedValue[i];
-
-    //Smoothing along the Y axis
-    for(z=0; z<image->nz; z++){
-        for(x=0; x<image->nx; x++){
-            index=z*image->nx*image->ny+x;
-            value=0;
-            for (int i=0; i<=radius;i++){
-                if(imagePtr[index+i*image->nx]==imagePtr[index+i*image->nx])
-                    value += imagePtr[index+i*image->nx];
-            }
-            value/=block_size;
-            warpedValue[index]=value;
-            for(y=1; y<image->ny; y++){
-                current_index=index+y*image->nx;
-                if (mask[current_index]>-1){
-                    if ((y-(radius+1))>-1){
-                        if(imagePtr[current_index-(radius+1)*image->nx]==imagePtr[current_index-(radius+1)*image->nx])  value-= imagePtr[current_index-(radius+1)*image->nx]/block_size;
-                    }
-                    if ((y+radius)<image->ny){
-                        if(imagePtr[current_index+radius*image->nx]==imagePtr[current_index+radius*image->nx]) value+= imagePtr[current_index+radius*image->nx]/block_size;
-                    }
-                    if ( imagePtr[current_index]== imagePtr[current_index]){
-                        warpedValue[current_index]=value;
-                    }
-                }
-            }
-        }
+    // Check for NaN
+    DTYPE val;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(lnccGradientImage,lnccGradPtrX) \
+    private(voxel, val)
+#endif
+    for(voxel=0;voxel<lnccGradientImage->nvox;++voxel){
+        val=lnccGradPtrX[voxel];
+        if(val!=val || isinf(val)!=0)
+            lnccGradPtrX[voxel]=static_cast<DTYPE>(0);
     }
-
-    for(int i=0; i<voxelNumber; i++)
-        imagePtr[i]=(DTYPE)warpedValue[i];
-
-    //Smoothing along the Z axis
-    if(image->nz>1){
-        
-        for(y=0; y<image->ny; y++){
-            for(x=0; x<image->nx; x++){
-                index=y*image->nx+x;
-                value=0;
-                for (int i=0; i<=radius;i++){
-                    if(imagePtr[index+i*image->nx*image->ny]==imagePtr[index+i*image->nx*image->ny])
-                        value += imagePtr[index+i*image->nx*image->ny];
-                }
-                value/=block_size;
-                warpedValue[index]=value;
-                for(z=1; z<image->nz; z++){
-                    current_index=index+z*image->nx*image->ny;
-                    if (mask[current_index]>-1){
-                        if ((z-(radius+1))>-1) {
-                            if(imagePtr[current_index-(radius+1)*image->nx*image->ny]==imagePtr[current_index-(radius+1)*image->nx*image->ny]) value-=imagePtr[current_index-(radius+1)*image->nx*image->ny]/block_size;
-                        }
-                        if ((z+radius)<image->nz) {
-                            if( imagePtr[current_index+radius*image->nx*image->ny]==imagePtr[current_index+radius*image->nx*image->ny]) value+=imagePtr[current_index+radius*image->nx*image->ny]/block_size;
-                        }
-                        if (imagePtr[current_index]==imagePtr[current_index]){
-                            warpedValue[current_index]=value;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    for(int i=0; i<voxelNumber; i++)
-        imagePtr[i]=(DTYPE)warpedValue[i];
-    free(warpedValue);
+    //HERE
+//    lnccGradientImage->nt=lnccGradientImage->dim[4]=lnccGradientImage->nu;
+//    lnccGradientImage->nu=lnccGradientImage->dim[5]=1;
+//    lnccGradientImage->ndim=lnccGradientImage->dim[0]=4;
+//    nifti_set_filenames(lnccGradientImage,"grad.nii",0,0);
+//    nifti_image_write(lnccGradientImage);
+//    reg_exit(1);
 }
-/* *************************************************************** */
-void reg_meanFilter(nifti_image *image, int radius, int *mask)
-{   
-    switch ( image->datatype ){
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+void reg_lncc::GetVoxelBasedSimilarityMeasureGradient()
+{
+    // Update the local statistic images - Forward
+    switch(this->referenceImagePointer->datatype){
     case NIFTI_TYPE_FLOAT32:
-        reg_meanFilter1<float>(image, radius, mask);
+        this->UpdateLocalStatImages<float>(this->warpedFloatingImagePointer,
+                                           this->warpedFloatingMeanImage,
+                                           this->warpedFloatingSdevImage);
         break;
     case NIFTI_TYPE_FLOAT64:
-        reg_meanFilter1<double>(image, radius, mask);
+        this->UpdateLocalStatImages<double>(this->warpedFloatingImagePointer,
+                                            this->warpedFloatingMeanImage,
+                                            this->warpedFloatingSdevImage);
         break;
-    default:
-        fprintf(stderr,"[NiftyReg ERROR] reference pixel type unsupported in the mean filter computation function.\n");
-        reg_exit(1);
     }
+    // Compute the LNCC gradient - Forward
+	switch(this->referenceImagePointer->datatype){
+	case NIFTI_TYPE_FLOAT32:
+		reg_getVoxelBasedLNCCGradient<float>(this->referenceImagePointer,
+											 this->referenceMeanImage,
+                                             this->referenceSdevImage,
+											 this->referenceMaskPointer,
+											 this->warpedFloatingImagePointer,
+                                             this->warpedFloatingMeanImage,
+                                             this->warpedFloatingSdevImage,
+											 this->kernelStandardDeviation,
+											 this->activeTimePoint,
+                                             this->forwardCorrelationImage,
+											 this->warpedFloatingGradientImagePointer,
+											 this->forwardVoxelBasedGradientImagePointer);
+		break;
+	case NIFTI_TYPE_FLOAT64:
+		reg_getVoxelBasedLNCCGradient<double>(this->referenceImagePointer,
+											  this->referenceMeanImage,
+                                              this->referenceSdevImage,
+											  this->referenceMaskPointer,
+											  this->warpedFloatingImagePointer,
+                                              this->warpedFloatingMeanImage,
+                                              this->warpedFloatingSdevImage,
+											  this->kernelStandardDeviation,
+											  this->activeTimePoint,
+                                              this->forwardCorrelationImage,
+											  this->warpedFloatingGradientImagePointer,
+											  this->forwardVoxelBasedGradientImagePointer);
+		break;
+	}
+    if(this->isSymmetric){
+        // Update the local statistic images - Backward
+        switch(this->floatingImagePointer->datatype){
+        case NIFTI_TYPE_FLOAT32:
+            this->UpdateLocalStatImages<float>(this->warpedReferenceImagePointer,
+                                               this->warpedReferenceMeanImage,
+                                               this->warpedReferenceSdevImage);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            this->UpdateLocalStatImages<double>(this->warpedReferenceImagePointer,
+                                                this->warpedReferenceMeanImage,
+                                                this->warpedReferenceSdevImage);
+            break;
+        }
+        // Compute the LNCC gradient - Backward
+        switch(this->floatingImagePointer->datatype){
+        case NIFTI_TYPE_FLOAT32:
+            reg_getVoxelBasedLNCCGradient<float>(this->floatingImagePointer,
+                                                 this->floatingMeanImage,
+                                                 this->floatingSdevImage,
+                                                 this->floatingMaskPointer,
+                                                 this->warpedReferenceImagePointer,
+                                                 this->warpedReferenceMeanImage,
+                                                 this->warpedReferenceSdevImage,
+                                                 this->kernelStandardDeviation,
+                                                 this->activeTimePoint,
+                                                 this->backwardCorrelationImage,
+                                                 this->warpedReferenceGradientImagePointer,
+                                                 this->backwardVoxelBasedGradientImagePointer);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            reg_getVoxelBasedLNCCGradient<double>(this->floatingImagePointer,
+                                                  this->floatingMeanImage,
+                                                  this->floatingSdevImage,
+                                                  this->floatingMaskPointer,
+                                                  this->warpedReferenceImagePointer,
+                                                  this->warpedReferenceMeanImage,
+                                                  this->warpedReferenceSdevImage,
+                                                  this->kernelStandardDeviation,
+                                                  this->activeTimePoint,
+                                                  this->backwardCorrelationImage,
+                                                  this->warpedReferenceGradientImagePointer,
+                                                  this->backwardVoxelBasedGradientImagePointer);
+            break;
+        }
+    }
+	return;
 }
-/* *************************************************************** */
-/* *************************************************************** */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 #endif
 

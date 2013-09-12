@@ -14,10 +14,8 @@
 #ifndef _REG_TOOLS_H
 #define _REG_TOOLS_H
 
-#include "nifti1_io.h"
 #include <fstream>
 #include <limits>
-
 #include "_reg_maths.h"
 
 
@@ -30,6 +28,14 @@
 extern "C++"
 void reg_checkAndCorrectDimension(nifti_image *image);
 
+/** @brief Check if the specified filename corresponds to an image.
+ * @param name Input filename
+ * @return True is the specified filename corresponds to an image,
+ * false otherwise.
+ */
+extern "C++"
+bool reg_isAnImageFileName(char *name);
+
 /** @brief Rescale an input image between two user-defined values.
  * Some threshold can also be applied concurrenlty
  * @param image Image to be rescaled
@@ -40,12 +46,10 @@ void reg_checkAndCorrectDimension(nifti_image *image);
  */
 extern "C++"
 void reg_intensityRescale(nifti_image *image,
-                          float *newMin,
-                          float *newMax,
-                          float *lowThr,
-                          float *upThr
+                          int timepoint,
+                          float newMin,
+                          float newMax
                           );
-
 
 /** @brief reg_getRealImageSpacing
  * @param image image
@@ -55,14 +59,6 @@ extern "C++" template <class DTYPE>
 void reg_getRealImageSpacing(nifti_image *image,
                              DTYPE *spacingValues);
 
-/** @brief Convolve a cubic spline kernel with the provided image
- * @param image Image to be convolved with the kernel
- * @param radius Radius of the cubic spline kernel. The array
- * contains the radius along each axis
- */
-void reg_tools_CubicSplineKernelConvolution(nifti_image *image,
-                                            float spacingVoxel[3]
-                                            );
 
 /** @brief Smooth an image using a Gaussian kernel
  * @param image Image to be smoothed
@@ -71,11 +67,13 @@ void reg_tools_CubicSplineKernelConvolution(nifti_image *image,
  * @param axis Boolean array to specify which axis have to be
  * smoothed. The array follow the dim array of the nifti header.
  */
-extern "C++" template <class PrecisionTYPE>
-void reg_gaussianSmoothing(nifti_image *image,
-                           PrecisionTYPE sigma,
-                           bool *axis
-                           );
+extern "C++"
+void reg_tools_kernelConvolution(nifti_image *image,
+                                 float *sigma,
+                                 int kernelType,
+                                 bool *timePoints = NULL,
+                                 bool *axis = NULL
+                                 );
 
 /** @brief Downsample an image by a ratio of two
  * @param image Image to be downsampled

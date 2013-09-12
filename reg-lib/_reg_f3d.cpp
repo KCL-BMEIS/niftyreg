@@ -30,29 +30,15 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
     this->L2NormWeight=0.;
     this->jacobianLogWeight=0.;
     this->jacobianLogApproximation=true;
-    this->referenceBinNumber=new unsigned int[this->referenceTimePoint];
-    this->floatingBinNumber=new unsigned int[this->floatingTimePoint];
-    for(int i=0; i<this->referenceTimePoint; i++){
-        this->referenceBinNumber[i]=64;
-    }
-    for(int i=0; i<this->floatingTimePoint; i++){
-        this->floatingBinNumber[i]=64;
-    }
     this->spacing[0]=-5;
     this->spacing[1]=std::numeric_limits<T>::quiet_NaN();
     this->spacing[2]=std::numeric_limits<T>::quiet_NaN();
-    this->useSSD=false;
-    this->useKLD=false;
-    this->additive_mc_nmi = false;
     this->useConjGradient=true;
 	this->useApproxGradient=false;
-    this->maxSSD=NULL;
-    this->entropies[0]=this->entropies[1]=this->entropies[2]=this->entropies[3]=0.;
-    this->approxParzenWindow=true;
+
+//    this->approxParzenWindow=true;
 
     this->transformationGradient=NULL;
-    this->probaJointHistogram=NULL;
-    this->logJointHistogram=NULL;
 
     this->gridRefinement=true;
 
@@ -65,15 +51,11 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
 template <class T>
 reg_f3d<T>::~reg_f3d()
 {
-    this->ClearJointHistogram();
     this->ClearTransformationGradient();
     if(this->controlPointGrid!=NULL){
         nifti_image_free(this->controlPointGrid);
         this->controlPointGrid=NULL;
     }
-    if(this->referenceBinNumber!=NULL){delete []this->referenceBinNumber;this->referenceBinNumber=NULL;}
-    if(this->floatingBinNumber!=NULL){delete []this->floatingBinNumber;this->floatingBinNumber=NULL;}
-    if(this->maxSSD!=NULL){delete []this->maxSSD;this->maxSSD=NULL;}
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_f3d destructor called\n");
 #endif
@@ -184,13 +166,6 @@ void reg_f3d<T>::CheckParameters()
 {
     reg_base<T>::CheckParameters();
 
-    if(this->useSSD){
-        if(this->inputReference->nt!=this->inputFloating->nt){
-            fprintf(stderr,"[NiftyReg ERROR] SSD is only available with reference and floating images with same dimension along the t-axis.\n");
-            reg_exit(1);
-        }
-    }
-
     // NORMALISE THE OBJECTIVE FUNCTION WEIGHTS
     if(strcmp(this->executableName,"NiftyReg F3D")==0 ||
        strcmp(this->executableName,"NiftyReg F3D GPU")==0){
@@ -296,8 +271,7 @@ void reg_f3d<T>::Initisalise()
         this->spacing[1] = this->controlPointGrid->dy / powf(2.0f, (float)(this->levelToPerform-1));
         if(this->controlPointGrid->nz>1)
             this->spacing[2] = this->controlPointGrid->dz / powf(2.0f, (float)(this->levelToPerform-1));
-    }
-
+	}
 #ifdef NDEBUG
     if(this->verbose){
 #endif
@@ -316,9 +290,10 @@ void reg_f3d<T>::Initisalise()
         for(int i=0;i<this->inputReference->nt;i++){
             printf("[%s] \t* intensity threshold for timepoint %i/%i: [%.2g %.2g]\n", this->executableName,
                    i+1, this->inputReference->nt, this->referenceThresholdLow[i],this->referenceThresholdUp[i]);
-            if(!this->useSSD)
-                printf("[%s] \t* binnining size for timepoint %i/%i: %i\n", this->executableName,
-                       i+1, this->inputReference->nt, this->referenceBinNumber[i]-4);
+            if(this->measure_nmi!=NULL)
+                if(this->measure_nmi->GetActiveTimepoints()[i])
+                    printf("[%s] \t* binnining size for timepoint %i/%i: %i\n", this->executableName,
+                           i+1, this->inputFloating->nt, this->measure_nmi->GetReferenceBinNumber()[i]-4);
         }
         printf("[%s] \t* gaussian smoothing sigma: %g\n", this->executableName, this->referenceSmoothingSigma);
         printf("[%s]\n", this->executableName);
@@ -333,9 +308,10 @@ void reg_f3d<T>::Initisalise()
         for(int i=0;i<this->inputFloating->nt;i++){
             printf("[%s] \t* intensity threshold for timepoint %i/%i: [%.2g %.2g]\n", this->executableName,
                    i+1, this->inputFloating->nt, this->floatingThresholdLow[i],this->floatingThresholdUp[i]);
-            if(!this->useSSD)
-                printf("[%s] \t* binnining size for timepoint %i/%i: %i\n", this->executableName,
-                       i+1, this->inputFloating->nt, this->floatingBinNumber[i]-4);
+            if(this->measure_nmi!=NULL)
+                if(this->measure_nmi->GetActiveTimepoints()[i])
+                    printf("[%s] \t* binnining size for timepoint %i/%i: %i\n", this->executableName,
+                           i+1, this->inputFloating->nt, this->measure_nmi->GetFloatingBinNumber()[i]-4);
         }
         printf("[%s] \t* gaussian smoothing sigma: %g\n",
                this->executableName, this->floatingSmoothingSigma);
@@ -351,15 +327,27 @@ void reg_f3d<T>::Initisalise()
         printf("[%s] Final spacing in mm: %g %g %g\n", this->executableName,
                this->spacing[0], this->spacing[1], this->spacing[2]);
         printf("[%s]\n", this->executableName);
-        if(this->useSSD)
+        if(this->measure_ssd!=NULL)
             printf("[%s] The SSD is used as a similarity measure.\n", this->executableName);
-		else if(this->useKLD)
+        if(this->measure_kld!=NULL)
             printf("[%s] The KL divergence is used as a similarity measure.\n", this->executableName);
-        else{
+        if(this->measure_lncc!=NULL)
+            printf("[%s] The LNCC is used as a similarity measure.\n", this->executableName);
+        if(this->measure_dti!=NULL)
+            printf("[%s] A DTI based measure is used as a similarity measure.\n", this->executableName);
+        if(this->measure_multichannel_nmi!=NULL){
+            printf("[%s] The multichannel NMI is used as a similarity measure.\n", this->executableName);
+//            if(this->approxParzenWindow)
+//                printf("[%s] The Parzen window joint histogram filling is approximated\n", this->executableName);
+//            else printf("[%s] The Parzen window joint histogram filling is not approximated\n", this->executableName);
+        }
+        if(this->measure_nmi!=NULL || (this->measure_dti==NULL && this->measure_kld==NULL &&
+                                       this->measure_lncc==NULL && this->measure_multichannel_nmi==NULL &&
+                                       this->measure_nmi==NULL && this->measure_ssd==NULL) ){
             printf("[%s] The NMI is used as a similarity measure.\n", this->executableName);
-            if(this->approxParzenWindow || this->inputReference->nt>1 || this->inputFloating->nt>1)
-                printf("[%s] The Parzen window joint histogram filling is approximated\n", this->executableName);
-            else printf("[%s] The Parzen window joint histogram filling is not approximated\n", this->executableName);
+//            if(this->approxParzenWindow)
+//                printf("[%s] The Parzen window joint histogram filling is approximated\n", this->executableName);
+//            else printf("[%s] The Parzen window joint histogram filling is not approximated\n", this->executableName);
         }
         printf("[%s] Similarity measure term weight: %g\n", this->executableName, this->similarityWeight);
         printf("[%s]\n", this->executableName);
@@ -495,12 +483,47 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
     this->GetVoxelBasedGradient();
 
     // The voxel based NMI gradient is convolved with a spline kernel
-    float spacingVoxel[3]={
-        this->controlPointGrid->dx/this->currentReference->dx,
-        this->controlPointGrid->dy/this->currentReference->dy,
-        this->controlPointGrid->dz/this->currentReference->dz};
-    reg_tools_CubicSplineKernelConvolution(this->voxelBasedMeasureGradientImage,
-                                           spacingVoxel);
+    // Convolution along the x axis
+    float currentNodeSpacing[3];
+    currentNodeSpacing[0]=currentNodeSpacing[1]=currentNodeSpacing[2]=this->controlPointGrid->dx;
+    bool activeAxis[3]={1,0,0};
+    reg_tools_kernelConvolution(this->voxelBasedMeasureGradientImage,
+                                currentNodeSpacing,
+                                1, // cubic spline kernel
+                                NULL, // all volumes are considered as active
+                                activeAxis
+                                );
+    // Convolution along the y axis
+    currentNodeSpacing[0]=currentNodeSpacing[1]=currentNodeSpacing[2]=this->controlPointGrid->dy;
+    activeAxis[0]=0;activeAxis[1]=1;
+    reg_tools_kernelConvolution(this->voxelBasedMeasureGradientImage,
+                                currentNodeSpacing,
+                                1, // cubic spline kernel
+                                NULL, // all volumes are considered as active
+                                activeAxis
+                                );
+    // Convolution along the z axis if required
+    if(this->voxelBasedMeasureGradientImage->nz>1){
+        currentNodeSpacing[0]=currentNodeSpacing[1]=currentNodeSpacing[2]=this->controlPointGrid->dz;
+        activeAxis[1]=0;activeAxis[2]=1;
+        reg_tools_kernelConvolution(this->voxelBasedMeasureGradientImage,
+                                    currentNodeSpacing,
+                                    1, // cubic spline kernel
+                                    NULL, // all volumes are considered as active
+                                    activeAxis
+                                    );
+    }
+
+//        float currentNodeSpacing[3]={
+//            this->controlPointGrid->dx/this->currentReference->dx,
+//            this->controlPointGrid->dy/this->currentReference->dy,
+//            this->controlPointGrid->dz/this->currentReference->dz
+//        };
+//        reg_tools_CubicSplineKernelConvolution(this->voxelBasedMeasureGradientImage,
+//                                               currentNodeSpacing);
+//        reg_io_WriteImageFile(this->voxelBasedMeasureGradientImage,
+//                              "grad_old.nii");
+//        reg_exit(1);
 
     // The node based NMI gradient is extracted
     reg_voxelCentric2NodeCentric(this->transformationGradient,
@@ -682,8 +705,8 @@ T reg_f3d<T>::NormaliseGradient()
 
 
     if(strcmp(this->executableName,"NiftyReg F3D")==0){
-        // The gradient is normalised if we are running F3D
-        // It will be normalised later when running symmetric or F3D2
+        // The gradient is normalised if we are running f3d
+        // It will be normalised later when running f3d_sym or f3d2
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] Objective function gradient maximal length: %g\n",maxGradValue);
 #endif
@@ -700,15 +723,15 @@ T reg_f3d<T>::NormaliseGradient()
 					valY = *ptrY;
 				if(this->optimiseZ==true)
 					valZ = *ptrZ;
-				T tempLength = (float)(sqrt(valX*valX + valY*valY + valZ*valZ));
-				if(tempLength>maxGradValue){
-					*ptrX *= maxGradValue / tempLength;
-					*ptrY *= maxGradValue / tempLength;
-					*ptrZ *= maxGradValue / tempLength;
-				}
-				*ptrX++ /= maxGradValue;
-				*ptrY++ /= maxGradValue;
-				*ptrZ++ /= maxGradValue;
+//				T tempLength = (float)(sqrt(valX*valX + valY*valY + valZ*valZ));
+//				if(tempLength>maxGradValue){
+//					*ptrX *= maxGradValue / tempLength;
+//					*ptrY *= maxGradValue / tempLength;
+//					*ptrZ *= maxGradValue / tempLength;
+//				}
+                *ptrX++ = valX / maxGradValue;
+				*ptrY++ = valY / maxGradValue;
+				*ptrZ++ = valZ / maxGradValue;
 			}
 		}
 		else{
@@ -720,13 +743,13 @@ T reg_f3d<T>::NormaliseGradient()
 					valX = *ptrX;
 				if(this->optimiseY==true)
 					valY = *ptrY;
-				T tempLength = (float)(sqrt(valX*valX + valY*valY));
-				if(tempLength>maxGradValue){
-					*ptrX *= maxGradValue / tempLength;
-					*ptrY *= maxGradValue / tempLength;
-				}
-				*ptrX++ /= maxGradValue;
-				*ptrY++ /= maxGradValue;
+//				T tempLength = (float)(sqrt(valX*valX + valY*valY));
+//				if(tempLength>maxGradValue){
+//					*ptrX *= maxGradValue / tempLength;
+//					*ptrY *= maxGradValue / tempLength;
+//				}
+                *ptrX++ = valX / maxGradValue;
+                *ptrY++ = valY / maxGradValue;
 			}
 		}
     }
@@ -802,6 +825,9 @@ double reg_f3d<T>::GetObjectiveFunctionValue()
         this->WarpFloatingImage(this->interpolation);
         this->currentWMeasure = this->ComputeSimilarityMeasure();
     }
+	else{
+		printf("ERROR\n");
+	}
 
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] (wMeasure) %g | (wBE) %g | (wLE) %g | (wL2) %g | (wJac) %g\n",
@@ -888,9 +914,10 @@ void reg_f3d<T>::SmoothGradient()
 {
     // The gradient is smoothed using a Gaussian kernel if it is required
     if(this->gradientSmoothingSigma!=0){
-        reg_gaussianSmoothing<T>(this->transformationGradient,
-                                 fabs(this->gradientSmoothingSigma),
-                                 NULL);
+		float kernel = fabs(this->gradientSmoothingSigma);
+        reg_tools_kernelConvolution(this->transformationGradient,
+                              &kernel,
+                              0);
     }
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -901,8 +928,8 @@ void reg_f3d<T>::GetApproximatedGradient()
     // Loop over every control point
     T *gridPtr = static_cast<T *>(this->controlPointGrid->data);
 	T *gradPtr = static_cast<T *>(this->transformationGradient->data);
-	T eps = this->controlPointGrid->dx / 1000.f;
-    for(size_t i=0; i<this->controlPointGrid->nvox;i++)
+    T eps = this->controlPointGrid->dx / 100.f;
+    for(size_t i=0; i<this->controlPointGrid->nvox;++i)
     {
         T currentValue = this->optimiser->GetBestDOF()[i];
         gridPtr[i] = currentValue + eps;
@@ -980,17 +1007,8 @@ void reg_f3d<T>::PrintInitialObjFunctionValue()
 
     double bestValue=this->optimiser->GetBestObjFunctionValue();
 
-    if(this->useSSD)
-        printf("[%s] Initial objective function: %g = (wSSD)%g - (wBE)%g - (wLE)%g - (wL2)%g - (wJAC)%g\n",
-               this->executableName, bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWL2, this->bestWJac);
-    else if(this->useKLD)
-        printf("[%s] Initial objective function: %g = (wKLD)%g - (wBE)%g - (wLE)%g - (wL2)%g - (wJAC)%g\n",
-               this->executableName, bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWL2, this->bestWJac);
-    else if(this->useLNCC==this->useLNCC)
-        printf("[%s] Initial objective function: %g = (wLNCC)%g - (wBE)%g - (wLE)%g - (wL2)%g - (wJAC)%g\n",
-               this->executableName, bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWL2, this->bestWJac);
-    else printf("[%s] Initial objective function: %g = (wNMI)%g - (wBE)%g - (wLE)%g - (wL2)%g - (wJAC)%g\n",
-                this->executableName, bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWL2, this->bestWJac);
+    printf("[%s] Initial objective function: %g = (wSIM)%g - (wBE)%g - (wLE)%g - (wL2)%g - (wJAC)%g\n",
+           this->executableName, bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWL2, this->bestWJac);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1003,13 +1021,7 @@ void reg_f3d<T>::PrintCurrentObjFunctionValue(T currentSize)
            this->executableName,
            (int)this->optimiser->GetCurrentIterationNumber(),
            this->optimiser->GetBestObjFunctionValue());
-    if(this->useSSD)
-        printf(" = (wSSD)%g", this->bestWMeasure);
-    else if(this->useKLD)
-        printf(" = (wKLD)%g", this->bestWMeasure);
-    else if(this->useLNCC==this->useLNCC)
-        printf(" = (wLNCC)%g", this->bestWMeasure);
-    else printf(" = (wNMI)%g", this->bestWMeasure);
+    printf(" = (wSIM)%g", this->bestWMeasure);
     if(this->bendingEnergyWeight>0)
         printf(" - (wBE)%.2e", this->bestWBE);
     if(this->linearEnergyWeight0>0 || this->linearEnergyWeight1>0)
@@ -1036,10 +1048,6 @@ void reg_f3d<T>::GetObjectiveFunctionGradient()
             this->SetGradientImageToZero();
         }
     }
-    this->optimiser->IncrementCurrentIterationNumber();
-
-    // Smooth the gradient if require
-    this->SmoothGradient();
 
     if(!this->useApproxGradient){
         // Compute the penalty term gradients if required
@@ -1049,6 +1057,11 @@ void reg_f3d<T>::GetObjectiveFunctionGradient()
         this->GetL2NormDispGradient();
     }
     else this->GetApproximatedGradient();
+
+    this->optimiser->IncrementCurrentIterationNumber();
+
+    // Smooth the gradient if require
+    this->SmoothGradient();
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

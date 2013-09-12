@@ -1,10 +1,7 @@
 #include "_reg_common_gpu.h"
 #include "_reg_tools.h"
 
-#include "_reg_mutualinformation.h"
-#include "_reg_mutualinformation_gpu.h"
-
-#include "_reg_ssd.h"
+#include "_reg_nmi_gpu.h"
 #include "_reg_ssd_gpu.h"
 #include "_reg_localTransformation.h"
 #include "_reg_localTransformation_gpu.h"
@@ -125,21 +122,24 @@ int main(int argc, char **argv)
 	}
 
 	if(strcmp(type,"nmig")==0){
+		bool activeTimePoint=true;
+		unsigned short binNumber = BIN;
+		unsigned short totalBinNumber = BIN*(BIN+2);
 		// Allocate the required joint histogram
-		double *proJHisto = (double *)malloc(BIN*(BIN+2)*sizeof(double));
-		double *logJHisto = (double *)malloc(BIN*(BIN+2)*sizeof(double));
-		double entropies[4];
+		double *proJHisto = (double *)malloc(totalBinNumber*sizeof(double));
+		double *logJHisto = (double *)malloc(totalBinNumber*sizeof(double));
+		double *entropies = (double *)malloc(4*sizeof(double));
 		// Compute the NMI
-		unsigned int binNumber[1]={BIN};
-		reg_getEntropies(reference,
-						 floating,
-						 binNumber,
-						 binNumber,
-						 proJHisto,
-						 logJHisto,
-						 entropies,
-						 mask,
-						 true); // approximation
+		reg_getNMIValue<float>(reference,
+							   floating,
+							   &activeTimePoint,
+							   &binNumber,
+							   &binNumber,
+							   &totalBinNumber,
+							   &proJHisto,
+							   &logJHisto,
+							   &entropies,
+							   mask);
 		// Allocate two images to store the computed NMI gradient
 		nifti_image *nmiGradient1 = nifti_make_new_nim(nii_dim, NIFTI_TYPE_FLOAT32, true);
 		reg_checkAndCorrectDimension(nmiGradient1);
@@ -162,29 +162,28 @@ int main(int argc, char **argv)
 		float4 *nmiGradient_gpu=NULL;
 		cudaCommon_allocateArrayToDevice<float4>(&nmiGradient_gpu, nmiGradient2->dim);
 		// Compute the NMI gradient on the host
-		reg_getVoxelBasedNMIGradientUsingPW(reference,
-											floating,
-											spaGradient,
-											binNumber,
-											binNumber,
-											logJHisto,
-											entropies,
-											nmiGradient1,
-											mask,
-											false); // unused atm
+		reg_getVoxelBasedNMIGradient3D<float>(reference,
+											  floating,
+											  &activeTimePoint,
+											  &binNumber,
+											  &binNumber,
+											  &logJHisto,
+											  &entropies,
+											  spaGradient,
+											  nmiGradient1,
+											  mask);
 		// Compute the NMI gradient on the device
-		reg_getVoxelBasedNMIGradientUsingPW_gpu(reference,
-												floating,
-												&reference_gpu,
-												&floating_gpu,
-												&spaGradient_gpu,
-												&logJHisto_gpu,
-												&nmiGradient_gpu,
-												&mask_gpu,
-												reference->nvox,
-												entropies,
-												BIN,
-												BIN);
+		reg_getVoxelBasedNMIGradient_gpu(reference,
+										 &reference_gpu,
+										 &floating_gpu,
+										 &spaGradient_gpu,
+										 &logJHisto_gpu,
+										 &nmiGradient_gpu,
+										 &mask_gpu,
+										 reference->nvox,
+										 entropies,
+										 BIN,
+										 BIN);
 		// Transfer the result from the device to the hosts
 		cudaCommon_transferFromDeviceToNifti<float4>(nmiGradient2, &nmiGradient_gpu);
 		//Compare the result
@@ -200,12 +199,19 @@ int main(int argc, char **argv)
 		nifti_image_free(nmiGradient2);
 	}
 	else if(strcmp(type,"ssd")==0){
-		float ssd_cpu = (float)reg_getSSD(reference,floating,NULL,mask);
-		float ssd_gpu = reg_getSSD_gpu(reference,
-										&reference_gpu,
-										&floating_gpu,
-										&mask_gpu,
-										reference->nvox);
+		bool activeTimePoint=true;
+        float *values=(float *)malloc(reference->nt*sizeof(float));
+		float ssd_cpu = (float)reg_getSSDValue<float>(reference,
+													  floating,
+													  &activeTimePoint,
+													  NULL,
+													  mask,
+                                                      values);
+		float ssd_gpu = reg_getSSDValue_gpu(reference,
+											&reference_gpu,
+											&floating_gpu,
+											&mask_gpu,
+											(int)reference->nvox);
 		printf("ssd cpu %g\n", ssd_cpu);
 		printf("ssd gpu %g\n", ssd_gpu);
 		maxDifferenceSSD = fabsf(ssd_cpu-ssd_gpu);
@@ -217,14 +223,17 @@ int main(int argc, char **argv)
 		nifti_image *ssdGradient2 = nifti_make_new_nim(nii_dim, NIFTI_TYPE_FLOAT32, true);
 		reg_checkAndCorrectDimension(ssdGradient2);
 		// Compute the ssd gradient on the host
-		reg_getVoxelBasedSSDGradient(reference,
-									 floating,
-									 spaGradient,
-									 ssdGradient1,
-									 NULL,
-									 68.f,
-									 mask
-									 );
+		bool activeTimePoint=true;
+        float values[1]={1.f};
+		reg_getVoxelBasedSSDGradient<float>(reference,
+											floating,
+											&activeTimePoint,
+											spaGradient,
+											ssdGradient1,
+                                            NULL,
+                                            mask,
+                                            values
+											);
 		// Allocate an array on the GPU to compute the NMI gradient on the device
 		float4 *ssdGradient_gpu=NULL;
 		cudaCommon_allocateArrayToDevice<float4>(&ssdGradient_gpu, ssdGradient2->dim);

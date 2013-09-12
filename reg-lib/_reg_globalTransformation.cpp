@@ -224,7 +224,7 @@ void reg_tool_ReadAffineFile(mat44 *mat,
 }
 /* *************************************************************** */
 /* *************************************************************** */
-void reg_tool_ReadAffineFile(	mat44 *mat,
+void reg_tool_ReadAffineFile(mat44 *mat,
                              char *fileName)
 {
     std::ifstream affineFile;

@@ -25,6 +25,17 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
     this->optimiseY=true;
     this->optimiseZ=true;
     this->perturbationNumber=0;
+    this->useConjGradient=true;
+    this->useApproxGradient=false;
+
+    this->measure_ssd=NULL;
+    this->measure_kld=NULL;
+    this->measure_dti=NULL;
+    this->measure_lncc=NULL;
+    this->measure_nmi=NULL;
+    this->measure_multichannel_nmi=NULL;
+
+	this->similarityWeight=0.; // is automatically set depending of the penalty term weights
 
     this->executableName=(char *)"NiftyReg BASE";
     this->referenceTimePoint=refTimePoint;
@@ -53,14 +64,9 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
     this->levelToPerform=0;
     this->gradientSmoothingSigma=0;
     this->verbose=true;
-    this->useConjGradient=true;
-    this->useApproxGradient=false;
     this->usePyramid=true;
+	this->forwardJacobianMatrix=NULL;
 
-    this->similarityWeight=0.; // is automatically set depending of the penalty term weights
-    this->useSSD=false;
-    this->useKLD=false;
-    this->useLNCC = std::numeric_limits<T>::quiet_NaN();
 
     this->initialised=false;
     this->referencePyramid=NULL;
@@ -157,6 +163,19 @@ reg_base<T>::~reg_base()
     if(this->floatingThresholdLow!=NULL){delete []this->floatingThresholdLow;this->floatingThresholdLow=NULL;}
     if(this->activeVoxelNumber!=NULL){delete []this->activeVoxelNumber;this->activeVoxelNumber=NULL;}
     if(this->optimiser!=NULL){delete this->optimiser;this->optimiser=NULL;}
+
+	if(this->measure_nmi!=NULL)
+        delete this->measure_nmi;
+    if(this->measure_multichannel_nmi!=NULL)
+        delete this->measure_multichannel_nmi;
+    if(this->measure_ssd!=NULL)
+        delete this->measure_ssd;
+    if(this->measure_kld!=NULL)
+        delete this->measure_kld;
+    if(this->measure_dti!=NULL)
+        delete this->measure_dti;
+    if(this->measure_lncc!=NULL)
+        delete this->measure_lncc;
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] reg_base destructor called\n");
 #endif
@@ -342,6 +361,7 @@ void reg_base<T>::UseCubicSplineInterpolation()
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_base<T>::ClearCurrentInputImage()
 {
@@ -350,6 +370,7 @@ void reg_base<T>::ClearCurrentInputImage()
     this->currentFloating=NULL;
     return;
 }
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_base<T>::AllocateWarped()
@@ -377,10 +398,9 @@ void reg_base<T>::AllocateWarped()
 template <class T>
 void reg_base<T>::ClearWarped()
 {
-    if(this->warped!=NULL){
+    if(this->warped!=NULL)
         nifti_image_free(this->warped);
-        this->warped=NULL;
-    }
+    this->warped=NULL;
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -420,6 +440,17 @@ void reg_base<T>::AllocateDeformationField()
     else this->deformationFieldImage->datatype = NIFTI_TYPE_FLOAT64;
     this->deformationFieldImage->data = (void *)calloc(this->deformationFieldImage->nvox,
                                                        this->deformationFieldImage->nbyper);
+    this->deformationFieldImage->intent_code=NIFTI_INTENT_VECTOR;
+    memset(this->deformationFieldImage->intent_name, 0, 16);
+    strcpy(this->deformationFieldImage->intent_name,"NREG_TRANS");
+    this->deformationFieldImage->intent_p1=DEF_FIELD;
+
+    if(this->measure_dti!=NULL)
+        this->forwardJacobianMatrix=(mat33 *)malloc(
+                this->deformationFieldImage->nx *
+                this->deformationFieldImage->ny *
+                this->deformationFieldImage->nz *
+                sizeof(mat33));
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -430,6 +461,9 @@ void reg_base<T>::ClearDeformationField()
         nifti_image_free(this->deformationFieldImage);
         this->deformationFieldImage=NULL;
     }
+    if(this->forwardJacobianMatrix!=NULL)
+        free(this->forwardJacobianMatrix);
+    this->forwardJacobianMatrix=NULL;
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -492,38 +526,111 @@ void reg_base<T>::ClearVoxelBasedMeasureGradient()
 template<class T>
 void reg_base<T>::CheckParameters()
 {
-    // CHECK THAT BOTH INPUT IMAGES ARE DEFINED
-    if(this->inputReference==NULL){
-        fprintf(stderr,"[NiftyReg ERROR] No reference image has been defined.\n");
-        reg_exit(1);
-    }
-    if(this->inputFloating==NULL){
-        fprintf(stderr,"[NiftyReg ERROR] No floating image has been defined.\n");
-        reg_exit(1);
+	// CHECK THAT BOTH INPUT IMAGES ARE DEFINED
+	if(this->inputReference==NULL){
+		fprintf(stderr,"[NiftyReg ERROR] No reference image has been defined.\n");
+		reg_exit(1);
+	}
+	if(this->inputFloating==NULL){
+		fprintf(stderr,"[NiftyReg ERROR] No floating image has been defined.\n");
+		reg_exit(1);
+	}
+
+	// CHECK THE MASK DIMENSION IF IT IS DEFINED
+	if(this->maskImage!=NULL){
+		if(this->inputReference->nx != maskImage->nx ||
+				this->inputReference->ny != maskImage->ny ||
+				this->inputReference->nz != maskImage->nz){
+			fprintf(stderr,"[NiftyReg ERROR] The mask image has different x, y or z dimension than the reference image.\n");
+			reg_exit(1);
+		}
     }
 
-    // CHECK THE MASK DIMENSION IF IT IS DEFINED
-    if(this->maskImage!=NULL){
-        if(this->inputReference->nx != maskImage->nx ||
-                this->inputReference->ny != maskImage->ny ||
-                this->inputReference->nz != maskImage->nz){
-            fprintf(stderr,"[NiftyReg ERROR] The mask image has different x, y or z dimension than the reference image.\n");
-            reg_exit(1);
-        }
-    }
-
-    // CHECK THE NUMBER OF LEVEL TO PERFORM
-    if(this->levelToPerform>0){
-        this->levelToPerform=this->levelToPerform<this->levelNumber?this->levelToPerform:this->levelNumber;
-    }
-    else this->levelToPerform=this->levelNumber;
-    if(this->levelToPerform==0 || this->levelToPerform>this->levelNumber)
-        this->levelToPerform=this->levelNumber;
+	// CHECK THE NUMBER OF LEVEL TO PERFORM
+	if(this->levelToPerform>0){
+		this->levelToPerform=this->levelToPerform<this->levelNumber?this->levelToPerform:this->levelNumber;
+	}
+	else this->levelToPerform=this->levelNumber;
+	if(this->levelToPerform==0 || this->levelToPerform>this->levelNumber)
+		this->levelToPerform=this->levelNumber;
 
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_base::CheckParameters() done\n");
+	printf("[NiftyReg DEBUG] reg_base::CheckParameters() done\n");
 #endif
-    return;
+	return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+void reg_base<T>::InitialiseSimilarity()
+{
+	// SET THE DEFAULT MEASURE OF SIMILARITY IF NONE HAS BEEN SET
+    if(this->measure_nmi==NULL &&
+       this->measure_ssd==NULL &&
+       this->measure_dti==NULL &&
+       this->measure_lncc==NULL &&
+       this->measure_lncc==NULL){
+        this->measure_nmi=new reg_nmi;
+		for(int i=0;i<this->inputReference->nt;++i)
+            this->measure_nmi->SetActiveTimepoint(i);
+	}
+    if(this->measure_nmi!=NULL)
+        this->measure_nmi->InitialiseMeasure(this->currentReference,
+                                             this->currentFloating,
+                                             this->currentMask,
+                                             this->warped,
+                                             this->warpedGradientImage,
+                                             this->voxelBasedMeasureGradientImage
+                                             );
+
+    if(this->measure_multichannel_nmi!=NULL)
+        this->measure_multichannel_nmi->InitialiseMeasure(this->currentReference,
+                                                          this->currentFloating,
+                                                          this->currentMask,
+                                                          this->warped,
+                                                          this->warpedGradientImage,
+                                                          this->voxelBasedMeasureGradientImage
+                                                          );
+
+    if(this->measure_ssd!=NULL)
+        this->measure_ssd->InitialiseMeasure(this->currentReference,
+                                             this->currentFloating,
+                                             this->currentMask,
+                                             this->warped,
+                                             this->warpedGradientImage,
+                                             this->voxelBasedMeasureGradientImage
+                                             );
+
+	if(this->measure_kld!=NULL)
+        this->measure_kld->InitialiseMeasure(this->currentReference,
+                                             this->currentFloating,
+                                             this->currentMask,
+                                             this->warped,
+                                             this->warpedGradientImage,
+                                             this->voxelBasedMeasureGradientImage
+                                             );
+
+    if(this->measure_lncc!=NULL)
+        this->measure_lncc->InitialiseMeasure(this->currentReference,
+                                              this->currentFloating,
+                                              this->currentMask,
+                                              this->warped,
+                                              this->warpedGradientImage,
+                                              this->voxelBasedMeasureGradientImage
+                                              );
+
+    if(this->measure_dti!=NULL)
+        this->measure_dti->InitialiseMeasure(this->currentReference,
+                                             this->currentFloating,
+                                             this->currentMask,
+                                             this->warped,
+                                             this->warpedGradientImage,
+                                             this->voxelBasedMeasureGradientImage
+                                             );
+
+#ifndef NDEBUG
+    printf("[NiftyReg DEBUG] reg_base::InitialiseSimilarity() done\n");
+#endif
+	return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
@@ -574,75 +681,37 @@ void reg_base<T>::Initisalise()
     unsigned int pyramidalLevelNumber=1;
     if(this->usePyramid) pyramidalLevelNumber=this->levelToPerform;
 
-    // SMOOTH THE INPUT IMAGES IF REQUIRED
+	// SMOOTH THE INPUT IMAGES IF REQUIRED
+	for(unsigned int l=0; l<this->levelToPerform; l++){
+		if(this->referenceSmoothingSigma!=0.0){
+			bool *active = new bool[this->referencePyramid[l]->nt];
+			float *sigma = new float[this->referencePyramid[l]->nt];
+			active[0]=true;
+			for(int i=1;i<this->referencePyramid[l]->nt;++i)
+				active[i]=false;
+			sigma[0]=this->referenceSmoothingSigma;
+            reg_tools_kernelConvolution(this->referencePyramid[l], sigma, 0, active);
+			delete []active;
+			delete []sigma;
+		}
+		if(this->floatingSmoothingSigma!=0.0){
+			// Only the first image is smoothed
+			bool *active = new bool[this->floatingPyramid[l]->nt];
+			float *sigma = new float[this->floatingPyramid[l]->nt];
+			active[0]=true;
+			for(int i=1;i<this->floatingPyramid[l]->nt;++i)
+				active[i]=false;
+			sigma[0]=this->floatingSmoothingSigma;
+            reg_tools_kernelConvolution(this->floatingPyramid[l], sigma, 0, active);
+			delete []active;
+			delete []sigma;
+		}
+	}
+
+    // THRESHOLD THE INPUT IMAGES IF REQUIRED
     for(unsigned int l=0; l<pyramidalLevelNumber; l++){
-        if(this->referenceSmoothingSigma!=0.0){
-            bool smoothAxis[8]={false,true,true,true,false,false,false,false};
-            reg_gaussianSmoothing<T>(this->referencePyramid[l], this->referenceSmoothingSigma, smoothAxis);
-        }
-        if(this->floatingSmoothingSigma!=0.0){
-            bool smoothAxis[8]={false,true,true,true,false,false,false,false};
-            reg_gaussianSmoothing<T>(this->floatingPyramid[l], this->floatingSmoothingSigma, smoothAxis);
-        }
-    }
-
-    if(this->useSSD || this->useKLD || this->useLNCC==this->useLNCC){
-        // THRESHOLD THE INPUT IMAGES IF REQUIRED
-        this->maxSSD=new T[pyramidalLevelNumber];
-        for(unsigned int l=0; l<pyramidalLevelNumber; l++){
-            reg_thresholdImage<T>(this->referencePyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
-            reg_thresholdImage<T>(this->floatingPyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
-        }
-        // The maximal difference image is extracted for normalisation of the SSD
-        if(this->useSSD){
-            this->maxSSD=new T[pyramidalLevelNumber];
-            for(unsigned int l=0; l<pyramidalLevelNumber; l++){
-                T tempMaxSSD1 = (this->referencePyramid[l]->cal_min - this->floatingPyramid[l]->cal_max) *
-                        (this->referencePyramid[l]->cal_min - this->floatingPyramid[l]->cal_max);
-                T tempMaxSSD2 = (this->referencePyramid[l]->cal_max - this->floatingPyramid[l]->cal_min) *
-                        (this->referencePyramid[l]->cal_max - this->floatingPyramid[l]->cal_min);
-                this->maxSSD[l]=tempMaxSSD1>tempMaxSSD2?tempMaxSSD1:tempMaxSSD2;
-            }
-        }
-    }
-    else{
-        // RESCALE THE INPUT IMAGE INTENSITY TO USE WITH NMI
-        /* the target and source are resampled between 2 and bin-3
-         * The images are then shifted by two which is the suport of the spline used
-         * by the parzen window filling of the joint histogram */
-
-        float *referenceRescalingArrayDown=new float[this->referenceTimePoint];
-        float *referenceRescalingArrayUp=new float[this->referenceTimePoint];
-        float *floatingRescalingArrayDown=new float[this->floatingTimePoint];
-        float *floatingRescalingArrayUp=new float[this->floatingTimePoint];
-        for(int t=0;t<this->referencePyramid[0]->nt;t++){
-            // INCREASE THE BIN SIZES
-            this->referenceBinNumber[t] += 4;
-            referenceRescalingArrayDown[t] = 2.f;
-            referenceRescalingArrayUp[t] = this->referenceBinNumber[t]-3;
-        }
-        for(int t=0;t<this->floatingPyramid[0]->nt;t++){
-            // INCREASE THE BIN SIZES
-            this->floatingBinNumber[t] += 4;
-            floatingRescalingArrayDown[t] = 2.f;
-            floatingRescalingArrayUp[t] = this->floatingBinNumber[t]-3;
-        }
-        for(unsigned int l=0; l<pyramidalLevelNumber; l++){
-            reg_intensityRescale(this->referencePyramid[l],
-                                 referenceRescalingArrayDown,
-                                 referenceRescalingArrayUp,
-                                 this->referenceThresholdLow,
-                                 this->referenceThresholdUp);
-            reg_intensityRescale(this->floatingPyramid[l],
-                                 floatingRescalingArrayDown,
-                                 floatingRescalingArrayUp,
-                                 this->floatingThresholdLow,
-                                 this->floatingThresholdUp);
-        }
-        delete []referenceRescalingArrayDown;
-        delete []referenceRescalingArrayUp;
-        delete []floatingRescalingArrayDown;
-        delete []floatingRescalingArrayUp;
+        reg_thresholdImage<T>(this->referencePyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
+        reg_thresholdImage<T>(this->floatingPyramid[l],this->referenceThresholdLow[0], this->referenceThresholdUp[0]);
     }
 
     this->initialised=true;
@@ -665,94 +734,25 @@ void reg_base<T>::SetOptimiser()
 template <class T>
 double reg_base<T>::ComputeSimilarityMeasure()
 {
-    double measure=0.;
-    if(this->useSSD){
-        measure = -reg_getSSD(this->currentReference,
-                              this->warped,
-                              NULL,
-                              this->currentMask);
-        if(this->usePyramid)
-            measure /= this->maxSSD[this->currentLevel];
-        else measure /= this->maxSSD[0];
-    }
-    else if(this->useKLD){
-        measure = -reg_getKLDivergence(this->currentReference,
-                                       this->warped,
-                                       NULL,
-                                       this->currentMask);
-    }
-    else if(this->useLNCC==this->useLNCC){
-        measure = reg_getLNCC(this->currentReference,
-                              this->warped,
-                              this->useLNCC,
-                              this->currentMask);
-    }
-    else{
-        // Use additive NMI when the flag is set and we have multi channel input
-        if(this->currentReference->nt>1 &&
-                this->currentReference->nt == this->warped->nt && additive_mc_nmi){
+	double measure=0.;
+    if(this->measure_nmi!=NULL)
+        measure += this->measure_nmi->GetSimilarityMeasureValue();
 
-            fprintf(stderr, "WARNING: Modification for Jorge - reg_base<T>::ComputeSimilarityMeasure()\n");
+    if(this->measure_multichannel_nmi!=NULL)
+        measure += this->measure_multichannel_nmi->GetSimilarityMeasureValue();
 
-            T *referencePtr=static_cast<T *>(this->currentReference->data);
-            T *warpedPtr=static_cast<T *>(this->warped->data);
+    if(this->measure_ssd!=NULL)
+        measure += this->measure_ssd->GetSimilarityMeasureValue();
 
-            measure=0.;
-            for(int t=0;t<this->currentReference->nt;++t){
+    if(this->measure_kld!=NULL)
+        measure += this->measure_kld->GetSimilarityMeasureValue();
 
-                nifti_image *temp_referenceImage = nifti_copy_nim_info(this->currentReference);
-                temp_referenceImage->dim[0]=temp_referenceImage->ndim=3;
-                temp_referenceImage->dim[4]=temp_referenceImage->nt=1;
-                temp_referenceImage->nvox =
-                        (size_t)temp_referenceImage->nx*
-                        (size_t)temp_referenceImage->ny*
-                        (size_t)temp_referenceImage->nz;
-                temp_referenceImage->data=(void *)malloc(temp_referenceImage->nvox*temp_referenceImage->nbyper);
-                T *tempRefPtr=static_cast<T *>(temp_referenceImage->data);
-                memcpy(tempRefPtr, &referencePtr[t*temp_referenceImage->nvox],
-                       temp_referenceImage->nvox*temp_referenceImage->nbyper);
+    if(this->measure_lncc!=NULL)
+        measure += this->measure_lncc->GetSimilarityMeasureValue();
 
-                nifti_image *temp_warpedImage = nifti_copy_nim_info(this->warped);
-                temp_warpedImage->dim[0]=temp_warpedImage->ndim=3;
-                temp_warpedImage->dim[4]=temp_warpedImage->nt=1;
-                temp_warpedImage->nvox =
-                        (size_t)temp_warpedImage->nx*
-                        (size_t)temp_warpedImage->ny*
-                        (size_t)temp_warpedImage->nz;
-                temp_warpedImage->data=(void *)malloc(temp_warpedImage->nvox*temp_warpedImage->nbyper);
-                T *tempWarPtr=static_cast<T *>(temp_warpedImage->data);
-                memcpy(tempWarPtr, &warpedPtr[t*temp_warpedImage->nvox],
-                       temp_warpedImage->nvox*temp_warpedImage->nbyper);
+    if(this->measure_dti!=NULL)
+        measure += this->measure_dti->GetSimilarityMeasureValue();
 
-                reg_getEntropies(temp_referenceImage,
-                                 temp_warpedImage,
-                                 this->referenceBinNumber,
-                                 this->floatingBinNumber,
-                                 this->probaJointHistogram,
-                                 this->logJointHistogram,
-                                 this->entropies,
-                                 this->currentMask,
-                                 this->approxParzenWindow);
-                measure += (this->entropies[0]+this->entropies[1])/this->entropies[2];
-
-                nifti_image_free(temp_referenceImage);
-                nifti_image_free(temp_warpedImage);
-            }
-            measure /= (double)(this->currentReference->nt);
-        }
-        else {
-            reg_getEntropies(this->currentReference,
-                             this->warped,
-                             this->referenceBinNumber,
-                             this->floatingBinNumber,
-                             this->probaJointHistogram,
-                             this->logJointHistogram,
-                             this->entropies,
-                             this->currentMask,
-                             this->approxParzenWindow);
-            measure = (this->entropies[0]+this->entropies[1])/this->entropies[2];
-		}
-    }
     return double(this->similarityWeight) * measure;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -761,227 +761,163 @@ template <class T>
 void reg_base<T>::GetVoxelBasedGradient()
 {
     // The intensity gradient is first computed
-    reg_getImageGradient(this->currentFloating,
-                         this->warpedGradientImage,
-                         this->deformationFieldImage,
-                         this->currentMask,
-                         this->interpolation,
-                         this->warpedPaddingValue);
-
-    if(this->useSSD){
-        // Compute the voxel based SSD gradient
-        T localMaxSSD=this->maxSSD[0];
-        if(this->usePyramid) localMaxSSD=this->maxSSD[this->currentLevel];
-        reg_getVoxelBasedSSDGradient(this->currentReference,
-                                     this->warped,
-                                     this->warpedGradientImage,
-                                     this->voxelBasedMeasureGradientImage,
-                                     NULL,
-                                     localMaxSSD,
-                                     this->currentMask
-									 );
-    }
-    else if(this->useKLD){
-        // Compute the voxel based KL divergence gradient
-        reg_getKLDivergenceVoxelBasedGradient(this->currentReference,
-                                              this->warped,
-                                              this->warpedGradientImage,
-                                              this->voxelBasedMeasureGradientImage,
-                                              NULL,
-                                              this->currentMask
-                                              );
-    }
-    else if(this->useLNCC==this->useLNCC){
-        reg_getVoxelBasedLNCCGradient(this->currentReference,
-                                      this->warped,
-                                      this->warpedGradientImage,
-                                      this->voxelBasedMeasureGradientImage,
-                                      this->useLNCC,
-                                      this->currentMask
-                                      );
+    if(measure_dti!=NULL){
+        reg_getImageGradient(this->currentFloating,
+                             this->warpedGradientImage,
+                             this->deformationFieldImage,
+                             this->currentMask,
+                             this->interpolation,
+                             this->warpedPaddingValue,
+                             this->measure_dti->GetActiveTimepoints(),
+                             this->forwardJacobianMatrix);
     }
     else{
-        // Use additive NMI when the flag is set and we have multi channel input
-        if(this->currentReference->nt>1 &&
-                this->currentReference->nt == this->warped->nt &&
-                additive_mc_nmi){
-
-            T *referencePtr=static_cast<T *>(this->currentReference->data);
-            T *warpedPtr=static_cast<T *>(this->currentFloating->data);
-            T *gradientPtr=static_cast<T *>(this->warpedGradientImage->data);
-
-            reg_tools_multiplyValueToImage(this->voxelBasedMeasureGradientImage,
-                                           this->voxelBasedMeasureGradientImage,
-                                           0.f);
-
-            for(int t=0;t<this->currentReference->nt;++t){
-
-                nifti_image *temp_referenceImage = nifti_copy_nim_info(this->currentReference);
-                temp_referenceImage->dim[0]=temp_referenceImage->ndim=3;
-                temp_referenceImage->dim[4]=temp_referenceImage->nt=1;
-                temp_referenceImage->nvox =
-                        (size_t)temp_referenceImage->nx*
-                        (size_t)temp_referenceImage->ny*
-                        (size_t)temp_referenceImage->nz;
-                temp_referenceImage->data=(void *)malloc(temp_referenceImage->nvox*temp_referenceImage->nbyper);
-                T *tempRefPtr=static_cast<T *>(temp_referenceImage->data);
-                memcpy(tempRefPtr, &referencePtr[t*temp_referenceImage->nvox],
-                       temp_referenceImage->nvox*temp_referenceImage->nbyper);
-
-                nifti_image *temp_warpedImage = nifti_copy_nim_info(this->warped);
-                temp_warpedImage->dim[0]=temp_warpedImage->ndim=3;
-                temp_warpedImage->dim[4]=temp_warpedImage->nt=1;
-                temp_warpedImage->nvox =
-                        (size_t)temp_warpedImage->nx*
-                        (size_t)temp_warpedImage->ny*
-                        (size_t)temp_warpedImage->nz;
-                temp_warpedImage->data=(void *)malloc(temp_warpedImage->nvox*temp_warpedImage->nbyper);
-                T *tempWarPtr=static_cast<T *>(temp_warpedImage->data);
-                memcpy(tempWarPtr, &warpedPtr[t*temp_warpedImage->nvox],
-                       temp_warpedImage->nvox*temp_warpedImage->nbyper);
-
-                nifti_image *temp_gradientImage = nifti_copy_nim_info(this->warpedGradientImage);
-                temp_gradientImage->dim[4]=temp_gradientImage->nt=1;
-                temp_gradientImage->nvox =
-                        (size_t)temp_gradientImage->nx*
-                        (size_t)temp_gradientImage->ny*
-                        (size_t)temp_gradientImage->nz*
-                        (size_t)temp_gradientImage->nt*
-                        (size_t)temp_gradientImage->nu;
-                temp_gradientImage->data=(void *)malloc(temp_gradientImage->nvox*temp_gradientImage->nbyper);
-                T *tempGraPtr=static_cast<T *>(temp_gradientImage->data);
-                for(int u=0;u<temp_gradientImage->nu;++u){
-                    size_t index=(u*this->warpedGradientImage->nt+t)*temp_referenceImage->nvox;
-                    memcpy(&tempGraPtr[u*temp_referenceImage->nvox],
-                           &gradientPtr[index],
-                           temp_referenceImage->nvox*temp_referenceImage->nbyper);
-                }
-
-                reg_getEntropies(temp_referenceImage,
-                                 temp_warpedImage,
-                                 this->referenceBinNumber,
-                                 this->floatingBinNumber,
-                                 this->probaJointHistogram,
-                                 this->logJointHistogram,
-                                 this->entropies,
-                                 this->currentMask,
-                                 this->approxParzenWindow);
-
-                nifti_image *temp_nmiGradientImage = nifti_copy_nim_info(this->voxelBasedMeasureGradientImage);
-                temp_nmiGradientImage->data=(void *)malloc(temp_nmiGradientImage->nvox*temp_nmiGradientImage->nbyper);
-
-                reg_getVoxelBasedNMIGradientUsingPW(temp_referenceImage,
-                                                    temp_warpedImage,
-                                                    temp_gradientImage,
-                                                    this->referenceBinNumber,
-                                                    this->floatingBinNumber,
-                                                    this->logJointHistogram,
-                                                    this->entropies,
-                                                    temp_nmiGradientImage,
-                                                    this->currentMask,
-                                                    this->approxParzenWindow);
-
-                reg_tools_addImageToImage(temp_nmiGradientImage,
-                                          this->voxelBasedMeasureGradientImage,
-                                          this->voxelBasedMeasureGradientImage);
-
-                nifti_image_free(temp_referenceImage);
-                nifti_image_free(temp_warpedImage);
-                nifti_image_free(temp_gradientImage);
-                nifti_image_free(temp_nmiGradientImage);
-            }
-            reg_tools_divideValueToImage(this->voxelBasedMeasureGradientImage,
-                                        this->voxelBasedMeasureGradientImage,
-                                        (float)(this->currentReference->nt));
-        }
-        else{
-            // Compute the voxel based NMI gradient
-            reg_getVoxelBasedNMIGradientUsingPW(this->currentReference,
-                                                this->warped,
-                                                this->warpedGradientImage,
-                                                this->referenceBinNumber,
-                                                this->floatingBinNumber,
-                                                this->logJointHistogram,
-                                                this->entropies,
-                                                this->voxelBasedMeasureGradientImage,
-                                                this->currentMask,
-                                                this->approxParzenWindow);
-        }
+        reg_getImageGradient(this->currentFloating,
+                             this->warpedGradientImage,
+                             this->deformationFieldImage,
+                             this->currentMask,
+                             this->interpolation,
+                             this->warpedPaddingValue);
     }
+    // The voxel based gradient image is filled with zeros
+    reg_tools_multiplyValueToImage(this->voxelBasedMeasureGradientImage,
+                                   this->voxelBasedMeasureGradientImage,
+                                   0.f);
+    // The gradient of the various measures of similarity are computed
+    if(this->measure_nmi!=NULL)
+        this->measure_nmi->GetVoxelBasedSimilarityMeasureGradient();
+
+    if(this->measure_multichannel_nmi!=NULL)
+        this->measure_multichannel_nmi->GetVoxelBasedSimilarityMeasureGradient();
+
+    if(this->measure_ssd!=NULL)
+        this->measure_ssd->GetVoxelBasedSimilarityMeasureGradient();
+
+    if(this->measure_kld!=NULL)
+        this->measure_kld->GetVoxelBasedSimilarityMeasureGradient();
+
+    if(this->measure_lncc!=NULL)
+        this->measure_lncc->GetVoxelBasedSimilarityMeasureGradient();
+
+    if(this->measure_dti!=NULL)
+        this->measure_dti->GetVoxelBasedSimilarityMeasureGradient();
+
+//    nifti_image *temp=nifti_copy_nim_info(this->currentReference);
+//    temp->dim[0]=temp->ndim=3;
+//    temp->dim[4] = temp->nt=1;
+//    temp->dim[5] = temp->nu=1;
+//    temp->nvox=(size_t)temp->nx*temp->ny*temp->nz;
+//    temp->data=(void *)malloc(temp->nvox*temp->nbyper);
+//    T *tempPtr = static_cast<T *>(temp->data);
+//    T *gradPtr = static_cast<T *>(this->warpedGradientImage->data);
+//    for(int i=0; i<this->warpedGradientImage->nt*this->warpedGradientImage->nu; ++i){
+//        char name[255];
+//        sprintf(name, "grad_%i.nii", i);
+//        memcpy(tempPtr,&gradPtr[i*temp->nvox],temp->nvox*temp->nbyper);
+//        reg_io_WriteImageFile(temp,name);
+//    }
+//    nifti_image_free(temp);
+
+//    reg_io_WriteImageFile(this->warpedGradientImage,
+//                          "spatialGradient.nii");
+//    reg_io_WriteImageFile(this->voxelBasedMeasureGradientImage,
+//                          "measureGradient.nii");
+//    reg_exit(1);
 
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+//template<class T>
+//void reg_base<T>::ApproximateParzenWindow()
+//{
+//    if(this->measure_nmi==NULL)
+//        this->measure_nmi=new reg_nmi;
+//    this->measure_nmi=approxParzenWindow = true;
+//    return;
+//}
+///* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+//template<class T>
+//void reg_base<T>::DoNotApproximateParzenWindow()
+//{
+//    if(this->measure_nmi==NULL)
+//        this->measure_nmi=new reg_nmi;
+//    this->measure_nmi=approxParzenWindow = false;
+//    return;
+//}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-void reg_base<T>::SetReferenceBinNumber(int l, unsigned int v)
+void reg_base<T>::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber)
 {
-    this->referenceBinNumber[l] = v;
+    if(this->measure_nmi==NULL)
+        this->measure_nmi=new reg_nmi;
+    this->measure_nmi->SetActiveTimepoint(timepoint);
+    // I am here adding 4 to the specified bin number to accomodate for
+    // the spline support
+    this->measure_nmi->SetFloatingBinNumber(floBinNumber+4, timepoint);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-void reg_base<T>::SetFloatingBinNumber(int l, unsigned int v)
+void reg_base<T>::UseNMISetReferenceBinNumber(int timepoint, int refBinNumber)
 {
-    this->floatingBinNumber[l] = v;
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template<class T>
-void reg_base<T>::ApproximateParzenWindow()
-{
-    this->approxParzenWindow = true;
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template<class T>
-void reg_base<T>::DoNotApproximateParzenWindow()
-{
-    this->approxParzenWindow = false;
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template<class T>
-void reg_base<T>::UseSSD()
-{
-    this->useSSD = true;
+    if(this->measure_nmi==NULL)
+        this->measure_nmi=new reg_nmi;
+    this->measure_nmi->SetActiveTimepoint(timepoint);
+    // I am here adding 4 to the specified bin number to accomodate for
+    // the spline support
+    this->measure_nmi->SetReferenceBinNumber(refBinNumber+4, timepoint);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-void reg_base<T>::DoNotUseSSD()
+void reg_base<T>::UseMultiChannelNMI(int timepointNumber, int *timepoint)
 {
-    this->useSSD = false;
+    if(this->measure_multichannel_nmi==NULL)
+        this->measure_multichannel_nmi=new reg_multichannel_nmi;
+    for(int i=0; i<timepointNumber;++i)
+		this->measure_multichannel_nmi->SetActiveTimepoint(i);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-void reg_base<T>::UseKLDivergence()
+void reg_base<T>::UseSSD(int timepoint)
 {
-    this->useKLD = true;
+    if(this->measure_ssd==NULL)
+		this->measure_ssd=new reg_ssd;
+    this->measure_ssd->SetActiveTimepoint(timepoint);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-void reg_base<T>::DoNotUseKLDivergence()
+void reg_base<T>::UseKLDivergence(int timepoint)
 {
-    this->useKLD = false;
+    if(this->measure_kld==NULL)
+        this->measure_kld=new reg_kld;
+    this->measure_kld->SetActiveTimepoint(timepoint);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-void reg_base<T>::UseLNCC(T stdev)
+void reg_base<T>::UseLNCC(int timepoint, float stddev)
 {
-    this->useLNCC = stdev;
+    if(this->measure_lncc==NULL)
+        this->measure_lncc=new reg_lncc;
+    this->measure_lncc->SetKernelStandardDeviation(timepoint,
+                                                   stddev);
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-void reg_base<T>::DoNotUseLNCC()
+void reg_base<T>::UseDTI(bool *timepoint)
 {
-    this->useLNCC = std::numeric_limits<T>::quiet_NaN();
+    if(this->measure_dti==NULL)
+        this->measure_dti=new reg_dti;
+    for(int i=0;i<this->inputReference->nt;++i){
+        if(timepoint[i]==true)
+            this->measure_dti->SetActiveTimepoint(i);
+    }
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -991,49 +927,29 @@ void reg_base<T>::WarpFloatingImage(int inter)
 {
     // Compute the deformation field
     this->GetDeformationField();
-    // Resample the floating image
-    reg_resampleImage(this->currentFloating,
-                      this->warped,
-                      this->deformationFieldImage,
-                      this->currentMask,
-                      inter,
-					  this->warpedPaddingValue);
 
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-void reg_base<T>::AllocateJointHistogram()
-{
-    reg_base<T>::ClearJointHistogram();
-    unsigned int histogramSize[3]={1,1,1};
-    for(int i=0;i<this->currentReference->nt;i++){
-        histogramSize[0] *= this->referenceBinNumber[i];
-        histogramSize[1] *= this->referenceBinNumber[i];
+    if(measure_dti==NULL){
+        // Resample the floating image
+        reg_resampleImage(this->currentFloating,
+                          this->warped,
+                          this->deformationFieldImage,
+                          this->currentMask,
+                          inter,
+                          this->warpedPaddingValue);
     }
-    for(int i=0;i<this->currentFloating->nt;i++){
-        histogramSize[0] *= this->floatingBinNumber[i];
-        histogramSize[2] *= this->floatingBinNumber[i];
+    else{
+        reg_defField_getJacobianMatrix(this->deformationFieldImage,
+                                       this->forwardJacobianMatrix);
+        reg_resampleImage(this->currentFloating,
+                          this->warped,
+                          this->deformationFieldImage,
+                          this->currentMask,
+                          inter,
+                          this->warpedPaddingValue,
+                          this->measure_dti->GetActiveTimepoints(),
+                          this->forwardJacobianMatrix);
     }
-    histogramSize[0] += histogramSize[1] + histogramSize[2];
-    this->totalBinNumber = histogramSize[0];
-    this->probaJointHistogram = (double *)malloc(histogramSize[0]*sizeof(double));
-    this->logJointHistogram = (double *)malloc(histogramSize[0]*sizeof(double));
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-void reg_base<T>::ClearJointHistogram()
-{
-    if(this->probaJointHistogram!=NULL){
-        free(this->probaJointHistogram);
-        this->probaJointHistogram=NULL;
-    }
-    if(this->logJointHistogram!=NULL){
-        free(this->logJointHistogram);
-        this->logJointHistogram=NULL;
-    }
+
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -1068,12 +984,10 @@ void reg_base<T>::Run()
             this->currentMask = this->maskPyramid[0];
         }
 
-        // ALLOCATE IMAGES THAT DEPENDS ON THE TARGET IMAGE
+        // Allocate image that depends on the reference image
         this->AllocateWarped();
         this->AllocateDeformationField();
         this->AllocateWarpedGradient();
-        if(!this->useSSD && !this->useKLD && this->useLNCC!=this->useLNCC)
-			this->AllocateJointHistogram();
 
         // The grid is refined if necessary
         T maxStepSize=this->InitialiseCurrentLevel();
@@ -1082,9 +996,12 @@ void reg_base<T>::Run()
 
         this->DisplayCurrentLevelParameters();
 
-        // ALLOCATE IMAGES THAT ARE REQUIRED TO COMPUTE THE GRADIENT
+        // Allocate iamge that are required to compute the gradient
         this->AllocateVoxelBasedMeasureGradient();
         this->AllocateTransformationGradient();
+
+        // Initialise the measures of similarity
+        this->InitialiseSimilarity();
 
         // initialise the optimiser
         this->SetOptimiser();
@@ -1160,19 +1077,17 @@ void reg_base<T>::Run()
             }
         } // perturbation loop
 
-        // FINAL FOLDING CORRECTION
+        // Final folding correction
         this->CorrectTransformation();
 
-        // SOME CLEANING IS PERFORMED
+        // Some cleaning is performed
         delete this->optimiser;
         this->optimiser=NULL;
-
         this->ClearWarped();
         this->ClearDeformationField();
         this->ClearWarpedGradient();
         this->ClearVoxelBasedMeasureGradient();
         this->ClearTransformationGradient();
-        this->ClearJointHistogram();
         if(this->usePyramid){
             nifti_image_free(this->referencePyramid[this->currentLevel]);this->referencePyramid[this->currentLevel]=NULL;
             nifti_image_free(this->floatingPyramid[this->currentLevel]);this->floatingPyramid[this->currentLevel]=NULL;
@@ -1183,7 +1098,6 @@ void reg_base<T>::Run()
             nifti_image_free(this->floatingPyramid[0]);this->floatingPyramid[0]=NULL;
             free(this->maskPyramid[0]);this->maskPyramid[0]=NULL;
         }
-
         this->ClearCurrentInputImage();
 
 #ifdef NDEBUG

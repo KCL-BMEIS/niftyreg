@@ -20,7 +20,7 @@ class reg_f3d2 : public reg_f3d_sym<T>
   protected:
     int stepNumber;
     bool BCHUpdate;
-	bool ISS;
+    bool useGradientCumulativeExp;
     int BCHUpdateValue;
     mat33 *forward2backward_reorient;
     mat33 *backward2forward_reorient;
@@ -33,7 +33,7 @@ class reg_f3d2 : public reg_f3d_sym<T>
     virtual void UpdateParameters(float);
     virtual void ExponentiateGradient();
     virtual void UseBCHUpdate(int);
-	virtual void UseInverseSclalingSquaring();
+    virtual void UseGradientCumulativeExp();
 
 public:
     virtual void SetCompositionStepNumber(int);

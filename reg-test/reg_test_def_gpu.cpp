@@ -182,7 +182,8 @@ int main(int argc, char **argv)
         strcpy(controlPointGrid->intent_name,"NREG_VEL_STEP");
         // Exponentiate the velocity field using the host
         reg_spline_getDeformationFieldFromVelocityGrid(controlPointGrid,
-                                                        field);
+                                                        field,
+                                                       false);
         // Exponentiate the velocity field using the device
         reg_getDeformationFieldFromVelocityGrid_gpu(controlPointGrid,
                                                     field,

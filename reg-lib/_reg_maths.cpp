@@ -287,100 +287,142 @@ void reg_heapSort(float *array_tmp, int blockNum)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-//Ported from VNL
-float reg_mat44_det(mat44 const* A)
+template <class MTYPE>
+float reg_mat44_det(MTYPE const* A)
 {
-    return
-       + A->m[0][0]*A->m[1][1]*A->m[2][2]*A->m[3][3]
-       - A->m[0][0]*A->m[1][1]*A->m[3][2]*A->m[2][3]
-       - A->m[0][0]*A->m[2][1]*A->m[1][2]*A->m[3][3]
-       + A->m[0][0]*A->m[2][1]*A->m[3][2]*A->m[1][3]
-       + A->m[0][0]*A->m[3][1]*A->m[1][2]*A->m[2][3]
-       - A->m[0][0]*A->m[3][1]*A->m[2][2]*A->m[1][3]
-       - A->m[1][0]*A->m[0][1]*A->m[2][2]*A->m[3][3]
-       + A->m[1][0]*A->m[0][1]*A->m[3][2]*A->m[2][3]
-       + A->m[1][0]*A->m[2][1]*A->m[0][2]*A->m[3][3]
-       - A->m[1][0]*A->m[2][1]*A->m[3][2]*A->m[0][3]
-       - A->m[1][0]*A->m[3][1]*A->m[0][2]*A->m[2][3]
-       + A->m[1][0]*A->m[3][1]*A->m[2][2]*A->m[0][3]
-       + A->m[2][0]*A->m[0][1]*A->m[1][2]*A->m[3][3]
-       - A->m[2][0]*A->m[0][1]*A->m[3][2]*A->m[1][3]
-       - A->m[2][0]*A->m[1][1]*A->m[0][2]*A->m[3][3]
-       + A->m[2][0]*A->m[1][1]*A->m[3][2]*A->m[0][3]
-       + A->m[2][0]*A->m[3][1]*A->m[0][2]*A->m[1][3]
-       - A->m[2][0]*A->m[3][1]*A->m[1][2]*A->m[0][3]
-       - A->m[3][0]*A->m[0][1]*A->m[1][2]*A->m[2][3]
-       + A->m[3][0]*A->m[0][1]*A->m[2][2]*A->m[1][3]
-       + A->m[3][0]*A->m[1][1]*A->m[0][2]*A->m[2][3]
-       - A->m[3][0]*A->m[1][1]*A->m[2][2]*A->m[0][3]
-       - A->m[3][0]*A->m[2][1]*A->m[0][2]*A->m[1][3]
-       + A->m[3][0]*A->m[2][1]*A->m[1][2]*A->m[0][3];
+    double D =
+          (double)A->m[0][0]*A->m[1][1]*A->m[2][2]*A->m[3][3]
+        - A->m[0][0]*A->m[1][1]*A->m[3][2]*A->m[2][3]
+        - A->m[0][0]*A->m[2][1]*A->m[1][2]*A->m[3][3]
+        + A->m[0][0]*A->m[2][1]*A->m[3][2]*A->m[1][3]
+        + A->m[0][0]*A->m[3][1]*A->m[1][2]*A->m[2][3]
+        - A->m[0][0]*A->m[3][1]*A->m[2][2]*A->m[1][3]
+        - A->m[1][0]*A->m[0][1]*A->m[2][2]*A->m[3][3]
+        + A->m[1][0]*A->m[0][1]*A->m[3][2]*A->m[2][3]
+        + A->m[1][0]*A->m[2][1]*A->m[0][2]*A->m[3][3]
+        - A->m[1][0]*A->m[2][1]*A->m[3][2]*A->m[0][3]
+        - A->m[1][0]*A->m[3][1]*A->m[0][2]*A->m[2][3]
+        + A->m[1][0]*A->m[3][1]*A->m[2][2]*A->m[0][3]
+        + A->m[2][0]*A->m[0][1]*A->m[1][2]*A->m[3][3]
+        - A->m[2][0]*A->m[0][1]*A->m[3][2]*A->m[1][3]
+        - A->m[2][0]*A->m[1][1]*A->m[0][2]*A->m[3][3]
+        + A->m[2][0]*A->m[1][1]*A->m[3][2]*A->m[0][3]
+        + A->m[2][0]*A->m[3][1]*A->m[0][2]*A->m[1][3]
+        - A->m[2][0]*A->m[3][1]*A->m[1][2]*A->m[0][3]
+        - A->m[3][0]*A->m[0][1]*A->m[1][2]*A->m[2][3]
+        + A->m[3][0]*A->m[0][1]*A->m[2][2]*A->m[1][3]
+        + A->m[3][0]*A->m[1][1]*A->m[0][2]*A->m[2][3]
+        - A->m[3][0]*A->m[1][1]*A->m[2][2]*A->m[0][3]
+        - A->m[3][0]*A->m[2][1]*A->m[0][2]*A->m[1][3]
+        + A->m[3][0]*A->m[2][1]*A->m[1][2]*A->m[0][3];
+    return static_cast<float>(D);
 }
-
+template float reg_mat44_det<mat44>(mat44 const* A);
+template float reg_mat44_det<reg_mat44d>(reg_mat44d const* A);
 /* *************************************************************** */
-//Ported from VNL
-mat44 reg_mat44_inv(mat44 const* A)
+template <class MTYPE>
+mat44 reg_MTYPE_to_mat44(MTYPE *M)
 {
     mat44 R;
-    for(int i=0; i<4; i++)
-    {
-        R.m[i][0]=0.0f;R.m[i][1]=0.0f;R.m[i][2]=0.0f;R.m[i][3]=0.0f;
-    }
+    for(int i=0;i<4;++i)
+        for(int j=0;j<4;++j)
+            R.m[i][j]=static_cast<float>(M->m[i][j]);
+    return R;
+}
+/* *************************************************************** */
+template <class MTYPE>
+MTYPE reg_mat44_to_MTYPE(mat44 *M)
+{
+    MTYPE R;
+    for(int i=0;i<4;++i)
+        for(int j=0;j<4;++j)
+            R.m[i][j]=M->m[i][j];
+    return R;
+}
+/* *************************************************************** */
+//Ported from VNL
+template <class MTYPE>
+MTYPE reg_mat44_inv(MTYPE const* A)
+{
+    MTYPE R;
     float detA = reg_mat44_det(A);
-    if (detA==0) {
-       printf("Cannot invert 4x4 matrix with zero determinant. Returning matrix of zeros");
-       return R;
-     }
-     detA = 1.0f / detA;
-     R.m[0][0] =  A->m[1][1]*A->m[2][2]*A->m[3][3] - A->m[1][1]*A->m[2][3]*A->m[3][2]
-             - A->m[2][1]*A->m[1][2]*A->m[3][3] + A->m[2][1]*A->m[1][3]*A->m[3][2]
-             + A->m[3][1]*A->m[1][2]*A->m[2][3] - A->m[3][1]*A->m[1][3]*A->m[2][2];
-     R.m[0][1] = -A->m[0][1]*A->m[2][2]*A->m[3][3] + A->m[0][1]*A->m[2][3]*A->m[3][2]
-             + A->m[2][1]*A->m[0][2]*A->m[3][3] - A->m[2][1]*A->m[0][3]*A->m[3][2]
-             - A->m[3][1]*A->m[0][2]*A->m[2][3] + A->m[3][1]*A->m[0][3]*A->m[2][2];
-     R.m[0][2] =  A->m[0][1]*A->m[1][2]*A->m[3][3] - A->m[0][1]*A->m[1][3]*A->m[3][2]
-             - A->m[1][1]*A->m[0][2]*A->m[3][3] + A->m[1][1]*A->m[0][3]*A->m[3][2]
-             + A->m[3][1]*A->m[0][2]*A->m[1][3] - A->m[3][1]*A->m[0][3]*A->m[1][2];
-     R.m[0][3] = -A->m[0][1]*A->m[1][2]*A->m[2][3] + A->m[0][1]*A->m[1][3]*A->m[2][2]
-             + A->m[1][1]*A->m[0][2]*A->m[2][3] - A->m[1][1]*A->m[0][3]*A->m[2][2]
-             - A->m[2][1]*A->m[0][2]*A->m[1][3] + A->m[2][1]*A->m[0][3]*A->m[1][2];
-     R.m[1][0] = -A->m[1][0]*A->m[2][2]*A->m[3][3] + A->m[1][0]*A->m[2][3]*A->m[3][2]
-             + A->m[2][0]*A->m[1][2]*A->m[3][3] - A->m[2][0]*A->m[1][3]*A->m[3][2]
-             - A->m[3][0]*A->m[1][2]*A->m[2][3] + A->m[3][0]*A->m[1][3]*A->m[2][2];
-     R.m[1][1] =  A->m[0][0]*A->m[2][2]*A->m[3][3] - A->m[0][0]*A->m[2][3]*A->m[3][2]
-             - A->m[2][0]*A->m[0][2]*A->m[3][3] + A->m[2][0]*A->m[0][3]*A->m[3][2]
-             + A->m[3][0]*A->m[0][2]*A->m[2][3] - A->m[3][0]*A->m[0][3]*A->m[2][2];
-     R.m[1][2] = -A->m[0][0]*A->m[1][2]*A->m[3][3] + A->m[0][0]*A->m[1][3]*A->m[3][2]
-             + A->m[1][0]*A->m[0][2]*A->m[3][3] - A->m[1][0]*A->m[0][3]*A->m[3][2]
-             - A->m[3][0]*A->m[0][2]*A->m[1][3] + A->m[3][0]*A->m[0][3]*A->m[1][2];
-     R.m[1][3] =  A->m[0][0]*A->m[1][2]*A->m[2][3] - A->m[0][0]*A->m[1][3]*A->m[2][2]
-             - A->m[1][0]*A->m[0][2]*A->m[2][3] + A->m[1][0]*A->m[0][3]*A->m[2][2]
-             + A->m[2][0]*A->m[0][2]*A->m[1][3] - A->m[2][0]*A->m[0][3]*A->m[1][2];
-     R.m[2][0] =  A->m[1][0]*A->m[2][1]*A->m[3][3] - A->m[1][0]*A->m[2][3]*A->m[3][1]
-             - A->m[2][0]*A->m[1][1]*A->m[3][3] + A->m[2][0]*A->m[1][3]*A->m[3][1]
-             + A->m[3][0]*A->m[1][1]*A->m[2][3] - A->m[3][0]*A->m[1][3]*A->m[2][1];
-     R.m[2][1] = -A->m[0][0]*A->m[2][1]*A->m[3][3] + A->m[0][0]*A->m[2][3]*A->m[3][1]
-             + A->m[2][0]*A->m[0][1]*A->m[3][3] - A->m[2][0]*A->m[0][3]*A->m[3][1]
-             - A->m[3][0]*A->m[0][1]*A->m[2][3] + A->m[3][0]*A->m[0][3]*A->m[2][1];
-     R.m[2][2]=  A->m[0][0]*A->m[1][1]*A->m[3][3] - A->m[0][0]*A->m[1][3]*A->m[3][1]
-             - A->m[1][0]*A->m[0][1]*A->m[3][3] + A->m[1][0]*A->m[0][3]*A->m[3][1]
-             + A->m[3][0]*A->m[0][1]*A->m[1][3] - A->m[3][0]*A->m[0][3]*A->m[1][1];
-     R.m[2][3]= -A->m[0][0]*A->m[1][1]*A->m[2][3] + A->m[0][0]*A->m[1][3]*A->m[2][1]
-             + A->m[1][0]*A->m[0][1]*A->m[2][3] - A->m[1][0]*A->m[0][3]*A->m[2][1]
-             - A->m[2][0]*A->m[0][1]*A->m[1][3] + A->m[2][0]*A->m[0][3]*A->m[1][1];
-     R.m[3][0]= -A->m[1][0]*A->m[2][1]*A->m[3][2] + A->m[1][0]*A->m[2][2]*A->m[3][1]
-             + A->m[2][0]*A->m[1][1]*A->m[3][2] - A->m[2][0]*A->m[1][2]*A->m[3][1]
-             - A->m[3][0]*A->m[1][1]*A->m[2][2] + A->m[3][0]*A->m[1][2]*A->m[2][1];
-     R.m[3][1]=  A->m[0][0]*A->m[2][1]*A->m[3][2] - A->m[0][0]*A->m[2][2]*A->m[3][1]
-             - A->m[2][0]*A->m[0][1]*A->m[3][2] + A->m[2][0]*A->m[0][2]*A->m[3][1]
-             + A->m[3][0]*A->m[0][1]*A->m[2][2] - A->m[3][0]*A->m[0][2]*A->m[2][1];
-     R.m[3][2]= -A->m[0][0]*A->m[1][1]*A->m[3][2] + A->m[0][0]*A->m[1][2]*A->m[3][1]
-             + A->m[1][0]*A->m[0][1]*A->m[3][2] - A->m[1][0]*A->m[0][2]*A->m[3][1]
-             - A->m[3][0]*A->m[0][1]*A->m[1][2] + A->m[3][0]*A->m[0][2]*A->m[1][1];
-     R.m[3][3]=  A->m[0][0]*A->m[1][1]*A->m[2][2] - A->m[0][0]*A->m[1][2]*A->m[2][1]
-             - A->m[1][0]*A->m[0][1]*A->m[2][2] + A->m[1][0]*A->m[0][2]*A->m[2][1]
-             + A->m[2][0]*A->m[0][1]*A->m[1][2] - A->m[2][0]*A->m[0][2]*A->m[1][1];
-     return reg_mat44_mul(&R,detA);
+    if(detA==0){
+        fprintf(stderr,"[NiftyReg ERROR] Cannot invert 4x4 matrix with zero determinant.\n");
+        fprintf(stderr,"[NiftyReg ERROR] Returning matrix of zeros\n");
+        memset(&R,0,sizeof(MTYPE));
+        return R;
+    }
+    detA = 1.0f / detA;
+    R.m[0][0] =  A->m[1][1]*A->m[2][2]*A->m[3][3] - A->m[1][1]*A->m[2][3]*A->m[3][2]
+            - A->m[2][1]*A->m[1][2]*A->m[3][3] + A->m[2][1]*A->m[1][3]*A->m[3][2]
+            + A->m[3][1]*A->m[1][2]*A->m[2][3] - A->m[3][1]*A->m[1][3]*A->m[2][2];
+    R.m[0][1] = -A->m[0][1]*A->m[2][2]*A->m[3][3] + A->m[0][1]*A->m[2][3]*A->m[3][2]
+            + A->m[2][1]*A->m[0][2]*A->m[3][3] - A->m[2][1]*A->m[0][3]*A->m[3][2]
+            - A->m[3][1]*A->m[0][2]*A->m[2][3] + A->m[3][1]*A->m[0][3]*A->m[2][2];
+    R.m[0][2] =  A->m[0][1]*A->m[1][2]*A->m[3][3] - A->m[0][1]*A->m[1][3]*A->m[3][2]
+            - A->m[1][1]*A->m[0][2]*A->m[3][3] + A->m[1][1]*A->m[0][3]*A->m[3][2]
+            + A->m[3][1]*A->m[0][2]*A->m[1][3] - A->m[3][1]*A->m[0][3]*A->m[1][2];
+    R.m[0][3] = -A->m[0][1]*A->m[1][2]*A->m[2][3] + A->m[0][1]*A->m[1][3]*A->m[2][2]
+            + A->m[1][1]*A->m[0][2]*A->m[2][3] - A->m[1][1]*A->m[0][3]*A->m[2][2]
+            - A->m[2][1]*A->m[0][2]*A->m[1][3] + A->m[2][1]*A->m[0][3]*A->m[1][2];
+    R.m[1][0] = -A->m[1][0]*A->m[2][2]*A->m[3][3] + A->m[1][0]*A->m[2][3]*A->m[3][2]
+            + A->m[2][0]*A->m[1][2]*A->m[3][3] - A->m[2][0]*A->m[1][3]*A->m[3][2]
+            - A->m[3][0]*A->m[1][2]*A->m[2][3] + A->m[3][0]*A->m[1][3]*A->m[2][2];
+    R.m[1][1] =  A->m[0][0]*A->m[2][2]*A->m[3][3] - A->m[0][0]*A->m[2][3]*A->m[3][2]
+            - A->m[2][0]*A->m[0][2]*A->m[3][3] + A->m[2][0]*A->m[0][3]*A->m[3][2]
+            + A->m[3][0]*A->m[0][2]*A->m[2][3] - A->m[3][0]*A->m[0][3]*A->m[2][2];
+    R.m[1][2] = -A->m[0][0]*A->m[1][2]*A->m[3][3] + A->m[0][0]*A->m[1][3]*A->m[3][2]
+            + A->m[1][0]*A->m[0][2]*A->m[3][3] - A->m[1][0]*A->m[0][3]*A->m[3][2]
+            - A->m[3][0]*A->m[0][2]*A->m[1][3] + A->m[3][0]*A->m[0][3]*A->m[1][2];
+    R.m[1][3] =  A->m[0][0]*A->m[1][2]*A->m[2][3] - A->m[0][0]*A->m[1][3]*A->m[2][2]
+            - A->m[1][0]*A->m[0][2]*A->m[2][3] + A->m[1][0]*A->m[0][3]*A->m[2][2]
+            + A->m[2][0]*A->m[0][2]*A->m[1][3] - A->m[2][0]*A->m[0][3]*A->m[1][2];
+    R.m[2][0] =  A->m[1][0]*A->m[2][1]*A->m[3][3] - A->m[1][0]*A->m[2][3]*A->m[3][1]
+            - A->m[2][0]*A->m[1][1]*A->m[3][3] + A->m[2][0]*A->m[1][3]*A->m[3][1]
+            + A->m[3][0]*A->m[1][1]*A->m[2][3] - A->m[3][0]*A->m[1][3]*A->m[2][1];
+    R.m[2][1] = -A->m[0][0]*A->m[2][1]*A->m[3][3] + A->m[0][0]*A->m[2][3]*A->m[3][1]
+            + A->m[2][0]*A->m[0][1]*A->m[3][3] - A->m[2][0]*A->m[0][3]*A->m[3][1]
+            - A->m[3][0]*A->m[0][1]*A->m[2][3] + A->m[3][0]*A->m[0][3]*A->m[2][1];
+    R.m[2][2]=  A->m[0][0]*A->m[1][1]*A->m[3][3] - A->m[0][0]*A->m[1][3]*A->m[3][1]
+            - A->m[1][0]*A->m[0][1]*A->m[3][3] + A->m[1][0]*A->m[0][3]*A->m[3][1]
+            + A->m[3][0]*A->m[0][1]*A->m[1][3] - A->m[3][0]*A->m[0][3]*A->m[1][1];
+    R.m[2][3]= -A->m[0][0]*A->m[1][1]*A->m[2][3] + A->m[0][0]*A->m[1][3]*A->m[2][1]
+            + A->m[1][0]*A->m[0][1]*A->m[2][3] - A->m[1][0]*A->m[0][3]*A->m[2][1]
+            - A->m[2][0]*A->m[0][1]*A->m[1][3] + A->m[2][0]*A->m[0][3]*A->m[1][1];
+    R.m[3][0]= -A->m[1][0]*A->m[2][1]*A->m[3][2] + A->m[1][0]*A->m[2][2]*A->m[3][1]
+            + A->m[2][0]*A->m[1][1]*A->m[3][2] - A->m[2][0]*A->m[1][2]*A->m[3][1]
+            - A->m[3][0]*A->m[1][1]*A->m[2][2] + A->m[3][0]*A->m[1][2]*A->m[2][1];
+    R.m[3][1]=  A->m[0][0]*A->m[2][1]*A->m[3][2] - A->m[0][0]*A->m[2][2]*A->m[3][1]
+            - A->m[2][0]*A->m[0][1]*A->m[3][2] + A->m[2][0]*A->m[0][2]*A->m[3][1]
+            + A->m[3][0]*A->m[0][1]*A->m[2][2] - A->m[3][0]*A->m[0][2]*A->m[2][1];
+    R.m[3][2]= -A->m[0][0]*A->m[1][1]*A->m[3][2] + A->m[0][0]*A->m[1][2]*A->m[3][1]
+            + A->m[1][0]*A->m[0][1]*A->m[3][2] - A->m[1][0]*A->m[0][2]*A->m[3][1]
+            - A->m[3][0]*A->m[0][1]*A->m[1][2] + A->m[3][0]*A->m[0][2]*A->m[1][1];
+    R.m[3][3]=  A->m[0][0]*A->m[1][1]*A->m[2][2] - A->m[0][0]*A->m[1][2]*A->m[2][1]
+            - A->m[1][0]*A->m[0][1]*A->m[2][2] + A->m[1][0]*A->m[0][2]*A->m[2][1]
+            + A->m[2][0]*A->m[0][1]*A->m[1][2] - A->m[2][0]*A->m[0][2]*A->m[1][1];
+    return reg_mat44_mul(&R,detA);
+}
+template mat44 reg_mat44_inv<mat44>(mat44 const* A);
+template reg_mat44d reg_mat44_inv<reg_mat44d>(reg_mat44d const* A);
+/* *************************************************************** */
+/* *************************************************************** */
+reg_mat44d reg_mat44_singleToDouble(mat44 const *mat)
+{
+    reg_mat44d R;
+    for(int i=0;i<4;++i)
+        for(int j=0;j<4;++j)
+            R.m[i][j]=static_cast<double>(mat->m[i][j]);
+    return R;
+}
+/* *************************************************************** */
+mat44 reg_mat44_doubleToSingle(reg_mat44d const *mat)
+{
+    mat44 R;
+    for(int i=0;i<4;++i)
+        for(int j=0;j<4;++j)
+            R.m[i][j]=static_cast<float>(mat->m[i][j]);
+    return R;
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -400,24 +442,37 @@ mat33 reg_mat44_to_mat33(mat44 const* A)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-mat44 reg_mat44_mul(mat44 const* A, mat44 const* B)
+template <class MTYPE>
+MTYPE reg_mat44_mul(MTYPE const* A, MTYPE const* B)
 {
-        mat44 R;
-
-        for(int i=0; i<4; i++){
-                for(int j=0; j<4; j++){
-                        R.m[i][j] = A->m[i][0]*B->m[0][j] + A->m[i][1]*B->m[1][j] + A->m[i][2]*B->m[2][j] + A->m[i][3]*B->m[3][j];
-                }
+    MTYPE R;
+    for(int i=0; i<4; i++){
+        for(int j=0; j<4; j++){
+            R.m[i][j] = A->m[i][0]*B->m[0][j] +
+                    A->m[i][1]*B->m[1][j] +
+                    A->m[i][2]*B->m[2][j] +
+                    A->m[i][3]*B->m[3][j];
         }
-
-        return R;
+    }
+    return R;
+}
+template mat44 reg_mat44_mul<mat44>(mat44 const* A, mat44 const* B);
+template reg_mat44d reg_mat44_mul<reg_mat44d>(reg_mat44d const* A, reg_mat44d const* B);
+/* *************************************************************** */
+mat44 operator*(mat44 A,mat44 B)
+{
+    return reg_mat44_mul(&A,&B);
+}
+reg_mat44d operator*(reg_mat44d A,reg_mat44d B)
+{
+    return reg_mat44_mul(&A,&B);
 }
 /* *************************************************************** */
 /* *************************************************************** */
-mat44 reg_mat44_add(mat44 const* A, mat44 const* B)
+template <class MTYPE>
+MTYPE reg_mat44_add(MTYPE const* A, MTYPE const* B)
 {
-    mat44 R;
-
+    MTYPE R;
     for(int i=0; i<4; i++){
         for(int j=0; j<4; j++){
             R.m[i][j] = A->m[i][j]+B->m[i][j];
@@ -425,18 +480,41 @@ mat44 reg_mat44_add(mat44 const* A, mat44 const* B)
     }
     return R;
 }
+template mat44 reg_mat44_add<mat44>(mat44 const* A, mat44 const* B);
+template reg_mat44d reg_mat44_add<reg_mat44d>(reg_mat44d const* A, reg_mat44d const* B);
 /* *************************************************************** */
 /* *************************************************************** */
-mat44 reg_mat44_minus(mat44 const* A, mat44 const* B)
+mat44 operator+(mat44 A,mat44 B)
 {
-    mat44 R;
-
+    return reg_mat44_add(&A,&B);
+}
+reg_mat44d operator+(reg_mat44d A,reg_mat44d B)
+{
+    return reg_mat44_add(&A,&B);
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class MTYPE>
+MTYPE reg_mat44_minus(MTYPE const* A, MTYPE const* B)
+{
+    MTYPE R;
     for(int i=0; i<4; i++){
         for(int j=0; j<4; j++){
             R.m[i][j] = A->m[i][j]-B->m[i][j];
         }
     }
     return R;
+}
+template mat44 reg_mat44_minus<mat44>(mat44 const* A, mat44 const* B);
+template reg_mat44d reg_mat44_minus<reg_mat44d>(reg_mat44d const* A, reg_mat44d const* B);
+/* *************************************************************** */
+mat44 operator-(mat44 A,mat44 B)
+{
+    return reg_mat44_minus(&A,&B);
+}
+reg_mat44d operator-(reg_mat44d A,reg_mat44d B)
+{
+    return reg_mat44_minus(&A,&B);
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -447,33 +525,36 @@ void reg_mat33_eye (mat33 *mat)
     mat->m[2][2]=1.f; mat->m[2][0]=mat->m[2][1]=0.f;
 }
 /* *************************************************************** */
-void reg_mat44_eye (mat44 *mat)
+template <class MTYPE>
+void reg_mat44_eye (MTYPE *mat)
 {
     mat->m[0][0]=1.f; mat->m[0][1]=mat->m[0][2]=mat->m[0][3]=0.f;
     mat->m[1][1]=1.f; mat->m[1][0]=mat->m[1][2]=mat->m[1][3]=0.f;
     mat->m[2][2]=1.f; mat->m[2][0]=mat->m[2][1]=mat->m[2][3]=0.f;
     mat->m[3][3]=1.f; mat->m[3][0]=mat->m[3][1]=mat->m[3][2]=0.f;
 }
+template void reg_mat44_eye<mat44>(mat44 *mat);
+template void reg_mat44_eye<reg_mat44d>(reg_mat44d *mat);
 /* *************************************************************** */
 /* *************************************************************** */
-double reg_mat44_norm_inf(mat44 const* mat)
+template <class MTYPE>
+float reg_mat44_norm_inf(MTYPE const* mat)
 {
-    double maxval=0.0;
-    double newval=0.0;
-    for (int i=0; i < 4; i++)
-    {
-        for (int j=0; j < 4; j++)
-        {
-            newval= fabs(mat->m[i][j]);
+    float maxval=0.0;
+    float newval=0.0;
+    for (int i=0; i < 4; i++){
+        for (int j=0; j < 4; j++){
+            newval = fabsf((float)mat->m[i][j]);
             maxval = (newval > maxval) ? newval : maxval;
         }
     }
     return maxval;
 }
-
+template float reg_mat44_norm_inf<mat44>(mat44 const *mat);
+template float reg_mat44_norm_inf<reg_mat44d>(reg_mat44d const *mat);
 /* *************************************************************** */
-template <class DTYPE>
-void reg_mat44_mul(mat44 const* mat,
+template <class DTYPE,class MTYPE>
+void reg_mat44_mul(MTYPE const* mat,
                     DTYPE const* in,
                     DTYPE *out)
 {
@@ -482,69 +563,78 @@ void reg_mat44_mul(mat44 const* mat,
     out[2]=mat->m[2][0]*in[0] + mat->m[2][1]*in[1] + mat->m[2][2]*in[2] + mat->m[2][3];
     return;
 }
-template void reg_mat44_mul<float>(mat44 const*, float const*, float*);
-template void reg_mat44_mul<double>(mat44 const*, double const*, double*);
-
+template void reg_mat44_mul<float,mat44>(mat44 const*, float const*, float*);
+template void reg_mat44_mul<float,reg_mat44d>(reg_mat44d const*, float const*, float*);
+template void reg_mat44_mul<double,mat44>(mat44 const*, double const*, double*);
+template void reg_mat44_mul<double,reg_mat44d>(reg_mat44d const*, double const*, double*);
 /* *************************************************************** */
 /* *************************************************************** */
-mat44 reg_mat44_mul(mat44 const* A, double scalar)
+template <class MTYPE>
+MTYPE reg_mat44_mul(MTYPE const* A, double scalar)
 {
-    mat44 out;
+    MTYPE out;
     out.m[0][0]=A->m[0][0]*scalar;out.m[0][1]=A->m[0][1]*scalar;out.m[0][2]=A->m[0][2]*scalar;out.m[0][3]=A->m[0][3]*scalar;
     out.m[1][0]=A->m[1][0]*scalar;out.m[1][1]=A->m[1][1]*scalar;out.m[1][2]=A->m[1][2]*scalar;out.m[1][3]=A->m[1][3]*scalar;
     out.m[2][0]=A->m[2][0]*scalar;out.m[2][1]=A->m[2][1]*scalar;out.m[2][2]=A->m[2][2]*scalar;out.m[2][3]=A->m[2][3]*scalar;
     out.m[3][0]=A->m[3][0]*scalar;out.m[3][1]=A->m[3][1]*scalar;out.m[3][2]=A->m[3][2]*scalar;out.m[3][3]=A->m[3][3]*scalar;
     return out;
 }
+template mat44 reg_mat44_mul<mat44>(mat44 const* A, double scalar);
+template reg_mat44d reg_mat44_mul<reg_mat44d>(reg_mat44d const* A, double scalar);
 /* *************************************************************** */
 /* *************************************************************** */
-mat44 reg_mat44_sqrt(mat44 const* mat)
+template <class MTYPE>
+MTYPE reg_mat44_sqrt(MTYPE const* mat)
 {
-    mat44 X=*mat;
-    mat44 Y;
+//reg_mat44_disp(mat,(char *)"beginning reg_mat44_sqrt");
+    MTYPE X=*mat;
+    MTYPE Y;
     int it=0;
     int maxit=10;
     reg_mat44_eye(&Y);
-    mat44 delX, delY;
+    MTYPE delX, delY;
     double eps=1.0e-7;
-    mat44 Xsq=reg_mat44_mul(&X,&X);
-    mat44 diffMat = reg_mat44_minus(&Xsq,mat);
-    mat44 XdelY, YdelX;
+    MTYPE Xsq=reg_mat44_mul(&X,&X);
+    MTYPE diffMat = reg_mat44_minus(&Xsq,mat);
+    MTYPE XdelY, YdelX;
     while (reg_mat44_norm_inf(&diffMat) > eps)
     {
         delX=reg_mat44_inv(&X);
         delY=reg_mat44_inv(&Y);
-        XdelY=reg_mat44_add(&X,&delY);
-        YdelX=reg_mat44_add(&Y,&delX);
+        XdelY = X + delY;
+        YdelX = Y + delX;
         X=reg_mat44_mul(&XdelY,0.5);
         Y=reg_mat44_mul(&YdelX,0.5);
-        Xsq=reg_mat44_mul(&X,&X);
-        diffMat = reg_mat44_minus(&Xsq,mat);
+        Xsq= X * X;
+        diffMat = Xsq - *mat;
         it++;
         if(it > maxit)
             break;
     }
     return X;
 }
+template mat44 reg_mat44_sqrt<mat44>(mat44 const* mat);
+template reg_mat44d reg_mat44_sqrt<reg_mat44d>(reg_mat44d const* mat);
 /* *************************************************************** */
 /* *************************************************************** */
 /**
-   * Compute the matrix exponential according to "Linear combination of transformations", Marc Alex, Volume 21, Issue 3, ACM SIGGRAPH 2002.
-   * and from Kelvin's implementation of the code in NifTK
-   */
-mat44 reg_mat44_expm(mat44 const* mat, int maxit)
+  * Compute the matrix exponential according to "Linear combination of transformations",
+  * Marc Alex, Volume 21, Issue 3, ACM SIGGRAPH 2002.
+  * and from Kelvin's implementation of the code in NifTK
+  */
+template <class MTYPE>
+MTYPE reg_mat44_expm(MTYPE const* mat, int maxit)
 {
     double j = FMAX(0.0,1+reg_floor(log(reg_mat44_norm_inf(mat))/log(2.0)));
 
-    mat44 A=reg_mat44_mul(mat,pow(2.0,-j));
-    mat44 D,N,X,cX;
+    MTYPE A=reg_mat44_mul(mat,pow(2.0,-j));
+    MTYPE D,N,X,cX;
     reg_mat44_eye(&D);
     reg_mat44_eye(&N);
     reg_mat44_eye(&X);
 
     double c = 1.0;
-    for(int k=1; k <= maxit; k++)
-    {
+    for(int k=1; k <= maxit; k++){
         c = c * (maxit-k+1.0) / (k*(2*maxit-k+1.0));
         X = reg_mat44_mul(&A,&X);
         cX = reg_mat44_mul(&X,c);
@@ -554,69 +644,69 @@ mat44 reg_mat44_expm(mat44 const* mat, int maxit)
     }
     D=reg_mat44_inv(&D);
     X=reg_mat44_mul(&D,&N);
-    for(int i=0; i < reg_round(j); i++)
-    {
+    for(int i=0; i < reg_round(j); i++){
         X=reg_mat44_mul(&X,&X);
     }
     return X;
 }
+template mat44 reg_mat44_expm<mat44>(mat44 const* mat, int maxit);
+template reg_mat44d reg_mat44_expm<reg_mat44d>(reg_mat44d const* mat, int maxit);
 /* *************************************************************** */
 /* *************************************************************** */
-mat44 reg_mat44_logm(mat44 const* mat)
+template <class MTYPE>
+MTYPE reg_mat44_logm(MTYPE const* mat)
 {
     int k = 0;
-    mat44 I;
+    MTYPE I;
     reg_mat44_eye(&I);
-    mat44 A=*mat;
-    double eps=1.0e-7;
-    mat44 A_I = reg_mat44_minus(&A,&I);
-    while(reg_mat44_norm_inf(&A_I) > 0.5)
-    {
+    MTYPE A=*mat;
+    MTYPE residual = A-I;
+    while(reg_mat44_norm_inf(&residual) > 0.25){
         A=reg_mat44_sqrt(&A);
-        A_I = reg_mat44_minus(&A,&I);
-        k=k+1;
+        k++;
+        residual = A-I;
         if(k>1.0e7){
             fprintf(stderr, "reg_mat44_logm did not converge after 10e7 iterations.");
             break;
         }
     }
-    A = reg_mat44_minus(&I,&A);
-    mat44 Z = A;
-    mat44 X = A;
-    mat44 Z_i;
+    A = I - A;
+    MTYPE X = A, Z = A;
     double i = 1.0;
-    while(reg_mat44_norm_inf(&Z) > eps)
-    {
-        Z = reg_mat44_mul(&Z,&A);
+    while(reg_mat44_norm_inf(&Z) > 1.0e-7){
+        Z = Z * A;
         i += 1.0;
-        Z_i = reg_mat44_mul(&Z, 1.0/i);
-        X = reg_mat44_add(&X,&Z_i);
+        X = X + reg_mat44_mul(&Z, 1.f/i);
         if(i>1.0e7){
             fprintf(stderr, "reg_mat44_logm did not converge after 10e7 iterations.");
             break;
         }
     }
-    X=reg_mat44_mul(&X,-1.0);
-    X = reg_mat44_mul(&X,
-                      pow(2.0,k));
+    X = reg_mat44_mul(&X,-1.0);
+    X = reg_mat44_mul(&X, pow(2.0,k));
     return X;
-
 }
+template mat44 reg_mat44_logm<mat44>(mat44 const* mat);
+template reg_mat44d reg_mat44_logm<reg_mat44d>(reg_mat44d const* mat);
 /* *************************************************************** */
 /* *************************************************************** */
-mat44 reg_mat44_avg2(mat44 const* A, mat44 const* B)
+template <class MTYPE>
+MTYPE reg_mat44_avg2(MTYPE const* A, MTYPE const* B)
 {
-    mat44 out;
-    mat44 logA=reg_mat44_logm(A);
-    mat44 logB=reg_mat44_logm(B);
+    MTYPE out;
+    MTYPE logA=reg_mat44_logm(A);
+    MTYPE logB=reg_mat44_logm(B);
     logA = reg_mat44_add(&logA,&logB);
     out = reg_mat44_mul(&logA,0.5);
     return reg_mat44_expm(&out);
 
 }
+template mat44 reg_mat44_avg2<mat44>(mat44 const* A, mat44 const* B);
+template reg_mat44d reg_mat44_avg2<reg_mat44d>(reg_mat44d const* A, reg_mat44d const* B);
 /* *************************************************************** */
 /* *************************************************************** */
-void reg_mat44_disp(mat44 *mat, char * title)
+template <class MTYPE>
+void reg_mat44_disp(MTYPE *mat, char * title)
 {
     printf("%s:\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n", title,
            mat->m[0][0], mat->m[0][1], mat->m[0][2], mat->m[0][3],
@@ -624,6 +714,8 @@ void reg_mat44_disp(mat44 *mat, char * title)
            mat->m[2][0], mat->m[2][1], mat->m[2][2], mat->m[2][3],
            mat->m[3][0], mat->m[3][1], mat->m[3][2], mat->m[3][3]);
 }
+template void reg_mat44_disp<mat44>(mat44 *mat, char * title);
+template void reg_mat44_disp<reg_mat44d>(reg_mat44d *mat, char * title);
 /* *************************************************************** */
 /* *************************************************************** */
 void reg_mat33_disp(mat33 *mat, char * title)

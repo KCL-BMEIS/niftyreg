@@ -148,15 +148,12 @@ void reg_io_writePNGfile(nifti_image *image, const char *filename)
 
     // Rescale the image intensites if  they are outside of the range
     if(minValue<0 || maxValue>255){
-        float newMinValue[1]={0};
-        float newMaxValue[1]={255};
-        float lowThrValue[1]={-std::numeric_limits<float>::max()};
-        float higThrValue[1]={std::numeric_limits<float>::max()};
+        float newMinValue=0;
+        float newMaxValue=255;
         reg_intensityRescale(image,
+                             0,
                              newMinValue,
-                             newMaxValue,
-                             lowThrValue,
-                             higThrValue);
+                             newMaxValue);
         printf("[NiftyReg WARNING] reg_writePNGfile: the image intensities have been rescaled from [%g %g] to [0 255].\n",
                minValue, maxValue);
     }

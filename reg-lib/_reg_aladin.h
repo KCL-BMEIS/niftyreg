@@ -18,7 +18,7 @@
 #include "_reg_resampling.h"
 #include "_reg_blockMatching.h"
 #include "_reg_globalTransformation.h"
-#include "_reg_mutualinformation.h"
+#include "_reg_nmi.h"
 #include "_reg_ssd.h"
 #include "_reg_tools.h"
 #include "float.h"

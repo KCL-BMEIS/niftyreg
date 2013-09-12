@@ -229,13 +229,29 @@ void reg_aladin<T>::InitialiseRegistration()
 
     // SMOOTH THE INPUT IMAGES IF REQUIRED
     for(unsigned int l=0; l<this->LevelsToPerform; l++){
-        if(this->ReferenceSigma!=0.0){
-            bool smoothAxis[8]={false,true,true,true,false,false,false,false};
-            reg_gaussianSmoothing<T>(this->ReferencePyramid[l], this->ReferenceSigma, smoothAxis);
+		if(this->ReferenceSigma!=0.0){
+			// Only the first image is smoothed
+			bool *active = new bool[this->ReferencePyramid[l]->nt];
+			float *sigma = new float[this->ReferencePyramid[l]->nt];
+			active[0]=true;
+			for(int i=1;i<this->ReferencePyramid[l]->nt;++i)
+				active[i]=false;
+			sigma[0]=this->ReferenceSigma;
+            reg_tools_kernelConvolution(this->ReferencePyramid[l], sigma, 0, active);
+			delete []active;
+			delete []sigma;
         }
-        if(this->FloatingSigma!=0.0){
-            bool smoothAxis[8]={false,true,true,true,false,false,false,false};
-            reg_gaussianSmoothing<T>(this->FloatingPyramid[l], this->FloatingSigma, smoothAxis);
+		if(this->FloatingSigma!=0.0){
+			// Only the first image is smoothed
+			bool *active = new bool[this->FloatingPyramid[l]->nt];
+			float *sigma = new float[this->FloatingPyramid[l]->nt];
+			active[0]=true;
+			for(int i=1;i<this->FloatingPyramid[l]->nt;++i)
+				active[i]=false;
+			sigma[0]=this->FloatingSigma;
+            reg_tools_kernelConvolution(this->FloatingPyramid[l], sigma, 0, active);
+			delete []active;
+			delete []sigma;
         }
     }
 

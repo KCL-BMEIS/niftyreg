@@ -207,9 +207,8 @@ int main(int argc, char **argv)
 
         // Compute the determinant
         if(flag->inputCPPFlag){
-            if( controlPointImage->intent_code==NIFTI_INTENT_VECTOR &&
-                strcmp(controlPointImage->intent_name,"NREG_VEL_STEP")==0){
-                reg_spline_GetJacobianDetFromVelocityField(jacobianImage,
+            if(controlPointImage->intent_p1==SPLINE_VEL_GRID){
+               reg_spline_GetJacobianDetFromVelocityField(jacobianImage,
                                                            controlPointImage);
             }
             else{

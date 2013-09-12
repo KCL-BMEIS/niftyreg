@@ -90,10 +90,6 @@ void Usage(char *exec)
     printf("\t-rmask <filename>\t\tFilename of a mask image in the reference space\n");
     printf("\t-smooR <float>\t\t\tSmooth the reference image using the specified sigma (mm) [0]\n");
     printf("\t-smooF <float>\t\t\tSmooth the floating image using the specified sigma (mm) [0]\n");
-    printf("\t--rbn <int>\t\t\tNumber of bin to use for the joint histogram [64]. Identical value for every timepoint.\n");
-    printf("\t--fbn <int>\t\t\tNumber of bin to use for the joint histogram [64]. Identical value for every timepoint.\n");
-    printf("\t-rbn <timepoint> <int>\t\tNumber of bin to use for the joint histogram [64]\n");
-    printf("\t-fbn <timepoint> <int>\t\tNumber of bin to use for the joint histogram [64]\n");
     printf("\t--rLwTh <float>\t\t\tLower threshold to apply to the reference image intensities [none]. Identical value for every timepoint.*\n");
     printf("\t--rUpTh <float>\t\t\tUpper threshold to apply to the reference image intensities [none]. Identical value for every timepoint.*\n");
     printf("\t--fLwTh <float>\t\t\tLower threshold to apply to the floating image intensities [none]. Identical value for every timepoint.*\n");
@@ -109,25 +105,41 @@ void Usage(char *exec)
     printf("\t-sy <float>\t\tFinal grid spacing along the y axis in mm (in voxel if negative value) [sx value]\n");
     printf("\t-sz <float>\t\tFinal grid spacing along the z axis in mm (in voxel if negative value) [sx value]\n");
 
-    printf("\n*** Objective function options:\n");
+    printf("\n*** Regularisation options:\n");
     printf("\t-be <float>\t\tWeight of the bending energy penalty term [0.005]\n");
     printf("\t-le <float> <float>\tWeights of linear elasticity penalty term [0.0 0.0]\n");
     printf("\t-l2 <float>\t\tWeights of L2 norm displacement penalty term [0.0]\n");
     printf("\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]\n");
     printf("\t-noAppJL\t\tTo not approximate the JL value only at the control point position\n");
-    printf("\t-lncc <float>\t\tTo use the LNCC as the similiarity measure (NMI by default) [Gaussian standard deviation]\n");
-    printf("\t-ssd\t\t\tTo use the SSD as the similiarity measure (NMI by default)\n");
-    printf("\t-kld\t\t\tTo use the KL divergence as the similiarity measure (NMI by default)*\n");
+
+
+
+    printf("\n*** Measure of similarity options:\n");
+    printf("*** NMI with 64 bins is used expect if specified otherwise\n");
+    printf("\t--rbn <int>\t\tNMI. Number of bin to use for the reference image histogram. Identical value for every timepoint.\n");
+    printf("\t--fbn <int>\t\tNMI. Number of bin to use for the floating image histogram. Identical value for every timepoint.\n");
+    printf("\t-rbn <tp> <int>\t\tNMI. Number of bin to use for the reference image histogram for the specified time point.\n");
+    printf("\t-rbn <tp> <int>\t\tNMI. Number of bin to use for the floating image histogram for the specified time point.\n");
+
+    printf("\t--lncc <float>\t\tLNCC. Standard deviation of the Gaussian kernel. Identical value for every timepoint\n");
+    printf("\t-lncc <tp> <float>\tLNCC. Standard deviation of the Gaussian kernel for the specified timepoint\n");
+
+    printf("\t--ssd\t\t\tSSD. Used for all time points\n");
+    printf("\t-ssd <tp>\t\tSSD. Used for the specified timepoint\n");
+
+    printf("\t--kld\t\t\tKLD. Used for all time points\n");
+    printf("\t-kld <tp>\t\tKLD. Used for the specified timepoint\n");
     printf("\t* For the Kullback–Leibler divergence, reference and floating are expected to be probabilities\n");
+
     printf("\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)\n");
-    printf("\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent\n");
-    printf("\t-pert <int>\t\tTo add perturbation step(s) after each optimisation scheme\n");
 
     printf("\n*** Optimisation options:\n");
     printf("\t-maxit <int>\t\tMaximal number of iteration per level [300]\n");
     printf("\t-ln <int>\t\tNumber of level to perform [3]\n");
     printf("\t-lp <int>\t\tOnly perform the first levels [ln]\n");
     printf("\t-nopy\t\t\tDo not use a pyramidal approach\n");
+    printf("\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent\n");
+    printf("\t-pert <int>\t\tTo add perturbation step(s) after each optimisation scheme\n");
 
     printf("\n*** F3D_SYM options:\n");
     printf("\t-sym \t\t\tUse symmetric approach\n");
@@ -163,80 +175,8 @@ int main(int argc, char **argv)
     }
     time_t start; time(&start);
 
-    char *referenceName=NULL;
-    char *floatingName=NULL;
-    char *referenceMaskName=NULL;
-    char *inputControlPointGridName=NULL;
-    char *outputControlPointGridName=NULL;
-    char *outputWarpedName=NULL;
-    char *affineTransformationName=NULL;
-    bool flirtAffine=false;
-    PrecisionTYPE bendingEnergyWeight=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
-    PrecisionTYPE linearEnergyWeight0=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
-    PrecisionTYPE linearEnergyWeight1=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
-    PrecisionTYPE L2NormWeight=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
-    PrecisionTYPE jacobianLogWeight=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
-    bool jacobianLogApproximation=true;
-    int maxiterationNumber=-1;
-    PrecisionTYPE referenceSmoothingSigma=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
-    PrecisionTYPE floatingSmoothingSigma=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
-    PrecisionTYPE referenceThresholdUp[10];
-    PrecisionTYPE referenceThresholdLow[10];
-    PrecisionTYPE floatingThresholdUp[10];
-    PrecisionTYPE floatingThresholdLow[10];
-    unsigned int referenceBinNumber[10];
-    unsigned int floatingBinNumber[10];
-    for(int i=0;i<10;i++){
-        referenceThresholdUp[i]=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
-        referenceThresholdLow[i]=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
-        floatingThresholdUp[i]=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
-        floatingThresholdLow[i]=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
-        referenceBinNumber[i]=0;
-        floatingBinNumber[i]=0;
-    }
-    bool parzenWindowApproximation=true;
-    PrecisionTYPE warpedPaddingValue=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
-    PrecisionTYPE spacing[3];
-    spacing[0]=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
-    spacing[1]=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
-    spacing[2]=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
-    unsigned int levelNumber=0;
-    unsigned int levelToPerform=0;
-    PrecisionTYPE gradientSmoothingSigma=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
-    bool verbose=true;
-    bool useConjugate=true;
-    bool useApproxGradient=false;
-    bool useSSD=false;
-    bool useKLD=false;
-    float lnccStdDev=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
-    bool noPyramid=0;
-    int interpolation=1;
-    bool xOptimisation=true;
-    bool yOptimisation=true;
-    bool zOptimisation=true;
-    bool gridRefinement=true;
-    size_t perturbation=0;
-
-    bool useSym=false;
-    bool additiveNMI = false;
-    char *floatingMaskName=NULL;
-    float inverseConsistencyWeight=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
-
-    int stepNumber=-1;
-	bool useVel=false;
-	bool useISS=false;
-	bool useBCHUpdate=false;
-    int BCHUpdateValue=0;
-
-//    bool iso=false;
-
-#ifdef _USE_CUDA
-    bool useGPU=false;
-    bool checkMem=false;
-    int cardNumber=-1;
-#endif
-
-    /* read the input parameter */
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // Check if any information is required
     for(int i=1;i<argc;i++){
         if(strcmp(argv[i], "-help")==0 || strcmp(argv[i], "-Help")==0 ||
                 strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
@@ -244,7 +184,7 @@ int main(int argc, char **argv)
             Usage(argv[0]);
             return 0;
         }
-        else if(strcmp(argv[i], "--xml")==0){
+        if(strcmp(argv[i], "--xml")==0){
             printf("%s",xml_f3d);
             return 0;
         }
@@ -263,215 +203,386 @@ int main(int argc, char **argv)
             HelpPenaltyTerm();
             return 0;
         }
-        else if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0) || (strcmp(argv[i],"--ref")==0)){
-            referenceName=argv[++i];
+    }
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // Output the command line
+    printf("\n[NiftyReg F3D] Command line:\n\t");
+    for(int i=0;i<argc;i++)
+        printf(" %s", argv[i]);
+    printf("\n\n");
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // Read the reference and floating image
+    nifti_image *referenceImage=NULL;
+    nifti_image *floatingImage=NULL;
+    for(int i=1;i<argc;i++){
+        if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0) || (strcmp(argv[i],"--ref")==0)){
+            referenceImage=reg_io_ReadImageFile(argv[++i]);
+            if(referenceImage==NULL){
+                fprintf(stderr, "Error when reading the reference image %s\n",argv[i-1]);
+                return 1;
+            }
         }
-        else if((strcmp(argv[i],"-flo")==0) || (strcmp(argv[i],"-source")==0) || (strcmp(argv[i],"--flo")==0)){
-            floatingName=argv[++i];
+        if((strcmp(argv[i],"-flo")==0) || (strcmp(argv[i],"-source")==0) || (strcmp(argv[i],"--flo")==0)){
+            floatingImage=reg_io_ReadImageFile(argv[++i]);
+            if(floatingImage==NULL){
+                fprintf(stderr, "Error when reading the floating image %s\n",argv[i-1]);
+                return 1;
+            }
+        }
+    }
+    // Check that both reference and floating image have been defined
+    if(referenceImage==NULL){
+        fprintf(stderr, "Error. No reference image has been defined\n");
+        PetitUsage(argv[0]);
+        return 1;
+    }
+    // Read the floating image
+    if(floatingImage==NULL){
+        fprintf(stderr, "Error. No floating image has been defined\n");
+        PetitUsage(argv[0]);
+        return 1;
+    }
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+    // Check the type of registration object to create
+#ifdef _USE_CUDA
+	CUcontext ctx;
+#endif // _USE_CUDA
+    reg_f3d<PrecisionTYPE> *REG=NULL;
+    for(int i=1;i<argc;i++){
+        if(strcmp(argv[i], "-vel")==0 || strcmp(argv[i], "-step")==0){
+            REG=new reg_f3d2<PrecisionTYPE>(referenceImage->nt,floatingImage->nt);
+            break;
+        }
+        if(strcmp(argv[i], "-sym")==0){
+            REG=new reg_f3d_sym<PrecisionTYPE>(referenceImage->nt,floatingImage->nt);
+            break;
+        }
+#ifdef _USE_CUDA
+        if(strcmp(argv[i], "-gpu")==0 || strcmp(argv[i], "-mem")==0){
+            // Set up the cuda card and display some relevant information and check if the card is suitable
+			if(cudaCommon_setCUDACard(&ctx, true)){
+                fprintf(stderr,"\n[NiftyReg CUDA ERROR] Error while detecting a CUDA card\n");
+                fprintf(stderr,"[NiftyReg CUDA WARNING] GPU implementation has been turned off.\n");
+            }
+            else REG=new reg_f3d_gpu(referenceImage->nt,floatingImage->nt);
+            break;
+        }
+#endif // _USE_CUDA
+    }
+    if(REG==NULL)
+        REG=new reg_f3d<PrecisionTYPE>(referenceImage->nt,floatingImage->nt);
+    REG->SetReferenceImage(referenceImage);
+    REG->SetFloatingImage(floatingImage);
+
+    // Create some pointers that could be used
+    mat44 affineMatrix;
+    nifti_image *inputCCPImage=NULL;
+    nifti_image *referenceMaskImage=NULL;
+    nifti_image *floatingMaskImage=NULL;
+    char *outputWarpedImageName=NULL;
+    char *outputCPPImageName=NULL;
+#ifdef _USE_CUDA
+    bool checkMemory=false;
+#endif // _use_CUDA
+
+    /* read the input parameter */
+    for(int i=1;i<argc;i++){
+        if(strcmp(argv[i], "-help")==0 || strcmp(argv[i], "-Help")==0 ||
+                strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
+                strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0 ||
+                strcmp(argv[i], "--xml")==0 || strcmp(argv[i], "-version")==0 ||
+                strcmp(argv[i], "-Version")==0 || strcmp(argv[i], "-V")==0 ||
+                strcmp(argv[i], "-v")==0 || strcmp(argv[i], "--v")==0 ||
+                strcmp(argv[i], "--version")==0 || strcmp(argv[i], "-helpPenalty")==0 ||		        
+#ifdef _USE_CUDA
+				strcmp(argv[i], "-gpu")==0 ||
+#endif
+				strcmp(argv[i], "-vel")==0 || strcmp(argv[i], "-sym")==0){
+            // argument has already been parsed
+            NULL;
+        }
+        else if(strcmp(argv[i],"-ref")==0 || strcmp(argv[i],"-target")==0 ||
+                strcmp(argv[i],"--ref")==0 || strcmp(argv[i],"-flo")==0 ||
+                strcmp(argv[i],"-source")==0 || strcmp(argv[i],"--flo")==0 ){
+            // argument has already been parsed
+            ++i;
         }
         else if(strcmp(argv[i], "-voff")==0){
-            verbose=false;
+            REG->DoNotPrintOutInformation();
         }
         else if(strcmp(argv[i], "-aff")==0 || (strcmp(argv[i],"--aff")==0)){
-            affineTransformationName=argv[++i];
+            // Check first if the specified affine file exist
+            char *affineTransformationName=argv[++i];
+            if(FILE *aff=fopen(affineTransformationName, "r")){
+                fclose(aff);
+            }
+            else{
+                fprintf(stderr,"The specified input affine file (%s) can not be read\n",
+                        affineTransformationName);
+                return 1;
+            }
+            // Read the affine matrix
+            reg_tool_ReadAffineFile(&affineMatrix,
+                                    referenceImage,
+                                    floatingImage,
+                                    affineTransformationName,
+                                    false);
+            // Send the transformation to the registration object
+            REG->SetAffineTransformation(&affineMatrix);
         }
         else if(strcmp(argv[i], "-affFlirt")==0 || (strcmp(argv[i],"--affFlirt")==0)){
-            affineTransformationName=argv[++i];
-            flirtAffine=1;
+            // Check first if the specified affine file exist
+            char *affineTransformationName=argv[++i];
+            if(FILE *aff=fopen(affineTransformationName, "r")){
+                fclose(aff);
+            }
+            else{
+                fprintf(stderr,"The specified input affine file (%s) can not be read\n",
+                        affineTransformationName);
+                return 1;
+            }
+            // Read the affine matrix
+            reg_tool_ReadAffineFile(&affineMatrix,
+                                    referenceImage,
+                                    floatingImage,
+                                    affineTransformationName,
+                                    true);
+            // Send the transformation to the registration object
+            REG->SetAffineTransformation(&affineMatrix);
         }
         else if(strcmp(argv[i], "-incpp")==0 || (strcmp(argv[i],"--incpp")==0)){
-            inputControlPointGridName=argv[++i];
+            inputCCPImage=reg_io_ReadImageFile(argv[++i]);
+            if(inputCCPImage==NULL){
+                fprintf(stderr, "Error when reading the input control point grid image: %s\n",argv[i-1]);
+                return 1;
+            }
+            REG->SetControlPointGridImage(inputCCPImage);
         }
         else if((strcmp(argv[i],"-rmask")==0) || (strcmp(argv[i],"-tmask")==0) || (strcmp(argv[i],"--rmask")==0)){
-            referenceMaskName=argv[++i];
+            referenceMaskImage=reg_io_ReadImageFile(argv[++i]);
+            if(referenceMaskImage==NULL){
+                fprintf(stderr, "Error when reading the reference mask image: %s\n",argv[i-1]);
+                return 1;
+            }
+            REG->SetReferenceMask(referenceMaskImage);
         }
         else if((strcmp(argv[i],"-res")==0) || (strcmp(argv[i],"-result")==0) || (strcmp(argv[i],"--res")==0)){
-            outputWarpedName=argv[++i];
+            outputWarpedImageName=argv[++i];
         }
         else if(strcmp(argv[i], "-cpp")==0 || (strcmp(argv[i],"--cpp")==0)){
-            outputControlPointGridName=argv[++i];
+            outputCPPImageName=argv[++i];
         }
         else if(strcmp(argv[i], "-maxit")==0 || strcmp(argv[i], "--maxit")==0){
-            maxiterationNumber=atoi(argv[++i]);
+            REG->SetMaximalIterationNumber(atoi(argv[++i]));
         }
         else if(strcmp(argv[i], "-sx")==0 || strcmp(argv[i], "--sx")==0){
-            spacing[0]=(float)atof(argv[++i]);
+            REG->SetSpacing(0,(float)atof(argv[++i]));
         }
         else if(strcmp(argv[i], "-sy")==0 || strcmp(argv[i], "--sy")==0){
-            spacing[1]=(float)atof(argv[++i]);
+            REG->SetSpacing(1,(float)atof(argv[++i]));
         }
         else if(strcmp(argv[i], "-sz")==0 || strcmp(argv[i], "--sz")==0){
-            spacing[2]=(float)atof(argv[++i]);
+            REG->SetSpacing(2,(float)atof(argv[++i]));
         }
         else if((strcmp(argv[i],"-rbn")==0) || (strcmp(argv[i],"-tbn")==0)){
-            referenceBinNumber[atoi(argv[i+1])]=atoi(argv[i+2]);
-            i+=2;
+            int tp=atoi(argv[++i]);
+            int bin=atoi(argv[++i]);
+            REG->UseNMISetReferenceBinNumber(tp,bin);
         }
         else if((strcmp(argv[i],"--rbn")==0) ){
-            referenceBinNumber[0]=atoi(argv[++i]);
-            for(unsigned j=1;j<10;++j) referenceBinNumber[j]=referenceBinNumber[0];
+            int binNumber = atoi(argv[++i]);
+            for(int t=0;t<referenceImage->nt;++t)
+                REG->UseNMISetReferenceBinNumber(t,binNumber);
         }
         else if((strcmp(argv[i],"-fbn")==0) || (strcmp(argv[i],"-sbn")==0)){
-            floatingBinNumber[atoi(argv[i+1])]=atoi(argv[i+2]);
-            i+=2;
+            int tp=atoi(argv[++i]);
+            int bin=atoi(argv[++i]);
+            REG->UseNMISetFloatingBinNumber(tp,bin);
         }
         else if((strcmp(argv[i],"--fbn")==0) ){
-            floatingBinNumber[0]=atoi(argv[++i]);
-            for(unsigned j=1;j<10;++j) floatingBinNumber[j]=floatingBinNumber[0];
+            int binNumber = atoi(argv[++i]);
+            for(int t=0;t<floatingImage->nt;++t)
+                REG->UseNMISetFloatingBinNumber(t,binNumber);
         }
         else if(strcmp(argv[i], "-ln")==0 || strcmp(argv[i], "--ln")==0){
-            levelNumber=atoi(argv[++i]);
+            REG->SetLevelNumber(atoi(argv[++i]));
         }
         else if(strcmp(argv[i], "-lp")==0 || strcmp(argv[i], "--lp")==0){
-            levelToPerform=atoi(argv[++i]);
+            REG->SetLevelToPerform(atoi(argv[++i]));
         }
         else if(strcmp(argv[i], "-be")==0 || strcmp(argv[i], "--be")==0){
-            bendingEnergyWeight=(PrecisionTYPE)(atof(argv[++i]));
+            REG->SetBendingEnergyWeight(atof(argv[++i]));
         }
         else if(strcmp(argv[i], "-le")==0){
-            linearEnergyWeight0=(PrecisionTYPE)(atof(argv[++i]));
-            linearEnergyWeight1=(PrecisionTYPE)(atof(argv[++i]));
+            float val1=atof(argv[++i]);
+            float val2=atof(argv[++i]);
+            REG->SetLinearEnergyWeights(val1,val2);
         }
         else if(strcmp(argv[i], "-l2")==0 || strcmp(argv[i], "--l2")==0){
-            L2NormWeight=(PrecisionTYPE)(atof(argv[++i]));
+            REG->SetL2NormDisplacementWeight(atof(argv[++i]));
         }
         else if(strcmp(argv[i], "-jl")==0 || strcmp(argv[i], "--jl")==0){
-            jacobianLogWeight=(PrecisionTYPE)(atof(argv[++i]));
+            REG->SetJacobianLogWeight(atof(argv[++i]));
         }
         else if(strcmp(argv[i], "-noAppJL")==0 || strcmp(argv[i], "--noAppJL")==0){
-            jacobianLogApproximation=false;
+            REG->ApproximateJacobianLog();
         }
         else if((strcmp(argv[i],"-smooR")==0) || (strcmp(argv[i],"-smooT")==0) || strcmp(argv[i], "--smooR")==0){
-            referenceSmoothingSigma=(PrecisionTYPE)(atof(argv[++i]));
+            REG->SetReferenceSmoothingSigma(atof(argv[++i]));
         }
         else if((strcmp(argv[i],"-smooF")==0) || (strcmp(argv[i],"-smooS")==0) || strcmp(argv[i], "--smooF")==0){
-            floatingSmoothingSigma=(PrecisionTYPE)(atof(argv[++i]));
+            REG->SetFloatingSmoothingSigma(atof(argv[++i]));
         }
         else if((strcmp(argv[i],"-rLwTh")==0) || (strcmp(argv[i],"-tLwTh")==0)){
-            referenceThresholdLow[atoi(argv[i+1])]=(PrecisionTYPE)(atof(argv[i+2]));
-            i+=2;
+            int tp=atoi(argv[++i]);
+            float val=atof(argv[++i]);
+            REG->SetReferenceThresholdLow(tp,val);
         }
         else if((strcmp(argv[i],"-rUpTh")==0) || strcmp(argv[i],"-tUpTh")==0){
-            referenceThresholdUp[atoi(argv[i+1])]=(PrecisionTYPE)(atof(argv[i+2]));
-            i+=2;
+            int tp=atoi(argv[++i]);
+            float val=atof(argv[++i]);
+            REG->SetReferenceThresholdUp(tp,val);
         }
         else if((strcmp(argv[i],"-fLwTh")==0) || (strcmp(argv[i],"-sLwTh")==0)){
-            floatingThresholdLow[atoi(argv[i+1])]=(PrecisionTYPE)(atof(argv[i+2]));
-            i+=2;
+            int tp=atoi(argv[++i]);
+            float val=atof(argv[++i]);
+            REG->SetFloatingThresholdLow(tp,val);
         }
         else if((strcmp(argv[i],"-fUpTh")==0) || (strcmp(argv[i],"-sUpTh")==0)){
-            floatingThresholdUp[atoi(argv[i+1])]=(PrecisionTYPE)(atof(argv[i+2]));
-            i+=2;
+            int tp=atoi(argv[++i]);
+            float val=atof(argv[++i]);
+            REG->SetFloatingThresholdUp(tp,val);
         }
         else if((strcmp(argv[i],"--rLwTh")==0) ){
-            referenceThresholdLow[0]=atof(argv[++i]);
-            for(unsigned j=1;j<10;++j) referenceThresholdLow[j]=referenceThresholdLow[0];
+            float threshold = atof(argv[++i]);
+            for(int t=0;t<referenceImage->nt;++t)
+                REG->SetReferenceThresholdLow(t,threshold);
         }
         else if((strcmp(argv[i],"--rUpTh")==0) ){
-            referenceThresholdUp[0]=atof(argv[++i]);
-            for(unsigned j=1;j<10;++j) referenceThresholdUp[j]=referenceThresholdUp[0];
+            float threshold = atof(argv[++i]);
+            for(int t=0;t<referenceImage->nt;++t)
+                REG->SetReferenceThresholdUp(t,threshold);
         }
         else if((strcmp(argv[i],"--fLwTh")==0) ){
-            floatingThresholdLow[0]=atof(argv[++i]);
-            for(unsigned j=1;j<10;++j) floatingThresholdLow[j]=floatingThresholdLow[0];
+            float threshold = atof(argv[++i]);
+            for(int t=0;t<floatingImage->nt;++t)
+                REG->SetFloatingThresholdLow(t,threshold);
         }
         else if((strcmp(argv[i],"--fUpTh")==0) ){
-            floatingThresholdUp[0]=atof(argv[++i]);
-            for(unsigned j=1;j<10;++j) floatingThresholdUp[j]=floatingThresholdUp[0];
+            float threshold = atof(argv[++i]);
+            for(int t=0;t<floatingImage->nt;++t)
+                REG->SetFloatingThresholdUp(t,threshold);
         }
         else if(strcmp(argv[i], "-smoothGrad")==0){
-            gradientSmoothingSigma=(PrecisionTYPE)(atof(argv[++i]));
+            REG->SetGradientSmoothingSigma(atof(argv[++i]));
         }
-        else if(strcmp(argv[i], "-ssd")==0 || strcmp(argv[i], "--ssd")==0){
-            useSSD=true;
-            useKLD=false;
-            lnccStdDev=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
+        else if(strcmp(argv[i], "-ssd")==0){
+            REG->UseSSD(atoi(argv[++i]));
         }
-        else if(strcmp(argv[i], "-kld")==0 || strcmp(argv[i], "--kld")==0){
-            useSSD=false;
-            useKLD=true;
-            lnccStdDev=std::numeric_limits<PrecisionTYPE>::quiet_NaN();
+        else if(strcmp(argv[i], "--ssd")==0){
+            for(int t=0;t<floatingImage->nt;++t)
+                REG->UseSSD(t);
         }
-        else if(strcmp(argv[i], "-amc")==0){
-            additiveNMI = true;
+        else if(strcmp(argv[i], "-kld")==0){
+			REG->UseKLDivergence(atoi(argv[++i]));
         }
+        else if(strcmp(argv[i], "--kld")==0){
+            for(int t=0;t<floatingImage->nt;++t)
+				REG->UseKLDivergence(t);
+        }
+//        else if(strcmp(argv[i], "-amc")==0){ // HERE TODO
+//            REG->UseMultiChannelNMI();
+//        }
         else if(strcmp(argv[i], "-lncc")==0){
-            lnccStdDev = (PrecisionTYPE)(atof(argv[++i]));
-            useSSD=false;
-            useKLD=false;
+            int tp=atoi(argv[++i]);
+            float stdev = atof(argv[++i]);
+            REG->UseLNCC(tp,stdev);
+        }
+        else if(strcmp(argv[i], "--lncc")==0){
+            float stdev = (float)atof(argv[++i]);
+            for(int t=0;t<referenceImage->nt;++t)
+                REG->UseLNCC(t,stdev);
+        }
+        else if(strcmp(argv[i], "-dti")==0 || strcmp(argv[i], "--dti")==0){
+            bool *timePoint = new bool[referenceImage->nt];
+            for(int t=0;t<referenceImage->nt;++t)
+                timePoint[t]=false;
+            timePoint[atoi(argv[++i])]=true;
+            timePoint[atoi(argv[++i])]=true;
+            timePoint[atoi(argv[++i])]=true;
+            if(referenceImage->nz>1){
+                timePoint[atoi(argv[++i])]=true;
+                timePoint[atoi(argv[++i])]=true;
+                timePoint[atoi(argv[++i])]=true;
+            }
+            REG->UseDTI(timePoint);
+            delete []timePoint;
         }
         else if(strcmp(argv[i], "-pad")==0){
-            warpedPaddingValue=(PrecisionTYPE)(atof(argv[++i]));
+            REG->SetWarpedPaddingValue(atof(argv[++i]));
         }
         else if(strcmp(argv[i], "-nopy")==0 || strcmp(argv[i], "--nopy")==0){
-            noPyramid=1;
+            REG->DoNotUsePyramidalApproach();
         }
         else if(strcmp(argv[i], "-noConj")==0 || strcmp(argv[i], "--noConj")==0){
-            useConjugate=false;
+            REG->DoNotUseConjugateGradient();
         }
         else if(strcmp(argv[i], "-approxGrad")==0 || strcmp(argv[i], "--approxGrad")==0){
-            useApproxGradient=true;
-			useConjugate=false;
+            REG->UseApproximatedGradient();
         }
         else if(strcmp(argv[i], "-interp")==0 || strcmp(argv[i], "--interp")==0){
-            interpolation=atoi(argv[++i]);
+            int interp=atoi(argv[++i]);
+            switch(interp){
+            case 0: REG->UseNeareatNeighborInterpolation();break;
+            case 1: REG->UseLinearInterpolation();break;
+            default: REG->UseCubicSplineInterpolation();break;
+            }
         }
-        else if(strcmp(argv[i], "-noAppPW")==0){
-            parzenWindowApproximation=false;
-        }
-        else if(strcmp(argv[i], "-sym") ==0 || strcmp(argv[i], "--sym") ==0){
-            useSym=true;
-        }
+//        else if(strcmp(argv[i], "-noAppPW")==0){ // HERE TODO
+//            parzenWindowApproximation=false;
+//        }
         else if((strcmp(argv[i],"-fmask")==0) || (strcmp(argv[i],"-smask")==0) ||
                 (strcmp(argv[i],"--fmask")==0) || (strcmp(argv[i],"--smask")==0)){
-            floatingMaskName=argv[++i];
+            floatingMaskImage=reg_io_ReadImageFile(argv[++i]);
+            if(floatingMaskImage==NULL){
+                fprintf(stderr, "Error when reading the floating mask image: %s\n",argv[i-1]);
+                return 1;
+            }
+            REG->SetReferenceMask(floatingMaskImage);
         }
         else if(strcmp(argv[i], "-ic")==0 || strcmp(argv[i], "--ic")==0){
-            inverseConsistencyWeight=atof(argv[++i]);
+            REG->SetInverseConsistencyWeight(atof(argv[++i]));
         }
         else if(strcmp(argv[i], "-nox") ==0){
-            xOptimisation=false;
+            REG->NoOptimisationAlongX();
         }
         else if(strcmp(argv[i], "-noy") ==0){
-            yOptimisation=false;
+            REG->NoOptimisationAlongY();
         }
         else if(strcmp(argv[i], "-noz") ==0){
-            zOptimisation=false;
+            REG->NoOptimisationAlongZ();
         }
         else if(strcmp(argv[i],"-pert")==0 || strcmp(argv[i],"--pert")==0){
-            perturbation=(size_t)atoi(argv[++i]);
+            REG->SetPerturbationNumber((size_t)atoi(argv[++i]));
         }
         else if(strcmp(argv[i], "-nogr") ==0){
-            gridRefinement=false;
-        }
-        else if(strcmp(argv[i], "-vel")==0 || strcmp(argv[i], "--vel")==0){
-            useVel=true;
+            REG->NoGridRefinement();
         }
         else if(strcmp(argv[i], "-step")==0 || strcmp(argv[i], "--step")==0){
-            stepNumber=atoi(argv[++i]);
+            REG->SetCompositionStepNumber(atoi(argv[++i]));
 		}
-		else if(strcmp(argv[i], "-iss")==0 || strcmp(argv[i], "--iss")==0){
-			useISS=true;
-			useBCHUpdate=false;
+        else if(strcmp(argv[i], "-gce")==0 || strcmp(argv[i], "--gce")==0){
+            REG->UseGradientCumulativeExp();
 		}
 		else if(strcmp(argv[i], "-bch")==0 || strcmp(argv[i], "--bch")==0){
-			useISS=false;
-			useBCHUpdate=true;
-			BCHUpdateValue=atoi(argv[++i]);
+            REG->UseBCHUpdate(atoi(argv[++i]));
         }
 //        else if(strcmp(argv[i], "-iso")==0 || strcmp(argv[i], "--iso")==0){
 //            iso=true;
 //        }
 #ifdef _USE_CUDA
-        else if(strcmp(argv[i], "-gpu")==0){
-            useGPU=true;
-        }
-        else if(strcmp(argv[i], "-card")==0){
-            cardNumber=atoi(argv[++i]);
-        }
         else if(strcmp(argv[i], "-mem")==0){
-            useGPU=true;
-            checkMem=true;
+            checkMemory=true;
         }
 #endif
         else{
@@ -481,353 +592,24 @@ int main(int argc, char **argv)
         }
     }
 
-    if(referenceName==NULL || floatingName==NULL){
-        fprintf(stderr,"Err:\tThe reference and the floating image have to be defined.\n");
-        PetitUsage(argv[0]);
-        return 1;
-    }
-
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] *******************************************\n");
     printf("[NiftyReg DEBUG] *******************************************\n");
     printf("[NiftyReg DEBUG] NiftyReg has been compiled in DEBUG mode\n");
-    printf("[NiftyReg DEBUG] Please rerun cmake to set the variable\n");
+    printf("[NiftyReg DEBUG] Please re-run cmake to set the variable\n");
     printf("[NiftyReg DEBUG] CMAKE_BUILD_TYPE to \"Release\" if required\n");
     printf("[NiftyReg DEBUG] *******************************************\n");
     printf("[NiftyReg DEBUG] *******************************************\n");
 #endif
 
-    // Output the command line
-#ifdef NDEBUG
-    if(verbose==true){
-#endif
-        printf("\n[NiftyReg F3D] Command line:\n\t");
-        for(int i=0;i<argc;i++)
-            printf(" %s", argv[i]);
-        printf("\n\n");
-#ifdef NDEBUG
-    }
-#endif
-
-    // Read the reference image
-    if(referenceName==NULL){
-        fprintf(stderr, "Error. No reference image has been defined\n");
-        PetitUsage(argv[0]);
-        return 1;
-    }
-    nifti_image *referenceImage = reg_io_ReadImageFile(referenceName);
-    if(referenceImage==NULL){
-        fprintf(stderr, "Error when reading the reference image %s\n",referenceName);
-        return 1;
-    }
-
-    // Read the floating image
-    if(floatingName==NULL){
-        fprintf(stderr, "Error. No floating image has been defined\n");
-        PetitUsage(argv[0]);
-        return 1;
-    }
-    nifti_image *floatingImage = reg_io_ReadImageFile(floatingName);
-    if(floatingImage==NULL){
-        fprintf(stderr, "Error when reading the floating image %s\n",floatingName);
-        return 1;
-    }
-
-    // Read the mask images
-    nifti_image *referenceMaskImage=NULL;
-    if(referenceMaskName!=NULL){
-        referenceMaskImage=reg_io_ReadImageFile(referenceMaskName);
-        if(referenceMaskImage==NULL){
-            fprintf(stderr, "Error when reading the reference mask image %s\n",referenceMaskName);
-            return 1;
-        }
-    }
-    nifti_image *floatingMaskImage=NULL;
-    if(floatingMaskName!=NULL){
-        floatingMaskImage=reg_io_ReadImageFile(floatingMaskName);
-        if(floatingMaskImage==NULL){
-            fprintf(stderr, "Error when reading the reference mask image %s\n",floatingMaskName);
-            return 1;
-        }
-    }
-
-    // Read the input control point grid image
-    nifti_image *controlPointGridImage=NULL;
-    if(inputControlPointGridName!=NULL){
-        controlPointGridImage=reg_io_ReadImageFile(inputControlPointGridName);
-        if(controlPointGridImage==NULL){
-            fprintf(stderr, "Error when reading the input control point grid image %s\n",inputControlPointGridName);
-            return 1;
-        }
-        if( controlPointGridImage->intent_code==NIFTI_INTENT_VECTOR &&
-                strcmp(controlPointGridImage->intent_name,"NREG_VEL_STEP")==0 &&
-                fabs(controlPointGridImage->intent_p1)>1 )
-            useVel=true;
-    }
-
-    // Read the affine transformation
-    mat44 *affineTransformation=NULL;
-    if(affineTransformationName!=NULL){
-        affineTransformation = (mat44 *)malloc(sizeof(mat44));
-        // Check first if the specified affine file exist
-        if(FILE *aff=fopen(affineTransformationName, "r")){
-            fclose(aff);
-        }
-        else{
-            fprintf(stderr,"The specified input affine file (%s) can not be read\n",affineTransformationName);
-            return 1;
-        }
-        reg_tool_ReadAffineFile(affineTransformation,
-                                referenceImage,
-                                floatingImage,
-                                affineTransformationName,
-                                flirtAffine);
-    }
-
-    // Create the reg_f3d object
-    reg_f3d<PrecisionTYPE> *REG=NULL;
-#ifdef _USE_CUDA
-    CUcontext ctx;
-    if(useGPU){
-
-        if(linearEnergyWeight0==linearEnergyWeight0 ||
-                linearEnergyWeight1==linearEnergyWeight1 ||
-                L2NormWeight==L2NormWeight){
-            fprintf(stderr,"\n[NiftyReg CUDA WARNING] The linear elasticity has not been implemented with CUDA yet.\n");
-            fprintf(stderr,"[NiftyReg CUDA WARNING] GPU implementation has been turned off.\n");
-            useGPU=false;
-        }
-
-        if(useSym){
-            fprintf(stderr,"\n[NiftyReg CUDA WARNING] GPU implementation of the symmetric registration is not available yet.\n");
-            fprintf(stderr,"[NiftyReg CUDA WARNING] GPU implementation has been turned off.\n");
-            useGPU=false;
-        }
-        if(useVel){
-            fprintf(stderr,"\n[NiftyReg CUDA WARNING] GPU implementation of velocity field parametrisartion is not available yet.\n");
-            fprintf(stderr,"[NiftyReg CUDA WARNING] GPU implementation has been turned off.\n");
-            useGPU=false;
-        }
-
-        if(!(referenceImage->dim[4]==1 && floatingImage->dim[4]==1) &&
-           !(referenceImage->dim[4]==2 && floatingImage->dim[4]==2)){
-            fprintf(stderr,"\n[NiftyReg CUDA WARNING] The GPU implementation only handle 1 to 1 or 2 to 2 image(s) registration\n");
-            fprintf(stderr,"[NiftyReg CUDA WARNING] GPU implementation has been turned off.\n");
-            useGPU=false;
-        }
-
-        // Set up the cuda card and display some relevant information and check if the card is suitable
-        if(cudaCommon_setCUDACard(&ctx, verbose)){
-            fprintf(stderr,"\n[NiftyReg CUDA ERROR] Error while detecting a CUDA card\n");
-            fprintf(stderr,"[NiftyReg CUDA WARNING] GPU implementation has been turned off.\n");
-            useGPU=false;
-        }
-
-        // Create the registration object using the GPU class
-        if(useGPU){
-            REG = new reg_f3d_gpu(referenceImage->nt, floatingImage->nt);
-#ifdef NDEBUG
-            if(verbose==true)
-#endif // NDEBUG
-                printf("\n[NiftyReg F3D GPU] GPU implementation is used\n");
-        }
-    }
-#endif
-    if(useSym && REG==NULL){
-        REG = new reg_f3d_sym<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
-#ifdef NDEBUG
-        if(verbose==true)
-#endif // NDEBUG
-            printf("\n[NiftyReg F3D SYM] CPU implementation is used\n");
-    }
-    else if(useVel && REG==NULL){
-        REG = new reg_f3d2<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
-#ifdef NDEBUG
-        if(verbose==true)
-#endif
-            printf("\n[NiftyReg F3D2] CPU implementation is used\n");
-    }
-    else if(REG==NULL){
-        REG = new reg_f3d<PrecisionTYPE>(referenceImage->nt, floatingImage->nt);
-#ifdef NDEBUG
-        if(verbose==true)
-#endif // NDEBUG
-            printf("\n[NiftyReg F3D] CPU implementation is used\n");
-    }
 #ifdef _OPENMP
     int maxThreadNumber = omp_get_max_threads();
-#ifdef NDEBUG
-    if(verbose==true)
-#endif // NDEBUG
         printf("[NiftyReg F3D] OpenMP is used with %i thread(s)\n", maxThreadNumber);
 #endif // _OPENMP
 
-    // Set the reg_f3d parameters
-
-    REG->SetReferenceImage(referenceImage);
-
-    REG->SetFloatingImage(floatingImage);
-
-    if(verbose==false) REG->DoNotPrintOutInformation();
-    else REG->PrintOutInformation();
-
-    if(referenceMaskImage!=NULL)
-        REG->SetReferenceMask(referenceMaskImage);
-
-    if(controlPointGridImage!=NULL)
-        REG->SetControlPointGridImage(controlPointGridImage);
-
-    if(affineTransformation!=NULL)
-        REG->SetAffineTransformation(affineTransformation);
-
-    if(bendingEnergyWeight==bendingEnergyWeight)
-        REG->SetBendingEnergyWeight(bendingEnergyWeight);
-
-    if(linearEnergyWeight0==linearEnergyWeight0 || linearEnergyWeight1==linearEnergyWeight1){
-        if(linearEnergyWeight0!=linearEnergyWeight0) linearEnergyWeight0=0.0;
-        if(linearEnergyWeight1!=linearEnergyWeight1) linearEnergyWeight1=0.0;
-        REG->SetLinearEnergyWeights(linearEnergyWeight0,linearEnergyWeight1);
-    }
-    if(L2NormWeight==L2NormWeight)
-        REG->SetL2NormDisplacementWeight(L2NormWeight);
-
-    if(jacobianLogWeight==jacobianLogWeight)
-        REG->SetJacobianLogWeight(jacobianLogWeight);
-
-    if(jacobianLogApproximation)
-        REG->ApproximateJacobianLog();
-    else REG->DoNotApproximateJacobianLog();
-
-    if(parzenWindowApproximation)
-        REG->ApproximateParzenWindow();
-    else REG->DoNotApproximateParzenWindow();
-
-    if(maxiterationNumber>-1)
-        REG->SetMaximalIterationNumber(maxiterationNumber);
-
-    if(referenceSmoothingSigma==referenceSmoothingSigma)
-        REG->SetReferenceSmoothingSigma(referenceSmoothingSigma);
-
-    if(floatingSmoothingSigma==floatingSmoothingSigma)
-        REG->SetFloatingSmoothingSigma(floatingSmoothingSigma);
-
-    for(unsigned int t=0;t<(unsigned int)referenceImage->nt;t++)
-        if(referenceThresholdUp[t]==referenceThresholdUp[t])
-            REG->SetReferenceThresholdUp(t,referenceThresholdUp[t]);
-
-    for(unsigned int t=0;t<(unsigned int)referenceImage->nt;t++)
-        if(referenceThresholdLow[t]==referenceThresholdLow[t])
-            REG->SetReferenceThresholdLow(t,referenceThresholdLow[t]);
-
-    for(unsigned int t=0;t<(unsigned int)floatingImage->nt;t++)
-        if(floatingThresholdUp[t]==floatingThresholdUp[t])
-            REG->SetFloatingThresholdUp(t,floatingThresholdUp[t]);
-
-    for(unsigned int t=0;t<(unsigned int)floatingImage->nt;t++)
-        if(floatingThresholdLow[t]==floatingThresholdLow[t])
-            REG->SetFloatingThresholdLow(t,floatingThresholdLow[t]);
-
-    for(unsigned int t=0;t<(unsigned int)referenceImage->nt;t++)
-        if(referenceBinNumber[t]>0)
-            REG->SetReferenceBinNumber(t,referenceBinNumber[t]);
-
-    for(unsigned int t=0;t<(unsigned int)floatingImage->nt;t++)
-        if(floatingBinNumber[t]>0)
-            REG->SetFloatingBinNumber(t,floatingBinNumber[t]);
-
-    if(warpedPaddingValue==warpedPaddingValue)
-        REG->SetWarpedPaddingValue(warpedPaddingValue);
-
-    for(unsigned int s=0;s<3;s++)
-        if(spacing[s]==spacing[s])
-            REG->SetSpacing(s,spacing[s]);
-
-    if(levelNumber>0)
-        REG->SetLevelNumber(levelNumber);
-
-    if(levelToPerform>0)
-        REG->SetLevelToPerform(levelToPerform);
-
-    if(gradientSmoothingSigma==gradientSmoothingSigma)
-        REG->SetGradientSmoothingSigma(gradientSmoothingSigma);
-
-    if(useSSD)
-        REG->UseSSD();
-    else REG->DoNotUseSSD();
-
-    if(useKLD)
-        REG->UseKLDivergence();
-    else REG->DoNotUseKLDivergence();
-
-    if(lnccStdDev==lnccStdDev)
-        REG->UseLNCC(lnccStdDev);
-    else REG->DoNotUseLNCC();
-
-    if(useApproxGradient){
-		REG->DoNotUseConjugateGradient();
-		REG->UseApproximatedGradient();
-    }
-    else if(useConjugate==true)
-        REG->UseConjugateGradient();
-    else REG->DoNotUseConjugateGradient();
-
-    if(noPyramid==1)
-        REG->DoNotUsePyramidalApproach();
-
-    switch(interpolation){
-    case 0:REG->UseNeareatNeighborInterpolation();
-        break;
-    case 1:REG->UseLinearInterpolation();
-        break;
-    case 3:REG->UseCubicSplineInterpolation();
-        break;
-    default:REG->UseLinearInterpolation();
-        break;
-    }
-
-    if(xOptimisation==false)
-        REG->NoOptimisationAlongX();
-
-    if(yOptimisation==false)
-        REG->NoOptimisationAlongY();
-
-    if(zOptimisation==false)
-        REG->NoOptimisationAlongZ();
-
-    if(gridRefinement==false)
-        REG->NoGridRefinement();
-
-    if(perturbation>0)
-        REG->SetPerturbationNumber(perturbation);
-
-    if (additiveNMI) REG->SetAdditiveMC();
-
-    // F3D SYM arguments
-    if(floatingMaskImage!=NULL){
-        if(useSym)
-            REG->SetFloatingMask(floatingMaskImage);
-        else if(useVel)
-            REG->SetFloatingMask(floatingMaskImage);
-        else{
-            fprintf(stderr, "[NiftyReg WARNING] The floating mask image is only used for symmetric or velocity field parametrisation\n");
-            fprintf(stderr, "[NiftyReg WARNING] The floating mask image is ignored\n");
-        }
-    }
-
-    if(inverseConsistencyWeight==inverseConsistencyWeight)
-        REG->SetInverseConsistencyWeight(inverseConsistencyWeight);
-
-    // F3D2 arguments
-    if(stepNumber>-1)
-		REG->SetCompositionStepNumber(stepNumber);
-	if(useBCHUpdate)
-		REG->UseBCHUpdate(BCHUpdateValue);
-	if(useISS)
-        REG->UseInverseSclalingSquaring();
-
-    // Run the registration
+     // Run the registration
 #ifdef _USE_CUDA
-    if(useGPU && checkMem){
+    if(checkMemory){
         size_t free, total, requiredMemory = REG->CheckMemoryMB();
         cuMemGetInfo(&free, &total);
         printf("[NiftyReg CUDA] The required memory to run the registration is %lu Mb\n",
@@ -841,18 +623,18 @@ int main(int argc, char **argv)
 
         // Save the control point result
         nifti_image *outputControlPointGridImage = REG->GetControlPointPositionImage();
-        if(outputControlPointGridName==NULL) outputControlPointGridName=(char *)"outputCPP.nii";
+        if(outputCPPImageName==NULL) outputCPPImageName=(char *)"outputCPP.nii";
         memset(outputControlPointGridImage->descrip, 0, 80);
         strcpy (outputControlPointGridImage->descrip,"Control point position from NiftyReg (reg_f3d)");
-        if(useVel)
+        if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0)
             strcpy (outputControlPointGridImage->descrip,"Velocity field grid from NiftyReg (reg_f3d2)");
-        reg_io_WriteImageFile(outputControlPointGridImage,outputControlPointGridName);
+        reg_io_WriteImageFile(outputControlPointGridImage,outputCPPImageName);
         nifti_image_free(outputControlPointGridImage);outputControlPointGridImage=NULL;
 
         // Save the backward control point result
-        if(useSym || useVel){
+        if(REG->GetSymmetricStatus()){
             // _backward is added to the forward control point grid image name
-            std::string b(outputControlPointGridName);
+            std::string b(outputCPPImageName);
             if(b.find( ".nii.gz") != std::string::npos)
                 b.replace(b.find( ".nii.gz"),7,"_backward.nii.gz");
             else if(b.find( ".nii") != std::string::npos)
@@ -871,7 +653,7 @@ int main(int argc, char **argv)
             nifti_image *outputBackwardControlPointGridImage = REG->GetBackwardControlPointPositionImage();
             memset(outputBackwardControlPointGridImage->descrip, 0, 80);
             strcpy (outputBackwardControlPointGridImage->descrip,"Backward Control point position from NiftyReg (reg_f3d)");
-            if(useVel)
+            if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0)
                 strcpy (outputBackwardControlPointGridImage->descrip,"Backward velocity field grid from NiftyReg (reg_f3d2)");
             reg_io_WriteImageFile(outputBackwardControlPointGridImage,b.c_str());
             nifti_image_free(outputBackwardControlPointGridImage);outputBackwardControlPointGridImage=NULL;
@@ -881,20 +663,20 @@ int main(int argc, char **argv)
         nifti_image **outputWarpedImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
         outputWarpedImage[0]=outputWarpedImage[1]=NULL;
         outputWarpedImage = REG->GetWarpedImage();
-        if(outputWarpedName==NULL) outputWarpedName=(char *)"outputResult.nii";
+        if(outputWarpedImageName==NULL) outputWarpedImageName=(char *)"outputResult.nii";
         memset(outputWarpedImage[0]->descrip, 0, 80);
         strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d)");
-        if(useSym){
+        if(strcmp("NiftyReg F3D SYM", REG->GetExecutableName())==0){
             strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d_sym)");
             strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d_sym)");
         }
-        if(useVel){
+        if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0){
             strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d2)");
             strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d2)");
         }
-        if(useSym || useVel){
+        if(REG->GetSymmetricStatus()){
             if(outputWarpedImage[1]!=NULL){
-                std::string b(outputWarpedName);
+                std::string b(outputWarpedImageName);
                 if(b.find( ".nii.gz") != std::string::npos)
                     b.replace(b.find( ".nii.gz"),7,"_backward.nii.gz");
                 else if(b.find( ".nii") != std::string::npos)
@@ -910,14 +692,14 @@ int main(int argc, char **argv)
                 else if(b.find( ".nrrd") != std::string::npos)
                     b.replace(b.find( ".nrrd"),5,"_backward.nrrd");
                 else b.append("_backward.nii");
-                if(useSym)
+                if(strcmp("NiftyReg F3D SYM", REG->GetExecutableName())==0)
                     strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d_sym)");
-                if(useVel)
+                if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0)
                     strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d2)");
                 reg_io_WriteImageFile(outputWarpedImage[1],b.c_str());
             }
         }
-        reg_io_WriteImageFile(outputWarpedImage[0],outputWarpedName);
+        reg_io_WriteImageFile(outputWarpedImage[0],outputWarpedImageName);
         if(outputWarpedImage[0]!=NULL)
             nifti_image_free(outputWarpedImage[0]);
         outputWarpedImage[0]=NULL;
@@ -936,28 +718,21 @@ int main(int argc, char **argv)
     // Clean the allocated images
     if(referenceImage!=NULL) nifti_image_free(referenceImage);
     if(floatingImage!=NULL) nifti_image_free(floatingImage);
-    if(controlPointGridImage!=NULL) nifti_image_free(controlPointGridImage);
-    if(affineTransformation!=NULL) free(affineTransformation);
+    if(inputCCPImage!=NULL) nifti_image_free(inputCCPImage);
     if(referenceMaskImage!=NULL) nifti_image_free(referenceMaskImage);
     if(floatingMaskImage!=NULL) nifti_image_free(floatingMaskImage);
 
-#ifdef NDEBUG
-    if(verbose){
-#endif
-        time_t end; time( &end );
-        int minutes = (int)floorf(float(end-start)/60.0f);
-        int seconds = (int)(end-start - 60*minutes);
+    time_t end; time( &end );
+    int minutes = (int)floorf(float(end-start)/60.0f);
+    int seconds = (int)(end-start - 60*minutes);
 
-#ifdef _USE_CUDA
-        if(!checkMem){
-#endif
-            printf("[NiftyReg F3D] Registration Performed in %i min %i sec\n", minutes, seconds);
-            printf("[NiftyReg F3D] Have a good day !\n");
-#ifdef _USE_CUDA
-        }
-#endif
-#ifdef NDEBUG
-    }
-#endif
+//#ifdef _USE_CUDA
+//    if(!checkMem){
+//#endif
+        printf("[NiftyReg F3D] Registration Performed in %i min %i sec\n", minutes, seconds);
+        printf("[NiftyReg F3D] Have a good day !\n");
+//#ifdef _USE_CUDA
+//    }
+//#endif
     return 0;
 }

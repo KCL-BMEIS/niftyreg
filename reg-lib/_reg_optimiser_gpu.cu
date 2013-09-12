@@ -45,8 +45,8 @@ void reg_optimiser_gpu::Initialise(size_t nvox,
                                    float *c
                                    )
 {
-    this->dofNumber=nvox;
-    this->ndim=dim;
+	this->dofNumber=nvox;
+	this->ndim=dim;
     this->optimiseX=optX;
     this->optimiseY=optY;
     this->optimiseZ=optZ;
@@ -63,7 +63,7 @@ void reg_optimiser_gpu::Initialise(size_t nvox,
         cudaCommon_free<float4>(&this->bestDOF_gpu);
 
     if(cudaCommon_allocateArrayToDevice(&this->bestDOF_gpu,
-                                        (int)(this->dofNumber/this->ndim))){
+									   (int)(this->GetVoxNumber()))){
         printf("[NiftyReg ERROR] Error when allocating the best control point array on the GPU.\n");
         reg_exit(1);
     }
@@ -75,8 +75,9 @@ void reg_optimiser_gpu::Initialise(size_t nvox,
 			this->currentObjFunctionValue =
 			this->objFunc->GetObjectiveFunctionValue();
 
+
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_optimiser_gpu::Initialise called\n");
+	printf("[NiftyReg DEBUG] reg_optimiser_gpu::Initialise() called\n");
 #endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

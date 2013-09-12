@@ -13,11 +13,19 @@
 #ifndef _REG_MATHS_H
 #define _REG_MATHS_H
 
-#include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 #include <iostream>
 #include "nifti1_io.h"
+
+typedef enum{
+    DEF_FIELD,
+    DISP_FIELD,
+    SPLINE_GRID,
+    DEF_VEL_FIELD,
+    DISP_VEL_FIELD,
+    SPLINE_VEL_GRID
+}NREG_TRANS_TYPE;
 
 /* *************************************************************** */
 #define reg_pow2(a) ((a)*(a))
@@ -53,6 +61,10 @@
 #endif // If on windows...
 
 /* *************************************************************** */
+typedef struct{
+    double m[4][4];
+} reg_mat44d;
+/* *************************************************************** */
 extern "C++" template <class T>
 void reg_LUdecomposition(T *inputMatrix,
                          size_t dim,
@@ -81,6 +93,12 @@ void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum);
 extern "C++"
 void reg_heapSort(float *array_tmp,int blockNum);
 /* *************************************************************** */
+extern "C++"
+reg_mat44d reg_mat44_singleToDouble(mat44 const *mat);
+/* *************************************************************** */
+extern "C++"
+mat44 reg_mat44_doubleToSingle(reg_mat44d const *mat);
+/* *************************************************************** */
 /** @brief here
  */
 extern "C++"
@@ -88,32 +106,43 @@ mat33 reg_mat44_to_mat33(mat44 const* A);
 /* *************************************************************** */
 /** @brief Multipy two 4-by-4 matrices
  */
-extern "C++"
-mat44 reg_mat44_mul(mat44 const* A,
-                     mat44 const* B);
+extern "C++" template <class MTYPE>
+MTYPE reg_mat44_mul(MTYPE const* A,MTYPE const* B);
+mat44 operator*(mat44 A,mat44 B);
+reg_mat44d operator*(reg_mat44d A,reg_mat44d B);
 /* *************************************************************** */
 /** @brief Multipy a vector with a 4-by-4 matrix
  */
-extern "C++" template <class DTYPE>
-void reg_mat44_mul(mat44 const* mat,
+extern "C++" template <class DTYPE, class MTYPE>
+void reg_mat44_mul(MTYPE const* mat,
                    DTYPE const* in,
                    DTYPE *out);
 /* *************************************************************** */
 /** @brief Multipy a 4-by-4 matrix with a scalar
  */
-extern "C++"
-mat44 reg_mat44_mul(mat44 const* mat,
+extern "C++" template <class MTYPE>
+MTYPE reg_mat44_mul(MTYPE const* mat,
                     double scalar);
 /* *************************************************************** */
 /** @brief Add two 4-by-4 matrices
  */
-extern "C++"
-mat44 reg_mat44_add(mat44 const* A, mat44 const* B);
+extern "C++" template <class MTYPE>
+MTYPE reg_mat44_add(MTYPE const* A, MTYPE const* B);
+mat44 operator+(mat44 A,mat44 B);
+reg_mat44d operator+(reg_mat44d A,reg_mat44d B);
 /* *************************************************************** */
 /** @brief Substract two 4-by-4 matrices
  */
-extern "C++"
-mat44 reg_mat44_minus(mat44 const* A, mat44 const* B);
+extern "C++" template <class MTYPE>
+MTYPE reg_mat44_minus(MTYPE const* A, MTYPE const* B);
+mat44 operator-(mat44 A,mat44 B);
+reg_mat44d operator-(reg_mat44d A,reg_mat44d B);
+/* *************************************************************** */
+extern "C++" template <class MTYPE>
+MTYPE reg_mat44_to_MTYPE(mat44 *M);
+/* *************************************************************** */
+extern "C++" template <class MTYPE>
+mat44 reg_MTYPE_to_mat44(MTYPE *M);
 /* *************************************************************** */
 /** @brief Set up a 3-by-3 matrix with an identity
  */
@@ -122,47 +151,47 @@ void reg_mat33_eye (mat33 *mat);
 /* *************************************************************** */
 /** @brief Set up a 4-by-4 matrix with an identity
  */
-extern "C++"
-void reg_mat44_eye (mat44 *mat);
+extern "C++" template <class MTYPE>
+void reg_mat44_eye(MTYPE *mat);
 /* *************************************************************** */
 /** @brief Compute the determinant of a 4-by-4 matrix
  */
-extern "C++"
-float reg_mat44_det(mat44 const* A);
+extern "C++" template <class MTYPE>
+float reg_mat44_det(MTYPE const* A);
 /* *************************************************************** */
 /** @brief Compute the inverse of a 4-by-4 matrix
  */
-extern "C++"
-mat44 reg_mat44_inv(mat44 const* A);
+extern "C++" template <class MTYPE>
+MTYPE reg_mat44_inv(MTYPE const* A);
 /* *************************************************************** */
-extern "C++"
-double reg_mat44_norm_inf(mat44 const* mat);
+extern "C++" template <class MTYPE>
+float reg_mat44_norm_inf(MTYPE const* mat);
 /* *************************************************************** */
 /** @brief Compute the square root of a 4-by-4 matrix
  */
-extern "C++"
-mat44 reg_mat44_sqrt(mat44 const* mat);
+extern "C++" template <class MTYPE>
+MTYPE reg_mat44_sqrt(MTYPE const* mat);
 /* *************************************************************** */
 /** @brief Compute the exp of a 4-by-4 matrix
  */
-extern "C++"
-mat44 reg_mat44_expm(mat44 const* mat, int maxit=6);
+extern "C++" template <class MTYPE>
+MTYPE reg_mat44_expm(MTYPE const* mat, int maxit=6);
 /* *************************************************************** */
 /** @brief Compute the log of a 4-by-4 matrix
  */
-extern "C++"
-mat44 reg_mat44_logm(mat44 const* mat);
+extern "C++" template <class MTYPE>
+MTYPE reg_mat44_logm(MTYPE const* mat);
 /* *************************************************************** */
 /** @brief Compute the average of two matrices using a log-euclidean
  * framework
  */
-extern "C++"
-mat44 reg_mat44_avg2(mat44 const* A, mat44 const* b);
+extern "C++" template <class MTYPE>
+MTYPE reg_mat44_avg2(MTYPE const* A, MTYPE const* b);
 /* *************************************************************** */
 /** @brief Display a mat44 matrix
  */
-extern "C++"
-void reg_mat44_disp(mat44 *mat,
+extern "C++" template <class MTYPE>
+void reg_mat44_disp(MTYPE *mat,
                     char * title);
 /* *************************************************************** */
 /** @brief Display a mat33 matrix

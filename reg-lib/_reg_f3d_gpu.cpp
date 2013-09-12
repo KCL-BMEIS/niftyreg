@@ -28,8 +28,14 @@ reg_f3d_gpu::reg_f3d_gpu(int refTimePoint,int floTimePoint)
     this->deformationFieldImage_gpu=NULL;
     this->warpedGradientImage_gpu=NULL;
     this->voxelBasedMeasureGradientImage_gpu=NULL;
-    this->transformationGradient_gpu=NULL;
-    this->logJointHistogram_gpu=NULL;
+	this->transformationGradient_gpu=NULL;
+
+	this->measure_gpu_ssd=NULL;
+	this->measure_gpu_kld=NULL;
+	this->measure_gpu_dti=NULL;
+	this->measure_gpu_lncc=NULL;
+	this->measure_gpu_nmi=NULL;
+	this->measure_gpu_multichannel_nmi=NULL;
 
     this->currentReference2_gpu=NULL;
     this->currentFloating2_gpu=NULL;
@@ -61,9 +67,7 @@ reg_f3d_gpu::~reg_f3d_gpu()
     if(this->voxelBasedMeasureGradientImage_gpu!=NULL)
         cudaCommon_free<float4>(&this->voxelBasedMeasureGradientImage_gpu);
     if(this->transformationGradient_gpu!=NULL)
-        cudaCommon_free<float4>(&this->transformationGradient_gpu);
-    if(this->logJointHistogram_gpu!=NULL)
-        cudaCommon_free<float>(&this->logJointHistogram_gpu);
+		cudaCommon_free<float4>(&this->transformationGradient_gpu);
 
     if(this->currentReference2_gpu!=NULL)
         cudaCommon_free(&this->currentReference2_gpu);
@@ -78,9 +82,40 @@ reg_f3d_gpu::~reg_f3d_gpu()
         delete this->optimiser;this->optimiser=NULL;
     }
 
+	if(this->measure_gpu_nmi!=NULL){
+		delete this->measure_gpu_nmi;
+		this->measure_gpu_nmi=NULL;
+		this->measure_nmi=NULL;
+	}
+	if(this->measure_gpu_multichannel_nmi!=NULL){
+		delete this->measure_gpu_multichannel_nmi;
+		this->measure_gpu_multichannel_nmi=NULL;
+		this->measure_multichannel_nmi=NULL;
+	}
+	if(this->measure_gpu_ssd!=NULL){
+		delete this->measure_gpu_ssd;
+		this->measure_gpu_ssd=NULL;
+		this->measure_ssd=NULL;
+	}
+	if(this->measure_gpu_kld!=NULL){
+		delete this->measure_gpu_kld;
+		this->measure_gpu_kld=NULL;
+		this->measure_kld=NULL;
+	}
+	if(this->measure_gpu_dti!=NULL){
+		delete this->measure_gpu_dti;
+		this->measure_gpu_dti=NULL;
+		this->measure_dti=NULL;
+	}
+	if(this->measure_gpu_lncc!=NULL){
+		delete this->measure_gpu_lncc;
+		this->measure_gpu_lncc=NULL;
+		this->measure_lncc=NULL;
+	}
+
     NR_CUDA_SAFE_CALL(cudaThreadExit())
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_f3d_gpu destructor called\n");
+	printf("[NiftyReg DEBUG] reg_f3d_gpu destructor called\n");
 #endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -100,13 +135,13 @@ void reg_f3d_gpu::AllocateWarped()
     this->warped->dim[4]=this->warped->nt=this->currentFloating->nt;
     this->warped->pixdim[4]=this->warped->dt=1.0;
     this->warped->nvox = this->warped->nx *
-                        this->warped->ny *
-                        this->warped->nz *
-                        this->warped->nt;
+			this->warped->ny *
+			this->warped->nz *
+			this->warped->nt;
     this->warped->datatype = this->currentFloating->datatype;
     this->warped->nbyper = this->currentFloating->nbyper;
     NR_CUDA_SAFE_CALL(cudaMallocHost(&(this->warped->data), this->warped->nvox*this->warped->nbyper))
-    if(this->warped->nt==1){
+			if(this->warped->nt==1){
         if(cudaCommon_allocateArrayToDevice<float>(&this->warped_gpu, this->warped->dim)){
             printf("[NiftyReg ERROR] Error when allocating the warped image.\n");
             reg_exit(1);
@@ -132,7 +167,7 @@ void reg_f3d_gpu::ClearWarped()
 {
     if(this->warped!=NULL){
         NR_CUDA_SAFE_CALL(cudaFreeHost(this->warped->data))
-        this->warped->data = NULL;
+				this->warped->data = NULL;
         nifti_image_free(this->warped);
         this->warped=NULL;
     }
@@ -157,8 +192,8 @@ void reg_f3d_gpu::AllocateDeformationField()
     NR_CUDA_SAFE_CALL(cudaMalloc(&this->deformationFieldImage_gpu,
                                  this->activeVoxelNumber[this->currentLevel]*sizeof(float4)))
 
-#ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_f3d_gpu::AllocateDeformationField done.\n");
+		#ifndef NDEBUG
+			printf("[NiftyReg DEBUG] reg_f3d_gpu::AllocateDeformationField done.\n");
 #endif
     return;
 }
@@ -186,8 +221,8 @@ void reg_f3d_gpu::AllocateWarpedGradient()
     else if(this->inputFloating->nt==2){
         NR_CUDA_SAFE_CALL(cudaMalloc(&this->warpedGradientImage_gpu,
                                      this->activeVoxelNumber[this->currentLevel]*sizeof(float4)))
-        NR_CUDA_SAFE_CALL(cudaMalloc(&this->warpedGradientImage2_gpu,
-                                     this->activeVoxelNumber[this->currentLevel]*sizeof(float4)))
+				NR_CUDA_SAFE_CALL(cudaMalloc(&this->warpedGradientImage2_gpu,
+											 this->activeVoxelNumber[this->currentLevel]*sizeof(float4)))
     }
     else{
         printf("[NiftyReg ERROR] reg_f3d_gpu does not handle more than 2 time points in the floating image.\n");
@@ -268,32 +303,6 @@ void reg_f3d_gpu::ClearTransformationGradient()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-void reg_f3d_gpu::AllocateJointHistogram()
-{
-#ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_f3d_gpu::AllocateJointHistogram called.\n");
-#endif
-    this->ClearJointHistogram();
-    reg_f3d<float>::AllocateJointHistogram();
-    NR_CUDA_SAFE_CALL(cudaMalloc(&this->logJointHistogram_gpu,
-                                 this->totalBinNumber*sizeof(float)))
-#ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_f3d_gpu::AllocateJointHistogram done.\n");
-#endif
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-void reg_f3d_gpu::ClearJointHistogram()
-{
-    reg_f3d<float>::ClearJointHistogram();
-    if(this->logJointHistogram_gpu!=NULL){
-        cudaCommon_free<float>(&this->logJointHistogram_gpu);
-        this->logJointHistogram_gpu=NULL;
-    }
-    return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 double reg_f3d_gpu::ComputeJacobianBasedPenaltyTerm(int type)
 {
     if(this->jacobianLogWeight<=0) return 0.;
@@ -317,15 +326,15 @@ double reg_f3d_gpu::ComputeJacobianBasedPenaltyTerm(int type)
     while(value!=value && it<maxit){
         if(type==2){
             value = reg_spline_correctFolding_gpu(this->currentReference,
-                                                   this->controlPointGrid,
-                                                   &this->controlPointGrid_gpu,
-                                                   false);
+												  this->controlPointGrid,
+												  &this->controlPointGrid_gpu,
+												  false);
         }
         else{
             value = reg_spline_correctFolding_gpu(this->currentReference,
-                                                   this->controlPointGrid,
-                                                   &this->controlPointGrid_gpu,
-                                                   this->jacobianLogApproximation);
+												  this->controlPointGrid,
+												  &this->controlPointGrid_gpu,
+												  this->jacobianLogApproximation);
         }
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] Folding correction\n");
@@ -356,7 +365,7 @@ double reg_f3d_gpu::ComputeBendingEnergyPenaltyTerm()
     if(this->bendingEnergyWeight<=0) return 0.;
 
     double value = reg_spline_approxBendingEnergy_gpu(this->controlPointGrid,
-                                                       &this->controlPointGrid_gpu);
+													  &this->controlPointGrid_gpu);
     return this->bendingEnergyWeight * value;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -367,7 +376,7 @@ void reg_f3d_gpu::GetDeformationField()
         reg_f3d<float>::GetDeformationField();
     }
     else{
-       // Compute the deformation field
+		// Compute the deformation field
         reg_spline_getDeformationField_gpu(this->controlPointGrid,
                                            this->currentReference,
                                            &this->controlPointGrid_gpu,
@@ -411,58 +420,11 @@ void reg_f3d_gpu::WarpFloatingImage(int inter)
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-double reg_f3d_gpu::ComputeSimilarityMeasure()
+void reg_f3d_gpu::SetGradientImageToZero()
 {
-    double measure=0.;
-	if(this->useSSD){
-		measure = -reg_getSSD_gpu(this->currentReference,
-								  &this->currentReference_gpu,
-								  &this->warped_gpu,
-                                  &this->currentMask_gpu,
-                                  this->activeVoxelNumber[this->currentLevel]
-								  );
-		if(this->usePyramid)
-			measure /= this->maxSSD[this->currentLevel];
-		else measure /= this->maxSSD[0];
-	}
-	else{
-		if(this->currentFloating->nt==1){
-			if(cudaCommon_transferFromDeviceToNifti<float>
-			   (this->warped, &this->warped_gpu)){
-				printf("[NiftyReg ERROR] Error when computing the similarity measure.\n");
-                reg_exit(1);
-			}
-			reg_getEntropies(this->currentReference,
-							 this->warped,
-							 this->referenceBinNumber,
-							 this->floatingBinNumber,
-							 this->probaJointHistogram,
-							 this->logJointHistogram,
-							 this->entropies,
-							 this->currentMask,
-							 this->approxParzenWindow);
-		}
-		else if(this->currentFloating->nt==2){
-			if(cudaCommon_transferFromDeviceToNifti<float>
-			   (this->warped, &this->warped_gpu, &this->warped2_gpu)){
-				printf("[NiftyReg ERROR] Error when computing the similarity measure.\n");
-                reg_exit(1);
-			}
-			reg_getEntropies2x2_gpu(this->currentReference,
-									 this->warped,
-									 //2,
-									 this->referenceBinNumber,
-									 this->floatingBinNumber,
-									 this->probaJointHistogram,
-									 this->logJointHistogram,
-									 &this->logJointHistogram_gpu,
-									 this->entropies,
-									 this->currentMask);
-		}
-		measure = double(this->entropies[0]+this->entropies[1])/double(this->entropies[2]);
-	}
-
-	return double(this->similarityWeight) * measure;
+	cudaMemset(this->transformationGradient_gpu,0,
+			   this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz*
+			   sizeof(float4));
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -476,72 +438,28 @@ void reg_f3d_gpu::GetVoxelBasedGradient()
                              this->activeVoxelNumber[this->currentLevel],
                              this->warpedPaddingValue);
 
-    if(this->currentFloating->nt==2){
-        reg_getImageGradient_gpu(this->currentFloating,
-                                 &this->currentFloating2_gpu,
-                                 &this->deformationFieldImage_gpu,
-                                 &this->warpedGradientImage2_gpu,
-                                 this->activeVoxelNumber[this->currentLevel],
-                                 this->warpedPaddingValue);
-    }
+	// The voxel based gradient image is filled with zeros
+	cudaMemset(this->voxelBasedMeasureGradientImage_gpu,0,
+			   this->currentReference->nx*this->currentReference->ny*this->currentReference->nz*
+			   sizeof(float4));
+	// The gradient of the various measures of similarity are computed
+	if(this->measure_gpu_nmi!=NULL)
+		this->measure_gpu_nmi->GetVoxelBasedSimilarityMeasureGradient();
 
-	if(this->useSSD){
-		// The voxel based SSD gradient
-		reg_getVoxelBasedSSDGradient_gpu(this->currentReference,
-										 &this->currentReference_gpu,
-										 &this->warped_gpu,
-										 &this->warpedGradientImage_gpu,
-										 &this->voxelBasedMeasureGradientImage_gpu,
-										 this->maxSSD[this->currentLevel],
-                                         &this->currentMask_gpu,
-                                         this->activeVoxelNumber[this->currentLevel]
-										 );
-	}
-	else{
-		// The log joint histogram is first transfered to the GPU
-		float *tempB=NULL;
-		NR_CUDA_SAFE_CALL(cudaMallocHost(&tempB, this->totalBinNumber*sizeof(float)))
-		for(unsigned int i=0; i<this->totalBinNumber;i++){
-			tempB[i]=static_cast<float>(this->logJointHistogram[i]);
-		}
-		NR_CUDA_SAFE_CALL(cudaMemcpy(this->logJointHistogram_gpu, tempB,
-									 this->totalBinNumber*sizeof(float), cudaMemcpyHostToDevice))
-		NR_CUDA_SAFE_CALL(cudaFreeHost(tempB))
-		// The voxel based NMI gradient
-		if(this->currentFloating->nt==1){
-			reg_getVoxelBasedNMIGradientUsingPW_gpu(this->currentReference,
-													this->warped,
-													&this->currentReference_gpu,
-													&this->warped_gpu,
-													&this->warpedGradientImage_gpu,
-													&this->logJointHistogram_gpu,
-													&this->voxelBasedMeasureGradientImage_gpu,
-													&this->currentMask_gpu,
-													this->activeVoxelNumber[this->currentLevel],
-													this->entropies,
-													this->referenceBinNumber[0],
-													this->floatingBinNumber[0]);
-		}
-		else if(this->currentFloating->nt==2){
-			reg_getVoxelBasedNMIGradientUsingPW2x2_gpu( this->currentReference,
-														this->warped,
-														&this->currentReference_gpu,
-														&this->currentReference2_gpu,
-														&this->warped_gpu,
-														&this->warped2_gpu,
-														&this->warpedGradientImage_gpu,
-														&this->warpedGradientImage2_gpu,
-														&this->logJointHistogram_gpu,
-														&this->voxelBasedMeasureGradientImage_gpu,
-														&this->currentMask_gpu,
-														this->activeVoxelNumber[this->currentLevel],
-														this->entropies,
-														this->referenceBinNumber,
-														this->floatingBinNumber);
-		}
-	}
+	if(this->measure_gpu_multichannel_nmi!=NULL)
+		this->measure_gpu_multichannel_nmi->GetVoxelBasedSimilarityMeasureGradient();
 
-    return;
+	if(this->measure_gpu_ssd!=NULL)
+		this->measure_gpu_ssd->GetVoxelBasedSimilarityMeasureGradient();
+
+	if(this->measure_gpu_kld!=NULL)
+		this->measure_gpu_kld->GetVoxelBasedSimilarityMeasureGradient();
+
+	if(this->measure_gpu_lncc!=NULL)
+		this->measure_gpu_lncc->GetVoxelBasedSimilarityMeasureGradient();
+
+	if(this->measure_gpu_dti!=NULL)
+		this->measure_gpu_dti->GetVoxelBasedSimilarityMeasureGradient();
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -572,8 +490,8 @@ void reg_f3d_gpu::GetSimilarityMeasureGradient()
         floatingMatrix_xyz = &(this->currentFloating->sto_xyz);
     else floatingMatrix_xyz = &(this->currentFloating->qto_xyz);
     reg_convertNMIGradientFromVoxelToRealSpace_gpu( floatingMatrix_xyz,
-                                                    this->controlPointGrid,
-                                                    &this->transformationGradient_gpu);
+												   this->controlPointGrid,
+												   &this->transformationGradient_gpu);
     // The gradient is smoothed using a Gaussian kernel if it is required
     if(this->gradientSmoothingSigma!=0){
         reg_gaussianSmoothing_gpu(this->controlPointGrid,
@@ -733,24 +651,24 @@ float reg_f3d_gpu::InitialiseCurrentLevel()
     if(this->currentReference2_gpu!=NULL) cudaCommon_free(&this->currentReference2_gpu);
     if(this->currentReference->nt==1){
         if(cudaCommon_allocateArrayToDevice<float>
-           (&this->currentReference_gpu, this->currentReference->dim)){
+				(&this->currentReference_gpu, this->currentReference->dim)){
             printf("[NiftyReg ERROR] Error when allocating the reference image.\n");
             reg_exit(1);
         }
         if(cudaCommon_transferNiftiToArrayOnDevice<float>
-           (&this->currentReference_gpu, this->currentReference)){
+				(&this->currentReference_gpu, this->currentReference)){
             printf("[NiftyReg ERROR] Error when transfering the reference image.\n");
             reg_exit(1);
         }
     }
     else if(this->currentReference->nt==2){
         if(cudaCommon_allocateArrayToDevice<float>
-           (&this->currentReference_gpu,&this->currentReference2_gpu, this->currentReference->dim)){
+				(&this->currentReference_gpu,&this->currentReference2_gpu, this->currentReference->dim)){
             printf("[NiftyReg ERROR] Error when allocating the reference image.\n");
             reg_exit(1);
         }
         if(cudaCommon_transferNiftiToArrayOnDevice<float>
-           (&this->currentReference_gpu, &this->currentReference2_gpu, this->currentReference)){
+				(&this->currentReference_gpu, &this->currentReference2_gpu, this->currentReference)){
             printf("[NiftyReg ERROR] Error when transfering the reference image.\n");
             reg_exit(1);
         }
@@ -760,55 +678,55 @@ float reg_f3d_gpu::InitialiseCurrentLevel()
     if(this->currentFloating2_gpu!=NULL) cudaCommon_free(&this->currentFloating2_gpu);
     if(this->currentReference->nt==1){
         if(cudaCommon_allocateArrayToDevice<float>
-           (&this->currentFloating_gpu, this->currentFloating->dim)){
+				(&this->currentFloating_gpu, this->currentFloating->dim)){
             printf("[NiftyReg ERROR] Error when allocating the floating image.\n");
             reg_exit(1);
         }
         if(cudaCommon_transferNiftiToArrayOnDevice<float>
-           (&this->currentFloating_gpu, this->currentFloating)){
+				(&this->currentFloating_gpu, this->currentFloating)){
             printf("[NiftyReg ERROR] Error when transfering the floating image.\n");
             reg_exit(1);
         }
     }
     else if(this->currentReference->nt==2){
         if(cudaCommon_allocateArrayToDevice<float>
-           (&this->currentFloating_gpu, &this->currentFloating2_gpu, this->currentFloating->dim)){
+				(&this->currentFloating_gpu, &this->currentFloating2_gpu, this->currentFloating->dim)){
             printf("[NiftyReg ERROR] Error when allocating the floating image.\n");
             reg_exit(1);
         }
         if(cudaCommon_transferNiftiToArrayOnDevice<float>
-           (&this->currentFloating_gpu, &this->currentFloating2_gpu, this->currentFloating)){
+				(&this->currentFloating_gpu, &this->currentFloating2_gpu, this->currentFloating)){
             printf("[NiftyReg ERROR] Error when transfering the floating image.\n");
             reg_exit(1);
         }
     }
-    if(this->controlPointGrid_gpu!=NULL) cudaCommon_free<float4>(&this->controlPointGrid_gpu);
+	if(this->controlPointGrid_gpu!=NULL) cudaCommon_free<float4>(&this->controlPointGrid_gpu);
     if(cudaCommon_allocateArrayToDevice<float4>
-       (&this->controlPointGrid_gpu, this->controlPointGrid->dim)){
+			(&this->controlPointGrid_gpu, this->controlPointGrid->dim)){
         printf("[NiftyReg ERROR] Error when allocating the control point image.\n");
         reg_exit(1);
     }
 
     if(cudaCommon_transferNiftiToArrayOnDevice<float4>
-       (&this->controlPointGrid_gpu, this->controlPointGrid)){
+			(&this->controlPointGrid_gpu, this->controlPointGrid)){
         printf("[NiftyReg ERROR] Error when transfering the control point image.\n");
         reg_exit(1);
     }
 
     int *targetMask_h;
     NR_CUDA_SAFE_CALL(cudaMallocHost(&targetMask_h,this->activeVoxelNumber[this->currentLevel]*sizeof(int)))
-    int *targetMask_h_ptr = &targetMask_h[0];
+			int *targetMask_h_ptr = &targetMask_h[0];
     for(int i=0;i<this->currentReference->nx*this->currentReference->ny*this->currentReference->nz;i++){
         if( this->currentMask[i]!=-1) *targetMask_h_ptr++=i;
     }
     NR_CUDA_SAFE_CALL(cudaMalloc(&this->currentMask_gpu,
                                  this->activeVoxelNumber[this->currentLevel]*sizeof(int)))
-    NR_CUDA_SAFE_CALL(cudaMemcpy(this->currentMask_gpu, targetMask_h,
-                                 this->activeVoxelNumber[this->currentLevel]*sizeof(int),
-                                 cudaMemcpyHostToDevice))
-    NR_CUDA_SAFE_CALL(cudaFreeHost(targetMask_h))
-#ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_f3d_gpu::AllocateCurrentInputImage done.\n");
+			NR_CUDA_SAFE_CALL(cudaMemcpy(this->currentMask_gpu, targetMask_h,
+										 this->activeVoxelNumber[this->currentLevel]*sizeof(int),
+										 cudaMemcpyHostToDevice))
+			NR_CUDA_SAFE_CALL(cudaFreeHost(targetMask_h))
+		#ifndef NDEBUG
+			printf("[NiftyReg DEBUG] reg_f3d_gpu::AllocateCurrentInputImage done.\n");
 #endif
     return maxStepSize;
 }
@@ -819,7 +737,7 @@ void reg_f3d_gpu::ClearCurrentInputImage()
     printf("[NiftyReg DEBUG] reg_f3d_gpu::ClearCurrentInputImage called.\n");
 #endif
     if(cudaCommon_transferFromDeviceToNifti<float4>
-       (this->controlPointGrid, &this->controlPointGrid_gpu)){
+			(this->controlPointGrid, &this->controlPointGrid_gpu)){
         printf("[NiftyReg ERROR] Error when transfering back the control point image.\n");
         reg_exit(1);
     }
@@ -830,14 +748,15 @@ void reg_f3d_gpu::ClearCurrentInputImage()
     cudaCommon_free(&this->currentFloating_gpu);
     this->currentFloating_gpu=NULL;
     NR_CUDA_SAFE_CALL(cudaFree(this->currentMask_gpu))
-    this->currentMask_gpu=NULL;
+			this->currentMask_gpu=NULL;
 
-    if(this->currentReference->nt==2){
+	if(this->currentReference2_gpu!=NULL)
         cudaCommon_free(&this->currentReference2_gpu);
-        this->currentReference2_gpu=NULL;
+	this->currentReference2_gpu=NULL;
+	if(this->currentFloating2_gpu!=NULL)
 		cudaCommon_free(&this->currentFloating2_gpu);
-        this->currentFloating2_gpu=NULL;
-    }
+	this->currentFloating2_gpu=NULL;
+
     this->currentReference=NULL;
     this->currentMask=NULL;
     this->currentFloating=NULL;
@@ -880,7 +799,7 @@ float reg_f3d_gpu::NormaliseGradient()
 		// The gradient is normalised if we are running F3D
 		// It will be normalised later when running symmetric or F3D2
 #ifndef NDEBUG
-	printf("[NiftyReg DEBUG] Objective function gradient_gpu maximal length: %g\n", length);
+		printf("[NiftyReg DEBUG] Objective function gradient_gpu maximal length: %g\n", length);
 #endif
 		reg_multiplyValue_gpu(this->optimiser->GetVoxNumber(),
 							  &this->transformationGradient_gpu,
@@ -947,28 +866,209 @@ int reg_f3d_gpu::CheckMemoryMB()
     // conjugate gradient
     totalMemoryRequiered += 2 * cp * sizeof(float4);
 
-    // joint histogram
-    unsigned int histogramSize[3]={1,1,1};
-    for(int i=0;i<this->referenceTimePoint;i++){
-        histogramSize[0] *= this->referenceBinNumber[i];
-        histogramSize[1] *= this->referenceBinNumber[i];
-    }
-    for(int i=0;i<this->floatingTimePoint;i++){
-        histogramSize[0] *= this->floatingBinNumber[i];
-        histogramSize[2] *= this->floatingBinNumber[i];
-    }
-    histogramSize[0] += histogramSize[1] + histogramSize[2];
-    totalMemoryRequiered += histogramSize[0] * sizeof(float);
+
+	// HERE TODO
 
     // jacobian array
     if(this->jacobianLogWeight>0)
         totalMemoryRequiered += 10 * referenceVoxelNumber *
-                                sizeof(float);
+				sizeof(float);
 
     return (int)(ceil((float)totalMemoryRequiered/float(1024*1024)));
 
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+void reg_f3d_gpu::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber)
+{
+	if(this->measure_gpu_nmi==NULL)
+		this->measure_gpu_nmi=new reg_nmi_gpu;
+	this->measure_gpu_nmi->SetActiveTimepoint(timepoint);
+	// I am here adding 4 to the specified bin number to accomodate for
+	// the spline support
+	this->measure_gpu_nmi->SetFloatingBinNumber(floBinNumber+4, timepoint);
+	return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+void reg_f3d_gpu::UseNMISetReferenceBinNumber(int timepoint, int refBinNumber)
+{
+	if(this->measure_gpu_nmi==NULL)
+		this->measure_gpu_nmi=new reg_nmi_gpu;
+	this->measure_gpu_nmi->SetActiveTimepoint(timepoint);
+	// I am here adding 4 to the specified bin number to accomodate for
+	// the spline support
+	this->measure_gpu_nmi->SetReferenceBinNumber(refBinNumber+4, timepoint);
+	return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+void reg_f3d_gpu::UseMultiChannelNMI(int timepointNumber, int *timepoint)
+{
+	if(this->measure_gpu_multichannel_nmi==NULL)
+		this->measure_gpu_multichannel_nmi=new reg_multichannel_nmi_gpu;
+	for(int i=0; i<timepointNumber;++i)
+		this->measure_gpu_multichannel_nmi->SetActiveTimepoint(timepoint[i]);
+	return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+void reg_f3d_gpu::UseSSD(int timepoint)
+{
+	if(this->measure_gpu_ssd==NULL)
+		this->measure_gpu_ssd=new reg_ssd_gpu;
+	this->measure_gpu_ssd->SetActiveTimepoint(timepoint);
+	return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+void reg_f3d_gpu::UseKLDivergence(int timepoint)
+{
+	if(this->measure_gpu_kld==NULL)
+		this->measure_gpu_kld=new reg_kld_gpu;
+	this->measure_gpu_kld->SetActiveTimepoint(timepoint);
+	return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+void reg_f3d_gpu::UseLNCC(int timepoint, float stddev)
+{
+	if(this->measure_gpu_lncc==NULL)
+		this->measure_gpu_lncc=new reg_lncc_gpu;
+	this->measure_gpu_lncc->SetActiveTimepoint(timepoint);
+	this->measure_gpu_lncc->SetKernelStandardDeviation(timepoint,stddev);
+	return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+void reg_f3d_gpu::UseDTI(int timepoint[6])
+{
+	if(this->measure_gpu_dti==NULL)
+		this->measure_gpu_dti=new reg_dti_gpu;
+	for(int i=0;i<6;++i)
+		this->measure_gpu_dti->SetActiveTimepoint(timepoint[i]);
+	return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+void reg_f3d_gpu::InitialiseSimilarity()
+{
+    // SET THE DEFAULT MEASURE OF SIMILARITY IF NONE HAS BEEN SET
+	if(this->measure_gpu_nmi==NULL &&
+			this->measure_gpu_ssd==NULL &&
+			this->measure_gpu_dti==NULL &&
+			this->measure_gpu_kld==NULL &&
+			this->measure_gpu_lncc==NULL){
+		measure_gpu_nmi=new reg_nmi_gpu;
+        for(int i=0;i<this->inputReference->nt;++i)
+			measure_gpu_nmi->SetActiveTimepoint(i);
+    }
+	if(this->measure_gpu_nmi!=NULL){
+		this->measure_gpu_nmi->InitialiseMeasure(this->currentReference,
+												 this->currentFloating,
+												 this->currentMask,
+												 this->activeVoxelNumber[this->currentLevel],
+												 this->warped,
+												 this->warpedGradientImage,
+												 this->voxelBasedMeasureGradientImage,
+												 &this->currentReference_gpu,
+												 &this->currentFloating_gpu,
+												 &this->currentMask_gpu,
+												 &this->warped_gpu,
+												 &this->warpedGradientImage_gpu,
+												 &this->voxelBasedMeasureGradientImage_gpu
+												 );
+		this->measure_nmi=this->measure_gpu_nmi;
+	}
 
+	if(this->measure_gpu_multichannel_nmi!=NULL){
+		this->measure_gpu_multichannel_nmi->InitialiseMeasure(this->currentReference,
+															  this->currentFloating,
+															  this->currentMask,
+															  this->activeVoxelNumber[this->currentLevel],
+															  this->warped,
+															  this->warpedGradientImage,
+															  this->voxelBasedMeasureGradientImage,
+															  &this->currentReference_gpu,
+															  &this->currentFloating_gpu,
+															  &this->currentMask_gpu,
+															  &this->warped_gpu,
+															  &this->warpedGradientImage_gpu,
+															  &this->voxelBasedMeasureGradientImage_gpu
+															  );
+		this->measure_multichannel_nmi=this->measure_gpu_multichannel_nmi;
+	}
+
+	if(this->measure_gpu_ssd!=NULL){
+		this->measure_gpu_ssd->InitialiseMeasure(this->currentReference,
+												 this->currentFloating,
+												 this->currentMask,
+												 this->activeVoxelNumber[this->currentLevel],
+												 this->warped,
+												 this->warpedGradientImage,
+												 this->voxelBasedMeasureGradientImage,
+												 &this->currentReference_gpu,
+												 &this->currentFloating_gpu,
+												 &this->currentMask_gpu,
+												 &this->warped_gpu,
+												 &this->warpedGradientImage_gpu,
+												 &this->voxelBasedMeasureGradientImage_gpu
+												 );
+		this->measure_ssd=this->measure_gpu_ssd;
+	}
+
+	if(this->measure_gpu_kld!=NULL){
+		this->measure_gpu_kld->InitialiseMeasure(this->currentReference,
+												 this->currentFloating,
+												 this->currentMask,
+												 this->activeVoxelNumber[this->currentLevel],
+												 this->warped,
+												 this->warpedGradientImage,
+												 this->voxelBasedMeasureGradientImage,
+												 &this->currentReference_gpu,
+												 &this->currentFloating_gpu,
+												 &this->currentMask_gpu,
+												 &this->warped_gpu,
+												 &this->warpedGradientImage_gpu,
+												 &this->voxelBasedMeasureGradientImage_gpu
+												 );
+		this->measure_kld=this->measure_gpu_kld;
+	}
+
+	if(this->measure_gpu_lncc!=NULL){
+		this->measure_gpu_lncc->InitialiseMeasure(this->currentReference,
+												  this->currentFloating,
+												  this->currentMask,
+												  this->activeVoxelNumber[this->currentLevel],
+												  this->warped,
+												  this->warpedGradientImage,
+												  this->voxelBasedMeasureGradientImage,
+												  &this->currentReference_gpu,
+												  &this->currentFloating_gpu,
+												  &this->currentMask_gpu,
+												  &this->warped_gpu,
+												  &this->warpedGradientImage_gpu,
+												  &this->voxelBasedMeasureGradientImage_gpu
+												  );
+		this->measure_lncc=this->measure_gpu_lncc;
+	}
+
+	if(this->measure_gpu_dti!=NULL){
+		this->measure_gpu_dti->InitialiseMeasure(this->currentReference,
+												 this->currentFloating,
+												 this->currentMask,
+												 this->activeVoxelNumber[this->currentLevel],
+												 this->warped,
+												 this->warpedGradientImage,
+												 this->voxelBasedMeasureGradientImage,
+												 &this->currentReference_gpu,
+												 &this->currentFloating_gpu,
+												 &this->currentMask_gpu,
+												 &this->warped_gpu,
+												 &this->warpedGradientImage_gpu,
+												 &this->voxelBasedMeasureGradientImage_gpu
+												 );
+		this->measure_dti=this->measure_gpu_dti;
+	}
+#ifndef NDEBUG
+	printf("[NiftyReg DEBUG] reg_f3d_gpu::InitialiseSimilarity() done\n");
+#endif
+    return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 #endif

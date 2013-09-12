@@ -15,7 +15,9 @@
 #include "_reg_resampling.h"
 #include "_reg_globalTransformation.h"
 #include "_reg_localTransformation.h"
-#include "_reg_mutualinformation.h"
+#include "_reg_nmi.h"
+#include "_reg_dti.h"
+#include "_reg_measure.h"
 #include "_reg_ssd.h"
 #include "_reg_KLdivergence.h"
 #include "_reg_lncc.h"
@@ -29,13 +31,24 @@ template <class T>
 class reg_base : public InterfaceOptimiser
 {
 protected:
+    // Optimiser related variables
     reg_optimiser<T> *optimiser;
     size_t maxiterationNumber;
     size_t perturbationNumber;
     bool optimiseX;
     bool optimiseY;
     bool optimiseZ;
+
+    // Optimiser related function
     virtual void SetOptimiser();
+
+    // Measure related variables
+	reg_ssd *measure_ssd;
+	reg_kld *measure_kld;
+	reg_dti *measure_dti;
+	reg_lncc *measure_lncc;
+	reg_nmi *measure_nmi;
+	reg_multichannel_nmi *measure_multichannel_nmi;
 
     char *executableName;
     int referenceTimePoint;
@@ -57,9 +70,6 @@ protected:
     T gradientSmoothingSigma;
     T similarityWeight;
     bool additive_mc_nmi;
-    bool useSSD;
-    bool useKLD;
-    T useLNCC;
     bool useConjGradient;
     bool useApproxGradient;
     bool verbose;
@@ -80,14 +90,8 @@ protected:
     nifti_image *voxelBasedMeasureGradientImage;
     unsigned int currentLevel;
 
-    unsigned int *referenceBinNumber;
-    unsigned int *floatingBinNumber;
-    unsigned int totalBinNumber;
-    double *probaJointHistogram;
-    double *logJointHistogram;
-    double entropies[4];
-    bool approxParzenWindow;
-    T *maxSSD;
+    mat33 *forwardJacobianMatrix;
+
     double bestWMeasure;
     double currentWMeasure;
 
@@ -97,8 +101,6 @@ protected:
     virtual void ClearDeformationField();
     virtual void AllocateWarpedGradient();
     virtual void ClearWarpedGradient();
-    virtual void AllocateJointHistogram();
-    virtual void ClearJointHistogram();
     virtual void AllocateVoxelBasedMeasureGradient();
     virtual void ClearVoxelBasedMeasureGradient();
     virtual T InitialiseCurrentLevel(){return 0.;}
@@ -108,6 +110,7 @@ protected:
     virtual double ComputeSimilarityMeasure();
     virtual void GetVoxelBasedGradient();
     virtual void SmoothGradient(){return;}
+    virtual void InitialiseSimilarity();
 
     // Virtual empty functions that have to be filled
     virtual void GetDeformationField()
@@ -148,11 +151,27 @@ public:
     reg_base(int refTimePoint,int floTimePoint);
     virtual ~reg_base();
 
+    // Optimisation related functions
     void SetMaximalIterationNumber(unsigned int);
     void NoOptimisationAlongX(){this->optimiseX=false;}
     void NoOptimisationAlongY(){this->optimiseY=false;}
     void NoOptimisationAlongZ(){this->optimiseZ=false;}
     void SetPerturbationNumber(size_t v){this->perturbationNumber=v;}
+    void UseConjugateGradient();
+    void DoNotUseConjugateGradient();
+    void UseApproximatedGradient();
+    void DoNotUseApproximatedGradient();
+    // Measure of similarity related functions
+//    void ApproximateParzenWindow();
+//    void DoNotApproximateParzenWindow();
+	virtual void UseNMISetReferenceBinNumber(int,int);
+	virtual void UseNMISetFloatingBinNumber(int,int);
+	virtual void UseMultiChannelNMI(int timepointNumber, int *timepoint);
+	virtual void UseSSD(int timepoint);
+	virtual void UseKLDivergence(int timepoint);
+    virtual void UseDTI(bool *timepoint);
+    virtual void UseLNCC(int timepoint, float stdDevKernel);
+
     void SetReferenceImage(nifti_image *);
     void SetFloatingImage(nifti_image *);
     void SetReferenceMask(nifti_image *);
@@ -167,32 +186,19 @@ public:
     void SetWarpedPaddingValue(T);
     void SetLevelNumber(unsigned int);
     void SetLevelToPerform(unsigned int);
-    void UseConjugateGradient();
-    void DoNotUseConjugateGradient();
-    void UseApproximatedGradient();
-    void DoNotUseApproximatedGradient();
     void PrintOutInformation();
     void DoNotPrintOutInformation();
     void DoNotUsePyramidalApproach();
     void UseNeareatNeighborInterpolation();
     void UseLinearInterpolation();
     void UseCubicSplineInterpolation();
-    void SetReferenceBinNumber(int, unsigned int);
-    void SetFloatingBinNumber(int, unsigned int);
-    void ApproximateParzenWindow();
-    void DoNotApproximateParzenWindow();
-    void UseSSD();
-    void DoNotUseSSD();
-    void UseKLDivergence();
-    void DoNotUseKLDivergence();
-    void UseLNCC(T);
-    void DoNotUseLNCC();
-    void SetAdditiveMC(){this->additive_mc_nmi=true;}
 
-    virtual void CheckParameters();
+	virtual void CheckParameters();
     void Run();
-    virtual void Initisalise();
-    virtual nifti_image **GetWarpedImage(){return NULL;} // Need to be filled
+	virtual void Initisalise();
+	nifti_image **GetWarpedImage(){return NULL;} // Need to be filled
+	virtual char * GetExecutableName(){return this->executableName;}
+	virtual bool GetSymmetricStatus(){return false;}
 
     // Function required for the NiftyReg pluggin in NiftyView
     void SetProgressCallbackFunction(void (*funcProgCallback)(float pcntProgress,

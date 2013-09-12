@@ -16,18 +16,15 @@
 #ifndef _REG_TRANSFORMATION_H
 #define _REG_TRANSFORMATION_H
 
-#include "nifti1_io.h"
 #include "_reg_globalTransformation.h"
 #include "float.h"
 #include <limits>
-#include "_reg_maths.h"
 #include "_reg_tools.h"
 
 #if _USE_SSE
-	#include <emmintrin.h>
-    #include <xmmintrin.h>
+#include <emmintrin.h>
+#include <xmmintrin.h>
 #endif
-
 
 /* *********************************************** */
 /* ****      CUBIC SPLINE BASED FUNCTIONS     **** */
@@ -107,8 +104,8 @@ void reg_spline_approxBendingEnergyGradient(nifti_image *controlPointGridImage,
  */
 extern "C++"
 void reg_spline_linearEnergy(nifti_image *controlPointGridImage,
-                              double *values
-                              );
+                             double *values
+                             );
 /* *************************************************************** */
 /** @brief Compute the gradient of the linear elastic energy terms
  * approximated at the control point positions only.
@@ -125,11 +122,11 @@ void reg_spline_linearEnergy(nifti_image *controlPointGridImage,
  */
 extern "C++"
 void reg_spline_linearEnergyGradient(nifti_image *controlPointGridImage,
-                                      nifti_image *referenceImage,
-                                      nifti_image *gradientImage,
-                                      float weight0,
-                                      float weight1
-                                      );
+                                     nifti_image *referenceImage,
+                                     nifti_image *gradientImage,
+                                     float weight0,
+                                     float weight1
+                                     );
 /* *************************************************************** */
 /** @brief Compute and return the L2 norm of the displacement approximated
   * at the control point positions only.
@@ -153,9 +150,9 @@ double reg_spline_L2norm_displacement(nifti_image *controlPointGridImage);
  */
 extern "C++"
 void reg_spline_L2norm_dispGradient(nifti_image *controlPointGridImage,
-                                     nifti_image *referenceImage,
-                                     nifti_image *gradientImage,
-                                     float weight);
+                                    nifti_image *referenceImage,
+                                    nifti_image *gradientImage,
+                                    float weight);
 /* *************************************************************** */
 /** @brief Compute the Jacobian determinant map using a cubic b-spline
  * @param controlPointGridImage Image that contains the transformation
@@ -165,8 +162,8 @@ void reg_spline_L2norm_dispGradient(nifti_image *controlPointGridImage,
  */
 extern "C++"
 void reg_spline_GetJacobianMap(nifti_image *controlPointGridImage,
-                                nifti_image *jacobianImage
-                                );
+                               nifti_image *jacobianImage
+                               );
 /* *************************************************************** */
 /** @brief Compute the average Jacobian determinant
  * @param controlPointGridImage Image that contains the transformation
@@ -219,9 +216,9 @@ void reg_spline_getJacobianPenaltyTermGradient(nifti_image *controlPointGridImag
  */
 extern "C++"
 void reg_spline_GetJacobianMatrixFull(nifti_image *referenceImage,
-                                       nifti_image *controlPointGridImage,
-                                       mat33 *jacobianImage
-                                       );
+                                      nifti_image *controlPointGridImage,
+                                      mat33 *jacobianImage
+                                      );
 /* *************************************************************** */
 /** @brief Compute the Jacobian matrix at every voxel position
  * using a cubic b-spline parametrisation. This function does require
@@ -235,9 +232,9 @@ void reg_spline_GetJacobianMatrixFull(nifti_image *referenceImage,
  */
 extern "C++"
 void reg_spline_GetJacobianMatrix(nifti_image *referenceImage,
-                                   nifti_image *controlPointGridImage,
-                                   mat33 *jacobianImage
-                                   );
+                                  nifti_image *controlPointGridImage,
+                                  mat33 *jacobianImage
+                                  );
 /* *************************************************************** */
 /** @brief Correct the folding in the transformation parametrised through
  * cubic B-Spline
@@ -249,9 +246,9 @@ void reg_spline_GetJacobianMatrix(nifti_image *referenceImage,
  */
 extern "C++"
 double reg_spline_correctFolding(nifti_image *controlPointGridImage,
-                                  nifti_image *referenceImage,
-                                  bool approx
-                                  );
+                                 nifti_image *referenceImage,
+                                 bool approx
+                                 );
 /* *************************************************************** */
 /** @brief Upsample an image from voxel space to node space using
  * millimiter correspendences.
@@ -280,8 +277,8 @@ void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
  */
 extern "C++"
 void reg_spline_refineControlPointGrid(nifti_image *referenceImage,
-                                        nifti_image *controlPointGridImage
-                                        );
+                                       nifti_image *controlPointGridImage
+                                       );
 /* *************************************************************** */
 /** @brief Initialise a lattice of control point to generate a global deformation
  * @param affineTransformation Matrix that contains an affine transformation
@@ -290,8 +287,8 @@ void reg_spline_refineControlPointGrid(nifti_image *referenceImage,
  */
 extern "C++"
 int reg_spline_initialiseControlPointGridWithAffine(mat44 *affineTransformation,
-                                                     nifti_image *controlPointGridImage
-                                                     );
+                                                    nifti_image *controlPointGridImage
+                                                    );
 /* *************************************************************** */
 /** @brief This function compose the a first control point image with a second one:
  * Grid2(x) <= Grid1(Grid2(x)).
@@ -374,6 +371,11 @@ extern "C++"
 void reg_defFieldInvert(nifti_image *inputDeformationField,
                         nifti_image *outputDeformationField,
                         float tolerance);
+/* *************************************************************** */
+extern "C++"
+void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
+                                                   nifti_image *deformationFieldImage,
+                                                   bool updateStepNumber);
 /* *********************************************** */
 /* ****     VELOCITY FIELD BASED FUNCTIONS    **** */
 /* *********************************************** */
@@ -390,9 +392,9 @@ void reg_defFieldInvert(nifti_image *inputDeformationField,
  */
 extern "C++"
 int reg_spline_GetJacobianMatricesFromVelocityField(nifti_image* referenceImage,
-                                                     nifti_image* velocityFieldImage,
-                                                     mat33* jacobianMatrices
-                                                     );
+                                                    nifti_image* velocityFieldImage,
+                                                    mat33* jacobianMatrices
+                                                    );
 /* *************************************************************** */
 /** @brief This function computed a Jacobian determinant map by integrating
  * the velocity field
@@ -403,8 +405,8 @@ int reg_spline_GetJacobianMatricesFromVelocityField(nifti_image* referenceImage,
  */
 extern "C++"
 int reg_spline_GetJacobianDetFromVelocityField(nifti_image* jacobianDetImage,
-                                                nifti_image* velocityFieldImage
-                                                );
+                                               nifti_image* velocityFieldImage
+                                               );
 /* *************************************************************** */
 /** @brief The deformation field (img2) is computed by integrating
  * a velocity field (img1)
@@ -415,10 +417,17 @@ int reg_spline_GetJacobianDetFromVelocityField(nifti_image* jacobianDetImage,
  */
 extern "C++"
 void reg_spline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
-                                                     nifti_image *deformationFieldImage);
+                                                    nifti_image *deformationFieldImage,
+                                                    bool updateStepNumber);
+/* *************************************************************** */
 extern "C++"
 void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGrid,
-                                                    nifti_image **deformationFieldImage);
+                                                   nifti_image **deformationFieldImage);
+/* *************************************************************** */
+extern "C++"
+void reg_spline_getFlowFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
+                                             nifti_image *flowField);
+
 /* *************************************************************** */
 
 

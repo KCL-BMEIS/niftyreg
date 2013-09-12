@@ -31,6 +31,8 @@
  * interpolation
  * @param paddingValue Value to be used for padding when the correspondences are outside of the
  * reference image space.
+ * @param dtIndicies Array of 6 integers that correspond to the "time" indicies of the diffusion tensor
+ * components in the order xx,yy,zz,xy,xz,yz. If there are no DT images, pass an array of -1's
  */
 extern "C++"
 void reg_resampleImage(nifti_image *floatingImage,
@@ -38,20 +40,26 @@ void reg_resampleImage(nifti_image *floatingImage,
                        nifti_image *deformationField,
                        int *mask,
                        int interp,
-                       float paddingValue);
+                       float paddingValue,
+                       bool *dti_timepoint = NULL,
+                       mat33 * jacMat = NULL);
+
 extern "C++"
 void reg_resampleGradient(nifti_image *gradientImage,
                           nifti_image *warpedGradientImage,
                           nifti_image *deformationField,
                           int interp,
                           float paddingValue);
+
 extern "C++"
 void reg_getImageGradient(nifti_image *sourceImage,
                           nifti_image *resultGradientImage,
                           nifti_image *deformationField,
                           int *mask,
                           int interp,
-                          float paddingValue);
+                          float paddingValue,
+                          bool *dti_timepoint = NULL,
+                          mat33 *jacMat = NULL);
 extern "C++"
 nifti_image *reg_makeIsotropic(nifti_image *, int);
 

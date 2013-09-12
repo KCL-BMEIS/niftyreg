@@ -35,7 +35,6 @@ typedef struct{
     char *operationImageName;
     char *rmsImageName;
     float operationValue;
-    float smoothValue;
     float smoothValueX;
     float smoothValueY;
     float smoothValueZ;
@@ -47,8 +46,9 @@ typedef struct{
     bool floatFlag;
     bool downsampleFlag;
     bool rmsImageFlag;
-    bool smoothValueFlag;
+    bool smoothSplineFlag;
     bool smoothGaussianFlag;
+    bool smoothMeanFlag;
     bool binarisedImageFlag;
     bool thresholdImageFlag;
     bool nanMaskFlag;
@@ -70,9 +70,9 @@ void Usage(char *exec)
     printf("\t-in <filename>\tFilename of the input image image (mandatory)\n");
     printf("* * OPTIONS * *\n");
     printf("\t-out <filename>\t\tFilename out the output image [output.nii]\n");
-    printf("\t-smo <float>\t\tThe input image is smoothed using a cubic b-spline kernel\n");
     printf("\t-float\t\t\tThe input image is converted to float\n");
     printf("\t-down\t\t\tThe input image is downsampled 2 times\n");
+    printf("\t-smoS <float> <float> <float>\tThe input image is smoothed using a cubic b-spline kernel\n");
     printf("\t-smoG <float> <float> <float>\tThe input image is smoothed using Gaussian kernel\n");
     printf("\t-add <filename/float>\tThis image (or value) is added to the input\n");
     printf("\t-sub <filename/float>\tThis image (or value) is subtracted to the input\n");
@@ -175,15 +175,23 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-float") == 0){
             flag->floatFlag=1;
         }
-        else if(strcmp(argv[i], "-smo") == 0){
-            param->smoothValue=atof(argv[++i]);
-            flag->smoothValueFlag=1;
+        else if(strcmp(argv[i], "-smoS") == 0){
+            param->smoothValueX=atof(argv[++i]);
+            param->smoothValueY=atof(argv[++i]);
+            param->smoothValueZ=atof(argv[++i]);
+            flag->smoothSplineFlag=1;
         }
         else if(strcmp(argv[i], "-smoG") == 0){
             param->smoothValueX=atof(argv[++i]);
             param->smoothValueY=atof(argv[++i]);
             param->smoothValueZ=atof(argv[++i]);
             flag->smoothGaussianFlag=1;
+        }
+        else if(strcmp(argv[i], "-smoM") == 0){
+            param->smoothValueX=atof(argv[++i]);
+            param->smoothValueY=atof(argv[++i]);
+            param->smoothValueZ=atof(argv[++i]);
+            flag->smoothMeanFlag=1;
         }
         else if(strcmp(argv[i], "-bin") == 0){
             flag->binarisedImageFlag=1;
@@ -215,20 +223,6 @@ int main(int argc, char **argv)
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 
-    if(flag->smoothValueFlag){
-        nifti_image *smoothImg = nifti_copy_nim_info(image);
-        smoothImg->data = (void *)malloc(smoothImg->nvox * smoothImg->nbyper);
-        memcpy(smoothImg->data, image->data, smoothImg->nvox*smoothImg->nbyper);
-        float spacing[3];spacing[0]=spacing[1]=spacing[2]=param->smoothValue;
-        reg_tools_CubicSplineKernelConvolution(smoothImg, spacing);
-        if(flag->outputImageFlag)
-            reg_io_WriteImageFile(smoothImg, param->outputImageName);
-        else reg_io_WriteImageFile(smoothImg, "output.nii");
-        nifti_image_free(smoothImg);
-    }
-
-    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
-
     if(flag->floatFlag){
         reg_tools_changeDatatype<float>(image);
         if(flag->outputImageFlag)
@@ -248,16 +242,36 @@ int main(int argc, char **argv)
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 
-    if(flag->smoothGaussianFlag){
+    if(flag->smoothGaussianFlag || flag->smoothSplineFlag || flag->smoothMeanFlag){
         nifti_image *smoothImg = nifti_copy_nim_info(image);
         smoothImg->data = (void *)malloc(smoothImg->nvox * smoothImg->nbyper);
         memcpy(smoothImg->data, image->data, smoothImg->nvox*smoothImg->nbyper);
-        bool boolX[8]={1,1,0,0,0,0,0,0};
-        reg_gaussianSmoothing(smoothImg,param->smoothValueX,boolX);
-        bool boolY[8]={1,0,1,0,0,0,0,0};
-        reg_gaussianSmoothing(smoothImg,param->smoothValueY,boolY);
-        bool boolZ[8]={1,0,0,1,0,0,0,0};
-        reg_gaussianSmoothing(smoothImg,param->smoothValueZ,boolZ);
+        float *kernelSize = new float[smoothImg->nt*smoothImg->nu];
+        bool *timePoint = new bool[smoothImg->nt*smoothImg->nu];
+        for(int i=0;i<smoothImg->nt*smoothImg->nu;++i) timePoint[i]=true;
+		bool boolX[3]={1,0,0};
+        for(int i=0; i<smoothImg->nt*smoothImg->nu;++i) kernelSize[i]=param->smoothValueX;
+        if(flag->smoothMeanFlag)
+            reg_tools_kernelConvolution(smoothImg,kernelSize,2,timePoint,boolX);
+        else if(flag->smoothSplineFlag)
+            reg_tools_kernelConvolution(smoothImg,kernelSize,1,timePoint,boolX);
+        else reg_tools_kernelConvolution(smoothImg,kernelSize,0,timePoint,boolX);
+		bool boolY[3]={0,1,0};
+        for(int i=0; i<smoothImg->nt*smoothImg->nu;++i) kernelSize[i]=param->smoothValueY;
+        if(flag->smoothMeanFlag)
+            reg_tools_kernelConvolution(smoothImg,kernelSize,2,timePoint,boolY);
+        else if(flag->smoothSplineFlag)
+            reg_tools_kernelConvolution(smoothImg,kernelSize,1,timePoint,boolY);
+        else reg_tools_kernelConvolution(smoothImg,kernelSize,0,timePoint,boolY);
+		bool boolZ[3]={0,0,1};
+        for(int i=0; i<smoothImg->nt*smoothImg->nu;++i) kernelSize[i]=param->smoothValueZ;
+        if(flag->smoothMeanFlag)
+            reg_tools_kernelConvolution(smoothImg,kernelSize,2,timePoint,boolZ);
+        else if(flag->smoothSplineFlag)
+            reg_tools_kernelConvolution(smoothImg,kernelSize,1,timePoint,boolZ);
+        else reg_tools_kernelConvolution(smoothImg,kernelSize,0,timePoint,boolZ);
+        delete []kernelSize;
+        delete []timePoint;
         if(flag->outputImageFlag)
             reg_io_WriteImageFile(smoothImg, param->outputImageName);
         else reg_io_WriteImageFile(smoothImg, "output.nii");

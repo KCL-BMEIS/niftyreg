@@ -16,12 +16,74 @@
 #include "_reg_ssd_kernels.cu"
 
 /* *************************************************************** */
-float reg_getSSD_gpu(nifti_image *referenceImage,
-					  cudaArray **reference_d,
-					  float **warped_d,
-                      int **mask_d,
-                      int activeVoxelNumber
-					  )
+/* *************************************************************** */
+reg_ssd_gpu::reg_ssd_gpu()
+	: reg_ssd::reg_ssd()
+{
+#ifndef NDEBUG
+		printf("[NiftyReg DEBUG] reg_ssd_gpu constructor called\n");
+#endif
+}
+/* *************************************************************** */
+/* *************************************************************** */
+void reg_ssd_gpu::InitialiseMeasure(nifti_image *refImgPtr,
+									nifti_image *floImgPtr,
+									int *maskRefPtr,
+									int activeVoxNum,
+									nifti_image *warFloImgPtr,
+									nifti_image *warFloGraPtr,
+									nifti_image *forVoxBasedGraPtr,
+									cudaArray **refDevicePtr,
+									cudaArray **floDevicePtr,
+									int **refMskDevicePtr,
+									float **warFloDevicePtr,
+									float4 **warFloGradDevicePtr,
+									float4 **forVoxBasedGraDevicePtr)
+{
+	reg_ssd::InitialiseMeasure(refImgPtr,
+							   floImgPtr,
+							   maskRefPtr,
+							   warFloImgPtr,
+							   warFloGraPtr,
+							   forVoxBasedGraPtr);
+	// Check if a symmetric measure is required
+	if(this->isSymmetric){
+		fprintf(stderr,"[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
+		fprintf(stderr,"[NiftyReg ERROR] Symmetric scheme is not yet supported on the GPU\n");
+		reg_exit(1);
+	}
+	// Check that the input image are of type float
+	if(this->referenceImagePointer->datatype!=NIFTI_TYPE_FLOAT32 ||
+	   this->warpedFloatingImagePointer->datatype!=NIFTI_TYPE_FLOAT32){
+		fprintf(stderr,"[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
+		fprintf(stderr,"[NiftyReg ERROR] The input images are expected to be float\n");
+		reg_exit(1);
+	}
+	// Check that the input images have only one time point
+	if(this->referenceImagePointer->nt>1 || this->floatingImagePointer->nt>1){
+		fprintf(stderr,"[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
+		fprintf(stderr,"[NiftyReg ERROR] Both input images should have only one time point\n");
+		reg_exit(1);
+	}
+	// Bind the required pointers
+	this->referenceDevicePointer = *refDevicePtr;
+	this->floatingDevicePointer = *floDevicePtr;
+	this->referenceMaskDevicePointer = *refMskDevicePtr;
+	this->activeVoxeNumber=activeVoxNum;
+	this->warpedFloatingDevicePointer = *warFloDevicePtr;
+	this->warpedFloatingGradientDevicePointer = *warFloGradDevicePtr;
+	this->forwardVoxelBasedGradientDevicePointer = *forVoxBasedGraDevicePtr;
+#ifndef NDEBUG
+		printf("[NiftyReg DEBUG] reg_ssd_gpu::InitialiseMeasure()\n");
+#endif
+}
+/* *************************************************************** */
+float reg_getSSDValue_gpu(nifti_image *referenceImage,
+						  cudaArray **reference_d,
+						  float **warped_d,
+						  int **mask_d,
+						  int activeVoxelNumber
+						  )
 {
     // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
@@ -64,6 +126,19 @@ float reg_getSSD_gpu(nifti_image *referenceImage,
 
 	return ssd;
 }
+/* *************************************************************** */
+/* *************************************************************** */
+double reg_ssd_gpu::GetSimilarityMeasureValue()
+{
+	double SSDValue = reg_getSSDValue_gpu(this->referenceImagePointer,
+										  &this->referenceDevicePointer,
+										  &this->warpedFloatingDevicePointer,
+										  &this->referenceMaskDevicePointer,
+										  this->activeVoxeNumber
+										  );
+    return -SSDValue;
+}
+/* *************************************************************** */
 /* *************************************************************** */
 void reg_getVoxelBasedSSDGradient_gpu(nifti_image *referenceImage,
 									  cudaArray **reference_d,
@@ -111,5 +186,21 @@ void reg_getVoxelBasedSSDGradient_gpu(nifti_image *referenceImage,
 	NR_CUDA_SAFE_CALL(cudaUnbindTexture(maskTexture))
 	NR_CUDA_SAFE_CALL(cudaUnbindTexture(spaGradientTexture))
 }
+/* *************************************************************** */
+/* *************************************************************** */
+void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradient()
+{
+	reg_getVoxelBasedSSDGradient_gpu(this->referenceImagePointer,
+									 &this->referenceDevicePointer,
+									 &this->warpedFloatingDevicePointer,
+									 &this->warpedFloatingGradientDevicePointer,
+									 &this->forwardVoxelBasedGradientDevicePointer,
+                                     1.0f,
+									 &this->referenceMaskDevicePointer,
+									 this->activeVoxeNumber
+									 );
+	return;
+}
+/* *************************************************************** */
 /* *************************************************************** */
 #endif

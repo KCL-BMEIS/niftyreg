@@ -98,7 +98,7 @@ public:
     virtual void ApproximateComposition(){return;}
 	virtual void UseSimilaritySymmetry(){return;}
 	virtual void UseBCHUpdate(int){return;}
-	virtual void UseInverseSclalingSquaring(){return;}
+    virtual void UseGradientCumulativeExp(){return;}
 
     // F3D_SYM specific options
     virtual void SetFloatingMask(nifti_image *){return;}
@@ -108,7 +108,7 @@ public:
     // F3D_gpu specific option
     virtual int CheckMemoryMB(){return 0;}
 
-    virtual void CheckParameters();
+	virtual void CheckParameters();
     virtual void Initisalise();
     virtual nifti_image *GetControlPointPositionImage();
     virtual nifti_image **GetWarpedImage();

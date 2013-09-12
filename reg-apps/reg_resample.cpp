@@ -13,12 +13,13 @@
 #ifndef _MM_RESAMPLE_CPP
 #define _MM_RESAMPLE_CPP
 
+#include <limits>
+
 #include "_reg_ReadWriteImage.h"
 #include "_reg_resampling.h"
 #include "_reg_globalTransformation.h"
 #include "_reg_localTransformation.h"
 #include "_reg_tools.h"
-
 #include "reg_resample.h"
 
 typedef struct{
@@ -340,10 +341,11 @@ int main(int argc, char **argv)
 #ifndef NDEBUG
             printf("[NiftyReg DEBUG] Computation of the deformation field from the CPP image\n");
 #endif
-            if(controlPointImage->intent_code==NIFTI_INTENT_VECTOR &&
-               strcmp(controlPointImage->intent_name,"NREG_VEL_STEP")==0){
+            if(controlPointImage->intent_p1==SPLINE_VEL_GRID){
                 reg_spline_getDeformationFieldFromVelocityGrid(controlPointImage,
-                                                               deformationFieldImage);
+                                                               deformationFieldImage,
+                                                               false // the number of step is not automatically updated
+                                                               );
             }
             else{
                 reg_tools_multiplyValueToImage(deformationFieldImage,deformationFieldImage,0.f);
@@ -397,12 +399,38 @@ int main(int argc, char **argv)
                 (size_t)resultImage->dim[3] * (size_t)resultImage->dim[4];
         resultImage->data = (void *)calloc(resultImage->nvox, resultImage->nbyper);
 
-        reg_resampleImage(floatingImage,
-                          resultImage,
-                          deformationFieldImage,
-                          NULL,
-                          param->interpolation,
-                          param->paddingValue);
+        if(floatingImage->dim[4]==6 || floatingImage->dim[4]==7){
+#ifndef _NDEBUG
+            printf("[NiftyReg DEBUG] DTI-based resampling\n");
+#endif
+            // Compute first the Jacobian matrices
+            mat33 *jacobian = (mat33 *)malloc(deformationFieldImage->nx *
+                                              deformationFieldImage->ny *
+                                              deformationFieldImage->nz *
+                                              sizeof(mat33));
+            reg_defField_getJacobianMatrix(deformationFieldImage,
+                                           jacobian);
+            // resample the DTI image
+            bool timepoints[7]; for(int i=0;i<7;++i) timepoints[i]=true;
+            if(floatingImage->dim[4]==7) timepoints[0]=false;
+            reg_resampleImage(floatingImage,
+                              resultImage,
+                              deformationFieldImage,
+                              NULL,
+                              param->interpolation,
+                              std::numeric_limits<float>::quiet_NaN(),
+                              timepoints,
+                              jacobian
+                              );
+        }
+        else{
+            reg_resampleImage(floatingImage,
+                              resultImage,
+                              deformationFieldImage,
+                              NULL,
+                              param->interpolation,
+                              param->paddingValue);
+        }
         memset(resultImage->descrip, 0, 80);
         strcpy (resultImage->descrip,"Warped image using NiftyReg (reg_resample)");
         reg_io_WriteImageFile(resultImage,param->outputResultName);

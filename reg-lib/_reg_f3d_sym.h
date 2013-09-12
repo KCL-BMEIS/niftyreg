@@ -18,6 +18,7 @@ template <class T>
 class reg_f3d_sym : public reg_f3d<T>
 {
   protected:
+    // Optimiser related function
     virtual void SetOptimiser();
 
     nifti_image *floatingMaskImage;
@@ -50,8 +51,6 @@ class reg_f3d_sym : public reg_f3d<T>
     virtual void ClearVoxelBasedMeasureGradient();
     virtual void AllocateTransformationGradient();
     virtual void ClearTransformationGradient();
-    virtual void AllocateJointHistogram();
-    virtual void ClearJointHistogram();
     virtual T InitialiseCurrentLevel();
     virtual void ClearCurrentInputImage();
 
@@ -61,8 +60,6 @@ class reg_f3d_sym : public reg_f3d<T>
     virtual double ComputeL2NormDispPenaltyTerm();
     virtual void GetDeformationField();
     virtual void WarpFloatingImage(int);
-    virtual double ComputeSimilarityMeasure();
-    virtual void GetVoxelBasedGradient();
     virtual void GetSimilarityMeasureGradient();
     virtual void GetObjectiveFunctionGradient();
     virtual void GetBendingEnergyGradient();
@@ -84,17 +81,19 @@ class reg_f3d_sym : public reg_f3d<T>
     virtual void GetInverseConsistencyGradient();
 
     virtual void UpdateParameters(float);
+    virtual void InitialiseSimilarity();
 
 public:
     virtual void SetFloatingMask(nifti_image *);
     virtual void SetInverseConsistencyWeight(T);
 
     reg_f3d_sym(int refTimePoint,int floTimePoint);
-    virtual ~reg_f3d_sym();
-    virtual void CheckParameters();
-    virtual void Initisalise();
-    virtual nifti_image *GetBackwardControlPointPositionImage();
-    virtual nifti_image **GetWarpedImage();
+	~reg_f3d_sym();
+	void CheckParameters();
+	void Initisalise();
+	nifti_image *GetBackwardControlPointPositionImage();
+	nifti_image **GetWarpedImage();
+	bool GetSymmetricStatus(){return true;}
 };
 
 #include "_reg_f3d_sym.cpp"

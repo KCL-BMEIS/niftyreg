@@ -46,12 +46,14 @@ int main(int argc, char **argv)
 
 	if(strcmp(type,"gaussian")==0){
 		// First define the size of the spline kernel to use
-		bool axisToSmooth[8]={1,1,1,1,1,1,1,1};
-		// Gaussian convolution on the CPU
-		reg_gaussianSmoothing(input,
-							  5.f,
-							  axisToSmooth);
+        // Gaussian convolution on the CPU
+        float test[3]={5,5,5};
+        reg_tools_kernelConvolution(input,
+                                    test,
+                                    0 // Gaussian kernel
+                                    );
 		// Gaussian convolution on the GPU
+		bool axisToSmooth[8]={1,1,1,1,1,1,1,1};
 		reg_gaussianSmoothing_gpu(input,
 								  &input_gpu,
 								  5.f,
@@ -75,13 +77,16 @@ int main(int argc, char **argv)
 	}
 	else if(strcmp(type,"spline")==0){
 		// First define the size of the spline kernel to use
-		float kernelSize[3]={5,5,5};
-		// Spline convolution on the CPU
-		reg_tools_CubicSplineKernelConvolution(input,kernelSize);
+        float test[3]={5,5,5};
+        // Spline convolution on the CPU
+        reg_tools_kernelConvolution(input,
+                                    test,
+                                    1 // Cubic spline kernel
+                                    );
 		// Spline convolution on the GPU
 		reg_smoothImageForCubicSpline_gpu(input,
 										  &input_gpu,
-										  kernelSize);
+                                          test);
 		// The GPU result is transfered on the host
 		nifti_image *tempImage = nifti_make_new_nim(nii_dim, NIFTI_TYPE_FLOAT32, true);
 		reg_checkAndCorrectDimension(tempImage);
