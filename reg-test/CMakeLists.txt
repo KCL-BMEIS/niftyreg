@@ -38,9 +38,9 @@ target_link_libraries(${EXEC} _reg_f3d)
 #-----------------------------------------------------------------------------
 add_test(mat44_operations ${EXEC})
 #-----------------------------------------------------------------------------
-set(EXEC reg_test_gradient)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_f3d)
+#set(EXEC reg_test_gradient)
+#add_executable(${EXEC} ${EXEC}.cpp)
+#target_link_libraries(${EXEC} _reg_f3d)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 if(USE_CUDA)
