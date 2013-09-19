@@ -548,7 +548,7 @@ int main(int argc, char **argv)
                 fprintf(stderr, "Error when reading the floating mask image: %s\n",argv[i-1]);
                 return 1;
             }
-            REG->SetReferenceMask(floatingMaskImage);
+			REG->SetFloatingMask(floatingMaskImage);
         }
         else if(strcmp(argv[i], "-ic")==0 || strcmp(argv[i], "--ic")==0){
             REG->SetInverseConsistencyWeight(atof(argv[++i]));

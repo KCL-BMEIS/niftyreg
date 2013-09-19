@@ -538,9 +538,12 @@ void reg_base<T>::CheckParameters()
 
 	// CHECK THE MASK DIMENSION IF IT IS DEFINED
 	if(this->maskImage!=NULL){
-		if(this->inputReference->nx != maskImage->nx ||
-				this->inputReference->ny != maskImage->ny ||
-				this->inputReference->nz != maskImage->nz){
+		if(this->inputReference->nx != this->maskImage->nx ||
+		   this->inputReference->ny != this->maskImage->ny ||
+		   this->inputReference->nz != this->maskImage->nz ){
+			printf("x: %i %i\n",this->inputReference->nx, this->maskImage->nx);
+			printf("y: %i %i\n",this->inputReference->ny, this->maskImage->ny);
+			printf("z: %i %i\n",this->inputReference->nz, this->maskImage->nz);
 			fprintf(stderr,"[NiftyReg ERROR] The mask image has different x, y or z dimension than the reference image.\n");
 			reg_exit(1);
 		}
@@ -690,7 +693,7 @@ void reg_base<T>::Initisalise()
 			for(int i=1;i<this->referencePyramid[l]->nt;++i)
 				active[i]=false;
 			sigma[0]=this->referenceSmoothingSigma;
-            reg_tools_kernelConvolution(this->referencePyramid[l], sigma, 0, active);
+			reg_tools_kernelConvolution(this->referencePyramid[l], sigma, 0, NULL, active);
 			delete []active;
 			delete []sigma;
 		}
@@ -702,7 +705,7 @@ void reg_base<T>::Initisalise()
 			for(int i=1;i<this->floatingPyramid[l]->nt;++i)
 				active[i]=false;
 			sigma[0]=this->floatingSmoothingSigma;
-            reg_tools_kernelConvolution(this->floatingPyramid[l], sigma, 0, active);
+			reg_tools_kernelConvolution(this->floatingPyramid[l], sigma, 0, NULL, active);
 			delete []active;
 			delete []sigma;
 		}
@@ -769,7 +772,8 @@ void reg_base<T>::GetVoxelBasedGradient()
                              this->interpolation,
                              this->warpedPaddingValue,
                              this->measure_dti->GetActiveTimepoints(),
-                             this->forwardJacobianMatrix);
+							 this->forwardJacobianMatrix,
+							 this->warped);
     }
     else{
         reg_getImageGradient(this->currentFloating,
@@ -790,7 +794,7 @@ void reg_base<T>::GetVoxelBasedGradient()
     if(this->measure_multichannel_nmi!=NULL)
         this->measure_multichannel_nmi->GetVoxelBasedSimilarityMeasureGradient();
 
-    if(this->measure_ssd!=NULL)
+	if(this->measure_ssd!=NULL)
         this->measure_ssd->GetVoxelBasedSimilarityMeasureGradient();
 
     if(this->measure_kld!=NULL)
@@ -799,30 +803,8 @@ void reg_base<T>::GetVoxelBasedGradient()
     if(this->measure_lncc!=NULL)
         this->measure_lncc->GetVoxelBasedSimilarityMeasureGradient();
 
-    if(this->measure_dti!=NULL)
+	if(this->measure_dti!=NULL)
         this->measure_dti->GetVoxelBasedSimilarityMeasureGradient();
-
-//    nifti_image *temp=nifti_copy_nim_info(this->currentReference);
-//    temp->dim[0]=temp->ndim=3;
-//    temp->dim[4] = temp->nt=1;
-//    temp->dim[5] = temp->nu=1;
-//    temp->nvox=(size_t)temp->nx*temp->ny*temp->nz;
-//    temp->data=(void *)malloc(temp->nvox*temp->nbyper);
-//    T *tempPtr = static_cast<T *>(temp->data);
-//    T *gradPtr = static_cast<T *>(this->warpedGradientImage->data);
-//    for(int i=0; i<this->warpedGradientImage->nt*this->warpedGradientImage->nu; ++i){
-//        char name[255];
-//        sprintf(name, "grad_%i.nii", i);
-//        memcpy(tempPtr,&gradPtr[i*temp->nvox],temp->nvox*temp->nbyper);
-//        reg_io_WriteImageFile(temp,name);
-//    }
-//    nifti_image_free(temp);
-
-//    reg_io_WriteImageFile(this->warpedGradientImage,
-//                          "spatialGradient.nii");
-//    reg_io_WriteImageFile(this->voxelBasedMeasureGradientImage,
-//                          "measureGradient.nii");
-//    reg_exit(1);
 
     return;
 }
@@ -928,7 +910,7 @@ void reg_base<T>::WarpFloatingImage(int inter)
     // Compute the deformation field
     this->GetDeformationField();
 
-    if(measure_dti==NULL){
+	if(this->measure_dti==NULL){
         // Resample the floating image
         reg_resampleImage(this->currentFloating,
                           this->warped,

@@ -51,7 +51,7 @@ typedef struct{
 
 void PetitUsage(char *exec)
 {
-    fprintf(stderr,"Usage:\t%s -target <referenceImageName> -source <floatingImageName> [OPTIONS].\n",exec);
+	fprintf(stderr,"Usage:\t%s -ref <referenceImageName> -flo <floatingImageName> [OPTIONS].\n",exec);
     fprintf(stderr,"\tSee the help for more details (-h).\n");
     return;
 }
@@ -72,13 +72,12 @@ void Usage(char *exec)
     printf("\t-cpp <filename>\t\tFilename of the control point grid image (from reg_f3d)\n");
     printf("\t-def <filename>\t\tFilename of the deformation field image (from reg_transform)\n");
 
-    printf("\t*\tThere are no limit for the required output number from the following\n");
     printf("\t-res <filename> \tFilename of the resampled image [none]\n");
     printf("\t-blank <filename> \tFilename of the resampled blank grid [none]\n");
 
-    printf("\t*\tOthers\n");
-    printf("\t-NN \t\t\tUse a Nearest Neighbor interpolation for the source resampling (cubic spline by default)\n");
-    printf("\t-LIN \t\t\tUse a Linear interpolation for the source resampling (cubic spline by default)\n");
+	printf("\t*\tOthers\n");
+	printf("\t-inter <int> \t\tInterpolation order (0,1,3)[3]\n");
+	printf("\t-pad <int> \t\tInterpolation padding value [0]\n");
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     return;
 }
@@ -211,19 +210,19 @@ int main(int argc, char **argv)
         return 1;
     }
 
-	/* Read the target image */
+	/* Read the reference image */
     nifti_image *referenceImage = reg_io_ReadImageHeader(param->referenceImageName);
     if(referenceImage == NULL){
-        fprintf(stderr,"[NiftyReg ERROR] Error when reading the target image: %s\n",
+		fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference image: %s\n",
                 param->referenceImageName);
         return 1;
     }
     reg_checkAndCorrectDimension(referenceImage);
 	
-    /* Read the source image */
+	/* Read the floating image */
     nifti_image *floatingImage = reg_io_ReadImageFile(param->floatingImageName);
     if(floatingImage == NULL){
-        fprintf(stderr,"[NiftyReg ERROR] Error when reading the source image: %s\n",
+		fprintf(stderr,"[NiftyReg ERROR] Error when reading the floating image: %s\n",
                 param->floatingImageName);
         return 1;
     }
@@ -243,10 +242,10 @@ int main(int argc, char **argv)
     for(int i=0;i<argc;i++) printf(" %s", argv[i]);
     printf("\n\n");
     printf("Parameters\n");
-    printf("Target image name: %s\n",referenceImage->fname);
+	printf("Reference image name: %s\n",referenceImage->fname);
     printf("\t%ix%ix%i voxels, %i volumes\n",referenceImage->nx,referenceImage->ny,referenceImage->nz,referenceImage->nt);
     printf("\t%gx%gx%g mm\n",referenceImage->dx,referenceImage->dy,referenceImage->dz);
-    printf("Source image name: %s\n",floatingImage->fname);
+	printf("Floating image name: %s\n",floatingImage->fname);
     printf("\t%ix%ix%i voxels, %i volumes\n",floatingImage->nx,floatingImage->ny,floatingImage->nz,floatingImage->nt);
     printf("\t%gx%gx%g mm\n",floatingImage->dx,floatingImage->dy,floatingImage->dz);
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n");
@@ -372,7 +371,7 @@ int main(int argc, char **argv)
     progressXML(2, "Deformation field ready...");
 
     /* ************************* */
-    /* RESAMPLE THE SOURCE IMAGE */
+	/* WARP THE FLOATING IMAGE */
     /* ************************* */
     if(flag->outputResultFlag){
         switch(param->interpolation){
@@ -386,21 +385,21 @@ int main(int argc, char **argv)
             param->interpolation=3;
             break;
         }
-        nifti_image *resultImage = nifti_copy_nim_info(referenceImage);
-        resultImage->dim[0]=resultImage->ndim=floatingImage->dim[0];
-        resultImage->dim[4]=resultImage->nt=floatingImage->dim[4];
-        resultImage->cal_min=floatingImage->cal_min;
-        resultImage->cal_max=floatingImage->cal_max;
-        resultImage->scl_slope=floatingImage->scl_slope;
-        resultImage->scl_inter=floatingImage->scl_inter;
-        resultImage->datatype = floatingImage->datatype;
-        resultImage->nbyper = floatingImage->nbyper;
-        resultImage->nvox = (size_t)resultImage->dim[1] * (size_t)resultImage->dim[2] *
-                (size_t)resultImage->dim[3] * (size_t)resultImage->dim[4];
-        resultImage->data = (void *)calloc(resultImage->nvox, resultImage->nbyper);
+		nifti_image *warpedImage = nifti_copy_nim_info(referenceImage);
+		warpedImage->dim[0]=warpedImage->ndim=floatingImage->dim[0];
+		warpedImage->dim[4]=warpedImage->nt=floatingImage->dim[4];
+		warpedImage->cal_min=floatingImage->cal_min;
+		warpedImage->cal_max=floatingImage->cal_max;
+		warpedImage->scl_slope=floatingImage->scl_slope;
+		warpedImage->scl_inter=floatingImage->scl_inter;
+		warpedImage->datatype = floatingImage->datatype;
+		warpedImage->nbyper = floatingImage->nbyper;
+		warpedImage->nvox = (size_t)warpedImage->dim[1] * (size_t)warpedImage->dim[2] *
+				(size_t)warpedImage->dim[3] * (size_t)warpedImage->dim[4];
+		warpedImage->data = (void *)calloc(warpedImage->nvox, warpedImage->nbyper);
 
         if(floatingImage->dim[4]==6 || floatingImage->dim[4]==7){
-#ifndef _NDEBUG
+#ifndef NDEBUG
             printf("[NiftyReg DEBUG] DTI-based resampling\n");
 #endif
             // Compute first the Jacobian matrices
@@ -414,7 +413,7 @@ int main(int argc, char **argv)
             bool timepoints[7]; for(int i=0;i<7;++i) timepoints[i]=true;
             if(floatingImage->dim[4]==7) timepoints[0]=false;
             reg_resampleImage(floatingImage,
-                              resultImage,
+							  warpedImage,
                               deformationFieldImage,
                               NULL,
                               param->interpolation,
@@ -425,17 +424,17 @@ int main(int argc, char **argv)
         }
         else{
             reg_resampleImage(floatingImage,
-                              resultImage,
+							  warpedImage,
                               deformationFieldImage,
                               NULL,
                               param->interpolation,
                               param->paddingValue);
         }
-        memset(resultImage->descrip, 0, 80);
-        strcpy (resultImage->descrip,"Warped image using NiftyReg (reg_resample)");
-        reg_io_WriteImageFile(resultImage,param->outputResultName);
+		memset(warpedImage->descrip, 0, 80);
+		strcpy (warpedImage->descrip,"Warped image using NiftyReg (reg_resample)");
+		reg_io_WriteImageFile(warpedImage,param->outputResultName);
         printf("[NiftyReg] Resampled image has been saved: %s\n", param->outputResultName);
-        nifti_image_free(resultImage);
+		nifti_image_free(warpedImage);
     }
 
     /* *********************** */
@@ -482,26 +481,26 @@ int main(int argc, char **argv)
             }
         }
 
-        nifti_image *resultImage = nifti_copy_nim_info(referenceImage);
-        resultImage->dim[0]=resultImage->ndim=3;
-        resultImage->dim[4]=resultImage->nt=1;
-        resultImage->cal_min=floatingImage->cal_min;
-        resultImage->cal_max=floatingImage->cal_max;
-        resultImage->scl_slope=floatingImage->scl_slope;
-        resultImage->scl_inter=floatingImage->scl_inter;
-        resultImage->datatype =NIFTI_TYPE_UINT8;
-        resultImage->nbyper = sizeof(unsigned char);
-        resultImage->data = (void *)calloc(resultImage->nvox, resultImage->nbyper);
+		nifti_image *warpedImage = nifti_copy_nim_info(referenceImage);
+		warpedImage->dim[0]=warpedImage->ndim=3;
+		warpedImage->dim[4]=warpedImage->nt=1;
+		warpedImage->cal_min=floatingImage->cal_min;
+		warpedImage->cal_max=floatingImage->cal_max;
+		warpedImage->scl_slope=floatingImage->scl_slope;
+		warpedImage->scl_inter=floatingImage->scl_inter;
+		warpedImage->datatype =NIFTI_TYPE_UINT8;
+		warpedImage->nbyper = sizeof(unsigned char);
+		warpedImage->data = (void *)calloc(warpedImage->nvox, warpedImage->nbyper);
         reg_resampleImage(gridImage,
-                          resultImage,
+						  warpedImage,
                           deformationFieldImage,
                           NULL,
                           1, // linear interpolation
                           0);
-        memset(resultImage->descrip, 0, 80);
-        strcpy (resultImage->descrip,"Warped regular grid using NiftyReg (reg_resample)");
-        reg_io_WriteImageFile(resultImage,param->outputBlankName);
-        nifti_image_free(resultImage);
+		memset(warpedImage->descrip, 0, 80);
+		strcpy (warpedImage->descrip,"Warped regular grid using NiftyReg (reg_resample)");
+		reg_io_WriteImageFile(warpedImage,param->outputBlankName);
+		nifti_image_free(warpedImage);
         nifti_image_free(gridImage);
         printf("[NiftyReg] Resampled grid has been saved: %s\n", param->outputBlankName);
     }

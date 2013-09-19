@@ -71,9 +71,9 @@ extern "C++"
 void reg_tools_kernelConvolution(nifti_image *image,
                                  float *sigma,
                                  int kernelType,
-                                 bool *timePoints = NULL,
-                                 bool *axis = NULL
-                                 );
+								 int *mask = NULL,
+								 bool *timePoints = NULL,
+								 bool *axis = NULL);
 
 /** @brief Downsample an image by a ratio of two
  * @param image Image to be downsampled

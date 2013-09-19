@@ -252,24 +252,24 @@ int main(int argc, char **argv)
 		bool boolX[3]={1,0,0};
         for(int i=0; i<smoothImg->nt*smoothImg->nu;++i) kernelSize[i]=param->smoothValueX;
         if(flag->smoothMeanFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,2,timePoint,boolX);
+			reg_tools_kernelConvolution(smoothImg,kernelSize,2,NULL,timePoint,boolX);
         else if(flag->smoothSplineFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,1,timePoint,boolX);
-        else reg_tools_kernelConvolution(smoothImg,kernelSize,0,timePoint,boolX);
+			reg_tools_kernelConvolution(smoothImg,kernelSize,1,NULL,timePoint,boolX);
+		else reg_tools_kernelConvolution(smoothImg,kernelSize,0,NULL,timePoint,boolX);
 		bool boolY[3]={0,1,0};
         for(int i=0; i<smoothImg->nt*smoothImg->nu;++i) kernelSize[i]=param->smoothValueY;
         if(flag->smoothMeanFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,2,timePoint,boolY);
+			reg_tools_kernelConvolution(smoothImg,kernelSize,2,NULL,timePoint,boolY);
         else if(flag->smoothSplineFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,1,timePoint,boolY);
-        else reg_tools_kernelConvolution(smoothImg,kernelSize,0,timePoint,boolY);
+			reg_tools_kernelConvolution(smoothImg,kernelSize,1,NULL,timePoint,boolY);
+		else reg_tools_kernelConvolution(smoothImg,kernelSize,0,NULL,timePoint,boolY);
 		bool boolZ[3]={0,0,1};
         for(int i=0; i<smoothImg->nt*smoothImg->nu;++i) kernelSize[i]=param->smoothValueZ;
         if(flag->smoothMeanFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,2,timePoint,boolZ);
+			reg_tools_kernelConvolution(smoothImg,kernelSize,2,NULL,timePoint,boolZ);
         else if(flag->smoothSplineFlag)
-            reg_tools_kernelConvolution(smoothImg,kernelSize,1,timePoint,boolZ);
-        else reg_tools_kernelConvolution(smoothImg,kernelSize,0,timePoint,boolZ);
+			reg_tools_kernelConvolution(smoothImg,kernelSize,1,NULL,timePoint,boolZ);
+		else reg_tools_kernelConvolution(smoothImg,kernelSize,0,NULL,timePoint,boolZ);
         delete []kernelSize;
         delete []timePoint;
         if(flag->outputImageFlag)

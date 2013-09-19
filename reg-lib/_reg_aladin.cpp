@@ -237,7 +237,7 @@ void reg_aladin<T>::InitialiseRegistration()
 			for(int i=1;i<this->ReferencePyramid[l]->nt;++i)
 				active[i]=false;
 			sigma[0]=this->ReferenceSigma;
-            reg_tools_kernelConvolution(this->ReferencePyramid[l], sigma, 0, active);
+			reg_tools_kernelConvolution(this->ReferencePyramid[l], sigma, 0, NULL, active);
 			delete []active;
 			delete []sigma;
         }
@@ -249,7 +249,7 @@ void reg_aladin<T>::InitialiseRegistration()
 			for(int i=1;i<this->FloatingPyramid[l]->nt;++i)
 				active[i]=false;
 			sigma[0]=this->FloatingSigma;
-            reg_tools_kernelConvolution(this->FloatingPyramid[l], sigma, 0, active);
+			reg_tools_kernelConvolution(this->FloatingPyramid[l], sigma, 0, NULL, active);
 			delete []active;
 			delete []sigma;
         }

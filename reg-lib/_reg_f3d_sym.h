@@ -37,6 +37,8 @@ class reg_f3d_sym : public reg_f3d<T>
     double *backwardLogJointHistogram;
     double backwardEntropies[4];
 
+	mat33 *backwardJacobianMatrix;
+
     T inverseConsistencyWeight;
     double currentIC;
     double bestIC;

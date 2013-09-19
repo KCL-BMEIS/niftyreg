@@ -65,7 +65,8 @@ protected:
     template <class DTYPE>
     void UpdateLocalStatImages(nifti_image *imag,
                                nifti_image *mean,
-                               nifti_image *sdev);
+							   nifti_image *sdev,
+							   int *mask);
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

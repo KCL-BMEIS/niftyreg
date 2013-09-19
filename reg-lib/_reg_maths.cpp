@@ -625,29 +625,29 @@ template reg_mat44d reg_mat44_sqrt<reg_mat44d>(reg_mat44d const* mat);
 template <class MTYPE>
 MTYPE reg_mat44_expm(MTYPE const* mat, int maxit)
 {
-    double j = FMAX(0.0,1+reg_floor(log(reg_mat44_norm_inf(mat))/log(2.0)));
+	double j = FMAX(0.0,1+reg_floor(log(reg_mat44_norm_inf(mat))/log(2.0)));
 
-    MTYPE A=reg_mat44_mul(mat,pow(2.0,-j));
-    MTYPE D,N,X,cX;
-    reg_mat44_eye(&D);
-    reg_mat44_eye(&N);
-    reg_mat44_eye(&X);
+	MTYPE A=reg_mat44_mul(mat,pow(2.0,-j));
+	MTYPE D,N,X,cX;
+	reg_mat44_eye(&D);
+	reg_mat44_eye(&N);
+	reg_mat44_eye(&X);
 
-    double c = 1.0;
-    for(int k=1; k <= maxit; k++){
-        c = c * (maxit-k+1.0) / (k*(2*maxit-k+1.0));
-        X = reg_mat44_mul(&A,&X);
-        cX = reg_mat44_mul(&X,c);
-        N = reg_mat44_add(&N,&cX);
-        cX = reg_mat44_mul(&cX,pow(-1.0,k));
-        D = reg_mat44_add(&D,&cX);
-    }
-    D=reg_mat44_inv(&D);
-    X=reg_mat44_mul(&D,&N);
-    for(int i=0; i < reg_round(j); i++){
-        X=reg_mat44_mul(&X,&X);
-    }
-    return X;
+	double c = 1.0;
+	for(int k=1; k <= maxit; k++){
+		c = c * (maxit-k+1.0) / (k*(2*maxit-k+1.0));
+		X = reg_mat44_mul(&A,&X);
+		cX = reg_mat44_mul(&X,c);
+		N = reg_mat44_add(&N,&cX);
+		cX = reg_mat44_mul(&cX,pow(-1.0,k));
+		D = reg_mat44_add(&D,&cX);
+	}
+	D=reg_mat44_inv(&D);
+	X=reg_mat44_mul(&D,&N);
+	for(int i=0; i < reg_round(j); i++){
+		X=reg_mat44_mul(&X,&X);
+	}
+	return X;
 }
 template mat44 reg_mat44_expm<mat44>(mat44 const* mat, int maxit);
 template reg_mat44d reg_mat44_expm<reg_mat44d>(reg_mat44d const* mat, int maxit);

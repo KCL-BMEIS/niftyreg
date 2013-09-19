@@ -37,6 +37,8 @@ reg_f3d_sym<T>::reg_f3d_sym(int refTimePoint,int floTimePoint)
     this->floatingMaskPyramid=NULL;
     this->backwardActiveVoxelNumber=NULL;
 
+	this->backwardJacobianMatrix=NULL;
+
     this->inverseConsistencyWeight=0.1;
 
 #ifndef NDEBUG
@@ -157,11 +159,11 @@ void reg_f3d_sym<T>::AllocateWarped()
 template <class T>
 void reg_f3d_sym<T>::ClearWarped()
 {
-    reg_f3d<T>::ClearWarped();
-    if(this->backwardWarped!=NULL){
-        nifti_image_free(this->backwardWarped);
-        this->backwardWarped=NULL;
-    }
+	reg_f3d<T>::ClearWarped();
+	if(this->backwardWarped!=NULL){
+		nifti_image_free(this->backwardWarped);
+		this->backwardWarped=NULL;
+	}
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -210,6 +212,13 @@ void reg_f3d_sym<T>::AllocateDeformationField()
     strcpy(this->backwardDeformationFieldImage->intent_name,"NREG_TRANS");
     this->backwardDeformationFieldImage->intent_p1=DEF_FIELD;
 
+	if(this->measure_dti!=NULL)
+		this->backwardJacobianMatrix=(mat33 *)malloc(
+				this->backwardDeformationFieldImage->nx *
+				this->backwardDeformationFieldImage->ny *
+				this->backwardDeformationFieldImage->nz *
+				sizeof(mat33));
+
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -221,6 +230,10 @@ void reg_f3d_sym<T>::ClearDeformationField()
         nifti_image_free(this->backwardDeformationFieldImage);
         this->backwardDeformationFieldImage=NULL;
     }
+	if(this->backwardJacobianMatrix!=NULL){
+		free(this->backwardJacobianMatrix);
+		this->backwardJacobianMatrix=NULL;
+	}
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -493,20 +506,49 @@ void reg_f3d_sym<T>::WarpFloatingImage(int inter)
     // Compute the deformation fields
     this->GetDeformationField();
 
-    // Resample the floating image
-    reg_resampleImage(this->currentFloating, // input image
-                      this->warped, // warped input image
-                      this->deformationFieldImage, // deformation field
-                      this->currentMask, // mask
-                      inter, // interpolation
-                      this->warpedPaddingValue); // padding value
-    // Resample the reference image
-    reg_resampleImage(this->currentReference, // input image
-                      this->backwardWarped, // warped input image
-                      this->backwardDeformationFieldImage, // deformation field
-                      this->currentFloatingMask, // mask
-                      inter, // interpolation type
-                      this->warpedPaddingValue); // padding value
+	// Resample the floating image
+	if(this->measure_dti==NULL){
+		reg_resampleImage(this->currentFloating,
+						  this->warped,
+						  this->deformationFieldImage,
+						  this->currentMask,
+						  inter,
+						  this->warpedPaddingValue);
+	}
+	else{
+		reg_defField_getJacobianMatrix(this->deformationFieldImage,
+									   this->forwardJacobianMatrix);
+		reg_resampleImage(this->currentFloating,
+						  this->warped,
+						  this->deformationFieldImage,
+						  this->currentMask,
+						  inter,
+						  this->warpedPaddingValue,
+						  this->measure_dti->GetActiveTimepoints(),
+						  this->forwardJacobianMatrix);
+	}
+
+	// Resample the reference image
+	if(this->measure_dti==NULL){
+		reg_resampleImage(this->currentReference, // input image
+						  this->backwardWarped, // warped input image
+						  this->backwardDeformationFieldImage, // deformation field
+						  this->currentFloatingMask, // mask
+						  inter, // interpolation type
+						  this->warpedPaddingValue); // padding value
+	}
+	else{
+		reg_defField_getJacobianMatrix(this->backwardDeformationFieldImage,
+									   this->backwardJacobianMatrix);
+		reg_resampleImage(this->currentReference, // input image
+						  this->backwardWarped, // warped input image
+						  this->backwardDeformationFieldImage, // deformation field
+						  this->currentFloatingMask, // mask
+						  inter, // interpolation type
+						  this->warpedPaddingValue, // padding value
+						  this->measure_dti->GetActiveTimepoints(),
+						  this->backwardJacobianMatrix);
+	}
     return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

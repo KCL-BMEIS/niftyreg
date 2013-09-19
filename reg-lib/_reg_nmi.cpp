@@ -49,7 +49,7 @@ void reg_nmi::ClearHistogram()
 	int timepoint=this->referenceTimePoint;
     // Free the joint histograms and the entropy arrays
     if(this->forwardJointHistogramPro!=NULL){
-        for(int i=0;i<timepoint;++i){
+		for(int i=0;i<timepoint;++i){
             if(this->forwardJointHistogramPro[i]!=NULL)
                 free(this->forwardJointHistogramPro[i]);
             this->forwardJointHistogramPro[i]=NULL;
@@ -177,8 +177,18 @@ void reg_nmi::InitialiseMeasure(nifti_image *refImgPtr,
 						calloc(this->totalBinNumber[i],sizeof(double));
                 this->backwardEntropyValues[i]=(double *)
 						calloc(4,sizeof(double));
-            }
+			}
         }
+		else{
+			this->forwardJointHistogramLog[i]=NULL;
+			this->forwardJointHistogramPro[i]=NULL;
+			this->forwardEntropyValues[i]=NULL;
+			if(this->isSymmetric){
+				this->backwardJointHistogramLog[i]=NULL;
+				this->backwardJointHistogramPro[i]=NULL;
+				this->backwardEntropyValues[i]=NULL;
+			}
+		}
     }
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] reg_nmi::InitialiseMeasure called. Active time point:");

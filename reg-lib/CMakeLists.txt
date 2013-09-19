@@ -42,9 +42,10 @@ foreach(NAME ${LIST})
             RUNTIME DESTINATION bin COMPONENT Development
             LIBRARY DESTINATION lib COMPONENT Development
             ARCHIVE DESTINATION lib COMPONENT Development
-    )
-    install(FILES ${NAME}.h DESTINATION include COMPONENT Development)
+	)
+	install(FILES ${NAME}.h DESTINATION include COMPONENT Development)
 endforeach(NAME)
+	install(FILES _reg_measure.h DESTINATION include COMPONENT Development)
 #-----------------------------------------------------------------------------
 set(NAME _reg_optimiser)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")

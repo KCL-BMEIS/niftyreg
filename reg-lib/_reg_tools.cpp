@@ -917,6 +917,7 @@ template <class DTYPE>
 void reg_tools_kernelConvolution_core(nifti_image *image,
                                       float *size,
                                       int kernelType,
+									  int *mask,
                                       bool *timePoint,
                                       bool *axis)
 {
@@ -933,9 +934,10 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
             DTYPE *intensityPtr = &imagePtr[t * voxelNumber];
             size_t index;
             for(index=0; index<voxelNumber; index++){
-                densityPtr[index] = intensityPtr[index]==intensityPtr[index]?1:0;
+				densityPtr[index] = (intensityPtr[index]==intensityPtr[index])?1:0;
+				densityPtr[index] *= (mask[index]>=0)?1:0;
                 nanImagePtr[index] = static_cast<bool>(densityPtr[index]);
-                if(nanImagePtr[index]==0)
+				if(nanImagePtr[index]==0)
                     intensityPtr[index]=static_cast<DTYPE>(0);
             }
             // Loop over the x, y and z dimensions
@@ -1126,10 +1128,11 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
 }
 /* *************************************************************** */
 void reg_tools_kernelConvolution(nifti_image *image,
-                           float *sigma,
-                           int kernelType,
-                           bool *timePoint,
-                           bool *axis)
+								 float *sigma,
+								 int kernelType,
+								 int *mask,
+								 bool *timePoint,
+								 bool *axis)
 {
 
 
@@ -1150,36 +1153,43 @@ void reg_tools_kernelConvolution(nifti_image *image,
     }
     else for(int i=0; i<image->nt*image->nu; i++) activeTimePoint[i]=timePoint[i];
 
+	int *currentMask=NULL;
+	if(mask==NULL){
+		currentMask=(int *)calloc(image->nx*image->ny*image->nz,sizeof(int));
+	}
+	else currentMask=mask;
+
     switch(image->datatype){
     case NIFTI_TYPE_UINT8:
-        reg_tools_kernelConvolution_core<unsigned char>(image, sigma, kernelType, activeTimePoint, axisToSmooth);
+		reg_tools_kernelConvolution_core<unsigned char>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_INT8:
-        reg_tools_kernelConvolution_core<char>(image, sigma, kernelType, activeTimePoint, axisToSmooth);
+		reg_tools_kernelConvolution_core<char>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_UINT16:
-        reg_tools_kernelConvolution_core<unsigned short>(image, sigma, kernelType, activeTimePoint, axisToSmooth);
+		reg_tools_kernelConvolution_core<unsigned short>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_INT16:
-        reg_tools_kernelConvolution_core<short>(image, sigma, kernelType, activeTimePoint, axisToSmooth);
+		reg_tools_kernelConvolution_core<short>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_kernelConvolution_core<unsigned int>(image, sigma, kernelType, activeTimePoint, axisToSmooth);
+		reg_tools_kernelConvolution_core<unsigned int>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_INT32:
-        reg_tools_kernelConvolution_core<int>(image, sigma, kernelType, activeTimePoint, axisToSmooth);
+		reg_tools_kernelConvolution_core<int>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_FLOAT32:
-        reg_tools_kernelConvolution_core<float>(image, sigma, kernelType, activeTimePoint, axisToSmooth);
+		reg_tools_kernelConvolution_core<float>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_FLOAT64:
-        reg_tools_kernelConvolution_core<double>(image, sigma, kernelType, activeTimePoint, axisToSmooth);
+		reg_tools_kernelConvolution_core<double>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
         break;
     default:
         fprintf(stderr,"[NiftyReg ERROR] reg_gaussianSmoothing\tThe image data type is not supported\n");
         reg_exit(1);
     }
 
+	if(mask==NULL) free(currentMask);
     delete []axisToSmooth;
     delete []activeTimePoint;
 }

@@ -132,8 +132,9 @@ double reg_getSSDValue(nifti_image *referenceImage,
                                            referenceImage->scl_inter);
                     resultValue = (double)(currentWarPtr[voxel] * referenceImage->scl_slope +
                                            referenceImage->scl_inter);
-                    if(targetValue==targetValue && resultValue==resultValue){
-                        diff = reg_pow2(targetValue-resultValue);
+					if(targetValue==targetValue && resultValue==resultValue){
+						diff = reg_pow2(targetValue-resultValue);
+//						if(diff>0) diff=log(diff);
                         // Jacobian determinant modulation of the ssd if required
                         if(jacDetPtr!=NULL){
                             SSD_local += diff * jacDetPtr[voxel];
@@ -145,14 +146,9 @@ double reg_getSSDValue(nifti_image *referenceImage,
                         }
                     }
                 }
-            }
-#ifdef USE_LOG_SSD
+			}
             currentValue[time]=-SSD_local;
-            SSD_global -= log(SSD_local/n);
-#else // USE_LOG_SSD
-            currentValue[time]=-SSD_local;
-            SSD_global -= fabs(SSD_local/n);
-#endif // USE_LOG_SSD
+			SSD_global -= SSD_local/n;
         }
     }
     return SSD_global;
@@ -302,7 +298,7 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                         if(jacDetPtr!=NULL)
                             common *= jacDetPtr[voxel];
 
-                        common /= currentValue[time];
+//						common /= currentValue[time];
                         ssdGradPtrX[voxel] += (DTYPE)(common * spatialGradPtrX[voxel]);
                         ssdGradPtrY[voxel] += (DTYPE)(common * spatialGradPtrY[voxel]);
 
