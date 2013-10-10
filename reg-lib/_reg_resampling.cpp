@@ -80,7 +80,7 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
 
         // Should log the tensor up front
         // We need to take the logarithm of the tensor for each voxel in the floating intensity image, and replace the warped
-        size_t floatingIndex;
+        int floatingIndex;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     private(floatingIndex,diffTensor) \
@@ -164,7 +164,7 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
 			DTYPE *inputIntensityZZ = &firstWarpVox[voxelNumber*(dtIndicies[5]+inputImage->nt*u)];
 
             // Step through each voxel in the warped image
-			size_t warpedIndex; double testSum=0;
+			int warpedIndex; double testSum=0;
 			reg_mat44d inputTensor, warpedTensor, RotMat, RotMatT, preMult;
 			mat33 jacobianMatrix, R;
 #ifdef _OPENMP

@@ -14,7 +14,7 @@
 /* *************************************************************** */
 /* *************************************************************** */
 reg_dti::reg_dti()
-    : reg_ssd::reg_ssd()
+    : reg_ssd()
 {
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] reg_dti constructor called\n");

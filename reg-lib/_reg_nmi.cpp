@@ -17,7 +17,7 @@
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 reg_nmi::reg_nmi()
-	: reg_measure::reg_measure()
+	: reg_measure()
 {
     this->forwardJointHistogramPro=NULL;
     this->forwardJointHistogramLog=NULL;
@@ -616,8 +616,7 @@ void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
             double nmi = (entropyPtr[0]+entropyPtr[1])/entropyPtr[2];
             size_t referenceOffset=referenceBinNumber[t]*floatingBinNumber[t];
             size_t floatingOffset=referenceOffset+referenceBinNumber[t];
-            size_t i;
-            int r,w;
+            int r,w,i;
             DTYPE refValue,warValue,gradX,gradY,gradZ;
             double jointDeriv[3],refDeriv[3],warDeriv[3],commun,jointLog,refLog,warLog;
             // Iterate over all voxel

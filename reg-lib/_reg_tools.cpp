@@ -932,7 +932,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
     for(int t=0; t<image->nt*image->nu; t++){
         if(timePoint[t]){
             DTYPE *intensityPtr = &imagePtr[t * voxelNumber];
-            size_t index;
+            int index;
             for(index=0; index<voxelNumber; index++){
 				densityPtr[index] = (intensityPtr[index]==intensityPtr[index])?1:0;
 				densityPtr[index] *= (mask[index]>=0)?1:0;

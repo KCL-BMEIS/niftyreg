@@ -17,7 +17,7 @@
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 reg_lncc::reg_lncc()
-	: reg_measure::reg_measure()
+	: reg_measure()
 {
     this->forwardCorrelationImage=NULL;
     this->referenceMeanImage=NULL;
@@ -270,7 +270,7 @@ double reg_getLNCCValue(nifti_image *referenceImage,
     DTYPE *refSdevPtr=static_cast<DTYPE *>(referenceSdevImage->data);
     DTYPE *warSdevPtr=static_cast<DTYPE *>(warpedSdevImage->data);
 	DTYPE *correlaPtr=static_cast<DTYPE *>(correlationImage->data);
-    size_t voxel, voxelNumber = (size_t)referenceImage->nx*
+    int voxel, voxelNumber = (int)referenceImage->nx*
 			referenceImage->ny*referenceImage->nz;
 
     // Iteration over all time points
@@ -430,7 +430,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
     DTYPE *warSdevPtr=static_cast<DTYPE *>(warpedSdevImage->data);
 	DTYPE *correlaPtr=static_cast<DTYPE *>(correlationImage->data);
 
-    size_t voxel, voxelNumber = (size_t)referenceImage->nx *
+    int voxel, voxelNumber = (int)referenceImage->nx *
             referenceImage->ny * referenceImage->nz;
 
 	// Create some pointers to the gradient images

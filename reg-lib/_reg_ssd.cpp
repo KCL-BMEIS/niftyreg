@@ -16,7 +16,7 @@
 /* *************************************************************** */
 /* *************************************************************** */
 reg_ssd::reg_ssd()
-	: reg_measure::reg_measure()
+	: reg_measure()
 {
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] reg_ssd constructor called\n");

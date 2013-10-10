@@ -3364,7 +3364,7 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
             printf("[NiftyReg] Changing from %i to %i squaring step (equivalent to scaling down by %i)\n",
                    static_cast<int>(reg_round(fabs(flowFieldImage->intent_p2))),
                    abs(squaringNumber),
-                   (int)pow(2,squaringNumber));
+                   (int)pow(2.0f,squaringNumber));
         }
         // Update the number of squaring step required
         if(flowFieldImage->intent_p2>=0)
