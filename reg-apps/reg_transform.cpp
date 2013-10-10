@@ -43,6 +43,7 @@ typedef struct{
     bool invertAffFlag;
     bool invertNRRFlag;
     bool makeAffFlag;
+	bool aff2rigFlag;
 }FLAG;
 
 
@@ -110,10 +111,15 @@ void Usage(char *exec)
     printf("\t-half <filename1> <filename2>\n");
     printf("\t\tThe input transformation is halfed and stored using the same transformation type.\n");
     printf("\t\tfilename1 - Input transformation file name\n");
-    printf("\t\tfilename2 - Output transformation file name\n\n");
+	printf("\t\tfilename2 - Output transformation file name\n\n");
 
 	printf("\t-makeAff <rx> <ry> <rz> <tx> <ty> <tz> <sx> <sy> <sz> <shx> <shy> <shz> <outputFilename>\n");
-    printf("\t\tCreate an affine transformation matrix\n\n");
+	printf("\t\tCreate an affine transformation matrix\n\n");
+
+	printf("\t-aff2rig <filename1> <filename2>\n");
+	printf("\t\tExtract the rigid component from an affine transformation matrix\n\n");
+	printf("\t\tfilename1 - Input transformation file name\n");
+	printf("\t\tfilename2 - Output transformation file name\n\n");
 
     printf("\t* The supported transformation types are:\n");
     printf("\t\t- cubic B-Spline parametrised grid (reference image is required)\n");
@@ -205,6 +211,11 @@ int main(int argc, char **argv)
 			for(int j=0;j<12;++j)
                 param->affTransParam[j]=static_cast<float>(atof(argv[++i]));
         }
+		else if(strcmp(argv[i],"-aff2rig")==0 || strcmp(argv[i],"--aff2rig")==0){
+			flag->aff2rigFlag=true;
+			param->inputTransName=argv[++i];
+			param->outputTransName=argv[++i];
+		}
         else{
             fprintf(stderr, "[NiftyReg ERROR] Unrecognised argument: %s\n",
                     argv[i]);
@@ -891,54 +902,66 @@ int main(int argc, char **argv)
         affineTrans = nifti_mat44_inverse(affineTrans);
         // Save the inverted transformation
         reg_tool_WriteAffineFile(&affineTrans,param->outputTransName);
-    }
-    /* ******************************* */
-    // Create an affine transformation //
-    /* ******************************* */
-    if(flag->makeAffFlag){
-        // Create all the required matrices
-        mat44 rotationX;reg_mat44_eye(&rotationX);
-        mat44 translation;reg_mat44_eye(&translation);
-        mat44 rotationY;reg_mat44_eye(&rotationY);
-        mat44 rotationZ;reg_mat44_eye(&rotationZ);
-        mat44 scaling;reg_mat44_eye(&scaling);
-        mat44 shearing;reg_mat44_eye(&shearing);
-        // Set up the rotation matrix along the YZ plane
-        rotationX.m[1][1]=cosf(param->affTransParam[0]);
-        rotationX.m[1][2]=-sinf(param->affTransParam[0]);
-        rotationX.m[2][1]=sinf(param->affTransParam[0]);
-        rotationX.m[2][2]=cosf(param->affTransParam[0]);
-        // Set up the rotation matrix along the XZ plane
-        rotationY.m[0][0]=cosf(param->affTransParam[1]);
-        rotationY.m[0][2]=-sinf(param->affTransParam[1]);
-        rotationY.m[2][0]=sinf(param->affTransParam[1]);
-        rotationY.m[2][2]=cosf(param->affTransParam[1]);
-        // Set up the rotation matrix along the XY plane
-        rotationZ.m[0][0]=cosf(param->affTransParam[2]);
-        rotationZ.m[0][1]=-sinf(param->affTransParam[2]);
-        rotationZ.m[1][0]=sinf(param->affTransParam[2]);
-        rotationZ.m[1][1]=cosf(param->affTransParam[2]);
-        // Set up the translation matrix
-        translation.m[0][3]=param->affTransParam[3];
-        translation.m[1][3]=param->affTransParam[4];
-        translation.m[2][3]=param->affTransParam[5];
-        // Set up the scaling matrix
-        scaling.m[0][0]=param->affTransParam[6];
-        scaling.m[1][1]=param->affTransParam[7];
-        scaling.m[2][2]=param->affTransParam[8];
-        // Set up the shearing matrix
-        shearing.m[1][0]=param->affTransParam[9];
-        shearing.m[2][0]=param->affTransParam[10];
-        shearing.m[2][1]=param->affTransParam[11];
-        // Combine all the transformations
-        mat44 affine=reg_mat44_mul(&rotationY,&rotationZ);
-        affine=reg_mat44_mul(&rotationX,&affine);
-        affine=reg_mat44_mul(&scaling,&affine);
-        affine=reg_mat44_mul(&shearing,&affine);
-        affine=reg_mat44_mul(&translation,&affine);
-        // Save the new matrix
-        reg_tool_WriteAffineFile(&affine,param->outputTransName);
-    }
+	}
+	/* ******************************* */
+	// Create an affine transformation //
+	/* ******************************* */
+	if(flag->makeAffFlag){
+		// Create all the required matrices
+		mat44 rotationX;reg_mat44_eye(&rotationX);
+		mat44 translation;reg_mat44_eye(&translation);
+		mat44 rotationY;reg_mat44_eye(&rotationY);
+		mat44 rotationZ;reg_mat44_eye(&rotationZ);
+		mat44 scaling;reg_mat44_eye(&scaling);
+		mat44 shearing;reg_mat44_eye(&shearing);
+		// Set up the rotation matrix along the YZ plane
+		rotationX.m[1][1]=cosf(param->affTransParam[0]);
+		rotationX.m[1][2]=-sinf(param->affTransParam[0]);
+		rotationX.m[2][1]=sinf(param->affTransParam[0]);
+		rotationX.m[2][2]=cosf(param->affTransParam[0]);
+		// Set up the rotation matrix along the XZ plane
+		rotationY.m[0][0]=cosf(param->affTransParam[1]);
+		rotationY.m[0][2]=-sinf(param->affTransParam[1]);
+		rotationY.m[2][0]=sinf(param->affTransParam[1]);
+		rotationY.m[2][2]=cosf(param->affTransParam[1]);
+		// Set up the rotation matrix along the XY plane
+		rotationZ.m[0][0]=cosf(param->affTransParam[2]);
+		rotationZ.m[0][1]=-sinf(param->affTransParam[2]);
+		rotationZ.m[1][0]=sinf(param->affTransParam[2]);
+		rotationZ.m[1][1]=cosf(param->affTransParam[2]);
+		// Set up the translation matrix
+		translation.m[0][3]=param->affTransParam[3];
+		translation.m[1][3]=param->affTransParam[4];
+		translation.m[2][3]=param->affTransParam[5];
+		// Set up the scaling matrix
+		scaling.m[0][0]=param->affTransParam[6];
+		scaling.m[1][1]=param->affTransParam[7];
+		scaling.m[2][2]=param->affTransParam[8];
+		// Set up the shearing matrix
+		shearing.m[1][0]=param->affTransParam[9];
+		shearing.m[2][0]=param->affTransParam[10];
+		shearing.m[2][1]=param->affTransParam[11];
+		// Combine all the transformations
+		mat44 affine=reg_mat44_mul(&rotationY,&rotationZ);
+		affine=reg_mat44_mul(&rotationX,&affine);
+		affine=reg_mat44_mul(&scaling,&affine);
+		affine=reg_mat44_mul(&shearing,&affine);
+		affine=reg_mat44_mul(&translation,&affine);
+		// Save the new matrix
+		reg_tool_WriteAffineFile(&affine,param->outputTransName);
+	}
+	/* ************************************************* */
+	// Extract the rigid component from an affine matrix //
+	/* ************************************************* */
+	if(flag->aff2rigFlag){
+		mat44 affine;
+	   reg_tool_ReadAffineFile(&affine,param->inputTransName);
+	   // Compute the orthonormal matrix
+	   float qb,qc,qd,qx,qy,qz,dx,dy,dz,qfac;
+	   nifti_mat44_to_quatern(affine,&qb,&qc,&qd,&qx,&qy,&qz,&dx,&dy,&dz,&qfac);
+	   affine = nifti_quatern_to_mat44(qb,qc,qd,qx,qy,qz,dx,dy,dz,qfac);
+	   reg_tool_WriteAffineFile(&affine, param->outputTransName);
+	}
     // Free allocated object
     free(param);
     free(flag);
