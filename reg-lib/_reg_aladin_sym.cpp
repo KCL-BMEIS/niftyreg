@@ -249,9 +249,8 @@ void reg_aladin_sym<T>::SetCurrentImages()
 template <class T>
 void reg_aladin_sym<T>::GetBackwardDeformationField()
 {
-    reg_affine_positionField(this->BackwardTransformationMatrix,
-                             this->CurrentFloating,
-                             this->BackwardDeformationFieldImage);
+    reg_affine_deformationField(this->BackwardTransformationMatrix,
+                                this->BackwardDeformationFieldImage);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>

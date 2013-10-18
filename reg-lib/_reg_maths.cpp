@@ -22,6 +22,17 @@ static double sqrarg;
 
 /* *************************************************************** */
 /* *************************************************************** */
+bool operator==(mat44 A,mat44 B){
+    for(unsigned i=0;i<4;++i){
+        for(unsigned j=0;j<4;++j){
+            if(A.m[i][j]!=B.m[i][j])
+                return false;
+        }
+    }
+    return true;
+}
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_LUdecomposition(T *mat,
                          size_t dim,
@@ -634,7 +645,7 @@ MTYPE reg_mat44_expm(MTYPE const* mat, int maxit)
 	reg_mat44_eye(&X);
 
 	double c = 1.0;
-	for(int k=1; k <= maxit; k++){
+    for(int k=1; k<=maxit; k++){
 		c = c * (maxit-k+1.0) / (k*(2*maxit-k+1.0));
 		X = reg_mat44_mul(&A,&X);
 		cX = reg_mat44_mul(&X,c);
@@ -644,7 +655,7 @@ MTYPE reg_mat44_expm(MTYPE const* mat, int maxit)
 	}
 	D=reg_mat44_inv(&D);
 	X=reg_mat44_mul(&D,&N);
-	for(int i=0; i < reg_round(j); i++){
+    for(int i=0; i<reg_round(j); i++){
 		X=reg_mat44_mul(&X,&X);
 	}
 	return X;

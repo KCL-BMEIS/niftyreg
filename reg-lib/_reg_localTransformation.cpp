@@ -3325,6 +3325,8 @@ void reg_spline_getFlowFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
     strcpy(flowField->intent_name,"NREG_TRANS");
     flowField->intent_p1=DEF_VEL_FIELD;
     flowField->intent_p2=velocityFieldGrid->intent_p2;
+    if(velocityFieldGrid->num_ext>0 && flowField->ext_list==NULL)
+        nifti_copy_extensions(flowField, velocityFieldGrid);
 
 }
 /* *************************************************************** */
@@ -3338,7 +3340,8 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
         fprintf(stderr, "[NiftyReg ERROR] The provide field is not a velocity field\n");
         reg_exit(1);
     }
-    // The deformation field is converted from deformation field to displacement field
+
+    // Convert the flow from def to disp
     reg_getDisplacementFromDeformation(flowFieldImage);
 
     // Check the largest value
@@ -3356,10 +3359,13 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
         // 0.3535533 = sqrt(0.5^2/2)
         else maxLength=0.35;
         while(true){
-            if( (extrema/pow(2.0f,squaringNumber)) >= 0.28)
+            if( (extrema/pow(2.0f,squaringNumber)) >= maxLength)
                 squaringNumber++;
             else break;
         }
+        // The minimal number of step is set to 6 by default
+        squaringNumber=squaringNumber<6?6:squaringNumber;
+        // Set the number of squaring step in the flow field
         if(fabs(flowFieldImage->intent_p2)!=squaringNumber){
             printf("[NiftyReg] Changing from %i to %i squaring step (equivalent to scaling down by %i)\n",
                    static_cast<int>(reg_round(fabs(flowFieldImage->intent_p2))),
@@ -3373,7 +3379,7 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
     }
     else squaringNumber=flowFieldImage->intent_p2;
 
-    // The deformation field is scaled
+    // The displacement field is scaled
     float scalingValue = pow(2.0f,fabs(squaringNumber));
     if(flowFieldImage->intent_p2<0)
         // backward deformation field is scaled down
@@ -3408,11 +3414,20 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
     }
     deformationFieldImage->intent_p1=DEF_FIELD;
     deformationFieldImage->intent_p2=0;
+    // If required an affine component is added
+    if(flowFieldImage->num_ext==1){
+        nifti_image *affineTransformation = nifti_copy_nim_info(deformationFieldImage);
+        affineTransformation->data=(void *)malloc(affineTransformation->nvox*affineTransformation->nbyper);
+        reg_affine_deformationField(reinterpret_cast<mat44 *>(flowFieldImage->ext_list->edata),affineTransformation);
+        reg_getDisplacementFromDeformation(affineTransformation);
+        reg_tools_addImageToImage(deformationFieldImage,affineTransformation,deformationFieldImage);
+        nifti_image_free(affineTransformation);
+    }
 }
 /* *************************************************************** */
 void reg_spline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
-                                                   nifti_image *deformationFieldImage,
-                                                   bool updateStepNumber)
+                                                    nifti_image *deformationFieldImage,
+                                                    bool updateStepNumber)
 {
     // Check if the velocity field is actually a velocity field
     if(velocityFieldGrid->intent_p1 == SPLINE_GRID){
@@ -3432,6 +3447,8 @@ void reg_spline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGr
         strcpy(flowField->intent_name,"NREG_TRANS");
         flowField->intent_p1=DEF_VEL_FIELD;
         flowField->intent_p2=velocityFieldGrid->intent_p2;
+        if(velocityFieldGrid->num_ext>0 && flowField->ext_list==NULL)
+            nifti_copy_extensions(flowField, velocityFieldGrid);
 
         // Generate the velocity field
         reg_spline_getFlowFieldFromVelocityGrid(velocityFieldGrid,

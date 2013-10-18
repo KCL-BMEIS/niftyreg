@@ -237,22 +237,7 @@ void reg_f3d<T>::Initisalise()
         // The control point position image is initialised with the affine transformation
         if(this->affineTransformation==NULL){
             mat44 identityAffine;
-            identityAffine.m[0][0]=1.f;
-            identityAffine.m[0][1]=0.f;
-            identityAffine.m[0][2]=0.f;
-            identityAffine.m[0][3]=0.f;
-            identityAffine.m[1][0]=0.f;
-            identityAffine.m[1][1]=1.f;
-            identityAffine.m[1][2]=0.f;
-            identityAffine.m[1][3]=0.f;
-            identityAffine.m[2][0]=0.f;
-            identityAffine.m[2][1]=0.f;
-            identityAffine.m[2][2]=1.f;
-            identityAffine.m[2][3]=0.f;
-            identityAffine.m[3][0]=0.f;
-            identityAffine.m[3][1]=0.f;
-            identityAffine.m[3][2]=0.f;
-            identityAffine.m[3][3]=1.f;
+            reg_mat44_eye(&identityAffine);
             if(reg_spline_initialiseControlPointGridWithAffine(&identityAffine, this->controlPointGrid))
                 reg_exit(1);
         }
@@ -514,17 +499,6 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
                                     );
     }
 
-//        float currentNodeSpacing[3]={
-//            this->controlPointGrid->dx/this->currentReference->dx,
-//            this->controlPointGrid->dy/this->currentReference->dy,
-//            this->controlPointGrid->dz/this->currentReference->dz
-//        };
-//        reg_tools_CubicSplineKernelConvolution(this->voxelBasedMeasureGradientImage,
-//                                               currentNodeSpacing);
-//        reg_io_WriteImageFile(this->voxelBasedMeasureGradientImage,
-//                              "grad_old.nii");
-//        reg_exit(1);
-
     // The node based NMI gradient is extracted
     reg_voxelCentric2NodeCentric(this->transformationGradient,
                                  this->voxelBasedMeasureGradientImage,
@@ -533,7 +507,10 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
 
 	/* The similarity measure gradient is converted from voxel space to real space */
     mat44 *floatingMatrix_xyz=NULL;
-	size_t controlPointNumber=(size_t)this->controlPointGrid->nx*this->controlPointGrid->ny*this->controlPointGrid->nz;
+    size_t controlPointNumber=
+            (size_t)this->controlPointGrid->nx*
+            this->controlPointGrid->ny*
+            this->controlPointGrid->nz;
 #ifdef _WIN32
 	int  i;
 #else
@@ -1037,6 +1014,7 @@ void reg_f3d<T>::PrintCurrentObjFunctionValue(T currentSize)
 template<class T>
 void reg_f3d<T>::GetObjectiveFunctionGradient()
 {
+
     if(!this->useApproxGradient){
         // Compute the gradient of the similarity measure
         if(this->similarityWeight>0){

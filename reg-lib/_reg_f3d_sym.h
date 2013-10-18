@@ -62,6 +62,7 @@ class reg_f3d_sym : public reg_f3d<T>
     virtual double ComputeL2NormDispPenaltyTerm();
     virtual void GetDeformationField();
     virtual void WarpFloatingImage(int);
+    virtual void GetVoxelBasedGradient();
     virtual void GetSimilarityMeasureGradient();
     virtual void GetObjectiveFunctionGradient();
     virtual void GetBendingEnergyGradient();

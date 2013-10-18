@@ -338,13 +338,6 @@ void reg_f3d_sym<T>::CheckParameters()
 
     reg_f3d<T>::CheckParameters();
 
-    if(this->affineTransformation!=NULL){
-        fprintf(stderr, "[NiftyReg F3D_SYM ERROR] The inverse consistency parametrisation does not handle affine input\n");
-        fprintf(stderr, "[NiftyReg F3D_SYM ERROR] Please update your floating image sform using reg_transform\n");
-        fprintf(stderr, "[NiftyReg F3D_SYM ERROR] and use the updated floating image as an input\n.");
-        reg_exit(1);
-    }
-
     // CHECK THE FLOATING MASK DIMENSION IF IT IS DEFINED
     if(this->floatingMaskImage!=NULL){
         if(this->inputFloating->nx != this->floatingMaskImage->nx ||
@@ -372,7 +365,7 @@ void reg_f3d_sym<T>::CheckParameters()
         this->jacobianLogWeight /= penaltySum;
         this->inverseConsistencyWeight /= penaltySum;
     }
-    else this->similarityWeight=1.0 - penaltySum;
+    else this->similarityWeight = 1.0 - penaltySum;
 
     return;
 }
@@ -411,28 +404,20 @@ void reg_f3d_sym<T>::Initisalise()
                                   this->floatingPyramid[0],
                                   gridSpacing);
 
-    // the backward control point is initialised using an affine transformation
-    mat44 matrixAffine;
-    matrixAffine.m[0][0]=1.f;
-    matrixAffine.m[0][1]=0.f;
-    matrixAffine.m[0][2]=0.f;
-    matrixAffine.m[0][3]=0.f;
-    matrixAffine.m[1][0]=0.f;
-    matrixAffine.m[1][1]=1.f;
-    matrixAffine.m[1][2]=0.f;
-    matrixAffine.m[1][3]=0.f;
-    matrixAffine.m[2][0]=0.f;
-    matrixAffine.m[2][1]=0.f;
-    matrixAffine.m[2][2]=1.f;
-    matrixAffine.m[2][3]=0.f;
-    matrixAffine.m[3][0]=0.f;
-    matrixAffine.m[3][1]=0.f;
-    matrixAffine.m[3][2]=0.f;
-    matrixAffine.m[3][3]=1.f;
-    if(reg_spline_initialiseControlPointGridWithAffine(&matrixAffine, this->controlPointGrid))
-        reg_exit(1);
-    if(reg_spline_initialiseControlPointGridWithAffine(&matrixAffine, this->backwardControlPointGrid))
-        reg_exit(1);
+
+    // the backward control point grid is initialised using the inverse affine transformation
+    if(this->affineTransformation!=NULL){
+        mat44 inverseAffineTransformation=nifti_mat44_inverse(*this->affineTransformation);
+        if(reg_spline_initialiseControlPointGridWithAffine(&inverseAffineTransformation,
+                                                           this->backwardControlPointGrid))
+            reg_exit(1);
+    }
+    else{
+        mat44 identityAffine;
+        reg_mat44_eye(&identityAffine);
+        if(reg_spline_initialiseControlPointGridWithAffine(&identityAffine, this->backwardControlPointGrid))
+            reg_exit(1);
+    }
 
     // Set the floating mask image pyramid
     if(this->usePyramid){
@@ -661,6 +646,76 @@ double reg_f3d_sym<T>::ComputeL2NormDispPenaltyTerm()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
+void reg_f3d_sym<T>::GetVoxelBasedGradient()
+{
+    // The intensity gradient is first computed
+    if(this->measure_dti!=NULL){
+        reg_getImageGradient(this->currentFloating,
+                             this->warpedGradientImage,
+                             this->deformationFieldImage,
+                             this->currentMask,
+                             this->interpolation,
+                             this->warpedPaddingValue,
+                             this->measure_dti->GetActiveTimepoints(),
+                             this->forwardJacobianMatrix,
+                             this->warped);
+
+        reg_getImageGradient(this->currentReference,
+                             this->backwardWarpedGradientImage,
+                             this->backwardDeformationFieldImage,
+                             this->currentFloatingMask,
+                             this->interpolation,
+                             this->warpedPaddingValue,
+                             this->measure_dti->GetActiveTimepoints(),
+                             this->backwardJacobianMatrix,
+                             this->backwardWarped);
+    }
+    else{
+        reg_getImageGradient(this->currentFloating,
+                             this->warpedGradientImage,
+                             this->deformationFieldImage,
+                             this->currentMask,
+                             this->interpolation,
+                             this->warpedPaddingValue);
+
+        reg_getImageGradient(this->currentReference,
+                             this->backwardWarpedGradientImage,
+                             this->backwardDeformationFieldImage,
+                             this->currentFloatingMask,
+                             this->interpolation,
+                             this->warpedPaddingValue);
+    }
+    // The voxel based gradient image is filled with zeros
+    reg_tools_multiplyValueToImage(this->voxelBasedMeasureGradientImage,
+                                   this->voxelBasedMeasureGradientImage,
+                                   0.f);
+    reg_tools_multiplyValueToImage(this->backwardVoxelBasedMeasureGradientImage,
+                                   this->backwardVoxelBasedMeasureGradientImage,
+                                   0.f);
+    // The gradient of the various measures of similarity are computed
+    if(this->measure_nmi!=NULL)
+        this->measure_nmi->GetVoxelBasedSimilarityMeasureGradient();
+
+    if(this->measure_multichannel_nmi!=NULL)
+        this->measure_multichannel_nmi->GetVoxelBasedSimilarityMeasureGradient();
+
+    if(this->measure_ssd!=NULL)
+        this->measure_ssd->GetVoxelBasedSimilarityMeasureGradient();
+
+    if(this->measure_kld!=NULL)
+        this->measure_kld->GetVoxelBasedSimilarityMeasureGradient();
+
+    if(this->measure_lncc!=NULL)
+        this->measure_lncc->GetVoxelBasedSimilarityMeasureGradient();
+
+    if(this->measure_dti!=NULL)
+        this->measure_dti->GetVoxelBasedSimilarityMeasureGradient();
+
+    return;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
 void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
 {
     reg_f3d<T>::GetSimilarityMeasureGradient();
@@ -705,8 +760,8 @@ void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
     /* The gradient is converted from voxel space to real space */
     mat44 *referenceMatrix_xyz=NULL;
 	size_t controlPointNumber=
-			(size_t)this->backwardControlPointGrid->nx *
-            this->backwardControlPointGrid->ny *
+            (size_t)this->backwardControlPointGrid->nx*
+            this->backwardControlPointGrid->ny*
 			this->backwardControlPointGrid->nz;
 #ifdef _WIN32
 	int  i;

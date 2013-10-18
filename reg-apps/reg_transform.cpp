@@ -207,9 +207,9 @@ int main(int argc, char **argv)
         }
 		else if(strcmp(argv[i],"-makeAff")==0 || strcmp(argv[i],"--makeAff")==0){
             flag->makeAffFlag=true;
-            param->outputTransName=argv[++i];
 			for(int j=0;j<12;++j)
                 param->affTransParam[j]=static_cast<float>(atof(argv[++i]));
+            param->outputTransName=argv[++i];
         }
 		else if(strcmp(argv[i],"-aff2rig")==0 || strcmp(argv[i],"--aff2rig")==0){
 			flag->aff2rigFlag=true;
@@ -289,10 +289,8 @@ int main(int argc, char **argv)
             outputTransformationImage->nvox=(size_t)outputTransformationImage->nx *
                     outputTransformationImage->ny * outputTransformationImage->nz *
                     outputTransformationImage->nt * outputTransformationImage->nu;
-            if(referenceImage->datatype!=NIFTI_TYPE_FLOAT64){
-                outputTransformationImage->nbyper=sizeof(float);
-                outputTransformationImage->datatype=NIFTI_TYPE_FLOAT32;
-            }
+            outputTransformationImage->nbyper=sizeof(float);
+            outputTransformationImage->datatype=NIFTI_TYPE_FLOAT32;
             outputTransformationImage->intent_code=NIFTI_INTENT_VECTOR;
             memset(outputTransformationImage->intent_name, 0, 16);
             strcpy(outputTransformationImage->intent_name,"NREG_TRANS");
@@ -349,60 +347,62 @@ int main(int argc, char **argv)
         // Create a deformation field
         else if(flag->outputDefFlag || flag->outputDispFlag){
             if(affineTransformation!=NULL){
-                NULL;
+                reg_affine_deformationField(affineTransformation,outputTransformationImage);
             }
-            switch(static_cast<int>(reg_round(inputTransformationImage->intent_p1))){
-            case DEF_FIELD:
-                // the current in transformation is copied
-                memcpy(outputTransformationImage->data,inputTransformationImage->data,
-                       outputTransformationImage->nvox*outputTransformationImage->nbyper);
-                break;
-            case DISP_FIELD:
-                // the current in transformation is copied and converted
-                memcpy(outputTransformationImage->data,inputTransformationImage->data,
-                       outputTransformationImage->nvox*outputTransformationImage->nbyper);
-                reg_getDeformationFromDisplacement(outputTransformationImage);
-                break;
-            case SPLINE_GRID:
-                // The output field is filled with an identity deformation field
-                memset(outputTransformationImage->data,
-                       0,
-                       outputTransformationImage->nvox*outputTransformationImage->nbyper);
-                reg_getDeformationFromDisplacement(outputTransformationImage);
-                // The spline transformation is composed with the identity field
-                reg_spline_getDeformationField(inputTransformationImage,
-                                               outputTransformationImage,
-                                               NULL, // no mask
-                                               true, // composition is used,
-                                               true // b-spline are used
-                                               );
-                break;
-            case DEF_VEL_FIELD:
-                // The flow field is exponentiated
-                reg_defField_getDeformationFieldFromFlowField(inputTransformationImage,
-                                                              outputTransformationImage,
-                                                              false // step number is not updated
-                                                              );
-                break;
-            case DISP_VEL_FIELD:
-                // The input transformation is converted into a def flow
-                reg_getDeformationFromDisplacement(outputTransformationImage);
-                // The flow field is exponentiated
-                reg_defField_getDeformationFieldFromFlowField(inputTransformationImage,
-                                                              outputTransformationImage,
-                                                              false // step number is not updated
-                                                              );
-                break;
-            case SPLINE_VEL_GRID:
-                // The spline parametrisation is converted into a dense flow and exponentiated
-                reg_spline_getDeformationFieldFromVelocityGrid(inputTransformationImage,
-                                                               outputTransformationImage,
-                                                               false // step number is not updated
-                                                               );
-                break;
-            default:
-                fprintf(stderr,"[NiftyReg ERROR] Unknown input transformation type\n");
-                return 1;
+            else{
+                switch(static_cast<int>(reg_round(inputTransformationImage->intent_p1))){
+                case DEF_FIELD:
+                    // the current in transformation is copied
+                    memcpy(outputTransformationImage->data,inputTransformationImage->data,
+                           outputTransformationImage->nvox*outputTransformationImage->nbyper);
+                    break;
+                case DISP_FIELD:
+                    // the current in transformation is copied and converted
+                    memcpy(outputTransformationImage->data,inputTransformationImage->data,
+                           outputTransformationImage->nvox*outputTransformationImage->nbyper);
+                    reg_getDeformationFromDisplacement(outputTransformationImage);
+                    break;
+                case SPLINE_GRID:
+                    // The output field is filled with an identity deformation field
+                    memset(outputTransformationImage->data,
+                           0,
+                           outputTransformationImage->nvox*outputTransformationImage->nbyper);
+                    reg_getDeformationFromDisplacement(outputTransformationImage);
+                    // The spline transformation is composed with the identity field
+                    reg_spline_getDeformationField(inputTransformationImage,
+                                                   outputTransformationImage,
+                                                   NULL, // no mask
+                                                   true, // composition is used,
+                                                   true // b-spline are used
+                                                   );
+                    break;
+                case DEF_VEL_FIELD:
+                    // The flow field is exponentiated
+                    reg_defField_getDeformationFieldFromFlowField(inputTransformationImage,
+                                                                  outputTransformationImage,
+                                                                  false // step number is not updated
+                                                                  );
+                    break;
+                case DISP_VEL_FIELD:
+                    // The input transformation is converted into a def flow
+                    reg_getDeformationFromDisplacement(outputTransformationImage);
+                    // The flow field is exponentiated
+                    reg_defField_getDeformationFieldFromFlowField(inputTransformationImage,
+                                                                  outputTransformationImage,
+                                                                  false // step number is not updated
+                                                                  );
+                    break;
+                case SPLINE_VEL_GRID:
+                    // The spline parametrisation is converted into a dense flow and exponentiated
+                    reg_spline_getDeformationFieldFromVelocityGrid(inputTransformationImage,
+                                                                   outputTransformationImage,
+                                                                   false // step number is not updated
+                                                                   );
+                    break;
+                default:
+                    fprintf(stderr,"[NiftyReg ERROR] Unknown input transformation type\n");
+                    return 1;
+                }
             }
             outputTransformationImage->intent_p1=DEF_FIELD;
             outputTransformationImage->intent_p2=0;
@@ -521,7 +521,7 @@ int main(int argc, char **argv)
             output1TransImage->data=(void *)calloc
                     (output1TransImage->nvox,output1TransImage->nbyper);
             if(affine1Trans!=NULL){
-                reg_affine_positionField(affine1Trans,referenceImage,output1TransImage);
+                reg_affine_deformationField(affine1Trans,output1TransImage);
             }
             else switch(reg_round(input1TransImage->intent_p1)){
             case SPLINE_GRID:
@@ -574,7 +574,7 @@ int main(int argc, char **argv)
             output2TransImage->intent_p1=DEF_FIELD;
             output2TransImage->data=(void *)calloc
                     (output2TransImage->nvox,output2TransImage->nbyper);
-            reg_affine_positionField(affine2Trans,output2TransImage,output2TransImage);
+            reg_affine_deformationField(affine2Trans,output2TransImage);
             reg_defField_compose(output2TransImage,output1TransImage,NULL);
         }
         else{

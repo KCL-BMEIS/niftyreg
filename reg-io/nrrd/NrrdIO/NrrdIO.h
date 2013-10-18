@@ -81,8 +81,9 @@ typedef unsigned __int64 airULLong;
 #define AIR_LLONG(x) x##i64
 #define AIR_ULLONG(x) x##ui64
 #else
-typedef signed long long airLLong;
-typedef unsigned long long airULLong;
+#include <stdint.h>
+typedef int64_t airLLong;
+typedef uint64_t airULLong;
 #define AIR_LLONG_FMT "%lld"
 #define AIR_ULLONG_FMT "%llu"
 #define AIR_LLONG(x) x##ll

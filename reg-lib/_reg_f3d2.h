@@ -18,14 +18,10 @@ template <class T>
 class reg_f3d2 : public reg_f3d_sym<T>
 {
   protected:
-    int stepNumber;
     bool BCHUpdate;
     bool useGradientCumulativeExp;
     int BCHUpdateValue;
-    mat33 *forward2backward_reorient;
-    mat33 *backward2forward_reorient;
 
-    virtual void DefineReorientationMatrices();
     virtual void GetDeformationField();
     virtual void GetInverseConsistencyErrorField();
     virtual void GetInverseConsistencyGradient();
@@ -36,7 +32,6 @@ class reg_f3d2 : public reg_f3d_sym<T>
     virtual void UseGradientCumulativeExp();
 
 public:
-    virtual void SetCompositionStepNumber(int);
     reg_f3d2(int refTimePoint,int floTimePoint);
     ~reg_f3d2();
     virtual void Initisalise();

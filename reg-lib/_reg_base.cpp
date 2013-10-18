@@ -764,7 +764,7 @@ template <class T>
 void reg_base<T>::GetVoxelBasedGradient()
 {
     // The intensity gradient is first computed
-    if(measure_dti!=NULL){
+    if(this->measure_dti!=NULL){
         reg_getImageGradient(this->currentFloating,
                              this->warpedGradientImage,
                              this->deformationFieldImage,

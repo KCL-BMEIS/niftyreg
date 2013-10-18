@@ -426,9 +426,8 @@ void reg_aladin<T>::InitialiseBlockMatching(int CurrentPercentageOfBlockToUse)
 template <class T>
 void reg_aladin<T>::GetDeformationField()
 {
-    reg_affine_positionField(this->TransformationMatrix,
-                             this->CurrentReference,
-                             this->deformationFieldImage);
+    reg_affine_deformationField(this->TransformationMatrix,
+                                this->deformationFieldImage);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>

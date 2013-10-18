@@ -1859,6 +1859,7 @@ float reg_tools_getMinValue1(nifti_image *image)
     DTYPE *imgPtr = static_cast<DTYPE *>(image->data);
     // Set a variable to store the minimal value
     float minValue=std::numeric_limits<DTYPE>::max();
+    if(image->scl_slope==0) image->scl_slope=1.f;
     // Loop over all voxel to find the lowest value
     for(size_t i=0;i<image->nvox;++i){
         DTYPE currentVal = (DTYPE)((float)imgPtr[i] * image->scl_slope + image->scl_inter);
@@ -1902,6 +1903,7 @@ float reg_tools_getMaxValue1(nifti_image *image)
     DTYPE *imgPtr = static_cast<DTYPE *>(image->data);
     // Set a variable to store the maximal value
     float maxValue=-std::numeric_limits<DTYPE>::max();
+    if(image->scl_slope==0) image->scl_slope=1.f;
     // Loop over all voxel to find the lowest value
     for(size_t i=0;i<image->nvox;++i){
         DTYPE currentVal = static_cast<DTYPE>(imgPtr[i] * image->scl_slope + image->scl_inter);

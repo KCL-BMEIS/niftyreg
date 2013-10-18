@@ -361,9 +361,8 @@ int main(int argc, char **argv)
 #ifndef NDEBUG
             printf("[NiftyReg DEBUG] Computation of the deformation field from the affine transformation\n");
 #endif
-            reg_affine_positionField(affineTransformationMatrix,
-                                     referenceImage,
-                                     deformationFieldImage);
+            reg_affine_deformationField(affineTransformationMatrix,
+                                        deformationFieldImage);
         }
     }
 

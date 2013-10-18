@@ -147,8 +147,7 @@ void Usage(char *exec)
     printf("\t-ic <float>\t\tWeight of the inverse consistency penalty term [0.01]\n");
 
     printf("\n*** F3D2 options:\n");
-    printf("\t-vel \t\t\tUse a velocity field integrationto generate the deformation\n");
-    printf("\t-step <int>\t\tNumber of composition step [6].\n");
+    printf("\t-vel \t\t\tUse a velocity field integration to generate the deformation\n");
 
     printf("\n*** Other options:\n");
     printf("\t-smoothGrad <float>\tTo smooth the metric derivative (in mm) [0]\n");
@@ -249,11 +248,11 @@ int main(int argc, char **argv)
 #endif // _USE_CUDA
     reg_f3d<PrecisionTYPE> *REG=NULL;
     for(int i=1;i<argc;i++){
-        if(strcmp(argv[i], "-vel")==0 || strcmp(argv[i], "-step")==0){
+        if(strcmp(argv[i], "-vel")==0 || strcmp(argv[i], "--vel")==0){
             REG=new reg_f3d2<PrecisionTYPE>(referenceImage->nt,floatingImage->nt);
             break;
         }
-        if(strcmp(argv[i], "-sym")==0){
+        if(strcmp(argv[i], "-sym")==0 || strcmp(argv[i], "--sym")==0){
             REG=new reg_f3d_sym<PrecisionTYPE>(referenceImage->nt,floatingImage->nt);
             break;
         }
@@ -568,9 +567,6 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-nogr") ==0){
             REG->NoGridRefinement();
         }
-        else if(strcmp(argv[i], "-step")==0 || strcmp(argv[i], "--step")==0){
-            REG->SetCompositionStepNumber(atoi(argv[++i]));
-		}
         else if(strcmp(argv[i], "-gce")==0 || strcmp(argv[i], "--gce")==0){
             REG->UseGradientCumulativeExp();
 		}

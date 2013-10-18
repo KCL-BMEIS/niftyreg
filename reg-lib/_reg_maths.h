@@ -65,6 +65,8 @@ typedef struct{
 	double m[4][4];
 } reg_mat44d;
 /* *************************************************************** */
+bool operator==(mat44 A,mat44 B);
+/* *************************************************************** */
 extern "C++" template <class T>
 void reg_LUdecomposition(T *inputMatrix,
                          size_t dim,

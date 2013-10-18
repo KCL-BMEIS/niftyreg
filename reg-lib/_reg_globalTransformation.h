@@ -24,15 +24,12 @@
  * on affine transformation matrix
  * @param affine This matrix contains the affine transformation
  * used to parametrise the transformation
- * @param referenceImage The image represents the reference space
- * of the transformation
  * @param deformationField Image that contains the deformation field
  * that is being updated
  */
 extern "C++"
-void reg_affine_positionField(mat44 *affine,
-                nifti_image *referenceImage,
-                nifti_image *deformationField);
+void reg_affine_deformationField(mat44 *affine,
+                                 nifti_image *deformationField);
 
 /** @brief Read a text file that contains a affine transformation
  * and store it into a mat44 structure. This function can also read

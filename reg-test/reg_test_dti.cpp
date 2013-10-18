@@ -126,9 +126,8 @@ int main(int argc, char **argv)
     reg_mat44_disp(&affineMat,(char *)"Affine matrix");*/
 
     // Make a deformation field from an affine transformation matrix
-    reg_affine_positionField(&affineMat,
-                             floatingImage,
-                             deformationFieldImage);
+    reg_affine_deformationField(&affineMat,
+                                deformationFieldImage);
     std::cerr << "Made a deformation field from the affine matrix";
 
     bool dti_timepoint[255];
