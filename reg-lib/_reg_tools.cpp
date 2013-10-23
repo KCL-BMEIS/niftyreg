@@ -932,7 +932,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
     for(int t=0; t<image->nt*image->nu; t++){
         if(timePoint[t]){
             DTYPE *intensityPtr = &imagePtr[t * voxelNumber];
-            int index;
+            size_t index;
             for(index=0; index<voxelNumber; index++){
 				densityPtr[index] = (intensityPtr[index]==intensityPtr[index])?1:0;
 				densityPtr[index] *= (mask[index]>=0)?1:0;
@@ -994,7 +994,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
 #ifndef NDEBUG
                         printf("[NiftyReg DEBUG] Convolution type[%i] dim[%i] tp[%i] radius[%i] kernelSum[%g]\n", kernelType, n, t, radius, kernelSum);
 #endif
-                        int k, planeIndex, planeNumber, lineIndex, lineOffset;
+                        size_t k, planeIndex, planeNumber, lineIndex, lineOffset;
                         switch(n){
                         case 0:
                             planeNumber=imageDim[1]*imageDim[2];
@@ -1010,13 +1010,14 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                             break;
                         }
 
-                        int shiftPre, shiftPst, realIndex;
+                        int shiftPre, shiftPst;
+                        size_t realIndex;
                         float *kernelPtr, kernelValue;
                         double densitySum, intensitySum;
                         DTYPE *currentIntensityPtr=NULL;
                         float *currentDensityPtr = NULL;
-                        DTYPE bufferIntensity[1024];
-                        float bufferDensity[1024];
+                        DTYPE bufferIntensity[2048];
+                        float bufferDensity[2048];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(imageDim, intensityPtr, densityPtr, radius, kernel, lineOffset, n, \
