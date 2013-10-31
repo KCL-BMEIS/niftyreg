@@ -319,7 +319,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues()
         printf("[NiftyReg DEBUG] Conjugate gradient initialisation\n");
 #endif
         // first conjugate gradient iteration
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(num,array1Ptr,array2Ptr,gradientPtr) \
     private(i)
@@ -328,7 +328,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues()
             array2Ptr[i] = array1Ptr[i] = - gradientPtr[i];
         }
         if(this->dofNumber_b>0){
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(num_b,array1Ptr_b,array2Ptr_b,gradientPtr_b) \
     private(i)
@@ -344,7 +344,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues()
         printf("[NiftyReg DEBUG] Conjugate gradient update\n");
 #endif
         double dgg=0.0, gg=0.0;
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(num,array1Ptr,array2Ptr,gradientPtr) \
     private(i) \
@@ -359,7 +359,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues()
 
         if(this->dofNumber_b>0){
             double dgg_b=0.0, gg_b=0.0;
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(num_b,array1Ptr_b,array2Ptr_b,gradientPtr_b) \
     private(i) \
@@ -372,7 +372,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues()
             }
             gam = (dgg+dgg_b)/(gg+gg_b);
         }
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(num,array1Ptr,array2Ptr,gradientPtr,gam) \
     private(i)
@@ -383,7 +383,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues()
             gradientPtr[i] = - array2Ptr[i];
         }
         if(this->dofNumber_b>0){
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(num_b,array1Ptr_b,array2Ptr_b,gradientPtr_b,gam) \
     private(i)

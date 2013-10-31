@@ -326,7 +326,6 @@ void reg_f3d2<T>::UpdateParameters(float scale)
     }
     // Clean the temporary nifti_images
     nifti_image_free(forwardScaledGradient);forwardScaledGradient=NULL;
-
     /************************/
     /**** Backward update ***/
     /************************/
@@ -386,8 +385,8 @@ void reg_f3d2<T>::UpdateParameters(float scale)
         printf("[NiftyReg f3d2] Addition based symmetrisation\n");
 #endif
         // Both parametrisations are copied over
-        memcpy(warpedBackwardTrans->data,this->backwardControlPointGrid,warpedBackwardTrans->nvox*warpedBackwardTrans->nbyper);
-        memcpy(warpedForwardTrans->data,this->controlPointGrid,warpedForwardTrans->nvox*warpedForwardTrans->nbyper);
+        memcpy(warpedBackwardTrans->data,this->backwardControlPointGrid->data,warpedBackwardTrans->nvox*warpedBackwardTrans->nbyper);
+        memcpy(warpedForwardTrans->data,this->controlPointGrid->data,warpedForwardTrans->nvox*warpedForwardTrans->nbyper);
     }
     /****************************/
     else{

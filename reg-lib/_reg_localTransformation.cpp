@@ -598,7 +598,7 @@ void reg_spline_getDeformationField2D(nifti_image *splineControlPoint,
     }
     else{ // starting deformation field is blank - !composition
 
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #ifdef _USE_SSE
 #pragma  omp parallel for default(none) \
         shared(deformationField, gridVoxelSpacing, splineControlPoint, controlPointPtrX, \
@@ -789,7 +789,7 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
 
         DTYPE voxel[3];
 
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #ifdef _USE_SSE
 #pragma omp parallel for default(none) \
     private(x, y, z, a, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
@@ -950,7 +950,7 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
             DTYPE yzBasis[16], xyzBasis[64];
 #endif // _USE_SSE
 
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #ifdef _USE_SSE
 #pragma omp parallel for default(none) \
     private(x, y, z, a, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
@@ -2011,7 +2011,7 @@ void reg_defField_compose2D(nifti_image *deformationField,
     int a, b, pre[2];
     DTYPE realDefX, realDefY, voxelX, voxelY;
     DTYPE defX, defY, relX[2], relY[2], basis;
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(warVoxelNumber, mask, df_real2Voxel, df_voxel2Real, \
     deformationField, defPtrX, defPtrY, resPtrX, resPtrY) \
@@ -2108,7 +2108,7 @@ void reg_defField_compose3D(nifti_image *deformationField,
     DTYPE realDefX, realDefY, realDefZ, voxelX, voxelY, voxelZ, tempBasis;
     DTYPE defX, defY, defZ, relX[2], relY[2], relZ[2], basis;
     bool inY, inZ;
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(warVoxelNumber, mask, df_real2Voxel, df_voxel2Real, DefFieldDim, \
     defPtrX, defPtrY, defPtrZ, resPtrX, resPtrY, resPtrZ, deformationField) \
@@ -2765,7 +2765,7 @@ void reg_defFieldInvert3D(nifti_image *inputDeformationField,
     double position[4], pars[4], arrayy[4][3];
     struct ddata dat;
     DTYPE *outData;
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(outputDeformationField,tolerance,outputVoxelNumber, \
     inputDeformationField, OutXYZMatrix, delta) \
@@ -3070,7 +3070,7 @@ void reg_spline_cppComposition_3D(nifti_image *grid1,
         matrix_voxel_to_real2=&(grid2->sto_xyz);
     else matrix_voxel_to_real2=&(grid2->qto_xyz);
 
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #ifdef _USE_SSE
 #pragma omp parallel for default(none) \
     shared(grid1, grid2, displacement1, displacement2, matrix_voxel_to_real2, matrix_real_to_voxel1, \
@@ -3656,7 +3656,7 @@ void compute_lie_bracket(nifti_image *img1,
     size_t i;
 #endif
 
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(res, resPtr, one_twoPtr, two_onePtr) \
     private(i)
@@ -3688,7 +3688,7 @@ void compute_BCH_update1(nifti_image *img1, // current field
     // r <- 2 + 1
     DTYPE *img1Ptr=static_cast<DTYPE *>(img1->data);
     DTYPE *img2Ptr=static_cast<DTYPE *>(img2->data);
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(img1,img1Ptr,img2Ptr, res) \
     private(i)
@@ -3705,7 +3705,7 @@ void compute_BCH_update1(nifti_image *img1, // current field
         lie_bracket_img2_img1->data=(void *)malloc(lie_bracket_img2_img1->nvox*lie_bracket_img2_img1->nbyper);
         compute_lie_bracket<DTYPE>(img2, img1, lie_bracket_img2_img1, use_jac);
         DTYPE *lie_bracket_img2_img1Ptr=static_cast<DTYPE *>(lie_bracket_img2_img1->data);
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(img1, res, lie_bracket_img2_img1Ptr) \
     private(i)
@@ -3719,7 +3719,7 @@ void compute_BCH_update1(nifti_image *img1, // current field
             lie_bracket_img2_lie1->data=(void *)malloc(lie_bracket_img2_lie1->nvox*lie_bracket_img2_lie1->nbyper);
             compute_lie_bracket<DTYPE>(img2, lie_bracket_img2_img1, lie_bracket_img2_lie1, use_jac);
             DTYPE *lie_bracket_img2_lie1Ptr=static_cast<DTYPE *>(lie_bracket_img2_lie1->data);
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(img1, res, lie_bracket_img2_lie1Ptr) \
     private(i)
@@ -3733,7 +3733,7 @@ void compute_BCH_update1(nifti_image *img1, // current field
                 lie_bracket_img1_lie1->data=(void *)malloc(lie_bracket_img1_lie1->nvox*lie_bracket_img1_lie1->nbyper);
                 compute_lie_bracket<DTYPE>(img1, lie_bracket_img2_img1, lie_bracket_img1_lie1, use_jac);
                 DTYPE *lie_bracket_img1_lie1Ptr=static_cast<DTYPE *>(lie_bracket_img1_lie1->data);
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(img1, res, lie_bracket_img1_lie1Ptr) \
     private(i)
@@ -3748,7 +3748,7 @@ void compute_BCH_update1(nifti_image *img1, // current field
                     lie_bracket_img1_lie2->data=(void *)malloc(lie_bracket_img1_lie2->nvox*lie_bracket_img1_lie2->nbyper);
                     compute_lie_bracket<DTYPE>(img1, lie_bracket_img2_lie1, lie_bracket_img1_lie2, use_jac);
                     DTYPE *lie_bracket_img1_lie2Ptr=static_cast<DTYPE *>(lie_bracket_img1_lie2->data);
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(img1, res, lie_bracket_img1_lie2Ptr) \
     private(i)

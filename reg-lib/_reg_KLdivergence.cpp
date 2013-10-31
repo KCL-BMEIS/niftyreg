@@ -45,7 +45,7 @@ double reg_getKLDivergence1(nifti_image *referenceImage,
 
         DTYPE *currentRefPtr=&refPtr[time*voxelNumber];
         DTYPE *currentWarPtr=&warPtr[time*voxelNumber];
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(voxelNumber,currentRefPtr, currentWarPtr, \
     maskPtr, jacobianDetImg, jacPtr) \
@@ -174,7 +174,7 @@ void reg_getKLDivergenceVoxelBasedGradient1(nifti_image *referenceImage,
         DTYPE *currentGradPtrZ=NULL;
         if(referenceImage->nz>1)
             currentGradPtrZ=&currentGradPtrY[referenceImage->nt*voxelNumber];
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(voxelNumber,currentRefPtr, currentWarPtr, \
     maskPtr, jacobianDetImg, jacPtr, referenceImage, \

@@ -486,7 +486,7 @@ MTYPE reg_mat44_add(MTYPE const* A, MTYPE const* B)
     MTYPE R;
     for(int i=0; i<4; i++){
         for(int j=0; j<4; j++){
-            R.m[i][j] = A->m[i][j]+B->m[i][j];
+			R.m[i][j] = A->m[i][j] + B->m[i][j];
         }
     }
     return R;
@@ -636,6 +636,7 @@ template reg_mat44d reg_mat44_sqrt<reg_mat44d>(reg_mat44d const* mat);
 template <class MTYPE>
 MTYPE reg_mat44_expm(MTYPE const* mat, int maxit)
 {
+
 	double j = FMAX(0.0,1+reg_floor(log(reg_mat44_norm_inf(mat))/log(2.0)));
 
 	MTYPE A=reg_mat44_mul(mat,pow(2.0,-j));
@@ -645,7 +646,7 @@ MTYPE reg_mat44_expm(MTYPE const* mat, int maxit)
 	reg_mat44_eye(&X);
 
 	double c = 1.0;
-    for(int k=1; k<=maxit; k++){
+	for(int k=1; k<=maxit; k++){
 		c = c * (maxit-k+1.0) / (k*(2*maxit-k+1.0));
 		X = reg_mat44_mul(&A,&X);
 		cX = reg_mat44_mul(&X,c);

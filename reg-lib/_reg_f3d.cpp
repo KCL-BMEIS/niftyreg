@@ -523,7 +523,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
         T *gradientValuesX = static_cast<T *>(this->transformationGradient->data);
         T *gradientValuesY = &gradientValuesX[controlPointNumber];
         T newGradientValueX, newGradientValueY;
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(gradientValuesX, gradientValuesY, floatingMatrix_xyz, controlPointNumber) \
     private(newGradientValueX, newGradientValueY, i)
@@ -544,7 +544,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
         T *gradientValuesY = &gradientValuesX[controlPointNumber];
         T *gradientValuesZ = &gradientValuesY[controlPointNumber];
         T newGradientValueX, newGradientValueY, newGradientValueZ;
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(gradientValuesX, gradientValuesY, gradientValuesZ, floatingMatrix_xyz, controlPointNumber) \
     private(newGradientValueX, newGradientValueY, newGradientValueZ, i)

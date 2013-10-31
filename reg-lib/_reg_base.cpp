@@ -764,25 +764,25 @@ template <class T>
 void reg_base<T>::GetVoxelBasedGradient()
 {
     // The intensity gradient is first computed
-    if(this->measure_dti!=NULL){
-        reg_getImageGradient(this->currentFloating,
-                             this->warpedGradientImage,
-                             this->deformationFieldImage,
-                             this->currentMask,
-                             this->interpolation,
-                             this->warpedPaddingValue,
-                             this->measure_dti->GetActiveTimepoints(),
-							 this->forwardJacobianMatrix,
-							 this->warped);
-    }
-    else{
+//    if(this->measure_dti!=NULL){
+//        reg_getImageGradient(this->currentFloating,
+//                             this->warpedGradientImage,
+//                             this->deformationFieldImage,
+//                             this->currentMask,
+//                             this->interpolation,
+//                             this->warpedPaddingValue,
+//                             this->measure_dti->GetActiveTimepoints(),
+//		 					   this->forwardJacobianMatrix,
+//							   this->warped);
+//    }
+//    else{
         reg_getImageGradient(this->currentFloating,
                              this->warpedGradientImage,
                              this->deformationFieldImage,
                              this->currentMask,
                              this->interpolation,
                              this->warpedPaddingValue);
-    }
+//    }
     // The voxel based gradient image is filled with zeros
     reg_tools_multiplyValueToImage(this->voxelBasedMeasureGradientImage,
                                    this->voxelBasedMeasureGradientImage,

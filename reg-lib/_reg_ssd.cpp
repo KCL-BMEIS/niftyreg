@@ -55,19 +55,18 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImgPtr,
 		reg_exit(1);
     }
     // Input images are normalised between 0 and 1
-    printf("[WARNING] reg_ssd I removed the normalisation to use the DTI\n");
-//    for(int i=0;i<this->referenceImagePointer->nt;++i){
-//        if(this->activeTimePoint[i]){
-//            reg_intensityRescale(this->referenceImagePointer,
-//                                 i,
-//                                 0.f,
-//                                 1.f);
-//            reg_intensityRescale(this->floatingImagePointer,
-//                                 i,
-//                                 0.f,
-//                                 1.f);
-//        }
-//    }
+    for(int i=0;i<this->referenceImagePointer->nt;++i){
+        if(this->activeTimePoint[i]){
+            reg_intensityRescale(this->referenceImagePointer,
+                                 i,
+                                 0.f,
+                                 1.f);
+            reg_intensityRescale(this->floatingImagePointer,
+                                 i,
+                                 0.f,
+                                 1.f);
+        }
+    }
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] reg_ssd::InitialiseMeasure(). Active time point:");
         for(int i=0;i<this->referenceImagePointer->nt;++i)
@@ -116,7 +115,7 @@ double reg_getSSDValue(nifti_image *referenceImage,
             DTYPE *currentWarPtr=&warpedPtr[time*voxelNumber];
 
             double SSD_local=0.; n=0.;
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(referenceImage, currentRefPtr, currentWarPtr, mask, \
     jacobianDetImage, jacDetPtr, voxelNumber) \
@@ -160,7 +159,7 @@ double reg_ssd::GetSimilarityMeasureValue()
 {
     // Check that all the specified image are of the same datatype
     if(this->warpedFloatingImagePointer->datatype != this->referenceImagePointer->datatype){
-        fprintf(stderr, "[NiftyReg ERROR] reg_nmi::GetSimilarityMeasureValue\n");
+        fprintf(stderr, "[NiftyReg ERROR] reg_ssd::GetSimilarityMeasureValue\n");
         fprintf(stderr, "[NiftyReg ERROR] Both input images are exepected to have the same type\n");
         reg_exit(1);
     }
@@ -280,7 +279,7 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
             if(referenceImage->nz>1)
                 spatialGradPtrZ=&spatialGradPtrY[voxelNumber];
 
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(referenceImage, warpedImage, currentRefPtr, currentWarPtr, time, \
     mask, jacDetPtr, spatialGradPtrX, spatialGradPtrY, spatialGradPtrZ, \

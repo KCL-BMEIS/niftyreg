@@ -67,7 +67,7 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
         /* As the tensor has 6 unique components that we need to worry about, read them out
         for the floating image. */
         DTYPE *firstVox = static_cast<DTYPE *>(floatingImage->data);
-        DTYPE *floatingIntensityXX = &firstVox[floatingVoxelNumber*dtIndicies[0]];
+		DTYPE *floatingIntensityXX = &firstVox[floatingVoxelNumber*dtIndicies[0]];
 		DTYPE *floatingIntensityXY = &firstVox[floatingVoxelNumber*dtIndicies[1]];
 		DTYPE *floatingIntensityYY = &firstVox[floatingVoxelNumber*dtIndicies[2]];
         DTYPE *floatingIntensityXZ = &firstVox[floatingVoxelNumber*dtIndicies[3]];
@@ -81,18 +81,18 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
         // Should log the tensor up front
         // We need to take the logarithm of the tensor for each voxel in the floating intensity image, and replace the warped
         int floatingIndex;
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     private(floatingIndex,diffTensor) \
-    shared(floatingVoxelNumber,floatingIntensityXX,floatingIntensityYY, \
+	shared(floatingVoxelNumber,floatingIntensityXX,floatingIntensityYY, \
         floatingIntensityZZ,floatingIntensityXY,floatingIntensityXZ, \
         floatingIntensityYZ)
 #endif
         for(floatingIndex=0; floatingIndex<floatingVoxelNumber; ++floatingIndex){
-            if(floatingIntensityXX[floatingIndex] > 1e-2){
+			if(floatingIntensityXX[floatingIndex] > 1e-2){
                 // Fill a mat44 with the tensor components
                 reg_mat44_eye(&diffTensor);
-                diffTensor.m[0][0] = floatingIntensityXX[floatingIndex];
+				diffTensor.m[0][0] = floatingIntensityXX[floatingIndex];
                 diffTensor.m[0][1] = floatingIntensityXY[floatingIndex];
                 diffTensor.m[1][0] = diffTensor.m[0][1];
                 diffTensor.m[1][1] = floatingIntensityYY[floatingIndex];
@@ -107,7 +107,7 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
 				// taking the logarithm of the tensor
 				diffTensor = reg_mat44_logm(&diffTensor);
                 // Write this out as a new image
-                floatingIntensityXX[floatingIndex] = diffTensor.m[0][0];
+				floatingIntensityXX[floatingIndex] = diffTensor.m[0][0];
                 floatingIntensityXY[floatingIndex] = diffTensor.m[0][1];
                 floatingIntensityYY[floatingIndex] = diffTensor.m[1][1];
                 floatingIntensityXZ[floatingIndex] = diffTensor.m[0][2];
@@ -115,7 +115,7 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
                 floatingIntensityZZ[floatingIndex] = diffTensor.m[2][2];
             }
             else{ // if junk diffusion data, log it
-                floatingIntensityXX[floatingIndex] = static_cast<DTYPE>(-4.606f);
+				floatingIntensityXX[floatingIndex] = static_cast<DTYPE>(-4.606f);
                 floatingIntensityYY[floatingIndex] = static_cast<DTYPE>(-4.606f);
                 floatingIntensityZZ[floatingIndex] = static_cast<DTYPE>(-4.606f);
             }
@@ -125,7 +125,6 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
 #endif
     }
 }
-
 /* *************************************************************** */
 template <class DTYPE>
 void reg_dti_resampling_postprocessing(nifti_image *inputImage,
@@ -164,54 +163,54 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
 			DTYPE *inputIntensityZZ = &firstWarpVox[voxelNumber*(dtIndicies[5]+inputImage->nt*u)];
 
             // Step through each voxel in the warped image
-			int warpedIndex; double testSum=0;
+			int warpedIndex;
+			double testSum=0;
 			reg_mat44d inputTensor, warpedTensor, RotMat, RotMatT, preMult;
 			mat33 jacobianMatrix, R;
-#ifdef _OPENMP
+			int col, row;
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
-	private(warpedIndex,inputTensor,jacobianMatrix,R,RotMat,RotMatT,preMult, warpedTensor) \
+	private(warpedIndex,inputTensor,jacobianMatrix,R,RotMat,RotMatT,preMult, \
+	testSum, warpedTensor, col, row) \
 	shared(voxelNumber,inputIntensityXX,inputIntensityYY,inputIntensityZZ, \
 	warpedXX, warpedXY, warpedXZ, warpedYY, warpedYZ, warpedZZ, warpedImage, \
-	inputIntensityXY,inputIntensityXZ,inputIntensityYZ, jacMat, mask, testSum)
+	inputIntensityXY,inputIntensityXZ,inputIntensityYZ, jacMat, mask)
 #endif
 			for(warpedIndex=0; warpedIndex<voxelNumber; ++warpedIndex){
 				if(mask[warpedIndex]>-1){
-					// The fourth row/colum are all 0s, include the diagonal as this is a log tensor
-					inputTensor.m[0][3] = 0.0; inputTensor.m[3][0] = 0.0;
-					inputTensor.m[1][3] = 0.0; inputTensor.m[3][1] = 0.0;
-					inputTensor.m[2][3] = 0.0; inputTensor.m[3][2] = 0.0;
+					reg_mat44_eye(&inputTensor);
 					// Fill the rest of the mat44 with the tensor components
-					inputTensor.m[0][0] = (double)inputIntensityXX[warpedIndex];
-					inputTensor.m[0][1] = (double)inputIntensityXY[warpedIndex];
+					inputTensor.m[0][0] = static_cast<double>(inputIntensityXX[warpedIndex]);
+					inputTensor.m[0][1] = static_cast<double>(inputIntensityXY[warpedIndex]);
 					inputTensor.m[1][0] = inputTensor.m[0][1];
-					inputTensor.m[1][1] = (double)inputIntensityYY[warpedIndex];
-					inputTensor.m[0][2] = (double)inputIntensityXZ[warpedIndex];
+					inputTensor.m[1][1] = static_cast<double>(inputIntensityYY[warpedIndex]);
+					inputTensor.m[0][2] = static_cast<double>(inputIntensityXZ[warpedIndex]);
 					inputTensor.m[2][0] = inputTensor.m[0][2];
-					inputTensor.m[1][2] = (double)inputIntensityYZ[warpedIndex];
+					inputTensor.m[1][2] = static_cast<double>(inputIntensityYZ[warpedIndex]);
 					inputTensor.m[2][1] = inputTensor.m[1][2];
-					inputTensor.m[2][2] = (double)inputIntensityZZ[warpedIndex];
+					inputTensor.m[2][2] = static_cast<double>(inputIntensityZZ[warpedIndex]);
 					// Exponentiate the warped tensor
 					if(warpedImage==NULL){
-						inputTensor.m[3][3] = 0.0;
+						inputTensor.m[3][3] = static_cast<double>(0.0);
 						inputTensor = reg_mat44_expm(&inputTensor);
-						testSum=0;
+						testSum=0.;
 					}
 					else{
 						inputTensor.m[3][3]  = 1.0;
 						reg_mat44_eye(&warpedTensor);
-						warpedTensor.m[0][0] = (double)warpedXX[warpedIndex];
-						warpedTensor.m[0][1] = (double)warpedXY[warpedIndex];
+						warpedTensor.m[0][0] = static_cast<double>(warpedXX[warpedIndex]);
+						warpedTensor.m[0][1] = static_cast<double>(warpedXY[warpedIndex]);
 						warpedTensor.m[1][0] = warpedTensor.m[0][1];
-						warpedTensor.m[1][1] = (double)warpedYY[warpedIndex];
-						warpedTensor.m[0][2] = (double)warpedXZ[warpedIndex];
+						warpedTensor.m[1][1] = static_cast<double>(warpedYY[warpedIndex]);
+						warpedTensor.m[0][2] = static_cast<double>(warpedXZ[warpedIndex]);
 						warpedTensor.m[2][0] = warpedTensor.m[0][2];
-						warpedTensor.m[1][2] = (double)warpedYZ[warpedIndex];
+						warpedTensor.m[1][2] = static_cast<double>(warpedYZ[warpedIndex]);
 						warpedTensor.m[2][1] = warpedTensor.m[1][2];
-						warpedTensor.m[2][2] = (double)warpedZZ[warpedIndex];
+						warpedTensor.m[2][2] = static_cast<double>(warpedZZ[warpedIndex]);
 						inputTensor = reg_mat44_mul(&warpedTensor,&inputTensor);
-						testSum=(double)warpedTensor.m[0][0]+warpedTensor.m[0][1]+warpedTensor.m[0][2]+
+						testSum=static_cast<double>(warpedTensor.m[0][0]+warpedTensor.m[0][1]+warpedTensor.m[0][2]+
 								warpedTensor.m[1][0]+warpedTensor.m[1][1]+warpedTensor.m[1][2]+
-								warpedTensor.m[2][0]+warpedTensor.m[2][1]+warpedTensor.m[2][2];
+								warpedTensor.m[2][0]+warpedTensor.m[2][1]+warpedTensor.m[2][2]);
 					}
 
 					if(testSum==testSum){
@@ -223,10 +222,10 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
 						// We need both the rotation matrix, and it's transpose as a mat44
 						reg_mat44_eye(&RotMat);
 						reg_mat44_eye(&RotMatT);
-						for(unsigned char col=0; col<3; col++){
-							for(unsigned char row=0; row<3; row++){
-								RotMat.m[col][row] = R.m[col][row];
-								RotMatT.m[col][row] = R.m[row][col];
+						for(col=0; col<3; col++){
+							for(row=0; row<3; row++){
+								RotMat.m[col][row] = static_cast<double>(R.m[col][row]);
+								RotMatT.m[col][row] = static_cast<double>(R.m[row][col]);
 							}
 						}
 						// As the mat44 multiplication uses pointers, do the multiplications separately
@@ -250,7 +249,7 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
 						inputIntensityYZ[warpedIndex] = 0;
 					}
                 }
-            }
+			}
         }
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] Exponentiated and rotated all voxels\n");
@@ -303,7 +302,7 @@ void CubicSplineResampleImage3D(nifti_image *floatingImage,
 #endif
         SourceTYPE *zPointer, *yzPointer, *xyzPointer;
         FieldTYPE xTempNewValue, yTempNewValue, intensity, world[3], position[3];
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     private(index, intensity, world, position, previous, xBasis, yBasis, zBasis, relative, \
     a, b, c, Y, Z, zPointer, yzPointer, xyzPointer, xTempNewValue, yTempNewValue) \
@@ -445,7 +444,7 @@ void CubicSplineResampleImage2D(nifti_image *floatingImage,
 #endif
         SourceTYPE *yPointer, *xyPointer;
         FieldTYPE xTempNewValue, intensity, world[2], position[2];
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     private(index, intensity, world, position, previous, xBasis, yBasis, relative, \
     a, b, Y, yPointer, xyPointer, xTempNewValue) \
@@ -576,8 +575,8 @@ void TrilinearResampleImage(nifti_image *floatingImage,
         size_t  index;
 #endif
         SourceTYPE *zPointer, *xyzPointer;
-        FieldTYPE xTempNewValue, yTempNewValue, intensity, world[3], position[3];
-#ifdef _OPENMP
+		FieldTYPE xTempNewValue, yTempNewValue, intensity, world[3], position[3];
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     private(index, intensity, world, position, previous, xBasis, yBasis, zBasis, relative, \
     a, b, c, X, Y, Z, zPointer, xyzPointer, xTempNewValue, yTempNewValue) \
@@ -749,7 +748,7 @@ void BilinearResampleImage(nifti_image *floatingImage,
 #endif
         SourceTYPE *xyPointer;
         FieldTYPE xTempNewValue, intensity, world[2], position[2];
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     private(index, intensity, world, position, previous, xBasis, yBasis, relative, \
     a, b, X, Y, xyPointer, xTempNewValue) \
@@ -885,7 +884,7 @@ void NearestNeighborResampleImage(nifti_image *floatingImage,
 #else
         size_t  index;
 #endif
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     private(index, intensity, world, position, previous) \
     shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
@@ -971,7 +970,7 @@ void NearestNeighborResampleImage2D(nifti_image *floatingImage,
 #else
         size_t  index;
 #endif
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     private(index, intensity, world, position, previous) \
     shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
@@ -1389,7 +1388,7 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
     unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
 
     // Loop over all voxel
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     private(x,y,a,b,val_x,val_y,defIndex,floIndex,warpedIndex, \
     anteIntX,anteIntY,xFloCoord,yFloCoord, \
@@ -1573,7 +1572,7 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
     unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
 
     // Loop over all voxel
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     private(x,y,z,a,b,c,val_x,val_y,val_z,defIndex,floIndex,warpedIndex, \
     anteIntX,anteIntY,anteIntZ,xFloCoord,yFloCoord,zFloCoord, \
@@ -1856,7 +1855,7 @@ void TrilinearImageGradient(nifti_image *floatingImage,
         FieldTYPE relative, world[3], grad[3], coeff;
         FieldTYPE xxTempNewValue, yyTempNewValue, zzTempNewValue, xTempNewValue, yTempNewValue;
         SourceTYPE *zPointer, *xyzPointer;
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     private(index, world, position, previous, xBasis, yBasis, zBasis, relative, grad, coeff, \
     a, b, c, X, Y, Z, zPointer, xyzPointer, xTempNewValue, yTempNewValue, xxTempNewValue, yyTempNewValue, zzTempNewValue) \
@@ -2039,7 +2038,7 @@ void BilinearImageGradient(nifti_image *floatingImage,
         int previous[3], a, b, X, Y;
         SourceTYPE *xyPointer;
 
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     private(index, world, position, previous, xBasis, yBasis, relative, grad, coeff, \
     a, b, X, Y, xyPointer, xTempNewValue, yTempNewValue) \
@@ -2170,7 +2169,7 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
         FieldTYPE coeff, position[3], relative, world[3], grad[3];
         FieldTYPE xxTempNewValue, yyTempNewValue, zzTempNewValue, xTempNewValue, yTempNewValue;
         SourceTYPE *zPointer, *yzPointer, *xyzPointer;
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     private(index, world, position, previous, xBasis, yBasis, zBasis, xDeriv, yDeriv, zDeriv, relative, grad, coeff, \
     a, b, c, Y, Z, zPointer, yzPointer, xyzPointer, xTempNewValue, yTempNewValue, xxTempNewValue, yyTempNewValue, zzTempNewValue) \
@@ -2324,7 +2323,7 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
         FieldTYPE coeff, position[3], relative, world[3], grad[2];
         FieldTYPE xTempNewValue, yTempNewValue;
         SourceTYPE *yPointer, *xyPointer;
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     private(index, world, position, previous, xBasis, yBasis, xDeriv, yDeriv, relative, grad, coeff, bg, \
     a, b, Y, yPointer, xyPointer, xTempNewValue, yTempNewValue) \

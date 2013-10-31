@@ -71,7 +71,7 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
     float voxel[3], position[3];
     int x, y, z;
     size_t index;
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(deformationFieldImage, voxelToRealDeformed, deformationFieldPtrX, \
     deformationFieldPtrY, deformationFieldPtrZ) \

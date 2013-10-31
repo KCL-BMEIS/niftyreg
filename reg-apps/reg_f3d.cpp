@@ -598,7 +598,7 @@ int main(int argc, char **argv)
     printf("[NiftyReg DEBUG] *******************************************\n");
 #endif
 
-#ifdef _OPENMP
+#if defined (NDEBUG) && defined (_OPENMP)
     int maxThreadNumber = omp_get_max_threads();
         printf("[NiftyReg F3D] OpenMP is used with %i thread(s)\n", maxThreadNumber);
 #endif // _OPENMP
