@@ -154,6 +154,11 @@ void Usage(char *exec)
     printf("\t-pad <float>\t\tPadding value [nan]\n");
     printf("\t-voff\t\t\tTo turn verbose off\n");
 
+#if defined (_OPENMP)
+	printf("\n*** OpenMP-related options:\n");
+	printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i]\n",
+		   omp_get_num_procs());
+#endif
 #ifdef _USE_CUDA
     printf("\n*** GPU-related options:\n");
     printf("\t-mem\t\t\tDisplay an approximate memory requierment and exit\n");
@@ -173,6 +178,7 @@ int main(int argc, char **argv)
         return 1;
     }
     time_t start; time(&start);
+    int verbose=true;
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // Check if any information is required
@@ -186,6 +192,9 @@ int main(int argc, char **argv)
         if(strcmp(argv[i], "--xml")==0){
             printf("%s",xml_f3d);
             return 0;
+        }
+        if(strcmp(argv[i], "-voff")==0){
+            verbose=false;
         }
 #ifdef _SVN_REV
         if( strcmp(argv[i], "-version")==0 ||
@@ -205,10 +214,16 @@ int main(int argc, char **argv)
     }
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // Output the command line
-    printf("\n[NiftyReg F3D] Command line:\n\t");
-    for(int i=0;i<argc;i++)
-        printf(" %s", argv[i]);
-    printf("\n\n");
+#ifndef NDEBUG
+    if(verbose){
+#endif
+        printf("\n[NiftyReg F3D] Command line:\n\t");
+        for(int i=0;i<argc;i++)
+            printf(" %s", argv[i]);
+        printf("\n\n");
+#ifndef NDEBUG
+    }
+#endif
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
     // Read the reference and floating image
     nifti_image *referenceImage=NULL;
@@ -280,6 +295,7 @@ int main(int argc, char **argv)
     nifti_image *floatingMaskImage=NULL;
     char *outputWarpedImageName=NULL;
     char *outputCPPImageName=NULL;
+    bool useMeanLNCC=false;
 #ifdef _USE_CUDA
     bool checkMemory=false;
 #endif // _use_CUDA
@@ -307,6 +323,7 @@ int main(int argc, char **argv)
             ++i;
         }
         else if(strcmp(argv[i], "-voff")==0){
+            verbose=false;
             REG->DoNotPrintOutInformation();
         }
         else if(strcmp(argv[i], "-aff")==0 || (strcmp(argv[i],"--aff")==0)){
@@ -424,7 +441,7 @@ int main(int argc, char **argv)
             REG->SetJacobianLogWeight(atof(argv[++i]));
         }
         else if(strcmp(argv[i], "-noAppJL")==0 || strcmp(argv[i], "--noAppJL")==0){
-            REG->ApproximateJacobianLog();
+            REG->DoNotApproximateJacobianLog();
         }
         else if((strcmp(argv[i],"-smooR")==0) || (strcmp(argv[i],"-smooT")==0) || strcmp(argv[i], "--smooR")==0){
             REG->SetReferenceSmoothingSigma(atof(argv[++i]));
@@ -502,6 +519,9 @@ int main(int argc, char **argv)
             for(int t=0;t<referenceImage->nt;++t)
                 REG->UseLNCC(t,stdev);
         }
+        else if(strcmp(argv[i], "-lnccMean")==0){
+            useMeanLNCC=true;
+        }
         else if(strcmp(argv[i], "-dti")==0 || strcmp(argv[i], "--dti")==0){
             bool *timePoint = new bool[referenceImage->nt];
             for(int t=0;t<referenceImage->nt;++t)
@@ -576,6 +596,11 @@ int main(int argc, char **argv)
 //        else if(strcmp(argv[i], "-iso")==0 || strcmp(argv[i], "--iso")==0){
 //            iso=true;
 //        }
+#if defined (_OPENMP)
+		else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0){
+			omp_set_num_threads(atoi(argv[++i]));
+		}
+#endif
 #ifdef _USE_CUDA
         else if(strcmp(argv[i], "-mem")==0){
             checkMemory=true;
@@ -587,6 +612,8 @@ int main(int argc, char **argv)
             return 1;
         }
     }
+    if(useMeanLNCC)
+        REG->SetLNCCKernelType(2);
 
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] *******************************************\n");
@@ -599,8 +626,10 @@ int main(int argc, char **argv)
 #endif
 
 #if defined (NDEBUG) && defined (_OPENMP)
-    int maxThreadNumber = omp_get_max_threads();
+    if(verbose){
+        int maxThreadNumber = omp_get_max_threads();
         printf("[NiftyReg F3D] OpenMP is used with %i thread(s)\n", maxThreadNumber);
+    }
 #endif // _OPENMP
 
      // Run the registration
@@ -657,9 +686,11 @@ int main(int argc, char **argv)
 
         // Save the warped image result(s)
         nifti_image **outputWarpedImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
-        outputWarpedImage[0]=outputWarpedImage[1]=NULL;
+		outputWarpedImage[0]=NULL;
+		outputWarpedImage[1]=NULL;
         outputWarpedImage = REG->GetWarpedImage();
-        if(outputWarpedImageName==NULL) outputWarpedImageName=(char *)"outputResult.nii";
+		if(outputWarpedImageName==NULL)
+			outputWarpedImageName=(char *)"outputResult.nii";
         memset(outputWarpedImage[0]->descrip, 0, 80);
         strcpy (outputWarpedImage[0]->descrip,"Warped image using NiftyReg (reg_f3d)");
         if(strcmp("NiftyReg F3D SYM", REG->GetExecutableName())==0){
@@ -687,11 +718,7 @@ int main(int argc, char **argv)
                     b.replace(b.find( ".png"),4,"_backward.png");
                 else if(b.find( ".nrrd") != std::string::npos)
                     b.replace(b.find( ".nrrd"),5,"_backward.nrrd");
-                else b.append("_backward.nii");
-                if(strcmp("NiftyReg F3D SYM", REG->GetExecutableName())==0)
-                    strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d_sym)");
-                if(strcmp("NiftyReg F3D2", REG->GetExecutableName())==0)
-                    strcpy (outputWarpedImage[1]->descrip,"Warped image using NiftyReg (reg_f3d2)");
+				else b.append("_backward.nii");
                 reg_io_WriteImageFile(outputWarpedImage[1],b.c_str());
             }
         }
@@ -722,13 +749,13 @@ int main(int argc, char **argv)
     int minutes = (int)floorf(float(end-start)/60.0f);
     int seconds = (int)(end-start - 60*minutes);
 
-//#ifdef _USE_CUDA
-//    if(!checkMem){
-//#endif
+#ifndef NDEBUG
+    if(verbose){
+#endif
         printf("[NiftyReg F3D] Registration Performed in %i min %i sec\n", minutes, seconds);
         printf("[NiftyReg F3D] Have a good day !\n");
-//#ifdef _USE_CUDA
-//    }
-//#endif
+#ifndef NDEBUG
+    }
+#endif
     return 0;
 }

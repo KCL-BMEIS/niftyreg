@@ -136,17 +136,23 @@ int reg_aladin<T>::Print()
     /* *********************************** */
     /* DISPLAY THE REGISTRATION PARAMETERS */
     /* *********************************** */
-    printf("[%s] Parameters\n", this->ExecutableName);
-    printf("[%s] Reference image name: %s\n", this->ExecutableName, this->InputReference->fname);
-    printf("[%s] \t%ix%ix%i voxels\n", this->ExecutableName, this->InputReference->nx,this->InputReference->ny,this->InputReference->nz);
-    printf("[%s] \t%gx%gx%g mm\n", this->ExecutableName, this->InputReference->dx,this->InputReference->dy,this->InputReference->dz);
-    printf("[%s] floating image name: %s\n", this->ExecutableName, this->InputFloating->fname);
-    printf("[%s] \t%ix%ix%i voxels\n", this->ExecutableName, this->InputFloating->nx,this->InputFloating->ny,this->InputFloating->nz);
-    printf("[%s] \t%gx%gx%g mm\n", this->ExecutableName, this->InputFloating->dx,this->InputFloating->dy,this->InputFloating->dz);
-    printf("[%s] Maximum iteration number: %i", this->ExecutableName, this->MaxIterations);
-    printf(" (%i during the first level)\n", 2*this->MaxIterations);
-    printf("[%s] Percentage of blocks: %i %%", this->ExecutableName, this->BlockPercentage);
-    printf(" (100%% during the first level)\n");
+#ifndef NDEBUG
+    if(this->Verbose){
+#endif
+        printf("[%s] Parameters\n", this->ExecutableName);
+        printf("[%s] Reference image name: %s\n", this->ExecutableName, this->InputReference->fname);
+        printf("[%s] \t%ix%ix%i voxels\n", this->ExecutableName, this->InputReference->nx,this->InputReference->ny,this->InputReference->nz);
+        printf("[%s] \t%gx%gx%g mm\n", this->ExecutableName, this->InputReference->dx,this->InputReference->dy,this->InputReference->dz);
+        printf("[%s] floating image name: %s\n", this->ExecutableName, this->InputFloating->fname);
+        printf("[%s] \t%ix%ix%i voxels\n", this->ExecutableName, this->InputFloating->nx,this->InputFloating->ny,this->InputFloating->nz);
+        printf("[%s] \t%gx%gx%g mm\n", this->ExecutableName, this->InputFloating->dx,this->InputFloating->dy,this->InputFloating->dz);
+        printf("[%s] Maximum iteration number: %i", this->ExecutableName, this->MaxIterations);
+        printf(" (%i during the first level)\n", 2*this->MaxIterations);
+        printf("[%s] Percentage of blocks: %i %%", this->ExecutableName, this->BlockPercentage);
+        printf(" (100%% during the first level)\n");
+#ifndef NDEBUG
+    }
+#endif
     return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -426,7 +432,7 @@ void reg_aladin<T>::InitialiseBlockMatching(int CurrentPercentageOfBlockToUse)
 template <class T>
 void reg_aladin<T>::GetDeformationField()
 {
-    reg_affine_deformationField(this->TransformationMatrix,
+    reg_affine_getDeformationField(this->TransformationMatrix,
                                 this->deformationFieldImage);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -446,10 +452,10 @@ void reg_aladin<T>::GetWarpedImage(int interp)
 template <class T>
 void reg_aladin<T>::UpdateTransformationMatrix(int type)
 {
-    block_matching_method<T>(this->CurrentReference,
-                             this->CurrentWarped,
-                             &this->blockMatchingParams,
-                             this->CurrentReferenceMask);
+	block_matching_method(this->CurrentReference,
+						  this->CurrentWarped,
+						  &this->blockMatchingParams,
+						  this->CurrentReferenceMask);
     if(type==RIGID)
         optimize(&this->blockMatchingParams,
                  this->TransformationMatrix,

@@ -93,7 +93,7 @@ public:
     reg_f3d_sym(int refTimePoint,int floTimePoint);
 	~reg_f3d_sym();
 	void CheckParameters();
-	void Initisalise();
+	void Initialise();
 	nifti_image *GetBackwardControlPointPositionImage();
 	nifti_image **GetWarpedImage();
 	bool GetSymmetricStatus(){return true;}

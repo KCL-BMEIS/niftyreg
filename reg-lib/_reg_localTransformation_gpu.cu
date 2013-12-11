@@ -230,13 +230,15 @@ void reg_spline_ComputeApproxJacobianValues(nifti_image *controlPointImage,
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
     // Need to reorient the Jacobian matrix using the header information - real to voxel conversion
-    mat33 reorient;
-    reg_getReorientationMatrix(controlPointImage, &reorient);
-    float3 temp=make_float3(reorient.m[0][0],reorient.m[0][1],reorient.m[0][2]);
+    mat33 reorientation;
+    if(controlPointImage->sform_code>0)
+        reorientation=reg_mat44_to_mat33(&controlPointImage->sto_xyz);
+    else reorientation=reg_mat44_to_mat33(&controlPointImage->qto_xyz);
+    float3 temp=make_float3(reorientation.m[0][0],reorientation.m[0][1],reorientation.m[0][2]);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0,&temp,sizeof(float3)))
-    temp=make_float3(reorient.m[1][0],reorient.m[1][1],reorient.m[1][2]);
+    temp=make_float3(reorientation.m[1][0],reorientation.m[1][1],reorientation.m[1][2]);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix1,&temp,sizeof(float3)))
-    temp=make_float3(reorient.m[2][0],reorient.m[2][1],reorient.m[2][2]);
+    temp=make_float3(reorientation.m[2][0],reorientation.m[2][1],reorientation.m[2][2]);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix2,&temp,sizeof(float3)))
 
     // Bind some variables
@@ -279,13 +281,15 @@ void reg_spline_ComputeJacobianValues(nifti_image *controlPointImage,
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
     // Need to reorient the Jacobian matrix using the header information - real to voxel conversion
-    mat33 reorient;
-    reg_getReorientationMatrix(controlPointImage, &reorient);
-    float3 temp=make_float3(reorient.m[0][0],reorient.m[0][1],reorient.m[0][2]);
+    mat33 reorientation;
+    if(controlPointImage->sform_code>0)
+        reorientation=reg_mat44_to_mat33(&controlPointImage->sto_xyz);
+    else reorientation=reg_mat44_to_mat33(&controlPointImage->qto_xyz);
+    float3 temp=make_float3(reorientation.m[0][0],reorientation.m[0][1],reorientation.m[0][2]);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0,&temp,sizeof(float3)))
-    temp=make_float3(reorient.m[1][0],reorient.m[1][1],reorient.m[1][2]);
+    temp=make_float3(reorientation.m[1][0],reorientation.m[1][1],reorientation.m[1][2]);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix1,&temp,sizeof(float3)))
-    temp=make_float3(reorient.m[2][0],reorient.m[2][1],reorient.m[2][2]);
+    temp=make_float3(reorientation.m[2][0],reorientation.m[2][1],reorientation.m[2][2]);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix2,&temp,sizeof(float3)))
 
     // Bind some variables
@@ -437,14 +441,15 @@ void reg_spline_getJacobianPenaltyTermGradient_gpu(nifti_image *referenceImage,
     }
 
     // Need to desorient the Jacobian matrix using the header information - voxel to real conversion
-    mat33 reorient, desorient;
-    reg_getReorientationMatrix(controlPointImage, &reorient);
-    desorient=nifti_mat33_inverse(reorient);
-    float3 temp=make_float3(desorient.m[0][0],desorient.m[0][1],desorient.m[0][2]);
+    mat33 reorientation;
+    if(controlPointImage->sform_code>0)
+        reorientation=reg_mat44_to_mat33(&controlPointImage->sto_ijk);
+    else reorientation=reg_mat44_to_mat33(&controlPointImage->qto_ijk);
+    float3 temp=make_float3(reorientation.m[0][0],reorientation.m[0][1],reorientation.m[0][2]);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0,&temp,sizeof(float3)))
-    temp=make_float3(desorient.m[1][0],desorient.m[1][1],desorient.m[1][2]);
+    temp=make_float3(reorientation.m[1][0],reorientation.m[1][1],reorientation.m[1][2]);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix1,&temp,sizeof(float3)))
-    temp=make_float3(desorient.m[2][0],desorient.m[2][1],desorient.m[2][2]);
+    temp=make_float3(reorientation.m[2][0],reorientation.m[2][1],reorientation.m[2][2]);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix2,&temp,sizeof(float3)))
 
     NR_CUDA_SAFE_CALL(cudaBindTexture(0,jacobianDeterminantTexture, jacobianDet_d,
@@ -580,14 +585,15 @@ double reg_spline_correctFolding_gpu(nifti_image *referenceImage,
     }
 
     // Need to desorient the Jacobian matrix using the header information - voxel to real conversion
-    mat33 reorient, desorient;
-    reg_getReorientationMatrix(controlPointImage, &reorient);
-    desorient=nifti_mat33_inverse(reorient);
-    float3 temp=make_float3(desorient.m[0][0],desorient.m[0][1],desorient.m[0][2]);
+    mat33 reorientation;
+    if(controlPointImage->sform_code>0)
+        reorientation=reg_mat44_to_mat33(&controlPointImage->sto_ijk);
+    else reorientation=reg_mat44_to_mat33(&controlPointImage->qto_ijk);
+    float3 temp=make_float3(reorientation.m[0][0],reorientation.m[0][1],reorientation.m[0][2]);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0,&temp,sizeof(float3)))
-    temp=make_float3(desorient.m[1][0],desorient.m[1][1],desorient.m[1][2]);
+    temp=make_float3(reorientation.m[1][0],reorientation.m[1][1],reorientation.m[1][2]);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix1,&temp,sizeof(float3)))
-    temp=make_float3(desorient.m[2][0],desorient.m[2][1],desorient.m[2][2]);
+    temp=make_float3(reorientation.m[2][0],reorientation.m[2][1],reorientation.m[2][2]);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix2,&temp,sizeof(float3)))
 
     NR_CUDA_SAFE_CALL(cudaBindTexture(0,jacobianDeterminantTexture, jacobianDet_d,
@@ -835,13 +841,15 @@ void reg_defField_getJacobianMatrix_gpu(nifti_image *deformationField,
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceImageDim,&referenceDim,sizeof(int3)))
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ReferenceSpacing,&referenceSpacing,sizeof(float3)))
 
-    mat33 reorient;
-    reg_getReorientationMatrix(deformationField, &reorient);
-    float3 temp=make_float3(reorient.m[0][0],reorient.m[0][1],reorient.m[0][2]);
+    mat33 reorientation;
+    if(deformationField->sform_code>0)
+        reorientation=reg_mat44_to_mat33(&deformationField->sto_xyz);
+    else reorientation=reg_mat44_to_mat33(&deformationField->qto_xyz);
+    float3 temp=make_float3(reorientation.m[0][0],reorientation.m[0][1],reorientation.m[0][2]);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix0,&temp,sizeof(float3)))
-    temp=make_float3(reorient.m[1][0],reorient.m[1][1],reorient.m[1][2]);
+    temp=make_float3(reorientation.m[1][0],reorientation.m[1][1],reorientation.m[1][2]);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix1,&temp,sizeof(float3)))
-    temp=make_float3(reorient.m[2][0],reorient.m[2][1],reorient.m[2][2]);
+    temp=make_float3(reorientation.m[2][0],reorientation.m[2][1],reorientation.m[2][2]);
     NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_AffineMatrix2,&temp,sizeof(float3)))
 
     NR_CUDA_SAFE_CALL(cudaBindTexture(0,voxelDeformationTexture,*deformationField_gpu,voxelNumber*sizeof(float4)))

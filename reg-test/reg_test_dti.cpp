@@ -126,7 +126,7 @@ int main(int argc, char **argv)
     reg_mat44_disp(&affineMat,(char *)"Affine matrix");*/
 
     // Make a deformation field from an affine transformation matrix
-    reg_affine_deformationField(&affineMat,
+    reg_affine_getDeformationField(&affineMat,
                                 deformationFieldImage);
     std::cerr << "Made a deformation field from the affine matrix";
 
@@ -150,7 +150,7 @@ int main(int argc, char **argv)
     nifti_image * cpGridImage = NULL;
     float spacing[3] = {10,10,10};
     reg_createControlPointGrid<float>(&cpGridImage, expectedImage,spacing);
-    reg_spline_initialiseControlPointGridWithAffine(&affineMat,cpGridImage);
+    reg_affine_getDeformationField(&affineMat,cpGridImage);
     float * cpPtr = static_cast<float *>(cpGridImage->data);
     for(unsigned int c = 0; c <cpGridImage->nvox; c++)
     {
@@ -166,9 +166,9 @@ int main(int argc, char **argv)
                                     false,
                                      true);
     std::cerr << "Made a CP grid";
-    reg_spline_GetJacobianMatrixFull(floatingImage,
-                                          cpGridImage,
-                                          jacMat);
+	reg_spline_GetJacobianMatrix(floatingImage,
+								 cpGridImage,
+								 jacMat);
 
     //reg_getDeformationFromDisplacement(deformationFieldImage);
 

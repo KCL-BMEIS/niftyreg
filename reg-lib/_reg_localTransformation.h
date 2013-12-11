@@ -46,6 +46,13 @@ void reg_createControlPointGrid(nifti_image **controlPointGridImage,
                                 nifti_image *referenceImage,
                                 float *spacingMillimeter);
 
+extern "C++" template <class DTYPE>
+void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
+                                          nifti_image **backwardGridImage,
+                                          nifti_image *referenceImage,
+                                          nifti_image *floatingImage,
+                                          mat44 *forwardAffineTrans,
+                                          float *spacing);
 /* *************************************************************** */
 /** @brief Compute a dense deformation field in the space of a reference
  * image from a grid of control point.
@@ -162,7 +169,7 @@ void reg_spline_L2norm_dispGradient(nifti_image *controlPointGridImage,
  */
 extern "C++"
 void reg_spline_GetJacobianMap(nifti_image *controlPointGridImage,
-                               nifti_image *jacobianImage
+							   nifti_image *jacobianImage
                                );
 /* *************************************************************** */
 /** @brief Compute the average Jacobian determinant
@@ -177,7 +184,8 @@ void reg_spline_GetJacobianMap(nifti_image *controlPointGridImage,
 extern "C++"
 double reg_spline_getJacobianPenaltyTerm(nifti_image *controlPointGridImage,
                                          nifti_image *referenceImage,
-                                         bool approx
+										 bool approx,
+										 bool useHeaderInformation=false
                                          );
 /* *************************************************************** */
 /** @brief Compute the gradient at every control point position of the
@@ -201,24 +209,9 @@ void reg_spline_getJacobianPenaltyTermGradient(nifti_image *controlPointGridImag
                                                nifti_image *referenceImage,
                                                nifti_image *gradientImage,
                                                float weight,
-                                               bool approx
-                                               );
-/* *************************************************************** */
-/** @brief Compute the Jacobian matrix at every voxel position
- * using a cubic b-spline parametrisation. This function does not require
- * the control point grid to perfectly overlay the reference image.
- * @param referenceImage Image that defines the space of the deformation
- * field
- * @param controlPointGridImage Control point grid position that defines
- * the cubic B-Spline parametrisation
- * @param jacobianImage Array that is filled with the Jacobian matrices
- * for every voxel.
- */
-extern "C++"
-void reg_spline_GetJacobianMatrixFull(nifti_image *referenceImage,
-                                      nifti_image *controlPointGridImage,
-                                      mat33 *jacobianImage
-                                      );
+											   bool approx,
+											   bool useHeaderInformation=false
+											   );
 /* *************************************************************** */
 /** @brief Compute the Jacobian matrix at every voxel position
  * using a cubic b-spline parametrisation. This function does require
@@ -233,7 +226,7 @@ void reg_spline_GetJacobianMatrixFull(nifti_image *referenceImage,
 extern "C++"
 void reg_spline_GetJacobianMatrix(nifti_image *referenceImage,
                                   nifti_image *controlPointGridImage,
-                                  mat33 *jacobianImage
+								  mat33 *jacobianImage
                                   );
 /* *************************************************************** */
 /** @brief Correct the folding in the transformation parametrised through
@@ -247,7 +240,7 @@ void reg_spline_GetJacobianMatrix(nifti_image *referenceImage,
 extern "C++"
 double reg_spline_correctFolding(nifti_image *controlPointGridImage,
                                  nifti_image *referenceImage,
-                                 bool approx
+								 bool approx
                                  );
 /* *************************************************************** */
 /** @brief Upsample an image from voxel space to node space using
@@ -266,7 +259,8 @@ extern "C++"
 void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
                                   nifti_image *voxelImage,
                                   float weight,
-                                  bool update
+								  bool update,
+								  mat44 *voxelToMillimeter = NULL
                                   );
 /* *************************************************************** */
 /** @brief Refine a grid of control points
@@ -276,19 +270,9 @@ void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
  * by dividing the control point spacing by a ratio of 2
  */
 extern "C++"
-void reg_spline_refineControlPointGrid(nifti_image *referenceImage,
-                                       nifti_image *controlPointGridImage
+void reg_spline_refineControlPointGrid(nifti_image *controlPointGridImage,
+									   nifti_image *referenceImage = NULL
                                        );
-/* *************************************************************** */
-/** @brief Initialise a lattice of control point to generate a global deformation
- * @param affineTransformation Matrix that contains an affine transformation
- * @param controlPointGridImage This grid of control point will be set to reproduce
- * the global transformation define by the matrix
- */
-extern "C++"
-int reg_spline_initialiseControlPointGridWithAffine(mat44 *affineTransformation,
-                                                    nifti_image *controlPointGridImage
-                                                    );
 /* *************************************************************** */
 /** @brief This function compose the a first control point image with a second one:
  * Grid2(x) <= Grid1(Grid2(x)).
@@ -356,7 +340,7 @@ void reg_defField_getJacobianMatrix(nifti_image *deformationField,
 extern "C++"
 void reg_defField_compose(nifti_image *deformationField,
                           nifti_image *dfToUpdate,
-                          int *mask);
+						  int *mask);
 /* *************************************************************** */
 /** @brief Compute the inverse of a deformation field
  * @author Marcel van Herk (CMIC / NKI / AVL)

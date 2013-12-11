@@ -31,6 +31,8 @@ reg_lncc::reg_lncc()
     this->warpedReferenceMeanImage=NULL;
     this->warpedReferenceSdevImage=NULL;
 
+    // Gaussian kernel is used by default
+    this->kernelType=0;
 
 	for(int i=0;i<255;++i)
 		kernelStandardDeviation[i]=-5.f;
@@ -88,14 +90,20 @@ void reg_lncc::UpdateLocalStatImages(nifti_image *originalImage,
     memcpy(meanPtr, origPtr, originalImage->nvox*originalImage->nbyper);
     memcpy(sdevPtr, origPtr, originalImage->nvox*originalImage->nbyper);
     reg_tools_multiplyImageToImage(stdDevImage, stdDevImage, stdDevImage);
-	reg_tools_kernelConvolution(meanImage, this->kernelStandardDeviation, KERNEL_TYPE, mask, this->activeTimePoint);
-	reg_tools_kernelConvolution(stdDevImage, this->kernelStandardDeviation, KERNEL_TYPE, mask, this->activeTimePoint);
-    for(size_t voxel=0;voxel<originalImage->nvox;++voxel){
+    reg_tools_kernelConvolution(meanImage, this->kernelStandardDeviation, this->kernelType, mask, this->activeTimePoint);
+    reg_tools_kernelConvolution(stdDevImage, this->kernelStandardDeviation, this->kernelType, mask, this->activeTimePoint);
+	size_t voxel;
+#if defined (NDEBUG) && defined (_OPENMP)
+#pragma omp parallel for default(none) \
+	shared(originalImage, sdevPtr, meanPtr) \
+	private(voxel)
+#endif
+	for(voxel=0;voxel<originalImage->nvox;++voxel){
         // G*(I^2) - (G*I)^2
         sdevPtr[voxel] = sqrt(sdevPtr[voxel] - reg_pow2(meanPtr[voxel]));
         // Stabilise the computation
         if(sdevPtr[voxel]<1.e-06) sdevPtr[voxel]=static_cast<DTYPE>(0);
-    }
+	}
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -256,11 +264,12 @@ double reg_getLNCCValue(nifti_image *referenceImage,
                         nifti_image *warpedSdevImage,
                         float *kernelStandardDeviation,
 						bool *activeTimePoint,
-						nifti_image *correlationImage)
+                        nifti_image *correlationImage,
+                        int kernelType)
 {
     // Compute the local correlation
     reg_tools_multiplyImageToImage(referenceImage, warpedImage, correlationImage);
-	reg_tools_kernelConvolution(correlationImage, kernelStandardDeviation, KERNEL_TYPE, refMask, activeTimePoint);
+    reg_tools_kernelConvolution(correlationImage, kernelStandardDeviation, kernelType, refMask, activeTimePoint);
 
     double lncc_value_sum  = 0., lncc_value;
     double activeVoxel_num = 0.;
@@ -341,7 +350,8 @@ double reg_lncc::GetSimilarityMeasureValue()
                                               this->warpedFloatingSdevImage,
                                               this->kernelStandardDeviation,
                                               this->activeTimePoint,
-                                              this->forwardCorrelationImage);
+                                              this->forwardCorrelationImage,
+                                              this->kernelType);
         break;
     case NIFTI_TYPE_FLOAT64:
         lncc_value += reg_getLNCCValue<double>(this->referenceImagePointer,
@@ -353,7 +363,8 @@ double reg_lncc::GetSimilarityMeasureValue()
                                                this->warpedFloatingSdevImage,
                                                this->kernelStandardDeviation,
                                                this->activeTimePoint,
-                                               this->forwardCorrelationImage);
+                                               this->forwardCorrelationImage,
+                                               this->kernelType);
         break;
 	}
     if(this->isSymmetric){
@@ -384,7 +395,8 @@ double reg_lncc::GetSimilarityMeasureValue()
                                                   this->warpedReferenceSdevImage,
                                                   this->kernelStandardDeviation,
                                                   this->activeTimePoint,
-                                                  this->backwardCorrelationImage);
+                                                  this->backwardCorrelationImage,
+                                                  this->kernelType);
             break;
         case NIFTI_TYPE_FLOAT64:
             lncc_value += reg_getLNCCValue<double>(this->floatingImagePointer,
@@ -396,7 +408,8 @@ double reg_lncc::GetSimilarityMeasureValue()
                                                    this->warpedReferenceSdevImage,
                                                    this->kernelStandardDeviation,
                                                    this->activeTimePoint,
-                                                   this->backwardCorrelationImage);
+                                                   this->backwardCorrelationImage,
+                                                   this->kernelType);
             break;
         }
     }
@@ -416,11 +429,12 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
 								   bool *activeTimePoint,
 								   nifti_image *correlationImage,
 								   nifti_image *warpedGradientImage,
-								   nifti_image *lnccGradientImage)
+                                   nifti_image *lnccGradientImage,
+                                   int kernelType)
 {
     // Compute the local correlation
     reg_tools_multiplyImageToImage(referenceImage, warpedImage, correlationImage);
-	reg_tools_kernelConvolution(correlationImage, kernelStandardDeviation, KERNEL_TYPE, refMask, activeTimePoint);
+    reg_tools_kernelConvolution(correlationImage, kernelStandardDeviation, kernelType, refMask, activeTimePoint);
 
     DTYPE *refImagePtr=static_cast<DTYPE *>(referenceImage->data);
 	DTYPE *warImagePtr=static_cast<DTYPE *>(warpedImage->data);
@@ -499,9 +513,9 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
         }
     }
     // Smooth the newly computed values
-	reg_tools_kernelConvolution(warpedMeanImage, kernelStandardDeviation, KERNEL_TYPE, refMask, activeTimePoint);
-	reg_tools_kernelConvolution(warpedSdevImage, kernelStandardDeviation, KERNEL_TYPE, refMask, activeTimePoint);
-	reg_tools_kernelConvolution(correlationImage, kernelStandardDeviation, KERNEL_TYPE, refMask, activeTimePoint);
+    reg_tools_kernelConvolution(warpedMeanImage, kernelStandardDeviation, kernelType, refMask, activeTimePoint);
+    reg_tools_kernelConvolution(warpedSdevImage, kernelStandardDeviation, kernelType, refMask, activeTimePoint);
+    reg_tools_kernelConvolution(correlationImage, kernelStandardDeviation, kernelType, refMask, activeTimePoint);
 
     // Iteration over all time points to compute new values
     for(int t=0; t<referenceImage->nt; ++t){
@@ -580,7 +594,8 @@ void reg_lncc::GetVoxelBasedSimilarityMeasureGradient()
 											 this->activeTimePoint,
                                              this->forwardCorrelationImage,
 											 this->warpedFloatingGradientImagePointer,
-											 this->forwardVoxelBasedGradientImagePointer);
+                                             this->forwardVoxelBasedGradientImagePointer,
+                                             this->kernelType);
 		break;
 	case NIFTI_TYPE_FLOAT64:
 		reg_getVoxelBasedLNCCGradient<double>(this->referenceImagePointer,
@@ -594,7 +609,8 @@ void reg_lncc::GetVoxelBasedSimilarityMeasureGradient()
 											  this->activeTimePoint,
                                               this->forwardCorrelationImage,
 											  this->warpedFloatingGradientImagePointer,
-											  this->forwardVoxelBasedGradientImagePointer);
+                                              this->forwardVoxelBasedGradientImagePointer,
+                                              this->kernelType);
 		break;
 	}
     if(this->isSymmetric){
@@ -627,7 +643,8 @@ void reg_lncc::GetVoxelBasedSimilarityMeasureGradient()
                                                  this->activeTimePoint,
                                                  this->backwardCorrelationImage,
                                                  this->warpedReferenceGradientImagePointer,
-                                                 this->backwardVoxelBasedGradientImagePointer);
+                                                 this->backwardVoxelBasedGradientImagePointer,
+                                                 this->kernelType);
             break;
         case NIFTI_TYPE_FLOAT64:
             reg_getVoxelBasedLNCCGradient<double>(this->floatingImagePointer,
@@ -641,7 +658,8 @@ void reg_lncc::GetVoxelBasedSimilarityMeasureGradient()
                                                   this->activeTimePoint,
                                                   this->backwardCorrelationImage,
                                                   this->warpedReferenceGradientImagePointer,
-                                                  this->backwardVoxelBasedGradientImagePointer);
+                                                  this->backwardVoxelBasedGradientImagePointer,
+                                                  this->kernelType);
             break;
         }
     }

@@ -1,6 +1,6 @@
 /*
  *  _reg_bspline.cpp
- *  
+ *
  *
  *  Created by Marc Modat on 25/03/2009.
  *  Copyright (c) 2009, University College London. All rights reserved.
@@ -329,7 +329,7 @@ void reg_createControlPointGrid(nifti_image **controlPointGridImage,
         dim_cpp[3]=static_cast<int>(reg_ceil(referenceImage->nz*referenceImage->dz/spacingMillimeter[2])+3.f);
         dim_cpp[5]=3;
     }
-	dim_cpp[4]=dim_cpp[6]=dim_cpp[7]=1;
+    dim_cpp[4]=dim_cpp[6]=dim_cpp[7]=1;
 
     // Create the new control point grid image and allocate its space
     if(sizeof(DTYPE)==4)
@@ -370,15 +370,15 @@ void reg_createControlPointGrid(nifti_image **controlPointGridImage,
     (*controlPointGridImage)->qoffset_z=referenceImage->qoffset_z;
     (*controlPointGridImage)->qfac=referenceImage->qfac;
     (*controlPointGridImage)->qto_xyz = nifti_quatern_to_mat44((*controlPointGridImage)->quatern_b,
-                                                             (*controlPointGridImage)->quatern_c,
-                                                             (*controlPointGridImage)->quatern_d,
-                                                             (*controlPointGridImage)->qoffset_x,
-                                                             (*controlPointGridImage)->qoffset_y,
-                                                             (*controlPointGridImage)->qoffset_z,
-                                                             (*controlPointGridImage)->dx,
-                                                             (*controlPointGridImage)->dy,
-                                                             (*controlPointGridImage)->dz,
-                                                             (*controlPointGridImage)->qfac);
+                                                               (*controlPointGridImage)->quatern_c,
+                                                               (*controlPointGridImage)->quatern_d,
+                                                               (*controlPointGridImage)->qoffset_x,
+                                                               (*controlPointGridImage)->qoffset_y,
+                                                               (*controlPointGridImage)->qoffset_z,
+                                                               (*controlPointGridImage)->dx,
+                                                               (*controlPointGridImage)->dy,
+                                                               (*controlPointGridImage)->dz,
+                                                               (*controlPointGridImage)->qfac);
 
     // Origin is shifted from 1 control point in the qform
     float originIndex[3];
@@ -433,6 +433,265 @@ void reg_createControlPointGrid(nifti_image **controlPointGridImage,
 }
 template void reg_createControlPointGrid<float>(nifti_image **, nifti_image *, float *);
 template void reg_createControlPointGrid<double>(nifti_image **, nifti_image *, float *);
+/* *************************************************************** */
+template <class DTYPE>
+void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
+                                          nifti_image **backwardGridImage,
+                                          nifti_image *referenceImage,
+                                          nifti_image *floatingImage,
+                                          mat44 *forwardAffineTrans,
+                                          float *spacing)
+{
+    // Delete the grid if they are already initialised
+    if(*forwardGridImage!=NULL)
+        nifti_image_free(*forwardGridImage);
+    *forwardGridImage=NULL;
+    if(*backwardGridImage!=NULL)
+        nifti_image_free(*backwardGridImage);
+    *backwardGridImage=NULL;
+    // We specified a space which is in-between both input images
+    // // Get the reference image space
+    mat44 referenceImageSpace = referenceImage->qto_xyz;
+    if(referenceImage->sform_code>0)
+        referenceImageSpace = referenceImage->sto_xyz;
+#ifndef NDEBUG
+    reg_mat44_disp(&referenceImageSpace,(char *)"[NiftyReg DEBUG] Input reference image orientation");
+#endif
+    // // Get the floating image space
+    mat44 floatingImageSpace = floatingImage->qto_xyz;
+    if(floatingImage->sform_code>0)
+        floatingImageSpace = floatingImage->sto_xyz;
+#ifndef NDEBUG
+    reg_mat44_disp(&floatingImageSpace,(char *)"[NiftyReg DEBUG] Input floating image orientation");
+#endif
+    // Check if an affine transformation is specified
+    mat44 halfForwardAffine, halfBackwardAffine;
+    if(forwardAffineTrans!=NULL){
+        // Compute half of the affine transformation - ref to flo
+        halfForwardAffine = reg_mat44_logm(forwardAffineTrans);
+        halfForwardAffine = reg_mat44_mul(&halfForwardAffine,.5f);
+        halfForwardAffine = reg_mat44_expm(&halfForwardAffine);
+        // Compute half of the affine transformation - flo to ref
+        // Note that this is done twice for symmetry consideration
+        halfBackwardAffine = nifti_mat44_inverse(*forwardAffineTrans);
+        halfBackwardAffine = reg_mat44_logm(&halfBackwardAffine);
+        halfBackwardAffine = reg_mat44_mul(&halfBackwardAffine,.5f);
+        halfBackwardAffine = reg_mat44_expm(&halfBackwardAffine);
+        reg_print_msg_warn("Note that the symmetry of the registration is affected by the input affine transformation");
+    }
+    else{
+        reg_mat44_eye(&halfForwardAffine);
+        reg_mat44_eye(&halfBackwardAffine);
+    }
+
+    // Update the reference and floating transformation to propagate to a mid space
+    referenceImageSpace = reg_mat44_mul(&halfForwardAffine,&referenceImageSpace);
+    floatingImageSpace = reg_mat44_mul(&halfBackwardAffine,&floatingImageSpace);
+
+    // Define the largest field of view in the mid space
+    float minPosition[3], maxPosition[3];
+    if(referenceImage->nz>1){ // 3D
+        float referenceImageCorners[8][3]={
+            {0,0,0},
+            {referenceImage->nx,0,0},
+            {0,referenceImage->ny,0},
+            {referenceImage->nx,referenceImage->ny,0},
+            {0,0,referenceImage->nz},
+            {referenceImage->nx,0,referenceImage->nz},
+            {0,referenceImage->ny,referenceImage->nz},
+            {referenceImage->nx,referenceImage->ny,referenceImage->nz}
+        };
+        float floatingImageCorners[8][3]={
+            {0,0,0},
+            {floatingImage->nx,0,0},
+            {0,floatingImage->ny,0},
+            {floatingImage->nx,floatingImage->ny,0},
+            {0,0,floatingImage->nz},
+            {floatingImage->nx,0,floatingImage->nz},
+            {0,floatingImage->ny,floatingImage->nz},
+            {floatingImage->nx,floatingImage->ny,floatingImage->nz}
+        };
+        float out[3];
+        for(int c=0;c<8;++c){
+            reg_mat44_mul(&referenceImageSpace,referenceImageCorners[c],out);
+            referenceImageCorners[c][0]=out[0];
+            referenceImageCorners[c][1]=out[1];
+            referenceImageCorners[c][2]=out[2];
+            reg_mat44_mul(&floatingImageSpace,floatingImageCorners[c],out);
+            floatingImageCorners[c][0]=out[0];
+            floatingImageCorners[c][1]=out[1];
+            floatingImageCorners[c][2]=out[2];
+
+        }
+        minPosition[0]=referenceImageCorners[0][0]<floatingImageCorners[0][0]?referenceImageCorners[0][0]:floatingImageCorners[0][0];
+        minPosition[1]=referenceImageCorners[0][1]<floatingImageCorners[0][1]?referenceImageCorners[0][1]:floatingImageCorners[0][1];
+        minPosition[2]=referenceImageCorners[0][2]<floatingImageCorners[0][2]?referenceImageCorners[0][2]:floatingImageCorners[0][2];
+        maxPosition[0]=referenceImageCorners[0][0]>floatingImageCorners[0][0]?referenceImageCorners[0][0]:floatingImageCorners[0][0];
+        maxPosition[1]=referenceImageCorners[0][1]>floatingImageCorners[0][1]?referenceImageCorners[0][1]:floatingImageCorners[0][1];
+        maxPosition[2]=referenceImageCorners[0][2]>floatingImageCorners[0][2]?referenceImageCorners[0][2]:floatingImageCorners[0][2];
+        for(int c=1;c<8;++c){
+            minPosition[0]=minPosition[0]<referenceImageCorners[c][0]?minPosition[0]:referenceImageCorners[c][0];
+            minPosition[0]=minPosition[0]<floatingImageCorners[c][0]?minPosition[0]:floatingImageCorners[c][0];
+            minPosition[1]=minPosition[1]<referenceImageCorners[c][1]?minPosition[1]:referenceImageCorners[c][1];
+            minPosition[1]=minPosition[1]<floatingImageCorners[c][1]?minPosition[1]:floatingImageCorners[c][1];
+            minPosition[2]=minPosition[2]<referenceImageCorners[c][2]?minPosition[2]:referenceImageCorners[c][2];
+            minPosition[2]=minPosition[2]<floatingImageCorners[c][2]?minPosition[2]:floatingImageCorners[c][2];
+            maxPosition[0]=maxPosition[0]>referenceImageCorners[c][0]?maxPosition[0]:referenceImageCorners[c][0];
+            maxPosition[0]=maxPosition[0]>floatingImageCorners[c][0]?maxPosition[0]:floatingImageCorners[c][0];
+            maxPosition[1]=maxPosition[1]>referenceImageCorners[c][1]?maxPosition[1]:referenceImageCorners[c][1];
+            maxPosition[1]=maxPosition[1]>floatingImageCorners[c][1]?maxPosition[1]:floatingImageCorners[c][1];
+            maxPosition[2]=maxPosition[2]>referenceImageCorners[c][2]?maxPosition[2]:referenceImageCorners[c][2];
+            maxPosition[2]=maxPosition[2]>floatingImageCorners[c][2]?maxPosition[2]:floatingImageCorners[c][2];
+        }
+    }
+    else{ // 2D
+        float referenceImageCorners[4][2]={
+            {0,0},
+            {referenceImage->nx,0},
+            {0,referenceImage->ny},
+            {referenceImage->nx,referenceImage->ny}
+        };
+        float floatingImageCorners[4][2]={
+            {0,0},
+            {floatingImage->nx,0},
+            {0,floatingImage->ny},
+            {floatingImage->nx,floatingImage->ny}
+        };
+        float out[2];
+        for(int c=0;c<4;++c){
+            out[0]= referenceImageCorners[c][0] * referenceImageSpace.m[0][0]
+                    +referenceImageCorners[c][1] * referenceImageSpace.m[0][1]
+                    + referenceImageSpace.m[0][3];
+            out[1]= referenceImageCorners[c][0] * referenceImageSpace.m[1][0]
+                    +referenceImageCorners[c][1] * referenceImageSpace.m[1][1]
+                    + referenceImageSpace.m[1][3];
+            referenceImageCorners[c][0]=out[0];
+            referenceImageCorners[c][1]=out[1];
+            out[0]= floatingImageCorners[c][0] * floatingImageSpace.m[0][0]
+                    +floatingImageCorners[c][1] * floatingImageSpace.m[0][1]
+                    + floatingImageSpace.m[0][3];
+            out[1]= floatingImageCorners[c][0] * floatingImageSpace.m[1][0]
+                    +floatingImageCorners[c][1] * floatingImageSpace.m[1][1]
+                    + floatingImageSpace.m[1][3];
+            floatingImageCorners[c][0]=out[0];
+            floatingImageCorners[c][1]=out[1];
+
+        }
+        minPosition[0]=referenceImageCorners[0][0]<floatingImageCorners[0][0]?referenceImageCorners[0][0]:floatingImageCorners[0][0];
+        minPosition[1]=referenceImageCorners[0][1]<floatingImageCorners[0][1]?referenceImageCorners[0][1]:floatingImageCorners[0][1];
+        maxPosition[0]=referenceImageCorners[0][0]>floatingImageCorners[0][0]?referenceImageCorners[0][0]:floatingImageCorners[0][0];
+        maxPosition[1]=referenceImageCorners[0][1]>floatingImageCorners[0][1]?referenceImageCorners[0][1]:floatingImageCorners[0][1];
+        for(int c=1;c<4;++c){
+            minPosition[0]=minPosition[0]<referenceImageCorners[c][0]?minPosition[0]:referenceImageCorners[c][0];
+            minPosition[0]=minPosition[0]<floatingImageCorners[c][0]?minPosition[0]:floatingImageCorners[c][0];
+            minPosition[1]=minPosition[1]<referenceImageCorners[c][1]?minPosition[1]:referenceImageCorners[c][1];
+            minPosition[1]=minPosition[1]<floatingImageCorners[c][1]?minPosition[1]:floatingImageCorners[c][1];
+            maxPosition[0]=maxPosition[0]>referenceImageCorners[c][0]?maxPosition[0]:referenceImageCorners[c][0];
+            maxPosition[0]=maxPosition[0]>floatingImageCorners[c][0]?maxPosition[0]:floatingImageCorners[c][0];
+            maxPosition[1]=maxPosition[1]>referenceImageCorners[c][1]?maxPosition[1]:referenceImageCorners[c][1];
+            maxPosition[1]=maxPosition[1]>floatingImageCorners[c][1]?maxPosition[1]:floatingImageCorners[c][1];
+        }
+    }
+
+    // Compute the dimension of the control point grids
+    const int dim[8]={5,
+                      static_cast<int>(reg_ceil((maxPosition[0]-minPosition[0])/spacing[0])+3),
+                      static_cast<int>(reg_ceil((maxPosition[1]-minPosition[1])/spacing[1])+3),
+                      referenceImage->nz>1?static_cast<int>(reg_ceil((maxPosition[2]-minPosition[2])/spacing[2])+3):1,
+                      1,
+                      referenceImage->nz>1?3:2,
+                      1,
+                      1};
+
+    // Create the control point grid image
+    if(sizeof(DTYPE)==sizeof(float)){
+        (*forwardGridImage)=nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32,true);
+        (*backwardGridImage)=nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32,true);
+    }
+    else{
+        (*forwardGridImage)=nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT64,true);
+        (*backwardGridImage)=nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT64,true);
+    }
+    // Set the control point grid spacing
+    (*forwardGridImage)->pixdim[1]=(*forwardGridImage)->dx=(*backwardGridImage)->pixdim[1]=(*backwardGridImage)->dx=spacing[0];
+    (*forwardGridImage)->pixdim[2]=(*forwardGridImage)->dy=(*backwardGridImage)->pixdim[2]=(*backwardGridImage)->dy=spacing[1];
+    if(referenceImage->nz>1)
+      (*forwardGridImage)->pixdim[3]=(*forwardGridImage)->dz=(*backwardGridImage)->pixdim[3]=(*backwardGridImage)->dz=spacing[2];
+    // Set the control point grid image orientation
+    (*forwardGridImage)->qform_code=(*backwardGridImage)->qform_code=0;
+    (*forwardGridImage)->sform_code=(*backwardGridImage)->sform_code=1;
+    reg_mat44_eye(&(*forwardGridImage)->sto_xyz);
+    reg_mat44_eye(&(*backwardGridImage)->sto_xyz);
+    reg_mat44_eye(&(*forwardGridImage)->sto_ijk);
+    reg_mat44_eye(&(*backwardGridImage)->sto_ijk);
+    for(unsigned int i=0;i<3;++i){
+        if(referenceImage->nz>1 || i<2){
+            (*forwardGridImage)->sto_xyz.m[i][i]=(*backwardGridImage)->sto_xyz.m[i][i]=spacing[i];
+            (*forwardGridImage)->sto_xyz.m[i][3]=(*backwardGridImage)->sto_xyz.m[i][3]=minPosition[i]-spacing[i];
+        }
+        else{
+            (*forwardGridImage)->sto_xyz.m[i][i]=(*backwardGridImage)->sto_xyz.m[i][i]=1.f;
+            (*forwardGridImage)->sto_xyz.m[i][3]=(*backwardGridImage)->sto_xyz.m[i][3]=0.f;
+        }
+    }
+    (*forwardGridImage)->sto_ijk=(*backwardGridImage)->sto_ijk=nifti_mat44_inverse((*forwardGridImage)->sto_xyz);
+    // Set the intent type
+    (*forwardGridImage)->intent_code=(*backwardGridImage)->intent_code=NIFTI_INTENT_VECTOR;
+    memset((*forwardGridImage)->intent_name, 0, 16);
+    memset((*backwardGridImage)->intent_name, 0, 16);
+    strcpy((*forwardGridImage)->intent_name,"NREG_TRANS");
+    strcpy((*backwardGridImage)->intent_name,"NREG_TRANS");
+    (*forwardGridImage)->intent_p1=(*backwardGridImage)->intent_p1=SPLINE_GRID;
+    // Set the affine matrices
+    mat44 identity;reg_mat44_eye(&identity);
+    if((*forwardGridImage)->ext_list!=NULL)
+        free((*forwardGridImage)->ext_list);
+    if((*backwardGridImage)->ext_list!=NULL)
+        free((*backwardGridImage)->ext_list);
+    (*forwardGridImage)->num_ext=0;
+    (*backwardGridImage)->num_ext=0;
+    if(identity!=halfForwardAffine && identity!=halfBackwardAffine){
+        // Create extensions to store the affine parametrisations for the forward transformation
+        (*forwardGridImage)->num_ext=2;
+        (*forwardGridImage)->ext_list=(nifti1_extension *)malloc(2*sizeof(nifti1_extension));
+        (*forwardGridImage)->ext_list[0].esize=16*sizeof(float)+16;
+        (*forwardGridImage)->ext_list[1].esize=16*sizeof(float)+16;
+        (*forwardGridImage)->ext_list[0].ecode=NIFTI_ECODE_IGNORE;
+        (*forwardGridImage)->ext_list[1].ecode=NIFTI_ECODE_IGNORE;
+        (*forwardGridImage)->ext_list[0].edata=(char *)calloc((*forwardGridImage)->ext_list[0].esize-8,sizeof(float));
+        (*forwardGridImage)->ext_list[1].edata=(char *)calloc((*forwardGridImage)->ext_list[1].esize-8,sizeof(float));
+        memcpy((*forwardGridImage)->ext_list[0].edata, &halfForwardAffine, sizeof(mat44));
+        memcpy((*forwardGridImage)->ext_list[1].edata, &halfForwardAffine, sizeof(mat44));
+#ifndef NDEBUG
+        reg_mat44_disp(&halfForwardAffine,(char *)"[NiftyReg DEBUG] Forward transformation half-affine");
+#endif
+        // Create extensions to store the affine parametrisations for the backward transformation
+        (*backwardGridImage)->num_ext=2;
+        (*backwardGridImage)->ext_list=(nifti1_extension *)malloc(2*sizeof(nifti1_extension));
+        (*backwardGridImage)->ext_list[0].esize=16*sizeof(float)+16;
+        (*backwardGridImage)->ext_list[1].esize=16*sizeof(float)+16;
+        (*backwardGridImage)->ext_list[0].ecode=NIFTI_ECODE_IGNORE;
+        (*backwardGridImage)->ext_list[1].ecode=NIFTI_ECODE_IGNORE;
+        (*backwardGridImage)->ext_list[0].edata=(char *)calloc((*backwardGridImage)->ext_list[0].esize-8,sizeof(float));
+        (*backwardGridImage)->ext_list[1].edata=(char *)calloc((*backwardGridImage)->ext_list[1].esize-8,sizeof(float));
+        memcpy((*backwardGridImage)->ext_list[0].edata, &halfBackwardAffine, sizeof(mat44));
+        memcpy((*backwardGridImage)->ext_list[1].edata, &halfBackwardAffine, sizeof(mat44));
+#ifndef NDEBUG
+        reg_mat44_disp(&halfBackwardAffine,(char *)"[NiftyReg DEBUG] Backward transformation half-affine");
+#endif
+    }
+    // Initialise the grid with identity transformations
+    reg_tools_multiplyValueToImage(*forwardGridImage,*forwardGridImage,0.f);
+    reg_tools_multiplyValueToImage(*backwardGridImage,*backwardGridImage,0.f);
+    // Convert the parametrisations into deformation fields
+    reg_getDeformationFromDisplacement(*forwardGridImage);
+    reg_getDeformationFromDisplacement(*backwardGridImage);
+}
+/* *************************************************************** */
+template void reg_createSymmetricControlPointGrids<float>
+(nifti_image **,nifti_image **,nifti_image *,nifti_image *,mat44 *,float *);
+template void reg_createSymmetricControlPointGrids<double>
+(nifti_image **,nifti_image **,nifti_image *,nifti_image *,mat44 *,float *);
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
@@ -525,7 +784,7 @@ void reg_spline_getDeformationField2D(nifti_image *splineControlPoint,
 
 
                 if(xVoxel>=0 && xVoxel<=deformationField->nx-1 &&
-                   yVoxel>=0 && yVoxel<=deformationField->ny-1){
+                        yVoxel>=0 && yVoxel<=deformationField->ny-1){
 
                     // The control point postions are extracted
                     if(oldXpre!=xPre || oldYpre!=yPre){
@@ -601,17 +860,17 @@ void reg_spline_getDeformationField2D(nifti_image *splineControlPoint,
 #if defined (NDEBUG) && defined (_OPENMP)
 #ifdef _USE_SSE
 #pragma  omp parallel for default(none) \
-        shared(deformationField, gridVoxelSpacing, splineControlPoint, controlPointPtrX, \
-               controlPointPtrY, mask, fieldPtrX, fieldPtrY, bspline) \
-        private(x, y, a, xPre, yPre, oldXpre, oldYpre, index, xReal, yReal, basis, \
-                val, temp, yBasis, tempCurrent, xyBasis, tempX, tempY, \
-                xControlPointCoordinates, yControlPointCoordinates)
+    shared(deformationField, gridVoxelSpacing, splineControlPoint, controlPointPtrX, \
+    controlPointPtrY, mask, fieldPtrX, fieldPtrY, bspline) \
+    private(x, y, a, xPre, yPre, oldXpre, oldYpre, index, xReal, yReal, basis, \
+    val, temp, yBasis, tempCurrent, xyBasis, tempX, tempY, \
+    xControlPointCoordinates, yControlPointCoordinates)
 #else // _USE_SSE
 #pragma  omp parallel for default(none) \
-        shared(deformationField, gridVoxelSpacing, splineControlPoint, controlPointPtrX, \
-               controlPointPtrY, mask, fieldPtrX, fieldPtrY, bspline) \
-        private(x, y, a, xPre, yPre, oldXpre, oldYpre, index, xReal, yReal, basis, coord, \
-                temp, yBasis, xyBasis, xControlPointCoordinates, yControlPointCoordinates)
+    shared(deformationField, gridVoxelSpacing, splineControlPoint, controlPointPtrX, \
+    controlPointPtrY, mask, fieldPtrX, fieldPtrY, bspline) \
+    private(x, y, a, xPre, yPre, oldXpre, oldYpre, index, xReal, yReal, basis, coord, \
+    temp, yBasis, xyBasis, xControlPointCoordinates, yControlPointCoordinates)
 #endif // _USE_SEE
 #endif // _OPENMP
         for( y=0; y<deformationField->ny; y++){
@@ -753,15 +1012,10 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
     DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
     DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
     DTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
-    
+
     DTYPE *fieldPtrX=static_cast<DTYPE *>(deformationField->data);
     DTYPE *fieldPtrY=&fieldPtrX[deformationField->nx*deformationField->ny*deformationField->nz];
     DTYPE *fieldPtrZ=&fieldPtrY[deformationField->nx*deformationField->ny*deformationField->nz];
-
-    DTYPE gridVoxelSpacing[3];
-    gridVoxelSpacing[0] = splineControlPoint->dx / deformationField->dx;
-    gridVoxelSpacing[1] = splineControlPoint->dy / deformationField->dy;
-    gridVoxelSpacing[2] = splineControlPoint->dz / deformationField->dz;
 
     DTYPE basis, oldBasis=(DTYPE)(1.1);
 
@@ -771,10 +1025,10 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
     if(composition){ // Composition of deformation fields
 
         // read the ijk sform or qform, as appropriate
-        mat44 *referenceMatrix_real_to_voxel;
+        mat44 referenceMatrix_real_to_voxel;
         if(splineControlPoint->sform_code>0)
-            referenceMatrix_real_to_voxel=&(splineControlPoint->sto_ijk);
-        else referenceMatrix_real_to_voxel=&(splineControlPoint->qto_ijk);
+            referenceMatrix_real_to_voxel=(splineControlPoint->sto_ijk);
+        else referenceMatrix_real_to_voxel=(splineControlPoint->qto_ijk);
 #ifdef _USE_SSE
 #ifdef _WIN32
         __declspec(align(16)) DTYPE xBasis[4];
@@ -798,7 +1052,7 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
     tempX, tempY, tempZ, xBasis_sse, yBasis_sse, zBasis_sse, \
     temp_basis_sse, basis_sse, val) \
     shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, referenceMatrix_real_to_voxel, \
-    gridVoxelSpacing, bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ, \
+    bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ, \
     splineControlPoint, mask)
 #else
 #pragma omp parallel for default(none) \
@@ -806,7 +1060,7 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
     index, voxel, basis, xBasis, yBasis, zBasis, xControlPointCoordinates, \
     yControlPointCoordinates, zControlPointCoordinates, coord) \
     shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, referenceMatrix_real_to_voxel, \
-    gridVoxelSpacing, bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ, \
+    bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ, \
     splineControlPoint, mask)
 #endif // _USE_SSE
 #endif // _OPENMP
@@ -824,7 +1078,22 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
                         real[2] = fieldPtrZ[index];
 
                         // From real to pixel position in the control point space
-                        reg_mat44_mul(referenceMatrix_real_to_voxel, real, voxel);
+                        voxel[0] =
+                                referenceMatrix_real_to_voxel.m[0][0] * real[0] +
+                                referenceMatrix_real_to_voxel.m[0][1] * real[1] +
+                                referenceMatrix_real_to_voxel.m[0][2] * real[2] +
+                                referenceMatrix_real_to_voxel.m[0][3] ;
+                        voxel[1] =
+                                referenceMatrix_real_to_voxel.m[1][0] * real[0] +
+                                referenceMatrix_real_to_voxel.m[1][1] * real[1] +
+                                referenceMatrix_real_to_voxel.m[1][2] * real[2] +
+                                referenceMatrix_real_to_voxel.m[1][3] ;
+                        voxel[2] =
+                                referenceMatrix_real_to_voxel.m[2][0] * real[0] +
+                                referenceMatrix_real_to_voxel.m[2][1] * real[1] +
+                                referenceMatrix_real_to_voxel.m[2][2] * real[2] +
+                                referenceMatrix_real_to_voxel.m[2][3] ;
+                        //                        reg_mat44_mul(referenceMatrix_real_to_voxel, real, voxel);
 
                         // The spline coefficients are computed
                         xPre=(int)reg_floor(voxel[0]);
@@ -938,16 +1207,20 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
         }
     }//Composition of deformation
     else{ // !composition
+        DTYPE gridVoxelSpacing[3];
+        gridVoxelSpacing[0] = splineControlPoint->dx / deformationField->dx;
+        gridVoxelSpacing[1] = splineControlPoint->dy / deformationField->dy;
+        gridVoxelSpacing[2] = splineControlPoint->dz / deformationField->dz;
 #ifdef _USE_SSE
-	#ifdef _WIN32
-            union u1{__m128 m[4];__declspec(align(16)) DTYPE f[16];}yzBasis;
-            union u2{__m128 m[16];__declspec(align(16)) DTYPE f[64];}xyzBasis;
-	#else // _WIN32
-            union u1{__m128 m[4];DTYPE f[16] __attribute__((aligned(16)));}yzBasis;
-            union u2{__m128 m[16];DTYPE f[64] __attribute__((aligned(16)));}xyzBasis;
-	#endif // _WIN32
+#ifdef _WIN32
+        union u1{__m128 m[4];__declspec(align(16)) DTYPE f[16];}yzBasis;
+        union u2{__m128 m[16];__declspec(align(16)) DTYPE f[64];}xyzBasis;
+#else // _WIN32
+        union u1{__m128 m[4];DTYPE f[16] __attribute__((aligned(16)));}yzBasis;
+        union u2{__m128 m[16];DTYPE f[64] __attribute__((aligned(16)));}xyzBasis;
+#endif // _WIN32
 #else // _USE_SSE
-            DTYPE yzBasis[16], xyzBasis[64];
+        DTYPE yzBasis[16], xyzBasis[64];
 #endif // _USE_SSE
 
 #if defined (NDEBUG) && defined (_OPENMP)
@@ -1004,7 +1277,7 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
                     yzBasis[coord++]=temp[1]*zBasis[a];
                     yzBasis[coord++]=temp[2]*zBasis[a];
                     yzBasis[coord++]=temp[3]*zBasis[a];
-                }           
+                }
 #endif
 
                 for(x=0; x<deformationField->nx; x++){
@@ -1105,7 +1378,7 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
             } // y
         } // z
     }// from a deformation field
-    
+
     return;
 }
 /* *************************************************************** */
@@ -1116,8 +1389,8 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
                                     bool bspline)
 {
     if(splineControlPoint->datatype != deformationField->datatype){
-        fprintf(stderr,"[NiftyReg ERROR] The spline control point image and the deformation field image are expected to be the same type\n");
-        fprintf(stderr,"[NiftyReg ERROR] The deformation field is not computed\n");
+        reg_print_fct_error("reg_spline_getDeformationField");
+        reg_print_msg_error("The spline control point image and the deformation field image are expected to be the same type");
         reg_exit(1);
     }
 
@@ -1136,6 +1409,17 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
         mask=(int *)calloc(deformationField->nx*deformationField->ny*deformationField->nz, sizeof(int));
     }
 
+    // Check if an affine initialisation is required
+    if(splineControlPoint->num_ext>0){
+        if(splineControlPoint->ext_list[0].edata!=NULL){
+            reg_affine_getDeformationField(reinterpret_cast<mat44 *>(splineControlPoint->ext_list[0].edata),
+                    deformationField,
+                    composition,
+                    mask);
+            composition=true;
+        }
+    }
+
     if(splineControlPoint->nz==1){
         switch(deformationField->datatype){
         case NIFTI_TYPE_FLOAT32:
@@ -1145,8 +1429,8 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
             reg_spline_getDeformationField2D<double>(splineControlPoint, deformationField, mask, composition, bspline);
             break;
         default:
-            fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for deformation field\n");
-            fprintf(stderr,"[NiftyReg ERROR] The deformation field is not computed\n");
+            reg_print_fct_error("reg_spline_getDeformationField");
+            reg_print_msg_error("Only single or double precision is implemented for deformation field");
             reg_exit(1);
         }
     }
@@ -1159,178 +1443,209 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
             reg_spline_getDeformationField3D<double>(splineControlPoint, deformationField, mask, composition, bspline);
             break;
         default:
-            fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for deformation field\n");
-            fprintf(stderr,"[NiftyReg ERROR] The deformation field is not computed\n");
+            reg_print_fct_error("reg_spline_getDeformationField");
+            reg_print_msg_error("Only single or double precision is implemented for deformation field");
             reg_exit(1);
         }
     }
-    if(MrPropre==true) free(mask);
+
+    if(splineControlPoint->num_ext>1){
+        if(splineControlPoint->ext_list[1].edata!=NULL){
+            reg_affine_getDeformationField(reinterpret_cast<mat44 *>(splineControlPoint->ext_list[1].edata),
+                    deformationField,
+                    true, //composition
+                    mask);
+        }
+    }
+    if(MrPropre==true){
+        free(mask);
+        mask=NULL;
+    }
+
     return;
 }
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
-void reg_voxelCentric2NodeCentric2D(nifti_image *nodeImage,
-                                    nifti_image *voxelImage,
-                                    float weight,
-                                    bool update
-                                    )
+void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
+                                       nifti_image *voxelImage,
+                                       float weight,
+                                       bool update,
+                                       mat44 *voxelToMillimeter
+                                       )
 {
+    size_t nodeNumber = (size_t)nodeImage->nx*nodeImage->ny*nodeImage->nz;
+    size_t voxelNumber = (size_t)voxelImage->nx*voxelImage->ny*voxelImage->nz;
     DTYPE *nodePtrX = static_cast<DTYPE *>(nodeImage->data);
-    DTYPE *nodePtrY = &nodePtrX[nodeImage->nx*nodeImage->ny];
+    DTYPE *nodePtrY = &nodePtrX[nodeNumber];
+    DTYPE *nodePtrZ = NULL;
 
     DTYPE *voxelPtrX = static_cast<DTYPE *>(voxelImage->data);
-    DTYPE *voxelPtrY = &voxelPtrX[voxelImage->nx*voxelImage->ny];
+    DTYPE *voxelPtrY = &voxelPtrX[voxelNumber];
+    DTYPE *voxelPtrZ = NULL;
 
-    DTYPE ratio[2];
-    ratio[0] = static_cast<DTYPE>(nodeImage->dx / voxelImage->dx);
-    ratio[1] = static_cast<DTYPE>(nodeImage->dy / voxelImage->dy);
+    if(nodeImage->nz>1){
+        nodePtrZ = &nodePtrY[nodeNumber];
+        voxelPtrZ= &voxelPtrY[voxelNumber];
+    }
 
-    weight *= ratio[0]*ratio[1];
-
-	float basisX[2], basisY[2];
-
-    for(int y=0;y<nodeImage->ny; y++){
-		float relY = float(y-1) * ratio[1];
-		basisY[1]=relY-reg_floor(relY);
-		basisY[0]=1.f-basisY[1];
-		for(int x=0;x<nodeImage->nx; x++){
-			float relX = float(x-1) * ratio[0];
-			basisX[1]=relX-reg_floor(relX);
-			basisX[0]=1.f-basisX[1];
-
-			DTYPE newValueX=0, newValueY=0;
-			for(int b=0;b<2;++b){
-                int Y = static_cast<int>(reg_floor(relY)) + b;
-				if(-1<Y && Y<voxelImage->ny){
-					for(int a=0;a<2;++a){
-                        int X = static_cast<int>(reg_floor(relX)) + a;
-						if( -1<X && X<voxelImage->nx){
-							newValueX += voxelPtrX[Y*voxelImage->nx+X] * basisX[a] * basisY[b];
-							newValueY += voxelPtrY[Y*voxelImage->nx+X] * basisX[a] * basisY[b];
-						}
-					}
-				}
-			}
-			if(update){
-				*nodePtrX += newValueX * static_cast<DTYPE>(weight);
-				*nodePtrY += newValueY * static_cast<DTYPE>(weight);
-			}
-			else{
-				*nodePtrX = newValueX * static_cast<DTYPE>(weight);
-				*nodePtrY = newValueY * static_cast<DTYPE>(weight);
-			}
-            ++nodePtrX;++nodePtrY;
+    // The transformation between the image and the grid is used
+    mat44 transformation;
+    // voxel to millimeter in the grid image
+    if(nodeImage->sform_code>0)
+        transformation=nodeImage->sto_xyz;
+    else transformation=nodeImage->qto_xyz;
+    // Affine transformation between the grid and the reference image
+    if(nodeImage->num_ext>0){
+        if(nodeImage->ext_list[0].edata!=NULL){
+            mat44 temp=*(reinterpret_cast<mat44 *>(nodeImage->ext_list[0].edata));
+            temp=nifti_mat44_inverse(temp);
+            transformation = reg_mat44_mul(&temp,&transformation);
         }
     }
-}
-/* *************************************************************** */
-template<class DTYPE>
-void reg_voxelCentric2NodeCentric3D(nifti_image *nodeImage,
-                                    nifti_image *voxelImage,
-                                    float weight,
-                                    bool update
-                                    )
-{
-    DTYPE *nodePtrX = static_cast<DTYPE *>(nodeImage->data);
-    DTYPE *nodePtrY = &nodePtrX[nodeImage->nx*nodeImage->ny*nodeImage->nz];
-    DTYPE *nodePtrZ = &nodePtrY[nodeImage->nx*nodeImage->ny*nodeImage->nz];
+    // millimeter to voxel in the reference image
+    if(voxelImage->sform_code>0)
+        transformation = reg_mat44_mul(&voxelImage->sto_ijk,&transformation);
+    else transformation = reg_mat44_mul(&voxelImage->qto_ijk,&transformation);
 
-    DTYPE *voxelPtrX = static_cast<DTYPE *>(voxelImage->data);
-    DTYPE *voxelPtrY = &voxelPtrX[voxelImage->nx*voxelImage->ny*voxelImage->nz];
-    DTYPE *voxelPtrZ = &voxelPtrY[voxelImage->nx*voxelImage->ny*voxelImage->nz];
-
-    float ratio[3];
-    ratio[0] = nodeImage->dx / voxelImage->dx;
-    ratio[1] = nodeImage->dy / voxelImage->dy;
-    ratio[2] = nodeImage->dz / voxelImage->dz;
-
-    weight *= ratio[0]*ratio[1]*ratio[2];
-
-    for(int z=0;z<nodeImage->nz; z++){
-        int Z = static_cast<int>(reg_round((float)(z-1) * ratio[2]));
-        // sliding condition-ish along the Z-axis
-//        Z=Z<0?0:Z;
-//        Z=Z>=voxelImage->nz?voxelImage->nz-1:Z;
-        DTYPE *zvoxelPtrX=&voxelPtrX[Z*voxelImage->nx*voxelImage->ny];
-        DTYPE *zvoxelPtrY=&voxelPtrY[Z*voxelImage->nx*voxelImage->ny];
-        DTYPE *zvoxelPtrZ=&voxelPtrZ[Z*voxelImage->nx*voxelImage->ny];
-        for(int y=0;y<nodeImage->ny; y++){
-            int Y = static_cast<int>(reg_round((float)(y-1) * ratio[1]));
-//            // sliding condition-ish along the Y-axis
-//            Y=Y<0?0:Y;
-//            Y=Y>=voxelImage->ny?voxelImage->ny-1:Y;
-            DTYPE *yzvoxelPtrX=&zvoxelPtrX[Y*voxelImage->nx];
-            DTYPE *yzvoxelPtrY=&zvoxelPtrY[Y*voxelImage->nx];
-            DTYPE *yzvoxelPtrZ=&zvoxelPtrZ[Y*voxelImage->nx];
-            for(int x=0;x<nodeImage->nx; x++){
-                int X = static_cast<int>(reg_round((float)(x-1) * ratio[0]));
-                // sliding condition-ish along the X-axis
-//                X=X<0?0:X;
-//                X=X>=voxelImage->nx?voxelImage->nx-1:X;
-                if(-1<Z && Z<voxelImage->nz && -1<Y && Y<voxelImage->ny && -1<X && X<voxelImage->nx){
-                    if(update){
-                        *nodePtrX += yzvoxelPtrX[X]*static_cast<DTYPE>(weight);
-                        *nodePtrY += yzvoxelPtrY[X]*static_cast<DTYPE>(weight);
-                        *nodePtrZ += yzvoxelPtrZ[X]*static_cast<DTYPE>(weight);
-                    }
-                    else{
-                        *nodePtrX = yzvoxelPtrX[X]*static_cast<DTYPE>(weight);
-                        *nodePtrY = yzvoxelPtrY[X]*static_cast<DTYPE>(weight);
-                        *nodePtrZ = yzvoxelPtrZ[X]*static_cast<DTYPE>(weight);
-                    }
-                }
-                else{
-                    if(!update){
-                        *nodePtrX = 0.0;
-                        *nodePtrY = 0.0;
-                        *nodePtrZ = 0.0;
-                    }
-                }
-                ++nodePtrX;++nodePtrY;++nodePtrZ;
+    // The information has to be reoriented
+    mat33 reorientation;
+    // Voxel to millimeter contains the orientation of the image that is used
+    // to compute the spatial gradient (floating image)
+    if(voxelToMillimeter!=NULL){
+        reorientation=reg_mat44_to_mat33(voxelToMillimeter);
+        if(nodeImage->num_ext>0){
+            if(nodeImage->ext_list[0].edata!=NULL){
+                mat33 temp = reg_mat44_to_mat33(reinterpret_cast<mat44 *>(nodeImage->ext_list[0].edata));
+                temp=nifti_mat33_inverse(temp);
+                reorientation = nifti_mat33_mul(temp,reorientation);
             }
         }
     }
+    else reg_mat33_eye(&reorientation);
+    // The information has to be weighted
+    float ratio[3]={nodeImage->dx,nodeImage->dy,nodeImage->dz};
+    for(int i=0;i<(nodeImage->nz>1?3:2);++i){
+        if(nodeImage->sform_code>0){
+            ratio[i] = sqrt(
+                        reg_pow2(nodeImage->sto_xyz.m[i][0]) +
+                    reg_pow2(nodeImage->sto_xyz.m[i][1]) +
+                    reg_pow2(nodeImage->sto_xyz.m[i][2]) );
+        }
+        ratio[i] /= voxelImage->pixdim[i+1];
+        weight *= ratio[i];
+    }
+    // For each node, the corresponding voxel is computed
+    float nodeCoord[3];
+    float voxelCoord[3];
+    for(int z=0;z<nodeImage->nz; z++){
+        nodeCoord[2]=z;
+        for(int y=0;y<nodeImage->ny; y++){
+            nodeCoord[1]=y;
+            for(int x=0;x<nodeImage->nx; x++){
+                nodeCoord[0]=x;
+                reg_mat44_mul(&transformation,nodeCoord,voxelCoord);
+                // linear interpolation is performed
+                DTYPE basisX[2], basisY[2], basisZ[2];
+                int pre[3]={
+                    static_cast<int>(reg_floor(voxelCoord[0])),
+                    static_cast<int>(reg_floor(voxelCoord[1])),
+                    static_cast<int>(reg_floor(voxelCoord[2]))
+                };
+                basisX[1]=voxelCoord[0]-static_cast<DTYPE>(pre[0]);
+                basisX[0]=static_cast<DTYPE>(1) - basisX[1];
+                basisY[1]=voxelCoord[1]-static_cast<DTYPE>(pre[1]);
+                basisY[0]=static_cast<DTYPE>(1) - basisY[1];
+                if(voxelPtrZ!=NULL){
+                    basisZ[1]=voxelCoord[2]-static_cast<DTYPE>(pre[2]);
+                    basisZ[0]=static_cast<DTYPE>(1) - basisZ[1];
+                }
+                DTYPE interpolatedValue[3]={0,0,0};
+                for(int c=0;c<2;++c){
+                    int indexZ=pre[2]+c;
+                    if(indexZ>-1 && indexZ<voxelImage->nz){
+                        for(int b=0;b<2;++b){
+                            int indexY=pre[1]+b;
+                            if(indexY>-1 && indexY<voxelImage->ny){
+                                for(int a=0;a<2;++a){
+                                    int indexX=pre[0]+a;
+                                    if(indexX>-1 && indexX<voxelImage->nx){
+                                        size_t index=(indexZ*voxelImage->ny+indexY) *
+                                                voxelImage->nx+indexX;
+                                        DTYPE linearWeight = basisX[a] * basisY[b];
+                                        if(voxelPtrZ!=NULL) linearWeight *= basisZ[c];
+                                        interpolatedValue[0] += linearWeight * voxelPtrX[index];
+                                        interpolatedValue[1] += linearWeight * voxelPtrY[index];
+                                        if(voxelPtrZ!=NULL)
+                                            interpolatedValue[2] += linearWeight * voxelPtrZ[index];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                DTYPE reorientedValue[3];
+                reorientedValue[0] =
+                        reorientation.m[0][0] * interpolatedValue[0] +
+                        reorientation.m[0][1] * interpolatedValue[1] +
+                        reorientation.m[0][2] * interpolatedValue[2] ;
+                reorientedValue[1] =
+                        reorientation.m[1][0] * interpolatedValue[0] +
+                        reorientation.m[1][1] * interpolatedValue[1] +
+                        reorientation.m[1][2] * interpolatedValue[2] ;
+                if(voxelPtrZ!=NULL)
+                    reorientedValue[2] =
+                            reorientation.m[2][0] * interpolatedValue[0] +
+                            reorientation.m[2][1] * interpolatedValue[1] +
+                            reorientation.m[2][2] * interpolatedValue[2] ;
+                if(update){
+                    *nodePtrX += reorientedValue[0]*static_cast<DTYPE>(weight);
+                    *nodePtrY += reorientedValue[1]*static_cast<DTYPE>(weight);
+                    if(voxelPtrZ!=NULL)
+                        *nodePtrZ += reorientedValue[2]*static_cast<DTYPE>(weight);
+                }
+                else{
+                    *nodePtrX = reorientedValue[0]*static_cast<DTYPE>(weight);
+                    *nodePtrY = reorientedValue[1]*static_cast<DTYPE>(weight);
+                    if(voxelPtrZ!=NULL)
+                        *nodePtrZ = reorientedValue[2]*static_cast<DTYPE>(weight);
+                }
+                ++nodePtrX;
+                ++nodePtrY;
+                if(voxelPtrZ!=NULL)
+                    ++nodePtrZ;
+            } // loop over
+        } // loop over y
+    } // loop over z
 }
 /* *************************************************************** */
 extern "C++"
 void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
                                   nifti_image *voxelImage,
                                   float weight,
-                                  bool update
+                                  bool update,
+                                  mat44 *voxelToMillimeter
                                   )
 {
     if(nodeImage->datatype!=voxelImage->datatype){
-        fprintf(stderr, "[NiftyReg ERROR] reg_voxelCentric2NodeCentric\n");
-        fprintf(stderr, "[NiftyReg ERROR] Both input images do not have the same type\n");
+        reg_print_fct_error("reg_voxelCentric2NodeCentric");
+        reg_print_msg_error("Both input images do not have the same type");
         reg_exit(1);
     }
-    // it is assumed than node[111] and voxel[000] are aligned.
-    if(nodeImage->nz==1){
-        switch(nodeImage->datatype){
-        case NIFTI_TYPE_FLOAT32:
-            reg_voxelCentric2NodeCentric2D<float>(nodeImage, voxelImage, weight, update);
-            break;
-        case NIFTI_TYPE_FLOAT64:
-            reg_voxelCentric2NodeCentric2D<double>(nodeImage, voxelImage, weight, update);
-            break;
-        default:
-            fprintf(stderr,"[NiftyReg ERROR] reg_voxelCentric2NodeCentric:\tdata type not supported\n");
-            reg_exit(1);
-        }
-    }
-    else{
-        switch(nodeImage->datatype){
-        case NIFTI_TYPE_FLOAT32:
-            reg_voxelCentric2NodeCentric3D<float>(nodeImage, voxelImage, weight, update);
-            break;
-        case NIFTI_TYPE_FLOAT64:
-            reg_voxelCentric2NodeCentric3D<double>(nodeImage, voxelImage, weight, update);
-            break;
-        default:
-            fprintf(stderr,"[NiftyReg ERROR] reg_voxelCentric2NodeCentric:\tdata type not supported\n");
-            reg_exit(1);
-        }
+
+    switch(nodeImage->datatype){
+    case NIFTI_TYPE_FLOAT32:
+        reg_voxelCentric2NodeCentric_core<float>
+                (nodeImage, voxelImage, weight, update, voxelToMillimeter);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        reg_voxelCentric2NodeCentric_core<double>
+                (nodeImage, voxelImage, weight, update, voxelToMillimeter);
+        break;
+    default:
+        reg_print_fct_error("reg_voxelCentric2NodeCentric");
+        reg_print_msg_error("Data type not supported");
+        reg_exit(1);
     }
 }
 /* *************************************************************** */
@@ -1352,26 +1667,32 @@ void SetValue(SplineTYPE *array, int *dim, int x, int y, int z, SplineTYPE value
 }
 /* *************************************************************** */
 template<class SplineTYPE>
-void reg_spline_refineControlPointGrid2D(  nifti_image *referenceImage,
-                                          nifti_image *splineControlPoint)
+void reg_spline_refineControlPointGrid2D(nifti_image *splineControlPoint,
+                                         nifti_image *referenceImage)
 {
     // The input grid is first saved
     SplineTYPE *oldGrid = (SplineTYPE *)malloc(splineControlPoint->nvox*splineControlPoint->nbyper);
     SplineTYPE *gridPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
     memcpy(oldGrid, gridPtrX, splineControlPoint->nvox*splineControlPoint->nbyper);
     if(splineControlPoint->data!=NULL) free(splineControlPoint->data);
-    int oldDim[4];
+    int oldDim[3];
+    oldDim[0]=splineControlPoint->dim[0];
     oldDim[1]=splineControlPoint->dim[1];
     oldDim[2]=splineControlPoint->dim[2];
-    oldDim[3]=1;
+    oldDim[3]=splineControlPoint->dim[3];
 
     splineControlPoint->dx = splineControlPoint->pixdim[1] = splineControlPoint->dx / 2.0f;
     splineControlPoint->dy = splineControlPoint->pixdim[2] = splineControlPoint->dy / 2.0f;
     splineControlPoint->dz = 1.0f;
-
-    splineControlPoint->dim[1]=splineControlPoint->nx=static_cast<int>(reg_ceil(referenceImage->nx*referenceImage->dx/splineControlPoint->dx)+3.f);
-    splineControlPoint->dim[2]=splineControlPoint->ny=static_cast<int>(reg_ceil(referenceImage->ny*referenceImage->dy/splineControlPoint->dy)+3.f);
-    splineControlPoint->dim[3]=1;
+    if(referenceImage!=NULL){
+        splineControlPoint->dim[1]=splineControlPoint->nx=static_cast<int>(reg_ceil(referenceImage->nx*referenceImage->dx/splineControlPoint->dx)+3.f);
+        splineControlPoint->dim[2]=splineControlPoint->ny=static_cast<int>(reg_ceil(referenceImage->ny*referenceImage->dy/splineControlPoint->dy)+3.f);
+    }
+    else{
+        splineControlPoint->dim[1]=splineControlPoint->nx=(oldDim[1]-3)*2+3;
+        splineControlPoint->dim[2]=splineControlPoint->ny=(oldDim[2]-3)*2+3;
+    }
+    splineControlPoint->dim[3]=splineControlPoint->nz=1;
 
     splineControlPoint->nvox =
             (size_t)splineControlPoint->nx*
@@ -1379,8 +1700,8 @@ void reg_spline_refineControlPointGrid2D(  nifti_image *referenceImage,
             (size_t)splineControlPoint->nz*
             (size_t)splineControlPoint->nt*
             (size_t)splineControlPoint->nu;
-    splineControlPoint->data = (void *)calloc(splineControlPoint->nvox, splineControlPoint->nbyper);
 
+    splineControlPoint->data = (void *)calloc(splineControlPoint->nvox, splineControlPoint->nbyper);
     gridPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
     SplineTYPE *gridPtrY = &gridPtrX[splineControlPoint->nx*splineControlPoint->ny];
     SplineTYPE *oldGridPtrX = &oldGrid[0];
@@ -1448,8 +1769,7 @@ void reg_spline_refineControlPointGrid2D(  nifti_image *referenceImage,
 }
 /* *************************************************************** */
 template<class SplineTYPE>
-void reg_spline_refineControlPointGrid3D(nifti_image *referenceImage,
-                                          nifti_image *splineControlPoint)
+void reg_spline_refineControlPointGrid3D(nifti_image *splineControlPoint, nifti_image *referenceImage)
 {
 
     // The input grid is first saved
@@ -1467,10 +1787,16 @@ void reg_spline_refineControlPointGrid3D(nifti_image *referenceImage,
     splineControlPoint->dy = splineControlPoint->pixdim[2] = splineControlPoint->dy / 2.0f;
     splineControlPoint->dz = splineControlPoint->pixdim[3] = splineControlPoint->dz / 2.0f;
 
-    splineControlPoint->dim[1]=splineControlPoint->nx=static_cast<int>(reg_ceil(referenceImage->nx*referenceImage->dx/splineControlPoint->dx)+3.f);
-    splineControlPoint->dim[2]=splineControlPoint->ny=static_cast<int>(reg_ceil(referenceImage->ny*referenceImage->dy/splineControlPoint->dy)+3.f);
-    splineControlPoint->dim[3]=splineControlPoint->nz=static_cast<int>(reg_ceil(referenceImage->nz*referenceImage->dz/splineControlPoint->dz)+3.f);
-
+    if(referenceImage!=NULL){
+        splineControlPoint->dim[1]=splineControlPoint->nx=static_cast<int>(reg_ceil(referenceImage->nx*referenceImage->dx/splineControlPoint->dx)+3.f);
+        splineControlPoint->dim[2]=splineControlPoint->ny=static_cast<int>(reg_ceil(referenceImage->ny*referenceImage->dy/splineControlPoint->dy)+3.f);
+        splineControlPoint->dim[3]=splineControlPoint->nz=static_cast<int>(reg_ceil(referenceImage->nz*referenceImage->dz/splineControlPoint->dz)+3.f);
+    }
+    else{
+        splineControlPoint->dim[1]=splineControlPoint->nx=(oldDim[1]-3)*2+3;
+        splineControlPoint->dim[2]=splineControlPoint->ny=(oldDim[2]-3)*2+3;
+        splineControlPoint->dim[3]=splineControlPoint->nz=(oldDim[3]-3)*2+3;
+    }
     splineControlPoint->nvox =
             (size_t)splineControlPoint->nx*
             (size_t)splineControlPoint->ny*
@@ -1478,7 +1804,7 @@ void reg_spline_refineControlPointGrid3D(nifti_image *referenceImage,
             (size_t)splineControlPoint->nt*
             (size_t)splineControlPoint->nu;
     splineControlPoint->data = (void *)calloc(splineControlPoint->nvox, splineControlPoint->nbyper);
-    
+
     gridPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
     SplineTYPE *gridPtrY = &gridPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
     SplineTYPE *gridPtrZ = &gridPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
@@ -1518,26 +1844,26 @@ void reg_spline_refineControlPointGrid3D(nifti_image *referenceImage,
                             // 1 0 0
                             SetValue(gridPtrX, splineControlPoint->dim, X+1, Y, Z,
                                      ( GetValue(oldGridPtrX,oldDim,x,y-1,z-1) + GetValue(oldGridPtrX,oldDim,x,y-1,z+1) +
-                                      GetValue(oldGridPtrX,oldDim,x,y+1,z-1) + GetValue(oldGridPtrX,oldDim,x,y+1,z+1) +
-                                      GetValue(oldGridPtrX,oldDim,x+1,y-1,z-1) + GetValue(oldGridPtrX,oldDim,x+1,y-1,z+1) +
-                                      GetValue(oldGridPtrX,oldDim,x+1,y+1,z-1) + GetValue(oldGridPtrX,oldDim,x+1,y+1,z+1) +
-                                      6.0f * (GetValue(oldGridPtrX,oldDim,x,y-1,z) + GetValue(oldGridPtrX,oldDim,x,y+1,z) +
-                                              GetValue(oldGridPtrX,oldDim,x,y,z-1) + GetValue(oldGridPtrX,oldDim,x,y,z+1) +
-                                              GetValue(oldGridPtrX,oldDim,x+1,y-1,z) + GetValue(oldGridPtrX,oldDim,x+1,y+1,z) +
-                                              GetValue(oldGridPtrX,oldDim,x+1,y,z-1) + GetValue(oldGridPtrX,oldDim,x+1,y,z+1)) +
-                                      36.0f * (GetValue(oldGridPtrX,oldDim,x,y,z) + GetValue(oldGridPtrX,oldDim,x+1,y,z)) ) / 128.0f);
+                                       GetValue(oldGridPtrX,oldDim,x,y+1,z-1) + GetValue(oldGridPtrX,oldDim,x,y+1,z+1) +
+                                       GetValue(oldGridPtrX,oldDim,x+1,y-1,z-1) + GetValue(oldGridPtrX,oldDim,x+1,y-1,z+1) +
+                                       GetValue(oldGridPtrX,oldDim,x+1,y+1,z-1) + GetValue(oldGridPtrX,oldDim,x+1,y+1,z+1) +
+                                       6.0f * (GetValue(oldGridPtrX,oldDim,x,y-1,z) + GetValue(oldGridPtrX,oldDim,x,y+1,z) +
+                                               GetValue(oldGridPtrX,oldDim,x,y,z-1) + GetValue(oldGridPtrX,oldDim,x,y,z+1) +
+                                               GetValue(oldGridPtrX,oldDim,x+1,y-1,z) + GetValue(oldGridPtrX,oldDim,x+1,y+1,z) +
+                                               GetValue(oldGridPtrX,oldDim,x+1,y,z-1) + GetValue(oldGridPtrX,oldDim,x+1,y,z+1)) +
+                                       36.0f * (GetValue(oldGridPtrX,oldDim,x,y,z) + GetValue(oldGridPtrX,oldDim,x+1,y,z)) ) / 128.0f);
 
                             // 0 1 0
                             SetValue(gridPtrX, splineControlPoint->dim, X, Y+1, Z,
                                      ( GetValue(oldGridPtrX,oldDim,x-1,y,z-1) + GetValue(oldGridPtrX,oldDim,x-1,y,z+1) +
-                                      GetValue(oldGridPtrX,oldDim,x+1,y,z-1) + GetValue(oldGridPtrX,oldDim,x+1,y,z+1) +
-                                      GetValue(oldGridPtrX,oldDim,x-1,y+1,z-1) + GetValue(oldGridPtrX,oldDim,x-1,y+1,z+1) +
-                                      GetValue(oldGridPtrX,oldDim,x+1,y+1,z-1) + GetValue(oldGridPtrX,oldDim,x+1,y+1,z+1) +
-                                      6.0f * (GetValue(oldGridPtrX,oldDim,x-1,y,z) + GetValue(oldGridPtrX,oldDim,x+1,y,z) +
-                                              GetValue(oldGridPtrX,oldDim,x,y,z-1) + GetValue(oldGridPtrX,oldDim,x,y,z+1) +
-                                              GetValue(oldGridPtrX,oldDim,x-1,y+1,z) + GetValue(oldGridPtrX,oldDim,x+1,y+1,z) +
-                                              GetValue(oldGridPtrX,oldDim,x,y+1,z-1) + GetValue(oldGridPtrX,oldDim,x,y+1,z+1)) +
-                                      36.0f * (GetValue(oldGridPtrX,oldDim,x,y,z) + GetValue(oldGridPtrX,oldDim,x,y+1,z)) ) / 128.0f);
+                                       GetValue(oldGridPtrX,oldDim,x+1,y,z-1) + GetValue(oldGridPtrX,oldDim,x+1,y,z+1) +
+                                       GetValue(oldGridPtrX,oldDim,x-1,y+1,z-1) + GetValue(oldGridPtrX,oldDim,x-1,y+1,z+1) +
+                                       GetValue(oldGridPtrX,oldDim,x+1,y+1,z-1) + GetValue(oldGridPtrX,oldDim,x+1,y+1,z+1) +
+                                       6.0f * (GetValue(oldGridPtrX,oldDim,x-1,y,z) + GetValue(oldGridPtrX,oldDim,x+1,y,z) +
+                                               GetValue(oldGridPtrX,oldDim,x,y,z-1) + GetValue(oldGridPtrX,oldDim,x,y,z+1) +
+                                               GetValue(oldGridPtrX,oldDim,x-1,y+1,z) + GetValue(oldGridPtrX,oldDim,x+1,y+1,z) +
+                                               GetValue(oldGridPtrX,oldDim,x,y+1,z-1) + GetValue(oldGridPtrX,oldDim,x,y+1,z+1)) +
+                                       36.0f * (GetValue(oldGridPtrX,oldDim,x,y,z) + GetValue(oldGridPtrX,oldDim,x,y+1,z)) ) / 128.0f);
 
                             // 1 1 0
                             SetValue(gridPtrX, splineControlPoint->dim, X+1, Y+1, Z,
@@ -1551,14 +1877,14 @@ void reg_spline_refineControlPointGrid3D(nifti_image *referenceImage,
                             // 0 0 1
                             SetValue(gridPtrX, splineControlPoint->dim, X, Y, Z+1,
                                      ( GetValue(oldGridPtrX,oldDim,x-1,y-1,z) + GetValue(oldGridPtrX,oldDim,x-1,y+1,z) +
-                                      GetValue(oldGridPtrX,oldDim,x+1,y-1,z) + GetValue(oldGridPtrX,oldDim,x+1,y+1,z) +
-                                      GetValue(oldGridPtrX,oldDim,x-1,y-1,z+1) + GetValue(oldGridPtrX,oldDim,x-1,y+1,z+1) +
-                                      GetValue(oldGridPtrX,oldDim,x+1,y-1,z+1) + GetValue(oldGridPtrX,oldDim,x+1,y+1,z+1) +
-                                      6.0f * (GetValue(oldGridPtrX,oldDim,x-1,y,z) + GetValue(oldGridPtrX,oldDim,x+1,y,z) +
-                                              GetValue(oldGridPtrX,oldDim,x,y-1,z) + GetValue(oldGridPtrX,oldDim,x,y+1,z) +
-                                              GetValue(oldGridPtrX,oldDim,x-1,y,z+1) + GetValue(oldGridPtrX,oldDim,x+1,y,z+1) +
-                                              GetValue(oldGridPtrX,oldDim,x,y-1,z+1) + GetValue(oldGridPtrX,oldDim,x,y+1,z+1)) +
-                                      36.0f * (GetValue(oldGridPtrX,oldDim,x,y,z) + GetValue(oldGridPtrX,oldDim,x,y,z+1)) ) / 128.0f);
+                                       GetValue(oldGridPtrX,oldDim,x+1,y-1,z) + GetValue(oldGridPtrX,oldDim,x+1,y+1,z) +
+                                       GetValue(oldGridPtrX,oldDim,x-1,y-1,z+1) + GetValue(oldGridPtrX,oldDim,x-1,y+1,z+1) +
+                                       GetValue(oldGridPtrX,oldDim,x+1,y-1,z+1) + GetValue(oldGridPtrX,oldDim,x+1,y+1,z+1) +
+                                       6.0f * (GetValue(oldGridPtrX,oldDim,x-1,y,z) + GetValue(oldGridPtrX,oldDim,x+1,y,z) +
+                                               GetValue(oldGridPtrX,oldDim,x,y-1,z) + GetValue(oldGridPtrX,oldDim,x,y+1,z) +
+                                               GetValue(oldGridPtrX,oldDim,x-1,y,z+1) + GetValue(oldGridPtrX,oldDim,x+1,y,z+1) +
+                                               GetValue(oldGridPtrX,oldDim,x,y-1,z+1) + GetValue(oldGridPtrX,oldDim,x,y+1,z+1)) +
+                                       36.0f * (GetValue(oldGridPtrX,oldDim,x,y,z) + GetValue(oldGridPtrX,oldDim,x,y,z+1)) ) / 128.0f);
 
                             // 1 0 1
                             SetValue(gridPtrX, splineControlPoint->dim, X+1, Y, Z+1,
@@ -1584,7 +1910,7 @@ void reg_spline_refineControlPointGrid3D(nifti_image *referenceImage,
                                       GetValue(oldGridPtrX,oldDim,x,y+1,z) + GetValue(oldGridPtrX,oldDim,x+1,y+1,z) +
                                       GetValue(oldGridPtrX,oldDim,x,y,z+1) + GetValue(oldGridPtrX,oldDim,x+1,y,z+1) +
                                       GetValue(oldGridPtrX,oldDim,x,y+1,z+1) + GetValue(oldGridPtrX,oldDim,x+1,y+1,z+1)) / 8.0f);
-                            
+
 
                             /* Y Axis */
                             // 0 0 0
@@ -1607,26 +1933,26 @@ void reg_spline_refineControlPointGrid3D(nifti_image *referenceImage,
                             // 1 0 0
                             SetValue(gridPtrY, splineControlPoint->dim, X+1, Y, Z,
                                      ( GetValue(oldGridPtrY,oldDim,x,y-1,z-1) + GetValue(oldGridPtrY,oldDim,x,y-1,z+1) +
-                                      GetValue(oldGridPtrY,oldDim,x,y+1,z-1) + GetValue(oldGridPtrY,oldDim,x,y+1,z+1) +
-                                      GetValue(oldGridPtrY,oldDim,x+1,y-1,z-1) + GetValue(oldGridPtrY,oldDim,x+1,y-1,z+1) +
-                                      GetValue(oldGridPtrY,oldDim,x+1,y+1,z-1) + GetValue(oldGridPtrY,oldDim,x+1,y+1,z+1) +
-                                      6.0f * (GetValue(oldGridPtrY,oldDim,x,y-1,z) + GetValue(oldGridPtrY,oldDim,x,y+1,z) +
-                                              GetValue(oldGridPtrY,oldDim,x,y,z-1) + GetValue(oldGridPtrY,oldDim,x,y,z+1) +
-                                              GetValue(oldGridPtrY,oldDim,x+1,y-1,z) + GetValue(oldGridPtrY,oldDim,x+1,y+1,z) +
-                                              GetValue(oldGridPtrY,oldDim,x+1,y,z-1) + GetValue(oldGridPtrY,oldDim,x+1,y,z+1)) +
-                                      36.0f * (GetValue(oldGridPtrY,oldDim,x,y,z) + GetValue(oldGridPtrY,oldDim,x+1,y,z)) ) / 128.0f);
+                                       GetValue(oldGridPtrY,oldDim,x,y+1,z-1) + GetValue(oldGridPtrY,oldDim,x,y+1,z+1) +
+                                       GetValue(oldGridPtrY,oldDim,x+1,y-1,z-1) + GetValue(oldGridPtrY,oldDim,x+1,y-1,z+1) +
+                                       GetValue(oldGridPtrY,oldDim,x+1,y+1,z-1) + GetValue(oldGridPtrY,oldDim,x+1,y+1,z+1) +
+                                       6.0f * (GetValue(oldGridPtrY,oldDim,x,y-1,z) + GetValue(oldGridPtrY,oldDim,x,y+1,z) +
+                                               GetValue(oldGridPtrY,oldDim,x,y,z-1) + GetValue(oldGridPtrY,oldDim,x,y,z+1) +
+                                               GetValue(oldGridPtrY,oldDim,x+1,y-1,z) + GetValue(oldGridPtrY,oldDim,x+1,y+1,z) +
+                                               GetValue(oldGridPtrY,oldDim,x+1,y,z-1) + GetValue(oldGridPtrY,oldDim,x+1,y,z+1)) +
+                                       36.0f * (GetValue(oldGridPtrY,oldDim,x,y,z) + GetValue(oldGridPtrY,oldDim,x+1,y,z)) ) / 128.0f);
 
                             // 0 1 0
                             SetValue(gridPtrY, splineControlPoint->dim, X, Y+1, Z,
                                      ( GetValue(oldGridPtrY,oldDim,x-1,y,z-1) + GetValue(oldGridPtrY,oldDim,x-1,y,z+1) +
-                                      GetValue(oldGridPtrY,oldDim,x+1,y,z-1) + GetValue(oldGridPtrY,oldDim,x+1,y,z+1) +
-                                      GetValue(oldGridPtrY,oldDim,x-1,y+1,z-1) + GetValue(oldGridPtrY,oldDim,x-1,y+1,z+1) +
-                                      GetValue(oldGridPtrY,oldDim,x+1,y+1,z-1) + GetValue(oldGridPtrY,oldDim,x+1,y+1,z+1) +
-                                      6.0f * (GetValue(oldGridPtrY,oldDim,x-1,y,z) + GetValue(oldGridPtrY,oldDim,x+1,y,z) +
-                                              GetValue(oldGridPtrY,oldDim,x,y,z-1) + GetValue(oldGridPtrY,oldDim,x,y,z+1) +
-                                              GetValue(oldGridPtrY,oldDim,x-1,y+1,z) + GetValue(oldGridPtrY,oldDim,x+1,y+1,z) +
-                                              GetValue(oldGridPtrY,oldDim,x,y+1,z-1) + GetValue(oldGridPtrY,oldDim,x,y+1,z+1)) +
-                                      36.0f * (GetValue(oldGridPtrY,oldDim,x,y,z) + GetValue(oldGridPtrY,oldDim,x,y+1,z)) ) / 128.0f);
+                                       GetValue(oldGridPtrY,oldDim,x+1,y,z-1) + GetValue(oldGridPtrY,oldDim,x+1,y,z+1) +
+                                       GetValue(oldGridPtrY,oldDim,x-1,y+1,z-1) + GetValue(oldGridPtrY,oldDim,x-1,y+1,z+1) +
+                                       GetValue(oldGridPtrY,oldDim,x+1,y+1,z-1) + GetValue(oldGridPtrY,oldDim,x+1,y+1,z+1) +
+                                       6.0f * (GetValue(oldGridPtrY,oldDim,x-1,y,z) + GetValue(oldGridPtrY,oldDim,x+1,y,z) +
+                                               GetValue(oldGridPtrY,oldDim,x,y,z-1) + GetValue(oldGridPtrY,oldDim,x,y,z+1) +
+                                               GetValue(oldGridPtrY,oldDim,x-1,y+1,z) + GetValue(oldGridPtrY,oldDim,x+1,y+1,z) +
+                                               GetValue(oldGridPtrY,oldDim,x,y+1,z-1) + GetValue(oldGridPtrY,oldDim,x,y+1,z+1)) +
+                                       36.0f * (GetValue(oldGridPtrY,oldDim,x,y,z) + GetValue(oldGridPtrY,oldDim,x,y+1,z)) ) / 128.0f);
 
                             // 1 1 0
                             SetValue(gridPtrY, splineControlPoint->dim, X+1, Y+1, Z,
@@ -1640,14 +1966,14 @@ void reg_spline_refineControlPointGrid3D(nifti_image *referenceImage,
                             // 0 0 1
                             SetValue(gridPtrY, splineControlPoint->dim, X, Y, Z+1,
                                      ( GetValue(oldGridPtrY,oldDim,x-1,y-1,z) + GetValue(oldGridPtrY,oldDim,x-1,y+1,z) +
-                                      GetValue(oldGridPtrY,oldDim,x+1,y-1,z) + GetValue(oldGridPtrY,oldDim,x+1,y+1,z) +
-                                      GetValue(oldGridPtrY,oldDim,x-1,y-1,z+1) + GetValue(oldGridPtrY,oldDim,x-1,y+1,z+1) +
-                                      GetValue(oldGridPtrY,oldDim,x+1,y-1,z+1) + GetValue(oldGridPtrY,oldDim,x+1,y+1,z+1) +
-                                      6.0f * (GetValue(oldGridPtrY,oldDim,x-1,y,z) + GetValue(oldGridPtrY,oldDim,x+1,y,z) +
-                                              GetValue(oldGridPtrY,oldDim,x,y-1,z) + GetValue(oldGridPtrY,oldDim,x,y+1,z) +
-                                              GetValue(oldGridPtrY,oldDim,x-1,y,z+1) + GetValue(oldGridPtrY,oldDim,x+1,y,z+1) +
-                                              GetValue(oldGridPtrY,oldDim,x,y-1,z+1) + GetValue(oldGridPtrY,oldDim,x,y+1,z+1)) +
-                                      36.0f * (GetValue(oldGridPtrY,oldDim,x,y,z) + GetValue(oldGridPtrY,oldDim,x,y,z+1)) ) / 128.0f);
+                                       GetValue(oldGridPtrY,oldDim,x+1,y-1,z) + GetValue(oldGridPtrY,oldDim,x+1,y+1,z) +
+                                       GetValue(oldGridPtrY,oldDim,x-1,y-1,z+1) + GetValue(oldGridPtrY,oldDim,x-1,y+1,z+1) +
+                                       GetValue(oldGridPtrY,oldDim,x+1,y-1,z+1) + GetValue(oldGridPtrY,oldDim,x+1,y+1,z+1) +
+                                       6.0f * (GetValue(oldGridPtrY,oldDim,x-1,y,z) + GetValue(oldGridPtrY,oldDim,x+1,y,z) +
+                                               GetValue(oldGridPtrY,oldDim,x,y-1,z) + GetValue(oldGridPtrY,oldDim,x,y+1,z) +
+                                               GetValue(oldGridPtrY,oldDim,x-1,y,z+1) + GetValue(oldGridPtrY,oldDim,x+1,y,z+1) +
+                                               GetValue(oldGridPtrY,oldDim,x,y-1,z+1) + GetValue(oldGridPtrY,oldDim,x,y+1,z+1)) +
+                                       36.0f * (GetValue(oldGridPtrY,oldDim,x,y,z) + GetValue(oldGridPtrY,oldDim,x,y,z+1)) ) / 128.0f);
 
                             // 1 0 1
                             SetValue(gridPtrY, splineControlPoint->dim, X+1, Y, Z+1,
@@ -1691,31 +2017,31 @@ void reg_spline_refineControlPointGrid3D(nifti_image *referenceImage,
                                                  GetValue(oldGridPtrZ,oldDim,x,y-1,z) + GetValue(oldGridPtrZ,oldDim,x,y+1,z) +
                                                  GetValue(oldGridPtrZ,oldDim,x,y,z-1) + GetValue(oldGridPtrZ,oldDim,x,y,z+1) )
                                       + 216.0f * GetValue(oldGridPtrZ,oldDim,x,y,z) ) / 512.0f);
-                            
+
                             // 1 0 0
                             SetValue(gridPtrZ, splineControlPoint->dim, X+1, Y, Z,
                                      ( GetValue(oldGridPtrZ,oldDim,x,y-1,z-1) + GetValue(oldGridPtrZ,oldDim,x,y-1,z+1) +
-                                      GetValue(oldGridPtrZ,oldDim,x,y+1,z-1) + GetValue(oldGridPtrZ,oldDim,x,y+1,z+1) +
-                                      GetValue(oldGridPtrZ,oldDim,x+1,y-1,z-1) + GetValue(oldGridPtrZ,oldDim,x+1,y-1,z+1) +
-                                      GetValue(oldGridPtrZ,oldDim,x+1,y+1,z-1) + GetValue(oldGridPtrZ,oldDim,x+1,y+1,z+1) +
-                                      6.0f * (GetValue(oldGridPtrZ,oldDim,x,y-1,z) + GetValue(oldGridPtrZ,oldDim,x,y+1,z) +
-                                              GetValue(oldGridPtrZ,oldDim,x,y,z-1) + GetValue(oldGridPtrZ,oldDim,x,y,z+1) +
-                                              GetValue(oldGridPtrZ,oldDim,x+1,y-1,z) + GetValue(oldGridPtrZ,oldDim,x+1,y+1,z) +
-                                              GetValue(oldGridPtrZ,oldDim,x+1,y,z-1) + GetValue(oldGridPtrZ,oldDim,x+1,y,z+1)) +
-                                      36.0f * (GetValue(oldGridPtrZ,oldDim,x,y,z) + GetValue(oldGridPtrZ,oldDim,x+1,y,z)) ) / 128.0f);
-                            
+                                       GetValue(oldGridPtrZ,oldDim,x,y+1,z-1) + GetValue(oldGridPtrZ,oldDim,x,y+1,z+1) +
+                                       GetValue(oldGridPtrZ,oldDim,x+1,y-1,z-1) + GetValue(oldGridPtrZ,oldDim,x+1,y-1,z+1) +
+                                       GetValue(oldGridPtrZ,oldDim,x+1,y+1,z-1) + GetValue(oldGridPtrZ,oldDim,x+1,y+1,z+1) +
+                                       6.0f * (GetValue(oldGridPtrZ,oldDim,x,y-1,z) + GetValue(oldGridPtrZ,oldDim,x,y+1,z) +
+                                               GetValue(oldGridPtrZ,oldDim,x,y,z-1) + GetValue(oldGridPtrZ,oldDim,x,y,z+1) +
+                                               GetValue(oldGridPtrZ,oldDim,x+1,y-1,z) + GetValue(oldGridPtrZ,oldDim,x+1,y+1,z) +
+                                               GetValue(oldGridPtrZ,oldDim,x+1,y,z-1) + GetValue(oldGridPtrZ,oldDim,x+1,y,z+1)) +
+                                       36.0f * (GetValue(oldGridPtrZ,oldDim,x,y,z) + GetValue(oldGridPtrZ,oldDim,x+1,y,z)) ) / 128.0f);
+
                             // 0 1 0
                             SetValue(gridPtrZ, splineControlPoint->dim, X, Y+1, Z,
                                      ( GetValue(oldGridPtrZ,oldDim,x-1,y,z-1) + GetValue(oldGridPtrZ,oldDim,x-1,y,z+1) +
-                                      GetValue(oldGridPtrZ,oldDim,x+1,y,z-1) + GetValue(oldGridPtrZ,oldDim,x+1,y,z+1) +
-                                      GetValue(oldGridPtrZ,oldDim,x-1,y+1,z-1) + GetValue(oldGridPtrZ,oldDim,x-1,y+1,z+1) +
-                                      GetValue(oldGridPtrZ,oldDim,x+1,y+1,z-1) + GetValue(oldGridPtrZ,oldDim,x+1,y+1,z+1) +
-                                      6.0f * (GetValue(oldGridPtrZ,oldDim,x-1,y,z) + GetValue(oldGridPtrZ,oldDim,x+1,y,z) +
-                                              GetValue(oldGridPtrZ,oldDim,x,y,z-1) + GetValue(oldGridPtrZ,oldDim,x,y,z+1) +
-                                              GetValue(oldGridPtrZ,oldDim,x-1,y+1,z) + GetValue(oldGridPtrZ,oldDim,x+1,y+1,z) +
-                                              GetValue(oldGridPtrZ,oldDim,x,y+1,z-1) + GetValue(oldGridPtrZ,oldDim,x,y+1,z+1)) +
-                                      36.0f * (GetValue(oldGridPtrZ,oldDim,x,y,z) + GetValue(oldGridPtrZ,oldDim,x,y+1,z)) ) / 128.0f);
-                            
+                                       GetValue(oldGridPtrZ,oldDim,x+1,y,z-1) + GetValue(oldGridPtrZ,oldDim,x+1,y,z+1) +
+                                       GetValue(oldGridPtrZ,oldDim,x-1,y+1,z-1) + GetValue(oldGridPtrZ,oldDim,x-1,y+1,z+1) +
+                                       GetValue(oldGridPtrZ,oldDim,x+1,y+1,z-1) + GetValue(oldGridPtrZ,oldDim,x+1,y+1,z+1) +
+                                       6.0f * (GetValue(oldGridPtrZ,oldDim,x-1,y,z) + GetValue(oldGridPtrZ,oldDim,x+1,y,z) +
+                                               GetValue(oldGridPtrZ,oldDim,x,y,z-1) + GetValue(oldGridPtrZ,oldDim,x,y,z+1) +
+                                               GetValue(oldGridPtrZ,oldDim,x-1,y+1,z) + GetValue(oldGridPtrZ,oldDim,x+1,y+1,z) +
+                                               GetValue(oldGridPtrZ,oldDim,x,y+1,z-1) + GetValue(oldGridPtrZ,oldDim,x,y+1,z+1)) +
+                                       36.0f * (GetValue(oldGridPtrZ,oldDim,x,y,z) + GetValue(oldGridPtrZ,oldDim,x,y+1,z)) ) / 128.0f);
+
                             // 1 1 0
                             SetValue(gridPtrZ, splineControlPoint->dim, X+1, Y+1, Z,
                                      (GetValue(oldGridPtrZ,oldDim,x,y,z-1) + GetValue(oldGridPtrZ,oldDim,x+1,y,z-1) +
@@ -1724,19 +2050,19 @@ void reg_spline_refineControlPointGrid3D(nifti_image *referenceImage,
                                       GetValue(oldGridPtrZ,oldDim,x,y+1,z+1) + GetValue(oldGridPtrZ,oldDim,x+1,y+1,z+1) +
                                       6.0f * (GetValue(oldGridPtrZ,oldDim,x,y,z) + GetValue(oldGridPtrZ,oldDim,x+1,y,z) +
                                               GetValue(oldGridPtrZ,oldDim,x,y+1,z) + GetValue(oldGridPtrZ,oldDim,x+1,y+1,z) ) ) / 32.0f);
-                            
+
                             // 0 0 1
                             SetValue(gridPtrZ, splineControlPoint->dim, X, Y, Z+1,
                                      ( GetValue(oldGridPtrZ,oldDim,x-1,y-1,z) + GetValue(oldGridPtrZ,oldDim,x-1,y+1,z) +
-                                      GetValue(oldGridPtrZ,oldDim,x+1,y-1,z) + GetValue(oldGridPtrZ,oldDim,x+1,y+1,z) +
-                                      GetValue(oldGridPtrZ,oldDim,x-1,y-1,z+1) + GetValue(oldGridPtrZ,oldDim,x-1,y+1,z+1) +
-                                      GetValue(oldGridPtrZ,oldDim,x+1,y-1,z+1) + GetValue(oldGridPtrZ,oldDim,x+1,y+1,z+1) +
-                                      6.0f * (GetValue(oldGridPtrZ,oldDim,x-1,y,z) + GetValue(oldGridPtrZ,oldDim,x+1,y,z) +
-                                              GetValue(oldGridPtrZ,oldDim,x,y-1,z) + GetValue(oldGridPtrZ,oldDim,x,y+1,z) +
-                                              GetValue(oldGridPtrZ,oldDim,x-1,y,z+1) + GetValue(oldGridPtrZ,oldDim,x+1,y,z+1) +
-                                              GetValue(oldGridPtrZ,oldDim,x,y-1,z+1) + GetValue(oldGridPtrZ,oldDim,x,y+1,z+1)) +
-                                      36.0f * (GetValue(oldGridPtrZ,oldDim,x,y,z) + GetValue(oldGridPtrZ,oldDim,x,y,z+1)) ) / 128.0f);
-                            
+                                       GetValue(oldGridPtrZ,oldDim,x+1,y-1,z) + GetValue(oldGridPtrZ,oldDim,x+1,y+1,z) +
+                                       GetValue(oldGridPtrZ,oldDim,x-1,y-1,z+1) + GetValue(oldGridPtrZ,oldDim,x-1,y+1,z+1) +
+                                       GetValue(oldGridPtrZ,oldDim,x+1,y-1,z+1) + GetValue(oldGridPtrZ,oldDim,x+1,y+1,z+1) +
+                                       6.0f * (GetValue(oldGridPtrZ,oldDim,x-1,y,z) + GetValue(oldGridPtrZ,oldDim,x+1,y,z) +
+                                               GetValue(oldGridPtrZ,oldDim,x,y-1,z) + GetValue(oldGridPtrZ,oldDim,x,y+1,z) +
+                                               GetValue(oldGridPtrZ,oldDim,x-1,y,z+1) + GetValue(oldGridPtrZ,oldDim,x+1,y,z+1) +
+                                               GetValue(oldGridPtrZ,oldDim,x,y-1,z+1) + GetValue(oldGridPtrZ,oldDim,x,y+1,z+1)) +
+                                       36.0f * (GetValue(oldGridPtrZ,oldDim,x,y,z) + GetValue(oldGridPtrZ,oldDim,x,y,z+1)) ) / 128.0f);
+
                             // 1 0 1
                             SetValue(gridPtrZ, splineControlPoint->dim, X+1, Y, Z+1,
                                      (GetValue(oldGridPtrZ,oldDim,x,y-1,z) + GetValue(oldGridPtrZ,oldDim,x+1,y-1,z) +
@@ -1745,7 +2071,7 @@ void reg_spline_refineControlPointGrid3D(nifti_image *referenceImage,
                                       GetValue(oldGridPtrZ,oldDim,x,y+1,z+1) + GetValue(oldGridPtrZ,oldDim,x+1,y+1,z+1) +
                                       6.0f * (GetValue(oldGridPtrZ,oldDim,x,y,z) + GetValue(oldGridPtrZ,oldDim,x+1,y,z) +
                                               GetValue(oldGridPtrZ,oldDim,x,y,z+1) + GetValue(oldGridPtrZ,oldDim,x+1,y,z+1) ) ) / 32.0f);
-                            
+
                             // 0 1 1
                             SetValue(gridPtrZ, splineControlPoint->dim, X, Y+1, Z+1,
                                      (GetValue(oldGridPtrZ,oldDim,x-1,y,z) + GetValue(oldGridPtrZ,oldDim,x-1,y+1,z) +
@@ -1754,7 +2080,7 @@ void reg_spline_refineControlPointGrid3D(nifti_image *referenceImage,
                                       GetValue(oldGridPtrZ,oldDim,x+1,y,z+1) + GetValue(oldGridPtrZ,oldDim,x+1,y+1,z+1) +
                                       6.0f * (GetValue(oldGridPtrZ,oldDim,x,y,z) + GetValue(oldGridPtrZ,oldDim,x,y+1,z) +
                                               GetValue(oldGridPtrZ,oldDim,x,y,z+1) + GetValue(oldGridPtrZ,oldDim,x,y+1,z+1) ) ) / 32.0f);
-                            
+
                             // 1 1 1
                             SetValue(gridPtrZ, splineControlPoint->dim, X+1, Y+1, Z+1,
                                      (GetValue(oldGridPtrZ,oldDim,x,y,z) + GetValue(oldGridPtrZ,oldDim,x+1,y,z) +
@@ -1767,13 +2093,12 @@ void reg_spline_refineControlPointGrid3D(nifti_image *referenceImage,
             }
         }
     }
-
     free(oldGrid);
 }
 /* *************************************************************** */
 extern "C++"
-void reg_spline_refineControlPointGrid(nifti_image *referenceImage,
-                                        nifti_image *controlPointGrid)
+void reg_spline_refineControlPointGrid(nifti_image *controlPointGrid,
+                                       nifti_image *referenceImage)
 {
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] Starting the refine the control point grid\n");
@@ -1781,200 +2106,124 @@ void reg_spline_refineControlPointGrid(nifti_image *referenceImage,
     if(controlPointGrid->nz==1){
         switch(controlPointGrid->datatype){
         case NIFTI_TYPE_FLOAT32:
-            reg_spline_refineControlPointGrid2D<float>(referenceImage,controlPointGrid);
+            reg_spline_refineControlPointGrid2D<float>(controlPointGrid,referenceImage);
             break;
         case NIFTI_TYPE_FLOAT64:
-            reg_spline_refineControlPointGrid2D<double>(referenceImage,controlPointGrid);
+            reg_spline_refineControlPointGrid2D<double>(controlPointGrid,referenceImage);
             break;
         default:
-            fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the bending energy gradient\n");
-            fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not computed\n");
+            reg_print_fct_error("reg_spline_refineControlPointGrid");
+            reg_print_msg_error("Only single or double precision is implemented for the bending energy gradient");
             reg_exit(1);
         }
     }else{
         switch(controlPointGrid->datatype){
         case NIFTI_TYPE_FLOAT32:
-            reg_spline_refineControlPointGrid3D<float>(referenceImage,controlPointGrid);
+            reg_spline_refineControlPointGrid3D<float>(controlPointGrid,referenceImage);
             break;
         case NIFTI_TYPE_FLOAT64:
-            reg_spline_refineControlPointGrid3D<double>(referenceImage,controlPointGrid);
+            reg_spline_refineControlPointGrid3D<double>(controlPointGrid,referenceImage);
             break;
         default:
-            fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the bending energy gradient\n");
-            fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not computed\n");
+            reg_print_fct_error("reg_spline_refineControlPointGrid");
+            reg_print_msg_error("Only single or double precision is implemented for the bending energy gradient");
             reg_exit(1);
         }
     }
-    // Compute the new control point header
-    // The qform (and sform) are set for the control point position image
-    controlPointGrid->quatern_b=referenceImage->quatern_b;
-    controlPointGrid->quatern_c=referenceImage->quatern_c;
-    controlPointGrid->quatern_d=referenceImage->quatern_d;
-    controlPointGrid->qoffset_x=referenceImage->qoffset_x;
-    controlPointGrid->qoffset_y=referenceImage->qoffset_y;
-    controlPointGrid->qoffset_z=referenceImage->qoffset_z;
-    controlPointGrid->qfac=referenceImage->qfac;
-    controlPointGrid->qto_xyz = nifti_quatern_to_mat44(controlPointGrid->quatern_b,
-                                                       controlPointGrid->quatern_c,
-                                                       controlPointGrid->quatern_d,
-                                                       controlPointGrid->qoffset_x,
-                                                       controlPointGrid->qoffset_y,
-                                                       controlPointGrid->qoffset_z,
-                                                       controlPointGrid->dx,
-                                                       controlPointGrid->dy,
-                                                       controlPointGrid->dz,
-                                                       controlPointGrid->qfac);
+    if(referenceImage!=NULL){
+        // Compute the new control point header
+        // The qform (and sform) are set for the control point position image
+        controlPointGrid->quatern_b=referenceImage->quatern_b;
+        controlPointGrid->quatern_c=referenceImage->quatern_c;
+        controlPointGrid->quatern_d=referenceImage->quatern_d;
+        controlPointGrid->qoffset_x=referenceImage->qoffset_x;
+        controlPointGrid->qoffset_y=referenceImage->qoffset_y;
+        controlPointGrid->qoffset_z=referenceImage->qoffset_z;
+        controlPointGrid->qfac=referenceImage->qfac;
+        controlPointGrid->qto_xyz = nifti_quatern_to_mat44(controlPointGrid->quatern_b,
+                                                           controlPointGrid->quatern_c,
+                                                           controlPointGrid->quatern_d,
+                                                           controlPointGrid->qoffset_x,
+                                                           controlPointGrid->qoffset_y,
+                                                           controlPointGrid->qoffset_z,
+                                                           controlPointGrid->dx,
+                                                           controlPointGrid->dy,
+                                                           controlPointGrid->dz,
+                                                           controlPointGrid->qfac);
 
-    // Origin is shifted from 1 control point in the qform
-    float originIndex[3];
-    float originReal[3];
-    originIndex[0] = -1.0f;
-    originIndex[1] = -1.0f;
-    originIndex[2] = 0.0f;
-    if(referenceImage->nz>1) originIndex[2] = -1.0f;
-    reg_mat44_mul(&(controlPointGrid->qto_xyz), originIndex, originReal);
-    if(controlPointGrid->qform_code==0) controlPointGrid->qform_code=1;
-    controlPointGrid->qto_xyz.m[0][3] = controlPointGrid->qoffset_x = originReal[0];
-    controlPointGrid->qto_xyz.m[1][3] = controlPointGrid->qoffset_y = originReal[1];
-    controlPointGrid->qto_xyz.m[2][3] = controlPointGrid->qoffset_z = originReal[2];
+        // Origin is shifted from 1 control point in the qform
+        float originIndex[3];
+        float originReal[3];
+        originIndex[0] = -1.0f;
+        originIndex[1] = -1.0f;
+        originIndex[2] = 0.0f;
+        if(referenceImage->nz>1) originIndex[2] = -1.0f;
+        reg_mat44_mul(&(controlPointGrid->qto_xyz), originIndex, originReal);
+        if(controlPointGrid->qform_code==0 && controlPointGrid->sform_code==0)
+            controlPointGrid->qform_code=1;
+        controlPointGrid->qto_xyz.m[0][3] = controlPointGrid->qoffset_x = originReal[0];
+        controlPointGrid->qto_xyz.m[1][3] = controlPointGrid->qoffset_y = originReal[1];
+        controlPointGrid->qto_xyz.m[2][3] = controlPointGrid->qoffset_z = originReal[2];
 
-    controlPointGrid->qto_ijk = nifti_mat44_inverse(controlPointGrid->qto_xyz);
+        controlPointGrid->qto_ijk = nifti_mat44_inverse(controlPointGrid->qto_xyz);
 
-    if(controlPointGrid->sform_code>0){
-        float scalingRatio[3];
-        scalingRatio[0]= controlPointGrid->dx / referenceImage->dx;
-        scalingRatio[1]= controlPointGrid->dy / referenceImage->dy;
-        scalingRatio[2]= controlPointGrid->dz / referenceImage->dz;
+        if(controlPointGrid->sform_code>0){
+            float scalingRatio[3];
+            scalingRatio[0]= controlPointGrid->dx / referenceImage->dx;
+            scalingRatio[1]= controlPointGrid->dy / referenceImage->dy;
+            scalingRatio[2] = 1.f;
+            if(controlPointGrid->nz>1)
+                scalingRatio[2]= controlPointGrid->dz / referenceImage->dz;
 
-        controlPointGrid->sto_xyz.m[0][0]=referenceImage->sto_xyz.m[0][0] * scalingRatio[0];
-        controlPointGrid->sto_xyz.m[1][0]=referenceImage->sto_xyz.m[1][0] * scalingRatio[0];
-        controlPointGrid->sto_xyz.m[2][0]=referenceImage->sto_xyz.m[2][0] * scalingRatio[0];
-        controlPointGrid->sto_xyz.m[3][0]=0.f;
-        controlPointGrid->sto_xyz.m[0][1]=referenceImage->sto_xyz.m[0][1] * scalingRatio[1];
-        controlPointGrid->sto_xyz.m[1][1]=referenceImage->sto_xyz.m[1][1] * scalingRatio[1];
-        controlPointGrid->sto_xyz.m[2][1]=referenceImage->sto_xyz.m[2][1] * scalingRatio[1];
-        controlPointGrid->sto_xyz.m[3][1]=0.f;
-        controlPointGrid->sto_xyz.m[0][2]=referenceImage->sto_xyz.m[0][2] * scalingRatio[2];
-        controlPointGrid->sto_xyz.m[1][2]=referenceImage->sto_xyz.m[1][2] * scalingRatio[2];
-        controlPointGrid->sto_xyz.m[2][2]=referenceImage->sto_xyz.m[2][2] * scalingRatio[2];
-        controlPointGrid->sto_xyz.m[3][2]=0.f;
-        controlPointGrid->sto_xyz.m[0][3]=referenceImage->sto_xyz.m[0][3];
-        controlPointGrid->sto_xyz.m[1][3]=referenceImage->sto_xyz.m[1][3];
-        controlPointGrid->sto_xyz.m[2][3]=referenceImage->sto_xyz.m[2][3];
-        controlPointGrid->sto_xyz.m[3][3]=1.f;
+            controlPointGrid->sto_xyz.m[0][0]=referenceImage->sto_xyz.m[0][0] * scalingRatio[0];
+            controlPointGrid->sto_xyz.m[1][0]=referenceImage->sto_xyz.m[1][0] * scalingRatio[0];
+            controlPointGrid->sto_xyz.m[2][0]=referenceImage->sto_xyz.m[2][0] * scalingRatio[0];
+            controlPointGrid->sto_xyz.m[3][0]=0.f;
+            controlPointGrid->sto_xyz.m[0][1]=referenceImage->sto_xyz.m[0][1] * scalingRatio[1];
+            controlPointGrid->sto_xyz.m[1][1]=referenceImage->sto_xyz.m[1][1] * scalingRatio[1];
+            controlPointGrid->sto_xyz.m[2][1]=referenceImage->sto_xyz.m[2][1] * scalingRatio[1];
+            controlPointGrid->sto_xyz.m[3][1]=0.f;
+            controlPointGrid->sto_xyz.m[0][2]=referenceImage->sto_xyz.m[0][2] * scalingRatio[2];
+            controlPointGrid->sto_xyz.m[1][2]=referenceImage->sto_xyz.m[1][2] * scalingRatio[2];
+            controlPointGrid->sto_xyz.m[2][2]=referenceImage->sto_xyz.m[2][2] * scalingRatio[2];
+            controlPointGrid->sto_xyz.m[3][2]=0.f;
+            controlPointGrid->sto_xyz.m[0][3]=referenceImage->sto_xyz.m[0][3];
+            controlPointGrid->sto_xyz.m[1][3]=referenceImage->sto_xyz.m[1][3];
+            controlPointGrid->sto_xyz.m[2][3]=referenceImage->sto_xyz.m[2][3];
+            controlPointGrid->sto_xyz.m[3][3]=1.f;
 
-        // The origin is shifted by one compare to the reference image
-        float originIndex[3];originIndex[0]=originIndex[1]=originIndex[2]=-1;
-        if(referenceImage->nz<=1) originIndex[2]=0;
-        reg_mat44_mul(&(controlPointGrid->sto_xyz), originIndex, originReal);
-        controlPointGrid->sto_xyz.m[0][3] = originReal[0];
-        controlPointGrid->sto_xyz.m[1][3] = originReal[1];
-        controlPointGrid->sto_xyz.m[2][3] = originReal[2];
+            // The origin is shifted by one compare to the reference image
+            float originIndex[3];originIndex[0]=originIndex[1]=originIndex[2]=-1;
+            if(referenceImage->nz<=1) originIndex[2]=0;
+            reg_mat44_mul(&(controlPointGrid->sto_xyz), originIndex, originReal);
+            controlPointGrid->sto_xyz.m[0][3] = originReal[0];
+            controlPointGrid->sto_xyz.m[1][3] = originReal[1];
+            controlPointGrid->sto_xyz.m[2][3] = originReal[2];
+            controlPointGrid->sto_ijk = nifti_mat44_inverse(controlPointGrid->sto_xyz);
+        }
+    }
+    else{
+        // The voxel spacing is reduced by two
+        for(unsigned int i=0;i<3;++i){
+            controlPointGrid->sto_xyz.m[0][i] /= 2.f;
+            controlPointGrid->sto_xyz.m[1][i] /= 2.f;
+            if(controlPointGrid->nz>1)
+                controlPointGrid->sto_xyz.m[2][i] /= 2.f;
+        }
+        // The origin is shifted by one node when compared to the previous origin
+        float nodeCoord[3]={1,1,1};
+        float newOrigin[3];
+        reg_mat44_mul(&controlPointGrid->sto_xyz, nodeCoord, newOrigin);
+        controlPointGrid->sto_xyz.m[0][3]=newOrigin[0];
+        controlPointGrid->sto_xyz.m[1][3]=newOrigin[1];
+        if(controlPointGrid->nz>1)
+            controlPointGrid->sto_xyz.m[2][3]=newOrigin[2];
         controlPointGrid->sto_ijk = nifti_mat44_inverse(controlPointGrid->sto_xyz);
     }
 #ifndef NDEBUG
     printf("[NiftyReg DEBUG] The control point grid has been refined\n");
 #endif
     return;
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template <class DTYPE>
-void reg_spline_initialiseControlPointGridWithAffine2D(mat44 *affineTransformation,
-                                                        nifti_image *controlPointImage)
-{
-    DTYPE *CPPX=static_cast<DTYPE *>(controlPointImage->data);
-    DTYPE *CPPY=&CPPX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-
-    mat44 *cppMatrix;
-    if(controlPointImage->sform_code>0)
-        cppMatrix=&(controlPointImage->sto_xyz);
-    else cppMatrix=&(controlPointImage->qto_xyz);
-
-    mat44 voxelToRealDeformed = reg_mat44_mul(affineTransformation, cppMatrix);
-
-    float index[3];
-    float position[3];
-    index[2]=0;
-    for(int y=0; y<controlPointImage->ny; y++){
-        index[1]=(float)y;
-        for(int x=0; x<controlPointImage->nx; x++){
-            index[0]=(float)x;
-
-            reg_mat44_mul(&voxelToRealDeformed, index, position);
-
-            *CPPX++ = position[0];
-            *CPPY++ = position[1];
-        }
-    }
-}
-/* *************************************************************** */
-template <class DTYPE>
-void reg_spline_initialiseControlPointGridWithAffine3D(mat44 *affineTransformation,
-							nifti_image *controlPointImage)
-{
-    DTYPE *CPPX=static_cast<DTYPE *>(controlPointImage->data);
-    DTYPE *CPPY=&CPPX[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-    DTYPE *CPPZ=&CPPY[controlPointImage->nx*controlPointImage->ny*controlPointImage->nz];
-
-    mat44 *cppMatrix;
-    if(controlPointImage->sform_code>0)
-        cppMatrix=&(controlPointImage->sto_xyz);
-    else cppMatrix=&(controlPointImage->qto_xyz);
-
-    mat44 voxelToRealDeformed = reg_mat44_mul(affineTransformation, cppMatrix);
-
-    float index[3];
-    float position[3];
-    for(int z=0; z<controlPointImage->nz; z++){
-        index[2]=static_cast<float>(z);
-        for(int y=0; y<controlPointImage->ny; y++){
-            index[1]=static_cast<float>(y);
-            for(int x=0; x<controlPointImage->nx; x++){
-                index[0]=static_cast<float>(x);
-
-                reg_mat44_mul(&voxelToRealDeformed, index, position);
-
-                *CPPX++ = position[0];
-                *CPPY++ = position[1];
-                *CPPZ++ = position[2];
-            }
-        }
-    }
-}
-/* *************************************************************** */
-int reg_spline_initialiseControlPointGridWithAffine(mat44 *affineTransformation,
-                                                     nifti_image *controlPointImage)
-{
-    if(controlPointImage->nz==1){
-        switch(controlPointImage->datatype){
-        case NIFTI_TYPE_FLOAT32:
-            reg_spline_initialiseControlPointGridWithAffine2D<float>(affineTransformation, controlPointImage);
-            break;
-        case NIFTI_TYPE_FLOAT64:
-            reg_spline_initialiseControlPointGridWithAffine2D<double>(affineTransformation, controlPointImage);
-            break;
-        default:
-            fprintf(stderr,"[NiftyReg ERROR] reg_spline_initialiseControlPointGridWithAffine\n");
-            fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the control point image\n");
-            reg_exit(1);
-        }
-    }
-    else{
-        switch(controlPointImage->datatype){
-        case NIFTI_TYPE_FLOAT32:
-            reg_spline_initialiseControlPointGridWithAffine3D<float>(affineTransformation, controlPointImage);
-            break;
-        case NIFTI_TYPE_FLOAT64:
-            reg_spline_initialiseControlPointGridWithAffine3D<double>(affineTransformation, controlPointImage);
-            break;
-        default:
-            fprintf(stderr,"[NiftyReg ERROR] reg_spline_initialiseControlPointGridWithAffine\n");
-            fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the control point image\n");
-            reg_exit(1);
-        }
-    }
-    return 0;
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -2003,11 +2252,11 @@ void reg_defField_compose2D(nifti_image *deformationField,
     }
 
 #ifdef _WIN32
-	int  i;
+    int  i;
 #else
-	size_t  i;
+    size_t  i;
 #endif
-	size_t index;
+    size_t index;
     int a, b, pre[2];
     DTYPE realDefX, realDefY, voxelX, voxelY;
     DTYPE defX, defY, relX[2], relY[2], basis;
@@ -2041,7 +2290,7 @@ void reg_defField_compose2D(nifti_image *deformationField,
                 for(a=0;a<2;++a){
                     basis = relX[a] * relY[b];
                     if(pre[0]+a>-1 && pre[0]+a<deformationField->nx &&
-                       pre[1]+b>-1 && pre[1]+b<deformationField->ny){
+                            pre[1]+b>-1 && pre[1]+b<deformationField->ny){
                         // Uses the deformation field if voxel is in its space
                         index=(pre[1]+b)*deformationField->nx+pre[0]+a;
                         defX = defPtrX[index];
@@ -2052,13 +2301,13 @@ void reg_defField_compose2D(nifti_image *deformationField,
                         get_SlidedValues<DTYPE>(defX,
                                                 defY,
                                                 pre[0]+a,
-                                                pre[1]+b,
-                                                defPtrX,
-                                                defPtrY,
-                                                df_voxel2Real,
-                                                deformationField->dim,
-                                                false // not a deformation field
-                                                );
+                                pre[1]+b,
+                                defPtrX,
+                                defPtrY,
+                                df_voxel2Real,
+                                deformationField->dim,
+                                false // not a deformation field
+                                );
                     }
                     realDefX += defX * basis;
                     realDefY += defY * basis;
@@ -2087,63 +2336,69 @@ void reg_defField_compose3D(nifti_image *deformationField,
     DTYPE *resPtrY = &resPtrX[warVoxelNumber];
     DTYPE *resPtrZ = &resPtrY[warVoxelNumber];
 
-    mat44 *df_real2Voxel=NULL;
+#ifdef _WIN32
+    __declspec(align(16))mat44 df_real2Voxel;
+#else
+    mat44 df_real2Voxel __attribute__((aligned(16)));
+#endif
     mat44 *df_voxel2Real=NULL;
     if(deformationField->sform_code>0){
-        df_real2Voxel=&deformationField->sto_ijk;
+        df_real2Voxel=deformationField->sto_ijk;
         df_voxel2Real=&deformationField->sto_xyz;
     }
     else{
-        df_real2Voxel=&deformationField->qto_ijk;
+        df_real2Voxel=deformationField->qto_ijk;
         df_voxel2Real=&deformationField->qto_xyz;
     }
-#ifdef _WIN32
-	int  i;
-#else
-	size_t  i;
-#endif
-	size_t tempIndex, index;
 
+#ifdef _WIN32
+    int  i;
+#else
+    size_t  i;
+#endif
+    size_t tempIndex, index;
     int a, b, c, currentX, currentY, currentZ, pre[3];
-    DTYPE realDefX, realDefY, realDefZ, voxelX, voxelY, voxelZ, tempBasis;
-    DTYPE defX, defY, defZ, relX[2], relY[2], relZ[2], basis;
+    DTYPE realDef[3], voxel[3], basis, tempBasis;
+    DTYPE defX, defY, defZ, relX[2], relY[2], relZ[2];
     bool inY, inZ;
 #if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(warVoxelNumber, mask, df_real2Voxel, df_voxel2Real, DefFieldDim, \
     defPtrX, defPtrY, defPtrZ, resPtrX, resPtrY, resPtrZ, deformationField) \
     private(i, a, b, c, currentX, currentY, currentZ, index, tempIndex, pre, \
-    realDefX, realDefY, realDefZ, voxelX, voxelY, voxelZ, tempBasis, \
-    defX, defY, defZ, relX, relY, relZ, basis, inY, inZ)
+    realDef, voxel, tempBasis, defX, defY, defZ, relX, relY, relZ, basis, inY, inZ)
 #endif
     for(i=0;i<warVoxelNumber;++i){
         if(mask[i]>-1){
-            realDefX = resPtrX[i];
-            realDefY = resPtrY[i];
-            realDefZ = resPtrZ[i];
-
             // Conversion from real to voxel in the deformation field
-            voxelX = realDefX * df_real2Voxel->m[0][0]
-                    + realDefY * df_real2Voxel->m[0][1]
-                    + realDefZ * df_real2Voxel->m[0][2]
-                    + df_real2Voxel->m[0][3];
-            voxelY = realDefX * df_real2Voxel->m[1][0]
-                    + realDefY * df_real2Voxel->m[1][1]
-                    + realDefZ * df_real2Voxel->m[1][2]
-                    + df_real2Voxel->m[1][3];
-            voxelZ = realDefX * df_real2Voxel->m[2][0]
-                    + realDefY * df_real2Voxel->m[2][1]
-                    + realDefZ * df_real2Voxel->m[2][2]
-                    + df_real2Voxel->m[2][3];
+            realDef[0] = resPtrX[i];
+            realDef[1] = resPtrY[i];
+            realDef[2] = resPtrZ[i];
+            voxel[0] =
+                    df_real2Voxel.m[0][0] * realDef[0] +
+                    df_real2Voxel.m[0][1] * realDef[1] +
+                    df_real2Voxel.m[0][2] * realDef[2] +
+                    df_real2Voxel.m[0][3] ;
+            voxel[1] =
+                    df_real2Voxel.m[1][0] * realDef[0] +
+                    df_real2Voxel.m[1][1] * realDef[1] +
+                    df_real2Voxel.m[1][2] * realDef[2] +
+                    df_real2Voxel.m[1][3] ;
+            voxel[2] =
+                    df_real2Voxel.m[2][0] * realDef[0] +
+                    df_real2Voxel.m[2][1] * realDef[1] +
+                    df_real2Voxel.m[2][2] * realDef[2] +
+                    df_real2Voxel.m[2][3] ;
+            //reg_mat44_mul(df_real2Voxel, realDef, voxel);
 
             // Linear interpolation to compute the new deformation
-            pre[0]=static_cast<int>reg_floor(voxelX);
-            pre[1]=static_cast<int>reg_floor(voxelY);
-            pre[2]=static_cast<int>reg_floor(voxelZ);
-            relX[1]=voxelX-static_cast<DTYPE>(pre[0]);relX[0]=1.-relX[1];
-            relY[1]=voxelY-static_cast<DTYPE>(pre[1]);relY[0]=1.-relY[1];
-            relZ[1]=voxelZ-static_cast<DTYPE>(pre[2]);relZ[0]=1.-relZ[1];
-            realDefX=realDefY=realDefZ=0.;
+            pre[0]=static_cast<int>reg_floor(voxel[0]);
+            pre[1]=static_cast<int>reg_floor(voxel[1]);
+            pre[2]=static_cast<int>reg_floor(voxel[2]);
+            relX[1]=voxel[0]-static_cast<DTYPE>(pre[0]);relX[0]=1.-relX[1];
+            relY[1]=voxel[1]-static_cast<DTYPE>(pre[1]);relY[0]=1.-relY[1];
+            relZ[1]=voxel[2]-static_cast<DTYPE>(pre[2]);relZ[0]=1.-relZ[1];
+            realDef[0]=realDef[1]=realDef[2]=0.;
             for(c=0;c<2;++c){
                 currentZ = pre[2]+c;
                 tempIndex=currentZ*DefFieldDim[0]*DefFieldDim[1];
@@ -2168,9 +2423,9 @@ void reg_defField_compose3D(nifti_image *deformationField,
                             get_SlidedValues<DTYPE>(defX,
                                                     defY,
                                                     defZ,
-                                                    pre[0]+a,
-                                                    pre[1]+b,
-                                                    pre[2]+c,
+                                                    currentX,
+                                                    currentY,
+                                                    currentZ,
                                                     defPtrX,
                                                     defPtrY,
                                                     defPtrZ,
@@ -2181,18 +2436,17 @@ void reg_defField_compose3D(nifti_image *deformationField,
                         }
                         ++index;
                         basis = relX[a] * tempBasis;
-                        realDefX += defX * basis;
-                        realDefY += defY * basis;
-                        realDefZ += defZ * basis;
+                        realDef[0] += defX * basis;
+                        realDef[1] += defY * basis;
+                        realDef[2] += defZ * basis;
                     } // a loop
                 } // b loop
             } // c loop
-            resPtrX[i] = realDefX;
-            resPtrY[i] = realDefY;
-            resPtrZ[i] = realDefZ;
+            resPtrX[i] = realDef[0];
+            resPtrY[i] = realDef[1];
+            resPtrZ[i] = realDef[2];
         }// mask
     }// loop over every voxel
-
 }
 /* *************************************************************** */
 void reg_defField_compose(nifti_image *deformationField,
@@ -2200,8 +2454,8 @@ void reg_defField_compose(nifti_image *deformationField,
                           int *mask)
 {
     if(deformationField->datatype != dfToUpdate->datatype){
-        fprintf(stderr, "[NiftyReg ERROR] reg_composeDefField\n");
-        fprintf(stderr, "[NiftyReg ERROR] Both deformation fields are expected to have the same type. Exit\n");
+        reg_print_fct_error("reg_defField_compose");
+        reg_print_msg_error("Both deformation fields are expected to have the same type");
         reg_exit(1);
     }
 
@@ -2223,7 +2477,8 @@ void reg_defField_compose(nifti_image *deformationField,
             reg_defField_compose2D<double>(deformationField,dfToUpdate,mask);
             break;
         default:
-            printf("[NiftyReg ERROR] reg_composeDefField2D\tDeformation field pixel type unsupported.");
+            reg_print_fct_error("reg_defField_compose");
+            reg_print_msg_error("Deformation field pixel type unsupported");
             reg_exit(1);
         }
     }
@@ -2236,7 +2491,8 @@ void reg_defField_compose(nifti_image *deformationField,
             reg_defField_compose3D<double>(deformationField,dfToUpdate,mask);
             break;
         default:
-            printf("[NiftyReg ERROR] reg_composeDefField3D\tDeformation field pixel type unsupported.");
+            reg_print_fct_error("reg_defField_compose");
+            reg_print_msg_error("Deformation field pixel type unsupported");
             reg_exit(1);
         }
     }
@@ -2248,9 +2504,9 @@ void reg_defField_compose(nifti_image *deformationField,
 /* Internal data structure to pass user data into optimizer that get passed to cost_function */
 struct ddata
 { nifti_image *deformationField;
-  double gx, gy, gz;
-  double *arrayy[4];
-  double values[4];
+    double gx, gy, gz;
+    double *arrayy[4];
+    double values[4];
 };
 
 /* ************************************************************************** */
@@ -2261,119 +2517,119 @@ struct ddata
 template<class FieldTYPE>
 static int inline FastWarp(double x, double y, double z, nifti_image *deformationField, double *px, double *py, double *pz)
 { double wax, wbx, wcx, wdx, wex, wfx, wgx, whx, wf3x; FieldTYPE *wpx;
-  double way, wby, wcy, wdy, wey, wfy, wgy, why, wf3y; FieldTYPE *wpy;
-  double waz, wbz, wcz, wdz, wez, wfz, wgz, whz, wf3z; FieldTYPE *wpz;
-  int   xw, yw, zw, dxw, dyw, dxyw, dxyzw;
-  double wxf, wyf, wzf, wyzf;
-  double world[4], position[4];
+    double way, wby, wcy, wdy, wey, wfy, wgy, why, wf3y; FieldTYPE *wpy;
+    double waz, wbz, wcz, wdz, wez, wfz, wgz, whz, wf3z; FieldTYPE *wpz;
+    int   xw, yw, zw, dxw, dyw, dxyw, dxyzw;
+    double wxf, wyf, wzf, wyzf;
+    double world[4], position[4];
 
-  FieldTYPE *warpdata = static_cast<FieldTYPE *>(deformationField->data);
+    FieldTYPE *warpdata = static_cast<FieldTYPE *>(deformationField->data);
 
-  mat44 *deformationFieldIJKMatrix;
-  if(deformationField->sform_code>0)
-      deformationFieldIJKMatrix=&(deformationField->sto_ijk);
-  else deformationFieldIJKMatrix=&(deformationField->qto_ijk);
+    mat44 *deformationFieldIJKMatrix;
+    if(deformationField->sform_code>0)
+        deformationFieldIJKMatrix=&(deformationField->sto_ijk);
+    else deformationFieldIJKMatrix=&(deformationField->qto_ijk);
 
-  dxw = deformationField->nx;
-  dyw = deformationField->ny;
-  dxyw = dxw * dyw;
-  dxyzw = dxw * dyw * deformationField->nz;
+    dxw = deformationField->nx;
+    dyw = deformationField->ny;
+    dxyw = dxw * dyw;
+    dxyzw = dxw * dyw * deformationField->nz;
 
-  // first guess
-  *px = x;
-  *py = y;
-  *pz = z;
+    // first guess
+    *px = x;
+    *py = y;
+    *pz = z;
 
-  // detect NAN input
-  if (x!=x || y!=y || z!=z) return EXIT_FAILURE;
+    // detect NAN input
+    if (x!=x || y!=y || z!=z) return EXIT_FAILURE;
 
-  // convert x, y,z to indices in deformationField
-  world[0] = x;
-  world[1] = y;
-  world[2] = z;
-  world[3] = 1;
-  reg_mat44_mul(deformationFieldIJKMatrix, world, position);
-  x = position[0];
-  y = position[1];
-  z = position[2];
+    // convert x, y,z to indices in deformationField
+    world[0] = x;
+    world[1] = y;
+    world[2] = z;
+    world[3] = 1;
+    reg_mat44_mul(deformationFieldIJKMatrix, world, position);
+    x = position[0];
+    y = position[1];
+    z = position[2];
 
-  xw = (int)x;        /* get indices into DVF */
-  yw = (int)y;
-  zw = (int)z;
+    xw = (int)x;        /* get indices into DVF */
+    yw = (int)y;
+    zw = (int)z;
 
-  // if you block out the next three lines the routine will extrapolate indefinitively
+    // if you block out the next three lines the routine will extrapolate indefinitively
 #if 0
-  if (x<0 || x>=deformationField->nx-1) return ERROR;
-  if (y<0 || y>=deformationField->ny-1) return ERROR;
-  if (z<0 || z>=deformationField->nz-1) return ERROR;
+    if (x<0 || x>=deformationField->nx-1) return ERROR;
+    if (y<0 || y>=deformationField->ny-1) return ERROR;
+    if (z<0 || z>=deformationField->nz-1) return ERROR;
 #else
-  if (xw<0) xw=0;     /* clip */
-  if (yw<0) yw=0;
-  if (zw<0) zw=0;
-  if (xw>deformationField->nx-2) xw = deformationField->nx-2;
-  if (yw>deformationField->ny-2) yw = deformationField->ny-2;
-  if (zw>deformationField->nz-2) zw = deformationField->nz-2;
+    if (xw<0) xw=0;     /* clip */
+    if (yw<0) yw=0;
+    if (zw<0) zw=0;
+    if (xw>deformationField->nx-2) xw = deformationField->nx-2;
+    if (yw>deformationField->ny-2) yw = deformationField->ny-2;
+    if (zw>deformationField->nz-2) zw = deformationField->nz-2;
 #endif
 
-  wxf = x-xw;                  /* fractional coordinates */
-  wyf = y-yw;
-  wzf = z-zw;
+    wxf = x-xw;                  /* fractional coordinates */
+    wyf = y-yw;
+    wzf = z-zw;
 
-                                      /* cornerstone for warp coordinates */
-  wpx = warpdata + zw*dxyw + yw*dxw + xw;
-  wpy = wpx+dxyzw;
-  wpz = wpy+dxyzw;
+    /* cornerstone for warp coordinates */
+    wpx = warpdata + zw*dxyw + yw*dxw + xw;
+    wpy = wpx+dxyzw;
+    wpz = wpy+dxyzw;
 
-  wf3x = wpx[dxw+1];
-  wax  = wpx[0];
-  wbx  = wpx[1]      - wax;
-  wcx  = wpx[dxw]    - wax;
-  wdx  = wpx[dxyw]   - wax;
-  wex  = wpx[dxyw + dxw] - wax - wcx - wdx;
-  wfx  = wpx[dxyw + 1 ]  - wax - wbx - wdx;
-  wgx  = wf3x            - wax - wbx - wcx;
-  whx  = wpx[dxyw + dxw + 1] - wf3x - wdx - wex - wfx;
+    wf3x = wpx[dxw+1];
+    wax  = wpx[0];
+    wbx  = wpx[1]      - wax;
+    wcx  = wpx[dxw]    - wax;
+    wdx  = wpx[dxyw]   - wax;
+    wex  = wpx[dxyw + dxw] - wax - wcx - wdx;
+    wfx  = wpx[dxyw + 1 ]  - wax - wbx - wdx;
+    wgx  = wf3x            - wax - wbx - wcx;
+    whx  = wpx[dxyw + dxw + 1] - wf3x - wdx - wex - wfx;
 
-  wf3y = wpy[dxw+1];
-  way  = wpy[0];
-  wby  = wpy[1]      - way;
-  wcy  = wpy[dxw]    - way;
-  wdy  = wpy[dxyw]   - way;
-  wey  = wpy[dxyw + dxw] - way - wcy - wdy;
-  wfy  = wpy[dxyw + 1 ]  - way - wby - wdy;
-  wgy  = wf3y            - way - wby - wcy;
-  why  = wpy[dxyw + dxw + 1] - wf3y - wdy - wey - wfy;
+    wf3y = wpy[dxw+1];
+    way  = wpy[0];
+    wby  = wpy[1]      - way;
+    wcy  = wpy[dxw]    - way;
+    wdy  = wpy[dxyw]   - way;
+    wey  = wpy[dxyw + dxw] - way - wcy - wdy;
+    wfy  = wpy[dxyw + 1 ]  - way - wby - wdy;
+    wgy  = wf3y            - way - wby - wcy;
+    why  = wpy[dxyw + dxw + 1] - wf3y - wdy - wey - wfy;
 
-  wf3z = wpz[dxw+1];
-  waz  = wpz[0];
-  wbz  = wpz[1]      - waz;
-  wcz  = wpz[dxw]    - waz;
-  wdz  = wpz[dxyw]   - waz;
-  wez  = wpz[dxyw + dxw] - waz - wcz - wdz;
-  wfz  = wpz[dxyw + 1 ]  - waz - wbz - wdz;
-  wgz  = wf3z            - waz - wbz - wcz;
-  whz  = wpz[dxyw + dxw + 1] - wf3z - wdz - wez - wfz;
+    wf3z = wpz[dxw+1];
+    waz  = wpz[0];
+    wbz  = wpz[1]      - waz;
+    wcz  = wpz[dxw]    - waz;
+    wdz  = wpz[dxyw]   - waz;
+    wez  = wpz[dxyw + dxw] - waz - wcz - wdz;
+    wfz  = wpz[dxyw + 1 ]  - waz - wbz - wdz;
+    wgz  = wf3z            - waz - wbz - wcz;
+    whz  = wpz[dxyw + dxw + 1] - wf3z - wdz - wez - wfz;
 
-  wyzf = wyf * wzf;                   /* common term in interpolation     */
+    wyzf = wyf * wzf;                   /* common term in interpolation     */
 
-                                        /* trilinear interpolation formulae  */
-  *px = wax + wbx*wxf + wcx*wyf + wdx*wzf + wex*wyzf + wfx*wxf*wzf + wgx*wxf*wyf + whx*wxf*wyzf;
-  *py = way + wby*wxf + wcy*wyf + wdy*wzf + wey*wyzf + wfy*wxf*wzf + wgy*wxf*wyf + why*wxf*wyzf;
-  *pz = waz + wbz*wxf + wcz*wyf + wdz*wzf + wez*wyzf + wfz*wxf*wzf + wgz*wxf*wyf + whz*wxf*wyzf;
+    /* trilinear interpolation formulae  */
+    *px = wax + wbx*wxf + wcx*wyf + wdx*wzf + wex*wyzf + wfx*wxf*wzf + wgx*wxf*wyf + whx*wxf*wyzf;
+    *py = way + wby*wxf + wcy*wyf + wdy*wzf + wey*wyzf + wfy*wxf*wzf + wgy*wxf*wyf + why*wxf*wyzf;
+    *pz = waz + wbz*wxf + wcz*wyf + wdz*wzf + wez*wyzf + wfz*wxf*wzf + wgz*wxf*wyf + whz*wxf*wyzf;
 
-  return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
 
 /* Internal square distance cost function; supports NIFTI_TYPE_FLOAT32 and NIFTI_TYPE_FLOAT64 */
 static double cost_function(const double *vector, const void *data)
 { struct ddata *dat = (struct ddata*) data;
-  double x, y, z;
-  if (dat->deformationField->datatype == NIFTI_TYPE_FLOAT64)
-    FastWarp<double>(vector[0], vector[1], vector[2], dat->deformationField, &x, &y, &z);
-  else
-    FastWarp<float>(vector[0], vector[1], vector[2], dat->deformationField, &x, &y, &z);
+    double x, y, z;
+    if (dat->deformationField->datatype == NIFTI_TYPE_FLOAT64)
+        FastWarp<double>(vector[0], vector[1], vector[2], dat->deformationField, &x, &y, &z);
+    else
+        FastWarp<float>(vector[0], vector[1], vector[2], dat->deformationField, &x, &y, &z);
 
-  return (x-dat->gx)*(x-dat->gx) + (y-dat->gy)*(y-dat->gy) + (z-dat->gz)*(z-dat->gz);
+    return (x-dat->gx)*(x-dat->gx) + (y-dat->gy)*(y-dat->gy) + (z-dat->gz)*(z-dat->gz);
 }
 
 /* multimin/simplex.c
@@ -2413,12 +2669,12 @@ static double cost_function(const double *vector, const void *data)
 
 typedef struct
 {
-  double x1[12];              /* simplex corner points nsimplex*nvec */
-  double y1[4];               /* function value at corner points */
-  double ws1[3];              /* workspace 1 for algorithm */
-  double ws2[3];              /* workspace 2 for algorithm */
-  int    nvec;
-  int    nsimplex;
+    double x1[12];              /* simplex corner points nsimplex*nvec */
+    double y1[4];               /* function value at corner points */
+    double ws1[3];              /* workspace 1 for algorithm */
+    double ws2[3];              /* workspace 2 for algorithm */
+    int    nvec;
+    int    nsimplex;
 }
 nmsimplex_state_t;
 
@@ -2429,35 +2685,35 @@ nmsimplex_move_corner (const double coeff, nmsimplex_state_t *state,
                        size_t corner, double *xc,
                        gsl_multimin_function *f, void *fdata)
 {
-  /* moves a simplex corner scaled by coeff (negative value represents
+    /* moves a simplex corner scaled by coeff (negative value represents
      mirroring by the middle point of the "other" corner points)
      and gives new corner in xc and function value at xc as a
      return value
    */
 
-  double *x1 = state->x1;
+    double *x1 = state->x1;
 
-  size_t i, j;
-  double newval, mp;
+    size_t i, j;
+    double newval, mp;
 
-  for (j = 0; j < (size_t)state->nvec; j++)
+    for (j = 0; j < (size_t)state->nvec; j++)
     {
-      mp = 0.0;
-	  for (i = 0; i < (size_t)state->nsimplex; i++)
+        mp = 0.0;
+        for (i = 0; i < (size_t)state->nsimplex; i++)
         {
-          if (i != corner)
+            if (i != corner)
             {
-              mp += x1[i*state->nvec + j];
+                mp += x1[i*state->nvec + j];
             }
         }
-      mp /= (double) (state->nsimplex - 1);
-      newval = mp - coeff * (mp - x1[corner*state->nvec + j]);
-      xc[j] = newval;
+        mp /= (double) (state->nsimplex - 1);
+        newval = mp - coeff * (mp - x1[corner*state->nvec + j]);
+        xc[j] = newval;
     }
 
-  newval = f(xc, fdata);
+    newval = f(xc, fdata);
 
-  return newval;
+    return newval;
 }
 
 static void
@@ -2465,33 +2721,33 @@ nmsimplex_contract_by_best (nmsimplex_state_t *state, size_t best,
                             double *xc, gsl_multimin_function *f, void *fdata)
 {
 
-  /* Function contracts the simplex in respect to
+    /* Function contracts the simplex in respect to
      best valued corner. That is, all corners besides the
      best corner are moved. */
 
-  /* the xc vector is simply work space here */
+    /* the xc vector is simply work space here */
 
-  double *x1 = state->x1;
-  double *y1 = state->y1;
+    double *x1 = state->x1;
+    double *y1 = state->y1;
 
-  size_t i, j;
-  double newval;
+    size_t i, j;
+    double newval;
 
-  for (i = 0; i < (size_t)state->nsimplex; i++)
+    for (i = 0; i < (size_t)state->nsimplex; i++)
     {
-      if (i != best)
+        if (i != best)
         {
-		  for (j = 0; j < (size_t)state->nvec; j++)
+            for (j = 0; j < (size_t)state->nvec; j++)
             {
-              newval = 0.5 * (x1[i*state->nvec + j] + x1[best*state->nvec + j]);
-              x1[i*state->nvec +  j] = newval;
+                newval = 0.5 * (x1[i*state->nvec + j] + x1[best*state->nvec + j]);
+                x1[i*state->nvec +  j] = newval;
             }
 
-          /* evaluate function in the new point */
+            /* evaluate function in the new point */
 
-          xc = x1 + i*state->nvec;
-          newval = f(xc, fdata);
-      y1[i] = newval;
+            xc = x1 + i*state->nvec;
+            newval = f(xc, fdata);
+            y1[i] = newval;
         }
     }
 }
@@ -2499,54 +2755,54 @@ nmsimplex_contract_by_best (nmsimplex_state_t *state, size_t best,
 static void
 nmsimplex_calc_center (const nmsimplex_state_t *state, double *mp)
 {
-  /* calculates the center of the simplex to mp */
+    /* calculates the center of the simplex to mp */
 
-  const double *x1 = state->x1;
+    const double *x1 = state->x1;
 
-  size_t i, j;
-  double val;
+    size_t i, j;
+    double val;
 
-  for (j = 0; j < (size_t)state->nvec; j++)
+    for (j = 0; j < (size_t)state->nvec; j++)
     {
-      val = 0.0;
-	  for (i = 0; i < (size_t)state->nsimplex; i++)
+        val = 0.0;
+        for (i = 0; i < (size_t)state->nsimplex; i++)
         {
-          val += x1[i*state->nvec + j];
+            val += x1[i*state->nvec + j];
         }
-      val /= state->nsimplex;
-      mp[j] = val;
+        val /= state->nsimplex;
+        mp[j] = val;
     }
 }
 
 static double
 nmsimplex_size (nmsimplex_state_t *state)
 {
-  /* calculates simplex size as average sum of length of vectors
+    /* calculates simplex size as average sum of length of vectors
      from simplex center to corner points:
 
      ( sum ( || y - y_middlepoint || ) ) / n
    */
 
-  double *s = state->ws1;
-  double *mp = state->ws2;
-  double *x1 = state->x1;
+    double *s = state->ws1;
+    double *mp = state->ws2;
+    double *x1 = state->x1;
 
-  size_t i, j;
+    size_t i, j;
 
-  double t, ss = 0.0;
+    double t, ss = 0.0;
 
-  /* Calculate middle point */
-  nmsimplex_calc_center (state, mp);
+    /* Calculate middle point */
+    nmsimplex_calc_center (state, mp);
 
-  for (i = 0; i < (size_t)state->nsimplex; i++)
+    for (i = 0; i < (size_t)state->nsimplex; i++)
     {
-	  for (j=0; j<(size_t)state->nvec; j++) s[j] = x1[i*state->nvec + j] - mp[j];
-      t = 0;
-	  for (j=0; j<(size_t)state->nvec; j++) t += s[j]*s[j];
-      ss += sqrt(t);
+        for (j=0; j<(size_t)state->nvec; j++) s[j] = x1[i*state->nvec + j] - mp[j];
+        t = 0;
+        for (j=0; j<(size_t)state->nvec; j++) t += s[j]*s[j];
+        ss += sqrt(t);
     }
 
-  return ss / (double) (state->nsimplex);
+    return ss / (double) (state->nsimplex);
 }
 
 static void
@@ -2554,36 +2810,36 @@ nmsimplex_set (void *vstate, gsl_multimin_function *f,
                const double *x,
                double *size, const double *step_size, void *fdata)
 {
-  size_t i, j;
-  double val;
+    size_t i, j;
+    double val;
 
-  nmsimplex_state_t *state = (nmsimplex_state_t *) vstate;
+    nmsimplex_state_t *state = (nmsimplex_state_t *) vstate;
 
-  double *xtemp = state->ws1;
+    double *xtemp = state->ws1;
 
-  /* first point is the original x0 */
+    /* first point is the original x0 */
 
-  val = f(x, fdata);
-  for (j=0; j<(size_t)state->nvec; j++) state->x1[j] = x[j];
-  state->y1[0] = val;
+    val = f(x, fdata);
+    for (j=0; j<(size_t)state->nvec; j++) state->x1[j] = x[j];
+    state->y1[0] = val;
 
-  /* following points are initialized to x0 + step_size */
+    /* following points are initialized to x0 + step_size */
 
-  for (i = 0; i < (size_t)state->nvec; i++)
+    for (i = 0; i < (size_t)state->nvec; i++)
     {
-	  for (j=0; j<(size_t)state->nvec; j++) xtemp[j] = x[j];
+        for (j=0; j<(size_t)state->nvec; j++) xtemp[j] = x[j];
 
-      val = xtemp[i] + step_size[i];
-      xtemp[i] = val;
-      val = f(xtemp, fdata);
-	  for (j=0; j<(size_t)state->nvec; j++)
-        state->x1[(i + 1)*state->nvec + j] = xtemp[j];
-      state->y1[i + 1] = val;
+        val = xtemp[i] + step_size[i];
+        xtemp[i] = val;
+        val = f(xtemp, fdata);
+        for (j=0; j<(size_t)state->nvec; j++)
+            state->x1[(i + 1)*state->nvec + j] = xtemp[j];
+        state->y1[i + 1] = val;
     }
 
-  /* Initialize simplex size */
+    /* Initialize simplex size */
 
-  *size = nmsimplex_size (state);
+    *size = nmsimplex_size (state);
 }
 
 static void
@@ -2591,141 +2847,141 @@ nmsimplex_iterate (void *vstate, gsl_multimin_function *f,
                    double *x, double *size, double *fval, void *fdata)
 {
 
-  /* Simplex iteration tries to minimize function f value */
-  /* Includes corrections from Ivo Alxneit <ivo.alxneit@psi.ch> */
+    /* Simplex iteration tries to minimize function f value */
+    /* Includes corrections from Ivo Alxneit <ivo.alxneit@psi.ch> */
 
-  nmsimplex_state_t *state = (nmsimplex_state_t *) vstate;
+    nmsimplex_state_t *state = (nmsimplex_state_t *) vstate;
 
-  /* xc and xc2 vectors store tried corner point coordinates */
+    /* xc and xc2 vectors store tried corner point coordinates */
 
-  double *xc = state->ws1;
-  double *xc2 = state->ws2;
-  double *y1 = state->y1;
-  double *x1 = state->x1;
+    double *xc = state->ws1;
+    double *xc2 = state->ws2;
+    double *y1 = state->y1;
+    double *x1 = state->x1;
 
-  size_t n = state->nsimplex;
-  size_t i, j;
-  size_t hi = 0, s_hi = 0, lo = 0;
-  double dhi, ds_hi, dlo;
-  double val, val2;
+    size_t n = state->nsimplex;
+    size_t i, j;
+    size_t hi = 0, s_hi = 0, lo = 0;
+    double dhi, ds_hi, dlo;
+    double val, val2;
 
-  /* get index of highest, second highest and lowest point */
+    /* get index of highest, second highest and lowest point */
 
-  dhi = ds_hi = dlo = y1[0];
+    dhi = ds_hi = dlo = y1[0];
 
-  for (i = 1; i < n; i++)
+    for (i = 1; i < n; i++)
     {
-      val = y1[i];
-      if (val < dlo)
+        val = y1[i];
+        if (val < dlo)
         {
-          dlo = val;
-          lo = i;
+            dlo = val;
+            lo = i;
         }
-      else if (val > dhi)
+        else if (val > dhi)
         {
-          ds_hi = dhi;
-          s_hi = hi;
-          dhi = val;
-          hi = i;
+            ds_hi = dhi;
+            s_hi = hi;
+            dhi = val;
+            hi = i;
         }
-      else if (val > ds_hi)
+        else if (val > ds_hi)
         {
-          ds_hi = val;
-          s_hi = i;
+            ds_hi = val;
+            s_hi = i;
         }
     }
 
-  /* reflect the highest value */
+    /* reflect the highest value */
 
-  val = nmsimplex_move_corner (-1.0, state, hi, xc, f, fdata);
+    val = nmsimplex_move_corner (-1.0, state, hi, xc, f, fdata);
 
-  if (val < y1[lo])
+    if (val < y1[lo])
     {
 
-      /* reflected point becomes lowest point, try expansion */
+        /* reflected point becomes lowest point, try expansion */
 
-      val2 = nmsimplex_move_corner (-2.0, state, hi, xc2, f, fdata);
+        val2 = nmsimplex_move_corner (-2.0, state, hi, xc2, f, fdata);
 
-      if (val2 < y1[lo])
+        if (val2 < y1[lo])
         {
-		  for (j=0; j<(size_t)state->nvec; j++) x1[hi*state->nvec+j] = xc2[j];
-          y1[hi] = val2;
+            for (j=0; j<(size_t)state->nvec; j++) x1[hi*state->nvec+j] = xc2[j];
+            y1[hi] = val2;
         }
-      else
+        else
         {
-		  for (j=0; j<(size_t)state->nvec; j++) x1[hi*state->nvec+j] = xc[j];
-          y1[hi] = val;
+            for (j=0; j<(size_t)state->nvec; j++) x1[hi*state->nvec+j] = xc[j];
+            y1[hi] = val;
         }
     }
 
-  /* reflection does not improve things enough */
+    /* reflection does not improve things enough */
 
-  else if (val > y1[s_hi])
+    else if (val > y1[s_hi])
     {
-      if (val <= y1[hi])
+        if (val <= y1[hi])
         {
 
-          /* if trial point is better than highest point, replace
+            /* if trial point is better than highest point, replace
              highest point */
 
-		  for (j=0; j<(size_t)state->nvec; j++) x1[hi*state->nvec+j] = xc[j];
-          y1[hi] = val;
+            for (j=0; j<(size_t)state->nvec; j++) x1[hi*state->nvec+j] = xc[j];
+            y1[hi] = val;
         }
 
-      /* try one dimensional contraction */
+        /* try one dimensional contraction */
 
-      val2 = nmsimplex_move_corner (0.5, state, hi, xc2, f, fdata);
+        val2 = nmsimplex_move_corner (0.5, state, hi, xc2, f, fdata);
 
-      if (val2 <= y1[hi])
+        if (val2 <= y1[hi])
         {
-		  for (j=0; j<(size_t)state->nvec; j++) x1[hi*state->nvec+j] = xc2[j];
-          y1[hi] = val2;
+            for (j=0; j<(size_t)state->nvec; j++) x1[hi*state->nvec+j] = xc2[j];
+            y1[hi] = val2;
         }
 
-      else
+        else
         {
-          /* contract the whole simplex in respect to the best point */
-          nmsimplex_contract_by_best (state, lo, xc, f, fdata);
+            /* contract the whole simplex in respect to the best point */
+            nmsimplex_contract_by_best (state, lo, xc, f, fdata);
         }
     }
-  else
+    else
     {
 
-      /* trial point is better than second highest point.
+        /* trial point is better than second highest point.
          Replace highest point by it */
 
-	  for (j=0; j<(size_t)state->nvec; j++) x1[hi*state->nvec+j] = xc[j];
-      y1[hi] = val;
+        for (j=0; j<(size_t)state->nvec; j++) x1[hi*state->nvec+j] = xc[j];
+        y1[hi] = val;
     }
 
-  /* return lowest point of simplex as x */
+    /* return lowest point of simplex as x */
 
-  lo=0; val=y1[0];
-  for (j=1; j<(size_t)state->nsimplex; j++) if (y1[j]<val) lo=j, val=y1[j];
-  for (j=0; j<(size_t)state->nvec; j++) x[j] = x1[lo*state->nvec+j];
-  *fval = y1[lo];
+    lo=0; val=y1[0];
+    for (j=1; j<(size_t)state->nsimplex; j++) if (y1[j]<val) lo=j, val=y1[j];
+    for (j=0; j<(size_t)state->nvec; j++) x[j] = x1[lo*state->nvec+j];
+    *fval = y1[lo];
 
 
-  /* Update simplex size */
+    /* Update simplex size */
 
-  *size = nmsimplex_size (state);
+    *size = nmsimplex_size (state);
 }
 
 /* Internal wrapper for nmsimplex_iterate */
 static void optimize(gsl_multimin_function *f, double *start, void *data, double tol)
 { nmsimplex_state_t t;
-  double fval[4];
-  double offset[3] = {10, 10, 10};
-  double size;
-  int n=0;
-  t.nvec = 3;
-  t.nsimplex = 4;
-  nmsimplex_set (&t, f, start, &size, offset, data);
-  while (size>tol && n<300)
-  { nmsimplex_iterate (&t, f, start, &size, fval, data);
-    n++;
-  }
-  nmsimplex_calc_center (&t, start);
+    double fval[4];
+    double offset[3] = {10, 10, 10};
+    double size;
+    int n=0;
+    t.nvec = 3;
+    t.nsimplex = 4;
+    nmsimplex_set (&t, f, start, &size, offset, data);
+    while (size>tol && n<300)
+    { nmsimplex_iterate (&t, f, start, &size, fval, data);
+        n++;
+    }
+    nmsimplex_calc_center (&t, start);
 }
 /* *************************************************************** */
 template <class DTYPE>
@@ -2741,7 +2997,7 @@ void reg_defFieldInvert3D(nifti_image *inputDeformationField,
     if(outputDeformationField->sform_code>0)
         OutXYZMatrix=&(outputDeformationField->sto_xyz);
     else OutXYZMatrix=&(outputDeformationField->qto_xyz);
-    
+
     // added:
     mat44 *InXYZMatrix;
     if(inputDeformationField->sform_code>0)
@@ -2759,7 +3015,7 @@ void reg_defFieldInvert3D(nifti_image *inputDeformationField,
     delta[1] = center2[1]-centerout[1];
     delta[2] = center2[2]-centerout[2];
     // end added
-    
+
 
     int i,x,y,z;
     double position[4], pars[4], arrayy[4][3];
@@ -2816,14 +3072,14 @@ void reg_defFieldInvert(nifti_image *inputDeformationField,
 {
     // Check the input image data types
     if(inputDeformationField->datatype!=outputDeformationField->datatype){
-        fprintf(stderr, "[NiftyReg ERROR] reg_defFieldInvert\n");
-        fprintf(stderr, "[NiftyReg ERROR] Both deformation fields are expected to have the same data type. Exit\n");
+        reg_print_fct_error("reg_defFieldInvert");
+        reg_print_msg_error("Both deformation fields are expected to have the same data type");
         reg_exit(1);
     }
 
     if(inputDeformationField->nu!=3){
-        fprintf(stderr, "[NiftyReg ERROR] reg_defFieldInvert\n");
-        fprintf(stderr, "[NiftyReg ERROR] The function has only been implemented for 3D deformation field yet. Exit\n");
+        reg_print_fct_error("reg_defFieldInvert");
+        reg_print_msg_error("The function has only been implemented for 3D deformation field yet");
         reg_exit(1);
     }
 
@@ -2836,7 +3092,8 @@ void reg_defFieldInvert(nifti_image *inputDeformationField,
         reg_defFieldInvert3D<double>
                 (inputDeformationField,outputDeformationField,tolerance);
     default:
-        printf("[NiftyReg ERROR] reg_composeDefField2D\tDeformation field pixel type unsupported.");
+        reg_print_fct_error("reg_defFieldInvert");
+        reg_print_msg_error("Deformation field pixel type unsupported");
         reg_exit(1);
     }
 }
@@ -2869,18 +3126,18 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
 #ifdef _WIN32
     __declspec(align(16)) DTYPE xBasis[4];
     __declspec(align(16)) DTYPE yBasis[4];
-    #if _USE_SSE
-        __declspec(align(16)) DTYPE xyBasis[16];
-    #endif  //_USE_SSE
+#if _USE_SSE
+    __declspec(align(16)) DTYPE xyBasis[16];
+#endif  //_USE_SSE
 
     __declspec(align(16)) DTYPE xControlPointCoordinates[16];
     __declspec(align(16)) DTYPE yControlPointCoordinates[16];
 #else // _WIN32
     DTYPE xBasis[4] __attribute__((aligned(16)));
     DTYPE yBasis[4] __attribute__((aligned(16)));
-    #if _USE_SSE
-        DTYPE xyBasis[16] __attribute__((aligned(16)));
-    #endif  //_USE_SSE
+#if _USE_SSE
+    DTYPE xyBasis[16] __attribute__((aligned(16)));
+#endif  //_USE_SSE
 
     DTYPE xControlPointCoordinates[16] __attribute__((aligned(16)));
     DTYPE yControlPointCoordinates[16] __attribute__((aligned(16)));
@@ -2908,13 +3165,13 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
             DTYPE initialY=yReal;
             if(displacement2){
                 xReal +=
-                       matrix_voxel_to_real2->m[0][0]*x
-                       + matrix_voxel_to_real2->m[0][1]*y
-                       + matrix_voxel_to_real2->m[0][3];
+                        matrix_voxel_to_real2->m[0][0]*x
+                        + matrix_voxel_to_real2->m[0][1]*y
+                        + matrix_voxel_to_real2->m[0][3];
                 yReal +=
-                       matrix_voxel_to_real2->m[1][0]*x
-                       + matrix_voxel_to_real2->m[1][1]*y
-                       + matrix_voxel_to_real2->m[1][3];
+                        matrix_voxel_to_real2->m[1][0]*x
+                        + matrix_voxel_to_real2->m[1][1]*y
+                        + matrix_voxel_to_real2->m[1][3];
             }
 
             // Get the voxel based control point position in grid1
@@ -3106,20 +3363,20 @@ void reg_spline_cppComposition_3D(nifti_image *grid1,
                 initialPositionZ=0;
                 if(displacement2){
                     xReal += initialPositionX =
-                           matrix_voxel_to_real2->m[0][0]*x
-                           + matrix_voxel_to_real2->m[0][1]*y
-                           + matrix_voxel_to_real2->m[0][2]*z
-                           + matrix_voxel_to_real2->m[0][3];
+                            matrix_voxel_to_real2->m[0][0]*x
+                            + matrix_voxel_to_real2->m[0][1]*y
+                            + matrix_voxel_to_real2->m[0][2]*z
+                            + matrix_voxel_to_real2->m[0][3];
                     yReal += initialPositionY =
-                           matrix_voxel_to_real2->m[1][0]*x
-                           + matrix_voxel_to_real2->m[1][1]*y
-                           + matrix_voxel_to_real2->m[1][2]*z
-                           + matrix_voxel_to_real2->m[1][3];
+                            matrix_voxel_to_real2->m[1][0]*x
+                            + matrix_voxel_to_real2->m[1][1]*y
+                            + matrix_voxel_to_real2->m[1][2]*z
+                            + matrix_voxel_to_real2->m[1][3];
                     zReal += initialPositionZ =
-                           matrix_voxel_to_real2->m[2][0]*x
-                           + matrix_voxel_to_real2->m[2][1]*y
-                           + matrix_voxel_to_real2->m[2][2]*z
-                           + matrix_voxel_to_real2->m[2][3];
+                            matrix_voxel_to_real2->m[2][0]*x
+                            + matrix_voxel_to_real2->m[2][1]*y
+                            + matrix_voxel_to_real2->m[2][2]*z
+                            + matrix_voxel_to_real2->m[2][3];
                 }
 
                 // Get the voxel based control point position in grid1
@@ -3313,21 +3570,29 @@ void reg_spline_getFlowFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
         fprintf(stderr, "[NiftyReg ERROR] The provide grid is not a velocity field\n");
         reg_exit(1);
     }
-    // The initial flow field is generated using cubic B-Spline parametrisation
+
+    // Initialise the flow field with an identity transformation
+    reg_tools_multiplyValueToImage(flowField, flowField, 0.f);
+    flowField->intent_p1=DISP_VEL_FIELD;
+    reg_getDeformationFromDisplacement(flowField);
+
+    // fake the number of extension here to avoid the second half of the affine
+    int oldNumExt = velocityFieldGrid->num_ext;
+    if(oldNumExt>1)
+        velocityFieldGrid->num_ext=1;
+
+
+    // Copy over the number of required squaring steps
+    flowField->intent_p2=velocityFieldGrid->intent_p2;
+    // The initial flow field is generated using cubic B-Spline interpolation/approximation
     reg_spline_getDeformationField(velocityFieldGrid,
                                    flowField,
                                    NULL, // mask
-                                   false, //composition
+                                   true, //composition
                                    true // bspline
                                    );
-    flowField->intent_code=NIFTI_INTENT_VECTOR;
-    memset(flowField->intent_name, 0, 16);
-    strcpy(flowField->intent_name,"NREG_TRANS");
-    flowField->intent_p1=DEF_VEL_FIELD;
-    flowField->intent_p2=velocityFieldGrid->intent_p2;
-    if(velocityFieldGrid->num_ext>0 && flowField->ext_list==NULL)
-        nifti_copy_extensions(flowField, velocityFieldGrid);
 
+    velocityFieldGrid->num_ext=oldNumExt;
 }
 /* *************************************************************** */
 void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
@@ -3341,8 +3606,20 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
         reg_exit(1);
     }
 
-    // Convert the flow from def to disp
-    reg_getDisplacementFromDeformation(flowFieldImage);
+    // Remove the affine component from the flow field
+    nifti_image *affineOnly=NULL;
+    if(flowFieldImage->num_ext>0){
+        if(flowFieldImage->ext_list[0].edata!=NULL){
+            // Create a field that contains the affine component only
+            affineOnly = nifti_copy_nim_info(deformationFieldImage);
+            affineOnly->data = (void *)malloc(affineOnly->nvox*affineOnly->nbyper);
+            reg_affine_getDeformationField(reinterpret_cast<mat44 *>(flowFieldImage->ext_list[0].edata),
+                    affineOnly,
+                    false);
+            reg_tools_substractImageToImage(flowFieldImage,affineOnly,flowFieldImage);
+        }
+    }
+    else reg_getDisplacementFromDeformation(flowFieldImage);
 
     // Check the largest value
     float extrema = fabsf(reg_tools_getMinValue(flowFieldImage));
@@ -3392,7 +3669,7 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
                                      flowFieldImage,
                                      scalingValue); // (/scalingValue)
 
-    // The displacement field is converted back into a deformation field
+    // Conversion from displacement to deformation
     reg_getDeformationFromDisplacement(flowFieldImage);
 
     // The computed scaled deformation field is copied over
@@ -3412,16 +3689,20 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
         printf("[NiftyReg DEBUG] Squaring (composition) step %u/%u\n", i+1, squaringNumber);
 #endif
     }
+    // The affine conponent of the transformation is restored
+    if(affineOnly!=NULL){
+        reg_getDisplacementFromDeformation(deformationFieldImage);
+        reg_tools_addImageToImage(deformationFieldImage,affineOnly,deformationFieldImage);
+        nifti_image_free(affineOnly);
+        affineOnly=NULL;
+    }
     deformationFieldImage->intent_p1=DEF_FIELD;
     deformationFieldImage->intent_p2=0;
-    // If required an affine component is added
-    if(flowFieldImage->num_ext==1){
-        nifti_image *affineTransformation = nifti_copy_nim_info(deformationFieldImage);
-        affineTransformation->data=(void *)malloc(affineTransformation->nvox*affineTransformation->nbyper);
-        reg_affine_deformationField(reinterpret_cast<mat44 *>(flowFieldImage->ext_list->edata),affineTransformation);
-        reg_getDisplacementFromDeformation(affineTransformation);
-        reg_tools_addImageToImage(deformationFieldImage,affineTransformation,deformationFieldImage);
-        nifti_image_free(affineTransformation);
+    // If required an affine component is composed
+    if(flowFieldImage->num_ext>1){
+        reg_affine_getDeformationField(reinterpret_cast<mat44 *>(flowFieldImage->ext_list[1].edata),
+                deformationFieldImage,
+                true);
     }
 }
 /* *************************************************************** */
@@ -3435,13 +3716,14 @@ void reg_spline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGr
         reg_spline_getDeformationField(velocityFieldGrid,
                                        deformationFieldImage,
                                        NULL,
-                                       false,
-                                       true);
+                                       false, // composition
+                                       true // bspline
+                                       );
     }
     else if(velocityFieldGrid->intent_p1 == SPLINE_VEL_GRID){
         // Create an image to store the flow field
         nifti_image *flowField = nifti_copy_nim_info(deformationFieldImage);
-        flowField->data = (void *)malloc(flowField->nvox*flowField->nbyper);
+        flowField->data = (void *)calloc(flowField->nvox,flowField->nbyper);
         flowField->intent_code=NIFTI_INTENT_VECTOR;
         memset(flowField->intent_name, 0, 16);
         strcpy(flowField->intent_name,"NREG_TRANS");
@@ -3474,6 +3756,7 @@ void reg_spline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGr
 void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGrid,
                                                    nifti_image **deformationFieldImage)
 {
+    reg_exit(1);// Needs to be updated
     // Check first if the velocity field is actually a velocity field
     if( velocityFieldGrid->intent_p1!=SPLINE_VEL_GRID){
         fprintf(stderr, "[NiftyReg ERROR] reg_spline_getIntermediateDefFieldFromVelGrid - the provide grid is not a velocity field\n");
@@ -3481,15 +3764,15 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
     }
     // Set the initial deformation field to an identity transformation
     memset(deformationFieldImage[0]->data,0,
-           deformationFieldImage[0]->nvox* deformationFieldImage[0]->nbyper); // (*0)
-	reg_getDeformationFromDisplacement(deformationFieldImage[0]);
+            deformationFieldImage[0]->nvox* deformationFieldImage[0]->nbyper); // (*0)
+    reg_getDeformationFromDisplacement(deformationFieldImage[0]);
     // The initial deformation is generated using cubic B-Spline parametrisation
-	reg_spline_getDeformationField(velocityFieldGrid,
-								   deformationFieldImage[0],
-								   NULL, // mask
-								   true, //composition
-								   true // bspline
-								   );
+    reg_spline_getDeformationField(velocityFieldGrid,
+                                   deformationFieldImage[0],
+            NULL, // mask
+            true, //composition
+            true // bspline
+            );
 
     // The deformation field is converted from deformation field to displacement field
     reg_getDisplacementFromDeformation(deformationFieldImage[0]);
@@ -3515,11 +3798,11 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
     for(unsigned int i=0;i<squaringNumber;++i){
         // The computed scaled deformation field is copied over
         memcpy(deformationFieldImage[i+1]->data, deformationFieldImage[i]->data,
-               deformationFieldImage[i]->nvox*deformationFieldImage[i]->nbyper);
+                deformationFieldImage[i]->nvox*deformationFieldImage[i]->nbyper);
         // The deformation field is applied to itself
         reg_defField_compose(deformationFieldImage[i], // to apply
                              deformationFieldImage[i+1], // to update
-                             NULL);
+                NULL);
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] Squaring (composition) step %u/%u\n", i+1, squaringNumber);
 #endif
@@ -3545,8 +3828,10 @@ void compute_lie_bracket(nifti_image *img1,
 
         reg_getDeformationFromDisplacement(img1);
         reg_getDeformationFromDisplacement(img2);
-        reg_spline_GetJacobianMatrixFull(img1,img1,jacImg1);
-        reg_spline_GetJacobianMatrixFull(img2,img2,jacImg2);
+        // HERE TO DO
+        reg_exit(1);
+        //        reg_spline_GetJacobianMatrixFull(img1,img1,jacImg1);
+        //        reg_spline_GetJacobianMatrixFull(img2,img2,jacImg2);
         reg_getDisplacementFromDeformation(img1);
         reg_getDisplacementFromDeformation(img2);
 
@@ -3563,45 +3848,45 @@ void compute_lie_bracket(nifti_image *img1,
 
             for(size_t i=0;i<voxNumber;++i){
                 resPtrX[i]=
-                           (jacImg2[i].m[0][0]*img1DispPtrX[i] +
-                            jacImg2[i].m[0][1]*img1DispPtrY[i] +
-                            jacImg2[i].m[0][2]*img1DispPtrZ[i] )
-                           -
-                           (jacImg1[i].m[0][0]*img2DispPtrX[i] +
-                            jacImg1[i].m[0][1]*img2DispPtrY[i] +
-                            jacImg1[i].m[0][2]*img2DispPtrZ[i] );
+                        (jacImg2[i].m[0][0]*img1DispPtrX[i] +
+                        jacImg2[i].m[0][1]*img1DispPtrY[i] +
+                        jacImg2[i].m[0][2]*img1DispPtrZ[i] )
+                        -
+                        (jacImg1[i].m[0][0]*img2DispPtrX[i] +
+                        jacImg1[i].m[0][1]*img2DispPtrY[i] +
+                        jacImg1[i].m[0][2]*img2DispPtrZ[i] );
                 resPtrY[i]=
-                           (jacImg2[i].m[1][0]*img1DispPtrX[i] +
-                            jacImg2[i].m[1][1]*img1DispPtrY[i] +
-                            jacImg2[i].m[1][2]*img1DispPtrZ[i] )
-                           -
-                           (jacImg1[i].m[1][0]*img2DispPtrX[i] +
-                            jacImg1[i].m[1][1]*img2DispPtrY[i] +
-                            jacImg1[i].m[1][2]*img2DispPtrZ[i] );
+                        (jacImg2[i].m[1][0]*img1DispPtrX[i] +
+                        jacImg2[i].m[1][1]*img1DispPtrY[i] +
+                        jacImg2[i].m[1][2]*img1DispPtrZ[i] )
+                        -
+                        (jacImg1[i].m[1][0]*img2DispPtrX[i] +
+                        jacImg1[i].m[1][1]*img2DispPtrY[i] +
+                        jacImg1[i].m[1][2]*img2DispPtrZ[i] );
                 resPtrZ[i]=
-                           (jacImg2[i].m[2][0]*img1DispPtrX[i] +
-                            jacImg2[i].m[2][1]*img1DispPtrY[i] +
-                            jacImg2[i].m[2][2]*img1DispPtrZ[i] )
-                           -
-                           (jacImg1[i].m[2][0]*img2DispPtrX[i] +
-                            jacImg1[i].m[2][1]*img2DispPtrY[i] +
-                            jacImg1[i].m[2][2]*img2DispPtrZ[i] );
+                        (jacImg2[i].m[2][0]*img1DispPtrX[i] +
+                        jacImg2[i].m[2][1]*img1DispPtrY[i] +
+                        jacImg2[i].m[2][2]*img1DispPtrZ[i] )
+                        -
+                        (jacImg1[i].m[2][0]*img2DispPtrX[i] +
+                        jacImg1[i].m[2][1]*img2DispPtrY[i] +
+                        jacImg1[i].m[2][2]*img2DispPtrZ[i] );
             }
         }
         else{
             for(size_t i=0;i<voxNumber;++i){
                 resPtrX[i]=
-                           (jacImg2[i].m[0][0]*img1DispPtrX[i] +
-                            jacImg2[i].m[0][1]*img1DispPtrY[i] )
-                           -
-                           (jacImg1[i].m[0][0]*img2DispPtrX[i] +
-                            jacImg1[i].m[0][1]*img2DispPtrY[i] );
+                        (jacImg2[i].m[0][0]*img1DispPtrX[i] +
+                        jacImg2[i].m[0][1]*img1DispPtrY[i] )
+                        -
+                        (jacImg1[i].m[0][0]*img2DispPtrX[i] +
+                        jacImg1[i].m[0][1]*img2DispPtrY[i] );
                 resPtrY[i]=
-                           (jacImg2[i].m[1][0]*img1DispPtrX[i] +
-                            jacImg2[i].m[1][1]*img1DispPtrY[i] )
-                           -
-                           (jacImg1[i].m[1][0]*img2DispPtrX[i] +
-                            jacImg1[i].m[1][1]*img2DispPtrY[i] );
+                        (jacImg2[i].m[1][0]*img1DispPtrX[i] +
+                        jacImg2[i].m[1][1]*img1DispPtrY[i] )
+                        -
+                        (jacImg1[i].m[1][0]*img2DispPtrX[i] +
+                        jacImg1[i].m[1][1]*img2DispPtrY[i] );
             }
         }
         free(jacImg1);
@@ -3666,7 +3951,7 @@ void compute_lie_bracket(nifti_image *img1,
     // Free the temporary nifti images
     nifti_image_free(one_two);
     nifti_image_free(two_one);
-//    reg_spline_GetDeconvolvedCoefficents(res);
+    //    reg_spline_GetDeconvolvedCoefficents(res);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -3769,8 +4054,8 @@ void compute_BCH_update1(nifti_image *img1, // current field
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void compute_BCH_update(nifti_image *img1, // current field
-                         nifti_image *img2, // gradient
-                         int type)
+                        nifti_image *img2, // gradient
+                        int type)
 {
     if(img1->datatype!=img2->datatype){
         fprintf(stderr,"[NiftyReg ERROR] compute_BCH_update\n");
@@ -3778,16 +4063,16 @@ void compute_BCH_update(nifti_image *img1, // current field
         reg_exit(1);
     }
     switch(img1->datatype){
-        case NIFTI_TYPE_FLOAT32:
-            compute_BCH_update1<float>(img1, img2, type);
-            break;
-        case NIFTI_TYPE_FLOAT64:
-            compute_BCH_update1<double>(img1, img2, type);
-            break;
-        default:
-            fprintf(stderr,"[NiftyReg ERROR] compute_BCH_update\n");
-            fprintf(stderr,"[NiftyReg ERROR] Only implemented for single or double precision images\n");
-            reg_exit(1);
+    case NIFTI_TYPE_FLOAT32:
+        compute_BCH_update1<float>(img1, img2, type);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        compute_BCH_update1<double>(img1, img2, type);
+        break;
+    default:
+        fprintf(stderr,"[NiftyReg ERROR] compute_BCH_update\n");
+        fprintf(stderr,"[NiftyReg ERROR] Only implemented for single or double precision images\n");
+        reg_exit(1);
     }
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -3901,16 +4186,16 @@ void reg_spline_GetDeconvolvedCoefficents(nifti_image *img)
 {
 
     switch(img->datatype){
-        case NIFTI_TYPE_FLOAT32:
-            reg_spline_GetDeconvolvedCoefficents1<float>(img);
-            break;
-        case NIFTI_TYPE_FLOAT64:
-            reg_spline_GetDeconvolvedCoefficents1<double>(img);
-            break;
-        default:
-            fprintf(stderr,"[NiftyReg ERROR] reg_spline_GetDeconvolvedCoefficents1\n");
-            fprintf(stderr,"[NiftyReg ERROR] Only implemented for single or double precision images\n");
-            reg_exit(1);
+    case NIFTI_TYPE_FLOAT32:
+        reg_spline_GetDeconvolvedCoefficents1<float>(img);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        reg_spline_GetDeconvolvedCoefficents1<double>(img);
+        break;
+    default:
+        fprintf(stderr,"[NiftyReg ERROR] reg_spline_GetDeconvolvedCoefficents1\n");
+        fprintf(stderr,"[NiftyReg ERROR] Only implemented for single or double precision images\n");
+        reg_exit(1);
     }
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

@@ -35,7 +35,7 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
     this->measure_nmi=NULL;
     this->measure_multichannel_nmi=NULL;
 
-	this->similarityWeight=0.; // is automatically set depending of the penalty term weights
+    this->similarityWeight=0.; // is automatically set depending of the penalty term weights
 
     this->executableName=(char *)"NiftyReg BASE";
     this->referenceTimePoint=refTimePoint;
@@ -65,7 +65,7 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
     this->gradientSmoothingSigma=0;
     this->verbose=true;
     this->usePyramid=true;
-	this->forwardJacobianMatrix=NULL;
+    this->forwardJacobianMatrix=NULL;
 
 
     this->initialised=false;
@@ -87,7 +87,7 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
     this->paramsProgressCallback=NULL;
 
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_base constructor called\n");
+    reg_print_fct_debug("reg_base<T>::reg_base");
 #endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -164,7 +164,7 @@ reg_base<T>::~reg_base()
     if(this->activeVoxelNumber!=NULL){delete []this->activeVoxelNumber;this->activeVoxelNumber=NULL;}
     if(this->optimiser!=NULL){delete this->optimiser;this->optimiser=NULL;}
 
-	if(this->measure_nmi!=NULL)
+    if(this->measure_nmi!=NULL)
         delete this->measure_nmi;
     if(this->measure_multichannel_nmi!=NULL)
         delete this->measure_multichannel_nmi;
@@ -177,7 +177,7 @@ reg_base<T>::~reg_base()
     if(this->measure_lncc!=NULL)
         delete this->measure_lncc;
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_base destructor called\n");
+    reg_print_fct_debug("reg_base<T>::~reg_base");
 #endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -186,105 +186,135 @@ template<class T>
 void reg_base<T>::SetReferenceImage(nifti_image *r)
 {
     this->inputReference = r;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::SetReferenceImage");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::SetFloatingImage(nifti_image *f)
 {
     this->inputFloating = f;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::SetFloatingImage");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-void reg_base<T>::SetMaximalIterationNumber(unsigned int dance)
+void reg_base<T>::SetMaximalIterationNumber(unsigned int iter)
 {
-    this->maxiterationNumber=dance;
-    return;
+    this->maxiterationNumber=iter;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::SetMaximalIterationNumber");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::SetReferenceMask(nifti_image *m)
 {
     this->maskImage = m;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::SetReferenceMask");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::SetAffineTransformation(mat44 *a)
 {
     this->affineTransformation=a;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::SetAffineTransformation");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::SetReferenceSmoothingSigma(T s)
 {
     this->referenceSmoothingSigma = s;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::SetReferenceSmoothingSigma");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::SetFloatingSmoothingSigma(T s)
 {
     this->floatingSmoothingSigma = s;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::SetFloatingSmoothingSigma");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::SetReferenceThresholdUp(unsigned int i, T t)
 {
     this->referenceThresholdUp[i] = t;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::SetReferenceThresholdUp");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::SetReferenceThresholdLow(unsigned int i, T t)
 {
     this->referenceThresholdLow[i] = t;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::SetReferenceThresholdLow");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::SetFloatingThresholdUp(unsigned int i, T t)
 {
     this->floatingThresholdUp[i] = t;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::SetFloatingThresholdUp");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::SetFloatingThresholdLow(unsigned int i, T t)
 {
     this->floatingThresholdLow[i] = t;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::SetFloatingThresholdLow");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::SetWarpedPaddingValue(T p)
 {
     this->warpedPaddingValue = p;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::SetWarpedPaddingValue");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::SetLevelNumber(unsigned int l)
 {
     this->levelNumber = l;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::SetLevelNumber");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::SetLevelToPerform(unsigned int l)
 {
     this->levelToPerform = l;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::SetLevelToPerform");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::SetGradientSmoothingSigma(T g)
 {
     this->gradientSmoothingSigma = g;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::SetGradientSmoothingSigma");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
@@ -292,7 +322,9 @@ void reg_base<T>::UseConjugateGradient()
 {
     this->useConjGradient = true;
     this->useApproxGradient = false;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::UseConjugateGradient");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
@@ -300,7 +332,9 @@ void reg_base<T>::DoNotUseConjugateGradient()
 {
     this->useConjGradient = false;
     this->useApproxGradient = false;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::DoNotUseConjugateGradient");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
@@ -308,7 +342,9 @@ void reg_base<T>::UseApproximatedGradient()
 {
     this->useConjGradient = false;
     this->useApproxGradient = true;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::UseApproximatedGradient");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
@@ -316,49 +352,63 @@ void reg_base<T>::DoNotUseApproximatedGradient()
 {
     this->useConjGradient = true;
     this->useApproxGradient = false;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::DoNotUseApproximatedGradient");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::PrintOutInformation()
 {
     this->verbose = true;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::PrintOutInformation");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::DoNotPrintOutInformation()
 {
     this->verbose = false;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::DoNotPrintOutInformation");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::DoNotUsePyramidalApproach()
 {
     this->usePyramid=false;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::DoNotUsePyramidalApproach");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::UseNeareatNeighborInterpolation()
 {
     this->interpolation=0;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::UseNeareatNeighborInterpolation");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::UseLinearInterpolation()
 {
     this->interpolation=1;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::UseLinearInterpolation");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::UseCubicSplineInterpolation()
 {
     this->interpolation=3;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::UseCubicSplineInterpolation");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -368,7 +418,9 @@ void reg_base<T>::ClearCurrentInputImage()
     this->currentReference=NULL;
     this->currentMask=NULL;
     this->currentFloating=NULL;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::ClearCurrentInputImage");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -392,7 +444,9 @@ void reg_base<T>::AllocateWarped()
     this->warped->datatype = this->currentFloating->datatype;
     this->warped->nbyper = this->currentFloating->nbyper;
     this->warped->data = (void *)calloc(this->warped->nvox, this->warped->nbyper);
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::AllocateWarped");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -401,7 +455,9 @@ void reg_base<T>::ClearWarped()
     if(this->warped!=NULL)
         nifti_image_free(this->warped);
     this->warped=NULL;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::ClearWarped");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -451,7 +507,9 @@ void reg_base<T>::AllocateDeformationField()
                 this->deformationFieldImage->ny *
                 this->deformationFieldImage->nz *
                 sizeof(mat33));
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::AllocateDeformationField");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -464,7 +522,9 @@ void reg_base<T>::ClearDeformationField()
     if(this->forwardJacobianMatrix!=NULL)
         free(this->forwardJacobianMatrix);
     this->forwardJacobianMatrix=NULL;
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::ClearDeformationField");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -486,7 +546,9 @@ void reg_base<T>::AllocateWarpedGradient()
             (size_t)this->warpedGradientImage->nu;
     this->warpedGradientImage->data = (void *)calloc(this->warpedGradientImage->nvox,
                                                      this->warpedGradientImage->nbyper);
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::AllocateWarpedGradient");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -496,7 +558,9 @@ void reg_base<T>::ClearWarpedGradient()
         nifti_image_free(this->warpedGradientImage);
         this->warpedGradientImage=NULL;
     }
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::ClearWarpedGradient");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -510,7 +574,9 @@ void reg_base<T>::AllocateVoxelBasedMeasureGradient()
     this->voxelBasedMeasureGradientImage = nifti_copy_nim_info(this->deformationFieldImage);
     this->voxelBasedMeasureGradientImage->data = (void *)calloc(this->voxelBasedMeasureGradientImage->nvox,
                                                                 this->voxelBasedMeasureGradientImage->nbyper);
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::AllocateVoxelBasedMeasureGradient");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -520,62 +586,63 @@ void reg_base<T>::ClearVoxelBasedMeasureGradient()
         nifti_image_free(this->voxelBasedMeasureGradientImage);
         this->voxelBasedMeasureGradientImage=NULL;
     }
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::ClearVoxelBasedMeasureGradient");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::CheckParameters()
 {
-	// CHECK THAT BOTH INPUT IMAGES ARE DEFINED
-	if(this->inputReference==NULL){
-		fprintf(stderr,"[NiftyReg ERROR] No reference image has been defined.\n");
-		reg_exit(1);
-	}
-	if(this->inputFloating==NULL){
-		fprintf(stderr,"[NiftyReg ERROR] No floating image has been defined.\n");
-		reg_exit(1);
-	}
-
-	// CHECK THE MASK DIMENSION IF IT IS DEFINED
-	if(this->maskImage!=NULL){
-		if(this->inputReference->nx != this->maskImage->nx ||
-		   this->inputReference->ny != this->maskImage->ny ||
-		   this->inputReference->nz != this->maskImage->nz ){
-			printf("x: %i %i\n",this->inputReference->nx, this->maskImage->nx);
-			printf("y: %i %i\n",this->inputReference->ny, this->maskImage->ny);
-			printf("z: %i %i\n",this->inputReference->nz, this->maskImage->nz);
-			fprintf(stderr,"[NiftyReg ERROR] The mask image has different x, y or z dimension than the reference image.\n");
-			reg_exit(1);
-		}
+    // CHECK THAT BOTH INPUT IMAGES ARE DEFINED
+    if(this->inputReference==NULL){
+        fprintf(stderr,"[NiftyReg ERROR] No reference image has been defined.\n");
+        reg_exit(1);
+    }
+    if(this->inputFloating==NULL){
+        fprintf(stderr,"[NiftyReg ERROR] No floating image has been defined.\n");
+        reg_exit(1);
     }
 
-	// CHECK THE NUMBER OF LEVEL TO PERFORM
-	if(this->levelToPerform>0){
-		this->levelToPerform=this->levelToPerform<this->levelNumber?this->levelToPerform:this->levelNumber;
-	}
-	else this->levelToPerform=this->levelNumber;
-	if(this->levelToPerform==0 || this->levelToPerform>this->levelNumber)
-		this->levelToPerform=this->levelNumber;
+    // CHECK THE MASK DIMENSION IF IT IS DEFINED
+    if(this->maskImage!=NULL){
+        if(this->inputReference->nx != this->maskImage->nx ||
+           this->inputReference->ny != this->maskImage->ny ||
+           this->inputReference->nz != this->maskImage->nz ){
+            printf("x: %i %i\n",this->inputReference->nx, this->maskImage->nx);
+            printf("y: %i %i\n",this->inputReference->ny, this->maskImage->ny);
+            printf("z: %i %i\n",this->inputReference->nz, this->maskImage->nz);
+            fprintf(stderr,"[NiftyReg ERROR] The mask image has different x, y or z dimension than the reference image.\n");
+            reg_exit(1);
+        }
+    }
+
+    // CHECK THE NUMBER OF LEVEL TO PERFORM
+    if(this->levelToPerform>0){
+        this->levelToPerform=this->levelToPerform<this->levelNumber?this->levelToPerform:this->levelNumber;
+    }
+    else this->levelToPerform=this->levelNumber;
+    if(this->levelToPerform==0 || this->levelToPerform>this->levelNumber)
+        this->levelToPerform=this->levelNumber;
 
 #ifndef NDEBUG
-	printf("[NiftyReg DEBUG] reg_base::CheckParameters() done\n");
+    reg_print_fct_debug("reg_base<T>::CheckParameters");
 #endif
-	return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::InitialiseSimilarity()
 {
-	// SET THE DEFAULT MEASURE OF SIMILARITY IF NONE HAS BEEN SET
+    // SET THE DEFAULT MEASURE OF SIMILARITY IF NONE HAS BEEN SET
     if(this->measure_nmi==NULL &&
        this->measure_ssd==NULL &&
        this->measure_dti==NULL &&
        this->measure_lncc==NULL &&
        this->measure_lncc==NULL){
         this->measure_nmi=new reg_nmi;
-		for(int i=0;i<this->inputReference->nt;++i)
+        for(int i=0;i<this->inputReference->nt;++i)
             this->measure_nmi->SetActiveTimepoint(i);
-	}
+    }
     if(this->measure_nmi!=NULL)
         this->measure_nmi->InitialiseMeasure(this->currentReference,
                                              this->currentFloating,
@@ -603,7 +670,7 @@ void reg_base<T>::InitialiseSimilarity()
                                              this->voxelBasedMeasureGradientImage
                                              );
 
-	if(this->measure_kld!=NULL)
+    if(this->measure_kld!=NULL)
         this->measure_kld->InitialiseMeasure(this->currentReference,
                                              this->currentFloating,
                                              this->currentMask,
@@ -631,13 +698,13 @@ void reg_base<T>::InitialiseSimilarity()
                                              );
 
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_base::InitialiseSimilarity() done\n");
+    reg_print_fct_debug("reg_base<T>::InitialiseSimilarity");
 #endif
-	return;
+    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-void reg_base<T>::Initisalise()
+void reg_base<T>::Initialise()
 {
     if(this->initialised) return;
 
@@ -684,32 +751,32 @@ void reg_base<T>::Initisalise()
     unsigned int pyramidalLevelNumber=1;
     if(this->usePyramid) pyramidalLevelNumber=this->levelToPerform;
 
-	// SMOOTH THE INPUT IMAGES IF REQUIRED
-	for(unsigned int l=0; l<this->levelToPerform; l++){
-		if(this->referenceSmoothingSigma!=0.0){
-			bool *active = new bool[this->referencePyramid[l]->nt];
-			float *sigma = new float[this->referencePyramid[l]->nt];
-			active[0]=true;
-			for(int i=1;i<this->referencePyramid[l]->nt;++i)
-				active[i]=false;
-			sigma[0]=this->referenceSmoothingSigma;
-			reg_tools_kernelConvolution(this->referencePyramid[l], sigma, 0, NULL, active);
-			delete []active;
-			delete []sigma;
-		}
-		if(this->floatingSmoothingSigma!=0.0){
-			// Only the first image is smoothed
-			bool *active = new bool[this->floatingPyramid[l]->nt];
-			float *sigma = new float[this->floatingPyramid[l]->nt];
-			active[0]=true;
-			for(int i=1;i<this->floatingPyramid[l]->nt;++i)
-				active[i]=false;
-			sigma[0]=this->floatingSmoothingSigma;
-			reg_tools_kernelConvolution(this->floatingPyramid[l], sigma, 0, NULL, active);
-			delete []active;
-			delete []sigma;
-		}
-	}
+    // SMOOTH THE INPUT IMAGES IF REQUIRED
+    for(unsigned int l=0; l<this->levelToPerform; l++){
+        if(this->referenceSmoothingSigma!=0.0){
+            bool *active = new bool[this->referencePyramid[l]->nt];
+            float *sigma = new float[this->referencePyramid[l]->nt];
+            active[0]=true;
+            for(int i=1;i<this->referencePyramid[l]->nt;++i)
+                active[i]=false;
+            sigma[0]=this->referenceSmoothingSigma;
+            reg_tools_kernelConvolution(this->referencePyramid[l], sigma, 0, NULL, active);
+            delete []active;
+            delete []sigma;
+        }
+        if(this->floatingSmoothingSigma!=0.0){
+            // Only the first image is smoothed
+            bool *active = new bool[this->floatingPyramid[l]->nt];
+            float *sigma = new float[this->floatingPyramid[l]->nt];
+            active[0]=true;
+            for(int i=1;i<this->floatingPyramid[l]->nt;++i)
+                active[i]=false;
+            sigma[0]=this->floatingSmoothingSigma;
+            reg_tools_kernelConvolution(this->floatingPyramid[l], sigma, 0, NULL, active);
+            delete []active;
+            delete []sigma;
+        }
+    }
 
     // THRESHOLD THE INPUT IMAGES IF REQUIRED
     for(unsigned int l=0; l<pyramidalLevelNumber; l++){
@@ -719,9 +786,8 @@ void reg_base<T>::Initisalise()
 
     this->initialised=true;
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_base::Initialise() done\n");
+    reg_print_fct_debug("reg_base<T>::Initialise");
 #endif
-    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -731,13 +797,16 @@ void reg_base<T>::SetOptimiser()
     if(this->useConjGradient)
         this->optimiser=new reg_conjugateGradient<T>();
     else this->optimiser=new reg_optimiser<T>();
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::SetOptimiser");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 double reg_base<T>::ComputeSimilarityMeasure()
 {
-	double measure=0.;
+    double measure=0.;
     if(this->measure_nmi!=NULL)
         measure += this->measure_nmi->GetSimilarityMeasureValue();
 
@@ -756,6 +825,9 @@ double reg_base<T>::ComputeSimilarityMeasure()
     if(this->measure_dti!=NULL)
         measure += this->measure_dti->GetSimilarityMeasureValue();
 
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::ComputeSimilarityMeasure");
+#endif
     return double(this->similarityWeight) * measure;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -783,6 +855,7 @@ void reg_base<T>::GetVoxelBasedGradient()
                              this->interpolation,
                              this->warpedPaddingValue);
 //    }
+
     // The voxel based gradient image is filled with zeros
     reg_tools_multiplyValueToImage(this->voxelBasedMeasureGradientImage,
                                    this->voxelBasedMeasureGradientImage,
@@ -794,7 +867,7 @@ void reg_base<T>::GetVoxelBasedGradient()
     if(this->measure_multichannel_nmi!=NULL)
         this->measure_multichannel_nmi->GetVoxelBasedSimilarityMeasureGradient();
 
-	if(this->measure_ssd!=NULL)
+    if(this->measure_ssd!=NULL)
         this->measure_ssd->GetVoxelBasedSimilarityMeasureGradient();
 
     if(this->measure_kld!=NULL)
@@ -803,10 +876,12 @@ void reg_base<T>::GetVoxelBasedGradient()
     if(this->measure_lncc!=NULL)
         this->measure_lncc->GetVoxelBasedSimilarityMeasureGradient();
 
-	if(this->measure_dti!=NULL)
+    if(this->measure_dti!=NULL)
         this->measure_dti->GetVoxelBasedSimilarityMeasureGradient();
 
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::GetVoxelBasedGradient");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -838,7 +913,9 @@ void reg_base<T>::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber)
     // I am here adding 4 to the specified bin number to accomodate for
     // the spline support
     this->measure_nmi->SetFloatingBinNumber(floBinNumber+4, timepoint);
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::UseNMISetFloatingBinNumber");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
@@ -850,7 +927,9 @@ void reg_base<T>::UseNMISetReferenceBinNumber(int timepoint, int refBinNumber)
     // I am here adding 4 to the specified bin number to accomodate for
     // the spline support
     this->measure_nmi->SetReferenceBinNumber(refBinNumber+4, timepoint);
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::UseNMISetReferenceBinNumber");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
@@ -859,17 +938,21 @@ void reg_base<T>::UseMultiChannelNMI(int timepointNumber, int *timepoint)
     if(this->measure_multichannel_nmi==NULL)
         this->measure_multichannel_nmi=new reg_multichannel_nmi;
     for(int i=0; i<timepointNumber;++i)
-		this->measure_multichannel_nmi->SetActiveTimepoint(i);
-    return;
+        this->measure_multichannel_nmi->SetActiveTimepoint(i);
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::UseMultiChannelNMI");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_base<T>::UseSSD(int timepoint)
 {
     if(this->measure_ssd==NULL)
-		this->measure_ssd=new reg_ssd;
+        this->measure_ssd=new reg_ssd;
     this->measure_ssd->SetActiveTimepoint(timepoint);
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::UseSSD");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
@@ -878,7 +961,9 @@ void reg_base<T>::UseKLDivergence(int timepoint)
     if(this->measure_kld==NULL)
         this->measure_kld=new reg_kld;
     this->measure_kld->SetActiveTimepoint(timepoint);
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::UseKLDivergence");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
@@ -888,7 +973,23 @@ void reg_base<T>::UseLNCC(int timepoint, float stddev)
         this->measure_lncc=new reg_lncc;
     this->measure_lncc->SetKernelStandardDeviation(timepoint,
                                                    stddev);
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::UseLNCC");
+#endif
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+void reg_base<T>::SetLNCCKernelType(int type)
+{
+    if(this->measure_lncc==NULL){
+        reg_print_fct_error("reg_base<T>::SetLNCCKernelType");
+        reg_print_msg_error("The LNCC object has to be created first");
+        reg_exit(1);
+    }
+    this->measure_lncc->SetKernelType(type);
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::SetLNCCKernelType");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
@@ -900,7 +1001,9 @@ void reg_base<T>::UseDTI(bool *timepoint)
         if(timepoint[i]==true)
             this->measure_dti->SetActiveTimepoint(i);
     }
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::UseDTI");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -910,7 +1013,7 @@ void reg_base<T>::WarpFloatingImage(int inter)
     // Compute the deformation field
     this->GetDeformationField();
 
-	if(this->measure_dti==NULL){
+    if(this->measure_dti==NULL){
         // Resample the floating image
         reg_resampleImage(this->currentFloating,
                           this->warped,
@@ -931,8 +1034,9 @@ void reg_base<T>::WarpFloatingImage(int inter)
                           this->measure_dti->GetActiveTimepoints(),
                           this->forwardJacobianMatrix);
     }
-
-    return;
+#ifndef NDEBUG
+    reg_print_fct_debug("reg_base<T>::WarpFloatingImage");
+#endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -943,18 +1047,18 @@ void reg_base<T>::Run()
     printf("[NiftyReg DEBUG] %s::Run() called\n", this->executableName);
 #endif
 
-    if(!this->initialised) this->Initisalise();
+    if(!this->initialised) this->Initialise();
 
     // Compute the resolution of the progress bar
     float iProgressStep=1, nProgressSteps;
     nProgressSteps = this->levelToPerform*this->maxiterationNumber;
 
-	// Loop over the different resolution level to perform
+    // Loop over the different resolution level to perform
     for(this->currentLevel=0;
         this->currentLevel<this->levelToPerform;
         this->currentLevel++){
 
-		// Set the current input images
+        // Set the current input images
         if(this->usePyramid){
             this->currentReference = this->referencePyramid[this->currentLevel];
             this->currentFloating = this->floatingPyramid[this->currentLevel];
@@ -989,15 +1093,15 @@ void reg_base<T>::Run()
         this->SetOptimiser();
 
         // Loop over the number of perturbation to do
-		for(size_t perturbation=0;
-			perturbation<=this->perturbationNumber;
-			++perturbation){
+        for(size_t perturbation=0;
+            perturbation<=this->perturbationNumber;
+            ++perturbation){
 
             // Evalulate the objective function value
             this->UpdateBestObjFunctionValue();
             this->PrintInitialObjFunctionValue();
 
-			// Iterate until convergence or until the max number of iteration is reach
+            // Iterate until convergence or until the max number of iteration is reach
             while(true){
 
                 if(currentSize==0)
@@ -1018,7 +1122,7 @@ void reg_base<T>::Run()
                 // A line search is performed
                 this->optimiser->Optimise(maxStepSize,smallestSize,currentSize);
 
-				// Update the obecjtive function variables and print some information
+                // Update the obecjtive function variables and print some information
                 this->PrintCurrentObjFunctionValue(currentSize);
 
                 // Monitoring progression when f3d is ran as a library
@@ -1097,11 +1201,9 @@ void reg_base<T>::Run()
     {
         (*funcProgressCallback)( 100., paramsProgressCallback);
     }
-
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] %s::Run() done\n", this->executableName);
+    reg_print_fct_debug("reg_base<T>::Run");
 #endif
-    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

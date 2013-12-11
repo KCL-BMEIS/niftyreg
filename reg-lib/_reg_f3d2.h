@@ -34,7 +34,7 @@ class reg_f3d2 : public reg_f3d_sym<T>
 public:
     reg_f3d2(int refTimePoint,int floTimePoint);
     ~reg_f3d2();
-    virtual void Initisalise();
+    virtual void Initialise();
     virtual nifti_image **GetWarpedImage();
 };
 

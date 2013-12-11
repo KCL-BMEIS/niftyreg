@@ -334,7 +334,7 @@ int main(int argc, char **argv)
                 (size_t)deformationFieldImage->nt*(size_t)deformationFieldImage->nu;
         deformationFieldImage->datatype = currentDatatype;
         deformationFieldImage->nbyper = currentNbyper;
-        deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
+		deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
         //Computation
         if(flag->inputCPPFlag){
 #ifndef NDEBUG
@@ -348,6 +348,7 @@ int main(int argc, char **argv)
             }
             else{
                 reg_tools_multiplyValueToImage(deformationFieldImage,deformationFieldImage,0.f);
+				deformationFieldImage->intent_p1=DISP_FIELD;
                 reg_getDeformationFromDisplacement(deformationFieldImage);
                 reg_spline_getDeformationField(controlPointImage,
                                                deformationFieldImage,
@@ -361,7 +362,7 @@ int main(int argc, char **argv)
 #ifndef NDEBUG
             printf("[NiftyReg DEBUG] Computation of the deformation field from the affine transformation\n");
 #endif
-            reg_affine_deformationField(affineTransformationMatrix,
+            reg_affine_getDeformationField(affineTransformationMatrix,
                                         deformationFieldImage);
         }
     }

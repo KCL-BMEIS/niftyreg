@@ -52,6 +52,7 @@ typedef struct{
     bool binarisedImageFlag;
     bool thresholdImageFlag;
     bool nanMaskFlag;
+    bool normFlag;
     int operationTypeFlag;
     bool iso;
 }FLAG;
@@ -95,7 +96,7 @@ int main(int argc, char **argv)
     PARAM *param = (PARAM *)calloc(1,sizeof(PARAM));
     FLAG *flag = (FLAG *)calloc(1,sizeof(FLAG));
     flag->operationTypeFlag=-1;
-    
+
     if (argc < 2){
         PetitUsage(argv[0]);
         return 1;
@@ -204,6 +205,9 @@ int main(int argc, char **argv)
             param->operationImageName=argv[++i];
             flag->nanMaskFlag=1;
         }
+        else if(strcmp(argv[i], "-norm") == 0){
+            flag->normFlag=1;
+        }
         else{
             fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
             PetitUsage(argv[0]);
@@ -242,6 +246,25 @@ int main(int argc, char **argv)
 
     //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 
+    // The image intensity are normalised between the 3 and 97%ile values
+    if(flag->normFlag){
+        reg_tools_changeDatatype<float>(image);
+        nifti_image *normImage = nifti_copy_nim_info(image);
+        normImage->data = (void *)malloc(normImage->nvox * normImage->nbyper);
+        memcpy(normImage->data, image->data, normImage->nvox*normImage->nbyper);
+        reg_heapSort(static_cast<float *>(normImage->data), normImage->nvox);
+        float minValue = static_cast<float *>(normImage->data)[static_cast<int>(reg_floor(03*normImage->nvox/100))];
+        float maxValue = static_cast<float *>(normImage->data)[static_cast<int>(reg_floor(97*normImage->nvox/100))];
+        reg_tools_substractValueToImage(image,normImage,minValue);
+        reg_tools_divideValueToImage(normImage,normImage,maxValue-minValue);
+        if(flag->outputImageFlag)
+            reg_io_WriteImageFile(normImage, param->outputImageName);
+        else reg_io_WriteImageFile(normImage, "output.nii");
+        nifti_image_free(normImage);
+    }
+
+    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+
     if(flag->smoothGaussianFlag || flag->smoothSplineFlag || flag->smoothMeanFlag){
         nifti_image *smoothImg = nifti_copy_nim_info(image);
         smoothImg->data = (void *)malloc(smoothImg->nvox * smoothImg->nbyper);
@@ -249,27 +272,27 @@ int main(int argc, char **argv)
         float *kernelSize = new float[smoothImg->nt*smoothImg->nu];
         bool *timePoint = new bool[smoothImg->nt*smoothImg->nu];
         for(int i=0;i<smoothImg->nt*smoothImg->nu;++i) timePoint[i]=true;
-		bool boolX[3]={1,0,0};
+        bool boolX[3]={1,0,0};
         for(int i=0; i<smoothImg->nt*smoothImg->nu;++i) kernelSize[i]=param->smoothValueX;
         if(flag->smoothMeanFlag)
-			reg_tools_kernelConvolution(smoothImg,kernelSize,2,NULL,timePoint,boolX);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,2,NULL,timePoint,boolX);
         else if(flag->smoothSplineFlag)
-			reg_tools_kernelConvolution(smoothImg,kernelSize,1,NULL,timePoint,boolX);
-		else reg_tools_kernelConvolution(smoothImg,kernelSize,0,NULL,timePoint,boolX);
-		bool boolY[3]={0,1,0};
+            reg_tools_kernelConvolution(smoothImg,kernelSize,1,NULL,timePoint,boolX);
+        else reg_tools_kernelConvolution(smoothImg,kernelSize,0,NULL,timePoint,boolX);
+        bool boolY[3]={0,1,0};
         for(int i=0; i<smoothImg->nt*smoothImg->nu;++i) kernelSize[i]=param->smoothValueY;
         if(flag->smoothMeanFlag)
-			reg_tools_kernelConvolution(smoothImg,kernelSize,2,NULL,timePoint,boolY);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,2,NULL,timePoint,boolY);
         else if(flag->smoothSplineFlag)
-			reg_tools_kernelConvolution(smoothImg,kernelSize,1,NULL,timePoint,boolY);
-		else reg_tools_kernelConvolution(smoothImg,kernelSize,0,NULL,timePoint,boolY);
-		bool boolZ[3]={0,0,1};
+            reg_tools_kernelConvolution(smoothImg,kernelSize,1,NULL,timePoint,boolY);
+        else reg_tools_kernelConvolution(smoothImg,kernelSize,0,NULL,timePoint,boolY);
+        bool boolZ[3]={0,0,1};
         for(int i=0; i<smoothImg->nt*smoothImg->nu;++i) kernelSize[i]=param->smoothValueZ;
         if(flag->smoothMeanFlag)
-			reg_tools_kernelConvolution(smoothImg,kernelSize,2,NULL,timePoint,boolZ);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,2,NULL,timePoint,boolZ);
         else if(flag->smoothSplineFlag)
-			reg_tools_kernelConvolution(smoothImg,kernelSize,1,NULL,timePoint,boolZ);
-		else reg_tools_kernelConvolution(smoothImg,kernelSize,0,NULL,timePoint,boolZ);
+            reg_tools_kernelConvolution(smoothImg,kernelSize,1,NULL,timePoint,boolZ);
+        else reg_tools_kernelConvolution(smoothImg,kernelSize,0,NULL,timePoint,boolZ);
         delete []kernelSize;
         delete []timePoint;
         if(flag->outputImageFlag)
@@ -289,6 +312,44 @@ int main(int argc, char **argv)
                 return 1;
             }
             reg_checkAndCorrectDimension(image2);
+        }
+        // Images are converted to the higher datatype
+        switch(image->datatype>image2->datatype?image->datatype:image2->datatype){
+        case NIFTI_TYPE_UINT8:
+            reg_tools_changeDatatype<unsigned char>(image);
+            reg_tools_changeDatatype<unsigned char>(image2);
+            break;
+        case NIFTI_TYPE_INT8:
+            reg_tools_changeDatatype<char>(image);
+            reg_tools_changeDatatype<char>(image2);
+            break;
+        case NIFTI_TYPE_UINT16:
+            reg_tools_changeDatatype<unsigned short>(image);
+            reg_tools_changeDatatype<unsigned short>(image2);
+            break;
+        case NIFTI_TYPE_INT16:
+            reg_tools_changeDatatype<short>(image);
+            reg_tools_changeDatatype<short>(image2);
+            break;
+        case NIFTI_TYPE_UINT32:
+            reg_tools_changeDatatype<unsigned int>(image);
+            reg_tools_changeDatatype<unsigned int>(image2);
+            break;
+        case NIFTI_TYPE_INT32:
+            reg_tools_changeDatatype<int>(image);
+            reg_tools_changeDatatype<int>(image2);
+            break;
+        case NIFTI_TYPE_FLOAT32:
+            reg_tools_changeDatatype<float>(image);
+            reg_tools_changeDatatype<float>(image2);
+            break;
+        case NIFTI_TYPE_FLOAT64:
+            reg_tools_changeDatatype<double>(image);
+            reg_tools_changeDatatype<double>(image2);
+            break;
+        default:
+            reg_print_msg_error("Unsurported data type.");
+            reg_exit(1);
         }
 
         nifti_image *resultImage = nifti_copy_nim_info(image);

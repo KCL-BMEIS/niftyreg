@@ -222,10 +222,10 @@ static int _nrrdSprintUS(char *s, const US *v) { return sprintf(s, "%u", *v); }
 static int _nrrdSprintIN(char *s, const JN *v) { return sprintf(s, "%d", *v); }
 static int _nrrdSprintUI(char *s, const UI *v) { return sprintf(s, "%u", *v); }
 static int _nrrdSprintLL(char *s, const LL *v) { 
-  return sprintf(s, AIR_LLONG_FMT, *v); 
+  return sprintf(s, AIR_LLONG_FMT, (long long int)*v);
 }
 static int _nrrdSprintUL(char *s, const UL *v) { 
-  return sprintf(s, AIR_ULLONG_FMT, *v); 
+  return sprintf(s, AIR_ULLONG_FMT, (long long unsigned int)*v);
 }
 /* HEY: sizeof(float) and sizeof(double) assumed here, since we're 
    basing "8" and "17" on 6 == FLT_DIG and 15 == DBL_DIG, which are 

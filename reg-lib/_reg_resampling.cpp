@@ -42,7 +42,7 @@ void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *basis, FieldTYPE *deriva
 /* *************************************************************** */
 template <class DTYPE>
 void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
-									  void **originalFloatingData,
+                                      void **originalFloatingData,
                                       int *dtIndicies)
 {
     // If we have some valid diffusion tensor indicies, we need to replace the tensor components
@@ -56,10 +56,10 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
 #endif
         size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
 
-		*originalFloatingData=(void *)malloc(floatingImage->nvox*sizeof(DTYPE));
-		memcpy(*originalFloatingData,
+        *originalFloatingData=(void *)malloc(floatingImage->nvox*sizeof(DTYPE));
+        memcpy(*originalFloatingData,
                floatingImage->data,
-			   floatingImage->nvox*sizeof(DTYPE));
+               floatingImage->nvox*sizeof(DTYPE));
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] The floating image data has been copied\n");
 #endif
@@ -67,12 +67,12 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
         /* As the tensor has 6 unique components that we need to worry about, read them out
         for the floating image. */
         DTYPE *firstVox = static_cast<DTYPE *>(floatingImage->data);
-		DTYPE *floatingIntensityXX = &firstVox[floatingVoxelNumber*dtIndicies[0]];
-		DTYPE *floatingIntensityXY = &firstVox[floatingVoxelNumber*dtIndicies[1]];
-		DTYPE *floatingIntensityYY = &firstVox[floatingVoxelNumber*dtIndicies[2]];
+        DTYPE *floatingIntensityXX = &firstVox[floatingVoxelNumber*dtIndicies[0]];
+        DTYPE *floatingIntensityXY = &firstVox[floatingVoxelNumber*dtIndicies[1]];
+        DTYPE *floatingIntensityYY = &firstVox[floatingVoxelNumber*dtIndicies[2]];
         DTYPE *floatingIntensityXZ = &firstVox[floatingVoxelNumber*dtIndicies[3]];
         DTYPE *floatingIntensityYZ = &firstVox[floatingVoxelNumber*dtIndicies[4]];
-		DTYPE *floatingIntensityZZ = &firstVox[floatingVoxelNumber*dtIndicies[5]];
+        DTYPE *floatingIntensityZZ = &firstVox[floatingVoxelNumber*dtIndicies[5]];
 
         // We need a mat44 to store the diffusion tensor at each voxel for our calculating. Although the DT is 3x3 really,
         // it is convenient to store it as a 4x4 to work with existing code for the matrix logarithm/exponential
@@ -84,15 +84,15 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
 #if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     private(floatingIndex,diffTensor) \
-	shared(floatingVoxelNumber,floatingIntensityXX,floatingIntensityYY, \
+    shared(floatingVoxelNumber,floatingIntensityXX,floatingIntensityYY, \
         floatingIntensityZZ,floatingIntensityXY,floatingIntensityXZ, \
         floatingIntensityYZ)
 #endif
         for(floatingIndex=0; floatingIndex<floatingVoxelNumber; ++floatingIndex){
-			if(floatingIntensityXX[floatingIndex] > 1e-2){
+            if(floatingIntensityXX[floatingIndex] > 1e-2){
                 // Fill a mat44 with the tensor components
                 reg_mat44_eye(&diffTensor);
-				diffTensor.m[0][0] = floatingIntensityXX[floatingIndex];
+                diffTensor.m[0][0] = floatingIntensityXX[floatingIndex];
                 diffTensor.m[0][1] = floatingIntensityXY[floatingIndex];
                 diffTensor.m[1][0] = diffTensor.m[0][1];
                 diffTensor.m[1][1] = floatingIntensityYY[floatingIndex];
@@ -104,10 +104,10 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
                 // Decompose the mat33 into a rotation and a diagonal matrix of eigen values
                 // Recompose as a log tensor Rt log(E) R, where E is a diagonal matrix
                 // containing the eigen values and R is a rotation matrix. This is the same as
-				// taking the logarithm of the tensor
-				diffTensor = reg_mat44_logm(&diffTensor);
+                // taking the logarithm of the tensor
+                diffTensor = reg_mat44_logm(&diffTensor);
                 // Write this out as a new image
-				floatingIntensityXX[floatingIndex] = diffTensor.m[0][0];
+                floatingIntensityXX[floatingIndex] = diffTensor.m[0][0];
                 floatingIntensityXY[floatingIndex] = diffTensor.m[0][1];
                 floatingIntensityYY[floatingIndex] = diffTensor.m[1][1];
                 floatingIntensityXZ[floatingIndex] = diffTensor.m[0][2];
@@ -115,7 +115,7 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
                 floatingIntensityZZ[floatingIndex] = diffTensor.m[2][2];
             }
             else{ // if junk diffusion data, log it
-				floatingIntensityXX[floatingIndex] = static_cast<DTYPE>(-4.606f);
+                floatingIntensityXX[floatingIndex] = static_cast<DTYPE>(-4.606f);
                 floatingIntensityYY[floatingIndex] = static_cast<DTYPE>(-4.606f);
                 floatingIntensityZZ[floatingIndex] = static_cast<DTYPE>(-4.606f);
             }
@@ -130,126 +130,126 @@ template <class DTYPE>
 void reg_dti_resampling_postprocessing(nifti_image *inputImage,
                                        int *mask,
                                        mat33 *jacMat,
-									   int *dtIndicies,
-									   nifti_image *warpedImage = NULL)
+                                       int *dtIndicies,
+                                       nifti_image *warpedImage = NULL)
 {
     // If we have some valid diffusion tensor indicies, we need to exponentiate the previously logged tensor components
     // we also need to reorient the tensors based on the local transformation Jacobians
     if(dtIndicies[0] != -1 ){
 
-		size_t voxelNumber = (size_t)inputImage->nx*inputImage->ny*inputImage->nz;
-		DTYPE *warpVox,*warpedXX,*warpedXY,*warpedXZ,*warpedYY,*warpedYZ,*warpedZZ;
-		if(warpedImage!=NULL){
-			warpVox = static_cast<DTYPE *>(warpedImage->data);
-			warpedXX = &warpVox[voxelNumber*dtIndicies[0]];
-			warpedXY = &warpVox[voxelNumber*dtIndicies[1]];
-			warpedYY = &warpVox[voxelNumber*dtIndicies[2]];
-			warpedXZ = &warpVox[voxelNumber*dtIndicies[3]];
-			warpedYZ = &warpVox[voxelNumber*dtIndicies[4]];
-			warpedZZ = &warpVox[voxelNumber*dtIndicies[5]];
-		}
-		for(int u=0;u<inputImage->nu;++u){
+        size_t voxelNumber = (size_t)inputImage->nx*inputImage->ny*inputImage->nz;
+        DTYPE *warpVox,*warpedXX,*warpedXY,*warpedXZ,*warpedYY,*warpedYZ,*warpedZZ;
+        if(warpedImage!=NULL){
+            warpVox = static_cast<DTYPE *>(warpedImage->data);
+            warpedXX = &warpVox[voxelNumber*dtIndicies[0]];
+            warpedXY = &warpVox[voxelNumber*dtIndicies[1]];
+            warpedYY = &warpVox[voxelNumber*dtIndicies[2]];
+            warpedXZ = &warpVox[voxelNumber*dtIndicies[3]];
+            warpedYZ = &warpVox[voxelNumber*dtIndicies[4]];
+            warpedZZ = &warpVox[voxelNumber*dtIndicies[5]];
+        }
+        for(int u=0;u<inputImage->nu;++u){
             // Now, we need to exponentiate the warped intensities back to give us a regular tensor
-			// let's reorient each tensor based on the rigid component of the local warping
+            // let's reorient each tensor based on the rigid component of the local warping
             /* As the tensor has 6 unique components that we need to worry about, read them out
-			for the warped image. */
+            for the warped image. */
 
-			DTYPE *firstWarpVox = static_cast<DTYPE *>(inputImage->data);
-			DTYPE *inputIntensityXX = &firstWarpVox[voxelNumber*(dtIndicies[0]+inputImage->nt*u)];
-			DTYPE *inputIntensityXY = &firstWarpVox[voxelNumber*(dtIndicies[1]+inputImage->nt*u)];
-			DTYPE *inputIntensityYY = &firstWarpVox[voxelNumber*(dtIndicies[2]+inputImage->nt*u)];
-			DTYPE *inputIntensityXZ = &firstWarpVox[voxelNumber*(dtIndicies[3]+inputImage->nt*u)];
-			DTYPE *inputIntensityYZ = &firstWarpVox[voxelNumber*(dtIndicies[4]+inputImage->nt*u)];
-			DTYPE *inputIntensityZZ = &firstWarpVox[voxelNumber*(dtIndicies[5]+inputImage->nt*u)];
+            DTYPE *firstWarpVox = static_cast<DTYPE *>(inputImage->data);
+            DTYPE *inputIntensityXX = &firstWarpVox[voxelNumber*(dtIndicies[0]+inputImage->nt*u)];
+            DTYPE *inputIntensityXY = &firstWarpVox[voxelNumber*(dtIndicies[1]+inputImage->nt*u)];
+            DTYPE *inputIntensityYY = &firstWarpVox[voxelNumber*(dtIndicies[2]+inputImage->nt*u)];
+            DTYPE *inputIntensityXZ = &firstWarpVox[voxelNumber*(dtIndicies[3]+inputImage->nt*u)];
+            DTYPE *inputIntensityYZ = &firstWarpVox[voxelNumber*(dtIndicies[4]+inputImage->nt*u)];
+            DTYPE *inputIntensityZZ = &firstWarpVox[voxelNumber*(dtIndicies[5]+inputImage->nt*u)];
 
             // Step through each voxel in the warped image
-			int warpedIndex;
-			double testSum=0;
-			reg_mat44d inputTensor, warpedTensor, RotMat, RotMatT, preMult;
-			mat33 jacobianMatrix, R;
-			int col, row;
+            int warpedIndex;
+            double testSum=0;
+            mat33 jacobianMatrix, R;
+            mat44 inputTensor, warpedTensor, RotMat, RotMatT, preMult;
+            int col, row;
 #if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
-	private(warpedIndex,inputTensor,jacobianMatrix,R,RotMat,RotMatT,preMult, \
-	testSum, warpedTensor, col, row) \
-	shared(voxelNumber,inputIntensityXX,inputIntensityYY,inputIntensityZZ, \
-	warpedXX, warpedXY, warpedXZ, warpedYY, warpedYZ, warpedZZ, warpedImage, \
-	inputIntensityXY,inputIntensityXZ,inputIntensityYZ, jacMat, mask)
+    private(warpedIndex,inputTensor,jacobianMatrix,R,RotMat,RotMatT,preMult, \
+    testSum, warpedTensor, col, row) \
+    shared(voxelNumber,inputIntensityXX,inputIntensityYY,inputIntensityZZ, \
+    warpedXX, warpedXY, warpedXZ, warpedYY, warpedYZ, warpedZZ, warpedImage, \
+    inputIntensityXY,inputIntensityXZ,inputIntensityYZ, jacMat, mask)
 #endif
-			for(warpedIndex=0; warpedIndex<voxelNumber; ++warpedIndex){
-				if(mask[warpedIndex]>-1){
-					reg_mat44_eye(&inputTensor);
-					// Fill the rest of the mat44 with the tensor components
-					inputTensor.m[0][0] = static_cast<double>(inputIntensityXX[warpedIndex]);
-					inputTensor.m[0][1] = static_cast<double>(inputIntensityXY[warpedIndex]);
-					inputTensor.m[1][0] = inputTensor.m[0][1];
-					inputTensor.m[1][1] = static_cast<double>(inputIntensityYY[warpedIndex]);
-					inputTensor.m[0][2] = static_cast<double>(inputIntensityXZ[warpedIndex]);
-					inputTensor.m[2][0] = inputTensor.m[0][2];
-					inputTensor.m[1][2] = static_cast<double>(inputIntensityYZ[warpedIndex]);
-					inputTensor.m[2][1] = inputTensor.m[1][2];
-					inputTensor.m[2][2] = static_cast<double>(inputIntensityZZ[warpedIndex]);
-					// Exponentiate the warped tensor
-					if(warpedImage==NULL){
-						inputTensor.m[3][3] = static_cast<double>(0.0);
-						inputTensor = reg_mat44_expm(&inputTensor);
-						testSum=0.;
-					}
-					else{
-						inputTensor.m[3][3]  = 1.0;
-						reg_mat44_eye(&warpedTensor);
-						warpedTensor.m[0][0] = static_cast<double>(warpedXX[warpedIndex]);
-						warpedTensor.m[0][1] = static_cast<double>(warpedXY[warpedIndex]);
-						warpedTensor.m[1][0] = warpedTensor.m[0][1];
-						warpedTensor.m[1][1] = static_cast<double>(warpedYY[warpedIndex]);
-						warpedTensor.m[0][2] = static_cast<double>(warpedXZ[warpedIndex]);
-						warpedTensor.m[2][0] = warpedTensor.m[0][2];
-						warpedTensor.m[1][2] = static_cast<double>(warpedYZ[warpedIndex]);
-						warpedTensor.m[2][1] = warpedTensor.m[1][2];
-						warpedTensor.m[2][2] = static_cast<double>(warpedZZ[warpedIndex]);
-						inputTensor = reg_mat44_mul(&warpedTensor,&inputTensor);
-						testSum=static_cast<double>(warpedTensor.m[0][0]+warpedTensor.m[0][1]+warpedTensor.m[0][2]+
-								warpedTensor.m[1][0]+warpedTensor.m[1][1]+warpedTensor.m[1][2]+
-								warpedTensor.m[2][0]+warpedTensor.m[2][1]+warpedTensor.m[2][2]);
-					}
+            for(warpedIndex=0; warpedIndex<voxelNumber; ++warpedIndex){
+                if(mask[warpedIndex]>-1){
+                    reg_mat44_eye(&inputTensor);
+                    // Fill the rest of the mat44 with the tensor components
+                    inputTensor.m[0][0] = static_cast<double>(inputIntensityXX[warpedIndex]);
+                    inputTensor.m[0][1] = static_cast<double>(inputIntensityXY[warpedIndex]);
+                    inputTensor.m[1][0] = inputTensor.m[0][1];
+                    inputTensor.m[1][1] = static_cast<double>(inputIntensityYY[warpedIndex]);
+                    inputTensor.m[0][2] = static_cast<double>(inputIntensityXZ[warpedIndex]);
+                    inputTensor.m[2][0] = inputTensor.m[0][2];
+                    inputTensor.m[1][2] = static_cast<double>(inputIntensityYZ[warpedIndex]);
+                    inputTensor.m[2][1] = inputTensor.m[1][2];
+                    inputTensor.m[2][2] = static_cast<double>(inputIntensityZZ[warpedIndex]);
+                    // Exponentiate the warped tensor
+                    if(warpedImage==NULL){
+                        inputTensor.m[3][3] = static_cast<double>(0.0);
+                        inputTensor = reg_mat44_expm(&inputTensor);
+                        testSum=0.;
+                    }
+                    else{
+                        inputTensor.m[3][3]  = 1.0;
+                        reg_mat44_eye(&warpedTensor);
+                        warpedTensor.m[0][0] = static_cast<double>(warpedXX[warpedIndex]);
+                        warpedTensor.m[0][1] = static_cast<double>(warpedXY[warpedIndex]);
+                        warpedTensor.m[1][0] = warpedTensor.m[0][1];
+                        warpedTensor.m[1][1] = static_cast<double>(warpedYY[warpedIndex]);
+                        warpedTensor.m[0][2] = static_cast<double>(warpedXZ[warpedIndex]);
+                        warpedTensor.m[2][0] = warpedTensor.m[0][2];
+                        warpedTensor.m[1][2] = static_cast<double>(warpedYZ[warpedIndex]);
+                        warpedTensor.m[2][1] = warpedTensor.m[1][2];
+                        warpedTensor.m[2][2] = static_cast<double>(warpedZZ[warpedIndex]);
+                        inputTensor = reg_mat44_mul(&warpedTensor,&inputTensor);
+                        testSum=static_cast<double>(warpedTensor.m[0][0]+warpedTensor.m[0][1]+warpedTensor.m[0][2]+
+                                warpedTensor.m[1][0]+warpedTensor.m[1][1]+warpedTensor.m[1][2]+
+                                warpedTensor.m[2][0]+warpedTensor.m[2][1]+warpedTensor.m[2][2]);
+                    }
 
-					if(testSum==testSum){
-						// Find the rotation matrix from the local warp Jacobian
-						jacobianMatrix = jacMat[warpedIndex];
-						// Calculate the polar decomposition of the local Jacobian matrix, which
-						// tells us how to rotate the local tensor information
-						R = nifti_mat33_polar(jacobianMatrix);
-						// We need both the rotation matrix, and it's transpose as a mat44
-						reg_mat44_eye(&RotMat);
-						reg_mat44_eye(&RotMatT);
-						for(col=0; col<3; col++){
-							for(row=0; row<3; row++){
-								RotMat.m[col][row] = static_cast<double>(R.m[col][row]);
-								RotMatT.m[col][row] = static_cast<double>(R.m[row][col]);
-							}
-						}
-						// As the mat44 multiplication uses pointers, do the multiplications separately
-						preMult = reg_mat44_mul(&RotMatT, &inputTensor);
-						inputTensor = reg_mat44_mul(&preMult,&RotMat);
+                    if(testSum==testSum){
+                        // Find the rotation matrix from the local warp Jacobian
+                        jacobianMatrix = jacMat[warpedIndex];
+                        // Calculate the polar decomposition of the local Jacobian matrix, which
+                        // tells us how to rotate the local tensor information
+                        R = nifti_mat33_polar(jacobianMatrix);
+                        // We need both the rotation matrix, and it's transpose as a mat44
+                        reg_mat44_eye(&RotMat);
+                        reg_mat44_eye(&RotMatT);
+                        for(col=0; col<3; col++){
+                            for(row=0; row<3; row++){
+                                RotMat.m[col][row] = static_cast<double>(R.m[col][row]);
+                                RotMatT.m[col][row] = static_cast<double>(R.m[row][col]);
+                            }
+                        }
+                        // As the mat44 multiplication uses pointers, do the multiplications separately
+                        preMult = reg_mat44_mul(&RotMatT, &inputTensor);
+                        inputTensor = reg_mat44_mul(&preMult,&RotMat);
 
-						// Finally, read the tensor back out as a warped image
-						inputIntensityXX[warpedIndex] = inputTensor.m[0][0];
-						inputIntensityYY[warpedIndex] = inputTensor.m[1][1];
-						inputIntensityZZ[warpedIndex] = inputTensor.m[2][2];
-						inputIntensityXY[warpedIndex] = inputTensor.m[0][1];
-						inputIntensityXZ[warpedIndex] = inputTensor.m[0][2];
-						inputIntensityYZ[warpedIndex] = inputTensor.m[1][2];
-					}
-					else{
-						inputIntensityXX[warpedIndex] = 0;
-						inputIntensityYY[warpedIndex] = 0;
-						inputIntensityZZ[warpedIndex] = 0;
-						inputIntensityXY[warpedIndex] = 0;
-						inputIntensityXZ[warpedIndex] = 0;
-						inputIntensityYZ[warpedIndex] = 0;
-					}
+                        // Finally, read the tensor back out as a warped image
+                        inputIntensityXX[warpedIndex] = inputTensor.m[0][0];
+                        inputIntensityYY[warpedIndex] = inputTensor.m[1][1];
+                        inputIntensityZZ[warpedIndex] = inputTensor.m[2][2];
+                        inputIntensityXY[warpedIndex] = inputTensor.m[0][1];
+                        inputIntensityXZ[warpedIndex] = inputTensor.m[0][2];
+                        inputIntensityYZ[warpedIndex] = inputTensor.m[1][2];
+                    }
+                    else{
+                        inputIntensityXX[warpedIndex] = 0;
+                        inputIntensityYY[warpedIndex] = 0;
+                        inputIntensityZZ[warpedIndex] = 0;
+                        inputIntensityXY[warpedIndex] = 0;
+                        inputIntensityXZ[warpedIndex] = 0;
+                        inputIntensityYZ[warpedIndex] = 0;
+                    }
                 }
-			}
+            }
         }
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] Exponentiated and rotated all voxels\n");
@@ -308,8 +308,7 @@ void CubicSplineResampleImage3D(nifti_image *floatingImage,
     a, b, c, Y, Z, zPointer, yzPointer, xyzPointer, xTempNewValue, yTempNewValue) \
     shared(sourceIntensity, resultIntensity, resultVoxelNumber, sourceVoxelNumber, \
     deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
-    sourceIJKMatrix, floatingImage, paddingValue, \
-    iProgressStep, nProgressSteps, progressUnit)
+    sourceIJKMatrix, floatingImage, paddingValue)
 #endif // _OPENMP
         for(index=0;index<resultVoxelNumber; index++){
 
@@ -390,12 +389,14 @@ void CubicSplineResampleImage3D(nifti_image *floatingImage,
                 break;
             }
 
+#ifndef _OPENMP
             // Announce the progress via CLI
             if (iProgressStep % progressUnit == 0)
                 progressXML(100 * iProgressStep / nProgressSteps, "Performing 3D Cubic Spline Resampling...");
 
             // Increment the progress counter
             iProgressStep++;
+#endif
         }
     }
 }
@@ -450,8 +451,7 @@ void CubicSplineResampleImage2D(nifti_image *floatingImage,
     a, b, Y, yPointer, xyPointer, xTempNewValue) \
     shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
     deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
-    sourceIJKMatrix, floatingImage, paddingValue, \
-    iProgressStep, nProgressSteps, progressUnit)
+    sourceIJKMatrix, floatingImage, paddingValue)
 #endif // _OPENMP
         for(index=0;index<targetVoxelNumber; index++){
 
@@ -522,12 +522,14 @@ void CubicSplineResampleImage2D(nifti_image *floatingImage,
                 break;
             }
 
+#ifndef _OPENMP
             // Announce the progress via CLI
             if (iProgressStep % progressUnit == 0)
                 progressXML(100 * iProgressStep / nProgressSteps, "Performing 2D Cubic Spline Resampling...");
 
             // Increment the progress counter
             iProgressStep++;
+#endif
         }
     }
 }
@@ -575,15 +577,14 @@ void TrilinearResampleImage(nifti_image *floatingImage,
         size_t  index;
 #endif
         SourceTYPE *zPointer, *xyzPointer;
-		FieldTYPE xTempNewValue, yTempNewValue, intensity, world[3], position[3];
+        FieldTYPE xTempNewValue, yTempNewValue, intensity, world[3], position[3];
 #if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
     private(index, intensity, world, position, previous, xBasis, yBasis, zBasis, relative, \
     a, b, c, X, Y, Z, zPointer, xyzPointer, xTempNewValue, yTempNewValue) \
     shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
     deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
-    sourceIJKMatrix, floatingImage, paddingValue, \
-    iProgressStep, nProgressSteps, progressUnit)
+    sourceIJKMatrix, floatingImage, paddingValue)
 #endif // _OPENMP
         for(index=0;index<targetVoxelNumber; index++){
 
@@ -692,13 +693,14 @@ void TrilinearResampleImage(nifti_image *floatingImage,
                 resultIntensity[index]=(SourceTYPE)reg_round(intensity);
                 break;
             }
-
+#ifndef _OPENMP
             // Announce the progress via CLI
             if (iProgressStep % progressUnit == 0)
                 progressXML(100 * iProgressStep / nProgressSteps, "Performing Trilinear Resampling...");
 
             // Increment the progress counter
             iProgressStep++;
+#endif
         }
     }
 }
@@ -754,8 +756,7 @@ void BilinearResampleImage(nifti_image *floatingImage,
     a, b, X, Y, xyPointer, xTempNewValue) \
     shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
     deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
-    sourceIJKMatrix, floatingImage, paddingValue, \
-    iProgressStep, nProgressSteps, progressUnit)
+    sourceIJKMatrix, floatingImage, paddingValue)
 #endif // _OPENMP
         for(index=0; index<targetVoxelNumber; ++index){
 
@@ -829,12 +830,14 @@ void BilinearResampleImage(nifti_image *floatingImage,
                 break;
             }
 
+#ifndef _OPENMP
             // Announce the progress via CLI
             if (iProgressStep % progressUnit == 0)
                 progressXML(100 * iProgressStep / nProgressSteps, "Performing Bilinear Resampling...");
 
             // Increment the progress counter
             iProgressStep++;
+#endif
         }
     }
 }
@@ -889,8 +892,7 @@ void NearestNeighborResampleImage(nifti_image *floatingImage,
     private(index, intensity, world, position, previous) \
     shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
     deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
-    sourceIJKMatrix, floatingImage, paddingValue, \
-    iProgressStep, nProgressSteps, progressUnit)
+    sourceIJKMatrix, floatingImage, paddingValue)
 #endif // _OPENMP
         for(index=0; index<targetVoxelNumber; index++){
 
@@ -917,12 +919,14 @@ void NearestNeighborResampleImage(nifti_image *floatingImage,
             }
             else resultIntensity[index]=(SourceTYPE)paddingValue;
 
+#ifndef _OPENMP
             // Announce the progress via CLI
             if (iProgressStep % progressUnit == 0)
                 progressXML(100 * iProgressStep / nProgressSteps, "Performing 3D Nearest Neighbour Resampling...");
 
             // Increment the progress counter
             iProgressStep++;
+#endif
         }
     }
 }
@@ -975,8 +979,7 @@ void NearestNeighborResampleImage2D(nifti_image *floatingImage,
     private(index, intensity, world, position, previous) \
     shared(sourceIntensity, resultIntensity, targetVoxelNumber, sourceVoxelNumber, \
     deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
-    sourceIJKMatrix, floatingImage, paddingValue, \
-    iProgressStep, nProgressSteps, progressUnit)
+    sourceIJKMatrix, floatingImage, paddingValue)
 #endif // _OPENMP
         for(index=0;index<targetVoxelNumber; index++){
 
@@ -1001,12 +1004,14 @@ void NearestNeighborResampleImage2D(nifti_image *floatingImage,
             }
             else resultIntensity[index]=(SourceTYPE)paddingValue;
 
+#ifndef _OPENMP
             // Announce the progress via CLI
             if (iProgressStep % progressUnit == 0)
                 progressXML(100 * iProgressStep / nProgressSteps, "Performing 2D Nearest Neighbour Resampling...");
 
             // Increment the progress counter
             iProgressStep++;
+#endif
         }
     }
 }
@@ -1035,11 +1040,11 @@ void reg_resampleImage2(nifti_image *floatingImage,
                         mat33 * jacMat)
 {
     // The floating image data is copied in case one deal with DTI
-	void *originalFloatingData=NULL;
+    void *originalFloatingData=NULL;
     // The DTI are logged
-	reg_dti_resampling_preprocessing<SourceTYPE>(floatingImage,
-												 &originalFloatingData,
-												 dtIndicies);
+    reg_dti_resampling_preprocessing<SourceTYPE>(floatingImage,
+                                                 &originalFloatingData,
+                                                 dtIndicies);
 
     /* The deformation field contains the position in the real world */
     if(interp==3 && dtIndicies[0] == -1){
@@ -1094,16 +1099,16 @@ void reg_resampleImage2(nifti_image *floatingImage,
         }
     }
     // The temporary logged floating array is deleted
-	if(originalFloatingData!=NULL){
-		free(floatingImage->data);
-		floatingImage->data=originalFloatingData;
-		originalFloatingData=NULL;
+    if(originalFloatingData!=NULL){
+        free(floatingImage->data);
+        floatingImage->data=originalFloatingData;
+        originalFloatingData=NULL;
     }
     // The interpolated tensors are reoriented and exponentiated
-	reg_dti_resampling_postprocessing<SourceTYPE>(warpedImage,
-												  mask,
-												  jacMat,
-												  dtIndicies);
+    reg_dti_resampling_postprocessing<SourceTYPE>(warpedImage,
+                                                  mask,
+                                                  jacMat,
+                                                  dtIndicies);
 }
 /* *************************************************************** */
 void reg_resampleImage(nifti_image *floatingImage,
@@ -1396,8 +1401,7 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
     shared(warpedImage,warpedIntensityX,warpedIntensityY, \
     deformationField,deformationFieldPtrX,deformationFieldPtrY, \
     floatingImage,floatingIntensityX,floatingIntensityY,floating_mm_to_voxel, \
-    paddingValue, reorient,realSpacing, \
-    iProgressStep, nProgressSteps, progressUnit)
+    paddingValue, reorient,realSpacing)
 #endif // _OPENMP
     for(y=0; y<warpedImage->ny; ++y){
         warpedIndex=y*warpedImage->nx;
@@ -1509,13 +1513,14 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
 
             ++warpedIndex;
 
+#ifndef _OPENMP
             // Announce the progress via CLI
             if (iProgressStep % progressUnit == 0)
                 progressXML(100 * iProgressStep / nProgressSteps, "Performing Bilinear Gradient Resampling...");
 
             // Increment the progress counter
             iProgressStep++;
-
+#endif
         } // x
     } // y
 }
@@ -1580,8 +1585,7 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
     shared(warpedImage,warpedIntensityX,warpedIntensityY,warpedIntensityZ, \
     deformationField,deformationFieldPtrX,deformationFieldPtrY,deformationFieldPtrZ, \
     floatingImage,floatingIntensityX,floatingIntensityY,floatingIntensityZ,floating_mm_to_voxel, \
-    paddingValue, reorient, realSpacing, \
-    iProgressStep, nProgressSteps, progressUnit)
+    paddingValue, reorient, realSpacing)
 #endif // _OPENMP
     for(z=0; z<warpedImage->nz; ++z){
         warpedIndex=z*warpedImage->nx*warpedImage->ny;
@@ -1744,13 +1748,14 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
 
                 ++warpedIndex;
 
+#ifndef _OPENMP
                 // Announce the progress via CLI
                 if (iProgressStep % progressUnit == 0)
                     progressXML(100 * iProgressStep / nProgressSteps, "Performing Trilinear Gradient Resampling...");
 
                 // Increment the progress counter
                 iProgressStep++;
-
+#endif
             } // x
         } // y
     } // z
@@ -1861,8 +1866,7 @@ void TrilinearImageGradient(nifti_image *floatingImage,
     a, b, c, X, Y, Z, zPointer, xyzPointer, xTempNewValue, yTempNewValue, xxTempNewValue, yyTempNewValue, zzTempNewValue) \
     shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, deriv, paddingValue, \
     deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
-    sourceIJKMatrix, floatingImage, resultGradientPtrX, resultGradientPtrY, resultGradientPtrZ, \
-    iProgressStep, nProgressSteps, progressUnit)
+    sourceIJKMatrix, floatingImage, resultGradientPtrX, resultGradientPtrY, resultGradientPtrZ)
 #endif // _OPENMP
         for(index=0;index<targetVoxelNumber; index++){
 
@@ -1980,12 +1984,14 @@ void TrilinearImageGradient(nifti_image *floatingImage,
             resultGradientPtrY[index] = (GradientTYPE)grad[1];
             resultGradientPtrZ[index] = (GradientTYPE)grad[2];
 
+#ifndef _OPENMP
             // Announce the progress via CLI
             if (iProgressStep % progressUnit == 0)
                 progressXML(100 * iProgressStep / nProgressSteps, "Performing Trilinear Gradient Computation...");
 
             // Increment the progress counter
             iProgressStep++;
+#endif
         }
     }
 }
@@ -2044,8 +2050,7 @@ void BilinearImageGradient(nifti_image *floatingImage,
     a, b, X, Y, xyPointer, xTempNewValue, yTempNewValue) \
     shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, deriv, \
     deformationFieldPtrX, deformationFieldPtrY, maskPtr, paddingValue, \
-    sourceIJKMatrix, floatingImage, resultGradientPtrX, resultGradientPtrY, \
-    iProgressStep, nProgressSteps, progressUnit)
+    sourceIJKMatrix, floatingImage, resultGradientPtrX, resultGradientPtrY)
 #endif // _OPENMP
         for(index=0;index<targetVoxelNumber; index++){
 
@@ -2109,12 +2114,14 @@ void BilinearImageGradient(nifti_image *floatingImage,
             resultGradientPtrX[index] = (GradientTYPE)grad[0];
             resultGradientPtrY[index] = (GradientTYPE)grad[1];
 
+#ifndef _OPENMP
             // Announce the progress via CLI
             if (iProgressStep % progressUnit == 0)
                 progressXML(100 * iProgressStep / nProgressSteps, "Performing Bilinear Gradient Computation...");
 
             // Increment the progress counter
             iProgressStep++;
+#endif
         }
     }
 }
@@ -2175,8 +2182,7 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
     a, b, c, Y, Z, zPointer, yzPointer, xyzPointer, xTempNewValue, yTempNewValue, xxTempNewValue, yyTempNewValue, zzTempNewValue) \
     shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, paddingValue, \
     deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
-    sourceIJKMatrix, floatingImage, resultGradientPtrX, resultGradientPtrY, resultGradientPtrZ, \
-    iProgressStep, nProgressSteps, progressUnit)
+    sourceIJKMatrix, floatingImage, resultGradientPtrX, resultGradientPtrY, resultGradientPtrZ)
 #endif // _OPENMP
         for(index=0;index<targetVoxelNumber; index++){
 
@@ -2267,12 +2273,14 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
             resultGradientPtrY[index] = (GradientTYPE)grad[1];
             resultGradientPtrZ[index] = (GradientTYPE)grad[2];
 
+#ifndef _OPENMP
             // Announce the progress via CLI
             if (iProgressStep % progressUnit == 0)
                 progressXML(100 * iProgressStep / nProgressSteps, "Performing 3D Cubic Spline Gradient Computation...");
 
             // Increment the progress counter
             iProgressStep++;
+#endif
         }
     }
 }
@@ -2329,8 +2337,7 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
     a, b, Y, yPointer, xyPointer, xTempNewValue, yTempNewValue) \
     shared(sourceIntensity, targetVoxelNumber, sourceVoxelNumber, \
     deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
-    sourceIJKMatrix, floatingImage, resultGradientPtrX, resultGradientPtrY, \
-    iProgressStep, nProgressSteps, progressUnit)
+    sourceIJKMatrix, floatingImage, resultGradientPtrX, resultGradientPtrY)
 #endif // _OPENMP
         for(index=0;index<targetVoxelNumber; index++){
 
@@ -2391,12 +2398,14 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
             resultGradientPtrX[index] = (GradientTYPE)grad[0];
             resultGradientPtrY[index] = (GradientTYPE)grad[1];
 
+#ifndef _OPENMP
             // Announce the progress via CLI
             if (iProgressStep % progressUnit == 0)
                 progressXML(100 * iProgressStep / nProgressSteps, "Performing 2D Cubic Spline Gradient Computation...");
 
             // Increment the progress counter
             iProgressStep++;
+#endif
         }
     }
 }
@@ -2409,15 +2418,15 @@ void reg_getImageGradient3(nifti_image *floatingImage,
                            int interp,
                            float paddingValue,
                            int *dtIndicies,
-						   mat33 *jacMat,
-						   nifti_image *warpedImage = NULL
+                           mat33 *jacMat,
+                           nifti_image *warpedImage = NULL
                            )
 {
-	// The floating image data is copied in case one deal with DTI
-	void *originalFloatingData=NULL;
+    // The floating image data is copied in case one deal with DTI
+    void *originalFloatingData=NULL;
     // The DTI are logged
     reg_dti_resampling_preprocessing<SourceTYPE>(floatingImage,
-												 &originalFloatingData,
+                                                 &originalFloatingData,
                                                  dtIndicies);
     /* The deformation field contains the position in the real world */
     if(interp==3){
@@ -2456,18 +2465,18 @@ void reg_getImageGradient3(nifti_image *floatingImage,
         }
     }
     // The temporary logged floating array is deleted
-	if(originalFloatingData!=NULL){
-		free(floatingImage->data);
-		floatingImage->data=originalFloatingData;
-		originalFloatingData=NULL;
+    if(originalFloatingData!=NULL){
+        free(floatingImage->data);
+        floatingImage->data=originalFloatingData;
+        originalFloatingData=NULL;
     }
     // The interpolated tensors are reoriented and exponentiated
     reg_dti_resampling_postprocessing<SourceTYPE>(resultGradientImage,
                                                   mask,
                                                   jacMat,
-												  dtIndicies,
-												  warpedImage
-												  );
+                                                  dtIndicies,
+                                                  warpedImage
+                                                  );
 }
 /* *************************************************************** */
 template <class FieldTYPE, class SourceTYPE>
@@ -2478,18 +2487,18 @@ void reg_getImageGradient2(nifti_image *floatingImage,
                            int interp,
                            float paddingValue,
                            int *dtIndicies,
-						   mat33 *jacMat,
-						   nifti_image *warpedImage
+                           mat33 *jacMat,
+                           nifti_image *warpedImage
                            )
 {
     switch(resultGradientImage->datatype){
     case NIFTI_TYPE_FLOAT32:
         reg_getImageGradient3<FieldTYPE,SourceTYPE,float>
-				(floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+                (floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
         break;
     case NIFTI_TYPE_FLOAT64:
         reg_getImageGradient3<FieldTYPE,SourceTYPE,double>
-				(floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+                (floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
         break;
     default:
         printf("[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe result image data type is not supported\n");
@@ -2505,42 +2514,42 @@ void reg_getImageGradient1(nifti_image *floatingImage,
                            int interp,
                            float paddingValue,
                            int *dtIndicies,
-						   mat33 *jacMat,
-						   nifti_image *warpedImage
+                           mat33 *jacMat,
+                           nifti_image *warpedImage
                            )
 {
     switch(floatingImage->datatype){
     case NIFTI_TYPE_UINT8:
         reg_getImageGradient2<FieldTYPE,unsigned char>
-				(floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+                (floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
         break;
     case NIFTI_TYPE_INT8:
         reg_getImageGradient2<FieldTYPE,char>
-				(floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+                (floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
         break;
     case NIFTI_TYPE_UINT16:
         reg_getImageGradient2<FieldTYPE,unsigned short>
-				(floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+                (floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
         break;
     case NIFTI_TYPE_INT16:
         reg_getImageGradient2<FieldTYPE,short>
-				(floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+                (floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
         break;
     case NIFTI_TYPE_UINT32:
         reg_getImageGradient2<FieldTYPE,unsigned int>
-				(floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+                (floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
         break;
     case NIFTI_TYPE_INT32:
         reg_getImageGradient2<FieldTYPE,int>
-				(floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+                (floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
         break;
     case NIFTI_TYPE_FLOAT32:
         reg_getImageGradient2<FieldTYPE,float>
-				(floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+                (floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
         break;
     case NIFTI_TYPE_FLOAT64:
         reg_getImageGradient2<FieldTYPE,double>
-				(floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+                (floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
         break;
     default:
         printf("[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe result image data type is not supported\n");
@@ -2555,8 +2564,8 @@ void reg_getImageGradient(nifti_image *floatingImage,
                           int interp,
                           float paddingValue,
                           bool *dti_timepoint,
-						  mat33 *jacMat,
-						  nifti_image *warpedImage
+                          mat33 *jacMat,
+                          nifti_image *warpedImage
                           )
 {
     // a mask array is created if no mask is specified
@@ -2599,11 +2608,11 @@ void reg_getImageGradient(nifti_image *floatingImage,
     switch(deformationField->datatype){
     case NIFTI_TYPE_FLOAT32:
         reg_getImageGradient1<float>
-				(floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+                (floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
         break;
     case NIFTI_TYPE_FLOAT64:
         reg_getImageGradient1<double>
-				(floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+                (floatingImage,resultGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
         break;
     default:
         printf("[NiftyReg ERROR] reg_getImageGradient\tDeformation field pixel type unsupported.\n");

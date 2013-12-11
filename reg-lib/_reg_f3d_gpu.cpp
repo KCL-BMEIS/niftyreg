@@ -813,7 +813,7 @@ float reg_f3d_gpu::NormaliseGradient()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 int reg_f3d_gpu::CheckMemoryMB()
 {
-    if(!this->initialised) reg_f3d<float>::Initisalise();
+    if(!this->initialised) reg_f3d<float>::Initialise();
 
     size_t referenceVoxelNumber=this->referencePyramid[this->levelToPerform-1]->nx *
             this->referencePyramid[this->levelToPerform-1]->ny *

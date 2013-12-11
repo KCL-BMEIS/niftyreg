@@ -80,6 +80,11 @@ void Usage(char *exec)
 
     printf("\t-%%v <int>\t\tPercentage of blocks to use in the optimisation scheme. [50]\n");
     printf("\t-%%i <int>\t\tPercentage of blocks to consider as inlier in the optimisation scheme. [50]\n");
+    printf("\t-voff\t\t\tTurns verbose off [on]\n");
+#if defined (_OPENMP)
+	printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i]\n",
+		   omp_get_num_procs());
+#endif
     printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
     return;
 }
@@ -135,6 +140,7 @@ int main(int argc, char **argv)
     float floatingUpperThr=std::numeric_limits<PrecisionTYPE>::max();
 
     bool iso=false;
+    bool verbose=true;
 
     /* read the input parameter */
     for(int i=1;i<argc;i++){
@@ -245,6 +251,14 @@ int main(int argc, char **argv)
         else if(strcmp(argv[i], "-iso")==0 || strcmp(argv[i], "--iso")==0){
             iso=true;
         }
+        else if(strcmp(argv[i], "-voff")==0 || strcmp(argv[i], "--voff")==0){
+            verbose=false;
+        }
+#if defined (_OPENMP)
+		else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0){
+			omp_set_num_threads(atoi(argv[++i]));
+		}
+#endif
         else{
             fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
             PetitUsage(argv[0]);
@@ -262,14 +276,19 @@ int main(int argc, char **argv)
     startProgress("reg_aladin");
 
     // Output the command line
-    printf("\n[NiftyReg ALADIN] Command line:\n\t");
-    for(int i=0;i<argc;i++)
-        printf(" %s", argv[i]);
-    printf("\n\n");
+#ifndef NDEBUG
+    if(verbose){
+#endif
+        printf("\n[NiftyReg ALADIN] Command line:\n\t");
+        for(int i=0;i<argc;i++)
+            printf(" %s", argv[i]);
+        printf("\n\n");
+#ifndef NDEBUG
+    }
+#endif
 
     reg_aladin<PrecisionTYPE> *REG;
-    if(symFlag)
-    {
+    if(symFlag){
         REG = new reg_aladin_sym<PrecisionTYPE>;
         if ( (referenceMaskFlag && !floatingMaskName) || (!referenceMaskFlag && floatingMaskName) )
         {
@@ -396,6 +415,9 @@ int main(int argc, char **argv)
     if(inputAffineFlag==1)
         REG->SetInputTransform(inputAffineName,flirtAffineFlag);
 
+    // Set the verbose type
+    REG->SetVerbose(verbose);
+
     // Run the registration
     REG->Run();
 
@@ -434,11 +456,17 @@ int main(int argc, char **argv)
         nifti_image_free(isoFloMaskImage);
 
     delete REG;
-    time_t end; time(&end);
-    int minutes=(int)floorf((end-start)/60.0f);
-    int seconds=(int)(end-start - 60*minutes);
-    printf("Registration Performed in %i min %i sec\n", minutes, seconds);
-    printf("Have a good day !\n");
+#ifndef NDEBUG
+    if(verbose){
+#endif
+        time_t end; time(&end);
+        int minutes=(int)floorf((end-start)/60.0f);
+        int seconds=(int)(end-start - 60*minutes);
+        printf("Registration Performed in %i min %i sec\n", minutes, seconds);
+        printf("Have a good day !\n");
+#ifndef NDEBUG
+    }
+#endif
 
     return 0;
 }

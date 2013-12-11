@@ -61,60 +61,16 @@ void reg_f3d2<T>::UseGradientCumulativeExp()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-void reg_f3d2<T>::Initisalise()
+void reg_f3d2<T>::Initialise()
 {
-    reg_f3d_sym<T>::Initisalise();
+    reg_f3d_sym<T>::Initialise();
 
-    // Convert the deformation field into velocity field
-    this->controlPointGrid->intent_code=NIFTI_INTENT_VECTOR;
-    this->backwardControlPointGrid->intent_code=NIFTI_INTENT_VECTOR;
-    memset(this->controlPointGrid->intent_name, 0, 16);
-    strcpy(this->controlPointGrid->intent_name,"NREG_TRANS");
-    memset(this->backwardControlPointGrid->intent_name, 0, 16);
-    strcpy(this->backwardControlPointGrid->intent_name,"NREG_TRANS");
+    // Convert the control point grid into velocity field parametrisation
     this->controlPointGrid->intent_p1=SPLINE_VEL_GRID;
     this->backwardControlPointGrid->intent_p1=SPLINE_VEL_GRID;
-
-    // Set the default step number for scaling and squaring
+    // Set the number of composition to 6 by default
     this->controlPointGrid->intent_p2=6;
     this->backwardControlPointGrid->intent_p2=6;
-
-    // Set the affine parametrisation
-    if(this->affineTransformation!=NULL){
-        // Set the reorientation matrices using the provided affine transformation
-        mat44 inverseAffineTransformation = nifti_mat44_inverse(*this->affineTransformation);
-        // Create extensions to store the affine parametrisations
-        if(this->controlPointGrid->ext_list!=NULL)
-            free(this->controlPointGrid->ext_list);
-        this->controlPointGrid->num_ext=1;
-        this->controlPointGrid->ext_list=(nifti1_extension *)malloc(sizeof(nifti1_extension));
-        this->controlPointGrid->ext_list->esize=16*sizeof(float)+16;
-        this->controlPointGrid->ext_list->ecode=NIFTI_ECODE_IGNORE;
-        this->controlPointGrid->ext_list->edata=(char *)malloc((this->controlPointGrid->ext_list->esize-8)*sizeof(float));
-        mat44 *forExtPtr = reinterpret_cast<mat44 *>(this->controlPointGrid->ext_list->edata);
-        for(unsigned int i=0;i<4;++i)
-            for(unsigned int j=0;j<4;++j)
-                forExtPtr->m[i][j] = this->affineTransformation->m[i][j];
-
-        if(this->backwardControlPointGrid->ext_list!=NULL)
-            free(this->backwardControlPointGrid->ext_list);
-        this->backwardControlPointGrid->num_ext=1;
-        this->backwardControlPointGrid->ext_list=(nifti1_extension *)malloc(sizeof(nifti1_extension));
-        this->backwardControlPointGrid->ext_list->esize=16*sizeof(float)+16;
-        this->backwardControlPointGrid->ext_list->ecode=NIFTI_ECODE_IGNORE;
-        this->backwardControlPointGrid->ext_list->edata=(char *)malloc((this->backwardControlPointGrid->ext_list->esize-8)*sizeof(float));
-        forExtPtr = reinterpret_cast<mat44 *>(this->backwardControlPointGrid->ext_list->edata);
-        for(unsigned int i=0;i<4;++i)
-            for(unsigned int j=0;j<4;++j)
-                forExtPtr->m[i][j] = inverseAffineTransformation.m[i][j];
-    }
-
-    // Set the velocity field parametrisations to 0 displacement
-    reg_tools_multiplyValueToImage(this->controlPointGrid,this->controlPointGrid,0.f);
-    reg_tools_multiplyValueToImage(this->backwardControlPointGrid,this->backwardControlPointGrid,0.f);
-    // Convert the parametrisations into deformation fields
-    reg_getDeformationFromDisplacement(this->controlPointGrid);
-    reg_getDeformationFromDisplacement(this->backwardControlPointGrid);
 
 #ifdef NDEBUG
     if(this->verbose){
@@ -373,77 +329,11 @@ void reg_f3d2<T>::UpdateParameters(float scale)
     reg_getDisplacementFromDeformation(this->controlPointGrid);
     reg_getDisplacementFromDeformation(this->backwardControlPointGrid);
 
-    // The parametrisation have first to be resampled and reoriented
-    if(this->controlPointGrid->sto_xyz==this->backwardControlPointGrid->sto_xyz &&
-       this->controlPointGrid->nx==this->backwardControlPointGrid->nx &&
-       this->controlPointGrid->ny==this->backwardControlPointGrid->ny &&
-       this->controlPointGrid->nz==this->backwardControlPointGrid->nz &&
-       this->controlPointGrid->dx==this->backwardControlPointGrid->dx &&
-       this->controlPointGrid->dy==this->backwardControlPointGrid->dy &&
-       this->controlPointGrid->dz==this->backwardControlPointGrid->dz){
-#ifndef NDEBUG
-        printf("[NiftyReg f3d2] Addition based symmetrisation\n");
-#endif
-        // Both parametrisations are copied over
-        memcpy(warpedBackwardTrans->data,this->backwardControlPointGrid->data,warpedBackwardTrans->nvox*warpedBackwardTrans->nbyper);
-        memcpy(warpedForwardTrans->data,this->controlPointGrid->data,warpedForwardTrans->nvox*warpedForwardTrans->nbyper);
-    }
-    /****************************/
-    else{
-#ifndef NDEBUG
-        printf("[NiftyReg f3d2] Interpolation based symmetrisation\n");
-#endif
-        // Allocate some deformation field images
-        nifti_image *backward2forwardDEF = nifti_copy_nim_info(this->backwardControlPointGrid);
-        backward2forwardDEF->data=(void *)calloc(backward2forwardDEF->nvox,backward2forwardDEF->nbyper);
-        if(this->backwardControlPointGrid->ext_list!=NULL){
-            // Read the specified affine transformation
-            reg_affine_deformationField(reinterpret_cast<mat44 *>(this->backwardControlPointGrid->ext_list->edata),
-                                        backward2forwardDEF);
-        }
-        else{
-            // Use an identity transformation
-            reg_tools_multiplyValueToImage(backward2forwardDEF,backward2forwardDEF,0.f);
-            reg_getDeformationFromDisplacement(backward2forwardDEF);
-        }
-        // Resample the forward grid in the space of the backward grid
-        // The forward deformation grid has been set to displacement grid in order to
-        // enable zero padding
-        reg_resampleGradient(this->controlPointGrid, // floating displacement field
-                             warpedForwardTrans, // warped displacement field
-                             backward2forwardDEF, // deformation field
-                             1, // linear interpolation
-                             0.f // padding
-                             );
-        // Clean the temporary deformation fields
-        nifti_image_free(backward2forwardDEF);backward2forwardDEF=NULL;
-        // Allocate some deformation field images
-        nifti_image *forward2backwardDEF = nifti_copy_nim_info(this->controlPointGrid);
-        forward2backwardDEF->data=(void *)calloc(forward2backwardDEF->nvox,forward2backwardDEF->nbyper);
-        if(this->controlPointGrid->ext_list!=NULL){
-            // Read the specified affine transformation
-            reg_affine_deformationField(reinterpret_cast<mat44 *>(this->controlPointGrid->ext_list->edata),
-                                        forward2backwardDEF);
-        }
-        else{
-            // Use an identity transformation
-            reg_tools_multiplyValueToImage(forward2backwardDEF,forward2backwardDEF,0.f);
-            reg_getDeformationFromDisplacement(forward2backwardDEF);
-        }
-        // Resample the backward grid in the space of the forward grid
-        // The backward deformation grid has been set to displacement grid in order to
-        // enable zero padding
-        reg_resampleGradient(this->backwardControlPointGrid, // floating displacement field
-                             warpedBackwardTrans, // warped displacement field
-                             forward2backwardDEF, // deformation field
-                             1, // linear interpolation
-                             0.f // padding
-                             );
-        // Clean the temporary deformation fields
-        nifti_image_free(forward2backwardDEF);forward2backwardDEF=NULL;
-    }
-    /* Average velocity fields into forward and backward space */
-    // Substraction as the propagated has to be negated
+	// Both parametrisations are copied over
+	memcpy(warpedBackwardTrans->data,this->backwardControlPointGrid->data,warpedBackwardTrans->nvox*warpedBackwardTrans->nbyper);
+	memcpy(warpedForwardTrans->data,this->controlPointGrid->data,warpedForwardTrans->nvox*warpedForwardTrans->nbyper);
+
+	// and substracted (sum and negation)
     reg_tools_substractImageToImage(this->backwardControlPointGrid, // displacement
                                     warpedForwardTrans, // displacement
                                     this->backwardControlPointGrid); // displacement output

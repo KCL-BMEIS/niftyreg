@@ -249,7 +249,7 @@ void reg_aladin_sym<T>::SetCurrentImages()
 template <class T>
 void reg_aladin_sym<T>::GetBackwardDeformationField()
 {
-    reg_affine_deformationField(this->BackwardTransformationMatrix,
+    reg_affine_getDeformationField(this->BackwardTransformationMatrix,
                                 this->BackwardDeformationFieldImage);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -271,10 +271,10 @@ template <class T>
 void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
 {
     // Update first the forward transformation matrix
-    block_matching_method<T>(this->CurrentReference,
-                             this->CurrentWarped,
-                             &this->blockMatchingParams,
-                             this->CurrentReferenceMask);
+	block_matching_method(this->CurrentReference,
+						  this->CurrentWarped,
+						  &this->blockMatchingParams,
+						  this->CurrentReferenceMask);
     if(type==RIGID){
         optimize(&this->blockMatchingParams,
                  this->TransformationMatrix,
@@ -286,10 +286,10 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
                  AFFINE);
     }
     // Update now the backward transformation matrix
-    block_matching_method<T>(this->CurrentFloating,
-                             this->CurrentBackwardWarped,
-                             &this->BackwardBlockMatchingParams,
-                             this->CurrentFloatingMask);
+	block_matching_method(this->CurrentFloating,
+						  this->CurrentBackwardWarped,
+						  &this->BackwardBlockMatchingParams,
+						  this->CurrentFloatingMask);
     if(type==RIGID){
         optimize(&this->BackwardBlockMatchingParams,
                  this->BackwardTransformationMatrix,

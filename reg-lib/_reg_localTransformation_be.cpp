@@ -1,6 +1,6 @@
 /*
  *  _reg_localTransformation_be.cpp
- *  
+ *
  *
  *  Created by Marc Modat on 10/05/2011.
  *  Copyright (c) 2009, University College London. All rights reserved.
@@ -81,7 +81,7 @@ double reg_spline_bendingEnergyApproxValue2D(nifti_image *splineControlPoint)
             constraintValue += (double)(XX_y*XX_y + YY_y*YY_y + 2.0*XY_y*XY_y);
         }
     }
-	return constraintValue/(double)(splineControlPoint->nvox);
+    return constraintValue/(double)(splineControlPoint->nvox);
 }
 /* *************************************************************** */
 template<class SplineTYPE>
@@ -225,7 +225,7 @@ double reg_spline_bendingEnergyApproxValue3D(nifti_image *splineControlPoint)
         }
     }
 
-	return constraintValue/(double)(splineControlPoint->nvox);
+    return constraintValue/(double)(splineControlPoint->nvox);
 }
 /* *************************************************************** */
 extern "C++"
@@ -254,7 +254,6 @@ double reg_spline_approxBendingEnergy(nifti_image *splineControlPoint)
             fprintf(stderr,"[NiftyReg ERROR] The bending energy is not computed\n");
             exit(1);
         }
-
     }
 }
 /* *************************************************************** */
@@ -335,7 +334,7 @@ void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
             derivativeValuesPtr[2] = (SplineTYPE)(2.0*XY_x);
             derivativeValuesPtr[3] = (SplineTYPE)(1.0*XX_y);
             derivativeValuesPtr[4] = (SplineTYPE)(1.0*YY_y);
-			derivativeValuesPtr[5] = (SplineTYPE)(2.0*XY_y);
+            derivativeValuesPtr[5] = (SplineTYPE)(2.0*XY_y);
         }
     }
 
@@ -365,15 +364,15 @@ void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
                         if(-1<X && X<splineControlPoint->nx){
                             derivativeValuesPtr = &derivativeValues[6 * (Y*splineControlPoint->nx + X)];
                             gradientValue[0] +=
-									derivativeValuesPtr[0] * basisXX[coord] +
-									derivativeValuesPtr[1] * basisYY[coord] +
-									derivativeValuesPtr[2] * basisXY[coord] ;
+                                    derivativeValuesPtr[0] * basisXX[coord] +
+                                    derivativeValuesPtr[1] * basisYY[coord] +
+                                    derivativeValuesPtr[2] * basisXY[coord] ;
 
                             gradientValue[1] +=
-									derivativeValuesPtr[3] * basisXX[coord] +
-									derivativeValuesPtr[4] * basisYY[coord] +
-									derivativeValuesPtr[5] * basisXY[coord] ;
-						} // X outside
+                                    derivativeValuesPtr[3] * basisXX[coord] +
+                                    derivativeValuesPtr[4] * basisYY[coord] +
+                                    derivativeValuesPtr[5] * basisXY[coord] ;
+                        } // X outside
                         ++coord;
                     }
                 } // Y outside
@@ -392,9 +391,9 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
                                                nifti_image *gradientImage,
                                                float weight)
 {
-	int a, x, y, z, X, Y, Z;
+    int a, x, y, z, X, Y, Z;
     // As the contraint is only computed at the voxel position, the basis value of the spline are always the same
-	SplineTYPE basisXX[27], basisYY[27], basisZZ[27], basisXY[27], basisYZ[27], basisXZ[27];
+    SplineTYPE basisXX[27], basisYY[27], basisZZ[27], basisXY[27], basisYZ[27], basisXZ[27];
 
     basisXX[0]=0.027778f;basisYY[0]=0.027778f;basisZZ[0]=0.027778f;
     basisXY[0]=0.041667f;basisYZ[0]=0.041667f;basisXZ[0]=0.041667f;
@@ -618,8 +617,8 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
 /* *************************************************************** */
 extern "C++"
 void reg_spline_approxBendingEnergyGradient(nifti_image *splineControlPoint,
-											nifti_image *gradientImage,
-											float weight)
+                                            nifti_image *gradientImage,
+                                            float weight)
 {
     if(splineControlPoint->datatype != gradientImage->datatype){
         fprintf(stderr,"[NiftyReg ERROR] The spline control point image and the gradient image were expected to have the same datatype\n");
@@ -664,10 +663,9 @@ void reg_spline_approxBendingEnergyGradient(nifti_image *splineControlPoint,
 template <class DTYPE>
 void reg_spline_linearEnergyApproxValue1(nifti_image *splineControlPoint, double *constraintValue)
 {
-    size_t nodeNumber = splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz;
+    size_t nodeNumber = splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz; // HERE wrong -2
     int index, x, y, z;
 
-    DTYPE *jacDeterminant=(DTYPE *)malloc(nodeNumber*sizeof(DTYPE));
     mat33 *jacobianMatrices=(mat33 *)malloc(nodeNumber*sizeof(mat33));
 
     double constraintValue0, constraintValue1;
@@ -675,9 +673,12 @@ void reg_spline_linearEnergyApproxValue1(nifti_image *splineControlPoint, double
     mat33 jacobianMatrix;
 
     if(splineControlPoint->nz>1){
-        reg_spline_computeApproximateJacobianMatrices_3D(splineControlPoint,
-                                                         jacobianMatrices,
-                                                         jacDeterminant);
+        reg_spline_jacobian3D<DTYPE>(splineControlPoint,
+                                     NULL,
+                                     jacobianMatrices,
+                                     NULL,
+                                     true,
+                                     false);
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(splineControlPoint, jacobianMatrices) \
@@ -687,7 +688,7 @@ void reg_spline_linearEnergyApproxValue1(nifti_image *splineControlPoint, double
 #endif
         for(z=1;z<splineControlPoint->nz-1;z++){
             for(y=1;y<splineControlPoint->ny-1;y++){
-                index=(z*splineControlPoint->ny+y)*splineControlPoint->nx+1;
+                index=(z*splineControlPoint->ny+y)*splineControlPoint->nx+1; // HERE
                 for(x=1;x<splineControlPoint->nx-1;x++){
 
                     jacobianMatrix=jacobianMatrices[index];
@@ -709,9 +710,12 @@ void reg_spline_linearEnergyApproxValue1(nifti_image *splineControlPoint, double
         } // z
     }
     else{
-        reg_spline_computeApproximateJacobianMatrices_2D(splineControlPoint,
-                                                         jacobianMatrices,
-                                                         jacDeterminant);
+        reg_spline_jacobian2D<DTYPE>(splineControlPoint,
+                                     NULL,
+                                     jacobianMatrices,
+                                     NULL,
+                                     true,
+                                     false);
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(splineControlPoint, jacobianMatrices) \
@@ -720,7 +724,7 @@ void reg_spline_linearEnergyApproxValue1(nifti_image *splineControlPoint, double
     reduction(+:constraintValue1)
 #endif
         for(y=1;y<splineControlPoint->ny-1;y++){
-            index=y*splineControlPoint->nx+1;
+            index=y*splineControlPoint->nx+1; // HERE
             for(x=1;x<splineControlPoint->nx-1;x++){
 
 
@@ -741,7 +745,6 @@ void reg_spline_linearEnergyApproxValue1(nifti_image *splineControlPoint, double
     constraintValue[1] = constraintValue1/(double)(splineControlPoint->nvox);
 
     free(jacobianMatrices);
-    free(jacDeterminant);
 }
 /* *************************************************************** */
 void reg_spline_linearEnergy(nifti_image *splineControlPoint, double *val)
@@ -956,19 +959,23 @@ void reg_spline_approxLinearEnergyGradient1(nifti_image *splineControlPoint,
     int voxNumber = referenceImage->nx*referenceImage->ny*referenceImage->nz;
     int a, b, c, x, y, z, index, coord, currentIndex;
 
-    DTYPE *jacobianDet=(DTYPE *)malloc(nodeNumber*sizeof(DTYPE));
     mat33 *jacobianMatrices=(mat33 *)malloc(nodeNumber*sizeof(mat33));
     if(splineControlPoint->nz>1){
-        reg_spline_computeApproximateJacobianMatrices_3D(splineControlPoint,
-                                                          jacobianMatrices,
-                                                          jacobianDet);
+        reg_spline_jacobian3D<DTYPE>(splineControlPoint,
+                                     referenceImage,
+                                     jacobianMatrices,
+                                     NULL,
+                                     true,
+                                     false);
     }
     else{
-        reg_spline_computeApproximateJacobianMatrices_2D(splineControlPoint,
-                                                          jacobianMatrices,
-                                                          jacobianDet);
+        reg_spline_jacobian2D<DTYPE>(splineControlPoint,
+                                     referenceImage,
+                                     jacobianMatrices,
+                                     NULL,
+                                     true,
+                                     false);
     }
-    free(jacobianDet);
 
     DTYPE *gradPtrX = static_cast<DTYPE *>(gradientImage->data);
     DTYPE *gradPtrY = &gradPtrX[nodeNumber];
@@ -1007,14 +1014,15 @@ void reg_spline_approxLinearEnergyGradient1(nifti_image *splineControlPoint,
     }
 
     DTYPE gradX0, gradX1, gradY0, gradY1, gradZ0, gradZ1;
-    mat33 reorient, desorient, jacobianMatrix;
-    reg_getReorientationMatrix(splineControlPoint, &reorient);
-    desorient=nifti_mat33_inverse(reorient);
+    mat33 jacobianMatrix, reorientation;
+    if(splineControlPoint->sform_code>0)
+        reorientation = reg_mat44_to_mat33(&splineControlPoint->sto_xyz);
+    else reorientation = reg_mat44_to_mat33(&splineControlPoint->qto_xyz);
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
     shared(splineControlPoint, jacobianMatrices, \
-    gradPtrX, gradPtrY, gradPtrZ, desorient, approxRatio0, approxRatio1, \
+    gradPtrX, gradPtrY, gradPtrZ, reorientation, approxRatio0, approxRatio1, \
     basisX, basisY, basisZ) \
     private(x, y, z, a, b, c, index, currentIndex, jacobianMatrix, coord, common, \
     gradX0, gradX1, gradY0, gradY1, gradZ0, gradZ1)
@@ -1060,12 +1068,12 @@ void reg_spline_approxLinearEnergyGradient1(nifti_image *splineControlPoint,
                             }
                         }
                     }
-                    gradPtrX[index] += approxRatio0 * (desorient.m[0][0]*gradX0 + desorient.m[0][1]*gradY0 + desorient.m[0][2]*gradZ0) +
-                            approxRatio1 * (desorient.m[0][0]*gradX1 + desorient.m[0][1]*gradY1 + desorient.m[0][2]*gradZ1);
-                    gradPtrY[index] += approxRatio0 * (desorient.m[1][0]*gradX0 + desorient.m[1][1]*gradY0 + desorient.m[1][2]*gradZ0) +
-                            approxRatio1 * (desorient.m[1][0]*gradX1 + desorient.m[1][1]*gradY1 + desorient.m[1][2]*gradZ1);
-                    gradPtrZ[index] += approxRatio0 * (desorient.m[2][0]*gradX0 + desorient.m[2][1]*gradY0 + desorient.m[2][2]*gradZ0) +
-                            approxRatio1 * (desorient.m[2][0]*gradX1 + desorient.m[2][1]*gradY1 + desorient.m[2][2]*gradZ1);
+                    gradPtrX[index] += approxRatio0 * (reorientation.m[0][0]*gradX0 + reorientation.m[0][1]*gradY0 + reorientation.m[0][2]*gradZ0) +
+                            approxRatio1 * (reorientation.m[0][0]*gradX1 + reorientation.m[0][1]*gradY1 + reorientation.m[0][2]*gradZ1);
+                    gradPtrY[index] += approxRatio0 * (reorientation.m[1][0]*gradX0 + reorientation.m[1][1]*gradY0 + reorientation.m[1][2]*gradZ0) +
+                            approxRatio1 * (reorientation.m[1][0]*gradX1 + reorientation.m[1][1]*gradY1 + reorientation.m[1][2]*gradZ1);
+                    gradPtrZ[index] += approxRatio0 * (reorientation.m[2][0]*gradX0 + reorientation.m[2][1]*gradY0 + reorientation.m[2][2]*gradZ0) +
+                            approxRatio1 * (reorientation.m[2][0]*gradX1 + reorientation.m[2][1]*gradY1 + reorientation.m[2][2]*gradZ1);
                 }
                 else{
                     for(b=y-1;b<y+2;b++){
@@ -1091,10 +1099,10 @@ void reg_spline_approxLinearEnergyGradient1(nifti_image *splineControlPoint,
                             coord++;
                         }
                     }
-                    gradPtrX[index] += approxRatio0 * (desorient.m[0][0]*gradX0 + desorient.m[0][1]*gradY0) +
-                                       approxRatio1 * (desorient.m[0][0]*gradX1 + desorient.m[0][1]*gradY1) ;
-                    gradPtrY[index] += approxRatio0 * (desorient.m[1][0]*gradX0 + desorient.m[1][1]*gradY0) +
-                                       approxRatio1 * (desorient.m[1][0]*gradX1 + desorient.m[1][1]*gradY1) ;
+                    gradPtrX[index] += approxRatio0 * (reorientation.m[0][0]*gradX0 + reorientation.m[0][1]*gradY0) +
+                                       approxRatio1 * (reorientation.m[0][0]*gradX1 + reorientation.m[0][1]*gradY1) ;
+                    gradPtrY[index] += approxRatio0 * (reorientation.m[1][0]*gradX0 + reorientation.m[1][1]*gradY0) +
+                                       approxRatio1 * (reorientation.m[1][0]*gradX1 + reorientation.m[1][1]*gradY1) ;
                 }
                 index++;
             }

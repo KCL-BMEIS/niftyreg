@@ -1,6 +1,6 @@
 /*
  *  _reg_ssd.cpp
- *  
+ *
  *
  *  Created by Marc Modat on 19/05/2009.
  *  Copyright (c) 2009, University College London. All rights reserved.
@@ -16,7 +16,7 @@
 /* *************************************************************** */
 /* *************************************************************** */
 reg_ssd::reg_ssd()
-	: reg_measure()
+    : reg_measure()
 {
 #ifndef NDEBUG
         printf("[NiftyReg DEBUG] reg_ssd constructor called\n");
@@ -47,12 +47,12 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImgPtr,
                                    warRefGraPtr,
                                    bckVoxBasedGraPtr);
 
-	// Check that the input images have the same number of time point
-	if(this->referenceImagePointer->nt != this->floatingImagePointer->nt){
-		fprintf(stderr,"[NiftyReg ERROR] reg_nmi::InitialiseMeasure\n");
-		fprintf(stderr,"[NiftyReg ERROR] This number of time point should\n");
-		fprintf(stderr,"[NiftyReg ERROR] be the same for both input images\n");
-		reg_exit(1);
+    // Check that the input images have the same number of time point
+    if(this->referenceImagePointer->nt != this->floatingImagePointer->nt){
+        fprintf(stderr,"[NiftyReg ERROR] reg_nmi::InitialiseMeasure\n");
+        fprintf(stderr,"[NiftyReg ERROR] This number of time point should\n");
+        fprintf(stderr,"[NiftyReg ERROR] be the same for both input images\n");
+        reg_exit(1);
     }
     // Input images are normalised between 0 and 1
     for(int i=0;i<this->referenceImagePointer->nt;++i){
@@ -86,7 +86,7 @@ double reg_getSSDValue(nifti_image *referenceImage,
                        float *currentValue
                        )
 {
-	size_t voxelNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
+    size_t voxelNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
     // Create pointers to the reference and warped image data
     DTYPE *referencePtr=static_cast<DTYPE *>(referenceImage->data);
     DTYPE *warpedPtr=static_cast<DTYPE *>(warpedImage->data);
@@ -98,9 +98,9 @@ double reg_getSSDValue(nifti_image *referenceImage,
     // Create some variables to be use in the openmp loop
 
 #ifdef _WIN32
-	int  voxel;
+    int  voxel;
 #else
-	size_t  voxel;
+    size_t  voxel;
 #endif
 
     double SSD_global=0.0, n=0.0;
@@ -131,8 +131,8 @@ double reg_getSSDValue(nifti_image *referenceImage,
                                            referenceImage->scl_inter);
                     resultValue = (double)(currentWarPtr[voxel] * referenceImage->scl_slope +
                                            referenceImage->scl_inter);
-					if(targetValue==targetValue && resultValue==resultValue){
-						diff = reg_pow2(targetValue-resultValue);
+                    if(targetValue==targetValue && resultValue==resultValue){
+                        diff = reg_pow2(targetValue-resultValue);
 //						if(diff>0) diff=log(diff);
                         // Jacobian determinant modulation of the ssd if required
                         if(jacDetPtr!=NULL){
@@ -145,9 +145,9 @@ double reg_getSSDValue(nifti_image *referenceImage,
                         }
                     }
                 }
-			}
+            }
             currentValue[time]=-SSD_local;
-			SSD_global -= SSD_local/n;
+            SSD_global -= SSD_local/n;
         }
     }
     return SSD_global;
@@ -239,11 +239,11 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                                   float *currentValue)
 {
     // Create pointers to the reference and warped images
-	size_t voxelNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
+    size_t voxelNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
 #ifdef _WIN32
-	int  voxel;
+    int  voxel;
 #else
-	size_t  voxel;
+    size_t  voxel;
 #endif
 
     DTYPE *refPtr=static_cast<DTYPE *>(referenceImage->data);

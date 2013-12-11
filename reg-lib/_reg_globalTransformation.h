@@ -17,7 +17,7 @@
 #include "nifti1_io.h"
 #include <fstream>
 #include <limits>
-#include "_reg_maths.h"
+#include "_reg_tools.h"
 
 
 /** @brief This Function compute a deformation field based
@@ -28,8 +28,10 @@
  * that is being updated
  */
 extern "C++"
-void reg_affine_deformationField(mat44 *affine,
-                                 nifti_image *deformationField);
+void reg_affine_getDeformationField(mat44 *affine,
+                                    nifti_image *deformationField,
+                                    bool compose=false,
+                                    int *mask = NULL);
 
 /** @brief Read a text file that contains a affine transformation
  * and store it into a mat44 structure. This function can also read

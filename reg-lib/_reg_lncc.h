@@ -14,11 +14,6 @@
 
 #include "_reg_measure.h"
 
-// 0 - Gaussian kernel
-// 1 - Spline kernel
-// 2 - Mean filter
-#define KERNEL_TYPE 0
-
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 class reg_lncc : public reg_measure
@@ -48,6 +43,8 @@ public:
         this->activeTimePoint[t]=true;
         this->kernelStandardDeviation[t]=stddev;
     }
+    /// @brief Stuff
+    void SetKernelType(int t){this->kernelType=t;}
 protected:
     float kernelStandardDeviation[255];
     nifti_image *forwardCorrelationImage;
@@ -61,6 +58,8 @@ protected:
     nifti_image *floatingSdevImage;
     nifti_image *warpedReferenceMeanImage;
     nifti_image *warpedReferenceSdevImage;
+
+    int kernelType;
 
     template <class DTYPE>
     void UpdateLocalStatImages(nifti_image *imag,
@@ -89,7 +88,8 @@ double reg_getLNCCValue(nifti_image *referenceImage,
 						nifti_image *warpedStdDevImage,
 						float *kernelStdDev,
 						bool *activeTimePoint,
-						nifti_image *correlationImage);
+                        nifti_image *correlationImage,
+                        int kernelType);
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /** @brief Compute a voxel based gradient of the LNCC.
@@ -115,6 +115,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
 								   bool *activeTimePoint,
 								   nifti_image *correlationImage,
 								   nifti_image *warpedGradientImage,
-								   nifti_image *lnccGradientImage);
+                                   nifti_image *lnccGradientImage,
+                                   int kernelType);
 #endif
 

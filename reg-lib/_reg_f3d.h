@@ -109,7 +109,7 @@ public:
     virtual int CheckMemoryMB(){return 0;}
 
 	virtual void CheckParameters();
-    virtual void Initisalise();
+    virtual void Initialise();
     virtual nifti_image *GetControlPointPositionImage();
     virtual nifti_image **GetWarpedImage();
 

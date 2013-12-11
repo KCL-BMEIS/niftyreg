@@ -7,6 +7,24 @@ else("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATC
  mark_as_advanced(CLEAR CMAKE_BACKWARDS_COMPATIBILITY)
 endif("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^2\\.8\\.0$")
 #-----------------------------------------------------------------------------
+if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+	message("In-source builds not allowed by NiftyReg police.")
+	message("Please make a new directory (called a build directory) and run CMake from there.")
+	message(FATAL_ERROR "You may need to remove CMakeCache.txt.")
+endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+#-----------------------------------------------------------------------------
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release")
+endif(NOT CMAKE_BUILD_TYPE)
+#-----------------------------------------------------------------------------
+string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_tolower)
+if(NOT cmake_build_type_tolower STREQUAL "debug"
+   AND NOT cmake_build_type_tolower STREQUAL "release"
+   AND NOT cmake_build_type_tolower STREQUAL "relwithdebinfo")
+  message("Unknown build type \"${CMAKE_BUILD_TYPE}\".")
+  message(FATAL_ERROR "Allowed values are Debug, Release, RelWithDebInfo (case-insensitive).")
+endif()
+#-----------------------------------------------------------------------------
 set(NiftyReg_VERSION_MAJOR 1)
 set(NiftyReg_VERSION_MINOR 3)
 set(NiftyReg_VERSION_PATCH 9)
@@ -51,6 +69,7 @@ endif(NOT ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
 include_directories(${CMAKE_SOURCE_DIR}/reg-lib)
 include_directories(${CMAKE_SOURCE_DIR}/reg-io)
 include_directories(${CMAKE_SOURCE_DIR}/reg-io/nifti)
+include_directories(${CMAKE_SOURCE_DIR}/third-party)
 #-----------------------------------------------------------------------------
 # Z library
 # Try first to find the z library on the system and built is from the sources if it can not be find
@@ -200,6 +219,7 @@ endif(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/.svn)
 subdirs(reg-io)
 subdirs(reg-lib)
 subdirs(reg-apps)
+subdirs(third-party)
 if(BUILD_TESTING)
     enable_testing()
     include(${CMAKE_ROOT}/Modules/Dart.cmake)

@@ -1436,8 +1436,8 @@ nrrdSanity(void) {
   tmpLLI = NRRD_LLONG_MAX;
   if (tmpLLI != NRRD_LLONG_MAX) {
     biffAddf(NRRD, "%s: long long int can't hold NRRD_LLONG_MAX ("
-             AIR_ULLONG_FMT ")", me,
-             NRRD_LLONG_MAX);
+			 AIR_ULLONG_FMT ")", me,
+			 NRRD_LLONG_MAX);
     return 0;
   }
 #if 0 /* signed overflow is undefined, therefore this test is meaningless. */

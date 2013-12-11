@@ -171,6 +171,7 @@ public:
 	virtual void UseKLDivergence(int timepoint);
     virtual void UseDTI(bool *timepoint);
     virtual void UseLNCC(int timepoint, float stdDevKernel);
+    virtual void SetLNCCKernelType(int type);
 
     void SetReferenceImage(nifti_image *);
     void SetFloatingImage(nifti_image *);
@@ -195,7 +196,7 @@ public:
 
 	virtual void CheckParameters();
     void Run();
-	virtual void Initisalise();
+	virtual void Initialise();
 	nifti_image **GetWarpedImage(){return NULL;} // Need to be filled
 	virtual char * GetExecutableName(){return this->executableName;}
 	virtual bool GetSymmetricStatus(){return false;}

@@ -3,26 +3,26 @@
 #-----------------------------------------------------------------------------
 set(LIST _reg_maths)
 foreach(NAME ${LIST})
-    add_library(${NAME} ${NAME}.h ${NAME}.cpp)
-    target_link_libraries(${NAME})
-    install(TARGETS ${NAME}
-            RUNTIME DESTINATION bin COMPONENT Development
-            LIBRARY DESTINATION lib COMPONENT Development
-            ARCHIVE DESTINATION lib COMPONENT Development
-    )
-    install(FILES ${NAME}.h DESTINATION include COMPONENT Development)
+		add_library(${NAME} ${NAME}.h ${NAME}.cpp)
+		target_link_libraries(${NAME})
+		install(TARGETS ${NAME}
+						RUNTIME DESTINATION bin COMPONENT Development
+						LIBRARY DESTINATION lib COMPONENT Development
+						ARCHIVE DESTINATION lib COMPONENT Development
+		)
+		install(FILES ${NAME}.h DESTINATION include COMPONENT Development)
 endforeach(NAME)
 #-----------------------------------------------------------------------------
 set(LIST _reg_tools)
 foreach(NAME ${LIST})
-    add_library(${NAME} ${NAME}.h ${NAME}.cpp)
-    target_link_libraries(${NAME} _reg_maths)
-    install(TARGETS ${NAME}
-            RUNTIME DESTINATION bin COMPONENT Development
-            LIBRARY DESTINATION lib COMPONENT Development
-            ARCHIVE DESTINATION lib COMPONENT Development
-        )
-    install(FILES ${NAME}.h DESTINATION include COMPONENT Development)
+		add_library(${NAME} ${NAME}.h ${NAME}.cpp)
+		target_link_libraries(${NAME} _reg_maths)
+		install(TARGETS ${NAME}
+						RUNTIME DESTINATION bin COMPONENT Development
+						LIBRARY DESTINATION lib COMPONENT Development
+						ARCHIVE DESTINATION lib COMPONENT Development
+				)
+		install(FILES ${NAME}.h DESTINATION include COMPONENT Development)
 endforeach(NAME)
 #-----------------------------------------------------------------------------
 set(LIST _reg_globalTransformation)
@@ -36,12 +36,12 @@ set(LIST ${LIST} _reg_dti)
 set(LIST ${LIST} _reg_blockMatching)
 set(LIST ${LIST} _reg_femTransformation)
 foreach(NAME ${LIST})
-    add_library(${NAME} ${NAME}.h ${NAME}.cpp)
-    target_link_libraries(${NAME} _reg_tools _reg_maths)
-    install(TARGETS ${NAME}
-            RUNTIME DESTINATION bin COMPONENT Development
-            LIBRARY DESTINATION lib COMPONENT Development
-            ARCHIVE DESTINATION lib COMPONENT Development
+		add_library(${NAME} ${NAME}.h ${NAME}.cpp)
+		target_link_libraries(${NAME} _reg_tools _reg_maths)
+		install(TARGETS ${NAME}
+						RUNTIME DESTINATION bin COMPONENT Development
+						LIBRARY DESTINATION lib COMPONENT Development
+						ARCHIVE DESTINATION lib COMPONENT Development
 	)
 	install(FILES ${NAME}.h DESTINATION include COMPONENT Development)
 endforeach(NAME)
@@ -49,15 +49,15 @@ endforeach(NAME)
 #-----------------------------------------------------------------------------
 set(NAME _reg_optimiser)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    add_library(${NAME} SHARED ${NAME}.h ${NAME}.cpp)
+		add_library(${NAME} SHARED ${NAME}.h ${NAME}.cpp)
 else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    add_library(${NAME} ${NAME}.h ${NAME}.cpp)
+		add_library(${NAME} ${NAME}.h ${NAME}.cpp)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 target_link_libraries(${NAME})
 install(TARGETS ${NAME}
-        RUNTIME DESTINATION bin COMPONENT Development
-        LIBRARY DESTINATION lib COMPONENT Development
-        ARCHIVE DESTINATION lib COMPONENT Development
+				RUNTIME DESTINATION bin COMPONENT Development
+				LIBRARY DESTINATION lib COMPONENT Development
+				ARCHIVE DESTINATION lib COMPONENT Development
 )
 install(FILES ${NAME}.h ${NAME}.cpp DESTINATION include COMPONENT Development)
 #-----------------------------------------------------------------------------
@@ -73,32 +73,34 @@ if(USE_CUDA)
 #    )
 #    install(FILES ${NAME}.h DESTINATION include COMPONENT Development)
 #-----------------------------------------------------------------------------
-    set(NAME _reg_common_gpu)
-    cuda_add_library(${NAME} ${NAME}.h ${NAME}.cu _reg_blocksize_gpu.h _reg_blocksize_gpu.cu)
-    install(TARGETS ${NAME}
-            RUNTIME DESTINATION bin COMPONENT Development
-            LIBRARY DESTINATION lib COMPONENT Development
-            ARCHIVE DESTINATION lib COMPONENT Development
-    )
-    install(FILES ${NAME}.h DESTINATION include COMPONENT Development)
+		set(NAME _reg_common_gpu)
+		cuda_add_library(${NAME} ${NAME}.h ${NAME}.cu _reg_blocksize_gpu.h _reg_blocksize_gpu.cu)
+		install(TARGETS ${NAME}
+						RUNTIME DESTINATION bin COMPONENT Development
+						LIBRARY DESTINATION lib COMPONENT Development
+						ARCHIVE DESTINATION lib COMPONENT Development
+		)
+		install(FILES ${NAME}.h DESTINATION include COMPONENT Development)
 #-----------------------------------------------------------------------------
-    set(LIST _reg_globalTransformation)
-    set(LIST ${LIST} _reg_blockMatching)
-    set(LIST ${LIST} _reg_localTransformation)
-    set(LIST ${LIST} _reg_nmi)
-    set(LIST ${LIST} _reg_ssd)
-    set(LIST ${LIST} _reg_resampling)
-    set(LIST ${LIST} _reg_tools)
-    set(LIST ${LIST} _reg_optimiser)
-    foreach(NAME ${LIST})
-        cuda_add_library(${NAME}_gpu ${NAME}_gpu.h ${NAME}_gpu.cu ${NAME}_kernels.cu)
-        install(TARGETS ${NAME}_gpu
-                RUNTIME DESTINATION bin COMPONENT Development
-                LIBRARY DESTINATION lib COMPONENT Development
-                ARCHIVE DESTINATION lib COMPONENT Development
-        )
-        install(FILES ${NAME}_gpu.h DESTINATION include COMPONENT Development)
-    endforeach(NAME)
+		set(LIST _reg_globalTransformation)
+		set(LIST ${LIST} _reg_blockMatching)
+		set(LIST ${LIST} _reg_localTransformation)
+		set(LIST ${LIST} _reg_nmi)
+		set(LIST ${LIST} _reg_ssd)
+		set(LIST ${LIST} _reg_resampling)
+		set(LIST ${LIST} _reg_tools)
+		set(LIST ${LIST} _reg_optimiser)
+		foreach(NAME ${LIST})
+				cuda_add_library(${NAME}_gpu ${NAME}_gpu.h ${NAME}_gpu.cu ${NAME}_kernels.cu)
+				install(TARGETS ${NAME}_gpu
+								RUNTIME DESTINATION bin COMPONENT Development
+								LIBRARY DESTINATION lib COMPONENT Development
+								ARCHIVE DESTINATION lib COMPONENT Development
+				)
+				install(FILES ${NAME}_gpu.h DESTINATION include COMPONENT Development)
+		endforeach(NAME)
+#-----------------------------------------------------------------------------
+		install(FILES _reg_blocksize_gpu.h DESTINATION include COMPONENT Development)
 #-----------------------------------------------------------------------------
 endif(USE_CUDA)
 #-----------------------------------------------------------------------------
@@ -108,29 +110,29 @@ endif(USE_CUDA)
 set(NAME _reg_f3d)
 if(USE_CUDA)
 #-----------------------------------------------------------------------------
-    if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        cuda_add_library(${NAME} SHARED _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp ${NAME}_sym.h ${NAME}_sym.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_gpu.h ${NAME}_gpu.cpp)
-    else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        cuda_add_library(${NAME} _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp ${NAME}_sym.h ${NAME}_sym.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_gpu.h ${NAME}_gpu.cpp)
-    endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        target_link_libraries(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation _reg_KLdivergence _reg_ssd _reg_nmi _reg_dti _reg_lncc _reg_optimiser _reg_tools _reg_ReadWriteImage _reg_optimiser_gpu _reg_localTransformation_gpu _reg_resampling_gpu _reg_globalTransformation_gpu _reg_nmi_gpu _reg_ssd_gpu _reg_tools_gpu _reg_common_gpu)
-    install(FILES ${NAME}_gpu.h ${NAME}_gpu.cpp DESTINATION include COMPONENT Development)
+		if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+				cuda_add_library(${NAME} SHARED _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp ${NAME}_sym.h ${NAME}_sym.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_gpu.h ${NAME}_gpu.cpp)
+		else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+				cuda_add_library(${NAME} _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp ${NAME}_sym.h ${NAME}_sym.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_gpu.h ${NAME}_gpu.cpp)
+		endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+				target_link_libraries(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation _reg_KLdivergence _reg_ssd _reg_nmi _reg_dti _reg_lncc _reg_optimiser _reg_tools _reg_ReadWriteImage _reg_optimiser_gpu _reg_localTransformation_gpu _reg_resampling_gpu _reg_globalTransformation_gpu _reg_nmi_gpu _reg_ssd_gpu _reg_tools_gpu _reg_common_gpu)
+		install(FILES ${NAME}_gpu.h ${NAME}_gpu.cpp DESTINATION include COMPONENT Development)
 #-----------------------------------------------------------------------------
 else(USE_CUDA)
 #-----------------------------------------------------------------------------
-    if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        add_library(${NAME} SHARED _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_sym.h ${NAME}_sym.cpp)
-    else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        add_library(${NAME} _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_sym.h ${NAME}_sym.cpp)
-    endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    target_link_libraries(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation  _reg_lncc _reg_dti _reg_KLdivergence _reg_ssd _reg_nmi _reg_optimiser _reg_tools _reg_ReadWriteImage)
+		if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+				add_library(${NAME} SHARED _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_sym.h ${NAME}_sym.cpp)
+		else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+				add_library(${NAME} _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp ${NAME}2.h ${NAME}2.cpp ${NAME}_sym.h ${NAME}_sym.cpp)
+		endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+		target_link_libraries(${NAME} _reg_localTransformation _reg_resampling _reg_globalTransformation  _reg_lncc _reg_dti _reg_KLdivergence _reg_ssd _reg_nmi _reg_optimiser _reg_tools _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
 endif(USE_CUDA)
 #-----------------------------------------------------------------------------
 install(TARGETS ${NAME}
-        RUNTIME DESTINATION bin COMPONENT RuntimeLibraries
-        LIBRARY DESTINATION lib COMPONENT RuntimeLibraries
-        ARCHIVE DESTINATION lib COMPONENT RuntimeLibraries
+				RUNTIME DESTINATION bin COMPONENT RuntimeLibraries
+				LIBRARY DESTINATION lib COMPONENT RuntimeLibraries
+				ARCHIVE DESTINATION lib COMPONENT RuntimeLibraries
 )
 install(FILES ${NAME}.h ${NAME}.cpp DESTINATION include COMPONENT Development)
 install(FILES ${NAME}2.h ${NAME}2.cpp DESTINATION include COMPONENT Development)
@@ -139,55 +141,55 @@ install(FILES ${NAME}_sym.h ${NAME}_sym.cpp DESTINATION include COMPONENT Develo
 ## BUILD THE ALADIN LIBRARY CPU
 set(NAME _reg_aladin)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    add_library(${NAME} SHARED ${NAME}.h ${NAME}.cpp ${NAME}_sym.h ${NAME}_sym.cpp)
+		add_library(${NAME} SHARED ${NAME}.h ${NAME}.cpp ${NAME}_sym.h ${NAME}_sym.cpp)
 else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    add_library(${NAME} ${NAME}.h ${NAME}.cpp ${NAME}_sym.h ${NAME}_sym.cpp)
+		add_library(${NAME} ${NAME}.h ${NAME}.cpp ${NAME}_sym.h ${NAME}_sym.cpp)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 target_link_libraries(${NAME} _reg_localTransformation _reg_blockMatching _reg_resampling _reg_globalTransformation _reg_ssd _reg_nmi _reg_tools _reg_ReadWriteImage)
 install(TARGETS ${NAME}
-        RUNTIME DESTINATION bin COMPONENT RuntimeLibraries
-        LIBRARY DESTINATION lib COMPONENT RuntimeLibraries
-        ARCHIVE DESTINATION lib COMPONENT RuntimeLibraries
+				RUNTIME DESTINATION bin COMPONENT RuntimeLibraries
+				LIBRARY DESTINATION lib COMPONENT RuntimeLibraries
+				ARCHIVE DESTINATION lib COMPONENT RuntimeLibraries
 )
 install(FILES ${NAME}.h ${NAME}_sym.h ${NAME}.cpp ${NAME}_sym.cpp _reg_macros.h DESTINATION include COMPONENT Development)
 #-----------------------------------------------------------------------------
 ## BUILD THE TPS LIBRARY CPU
 set(NAME _reg_thinPlateSpline)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    add_library(${NAME} SHARED ${NAME}.h ${NAME}.cpp)
+		add_library(${NAME} SHARED ${NAME}.h ${NAME}.cpp)
 else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    add_library(${NAME} ${NAME}.h ${NAME}.cpp)
+		add_library(${NAME} ${NAME}.h ${NAME}.cpp)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    target_link_libraries(${NAME} _reg_tools _reg_ReadWriteImage)
+		target_link_libraries(${NAME} _reg_tools _reg_ReadWriteImage)
 install(TARGETS ${NAME}
-        RUNTIME DESTINATION bin COMPONENT RuntimeLibraries
-        LIBRARY DESTINATION lib COMPONENT RuntimeLibraries
-        ARCHIVE DESTINATION lib COMPONENT RuntimeLibraries
+				RUNTIME DESTINATION bin COMPONENT RuntimeLibraries
+				LIBRARY DESTINATION lib COMPONENT RuntimeLibraries
+				ARCHIVE DESTINATION lib COMPONENT RuntimeLibraries
 )
 install(FILES ${NAME}.h ${NAME}.cpp DESTINATION include COMPONENT Development)
 #-----------------------------------------------------------------------------
 ## BUILD THE POLYAFFINE LIBRARY CPU
 set(NAME _reg_polyAffine)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    add_library(${NAME} SHARED _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
+		add_library(${NAME} SHARED _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
 else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    add_library(${NAME} _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
+		add_library(${NAME} _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    target_link_libraries(${NAME} _reg_tools _reg_ReadWriteImage)
+		target_link_libraries(${NAME} _reg_tools _reg_ReadWriteImage)
 install(TARGETS ${NAME}
-        RUNTIME DESTINATION bin COMPONENT RuntimeLibraries
-        LIBRARY DESTINATION lib COMPONENT RuntimeLibraries
-        ARCHIVE DESTINATION lib COMPONENT RuntimeLibraries
+				RUNTIME DESTINATION bin COMPONENT RuntimeLibraries
+				LIBRARY DESTINATION lib COMPONENT RuntimeLibraries
+				ARCHIVE DESTINATION lib COMPONENT RuntimeLibraries
 )
 install(FILES ${NAME}.h ${NAME}.cpp DESTINATION include COMPONENT Development)
 #-----------------------------------------------------------------------------
 ## Generate install commands for any extra include files
 set(ADDITIONAL_INCLUDE_LIST
-  _reg_base.h
-  _reg_base.cpp
-  )
+	_reg_base.h
+	_reg_base.cpp
+	)
 foreach(NAME ${ADDITIONAL_INCLUDE_LIST})
-  install(FILES ${NAME} DESTINATION include COMPONENT Development)  
+	install(FILES ${NAME} DESTINATION include COMPONENT Development)
 endforeach()
 
 #-----------------------------------------------------------------------------

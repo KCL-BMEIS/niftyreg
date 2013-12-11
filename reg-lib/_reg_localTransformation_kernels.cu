@@ -926,11 +926,7 @@ __global__ void reg_spline_getApproxJacobianValues2D_kernel(float *jacobianMatri
 					Ty_y += ybasis[tempIndex]*controlPointValues.y;
 					tempIndex++;
 				}
-			}
-			Tx_x /= c_ControlPointSpacing.x;
-			Tx_y /= c_ControlPointSpacing.y;
-			Ty_x /= c_ControlPointSpacing.x;
-			Ty_y /= c_ControlPointSpacing.y;
+            }
 
 			// The jacobian matrix is reoriented
 			float Tx_x2=c_AffineMatrix0.x*Tx_x + c_AffineMatrix0.y*Ty_x;
@@ -1012,16 +1008,7 @@ __global__ void reg_spline_getApproxJacobianValues3D_kernel(float *jacobianMatri
 						tempIndex++;
 					}
 				}
-			}
-			Tx_x /= c_ControlPointSpacing.x;
-			Tx_y /= c_ControlPointSpacing.y;
-			Tx_z /= c_ControlPointSpacing.z;
-			Ty_x /= c_ControlPointSpacing.x;
-			Ty_y /= c_ControlPointSpacing.y;
-			Ty_z /= c_ControlPointSpacing.z;
-			Tz_x /= c_ControlPointSpacing.x;
-			Tz_y /= c_ControlPointSpacing.y;
-			Tz_z /= c_ControlPointSpacing.z;
+            }
 
 			// The jacobian matrix is reoriented
 			float Tx_x2=c_AffineMatrix0.x*Tx_x + c_AffineMatrix0.y*Ty_x + c_AffineMatrix0.z*Tz_x;
@@ -1123,10 +1110,7 @@ __global__ void reg_spline_getJacobianValues2D_kernel(float *jacobianMatrices,
 			tempBasis = make_float2(xFirst[3]*yBasis[b], xBasis[3]*yFirst[b]);
 			Tx = Tx + nodeCoefficient.x * tempBasis;
 			Ty = Ty + nodeCoefficient.y * tempBasis;
-		}
-		float2 controlPointSpacing = make_float2(c_ControlPointSpacing.x,c_ControlPointSpacing.y);
-		Tx = Tx / controlPointSpacing;
-		Ty = Ty / controlPointSpacing;
+        }
 
 		// The jacobian matrix is reoriented
 		float Tx_x2=c_AffineMatrix0.x*Tx.x + c_AffineMatrix0.y*Ty.x;
@@ -1219,10 +1203,7 @@ __global__ void reg_spline_getJacobianValues3D_kernel(float *jacobianMatrices,
 				Ty = Ty + nodeCoefficient.y * tempBasis;
 				Tz = Tz + nodeCoefficient.z * tempBasis;
 			}
-		}
-		Tx = Tx / c_ControlPointSpacing;
-		Ty = Ty / c_ControlPointSpacing;
-		Tz = Tz / c_ControlPointSpacing;
+        }
 
 		// The jacobian matrix is reoriented
 		float Tx_x2=c_AffineMatrix0.x*Tx.x + c_AffineMatrix0.y*Ty.x + c_AffineMatrix0.z*Tz.x;
@@ -2029,16 +2010,6 @@ __global__ void reg_defField_getJacobianMatrix3D_kernel(float *jacobianMatrices)
         matrix[2] += deformation.x * 1.f;
         matrix[5] += deformation.y * 1.f;
         matrix[8] += deformation.z * 1.f;
-
-        matrix[0] /= c_ReferenceSpacing.x;
-        matrix[1] /= c_ReferenceSpacing.y;
-        matrix[2] /= c_ReferenceSpacing.z;
-        matrix[3] /= c_ReferenceSpacing.x;
-        matrix[4] /= c_ReferenceSpacing.y;
-        matrix[5] /= c_ReferenceSpacing.z;
-        matrix[6] /= c_ReferenceSpacing.x;
-        matrix[7] /= c_ReferenceSpacing.y;
-        matrix[8] /= c_ReferenceSpacing.z;
 
         index=tid*9;
         jacobianMatrices[index++]=c_AffineMatrix0.x*matrix[0] + c_AffineMatrix0.y*matrix[3] + c_AffineMatrix0.z*matrix[6];

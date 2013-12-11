@@ -358,10 +358,10 @@ int main(int argc, char **argv)
             outputTransformationImage->intent_p1=DEF_VEL_FIELD;
             outputTransformationImage->intent_p2=inputTransformationImage->intent_p2;
         }
-        // Create a deformation field
+		// Create a deformation or displacement field
         else if(flag->outputDefFlag || flag->outputDispFlag){
             if(affineTransformation!=NULL){
-                reg_affine_deformationField(affineTransformation,outputTransformationImage);
+                reg_affine_getDeformationField(affineTransformation,outputTransformationImage);
             }
             else{
                 switch(static_cast<int>(reg_round(inputTransformationImage->intent_p1))){
@@ -578,17 +578,20 @@ int main(int argc, char **argv)
             output1TransImage->data=(void *)calloc
                     (output1TransImage->nvox,output1TransImage->nbyper);
             if(affine1Trans!=NULL){
-                reg_affine_deformationField(affine1Trans,output1TransImage);
+                reg_affine_getDeformationField(affine1Trans,output1TransImage);
             }
             else switch(reg_round(input1TransImage->intent_p1)){
             case SPLINE_GRID:
                 printf("[NiftyReg] Transformation 1 is a spline parametrisation:\n[NiftyReg] %s\n",
-                       input1TransImage->fname);
+                       input1TransImage->fname);				
+				reg_tools_multiplyValueToImage(output1TransImage,output1TransImage,0.f);
+				output1TransImage->intent_p1=DISP_FIELD;
+				reg_getDeformationFromDisplacement(output1TransImage);
                 reg_spline_getDeformationField(input1TransImage,
                                                output1TransImage,
                                                NULL,
-                                               false,
-                                               true);
+											   true,
+											   true);
                 break;
             case DEF_FIELD:
                 printf("[NiftyReg] Transformation 1 is a deformation field:\n[NiftyReg] %s\n",
@@ -644,7 +647,7 @@ int main(int argc, char **argv)
 				output2TransImage->intent_p1=DEF_FIELD;
 				output2TransImage->data=(void *)calloc
 						(output2TransImage->nvox,output2TransImage->nbyper);
-				reg_affine_deformationField(affine2Trans,output2TransImage);
+				reg_affine_getDeformationField(affine2Trans,output2TransImage);
 				reg_defField_compose(output2TransImage,output1TransImage,NULL);
 			}
 			else{

@@ -421,6 +421,10 @@ void reg_tools_changeDatatype(nifti_image *image)
 }
 /* *************************************************************** */
 template void reg_tools_changeDatatype<unsigned char>(nifti_image *);
+template void reg_tools_changeDatatype<unsigned short>(nifti_image *);
+template void reg_tools_changeDatatype<unsigned int>(nifti_image *);
+template void reg_tools_changeDatatype<char>(nifti_image *);
+template void reg_tools_changeDatatype<short>(nifti_image *);
 template void reg_tools_changeDatatype<int>(nifti_image *);
 template void reg_tools_changeDatatype<float>(nifti_image *);
 template void reg_tools_changeDatatype<double>(nifti_image *);
@@ -917,7 +921,7 @@ template <class DTYPE>
 void reg_tools_kernelConvolution_core(nifti_image *image,
                                       float *size,
                                       int kernelType,
-									  int *mask,
+                                      int *mask,
                                       bool *timePoint,
                                       bool *axis)
 {
@@ -933,11 +937,16 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
         if(timePoint[t]){
             DTYPE *intensityPtr = &imagePtr[t * voxelNumber];
             size_t index;
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+    shared(densityPtr, intensityPtr, mask, nanImagePtr, voxelNumber) \
+    private(index)
+#endif
             for(index=0; index<voxelNumber; index++){
-				densityPtr[index] = (intensityPtr[index]==intensityPtr[index])?1:0;
-				densityPtr[index] *= (mask[index]>=0)?1:0;
+                densityPtr[index] = (intensityPtr[index]==intensityPtr[index])?1:0;
+                densityPtr[index] *= (mask[index]>=0)?1:0;
                 nanImagePtr[index] = static_cast<bool>(densityPtr[index]);
-				if(nanImagePtr[index]==0)
+                if(nanImagePtr[index]==0)
                     intensityPtr[index]=static_cast<DTYPE>(0);
             }
             // Loop over the x, y and z dimensions
@@ -994,7 +1003,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
 #ifndef NDEBUG
                         printf("[NiftyReg DEBUG] Convolution type[%i] dim[%i] tp[%i] radius[%i] kernelSum[%g]\n", kernelType, n, t, radius, kernelSum);
 #endif
-                        size_t k, planeIndex, planeNumber, lineIndex, lineOffset;
+                        unsigned int k, planeIndex, planeNumber, lineIndex, lineOffset;
                         switch(n){
                         case 0:
                             planeNumber=imageDim[1]*imageDim[2];
@@ -1016,18 +1025,22 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                         double densitySum, intensitySum;
                         DTYPE *currentIntensityPtr=NULL;
                         float *currentDensityPtr = NULL;
-                        DTYPE bufferIntensity[2048];
+                        DTYPE bufferIntensity[2048];;
                         float bufferDensity[2048];
-#if defined (NDEBUG) && defined (_OPENMP)
+                        DTYPE bufferIntensitycur;
+                        float bufferDensitycur;
+
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
     shared(imageDim, intensityPtr, densityPtr, radius, kernel, lineOffset, n, \
     planeNumber,kernelSum) \
     private(realIndex,currentIntensityPtr,currentDensityPtr,lineIndex,bufferIntensity, \
     bufferDensity,shiftPre,shiftPst,kernelPtr,kernelValue,densitySum,intensitySum, \
-    k)
+    k, bufferIntensitycur,bufferDensitycur)
 #endif // _OPENMP
                         // Loop over the different voxel
                         for(planeIndex=0; planeIndex<planeNumber; ++planeIndex){
+
                             switch(n){
                             case 0: realIndex = planeIndex * imageDim[0];break;
                             case 1: realIndex = (planeIndex/imageDim[0]) *
@@ -1072,40 +1085,69 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                                 } // line convolution
                             } // kernel type
                             else{
-                                // Compute the mean at the first point
-                                intensitySum=0;
-                                densitySum = 0;
-                                if(imageDim[n]<=radius){
-                                    for(k=0;k<imageDim[n];++k){
-                                        intensitySum += bufferIntensity[k];
-                                        densitySum   += bufferDensity[k];
-                                    }
-                                }
-                                else{
-                                    for(k=0;k<=radius;++k){
-                                        intensitySum += bufferIntensity[k];
-                                        densitySum   += bufferDensity[k];
-                                    }
-                                }
-                                intensityPtr[realIndex] = static_cast<DTYPE>(intensitySum);
-                                densityPtr[realIndex]   = static_cast<float>(densitySum);
-                                realIndex += lineOffset;
-                                // Compute the mean along 1 line from the second point onward
                                 for(lineIndex=1;lineIndex<imageDim[n];++lineIndex){
-                                    shiftPre = lineIndex - radius - 1; // to be removed
-                                    shiftPst = lineIndex + radius; // to be added
-                                    if(shiftPre>=0){
-                                        intensitySum -= bufferIntensity[shiftPre];
-                                        densitySum   -= bufferDensity[shiftPre];
+                                    bufferIntensity[lineIndex]+=bufferIntensity[lineIndex-1];
+                                    bufferDensity[lineIndex]+=bufferDensity[lineIndex-1];
+                                }
+                                shiftPre = -radius - 1;
+                                shiftPst = radius;
+                                for(lineIndex=0;lineIndex<imageDim[n];++lineIndex,++shiftPre,++shiftPst){
+                                    if(shiftPre>-1){
+                                        if(shiftPst<imageDim[n]){
+                                            bufferIntensitycur = (DTYPE)(bufferIntensity[shiftPre]-bufferIntensity[shiftPst]);
+                                            bufferDensitycur = (DTYPE)(bufferDensity[shiftPre]-bufferDensity[shiftPst]);
+                                        }
+                                        else{
+                                            bufferIntensitycur = (DTYPE)(bufferIntensity[shiftPre]-bufferIntensity[imageDim[n]-1]);
+                                            bufferDensitycur = (DTYPE)(bufferDensity[shiftPre]-bufferDensity[imageDim[n]-1]);
+                                        }
                                     }
-                                    if(shiftPst<imageDim[n]){
-                                        intensitySum += bufferIntensity[shiftPst];
-                                        densitySum   += bufferDensity[shiftPst];
+                                    else{
+                                        if(shiftPst<imageDim[n]){
+                                            bufferIntensitycur = (DTYPE)(-bufferIntensity[shiftPst]);
+                                            bufferDensitycur = (DTYPE)(-bufferDensity[shiftPst]);
+                                        }
                                     }
-                                    intensityPtr[realIndex] = static_cast<DTYPE>(intensitySum);
-                                    densityPtr[realIndex] = static_cast<float>(densitySum);
+                                    intensityPtr[realIndex]=bufferIntensitycur;
+                                    densityPtr[realIndex]=bufferDensitycur;
+
                                     realIndex += lineOffset;
                                 } // line convolution of mean filter
+
+//								// Compute the mean at the first point
+//								intensitySum=0;
+//								densitySum = 0;
+//								if(imageDim[n]<=radius){
+//									for(k=0;k<imageDim[n];++k){
+//										intensitySum += bufferIntensity[k];
+//										densitySum   += bufferDensity[k];
+//									}
+//								}
+//								else{
+//									for(k=0;k<=radius;++k){
+//										intensitySum += bufferIntensity[k];
+//										densitySum   += bufferDensity[k];
+//									}
+//								}
+//								intensityPtr[realIndex] = static_cast<DTYPE>(intensitySum);
+//								densityPtr[realIndex]   = static_cast<float>(densitySum);
+//								realIndex += lineOffset;
+//								// Compute the mean along 1 line from the second point onward
+//								shiftPre = 1 - radius - 1; // to be removed
+//								shiftPst = 1 + radius; // to be added
+//								for(lineIndex=1;lineIndex<imageDim[n];++lineIndex,++shiftPre,++shiftPst){
+//									if(shiftPre>=0){
+//										intensitySum -= bufferIntensity[shiftPre];
+//										densitySum   -= bufferDensity[shiftPre];
+//									}
+//									if(shiftPst<imageDim[n]){
+//										intensitySum += bufferIntensity[shiftPst];
+//										densitySum   += bufferDensity[shiftPst];
+//									}
+//									intensityPtr[realIndex] = static_cast<DTYPE>(intensitySum);
+//									densityPtr[realIndex] = static_cast<float>(densitySum);
+//									realIndex += lineOffset;
+//								} // line convolution of mean filter
                             } // No kernel computation
                         } // pixel in starting plane
                     } // radius > 0
@@ -1129,11 +1171,11 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
 }
 /* *************************************************************** */
 void reg_tools_kernelConvolution(nifti_image *image,
-								 float *sigma,
-								 int kernelType,
-								 int *mask,
-								 bool *timePoint,
-								 bool *axis)
+                                 float *sigma,
+                                 int kernelType,
+                                 int *mask,
+                                 bool *timePoint,
+                                 bool *axis)
 {
 
 
@@ -1154,43 +1196,43 @@ void reg_tools_kernelConvolution(nifti_image *image,
     }
     else for(int i=0; i<image->nt*image->nu; i++) activeTimePoint[i]=timePoint[i];
 
-	int *currentMask=NULL;
-	if(mask==NULL){
-		currentMask=(int *)calloc(image->nx*image->ny*image->nz,sizeof(int));
-	}
-	else currentMask=mask;
+    int *currentMask=NULL;
+    if(mask==NULL){
+        currentMask=(int *)calloc(image->nx*image->ny*image->nz,sizeof(int));
+    }
+    else currentMask=mask;
 
     switch(image->datatype){
     case NIFTI_TYPE_UINT8:
-		reg_tools_kernelConvolution_core<unsigned char>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
+        reg_tools_kernelConvolution_core<unsigned char>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_INT8:
-		reg_tools_kernelConvolution_core<char>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
+        reg_tools_kernelConvolution_core<char>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_UINT16:
-		reg_tools_kernelConvolution_core<unsigned short>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
+        reg_tools_kernelConvolution_core<unsigned short>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_INT16:
-		reg_tools_kernelConvolution_core<short>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
+        reg_tools_kernelConvolution_core<short>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_UINT32:
-		reg_tools_kernelConvolution_core<unsigned int>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
+        reg_tools_kernelConvolution_core<unsigned int>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_INT32:
-		reg_tools_kernelConvolution_core<int>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
+        reg_tools_kernelConvolution_core<int>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_FLOAT32:
-		reg_tools_kernelConvolution_core<float>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
+        reg_tools_kernelConvolution_core<float>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
         break;
     case NIFTI_TYPE_FLOAT64:
-		reg_tools_kernelConvolution_core<double>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
+        reg_tools_kernelConvolution_core<double>(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
         break;
     default:
         fprintf(stderr,"[NiftyReg ERROR] reg_gaussianSmoothing\tThe image data type is not supported\n");
         reg_exit(1);
     }
 
-	if(mask==NULL) free(currentMask);
+    if(mask==NULL) free(currentMask);
     delete []axisToSmooth;
     delete []activeTimePoint;
 }
@@ -1597,7 +1639,8 @@ double reg_tools_getMeanRMS2(nifti_image *imageA, nifti_image *imageB)
             diff = (double)*imageAPtrZ++ - (double)*imageBPtrZ++;
             rms += diff * diff;
         }
-        sum += sqrt(rms);
+        if(rms==rms)
+            sum += sqrt(rms);
     }
     return sum/(double)(imageA->nx*imageA->ny*imageA->nz);
 }
@@ -2056,100 +2099,101 @@ void reg_flippAxis(nifti_image *image,
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
-void reg_getDisplacementFromDeformation_2D(nifti_image *splineControlPoint)
+void reg_getDisplacementFromDeformation_2D(nifti_image *field)
 {
-    DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
-    DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny];
+    DTYPE *ptrX = static_cast<DTYPE *>(field->data);
+    DTYPE *ptrY = &ptrX[field->nx*field->ny];
 
-    mat44 *splineMatrix;
-    if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
-    else splineMatrix=&(splineControlPoint->qto_xyz);
+    mat44 matrix;
+    if(field->sform_code>0)
+        matrix=field->sto_xyz;
+    else matrix=field->qto_xyz;
 
     int x, y,  index;
     DTYPE xInit, yInit;
 #if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
-    shared(splineControlPoint, splineMatrix, \
-    controlPointPtrX, controlPointPtrY) \
+    shared(field, matrix, ptrX, ptrY) \
     private(x, y, index, xInit, yInit)
 #endif
-    for(y=0; y<splineControlPoint->ny; y++){
-        index=y*splineControlPoint->nx;
-        for(x=0; x<splineControlPoint->nx; x++){
+    for(y=0; y<field->ny; y++){
+        index=y*field->nx;
+        for(x=0; x<field->nx; x++){
 
             // Get the initial control point position
-            xInit = splineMatrix->m[0][0]*(DTYPE)x
-                    + splineMatrix->m[0][1]*(DTYPE)y
-                    + splineMatrix->m[0][3];
-            yInit = splineMatrix->m[1][0]*(DTYPE)x
-                    + splineMatrix->m[1][1]*(DTYPE)y
-                    + splineMatrix->m[1][3];
+            xInit = matrix.m[0][0]*(DTYPE)x
+                    + matrix.m[0][1]*(DTYPE)y
+                    + matrix.m[0][3];
+            yInit = matrix.m[1][0]*(DTYPE)x
+                    + matrix.m[1][1]*(DTYPE)y
+                    + matrix.m[1][3];
 
             // The initial position is subtracted from every values
-            controlPointPtrX[index] -= xInit;
-            controlPointPtrY[index] -= yInit;
+            ptrX[index] -= xInit;
+            ptrY[index] -= yInit;
             index++;
         }
     }
 }
 /* *************************************************************** */
 template<class DTYPE>
-void reg_getDisplacementFromDeformation_3D(nifti_image *splineControlPoint)
+void reg_getDisplacementFromDeformation_3D(nifti_image *field)
 {
-    DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
-    DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
-    DTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+    DTYPE *ptrX = static_cast<DTYPE *>(field->data);
+    DTYPE *ptrY = &ptrX[field->nx*field->ny*field->nz];
+    DTYPE *ptrZ = &ptrY[field->nx*field->ny*field->nz];
 
-    mat44 *splineMatrix;
-    if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
-    else splineMatrix=&(splineControlPoint->qto_xyz);
+    mat44 matrix;
+    if(field->sform_code>0)
+        matrix=field->sto_xyz;
+    else matrix=field->qto_xyz;
 
     int x, y, z, index;
     float xInit, yInit, zInit;
 #if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
-    shared(splineControlPoint, splineMatrix, \
-    controlPointPtrX, controlPointPtrY, controlPointPtrZ) \
+    shared(field, matrix, \
+    ptrX, ptrY, ptrZ) \
     private(x, y, z, index, xInit, yInit, zInit)
 #endif
-    for(z=0; z<splineControlPoint->nz; z++){
-        index=z*splineControlPoint->nx*splineControlPoint->ny;
-        for(y=0; y<splineControlPoint->ny; y++){
-            for(x=0; x<splineControlPoint->nx; x++){
+    for(z=0; z<field->nz; z++){
+        index=z*field->nx*field->ny;
+        for(y=0; y<field->ny; y++){
+            for(x=0; x<field->nx; x++){
 
                 // Get the initial control point position
-                xInit = splineMatrix->m[0][0]*static_cast<float>(x)
-                        + splineMatrix->m[0][1]*static_cast<float>(y)
-                        + splineMatrix->m[0][2]*static_cast<float>(z)
-                        + splineMatrix->m[0][3];
-                yInit = splineMatrix->m[1][0]*static_cast<float>(x)
-                        + splineMatrix->m[1][1]*static_cast<float>(y)
-                        + splineMatrix->m[1][2]*static_cast<float>(z)
-                        + splineMatrix->m[1][3];
-                zInit = splineMatrix->m[2][0]*static_cast<float>(x)
-                        + splineMatrix->m[2][1]*static_cast<float>(y)
-                        + splineMatrix->m[2][2]*static_cast<float>(z)
-                        + splineMatrix->m[2][3];
+                xInit = matrix.m[0][0]*static_cast<float>(x)
+                        + matrix.m[0][1]*static_cast<float>(y)
+                        + matrix.m[0][2]*static_cast<float>(z)
+                        + matrix.m[0][3];
+                yInit = matrix.m[1][0]*static_cast<float>(x)
+                        + matrix.m[1][1]*static_cast<float>(y)
+                        + matrix.m[1][2]*static_cast<float>(z)
+                        + matrix.m[1][3];
+                zInit = matrix.m[2][0]*static_cast<float>(x)
+                        + matrix.m[2][1]*static_cast<float>(y)
+                        + matrix.m[2][2]*static_cast<float>(z)
+                        + matrix.m[2][3];
 
                 // The initial position is subtracted from every values
-                controlPointPtrX[index] -= static_cast<DTYPE>(xInit);
-                controlPointPtrY[index] -= static_cast<DTYPE>(yInit);
-                controlPointPtrZ[index] -= static_cast<DTYPE>(zInit);
+                ptrX[index] -= static_cast<DTYPE>(xInit);
+                ptrY[index] -= static_cast<DTYPE>(yInit);
+                ptrZ[index] -= static_cast<DTYPE>(zInit);
                 index++;
             }
         }
     }
 }
 /* *************************************************************** */
-int reg_getDisplacementFromDeformation(nifti_image *image)
+int reg_getDisplacementFromDeformation(nifti_image *field)
 {
-    if(image->datatype==NIFTI_TYPE_FLOAT32){
-        switch(image->nu){
+    if(field->datatype==NIFTI_TYPE_FLOAT32){
+        switch(field->nu){
         case 2:
-            reg_getDisplacementFromDeformation_2D<float>(image);
+            reg_getDisplacementFromDeformation_2D<float>(field);
             break;
         case 3:
-            reg_getDisplacementFromDeformation_3D<float>(image);
+            reg_getDisplacementFromDeformation_3D<float>(field);
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] reg_getDisplacementFromPosition<float>\n");
@@ -2158,13 +2202,13 @@ int reg_getDisplacementFromDeformation(nifti_image *image)
             return 1;
         }
     }
-    else if(image->datatype==NIFTI_TYPE_FLOAT64){
-        switch(image->nu){
+    else if(field->datatype==NIFTI_TYPE_FLOAT64){
+        switch(field->nu){
         case 2:
-            reg_getDisplacementFromDeformation_2D<double>(image);
+            reg_getDisplacementFromDeformation_2D<double>(field);
             break;
         case 3:
-            reg_getDisplacementFromDeformation_3D<double>(image);
+            reg_getDisplacementFromDeformation_3D<double>(field);
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] reg_getDisplacementFromPosition<double>\n");
@@ -2178,51 +2222,51 @@ int reg_getDisplacementFromDeformation(nifti_image *image)
         fprintf(stderr,"[NiftyReg ERROR] Only single or double floating precision have been implemented. EXIT\n");
         exit(1);
     }
-    image->intent_code=NIFTI_INTENT_VECTOR;
-    memset(image->intent_name, 0, 16);
-    strcpy(image->intent_name,"NREG_TRANS");
-    if(image->intent_p1==DEF_FIELD)
-        image->intent_p1=DISP_FIELD;
-    if(image->intent_p1==DEF_VEL_FIELD)
-        image->intent_p1=DISP_VEL_FIELD;
+    field->intent_code=NIFTI_INTENT_VECTOR;
+    memset(field->intent_name, 0, 16);
+    strcpy(field->intent_name,"NREG_TRANS");
+    if(field->intent_p1==DEF_FIELD)
+        field->intent_p1=DISP_FIELD;
+    if(field->intent_p1==DEF_VEL_FIELD)
+        field->intent_p1=DISP_VEL_FIELD;
     return 0;
 }
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
-void reg_getDeformationFromDisplacement_2D(nifti_image *splineControlPoint)
+void reg_getDeformationFromDisplacement_2D(nifti_image *field)
 {
-    DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
-    DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny];
+    DTYPE *ptrX = static_cast<DTYPE *>(field->data);
+    DTYPE *ptrY = &ptrX[field->nx*field->ny];
 
-    mat44 *splineMatrix;
-    if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
-    else splineMatrix=&(splineControlPoint->qto_xyz);
-
+    mat44 matrix;
+    if(field->sform_code>0)
+        matrix=field->sto_xyz;
+    else matrix=field->qto_xyz;
 
     int x, y, index;
     DTYPE xInit, yInit;
 #if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
-    shared(splineControlPoint, splineMatrix, \
-    controlPointPtrX, controlPointPtrY) \
+    shared(field, matrix, \
+    ptrX, ptrY) \
     private(x, y, index, xInit, yInit)
 #endif
-    for(y=0; y<splineControlPoint->ny; y++){
-        index=y*splineControlPoint->nx;
-        for(x=0; x<splineControlPoint->nx; x++){
+    for(y=0; y<field->ny; y++){
+        index=y*field->nx;
+        for(x=0; x<field->nx; x++){
 
             // Get the initial control point position
-            xInit = splineMatrix->m[0][0]*(DTYPE)x
-                    + splineMatrix->m[0][1]*(DTYPE)y
-                    + splineMatrix->m[0][3];
-            yInit = splineMatrix->m[1][0]*(DTYPE)x
-                    + splineMatrix->m[1][1]*(DTYPE)y
-                    + splineMatrix->m[1][3];
+            xInit = matrix.m[0][0]*(DTYPE)x
+                    + matrix.m[0][1]*(DTYPE)y
+                    + matrix.m[0][3];
+            yInit = matrix.m[1][0]*(DTYPE)x
+                    + matrix.m[1][1]*(DTYPE)y
+                    + matrix.m[1][3];
 
             // The initial position is added from every values
-            controlPointPtrX[index] += xInit;
-            controlPointPtrY[index] += yInit;
+            ptrX[index] += xInit;
+            ptrY[index] += yInit;
             index++;
         }
     }
@@ -2230,47 +2274,48 @@ void reg_getDeformationFromDisplacement_2D(nifti_image *splineControlPoint)
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
-void reg_getDeformationFromDisplacement_3D(nifti_image *splineControlPoint)
+void reg_getDeformationFromDisplacement_3D(nifti_image *field)
 {
-    DTYPE *controlPointPtrX = static_cast<DTYPE *>(splineControlPoint->data);
-    DTYPE *controlPointPtrY = &controlPointPtrX[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
-    DTYPE *controlPointPtrZ = &controlPointPtrY[splineControlPoint->nx*splineControlPoint->ny*splineControlPoint->nz];
+    DTYPE *ptrX = static_cast<DTYPE *>(field->data);
+    DTYPE *ptrY = &ptrX[field->nx*field->ny*field->nz];
+    DTYPE *ptrZ = &ptrY[field->nx*field->ny*field->nz];
 
-    mat44 *splineMatrix;
-    if(splineControlPoint->sform_code>0) splineMatrix=&(splineControlPoint->sto_xyz);
-    else splineMatrix=&(splineControlPoint->qto_xyz);
+    mat44 matrix;
+    if(field->sform_code>0)
+        matrix=field->sto_xyz;
+    else matrix=field->qto_xyz;
 
     int x, y, z, index;
     float xInit, yInit, zInit;
 #if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
-    shared(splineControlPoint, splineMatrix, \
-    controlPointPtrX, controlPointPtrY, controlPointPtrZ) \
+    shared(field, matrix, \
+    ptrX, ptrY, ptrZ) \
     private(x, y, z, index, xInit, yInit, zInit)
 #endif
-    for(z=0; z<splineControlPoint->nz; z++){
-        index=z*splineControlPoint->nx*splineControlPoint->ny;
-        for(y=0; y<splineControlPoint->ny; y++){
-            for(x=0; x<splineControlPoint->nx; x++){
+    for(z=0; z<field->nz; z++){
+        index=z*field->nx*field->ny;
+        for(y=0; y<field->ny; y++){
+            for(x=0; x<field->nx; x++){
 
                 // Get the initial control point position
-                xInit = splineMatrix->m[0][0]*static_cast<float>(x)
-                        + splineMatrix->m[0][1]*static_cast<float>(y)
-                        + splineMatrix->m[0][2]*static_cast<float>(z)
-                        + splineMatrix->m[0][3];
-                yInit = splineMatrix->m[1][0]*static_cast<float>(x)
-                        + splineMatrix->m[1][1]*static_cast<float>(y)
-                        + splineMatrix->m[1][2]*static_cast<float>(z)
-                        + splineMatrix->m[1][3];
-                zInit = splineMatrix->m[2][0]*static_cast<float>(x)
-                        + splineMatrix->m[2][1]*static_cast<float>(y)
-                        + splineMatrix->m[2][2]*static_cast<float>(z)
-                        + splineMatrix->m[2][3];
+                xInit = matrix.m[0][0]*static_cast<float>(x)
+                        + matrix.m[0][1]*static_cast<float>(y)
+                        + matrix.m[0][2]*static_cast<float>(z)
+                        + matrix.m[0][3];
+                yInit = matrix.m[1][0]*static_cast<float>(x)
+                        + matrix.m[1][1]*static_cast<float>(y)
+                        + matrix.m[1][2]*static_cast<float>(z)
+                        + matrix.m[1][3];
+                zInit = matrix.m[2][0]*static_cast<float>(x)
+                        + matrix.m[2][1]*static_cast<float>(y)
+                        + matrix.m[2][2]*static_cast<float>(z)
+                        + matrix.m[2][3];
 
                 // The initial position is subtracted from every values
-                controlPointPtrX[index] += static_cast<DTYPE>(xInit);
-                controlPointPtrY[index] += static_cast<DTYPE>(yInit);
-                controlPointPtrZ[index] += static_cast<DTYPE>(zInit);
+                ptrX[index] += static_cast<DTYPE>(xInit);
+                ptrY[index] += static_cast<DTYPE>(yInit);
+                ptrZ[index] += static_cast<DTYPE>(zInit);
                 index++;
             }
         }
@@ -2278,15 +2323,15 @@ void reg_getDeformationFromDisplacement_3D(nifti_image *splineControlPoint)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-int reg_getDeformationFromDisplacement(nifti_image *image)
+int reg_getDeformationFromDisplacement(nifti_image *field)
 {
-    if(image->datatype==NIFTI_TYPE_FLOAT32){
-        switch(image->nu){
+    if(field->datatype==NIFTI_TYPE_FLOAT32){
+        switch(field->nu){
         case 2:
-            reg_getDeformationFromDisplacement_2D<float>(image);
+            reg_getDeformationFromDisplacement_2D<float>(field);
             break;
         case 3:
-            reg_getDeformationFromDisplacement_3D<float>(image);
+            reg_getDeformationFromDisplacement_3D<float>(field);
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] reg_getDeformationFromDisplacement\n");
@@ -2294,13 +2339,13 @@ int reg_getDeformationFromDisplacement(nifti_image *image)
             exit(1);
         }
     }
-    else if(image->datatype==NIFTI_TYPE_FLOAT64){
-        switch(image->nu){
+    else if(field->datatype==NIFTI_TYPE_FLOAT64){
+        switch(field->nu){
         case 2:
-            reg_getDeformationFromDisplacement_2D<double>(image);
+            reg_getDeformationFromDisplacement_2D<double>(field);
             break;
         case 3:
-            reg_getDeformationFromDisplacement_3D<double>(image);
+            reg_getDeformationFromDisplacement_3D<double>(field);
             break;
         default:
             fprintf(stderr,"[NiftyReg ERROR] reg_getDeformationFromDisplacement\n");
@@ -2314,56 +2359,14 @@ int reg_getDeformationFromDisplacement(nifti_image *image)
         exit(1);
     }
 
-    image->intent_code=NIFTI_INTENT_VECTOR;
-    memset(image->intent_name, 0, 16);
-    strcpy(image->intent_name,"NREG_TRANS");
-    if(image->intent_p1==DISP_FIELD)
-        image->intent_p1=DEF_FIELD;
-    if(image->intent_p1==DISP_VEL_FIELD)
-        image->intent_p1=DEF_VEL_FIELD;
-
+    field->intent_code=NIFTI_INTENT_VECTOR;
+    memset(field->intent_name, 0, 16);
+    strcpy(field->intent_name,"NREG_TRANS");
+    if(field->intent_p1==DISP_FIELD)
+        field->intent_p1=DEF_FIELD;
+    if(field->intent_p1==DISP_VEL_FIELD)
+        field->intent_p1=DEF_VEL_FIELD;
     return 0;
-}
-/* *************************************************************** */
-/* *************************************************************** */
-static std::string CLI_PROGRESS_UPDATES = std::string(getenv("NIFTK_CLI_PROGRESS_UPD") != 0 ? getenv("NIFTK_CLI_PROGRESS_UPD") : "");
-/* *************************************************************** */
-void startProgress(std::string name)
-{
-    if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
-            CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
-    {
-        std::cout<< "<filter-start>\n";
-        std::cout<< "<filter-name>"    <<name.c_str() <<"</filter-name>\n";
-        std::cout<< "<filter-comment>" <<name.c_str() <<"</filter-comment>\n";
-        std::cout<< "</filter-start>\n";
-        std::cout << std::flush;
-    }
-}
-
-void progressXML(unsigned long p, std::string text)
-{
-    if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
-            CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
-    {
-        float val = static_cast<float>((float)p/100.0f);
-        std::cout << "<filter-progress>" << val <<"</filter-progress>\n";
-        std::cout << std::flush;
-    }
-}
-
-void closeProgress(std::string name, std::string status)
-{
-    if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
-            CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
-    {
-        std::cout << "<filter-result name=exitStatusOutput>" << status.c_str() << "</filter-result>\n";
-        std::cout << "<filter-progress>100</filter-progress>\n";
-        std::cout << "<filter-end>\n";
-        std::cout << "<filter-name>" <<name.c_str() <<"</filter-name>\n";
-        std::cout << "<filter-comment>Finished</filter-comment></filter-end>\n";
-        std::cout << std::flush;
-    }
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -2476,6 +2479,47 @@ void reg_tools_abs_image(nifti_image *img)
     default:
         fprintf(stderr, "[NiftyReg ERROR] reg_tools_abs_image\t Unsupported data type\n");
         reg_exit(1);
+    }
+}
+/* *************************************************************** */
+/* *************************************************************** */
+static std::string CLI_PROGRESS_UPDATES = std::string(getenv("NIFTK_CLI_PROGRESS_UPD") != 0 ? getenv("NIFTK_CLI_PROGRESS_UPD") : "");
+/* *************************************************************** */
+void startProgress(std::string name)
+{
+    if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
+            CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
+    {
+        std::cout<< "<filter-start>\n";
+        std::cout<< "<filter-name>"    <<name.c_str() <<"</filter-name>\n";
+        std::cout<< "<filter-comment>" <<name.c_str() <<"</filter-comment>\n";
+        std::cout<< "</filter-start>\n";
+        std::cout << std::flush;
+    }
+}
+/* *************************************************************** */
+void progressXML(unsigned long p, std::string text)
+{
+    if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
+            CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
+    {
+        float val = static_cast<float>((float)p/100.0f);
+        std::cout << "<filter-progress>" << val <<"</filter-progress>\n";
+        std::cout << std::flush;
+    }
+}
+/* *************************************************************** */
+void closeProgress(std::string name, std::string status)
+{
+    if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
+            CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
+    {
+        std::cout << "<filter-result name=exitStatusOutput>" << status.c_str() << "</filter-result>\n";
+        std::cout << "<filter-progress>100</filter-progress>\n";
+        std::cout << "<filter-end>\n";
+        std::cout << "<filter-name>" <<name.c_str() <<"</filter-name>\n";
+        std::cout << "<filter-comment>Finished</filter-comment></filter-end>\n";
+        std::cout << std::flush;
     }
 }
 /* *************************************************************** */
