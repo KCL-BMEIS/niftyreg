@@ -26,10 +26,8 @@ typedef struct{
     char *referenceImageName;
     char *floatingImageName;
     char *affineMatrixName;
-    char *inputCPPName;
-    char *inputDEFName;
-    char *outputResultName;
-    char *outputBlankName;
+	char *inputTransName;
+	char *outputResultName;
     float sourceBGValue;
     int interpolation;
     float paddingValue;
@@ -39,8 +37,7 @@ typedef struct{
     bool floatingImageFlag;
     bool affineMatrixFlag;
     bool affineFlirtFlag;
-    bool inputCPPFlag;
-    bool inputDEFFlag;
+	bool inputTransFlag;
     bool outputResultFlag;
     bool outputBlankFlag;
     bool outputBlankXYFlag;
@@ -69,8 +66,7 @@ void Usage(char *exec)
     printf("\t*\tOnly one of the following tranformation is taken into account\n");
     printf("\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Reference=floating)\n");
     printf("\t-affFlirt <filename>\t\tFilename which contains a radiological flirt affine transformation\n");
-    printf("\t-cpp <filename>\t\tFilename of the control point grid image (from reg_f3d)\n");
-    printf("\t-def <filename>\t\tFilename of the deformation field image (from reg_transform)\n");
+	printf("\t-trans <filename>\t\tFilename of the control point grid image (from reg_f3d)\n");
 
     printf("\t-res <filename> \tFilename of the resampled image [none]\n");
     printf("\t-blank <filename> \tFilename of the resampled blank grid [none]\n");
@@ -122,32 +118,19 @@ int main(int argc, char **argv)
                 (strcmp(argv[i],"--flo")==0)){
             param->floatingImageName=argv[++i];
             flag->floatingImageFlag=1;
-        }
-        else if(strcmp(argv[i], "-aff") == 0 ||
-                (strcmp(argv[i],"--aff")==0)){
-            param->affineMatrixName=argv[++i];
-            flag->affineMatrixFlag=1;
-        }
-        else if(strcmp(argv[i], "-affFlirt") == 0 ||
-                (strcmp(argv[i],"--affFlirt")==0)){
-            param->affineMatrixName=argv[++i];
-            flag->affineMatrixFlag=1;
-            flag->affineFlirtFlag=1;
-        }
+		}
         else if((strcmp(argv[i],"-res")==0) || (strcmp(argv[i],"-result")==0) ||
                 (strcmp(argv[i],"--res")==0)){
-                param->outputResultName=argv[++i];
+				param->outputResultName=argv[++i];
                 flag->outputResultFlag=1;
         }
-        else if(strcmp(argv[i], "-cpp") == 0 ||
-                (strcmp(argv[i],"--cpp")==0)){
-            param->inputCPPName=argv[++i];
-            flag->inputCPPFlag=1;
-        }
-        else if(strcmp(argv[i], "-def") == 0 ||
-                (strcmp(argv[i],"--def")==0)){
-            param->inputDEFName=argv[++i];
-            flag->inputDEFFlag=1;
+		else if(strcmp(argv[i], "-trans") == 0 ||
+			   strcmp(argv[i],"--trans")==0 ||
+			   strcmp(argv[i],"-aff")==0 || // added for backward compatibility
+			   strcmp(argv[i],"-def")==0 || // added for backward compatibility
+			   strcmp(argv[i],"-cpp")==0 ){ // added for backward compatibility
+			param->inputTransName=argv[++i];
+			flag->inputTransFlag=1;
         }
         else if(strcmp(argv[i], "-inter") == 0 ||
                 (strcmp(argv[i],"--inter")==0)){
@@ -170,22 +153,22 @@ int main(int argc, char **argv)
         }
         else if(strcmp(argv[i], "-blank") == 0 ||
                 (strcmp(argv[i],"--blank")==0)){
-            param->outputBlankName=argv[++i];
+			param->outputResultName=argv[++i];
             flag->outputBlankFlag=1;
         }
         else if(strcmp(argv[i], "-blankXY") == 0 ||
                 (strcmp(argv[i],"--blankXY")==0)){
-            param->outputBlankName=argv[++i];
+			param->outputResultName=argv[++i];
             flag->outputBlankXYFlag=1;
         }
         else if(strcmp(argv[i], "-blankYZ") == 0 ||
                 (strcmp(argv[i],"--blankYZ")==0)){
-            param->outputBlankName=argv[++i];
+			param->outputResultName=argv[++i];
             flag->outputBlankYZFlag=1;
         }
         else if(strcmp(argv[i], "-blankXZ") == 0 ||
                 (strcmp(argv[i],"--blankXZ")==0)){
-            param->outputBlankName=argv[++i];
+			param->outputResultName=argv[++i];
             flag->outputBlankXZFlag=1;
         }
         else{
@@ -201,15 +184,6 @@ int main(int argc, char **argv)
             return 1;
     }
 	
-    /* Check the number of input images */
-    if(((unsigned int)flag->affineMatrixFlag +
-        (unsigned int)flag->inputCPPFlag +
-        (unsigned int)flag->inputDEFFlag) > 1){
-        fprintf(stderr,"[NiftyReg ERROR] Only one input transformation has to be assigned.\n");
-        PetitUsage(argv[0]);
-        return 1;
-    }
-
 	/* Read the reference image */
     nifti_image *referenceImage = reg_io_ReadImageHeader(param->referenceImageName);
     if(referenceImage == NULL){
@@ -253,119 +227,109 @@ int main(int argc, char **argv)
     /* *********************** */
     /* READ THE TRANSFORMATION */
     /* *********************** */
-    nifti_image *controlPointImage = NULL;
-    nifti_image *deformationFieldImage = NULL;
-    int currentDatatype=NIFTI_TYPE_FLOAT32;
-    int currentNbyper=sizeof(float);
-    mat44 *affineTransformationMatrix = (mat44 *)calloc(1,sizeof(mat44));
-    if(flag->inputCPPFlag){
-#ifndef NDEBUG
-        printf("[NiftyReg DEBUG] Name of the control point image: %s\n", param->inputCPPName);
-#endif
-        controlPointImage = reg_io_ReadImageFile(param->inputCPPName);
-        if(controlPointImage == NULL){
-            fprintf(stderr,"[NiftyReg ERROR] Error when reading the control point image: %s\n",param->inputCPPName);
-            return 1;
-        }
-        reg_checkAndCorrectDimension(controlPointImage);
-        currentDatatype=controlPointImage->datatype;
-        currentNbyper=controlPointImage->nbyper;
-    }
-    else if(flag->inputDEFFlag){
-#ifndef NDEBUG
-        printf("[NiftyReg DEBUG] Name of the deformation field image: %s\n", param->inputDEFName);
-#endif
-        deformationFieldImage = reg_io_ReadImageFile(param->inputDEFName);
-        if(deformationFieldImage == NULL){
-            fprintf(stderr,"[NiftyReg ERROR] Error when reading the deformation field image: %s\n",param->inputDEFName);
-            return 1;
-        }
-        reg_checkAndCorrectDimension(deformationFieldImage);
-        currentDatatype=deformationFieldImage->datatype;
-        currentNbyper=deformationFieldImage->nbyper;
-    }
-    else if(flag->affineMatrixFlag){
-#ifndef NDEBUG
-        printf("[NiftyReg DEBUG] Name of affine transformation: %s\n", param->affineMatrixName);
-#endif
-        // Check first if the specified affine file exist
-        if(FILE *aff=fopen(param->affineMatrixName, "r")){
-            fclose(aff);
-        }
-        else{
-            fprintf(stderr,"The specified input affine file (%s) can not be read\n",param->affineMatrixName);
-            return 1;
-        }
-        reg_tool_ReadAffineFile(affineTransformationMatrix,
-                                referenceImage,
-                                floatingImage,
-                                param->affineMatrixName,
-                                flag->affineFlirtFlag);
-    }
-    else{
-        // identity transformation is considered
-        affineTransformationMatrix->m[0][0]=1.0;
-        affineTransformationMatrix->m[1][1]=1.0;
-        affineTransformationMatrix->m[2][2]=1.0;
-        affineTransformationMatrix->m[3][3]=1.0;
-    }
+	nifti_image *inputTransformationImage = NULL;
+	mat44 inputAffineTransformation;
+	// Check if a transformation has been specified
+	if(flag->inputTransFlag){
+		// First check if the input filename is an image
+		if(reg_isAnImageFileName(param->inputTransName)){
+			inputTransformationImage=reg_io_ReadImageFile(param->inputTransName);
+			if(inputTransformationImage==NULL){
+				fprintf(stderr, "[NiftyReg ERROR] Error when reading the provided transformation: %s\n",
+						param->inputTransName);
+				return 1;
+			}
+			reg_checkAndCorrectDimension(inputTransformationImage);
+		}
+		else{
+			// the transformation is assumed to be affine
+			reg_tool_ReadAffineFile(&inputAffineTransformation,
+									param->inputTransName);
+		}
+	}
+	else{
+		// No transformation is specified, an identity transformation is used
+		reg_mat44_eye(&inputAffineTransformation);
+	}
 
-    // Update progress via CLI
-    progressXML(1, "Transform loaded...");
+	// Update progress via CLI
+	progressXML(1, "Transform loaded...");
 
-    // Allocate and compute the deformation field if necessary
-    if(!flag->inputDEFFlag){
-#ifndef NDEBUG
-        printf("[NiftyReg DEBUG] Allocation of the deformation field\n");
-#endif
-        // Allocate
-        deformationFieldImage = nifti_copy_nim_info(referenceImage);
-        deformationFieldImage->dim[0]=deformationFieldImage->ndim=5;
-        deformationFieldImage->dim[1]=deformationFieldImage->nx=referenceImage->nx;
-        deformationFieldImage->dim[2]=deformationFieldImage->ny=referenceImage->ny;
-        deformationFieldImage->dim[3]=deformationFieldImage->nz=referenceImage->nz;
-        deformationFieldImage->dim[4]=deformationFieldImage->nt=1;deformationFieldImage->pixdim[4]=deformationFieldImage->dt=1.0;
-        if(referenceImage->nz>1) deformationFieldImage->dim[5]=deformationFieldImage->nu=3;
-        else deformationFieldImage->dim[5]=deformationFieldImage->nu=2;
-        deformationFieldImage->pixdim[5]=deformationFieldImage->du=1.0;
-        deformationFieldImage->dim[6]=deformationFieldImage->nv=1;deformationFieldImage->pixdim[6]=deformationFieldImage->dv=1.0;
-        deformationFieldImage->dim[7]=deformationFieldImage->nw=1;deformationFieldImage->pixdim[7]=deformationFieldImage->dw=1.0;
-        deformationFieldImage->nvox =(size_t)deformationFieldImage->nx*(size_t)deformationFieldImage->ny*(size_t)deformationFieldImage->nz*
-                (size_t)deformationFieldImage->nt*(size_t)deformationFieldImage->nu;
-        deformationFieldImage->datatype = currentDatatype;
-        deformationFieldImage->nbyper = currentNbyper;
-		deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
-        //Computation
-        if(flag->inputCPPFlag){
-#ifndef NDEBUG
-            printf("[NiftyReg DEBUG] Computation of the deformation field from the CPP image\n");
-#endif
-            if(controlPointImage->intent_p1==SPLINE_VEL_GRID){
-                reg_spline_getDeformationFieldFromVelocityGrid(controlPointImage,
-                                                               deformationFieldImage,
-                                                               false // the number of step is not automatically updated
-                                                               );
-            }
-            else{
-                reg_tools_multiplyValueToImage(deformationFieldImage,deformationFieldImage,0.f);
-				deformationFieldImage->intent_p1=DISP_FIELD;
-                reg_getDeformationFromDisplacement(deformationFieldImage);
-                reg_spline_getDeformationField(controlPointImage,
-                                               deformationFieldImage,
-                                               NULL, // mask
-                                               true, //composition
-                                               true // bspline
-                                               );
-            }
-        }
-        else{
-#ifndef NDEBUG
-            printf("[NiftyReg DEBUG] Computation of the deformation field from the affine transformation\n");
-#endif
-            reg_affine_getDeformationField(affineTransformationMatrix,
-                                        deformationFieldImage);
-        }
-    }
+	// Create a deformation field
+	nifti_image *deformationFieldImage = nifti_copy_nim_info(referenceImage);
+	deformationFieldImage->dim[0]=deformationFieldImage->ndim=5;
+	deformationFieldImage->dim[1]=deformationFieldImage->nx=referenceImage->nx;
+	deformationFieldImage->dim[2]=deformationFieldImage->ny=referenceImage->ny;
+	deformationFieldImage->dim[3]=deformationFieldImage->nz=referenceImage->nz;
+	deformationFieldImage->dim[4]=deformationFieldImage->nt=1;deformationFieldImage->pixdim[4]=deformationFieldImage->dt=1.0;
+	deformationFieldImage->dim[5]=deformationFieldImage->nu=referenceImage->nz>1?3:2;
+	deformationFieldImage->dim[6]=deformationFieldImage->nv=1;
+	deformationFieldImage->dim[7]=deformationFieldImage->nw=1;
+	deformationFieldImage->nvox =(size_t)deformationFieldImage->nx*
+			deformationFieldImage->ny*deformationFieldImage->nz*
+			deformationFieldImage->nt*deformationFieldImage->nu;
+	if(inputTransformationImage!=NULL){
+		deformationFieldImage->datatype = inputTransformationImage->datatype;
+		deformationFieldImage->nbyper = inputTransformationImage->nbyper;
+	}
+	else{
+		deformationFieldImage->datatype = NIFTI_TYPE_FLOAT32;
+		deformationFieldImage->nbyper = sizeof(float);
+	}
+	deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
+
+	// Initialise the deformation field with an identity transformation
+	reg_tools_multiplyValueToImage(deformationFieldImage,deformationFieldImage,0.f);
+	reg_getDeformationFromDisplacement(deformationFieldImage);
+	deformationFieldImage->intent_p1=DEF_FIELD;
+
+	// Compute the transformation to apply
+	if(inputTransformationImage!=NULL){
+		switch(static_cast<int>(inputTransformationImage->intent_p1)){
+		case SPLINE_GRID:
+			reg_spline_getDeformationField(inputTransformationImage,
+										   deformationFieldImage,
+										   NULL,
+										   false,
+										   true);
+			break;
+		case DISP_VEL_FIELD:
+			reg_getDeformationFromDisplacement(inputTransformationImage);
+		case DEF_VEL_FIELD:{
+			nifti_image *tempFlowField = nifti_copy_nim_info(deformationFieldImage);
+			tempFlowField->data = (void *)malloc(tempFlowField->nvox*tempFlowField->nbyper);
+			memcpy(tempFlowField->data,deformationFieldImage->data,
+				   tempFlowField->nvox*tempFlowField->nbyper);
+			reg_defField_compose(inputTransformationImage,
+								 tempFlowField,
+								 NULL);
+			reg_defField_getDeformationFieldFromFlowField(tempFlowField,
+														  deformationFieldImage,
+														  false);
+			nifti_image_free(tempFlowField);}
+			break;
+		case SPLINE_VEL_GRID:
+			reg_spline_getDeformationFieldFromVelocityGrid(inputTransformationImage,
+														   deformationFieldImage,
+														   false);
+			break;
+		case DISP_FIELD:
+			reg_getDeformationFromDisplacement(inputTransformationImage);
+		default: // deformation field
+			reg_defField_compose(inputTransformationImage,
+								 deformationFieldImage,
+								 NULL);
+			break;
+		}
+		nifti_image_free(inputTransformationImage);
+		inputTransformationImage=NULL;
+	}
+	else{
+		reg_affine_getDeformationField(&inputAffineTransformation,
+									   deformationFieldImage,
+									   false,
+									   NULL);
+	}
 
     // Update progress via CLI
     progressXML(2, "Deformation field ready...");
@@ -433,7 +397,7 @@ int main(int argc, char **argv)
 		memset(warpedImage->descrip, 0, 80);
 		strcpy (warpedImage->descrip,"Warped image using NiftyReg (reg_resample)");
 		reg_io_WriteImageFile(warpedImage,param->outputResultName);
-        printf("[NiftyReg] Resampled image has been saved: %s\n", param->outputResultName);
+		printf("[NiftyReg] Resampled image has been saved: %s\n", param->outputResultName);
 		nifti_image_free(warpedImage);
     }
 
@@ -499,20 +463,18 @@ int main(int argc, char **argv)
                           0);
 		memset(warpedImage->descrip, 0, 80);
 		strcpy (warpedImage->descrip,"Warped regular grid using NiftyReg (reg_resample)");
-		reg_io_WriteImageFile(warpedImage,param->outputBlankName);
+		reg_io_WriteImageFile(warpedImage,param->outputResultName);
 		nifti_image_free(warpedImage);
         nifti_image_free(gridImage);
-        printf("[NiftyReg] Resampled grid has been saved: %s\n", param->outputBlankName);
+		printf("[NiftyReg] Resampled grid has been saved: %s\n", param->outputResultName);
     }
 
     // Tell the CLI that we finished
     closeProgress("reg_resample", "Normal exit");
 
     nifti_image_free(referenceImage);
-    nifti_image_free(floatingImage);
-    nifti_image_free(controlPointImage);
-    nifti_image_free(deformationFieldImage);
-    free(affineTransformationMatrix);
+	nifti_image_free(floatingImage);
+	nifti_image_free(deformationFieldImage);
 
     free(flag);
     free(param);

@@ -18,16 +18,16 @@ add_executable(reg_jacobian reg_jacobian.cpp)
 target_link_libraries(reg_jacobian _reg_resampling _reg_localTransformation _reg_tools _reg_globalTransformation _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
 if(USE_CUDA)
-				cuda_add_executable(reg_f3d reg_f3d.cpp)
+	cuda_add_executable(reg_f3d reg_f3d.cpp)
 else(USE_CUDA)
-				add_executable(reg_f3d reg_f3d.cpp)
+	add_executable(reg_f3d reg_f3d.cpp)
 endif(USE_CUDA)
 target_link_libraries(reg_f3d _reg_f3d)
 #-----------------------------------------------------------------------------
 if(USE_CUDA)
-				cuda_add_executable(reg_aladin reg_aladin.cpp)
+	cuda_add_executable(reg_aladin reg_aladin.cpp)
 else(USE_CUDA)
-				add_executable(reg_aladin reg_aladin.cpp)
+	add_executable(reg_aladin reg_aladin.cpp)
 endif(USE_CUDA)
 target_link_libraries(reg_aladin _reg_aladin)
 #-----------------------------------------------------------------------------
@@ -78,4 +78,7 @@ foreach(MODULE_NAME ${MODULE_LIST})
 				ARCHIVE DESTINATION lib COMPONENT Runtime
 				)
 endforeach(MODULE_NAME)
+#-----------------------------------------------------------------------------
+install(FILES groupwise_niftyreg_params.sh DESTINATION bin COMPONENT Runtime)
+install(FILES groupwise_niftyreg_run.sh DESTINATION bin COMPONENT Runtime)
 #-----------------------------------------------------------------------------
