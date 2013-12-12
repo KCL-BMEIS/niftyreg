@@ -38,7 +38,7 @@ int main(int argc, char **argv)
     }
 
     // Create two images
-	int image_dim[8]={dim,SIZE,SIZE,dim==2?1:SIZE,1,1,1,1};
+    int image_dim[8]={dim,SIZE,SIZE,dim==2?1:SIZE,1,1,1,1};
     nifti_image *image1=nifti_make_new_nim(image_dim,NIFTI_TYPE_FLOAT32,true);
     nifti_image *image2=nifti_make_new_nim(image_dim,NIFTI_TYPE_FLOAT32,true);
     reg_checkAndCorrectDimension(image1);
@@ -48,19 +48,19 @@ int main(int argc, char **argv)
     float *img1Ptr = static_cast<float *>(image1->data);
     for(int z=0; z<image1->nz; ++z){
         for(int y=0; y<image1->ny; ++y){
-			for(int x=0; x<image1->nx; ++x){
-				*img1Ptr++=cos((float)x/(float)WIDTH) *
-						cos((float)y/(float)WIDTH)*cos((float)z/(float)WIDTH);
+            for(int x=0; x<image1->nx; ++x){
+                *img1Ptr++=cos((float)x/(float)WIDTH) *
+                        cos((float)y/(float)WIDTH)*cos((float)z/(float)WIDTH);
             }
         }
     }
     memcpy(image2->data,image1->data,image2->nvox*image2->nbyper);
 
     // Both images are convolved with specified kernel
-	float kernelWidth[1]={WIDTH};
+    float kernelWidth[1]={WIDTH};
     reg_tools_kernelConvolution(image1,kernelWidth,type);
 
-//    // Convolution using the Fourrier space
+    // Convolution using the Fourrier space
     float *img2Ptr = static_cast<float *>(image2->data);
     Eigen::FFT<float> fft;
     for(size_t d=0;d<dim;++d){
@@ -72,10 +72,10 @@ int main(int argc, char **argv)
             float distToCenter = fabs((float)i - (float)image2->dim[d+1]/2.f);
             switch(type){
             case 0: // Gaussian kernel
-				kernel[i]=exp(-reg_pow2(distToCenter)/(2.f*reg_pow2((float)WIDTH)))/((float)WIDTH*2.506628274631);
+                kernel[i]=exp(-reg_pow2(distToCenter)/(2.f*reg_pow2((float)WIDTH)))/((float)WIDTH*2.506628274631);
                 break;
             case 1: // Spline kernel
-				distToCenter /= (float)WIDTH;
+                distToCenter /= (float)WIDTH;
                 if(distToCenter<2.f){
                     if(distToCenter<1.f)
                         kernel[i]=(2.f/3.f - distToCenter*distToCenter +
@@ -85,7 +85,7 @@ int main(int argc, char **argv)
                 else kernel[i]=0;
                 break;
             case 2: // Mean kernel
-				kernel[i]=distToCenter<=WIDTH?1:0;
+                kernel[i]=distToCenter<=WIDTH?1:0;
                 break;
             }
             kernelSum += kernel[i];

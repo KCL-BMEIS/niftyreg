@@ -107,12 +107,12 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
                 // taking the logarithm of the tensor
                 diffTensor = reg_mat44_logm(&diffTensor);
                 // Write this out as a new image
-                floatingIntensityXX[floatingIndex] = diffTensor.m[0][0];
-                floatingIntensityXY[floatingIndex] = diffTensor.m[0][1];
-                floatingIntensityYY[floatingIndex] = diffTensor.m[1][1];
-                floatingIntensityXZ[floatingIndex] = diffTensor.m[0][2];
-                floatingIntensityYZ[floatingIndex] = diffTensor.m[1][2];
-                floatingIntensityZZ[floatingIndex] = diffTensor.m[2][2];
+				floatingIntensityXX[floatingIndex] = static_cast<DTYPE>(diffTensor.m[0][0]);
+				floatingIntensityXY[floatingIndex] = static_cast<DTYPE>(diffTensor.m[0][1]);
+				floatingIntensityYY[floatingIndex] = static_cast<DTYPE>(diffTensor.m[1][1]);
+				floatingIntensityXZ[floatingIndex] = static_cast<DTYPE>(diffTensor.m[0][2]);
+				floatingIntensityYZ[floatingIndex] = static_cast<DTYPE>(diffTensor.m[1][2]);
+				floatingIntensityZZ[floatingIndex] = static_cast<DTYPE>(diffTensor.m[2][2]);
             }
             else{ // if junk diffusion data, log it
                 floatingIntensityXX[floatingIndex] = static_cast<DTYPE>(-4.606f);
@@ -233,12 +233,12 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
                         inputTensor = reg_mat44_mul(&preMult,&RotMat);
 
                         // Finally, read the tensor back out as a warped image
-                        inputIntensityXX[warpedIndex] = inputTensor.m[0][0];
-                        inputIntensityYY[warpedIndex] = inputTensor.m[1][1];
-                        inputIntensityZZ[warpedIndex] = inputTensor.m[2][2];
-                        inputIntensityXY[warpedIndex] = inputTensor.m[0][1];
-                        inputIntensityXZ[warpedIndex] = inputTensor.m[0][2];
-                        inputIntensityYZ[warpedIndex] = inputTensor.m[1][2];
+						inputIntensityXX[warpedIndex] = static_cast<DTYPE>(inputTensor.m[0][0]);
+						inputIntensityYY[warpedIndex] = static_cast<DTYPE>(inputTensor.m[1][1]);
+						inputIntensityZZ[warpedIndex] = static_cast<DTYPE>(inputTensor.m[2][2]);
+						inputIntensityXY[warpedIndex] = static_cast<DTYPE>(inputTensor.m[0][1]);
+						inputIntensityXZ[warpedIndex] = static_cast<DTYPE>(inputTensor.m[0][2]);
+						inputIntensityYZ[warpedIndex] = static_cast<DTYPE>(inputTensor.m[1][2]);
                     }
                     else{
                         inputIntensityXX[warpedIndex] = 0;

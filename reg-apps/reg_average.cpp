@@ -377,13 +377,6 @@ int main(int argc, char **argv)
             }
             averageField->data = (void *)calloc(averageField->nvox,averageField->nbyper);
             reg_tools_multiplyValueToImage(averageField,averageField,0.f);
-            nifti_image *productJacobianDet = nifti_copy_nim_info(referenceImage); // HERE
-            productJacobianDet->datatype=NIFTI_TYPE_FLOAT32; // HERE
-            productJacobianDet->nbyper=sizeof(float); // HERE
-            productJacobianDet->data = (void *)calloc(productJacobianDet->nvox,productJacobianDet->nbyper); // HERE
-            nifti_image *tempJac = nifti_copy_nim_info(productJacobianDet); // HERE
-            tempJac->data = (void *)calloc(tempJac->nvox,tempJac->nbyper); // HERE
-            reg_tools_addValueToImage(productJacobianDet,productJacobianDet,1.f); // HERE
             // Iterate over all the transformation parametrisations - Note that I don't store them all to save space
 #ifndef NDEBUG
             char msg[256];
@@ -435,8 +428,6 @@ int main(int argc, char **argv)
                     reg_print_msg_error(transformation->fname);
                     return EXIT_FAILURE;
                 }
-                reg_defField_getJacobianMap(deformationField,tempJac); // HERE
-                reg_tools_multiplyImageToImage(productJacobianDet,tempJac,productJacobianDet); // HERE
                 // An affine transformation is use to remove the affine component
                 if(operation==3 || transformation->num_ext>0){
                     mat44 affineTransformation;
@@ -475,12 +466,8 @@ int main(int argc, char **argv)
                 nifti_image_free(transformation);
                 nifti_image_free(deformationField);
             } // iteration over all transformation parametrisation
-            reg_io_WriteImageFile(productJacobianDet,"inJac.nii");// HERE
-            reg_tools_multiplyValueToImage(productJacobianDet,productJacobianDet,0.f); // HERE
-            reg_tools_addValueToImage(productJacobianDet,productJacobianDet,1.f); // HERE
             // the average def/flow field is normalised by the number of input image
             reg_tools_divideValueToImage(averageField,averageField,(argc-4)/operation);
-            reg_io_WriteImageFile(averageField,"average_field.nii");
             // The new de-mean transformation are computed and the floating image resample
             // Create an image to store average image
             nifti_image *averageImage = nifti_copy_nim_info(referenceImage);
@@ -552,8 +539,6 @@ int main(int argc, char **argv)
                     nifti_image_free(tempDef);
                 }
                 else reg_tools_substractImageToImage(deformationField,averageField,deformationField);
-                reg_defField_getJacobianMap(deformationField,tempJac); // HERE
-                reg_tools_multiplyImageToImage(productJacobianDet,tempJac,productJacobianDet); // HERE
                 // The floating image is resampled
                 nifti_image *floatingImage=reg_io_ReadImageFile(argv[i+1]);
                 if(floatingImage==NULL){
@@ -576,9 +561,8 @@ int main(int argc, char **argv)
                 nifti_image_free(floatingImage);
                 nifti_image_free(deformationField);
             } // iteration over all transformation parametrisation
-            reg_io_WriteImageFile(productJacobianDet,"outJac.nii");// HERE
-            nifti_image_free(productJacobianDet);
-            nifti_image_free(tempJac);
+            // Normalise the average image by the number of input images
+            reg_tools_divideValueToImage(averageImage,averageImage,(argc-4)/operation);
             // Free the allocated field
             nifti_image_free(averageField);
             // Save and free the average image

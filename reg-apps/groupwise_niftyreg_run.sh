@@ -184,19 +184,23 @@ do
 				${RES_FOLDER}/aff_${CUR_IT}/run_gw_niftyReg_aladin_${CUR_IT}_${$}.sh
 			echo "then" >> ${RES_FOLDER}/aff_${CUR_IT}/run_gw_niftyReg_aladin_${CUR_IT}_${$}.sh
 			# Check if an input affine is available
-			echo "trans_affine=${RES_FOLDER}/aff_`expr ${CUR_IT} - 1`/aff_mat_\${name}.txt" >> \
+			echo "trans_affine=${RES_FOLDER}/aff_`expr ${CUR_IT} - 1`/aff_mat_\${name}_it`expr ${CUR_IT} - 1`.txt" >> \
 				${RES_FOLDER}/aff_${CUR_IT}/run_gw_niftyReg_aladin_${CUR_IT}_${$}.sh
 			# Set up the registration argument
 			echo "${AFFINE} ${AFFINE_args} \\" \
 				>> ${RES_FOLDER}/aff_${CUR_IT}/run_gw_niftyReg_aladin_${CUR_IT}_${$}.sh
 			echo "-ref ${averageImage} \\" \
 				>> ${RES_FOLDER}/aff_${CUR_IT}/run_gw_niftyReg_aladin_${CUR_IT}_${$}.sh
-			echo "-flo \${IMG_INPUT[img_number]} \\" 
+			echo "-flo \${IMG_INPUT[img_number]} \\" \
 				>> ${RES_FOLDER}/aff_${CUR_IT}/run_gw_niftyReg_aladin_${CUR_IT}_${$}.sh
 			echo "-aff ${RES_FOLDER}/aff_${CUR_IT}/aff_mat_\${name}_it${CUR_IT}.txt \\" >> \
 				${RES_FOLDER}/aff_${CUR_IT}/run_gw_niftyReg_aladin_${CUR_IT}_${$}.sh
-			echo "-result /dev/null \\" \
-				>> ${RES_FOLDER}/aff_${CUR_IT}/run_gw_niftyReg_aladin_${CUR_IT}_${$}.sh
+			result="/dev/null"
+                        if [ "${CUR_IT}" == "${AFF_IT_NUM}" ]
+                        then
+                                result="${RES_FOLDER}/aff_${CUR_IT}/aff_res_\${name}_it${CUR_IT}.nii.gz"
+                        fi
+                        echo "-res ${result}" >> ${RES_FOLDER}/aff_${CUR_IT}/run_gw_niftyReg_aladin_${CUR_IT}_${$}.sh
 			if [ "${TEMPLATE_MASK}" != "" ]; then
 				echo "-rmask ${TEMPLATE_MASK} \\" \
 					>> ${RES_FOLDER}/aff_${CUR_IT}/run_gw_niftyReg_aladin_${CUR_IT}_${$}.sh
@@ -291,7 +295,7 @@ do
 			fi # if [ "`which qsub 2> /dev/null`" == "" ]
 		fi # if [ "${CUR_IT}" != "${AFF_IT_NUM}" ]
 	else # if [ ! -f ${RES_FOLDER}/aff_${CUR_IT}/average_affine_it_${CUR_IT}.nii.gz ]
-		echo "${RES_FOLDER}/aff_${CUR_IT}/average_affine_it_${CUR_IT}.nii.gz already exist"	
+		echo "${RES_FOLDER}/aff_${CUR_IT}/average_affine_it_${CUR_IT}.nii.gz already exists"	
 	fi # if [ ! -f ${RES_FOLDER}/aff_${CUR_IT}/average_affine_it_${CUR_IT}.nii.gz ]
 	# Update the average image used as a reference
 	averageImage=${RES_FOLDER}/aff_${CUR_IT}/average_affine_it_${CUR_IT}.nii.gz
@@ -376,7 +380,7 @@ do
 			echo "name=\`basename \$name .img\`" \
 				>> ${RES_FOLDER}/nrr_${CUR_IT}/run_gw_niftyReg_f3d_${CUR_IT}_${$}.sh
 			# Check that the registration has not already been performed
-			echo "if [ ! -e ${RES_FOLDER}/nrr_${CUR_IT}/cpp_\${name}_it${CUR_IT}.nii* ]" >> \
+			echo "if [ ! -e ${RES_FOLDER}/nrr_${CUR_IT}/nrr_cpp_\${name}_it${CUR_IT}.nii* ]" >> \
 				${RES_FOLDER}/nrr_${CUR_IT}/run_gw_niftyReg_f3d_${CUR_IT}_${$}.sh
 			echo "then" >> ${RES_FOLDER}/nrr_${CUR_IT}/run_gw_niftyReg_f3d_${CUR_IT}_${$}.sh
 			# Set up the registration argument
@@ -449,8 +453,8 @@ do
 			else # if [ "`which qsub 2> /dev/null`" == "" ]
 				# The average is performed through the cluster
 				${QSUB_CMD} \
-					-hold_jid nrr_${CUR_IT}_${$} \
-					-o ${RES_FOLDER}/aff_${CUR_IT} \
+					-hold_jid f3d_${CUR_IT}_${$} \
+					-o ${RES_FOLDER}/nrr_${CUR_IT} \
 					-N avg_nrr_${CUR_IT}_${$} \
 					reg_average \
 					${RES_FOLDER}/nrr_${CUR_IT}/average_nonrigid_it_${CUR_IT}.nii.gz \
@@ -474,8 +478,8 @@ do
 			else # if [ "`which qsub 2> /dev/null`" == "" ]
 				# The average is performed through the cluster
 				${QSUB_CMD} \
-					-hold_jid nrr_${CUR_IT}_${$} \
-					-o ${RES_FOLDER}/aff_${CUR_IT} \
+					-hold_jid f3d_${CUR_IT}_${$} \
+					-o ${RES_FOLDER}/nrr_${CUR_IT} \
 					-N avg_nrr_${CUR_IT}_${$} \
 					reg_average \
 					${RES_FOLDER}/nrr_${CUR_IT}/average_nonrigid_it_${CUR_IT}.nii.gz \
@@ -483,7 +487,7 @@ do
 			fi # if [ "`which qsub 2> /dev/null`" == "" ]
 		fi # if [ "${CUR_IT}" != "${NRR_IT_NUM}" ]
 	else # if [ ! -f ${RES_FOLDER}/nrr_${CUR_IT}/average_nonrigid_it_${CUR_IT}.nii.gz ]
-		echo "${RES_FOLDER}/nrr_${CUR_IT}/average_nonrigid_it_${CUR_IT}.nii.gz already exist"
+		echo "${RES_FOLDER}/nrr_${CUR_IT}/average_nonrigid_it_${CUR_IT}.nii.gz already exists"
 	fi # if [ ! -f ${RES_FOLDER}/nrr_${CUR_IT}/average_nonrigid_it_${CUR_IT}.nii.gz ]
 	# Update the average image
 	averageImage=${RES_FOLDER}/nrr_${CUR_IT}/average_nonrigid_it_${CUR_IT}.nii.gz

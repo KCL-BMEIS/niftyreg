@@ -79,6 +79,6 @@ foreach(MODULE_NAME ${MODULE_LIST})
 				)
 endforeach(MODULE_NAME)
 #-----------------------------------------------------------------------------
-install(FILES groupwise_niftyreg_params.sh DESTINATION bin COMPONENT Runtime)
-install(FILES groupwise_niftyreg_run.sh DESTINATION bin COMPONENT Runtime)
+install(PROGRAMS groupwise_niftyreg_params.sh DESTINATION bin COMPONENT Runtime)
+install(PROGRAMS groupwise_niftyreg_run.sh DESTINATION bin COMPONENT Runtime)
 #-----------------------------------------------------------------------------
