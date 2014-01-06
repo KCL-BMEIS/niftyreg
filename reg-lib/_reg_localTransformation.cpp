@@ -1675,7 +1675,7 @@ void reg_spline_refineControlPointGrid2D(nifti_image *splineControlPoint,
     SplineTYPE *gridPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
     memcpy(oldGrid, gridPtrX, splineControlPoint->nvox*splineControlPoint->nbyper);
     if(splineControlPoint->data!=NULL) free(splineControlPoint->data);
-    int oldDim[3];
+    int oldDim[4];
     oldDim[0]=splineControlPoint->dim[0];
     oldDim[1]=splineControlPoint->dim[1];
     oldDim[2]=splineControlPoint->dim[2];

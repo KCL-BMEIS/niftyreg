@@ -187,9 +187,9 @@ int main(int argc, char **argv)
                     float expected;
                     if(type==0)
                         expected =
-                                cos(reg_round((float)x/(float)upRatio))*
-                                cos(reg_round((float)y/(float)upRatio))*
-                                cos(reg_round((float)z/(float)upRatio));
+                                cos(float(reg_round((float)x/(float)upRatio)))*
+                                cos(float(reg_round((float)y/(float)upRatio)))*
+                                cos(float(reg_round((float)z/(float)upRatio)));
                     else expected =
                             cos((float)x/(float)upRatio)*
                             cos((float)y/(float)upRatio)*

@@ -92,7 +92,7 @@ void reg_lncc::UpdateLocalStatImages(nifti_image *originalImage,
     reg_tools_multiplyImageToImage(stdDevImage, stdDevImage, stdDevImage);
     reg_tools_kernelConvolution(meanImage, this->kernelStandardDeviation, this->kernelType, mask, this->activeTimePoint);
     reg_tools_kernelConvolution(stdDevImage, this->kernelStandardDeviation, this->kernelType, mask, this->activeTimePoint);
-	size_t voxel;
+	int voxel;
 #if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
 	shared(originalImage, sdevPtr, meanPtr) \

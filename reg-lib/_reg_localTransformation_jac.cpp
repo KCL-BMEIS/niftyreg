@@ -502,9 +502,9 @@ void reg_spline_jacobian3D(nifti_image *splineControlPoint,
         union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} basisX;
         union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} basisY;
         union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} basisZ;
-        union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} xControlPointCoordinates;
-        union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} yControlPointCoordinates;
-        union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} zControlPointCoordinates;
+        union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} coeffX;
+        union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} coeffY;
+        union{__m128 m[16];__declspec(align(16)) DTYPE f[64];} coeffZ;
 #else // _WINDOWS
         union{__m128 m[4];DTYPE f[16] __attribute__((aligned(16)));} tempX;
         union{__m128 m[4];DTYPE f[16] __attribute__((aligned(16)));} tempY;
