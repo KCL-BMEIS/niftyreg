@@ -3601,8 +3601,8 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
 {
     // Check first if the velocity field is actually a velocity field
     if(flowFieldImage->intent_p1 != DEF_VEL_FIELD){
-        fprintf(stderr, "[NiftyReg ERROR] reg_defField_getDeformationFieldFromFlowField\n");
-        fprintf(stderr, "[NiftyReg ERROR] The provide field is not a velocity field\n");
+        reg_print_fct_error("reg_defField_getDeformationFieldFromFlowField");
+        reg_print_msg_error("The provide field is not a velocity field");
         reg_exit(1);
     }
 
@@ -3745,8 +3745,8 @@ void reg_spline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGr
         nifti_image_free(flowField);
     }
     else{
-        fprintf(stderr, "[NiftyReg ERROR] reg_spline_getDeformationFieldFromVelocityGrid\n");
-        fprintf(stderr, "[NiftyReg ERROR] The provided input image is not a spline parametrised transformation\n");
+        reg_print_fct_error("reg_spline_getDeformationFieldFromVelocityGrid");
+        reg_print_msg_error("The provided input image is not a spline parametrised transformation");
         reg_exit(1);
     }
     return;
@@ -3759,7 +3759,8 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
     reg_exit(1);// Needs to be updated
     // Check first if the velocity field is actually a velocity field
     if( velocityFieldGrid->intent_p1!=SPLINE_VEL_GRID){
-        fprintf(stderr, "[NiftyReg ERROR] reg_spline_getIntermediateDefFieldFromVelGrid - the provide grid is not a velocity field\n");
+        reg_print_fct_error("reg_spline_getIntermediateDefFieldFromVelGrid");
+        reg_print_msg_error("The provided grid is not a velocity field");
         reg_exit(1);
     }
     // Set the initial deformation field to an identity transformation
@@ -3818,7 +3819,7 @@ void compute_lie_bracket(nifti_image *img1,
                          bool use_jac
                          )
 {
-
+    reg_exit(1); // to update
     // Lie bracket using Jacobian for testing
     if(use_jac){
 

@@ -23,6 +23,12 @@
 template <class T>
 void svd(T ** in, size_t size_m, size_t size_n, T * w, T ** v)
 {
+    if(size_m==0 || size_n==0){
+        reg_print_fct_error("svd");
+        reg_print_msg_error("The specified matrix is empty");
+        reg_exit(1);
+    }
+
     int sm, sn, sn2;
     Eigen::MatrixXf m(size_m,size_n);
 

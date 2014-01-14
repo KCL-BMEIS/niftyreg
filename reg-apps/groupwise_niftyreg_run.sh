@@ -105,7 +105,7 @@ do
 		then
 			mkdir ${RES_FOLDER}/aff_${CUR_IT}
 		fi
-		
+
 		#############################
 		# Run the rigid or affine registration
 		if [ "`which qsub 2> /dev/null`" == "" ]
@@ -125,7 +125,7 @@ do
 					if [ ${CUR_IT} == 1 ]
 					then
 						aladin_args="-rigOnly"
-					else 
+					else
 						# Check if a previous affine can be use for initialisation
 						if [ -f ${RES_FOLDER}/aff_`expr ${CUR_IT} - 1`/aff_mat_${name}_it`expr ${CUR_IT} - 1`.txt ]
 						then
@@ -162,7 +162,7 @@ do
 					fi
 				fi
 			done
-		else		
+		else
 			# Create shell script to run all jobs in an array
 			echo \#\!/bin/sh > ${RES_FOLDER}/aff_${CUR_IT}/run_gw_niftyReg_aladin_${CUR_IT}_${$}.sh
 			# Define the current image index
@@ -196,11 +196,11 @@ do
 			echo "-aff ${RES_FOLDER}/aff_${CUR_IT}/aff_mat_\${name}_it${CUR_IT}.txt \\" >> \
 				${RES_FOLDER}/aff_${CUR_IT}/run_gw_niftyReg_aladin_${CUR_IT}_${$}.sh
 			result="/dev/null"
-                        if [ "${CUR_IT}" == "${AFF_IT_NUM}" ]
-                        then
-                                result="${RES_FOLDER}/aff_${CUR_IT}/aff_res_\${name}_it${CUR_IT}.nii.gz"
-                        fi
-                        echo "-res ${result}" >> ${RES_FOLDER}/aff_${CUR_IT}/run_gw_niftyReg_aladin_${CUR_IT}_${$}.sh
+			if [ "${CUR_IT}" == "${AFF_IT_NUM}" ]
+			then
+			result="${RES_FOLDER}/aff_${CUR_IT}/aff_res_\${name}_it${CUR_IT}.nii.gz"
+			fi
+			echo "-res ${result} \\" >> ${RES_FOLDER}/aff_${CUR_IT}/run_gw_niftyReg_aladin_${CUR_IT}_${$}.sh
 			if [ "${TEMPLATE_MASK}" != "" ]; then
 				echo "-rmask ${TEMPLATE_MASK} \\" \
 					>> ${RES_FOLDER}/aff_${CUR_IT}/run_gw_niftyReg_aladin_${CUR_IT}_${$}.sh
@@ -295,7 +295,7 @@ do
 			fi # if [ "`which qsub 2> /dev/null`" == "" ]
 		fi # if [ "${CUR_IT}" != "${AFF_IT_NUM}" ]
 	else # if [ ! -f ${RES_FOLDER}/aff_${CUR_IT}/average_affine_it_${CUR_IT}.nii.gz ]
-		echo "${RES_FOLDER}/aff_${CUR_IT}/average_affine_it_${CUR_IT}.nii.gz already exists"	
+		echo "${RES_FOLDER}/aff_${CUR_IT}/average_affine_it_${CUR_IT}.nii.gz already exists"
 	fi # if [ ! -f ${RES_FOLDER}/aff_${CUR_IT}/average_affine_it_${CUR_IT}.nii.gz ]
 	# Update the average image used as a reference
 	averageImage=${RES_FOLDER}/aff_${CUR_IT}/average_affine_it_${CUR_IT}.nii.gz
@@ -308,19 +308,19 @@ done # Loop over affine iteration
 
 for (( CUR_IT=1; CUR_IT<=${NRR_IT_NUM}; CUR_IT++ ))
 do
-	
+
 	#############################
 	# Check if the current average image has already been created
 	if [ ! -f ${RES_FOLDER}/nrr_${CUR_IT}/average_nonrigid_it_${CUR_IT}.nii.gz ]
 	then
-	
+
 		#############################
 		# Create a folder to store the current results
 		if [ ! -d ${RES_FOLDER}/nrr_${CUR_IT} ]
 		then
 			mkdir ${RES_FOLDER}/nrr_${CUR_IT}
 		fi
-	
+
 		#############################
 		# Run the nonrigid registrations
 		if [ "`which qsub 2> /dev/null`" == "" ]
@@ -348,7 +348,7 @@ do
 					if [ ${AFF_IT_NUM} -gt 0 ]
 					then
 						f3d_args="${f3d_args} -aff \
-							${RES_FOLDER}/aff_${AFF_IT_NUM}/aff_mat_${name}_it${AFF_IT_NUM}.txt" 
+							${RES_FOLDER}/aff_${AFF_IT_NUM}/aff_mat_${name}_it${AFF_IT_NUM}.txt"
 					fi
 					result="/dev/null"
 					if [ "${CUR_IT}" == "${NRR_IT_NUM}" ]

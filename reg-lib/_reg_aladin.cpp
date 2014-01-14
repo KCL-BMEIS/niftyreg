@@ -149,7 +149,7 @@ int reg_aladin<T>::Print()
         printf("[%s] Maximum iteration number: %i", this->ExecutableName, this->MaxIterations);
         printf(" (%i during the first level)\n", 2*this->MaxIterations);
         printf("[%s] Percentage of blocks: %i %%", this->ExecutableName, this->BlockPercentage);
-        printf(" (100%% during the first level)\n");
+//        printf(" (100%% during the first level)\n");
 #ifndef NDEBUG
     }
 #endif
@@ -235,29 +235,29 @@ void reg_aladin<T>::InitialiseRegistration()
 
     // SMOOTH THE INPUT IMAGES IF REQUIRED
     for(unsigned int l=0; l<this->LevelsToPerform; l++){
-		if(this->ReferenceSigma!=0.0){
-			// Only the first image is smoothed
-			bool *active = new bool[this->ReferencePyramid[l]->nt];
-			float *sigma = new float[this->ReferencePyramid[l]->nt];
-			active[0]=true;
-			for(int i=1;i<this->ReferencePyramid[l]->nt;++i)
-				active[i]=false;
-			sigma[0]=this->ReferenceSigma;
-			reg_tools_kernelConvolution(this->ReferencePyramid[l], sigma, 0, NULL, active);
-			delete []active;
-			delete []sigma;
+        if(this->ReferenceSigma!=0.0){
+            // Only the first image is smoothed
+            bool *active = new bool[this->ReferencePyramid[l]->nt];
+            float *sigma = new float[this->ReferencePyramid[l]->nt];
+            active[0]=true;
+            for(int i=1;i<this->ReferencePyramid[l]->nt;++i)
+                active[i]=false;
+            sigma[0]=this->ReferenceSigma;
+            reg_tools_kernelConvolution(this->ReferencePyramid[l], sigma, 0, NULL, active);
+            delete []active;
+            delete []sigma;
         }
-		if(this->FloatingSigma!=0.0){
-			// Only the first image is smoothed
-			bool *active = new bool[this->FloatingPyramid[l]->nt];
-			float *sigma = new float[this->FloatingPyramid[l]->nt];
-			active[0]=true;
-			for(int i=1;i<this->FloatingPyramid[l]->nt;++i)
-				active[i]=false;
-			sigma[0]=this->FloatingSigma;
-			reg_tools_kernelConvolution(this->FloatingPyramid[l], sigma, 0, NULL, active);
-			delete []active;
-			delete []sigma;
+        if(this->FloatingSigma!=0.0){
+            // Only the first image is smoothed
+            bool *active = new bool[this->FloatingPyramid[l]->nt];
+            float *sigma = new float[this->FloatingPyramid[l]->nt];
+            active[0]=true;
+            for(int i=1;i<this->FloatingPyramid[l]->nt;++i)
+                active[i]=false;
+            sigma[0]=this->FloatingSigma;
+            reg_tools_kernelConvolution(this->FloatingPyramid[l], sigma, 0, NULL, active);
+            delete []active;
+            delete []sigma;
         }
     }
 
@@ -452,10 +452,10 @@ void reg_aladin<T>::GetWarpedImage(int interp)
 template <class T>
 void reg_aladin<T>::UpdateTransformationMatrix(int type)
 {
-	block_matching_method(this->CurrentReference,
-						  this->CurrentWarped,
-						  &this->blockMatchingParams,
-						  this->CurrentReferenceMask);
+    block_matching_method(this->CurrentReference,
+                          this->CurrentWarped,
+                          &this->blockMatchingParams,
+                          this->CurrentReferenceMask);
     if(type==RIGID)
         optimize(&this->blockMatchingParams,
                  this->TransformationMatrix,
@@ -478,7 +478,7 @@ void reg_aladin<T>::Run()
     // Compute the resolution of the progress bar
     unsigned long iProgressStep = 1;
     unsigned long nProgressSteps = 1;
-    
+
     if (this->PerformRigid && !this->PerformAffine)
     {
         nProgressSteps = this->MaxIterations*(this->LevelsToPerform + 1);
@@ -507,7 +507,7 @@ void reg_aladin<T>::Run()
         int percentageOfBlockToUse=this->BlockPercentage;
         if(CurrentLevel==0){
             maxNumberOfIterationToPerform*=2;
-            percentageOfBlockToUse=100;
+//            percentageOfBlockToUse=100;
         }
 
         /* initialise the block matching */
