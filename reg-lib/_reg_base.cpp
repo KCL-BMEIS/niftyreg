@@ -635,10 +635,11 @@ void reg_base<T>::InitialiseSimilarity()
 {
     // SET THE DEFAULT MEASURE OF SIMILARITY IF NONE HAS BEEN SET
     if(this->measure_nmi==NULL &&
+		this->measure_multichannel_nmi==NULL &&
        this->measure_ssd==NULL &&
        this->measure_dti==NULL &&
        this->measure_lncc==NULL &&
-       this->measure_lncc==NULL){
+       this->measure_kld==NULL){
         this->measure_nmi=new reg_nmi;
         for(int i=0;i<this->inputReference->nt;++i)
             this->measure_nmi->SetActiveTimepoint(i);
