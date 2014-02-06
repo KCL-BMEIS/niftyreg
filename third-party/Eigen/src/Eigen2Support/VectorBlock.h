@@ -11,15 +11,16 @@
 #ifndef EIGEN2_VECTORBLOCK_H
 #define EIGEN2_VECTORBLOCK_H
 
-namespace Eigen { 
+namespace Eigen
+{
 
 /** \deprecated use DenseMase::head(Index) */
 template<typename Derived>
 inline VectorBlock<Derived>
 MatrixBase<Derived>::start(Index size)
 {
-  EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
-  return VectorBlock<Derived>(derived(), 0, size);
+   EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
+   return VectorBlock<Derived>(derived(), 0, size);
 }
 
 /** \deprecated use DenseMase::head(Index) */
@@ -27,8 +28,8 @@ template<typename Derived>
 inline const VectorBlock<const Derived>
 MatrixBase<Derived>::start(Index size) const
 {
-  EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
-  return VectorBlock<const Derived>(derived(), 0, size);
+   EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
+   return VectorBlock<const Derived>(derived(), 0, size);
 }
 
 /** \deprecated use DenseMase::tail(Index) */
@@ -36,8 +37,8 @@ template<typename Derived>
 inline VectorBlock<Derived>
 MatrixBase<Derived>::end(Index size)
 {
-  EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
-  return VectorBlock<Derived>(derived(), this->size() - size, size);
+   EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
+   return VectorBlock<Derived>(derived(), this->size() - size, size);
 }
 
 /** \deprecated use DenseMase::tail(Index) */
@@ -45,8 +46,8 @@ template<typename Derived>
 inline const VectorBlock<const Derived>
 MatrixBase<Derived>::end(Index size) const
 {
-  EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
-  return VectorBlock<const Derived>(derived(), this->size() - size, size);
+   EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
+   return VectorBlock<const Derived>(derived(), this->size() - size, size);
 }
 
 /** \deprecated use DenseMase::head() */
@@ -55,8 +56,8 @@ template<int Size>
 inline VectorBlock<Derived,Size>
 MatrixBase<Derived>::start()
 {
-  EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
-  return VectorBlock<Derived,Size>(derived(), 0);
+   EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
+   return VectorBlock<Derived,Size>(derived(), 0);
 }
 
 /** \deprecated use DenseMase::head() */
@@ -65,8 +66,8 @@ template<int Size>
 inline const VectorBlock<const Derived,Size>
 MatrixBase<Derived>::start() const
 {
-  EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
-  return VectorBlock<const Derived,Size>(derived(), 0);
+   EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
+   return VectorBlock<const Derived,Size>(derived(), 0);
 }
 
 /** \deprecated use DenseMase::tail() */
@@ -75,8 +76,8 @@ template<int Size>
 inline VectorBlock<Derived,Size>
 MatrixBase<Derived>::end()
 {
-  EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
-  return VectorBlock<Derived, Size>(derived(), size() - Size);
+   EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
+   return VectorBlock<Derived, Size>(derived(), size() - Size);
 }
 
 /** \deprecated use DenseMase::tail() */
@@ -85,8 +86,8 @@ template<int Size>
 inline const VectorBlock<const Derived,Size>
 MatrixBase<Derived>::end() const
 {
-  EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
-  return VectorBlock<const Derived, Size>(derived(), size() - Size);
+   EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
+   return VectorBlock<const Derived, Size>(derived(), size() - Size);
 }
 
 } // end namespace Eigen

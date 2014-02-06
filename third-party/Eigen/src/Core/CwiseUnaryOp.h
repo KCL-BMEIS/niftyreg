@@ -11,7 +11,8 @@
 #ifndef EIGEN_CWISE_UNARY_OP_H
 #define EIGEN_CWISE_UNARY_OP_H
 
-namespace Eigen { 
+namespace Eigen
+{
 
 /** \class CwiseUnaryOp
   * \ingroup Core_Module
@@ -33,22 +34,24 @@ namespace Eigen {
   * \sa MatrixBase::unaryExpr(const CustomUnaryOp &) const, class CwiseBinaryOp, class CwiseNullaryOp
   */
 
-namespace internal {
+namespace internal
+{
 template<typename UnaryOp, typename XprType>
 struct traits<CwiseUnaryOp<UnaryOp, XprType> >
- : traits<XprType>
+      : traits<XprType>
 {
-  typedef typename result_of<
-                     UnaryOp(typename XprType::Scalar)
-                   >::type Scalar;
-  typedef typename XprType::Nested XprTypeNested;
-  typedef typename remove_reference<XprTypeNested>::type _XprTypeNested;
-  enum {
-    Flags = _XprTypeNested::Flags & (
-      HereditaryBits | LinearAccessBit | AlignedBit
-      | (functor_traits<UnaryOp>::PacketAccess ? PacketAccessBit : 0)),
-    CoeffReadCost = _XprTypeNested::CoeffReadCost + functor_traits<UnaryOp>::Cost
-  };
+   typedef typename result_of<
+   UnaryOp(typename XprType::Scalar)
+   >::type Scalar;
+   typedef typename XprType::Nested XprTypeNested;
+   typedef typename remove_reference<XprTypeNested>::type _XprTypeNested;
+   enum
+   {
+      Flags = _XprTypeNested::Flags & (
+                 HereditaryBits | LinearAccessBit | AlignedBit
+                 | (functor_traits<UnaryOp>::PacketAccess ? PacketAccessBit : 0)),
+      CoeffReadCost = _XprTypeNested::CoeffReadCost + functor_traits<UnaryOp>::Cost
+   };
 };
 }
 
@@ -57,68 +60,83 @@ class CwiseUnaryOpImpl;
 
 template<typename UnaryOp, typename XprType>
 class CwiseUnaryOp : internal::no_assignment_operator,
-  public CwiseUnaryOpImpl<UnaryOp, XprType, typename internal::traits<XprType>::StorageKind>
+   public CwiseUnaryOpImpl<UnaryOp, XprType, typename internal::traits<XprType>::StorageKind>
 {
-  public:
+public:
 
-    typedef typename CwiseUnaryOpImpl<UnaryOp, XprType,typename internal::traits<XprType>::StorageKind>::Base Base;
-    EIGEN_GENERIC_PUBLIC_INTERFACE(CwiseUnaryOp)
+   typedef typename CwiseUnaryOpImpl<UnaryOp, XprType,typename internal::traits<XprType>::StorageKind>::Base Base;
+   EIGEN_GENERIC_PUBLIC_INTERFACE(CwiseUnaryOp)
 
-    inline CwiseUnaryOp(const XprType& xpr, const UnaryOp& func = UnaryOp())
+   inline CwiseUnaryOp(const XprType &xpr, const UnaryOp &func = UnaryOp())
       : m_xpr(xpr), m_functor(func) {}
 
-    EIGEN_STRONG_INLINE Index rows() const { return m_xpr.rows(); }
-    EIGEN_STRONG_INLINE Index cols() const { return m_xpr.cols(); }
+   EIGEN_STRONG_INLINE Index rows() const
+   {
+      return m_xpr.rows();
+   }
+   EIGEN_STRONG_INLINE Index cols() const
+   {
+      return m_xpr.cols();
+   }
 
-    /** \returns the functor representing the unary operation */
-    const UnaryOp& functor() const { return m_functor; }
+   /** \returns the functor representing the unary operation */
+   const UnaryOp &functor() const
+   {
+      return m_functor;
+   }
 
-    /** \returns the nested expression */
-    const typename internal::remove_all<typename XprType::Nested>::type&
-    nestedExpression() const { return m_xpr; }
+   /** \returns the nested expression */
+   const typename internal::remove_all<typename XprType::Nested>::type &
+   nestedExpression() const
+   {
+      return m_xpr;
+   }
 
-    /** \returns the nested expression */
-    typename internal::remove_all<typename XprType::Nested>::type&
-    nestedExpression() { return m_xpr.const_cast_derived(); }
+   /** \returns the nested expression */
+   typename internal::remove_all<typename XprType::Nested>::type &
+   nestedExpression()
+   {
+      return m_xpr.const_cast_derived();
+   }
 
-  protected:
-    typename XprType::Nested m_xpr;
-    const UnaryOp m_functor;
+protected:
+   typename XprType::Nested m_xpr;
+   const UnaryOp m_functor;
 };
 
 // This is the generic implementation for dense storage.
 // It can be used for any expression types implementing the dense concept.
 template<typename UnaryOp, typename XprType>
 class CwiseUnaryOpImpl<UnaryOp,XprType,Dense>
-  : public internal::dense_xpr_base<CwiseUnaryOp<UnaryOp, XprType> >::type
+   : public internal::dense_xpr_base<CwiseUnaryOp<UnaryOp, XprType> >::type
 {
-  public:
+public:
 
-    typedef CwiseUnaryOp<UnaryOp, XprType> Derived;
-    typedef typename internal::dense_xpr_base<CwiseUnaryOp<UnaryOp, XprType> >::type Base;
-    EIGEN_DENSE_PUBLIC_INTERFACE(Derived)
+   typedef CwiseUnaryOp<UnaryOp, XprType> Derived;
+   typedef typename internal::dense_xpr_base<CwiseUnaryOp<UnaryOp, XprType> >::type Base;
+   EIGEN_DENSE_PUBLIC_INTERFACE(Derived)
 
-    EIGEN_STRONG_INLINE const Scalar coeff(Index rowId, Index colId) const
-    {
+   EIGEN_STRONG_INLINE const Scalar coeff(Index rowId, Index colId) const
+   {
       return derived().functor()(derived().nestedExpression().coeff(rowId, colId));
-    }
+   }
 
-    template<int LoadMode>
-    EIGEN_STRONG_INLINE PacketScalar packet(Index rowId, Index colId) const
-    {
+   template<int LoadMode>
+   EIGEN_STRONG_INLINE PacketScalar packet(Index rowId, Index colId) const
+   {
       return derived().functor().packetOp(derived().nestedExpression().template packet<LoadMode>(rowId, colId));
-    }
+   }
 
-    EIGEN_STRONG_INLINE const Scalar coeff(Index index) const
-    {
+   EIGEN_STRONG_INLINE const Scalar coeff(Index index) const
+   {
       return derived().functor()(derived().nestedExpression().coeff(index));
-    }
+   }
 
-    template<int LoadMode>
-    EIGEN_STRONG_INLINE PacketScalar packet(Index index) const
-    {
+   template<int LoadMode>
+   EIGEN_STRONG_INLINE PacketScalar packet(Index index) const
+   {
       return derived().functor().packetOp(derived().nestedExpression().template packet<LoadMode>(index));
-    }
+   }
 };
 
 } // end namespace Eigen

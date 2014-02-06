@@ -11,44 +11,46 @@
 #ifndef EIGEN_MATRIXBASEEIGENVALUES_H
 #define EIGEN_MATRIXBASEEIGENVALUES_H
 
-namespace Eigen { 
+namespace Eigen
+{
 
-namespace internal {
+namespace internal
+{
 
 template<typename Derived, bool IsComplex>
 struct eigenvalues_selector
 {
-  // this is the implementation for the case IsComplex = true
-  static inline typename MatrixBase<Derived>::EigenvaluesReturnType const
-  run(const MatrixBase<Derived>& m)
-  {
-    typedef typename Derived::PlainObject PlainObject;
-    PlainObject m_eval(m);
-    return ComplexEigenSolver<PlainObject>(m_eval, false).eigenvalues();
-  }
+   // this is the implementation for the case IsComplex = true
+   static inline typename MatrixBase<Derived>::EigenvaluesReturnType const
+   run(const MatrixBase<Derived> &m)
+   {
+      typedef typename Derived::PlainObject PlainObject;
+      PlainObject m_eval(m);
+      return ComplexEigenSolver<PlainObject>(m_eval, false).eigenvalues();
+   }
 };
 
 template<typename Derived>
 struct eigenvalues_selector<Derived, false>
 {
-  static inline typename MatrixBase<Derived>::EigenvaluesReturnType const
-  run(const MatrixBase<Derived>& m)
-  {
-    typedef typename Derived::PlainObject PlainObject;
-    PlainObject m_eval(m);
-    return EigenSolver<PlainObject>(m_eval, false).eigenvalues();
-  }
+   static inline typename MatrixBase<Derived>::EigenvaluesReturnType const
+   run(const MatrixBase<Derived> &m)
+   {
+      typedef typename Derived::PlainObject PlainObject;
+      PlainObject m_eval(m);
+      return EigenSolver<PlainObject>(m_eval, false).eigenvalues();
+   }
 };
 
 } // end namespace internal
 
-/** \brief Computes the eigenvalues of a matrix 
+/** \brief Computes the eigenvalues of a matrix
   * \returns Column vector containing the eigenvalues.
   *
   * \eigenvalues_module
   * This function computes the eigenvalues with the help of the EigenSolver
   * class (for real matrices) or the ComplexEigenSolver class (for complex
-  * matrices). 
+  * matrices).
   *
   * The eigenvalues are repeated according to their algebraic multiplicity,
   * so there are as many eigenvalues as rows in the matrix.
@@ -66,8 +68,8 @@ template<typename Derived>
 inline typename MatrixBase<Derived>::EigenvaluesReturnType
 MatrixBase<Derived>::eigenvalues() const
 {
-  typedef typename internal::traits<Derived>::Scalar Scalar;
-  return internal::eigenvalues_selector<Derived, NumTraits<Scalar>::IsComplex>::run(derived());
+   typedef typename internal::traits<Derived>::Scalar Scalar;
+   return internal::eigenvalues_selector<Derived, NumTraits<Scalar>::IsComplex>::run(derived());
 }
 
 /** \brief Computes the eigenvalues of a matrix
@@ -84,13 +86,13 @@ MatrixBase<Derived>::eigenvalues() const
   *
   * \sa SelfAdjointEigenSolver::eigenvalues(), MatrixBase::eigenvalues()
   */
-template<typename MatrixType, unsigned int UpLo> 
+template<typename MatrixType, unsigned int UpLo>
 inline typename SelfAdjointView<MatrixType, UpLo>::EigenvaluesReturnType
 SelfAdjointView<MatrixType, UpLo>::eigenvalues() const
 {
-  typedef typename SelfAdjointView<MatrixType, UpLo>::PlainObject PlainObject;
-  PlainObject thisAsMatrix(*this);
-  return SelfAdjointEigenSolver<PlainObject>(thisAsMatrix, false).eigenvalues();
+   typedef typename SelfAdjointView<MatrixType, UpLo>::PlainObject PlainObject;
+   PlainObject thisAsMatrix(*this);
+   return SelfAdjointEigenSolver<PlainObject>(thisAsMatrix, false).eigenvalues();
 }
 
 
@@ -121,16 +123,16 @@ template<typename Derived>
 inline typename MatrixBase<Derived>::RealScalar
 MatrixBase<Derived>::operatorNorm() const
 {
-  using std::sqrt;
-  typename Derived::PlainObject m_eval(derived());
-  // FIXME if it is really guaranteed that the eigenvalues are already sorted,
-  // then we don't need to compute a maxCoeff() here, comparing the 1st and last ones is enough.
-  return sqrt((m_eval*m_eval.adjoint())
-                 .eval()
-		 .template selfadjointView<Lower>()
-		 .eigenvalues()
-		 .maxCoeff()
-		 );
+   using std::sqrt;
+   typename Derived::PlainObject m_eval(derived());
+   // FIXME if it is really guaranteed that the eigenvalues are already sorted,
+   // then we don't need to compute a maxCoeff() here, comparing the 1st and last ones is enough.
+   return sqrt((m_eval*m_eval.adjoint())
+               .eval()
+               .template selfadjointView<Lower>()
+               .eigenvalues()
+               .maxCoeff()
+              );
 }
 
 /** \brief Computes the L2 operator norm
@@ -152,7 +154,7 @@ template<typename MatrixType, unsigned int UpLo>
 inline typename SelfAdjointView<MatrixType, UpLo>::RealScalar
 SelfAdjointView<MatrixType, UpLo>::operatorNorm() const
 {
-  return eigenvalues().cwiseAbs().maxCoeff();
+   return eigenvalues().cwiseAbs().maxCoeff();
 }
 
 } // end namespace Eigen

@@ -23,29 +23,29 @@
 class reg_dti : public reg_measure
 {
 public:
-    /// @brief reg_dti class constructor
-    reg_dti();
+   /// @brief reg_dti class constructor
+   reg_dti();
 //    /// @brief Initialise the reg_dti object
-    void InitialiseMeasure(nifti_image *refImgPtr,
-                           nifti_image *floImgPtr,
-                           int *maskRefPtr,
-                           nifti_image *warFloImgPtr,
-                           nifti_image *warFloGraPtr,
-                           nifti_image *forVoxBasedGraPtr,
-                           int *maskFloPtr = NULL,
-                           nifti_image *warRefImgPtr = NULL,
-                           nifti_image *warRefGraPtr = NULL,
-                           nifti_image *bckVoxBasedGraPtr = NULL);
+   void InitialiseMeasure(nifti_image *refImgPtr,
+                          nifti_image *floImgPtr,
+                          int *maskRefPtr,
+                          nifti_image *warFloImgPtr,
+                          nifti_image *warFloGraPtr,
+                          nifti_image *forVoxBasedGraPtr,
+                          int *maskFloPtr = NULL,
+                          nifti_image *warRefImgPtr = NULL,
+                          nifti_image *warRefGraPtr = NULL,
+                          nifti_image *bckVoxBasedGraPtr = NULL);
 //    /// @brief Returns the value
-    virtual double GetSimilarityMeasureValue();
+   virtual double GetSimilarityMeasureValue();
 //    /// @brief Compute the voxel based gradient for DTI images
-    virtual void GetVoxelBasedSimilarityMeasureGradient();
-    /// @brief reg_dti class destructor
-    ~reg_dti(){}
+   virtual void GetVoxelBasedSimilarityMeasureGradient();
+   /// @brief reg_dti class destructor
+   ~reg_dti() {}
 protected:
-    // Store the indicies of the DT components in the order XX,XY,YY,XZ,YZ,ZZ
-    unsigned int dtIndicies[6];
-    float currentValue;
+   // Store the indicies of the DT components in the order XX,XY,YY,XZ,YZ,ZZ
+   unsigned int dtIndicies[6];
+   float currentValue;
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
@@ -58,11 +58,11 @@ protected:
  */
 extern "C++" template <class DTYPE>
 double reg_getDTIMeasureValue(nifti_image *targetImage,
-                       nifti_image *resultImage,
-                       int *mask,
-                       unsigned int * dtIndicies,
-                       float currentValue
-                       );
+                              nifti_image *resultImage,
+                              int *mask,
+                              unsigned int * dtIndicies,
+                              float currentValue
+                             );
 
 /** @brief Compute a voxel based gradient of the sum squared difference.
  * @param targetImage First input image to use to compute the metric

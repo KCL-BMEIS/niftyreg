@@ -18,24 +18,24 @@ template <class T>
 class reg_polyAffine : public reg_base<T>
 {
 protected:
-     void GetDeformationField();
-     void SetGradientImageToZero();
-     void GetApproximatedGradient();
-     double GetObjectiveFunctionValue();
-     void UpdateParameters(float);
-     T NormaliseGradient();
-     void GetSimilarityMeasureGradient();
-     void GetObjectiveFunctionGradient();
-     void DisplayCurrentLevelParameters();
-     void UpdateBestObjFunctionValue();
-     void PrintCurrentObjFunctionValue(T);
-     void PrintInitialObjFunctionValue();
-     void AllocateTransformationGradient();
-     void ClearTransformationGradient();
+   void GetDeformationField();
+   void SetGradientImageToZero();
+   void GetApproximatedGradient();
+   double GetObjectiveFunctionValue();
+   void UpdateParameters(float);
+   T NormaliseGradient();
+   void GetSimilarityMeasureGradient();
+   void GetObjectiveFunctionGradient();
+   void DisplayCurrentLevelParameters();
+   void UpdateBestObjFunctionValue();
+   void PrintCurrentObjFunctionValue(T);
+   void PrintInitialObjFunctionValue();
+   void AllocateTransformationGradient();
+   void ClearTransformationGradient();
 
 public:
-    reg_polyAffine(int refTimePoint,int floTimePoint);
-    ~reg_polyAffine();
+   reg_polyAffine(int refTimePoint,int floTimePoint);
+   ~reg_polyAffine();
 };
 
 #include "_reg_polyAffine.cpp"

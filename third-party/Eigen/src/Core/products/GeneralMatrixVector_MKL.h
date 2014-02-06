@@ -33,9 +33,11 @@
 #ifndef EIGEN_GENERAL_MATRIX_VECTOR_MKL_H
 #define EIGEN_GENERAL_MATRIX_VECTOR_MKL_H
 
-namespace Eigen { 
+namespace Eigen
+{
 
-namespace internal {
+namespace internal
+{
 
 /**********************************************************************
 * This file implements general matrix-vector multiplication using BLAS
@@ -48,7 +50,7 @@ namespace internal {
 
 template<typename Index, typename LhsScalar, int LhsStorageOrder, bool ConjugateLhs, typename RhsScalar, bool ConjugateRhs>
 struct general_matrix_vector_product_gemv :
-  general_matrix_vector_product<Index,LhsScalar,LhsStorageOrder,ConjugateLhs,RhsScalar,ConjugateRhs,BuiltIn> {};
+      general_matrix_vector_product<Index,LhsScalar,LhsStorageOrder,ConjugateLhs,RhsScalar,ConjugateRhs,BuiltIn> {};
 
 #define EIGEN_MKL_GEMV_SPECIALIZE(Scalar) \
 template<typename Index, bool ConjugateLhs, bool ConjugateRhs> \
@@ -80,7 +82,7 @@ static void run( \
       rows, cols, lhs, lhsStride, rhs, rhsIncr, res, resIncr, alpha); \
 } \
 }; \
-
+ 
 EIGEN_MKL_GEMV_SPECIALIZE(double)
 EIGEN_MKL_GEMV_SPECIALIZE(float)
 EIGEN_MKL_GEMV_SPECIALIZE(dcomplex)

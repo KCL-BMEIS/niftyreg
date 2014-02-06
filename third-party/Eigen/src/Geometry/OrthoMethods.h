@@ -11,7 +11,8 @@
 #ifndef EIGEN_ORTHOMETHODS_H
 #define EIGEN_ORTHOMETHODS_H
 
-namespace Eigen { 
+namespace Eigen
+{
 
 /** \geometry_module
   *
@@ -23,38 +24,40 @@ namespace Eigen {
 template<typename Derived>
 template<typename OtherDerived>
 inline typename MatrixBase<Derived>::template cross_product_return_type<OtherDerived>::type
-MatrixBase<Derived>::cross(const MatrixBase<OtherDerived>& other) const
+MatrixBase<Derived>::cross(const MatrixBase<OtherDerived> &other) const
 {
-  EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(Derived,3)
-  EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(OtherDerived,3)
+   EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(Derived,3)
+   EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(OtherDerived,3)
 
-  // Note that there is no need for an expression here since the compiler
-  // optimize such a small temporary very well (even within a complex expression)
-  typename internal::nested<Derived,2>::type lhs(derived());
-  typename internal::nested<OtherDerived,2>::type rhs(other.derived());
-  return typename cross_product_return_type<OtherDerived>::type(
-    numext::conj(lhs.coeff(1) * rhs.coeff(2) - lhs.coeff(2) * rhs.coeff(1)),
-    numext::conj(lhs.coeff(2) * rhs.coeff(0) - lhs.coeff(0) * rhs.coeff(2)),
-    numext::conj(lhs.coeff(0) * rhs.coeff(1) - lhs.coeff(1) * rhs.coeff(0))
-  );
+   // Note that there is no need for an expression here since the compiler
+   // optimize such a small temporary very well (even within a complex expression)
+   typename internal::nested<Derived,2>::type lhs(derived());
+   typename internal::nested<OtherDerived,2>::type rhs(other.derived());
+   return typename cross_product_return_type<OtherDerived>::type(
+             numext::conj(lhs.coeff(1) * rhs.coeff(2) - lhs.coeff(2) * rhs.coeff(1)),
+             numext::conj(lhs.coeff(2) * rhs.coeff(0) - lhs.coeff(0) * rhs.coeff(2)),
+             numext::conj(lhs.coeff(0) * rhs.coeff(1) - lhs.coeff(1) * rhs.coeff(0))
+          );
 }
 
-namespace internal {
+namespace internal
+{
 
 template< int Arch,typename VectorLhs,typename VectorRhs,
           typename Scalar = typename VectorLhs::Scalar,
           bool Vectorizable = bool((VectorLhs::Flags&VectorRhs::Flags)&PacketAccessBit)>
-struct cross3_impl {
-  static inline typename internal::plain_matrix_type<VectorLhs>::type
-  run(const VectorLhs& lhs, const VectorRhs& rhs)
-  {
-    return typename internal::plain_matrix_type<VectorLhs>::type(
-      numext::conj(lhs.coeff(1) * rhs.coeff(2) - lhs.coeff(2) * rhs.coeff(1)),
-      numext::conj(lhs.coeff(2) * rhs.coeff(0) - lhs.coeff(0) * rhs.coeff(2)),
-      numext::conj(lhs.coeff(0) * rhs.coeff(1) - lhs.coeff(1) * rhs.coeff(0)),
-      0
-    );
-  }
+struct cross3_impl
+{
+   static inline typename internal::plain_matrix_type<VectorLhs>::type
+   run(const VectorLhs &lhs, const VectorRhs &rhs)
+   {
+      return typename internal::plain_matrix_type<VectorLhs>::type(
+                numext::conj(lhs.coeff(1) * rhs.coeff(2) - lhs.coeff(2) * rhs.coeff(1)),
+                numext::conj(lhs.coeff(2) * rhs.coeff(0) - lhs.coeff(0) * rhs.coeff(2)),
+                numext::conj(lhs.coeff(0) * rhs.coeff(1) - lhs.coeff(1) * rhs.coeff(0)),
+                0
+             );
+   }
 };
 
 }
@@ -71,19 +74,19 @@ struct cross3_impl {
 template<typename Derived>
 template<typename OtherDerived>
 inline typename MatrixBase<Derived>::PlainObject
-MatrixBase<Derived>::cross3(const MatrixBase<OtherDerived>& other) const
+MatrixBase<Derived>::cross3(const MatrixBase<OtherDerived> &other) const
 {
-  EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(Derived,4)
-  EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(OtherDerived,4)
+   EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(Derived,4)
+   EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(OtherDerived,4)
 
-  typedef typename internal::nested<Derived,2>::type DerivedNested;
-  typedef typename internal::nested<OtherDerived,2>::type OtherDerivedNested;
-  DerivedNested lhs(derived());
-  OtherDerivedNested rhs(other.derived());
+   typedef typename internal::nested<Derived,2>::type DerivedNested;
+   typedef typename internal::nested<OtherDerived,2>::type OtherDerivedNested;
+   DerivedNested lhs(derived());
+   OtherDerivedNested rhs(other.derived());
 
-  return internal::cross3_impl<Architecture::Target,
-                        typename internal::remove_all<DerivedNested>::type,
-                        typename internal::remove_all<OtherDerivedNested>::type>::run(lhs,rhs);
+   return internal::cross3_impl<Architecture::Target,
+          typename internal::remove_all<DerivedNested>::type,
+          typename internal::remove_all<OtherDerivedNested>::type>::run(lhs,rhs);
 }
 
 /** \returns a matrix expression of the cross product of each column or row
@@ -98,102 +101,105 @@ MatrixBase<Derived>::cross3(const MatrixBase<OtherDerived>& other) const
 template<typename ExpressionType, int Direction>
 template<typename OtherDerived>
 const typename VectorwiseOp<ExpressionType,Direction>::CrossReturnType
-VectorwiseOp<ExpressionType,Direction>::cross(const MatrixBase<OtherDerived>& other) const
+VectorwiseOp<ExpressionType,Direction>::cross(const MatrixBase<OtherDerived> &other) const
 {
-  EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(OtherDerived,3)
-  EIGEN_STATIC_ASSERT((internal::is_same<Scalar, typename OtherDerived::Scalar>::value),
-    YOU_MIXED_DIFFERENT_NUMERIC_TYPES__YOU_NEED_TO_USE_THE_CAST_METHOD_OF_MATRIXBASE_TO_CAST_NUMERIC_TYPES_EXPLICITLY)
+   EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(OtherDerived,3)
+   EIGEN_STATIC_ASSERT((internal::is_same<Scalar, typename OtherDerived::Scalar>::value),
+                       YOU_MIXED_DIFFERENT_NUMERIC_TYPES__YOU_NEED_TO_USE_THE_CAST_METHOD_OF_MATRIXBASE_TO_CAST_NUMERIC_TYPES_EXPLICITLY)
 
-  CrossReturnType res(_expression().rows(),_expression().cols());
-  if(Direction==Vertical)
-  {
-    eigen_assert(CrossReturnType::RowsAtCompileTime==3 && "the matrix must have exactly 3 rows");
-    res.row(0) = (_expression().row(1) * other.coeff(2) - _expression().row(2) * other.coeff(1)).conjugate();
-    res.row(1) = (_expression().row(2) * other.coeff(0) - _expression().row(0) * other.coeff(2)).conjugate();
-    res.row(2) = (_expression().row(0) * other.coeff(1) - _expression().row(1) * other.coeff(0)).conjugate();
-  }
-  else
-  {
-    eigen_assert(CrossReturnType::ColsAtCompileTime==3 && "the matrix must have exactly 3 columns");
-    res.col(0) = (_expression().col(1) * other.coeff(2) - _expression().col(2) * other.coeff(1)).conjugate();
-    res.col(1) = (_expression().col(2) * other.coeff(0) - _expression().col(0) * other.coeff(2)).conjugate();
-    res.col(2) = (_expression().col(0) * other.coeff(1) - _expression().col(1) * other.coeff(0)).conjugate();
-  }
-  return res;
+   CrossReturnType res(_expression().rows(),_expression().cols());
+   if(Direction==Vertical)
+   {
+      eigen_assert(CrossReturnType::RowsAtCompileTime==3 && "the matrix must have exactly 3 rows");
+      res.row(0) = (_expression().row(1) * other.coeff(2) - _expression().row(2) * other.coeff(1)).conjugate();
+      res.row(1) = (_expression().row(2) * other.coeff(0) - _expression().row(0) * other.coeff(2)).conjugate();
+      res.row(2) = (_expression().row(0) * other.coeff(1) - _expression().row(1) * other.coeff(0)).conjugate();
+   }
+   else
+   {
+      eigen_assert(CrossReturnType::ColsAtCompileTime==3 && "the matrix must have exactly 3 columns");
+      res.col(0) = (_expression().col(1) * other.coeff(2) - _expression().col(2) * other.coeff(1)).conjugate();
+      res.col(1) = (_expression().col(2) * other.coeff(0) - _expression().col(0) * other.coeff(2)).conjugate();
+      res.col(2) = (_expression().col(0) * other.coeff(1) - _expression().col(1) * other.coeff(0)).conjugate();
+   }
+   return res;
 }
 
-namespace internal {
+namespace internal
+{
 
 template<typename Derived, int Size = Derived::SizeAtCompileTime>
 struct unitOrthogonal_selector
 {
-  typedef typename plain_matrix_type<Derived>::type VectorType;
-  typedef typename traits<Derived>::Scalar Scalar;
-  typedef typename NumTraits<Scalar>::Real RealScalar;
-  typedef typename Derived::Index Index;
-  typedef Matrix<Scalar,2,1> Vector2;
-  static inline VectorType run(const Derived& src)
-  {
-    VectorType perp = VectorType::Zero(src.size());
-    Index maxi = 0;
-    Index sndi = 0;
-    src.cwiseAbs().maxCoeff(&maxi);
-    if (maxi==0)
-      sndi = 1;
-    RealScalar invnm = RealScalar(1)/(Vector2() << src.coeff(sndi),src.coeff(maxi)).finished().norm();
-    perp.coeffRef(maxi) = -numext::conj(src.coeff(sndi)) * invnm;
-    perp.coeffRef(sndi) =  numext::conj(src.coeff(maxi)) * invnm;
+   typedef typename plain_matrix_type<Derived>::type VectorType;
+   typedef typename traits<Derived>::Scalar Scalar;
+   typedef typename NumTraits<Scalar>::Real RealScalar;
+   typedef typename Derived::Index Index;
+   typedef Matrix<Scalar,2,1> Vector2;
+   static inline VectorType run(const Derived &src)
+   {
+      VectorType perp = VectorType::Zero(src.size());
+      Index maxi = 0;
+      Index sndi = 0;
+      src.cwiseAbs().maxCoeff(&maxi);
+      if (maxi==0)
+         sndi = 1;
+      RealScalar invnm = RealScalar(1)/(Vector2() << src.coeff(sndi),src.coeff(maxi)).finished().norm();
+      perp.coeffRef(maxi) = -numext::conj(src.coeff(sndi)) * invnm;
+      perp.coeffRef(sndi) =  numext::conj(src.coeff(maxi)) * invnm;
 
-    return perp;
+      return perp;
    }
 };
 
 template<typename Derived>
 struct unitOrthogonal_selector<Derived,3>
 {
-  typedef typename plain_matrix_type<Derived>::type VectorType;
-  typedef typename traits<Derived>::Scalar Scalar;
-  typedef typename NumTraits<Scalar>::Real RealScalar;
-  static inline VectorType run(const Derived& src)
-  {
-    VectorType perp;
-    /* Let us compute the crossed product of *this with a vector
-     * that is not too close to being colinear to *this.
-     */
+   typedef typename plain_matrix_type<Derived>::type VectorType;
+   typedef typename traits<Derived>::Scalar Scalar;
+   typedef typename NumTraits<Scalar>::Real RealScalar;
+   static inline VectorType run(const Derived &src)
+   {
+      VectorType perp;
+      /* Let us compute the crossed product of *this with a vector
+       * that is not too close to being colinear to *this.
+       */
 
-    /* unless the x and y coords are both close to zero, we can
-     * simply take ( -y, x, 0 ) and normalize it.
-     */
-    if((!isMuchSmallerThan(src.x(), src.z()))
-    || (!isMuchSmallerThan(src.y(), src.z())))
-    {
-      RealScalar invnm = RealScalar(1)/src.template head<2>().norm();
-      perp.coeffRef(0) = -numext::conj(src.y())*invnm;
-      perp.coeffRef(1) = numext::conj(src.x())*invnm;
-      perp.coeffRef(2) = 0;
-    }
-    /* if both x and y are close to zero, then the vector is close
-     * to the z-axis, so it's far from colinear to the x-axis for instance.
-     * So we take the crossed product with (1,0,0) and normalize it.
-     */
-    else
-    {
-      RealScalar invnm = RealScalar(1)/src.template tail<2>().norm();
-      perp.coeffRef(0) = 0;
-      perp.coeffRef(1) = -numext::conj(src.z())*invnm;
-      perp.coeffRef(2) = numext::conj(src.y())*invnm;
-    }
+      /* unless the x and y coords are both close to zero, we can
+       * simply take ( -y, x, 0 ) and normalize it.
+       */
+      if((!isMuchSmallerThan(src.x(), src.z()))
+            || (!isMuchSmallerThan(src.y(), src.z())))
+      {
+         RealScalar invnm = RealScalar(1)/src.template head<2>().norm();
+         perp.coeffRef(0) = -numext::conj(src.y())*invnm;
+         perp.coeffRef(1) = numext::conj(src.x())*invnm;
+         perp.coeffRef(2) = 0;
+      }
+      /* if both x and y are close to zero, then the vector is close
+       * to the z-axis, so it's far from colinear to the x-axis for instance.
+       * So we take the crossed product with (1,0,0) and normalize it.
+       */
+      else
+      {
+         RealScalar invnm = RealScalar(1)/src.template tail<2>().norm();
+         perp.coeffRef(0) = 0;
+         perp.coeffRef(1) = -numext::conj(src.z())*invnm;
+         perp.coeffRef(2) = numext::conj(src.y())*invnm;
+      }
 
-    return perp;
+      return perp;
    }
 };
 
 template<typename Derived>
 struct unitOrthogonal_selector<Derived,2>
 {
-  typedef typename plain_matrix_type<Derived>::type VectorType;
-  static inline VectorType run(const Derived& src)
-  { return VectorType(-numext::conj(src.y()), numext::conj(src.x())).normalized(); }
+   typedef typename plain_matrix_type<Derived>::type VectorType;
+   static inline VectorType run(const Derived &src)
+   {
+      return VectorType(-numext::conj(src.y()), numext::conj(src.x())).normalized();
+   }
 };
 
 } // end namespace internal
@@ -209,8 +215,8 @@ template<typename Derived>
 typename MatrixBase<Derived>::PlainObject
 MatrixBase<Derived>::unitOrthogonal() const
 {
-  EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
-  return internal::unitOrthogonal_selector<Derived>::run(derived());
+   EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)
+   return internal::unitOrthogonal_selector<Derived>::run(derived());
 }
 
 } // end namespace Eigen

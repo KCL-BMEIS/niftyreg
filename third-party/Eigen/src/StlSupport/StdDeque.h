@@ -15,9 +15,9 @@
 
 // Define the explicit instantiation (e.g. necessary for the Intel compiler)
 #if defined(__INTEL_COMPILER) || defined(__GNUC__)
-  #define EIGEN_EXPLICIT_STL_DEQUE_INSTANTIATION(...) template class std::deque<__VA_ARGS__, EIGEN_ALIGNED_ALLOCATOR<__VA_ARGS__> >;
+#define EIGEN_EXPLICIT_STL_DEQUE_INSTANTIATION(...) template class std::deque<__VA_ARGS__, EIGEN_ALIGNED_ALLOCATOR<__VA_ARGS__> >;
 #else
-  #define EIGEN_EXPLICIT_STL_DEQUE_INSTANTIATION(...)
+#define EIGEN_EXPLICIT_STL_DEQUE_INSTANTIATION(...)
 #endif
 
 /**
@@ -55,7 +55,8 @@ namespace std \
 // check whether we really need the std::deque specialization
 #if !(defined(_GLIBCXX_DEQUE) && (!EIGEN_GNUC_AT_LEAST(4,1))) /* Note that before gcc-4.1 we already have: std::deque::resize(size_type,const T&). */
 
-namespace std {
+namespace std
+{
 
 #define EIGEN_STD_DEQUE_SPECIALIZATION_BODY \
   public:  \
@@ -76,57 +77,67 @@ namespace std {
       return *this;  \
     }
 
-  template<typename T>
-  class deque<T,EIGEN_ALIGNED_ALLOCATOR<T> >
-    : public deque<EIGEN_WORKAROUND_MSVC_STL_SUPPORT(T),
-                   Eigen::aligned_allocator_indirection<EIGEN_WORKAROUND_MSVC_STL_SUPPORT(T)> >
+template<typename T>
+class deque<T,EIGEN_ALIGNED_ALLOCATOR<T> >
+   : public deque<EIGEN_WORKAROUND_MSVC_STL_SUPPORT(T),
+     Eigen::aligned_allocator_indirection<EIGEN_WORKAROUND_MSVC_STL_SUPPORT(T)> >
 {
-  typedef deque<EIGEN_WORKAROUND_MSVC_STL_SUPPORT(T),
-                Eigen::aligned_allocator_indirection<EIGEN_WORKAROUND_MSVC_STL_SUPPORT(T)> > deque_base;
-  EIGEN_STD_DEQUE_SPECIALIZATION_BODY
+   typedef deque<EIGEN_WORKAROUND_MSVC_STL_SUPPORT(T),
+           Eigen::aligned_allocator_indirection<EIGEN_WORKAROUND_MSVC_STL_SUPPORT(T)> > deque_base;
+   EIGEN_STD_DEQUE_SPECIALIZATION_BODY
 
-  void resize(size_type new_size)
-  { resize(new_size, T()); }
+   void resize(size_type new_size)
+   {
+      resize(new_size, T());
+   }
 
 #if defined(_DEQUE_)
-  // workaround MSVC std::deque implementation
-  void resize(size_type new_size, const value_type& x)
-  {
-    if (deque_base::size() < new_size)
-      deque_base::_Insert_n(deque_base::end(), new_size - deque_base::size(), x);
-    else if (new_size < deque_base::size())
-      deque_base::erase(deque_base::begin() + new_size, deque_base::end());
-  }
-  void push_back(const value_type& x)
-  { deque_base::push_back(x); } 
-  void push_front(const value_type& x)
-  { deque_base::push_front(x); }
-  using deque_base::insert;  
-  iterator insert(const_iterator position, const value_type& x)
-  { return deque_base::insert(position,x); }
-  void insert(const_iterator position, size_type new_size, const value_type& x)
-  { deque_base::insert(position, new_size, x); }
+   // workaround MSVC std::deque implementation
+   void resize(size_type new_size, const value_type &x)
+   {
+      if (deque_base::size() < new_size)
+         deque_base::_Insert_n(deque_base::end(), new_size - deque_base::size(), x);
+      else if (new_size < deque_base::size())
+         deque_base::erase(deque_base::begin() + new_size, deque_base::end());
+   }
+   void push_back(const value_type &x)
+   {
+      deque_base::push_back(x);
+   }
+   void push_front(const value_type &x)
+   {
+      deque_base::push_front(x);
+   }
+   using deque_base::insert;
+   iterator insert(const_iterator position, const value_type &x)
+   {
+      return deque_base::insert(position,x);
+   }
+   void insert(const_iterator position, size_type new_size, const value_type &x)
+   {
+      deque_base::insert(position, new_size, x);
+   }
 #elif defined(_GLIBCXX_DEQUE) && EIGEN_GNUC_AT_LEAST(4,2)
-  // workaround GCC std::deque implementation
-  void resize(size_type new_size, const value_type& x)
-  {
-    if (new_size < deque_base::size())
-      deque_base::_M_erase_at_end(this->_M_impl._M_start + new_size);
-    else
-      deque_base::insert(deque_base::end(), new_size - deque_base::size(), x);
-  }
+   // workaround GCC std::deque implementation
+   void resize(size_type new_size, const value_type &x)
+   {
+      if (new_size < deque_base::size())
+         deque_base::_M_erase_at_end(this->_M_impl._M_start + new_size);
+      else
+         deque_base::insert(deque_base::end(), new_size - deque_base::size(), x);
+   }
 #else
-  // either GCC 4.1 or non-GCC
-  // default implementation which should always work.
-  void resize(size_type new_size, const value_type& x)
-  {
-    if (new_size < deque_base::size())
-      deque_base::erase(deque_base::begin() + new_size, deque_base::end());
-    else if (new_size > deque_base::size())
-      deque_base::insert(deque_base::end(), new_size - deque_base::size(), x);
-  }
+   // either GCC 4.1 or non-GCC
+   // default implementation which should always work.
+   void resize(size_type new_size, const value_type &x)
+   {
+      if (new_size < deque_base::size())
+         deque_base::erase(deque_base::begin() + new_size, deque_base::end());
+      else if (new_size > deque_base::size())
+         deque_base::insert(deque_base::end(), new_size - deque_base::size(), x);
+   }
 #endif
-  };
+};
 }
 
 #endif // check whether specialization is actually required

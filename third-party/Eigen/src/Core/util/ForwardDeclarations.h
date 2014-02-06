@@ -11,8 +11,10 @@
 #ifndef EIGEN_FORWARDDECLARATIONS_H
 #define EIGEN_FORWARDDECLARATIONS_H
 
-namespace Eigen {
-namespace internal {
+namespace Eigen
+{
+namespace internal
+{
 
 template<typename T> struct traits;
 
@@ -24,16 +26,16 @@ template<typename T> struct traits<const T> : traits<T> {};
 
 template<typename Derived> struct has_direct_access
 {
-  enum { ret = (traits<Derived>::Flags & DirectAccessBit) ? 1 : 0 };
+   enum { ret = (traits<Derived>::Flags & DirectAccessBit) ? 1 : 0 };
 };
 
 template<typename Derived> struct accessors_level
 {
-  enum { has_direct_access = (traits<Derived>::Flags & DirectAccessBit) ? 1 : 0,
-         has_write_access = (traits<Derived>::Flags & LvalueBit) ? 1 : 0,
-         value = has_direct_access ? (has_write_access ? DirectWriteAccessors : DirectAccessors)
-                                   : (has_write_access ? WriteAccessors       : ReadOnlyAccessors)
-  };
+   enum { has_direct_access = (traits<Derived>::Flags & DirectAccessBit) ? 1 : 0,
+          has_write_access = (traits<Derived>::Flags & LvalueBit) ? 1 : 0,
+          value = has_direct_access ? (has_write_access ? DirectWriteAccessors : DirectAccessors)
+                     : (has_write_access ? WriteAccessors       : ReadOnlyAccessors)
+           };
 };
 
 } // end namespace internal
@@ -52,22 +54,22 @@ class DenseCoeffsBase;
 template<typename _Scalar, int _Rows, int _Cols,
          int _Options = AutoAlign |
 #if defined(__GNUC__) && __GNUC__==3 && __GNUC_MINOR__==4
-    // workaround a bug in at least gcc 3.4.6
-    // the innermost ?: ternary operator is misparsed. We write it slightly
-    // differently and this makes gcc 3.4.6 happy, but it's ugly.
-    // The error would only show up with EIGEN_DEFAULT_TO_ROW_MAJOR is defined
-    // (when EIGEN_DEFAULT_MATRIX_STORAGE_ORDER_OPTION is RowMajor)
-                          ( (_Rows==1 && _Cols!=1) ? RowMajor
-                          : !(_Cols==1 && _Rows!=1) ?  EIGEN_DEFAULT_MATRIX_STORAGE_ORDER_OPTION
-                          : ColMajor ),
+         // workaround a bug in at least gcc 3.4.6
+         // the innermost ?: ternary operator is misparsed. We write it slightly
+         // differently and this makes gcc 3.4.6 happy, but it's ugly.
+         // The error would only show up with EIGEN_DEFAULT_TO_ROW_MAJOR is defined
+         // (when EIGEN_DEFAULT_MATRIX_STORAGE_ORDER_OPTION is RowMajor)
+         ( (_Rows==1 && _Cols!=1) ? RowMajor
+           : !(_Cols==1 && _Rows!=1) ?  EIGEN_DEFAULT_MATRIX_STORAGE_ORDER_OPTION
+           : ColMajor ),
 #else
-                          ( (_Rows==1 && _Cols!=1) ? RowMajor
-                          : (_Cols==1 && _Rows!=1) ? ColMajor
-                          : EIGEN_DEFAULT_MATRIX_STORAGE_ORDER_OPTION ),
+         ( (_Rows==1 && _Cols!=1) ? RowMajor
+           : (_Cols==1 && _Rows!=1) ? ColMajor
+           : EIGEN_DEFAULT_MATRIX_STORAGE_ORDER_OPTION ),
 #endif
          int _MaxRows = _Rows,
          int _MaxCols = _Cols
-> class Matrix;
+         > class Matrix;
 
 template<typename Derived> class MatrixBase;
 template<typename Derived> class ArrayBase;
@@ -106,7 +108,7 @@ template<typename _IndicesType> class TranspositionsWrapper;
 
 template<typename Derived,
          int Level = internal::accessors_level<Derived>::has_write_access ? WriteAccessors : ReadOnlyAccessors
-> class MapBase;
+         > class MapBase;
 template<int InnerStrideAtCompileTime, int OuterStrideAtCompileTime> class Stride;
 template<typename MatrixType, int MapOptions=Unaligned, typename StrideType = Stride<0,0> > class Map;
 
@@ -120,7 +122,8 @@ template<typename Derived> class ReturnByValue;
 template<typename ExpressionType> class ArrayWrapper;
 template<typename ExpressionType> class MatrixWrapper;
 
-namespace internal {
+namespace internal
+{
 template<typename DecompositionType, typename Rhs> struct solve_retval_base;
 template<typename DecompositionType, typename Rhs> struct solve_retval;
 template<typename DecompositionType> struct kernel_retval_base;
@@ -129,11 +132,13 @@ template<typename DecompositionType> struct image_retval_base;
 template<typename DecompositionType> struct image_retval;
 } // end namespace internal
 
-namespace internal {
+namespace internal
+{
 template<typename _Scalar, int Rows=Dynamic, int Cols=Dynamic, int Supers=Dynamic, int Subs=Dynamic, int Options=0> class BandMatrix;
 }
 
-namespace internal {
+namespace internal
+{
 template<typename Lhs, typename Rhs> struct product_type;
 }
 
@@ -144,7 +149,8 @@ struct ProductReturnType;
 // this is a workaround for sun CC
 template<typename Lhs, typename Rhs> struct LazyProductReturnType;
 
-namespace internal {
+namespace internal
+{
 
 // Provides scalar/packet-wise product and product with accumulation
 // with optional conjugation of the arguments.
@@ -193,18 +199,18 @@ struct IOFormat;
 template<typename _Scalar, int _Rows, int _Cols,
          int _Options = AutoAlign |
 #if defined(__GNUC__) && __GNUC__==3 && __GNUC_MINOR__==4
-    // workaround a bug in at least gcc 3.4.6
-    // the innermost ?: ternary operator is misparsed. We write it slightly
-    // differently and this makes gcc 3.4.6 happy, but it's ugly.
-    // The error would only show up with EIGEN_DEFAULT_TO_ROW_MAJOR is defined
-    // (when EIGEN_DEFAULT_MATRIX_STORAGE_ORDER_OPTION is RowMajor)
-                          ( (_Rows==1 && _Cols!=1) ? RowMajor
-                          : !(_Cols==1 && _Rows!=1) ?  EIGEN_DEFAULT_MATRIX_STORAGE_ORDER_OPTION
-                          : ColMajor ),
+         // workaround a bug in at least gcc 3.4.6
+         // the innermost ?: ternary operator is misparsed. We write it slightly
+         // differently and this makes gcc 3.4.6 happy, but it's ugly.
+         // The error would only show up with EIGEN_DEFAULT_TO_ROW_MAJOR is defined
+         // (when EIGEN_DEFAULT_MATRIX_STORAGE_ORDER_OPTION is RowMajor)
+         ( (_Rows==1 && _Cols!=1) ? RowMajor
+           : !(_Cols==1 && _Rows!=1) ?  EIGEN_DEFAULT_MATRIX_STORAGE_ORDER_OPTION
+           : ColMajor ),
 #else
-                          ( (_Rows==1 && _Cols!=1) ? RowMajor
-                          : (_Cols==1 && _Rows!=1) ? ColMajor
-                          : EIGEN_DEFAULT_MATRIX_STORAGE_ORDER_OPTION ),
+         ( (_Rows==1 && _Cols!=1) ? RowMajor
+           : (_Cols==1 && _Rows!=1) ? ColMajor
+           : EIGEN_DEFAULT_MATRIX_STORAGE_ORDER_OPTION ),
 #endif
          int _MaxRows = _Rows, int _MaxCols = _Cols> class Array;
 template<typename ConditionMatrixType, typename ThenMatrixType, typename ElseMatrixType> class Select;
@@ -215,7 +221,8 @@ template<typename MatrixType, int Direction = BothDirections> class Reverse;
 
 template<typename MatrixType> class FullPivLU;
 template<typename MatrixType> class PartialPivLU;
-namespace internal {
+namespace internal
+{
 template<typename MatrixType> struct inverse_impl;
 }
 template<typename MatrixType> class HouseholderQR;
@@ -273,12 +280,13 @@ template<typename Derived> class MatrixLogarithmReturnValue;
 template<typename Derived> class MatrixPowerReturnValue;
 template<typename Derived, typename Lhs, typename Rhs> class MatrixPowerProduct;
 
-namespace internal {
+namespace internal
+{
 template <typename Scalar>
 struct stem_function
 {
-  typedef std::complex<typename NumTraits<Scalar>::Real> ComplexScalar;
-  typedef ComplexScalar type(ComplexScalar, int);
+   typedef std::complex<typename NumTraits<Scalar>::Real> ComplexScalar;
+   typedef ComplexScalar type(ComplexScalar, int);
 };
 }
 
@@ -289,7 +297,8 @@ template<typename MatrixType> class Minor;
 template<typename MatrixType> class LU;
 template<typename MatrixType> class QR;
 template<typename MatrixType> class SVD;
-namespace internal {
+namespace internal
+{
 template<typename MatrixType, unsigned int Mode> struct eigen2_part_return_type;
 }
 #endif

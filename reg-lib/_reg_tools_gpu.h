@@ -29,8 +29,8 @@ void reg_voxelCentric2NodeCentric_gpu(nifti_image *targetImage,
 /* ******************************** */
 extern "C++"
 void reg_convertNMIGradientFromVoxelToRealSpace_gpu(mat44 *sourceMatrix_xyz,
-                                                    nifti_image *controlPointImage,
-                                                    float4 **nodeNMIGradientArray_d);
+      nifti_image *controlPointImage,
+      float4 **nodeNMIGradientArray_d);
 /* ******************************** */
 /* ******************************** */
 extern "C++"
@@ -44,7 +44,7 @@ void reg_gaussianSmoothing_gpu( nifti_image *image,
 extern "C++"
 void reg_smoothImageForCubicSpline_gpu(nifti_image *resultImage,
                                        float4 **voxelNMIGradientArray_d,
-									   float *smoothingRadius);
+                                       float *smoothingRadius);
 /* ******************************** */
 /* ******************************** */
 extern "C++"

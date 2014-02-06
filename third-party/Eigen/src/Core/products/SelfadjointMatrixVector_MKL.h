@@ -33,9 +33,11 @@
 #ifndef EIGEN_SELFADJOINT_MATRIX_VECTOR_MKL_H
 #define EIGEN_SELFADJOINT_MATRIX_VECTOR_MKL_H
 
-namespace Eigen { 
+namespace Eigen
+{
 
-namespace internal {
+namespace internal
+{
 
 /**********************************************************************
 * This file implements selfadjoint matrix-vector multiplication using BLAS
@@ -45,7 +47,7 @@ namespace internal {
 
 template<typename Scalar, typename Index, int StorageOrder, int UpLo, bool ConjugateLhs, bool ConjugateRhs>
 struct selfadjoint_matrix_vector_product_symv :
-  selfadjoint_matrix_vector_product<Scalar,Index,StorageOrder,UpLo,ConjugateLhs,ConjugateRhs,BuiltIn> {};
+      selfadjoint_matrix_vector_product<Scalar,Index,StorageOrder,UpLo,ConjugateLhs,ConjugateRhs,BuiltIn> {};
 
 #define EIGEN_MKL_SYMV_SPECIALIZE(Scalar) \
 template<typename Index, int StorageOrder, int UpLo, bool ConjugateLhs, bool ConjugateRhs> \
@@ -65,7 +67,7 @@ static void run( \
     }\
   } \
 }; \
-
+ 
 EIGEN_MKL_SYMV_SPECIALIZE(double)
 EIGEN_MKL_SYMV_SPECIALIZE(float)
 EIGEN_MKL_SYMV_SPECIALIZE(dcomplex)

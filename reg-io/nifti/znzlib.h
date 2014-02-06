@@ -20,7 +20,7 @@ znzlib.h  (zipped or non-zipped library)
 
 This library provides an interface to both compressed (gzip/zlib) and
 uncompressed (normal) file IO.  The functions are written to have the
-same interface as the standard file IO functions.  
+same interface as the standard file IO functions.
 
 To use this library instead of normal file IO, the following changes
 are required:
@@ -30,7 +30,7 @@ are required:
  - add a third parameter to all calls to znzopen (previously fopen)
    that specifies whether to use compression (1) or not (0)
  - use znz_isnull rather than any (pointer == NULL) comparisons in the code
- 
+
 NB: seeks for writable files with compression are quite restricted
 
 */
@@ -40,19 +40,19 @@ NB: seeks for writable files with compression are quite restricted
 #ifdef  __cplusplus
 extern "C" {
 #endif
-/*=================*/
+   /*=================*/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 
-/* include optional check for HAVE_FDOPEN here, from deleted config.h:
+   /* include optional check for HAVE_FDOPEN here, from deleted config.h:
 
-   uncomment the following line if fdopen() exists for your compiler and
-   compiler options
-*/
-/* #define HAVE_FDOPEN */
+      uncomment the following line if fdopen() exists for your compiler and
+      compiler options
+   */
+   /* #define HAVE_FDOPEN */
 
 
 #ifdef HAVE_ZLIB
@@ -64,57 +64,58 @@ extern "C" {
 #endif
 
 
-struct znzptr {
-  int withz;
-  FILE* nzfptr;
+   struct znzptr
+   {
+      int withz;
+      FILE* nzfptr;
 #ifdef HAVE_ZLIB
-  gzFile zfptr;
+      gzFile zfptr;
 #endif
-} ;
+   } ;
 
-/* the type for all file pointers */
-typedef struct znzptr * znzFile;
+   /* the type for all file pointers */
+   typedef struct znzptr * znzFile;
 
 
-/* int znz_isnull(znzFile f); */
-/* int znzclose(znzFile f); */
+   /* int znz_isnull(znzFile f); */
+   /* int znzclose(znzFile f); */
 #define znz_isnull(f) ((f) == NULL)
 #define znzclose(f)   Xznzclose(&(f))
 
-/* Note extra argument (use_compression) where 
-   use_compression==0 is no compression
-   use_compression!=0 uses zlib (gzip) compression
-*/
+   /* Note extra argument (use_compression) where
+      use_compression==0 is no compression
+      use_compression!=0 uses zlib (gzip) compression
+   */
 
-znzFile znzopen(const char *path, const char *mode, int use_compression);
+   znzFile znzopen(const char *path, const char *mode, int use_compression);
 
-znzFile znzdopen(int fd, const char *mode, int use_compression);
+   znzFile znzdopen(int fd, const char *mode, int use_compression);
 
-int Xznzclose(znzFile * file);
+   int Xznzclose(znzFile * file);
 
-size_t znzread(void* buf, size_t size, size_t nmemb, znzFile file);
+   size_t znzread(void* buf, size_t size, size_t nmemb, znzFile file);
 
-size_t znzwrite(const void* buf, size_t size, size_t nmemb, znzFile file);
+   size_t znzwrite(const void* buf, size_t size, size_t nmemb, znzFile file);
 
-long znzseek(znzFile file, long offset, int whence);
+   long znzseek(znzFile file, long offset, int whence);
 
-int znzrewind(znzFile stream);
+   int znzrewind(znzFile stream);
 
-long znztell(znzFile file);
+   long znztell(znzFile file);
 
-int znzputs(const char *str, znzFile file);
+   int znzputs(const char *str, znzFile file);
 
-char * znzgets(char* str, int size, znzFile file);
+   char * znzgets(char* str, int size, znzFile file);
 
-int znzputc(int c, znzFile file);
+   int znzputc(int c, znzFile file);
 
-int znzgetc(znzFile file);
+   int znzgetc(znzFile file);
 
 #if !defined(WIN32)
-int znzprintf(znzFile stream, const char *format, ...);
+   int znzprintf(znzFile stream, const char *format, ...);
 #endif
 
-/*=================*/
+   /*=================*/
 #ifdef  __cplusplus
 }
 #endif

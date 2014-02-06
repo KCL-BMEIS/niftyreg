@@ -11,7 +11,8 @@
 #ifndef EIGEN_NESTBYVALUE_H
 #define EIGEN_NESTBYVALUE_H
 
-namespace Eigen {
+namespace Eigen
+{
 
 /** \class NestByValue
   * \ingroup Core_Module
@@ -26,75 +27,91 @@ namespace Eigen {
   * \sa MatrixBase::nestByValue()
   */
 
-namespace internal {
+namespace internal
+{
 template<typename ExpressionType>
 struct traits<NestByValue<ExpressionType> > : public traits<ExpressionType>
 {};
 }
 
 template<typename ExpressionType> class NestByValue
-  : public internal::dense_xpr_base< NestByValue<ExpressionType> >::type
+   : public internal::dense_xpr_base< NestByValue<ExpressionType> >::type
 {
-  public:
+public:
 
-    typedef typename internal::dense_xpr_base<NestByValue>::type Base;
-    EIGEN_DENSE_PUBLIC_INTERFACE(NestByValue)
+   typedef typename internal::dense_xpr_base<NestByValue>::type Base;
+   EIGEN_DENSE_PUBLIC_INTERFACE(NestByValue)
 
-    inline NestByValue(const ExpressionType& matrix) : m_expression(matrix) {}
+   inline NestByValue(const ExpressionType &matrix) : m_expression(matrix) {}
 
-    inline Index rows() const { return m_expression.rows(); }
-    inline Index cols() const { return m_expression.cols(); }
-    inline Index outerStride() const { return m_expression.outerStride(); }
-    inline Index innerStride() const { return m_expression.innerStride(); }
+   inline Index rows() const
+   {
+      return m_expression.rows();
+   }
+   inline Index cols() const
+   {
+      return m_expression.cols();
+   }
+   inline Index outerStride() const
+   {
+      return m_expression.outerStride();
+   }
+   inline Index innerStride() const
+   {
+      return m_expression.innerStride();
+   }
 
-    inline const CoeffReturnType coeff(Index row, Index col) const
-    {
+   inline const CoeffReturnType coeff(Index row, Index col) const
+   {
       return m_expression.coeff(row, col);
-    }
+   }
 
-    inline Scalar& coeffRef(Index row, Index col)
-    {
+   inline Scalar &coeffRef(Index row, Index col)
+   {
       return m_expression.const_cast_derived().coeffRef(row, col);
-    }
+   }
 
-    inline const CoeffReturnType coeff(Index index) const
-    {
+   inline const CoeffReturnType coeff(Index index) const
+   {
       return m_expression.coeff(index);
-    }
+   }
 
-    inline Scalar& coeffRef(Index index)
-    {
+   inline Scalar &coeffRef(Index index)
+   {
       return m_expression.const_cast_derived().coeffRef(index);
-    }
+   }
 
-    template<int LoadMode>
-    inline const PacketScalar packet(Index row, Index col) const
-    {
+   template<int LoadMode>
+   inline const PacketScalar packet(Index row, Index col) const
+   {
       return m_expression.template packet<LoadMode>(row, col);
-    }
+   }
 
-    template<int LoadMode>
-    inline void writePacket(Index row, Index col, const PacketScalar& x)
-    {
+   template<int LoadMode>
+   inline void writePacket(Index row, Index col, const PacketScalar &x)
+   {
       m_expression.const_cast_derived().template writePacket<LoadMode>(row, col, x);
-    }
+   }
 
-    template<int LoadMode>
-    inline const PacketScalar packet(Index index) const
-    {
+   template<int LoadMode>
+   inline const PacketScalar packet(Index index) const
+   {
       return m_expression.template packet<LoadMode>(index);
-    }
+   }
 
-    template<int LoadMode>
-    inline void writePacket(Index index, const PacketScalar& x)
-    {
+   template<int LoadMode>
+   inline void writePacket(Index index, const PacketScalar &x)
+   {
       m_expression.const_cast_derived().template writePacket<LoadMode>(index, x);
-    }
+   }
 
-    operator const ExpressionType&() const { return m_expression; }
+   operator const ExpressionType &() const
+   {
+      return m_expression;
+   }
 
-  protected:
-    const ExpressionType m_expression;
+protected:
+   const ExpressionType m_expression;
 };
 
 /** \returns an expression of the temporary version of *this.
@@ -103,7 +120,7 @@ template<typename Derived>
 inline const NestByValue<Derived>
 DenseBase<Derived>::nestByValue() const
 {
-  return NestByValue<Derived>(derived());
+   return NestByValue<Derived>(derived());
 }
 
 } // end namespace Eigen

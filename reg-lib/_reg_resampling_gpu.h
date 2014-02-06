@@ -1,6 +1,6 @@
 /*
  *  _reg_resampling_gpu.h
- *  
+ *
  *
  *  Created by Marc Modat on 24/03/2009.
  *  Copyright (c) 2009, University College London. All rights reserved.

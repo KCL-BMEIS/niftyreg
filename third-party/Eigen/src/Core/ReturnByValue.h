@@ -11,26 +11,29 @@
 #ifndef EIGEN_RETURNBYVALUE_H
 #define EIGEN_RETURNBYVALUE_H
 
-namespace Eigen {
+namespace Eigen
+{
 
 /** \class ReturnByValue
   * \ingroup Core_Module
   *
   */
 
-namespace internal {
+namespace internal
+{
 
 template<typename Derived>
 struct traits<ReturnByValue<Derived> >
-  : public traits<typename traits<Derived>::ReturnType>
+      : public traits<typename traits<Derived>::ReturnType>
 {
-  enum {
-    // We're disabling the DirectAccess because e.g. the constructor of
-    // the Block-with-DirectAccess expression requires to have a coeffRef method.
-    // Also, we don't want to have to implement the stride stuff.
-    Flags = (traits<typename traits<Derived>::ReturnType>::Flags
-             | EvalBeforeNestingBit) & ~DirectAccessBit
-  };
+   enum
+   {
+      // We're disabling the DirectAccess because e.g. the constructor of
+      // the Block-with-DirectAccess expression requires to have a coeffRef method.
+      // Also, we don't want to have to implement the stride stuff.
+      Flags = (traits<typename traits<Derived>::ReturnType>::Flags
+               | EvalBeforeNestingBit) &~DirectAccessBit
+   };
 };
 
 /* The ReturnByValue object doesn't even have a coeff() method.
@@ -42,45 +45,69 @@ struct traits<ReturnByValue<Derived> >
 template<typename Derived,int n,typename PlainObject>
 struct nested<ReturnByValue<Derived>, n, PlainObject>
 {
-  typedef typename traits<Derived>::ReturnType type;
+   typedef typename traits<Derived>::ReturnType type;
 };
 
 } // end namespace internal
 
 template<typename Derived> class ReturnByValue
-  : internal::no_assignment_operator, public internal::dense_xpr_base< ReturnByValue<Derived> >::type
+   : internal::no_assignment_operator, public internal::dense_xpr_base< ReturnByValue<Derived> >::type
 {
-  public:
-    typedef typename internal::traits<Derived>::ReturnType ReturnType;
+public:
+   typedef typename internal::traits<Derived>::ReturnType ReturnType;
 
-    typedef typename internal::dense_xpr_base<ReturnByValue>::type Base;
-    EIGEN_DENSE_PUBLIC_INTERFACE(ReturnByValue)
+   typedef typename internal::dense_xpr_base<ReturnByValue>::type Base;
+   EIGEN_DENSE_PUBLIC_INTERFACE(ReturnByValue)
 
-    template<typename Dest>
-    inline void evalTo(Dest& dst) const
-    { static_cast<const Derived*>(this)->evalTo(dst); }
-    inline Index rows() const { return static_cast<const Derived*>(this)->rows(); }
-    inline Index cols() const { return static_cast<const Derived*>(this)->cols(); }
+   template<typename Dest>
+   inline void evalTo(Dest &dst) const
+   {
+      static_cast<const Derived*>(this)->evalTo(dst);
+   }
+   inline Index rows() const
+   {
+      return static_cast<const Derived*>(this)->rows();
+   }
+   inline Index cols() const
+   {
+      return static_cast<const Derived*>(this)->cols();
+   }
 
 #ifndef EIGEN_PARSED_BY_DOXYGEN
 #define Unusable YOU_ARE_TRYING_TO_ACCESS_A_SINGLE_COEFFICIENT_IN_A_SPECIAL_EXPRESSION_WHERE_THAT_IS_NOT_ALLOWED_BECAUSE_THAT_WOULD_BE_INEFFICIENT
-    class Unusable{
-      Unusable(const Unusable&) {}
-      Unusable& operator=(const Unusable&) {return *this;}
-    };
-    const Unusable& coeff(Index) const { return *reinterpret_cast<const Unusable*>(this); }
-    const Unusable& coeff(Index,Index) const { return *reinterpret_cast<const Unusable*>(this); }
-    Unusable& coeffRef(Index) { return *reinterpret_cast<Unusable*>(this); }
-    Unusable& coeffRef(Index,Index) { return *reinterpret_cast<Unusable*>(this); }
+   class Unusable
+   {
+      Unusable(const Unusable &) {}
+      Unusable &operator=(const Unusable &)
+      {
+         return *this;
+      }
+   };
+   const Unusable &coeff(Index) const
+   {
+      return *reinterpret_cast<const Unusable*>(this);
+   }
+   const Unusable &coeff(Index,Index) const
+   {
+      return *reinterpret_cast<const Unusable*>(this);
+   }
+   Unusable &coeffRef(Index)
+   {
+      return *reinterpret_cast<Unusable*>(this);
+   }
+   Unusable &coeffRef(Index,Index)
+   {
+      return *reinterpret_cast<Unusable*>(this);
+   }
 #endif
 };
 
 template<typename Derived>
 template<typename OtherDerived>
-Derived& DenseBase<Derived>::operator=(const ReturnByValue<OtherDerived>& other)
+Derived &DenseBase<Derived>::operator=(const ReturnByValue<OtherDerived> &other)
 {
-  other.evalTo(derived());
-  return derived();
+   other.evalTo(derived());
+   return derived();
 }
 
 } // end namespace Eigen

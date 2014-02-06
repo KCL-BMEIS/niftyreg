@@ -17,25 +17,25 @@
 template <class T>
 class reg_f3d2 : public reg_f3d_sym<T>
 {
-  protected:
-    bool BCHUpdate;
-    bool useGradientCumulativeExp;
-    int BCHUpdateValue;
+protected:
+   bool BCHUpdate;
+   bool useGradientCumulativeExp;
+   int BCHUpdateValue;
 
-    virtual void GetDeformationField();
-    virtual void GetInverseConsistencyErrorField();
-    virtual void GetInverseConsistencyGradient();
-    virtual void GetVoxelBasedGradient();
-    virtual void UpdateParameters(float);
-    virtual void ExponentiateGradient();
-    virtual void UseBCHUpdate(int);
-    virtual void UseGradientCumulativeExp();
+   virtual void GetDeformationField();
+   virtual void GetInverseConsistencyErrorField();
+   virtual void GetInverseConsistencyGradient();
+   virtual void GetVoxelBasedGradient();
+   virtual void UpdateParameters(float);
+   virtual void ExponentiateGradient();
+   virtual void UseBCHUpdate(int);
+   virtual void UseGradientCumulativeExp();
 
 public:
-    reg_f3d2(int refTimePoint,int floTimePoint);
-    ~reg_f3d2();
-    virtual void Initialise();
-    virtual nifti_image **GetWarpedImage();
+   reg_f3d2(int refTimePoint,int floTimePoint);
+   ~reg_f3d2();
+   virtual void Initialise();
+   virtual nifti_image **GetWarpedImage();
 };
 
 #include "_reg_f3d2.cpp"

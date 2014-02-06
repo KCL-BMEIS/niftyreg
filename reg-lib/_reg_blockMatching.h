@@ -60,29 +60,31 @@
 /**
  * @brief Structure which contains the block matching parameters
  */
-struct _reg_blockMatchingParam{
-    int blockNumber[3];
-    int percent_to_keep;
+struct _reg_blockMatchingParam
+{
+   int blockNumber[3];
+   int percent_to_keep;
 
-    float *targetPosition;
-    float *resultPosition;
+   float *targetPosition;
+   float *resultPosition;
 
-    int activeBlockNumber;
-    int *activeBlock;
+   int activeBlockNumber;
+   int *activeBlock;
 
-    int definedActiveBlock;
+   int definedActiveBlock;
 
-    _reg_blockMatchingParam()
-        : targetPosition(0),
-          resultPosition(0),
-          activeBlock(0)
-    {}
+   _reg_blockMatchingParam()
+      : targetPosition(0),
+        resultPosition(0),
+        activeBlock(0)
+   {}
 
-    ~_reg_blockMatchingParam(){
-        if(targetPosition) free(targetPosition);
-        if(resultPosition) free(resultPosition);
-        if(activeBlock) free(activeBlock);
-    }
+   ~_reg_blockMatchingParam()
+   {
+      if(targetPosition) free(targetPosition);
+      if(resultPosition) free(resultPosition);
+      if(activeBlock) free(activeBlock);
+   }
 };
 
 /** @brief This function initialise a _reg_blockMatchingParam structure
@@ -115,9 +117,9 @@ void initialise_block_matching_method(nifti_image * referenceImage,
  */
 extern "C++"
 void block_matching_method(	nifti_image * referenceImage,
-                            nifti_image * warpedImage,
-                            _reg_blockMatchingParam *params,
-                            int *mask);
+                              nifti_image * warpedImage,
+                              _reg_blockMatchingParam *params,
+                              int *mask);
 
 /** @brief Apply the given affine transformation to a point
  * @todo I should remove this function as it is redondant

@@ -33,9 +33,11 @@
 #ifndef EIGEN_GENERAL_MATRIX_MATRIX_MKL_H
 #define EIGEN_GENERAL_MATRIX_MATRIX_MKL_H
 
-namespace Eigen { 
+namespace Eigen
+{
 
-namespace internal {
+namespace internal
+{
 
 /**********************************************************************
 * This file implements general matrix-matrix multiplication using BLAS

@@ -19,26 +19,27 @@
 #include "nifti1_io.h"
 
 #if defined (_OPENMP)
-    #include <omp.h>
+#include <omp.h>
 #endif
 
-typedef enum{
-    DEF_FIELD,
-    DISP_FIELD,
-    SPLINE_GRID,
-    DEF_VEL_FIELD,
-    DISP_VEL_FIELD,
-    SPLINE_VEL_GRID
-}NREG_TRANS_TYPE;
+typedef enum
+{
+   DEF_FIELD,
+   DISP_FIELD,
+   SPLINE_GRID,
+   DEF_VEL_FIELD,
+   DISP_VEL_FIELD,
+   SPLINE_VEL_GRID
+} NREG_TRANS_TYPE;
 
 /* *************************************************************** */
 #define reg_pow2(a) ((a)*(a))
 #define reg_ceil(a) (ceil(a))
 #define reg_round(a) ((a)>0.0 ?(int)((a)+0.5):(int)((a)-0.5))
 #ifdef _WIN32
-    #define reg_floor(a) ((a)>0?(int)(a):(int)((a)-1))
+#define reg_floor(a) ((a)>0?(int)(a):(int)((a)-1))
 #else
-    #define reg_floor(a) ((a)>=0?(int)(a):floor(a))
+#define reg_floor(a) ((a)>=0?(int)(a):floor(a))
 #endif
 #define SIGN(a,b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
 static double maxarg1,maxarg2;
@@ -62,21 +63,30 @@ static double sqrarg;
 #define reg_print_msg_error(name){fprintf(stderr,"[NiftyReg ERROR] Message: %s\n",name);}
 /* *************************************************************** */
 #if defined(_WIN32) && !defined(__CYGWIN__)
-    #include <limits>
-    #include <float.h>
-    #include <time.h>
-    #ifndef M_PI
-        #define M_PI 3.14159265358979323846
-    #endif
-    #ifndef isnan
-        #define isnan(_X) _isnan(_X)
-    #endif
-    #ifndef strtof
-        #define strtof(_s, _t) (float) strtod(_s, _t)
-    #endif
-    template<class PrecisionType> inline int round(PrecisionType x){ return int(x > 0.0 ? (x + 0.5) : (x - 0.5));}
-    template<typename T>inline bool isinf(T value){ return std::numeric_limits<T>::has_infinity && value == std::numeric_limits<T>::infinity();}
-    inline int fabs(int _x){ return (int)fabs((float)(_x)); }
+#include <limits>
+#include <float.h>
+#include <time.h>
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+#ifndef isnan
+#define isnan(_X) _isnan(_X)
+#endif
+#ifndef strtof
+#define strtof(_s, _t) (float) strtod(_s, _t)
+#endif
+template<class PrecisionType> inline int round(PrecisionType x)
+{
+   return int(x > 0.0 ? (x + 0.5) : (x - 0.5));
+}
+template<typename T>inline bool isinf(T value)
+{
+   return std::numeric_limits<T>::has_infinity && value == std::numeric_limits<T>::infinity();
+}
+inline int fabs(int _x)
+{
+   return (int)fabs((float)(_x));
+}
 #endif // If on windows...
 
 /* *************************************************************** */
@@ -97,7 +107,7 @@ void reg_matrixMultiply(T *mat1,
                         T *mat2,
                         int *dim1,
                         int *dim2,
-                        T *&res);
+                        T * &res);
 /* *************************************************************** */
 extern "C++" template <class T>
 void reg_matrixInvertMultiply(T *mat,
@@ -108,8 +118,8 @@ void reg_matrixInvertMultiply(T *mat,
 extern "C++"
 void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum);
 /* *************************************************************** */
-extern "C++"
-void reg_heapSort(float *array_tmp,int blockNum);
+extern "C++" template <class T>
+void reg_heapSort(T *array_tmp,int blockNum);
 /* *************************************************************** */
 /* *************************************************************** */
 bool operator==(mat44 A,mat44 B);

@@ -33,82 +33,89 @@
 #ifndef EIGEN_ASSIGN_VML_H
 #define EIGEN_ASSIGN_VML_H
 
-namespace Eigen { 
+namespace Eigen
+{
 
-namespace internal {
+namespace internal
+{
 
 template<typename Op> struct vml_call
-{ enum { IsSupported = 0 }; };
+{
+   enum { IsSupported = 0 };
+};
 
 template<typename Dst, typename Src, typename UnaryOp>
 class vml_assign_traits
 {
-  private:
-    enum {
+private:
+   enum
+   {
       DstHasDirectAccess = Dst::Flags & DirectAccessBit,
       SrcHasDirectAccess = Src::Flags & DirectAccessBit,
 
       StorageOrdersAgree = (int(Dst::IsRowMajor) == int(Src::IsRowMajor)),
       InnerSize = int(Dst::IsVectorAtCompileTime) ? int(Dst::SizeAtCompileTime)
-                : int(Dst::Flags)&RowMajorBit ? int(Dst::ColsAtCompileTime)
-                : int(Dst::RowsAtCompileTime),
+                  : int(Dst::Flags) &RowMajorBit ? int(Dst::ColsAtCompileTime)
+                  : int(Dst::RowsAtCompileTime),
       InnerMaxSize  = int(Dst::IsVectorAtCompileTime) ? int(Dst::MaxSizeAtCompileTime)
-                    : int(Dst::Flags)&RowMajorBit ? int(Dst::MaxColsAtCompileTime)
-                    : int(Dst::MaxRowsAtCompileTime),
+                      : int(Dst::Flags) &RowMajorBit ? int(Dst::MaxColsAtCompileTime)
+                      : int(Dst::MaxRowsAtCompileTime),
       MaxSizeAtCompileTime = Dst::SizeAtCompileTime,
 
       MightEnableVml =  vml_call<UnaryOp>::IsSupported && StorageOrdersAgree && DstHasDirectAccess && SrcHasDirectAccess
-                     && Src::InnerStrideAtCompileTime==1 && Dst::InnerStrideAtCompileTime==1,
+                        && Src::InnerStrideAtCompileTime==1 && Dst::InnerStrideAtCompileTime==1,
       MightLinearize = MightEnableVml && (int(Dst::Flags) & int(Src::Flags) & LinearAccessBit),
       VmlSize = MightLinearize ? MaxSizeAtCompileTime : InnerMaxSize,
       LargeEnough = VmlSize==Dynamic || VmlSize>=EIGEN_MKL_VML_THRESHOLD,
       MayEnableVml = MightEnableVml && LargeEnough,
       MayLinearize = MayEnableVml && MightLinearize
-    };
-  public:
-    enum {
+   };
+public:
+   enum
+   {
       Traversal = MayLinearize ? LinearVectorizedTraversal
-                : MayEnableVml ? InnerVectorizedTraversal
-                : DefaultTraversal
-    };
+                  : MayEnableVml ? InnerVectorizedTraversal
+                  : DefaultTraversal
+   };
 };
 
 template<typename Derived1, typename Derived2, typename UnaryOp, int Traversal, int Unrolling,
          int VmlTraversal = vml_assign_traits<Derived1, Derived2, UnaryOp>::Traversal >
 struct vml_assign_impl
-  : assign_impl<Derived1, Eigen::CwiseUnaryOp<UnaryOp, Derived2>,Traversal,Unrolling,BuiltIn>
+      : assign_impl<Derived1, Eigen::CwiseUnaryOp<UnaryOp, Derived2>,Traversal,Unrolling,BuiltIn>
 {
 };
 
 template<typename Derived1, typename Derived2, typename UnaryOp, int Traversal, int Unrolling>
 struct vml_assign_impl<Derived1, Derived2, UnaryOp, Traversal, Unrolling, InnerVectorizedTraversal>
 {
-  typedef typename Derived1::Scalar Scalar;
-  typedef typename Derived1::Index Index;
-  static inline void run(Derived1& dst, const CwiseUnaryOp<UnaryOp, Derived2>& src)
-  {
-    // in case we want to (or have to) skip VML at runtime we can call:
-    // assign_impl<Derived1,Eigen::CwiseUnaryOp<UnaryOp, Derived2>,Traversal,Unrolling,BuiltIn>::run(dst,src);
-    const Index innerSize = dst.innerSize();
-    const Index outerSize = dst.outerSize();
-    for(Index outer = 0; outer < outerSize; ++outer) {
-      const Scalar *src_ptr = src.IsRowMajor ?  &(src.nestedExpression().coeffRef(outer,0)) :
-                                                &(src.nestedExpression().coeffRef(0, outer));
-      Scalar *dst_ptr = dst.IsRowMajor ? &(dst.coeffRef(outer,0)) : &(dst.coeffRef(0, outer));
-      vml_call<UnaryOp>::run(src.functor(), innerSize, src_ptr, dst_ptr );
-    }
-  }
+   typedef typename Derived1::Scalar Scalar;
+   typedef typename Derived1::Index Index;
+   static inline void run(Derived1 &dst, const CwiseUnaryOp<UnaryOp, Derived2> &src)
+   {
+      // in case we want to (or have to) skip VML at runtime we can call:
+      // assign_impl<Derived1,Eigen::CwiseUnaryOp<UnaryOp, Derived2>,Traversal,Unrolling,BuiltIn>::run(dst,src);
+      const Index innerSize = dst.innerSize();
+      const Index outerSize = dst.outerSize();
+      for(Index outer = 0; outer < outerSize; ++outer)
+      {
+         const Scalar *src_ptr = src.IsRowMajor ?  &(src.nestedExpression().coeffRef(outer,0)) :
+                                 &(src.nestedExpression().coeffRef(0, outer));
+         Scalar *dst_ptr = dst.IsRowMajor ? &(dst.coeffRef(outer,0)) : &(dst.coeffRef(0, outer));
+         vml_call<UnaryOp>::run(src.functor(), innerSize, src_ptr, dst_ptr );
+      }
+   }
 };
 
 template<typename Derived1, typename Derived2, typename UnaryOp, int Traversal, int Unrolling>
 struct vml_assign_impl<Derived1, Derived2, UnaryOp, Traversal, Unrolling, LinearVectorizedTraversal>
 {
-  static inline void run(Derived1& dst, const CwiseUnaryOp<UnaryOp, Derived2>& src)
-  {
-    // in case we want to (or have to) skip VML at runtime we can call:
-    // assign_impl<Derived1,Eigen::CwiseUnaryOp<UnaryOp, Derived2>,Traversal,Unrolling,BuiltIn>::run(dst,src);
-    vml_call<UnaryOp>::run(src.functor(), dst.size(), src.nestedExpression().data(), dst.data() );
-  }
+   static inline void run(Derived1 &dst, const CwiseUnaryOp<UnaryOp, Derived2> &src)
+   {
+      // in case we want to (or have to) skip VML at runtime we can call:
+      // assign_impl<Derived1,Eigen::CwiseUnaryOp<UnaryOp, Derived2>,Traversal,Unrolling,BuiltIn>::run(dst,src);
+      vml_call<UnaryOp>::run(src.functor(), dst.size(), src.nestedExpression().data(), dst.data() );
+   }
 };
 
 // Macroses

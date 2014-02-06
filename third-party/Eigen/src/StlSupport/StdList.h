@@ -14,9 +14,9 @@
 
 // Define the explicit instantiation (e.g. necessary for the Intel compiler)
 #if defined(__INTEL_COMPILER) || defined(__GNUC__)
-  #define EIGEN_EXPLICIT_STL_LIST_INSTANTIATION(...) template class std::list<__VA_ARGS__, EIGEN_ALIGNED_ALLOCATOR<__VA_ARGS__> >;
+#define EIGEN_EXPLICIT_STL_LIST_INSTANTIATION(...) template class std::list<__VA_ARGS__, EIGEN_ALIGNED_ALLOCATOR<__VA_ARGS__> >;
 #else
-  #define EIGEN_EXPLICIT_STL_LIST_INSTANTIATION(...)
+#define EIGEN_EXPLICIT_STL_LIST_INSTANTIATION(...)
 #endif
 
 /**
@@ -76,37 +76,45 @@ namespace std
     return *this; \
   }
 
-  template<typename T>
-  class list<T,EIGEN_ALIGNED_ALLOCATOR<T> >
-    : public list<EIGEN_WORKAROUND_MSVC_STL_SUPPORT(T),
-                  Eigen::aligned_allocator_indirection<EIGEN_WORKAROUND_MSVC_STL_SUPPORT(T)> >
-  {
-    typedef list<EIGEN_WORKAROUND_MSVC_STL_SUPPORT(T),
-                 Eigen::aligned_allocator_indirection<EIGEN_WORKAROUND_MSVC_STL_SUPPORT(T)> > list_base;
-    EIGEN_STD_LIST_SPECIALIZATION_BODY
+template<typename T>
+class list<T,EIGEN_ALIGNED_ALLOCATOR<T> >
+   : public list<EIGEN_WORKAROUND_MSVC_STL_SUPPORT(T),
+     Eigen::aligned_allocator_indirection<EIGEN_WORKAROUND_MSVC_STL_SUPPORT(T)> >
+{
+   typedef list<EIGEN_WORKAROUND_MSVC_STL_SUPPORT(T),
+           Eigen::aligned_allocator_indirection<EIGEN_WORKAROUND_MSVC_STL_SUPPORT(T)> > list_base;
+   EIGEN_STD_LIST_SPECIALIZATION_BODY
 
-    void resize(size_type new_size)
-    { resize(new_size, T()); }
+   void resize(size_type new_size)
+   {
+      resize(new_size, T());
+   }
 
-    void resize(size_type new_size, const value_type& x)
-    {
+   void resize(size_type new_size, const value_type &x)
+   {
       if (list_base::size() < new_size)
-        list_base::insert(list_base::end(), new_size - list_base::size(), x);
+         list_base::insert(list_base::end(), new_size - list_base::size(), x);
       else
-        while (new_size < list_base::size()) list_base::pop_back();
-    }
+         while (new_size < list_base::size()) list_base::pop_back();
+   }
 
 #if defined(_LIST_)
-    // workaround MSVC std::list implementation
-    void push_back(const value_type& x)
-    { list_base::push_back(x); } 
-    using list_base::insert;  
-    iterator insert(const_iterator position, const value_type& x)
-    { return list_base::insert(position,x); }
-    void insert(const_iterator position, size_type new_size, const value_type& x)
-    { list_base::insert(position, new_size, x); }
+   // workaround MSVC std::list implementation
+   void push_back(const value_type &x)
+   {
+      list_base::push_back(x);
+   }
+   using list_base::insert;
+   iterator insert(const_iterator position, const value_type &x)
+   {
+      return list_base::insert(position,x);
+   }
+   void insert(const_iterator position, size_type new_size, const value_type &x)
+   {
+      list_base::insert(position, new_size, x);
+   }
 #endif
-  };
+};
 }
 
 #endif // check whether specialization is actually required

@@ -10,9 +10,11 @@
 #ifndef EIGEN_MISC_IMAGE_H
 #define EIGEN_MISC_IMAGE_H
 
-namespace Eigen { 
+namespace Eigen
+{
 
-namespace internal {
+namespace internal
+{
 
 /** \class image_retval_base
   *
@@ -20,47 +22,62 @@ namespace internal {
 template<typename DecompositionType>
 struct traits<image_retval_base<DecompositionType> >
 {
-  typedef typename DecompositionType::MatrixType MatrixType;
-  typedef Matrix<
-    typename MatrixType::Scalar,
-    MatrixType::RowsAtCompileTime, // the image is a subspace of the destination space, whose
-                                   // dimension is the number of rows of the original matrix
-    Dynamic,                       // we don't know at compile time the dimension of the image (the rank)
-    MatrixType::Options,
-    MatrixType::MaxRowsAtCompileTime, // the image matrix will consist of columns from the original matrix,
-    MatrixType::MaxColsAtCompileTime  // so it has the same number of rows and at most as many columns.
-  > ReturnType;
+   typedef typename DecompositionType::MatrixType MatrixType;
+   typedef Matrix<
+   typename MatrixType::Scalar,
+            MatrixType::RowsAtCompileTime, // the image is a subspace of the destination space, whose
+            // dimension is the number of rows of the original matrix
+            Dynamic,                       // we don't know at compile time the dimension of the image (the rank)
+            MatrixType::Options,
+            MatrixType::MaxRowsAtCompileTime, // the image matrix will consist of columns from the original matrix,
+            MatrixType::MaxColsAtCompileTime  // so it has the same number of rows and at most as many columns.
+            > ReturnType;
 };
 
 template<typename _DecompositionType> struct image_retval_base
- : public ReturnByValue<image_retval_base<_DecompositionType> >
+      : public ReturnByValue<image_retval_base<_DecompositionType> >
 {
-  typedef _DecompositionType DecompositionType;
-  typedef typename DecompositionType::MatrixType MatrixType;
-  typedef ReturnByValue<image_retval_base> Base;
-  typedef typename Base::Index Index;
+   typedef _DecompositionType DecompositionType;
+   typedef typename DecompositionType::MatrixType MatrixType;
+   typedef ReturnByValue<image_retval_base> Base;
+   typedef typename Base::Index Index;
 
-  image_retval_base(const DecompositionType& dec, const MatrixType& originalMatrix)
-    : m_dec(dec), m_rank(dec.rank()),
-      m_cols(m_rank == 0 ? 1 : m_rank),
-      m_originalMatrix(originalMatrix)
-  {}
+   image_retval_base(const DecompositionType &dec, const MatrixType &originalMatrix)
+      : m_dec(dec), m_rank(dec.rank()),
+        m_cols(m_rank == 0 ? 1 : m_rank),
+        m_originalMatrix(originalMatrix)
+   {}
 
-  inline Index rows() const { return m_dec.rows(); }
-  inline Index cols() const { return m_cols; }
-  inline Index rank() const { return m_rank; }
-  inline const DecompositionType& dec() const { return m_dec; }
-  inline const MatrixType& originalMatrix() const { return m_originalMatrix; }
+   inline Index rows() const
+   {
+      return m_dec.rows();
+   }
+   inline Index cols() const
+   {
+      return m_cols;
+   }
+   inline Index rank() const
+   {
+      return m_rank;
+   }
+   inline const DecompositionType &dec() const
+   {
+      return m_dec;
+   }
+   inline const MatrixType &originalMatrix() const
+   {
+      return m_originalMatrix;
+   }
 
-  template<typename Dest> inline void evalTo(Dest& dst) const
-  {
-    static_cast<const image_retval<DecompositionType>*>(this)->evalTo(dst);
-  }
+   template<typename Dest> inline void evalTo(Dest &dst) const
+   {
+      static_cast<const image_retval<DecompositionType>*>(this)->evalTo(dst);
+   }
 
-  protected:
-    const DecompositionType& m_dec;
-    Index m_rank, m_cols;
-    const MatrixType& m_originalMatrix;
+protected:
+   const DecompositionType &m_dec;
+   Index m_rank, m_cols;
+   const MatrixType &m_originalMatrix;
 };
 
 } // end namespace internal

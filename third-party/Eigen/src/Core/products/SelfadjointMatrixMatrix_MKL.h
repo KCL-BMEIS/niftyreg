@@ -33,9 +33,11 @@
 #ifndef EIGEN_SELFADJOINT_MATRIX_MATRIX_MKL_H
 #define EIGEN_SELFADJOINT_MATRIX_MATRIX_MKL_H
 
-namespace Eigen { 
+namespace Eigen
+{
 
-namespace internal {
+namespace internal
+{
 
 
 /* Optimized selfadjoint matrix * matrix (?SYMM/?HEMM) product */

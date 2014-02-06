@@ -52,7 +52,7 @@ void reg_intensityRescale(nifti_image *image,
                           int timepoint,
                           float newMin,
                           float newMax
-                          );
+                         );
 /* *************************************************************** */
 /** @brief reg_getRealImageSpacing
  * @param image image
@@ -73,9 +73,9 @@ extern "C++"
 void reg_tools_kernelConvolution(nifti_image *image,
                                  float *sigma,
                                  int kernelType,
-								 int *mask = NULL,
-								 bool *timePoints = NULL,
-								 bool *axis = NULL);
+                                 int *mask = NULL,
+                                 bool *timePoints = NULL,
+                                 bool *axis = NULL);
 /* *************************************************************** */
 /** @brief Downsample an image by a ratio of two
  * @param image Image to be downsampled
@@ -89,7 +89,7 @@ extern "C++" template <class PrecisionTYPE>
 void reg_downsampleImage(nifti_image *image,
                          int type,
                          bool *axis
-                         );
+                        );
 /* *************************************************************** */
 /** @brief Returns the maximal euclidean distance from a
  * deformation field image
@@ -312,7 +312,7 @@ extern "C++" template<class T>
 void reg_thresholdImage(nifti_image *image,
                         T lowThr,
                         T upThr
-                        );
+                       );
 /* *************************************************************** */
 /** @brief This function flipp the specified axis
  * @param image Input image to be flipped
@@ -325,7 +325,7 @@ extern "C++"
 void reg_flippAxis(nifti_image *image,
                    void *array,
                    std::string cmd
-                   );
+                  );
 /* *************************************************************** */
 /** @brief This function converts an image containing deformation
  * field into a displacement field

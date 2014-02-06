@@ -53,14 +53,14 @@ void reg_resampleGradient(nifti_image *gradientImage,
 
 extern "C++"
 void reg_getImageGradient(nifti_image *floatingImage,
-						  nifti_image *warpedGradientImage,
+                          nifti_image *warpedGradientImage,
                           nifti_image *deformationField,
                           int *mask,
                           int interp,
                           float paddingValue,
                           bool *dti_timepoint = NULL,
-						  mat33 *jacMat = NULL,
-						  nifti_image *warpedImage = NULL);
+                          mat33 *jacMat = NULL,
+                          nifti_image *warpedImage = NULL);
 extern "C++"
 nifti_image *reg_makeIsotropic(nifti_image *, int);
 

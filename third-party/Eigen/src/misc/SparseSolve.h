@@ -10,46 +10,60 @@
 #ifndef EIGEN_SPARSE_SOLVE_H
 #define EIGEN_SPARSE_SOLVE_H
 
-namespace Eigen { 
+namespace Eigen
+{
 
-namespace internal {
+namespace internal
+{
 
 template<typename _DecompositionType, typename Rhs> struct sparse_solve_retval_base;
 template<typename _DecompositionType, typename Rhs> struct sparse_solve_retval;
-  
+
 template<typename DecompositionType, typename Rhs>
 struct traits<sparse_solve_retval_base<DecompositionType, Rhs> >
 {
-  typedef typename DecompositionType::MatrixType MatrixType;
-  typedef SparseMatrix<typename Rhs::Scalar, Rhs::Options, typename Rhs::Index> ReturnType;
+   typedef typename DecompositionType::MatrixType MatrixType;
+   typedef SparseMatrix<typename Rhs::Scalar, Rhs::Options, typename Rhs::Index> ReturnType;
 };
 
 template<typename _DecompositionType, typename Rhs> struct sparse_solve_retval_base
- : public ReturnByValue<sparse_solve_retval_base<_DecompositionType, Rhs> >
+      : public ReturnByValue<sparse_solve_retval_base<_DecompositionType, Rhs> >
 {
-  typedef typename remove_all<typename Rhs::Nested>::type RhsNestedCleaned;
-  typedef _DecompositionType DecompositionType;
-  typedef ReturnByValue<sparse_solve_retval_base> Base;
-  typedef typename Base::Index Index;
+   typedef typename remove_all<typename Rhs::Nested>::type RhsNestedCleaned;
+   typedef _DecompositionType DecompositionType;
+   typedef ReturnByValue<sparse_solve_retval_base> Base;
+   typedef typename Base::Index Index;
 
-  sparse_solve_retval_base(const DecompositionType& dec, const Rhs& rhs)
-    : m_dec(dec), m_rhs(rhs)
-  {}
+   sparse_solve_retval_base(const DecompositionType &dec, const Rhs &rhs)
+      : m_dec(dec), m_rhs(rhs)
+   {}
 
-  inline Index rows() const { return m_dec.cols(); }
-  inline Index cols() const { return m_rhs.cols(); }
-  inline const DecompositionType& dec() const { return m_dec; }
-  inline const RhsNestedCleaned& rhs() const { return m_rhs; }
+   inline Index rows() const
+   {
+      return m_dec.cols();
+   }
+   inline Index cols() const
+   {
+      return m_rhs.cols();
+   }
+   inline const DecompositionType &dec() const
+   {
+      return m_dec;
+   }
+   inline const RhsNestedCleaned &rhs() const
+   {
+      return m_rhs;
+   }
 
-  template<typename Dest> inline void evalTo(Dest& dst) const
-  {
-    static_cast<const sparse_solve_retval<DecompositionType,Rhs>*>(this)->evalTo(dst);
-  }
+   template<typename Dest> inline void evalTo(Dest &dst) const
+   {
+      static_cast<const sparse_solve_retval<DecompositionType,Rhs>*>(this)->evalTo(dst);
+   }
 
-  protected:
-    template<typename DestScalar, int DestOptions, typename DestIndex>
-    inline void defaultEvalTo(SparseMatrix<DestScalar,DestOptions,DestIndex>& dst) const
-    {
+protected:
+   template<typename DestScalar, int DestOptions, typename DestIndex>
+   inline void defaultEvalTo(SparseMatrix<DestScalar,DestOptions,DestIndex> &dst) const
+   {
       // we process the sparse rhs per block of NbColsAtOnce columns temporarily stored into a dense matrix.
       static const int NbColsAtOnce = 4;
       int rhsCols = m_rhs.cols();
@@ -58,14 +72,14 @@ template<typename _DecompositionType, typename Rhs> struct sparse_solve_retval_b
       Eigen::Matrix<DestScalar,Dynamic,Dynamic> tmpX(size,rhsCols);
       for(int k=0; k<rhsCols; k+=NbColsAtOnce)
       {
-        int actualCols = std::min<int>(rhsCols-k, NbColsAtOnce);
-        tmp.leftCols(actualCols) = m_rhs.middleCols(k,actualCols);
-        tmpX.leftCols(actualCols) = m_dec.solve(tmp.leftCols(actualCols));
-        dst.middleCols(k,actualCols) = tmpX.leftCols(actualCols).sparseView();
+         int actualCols = std::min<int>(rhsCols-k, NbColsAtOnce);
+         tmp.leftCols(actualCols) = m_rhs.middleCols(k,actualCols);
+         tmpX.leftCols(actualCols) = m_dec.solve(tmp.leftCols(actualCols));
+         dst.middleCols(k,actualCols) = tmpX.leftCols(actualCols).sparseView();
       }
-    }
-    const DecompositionType& m_dec;
-    typename Rhs::Nested m_rhs;
+   }
+   const DecompositionType &m_dec;
+   typename Rhs::Nested m_rhs;
 };
 
 #define EIGEN_MAKE_SPARSE_SOLVE_HELPERS(DecompositionType,Rhs) \
@@ -88,37 +102,43 @@ template<typename DecompositionType, typename Rhs, typename Guess> struct solve_
 template<typename DecompositionType, typename Rhs, typename Guess>
 struct traits<solve_retval_with_guess<DecompositionType, Rhs, Guess> >
 {
-  typedef typename DecompositionType::MatrixType MatrixType;
-  typedef Matrix<typename Rhs::Scalar,
-                 MatrixType::ColsAtCompileTime,
-                 Rhs::ColsAtCompileTime,
-                 Rhs::PlainObject::Options,
-                 MatrixType::MaxColsAtCompileTime,
-                 Rhs::MaxColsAtCompileTime> ReturnType;
+   typedef typename DecompositionType::MatrixType MatrixType;
+   typedef Matrix<typename Rhs::Scalar,
+           MatrixType::ColsAtCompileTime,
+           Rhs::ColsAtCompileTime,
+           Rhs::PlainObject::Options,
+           MatrixType::MaxColsAtCompileTime,
+           Rhs::MaxColsAtCompileTime> ReturnType;
 };
 
 template<typename DecompositionType, typename Rhs, typename Guess> struct solve_retval_with_guess
- : public ReturnByValue<solve_retval_with_guess<DecompositionType, Rhs, Guess> >
+      : public ReturnByValue<solve_retval_with_guess<DecompositionType, Rhs, Guess> >
 {
-  typedef typename DecompositionType::Index Index;
+   typedef typename DecompositionType::Index Index;
 
-  solve_retval_with_guess(const DecompositionType& dec, const Rhs& rhs, const Guess& guess)
-    : m_dec(dec), m_rhs(rhs), m_guess(guess)
-  {}
+   solve_retval_with_guess(const DecompositionType &dec, const Rhs &rhs, const Guess &guess)
+      : m_dec(dec), m_rhs(rhs), m_guess(guess)
+   {}
 
-  inline Index rows() const { return m_dec.cols(); }
-  inline Index cols() const { return m_rhs.cols(); }
+   inline Index rows() const
+   {
+      return m_dec.cols();
+   }
+   inline Index cols() const
+   {
+      return m_rhs.cols();
+   }
 
-  template<typename Dest> inline void evalTo(Dest& dst) const
-  {
-    dst = m_guess;
-    m_dec._solveWithGuess(m_rhs,dst);
-  }
+   template<typename Dest> inline void evalTo(Dest &dst) const
+   {
+      dst = m_guess;
+      m_dec._solveWithGuess(m_rhs,dst);
+   }
 
-  protected:
-    const DecompositionType& m_dec;
-    const typename Rhs::Nested m_rhs;
-    const typename Guess::Nested m_guess;
+protected:
+   const DecompositionType &m_dec;
+   const typename Rhs::Nested m_rhs;
+   const typename Guess::Nested m_guess;
 };
 
 } // namepsace internal

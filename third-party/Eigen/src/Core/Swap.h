@@ -10,7 +10,8 @@
 #ifndef EIGEN_SWAP_H
 #define EIGEN_SWAP_H
 
-namespace Eigen { 
+namespace Eigen
+{
 
 /** \class SwapWrapper
   * \ingroup Core_Module
@@ -19,106 +20,128 @@ namespace Eigen {
   *
   * \brief Internal helper class for swapping two expressions
   */
-namespace internal {
+namespace internal
+{
 template<typename ExpressionType>
 struct traits<SwapWrapper<ExpressionType> > : traits<ExpressionType> {};
 }
 
 template<typename ExpressionType> class SwapWrapper
-  : public internal::dense_xpr_base<SwapWrapper<ExpressionType> >::type
+   : public internal::dense_xpr_base<SwapWrapper<ExpressionType> >::type
 {
-  public:
+public:
 
-    typedef typename internal::dense_xpr_base<SwapWrapper>::type Base;
-    EIGEN_DENSE_PUBLIC_INTERFACE(SwapWrapper)
-    typedef typename internal::packet_traits<Scalar>::type Packet;
+   typedef typename internal::dense_xpr_base<SwapWrapper>::type Base;
+   EIGEN_DENSE_PUBLIC_INTERFACE(SwapWrapper)
+   typedef typename internal::packet_traits<Scalar>::type Packet;
 
-    inline SwapWrapper(ExpressionType& xpr) : m_expression(xpr) {}
+   inline SwapWrapper(ExpressionType &xpr) : m_expression(xpr) {}
 
-    inline Index rows() const { return m_expression.rows(); }
-    inline Index cols() const { return m_expression.cols(); }
-    inline Index outerStride() const { return m_expression.outerStride(); }
-    inline Index innerStride() const { return m_expression.innerStride(); }
-    
-    typedef typename internal::conditional<
-                       internal::is_lvalue<ExpressionType>::value,
-                       Scalar,
-                       const Scalar
-                     >::type ScalarWithConstIfNotLvalue;
-                     
-    inline ScalarWithConstIfNotLvalue* data() { return m_expression.data(); }
-    inline const Scalar* data() const { return m_expression.data(); }
+   inline Index rows() const
+   {
+      return m_expression.rows();
+   }
+   inline Index cols() const
+   {
+      return m_expression.cols();
+   }
+   inline Index outerStride() const
+   {
+      return m_expression.outerStride();
+   }
+   inline Index innerStride() const
+   {
+      return m_expression.innerStride();
+   }
 
-    inline Scalar& coeffRef(Index rowId, Index colId)
-    {
+   typedef typename internal::conditional<
+   internal::is_lvalue<ExpressionType>::value,
+            Scalar,
+            const Scalar
+            >::type ScalarWithConstIfNotLvalue;
+
+   inline ScalarWithConstIfNotLvalue* data()
+   {
+      return m_expression.data();
+   }
+   inline const Scalar* data() const
+   {
+      return m_expression.data();
+   }
+
+   inline Scalar &coeffRef(Index rowId, Index colId)
+   {
       return m_expression.const_cast_derived().coeffRef(rowId, colId);
-    }
+   }
 
-    inline Scalar& coeffRef(Index index)
-    {
+   inline Scalar &coeffRef(Index index)
+   {
       return m_expression.const_cast_derived().coeffRef(index);
-    }
+   }
 
-    inline Scalar& coeffRef(Index rowId, Index colId) const
-    {
+   inline Scalar &coeffRef(Index rowId, Index colId) const
+   {
       return m_expression.coeffRef(rowId, colId);
-    }
+   }
 
-    inline Scalar& coeffRef(Index index) const
-    {
+   inline Scalar &coeffRef(Index index) const
+   {
       return m_expression.coeffRef(index);
-    }
+   }
 
-    template<typename OtherDerived>
-    void copyCoeff(Index rowId, Index colId, const DenseBase<OtherDerived>& other)
-    {
-      OtherDerived& _other = other.const_cast_derived();
+   template<typename OtherDerived>
+   void copyCoeff(Index rowId, Index colId, const DenseBase<OtherDerived> &other)
+   {
+      OtherDerived &_other = other.const_cast_derived();
       eigen_internal_assert(rowId >= 0 && rowId < rows()
-                         && colId >= 0 && colId < cols());
+                            && colId >= 0 && colId < cols());
       Scalar tmp = m_expression.coeff(rowId, colId);
       m_expression.coeffRef(rowId, colId) = _other.coeff(rowId, colId);
       _other.coeffRef(rowId, colId) = tmp;
-    }
+   }
 
-    template<typename OtherDerived>
-    void copyCoeff(Index index, const DenseBase<OtherDerived>& other)
-    {
-      OtherDerived& _other = other.const_cast_derived();
+   template<typename OtherDerived>
+   void copyCoeff(Index index, const DenseBase<OtherDerived> &other)
+   {
+      OtherDerived &_other = other.const_cast_derived();
       eigen_internal_assert(index >= 0 && index < m_expression.size());
       Scalar tmp = m_expression.coeff(index);
       m_expression.coeffRef(index) = _other.coeff(index);
       _other.coeffRef(index) = tmp;
-    }
+   }
 
-    template<typename OtherDerived, int StoreMode, int LoadMode>
-    void copyPacket(Index rowId, Index colId, const DenseBase<OtherDerived>& other)
-    {
-      OtherDerived& _other = other.const_cast_derived();
+   template<typename OtherDerived, int StoreMode, int LoadMode>
+   void copyPacket(Index rowId, Index colId, const DenseBase<OtherDerived> &other)
+   {
+      OtherDerived &_other = other.const_cast_derived();
       eigen_internal_assert(rowId >= 0 && rowId < rows()
-                        && colId >= 0 && colId < cols());
+                            && colId >= 0 && colId < cols());
       Packet tmp = m_expression.template packet<StoreMode>(rowId, colId);
       m_expression.template writePacket<StoreMode>(rowId, colId,
-        _other.template packet<LoadMode>(rowId, colId)
-      );
+            _other.template packet<LoadMode>(rowId, colId)
+                                                  );
       _other.template writePacket<LoadMode>(rowId, colId, tmp);
-    }
+   }
 
-    template<typename OtherDerived, int StoreMode, int LoadMode>
-    void copyPacket(Index index, const DenseBase<OtherDerived>& other)
-    {
-      OtherDerived& _other = other.const_cast_derived();
+   template<typename OtherDerived, int StoreMode, int LoadMode>
+   void copyPacket(Index index, const DenseBase<OtherDerived> &other)
+   {
+      OtherDerived &_other = other.const_cast_derived();
       eigen_internal_assert(index >= 0 && index < m_expression.size());
       Packet tmp = m_expression.template packet<StoreMode>(index);
       m_expression.template writePacket<StoreMode>(index,
-        _other.template packet<LoadMode>(index)
-      );
+            _other.template packet<LoadMode>(index)
+                                                  );
       _other.template writePacket<LoadMode>(index, tmp);
-    }
+   }
 
-    ExpressionType& expression() const { return m_expression; }
+   ExpressionType &expression() const
+   {
+      return m_expression;
+   }
 
-  protected:
-    ExpressionType& m_expression;
+protected:
+   ExpressionType &m_expression;
 };
 
 } // end namespace Eigen

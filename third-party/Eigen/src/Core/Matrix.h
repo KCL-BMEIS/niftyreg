@@ -11,7 +11,8 @@
 #ifndef EIGEN_MATRIX_H
 #define EIGEN_MATRIX_H
 
-namespace Eigen {
+namespace Eigen
+{
 
 /** \class Matrix
   * \ingroup Core_Module
@@ -97,254 +98,267 @@ namespace Eigen {
   * are the dimensions of the original matrix, while _Rows and _Cols are Dynamic.</dd>
   * </dl>
   *
-  * \see MatrixBase for the majority of the API methods for matrices, \ref TopicClassHierarchy, 
-  * \ref TopicStorageOrders 
+  * \see MatrixBase for the majority of the API methods for matrices, \ref TopicClassHierarchy,
+  * \ref TopicStorageOrders
   */
 
-namespace internal {
+namespace internal
+{
 template<typename _Scalar, int _Rows, int _Cols, int _Options, int _MaxRows, int _MaxCols>
 struct traits<Matrix<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols> >
 {
-  typedef _Scalar Scalar;
-  typedef Dense StorageKind;
-  typedef DenseIndex Index;
-  typedef MatrixXpr XprKind;
-  enum {
-    RowsAtCompileTime = _Rows,
-    ColsAtCompileTime = _Cols,
-    MaxRowsAtCompileTime = _MaxRows,
-    MaxColsAtCompileTime = _MaxCols,
-    Flags = compute_matrix_flags<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols>::ret,
-    CoeffReadCost = NumTraits<Scalar>::ReadCost,
-    Options = _Options,
-    InnerStrideAtCompileTime = 1,
-    OuterStrideAtCompileTime = (Options&RowMajor) ? ColsAtCompileTime : RowsAtCompileTime
-  };
+   typedef _Scalar Scalar;
+   typedef Dense StorageKind;
+   typedef DenseIndex Index;
+   typedef MatrixXpr XprKind;
+   enum
+   {
+      RowsAtCompileTime = _Rows,
+      ColsAtCompileTime = _Cols,
+      MaxRowsAtCompileTime = _MaxRows,
+      MaxColsAtCompileTime = _MaxCols,
+      Flags = compute_matrix_flags<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols>::ret,
+      CoeffReadCost = NumTraits<Scalar>::ReadCost,
+      Options = _Options,
+      InnerStrideAtCompileTime = 1,
+      OuterStrideAtCompileTime = (Options&RowMajor) ? ColsAtCompileTime : RowsAtCompileTime
+   };
 };
 }
 
 template<typename _Scalar, int _Rows, int _Cols, int _Options, int _MaxRows, int _MaxCols>
 class Matrix
-  : public PlainObjectBase<Matrix<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols> >
+   : public PlainObjectBase<Matrix<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols> >
 {
-  public:
+public:
 
-    /** \brief Base class typedef.
-      * \sa PlainObjectBase
-      */
-    typedef PlainObjectBase<Matrix> Base;
+   /** \brief Base class typedef.
+     * \sa PlainObjectBase
+     */
+   typedef PlainObjectBase<Matrix> Base;
 
-    enum { Options = _Options };
+   enum { Options = _Options };
 
-    EIGEN_DENSE_PUBLIC_INTERFACE(Matrix)
+   EIGEN_DENSE_PUBLIC_INTERFACE(Matrix)
 
-    typedef typename Base::PlainObject PlainObject;
+   typedef typename Base::PlainObject PlainObject;
 
-    using Base::base;
-    using Base::coeffRef;
+   using Base::base;
+   using Base::coeffRef;
 
-    /**
-      * \brief Assigns matrices to each other.
-      *
-      * \note This is a special case of the templated operator=. Its purpose is
-      * to prevent a default operator= from hiding the templated operator=.
-      *
-      * \callgraph
-      */
-    EIGEN_STRONG_INLINE Matrix& operator=(const Matrix& other)
-    {
+   /**
+     * \brief Assigns matrices to each other.
+     *
+     * \note This is a special case of the templated operator=. Its purpose is
+     * to prevent a default operator= from hiding the templated operator=.
+     *
+     * \callgraph
+     */
+   EIGEN_STRONG_INLINE Matrix &operator=(const Matrix &other)
+   {
       return Base::_set(other);
-    }
+   }
 
-    /** \internal
-      * \brief Copies the value of the expression \a other into \c *this with automatic resizing.
-      *
-      * *this might be resized to match the dimensions of \a other. If *this was a null matrix (not already initialized),
-      * it will be initialized.
-      *
-      * Note that copying a row-vector into a vector (and conversely) is allowed.
-      * The resizing, if any, is then done in the appropriate way so that row-vectors
-      * remain row-vectors and vectors remain vectors.
-      */
-    template<typename OtherDerived>
-    EIGEN_STRONG_INLINE Matrix& operator=(const MatrixBase<OtherDerived>& other)
-    {
+   /** \internal
+     * \brief Copies the value of the expression \a other into \c *this with automatic resizing.
+     *
+     * *this might be resized to match the dimensions of \a other. If *this was a null matrix (not already initialized),
+     * it will be initialized.
+     *
+     * Note that copying a row-vector into a vector (and conversely) is allowed.
+     * The resizing, if any, is then done in the appropriate way so that row-vectors
+     * remain row-vectors and vectors remain vectors.
+     */
+   template<typename OtherDerived>
+   EIGEN_STRONG_INLINE Matrix &operator=(const MatrixBase<OtherDerived> &other)
+   {
       return Base::_set(other);
-    }
+   }
 
-    /* Here, doxygen failed to copy the brief information when using \copydoc */
+   /* Here, doxygen failed to copy the brief information when using \copydoc */
 
-    /**
-      * \brief Copies the generic expression \a other into *this.
-      * \copydetails DenseBase::operator=(const EigenBase<OtherDerived> &other)
-      */
-    template<typename OtherDerived>
-    EIGEN_STRONG_INLINE Matrix& operator=(const EigenBase<OtherDerived> &other)
-    {
+   /**
+     * \brief Copies the generic expression \a other into *this.
+     * \copydetails DenseBase::operator=(const EigenBase<OtherDerived> &other)
+     */
+   template<typename OtherDerived>
+   EIGEN_STRONG_INLINE Matrix &operator=(const EigenBase<OtherDerived> &other)
+   {
       return Base::operator=(other);
-    }
+   }
 
-    template<typename OtherDerived>
-    EIGEN_STRONG_INLINE Matrix& operator=(const ReturnByValue<OtherDerived>& func)
-    {
+   template<typename OtherDerived>
+   EIGEN_STRONG_INLINE Matrix &operator=(const ReturnByValue<OtherDerived> &func)
+   {
       return Base::operator=(func);
-    }
+   }
 
-    /** \brief Default constructor.
-      *
-      * For fixed-size matrices, does nothing.
-      *
-      * For dynamic-size matrices, creates an empty matrix of size 0. Does not allocate any array. Such a matrix
-      * is called a null matrix. This constructor is the unique way to create null matrices: resizing
-      * a matrix to 0 is not supported.
-      *
-      * \sa resize(Index,Index)
-      */
-    EIGEN_STRONG_INLINE Matrix() : Base()
-    {
+   /** \brief Default constructor.
+     *
+     * For fixed-size matrices, does nothing.
+     *
+     * For dynamic-size matrices, creates an empty matrix of size 0. Does not allocate any array. Such a matrix
+     * is called a null matrix. This constructor is the unique way to create null matrices: resizing
+     * a matrix to 0 is not supported.
+     *
+     * \sa resize(Index,Index)
+     */
+   EIGEN_STRONG_INLINE Matrix() : Base()
+   {
       Base::_check_template_params();
       EIGEN_INITIALIZE_COEFFS_IF_THAT_OPTION_IS_ENABLED
-    }
+   }
 
-    // FIXME is it still needed
-    Matrix(internal::constructor_without_unaligned_array_assert)
+   // FIXME is it still needed
+   Matrix(internal::constructor_without_unaligned_array_assert)
       : Base(internal::constructor_without_unaligned_array_assert())
-    { Base::_check_template_params(); EIGEN_INITIALIZE_COEFFS_IF_THAT_OPTION_IS_ENABLED }
+   {
+      Base::_check_template_params();
+      EIGEN_INITIALIZE_COEFFS_IF_THAT_OPTION_IS_ENABLED
+   }
 
-    /** \brief Constructs a vector or row-vector with given dimension. \only_for_vectors
-      *
-      * Note that this is only useful for dynamic-size vectors. For fixed-size vectors,
-      * it is redundant to pass the dimension here, so it makes more sense to use the default
-      * constructor Matrix() instead.
-      */
-    EIGEN_STRONG_INLINE explicit Matrix(Index dim)
+   /** \brief Constructs a vector or row-vector with given dimension. \only_for_vectors
+     *
+     * Note that this is only useful for dynamic-size vectors. For fixed-size vectors,
+     * it is redundant to pass the dimension here, so it makes more sense to use the default
+     * constructor Matrix() instead.
+     */
+   EIGEN_STRONG_INLINE explicit Matrix(Index dim)
       : Base(dim, RowsAtCompileTime == 1 ? 1 : dim, ColsAtCompileTime == 1 ? 1 : dim)
-    {
+   {
       Base::_check_template_params();
       EIGEN_STATIC_ASSERT_VECTOR_ONLY(Matrix)
       eigen_assert(dim >= 0);
       eigen_assert(SizeAtCompileTime == Dynamic || SizeAtCompileTime == dim);
       EIGEN_INITIALIZE_COEFFS_IF_THAT_OPTION_IS_ENABLED
-    }
+   }
 
-    #ifndef EIGEN_PARSED_BY_DOXYGEN
-    template<typename T0, typename T1>
-    EIGEN_STRONG_INLINE Matrix(const T0& x, const T1& y)
-    {
+#ifndef EIGEN_PARSED_BY_DOXYGEN
+   template<typename T0, typename T1>
+   EIGEN_STRONG_INLINE Matrix(const T0 &x, const T1 &y)
+   {
       Base::_check_template_params();
       Base::template _init2<T0,T1>(x, y);
-    }
-    #else
-    /** \brief Constructs an uninitialized matrix with \a rows rows and \a cols columns.
-      *
-      * This is useful for dynamic-size matrices. For fixed-size matrices,
-      * it is redundant to pass these parameters, so one should use the default constructor
-      * Matrix() instead. */
-    Matrix(Index rows, Index cols);
-    /** \brief Constructs an initialized 2D vector with given coefficients */
-    Matrix(const Scalar& x, const Scalar& y);
-    #endif
+   }
+#else
+   /** \brief Constructs an uninitialized matrix with \a rows rows and \a cols columns.
+     *
+     * This is useful for dynamic-size matrices. For fixed-size matrices,
+     * it is redundant to pass these parameters, so one should use the default constructor
+     * Matrix() instead. */
+   Matrix(Index rows, Index cols);
+   /** \brief Constructs an initialized 2D vector with given coefficients */
+   Matrix(const Scalar &x, const Scalar &y);
+#endif
 
-    /** \brief Constructs an initialized 3D vector with given coefficients */
-    EIGEN_STRONG_INLINE Matrix(const Scalar& x, const Scalar& y, const Scalar& z)
-    {
+   /** \brief Constructs an initialized 3D vector with given coefficients */
+   EIGEN_STRONG_INLINE Matrix(const Scalar &x, const Scalar &y, const Scalar &z)
+   {
       Base::_check_template_params();
       EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(Matrix, 3)
       m_storage.data()[0] = x;
       m_storage.data()[1] = y;
       m_storage.data()[2] = z;
-    }
-    /** \brief Constructs an initialized 4D vector with given coefficients */
-    EIGEN_STRONG_INLINE Matrix(const Scalar& x, const Scalar& y, const Scalar& z, const Scalar& w)
-    {
+   }
+   /** \brief Constructs an initialized 4D vector with given coefficients */
+   EIGEN_STRONG_INLINE Matrix(const Scalar &x, const Scalar &y, const Scalar &z, const Scalar &w)
+   {
       Base::_check_template_params();
       EIGEN_STATIC_ASSERT_VECTOR_SPECIFIC_SIZE(Matrix, 4)
       m_storage.data()[0] = x;
       m_storage.data()[1] = y;
       m_storage.data()[2] = z;
       m_storage.data()[3] = w;
-    }
+   }
 
-    explicit Matrix(const Scalar *data);
+   explicit Matrix(const Scalar *data);
 
-    /** \brief Constructor copying the value of the expression \a other */
-    template<typename OtherDerived>
-    EIGEN_STRONG_INLINE Matrix(const MatrixBase<OtherDerived>& other)
-             : Base(other.rows() * other.cols(), other.rows(), other.cols())
-    {
+   /** \brief Constructor copying the value of the expression \a other */
+   template<typename OtherDerived>
+   EIGEN_STRONG_INLINE Matrix(const MatrixBase<OtherDerived> &other)
+      : Base(other.rows() * other.cols(), other.rows(), other.cols())
+   {
       // This test resides here, to bring the error messages closer to the user. Normally, these checks
       // are performed deeply within the library, thus causing long and scary error traces.
       EIGEN_STATIC_ASSERT((internal::is_same<Scalar, typename OtherDerived::Scalar>::value),
-        YOU_MIXED_DIFFERENT_NUMERIC_TYPES__YOU_NEED_TO_USE_THE_CAST_METHOD_OF_MATRIXBASE_TO_CAST_NUMERIC_TYPES_EXPLICITLY)
+                          YOU_MIXED_DIFFERENT_NUMERIC_TYPES__YOU_NEED_TO_USE_THE_CAST_METHOD_OF_MATRIXBASE_TO_CAST_NUMERIC_TYPES_EXPLICITLY)
 
       Base::_check_template_params();
       Base::_set_noalias(other);
-    }
-    /** \brief Copy constructor */
-    EIGEN_STRONG_INLINE Matrix(const Matrix& other)
-            : Base(other.rows() * other.cols(), other.rows(), other.cols())
-    {
+   }
+   /** \brief Copy constructor */
+   EIGEN_STRONG_INLINE Matrix(const Matrix &other)
+      : Base(other.rows() * other.cols(), other.rows(), other.cols())
+   {
       Base::_check_template_params();
       Base::_set_noalias(other);
-    }
-    /** \brief Copy constructor with in-place evaluation */
-    template<typename OtherDerived>
-    EIGEN_STRONG_INLINE Matrix(const ReturnByValue<OtherDerived>& other)
-    {
+   }
+   /** \brief Copy constructor with in-place evaluation */
+   template<typename OtherDerived>
+   EIGEN_STRONG_INLINE Matrix(const ReturnByValue<OtherDerived> &other)
+   {
       Base::_check_template_params();
       Base::resize(other.rows(), other.cols());
       other.evalTo(*this);
-    }
+   }
 
-    /** \brief Copy constructor for generic expressions.
-      * \sa MatrixBase::operator=(const EigenBase<OtherDerived>&)
-      */
-    template<typename OtherDerived>
-    EIGEN_STRONG_INLINE Matrix(const EigenBase<OtherDerived> &other)
+   /** \brief Copy constructor for generic expressions.
+     * \sa MatrixBase::operator=(const EigenBase<OtherDerived>&)
+     */
+   template<typename OtherDerived>
+   EIGEN_STRONG_INLINE Matrix(const EigenBase<OtherDerived> &other)
       : Base(other.derived().rows() * other.derived().cols(), other.derived().rows(), other.derived().cols())
-    {
+   {
       Base::_check_template_params();
       Base::resize(other.rows(), other.cols());
       // FIXME/CHECK: isn't *this = other.derived() more efficient. it allows to
       //              go for pure _set() implementations, right?
       *this = other;
-    }
+   }
 
-    /** \internal
-      * \brief Override MatrixBase::swap() since for dynamic-sized matrices
-      * of same type it is enough to swap the data pointers.
-      */
-    template<typename OtherDerived>
-    void swap(MatrixBase<OtherDerived> const & other)
-    { this->_swap(other.derived()); }
+   /** \internal
+     * \brief Override MatrixBase::swap() since for dynamic-sized matrices
+     * of same type it is enough to swap the data pointers.
+     */
+   template<typename OtherDerived>
+   void swap(MatrixBase<OtherDerived> const &other)
+   {
+      this->_swap(other.derived());
+   }
 
-    inline Index innerStride() const { return 1; }
-    inline Index outerStride() const { return this->innerSize(); }
+   inline Index innerStride() const
+   {
+      return 1;
+   }
+   inline Index outerStride() const
+   {
+      return this->innerSize();
+   }
 
-    /////////// Geometry module ///////////
+   /////////// Geometry module ///////////
 
-    template<typename OtherDerived>
-    explicit Matrix(const RotationBase<OtherDerived,ColsAtCompileTime>& r);
-    template<typename OtherDerived>
-    Matrix& operator=(const RotationBase<OtherDerived,ColsAtCompileTime>& r);
+   template<typename OtherDerived>
+   explicit Matrix(const RotationBase<OtherDerived,ColsAtCompileTime> &r);
+   template<typename OtherDerived>
+   Matrix &operator=(const RotationBase<OtherDerived,ColsAtCompileTime> &r);
 
-    #ifdef EIGEN2_SUPPORT
-    template<typename OtherDerived>
-    explicit Matrix(const eigen2_RotationBase<OtherDerived,ColsAtCompileTime>& r);
-    template<typename OtherDerived>
-    Matrix& operator=(const eigen2_RotationBase<OtherDerived,ColsAtCompileTime>& r);
-    #endif
+#ifdef EIGEN2_SUPPORT
+   template<typename OtherDerived>
+   explicit Matrix(const eigen2_RotationBase<OtherDerived,ColsAtCompileTime> &r);
+   template<typename OtherDerived>
+   Matrix &operator=(const eigen2_RotationBase<OtherDerived,ColsAtCompileTime> &r);
+#endif
 
-    // allow to extend Matrix outside Eigen
-    #ifdef EIGEN_MATRIX_PLUGIN
-    #include EIGEN_MATRIX_PLUGIN
-    #endif
+   // allow to extend Matrix outside Eigen
+#ifdef EIGEN_MATRIX_PLUGIN
+#include EIGEN_MATRIX_PLUGIN
+#endif
 
-  protected:
-    template <typename Derived, typename OtherDerived, bool IsVector>
-    friend struct internal::conservative_resize_like_impl;
+protected:
+   template <typename Derived, typename OtherDerived, bool IsVector>
+   friend struct internal::conservative_resize_like_impl;
 
-    using Base::m_storage;
+   using Base::m_storage;
 };
 
 /** \defgroup matrixtypedefs Global matrix typedefs

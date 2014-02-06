@@ -10,19 +10,27 @@
 #ifndef EIGEN_RANDOM_H
 #define EIGEN_RANDOM_H
 
-namespace Eigen { 
+namespace Eigen
+{
 
-namespace internal {
+namespace internal
+{
 
-template<typename Scalar> struct scalar_random_op {
-  EIGEN_EMPTY_STRUCT_CTOR(scalar_random_op)
-  template<typename Index>
-  inline const Scalar operator() (Index, Index = 0) const { return random<Scalar>(); }
+template<typename Scalar> struct scalar_random_op
+{
+   EIGEN_EMPTY_STRUCT_CTOR(scalar_random_op)
+   template<typename Index>
+   inline const Scalar operator() (Index, Index = 0) const
+   {
+      return random<Scalar>();
+   }
 };
 
 template<typename Scalar>
 struct functor_traits<scalar_random_op<Scalar> >
-{ enum { Cost = 5 * NumTraits<Scalar>::MulCost, PacketAccess = false, IsRepeatable = false }; };
+{
+   enum { Cost = 5 * NumTraits<Scalar>::MulCost, PacketAccess = false, IsRepeatable = false };
+};
 
 } // end namespace internal
 
@@ -48,7 +56,7 @@ template<typename Derived>
 inline const CwiseNullaryOp<internal::scalar_random_op<typename internal::traits<Derived>::Scalar>, Derived>
 DenseBase<Derived>::Random(Index rows, Index cols)
 {
-  return NullaryExpr(rows, cols, internal::scalar_random_op<Scalar>());
+   return NullaryExpr(rows, cols, internal::scalar_random_op<Scalar>());
 }
 
 /** \returns a random vector expression
@@ -75,7 +83,7 @@ template<typename Derived>
 inline const CwiseNullaryOp<internal::scalar_random_op<typename internal::traits<Derived>::Scalar>, Derived>
 DenseBase<Derived>::Random(Index size)
 {
-  return NullaryExpr(size, internal::scalar_random_op<Scalar>());
+   return NullaryExpr(size, internal::scalar_random_op<Scalar>());
 }
 
 /** \returns a fixed-size random matrix or vector expression
@@ -96,7 +104,7 @@ template<typename Derived>
 inline const CwiseNullaryOp<internal::scalar_random_op<typename internal::traits<Derived>::Scalar>, Derived>
 DenseBase<Derived>::Random()
 {
-  return NullaryExpr(RowsAtCompileTime, ColsAtCompileTime, internal::scalar_random_op<Scalar>());
+   return NullaryExpr(RowsAtCompileTime, ColsAtCompileTime, internal::scalar_random_op<Scalar>());
 }
 
 /** Sets all coefficients in this expression to random values.
@@ -107,9 +115,9 @@ DenseBase<Derived>::Random()
   * \sa class CwiseNullaryOp, setRandom(Index), setRandom(Index,Index)
   */
 template<typename Derived>
-inline Derived& DenseBase<Derived>::setRandom()
+inline Derived &DenseBase<Derived>::setRandom()
 {
-  return *this = Random(rows(), cols());
+   return *this = Random(rows(), cols());
 }
 
 /** Resizes to the given \a newSize, and sets all coefficients in this expression to random values.
@@ -122,11 +130,11 @@ inline Derived& DenseBase<Derived>::setRandom()
   * \sa MatrixBase::setRandom(), setRandom(Index,Index), class CwiseNullaryOp, MatrixBase::Random()
   */
 template<typename Derived>
-EIGEN_STRONG_INLINE Derived&
+EIGEN_STRONG_INLINE Derived &
 PlainObjectBase<Derived>::setRandom(Index newSize)
 {
-  resize(newSize);
-  return setRandom();
+   resize(newSize);
+   return setRandom();
 }
 
 /** Resizes to the given size, and sets all coefficients in this expression to random values.
@@ -140,11 +148,11 @@ PlainObjectBase<Derived>::setRandom(Index newSize)
   * \sa MatrixBase::setRandom(), setRandom(Index), class CwiseNullaryOp, MatrixBase::Random()
   */
 template<typename Derived>
-EIGEN_STRONG_INLINE Derived&
+EIGEN_STRONG_INLINE Derived &
 PlainObjectBase<Derived>::setRandom(Index nbRows, Index nbCols)
 {
-  resize(nbRows, nbCols);
-  return setRandom();
+   resize(nbRows, nbCols);
+   return setRandom();
 }
 
 } // end namespace Eigen

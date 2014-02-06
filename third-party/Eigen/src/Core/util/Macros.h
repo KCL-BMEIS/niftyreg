@@ -19,22 +19,22 @@
                                       (EIGEN_MAJOR_VERSION>y || (EIGEN_MAJOR_VERSION>=y && \
                                                                  EIGEN_MINOR_VERSION>=z))))
 #ifdef __GNUC__
-  #define EIGEN_GNUC_AT_LEAST(x,y) ((__GNUC__==x && __GNUC_MINOR__>=y) || __GNUC__>x)
+#define EIGEN_GNUC_AT_LEAST(x,y) ((__GNUC__==x && __GNUC_MINOR__>=y) || __GNUC__>x)
 #else
-  #define EIGEN_GNUC_AT_LEAST(x,y) 0
+#define EIGEN_GNUC_AT_LEAST(x,y) 0
 #endif
- 
+
 #ifdef __GNUC__
-  #define EIGEN_GNUC_AT_MOST(x,y) ((__GNUC__==x && __GNUC_MINOR__<=y) || __GNUC__<x)
+#define EIGEN_GNUC_AT_MOST(x,y) ((__GNUC__==x && __GNUC_MINOR__<=y) || __GNUC__<x)
 #else
-  #define EIGEN_GNUC_AT_MOST(x,y) 0
+#define EIGEN_GNUC_AT_MOST(x,y) 0
 #endif
 
 #if EIGEN_GNUC_AT_MOST(4,3) && !defined(__clang__)
-  // see bug 89
-  #define EIGEN_SAFE_TO_USE_STANDARD_ASSERT_MACRO 0
+// see bug 89
+#define EIGEN_SAFE_TO_USE_STANDARD_ASSERT_MACRO 0
 #else
-  #define EIGEN_SAFE_TO_USE_STANDARD_ASSERT_MACRO 1
+#define EIGEN_SAFE_TO_USE_STANDARD_ASSERT_MACRO 1
 #endif
 
 #if defined(__GNUC__) && (__GNUC__ <= 3)
@@ -61,29 +61,29 @@
  && !EIGEN_GCC3_OR_OLDER \
  && !defined(__SUNPRO_CC) \
  && !defined(__QNXNTO__)
-  #define EIGEN_ARCH_WANTS_STACK_ALIGNMENT 1
+#define EIGEN_ARCH_WANTS_STACK_ALIGNMENT 1
 #else
-  #define EIGEN_ARCH_WANTS_STACK_ALIGNMENT 0
+#define EIGEN_ARCH_WANTS_STACK_ALIGNMENT 0
 #endif
 
 #ifdef EIGEN_DONT_ALIGN
-  #ifndef EIGEN_DONT_ALIGN_STATICALLY
-    #define EIGEN_DONT_ALIGN_STATICALLY
-  #endif
-  #define EIGEN_ALIGN 0
+#ifndef EIGEN_DONT_ALIGN_STATICALLY
+#define EIGEN_DONT_ALIGN_STATICALLY
+#endif
+#define EIGEN_ALIGN 0
 #else
-  #define EIGEN_ALIGN 1
+#define EIGEN_ALIGN 1
 #endif
 
 // EIGEN_ALIGN_STATICALLY is the true test whether we want to align arrays on the stack or not. It takes into account both the user choice to explicitly disable
 // alignment (EIGEN_DONT_ALIGN_STATICALLY) and the architecture config (EIGEN_ARCH_WANTS_STACK_ALIGNMENT). Henceforth, only EIGEN_ALIGN_STATICALLY should be used.
 #if EIGEN_ARCH_WANTS_STACK_ALIGNMENT && !defined(EIGEN_DONT_ALIGN_STATICALLY)
-  #define EIGEN_ALIGN_STATICALLY 1
+#define EIGEN_ALIGN_STATICALLY 1
 #else
-  #define EIGEN_ALIGN_STATICALLY 0
-  #ifndef EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT
-    #define EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT
-  #endif
+#define EIGEN_ALIGN_STATICALLY 0
+#ifndef EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT
+#define EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT
+#endif
 #endif
 
 #ifdef EIGEN_DEFAULT_TO_ROW_MAJOR
@@ -166,40 +166,51 @@
 
 // eigen_plain_assert is where we implement the workaround for the assert() bug in GCC <= 4.3, see bug 89
 #ifdef EIGEN_NO_DEBUG
-  #define eigen_plain_assert(x)
+#define eigen_plain_assert(x)
 #else
-  #if EIGEN_SAFE_TO_USE_STANDARD_ASSERT_MACRO
-    namespace Eigen {
-    namespace internal {
-    inline bool copy_bool(bool b) { return b; }
-    }
-    }
-    #define eigen_plain_assert(x) assert(x)
-  #else
-    // work around bug 89
-    #include <cstdlib>   // for abort
-    #include <iostream>  // for std::cerr
+#if EIGEN_SAFE_TO_USE_STANDARD_ASSERT_MACRO
+namespace Eigen
+{
+namespace internal
+{
+inline bool copy_bool(bool b)
+{
+   return b;
+}
+}
+}
+#define eigen_plain_assert(x) assert(x)
+#else
+// work around bug 89
+#include <cstdlib>   // for abort
+#include <iostream>  // for std::cerr
 
-    namespace Eigen {
-    namespace internal {
-    // trivial function copying a bool. Must be EIGEN_DONT_INLINE, so we implement it after including Eigen headers.
-    // see bug 89.
-    namespace {
-    EIGEN_DONT_INLINE bool copy_bool(bool b) { return b; }
-    }
-    inline void assert_fail(const char *condition, const char *function, const char *file, int line)
-    {
-      std::cerr << "assertion failed: " << condition << " in function " << function << " at " << file << ":" << line << std::endl;
-      abort();
-    }
-    }
-    }
-    #define eigen_plain_assert(x) \
+namespace Eigen
+{
+namespace internal
+{
+// trivial function copying a bool. Must be EIGEN_DONT_INLINE, so we implement it after including Eigen headers.
+// see bug 89.
+namespace
+{
+EIGEN_DONT_INLINE bool copy_bool(bool b)
+{
+   return b;
+}
+}
+inline void assert_fail(const char *condition, const char *function, const char *file, int line)
+{
+   std::cerr << "assertion failed: " << condition << " in function " << function << " at " << file << ":" << line << std::endl;
+   abort();
+}
+}
+}
+#define eigen_plain_assert(x) \
       do { \
         if(!Eigen::internal::copy_bool(x)) \
           Eigen::internal::assert_fail(EIGEN_MAKESTRING(x), __PRETTY_FUNCTION__, __FILE__, __LINE__); \
       } while(false)
-  #endif
+#endif
 #endif
 
 // eigen_assert can be overridden
@@ -220,15 +231,15 @@
 #endif
 
 #ifndef EIGEN_NO_DEPRECATED_WARNING
-  #if (defined __GNUC__)
-    #define EIGEN_DEPRECATED __attribute__((deprecated))
-  #elif (defined _MSC_VER)
-    #define EIGEN_DEPRECATED __declspec(deprecated)
-  #else
-    #define EIGEN_DEPRECATED
-  #endif
+#if (defined __GNUC__)
+#define EIGEN_DEPRECATED __attribute__((deprecated))
+#elif (defined _MSC_VER)
+#define EIGEN_DEPRECATED __declspec(deprecated)
 #else
-  #define EIGEN_DEPRECATED
+#define EIGEN_DEPRECATED
+#endif
+#else
+#define EIGEN_DEPRECATED
 #endif
 
 #if (defined __GNUC__)
@@ -241,11 +252,11 @@
 #define EIGEN_UNUSED_VARIABLE(var) (void)var;
 
 #if !defined(EIGEN_ASM_COMMENT)
-  #if (defined __GNUC__) && ( defined(__i386__) || defined(__x86_64__) )
-    #define EIGEN_ASM_COMMENT(X)  asm("#" X)
-  #else
-    #define EIGEN_ASM_COMMENT(X)
-  #endif
+#if (defined __GNUC__) && ( defined(__i386__) || defined(__x86_64__) )
+#define EIGEN_ASM_COMMENT(X)  asm("#" X)
+#else
+#define EIGEN_ASM_COMMENT(X)
+#endif
 #endif
 
 /* EIGEN_ALIGN_TO_BOUNDARY(n) forces data to be n-byte aligned. This is used to satisfy SIMD requirements.
@@ -256,14 +267,14 @@
  * vectorized and non-vectorized code.
  */
 #if (defined __GNUC__) || (defined __PGI) || (defined __IBMCPP__) || (defined __ARMCC_VERSION)
-  #define EIGEN_ALIGN_TO_BOUNDARY(n) __attribute__((aligned(n)))
+#define EIGEN_ALIGN_TO_BOUNDARY(n) __attribute__((aligned(n)))
 #elif (defined _MSC_VER)
-  #define EIGEN_ALIGN_TO_BOUNDARY(n) __declspec(align(n))
+#define EIGEN_ALIGN_TO_BOUNDARY(n) __declspec(align(n))
 #elif (defined __SUNPRO_CC)
-  // FIXME not sure about this one:
-  #define EIGEN_ALIGN_TO_BOUNDARY(n) __attribute__((aligned(n)))
+// FIXME not sure about this one:
+#define EIGEN_ALIGN_TO_BOUNDARY(n) __attribute__((aligned(n)))
 #else
-  #error Please tell me what is the equivalent of __attribute__((aligned(n))) for your compiler
+#error Please tell me what is the equivalent of __attribute__((aligned(n))) for your compiler
 #endif
 
 #define EIGEN_ALIGN16 EIGEN_ALIGN_TO_BOUNDARY(16)
@@ -277,10 +288,10 @@
 #endif
 
 #ifdef EIGEN_DONT_USE_RESTRICT_KEYWORD
-  #define EIGEN_RESTRICT
+#define EIGEN_RESTRICT
 #endif
 #ifndef EIGEN_RESTRICT
-  #define EIGEN_RESTRICT __restrict
+#define EIGEN_RESTRICT __restrict
 #endif
 
 #ifndef EIGEN_STACK_ALLOCATION_LIMIT

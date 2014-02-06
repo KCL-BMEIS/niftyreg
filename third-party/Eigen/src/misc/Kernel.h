@@ -10,9 +10,11 @@
 #ifndef EIGEN_MISC_KERNEL_H
 #define EIGEN_MISC_KERNEL_H
 
-namespace Eigen { 
+namespace Eigen
+{
 
-namespace internal {
+namespace internal
+{
 
 /** \class kernel_retval_base
   *
@@ -20,46 +22,58 @@ namespace internal {
 template<typename DecompositionType>
 struct traits<kernel_retval_base<DecompositionType> >
 {
-  typedef typename DecompositionType::MatrixType MatrixType;
-  typedef Matrix<
-    typename MatrixType::Scalar,
-    MatrixType::ColsAtCompileTime, // the number of rows in the "kernel matrix"
-                                   // is the number of cols of the original matrix
-                                   // so that the product "matrix * kernel = zero" makes sense
-    Dynamic,                       // we don't know at compile-time the dimension of the kernel
-    MatrixType::Options,
-    MatrixType::MaxColsAtCompileTime, // see explanation for 2nd template parameter
-    MatrixType::MaxColsAtCompileTime // the kernel is a subspace of the domain space,
-                                     // whose dimension is the number of columns of the original matrix
-  > ReturnType;
+   typedef typename DecompositionType::MatrixType MatrixType;
+   typedef Matrix<
+   typename MatrixType::Scalar,
+            MatrixType::ColsAtCompileTime, // the number of rows in the "kernel matrix"
+            // is the number of cols of the original matrix
+            // so that the product "matrix * kernel = zero" makes sense
+            Dynamic,                       // we don't know at compile-time the dimension of the kernel
+            MatrixType::Options,
+            MatrixType::MaxColsAtCompileTime, // see explanation for 2nd template parameter
+            MatrixType::MaxColsAtCompileTime // the kernel is a subspace of the domain space,
+            // whose dimension is the number of columns of the original matrix
+            > ReturnType;
 };
 
 template<typename _DecompositionType> struct kernel_retval_base
- : public ReturnByValue<kernel_retval_base<_DecompositionType> >
+      : public ReturnByValue<kernel_retval_base<_DecompositionType> >
 {
-  typedef _DecompositionType DecompositionType;
-  typedef ReturnByValue<kernel_retval_base> Base;
-  typedef typename Base::Index Index;
+   typedef _DecompositionType DecompositionType;
+   typedef ReturnByValue<kernel_retval_base> Base;
+   typedef typename Base::Index Index;
 
-  kernel_retval_base(const DecompositionType& dec)
-    : m_dec(dec),
-      m_rank(dec.rank()),
-      m_cols(m_rank==dec.cols() ? 1 : dec.cols() - m_rank)
-  {}
+   kernel_retval_base(const DecompositionType &dec)
+      : m_dec(dec),
+        m_rank(dec.rank()),
+        m_cols(m_rank==dec.cols() ? 1 : dec.cols() - m_rank)
+   {}
 
-  inline Index rows() const { return m_dec.cols(); }
-  inline Index cols() const { return m_cols; }
-  inline Index rank() const { return m_rank; }
-  inline const DecompositionType& dec() const { return m_dec; }
+   inline Index rows() const
+   {
+      return m_dec.cols();
+   }
+   inline Index cols() const
+   {
+      return m_cols;
+   }
+   inline Index rank() const
+   {
+      return m_rank;
+   }
+   inline const DecompositionType &dec() const
+   {
+      return m_dec;
+   }
 
-  template<typename Dest> inline void evalTo(Dest& dst) const
-  {
-    static_cast<const kernel_retval<DecompositionType>*>(this)->evalTo(dst);
-  }
+   template<typename Dest> inline void evalTo(Dest &dst) const
+   {
+      static_cast<const kernel_retval<DecompositionType>*>(this)->evalTo(dst);
+   }
 
-  protected:
-    const DecompositionType& m_dec;
-    Index m_rank, m_cols;
+protected:
+   const DecompositionType &m_dec;
+   Index m_rank, m_cols;
 };
 
 } // end namespace internal

@@ -38,7 +38,7 @@ void reg_fem_InitialiseTransformation(int *elementNodes,
                                       nifti_image *deformationFieldImage,
                                       unsigned int *closestNodes,
                                       float *femInterpolationWeight
-                                      );
+                                     );
 
 /** @brief A dense deformation field is filled using interpolation
  * from a coarse mesh
@@ -54,7 +54,7 @@ void reg_fem_getDeformationField(float *nodePositions,
                                  nifti_image *deformationFieldImage,
                                  unsigned int *closestNodes,
                                  float *femInterpolationWeight
-                                 );
+                                );
 
 /** @brief Convert a dense gradient image into a mesh based gradient image
  * @param voxelBasedGradient Image that contains the gradient image

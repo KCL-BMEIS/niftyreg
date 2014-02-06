@@ -9,7 +9,8 @@
 
 // no include guard, we'll include this twice from All.h from Eigen2Support, and it's internal anyway
 
-namespace Eigen { 
+namespace Eigen
+{
 
 /** \geometry_module \ingroup Geometry_Module
   *
@@ -39,109 +40,145 @@ namespace Eigen {
 
 template<typename _Scalar> struct ei_traits<AngleAxis<_Scalar> >
 {
-  typedef _Scalar Scalar;
+   typedef _Scalar Scalar;
 };
 
 template<typename _Scalar>
 class AngleAxis : public RotationBase<AngleAxis<_Scalar>,3>
 {
-  typedef RotationBase<AngleAxis<_Scalar>,3> Base;
+   typedef RotationBase<AngleAxis<_Scalar>,3> Base;
 
 public:
 
-  using Base::operator*;
+   using Base::operator*;
 
-  enum { Dim = 3 };
-  /** the scalar type of the coefficients */
-  typedef _Scalar Scalar;
-  typedef Matrix<Scalar,3,3> Matrix3;
-  typedef Matrix<Scalar,3,1> Vector3;
-  typedef Quaternion<Scalar> QuaternionType;
+   enum { Dim = 3 };
+   /** the scalar type of the coefficients */
+   typedef _Scalar Scalar;
+   typedef Matrix<Scalar,3,3> Matrix3;
+   typedef Matrix<Scalar,3,1> Vector3;
+   typedef Quaternion<Scalar> QuaternionType;
 
 protected:
 
-  Vector3 m_axis;
-  Scalar m_angle;
+   Vector3 m_axis;
+   Scalar m_angle;
 
 public:
 
-  /** Default constructor without initialization. */
-  AngleAxis() {}
-  /** Constructs and initialize the angle-axis rotation from an \a angle in radian
-    * and an \a axis which must be normalized. */
-  template<typename Derived>
-  inline AngleAxis(Scalar angle, const MatrixBase<Derived>& axis) : m_axis(axis), m_angle(angle) {}
-  /** Constructs and initialize the angle-axis rotation from a quaternion \a q. */
-  inline AngleAxis(const QuaternionType& q) { *this = q; }
-  /** Constructs and initialize the angle-axis rotation from a 3x3 rotation matrix. */
-  template<typename Derived>
-  inline explicit AngleAxis(const MatrixBase<Derived>& m) { *this = m; }
+   /** Default constructor without initialization. */
+   AngleAxis() {}
+   /** Constructs and initialize the angle-axis rotation from an \a angle in radian
+     * and an \a axis which must be normalized. */
+   template<typename Derived>
+   inline AngleAxis(Scalar angle, const MatrixBase<Derived> &axis) : m_axis(axis), m_angle(angle) {}
+   /** Constructs and initialize the angle-axis rotation from a quaternion \a q. */
+   inline AngleAxis(const QuaternionType &q)
+   {
+      *this = q;
+   }
+   /** Constructs and initialize the angle-axis rotation from a 3x3 rotation matrix. */
+   template<typename Derived>
+   inline explicit AngleAxis(const MatrixBase<Derived> &m)
+   {
+      *this = m;
+   }
 
-  Scalar angle() const { return m_angle; }
-  Scalar& angle() { return m_angle; }
+   Scalar angle() const
+   {
+      return m_angle;
+   }
+   Scalar &angle()
+   {
+      return m_angle;
+   }
 
-  const Vector3& axis() const { return m_axis; }
-  Vector3& axis() { return m_axis; }
+   const Vector3 &axis() const
+   {
+      return m_axis;
+   }
+   Vector3 &axis()
+   {
+      return m_axis;
+   }
 
-  /** Concatenates two rotations */
-  inline QuaternionType operator* (const AngleAxis& other) const
-  { return QuaternionType(*this) * QuaternionType(other); }
+   /** Concatenates two rotations */
+   inline QuaternionType operator* (const AngleAxis &other) const
+   {
+      return QuaternionType(*this) * QuaternionType(other);
+   }
 
-  /** Concatenates two rotations */
-  inline QuaternionType operator* (const QuaternionType& other) const
-  { return QuaternionType(*this) * other; }
+   /** Concatenates two rotations */
+   inline QuaternionType operator* (const QuaternionType &other) const
+   {
+      return QuaternionType(*this) * other;
+   }
 
-  /** Concatenates two rotations */
-  friend inline QuaternionType operator* (const QuaternionType& a, const AngleAxis& b)
-  { return a * QuaternionType(b); }
+   /** Concatenates two rotations */
+   friend inline QuaternionType operator* (const QuaternionType &a, const AngleAxis &b)
+   {
+      return a * QuaternionType(b);
+   }
 
-  /** Concatenates two rotations */
-  inline Matrix3 operator* (const Matrix3& other) const
-  { return toRotationMatrix() * other; }
+   /** Concatenates two rotations */
+   inline Matrix3 operator* (const Matrix3 &other) const
+   {
+      return toRotationMatrix() * other;
+   }
 
-  /** Concatenates two rotations */
-  inline friend Matrix3 operator* (const Matrix3& a, const AngleAxis& b)
-  { return a * b.toRotationMatrix(); }
+   /** Concatenates two rotations */
+   inline friend Matrix3 operator* (const Matrix3 &a, const AngleAxis &b)
+   {
+      return a * b.toRotationMatrix();
+   }
 
-  /** Applies rotation to vector */
-  inline Vector3 operator* (const Vector3& other) const
-  { return toRotationMatrix() * other; }
+   /** Applies rotation to vector */
+   inline Vector3 operator* (const Vector3 &other) const
+   {
+      return toRotationMatrix() * other;
+   }
 
-  /** \returns the inverse rotation, i.e., an angle-axis with opposite rotation angle */
-  AngleAxis inverse() const
-  { return AngleAxis(-m_angle, m_axis); }
+   /** \returns the inverse rotation, i.e., an angle-axis with opposite rotation angle */
+   AngleAxis inverse() const
+   {
+      return AngleAxis(-m_angle, m_axis);
+   }
 
-  AngleAxis& operator=(const QuaternionType& q);
-  template<typename Derived>
-  AngleAxis& operator=(const MatrixBase<Derived>& m);
+   AngleAxis &operator=(const QuaternionType &q);
+   template<typename Derived>
+   AngleAxis &operator=(const MatrixBase<Derived> &m);
 
-  template<typename Derived>
-  AngleAxis& fromRotationMatrix(const MatrixBase<Derived>& m);
-  Matrix3 toRotationMatrix(void) const;
+   template<typename Derived>
+   AngleAxis &fromRotationMatrix(const MatrixBase<Derived> &m);
+   Matrix3 toRotationMatrix(void) const;
 
-  /** \returns \c *this with scalar type casted to \a NewScalarType
-    *
-    * Note that if \a NewScalarType is equal to the current scalar type of \c *this
-    * then this function smartly returns a const reference to \c *this.
-    */
-  template<typename NewScalarType>
-  inline typename internal::cast_return_type<AngleAxis,AngleAxis<NewScalarType> >::type cast() const
-  { return typename internal::cast_return_type<AngleAxis,AngleAxis<NewScalarType> >::type(*this); }
+   /** \returns \c *this with scalar type casted to \a NewScalarType
+     *
+     * Note that if \a NewScalarType is equal to the current scalar type of \c *this
+     * then this function smartly returns a const reference to \c *this.
+     */
+   template<typename NewScalarType>
+   inline typename internal::cast_return_type<AngleAxis,AngleAxis<NewScalarType> >::type cast() const
+   {
+      return typename internal::cast_return_type<AngleAxis,AngleAxis<NewScalarType> >::type(*this);
+   }
 
-  /** Copy constructor with scalar type conversion */
-  template<typename OtherScalarType>
-  inline explicit AngleAxis(const AngleAxis<OtherScalarType>& other)
-  {
-    m_axis = other.axis().template cast<Scalar>();
-    m_angle = Scalar(other.angle());
-  }
+   /** Copy constructor with scalar type conversion */
+   template<typename OtherScalarType>
+   inline explicit AngleAxis(const AngleAxis<OtherScalarType> &other)
+   {
+      m_axis = other.axis().template cast<Scalar>();
+      m_angle = Scalar(other.angle());
+   }
 
-  /** \returns \c true if \c *this is approximately equal to \a other, within the precision
-    * determined by \a prec.
-    *
-    * \sa MatrixBase::isApprox() */
-  bool isApprox(const AngleAxis& other, typename NumTraits<Scalar>::Real prec = precision<Scalar>()) const
-  { return m_axis.isApprox(other.m_axis, prec) && ei_isApprox(m_angle,other.m_angle, prec); }
+   /** \returns \c true if \c *this is approximately equal to \a other, within the precision
+     * determined by \a prec.
+     *
+     * \sa MatrixBase::isApprox() */
+   bool isApprox(const AngleAxis &other, typename NumTraits<Scalar>::Real prec = precision<Scalar>()) const
+   {
+      return m_axis.isApprox(other.m_axis, prec) && ei_isApprox(m_angle,other.m_angle, prec);
+   }
 };
 
 /** \ingroup Geometry_Module
@@ -155,31 +192,31 @@ typedef AngleAxis<double> AngleAxisd;
   * The axis is normalized.
   */
 template<typename Scalar>
-AngleAxis<Scalar>& AngleAxis<Scalar>::operator=(const QuaternionType& q)
+AngleAxis<Scalar> &AngleAxis<Scalar>::operator=(const QuaternionType &q)
 {
-  Scalar n2 = q.vec().squaredNorm();
-  if (n2 < precision<Scalar>()*precision<Scalar>())
-  {
-    m_angle = 0;
-    m_axis << 1, 0, 0;
-  }
-  else
-  {
-    m_angle = 2*std::acos(q.w());
-    m_axis = q.vec() / ei_sqrt(n2);
-  }
-  return *this;
+   Scalar n2 = q.vec().squaredNorm();
+   if (n2 < precision<Scalar>()*precision<Scalar>())
+   {
+      m_angle = 0;
+      m_axis << 1, 0, 0;
+   }
+   else
+   {
+      m_angle = 2*std::acos(q.w());
+      m_axis = q.vec() / ei_sqrt(n2);
+   }
+   return *this;
 }
 
 /** Set \c *this from a 3x3 rotation matrix \a mat.
   */
 template<typename Scalar>
 template<typename Derived>
-AngleAxis<Scalar>& AngleAxis<Scalar>::operator=(const MatrixBase<Derived>& mat)
+AngleAxis<Scalar> &AngleAxis<Scalar>::operator=(const MatrixBase<Derived> &mat)
 {
-  // Since a direct conversion would not be really faster,
-  // let's use the robust Quaternion implementation:
-  return *this = QuaternionType(mat);
+   // Since a direct conversion would not be really faster,
+   // let's use the robust Quaternion implementation:
+   return *this = QuaternionType(mat);
 }
 
 /** Constructs and \returns an equivalent 3x3 rotation matrix.
@@ -188,27 +225,27 @@ template<typename Scalar>
 typename AngleAxis<Scalar>::Matrix3
 AngleAxis<Scalar>::toRotationMatrix(void) const
 {
-  Matrix3 res;
-  Vector3 sin_axis  = ei_sin(m_angle) * m_axis;
-  Scalar c = ei_cos(m_angle);
-  Vector3 cos1_axis = (Scalar(1)-c) * m_axis;
+   Matrix3 res;
+   Vector3 sin_axis  = ei_sin(m_angle) * m_axis;
+   Scalar c = ei_cos(m_angle);
+   Vector3 cos1_axis = (Scalar(1)-c) * m_axis;
 
-  Scalar tmp;
-  tmp = cos1_axis.x() * m_axis.y();
-  res.coeffRef(0,1) = tmp - sin_axis.z();
-  res.coeffRef(1,0) = tmp + sin_axis.z();
+   Scalar tmp;
+   tmp = cos1_axis.x() * m_axis.y();
+   res.coeffRef(0,1) = tmp - sin_axis.z();
+   res.coeffRef(1,0) = tmp + sin_axis.z();
 
-  tmp = cos1_axis.x() * m_axis.z();
-  res.coeffRef(0,2) = tmp + sin_axis.y();
-  res.coeffRef(2,0) = tmp - sin_axis.y();
+   tmp = cos1_axis.x() * m_axis.z();
+   res.coeffRef(0,2) = tmp + sin_axis.y();
+   res.coeffRef(2,0) = tmp - sin_axis.y();
 
-  tmp = cos1_axis.y() * m_axis.z();
-  res.coeffRef(1,2) = tmp - sin_axis.x();
-  res.coeffRef(2,1) = tmp + sin_axis.x();
+   tmp = cos1_axis.y() * m_axis.z();
+   res.coeffRef(1,2) = tmp - sin_axis.x();
+   res.coeffRef(2,1) = tmp + sin_axis.x();
 
-  res.diagonal() = (cos1_axis.cwise() * m_axis).cwise() + c;
+   res.diagonal() = (cos1_axis.cwise() * m_axis).cwise() + c;
 
-  return res;
+   return res;
 }
 
 } // end namespace Eigen

@@ -33,14 +33,16 @@
 #ifndef EIGEN_GENERAL_MATRIX_MATRIX_TRIANGULAR_MKL_H
 #define EIGEN_GENERAL_MATRIX_MATRIX_TRIANGULAR_MKL_H
 
-namespace Eigen { 
+namespace Eigen
+{
 
-namespace internal {
+namespace internal
+{
 
 template <typename Index, typename Scalar, int AStorageOrder, bool ConjugateA, int ResStorageOrder, int  UpLo>
 struct general_matrix_matrix_rankupdate :
-       general_matrix_matrix_triangular_product<
-         Index,Scalar,AStorageOrder,ConjugateA,Scalar,AStorageOrder,ConjugateA,ResStorageOrder,UpLo,BuiltIn> {};
+      general_matrix_matrix_triangular_product<
+      Index,Scalar,AStorageOrder,ConjugateA,Scalar,AStorageOrder,ConjugateA,ResStorageOrder,UpLo,BuiltIn> {};
 
 
 // try to go to BLAS specialization

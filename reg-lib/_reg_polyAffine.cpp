@@ -18,12 +18,12 @@
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 reg_polyAffine<T>::reg_polyAffine(int refTimePoint,int floTimePoint)
-    : reg_base<T>::reg_base(refTimePoint,floTimePoint)
+   : reg_base<T>::reg_base(refTimePoint,floTimePoint)
 {
-    this->executableName=(char *)"NiftyReg PolyAffine";
+   this->executableName=(char *)"NiftyReg PolyAffine";
 
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_polyAffine constructor called\n");
+   printf("[NiftyReg DEBUG] reg_polyAffine constructor called\n");
 #endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -32,7 +32,7 @@ template <class T>
 reg_polyAffine<T>::~reg_polyAffine()
 {
 #ifndef NDEBUG
-    printf("[NiftyReg DEBUG] reg_polyAffine destructor called\n");
+   printf("[NiftyReg DEBUG] reg_polyAffine destructor called\n");
 #endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -62,7 +62,7 @@ template <class T>
 double reg_polyAffine<T>::GetObjectiveFunctionValue()
 {
 
-    return 0;
+   return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -76,7 +76,7 @@ void reg_polyAffine<T>::UpdateParameters(float stepSize)
 template <class T>
 T reg_polyAffine<T>::NormaliseGradient()
 {
-    return 0;
+   return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

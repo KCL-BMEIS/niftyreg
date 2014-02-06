@@ -33,9 +33,11 @@
 #ifndef EIGEN_TRIANGULAR_MATRIX_VECTOR_MKL_H
 #define EIGEN_TRIANGULAR_MATRIX_VECTOR_MKL_H
 
-namespace Eigen { 
+namespace Eigen
+{
 
-namespace internal {
+namespace internal
+{
 
 /**********************************************************************
 * This file implements triangular matrix-vector multiplication using BLAS
@@ -45,7 +47,7 @@ namespace internal {
 
 template<typename Index, int Mode, typename LhsScalar, bool ConjLhs, typename RhsScalar, bool ConjRhs, int StorageOrder>
 struct triangular_matrix_vector_product_trmv :
-  triangular_matrix_vector_product<Index,Mode,LhsScalar,ConjLhs,RhsScalar,ConjRhs,StorageOrder,BuiltIn> {};
+      triangular_matrix_vector_product<Index,Mode,LhsScalar,ConjLhs,RhsScalar,ConjRhs,StorageOrder,BuiltIn> {};
 
 #define EIGEN_MKL_TRMV_SPECIALIZE(Scalar) \
 template<typename Index, int Mode, bool ConjLhs, bool ConjRhs> \

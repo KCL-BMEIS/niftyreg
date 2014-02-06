@@ -10,7 +10,8 @@
 #ifndef EIGEN_SPARSEUTIL_H
 #define EIGEN_SPARSEUTIL_H
 
-namespace Eigen { 
+namespace Eigen
+{
 
 #ifdef NDEBUG
 #define EIGEN_DBG_SPARSE(X)
@@ -88,49 +89,54 @@ template<typename Lhs, typename Rhs, int InnerSize = internal::traits<Lhs>::Cols
 template<typename Lhs, typename Rhs, int InnerSize = internal::traits<Lhs>::ColsAtCompileTime> struct SparseDenseProductReturnType;
 template<typename MatrixType,int UpLo> class SparseSymmetricPermutationProduct;
 
-namespace internal {
+namespace internal
+{
 
 template<typename T,int Rows,int Cols> struct sparse_eval;
 
 template<typename T> struct eval<T,Sparse>
-  : public sparse_eval<T, traits<T>::RowsAtCompileTime,traits<T>::ColsAtCompileTime>
+      : public sparse_eval<T, traits<T>::RowsAtCompileTime,traits<T>::ColsAtCompileTime>
 {};
 
-template<typename T,int Cols> struct sparse_eval<T,1,Cols> {
-    typedef typename traits<T>::Scalar _Scalar;
-    typedef typename traits<T>::Index _Index;
-  public:
-    typedef SparseVector<_Scalar, RowMajor, _Index> type;
+template<typename T,int Cols> struct sparse_eval<T,1,Cols>
+{
+   typedef typename traits<T>::Scalar _Scalar;
+   typedef typename traits<T>::Index _Index;
+public:
+   typedef SparseVector<_Scalar, RowMajor, _Index> type;
 };
 
-template<typename T,int Rows> struct sparse_eval<T,Rows,1> {
-    typedef typename traits<T>::Scalar _Scalar;
-    typedef typename traits<T>::Index _Index;
-  public:
-    typedef SparseVector<_Scalar, ColMajor, _Index> type;
+template<typename T,int Rows> struct sparse_eval<T,Rows,1>
+{
+   typedef typename traits<T>::Scalar _Scalar;
+   typedef typename traits<T>::Index _Index;
+public:
+   typedef SparseVector<_Scalar, ColMajor, _Index> type;
 };
 
-template<typename T,int Rows,int Cols> struct sparse_eval {
-    typedef typename traits<T>::Scalar _Scalar;
-    typedef typename traits<T>::Index _Index;
-    enum { _Options = ((traits<T>::Flags&RowMajorBit)==RowMajorBit) ? RowMajor : ColMajor };
-  public:
-    typedef SparseMatrix<_Scalar, _Options, _Index> type;
+template<typename T,int Rows,int Cols> struct sparse_eval
+{
+   typedef typename traits<T>::Scalar _Scalar;
+   typedef typename traits<T>::Index _Index;
+   enum { _Options = ((traits<T>::Flags&RowMajorBit)==RowMajorBit) ? RowMajor : ColMajor };
+public:
+   typedef SparseMatrix<_Scalar, _Options, _Index> type;
 };
 
-template<typename T> struct sparse_eval<T,1,1> {
-    typedef typename traits<T>::Scalar _Scalar;
-  public:
-    typedef Matrix<_Scalar, 1, 1> type;
+template<typename T> struct sparse_eval<T,1,1>
+{
+   typedef typename traits<T>::Scalar _Scalar;
+public:
+   typedef Matrix<_Scalar, 1, 1> type;
 };
 
 template<typename T> struct plain_matrix_type<T,Sparse>
 {
-  typedef typename traits<T>::Scalar _Scalar;
-  typedef typename traits<T>::Index _Index;
-  enum { _Options = ((traits<T>::Flags&RowMajorBit)==RowMajorBit) ? RowMajor : ColMajor };
-  public:
-    typedef SparseMatrix<_Scalar, _Options, _Index> type;
+   typedef typename traits<T>::Scalar _Scalar;
+   typedef typename traits<T>::Index _Index;
+   enum { _Options = ((traits<T>::Flags&RowMajorBit)==RowMajorBit) ? RowMajor : ColMajor };
+public:
+   typedef SparseMatrix<_Scalar, _Options, _Index> type;
 };
 
 } // end namespace internal
@@ -147,23 +153,32 @@ template<typename Scalar, typename Index=unsigned int>
 class Triplet
 {
 public:
-  Triplet() : m_row(0), m_col(0), m_value(0) {}
+   Triplet() : m_row(0), m_col(0), m_value(0) {}
 
-  Triplet(const Index& i, const Index& j, const Scalar& v = Scalar(0))
-    : m_row(i), m_col(j), m_value(v)
-  {}
+   Triplet(const Index &i, const Index &j, const Scalar &v = Scalar(0))
+      : m_row(i), m_col(j), m_value(v)
+   {}
 
-  /** \returns the row index of the element */
-  const Index& row() const { return m_row; }
+   /** \returns the row index of the element */
+   const Index &row() const
+   {
+      return m_row;
+   }
 
-  /** \returns the column index of the element */
-  const Index& col() const { return m_col; }
+   /** \returns the column index of the element */
+   const Index &col() const
+   {
+      return m_col;
+   }
 
-  /** \returns the value of the element */
-  const Scalar& value() const { return m_value; }
+   /** \returns the value of the element */
+   const Scalar &value() const
+   {
+      return m_value;
+   }
 protected:
-  Index m_row, m_col;
-  Scalar m_value;
+   Index m_row, m_col;
+   Scalar m_value;
 };
 
 } // end namespace Eigen

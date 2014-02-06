@@ -22,27 +22,27 @@
 class reg_ssd : public reg_measure
 {
 public:
-    /// @brief reg_ssd class constructor
-    reg_ssd();
-    /// @brief Initialise the reg_ssd object
-	void InitialiseMeasure(nifti_image *refImgPtr,
-						   nifti_image *floImgPtr,
-						   int *maskRefPtr,
-						   nifti_image *warFloImgPtr,
-						   nifti_image *warFloGraPtr,
-						   nifti_image *forVoxBasedGraPtr,
-						   int *maskFloPtr = NULL,
-						   nifti_image *warRefImgPtr = NULL,
-						   nifti_image *warRefGraPtr = NULL,
-						   nifti_image *bckVoxBasedGraPtr = NULL);
-    /// @brief Returns the ssd value
-    virtual double GetSimilarityMeasureValue();
-    /// @brief Compute the voxel based ssd gradient
-    virtual void GetVoxelBasedSimilarityMeasureGradient();
-    /// @brief Measure class desstructor
-    ~reg_ssd(){}
+   /// @brief reg_ssd class constructor
+   reg_ssd();
+   /// @brief Initialise the reg_ssd object
+   void InitialiseMeasure(nifti_image *refImgPtr,
+                          nifti_image *floImgPtr,
+                          int *maskRefPtr,
+                          nifti_image *warFloImgPtr,
+                          nifti_image *warFloGraPtr,
+                          nifti_image *forVoxBasedGraPtr,
+                          int *maskFloPtr = NULL,
+                          nifti_image *warRefImgPtr = NULL,
+                          nifti_image *warRefGraPtr = NULL,
+                          nifti_image *bckVoxBasedGraPtr = NULL);
+   /// @brief Returns the ssd value
+   virtual double GetSimilarityMeasureValue();
+   /// @brief Compute the voxel based ssd gradient
+   virtual void GetVoxelBasedSimilarityMeasureGradient();
+   /// @brief Measure class desstructor
+   ~reg_ssd() {}
 protected:
-    float currentValue[255];
+   float currentValue[255];
 };
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
@@ -65,7 +65,7 @@ double reg_getSSDValue(nifti_image *targetImage,
                        nifti_image *jacobianDeterminantImage,
                        int *mask,
                        float *currentValue
-                       );
+                      );
 
 /** @brief Compute a voxel based gradient of the sum squared difference.
  * @param targetImage First input image to use to compute the metric
@@ -92,5 +92,5 @@ void reg_getVoxelBasedSSDGradient(nifti_image *targetImage,
                                   nifti_image *jacobianDeterminantImage,
                                   int *mask,
                                   float *currentValue
-                                  );
+                                 );
 #endif

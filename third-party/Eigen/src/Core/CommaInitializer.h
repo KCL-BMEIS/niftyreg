@@ -11,7 +11,8 @@
 #ifndef EIGEN_COMMAINITIALIZER_H
 #define EIGEN_COMMAINITIALIZER_H
 
-namespace Eigen { 
+namespace Eigen
+{
 
 /** \class CommaInitializer
   * \ingroup Core_Module
@@ -27,87 +28,90 @@ namespace Eigen {
 template<typename XprType>
 struct CommaInitializer
 {
-  typedef typename XprType::Scalar Scalar;
-  typedef typename XprType::Index Index;
+   typedef typename XprType::Scalar Scalar;
+   typedef typename XprType::Index Index;
 
-  inline CommaInitializer(XprType& xpr, const Scalar& s)
-    : m_xpr(xpr), m_row(0), m_col(1), m_currentBlockRows(1)
-  {
-    m_xpr.coeffRef(0,0) = s;
-  }
+   inline CommaInitializer(XprType &xpr, const Scalar &s)
+      : m_xpr(xpr), m_row(0), m_col(1), m_currentBlockRows(1)
+   {
+      m_xpr.coeffRef(0,0) = s;
+   }
 
-  template<typename OtherDerived>
-  inline CommaInitializer(XprType& xpr, const DenseBase<OtherDerived>& other)
-    : m_xpr(xpr), m_row(0), m_col(other.cols()), m_currentBlockRows(other.rows())
-  {
-    m_xpr.block(0, 0, other.rows(), other.cols()) = other;
-  }
+   template<typename OtherDerived>
+   inline CommaInitializer(XprType &xpr, const DenseBase<OtherDerived> &other)
+      : m_xpr(xpr), m_row(0), m_col(other.cols()), m_currentBlockRows(other.rows())
+   {
+      m_xpr.block(0, 0, other.rows(), other.cols()) = other;
+   }
 
-  /* inserts a scalar value in the target matrix */
-  CommaInitializer& operator,(const Scalar& s)
-  {
-    if (m_col==m_xpr.cols())
-    {
-      m_row+=m_currentBlockRows;
-      m_col = 0;
-      m_currentBlockRows = 1;
-      eigen_assert(m_row<m_xpr.rows()
-        && "Too many rows passed to comma initializer (operator<<)");
-    }
-    eigen_assert(m_col<m_xpr.cols()
-      && "Too many coefficients passed to comma initializer (operator<<)");
-    eigen_assert(m_currentBlockRows==1);
-    m_xpr.coeffRef(m_row, m_col++) = s;
-    return *this;
-  }
-
-  /* inserts a matrix expression in the target matrix */
-  template<typename OtherDerived>
-  CommaInitializer& operator,(const DenseBase<OtherDerived>& other)
-  {
-    if(other.cols()==0 || other.rows()==0)
+   /* inserts a scalar value in the target matrix */
+   CommaInitializer &operator,(const Scalar &s)
+   {
+      if (m_col==m_xpr.cols())
+      {
+         m_row+=m_currentBlockRows;
+         m_col = 0;
+         m_currentBlockRows = 1;
+         eigen_assert(m_row<m_xpr.rows()
+                      && "Too many rows passed to comma initializer (operator<<)");
+      }
+      eigen_assert(m_col<m_xpr.cols()
+                   && "Too many coefficients passed to comma initializer (operator<<)");
+      eigen_assert(m_currentBlockRows==1);
+      m_xpr.coeffRef(m_row, m_col++) = s;
       return *this;
-    if (m_col==m_xpr.cols())
-    {
-      m_row+=m_currentBlockRows;
-      m_col = 0;
-      m_currentBlockRows = other.rows();
-      eigen_assert(m_row+m_currentBlockRows<=m_xpr.rows()
-        && "Too many rows passed to comma initializer (operator<<)");
-    }
-    eigen_assert(m_col<m_xpr.cols()
-      && "Too many coefficients passed to comma initializer (operator<<)");
-    eigen_assert(m_currentBlockRows==other.rows());
-    if (OtherDerived::SizeAtCompileTime != Dynamic)
-      m_xpr.template block<OtherDerived::RowsAtCompileTime != Dynamic ? OtherDerived::RowsAtCompileTime : 1,
-                              OtherDerived::ColsAtCompileTime != Dynamic ? OtherDerived::ColsAtCompileTime : 1>
-                    (m_row, m_col) = other;
-    else
-      m_xpr.block(m_row, m_col, other.rows(), other.cols()) = other;
-    m_col += other.cols();
-    return *this;
-  }
+   }
 
-  inline ~CommaInitializer()
-  {
-    eigen_assert((m_row+m_currentBlockRows) == m_xpr.rows()
-         && m_col == m_xpr.cols()
-         && "Too few coefficients passed to comma initializer (operator<<)");
-  }
+   /* inserts a matrix expression in the target matrix */
+   template<typename OtherDerived>
+   CommaInitializer &operator,(const DenseBase<OtherDerived> &other)
+   {
+      if(other.cols()==0 || other.rows()==0)
+         return *this;
+      if (m_col==m_xpr.cols())
+      {
+         m_row+=m_currentBlockRows;
+         m_col = 0;
+         m_currentBlockRows = other.rows();
+         eigen_assert(m_row+m_currentBlockRows<=m_xpr.rows()
+                      && "Too many rows passed to comma initializer (operator<<)");
+      }
+      eigen_assert(m_col<m_xpr.cols()
+                   && "Too many coefficients passed to comma initializer (operator<<)");
+      eigen_assert(m_currentBlockRows==other.rows());
+      if (OtherDerived::SizeAtCompileTime != Dynamic)
+         m_xpr.template block<OtherDerived::RowsAtCompileTime != Dynamic ? OtherDerived::RowsAtCompileTime : 1,
+                        OtherDerived::ColsAtCompileTime != Dynamic ? OtherDerived::ColsAtCompileTime : 1>
+                        (m_row, m_col) = other;
+      else
+         m_xpr.block(m_row, m_col, other.rows(), other.cols()) = other;
+      m_col += other.cols();
+      return *this;
+   }
 
-  /** \returns the built matrix once all its coefficients have been set.
-    * Calling finished is 100% optional. Its purpose is to write expressions
-    * like this:
-    * \code
-    * quaternion.fromRotationMatrix((Matrix3f() << axis0, axis1, axis2).finished());
-    * \endcode
-    */
-  inline XprType& finished() { return m_xpr; }
+   inline ~CommaInitializer()
+   {
+      eigen_assert((m_row+m_currentBlockRows) == m_xpr.rows()
+                   && m_col == m_xpr.cols()
+                   && "Too few coefficients passed to comma initializer (operator<<)");
+   }
 
-  XprType& m_xpr;   // target expression
-  Index m_row;              // current row id
-  Index m_col;              // current col id
-  Index m_currentBlockRows; // current block height
+   /** \returns the built matrix once all its coefficients have been set.
+     * Calling finished is 100% optional. Its purpose is to write expressions
+     * like this:
+     * \code
+     * quaternion.fromRotationMatrix((Matrix3f() << axis0, axis1, axis2).finished());
+     * \endcode
+     */
+   inline XprType &finished()
+   {
+      return m_xpr;
+   }
+
+   XprType &m_xpr;   // target expression
+   Index m_row;              // current row id
+   Index m_col;              // current col id
+   Index m_currentBlockRows; // current block height
 };
 
 /** \anchor MatrixBaseCommaInitRef
@@ -118,24 +122,24 @@ struct CommaInitializer
   *
   * Example: \include MatrixBase_set.cpp
   * Output: \verbinclude MatrixBase_set.out
-  * 
+  *
   * \note According the c++ standard, the argument expressions of this comma initializer are evaluated in arbitrary order.
   *
   * \sa CommaInitializer::finished(), class CommaInitializer
   */
 template<typename Derived>
-inline CommaInitializer<Derived> DenseBase<Derived>::operator<< (const Scalar& s)
+inline CommaInitializer<Derived> DenseBase<Derived>::operator<< (const Scalar &s)
 {
-  return CommaInitializer<Derived>(*static_cast<Derived*>(this), s);
+   return CommaInitializer<Derived>(*static_cast<Derived*>(this), s);
 }
 
 /** \sa operator<<(const Scalar&) */
 template<typename Derived>
 template<typename OtherDerived>
 inline CommaInitializer<Derived>
-DenseBase<Derived>::operator<<(const DenseBase<OtherDerived>& other)
+DenseBase<Derived>::operator<<(const DenseBase<OtherDerived> &other)
 {
-  return CommaInitializer<Derived>(*static_cast<Derived *>(this), other);
+   return CommaInitializer<Derived>(*static_cast<Derived *>(this), other);
 }
 
 } // end namespace Eigen

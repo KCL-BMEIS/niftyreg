@@ -35,7 +35,8 @@
 
 #include "Eigen/src/Core/util/MKL_support.h"
 
-namespace Eigen { 
+namespace Eigen
+{
 
 /** \internal Specialization for the data types supported by MKL */
 

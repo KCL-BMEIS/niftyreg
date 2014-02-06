@@ -33,20 +33,22 @@
 #ifndef EIGEN_TRIANGULAR_MATRIX_MATRIX_MKL_H
 #define EIGEN_TRIANGULAR_MATRIX_MATRIX_MKL_H
 
-namespace Eigen { 
+namespace Eigen
+{
 
-namespace internal {
+namespace internal
+{
 
 
 template <typename Scalar, typename Index,
-          int Mode, bool LhsIsTriangular,
-          int LhsStorageOrder, bool ConjugateLhs,
-          int RhsStorageOrder, bool ConjugateRhs,
-          int ResStorageOrder>
+         int Mode, bool LhsIsTriangular,
+         int LhsStorageOrder, bool ConjugateLhs,
+         int RhsStorageOrder, bool ConjugateRhs,
+         int ResStorageOrder>
 struct product_triangular_matrix_matrix_trmm :
-       product_triangular_matrix_matrix<Scalar,Index,Mode,
-          LhsIsTriangular,LhsStorageOrder,ConjugateLhs,
-          RhsStorageOrder, ConjugateRhs, ResStorageOrder, BuiltIn> {};
+      product_triangular_matrix_matrix<Scalar,Index,Mode,
+      LhsIsTriangular,LhsStorageOrder,ConjugateLhs,
+      RhsStorageOrder, ConjugateRhs, ResStorageOrder, BuiltIn> {};
 
 
 // try to go to BLAS specialization

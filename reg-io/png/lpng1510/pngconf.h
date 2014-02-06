@@ -185,17 +185,17 @@
       defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__) ) &&\
     ( defined(_X86_) || defined(_X64_) || defined(_M_IX86) ||\
       defined(_M_X64) || defined(_M_IA64) )
-  /* Windows system (DOS doesn't support DLLs) running on x86/x64.  Includes
-   * builds under Cygwin or MinGW.  Also includes Watcom builds but these need
-   * special treatment because they are not compatible with GCC or Visual C
-   * because of different calling conventions.
-   */
+/* Windows system (DOS doesn't support DLLs) running on x86/x64.  Includes
+ * builds under Cygwin or MinGW.  Also includes Watcom builds but these need
+ * special treatment because they are not compatible with GCC or Visual C
+ * because of different calling conventions.
+ */
 #  if PNG_API_RULE == 2
-    /* If this line results in an error, either because __watcall is not
-     * understood or because of a redefine just below you cannot use *this*
-     * build of the library with the compiler you are using.  *This* build was
-     * build using Watcom and applications must also be built using Watcom!
-     */
+/* If this line results in an error, either because __watcall is not
+ * understood or because of a redefine just below you cannot use *this*
+ * build of the library with the compiler you are using.  *This* build was
+ * build using Watcom and applications must also be built using Watcom!
+ */
 #    define PNGCAPI __watcall
 #  endif
 
@@ -205,10 +205,10 @@
 #      define PNGAPI __stdcall
 #    endif
 #  else
-    /* An older compiler, or one not detected (erroneously) above,
-     * if necessary override on the command line to get the correct
-     * variants for the compiler.
-     */
+/* An older compiler, or one not detected (erroneously) above,
+ * if necessary override on the command line to get the correct
+ * variants for the compiler.
+ */
 #    ifndef PNGCAPI
 #      define PNGCAPI _cdecl
 #    endif
@@ -216,18 +216,19 @@
 #      define PNGAPI _stdcall
 #    endif
 #  endif /* compiler/api */
-  /* NOTE: PNGCBAPI always defaults to PNGCAPI. */
+/* NOTE: PNGCBAPI always defaults to PNGCAPI. */
 
 #  if defined(PNGAPI) && !defined(PNG_USER_PRIVATEBUILD)
-   ERROR: PNG_USER_PRIVATEBUILD must be defined if PNGAPI is changed
+ERROR:
+PNG_USER_PRIVATEBUILD must be defined if PNGAPI is changed
 #  endif
 
 #  if (defined(_MSC_VER) && _MSC_VER < 800) ||\
       (defined(__BORLANDC__) && __BORLANDC__ < 0x500)
-    /* older Borland and MSC
-     * compilers used '__export' and required this to be after
-     * the type.
-     */
+/* older Borland and MSC
+ * compilers used '__export' and required this to be after
+ * the type.
+ */
 #    ifndef PNG_EXPORT_TYPE
 #      define PNG_EXPORT_TYPE(type) type PNG_IMPEXP
 #    endif
@@ -243,9 +244,9 @@
 #  if (defined(__IBMC__) || defined(__IBMCPP__)) && defined(__OS2__)
 #    define PNGAPI _System
 #  else /* !Windows/x86 && !OS/2 */
-    /* Use the defaults, or define PNG*API on the command line (but
-     * this will have to be done for every compile!)
-     */
+/* Use the defaults, or define PNG*API on the command line (but
+ * this will have to be done for every compile!)
+ */
 #  endif /* other system, !OS/2 */
 #endif /* !Windows/x86 */
 
@@ -266,7 +267,7 @@
  */
 #ifndef PNG_IMPEXP
 #  if defined(PNG_USE_DLL) && defined(PNG_DLL_IMPORT)
-     /* This forces use of a DLL, disallowing static linking */
+/* This forces use of a DLL, disallowing static linking */
 #    define PNG_IMPEXP PNG_DLL_IMPORT
 #  endif
 
@@ -290,10 +291,10 @@
 #  define PNG_EXPORT_TYPE(type) PNG_IMPEXP type
 #endif
 
-   /* The ordinal value is only relevant when preprocessing png.h for symbol
-    * table entries, so we discard it here.  See the .dfn files in the
-    * scripts directory.
-    */
+/* The ordinal value is only relevant when preprocessing png.h for symbol
+ * table entries, so we discard it here.  See the .dfn files in the
+ * scripts directory.
+ */
 #ifndef PNG_EXPORTA
 
 #  define PNG_EXPORTA(ordinal, type, name, args, attributes)\
@@ -332,11 +333,11 @@
 #endif
 
 #ifdef PNG_PEDANTIC_WARNINGS_SUPPORTED
-  /* Support for compiler specific function attributes.  These are used
-   * so that where compiler support is available incorrect use of API
-   * functions in png.h will generate compiler warnings.  Added at libpng
-   * version 1.2.41.
-   */
+/* Support for compiler specific function attributes.  These are used
+ * so that where compiler support is available incorrect use of API
+ * functions in png.h will generate compiler warnings.  Added at libpng
+ * version 1.2.41.
+ */
 #  if defined(__GNUC__)
 #    ifndef PNG_USE_RESULT
 #      define PNG_USE_RESULT __attribute__((__warn_unused_result__))
@@ -473,7 +474,7 @@ typedef size_t png_size_t;
 #  else
 #    define LDATA 0
 #  endif
-  /* GRR:  why is Cygwin in here?  Cygwin is not Borland C... */
+/* GRR:  why is Cygwin in here?  Cygwin is not Borland C... */
 #  if !defined(__WIN32__) && !defined(__FLAT__) && !defined(__CYGWIN__)
 #    define PNG_MAX_MALLOC_64K /* only used in build */
 #    if (LDATA != 1)
@@ -482,11 +483,11 @@ typedef size_t png_size_t;
 #      endif
 #      define USE_FAR_KEYWORD
 #    endif   /* LDATA != 1 */
-         /* Possibly useful for moving data out of default segment.
-          * Uncomment it if you want. Could also define FARDATA as
-          * const if your compiler supports it. (SJT)
+/* Possibly useful for moving data out of default segment.
+ * Uncomment it if you want. Could also define FARDATA as
+ * const if your compiler supports it. (SJT)
 #        define FARDATA FAR
-          */
+ */
 #  endif  /* __WIN32__, __FLAT__, __CYGWIN__ */
 #endif   /* __BORLANDC__ */
 
@@ -575,20 +576,20 @@ typedef char            FAR * FAR * FAR * png_charppp;
  * to encounter practical situations that require such conversions.
  */
 #if defined(__TURBOC__) && !defined(__FLAT__)
-   typedef unsigned long png_alloc_size_t;
+typedef unsigned long png_alloc_size_t;
 #else
 #  if defined(_MSC_VER) && defined(MAXSEG_64K)
-     typedef unsigned long    png_alloc_size_t;
+typedef unsigned long    png_alloc_size_t;
 #  else
-     /* This is an attempt to detect an old Windows system where (int) is
-      * actually 16 bits, in that case png_malloc must have an argument with a
-      * bigger size to accomodate the requirements of the library.
-      */
+/* This is an attempt to detect an old Windows system where (int) is
+ * actually 16 bits, in that case png_malloc must have an argument with a
+ * bigger size to accomodate the requirements of the library.
+ */
 #    if (defined(_Windows) || defined(_WINDOWS) || defined(_WINDOWS_)) && \
         (!defined(INT_MAX) || INT_MAX <= 0x7ffffffeL)
-       typedef DWORD         png_alloc_size_t;
+typedef DWORD         png_alloc_size_t;
 #    else
-       typedef png_size_t    png_alloc_size_t;
+typedef png_size_t    png_alloc_size_t;
 #    endif
 #  endif
 #endif
