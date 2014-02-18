@@ -104,7 +104,8 @@ PrecisionTYPE reg_getMaximalLength(nifti_image *image);
  * @param image Image to be updated.
  */
 extern "C++" template <class NewTYPE>
-void reg_tools_changeDatatype(nifti_image *image);
+void reg_tools_changeDatatype(nifti_image *image,
+                              int type=-1);
 /* *************************************************************** */
 /** @brief Add two images.
  * @param img1 First image to consider

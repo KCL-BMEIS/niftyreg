@@ -52,7 +52,7 @@ int reg_io_checkFileFormat(const char *filename)
       return NR_PNG_FORMAT;
    else if(b.find( ".nrrd") != std::string::npos)
       return NR_NRRD_FORMAT;
-   else if(b.find( ".nhrd") != std::string::npos)
+   else if(b.find( ".nhdr") != std::string::npos)
       return NR_NRRD_FORMAT;
    else fprintf(stderr, "[NiftyReg WARNING]: No filename extension provided - the Nifti library is used by default\n");
 

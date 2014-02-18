@@ -352,43 +352,45 @@ int main(int argc, char **argv)
          reg_checkAndCorrectDimension(image2);
       }
       // Images are converted to the higher datatype
-      switch(image->datatype>image2->datatype?image->datatype:image2->datatype)
-      {
-      case NIFTI_TYPE_UINT8:
-         reg_tools_changeDatatype<unsigned char>(image);
-         reg_tools_changeDatatype<unsigned char>(image2);
-         break;
-      case NIFTI_TYPE_INT8:
-         reg_tools_changeDatatype<char>(image);
-         reg_tools_changeDatatype<char>(image2);
-         break;
-      case NIFTI_TYPE_UINT16:
-         reg_tools_changeDatatype<unsigned short>(image);
-         reg_tools_changeDatatype<unsigned short>(image2);
-         break;
-      case NIFTI_TYPE_INT16:
-         reg_tools_changeDatatype<short>(image);
-         reg_tools_changeDatatype<short>(image2);
-         break;
-      case NIFTI_TYPE_UINT32:
-         reg_tools_changeDatatype<unsigned int>(image);
-         reg_tools_changeDatatype<unsigned int>(image2);
-         break;
-      case NIFTI_TYPE_INT32:
-         reg_tools_changeDatatype<int>(image);
-         reg_tools_changeDatatype<int>(image2);
-         break;
-      case NIFTI_TYPE_FLOAT32:
-         reg_tools_changeDatatype<float>(image);
-         reg_tools_changeDatatype<float>(image2);
-         break;
-      case NIFTI_TYPE_FLOAT64:
-         reg_tools_changeDatatype<double>(image);
-         reg_tools_changeDatatype<double>(image2);
-         break;
-      default:
-         reg_print_msg_error("Unsurported data type.");
-         reg_exit(1);
+      if(image2!=NULL){
+         switch(image->datatype>image2->datatype?image->datatype:image2->datatype)
+         {
+         case NIFTI_TYPE_UINT8:
+            reg_tools_changeDatatype<unsigned char>(image,NIFTI_TYPE_UINT8);
+            reg_tools_changeDatatype<unsigned char>(image2,NIFTI_TYPE_UINT8);
+            break;
+         case NIFTI_TYPE_INT8:
+            reg_tools_changeDatatype<char>(image,NIFTI_TYPE_INT8);
+            reg_tools_changeDatatype<char>(image2,NIFTI_TYPE_INT8);
+            break;
+         case NIFTI_TYPE_UINT16:
+            reg_tools_changeDatatype<unsigned short>(image,NIFTI_TYPE_UINT16);
+            reg_tools_changeDatatype<unsigned short>(image2,NIFTI_TYPE_UINT16);
+            break;
+         case NIFTI_TYPE_INT16:
+            reg_tools_changeDatatype<short>(image,NIFTI_TYPE_INT16);
+            reg_tools_changeDatatype<short>(image2,NIFTI_TYPE_INT16);
+            break;
+         case NIFTI_TYPE_UINT32:
+            reg_tools_changeDatatype<unsigned int>(image,NIFTI_TYPE_UINT32);
+            reg_tools_changeDatatype<unsigned int>(image2,NIFTI_TYPE_UINT32);
+            break;
+         case NIFTI_TYPE_INT32:
+            reg_tools_changeDatatype<int>(image,NIFTI_TYPE_INT32);
+            reg_tools_changeDatatype<int>(image2,NIFTI_TYPE_INT32);
+            break;
+         case NIFTI_TYPE_FLOAT32:
+            reg_tools_changeDatatype<float>(image,NIFTI_TYPE_FLOAT32);
+            reg_tools_changeDatatype<float>(image2,NIFTI_TYPE_FLOAT32);
+            break;
+         case NIFTI_TYPE_FLOAT64:
+            reg_tools_changeDatatype<double>(image,NIFTI_TYPE_FLOAT64);
+            reg_tools_changeDatatype<double>(image2,NIFTI_TYPE_FLOAT64);
+            break;
+         default:
+            reg_print_msg_error("Unsurported data type.");
+            reg_exit(1);
+         }
       }
 
       nifti_image *resultImage = nifti_copy_nim_info(image);
@@ -519,88 +521,88 @@ int main(int argc, char **argv)
    }
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 
-//    reg_tools_changeDatatype<float>(image);
-//    nifti_image *temp=nifti_copy_nim_info(image);
-//    temp->scl_inter=0.f;
-//    temp->scl_slope=1.f;
-//    temp->data=(void *)calloc(temp->nbyper,temp->nvox);
-//    float *imgPtr = static_cast<float *>(image->data);
-//    float *tmpPtr = static_cast<float *>(temp->data);
+   //    reg_tools_changeDatatype<float>(image);
+   //    nifti_image *temp=nifti_copy_nim_info(image);
+   //    temp->scl_inter=0.f;
+   //    temp->scl_slope=1.f;
+   //    temp->data=(void *)calloc(temp->nbyper,temp->nvox);
+   //    float *imgPtr = static_cast<float *>(image->data);
+   //    float *tmpPtr = static_cast<float *>(temp->data);
 
-//    size_t blockNumber=(image->nx/4)*(image->ny/4)*(image->nz/4);
+   //    size_t blockNumber=(image->nx/4)*(image->ny/4)*(image->nz/4);
 
-//    float *block_values=new float[blockNumber];
+   //    float *block_values=new float[blockNumber];
 
-//    size_t blockIndex=0;
-//    int znum=0;
-//    for(size_t z=0; z<image->nz; z+=4){
-//        int blockZ[2]={z,z+4};
+   //    size_t blockIndex=0;
+   //    int znum=0;
+   //    for(size_t z=0; z<image->nz; z+=4){
+   //        int blockZ[2]={z,z+4};
 
 
-//        if(blockZ[1]<=image->nz){
-//            znum++;
+   //        if(blockZ[1]<=image->nz){
+   //            znum++;
 
-//            for(size_t y=0; y<image->ny; y+=4){
-//                int blockY[2]={y,y+4};
+   //            for(size_t y=0; y<image->ny; y+=4){
+   //                int blockY[2]={y,y+4};
 
-//                if(blockY[1]<=image->ny){
+   //                if(blockY[1]<=image->ny){
 
-//                    for(size_t x=0; x<image->nx; x+=4){
-//                        int blockX[2]={x,x+4};
+   //                    for(size_t x=0; x<image->nx; x+=4){
+   //                        int blockX[2]={x,x+4};
 
-//                        if(blockX[1]<=image->nx){
+   //                        if(blockX[1]<=image->nx){
 
-//                            float mean=0;
-//                            for(int zz=blockZ[0];zz<blockZ[1];++zz){
-//                                for(int yy=blockY[0];yy<blockY[1];++yy){
-//                                    for(int xx=blockX[0];xx<blockX[1];++xx){
-//                                        mean+=imgPtr[(zz*image->ny+yy)*image->nx+xx];
-//                                    }
-//                                }
-//                            }
-//                            mean/=64.f;
-//                            float stddev=0;
-//                            for(int zz=blockZ[0];zz<blockZ[1];++zz){
-//                                for(int yy=blockY[0];yy<blockY[1];++yy){
-//                                    for(int xx=blockX[0];xx<blockX[1];++xx){
-//                                        stddev+=(mean-imgPtr[(zz*image->ny+yy)*image->nx+xx])*(mean-imgPtr[(zz*image->ny+yy)*image->nx+xx]);
-//                                    }
-//                                }
-//                            }
-//                            stddev/=64.f;
-//                            block_values[blockIndex]=stddev;
-//                            blockIndex++;
-//                        } //ifx
-//                    } //x
-//                } //ify
-//            } //y
-//        } //ifz
-//    } //z
-//    int *block_index=new int[blockNumber];
-//    for(int i=0;i<blockNumber;++i){
-//        block_index[i]=i;
-//    }
+   //                            float mean=0;
+   //                            for(int zz=blockZ[0];zz<blockZ[1];++zz){
+   //                                for(int yy=blockY[0];yy<blockY[1];++yy){
+   //                                    for(int xx=blockX[0];xx<blockX[1];++xx){
+   //                                        mean+=imgPtr[(zz*image->ny+yy)*image->nx+xx];
+   //                                    }
+   //                                }
+   //                            }
+   //                            mean/=64.f;
+   //                            float stddev=0;
+   //                            for(int zz=blockZ[0];zz<blockZ[1];++zz){
+   //                                for(int yy=blockY[0];yy<blockY[1];++yy){
+   //                                    for(int xx=blockX[0];xx<blockX[1];++xx){
+   //                                        stddev+=(mean-imgPtr[(zz*image->ny+yy)*image->nx+xx])*(mean-imgPtr[(zz*image->ny+yy)*image->nx+xx]);
+   //                                    }
+   //                                }
+   //                            }
+   //                            stddev/=64.f;
+   //                            block_values[blockIndex]=stddev;
+   //                            blockIndex++;
+   //                        } //ifx
+   //                    } //x
+   //                } //ify
+   //            } //y
+   //        } //ifz
+   //    } //z
+   //    int *block_index=new int[blockNumber];
+   //    for(int i=0;i<blockNumber;++i){
+   //        block_index[i]=i;
+   //    }
 
-//    reg_heapSort(block_values,block_index,blockNumber);
+   //    reg_heapSort(block_values,block_index,blockNumber);
 
-//    for(int i=blockNumber-1;i>blockNumber/2;--i){
+   //    for(int i=blockNumber-1;i>blockNumber/2;--i){
 
-//        int z=block_index[i]/((int)floor(image->nx/4)*(int)floor(image->ny/4));
-//        int temporary=block_index[i]-z*(int)floor(image->nx/4)*(int)floor(image->ny/4);
-//        int y=temporary/(int)floor(image->nx/4);
-//        int x=temporary-y*(int)floor(image->nx/4);
-//        for(int zz=z*4;zz<z*4+4;++zz){
-//            for(int yy=y*4;yy<y*4+4;++yy){
-//                for(int xx=x*4;xx<x*4+4;++xx){
-//                    tmpPtr[(zz*image->ny+yy)*image->nx+xx]=1.f;
-//                }
-//            }
-//        }
-//    }
-//    delete []block_index;
-//    delete []block_values;
-//    reg_io_WriteImageFile(temp,param->outputImageName);
-//    nifti_image_free(temp);
+   //        int z=block_index[i]/((int)floor(image->nx/4)*(int)floor(image->ny/4));
+   //        int temporary=block_index[i]-z*(int)floor(image->nx/4)*(int)floor(image->ny/4);
+   //        int y=temporary/(int)floor(image->nx/4);
+   //        int x=temporary-y*(int)floor(image->nx/4);
+   //        for(int zz=z*4;zz<z*4+4;++zz){
+   //            for(int yy=y*4;yy<y*4+4;++yy){
+   //                for(int xx=x*4;xx<x*4+4;++xx){
+   //                    tmpPtr[(zz*image->ny+yy)*image->nx+xx]=1.f;
+   //                }
+   //            }
+   //        }
+   //    }
+   //    delete []block_index;
+   //    delete []block_values;
+   //    reg_io_WriteImageFile(temp,param->outputImageName);
+   //    nifti_image_free(temp);
 
    nifti_image_free(image);
    return 0;

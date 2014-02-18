@@ -383,20 +383,25 @@ template double reg_getMaximalLength<double>(nifti_image *);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class NewTYPE, class DTYPE>
-void reg_tools_changeDatatype1(nifti_image *image)
+void reg_tools_changeDatatype1(nifti_image *image,int type)
 {
    // the initial array is saved and freeed
    DTYPE *initialValue = (DTYPE *)malloc(image->nvox*sizeof(DTYPE));
    memcpy(initialValue, image->data, image->nvox*sizeof(DTYPE));
 
    // the new array is allocated and then filled
-   if(sizeof(NewTYPE)==sizeof(unsigned char)) image->datatype = NIFTI_TYPE_UINT8;
-   else if(sizeof(NewTYPE)==sizeof(float)) image->datatype = NIFTI_TYPE_FLOAT32;
-   else if(sizeof(NewTYPE)==sizeof(double)) image->datatype = NIFTI_TYPE_FLOAT64;
-   else
-   {
-      fprintf(stderr,"[NiftyReg ERROR] reg_tools_changeDatatype\tOnly change to unsigned char, float or double are supported\n");
-      exit(1);
+   if(type>-1){
+      image->datatype=type;
+   }
+   else{
+      if(sizeof(NewTYPE)==sizeof(unsigned char)) image->datatype = NIFTI_TYPE_UINT8;
+      else if(sizeof(NewTYPE)==sizeof(float)) image->datatype = NIFTI_TYPE_FLOAT32;
+      else if(sizeof(NewTYPE)==sizeof(double)) image->datatype = NIFTI_TYPE_FLOAT64;
+      else
+      {
+         fprintf(stderr,"[NiftyReg ERROR] reg_tools_changeDatatype\tOnly change to unsigned char, float or double are supported\n");
+         exit(1);
+      }
    }
    free(image->data);
    image->nbyper = sizeof(NewTYPE);
@@ -410,33 +415,33 @@ void reg_tools_changeDatatype1(nifti_image *image)
 }
 /* *************************************************************** */
 template <class NewTYPE>
-void reg_tools_changeDatatype(nifti_image *image)
+void reg_tools_changeDatatype(nifti_image *image, int type)
 {
    switch(image->datatype)
    {
    case NIFTI_TYPE_UINT8:
-      reg_tools_changeDatatype1<NewTYPE,unsigned char>(image);
+      reg_tools_changeDatatype1<NewTYPE,unsigned char>(image,type);
       break;
    case NIFTI_TYPE_INT8:
-      reg_tools_changeDatatype1<NewTYPE,char>(image);
+      reg_tools_changeDatatype1<NewTYPE,char>(image,type);
       break;
    case NIFTI_TYPE_UINT16:
-      reg_tools_changeDatatype1<NewTYPE,unsigned short>(image);
+      reg_tools_changeDatatype1<NewTYPE,unsigned short>(image,type);
       break;
    case NIFTI_TYPE_INT16:
-      reg_tools_changeDatatype1<NewTYPE,short>(image);
+      reg_tools_changeDatatype1<NewTYPE,short>(image,type);
       break;
    case NIFTI_TYPE_UINT32:
-      reg_tools_changeDatatype1<NewTYPE,unsigned int>(image);
+      reg_tools_changeDatatype1<NewTYPE,unsigned int>(image,type);
       break;
    case NIFTI_TYPE_INT32:
-      reg_tools_changeDatatype1<NewTYPE,int>(image);
+      reg_tools_changeDatatype1<NewTYPE,int>(image,type);
       break;
    case NIFTI_TYPE_FLOAT32:
-      reg_tools_changeDatatype1<NewTYPE,float>(image);
+      reg_tools_changeDatatype1<NewTYPE,float>(image,type);
       break;
    case NIFTI_TYPE_FLOAT64:
-      reg_tools_changeDatatype1<NewTYPE,double>(image);
+      reg_tools_changeDatatype1<NewTYPE,double>(image,type);
       break;
    default:
       fprintf(stderr,"[NiftyReg ERROR] reg_tools_changeDatatype\tThe initial image data type is not supported\n");
@@ -444,14 +449,14 @@ void reg_tools_changeDatatype(nifti_image *image)
    }
 }
 /* *************************************************************** */
-template void reg_tools_changeDatatype<unsigned char>(nifti_image *);
-template void reg_tools_changeDatatype<unsigned short>(nifti_image *);
-template void reg_tools_changeDatatype<unsigned int>(nifti_image *);
-template void reg_tools_changeDatatype<char>(nifti_image *);
-template void reg_tools_changeDatatype<short>(nifti_image *);
-template void reg_tools_changeDatatype<int>(nifti_image *);
-template void reg_tools_changeDatatype<float>(nifti_image *);
-template void reg_tools_changeDatatype<double>(nifti_image *);
+template void reg_tools_changeDatatype<unsigned char>(nifti_image *, int);
+template void reg_tools_changeDatatype<unsigned short>(nifti_image *, int);
+template void reg_tools_changeDatatype<unsigned int>(nifti_image *, int);
+template void reg_tools_changeDatatype<char>(nifti_image *, int);
+template void reg_tools_changeDatatype<short>(nifti_image *, int);
+template void reg_tools_changeDatatype<int>(nifti_image *, int);
+template void reg_tools_changeDatatype<float>(nifti_image *, int);
+template void reg_tools_changeDatatype<double>(nifti_image *, int);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class TYPE1>

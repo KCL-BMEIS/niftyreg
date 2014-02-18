@@ -1085,7 +1085,8 @@ void reg_f3d<T>::GetObjectiveFunctionGradient()
    if(!this->useApproxGradient)
    {
       // Compute the gradient of the similarity measure
-      if(this->similarityWeight>0)
+      if(this->similarityWeight>0 &&
+         (this->measure_nmi!=NULL || this->measure_multichannel_nmi!=NULL) )
       {
          this->WarpFloatingImage(this->interpolation);
          this->ComputeSimilarityMeasure();
