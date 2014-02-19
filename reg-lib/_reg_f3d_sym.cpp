@@ -459,9 +459,9 @@ void reg_f3d_sym<T>::Initialise()
    if(this->spacing[0]<0)
       gridSpacing[0] *= -(this->inputReference->dx+this->inputFloating->dx)/2.f;
    if(this->spacing[1]<0)
-      gridSpacing[1] *= -(this->inputReference->dx+this->inputFloating->dx)/2.f;
+      gridSpacing[1] *= -(this->inputReference->dy+this->inputFloating->dy)/2.f;
    if(this->spacing[2]<0)
-      gridSpacing[2] *= -(this->inputReference->dx+this->inputFloating->dx)/2.f;
+      gridSpacing[2] *= -(this->inputReference->dz+this->inputFloating->dz)/2.f;
    gridSpacing[0] *= powf(2.0f, (float)(this->levelNumber-1));
    gridSpacing[1] *= powf(2.0f, (float)(this->levelNumber-1));
    gridSpacing[2] *= powf(2.0f, (float)(this->levelNumber-1));
