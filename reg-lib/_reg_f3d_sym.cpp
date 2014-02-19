@@ -1084,7 +1084,6 @@ void reg_f3d_sym<T>::GetObjectiveFunctionGradient()
          (this->measure_nmi!=NULL || this->measure_multichannel_nmi!=NULL))
       {
          this->WarpFloatingImage(this->interpolation);
-         this->ComputeSimilarityMeasure();
          this->GetSimilarityMeasureGradient();
       }
       else

@@ -766,6 +766,10 @@ void reg_nmi::GetVoxelBasedSimilarityMeasureGradient()
       fprintf(stderr, "[NiftyReg ERROR] Input images are exepected to be of the same type\n");
       reg_exit(1);
    }
+
+   //call compute similarity measure to calculate joint histogram
+   this->GetSimilarityMeasureValue();
+   
    // Compute the gradient of the nmi for the forward transformation
    if(this->referenceImagePointer->nz>1)  // 3D input images
    {
