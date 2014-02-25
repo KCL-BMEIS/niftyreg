@@ -121,9 +121,9 @@ void get_SlidedValues(DTYPE &defX,
       int shiftIndexX=X-newX;
       int shiftIndexY=Y-newY;
       shiftValueX = shiftIndexX * df_voxel2Real->m[0][0] +
-                    shiftIndexY * df_voxel2Real->m[0][1];
+            shiftIndexY * df_voxel2Real->m[0][1];
       shiftValueY = shiftIndexX * df_voxel2Real->m[1][0] +
-                    shiftIndexY * df_voxel2Real->m[1][1];
+            shiftIndexY * df_voxel2Real->m[1][1];
    }
    size_t index=newY*dim[1]+newX;
    defX = defPtrX[index] + shiftValueX;
@@ -180,17 +180,17 @@ void get_SlidedValues(DTYPE &defX,
       int shiftIndexY=Y-newY;
       int shiftIndexZ=Z-newZ;
       shiftValueX =
-         shiftIndexX * df_voxel2Real->m[0][0] +
-         shiftIndexY * df_voxel2Real->m[0][1] +
-         shiftIndexZ * df_voxel2Real->m[0][2];
+            shiftIndexX * df_voxel2Real->m[0][0] +
+            shiftIndexY * df_voxel2Real->m[0][1] +
+            shiftIndexZ * df_voxel2Real->m[0][2];
       shiftValueY =
-         shiftIndexX * df_voxel2Real->m[1][0] +
-         shiftIndexY * df_voxel2Real->m[1][1] +
-         shiftIndexZ * df_voxel2Real->m[1][2];
+            shiftIndexX * df_voxel2Real->m[1][0] +
+            shiftIndexY * df_voxel2Real->m[1][1] +
+            shiftIndexZ * df_voxel2Real->m[1][2];
       shiftValueZ =
-         shiftIndexX * df_voxel2Real->m[2][0] +
-         shiftIndexY * df_voxel2Real->m[2][1] +
-         shiftIndexZ * df_voxel2Real->m[2][2];
+            shiftIndexX * df_voxel2Real->m[2][0] +
+            shiftIndexY * df_voxel2Real->m[2][1] +
+            shiftIndexZ * df_voxel2Real->m[2][2];
    }
    size_t index=(newZ*dim[2]+newY)*dim[1]+newX;
    defX = defPtrX[index] + shiftValueX;
@@ -398,15 +398,15 @@ void reg_createControlPointGrid(nifti_image **controlPointGridImage,
    (*controlPointGridImage)->qoffset_z=referenceImage->qoffset_z;
    (*controlPointGridImage)->qfac=referenceImage->qfac;
    (*controlPointGridImage)->qto_xyz = nifti_quatern_to_mat44((*controlPointGridImage)->quatern_b,
-                                       (*controlPointGridImage)->quatern_c,
-                                       (*controlPointGridImage)->quatern_d,
-                                       (*controlPointGridImage)->qoffset_x,
-                                       (*controlPointGridImage)->qoffset_y,
-                                       (*controlPointGridImage)->qoffset_z,
-                                       (*controlPointGridImage)->dx,
-                                       (*controlPointGridImage)->dy,
-                                       (*controlPointGridImage)->dz,
-                                       (*controlPointGridImage)->qfac);
+                                                              (*controlPointGridImage)->quatern_c,
+                                                              (*controlPointGridImage)->quatern_d,
+                                                              (*controlPointGridImage)->qoffset_x,
+                                                              (*controlPointGridImage)->qoffset_y,
+                                                              (*controlPointGridImage)->qoffset_z,
+                                                              (*controlPointGridImage)->dx,
+                                                              (*controlPointGridImage)->dy,
+                                                              (*controlPointGridImage)->dz,
+                                                              (*controlPointGridImage)->qfac);
 
    // Origin is shifted from 1 control point in the qform
    float originIndex[3];
@@ -465,11 +465,11 @@ template void reg_createControlPointGrid<double>(nifti_image **, nifti_image *, 
 /* *************************************************************** */
 template <class DTYPE>
 void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
-      nifti_image **backwardGridImage,
-      nifti_image *referenceImage,
-      nifti_image *floatingImage,
-      mat44 *forwardAffineTrans,
-      float *spacing)
+                                          nifti_image **backwardGridImage,
+                                          nifti_image *referenceImage,
+                                          nifti_image *floatingImage,
+                                          mat44 *forwardAffineTrans,
+                                          float *spacing)
 {
    // Delete the grid if they are already initialised
    if(*forwardGridImage!=NULL)
@@ -600,19 +600,19 @@ void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
       for(int c=0; c<4; ++c)
       {
          out[0]= referenceImageCorners[c][0] * referenceImageSpace.m[0][0]
-                 +referenceImageCorners[c][1] * referenceImageSpace.m[0][1]
-                 + referenceImageSpace.m[0][3];
+               +referenceImageCorners[c][1] * referenceImageSpace.m[0][1]
+               + referenceImageSpace.m[0][3];
          out[1]= referenceImageCorners[c][0] * referenceImageSpace.m[1][0]
-                 +referenceImageCorners[c][1] * referenceImageSpace.m[1][1]
-                 + referenceImageSpace.m[1][3];
+               +referenceImageCorners[c][1] * referenceImageSpace.m[1][1]
+               + referenceImageSpace.m[1][3];
          referenceImageCorners[c][0]=out[0];
          referenceImageCorners[c][1]=out[1];
          out[0]= floatingImageCorners[c][0] * floatingImageSpace.m[0][0]
-                 +floatingImageCorners[c][1] * floatingImageSpace.m[0][1]
-                 + floatingImageSpace.m[0][3];
+               +floatingImageCorners[c][1] * floatingImageSpace.m[0][1]
+               + floatingImageSpace.m[0][3];
          out[1]= floatingImageCorners[c][0] * floatingImageSpace.m[1][0]
-                 +floatingImageCorners[c][1] * floatingImageSpace.m[1][1]
-                 + floatingImageSpace.m[1][3];
+               +floatingImageCorners[c][1] * floatingImageSpace.m[1][1]
+               + floatingImageSpace.m[1][3];
          floatingImageCorners[c][0]=out[0];
          floatingImageCorners[c][1]=out[1];
 
@@ -840,11 +840,11 @@ void reg_spline_getDeformationField2D(nifti_image *splineControlPoint,
 
             // From real to pixel position in the CPP
             xVoxel = referenceMatrix_real_to_voxel->m[0][0]*xReal
-                     + referenceMatrix_real_to_voxel->m[0][1]*yReal
-                     + referenceMatrix_real_to_voxel->m[0][3];
+                  + referenceMatrix_real_to_voxel->m[0][1]*yReal
+                  + referenceMatrix_real_to_voxel->m[0][3];
             yVoxel = referenceMatrix_real_to_voxel->m[1][0]*xReal
-                     + referenceMatrix_real_to_voxel->m[1][1]*yReal
-                     + referenceMatrix_real_to_voxel->m[1][3];
+                  + referenceMatrix_real_to_voxel->m[1][1]*yReal
+                  + referenceMatrix_real_to_voxel->m[1][3];
 
             // The spline coefficients are computed
             xPre=(int)reg_floor(xVoxel);
@@ -879,7 +879,7 @@ void reg_spline_getDeformationField2D(nifti_image *splineControlPoint,
                                         yControlPointCoordinates.f,
                                         false, // no approximation
                                         false // not a displacement field
-                                       );
+                                        );
 #else // _USE_SSE
                   get_GridValues<DTYPE>(xPre,
                                         yPre,
@@ -890,7 +890,7 @@ void reg_spline_getDeformationField2D(nifti_image *splineControlPoint,
                                         yControlPointCoordinates,
                                         false, // no approximation
                                         false // not a displacement field
-                                       );
+                                        );
 #endif // _USE_SSE
                   oldXpre=xPre;
                   oldYpre=yPre;
@@ -948,18 +948,18 @@ void reg_spline_getDeformationField2D(nifti_image *splineControlPoint,
 
 #if defined (NDEBUG) && defined (_OPENMP)
 #ifdef _USE_SSE
-      #pragma  omp parallel for default(none) \
-      shared(deformationField, gridVoxelSpacing, splineControlPoint, controlPointPtrX, \
-             controlPointPtrY, mask, fieldPtrX, fieldPtrY, bspline) \
-      private(x, y, a, xPre, yPre, oldXpre, oldYpre, index, xReal, yReal, basis, \
-              val, temp, yBasis, tempCurrent, xyBasis, tempX, tempY, \
-              xControlPointCoordinates, yControlPointCoordinates)
+#pragma  omp parallel for default(none) \
+   shared(deformationField, gridVoxelSpacing, splineControlPoint, controlPointPtrX, \
+   controlPointPtrY, mask, fieldPtrX, fieldPtrY, bspline) \
+   private(x, y, a, xPre, yPre, oldXpre, oldYpre, index, xReal, yReal, basis, \
+   val, temp, yBasis, tempCurrent, xyBasis, tempX, tempY, \
+   xControlPointCoordinates, yControlPointCoordinates)
 #else // _USE_SSE
-      #pragma  omp parallel for default(none) \
-      shared(deformationField, gridVoxelSpacing, splineControlPoint, controlPointPtrX, \
-             controlPointPtrY, mask, fieldPtrX, fieldPtrY, bspline) \
-      private(x, y, a, xPre, yPre, oldXpre, oldYpre, index, xReal, yReal, basis, coord, \
-              temp, yBasis, xyBasis, xControlPointCoordinates, yControlPointCoordinates)
+#pragma  omp parallel for default(none) \
+   shared(deformationField, gridVoxelSpacing, splineControlPoint, controlPointPtrX, \
+   controlPointPtrY, mask, fieldPtrX, fieldPtrY, bspline) \
+   private(x, y, a, xPre, yPre, oldXpre, oldYpre, index, xReal, yReal, basis, coord, \
+   temp, yBasis, xyBasis, xControlPointCoordinates, yControlPointCoordinates)
 #endif // _USE_SEE
 #endif // _OPENMP
       for( y=0; y<deformationField->ny; y++)
@@ -1014,7 +1014,7 @@ void reg_spline_getDeformationField2D(nifti_image *splineControlPoint,
                                      yControlPointCoordinates.f,
                                      false, // no approximation
                                      false // not a deformation field
-                                    );
+                                     );
 #else // _USE_SSE
                get_GridValues<DTYPE>(xPre,
                                      yPre,
@@ -1025,7 +1025,7 @@ void reg_spline_getDeformationField2D(nifti_image *splineControlPoint,
                                      yControlPointCoordinates,
                                      false, // no approximation
                                      false // not a deformation field
-                                    );
+                                     );
 #endif // _USE_SSE
                oldXpre=xPre;
                oldYpre=yPre;
@@ -1074,7 +1074,7 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                       int *mask,
                                       bool composition,
                                       bool bspline
-                                     )
+                                      )
 {
 #if _USE_SSE
    union
@@ -1169,23 +1169,23 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
 
 #if defined (NDEBUG) && defined (_OPENMP)
 #ifdef _USE_SSE
-      #pragma omp parallel for default(none) \
-      private(x, y, z, a, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
-              index, voxel, basis, xBasis, yBasis, zBasis, xControlPointCoordinates, \
-              yControlPointCoordinates, zControlPointCoordinates,  \
-              tempX, tempY, tempZ, xBasis_sse, yBasis_sse, zBasis_sse, \
-              temp_basis_sse, basis_sse, val) \
-      shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, referenceMatrix_real_to_voxel, \
-             bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ, \
-             splineControlPoint, mask)
+#pragma omp parallel for default(none) \
+   private(x, y, z, a, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
+   index, voxel, basis, xBasis, yBasis, zBasis, xControlPointCoordinates, \
+   yControlPointCoordinates, zControlPointCoordinates,  \
+   tempX, tempY, tempZ, xBasis_sse, yBasis_sse, zBasis_sse, \
+   temp_basis_sse, basis_sse, val) \
+   shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, referenceMatrix_real_to_voxel, \
+   bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ, \
+   splineControlPoint, mask)
 #else
-      #pragma omp parallel for default(none) \
-      private(x, y, z, a, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
-              index, voxel, basis, xBasis, yBasis, zBasis, xControlPointCoordinates, \
-              yControlPointCoordinates, zControlPointCoordinates, coord) \
-      shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, referenceMatrix_real_to_voxel, \
-             bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ, \
-             splineControlPoint, mask)
+#pragma omp parallel for default(none) \
+   private(x, y, z, a, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
+   index, voxel, basis, xBasis, yBasis, zBasis, xControlPointCoordinates, \
+   yControlPointCoordinates, zControlPointCoordinates, coord) \
+   shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, referenceMatrix_real_to_voxel, \
+   bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ, \
+   splineControlPoint, mask)
 #endif // _USE_SSE
 #endif // _OPENMP
       for(z=0; z<deformationField->nz; z++)
@@ -1209,20 +1209,20 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
 
                   // From real to pixel position in the control point space
                   voxel[0] =
-                     referenceMatrix_real_to_voxel.m[0][0] * real[0] +
-                     referenceMatrix_real_to_voxel.m[0][1] * real[1] +
-                     referenceMatrix_real_to_voxel.m[0][2] * real[2] +
-                     referenceMatrix_real_to_voxel.m[0][3] ;
+                        referenceMatrix_real_to_voxel.m[0][0] * real[0] +
+                        referenceMatrix_real_to_voxel.m[0][1] * real[1] +
+                        referenceMatrix_real_to_voxel.m[0][2] * real[2] +
+                        referenceMatrix_real_to_voxel.m[0][3] ;
                   voxel[1] =
-                     referenceMatrix_real_to_voxel.m[1][0] * real[0] +
-                     referenceMatrix_real_to_voxel.m[1][1] * real[1] +
-                     referenceMatrix_real_to_voxel.m[1][2] * real[2] +
-                     referenceMatrix_real_to_voxel.m[1][3] ;
+                        referenceMatrix_real_to_voxel.m[1][0] * real[0] +
+                        referenceMatrix_real_to_voxel.m[1][1] * real[1] +
+                        referenceMatrix_real_to_voxel.m[1][2] * real[2] +
+                        referenceMatrix_real_to_voxel.m[1][3] ;
                   voxel[2] =
-                     referenceMatrix_real_to_voxel.m[2][0] * real[0] +
-                     referenceMatrix_real_to_voxel.m[2][1] * real[1] +
-                     referenceMatrix_real_to_voxel.m[2][2] * real[2] +
-                     referenceMatrix_real_to_voxel.m[2][3] ;
+                        referenceMatrix_real_to_voxel.m[2][0] * real[0] +
+                        referenceMatrix_real_to_voxel.m[2][1] * real[1] +
+                        referenceMatrix_real_to_voxel.m[2][2] * real[2] +
+                        referenceMatrix_real_to_voxel.m[2][3] ;
                   //                        reg_mat44_mul(referenceMatrix_real_to_voxel, real, voxel);
 
                   // The spline coefficients are computed
@@ -1263,7 +1263,7 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                            zControlPointCoordinates.f,
                                            false, // no approximation
                                            false // not a deformation field
-                                          );
+                                           );
 #else // _USE_SSE
                      get_GridValues<DTYPE>(xPre,
                                            yPre,
@@ -1277,7 +1277,7 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                            zControlPointCoordinates,
                                            false, // no approximation
                                            false // not a deformation field
-                                          );
+                                           );
 #endif // _USE_SSE
                      oldPreX=xPre;
                      oldPreY=yPre;
@@ -1381,21 +1381,21 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
 
 #if defined (NDEBUG) && defined (_OPENMP)
 #ifdef _USE_SSE
-      #pragma omp parallel for default(none) \
-      private(x, y, z, a, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
-              index, basis, xyzBasis, yzBasis, zBasis, temp, xControlPointCoordinates, \
-              yControlPointCoordinates, zControlPointCoordinates, oldBasis, \
-              tempX, tempY, tempZ, xBasis_sse, yBasis_sse, zBasis_sse, \
-              temp_basis_sse, basis_sse, val, tempCurrent) \
-      shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, splineControlPoint, mask, \
-             gridVoxelSpacing, bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ)
+#pragma omp parallel for default(none) \
+   private(x, y, z, a, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
+   index, basis, xyzBasis, yzBasis, zBasis, temp, xControlPointCoordinates, \
+   yControlPointCoordinates, zControlPointCoordinates, oldBasis, \
+   tempX, tempY, tempZ, xBasis_sse, yBasis_sse, zBasis_sse, \
+   temp_basis_sse, basis_sse, val, tempCurrent) \
+   shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, splineControlPoint, mask, \
+   gridVoxelSpacing, bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ)
 #else //  _USE_SSE
-      #pragma omp parallel for default(none) \
-      private(x, y, z, a, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
-              index, basis, xyzBasis, yzBasis, zBasis, temp, xControlPointCoordinates, \
-              yControlPointCoordinates, zControlPointCoordinates, oldBasis, coord) \
-      shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, splineControlPoint, mask, \
-             gridVoxelSpacing, bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ)
+#pragma omp parallel for default(none) \
+   private(x, y, z, a, b, c, oldPreX, oldPreY, oldPreZ, xPre, yPre, zPre, real, \
+   index, basis, xyzBasis, yzBasis, zBasis, temp, xControlPointCoordinates, \
+   yControlPointCoordinates, zControlPointCoordinates, oldBasis, coord) \
+   shared(deformationField, fieldPtrX, fieldPtrY, fieldPtrZ, splineControlPoint, mask, \
+   gridVoxelSpacing, bspline, controlPointPtrX, controlPointPtrY, controlPointPtrZ)
 #endif // _USE_SSE
 #endif // _OPENMP
       for(z=0; z<deformationField->nz; z++)
@@ -1485,7 +1485,7 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                         zControlPointCoordinates.f,
                                         false, // no approximation
                                         false // not a deformation field
-                                       );
+                                        );
 #else // _USE_SSE
                   get_GridValues<DTYPE>(xPre,
                                         yPre,
@@ -1499,7 +1499,7 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
                                         zControlPointCoordinates,
                                         false, // no approximation
                                         false // not a deformation field
-                                       );
+                                        );
 #endif // _USE_SSE
                }
                oldBasis=basis;
@@ -1585,9 +1585,9 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
       if(splineControlPoint->ext_list[0].edata!=NULL)
       {
          reg_affine_getDeformationField(reinterpret_cast<mat44 *>(splineControlPoint->ext_list[0].edata),
-                                        deformationField,
-                                        composition,
-                                        mask);
+               deformationField,
+               composition,
+               mask);
          composition=true;
       }
    }
@@ -1630,9 +1630,9 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
       if(splineControlPoint->ext_list[1].edata!=NULL)
       {
          reg_affine_getDeformationField(reinterpret_cast<mat44 *>(splineControlPoint->ext_list[1].edata),
-                                        deformationField,
-                                        true, //composition
-                                        mask);
+               deformationField,
+               true, //composition
+               mask);
       }
    }
    if(MrPropre==true)
@@ -1651,7 +1651,7 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
                                        float weight,
                                        bool update,
                                        mat44 *voxelToMillimeter
-                                      )
+                                       )
 {
    size_t nodeNumber = (size_t)nodeImage->nx*nodeImage->ny*nodeImage->nz;
    size_t voxelNumber = (size_t)voxelImage->nx*voxelImage->ny*voxelImage->nz;
@@ -1715,9 +1715,9 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
       if(nodeImage->sform_code>0)
       {
          ratio[i] = sqrt(
-                       reg_pow2(nodeImage->sto_xyz.m[i][0]) +
-                       reg_pow2(nodeImage->sto_xyz.m[i][1]) +
-                       reg_pow2(nodeImage->sto_xyz.m[i][2]) );
+                  reg_pow2(nodeImage->sto_xyz.m[i][0]) +
+               reg_pow2(nodeImage->sto_xyz.m[i][1]) +
+               reg_pow2(nodeImage->sto_xyz.m[i][2]) );
       }
       ratio[i] /= voxelImage->pixdim[i+1];
       weight *= ratio[i];
@@ -1769,7 +1769,7 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
                            if(indexX>-1 && indexX<voxelImage->nx)
                            {
                               size_t index=(indexZ*voxelImage->ny+indexY) *
-                                           voxelImage->nx+indexX;
+                                    voxelImage->nx+indexX;
                               DTYPE linearWeight = basisX[a] * basisY[b];
                               if(voxelPtrZ!=NULL) linearWeight *= basisZ[c];
                               interpolatedValue[0] += linearWeight * voxelPtrX[index];
@@ -1784,18 +1784,18 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
             }
             DTYPE reorientedValue[3];
             reorientedValue[0] =
-               reorientation.m[0][0] * interpolatedValue[0] +
-               reorientation.m[0][1] * interpolatedValue[1] +
-               reorientation.m[0][2] * interpolatedValue[2] ;
+                  reorientation.m[0][0] * interpolatedValue[0] +
+                  reorientation.m[0][1] * interpolatedValue[1] +
+                  reorientation.m[0][2] * interpolatedValue[2] ;
             reorientedValue[1] =
-               reorientation.m[1][0] * interpolatedValue[0] +
-               reorientation.m[1][1] * interpolatedValue[1] +
-               reorientation.m[1][2] * interpolatedValue[2] ;
+                  reorientation.m[1][0] * interpolatedValue[0] +
+                  reorientation.m[1][1] * interpolatedValue[1] +
+                  reorientation.m[1][2] * interpolatedValue[2] ;
             if(voxelPtrZ!=NULL)
                reorientedValue[2] =
-                  reorientation.m[2][0] * interpolatedValue[0] +
-                  reorientation.m[2][1] * interpolatedValue[1] +
-                  reorientation.m[2][2] * interpolatedValue[2] ;
+                     reorientation.m[2][0] * interpolatedValue[0] +
+                     reorientation.m[2][1] * interpolatedValue[1] +
+                     reorientation.m[2][2] * interpolatedValue[2] ;
             if(update)
             {
                *nodePtrX += reorientedValue[0]*static_cast<DTYPE>(weight);
@@ -1825,7 +1825,7 @@ void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
                                   float weight,
                                   bool update,
                                   mat44 *voxelToMillimeter
-                                 )
+                                  )
 {
    if(nodeImage->datatype!=voxelImage->datatype)
    {
@@ -1838,11 +1838,11 @@ void reg_voxelCentric2NodeCentric(nifti_image *nodeImage,
    {
    case NIFTI_TYPE_FLOAT32:
       reg_voxelCentric2NodeCentric_core<float>
-      (nodeImage, voxelImage, weight, update, voxelToMillimeter);
+            (nodeImage, voxelImage, weight, update, voxelToMillimeter);
       break;
    case NIFTI_TYPE_FLOAT64:
       reg_voxelCentric2NodeCentric_core<double>
-      (nodeImage, voxelImage, weight, update, voxelToMillimeter);
+            (nodeImage, voxelImage, weight, update, voxelToMillimeter);
       break;
    default:
       reg_print_fct_error("reg_voxelCentric2NodeCentric");
@@ -1870,7 +1870,7 @@ void SetValue(SplineTYPE *array, int *dim, int x, int y, int z, SplineTYPE value
 /* *************************************************************** */
 template<class SplineTYPE>
 void reg_spline_refineControlPointGrid2D(nifti_image *splineControlPoint,
-      nifti_image *referenceImage)
+                                         nifti_image *referenceImage)
 {
    // The input grid is first saved
    SplineTYPE *oldGrid = (SplineTYPE *)malloc(splineControlPoint->nvox*splineControlPoint->nbyper);
@@ -1899,11 +1899,11 @@ void reg_spline_refineControlPointGrid2D(nifti_image *splineControlPoint,
    splineControlPoint->dim[3]=splineControlPoint->nz=1;
 
    splineControlPoint->nvox =
-      (size_t)splineControlPoint->nx*
-      (size_t)splineControlPoint->ny*
-      (size_t)splineControlPoint->nz*
-      (size_t)splineControlPoint->nt*
-      (size_t)splineControlPoint->nu;
+         (size_t)splineControlPoint->nx*
+         (size_t)splineControlPoint->ny*
+         (size_t)splineControlPoint->nz*
+         (size_t)splineControlPoint->nt*
+         (size_t)splineControlPoint->nu;
 
    splineControlPoint->data = (void *)calloc(splineControlPoint->nvox, splineControlPoint->nbyper);
    gridPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
@@ -2008,11 +2008,11 @@ void reg_spline_refineControlPointGrid3D(nifti_image *splineControlPoint, nifti_
       splineControlPoint->dim[3]=splineControlPoint->nz=(oldDim[3]-3)*2+3;
    }
    splineControlPoint->nvox =
-      (size_t)splineControlPoint->nx*
-      (size_t)splineControlPoint->ny*
-      (size_t)splineControlPoint->nz*
-      (size_t)splineControlPoint->nt*
-      (size_t)splineControlPoint->nu;
+         (size_t)splineControlPoint->nx*
+         (size_t)splineControlPoint->ny*
+         (size_t)splineControlPoint->nz*
+         (size_t)splineControlPoint->nt*
+         (size_t)splineControlPoint->nu;
    splineControlPoint->data = (void *)calloc(splineControlPoint->nvox, splineControlPoint->nbyper);
 
    gridPtrX = static_cast<SplineTYPE *>(splineControlPoint->data);
@@ -2363,15 +2363,15 @@ void reg_spline_refineControlPointGrid(nifti_image *controlPointGrid,
       controlPointGrid->qoffset_z=referenceImage->qoffset_z;
       controlPointGrid->qfac=referenceImage->qfac;
       controlPointGrid->qto_xyz = nifti_quatern_to_mat44(controlPointGrid->quatern_b,
-                                  controlPointGrid->quatern_c,
-                                  controlPointGrid->quatern_d,
-                                  controlPointGrid->qoffset_x,
-                                  controlPointGrid->qoffset_y,
-                                  controlPointGrid->qoffset_z,
-                                  controlPointGrid->dx,
-                                  controlPointGrid->dy,
-                                  controlPointGrid->dz,
-                                  controlPointGrid->qfac);
+                                                         controlPointGrid->quatern_c,
+                                                         controlPointGrid->quatern_d,
+                                                         controlPointGrid->qoffset_x,
+                                                         controlPointGrid->qoffset_y,
+                                                         controlPointGrid->qoffset_z,
+                                                         controlPointGrid->dx,
+                                                         controlPointGrid->dy,
+                                                         controlPointGrid->dz,
+                                                         controlPointGrid->qfac);
 
       // Origin is shifted from 1 control point in the qform
       float originIndex[3];
@@ -2489,11 +2489,11 @@ void reg_defField_compose2D(nifti_image *deformationField,
    DTYPE realDefX, realDefY, voxelX, voxelY;
    DTYPE defX, defY, relX[2], relY[2], basis;
 #if defined (NDEBUG) && defined (_OPENMP)
-   #pragma omp parallel for default(none) \
+#pragma omp parallel for default(none) \
    shared(warVoxelNumber, mask, df_real2Voxel, df_voxel2Real, \
-          deformationField, defPtrX, defPtrY, resPtrX, resPtrY) \
+   deformationField, defPtrX, defPtrY, resPtrX, resPtrY) \
    private(i, a, b, index, pre,realDefX, realDefY, voxelX, voxelY, \
-           defX, defY, relX, relY, basis)
+   defX, defY, relX, relY, basis)
 #endif
    for(i=0; i<warVoxelNumber; ++i)
    {
@@ -2504,11 +2504,11 @@ void reg_defField_compose2D(nifti_image *deformationField,
 
          // Conversion from real to voxel in the deformation field
          voxelX = realDefX * df_real2Voxel->m[0][0]
-                  + realDefY * df_real2Voxel->m[0][1]
-                  + df_real2Voxel->m[0][3];
+               + realDefY * df_real2Voxel->m[0][1]
+               + df_real2Voxel->m[0][3];
          voxelY = realDefX * df_real2Voxel->m[1][0]
-                  + realDefY * df_real2Voxel->m[1][1]
-                  + df_real2Voxel->m[1][3];
+               + realDefY * df_real2Voxel->m[1][1]
+               + df_real2Voxel->m[1][3];
 
          // Linear interpolation to compute the new deformation
          pre[0]=(int)reg_floor(voxelX);
@@ -2537,13 +2537,13 @@ void reg_defField_compose2D(nifti_image *deformationField,
                   get_SlidedValues<DTYPE>(defX,
                                           defY,
                                           pre[0]+a,
-                                          pre[1]+b,
-                                          defPtrX,
-                                          defPtrY,
-                                          df_voxel2Real,
-                                          deformationField->dim,
-                                          false // not a deformation field
-                                         );
+                        pre[1]+b,
+                        defPtrX,
+                        defPtrY,
+                        df_voxel2Real,
+                        deformationField->dim,
+                        false // not a deformation field
+                        );
                }
                realDefX += defX * basis;
                realDefY += defY * basis;
@@ -2600,11 +2600,11 @@ void reg_defField_compose3D(nifti_image *deformationField,
    DTYPE defX, defY, defZ, relX[2], relY[2], relZ[2];
    bool inY, inZ;
 #if defined (NDEBUG) && defined (_OPENMP)
-   #pragma omp parallel for default(none) \
+#pragma omp parallel for default(none) \
    shared(warVoxelNumber, mask, df_real2Voxel, df_voxel2Real, DefFieldDim, \
-          defPtrX, defPtrY, defPtrZ, resPtrX, resPtrY, resPtrZ, deformationField) \
+   defPtrX, defPtrY, defPtrZ, resPtrX, resPtrY, resPtrZ, deformationField) \
    private(i, a, b, c, currentX, currentY, currentZ, index, tempIndex, pre, \
-           realDef, voxel, tempBasis, defX, defY, defZ, relX, relY, relZ, basis, inY, inZ)
+   realDef, voxel, tempBasis, defX, defY, defZ, relX, relY, relZ, basis, inY, inZ)
 #endif
    for(i=0; i<warVoxelNumber; ++i)
    {
@@ -2615,20 +2615,20 @@ void reg_defField_compose3D(nifti_image *deformationField,
          realDef[1] = resPtrY[i];
          realDef[2] = resPtrZ[i];
          voxel[0] =
-            df_real2Voxel.m[0][0] * realDef[0] +
-            df_real2Voxel.m[0][1] * realDef[1] +
-            df_real2Voxel.m[0][2] * realDef[2] +
-            df_real2Voxel.m[0][3] ;
+               df_real2Voxel.m[0][0] * realDef[0] +
+               df_real2Voxel.m[0][1] * realDef[1] +
+               df_real2Voxel.m[0][2] * realDef[2] +
+               df_real2Voxel.m[0][3] ;
          voxel[1] =
-            df_real2Voxel.m[1][0] * realDef[0] +
-            df_real2Voxel.m[1][1] * realDef[1] +
-            df_real2Voxel.m[1][2] * realDef[2] +
-            df_real2Voxel.m[1][3] ;
+               df_real2Voxel.m[1][0] * realDef[0] +
+               df_real2Voxel.m[1][1] * realDef[1] +
+               df_real2Voxel.m[1][2] * realDef[2] +
+               df_real2Voxel.m[1][3] ;
          voxel[2] =
-            df_real2Voxel.m[2][0] * realDef[0] +
-            df_real2Voxel.m[2][1] * realDef[1] +
-            df_real2Voxel.m[2][2] * realDef[2] +
-            df_real2Voxel.m[2][3] ;
+               df_real2Voxel.m[2][0] * realDef[0] +
+               df_real2Voxel.m[2][1] * realDef[1] +
+               df_real2Voxel.m[2][2] * realDef[2] +
+               df_real2Voxel.m[2][3] ;
          //reg_mat44_mul(df_real2Voxel, realDef, voxel);
 
          // Linear interpolation to compute the new deformation
@@ -2680,7 +2680,7 @@ void reg_defField_compose3D(nifti_image *deformationField,
                                              df_voxel2Real,
                                              deformationField->dim,
                                              false // not a displacement field
-                                            );
+                                             );
                   }
                   ++index;
                   basis = relX[a] * tempBasis;
@@ -3253,8 +3253,8 @@ void reg_defFieldInvert3D(nifti_image *inputDeformationField,
                           float tolerance)
 {
    int outputVoxelNumber = outputDeformationField->nx *
-                           outputDeformationField->ny *
-                           outputDeformationField->nz;
+         outputDeformationField->ny *
+         outputDeformationField->nz;
 
    mat44 *OutXYZMatrix;
    if(outputDeformationField->sform_code>0)
@@ -3285,9 +3285,9 @@ void reg_defFieldInvert3D(nifti_image *inputDeformationField,
    struct ddata dat;
    DTYPE *outData;
 #if defined (NDEBUG) && defined (_OPENMP)
-   #pragma omp parallel for default(none) \
+#pragma omp parallel for default(none) \
    shared(outputDeformationField,tolerance,outputVoxelNumber, \
-          inputDeformationField, OutXYZMatrix, delta) \
+   inputDeformationField, OutXYZMatrix, delta) \
    private(i,x,y,z,dat,outData,position,pars,arrayy)
 #endif
    for (z=0; z<outputDeformationField->nz; ++z)
@@ -3297,7 +3297,7 @@ void reg_defFieldInvert3D(nifti_image *inputDeformationField,
          dat.arrayy[i]= arrayy[i];
 
       outData = (DTYPE *)(outputDeformationField->data) +
-                outputDeformationField->nx * outputDeformationField->ny * z;
+            outputDeformationField->nx * outputDeformationField->ny * z;
 
       for(y=0; y<outputDeformationField->ny; ++y)
       {
@@ -3355,11 +3355,11 @@ void reg_defFieldInvert(nifti_image *inputDeformationField,
    {
    case NIFTI_TYPE_FLOAT32:
       reg_defFieldInvert3D<float>
-      (inputDeformationField,outputDeformationField,tolerance);
+            (inputDeformationField,outputDeformationField,tolerance);
       break;
    case NIFTI_TYPE_FLOAT64:
       reg_defFieldInvert3D<double>
-      (inputDeformationField,outputDeformationField,tolerance);
+            (inputDeformationField,outputDeformationField,tolerance);
    default:
       reg_print_fct_error("reg_defFieldInvert");
       reg_print_msg_error("Deformation field pixel type unsupported");
@@ -3438,22 +3438,22 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
          if(displacement2)
          {
             xReal +=
-               matrix_voxel_to_real2->m[0][0]*x
-               + matrix_voxel_to_real2->m[0][1]*y
-               + matrix_voxel_to_real2->m[0][3];
+                  matrix_voxel_to_real2->m[0][0]*x
+                  + matrix_voxel_to_real2->m[0][1]*y
+                  + matrix_voxel_to_real2->m[0][3];
             yReal +=
-               matrix_voxel_to_real2->m[1][0]*x
-               + matrix_voxel_to_real2->m[1][1]*y
-               + matrix_voxel_to_real2->m[1][3];
+                  matrix_voxel_to_real2->m[1][0]*x
+                  + matrix_voxel_to_real2->m[1][1]*y
+                  + matrix_voxel_to_real2->m[1][3];
          }
 
          // Get the voxel based control point position in grid1
          DTYPE xVoxel = matrix_real_to_voxel1->m[0][0]*xReal
-                        + matrix_real_to_voxel1->m[0][1]*yReal
-                        + matrix_real_to_voxel1->m[0][3];
+               + matrix_real_to_voxel1->m[0][1]*yReal
+               + matrix_real_to_voxel1->m[0][3];
          DTYPE yVoxel = matrix_real_to_voxel1->m[1][0]*xReal
-                        + matrix_real_to_voxel1->m[1][1]*yReal
-                        + matrix_real_to_voxel1->m[1][3];
+               + matrix_real_to_voxel1->m[1][1]*yReal
+               + matrix_real_to_voxel1->m[1][3];
 
          // The spline coefficients are computed
          int xPre=(int)(reg_floor(xVoxel));
@@ -3480,7 +3480,7 @@ void reg_spline_cppComposition_2D(nifti_image *grid1,
                                yControlPointCoordinates,
                                false, // no approximation
                                displacement1 // displacement field?
-                              );
+                               );
          xReal=0.0;
          yReal=0.0;
 #if _USE_SSE
@@ -3612,22 +3612,22 @@ void reg_spline_cppComposition_3D(nifti_image *grid1,
 
 #if defined (NDEBUG) && defined (_OPENMP)
 #ifdef _USE_SSE
-   #pragma omp parallel for default(none) \
+#pragma omp parallel for default(none) \
    shared(grid1, grid2, displacement1, displacement2, matrix_voxel_to_real2, matrix_real_to_voxel1, \
-          outCPPPtrX, outCPPPtrY, outCPPPtrZ, controlPointPtrX, controlPointPtrY, controlPointPtrZ, bspline) \
+   outCPPPtrX, outCPPPtrY, outCPPPtrZ, controlPointPtrX, controlPointPtrY, controlPointPtrZ, bspline) \
    private(xPre, xPreOld, yPre, yPreOld, zPre, zPreOld, val, index, \
-           x, y, z, xVoxel, yVoxel, zVoxel, basis, xBasis, yBasis, zBasis, \
-           xReal, yReal, zReal, initialPositionX, initialPositionY, initialPositionZ, \
-           _xBasis_sse, tempX, tempY, tempZ, ptrX, ptrY, ptrZ, _yBasis_sse, _zBasis_sse, _temp_basis, _basis, \
-           xControlPointCoordinates, yControlPointCoordinates, zControlPointCoordinates)
+   x, y, z, xVoxel, yVoxel, zVoxel, basis, xBasis, yBasis, zBasis, \
+   xReal, yReal, zReal, initialPositionX, initialPositionY, initialPositionZ, \
+   _xBasis_sse, tempX, tempY, tempZ, ptrX, ptrY, ptrZ, _yBasis_sse, _zBasis_sse, _temp_basis, _basis, \
+   xControlPointCoordinates, yControlPointCoordinates, zControlPointCoordinates)
 #else
-   #pragma omp parallel for default(none) \
+#pragma omp parallel for default(none) \
    shared(grid1, grid2, displacement1, displacement2, matrix_voxel_to_real2, matrix_real_to_voxel1, \
-          outCPPPtrX, outCPPPtrY, outCPPPtrZ, controlPointPtrX, controlPointPtrY, controlPointPtrZ, bspline) \
+   outCPPPtrX, outCPPPtrY, outCPPPtrZ, controlPointPtrX, controlPointPtrY, controlPointPtrZ, bspline) \
    private(xPre, xPreOld, yPre, yPreOld, zPre, zPreOld, index, \
-           x, y, z, xVoxel, yVoxel, zVoxel, a, b, c, coord, basis, tempValue, xBasis, yBasis, zBasis, \
-           xReal, yReal, zReal, initialPositionX, initialPositionY, initialPositionZ, \
-           xControlPointCoordinates, yControlPointCoordinates, zControlPointCoordinates)
+   x, y, z, xVoxel, yVoxel, zVoxel, a, b, c, coord, basis, tempValue, xBasis, yBasis, zBasis, \
+   xReal, yReal, zReal, initialPositionX, initialPositionY, initialPositionZ, \
+   xControlPointCoordinates, yControlPointCoordinates, zControlPointCoordinates)
 #endif
 #endif
    for(z=0; z<grid2->nz; z++)
@@ -3650,38 +3650,38 @@ void reg_spline_cppComposition_3D(nifti_image *grid1,
             if(displacement2)
             {
                xReal += initialPositionX =
-                           matrix_voxel_to_real2->m[0][0]*x
-                           + matrix_voxel_to_real2->m[0][1]*y
-                           + matrix_voxel_to_real2->m[0][2]*z
-                           + matrix_voxel_to_real2->m[0][3];
+                     matrix_voxel_to_real2->m[0][0]*x
+                     + matrix_voxel_to_real2->m[0][1]*y
+                     + matrix_voxel_to_real2->m[0][2]*z
+                     + matrix_voxel_to_real2->m[0][3];
                yReal += initialPositionY =
-                           matrix_voxel_to_real2->m[1][0]*x
-                           + matrix_voxel_to_real2->m[1][1]*y
-                           + matrix_voxel_to_real2->m[1][2]*z
-                           + matrix_voxel_to_real2->m[1][3];
+                     matrix_voxel_to_real2->m[1][0]*x
+                     + matrix_voxel_to_real2->m[1][1]*y
+                     + matrix_voxel_to_real2->m[1][2]*z
+                     + matrix_voxel_to_real2->m[1][3];
                zReal += initialPositionZ =
-                           matrix_voxel_to_real2->m[2][0]*x
-                           + matrix_voxel_to_real2->m[2][1]*y
-                           + matrix_voxel_to_real2->m[2][2]*z
-                           + matrix_voxel_to_real2->m[2][3];
+                     matrix_voxel_to_real2->m[2][0]*x
+                     + matrix_voxel_to_real2->m[2][1]*y
+                     + matrix_voxel_to_real2->m[2][2]*z
+                     + matrix_voxel_to_real2->m[2][3];
             }
 
             // Get the voxel based control point position in grid1
             xVoxel =
-               matrix_real_to_voxel1->m[0][0]*xReal
-               + matrix_real_to_voxel1->m[0][1]*yReal
-               + matrix_real_to_voxel1->m[0][2]*zReal
-               + matrix_real_to_voxel1->m[0][3];
+                  matrix_real_to_voxel1->m[0][0]*xReal
+                  + matrix_real_to_voxel1->m[0][1]*yReal
+                  + matrix_real_to_voxel1->m[0][2]*zReal
+                  + matrix_real_to_voxel1->m[0][3];
             yVoxel =
-               matrix_real_to_voxel1->m[1][0]*xReal
-               + matrix_real_to_voxel1->m[1][1]*yReal
-               + matrix_real_to_voxel1->m[1][2]*zReal
-               + matrix_real_to_voxel1->m[1][3];
+                  matrix_real_to_voxel1->m[1][0]*xReal
+                  + matrix_real_to_voxel1->m[1][1]*yReal
+                  + matrix_real_to_voxel1->m[1][2]*zReal
+                  + matrix_real_to_voxel1->m[1][3];
             zVoxel =
-               matrix_real_to_voxel1->m[2][0]*xReal
-               + matrix_real_to_voxel1->m[2][1]*yReal
-               + matrix_real_to_voxel1->m[2][2]*zReal
-               + matrix_real_to_voxel1->m[2][3];
+                  matrix_real_to_voxel1->m[2][0]*xReal
+                  + matrix_real_to_voxel1->m[2][1]*yReal
+                  + matrix_real_to_voxel1->m[2][2]*zReal
+                  + matrix_real_to_voxel1->m[2][3];
 
             // The spline coefficients are computed
             xPre=(int)(reg_floor(xVoxel));
@@ -3721,7 +3721,7 @@ void reg_spline_cppComposition_3D(nifti_image *grid1,
                               zControlPointCoordinates,
                               false, // no approximation
                               displacement1 // a displacement field?
-                             );
+                              );
                xPreOld=xPre;
                yPreOld=yPre;
                zPreOld=zPre;
@@ -3829,11 +3829,11 @@ int reg_spline_cppComposition(nifti_image *grid1,
       {
       case NIFTI_TYPE_FLOAT32:
          reg_spline_cppComposition_3D<float>
-         (grid1, grid2, displacement1, displacement2, bspline);
+               (grid1, grid2, displacement1, displacement2, bspline);
          break;
       case NIFTI_TYPE_FLOAT64:
          reg_spline_cppComposition_3D<double>
-         (grid1, grid2, displacement1, displacement2, bspline);
+               (grid1, grid2, displacement1, displacement2, bspline);
          break;
       default:
          fprintf(stderr,"[NiftyReg ERROR] reg_spline_cppComposition 3D\n");
@@ -3847,11 +3847,11 @@ int reg_spline_cppComposition(nifti_image *grid1,
       {
       case NIFTI_TYPE_FLOAT32:
          reg_spline_cppComposition_2D<float>
-         (grid1, grid2, displacement1, displacement2, bspline);
+               (grid1, grid2, displacement1, displacement2, bspline);
          break;
       case NIFTI_TYPE_FLOAT64:
          reg_spline_cppComposition_2D<double>
-         (grid1, grid2, displacement1, displacement2, bspline);
+               (grid1, grid2, displacement1, displacement2, bspline);
          break;
       default:
          fprintf(stderr,"[NiftyReg ERROR] reg_spline_cppComposition 2D\n");
@@ -3864,7 +3864,7 @@ int reg_spline_cppComposition(nifti_image *grid1,
 /* *************************************************************** */
 /* *************************************************************** */
 void reg_spline_getFlowFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
-      nifti_image *flowField)
+                                             nifti_image *flowField)
 {
    // Check first if the velocity field is actually a velocity field
    if(velocityFieldGrid->intent_p1 != SPLINE_VEL_GRID)
@@ -3893,14 +3893,14 @@ void reg_spline_getFlowFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                   NULL, // mask
                                   true, //composition
                                   true // bspline
-                                 );
+                                  );
 
    velocityFieldGrid->num_ext=oldNumExt;
 }
 /* *************************************************************** */
 void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
-      nifti_image *deformationFieldImage,
-      bool updateStepNumber)
+                                                   nifti_image *deformationFieldImage,
+                                                   bool updateStepNumber)
 {
    // Check first if the velocity field is actually a velocity field
    if(flowFieldImage->intent_p1 != DEF_VEL_FIELD)
@@ -3920,22 +3920,23 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
          affineOnly = nifti_copy_nim_info(deformationFieldImage);
          affineOnly->data = (void *)malloc(affineOnly->nvox*affineOnly->nbyper);
          reg_affine_getDeformationField(reinterpret_cast<mat44 *>(flowFieldImage->ext_list[0].edata),
-                                        affineOnly,
-                                        false);
+               affineOnly,
+               false);
          reg_tools_substractImageToImage(flowFieldImage,affineOnly,flowFieldImage);
       }
    }
    else reg_getDisplacementFromDeformation(flowFieldImage);
 
-   // Check the largest value
-   float extrema = fabsf(reg_tools_getMinValue(flowFieldImage));
-   float temp = reg_tools_getMaxValue(flowFieldImage);
-   extrema=extrema>temp?extrema:temp;
 
    // Compute the number of scaling value to ensure unfolded transformation
    int squaringNumber = 1;
    if(updateStepNumber || flowFieldImage->intent_p2==0)
    {
+      // Check the largest value
+      float extrema = fabsf(reg_tools_getMinValue(flowFieldImage));
+      float temp = reg_tools_getMaxValue(flowFieldImage);
+      extrema=extrema>temp?extrema:temp;
+      // Check the values for scaling purpose
       float maxLength;
       if(deformationFieldImage->nz>1)
          // 0.2888675 = sqrt(0.5^2/3)
@@ -4013,14 +4014,14 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
    if(flowFieldImage->num_ext>1)
    {
       reg_affine_getDeformationField(reinterpret_cast<mat44 *>(flowFieldImage->ext_list[1].edata),
-                                     deformationFieldImage,
-                                     true);
+            deformationFieldImage,
+            true);
    }
 }
 /* *************************************************************** */
-void reg_spline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
-      nifti_image *deformationFieldImage,
-      bool updateStepNumber)
+void reg_spline_getDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
+                                            nifti_image *deformationFieldImage,
+                                            bool updateStepNumber)
 {
    // Check if the velocity field is actually a velocity field
    if(velocityFieldGrid->intent_p1 == SPLINE_GRID)
@@ -4031,7 +4032,7 @@ void reg_spline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGr
                                      NULL,
                                      false, // composition
                                      true // bspline
-                                    );
+                                     );
    }
    else if(velocityFieldGrid->intent_p1 == SPLINE_VEL_GRID)
    {
@@ -4051,8 +4052,8 @@ void reg_spline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGr
                                               flowField);
       // Exponentiate the flow field
       reg_defField_getDeformationFieldFromFlowField(flowField,
-            deformationFieldImage,
-            updateStepNumber);
+                                                    deformationFieldImage,
+                                                    updateStepNumber);
       // Update the number of step required. No action otherwise
       velocityFieldGrid->intent_p2=flowField->intent_p2;
       // Clear the allocated flow field
@@ -4069,7 +4070,7 @@ void reg_spline_getDeformationFieldFromVelocityGrid(nifti_image *velocityFieldGr
 /* *************************************************************** */
 /* *************************************************************** */
 void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGrid,
-      nifti_image **deformationFieldImage)
+                                                   nifti_image **deformationFieldImage)
 {
    reg_exit(1);// Needs to be updated
    // Check first if the velocity field is actually a velocity field
@@ -4081,15 +4082,15 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
    }
    // Set the initial deformation field to an identity transformation
    memset(deformationFieldImage[0]->data,0,
-          deformationFieldImage[0]->nvox* deformationFieldImage[0]->nbyper); // (*0)
+         deformationFieldImage[0]->nvox* deformationFieldImage[0]->nbyper); // (*0)
    reg_getDeformationFromDisplacement(deformationFieldImage[0]);
    // The initial deformation is generated using cubic B-Spline parametrisation
    reg_spline_getDeformationField(velocityFieldGrid,
                                   deformationFieldImage[0],
-                                  NULL, // mask
-                                  true, //composition
-                                  true // bspline
-                                 );
+         NULL, // mask
+         true, //composition
+         true // bspline
+         );
 
    // The deformation field is converted from deformation field to displacement field
    reg_getDisplacementFromDeformation(deformationFieldImage[0]);
@@ -4099,13 +4100,13 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
    if(velocityFieldGrid->intent_p1<0)
       // backward deformation field is scaled down
       reg_tools_divideValueToImage(deformationFieldImage[0],
-                                   deformationFieldImage[0],
-                                   -scalingValue);
+            deformationFieldImage[0],
+            -scalingValue);
    else
       // forward deformation field is scaled down
       reg_tools_divideValueToImage(deformationFieldImage[0],
-                                   deformationFieldImage[0],
-                                   scalingValue);
+            deformationFieldImage[0],
+            scalingValue);
 
    // The displacement field is converted back into a deformation field
    reg_getDeformationFromDisplacement(deformationFieldImage[0]);
@@ -4116,11 +4117,11 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
    {
       // The computed scaled deformation field is copied over
       memcpy(deformationFieldImage[i+1]->data, deformationFieldImage[i]->data,
-             deformationFieldImage[i]->nvox*deformationFieldImage[i]->nbyper);
+            deformationFieldImage[i]->nvox*deformationFieldImage[i]->nbyper);
       // The deformation field is applied to itself
       reg_defField_compose(deformationFieldImage[i], // to apply
                            deformationFieldImage[i+1], // to update
-                           NULL);
+            NULL);
 #ifndef NDEBUG
       printf("[NiftyReg DEBUG] Squaring (composition) step %u/%u\n", i+1, squaringNumber);
 #endif
@@ -4134,7 +4135,7 @@ void compute_lie_bracket(nifti_image *img1,
                          nifti_image *img2,
                          nifti_image *res,
                          bool use_jac
-                        )
+                         )
 {
    reg_exit(1); // to update
    // Lie bracket using Jacobian for testing
@@ -4169,29 +4170,29 @@ void compute_lie_bracket(nifti_image *img1,
          for(size_t i=0; i<voxNumber; ++i)
          {
             resPtrX[i]=
-               (jacImg2[i].m[0][0]*img1DispPtrX[i] +
-                jacImg2[i].m[0][1]*img1DispPtrY[i] +
-                jacImg2[i].m[0][2]*img1DispPtrZ[i] )
-               -
-               (jacImg1[i].m[0][0]*img2DispPtrX[i] +
-                jacImg1[i].m[0][1]*img2DispPtrY[i] +
-                jacImg1[i].m[0][2]*img2DispPtrZ[i] );
+                  (jacImg2[i].m[0][0]*img1DispPtrX[i] +
+                  jacImg2[i].m[0][1]*img1DispPtrY[i] +
+                  jacImg2[i].m[0][2]*img1DispPtrZ[i] )
+                  -
+                  (jacImg1[i].m[0][0]*img2DispPtrX[i] +
+                  jacImg1[i].m[0][1]*img2DispPtrY[i] +
+                  jacImg1[i].m[0][2]*img2DispPtrZ[i] );
             resPtrY[i]=
-               (jacImg2[i].m[1][0]*img1DispPtrX[i] +
-                jacImg2[i].m[1][1]*img1DispPtrY[i] +
-                jacImg2[i].m[1][2]*img1DispPtrZ[i] )
-               -
-               (jacImg1[i].m[1][0]*img2DispPtrX[i] +
-                jacImg1[i].m[1][1]*img2DispPtrY[i] +
-                jacImg1[i].m[1][2]*img2DispPtrZ[i] );
+                  (jacImg2[i].m[1][0]*img1DispPtrX[i] +
+                  jacImg2[i].m[1][1]*img1DispPtrY[i] +
+                  jacImg2[i].m[1][2]*img1DispPtrZ[i] )
+                  -
+                  (jacImg1[i].m[1][0]*img2DispPtrX[i] +
+                  jacImg1[i].m[1][1]*img2DispPtrY[i] +
+                  jacImg1[i].m[1][2]*img2DispPtrZ[i] );
             resPtrZ[i]=
-               (jacImg2[i].m[2][0]*img1DispPtrX[i] +
-                jacImg2[i].m[2][1]*img1DispPtrY[i] +
-                jacImg2[i].m[2][2]*img1DispPtrZ[i] )
-               -
-               (jacImg1[i].m[2][0]*img2DispPtrX[i] +
-                jacImg1[i].m[2][1]*img2DispPtrY[i] +
-                jacImg1[i].m[2][2]*img2DispPtrZ[i] );
+                  (jacImg2[i].m[2][0]*img1DispPtrX[i] +
+                  jacImg2[i].m[2][1]*img1DispPtrY[i] +
+                  jacImg2[i].m[2][2]*img1DispPtrZ[i] )
+                  -
+                  (jacImg1[i].m[2][0]*img2DispPtrX[i] +
+                  jacImg1[i].m[2][1]*img2DispPtrY[i] +
+                  jacImg1[i].m[2][2]*img2DispPtrZ[i] );
          }
       }
       else
@@ -4199,17 +4200,17 @@ void compute_lie_bracket(nifti_image *img1,
          for(size_t i=0; i<voxNumber; ++i)
          {
             resPtrX[i]=
-               (jacImg2[i].m[0][0]*img1DispPtrX[i] +
-                jacImg2[i].m[0][1]*img1DispPtrY[i] )
-               -
-               (jacImg1[i].m[0][0]*img2DispPtrX[i] +
-                jacImg1[i].m[0][1]*img2DispPtrY[i] );
+                  (jacImg2[i].m[0][0]*img1DispPtrX[i] +
+                  jacImg2[i].m[0][1]*img1DispPtrY[i] )
+                  -
+                  (jacImg1[i].m[0][0]*img2DispPtrX[i] +
+                  jacImg1[i].m[0][1]*img2DispPtrY[i] );
             resPtrY[i]=
-               (jacImg2[i].m[1][0]*img1DispPtrX[i] +
-                jacImg2[i].m[1][1]*img1DispPtrY[i] )
-               -
-               (jacImg1[i].m[1][0]*img2DispPtrX[i] +
-                jacImg1[i].m[1][1]*img2DispPtrY[i] );
+                  (jacImg2[i].m[1][0]*img1DispPtrX[i] +
+                  jacImg2[i].m[1][1]*img1DispPtrY[i] )
+                  -
+                  (jacImg1[i].m[1][0]*img2DispPtrX[i] +
+                  jacImg1[i].m[1][1]*img2DispPtrY[i] );
          }
       }
       free(jacImg1);
@@ -4230,28 +4231,28 @@ void compute_lie_bracket(nifti_image *img1,
                              true, // displacement1?
                              true, // displacement2?
                              true // bspline?
-                            );
+                             );
    // Compute the displacement from img2
    reg_spline_cppComposition(img2,
                              one_two,
                              true, // displacement1?
                              true, // displacement2?
                              true // bspline?
-                            );
+                             );
    // Compose both transformations
    reg_spline_cppComposition(img1,
                              one_two,
                              true, // displacement1?
                              true, // displacement2?
                              true // bspline?
-                            );
+                             );
    // Compose both transformations
    reg_spline_cppComposition(img2,
                              two_one,
                              true, // displacement1?
                              true, // displacement2?
                              true // bspline?
-                            );
+                             );
    // Create the data pointers
    DTYPE *resPtr=static_cast<DTYPE *>(res->data);
    DTYPE *one_twoPtr=static_cast<DTYPE *>(one_two->data);
@@ -4265,7 +4266,7 @@ void compute_lie_bracket(nifti_image *img1,
 #endif
 
 #if defined (NDEBUG) && defined (_OPENMP)
-   #pragma omp parallel for default(none) \
+#pragma omp parallel for default(none) \
    shared(res, resPtr, one_twoPtr, two_onePtr) \
    private(i)
 #endif
@@ -4297,7 +4298,7 @@ void compute_BCH_update1(nifti_image *img1, // current field
    DTYPE *img1Ptr=static_cast<DTYPE *>(img1->data);
    DTYPE *img2Ptr=static_cast<DTYPE *>(img2->data);
 #if defined (NDEBUG) && defined (_OPENMP)
-   #pragma omp parallel for default(none) \
+#pragma omp parallel for default(none) \
    shared(img1,img1Ptr,img2Ptr, res) \
    private(i)
 #endif
@@ -4315,9 +4316,9 @@ void compute_BCH_update1(nifti_image *img1, // current field
       compute_lie_bracket<DTYPE>(img2, img1, lie_bracket_img2_img1, use_jac);
       DTYPE *lie_bracket_img2_img1Ptr=static_cast<DTYPE *>(lie_bracket_img2_img1->data);
 #if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      shared(img1, res, lie_bracket_img2_img1Ptr) \
-      private(i)
+#pragma omp parallel for default(none) \
+   shared(img1, res, lie_bracket_img2_img1Ptr) \
+   private(i)
 #endif
       for(i=0; i<img1->nvox; ++i)
          res[i] += 0.5 * lie_bracket_img2_img1Ptr[i];
@@ -4330,9 +4331,9 @@ void compute_BCH_update1(nifti_image *img1, // current field
          compute_lie_bracket<DTYPE>(img2, lie_bracket_img2_img1, lie_bracket_img2_lie1, use_jac);
          DTYPE *lie_bracket_img2_lie1Ptr=static_cast<DTYPE *>(lie_bracket_img2_lie1->data);
 #if defined (NDEBUG) && defined (_OPENMP)
-         #pragma omp parallel for default(none) \
-         shared(img1, res, lie_bracket_img2_lie1Ptr) \
-         private(i)
+#pragma omp parallel for default(none) \
+   shared(img1, res, lie_bracket_img2_lie1Ptr) \
+   private(i)
 #endif
          for(i=0; i<img1->nvox; ++i)
             res[i] += lie_bracket_img2_lie1Ptr[i]/12.0;
@@ -4345,9 +4346,9 @@ void compute_BCH_update1(nifti_image *img1, // current field
             compute_lie_bracket<DTYPE>(img1, lie_bracket_img2_img1, lie_bracket_img1_lie1, use_jac);
             DTYPE *lie_bracket_img1_lie1Ptr=static_cast<DTYPE *>(lie_bracket_img1_lie1->data);
 #if defined (NDEBUG) && defined (_OPENMP)
-            #pragma omp parallel for default(none) \
-            shared(img1, res, lie_bracket_img1_lie1Ptr) \
-            private(i)
+#pragma omp parallel for default(none) \
+   shared(img1, res, lie_bracket_img1_lie1Ptr) \
+   private(i)
 #endif
             for(i=0; i<img1->nvox; ++i)
                res[i] -= lie_bracket_img1_lie1Ptr[i]/12.0;
@@ -4361,9 +4362,9 @@ void compute_BCH_update1(nifti_image *img1, // current field
                compute_lie_bracket<DTYPE>(img1, lie_bracket_img2_lie1, lie_bracket_img1_lie2, use_jac);
                DTYPE *lie_bracket_img1_lie2Ptr=static_cast<DTYPE *>(lie_bracket_img1_lie2->data);
 #if defined (NDEBUG) && defined (_OPENMP)
-               #pragma omp parallel for default(none) \
-               shared(img1, res, lie_bracket_img1_lie2Ptr) \
-               private(i)
+#pragma omp parallel for default(none) \
+   shared(img1, res, lie_bracket_img1_lie2Ptr) \
+   private(i)
 #endif
                for(i=0; i<img1->nvox; ++i)
                   res[i] -= lie_bracket_img1_lie2Ptr[i]/24.0;

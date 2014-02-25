@@ -99,7 +99,7 @@ void reg_f3d2<T>::GetDeformationField()
    printf("[NiftyReg DEBUG] Velocity integration forward. Step number update=%i\n",updateStepNumber);
 #endif
    // The forward transformation is computed using the scaling-and-squaring approach
-   reg_spline_getDeformationFieldFromVelocityGrid(this->controlPointGrid,
+   reg_spline_getDefFieldFromVelocityGrid(this->controlPointGrid,
          this->deformationFieldImage,
          updateStepNumber
                                                  );
@@ -109,7 +109,7 @@ void reg_f3d2<T>::GetDeformationField()
    // The number of step number is copied over from the forward transformation
    this->backwardControlPointGrid->intent_p2=this->controlPointGrid->intent_p2;
    // The backward transformation is computed using the scaling-and-squaring approach
-   reg_spline_getDeformationFieldFromVelocityGrid(this->backwardControlPointGrid,
+   reg_spline_getDefFieldFromVelocityGrid(this->backwardControlPointGrid,
          this->backwardDeformationFieldImage,
          false
                                                  );

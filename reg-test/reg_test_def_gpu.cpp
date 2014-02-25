@@ -61,9 +61,9 @@ int main(int argc, char **argv)
    reg_getDeformationFromDisplacement(controlPointGrid);
 
    size_t controlPointNumber =
-      controlPointGrid->nx *
-      controlPointGrid->ny *
-      controlPointGrid->nz;
+         controlPointGrid->nx *
+         controlPointGrid->ny *
+         controlPointGrid->nz;
 
    // Create a mask
    int *mask = (int *)malloc(voxelNumber*sizeof(int));
@@ -73,14 +73,14 @@ int main(int argc, char **argv)
    // Create the displacement field on the device
    float4 *field_gpu=NULL;
    cudaCommon_allocateArrayToDevice<float4>(&field_gpu,
-         voxelNumber);
+                                            voxelNumber);
 
    // Create the control point grid on the device
    float4 *controlPointGrid_gpu=NULL;
    cudaCommon_allocateArrayToDevice<float4>(&controlPointGrid_gpu,
-         controlPointGrid->nx *
-         controlPointGrid->ny *
-         controlPointGrid->nz);
+                                            controlPointGrid->nx *
+                                            controlPointGrid->ny *
+                                            controlPointGrid->nz);
 
    // Transfer the ccp coefficients from the host to the device
    cudaCommon_transferNiftiToArrayOnDevice(&controlPointGrid_gpu, controlPointGrid);
@@ -186,14 +186,14 @@ int main(int argc, char **argv)
       memset(controlPointGrid->intent_name, 0, 16);
       strcpy(controlPointGrid->intent_name,"NREG_VEL_STEP");
       // Exponentiate the velocity field using the host
-      reg_spline_getDeformationFieldFromVelocityGrid(controlPointGrid,
-            field,
-            false);
+      reg_spline_getDefFieldFromVelocityGrid(controlPointGrid,
+                                             field,
+                                             false);
       // Exponentiate the velocity field using the device
       reg_getDeformationFieldFromVelocityGrid_gpu(controlPointGrid,
-            field,
-            &controlPointGrid_gpu,
-            &field_gpu);
+                                                  field,
+                                                  &controlPointGrid_gpu,
+                                                  &field_gpu);
       // Transfer the device field on the host
       cudaCommon_transferFromDeviceToNifti<float4>(field2, &field_gpu);
       // Compute the difference between both fields
@@ -212,7 +212,7 @@ int main(int argc, char **argv)
    {
       double be_cpu = reg_spline_approxBendingEnergy(controlPointGrid);
       double be_gpu = reg_spline_approxBendingEnergy_gpu(controlPointGrid,
-                      &controlPointGrid_gpu);
+                                                         &controlPointGrid_gpu);
       maxDifferenceBE = (be_cpu / be_gpu) - 1.0;
 #ifndef NDEBUG
       printf("[NiftyReg DEBUG] [dim=%i] Bending energy difference: %g [=(%g/%g)-1]\n",
@@ -232,7 +232,7 @@ int main(int argc, char **argv)
       // Allocate an extra cuda array to store the device gradient
       float4 *be_grad_device=NULL;
       cudaCommon_allocateArrayToDevice<float4>(&be_grad_device,
-            controlPointNumber);
+                                               controlPointNumber);
       // Set the gradients arrays to zero
       reg_tools_multiplyValueToImage(be_grad_cpu,be_grad_cpu,0.f);
       cudaCommon_transferNiftiToArrayOnDevice<float4>(&be_grad_device,be_grad_cpu);
@@ -242,9 +242,9 @@ int main(int argc, char **argv)
                                              controlPointNumber); // weight
       // Compute the gradient on the device
       reg_spline_approxBendingEnergyGradient_gpu(controlPointGrid,
-            &controlPointGrid_gpu,
-            &be_grad_device,
-            controlPointNumber); // weight
+                                                 &controlPointGrid_gpu,
+                                                 &be_grad_device,
+                                                 controlPointNumber); // weight
       // Transfer the device field on the host
       cudaCommon_transferFromDeviceToNifti<float4>(be_grad_gpu, &be_grad_device);
       // Compute the difference between both gradient arrays
@@ -273,12 +273,12 @@ int main(int argc, char **argv)
       bool approximation=false;
       if(strcmp(type,"ajac")==0) approximation=true;
       double jac_cpu = reg_spline_getJacobianPenaltyTerm(controlPointGrid,
-                       field,
-                       approximation); // aprox
+                                                         field,
+                                                         approximation); // aprox
       double jac_gpu = reg_spline_getJacobianPenaltyTerm_gpu(field,
-                       controlPointGrid,
-                       &controlPointGrid_gpu,
-                       approximation);
+                                                             controlPointGrid,
+                                                             &controlPointGrid_gpu,
+                                                             approximation);
       if(jac_cpu!=jac_cpu)
       {
          fprintf(stderr,
@@ -321,23 +321,23 @@ int main(int argc, char **argv)
       // Allocate an extra cuda array to store the device gradient
       float4 *jac_grad_device=NULL;
       cudaCommon_allocateArrayToDevice<float4>(&jac_grad_device,
-            controlPointNumber);
+                                               controlPointNumber);
       // Set the gradients arrays to zero
       reg_tools_multiplyValueToImage(jac_grad_cpu,jac_grad_cpu,0.f);
       cudaCommon_transferNiftiToArrayOnDevice<float4>(&jac_grad_device,jac_grad_cpu);
       // Compute the gradient on the host
       reg_spline_getJacobianPenaltyTermGradient(controlPointGrid,
-            field,
-            jac_grad_cpu,
-            controlPointNumber,
-            approximation);
+                                                field,
+                                                jac_grad_cpu,
+                                                controlPointNumber,
+                                                approximation);
       // Compute the gradient on the device
       reg_spline_getJacobianPenaltyTermGradient_gpu(field,
-            controlPointGrid,
-            &controlPointGrid_gpu,
-            &jac_grad_device,
-            controlPointNumber,
-            approximation);
+                                                    controlPointGrid,
+                                                    &controlPointGrid_gpu,
+                                                    &jac_grad_device,
+                                                    controlPointNumber,
+                                                    approximation);
       // Transfer the device field on the host
       cudaCommon_transferFromDeviceToNifti<float4>(jac_grad_gpu, &jac_grad_device);
       // Compute the difference between both gradient arrays

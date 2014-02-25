@@ -460,7 +460,7 @@ int main(int argc, char **argv)
                printf("[NiftyReg] The specified transformation is a spline velocity parametrisation:\n[NiftyReg] %s\n",
                       inputTransformationImage->fname);
                // The spline parametrisation is converted into a dense flow and exponentiated
-               reg_spline_getDeformationFieldFromVelocityGrid(inputTransformationImage,
+               reg_spline_getDefFieldFromVelocityGrid(inputTransformationImage,
                      outputTransformationImage,
                      false // step number is not updated
                                                              );
@@ -672,7 +672,7 @@ int main(int argc, char **argv)
             case SPLINE_VEL_GRID:
                printf("[NiftyReg] Transformation 1 is a spline velocity field parametrisation:\n[NiftyReg] %s\n",
                       input1TransImage->fname);
-               reg_spline_getDeformationFieldFromVelocityGrid(input1TransImage,
+               reg_spline_getDefFieldFromVelocityGrid(input1TransImage,
                      output1TransImage,
                      false // the number of step is not automatically updated
                                                              );
@@ -763,7 +763,7 @@ int main(int argc, char **argv)
                                        (output2TransImage->nvox,output2TransImage->nbyper);
                printf("[NiftyReg] Transformation 2 is a spline velocity field parametrisation:\n[NiftyReg] %s\n",
                       input2TransImage->fname);
-               reg_spline_getDeformationFieldFromVelocityGrid(input2TransImage,
+               reg_spline_getDefFieldFromVelocityGrid(input2TransImage,
                      output2TransImage,
                      false // the number of step is not automatically updated
                                                              );
