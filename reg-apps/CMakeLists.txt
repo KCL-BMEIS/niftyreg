@@ -8,6 +8,9 @@ target_link_libraries(reg_tools _reg_resampling _reg_localTransformation _reg_to
 add_executable(reg_resample reg_resample.cpp)
 target_link_libraries(reg_resample _reg_resampling _reg_localTransformation _reg_tools _reg_globalTransformation _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
+add_executable(reg_measure reg_measure.cpp)
+target_link_libraries(reg_measure _reg_resampling _reg_tools _reg_nmi _reg_ssd _reg_KLdivergence _reg_lncc _reg_dti _reg_ReadWriteImage)
+#-----------------------------------------------------------------------------
 add_executable(reg_ppcnr reg_ppcnr.cpp)
 target_link_libraries(reg_ppcnr _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
@@ -68,6 +71,7 @@ else(BUILD_NR_SLICER_EXT)
 				reg_average
 				reg_tools
 				reg_transform
+				reg_measure
 				)
 endif(BUILD_NR_SLICER_EXT)
 #-----------------------------------------------------------------------------

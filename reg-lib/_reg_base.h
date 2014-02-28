@@ -17,7 +17,6 @@
 #include "_reg_localTransformation.h"
 #include "_reg_nmi.h"
 #include "_reg_dti.h"
-#include "_reg_measure.h"
 #include "_reg_ssd.h"
 #include "_reg_KLdivergence.h"
 #include "_reg_lncc.h"
