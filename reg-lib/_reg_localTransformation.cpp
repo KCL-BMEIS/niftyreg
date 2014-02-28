@@ -3964,7 +3964,7 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
          flowFieldImage->intent_p2 = squaringNumber;
       else flowFieldImage->intent_p2 = -squaringNumber;
    }
-   else squaringNumber=flowFieldImage->intent_p2;
+   else squaringNumber=static_cast<int>(fabsf(flowFieldImage->intent_p2));
 
    // The displacement field is scaled
    float scalingValue = pow(2.0f,fabs(squaringNumber));

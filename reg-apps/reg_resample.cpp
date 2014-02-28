@@ -340,8 +340,8 @@ int main(int argc, char **argv)
          tempFlowField->intent_p1=inputTransformationImage->intent_p1;
          tempFlowField->intent_p2=inputTransformationImage->intent_p2;
          reg_defField_getDeformationFieldFromFlowField(tempFlowField,
-               deformationFieldImage,
-               false);
+                                                       deformationFieldImage,
+                                                       false);
          nifti_image_free(tempFlowField);
       }
       break;
