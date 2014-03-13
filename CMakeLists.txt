@@ -65,6 +65,21 @@ if(NOT ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
         option(USE_OPENMP "To use openMP for multi-CPU processing" ON)
     endif(OPENMP_FOUND)
 endif(NOT ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+
+option(BUILD_SHARED_LIBS "Build the libraries as shared." OFF)
+if(BUILD_SHARED_LIBS)
+  if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    message(WARNING "certain libraries cannot be built shared on MACOSX, forcing them to STATIC")
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build the libraries as shared." FORCE)
+    set(NIFTYREG_LIBRARY_TYPE STATIC)
+  else()
+    set(NIFTYREG_LIBRARY_TYPE SHARED)
+  endif()
+else()
+  set(NIFTYREG_LIBRARY_TYPE STATIC)
+endif()
+
+
 #-----------------------------------------------------------------------------
 include_directories(${CMAKE_SOURCE_DIR}/reg-lib)
 include_directories(${CMAKE_SOURCE_DIR}/reg-io)
