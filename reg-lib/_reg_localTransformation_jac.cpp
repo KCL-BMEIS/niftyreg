@@ -3002,6 +3002,8 @@ int reg_spline_GetJacobianDetFromVelocityGrid(nifti_image* jacobianDetImage,
                                             flowFieldImage);
 
    nifti_image_free(flowFieldImage);
+
+   return 0;
 }
 /* *************************************************************** */
 /* *************************************************************** */

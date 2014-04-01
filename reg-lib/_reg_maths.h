@@ -79,10 +79,12 @@ template<class PrecisionType> inline int round(PrecisionType x)
 {
    return int(x > 0.0 ? (x + 0.5) : (x - 0.5));
 }
+#if _MSC_VER < 1800 //test if visual studio version older than 2013
 template<typename T>inline bool isinf(T value)
 {
    return std::numeric_limits<T>::has_infinity && value == std::numeric_limits<T>::infinity();
 }
+#endif
 inline int fabs(int _x)
 {
    return (int)fabs((float)(_x));
