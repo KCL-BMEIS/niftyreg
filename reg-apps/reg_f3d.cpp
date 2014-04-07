@@ -141,13 +141,13 @@ void Usage(char *exec)
    printf("\t-noConj\t\t\tTo not use the conjuage gradient optimisation but a simple gradient ascent\n");
    printf("\t-pert <int>\t\tTo add perturbation step(s) after each optimisation scheme\n");
 
-   printf("\n*** F3D_SYM options:\n");
-   printf("\t-sym \t\t\tUse symmetric approach\n");
-   printf("\t-fmask <filename>\tFilename of a mask image in the floating space\n");
-   printf("\t-ic <float>\t\tWeight of the inverse consistency penalty term [0.01]\n");
+//   printf("\n*** F3D_SYM options:\n");
+//   printf("\t-sym \t\t\tUse symmetric approach\n");
+//   printf("\t-ic <float>\t\tWeight of the inverse consistency penalty term [0.01]\n");
 
    printf("\n*** F3D2 options:\n");
    printf("\t-vel \t\t\tUse a velocity field integration to generate the deformation\n");
+   printf("\t-fmask <filename>\tFilename of a mask image in the floating space\n");
 
    printf("\n*** Other options:\n");
    printf("\t-smoothGrad <float>\tTo smooth the metric derivative (in mm) [0]\n");
@@ -222,7 +222,7 @@ int main(int argc, char **argv)
    }
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Output the command line
-#ifndef NDEBUG
+#ifdef NDEBUG
    if(verbose)
    {
 #endif
@@ -230,7 +230,7 @@ int main(int argc, char **argv)
       for(int i=0; i<argc; i++)
          printf(" %s", argv[i]);
       printf("\n\n");
-#ifndef NDEBUG
+#ifdef NDEBUG
    }
 #endif
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
@@ -857,13 +857,13 @@ int main(int argc, char **argv)
    int minutes = (int)floorf(float(end-start)/60.0f);
    int seconds = (int)(end-start - 60*minutes);
 
-#ifndef NDEBUG
+#ifdef NDEBUG
    if(verbose)
    {
 #endif
       printf("[NiftyReg F3D] Registration Performed in %i min %i sec\n", minutes, seconds);
       printf("[NiftyReg F3D] Have a good day !\n");
-#ifndef NDEBUG
+#ifdef NDEBUG
    }
 #endif
    return 0;

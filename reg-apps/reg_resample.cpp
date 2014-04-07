@@ -74,8 +74,9 @@ void Usage(char *exec)
    printf("\t-blank <filename> \tFilename of the resampled blank grid [none]\n");
 
    printf("\t*\tOthers\n");
-   printf("\t-inter <int> \t\tInterpolation order (0,1,3)[3]\n");
+   printf("\t-inter <int> \t\tInterpolation order (0,1,3)[3] (0=NN, 1=LIN; 3=CUB)\n");
    printf("\t-pad <int> \t\tInterpolation padding value [0]\n");
+   printf("\t-voff\t\t\tTurns verbose off [on]\n");
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;
 }
@@ -87,6 +88,7 @@ int main(int argc, char **argv)
 
    param->interpolation=3; // Cubic spline interpolation used by default
    param->paddingValue=0;
+   bool verbose=true;
 
    /* read the input parameter */
    for(int i=1; i<argc; i++)
@@ -102,6 +104,10 @@ int main(int argc, char **argv)
       {
          printf("%s",xml_resample);
          return 0;
+      }
+      else if(strcmp(argv[i], "-voff")==0)
+      {
+         verbose=false;
       }
 #ifdef _SVN_REV
       if( strcmp(argv[i], "-version")==0 ||
@@ -234,18 +240,20 @@ int main(int argc, char **argv)
    /* *********************************** */
    /* DISPLAY THE RESAMPLING PARAMETERS */
    /* *********************************** */
-   printf("\n* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   printf("Command line:\n");
-   for(int i=0; i<argc; i++) printf(" %s", argv[i]);
-   printf("\n\n");
-   printf("Parameters\n");
-   printf("Reference image name: %s\n",referenceImage->fname);
-   printf("\t%ix%ix%i voxels, %i volumes\n",referenceImage->nx,referenceImage->ny,referenceImage->nz,referenceImage->nt);
-   printf("\t%gx%gx%g mm\n",referenceImage->dx,referenceImage->dy,referenceImage->dz);
-   printf("Floating image name: %s\n",floatingImage->fname);
-   printf("\t%ix%ix%i voxels, %i volumes\n",floatingImage->nx,floatingImage->ny,floatingImage->nz,floatingImage->nt);
-   printf("\t%gx%gx%g mm\n",floatingImage->dx,floatingImage->dy,floatingImage->dz);
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n");
+   if(verbose){
+      printf("\n* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+      printf("Command line:\n");
+      for(int i=0; i<argc; i++) printf(" %s", argv[i]);
+      printf("\n\n");
+      printf("Parameters\n");
+      printf("Reference image name: %s\n",referenceImage->fname);
+      printf("\t%ix%ix%i voxels, %i volumes\n",referenceImage->nx,referenceImage->ny,referenceImage->nz,referenceImage->nt);
+      printf("\t%gx%gx%g mm\n",referenceImage->dx,referenceImage->dy,referenceImage->dz);
+      printf("Floating image name: %s\n",floatingImage->fname);
+      printf("\t%ix%ix%i voxels, %i volumes\n",floatingImage->nx,floatingImage->ny,floatingImage->nz,floatingImage->nt);
+      printf("\t%gx%gx%g mm\n",floatingImage->dx,floatingImage->dy,floatingImage->dz);
+      printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n");
+   }
 
    /* *********************** */
    /* READ THE TRANSFORMATION */
@@ -440,7 +448,8 @@ int main(int argc, char **argv)
       memset(warpedImage->descrip, 0, 80);
       strcpy (warpedImage->descrip,"Warped image using NiftyReg (reg_resample)");
       reg_io_WriteImageFile(warpedImage,param->outputResultName);
-      printf("[NiftyReg] Resampled image has been saved: %s\n", param->outputResultName);
+      if(verbose)
+         printf("[NiftyReg] Resampled image has been saved: %s\n", param->outputResultName);
       nifti_image_free(warpedImage);
    }
 
@@ -519,7 +528,8 @@ int main(int argc, char **argv)
       reg_io_WriteImageFile(warpedImage,param->outputResultName);
       nifti_image_free(warpedImage);
       nifti_image_free(gridImage);
-      printf("[NiftyReg] Resampled grid has been saved: %s\n", param->outputResultName);
+      if(verbose)
+         printf("[NiftyReg] Resampled grid has been saved: %s\n", param->outputResultName);
    }
 
    // Tell the CLI that we finished

@@ -311,7 +311,7 @@ int main(int argc, char **argv)
    startProgress("reg_aladin");
 
    // Output the command line
-#ifndef NDEBUG
+#ifdef NDEBUG
    if(verbose)
    {
 #endif
@@ -319,7 +319,7 @@ int main(int argc, char **argv)
       for(int i=0; i<argc; i++)
          printf(" %s", argv[i]);
       printf("\n\n");
-#ifndef NDEBUG
+#ifdef NDEBUG
    }
 #endif
 
@@ -508,7 +508,7 @@ int main(int argc, char **argv)
       nifti_image_free(isoFloMaskImage);
 
    delete REG;
-#ifndef NDEBUG
+#ifdef NDEBUG
    if(verbose)
    {
 #endif
@@ -518,7 +518,7 @@ int main(int argc, char **argv)
       int seconds=(int)(end-start - 60*minutes);
       printf("Registration Performed in %i min %i sec\n", minutes, seconds);
       printf("Have a good day !\n");
-#ifndef NDEBUG
+#ifdef NDEBUG
    }
 #endif
 

@@ -91,8 +91,8 @@ void Usage(char *exec)
    printf("\t-comp <filename1> <filename2> <filename3>\n");
    printf("\t\tCompose two transformations of any recognised type* and returns a deformation field.\n");
    printf("\t\tTrans3(x) = Trans2(Trans1(x)).\n");
-   printf("\t\tfilename1 - Input transformation 1 file name\n");
-   printf("\t\tfilename2 - Input transformation 2 file name\n");
+   printf("\t\tfilename1 - Input transformation 1 file name (associated with -ref if required)\n");
+   printf("\t\tfilename2 - Input transformation 2 file name (associated with -ref2 if required)\n");
    printf("\t\tfilename3 - Output deformation field file name\n\n");
 
    printf("\t-updSform <filename1> <filename2> <filename3>\n");

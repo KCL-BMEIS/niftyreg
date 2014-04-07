@@ -87,7 +87,7 @@ int main(int argc, char **argv)
       }
 //      else if(strcmp(argv[i], "--xml")==0)
 //      {
-//         printf("%s",xml_resample);
+//         printf("%s",xml_measure);
 //         return 0;
 //      }
 #ifdef _SVN_REV

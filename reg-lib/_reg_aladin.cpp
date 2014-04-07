@@ -148,7 +148,7 @@ int reg_aladin<T>::Print()
    /* *********************************** */
    /* DISPLAY THE REGISTRATION PARAMETERS */
    /* *********************************** */
-#ifndef NDEBUG
+#ifdef NDEBUG
    if(this->Verbose)
    {
 #endif
@@ -162,8 +162,7 @@ int reg_aladin<T>::Print()
       printf("[%s] Maximum iteration number: %i", this->ExecutableName, this->MaxIterations);
       printf(" (%i during the first level)\n", 2*this->MaxIterations);
       printf("[%s] Percentage of blocks: %i %%", this->ExecutableName, this->BlockPercentage);
-//        printf(" (100%% during the first level)\n");
-#ifndef NDEBUG
+#ifdef NDEBUG
    }
 #endif
    return 0;
