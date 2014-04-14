@@ -305,6 +305,8 @@ int main(int argc, char **argv)
    deformationFieldImage->nvox =(size_t)deformationFieldImage->nx*
                                 deformationFieldImage->ny*deformationFieldImage->nz*
                                 deformationFieldImage->nt*deformationFieldImage->nu;
+   deformationFieldImage->scl_slope=1.f;
+   deformationFieldImage->scl_inter=0.f;
    if(inputTransformationImage!=NULL)
    {
       deformationFieldImage->datatype = inputTransformationImage->datatype;

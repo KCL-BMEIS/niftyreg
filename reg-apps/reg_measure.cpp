@@ -226,6 +226,8 @@ int main(int argc, char **argv)
    defField->datatype=NIFTI_TYPE_FLOAT32;
    defField->nbyper=sizeof(float);
    defField->data=(void *)calloc(defField->nvox,defField->nbyper);
+   defField->scl_slope=1.f;
+   defField->scl_inter=0.f;
    reg_tools_multiplyValueToImage(defField,defField,0.f);
    defField->intent_p1=DISP_FIELD;
    reg_getDeformationFromDisplacement(defField);

@@ -549,6 +549,8 @@ void reg_base<T>::AllocateDeformationField()
    memset(this->deformationFieldImage->intent_name, 0, 16);
    strcpy(this->deformationFieldImage->intent_name,"NREG_TRANS");
    this->deformationFieldImage->intent_p1=DEF_FIELD;
+   this->deformationFieldImage->scl_slope=1.f;
+   this->deformationFieldImage->scl_inter=0.f;
 
    if(this->measure_dti!=NULL)
       this->forwardJacobianMatrix=(mat33 *)malloc(

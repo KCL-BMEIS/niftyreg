@@ -156,12 +156,13 @@ int reg_aladin<T>::Print()
       printf("[%s] Reference image name: %s\n", this->ExecutableName, this->InputReference->fname);
       printf("[%s] \t%ix%ix%i voxels\n", this->ExecutableName, this->InputReference->nx,this->InputReference->ny,this->InputReference->nz);
       printf("[%s] \t%gx%gx%g mm\n", this->ExecutableName, this->InputReference->dx,this->InputReference->dy,this->InputReference->dz);
-      printf("[%s] floating image name: %s\n", this->ExecutableName, this->InputFloating->fname);
+      printf("[%s] Floating image name: %s\n", this->ExecutableName, this->InputFloating->fname);
       printf("[%s] \t%ix%ix%i voxels\n", this->ExecutableName, this->InputFloating->nx,this->InputFloating->ny,this->InputFloating->nz);
       printf("[%s] \t%gx%gx%g mm\n", this->ExecutableName, this->InputFloating->dx,this->InputFloating->dy,this->InputFloating->dz);
       printf("[%s] Maximum iteration number: %i", this->ExecutableName, this->MaxIterations);
       printf(" (%i during the first level)\n", 2*this->MaxIterations);
-      printf("[%s] Percentage of blocks: %i %%", this->ExecutableName, this->BlockPercentage);
+      printf("[%s] Percentage of blocks: %i %%\n", this->ExecutableName, this->BlockPercentage);
+      printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 #ifdef NDEBUG
    }
 #endif
@@ -444,6 +445,8 @@ void reg_aladin<T>::AllocateDeformationField()
       fprintf(stderr,"[NiftyReg ERROR] Only float or double are expected for the deformation field. Exit.\n");
       reg_exit(1);
    }
+   this->deformationFieldImage->scl_slope=1.f;
+   this->deformationFieldImage->scl_inter=0.f;
    this->deformationFieldImage->data = (void *)calloc(this->deformationFieldImage->nvox, this->deformationFieldImage->nbyper);
    return;
 }

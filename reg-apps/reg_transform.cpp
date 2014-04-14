@@ -331,6 +331,8 @@ int main(int argc, char **argv)
          outputTransformationImage->intent_code=NIFTI_INTENT_VECTOR;
          memset(outputTransformationImage->intent_name, 0, 16);
          strcpy(outputTransformationImage->intent_name,"NREG_TRANS");
+         outputTransformationImage->scl_slope=1.f;
+         outputTransformationImage->scl_inter=0.f;
       }
       else
       {
@@ -619,6 +621,8 @@ int main(int argc, char **argv)
             output1TransImage->nvox=(size_t)output1TransImage->nx *
                                     output1TransImage->ny * output1TransImage->nz *
                                     output1TransImage->nt * output1TransImage->nu;
+            output1TransImage->scl_slope=1.f;
+            output1TransImage->scl_inter=0.f;
             if(referenceImage->datatype!=NIFTI_TYPE_FLOAT32)
             {
                output1TransImage->nbyper=sizeof(float);
@@ -744,6 +748,8 @@ int main(int argc, char **argv)
                if(referenceImage2!=NULL)
                {
                   output2TransImage=nifti_copy_nim_info(referenceImage2);
+                  output2TransImage->scl_slope=1.f;
+                  output2TransImage->scl_inter=0.f;
                   printf("[NiftyReg] Transformation 2 is defined in the space of image:\n[NiftyReg] %s\n",
                          referenceImage2->fname);
                }
@@ -970,6 +976,8 @@ int main(int argc, char **argv)
       strcpy(outputTransImage->intent_name,"NREG_TRANS");
       outputTransImage->intent_p1=inputTransImage->intent_p1;
       outputTransImage->intent_p2=inputTransImage->intent_p2;
+      outputTransImage->scl_slope=1.f;
+      outputTransImage->scl_inter=0.f;
       outputTransImage->data=(void *)malloc
                              (outputTransImage->nvox*outputTransImage->nbyper);
       // Convert the spline parametrisation into a dense deformation parametrisation
@@ -1009,6 +1017,8 @@ int main(int argc, char **argv)
             tempField->intent_p1=DEF_VEL_FIELD;
             tempField->intent_p2=inputTransImage->intent_p2;
          }
+         tempField->scl_slope=1.f;
+         tempField->scl_inter=0.f;
          tempField->data=(void *)calloc(tempField->nvox,tempField->nbyper);
          // Compute the dense field
          if(inputTransImage->intent_p1==SPLINE_GRID)

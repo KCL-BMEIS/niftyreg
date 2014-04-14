@@ -3918,7 +3918,7 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
       {
          // Create a field that contains the affine component only
          affineOnly = nifti_copy_nim_info(deformationFieldImage);
-         affineOnly->data = (void *)malloc(affineOnly->nvox*affineOnly->nbyper);
+         affineOnly->data = (void *)calloc(affineOnly->nvox,affineOnly->nbyper);
          reg_affine_getDeformationField(reinterpret_cast<mat44 *>(flowFieldImage->ext_list[0].edata),
                affineOnly,
                false);
@@ -3926,7 +3926,6 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
       }
    }
    else reg_getDisplacementFromDeformation(flowFieldImage);
-
 
    // Compute the number of scaling value to ensure unfolded transformation
    int squaringNumber = 1;

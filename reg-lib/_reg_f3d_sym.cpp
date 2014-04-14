@@ -253,6 +253,8 @@ void reg_f3d_sym<T>::AllocateDeformationField()
    memset(this->backwardDeformationFieldImage->intent_name, 0, 16);
    strcpy(this->backwardDeformationFieldImage->intent_name,"NREG_TRANS");
    this->backwardDeformationFieldImage->intent_p1=DEF_FIELD;
+   this->backwardDeformationFieldImage->scl_slope=1.f;
+   this->backwardDeformationFieldImage->scl_inter=0.f;
 
    if(this->measure_dti!=NULL)
       this->backwardJacobianMatrix=(mat33 *)malloc(

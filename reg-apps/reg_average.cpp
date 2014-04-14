@@ -138,6 +138,8 @@ int main(int argc, char **argv)
 
          // Create the average image
          nifti_image *average_image=nifti_copy_nim_info(tempImage);
+         average_image->scl_slope=1.f;
+         average_image->scl_inter=0.f;
          nifti_image_free(tempImage);
          tempImage=NULL;
          average_image->datatype=NIFTI_TYPE_FLOAT32;
@@ -166,9 +168,9 @@ int main(int argc, char **argv)
                reg_print_msg_error(argv[i]);
                return EXIT_FAILURE;
             }
-            if(sizeof(PrecisionTYPE)==sizeof(double))
-               average_norm_intensity<double>(tempImage);
-            else average_norm_intensity<float>(tempImage);
+//            if(sizeof(PrecisionTYPE)==sizeof(double))
+//               average_norm_intensity<double>(tempImage);
+//            else average_norm_intensity<float>(tempImage);
             reg_tools_addImageToImage(average_image,tempImage,average_image);
             imageTotalNumber++;
             nifti_image_free(tempImage);
@@ -343,17 +345,11 @@ int main(int argc, char **argv)
          averageMatrix = nifti_mat44_inverse(averageMatrix);
          averageMatrix = reg_mat44_logm(&averageMatrix);
          // Demean all the input affine matrices
-         float indet=1.f; // HERE
-         float outdet=1.f; // HERE
-         for(size_t i=0; i<affineNumber; ++i)
-         {
-            indet *= reg_mat44_det(&affineMatrices[i]);// HERE
+         for(size_t i=0; i<affineNumber; ++i){
             affineMatrices[i] = reg_mat44_logm(&affineMatrices[i]);
             affineMatrices[i] = averageMatrix + affineMatrices[i];
             affineMatrices[i] = reg_mat44_expm(&affineMatrices[i]);
-            outdet *= reg_mat44_det(&affineMatrices[i]);// HERE
          }
-         printf("Average determinant %g -> %g\n", indet, outdet); // HERE
          // Create a deformation field to be used to resample all the floating images
          nifti_image *deformationField = nifti_copy_nim_info(referenceImage);
          deformationField->dim[0]=deformationField->ndim=5;
@@ -366,6 +362,8 @@ int main(int argc, char **argv)
             deformationField->datatype=NIFTI_TYPE_FLOAT32;
             deformationField->nbyper=sizeof(float);
          }
+         deformationField->scl_slope=1.f;
+         deformationField->scl_inter=0.f;
          deformationField->data = (void *)malloc(deformationField->nvox*deformationField->nbyper);
          // Create an average image
          nifti_image *averageImage = nifti_copy_nim_info(referenceImage);
@@ -377,6 +375,8 @@ int main(int argc, char **argv)
          averageImage->data = (void *)calloc(averageImage->nvox,averageImage->nbyper);
          // Create a temporary image
          nifti_image *tempImage = nifti_copy_nim_info(averageImage);
+         tempImage->scl_slope=1.f;
+         tempImage->scl_inter=0.f;
          tempImage->data = (void *)malloc(tempImage->nvox*tempImage->nbyper);
          // warp all floating images and sum them up
          for(size_t i=5, j=0; i<argc; i+=2,++j)
@@ -402,9 +402,9 @@ int main(int argc, char **argv)
                }
             }
             reg_resampleImage(floatingImage,tempImage,deformationField,NULL,3,0.f);
-            if(sizeof(PrecisionTYPE)==sizeof(double))
-               average_norm_intensity<double>(tempImage);
-            else average_norm_intensity<float>(tempImage);
+//            if(sizeof(PrecisionTYPE)==sizeof(double))
+//               average_norm_intensity<double>(tempImage);
+//            else average_norm_intensity<float>(tempImage);
             reg_tools_addImageToImage(averageImage,tempImage,averageImage);
             nifti_image_free(floatingImage);
          }
@@ -435,6 +435,8 @@ int main(int argc, char **argv)
             averageField->nbyper=sizeof(float);
          }
          averageField->data = (void *)calloc(averageField->nvox,averageField->nbyper);
+         averageField->scl_slope=1.f;
+         averageField->scl_inter=0.f;
          reg_tools_multiplyValueToImage(averageField,averageField,0.f);
          // Iterate over all the transformation parametrisations - Note that I don't store them all to save space
 #ifndef NDEBUG
@@ -465,6 +467,8 @@ int main(int argc, char **argv)
             nifti_image *deformationField = nifti_copy_nim_info(averageField);
             deformationField->data = (void *)malloc(deformationField->nvox*deformationField->nbyper);
             reg_tools_multiplyValueToImage(deformationField,deformationField,0.f);
+            deformationField->scl_slope=1.f;
+            deformationField->scl_inter=0.f;
             deformationField->intent_p1=DISP_FIELD;
             reg_getDeformationFromDisplacement(deformationField);
             // Generate a deformation field or a flow field depending of the input transformation
@@ -524,6 +528,8 @@ int main(int argc, char **argv)
                // The affine component is substracted
                nifti_image *tempField = nifti_copy_nim_info(deformationField);
                tempField->data = (void *)malloc(tempField->nvox*tempField->nbyper);
+               tempField->scl_slope=1.f;
+               tempField->scl_inter=0.f;
                reg_affine_getDeformationField(&affineTransformation,
                                               tempField);
                reg_tools_substractImageToImage(deformationField,tempField,deformationField);
@@ -544,6 +550,8 @@ int main(int argc, char **argv)
             averageImage->datatype=NIFTI_TYPE_FLOAT32;
             averageImage->nbyper=sizeof(float);
          }
+         averageImage->scl_slope=1.f;
+         averageImage->scl_inter=0.f;
          averageImage->data = (void *)calloc(averageImage->nvox,averageImage->nbyper);
          // Create a temporary image
          nifti_image *tempImage = nifti_copy_nim_info(averageImage);
@@ -574,6 +582,8 @@ int main(int argc, char **argv)
             reg_tools_multiplyValueToImage(deformationField,deformationField,0.f);
             deformationField->intent_p1=DISP_FIELD;
             reg_getDeformationFromDisplacement(deformationField);
+            deformationField->scl_slope=1.f;
+            deformationField->scl_inter=0.f;
             // Generate a deformation field or a flow field depending of the input transformation
             switch(static_cast<int>(transformation->intent_p1))
             {
@@ -607,6 +617,8 @@ int main(int argc, char **argv)
                nifti_image *tempDef = nifti_copy_nim_info(deformationField);
                tempDef->data = (void *)malloc(tempDef->nvox*tempDef->nbyper);
                memcpy(tempDef->data,deformationField->data,tempDef->nvox*tempDef->nbyper);
+               tempDef->scl_slope=1.f;
+               tempDef->scl_inter=0.f;
                reg_defField_getDeformationFieldFromFlowField(tempDef,deformationField,false);
                deformationField->intent_p1=DEF_FIELD;
                nifti_free_extensions(deformationField);
