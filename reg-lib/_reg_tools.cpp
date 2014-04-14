@@ -123,11 +123,6 @@ void reg_intensityRescale_core(nifti_image *image,
       break;
    }
 
-   std::cout << "Slope:" << image->scl_slope << std::endl;
-   std::cout << "Inter:" << image->scl_inter << std::endl;
-   std::cout << "Before Min:" << currentMin << std::endl;
-   std::cout << "Before Max:" << currentMax << std::endl;
-
    // Extract the minimal and maximal values from the current volume
    if(image->scl_slope==0) image->scl_slope=1.0f;
    for(unsigned int index=0; index<voxelNumber; index++)
@@ -139,9 +134,6 @@ void reg_intensityRescale_core(nifti_image *image,
          currentMax=(currentMax>value)?currentMax:value;
       }
    }
-
-   std::cout << "After Min:" << currentMin << std::endl;
-   std::cout << "After Max:" << currentMax << std::endl;
 
    // Compute constant values to rescale image intensities
    double currentDiff = (double)(currentMax-currentMin);
