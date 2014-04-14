@@ -53,6 +53,16 @@ void reg_intensityRescale(nifti_image *image,
                           float newMin,
                           float newMax
                          );
+
+
+/* *************************************************************** */
+/** @brief Set the scl_slope to 1 and the scl_inter to 0 and rescale
+ * the intensity values
+ * @param image Image to be updated
+ */
+extern "C++"
+void reg_tools_removeSCLInfo(nifti_image *img);
+
 /* *************************************************************** */
 /** @brief reg_getRealImageSpacing
  * @param image image

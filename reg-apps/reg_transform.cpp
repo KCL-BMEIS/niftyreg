@@ -1159,7 +1159,7 @@ int main(int argc, char **argv)
       // Compute the orthonormal matrix
       float qb,qc,qd,qx,qy,qz,dx,dy,dz,qfac;
       nifti_mat44_to_quatern(affine,&qb,&qc,&qd,&qx,&qy,&qz,&dx,&dy,&dz,&qfac);
-      affine = nifti_quatern_to_mat44(qb,qc,qd,qx,qy,qz,dx,dy,dz,qfac);
+      affine = nifti_quatern_to_mat44(qb,qc,qd,qx,qy,qz,1.f,1.f,1.f,qfac);
       reg_tool_WriteAffineFile(&affine, param->outputTransName);
    }
    // Free allocated object

@@ -769,7 +769,7 @@ void reg_nmi::GetVoxelBasedSimilarityMeasureGradient()
 
    //call compute similarity measure to calculate joint histogram
    this->GetSimilarityMeasureValue();
-   
+
    // Compute the gradient of the nmi for the forward transformation
    if(this->referenceImagePointer->nz>1)  // 3D input images
    {

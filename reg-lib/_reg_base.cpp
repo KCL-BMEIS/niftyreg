@@ -487,6 +487,8 @@ void reg_base<T>::AllocateWarped()
       (size_t)this->warped->ny *
       (size_t)this->warped->nz *
       (size_t)this->warped->nt;
+   this->warped->scl_slope=1.f;
+   this->warped->scl_inter=0.f;
    this->warped->datatype = this->currentFloating->datatype;
    this->warped->nbyper = this->currentFloating->nbyper;
    this->warped->data = (void *)calloc(this->warped->nvox, this->warped->nbyper);

@@ -58,6 +58,7 @@ typedef struct
    bool normFlag;
    int operationTypeFlag;
    bool iso;
+   bool nosclFlag;
 } FLAG;
 
 
@@ -87,6 +88,7 @@ void Usage(char *exec)
    printf("\t-thr <float>\t\tThreshold the input image (val<thr?val=0:val=1)\n");
    printf("\t-nan <filename>\t\tThis image is used to mask the input image.\n\t\t\t\tVoxels outside of the mask are set to nan\n");
    printf("\t-iso\t\t\tThe resulting image is made isotropic\n");
+   printf("\t-noscl\t\t\tThe scl_slope and scl_inter are set to 1 and 0 respectively\n");
 #ifdef _SVN_REV
    printf("\t-v Print the subversion revision number\n");
 #endif
@@ -236,6 +238,10 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "-norm") == 0)
       {
          flag->normFlag=1;
+      }
+      else if(strcmp(argv[i], "-noscl") == 0)
+      {
+         flag->nosclFlag=1;
       }
       else
       {
@@ -518,6 +524,14 @@ int main(int argc, char **argv)
          reg_io_WriteImageFile(resultImage,param->outputImageName);
       else reg_io_WriteImageFile(resultImage,"output.nii");
       nifti_image_free(resultImage);
+   }
+   //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+   if(flag->nosclFlag)
+   {
+      reg_tools_removeSCLInfo(image);
+      if(flag->outputImageFlag)
+         reg_io_WriteImageFile(image,param->outputImageName);
+      else reg_io_WriteImageFile(image,"output.nii");
    }
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 
