@@ -56,13 +56,18 @@ void Usage(char *exec)
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    printf("Usage:\t%s -ref <filename> -flo <filename> [OPTIONS].\n",exec);
    printf("\t-ref <filename>\tFilename of the reference image (mandatory)\n");
-   printf("\t-flo <filename>\tFilename of the floating image (mandatory)\n\n");
+   printf("\t-flo <filename>\tFilename of the floating image (mandatory)\n");
+   printf("\t\tNote that the floating image is resampled into the reference\n");
+   printf("\t\timage space using the header informations.\n");
 #ifdef _SVN_REV
    fprintf(stderr,"\n-v Print the subversion revision number\n");
 #endif
 
    printf("* * OPTIONS * *\n");
-   printf("\tTODO\n");
+   printf("\t-ncc\t\tReturns the NCC value\n");
+   printf("\t-lncc\t\tReturns the LNCC value\n");
+   printf("\t-nmi\t\tReturns the NMI value (64 bins are used)\n");
+   printf("\t-ssd\t\tReturns the SSD value\n");
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;
 }
@@ -141,6 +146,16 @@ int main(int argc, char **argv)
       {
          flag->returnNCCFlag=true;
       }
+      else if(strcmp(argv[i], "-lncc") == 0 ||
+              (strcmp(argv[i],"--lncc")==0))
+      {
+         flag->returnLNCCFlag=true;
+      }
+      else if(strcmp(argv[i], "-nmi") == 0 ||
+              (strcmp(argv[i],"--nmi")==0))
+      {
+         flag->returnNMIFlag=true;
+      }
       else if(strcmp(argv[i], "-ssd") == 0 ||
               (strcmp(argv[i],"--sdd")==0))
       {
@@ -183,6 +198,7 @@ int main(int argc, char **argv)
    reg_checkAndCorrectDimension(floImage);
    reg_tools_changeDatatype<float>(floImage);
 
+   /* Read and create the mask array */
    int *refMask=NULL;
    int refMaskVoxNumber=refImage->nx*refImage->ny*refImage->nz;
    if(flag->refMaskImageFlag){
@@ -241,23 +257,6 @@ int main(int argc, char **argv)
                      param->paddingValue);
    nifti_image_free(defField);
 
-   /* Compute the SSD if required */
-   if(flag->returnSSDFlag){
-      float *refPtr = static_cast<float *>(refImage->data);
-      float *warPtr = static_cast<float *>(warpedFloImage->data);
-      refMaskVoxNumber=0;
-      double measure=0.;
-      for(size_t i=0; i<refImage->nvox; ++i){
-         if(refMask[i]>-1 && refPtr[i]==refPtr[i] && warPtr[i]==warPtr[i]){
-            measure += reg_pow2(refPtr[i] - warPtr[i]);
-            ++refMaskVoxNumber;
-         }
-      }
-      if(refMaskVoxNumber==0)
-         fprintf(stderr, "No active voxel\n");
-      measure /= (double)refMaskVoxNumber;
-      printf("%g\n", measure);
-   }
    /* Compute the NCC if required */
    if(flag->returnNCCFlag){
       float *refPtr = static_cast<float *>(refImage->data);
@@ -291,9 +290,54 @@ int main(int argc, char **argv)
       warSTDValue /= (double)refMaskVoxNumber;
       measure /= sqrt(refSTDValue)*sqrt(warSTDValue)*
             (double)refMaskVoxNumber;
-      printf("%g\n", measure);
+      printf("NCC: %g\n", measure);
+   }
+   /* Compute the NMI if required */
+   if(flag->returnNMIFlag){
+      reg_nmi *nmi_object=new reg_nmi();
+      for(int i=0;i<(refImage->nt<warpedFloImage->nt?refImage->nt:warpedFloImage->nt);++i)
+         nmi_object->SetActiveTimepoint(i);
+      nmi_object->InitialiseMeasure(refImage,
+                                    floImage,
+                                    refMask,
+                                    warpedFloImage,
+                                    NULL,
+                                    NULL);
+      double measure=nmi_object->GetSimilarityMeasureValue();
+      printf("NMI: %g\n", measure);
+      delete nmi_object;
    }
 
+   /* Compute the LNCC if required */
+   if(flag->returnLNCCFlag){
+      reg_lncc *lncc_object=new reg_lncc();
+      for(int i=0;i<(refImage->nt<warpedFloImage->nt?refImage->nt:warpedFloImage->nt);++i)
+         lncc_object->SetActiveTimepoint(i);
+      lncc_object->InitialiseMeasure(refImage,
+                                    floImage,
+                                    refMask,
+                                    warpedFloImage,
+                                    NULL,
+                                    NULL);
+      double measure=lncc_object->GetSimilarityMeasureValue();
+      printf("LNCC: %g\n", measure);
+      delete lncc_object;
+   }
+   /* Compute the SSD if required */
+   if(flag->returnSSDFlag){
+      reg_ssd *ssd_object=new reg_ssd();
+      for(int i=0;i<(refImage->nt<warpedFloImage->nt?refImage->nt:warpedFloImage->nt);++i)
+         ssd_object->SetActiveTimepoint(i);
+      ssd_object->InitialiseMeasure(refImage,
+                                    floImage,
+                                    refMask,
+                                    warpedFloImage,
+                                    NULL,
+                                    NULL);
+      double measure=ssd_object->GetSimilarityMeasureValue();
+      printf("SSD: %g\n", measure);
+      delete ssd_object;
+   }
    // Free the allocated images
    nifti_image_free(refImage);
    nifti_image_free(floImage);

@@ -456,6 +456,7 @@ void reg_f3d_sym<T>::Initialise()
 {
    reg_f3d<T>::Initialise();
 
+   if(this->inputControlPointGrid==NULL){
    // Define the spacing for the first level
    float gridSpacing[3] = {this->spacing[0],this->spacing[1],this->spacing[2]};
    if(this->spacing[0]<0)
@@ -475,6 +476,37 @@ void reg_f3d_sym<T>::Initialise()
                                            this->floatingPyramid[0],
                                            this->affineTransformation,
                                            gridSpacing);
+   }
+   else{
+      // The control point grid image is initialised with the provided grid
+      this->controlPointGrid = nifti_copy_nim_info(this->inputControlPointGrid);
+      this->controlPointGrid->data = (void *)malloc( this->controlPointGrid->nvox *
+                                     this->controlPointGrid->nbyper);
+      if(this->inputControlPointGrid->num_ext>0)
+         nifti_copy_extensions(this->controlPointGrid,this->inputControlPointGrid);
+      memcpy( this->controlPointGrid->data, this->inputControlPointGrid->data,
+              this->controlPointGrid->nvox * this->controlPointGrid->nbyper);
+      // The final grid spacing is computed
+      this->spacing[0] = this->controlPointGrid->dx / powf(2.0f, (float)(this->levelToPerform-1));
+      this->spacing[1] = this->controlPointGrid->dy / powf(2.0f, (float)(this->levelToPerform-1));
+      if(this->controlPointGrid->nz>1)
+         this->spacing[2] = this->controlPointGrid->dz / powf(2.0f, (float)(this->levelToPerform-1));
+      // The backward grid is derived from the forward
+      this->backwardControlPointGrid=nifti_copy_nim_info(this->controlPointGrid);
+      this->backwardControlPointGrid->data = (void *)malloc( this->backwardControlPointGrid->nvox *
+                                     this->backwardControlPointGrid->nbyper);
+      if(this->controlPointGrid->num_ext>0)
+         nifti_copy_extensions(this->backwardControlPointGrid,this->controlPointGrid);
+      reg_getDisplacementFromDeformation(this->backwardControlPointGrid);
+      reg_tools_multiplyValueToImage(this->backwardControlPointGrid,this->backwardControlPointGrid,-1.f);
+      reg_getDeformationFromDisplacement(this->backwardControlPointGrid);
+      for(int i=0; i<this->backwardControlPointGrid->num_ext; ++i){
+         mat44 tempMatrix=reg_mat44_inv(reinterpret_cast<mat44 *>(this->backwardControlPointGrid->ext_list[i].edata));
+         memcpy(this->backwardControlPointGrid->ext_list[i].edata,
+                &tempMatrix,
+                sizeof(mat44));
+      }
+   }
 
    // Set the floating mask image pyramid
    if(this->usePyramid)
