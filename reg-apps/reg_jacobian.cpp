@@ -201,20 +201,20 @@ int main(int argc, char **argv)
       }
    }
 
-   // Check of the input transformation is an affine
-   if(!reg_isAnImageFileName(param->inputTransName)){
-      mat44 *affineTransformation=(mat44 *)malloc(sizeof(mat44));
-      reg_tool_ReadAffineFile(affineTransformation,param->inputTransName);
-      printf("%g\n", reg_mat44_det(affineTransformation));
-      return EXIT_SUCCESS;
-   }
-
    /* ******************* */
    /* READ TRANSFORMATION */
    /* ******************* */
    nifti_image *inputTransformation=NULL;
    if(flag->inputTransFlag)
    {
+      // Check of the input transformation is an affine
+      if(!reg_isAnImageFileName(param->inputTransName)){
+         mat44 *affineTransformation=(mat44 *)malloc(sizeof(mat44));
+         reg_tool_ReadAffineFile(affineTransformation,param->inputTransName);
+         printf("%g\n", reg_mat44_det(affineTransformation));
+         return EXIT_SUCCESS;
+      }
+
       inputTransformation = reg_io_ReadImageFile(param->inputTransName);
       if(inputTransformation == NULL)
       {
