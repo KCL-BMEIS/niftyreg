@@ -457,25 +457,25 @@ void reg_f3d_sym<T>::Initialise()
    reg_f3d<T>::Initialise();
 
    if(this->inputControlPointGrid==NULL){
-   // Define the spacing for the first level
-   float gridSpacing[3] = {this->spacing[0],this->spacing[1],this->spacing[2]};
-   if(this->spacing[0]<0)
-      gridSpacing[0] *= -(this->inputReference->dx+this->inputFloating->dx)/2.f;
-   if(this->spacing[1]<0)
-      gridSpacing[1] *= -(this->inputReference->dy+this->inputFloating->dy)/2.f;
-   if(this->spacing[2]<0)
-      gridSpacing[2] *= -(this->inputReference->dz+this->inputFloating->dz)/2.f;
-   gridSpacing[0] *= powf(2.0f, (float)(this->levelNumber-1));
-   gridSpacing[1] *= powf(2.0f, (float)(this->levelNumber-1));
-   gridSpacing[2] *= powf(2.0f, (float)(this->levelNumber-1));
+      // Define the spacing for the first level
+      float gridSpacing[3] = {this->spacing[0],this->spacing[1],this->spacing[2]};
+      if(this->spacing[0]<0)
+         gridSpacing[0] *= -(this->inputReference->dx+this->inputFloating->dx)/2.f;
+      if(this->spacing[1]<0)
+         gridSpacing[1] *= -(this->inputReference->dy+this->inputFloating->dy)/2.f;
+      if(this->spacing[2]<0)
+         gridSpacing[2] *= -(this->inputReference->dz+this->inputFloating->dz)/2.f;
+      gridSpacing[0] *= powf(2.0f, (float)(this->levelNumber-1));
+      gridSpacing[1] *= powf(2.0f, (float)(this->levelNumber-1));
+      gridSpacing[2] *= powf(2.0f, (float)(this->levelNumber-1));
 
-   // Create the forward and backward control point grids
-   reg_createSymmetricControlPointGrids<T>(&this->controlPointGrid,
-                                           &this->backwardControlPointGrid,
-                                           this->referencePyramid[0],
-                                           this->floatingPyramid[0],
-                                           this->affineTransformation,
-                                           gridSpacing);
+      // Create the forward and backward control point grids
+      reg_createSymmetricControlPointGrids<T>(&this->controlPointGrid,
+                                              &this->backwardControlPointGrid,
+                                              this->referencePyramid[0],
+            this->floatingPyramid[0],
+            this->affineTransformation,
+            gridSpacing);
    }
    else{
       // The control point grid image is initialised with the provided grid
@@ -493,10 +493,13 @@ void reg_f3d_sym<T>::Initialise()
          this->spacing[2] = this->controlPointGrid->dz / powf(2.0f, (float)(this->levelToPerform-1));
       // The backward grid is derived from the forward
       this->backwardControlPointGrid=nifti_copy_nim_info(this->controlPointGrid);
-      this->backwardControlPointGrid->data = (void *)malloc( this->backwardControlPointGrid->nvox *
+      this->backwardControlPointGrid->data = (void *)malloc(this->backwardControlPointGrid->nvox *
                                      this->backwardControlPointGrid->nbyper);
       if(this->controlPointGrid->num_ext>0)
          nifti_copy_extensions(this->backwardControlPointGrid,this->controlPointGrid);
+      memcpy(this->backwardControlPointGrid->data,
+             this->controlPointGrid->data,
+             this->backwardControlPointGrid->nvox*this->backwardControlPointGrid->nbyper);
       reg_getDisplacementFromDeformation(this->backwardControlPointGrid);
       reg_tools_multiplyValueToImage(this->backwardControlPointGrid,this->backwardControlPointGrid,-1.f);
       reg_getDeformationFromDisplacement(this->backwardControlPointGrid);

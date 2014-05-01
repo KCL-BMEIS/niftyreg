@@ -172,7 +172,6 @@ void Usage(char *exec)
 
 int main(int argc, char **argv)
 {
-
    if(argc==1)
    {
       PetitUsage(argv[0]);

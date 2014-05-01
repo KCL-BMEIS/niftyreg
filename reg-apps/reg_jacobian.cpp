@@ -26,7 +26,9 @@ typedef struct
 {
    char *refImageName;
    char *inputTransName;
-   char *outputJacName;
+   char *outputJacDetName;
+   char *outputJacMatName;
+   char *outputLogDetName;
 } PARAM;
 typedef struct
 {
@@ -34,7 +36,7 @@ typedef struct
    bool inputTransFlag;
    bool outputJacDetFlag;
    bool outputJacMatFlag;
-   bool outputLogJacDetFlag;
+   bool outputLogDetFlag;
 } FLAG;
 
 template <class DTYPE>
@@ -110,7 +112,9 @@ void Usage(char *exec)
 
    printf("\n* * INPUT * *\n");
    printf("\t-trans <filename>\n");
-   printf("\t\tFilename of the file containing the transformation.\n");
+   printf("\t\tFilename of the file containing the transformation (mandatory).\n");
+   printf("\t-ref <filename>\n");
+   printf("\t\tFilename of the reference image (required if the transformation is a spline parametrisation)\n");
    printf("\n* * OUTPUT * *\n");
    printf("\t-jac <filename>\n");
    printf("\t\tFilename of the Jacobian determinant map.\n");
@@ -118,19 +122,19 @@ void Usage(char *exec)
    printf("\t\tFilename of the Jacobian matrix map. (9 or 4 values are stored as a 5D nifti).\n");
    printf("\t-jacL <filename>\n");
    printf("\t\tFilename of the Log of the Jacobian determinant map.\n");
-   printf("\n* * EXTRA * *\n");
-   printf("\t-ref <filename>\tFilename of the reference image (required if the transformation is a spline parametrisation)\n");
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;
 }
 
 int main(int argc, char **argv)
 {
+   if(argc==1){
+      PetitUsage(argv[0]);
+      return 1;
+   }
+
    PARAM *param = (PARAM *)calloc(1,sizeof(PARAM));
    FLAG *flag = (FLAG *)calloc(1,sizeof(FLAG));
-
-   // Set a default output name
-   param->outputJacName=(char *)"outputJac.nii";
 
    // read the input parameters
    for(int i=1; i<argc; i++)
@@ -174,20 +178,20 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "-jac") == 0 ||
               (strcmp(argv[i],"--jac")==0))
       {
-         param->outputJacName=argv[++i];
+         param->outputJacDetName=argv[++i];
          flag->outputJacDetFlag=1;
       }
       else if(strcmp(argv[i], "-jacM") == 0 ||
               (strcmp(argv[i],"--jacM")==0))
       {
-         param->outputJacName=argv[++i];
+         param->outputJacMatName=argv[++i];
          flag->outputJacMatFlag=1;
       }
       else if(strcmp(argv[i], "-jacL") == 0 ||
               (strcmp(argv[i],"--jacL")==0))
       {
-         param->outputJacName=argv[++i];
-         flag->outputLogJacDetFlag=1;
+         param->outputLogDetName=argv[++i];
+         flag->outputLogDetFlag=1;
       }
       else
       {
@@ -231,7 +235,7 @@ int main(int argc, char **argv)
    // Create a deformation field if needed
    nifti_image *referenceImage=NULL;
    if(inputTransformation->intent_p1==SPLINE_GRID ||
-      inputTransformation->intent_p1==SPLINE_VEL_GRID){
+         inputTransformation->intent_p1==SPLINE_VEL_GRID){
       if(!flag->refImageFlag){
          reg_print_msg_error("A reference image has to be specified with a spline parametrisation.");
          reg_exit(1);
@@ -246,34 +250,28 @@ int main(int argc, char **argv)
       reg_checkAndCorrectDimension(referenceImage);
    }
 
-   // Create the Jacobian image
-   nifti_image *jacobianImage=NULL;
-   if(referenceImage!=NULL){
-      jacobianImage=nifti_copy_nim_info(referenceImage);
-      nifti_image_free(referenceImage);referenceImage=NULL;
-   }
-   else jacobianImage=nifti_copy_nim_info(inputTransformation);
-   if(flag->outputJacDetFlag || flag->outputLogJacDetFlag){
+   if(flag->outputJacDetFlag || flag->outputLogDetFlag){
+      // Compute the map of Jacobian determinant
+      // Create the Jacobian image
+      nifti_image *jacobianImage=NULL;
+      if(referenceImage!=NULL){
+         jacobianImage=nifti_copy_nim_info(referenceImage);
+         nifti_image_free(referenceImage);referenceImage=NULL;
+      }
+      else jacobianImage=nifti_copy_nim_info(inputTransformation);
       jacobianImage->ndim=jacobianImage->dim[0]=jacobianImage->nz>1?3:2;
       jacobianImage->nu=jacobianImage->dim[5]=1;
-   }
-   else{
-      jacobianImage->ndim=jacobianImage->dim[0]=5;
-      jacobianImage->nu=jacobianImage->dim[5]=jacobianImage->nz>1?9:4;
-   }
-   jacobianImage->nt=jacobianImage->dim[4]=1;
-   jacobianImage->nvox=(size_t)jacobianImage->nx *jacobianImage->ny*
-         jacobianImage->nz*jacobianImage->nt*jacobianImage->nu;
-   jacobianImage->datatype = inputTransformation->datatype;
-   jacobianImage->nbyper = inputTransformation->nbyper;
-   jacobianImage->cal_min=0;
-   jacobianImage->cal_max=0;
-   jacobianImage->scl_slope = 1.0f;
-   jacobianImage->scl_inter = 0.0f;
-   jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
+      jacobianImage->nt=jacobianImage->dim[4]=1;
+      jacobianImage->nvox=(size_t)jacobianImage->nx *jacobianImage->ny*
+            jacobianImage->nz*jacobianImage->nt*jacobianImage->nu;
+      jacobianImage->datatype = inputTransformation->datatype;
+      jacobianImage->nbyper = inputTransformation->nbyper;
+      jacobianImage->cal_min=0;
+      jacobianImage->cal_max=0;
+      jacobianImage->scl_slope = 1.0f;
+      jacobianImage->scl_inter = 0.0f;
+      jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
 
-   if(flag->outputJacDetFlag || flag->outputLogJacDetFlag){
-      // Compute the map of Jacobian determinant
       switch((int)inputTransformation->intent_p1){
       case DISP_FIELD:
          reg_getDeformationFromDisplacement(inputTransformation);
@@ -292,7 +290,9 @@ int main(int argc, char **argv)
          reg_spline_GetJacobianDetFromVelocityGrid(jacobianImage,inputTransformation);
          break;
       }
-      if(flag->outputLogJacDetFlag){
+      if(flag->outputJacDetFlag)
+         reg_io_WriteImageFile(jacobianImage,param->outputJacDetName);
+      if(flag->outputLogDetFlag){
          switch(jacobianImage->datatype){
          case NIFTI_TYPE_FLOAT32:
             reg_jacobian_computeLog<float>(jacobianImage);
@@ -301,9 +301,31 @@ int main(int argc, char **argv)
             reg_jacobian_computeLog<double>(jacobianImage);
             break;
          }
+         reg_io_WriteImageFile(jacobianImage,param->outputLogDetName);
       }
+      nifti_image_free(jacobianImage);jacobianImage=NULL;
    }
-   else{
+   if(flag->outputJacMatFlag){
+
+      nifti_image *jacobianImage=NULL;
+      if(referenceImage!=NULL){
+         jacobianImage=nifti_copy_nim_info(referenceImage);
+         nifti_image_free(referenceImage);referenceImage=NULL;
+      }
+      else jacobianImage=nifti_copy_nim_info(inputTransformation);
+      jacobianImage->ndim=jacobianImage->dim[0]=5;
+      jacobianImage->nu=jacobianImage->dim[5]=jacobianImage->nz>1?9:4;
+      jacobianImage->nt=jacobianImage->dim[4]=1;
+      jacobianImage->nvox=(size_t)jacobianImage->nx *jacobianImage->ny*
+            jacobianImage->nz*jacobianImage->nt*jacobianImage->nu;
+      jacobianImage->datatype = inputTransformation->datatype;
+      jacobianImage->nbyper = inputTransformation->nbyper;
+      jacobianImage->cal_min=0;
+      jacobianImage->cal_max=0;
+      jacobianImage->scl_slope = 1.0f;
+      jacobianImage->scl_inter = 0.0f;
+      jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
+
       mat33 *jacobianMatriceArray=(mat33 *)malloc(jacobianImage->nx*jacobianImage->ny*jacobianImage->nz*sizeof(mat33));
       // Compute the map of Jacobian matrices
       switch((int)inputTransformation->intent_p1){
@@ -333,13 +355,11 @@ int main(int argc, char **argv)
          break;
       }
       free(jacobianMatriceArray);jacobianMatriceArray=NULL;
+      reg_io_WriteImageFile(jacobianImage,param->outputJacMatName);
+      nifti_image_free(jacobianImage);jacobianImage=NULL;
    }
 
-   // Save the Jacobian image
-   reg_io_WriteImageFile(jacobianImage,param->outputJacName);
-
    // Free the allocated image
-   nifti_image_free(jacobianImage);jacobianImage=NULL;
    nifti_image_free(inputTransformation);inputTransformation=NULL;
 
    return EXIT_SUCCESS;
