@@ -28,6 +28,7 @@ typedef struct
    char *floatingImageName;
    char *inputTransName;
    char *outputResultName;
+   char *outputBlankName;
    float sourceBGValue;
    int interpolation;
    float paddingValue;
@@ -166,25 +167,25 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "-blank") == 0 ||
               (strcmp(argv[i],"--blank")==0))
       {
-         param->outputResultName=argv[++i];
+         param->outputBlankName=argv[++i];
          flag->outputBlankFlag=1;
       }
       else if(strcmp(argv[i], "-blankXY") == 0 ||
               (strcmp(argv[i],"--blankXY")==0))
       {
-         param->outputResultName=argv[++i];
+         param->outputBlankName=argv[++i];
          flag->outputBlankXYFlag=1;
       }
       else if(strcmp(argv[i], "-blankYZ") == 0 ||
               (strcmp(argv[i],"--blankYZ")==0))
       {
-         param->outputResultName=argv[++i];
+         param->outputBlankName=argv[++i];
          flag->outputBlankYZFlag=1;
       }
       else if(strcmp(argv[i], "-blankXZ") == 0 ||
               (strcmp(argv[i],"--blankXZ")==0))
       {
-         param->outputResultName=argv[++i];
+         param->outputBlankName=argv[++i];
          flag->outputBlankXZFlag=1;
       }
       else
@@ -524,11 +525,11 @@ int main(int argc, char **argv)
                         0);
       memset(warpedImage->descrip, 0, 80);
       strcpy (warpedImage->descrip,"Warped regular grid using NiftyReg (reg_resample)");
-      reg_io_WriteImageFile(warpedImage,param->outputResultName);
+      reg_io_WriteImageFile(warpedImage,param->outputBlankName);
       nifti_image_free(warpedImage);
       nifti_image_free(gridImage);
       if(verbose)
-         printf("[NiftyReg] Resampled grid has been saved: %s\n", param->outputResultName);
+         printf("[NiftyReg] Resampled grid has been saved: %s\n", param->outputBlankName);
    }
 
    // Tell the CLI that we finished
