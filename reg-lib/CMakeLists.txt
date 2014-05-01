@@ -15,13 +15,14 @@ endforeach(NAME)
 #-----------------------------------------------------------------------------
 set(LIST _reg_tools)
 foreach(NAME ${LIST})
-	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.h ${NAME}.cpp)
-	install(TARGETS ${NAME}
-		RUNTIME DESTINATION bin
-		LIBRARY DESTINATION lib
-		ARCHIVE DESTINATION lib
-		)
-	install(FILES ${NAME}.h DESTINATION include)
+  add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.h ${NAME}.cpp)
+  target_link_libraries(${NAME} _reg_maths reg_nifti)
+  install(TARGETS ${NAME}
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    )
+  install(FILES ${NAME}.h DESTINATION include)
 endforeach(NAME)
 #-----------------------------------------------------------------------------
 set(LIST _reg_globalTransformation)
@@ -35,14 +36,14 @@ set(LIST ${LIST} _reg_dti)
 set(LIST ${LIST} _reg_blockMatching)
 set(LIST ${LIST} _reg_femTransformation)
 foreach(NAME ${LIST})
-	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.h ${NAME}.cpp)
-	target_link_libraries(${NAME} _reg_tools _reg_maths)
-	install(TARGETS ${NAME}
-		RUNTIME DESTINATION bin
-		LIBRARY DESTINATION lib
-		ARCHIVE DESTINATION lib
-		)
-	install(FILES ${NAME}.h DESTINATION include)
+  add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.h ${NAME}.cpp)
+  target_link_libraries(${NAME} _reg_tools _reg_maths _reg_globalTransformation)
+  install(TARGETS ${NAME}
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    )
+  install(FILES ${NAME}.h DESTINATION include)
 endforeach(NAME)
 install(FILES _reg_measure.h DESTINATION include)
 #-----------------------------------------------------------------------------
