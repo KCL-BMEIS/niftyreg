@@ -42,14 +42,9 @@ typedef enum
 #define reg_floor(a) ((a)>=0?(int)(a):floor(a))
 #endif
 #define SIGN(a,b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
-static double maxarg1,maxarg2;
-#define FMAX(a,b) (maxarg1=(a),maxarg2=(b),(maxarg1) > (maxarg2) ?\
-(maxarg1) : (maxarg2))
-static int iminarg1,iminarg2;
-#define IMIN(a,b) (iminarg1=(a),iminarg2=(b),(iminarg1) < (iminarg2) ?\
-(iminarg1) : (iminarg2))
-static double sqrarg;
-#define SQR(a) ((sqrarg=(a))==0.0 ? 0.0 : sqrarg*sqrarg)
+#define FMAX(a,b) (a > b ? a : b)
+#define IMIN(a,b) (a < b ? a : b)
+#define SQR(a) (a==0.0 ? 0.0 : a*a)
 /* *************************************************************** */
 #define reg_exit(val){ \
     fprintf(stderr,"[NiftyReg] Exit here. File: %s:%i\n",__FILE__, __LINE__); \

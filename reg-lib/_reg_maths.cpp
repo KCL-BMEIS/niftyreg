@@ -30,7 +30,7 @@ void svd(T ** in, size_t size_m, size_t size_n, T * w, T ** v)
       reg_exit(1);
    }
 
-   int sm, sn, sn2;
+   size_t sm, sn, sn2;
    Eigen::MatrixXf m(size_m,size_n);
 
 #if defined (NDEBUG) && defined (_OPENMP)
@@ -620,7 +620,6 @@ mat44 reg_mat44_expm(mat44 const* mat)
    for(size_t i=0; i<4; ++i)
       for(size_t j=0; j<4; ++j)
          X.m[i][j] = static_cast<float>(m(i,j));
-   double j = FMAX(0.0,1+reg_floor(log(reg_mat44_norm_inf(mat))/log(2.0)));
 
    return X;
 }

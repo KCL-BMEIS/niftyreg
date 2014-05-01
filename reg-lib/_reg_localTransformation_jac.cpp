@@ -617,6 +617,9 @@ void reg_spline_jacobian3D(nifti_image *splineControlPoint,
          __m128 m[4];
          DTYPE f[16] __attribute__((aligned(16)));
       } tempZ;
+      memset(&(tempX.f[0]),0,16*sizeof(float));
+      memset(&(tempY.f[0]),0,16*sizeof(float));
+      memset(&(tempZ.f[0]),0,16*sizeof(float));
       union
       {
          __m128 m[16];
@@ -1245,8 +1248,7 @@ void reg_spline_jacobianDetGradient2D(nifti_image *splineControlPoint,
 
    // The gradient are now computed for every control point
    DTYPE *gradientImagePtrX = static_cast<DTYPE *>(gradientImage->data);
-   DTYPE *gradientImagePtrY = &gradientImagePtrX[gradientImage->nx*gradientImage->ny*gradientImage->nz];
-   DTYPE *gradientImagePtrZ = &gradientImagePtrY[gradientImage->nx*gradientImage->ny*gradientImage->nz];
+   DTYPE *gradientImagePtrY = &gradientImagePtrX[gradientImage->nx*gradientImage->ny];
 
    // Matrices to be used to convert the gradient from voxel to mm
    mat33 jacobianMatrix, reorientation;
@@ -1268,12 +1270,12 @@ void reg_spline_jacobianDetGradient2D(nifti_image *splineControlPoint,
    // Only information at the control point position is considered
    if(approximation)
    {
-      DTYPE basisX[9], basisY[9], basisZ[9];
+      DTYPE basisX[9], basisY[9];
       DTYPE normal[3]= {1.0/6.0, 2.0/3.0, 1.0/6.0};
       DTYPE first[3]= {-0.5, 0.0, 0.5};
       DTYPE jacobianConstraint[2], detJac;
       size_t coord=0, jacIndex, index;
-      int x, y, z, pixelX, pixelY;
+      int x, y, pixelX, pixelY;
       // INVERTED ON PURPOSE
       for(int b=2; b>-1; --b)
       {
@@ -1835,7 +1837,7 @@ double reg_spline_correctFolding2D(nifti_image *splineControlPoint,
 
    /* The current Penalty term value is computed */
    double penaltyTerm =0., logDet;
-   int i;
+   size_t i;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(jacobianNumber, jacobianDeterminant) \
@@ -1956,7 +1958,7 @@ double reg_spline_correctFolding2D(nifti_image *splineControlPoint,
       if(splineControlPoint->num_ext>0)
          useHeaderInformation=true;
 
-      int xPre, yPre, zPre;
+      int xPre, yPre;
       DTYPE basis;
 
       if(useHeaderInformation)
@@ -2077,7 +2079,7 @@ double reg_spline_correctFolding3D(nifti_image *splineControlPoint,
 
    /* The current Penalty term value is computed */
    double penaltyTerm =0., logDet;
-   int i;
+   size_t i;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(jacobianNumber, jacobianDeterminant) \
@@ -2915,10 +2917,10 @@ int reg_defField_GetJacobianMatFromFlowField(mat33* jacobianMatrices,
    default:
       reg_print_fct_error("reg_defField_GetJacobianMatFromFlowField");
       reg_print_msg_error("Unsupported data type");
-      return 1;
+      reg_exit(1);
       break;
    }
-
+   return 0;
 }
 /* *************************************************************** */
 int reg_spline_GetJacobianMatFromVelocityGrid(mat33* jacobianMatrices,

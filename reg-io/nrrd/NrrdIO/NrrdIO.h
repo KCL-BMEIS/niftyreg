@@ -56,7 +56,7 @@
 /* THE FOLLOWING INCLUDE IS ONLY FOR THE ITK DISTRIBUTION.
    This header mangles the symbols in the NrrdIO library, preventing
    conflicts in applications linked against two versions of NrrdIO. */
-// #include "itk_NrrdIO_mangle.h"
+/* #include "itk_NrrdIO_mangle.h" */
 
 #ifdef __cplusplus
 extern "C" {
@@ -833,7 +833,7 @@ extern "C" {
 
    /* feel free to set these to higher values and recompile */
 #define NRRD_DIM_MAX 16            /* Max array dimension (nrrd->dim) */
-#define NRRD_SPACE_DIM_MAX 8       /* Max dimension of "space" around array 
+#define NRRD_SPACE_DIM_MAX 8       /* Max dimension of "space" around array
    (nrrd->spaceDim) */
 
 #define NRRD_EXT_NRRD   ".nrrd"
@@ -1505,7 +1505,7 @@ extern "C" {
   (nrrdCenterCell == center                        \
    ? ((max) - (min))/(size)                        \
    : ((max) - (min))/((size) - 1))                 \
- 
+
 /*
 ******** NRRD_COORD_UPDATE
 **

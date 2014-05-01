@@ -69,13 +69,13 @@ int main(int argc, char **argv)
    // Convolution using the Fourrier space
    float *img2Ptr = static_cast<float *>(image2->data);
    Eigen::FFT<float> fft;
-   for(size_t d=0; d<dim; ++d)
+   for(int d=0; d<dim; ++d)
    {
       // Create the kernel to convolve
       std::vector<float> kernel;
       kernel.resize(image2->dim[d+1]);
       float kernelSum=0;
-      for(size_t i=0; i<image2->dim[d+1]; ++i)
+      for(int i=0; i<image2->dim[d+1]; ++i)
       {
          float distToCenter = fabs((float)i - (float)image2->dim[d+1]/2.f);
          switch(type)
@@ -101,7 +101,7 @@ int main(int argc, char **argv)
          kernelSum += kernel[i];
       }
       // Normalise the kernel
-      for(size_t i=0; i<image2->dim[d+1]; ++i)
+      for(int i=0; i<image2->dim[d+1]; ++i)
       {
          kernel[i] /= kernelSum;
       }
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
       fft.fwd(freqKernel,kernel);
 
       // Extract and convert every line
-      size_t planeIndex, planeNumber, lineIndex, lineOffset, realIndex;
+      int planeIndex, planeNumber, lineIndex, lineOffset, realIndex;
       switch(d)
       {
       case 0:

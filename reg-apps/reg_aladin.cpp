@@ -57,7 +57,6 @@ void Usage(char *exec)
 
    printf("\t-aff <filename>\t\tFilename which contains the output affine transformation. [outputAffine.txt]\n");
    printf("\t-inaff <filename>\tFilename which contains an input affine transformation. (Affine*Reference=Floating) [none]\n");
-   printf("\t-affFlirt <filename>\tFilename which contains an input affine transformation from Flirt. [none]\n");
 
    printf("\t-rmask <filename>\tFilename of a mask image in the reference space.\n");
    printf("\t-fmask <filename>\tFilename of a mask image in the floating space. (Only used when symmetric turned on)\n");
@@ -113,7 +112,6 @@ int main(int argc, char **argv)
 
    char *inputAffineName=NULL;
    int inputAffineFlag=0;
-   int flirtAffineFlag=0;
 
    char *referenceMaskName=NULL;
    int referenceMaskFlag=0;
@@ -194,12 +192,6 @@ int main(int argc, char **argv)
       {
          inputAffineName=argv[++i];
          inputAffineFlag=1;
-      }
-      else if(strcmp(argv[i], "-affFlirt")==0 || strcmp(argv[i], "--affFlirt")==0)
-      {
-         inputAffineName=argv[++i];
-         inputAffineFlag=1;
-         flirtAffineFlag=1;
       }
       else if(strcmp(argv[i], "-rmask")==0 || strcmp(argv[i], "-tmask")==0 || strcmp(argv[i], "--rmask")==0)
       {
@@ -464,7 +456,7 @@ int main(int argc, char **argv)
 
    // Set the input affine transformation if defined
    if(inputAffineFlag==1)
-      REG->SetInputTransform(inputAffineName,flirtAffineFlag);
+      REG->SetInputTransform(inputAffineName);
 
    // Set the verbose type
    REG->SetVerbose(verbose);

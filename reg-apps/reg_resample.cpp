@@ -26,7 +26,6 @@ typedef struct
 {
    char *referenceImageName;
    char *floatingImageName;
-   char *affineMatrixName;
    char *inputTransName;
    char *outputResultName;
    float sourceBGValue;
@@ -37,8 +36,6 @@ typedef struct
 {
    bool referenceImageFlag;
    bool floatingImageFlag;
-   bool affineMatrixFlag;
-   bool affineFlirtFlag;
    bool inputTransFlag;
    bool outputResultFlag;
    bool outputBlankFlag;
@@ -58,25 +55,19 @@ void Usage(char *exec)
 {
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    printf("Usage:\t%s -ref <filename> -flo <filename> [OPTIONS].\n",exec);
-   printf("\t-ref <filename>\tFilename of the reference image (mandatory)\n");
-   printf("\t-flo <filename>\tFilename of the floating image (mandatory)\n\n");
+   printf("\t-ref <filename>\n\t\tFilename of the reference image (mandatory)\n");
+   printf("\t-flo <filename>\n\t\tFilename of the floating image (mandatory)\n\n");
 #ifdef _SVN_REV
    fprintf(stderr,"\n-v Print the subversion revision number\n");
 #endif
 
    printf("* * OPTIONS * *\n");
-   printf("\t*\tOnly one of the following tranformation is taken into account\n");
-   printf("\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Reference=floating)\n");
-   printf("\t-affFlirt <filename>\t\tFilename which contains a radiological flirt affine transformation\n");
-   printf("\t-trans <filename>\t\tFilename of the control point grid image (from reg_f3d)\n");
-
-   printf("\t-res <filename> \tFilename of the resampled image [none]\n");
-   printf("\t-blank <filename> \tFilename of the resampled blank grid [none]\n");
-
-   printf("\t*\tOthers\n");
-   printf("\t-inter <int> \t\tInterpolation order (0,1,3)[3] (0=NN, 1=LIN; 3=CUB)\n");
-   printf("\t-pad <int> \t\tInterpolation padding value [0]\n");
-   printf("\t-voff\t\t\tTurns verbose off [on]\n");
+   printf("\t-trans <filename>\n\t\tFilename of the file containing the transformation parametrisation (from reg_aladin, reg_f3d or reg_transform)\n");
+   printf("\t-res <filename>\n\t\tFilename of the resampled image [none]\n");
+   printf("\t-blank <filename>\n\t\tFilename of the resampled blank grid [none]\n");
+   printf("\t-inter <int>\n\t\tInterpolation order (0,1,3)[3] (0=NN, 1=LIN; 3=CUB)\n");
+   printf("\t-pad <int>\n\t\tInterpolation padding value [0]\n");
+   printf("\t-voff\n\t\tTurns verbose off [on]\n");
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;
 }
@@ -153,11 +144,6 @@ int main(int argc, char **argv)
       {
          param->interpolation=atoi(argv[++i]);
       }
-      else if(strcmp(argv[i], "-pad") == 0 ||
-              (strcmp(argv[i],"--pad")==0))
-      {
-         param->paddingValue=(float)atof(argv[++i]);
-      }
       else if(strcmp(argv[i], "-NN") == 0)
       {
          param->interpolation=0;
@@ -171,6 +157,11 @@ int main(int argc, char **argv)
               (strcmp(argv[i],"-SPL")==0))
       {
          param->interpolation=3;
+      }
+      else if(strcmp(argv[i], "-pad") == 0 ||
+              (strcmp(argv[i],"--pad")==0))
+      {
+         param->paddingValue=(float)atof(argv[++i]);
       }
       else if(strcmp(argv[i], "-blank") == 0 ||
               (strcmp(argv[i],"--blank")==0))
@@ -235,7 +226,7 @@ int main(int argc, char **argv)
    startProgress("reg_resample");
 
    // Set up progress indicators
-   float iProgressStep=1, nProgressSteps;
+//   float iProgressStep=1, nProgressSteps;
 
    /* *********************************** */
    /* DISPLAY THE RESAMPLING PARAMETERS */
@@ -406,7 +397,13 @@ int main(int argc, char **argv)
       warpedImage->cal_max=floatingImage->cal_max;
       warpedImage->scl_slope=floatingImage->scl_slope;
       warpedImage->scl_inter=floatingImage->scl_inter;
-      warpedImage->datatype = floatingImage->datatype;
+      if(param->paddingValue==std::numeric_limits<float>::quiet_NaN() &&
+         (floatingImage->datatype!=NIFTI_TYPE_FLOAT32 ||
+          floatingImage->datatype!=NIFTI_TYPE_FLOAT64)){
+         warpedImage->datatype = NIFTI_TYPE_FLOAT32;
+         reg_tools_changeDatatype<float>(floatingImage);
+      }
+      else warpedImage->datatype = floatingImage->datatype;
       warpedImage->nbyper = floatingImage->nbyper;
       warpedImage->nvox = (size_t)warpedImage->dim[1] * (size_t)warpedImage->dim[2] *
                           (size_t)warpedImage->dim[3] * (size_t)warpedImage->dim[4];

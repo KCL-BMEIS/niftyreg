@@ -122,7 +122,7 @@ int main(int argc, char **argv)
    delete f3d;
    double residualMeanDifference = 100.f*reg_tools_getMeanRMS(reference,outWar)/initialMeanDifference;
    std::cout.precision(2);
-   std::cout << "Residual error " << residualMeanDifference << "\%" << std::endl;
+   std::cout << "Residual error " << residualMeanDifference << "\\%" << std::endl;
    if(residualMeanDifference > 5.f)
    {
       reg_io_WriteImageFile(reference,"test_ref.nii");

@@ -520,30 +520,30 @@ void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
    floatingImageSpace = reg_mat44_mul(&halfBackwardAffine,&floatingImageSpace);
 
    // Define the largest field of view in the mid space
-   float minPosition[3], maxPosition[3];
+   float minPosition[3]={0,0,0}, maxPosition[3]={0,0,0};
    if(referenceImage->nz>1)  // 3D
    {
       float referenceImageCorners[8][3]=
       {
          {0,0,0},
-         {referenceImage->nx,0,0},
-         {0,referenceImage->ny,0},
-         {referenceImage->nx,referenceImage->ny,0},
-         {0,0,referenceImage->nz},
-         {referenceImage->nx,0,referenceImage->nz},
-         {0,referenceImage->ny,referenceImage->nz},
-         {referenceImage->nx,referenceImage->ny,referenceImage->nz}
+         {float(referenceImage->nx),0,0},
+         {0,float(referenceImage->ny),0},
+         {float(referenceImage->nx),float(referenceImage->ny),0},
+         {0,0,float(referenceImage->nz)},
+         {float(referenceImage->nx),0,float(referenceImage->nz)},
+         {0,float(referenceImage->ny),float(referenceImage->nz)},
+         {float(referenceImage->nx),float(referenceImage->ny),float(referenceImage->nz)}
       };
       float floatingImageCorners[8][3]=
       {
          {0,0,0},
-         {floatingImage->nx,0,0},
-         {0,floatingImage->ny,0},
-         {floatingImage->nx,floatingImage->ny,0},
-         {0,0,floatingImage->nz},
-         {floatingImage->nx,0,floatingImage->nz},
-         {0,floatingImage->ny,floatingImage->nz},
-         {floatingImage->nx,floatingImage->ny,floatingImage->nz}
+         {float(floatingImage->nx),0,0},
+         {0,float(floatingImage->ny),0},
+         {float(floatingImage->nx),float(floatingImage->ny),0},
+         {0,0,float(floatingImage->nz)},
+         {float(floatingImage->nx),0,float(floatingImage->nz)},
+         {0,float(floatingImage->ny),float(floatingImage->nz)},
+         {float(floatingImage->nx),float(floatingImage->ny),float(floatingImage->nz)}
       };
       float out[3];
       for(int c=0; c<8; ++c)
@@ -585,16 +585,16 @@ void reg_createSymmetricControlPointGrids(nifti_image **forwardGridImage,
       float referenceImageCorners[4][2]=
       {
          {0,0},
-         {referenceImage->nx,0},
-         {0,referenceImage->ny},
-         {referenceImage->nx,referenceImage->ny}
+         {float(referenceImage->nx),0},
+         {0,float(referenceImage->ny)},
+         {float(referenceImage->nx),float(referenceImage->ny)}
       };
       float floatingImageCorners[4][2]=
       {
          {0,0},
-         {floatingImage->nx,0},
-         {0,floatingImage->ny},
-         {floatingImage->nx,floatingImage->ny}
+         {float(floatingImage->nx),0},
+         {0,float(floatingImage->ny)},
+         {float(floatingImage->nx),float(floatingImage->ny)}
       };
       float out[2];
       for(int c=0; c<4; ++c)
@@ -1736,7 +1736,7 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
             nodeCoord[0]=x;
             reg_mat44_mul(&transformation,nodeCoord,voxelCoord);
             // linear interpolation is performed
-            DTYPE basisX[2], basisY[2], basisZ[2];
+            DTYPE basisX[2], basisY[2], basisZ[2]={0,0};
             int pre[3]=
             {
                static_cast<int>(reg_floor(voxelCoord[0])),

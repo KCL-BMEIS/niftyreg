@@ -9,7 +9,7 @@
  *
  */
 
-#ifndef _REG_BMI_GPU_H
+#ifndef _REG_NMI_GPU_H
 #define _REG_NMI_GPU_H
 
 #include "_reg_nmi.h"

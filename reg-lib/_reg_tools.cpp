@@ -1038,8 +1038,8 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
    size_t voxelNumber = (size_t)image->nx*image->ny*image->nz;
    int imageDim[3]= {image->nx,image->ny,image->nz};
 
-   bool *nanImagePtr = (bool *)malloc(voxelNumber*sizeof(bool));
-   float *densityPtr = (float *)malloc(voxelNumber*sizeof(float));
+   bool *nanImagePtr = (bool *)calloc(voxelNumber, sizeof(bool));
+   float *densityPtr = (float *)calloc(voxelNumber, sizeof(float));
 
    // Loop over the dimension higher than 3
    for(int t=0; t<image->nt*image->nu; t++)
@@ -1047,7 +1047,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
       if(timePoint[t])
       {
          DTYPE *intensityPtr = &imagePtr[t * voxelNumber];
-         int index;
+         unsigned int index;
 #if defined (_OPENMP)
          #pragma omp parallel for default(none) \
          shared(densityPtr, intensityPtr, mask, nanImagePtr, voxelNumber) \
@@ -1092,12 +1092,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                   float kernel[2024];
                   double kernelSum=0;
                   // Fill the kernel
-                  if(kernelType==2)
-                  {
-                     // No kernel is required for the mean filtering
-                     NULL;
-                  }
-                  else if(kernelType==1)
+                  if(kernelType==1)
                   {
                      // Compute the Cubic Spline kernel
                      for(int i=-radius; i<=radius; i++)
@@ -1110,7 +1105,8 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                         kernelSum += kernel[i+radius];
                      }
                   }
-                  else
+                  // No kernel is required for the mean filtering
+                  else if(kernelType!=2)
                   {
                      // Compute the Gaussian kernel
                      for(int i=-radius; i<=radius; i++)
@@ -1126,8 +1122,8 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
 #ifndef NDEBUG
                   printf("[NiftyReg DEBUG] Convolution type[%i] dim[%i] tp[%i] radius[%i] kernelSum[%g]\n", kernelType, n, t, radius, kernelSum);
 #endif
-                  unsigned int k, planeNumber, lineIndex, lineOffset;
-                  int planeIndex;
+                  unsigned int planeNumber, planeIndex, lineOffset;
+                  int lineIndex, shiftPre, shiftPst, k;
                   switch(n)
                   {
                   case 0:
@@ -1144,7 +1140,6 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                      break;
                   }
 
-                  int shiftPre, shiftPst;
                   size_t realIndex;
                   float *kernelPtr, kernelValue;
                   double densitySum, intensitySum;
@@ -1152,8 +1147,8 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                   float *currentDensityPtr = NULL;
                   DTYPE bufferIntensity[2048];;
                   float bufferDensity[2048];
-                  DTYPE bufferIntensitycur;
-                  float bufferDensitycur;
+                  DTYPE bufferIntensitycur=0;
+                  float bufferDensitycur=0;
 
 #if defined (_OPENMP)
                   #pragma omp parallel for default(none) \
@@ -1180,6 +1175,8 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                      case 2:
                         realIndex = planeIndex;
                         break;
+                     default:
+                        realIndex=0;
                      }
                      // Fetch the current line into a stack buffer
                      currentIntensityPtr= &intensityPtr[realIndex];
@@ -1252,6 +1249,10 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                               {
                                  bufferIntensitycur = (DTYPE)(-bufferIntensity[shiftPst]);
                                  bufferDensitycur = (DTYPE)(-bufferDensity[shiftPst]);
+                              }
+                              else{
+                                 bufferIntensitycur = (DTYPE)(0);
+                                 bufferDensitycur = (DTYPE)(0);
                               }
                            }
                            intensityPtr[realIndex]=bufferIntensitycur;

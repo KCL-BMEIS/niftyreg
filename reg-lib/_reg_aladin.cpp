@@ -22,7 +22,6 @@ template <class T> reg_aladin<T>::reg_aladin ()
    this->deformationFieldImage=NULL;
    TransformationMatrix=new mat44;
    InputTransformName=NULL;
-   InputTransformFromFlirt=false;
 
    this->Verbose = true;
 
@@ -170,10 +169,9 @@ int reg_aladin<T>::Print()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_aladin<T>::SetInputTransform(const char *filename, bool flirtFlag)
+void reg_aladin<T>::SetInputTransform(const char *filename)
 {
    this->InputTransformName=(char *)filename;
-   this->InputTransformFromFlirt=flirtFlag;
    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -302,10 +300,7 @@ void reg_aladin<T>::InitialiseRegistration()
          reg_exit(1);
       }
       reg_tool_ReadAffineFile(this->TransformationMatrix,
-                              this->InputReference,
-                              this->InputFloating,
-                              this->InputTransformName,
-                              this->InputTransformFromFlirt);
+                              this->InputTransformName);
    }
    else  // No input affine transformation
    {

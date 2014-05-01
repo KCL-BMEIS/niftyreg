@@ -46,6 +46,7 @@ typedef struct
    bool halfTransFlag;
    bool invertAffFlag;
    bool invertNRRFlag;
+   bool flirtAff2NRFlag;
    bool makeAffFlag;
    bool aff2rigFlag;
 } FLAG;
@@ -110,9 +111,9 @@ void Usage(char *exec)
    printf("\t\tInvert a non-rigid transformation and save the result as a deformation field.\n");
    printf("\t\tfilename1 - Input transformation file name\n");
    printf("\t\tfilename2 - Input floating (source) image where the inverted transformation is defined\n");
-   printf("\t\tfilename3 - Output inverted transformation file name\n\n");
+   printf("\t\tfilename3 - Output inverted transformation file name\n");
    printf("\t\tNote that the cubic b-spline grid parametrisations can not be inverted without approximation,\n");
-   printf("\t\tas a result, they are converted into deformation fields before inversion.\n");
+   printf("\t\tas a result, they are converted into deformation fields before inversion.\n\n");
 
    printf("\t-half <filename1> <filename2>\n");
    printf("\t\tThe input transformation is halfed and stored using the same transformation type.\n");
@@ -123,9 +124,16 @@ void Usage(char *exec)
    printf("\t\tCreate an affine transformation matrix\n\n");
 
    printf("\t-aff2rig <filename1> <filename2>\n");
-   printf("\t\tExtract the rigid component from an affine transformation matrix\n\n");
+   printf("\t\tExtract the rigid component from an affine transformation matrix\n");
    printf("\t\tfilename1 - Input transformation file name\n");
    printf("\t\tfilename2 - Output transformation file name\n\n");
+
+   printf("\t-flirtAff2NR <filename1> <filename2> <filename3> <filename4>\n");
+   printf("\t\tConvert a flirt (FSL) affine transformation to a NiftyReg affine transformation\n");
+   printf("\t\tfilename1 - Input FLIRT (FSL) affine transformation file name\n");
+   printf("\t\tfilename2 - Image used as a reference (-ref arg in FLIRT)\n");
+   printf("\t\tfilename3 - Image used as a floating (-in arg in FLIRT)\n");
+   printf("\t\tfilename4 - Output affine transformation file name\n\n");
 
    printf("\t* The supported transformation types are:\n");
    printf("\t\t- cubic B-Spline parametrised grid (reference image is required)\n");
@@ -154,7 +162,7 @@ int main(int argc, char **argv)
    FLAG *flag = (FLAG *)calloc(1,sizeof(FLAG));
 
    // Parse the input data
-   for(size_t i=1; i<argc; ++i)
+   for(int i=1; i<argc; ++i)
    {
       if(strcmp(argv[i],"-h")==0 || strcmp(argv[i],"--h")==0 ||
             strcmp(argv[i],"-H")==0 || strcmp(argv[i],"--H")==0 ||
@@ -240,6 +248,14 @@ int main(int argc, char **argv)
       {
          flag->aff2rigFlag=true;
          param->inputTransName=argv[++i];
+         param->outputTransName=argv[++i];
+      }
+      else if(strcmp(argv[i],"-flirtAff2NR")==0 || strcmp(argv[i],"--flirtAff2NR")==0)
+      {
+         flag->flirtAff2NRFlag=true;
+         param->inputTransName=argv[++i];
+         param->referenceImageName=argv[++i];
+         param->referenceImage2Name=argv[++i];
          param->outputTransName=argv[++i];
       }
       else
@@ -869,7 +885,7 @@ int main(int argc, char **argv)
    if(flag->halfTransFlag)
    {
       // Read the input transformation
-      mat44 *affineTrans;
+      mat44 *affineTrans=NULL;
       nifti_image *inputTransImage=NULL;
       if(!reg_isAnImageFileName(param->inputTransName))
       {
@@ -1171,6 +1187,19 @@ int main(int argc, char **argv)
       nifti_mat44_to_quatern(affine,&qb,&qc,&qd,&qx,&qy,&qz,&dx,&dy,&dz,&qfac);
       affine = nifti_quatern_to_mat44(qb,qc,qd,qx,qy,qz,1.f,1.f,1.f,qfac);
       reg_tool_WriteAffineFile(&affine, param->outputTransName);
+   }
+   /* ********************************************************** */
+   // Convert a flirt affine transformation to a NiftyReg affine //
+   /* ********************************************************** */
+   if(flag->flirtAff2NRFlag)
+   {
+      mat44 affine;
+      nifti_image *referenceImage=reg_io_ReadImageHeader(param->referenceImageName);
+      nifti_image *floatingImage=reg_io_ReadImageHeader(param->referenceImage2Name);
+      reg_tool_ReadAffineFile(&affine,referenceImage,floatingImage,param->inputTransName,true);
+      reg_tool_WriteAffineFile(&affine, param->outputTransName);
+      nifti_image_free(referenceImage);
+      nifti_image_free(floatingImage);
    }
    // Free allocated object
    free(param);

@@ -214,7 +214,7 @@ int main(int argc, char **argv)
    }
    else{
       refMask = (int *)calloc(refMaskVoxNumber,sizeof(int));
-      for(size_t i=0;i<refMaskVoxNumber;++i) refMask[i]=i;
+      for(int i=0;i<refMaskVoxNumber;++i) refMask[i]=i;
    }
 
    /* Create the warped floating image */

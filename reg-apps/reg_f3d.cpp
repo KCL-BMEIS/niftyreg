@@ -79,7 +79,6 @@ void Usage(char *exec)
 
    printf("\n*** Initial transformation options (One option will be considered):\n");
    printf("\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Reference=Floating)\n");
-   printf("\t-affFlirt <filename>\tFilename which contains a flirt affine transformation (Flirt from the FSL package)\n");
    printf("\t-incpp <filename>\tFilename ofloatf control point grid input\n\t\t\t\tThe coarse spacing is defined by this file.\n");
 
    printf("\n*** Output options:\n");
@@ -324,24 +323,10 @@ int main(int argc, char **argv)
    /* read the input parameter */
    for(int i=1; i<argc; i++)
    {
-      if(strcmp(argv[i], "-help")==0 || strcmp(argv[i], "-Help")==0 ||
-            strcmp(argv[i], "-HELP")==0 || strcmp(argv[i], "-h")==0 ||
-            strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0 ||
-            strcmp(argv[i], "--xml")==0 || strcmp(argv[i], "-version")==0 ||
-            strcmp(argv[i], "-Version")==0 || strcmp(argv[i], "-V")==0 ||
-            strcmp(argv[i], "-v")==0 || strcmp(argv[i], "--v")==0 ||
-            strcmp(argv[i], "--version")==0 || strcmp(argv[i], "-helpPenalty")==0 ||
-#ifdef _USE_CUDA
-            strcmp(argv[i], "-gpu")==0 ||
-#endif
-            strcmp(argv[i], "-vel")==0 || strcmp(argv[i], "-sym")==0)
-      {
-         // argument has already been parsed
-         NULL;
-      }
-      else if(strcmp(argv[i],"-ref")==0 || strcmp(argv[i],"-target")==0 ||
-              strcmp(argv[i],"--ref")==0 || strcmp(argv[i],"-flo")==0 ||
-              strcmp(argv[i],"-source")==0 || strcmp(argv[i],"--flo")==0 )
+
+      if(strcmp(argv[i],"-ref")==0 || strcmp(argv[i],"-target")==0 ||
+            strcmp(argv[i],"--ref")==0 || strcmp(argv[i],"-flo")==0 ||
+            strcmp(argv[i],"-source")==0 || strcmp(argv[i],"--flo")==0 )
       {
          // argument has already been parsed
          ++i;
@@ -367,33 +352,7 @@ int main(int argc, char **argv)
          }
          // Read the affine matrix
          reg_tool_ReadAffineFile(&affineMatrix,
-                                 referenceImage,
-                                 floatingImage,
-                                 affineTransformationName,
-                                 false);
-         // Send the transformation to the registration object
-         REG->SetAffineTransformation(&affineMatrix);
-      }
-      else if(strcmp(argv[i], "-affFlirt")==0 || (strcmp(argv[i],"--affFlirt")==0))
-      {
-         // Check first if the specified affine file exist
-         char *affineTransformationName=argv[++i];
-         if(FILE *aff=fopen(affineTransformationName, "r"))
-         {
-            fclose(aff);
-         }
-         else
-         {
-            fprintf(stderr,"The specified input affine file (%s) can not be read\n",
-                    affineTransformationName);
-            return 1;
-         }
-         // Read the affine matrix
-         reg_tool_ReadAffineFile(&affineMatrix,
-                                 referenceImage,
-                                 floatingImage,
-                                 affineTransformationName,
-                                 true);
+                                 affineTransformationName);
          // Send the transformation to the registration object
          REG->SetAffineTransformation(&affineMatrix);
       }
@@ -702,7 +661,18 @@ int main(int argc, char **argv)
          checkMemory=true;
       }
 #endif
-      else
+      /* All the following arguments should have already been parsed */
+      else if(strcmp(argv[i], "-help")!=0 && strcmp(argv[i], "-Help")!=0 &&
+      strcmp(argv[i], "-HELP")!=0 && strcmp(argv[i], "-h")!=0 &&
+      strcmp(argv[i], "--h")!=0 && strcmp(argv[i], "--help")!=0 &&
+      strcmp(argv[i], "--xml")!=0 && strcmp(argv[i], "-version")!=0 &&
+      strcmp(argv[i], "-Version")!=0 && strcmp(argv[i], "-V")!=0 &&
+      strcmp(argv[i], "-v")!=0 && strcmp(argv[i], "--v")!=0 &&
+      strcmp(argv[i], "--version")!=0 && strcmp(argv[i], "-helpPenalty")!=0 &&
+#ifdef _USE_CUDA
+      strcmp(argv[i], "-gpu")!=0 &&
+#endif
+      strcmp(argv[i], "-vel")!=0 && strcmp(argv[i], "-sym")!=0)
       {
          fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
          PetitUsage(argv[0]);

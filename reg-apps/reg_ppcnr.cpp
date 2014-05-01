@@ -210,7 +210,7 @@ int main(int argc, char **argv)
          {
             memcpy(makesource->data, &(temp_data[ii*makesource->nvox*source->nbyper]), makesource->nbyper*makesource->nvox);
             char outname[100];
-            int n=sprintf(outname,"%s%i.nii",param->finalResultName,ii);
+            sprintf(outname,"%s%i.nii",param->finalResultName,ii);
             printf("Writing '%s' (%i of %i)\n",outname,ii+1,source->nt);
             nifti_set_filenames(makesource,outname, 0, 0); // might want to set this
             nifti_image_write(makesource);
@@ -396,11 +396,11 @@ int main(int argc, char **argv)
       mask->nvox=mask->nx*mask->ny*mask->nz;
       mask->data = (void *)malloc(mask->nvox*mask->nbyper);
       PrecisionTYPE *intensityPtrM = static_cast<PrecisionTYPE *>(mask->data);
-      for(int i=0; i<mask->nvox; i++) intensityPtrM[i]=1.0;
+      for(size_t i=0; i<mask->nvox; i++) intensityPtrM[i]=1.0;
    }
    PrecisionTYPE masksum=0.0;
    PrecisionTYPE *intensityPtrM = static_cast<PrecisionTYPE *>(mask->data);
-   for(int i=0; i<mask->nvox; i++)
+   for(size_t i=0; i<mask->nvox; i++)
    {
       if(intensityPtrM[i]) masksum++;
    }
@@ -433,7 +433,7 @@ int main(int argc, char **argv)
    if(!flag->outputCPPFlag)
    {
       char buffer[40];
-      int n=sprintf(buffer,"ppcnrfinal-%s",style);
+      sprintf(buffer,"ppcnrfinal-%s",style);
       if(flag->aladin || flag->flirt)
       {
          strcat(buffer,".txt");
@@ -502,8 +502,8 @@ int main(int argc, char **argv)
    PrecisionTYPE *Mean = new PrecisionTYPE [image->nt];
    PrecisionTYPE *Cov = new PrecisionTYPE [image->nt*image->nt];
    PrecisionTYPE cov;
-   char pcaname[20];
-   char outname[20];
+//   char pcaname[20];
+//   char outname[20];
 
    for(int prinCompNumber=1; prinCompNumber<=param->prinComp; prinCompNumber++)
    {
@@ -525,7 +525,7 @@ int main(int argc, char **argv)
       for(int t=0; t<image->nt; t++)
       {
          Mean[t]=0.f;
-         for(int i=0; i<voxelNumber; i++)
+         for(size_t i=0; i<voxelNumber; i++)
          {
             if(intensityPtrM[i]) Mean[t] += *intensityPtr++;
          }
@@ -542,7 +542,7 @@ int main(int argc, char **argv)
          {
             PrecisionTYPE *currentIntensityPtr1 = &intensityPtr[t*voxelNumber];
             cov=0.f;
-            for(int i=0; i<voxelNumber; i++)
+            for(size_t i=0; i<voxelNumber; i++)
             {
                if(intensityPtrM[i]) cov += (*currentIntensityPtr1++ - Mean[t]) * (*currentIntensityPtr2++ - Mean[t2]);
             }
@@ -781,7 +781,7 @@ int main(int argc, char **argv)
       {
          PrecisionTYPE *intensityPtr1 = static_cast<PrecisionTYPE *>(image->data);
          PrecisionTYPE *intensityPtr2 = static_cast<PrecisionTYPE *>(imagep->data);
-         for(int i=0; i<voxelNumber; i++)
+         for(size_t i=0; i<voxelNumber; i++)
          {
             for(int t=0; t<image->nt; t++)
             {
@@ -800,7 +800,7 @@ int main(int argc, char **argv)
       {
          PrecisionTYPE *intensityPtr1 = static_cast<PrecisionTYPE *>(image->data);
          PrecisionTYPE *intensityPtr2 = static_cast<PrecisionTYPE *>(imagep->data);
-         for(int i=0; i<voxelNumber; i++)
+         for(size_t i=0; i<voxelNumber; i++)
          {
             for(int t=0; t<image->nt; t++)
             {
@@ -812,7 +812,7 @@ int main(int argc, char **argv)
       {
          PrecisionTYPE *intensityPtr1 = static_cast<PrecisionTYPE *>(image->data);
          PrecisionTYPE *intensityPtr2 = static_cast<PrecisionTYPE *>(imagep->data);
-         for(int i=0; i<voxelNumber; i++)
+         for(size_t i=0; i<voxelNumber; i++)
          {
             for(int c=0; c<prinCompNumber; c++) // Add up component contributions
             {
@@ -876,7 +876,7 @@ int main(int argc, char **argv)
             char regCommandB[1055]="";
             if(!flag->flirt)
             {
-               int n=sprintf(regCommandB,"%s -%s ",regCommandAll,style);
+               sprintf(regCommandB,"%s -%s ",regCommandAll,style);
                char buffer[20];
                if(flag->aladin)
                {
@@ -884,7 +884,7 @@ int main(int argc, char **argv)
                }
                else
                {
-                  n=sprintf(buffer,"float%s%i.nii", style,imageNumber+1);
+                  sprintf(buffer,"float%s%i.nii", style,imageNumber+1);
                }
                strcat(regCommandB,buffer);
                char buffer2[30];
@@ -952,11 +952,11 @@ int main(int argc, char **argv)
       if(flag->pca3)
       {
          char cppname[20];
-         n=sprintf(cppname,"cpp%i.nii",prinCompNumber);
+         sprintf(cppname,"cpp%i.nii",prinCompNumber);
          if(!flag->aladin & !flag->flirt)
          {
             char buffer[20];
-            int n=sprintf(buffer,"float%s1.nii",style);
+            sprintf(buffer,"float%s1.nii",style);
             nifti_image *dof = nifti_image_read(buffer,true);
             nifti_image *dofs = nifti_copy_nim_info(dof);
             dofs->nt = dofs->dim[4] = images->nt;
@@ -966,7 +966,7 @@ int main(int argc, char **argv)
             for(int t=0; t<images->nt; t++)
             {
                char buffer[20];
-               int n=sprintf(buffer,"float%s%i.nii",style, t+1);
+               sprintf(buffer,"float%s%i.nii",style, t+1);
                nifti_image *dof = nifti_image_read(buffer,true);
                PrecisionTYPE *intensityPtrDD = static_cast<PrecisionTYPE *>(dof->data);
                int r=dof->nvox/3.0;
@@ -986,7 +986,7 @@ int main(int argc, char **argv)
             for(int t=0; t<images->nt; t++)
             {
                char buffer[20];
-               int n=sprintf(buffer,"float%s%i.txt",style,t+1);
+               sprintf(buffer,"float%s%i.txt",style,t+1);
                std::ifstream ifs(buffer);
                std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
                final_string+=str;
@@ -1007,7 +1007,7 @@ int main(int argc, char **argv)
       if(!flag->aladin & !flag->flirt)
       {
          char buffer[20];
-         int n=sprintf(buffer,"float%s1.nii",style);
+         sprintf(buffer,"float%s1.nii",style);
          nifti_image *dof = nifti_image_read(buffer,true);
          nifti_image *dofs = nifti_copy_nim_info(dof);
          dofs->nt = dofs->dim[4] = images->nt;
@@ -1017,7 +1017,7 @@ int main(int argc, char **argv)
          for(int t=0; t<images->nt; t++)
          {
             char buffer[20];
-            int n=sprintf(buffer,"float%s%i.nii",style, t+1);
+            sprintf(buffer,"float%s%i.nii",style, t+1);
             nifti_image *dof = nifti_image_read(buffer,true);
             PrecisionTYPE *intensityPtrDD = static_cast<PrecisionTYPE *>(dof->data);
             int r=dof->nvox/3.0;
@@ -1038,7 +1038,7 @@ int main(int argc, char **argv)
          for(int t=0; t<images->nt; t++)
          {
             char buffer[20];
-            int n=sprintf(buffer,"float%s%i.txt",style,t+1);
+            sprintf(buffer,"float%s%i.txt",style,t+1);
             std::ifstream ifs(buffer);
             std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
             final_string+=str;

@@ -56,28 +56,23 @@ else(BUILD_NR_SLICER_EXT)
 endif(BUILD_NR_SLICER_EXT)
 
 option(USE_SSE "To enable SEE computation in some case" ON)
-option(USE_CUDA "To enable CUDA for a GPU implementation of the code" OFF)
 option(USE_DOUBLE "To force double precision instead of single precision" OFF)
-if(NOT ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
-		# OpenMP is disable when the compiler is based on Clang
-		find_package(OpenMP)
-		if(OPENMP_FOUND)
-				option(USE_OPENMP "To use openMP for multi-CPU processing" ON)
-		endif(OPENMP_FOUND)
-endif(NOT ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+find_package(OpenMP)
+if(OPENMP_FOUND)
+		option(USE_OPENMP "To use openMP for multi-CPU processing" ON)
+endif(OPENMP_FOUND)
 
-option(BUILD_SHARED_LIBS "Build the libraries as shared." OFF)
-if(BUILD_SHARED_LIBS)
-	if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-		message(WARNING "certain libraries cannot be built shared on MACOSX, forcing them to STATIC")
-		set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build the libraries as shared." FORCE)
-		set(NIFTYREG_LIBRARY_TYPE STATIC)
-	else()
+if(NOT APPLE)
+	option(USE_CUDA "To enable CUDA for a GPU implementation of the code" OFF)
+	option(BUILD_SHARED_LIBS "Build the libraries as shared." OFF)
+	if(BUILD_SHARED_LIBS)
 		set(NIFTYREG_LIBRARY_TYPE SHARED)
-	endif()
-else()
+	else(BUILD_SHARED_LIBS)
+		set(NIFTYREG_LIBRARY_TYPE STATIC)
+	endif(BUILD_SHARED_LIBS)
+else(NOT APPLE)
 	set(NIFTYREG_LIBRARY_TYPE STATIC)
-endif()
+endif(NOT APPLE)
 
 
 #-----------------------------------------------------------------------------
@@ -172,10 +167,6 @@ if(USE_CUDA)
 		if(CUDA_FOUND)
 				# Display the CUDA version
 				message(STATUS "The CUDA version you have is v${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR}")
-				# Check that the compiler is not Clang based, it won't compile otherwise
-				if(${CUDA_HOST_COMPILER} MATCHES "Clang")
-						message(FATAL_ERROR "The CUDA version of NiftyReg cannot be used with a clang based compiler")
-				endif(${CUDA_HOST_COMPILER} MATCHES "Clang")
 				# Compile an executable to check if there is at least one suitable graphical card
 				try_run(RUN_RESULT_VAR COMPILE_RESULT_VAR
 								${CMAKE_BINARY_DIR}
@@ -202,6 +193,7 @@ if(USE_CUDA)
 						else(RUN_RESULT_VAR)
 								# Check if ptxas information should be displayed
 								set(CUDA_CAPABILITY "" CACHE STRING "CUDA capability to use to generate the ptxas information (1.0, 2.0, 3.0) [0]")
+								mark_as_advanced(FORCE CUDA_CAPABILITY)
 								if(CUDA_CAPABILITY EQUAL "1.0")
 										set(CUDA_NVCC_FLAGS
 												"${CUDA_NVCC_FLAGS} --ptxas-options=-v --generate-code arch=compute_10,code=sm_10")

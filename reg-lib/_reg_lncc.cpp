@@ -92,7 +92,7 @@ void reg_lncc::UpdateLocalStatImages(nifti_image *originalImage,
    reg_tools_multiplyImageToImage(stdDevImage, stdDevImage, stdDevImage);
    reg_tools_kernelConvolution(meanImage, this->kernelStandardDeviation, this->kernelType, mask, this->activeTimePoint);
    reg_tools_kernelConvolution(stdDevImage, this->kernelStandardDeviation, this->kernelType, mask, this->activeTimePoint);
-   int voxel;
+   size_t voxel;
 #if defined (NDEBUG) && defined (_OPENMP)
    #pragma omp parallel for default(none) \
    shared(originalImage, sdevPtr, meanPtr) \
@@ -460,7 +460,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
    DTYPE *warSdevPtr=static_cast<DTYPE *>(warpedSdevImage->data);
    DTYPE *correlaPtr=static_cast<DTYPE *>(correlationImage->data);
 
-   int voxel, voxelNumber = (int)referenceImage->nx *
+   size_t voxel, voxelNumber = (int)referenceImage->nx *
                             referenceImage->ny * referenceImage->nz;
 
    // Create some pointers to the gradient images

@@ -43,7 +43,6 @@ protected:
    int *activeVoxelNumber;
 
    char *InputTransformName;
-   bool InputTransformFromFlirt;
    mat44 *TransformationMatrix;
 
    bool Verbose;
@@ -124,7 +123,7 @@ public:
       return this->InputReferenceMask;
    }
 
-   void SetInputTransform(const char *filename, bool IsFlirt);
+   void SetInputTransform(const char *filename);
    mat44* GetInputTransform()
    {
       return this->InputTransform;
