@@ -978,20 +978,6 @@ void reg_base<T>::GetVoxelBasedGradient()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-void reg_base<T>::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber)
-{
-   if(this->measure_nmi==NULL)
-      this->measure_nmi=new reg_nmi;
-   this->measure_nmi->SetActiveTimepoint(timepoint);
-   // I am here adding 4 to the specified bin number to accomodate for
-   // the spline support
-   this->measure_nmi->SetFloatingBinNumber(floBinNumber+4, timepoint);
-#ifndef NDEBUG
-   reg_print_fct_debug("reg_base<T>::UseNMISetFloatingBinNumber");
-#endif
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template<class T>
 void reg_base<T>::UseNMISetReferenceBinNumber(int timepoint, int refBinNumber)
 {
    if(this->measure_nmi==NULL)
@@ -1002,6 +988,20 @@ void reg_base<T>::UseNMISetReferenceBinNumber(int timepoint, int refBinNumber)
    this->measure_nmi->SetReferenceBinNumber(refBinNumber+4, timepoint);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseNMISetReferenceBinNumber");
+#endif
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template<class T>
+void reg_base<T>::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber)
+{
+   if(this->measure_nmi==NULL)
+      this->measure_nmi=new reg_nmi;
+   this->measure_nmi->SetActiveTimepoint(timepoint);
+   // I am here adding 4 to the specified bin number to accomodate for
+   // the spline support
+   this->measure_nmi->SetFloatingBinNumber(floBinNumber+4, timepoint);
+#ifndef NDEBUG
+   reg_print_fct_debug("reg_base<T>::UseNMISetFloatingBinNumber");
 #endif
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

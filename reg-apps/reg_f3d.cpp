@@ -115,6 +115,7 @@ void Usage(char *exec)
 
    printf("\n*** Measure of similarity options:\n");
    printf("*** NMI with 64 bins is used expect if specified otherwise\n");
+   printf("\t--nmi\t\t\tNMI. Used NMI even when one or several other measures are specified.\n");
    printf("\t--rbn <int>\t\tNMI. Number of bin to use for the reference image histogram. Identical value for every timepoint.\n");
    printf("\t--fbn <int>\t\tNMI. Number of bin to use for the floating image histogram. Identical value for every timepoint.\n");
    printf("\t-rbn <tp> <int>\t\tNMI. Number of bin to use for the reference image histogram for the specified time point.\n");
@@ -319,6 +320,8 @@ int main(int argc, char **argv)
 #ifdef _USE_CUDA
    bool checkMemory=false;
 #endif // _use_CUDA
+   int refBinNumber=0;
+   int floBinNumber=0;
 
    /* read the input parameter */
    for(int i=1; i<argc; i++)
@@ -400,29 +403,46 @@ int main(int argc, char **argv)
       {
          REG->SetSpacing(2,(float)atof(argv[++i]));
       }
+      else if((strcmp(argv[i],"--nmi")==0) )
+      {
+         int bin=64;
+         if(refBinNumber!=0)
+            bin=refBinNumber;
+         for(int t=0; t<referenceImage->nt; ++t)
+            REG->UseNMISetReferenceBinNumber(t,bin);
+         bin=64;
+         if(floBinNumber!=0)
+            bin=floBinNumber;
+         for(int t=0; t<floatingImage->nt; ++t)
+            REG->UseNMISetFloatingBinNumber(t,bin);
+      }
       else if((strcmp(argv[i],"-rbn")==0) || (strcmp(argv[i],"-tbn")==0))
       {
          int tp=atoi(argv[++i]);
          int bin=atoi(argv[++i]);
+         refBinNumber=bin;
          REG->UseNMISetReferenceBinNumber(tp,bin);
       }
       else if((strcmp(argv[i],"--rbn")==0) )
       {
-         int binNumber = atoi(argv[++i]);
+         int bin = atoi(argv[++i]);
+         refBinNumber=bin;
          for(int t=0; t<referenceImage->nt; ++t)
-            REG->UseNMISetReferenceBinNumber(t,binNumber);
+            REG->UseNMISetReferenceBinNumber(t,bin);
       }
       else if((strcmp(argv[i],"-fbn")==0) || (strcmp(argv[i],"-sbn")==0))
       {
          int tp=atoi(argv[++i]);
          int bin=atoi(argv[++i]);
+         floBinNumber=bin;
          REG->UseNMISetFloatingBinNumber(tp,bin);
       }
       else if((strcmp(argv[i],"--fbn")==0) )
       {
-         int binNumber = atoi(argv[++i]);
+         int bin = atoi(argv[++i]);
+         floBinNumber=bin;
          for(int t=0; t<floatingImage->nt; ++t)
-            REG->UseNMISetFloatingBinNumber(t,binNumber);
+            REG->UseNMISetFloatingBinNumber(t,bin);
       }
       else if(strcmp(argv[i], "-ln")==0 || strcmp(argv[i], "--ln")==0)
       {
@@ -544,8 +564,10 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "--lncc")==0)
       {
          float stdev = (float)atof(argv[++i]);
-         for(int t=0; t<referenceImage->nt; ++t)
-            REG->UseLNCC(t,stdev);
+         if(stdev!=999999){ // Value specified by the CLI - to be ignored
+            for(int t=0; t<referenceImage->nt; ++t)
+               REG->UseLNCC(t,stdev);
+         }
       }
       else if(strcmp(argv[i], "-lnccMean")==0)
       {

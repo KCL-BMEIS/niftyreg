@@ -1782,7 +1782,7 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
                   }
                }
             }
-            DTYPE reorientedValue[3];
+            DTYPE reorientedValue[3]={0,0,0};
             reorientedValue[0] =
                   reorientation.m[0][0] * interpolatedValue[0] +
                   reorientation.m[0][1] * interpolatedValue[1] +

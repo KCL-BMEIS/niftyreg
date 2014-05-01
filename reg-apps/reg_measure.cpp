@@ -298,7 +298,7 @@ int main(int argc, char **argv)
       for(int i=0;i<(refImage->nt<warpedFloImage->nt?refImage->nt:warpedFloImage->nt);++i)
          nmi_object->SetActiveTimepoint(i);
       nmi_object->InitialiseMeasure(refImage,
-                                    floImage,
+                                    warpedFloImage,
                                     refMask,
                                     warpedFloImage,
                                     NULL,
@@ -314,7 +314,7 @@ int main(int argc, char **argv)
       for(int i=0;i<(refImage->nt<warpedFloImage->nt?refImage->nt:warpedFloImage->nt);++i)
          lncc_object->SetActiveTimepoint(i);
       lncc_object->InitialiseMeasure(refImage,
-                                    floImage,
+                                    warpedFloImage,
                                     refMask,
                                     warpedFloImage,
                                     NULL,
@@ -329,7 +329,7 @@ int main(int argc, char **argv)
       for(int i=0;i<(refImage->nt<warpedFloImage->nt?refImage->nt:warpedFloImage->nt);++i)
          ssd_object->SetActiveTimepoint(i);
       ssd_object->InitialiseMeasure(refImage,
-                                    floImage,
+                                    warpedFloImage,
                                     refMask,
                                     warpedFloImage,
                                     NULL,
