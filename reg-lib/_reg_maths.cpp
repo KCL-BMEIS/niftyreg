@@ -30,17 +30,23 @@ void svd(T ** in, size_t size_m, size_t size_n, T * w, T ** v)
       reg_exit(1);
    }
 
+#ifdef _WIN32
+   long sm, sn, sn2;
+   long size__m=(long)size_m,size__n=(long)size_n;
+#else
    size_t sm, sn, sn2;
+   size_t size__m=size_m,size__n=size_n;
+#endif
    Eigen::MatrixXf m(size_m,size_n);
 
 #if defined (NDEBUG) && defined (_OPENMP)
    #pragma omp parallel for default(none) \
-   shared(in,m, size_m, size_n) \
+   shared(in,m, size__m, size__n) \
    private(sm, sn)
 #endif
-   for(sm=0; sm<size_m; sm++)
+   for(sm=0; sm<size__m; sm++)
    {
-      for(sn=0; sn<size_n; sn++)
+      for(sn=0; sn<size__n; sn++)
       {
          m(sm,sn)=static_cast<T>(in[sm][sn]);
       }
@@ -50,17 +56,17 @@ void svd(T ** in, size_t size_m, size_t size_n, T * w, T ** v)
 
 #if defined (NDEBUG) && defined (_OPENMP)
    #pragma omp parallel for default(none) \
-   shared(in,svd,v,w, size_n,size_m) \
+   shared(in,svd,v,w, size__n,size__m) \
    private(sn2, sn, sm)
 #endif
-   for(sn=0; sn<size_n; sn++)
+   for(sn=0; sn<size__n; sn++)
    {
       w[sn]=svd.singularValues()(sn);
-      for(sn2=0; sn2<size_n; sn2++)
+      for(sn2=0; sn2<size__n; sn2++)
       {
          v[sn2][sn]=static_cast<T>(svd.matrixV()(sn2,sn));
       }
-      for(sm=0; sm<size_m; sm++)
+      for(sm=0; sm<size__m; sm++)
       {
          in[sm][sn]=static_cast<T>(svd.matrixU()(sm,sn));
       }

@@ -84,8 +84,15 @@ double reg_getDTIMeasureValue(nifti_image *referenceImage,
                               float currentValue
                              )
 {
+#ifdef _WIN32
+   long voxel;
+   long voxelNumber = (long)referenceImage->nx*
+                        referenceImage->ny*referenceImage->nz;
+#else
+   size_t voxel;
    size_t voxelNumber = (size_t)referenceImage->nx*
                         referenceImage->ny*referenceImage->nz;
+#endif
 
    /* As the tensor has 6 unique components that we need to worry about, read them out
    for the floating and reference images. */
@@ -114,13 +121,6 @@ double reg_getDTIMeasureValue(nifti_image *referenceImage,
 //	std::cerr.precision(10);
 //	std::cerr << "BAM " << SUM_TEST << std::endl;
 //	reg_exit(1);
-
-   // Create some variables to be use in the openmp loop
-#ifdef _WIN32
-   int  voxel;
-#else
-   size_t voxel;
-#endif
 
    double DTI_cost=0.0, n=0.0;
    const double twoThirds = (2.0/3.0);
@@ -246,11 +246,12 @@ void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
       float currentValue)
 {
    // Create pointers to the reference and warped images
-   size_t voxelNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
 #ifdef _WIN32
-   int  voxel;
+   long voxel;
+   long voxelNumber = (long)referenceImage->nx*referenceImage->ny*referenceImage->nz;
 #else
-   size_t  voxel;
+   size_t voxel;
+   size_t voxelNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
 #endif
 
    /* As the tensor has 6 unique components that we need to worry about, read them out

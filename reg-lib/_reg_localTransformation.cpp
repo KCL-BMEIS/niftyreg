@@ -2459,7 +2459,13 @@ void reg_defField_compose2D(nifti_image *deformationField,
                             int *mask)
 {
    size_t DFVoxelNumber=(size_t)deformationField->nx*deformationField->ny;
+#ifdef _WIN32
+   long i;
+   long warVoxelNumber=(size_t)dfToUpdate->nx*dfToUpdate->ny;
+#else
+   size_t i;
    size_t warVoxelNumber=(size_t)dfToUpdate->nx*dfToUpdate->ny;
+#endif
    DTYPE *defPtrX = static_cast<DTYPE *>(deformationField->data);
    DTYPE *defPtrY = &defPtrX[DFVoxelNumber];
 
@@ -2479,11 +2485,6 @@ void reg_defField_compose2D(nifti_image *deformationField,
       df_voxel2Real=&(deformationField->qto_xyz);
    }
 
-#ifdef _WIN32
-   int  i;
-#else
-   size_t  i;
-#endif
    size_t index;
    int a, b, pre[2];
    DTYPE realDefX, realDefY, voxelX, voxelY;
@@ -2562,7 +2563,13 @@ void reg_defField_compose3D(nifti_image *deformationField,
 {
    const int DefFieldDim[3]= {deformationField->nx,deformationField->ny,deformationField->nz};
    const size_t DFVoxelNumber=(size_t)DefFieldDim[0]*DefFieldDim[1]*DefFieldDim[2];
-   size_t warVoxelNumber=dfToUpdate->nx*dfToUpdate->ny*dfToUpdate->nz;
+#ifdef _WIN32
+   long i;
+   long warVoxelNumber=(size_t)dfToUpdate->nx*dfToUpdate->ny;
+#else
+   size_t i;
+   size_t warVoxelNumber=(size_t)dfToUpdate->nx*dfToUpdate->ny;
+#endif
 
    DTYPE *defPtrX = static_cast<DTYPE *>(deformationField->data);
    DTYPE *defPtrY = &defPtrX[DFVoxelNumber];
@@ -2589,11 +2596,6 @@ void reg_defField_compose3D(nifti_image *deformationField,
       df_voxel2Real=&deformationField->qto_xyz;
    }
 
-#ifdef _WIN32
-   int  i;
-#else
-   size_t  i;
-#endif
    size_t tempIndex, index;
    int a, b, c, currentX, currentY, currentZ, pre[3];
    DTYPE realDef[3], voxel[3], basis, tempBasis;
@@ -4137,11 +4139,14 @@ void compute_lie_bracket(nifti_image *img1,
                          )
 {
    reg_exit(1); // to update
+#ifdef _WIN32
+   long voxelNumber=(long)img1->nx*img1->ny*img1->nz;
+#else
+   size_t voxNumber=(size_t)img1->nx*img1->ny*img1->nz;
+#endif
    // Lie bracket using Jacobian for testing
    if(use_jac)
    {
-
-      size_t voxNumber = img1->nx*img1->ny*img1->nz;
       mat33 *jacImg1=(mat33 *)malloc(voxNumber*sizeof(mat33));
       mat33 *jacImg2=(mat33 *)malloc(voxNumber*sizeof(mat33));
 
@@ -4259,17 +4264,19 @@ void compute_lie_bracket(nifti_image *img1,
    // Compute the lie bracket value using difference of composition
 
 #ifdef _WIN32
-   int i;
+   long i;
+   voxelNumber=(long)res->nvox;
 #else
    size_t i;
+   voxNumber=res->nvox;
 #endif
 
 #if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   shared(res, resPtr, one_twoPtr, two_onePtr) \
+   shared(voxNumber, resPtr, one_twoPtr, two_onePtr) \
    private(i)
 #endif
-   for(i=0; i<res->nvox; ++i)
+   for(i=0; i<voxNumber; ++i)
       resPtr[i]=two_onePtr[i]-one_twoPtr[i];
    // Free the temporary nifti images
    nifti_image_free(one_two);
@@ -4286,9 +4293,11 @@ void compute_BCH_update1(nifti_image *img1, // current field
    DTYPE *res=(DTYPE *)malloc(img1->nvox*sizeof(DTYPE));
 
 #ifdef _WIN32
-   int i;
+   long i;
+   long voxelNumber=(long)img1->nvox;
 #else
    size_t i;
+   size_t voxelNumber=img1->nvox;
 #endif
 
    bool use_jac=false;
@@ -4298,10 +4307,10 @@ void compute_BCH_update1(nifti_image *img1, // current field
    DTYPE *img2Ptr=static_cast<DTYPE *>(img2->data);
 #if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   shared(img1,img1Ptr,img2Ptr, res) \
+   shared(voxelNumber,img1Ptr,img2Ptr, res) \
    private(i)
 #endif
-   for(i=0; i<img1->nvox; ++i)
+   for(i=0; i<voxelNumber; ++i)
       res[i] = img1Ptr[i] + img2Ptr[i];
 
    if(type>0)
@@ -4316,10 +4325,10 @@ void compute_BCH_update1(nifti_image *img1, // current field
       DTYPE *lie_bracket_img2_img1Ptr=static_cast<DTYPE *>(lie_bracket_img2_img1->data);
 #if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   shared(img1, res, lie_bracket_img2_img1Ptr) \
+   shared(voxelNumber, res, lie_bracket_img2_img1Ptr) \
    private(i)
 #endif
-      for(i=0; i<img1->nvox; ++i)
+      for(i=0; i<voxelNumber; ++i)
          res[i] += 0.5 * lie_bracket_img2_img1Ptr[i];
 
       if(type>1)
@@ -4331,10 +4340,10 @@ void compute_BCH_update1(nifti_image *img1, // current field
          DTYPE *lie_bracket_img2_lie1Ptr=static_cast<DTYPE *>(lie_bracket_img2_lie1->data);
 #if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   shared(img1, res, lie_bracket_img2_lie1Ptr) \
+   shared(voxelNumber, res, lie_bracket_img2_lie1Ptr) \
    private(i)
 #endif
-         for(i=0; i<img1->nvox; ++i)
+         for(i=0; i<voxelNumber; ++i)
             res[i] += lie_bracket_img2_lie1Ptr[i]/12.0;
 
          if(type>2)
@@ -4346,10 +4355,10 @@ void compute_BCH_update1(nifti_image *img1, // current field
             DTYPE *lie_bracket_img1_lie1Ptr=static_cast<DTYPE *>(lie_bracket_img1_lie1->data);
 #if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   shared(img1, res, lie_bracket_img1_lie1Ptr) \
+   shared(voxelNumber, res, lie_bracket_img1_lie1Ptr) \
    private(i)
 #endif
-            for(i=0; i<img1->nvox; ++i)
+            for(i=0; i<voxelNumber; ++i)
                res[i] -= lie_bracket_img1_lie1Ptr[i]/12.0;
             nifti_image_free(lie_bracket_img1_lie1);
 
@@ -4362,10 +4371,10 @@ void compute_BCH_update1(nifti_image *img1, // current field
                DTYPE *lie_bracket_img1_lie2Ptr=static_cast<DTYPE *>(lie_bracket_img1_lie2->data);
 #if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   shared(img1, res, lie_bracket_img1_lie2Ptr) \
+   shared(voxelNumber, res, lie_bracket_img1_lie2Ptr) \
    private(i)
 #endif
-               for(i=0; i<img1->nvox; ++i)
+               for(i=0; i<voxelNumber; ++i)
                   res[i] -= lie_bracket_img1_lie2Ptr[i]/24.0;
                nifti_image_free(lie_bracket_img1_lie2);
             }// >3

@@ -244,11 +244,21 @@ int main(int argc, char **argv)
       }
       else if(strcmp(argv[i], "-%v")==0 || strcmp(argv[i], "--vv")==0)
       {
-         blockPercentage=atof(argv[++i]);
+         float value=atof(argv[++i]);
+         if(value<0.f || value>100.f){
+            reg_print_msg_error("The variance argument is expected to be between 0 and 100");
+            return EXIT_FAILURE;
+         }
+         blockPercentage=value;
       }
       else if(strcmp(argv[i], "-%i")==0 || strcmp(argv[i], "--ii")==0)
       {
-         inlierLts=atof(argv[++i]);
+         float value=atof(argv[++i]);
+         if(value<0.f || value>100.f){
+            reg_print_msg_error("The inlier argument is expected to be between 0 and 100");
+            return EXIT_FAILURE;
+         }
+         inlierLts=value;
       }
       else if(strcmp(argv[i], "-interp")==0 || strcmp(argv[i], "--interp")==0)
       {

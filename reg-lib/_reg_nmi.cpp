@@ -656,7 +656,13 @@ void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
                                    )
 {
    //
+#ifdef WIN32
+   long i;
+   long voxelNumber = (long)referenceImage->nx*referenceImage->ny*referenceImage->nz;
+#else
+   size_t i;
    size_t voxelNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
+#endif
    // Pointers to the image data
    DTYPE *refImagePtr = static_cast<DTYPE *>(referenceImage->data);
    DTYPE *warImagePtr = static_cast<DTYPE *>(warpedImage->data);
@@ -683,7 +689,6 @@ void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
          size_t referenceOffset=referenceBinNumber[t]*floatingBinNumber[t];
          size_t floatingOffset=referenceOffset+referenceBinNumber[t];
          int r,w;
-         size_t i;
          DTYPE refValue,warValue,gradX,gradY,gradZ;
          double jointDeriv[3],refDeriv[3],warDeriv[3],commun,jointLog,refLog,warLog;
          // Iterate over all voxel

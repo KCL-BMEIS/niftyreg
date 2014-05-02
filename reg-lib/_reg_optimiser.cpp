@@ -307,13 +307,16 @@ template <class T>
 void reg_conjugateGradient<T>::UpdateGradientValues()
 {
 
-#ifdef _WIN32
-   int  i;
+#ifdef WIN32
+   long i;
+   long num = (long)this->dofNumber;
+   long num_b = (long)this->dofNumber_b;
 #else
-   size_t  i;
+   size_t i;
+   size_t num = (size_t)this->dofNumber;
+   size_t num_b = (size_t)this->dofNumber_b;
 #endif
-   size_t num=this->dofNumber;
-   size_t num_b=this->dofNumber_b;
+
    T *gradientPtr = this->gradient;
    T *array1Ptr = this->array1;
    T *array2Ptr = this->array2;

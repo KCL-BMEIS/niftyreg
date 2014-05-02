@@ -534,9 +534,11 @@ void reg_tools_operationImageToImage(nifti_image *img1,
 
 
 #ifdef _WIN32
-   int  i;
+   long i;
+   long voxelNumber=(long)res->nvox;
 #else
-   size_t  i;
+   size_t i;
+   size_t voxelNumber=res->nvox;
 #endif
 
    switch(type)
@@ -545,9 +547,9 @@ void reg_tools_operationImageToImage(nifti_image *img1,
 #if defined (NDEBUG) && defined (_OPENMP)
       #pragma omp parallel for default(none) \
       private(i) \
-      shared(res,resPtr,img1Ptr,img2Ptr,img1,img2)
+      shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
 #endif // _OPENMP
-      for(i=0; i<res->nvox; i++)
+      for(i=0; i<voxelNumber; i++)
          resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) +
                               ((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
                               (double)img1->scl_inter)/(double)img1->scl_slope);
@@ -556,9 +558,9 @@ void reg_tools_operationImageToImage(nifti_image *img1,
 #if defined (NDEBUG) && defined (_OPENMP)
       #pragma omp parallel for default(none) \
       private(i) \
-      shared(res,resPtr,img1Ptr,img2Ptr,img1,img2)
+      shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
 #endif // _OPENMP
-      for(i=0; i<res->nvox; i++)
+      for(i=0; i<voxelNumber; i++)
          resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) -
                               ((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
                               (double)img1->scl_inter)/(double)img1->scl_slope);
@@ -567,9 +569,9 @@ void reg_tools_operationImageToImage(nifti_image *img1,
 #if defined (NDEBUG) && defined (_OPENMP)
       #pragma omp parallel for default(none) \
       private(i) \
-      shared(res,resPtr,img1Ptr,img2Ptr,img1,img2)
+      shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
 #endif // _OPENMP
-      for(i=0; i<res->nvox; i++)
+      for(i=0; i<voxelNumber; i++)
          resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) *
                               ((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
                               (double)img1->scl_inter)/(double)img1->scl_slope);
@@ -578,9 +580,9 @@ void reg_tools_operationImageToImage(nifti_image *img1,
 #if defined (NDEBUG) && defined (_OPENMP)
       #pragma omp parallel for default(none) \
       private(i) \
-      shared(res,resPtr,img1Ptr,img2Ptr,img1,img2)
+      shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
 #endif // _OPENMP
-      for(i=0; i<res->nvox; i++)
+      for(i=0; i<voxelNumber; i++)
          resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) /
                               ((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
                               (double)img1->scl_inter)/(double)img1->scl_slope);
@@ -791,9 +793,11 @@ void reg_tools_operationValueToImage(nifti_image *img1,
    res->scl_inter=img1->scl_inter;
 
 #ifdef _WIN32
-   int  i;
+   long i;
+   long voxelNumber=(long)res->nvox;
 #else
-   size_t  i;
+   size_t i;
+   size_t voxelNumber=res->nvox;
 #endif
 
    switch(type)
@@ -802,9 +806,9 @@ void reg_tools_operationValueToImage(nifti_image *img1,
 #if defined (NDEBUG) && defined (_OPENMP)
       #pragma omp parallel for default(none) \
       private(i) \
-      shared(res,resPtr,img1Ptr,img1,val)
+      shared(voxelNumber,resPtr,img1Ptr,img1,val)
 #endif // _OPENMP
-      for(i=0; i<res->nvox; i++)
+      for(i=0; i<voxelNumber; i++)
          resPtr[i] = (TYPE1)(((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) +
                                (double)val) - (double)img1->scl_inter)/(double)img1->scl_slope);
       break;
@@ -812,9 +816,9 @@ void reg_tools_operationValueToImage(nifti_image *img1,
 #if defined (NDEBUG) && defined (_OPENMP)
       #pragma omp parallel for default(none) \
       private(i) \
-      shared(res,resPtr,img1Ptr,img1,val)
+      shared(voxelNumber,resPtr,img1Ptr,img1,val)
 #endif // _OPENMP
-      for(i=0; i<res->nvox; i++)
+      for(i=0; i<voxelNumber; i++)
          resPtr[i] = (TYPE1)(((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) -
                                (double)val) - (double)img1->scl_inter)/(double)img1->scl_slope);
       break;
@@ -822,9 +826,9 @@ void reg_tools_operationValueToImage(nifti_image *img1,
 #if defined (NDEBUG) && defined (_OPENMP)
       #pragma omp parallel for default(none) \
       private(i) \
-      shared(res,resPtr,img1Ptr,img1,val)
+      shared(voxelNumber,resPtr,img1Ptr,img1,val)
 #endif // _OPENMP
-      for(i=0; i<res->nvox; i++)
+      for(i=0; i<voxelNumber; i++)
          resPtr[i] = (TYPE1)(((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) *
                                (double)val) - (double)img1->scl_inter)/(double)img1->scl_slope);
       break;
@@ -832,9 +836,9 @@ void reg_tools_operationValueToImage(nifti_image *img1,
 #if defined (NDEBUG) && defined (_OPENMP)
       #pragma omp parallel for default(none) \
       private(i) \
-      shared(res,resPtr,img1Ptr,img1,val)
+      shared(voxelNumber,resPtr,img1Ptr,img1,val)
 #endif // _OPENMP
-      for(i=0; i<res->nvox; i++)
+      for(i=0; i<voxelNumber; i++)
          resPtr[i] = (TYPE1)(((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) /
                                (double)val) - (double)img1->scl_inter)/(double)img1->scl_slope);
       break;
@@ -1034,8 +1038,14 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                                       bool *timePoint,
                                       bool *axis)
 {
-   DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
+#ifdef WIN23
+   long index;
+   long voxelNumber = (long)image->nx*image->ny*image->nz;
+#else
+   size_t index;
    size_t voxelNumber = (size_t)image->nx*image->ny*image->nz;
+#endif
+   DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
    int imageDim[3]= {image->nx,image->ny,image->nz};
 
    bool *nanImagePtr = (bool *)calloc(voxelNumber, sizeof(bool));
@@ -1047,7 +1057,6 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
       if(timePoint[t])
       {
          DTYPE *intensityPtr = &imagePtr[t * voxelNumber];
-         unsigned int index;
 #if defined (_OPENMP)
          #pragma omp parallel for default(none) \
          shared(densityPtr, intensityPtr, mask, nanImagePtr, voxelNumber) \
@@ -1122,7 +1131,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
 #ifndef NDEBUG
                   printf("[NiftyReg DEBUG] Convolution type[%i] dim[%i] tp[%i] radius[%i] kernelSum[%g]\n", kernelType, n, t, radius, kernelSum);
 #endif
-                  unsigned int planeNumber, planeIndex, lineOffset;
+                  int planeNumber, planeIndex, lineOffset;
                   int lineIndex, shiftPre, shiftPst, k;
                   switch(n)
                   {

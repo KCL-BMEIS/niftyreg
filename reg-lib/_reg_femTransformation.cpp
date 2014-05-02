@@ -149,19 +149,19 @@ void reg_fem_getDeformationField(float *nodePositions,
                                  float *femInterpolationWeight
                                 )
 {
-   size_t voxelNumber=
-      (size_t)deformationFieldImage->nx*
-      deformationFieldImage->ny*
-      deformationFieldImage->nz;
+#ifdef _WIN32
+   long voxel;
+   long voxelNumber=(long)deformationFieldImage->nx*
+      deformationFieldImage->ny*deformationFieldImage->nz;
+#else
+   size_t voxel;
+   size_t voxelNumber=(size_t)deformationFieldImage->nx*
+      deformationFieldImage->ny*deformationFieldImage->nz;
+#endif
    float *defPtrX = static_cast<float *>(deformationFieldImage->data);
    float *defPtrY = &defPtrX[voxelNumber];
    float *defPtrZ = &defPtrY[voxelNumber];
 
-#ifdef _WIN32
-   int  voxel;
-#else
-   size_t  voxel;
-#endif
    float coefficients[4];
    float positionA[3], positionB[3], positionC[3], positionD[3];
 #if defined (NDEBUG) && defined (_OPENMP)

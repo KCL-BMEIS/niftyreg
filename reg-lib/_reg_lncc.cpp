@@ -92,13 +92,21 @@ void reg_lncc::UpdateLocalStatImages(nifti_image *originalImage,
    reg_tools_multiplyImageToImage(stdDevImage, stdDevImage, stdDevImage);
    reg_tools_kernelConvolution(meanImage, this->kernelStandardDeviation, this->kernelType, mask, this->activeTimePoint);
    reg_tools_kernelConvolution(stdDevImage, this->kernelStandardDeviation, this->kernelType, mask, this->activeTimePoint);
+
+#ifdef _WIN32
+   long voxel;
+   long voxelNumber=(long)originalImage->nvox;
+#else
    size_t voxel;
+   size_t voxelNumber=originalImage->nvox;
+#endif
+
 #if defined (NDEBUG) && defined (_OPENMP)
    #pragma omp parallel for default(none) \
-   shared(originalImage, sdevPtr, meanPtr) \
+   shared(voxelNumber, sdevPtr, meanPtr) \
    private(voxel)
 #endif
-   for(voxel=0; voxel<originalImage->nvox; ++voxel)
+   for(voxel=0; voxel<voxelNumber; ++voxel)
    {
       // G*(I^2) - (G*I)^2
       sdevPtr[voxel] = sqrt(sdevPtr[voxel] - reg_pow2(meanPtr[voxel]));
@@ -285,8 +293,15 @@ double reg_getLNCCValue(nifti_image *referenceImage,
    DTYPE *refSdevPtr=static_cast<DTYPE *>(referenceSdevImage->data);
    DTYPE *warSdevPtr=static_cast<DTYPE *>(warpedSdevImage->data);
    DTYPE *correlaPtr=static_cast<DTYPE *>(correlationImage->data);
-   int voxel, voxelNumber = (int)referenceImage->nx*
-                            referenceImage->ny*referenceImage->nz;
+#ifdef _WIN32
+   long voxel;
+   long voxelNumber=(long)referenceImage->nx*
+         referenceImage->ny*referenceImage->nz;
+#else
+   size_t voxel;
+   size_t voxelNumber=(size_t)referenceImage->nx*
+         referenceImage->ny*referenceImage->nz;
+#endif
 
    // Iteration over all time points
    for(int t=0; t<referenceImage->nt; ++t)
@@ -460,8 +475,15 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
    DTYPE *warSdevPtr=static_cast<DTYPE *>(warpedSdevImage->data);
    DTYPE *correlaPtr=static_cast<DTYPE *>(correlationImage->data);
 
-   size_t voxel, voxelNumber = (int)referenceImage->nx *
-                            referenceImage->ny * referenceImage->nz;
+#ifdef _WIN32
+   long voxel;
+   long voxelNumber=(long)referenceImage->nx*
+         referenceImage->ny*referenceImage->nz;
+#else
+   size_t voxel;
+   size_t voxelNumber=(size_t)referenceImage->nx*
+         referenceImage->ny*referenceImage->nz;
+#endif
 
    // Create some pointers to the gradient images
    DTYPE *lnccGradPtrX = static_cast<DTYPE *>(lnccGradientImage->data);
@@ -576,12 +598,17 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
    }
    // Check for NaN
    DTYPE val;
+#ifdef _WIN32
+   voxelNumber=(long)lnccGradientImage->nvox;
+#else
+   voxelNumber=lnccGradientImage->nvox;
+#endif
 #if defined (NDEBUG) && defined (_OPENMP)
    #pragma omp parallel for default(none) \
-   shared(lnccGradientImage,lnccGradPtrX) \
+   shared(voxelNumber,lnccGradPtrX) \
    private(voxel, val)
 #endif
-   for(voxel=0; voxel<lnccGradientImage->nvox; ++voxel)
+   for(voxel=0; voxel<voxelNumber; ++voxel)
    {
       val=lnccGradPtrX[voxel];
       if(val!=val || isinf(val)!=0)

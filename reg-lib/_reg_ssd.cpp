@@ -89,7 +89,14 @@ double reg_getSSDValue(nifti_image *referenceImage,
                        float *currentValue
                       )
 {
+
+#ifdef _WIN32
+   long voxel;
+   long voxelNumber = (long)referenceImage->nx*referenceImage->ny*referenceImage->nz;
+#else
+   size_t voxel;
    size_t voxelNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
+#endif
    // Create pointers to the reference and warped image data
    DTYPE *referencePtr=static_cast<DTYPE *>(referenceImage->data);
    DTYPE *warpedPtr=static_cast<DTYPE *>(warpedImage->data);
@@ -98,13 +105,6 @@ double reg_getSSDValue(nifti_image *referenceImage,
    if(jacobianDetImage!=NULL)
       jacDetPtr=static_cast<DTYPE *>(jacobianDetImage->data);
 
-   // Create some variables to be use in the openmp loop
-
-#ifdef _WIN32
-   int  voxel;
-#else
-   size_t  voxel;
-#endif
 
    double SSD_global=0.0, n=0.0;
    double targetValue, resultValue, diff;
@@ -255,11 +255,12 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                                   float *currentValue)
 {
    // Create pointers to the reference and warped images
-   size_t voxelNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
 #ifdef _WIN32
-   int  voxel;
+   long voxel;
+   long voxelNumber = (long)referenceImage->nx*referenceImage->ny*referenceImage->nz;
 #else
-   size_t  voxel;
+   size_t voxel;
+   size_t voxelNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
 #endif
 
    DTYPE *refPtr=static_cast<DTYPE *>(referenceImage->data);
