@@ -9,8 +9,8 @@ endif("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MAT
 #-----------------------------------------------------------------------------
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 	message("In-source builds not allowed by NiftyReg police.")
-	message("Please make a new directory (called a build directory) and run CMake from there.")
-	message(FATAL_ERROR "You may need to remove CMakeCache.txt.")
+	message("Please create a new directory (called a build directory) and run CMake from there.")
+	message(FATAL_ERROR "You may need to remove CMakeCache.txt and CMakeFiles.")
 endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 #-----------------------------------------------------------------------------
 if(NOT CMAKE_BUILD_TYPE)

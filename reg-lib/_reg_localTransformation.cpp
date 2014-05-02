@@ -1364,12 +1364,12 @@ void reg_spline_getDeformationField3D(nifti_image *splineControlPoint,
          __declspec(align(16)) DTYPE f[64];
       } xyzBasis;
 #else // _WIN32
-      union u1
+      union
       {
          __m128 m[4];
          DTYPE f[16] __attribute__((aligned(16)));
       } yzBasis;
-      union u2
+      union
       {
          __m128 m[16];
          DTYPE f[64] __attribute__((aligned(16)));
@@ -4140,7 +4140,7 @@ void compute_lie_bracket(nifti_image *img1,
 {
    reg_exit(1); // to update
 #ifdef _WIN32
-   long voxelNumber=(long)img1->nx*img1->ny*img1->nz;
+   long voxNumber=(long)img1->nx*img1->ny*img1->nz;
 #else
    size_t voxNumber=(size_t)img1->nx*img1->ny*img1->nz;
 #endif
@@ -4265,7 +4265,7 @@ void compute_lie_bracket(nifti_image *img1,
 
 #ifdef _WIN32
    long i;
-   voxelNumber=(long)res->nvox;
+   voxNumber=(long)res->nvox;
 #else
    size_t i;
    voxNumber=res->nvox;

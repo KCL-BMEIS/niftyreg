@@ -1821,10 +1821,19 @@ double reg_spline_correctFolding2D(nifti_image *splineControlPoint,
                                    bool approximation,
                                    bool useHeaderInformation)
 {
+#ifdef WIN32
+   long i;
+   long jacobianNumber;
+   if(approximation)
+      jacobianNumber = (long)(splineControlPoint->nx-2)*(splineControlPoint->ny-2);
+   else jacobianNumber = (long)referenceImage->nx*referenceImage->ny;
+#else
+   size_t i;
    size_t jacobianNumber;
    if(approximation)
       jacobianNumber = (size_t)(splineControlPoint->nx-2)*(splineControlPoint->ny-2);
    else jacobianNumber = (size_t)referenceImage->nx*referenceImage->ny;
+#endif
    mat33 *jacobianMatrices=(mat33 *)malloc(jacobianNumber*sizeof(mat33));
    DTYPE *jacobianDeterminant=(DTYPE *)malloc(jacobianNumber*sizeof(DTYPE));
 
@@ -1837,7 +1846,6 @@ double reg_spline_correctFolding2D(nifti_image *splineControlPoint,
 
    /* The current Penalty term value is computed */
    double penaltyTerm =0., logDet;
-   size_t i;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(jacobianNumber, jacobianDeterminant) \
@@ -2063,10 +2071,19 @@ double reg_spline_correctFolding3D(nifti_image *splineControlPoint,
                                    bool approximation,
                                    bool useHeaderInformation)
 {
+#ifdef WIN32
+   long i;
+   long jacobianNumber;
+   if(approximation)
+      jacobianNumber = (long)(splineControlPoint->nx-2)*(splineControlPoint->ny-2)*(splineControlPoint->nz-2);
+   else jacobianNumber = (long)referenceImage->nx*referenceImage->ny*referenceImage->nz;
+#else
+   size_t i;
    size_t jacobianNumber;
    if(approximation)
       jacobianNumber = (size_t)(splineControlPoint->nx-2)*(splineControlPoint->ny-2)*(splineControlPoint->nz-2);
    else jacobianNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
+#endif
    mat33 *jacobianMatrices=(mat33 *)malloc(jacobianNumber*sizeof(mat33));
    DTYPE *jacobianDeterminant=(DTYPE *)malloc(jacobianNumber*sizeof(DTYPE));
 
@@ -2079,7 +2096,6 @@ double reg_spline_correctFolding3D(nifti_image *splineControlPoint,
 
    /* The current Penalty term value is computed */
    double penaltyTerm =0., logDet;
-   size_t i;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(jacobianNumber, jacobianDeterminant) \

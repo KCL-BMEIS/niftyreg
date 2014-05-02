@@ -1038,7 +1038,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                                       bool *timePoint,
                                       bool *axis)
 {
-#ifdef WIN23
+#ifdef WIN32
    long index;
    long voxelNumber = (long)image->nx*image->ny*image->nz;
 #else
