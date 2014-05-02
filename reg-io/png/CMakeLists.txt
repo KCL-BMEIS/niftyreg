@@ -54,9 +54,6 @@ if(BUILD_INTERNAL_PNG OR BUILD_ALL_DEP)
 		)
 		# Build the library
 		add_library(png STATIC ${png_SRCS} ${png_HDRS})
-		set_target_properties(png PROPERTIES
-				VERSION "${PNGLIB_VERSION}"
-				SOVERSION "${PNGLIB_MAJOR}")
 		target_link_libraries(png z)
 		install(TARGETS png
 				LIBRARY DESTINATION lib COMPONENT Development
