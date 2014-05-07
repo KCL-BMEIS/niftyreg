@@ -28,9 +28,12 @@
 void usage(char *exec)
 {
    printf("usage:\n\t%s <outputFileName> [OPTIONS]\n\n", exec);
-   printf("\t-avg <inputFileName1> <inputFileName2> ... <inputFileNameN> \n");
+   printf("\t-avg <inputAffineName1> <inputAffineName2> ... <inputAffineNameN> \n");
    printf("\t\tIf the input are images, the intensities are averaged\n");
    printf("\t\tIf the input are affine matrices, out=expm((logm(M1)+logm(M2)+...+logm(MN))/N)\n\n");
+   printf("\t-lts_avg <percent> <inputFileName1> <inputFileName2> ... <inputFileNameN> \n");
+   printf("\t\tThe <percent> is the percentage of outliers affine transformations\n");
+   printf("\t\tIt will estimate the weighted LTS affine matrix, out=expm((W1*logm(M1)+W2*logm(M2)+...+WN*logm(MN))/N)\n\n");
    printf("\t-demean1 <referenceImage> <AffineMat1> <floatingImage1> ...  <AffineMatN> <floatingImageN>\n");
    printf("\t-demean2  <referenceImage> <NonRigidTrans1> <floatingImage1> ... <NonRigidTransN> <floatingImageN>\n");
    printf("\t-demean3  <referenceImage> <AffineMat1> <NonRigidTrans1> <floatingImage1> ...  <AffineMatN> <NonRigidTransN> <floatingImageN>\n\n");
@@ -74,7 +77,7 @@ int main(int argc, char **argv)
       return 0;
    }
    // Check if help is required
-   for(int i=1; i<argc; ++i)
+   for(size_t i=1; i<argc; ++i)
    {
       if(strcmp(argv[i],"-h")==0 ||
             strcmp(argv[i],"-H")==0 ||
@@ -89,7 +92,7 @@ int main(int argc, char **argv)
    }
    // Command line
    printf("\nCommand line:\n\t");
-   for(int i=0; i<argc; ++i)
+   for(size_t i=0; i<argc; ++i)
       printf("%s ",argv[i]);
    printf("\n\n");
 
@@ -106,6 +109,8 @@ int main(int argc, char **argv)
       operation=2;
    else if(strcmp(argv[2],"-demean3")==0)
       operation=3;
+   else if(strcmp(argv[2],"-lts_avg")==0)
+      operation=4;
    else
    {
       reg_print_msg_error("unknow operation. Options are \"-avg\", \"-demean1\", \"-demean2\" or \"-demean3\". Specified argument:");
@@ -293,6 +298,186 @@ int main(int argc, char **argv)
          reg_tool_WriteAffineFile(&outputMatrix,outputName);
       }
    }
+   // Create the LTS average matrix
+   else if(operation==4)
+   {
+       //Check the name of the first file to verify if they are analyse or nifti image, as it only works for affines
+       std::string n(argv[3]);
+       if(     n.find( ".nii.gz") != std::string::npos ||
+               n.find( ".nii") != std::string::npos ||
+               n.find( ".hdr") != std::string::npos ||
+               n.find( ".img") != std::string::npos ||
+               n.find( ".img.gz") != std::string::npos)
+       {
+           reg_print_msg_error(" The LTS average method only works with affine transformations.\n");
+           return EXIT_FAILURE;
+       }
+       else
+       {
+           // input arguments are assumed to be text file name
+           // Create an mat44 array to store all input matrices
+           const size_t matrixNumber=argc-3;
+           mat44 *inputMatrices=(mat44 *)malloc(matrixNumber * sizeof(mat44));
+           // Read all the input matrices
+           for(size_t m=0; m<matrixNumber; ++m)
+           {
+               if(FILE *aff=fopen(argv[m+3], "r"))
+               {
+                   fclose(aff);
+               }
+               else
+               {
+                   reg_print_msg_error("The specified input affine file can not be read\n");
+                   reg_print_msg_error(argv[m+3]);
+                   reg_exit(1);
+               }
+               // Read the current matrix file
+               std::ifstream affineFile;
+               affineFile.open(argv[m+3]);
+               if(affineFile.is_open())
+               {
+                   // Transfer the values into the mat44 array
+                   int i=0;
+                   float value1,value2,value3,value4;
+                   while(!affineFile.eof())
+                   {
+                       affineFile >> value1 >> value2 >> value3 >> value4;
+                       inputMatrices[m].m[i][0] = value1;
+                       inputMatrices[m].m[i][1] = value2;
+                       inputMatrices[m].m[i][2] = value3;
+                       inputMatrices[m].m[i][3] = value4;
+                       i++;
+                       if(i>3) break;
+                   }
+               }
+               affineFile.close();
+           }
+           // All the input matrices are log-ed
+           for(size_t m=0; m<matrixNumber; ++m)
+           {
+               inputMatrices[m] = reg_mat44_logm(&inputMatrices[m]);
+           }
+
+           // All the exponentiated matrices are summed up into one matrix
+           // temporary double are used to avoid error accumulation
+
+           double percent=0.5f;
+           double * weight=(double *)malloc(matrixNumber * sizeof(double));
+           double * weight2=(double *)malloc(matrixNumber * sizeof(double));
+           for(size_t m=0; m<matrixNumber; ++m)
+           {
+               weight[m]=1;
+               weight2[m]=1;
+           }
+
+           mat44 outputMatrix;
+           for(int iter=0; iter<10; iter++)
+           {
+               double tempValue[16]= {0,0,0,0,
+                                      0,0,0,0,
+                                      0,0,0,0,
+                                      0,0,0,0
+                                     };
+
+               // All the exponentiated matrices are summed up into one matrix
+               // in order to create the average matrix.
+               // temporary double are used to avoid error accumulation
+               double sumdistance=0;
+               for(size_t m=0; m<matrixNumber; ++m)
+               {
+                   tempValue[ 0]+=weight[m]*(double)inputMatrices[m].m[0][0];
+                   tempValue[ 1]+=weight[m]*(double)inputMatrices[m].m[0][1];
+                   tempValue[ 2]+=weight[m]*(double)inputMatrices[m].m[0][2];
+                   tempValue[ 3]+=weight[m]*(double)inputMatrices[m].m[0][3];
+                   tempValue[ 4]+=weight[m]*(double)inputMatrices[m].m[1][0];
+                   tempValue[ 5]+=weight[m]*(double)inputMatrices[m].m[1][1];
+                   tempValue[ 6]+=weight[m]*(double)inputMatrices[m].m[1][2];
+                   tempValue[ 7]+=weight[m]*(double)inputMatrices[m].m[1][3];
+                   tempValue[ 8]+=weight[m]*(double)inputMatrices[m].m[2][0];
+                   tempValue[ 9]+=weight[m]*(double)inputMatrices[m].m[2][1];
+                   tempValue[10]+=weight[m]*(double)inputMatrices[m].m[2][2];
+                   tempValue[11]+=weight[m]*(double)inputMatrices[m].m[2][3];
+                   tempValue[12]+=weight[m]*(double)inputMatrices[m].m[3][0];
+                   tempValue[13]+=weight[m]*(double)inputMatrices[m].m[3][1];
+                   tempValue[14]+=weight[m]*(double)inputMatrices[m].m[3][2];
+                   tempValue[15]+=weight[m]*(double)inputMatrices[m].m[3][3];
+                   sumdistance+=weight[m];
+               }
+               // Average matrix is computed
+               tempValue[ 0] /= (double)sumdistance;
+               tempValue[ 1] /= (double)sumdistance;
+               tempValue[ 2] /= (double)sumdistance;
+               tempValue[ 3] /= (double)sumdistance;
+               tempValue[ 4] /= (double)sumdistance;
+               tempValue[ 5] /= (double)sumdistance;
+               tempValue[ 6] /= (double)sumdistance;
+               tempValue[ 7] /= (double)sumdistance;
+               tempValue[ 8] /= (double)sumdistance;
+               tempValue[ 9] /= (double)sumdistance;
+               tempValue[10] /= (double)sumdistance;
+               tempValue[11] /= (double)sumdistance;
+               tempValue[12] /= (double)sumdistance;
+               tempValue[13] /= (double)sumdistance;
+               tempValue[14] /= (double)sumdistance;
+               tempValue[15] /= (double)sumdistance;
+
+               // The final matrix is exponentiated
+               outputMatrix.m[0][0]=(float)tempValue[ 0];
+               outputMatrix.m[0][1]=(float)tempValue[ 1];
+               outputMatrix.m[0][2]=(float)tempValue[ 2];
+               outputMatrix.m[0][3]=(float)tempValue[ 3];
+               outputMatrix.m[1][0]=(float)tempValue[ 4];
+               outputMatrix.m[1][1]=(float)tempValue[ 5];
+               outputMatrix.m[1][2]=(float)tempValue[ 6];
+               outputMatrix.m[1][3]=(float)tempValue[ 7];
+               outputMatrix.m[2][0]=(float)tempValue[ 8];
+               outputMatrix.m[2][1]=(float)tempValue[ 9];
+               outputMatrix.m[2][2]=(float)tempValue[10];
+               outputMatrix.m[2][3]=(float)tempValue[11];
+               outputMatrix.m[3][0]=(float)tempValue[12];
+               outputMatrix.m[3][1]=(float)tempValue[13];
+               outputMatrix.m[3][2]=(float)tempValue[14];
+               outputMatrix.m[3][3]=(float)tempValue[15];
+
+               // The weights are updated based on the
+               for(size_t m=0; m<matrixNumber; ++m)
+               {
+                   weight[m]=1;
+
+                   mat44 Minus=reg_mat44_minus(&(inputMatrices[m]),&outputMatrix);
+
+                   mat44 Minus_transpose;
+                   for(int i=0; i<4; ++i)
+                   {
+                       for(int j=0; j<4; ++j)
+                       {
+                           Minus_transpose.m[i][j]=Minus.m[j][i];
+                       }
+                   }
+                   mat44 MTM=reg_mat44_mul(&Minus_transpose,&Minus);
+                   double trace=0;
+                   for(size_t i=0; i<4; ++i)
+                   {
+                       trace+=MTM.m[i][i];
+                   }
+                   weight[m]=1/(sqrt(trace));
+                   weight2[m]=1/(sqrt(trace));
+               }
+
+               reg_heapSort(weight2,matrixNumber);
+               for(size_t m=0; m<matrixNumber; ++m)
+               {
+                   weight[m]=weight[m]>weight2[(int)ceil(matrixNumber*percent)];
+               }
+               outputMatrix = reg_mat44_expm(&outputMatrix);
+           }
+
+           // Free the array containing the input matrices
+           free(inputMatrices);
+           // The final matrix is saved
+           reg_tool_WriteAffineFile(&outputMatrix,outputName);
+       }
+   }
    else
    {
       /* **** the average image is created after resampling **** */
@@ -314,7 +499,7 @@ int main(int argc, char **argv)
          size_t affineNumber = (argc - 4)/2;
          // All affine matrices are read in
          mat44 *affineMatrices = (mat44 *)malloc(affineNumber*sizeof(mat44));
-         for(int i=4, j=0; i<argc; i+=2,++j)
+         for(size_t i=4, j=0; i<argc; i+=2,++j)
          {
             if(reg_isAnImageFileName(argv[i]))
             {
@@ -379,7 +564,7 @@ int main(int argc, char **argv)
          tempImage->scl_inter=0.f;
          tempImage->data = (void *)malloc(tempImage->nvox*tempImage->nbyper);
          // warp all floating images and sum them up
-         for(int i=5, j=0; i<argc; i+=2,++j)
+         for(size_t i=5, j=0; i<argc; i+=2,++j)
          {
             nifti_image *floatingImage = reg_io_ReadImageFile(argv[i]);
             if(floatingImage==NULL)
@@ -444,7 +629,7 @@ int main(int argc, char **argv)
          sprintf(msg,"reg_average: Number of input transformations: %i",(argc-4)/operation);
          reg_print_msg_debug(msg);
 #endif
-         for(int i=(operation==2?4:5); i<argc; i+=operation)
+         for(size_t i=(operation==2?4:5); i<argc; i+=operation)
          {
             nifti_image *transformation = reg_io_ReadImageFile(argv[i]);
             if(transformation==NULL)
@@ -557,7 +742,7 @@ int main(int argc, char **argv)
          nifti_image *tempImage = nifti_copy_nim_info(averageImage);
          tempImage->data = (void *)malloc(tempImage->nvox*tempImage->nbyper);
          // Iterate over all the transformation parametrisations
-         for(int i=(operation==2?4:5); i<argc; i+=operation)
+         for(size_t i=(operation==2?4:5); i<argc; i+=operation)
          {
             nifti_image *transformation = reg_io_ReadImageFile(argv[i]);
             if(transformation==NULL)
