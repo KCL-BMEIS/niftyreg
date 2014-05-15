@@ -27,6 +27,7 @@
 
 void usage(char *exec)
 {
+   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    printf("usage:\n\t%s <outputFileName> [OPTIONS]\n\n", exec);
    printf("\t-avg <inputAffineName1> <inputAffineName2> ... <inputAffineNameN> \n");
    printf("\t\tIf the input are images, the intensities are averaged\n");
@@ -35,8 +36,11 @@ void usage(char *exec)
    printf("\t\tThe <percent> is the percentage of outliers affine transformations\n");
    printf("\t\tIt will estimate the weighted LTS affine matrix, out=expm((W1*logm(M1)+W2*logm(M2)+...+WN*logm(MN))/N)\n\n");
    printf("\t-demean1 <referenceImage> <AffineMat1> <floatingImage1> ...  <AffineMatN> <floatingImageN>\n");
-   printf("\t-demean2  <referenceImage> <NonRigidTrans1> <floatingImage1> ... <NonRigidTransN> <floatingImageN>\n");
-   printf("\t-demean3  <referenceImage> <AffineMat1> <NonRigidTrans1> <floatingImage1> ...  <AffineMatN> <NonRigidTransN> <floatingImageN>\n\n");
+   printf("\t-demean2 <referenceImage> <NonRigidTrans1> <floatingImage1> ... <NonRigidTransN> <floatingImageN>\n");
+   printf("\t-demean3 <referenceImage> <AffineMat1> <NonRigidTrans1> <floatingImage1> ...  <AffineMatN> <NonRigidTransN> <floatingImageN>\n\n");
+#ifdef _GIT_HASH
+   printf("\n\t-v\tPrint current source code git hash key and exit\n\t\t(%s)\n",_GIT_HASH);
+#endif
    printf("Desciptions:\n\n");
    printf("* The demean1 option enforces the mean of all affine matrices to have\n");
    printf("a Jacobian determinant equal to one. This is done by computing the\n");
@@ -46,6 +50,7 @@ void usage(char *exec)
    printf("user-defined reference space\n\n");
    printf("* The demean2\n\n");
    printf("* The demean3\n\n");
+   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 }
 
 template <class DTYPE>
@@ -89,6 +94,21 @@ int main(int argc, char **argv)
          usage(argv[0]);
          return EXIT_SUCCESS;
       }
+      // Check if the --xml information is required
+      else if(strcmp(argv[i], "--xml")==0)
+      {
+         printf("%s",xml_average);
+         return 0;
+      }
+#ifdef _GIT_HASH
+      else if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
+            strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
+            strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0)
+      {
+         printf("%s\n",_GIT_HASH);
+         return EXIT_SUCCESS;
+      }
+#endif
    }
    // Command line
    printf("\nCommand line:\n\t");

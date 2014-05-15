@@ -59,15 +59,15 @@ void Usage(char *exec)
    printf("\t-flo <filename>\tFilename of the floating image (mandatory)\n");
    printf("\t\tNote that the floating image is resampled into the reference\n");
    printf("\t\timage space using the header informations.\n");
-#ifdef _SVN_REV
-   fprintf(stderr,"\n-v Print the subversion revision number\n");
-#endif
 
    printf("* * OPTIONS * *\n");
    printf("\t-ncc\t\tReturns the NCC value\n");
    printf("\t-lncc\t\tReturns the LNCC value\n");
    printf("\t-nmi\t\tReturns the NMI value (64 bins are used)\n");
    printf("\t-ssd\t\tReturns the SSD value\n");
+#ifdef _GIT_HASH
+   printf("\n\t-v\t\tPrint current source code git hash key and exit\n\t\t\t(%s)\n",_GIT_HASH);
+#endif
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;
 }
@@ -95,16 +95,16 @@ int main(int argc, char **argv)
 //         printf("%s",xml_measure);
 //         return 0;
 //      }
-#ifdef _SVN_REV
-      if( strcmp(argv[i], "-version")==0 ||
+#ifdef _GIT_HASH
+      else if( strcmp(argv[i], "-version")==0 ||
             strcmp(argv[i], "-Version")==0 ||
             strcmp(argv[i], "-V")==0 ||
             strcmp(argv[i], "-v")==0 ||
             strcmp(argv[i], "--v")==0 ||
             strcmp(argv[i], "--version")==0)
       {
-         printf("NiftyReg revision number: %i\n",_SVN_REV);
-         return 0;
+         printf("%s\n",_GIT_HASH);
+         return EXIT_SUCCESS;
       }
 #endif
       else if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0) ||

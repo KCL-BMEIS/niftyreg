@@ -58,10 +58,6 @@ void Usage(char *exec)
    printf("Usage:\t%s -ref <filename> -flo <filename> [OPTIONS].\n",exec);
    printf("\t-ref <filename>\n\t\tFilename of the reference image (mandatory)\n");
    printf("\t-flo <filename>\n\t\tFilename of the floating image (mandatory)\n\n");
-#ifdef _SVN_REV
-   fprintf(stderr,"\n-v Print the subversion revision number\n");
-#endif
-
    printf("* * OPTIONS * *\n");
    printf("\t-trans <filename>\n\t\tFilename of the file containing the transformation parametrisation (from reg_aladin, reg_f3d or reg_transform)\n");
    printf("\t-res <filename>\n\t\tFilename of the resampled image [none]\n");
@@ -69,6 +65,9 @@ void Usage(char *exec)
    printf("\t-inter <int>\n\t\tInterpolation order (0,1,3)[3] (0=NN, 1=LIN; 3=CUB)\n");
    printf("\t-pad <int>\n\t\tInterpolation padding value [0]\n");
    printf("\t-voff\n\t\tTurns verbose off [on]\n");
+#ifdef _GIT_HASH
+   printf("\t-v\n\t\tPrint current source code git hash key and exit\n\t\t(%s)\n",_GIT_HASH);
+#endif
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;
 }
@@ -101,16 +100,16 @@ int main(int argc, char **argv)
       {
          verbose=false;
       }
-#ifdef _SVN_REV
-      if( strcmp(argv[i], "-version")==0 ||
+#ifdef _GIT_HASH
+      else if( strcmp(argv[i], "-version")==0 ||
             strcmp(argv[i], "-Version")==0 ||
             strcmp(argv[i], "-V")==0 ||
             strcmp(argv[i], "-v")==0 ||
             strcmp(argv[i], "--v")==0 ||
             strcmp(argv[i], "--version")==0)
       {
-         printf("NiftyReg revision number: %i\n",_SVN_REV);
-         return 0;
+         printf("%s\n",_GIT_HASH);
+         return EXIT_SUCCESS;
       }
 #endif
       else if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0) ||

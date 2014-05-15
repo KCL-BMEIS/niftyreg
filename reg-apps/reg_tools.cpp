@@ -89,8 +89,8 @@ void Usage(char *exec)
    printf("\t-nan <filename>\t\tThis image is used to mask the input image.\n\t\t\t\tVoxels outside of the mask are set to nan\n");
    printf("\t-iso\t\t\tThe resulting image is made isotropic\n");
    printf("\t-noscl\t\t\tThe scl_slope and scl_inter are set to 1 and 0 respectively\n");
-#ifdef _SVN_REV
-   printf("\t-v Print the subversion revision number\n");
+#ifdef _GIT_HASH
+   printf("\n\t-v\t\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
 #endif
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;
@@ -123,13 +123,13 @@ int main(int argc, char **argv)
          printf("%s",xml_tools);
          return 0;
       }
-#ifdef _SVN_REV
-      if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
+#ifdef _GIT_HASH
+      else if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
             strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
             strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0)
       {
-         printf("NiftyReg revision number: %i\n",_SVN_REV);
-         return 0;
+         printf("%s\n",_GIT_HASH);
+         return EXIT_SUCCESS;
       }
 #endif
       else if(strcmp(argv[i], "-in") == 0)

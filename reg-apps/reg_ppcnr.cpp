@@ -163,6 +163,15 @@ int main(int argc, char **argv)
          Usage(argv[0]);
          return 0;
       }
+#ifdef _GIT_HASH
+      else if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
+            strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
+            strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0)
+      {
+         printf("%s\n",_GIT_HASH);
+         return EXIT_SUCCESS;
+      }
+#endif
       else if(strcmp(argv[i], "-source") == 0)
       {
          param->sourceImageName=argv[++i];

@@ -45,7 +45,6 @@ void Usage(char *exec)
    printf("This code has been written by Marc Modat (m.modat@ucl.ac.uk) and Pankaj Daga,\n");
    printf("for any comment, please contact them.\n");
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-
    printf("Usage:\t%s -ref <filename> -flo <filename> [OPTIONS].\n",exec);
    printf("\t-ref <filename>\tReference image filename (also called Target or Fixed) (mandatory)\n");
    printf("\t-flo <filename>\tFloating image filename (also called Source or moving) (mandatory)\n");
@@ -79,10 +78,13 @@ void Usage(char *exec)
 
    printf("\t-%%v <int>\t\tPercentage of blocks to use in the optimisation scheme. [50]\n");
    printf("\t-%%i <int>\t\tPercentage of blocks to consider as inlier in the optimisation scheme. [50]\n");
-   printf("\t-voff\t\t\tTurns verbose off [on]\n");
 #if defined (_OPENMP)
    printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i]\n",
           omp_get_num_procs());
+#endif
+   printf("\t-voff\t\t\tTurns verbose off [on]\n");
+#ifdef _GIT_HASH
+   printf("\n\t-v\t\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
 #endif
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;
@@ -157,7 +159,7 @@ int main(int argc, char **argv)
          printf("%s",xml_aladin);
          return 0;
       }
-#ifdef _SVN_REV
+#ifdef _GIT_HASH
       if( strcmp(argv[i], "-version")==0 ||
             strcmp(argv[i], "-Version")==0 ||
             strcmp(argv[i], "-V")==0 ||
@@ -165,7 +167,7 @@ int main(int argc, char **argv)
             strcmp(argv[i], "--v")==0 ||
             strcmp(argv[i], "--version")==0)
       {
-         printf("NiftyReg revision number: %i\n",_SVN_REV);
+         printf("%s\n",_GIT_HASH);
          return 0;
       }
 #endif

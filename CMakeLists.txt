@@ -214,14 +214,24 @@ if(USE_CUDA)
 		endif(CUDA_FOUND)
 endif(USE_CUDA)
 #-----------------------------------------------------------------------------
-if(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/.svn)
-		find_package(Subversion)
-		if(Subversion_FOUND)
-				Subversion_WC_INFO(${CMAKE_SOURCE_DIR} NiftyReg)
-				add_definitions(-D_SVN_REV=${NiftyReg_WC_REVISION})
-				message(STATUS "Found subversion - the revision number is added to the source.")
-		endif(Subversion_FOUND)
-endif(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/.svn)
+find_package(Git)
+if(GIT_FOUND)
+	execute_process(
+		COMMAND git rev-parse HEAD
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		OUTPUT_VARIABLE GIT_COMMIT_HASH
+		RESULT_VARIABLE GIT_FAILED
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+	if(NOT GIT_FAILED)
+		 add_definitions(-D_GIT_HASH=\"${GIT_COMMIT_HASH}\")
+		 message(STATUS "Found GIT - the hash is added to the source.")
+	else(NOT GIT_FAILED)
+		 add_definitions(-D_GIT_HASH="NoInfo")
+	endif(NOT GIT_FAILED)
+else(GIT_FOUND)
+	add_definitions(-D_GIT_HASH="NoInfo")
+endif(GIT_FOUND)
 #-----------------------------------------------------------------------------
 subdirs(reg-io)
 subdirs(reg-lib)

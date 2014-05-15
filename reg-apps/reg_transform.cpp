@@ -62,11 +62,7 @@ void Usage(char *exec)
 {
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    printf("Usage:\t%s [OPTIONS].\n",exec);
-
-#ifdef _SVN_REV
-   fprintf(stderr,"\n-v Print the subversion revision number\n");
-#endif
-   printf("\n* * OPTIONS * *\n\n");
+   printf("* * OPTIONS * *\n\n");
 
    printf("\t-ref <filename>\n");
    printf("\t\tFilename of the reference image\n");
@@ -135,6 +131,10 @@ void Usage(char *exec)
    printf("\t\tfilename3 - Image used as a floating (-in arg in FLIRT)\n");
    printf("\t\tfilename4 - Output affine transformation file name\n\n");
 
+#ifdef _GIT_HASH
+   printf("\t-v\tPrint current source code git hash key and exit\n\t\t(%s)\n\n",_GIT_HASH);
+#endif
+
    printf("\t* The supported transformation types are:\n");
    printf("\t\t- cubic B-Spline parametrised grid (reference image is required)\n");
    printf("\t\t- a dense deformation field\n");
@@ -143,7 +143,6 @@ void Usage(char *exec)
    printf("\t\t- a stationary velocity deformation field\n");
    printf("\t\t- a stationary velocity displacement field\n");
    printf("\t\t- an affine matrix\n\n");
-
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;
 }
@@ -175,6 +174,15 @@ int main(int argc, char **argv)
          Usage(argv[0]);
          return 0;
       }
+#ifdef _GIT_HASH
+      else if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
+            strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
+            strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0)
+      {
+         printf("%s\n",_GIT_HASH);
+         return EXIT_SUCCESS;
+      }
+#endif
       else if(strcmp(argv[i],"-ref")==0 || strcmp(argv[i],"--ref")==0 || strcmp(argv[i],"-target")==0)
       {
          flag->referenceImageFlag=true;

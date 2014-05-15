@@ -73,11 +73,7 @@ void Usage(char *exec)
    printf("\t-ref <filename>\tFilename of the reference image (mandatory)\n");
    printf("\t-flo <filename>\tFilename of the floating image (mandatory)\n");
    printf("\n***************\n*** OPTIONS ***\n***************\n");
-#ifdef _SVN_REV
-   fprintf(stderr,"\n-v Print the subversion revision number\n");
-#endif
-
-   printf("\n*** Initial transformation options (One option will be considered):\n");
+   printf("*** Initial transformation options (One option will be considered):\n");
    printf("\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Reference=Floating)\n");
    printf("\t-incpp <filename>\tFilename ofloatf control point grid input\n\t\t\t\tThe coarse spacing is defined by this file.\n");
 
@@ -149,11 +145,6 @@ void Usage(char *exec)
    printf("\t-vel \t\t\tUse a velocity field integration to generate the deformation\n");
    printf("\t-fmask <filename>\tFilename of a mask image in the floating space\n");
 
-   printf("\n*** Other options:\n");
-   printf("\t-smoothGrad <float>\tTo smooth the metric derivative (in mm) [0]\n");
-   printf("\t-pad <float>\t\tPadding value [nan]\n");
-   printf("\t-voff\t\t\tTo turn verbose off\n");
-
 #if defined (_OPENMP)
    printf("\n*** OpenMP-related options:\n");
    printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i]\n",
@@ -163,6 +154,14 @@ void Usage(char *exec)
    printf("\n*** GPU-related options:\n");
    printf("\t-mem\t\t\tDisplay an approximate memory requierment and exit\n");
    printf("\t-gpu \t\t\tTo use the GPU implementation [no]\n");
+#endif
+   printf("\n*** Other options:\n");
+   printf("\t-smoothGrad <float>\tTo smooth the metric derivative (in mm) [0]\n");
+   printf("\t-pad <float>\t\tPadding value [nan]\n");
+   printf("\t-voff\t\t\tTo turn verbose off\n");
+
+#ifdef _GIT_HASH
+   printf("\t-v\t\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
 #endif
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    printf("For further description of the penalty term, use: %s -helpPenalty\n", exec);
@@ -201,7 +200,7 @@ int main(int argc, char **argv)
       {
          verbose=false;
       }
-#ifdef _SVN_REV
+#ifdef _GIT_HASH
       if( strcmp(argv[i], "-version")==0 ||
             strcmp(argv[i], "-Version")==0 ||
             strcmp(argv[i], "-V")==0 ||
@@ -209,8 +208,8 @@ int main(int argc, char **argv)
             strcmp(argv[i], "--v")==0 ||
             strcmp(argv[i], "--version")==0)
       {
-         printf("NiftyReg revision number: %i\n",_SVN_REV);
-         return 0;
+         printf("%s\n",_GIT_HASH);
+         return EXIT_SUCCESS;
       }
 #endif
       if(strcmp(argv[i], "-helpPenalty")==0)

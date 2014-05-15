@@ -106,11 +106,7 @@ void Usage(char *exec)
 {
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    printf("Usage:\t%s [OPTIONS].\n",exec);
-#ifdef _SVN_REV
-   fprintf(stderr,"\n-v Print the subversion revision number\n");
-#endif
-
-   printf("\n* * INPUT * *\n");
+   printf("* * INPUT * *\n");
    printf("\t-trans <filename>\n");
    printf("\t\tFilename of the file containing the transformation (mandatory).\n");
    printf("\t-ref <filename>\n");
@@ -122,6 +118,9 @@ void Usage(char *exec)
    printf("\t\tFilename of the Jacobian matrix map. (9 or 4 values are stored as a 5D nifti).\n");
    printf("\t-jacL <filename>\n");
    printf("\t\tFilename of the Log of the Jacobian determinant map.\n");
+#ifdef _GIT_HASH
+   printf("\n\t-v\tPrint current source code git hash key and exit\n\t\t(%s)\n",_GIT_HASH);
+#endif
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;
 }
@@ -151,16 +150,16 @@ int main(int argc, char **argv)
          printf("%s",xml_jacobian);
          return 0;
       }
-#ifdef _SVN_REV
-      if( strcmp(argv[i], "-version")==0 ||
+#ifdef _GIT_HASH
+      else if( strcmp(argv[i], "-version")==0 ||
           strcmp(argv[i], "-Version")==0 ||
           strcmp(argv[i], "-V")==0 ||
           strcmp(argv[i], "-v")==0 ||
           strcmp(argv[i], "--v")==0 ||
           strcmp(argv[i], "--version")==0)
       {
-         printf("NiftyReg revision number: %i\n",_SVN_REV);
-         return 0;
+         printf("%s\n",_GIT_HASH);
+         return EXIT_SUCCESS;
       }
 #endif
       else if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0) ||
