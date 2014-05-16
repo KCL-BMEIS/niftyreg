@@ -26,8 +26,8 @@ if(NOT cmake_build_type_tolower STREQUAL "debug"
 endif()
 #-----------------------------------------------------------------------------
 set(NiftyReg_VERSION_MAJOR 1)
-set(NiftyReg_VERSION_MINOR 3)
-set(NiftyReg_VERSION_PATCH 9)
+set(NiftyReg_VERSION_MINOR 4)
+set(NiftyReg_VERSION_PATCH 0)
 #-----------------------------------------------------------------------------
 if(COMMAND cmake_policy)
 	 cmake_policy(SET CMP0003 NEW)
@@ -227,10 +227,10 @@ if(GIT_FOUND)
 		 add_definitions(-D_GIT_HASH=\"${GIT_COMMIT_HASH}\")
 		 message(STATUS "Found GIT - the hash is added to the source.")
 	else(NOT GIT_FAILED)
-		 add_definitions(-D_GIT_HASH="NoInfo")
+		 add_definitions(-D_GIT_HASH="${NiftyReg_VERSION_MAJOR}.${NiftyReg_VERSION_MINOR}.${NiftyReg_VERSION_PATCH}")
 	endif(NOT GIT_FAILED)
 else(GIT_FOUND)
-	add_definitions(-D_GIT_HASH="NoInfo")
+	 add_definitions(-D_GIT_HASH="${NiftyReg_VERSION_MAJOR}.${NiftyReg_VERSION_MINOR}.${NiftyReg_VERSION_PATCH}")
 endif(GIT_FOUND)
 #-----------------------------------------------------------------------------
 subdirs(reg-io)
