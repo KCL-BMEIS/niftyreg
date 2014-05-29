@@ -2565,10 +2565,12 @@ void reg_defField_compose3D(nifti_image *deformationField,
    const size_t DFVoxelNumber=(size_t)DefFieldDim[0]*DefFieldDim[1]*DefFieldDim[2];
 #ifdef _WIN32
    long i;
-   long warVoxelNumber=(size_t)dfToUpdate->nx*dfToUpdate->ny;
+   long warVoxelNumber=(size_t)dfToUpdate->nx*
+         dfToUpdate->ny*dfToUpdate->nz;
 #else
    size_t i;
-   size_t warVoxelNumber=(size_t)dfToUpdate->nx*dfToUpdate->ny;
+   size_t warVoxelNumber=(size_t)dfToUpdate->nx*
+         dfToUpdate->ny*dfToUpdate->nz;
 #endif
 
    DTYPE *defPtrX = static_cast<DTYPE *>(deformationField->data);

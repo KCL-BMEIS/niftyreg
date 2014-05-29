@@ -531,22 +531,25 @@ double reg_nmi::GetSimilarityMeasureValue()
       }
    }
 
-   double nmi_value=0.;
+   double nmi_value_forward=0.;
+   double nmi_value_backward=0.;
    for(int t=0; t<this->referenceTimePoint; ++t)
    {
       if(this->activeTimePoint[t])
       {
-         nmi_value += (this->forwardEntropyValues[t][0] + this->forwardEntropyValues[t][1] ) /
-                      this->forwardEntropyValues[t][2];
+         nmi_value_forward += (this->forwardEntropyValues[t][0] +
+               this->forwardEntropyValues[t][1] ) /
+               this->forwardEntropyValues[t][2];
          if(this->isSymmetric)
-            nmi_value += (this->backwardEntropyValues[t][0] + this->backwardEntropyValues[t][1] ) /
-                         this->backwardEntropyValues[t][2];
+            nmi_value_backward += (this->backwardEntropyValues[t][0] +
+                  this->backwardEntropyValues[t][1] ) /
+                  this->backwardEntropyValues[t][2];
       }
    }
 #ifndef NDEBUG
    printf("[NiftyReg DEBUG] reg_nmi::GetSimilarityMeasureValue called\n");
 #endif
-   return nmi_value;
+   return nmi_value_forward+nmi_value_backward;
 }
 /* *************************************************************** */
 template <class DTYPE>

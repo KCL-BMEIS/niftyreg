@@ -902,11 +902,9 @@ void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
                                 false, // no update
                                 &reorientation // voxel to mm conversion
                                );
-   return;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d_sym<T>::GetSimilarityMeasureGradient");
 #endif
-
    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

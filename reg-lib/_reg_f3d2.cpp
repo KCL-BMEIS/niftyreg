@@ -93,16 +93,16 @@ void reg_f3d2<T>::GetDeformationField()
    // By default the number of steps is automatically updated
    bool updateStepNumber=true;
    // The provided step number is used for the final resampling
-   if(this->optimiser==false)
+   if(this->optimiser==NULL)
       updateStepNumber=false;
 #ifndef NDEBUG
    printf("[NiftyReg DEBUG] Velocity integration forward. Step number update=%i\n",updateStepNumber);
 #endif
    // The forward transformation is computed using the scaling-and-squaring approach
    reg_spline_getDefFieldFromVelocityGrid(this->controlPointGrid,
-         this->deformationFieldImage,
-         updateStepNumber
-                                                 );
+                                          this->deformationFieldImage,
+                                          updateStepNumber
+                                          );
 #ifndef NDEBUG
    printf("[NiftyReg DEBUG] Velocity integration backward. Step number update=%i\n",updateStepNumber);
 #endif
@@ -110,9 +110,9 @@ void reg_f3d2<T>::GetDeformationField()
    this->backwardControlPointGrid->intent_p2=this->controlPointGrid->intent_p2;
    // The backward transformation is computed using the scaling-and-squaring approach
    reg_spline_getDefFieldFromVelocityGrid(this->backwardControlPointGrid,
-         this->backwardDeformationFieldImage,
-         false
-                                                 );
+                                          this->backwardDeformationFieldImage,
+                                          false
+                                          );
    return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -145,8 +145,7 @@ void reg_f3d2<T>::GetVoxelBasedGradient()
    reg_f3d_sym<T>::GetVoxelBasedGradient();
 
    // Exponentiate the gradients if required
-   if(this->useGradientCumulativeExp)
-      this->ExponentiateGradient();
+   this->ExponentiateGradient();
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -254,6 +253,7 @@ void reg_f3d2<T>::ExponentiateGradient()
                                 this->backwardVoxelBasedMeasureGradientImage, // out
                                 powf(2.f,fabsf(this->controlPointGrid->intent_p2))); // value
 
+   return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -296,6 +296,7 @@ void reg_f3d2<T>::UpdateParameters(float scale)
    // Clean the temporary nifti_images
    nifti_image_free(forwardScaledGradient);
    forwardScaledGradient=NULL;
+
    /************************/
    /**** Backward update ***/
    /************************/

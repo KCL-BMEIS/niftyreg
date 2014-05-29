@@ -1038,6 +1038,11 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                                       bool *timePoint,
                                       bool *axis)
 {
+   if(image->nx>2048 || image->ny>2048 || image->nz>2048){
+      reg_print_fct_error("reg_tools_kernelConvolution_core");
+      reg_print_msg_error("This function does not support images with dimension > 2048");
+      reg_exit(1);
+   }
 #ifdef WIN32
    long index;
    long voxelNumber = (long)image->nx*image->ny*image->nz;
@@ -1098,7 +1103,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                if(radius>0)
                {
                   // Allocate the kernel
-                  float kernel[2024];
+                  float kernel[2048];
                   double kernelSum=0;
                   // Fill the kernel
                   if(kernelType==1)
