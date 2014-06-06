@@ -43,6 +43,7 @@ typedef struct
    bool outputBlankXYFlag;
    bool outputBlankYZFlag;
    bool outputBlankXZFlag;
+   bool isTensor;
 } FLAG;
 
 
@@ -64,6 +65,7 @@ void Usage(char *exec)
    printf("\t-blank <filename>\n\t\tFilename of the resampled blank grid [none]\n");
    printf("\t-inter <int>\n\t\tInterpolation order (0,1,3)[3] (0=NN, 1=LIN; 3=CUB)\n");
    printf("\t-pad <int>\n\t\tInterpolation padding value [0]\n");
+   printf("\t-tensor\n\t\tThe last six timepoints of the floating image are considered to be tensor order as XX, XY, YY, XZ, YZ, ZZ [off]\n");
    printf("\t-voff\n\t\tTurns verbose off [on]\n");
 #ifdef _GIT_HASH
    printf("\t-v\n\t\tPrint current source code git hash key and exit\n\t\t(%s)\n",_GIT_HASH);
@@ -186,6 +188,11 @@ int main(int argc, char **argv)
       {
          param->outputBlankName=argv[++i];
          flag->outputBlankXZFlag=1;
+      }
+      else if(strcmp(argv[i], "-tensor") == 0 ||
+              (strcmp(argv[i],"--tensor")==0))
+      {
+         flag->isTensor=true;
       }
       else
       {
@@ -409,7 +416,7 @@ int main(int argc, char **argv)
                           (size_t)warpedImage->dim[3] * (size_t)warpedImage->dim[4];
       warpedImage->data = (void *)calloc(warpedImage->nvox, warpedImage->nbyper);
 
-      if(floatingImage->dim[4]==6 || floatingImage->dim[4]==7)
+      if((floatingImage->dim[4]==6 || floatingImage->dim[4]==7) && flag->isTensor==true)
       {
 #ifndef NDEBUG
          printf("[NiftyReg DEBUG] DTI-based resampling\n");
