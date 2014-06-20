@@ -50,7 +50,11 @@ char xml_jacobian[] =
    "      <longflag>jac</longflag>\n"
    "      <description>Jacobian determinant image</description>\n"
    "      <label>Jac. det. image</label>\n"
+#ifdef GIMIAS_CLI
+   "      <default>None</default>\n"
+#else
    "      <default>jacDetImage.nii</default>\n"
+#endif
    "      <channel>output</channel>\n"
    "    </image>"
    "    <image fileExtensions=\".nii,.nii.gz,.nrrd,.png\">"
@@ -58,7 +62,11 @@ char xml_jacobian[] =
    "      <longflag>jacL</longflag>\n"
    "      <description>Log of the Jacobian determinant image</description>\n"
    "      <label>Log. Jac. det. image</label>\n"
+#ifdef GIMIAS_CLI
+   "      <default>None</default>\n"
+#else
    "      <default>logJacDetImage.nii</default>\n"
+#endif
    "      <channel>output</channel>\n"
    "    </image>"
    "    <image fileExtensions=\".nii,.nii.gz,.nrrd,.png\">"
@@ -66,7 +74,11 @@ char xml_jacobian[] =
    "      <longflag>jacM</longflag>\n"
    "      <description>Jacobian matrix image</description>\n"
    "      <label>Jac. mat. image</label>\n"
+#ifdef GIMIAS_CLI
+   "      <default>None</default>\n"
+#else
    "      <default>JacMatImage.nii</default>\n"
+#endif
    "      <channel>output</channel>\n"
    "    </image>"
    "  </parameters>\n"

@@ -62,7 +62,11 @@ char xml_resample[] =
    "      <longflag>res</longflag>\n"
    "      <description>Warped floating image</description>\n"
    "      <label>Warped image</label>\n"
+#ifdef GIMIAS_CLI
+   "      <default>None</default>\n"
+#else
    "      <default>warpedImage.nii</default>\n"
+#endif
    "      <channel>output</channel>\n"
    "    </image>"
    "    <image fileExtensions=\".nii,.nii.gz,.nrrd,.png\">"
@@ -70,7 +74,11 @@ char xml_resample[] =
    "      <longflag>blank</longflag>\n"
    "      <description>Warped blank grid image</description>\n"
    "      <label>Grid image</label>\n"
+#ifdef GIMIAS_CLI
+   "      <default>None</default>\n"
+#else
    "      <default>warpedGrid.nii</default>\n"
+#endif
    "      <channel>output</channel>\n"
    "    </image>"
    "  </parameters>\n"

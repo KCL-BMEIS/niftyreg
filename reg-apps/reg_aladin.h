@@ -113,7 +113,11 @@ char xml_aladin[] =
    "      <longflag>aff</longflag>\n"
    "      <description>Affine registration matrix output, saved as a text file</description>\n"
    "      <label>Output affine filename</label>\n"
+#ifdef GIMIAS_CLI
+   "      <default>None</default>\n"
+#else
    "      <default>outputAffineResult.txt</default>\n"
+#endif
    "      <channel>output</channel>\n"
    "    </file>\n"
    "    <image fileExtensions=\".nii,.nii.gz,.nrrd,.png\">\n"
@@ -121,7 +125,11 @@ char xml_aladin[] =
    "      <longflag>res</longflag>\n"
    "      <description>Warped floating image</description>\n"
    "      <label>Output warped image</label>\n"
+#ifdef GIMIAS_CLI
+   "      <default>None</default>\n"
+#else
    "      <default>outputAffineResult.nii</default>\n"
+#endif
    "      <channel>output</channel>\n"
    "    </image>\n"
    "  </parameters>\n"

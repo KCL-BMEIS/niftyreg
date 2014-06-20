@@ -71,7 +71,11 @@ char xml_f3d[] =
    "      <longflag>cpp</longflag>\n"
    "      <description>Control point position image</description>\n"
    "      <label>Trans. param image</label>\n"
+#ifdef GIMIAS_CLI
+   "      <default>None</default>\n"
+#else
    "      <default>outputCPP.nii</default>\n"
+#endif
    "      <channel>output</channel>\n"
    "    </file>\n"
    "    <image fileExtensions=\".nii,.nii.gz,.nrrd,.png\">"
@@ -79,7 +83,11 @@ char xml_f3d[] =
    "      <longflag>res</longflag>\n"
    "      <description>Warped floating image</description>\n"
    "      <label>Output warped image</label>\n"
+#ifdef GIMIAS_CLI
+   "      <default>None</default>\n"
+#else
    "      <default>outputResult.nii</default>\n"
+#endif
    "      <channel>output</channel>\n"
    "    </image>"
    "  </parameters>\n"
