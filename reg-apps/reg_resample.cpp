@@ -470,6 +470,16 @@ int main(int argc, char **argv)
       nifti_image *gridImage = nifti_copy_nim_info(floatingImage);
       gridImage->cal_min=0;
       gridImage->cal_max=255;
+      gridImage->scl_slope=1.f;
+      gridImage->scl_inter=0.f;
+      gridImage->dim[0]=gridImage->ndim=floatingImage->nz>1?3:2;
+      gridImage->dim[1]=gridImage->nx=floatingImage->nx;
+      gridImage->dim[2]=gridImage->ny=floatingImage->ny;
+      gridImage->dim[3]=gridImage->nz=floatingImage->nz;
+      gridImage->dim[4]=gridImage->nt=1;
+      gridImage->dim[5]=gridImage->nu=1;
+      gridImage->nvox=(size_t)gridImage->nx*
+            gridImage->ny*gridImage->nz;
       gridImage->datatype = NIFTI_TYPE_UINT8;
       gridImage->nbyper = sizeof(unsigned char);
       gridImage->data = (void *)calloc(gridImage->nvox, gridImage->nbyper);
@@ -513,16 +523,21 @@ int main(int argc, char **argv)
          }
       }
 
-      nifti_image *warpedImage = nifti_copy_nim_info(referenceImage);
-      warpedImage->dim[0]=warpedImage->ndim=3;
+      nifti_image *warpedImage = nifti_copy_nim_info(warpedImage);
+      warpedImage->cal_min=0;
+      warpedImage->cal_max=255;
+      warpedImage->scl_slope=1.f;
+      warpedImage->scl_inter=0.f;
+      warpedImage->dim[0]=warpedImage->ndim=referenceImage->nz>1?3:2;
+      warpedImage->dim[1]=warpedImage->nx=referenceImage->nx;
+      warpedImage->dim[2]=warpedImage->ny=referenceImage->ny;
+      warpedImage->dim[3]=warpedImage->nz=referenceImage->nz;
       warpedImage->dim[4]=warpedImage->nt=1;
-      warpedImage->cal_min=floatingImage->cal_min;
-      warpedImage->cal_max=floatingImage->cal_max;
-      warpedImage->scl_slope=floatingImage->scl_slope;
-      warpedImage->scl_inter=floatingImage->scl_inter;
+      warpedImage->dim[5]=warpedImage->nu=1;
       warpedImage->datatype =NIFTI_TYPE_UINT8;
       warpedImage->nbyper = sizeof(unsigned char);
-      warpedImage->data = (void *)calloc(warpedImage->nvox, warpedImage->nbyper);
+      warpedImage->data = (void *)calloc(warpedImage->nvox,
+                                         warpedImage->nbyper);
       reg_resampleImage(gridImage,
                         warpedImage,
                         deformationFieldImage,
