@@ -178,6 +178,10 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 		${NAME}_sym.h
 		${NAME}_sym.cpp
 		)
+       target_link_libraries(${NAME}
+         _reg_tools
+         _reg_resampling
+         )
 
 else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
@@ -187,6 +191,10 @@ else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 		${NAME}_sym.h
 		${NAME}_sym.cpp
 		)
+       target_link_libraries(${NAME}
+         _reg_tools
+         _reg_resampling
+         )
 
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
