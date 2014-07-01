@@ -205,6 +205,7 @@ int main(int argc, char **argv)
             tempImage=NULL;
          }
          reg_tools_divideValueToImage(averageImage,averageImage,(float)imageTotalNumber);
+
          reg_io_WriteImageFile(averageImage,outputName);
          nifti_image_free(averageImage);
       }
@@ -519,6 +520,12 @@ int main(int argc, char **argv)
       // Create the average image without demeaning
       if(operation==2)
       {
+          // Throw an error
+          if ( (argc-4) % 2 != 0)
+          {
+              reg_print_msg_error("An odd number of transformation/image pairs was provided.");
+              return EXIT_FAILURE;
+          }
          // Create an average image
          nifti_image *averageImage = nifti_copy_nim_info(referenceImage);
          averageImage->nbyper=sizeof(float);
@@ -527,6 +534,7 @@ int main(int argc, char **argv)
          averageImage->scl_inter=0.f;
          averageImage->data=(void *)calloc(averageImage->nvox,
                                            averageImage->nbyper);
+
          for(int i=4;i<argc;i+=2){
             mat44 *inputTransformationMatrix=NULL;
             nifti_image *inputTransformationImage=NULL;
@@ -644,7 +652,7 @@ int main(int argc, char **argv)
             nifti_image_free(floatingImage);
             nifti_image_free(deformationField);
             // Normalise the warped image intensity
-            average_norm_intensity<float>(warpedImage);
+            //average_norm_intensity<float>(warpedImage);
             // Accumulate the warped image
             reg_tools_addImageToImage(averageImage,warpedImage,averageImage);
             nifti_image_free(warpedImage);
