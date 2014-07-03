@@ -48,7 +48,7 @@ void usage(char *exec)
    printf("\t-demean2 <referenceImage> <NonRigidTrans1> <floatingImage1> ... <NonRigidTransN> <floatingImageN>\n");
    printf("\t-demean3 <referenceImage> <AffineMat1> <NonRigidTrans1> <floatingImage1> ...  <AffineMatN> <NonRigidTransN> <floatingImageN>\n\n");
 #ifdef _GIT_HASH
-   printf("\n\t-v\tPrint current source code git hash key and exit\n\t\t(%s)\n",_GIT_HASH);
+   printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
 #endif
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 }

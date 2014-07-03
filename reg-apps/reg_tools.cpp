@@ -90,7 +90,7 @@ void Usage(char *exec)
    printf("\t-iso\t\t\tThe resulting image is made isotropic\n");
    printf("\t-noscl\t\t\tThe scl_slope and scl_inter are set to 1 and 0 respectively\n");
 #ifdef _GIT_HASH
-   printf("\n\t-v\t\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
+   printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
 #endif
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;
