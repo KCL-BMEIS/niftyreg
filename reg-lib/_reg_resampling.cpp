@@ -97,7 +97,8 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
 #endif
       for(floatingIndex=0; floatingIndex<floatingVoxelNumber; ++floatingIndex)
       {
-         if(floatingIntensityXX[floatingIndex] > 1e-2)
+          // Check that the tensor component is not extremely small or extremely large
+         if((floatingIntensityXX[floatingIndex] > 1e-10) && (floatingIntensityXX[floatingIndex] < 1e10))
          {
             // Fill a mat44 with the tensor components
             reg_mat44_eye(&diffTensor);
@@ -123,11 +124,14 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
             floatingIntensityYZ[floatingIndex] = static_cast<DTYPE>(diffTensor.m[1][2]);
             floatingIntensityZZ[floatingIndex] = static_cast<DTYPE>(diffTensor.m[2][2]);
          }
-         else  // if junk diffusion data, log it
+         else  // if junk diffusion data, set the diagonal to log the minimum value
          {
-            floatingIntensityXX[floatingIndex] = static_cast<DTYPE>(-4.606f);
-            floatingIntensityYY[floatingIndex] = static_cast<DTYPE>(-4.606f);
-            floatingIntensityZZ[floatingIndex] = static_cast<DTYPE>(-4.606f);
+            floatingIntensityXX[floatingIndex] = static_cast<DTYPE>(-23.02585f);
+            floatingIntensityYY[floatingIndex] = static_cast<DTYPE>(-23.02585f);
+            floatingIntensityZZ[floatingIndex] = static_cast<DTYPE>(-23.02585f);
+            floatingIntensityXY[floatingIndex] = static_cast<DTYPE>(0.0f);
+            floatingIntensityXZ[floatingIndex] = static_cast<DTYPE>(0.0f);
+            floatingIntensityYZ[floatingIndex] = static_cast<DTYPE>(0.0f);
          }
       }
 #ifndef NDEBUG
