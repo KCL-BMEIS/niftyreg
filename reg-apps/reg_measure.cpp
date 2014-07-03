@@ -66,7 +66,7 @@ void Usage(char *exec)
    printf("\t-nmi\t\tReturns the NMI value (64 bins are used)\n");
    printf("\t-ssd\t\tReturns the SSD value\n");
 #ifdef _GIT_HASH
-   printf("\n\t-v\t\tPrint current source code git hash key and exit\n\t\t\t(%s)\n",_GIT_HASH);
+   printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
 #endif
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;

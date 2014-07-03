@@ -119,7 +119,7 @@ void Usage(char *exec)
    printf("\t-jacL <filename>\n");
    printf("\t\tFilename of the Log of the Jacobian determinant map.\n");
 #ifdef _GIT_HASH
-   printf("\n\t-v\tPrint current source code git hash key and exit\n\t\t(%s)\n",_GIT_HASH);
+   printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
 #endif
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;

@@ -132,7 +132,7 @@ void Usage(char *exec)
    printf("\t\tfilename4 - Output affine transformation file name\n\n");
 
 #ifdef _GIT_HASH
-   printf("\t-v\tPrint current source code git hash key and exit\n\t\t(%s)\n\n",_GIT_HASH);
+   printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
 #endif
 
    printf("\t* The supported transformation types are:\n");

@@ -76,15 +76,15 @@ void Usage(char *exec)
    printf("\t-interp\t\t\tInterpolation order to use internally to warp the floating image.\n");
    printf("\t-iso\t\t\tMake floating and reference images isotropic if required.\n");
 
-   printf("\t-%%v <int>\t\tPercentage of blocks to use in the optimisation scheme. [50]\n");
-   printf("\t-%%i <int>\t\tPercentage of blocks to consider as inlier in the optimisation scheme. [50]\n");
+   printf("\t-pv <int>\t\tPercentage of blocks to use in the optimisation scheme. [50]\n");
+   printf("\t-pi <int>\t\tPercentage of blocks to consider as inlier in the optimisation scheme. [50]\n");
 #if defined (_OPENMP)
    printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i]\n",
           omp_get_num_procs());
 #endif
    printf("\t-voff\t\t\tTurns verbose off [on]\n");
 #ifdef _GIT_HASH
-   printf("\n\t-v\t\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
+   printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
 #endif
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;
@@ -244,7 +244,7 @@ int main(int argc, char **argv)
       {
          alignCentre=0;
       }
-      else if(strcmp(argv[i], "-%v")==0 || strcmp(argv[i], "--vv")==0)
+      else if(strcmp(argv[i], "-%v")==0 || strcmp(argv[i], "--pv")==0)
       {
          float value=atof(argv[++i]);
          if(value<0.f || value>100.f){
@@ -253,7 +253,7 @@ int main(int argc, char **argv)
          }
          blockPercentage=value;
       }
-      else if(strcmp(argv[i], "-%i")==0 || strcmp(argv[i], "--ii")==0)
+      else if(strcmp(argv[i], "-%i")==0 || strcmp(argv[i], "--pi")==0)
       {
          float value=atof(argv[++i]);
          if(value<0.f || value>100.f){

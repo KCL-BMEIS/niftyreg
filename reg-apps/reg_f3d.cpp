@@ -161,7 +161,7 @@ void Usage(char *exec)
    printf("\t-voff\t\t\tTo turn verbose off\n");
 
 #ifdef _GIT_HASH
-   printf("\t-v\t\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
+   printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
 #endif
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    printf("For further description of the penalty term, use: %s -helpPenalty\n", exec);

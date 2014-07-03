@@ -68,7 +68,7 @@ void Usage(char *exec)
    printf("\t-tensor\n\t\tThe last six timepoints of the floating image are considered to be tensor order as XX, XY, YY, XZ, YZ, ZZ [off]\n");
    printf("\t-voff\n\t\tTurns verbose off [on]\n");
 #ifdef _GIT_HASH
-   printf("\t-v\n\t\tPrint current source code git hash key and exit\n\t\t(%s)\n",_GIT_HASH);
+   printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
 #endif
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;
