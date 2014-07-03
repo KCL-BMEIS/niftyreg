@@ -244,7 +244,7 @@ int main(int argc, char **argv)
       {
          alignCentre=0;
       }
-      else if(strcmp(argv[i], "-%v")==0 || strcmp(argv[i], "--pv")==0)
+      else if(strcmp(argv[i], "-%v")==0 || strcmp(argv[i], "-pv")==0 || strcmp(argv[i], "--pv")==0)
       {
          float value=atof(argv[++i]);
          if(value<0.f || value>100.f){
@@ -253,7 +253,7 @@ int main(int argc, char **argv)
          }
          blockPercentage=value;
       }
-      else if(strcmp(argv[i], "-%i")==0 || strcmp(argv[i], "--pi")==0)
+      else if(strcmp(argv[i], "-%i")==0 || strcmp(argv[i], "-pi")==0 || strcmp(argv[i], "--pi")==0)
       {
          float value=atof(argv[++i]);
          if(value<0.f || value>100.f){
