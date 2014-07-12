@@ -132,7 +132,7 @@ int main(int argc, char **argv)
    else if(strcmp(argv[2],"-demean2")==0)
       operation=4;
    else if(strcmp(argv[2],"-demean3")==0)
-      operation=55;
+      operation=5;
    else
    {
       reg_print_msg_error("unknow operation. Options are \"-avg\", \"-avg_lts\", \"-avg_tran\", ");
@@ -777,6 +777,14 @@ int main(int argc, char **argv)
       } // -demean1
       else if(operation==4 || operation==5)
       {
+         // Compute some constant
+         int incrementValue=operation==4?2:3;
+         int subjectNumber=(argc-4)/incrementValue;
+#ifndef NDEBUG
+         char msg[256];
+         sprintf(msg,"reg_average: Number of input transformations: %i",subjectNumber);
+         reg_print_msg_debug(msg);
+#endif
          /* **** Create an average image by demeaning the non-rigid transformation **** */
          // First compute an average field to remove from the final field
          nifti_image *averageField = nifti_copy_nim_info(referenceImage);
@@ -795,12 +803,8 @@ int main(int argc, char **argv)
          averageField->scl_inter=0.f;
          reg_tools_multiplyValueToImage(averageField,averageField,0.f);
          // Iterate over all the transformation parametrisations - Note that I don't store them all to save space
-#ifndef NDEBUG
-         char msg[256];
-         sprintf(msg,"reg_average: Number of input transformations: %i",(argc-4)/operation);
-         reg_print_msg_debug(msg);
-#endif
-         for(size_t i=(operation==4?4:5); i<argc; i+=operation)
+
+         for(size_t i=operation; i<argc; i+=incrementValue)
          {
             nifti_image *transformation = reg_io_ReadImageFile(argv[i]);
             if(transformation==NULL)
@@ -845,6 +849,10 @@ int main(int argc, char **argv)
                break;
             case SPLINE_VEL_GRID:
                reg_spline_getFlowFieldFromVelocityGrid(transformation,deformationField);
+#ifndef NDEBUG
+               reg_print_msg_debug("reg_average: A dense flow field has been computed from:");
+               reg_print_msg_debug(transformation->fname);
+#endif
                break;
             default:
                reg_print_msg_error("Unsupported transformation parametrisation type. Filename:");
@@ -897,7 +905,7 @@ int main(int argc, char **argv)
             nifti_image_free(deformationField);
          } // iteration over all transformation parametrisation
          // the average def/flow field is normalised by the number of input image
-         reg_tools_divideValueToImage(averageField,averageField,(argc-4)/operation);
+         reg_tools_divideValueToImage(averageField,averageField,subjectNumber);
          // The new de-mean transformation are computed and the floating image resample
          // Create an image to store average image
          nifti_image *averageImage = nifti_copy_nim_info(referenceImage);
@@ -913,7 +921,7 @@ int main(int argc, char **argv)
          nifti_image *tempImage = nifti_copy_nim_info(averageImage);
          tempImage->data = (void *)malloc(tempImage->nvox*tempImage->nbyper);
          // Iterate over all the transformation parametrisations
-         for(size_t i=(operation==4?4:5); i<argc; i+=operation)
+         for(size_t i=operation; i<argc; i+=incrementValue)
          {
             nifti_image *transformation = reg_io_ReadImageFile(argv[i]);
             if(transformation==NULL)
@@ -989,10 +997,6 @@ int main(int argc, char **argv)
                reg_print_msg_error(argv[i+1]);
                return EXIT_FAILURE;
             }
-#ifndef NDEBUG
-            reg_print_msg_debug("reg_average: Warping floating image:");
-            reg_print_msg_debug(floatingImage->fname);
-#endif
             if(floatingImage->datatype!=tempImage->datatype)
             {
                switch(tempImage->datatype)
@@ -1006,12 +1010,18 @@ int main(int argc, char **argv)
                }
             }
             reg_resampleImage(floatingImage,tempImage,deformationField,NULL,3,0.f);
+#ifndef NDEBUG
+            reg_print_msg_debug("reg_average: Warping floating image:");
+            reg_print_msg_debug(floatingImage->fname);
+            sprintf(msg,"reg_average_%i.nii",i);
+            reg_io_WriteImageFile(tempImage,msg);
+#endif
             reg_tools_addImageToImage(averageImage,tempImage,averageImage);
             nifti_image_free(floatingImage);
             nifti_image_free(deformationField);
          } // iteration over all transformation parametrisation
          // Normalise the average image by the number of input images
-         reg_tools_divideValueToImage(averageImage,averageImage,(argc-4)/operation);
+         reg_tools_divideValueToImage(averageImage,averageImage,subjectNumber);
          // Free the allocated field
          nifti_image_free(averageField);
          // Save and free the average image
