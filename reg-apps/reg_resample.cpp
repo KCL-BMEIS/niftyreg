@@ -523,7 +523,7 @@ int main(int argc, char **argv)
          }
       }
 
-      nifti_image *warpedImage = nifti_copy_nim_info(warpedImage);
+      nifti_image *warpedImage = nifti_copy_nim_info(referenceImage);
       warpedImage->cal_min=0;
       warpedImage->cal_max=255;
       warpedImage->scl_slope=1.f;

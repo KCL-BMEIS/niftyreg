@@ -31,6 +31,7 @@ typedef struct
    char *floMaskImageName;
    int interpolation;
    float paddingValue;
+   char *outFileName;
 } PARAM;
 typedef struct
 {
@@ -42,6 +43,7 @@ typedef struct
    bool returnSSDFlag;
    bool returnLNCCFlag;
    bool returnNCCFlag;
+   bool outFileFlag;
 } FLAG;
 
 
@@ -65,8 +67,9 @@ void Usage(char *exec)
    printf("\t-lncc\t\tReturns the LNCC value\n");
    printf("\t-nmi\t\tReturns the NMI value (64 bins are used)\n");
    printf("\t-ssd\t\tReturns the SSD value\n");
+   printf("\n\t-out\t\tText file output where to store the value(s).\n\t\t\tThe stdout is used by default\n");
 #ifdef _GIT_HASH
-   printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
+   printf("\n\t--version\tPrint current source code git hash key and exit\n\t\t\t(%s)\n",_GIT_HASH);
 #endif
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;
@@ -160,6 +163,12 @@ int main(int argc, char **argv)
               (strcmp(argv[i],"--sdd")==0))
       {
          flag->returnSSDFlag=true;
+      }
+      else if(strcmp(argv[i], "-out") == 0 ||
+              (strcmp(argv[i],"--out")==0))
+      {
+         flag->outFileFlag=true;
+         param->outFileName=argv[++i];
       }
       else
       {
@@ -257,6 +266,10 @@ int main(int argc, char **argv)
                      param->paddingValue);
    nifti_image_free(defField);
 
+   FILE *outFile=NULL;
+   if(flag->outFileFlag)
+      outFile=fopen(param->outFileName, "w");
+
    /* Compute the NCC if required */
    if(flag->returnNCCFlag){
       float *refPtr = static_cast<float *>(refImage->data);
@@ -290,7 +303,26 @@ int main(int argc, char **argv)
       warSTDValue /= (double)refMaskVoxNumber;
       measure /= sqrt(refSTDValue)*sqrt(warSTDValue)*
             (double)refMaskVoxNumber;
-      printf("NCC: %g\n", measure);
+      if(outFile!=NULL)
+         fprintf(outFile, "NCC: %g\n", measure);
+      else printf("%g\n", measure);
+   }
+   /* Compute the LNCC if required */
+   if(flag->returnLNCCFlag){
+      reg_lncc *lncc_object=new reg_lncc();
+      for(int i=0;i<(refImage->nt<warpedFloImage->nt?refImage->nt:warpedFloImage->nt);++i)
+         lncc_object->SetActiveTimepoint(i);
+      lncc_object->InitialiseMeasure(refImage,
+                                    warpedFloImage,
+                                    refMask,
+                                    warpedFloImage,
+                                    NULL,
+                                    NULL);
+      double measure=lncc_object->GetSimilarityMeasureValue();
+      if(outFile!=NULL)
+         fprintf(outFile, "LNCC: %g\n", measure);
+      else printf("%g\n", measure);
+      delete lncc_object;
    }
    /* Compute the NMI if required */
    if(flag->returnNMIFlag){
@@ -304,24 +336,10 @@ int main(int argc, char **argv)
                                     NULL,
                                     NULL);
       double measure=nmi_object->GetSimilarityMeasureValue();
-      printf("NMI: %g\n", measure);
+      if(outFile!=NULL)
+         fprintf(outFile, "NMI: %g\n", measure);
+      else printf("%g\n", measure);
       delete nmi_object;
-   }
-
-   /* Compute the LNCC if required */
-   if(flag->returnLNCCFlag){
-      reg_lncc *lncc_object=new reg_lncc();
-      for(int i=0;i<(refImage->nt<warpedFloImage->nt?refImage->nt:warpedFloImage->nt);++i)
-         lncc_object->SetActiveTimepoint(i);
-      lncc_object->InitialiseMeasure(refImage,
-                                    warpedFloImage,
-                                    refMask,
-                                    warpedFloImage,
-                                    NULL,
-                                    NULL);
-      double measure=lncc_object->GetSimilarityMeasureValue();
-      printf("LNCC: %g\n", measure);
-      delete lncc_object;
    }
    /* Compute the SSD if required */
    if(flag->returnSSDFlag){
@@ -335,9 +353,16 @@ int main(int argc, char **argv)
                                     NULL,
                                     NULL);
       double measure=ssd_object->GetSimilarityMeasureValue();
-      printf("SSD: %g\n", measure);
+      if(outFile!=NULL)
+         fprintf(outFile, "SSD: %g\n", measure);
+      else printf("%g\n", measure);
       delete ssd_object;
    }
+
+   // Close the output file if required
+   if(outFile!=NULL)
+      fclose(outFile);
+
    // Free the allocated images
    nifti_image_free(refImage);
    nifti_image_free(floImage);
