@@ -304,8 +304,8 @@ int main(int argc, char **argv)
       measure /= sqrt(refSTDValue)*sqrt(warSTDValue)*
             (double)refMaskVoxNumber;
       if(outFile!=NULL)
-         fprintf(outFile, "NCC: %g\n", measure);
-      else printf("%g\n", measure);
+         fprintf(outFile, "%g\n", measure);
+      else printf("NCC: %g\n", measure);
    }
    /* Compute the LNCC if required */
    if(flag->returnLNCCFlag){
@@ -320,8 +320,8 @@ int main(int argc, char **argv)
                                     NULL);
       double measure=lncc_object->GetSimilarityMeasureValue();
       if(outFile!=NULL)
-         fprintf(outFile, "LNCC: %g\n", measure);
-      else printf("%g\n", measure);
+         fprintf(outFile, "%g\n", measure);
+      else printf("LNCC: %g\n", measure);
       delete lncc_object;
    }
    /* Compute the NMI if required */
@@ -337,8 +337,8 @@ int main(int argc, char **argv)
                                     NULL);
       double measure=nmi_object->GetSimilarityMeasureValue();
       if(outFile!=NULL)
-         fprintf(outFile, "NMI: %g\n", measure);
-      else printf("%g\n", measure);
+         fprintf(outFile, "%g\n", measure);
+      else printf("NMI: %g\n", measure);
       delete nmi_object;
    }
    /* Compute the SSD if required */
@@ -354,8 +354,8 @@ int main(int argc, char **argv)
                                     NULL);
       double measure=ssd_object->GetSimilarityMeasureValue();
       if(outFile!=NULL)
-         fprintf(outFile, "SSD: %g\n", measure);
-      else printf("%g\n", measure);
+         fprintf(outFile, "%g\n", measure);
+      else printf("SSD: %g\n", measure);
       delete ssd_object;
    }
 
