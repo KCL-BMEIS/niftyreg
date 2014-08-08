@@ -18,6 +18,14 @@
 #include <fstream>
 #include <limits>
 #include "_reg_tools.h"
+#include "Context.h"
+
+
+extern "C++"
+void reg_affine_getDeformationField( mat44 *affine,
+nifti_image *deformationField,
+bool compose = false,
+int *mask = NULL);
 
 
 /** @brief This Function compute a deformation field based
@@ -28,7 +36,7 @@
  * that is being updated
  */
 extern "C++"
-void reg_affine_getDeformationField(mat44 *affine,
+void reg_affine_getDeformationField(Context *context, mat44 *affine,
                                     nifti_image *deformationField,
                                     bool compose=false,
                                     int *mask = NULL);

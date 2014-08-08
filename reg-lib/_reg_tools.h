@@ -17,6 +17,7 @@
 #include <fstream>
 #include <limits>
 #include "_reg_maths.h"
+#include "Context.h"
 
 
 /* *************************************************************** */
@@ -79,6 +80,10 @@ void reg_getRealImageSpacing(nifti_image *image,
  * @param axis Boolean array to specify which axis have to be
  * smoothed. The array follow the dim array of the nifti header.
  */
+
+extern "C++"
+void reg_tools_kernelConvolution(Context* co, nifti_image *image,float *sigma,int kernelType,int *mask = NULL,bool *timePoints = NULL,bool *axis = NULL);
+
 extern "C++"
 void reg_tools_kernelConvolution(nifti_image *image,
                                  float *sigma,

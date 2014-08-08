@@ -24,10 +24,14 @@
 #include "float.h"
 #include <limits>
 
+class Context;
+
 template <class T>
 class reg_aladin
 {
+	
 protected:
+	Context *co;
    char *ExecutableName;
    nifti_image *InputReference;
    nifti_image *InputFloating;
@@ -38,7 +42,7 @@ protected:
    nifti_image *CurrentReference;
    nifti_image *CurrentFloating;
    nifti_image *CurrentWarped;
-   nifti_image *deformationFieldImage;
+   
    int *CurrentReferenceMask;
    int *activeVoxelNumber;
 
@@ -93,45 +97,48 @@ protected:
 public:
    reg_aladin();
    virtual ~reg_aladin();
+
+   nifti_image *deformationFieldImage;
+
    GetStringMacro(ExecutableName);
 
    //No allocating of the images here...
    void SetInputReference(nifti_image *input)
    {
-      this->InputReference = input;
+	  this->InputReference = input;
    }
    nifti_image* GetInputReference()
    {
-      return this->InputReference;
+	  return this->InputReference;
    }
 
    void SetInputFloating(nifti_image *input)
    {
-      this->InputFloating=input;
+	  this->InputFloating=input;
    }
    nifti_image *GetInputFloating()
    {
-      return this->InputFloating;
+	  return this->InputFloating;
    }
 
    void SetInputMask(nifti_image *input)
    {
-      this->InputReferenceMask=input;
+	  this->InputReferenceMask=input;
    }
    nifti_image *GetInputMask()
    {
-      return this->InputReferenceMask;
+	  return this->InputReferenceMask;
    }
 
    void SetInputTransform(const char *filename);
    mat44* GetInputTransform()
    {
-      return this->InputTransform;
+	  return this->InputTransform;
    }
 
    mat44* GetTransformationMatrix()
    {
-      return this->TransformationMatrix;
+	  return this->TransformationMatrix;
    }
    nifti_image *GetFinalWarpedImage();
 
@@ -183,19 +190,19 @@ public:
 
    virtual void SetInputFloatingMask (nifti_image*)
    {
-      fprintf(stderr, "Floating mask not used in one way affine\n");
+	  fprintf(stderr, "Floating mask not used in one way affine\n");
    }
    void SetInterpolationToNearestNeighbor()
    {
-      this->SetInterpolation(0);
+	  this->SetInterpolation(0);
    }
    void SetInterpolationToTrilinear()
    {
-      this->SetInterpolation(1);
+	  this->SetInterpolation(1);
    }
    void SetInterpolationToCubic()
    {
-      this->SetInterpolation(3);
+	  this->SetInterpolation(3);
    }
 
    virtual int Check();
@@ -207,11 +214,11 @@ public:
    virtual void SetVerbose(bool _verbose);
 
    void SetProgressCallbackFunction( void (*funcProgCallback)(float pcntProgress,
-                                     void *params),
-                                     void *paramsProgCallback )
+									 void *params),
+									 void *paramsProgCallback )
    {
-      funcProgressCallback = funcProgCallback;
-      paramsProgressCallback = paramsProgCallback;
+	  funcProgressCallback = funcProgCallback;
+	  paramsProgressCallback = paramsProgCallback;
    }
 
 };
