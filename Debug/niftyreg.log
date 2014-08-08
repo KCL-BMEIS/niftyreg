@@ -1,0 +1,114 @@
+﻿Build started 8/5/2014 4:55:21 PM.
+     1>Project "C:\Users\thanasio\Source\Repos\niftyreg-git\niftyreg.vcxproj" on node 2 (Build target(s)).
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppBuild.targets(942,5): warning MSB8027: Two or more files with the name of gzio.c will produce outputs to the same location. This can lead to an incorrect build result.  The files involved are reg-io\nrrd\nrrdio\gzio.c, reg-io\zlib\gzio.c.
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /Zi /nologo /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D _CONSOLE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt cuda\checkCudaCard.cpp "reg-apps\reg_aladin.cpp" "reg-apps\reg_average.cpp" "reg-apps\reg_benchmark.cpp" "reg-apps\reg_f3d.cpp" "reg-apps\reg_jacobian.cpp" "reg-apps\reg_measure.cpp" "reg-apps\reg_polyAffine.cpp" "reg-apps\reg_ppcnr.cpp" "reg-apps\reg_resample.cpp" "reg-apps\reg_tools.cpp" "reg-apps\reg_transform.cpp" "reg-io\_reg_ReadWriteImage.cpp" "reg-io\nrrd\reg_nrrd.cpp" "reg-io\png\readpng.cpp" "reg-io\png\reg_png.cpp" "reg-lib\_reg_KLdivergence.cpp" "reg-lib\_reg_aladin.cpp" "reg-lib\_reg_aladin_sym.cpp" "reg-lib\_reg_base.cpp" "reg-lib\_reg_blockMatching.cpp" "reg-lib\_reg_dti.cpp" "reg-lib\_reg_f3d.cpp" "reg-lib\_reg_f3d2.cpp" "reg-lib\_reg_f3d_gpu.cpp" "reg-lib\_reg_f3d_sym.cpp" "reg-lib\_reg_femTransformation.cpp" "reg-lib\_reg_globalTransformation.cpp" "reg-lib\_reg_lncc.cpp" "reg-lib\_reg_localTransformation.cpp" "reg-lib\_reg_localTransformation_be.cpp" "reg-lib\_reg_localTransformation_jac.cpp" "reg-lib\_reg_maths.cpp" "reg-lib\_reg_nmi.cpp" "reg-lib\_reg_optimiser.cpp" "reg-lib\_reg_polyAffine.cpp" "reg-lib\_reg_resampling.cpp" "reg-lib\_reg_ssd.cpp" "reg-lib\_reg_thinPlateSpline.cpp" "reg-lib\_reg_tools.cpp" "reg-test\reg_test_convolution.cpp" "reg-test\reg_test_convolution_gpu.cpp" "reg-test\reg_test_def_gpu.cpp" "reg-test\reg_test_dti.cpp" "reg-test\reg_test_fullReg.cpp" "reg-test\reg_test_interp.cpp" "reg-test\reg_test_mat44_operations.cpp" "reg-test\reg_test_measure_gpu.cpp" "reg-test\reg_test_optimiser_gpu.cpp"
+         reg_test_optimiser_gpu.cpp
+     1>reg-test\reg_test_optimiser_gpu.cpp(2): fatal error C1083: Cannot open include file: '_reg_f3d_gpu.h': No such file or directory
+         reg_test_measure_gpu.cpp
+     1>reg-test\reg_test_measure_gpu.cpp(1): fatal error C1083: Cannot open include file: '_reg_common_gpu.h': No such file or directory
+         reg_test_mat44_operations.cpp
+     1>reg-test\reg_test_mat44_operations.cpp(1): fatal error C1083: Cannot open include file: '_reg_maths.h': No such file or directory
+         reg_test_interp.cpp
+     1>reg-test\reg_test_interp.cpp(12): fatal error C1083: Cannot open include file: '_reg_resampling.h': No such file or directory
+         reg_test_fullReg.cpp
+     1>reg-test\reg_test_fullReg.cpp(1): fatal error C1083: Cannot open include file: '_reg_f3d2.h': No such file or directory
+         reg_test_dti.cpp
+     1>reg-test\reg_test_dti.cpp(12): fatal error C1083: Cannot open include file: '_reg_resampling.h': No such file or directory
+         reg_test_def_gpu.cpp
+     1>reg-test\reg_test_def_gpu.cpp(1): fatal error C1083: Cannot open include file: '_reg_localTransformation_gpu.h': No such file or directory
+         reg_test_convolution_gpu.cpp
+     1>reg-test\reg_test_convolution_gpu.cpp(1): fatal error C1083: Cannot open include file: '_reg_tools.h': No such file or directory
+         reg_test_convolution.cpp
+     1>reg-test\reg_test_convolution.cpp(12): fatal error C1083: Cannot open include file: '_reg_tools.h': No such file or directory
+         _reg_tools.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_maths.h(19): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_thinPlateSpline.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_maths.h(19): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_ssd.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_maths.h(19): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_resampling.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_resampling.h(16): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_polyAffine.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_resampling.h(16): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_optimiser.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_maths.h(19): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_nmi.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_maths.h(19): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_maths.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_maths.h(19): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_localTransformation_jac.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_globalTransformation.h(17): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_localTransformation_be.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_globalTransformation.h(17): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_localTransformation.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_globalTransformation.h(17): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         Generating Code...
+         Compiling...
+         _reg_lncc.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_maths.h(19): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_globalTransformation.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_globalTransformation.h(17): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_femTransformation.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_femTransformation.h(18): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_f3d_sym.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_resampling.h(16): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_f3d_gpu.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_blocksize_gpu.h(12): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_f3d2.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_resampling.h(16): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_f3d.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_resampling.h(16): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_dti.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_maths.h(19): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_blockMatching.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_maths.h(19): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_base.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_resampling.h(16): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_aladin_sym.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_resampling.h(16): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_aladin.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_resampling.h(16): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_KLdivergence.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-lib\_reg_KLdivergence.h(15): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         reg_png.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-io\png\reg_png.h(17): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         readpng.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-io\png\readpng.h(56): fatal error C1083: Cannot open include file: 'png.h': No such file or directory
+         reg_nrrd.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-io\nrrd\reg_nrrd.h(17): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         _reg_ReadWriteImage.cpp
+     1>c:\users\thanasio\source\repos\niftyreg-git\reg-io\_reg_ReadWriteImage.h(17): fatal error C1083: Cannot open include file: 'nifti1_io.h': No such file or directory
+         reg_transform.cpp
+     1>reg-apps\reg_transform.cpp(15): fatal error C1083: Cannot open include file: '_reg_ReadWriteImage.h': No such file or directory
+         reg_tools.cpp
+     1>reg-apps\reg_tools.cpp(14): fatal error C1083: Cannot open include file: '_reg_ReadWriteImage.h': No such file or directory
+         reg_resample.cpp
+     1>reg-apps\reg_resample.cpp(18): fatal error C1083: Cannot open include file: '_reg_ReadWriteImage.h': No such file or directory
+         Generating Code...
+         Compiling...
+         reg_ppcnr.cpp
+     1>reg-apps\reg_ppcnr.cpp(14): fatal error C1083: Cannot open include file: '_reg_tools.h': No such file or directory
+         reg_polyAffine.cpp
+     1>reg-apps\reg_polyAffine.cpp(1): error C2006: '#include' : expected a filename, found 'newline'
+     1>reg-apps\reg_polyAffine.cpp(1): fatal error C1083: Cannot open include file: '': No such file or directory
+         reg_measure.cpp
+     1>reg-apps\reg_measure.cpp(17): fatal error C1083: Cannot open include file: '_reg_ReadWriteImage.h': No such file or directory
+         reg_jacobian.cpp
+     1>reg-apps\reg_jacobian.cpp(18): fatal error C1083: Cannot open include file: '_reg_ReadWriteImage.h': No such file or directory
+         reg_f3d.cpp
+     1>reg-apps\reg_f3d.cpp(12): fatal error C1083: Cannot open include file: '_reg_ReadWriteImage.h': No such file or directory
+         reg_benchmark.cpp
+     1>reg-apps\reg_benchmark.cpp(12): fatal error C1083: Cannot open include file: '_reg_resampling.h': No such file or directory
+         reg_average.cpp
+     1>reg-apps\reg_average.cpp(14): fatal error C1083: Cannot open include file: '_reg_ReadWriteImage.h': No such file or directory
+         reg_aladin.cpp
+     1>reg-apps\reg_aladin.cpp(15): fatal error C1083: Cannot open include file: '_reg_ReadWriteImage.h': No such file or directory
+         checkCudaCard.cpp
+     1>cuda\checkCudaCard.cpp(1): fatal error C1083: Cannot open include file: 'cuda_runtime.h': No such file or directory
+         Generating Code...
+     1>Done Building Project "C:\Users\thanasio\Source\Repos\niftyreg-git\niftyreg.vcxproj" (Build target(s)) -- FAILED.
+
+Build FAILED.
+
+Time Elapsed 00:00:12.34
