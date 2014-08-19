@@ -75,6 +75,7 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
       /* As the tensor has 6 unique components that we need to worry about, read them out
       for the floating image. */
       DTYPE *firstVox = static_cast<DTYPE *>(floatingImage->data);
+      // CAUTION: Here the tensor is assumed to be encoding in lower triangular order
       DTYPE *floatingIntensityXX = &firstVox[floatingVoxelNumber*dtIndicies[0]];
       DTYPE *floatingIntensityXY = &firstVox[floatingVoxelNumber*dtIndicies[1]];
       DTYPE *floatingIntensityYY = &firstVox[floatingVoxelNumber*dtIndicies[2]];
@@ -162,6 +163,7 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
       if(warpedImage!=NULL)
       {
          warpVox = static_cast<DTYPE *>(warpedImage->data);
+         // CAUTION: Here the tensor is assumed to be encoding in lower triangular order
          warpedXX = &warpVox[voxelNumber*dtIndicies[0]];
          warpedXY = &warpVox[voxelNumber*dtIndicies[1]];
          warpedYY = &warpVox[voxelNumber*dtIndicies[2]];
@@ -175,7 +177,7 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
          // let's reorient each tensor based on the rigid component of the local warping
          /* As the tensor has 6 unique components that we need to worry about, read them out
          for the warped image. */
-
+         // CAUTION: Here the tensor is assumed to be encoding in lower triangular order
          DTYPE *firstWarpVox = static_cast<DTYPE *>(inputImage->data);
          DTYPE *inputIntensityXX = &firstWarpVox[voxelNumber*(dtIndicies[0]+inputImage->nt*u)];
          DTYPE *inputIntensityXY = &firstWarpVox[voxelNumber*(dtIndicies[1]+inputImage->nt*u)];
