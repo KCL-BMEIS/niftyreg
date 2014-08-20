@@ -186,54 +186,6 @@ void reg_affine_getDeformationField( mat44 *affineTransformation,
 		free(tempMask);
 }
 /* *************************************************************** */
-void reg_affine_getDeformationField(Context *context, mat44 *affineTransformation,
-									nifti_image *deformationField,
-									bool compose,
-									int *mask)
-{
-   int *tempMask=mask;
-   if(mask==NULL)
-   {
-	  tempMask=(int *)calloc(deformationField->nx*
-							 deformationField->ny*
-							 deformationField->nz,
-							 sizeof(int));
-   }
-   if(deformationField->nz==1)
-   {
-	  switch(deformationField->datatype)
-	  {
-	  case NIFTI_TYPE_FLOAT32:
-		 reg_affine_deformationField2D<float>(affineTransformation, deformationField, compose, tempMask);
-		 break;
-	  case NIFTI_TYPE_FLOAT64:
-		 reg_affine_deformationField2D<double>(affineTransformation, deformationField, compose, tempMask);
-		 break;
-	  default:
-		 fprintf(stderr,"[NiftyReg ERROR] reg_affine_deformationField\tThe deformation field data type is not supported\n");
-		 return;
-	  }
-   }
-   else
-   {
-	  switch(deformationField->datatype)
-	  {
-	  case NIFTI_TYPE_FLOAT32:
-		  context->affineTransformation3DKernel.getAs<AffineDeformationField3DKernel<float>>().execute(affineTransformation, deformationField,  compose, tempMask);
-		  //reg_affine_deformationField3D<float>(affineTransformation, deformationField, compose, tempMask);
-		 break;
-	  case NIFTI_TYPE_FLOAT64:
-		  context->affineTransformation3DKernel.getAs<AffineDeformationField3DKernel<double>>().execute(affineTransformation, deformationField, compose, tempMask);
-		 break;
-	  default:
-		 fprintf(stderr,"[NiftyReg ERROR] reg_affine_deformationField: The deformation field data type is not supported\n");
-		 return;
-	  }
-   }
-   if(mask==NULL)
-	  free(tempMask);
-}
-/* *************************************************************** */
 /* *************************************************************** */
 void reg_tool_ReadAffineFile(mat44 *mat,
 							 nifti_image* target,

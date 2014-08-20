@@ -53,7 +53,7 @@ public:
 	void shout();
 	void createKernels(const unsigned int dType);
 
-	Kernel affineTransformation3DKernel, convolutionKernel;
+	Kernel affineTransformation3DKernel, convolutionKernel, blockMatchingKernel, optimiseKernel, resamplingKernel;
 	Platform* platform;
 
 };

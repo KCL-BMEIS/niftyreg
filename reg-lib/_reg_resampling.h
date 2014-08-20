@@ -34,33 +34,95 @@
  * @param dtIndicies Array of 6 integers that correspond to the "time" indicies of the diffusion tensor
  * components in the order xx,yy,zz,xy,xz,yz. If there are no DT images, pass an array of -1's
  */
+
+extern "C++"
+template <class DTYPE>
+void reg_dti_resampling_postprocessing(nifti_image *inputImage,
+									   int *mask,
+									   mat33 *jacMat,
+									   int *dtIndicies,
+									   nifti_image *warpedImage = NULL);
+
+extern "C++"
+template<class SourceTYPE, class FieldTYPE>
+void BilinearResampleImage(nifti_image *floatingImage,
+							nifti_image *deformationField,
+							nifti_image *warpedImage,
+							int *mask,
+							FieldTYPE paddingValue);
+
+extern "C++"
+template<class SourceTYPE, class FieldTYPE>
+void TrilinearResampleImage(nifti_image *floatingImage,
+							nifti_image *deformationField,
+							nifti_image *warpedImage,
+							int *mask,
+							FieldTYPE paddingValue);
+
+extern "C++"
+template<class SourceTYPE, class FieldTYPE>
+void NearestNeighborResampleImage(nifti_image *floatingImage,
+								  nifti_image *deformationField,
+								  nifti_image *warpedImage,
+								  int *mask,
+								  FieldTYPE paddingValue);
+
+extern "C++"
+template<class SourceTYPE, class FieldTYPE>
+void NearestNeighborResampleImage2D(nifti_image *floatingImage,
+								  nifti_image *deformationField,
+								  nifti_image *warpedImage,
+								  int *mask,
+								  FieldTYPE paddingValue);
+
+extern "C++"
+template<class SourceTYPE, class FieldTYPE>
+void CubicSplineResampleImage2D(nifti_image *floatingImage,
+								nifti_image *deformationField,
+								nifti_image *warpedImage,
+								int *mask,
+								FieldTYPE paddingValue);
+
+extern "C++"
+template<class SourceTYPE, class FieldTYPE>
+void CubicSplineResampleImage3D(nifti_image *floatingImage,
+								nifti_image *deformationField,
+								nifti_image *warpedImage,
+								int *mask,
+								FieldTYPE paddingValue);
+
+extern "C++"
+template <class DTYPE>
+void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
+									  void **originalFloatingData,
+									  int *dtIndicies);
 extern "C++"
 void reg_resampleImage(nifti_image *floatingImage,
-                       nifti_image *warpedImage,
-                       nifti_image *deformationField,
-                       int *mask,
-                       int interp,
-                       float paddingValue,
-                       bool *dti_timepoint = NULL,
-                       mat33 * jacMat = NULL);
+					   nifti_image *warpedImage,
+					   nifti_image *deformationField,
+					   int *mask,
+					   int interp,
+					   float paddingValue,
+					   bool *dti_timepoint = NULL,
+					   mat33 * jacMat = NULL);
 
 extern "C++"
 void reg_resampleGradient(nifti_image *gradientImage,
-                          nifti_image *warpedGradientImage,
-                          nifti_image *deformationField,
-                          int interp,
-                          float paddingValue);
+						  nifti_image *warpedGradientImage,
+						  nifti_image *deformationField,
+						  int interp,
+						  float paddingValue);
 
 extern "C++"
 void reg_getImageGradient(nifti_image *floatingImage,
-                          nifti_image *warpedGradientImage,
-                          nifti_image *deformationField,
-                          int *mask,
-                          int interp,
-                          float paddingValue,
-                          bool *dti_timepoint = NULL,
-                          mat33 *jacMat = NULL,
-                          nifti_image *warpedImage = NULL);
+						  nifti_image *warpedGradientImage,
+						  nifti_image *deformationField,
+						  int *mask,
+						  int interp,
+						  float paddingValue,
+						  bool *dti_timepoint = NULL,
+						  mat33 *jacMat = NULL,
+						  nifti_image *warpedImage = NULL);
 extern "C++"
 nifti_image *reg_makeIsotropic(nifti_image *, int);
 

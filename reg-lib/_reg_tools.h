@@ -395,4 +395,6 @@ void startProgress(std::string name);
 extern "C++"
 void closeProgress(std::string name, std::string status);
 /* *************************************************************** */
+extern "C++"
+void mat44ToCptr(mat44 mat, float* cMat);
 #endif

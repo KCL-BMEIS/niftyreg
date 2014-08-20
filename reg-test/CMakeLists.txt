@@ -17,6 +17,33 @@ foreach(dim 2 3)
 		add_test(${EXEC}_${dim}D_4 ${EXEC} ${dim} 4)
 	endif(USE_CUDA)
 endforeach(dim)
+
+
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+set(EXEC testOptimizerKernel)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_aladin)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+set(EXEC testConvolutionKernel)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_aladin)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+set(EXEC testAffineDeformationKernel)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_aladin)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+set(EXEC testResamplingKernel)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_aladin)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+set(EXEC testBlockMatchingKernel)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_aladin)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 set(EXEC reg_test_convolution)

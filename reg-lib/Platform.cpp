@@ -5,7 +5,6 @@
 #include <iostream>
 #include "Kernel.h"
 #include "KernelFactory.h"
-//#include "CpuPlatform.h"
 
 using namespace std;
 

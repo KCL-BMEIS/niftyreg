@@ -257,11 +257,17 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	KernelImpl.cpp
 	CPUPlatfom.cpp
 	CLPlatform.cpp
+	CudaPlatform.cpp
 	CPUKernelFactory.cpp
+	CudaKernelFactory.cpp
+	CLKernelFactory.cpp
+	CLKernels.cpp
 	CPUKernels.cpp
+	CudaKernels.cpp
 	)
+	
 else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
+  cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	${NAME}.h
 	${NAME}.cpp
 	${NAME}_sym.h
@@ -270,11 +276,27 @@ else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	Platform.cpp
 	Kernel.cpp
 	KernelImpl.cpp
+	
 	CPUPlatfom.cpp
 	CLPlatform.cpp
+	CudaPlatform.cpp
+	
 	CPUKernelFactory.cpp
+	CudaKernelFactory.cpp
+	CLKernelFactory.cpp
+	
+	CLKernels.cpp
 	CPUKernels.cpp
+	CudaKernels.cpp
+	
+	ConvolutionKernel.cu
+	_reg_common_gpu.cu
+	
 	)
+	#cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ConvolutionKernel.cu)
+	target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY})
+	target_link_libraries(${NAME} ${OPENCL_LIBRARIES} )
+	configure_file(affineDeformationKernel.cl ${CMAKE_CURRENT_BINARY_DIR}/affineDeformationKernel.cl COPYONLY)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 target_link_libraries(${NAME}
@@ -286,13 +308,14 @@ target_link_libraries(${NAME}
   _reg_nmi
   _reg_tools
   _reg_ReadWriteImage
+  _reg_common_gpu
   )
 install(TARGETS ${NAME}
   RUNTIME DESTINATION lib
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   )
-install(FILES ${NAME}.h ${NAME}_sym.h ${NAME}.cpp ${NAME}_sym.cpp _reg_macros.h Context.h Platform.h Kernel.h KernelImpl.h KernelFactory.h Kernels.h CPUPlatform.h CLPlatform.h CPUKernelFactory.h CPUKernels.h DESTINATION include)
+install(FILES ${NAME}.h ${NAME}_sym.h ${NAME}.cpp ${NAME}_sym.cpp _reg_macros.h Context.h Platform.h CudaPlatform.h CLPlatform.h CPUPlatform.h Kernel.h KernelImpl.h KernelFactory.h CLKernelFactory.h CPUKernelFactory.h CudaKernelFactory.h Kernels.h  CLKernels.h  CPUKernels.h CudaKernels.h  DESTINATION include)
 
 #-----------------------------------------------------------------------------
 ## BUILD THE TPS LIBRARY CPU

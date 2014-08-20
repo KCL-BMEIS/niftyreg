@@ -73,5 +73,10 @@ extern "C++" template <class DTYPE>
 void cudaCommon_free(DTYPE **);
 /* ******************************** */
 /* ******************************** */
+extern "C++" template <class DTYPE>
+int cudaCommon_allocateNiftiToDevice(nifti_image **image_d, int *dim);
+
+template <class DTYPE>
+int cudaCommon_transferNiftiToNiftiOnDevice1(nifti_image **image_d, nifti_image *img);
 
 #endif

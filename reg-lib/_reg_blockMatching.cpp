@@ -1329,8 +1329,7 @@ void optimize_affine2D(_reg_blockMatchingParam * params,
    delete [] v;
 }
 
-void optimize_affine3D(_reg_blockMatchingParam *params,
-					   mat44 * final)
+void optimize_affine3D(_reg_blockMatchingParam *params, mat44 * final)
 {
    // Set the current transformation to identity
    final->m[0][0] = final->m[1][1] = final->m[2][2] = final->m[3][3] = 1.0f;
@@ -1909,9 +1908,7 @@ void optimize_rigid3D(_reg_blockMatchingParam *params,
 
 
 // Find the optimal affine transformation
-void optimize(	_reg_blockMatchingParam *params,
-			   mat44 *transformation_matrix,
-			   bool affine)
+void optimize(	_reg_blockMatchingParam *params, mat44 *transformation_matrix, bool affine)
 {
    // The block matching provide correspondences in millimeters
    // in the space of the reference image. All warped image coordinates

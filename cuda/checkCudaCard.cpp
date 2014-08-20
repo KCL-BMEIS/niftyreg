@@ -1,20 +1,29 @@
 #include "cuda_runtime.h"
 #include "cuda.h"
+#include <stdio.h>
+#include <algorithm>
 
-int main()
-{
-   int deviceCount=0;
-   cudaError_t cudaResultCode = cudaGetDeviceCount(&deviceCount);
+int main() {
 
-   // Error when running cudaGetDeviceCount
-   if(cudaResultCode != cudaSuccess) // cudaSuccess=0
-      return EXIT_FAILURE;
+	int deviceCount = 0;
+	int output = 10000; cudaError_t cudaResultCode = cudaGetDeviceCount(&deviceCount);
 
-   // Returns an error if no cuda card has been detected
-   if(deviceCount==0)
-      return EXIT_FAILURE;
+	// Error when running cudaGetDeviceCount
+	if( cudaResultCode != cudaSuccess || deviceCount == 0 ) // cudaSuccess=0
+		return EXIT_FAILURE;
 
-   // Returns success if the code ran fine and at least 1 card
-   // has been detected
-   return EXIT_SUCCESS;
+	//detects device capability and picks the lowest
+	for( unsigned int i = 0; i < deviceCount; ++i ) {
+
+		cudaSetDevice(i);
+		cudaDeviceProp deviceProp;
+		cudaGetDeviceProperties(&deviceProp, i);
+
+		output = std::min(output, deviceProp.major * 10 + deviceProp.minor);
+	}
+
+	//	output for device capability
+	printf("%1.1f", output / 10.0);
+
+	return EXIT_SUCCESS;
 }

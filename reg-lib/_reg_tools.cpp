@@ -14,7 +14,7 @@
 #define _REG_TOOLS_CPP
 
 #include "_reg_tools.h"
-#include "Kernels.h"
+#include <algorithm>
 
 /* *************************************************************** */
 /* *************************************************************** */
@@ -1335,71 +1335,6 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
 /* *************************************************************** */
 
 
-void reg_tools_kernelConvolution(Context* co, nifti_image *image,
-								 float *sigma,
-								 int kernelType,
-								 int *mask,
-								 bool *timePoint,
-								 bool *axis) {
-
-
-	if( image->nt <= 0 ) image->nt = image->dim[4] = 1;
-	if( image->nu <= 0 ) image->nu = image->dim[5] = 1;
-
-	bool *axisToSmooth = new bool[3];
-	bool *activeTimePoint = new bool[image->nt*image->nu];
-	if( axis == NULL ) {
-		// All axis are smoothed by default
-		for( int i = 0; i<3; i++ ) axisToSmooth[i] = true;
-	}
-	else for( int i = 0; i<3; i++ ) axisToSmooth[i] = axis[i];
-
-	if( timePoint == NULL ) {
-		// All time points are considered as active
-		for( int i = 0; i<image->nt*image->nu; i++ ) activeTimePoint[i] = true;
-	}
-	else for( int i = 0; i<image->nt*image->nu; i++ ) activeTimePoint[i] = timePoint[i];
-
-	int *currentMask = NULL;
-	if( mask == NULL ) {
-		currentMask = (int *)calloc(image->nx*image->ny*image->nz, sizeof(int));
-	}
-	else currentMask = mask;
-
-	switch( image->datatype ) {
-	case NIFTI_TYPE_UINT8:
-		co->convolutionKernel.getAs<ConvolutionKernel<unsigned char>>().execute(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
-		break;
-	case NIFTI_TYPE_INT8:
-		co->convolutionKernel.getAs<ConvolutionKernel<char>>().execute(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
-		break;
-	case NIFTI_TYPE_UINT16:
-		co->convolutionKernel.getAs<ConvolutionKernel<unsigned short>>().execute(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
-		break;
-	case NIFTI_TYPE_INT16:
-		co->convolutionKernel.getAs<ConvolutionKernel<short>>().execute(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
-		break;
-	case NIFTI_TYPE_UINT32:
-		co->convolutionKernel.getAs<ConvolutionKernel<unsigned int>>().execute(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
-		break;
-	case NIFTI_TYPE_INT32:
-		co->convolutionKernel.getAs<ConvolutionKernel<int>>().execute(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
-		break;
-	case NIFTI_TYPE_FLOAT32:
-		co->convolutionKernel.getAs<ConvolutionKernel<float>>().execute(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
-		break;
-	case NIFTI_TYPE_FLOAT64:
-		co->convolutionKernel.getAs<ConvolutionKernel<double>>().execute(image, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth);
-		break;
-	default:
-		fprintf(stderr, "[NiftyReg ERROR] reg_gaussianSmoothing\tThe image data type is not supported\n");
-		reg_exit(1);
-	}
-
-	if( mask == NULL ) free(currentMask);
-	delete[]axisToSmooth;
-	delete[]activeTimePoint;
-}
 
 void reg_tools_kernelConvolution(nifti_image *image,
 								 float *sigma,
@@ -2690,46 +2625,34 @@ int reg_getDeformationFromDisplacement(nifti_image *field)
 }
 /* *************************************************************** */
 /* *************************************************************** */
+
+
 template <class DTYPE>
 float reg_test_compare_arrays(DTYPE *ptrA,
 							  DTYPE *ptrB,
-							  size_t nvox)
-{
-   float maxDifference=0.f;
+							  size_t nvox) {
+	//why float? DTYPE? REAL?
+	float maxDifference = 0.f;
 
-   for(size_t i=0; i<nvox; ++i)
-   {
-	  double valA=(double)ptrA[i];
-	  double valB=(double)ptrB[i];
-	  if(valA!=valA || valB!=valB)
-	  {
-		 if(valA==valA || valB==valB)
-		 {
-			fprintf(stderr, "[NiftyReg ERROR] reg_test_compare_images\t Unexpected NaN in only one of the array\n");
-			return std::numeric_limits<float>::max();
-		 }
-	  }
-	  else
-	  {
-		 if(valA!=0 && valB!=0)
-		 {
-			float diffRatio=valA/valB;
-			if(diffRatio<0)
-			{
-			   diffRatio=fabsf(valA-valB);
-			   maxDifference=maxDifference>diffRatio?maxDifference:diffRatio;
-			}
-			diffRatio-=1.f;
-			maxDifference=maxDifference>diffRatio?maxDifference:diffRatio;
-		 }
-		 else
-		 {
-			float diffRatio=fabsf(valA-valB);
-			maxDifference=maxDifference>diffRatio?maxDifference:diffRatio;
-		 }
-	  }
-   }
-   return maxDifference;
+	for( size_t i = 0; i<nvox; ++i ) {
+		//similar
+		double valA = (double)ptrA[i];
+		double valB = (double)ptrB[i];
+
+		bool nanA = isnan(valA);
+		bool nanB = isnan(valB);
+
+		if( nanA ^ nanB )
+			return 1000000;
+		else if( nanA && nanB )
+			continue;
+
+		float diff = fabsf(valA - valB);
+		if( diff > 1 ) { printf("idx: %lu\n", i); break; }
+		maxDifference = std::max<float>(maxDifference, diff);
+
+	}
+	return maxDifference;
 }
 template float reg_test_compare_arrays<float>(float *ptrA, float *ptrB, size_t nvox);
 template float reg_test_compare_arrays<double>(double *ptrA, double *ptrB, size_t nvox);
@@ -2863,4 +2786,12 @@ void closeProgress(std::string name, std::string status)
 }
 /* *************************************************************** */
 /* *************************************************************** */
+void mat44ToCptr(mat44 mat, float* cMat) {
+	for( int i = 0; i < 4; i++ ) {
+		for( int j = 0; j < 4; j++ ) {
+			cMat[i * 4 + j] = mat.m[i][j];
+
+		}
+	}
+}
 #endif

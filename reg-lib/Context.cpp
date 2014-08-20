@@ -21,12 +21,12 @@ Context::Context(Platform* platformIn):platform(platformIn){
 	//derive this from images
 	const unsigned int dType = 16;
 	// Create and initialize kernels and other objects.
-	affineTransformation3DKernel = platform->createKernel(AffineDeformationField3DKernel<void>::Name(), dType);
-	convolutionKernel = platform->createKernel(ConvolutionKernel<void>::Name(), dType);
-	
+	affineTransformation3DKernel = platform->createKernel(AffineDeformationFieldKernel::Name(), dType);
+	convolutionKernel = platform->createKernel(ConvolutionKernel::Name(), dType);
+	blockMatchingKernel = platform->createKernel(BlockMatchingKernel::Name(), dType);
+	resamplingKernel = platform->createKernel(ResampleImageKernel::Name(), dType);
+	optimiseKernel = platform->createKernel(OptimiseKernel::Name(), dType);
 
-	/*initializeForcesKernel = platform->createKernel(CalcForcesAndEnergyKernel::Name(), *this);
-	initializeForcesKernel.getAs<CalcForcesAndEnergyKernel>().initialize(system);*/
 
 }
 void Context::shout() {

@@ -8,6 +8,5 @@ class CPUKernelFactory : public KernelFactory
 {
 public:
 	KernelImpl* createKernelImpl(std::string name, const Platform& platform, unsigned int dType) const;
-	template<class T> KernelImpl* registerDataTypes(std::string name, const Platform& platform) const;
 };
 

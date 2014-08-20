@@ -1,4 +1,4 @@
-﻿Build started 8/5/2014 4:55:21 PM.
+﻿Build started 8/15/2014 2:55:12 PM.
      1>Project "C:\Users\thanasio\Source\Repos\niftyreg-git\niftyreg.vcxproj" on node 2 (Build target(s)).
      1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppBuild.targets(942,5): warning MSB8027: Two or more files with the name of gzio.c will produce outputs to the same location. This can lead to an incorrect build result.  The files involved are reg-io\nrrd\nrrdio\gzio.c, reg-io\zlib\gzio.c.
      1>ClCompile:
@@ -111,4 +111,4 @@
 
 Build FAILED.
 
-Time Elapsed 00:00:12.34
+Time Elapsed 00:00:12.89
