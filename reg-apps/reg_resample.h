@@ -22,7 +22,7 @@ char xml_resample[] =
    "  <documentation-url>http://cmic.cs.ucl.ac.uk/home/software/</documentation-url>\n"
    "  <license>BSD</license>\n"
    "  <contributor>Marc Modat (UCL)</contributor>\n"
-   "  <parameters advanced=\"false\">\n"
+   "  <parameters advanced=\"false\">\n"SINC_KERNEL_RADIUS
    "    <label>Input images. Reference and floating images are mandatory</label>\n"
    "    <description>Input images</description>\n"
    "    <image fileExtensions=\".nii,.nii.gz,.nrrd,.png\">"
@@ -94,6 +94,7 @@ char xml_resample[] =
    "      <element>0</element>\n"
    "      <element>1</element>\n"
    "      <element>3</element>\n"
+   "      <element>4</element>\n"
    "    </integer-enumeration>\n"
    "    <float>\n"
    "      <name>paddingValue</name>\n"

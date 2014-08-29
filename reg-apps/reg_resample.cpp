@@ -63,7 +63,7 @@ void Usage(char *exec)
    printf("\t-trans <filename>\n\t\tFilename of the file containing the transformation parametrisation (from reg_aladin, reg_f3d or reg_transform)\n");
    printf("\t-res <filename>\n\t\tFilename of the resampled image [none]\n");
    printf("\t-blank <filename>\n\t\tFilename of the resampled blank grid [none]\n");
-   printf("\t-inter <int>\n\t\tInterpolation order (0,1,3)[3] (0=NN, 1=LIN; 3=CUB)\n");
+   printf("\t-inter <int>\n\t\tInterpolation order (0, 1, 3, 4)[3] (0=NN, 1=LIN; 3=CUB, 4=SINC)\n");
    printf("\t-pad <int>\n\t\tInterpolation padding value [0]\n");
    printf("\t-tensor\n\t\tThe last six timepoints of the floating image are considered to be tensor order as XX, XY, YY, XZ, YZ, ZZ [off]\n");
    printf("\t-voff\n\t\tTurns verbose off [on]\n");
@@ -159,6 +159,10 @@ int main(int argc, char **argv)
               (strcmp(argv[i],"-SPL")==0))
       {
          param->interpolation=3;
+      }
+      else if(strcmp(argv[i], "-SINC") == 0)
+      {
+         param->interpolation=4;
       }
       else if(strcmp(argv[i], "-pad") == 0 ||
               (strcmp(argv[i],"--pad")==0))
@@ -392,6 +396,9 @@ int main(int argc, char **argv)
          break;
       case 1:
          param->interpolation=1;
+         break;
+      case 4:
+         param->interpolation=4;
          break;
       default:
          param->interpolation=3;
