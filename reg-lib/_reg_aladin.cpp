@@ -33,6 +33,7 @@ template <class T> reg_aladin<T>::reg_aladin ()
    this->PerformRigid=1;
    this->PerformAffine=1;
 
+   this->BlockStepSize=1;
    this->BlockPercentage=50;
    this->InlierLts=50;
 
@@ -461,6 +462,7 @@ void reg_aladin<T>::InitialiseBlockMatching(int CurrentPercentageOfBlockToUse)
                                     &this->blockMatchingParams,
                                     CurrentPercentageOfBlockToUse,    // percentage of block kept
                                     this->InlierLts,         // percentage of inlier in the optimisation process
+                                    this->BlockStepSize,
                                     this->CurrentReferenceMask,
                                     false // GPU is not used here
                                    );

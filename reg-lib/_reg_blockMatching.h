@@ -24,7 +24,6 @@
 #define BLOCK_SIZE 64
 #define BLOCK_2D_SIZE 16
 #define OVERLAP_SIZE 3
-#define STEP_SIZE 1
 
 #define NUM_BLOCKS_TO_COMPARE 343 // We compare in a 7x7x7 neighborhood.
 #define NUM_BLOCKS_TO_COMPARE_2D 49
@@ -73,6 +72,8 @@ struct _reg_blockMatchingParam
 
    int definedActiveBlock;
 
+   int stepSize;
+
    _reg_blockMatchingParam()
       : targetPosition(0),
         resultPosition(0),
@@ -105,6 +106,7 @@ void initialise_block_matching_method(nifti_image * referenceImage,
                                       _reg_blockMatchingParam *params,
                                       int percentToKeep_block,
                                       int percentToKeep_opt,
+                                      int stepSize_block,
                                       int *mask,
                                       bool runningOnGPU = false);
 

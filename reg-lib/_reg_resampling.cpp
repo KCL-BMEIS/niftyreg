@@ -19,57 +19,78 @@
 #define SINC_KERNEL_SIZE SINC_KERNEL_RADIUS*2
 
 /* *************************************************************** */
-template <class DTYPE>
-void interpolantWindowedSinc(DTYPE relative, DTYPE *basis)
+void interpWindowedSincKernel(double relative, double *basis)
 {
    if(relative<0.0) relative=0.0; //reg_rounding error
    int j=0;
    double sum=0.;
    for(int i=-SINC_KERNEL_RADIUS; i<SINC_KERNEL_RADIUS; ++i)
    {
-      double x=static_cast<double>(relative)-static_cast<double>(i);
+      double x=relative-static_cast<double>(i);
       if(x==0.0)
-         basis[j]=static_cast<DTYPE>(1.0);
+         basis[j]=1.0;
       else if(fabs(x)>=static_cast<double>(SINC_KERNEL_RADIUS))
          basis[j]=0;
       else{
-         double pi_x=static_cast<double>(M_PI)*x;
-         basis[j]=static_cast<DTYPE>(
-               static_cast<double>(SINC_KERNEL_RADIUS) *
+         double pi_x=M_PI*x;
+         basis[j]=static_cast<double>(SINC_KERNEL_RADIUS) *
                sin(pi_x) *
                sin(pi_x/static_cast<double>(SINC_KERNEL_RADIUS)) /
-               (pi_x*pi_x)
-               );
+               (pi_x*pi_x);
       }
       sum+=basis[j];
       j++;
    }
    for(int i=0;i<SINC_KERNEL_SIZE;++i)
-      basis[i]/=static_cast<DTYPE>(sum);
+      basis[i]/=sum;
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class DTYPE>
-void interpolantCubicSpline(DTYPE relative, DTYPE *basis)
+void interpCubicSplineKernel(double relative, double *basis)
 {
    if(relative<0.0) relative=0.0; //reg_rounding error
-   DTYPE FF= relative*relative;
-   basis[0] = (DTYPE)((relative * ((2.0-relative)*relative - 1.0))/2.0);
-   basis[1] = (DTYPE)((FF * (3.0*relative-5.0) + 2.0)/2.0);
-   basis[2] = (DTYPE)((relative * ((4.0-3.0*relative)*relative + 1.0))/2.0);
-   basis[3] = (DTYPE)((relative-1.0) * FF/2.0);
+   double FF= relative*relative;
+   basis[0] = (relative * ((2.0-relative)*relative - 1.0))/2.0;
+   basis[1] = (FF * (3.0*relative-5.0) + 2.0)/2.0;
+   basis[2] = (relative * ((4.0-3.0*relative)*relative + 1.0))/2.0;
+   basis[3] = (relative-1.0) * FF/2.0;
 }
 /* *************************************************************** */
-template <class DTYPE>
-void interpolantCubicSpline(DTYPE relative, DTYPE *basis, DTYPE *derivative)
+void interpCubicSplineKernel(double relative, double *basis, double *derivative)
 {
-   interpolantCubicSpline<DTYPE>(relative,basis);
+   interpCubicSplineKernel(relative,basis);
    if(relative<0.0) relative=0.0; //reg_rounding error
-   DTYPE FF= relative*relative;
-   derivative[0] = (DTYPE)((4.0*relative - 3.0*FF - 1.0)/2.0);
-   derivative[1] = (DTYPE)((9.0*relative - 10.0) * relative/2.0);
-   derivative[2] = (DTYPE)((8.0*relative - 9.0*FF + 1)/2.0);
-   derivative[3] = (DTYPE)((3.0*relative - 2.0) * relative/2.0);
+   double FF= relative*relative;
+   derivative[0] = (4.0*relative - 3.0*FF - 1.0)/2.0;
+   derivative[1] = (9.0*relative - 10.0) * relative/2.0;
+   derivative[2] = (8.0*relative - 9.0*FF + 1)/2.0;
+   derivative[3] = (3.0*relative - 2.0) * relative/2.0;
+}
+/* *************************************************************** */
+/* *************************************************************** */
+void interpLinearKernel(double relative, double *basis)
+{
+   if(relative<0.0) relative=0.0; //reg_rounding error
+   basis[1]=relative;
+   basis[0]=1.0-relative;
+}
+/* *************************************************************** */
+void interpLinearKernel(double relative, double *basis, double *derivative)
+{
+   interpLinearKernel(relative,basis);
+   if(relative<0.0) relative=0.0; //reg_rounding error
+   derivative[1]=1.0;
+   derivative[0]=0.0;
+}
+/* *************************************************************** */
+/* *************************************************************** */
+void interpNearestNeighKernel(double relative, double *basis)
+{
+   if(relative<0.0) relative=0.0; //reg_rounding error
+   basis[0]=basis[1]=0;
+   if(relative>0.5)
+      basis[1]=1;
+   else basis[0]=1;
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -123,15 +144,15 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
       // Should log the tensor up front
       // We need to take the logarithm of the tensor for each voxel in the floating intensity image, and replace the warped
 #if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(floatingIndex,diffTensor) \
-      shared(floatingVoxelNumber,floatingIntensityXX,floatingIntensityYY, \
-             floatingIntensityZZ,floatingIntensityXY,floatingIntensityXZ, \
-             floatingIntensityYZ)
+#pragma omp parallel for default(none) \
+   private(floatingIndex,diffTensor) \
+   shared(floatingVoxelNumber,floatingIntensityXX,floatingIntensityYY, \
+   floatingIntensityZZ,floatingIntensityXY,floatingIntensityXZ, \
+   floatingIntensityYZ)
 #endif
       for(floatingIndex=0; floatingIndex<floatingVoxelNumber; ++floatingIndex)
       {
-          // Check that the tensor component is not extremely small or extremely large
+         // Check that the tensor component is not extremely small or extremely large
          if((floatingIntensityXX[floatingIndex] > 1e-10) && (floatingIntensityXX[floatingIndex] < 1e10))
          {
             // Fill a mat44 with the tensor components
@@ -225,12 +246,12 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
          mat44 inputTensor, warpedTensor, RotMat, RotMatT, preMult;
          int col, row;
 #if defined (NDEBUG) && defined (_OPENMP)
-         #pragma omp parallel for default(none) \
-         private(warpedIndex,inputTensor,jacobianMatrix,R,RotMat,RotMatT,preMult, \
-                 testSum, warpedTensor, col, row) \
-         shared(voxelNumber,inputIntensityXX,inputIntensityYY,inputIntensityZZ, \
-                warpedXX, warpedXY, warpedXZ, warpedYY, warpedYZ, warpedZZ, warpedImage, \
-                inputIntensityXY,inputIntensityXZ,inputIntensityYZ, jacMat, mask)
+#pragma omp parallel for default(none) \
+   private(warpedIndex,inputTensor,jacobianMatrix,R,RotMat,RotMatT,preMult, \
+   testSum, warpedTensor, col, row) \
+   shared(voxelNumber,inputIntensityXX,inputIntensityYY,inputIntensityZZ, \
+   warpedXX, warpedXY, warpedXZ, warpedYY, warpedYZ, warpedZZ, warpedImage, \
+   inputIntensityXY,inputIntensityXZ,inputIntensityYZ, jacMat, mask)
 #endif
          for(warpedIndex=0; warpedIndex<voxelNumber; ++warpedIndex)
          {
@@ -269,8 +290,8 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
                   warpedTensor.m[2][2] = static_cast<double>(warpedZZ[warpedIndex]);
                   inputTensor = reg_mat44_mul(&warpedTensor,&inputTensor);
                   testSum=static_cast<double>(warpedTensor.m[0][0]+warpedTensor.m[0][1]+warpedTensor.m[0][2]+
-                                              warpedTensor.m[1][0]+warpedTensor.m[1][1]+warpedTensor.m[1][2]+
-                                              warpedTensor.m[2][0]+warpedTensor.m[2][1]+warpedTensor.m[2][2]);
+                        warpedTensor.m[1][0]+warpedTensor.m[1][1]+warpedTensor.m[1][2]+
+                        warpedTensor.m[2][0]+warpedTensor.m[2][1]+warpedTensor.m[2][2]);
                }
 
                if(testSum==testSum)
@@ -322,20 +343,21 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
 }
 /* *************************************************************** */
 template<class FloatingTYPE, class FieldTYPE>
-void WindowedSincResampleImage3D(nifti_image *floatingImage,
-                                 nifti_image *deformationField,
-                                 nifti_image *warpedImage,
-                                 int *mask,
-                                 FieldTYPE paddingValue)
+void ResampleImage3D(nifti_image *floatingImage,
+                     nifti_image *deformationField,
+                     nifti_image *warpedImage,
+                     int *mask,
+                     FieldTYPE paddingValue,
+                     int kernel)
 {
 #ifdef _WIN32
-      long  index;
-      long warpedVoxelNumber = (long)warpedImage->nx*warpedImage->ny*warpedImage->nz;
-      long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+   long  index;
+   long warpedVoxelNumber = (long)warpedImage->nx*warpedImage->ny*warpedImage->nz;
+   long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny*floatingImage->nz;
 #else
-      size_t  index;
-      size_t warpedVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny*warpedImage->nz;
-      size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+   size_t  index;
+   size_t warpedVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny*warpedImage->nz;
+   size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
 #endif
    FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
    FloatingTYPE *warpedIntensityPtr = static_cast<FloatingTYPE *>(warpedImage->data);
@@ -357,28 +379,237 @@ void WindowedSincResampleImage3D(nifti_image *floatingImage,
       floatingIJKMatrix=&(floatingImage->sto_ijk);
    else floatingIJKMatrix=&(floatingImage->qto_ijk);
 
+   // Define the kernel to use
+   int kernel_size;
+   int kernel_offset=0;
+   void (*kernelCompFctPtr)(double,double *);
+   switch(kernel){
+   case 0:
+      kernel_size=2;
+      kernelCompFctPtr=&interpNearestNeighKernel;
+      kernel_offset=0;
+      break; // nereast-neighboor interpolation
+   case 1:
+      kernel_size=2;
+      kernelCompFctPtr=&interpLinearKernel;
+      kernel_offset=0;
+      break; // linear interpolation
+   case 4:
+      kernel_size=SINC_KERNEL_SIZE;
+      kernelCompFctPtr=&interpWindowedSincKernel;
+      kernel_offset=SINC_KERNEL_RADIUS;
+      break; // sinc interpolation
+   default:
+      kernel_size=4;
+      kernelCompFctPtr=&interpCubicSplineKernel;
+      kernel_offset=1;
+      break; // cubic spline interpolation
+   }
+
    // Iteration over the different volume along the 4th axis
    for(size_t t=0; t<(size_t)warpedImage->nt*warpedImage->nu; t++)
    {
 #ifndef NDEBUG
-      printf("[NiftyReg DEBUG] 3D Cubic spline resampling of volume number %lu\n",t);
+      printf("[NiftyReg DEBUG] 3D resampling of volume number %lu\n",t);
 #endif
 
       FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*warpedVoxelNumber];
       FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
 
-      FieldTYPE xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], zBasis[SINC_KERNEL_SIZE], relative;
+      double xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], zBasis[SINC_KERNEL_SIZE], relative[3];
       int a, b, c, Y, Z, previous[3];
 
       FloatingTYPE *zPointer, *xyzPointer;
-      FieldTYPE xTempNewValue, yTempNewValue, intensity, world[3], position[3];
+      double xTempNewValue, yTempNewValue, intensity, world[3], position[3];
 #if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(index, intensity, world, position, previous, xBasis, yBasis, zBasis, relative, \
-              a, b, c, Y, Z, zPointer, xyzPointer, xTempNewValue, yTempNewValue) \
-      shared(floatingIntensity, warpedIntensity, warpedVoxelNumber, floatingVoxelNumber, \
-             deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
-             floatingIJKMatrix, floatingImage, paddingValue)
+#pragma omp parallel for default(none) \
+   private(index, intensity, world, position, previous, xBasis, yBasis, zBasis, relative, \
+   a, b, c, Y, Z, zPointer, xyzPointer, xTempNewValue, yTempNewValue) \
+   shared(floatingIntensity, warpedIntensity, warpedVoxelNumber, floatingVoxelNumber, \
+   deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
+   floatingIJKMatrix, floatingImage, paddingValue, kernel_size, kernel_offset, kernelCompFctPtr)
+#endif // _OPENMP
+      for(index=0; index<warpedVoxelNumber; index++)
+      {
+
+         intensity=paddingValue;
+
+         if((maskPtr[index])>-1)
+         {
+            world[0]=static_cast<double>(deformationFieldPtrX[index]);
+            world[1]=static_cast<double>(deformationFieldPtrY[index]);
+            world[2]=static_cast<double>(deformationFieldPtrZ[index]);
+
+            // real -> voxel; floating space
+            reg_mat44_mul(floatingIJKMatrix, world, position);
+
+            previous[0] = static_cast<int>(reg_floor(position[0]));
+            previous[1] = static_cast<int>(reg_floor(position[1]));
+            previous[2] = static_cast<int>(reg_floor(position[2]));
+
+            relative[0]=position[0]-static_cast<double>(previous[0]);
+            relative[1]=position[1]-static_cast<double>(previous[1]);
+            relative[2]=position[2]-static_cast<double>(previous[2]);
+
+            (*kernelCompFctPtr)(relative[0], xBasis);
+            (*kernelCompFctPtr)(relative[1], yBasis);
+            (*kernelCompFctPtr)(relative[2], zBasis);
+            previous[0]-=kernel_offset;
+            previous[1]-=kernel_offset;
+            previous[2]-=kernel_offset;
+
+            intensity=0.0;
+            for(c=0; c<kernel_size; c++)
+            {
+               Z= previous[2]+c;
+               zPointer = &floatingIntensity[Z*floatingImage->nx*floatingImage->ny];
+               yTempNewValue=0.0;
+               for(b=0; b<kernel_size; b++)
+               {
+                  Y= previous[1]+b;
+                  xyzPointer = &zPointer[Y*floatingImage->nx+previous[0]];
+                  xTempNewValue=0.0;
+                  for(a=0; a<kernel_size; a++)
+                  {
+                     if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx &&
+                           -1<Z && Z<floatingImage->nz &&
+                           -1<Y && Y<floatingImage->ny)
+                     {
+                        xTempNewValue +=  static_cast<double>(*xyzPointer) * xBasis[a];
+                     }
+                     else
+                     {
+                        // paddingValue
+                        xTempNewValue +=  paddingValue * xBasis[a];
+                     }
+                     xyzPointer++;
+                  }
+                  yTempNewValue += xTempNewValue * yBasis[b];
+               }
+               intensity += yTempNewValue * zBasis[c];
+            }
+         }
+
+         switch(floatingImage->datatype)
+         {
+         case NIFTI_TYPE_FLOAT32:
+            warpedIntensity[index]=static_cast<FloatingTYPE>(intensity);
+            break;
+         case NIFTI_TYPE_FLOAT64:
+            warpedIntensity[index]=intensity;
+            break;
+         case NIFTI_TYPE_UINT8:
+            intensity=(intensity<=255?reg_round(intensity):255); // 255=2^8-1
+            warpedIntensity[index]=static_cast<FloatingTYPE>(intensity>0?reg_round(intensity):0);
+            break;
+         case NIFTI_TYPE_UINT16:
+            intensity=(intensity<=65535?reg_round(intensity):65535); // 65535=2^16-1
+            warpedIntensity[index]=static_cast<FloatingTYPE>(intensity>0?reg_round(intensity):0);
+            break;
+         case NIFTI_TYPE_UINT32:
+            intensity=(intensity<=4294967295?reg_round(intensity):4294967295); // 4294967295=2^32-1
+            warpedIntensity[index]=static_cast<FloatingTYPE>(intensity>0?reg_round(intensity):0);
+            break;
+         default:
+            warpedIntensity[index]=static_cast<FloatingTYPE>(reg_round(intensity));
+            break;
+         }
+
+#ifndef _OPENMP
+         // Announce the progress via CLI
+         if (iProgressStep % progressUnit == 0)
+            progressXML(100 * iProgressStep / nProgressSteps, "Performing 3D Resampling...");
+
+         // Increment the progress counter
+         iProgressStep++;
+#endif
+      }
+   }
+}
+/* *************************************************************** */
+template<class FloatingTYPE, class FieldTYPE>
+void ResampleImage2D(nifti_image *floatingImage,
+                     nifti_image *deformationField,
+                     nifti_image *warpedImage,
+                     int *mask,
+                     FieldTYPE paddingValue,
+                     int kernel)
+{
+#ifdef _WIN32
+   long  index;
+   long warpedVoxelNumber = (long)warpedImage->nx*warpedImage->ny;
+   long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny;
+#else
+   size_t  index;
+   size_t warpedVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny;
+   size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
+#endif
+   FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
+   FloatingTYPE *warpedIntensityPtr = static_cast<FloatingTYPE *>(warpedImage->data);
+   FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+   FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[warpedVoxelNumber];
+
+#ifndef _OPENMP
+   // Compute the resolution of the progress bar
+   unsigned long iProgressStep  = 1;
+   unsigned long nProgressSteps = warpedImage->nt * warpedImage->nu * warpedVoxelNumber;
+   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
+#endif
+
+   int *maskPtr = &mask[0];
+
+   mat44 *floatingIJKMatrix;
+   if(floatingImage->sform_code>0)
+      floatingIJKMatrix=&(floatingImage->sto_ijk);
+   else floatingIJKMatrix=&(floatingImage->qto_ijk);
+
+   // Iteration over the different volume along the 4th axis
+   for(size_t t=0; t<(size_t)warpedImage->nt*warpedImage->nu; t++)
+   {
+#ifndef NDEBUG
+      printf("[NiftyReg DEBUG] 2D resampling of volume number %lu\n",t);
+#endif
+
+      FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*warpedVoxelNumber];
+      FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
+
+      double xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], relative[2];
+      int a, b, Y, previous[2];
+      int kernel_size;
+      int kernel_offset=0;
+      void (*kernelCompFctPtr)(double,double *);
+      switch(kernel){
+      case 0:
+         kernel_size=2;
+         kernelCompFctPtr=&interpNearestNeighKernel;
+         kernel_offset=0;
+         break; // nereast-neighboor interpolation
+      case 1:
+         kernel_size=2;
+         kernelCompFctPtr=&interpLinearKernel;
+         kernel_offset=0;
+         break; // linear interpolation
+      case 4:
+         kernel_size=SINC_KERNEL_SIZE;
+         kernelCompFctPtr=&interpWindowedSincKernel;
+         kernel_offset=SINC_KERNEL_RADIUS;
+         break; // sinc interpolation
+      default:
+         kernel_size=4;
+         kernelCompFctPtr=&interpCubicSplineKernel;
+         kernel_offset=1;
+         break; // cubic spline interpolation
+      }
+
+      FloatingTYPE *xyzPointer;
+      FieldTYPE xTempNewValue, intensity, world[3], position[3];
+#if defined (NDEBUG) && defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   private(index, intensity, world, position, previous, xBasis, yBasis, relative, \
+   a, b, Y, xyzPointer, xTempNewValue) \
+   shared(floatingIntensity, warpedIntensity, warpedVoxelNumber, floatingVoxelNumber, \
+   deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
+   floatingIJKMatrix, floatingImage, paddingValue, kernel_size, kernel_offset, kernelCompFctPtr)
 #endif // _OPENMP
       for(index=0; index<warpedVoxelNumber; index++)
       {
@@ -389,1079 +620,83 @@ void WindowedSincResampleImage3D(nifti_image *floatingImage,
          {
             world[0]=static_cast<FieldTYPE>(deformationFieldPtrX[index]);
             world[1]=static_cast<FieldTYPE>(deformationFieldPtrY[index]);
-            world[2]=static_cast<FieldTYPE>(deformationFieldPtrZ[index]);
+            world[2]=0;
 
             // real -> voxel; floating space
             reg_mat44_mul(floatingIJKMatrix, world, position);
 
             previous[0] = static_cast<int>(reg_floor(position[0]));
             previous[1] = static_cast<int>(reg_floor(position[1]));
-            previous[2] = static_cast<int>(reg_floor(position[2]));
 
-            // Basis values along the x axis
-            relative=position[0]-static_cast<FieldTYPE>(previous[0]);
-            interpolantWindowedSinc<FieldTYPE>(relative, xBasis);
-            // Basis values along the y axis
-            relative=position[1]-static_cast<FieldTYPE>(previous[1]);
-            interpolantWindowedSinc<FieldTYPE>(relative, yBasis);
-            // Basis values along the z axis
-            relative=position[2]-static_cast<FieldTYPE>(previous[2]);
-            interpolantWindowedSinc<FieldTYPE>(relative, zBasis);
+            relative[0]=position[0]-static_cast<FieldTYPE>(previous[0]);
+            relative[1]=position[1]-static_cast<FieldTYPE>(previous[1]);
 
-            previous[0]-=static_cast<int>(SINC_KERNEL_RADIUS);
-            previous[1]-=static_cast<int>(SINC_KERNEL_RADIUS);
-            previous[2]-=static_cast<int>(SINC_KERNEL_RADIUS);
+            (*kernelCompFctPtr)(relative[0], xBasis);
+            (*kernelCompFctPtr)(relative[1], yBasis);
+            previous[0]-=kernel_offset;
+            previous[1]-=kernel_offset;
 
             intensity=static_cast<FieldTYPE>(0);
-            for(c=0; c<SINC_KERNEL_SIZE; c++)
-            {
-               Z= previous[2]+c;
-               zPointer = &floatingIntensity[Z*floatingImage->nx*floatingImage->ny];
-               yTempNewValue=0.0;
-               for(b=0; b<SINC_KERNEL_SIZE; b++)
-               {
-                  Y= previous[1]+b;
-                  xyzPointer = &zPointer[Y*floatingImage->nx+previous[0]];
-                  xTempNewValue=0.0;
-                  for(a=0; a<SINC_KERNEL_SIZE; a++)
-                  {
-                     if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx &&
-                           -1<Z && Z<floatingImage->nz &&
-                           -1<Y && Y<floatingImage->ny)
-                     {
-                        xTempNewValue +=  (FieldTYPE)*xyzPointer * xBasis[a];
-                     }
-                     else
-                     {
-                        // paddingValue
-                        xTempNewValue +=  paddingValue * xBasis[a];
-                     }
-                     xyzPointer++;
-                  }
-                  yTempNewValue += xTempNewValue * yBasis[b];
-               }
-               intensity += yTempNewValue * zBasis[c];
-            }
-         }
-
-         switch(floatingImage->datatype)
-         {
-         case NIFTI_TYPE_FLOAT32:
-            warpedIntensity[index]=(FloatingTYPE)intensity;
-            break;
-         case NIFTI_TYPE_FLOAT64:
-            warpedIntensity[index]=(FloatingTYPE)intensity;
-            break;
-         case NIFTI_TYPE_UINT8:
-            warpedIntensity[index]=(FloatingTYPE)(intensity>0?reg_round(intensity):0);
-            break;
-         case NIFTI_TYPE_UINT16:
-            warpedIntensity[index]=(FloatingTYPE)(intensity>0?reg_round(intensity):0);
-            break;
-         case NIFTI_TYPE_UINT32:
-            warpedIntensity[index]=(FloatingTYPE)(intensity>0?reg_round(intensity):0);
-            break;
-         default:
-            warpedIntensity[index]=(FloatingTYPE)reg_round(intensity);
-            break;
-         }
-
-#ifndef _OPENMP
-         // Announce the progress via CLI
-         if (iProgressStep % progressUnit == 0)
-            progressXML(100 * iProgressStep / nProgressSteps, "Performing 3D Cubic Spline Resampling...");
-
-         // Increment the progress counter
-         iProgressStep++;
-#endif
-      }
-   }
-}
-/* *************************************************************** */
-template<class FloatingTYPE, class FieldTYPE>
-void WindowedSincResampleImage2D(nifti_image *floatingImage,
-                                 nifti_image *deformationField,
-                                 nifti_image *warpedImage,
-                                 int *mask,
-                                 FieldTYPE paddingValue)
-{
-   // The resampling scheme is applied along each time
-#ifdef _WIN32
-   long index;
-   long referenceVoxelNumber = (long)warpedImage->nx*warpedImage->ny;
-   long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny;
-#else
-      size_t index;
-      size_t referenceVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny;
-      size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
-#endif
-   FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
-   FloatingTYPE *warpedIntensityPtr = static_cast<FloatingTYPE *>(warpedImage->data);
-   FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-   FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[referenceVoxelNumber];
-
-   int *maskPtr = &mask[0];
-
-   mat44 floatingIJKMatrix;
-   if(floatingImage->sform_code>0)
-      floatingIJKMatrix=floatingImage->sto_ijk;
-   else floatingIJKMatrix=floatingImage->qto_ijk;
-
-#ifndef _OPENMP
-   // Compute the resolution of the progress bar
-   unsigned long iProgressStep  = 1;
-   unsigned long nProgressSteps = warpedImage->nt * warpedImage->nu * referenceVoxelNumber;
-   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-#endif
-
-   for(int t=0; t<warpedImage->nt*warpedImage->nu; t++)
-   {
-#ifndef NDEBUG
-      printf("[NiftyReg DEBUG] 2D Cubic spline resampling of volume number %i\n",t);
-#endif
-
-      FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*referenceVoxelNumber];
-      FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
-
-      FieldTYPE xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], relative;
-      int a, b, Y, previous[2];
-
-      FloatingTYPE *yPointer, *xyPointer;
-      FieldTYPE xTempNewValue, intensity, world[2], position[2];
-#if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(index, intensity, world, position, previous, xBasis, yBasis, relative, \
-              a, b, Y, yPointer, xyPointer, xTempNewValue) \
-      shared(floatingIntensity, warpedIntensity, referenceVoxelNumber, floatingVoxelNumber, \
-             deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
-             floatingIJKMatrix, floatingImage, paddingValue)
-#endif // _OPENMP
-      for(index=0; index<referenceVoxelNumber; index++)
-      {
-
-         intensity=0.0;
-
-         if((maskPtr[index])>-1)
-         {
-
-            world[0]=(FieldTYPE) deformationFieldPtrX[index];
-            world[1]=(FieldTYPE) deformationFieldPtrY[index];
-            /* real -> voxel; floating space */
-            position[0] = world[0]*floatingIJKMatrix.m[0][0] + world[1]*floatingIJKMatrix.m[0][1] +
-                          floatingIJKMatrix.m[0][3];
-            position[1] = world[0]*floatingIJKMatrix.m[1][0] + world[1]*floatingIJKMatrix.m[1][1] +
-                          floatingIJKMatrix.m[1][3];
-
-            previous[0] = static_cast<int>(reg_floor(position[0]));
-            previous[1] = static_cast<int>(reg_floor(position[1]));
-
-            // basis values along the x axis
-            relative=position[0]-(FieldTYPE)previous[0];
-            interpolantWindowedSinc<FieldTYPE>(relative, xBasis);
-            // basis values along the y axis
-            relative=position[1]-(FieldTYPE)previous[1];
-            interpolantWindowedSinc<FieldTYPE>(relative, yBasis);
-
-            previous[0]-=SINC_KERNEL_RADIUS;
-            previous[1]-=SINC_KERNEL_RADIUS;
-
-            for(b=0; b<SINC_KERNEL_SIZE; b++)
+            for(b=0; b<kernel_size; b++)
             {
                Y= previous[1]+b;
-               yPointer = &floatingIntensity[Y*floatingImage->nx];
-               xyPointer = &yPointer[previous[0]];
+               xyzPointer = &floatingIntensity[Y*floatingImage->nx+previous[0]];
                xTempNewValue=0.0;
-               for(a=0; a<SINC_KERNEL_SIZE; a++)
+               for(a=0; a<kernel_size; a++)
                {
                   if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx &&
                         -1<Y && Y<floatingImage->ny)
                   {
-                     xTempNewValue +=  (FieldTYPE)*xyPointer * xBasis[a];
+                     xTempNewValue +=  (FieldTYPE)*xyzPointer * xBasis[a];
                   }
                   else
                   {
-                     // paddingValue x
+                     // paddingValue
                      xTempNewValue +=  paddingValue * xBasis[a];
                   }
-                  xyPointer++;
+                  xyzPointer++;
                }
                intensity += xTempNewValue * yBasis[b];
             }
-         }
 
-         switch(floatingImage->datatype)
-         {
-         case NIFTI_TYPE_FLOAT32:
-            warpedIntensity[index]=(FloatingTYPE)intensity;
-            break;
-         case NIFTI_TYPE_FLOAT64:
-            warpedIntensity[index]=(FloatingTYPE)intensity;
-            break;
-         case NIFTI_TYPE_UINT8:
-            warpedIntensity[index]=(FloatingTYPE)(intensity>0?reg_round(intensity):0);
-            break;
-         case NIFTI_TYPE_UINT16:
-            warpedIntensity[index]=(FloatingTYPE)(intensity>0?reg_round(intensity):0);
-            break;
-         case NIFTI_TYPE_UINT32:
-            warpedIntensity[index]=(FloatingTYPE)(intensity>0?reg_round(intensity):0);
-            break;
-         default:
-            warpedIntensity[index]=(FloatingTYPE)reg_round(intensity);
-            break;
-         }
-
-#ifndef _OPENMP
-         // Announce the progress via CLI
-         if (iProgressStep % progressUnit == 0)
-            progressXML(100 * iProgressStep / nProgressSteps, "Performing 2D Cubic Spline Resampling...");
-
-         // Increment the progress counter
-         iProgressStep++;
-#endif
-      }
-   }
-}
-/* *************************************************************** */
-template<class FloatingTYPE, class FieldTYPE>
-void CubicSplineResampleImage3D(nifti_image *floatingImage,
-                                nifti_image *deformationField,
-                                nifti_image *warpedImage,
-                                int *mask,
-                                FieldTYPE paddingValue)
-{
-#ifdef _WIN32
-      long  index;
-      long warpedVoxelNumber = (long)warpedImage->nx*warpedImage->ny*warpedImage->nz;
-      long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny*floatingImage->nz;
-#else
-      size_t index;
-      size_t warpedVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny*warpedImage->nz;
-      size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
-#endif
-   FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
-   FloatingTYPE *warpedIntensityPtr = static_cast<FloatingTYPE *>(warpedImage->data);
-   FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-   FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[warpedVoxelNumber];
-   FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[warpedVoxelNumber];
-
-#ifndef _OPENMP
-   // Compute the resolution of the progress bar
-   unsigned long iProgressStep  = 1;
-   unsigned long nProgressSteps = warpedImage->nt * warpedImage->nu * warpedVoxelNumber;
-   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-#endif
-
-   int *maskPtr = &mask[0];
-
-   mat44 *floatingIJKMatrix;
-   if(floatingImage->sform_code>0)
-      floatingIJKMatrix=&(floatingImage->sto_ijk);
-   else floatingIJKMatrix=&(floatingImage->qto_ijk);
-
-   // Iteration over the different volume along the 4th axis
-   for(size_t t=0; t<(size_t)warpedImage->nt*warpedImage->nu; t++)
-   {
-#ifndef NDEBUG
-      printf("[NiftyReg DEBUG] 3D Cubic spline resampling of volume number %lu\n",t);
-#endif
-
-      FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*warpedVoxelNumber];
-      FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
-
-      FieldTYPE xBasis[4], yBasis[4], zBasis[4], relative;
-      int a, b, c, Y, Z, previous[3];
-
-      FloatingTYPE *zPointer, *xyzPointer;
-      FieldTYPE xTempNewValue, yTempNewValue, intensity, world[3], position[3];
-#if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(index, intensity, world, position, previous, xBasis, yBasis, zBasis, relative, \
-              a, b, c, Y, Z, zPointer, xyzPointer, xTempNewValue, yTempNewValue) \
-      shared(floatingIntensity, warpedIntensity, warpedVoxelNumber, floatingVoxelNumber, \
-             deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
-             floatingIJKMatrix, floatingImage, paddingValue)
-#endif // _OPENMP
-      for(index=0; index<warpedVoxelNumber; index++)
-      {
-
-         intensity=paddingValue;
-
-         if((maskPtr[index])>-1)
-         {
-            world[0]=(FieldTYPE) deformationFieldPtrX[index];
-            world[1]=(FieldTYPE) deformationFieldPtrY[index];
-            world[2]=(FieldTYPE) deformationFieldPtrZ[index];
-
-            /* real -> voxel; floating space */
-            reg_mat44_mul(floatingIJKMatrix, world, position);
-
-            previous[0] = static_cast<int>(reg_floor(position[0]));
-            previous[1] = static_cast<int>(reg_floor(position[1]));
-            previous[2] = static_cast<int>(reg_floor(position[2]));
-
-            // basis values along the x axis
-            relative=position[0]-(FieldTYPE)previous[0];
-            relative=relative>0?relative:0;
-            interpolantCubicSpline<FieldTYPE>(relative, xBasis);
-            // basis values along the y axis
-            relative=position[1]-(FieldTYPE)previous[1];
-            relative=relative>0?relative:0;
-            interpolantCubicSpline<FieldTYPE>(relative, yBasis);
-            // basis values along the z axis
-            relative=position[2]-(FieldTYPE)previous[2];
-            relative=relative>0?relative:0;
-            interpolantCubicSpline<FieldTYPE>(relative, zBasis);
-
-            --previous[0];
-            --previous[1];
-            --previous[2];
-
-            intensity=static_cast<FieldTYPE>(0);
-            for(c=0; c<4; c++)
+            switch(floatingImage->datatype)
             {
-               Z= previous[2]+c;
-               zPointer = &floatingIntensity[Z*floatingImage->nx*floatingImage->ny];
-               yTempNewValue=0.0;
-               for(b=0; b<4; b++)
-               {
-                  Y= previous[1]+b;
-                  xyzPointer = &zPointer[Y*floatingImage->nx+previous[0]];
-                  xTempNewValue=0.0;
-                  for(a=0; a<4; a++)
-                  {
-                     if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx &&
-                           -1<Z && Z<floatingImage->nz &&
-                           -1<Y && Y<floatingImage->ny)
-                     {
-                        xTempNewValue +=  (FieldTYPE)*xyzPointer * xBasis[a];
-                     }
-                     else
-                     {
-                        // paddingValue
-                        xTempNewValue +=  paddingValue * xBasis[a];
-                     }
-                     xyzPointer++;
-                  }
-                  yTempNewValue += xTempNewValue * yBasis[b];
-               }
-               intensity += yTempNewValue * zBasis[c];
-            }
-         }
-
-         switch(floatingImage->datatype)
-         {
-         case NIFTI_TYPE_FLOAT32:
-            warpedIntensity[index]=(FloatingTYPE)intensity;
-            break;
-         case NIFTI_TYPE_FLOAT64:
-            warpedIntensity[index]=(FloatingTYPE)intensity;
-            break;
-         case NIFTI_TYPE_UINT8:
-            warpedIntensity[index]=(FloatingTYPE)(intensity>0?reg_round(intensity):0);
-            break;
-         case NIFTI_TYPE_UINT16:
-            warpedIntensity[index]=(FloatingTYPE)(intensity>0?reg_round(intensity):0);
-            break;
-         case NIFTI_TYPE_UINT32:
-            warpedIntensity[index]=(FloatingTYPE)(intensity>0?reg_round(intensity):0);
-            break;
-         default:
-            warpedIntensity[index]=(FloatingTYPE)reg_round(intensity);
-            break;
-         }
-
-#ifndef _OPENMP
-         // Announce the progress via CLI
-         if (iProgressStep % progressUnit == 0)
-            progressXML(100 * iProgressStep / nProgressSteps, "Performing 3D Cubic Spline Resampling...");
-
-         // Increment the progress counter
-         iProgressStep++;
-#endif
-      }
-   }
-}
-/* *************************************************************** */
-template<class FloatingTYPE, class FieldTYPE>
-void CubicSplineResampleImage2D(nifti_image *floatingImage,
-                                nifti_image *deformationField,
-                                nifti_image *warpedImage,
-                                int *mask,
-                                FieldTYPE paddingValue)
-{
-   // The resampling scheme is applied along each time
-#ifdef _WIN32
-   long index;
-   long referenceVoxelNumber = (long)warpedImage->nx*warpedImage->ny;
-   long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny;
-#else
-      size_t index;
-      size_t referenceVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny;
-      size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
-#endif
-   FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
-   FloatingTYPE *warpedIntensityPtr = static_cast<FloatingTYPE *>(warpedImage->data);
-   FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-   FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[referenceVoxelNumber];
-
-   int *maskPtr = &mask[0];
-
-   mat44 floatingIJKMatrix;
-   if(floatingImage->sform_code>0)
-      floatingIJKMatrix=floatingImage->sto_ijk;
-   else floatingIJKMatrix=floatingImage->qto_ijk;
-
-#ifndef _OPENMP
-   // Compute the resolution of the progress bar
-   unsigned long iProgressStep  = 1;
-   unsigned long nProgressSteps = warpedImage->nt * warpedImage->nu * referenceVoxelNumber;
-   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-#endif
-
-   for(int t=0; t<warpedImage->nt*warpedImage->nu; t++)
-   {
-#ifndef NDEBUG
-      printf("[NiftyReg DEBUG] 2D Cubic spline resampling of volume number %i\n",t);
-#endif
-
-      FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*referenceVoxelNumber];
-      FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
-
-      FieldTYPE xBasis[4], yBasis[4], relative;
-      int a, b, Y, previous[2];
-
-      FloatingTYPE *yPointer, *xyPointer;
-      FieldTYPE xTempNewValue, intensity, world[2], position[2];
-#if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(index, intensity, world, position, previous, xBasis, yBasis, relative, \
-              a, b, Y, yPointer, xyPointer, xTempNewValue) \
-      shared(floatingIntensity, warpedIntensity, referenceVoxelNumber, floatingVoxelNumber, \
-             deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
-             floatingIJKMatrix, floatingImage, paddingValue)
-#endif // _OPENMP
-      for(index=0; index<referenceVoxelNumber; index++)
-      {
-
-         intensity=0.0;
-
-         if((maskPtr[index])>-1)
-         {
-
-            world[0]=(FieldTYPE) deformationFieldPtrX[index];
-            world[1]=(FieldTYPE) deformationFieldPtrY[index];
-            /* real -> voxel; floating space */
-            position[0] = world[0]*floatingIJKMatrix.m[0][0] + world[1]*floatingIJKMatrix.m[0][1] +
-                          floatingIJKMatrix.m[0][3];
-            position[1] = world[0]*floatingIJKMatrix.m[1][0] + world[1]*floatingIJKMatrix.m[1][1] +
-                          floatingIJKMatrix.m[1][3];
-
-            previous[0] = static_cast<int>(reg_floor(position[0]));
-            previous[1] = static_cast<int>(reg_floor(position[1]));
-
-            // basis values along the x axis
-            relative=position[0]-(FieldTYPE)previous[0];
-            relative=relative>0?relative:0;
-            interpolantCubicSpline<FieldTYPE>(relative, xBasis);
-            // basis values along the y axis
-            relative=position[1]-(FieldTYPE)previous[1];
-            relative=relative>0?relative:0;
-            interpolantCubicSpline<FieldTYPE>(relative, yBasis);
-
-            previous[0]--;
-            previous[1]--;
-
-            for(b=0; b<4; b++)
-            {
-               Y= previous[1]+b;
-               yPointer = &floatingIntensity[Y*floatingImage->nx];
-               xyPointer = &yPointer[previous[0]];
-               xTempNewValue=0.0;
-               for(a=0; a<4; a++)
-               {
-                  if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx &&
-                        -1<Y && Y<floatingImage->ny)
-                  {
-                     xTempNewValue +=  (FieldTYPE)*xyPointer * xBasis[a];
-                  }
-                  else
-                  {
-                     // paddingValue x
-                     xTempNewValue +=  paddingValue * xBasis[a];
-                  }
-                  xyPointer++;
-               }
-               intensity += xTempNewValue * yBasis[b];
-            }
-         }
-
-         switch(floatingImage->datatype)
-         {
-         case NIFTI_TYPE_FLOAT32:
-            warpedIntensity[index]=(FloatingTYPE)intensity;
-            break;
-         case NIFTI_TYPE_FLOAT64:
-            warpedIntensity[index]=(FloatingTYPE)intensity;
-            break;
-         case NIFTI_TYPE_UINT8:
-            warpedIntensity[index]=(FloatingTYPE)(intensity>0?reg_round(intensity):0);
-            break;
-         case NIFTI_TYPE_UINT16:
-            warpedIntensity[index]=(FloatingTYPE)(intensity>0?reg_round(intensity):0);
-            break;
-         case NIFTI_TYPE_UINT32:
-            warpedIntensity[index]=(FloatingTYPE)(intensity>0?reg_round(intensity):0);
-            break;
-         default:
-            warpedIntensity[index]=(FloatingTYPE)reg_round(intensity);
-            break;
-         }
-
-#ifndef _OPENMP
-         // Announce the progress via CLI
-         if (iProgressStep % progressUnit == 0)
-            progressXML(100 * iProgressStep / nProgressSteps, "Performing 2D Cubic Spline Resampling...");
-
-         // Increment the progress counter
-         iProgressStep++;
-#endif
-      }
-   }
-}
-/* *************************************************************** */
-template<class FloatingTYPE, class FieldTYPE>
-void TrilinearResampleImage(nifti_image *floatingImage,
-                            nifti_image *deformationField,
-                            nifti_image *warpedImage,
-                            int *mask,
-                            FieldTYPE paddingValue)
-{
-   // The resampling scheme is applied along each time
-#ifdef _WIN32
-   long index;
-   long referenceVoxelNumber = (long)warpedImage->nx*warpedImage->ny*warpedImage->nz;
-   long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny*floatingImage->nz;
-#else
-      size_t index;
-      size_t referenceVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny*warpedImage->nz;
-      size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
-#endif
-   FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
-   FloatingTYPE *warpedIntensityPtr = static_cast<FloatingTYPE *>(warpedImage->data);
-   FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-   FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[referenceVoxelNumber];
-   FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[referenceVoxelNumber];
-
-   int *maskPtr = &mask[0];
-   mat44 *floatingIJKMatrix;
-   if(floatingImage->sform_code>0)
-      floatingIJKMatrix=&(floatingImage->sto_ijk);
-   else floatingIJKMatrix=&(floatingImage->qto_ijk);
-
-#ifndef _OPENMP
-   // Compute the resolution of the progress bar
-   unsigned long iProgressStep  = 1;
-   unsigned long nProgressSteps = warpedImage->nt * warpedImage->nu * referenceVoxelNumber;
-   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-#endif
-
-   for(int t=0; t<warpedImage->nt*warpedImage->nu; t++)
-   {
-#ifndef NDEBUG
-      printf("[NiftyReg DEBUG] 3D linear resampling of volume number %i\n",t);
-#endif
-
-      FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*referenceVoxelNumber];
-      FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
-
-      FieldTYPE xBasis[2], yBasis[2], zBasis[2], relative;
-      int a, b, c, X, Y, Z, previous[3];
-
-      FloatingTYPE *zPointer, *xyzPointer;
-      FieldTYPE xTempNewValue, yTempNewValue, intensity, world[3], position[3];
-#if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(index, intensity, world, position, previous, xBasis, yBasis, zBasis, relative, \
-              a, b, c, X, Y, Z, zPointer, xyzPointer, xTempNewValue, yTempNewValue) \
-      shared(floatingIntensity, warpedIntensity, referenceVoxelNumber, floatingVoxelNumber, \
-             deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
-             floatingIJKMatrix, floatingImage, paddingValue)
-#endif // _OPENMP
-      for(index=0; index<referenceVoxelNumber; index++)
-      {
-
-         intensity=paddingValue;
-
-         if(maskPtr[index]>-1)
-         {
-
-            intensity=0;
-
-            world[0]=(FieldTYPE) deformationFieldPtrX[index];
-            world[1]=(FieldTYPE) deformationFieldPtrY[index];
-            world[2]=(FieldTYPE) deformationFieldPtrZ[index];
-
-            /* real -> voxel; floating space */
-            reg_mat44_mul(floatingIJKMatrix, world, position);
-
-            previous[0] = static_cast<int>(reg_floor(position[0]));
-            previous[1] = static_cast<int>(reg_floor(position[1]));
-            previous[2] = static_cast<int>(reg_floor(position[2]));
-
-            // basis values along the x axis
-            relative=position[0]-(FieldTYPE)previous[0];
-            xBasis[0]= (FieldTYPE)(1.0-relative);
-            xBasis[1]= relative;
-            // basis values along the y axis
-            relative=position[1]-(FieldTYPE)previous[1];
-            yBasis[0]= (FieldTYPE)(1.0-relative);
-            yBasis[1]= relative;
-            // basis values along the z axis
-            relative=position[2]-(FieldTYPE)previous[2];
-            zBasis[0]= (FieldTYPE)(1.0-relative);
-            zBasis[1]= relative;
-
-            // For efficiency reason two interpolation are here, with and without using a padding value
-            if(paddingValue==paddingValue)
-            {
-               // Interpolation using the padding value
-               for(c=0; c<2; c++)
-               {
-                  Z= previous[2]+c;
-                  if(Z>-1 && Z<floatingImage->nz)
-                  {
-                     zPointer = &floatingIntensity[Z*floatingImage->nx*floatingImage->ny];
-                     yTempNewValue=0.0;
-                     for(b=0; b<2; b++)
-                     {
-                        Y= previous[1]+b;
-                        if(Y>-1 && Y<floatingImage->ny)
-                        {
-                           xyzPointer = &zPointer[Y*floatingImage->nx+previous[0]];
-                           xTempNewValue=0.0;
-                           for(a=0; a<2; a++)
-                           {
-                              X= previous[0]+a;
-                              if(X>-1 && X<floatingImage->nx)
-                              {
-                                 xTempNewValue +=  *xyzPointer * xBasis[a];
-                              } // X
-                              else xTempNewValue +=  paddingValue * xBasis[a];
-                              xyzPointer++;
-                           } // a
-                           yTempNewValue += xTempNewValue * yBasis[b];
-                        } // Y
-                        else yTempNewValue += paddingValue * yBasis[b];
-                     } // b
-                     intensity += yTempNewValue * zBasis[c];
-                  } // Z
-                  else intensity += paddingValue * zBasis[c];
-               } // c
-            } // padding value is defined
-            else if(previous[0]>=0.f && previous[0]<(floatingImage->nx-1) &&
-                    previous[1]>=0.f && previous[1]<(floatingImage->ny-1) &&
-                    previous[2]>=0.f && previous[2]<(floatingImage->nz-1) )
-            {
-               for(c=0; c<2; c++)
-               {
-                  Z= previous[2]+c;
-                  zPointer = &floatingIntensity[Z*floatingImage->nx*floatingImage->ny];
-                  yTempNewValue=0.0;
-                  for(b=0; b<2; b++)
-                  {
-                     Y= previous[1]+b;
-                     xyzPointer = &zPointer[Y*floatingImage->nx+previous[0]];
-                     xTempNewValue=0.0;
-                     for(a=0; a<2; a++)
-                     {
-                        X= previous[0]+a;
-                        xTempNewValue +=  *xyzPointer * xBasis[a];
-                        xyzPointer++;
-                     } // a
-                     yTempNewValue += xTempNewValue * yBasis[b];
-                  } // b
-                  intensity += yTempNewValue * zBasis[c];
-               } // c
-            } // padding value is not defined
-            // The voxel is outside of the floating space and thus set to NaN here
-            else intensity=paddingValue;
-         } // voxel is in the mask
-
-         switch(floatingImage->datatype)
-         {
-         case NIFTI_TYPE_FLOAT32:
-            warpedIntensity[index]=(FloatingTYPE)intensity;
-            break;
-         case NIFTI_TYPE_FLOAT64:
-            warpedIntensity[index]=(FloatingTYPE)intensity;
-            break;
-         case NIFTI_TYPE_UINT8:
-            warpedIntensity[index]=(FloatingTYPE)(intensity>0?reg_round(intensity):0);
-            break;
-         case NIFTI_TYPE_UINT16:
-            warpedIntensity[index]=(FloatingTYPE)(intensity>0?reg_round(intensity):0);
-            break;
-         case NIFTI_TYPE_UINT32:
-            warpedIntensity[index]=(FloatingTYPE)(intensity>0?reg_round(intensity):0);
-            break;
-         default:
-            warpedIntensity[index]=(FloatingTYPE)reg_round(intensity);
-            break;
-         }
-#ifndef _OPENMP
-         // Announce the progress via CLI
-         if (iProgressStep % progressUnit == 0)
-            progressXML(100 * iProgressStep / nProgressSteps, "Performing Trilinear Resampling...");
-
-         // Increment the progress counter
-         iProgressStep++;
-#endif
-      }
-   }
-}
-/* *************************************************************** */
-template<class FloatingTYPE, class FieldTYPE>
-void BilinearResampleImage(nifti_image *floatingImage,
-                           nifti_image *deformationField,
-                           nifti_image *warpedImage,
-                           int *mask,
-                           FieldTYPE paddingValue)
-{
-   // The resampling scheme is applied along each time
-#ifdef _WIN32
-   long  index;
-   long  referenceVoxelNumber = (long)warpedImage->nx*warpedImage->ny;
-   long  floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny;
-#else
-   size_t  index;
-   size_t  referenceVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny;
-   size_t  floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
-#endif
-   FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
-   FloatingTYPE *warpedIntensityPtr = static_cast<FloatingTYPE *>(warpedImage->data);
-   FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-   FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[referenceVoxelNumber];
-
-   int *maskPtr = &mask[0];
-
-   mat44 *floatingIJKMatrix;
-   if(floatingImage->sform_code>0)
-      floatingIJKMatrix=&(floatingImage->sto_ijk);
-   else floatingIJKMatrix=&(floatingImage->qto_ijk);
-
-#ifndef _OPENMP
-   // Compute the resolution of the progress bar
-   unsigned long iProgressStep  = 1;
-   unsigned long nProgressSteps = (unsigned long)referenceVoxelNumber*warpedImage->nt * warpedImage->nu;
-   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-#endif
-
-   for(int t=0; t<warpedImage->nt*warpedImage->nu; t++)
-   {
-
-#ifndef NDEBUG
-      printf("[NiftyReg DEBUG] 2D linear resampling of volume number %i\n",t);
-#endif
-
-      FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*referenceVoxelNumber];
-      FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
-
-      FieldTYPE xBasis[2], yBasis[2], relative;
-      int a, b, X, Y, previous[3];
-
-      FloatingTYPE *xyPointer;
-      FieldTYPE xTempNewValue, intensity, world[2], position[2];
-#if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(index, intensity, world, position, previous, xBasis, yBasis, relative, \
-              a, b, X, Y, xyPointer, xTempNewValue) \
-      shared(floatingIntensity, warpedIntensity, referenceVoxelNumber, floatingVoxelNumber, \
-             deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
-             floatingIJKMatrix, floatingImage, paddingValue)
-#endif // _OPENMP
-      for(index=0; index<referenceVoxelNumber; ++index)
-      {
-
-         intensity=paddingValue;
-
-         if(maskPtr[index]>-1)
-         {
-
-            intensity=0;
-
-            world[0] = deformationFieldPtrX[index];
-            world[1] = deformationFieldPtrY[index];
-
-            /* real -> voxel; floating space */
-            position[0] = world[0]*floatingIJKMatrix->m[0][0] +
-                          world[1]*floatingIJKMatrix->m[0][1] +
-                          floatingIJKMatrix->m[0][3];
-            position[1] = world[0]*floatingIJKMatrix->m[1][0] +
-                          world[1]*floatingIJKMatrix->m[1][1] +
-                          floatingIJKMatrix->m[1][3];
-
-            previous[0] = static_cast<int>(reg_floor(position[0]));
-            previous[1] = static_cast<int>(reg_floor(position[1]));
-            // basis values along the x axis
-            relative=position[0]-(FieldTYPE)previous[0];
-            relative=relative>0?relative:0;
-            xBasis[0]= (FieldTYPE)(1.0-relative);
-            xBasis[1]= relative;
-            // basis values along the y axis
-            relative=position[1]-(FieldTYPE)previous[1];
-            relative=relative>0?relative:0;
-            yBasis[0]= (FieldTYPE)(1.0-relative);
-            yBasis[1]= relative;
-
-            for(b=0; b<2; b++)
-            {
-               Y = previous[1]+b;
-               if(Y>-1 && Y<floatingImage->ny)
-               {
-                  xyPointer = &floatingIntensity[Y*floatingImage->nx+previous[0]];
-                  xTempNewValue=0.0;
-                  for(a=0; a<2; a++)
-                  {
-                     X = previous[0]+a;
-                     if(X>-1 && X<floatingImage->nx)
-                     {
-                        xTempNewValue +=  *xyPointer * xBasis[a];
-                     }
-                     else xTempNewValue +=  paddingValue * xBasis[a];
-                     xyPointer++;
-                  } // a
-                  intensity += xTempNewValue * yBasis[b];
-               } // Y outside
-               else intensity += paddingValue * yBasis[b];
-            } // b
-         } // mask
-
-         switch(floatingImage->datatype)
-         {
-         case NIFTI_TYPE_FLOAT32:
-            warpedIntensity[index]=(FloatingTYPE)intensity;
-            break;
-         case NIFTI_TYPE_FLOAT64:
-            warpedIntensity[index]=(FloatingTYPE)intensity;
-            break;
-         case NIFTI_TYPE_UINT8:
-            warpedIntensity[index]=(FloatingTYPE)(intensity>0?reg_round(intensity):0);
-            break;
-         case NIFTI_TYPE_UINT16:
-            warpedIntensity[index]=(FloatingTYPE)(intensity>0?reg_round(intensity):0);
-            break;
-         case NIFTI_TYPE_UINT32:
-            warpedIntensity[index]=(FloatingTYPE)(intensity>0?reg_round(intensity):0);
-            break;
-         default:
-            warpedIntensity[index]=(FloatingTYPE)reg_round(intensity);
-            break;
-         }
-
-#ifndef _OPENMP
-         // Announce the progress via CLI
-         if (iProgressStep % progressUnit == 0)
-            progressXML(100 * iProgressStep / nProgressSteps, "Performing Bilinear Resampling...");
-
-         // Increment the progress counter
-         iProgressStep++;
-#endif
-      }
-   }
-}
-/* *************************************************************** */
-template<class FloatingTYPE, class FieldTYPE>
-void NearestNeighborResampleImage(nifti_image *floatingImage,
-                                  nifti_image *deformationField,
-                                  nifti_image *warpedImage,
-                                  int *mask,
-                                  FieldTYPE paddingValue)
-{
-   // The resampling scheme is applied along each time
-#ifdef _WIN32
-      long index;
-      long referenceVoxelNumber = (long)warpedImage->nx*warpedImage->ny*warpedImage->nz;
-      long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny*floatingImage->nz;
-#else
-      size_t index;
-      size_t referenceVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny*warpedImage->nz;
-      size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
-#endif
-   FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
-   FloatingTYPE *warpedIntensityPtr = static_cast<FloatingTYPE *>(warpedImage->data);
-   FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-   FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[referenceVoxelNumber];
-   FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[referenceVoxelNumber];
-
-   int *maskPtr = &mask[0];
-
-   mat44 *floatingIJKMatrix;
-   if(floatingImage->sform_code>0)
-      floatingIJKMatrix=&(floatingImage->sto_ijk);
-   else floatingIJKMatrix=&(floatingImage->qto_ijk);
-
-#ifndef _OPENMP
-   // Compute the resolution of the progress bar
-   unsigned long iProgressStep  = 1;
-   unsigned long nProgressSteps = warpedImage->nt * warpedImage->nu * referenceVoxelNumber;
-   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-#endif
-
-   for(int t=0; t<warpedImage->nt*warpedImage->nu; t++)
-   {
-#ifndef NDEBUG
-      printf("[NiftyReg DEBUG] 3D nearest neighbor resampling of volume number %i\n",t);
-#endif
-
-      FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*referenceVoxelNumber];
-      FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
-
-      FloatingTYPE intensity;
-      FieldTYPE world[3];
-      FieldTYPE position[3];
-      int previous[3];
-
-#if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(index, intensity, world, position, previous) \
-      shared(floatingIntensity, warpedIntensity, referenceVoxelNumber, floatingVoxelNumber, \
-             deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
-             floatingIJKMatrix, floatingImage, paddingValue)
-#endif // _OPENMP
-      for(index=0; index<referenceVoxelNumber; index++)
-      {
-
-         if(maskPtr[index]>-1)
-         {
-            world[0]=(FieldTYPE) deformationFieldPtrX[index];
-            world[1]=(FieldTYPE) deformationFieldPtrY[index];
-            world[2]=(FieldTYPE) deformationFieldPtrZ[index];
-
-            /* real -> voxel; floating space */
-            reg_mat44_mul(floatingIJKMatrix, world, position);
-
-            previous[0] = (int)reg_round(position[0]);
-            previous[1] = (int)reg_round(position[1]);
-            previous[2] = (int)reg_round(position[2]);
-
-            if( -1<previous[2] && previous[2]<floatingImage->nz &&
-                  -1<previous[1] && previous[1]<floatingImage->ny &&
-                  -1<previous[0] && previous[0]<floatingImage->nx)
-            {
-               intensity = floatingIntensity[(previous[2]*floatingImage->ny+previous[1]) *
-                                           floatingImage->nx+previous[0]];
+            case NIFTI_TYPE_FLOAT32:
+               warpedIntensity[index]=static_cast<FloatingTYPE>(intensity);
+               break;
+            case NIFTI_TYPE_FLOAT64:
                warpedIntensity[index]=intensity;
+               break;
+            case NIFTI_TYPE_UINT8:
+               intensity=(intensity<=255?reg_round(intensity):255); // 255=2^8-1
+               warpedIntensity[index]=static_cast<FloatingTYPE>(intensity>0?reg_round(intensity):0);
+               break;
+            case NIFTI_TYPE_UINT16:
+               intensity=(intensity<=65535?reg_round(intensity):65535); // 65535=2^16-1
+               warpedIntensity[index]=static_cast<FloatingTYPE>(intensity>0?reg_round(intensity):0);
+               break;
+            case NIFTI_TYPE_UINT32:
+               intensity=(intensity<=4294967295?reg_round(intensity):4294967295); // 4294967295=2^32-1
+               warpedIntensity[index]=static_cast<FloatingTYPE>(intensity>0?reg_round(intensity):0);
+               break;
+            default:
+               warpedIntensity[index]=static_cast<FloatingTYPE>(reg_round(intensity));
+               break;
             }
-            else warpedIntensity[index]=(FloatingTYPE)paddingValue;
-         }
-         else warpedIntensity[index]=(FloatingTYPE)paddingValue;
 
 #ifndef _OPENMP
-         // Announce the progress via CLI
-         if (iProgressStep % progressUnit == 0)
-            progressXML(100 * iProgressStep / nProgressSteps, "Performing 3D Nearest Neighbour Resampling...");
+            // Announce the progress via CLI
+            if (iProgressStep % progressUnit == 0)
+               progressXML(100 * iProgressStep / nProgressSteps, "Performing 3D Resampling...");
 
-         // Increment the progress counter
-         iProgressStep++;
+            // Increment the progress counter
+            iProgressStep++;
 #endif
+         }
       }
    }
 }
 /* *************************************************************** */
-template<class FloatingTYPE, class FieldTYPE>
-void NearestNeighborResampleImage2D(nifti_image *floatingImage,
-                                    nifti_image *deformationField,
-                                    nifti_image *warpedImage,
-                                    int *mask,
-                                    FieldTYPE paddingValue)
-{
-#ifdef _WIN32
-      long index;
-      long referenceVoxelNumber = (long)warpedImage->nx*warpedImage->ny;
-      long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny;
-#else
-      size_t  index;
-      size_t referenceVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny;
-      size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
-#endif
-   FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
-   FloatingTYPE *warpedIntensityPtr = static_cast<FloatingTYPE *>(warpedImage->data);
-   FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
-   FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[referenceVoxelNumber];
-
-   int *maskPtr = &mask[0];
-
-   mat44 *floatingIJKMatrix;
-   if(floatingImage->sform_code>0)
-      floatingIJKMatrix=&(floatingImage->sto_ijk);
-   else floatingIJKMatrix=&(floatingImage->qto_ijk);
-
-#ifndef _OPENMP
-   // Compute the resolution of the progress bar
-   unsigned long iProgressStep  = 1;
-   unsigned long nProgressSteps = warpedImage->nt * warpedImage->nu * referenceVoxelNumber;
-   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-#endif
-
-   for(int t=0; t<warpedImage->nt*warpedImage->nu; t++)
-   {
-#ifndef NDEBUG
-      printf("[NiftyReg DEBUG] 2D nearest neighbor resampling of volume number %i\n",t);
-#endif
-
-      FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*referenceVoxelNumber];
-      FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
-
-      FloatingTYPE intensity;
-      FieldTYPE world[2];
-      FieldTYPE position[2];
-      int previous[2];
-
-#if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(index, intensity, world, position, previous) \
-      shared(floatingIntensity, warpedIntensity, referenceVoxelNumber, floatingVoxelNumber, \
-             deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
-             floatingIJKMatrix, floatingImage, paddingValue)
-#endif // _OPENMP
-      for(index=0; index<referenceVoxelNumber; index++)
-      {
-
-         if((*maskPtr++)>-1)
-         {
-            world[0]=(FieldTYPE) deformationFieldPtrX[index];
-            world[1]=(FieldTYPE) deformationFieldPtrY[index];
-            /* real -> voxel; floating space */
-            position[0] = world[0]*floatingIJKMatrix->m[0][0] + world[1]*floatingIJKMatrix->m[0][1] +
-                          floatingIJKMatrix->m[0][3];
-            position[1] = world[0]*floatingIJKMatrix->m[1][0] + world[1]*floatingIJKMatrix->m[1][1] +
-                          floatingIJKMatrix->m[1][3];
-
-            previous[0] = static_cast<int>(reg_round(position[0]));
-            previous[1] = static_cast<int>(reg_round(position[1]));
-
-            if( -1<previous[1] && previous[1]<floatingImage->ny &&
-                  -1<previous[0] && previous[0]<floatingImage->nx)
-            {
-               intensity = floatingIntensity[previous[1]*floatingImage->nx+previous[0]];
-               warpedIntensity[index]=intensity;
-            }
-            else warpedIntensity[index]=(FloatingTYPE)paddingValue;
-         }
-         else warpedIntensity[index]=(FloatingTYPE)paddingValue;
-
-#ifndef _OPENMP
-         // Announce the progress via CLI
-         if (iProgressStep % progressUnit == 0)
-            progressXML(100 * iProgressStep / nProgressSteps, "Performing 2D Nearest Neighbour Resampling...");
-
-         // Increment the progress counter
-         iProgressStep++;
-#endif
-      }
-   }
-}
 /* *************************************************************** */
 
 /** This function resample a floating image into the referential
@@ -1490,84 +725,29 @@ void reg_resampleImage2(nifti_image *floatingImage,
    void *originalFloatingData=NULL;
    // The DTI are logged
    reg_dti_resampling_preprocessing<FloatingTYPE>(floatingImage,
-         &originalFloatingData,
-         dtIndicies);
+                                                  &originalFloatingData,
+                                                  dtIndicies);
 
    /* The deformation field contains the position in the real world */
-   if(interp==4 && dtIndicies[0] == -1)
+   if(dtIndicies[0] == -1)
    {
       if(deformationFieldImage->nz>1)
       {
-         WindowedSincResampleImage3D<FloatingTYPE,FieldTYPE>(floatingImage,
-                                                           deformationFieldImage,
-                                                           warpedImage,
-                                                           mask,
-                                                           paddingValue);
+         ResampleImage3D<FloatingTYPE,FieldTYPE>(floatingImage,
+                                                 deformationFieldImage,
+                                                 warpedImage,
+                                                 mask,
+                                                 paddingValue,
+                                                 interp);
       }
       else
       {
-         WindowedSincResampleImage2D<FloatingTYPE,FieldTYPE>(floatingImage,
-                                                           deformationFieldImage,
-                                                           warpedImage,
-                                                           mask,
-                                                           paddingValue);
-      }
-   }
-   else if(interp==3 && dtIndicies[0] == -1)
-   {
-      if(deformationFieldImage->nz>1)
-      {
-         CubicSplineResampleImage3D<FloatingTYPE,FieldTYPE>(floatingImage,
-                                                          deformationFieldImage,
-                                                          warpedImage,
-                                                          mask,
-                                                          paddingValue);
-      }
-      else
-      {
-         CubicSplineResampleImage2D<FloatingTYPE,FieldTYPE>(floatingImage,
-                                                          deformationFieldImage,
-                                                          warpedImage,
-                                                          mask,
-                                                          paddingValue);
-      }
-   }
-   else if(interp==0 && dtIndicies[0] == -1)  // Nearest neighbor interpolation
-   {
-      if(deformationFieldImage->nz>1)
-      {
-         NearestNeighborResampleImage<FloatingTYPE, FieldTYPE>(floatingImage,
-                                                             deformationFieldImage,
-                                                             warpedImage,
-                                                             mask,
-                                                             paddingValue);
-      }
-      else
-      {
-         NearestNeighborResampleImage2D<FloatingTYPE, FieldTYPE>(floatingImage,
-                                                               deformationFieldImage,
-                                                               warpedImage,
-                                                               mask,
-                                                               paddingValue);
-      }
-   }
-   else  // trilinear interpolation [ by default ]
-   {
-      if(deformationFieldImage->nz>1)
-      {
-         TrilinearResampleImage<FloatingTYPE, FieldTYPE>(floatingImage,
-                                                       deformationFieldImage,
-                                                       warpedImage,
-                                                       mask,
-                                                       paddingValue);
-      }
-      else
-      {
-         BilinearResampleImage<FloatingTYPE, FieldTYPE>(floatingImage,
-                                                      deformationFieldImage,
-                                                      warpedImage,
-                                                      mask,
-                                                      paddingValue);
+         ResampleImage2D<FloatingTYPE,FieldTYPE>(floatingImage,
+                                                 deformationFieldImage,
+                                                 warpedImage,
+                                                 mask,
+                                                 paddingValue,
+                                                 interp);
       }
    }
    // The temporary logged floating array is deleted
@@ -1579,9 +759,9 @@ void reg_resampleImage2(nifti_image *floatingImage,
    }
    // The interpolated tensors are reoriented and exponentiated
    reg_dti_resampling_postprocessing<FloatingTYPE>(warpedImage,
-         mask,
-         jacMat,
-         dtIndicies);
+                                                   mask,
+                                                   jacMat,
+                                                   dtIndicies);
 }
 /* *************************************************************** */
 void reg_resampleImage(nifti_image *floatingImage,
@@ -1669,13 +849,13 @@ void reg_resampleImage(nifti_image *floatingImage,
          break;
       case NIFTI_TYPE_UINT16:
          reg_resampleImage2<float,unsigned short>(floatingImage,
-               warpedImage,
-               deformationField,
-               mask,
-               interp,
-               paddingValue,
-               dtIndicies,
-               jacMat);
+                                                  warpedImage,
+                                                  deformationField,
+                                                  mask,
+                                                  interp,
+                                                  paddingValue,
+                                                  dtIndicies,
+                                                  jacMat);
          break;
       case NIFTI_TYPE_INT16:
          reg_resampleImage2<float,short>(floatingImage,
@@ -1737,13 +917,13 @@ void reg_resampleImage(nifti_image *floatingImage,
       {
       case NIFTI_TYPE_UINT8:
          reg_resampleImage2<double,unsigned char>(floatingImage,
-               warpedImage,
-               deformationField,
-               mask,
-               interp,
-               paddingValue,
-               dtIndicies,
-               jacMat);
+                                                  warpedImage,
+                                                  deformationField,
+                                                  mask,
+                                                  interp,
+                                                  paddingValue,
+                                                  dtIndicies,
+                                                  jacMat);
          break;
       case NIFTI_TYPE_INT8:
          reg_resampleImage2<double,char>(floatingImage,
@@ -1757,13 +937,13 @@ void reg_resampleImage(nifti_image *floatingImage,
          break;
       case NIFTI_TYPE_UINT16:
          reg_resampleImage2<double,unsigned short>(floatingImage,
-               warpedImage,
-               deformationField,
-               mask,
-               interp,
-               paddingValue,
-               dtIndicies,
-               jacMat);
+                                                   warpedImage,
+                                                   deformationField,
+                                                   mask,
+                                                   interp,
+                                                   paddingValue,
+                                                   dtIndicies,
+                                                   jacMat);
          break;
       case NIFTI_TYPE_INT16:
          reg_resampleImage2<double,short>(floatingImage,
@@ -1885,14 +1065,14 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
 
    // Loop over all voxel
 #if defined (NDEBUG) && defined (_OPENMP)
-   #pragma omp parallel for default(none) \
+#pragma omp parallel for default(none) \
    private(x,y,a,b,val_x,val_y,defIndex,floIndex,warpedIndex, \
-           anteIntX,anteIntY,xFloCoord,yFloCoord, \
-           basisX,basisY,deriv,basis,defX,defY,jacMat,weight) \
+   anteIntX,anteIntY,xFloCoord,yFloCoord, \
+   basisX,basisY,deriv,basis,defX,defY,jacMat,weight) \
    shared(warpedImage,warpedIntensityX,warpedIntensityY, \
-          deformationField,deformationFieldPtrX,deformationFieldPtrY, \
-          floatingImage,floatingIntensityX,floatingIntensityY,floating_mm_to_voxel, \
-          paddingValue, reorient,realSpacing)
+   deformationField,deformationFieldPtrX,deformationFieldPtrY, \
+   floatingImage,floatingIntensityX,floatingIntensityY,floating_mm_to_voxel, \
+   paddingValue, reorient,realSpacing)
 #endif // _OPENMP
    for(y=0; y<warpedImage->ny; ++y)
    {
@@ -1910,13 +1090,13 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
          defX=deformationFieldPtrX[warpedIndex];
          defY=deformationFieldPtrY[warpedIndex];
          xFloCoord =
-            floating_mm_to_voxel->m[0][0] * defX +
-            floating_mm_to_voxel->m[0][1] * defY +
-            floating_mm_to_voxel->m[0][3];
+               floating_mm_to_voxel->m[0][0] * defX +
+               floating_mm_to_voxel->m[0][1] * defY +
+               floating_mm_to_voxel->m[0][3];
          yFloCoord =
-            floating_mm_to_voxel->m[1][0] * defX +
-            floating_mm_to_voxel->m[1][1] * defY +
-            floating_mm_to_voxel->m[1][3];
+               floating_mm_to_voxel->m[1][0] * defX +
+               floating_mm_to_voxel->m[1][1] * defY +
+               floating_mm_to_voxel->m[1][3];
 
          // Extract the floating value using bilinear interpolation
          anteIntX[0]=static_cast<int>(reg_floor(xFloCoord));
@@ -2085,14 +1265,14 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
 #endif
    // Loop over all voxel
 #if defined (NDEBUG) && defined (_OPENMP)
-   #pragma omp parallel for default(none) \
+#pragma omp parallel for default(none) \
    private(x,y,z,a,b,c,val_x,val_y,val_z,defIndex,floIndex,warpedIndex, \
-           anteIntX,anteIntY,anteIntZ,xFloCoord,yFloCoord,zFloCoord, \
-           basisX,basisY,basisZ,deriv,basis,defX,defY,defZ,jacMat,weight) \
+   anteIntX,anteIntY,anteIntZ,xFloCoord,yFloCoord,zFloCoord, \
+   basisX,basisY,basisZ,deriv,basis,defX,defY,defZ,jacMat,weight) \
    shared(warpedImage,warpedIntensityX,warpedIntensityY,warpedIntensityZ, \
-          deformationField,deformationFieldPtrX,deformationFieldPtrY,deformationFieldPtrZ, \
-          floatingImage,floatingIntensityX,floatingIntensityY,floatingIntensityZ,floating_mm_to_voxel, \
-          paddingValue, reorient, realSpacing)
+   deformationField,deformationFieldPtrX,deformationFieldPtrY,deformationFieldPtrZ, \
+   floatingImage,floatingIntensityX,floatingIntensityY,floatingIntensityZ,floating_mm_to_voxel, \
+   paddingValue, reorient, realSpacing)
 #endif // _OPENMP
    for(z=0; z<warpedImage->nz; ++z)
    {
@@ -2114,20 +1294,20 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
             defY=deformationFieldPtrY[warpedIndex];
             defZ=deformationFieldPtrZ[warpedIndex];
             xFloCoord =
-               floating_mm_to_voxel->m[0][0] * defX +
-               floating_mm_to_voxel->m[0][1] * defY +
-               floating_mm_to_voxel->m[0][2] * defZ +
-               floating_mm_to_voxel->m[0][3];
+                  floating_mm_to_voxel->m[0][0] * defX +
+                  floating_mm_to_voxel->m[0][1] * defY +
+                  floating_mm_to_voxel->m[0][2] * defZ +
+                  floating_mm_to_voxel->m[0][3];
             yFloCoord =
-               floating_mm_to_voxel->m[1][0] * defX +
-               floating_mm_to_voxel->m[1][1] * defY +
-               floating_mm_to_voxel->m[1][2] * defZ +
-               floating_mm_to_voxel->m[1][3];
+                  floating_mm_to_voxel->m[1][0] * defX +
+                  floating_mm_to_voxel->m[1][1] * defY +
+                  floating_mm_to_voxel->m[1][2] * defZ +
+                  floating_mm_to_voxel->m[1][3];
             zFloCoord =
-               floating_mm_to_voxel->m[2][0] * defX +
-               floating_mm_to_voxel->m[2][1] * defY +
-               floating_mm_to_voxel->m[2][2] * defZ +
-               floating_mm_to_voxel->m[2][3];
+                  floating_mm_to_voxel->m[2][0] * defX +
+                  floating_mm_to_voxel->m[2][1] * defY +
+                  floating_mm_to_voxel->m[2][2] * defZ +
+                  floating_mm_to_voxel->m[2][3];
 
             // Extract the floating value using bilinear interpolation
             anteIntX[0]=static_cast<int>(reg_floor(xFloCoord));
@@ -2236,7 +1416,7 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
 
                      // Get the deformation field index
                      defIndex=(anteIntZ[0]*deformationField->ny+anteIntY[0]) *
-                              deformationField->nx+anteIntX[0];
+                           deformationField->nx+anteIntX[0];
 
                      // Get the deformation field values
                      defX=deformationFieldPtrX[defIndex];
@@ -2350,13 +1530,13 @@ void TrilinearImageGradient(nifti_image *floatingImage,
                             float paddingValue)
 {
 #ifdef _WIN32
-      long index;
-      long referenceVoxelNumber = (long)warpedGradientImage->nx*warpedGradientImage->ny*warpedGradientImage->nz;
-      long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+   long index;
+   long referenceVoxelNumber = (long)warpedGradientImage->nx*warpedGradientImage->ny*warpedGradientImage->nz;
+   long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny*floatingImage->nz;
 #else
-      size_t index;
-      size_t referenceVoxelNumber = (size_t)warpedGradientImage->nx*warpedGradientImage->ny*warpedGradientImage->nz;
-      size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+   size_t index;
+   size_t referenceVoxelNumber = (size_t)warpedGradientImage->nx*warpedGradientImage->ny*warpedGradientImage->nz;
+   size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
 #endif
    FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
    GradientTYPE *warpedGradientImagePtr = static_cast<GradientTYPE *>(warpedGradientImage->data);
@@ -2399,12 +1579,12 @@ void TrilinearImageGradient(nifti_image *floatingImage,
       FieldTYPE xxTempNewValue, yyTempNewValue, zzTempNewValue, xTempNewValue, yTempNewValue;
       FloatingTYPE *zPointer, *xyzPointer;
 #if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(index, world, position, previous, xBasis, yBasis, zBasis, relative, grad, coeff, \
-              a, b, c, X, Y, Z, zPointer, xyzPointer, xTempNewValue, yTempNewValue, xxTempNewValue, yyTempNewValue, zzTempNewValue) \
-      shared(floatingIntensity, referenceVoxelNumber, floatingVoxelNumber, deriv, paddingValue, \
-             deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
-             floatingIJKMatrix, floatingImage, warpedGradientPtrX, warpedGradientPtrY, warpedGradientPtrZ)
+#pragma omp parallel for default(none) \
+   private(index, world, position, previous, xBasis, yBasis, zBasis, relative, grad, coeff, \
+   a, b, c, X, Y, Z, zPointer, xyzPointer, xTempNewValue, yTempNewValue, xxTempNewValue, yyTempNewValue, zzTempNewValue) \
+   shared(floatingIntensity, referenceVoxelNumber, floatingVoxelNumber, deriv, paddingValue, \
+   deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
+   floatingIJKMatrix, floatingImage, warpedGradientPtrX, warpedGradientPtrY, warpedGradientPtrZ)
 #endif // _OPENMP
       for(index=0; index<referenceVoxelNumber; index++)
       {
@@ -2558,13 +1738,13 @@ void BilinearImageGradient(nifti_image *floatingImage,
                            float paddingValue)
 {
 #ifdef _WIN32
-      long index;
-      long referenceVoxelNumber = (long)warpedGradientImage->nx*warpedGradientImage->ny;
-      long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny;
+   long index;
+   long referenceVoxelNumber = (long)warpedGradientImage->nx*warpedGradientImage->ny;
+   long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny;
 #else
-      size_t index;
-      size_t referenceVoxelNumber = (size_t)warpedGradientImage->nx*warpedGradientImage->ny;
-      size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
+   size_t index;
+   size_t referenceVoxelNumber = (size_t)warpedGradientImage->nx*warpedGradientImage->ny;
+   size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
 #endif
 
    FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
@@ -2607,12 +1787,12 @@ void BilinearImageGradient(nifti_image *floatingImage,
       FloatingTYPE *xyPointer;
 
 #if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(index, world, position, previous, xBasis, yBasis, relative, grad, coeff, \
-              a, b, X, Y, xyPointer, xTempNewValue, yTempNewValue) \
-      shared(floatingIntensity, referenceVoxelNumber, floatingVoxelNumber, deriv, \
-             deformationFieldPtrX, deformationFieldPtrY, maskPtr, paddingValue, \
-             floatingIJKMatrix, floatingImage, warpedGradientPtrX, warpedGradientPtrY)
+#pragma omp parallel for default(none) \
+   private(index, world, position, previous, xBasis, yBasis, relative, grad, coeff, \
+   a, b, X, Y, xyPointer, xTempNewValue, yTempNewValue) \
+   shared(floatingIntensity, referenceVoxelNumber, floatingVoxelNumber, deriv, \
+   deformationFieldPtrX, deformationFieldPtrY, maskPtr, paddingValue, \
+   floatingIJKMatrix, floatingImage, warpedGradientPtrX, warpedGradientPtrY)
 #endif // _OPENMP
       for(index=0; index<referenceVoxelNumber; index++)
       {
@@ -2627,9 +1807,9 @@ void BilinearImageGradient(nifti_image *floatingImage,
 
             /* real -> voxel; floating space */
             position[0] = world[0]*floatingIJKMatrix.m[0][0] + world[1]*floatingIJKMatrix.m[0][1] +
-                          floatingIJKMatrix.m[0][3];
+                  floatingIJKMatrix.m[0][3];
             position[1] = world[0]*floatingIJKMatrix.m[1][0] + world[1]*floatingIJKMatrix.m[1][1] +
-                          floatingIJKMatrix.m[1][3];
+                  floatingIJKMatrix.m[1][3];
 
             previous[0] = static_cast<int>(reg_floor(position[0]));
             previous[1] = static_cast<int>(reg_floor(position[1]));
@@ -2704,13 +1884,13 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
                                 float paddingValue)
 {
 #ifdef _WIN32
-      long index;
-      long referenceVoxelNumber = (long)warpedGradientImage->nx*warpedGradientImage->ny*warpedGradientImage->nz;
-      long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+   long index;
+   long referenceVoxelNumber = (long)warpedGradientImage->nx*warpedGradientImage->ny*warpedGradientImage->nz;
+   long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny*floatingImage->nz;
 #else
-      size_t index;
-      size_t referenceVoxelNumber = (size_t)warpedGradientImage->nx*warpedGradientImage->ny*warpedGradientImage->nz;
-      size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+   size_t index;
+   size_t referenceVoxelNumber = (size_t)warpedGradientImage->nx*warpedGradientImage->ny*warpedGradientImage->nz;
+   size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
 #endif
 
    FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
@@ -2748,17 +1928,17 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
 
       int previous[3], c, Z, b, Y, a;
 
-      FieldTYPE xBasis[4], yBasis[4], zBasis[4], xDeriv[4], yDeriv[4], zDeriv[4];
-      FieldTYPE coeff, position[3], relative, world[3], grad[3];
+      double xBasis[4], yBasis[4], zBasis[4], xDeriv[4], yDeriv[4], zDeriv[4], relative;
+      FieldTYPE coeff, position[3], world[3], grad[3];
       FieldTYPE xxTempNewValue, yyTempNewValue, zzTempNewValue, xTempNewValue, yTempNewValue;
       FloatingTYPE *zPointer, *yzPointer, *xyzPointer;
 #if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(index, world, position, previous, xBasis, yBasis, zBasis, xDeriv, yDeriv, zDeriv, relative, grad, coeff, \
-              a, b, c, Y, Z, zPointer, yzPointer, xyzPointer, xTempNewValue, yTempNewValue, xxTempNewValue, yyTempNewValue, zzTempNewValue) \
-      shared(floatingIntensity, referenceVoxelNumber, floatingVoxelNumber, paddingValue, \
-             deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
-             floatingIJKMatrix, floatingImage, warpedGradientPtrX, warpedGradientPtrY, warpedGradientPtrZ)
+#pragma omp parallel for default(none) \
+   private(index, world, position, previous, xBasis, yBasis, zBasis, xDeriv, yDeriv, zDeriv, relative, grad, coeff, \
+   a, b, c, Y, Z, zPointer, yzPointer, xyzPointer, xTempNewValue, yTempNewValue, xxTempNewValue, yyTempNewValue, zzTempNewValue) \
+   shared(floatingIntensity, referenceVoxelNumber, floatingVoxelNumber, paddingValue, \
+   deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, maskPtr, \
+   floatingIJKMatrix, floatingImage, warpedGradientPtrX, warpedGradientPtrY, warpedGradientPtrZ)
 #endif // _OPENMP
       for(index=0; index<referenceVoxelNumber; index++)
       {
@@ -2783,15 +1963,15 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
 
             // basis values along the x axis
             relative=position[0]-(FieldTYPE)previous[0];
-            interpolantCubicSpline<FieldTYPE>(relative, xBasis, xDeriv);
+            interpCubicSplineKernel(relative, xBasis, xDeriv);
 
             // basis values along the y axis
             relative=position[1]-(FieldTYPE)previous[1];
-            interpolantCubicSpline<FieldTYPE>(relative, yBasis, yDeriv);
+            interpCubicSplineKernel(relative, yBasis, yDeriv);
 
             // basis values along the z axis
             relative=position[2]-(FieldTYPE)previous[2];
-            interpolantCubicSpline<FieldTYPE>(relative, zBasis, zDeriv);
+            interpCubicSplineKernel(relative, zBasis, zDeriv);
 
             previous[0]--;
             previous[1]--;
@@ -2881,13 +2061,13 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
                                 int *mask)
 {
 #ifdef _WIN32
-      long index;
-      long referenceVoxelNumber = (long)warpedGradientImage->nx*warpedGradientImage->ny;
-      long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny;
+   long index;
+   long referenceVoxelNumber = (long)warpedGradientImage->nx*warpedGradientImage->ny;
+   long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny;
 #else
-      size_t index;
-      size_t referenceVoxelNumber = (size_t)warpedGradientImage->nx*warpedGradientImage->ny;
-      size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
+   size_t index;
+   size_t referenceVoxelNumber = (size_t)warpedGradientImage->nx*warpedGradientImage->ny;
+   size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny;
 #endif
 
    FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
@@ -2922,17 +2102,17 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
 
       int previous[2], b, Y, a;
       bool bg;
-      FieldTYPE xBasis[4], yBasis[4], xDeriv[4], yDeriv[4];
-      FieldTYPE coeff, position[3], relative, world[3], grad[2];
+      double xBasis[4], yBasis[4], xDeriv[4], yDeriv[4], relative;
+      FieldTYPE coeff, position[3], world[3], grad[2];
       FieldTYPE xTempNewValue, yTempNewValue;
       FloatingTYPE *yPointer, *xyPointer;
 #if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(index, world, position, previous, xBasis, yBasis, xDeriv, yDeriv, relative, grad, coeff, bg, \
-              a, b, Y, yPointer, xyPointer, xTempNewValue, yTempNewValue) \
-      shared(floatingIntensity, referenceVoxelNumber, floatingVoxelNumber, \
-             deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
-             floatingIJKMatrix, floatingImage, warpedGradientPtrX, warpedGradientPtrY)
+#pragma omp parallel for default(none) \
+   private(index, world, position, previous, xBasis, yBasis, xDeriv, yDeriv, relative, grad, coeff, bg, \
+   a, b, Y, yPointer, xyPointer, xTempNewValue, yTempNewValue) \
+   shared(floatingIntensity, referenceVoxelNumber, floatingVoxelNumber, \
+   deformationFieldPtrX, deformationFieldPtrY, maskPtr, \
+   floatingIJKMatrix, floatingImage, warpedGradientPtrX, warpedGradientPtrY)
 #endif // _OPENMP
       for(index=0; index<referenceVoxelNumber; index++)
       {
@@ -2947,20 +2127,20 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
 
             /* real -> voxel; floating space */
             position[0] = world[0]*floatingIJKMatrix->m[0][0] + world[1]*floatingIJKMatrix->m[0][1] +
-                          floatingIJKMatrix->m[0][3];
+                  floatingIJKMatrix->m[0][3];
             position[1] = world[0]*floatingIJKMatrix->m[1][0] + world[1]*floatingIJKMatrix->m[1][1] +
-                          floatingIJKMatrix->m[1][3];
+                  floatingIJKMatrix->m[1][3];
 
             previous[0] = static_cast<int>(reg_floor(position[0]));
             previous[1] = static_cast<int>(reg_floor(position[1]));
             // basis values along the x axis
             relative=position[0]-(FieldTYPE)previous[0];
             relative=relative>0?relative:0;
-            interpolantCubicSpline<FieldTYPE>(relative, xBasis, xDeriv);
+            interpCubicSplineKernel(relative, xBasis, xDeriv);
             // basis values along the y axis
             relative=position[1]-(FieldTYPE)previous[1];
             relative=relative>0?relative:0;
-            interpolantCubicSpline<FieldTYPE>(relative, yBasis, yDeriv);
+            interpCubicSplineKernel(relative, yBasis, yDeriv);
 
             previous[0]--;
             previous[1]--;
@@ -3023,33 +2203,33 @@ void reg_getImageGradient3(nifti_image *floatingImage,
                            int *dtIndicies,
                            mat33 *jacMat,
                            nifti_image *warpedImage = NULL
-                          )
+      )
 {
    // The floating image data is copied in case one deal with DTI
    void *originalFloatingData=NULL;
    // The DTI are logged
    reg_dti_resampling_preprocessing<FloatingTYPE>(floatingImage,
-         &originalFloatingData,
-         dtIndicies);
+                                                  &originalFloatingData,
+                                                  dtIndicies);
    /* The deformation field contains the position in the real world */
    if(interp==3)
    {
       if(deformationField->nz>1)
       {
          CubicSplineImageGradient3D
-         <FloatingTYPE,GradientTYPE,FieldTYPE>(floatingImage,
-                                             deformationField,
-                                             warpedGradientImage,
-                                             mask,
-                                             paddingValue);
+               <FloatingTYPE,GradientTYPE,FieldTYPE>(floatingImage,
+                                                     deformationField,
+                                                     warpedGradientImage,
+                                                     mask,
+                                                     paddingValue);
       }
       else
       {
          CubicSplineImageGradient2D
-         <FloatingTYPE,GradientTYPE,FieldTYPE>(floatingImage,
-                                             deformationField,
-                                             warpedGradientImage,
-                                             mask);
+               <FloatingTYPE,GradientTYPE,FieldTYPE>(floatingImage,
+                                                     deformationField,
+                                                     warpedGradientImage,
+                                                     mask);
       }
    }
    else  // trilinear interpolation [ by default ]
@@ -3057,20 +2237,20 @@ void reg_getImageGradient3(nifti_image *floatingImage,
       if(deformationField->nz>1)
       {
          TrilinearImageGradient
-         <FloatingTYPE,GradientTYPE,FieldTYPE>(floatingImage,
-                                             deformationField,
-                                             warpedGradientImage,
-                                             mask,
-                                             paddingValue);
+               <FloatingTYPE,GradientTYPE,FieldTYPE>(floatingImage,
+                                                     deformationField,
+                                                     warpedGradientImage,
+                                                     mask,
+                                                     paddingValue);
       }
       else
       {
          BilinearImageGradient
-         <FloatingTYPE,GradientTYPE,FieldTYPE>(floatingImage,
-                                             deformationField,
-                                             warpedGradientImage,
-                                             mask,
-                                             paddingValue);
+               <FloatingTYPE,GradientTYPE,FieldTYPE>(floatingImage,
+                                                     deformationField,
+                                                     warpedGradientImage,
+                                                     mask,
+                                                     paddingValue);
       }
    }
    // The temporary logged floating array is deleted
@@ -3082,11 +2262,11 @@ void reg_getImageGradient3(nifti_image *floatingImage,
    }
    // The interpolated tensors are reoriented and exponentiated
    reg_dti_resampling_postprocessing<FloatingTYPE>(warpedGradientImage,
-         mask,
-         jacMat,
-         dtIndicies,
-         warpedImage
-                                                );
+                                                   mask,
+                                                   jacMat,
+                                                   dtIndicies,
+                                                   warpedImage
+                                                   );
 }
 /* *************************************************************** */
 template <class FieldTYPE, class FloatingTYPE>
@@ -3099,17 +2279,17 @@ void reg_getImageGradient2(nifti_image *floatingImage,
                            int *dtIndicies,
                            mat33 *jacMat,
                            nifti_image *warpedImage
-                          )
+                           )
 {
    switch(warpedGradientImage->datatype)
    {
    case NIFTI_TYPE_FLOAT32:
       reg_getImageGradient3<FieldTYPE,FloatingTYPE,float>
-      (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    case NIFTI_TYPE_FLOAT64:
       reg_getImageGradient3<FieldTYPE,FloatingTYPE,double>
-      (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    default:
       printf("[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe warped image data type is not supported\n");
@@ -3127,41 +2307,41 @@ void reg_getImageGradient1(nifti_image *floatingImage,
                            int *dtIndicies,
                            mat33 *jacMat,
                            nifti_image *warpedImage
-                          )
+                           )
 {
    switch(floatingImage->datatype)
    {
    case NIFTI_TYPE_UINT8:
       reg_getImageGradient2<FieldTYPE,unsigned char>
-      (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    case NIFTI_TYPE_INT8:
       reg_getImageGradient2<FieldTYPE,char>
-      (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    case NIFTI_TYPE_UINT16:
       reg_getImageGradient2<FieldTYPE,unsigned short>
-      (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    case NIFTI_TYPE_INT16:
       reg_getImageGradient2<FieldTYPE,short>
-      (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    case NIFTI_TYPE_UINT32:
       reg_getImageGradient2<FieldTYPE,unsigned int>
-      (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    case NIFTI_TYPE_INT32:
       reg_getImageGradient2<FieldTYPE,int>
-      (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    case NIFTI_TYPE_FLOAT32:
       reg_getImageGradient2<FieldTYPE,float>
-      (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    case NIFTI_TYPE_FLOAT64:
       reg_getImageGradient2<FieldTYPE,double>
-      (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    default:
       printf("[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe warped image data type is not supported\n");
@@ -3178,7 +2358,7 @@ void reg_getImageGradient(nifti_image *floatingImage,
                           bool *dti_timepoint,
                           mat33 *jacMat,
                           nifti_image *warpedImage
-                         )
+                          )
 {
    // a mask array is created if no mask is specified
    bool MrPropreRule=false;
@@ -3227,11 +2407,11 @@ void reg_getImageGradient(nifti_image *floatingImage,
    {
    case NIFTI_TYPE_FLOAT32:
       reg_getImageGradient1<float>
-      (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    case NIFTI_TYPE_FLOAT64:
       reg_getImageGradient1<double>
-      (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
+            (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    default:
       printf("[NiftyReg ERROR] reg_getImageGradient\tDeformation field pixel type unsupported.\n");
@@ -3323,11 +2503,11 @@ nifti_image *reg_makeIsotropic(nifti_image *img,
    def->dim[7]=def->nw=1;
    def->pixdim[7]=def->dw=1.0;
    def->nvox =
-      (size_t)def->nx *
-      (size_t)def->ny *
-      (size_t)def->nz *
-      (size_t)def->nt *
-      (size_t)def->nu;
+         (size_t)def->nx *
+         (size_t)def->ny *
+         (size_t)def->nz *
+         (size_t)def->nt *
+         (size_t)def->nu;
    def->nbyper = sizeof(float);
    def->datatype = NIFTI_TYPE_FLOAT32;
    def->data = (void *)calloc(def->nvox,def->nbyper);

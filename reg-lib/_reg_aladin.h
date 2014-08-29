@@ -58,6 +58,7 @@ protected:
 
    int BlockPercentage;
    int InlierLts;
+   int BlockStepSize;
    _reg_blockMatchingParam blockMatchingParams;
 
    bool AlignCentre;
@@ -146,6 +147,9 @@ public:
 
    SetMacro(BlockPercentage,int);
    GetMacro(BlockPercentage,int);
+
+   SetMacro(BlockStepSize,int);
+   GetMacro(BlockStepSize,int);
 
    SetMacro(InlierLts,float);
    GetMacro(InlierLts,float);

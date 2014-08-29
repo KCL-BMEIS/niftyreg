@@ -249,6 +249,7 @@ void reg_aladin_sym<T>::InitialiseBlockMatching(int CurrentPercentageOfBlockToUs
                                     &this->BackwardBlockMatchingParams,
                                     CurrentPercentageOfBlockToUse,    // percentage of block kept
                                     this->InlierLts,         // percentage of inlier in the optimisation process
+                                    this->BlockStepSize,
                                     this->CurrentFloatingMask,
                                     false // GPU is not used here
                                    );

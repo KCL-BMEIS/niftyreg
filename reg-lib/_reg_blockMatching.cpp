@@ -242,10 +242,11 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
    free(indexArray);
 }
 /* *************************************************************** */
-void initialise_block_matching_method(  nifti_image * target,
+void initialise_block_matching_method(nifti_image * target,
                                         _reg_blockMatchingParam *params,
                                         int percentToKeep_block,
                                         int percentToKeep_opt,
+                                        int stepSize_block,
                                         int *mask,
                                         bool runningOnGPU)
 {
@@ -270,6 +271,8 @@ void initialise_block_matching_method(  nifti_image * target,
    if(target->nz>1)
       params->blockNumber[2]=(int)reg_ceil((float)target->nz / (float)BLOCK_WIDTH);
    else params->blockNumber[2]=1;
+
+   params->stepSize=stepSize_block;
 
    params->percent_to_keep=percentToKeep_opt;
    params->activeBlockNumber=params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2] * percentToKeep_block / 100;
@@ -395,11 +398,11 @@ void block_matching_method2D(nifti_image * target,
                                         };
 
             // iteration over the result blocks
-            for(int m=-OVERLAP_SIZE; m<=OVERLAP_SIZE; m+=STEP_SIZE)
+            for(int m=-OVERLAP_SIZE; m<=OVERLAP_SIZE; m+=params->stepSize)
             {
                resultIndex_start_y=targetIndex_start_y+m;
                resultIndex_end_y=resultIndex_start_y+BLOCK_WIDTH;
-               for(int l=-OVERLAP_SIZE; l<=OVERLAP_SIZE; l+=STEP_SIZE)
+               for(int l=-OVERLAP_SIZE; l<=OVERLAP_SIZE; l+=params->stepSize)
                {
                   resultIndex_start_x=targetIndex_start_x+l;
                   resultIndex_end_x=resultIndex_start_x+BLOCK_WIDTH;
@@ -648,15 +651,15 @@ void block_matching_method3D(nifti_image * target,
                bestDisplacement[2] = 0.f;
 
                // iteration over the result blocks
-               for(n=-OVERLAP_SIZE; n<=OVERLAP_SIZE; n+=STEP_SIZE)
+               for(n=-OVERLAP_SIZE; n<=OVERLAP_SIZE; n+=params->stepSize)
                {
                   resultIndex_start_z=targetIndex_start_z+n;
                   resultIndex_end_z=resultIndex_start_z+BLOCK_WIDTH;
-                  for(m=-OVERLAP_SIZE; m<=OVERLAP_SIZE; m+=STEP_SIZE)
+                  for(m=-OVERLAP_SIZE; m<=OVERLAP_SIZE; m+=params->stepSize)
                   {
                      resultIndex_start_y=targetIndex_start_y+m;
                      resultIndex_end_y=resultIndex_start_y+BLOCK_WIDTH;
-                     for(l=-OVERLAP_SIZE; l<=OVERLAP_SIZE; l+=STEP_SIZE)
+                     for(l=-OVERLAP_SIZE; l<=OVERLAP_SIZE; l+=params->stepSize)
                      {
                         resultIndex_start_x=targetIndex_start_x+l;
                         resultIndex_end_x=resultIndex_start_x+BLOCK_WIDTH;

@@ -78,6 +78,7 @@ void Usage(char *exec)
 
    printf("\t-pv <int>\t\tPercentage of blocks to use in the optimisation scheme. [50]\n");
    printf("\t-pi <int>\t\tPercentage of blocks to consider as inlier in the optimisation scheme. [50]\n");
+   printf("\t-speeed\n");
 #if defined (_OPENMP)
    printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i]\n",
           omp_get_num_procs());
@@ -129,6 +130,7 @@ int main(int argc, char **argv)
    int levelsToPerform=std::numeric_limits<int>::max();
    int affineFlag=1;
    int rigidFlag=1;
+   int blockStepSize=1;
    int blockPercentage=50;
    float inlierLts=50.0f;
    int alignCentre=1;
@@ -261,6 +263,10 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
          }
          inlierLts=value;
+      }
+      else if(strcmp(argv[i], "-speeed")==0 || strcmp(argv[i], "--speeed")==0)
+      {
+         blockStepSize=2;
       }
       else if(strcmp(argv[i], "-interp")==0 || strcmp(argv[i], "--interp")==0)
       {
@@ -447,6 +453,7 @@ int main(int argc, char **argv)
    REG->SetAlignCentre(alignCentre);
    REG->SetPerformAffine(affineFlag);
    REG->SetPerformRigid(rigidFlag);
+   REG->SetBlockStepSize(blockStepSize);
    REG->SetBlockPercentage(blockPercentage);
    REG->SetInlierLts(inlierLts);
    REG->SetInterpolation(interpolation);
