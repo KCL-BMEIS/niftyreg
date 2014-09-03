@@ -1032,7 +1032,7 @@ void reg_tools_divideValueToImage(nifti_image *img1,
 /* *************************************************************** */
 template <class DTYPE>
 void reg_tools_kernelConvolution_core(nifti_image *image,
-                                      float *size,
+                                      float *sigma,
                                       int kernelType,
                                       int *mask,
                                       bool *timePoint,
@@ -1081,8 +1081,8 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
             if(axis[n] && image->dim[n]>1)
             {
                double temp;
-               if(size[t]>0) temp=size[t]/image->pixdim[n+1]; // mm to voxel
-               else temp=fabs(size[t]); // voxel based if negative value
+               if(sigma[t]>0) temp=sigma[t]/image->pixdim[n+1]; // mm to voxel
+               else temp=fabs(sigma[t]); // voxel based if negative value
                int radius;
                // Define the kernel size
                if(kernelType==2)

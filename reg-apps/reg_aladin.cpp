@@ -78,7 +78,7 @@ void Usage(char *exec)
 
    printf("\t-pv <int>\t\tPercentage of blocks to use in the optimisation scheme. [50]\n");
    printf("\t-pi <int>\t\tPercentage of blocks to consider as inlier in the optimisation scheme. [50]\n");
-   printf("\t-speeed\n");
+   printf("\t-speeeeed\t\tGo faster\n");
 #if defined (_OPENMP)
    printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i]\n",
           omp_get_num_procs());
@@ -264,7 +264,7 @@ int main(int argc, char **argv)
          }
          inlierLts=value;
       }
-      else if(strcmp(argv[i], "-speeed")==0 || strcmp(argv[i], "--speeed")==0)
+      else if(strcmp(argv[i], "-speeeeed")==0 || strcmp(argv[i], "--speeed")==0)
       {
          blockStepSize=2;
       }
