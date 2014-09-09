@@ -51,6 +51,7 @@ typedef struct
    bool rmsImageFlag;
    bool smoothSplineFlag;
    bool smoothGaussianFlag;
+   bool smoothLabFlag;
    bool smoothMeanFlag;
    bool binarisedImageFlag;
    bool thresholdImageFlag;
@@ -79,6 +80,7 @@ void Usage(char *exec)
    printf("\t-down\t\t\tThe input image is downsampled 2 times\n");
    printf("\t-smoS <float> <float> <float>\tThe input image is smoothed using a cubic b-spline kernel\n");
    printf("\t-smoG <float> <float> <float>\tThe input image is smoothed using Gaussian kernel\n");
+   printf("\t-smoL <float> <float> <float>\tThe input label image is smoothed using Gaussian kernel\n");
    printf("\t-add <filename/float>\tThis image (or value) is added to the input\n");
    printf("\t-sub <filename/float>\tThis image (or value) is subtracted to the input\n");
    printf("\t-mul <filename/float>\tThis image (or value) is multiplied to the input\n");
@@ -214,6 +216,13 @@ int main(int argc, char **argv)
          param->smoothValueZ=atof(argv[++i]);
          flag->smoothGaussianFlag=1;
       }
+      else if(strcmp(argv[i], "-smoL") == 0)
+      {
+         param->smoothValueX=atof(argv[++i]);
+         param->smoothValueY=atof(argv[++i]);
+         param->smoothValueZ=atof(argv[++i]);
+         flag->smoothLabFlag=1;
+      }
       else if(strcmp(argv[i], "-smoM") == 0)
       {
          param->smoothValueX=atof(argv[++i]);
@@ -335,6 +344,31 @@ int main(int argc, char **argv)
          reg_tools_kernelConvolution(smoothImg,kernelSize,1,NULL,timePoint,boolZ);
       else reg_tools_kernelConvolution(smoothImg,kernelSize,0,NULL,timePoint,boolZ);
       delete []kernelSize;
+      delete []timePoint;
+      if(flag->outputImageFlag)
+         reg_io_WriteImageFile(smoothImg, param->outputImageName);
+      else reg_io_WriteImageFile(smoothImg, "output.nii");
+      nifti_image_free(smoothImg);
+   }
+
+
+   //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
+
+   if(flag->smoothLabFlag)
+   {
+      nifti_image *smoothImg = nifti_copy_nim_info(image);
+      smoothImg->data = (void *)malloc(smoothImg->nvox * smoothImg->nbyper);
+      memcpy(smoothImg->data, image->data, smoothImg->nvox*smoothImg->nbyper);
+
+      bool *timePoint = new bool[smoothImg->nt*smoothImg->nu];
+      for(int i=0; i<smoothImg->nt*smoothImg->nu; ++i) timePoint[i]=true;
+
+      float varX=param->smoothValueX;
+      float varY=param->smoothValueY;
+      float varZ=param->smoothValueZ;
+
+      reg_tools_kernelConvolution_lab(smoothImg,varX,varY,varZ,NULL,timePoint);
+
       delete []timePoint;
       if(flag->outputImageFlag)
          reg_io_WriteImageFile(smoothImg, param->outputImageName);

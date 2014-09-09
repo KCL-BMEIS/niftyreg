@@ -1331,7 +1331,231 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
    free(nanImagePtr);
    free(densityPtr);
 }
+
+
 /* *************************************************************** */
+/* *************************************************************** */
+template <class DTYPE>
+void reg_tools_kernelConvolution_lab_core(nifti_image *image,
+                                          float varianceX,
+                                          float varianceY,
+                                          float varianceZ,
+                                          int *mask,
+                                          bool *timePoint)
+{
+    if(image->nx>2048 || image->ny>2048 || image->nz>2048){
+        reg_print_fct_error("reg_tools_kernelConvolution_core_lab");
+        reg_print_msg_error("This function does not support images with dimension > 2048");
+        reg_exit(1);
+    }
+#ifdef WIN32
+    long index;
+    long voxelNumber = (long)image->nx*image->ny*image->nz;
+#else
+    size_t index;
+    size_t voxelNumber = (size_t)image->nx*image->ny*image->nz;
+#endif
+    DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
+
+
+
+    bool * activeTimePoint = (bool *)calloc(image->nt*image->nu,sizeof(bool));
+    // Check if input time points and masks are NULL
+    if(timePoint==NULL)
+    {
+       // All time points are considered as active
+       for(int i=0; i<image->nt*image->nu; i++) activeTimePoint[i]=true;
+    }
+    else for(int i=0; i<image->nt*image->nu; i++) activeTimePoint[i]=timePoint[i];
+
+    int *currentMask=NULL;
+    if(mask==NULL)
+    {
+       currentMask=(int *)calloc(image->nx*image->ny*image->nz,sizeof(int));
+    }
+    else currentMask=mask;
+
+
+    bool *nanImagePtr = (bool *)calloc(voxelNumber, sizeof(bool));
+    DTYPE *tmpImagePtr = (DTYPE *)calloc(voxelNumber, sizeof(DTYPE));
+
+    typedef std::map <DTYPE, double> DataPointMap;
+    typedef std::pair <DTYPE, double> DataPointPair;
+    typedef typename std::map<DTYPE,double>::iterator DataPointMapIt;
+
+    // Loop over the dimension higher than 3
+    for(int t=0; t<image->nt*image->nu; t++)
+    {
+        if(activeTimePoint[t])
+        {
+            DTYPE *intensityPtr = &imagePtr[t * voxelNumber];
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+    shared(stderr,intensityPtr, currentMask, nanImagePtr, voxelNumber,varianceX,varianceY,varianceZ) \
+    private(index)
+#endif
+            for(index=0; index<voxelNumber; index++)
+            {
+                nanImagePtr[index] = (intensityPtr[index]==intensityPtr[index])?true:false;
+                nanImagePtr[index] = (currentMask[index]>=0)?nanImagePtr[index]:false;
+            }
+
+
+            float gaussX_var=varianceX;
+            float gaussY_var=varianceY;
+            float gaussZ_var=varianceZ;
+            int index=0;
+            int currentXYZposition[3]={0};
+            int dim_array[3]= {image->nx,image->ny,image->nz};
+            int shiftdirection[3]= {1,image->nx,image->nx*image->ny};
+
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
+    shared(stderr,intensityPtr, mask, nanImagePtr,dim_array,shiftdirection,tmpImagePtr,gaussX_var,gaussY_var,gaussZ_var) \
+    private(currentXYZposition,index)
+#endif
+            for(int currentZposition=0; currentZposition<dim_array[2]; currentZposition++)
+            {
+                currentXYZposition[2]=currentZposition;
+                for(currentXYZposition[1]=0; currentXYZposition[1]<dim_array[1]; currentXYZposition[1]++)
+                {
+                    for(currentXYZposition[0]=0; currentXYZposition[0]<dim_array[0]; currentXYZposition[0]++)
+                    {
+                        index=currentXYZposition[0]+(currentXYZposition[1]+currentXYZposition[2]*dim_array[1])*dim_array[0];
+
+                        // Calculate allowed kernel shifts
+                        int kernelXsize=(int)(gaussX_var*6.0f) % 2 != 0 ? (int)(gaussX_var*6.0f) : (int)(gaussX_var*6.0f)+1;
+                        int kernelXshift=(int)(kernelXsize/2.0f);
+                        int shiftXstart=((currentXYZposition[0]<kernelXshift)?-currentXYZposition[0]:-kernelXshift);
+                        int shiftXstop=((currentXYZposition[0]>=(dim_array[0]-kernelXshift))?(int)dim_array[0]-currentXYZposition[0]-1:kernelXshift);
+
+                        int kernelYsize=(int)(gaussY_var*6.0f) % 2 != 0 ? (int)(gaussY_var*6.0f) : (int)(gaussY_var*6.0f)+1;
+                        int kernelYshift=(int)(kernelYsize/2.0f);
+                        int shiftYstart=((currentXYZposition[1]<kernelYshift)?-currentXYZposition[1]:-kernelYshift);
+                        int shiftYstop=((currentXYZposition[1]>=(dim_array[1]-kernelYshift))?(int)dim_array[1]-currentXYZposition[1]-1:kernelYshift);
+
+                        int kernelZsize=(int)(gaussZ_var*6.0f) % 2 != 0 ? (int)(gaussZ_var*6.0f) : (int)(gaussZ_var*6.0f)+1;
+                        int kernelZshift=(int)(kernelZsize/2.0f);
+                        int shiftZstart=((currentXYZposition[2]<kernelZshift)?-currentXYZposition[2]:-kernelZshift);
+                        int shiftZstop=((currentXYZposition[2]>=(dim_array[2]-kernelZshift))?(int)dim_array[2]-currentXYZposition[2]-1:kernelZshift);
+
+                        DataPointMap tmp_lab;
+
+                        if(nanImagePtr[index]!=0){
+                            for(int shiftx=shiftXstart; shiftx<=shiftXstop; shiftx++)
+                            {
+                                for(int shifty=shiftYstart; shifty<=shiftYstop; shifty++)
+                                {
+                                    for(int shiftz=shiftZstart; shiftz<=shiftZstop; shiftz++)
+                                    {
+
+                                        // Data Blur
+                                        int indexNeighbour=index+(shiftx*shiftdirection[0])+(shifty*shiftdirection[1])+(shiftz*shiftdirection[2]);
+                                        if(nanImagePtr[indexNeighbour]!=0){
+                                            float kernelval=expf((float)(-0.5f *(powf(shiftx,2)/powf(gaussX_var, 2.0f)
+                                                                                 +powf(shifty,2)/powf(gaussY_var, 2.0f)
+                                                                                 +powf(shiftz,2)/powf(gaussZ_var, 2.0f)
+                                                                                 )))/(sqrtf(2.0f*3.14159265*powf(gaussX_var*gaussY_var*gaussZ_var, 2)));
+
+                                            DataPointMapIt location=tmp_lab.find(intensityPtr[indexNeighbour]);
+                                            if(location!=tmp_lab.end())
+                                            {
+                                                location->second=location->second+kernelval;
+                                            }
+                                            else
+                                            {
+                                                tmp_lab.insert(DataPointPair((DTYPE)round(intensityPtr[indexNeighbour]),kernelval));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            DataPointMapIt currIterator = tmp_lab.begin();
+                            int maxindex=0;
+                            float maxval=-std::numeric_limits<float>::max();;
+                            while(currIterator != tmp_lab.end())
+                            {
+                                if(currIterator->second>maxval)
+                                {
+                                    maxindex=currIterator->first;
+                                    maxval=currIterator->second;
+
+                                }
+                                currIterator++;
+                            }
+                            tmpImagePtr[index]=maxindex;
+                        }
+                        else{
+                            tmpImagePtr[index]=std::numeric_limits<DTYPE>::quiet_NaN();
+                        }
+                    }
+                }
+            }
+
+
+            // Normalise per timepoint
+#if defined (NDEBUG) && defined (_OPENMP)
+#pragma omp parallel for default(none) \
+    shared(voxelNumber, intensityPtr, nanImagePtr,tmpImagePtr) \
+    private(index)
+#endif
+            for(index=0; index<voxelNumber; ++index)
+            {
+                if(nanImagePtr[index]==0)
+                    intensityPtr[index] = std::numeric_limits<DTYPE>::quiet_NaN();
+                else
+                    intensityPtr[index]=tmpImagePtr[index];
+            }
+        } // check if the time point is active
+    } // loop over the time points
+
+    free(tmpImagePtr);
+    free(currentMask);
+    free(activeTimePoint);
+    free(nanImagePtr);
+}
+/* *************************************************************** */
+
+void reg_tools_kernelConvolution_lab(nifti_image *image,
+                                          float varianceX,
+                                          float varianceY,
+                                          float varianceZ,
+                                          int *mask,
+                                          bool *timePoint){
+    switch(image->datatype)
+    {
+    case NIFTI_TYPE_UINT8:
+        reg_tools_kernelConvolution_lab_core<unsigned char>(image,varianceX,varianceY,varianceZ,mask,timePoint);
+        break;
+    case NIFTI_TYPE_INT8:
+        reg_tools_kernelConvolution_lab_core<char>(image,varianceX,varianceY,varianceZ,mask,timePoint);
+        break;
+    case NIFTI_TYPE_UINT16:
+        reg_tools_kernelConvolution_lab_core<unsigned short>(image,varianceX,varianceY,varianceZ,mask,timePoint);
+        break;
+    case NIFTI_TYPE_INT16:
+        reg_tools_kernelConvolution_lab_core<short>(image,varianceX,varianceY,varianceZ,mask,timePoint);
+        break;
+    case NIFTI_TYPE_UINT32:
+        reg_tools_kernelConvolution_lab_core<unsigned int>(image,varianceX,varianceY,varianceZ,mask,timePoint);
+        break;
+    case NIFTI_TYPE_INT32:
+        reg_tools_kernelConvolution_lab_core<int>(image,varianceX,varianceY,varianceZ,mask,timePoint);
+        break;
+    case NIFTI_TYPE_FLOAT32:
+        reg_tools_kernelConvolution_lab_core<float>(image,varianceX,varianceY,varianceZ,mask,timePoint);
+        break;
+    case NIFTI_TYPE_FLOAT64:
+        reg_tools_kernelConvolution_lab_core<double>(image,varianceX,varianceY,varianceZ,mask,timePoint);
+        break;
+    default:
+        fprintf(stderr,"[NiftyReg ERROR] reg_gaussianSmoothing\tThe image data type is not supported\n");
+        reg_exit(1);
+    }
+    return;
+}
+/* *************************************************************** */
+
 void reg_tools_kernelConvolution(nifti_image *image,
                                  float *sigma,
                                  int kernelType,

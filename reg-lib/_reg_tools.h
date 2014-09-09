@@ -16,6 +16,7 @@
 
 #include <fstream>
 #include <limits>
+#include <map>
 #include "_reg_maths.h"
 
 
@@ -86,6 +87,26 @@ void reg_tools_kernelConvolution(nifti_image *image,
                                  int *mask = NULL,
                                  bool *timePoints = NULL,
                                  bool *axis = NULL);
+
+/* *************************************************************** */
+/** @brief Smooth a label image using a Gaussian kernel
+ * @param image Image to be smoothed
+ * @param varianceX The variance of the Gaussian kernel in X
+ * @param varianceY The variance of the Gaussian kernel in Y
+ * @param varianceZ The variance of the Gaussian kernel in Z
+ * @param mask An integer mask over which the Gaussian smoothing should occour
+ * @param timePoint Boolean array to specify which timepoints have to be
+ * smoothed.
+ */
+extern "C++"
+void reg_tools_kernelConvolution_lab(nifti_image *image,
+                                          float varianceX,
+                                          float varianceY,
+                                          float varianceZ,
+                                          int *mask=NULL,
+                                          bool *timePoint=NULL);
+
+
 /* *************************************************************** */
 /** @brief Downsample an image by a ratio of two
  * @param image Image to be downsampled
