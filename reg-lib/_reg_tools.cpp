@@ -1379,9 +1379,9 @@ void reg_tools_kernelConvolution_lab_core(nifti_image *image,
     bool *nanImagePtr = (bool *)calloc(voxelNumber, sizeof(bool));
     DTYPE *tmpImagePtr = (DTYPE *)calloc(voxelNumber, sizeof(DTYPE));
 
-    typedef std::map <DTYPE, double> DataPointMap;
-    typedef std::pair <DTYPE, double> DataPointPair;
-    typedef typename std::map<DTYPE,double>::iterator DataPointMapIt;
+    typedef std::map <DTYPE, float> DataPointMap;
+    typedef std::pair <DTYPE, float> DataPointPair;
+    typedef typename std::map<DTYPE,float>::iterator DataPointMapIt;
 
     // Loop over the dimension higher than 3
     for(int t=0; t<image->nt*image->nu; t++)
@@ -1424,17 +1424,17 @@ void reg_tools_kernelConvolution_lab_core(nifti_image *image,
                         index=currentXYZposition[0]+(currentXYZposition[1]+currentXYZposition[2]*dim_array[1])*dim_array[0];
 
                         // Calculate allowed kernel shifts
-                        int kernelXsize=(int)(gaussX_var*6.0f) % 2 != 0 ? (int)(gaussX_var*6.0f) : (int)(gaussX_var*6.0f)+1;
+                        int kernelXsize=(int)(sqrtf(gaussX_var)*6.0f) % 2 != 0 ? (int)(sqrtf(gaussX_var)*6.0f) : (int)(sqrtf(gaussX_var)*6.0f)+1;
                         int kernelXshift=(int)(kernelXsize/2.0f);
                         int shiftXstart=((currentXYZposition[0]<kernelXshift)?-currentXYZposition[0]:-kernelXshift);
                         int shiftXstop=((currentXYZposition[0]>=(dim_array[0]-kernelXshift))?(int)dim_array[0]-currentXYZposition[0]-1:kernelXshift);
 
-                        int kernelYsize=(int)(gaussY_var*6.0f) % 2 != 0 ? (int)(gaussY_var*6.0f) : (int)(gaussY_var*6.0f)+1;
+                        int kernelYsize=(int)(sqrtf(gaussY_var)*6.0f) % 2 != 0 ? (int)(sqrtf(gaussY_var)*6.0f) : (int)(sqrtf(gaussY_var)*6.0f)+1;
                         int kernelYshift=(int)(kernelYsize/2.0f);
                         int shiftYstart=((currentXYZposition[1]<kernelYshift)?-currentXYZposition[1]:-kernelYshift);
                         int shiftYstop=((currentXYZposition[1]>=(dim_array[1]-kernelYshift))?(int)dim_array[1]-currentXYZposition[1]-1:kernelYshift);
 
-                        int kernelZsize=(int)(gaussZ_var*6.0f) % 2 != 0 ? (int)(gaussZ_var*6.0f) : (int)(gaussZ_var*6.0f)+1;
+                        int kernelZsize=(int)(sqrtf(gaussZ_var)*6.0f) % 2 != 0 ? (int)(sqrtf(gaussZ_var)*6.0f) : (int)(sqrtf(gaussZ_var)*6.0f)+1;
                         int kernelZshift=(int)(kernelZsize/2.0f);
                         int shiftZstart=((currentXYZposition[2]<kernelZshift)?-currentXYZposition[2]:-kernelZshift);
                         int shiftZstop=((currentXYZposition[2]>=(dim_array[2]-kernelZshift))?(int)dim_array[2]-currentXYZposition[2]-1:kernelZshift);
@@ -1452,9 +1452,9 @@ void reg_tools_kernelConvolution_lab_core(nifti_image *image,
                                         // Data Blur
                                         int indexNeighbour=index+(shiftx*shiftdirection[0])+(shifty*shiftdirection[1])+(shiftz*shiftdirection[2]);
                                         if(nanImagePtr[indexNeighbour]!=0){
-                                            float kernelval=expf((float)(-0.5f *(powf(shiftx,2)/powf(gaussX_var, 2.0f)
-                                                                                 +powf(shifty,2)/powf(gaussY_var, 2.0f)
-                                                                                 +powf(shiftz,2)/powf(gaussZ_var, 2.0f)
+                                            float kernelval=expf((float)(-0.5f *(powf(shiftx,2)/gaussX_var
+                                                                                 +powf(shifty,2)/gaussY_var
+                                                                                 +powf(shiftz,2)/gaussZ_var
                                                                                  )))/(sqrtf(2.0f*3.14159265*powf(gaussX_var*gaussY_var*gaussZ_var, 2)));
 
                                             DataPointMapIt location=tmp_lab.find(intensityPtr[indexNeighbour]);
@@ -1464,15 +1464,15 @@ void reg_tools_kernelConvolution_lab_core(nifti_image *image,
                                             }
                                             else
                                             {
-                                                tmp_lab.insert(DataPointPair((DTYPE)round(intensityPtr[indexNeighbour]),kernelval));
+                                                tmp_lab.insert(DataPointPair(intensityPtr[indexNeighbour],kernelval));
                                             }
                                         }
                                     }
                                 }
                             }
                             DataPointMapIt currIterator = tmp_lab.begin();
-                            int maxindex=0;
-                            float maxval=-std::numeric_limits<float>::max();;
+                            DTYPE maxindex=0;
+                            double maxval=-std::numeric_limits<float>::max();;
                             while(currIterator != tmp_lab.end())
                             {
                                 if(currIterator->second>maxval)

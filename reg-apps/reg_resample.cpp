@@ -240,6 +240,27 @@ int main(int argc, char **argv)
    }
    reg_checkAndCorrectDimension(floatingImage);
 
+
+
+   /* *********************************** */
+   /* DISPLAY THE RESAMPLING PARAMETERS */
+   /* *********************************** */
+   if(verbose){
+      printf("\n* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+      printf("Command line:\n");
+      for(int i=0; i<argc; i++) printf(" %s", argv[i]);
+      printf("\n\n");
+      printf("Parameters\n");
+      printf("Reference image name: %s\n",referenceImage->fname);
+      printf("\t%ix%ix%i voxels, %i volumes\n",referenceImage->nx,referenceImage->ny,referenceImage->nz,referenceImage->nt);
+      printf("\t%gx%gx%g mm\n",referenceImage->dx,referenceImage->dy,referenceImage->dz);
+      printf("Floating image name: %s\n",floatingImage->fname);
+      printf("\t%ix%ix%i voxels, %i volumes\n",floatingImage->nx,floatingImage->ny,floatingImage->nz,floatingImage->nt);
+      printf("\t%gx%gx%g mm\n",floatingImage->dx,floatingImage->dy,floatingImage->dz);
+      printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n");
+   }
+
+
    // Define a higher resolution image of the reference image if required (-psf)
    if(flag->usePSF)
    {
@@ -306,27 +327,8 @@ int main(int argc, char **argv)
 
    // Tell the CLI that the process has started
    startProgress("reg_resample");
-
    // Set up progress indicators
 //   float iProgressStep=1, nProgressSteps;
-
-   /* *********************************** */
-   /* DISPLAY THE RESAMPLING PARAMETERS */
-   /* *********************************** */
-   if(verbose){
-      printf("\n* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-      printf("Command line:\n");
-      for(int i=0; i<argc; i++) printf(" %s", argv[i]);
-      printf("\n\n");
-      printf("Parameters\n");
-      printf("Reference image name: %s\n",referenceImage->fname);
-      printf("\t%ix%ix%i voxels, %i volumes\n",referenceImage->nx,referenceImage->ny,referenceImage->nz,referenceImage->nt);
-      printf("\t%gx%gx%g mm\n",referenceImage->dx,referenceImage->dy,referenceImage->dz);
-      printf("Floating image name: %s\n",floatingImage->fname);
-      printf("\t%ix%ix%i voxels, %i volumes\n",floatingImage->nx,floatingImage->ny,floatingImage->nz,floatingImage->nt);
-      printf("\t%gx%gx%g mm\n",floatingImage->dx,floatingImage->dy,floatingImage->dz);
-      printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n");
-   }
 
    /* *********************** */
    /* READ THE TRANSFORMATION */
@@ -556,24 +558,35 @@ int main(int argc, char **argv)
          // Read the original reference image
          nifti_image *origRefImage = reg_io_ReadImageHeader(param->referenceImageName);
          // The warped image is first convolved with a Gaussian kernel
-         float *kernelSize = new float[warpedImage->nt*warpedImage->nu];
          bool *timePoint = new bool[warpedImage->nt*warpedImage->nu];
          for(int i=0; i<warpedImage->nt*warpedImage->nu; ++i) timePoint[i]=true;
-         bool boolX[3]= {1,0,0};
-         for(int i=0; i<warpedImage->nt*warpedImage->nu; ++i)
-            kernelSize[i]=sqrt(reg_pow2(origRefImage->dx/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(referenceImage->dx/(2.f*sqrt(2.f*log(2.f)))));
-         reg_tools_kernelConvolution(warpedImage,kernelSize,0,NULL,timePoint,boolX);
-         bool boolY[3]= {0,1,0};
-         for(int i=0; i<warpedImage->nt*warpedImage->nu; ++i)
-            kernelSize[i]=sqrt(reg_pow2(origRefImage->dy/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(referenceImage->dy/(2.f*sqrt(2.f*log(2.f)))));
-         reg_tools_kernelConvolution(warpedImage,kernelSize,0,NULL,timePoint,boolY);
-         bool boolZ[3]= {0,0,1};
-         for(int i=0; i<warpedImage->nt*warpedImage->nu; ++i)
-            kernelSize[i]=sqrt(reg_pow2(origRefImage->dz/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(referenceImage->dz/(2.f*sqrt(2.f*log(2.f)))));
-         reg_tools_kernelConvolution(warpedImage,kernelSize,0,NULL,timePoint,boolZ);
-         delete []kernelSize;
+
+         if(param->interpolation>0){
+             float *kernelSize = new float[warpedImage->nt*warpedImage->nu];
+             bool boolX[3]= {1,0,0};
+             for(int i=0; i<warpedImage->nt*warpedImage->nu; ++i)
+                 kernelSize[i]=sqrt(reg_pow2(origRefImage->dx/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(referenceImage->dx/(2.f*sqrt(2.f*log(2.f)))));
+             reg_tools_kernelConvolution(warpedImage,kernelSize,0,NULL,timePoint,boolX);
+             bool boolY[3]= {0,1,0};
+             for(int i=0; i<warpedImage->nt*warpedImage->nu; ++i)
+                 kernelSize[i]=sqrt(reg_pow2(origRefImage->dy/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(referenceImage->dy/(2.f*sqrt(2.f*log(2.f)))));
+             reg_tools_kernelConvolution(warpedImage,kernelSize,0,NULL,timePoint,boolY);
+             bool boolZ[3]= {0,0,1};
+             for(int i=0; i<warpedImage->nt*warpedImage->nu; ++i)
+                 kernelSize[i]=sqrt(reg_pow2(origRefImage->dz/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(referenceImage->dz/(2.f*sqrt(2.f*log(2.f)))));
+             reg_tools_kernelConvolution(warpedImage,kernelSize,0,NULL,timePoint,boolZ);
+             delete []kernelSize;
+         }
+         else{
+             float kernelVarianceX=reg_pow2(origRefImage->dx/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(referenceImage->dx/(2.f*sqrt(2.f*log(2.f))));
+             float kernelVarianceY=reg_pow2(origRefImage->dy/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(referenceImage->dy/(2.f*sqrt(2.f*log(2.f))));
+             float kernelVarianceZ=reg_pow2(origRefImage->dz/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(referenceImage->dz/(2.f*sqrt(2.f*log(2.f))));
+
+             reg_tools_kernelConvolution_lab(warpedImage,kernelVarianceX,kernelVarianceY,kernelVarianceZ,NULL,timePoint);
+         }
          delete []timePoint;
          reg_io_WriteImageFile(warpedImage,"blurred.nii");
+
          // A new warped image is created based on the origin reference image
          nifti_image *origWarpedImage = nifti_copy_nim_info(origRefImage);
          origWarpedImage->dim[0]=origWarpedImage->ndim=floatingImage->dim[0];
@@ -608,6 +621,7 @@ int main(int argc, char **argv)
          origDefFieldImage->data = (void *)calloc(origDefFieldImage->nvox, origDefFieldImage->nbyper);
          reg_getDeformationFromDisplacement(origDefFieldImage);
          // The high resolution warped image is resampled into the low resolution warped image
+          if(param->interpolation>0){
          reg_resampleImage(warpedImage,
                            origWarpedImage,
                            origDefFieldImage,
@@ -615,6 +629,16 @@ int main(int argc, char **argv)
                            1, // linear interpolation
                            0 // padding value set to 0 since field of view are aligned
                            );
+          }else{
+              reg_resampleImage(warpedImage,
+                                origWarpedImage,
+                                origDefFieldImage,
+                                NULL,
+                                0, // Nearest Neighbour
+                                0 // padding value set to 0 since field of view are aligned
+                                );
+
+          }
          memset(origWarpedImage->descrip, 0, 80);
          strcpy (origWarpedImage->descrip,"Warped image using NiftyReg (reg_resample)");
          reg_io_WriteImageFile(origWarpedImage,param->outputResultName);
