@@ -82,9 +82,6 @@ void reg_getRealImageSpacing(nifti_image *image,
  */
 
 extern "C++"
-void reg_tools_kernelConvolution(Context* co, nifti_image *image,float *sigma,int kernelType,int *mask = NULL,bool *timePoints = NULL,bool *axis = NULL);
-
-extern "C++"
 void reg_tools_kernelConvolution(nifti_image *image,
                                  float *sigma,
                                  int kernelType,
@@ -397,4 +394,6 @@ void closeProgress(std::string name, std::string status);
 /* *************************************************************** */
 extern "C++"
 void mat44ToCptr(mat44 mat, float* cMat);
+extern "C++"
+void mat33ToCptr(mat33* mat, float* cMat, const unsigned int numMats);
 #endif

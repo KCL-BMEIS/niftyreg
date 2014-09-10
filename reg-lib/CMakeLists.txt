@@ -1,3 +1,14 @@
+#ADD_SUBDIRECTORY(
+#	cpu
+#	factory
+#	cl
+#	cuda
+#	)
+
+
+
+ADD_SUBDIRECTORY(cl)
+ADD_SUBDIRECTORY(cuda)
 #-----------------------------------------------------------------------------
 ##BUILD THE CPU LIBRARIES
 #-----------------------------------------------------------------------------
@@ -13,6 +24,29 @@ install(TARGETS _reg_maths
   ARCHIVE DESTINATION lib
   )
 install(FILES _reg_maths.h DESTINATION include)
+
+#ADD_LIBRARY(_reg_aladin ${NIFTYREG_LIBRARY_TYPE}
+#	)
+#SET(ALADIN_LIBRARIES
+#	_reg_tools
+#	_reg_maths
+#	)
+#IF (USE_OPENCL)
+#	SET(ALADIN_LIBRARIES
+#		${ALADIN_LIBRARIES}
+#		aladin_openclkernels
+#		)
+#ELSEIF(USE_CUDA)
+#	SET(ALADIN_LIBRARIES
+#		${ALADIN_LIBRARIES}
+#		aladin_cudakernels
+#		)
+#ENDIF()
+#
+#TARGET_LINK_LIBRARIES(_reg_aladin
+#	${ALADIN_LIBRARIES}
+#	)
+
 
 #-----------------------------------------------------------------------------
 add_library(_reg_tools ${NIFTYREG_LIBRARY_TYPE} 
@@ -252,18 +286,18 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	${NAME}_sym.h
 	${NAME}_sym.cpp
 	Context.cpp
+	
 	Platform.cpp
 	Kernel.cpp
 	KernelImpl.cpp
+	
 	CPUPlatfom.cpp
-	CLPlatform.cpp
-	CudaPlatform.cpp
+	
+	#CudaPlatform.cpp
 	CPUKernelFactory.cpp
-	CudaKernelFactory.cpp
-	CLKernelFactory.cpp
-	CLKernels.cpp
+	#CudaKernelFactory.cpp
 	CPUKernels.cpp
-	CudaKernels.cpp
+	#CudaKernels.cpp
 	)
 	
 else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -273,30 +307,30 @@ else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	${NAME}_sym.h
 	${NAME}_sym.cpp
 	Context.cpp
+	
 	Platform.cpp
 	Kernel.cpp
 	KernelImpl.cpp
 	
 	CPUPlatfom.cpp
-	CLPlatform.cpp
-	CudaPlatform.cpp
+	#CLPlatform.cpp
+	#CudaPlatform.cpp
 	
 	CPUKernelFactory.cpp
-	CudaKernelFactory.cpp
-	CLKernelFactory.cpp
+	#CudaKernelFactory.cpp
+	#CLKernelFactory.cpp
 	
-	CLKernels.cpp
+	#CLKernels.cpp
 	CPUKernels.cpp
-	CudaKernels.cpp
+	#CudaKernels.cpp
 	
-	ConvolutionKernel.cu
-	_reg_common_gpu.cu
+	
 	
 	)
 	#cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ConvolutionKernel.cu)
-	target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY})
-	target_link_libraries(${NAME} ${OPENCL_LIBRARIES} )
-	configure_file(affineDeformationKernel.cl ${CMAKE_CURRENT_BINARY_DIR}/affineDeformationKernel.cl COPYONLY)
+	#target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY})
+	#target_link_libraries(${NAME} ${OPENCL_LIBRARIES} )
+	#configure_file(affineDeformationKernel.cl ${CMAKE_CURRENT_BINARY_DIR}/affineDeformationKernel.cl COPYONLY)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 target_link_libraries(${NAME}
@@ -309,13 +343,15 @@ target_link_libraries(${NAME}
   _reg_tools
   _reg_ReadWriteImage
   _reg_common_gpu
+  _reg_opencl_kernels
+  _reg_cuda_kernels
   )
 install(TARGETS ${NAME}
   RUNTIME DESTINATION lib
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   )
-install(FILES ${NAME}.h ${NAME}_sym.h ${NAME}.cpp ${NAME}_sym.cpp _reg_macros.h Context.h Platform.h CudaPlatform.h CLPlatform.h CPUPlatform.h Kernel.h KernelImpl.h KernelFactory.h CLKernelFactory.h CPUKernelFactory.h CudaKernelFactory.h Kernels.h  CLKernels.h  CPUKernels.h CudaKernels.h  DESTINATION include)
+install(FILES ${NAME}.h ${NAME}_sym.h ${NAME}.cpp ${NAME}_sym.cpp _reg_macros.h Context.h Platform.h  CPUPlatform.h Kernel.h KernelImpl.h KernelFactory.h  CPUKernelFactory.h Kernels.h   CPUKernels.h   DESTINATION include)
 
 #-----------------------------------------------------------------------------
 ## BUILD THE TPS LIBRARY CPU

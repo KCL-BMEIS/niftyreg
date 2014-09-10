@@ -149,6 +149,10 @@ void optimize(_reg_blockMatchingParam *params,
 			  mat44 * transformation_matrix,
 			  bool affine = true);
 
+extern "C++"
+template <class DTYPE>
+void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *params, int *mask, bool runningOnGPU);
+
 
 
 #endif

@@ -29,5 +29,10 @@ typedef struct nifti_params {
 
 void launch(nifti_image *image, float *sigma, int kernelType, int *mask, bool *timePoint, bool *axis);
 void launchAffine(mat44 *affineTransformation, nifti_image *deformationField, bool compose = false, int *mask = NULL);
-void launchOptimize(_reg_blockMatchingParam *params, mat44 *transformation_matrix, bool affine);
 void launchResample(nifti_image *floatingImage, nifti_image *warpedImage, nifti_image *deformationField, int *mask, int interp, float paddingValue, bool *dti_timepoint=NULL, mat33 * jacMat=NULL);
+void launchBlockMatching(nifti_image * target, nifti_image * result, _reg_blockMatchingParam *params, int *mask);
+
+
+void launchOptimize(_reg_blockMatchingParam *params, mat44 *transformation_matrix, bool affine);
+void launchOptimizeAffine(_reg_blockMatchingParam* params, mat44* transformation_matrix, bool affine);
+void launchOptimizeRigid(_reg_blockMatchingParam* params, mat44* transformation_matrix, bool affine);

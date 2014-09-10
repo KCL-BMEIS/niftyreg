@@ -29,7 +29,7 @@ void mockAffine(mat44* affine) {
 	affine->m[3][3] = 1.0000;
 }
 
-void test(Platform* platform) {
+void test(Platform* platform, const char* msg) {
 	Kernel affineDeformKernel = platform->createKernel(AffineDeformationFieldKernel::Name(), 16);
 
 	//init ref params
@@ -54,9 +54,12 @@ void test(Platform* platform) {
 	double maxDiff = reg_test_compare_images(input, output);
 
 	//output
+	std::cout << "===================================" << std::endl;
+	std::cout << msg<< std::endl;
+	std::cout << "===================================" << std::endl;
 	std::cout << "diff:" << maxDiff << std::endl;
 	std::cout << "elapsed" << elapsed_secs << std::endl;
-
+	std::cout << "===================================" << std::endl;
 	nifti_image_free(input);
 	nifti_image_free(output);
 }
@@ -67,11 +70,13 @@ int main(int argc, char **argv) {
 	Platform *cpuPlatform = new CPUPlatform();
 	Platform *cudaPlatform = new CudaPlatform();
 	Platform *clPlatform = new CLPlatform();
-	test(cpuPlatform);
-	test(cudaPlatform);
-	cudaDeviceReset();
-	test(clPlatform);
-	cudaDeviceReset();
+
+
+	
+	test(cpuPlatform, "CPU  Platform tests");
+	test(cudaPlatform, "CUDA Platform tests"); cudaDeviceReset();
+	test(clPlatform,  "CL   Platform tests");cudaDeviceReset();
+	
 	
 	return 0;
 

@@ -6,7 +6,7 @@ IF(USE_CUDA)
 		CudaPlatform.cpp
 		ConvolutionKernel.cu
 		)
-		target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_gpu)
+		target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_gpu _reg_blockMatching_gpu _reg_blockMatching)
 		
 		install(TARGETS ${NAME}
 			RUNTIME DESTINATION lib

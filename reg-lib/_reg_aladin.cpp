@@ -354,8 +354,8 @@ void reg_aladin<T>::SetCurrentImages()
    this->CurrentReferenceMask=this->ReferenceMaskPyramid[this->CurrentLevel];
 
    this->AllocateWarpedImage();
-   //this->AllocateDeformationField();
-   co->affineTransformation3DKernel.getAs<AffineDeformationFieldKernel>().initialize(CurrentReference, &deformationFieldImage, sizeof(T) );
+   this->AllocateDeformationField();
+   
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -462,45 +462,19 @@ void reg_aladin<T>::ClearDeformationField()
 template <class T>
 void reg_aladin<T>::InitialiseBlockMatching(int CurrentPercentageOfBlockToUse)
 {
-   //initialise_block_matching_method(this->CurrentReference,
-			//						&this->blockMatchingParams,
-			//						CurrentPercentageOfBlockToUse,    // percentage of block kept
-			//						this->InlierLts,         // percentage of inlier in the optimisation process
-			//						this->CurrentReferenceMask,
-			//						false // GPU is not used here
-			//					   );
-
-
-	//tempcode 
-	nifti_image *input1 = CurrentReference;
-	const char* input1Name = ( char * )"input_CurrentReference_BlockMatchingKernel.nii";
-	reg_io_WriteImageFile(input1, input1Name);
-
 	co->blockMatchingKernel.getAs<BlockMatchingKernel>().initialize(CurrentReference, &blockMatchingParams, CurrentPercentageOfBlockToUse, InlierLts, CurrentReferenceMask, false);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::GetDeformationField()
 {
-	
-	//reg_affine_getDeformationField(co, this->TransformationMatrix, this->deformationFieldImage);
 	co->affineTransformation3DKernel.getAs<AffineDeformationFieldKernel>().execute(this->TransformationMatrix, this->deformationFieldImage);
-
-
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::GetWarpedImage(int interp)
 {
 	this->GetDeformationField();
-
-   /*reg_resampleImage(this->CurrentFloating,
-					 this->CurrentWarped,
-					 this->deformationFieldImage,
-					 this->CurrentReferenceMask,
-					 interp,
-					 0);*/
-
 
 	co->resamplingKernel.getAs<ResampleImageKernel>().execute(CurrentFloating, CurrentWarped, deformationFieldImage, CurrentReferenceMask, interp, 0);
 
@@ -509,20 +483,17 @@ void reg_aladin<T>::GetWarpedImage(int interp)
 template <class T>
 void reg_aladin<T>::UpdateTransformationMatrix(int type)
 {
-   /*block_matching_method(this->CurrentReference,
-						 this->CurrentWarped,
-						 &this->blockMatchingParams,
-						 this->CurrentReferenceMask);*/
+   
 
 	//tempcode 
-	nifti_image *input1 = CurrentReference;
+	/*nifti_image *input1 = CurrentReference;
 	const char* input1Name = ( char * )"input_CurrentReference_BlockMatchingKernel.nii";
-	reg_io_WriteImageFile(input1, input1Name);
+	reg_io_WriteImageFile(input1, input1Name);*/
 
 	//tempcode 
-	nifti_image *input2 = CurrentWarped;
+	/*nifti_image *input2 = CurrentWarped;
 	const char* input2Name = ( char * )"input_CurrentWarped_BlockMatchingKernel.nii";
-	reg_io_WriteImageFile(input2, input2Name);
+	reg_io_WriteImageFile(input2, input2Name);*/
 
 	co->blockMatchingKernel.getAs<BlockMatchingKernel>().execute(this->CurrentReference, this->CurrentWarped, &this->blockMatchingParams, this->CurrentReferenceMask);
 
@@ -602,9 +573,8 @@ void reg_aladin<T>::Run()
 			printf("[DEBUG] -Rigid- iteration %i\n",iteration);
 #endif
 
-			std::cout << "GETWARPED: " << CurrentLevel << std::endl;
 			this->GetWarpedImage(this->Interpolation);
-			std::cout << "UPDATE: " << CurrentLevel << std::endl;
+
 			this->UpdateTransformationMatrix(RIGID);
 			if ( funcProgressCallback && paramsProgressCallback )
 			{
@@ -692,8 +662,8 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
    this->CurrentReferenceMask=NULL;
 
    reg_aladin<T>::AllocateWarpedImage();
-   //reg_aladin<T>::AllocateDeformationField();
-   co->affineTransformation3DKernel.getAs<AffineDeformationFieldKernel>().initialize(CurrentReference, &deformationFieldImage, sizeof(T));
+   reg_aladin<T>::AllocateDeformationField();
+
    reg_aladin<T>::GetWarpedImage(3); // cubic spline interpolation
    reg_aladin<T>::ClearDeformationField();
 

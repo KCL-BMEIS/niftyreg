@@ -47,7 +47,7 @@ void CLAffineDeformationFieldKernel::execute(mat44 *affineTransformation, nifti_
 	mat44ToCptr(transformationMatrix, trans);
 
 	cl_context context = sContext->getContext();
-	cl_program program = sContext->CreateProgram("affineDeformationKernel.cl");
+	cl_program program = sContext->CreateProgram("C:\\Users\\thanasio\\Source\\Repos\\niftyreg-git\\reg-lib\\cl\\affineDeformationKernel.cl");
 	cl_command_queue commandQueue = sContext->getCommandQueue();
 	cl_kernel kernel = 0;
 	cl_mem memObjects[3] = { 0, 0, 0 };
@@ -123,8 +123,7 @@ void CLAffineDeformationFieldKernel::execute(mat44 *affineTransformation, nifti_
 
 
 void CLResampleImageKernel::execute(nifti_image *floatingImage, nifti_image *warpedImage, nifti_image *deformationField, int *mask, int interp, float paddingValue, bool *dti_timepoint , mat33 * jacMat ) {
-	cl_context context = sContext->getContext();
-	cl_command_queue commandQueue = sContext->getCommandQueue();
+	
 	
 	std::cout << "running CL" << std::endl;
 	if (floatingImage->datatype != warpedImage->datatype) {
@@ -173,8 +172,9 @@ void CLResampleImageKernel::execute(nifti_image *floatingImage, nifti_image *war
 
 
 	cl_int errNum;
-
-	// Create OpenCL program from affineDeformationKernel.cl kernel source
+	cl_context context = sContext->getContext();
+	cl_command_queue commandQueue = sContext->getCommandQueue();
+	// Create OpenCL program from resampleKernel.cl kernel source: obviously temporary, relative path needed
 	cl_program program = sContext->CreateProgram("C:\\Users\\thanasio\\Source\\Repos\\niftyreg-git\\reg-lib\\cl\\resampleKernel.cl");
 	cl_kernel kernel = 0;
 	cl_mem memObjects[numMemObjects] = { 0, 0, 0, 0, 0 };
@@ -281,12 +281,6 @@ void CLResampleImageKernel::execute(nifti_image *floatingImage, nifti_image *war
 
 
 
-	// The DTI are logged
-	reg_dti_resampling_preprocessing<float>(floatingImage, &originalFloatingData, dtiIndeces);
-	//reg_dti_resampling_preprocessing<float> << <mygrid, myblocks >> >(floatingImage_d, dtiIndeces, fi_xyz);
-
-	printf("kernel %s\n", floating);
-
 	// Queue the kernel up for execution across the array
 	cl_event prof_event;
 	errNum = clEnqueueNDRangeKernel(commandQueue, kernel, dims, NULL, globalWorkSize, localWorkSize, 0, NULL, &prof_event);
@@ -330,5 +324,225 @@ void CLResampleImageKernel::execute(nifti_image *floatingImage, nifti_image *war
 		free(mask);
 		mask = NULL;
 	}
+}
+
+void CLBlockMatchingKernel::execute(nifti_image * target, nifti_image * result, _reg_blockMatchingParam *params, int *mask){
+	std::cout << "===================================================" << std::endl;
+	std::cout << "Launching cl  block matching kernel!" << std::endl;
+
+	const unsigned int numMemObjects = 5;
+	cl_int errNum;
+	cl_context context = sContext->getContext();
+	cl_command_queue commandQueue = sContext->getCommandQueue();
+	// Create OpenCL program from affineDeformationKernel.cl kernel source
+	cl_program program = sContext->CreateProgram("C:\\Users\\thanasio\\Source\\Repos\\niftyreg-git\\reg-lib\\cl\\blockMatchingKernel.cl");
+	cl_kernel targetKernel = clCreateKernel(program, "process_target_blocks_gpu", NULL);
+	cl_kernel resultKernel = clCreateKernel(program, "process_result_blocks_gpu", NULL);
+	cl_mem memObjects[numMemObjects] = { 0, 0, 0, 0, 0 };
+
+	// Copy the sform transformation matrix onto the device memort
+	mat44 *xyz_mat = (target->sform_code > 0) ? &(target->sto_xyz) : &(target->qto_xyz);
+
+	cl_float4 t_m_a = { xyz_mat->m[0][0], xyz_mat->m[0][1], xyz_mat->m[0][2], xyz_mat->m[0][3] };
+	cl_float4 t_m_b = { xyz_mat->m[1][0], xyz_mat->m[1][1], xyz_mat->m[1][2], xyz_mat->m[1][3] };
+	cl_float4 t_m_c = { xyz_mat->m[2][0], xyz_mat->m[2][1], xyz_mat->m[2][2], xyz_mat->m[2][3] };
+
+
+	if (targetKernel == NULL) {
+		std::cerr << "Failed to create targetKernel" << std::endl;
+		sContext->Cleanup(program, targetKernel, memObjects, numMemObjects);
+		return;
+	}
+
+	float *targetImageArray_d;
+	float *resultImageArray_d;
+	float *targetPosition_d;
+	float *resultPosition_d;
+	int   *activeBlock_d;
+
+	cl_uint3 bDim = { params->blockNumber[0], params->blockNumber[1], params->blockNumber[2] };
+	const int numBlocks = bDim.s[0]*bDim.s[1]*bDim.s[2];
+
+	// Image size
+	cl_uint3 image_size = { target->nx, target->ny, target->nz };
+
+	//remember to try textures
+
+	//targetPosition_d
+	memObjects[0] = clCreateBuffer(context, CL_MEM_READ_WRITE, params->activeBlockNumber * 3 * sizeof(float), params->targetPosition, &errNum);
+	sContext->checkErrNum(errNum, "failed memObj0: ");
+	//resultPosition_d
+	memObjects[1] = clCreateBuffer(context, CL_MEM_READ_WRITE, params->activeBlockNumber * 3 * sizeof(float), params->resultPosition, &errNum);
+	sContext->checkErrNum(errNum, "failed memObj1: ");
+
+
+
+	//values
+	memObjects[2] = clCreateBuffer(context, CL_MEM_READ_WRITE, BLOCK_SIZE *numBlocks * sizeof(float), NULL, &errNum);
+	sContext->checkErrNum(errNum, "failed memObj2: ");
+
+
+
+
+	//targetImageArray_d
+	memObjects[3] = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * target->nvox, target->data, &errNum);
+	sContext->checkErrNum(errNum, "failed memObj3: ");
+
+	//resultImageArray_d
+	memObjects[4] = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * result->nvox, result->data, &errNum);
+	sContext->checkErrNum(errNum, "failed memObj4: ");
+
+	//activeBlock_d
+	memObjects[5] = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, numBlocks  * sizeof(int), mask, &errNum);
+	sContext->checkErrNum(errNum, "failed memObj5: ");
+
+	errNum = clSetKernelArg(targetKernel, 0, sizeof(cl_mem), &memObjects[0]);
+	errNum |= clSetKernelArg(targetKernel, 1, sizeof(cl_mem), &memObjects[2]);
+
+	errNum |= clSetKernelArg(targetKernel, 2, sizeof(cl_mem), &memObjects[3]);
+	errNum |= clSetKernelArg(targetKernel, 3, sizeof(cl_mem), &memObjects[5]);
+
+	errNum |= clSetKernelArg(targetKernel, 4, sizeof(cl_uint3), &bDim);
+	errNum |= clSetKernelArg(targetKernel, 5, sizeof(cl_uint3), &image_size);
+	errNum |= clSetKernelArg(targetKernel, 6, sizeof(cl_float4), &t_m_a);
+	errNum |= clSetKernelArg(targetKernel, 7, sizeof(cl_float4), &t_m_b);
+	errNum |= clSetKernelArg(targetKernel, 8, sizeof(cl_float4), &t_m_c);
+
+	sContext->checkErrNum(errNum, "Error setting target kernel arguments.");
+
+	errNum = clSetKernelArg(resultKernel, 0, sizeof(cl_mem), &memObjects[1]);
+	errNum |= clSetKernelArg(resultKernel, 1, sizeof(cl_mem), &memObjects[2]);
+
+	errNum |= clSetKernelArg(resultKernel, 2, sizeof(cl_mem), &memObjects[4]);
+	errNum |= clSetKernelArg(resultKernel, 3, sizeof(cl_mem), &memObjects[5]);
+
+	errNum |= clSetKernelArg(resultKernel, 4, sizeof(cl_uint3), &bDim);
+	errNum |= clSetKernelArg(resultKernel, 5, sizeof(cl_uint3), &image_size);
+	errNum |= clSetKernelArg(resultKernel, 6, sizeof(cl_float4), &t_m_a);
+	errNum |= clSetKernelArg(resultKernel, 7, sizeof(cl_float4), &t_m_b);
+	errNum |= clSetKernelArg(resultKernel, 8, sizeof(cl_float4), &t_m_c);
+	sContext->checkErrNum(errNum, "Error setting result kernel arguments.");
+
+//
+//
+//
+//	// We need to allocate some memory to keep track of overlap areas and values for blocks
+//	unsigned int memSize = BLOCK_SIZE * params->activeBlockNumber;
+//	printf("memsize: %d | abn: %d - %d\n", memSize, params->activeBlockNumber, numBlocks);
+//
+//	unsigned int Grid_block_matching = (unsigned int)ceil((float)params->activeBlockNumber / (float)NR_BLOCK->Block_target_block);
+//	unsigned int Grid_block_matching_2 = 1;
+//
+//	// We have hit the limit in one dimension
+//	if (Grid_block_matching > 65335) {
+//		Grid_block_matching_2 = (unsigned int)ceil((float)Grid_block_matching / 65535.0f);
+//		Grid_block_matching = 65335;
+//	}
+//
+//	dim3 B1(NR_BLOCK->Block_target_block, 1, 1);
+//	dim3 G1(Grid_block_matching, Grid_block_matching_2, 1);
+//	printf("blocks: %d | threads: %d \n", Grid_block_matching, NR_BLOCK->Block_target_block);
+//	// process the target blocks
+//	process_target_blocks_gpu << <G1, B1 >> >(*targetPosition_d, targetValues);
+//	NR_CUDA_CHECK_KERNEL(G1, B1)
+//		NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
+//#ifndef NDEBUG
+//	printf("[NiftyReg CUDA DEBUG] process_target_blocks_gpu kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+//		cudaGetErrorString(cudaGetLastError()), G1.x, G1.y, G1.z, B1.x, B1.y, B1.z);
+//#endif
+//
+//	//target: 512 | result: 384
+//	const unsigned int targetThreads = 512;
+//	const unsigned int resultThreads = 384;
+//	const unsigned int maxBlocks = sContext->getMaxBlocks;
+//	const unsigned int Result_block_matching = params->activeBlockNumber;
+//	const unsigned int Result_block_matching_2 = (Result_block_matching > maxBlocks) ? (unsigned int)ceil((float)Result_block_matching / 65535.0f) : 1;
+//	const unsigned int dims = 2;
+//
+//
+//
+//	const size_t globalWorkSize[dims] = { Result_block_matching*maxThreads };
+//	const size_t localWorkSize[dims] = { targetThreads };
+//
+//	dim3 B2(NR_BLOCK->Block_result_block, 1, 1);
+//	dim3 G2(Result_block_matching, Result_block_matching_2, 1);
+//	process_result_blocks_gpu << <G2, B2 >> >(*resultPosition_d, targetValues);
+//	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
+//#ifndef NDEBUG
+//	printf("[NiftyReg CUDA DEBUG] process_result_blocks_gpu kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+//		cudaGetErrorString(cudaGetLastError()), G2.x, G2.y, G2.z, B2.x, B2.y, B2.z);
+//#endif
+//	NR_CUDA_SAFE_CALL(cudaUnbindTexture(targetImageArray_texture));
+//	NR_CUDA_SAFE_CALL(cudaUnbindTexture(resultImageArray_texture));
+//	NR_CUDA_SAFE_CALL(cudaUnbindTexture(activeBlock_texture));
+//	NR_CUDA_SAFE_CALL(cudaFree(targetValues));
+//	NR_CUDA_SAFE_CALL(cudaFree(resultValues));
+//
+//	// We will simply call the CPU version as this step is probably
+//	// not worth implementing on the GPU.
+//	// device to host copy
+//	int      memSize2 = params->activeBlockNumber * 3 * sizeof(float);
+//	NR_CUDA_SAFE_CALL(cudaMemcpy(params->targetPosition, *targetPosition_d, memSize2, cudaMemcpyDeviceToHost));
+//	NR_CUDA_SAFE_CALL(cudaMemcpy(params->resultPosition, *resultPosition_d, memSize2, cudaMemcpyDeviceToHost));
+//
+	std::cout << "===================================================" << std::endl;
+}
+
+////temporary for tests: cpu code
+void CLBlockMatchingKernel::initialize(nifti_image * target, _reg_blockMatchingParam *params, int percentToKeep_block, int percentToKeep_opt, int *mask, bool runningOnGPU) {
+	if (params->activeBlock != NULL) {
+		free(params->activeBlock);
+		params->activeBlock = NULL;
+	}
+	if (params->targetPosition != NULL) {
+		free(params->targetPosition);
+		params->targetPosition = NULL;
+	}
+	if (params->resultPosition != NULL) {
+		free(params->resultPosition);
+		params->resultPosition = NULL;
+	}
+
+	params->blockNumber[0] = (int)reg_ceil((float)target->nx / (float)BLOCK_WIDTH);
+	params->blockNumber[1] = (int)reg_ceil((float)target->ny / (float)BLOCK_WIDTH);
+	if (target->nz>1)
+		params->blockNumber[2] = (int)reg_ceil((float)target->nz / (float)BLOCK_WIDTH);
+	else params->blockNumber[2] = 1;
+
+	params->percent_to_keep = percentToKeep_opt;
+	params->activeBlockNumber = params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2] * percentToKeep_block / 100;
+
+	params->activeBlock = (int *)malloc(params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2] * sizeof(int));
+	switch (target->datatype) {
+	case NIFTI_TYPE_FLOAT32:
+		_reg_set_active_blocks<float>(target, params, mask, runningOnGPU);
+		break;
+	case NIFTI_TYPE_FLOAT64:
+		_reg_set_active_blocks<double>(target, params, mask, runningOnGPU);
+		break;
+	default:
+		fprintf(stderr, "[NiftyReg ERROR] initialise_block_matching_method\tThe target image data type is not supported\n");
+		reg_exit(1);
+	}
+	if (params->activeBlockNumber<2) {
+		fprintf(stderr, "[NiftyReg ERROR] There are no active blocks\n");
+		fprintf(stderr, "[NiftyReg ERROR] ... Exit ...\n");
+		reg_exit(1);
+	}
+#ifndef NDEBUG
+	printf("[NiftyReg DEBUG]: There are %i active block(s) out of %i.\n", params->activeBlockNumber, params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2]);
+#endif
+	if (target->nz>1) {
+		std::cout << "allocating: " << params->activeBlockNumber << std::endl;
+		params->targetPosition = (float *)malloc(params->activeBlockNumber * 3 * sizeof(float));
+		params->resultPosition = (float *)malloc(params->activeBlockNumber * 3 * sizeof(float));
+	}
+	else {
+		params->targetPosition = (float *)malloc(params->activeBlockNumber * 2 * sizeof(float));
+		params->resultPosition = (float *)malloc(params->activeBlockNumber * 2 * sizeof(float));
+	}
+#ifndef NDEBUG
+	printf("[NiftyReg DEBUG] block matching initialisation done.\n");
+#endif
 }
 

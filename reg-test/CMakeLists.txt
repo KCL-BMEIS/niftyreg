@@ -21,6 +21,11 @@ endforeach(dim)
 
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
+set(EXEC clInfo)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_aladin)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 set(EXEC testOptimizerKernel)
 add_executable(${EXEC} ${EXEC}.cpp)
 target_link_libraries(${EXEC} _reg_aladin)

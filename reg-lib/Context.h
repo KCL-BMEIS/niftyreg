@@ -46,10 +46,7 @@ public:
 	void setTime(double time);
 	double getParameter(const std::string& name) const;
 	void setParameter(const std::string& name, double value);
-	void computeVirtualSites();
-	void reinitialize();
-	void createCheckpoint(std::ostream& stream);
-	void loadCheckpoint(std::istream& stream);
+
 	void shout();
 	void createKernels(const unsigned int dType);
 

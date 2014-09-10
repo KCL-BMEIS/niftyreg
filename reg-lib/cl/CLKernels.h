@@ -37,11 +37,11 @@ public:
 		sContext = &CLContextSingletton::Instance();
 	}
 	CLContextSingletton* sContext;
-	void initialize(nifti_image * target, _reg_blockMatchingParam *params, int percentToKeep_block, int percentToKeep_opt, int *mask, bool runningOnGPU) {}
+	void initialize(nifti_image * target, _reg_blockMatchingParam *params, int percentToKeep_block, int percentToKeep_opt, int *mask, bool runningOnGPU);
 	/*template <class DTYPE>
 	void setActiveBlocks(nifti_image *targetImage, _reg_blockMatchingParam *params, int *mask, bool runningOnGPU);*/
 
-	void execute(nifti_image * target, nifti_image * result, _reg_blockMatchingParam *params, int *mask) {}
+	void execute(nifti_image * target, nifti_image * result, _reg_blockMatchingParam *params, int *mask);
 	/*template<class T> void runKernel(nifti_image * target, nifti_image * result, _reg_blockMatchingParam *params, int *mask);*/
 
 };

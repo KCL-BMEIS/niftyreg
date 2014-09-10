@@ -1,7 +1,10 @@
 #include"Kernel.h"
 #include"Kernels.h"
 #include "CPUPlatform.h"
+#include "CudaPlatform.h"
+#include "CLPlatform.h"
 #include "_reg_ReadWriteImage.h"
+#include <string>
 
 #define LINEAR_CODE 1
 #define CUBIC_CODE  3
@@ -12,7 +15,8 @@
 #define NN_FILENAME "mock_resample_nn_warped.nii"
 
 
-float test(Platform* platform, const unsigned int interp) {
+float test(Platform* platform, const unsigned int interp, std::string message) {
+	std::cout << "================================" << std::endl;
 	Kernel resamplingKernel = platform->createKernel(ResampleImageKernel::Name(), 16);
 
 	//init ref params
@@ -23,7 +27,7 @@ float test(Platform* platform, const unsigned int interp) {
 	int* CurrentReferenceMask = NULL;
 
 	nifti_image* output;
-	if(interp == LINEAR_CODE )
+	if( interp == LINEAR_CODE )
 		output = reg_io_ReadImageFile(LINEAR_FILENAME);
 	else if( interp == CUBIC_CODE )
 		output = reg_io_ReadImageFile(CUBIC_FILENAME);
@@ -33,17 +37,23 @@ float test(Platform* platform, const unsigned int interp) {
 	//run kernel
 	resamplingKernel.getAs<ResampleImageKernel>().execute(CurrentFloating, CurrentWarped, deformationFieldImage, CurrentReferenceMask, interp, 0);
 
-	//measure performance (elapsed time)
 
+	//measure performance (elapsed time)
+	
 	//compare results
 	double maxDiff = reg_test_compare_images(CurrentWarped, output);
 
-
+	//output
+	std::cout << message << maxDiff << std::endl;
 
 
 	nifti_image_free(CurrentFloating);
 	nifti_image_free(CurrentWarped);
+	nifti_image_free(deformationFieldImage);
+	nifti_image_free(output);
 	free(CurrentReferenceMask);
+
+
 
 	return maxDiff;
 }
@@ -52,16 +62,21 @@ int main(int argc, char **argv) {
 
 	//init platform params
 	Platform *platform = new CPUPlatform();
-	
-	const float nnDiff = test(platform, 0);
-	const float linearDiff = test(platform, 1);
-	const float cubicDiff = test(platform, 3);
+	Platform *cudaPlatform = new CudaPlatform();
+	Platform *clPlatform = new CLPlatform();
 
+	const float nnDiff = test(platform, 0, "nnDiff:");
+	const float linearDiff = test(platform, 1, "linear diff: ");
+	const float cubicDiff  = test(platform, 3, "cubic diff: ");
 
-	//output
-	std::cout << "nnDiff:" << nnDiff << std::endl;
-	std::cout << "linearDiff:" << linearDiff << std::endl;
-	std::cout << "cubicDiff:" << cubicDiff << std::endl;
+	const float linearDiffCuda = test(cudaPlatform, 1, "cuda linear: ");
+	const float nnDiffCuda = test(cudaPlatform, 0, "cuda nn: ");
+	const float cubicDiffCuda = test(cudaPlatform, 3, "cuda cubic: ");
+
+	const float linearDiffCl = test(clPlatform, 1, "cl linear: ");
+	const float nnDiffCl = test(clPlatform, 0, "cl nn: ");
+	const float cubicDiffCl = test(clPlatform, 3, "cl cubic: ");
+
 
 	return 0;
 

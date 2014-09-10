@@ -1,6 +1,8 @@
 #include"Kernel.h"
 #include"Kernels.h"
 #include "CPUPlatform.h"
+#include "CudaPlatform.h"
+#include "CLPlatform.h"
 #include "_reg_ReadWriteImage.h"
 #include <math.h>
 #include <algorithm>
@@ -105,7 +107,8 @@ void initParams(Platform* platform, _reg_blockMatchingParam* blockMatchingParams
 	blockMatchingKernel.getAs<BlockMatchingKernel>().execute(CurrentReference, CurrentWarped, blockMatchingParams, CurrentReferenceMask);
 }
 
-float test(Platform* platform, _reg_blockMatchingParam* blockMatchingParams, const unsigned int type) {
+
+float test(Platform* platform, _reg_blockMatchingParam* blockMatchingParams, const unsigned int type, char* msg) {
 	Kernel optimizeKernel = platform->createKernel(OptimiseKernel::Name(), 16);
 
 
@@ -123,26 +126,34 @@ float test(Platform* platform, _reg_blockMatchingParam* blockMatchingParams, con
 	//measure performance (elapsed time)
 
 	//compare results
-	return compareMats(TransformationMatrix, output);
+	float diff = compareMats(TransformationMatrix, output);
+
+	//output
+	std::cout << "===================================" << msg << "===================================" << std::endl;
+	std::cout << std::endl;
+	std::cout << msg<<": " << diff << std::endl;
+	std::cout << "===================================" << msg << " END ===============================" << std::endl;
+
+	
+	return diff;
 
 }
 
 int main(int argc, char **argv) {
 
 	//init platform params
-	Platform *platform = new CPUPlatform();
+	Platform *cpuPlatform = new CPUPlatform();
+	Platform *cudaPlatform = new CudaPlatform();
+	Platform *clPlatform = new CLPlatform();
 
 	//init ref params
 	_reg_blockMatchingParam blockMatchingParams;
-	initParams(platform, &blockMatchingParams);
+	initParams(cpuPlatform, &blockMatchingParams);
 
 	//run tests for rigid and affine
-	float maxDiff1 = test(platform, &blockMatchingParams, RIGID);
-	float maxDiff2 = test(platform, &blockMatchingParams, AFFINE);
+	float maxDiff1 = test(cpuPlatform, &blockMatchingParams, RIGID, "CPU RIGID ");
+	float maxDiff2 = test(cpuPlatform, &blockMatchingParams, AFFINE,"CPU AFFINE");
 
-	//output
-	std::cout << "rigid diff:" << maxDiff1 << std::endl;
-	std::cout << "affine diff:" << maxDiff2 << std::endl;
 
 	return 0;
 

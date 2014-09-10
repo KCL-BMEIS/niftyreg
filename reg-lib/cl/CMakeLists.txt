@@ -20,6 +20,6 @@ IF (USE_OPENCL)
 			LIBRARY DESTINATION lib
 			ARCHIVE DESTINATION lib
 		)
-		install(FILES  CLPlatform.h CLKernelFactory.h CPUKernelFactory.h CLKernels.h CLContextSingletton.h DESTINATION include)
+		install(FILES  CLPlatform.h CLKernelFactory.h CLKernels.h CLContextSingletton.h DESTINATION include)
 	ENDIF()
 ENDIF()

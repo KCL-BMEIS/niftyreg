@@ -32,7 +32,7 @@ __inline void reg_mat44_mul_cl(__global float const* mat, float const* in, float
 	return;
 }
 
-__kernel void CubicSplineResampleImage3D(__global float *floatingImage, __global float *deformationField, __global float *warpedImage,__global int *mask,__global /*mat44*/float* sourceIJKMatrix, long2 voxelNumber, uint3 fi_xyz, uint2 wi_tu, float paddingValue) {
+__kernel void  CubicSplineResampleImage3D(__global float* floatingImage, __global float* deformationField, __global float* warpedImage,__global int* mask,__global /*mat44*/float* sourceIJKMatrix, long2 voxelNumber, uint3 fi_xyz, uint2 wi_tu, float paddingValue) {
 	//long resultVoxelNumber = (long)warpedImage->nx*warpedImage->ny*warpedImage->nz;vn.x
 	//long sourceVoxelNumber = (long)floatingImage->nx*floatingImage->ny*floatingImage->nz;vn.y
 
@@ -193,7 +193,7 @@ __kernel void TrilinearResampleImage(__global float* floatingImage, __global flo
 				zBasis[1] = relative;
 
 				// For efficiency reason two interpolation are here, with and without using a padding value
-				if (paddingValue) {
+				if (paddingValue==paddingValue) {
 					// Interpolation using the padding value
 					for (c = 0; c<2; c++) {
 						Z = previous[2] + c;

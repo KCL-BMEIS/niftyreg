@@ -6,10 +6,6 @@
 #include <string>
 #include <vector>
 
-
-
-
-class Context;
 class Kernel;
 class KernelFactory;
 
