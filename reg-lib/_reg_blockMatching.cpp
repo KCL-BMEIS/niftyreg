@@ -2211,6 +2211,7 @@ void optimize_rigid3D(_reg_blockMatchingParam *params,
 // Find the optimal affine transformation
 void optimize(_reg_blockMatchingParam *params, mat44 *transformation_matrix, bool affine)
 {
+	//reg_mat44_disp(transformation_matrix, (char *)"[DEBUG] 1.optimzes");
 	// The block matching provide correspondences in millimeters
 	// in the space of the reference image. All warped image coordinates
 	// are updated to be in the original floating space
@@ -2249,5 +2250,7 @@ void optimize(_reg_blockMatchingParam *params, mat44 *transformation_matrix, boo
 		if (affine)
 			optimize_affine3D(params, transformation_matrix);
 		else optimize_rigid3D(params, transformation_matrix);
+		//reg_mat44_disp(transformation_matrix, (char *)"[DEBUG] optimzes");
+
 	}
 }

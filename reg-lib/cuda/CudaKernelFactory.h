@@ -7,6 +7,6 @@ class KernelImpl;
 class CudaKernelFactory : public KernelFactory
 {
 public:
-	KernelImpl* createKernelImpl(std::string name, const Platform& platform, unsigned int dType) const;
+	KernelImpl* createKernelImpl(std::string name, const Platform& platform, Context* con) const;
 };
 

@@ -8,6 +8,7 @@
 
 class Kernel;
 class KernelFactory;
+class Context;
 
 /**
  * A Platform defines an implementation of all the kernels needed to perform some calculation.
@@ -30,7 +31,7 @@ class  Platform {
 public:
 	Platform();
 	void shout();
-	Kernel createKernel(const std::string& name, unsigned int dType) const;
+	Kernel createKernel(const std::string& name, Context* con) const;
 	void registerKernelFactory(const std::string& name, KernelFactory* factory);
 
 	std::map<std::string, KernelFactory*> kernelFactories;

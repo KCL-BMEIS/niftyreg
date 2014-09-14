@@ -4,6 +4,7 @@
 #include "CudaPlatform.h"
 #include "CLPlatform.h"
 #include "_reg_ReadWriteImage.h"
+#include "Context.h"
 #include <string>
 
 #define LINEAR_CODE 1
@@ -17,14 +18,25 @@
 
 float test(Platform* platform, const unsigned int interp, std::string message) {
 	std::cout << "================================" << std::endl;
-	Kernel resamplingKernel = platform->createKernel(ResampleImageKernel::Name(), 16);
+	
 
 	//init ref params
 	nifti_image* CurrentFloating = reg_io_ReadImageFile("mock_resample_input_float.nii");
 	nifti_image* CurrentWarped = reg_io_ReadImageFile("mock_resample_input_warped.nii");
 	nifti_image* deformationFieldImage = reg_io_ReadImageFile("mock_affine_output.nii");
-
 	int* CurrentReferenceMask = NULL;
+	nifti_image* mockRef = reg_io_ReadImageFile(CUBIC_FILENAME);//any image doesn't matter
+
+
+	std::cout << "conb" << std::endl;
+	Context *con = new Context(mockRef, CurrentFloating, CurrentReferenceMask, sizeof(float), 50, 50);//temp
+	con->setCurrentWarped(CurrentWarped);
+	con->setCurrentDeformationField(deformationFieldImage);
+
+	std::cout << "kernel" << std::endl;
+	Kernel resamplingKernel = platform->createKernel(ResampleImageKernel::Name(), con);
+
+	
 
 	nifti_image* output;
 	if( interp == LINEAR_CODE )
@@ -33,10 +45,10 @@ float test(Platform* platform, const unsigned int interp, std::string message) {
 		output = reg_io_ReadImageFile(CUBIC_FILENAME);
 	else
 		output = reg_io_ReadImageFile(NN_FILENAME);
-
+	std::cout << "exe" << std::endl;
 	//run kernel
-	resamplingKernel.getAs<ResampleImageKernel>().execute(CurrentFloating, CurrentWarped, deformationFieldImage, CurrentReferenceMask, interp, 0);
-
+	resamplingKernel.getAs<ResampleImageKernel>().execute( interp, 0);
+	std::cout << "dne" << std::endl;
 
 	//measure performance (elapsed time)
 	

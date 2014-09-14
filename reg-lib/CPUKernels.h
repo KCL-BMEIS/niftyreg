@@ -1,34 +1,33 @@
 #pragma once
 #include "kernels.h"
+#include"Context.h"
 
 
 
- class CPUAffineDeformationFieldKernel;
- class CPUBlockMatchingKernel;
- class CPUConvolutionKernel;
- class CPUOptimiseKernel;
- class CPUResampleImageKernel;
+class CPUAffineDeformationFieldKernel;
+class CPUBlockMatchingKernel;
+class CPUConvolutionKernel;
+class CPUOptimiseKernel;
+class CPUResampleImageKernel;
 
 
- //Kernel functions for affine deformation field 
+//Kernel functions for affine deformation field 
 class CPUAffineDeformationFieldKernel : public AffineDeformationFieldKernel {
 public:
-	CPUAffineDeformationFieldKernel(std::string name, const Platform& platform) : AffineDeformationFieldKernel(name, platform) {
+	CPUAffineDeformationFieldKernel(Context* con, std::string nameIn, const Platform& platformIn) : AffineDeformationFieldKernel(con->getCurrentDeformationField(), con->getTransformationMatrix(), nameIn, platformIn, con->getCurrentReferenceMask()) {
 	}
 
-	void initialize(nifti_image *CurrentReference, nifti_image **deformationFieldImage, const size_t dataSize){}
-	void clear(nifti_image *deformationFieldImage){}
-	void execute(mat44 *affineTransformation, nifti_image *deformationField, bool compose=false, int *mask=NULL);
+
+	void execute(bool compose = false);
 };
 //Kernel functions for block matching
 class CPUBlockMatchingKernel : public BlockMatchingKernel {
 public:
 
-	CPUBlockMatchingKernel(std::string name, const Platform& platform) : BlockMatchingKernel(name, platform) {
+	CPUBlockMatchingKernel(Context* con, std::string name, const Platform& platform) : BlockMatchingKernel(con->getCurrentReference(), con->getCurrentWarped(), con->getBlockMatchingParams(), con->getCurrentReferenceMask(), name, platform) {
 	}
 
-	void initialize(nifti_image * target, _reg_blockMatchingParam *params, int percentToKeep_block, int percentToKeep_opt, int *mask, bool runningOnGPU);
-	void execute(nifti_image * target, nifti_image * result, _reg_blockMatchingParam *params, int *mask);
+	void execute();
 
 
 };
@@ -39,29 +38,29 @@ public:
 	CPUConvolutionKernel(std::string name, const Platform& platform) : ConvolutionKernel(name, platform) {
 	}
 
-	 void execute(nifti_image *image,float *sigma, int kernelType,int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL);
+	void execute(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL);
 private:
 	bool *nanImagePtr;
 	float *densityPtr;
-	 
+
 };
 
 //kernel functions for numerical optimisation
 class CPUOptimiseKernel : public OptimiseKernel {
 public:
 
-	CPUOptimiseKernel(std::string name, const Platform& platform) : OptimiseKernel(name, platform) {
+	CPUOptimiseKernel(Context* con, std::string name, const Platform& platform) : OptimiseKernel(con->getBlockMatchingParams(), con->getTransformationMatrix(), name, platform) {
 	}
 
-	void execute(_reg_blockMatchingParam *params, mat44 *transformation_matrix, bool affine);
+	void execute(bool affine);
 };
 
 //kernel functions for image resampling with three interpolation variations
 class CPUResampleImageKernel : public ResampleImageKernel {
 public:
-	CPUResampleImageKernel(std::string name, const Platform& platform) : ResampleImageKernel(name, platform) {
+	CPUResampleImageKernel(Context* con, std::string name, const Platform& platform) : ResampleImageKernel(con->getCurrentFloating(), con->getCurrenbtWarped(), con->getCurrentDeformationField(), con->getCurrentReferenceMask(), name, platform) {
 	}
 
-	void execute(nifti_image *floatingImage,nifti_image *warpedImage,nifti_image *deformationField,int *mask, int interp,float paddingValue,bool *dti_timepoint = NULL, mat33 * jacMat = NULL) ;
+	void execute(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
 };
 

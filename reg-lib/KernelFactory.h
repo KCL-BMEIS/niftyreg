@@ -3,6 +3,7 @@
 
 
 #include "KernelImpl.h"
+#include "Context.h"
 
 /**
  * A KernelFactory is an object that can create KernelImpls.  This is an abstract class.
@@ -18,7 +19,7 @@ public:
      * @param name the name of the kernel to create
      * @param context the context the kernel will belong to
      */
-    virtual KernelImpl* createKernelImpl(std::string name, const Platform& platform, unsigned int dType) const = 0;
+    virtual KernelImpl* createKernelImpl(std::string name, const Platform& platform, Context* con) const = 0;
     virtual ~KernelFactory() {
     }
 };

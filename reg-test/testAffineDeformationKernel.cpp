@@ -5,6 +5,7 @@
 #include "CLPlatform.h"
 #include "_reg_ReadWriteImage.h"
 #include"cuda_runtime.h"
+#include "Context.h"
 #include <ctime>
 
 void mockAffine(mat44* affine) {
@@ -30,7 +31,8 @@ void mockAffine(mat44* affine) {
 }
 
 void test(Platform* platform, const char* msg) {
-	Kernel affineDeformKernel = platform->createKernel(AffineDeformationFieldKernel::Name(), 16);
+
+	
 
 	//init ref params
 	nifti_image* input = reg_io_ReadImageFile("mock_affine_input.nii");
@@ -39,9 +41,16 @@ void test(Platform* platform, const char* msg) {
 	mat44* affine = new mat44;
 	mockAffine(affine);
 
+
+
+	Context *context = new Context();
+	context->setTransformationMatrix(affine);
+	context->setCurrentDeformationField(input);
+	Kernel affineDeformKernel = platform->createKernel(AffineDeformationFieldKernel::Name(), context);
+
 	clock_t begin = clock();
 	//run kernel
-	affineDeformKernel.getAs<AffineDeformationFieldKernel>().execute(affine, input);
+	affineDeformKernel.getAs<AffineDeformationFieldKernel>().execute();
 
 	clock_t end = clock();
 
@@ -51,7 +60,7 @@ void test(Platform* platform, const char* msg) {
 	
 
 	//compare results
-	double maxDiff = reg_test_compare_images(input, output);
+	double maxDiff = reg_test_compare_images(context->getCurrentDeformationField(), output);
 
 	//output
 	std::cout << "===================================" << std::endl;

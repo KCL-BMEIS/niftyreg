@@ -293,15 +293,16 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	
 	CPUPlatfom.cpp
 	
-	#CudaPlatform.cpp
+	#Kernels.cpp
+	
+
 	CPUKernelFactory.cpp
-	#CudaKernelFactory.cpp
 	CPUKernels.cpp
-	#CudaKernels.cpp
+
 	)
 	
 else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
+  add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	${NAME}.h
 	${NAME}.cpp
 	${NAME}_sym.h
@@ -310,20 +311,15 @@ else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	
 	Platform.cpp
 	Kernel.cpp
+	
 	KernelImpl.cpp
 	
 	CPUPlatfom.cpp
-	#CLPlatform.cpp
-	#CudaPlatform.cpp
 	
 	CPUKernelFactory.cpp
-	#CudaKernelFactory.cpp
-	#CLKernelFactory.cpp
-	
-	#CLKernels.cpp
 	CPUKernels.cpp
-	#CudaKernels.cpp
-	
+
+	#Kernels.cpp
 	
 	
 	)

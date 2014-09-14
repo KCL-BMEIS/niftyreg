@@ -16,31 +16,27 @@ unsigned int min_cl(unsigned int a, unsigned int b) {
 
 
 
-
-
-
-
-void CLAffineDeformationFieldKernel::execute(mat44 *affineTransformation, nifti_image *deformationField, bool compose, int *mask) {
+void CLAffineDeformationFieldKernel::execute(bool compose) {
 	std::cout << "Launching CL  affine kernel!" << std::endl;
 	
 	const unsigned int xThreads = 8;
 	const unsigned int yThreads = 8;
 	const unsigned int zThreads = 8;
 
-	const unsigned int xBlocks = ( ( deformationField->nx % xThreads ) == 0 ) ? ( deformationField->nx / xThreads ) : ( deformationField->nx / xThreads ) + 1;
-	const unsigned int yBlocks = ( ( deformationField->ny % yThreads ) == 0 ) ? ( deformationField->ny / yThreads ) : ( deformationField->ny / yThreads ) + 1;
-	const unsigned int zBlocks = ( ( deformationField->nz % zThreads ) == 0 ) ? ( deformationField->nz / zThreads ) : ( deformationField->nz / zThreads ) + 1;
+	const unsigned int xBlocks = ( ( this->deformationFieldImage->nx % xThreads ) == 0 ) ? ( this->deformationFieldImage->nx / xThreads ) : ( this->deformationFieldImage->nx / xThreads ) + 1;
+	const unsigned int yBlocks = ( ( this->deformationFieldImage->ny % yThreads ) == 0 ) ? ( this->deformationFieldImage->ny / yThreads ) : ( this->deformationFieldImage->ny / yThreads ) + 1;
+	const unsigned int zBlocks = ( ( this->deformationFieldImage->nz % zThreads ) == 0 ) ? ( this->deformationFieldImage->nz / zThreads ) : ( this->deformationFieldImage->nz / zThreads ) + 1;
 
 	//inits
 	int *tempMask = mask;
 	if( mask == NULL ) {
-		tempMask = (int *)calloc(deformationField->nx*
-								 deformationField->ny*
-								 deformationField->nz,
+		tempMask = (int *)calloc(this->deformationFieldImage->nx*
+								 this->deformationFieldImage->ny*
+								 this->deformationFieldImage->nz,
 								 sizeof(int));
 	}
 
-	const mat44 *targetMatrix = ( deformationField->sform_code>0 ) ? &( deformationField->sto_xyz ) : &( deformationField->qto_xyz );
+	const mat44 *targetMatrix = ( this->deformationFieldImage->sform_code>0 ) ? &( this->deformationFieldImage->sto_xyz ) : &( this->deformationFieldImage->qto_xyz );
 	mat44 transformationMatrix = ( compose == true ) ? *affineTransformation : reg_mat44_mul(affineTransformation, targetMatrix);
 
 	float* trans = (float *)malloc(16 * sizeof(float));
@@ -59,16 +55,16 @@ void CLAffineDeformationFieldKernel::execute(mat44 *affineTransformation, nifti_
 	kernel = clCreateKernel(program, "affineKernel", NULL);
 	assert(kernel != NULL);
 
-	cl_ulong nxyz = deformationField->nx*deformationField->ny* deformationField->nz;
+	cl_ulong nxyz = this->deformationFieldImage->nx*this->deformationFieldImage->ny* this->deformationFieldImage->nz;
 
 	memObjects[0] = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * 16, trans, &errNum);
 	sContext->checkErrNum(errNum, "failed memObj0: ");
-	memObjects[1] = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float) * deformationField->nvox, deformationField->data, &errNum);
+	memObjects[1] = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float) * this->deformationFieldImage->nvox, this->deformationFieldImage->data, &errNum);
 	sContext->checkErrNum(errNum, "failed memObj1: ");
 	memObjects[2] = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(unsigned int) * nxyz, tempMask, &errNum);
 	sContext->checkErrNum(errNum, "failed memObj2: ");
 	
-	cl_uint3 pms_d = { deformationField->nx,deformationField->ny, deformationField->nz };
+	cl_uint3 pms_d = { this->deformationFieldImage->nx,this->deformationFieldImage->ny, this->deformationFieldImage->nz };
 	cl_uint composition = compose;
 
 	errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), &memObjects[0]);
@@ -99,7 +95,7 @@ void CLAffineDeformationFieldKernel::execute(mat44 *affineTransformation, nifti_
 
 
 	// Read the output buffer back to the Host
-	errNum = clEnqueueReadBuffer(commandQueue, memObjects[1], CL_TRUE, 0, deformationField->nvox * sizeof(float), deformationField->data, 0, NULL, NULL);
+	errNum = clEnqueueReadBuffer(commandQueue, memObjects[1], CL_TRUE, 0, this->deformationFieldImage->nvox * sizeof(float), this->deformationFieldImage->data, 0, NULL, NULL);
 	//	std::cout << "CL Time: " << (std::clock() - start) / (double) (CLOCKS_PER_SEC / 1000) << " ms" << std::endl;
 
 	cl_ulong ev_start_time = (cl_ulong)0;
@@ -122,7 +118,7 @@ void CLAffineDeformationFieldKernel::execute(mat44 *affineTransformation, nifti_
 }
 
 
-void CLResampleImageKernel::execute(nifti_image *floatingImage, nifti_image *warpedImage, nifti_image *deformationField, int *mask, int interp, float paddingValue, bool *dti_timepoint , mat33 * jacMat ) {
+void CLResampleImageKernel::execute( int interp, float paddingValue, bool *dti_timepoint , mat33 * jacMat ) {
 	
 	
 	std::cout << "running CL" << std::endl;
@@ -326,7 +322,7 @@ void CLResampleImageKernel::execute(nifti_image *floatingImage, nifti_image *war
 	}
 }
 
-void CLBlockMatchingKernel::execute(nifti_image * target, nifti_image * result, _reg_blockMatchingParam *params, int *mask){
+void CLBlockMatchingKernel::execute(){
 	std::cout << "===================================================" << std::endl;
 	std::cout << "Launching cl  block matching kernel!" << std::endl;
 
@@ -486,63 +482,5 @@ void CLBlockMatchingKernel::execute(nifti_image * target, nifti_image * result, 
 //	NR_CUDA_SAFE_CALL(cudaMemcpy(params->resultPosition, *resultPosition_d, memSize2, cudaMemcpyDeviceToHost));
 //
 	std::cout << "===================================================" << std::endl;
-}
-
-////temporary for tests: cpu code
-void CLBlockMatchingKernel::initialize(nifti_image * target, _reg_blockMatchingParam *params, int percentToKeep_block, int percentToKeep_opt, int *mask, bool runningOnGPU) {
-	if (params->activeBlock != NULL) {
-		free(params->activeBlock);
-		params->activeBlock = NULL;
-	}
-	if (params->targetPosition != NULL) {
-		free(params->targetPosition);
-		params->targetPosition = NULL;
-	}
-	if (params->resultPosition != NULL) {
-		free(params->resultPosition);
-		params->resultPosition = NULL;
-	}
-
-	params->blockNumber[0] = (int)reg_ceil((float)target->nx / (float)BLOCK_WIDTH);
-	params->blockNumber[1] = (int)reg_ceil((float)target->ny / (float)BLOCK_WIDTH);
-	if (target->nz>1)
-		params->blockNumber[2] = (int)reg_ceil((float)target->nz / (float)BLOCK_WIDTH);
-	else params->blockNumber[2] = 1;
-
-	params->percent_to_keep = percentToKeep_opt;
-	params->activeBlockNumber = params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2] * percentToKeep_block / 100;
-
-	params->activeBlock = (int *)malloc(params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2] * sizeof(int));
-	switch (target->datatype) {
-	case NIFTI_TYPE_FLOAT32:
-		_reg_set_active_blocks<float>(target, params, mask, runningOnGPU);
-		break;
-	case NIFTI_TYPE_FLOAT64:
-		_reg_set_active_blocks<double>(target, params, mask, runningOnGPU);
-		break;
-	default:
-		fprintf(stderr, "[NiftyReg ERROR] initialise_block_matching_method\tThe target image data type is not supported\n");
-		reg_exit(1);
-	}
-	if (params->activeBlockNumber<2) {
-		fprintf(stderr, "[NiftyReg ERROR] There are no active blocks\n");
-		fprintf(stderr, "[NiftyReg ERROR] ... Exit ...\n");
-		reg_exit(1);
-	}
-#ifndef NDEBUG
-	printf("[NiftyReg DEBUG]: There are %i active block(s) out of %i.\n", params->activeBlockNumber, params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2]);
-#endif
-	if (target->nz>1) {
-		std::cout << "allocating: " << params->activeBlockNumber << std::endl;
-		params->targetPosition = (float *)malloc(params->activeBlockNumber * 3 * sizeof(float));
-		params->resultPosition = (float *)malloc(params->activeBlockNumber * 3 * sizeof(float));
-	}
-	else {
-		params->targetPosition = (float *)malloc(params->activeBlockNumber * 2 * sizeof(float));
-		params->resultPosition = (float *)malloc(params->activeBlockNumber * 2 * sizeof(float));
-	}
-#ifndef NDEBUG
-	printf("[NiftyReg DEBUG] block matching initialisation done.\n");
-#endif
 }
 

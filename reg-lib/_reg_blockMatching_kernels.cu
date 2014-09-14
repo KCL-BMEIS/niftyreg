@@ -12,7 +12,7 @@
 #ifndef __REG_BLOCKMATCHING_KERNELS_CU__
 #define __REG_BLOCKMATCHING_KERNELS_CU__
 
-#define REDUCE reduceCustom_f
+#define REDUCE reduceCustom
 //#define REDUCE blockReduceSum
 
 #include "assert.h"
@@ -136,13 +136,15 @@ __global__ void targetPosKernel(float *targetPosition_d, float* targetMatrix_xyz
 
 
 	if ((i < 23) && (j < 28) && (k < 23)){
-		assert(k < blockDims.x); assert(j < blockDims.y); assert(i < blockDims.x);
+		assert(k < blockDims.x); 
+		assert(j < blockDims.y); 
+		assert(i < blockDims.x);
 		const unsigned int flatIdx = k*blockDims.x * blockDims.y + j*blockDims.x + i;
 
 		float targetPosition_temp[3] = { i* BLOCK_WIDTH, j* BLOCK_WIDTH, k* BLOCK_WIDTH };
 		float tempPosition[3];
 
-		bool is800 = (i == 8 && j == 0 && k == 0);
+		//bool is800 = (i == 8 && j == 0 && k == 0);
 		reg_mat44_mul_cuda<float>(targetMatrix_xyz, targetPosition_temp, tempPosition);
 		/*if (is800) printf("cuda (8,0,0): %f-%f-%f\n", tempPosition[0], tempPosition[1], tempPosition[2]);
 		if (is800) printf("cuda (8,0,0): %d-%d\n", flatIdx, activeBlock[flatIdx]);*/
@@ -152,7 +154,7 @@ __global__ void targetPosKernel(float *targetPosition_d, float* targetMatrix_xyz
 		//const unsigned int z = 3 * params->definedActiveBlock;
 		//const unsigned int targetIndex = 3 * /*(k*BLOCK_WIDTH*BLOCK_WIDTH + j*BLOCK_WIDTH + i)*/ flatIdx;
 		const int activeBlock = tex1Dfetch(activeBlock_texture, flatIdx);
-		assert(activeBlock < blockDims.x * blockDims.y* blockDims.z / 2);
+		//assert(activeBlock < blockDims.x * blockDims.y* blockDims.z / 2);
 
 		if (activeBlock != -1){
 			const unsigned int active = 3 * /*activeBlock[flatIdx]*/activeBlock;
@@ -768,7 +770,7 @@ float blockReduceSum(float val, int tid) {
 
 //launched as 4x4x4 blocks
 //Blocks: 1-(n-1) for all dimensions
-__global__ void resultsKernel(float *resultPosition, int* mask, float* targetMatrix_xyz, int3 blockDims){
+__global__ void resultsKernel(float *resultPosition, int* mask, float* targetMatrix_xyz, uint3 blockDims){
 
 	__shared__ float sResultValues[12 * 12 * 12];
 
@@ -967,7 +969,7 @@ __global__ void resultsKernel(float *resultPosition, int* mask, float* targetMat
 
 //launched as 64 thread blocks
 //Blocks: 1-(n-1) for all dimensions
-__global__ void resultsKernel2(float *resultPosition, int* mask, float* targetMatrix_xyz, int3 blockDims){
+__global__ void resultsKernel2(float *resultPosition, int* mask, float* targetMatrix_xyz, uint3 blockDims){
 
 	__shared__ float sResultValues[12 * 12 * 12];
 
@@ -1518,8 +1520,12 @@ __global__ void resultsKernelp(float *resultPosition, int* mask, float* targetMa
 	const unsigned int idz = threadIdx.x / 16;
 	const unsigned int idy = (threadIdx.x - 16 * idz) / 4;
 	const unsigned int idx = threadIdx.x - 16 * idz - 4 * idy;
+	assert(idz < 4);
+	assert(idx < 4);
+	assert(idy < 4);
 
 	const unsigned int bid = i + gridDim.x * j + (gridDim.x * gridDim.y) * k;
+	assert(bid < gridDim.x*gridDim.y*gridDim.z);
 
 	const unsigned int xBaseImage = i * 4;
 	const unsigned int yBaseImage = j * 4;
@@ -1531,10 +1537,16 @@ __global__ void resultsKernelp(float *resultPosition, int* mask, float* targetMa
 	const unsigned int yImage = yBaseImage + idy;
 	const unsigned int zImage = zBaseImage + idz;
 
+	
+
 	const unsigned long imgIdx = xImage + yImage *(c_ImageSize.x) + zImage * (c_ImageSize.x * c_ImageSize.y);
 	const int currentBlockIndex = tex1Dfetch(activeBlock_texture, bid);
 
 	if (currentBlockIndex >= 0 && xImage < c_ImageSize.x && yImage < c_ImageSize.y && zImage < c_ImageSize.z){
+		assert(xImage < c_ImageSize.x);
+		assert(yImage < c_ImageSize.y);
+		assert(zImage < c_ImageSize.z);
+		assert(imgIdx < c_ImageSize.x*c_ImageSize.y*c_ImageSize.z);
 
 		for (int n = -1; n <= 1; n += 1)
 		{
@@ -1549,6 +1561,8 @@ __global__ void resultsKernelp(float *resultPosition, int* mask, float* targetMa
 					const int z = n * 4 + idz;
 
 					const unsigned int sIdx = (z + 4) * 12 * 12 + (y + 4) * 12 + (x + 4);
+					assert(sIdx < 12 * 12 * 12);
+					assert(sIdx >= 0);
 
 					const unsigned int xImageIn = xBaseImage + x;
 					const unsigned int yImageIn = yBaseImage + y;
@@ -1575,7 +1589,7 @@ __global__ void resultsKernelp(float *resultPosition, int* mask, float* targetMa
 		{
 			for (unsigned int m = 1; m < 8; m += 1)
 			{
-				for (unsigned int l = 1; l < 8; l += 1)
+				for (unsigned int l = 1; l < 8; l += 2)
 				{
 
 					const unsigned int x = idx + l;
@@ -1584,6 +1598,8 @@ __global__ void resultsKernelp(float *resultPosition, int* mask, float* targetMa
 
 
 					const unsigned int sIdxIn = z * 12 * 12 + y * 12 + x;
+					assert(sIdxIn < 12 * 12 * 12);
+					assert(sIdxIn >= 0);
 
 					const float rResultValue = sResultValues[sIdxIn];
 

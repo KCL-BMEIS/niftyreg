@@ -1,6 +1,6 @@
 #pragma once
 #include "kernels.h"
-
+#include "context.h"
 
 
 class CudaAffineDeformationFieldKernel;
@@ -12,12 +12,11 @@ class CudaResampleImageKernel;
 //Kernel functions for affine deformation field 
 class CudaAffineDeformationFieldKernel : public AffineDeformationFieldKernel {
 public:
-	CudaAffineDeformationFieldKernel(std::string name, const Platform& platform) : AffineDeformationFieldKernel(name, platform) {
+	CudaAffineDeformationFieldKernel(Context* con, std::string nameIn, const Platform& platformIn) : AffineDeformationFieldKernel(con->getCurrentDeformationField(), con->getTransformationMatrix(), nameIn, platformIn, con->getCurrentReferenceMask()){
 	}
 
-	void initialize(nifti_image *CurrentReference, nifti_image **deformationFieldImage, const size_t dataSize) {}
-	void clear(nifti_image *deformationFieldImage) {}
-	void execute(mat44 *affineTransformation, nifti_image *deformationField, bool compose = false, int *mask = NULL);
+
+	void execute(bool compose = false);
 
 	/*template<class FieldTYPE> void runKernel3D(mat44 *affineTransformation, nifti_image *deformationField, bool compose, int *mask);
 	template <class FieldTYPE> void runKernel2D(mat44 *affineTransformation, nifti_image *deformationFieldImage, bool compose, int *mask);*/
@@ -28,15 +27,10 @@ public:
 class CudaBlockMatchingKernel : public BlockMatchingKernel {
 public:
 
-	CudaBlockMatchingKernel(std::string name, const Platform& platform) : BlockMatchingKernel(name, platform) {
+	CudaBlockMatchingKernel(Context* con, std::string name, const Platform& platform) : BlockMatchingKernel(con->getCurrentReference(), con->getCurrentWarped(), con->getBlockMatchingParams(), con->getCurrentReferenceMask(), name, platform) {
 	}
 
-	void initialize(nifti_image * target, _reg_blockMatchingParam *params, int percentToKeep_block, int percentToKeep_opt, int *mask, bool runningOnGPU);
-	/*template <class DTYPE>
-	void setActiveBlocks(nifti_image *targetImage, _reg_blockMatchingParam *params, int *mask, bool runningOnGPU);*/
-
-	void execute(nifti_image * target, nifti_image * result, _reg_blockMatchingParam *params, int *mask);
-	/*template<class T> void runKernel(nifti_image * target, nifti_image * result, _reg_blockMatchingParam *params, int *mask);*/
+	void execute();
 
 };
 //a kernel function for convolution (gaussian smoothing?)
@@ -55,20 +49,19 @@ public:
 class CudaOptimiseKernel : public OptimiseKernel {
 public:
 
-	CudaOptimiseKernel(std::string name, const Platform& platform) : OptimiseKernel(name, platform) {
+	CudaOptimiseKernel(Context* con, std::string name, const Platform& platform) : OptimiseKernel(con->getBlockMatchingParams(), con->getTransformationMatrix(), name, platform) {
 	}
 
-	void execute(_reg_blockMatchingParam *params, mat44 *transformation_matrix, bool affine);
+	void execute(bool affine);
 };
 
 //kernel functions for image resampling with three interpolation variations
 class CudaResampleImageKernel : public ResampleImageKernel {
 public:
-	CudaResampleImageKernel(std::string name, const Platform& platform) : ResampleImageKernel(name, platform) {
+	CudaResampleImageKernel(Context* con, std::string name, const Platform& platform) : ResampleImageKernel(con->getCurrentFloating(), con->getCurrenbtWarped(), con->getCurrentDeformationField(), con->getCurrentReferenceMask(), name, platform) {
 	}
 
 
-	void execute(nifti_image *floatingImage, nifti_image *warpedImage, nifti_image *deformationField, int *mask, int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
-	/*template <class FieldTYPE, class SourceTYPE> void runKernel(nifti_image *floatingImage, nifti_image *warpedImage, nifti_image *deformationField, int *mask, int interp, float paddingValue, int *dti_timepoint = NULL, mat33 * jacMat = NULL);*/
+	void execute( int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
 };
 

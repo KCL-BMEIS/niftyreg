@@ -4,6 +4,7 @@
 #include "CudaPlatform.h"
 #include "CLPlatform.h"
 #include "_reg_ReadWriteImage.h"
+#include "Context.h"
 #include <math.h>
 #include <algorithm>
 #include <stdlib.h>
@@ -90,10 +91,17 @@ void mockAffineOutput(mat44* affineOutput) {
 	affineOutput->m[3][3] = 1.0000;
 }
 
-void initParams(Platform* platform, _reg_blockMatchingParam* blockMatchingParams) {
-	Kernel blockMatchingKernel = platform->createKernel(BlockMatchingKernel::Name(), 16);
+
+
+
+float test( Platform* platform, const unsigned int type, char* msg) {
+
+
 	nifti_image* CurrentReference = reg_io_ReadImageFile("mock_bm_reference.nii");
+	nifti_image* mockFloating = reg_io_ReadImageFile("mock_bm_reference.nii");
 	nifti_image* CurrentWarped = reg_io_ReadImageFile("mock_bm_warped.nii");
+
+
 
 	const unsigned int CurrentPercentageOfBlockToUse = 50;
 	const unsigned int InlierLts = 50;
@@ -101,19 +109,24 @@ void initParams(Platform* platform, _reg_blockMatchingParam* blockMatchingParams
 
 
 	int* CurrentReferenceMask = (int *)calloc(activeVoxelNumber, sizeof(int));
-
-	//prep kernels
-	blockMatchingKernel.getAs<BlockMatchingKernel>().initialize(CurrentReference, blockMatchingParams, CurrentPercentageOfBlockToUse, InlierLts, CurrentReferenceMask, false);
-	blockMatchingKernel.getAs<BlockMatchingKernel>().execute(CurrentReference, CurrentWarped, blockMatchingParams, CurrentReferenceMask);
-}
-
-
-float test(Platform* platform, _reg_blockMatchingParam* blockMatchingParams, const unsigned int type, char* msg) {
-	Kernel optimizeKernel = platform->createKernel(OptimiseKernel::Name(), 16);
-
-
 	mat44* TransformationMatrix = new mat44;
 	mockInitialMatrix(TransformationMatrix);
+
+	Context *con = new Context(CurrentReference, mockFloating, CurrentReferenceMask, sizeof(float), CurrentPercentageOfBlockToUse, InlierLts);//temp
+	con->setCurrentWarped(CurrentWarped);
+	con->setTransformationMatrix(TransformationMatrix);
+
+	//run block matching to set the input vectors
+	Kernel blockMatchingKernel = platform->createKernel(BlockMatchingKernel::Name(), con);
+	blockMatchingKernel.getAs<BlockMatchingKernel>().execute();
+
+
+
+	//run the optimizer to get the affine matrix
+	Kernel optimizeKernel = platform->createKernel(OptimiseKernel::Name(), con);
+
+
+	
 
 	mat44* output = new mat44;
 	if( type == RIGID )
@@ -122,11 +135,11 @@ float test(Platform* platform, _reg_blockMatchingParam* blockMatchingParams, con
 		mockAffineOutput(output);
 
 	//test kernels
-	optimizeKernel.getAs<OptimiseKernel>().execute(blockMatchingParams, TransformationMatrix, type == AFFINE);
+	optimizeKernel.getAs<OptimiseKernel>().execute( type == AFFINE);
 	//measure performance (elapsed time)
 
 	//compare results
-	float diff = compareMats(TransformationMatrix, output);
+	float diff = compareMats(con->getTransformationMatrix(), output);
 
 	//output
 	std::cout << "===================================" << msg << "===================================" << std::endl;
@@ -146,13 +159,11 @@ int main(int argc, char **argv) {
 	Platform *cudaPlatform = new CudaPlatform();
 	Platform *clPlatform = new CLPlatform();
 
-	//init ref params
-	_reg_blockMatchingParam blockMatchingParams;
-	initParams(cpuPlatform, &blockMatchingParams);
+	
 
 	//run tests for rigid and affine
-	float maxDiff1 = test(cpuPlatform, &blockMatchingParams, RIGID, "CPU RIGID ");
-	float maxDiff2 = test(cpuPlatform, &blockMatchingParams, AFFINE,"CPU AFFINE");
+	float maxDiff1 = test( cpuPlatform,  RIGID, "CPU RIGID ");
+	float maxDiff2 = test( cpuPlatform, AFFINE,"CPU AFFINE");
 
 
 	return 0;

@@ -1,5 +1,6 @@
 #include"Kernel.h"
 #include"Kernels.h"
+#include "Context.h"
 #include "CPUPlatform.h"
 #include "CudaPlatform.h"
 #include "_reg_ReadWriteImage.h"
@@ -7,7 +8,8 @@
 
 void test(Platform* platform) {
 
-	Kernel convolutionKernel = platform->createKernel(ConvolutionKernel::Name(), 16);
+	Context *con = new Context();//temp
+	Kernel convolutionKernel = platform->createKernel(ConvolutionKernel::Name(), con);
 	//init ref params
 	nifti_image* input = reg_io_ReadImageFile("mock_convolution_input.nii");
 	nifti_image* output = reg_io_ReadImageFile("mock_convolution_output.nii");
