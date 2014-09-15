@@ -581,8 +581,7 @@ int main(int argc, char **argv)
              float kernelVarianceX=reg_pow2(origRefImage->dx/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(referenceImage->dx/(2.f*sqrt(2.f*log(2.f))));
              float kernelVarianceY=reg_pow2(origRefImage->dy/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(referenceImage->dy/(2.f*sqrt(2.f*log(2.f))));
              float kernelVarianceZ=reg_pow2(origRefImage->dz/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(referenceImage->dz/(2.f*sqrt(2.f*log(2.f))));
-
-             reg_tools_kernelConvolution_lab(warpedImage,kernelVarianceX,kernelVarianceY,kernelVarianceZ,NULL,timePoint);
+             reg_tools_labelKernelConvolution(warpedImage,kernelVarianceX,kernelVarianceY,kernelVarianceZ,NULL,timePoint);
          }
          delete []timePoint;
          reg_io_WriteImageFile(warpedImage,"blurred.nii");

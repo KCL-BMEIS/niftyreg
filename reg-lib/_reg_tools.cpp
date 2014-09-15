@@ -1336,15 +1336,15 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
 /* *************************************************************** */
 /* *************************************************************** */
 template <class DTYPE>
-void reg_tools_kernelConvolution_lab_core(nifti_image *image,
-                                          float varianceX,
-                                          float varianceY,
-                                          float varianceZ,
-                                          int *mask,
-                                          bool *timePoint)
+void reg_tools_labelKernelConvolution_core(nifti_image *image,
+                                           float varianceX,
+                                           float varianceY,
+                                           float varianceZ,
+                                           int *mask,
+                                           bool *timePoint)
 {
     if(image->nx>2048 || image->ny>2048 || image->nz>2048){
-        reg_print_fct_error("reg_tools_kernelConvolution_core_lab");
+        reg_print_fct_error("reg_tools_labelKernelConvolution_core");
         reg_print_msg_error("This function does not support images with dimension > 2048");
         reg_exit(1);
     }
@@ -1356,8 +1356,6 @@ void reg_tools_kernelConvolution_lab_core(nifti_image *image,
     size_t voxelNumber = (size_t)image->nx*image->ny*image->nz;
 #endif
     DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
-
-
 
     bool * activeTimePoint = (bool *)calloc(image->nt*image->nu,sizeof(bool));
     // Check if input time points and masks are NULL
@@ -1399,8 +1397,6 @@ void reg_tools_kernelConvolution_lab_core(nifti_image *image,
                 nanImagePtr[index] = (intensityPtr[index]==intensityPtr[index])?true:false;
                 nanImagePtr[index] = (currentMask[index]>=0)?nanImagePtr[index]:false;
             }
-
-
             float gaussX_var=varianceX;
             float gaussY_var=varianceY;
             float gaussZ_var=varianceZ;
@@ -1424,23 +1420,31 @@ void reg_tools_kernelConvolution_lab_core(nifti_image *image,
                         index=currentXYZposition[0]+(currentXYZposition[1]+currentXYZposition[2]*dim_array[1])*dim_array[0];
 
                         // Calculate allowed kernel shifts
-                        int kernelXsize=(int)(sqrtf(gaussX_var)*6.0f) % 2 != 0 ? (int)(sqrtf(gaussX_var)*6.0f) : (int)(sqrtf(gaussX_var)*6.0f)+1;
+                        int kernelXsize=(int)(sqrtf(gaussX_var)*6.0f) % 2 != 0 ?
+                                 (int)(sqrtf(gaussX_var)*6.0f) : (int)(sqrtf(gaussX_var)*6.0f)+1;
                         int kernelXshift=(int)(kernelXsize/2.0f);
-                        int shiftXstart=((currentXYZposition[0]<kernelXshift)?-currentXYZposition[0]:-kernelXshift);
-                        int shiftXstop=((currentXYZposition[0]>=(dim_array[0]-kernelXshift))?(int)dim_array[0]-currentXYZposition[0]-1:kernelXshift);
+                        int shiftXstart=((currentXYZposition[0]<kernelXshift)?
+                                 -currentXYZposition[0]:-kernelXshift);
+                        int shiftXstop=((currentXYZposition[0]>=(dim_array[0]-kernelXshift))?
+                                 (int)dim_array[0]-currentXYZposition[0]-1:kernelXshift);
 
-                        int kernelYsize=(int)(sqrtf(gaussY_var)*6.0f) % 2 != 0 ? (int)(sqrtf(gaussY_var)*6.0f) : (int)(sqrtf(gaussY_var)*6.0f)+1;
+                        int kernelYsize=(int)(sqrtf(gaussY_var)*6.0f) % 2 != 0 ?
+                                 (int)(sqrtf(gaussY_var)*6.0f) : (int)(sqrtf(gaussY_var)*6.0f)+1;
                         int kernelYshift=(int)(kernelYsize/2.0f);
-                        int shiftYstart=((currentXYZposition[1]<kernelYshift)?-currentXYZposition[1]:-kernelYshift);
-                        int shiftYstop=((currentXYZposition[1]>=(dim_array[1]-kernelYshift))?(int)dim_array[1]-currentXYZposition[1]-1:kernelYshift);
+                        int shiftYstart=((currentXYZposition[1]<kernelYshift)?
+                                 -currentXYZposition[1]:-kernelYshift);
+                        int shiftYstop=((currentXYZposition[1]>=(dim_array[1]-kernelYshift))?
+                                 (int)dim_array[1]-currentXYZposition[1]-1:kernelYshift);
 
-                        int kernelZsize=(int)(sqrtf(gaussZ_var)*6.0f) % 2 != 0 ? (int)(sqrtf(gaussZ_var)*6.0f) : (int)(sqrtf(gaussZ_var)*6.0f)+1;
+                        int kernelZsize=(int)(sqrtf(gaussZ_var)*6.0f) % 2 != 0 ?
+                                 (int)(sqrtf(gaussZ_var)*6.0f) : (int)(sqrtf(gaussZ_var)*6.0f)+1;
                         int kernelZshift=(int)(kernelZsize/2.0f);
-                        int shiftZstart=((currentXYZposition[2]<kernelZshift)?-currentXYZposition[2]:-kernelZshift);
-                        int shiftZstop=((currentXYZposition[2]>=(dim_array[2]-kernelZshift))?(int)dim_array[2]-currentXYZposition[2]-1:kernelZshift);
+                        int shiftZstart=((currentXYZposition[2]<kernelZshift)?
+                                 -currentXYZposition[2]:-kernelZshift);
+                        int shiftZstop=((currentXYZposition[2]>=(dim_array[2]-kernelZshift))?
+                                 (int)dim_array[2]-currentXYZposition[2]-1:kernelZshift);
 
                         DataPointMap tmp_lab;
-
                         if(nanImagePtr[index]!=0){
                             for(int shiftx=shiftXstart; shiftx<=shiftXstop; shiftx++)
                             {
@@ -1450,12 +1454,14 @@ void reg_tools_kernelConvolution_lab_core(nifti_image *image,
                                     {
 
                                         // Data Blur
-                                        int indexNeighbour=index+(shiftx*shiftdirection[0])+(shifty*shiftdirection[1])+(shiftz*shiftdirection[2]);
+                                        int indexNeighbour=index+(shiftx*shiftdirection[0])+
+                                              (shifty*shiftdirection[1])+(shiftz*shiftdirection[2]);
                                         if(nanImagePtr[indexNeighbour]!=0){
-                                            float kernelval=expf((float)(-0.5f *(powf(shiftx,2)/gaussX_var
-                                                                                 +powf(shifty,2)/gaussY_var
-                                                                                 +powf(shiftz,2)/gaussZ_var
-                                                                                 )))/(sqrtf(2.0f*3.14159265*powf(gaussX_var*gaussY_var*gaussZ_var, 2)));
+                                           float kernelval=expf((float)(-0.5f *(powf(shiftx,2)/gaussX_var
+                                                                                +powf(shifty,2)/gaussY_var
+                                                                                +powf(shiftz,2)/gaussZ_var
+                                                                                )))/
+                                                 (sqrtf(2.0f*3.14159265*powf(gaussX_var*gaussY_var*gaussZ_var, 2)));
 
                                             DataPointMapIt location=tmp_lab.find(intensityPtr[indexNeighbour]);
                                             if(location!=tmp_lab.end())
@@ -1479,7 +1485,6 @@ void reg_tools_kernelConvolution_lab_core(nifti_image *image,
                                 {
                                     maxindex=currIterator->first;
                                     maxval=currIterator->second;
-
                                 }
                                 currIterator++;
                             }
@@ -1491,8 +1496,6 @@ void reg_tools_kernelConvolution_lab_core(nifti_image *image,
                     }
                 }
             }
-
-
             // Normalise per timepoint
 #if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
@@ -1516,40 +1519,48 @@ void reg_tools_kernelConvolution_lab_core(nifti_image *image,
 }
 /* *************************************************************** */
 
-void reg_tools_kernelConvolution_lab(nifti_image *image,
-                                          float varianceX,
-                                          float varianceY,
-                                          float varianceZ,
-                                          int *mask,
-                                          bool *timePoint){
+void reg_tools_labelKernelConvolution(nifti_image *image,
+                                      float varianceX,
+                                      float varianceY,
+                                      float varianceZ,
+                                      int *mask,
+                                      bool *timePoint){
     switch(image->datatype)
     {
     case NIFTI_TYPE_UINT8:
-        reg_tools_kernelConvolution_lab_core<unsigned char>(image,varianceX,varianceY,varianceZ,mask,timePoint);
+        reg_tools_labelKernelConvolution_core<unsigned char>
+              (image,varianceX,varianceY,varianceZ,mask,timePoint);
         break;
     case NIFTI_TYPE_INT8:
-        reg_tools_kernelConvolution_lab_core<char>(image,varianceX,varianceY,varianceZ,mask,timePoint);
+        reg_tools_labelKernelConvolution_core<char>
+              (image,varianceX,varianceY,varianceZ,mask,timePoint);
         break;
     case NIFTI_TYPE_UINT16:
-        reg_tools_kernelConvolution_lab_core<unsigned short>(image,varianceX,varianceY,varianceZ,mask,timePoint);
+        reg_tools_labelKernelConvolution_core<unsigned short>
+              (image,varianceX,varianceY,varianceZ,mask,timePoint);
         break;
     case NIFTI_TYPE_INT16:
-        reg_tools_kernelConvolution_lab_core<short>(image,varianceX,varianceY,varianceZ,mask,timePoint);
+        reg_tools_labelKernelConvolution_core<short>
+              (image,varianceX,varianceY,varianceZ,mask,timePoint);
         break;
     case NIFTI_TYPE_UINT32:
-        reg_tools_kernelConvolution_lab_core<unsigned int>(image,varianceX,varianceY,varianceZ,mask,timePoint);
+        reg_tools_labelKernelConvolution_core<unsigned int>
+              (image,varianceX,varianceY,varianceZ,mask,timePoint);
         break;
     case NIFTI_TYPE_INT32:
-        reg_tools_kernelConvolution_lab_core<int>(image,varianceX,varianceY,varianceZ,mask,timePoint);
+        reg_tools_labelKernelConvolution_core<int>
+              (image,varianceX,varianceY,varianceZ,mask,timePoint);
         break;
     case NIFTI_TYPE_FLOAT32:
-        reg_tools_kernelConvolution_lab_core<float>(image,varianceX,varianceY,varianceZ,mask,timePoint);
+        reg_tools_labelKernelConvolution_core<float>
+              (image,varianceX,varianceY,varianceZ,mask,timePoint);
         break;
     case NIFTI_TYPE_FLOAT64:
-        reg_tools_kernelConvolution_lab_core<double>(image,varianceX,varianceY,varianceZ,mask,timePoint);
+        reg_tools_labelKernelConvolution_core<double>
+              (image,varianceX,varianceY,varianceZ,mask,timePoint);
         break;
     default:
-        fprintf(stderr,"[NiftyReg ERROR] reg_gaussianSmoothing\tThe image data type is not supported\n");
+        fprintf(stderr,"[NiftyReg ERROR] reg_tools_labelKernelConvolution\tThe image data type is not supported\n");
         reg_exit(1);
     }
     return;

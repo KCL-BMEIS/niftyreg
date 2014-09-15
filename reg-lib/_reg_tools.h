@@ -99,12 +99,12 @@ void reg_tools_kernelConvolution(nifti_image *image,
  * smoothed.
  */
 extern "C++"
-void reg_tools_kernelConvolution_lab(nifti_image *image,
-                                          float varianceX,
-                                          float varianceY,
-                                          float varianceZ,
-                                          int *mask=NULL,
-                                          bool *timePoint=NULL);
+void reg_tools_labelKernelConvolution(nifti_image *image,
+                                      float varianceX,
+                                      float varianceY,
+                                      float varianceZ,
+                                      int *mask=NULL,
+                                      bool *timePoint=NULL);
 
 
 /* *************************************************************** */

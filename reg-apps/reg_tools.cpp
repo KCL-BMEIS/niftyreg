@@ -367,7 +367,7 @@ int main(int argc, char **argv)
       float varY=param->smoothValueY;
       float varZ=param->smoothValueZ;
 
-      reg_tools_kernelConvolution_lab(smoothImg,varX,varY,varZ,NULL,timePoint);
+      reg_tools_labelKernelConvolution(smoothImg,varX,varY,varZ,NULL,timePoint);
 
       delete []timePoint;
       if(flag->outputImageFlag)
