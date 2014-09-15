@@ -584,7 +584,6 @@ int main(int argc, char **argv)
              reg_tools_labelKernelConvolution(warpedImage,kernelVarianceX,kernelVarianceY,kernelVarianceZ,NULL,timePoint);
          }
          delete []timePoint;
-         reg_io_WriteImageFile(warpedImage,"blurred.nii");
 
          // A new warped image is created based on the origin reference image
          nifti_image *origWarpedImage = nifti_copy_nim_info(origRefImage);
