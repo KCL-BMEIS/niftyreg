@@ -701,10 +701,9 @@ int main(int argc, char **argv)
          averageMatrix = nifti_mat44_inverse(averageMatrix);
          averageMatrix = reg_mat44_logm(&averageMatrix);
          // Demean all the input affine matrices
-         for(size_t i=0; i<affineNumber; ++i){
-            affineMatrices[i] = reg_mat44_logm(&affineMatrices[i]);
-            affineMatrices[i] = averageMatrix + affineMatrices[i];
-            affineMatrices[i] = reg_mat44_expm(&affineMatrices[i]);
+         for(size_t i=0; i<affineNumber; ++i)
+         {
+            affineMatrices[i] = averageMatrix * affineMatrices[i];
          }
          // Create a deformation field to be used to resample all the floating images
          nifti_image *deformationField = nifti_copy_nim_info(referenceImage);
