@@ -530,6 +530,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
    reg_tools_kernelConvolution(this->voxelBasedMeasureGradientImage,
                                currentNodeSpacing,
                                1, // cubic spline kernel
+                               NULL, // mask
                                NULL, // all volumes are considered as active
                                activeAxis
                               );
@@ -540,6 +541,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
    reg_tools_kernelConvolution(this->voxelBasedMeasureGradientImage,
                                currentNodeSpacing,
                                1, // cubic spline kernel
+                               NULL, // mask
                                NULL, // all volumes are considered as active
                                activeAxis
                               );
@@ -552,6 +554,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
       reg_tools_kernelConvolution(this->voxelBasedMeasureGradientImage,
                                   currentNodeSpacing,
                                   1, // cubic spline kernel
+                                  NULL, // mask
                                   NULL, // all volumes are considered as active
                                   activeAxis
                                  );
