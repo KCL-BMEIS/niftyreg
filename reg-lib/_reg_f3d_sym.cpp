@@ -897,8 +897,8 @@ void reg_f3d_sym<T>::GetSimilarityMeasureGradient()
    // The backward node based sim measure gradient is extracted
    mat44 reorientation;
    if(this->currentReference->sform_code>0)
-      reorientation = this->currentReference->sto_xyz;
-   else reorientation = this->currentReference->qto_xyz;
+      reorientation = this->currentReference->sto_ijk;
+   else reorientation = this->currentReference->qto_ijk;
    reg_voxelCentric2NodeCentric(this->backwardTransformationGradient,
                                 this->backwardVoxelBasedMeasureGradientImage,
                                 this->similarityWeight,

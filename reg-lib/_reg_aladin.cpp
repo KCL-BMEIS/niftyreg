@@ -38,6 +38,7 @@ template <class T> reg_aladin<T>::reg_aladin ()
    this->InlierLts=50;
 
    this->AlignCentre=1;
+   this->AlignCentreGravity=0;
 
    this->Interpolation=1;
 
@@ -338,7 +339,6 @@ void reg_aladin<T>::InitialiseRegistration()
          this->TransformationMatrix->m[0][3]=floatingRealPosition[0]-referenceRealPosition[0];
          this->TransformationMatrix->m[1][3]=floatingRealPosition[1]-referenceRealPosition[1];
          this->TransformationMatrix->m[2][3]=floatingRealPosition[2]-referenceRealPosition[2];
-
       }
    }
 }

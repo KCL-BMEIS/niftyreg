@@ -73,6 +73,7 @@ void Usage(char *exec)
    printf("\t-floUpThr <float>\tUpper threshold value applied to the floating image. [0]\n");
 
    printf("\t-nac\t\t\tUse the nifti header origin to initialise the transformation. (Image centres are used by default)\n");
+   printf("\t-cog\t\t\tUse the input masks centre of mass to initialise the transformation. (Image centres are used by default)\n");
    printf("\t-interp\t\t\tInterpolation order to use internally to warp the floating image.\n");
    printf("\t-iso\t\t\tMake floating and reference images isotropic if required.\n");
 
@@ -134,6 +135,7 @@ int main(int argc, char **argv)
    int blockPercentage=50;
    float inlierLts=50.0f;
    int alignCentre=1;
+   int alignCentreOfGravity=0;
    int interpolation=1;
    float floatingSigma=0.0;
    float referenceSigma=0.0;
@@ -245,6 +247,11 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "-nac")==0 || strcmp(argv[i], "--nac")==0)
       {
          alignCentre=0;
+      }
+      else if(strcmp(argv[i], "-cog")==0 || strcmp(argv[i], "--cog")==0)
+      {
+         alignCentre=0;
+         alignCentreOfGravity=1;
       }
       else if(strcmp(argv[i], "-%v")==0 || strcmp(argv[i], "-pv")==0 || strcmp(argv[i], "--pv")==0)
       {
@@ -442,6 +449,7 @@ int main(int argc, char **argv)
       else REG->SetInputFloatingMask(floatingMaskImage);
    }
 
+
    // Update the CLI progress bar
    progressXML(2, "Input data ready...");
 
@@ -451,6 +459,7 @@ int main(int argc, char **argv)
    REG->SetReferenceSigma(referenceSigma);
    REG->SetFloatingSigma(floatingSigma);
    REG->SetAlignCentre(alignCentre);
+   REG->SetAlignCentreGravity(alignCentreOfGravity);
    REG->SetPerformAffine(affineFlag);
    REG->SetPerformRigid(rigidFlag);
    REG->SetBlockStepSize(blockStepSize);
