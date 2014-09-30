@@ -62,6 +62,7 @@ protected:
    _reg_blockMatchingParam blockMatchingParams;
 
    bool AlignCentre;
+   bool AlignCentreGravity;
 
    int Interpolation;
 
@@ -181,6 +182,10 @@ public:
    GetMacro(AlignCentre,int);
    SetMacro(AlignCentre,int);
    BooleanMacro(AlignCentre, int);
+
+   GetMacro(AlignCentreGravity,int);
+   SetMacro(AlignCentreGravity,int);
+   BooleanMacro(AlignCentreGravity, int);
 
    SetClampMacro(Interpolation,int,0,3);
    GetMacro(Interpolation, int);

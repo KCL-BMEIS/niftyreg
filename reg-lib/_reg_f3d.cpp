@@ -563,8 +563,8 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
    // The node based NMI gradient is extracted
    mat44 reorientation;
    if(this->currentFloating->sform_code>0)
-      reorientation = this->currentFloating->sto_xyz;
-   else reorientation = this->currentFloating->qto_xyz;
+      reorientation = this->currentFloating->sto_ijk;
+   else reorientation = this->currentFloating->qto_ijk;
    reg_voxelCentric2NodeCentric(this->transformationGradient,
                                 this->voxelBasedMeasureGradientImage,
                                 this->similarityWeight,

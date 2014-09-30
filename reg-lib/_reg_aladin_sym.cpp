@@ -222,6 +222,65 @@ void reg_aladin_sym<T>::InitialiseRegistration()
       }
    }
 
+   if(this->AlignCentreGravity)
+   {
+      if(!this->InputReferenceMask && !this->InputFloatingMask){
+         reg_print_msg_error("The masks' centre of gravity can only be used when two masks are specified");
+         reg_exit(1);
+      }
+      float referenceCentre[3]={0,0,0};
+      float referenceCount=0;
+      reg_tools_changeDatatype<float>(this->InputReferenceMask);
+      float *refMaskPtr=static_cast<float *>(this->InputReferenceMask->data);
+      size_t refIndex=0;
+      for(int z=0;z<this->InputReferenceMask->nz;++z){
+         for(int y=0;y<this->InputReferenceMask->ny;++y){
+            for(int x=0;x<this->InputReferenceMask->nx;++x){
+               if(refMaskPtr[refIndex++]!=0.f){
+                  referenceCentre[0]+=x;
+                  referenceCentre[1]+=y;
+                  referenceCentre[2]+=z;
+                  referenceCount++;
+               }
+            }
+         }
+      }
+      referenceCentre[0]/=referenceCount;
+      referenceCentre[1]/=referenceCount;
+      referenceCentre[2]/=referenceCount;
+      float refCOG[3];
+      if(this->InputReference->sform_code>0)
+         reg_mat44_mul(&(this->InputReference->sto_xyz),referenceCentre,refCOG);
+
+      float floatingCentre[3]={0,0,0};
+      float floatingCount=0;
+      reg_tools_changeDatatype<float>(this->InputFloatingMask);
+      float *floMaskPtr=static_cast<float *>(this->InputFloatingMask->data);
+      size_t floIndex=0;
+      for(int z=0;z<this->InputFloatingMask->nz;++z){
+         for(int y=0;y<this->InputFloatingMask->ny;++y){
+            for(int x=0;x<this->InputFloatingMask->nx;++x){
+               if(floMaskPtr[floIndex++]!=0.f){
+                  floatingCentre[0]+=x;
+                  floatingCentre[1]+=y;
+                  floatingCentre[2]+=z;
+                  floatingCount++;
+               }
+            }
+         }
+      }
+      floatingCentre[0]/=floatingCount;
+      floatingCentre[1]/=floatingCount;
+      floatingCentre[2]/=floatingCount;
+      float floCOG[3];
+      if(this->InputFloating->sform_code>0)
+         reg_mat44_mul(&(this->InputFloating->sto_xyz),floatingCentre,floCOG);
+      reg_mat44_eye(this->TransformationMatrix);
+      this->TransformationMatrix->m[0][3]=floCOG[0]-refCOG[0];
+      this->TransformationMatrix->m[1][3]=floCOG[1]-refCOG[1];
+      this->TransformationMatrix->m[2][3]=floCOG[2]-refCOG[2];
+   }
+
    //TransformationMatrix maps the initial transform from reference to floating.
    //Invert to get initial transformation from floating to reference
    *(this->BackwardTransformationMatrix) = nifti_mat44_inverse(*(this->TransformationMatrix));
