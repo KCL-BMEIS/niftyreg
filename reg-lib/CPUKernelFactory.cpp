@@ -2,6 +2,7 @@
 #include "KernelImpl.h"
 #include "CPUKernels.h"
 #include "Platform.h"
+#include "CpuContext.h"
 
 KernelImpl* CPUKernelFactory::createKernelImpl(std::string name, const Platform& platform, Context* con) const {
 	std::cout << "CPU Factory called!" << std::endl;

@@ -147,7 +147,7 @@ void block_matching_method_gpu(nifti_image *targetImage, nifti_image *resultImag
 	/*resultsKernelp2 << <B01, I1 >> >(*resultPosition_d, *mask_d, targetMat_d, blockDims);
 	NR_CUDA_CHECK_KERNEL(B01, I1)*/
 
-	resultsKernelp << <BlocksGrid3D, BlockDims1D >> >(*resultPosition_d, *mask_d, targetMat_d, blockSize);
+	resultsKernel2pp2 << <BlocksGrid3D, BlockDims1D >> >(*resultPosition_d, *mask_d, targetMat_d, blockSize);
 	NR_CUDA_CHECK_KERNEL(BlocksGrid3D, BlockDims1D)
 
 	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());

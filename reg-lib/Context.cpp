@@ -54,6 +54,7 @@ Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn
 	this->AllocateDeformationField(bytes);
 }
 
+
 void Context::initVars(const unsigned int platformFlagIn){
 
 }

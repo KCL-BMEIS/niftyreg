@@ -4,6 +4,7 @@
 
 class Platform;
 class KernelImpl;
+class Context;
 class CLKernelFactory : public KernelFactory
 {
 public:

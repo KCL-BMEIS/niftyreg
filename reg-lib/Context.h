@@ -12,6 +12,10 @@
 #include "nifti1_io.h"
 #include "_reg_blockMatching.h"
 
+#define CPUX_PLATFORM 0
+#define CUDA_PLATFORM 1
+#define OCLX_PLATFORM 2
+
 
 
 class  Context {
@@ -35,15 +39,26 @@ public:
 	
 
 	
-	Platform* platform;
+	//Platform* platform;
 
 	/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-	void AllocateWarpedImage(size_t bytes);
-	void ClearWarpedImage();
+	virtual void AllocateWarpedImage(size_t bytes);
+	virtual void ClearWarpedImage();
 	/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-	void AllocateDeformationField(size_t bytes);
-	void ClearDeformationField();
+	virtual void AllocateDeformationField(size_t bytes);
+	virtual void ClearDeformationField();
 	virtual void initVars(const unsigned int platformFlagIn);
+
+
+	
+
+
+	nifti_image* CurrentReference;
+	nifti_image* CurrentFloating;
+	int* CurrentReferenceMask;
+
+	mat44* transformationMatrix;
+	_reg_blockMatchingParam* blockMatchingParams;
 
 
 	//getters
@@ -73,7 +88,7 @@ public:
 		return blockMatchingParams;
 	}
 
-
+	//setters
 	void setTransformationMatrix(mat44* transformationMatrixIn){
 		transformationMatrix = transformationMatrixIn;
 	}
@@ -86,15 +101,10 @@ public:
 		CurrentWarped = CurrentWarpedImageIn;
 	}
 
-private:
+//private:
 	nifti_image* CurrentDeformationField;
 	nifti_image* CurrentWarped;
-	nifti_image* CurrentReference;
-	nifti_image* CurrentFloating;
-	int* CurrentReferenceMask;
 
-	mat44* transformationMatrix;
-	_reg_blockMatchingParam* blockMatchingParams;
 	
 
 

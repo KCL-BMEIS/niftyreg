@@ -5,6 +5,8 @@
 
 #ifndef _REG_ALADIN_CPP
 #define _REG_ALADIN_CPP
+
+
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T> reg_aladin<T>::reg_aladin()
 {
@@ -425,12 +427,12 @@ void reg_aladin<T>::clearContext(){
 }
 template <class T>
 void reg_aladin<T>::initContext(){
-	this->con = new Context(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts);
+	this->con = new Context (this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts);
 	this->CurrentReference = con->getCurrentReference();
 	this->CurrentFloating = con->getCurrentFloating();
-	this->CurrentReferenceMask = con->getCurrentReferenceMask();
-	this->CurrentWarped = con->getCurrenbtWarped();
-	this->deformationFieldImage = con->getCurrentDeformationField();
+	//this->CurrentReferenceMask = con->getCurrentReferenceMask();
+	//this->CurrentWarped = con->getCurrenbtWarped();
+	//this->deformationFieldImage = con->getCurrentDeformationField();
 	this->blockMatchingParams = con->getBlockMatchingParams();
 	con->setTransformationMatrix(this->TransformationMatrix);
 	

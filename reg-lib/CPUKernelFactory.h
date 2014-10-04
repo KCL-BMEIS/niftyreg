@@ -4,6 +4,8 @@
 
 class Platform;
 class KernelImpl;
+class CpuContext;
+
 class CPUKernelFactory : public KernelFactory
 {
 public:

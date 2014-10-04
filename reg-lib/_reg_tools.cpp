@@ -2632,6 +2632,7 @@ float reg_test_compare_arrays(DTYPE *ptrA,DTYPE *ptrB,size_t nvox) {
 	//why float? DTYPE? REAL?
 	float maxDifference = 0.f;
 
+	bool first = true;
 	for (size_t i = 0; i < nvox; ++i) {
 		//similar
 		double valA = (double)ptrA[i];
@@ -2648,7 +2649,10 @@ float reg_test_compare_arrays(DTYPE *ptrA,DTYPE *ptrB,size_t nvox) {
 		float diff = fabsf(valA - valB);
 		//if (diff > 0.001) { printf("idx: %lu | diff: %f | a: %f - b: %f\n", i, diff, valA, valB); /* return diff;*/ }
 		maxDifference = std::max<float>(maxDifference, diff);
-		if (i <= 6 && diff) printf("i: %d | %f | a: %f - b: %f\n", i, maxDifference, valA, valB);
+		if (first && diff) {
+			printf("i: %d | %f | a: %f - b: %f\n", i, maxDifference, valA, valB); 
+			first = false;
+		}
 	}
 	return maxDifference;
 }

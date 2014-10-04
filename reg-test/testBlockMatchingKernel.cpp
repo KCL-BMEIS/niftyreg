@@ -63,12 +63,9 @@ void mockParams(Platform* platform) {
 
 void test(Platform* platform, const char* msg) {
 
-	
-
 	//load images
 	nifti_image* reference = reg_io_ReadImageFile("mock_bm_reference.nii");
 	nifti_image* warped = reg_io_ReadImageFile("mock_bm_warped.nii");
-
 
 	nifti_image* result = reg_io_ReadImageFile("mock_bm_result.nii");
 	nifti_image* target = reg_io_ReadImageFile("mock_bm_target.nii");
@@ -78,9 +75,7 @@ void test(Platform* platform, const char* msg) {
 	Context *con = new Context(reference, reference, mask, sizeof(float), 50, 50);//temp
 	con->setCurrentWarped(warped);
 
-
 	Kernel bmKernel = platform->createKernel(BlockMatchingKernel::Name(), con);
-
 
 	//run kernel
 	bmKernel.getAs<BlockMatchingKernel>().execute();

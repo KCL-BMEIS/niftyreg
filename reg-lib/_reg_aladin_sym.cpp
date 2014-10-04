@@ -280,7 +280,7 @@ void reg_aladin_sym<T>::createKernels(){
 	bResamplingKernel = platform->createKernel(ResampleImageKernel::Name(), this->backCon);
 	bOptimiseKernel = platform->createKernel(OptimiseKernel::Name(), this->backCon);
 
-	reg_aladin<t>::createKernels();
+	reg_aladin<T>::createKernels();
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>

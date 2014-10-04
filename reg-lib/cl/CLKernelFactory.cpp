@@ -2,6 +2,7 @@
 #include "KernelImpl.h"
 #include "CLKernels.h"
 #include "Platform.h"
+#include "CLContext.h"
 
 KernelImpl* CLKernelFactory::createKernelImpl(std::string name, const Platform& platform, Context* con) const {
 	std::cout << "CL Factory called!" << std::endl;

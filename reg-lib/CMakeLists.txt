@@ -286,6 +286,9 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	${NAME}_sym.h
 	${NAME}_sym.cpp
 	Context.cpp
+	CpuContext.cpp
+	CudaContext.cpp
+	CLContext.cpp
 	
 	Platform.cpp
 	Kernel.cpp
@@ -307,7 +310,11 @@ else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	${NAME}.cpp
 	${NAME}_sym.h
 	${NAME}_sym.cpp
+	
 	Context.cpp
+	CpuContext.cpp
+	CudaContext.cpp
+	CLContext.cpp
 	
 	Platform.cpp
 	Kernel.cpp
@@ -347,7 +354,7 @@ install(TARGETS ${NAME}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   )
-install(FILES ${NAME}.h ${NAME}_sym.h ${NAME}.cpp ${NAME}_sym.cpp _reg_macros.h Context.h Platform.h  CPUPlatform.h Kernel.h KernelImpl.h KernelFactory.h  CPUKernelFactory.h Kernels.h   CPUKernels.h   DESTINATION include)
+install(FILES ${NAME}.h ${NAME}_sym.h ${NAME}.cpp ${NAME}_sym.cpp _reg_macros.h CpuContext.h CLContext.h CudaContext.h Context.h Platform.h  CPUPlatform.h Kernel.h KernelImpl.h KernelFactory.h  CPUKernelFactory.h Kernels.h   CPUKernels.h   DESTINATION include)
 
 #-----------------------------------------------------------------------------
 ## BUILD THE TPS LIBRARY CPU
