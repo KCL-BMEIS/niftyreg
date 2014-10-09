@@ -94,7 +94,7 @@ extern "C++"
 void reg_logarithm_tensor(mat33 *in_tensor);
 /* *************************************************************** */
 extern "C++"
-void reg_exponentiate_tensor(mat33 *in_tensor);
+void reg_exponentiate_logged_tensor(mat33 *in_tensor);
 /* *************************************************************** */
 /* *************************************************************** */
 extern "C++" template <class T>

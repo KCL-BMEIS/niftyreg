@@ -232,11 +232,11 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
          // Step through each voxel in the warped image
          double testSum=0;
          mat33 jacobianMatrix, R;
-         mat33 inputTensor, warpedTensor, RotMat, RotMatT, preMult;
+         mat33 inputTensor, warpedTensor, RotMat, RotMatT;
          int col, row;
 #if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   private(warpedIndex,inputTensor,jacobianMatrix,R,RotMat,RotMatT,preMult, \
+   private(warpedIndex,inputTensor,jacobianMatrix,R,RotMat,RotMatT, \
    testSum, warpedTensor, col, row) \
    shared(voxelNumber,inputIntensityXX,inputIntensityYY,inputIntensityZZ, \
    warpedXX, warpedXY, warpedXZ, warpedYY, warpedYZ, warpedZZ, warpedImage, \
@@ -259,7 +259,7 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
                // Exponentiate the warped tensor
                if(warpedImage==NULL)
                {
-                  reg_exponentiate_tensor(&inputTensor);
+                  reg_exponentiate_logged_tensor(&inputTensor);
                }
                else
                {
@@ -287,9 +287,7 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
                   // Calculate the polar decomposition of the local Jacobian matrix, which
                   // tells us how to rotate the local tensor information
                   R = nifti_mat33_polar(jacobianMatrix);
-                  // We need both the rotation matrix, and it's transpose as a mat44
-                  reg_mat33_eye(&RotMat);
-                  reg_mat33_eye(&RotMatT);
+                  // We need both the rotation matrix, and it's transpose
                   for(col=0; col<3; col++)
                   {
                      for(row=0; row<3; row++)
@@ -299,8 +297,7 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
                      }
                   }
                   // As the mat44 multiplication uses pointers, do the multiplications separately
-                  preMult = nifti_mat33_mul(RotMatT, inputTensor);
-                  inputTensor = nifti_mat33_mul(preMult, RotMat);
+                  inputTensor = nifti_mat33_mul(nifti_mat33_mul(RotMatT, inputTensor), RotMat);
 
                   // Finally, read the tensor back out as a warped image
                   inputIntensityXX[warpedIndex] = static_cast<DTYPE>(inputTensor.m[0][0]);
@@ -312,12 +309,12 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
                }
                else
                {
-                  inputIntensityXX[warpedIndex] = 0;
-                  inputIntensityYY[warpedIndex] = 0;
-                  inputIntensityZZ[warpedIndex] = 0;
-                  inputIntensityXY[warpedIndex] = 0;
-                  inputIntensityXZ[warpedIndex] = 0;
-                  inputIntensityYZ[warpedIndex] = 0;
+                  inputIntensityXX[warpedIndex] = std::numeric_limits<DTYPE>::quiet_NaN();
+                  inputIntensityYY[warpedIndex] = std::numeric_limits<DTYPE>::quiet_NaN();
+                  inputIntensityZZ[warpedIndex] = std::numeric_limits<DTYPE>::quiet_NaN();
+                  inputIntensityXY[warpedIndex] = std::numeric_limits<DTYPE>::quiet_NaN();
+                  inputIntensityXZ[warpedIndex] = std::numeric_limits<DTYPE>::quiet_NaN();
+                  inputIntensityYZ[warpedIndex] = std::numeric_limits<DTYPE>::quiet_NaN();
                }
             }
          }

@@ -49,27 +49,18 @@ void reg_logarithm_tensor(mat33 *in_tensor)
          in_tensor->m[sm][sn]=static_cast<float>(tensor(sm,sn));
 }
 /* *************************************************************** */
-void reg_exponentiate_tensor(mat33 *in_tensor)
+void reg_exponentiate_logged_tensor(mat33 *in_tensor)
 {
    int sm, sn;
-   Eigen::Matrix3d tensor, sing;
+   Eigen::Matrix3d tensor;
 
    // Convert to Eigen format
    for(sm=0; sm<3; sm++)
       for(sn=0; sn<3; sn++)
          tensor(sm,sn)=static_cast<double>(in_tensor->m[sm][sn]);
 
-   // Decompose the input tensor
-   Eigen::JacobiSVD<Eigen::Matrix3d> svd(tensor,Eigen::ComputeThinV|Eigen::ComputeThinU);
-
-   // Set a matrix containing the eigen values
-   sing.setZero();
-   sing(0,0)=svd.singularValues()(0);
-   sing(1,1)=svd.singularValues()(1);
-   sing(2,2)=svd.singularValues()(2);
-
    // Compute Rt exp(E) R
-   tensor = svd.matrixU() * sing.exp() * svd.matrixU().transpose();
+   tensor = tensor.exp();
 
    // Convert the result to mat33 format
    for(sm=0; sm<3; sm++)
