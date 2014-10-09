@@ -11,6 +11,71 @@
 
 #define mat(i,j,dim) mat[i*dim+j]
 
+
+/* *************************************************************** */
+/* *************************************************************** */
+void reg_logarithm_tensor(mat33 *in_tensor)
+{
+   int sm, sn;
+   Eigen::Matrix3d tensor, sing;
+
+   // Convert to Eigen format
+   for(sm=0; sm<3; sm++)
+      for(sn=0; sn<3; sn++)
+         tensor(sm,sn)=static_cast<double>(in_tensor->m[sm][sn]);
+
+   // Decompose the input tensor
+   Eigen::JacobiSVD<Eigen::Matrix3d> svd(tensor,Eigen::ComputeThinV|Eigen::ComputeThinU);
+
+   // Set a matrix containing the eigen values
+   sing.setZero();
+   sing(0,0)=svd.singularValues()(0);
+   sing(1,1)=svd.singularValues()(1);
+   sing(2,2)=svd.singularValues()(2);
+
+   if(sing(0,0)<=0)
+      sing(0,0)=std::numeric_limits<double>::epsilon();
+   if(sing(1,1)<=0)
+      sing(1,1)=std::numeric_limits<double>::epsilon();
+   if(sing(2,2)<=0)
+      sing(2,2)=std::numeric_limits<double>::epsilon();
+
+   // Compute Rt log(E) R
+   tensor = svd.matrixU() * sing.log() * svd.matrixU().transpose();
+
+   // Convert the result to mat33 format
+   for(sm=0; sm<3; sm++)
+      for(sn=0; sn<3; sn++)
+         in_tensor->m[sm][sn]=static_cast<float>(tensor(sm,sn));
+}
+/* *************************************************************** */
+void reg_exponentiate_tensor(mat33 *in_tensor)
+{
+   int sm, sn;
+   Eigen::Matrix3d tensor, sing;
+
+   // Convert to Eigen format
+   for(sm=0; sm<3; sm++)
+      for(sn=0; sn<3; sn++)
+         tensor(sm,sn)=static_cast<double>(in_tensor->m[sm][sn]);
+
+   // Decompose the input tensor
+   Eigen::JacobiSVD<Eigen::Matrix3d> svd(tensor,Eigen::ComputeThinV|Eigen::ComputeThinU);
+
+   // Set a matrix containing the eigen values
+   sing.setZero();
+   sing(0,0)=svd.singularValues()(0);
+   sing(1,1)=svd.singularValues()(1);
+   sing(2,2)=svd.singularValues()(2);
+
+   // Compute Rt exp(E) R
+   tensor = svd.matrixU() * sing.exp() * svd.matrixU().transpose();
+
+   // Convert the result to mat33 format
+   for(sm=0; sm<3; sm++)
+      for(sn=0; sn<3; sn++)
+         in_tensor->m[sm][sn]=static_cast<float>(tensor(sm,sn));
+}
 /* *************************************************************** */
 /* *************************************************************** */
 /** @brief SVD

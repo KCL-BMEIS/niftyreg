@@ -137,12 +137,14 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
       DTYPE *floatingIntensityYZ = &firstVox[floatingVoxelNumber*dtIndicies[4]];
       DTYPE *floatingIntensityZZ = &firstVox[floatingVoxelNumber*dtIndicies[5]];
 
-      // We need a mat44 to store the diffusion tensor at each voxel for our calculating. Although the DT is 3x3 really,
-      // it is convenient to store it as a 4x4 to work with existing code for the matrix logarithm/exponential
-      mat44 diffTensor;
+      // We need a mat44 to store the diffusion tensor at each voxel for our calculating.
+      // Although the DT is 3x3 really, it is convenient to store it as a 4x4 to work
+      // with existing code for the matrix logarithm/exponential
+      mat33 diffTensor;
 
       // Should log the tensor up front
-      // We need to take the logarithm of the tensor for each voxel in the floating intensity image, and replace the warped
+      // We need to take the logarithm of the tensor for each voxel in the floating intensity
+      // image, and replace the warped
 #if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(floatingIndex,diffTensor) \
@@ -152,42 +154,29 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
 #endif
       for(floatingIndex=0; floatingIndex<floatingVoxelNumber; ++floatingIndex)
       {
-         // Check that the tensor component is not extremely small or extremely large
-         if((floatingIntensityXX[floatingIndex] > 1e-10) && (floatingIntensityXX[floatingIndex] < 1e10))
-         {
-            // Fill a mat44 with the tensor components
-            reg_mat44_eye(&diffTensor);
-            diffTensor.m[0][0] = floatingIntensityXX[floatingIndex];
-            diffTensor.m[0][1] = floatingIntensityXY[floatingIndex];
-            diffTensor.m[1][0] = diffTensor.m[0][1];
-            diffTensor.m[1][1] = floatingIntensityYY[floatingIndex];
-            diffTensor.m[0][2] = floatingIntensityXZ[floatingIndex];
-            diffTensor.m[2][0] = diffTensor.m[0][2];
-            diffTensor.m[1][2] = floatingIntensityYZ[floatingIndex];
-            diffTensor.m[2][1] = diffTensor.m[1][2];
-            diffTensor.m[2][2] = floatingIntensityZZ[floatingIndex];
-            // Decompose the mat33 into a rotation and a diagonal matrix of eigen values
-            // Recompose as a log tensor Rt log(E) R, where E is a diagonal matrix
-            // containing the eigen values and R is a rotation matrix. This is the same as
-            // taking the logarithm of the tensor
-            diffTensor = reg_mat44_logm(&diffTensor);
-            // Write this out as a new image
-            floatingIntensityXX[floatingIndex] = static_cast<DTYPE>(diffTensor.m[0][0]);
-            floatingIntensityXY[floatingIndex] = static_cast<DTYPE>(diffTensor.m[0][1]);
-            floatingIntensityYY[floatingIndex] = static_cast<DTYPE>(diffTensor.m[1][1]);
-            floatingIntensityXZ[floatingIndex] = static_cast<DTYPE>(diffTensor.m[0][2]);
-            floatingIntensityYZ[floatingIndex] = static_cast<DTYPE>(diffTensor.m[1][2]);
-            floatingIntensityZZ[floatingIndex] = static_cast<DTYPE>(diffTensor.m[2][2]);
-         }
-         else  // if junk diffusion data, set the diagonal to log the minimum value
-         {
-            floatingIntensityXX[floatingIndex] = static_cast<DTYPE>(-23.02585f);
-            floatingIntensityYY[floatingIndex] = static_cast<DTYPE>(-23.02585f);
-            floatingIntensityZZ[floatingIndex] = static_cast<DTYPE>(-23.02585f);
-            floatingIntensityXY[floatingIndex] = static_cast<DTYPE>(0.0f);
-            floatingIntensityXZ[floatingIndex] = static_cast<DTYPE>(0.0f);
-            floatingIntensityYZ[floatingIndex] = static_cast<DTYPE>(0.0f);
-         }
+         // Fill a mat44 with the tensor components
+         diffTensor.m[0][0] = floatingIntensityXX[floatingIndex];
+         diffTensor.m[0][1] = floatingIntensityXY[floatingIndex];
+         diffTensor.m[1][0] = diffTensor.m[0][1];
+         diffTensor.m[1][1] = floatingIntensityYY[floatingIndex];
+         diffTensor.m[0][2] = floatingIntensityXZ[floatingIndex];
+         diffTensor.m[2][0] = diffTensor.m[0][2];
+         diffTensor.m[1][2] = floatingIntensityYZ[floatingIndex];
+         diffTensor.m[2][1] = diffTensor.m[1][2];
+         diffTensor.m[2][2] = floatingIntensityZZ[floatingIndex];
+
+         // Decompose the mat33 into a rotation and a diagonal matrix of eigen values
+         // Recompose as a log tensor Rt log(E) R, where E is a diagonal matrix
+         // containing the eigen values and R is a rotation matrix.
+         reg_logarithm_tensor(&diffTensor);
+
+         // Write this out as a new image
+         floatingIntensityXX[floatingIndex] = static_cast<DTYPE>(diffTensor.m[0][0]);
+         floatingIntensityXY[floatingIndex] = static_cast<DTYPE>(diffTensor.m[0][1]);
+         floatingIntensityYY[floatingIndex] = static_cast<DTYPE>(diffTensor.m[1][1]);
+         floatingIntensityXZ[floatingIndex] = static_cast<DTYPE>(diffTensor.m[0][2]);
+         floatingIntensityYZ[floatingIndex] = static_cast<DTYPE>(diffTensor.m[1][2]);
+         floatingIntensityZZ[floatingIndex] = static_cast<DTYPE>(diffTensor.m[2][2]);
       }
 #ifndef NDEBUG
       printf("[NiftyReg DEBUG] Tensors have been logged\n");
@@ -243,7 +232,7 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
          // Step through each voxel in the warped image
          double testSum=0;
          mat33 jacobianMatrix, R;
-         mat44 inputTensor, warpedTensor, RotMat, RotMatT, preMult;
+         mat33 inputTensor, warpedTensor, RotMat, RotMatT, preMult;
          int col, row;
 #if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
@@ -257,7 +246,6 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
          {
             if(mask[warpedIndex]>-1)
             {
-               reg_mat44_eye(&inputTensor);
                // Fill the rest of the mat44 with the tensor components
                inputTensor.m[0][0] = static_cast<double>(inputIntensityXX[warpedIndex]);
                inputTensor.m[0][1] = static_cast<double>(inputIntensityXY[warpedIndex]);
@@ -271,14 +259,12 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
                // Exponentiate the warped tensor
                if(warpedImage==NULL)
                {
-                  inputTensor.m[3][3] = static_cast<double>(0.0);
-                  inputTensor = reg_mat44_expm(&inputTensor);
-                  testSum=0.;
+                  reg_exponentiate_tensor(&inputTensor);
                }
                else
                {
                   inputTensor.m[3][3]  = 1.0;
-                  reg_mat44_eye(&warpedTensor);
+                  reg_mat33_eye(&warpedTensor);
                   warpedTensor.m[0][0] = static_cast<double>(warpedXX[warpedIndex]);
                   warpedTensor.m[0][1] = static_cast<double>(warpedXY[warpedIndex]);
                   warpedTensor.m[1][0] = warpedTensor.m[0][1];
@@ -288,7 +274,7 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
                   warpedTensor.m[1][2] = static_cast<double>(warpedYZ[warpedIndex]);
                   warpedTensor.m[2][1] = warpedTensor.m[1][2];
                   warpedTensor.m[2][2] = static_cast<double>(warpedZZ[warpedIndex]);
-                  inputTensor = reg_mat44_mul(&warpedTensor,&inputTensor);
+                  inputTensor = nifti_mat33_mul(warpedTensor,inputTensor);
                   testSum=static_cast<double>(warpedTensor.m[0][0]+warpedTensor.m[0][1]+warpedTensor.m[0][2]+
                         warpedTensor.m[1][0]+warpedTensor.m[1][1]+warpedTensor.m[1][2]+
                         warpedTensor.m[2][0]+warpedTensor.m[2][1]+warpedTensor.m[2][2]);
@@ -302,8 +288,8 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
                   // tells us how to rotate the local tensor information
                   R = nifti_mat33_polar(jacobianMatrix);
                   // We need both the rotation matrix, and it's transpose as a mat44
-                  reg_mat44_eye(&RotMat);
-                  reg_mat44_eye(&RotMatT);
+                  reg_mat33_eye(&RotMat);
+                  reg_mat33_eye(&RotMatT);
                   for(col=0; col<3; col++)
                   {
                      for(row=0; row<3; row++)
@@ -313,8 +299,8 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
                      }
                   }
                   // As the mat44 multiplication uses pointers, do the multiplications separately
-                  preMult = reg_mat44_mul(&RotMatT, &inputTensor);
-                  inputTensor = reg_mat44_mul(&preMult,&RotMat);
+                  preMult = nifti_mat33_mul(RotMatT, inputTensor);
+                  inputTensor = nifti_mat33_mul(preMult, RotMat);
 
                   // Finally, read the tensor back out as a warped image
                   inputIntensityXX[warpedIndex] = static_cast<DTYPE>(inputTensor.m[0][0]);
@@ -728,35 +714,33 @@ void reg_resampleImage2(nifti_image *floatingImage,
                                                   &originalFloatingData,
                                                   dtIndicies);
 
-   /* The deformation field contains the position in the real world */
-   if(dtIndicies[0] == -1)
+   // The deformation field contains the position in the real world
+   if(deformationFieldImage->nz>1)
    {
-      if(deformationFieldImage->nz>1)
-      {
-         ResampleImage3D<FloatingTYPE,FieldTYPE>(floatingImage,
-                                                 deformationFieldImage,
-                                                 warpedImage,
-                                                 mask,
-                                                 paddingValue,
-                                                 interp);
-      }
-      else
-      {
-         ResampleImage2D<FloatingTYPE,FieldTYPE>(floatingImage,
-                                                 deformationFieldImage,
-                                                 warpedImage,
-                                                 mask,
-                                                 paddingValue,
-                                                 interp);
-      }
+      ResampleImage3D<FloatingTYPE,FieldTYPE>(floatingImage,
+                                              deformationFieldImage,
+                                              warpedImage,
+                                              mask,
+                                              paddingValue,
+                                              interp);
    }
-   // The temporary logged floating array is deleted
+   else
+   {
+      ResampleImage2D<FloatingTYPE,FieldTYPE>(floatingImage,
+                                              deformationFieldImage,
+                                              warpedImage,
+                                              mask,
+                                              paddingValue,
+                                              interp);
+   }
+   // The temporary logged floating array is deleted and the original restored
    if(originalFloatingData!=NULL)
    {
       free(floatingImage->data);
       floatingImage->data=originalFloatingData;
       originalFloatingData=NULL;
    }
+
    // The interpolated tensors are reoriented and exponentiated
    reg_dti_resampling_postprocessing<FloatingTYPE>(warpedImage,
                                                    mask,
@@ -792,7 +776,6 @@ void reg_resampleImage(nifti_image *floatingImage,
    for(int i=0; i<6; ++i) dtIndicies[i]=-1;
    if(dti_timepoint!=NULL)
    {
-
       if(jacMat==NULL)
       {
          printf("[NiftyReg ERROR] reg_resampleImage\tDTI resampling\n");
@@ -817,7 +800,7 @@ void reg_resampleImage(nifti_image *floatingImage,
    bool MrPropreRules = false;
    if(mask==NULL)
    {
-      // voxels in the backgreg_round are set to -1 so 0 will do the job here
+      // voxels in the background are set to negative value so 0 corresponds to active voxel
       mask=(int *)calloc(warpedImage->nx*warpedImage->ny*warpedImage->nz,sizeof(int));
       MrPropreRules = true;
    }

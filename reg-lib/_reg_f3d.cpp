@@ -571,10 +571,10 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
                                 false, // no update
                                 &reorientation
                                );
-   return;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::GetSimilarityMeasureGradient");
 #endif
+   return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
