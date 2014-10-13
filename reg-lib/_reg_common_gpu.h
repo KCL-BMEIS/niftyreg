@@ -58,6 +58,10 @@ int cudaCommon_transferNiftiToArrayOnDevice(DTYPE **, DTYPE **, nifti_image *);
 /* ******************************** */
 /* ******************************** */
 extern "C++"
+template <class DTYPE, class DTYPE2>
+int cudaCommon_transferFromDeviceToNifti1(nifti_image *, DTYPE **);
+/* ******************************** */
+extern "C++"
 template <class DTYPE>
 int cudaCommon_transferFromDeviceToNifti(nifti_image *, DTYPE **);
 /* ******************************** */
@@ -78,5 +82,14 @@ int cudaCommon_allocateNiftiToDevice(nifti_image **image_d, int *dim);
 
 template <class DTYPE>
 int cudaCommon_transferNiftiToNiftiOnDevice1(nifti_image **image_d, nifti_image *img);
+
+
+extern "C++"
+template <class DTYPE> 
+int cudaCommon_transferFromDeviceToNiftiSimple(DTYPE **, nifti_image * );
+
+extern "C++"
+template <class DTYPE>
+int cudaCommon_transferFromDeviceToNiftiSimple1(DTYPE **array_d, DTYPE *img, const unsigned  nvox);
 
 #endif

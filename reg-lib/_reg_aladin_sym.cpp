@@ -232,7 +232,7 @@ void reg_aladin_sym<T>::initContext(){
 	this->backCon = new Context(this->FloatingPyramid[CurrentLevel],this->ReferencePyramid[CurrentLevel],  this->FloatingMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts);
 	this->backCon->setTransformationMatrix(this->BackwardTransformationMatrix);
 	this->BackwardBlockMatchingParams = this->backCon->getBlockMatchingParams();
-	this->CurrentBackwardWarped = this->backCon->getCurrenbtWarped();
+	this->CurrentBackwardWarped = this->backCon->getCurrentWarped();
 	this->BackwardDeformationFieldImage = this->backCon->getCurrentDeformationField();
 }
 

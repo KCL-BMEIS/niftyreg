@@ -16,11 +16,11 @@ Kernel::Kernel(const Kernel& copy) : impl(copy.impl) {
 }
 
 Kernel::~Kernel() {
-	
+	//printf("destroying: %s\n", impl->getName());
 	if (impl) {
 		impl->referenceCount--;
 		if (impl->referenceCount == 0){
-			printf("destroyed: %s\n", this->getName());
+			printf("destroyed: %s\n", impl->getName().c_str());
 			delete impl;
 			
 		}

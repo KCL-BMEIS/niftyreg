@@ -19,9 +19,10 @@
 class KernelImpl {
 public:
 
-	KernelImpl(std::string name, const Platform& platform);
+	KernelImpl(std::string nameIn, const Platform& platform);
 	virtual ~KernelImpl() {
 		assert(referenceCount == 0);
+		
 	}
 	std::string getName() const;
 	const Platform& getPlatform();

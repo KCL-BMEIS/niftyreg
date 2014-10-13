@@ -431,7 +431,7 @@ void reg_aladin<T>::initContext(){
 	this->CurrentReference = con->getCurrentReference();
 	this->CurrentFloating = con->getCurrentFloating();
 	//this->CurrentReferenceMask = con->getCurrentReferenceMask();
-	//this->CurrentWarped = con->getCurrenbtWarped();
+	//this->CurrentWarped = con->getCurrentWarped();
 	//this->deformationFieldImage = con->getCurrentDeformationField();
 	this->blockMatchingParams = con->getBlockMatchingParams();
 	con->setTransformationMatrix(this->TransformationMatrix);
@@ -604,7 +604,7 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 
 	this->con = new Context(this->CurrentReference, this->CurrentFloating, this->CurrentReferenceMask, sizeof(T));
 
-	this->CurrentWarped = con->getCurrenbtWarped();
+	this->CurrentWarped = con->getCurrentWarped();
 	this->deformationFieldImage = con->getCurrentDeformationField();
 
 	con->setTransformationMatrix(this->TransformationMatrix);

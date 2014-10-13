@@ -2,7 +2,7 @@
 
 using namespace std;
 
-KernelImpl::KernelImpl(string name, const Platform& platform) : name(name), platform(&platform), referenceCount(1) {
+KernelImpl::KernelImpl(string nameIn, const Platform& platform) : name(nameIn), platform(&platform), referenceCount(1) {
 }
 
 std::string KernelImpl::getName() const {

@@ -8,6 +8,8 @@
 #include "_reg_ReadWriteImage.h"
 #include"cuda_runtime.h"
 #include "Context.h"
+#include "CpuContext.h"
+#include "CudaContext.h"
 #include <ctime>
 
 
@@ -22,7 +24,7 @@ void mockParams(Platform* platform) {
 	nifti_image* warped = reg_io_ReadImageFile("mock_bm_warped.nii");
 	int* mask = (int *)calloc(reference->nx*reference->ny*reference->nz, sizeof(int));
 
-	Context *con = new Context(reference, reference, mask, sizeof(float), 50, 50);//temp
+	Context *con = new CpuContext(reference, reference, mask, sizeof(float), 50, 50);//temp
 	con->setCurrentWarped(warped);
 	
 	Kernel bmKernel = platform->createKernel(BlockMatchingKernel::Name(), con);
@@ -61,7 +63,7 @@ void mockParams(Platform* platform) {
 
 }
 
-void test(Platform* platform, const char* msg) {
+void test(Platform* platform, const char* msg, const unsigned int arch) {
 
 	//load images
 	nifti_image* reference = reg_io_ReadImageFile("mock_bm_reference.nii");
@@ -72,7 +74,11 @@ void test(Platform* platform, const char* msg) {
 
 	int* mask = (int *)calloc(reference->nx*reference->ny*reference->nz, sizeof(int));
 	
-	Context *con = new Context(reference, reference, mask, sizeof(float), 50, 50);//temp
+	Context *con;
+	if (arch ==0)
+		con = new CpuContext(reference, reference, mask, sizeof(float), 50, 50);//temp
+	else if (arch ==1)
+		con = new CudaContext(reference, reference, mask, sizeof(float), 50, 50);//temp
 	con->setCurrentWarped(warped);
 
 	Kernel bmKernel = platform->createKernel(BlockMatchingKernel::Name(), con);

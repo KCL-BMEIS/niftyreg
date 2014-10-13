@@ -22,7 +22,7 @@ class  Context {
 public:
 
 	Context();
-	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int InlierLts, const unsigned int  CurrentReferenceMask );
+	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int InlierLts, const unsigned int  CurrentReferenceMask);
 	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte);
 
 	~Context();
@@ -36,21 +36,21 @@ public:
 
 
 	void shout();
-	
 
-	
+
+
 	//Platform* platform;
 
 	/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-	virtual void AllocateWarpedImage(size_t bytes);
-	virtual void ClearWarpedImage();
+	void AllocateWarpedImage(size_t bytes);
+	void ClearWarpedImage();
 	/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-	virtual void AllocateDeformationField(size_t bytes);
-	virtual void ClearDeformationField();
-	virtual void initVars(const unsigned int platformFlagIn);
+	void AllocateDeformationField(size_t bytes);
+	void ClearDeformationField();
+	void initVars(const unsigned int platformFlagIn);
 
 
-	
+
 
 
 	nifti_image* CurrentReference;
@@ -65,9 +65,7 @@ public:
 	nifti_image* getCurrentDeformationField(){
 		return this->CurrentDeformationField;
 	}
-	nifti_image* getCurrenbtWarped(){
-		return  this->CurrentWarped;
-	}
+
 
 	nifti_image* getCurrentReference(){
 		return  this->CurrentReference;
@@ -101,11 +99,11 @@ public:
 		CurrentWarped = CurrentWarpedImageIn;
 	}
 
-//private:
+	//private:
 	nifti_image* CurrentDeformationField;
 	nifti_image* CurrentWarped;
 
-	
+
 
 
 

@@ -1011,7 +1011,7 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 										if (targetOverlap[tid][a] && resultOverlap[tid][a])
 										{
 											targetTemp = (targetValues[tid][a] - targetMean);
-											if (neighbourIs && is800) printf("CPU tmp: %f | ovp: %d |tid: %d \n", targetTemp, targetOverlap[tid][a], a);
+											//if (neighbourIs && is800) printf("CPU tmp: %f | ovp: %d |tid: %d \n", targetTemp, targetOverlap[tid][a], a);
 											resultTemp = (resultValues[tid][a] - resultMean);
 											targetVar += (targetTemp)*(targetTemp);
 											resultVar += (resultTemp)*(resultTemp);
@@ -1020,8 +1020,8 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 									}
 									float sumTargetResult = localCC;
 									localCC = fabs(localCC / sqrt(targetVar*resultVar));
-									if (condition1) printf("CPU 800 | sze: %f | TMN: %f | TVR: %f | RMN: %f |RVR %f | STR: %f | LCC: %f\n", voxelNumber, targetMean, targetVar, resultMean, resultVar, sumTargetResult, localCC);
-									if (condition1) printf("CPU:: %d::%d::%d | RVL: %f | TVL: %f\n",l, m, n, resultValues[tid][0], targetValues[tid][0]);
+									//if (condition1) printf("CPU 800 | sze: %f | TMN: %f | TVR: %f | RMN: %f |RVR %f | STR: %f | LCC: %f\n", voxelNumber, targetMean, targetVar, resultMean, resultVar, sumTargetResult, localCC);
+									//if (condition1) printf("CPU:: %d::%d::%d | RVL: %f | TVL: %f\n",l, m, n, resultValues[tid][0], targetValues[tid][0]);
 									if (localCC > bestCC)
 									{
 										bestCC = localCC;
@@ -1033,7 +1033,7 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 							}
 						}
 					}
-					if (is800 && tid == 0) printf("CPU 800  disp: %f::%f::%f | bestCC: %f\n", bestDisplacement[0], bestDisplacement[1], bestDisplacement[2], bestCC);
+					//if (is800 && tid == 0) printf("CPU 800  disp: %f::%f::%f | bestCC: %f\n", bestDisplacement[0], bestDisplacement[1], bestDisplacement[2], bestCC);
 					if (bestDisplacement[0] == bestDisplacement[0])
 					{
 						targetPosition_temp[0] = (float)(i*BLOCK_WIDTH);

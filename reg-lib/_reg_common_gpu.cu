@@ -133,6 +133,12 @@ int cudaCommon_transferNiftiToArrayOnDevice1(DTYPE **array_d, nifti_image *img)
 }
 /* ******************************** */
 template <class DTYPE>
+int cudaCommon_transferNiftiToArrayOnDevice(DTYPE **array_d, DTYPE *img, int* dims){
+
+
+}
+/* ******************************** */
+template <class DTYPE>
 int cudaCommon_transferNiftiToArrayOnDevice(DTYPE **array_d, nifti_image *img)
 {
 	if( sizeof(DTYPE)==sizeof(float4) ){
@@ -174,6 +180,7 @@ int cudaCommon_transferNiftiToArrayOnDevice(DTYPE **array_d, nifti_image *img)
 	return 0;
 }
 template int cudaCommon_transferNiftiToArrayOnDevice<float>(float **, nifti_image *);
+template int cudaCommon_transferNiftiToArrayOnDevice<int>(int **, nifti_image *);
 template int cudaCommon_transferNiftiToArrayOnDevice<float4>(float4 **, nifti_image *);
 /* ******************************** */
 
@@ -328,6 +335,7 @@ int cudaCommon_transferNiftiToArrayOnDevice(cudaArray **cuArray_d, nifti_image *
 	return 0;
 }
 template int cudaCommon_transferNiftiToArrayOnDevice<float>(cudaArray **, nifti_image *);
+template int cudaCommon_transferNiftiToArrayOnDevice<int>(cudaArray **, nifti_image *);
 template int cudaCommon_transferNiftiToArrayOnDevice<float4>(cudaArray **, nifti_image *); // for deformation field
 /* ******************************** */
 /* ******************************** */
@@ -514,6 +522,7 @@ int cudaCommon_transferFromDeviceToNifti1(nifti_image *img, DTYPE **array_d)
 	}
 	return 0;
 }
+template int cudaCommon_transferFromDeviceToNifti1<float, float>(nifti_image *img, float **array_d);
 /* ******************************** */
 template <class DTYPE>
 int cudaCommon_transferFromDeviceToNifti(nifti_image *img, DTYPE **array_d)
@@ -667,4 +676,22 @@ template void cudaCommon_free<float>(float **);
 template void cudaCommon_free<float4>(float4 **);
 /* ******************************** */
 /* ******************************** */
-#endif
+
+
+template <class DTYPE>
+int cudaCommon_transferFromDeviceToNiftiSimple(DTYPE **array_d, nifti_image *img)
+{
+	NR_CUDA_SAFE_CALL(cudaMemcpy(array_d, img->data, img->nvox * sizeof(DTYPE), cudaMemcpyHostToDevice));
+	return 0;
+}
+template int cudaCommon_transferFromDeviceToNiftiSimple<int>(int **array_d, nifti_image *img);
+template int cudaCommon_transferFromDeviceToNiftiSimple<float>(float **array_d, nifti_image *img);
+/* ******************************** */
+template <class DTYPE>
+int cudaCommon_transferFromDeviceToNiftiSimple1(DTYPE **array_d, DTYPE *img, const unsigned int nvox)
+{
+	NR_CUDA_SAFE_CALL(cudaMemcpy(array_d, img, nvox * sizeof(DTYPE), cudaMemcpyHostToDevice));
+	return 0;
+}
+template int cudaCommon_transferFromDeviceToNiftiSimple1<int>(int **array_d, int *img, const unsigned);
+#endif 

@@ -16,22 +16,41 @@ class CLResampleImageKernel;
 //Kernel functions for affine deformation field 
 class CLAffineDeformationFieldKernel : public AffineDeformationFieldKernel {
 public:
-	CLAffineDeformationFieldKernel(Context* con, std::string nameIn, const Platform& platformIn) : AffineDeformationFieldKernel(con->getCurrentDeformationField(), con->getTransformationMatrix(), nameIn, platformIn, con->getCurrentReferenceMask()) {
+	CLAffineDeformationFieldKernel(Context* con, std::string nameIn, const Platform& platformIn) : AffineDeformationFieldKernel(nameIn, platformIn) {
 		sContext = &CLContextSingletton::Instance();
+
+		this->deformationFieldImage = con->getCurrentDeformationField();
+		this->affineTransformation = con->getTransformationMatrix();
+		this->mask = con->getCurrentReferenceMask();
 	}
+
+
+	void execute(bool compose = false);
+
+	mat44 *affineTransformation;
+	nifti_image *deformationFieldImage;
+	int* mask;
 	CLContextSingletton* sContext;
-	void execute( bool compose = false);
 
 };
 //Kernel functions for block matching
 class CLBlockMatchingKernel : public BlockMatchingKernel {
 public:
 
-	CLBlockMatchingKernel(Context* con, std::string name, const Platform& platform) : BlockMatchingKernel(con->getCurrentReference(), con->getCurrentWarped(), con->getBlockMatchingParams(), con->getCurrentReferenceMask(), name, platform) {
+	CLBlockMatchingKernel(Context* con, std::string name, const Platform& platform) : BlockMatchingKernel(name, platform) {
 		sContext = &CLContextSingletton::Instance();
+		target = con->getCurrentReference();
+		result = con->getCurrentWarped();
+		params = con->getBlockMatchingParams();
+		mask = con->getCurrentReferenceMask();
 	}
 	CLContextSingletton* sContext;
 	void execute();
+
+	nifti_image* target;
+	nifti_image* result;
+	_reg_blockMatchingParam* params;
+	int* mask;
 
 
 };
@@ -52,9 +71,13 @@ public:
 class CLOptimiseKernel : public OptimiseKernel {
 public:
 
-	CLOptimiseKernel(Context* con, std::string name, const Platform& platform) : OptimiseKernel(con->getBlockMatchingParams(), con->getTransformationMatrix(),name, platform) {
+	CLOptimiseKernel(Context* con, std::string name, const Platform& platform) : OptimiseKernel( name, platform) {
 		sContext = &CLContextSingletton::Instance();
+		transformationMatrix = con->getTransformationMatrix();
+		blockMatchingParams = con->getBlockMatchingParams();
 	}
+	_reg_blockMatchingParam *blockMatchingParams;
+	mat44 *transformationMatrix;
 	CLContextSingletton* sContext;
 	void execute(bool affine) {}
 };
@@ -62,11 +85,19 @@ public:
 //kernel functions for image resampling with three interpolation variations
 class CLResampleImageKernel : public ResampleImageKernel {
 public:
-	CLResampleImageKernel(Context* con, std::string name, const Platform& platform) : ResampleImageKernel(con->getCurrentFloating(), con->getCurrenbtWarped(), con->getCurrentDeformationField(), con->getCurrentReferenceMask(),name, platform) {
+	CLResampleImageKernel(Context* con, std::string name, const Platform& platform) : ResampleImageKernel( name, platform) {
 		sContext = &CLContextSingletton::Instance();
+		floatingImage = con->getCurrentFloating();
+		warpedImage = con->getCurrentWarped();
+		deformationField = con->getCurrentDeformationField();
+		mask = con->getCurrentReferenceMask();
 	}
+	nifti_image *floatingImage;
+	nifti_image *warpedImage;
+	nifti_image *deformationField;
+	int *mask;
 	CLContextSingletton* sContext;
 
-	void execute( int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
+	void execute(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
 };
 
