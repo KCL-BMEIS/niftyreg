@@ -90,6 +90,13 @@ inline int fabs(int _x)
 /* Functions calling the Eigen library                             */
 /* See http://eigen.tuxfamily.org/index.php?title=Main_Page        */
 /* *************************************************************** */
+extern "C++"
+void reg_logarithm_tensor(mat33 *in_tensor);
+/* *************************************************************** */
+extern "C++"
+void reg_exponentiate_logged_tensor(mat33 *in_tensor);
+/* *************************************************************** */
+/* *************************************************************** */
 extern "C++" template <class T>
 void svd(T ** in, size_t m, size_t n, T * w, T ** v);
 /* *************************************************************** */
