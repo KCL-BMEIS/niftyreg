@@ -698,7 +698,6 @@ int main(int argc, char **argv)
          averageMatrix = reg_mat44_expm(&averageMatrix);
          // The average matrix is inverted
          averageMatrix = nifti_mat44_inverse(averageMatrix);
-         averageMatrix = reg_mat44_logm(&averageMatrix);
          // Demean all the input affine matrices
          for(size_t i=0; i<affineNumber; ++i)
          {
