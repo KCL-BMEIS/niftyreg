@@ -35,6 +35,8 @@ public:
 	void registerKernelFactory(const std::string& name, KernelFactory* factory);
 
 	std::map<std::string, KernelFactory*> kernelFactories;
+	virtual std::string getName(){ return ""; }
+
 	virtual ~Platform();
 
 };

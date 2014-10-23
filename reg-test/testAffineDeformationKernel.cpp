@@ -6,6 +6,7 @@
 #include "_reg_ReadWriteImage.h"
 #include"cuda_runtime.h"
 #include "Context.h"
+#include "CudaContext.h"
 #include <ctime>
 
 void mockAffine(mat44* affine) {
@@ -32,6 +33,9 @@ void mockAffine(mat44* affine) {
 
 void test(Platform* platform, const char* msg) {
 
+
+	nifti_image* reference = reg_io_ReadImageFile("mock_bm_reference.nii");
+	int* mask = (int *)calloc(reference->nx*reference->ny*reference->nz, sizeof(int));
 	
 
 	//init ref params
@@ -43,10 +47,18 @@ void test(Platform* platform, const char* msg) {
 
 
 
-	Context *context = new Context();
-	context->setTransformationMatrix(affine);
-	context->setCurrentDeformationField(input);
-	Kernel affineDeformKernel = platform->createKernel(AffineDeformationFieldKernel::Name(), context);
+	Context *con;
+
+	if (platform->getName() == "cpu_platform")
+		con = new Context(reference, reference, mask, sizeof(float), 50, 50);
+	else if (platform->getName() == "cuda_platform")
+		con = new CudaContext(reference, reference, mask, sizeof(float), 50, 50);
+	else con = new Context(reference, reference, mask, sizeof(float), 50, 50);
+
+
+	con->setTransformationMatrix(affine);
+	con->setCurrentDeformationField(input); 
+	Kernel affineDeformKernel = platform->createKernel(AffineDeformationFieldKernel::Name(), con);
 
 	clock_t begin = clock();
 	//run kernel
@@ -60,7 +72,7 @@ void test(Platform* platform, const char* msg) {
 	
 
 	//compare results
-	double maxDiff = reg_test_compare_images(context->getCurrentDeformationField(), output);
+	double maxDiff = reg_test_compare_images(con->getCurrentDeformationField(), output);
 
 	//output
 	std::cout << "===================================" << std::endl;
@@ -69,8 +81,11 @@ void test(Platform* platform, const char* msg) {
 	std::cout << "diff:" << maxDiff << std::endl;
 	std::cout << "elapsed" << elapsed_secs << std::endl;
 	std::cout << "===================================" << std::endl;
-	nifti_image_free(input);
+	
+	free(mask);
+	nifti_image_free(reference);
 	nifti_image_free(output);
+	delete con;
 }
 
 int main(int argc, char **argv) {
@@ -83,8 +98,8 @@ int main(int argc, char **argv) {
 
 	
 	test(cpuPlatform, "CPU  Platform tests");
-	test(cudaPlatform, "CUDA Platform tests"); cudaDeviceReset();
-	test(clPlatform,  "CL   Platform tests");cudaDeviceReset();
+	test(cudaPlatform, "CUDA Platform tests"); 
+	test(clPlatform,  "CL   Platform tests");
 	
 	
 	return 0;

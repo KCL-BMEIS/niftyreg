@@ -65,9 +65,7 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
 #endif
 
 		*originalFloatingData = (void *)malloc(floatingImage->nvox*sizeof(DTYPE));
-		memcpy(*originalFloatingData,
-			floatingImage->data,
-			floatingImage->nvox*sizeof(DTYPE));
+		memcpy(*originalFloatingData, floatingImage->data, floatingImage->nvox*sizeof(DTYPE));
 #ifndef NDEBUG
 		printf("[NiftyReg DEBUG] The floating image data has been copied\n");
 #endif

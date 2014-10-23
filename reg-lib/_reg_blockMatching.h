@@ -77,13 +77,14 @@ struct _reg_blockMatchingParam
 	  : targetPosition(0),
 		resultPosition(0),
 		activeBlock(0)
-   {}
+   {
+   }
 
    ~_reg_blockMatchingParam()
    {
 	  if(targetPosition) free(targetPosition);
 	  if(resultPosition) free(resultPosition);
-	  if(activeBlock) free(activeBlock);
+	  if(activeBlock) free(activeBlock);  
    }
 };
 

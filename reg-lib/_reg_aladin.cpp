@@ -1,6 +1,9 @@
 #include "_reg_aladin.h"
-#include "Context.h"
+//#include "Context.h"
+#include "CudaContext.h"
 #include "CPUPlatform.h"
+#include "CLPlatform.h"
+#include "CudaPlatform.h"
 #include "kernels.h"
 
 #ifndef _REG_ALADIN_CPP
@@ -54,8 +57,15 @@ template <class T> reg_aladin<T>::reg_aladin()
 
 	this->funcProgressCallback = NULL;
 	this->paramsProgressCallback = NULL;
-	this->platform = new CPUPlatform();
 
+	this->platformCode = 1;
+
+	if (platformCode == 0)
+		this->platform = new CPUPlatform();
+	else if (platformCode == 1)
+		this->platform = new CudaPlatform();
+	else
+		this->platform = new CLPlatform();
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T> reg_aladin<T>::~reg_aladin()
@@ -368,10 +378,15 @@ void reg_aladin<T>::InitialiseRegistration()
 template <class T>
 void reg_aladin<T>::createKernels(){
 	affineTransformation3DKernel = platform->createKernel(AffineDeformationFieldKernel::Name(), this->con);
-	convolutionKernel = platform->createKernel(ConvolutionKernel::Name(), this->con);
-	blockMatchingKernel = platform->createKernel(BlockMatchingKernel::Name(), this->con);
 	resamplingKernel = platform->createKernel(ResampleImageKernel::Name(), this->con);
-	optimiseKernel = platform->createKernel(OptimiseKernel::Name(), this->con);
+	if (con->bm){
+		convolutionKernel = platform->createKernel(ConvolutionKernel::Name(), this->con);
+		blockMatchingKernel = platform->createKernel(BlockMatchingKernel::Name(), this->con);
+		optimiseKernel = platform->createKernel(OptimiseKernel::Name(), this->con);
+
+	}
+
+
 }
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -427,7 +442,18 @@ void reg_aladin<T>::clearContext(){
 }
 template <class T>
 void reg_aladin<T>::initContext(){
-	this->con = new Context (this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts);
+
+	if (platformCode == 0)
+		this->con = new Context(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts);
+	else if (platformCode == 1)
+		this->con = new CudaContext(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts);
+	else
+		this->con = new Context(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts);
+
+
+
+
+
 	this->CurrentReference = con->getCurrentReference();
 	this->CurrentFloating = con->getCurrentFloating();
 	//this->CurrentReferenceMask = con->getCurrentReferenceMask();
@@ -435,7 +461,7 @@ void reg_aladin<T>::initContext(){
 	//this->deformationFieldImage = con->getCurrentDeformationField();
 	this->blockMatchingParams = con->getBlockMatchingParams();
 	con->setTransformationMatrix(this->TransformationMatrix);
-	
+
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -448,16 +474,12 @@ void reg_aladin<T>::Run()
 	unsigned long iProgressStep = 1;
 	const unsigned long nProgressSteps = (PerformAffine && PerformRigid) ? MaxIterations * 4 * 2 + MaxIterations*(LevelsToPerform + 1) : MaxIterations*(LevelsToPerform + 1);
 
-
-
 	// Compute the progress unit
 	const unsigned long progressUnit = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-
 	//Main loop over the levels:
 	for (this->CurrentLevel = 0; this->CurrentLevel < this->LevelsToPerform; this->CurrentLevel++)
 	{
 		std::cout << "==================================================== " << std::endl;
-		std::cout << "Level: " << CurrentLevel << std::endl;
 
 		//this->InitialiseBlockMatching(this->BlockPercentage);
 		this->initContext();
@@ -489,14 +511,14 @@ void reg_aladin<T>::Run()
 		if(this->CurrentReference->sform_code>0)
 			reg_mat44_disp(&this->CurrentReference->sto_xyz, (char *)"[DEBUG] Reference image matrix (sform sto_xyz)");
 		else reg_mat44_disp(&this->CurrentReference->qto_xyz, (char *)"[DEBUG] Reference image matrix (qform qto_xyz)");
-		if(this->CurrentFloating->sform_code>0)
+		if (this->CurrentFloating->sform_code > 0)
 			reg_mat44_disp(&this->CurrentFloating->sto_xyz, (char *)"[DEBUG] Floating image matrix (sform sto_xyz)");
 		else reg_mat44_disp(&this->CurrentFloating->qto_xyz, (char *)"[DEBUG] Floating image matrix (qform qto_xyz)");
 #endif
 		/* ****************** */
 		/* Rigid registration */
 		/* ****************** */
-		std::cout << "Rigid!" << std::endl;
+		//std::cout << "Rigid!" << std::endl;
 		int iteration = 0;
 		if ((this->PerformRigid && !this->PerformAffine) || (this->PerformAffine && this->PerformRigid && CurrentLevel == 0))
 		{
@@ -506,9 +528,8 @@ void reg_aladin<T>::Run()
 #ifndef NDEBUG
 				printf("[DEBUG] -Rigid- iteration %i\n", iteration);
 #endif
-				std::cout << "get warped" << std::endl;
+
 				this->GetWarpedImage(this->Interpolation);
-				std::cout << "update" << std::endl;
 				this->UpdateTransformationMatrix(RIGID);
 				if (funcProgressCallback && paramsProgressCallback)
 				{
@@ -520,24 +541,22 @@ void reg_aladin<T>::Run()
 
 				iteration++;
 				iProgressStep++;
+			}
 		}
-	}
 
 		/* ******************* */
 		/* Affine registration */
 		/* ******************* */
 		iteration = 0;
-		std::cout << "affine" << std::endl;
 		if (this->PerformAffine)
 		{
-			while(iteration<maxNumberOfIterationToPerform)
+			while (iteration < maxNumberOfIterationToPerform)
 			{
 #ifndef NDEBUG
 				printf("[DEBUG] -Affine- iteration %i\n", iteration);
 #endif
-				std::cout << "affine: get warped" << std::endl;
+
 				this->GetWarpedImage(this->Interpolation);
-				std::cout << "affine: update" << std::endl;
 				this->UpdateTransformationMatrix(AFFINE);
 				if (funcProgressCallback && paramsProgressCallback)
 				{
@@ -556,12 +575,12 @@ void reg_aladin<T>::Run()
 
 				//destroy kernels
 				//destroy context
+			}
 		}
-}
 
 		// SOME CLEANING IS PERFORMED
 		this->ClearCurrentInputImage();
-		clearContext();
+		delete con;
 
 #ifdef NDEBUG
 		if (this->Verbose)
@@ -573,18 +592,18 @@ void reg_aladin<T>::Run()
 		}
 #endif
 
-   } // level this->LevelsToPerform
+	} // level this->LevelsToPerform
 
 	if (funcProgressCallback && paramsProgressCallback)
 	{
-		(*funcProgressCallback)( 100., paramsProgressCallback);
-   }
+		(*funcProgressCallback)(100., paramsProgressCallback);
+	}
 
 #ifndef NDEBUG
 	printf("[NiftyReg DEBUG] reg_aladin::Run() done\n");
 #endif
 	return;
-}
+	}
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 nifti_image *reg_aladin<T>::GetFinalWarpedImage()
@@ -600,9 +619,23 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 
 	this->CurrentReference = this->InputReference;
 	this->CurrentFloating = this->InputFloating;
-	this->CurrentReferenceMask = NULL;
+	reg_tools_changeDatatype<T>(CurrentReference);
+	reg_tools_changeDatatype<T>(CurrentFloating);
 
-	this->con = new Context(this->CurrentReference, this->CurrentFloating, this->CurrentReferenceMask, sizeof(T));
+	/*std::cout << "sze: " << CurrentReference->nx*CurrentReference->ny*CurrentReference->nz << std::endl;
+	float* data = static_cast<float*>(CurrentReference->data);
+	std::cout << "val: " << data[CurrentReference->nx*CurrentReference->ny*CurrentReference->nz - 1] << std::endl;*/
+	this->CurrentReferenceMask = (int *)calloc(CurrentReference->nx*CurrentReference->ny*CurrentReference->nz, sizeof(int));
+
+	if (platformCode == 0)
+		this->con = new Context(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T)/*, 50, 50*/);
+	else if (platformCode == 1)
+		this->con = new CudaContext(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T)/*, 50, 50*/);
+	else
+		this->con = new Context(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T)/*, 50, 50*/);
+
+
+
 
 	this->CurrentWarped = con->getCurrentWarped();
 	this->deformationFieldImage = con->getCurrentDeformationField();
@@ -626,6 +659,7 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 
 	//reg_aladin<T>::ClearWarpedImage();
 	delete con;
+	delete platform;
 	return resultImage;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

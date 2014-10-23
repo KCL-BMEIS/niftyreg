@@ -12,22 +12,25 @@
 using namespace std;
 
 Context::Context(){
-	int dim[8] = { 1, 100 * 3, 1, 1, 1, 1, 1, 1 };
-	this->CurrentDeformationField = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
+	//std::cout << "context constructor (mock)" << std::endl;
+	int dim[8] = { 2, 20 , 20, 1, 1, 1, 1, 1 };
+
 	this->CurrentFloating = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
 	this->CurrentReference = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
 	this->CurrentReferenceMask = NULL;
+	this->bm = false;
+
 }
 Context::~Context(){
-	std::cout << "ClearWarpedImage" << std::endl;
+	//std::cout << "Context Destructor called" << std::endl;
 	ClearWarpedImage();
-	std::cout << "ClearDeformationField" << std::endl;
 	ClearDeformationField();
-	if (blockMatchingParams != NULL)
-		delete blockMatchingParams;
+
+	if (this->bm)
+	delete blockMatchingParams;
 }
 void Context::shout() {
-	std::cout << "context listens" << std::endl;
+	//std::cout << "context listens" << std::endl;
 	Platform *platform = new Platform();
 	platform->shout();
 }
@@ -36,20 +39,26 @@ void Context::shout() {
 
 Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t bytes, const unsigned int CurrentPercentageOfBlockToUse, const unsigned int InlierLts) :CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn)
 {
+	//std::cout << "context constructor called" << std::endl;
 	blockMatchingParams = new _reg_blockMatchingParam();
 	this->AllocateWarpedImage(bytes);
 	this->AllocateDeformationField(bytes);
+	this->bm = true;
+	//std::cout << "typeConIn: " << CurrentReference->datatype << std::endl;
 	initialise_block_matching_method(CurrentReference, blockMatchingParams, CurrentPercentageOfBlockToUse, InlierLts, CurrentReferenceMask, true);
-
-
-
 }
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
 Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t bytes) :CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn)
 {
-	blockMatchingParams = NULL;
+	//std::cout << "context constructor small" << std::endl;
+
+	//float* data = static_cast<float*>(CurrentReference->data);
+	/*std::cout << "sze: " << CurrentReference->nx*CurrentReference->ny*CurrentReference->nz << std::endl;
+	std::cout << "val: " << data[CurrentReference->nx*CurrentReference->ny*CurrentReference->nz-1] << std::endl;*/
+	
+	this->bm = false;
 	this->AllocateWarpedImage(bytes);
 	this->AllocateDeformationField(bytes);
 }
@@ -120,7 +129,6 @@ void Context::AllocateDeformationField(size_t bytes)
 		(size_t)this->CurrentDeformationField->nt *
 		(size_t)this->CurrentDeformationField->nu;
 	this->CurrentDeformationField->nbyper = bytes;
-	std::cout << "bytes: " << bytes << std::endl;
 	if (bytes == 4)
 		this->CurrentDeformationField->datatype = NIFTI_TYPE_FLOAT32;
 	else if (bytes == 8)

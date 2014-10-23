@@ -4,7 +4,7 @@
 #include "Platform.h"
 
 KernelImpl* CudaKernelFactory::createKernelImpl(std::string name, const Platform& platform, Context* con) const {
-	std::cout << "CUDA Factory called!" << std::endl;
+	//std::cout << "CUDA Factory called!" << std::endl;
 	if( name == AffineDeformationFieldKernel::Name() ) return new CudaAffineDeformationFieldKernel(con, name, platform);
 	else if( name == ConvolutionKernel::Name() ) return new CudaConvolutionKernel(name, platform);
 	else if( name == BlockMatchingKernel::Name() ) return new CudaBlockMatchingKernel( con, name, platform);

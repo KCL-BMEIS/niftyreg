@@ -92,4 +92,8 @@ extern "C++"
 template <class DTYPE>
 int cudaCommon_transferFromDeviceToNiftiSimple1(DTYPE **array_d, DTYPE *img, const unsigned  nvox);
 
+extern "C++"
+template <class DTYPE>
+int cudaCommon_transferFromDeviceToCpu(DTYPE *cpuPtr, DTYPE **cuPtr, const unsigned int nElements);
+
 #endif

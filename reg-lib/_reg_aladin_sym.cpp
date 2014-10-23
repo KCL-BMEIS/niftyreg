@@ -228,8 +228,15 @@ template <class T>
 void reg_aladin_sym<T>::initContext(){
 	reg_aladin<T>::initContext();
 
+	if (platformCode == 0)
+		this->backCon = new Context(this->FloatingPyramid[CurrentLevel], this->ReferencePyramid[CurrentLevel], this->FloatingMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts);
+	else if (platformCode == 1)
+		this->backCon = new CudaContext(this->FloatingPyramid[CurrentLevel], this->ReferencePyramid[CurrentLevel], this->FloatingMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts);
+	else
+		this->backCon = new Context(this->FloatingPyramid[CurrentLevel], this->ReferencePyramid[CurrentLevel], this->FloatingMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts);
 
-	this->backCon = new Context(this->FloatingPyramid[CurrentLevel],this->ReferencePyramid[CurrentLevel],  this->FloatingMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts);
+
+	
 	this->backCon->setTransformationMatrix(this->BackwardTransformationMatrix);
 	this->BackwardBlockMatchingParams = this->backCon->getBlockMatchingParams();
 	this->CurrentBackwardWarped = this->backCon->getCurrentWarped();

@@ -66,6 +66,8 @@ protected:
 	int InlierLts;
 	_reg_blockMatchingParam *blockMatchingParams;
 
+	unsigned int platformCode;
+
 	bool AlignCentre;
 
 	int Interpolation;

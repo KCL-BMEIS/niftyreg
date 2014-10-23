@@ -5,6 +5,7 @@
 #include "CLPlatform.h"
 #include "_reg_ReadWriteImage.h"
 #include "Context.h"
+#include "CudaContext.h"
 #include <string>
 
 #define LINEAR_CODE 1
@@ -15,28 +16,44 @@
 #define CUBIC_FILENAME "mock_resample_cubic_warped.nii"
 #define NN_FILENAME "mock_resample_nn_warped.nii"
 
+#define CPUX 0
+#define CUDA 1
+#define OCLX 2
 
-float test(Platform* platform, const unsigned int interp, std::string message) {
+
+float test(const unsigned int platformCode, const unsigned int interp, std::string message) {
 	std::cout << "================================" << std::endl;
-	
+	Platform *platform;
+	if (platformCode == CPUX)
+		platform = new CPUPlatform();
+	else if (platformCode == CUDA)
+		platform = new CudaPlatform();
+	else
+		platform = new CLPlatform();
 
 	//init ref params
 	nifti_image* CurrentFloating = reg_io_ReadImageFile("mock_resample_input_float.nii");
 	nifti_image* CurrentWarped = reg_io_ReadImageFile("mock_resample_input_warped.nii");
 	nifti_image* deformationFieldImage = reg_io_ReadImageFile("mock_affine_output.nii");
-	int* CurrentReferenceMask = NULL;
 	nifti_image* mockRef = reg_io_ReadImageFile(CUBIC_FILENAME);//any image doesn't matter
+	int* CurrentReferenceMask = (int *)calloc(mockRef->nx*mockRef->ny*mockRef->nz, sizeof(int));
 
+	std::cout << platform->getName() << std::endl;
 
-	std::cout << "conb" << std::endl;
-	Context *con = new Context(mockRef, CurrentFloating, CurrentReferenceMask, sizeof(float), 50, 50);//temp
+	Context *con;
+
+	if (platform->getName() == "cpu_platform")
+		con = new Context(mockRef, CurrentFloating, CurrentReferenceMask, sizeof(float), 50, 50);
+	else if (platform->getName() == "cuda_platform")
+		con = new CudaContext(mockRef, CurrentFloating, CurrentReferenceMask, sizeof(float), 50, 50);
+	else 
+		con = new Context(mockRef, CurrentFloating, CurrentReferenceMask, sizeof(float), 50, 50);
+
 	con->setCurrentWarped(CurrentWarped);
 	con->setCurrentDeformationField(deformationFieldImage);
 
-	std::cout << "kernel" << std::endl;
-	Kernel resamplingKernel = platform->createKernel(ResampleImageKernel::Name(), con);
 
-	
+	Kernel resamplingKernel = platform->createKernel(ResampleImageKernel::Name(), con);
 
 	nifti_image* output;
 	if( interp == LINEAR_CODE )
@@ -45,27 +62,25 @@ float test(Platform* platform, const unsigned int interp, std::string message) {
 		output = reg_io_ReadImageFile(CUBIC_FILENAME);
 	else
 		output = reg_io_ReadImageFile(NN_FILENAME);
-	std::cout << "exe" << std::endl;
+
 	//run kernel
 	resamplingKernel.getAs<ResampleImageKernel>().execute( interp, 0);
-	std::cout << "dne" << std::endl;
 
 	//measure performance (elapsed time)
 	
 	//compare results
-	double maxDiff = reg_test_compare_images(CurrentWarped, output);
+	double maxDiff = reg_test_compare_images(con->getCurrentWarped(), output);
 
 	//output
 	std::cout << message << maxDiff << std::endl;
 
-
+	nifti_image_free(mockRef);
 	nifti_image_free(CurrentFloating);
-	nifti_image_free(CurrentWarped);
-	nifti_image_free(deformationFieldImage);
 	nifti_image_free(output);
 	free(CurrentReferenceMask);
 
-
+	delete con;
+	delete platform;
 
 	return maxDiff;
 }
@@ -73,21 +88,21 @@ float test(Platform* platform, const unsigned int interp, std::string message) {
 int main(int argc, char **argv) {
 
 	//init platform params
-	Platform *platform = new CPUPlatform();
-	Platform *cudaPlatform = new CudaPlatform();
-	Platform *clPlatform = new CLPlatform();
 
-	const float nnDiff = test(platform, 0, "nnDiff:");
-	const float linearDiff = test(platform, 1, "linear diff: ");
-	const float cubicDiff  = test(platform, 3, "cubic diff: ");
 
-	const float linearDiffCuda = test(cudaPlatform, 1, "cuda linear: ");
-	const float nnDiffCuda = test(cudaPlatform, 0, "cuda nn: ");
-	const float cubicDiffCuda = test(cudaPlatform, 3, "cuda cubic: ");
+	const float nnDiff = test(CPUX, NN_CODE, "nnDiff:");
+	const float linearDiff = test(CPUX, LINEAR_CODE, "linear diff: ");
+	const float cubicDiff = test(CPUX, CUBIC_CODE, "cubic diff: ");
 
-	const float linearDiffCl = test(clPlatform, 1, "cl linear: ");
-	const float nnDiffCl = test(clPlatform, 0, "cl nn: ");
-	const float cubicDiffCl = test(clPlatform, 3, "cl cubic: ");
+
+	const float nnDiffCuda = test(CUDA, NN_CODE, "cuda nn: ");
+	const float linearDiffCuda = test(CUDA, LINEAR_CODE, "cuda linear: ");
+	const float cubicDiffCuda = test(CUDA, CUBIC_CODE, "cuda cubic: ");
+
+	const float linearDiffCl = test(OCLX, LINEAR_CODE, "cl linear: ");
+	const float nnDiffCl = test(OCLX, NN_CODE, "cl nn: ");
+	const float cubicDiffCl = test(OCLX, CUBIC_CODE, "cl cubic: ");
+
 
 
 	return 0;

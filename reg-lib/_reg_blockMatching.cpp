@@ -507,7 +507,7 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
 	count = 0;
 	if (runningOnGPU)
 	{
-		std::cout << "GPU ACTIVE BLOCK!" << std::endl;
+		//std::cout << "GPU ACTIVE BLOCK!" << std::endl;
 		for (size_t i = 0; i < totalBlockNumber; ++i)
 		{
 			if (params->activeBlock[i] != -1)
@@ -556,7 +556,7 @@ void initialise_block_matching_method(nifti_image * target,
 
 	params->percent_to_keep = percentToKeep_opt;
 	params->activeBlockNumber = params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2] * percentToKeep_block / 100;
-
+	/*std::cout << "0: " << params->blockNumber[0] << " 1: " << params->blockNumber[1] << " 2: " << params->blockNumber[2] << std::endl;*/
 	params->activeBlock = (int *)malloc(params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2] * sizeof(int));
 	switch (target->datatype)
 	{
@@ -577,7 +577,7 @@ void initialise_block_matching_method(nifti_image * target,
 		reg_exit(1);
 	}
 #ifndef NDEBUG
-	printf("[NiftyReg DEBUG]: There are %i active block(s) out of %i.\n", params->activeBlockNumber, params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2]);
+	printf("[NiftyReg DEBUG]: There are %i active block(s) out of %i.\n", params->activeBlockNumber, params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2]);
 #endif
 	if (target->nz > 1)
 	{
@@ -593,7 +593,7 @@ void initialise_block_matching_method(nifti_image * target,
 #ifndef NDEBUG
 	printf("[NiftyReg DEBUG] block matching initialisation done.\n");
 #endif
-}
+	}
 /* *************************************************************** */
 /* *************************************************************** */
 template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageType>
@@ -980,8 +980,8 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 									else resultIndex += BLOCK_WIDTH*BLOCK_WIDTH;
 								}
 								bool neighbourIs = l == -2 && m == 2 && n == -1;
-								
-								
+
+
 								bool condition1 = is800  && neighbourIs;
 								targetMean = 0.0;
 								resultMean = 0.0;
@@ -1049,7 +1049,7 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 						z=3*params->activeBlock[blockIndex];
 						currentTargetPosition[ z ] = tempPosition[0];
 						currentTargetPosition[z+1] = tempPosition[1];
-						currentTargetPosition[z+2] = tempPosition[2];
+						currentTargetPosition[z + 2] = tempPosition[2];
 #else
 						z = 3 * params->definedActiveBlock;
 						params->targetPosition[z] = tempPosition[0];
@@ -1060,7 +1060,7 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 #if defined (_OPENMP)
 						currentResultPosition[ z ] = tempPosition[0];
 						currentResultPosition[z+1] = tempPosition[1];
-						currentResultPosition[z+2] = tempPosition[2];
+						currentResultPosition[z + 2] = tempPosition[2];
 #else
 						params->resultPosition[z] = tempPosition[0];
 						params->resultPosition[z + 1] = tempPosition[1];
@@ -1072,7 +1072,7 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 				blockIndex++;
 			}
 		}
-	}
+}
 
 #if defined (_OPENMP)
 	j=0;
@@ -1094,7 +1094,7 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 	free(currentResultPosition);
 	omp_set_num_threads(threadNumber);
 #endif
-}
+	}
 /* *************************************************************** */
 // Block matching interface function
 void block_matching_method(nifti_image * target,
@@ -1395,7 +1395,8 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points,
 		w[k] = 0.0f;
 	}
 	// Now we can compute our svd
-	dsvd(A, num_equations, 12, w, v);
+	svd(A, num_equations, 12, w, v);
+	//dsvd(A, num_equations, 12, w, v);
 
 	// First we make sure that the really small singular values
 	// are set to 0. and compute the inverse by taking the reciprocal
@@ -1734,14 +1735,14 @@ void optimize_affine3D(_reg_blockMatchingParam *params, mat44 * final)
 		/*std::cout << "start---------------------------" << std::endl;
 		for (unsigned j = 0; j < 5 * 3; j += 3)
 		{
-			_reg_sorted_point3D p = top_points[j];
-			double dis = (p.target[0] - p.result[0])*(p.target[0] - p.result[0]) + (p.target[1] - p.result[1])*(p.target[1] - p.result[1]) + (p.target[2] - p.result[2])*(p.target[2] - p.result[2]);
-			dis = sqrtf(dis);
+		_reg_sorted_point3D p = top_points[j];
+		double dis = (p.target[0] - p.result[0])*(p.target[0] - p.result[0]) + (p.target[1] - p.result[1])*(p.target[1] - p.result[1]) + (p.target[2] - p.result[2])*(p.target[2] - p.result[2]);
+		dis = sqrtf(dis);
 
-			std::cout << "distance: (" << p.distance << "-" << dis << ")" << std::endl
-				<< " target0: " << p.target[0] << " result0: " << p.result[0] << std::endl
-				<< " target1: " << p.target[1] << " result1: " << p.result[1] << std::endl
-				<< " target2: " << p.target[2] << " result2: " << p.result[2] << std::endl;
+		std::cout << "distance: (" << p.distance << "-" << dis << ")" << std::endl
+		<< " target0: " << p.target[0] << " result0: " << p.result[0] << std::endl
+		<< " target1: " << p.target[1] << " result1: " << p.result[1] << std::endl
+		<< " target2: " << p.target[2] << " result2: " << p.result[2] << std::endl;
 		}
 		std::cout << "end  ---------------------------" << std::endl;*/
 		// If the change is not substantial or we are getting worst, we return
@@ -2131,7 +2132,7 @@ void optimize_rigid3D(_reg_blockMatchingParam *params,
 	mat44 *final)
 {
 	//    const unsigned num_points = params->activeBlockNumber;
-	const unsigned num_points = params->definedActiveBlock;
+	const int num_points = params->definedActiveBlock;
 	// Keep a sorted list of the distance measure
 	std::multimap<double, _reg_sorted_point3D> queue;
 	std::vector<_reg_sorted_point3D> top_points;
@@ -2140,13 +2141,14 @@ void optimize_rigid3D(_reg_blockMatchingParam *params,
 	unsigned long i;
 
 	// Set the current transformation to identity
+
 	final->m[0][0] = final->m[1][1] = final->m[2][2] = final->m[3][3] = 1.0f;
 	final->m[0][1] = final->m[0][2] = final->m[0][3] = 0.0f;
 	final->m[1][0] = final->m[1][2] = final->m[1][3] = 0.0f;
 	final->m[2][0] = final->m[2][1] = final->m[2][3] = 0.0f;
 	final->m[3][0] = final->m[3][1] = final->m[3][2] = 0.0f;
 
-	for (unsigned j = 0; j < num_points * 3; j += 3)
+	for (unsigned long j = 0; j < num_points * 3; j += 3)
 	{
 		top_points.push_back(_reg_sorted_point3D(&(params->targetPosition[j]),
 			&(params->resultPosition[j]), 0.0f));
@@ -2240,9 +2242,11 @@ void optimize(_reg_blockMatchingParam *params, mat44 *transformation_matrix, boo
 			params->resultPosition[index++] = out[1];
 			params->resultPosition[index] = out[2];
 		}
+
 		if (affine)
 			optimize_affine3D(params, transformation_matrix);
 		else optimize_rigid3D(params, transformation_matrix);
+
 		//reg_mat44_disp(transformation_matrix, (char *)"[DEBUG] optimzes");
 
 	}

@@ -11,7 +11,7 @@ public:
 
 	//set platform specific data to context
 	void setPlatformData(Context &ctx);
-
+	std::string getName(){ return "cuda_platform"; }
 private:
 	unsigned int getRank();
 };

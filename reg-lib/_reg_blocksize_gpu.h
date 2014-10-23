@@ -45,7 +45,7 @@ struct __attribute__((aligned(4))) float4
 			exit(EXIT_FAILURE); \
 		} \
 		else{\
-		printf("[NiftyReg CUDA DEBUG] process_target_blocks_gpu kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n", cudaGetErrorString(cudaGetLastError()), grid.x, grid.y, grid.z, block.x, block.y, block.z);\
+		printf("[NiftyReg CUDA DEBUG] kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n", cudaGetErrorString(cudaGetLastError()), grid.x, grid.y, grid.z, block.x, block.y, block.z);\
 		}\
 	}
 #else //CUDART_VERSION >= 3200

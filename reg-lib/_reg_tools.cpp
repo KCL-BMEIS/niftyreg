@@ -2643,14 +2643,14 @@ float reg_test_compare_arrays(DTYPE *ptrA,DTYPE *ptrB,size_t nvox) {
 
 		if (nanA ^ nanB)
 			return 1000000;
-		else if (nanA && nanB){ printf("i: %d\n", i); continue; };
+		else if (nanA && nanB){ printf("nan: i: %d\n", i); continue; };
 			
 
 		float diff = fabsf(valA - valB);
 		//if (diff > 0.001) { printf("idx: %lu | diff: %f | a: %f - b: %f\n", i, diff, valA, valB); /* return diff;*/ }
 		maxDifference = std::max<float>(maxDifference, diff);
 		if (first && diff) {
-			printf("i: %d | %f | a: %f - b: %f\n", i, maxDifference, valA, valB); 
+			printf("first err i: %d | %f | a: %f - b: %f\n", i, maxDifference, valA, valB); 
 			first = false;
 		}
 	}

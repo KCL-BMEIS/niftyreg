@@ -164,7 +164,7 @@ __global__ void targetPosKernel(float *targetPosition_d, float* targetMatrix_xyz
 
 
 
-	if ((i < 23) && (j < 28) && (k < 23)){
+	//if ((i < 23) && (j < 28) && (k < 23)){
 		assert(k < blockDims.x);
 		assert(j < blockDims.y);
 		assert(i < blockDims.x);
@@ -197,7 +197,7 @@ __global__ void targetPosKernel(float *targetPosition_d, float* targetMatrix_xyz
 				printf("cuda (x,x,x): %d-%d-%d: %d-%d\n", i, j, k, flatIdx, activeBlock[flatIdx]);
 				}*/
 		}
-	}
+	//}
 }
 
 
@@ -1625,7 +1625,13 @@ __global__ void resultsKernel2pp2(float *resultPosition, int* mask, float* targe
 		/*if (is800) printf("gpu (%d, %d, %d): %d-%d: (%f::%f::%f)\n", blockIdx.x, blockIdx.y, blockIdx.z, bid, currentBlockIndex, bestDisplacement[0], bestDisplacement[1], bestDisplacement[2]);
 
 		if (currentBlockIndex == 175 / 3) printf("175/3: %d-%d-%d\n", blockIdx.x, blockIdx.y, blockIdx.z);*/
+
+
+
 		float  tempPosition[3];
+		const unsigned int posIdx = 3 * currentBlockIndex;
+
+		
 
 		bestDisplacement[0] += (blockIdx.x*BLOCK_WIDTH);
 		bestDisplacement[1] += (blockIdx.y*BLOCK_WIDTH);
@@ -1635,7 +1641,7 @@ __global__ void resultsKernel2pp2(float *resultPosition, int* mask, float* targe
 
 		//if (is800) printf("gpu (8,0, 0): %f - %f - %f\n", tempPosition[0], tempPosition[1], tempPosition[2]);
 
-		const unsigned int posIdx = 3 * currentBlockIndex;
+		
 
 		resultPosition[posIdx] = tempPosition[0];
 		resultPosition[posIdx + 1] = tempPosition[1];
@@ -1643,7 +1649,178 @@ __global__ void resultsKernel2pp2(float *resultPosition, int* mask, float* targe
 	}
 	//}
 }
+//Blocks: 1-(n-1) for all dimensions
+__global__ void resultsKernel2pp21(float *resultPosition, float *targetPosition, int* mask, float* targetMatrix_xyz, uint3 blockDims){
 
+	__shared__ float sResultValues[12 * 12 * 12];
+
+
+	const bool border = blockIdx.x == gridDim.x - 1 || blockIdx.y == gridDim.y - 1 || blockIdx.z == gridDim.z - 1;
+
+	const unsigned int idz = threadIdx.x / 16;
+	const unsigned int idy = (threadIdx.x - 16 * idz) / 4;
+	const unsigned int idx = threadIdx.x - 16 * idz - 4 * idy;
+
+	bool is800 = (blockIdx.x == 14 && blockIdx.y == 5 && blockIdx.z == 0);
+	const unsigned int bid = blockIdx.x + gridDim.x * blockIdx.y + (gridDim.x * gridDim.y) * blockIdx.z;
+
+	const unsigned int xBaseImage = blockIdx.x * 4;
+	const unsigned int yBaseImage = blockIdx.y * 4;
+	const unsigned int zBaseImage = blockIdx.z * 4;
+
+
+	const unsigned int tid = threadIdx.x;//0-blockSize
+
+	const unsigned int xImage = xBaseImage + idx;
+	const unsigned int yImage = yBaseImage + idy;
+	const unsigned int zImage = zBaseImage + idz;
+
+	const unsigned long imgIdx = xImage + yImage *(c_ImageSize.x) + zImage * (c_ImageSize.x * c_ImageSize.y);
+	const bool targetInBounds = xImage < c_ImageSize.x && yImage < c_ImageSize.y && zImage < c_ImageSize.z;
+
+	const int currentBlockIndex = tex1Dfetch(activeBlock_texture, bid);
+	//if (currentBlockIndex >= 0 && xImage < c_ImageSize.x && yImage < c_ImageSize.y && zImage < c_ImageSize.z){
+	//if (i == 22 && j == 10 && k == 0) printf("size: %d | idx: %d | flat: %lu | size: %lu \n", imageSize.x, xImage, indexXYZ, imageSize.x*imageSize.y*imageSize.z);
+
+	for (int n = -1; n <= 1; n += 1)
+	{
+		for (int m = -1; m <= 1; m += 1)
+		{
+			for (int l = -1; l <= 1; l += 1)
+			{
+				const int x = l * 4 + idx;
+				const int y = m * 4 + idy;
+				const int z = n * 4 + idz;
+
+				const unsigned int sIdx = (z + 4) * 12 * 12 + (y + 4) * 12 + (x + 4);
+
+				const unsigned int xImageIn = xBaseImage + x;
+				const unsigned int yImageIn = yBaseImage + y;
+				const unsigned int zImageIn = zBaseImage + z;
+
+				const unsigned int indexXYZIn = xImageIn + yImageIn *(c_ImageSize.x) + zImageIn * (c_ImageSize.x * c_ImageSize.y);
+
+				const bool valid = (xImageIn >= 0 && xImageIn < c_ImageSize.x) && (yImageIn >= 0 && yImageIn < c_ImageSize.y) && (zImageIn >= 0 && zImageIn < c_ImageSize.z);
+				sResultValues[sIdx] = (valid) ? tex1Dfetch(resultImageArray_texture, indexXYZIn) : nanf("sNaN");
+				//if (is800 && tid == 0 && l == 0 && m == 0 && n == 0) printf("s1 tid: %d | ResultValues: %f | sid: %d\n", tid, sResultValues[sIdx], sIdx);
+			}
+		}
+	}
+
+	const float rTargetValue = (targetInBounds) ? tex1Dfetch(targetImageArray_texture, imgIdx) : nanf("sNaN");
+
+	const float targetMean = REDUCE(rTargetValue, tid) / 64;
+	const float targetTemp = rTargetValue - targetMean;
+	const float targetVar = REDUCE(targetTemp*targetTemp, tid);
+
+	float bestDisplacement[3];
+	float bestCC = 0.0f;
+
+	// iteration over the result blocks
+	for (unsigned int n = 1; n < 8; n += 1)
+	{
+		bool nBorder = n < 4 && blockIdx.z == 0 || n>4 && blockIdx.z >= gridDim.z - 2;
+		for (unsigned int m = 1; m < 8; m += 1)
+		{
+			bool mBorder = m < 4 && blockIdx.y == 0 || m>4 && blockIdx.y >= gridDim.y - 2;
+			for (unsigned int l = 1; l < 8; l += 1)
+			{
+				bool lBorder = l < 4 && blockIdx.x == 0 || l>4 && blockIdx.x >= gridDim.x - 2;
+
+				const unsigned int x = idx + l;
+				const unsigned int y = idy + m;
+				const unsigned int z = idz + n;
+
+				const unsigned int sIdxIn = z * 12 * 12 + y * 12 + x;
+
+				/*bool neighbourIs = l == 2 && m == 6 && n == 3;
+				bool condition1 = is800 && tid == 0 && neighbourIs;*/
+				const float rResultValue = sResultValues[sIdxIn];
+				bool overlap = isfinite(rResultValue) && targetInBounds;
+
+				/*if (neighbourIs && is800 ) printf("rVal: %f | in: %d |tid: %d | trg: %f\n", rResultValue, targetInBounds, tid, rTargetValue);*/
+				//if (condition1) printf("gpu %d::%d::%d | RVL: %f | TVL: %f\n", l - 4, m - 4, n - 4, rResultValue, rTargetValue);
+				const unsigned int bSize = (nBorder || mBorder || lBorder || border) ? countNans(rResultValue, tid, targetInBounds) : 64;//out
+				//if (is800 &&  l == 6 && m == 6 && n == 6) printf("tid: %d | sze: %d | RVL: %f | TIB: %d\n", tid, bSize, rResultValue, targetInBounds);
+				//if (!(nBorder || mBorder || lBorder || border) && bSize != 64) printf("(%d, %d, %d) BSZ: %d\n", blockIdx.x, blockIdx.y, blockIdx.z, bSize);
+				//if (condition1) printf("sze: %d\n", bSize);
+
+				if (bSize > 32 && bSize <= 64){
+
+					const float rChecked = overlap ? rResultValue : 0.0f;
+					float newTargetTemp = targetTemp;
+					float ttargetvar = targetVar;
+					if (bSize < 64){
+						//if (condition1) printf("in bSize<64\n");
+						const float tChecked = overlap ? rTargetValue : 0.0f;
+						const float ttargetMean = REDUCE(tChecked, tid) / bSize;//out
+						newTargetTemp = overlap ? tChecked - ttargetMean : 0.0f;
+						//if (neighbourIs && is800) printf("tmp: %f | ovp: %d |tid: %d \n", newTargetTemp, overlap, tid);
+						ttargetvar = REDUCE(newTargetTemp*newTargetTemp, tid);//out
+					}
+
+					const float resultMean = REDUCE(rChecked, tid) / bSize;//out
+					const float resultTemp = overlap ? rResultValue - resultMean : 0.0f;
+					const float resultVar = REDUCE(resultTemp*resultTemp, tid/*, is800 && l == 7 && m == 6 && n == 3*/);//out
+
+					const float sumTargetResult = REDUCE((newTargetTemp)*(resultTemp), tid);//out
+					const float localCC = fabs((sumTargetResult) / sqrtf(ttargetvar*resultVar));//out
+
+					/*if (condition1) printf("gpu %d::%d::%d | RVL: %f | TVL: %f\n",l-4, m-4, n-4, rResultValue, rTargetValue);
+					if (condition1) printf("sze: %d |TMN: %f | TVR: %f | RMN: %f |RVR %f | STR: %f | LCC: %f\n", bSize, targetMean, targetVar, resultMean, resultVar, sumTargetResult, localCC);*/
+					//__syncthreads();
+
+					//warp vote here
+					if (tid == 0 && localCC > bestCC) {
+						bestCC = localCC;
+						bestDisplacement[0] = l - 4.0f;
+						bestDisplacement[1] = m - 4.0f;
+						bestDisplacement[2] = n - 4.0f;
+					}
+
+				}
+				//if (is800 && localCC > 0.99f) printf("%d-%d-%d: %f\n", l, m, n, localCC);
+			}
+		}
+	}
+	//if (is800 && tid == 0) printf("gpu 800  disp: %f - %f - %f | bestCC: %f\n", bestDisplacement[0], bestDisplacement[1], bestDisplacement[2], bestCC);
+	//__syncthreads();
+	if (tid == 0) {
+		/*if (is800) printf("gpu (%d, %d, %d): %d-%d: (%f::%f::%f)\n", blockIdx.x, blockIdx.y, blockIdx.z, bid, currentBlockIndex, bestDisplacement[0], bestDisplacement[1], bestDisplacement[2]);
+
+		if (currentBlockIndex == 175 / 3) printf("175/3: %d-%d-%d\n", blockIdx.x, blockIdx.y, blockIdx.z);*/
+		
+		float  targetPosition_temp[3];
+		targetPosition_temp[0] = (blockIdx.x*BLOCK_WIDTH);
+		targetPosition_temp[1] = (blockIdx.y*BLOCK_WIDTH);
+		targetPosition_temp[2] = (blockIdx.z*BLOCK_WIDTH);
+
+
+		float  tempPosition[3];
+		reg_mat44_mul_cuda(targetMatrix_xyz, targetPosition_temp, tempPosition);
+
+		const unsigned int posIdx = 3 * currentBlockIndex;
+		targetPosition[posIdx] = tempPosition[0];
+		targetPosition[posIdx + 1] = tempPosition[1];
+		targetPosition[posIdx + 2] = tempPosition[2];
+		
+
+		bestDisplacement[0] += (blockIdx.x*BLOCK_WIDTH);
+		bestDisplacement[1] += (blockIdx.y*BLOCK_WIDTH);
+		bestDisplacement[2] += (blockIdx.z*BLOCK_WIDTH);
+
+		reg_mat44_mul_cuda(targetMatrix_xyz, bestDisplacement, tempPosition);
+
+		//if (is800) printf("gpu (8,0, 0): %f - %f - %f\n", tempPosition[0], tempPosition[1], tempPosition[2]);
+
+		
+
+		resultPosition[posIdx] = tempPosition[0];
+		resultPosition[posIdx + 1] = tempPosition[1];
+		resultPosition[posIdx + 2] = tempPosition[2];
+	}
+	//}
+}
 
 
 //launched as 64 thread blocks

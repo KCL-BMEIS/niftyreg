@@ -20,7 +20,7 @@ Kernel::~Kernel() {
 	if (impl) {
 		impl->referenceCount--;
 		if (impl->referenceCount == 0){
-			printf("destroyed: %s\n", impl->getName().c_str());
+			//printf("destroyed: %s\n", impl->getName().c_str());
 			delete impl;
 			
 		}

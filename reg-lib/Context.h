@@ -25,7 +25,7 @@ public:
 	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int InlierLts, const unsigned int  CurrentReferenceMask);
 	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte);
 
-	~Context();
+	virtual ~Context();
 
 
 
@@ -34,10 +34,7 @@ public:
 	*/
 	void setTime(double time);
 
-
 	void shout();
-
-
 
 	//Platform* platform;
 
@@ -50,19 +47,20 @@ public:
 	void initVars(const unsigned int platformFlagIn);
 
 
-
+	bool selfConstructor = false;
 
 
 	nifti_image* CurrentReference;
 	nifti_image* CurrentFloating;
 	int* CurrentReferenceMask;
+	bool bm;
 
 	mat44* transformationMatrix;
 	_reg_blockMatchingParam* blockMatchingParams;
 
 
 	//getters
-	nifti_image* getCurrentDeformationField(){
+	virtual nifti_image* getCurrentDeformationField(){
 		return this->CurrentDeformationField;
 	}
 
@@ -73,7 +71,7 @@ public:
 	nifti_image* getCurrentFloating(){
 		return  this->CurrentFloating;
 	}
-	nifti_image* getCurrentWarped(){
+	virtual nifti_image* getCurrentWarped(){
 		return CurrentWarped;
 	}
 	int* getCurrentReferenceMask(){
@@ -82,20 +80,25 @@ public:
 	mat44* getTransformationMatrix(){
 		return this->transformationMatrix;
 	}
-	_reg_blockMatchingParam* getBlockMatchingParams(){
+	virtual _reg_blockMatchingParam* getBlockMatchingParams(){
+		//std::cout << "serve bm params from cpu" << std::endl;
 		return blockMatchingParams;
 	}
 
 	//setters
-	void setTransformationMatrix(mat44* transformationMatrixIn){
+	virtual void setTransformationMatrix(mat44* transformationMatrixIn){
 		transformationMatrix = transformationMatrixIn;
 	}
 
-	void setCurrentDeformationField(nifti_image* CurrentDeformationFieldIn){
+	virtual void setCurrentDeformationField(nifti_image* CurrentDeformationFieldIn){
+		//std::cout << "from context setCurrentDeformationField" << std::endl;
+		//nifti_image_free(CurrentDeformationFieldIn);
 		CurrentDeformationField = CurrentDeformationFieldIn;
 	}
 
-	void setCurrentWarped(nifti_image* CurrentWarpedImageIn){
+	virtual void setCurrentWarped(nifti_image* CurrentWarpedImageIn){
+		//std::cout << "from context" << std::endl;
+		//nifti_image_free(CurrentWarped);
 		CurrentWarped = CurrentWarpedImageIn;
 	}
 

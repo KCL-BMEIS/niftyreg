@@ -32,6 +32,9 @@ void block_matching_method_gpu(	nifti_image *targetImage,
 								 float **resultPosition_d,
 								 int **activeBlock_d,
 								 int **mask_);
+extern "C++"
+void block_matching_method_gpu3(nifti_image *targetImage, _reg_blockMatchingParam *params, float **targetImageArray_d, float **resultImageArray_d, float **targetPosition_d, float **resultPosition_d, int **activeBlock_d, int **mask_d);
+
 
 extern "C++"
 void optimize_gpu(	_reg_blockMatchingParam *blockMatchingParams,

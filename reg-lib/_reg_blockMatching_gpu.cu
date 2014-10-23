@@ -19,7 +19,7 @@
 //#include <thrust\copy.h>
 //#include <thrust\device_ptr.h>
 
-bool compare1( float &a) {
+bool compare1(float &a) {
 	return (a > -1);
 }
 
@@ -115,13 +115,13 @@ void block_matching_method_gpu(nifti_image *targetImage, nifti_image *resultImag
 	NR_CUDA_CHECK_KERNEL(ImageGrid3D, BlockDims3D)
 
 
-	/*targetBlocksKernel << <BlocksGrid3D, BlockDims3D >> >(*targetPosition_d, targetValues);
-	NR_CUDA_CHECK_KERNEL(BlocksGrid3D, BlockDims3D)
-	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());*/
-	
+		/*targetBlocksKernel << <BlocksGrid3D, BlockDims3D >> >(*targetPosition_d, targetValues);
+		NR_CUDA_CHECK_KERNEL(BlocksGrid3D, BlockDims3D)
+		NR_CUDA_SAFE_CALL(cudaThreadSynchronize());*/
 
 
-	unsigned int Result_block_matching = params->activeBlockNumber;
+
+		unsigned int Result_block_matching = params->activeBlockNumber;
 	unsigned int Result_block_matching_2 = 1;
 
 	// We have hit the limit in one dimension
@@ -132,7 +132,7 @@ void block_matching_method_gpu(nifti_image *targetImage, nifti_image *resultImag
 
 	/*dim3 B2(NR_BLOCK->Block_result_block, 1, 1);
 	dim3 G2(Result_block_matching, Result_block_matching_2, 1);*/
-	float* resultVar_d; 
+	float* resultVar_d;
 	float* resultTemp_d;
 	NR_CUDA_SAFE_CALL(cudaMalloc((void**)(&resultVar_d), targetImage->nvox * sizeof(float)));
 	NR_CUDA_SAFE_CALL(cudaMalloc((void**)(&resultTemp_d), targetImage->nvox * sizeof(float)));
@@ -150,7 +150,7 @@ void block_matching_method_gpu(nifti_image *targetImage, nifti_image *resultImag
 	resultsKernel2pp2 << <BlocksGrid3D, BlockDims1D >> >(*resultPosition_d, *mask_d, targetMat_d, blockSize);
 	NR_CUDA_CHECK_KERNEL(BlocksGrid3D, BlockDims1D)
 
-	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
+		NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
 
 	NR_CUDA_SAFE_CALL(cudaUnbindTexture(targetImageArray_texture));
 	NR_CUDA_SAFE_CALL(cudaUnbindTexture(resultImageArray_texture));
@@ -158,20 +158,76 @@ void block_matching_method_gpu(nifti_image *targetImage, nifti_image *resultImag
 	//NR_CUDA_SAFE_CALL(cudaFree(targetValues));
 	NR_CUDA_SAFE_CALL(cudaFree(resultValues));
 
+
+	//temp
 	NR_CUDA_SAFE_CALL(cudaMemcpy(params->resultPosition, *resultPosition_d, params->activeBlockNumber * 3 * sizeof(float), cudaMemcpyDeviceToHost));
 	NR_CUDA_SAFE_CALL(cudaMemcpy(params->targetPosition, *targetPosition_d, params->activeBlockNumber * 3 * sizeof(float), cudaMemcpyDeviceToHost));
 
 
-	cudaFree(targetPosition_d);
+	/*cudaFree(targetPosition_d);
 	cudaFree(resultPosition_d);
+	cudaFree(mask_d);*/
 	cudaFree(activeBlockNumber_d);
-	cudaFree(mask_d);
+
 	cudaFree(targetMat_d);
 	cudaFree(resultTemp_d);
 	cudaFree(resultVar_d);
-	cudaDeviceReset();
+	/*cudaDeviceReset();*/
 
 }
+
+void block_matching_method_gpu3(nifti_image *targetImage, _reg_blockMatchingParam *params, float **targetImageArray_d, float **resultImageArray_d, float **targetPosition_d, float **resultPosition_d, int **activeBlock_d, int **mask_d) {
+
+
+	// Copy some required parameters over to the device
+	int3 bDim = make_int3(params->blockNumber[0], params->blockNumber[1], params->blockNumber[2]);
+	uint3 image_size = make_uint3(targetImage->nx, targetImage->ny, targetImage->nz);// Image size
+	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_BlockDim, &bDim, sizeof(int3)));
+	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ImageSize, &image_size, sizeof(uint3)));
+
+	// Texture binding
+	const unsigned int numBlocks = params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2];
+	NR_CUDA_SAFE_CALL(cudaBindTexture(0, targetImageArray_texture, *targetImageArray_d, targetImage->nvox * sizeof(float)));
+	NR_CUDA_SAFE_CALL(cudaBindTexture(0, resultImageArray_texture, *resultImageArray_d, targetImage->nvox * sizeof(float)));
+	NR_CUDA_SAFE_CALL(cudaBindTexture(0, activeBlock_texture, *activeBlock_d, numBlocks * sizeof(int)));
+
+	mat44 targetMatrix_xyz = (targetImage->sform_code > 0) ? (targetImage->sto_xyz) : (targetImage->qto_xyz);
+	float* targetMat = (float *)malloc(16 * sizeof(float));//freed
+	mat44ToCptr(targetMatrix_xyz, targetMat);
+
+	float* targetMat_d;//freed
+	int*activeBlockNumber_d;//freed
+	NR_CUDA_SAFE_CALL(cudaMalloc((void**)(&targetMat_d), 16 * sizeof(float)));
+	NR_CUDA_SAFE_CALL(cudaMemcpy(targetMat_d, targetMat, 16 * sizeof(float), cudaMemcpyHostToDevice));
+
+	NR_CUDA_SAFE_CALL(cudaMalloc((void**)(&activeBlockNumber_d), numBlocks * sizeof(int)));
+	NR_CUDA_SAFE_CALL(cudaMemcpy(activeBlockNumber_d, params->activeBlock, numBlocks * sizeof(int), cudaMemcpyHostToDevice));
+
+
+
+	dim3 BlockDims1D(64, 1, 1);
+	dim3 BlocksGrid3D(params->blockNumber[0], params->blockNumber[1], params->blockNumber[2]);
+	const uint3 blockSize = make_uint3(4, 4, 4);
+
+
+	resultsKernel2pp21 << <BlocksGrid3D, BlockDims1D >> >(*resultPosition_d, *targetPosition_d, *mask_d, targetMat_d, blockSize);
+	NR_CUDA_CHECK_KERNEL(BlocksGrid3D, BlockDims1D)
+
+	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
+
+	NR_CUDA_SAFE_CALL(cudaUnbindTexture(targetImageArray_texture));
+	NR_CUDA_SAFE_CALL(cudaUnbindTexture(resultImageArray_texture));
+	NR_CUDA_SAFE_CALL(cudaUnbindTexture(activeBlock_texture));
+
+
+	free(targetMat);
+	cudaFree(activeBlockNumber_d);
+	cudaFree(targetMat_d);
+
+
+
+}
+
 
 void block_matching_method_gpu2(nifti_image *targetImage,
 	nifti_image *resultImage,
@@ -252,7 +308,7 @@ void block_matching_method_gpu2(nifti_image *targetImage,
 	// process the target blocks
 	process_target_blocks_gpu << <G1, B1 >> >(*targetPosition_d, values);
 	NR_CUDA_CHECK_KERNEL(G1, B1)
-	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
+		NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
 #ifndef NDEBUG
 	printf("[NiftyReg CUDA DEBUG] process_target_blocks_gpu kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
 		cudaGetErrorString(cudaGetLastError()), G1.x, G1.y, G1.z, B1.x, B1.y, B1.z);

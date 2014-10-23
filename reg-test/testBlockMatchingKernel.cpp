@@ -7,7 +7,7 @@
 #include "CLPlatform.h"
 #include "_reg_ReadWriteImage.h"
 #include"cuda_runtime.h"
-#include "Context.h"
+//#include "Context.h"
 #include "CpuContext.h"
 #include "CudaContext.h"
 #include <ctime>
@@ -75,10 +75,12 @@ void test(Platform* platform, const char* msg, const unsigned int arch) {
 	int* mask = (int *)calloc(reference->nx*reference->ny*reference->nz, sizeof(int));
 	
 	Context *con;
-	if (arch ==0)
-		con = new CpuContext(reference, reference, mask, sizeof(float), 50, 50);//temp
-	else if (arch ==1)
+
+	if (platform->getName() == "cpu_platform")
+		con = new Context(reference, reference, mask, sizeof(float), 50, 50);//temp
+	else if (platform->getName() == "cuda_platform")
 		con = new CudaContext(reference, reference, mask, sizeof(float), 50, 50);//temp
+	else con = new Context();
 	con->setCurrentWarped(warped);
 
 	Kernel bmKernel = platform->createKernel(BlockMatchingKernel::Name(), con);
@@ -98,11 +100,11 @@ void test(Platform* platform, const char* msg, const unsigned int arch) {
 	std::cout << "===================================" << msg << " END ===============================" << std::endl;
 
 	nifti_image_free(reference);
-	nifti_image_free(warped);
+	//nifti_image_free(warped);
 	nifti_image_free(result);
 	nifti_image_free(target);
 	free(mask);
-	free(con);
+	delete con;
 }
 
 int main(int argc, char **argv) {
@@ -115,9 +117,9 @@ int main(int argc, char **argv) {
 	//mockParams(cpuPlatform);
 
 
-	test(cpuPlatform, "CPU Platform");
-	test(cudaPlatform, "Cuda Platform");
-	cudaDeviceReset();
+	test(cpuPlatform, "CPU Platform", 0);
+	test(cudaPlatform, "Cuda Platform", 1);
+	//cudaDeviceReset();
 
 
 	return 0;
