@@ -16,7 +16,7 @@ class CLResampleImageKernel;
 //Kernel functions for affine deformation field 
 class CLAffineDeformationFieldKernel : public AffineDeformationFieldKernel {
 public:
-	CLAffineDeformationFieldKernel(Context* con, std::string nameIn, const Platform& platformIn) : AffineDeformationFieldKernel(nameIn, platformIn) {
+	CLAffineDeformationFieldKernel(Context* con, std::string nameIn) : AffineDeformationFieldKernel(nameIn) {
 		sContext = &CLContextSingletton::Instance();
 
 		this->deformationFieldImage = con->getCurrentDeformationField();
@@ -37,7 +37,7 @@ public:
 class CLBlockMatchingKernel : public BlockMatchingKernel {
 public:
 
-	CLBlockMatchingKernel(Context* con, std::string name, const Platform& platform) : BlockMatchingKernel(name, platform) {
+	CLBlockMatchingKernel(Context* con, std::string name) : BlockMatchingKernel(name) {
 		sContext = &CLContextSingletton::Instance();
 		target = con->getCurrentReference();
 		result = con->getCurrentWarped();
@@ -58,7 +58,7 @@ public:
 class CLConvolutionKernel : public ConvolutionKernel {
 public:
 
-	CLConvolutionKernel(std::string name, const Platform& platform) : ConvolutionKernel(name, platform) {
+	CLConvolutionKernel(std::string name) : ConvolutionKernel(name) {
 		sContext = &CLContextSingletton::Instance();
 	}
 	CLContextSingletton* sContext;
@@ -71,7 +71,7 @@ public:
 class CLOptimiseKernel : public OptimiseKernel {
 public:
 
-	CLOptimiseKernel(Context* con, std::string name, const Platform& platform) : OptimiseKernel( name, platform) {
+	CLOptimiseKernel(Context* con, std::string name) : OptimiseKernel( name) {
 		sContext = &CLContextSingletton::Instance();
 		transformationMatrix = con->getTransformationMatrix();
 		blockMatchingParams = con->getBlockMatchingParams();
@@ -85,7 +85,7 @@ public:
 //kernel functions for image resampling with three interpolation variations
 class CLResampleImageKernel : public ResampleImageKernel {
 public:
-	CLResampleImageKernel(Context* con, std::string name, const Platform& platform) : ResampleImageKernel( name, platform) {
+	CLResampleImageKernel(Context* con, std::string name) : ResampleImageKernel( name) {
 		sContext = &CLContextSingletton::Instance();
 		floatingImage = con->getCurrentFloating();
 		warpedImage = con->getCurrentWarped();

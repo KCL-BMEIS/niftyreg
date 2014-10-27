@@ -22,7 +22,7 @@ class  Context {
 public:
 
 	Context();
-	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int InlierLts, const unsigned int  CurrentReferenceMask);
+	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int percentageOfBlocks, const unsigned int  InlierLts);
 	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte);
 
 	virtual ~Context();

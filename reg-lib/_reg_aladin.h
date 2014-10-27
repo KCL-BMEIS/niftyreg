@@ -25,6 +25,8 @@
 #include <limits>
 
 class Context;
+class Platform;
+class Kernel;
 
 template <class T>
 class reg_aladin
@@ -33,7 +35,7 @@ class reg_aladin
 protected:
 	Context *con;
 	Platform *platform;
-	Kernel affineTransformation3DKernel, convolutionKernel, blockMatchingKernel, optimiseKernel, resamplingKernel;
+	Kernel* affineTransformation3DKernel, *convolutionKernel, *blockMatchingKernel, *optimiseKernel, *resamplingKernel;
 	char *ExecutableName;
 	nifti_image *InputReference;
 	nifti_image *InputFloating;
@@ -86,6 +88,7 @@ protected:
 	virtual void initContext();
 	virtual void clearContext();
 	virtual void createKernels();
+	virtual void clearKernels();
 	virtual void InitialiseRegistration();
 	
 

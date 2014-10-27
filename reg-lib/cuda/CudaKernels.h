@@ -13,7 +13,7 @@ class CudaResampleImageKernel;
 //Kernel functions for affine deformation field 
 class CudaAffineDeformationFieldKernel : public AffineDeformationFieldKernel {
 public:
-	CudaAffineDeformationFieldKernel(Context* con, std::string nameIn, const Platform& platformIn) : AffineDeformationFieldKernel(nameIn, platformIn){
+	CudaAffineDeformationFieldKernel(Context* con, std::string nameIn) : AffineDeformationFieldKernel(nameIn){
 		this->deformationFieldImage = con->getCurrentDeformationField();
 		this->affineTransformation = con->getTransformationMatrix();
 		this->mask = con->getCurrentReferenceMask();
@@ -41,7 +41,7 @@ public:
 class CudaBlockMatchingKernel : public BlockMatchingKernel {
 public:
 
-	CudaBlockMatchingKernel(Context* conIn, std::string name, const Platform& platform) : BlockMatchingKernel(name, platform) {
+	CudaBlockMatchingKernel(Context* conIn, std::string name) : BlockMatchingKernel(name) {
 		target = conIn->getCurrentReference();
 		result = conIn->getCurrentWarped();
 		params = conIn->getBlockMatchingParams();
@@ -74,7 +74,7 @@ public:
 class CudaConvolutionKernel : public ConvolutionKernel {
 public:
 
-	CudaConvolutionKernel(std::string name, const Platform& platform) : ConvolutionKernel(name, platform) {
+	CudaConvolutionKernel(std::string name) : ConvolutionKernel(name) {
 	}
 
 	void execute(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL);
@@ -86,7 +86,7 @@ public:
 class CudaOptimiseKernel : public OptimiseKernel {
 public:
 
-	CudaOptimiseKernel(Context* conIn, std::string name, const Platform& platform) : OptimiseKernel(name, platform) {
+	CudaOptimiseKernel(Context* conIn, std::string name) : OptimiseKernel(name) {
 		transformationMatrix = conIn->getTransformationMatrix();
 		blockMatchingParams = conIn->getBlockMatchingParams();
 		con = static_cast<CudaContext*>(conIn);
@@ -100,7 +100,7 @@ public:
 //kernel functions for image resampling with three interpolation variations
 class CudaResampleImageKernel : public ResampleImageKernel {
 public:
-	CudaResampleImageKernel(Context* con, std::string name, const Platform& platform) : ResampleImageKernel(name, platform) {
+	CudaResampleImageKernel(Context* con, std::string name) : ResampleImageKernel(name) {
 		floatingImage = con->getCurrentFloating();
 		warpedImage = con->getCurrentWarped();
 		deformationField = con->getCurrentDeformationField();

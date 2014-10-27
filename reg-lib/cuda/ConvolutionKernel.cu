@@ -1019,6 +1019,7 @@ void launchAffine2(mat44 *affineTransformation, nifti_image *deformationField, f
 	//NR_CUDA_CHECK_KERNEL(G1_b, B1_b)
 	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
 	cudaFree(trans_d);
+	free(trans);
 
 }
 void launchOptimize(_reg_blockMatchingParam *params, mat44 *transformation_matrix, bool affine) {

@@ -196,12 +196,14 @@ void block_matching_method_gpu3(nifti_image *targetImage, _reg_blockMatchingPara
 	mat44ToCptr(targetMatrix_xyz, targetMat);
 
 	float* targetMat_d;//freed
-	int*activeBlockNumber_d;//freed
 	NR_CUDA_SAFE_CALL(cudaMalloc((void**)(&targetMat_d), 16 * sizeof(float)));
 	NR_CUDA_SAFE_CALL(cudaMemcpy(targetMat_d, targetMat, 16 * sizeof(float), cudaMemcpyHostToDevice));
 
-	NR_CUDA_SAFE_CALL(cudaMalloc((void**)(&activeBlockNumber_d), numBlocks * sizeof(int)));
-	NR_CUDA_SAFE_CALL(cudaMemcpy(activeBlockNumber_d, params->activeBlock, numBlocks * sizeof(int), cudaMemcpyHostToDevice));
+	unsigned int* definedBlock_d;
+	unsigned int *definedBlock_h = (unsigned int*)malloc(sizeof(unsigned int));
+	definedBlock_h[0] = 0;
+	NR_CUDA_SAFE_CALL(cudaMalloc((void**)(&definedBlock_d), sizeof(unsigned int)));
+	NR_CUDA_SAFE_CALL(cudaMemcpy(definedBlock_d, definedBlock_h, sizeof(unsigned int), cudaMemcpyHostToDevice));
 
 
 
@@ -210,21 +212,22 @@ void block_matching_method_gpu3(nifti_image *targetImage, _reg_blockMatchingPara
 	const uint3 blockSize = make_uint3(4, 4, 4);
 
 
-	resultsKernel2pp21 << <BlocksGrid3D, BlockDims1D >> >(*resultPosition_d, *targetPosition_d, *mask_d, targetMat_d, blockSize);
-	NR_CUDA_CHECK_KERNEL(BlocksGrid3D, BlockDims1D)
+	resultsKernel2pp21 << <BlocksGrid3D, BlockDims1D >> >(*resultPosition_d, *targetPosition_d, *mask_d, targetMat_d, blockSize, definedBlock_d);
+	//NR_CUDA_CHECK_KERNEL(BlocksGrid3D, BlockDims1D)
 
 	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
 
+	NR_CUDA_SAFE_CALL(cudaMemcpy((void *)definedBlock_h, (void *)definedBlock_d, sizeof(unsigned int), cudaMemcpyDeviceToHost));
+	params->definedActiveBlock = definedBlock_h[0];
+	//printf("definedActiveBlock: %d\n", params->definedActiveBlock);
 	NR_CUDA_SAFE_CALL(cudaUnbindTexture(targetImageArray_texture));
 	NR_CUDA_SAFE_CALL(cudaUnbindTexture(resultImageArray_texture));
 	NR_CUDA_SAFE_CALL(cudaUnbindTexture(activeBlock_texture));
 
-
+	free(definedBlock_h);
 	free(targetMat);
-	cudaFree(activeBlockNumber_d);
 	cudaFree(targetMat_d);
-
-
+	cudaFree(definedBlock_d);
 
 }
 

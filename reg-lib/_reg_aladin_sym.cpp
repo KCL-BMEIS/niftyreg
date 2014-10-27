@@ -65,15 +65,6 @@ void reg_aladin_sym<T>::SetInputFloatingMask(nifti_image *m)
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
 
-
-
-
-
-
-
-
-
-
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin_sym<T>::InitialiseRegistration()
@@ -169,7 +160,7 @@ void reg_aladin_sym<T>::InitialiseRegistration()
 template <class T>
 void reg_aladin_sym<T>::GetBackwardDeformationField()
 {
-	bAffineTransformation3DKernel.getAs<AffineDeformationFieldKernel>().execute();
+	bAffineTransformation3DKernel->castTo<AffineDeformationFieldKernel>()->execute();
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -184,7 +175,7 @@ void reg_aladin_sym<T>::GetWarpedImage(int interp)
 					   this->CurrentFloatingMask,
 					   interp,
 					   0);*/
-	bResamplingKernel.getAs<ResampleImageKernel>().execute(interp, 0);
+	bResamplingKernel->castTo<ResampleImageKernel>()->execute(interp, 0);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -194,15 +185,15 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
 	/*block_matching_method(this->CurrentReference, this->CurrentWarped, this->blockMatchingParams, this->CurrentReferenceMask);
 	optimize(this->blockMatchingParams, this->TransformationMatrix, type == RIGID);*/
 
-	blockMatchingKernel.getAs<BlockMatchingKernel>().execute();//watch the trans matrix!!!!!!
-	optimiseKernel.getAs<OptimiseKernel>().execute(type == AFFINE);
+	blockMatchingKernel->castTo<BlockMatchingKernel>()->execute();//watch the trans matrix!!!!!!
+	optimiseKernel->castTo<OptimiseKernel>()->execute(type == AFFINE);
 
 
 	// Update now the backward transformation matrix
 	/*block_matching_method(this->CurrentFloating, &this->BackwardBlockMatchingParams, this->CurrentFloatingMask);
 	optimize(&this->BackwardBlockMatchingParams, this->BackwardTransformationMatrix, type == RIGID);*/
-	bBlockMatchingKernel.getAs<BlockMatchingKernel>().execute();//watch the trans matrix!!!!!!
-	bOptimiseKernel.getAs<OptimiseKernel>().execute(type == AFFINE);
+	bBlockMatchingKernel->castTo<BlockMatchingKernel>()->execute();//watch the trans matrix!!!!!!
+	bOptimiseKernel->castTo<OptimiseKernel>()->execute(type == AFFINE);
 
 	// Forward and backward matrix are inverted
 	mat44 fInverted = nifti_mat44_inverse(*(this->TransformationMatrix));
@@ -258,6 +249,19 @@ void reg_aladin_sym<T>::ClearCurrentInputImage()
 	this->ClearBackwardDeformationField();*/
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+
+template <class T>
+void reg_aladin_sym<T>::clearKernels()
+{
+	reg_aladin<T>::clearKernels();
+	delete bResamplingKernel;
+	delete bAffineTransformation3DKernel;
+	if (backCon->bm){
+		delete bBlockMatchingKernel;
+		delete bOptimiseKernel;
+	}
+}
+
 template <class T>
 void reg_aladin_sym<T>::DebugPrintLevelInfoStart()
 {
@@ -281,8 +285,7 @@ void reg_aladin_sym<T>::DebugPrintLevelInfoStart()
 }
 template <class T>
 void reg_aladin_sym<T>::createKernels(){
-	bAffineTransformation3DKernel = platform->createKernel(AffineDeformationFieldKernel::Name(), this->backCon);
-	bConvolutionKernel = platform->createKernel(ConvolutionKernel::Name(), this->backCon);
+	bAffineTransformation3DKernel = platform->createKernel (AffineDeformationFieldKernel::Name(), this->backCon);
 	bBlockMatchingKernel = platform->createKernel(BlockMatchingKernel::Name(), this->backCon);
 	bResamplingKernel = platform->createKernel(ResampleImageKernel::Name(), this->backCon);
 	bOptimiseKernel = platform->createKernel(OptimiseKernel::Name(), this->backCon);

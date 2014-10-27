@@ -58,11 +58,11 @@ void test(Platform* platform, const char* msg) {
 
 	con->setTransformationMatrix(affine);
 	con->setCurrentDeformationField(input); 
-	Kernel affineDeformKernel = platform->createKernel(AffineDeformationFieldKernel::Name(), con);
+	Kernel* affineDeformKernel = platform->createKernel(AffineDeformationFieldKernel::Name(), con);
 
 	clock_t begin = clock();
 	//run kernel
-	affineDeformKernel.getAs<AffineDeformationFieldKernel>().execute();
+	affineDeformKernel->castTo<AffineDeformationFieldKernel>()->execute();
 
 	clock_t end = clock();
 
@@ -86,6 +86,7 @@ void test(Platform* platform, const char* msg) {
 	nifti_image_free(reference);
 	nifti_image_free(output);
 	delete con;
+	delete affineDeformKernel;
 }
 
 int main(int argc, char **argv) {

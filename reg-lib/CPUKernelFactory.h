@@ -9,6 +9,6 @@ class CpuContext;
 class CPUKernelFactory : public KernelFactory
 {
 public:
-	KernelImpl* createKernelImpl(std::string name, const Platform& platform, Context* con) const;
+	Kernel* createKernel(std::string name,  Context* con) const;
 };
 

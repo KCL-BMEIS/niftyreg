@@ -9,7 +9,7 @@
 void test(Platform* platform) {
 
 	Context *con = new Context();//temp
-	Kernel convolutionKernel = platform->createKernel(ConvolutionKernel::Name(), con);
+	Kernel* convolutionKernel = platform->createKernel(ConvolutionKernel::Name(), con);
 	//init ref params
 	nifti_image* input = reg_io_ReadImageFile("mock_convolution_input.nii");
 	nifti_image* output = reg_io_ReadImageFile("mock_convolution_output.nii");
@@ -18,7 +18,7 @@ void test(Platform* platform) {
 	float sigma[1] = { 1.1f };
 
 	//run kernel
-	convolutionKernel.getAs<ConvolutionKernel>().execute(input, sigma, 0, NULL, axisToSmooth);
+	convolutionKernel->castTo<ConvolutionKernel>()->execute(input, sigma, 0, NULL, axisToSmooth);
 
 	//measure performance (elapsed time)
 
@@ -44,9 +44,6 @@ int main(int argc, char **argv) {
 
 	std::cout << "testing Cuda:" << std::endl;
 	test(cudaPlatform);
-	
-
-	
 
 	return 0;
 

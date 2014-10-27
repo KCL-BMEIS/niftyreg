@@ -218,6 +218,7 @@ void reg_aladin<T>::InitialiseRegistration()
 	printf("[NiftyReg DEBUG] reg_aladin::InitialiseRegistration() called\n");
 #endif
 
+	convolutionKernel = platform->createKernel(ConvolutionKernel::Name(), NULL);
 	this->Print();
 
 	// CREATE THE PYRAMIDE IMAGES
@@ -299,10 +300,11 @@ void reg_aladin<T>::InitialiseRegistration()
 			//kernel1
 			//reg_tools_kernelConvolution(co,this->FloatingPyramid[l], sigma, 0, NULL, active);
 
-			convolutionKernel.getAs<ConvolutionKernel>().execute(this->FloatingPyramid[l], sigma, 0, NULL, active);
+			convolutionKernel->castTo<ConvolutionKernel>()->execute(this->FloatingPyramid[l], sigma, 0, NULL, active);
 
 			delete[]active;
 			delete[]sigma;
+			delete convolutionKernel;
 		}
 		if (this->FloatingSigma != 0.0)
 		{
@@ -315,10 +317,11 @@ void reg_aladin<T>::InitialiseRegistration()
 			sigma[0] = this->FloatingSigma;
 			//reg_tools_kernelConvolution(co, this->FloatingPyramid[l], sigma, 0, NULL, active);
 
-			convolutionKernel.getAs<ConvolutionKernel>().execute(this->FloatingPyramid[l], sigma, 0, NULL, active);
+			convolutionKernel->castTo<ConvolutionKernel>()->execute(this->FloatingPyramid[l], sigma, 0, NULL, active);
 
 			delete[]active;
 			delete[]sigma;
+			delete convolutionKernel;
 		}
 	}
 
@@ -380,13 +383,19 @@ void reg_aladin<T>::createKernels(){
 	affineTransformation3DKernel = platform->createKernel(AffineDeformationFieldKernel::Name(), this->con);
 	resamplingKernel = platform->createKernel(ResampleImageKernel::Name(), this->con);
 	if (con->bm){
-		convolutionKernel = platform->createKernel(ConvolutionKernel::Name(), this->con);
 		blockMatchingKernel = platform->createKernel(BlockMatchingKernel::Name(), this->con);
 		optimiseKernel = platform->createKernel(OptimiseKernel::Name(), this->con);
-
 	}
+}
 
-
+template <class T>
+void reg_aladin<T>::clearKernels(){
+	delete affineTransformation3DKernel;
+	delete resamplingKernel;
+	if (con->bm){
+		delete blockMatchingKernel;
+		delete optimiseKernel;
+	}
 }
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -400,14 +409,14 @@ void reg_aladin<T>::InitialiseBlockMatching(int CurrentPercentageOfBlockToUse)
 template <class T>
 void reg_aladin<T>::GetDeformationField()
 {
-	affineTransformation3DKernel.getAs<AffineDeformationFieldKernel>().execute();
+	affineTransformation3DKernel->castTo<AffineDeformationFieldKernel>()->execute();
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::GetWarpedImage(int interp)
 {
 	this->GetDeformationField();
-	resamplingKernel.getAs<ResampleImageKernel>().execute(interp, 0);
+	resamplingKernel->castTo<ResampleImageKernel>()->execute(interp, 0);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -425,10 +434,10 @@ void reg_aladin<T>::UpdateTransformationMatrix(int type)
 	const char* input2Name = ( char * )"input_CurrentWarped_BlockMatchingKernel.nii";
 	reg_io_WriteImageFile(input2, input2Name);*/
 
-	blockMatchingKernel.getAs<BlockMatchingKernel>().execute();//watch the trans matrix!!!!!!
+	blockMatchingKernel->castTo<BlockMatchingKernel>()->execute();//watch the trans matrix!!!!!!
 
 	//reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] pre matrix");
-	optimiseKernel.getAs<OptimiseKernel>().execute(type == AFFINE);
+	optimiseKernel->castTo<OptimiseKernel>()->execute(type == AFFINE);
 	//reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] after matrix");
 
 
@@ -449,10 +458,6 @@ void reg_aladin<T>::initContext(){
 		this->con = new CudaContext(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts);
 	else
 		this->con = new Context(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts);
-
-
-
-
 
 	this->CurrentReference = con->getCurrentReference();
 	this->CurrentFloating = con->getCurrentFloating();
@@ -479,7 +484,7 @@ void reg_aladin<T>::Run()
 	//Main loop over the levels:
 	for (this->CurrentLevel = 0; this->CurrentLevel < this->LevelsToPerform; this->CurrentLevel++)
 	{
-		std::cout << "==================================================== " << std::endl;
+		std::cout << "====================" << CurrentLevel << ": " << LevelsToPerform << "================================ " << std::endl;
 
 		//this->InitialiseBlockMatching(this->BlockPercentage);
 		this->initContext();
@@ -528,7 +533,6 @@ void reg_aladin<T>::Run()
 #ifndef NDEBUG
 				printf("[DEBUG] -Rigid- iteration %i\n", iteration);
 #endif
-
 				this->GetWarpedImage(this->Interpolation);
 				this->UpdateTransformationMatrix(RIGID);
 				if (funcProgressCallback && paramsProgressCallback)
@@ -555,7 +559,7 @@ void reg_aladin<T>::Run()
 #ifndef NDEBUG
 				printf("[DEBUG] -Affine- iteration %i\n", iteration);
 #endif
-
+				//bool print = iteration == 1;
 				this->GetWarpedImage(this->Interpolation);
 				this->UpdateTransformationMatrix(AFFINE);
 				if (funcProgressCallback && paramsProgressCallback)
@@ -573,14 +577,15 @@ void reg_aladin<T>::Run()
 				iteration++;
 				iProgressStep++;
 
-				//destroy kernels
-				//destroy context
 			}
 		}
 
 		// SOME CLEANING IS PERFORMED
+
 		this->ClearCurrentInputImage();
+		this->clearKernels();
 		delete con;
+
 
 #ifdef NDEBUG
 		if (this->Verbose)
@@ -603,7 +608,7 @@ void reg_aladin<T>::Run()
 	printf("[NiftyReg DEBUG] reg_aladin::Run() done\n");
 #endif
 	return;
-	}
+}
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 nifti_image *reg_aladin<T>::GetFinalWarpedImage()
@@ -658,6 +663,8 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 	memcpy(resultImage->data, this->CurrentWarped->data, resultImage->nvox*resultImage->nbyper);
 
 	//reg_aladin<T>::ClearWarpedImage();
+
+	this->clearKernels();
 	delete con;
 	delete platform;
 	return resultImage;

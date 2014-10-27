@@ -53,7 +53,7 @@ float test(const unsigned int platformCode, const unsigned int interp, std::stri
 	con->setCurrentDeformationField(deformationFieldImage);
 
 
-	Kernel resamplingKernel = platform->createKernel(ResampleImageKernel::Name(), con);
+	Kernel* resamplingKernel = platform->createKernel(ResampleImageKernel::Name(), con);
 
 	nifti_image* output;
 	if( interp == LINEAR_CODE )
@@ -64,7 +64,7 @@ float test(const unsigned int platformCode, const unsigned int interp, std::stri
 		output = reg_io_ReadImageFile(NN_FILENAME);
 
 	//run kernel
-	resamplingKernel.getAs<ResampleImageKernel>().execute( interp, 0);
+	resamplingKernel->castTo<ResampleImageKernel>()->execute( interp, 0);
 
 	//measure performance (elapsed time)
 	

@@ -14,7 +14,7 @@ class CPUResampleImageKernel;
 //Kernel functions for affine deformation field 
 class CPUAffineDeformationFieldKernel : public AffineDeformationFieldKernel {
 public:
-	CPUAffineDeformationFieldKernel(Context* con, std::string nameIn, const Platform& platformIn) : AffineDeformationFieldKernel( nameIn, platformIn) {
+	CPUAffineDeformationFieldKernel(Context* con, std::string nameIn) : AffineDeformationFieldKernel( nameIn) {
 		this->deformationFieldImage = con->getCurrentDeformationField();
 		this->affineTransformation = con->getTransformationMatrix();
 		this->mask = con->getCurrentReferenceMask();
@@ -31,7 +31,7 @@ public:
 class CPUBlockMatchingKernel : public BlockMatchingKernel {
 public:
 
-	CPUBlockMatchingKernel(Context* con, std::string name, const Platform& platform) : BlockMatchingKernel( name, platform) {
+	CPUBlockMatchingKernel(Context* con, std::string name) : BlockMatchingKernel( name) {
 		target = con->getCurrentReference();
 		result = con->getCurrentWarped();
 		params = con->getBlockMatchingParams();
@@ -49,7 +49,7 @@ public:
 class CPUConvolutionKernel : public ConvolutionKernel {
 public:
 
-	CPUConvolutionKernel(std::string name, const Platform& platform) : ConvolutionKernel(name, platform) {
+	CPUConvolutionKernel(std::string name) : ConvolutionKernel(name) {
 	}
 
 	void execute(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL);
@@ -63,7 +63,7 @@ private:
 class CPUOptimiseKernel : public OptimiseKernel {
 public:
 
-	CPUOptimiseKernel(Context* con, std::string name, const Platform& platform) : OptimiseKernel( name, platform) {
+	CPUOptimiseKernel(Context* con, std::string name) : OptimiseKernel( name) {
 		transformationMatrix = con->getTransformationMatrix();
 		blockMatchingParams = con->getBlockMatchingParams();
 	}
@@ -76,7 +76,7 @@ public:
 //kernel functions for image resampling with three interpolation variations
 class CPUResampleImageKernel : public ResampleImageKernel {
 public:
-	CPUResampleImageKernel(Context* con, std::string name, const Platform& platform) : ResampleImageKernel( name, platform) {
+	CPUResampleImageKernel(Context* con, std::string name) : ResampleImageKernel( name) {
 		floatingImage = con->getCurrentFloating();
 		warpedImage = con->getCurrentWarped();
 		deformationField = con->getCurrentDeformationField();

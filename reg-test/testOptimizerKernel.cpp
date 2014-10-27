@@ -117,13 +117,13 @@ float test( Platform* platform, const unsigned int type, char* msg) {
 	con->setTransformationMatrix(TransformationMatrix);
 
 	//run block matching to set the input vectors
-	Kernel blockMatchingKernel = platform->createKernel(BlockMatchingKernel::Name(), con);
-	blockMatchingKernel.getAs<BlockMatchingKernel>().execute();
+	Kernel* blockMatchingKernel = platform->createKernel(BlockMatchingKernel::Name(), con);
+	blockMatchingKernel->castTo<BlockMatchingKernel>()->execute();
 
 
 
 	//run the optimizer to get the affine matrix
-	Kernel optimizeKernel = platform->createKernel(OptimiseKernel::Name(), con);
+	Kernel* optimizeKernel = platform->createKernel(OptimiseKernel::Name(), con);
 
 
 	
@@ -135,7 +135,7 @@ float test( Platform* platform, const unsigned int type, char* msg) {
 		mockAffineOutput(output);
 
 	//test kernels
-	optimizeKernel.getAs<OptimiseKernel>().execute( type == AFFINE);
+	optimizeKernel->castTo<OptimiseKernel>()->execute(type == AFFINE);
 	//measure performance (elapsed time)
 
 	//compare results

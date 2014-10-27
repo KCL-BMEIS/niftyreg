@@ -53,7 +53,7 @@ void CLAffineDeformationFieldKernel::execute(bool compose) {
 
 	// Create OpenCL kernel
 	kernel = clCreateKernel(program, "affineKernel", NULL);
-	assert(kernel != NULL);
+	//assert(kernel != NULL);
 
 	cl_ulong nxyz = this->deformationFieldImage->nx*this->deformationFieldImage->ny* this->deformationFieldImage->nz;
 

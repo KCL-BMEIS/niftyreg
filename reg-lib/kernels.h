@@ -6,27 +6,27 @@
 #include <string>
 #include <vector>
 
-#include "KernelImpl.h"
+#include "Kernel.h"
 #include "nifti1_io.h"
 #include "_reg_blockMatching.h"//temporarily
 
-class AffineDeformationFieldKernel : public KernelImpl {
+class AffineDeformationFieldKernel : public Kernel {
 public:
 	static std::string Name() {
 		return "AffineDeformationFieldKernel";
 	}
-	AffineDeformationFieldKernel( std::string name, const Platform& platform) : KernelImpl(name, platform) {
+	AffineDeformationFieldKernel( std::string name) : Kernel(name) {
 	}
 
 	virtual void execute(bool compose = false) = 0;
 };
 
-class BlockMatchingKernel : public KernelImpl {
+class BlockMatchingKernel : public Kernel {
 public:
 	static std::string Name() {
 		return "blockMatchingKernel";
 	}
-	BlockMatchingKernel(std::string name, const Platform& platform) : KernelImpl(name, platform) {
+	BlockMatchingKernel(std::string name) : Kernel(name) {
 
 	}
 
@@ -34,32 +34,32 @@ public:
 };
 
 
-class ConvolutionKernel : public KernelImpl {
+class ConvolutionKernel : public Kernel {
 public:
 	static std::string Name() {
 		return "ConvolutionKernel";
 	}
-	ConvolutionKernel(std::string name, const Platform& platform) : KernelImpl(name, platform) {
+	ConvolutionKernel(std::string name) : Kernel(name) {
 	}
 
 	virtual void execute(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL) = 0;
 };
 
-class OptimiseKernel : public KernelImpl{
+class OptimiseKernel : public Kernel{
 public:
 	static std::string Name() {
 		return "OptimiseKernel";
 	}
-	OptimiseKernel(std::string name, const Platform& platform) : KernelImpl(name, platform) {
+	OptimiseKernel(std::string name) : Kernel(name) {
 	}
 	virtual void execute(bool affine) = 0;
 };
-class ResampleImageKernel : public KernelImpl {
+class ResampleImageKernel : public Kernel {
 public:
 	static std::string Name() {
 		return "ResampleImageKernel";
 	}
-	ResampleImageKernel( std::string name, const Platform& platform) : KernelImpl(name, platform) {
+	ResampleImageKernel( std::string name) : Kernel(name) {
 
 	}
 

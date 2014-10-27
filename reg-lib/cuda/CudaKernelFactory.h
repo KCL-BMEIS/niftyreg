@@ -3,10 +3,10 @@
 #include "Context.h"
 
 class Platform;
-class KernelImpl;
+class Kernel;
 class CudaKernelFactory : public KernelFactory
 {
 public:
-	KernelImpl* createKernelImpl(std::string name, const Platform& platform, Context* con) const;
+	Kernel* createKernel(std::string name, Context* con) const;
 };
 

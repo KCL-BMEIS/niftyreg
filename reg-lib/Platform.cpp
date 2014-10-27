@@ -15,8 +15,8 @@ Platform::Platform() {
 }
 Platform::~Platform() {
 }
-Kernel Platform::createKernel(const string& name, Context* con) const {
-	return Kernel(kernelFactories.find(name)->second->createKernelImpl(name, *this, con));
+Kernel* Platform::createKernel(const string& name, Context* con) const {
+	return kernelFactories.find(name)->second->createKernel(name, con);
 }
 void Platform::shout() {
 	std::cout<<"Helo from Platform" << std::endl;

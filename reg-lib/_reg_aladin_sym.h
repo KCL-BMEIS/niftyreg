@@ -18,7 +18,7 @@ template <class T>
 class reg_aladin_sym : public reg_aladin < T >
 {
 protected:
-	Kernel bAffineTransformation3DKernel, bConvolutionKernel, bBlockMatchingKernel, bOptimiseKernel, bResamplingKernel;
+	Kernel* bAffineTransformation3DKernel, *bConvolutionKernel, *bBlockMatchingKernel, *bOptimiseKernel, *bResamplingKernel;
 	nifti_image *InputFloatingMask;
 	nifti_image *CurrentBackwardWarped;
 	int ** FloatingMaskPyramid;
@@ -42,6 +42,7 @@ protected:
 	virtual void initContext();
 	virtual void clearContext();
 	virtual void createKernels();
+	virtual void clearKernels();
 
 	virtual void DebugPrintLevelInfoStart();
 	virtual void DebugPrintLevelInfoEnd();

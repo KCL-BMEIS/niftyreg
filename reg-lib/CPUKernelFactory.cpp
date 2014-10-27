@@ -4,13 +4,13 @@
 #include "Platform.h"
 #include "CpuContext.h"
 
-KernelImpl* CPUKernelFactory::createKernelImpl(std::string name, const Platform& platform, Context* con) const {
+Kernel* CPUKernelFactory::createKernel(std::string name,  Context* con) const {
 	std::cout << "CPU Factory: Creating: " << name << std::endl;
-	if (name == AffineDeformationFieldKernel::Name()) return new CPUAffineDeformationFieldKernel(con, name, platform);
-	else if (name == ConvolutionKernel::Name()) return new CPUConvolutionKernel(name, platform);
-	else if (name == BlockMatchingKernel::Name()) return new CPUBlockMatchingKernel(con, name, platform);
-	else if (name == ResampleImageKernel::Name()) return new CPUResampleImageKernel(con, name, platform);
-	else if (name == OptimiseKernel::Name()) return new CPUOptimiseKernel(con, name, platform);
+	if (name == AffineDeformationFieldKernel::Name()) return new CPUAffineDeformationFieldKernel(con, name);
+	else if (name == ConvolutionKernel::Name()) return new CPUConvolutionKernel(name);
+	else if (name == BlockMatchingKernel::Name()) return new CPUBlockMatchingKernel(con, name);
+	else if (name == ResampleImageKernel::Name()) return new CPUResampleImageKernel(con, name);
+	else if (name == OptimiseKernel::Name()) return new CPUOptimiseKernel(con, name);
 	else return NULL;
 
 

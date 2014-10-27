@@ -995,7 +995,7 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 										voxelNumber++;
 									}
 								}
-								if (condition1) printf("CPU 800 | sze: %f\n", voxelNumber);
+								//if (condition1) printf("CPU 800 | sze: %f\n", voxelNumber);
 								if (voxelNumber > BLOCK_SIZE / 2)
 								{
 									targetMean /= voxelNumber;
@@ -2131,6 +2131,9 @@ void optimize_rigid2D(_reg_blockMatchingParam *params,
 void optimize_rigid3D(_reg_blockMatchingParam *params,
 	mat44 *final)
 {
+	/*printf("definedActiveBlock4: %d\n", params->definedActiveBlock);
+	printf("definedActiveBlock4: %d\n", params->activeBlockNumber);
+*/
 	//    const unsigned num_points = params->activeBlockNumber;
 	const int num_points = params->definedActiveBlock;
 	// Keep a sorted list of the distance measure
