@@ -581,7 +581,7 @@ void initialise_block_matching_method(nifti_image * target,
 #endif
 	if (target->nz > 1)
 	{
-		std::cout << "allocating: " << params->activeBlockNumber << std::endl;
+		//std::cout << "allocating: " << params->activeBlockNumber << std::endl;
 		params->targetPosition = (float *)malloc(params->activeBlockNumber * 3 * sizeof(float));
 		params->resultPosition = (float *)malloc(params->activeBlockNumber * 3 * sizeof(float));
 	}
@@ -593,7 +593,7 @@ void initialise_block_matching_method(nifti_image * target,
 #ifndef NDEBUG
 	printf("[NiftyReg DEBUG] block matching initialisation done.\n");
 #endif
-	}
+}
 /* *************************************************************** */
 /* *************************************************************** */
 template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageType>
@@ -817,12 +817,13 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 	int resultIndex_end_x;
 	int resultIndex_end_y;
 	int resultIndex_end_z;
+	int count = 0;
 
 	int index, i, j, k, l, m, n, x, y, z;
 	int *maskPtr_Z, *maskPtr_XYZ;
 	DTYPE *targetPtr_Z, *targetPtr_XYZ, *resultPtr_Z, *resultPtr_XYZ;
 	DTYPE value, bestCC, targetMean, resultMean, targetVar, resultVar;
-	DTYPE voxelNumber, localCC, targetTemp, resultTemp;
+	float voxelNumber, localCC, targetTemp, resultTemp;
 	float bestDisplacement[3], targetPosition_temp[3], tempPosition[3];
 	size_t targetIndex, resultIndex, blockIndex, tid = 0;
 	params->definedActiveBlock = 0;
@@ -883,7 +884,7 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 			{
 				targetIndex_start_x = i*BLOCK_WIDTH;
 				targetIndex_end_x = targetIndex_start_x + BLOCK_WIDTH;
-
+				const bool is_7_21_11 = i == 7 && j == 21 && k == 11;
 				if (params->activeBlock[blockIndex] > -1)
 				{
 					targetIndex = 0;
@@ -923,7 +924,7 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 						}
 						else targetIndex += BLOCK_WIDTH*BLOCK_WIDTH;
 					}
-					bool is800 = (i == 14 && j == 5 && k == 0);
+					//bool is800 = (i == 14 && j == 5 && k == 0);
 					bestCC = 0.0;
 					bestDisplacement[0] = std::numeric_limits<float>::quiet_NaN();
 					bestDisplacement[1] = 0.f;
@@ -979,10 +980,9 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 									}
 									else resultIndex += BLOCK_WIDTH*BLOCK_WIDTH;
 								}
-								bool neighbourIs = l == -2 && m == 2 && n == -1;
-
-
-								bool condition1 = is800  && neighbourIs;
+								//debugging staffs
+								//bool neighbourIs = l == 3 && m == 0 && n == -3;
+								//bool condition1 = is_7_21_11  && neighbourIs;
 								targetMean = 0.0;
 								resultMean = 0.0;
 								voxelNumber = 0.0;
@@ -1003,7 +1003,7 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 
 									targetVar = 0.0;
 									resultVar = 0.0;
-									localCC = 0.0;
+									localCC = 0.0f;
 
 									for (int a = 0; a < BLOCK_SIZE; a++)
 									{
@@ -1018,10 +1018,12 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 											localCC += (targetTemp)*(resultTemp);
 										}
 									}
-									float sumTargetResult = localCC;
+									//float sumTargetResult = localCC;
+									if (targetVar*resultVar>0.0)
 									localCC = fabs(localCC / sqrt(targetVar*resultVar));
-									//if (condition1) printf("CPU 800 | sze: %f | TMN: %f | TVR: %f | RMN: %f |RVR %f | STR: %f | LCC: %f\n", voxelNumber, targetMean, targetVar, resultMean, resultVar, sumTargetResult, localCC);
-									//if (condition1) printf("CPU:: %d::%d::%d | RVL: %f | TVL: %f\n",l, m, n, resultValues[tid][0], targetValues[tid][0]);
+									//if (condition1) printf("CPU is_7_21_11 | sze: %f | TMN: %f | TVR: %f | RMN: %f |RVR %f | STR: %f | LCC: %f\n", voxelNumber, targetMean, targetVar, resultMean, resultVar, sumTargetResult, localCC);
+									//if (condition1) printf("CPU:: %d::%d::%d | RVL: %f | TVL: %f | lcc: %f\n",l, m, n, resultValues[tid][0], targetValues[tid][0], localCC);
+									//
 									if (localCC > bestCC)
 									{
 										bestCC = localCC;
@@ -1033,9 +1035,12 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 							}
 						}
 					}
-					//if (is800 && tid == 0) printf("CPU 800  disp: %f::%f::%f | bestCC: %f\n", bestDisplacement[0], bestDisplacement[1], bestDisplacement[2], bestCC);
-					if (bestDisplacement[0] == bestDisplacement[0])
+					//if (is_7_21_11 && tid == 0) printf("GPU is_7_21_11  disp: %f::%f::%f | bestCC: %f\n", bestDisplacement[0], bestDisplacement[1], bestDisplacement[2], bestCC);
+					if (isfinite(bestDisplacement[0]))
 					{
+						/*if (params->definedActiveBlock == 1323){
+							printf("cpu: i: %d | j: %d | k: %d\n", i, j, k);
+						}*/
 						targetPosition_temp[0] = (float)(i*BLOCK_WIDTH);
 						targetPosition_temp[1] = (float)(j*BLOCK_WIDTH);
 						targetPosition_temp[2] = (float)(k*BLOCK_WIDTH);
@@ -1068,11 +1073,17 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 						params->definedActiveBlock++;
 #endif
 					}
+					/*else{
+						if (count < 100 && voxelNumber>BLOCK_SIZE/2){
+							printf("count: %d | %d-%d-%d / %d-%d-%d | localcc: %f | bestCc: %f | disp0: %f\n", count, i, j, k, params->blockNumber[0], params->blockNumber[1], params->blockNumber[2], localCC, bestCC, bestDisplacement[0]);
+							count++;
+						}
+					}*/
 				}
 				blockIndex++;
 			}
 		}
-}
+	}
 
 #if defined (_OPENMP)
 	j=0;
@@ -1094,7 +1105,7 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 	free(currentResultPosition);
 	omp_set_num_threads(threadNumber);
 #endif
-	}
+}
 /* *************************************************************** */
 // Block matching interface function
 void block_matching_method(nifti_image * target,
@@ -2128,12 +2139,8 @@ void optimize_rigid2D(_reg_blockMatchingParam *params,
 	}
 	delete[] newResultPosition;
 }
-void optimize_rigid3D(_reg_blockMatchingParam *params,
-	mat44 *final)
-{
-	/*printf("definedActiveBlock4: %d\n", params->definedActiveBlock);
-	printf("definedActiveBlock4: %d\n", params->activeBlockNumber);
-*/
+void optimize_rigid3D(_reg_blockMatchingParam *params, mat44 *final){
+
 	//    const unsigned num_points = params->activeBlockNumber;
 	const int num_points = params->definedActiveBlock;
 	// Keep a sorted list of the distance measure

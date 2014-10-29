@@ -2630,9 +2630,10 @@ int reg_getDeformationFromDisplacement(nifti_image *field)
 template <class DTYPE>
 float reg_test_compare_arrays(DTYPE *ptrA,DTYPE *ptrB,size_t nvox) {
 	//why float? DTYPE? REAL?
-	float maxDifference = 0.f;
+	float maxDifference = -50.f;
 
 	bool first = true;
+	int count = 0;
 	for (size_t i = 0; i < nvox; ++i) {
 		//similar
 		double valA = (double)ptrA[i];
@@ -2643,20 +2644,21 @@ float reg_test_compare_arrays(DTYPE *ptrA,DTYPE *ptrB,size_t nvox) {
 
 		if (nanA ^ nanB)
 			return 1000000;
-		else if (nanA && nanB){ printf("nan: i: %d\n", i); continue; };
+		else if (nanA && nanB){ count++; continue; };
 			
-
-		float diff = fabsf(valA - valB);
+		const float threshold = 0.00001;
+		const float diff = fabsf(valA - valB);
 		//if (diff > 0.001) { printf("idx: %lu | diff: %f | a: %f - b: %f\n", i, diff, valA, valB); /* return diff;*/ }
 		maxDifference = std::max<float>(maxDifference, diff);
-		if (first && diff>0.001) {
+		if (first && diff>threshold) {
 			printf("first err i: %d | %f | a: %f - b: %f\n", i, maxDifference, valA, valB); 
 			first = false;
 		}
-		else if (diff>0.001){
+		else if (diff>threshold && i < 150){
 			printf("err i: %d | %f | a: %f - b: %f\n", i, maxDifference, valA, valB);
 		}
 	}
+	printf("nans: %d\n", count);
 	return maxDifference;
 }
 template float reg_test_compare_arrays<float>(float *ptrA, float *ptrB, size_t nvox);

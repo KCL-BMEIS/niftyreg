@@ -424,20 +424,10 @@ void reg_aladin<T>::UpdateTransformationMatrix(int type)
 {
 
 
-	//tempcode 
-	/*nifti_image *input1 = CurrentReference;
-	const char* input1Name = ( char * )"input_CurrentReference_BlockMatchingKernel.nii";
-	reg_io_WriteImageFile(input1, input1Name);*/
-
-	//tempcode 
-	/*nifti_image *input2 = CurrentWarped;
-	const char* input2Name = ( char * )"input_CurrentWarped_BlockMatchingKernel.nii";
-	reg_io_WriteImageFile(input2, input2Name);*/
 
 	blockMatchingKernel->castTo<BlockMatchingKernel>()->execute();//watch the trans matrix!!!!!!
-
 	//reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] pre matrix");
-	optimiseKernel->castTo<OptimiseKernel>()->execute(type == AFFINE);
+	optimiseKernel->castTo<OptimiseKernel>()->execute(type);
 	//reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] after matrix");
 
 
@@ -461,9 +451,7 @@ void reg_aladin<T>::initContext(){
 
 	this->CurrentReference = con->getCurrentReference();
 	this->CurrentFloating = con->getCurrentFloating();
-	//this->CurrentReferenceMask = con->getCurrentReferenceMask();
-	//this->CurrentWarped = con->getCurrentWarped();
-	//this->deformationFieldImage = con->getCurrentDeformationField();
+
 	this->blockMatchingParams = con->getBlockMatchingParams();
 	con->setTransformationMatrix(this->TransformationMatrix);
 
@@ -484,12 +472,9 @@ void reg_aladin<T>::Run()
 	//Main loop over the levels:
 	for (this->CurrentLevel = 0; this->CurrentLevel < this->LevelsToPerform; this->CurrentLevel++)
 	{
-		std::cout << "====================" << CurrentLevel << ": " << LevelsToPerform << "================================ " << std::endl;
-
-		//this->InitialiseBlockMatching(this->BlockPercentage);
 		this->initContext();
 		this->createKernels();
-		//this->TransformationMatrix = con->getTransformationMatrix();
+
 		// Twice more iterations are performed during the first level
 		// All the blocks are used during the first level
 		int maxNumberOfIterationToPerform = this->MaxIterations;
@@ -500,7 +485,7 @@ void reg_aladin<T>::Run()
 		}
 
 		/* initialise the block matching */
-
+#define NDEBUG
 
 
 #ifdef NDEBUG
@@ -523,7 +508,7 @@ void reg_aladin<T>::Run()
 		/* ****************** */
 		/* Rigid registration */
 		/* ****************** */
-		//std::cout << "Rigid!" << std::endl;
+		
 		int iteration = 0;
 		if ((this->PerformRigid && !this->PerformAffine) || (this->PerformAffine && this->PerformRigid && CurrentLevel == 0))
 		{
@@ -533,6 +518,7 @@ void reg_aladin<T>::Run()
 #ifndef NDEBUG
 				printf("[DEBUG] -Rigid- iteration %i\n", iteration);
 #endif
+
 				this->GetWarpedImage(this->Interpolation);
 				this->UpdateTransformationMatrix(RIGID);
 				if (funcProgressCallback && paramsProgressCallback)
@@ -559,6 +545,7 @@ void reg_aladin<T>::Run()
 #ifndef NDEBUG
 				printf("[DEBUG] -Affine- iteration %i\n", iteration);
 #endif
+
 				//bool print = iteration == 1;
 				this->GetWarpedImage(this->Interpolation);
 				this->UpdateTransformationMatrix(AFFINE);
@@ -584,7 +571,7 @@ void reg_aladin<T>::Run()
 
 		this->ClearCurrentInputImage();
 		this->clearKernels();
-		delete con;
+		this->clearContext();
 
 
 #ifdef NDEBUG
@@ -609,6 +596,8 @@ void reg_aladin<T>::Run()
 #endif
 	return;
 }
+
+
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 nifti_image *reg_aladin<T>::GetFinalWarpedImage()
@@ -627,9 +616,6 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 	reg_tools_changeDatatype<T>(CurrentReference);
 	reg_tools_changeDatatype<T>(CurrentFloating);
 
-	/*std::cout << "sze: " << CurrentReference->nx*CurrentReference->ny*CurrentReference->nz << std::endl;
-	float* data = static_cast<float*>(CurrentReference->data);
-	std::cout << "val: " << data[CurrentReference->nx*CurrentReference->ny*CurrentReference->nz - 1] << std::endl;*/
 	this->CurrentReferenceMask = (int *)calloc(CurrentReference->nx*CurrentReference->ny*CurrentReference->nz, sizeof(int));
 
 	if (platformCode == 0)
@@ -646,13 +632,9 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 	this->deformationFieldImage = con->getCurrentDeformationField();
 
 	con->setTransformationMatrix(this->TransformationMatrix);
-	this->createKernels();
-
-	/*reg_aladin<T>::AllocateWarpedImage();
-	reg_aladin<T>::AllocateDeformationField();*/
+	reg_aladin<T>::createKernels();
 
 	reg_aladin<T>::GetWarpedImage(3); // cubic spline interpolation
-	//reg_aladin<T>::ClearDeformationField();
 
 	nifti_image *resultImage = nifti_copy_nim_info(this->CurrentWarped);
 	resultImage->cal_min = this->InputFloating->cal_min;
@@ -662,10 +644,9 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 	resultImage->data = (void *)malloc(resultImage->nvox*resultImage->nbyper);
 	memcpy(resultImage->data, this->CurrentWarped->data, resultImage->nvox*resultImage->nbyper);
 
-	//reg_aladin<T>::ClearWarpedImage();
 
-	this->clearKernels();
-	delete con;
+	reg_aladin<T>::clearKernels();
+	reg_aladin<T>::clearContext();
 	delete platform;
 	return resultImage;
 }

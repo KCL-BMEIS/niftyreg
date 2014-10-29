@@ -52,12 +52,6 @@ Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn
 
 Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t bytes) :CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn)
 {
-	//std::cout << "context constructor small" << std::endl;
-
-	//float* data = static_cast<float*>(CurrentReference->data);
-	/*std::cout << "sze: " << CurrentReference->nx*CurrentReference->ny*CurrentReference->nz << std::endl;
-	std::cout << "val: " << data[CurrentReference->nx*CurrentReference->ny*CurrentReference->nz-1] << std::endl;*/
-	
 	this->bm = false;
 	this->AllocateWarpedImage(bytes);
 	this->AllocateDeformationField(bytes);

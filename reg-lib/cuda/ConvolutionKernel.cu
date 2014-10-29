@@ -573,9 +573,9 @@ __global__ void affineKernel(float* transformationMatrix, float* defField, int* 
 	const unsigned long index = x + y*params.x + z * params.x * params.y;
 	if (z < params.z && y < params.y && x < params.x &&  mask[index] >= 0) {
 
-		voxel[0] = composition ? deformationFieldPtrX[index] : x;
-		voxel[1] = composition ? deformationFieldPtrY[index] : y;
-		voxel[2] = composition ? deformationFieldPtrZ[index] : z;
+		voxel[0] = composition ? deformationFieldPtrX[index] : (float)x;
+		voxel[1] = composition ? deformationFieldPtrY[index] : (float)y;
+		voxel[2] = composition ? deformationFieldPtrZ[index] : (float)z;
 
 		getPosition(position, transformationMatrix, voxel, 0);
 		getPosition(position, transformationMatrix, voxel, 1);

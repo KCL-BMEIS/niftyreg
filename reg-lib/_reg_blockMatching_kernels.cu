@@ -1834,7 +1834,7 @@ __global__ void resultsKernel2pp21(float *resultPosition, float *targetPosition,
 
 	__shared__ float sResultValues[12 * 12 * 12];
 
-
+	//const bool is_7_21_11 = blockIdx.x == 7 && blockIdx.y == 21 && blockIdx.z == 11;
 	const bool border = blockIdx.x == gridDim.x - 1 || blockIdx.y == gridDim.y - 1 || blockIdx.z == gridDim.z - 1;
 
 	const unsigned int idz = threadIdx.x / 16;
@@ -1892,7 +1892,7 @@ __global__ void resultsKernel2pp21(float *resultPosition, float *targetPosition,
 		const float targetTemp = rTargetValue - targetMean;
 		const float targetVar = REDUCE(targetTemp*targetTemp, tid);
 
-		float bestDisplacement[3] = { nanf("sNaN"), nanf("sNaN"), nanf("sNaN") };
+		float bestDisplacement[3] = { nanf("sNaN"),0.0f,0.0f };
 		float bestCC = 0.0f;
 
 		// iteration over the result blocks
@@ -1904,6 +1904,9 @@ __global__ void resultsKernel2pp21(float *resultPosition, float *targetPosition,
 				bool mBorder = m < 4 && blockIdx.y == 0 || m>4 && blockIdx.y >= gridDim.y - 2;
 				for (unsigned int l = 1; l < 8; l += 1)
 				{
+
+					/*bool neighbourIs = l == 3 + 4 && m == 0 + 4 && n == -3 + 4;
+					bool condition1 = is_7_21_11  && neighbourIs && tid==0;*/
 					bool lBorder = l < 4 && blockIdx.x == 0 || l>4 && blockIdx.x >= gridDim.x - 2;
 
 					const unsigned int x = idx + l;
@@ -1937,8 +1940,8 @@ __global__ void resultsKernel2pp21(float *resultPosition, float *targetPosition,
 						const float sumTargetResult = REDUCE((newTargetTemp)*(resultTemp), tid);
 						const float localCC = fabs((sumTargetResult) / sqrtf(ttargetvar*resultVar));
 
+						//if (condition1) printf("GPU 7_21_11 | sze: %d | TMN: %f | TVR: %f | RMN: %f |RVR %f | STR: %f | LCC: %f\n", bSize, targetMean, targetVar, resultMean, resultVar, sumTargetResult, localCC);
 
-						//warp vote here
 						if (tid == 0 && localCC > bestCC) {
 							bestCC = localCC;
 							bestDisplacement[0] = l - 4.0f;
@@ -1953,6 +1956,9 @@ __global__ void resultsKernel2pp21(float *resultPosition, float *targetPosition,
 
 		if (tid == 0 && isfinite(bestDisplacement[0])) {
 
+			/*if (is_7_21_11){
+				printf("gpu i: %f | j: %f | k: %f | bcc: %f\n", bestDisplacement[0], bestDisplacement[1], bestDisplacement[2], bestCC);
+			}*/
 			//const unsigned int posIdx = 3 * currentBlockIndex;
 			const unsigned int posIdx = 3 * atomicAdd(&(definedBlock[0]), 1);
 			//printf("%d: %d \n", definedBlock[0], bid);
@@ -1972,21 +1978,6 @@ __global__ void resultsKernel2pp21(float *resultPosition, float *targetPosition,
 			reg_mat44_mul_cuda(targetMatrix_xyz, targetPosition_temp, targetPosition);
 			reg_mat44_mul_cuda(targetMatrix_xyz, bestDisplacement, resultPosition);
 		}
-		//else if (tid == 0 && !isfinite(bestDisplacement[0])){
-		//	const unsigned int posIdx = 3 * currentBlockIndex;
-		//	/*const unsigned int posIdx = 3 * atomicAdd(&(definedBlock[0]), 1);*/
-		//	//printf("%d: %d \n", definedBlock[0], bid);
-		//	resultPosition += posIdx;
-		//	targetPosition += posIdx;
-
-		//	resultPosition[0] = -10000.0f;
-		//	resultPosition[1] = -10000.0f;
-		//	resultPosition[2] = -10000.0f;
-
-		//	targetPosition[0] = 0.0f;
-		//	targetPosition[1] = 0.0f;
-		//	targetPosition[2] =0.0f;
-		//}
 	}
 
 }

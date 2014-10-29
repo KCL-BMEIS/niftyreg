@@ -25,6 +25,8 @@ void CPUConvolutionKernel::execute(nifti_image *image, float *sigma, int kernelT
 //------------------------------------------------------------------------------------------------------------------------
 void CPUBlockMatchingKernel::execute() {
 	block_matching_method(this->target, this->result, this->params, this->mask);
+	/*printf("definedActiveBlock: %d\n", params->definedActiveBlock);
+	printf("active: %d\n", params->activeBlockNumber);*/
 
 }
 
