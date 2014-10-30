@@ -137,6 +137,9 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
 #endif
 	}
 }
+
+
+template void reg_dti_resampling_preprocessing<float>(nifti_image *floatingImage,void **originalFloatingData, int *dtIndicies);
 /* *************************************************************** */
 template <class DTYPE>
 void reg_dti_resampling_postprocessing(nifti_image *inputImage,

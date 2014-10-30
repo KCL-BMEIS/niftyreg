@@ -24,12 +24,12 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 	message(FATAL_ERROR "You may need to remove CMakeCache.txt and CMakeFiles.")
 endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 #-----------------------------------------------------------------------------
-#if(NOT CMAKE_BUILD_TYPE)
-#	set(CMAKE_BUILD_TYPE "Release")
-#endif(NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE "Release")
+endif(NOT CMAKE_BUILD_TYPE)
 
 #-----------------------------------------------------------------------------
-string(TOLOWER "${CMAKE_CONFIGURATION_TYPES}" cmake_build_type_tolower)
+string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_tolower)
 MESSAGE(cmake_build_type_tolower)
 if(NOT cmake_build_type_tolower STREQUAL "debug"
 	 AND NOT cmake_build_type_tolower STREQUAL "release"

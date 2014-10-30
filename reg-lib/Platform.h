@@ -43,4 +43,4 @@ public:
 
 
 
-#endif PLATFORM_H_*/
+#endif //PLATFORM_H_

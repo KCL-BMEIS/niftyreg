@@ -11,12 +11,12 @@
 #ifndef _REG_COMMON_GPU_CU
 #define _REG_COMMON_GPU_CU
 
+#include <cuda_runtime.h>
 #include "_reg_common_gpu.h"
 
 /* ******************************** */
 /* ******************************** */
-int cudaCommon_setCUDACard(CUcontext *ctx,
-						   bool verbose)
+int cudaCommon_setCUDACard(CUcontext *ctx,bool verbose)
 {
 	// The CUDA card is setup
 	cuInit(0);

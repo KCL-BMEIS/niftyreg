@@ -2,7 +2,7 @@
 #include "KernelImpl.h"
 #include "CPUKernels.h"
 #include "Platform.h"
-#include "CpuContext.h"
+#include "Context.h"
 
 Kernel* CPUKernelFactory::createKernel(std::string name,  Context* con) const {
 	std::cout << "CPU Factory: Creating: " << name << std::endl;

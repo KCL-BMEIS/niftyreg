@@ -21,13 +21,13 @@ public:
 
 	void queryGridDims();
 
-	void CLContextSingletton::CreateContext();
+	void CreateContext();
 
 	///
 	//  Create a command queue on the first device available on the
 	//  context
 	//
-	void CLContextSingletton::CreateCommandQueue();
+	void CreateCommandQueue();
 
 	///
 	//  Create an OpenCL program from the kernel source file

@@ -9,6 +9,7 @@
 
 
 #define SIZE 128
+#define BLOCK_SIZE 64
 
 unsigned int min_cl(unsigned int a, unsigned int b) {
 	return (a < b) ? a : b;

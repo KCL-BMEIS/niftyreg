@@ -1,5 +1,6 @@
 IF (USE_OPENCL)
 	set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")#bring this to dir
+	MESSAGE(${CMAKE_MODULE_PATH})
 	FIND_PACKAGE(OPENCL REQUIRED)
 	IF (OPENCL_FOUND)
 		set(NAME _reg_opencl_kernels)

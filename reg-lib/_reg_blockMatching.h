@@ -17,6 +17,7 @@
 #include "_reg_maths.h"
 #include <vector>
 
+
 #define TOLERANCE 0.01
 #define MAX_ITERATIONS 30
 
@@ -29,7 +30,6 @@
 #define NUM_BLOCKS_TO_COMPARE 343 // We compare in a 7x7x7 neighborhood.
 #define NUM_BLOCKS_TO_COMPARE_2D 49
 #define NUM_BLOCKS_TO_COMPARE_1D 7
-
 /**
  *
  * Main algorithm of Ourselin et al.

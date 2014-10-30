@@ -1,6 +1,6 @@
 #pragma once
 #include "kernels.h"
-#include "context.h"
+#include "Context.h"
 #include "CudaContext.h"
 
 

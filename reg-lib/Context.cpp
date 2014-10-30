@@ -1,5 +1,5 @@
 #include "Context.h"
-#include "Kernels.h"
+#include "kernels.h"
 #include "Platform.h"
 
 #include <iostream>

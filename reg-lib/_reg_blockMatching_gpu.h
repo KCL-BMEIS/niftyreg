@@ -15,6 +15,7 @@
 #include "_reg_common_gpu.h"
 #include "_reg_blockMatching.h"
 
+
 // targetImage: The target/fixed/reference image.
 // resultImage: The warped/deformed/result image.
 // blockMatchingParam:

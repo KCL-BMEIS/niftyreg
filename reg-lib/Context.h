@@ -46,10 +46,6 @@ public:
 	void ClearDeformationField();
 	void initVars(const unsigned int platformFlagIn);
 
-
-	bool selfConstructor = false;
-
-
 	nifti_image* CurrentReference;
 	nifti_image* CurrentFloating;
 	int* CurrentReferenceMask;

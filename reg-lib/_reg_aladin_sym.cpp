@@ -204,12 +204,12 @@ template <class T>
 void reg_aladin_sym<T>::initContext(){
 	reg_aladin<T>::initContext();
 
-	if (platformCode == 0)
-		this->backCon = new Context(this->FloatingPyramid[CurrentLevel], this->ReferencePyramid[CurrentLevel], this->FloatingMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts);
-	else if (platformCode == 1)
-		this->backCon = new CudaContext(this->FloatingPyramid[CurrentLevel], this->ReferencePyramid[CurrentLevel], this->FloatingMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts);
+	if (this->platformCode == 0)
+		this->backCon = new Context(this->FloatingPyramid[this->CurrentLevel], this->ReferencePyramid[this->CurrentLevel], this->FloatingMaskPyramid[this->CurrentLevel], sizeof(T), this->BlockPercentage, this->InlierLts);
+	else if (this->platformCode == 1)
+		this->backCon = new CudaContext(this->FloatingPyramid[this->CurrentLevel], this->ReferencePyramid[this->CurrentLevel], this->FloatingMaskPyramid[this->CurrentLevel], sizeof(T), this->BlockPercentage, this->InlierLts);
 	else
-		this->backCon = new Context(this->FloatingPyramid[CurrentLevel], this->ReferencePyramid[CurrentLevel], this->FloatingMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts);
+		this->backCon = new Context(this->FloatingPyramid[this->CurrentLevel], this->ReferencePyramid[this->CurrentLevel], this->FloatingMaskPyramid[this->CurrentLevel], sizeof(T), this->BlockPercentage, this->InlierLts);
 
 
 	
@@ -271,10 +271,10 @@ void reg_aladin_sym<T>::createKernels(){
 
 	reg_aladin<T>::createKernels();
 
-	bAffineTransformation3DKernel = platform->createKernel (AffineDeformationFieldKernel::Name(), this->backCon);
-	bBlockMatchingKernel = platform->createKernel(BlockMatchingKernel::Name(), this->backCon);
-	bResamplingKernel = platform->createKernel(ResampleImageKernel::Name(), this->backCon);
-	bOptimiseKernel = platform->createKernel(OptimiseKernel::Name(), this->backCon);
+	bAffineTransformation3DKernel = this->platform->createKernel (AffineDeformationFieldKernel::Name(), this->backCon);
+	bBlockMatchingKernel = this->platform->createKernel(BlockMatchingKernel::Name(), this->backCon);
+	bResamplingKernel = this->platform->createKernel(ResampleImageKernel::Name(), this->backCon);
+	bOptimiseKernel = this->platform->createKernel(OptimiseKernel::Name(), this->backCon);
 
 	
 }

@@ -16,9 +16,9 @@ public:
 
 
 	//try this later
-	cl_context context = 0;
-	cl_command_queue commandQueue = 0;
-	cl_device_id device = 0;
+	cl_context context ;
+	cl_command_queue commandQueue ;
+	cl_device_id device ;
 
 	//set platform specific data to context
 	void setPlatformData(Context &ctx);

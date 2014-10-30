@@ -1,5 +1,5 @@
 #include"Kernel.h"
-#include"Kernels.h"
+#include"kernels.h"
 #include "Context.h"
 #include "CPUPlatform.h"
 #include "CudaPlatform.h"

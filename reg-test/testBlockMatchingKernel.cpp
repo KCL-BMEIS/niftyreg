@@ -1,5 +1,5 @@
 #include"Kernel.h"
-#include"Kernels.h"
+#include"kernels.h"
 //#include"CudaKernels.h"
 //#include"CLKernels.h"
 #include "CPUPlatform.h"
@@ -7,8 +7,7 @@
 #include "CLPlatform.h"
 #include "_reg_ReadWriteImage.h"
 #include"cuda_runtime.h"
-//#include "Context.h"
-#include "CpuContext.h"
+#include "Context.h"
 #include "CudaContext.h"
 #include <ctime>
 
@@ -63,7 +62,7 @@ void mockParams(Platform* platform, const unsigned int blocksPercentage, const u
 	nifti_image* warped = reg_io_ReadImageFile(WRP);
 	int* mask = (int *)calloc(reference->nx*reference->ny*reference->nz, sizeof(int));
 
-	Context *con = new CpuContext(reference, floating, mask, sizeof(float), blocksPercentage, inliers);//temp
+	Context *con = new Context(reference, floating, mask, sizeof(float), blocksPercentage, inliers);//temp
 	con->setCurrentWarped(warped);
 	Kernel* bmKernel = platform->createKernel(BlockMatchingKernel::Name(), con);
 	//run kernel
