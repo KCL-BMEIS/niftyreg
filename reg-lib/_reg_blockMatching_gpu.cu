@@ -1,6 +1,6 @@
 /*
  *  _reg_blockMatching_gpu.cu
- *  
+ *
  *
  *  Created by Marc Modat and Pankaj Daga on 24/03/2009.
  *  Copyright 2009 UCL - CMIC. All rights reserved.
@@ -26,8 +26,11 @@ void block_matching_method_gpu(nifti_image *targetImage,
     // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
     NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
 
-    if(resultImage!=resultImage)
-        printf("Useless lines to avoid a warning");
+    if(targetImage->nvox!=resultImage->nvox){
+       reg_print_fct_error("block_matching_method_gpu");
+       reg_print_msg_error("Target and warped images are expected to have the same size");
+       reg_exit(1);
+    }
 
     // Copy some required parameters over to the device
     int3 bDim =make_int3(params->blockNumber[0], params->blockNumber[1], params->blockNumber[2]);
@@ -109,7 +112,7 @@ void optimize_gpu(	_reg_blockMatchingParam *blockMatchingParams,
                   float **targetPosition_d,
                   float **resultPosition_d,
                   bool affine)
-{   
+{
     // We will simply call the CPU version as this step is probably
     // not worth implementing on the GPU.
     // device to host copy

@@ -33,7 +33,7 @@ void usage(char *exec)
    printf("\t\tIf the input are images, the intensities are averaged\n");
    printf("\t\tIf the input are affine matrices, out=expm((logm(M1)+logm(M2)+...+logm(MN))/N)\n\n");
    printf("\t-avg_lts <AffineMat1> <AffineMat2> ... <AffineMatN> \n");
-   printf("\t\tIt will estimate the robust average affine matrix by considering 50\% ouliers.\n\n");
+   printf("\t\tIt will estimate the robust average affine matrix by considering half of the matrices as ouliers.\n\n");
    printf("\t-avg_tran <referenceImage> <transformationFileName1> <floatingImage1> ... <transformationFileNameN> <floatingImageN> \n");
    printf("\t\tAll input images are resampled into the space of <reference image> and averaged\n");
    printf("\t\tA cubic spline interpolation scheme is used for resampling\n\n");

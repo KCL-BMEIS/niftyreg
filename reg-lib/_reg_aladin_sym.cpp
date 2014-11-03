@@ -236,12 +236,13 @@ void reg_aladin_sym<T>::InitialiseRegistration()
       for(int z=0;z<this->InputReferenceMask->nz;++z){
          for(int y=0;y<this->InputReferenceMask->ny;++y){
             for(int x=0;x<this->InputReferenceMask->nx;++x){
-               if(refMaskPtr[refIndex++]!=0.f){
+               if(refMaskPtr[refIndex]!=0.f){
                   referenceCentre[0]+=x;
                   referenceCentre[1]+=y;
                   referenceCentre[2]+=z;
                   referenceCount++;
                }
+               refIndex++;
             }
          }
       }
@@ -260,12 +261,13 @@ void reg_aladin_sym<T>::InitialiseRegistration()
       for(int z=0;z<this->InputFloatingMask->nz;++z){
          for(int y=0;y<this->InputFloatingMask->ny;++y){
             for(int x=0;x<this->InputFloatingMask->nx;++x){
-               if(floMaskPtr[floIndex++]!=0.f){
+               if(floMaskPtr[floIndex]!=0.f){
                   floatingCentre[0]+=x;
                   floatingCentre[1]+=y;
                   floatingCentre[2]+=z;
                   floatingCount++;
                }
+               floIndex++;
             }
          }
       }

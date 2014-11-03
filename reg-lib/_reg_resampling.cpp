@@ -263,7 +263,6 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
                }
                else
                {
-                  inputTensor.m[3][3]  = 1.0;
                   reg_mat33_eye(&warpedTensor);
                   warpedTensor.m[0][0] = static_cast<double>(warpedXX[warpedIndex]);
                   warpedTensor.m[0][1] = static_cast<double>(warpedXY[warpedIndex]);

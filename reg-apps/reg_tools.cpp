@@ -615,7 +615,7 @@ int main(int argc, char **argv)
          reg_print_msg_error("Nan and Inf value can only be removed when the input image is of float or double datatype");
          return 1;
       }
-      printf("The input image contained %i NaN, %i Inf and %i finite values\n",
+      printf("The input image contained %lu NaN, %lu Inf and %lu finite values\n",
              nanNumber, infNumber, finNumber);
    }
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
