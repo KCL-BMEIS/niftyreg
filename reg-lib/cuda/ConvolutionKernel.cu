@@ -232,7 +232,12 @@ __global__ void NearestNeighborResampleImage(float *floatingImage, float *deform
 	}
 
 }
-
+__global__ void readFloating(float *floatingImage,  long2 voxelNumber){
+//	long i = blockIdx.x*blockDim.x + threadIdx.x;
+//		if (i==5059)
+//			printf("i: %d | val: %f\n", i, floatingImage[i]);
+//	}
+}
 __global__ void TrilinearResampleImage(float *floatingImage, float *deformationField, float *warpedImage, int *mask, /*mat44*/float* sourceIJKMatrix, long2 voxelNumber, uint3 fi_xyz, uint2 wi_tu, float paddingValue) {
 
 	//if( threadIdx.x == 0 ) printf("block: %d \n", blockIdx.x);
@@ -241,7 +246,7 @@ __global__ void TrilinearResampleImage(float *floatingImage, float *deformationF
 	// sourceVoxelNumber voxelNumber.y
 
 	//intensity images
-	float *sourceIntensityPtr = (floatingImage);//best to be a texture
+//	float *sourceIntensityPtr = (floatingImage);//best to be a texture
 	float *resultIntensityPtr = (warpedImage);
 
 	//deformation field image
@@ -261,7 +266,7 @@ __global__ void TrilinearResampleImage(float *floatingImage, float *deformationF
 
 
 			float *resultIntensity = &resultIntensityPtr[t*voxelNumber.x];
-			float *sourceIntensity = &sourceIntensityPtr[t*voxelNumber.y];
+			float *sourceIntensity = &floatingImage[t*voxelNumber.y];
 
 			float xBasis[2], yBasis[2], zBasis[2], relative;
 			int a, b, c, X, Y, Z, previous[3];
@@ -275,7 +280,7 @@ __global__ void TrilinearResampleImage(float *floatingImage, float *deformationF
 
 			if (maskPtr[index]>-1) {
 
-				intensity = 0;
+				intensity = 0.0f;
 
 				world[0] = deformationFieldPtrX[index];
 				world[1] = deformationFieldPtrY[index];
@@ -287,20 +292,22 @@ __global__ void TrilinearResampleImage(float *floatingImage, float *deformationF
 				previous[0] = cuda_reg_floor(position[0]);
 				previous[1] = cuda_reg_floor(position[1]);
 				previous[2] = cuda_reg_floor(position[2]);
+/*
 				if (flag) printf(" t: %d %d:%d:%d \n",t, previous[0], previous[1], previous[2]);
 				if (flag) printf("idx: %d txvn: %lu - %lu \n", previous[2]*fi_xyz.x*fi_xyz.y + previous[1]*fi_xyz.x + previous[0], (unsigned long)(t*voxelNumber.y), voxelNumber.y);
+*/
 
 				// basis values along the x axis
 				relative = position[0] - previous[0];
-				xBasis[0] = (1.0 - relative);
+				xBasis[0] = (1.0f - relative);
 				xBasis[1] = relative;
 				// basis values along the y axis
 				relative = position[1] - previous[1];
-				yBasis[0] = (1.0 - relative);
+				yBasis[0] = (1.0f - relative);
 				yBasis[1] = relative;
 				// basis values along the z axis
 				relative = position[2] - previous[2];
-				zBasis[0] = (1.0 - relative);
+				zBasis[0] = (1.0f - relative);
 				zBasis[1] = relative;
 
 				// For efficiency reason two interpolation are here, with and without using a padding value
@@ -309,19 +316,19 @@ __global__ void TrilinearResampleImage(float *floatingImage, float *deformationF
 					for (c = 0; c<2; c++) {
 						Z = previous[2] + c;
 						if (Z>-1 && Z < fi_xyz.z) {
-							zPointer = &sourceIntensity[Z*fi_xyz.x*fi_xyz.y];
+//							zPointer = &sourceIntensity[Z*fi_xyz.x*fi_xyz.y];
 							yTempNewValue = 0.0;
 							for (b = 0; b<2; b++) {
 								Y = previous[1] + b;
 								if (Y>-1 && Y < fi_xyz.y) {
-									xyzPointer = &zPointer[Y*fi_xyz.x + previous[0]];
+//									xyzPointer = &zPointer[Y*fi_xyz.x + previous[0]];
 									xTempNewValue = 0.0f;
 									for (a = 0; a<2; a++) {
 										X = previous[0] + a;
 										if (X>-1 && X < fi_xyz.x) {
-											if (flag) printf("idx: %d\n", Y*fi_xyz.x + previous[0]);
+//											if (flag) printf("idx: %d\n", Y*fi_xyz.x + previous[0]);
 //											if (flag) printf("ptr: %f\n", *xyzPointer);
-											xTempNewValue += *xyzPointer * xBasis[a];
+											xTempNewValue += sourceIntensity[Z*fi_xyz.x*fi_xyz.y + Y*fi_xyz.x + previous[0]] * xBasis[a];
 										} // X
 										else xTempNewValue += paddingValue * xBasis[a];
 										xyzPointer++;
@@ -775,6 +782,7 @@ void launchAffine2(mat44 *affineTransformation, nifti_image *deformationField, f
 	NR_CUDA_SAFE_CALL(cudaMalloc((void**)(&trans_d), 16 * sizeof(float)));
 	NR_CUDA_SAFE_CALL(cudaMemcpy(trans_d, trans, 16 * sizeof(float), cudaMemcpyHostToDevice));
 
+
 	uint3 pms_d = make_uint3(params_d.nx, params_d.ny, params_d.nz);
 	affineKernel << <G1_b, B1_b >> >(trans_d, *def_d, *mask_d, pms_d, params_d.nxyz, compose);
 	//NR_CUDA_CHECK_KERNEL(G1_b, B1_b)
@@ -1054,7 +1062,7 @@ void runKernel2(nifti_image *floatingImage, nifti_image *warpedImage, int *mask,
 	// The DTI are logged
 	reg_dti_resampling_preprocessing<float>(floatingImage, &originalFloatingData, dtiIndeces);
 	//reg_dti_resampling_preprocessing<float> << <mygrid, myblocks >> >(floatingImage_d, dtiIndeces, fi_xyz);
-
+	readFloating<<<1,1>>>(*floatingImage_d, voxelNumber);
 	if (interp == 1)
 		TrilinearResampleImage << <mygrid, myblocks >> >(*floatingImage_d, *deformationFieldImage_d, *warpedImage_d, *mask_d, sourceIJKMatrix_d, voxelNumber, fi_xyz, wi_tu, paddingValue);
 	else if (interp == 3)

@@ -55,6 +55,7 @@ void CudaResampleImageKernel::execute( int interp, float paddingValue, bool *dti
 	/*std::cout << "===================================================" << std::endl;
 	std::cout << "Launching cuda  resample kernel!" << std::endl;*/
 	//con->setCurrentDeformationField(this->deformationField);
+//	float* cuData = this->con->getCurrentDeformationField();
 	launchResample2(floatingImage, warpedImage,  mask, interp, paddingValue, dti_timepoint, jacMat, &floatingImageArray_d, &warpedImageArray_d, &deformationFieldImageArray_d, &mask_d);
 	//reg_resampleImage(floatingImage, warpedImage, deformationField, mask, interp, paddingValue, dti_timepoint, jacMat);
 	//launchResample(floatingImage, warpedImage, deformationField, mask, interp, paddingValue, dti_timepoint,  jacMat);

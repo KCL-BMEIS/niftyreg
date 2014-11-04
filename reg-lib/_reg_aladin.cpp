@@ -544,7 +544,7 @@ void reg_aladin<T>::Run()
 			while (iteration < maxNumberOfIterationToPerform)
 			{
 #ifndef NDEBUG
-				printf("[DEBUG] -Affine- iteration %i\n", iteration);
+				printf("[DEBUG] -Affine- iteration %i/%i\n", iteration+1, maxNumberOfIterationToPerform);
 #endif
 
 				//bool print = iteration == 1;

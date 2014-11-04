@@ -22,27 +22,22 @@ class  Context {
 public:
 
 	Context();
-	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int percentageOfBlocks, const unsigned int  InlierLts);
+	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int percentageOfBlocks, const unsigned int  InlierLts/*, bool symmetric*/);
 	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte);
 
 	virtual ~Context();
 
 
 
-	/**
-	* Set the current time of the simulation (in picoseconds).
-	*/
-	void setTime(double time);
-
 	void shout();
 
 	//Platform* platform;
 
 	/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-	void AllocateWarpedImage(size_t bytes);
+	void AllocateWarpedImage(nifti_image** warpedIn, nifti_image* refIn, nifti_image* floatIn, size_t bytes);
 	void ClearWarpedImage();
 	/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-	void AllocateDeformationField(size_t bytes);
+	void AllocateDeformationField(nifti_image** defFieldIn, nifti_image* refIn, size_t bytes);
 	void ClearDeformationField();
 	void initVars(const unsigned int platformFlagIn);
 
@@ -50,6 +45,7 @@ public:
 	nifti_image* CurrentFloating;
 	int* CurrentReferenceMask;
 	bool bm;
+	bool symmetric;
 
 	mat44* transformationMatrix;
 	_reg_blockMatchingParam* blockMatchingParams;
@@ -101,6 +97,9 @@ public:
 	//private:
 	nifti_image* CurrentDeformationField;
 	nifti_image* CurrentWarped;
+
+	nifti_image* CurrentBackwardsDeformationField;
+	nifti_image* CurrentBackwardsWarped;
 
 
 
