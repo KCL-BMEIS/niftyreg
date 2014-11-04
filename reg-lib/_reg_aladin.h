@@ -67,15 +67,17 @@ protected:
 	int BlockPercentage;
 	int InlierLts;
 	_reg_blockMatchingParam *blockMatchingParams;
-
+   int BlockStepSize;
 	int platformCode;
 
-	bool AlignCentre;
+	 bool AlignCentre;
+   bool AlignCentreGravity;
 
 	int Interpolation;
 
 	float FloatingSigma;
 	float ReferenceSigma;
+   bool AlignCentreGravity;
 
 	float ReferenceUpperThreshold;
 	float ReferenceLowerThreshold;
@@ -174,6 +176,9 @@ public:
 	SetMacro(BlockPercentage, int);
 	GetMacro(BlockPercentage, int);
 
+   SetMacro(BlockStepSize,int);
+   GetMacro(BlockStepSize,int);
+
 	SetMacro(InlierLts, float);
 	GetMacro(InlierLts, float);
 
@@ -204,6 +209,10 @@ public:
 	GetMacro(AlignCentre, int);
 	SetMacro(AlignCentre, int);
 	BooleanMacro(AlignCentre, int);
+
+   GetMacro(AlignCentreGravity,int);
+   SetMacro(AlignCentreGravity,int);
+   BooleanMacro(AlignCentreGravity, int);
 
 	SetClampMacro(Interpolation, int, 0, 3);
 	GetMacro(Interpolation, int);

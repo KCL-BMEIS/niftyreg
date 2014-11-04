@@ -8,8 +8,6 @@
 
 #ifndef _REG_ALADIN_CPP
 #define _REG_ALADIN_CPP
-
-
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T> reg_aladin<T>::reg_aladin()
 {
@@ -36,30 +34,37 @@ template <class T> reg_aladin<T>::reg_aladin()
 
 	this->MaxIterations = 5;
 
-	this->NumberOfLevels = 3;
-	this->LevelsToPerform = 3;
+   this->deformationFieldImage=NULL;
+   TransformationMatrix=new mat44;
+   InputTransformName=NULL;
 
-	this->PerformRigid = 1;
-	this->PerformAffine = 1;
+   this->Verbose = true;
 
-	this->BlockPercentage = 50;
-	this->InlierLts = 50;
+   this->MaxIterations = 5;
 
-	this->AlignCentre = 1;
+   this->NumberOfLevels = 3;
+   this->LevelsToPerform = 3;
 
-	this->Interpolation = 1;
+   this->PerformRigid=1;
+   this->PerformAffine=1;
 
-	this->FloatingSigma = 0.0;
-	this->ReferenceSigma = 0.0;
+   this->BlockStepSize=1;
+   this->BlockPercentage=50;
+   this->InlierLts=50;
 
-	this->ReferenceUpperThreshold = std::numeric_limits<T>::max();
-	this->ReferenceLowerThreshold = -std::numeric_limits<T>::max();
+   this->AlignCentre=1;
+   this->AlignCentreGravity=0;
 
-	this->funcProgressCallback = NULL;
-	this->paramsProgressCallback = NULL;
+   this->Interpolation=1;
 
+   this->FloatingSigma=0.0;
+   this->ReferenceSigma=0.0;
 
+   this->ReferenceUpperThreshold=std::numeric_limits<T>::max();
+   this->ReferenceLowerThreshold=-std::numeric_limits<T>::max();
 
+   this->funcProgressCallback=NULL;
+   this->paramsProgressCallback=NULL;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T> reg_aladin<T>::~reg_aladin()
@@ -67,152 +72,134 @@ template <class T> reg_aladin<T>::~reg_aladin()
 	/*this->ClearWarpedImage();
 	this->ClearDeformationField();*/
 
-	if (this->TransformationMatrix != NULL)
-		delete this->TransformationMatrix;
-	this->TransformationMatrix = NULL;
+   if(this->TransformationMatrix!=NULL)
+      delete this->TransformationMatrix;
+   this->TransformationMatrix=NULL;
 
 
-	for (unsigned int l = 0; l < this->LevelsToPerform; ++l)
-	{
-		nifti_image_free(this->ReferencePyramid[l]);
-		this->ReferencePyramid[l] = NULL;
-		nifti_image_free(this->FloatingPyramid[l]);
-		this->FloatingPyramid[l] = NULL;
-		free(this->ReferenceMaskPyramid[l]);
-		this->ReferenceMaskPyramid[l] = NULL;
-	}
-	free(this->ReferencePyramid);
-	this->ReferencePyramid = NULL;
-	free(this->FloatingPyramid);
-	this->FloatingPyramid = NULL;
-	free(this->ReferenceMaskPyramid);
-	this->ReferenceMaskPyramid = NULL;
+   for(unsigned int l=0; l<this->LevelsToPerform; ++l)
+   {
+      nifti_image_free(this->ReferencePyramid[l]);
+      this->ReferencePyramid[l]=NULL;
+      nifti_image_free(this->FloatingPyramid[l]);
+      this->FloatingPyramid[l]=NULL;
+      free(this->ReferenceMaskPyramid[l]);
+      this->ReferenceMaskPyramid[l]=NULL;
+   }
+   free(this->ReferencePyramid);
+   this->ReferencePyramid=NULL;
+   free(this->FloatingPyramid);
+   this->FloatingPyramid=NULL;
+   free(this->ReferenceMaskPyramid);
+   this->ReferenceMaskPyramid=NULL;
 	free(activeVoxelNumber);
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-
-template <class T>
-void reg_aladin<T>::ClearCurrentInputImage()
-{
-	nifti_image_free(this->ReferencePyramid[this->CurrentLevel]);
-	this->ReferencePyramid[this->CurrentLevel] = NULL;
-	nifti_image_free(this->FloatingPyramid[this->CurrentLevel]);
-	this->FloatingPyramid[this->CurrentLevel] = NULL;
-	free(this->ReferenceMaskPyramid[this->CurrentLevel]);
-	this->ReferenceMaskPyramid[this->CurrentLevel] = NULL;
-	this->CurrentReference = NULL;
-	this->CurrentFloating = NULL;
-	this->CurrentReferenceMask = NULL;
-
 	/*this->ClearWarpedImage();
 	this->ClearDeformationField();*/
 }
-
-
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 bool reg_aladin<T>::TestMatrixConvergence(mat44 *mat)
 {
-	bool convergence = true;
-	if ((fabsf(mat->m[0][0]) - 1.0f) > CONVERGENCE_EPS) convergence = false;
-	if ((fabsf(mat->m[1][1]) - 1.0f) > CONVERGENCE_EPS) convergence = false;
-	if ((fabsf(mat->m[2][2]) - 1.0f) > CONVERGENCE_EPS) convergence = false;
+   bool convergence=true;
+   if((fabsf(mat->m[0][0])-1.0f)>CONVERGENCE_EPS) convergence=false;
+   if((fabsf(mat->m[1][1])-1.0f)>CONVERGENCE_EPS) convergence=false;
+   if((fabsf(mat->m[2][2])-1.0f)>CONVERGENCE_EPS) convergence=false;
 
-	if ((fabsf(mat->m[0][1]) - 0.0f) > CONVERGENCE_EPS) convergence = false;
-	if ((fabsf(mat->m[0][2]) - 0.0f) > CONVERGENCE_EPS) convergence = false;
-	if ((fabsf(mat->m[0][3]) - 0.0f) > CONVERGENCE_EPS) convergence = false;
+   if((fabsf(mat->m[0][1])-0.0f)>CONVERGENCE_EPS) convergence=false;
+   if((fabsf(mat->m[0][2])-0.0f)>CONVERGENCE_EPS) convergence=false;
+   if((fabsf(mat->m[0][3])-0.0f)>CONVERGENCE_EPS) convergence=false;
 
-	if ((fabsf(mat->m[1][0]) - 0.0f) > CONVERGENCE_EPS) convergence = false;
-	if ((fabsf(mat->m[1][2]) - 0.0f) > CONVERGENCE_EPS) convergence = false;
-	if ((fabsf(mat->m[1][3]) - 0.0f) > CONVERGENCE_EPS) convergence = false;
+   if((fabsf(mat->m[1][0])-0.0f)>CONVERGENCE_EPS) convergence=false;
+   if((fabsf(mat->m[1][2])-0.0f)>CONVERGENCE_EPS) convergence=false;
+   if((fabsf(mat->m[1][3])-0.0f)>CONVERGENCE_EPS) convergence=false;
 
-	if ((fabsf(mat->m[2][0]) - 0.0f) > CONVERGENCE_EPS) convergence = false;
-	if ((fabsf(mat->m[2][1]) - 0.0f) > CONVERGENCE_EPS) convergence = false;
-	if ((fabsf(mat->m[2][3]) - 0.0f) > CONVERGENCE_EPS) convergence = false;
+   if((fabsf(mat->m[2][0])-0.0f)>CONVERGENCE_EPS) convergence=false;
+   if((fabsf(mat->m[2][1])-0.0f)>CONVERGENCE_EPS) convergence=false;
+   if((fabsf(mat->m[2][3])-0.0f)>CONVERGENCE_EPS) convergence=false;
 
-	return convergence;
+   return convergence;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::SetVerbose(bool _verbose)
 {
-	this->Verbose = _verbose;
+   this->Verbose=_verbose;
 }
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 int reg_aladin<T>::Check()
 {
-	//This does all the initial checking
-	if (this->InputReference == NULL)
-	{
-		fprintf(stderr, "[NiftyReg ERROR] No reference image has been specified or it can not be read\n");
-		return 1;
-	}
-	reg_checkAndCorrectDimension(this->InputReference);
+   //This does all the initial checking
+   if(this->InputReference == NULL)
+   {
+      fprintf(stderr,"[NiftyReg ERROR] No reference image has been specified or it can not be read\n");
+      return 1;
+   }
+   reg_checkAndCorrectDimension(this->InputReference);
 
-	if (this->InputFloating == NULL)
-	{
-		fprintf(stderr, "[NiftyReg ERROR] No floating image has been specified or it can not be read\n");
-		return 1;
-	}
-	reg_checkAndCorrectDimension(this->InputFloating);
+   if(this->InputFloating == NULL)
+   {
+      fprintf(stderr,"[NiftyReg ERROR] No floating image has been specified or it can not be read\n");
+      return 1;
+   }
+   reg_checkAndCorrectDimension(this->InputFloating);
 
-	return 0;
+   return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 int reg_aladin<T>::Print()
 {
-	if (this->InputReference == NULL)
-	{
-		fprintf(stderr, "[NiftyReg ERROR] No reference image has been specified\n");
-		return 1;
-	}
-	if (this->InputFloating == NULL)
-	{
-		fprintf(stderr, "[NiftyReg ERROR] No floating image has been specified\n");
-		return 1;
-	}
+   if(this->InputReference == NULL)
+   {
+      fprintf(stderr,"[NiftyReg ERROR] No reference image has been specified\n");
+      return 1;
+   }
+   if(this->InputFloating == NULL)
+   {
+      fprintf(stderr,"[NiftyReg ERROR] No floating image has been specified\n");
+      return 1;
+   }
 
-	/* *********************************** */
-	/* DISPLAY THE REGISTRATION PARAMETERS */
-	/* *********************************** */
+   /* *********************************** */
+   /* DISPLAY THE REGISTRATION PARAMETERS */
+   /* *********************************** */
 #ifdef NDEBUG
-	if (this->Verbose)
-	{
+   if(this->Verbose)
+   {
 #endif
-		printf("[%s] Parameters\n", this->ExecutableName);
-		printf("[%s] Reference image name: %s\n", this->ExecutableName, this->InputReference->fname);
-		printf("[%s] \t%ix%ix%i voxels\n", this->ExecutableName, this->InputReference->nx, this->InputReference->ny, this->InputReference->nz);
-		printf("[%s] \t%gx%gx%g mm\n", this->ExecutableName, this->InputReference->dx, this->InputReference->dy, this->InputReference->dz);
-		printf("[%s] Floating image name: %s\n", this->ExecutableName, this->InputFloating->fname);
-		printf("[%s] \t%ix%ix%i voxels\n", this->ExecutableName, this->InputFloating->nx, this->InputFloating->ny, this->InputFloating->nz);
-		printf("[%s] \t%gx%gx%g mm\n", this->ExecutableName, this->InputFloating->dx, this->InputFloating->dy, this->InputFloating->dz);
-		printf("[%s] Maximum iteration number: %i", this->ExecutableName, this->MaxIterations);
-		printf(" (%i during the first level)\n", 2 * this->MaxIterations);
-		printf("[%s] Percentage of blocks: %i %%\n", this->ExecutableName, this->BlockPercentage);
-		printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+      printf("[%s] Parameters\n", this->ExecutableName);
+      printf("[%s] Reference image name: %s\n", this->ExecutableName, this->InputReference->fname);
+      printf("[%s] \t%ix%ix%i voxels\n", this->ExecutableName, this->InputReference->nx,this->InputReference->ny,this->InputReference->nz);
+      printf("[%s] \t%gx%gx%g mm\n", this->ExecutableName, this->InputReference->dx,this->InputReference->dy,this->InputReference->dz);
+      printf("[%s] Floating image name: %s\n", this->ExecutableName, this->InputFloating->fname);
+      printf("[%s] \t%ix%ix%i voxels\n", this->ExecutableName, this->InputFloating->nx,this->InputFloating->ny,this->InputFloating->nz);
+      printf("[%s] \t%gx%gx%g mm\n", this->ExecutableName, this->InputFloating->dx,this->InputFloating->dy,this->InputFloating->dz);
+      printf("[%s] Maximum iteration number: %i", this->ExecutableName, this->MaxIterations);
+      printf(" (%i during the first level)\n", 2*this->MaxIterations);
+      printf("[%s] Percentage of blocks: %i %%\n", this->ExecutableName, this->BlockPercentage);
+      printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
 #ifdef NDEBUG
-	}
+   }
 #endif
-	return 0;
+   return 0;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::SetInputTransform(const char *filename)
 {
-	this->InputTransformName = (char *)filename;
-	return;
+   this->InputTransformName=(char *)filename;
+   return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::InitialiseRegistration()
 {
 #ifndef NDEBUG
-	printf("[NiftyReg DEBUG] reg_aladin::InitialiseRegistration() called\n");
+   printf("[NiftyReg DEBUG] reg_aladin::InitialiseRegistration() called\n");
 #endif
 
-	std::cout<<"code: "<<platformCode<<std::endl;
 		if (platformCode == 0)
 			this->platform = new CPUPlatform();
 		else if (platformCode == 1)

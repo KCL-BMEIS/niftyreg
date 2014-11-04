@@ -25,11 +25,11 @@
 #define BLOCK_SIZE 64
 #define BLOCK_2D_SIZE 16
 #define OVERLAP_SIZE 3
-#define STEP_SIZE 1
 
 #define NUM_BLOCKS_TO_COMPARE 343 // We compare in a 7x7x7 neighborhood.
 #define NUM_BLOCKS_TO_COMPARE_2D 49
 #define NUM_BLOCKS_TO_COMPARE_1D 7
+
 /**
  *
  * Main algorithm of Ourselin et al.
@@ -73,6 +73,8 @@ struct _reg_blockMatchingParam
 
    int definedActiveBlock;
 
+   int stepSize;
+
    _reg_blockMatchingParam()
 	  : targetPosition(0),
 		resultPosition(0),
@@ -87,13 +89,6 @@ struct _reg_blockMatchingParam
 	  if(activeBlock) free(activeBlock);  
    }
 };
-
-extern "C++"
-template<typename PrecisionTYPE, typename TargetImageType, typename ResultImageType>
-void block_matching_method2D(nifti_image * target,
-							 nifti_image * result,
-							 _reg_blockMatchingParam *params,
-							 int *mask);
 
 /** @brief This function initialise a _reg_blockMatchingParam structure
  * according to the the provided arguments
@@ -115,6 +110,12 @@ void initialise_block_matching_method(nifti_image * referenceImage,
 									  int percentToKeep_opt,
 									  int *mask,
 									  bool runningOnGPU = false);
+                                      _reg_blockMatchingParam *params,
+                                      int percentToKeep_block,
+                                      int percentToKeep_opt,
+                                      int stepSize_block,
+                                      int *mask,
+                                      bool runningOnGPU = false);
 
 /** @brief Interface for the block matching algorithm.
  * @param referenceImage Reference image in the currrent registration task
@@ -125,9 +126,9 @@ void initialise_block_matching_method(nifti_image * referenceImage,
  */
 extern "C++"
 void block_matching_method(	nifti_image * referenceImage,
-							  nifti_image * warpedImage,
-							  _reg_blockMatchingParam *params,
-							  int *mask);
+                              nifti_image * warpedImage,
+                              _reg_blockMatchingParam *params,
+                              int *mask);
 
 /** @brief Apply the given affine transformation to a point
  * @todo I should remove this function as it is redondant
@@ -136,8 +137,8 @@ void block_matching_method(	nifti_image * referenceImage,
  * @param pr Output position
  */
 void apply_affine(mat44 * mat,
-				  float *pt,
-				  float *pr);
+                  float *pt,
+                  float *pr);
 
 /** @brief Find the optimal affine transformation that matches the points
  * in the target image to the point in the result image
@@ -147,12 +148,8 @@ void apply_affine(mat44 * mat,
  * returns a rigid transformation (6 DoFs) otherwise
  */
 void optimize(_reg_blockMatchingParam *params,
-			  mat44 * transformation_matrix,
-			  bool affine = true);
-
-extern "C++"
-template <class DTYPE>
-void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *params, int *mask, bool runningOnGPU);
+              mat44 * transformation_matrix,
+              bool affine = true);
 
 
 

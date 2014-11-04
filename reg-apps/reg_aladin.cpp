@@ -73,11 +73,13 @@ void Usage(char *exec)
    printf("\t-floUpThr <float>\tUpper threshold value applied to the floating image. [0]\n");
 
    printf("\t-nac\t\t\tUse the nifti header origin to initialise the transformation. (Image centres are used by default)\n");
+   printf("\t-cog\t\t\tUse the input masks centre of mass to initialise the transformation. (Image centres are used by default)\n");
    printf("\t-interp\t\t\tInterpolation order to use internally to warp the floating image.\n");
    printf("\t-iso\t\t\tMake floating and reference images isotropic if required.\n");
 
    printf("\t-pv <int>\t\tPercentage of blocks to use in the optimisation scheme. [50]\n");
    printf("\t-pi <int>\t\tPercentage of blocks to consider as inlier in the optimisation scheme. [50]\n");
+   printf("\t-speeeeed\t\tGo faster\n");
 #if defined (_OPENMP)
    printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i]\n",
 		  omp_get_num_procs());
@@ -130,9 +132,11 @@ int main(int argc, char **argv)
    int affineFlag=1;
    int rigidFlag=1;
    unsigned int platformFlag = 0;
+   int blockStepSize=1;
    int blockPercentage=50;
    float inlierLts=50.0f;
    int alignCentre=1;
+   int alignCentreOfGravity=0;
    int interpolation=1;
    float floatingSigma=0.0;
    float referenceSigma=0.0;
@@ -449,6 +453,7 @@ int main(int argc, char **argv)
 	  else REG->SetInputFloatingMask(floatingMaskImage);
    }
 
+
    // Update the CLI progress bar
    progressXML(2, "Input data ready...");
 
@@ -458,8 +463,10 @@ int main(int argc, char **argv)
    REG->SetReferenceSigma(referenceSigma);
    REG->SetFloatingSigma(floatingSigma);
    REG->SetAlignCentre(alignCentre);
+   REG->SetAlignCentreGravity(alignCentreOfGravity);
    REG->SetPerformAffine(affineFlag);
    REG->SetPerformRigid(rigidFlag);
+   REG->SetBlockStepSize(blockStepSize);
    REG->SetBlockPercentage(blockPercentage);
    REG->SetInlierLts(inlierLts);
    REG->SetInterpolation(interpolation);

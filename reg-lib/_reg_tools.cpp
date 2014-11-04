@@ -14,243 +14,242 @@
 #define _REG_TOOLS_CPP
 
 #include "_reg_tools.h"
-#include <algorithm>
 
 /* *************************************************************** */
 /* *************************************************************** */
 void reg_checkAndCorrectDimension(nifti_image *image)
 {
-	// Ensure that no dimension is set to zero
-	if (image->nx < 1 || image->dim[1] < 1) image->dim[1] = image->nx = 1;
-	if (image->ny < 1 || image->dim[2] < 1) image->dim[2] = image->ny = 1;
-	if (image->nz < 1 || image->dim[3] < 1) image->dim[3] = image->nz = 1;
-	if (image->nt < 1 || image->dim[4] < 1) image->dim[4] = image->nt = 1;
-	if (image->nu < 1 || image->dim[5] < 1) image->dim[5] = image->nu = 1;
-	if (image->nv < 1 || image->dim[6] < 1) image->dim[6] = image->nv = 1;
-	if (image->nw < 1 || image->dim[7] < 1) image->dim[7] = image->nw = 1;
-	// Set the slope to 1 if undefined
-	if (image->scl_slope == 0) image->scl_slope = 1.f;
-	// Ensure that no spacing is set to zero
-	if (image->ny == 1 && (image->dy == 0 || image->pixdim[2] == 0))
-		image->dy = image->pixdim[2] = 1;
-	if (image->nz == 1 && (image->dz == 0 || image->pixdim[3] == 0))
-		image->dz = image->pixdim[3] = 1;
-	// Create the qform matrix if required
-	if (image->qform_code == 0 && image->sform_code == 0)
-	{
-		image->qto_xyz = nifti_quatern_to_mat44(image->quatern_b,
-			image->quatern_c,
-			image->quatern_d,
-			image->qoffset_x,
-			image->qoffset_y,
-			image->qoffset_z,
-			image->dx,
-			image->dy,
-			image->dz,
-			image->qfac);
-		image->qto_ijk = nifti_mat44_inverse(image->qto_xyz);
-	}
+   // Ensure that no dimension is set to zero
+   if(image->nx<1 || image->dim[1]<1) image->dim[1]=image->nx=1;
+   if(image->ny<1 || image->dim[2]<1) image->dim[2]=image->ny=1;
+   if(image->nz<1 || image->dim[3]<1) image->dim[3]=image->nz=1;
+   if(image->nt<1 || image->dim[4]<1) image->dim[4]=image->nt=1;
+   if(image->nu<1 || image->dim[5]<1) image->dim[5]=image->nu=1;
+   if(image->nv<1 || image->dim[6]<1) image->dim[6]=image->nv=1;
+   if(image->nw<1 || image->dim[7]<1) image->dim[7]=image->nw=1;
+   // Set the slope to 1 if undefined
+   if(image->scl_slope==0) image->scl_slope=1.f;
+   // Ensure that no spacing is set to zero
+   if(image->ny==1 && (image->dy==0 || image->pixdim[2]==0))
+      image->dy=image->pixdim[2]=1;
+   if(image->nz==1 && (image->dz==0 || image->pixdim[3]==0))
+      image->dz=image->pixdim[3]=1;
+   // Create the qform matrix if required
+   if(image->qform_code==0 && image->sform_code==0)
+   {
+      image->qto_xyz=nifti_quatern_to_mat44(image->quatern_b,
+                                            image->quatern_c,
+                                            image->quatern_d,
+                                            image->qoffset_x,
+                                            image->qoffset_y,
+                                            image->qoffset_z,
+                                            image->dx,
+                                            image->dy,
+                                            image->dz,
+                                            image->qfac);
+      image->qto_ijk=nifti_mat44_inverse(image->qto_xyz);
+   }
 }
 /* *************************************************************** */
 /* *************************************************************** */
 bool reg_isAnImageFileName(char *name)
 {
-	std::string n(name);
-	if (n.find(".nii") != std::string::npos)
-		return true;
-	if (n.find(".nii.gz") != std::string::npos)
-		return true;
-	if (n.find(".hdr") != std::string::npos)
-		return true;
-	if (n.find(".img") != std::string::npos)
-		return true;
-	if (n.find(".img.gz") != std::string::npos)
-		return true;
-	if (n.find(".nrrd") != std::string::npos)
-		return true;
-	if (n.find(".png") != std::string::npos)
-		return true;
-	return false;
+   std::string n(name);
+   if(n.find( ".nii") != std::string::npos)
+      return true;
+   if(n.find( ".nii.gz") != std::string::npos)
+      return true;
+   if(n.find( ".hdr") != std::string::npos)
+      return true;
+   if(n.find( ".img") != std::string::npos)
+      return true;
+   if(n.find( ".img.gz") != std::string::npos)
+      return true;
+   if(n.find( ".nrrd") != std::string::npos)
+      return true;
+   if(n.find( ".png") != std::string::npos)
+      return true;
+   return false;
 }
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
 void reg_intensityRescale_core(nifti_image *image,
-	int timePoint,
-	float newMin,
-	float newMax
-	)
+                           int timePoint,
+                           float newMin,
+                           float newMax
+                          )
 {
-	DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
-	unsigned int voxelNumber = image->nx*image->ny*image->nz;
+   DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
+   unsigned int voxelNumber = image->nx*image->ny*image->nz;
 
-	// The rescasling is done for each volume independtly
-	DTYPE *volumePtr = &imagePtr[timePoint*voxelNumber];
-	DTYPE currentMin = 0;
-	DTYPE currentMax = 0;
-	switch (image->datatype)
-	{
-	case NIFTI_TYPE_UINT8:
-		currentMin = (DTYPE)std::numeric_limits<unsigned char>::max();
-		currentMax = 0;
-		break;
-	case NIFTI_TYPE_INT8:
-		currentMin = (DTYPE)std::numeric_limits<char>::max();
-		currentMax = (DTYPE)-std::numeric_limits<char>::max();
-		break;
-	case NIFTI_TYPE_UINT16:
-		currentMin = (DTYPE)std::numeric_limits<unsigned short>::max();
-		currentMax = 0;
-		break;
-	case NIFTI_TYPE_INT16:
-		currentMin = (DTYPE)std::numeric_limits<char>::max();
-		currentMax = -(DTYPE)std::numeric_limits<char>::max();
-		break;
-	case NIFTI_TYPE_UINT32:
-		currentMin = (DTYPE)std::numeric_limits<unsigned int>::max();
-		currentMax = 0;
-		break;
-	case NIFTI_TYPE_INT32:
-		currentMin = (DTYPE)std::numeric_limits<int>::max();
-		currentMax = -(DTYPE)std::numeric_limits<int>::max();
-		break;
-	case NIFTI_TYPE_FLOAT32:
-		currentMin = (DTYPE)std::numeric_limits<float>::max();
-		currentMax = -(DTYPE)std::numeric_limits<float>::max();
-		break;
-	case NIFTI_TYPE_FLOAT64:
-		currentMin = (DTYPE)std::numeric_limits<double>::max();
-		currentMax = -(DTYPE)std::numeric_limits<double>::max();
-		break;
-	}
+   // The rescasling is done for each volume independtly
+   DTYPE *volumePtr = &imagePtr[timePoint*voxelNumber];
+   DTYPE currentMin=0;
+   DTYPE currentMax=0;
+   switch(image->datatype)
+   {
+   case NIFTI_TYPE_UINT8:
+      currentMin=(DTYPE)std::numeric_limits<unsigned char>::max();
+      currentMax=0;
+      break;
+   case NIFTI_TYPE_INT8:
+      currentMin=(DTYPE)std::numeric_limits<char>::max();
+      currentMax=(DTYPE)-std::numeric_limits<char>::max();
+      break;
+   case NIFTI_TYPE_UINT16:
+      currentMin=(DTYPE)std::numeric_limits<unsigned short>::max();
+      currentMax=0;
+      break;
+   case NIFTI_TYPE_INT16:
+      currentMin=(DTYPE)std::numeric_limits<char>::max();
+      currentMax=-(DTYPE)std::numeric_limits<char>::max();
+      break;
+   case NIFTI_TYPE_UINT32:
+      currentMin=(DTYPE)std::numeric_limits<unsigned int>::max();
+      currentMax=0;
+      break;
+   case NIFTI_TYPE_INT32:
+      currentMin=(DTYPE)std::numeric_limits<int>::max();
+      currentMax=-(DTYPE)std::numeric_limits<int>::max();
+      break;
+   case NIFTI_TYPE_FLOAT32:
+      currentMin=(DTYPE)std::numeric_limits<float>::max();
+      currentMax=-(DTYPE)std::numeric_limits<float>::max();
+      break;
+   case NIFTI_TYPE_FLOAT64:
+      currentMin=(DTYPE)std::numeric_limits<double>::max();
+      currentMax=-(DTYPE)std::numeric_limits<double>::max();
+      break;
+   }
 
-	// Extract the minimal and maximal values from the current volume
-	if (image->scl_slope == 0) image->scl_slope = 1.0f;
-	for (unsigned int index = 0; index < voxelNumber; index++)
-	{
-		DTYPE value = (DTYPE)(*volumePtr++ * image->scl_slope + image->scl_inter);
-		if (value == value)
-		{
-			currentMin = (currentMin < value) ? currentMin : value;
-			currentMax = (currentMax > value) ? currentMax : value;
-		}
-	}
+   // Extract the minimal and maximal values from the current volume
+   if(image->scl_slope==0) image->scl_slope=1.0f;
+   for(unsigned int index=0; index<voxelNumber; index++)
+   {
+      DTYPE value = (DTYPE)(*volumePtr++ * image->scl_slope + image->scl_inter);
+      if(value==value)
+      {
+         currentMin=(currentMin<value)?currentMin:value;
+         currentMax=(currentMax>value)?currentMax:value;
+      }
+   }
 
-	// Compute constant values to rescale image intensities
-	double currentDiff = (double)(currentMax - currentMin);
-	double newDiff = (double)(newMax - newMin);
+   // Compute constant values to rescale image intensities
+   double currentDiff = (double)(currentMax-currentMin);
+   double newDiff = (double)(newMax-newMin);
 
-	// Set the image header information for appropriate display
-	image->cal_min = newMin;
-	image->cal_max = newMax;
+   // Set the image header information for appropriate display
+   image->cal_min=newMin;
+   image->cal_max=newMax;
 
-	// Reset the volume pointer to the start of the current volume
-	volumePtr = &imagePtr[timePoint*voxelNumber];
+   // Reset the volume pointer to the start of the current volume
+   volumePtr = &imagePtr[timePoint*voxelNumber];
 
-	// Iterates over all voxels in the current volume
-	for (unsigned int index = 0; index < voxelNumber; index++)
-	{
-		double value = (double)*volumePtr * image->scl_slope + image->scl_inter;
-		// Check if the value is defined
-		if (value == value)
-		{
-			// Normalise the value between 0 and 1
-			value = (value - (double)currentMin) / currentDiff;
-			// Rescale the value using the specified range
-			value = value * newDiff + newMin;
-		}
-		*volumePtr++ = (DTYPE)value;
-	}
-	image->scl_slope = 1.f;
-	image->scl_inter = 0.f;
+   // Iterates over all voxels in the current volume
+   for(unsigned int index=0; index<voxelNumber; index++)
+   {
+      double value = (double)*volumePtr * image->scl_slope + image->scl_inter;
+      // Check if the value is defined
+      if(value==value)
+      {
+         // Normalise the value between 0 and 1
+         value = (value-(double)currentMin)/currentDiff;
+         // Rescale the value using the specified range
+         value = value * newDiff + newMin;
+      }
+      *volumePtr++=(DTYPE)value;
+   }
+   image->scl_slope=1.f;
+   image->scl_inter=0.f;
 }
 /* *************************************************************** */
 void reg_intensityRescale(nifti_image *image,
-	int timepoint,
-	float newMin,
-	float newMax
-	)
+                          int timepoint,
+                          float newMin,
+                          float newMax
+                         )
 {
-	switch (image->datatype)
-	{
-	case NIFTI_TYPE_UINT8:
-		reg_intensityRescale_core<unsigned char>(image, timepoint, newMin, newMax);
-		break;
-	case NIFTI_TYPE_INT8:
-		reg_intensityRescale_core<char>(image, timepoint, newMin, newMax);
-		break;
-	case NIFTI_TYPE_UINT16:
-		reg_intensityRescale_core<unsigned short>(image, timepoint, newMin, newMax);
-		break;
-	case NIFTI_TYPE_INT16:
-		reg_intensityRescale_core<short>(image, timepoint, newMin, newMax);
-		break;
-	case NIFTI_TYPE_UINT32:
-		reg_intensityRescale_core<unsigned int>(image, timepoint, newMin, newMax);
-		break;
-	case NIFTI_TYPE_INT32:
-		reg_intensityRescale_core<int>(image, timepoint, newMin, newMax);
-		break;
-	case NIFTI_TYPE_FLOAT32:
-		reg_intensityRescale_core<float>(image, timepoint, newMin, newMax);
-		break;
-	case NIFTI_TYPE_FLOAT64:
-		reg_intensityRescale_core<double>(image, timepoint, newMin, newMax);
-		break;
-	default:
-		fprintf(stderr, "[NiftyReg ERROR] reg_intensityRescale\tThe image data type is not supported\n");
-		exit(1);
-	}
+   switch(image->datatype)
+   {
+   case NIFTI_TYPE_UINT8:
+      reg_intensityRescale_core<unsigned char>(image, timepoint, newMin, newMax);
+      break;
+   case NIFTI_TYPE_INT8:
+      reg_intensityRescale_core<char>(image, timepoint, newMin, newMax);
+      break;
+   case NIFTI_TYPE_UINT16:
+      reg_intensityRescale_core<unsigned short>(image, timepoint, newMin, newMax);
+      break;
+   case NIFTI_TYPE_INT16:
+      reg_intensityRescale_core<short>(image, timepoint, newMin, newMax);
+      break;
+   case NIFTI_TYPE_UINT32:
+      reg_intensityRescale_core<unsigned int>(image, timepoint, newMin, newMax);
+      break;
+   case NIFTI_TYPE_INT32:
+      reg_intensityRescale_core<int>(image, timepoint, newMin, newMax);
+      break;
+   case NIFTI_TYPE_FLOAT32:
+      reg_intensityRescale_core<float>(image, timepoint, newMin, newMax);
+      break;
+   case NIFTI_TYPE_FLOAT64:
+      reg_intensityRescale_core<double>(image, timepoint, newMin, newMax);
+      break;
+   default:
+      fprintf(stderr,"[NiftyReg ERROR] reg_intensityRescale\tThe image data type is not supported\n");
+      exit(1);
+   }
 }
 /* *************************************************************** */
 /* *************************************************************** */
 template<class DTYPE>
 void reg_tools_removeSCLInfo_core(nifti_image *image)
 {
-	if (image->scl_slope == 1.f && image->scl_inter == 0.f)
-		return;
-	DTYPE *imgPtr = static_cast<DTYPE *>(image->data);
-	for (size_t i = 0; i < image->nvox; ++i){
-		*imgPtr = *imgPtr*(DTYPE)image->scl_slope + (DTYPE)image->scl_inter;
-		imgPtr++;
-	}
-	image->scl_slope = 1.f;
-	image->scl_inter = 0.f;
+   if(image->scl_slope==1.f && image->scl_inter==0.f)
+      return;
+   DTYPE *imgPtr = static_cast<DTYPE *>(image->data);
+   for(size_t i=0;i<image->nvox; ++i){
+      *imgPtr=*imgPtr*(DTYPE)image->scl_slope+(DTYPE)image->scl_inter;
+      imgPtr++;
+   }
+   image->scl_slope=1.f;
+   image->scl_inter=0.f;
 }
 /* *************************************************************** */
 void reg_tools_removeSCLInfo(nifti_image *image)
 {
-	switch (image->datatype)
-	{
-	case NIFTI_TYPE_UINT8:
-		reg_tools_removeSCLInfo_core<unsigned char>(image);
-		break;
-	case NIFTI_TYPE_INT8:
-		reg_tools_removeSCLInfo_core<char>(image);
-		break;
-	case NIFTI_TYPE_UINT16:
-		reg_tools_removeSCLInfo_core<unsigned short>(image);
-		break;
-	case NIFTI_TYPE_INT16:
-		reg_tools_removeSCLInfo_core<short>(image);
-		break;
-	case NIFTI_TYPE_UINT32:
-		reg_tools_removeSCLInfo_core<unsigned int>(image);
-		break;
-	case NIFTI_TYPE_INT32:
-		reg_tools_removeSCLInfo_core<int>(image);
-		break;
-	case NIFTI_TYPE_FLOAT32:
-		reg_tools_removeSCLInfo_core<float>(image);
-		break;
-	case NIFTI_TYPE_FLOAT64:
-		reg_tools_removeSCLInfo_core<double>(image);
-		break;
-	default:
-		fprintf(stderr, "[NiftyReg ERROR] reg_tools_removeSCLInfo\tThe image data type is not supported\n");
-		exit(1);
-	}
-	return;
+   switch(image->datatype)
+   {
+   case NIFTI_TYPE_UINT8:
+      reg_tools_removeSCLInfo_core<unsigned char>(image);
+      break;
+   case NIFTI_TYPE_INT8:
+      reg_tools_removeSCLInfo_core<char>(image);
+      break;
+   case NIFTI_TYPE_UINT16:
+      reg_tools_removeSCLInfo_core<unsigned short>(image);
+      break;
+   case NIFTI_TYPE_INT16:
+      reg_tools_removeSCLInfo_core<short>(image);
+      break;
+   case NIFTI_TYPE_UINT32:
+      reg_tools_removeSCLInfo_core<unsigned int>(image);
+      break;
+   case NIFTI_TYPE_INT32:
+      reg_tools_removeSCLInfo_core<int>(image);
+      break;
+   case NIFTI_TYPE_FLOAT32:
+      reg_tools_removeSCLInfo_core<float>(image);
+      break;
+   case NIFTI_TYPE_FLOAT64:
+      reg_tools_removeSCLInfo_core<double>(image);
+      break;
+   default:
+      fprintf(stderr,"[NiftyReg ERROR] reg_tools_removeSCLInfo\tThe image data type is not supported\n");
+      exit(1);
+   }
+   return;
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -1332,6 +1331,9 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
 	free(nanImagePtr);
 	free(densityPtr);
 }
+
+
+/* *************************************************************** */
 /* *************************************************************** */
 
 

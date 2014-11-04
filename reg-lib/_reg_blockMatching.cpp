@@ -526,6 +526,7 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
 }
 /* *************************************************************** */
 void initialise_block_matching_method(nifti_image * target,
+<<<<<<< HEAD
 	_reg_blockMatchingParam *params,
 	int percentToKeep_block,
 	int percentToKeep_opt,
@@ -576,6 +577,61 @@ void initialise_block_matching_method(nifti_image * target,
 		fprintf(stderr, "[NiftyReg ERROR] ... Exit ...\n");
 		reg_exit(1);
 	}
+=======
+                                        _reg_blockMatchingParam *params,
+                                        int percentToKeep_block,
+                                        int percentToKeep_opt,
+                                        int stepSize_block,
+                                        int *mask,
+                                        bool runningOnGPU)
+{
+   if(params->activeBlock!=NULL)
+   {
+      free(params->activeBlock);
+      params->activeBlock=NULL;
+   }
+   if(params->targetPosition!=NULL)
+   {
+      free(params->targetPosition);
+      params->targetPosition=NULL;
+   }
+   if(params->resultPosition!=NULL)
+   {
+      free(params->resultPosition);
+      params->resultPosition=NULL;
+   }
+
+   params->blockNumber[0]=(int)reg_ceil((float)target->nx / (float)BLOCK_WIDTH);
+   params->blockNumber[1]=(int)reg_ceil((float)target->ny / (float)BLOCK_WIDTH);
+   if(target->nz>1)
+      params->blockNumber[2]=(int)reg_ceil((float)target->nz / (float)BLOCK_WIDTH);
+   else params->blockNumber[2]=1;
+
+   params->stepSize=stepSize_block;
+
+   params->percent_to_keep=percentToKeep_opt;
+   params->activeBlockNumber=params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2] * percentToKeep_block / 100;
+
+   params->activeBlock = (int *)malloc(params->blockNumber[0]*params->blockNumber[1]*params->blockNumber[2]*sizeof(int));
+   switch(target->datatype)
+   {
+   case NIFTI_TYPE_FLOAT32:
+      _reg_set_active_blocks<float>(target, params, mask, runningOnGPU);
+      break;
+   case NIFTI_TYPE_FLOAT64:
+      _reg_set_active_blocks<double>(target, params, mask, runningOnGPU);
+      break;
+   default:
+      fprintf(stderr,"[NiftyReg ERROR] initialise_block_matching_method\tThe target image data type is not supported\n");
+      reg_exit(1);
+   }
+   if(params->activeBlockNumber<2)
+   {
+      fprintf(stderr,"[NiftyReg ERROR] There are no active blocks\n");
+      fprintf(stderr,"[NiftyReg ERROR] ... Exit ...\n");
+      reg_exit(1);
+   }
+>>>>>>> 50d4431ddbf373d01262eea7f00bb06022647c8f
 #ifndef NDEBUG
 	printf("[NiftyReg DEBUG]: There are %i active block(s) out of %i.\n", params->activeBlockNumber, params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2]);
 #endif
@@ -602,6 +658,7 @@ void block_matching_method2D(nifti_image * target,
 	_reg_blockMatchingParam *params,
 	int *mask)
 {
+<<<<<<< HEAD
 	TargetImageType *targetPtr = static_cast<TargetImageType *>(target->data);
 	ResultImageType *resultPtr = static_cast<ResultImageType *>(result->data);
 
@@ -791,6 +848,197 @@ void block_matching_method2D(nifti_image * target,
 	free(targetValues);
 	free(targetOverlap);
 	free(resultOverlap);
+=======
+   TargetImageType *targetPtr=static_cast<TargetImageType *>(target->data);
+   ResultImageType *resultPtr=static_cast<ResultImageType *>(result->data);
+
+   TargetImageType *targetValues=(TargetImageType *)malloc(BLOCK_2D_SIZE*sizeof(TargetImageType));
+   bool *targetOverlap=(bool *)malloc(BLOCK_2D_SIZE*sizeof(bool));
+   ResultImageType *resultValues=(ResultImageType *)malloc(BLOCK_2D_SIZE*sizeof(ResultImageType));
+   bool *resultOverlap=(bool *)malloc(BLOCK_2D_SIZE*sizeof(bool));
+
+   mat44 *targetMatrix_xyz;
+   if(target->sform_code >0)
+      targetMatrix_xyz = &(target->sto_xyz);
+   else targetMatrix_xyz = &(target->qto_xyz);
+
+   int targetIndex_start_x;
+   int targetIndex_start_y;
+   int targetIndex_end_x;
+   int targetIndex_end_y;
+   int resultIndex_start_x;
+   int resultIndex_start_y;
+   int resultIndex_end_x;
+   int resultIndex_end_y;
+
+   unsigned int targetIndex;
+   unsigned int resultIndex;
+
+   unsigned int blockIndex=0;
+   unsigned int activeBlockIndex=0;
+   params->definedActiveBlock=0;
+   int index;
+
+   for(int j=0; j<params->blockNumber[1]; j++)
+   {
+      targetIndex_start_y=j*BLOCK_WIDTH;
+      targetIndex_end_y=targetIndex_start_y+BLOCK_WIDTH;
+
+      for(int i=0; i<params->blockNumber[0]; i++)
+      {
+         targetIndex_start_x=i*BLOCK_WIDTH;
+         targetIndex_end_x=targetIndex_start_x+BLOCK_WIDTH;
+
+         if(params->activeBlock[blockIndex] > -1)
+         {
+
+            targetIndex=0;
+            memset(targetOverlap, 0, BLOCK_2D_SIZE*sizeof(bool));
+
+            for(int y=targetIndex_start_y; y<targetIndex_end_y; y++)
+            {
+               if(-1<y && y<target->ny)
+               {
+                  index = y*target->nx+targetIndex_start_x;
+                  TargetImageType *targetPtr_XY = &targetPtr[index];
+                  int *maskPtr_XY=&mask[index];
+                  for(int x=targetIndex_start_x; x<targetIndex_end_x; x++)
+                  {
+                     if(-1<x && x<target->nx)
+                     {
+                        TargetImageType value = *targetPtr_XY;
+                        if(value==value && value!=0. && *maskPtr_XY>-1)
+                        {
+                           targetValues[targetIndex]=value;
+                           targetOverlap[targetIndex]=1;
+                        }
+                     }
+                     targetPtr_XY++;
+                     maskPtr_XY++;
+                     targetIndex++;
+                  }
+               }
+               else targetIndex+=BLOCK_WIDTH;
+            }
+            PrecisionTYPE bestCC=0.0;
+            float bestDisplacement[3] = {std::numeric_limits<float>::quiet_NaN(),
+                                         0.f, 0.f
+                                        };
+
+            // iteration over the result blocks
+            for(int m=-OVERLAP_SIZE; m<=OVERLAP_SIZE; m+=params->stepSize)
+            {
+               resultIndex_start_y=targetIndex_start_y+m;
+               resultIndex_end_y=resultIndex_start_y+BLOCK_WIDTH;
+               for(int l=-OVERLAP_SIZE; l<=OVERLAP_SIZE; l+=params->stepSize)
+               {
+                  resultIndex_start_x=targetIndex_start_x+l;
+                  resultIndex_end_x=resultIndex_start_x+BLOCK_WIDTH;
+
+                  resultIndex=0;
+                  memset(resultOverlap, 0, BLOCK_2D_SIZE*sizeof(bool));
+
+                  for(int y=resultIndex_start_y; y<resultIndex_end_y; y++)
+                  {
+                     if(-1<y && y<result->ny)
+                     {
+                        index=y*result->nx+resultIndex_start_x;
+                        ResultImageType *resultPtr_XY = &resultPtr[index];
+                        int *maskPtr_XY=&mask[index];
+                        for(int x=resultIndex_start_x; x<resultIndex_end_x; x++)
+                        {
+                           if(-1<x && x<result->nx)
+                           {
+                              ResultImageType value = *resultPtr_XY;
+                              if(value==value && value!=0. && *maskPtr_XY>-1)
+                              {
+                                 resultValues[resultIndex]=value;
+                                 resultOverlap[resultIndex]=1;
+                              }
+                           }
+                           resultPtr_XY++;
+                           resultIndex++;
+                           maskPtr_XY++;
+                        }
+                     }
+                     else resultIndex+=BLOCK_WIDTH;
+                  }
+                  PrecisionTYPE targetMean=0.0;
+                  PrecisionTYPE resultMean=0.0;
+                  PrecisionTYPE voxelNumber=0.0;
+                  for(int a=0; a<BLOCK_2D_SIZE; a++)
+                  {
+                     if(targetOverlap[a] && resultOverlap[a])
+                     {
+                        targetMean += (PrecisionTYPE)targetValues[a];
+                        resultMean += (PrecisionTYPE)resultValues[a];
+                        voxelNumber++;
+                     }
+                  }
+
+                  if(voxelNumber>BLOCK_2D_SIZE/2)
+                  {
+                     targetMean /= voxelNumber;
+                     resultMean /= voxelNumber;
+
+                     PrecisionTYPE targetVar=0.0;
+                     PrecisionTYPE resultVar=0.0;
+                     PrecisionTYPE localCC=0.0;
+
+                     for(int a=0; a<BLOCK_2D_SIZE; a++)
+                     {
+                        if(targetOverlap[a] && resultOverlap[a])
+                        {
+                           PrecisionTYPE targetTemp=(PrecisionTYPE)(targetValues[a]-targetMean);
+                           PrecisionTYPE resultTemp=(PrecisionTYPE)(resultValues[a]-resultMean);
+                           targetVar += (targetTemp)*(targetTemp);
+                           resultVar += (resultTemp)*(resultTemp);
+                           localCC += (targetTemp)*(resultTemp);
+                        }
+                     }
+
+                     localCC = fabs(localCC/sqrt(targetVar*resultVar));
+
+                     if(localCC>bestCC)
+                     {
+                        bestCC=localCC;
+                        bestDisplacement[0] = (float)l;
+                        bestDisplacement[1] = (float)m;
+                     }
+                  }
+               }
+            }
+
+            if(bestDisplacement[0]==bestDisplacement[0])
+            {
+               float targetPosition_temp[3];
+               targetPosition_temp[0] = (float)(i*BLOCK_WIDTH);
+               targetPosition_temp[1] = (float)(j*BLOCK_WIDTH);
+               targetPosition_temp[2] = 0.0f;
+
+               bestDisplacement[0] += targetPosition_temp[0];
+               bestDisplacement[1] += targetPosition_temp[1];
+               bestDisplacement[2] = 0.0f;
+
+               float tempPosition[3];
+               reg_mat44_mul(targetMatrix_xyz, targetPosition_temp, tempPosition);
+               params->targetPosition[activeBlockIndex] = tempPosition[0];
+               params->targetPosition[activeBlockIndex+1] = tempPosition[1];
+               reg_mat44_mul(targetMatrix_xyz, bestDisplacement, tempPosition);
+               params->resultPosition[activeBlockIndex] = tempPosition[0];
+               params->resultPosition[activeBlockIndex+1] = tempPosition[1];
+               activeBlockIndex += 2;
+               params->definedActiveBlock++;
+            }
+         }
+         blockIndex++;
+      }
+   }
+   free(resultValues);
+   free(targetValues);
+   free(targetOverlap);
+   free(resultOverlap);
+>>>>>>> 50d4431ddbf373d01262eea7f00bb06022647c8f
 }
 /* *************************************************************** */
 template<typename DTYPE>
@@ -871,6 +1119,7 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 #if defined (_OPENMP)
 		tid = omp_get_thread_num();
 #endif
+<<<<<<< HEAD
 		blockIndex = k * params->blockNumber[0] * params->blockNumber[1];
 		targetIndex_start_z = k*BLOCK_WIDTH;
 		targetIndex_end_z = targetIndex_start_z + BLOCK_WIDTH;
@@ -1050,6 +1299,174 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 						bestDisplacement[2] += targetPosition_temp[2];
 
 						reg_mat44_mul(targetMatrix_xyz, targetPosition_temp, tempPosition);
+=======
+      blockIndex = k * params->blockNumber[0] * params->blockNumber[1];
+      targetIndex_start_z=k*BLOCK_WIDTH;
+      targetIndex_end_z=targetIndex_start_z+BLOCK_WIDTH;
+
+      for(j=0; j<params->blockNumber[1]; j++)
+      {
+         targetIndex_start_y=j*BLOCK_WIDTH;
+         targetIndex_end_y=targetIndex_start_y+BLOCK_WIDTH;
+
+         for(i=0; i<params->blockNumber[0]; i++)
+         {
+            targetIndex_start_x=i*BLOCK_WIDTH;
+            targetIndex_end_x=targetIndex_start_x+BLOCK_WIDTH;
+
+            if(params->activeBlock[blockIndex] > -1)
+            {
+               targetIndex=0;
+               memset(targetOverlap[tid], 0, BLOCK_SIZE*sizeof(bool));
+               for(z=targetIndex_start_z; z<targetIndex_end_z; z++)
+               {
+                  if(-1<z && z<target->nz)
+                  {
+                     index = z*target->nx*target->ny;
+                     targetPtr_Z = &targetPtr[index];
+                     maskPtr_Z=&mask[index];
+                     for(y=targetIndex_start_y; y<targetIndex_end_y; y++)
+                     {
+                        if(-1<y && y<target->ny)
+                        {
+                           index = y*target->nx+targetIndex_start_x;
+                           targetPtr_XYZ = &targetPtr_Z[index];
+                           maskPtr_XYZ=&maskPtr_Z[index];
+                           for(x=targetIndex_start_x; x<targetIndex_end_x; x++)
+                           {
+                              if(-1<x && x<target->nx)
+                              {
+                                 value = *targetPtr_XYZ;
+                                 if(value==value && *maskPtr_XYZ>-1)
+                                 {
+                                    targetValues[tid][targetIndex]=value;
+                                    targetOverlap[tid][targetIndex]=1;
+                                 }
+                              }
+                              targetPtr_XYZ++;
+                              maskPtr_XYZ++;
+                              targetIndex++;
+                           }
+                        }
+                        else targetIndex+=BLOCK_WIDTH;
+                     }
+                  }
+                  else targetIndex+=BLOCK_WIDTH*BLOCK_WIDTH;
+               }
+               bestCC=0.0;
+               bestDisplacement[0] = std::numeric_limits<float>::quiet_NaN();
+               bestDisplacement[1] = 0.f;
+               bestDisplacement[2] = 0.f;
+
+               // iteration over the result blocks
+               for(n=-OVERLAP_SIZE; n<=OVERLAP_SIZE; n+=params->stepSize)
+               {
+                  resultIndex_start_z=targetIndex_start_z+n;
+                  resultIndex_end_z=resultIndex_start_z+BLOCK_WIDTH;
+                  for(m=-OVERLAP_SIZE; m<=OVERLAP_SIZE; m+=params->stepSize)
+                  {
+                     resultIndex_start_y=targetIndex_start_y+m;
+                     resultIndex_end_y=resultIndex_start_y+BLOCK_WIDTH;
+                     for(l=-OVERLAP_SIZE; l<=OVERLAP_SIZE; l+=params->stepSize)
+                     {
+                        resultIndex_start_x=targetIndex_start_x+l;
+                        resultIndex_end_x=resultIndex_start_x+BLOCK_WIDTH;
+                        resultIndex=0;
+                        memset(resultOverlap[tid], 0, BLOCK_SIZE*sizeof(bool));
+                        for(z=resultIndex_start_z; z<resultIndex_end_z; z++)
+                        {
+                           if(-1<z && z<result->nz)
+                           {
+                              index = z*result->nx*result->ny;
+                              resultPtr_Z = &resultPtr[index];
+                              int *maskPtr_Z = &mask[index];
+                              for(y=resultIndex_start_y; y<resultIndex_end_y; y++)
+                              {
+                                 if(-1<y && y<result->ny)
+                                 {
+                                    index=y*result->nx+resultIndex_start_x;
+                                    resultPtr_XYZ = &resultPtr_Z[index];
+                                    int *maskPtr_XYZ=&maskPtr_Z[index];
+                                    for(x=resultIndex_start_x; x<resultIndex_end_x; x++)
+                                    {
+                                       if(-1<x && x<result->nx)
+                                       {
+                                          value = *resultPtr_XYZ;
+                                          if(value==value && *maskPtr_XYZ>-1)
+                                          {
+                                             resultValues[tid][resultIndex]=value;
+                                             resultOverlap[tid][resultIndex]=1;
+                                          }
+                                       }
+                                       resultPtr_XYZ++;
+                                       resultIndex++;
+                                       maskPtr_XYZ++;
+                                    }
+                                 }
+                                 else resultIndex+=BLOCK_WIDTH;
+                              }
+                           }
+                           else resultIndex+=BLOCK_WIDTH*BLOCK_WIDTH;
+                        }
+                        targetMean=0.0;
+                        resultMean=0.0;
+                        voxelNumber=0.0;
+                        for(int a=0; a<BLOCK_SIZE; a++)
+                        {
+                           if(targetOverlap[tid][a] && resultOverlap[tid][a])
+                           {
+                              targetMean += targetValues[tid][a];
+                              resultMean += resultValues[tid][a];
+                              voxelNumber++;
+                           }
+                        }
+
+                        if(voxelNumber>BLOCK_SIZE/2)
+                        {
+                           targetMean /= voxelNumber;
+                           resultMean /= voxelNumber;
+
+                           targetVar=0.0;
+                           resultVar=0.0;
+                           localCC=0.0;
+
+                           for(int a=0; a<BLOCK_SIZE; a++)
+                           {
+                              if(targetOverlap[tid][a] && resultOverlap[tid][a])
+                              {
+                                 targetTemp=(targetValues[tid][a]-targetMean);
+                                 resultTemp=(resultValues[tid][a]-resultMean);
+                                 targetVar += (targetTemp)*(targetTemp);
+                                 resultVar += (resultTemp)*(resultTemp);
+                                 localCC += (targetTemp)*(resultTemp);
+                              }
+                           }
+
+                           localCC = fabs(localCC/sqrt(targetVar*resultVar));
+
+                           if(localCC>bestCC)
+                           {
+                              bestCC=localCC;
+                              bestDisplacement[0] = (float)l;
+                              bestDisplacement[1] = (float)m;
+                              bestDisplacement[2] = (float)n;
+                           }
+                        }
+                     }
+                  }
+               }
+               if(bestDisplacement[0]==bestDisplacement[0])
+               {
+                  targetPosition_temp[0] = (float)(i*BLOCK_WIDTH);
+                  targetPosition_temp[1] = (float)(j*BLOCK_WIDTH);
+                  targetPosition_temp[2] = (float)(k*BLOCK_WIDTH);
+
+                  bestDisplacement[0] += targetPosition_temp[0];
+                  bestDisplacement[1] += targetPosition_temp[1];
+                  bestDisplacement[2] += targetPosition_temp[2];
+
+                  reg_mat44_mul(targetMatrix_xyz, targetPosition_temp, tempPosition);
+>>>>>>> 50d4431ddbf373d01262eea7f00bb06022647c8f
 #if defined (_OPENMP)
 						z=3*params->activeBlock[blockIndex];
 						currentTargetPosition[ z ] = tempPosition[0];

@@ -15,9 +15,67 @@
 #include "_reg_resampling.h"
 #include "_reg_maths.h"
 
+#define SINC_KERNEL_RADIUS 3
+#define SINC_KERNEL_SIZE SINC_KERNEL_RADIUS*2
+
 /* *************************************************************** */
-template <class FieldTYPE>
-void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *basis)
+void interpWindowedSincKernel(double relative, double *basis)
+{
+   if(relative<0.0) relative=0.0; //reg_rounding error
+   int j=0;
+   double sum=0.;
+   for(int i=-SINC_KERNEL_RADIUS; i<SINC_KERNEL_RADIUS; ++i)
+   {
+      double x=relative-static_cast<double>(i);
+      if(x==0.0)
+         basis[j]=1.0;
+      else if(fabs(x)>=static_cast<double>(SINC_KERNEL_RADIUS))
+         basis[j]=0;
+      else{
+         double pi_x=M_PI*x;
+         basis[j]=static_cast<double>(SINC_KERNEL_RADIUS) *
+               sin(pi_x) *
+               sin(pi_x/static_cast<double>(SINC_KERNEL_RADIUS)) /
+               (pi_x*pi_x);
+      }
+      sum+=basis[j];
+      j++;
+   }
+   for(int i=0;i<SINC_KERNEL_SIZE;++i)
+      basis[i]/=sum;
+}
+/* *************************************************************** */
+/* *************************************************************** */
+void interpCubicSplineKernel(double relative, double *basis)
+{
+   if(relative<0.0) relative=0.0; //reg_rounding error
+   double FF= relative*relative;
+   basis[0] = (relative * ((2.0-relative)*relative - 1.0))/2.0;
+   basis[1] = (FF * (3.0*relative-5.0) + 2.0)/2.0;
+   basis[2] = (relative * ((4.0-3.0*relative)*relative + 1.0))/2.0;
+   basis[3] = (relative-1.0) * FF/2.0;
+}
+/* *************************************************************** */
+void interpCubicSplineKernel(double relative, double *basis, double *derivative)
+{
+   interpCubicSplineKernel(relative,basis);
+   if(relative<0.0) relative=0.0; //reg_rounding error
+   double FF= relative*relative;
+   derivative[0] = (4.0*relative - 3.0*FF - 1.0)/2.0;
+   derivative[1] = (9.0*relative - 10.0) * relative/2.0;
+   derivative[2] = (8.0*relative - 9.0*FF + 1)/2.0;
+   derivative[3] = (3.0*relative - 2.0) * relative/2.0;
+}
+/* *************************************************************** */
+/* *************************************************************** */
+void interpLinearKernel(double relative, double *basis)
+{
+   if(relative<0.0) relative=0.0; //reg_rounding error
+   basis[1]=relative;
+   basis[0]=1.0-relative;
+}
+/* *************************************************************** */
+void interpLinearKernel(double relative, double *basis, double *derivative)
 {
 	if (ratio < 0.0) ratio = 0.0; //reg_rounding error
 	FieldTYPE FF = ratio*ratio;
@@ -27,8 +85,8 @@ void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *basis)
 	basis[3] = (FieldTYPE)((ratio - 1.0) * FF / 2.0);
 }
 /* *************************************************************** */
-template <class FieldTYPE>
-void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *basis, FieldTYPE *derivative)
+/* *************************************************************** */
+void interpNearestNeighKernel(double relative, double *basis)
 {
 	interpolantCubicSpline<FieldTYPE>(ratio, basis);
 	if (ratio < 0.0) ratio = 0.0; //reg_rounding error
@@ -176,7 +234,7 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
 			// let's reorient each tensor based on the rigid component of the local warping
 			/* As the tensor has 6 unique components that we need to worry about, read them out
 			for the warped image. */
-
+         // CAUTION: Here the tensor is assumed to be encoding in lower triangular order
 			DTYPE *firstWarpVox = static_cast<DTYPE *>(inputImage->data);
 			DTYPE *inputIntensityXX = &firstWarpVox[voxelNumber*(dtIndicies[0] + inputImage->nt*u)];
 			DTYPE *inputIntensityXY = &firstWarpVox[voxelNumber*(dtIndicies[1] + inputImage->nt*u)];
@@ -495,6 +553,31 @@ void CubicSplineResampleImage2D(nifti_image *floatingImage,
 
 		FieldTYPE xBasis[4], yBasis[4], relative;
 		int a, b, Y, previous[2];
+      int kernel_size;
+      int kernel_offset=0;
+      void (*kernelCompFctPtr)(double,double *);
+      switch(kernel){
+      case 0:
+         kernel_size=2;
+         kernelCompFctPtr=&interpNearestNeighKernel;
+         kernel_offset=0;
+         break; // nereast-neighboor interpolation
+      case 1:
+         kernel_size=2;
+         kernelCompFctPtr=&interpLinearKernel;
+         kernel_offset=0;
+         break; // linear interpolation
+      case 4:
+         kernel_size=SINC_KERNEL_SIZE;
+         kernelCompFctPtr=&interpWindowedSincKernel;
+         kernel_offset=SINC_KERNEL_RADIUS;
+         break; // sinc interpolation
+      default:
+         kernel_size=4;
+         kernelCompFctPtr=&interpCubicSplineKernel;
+         kernel_offset=1;
+         break; // cubic spline interpolation
+      }
 
 		SourceTYPE *yPointer, *xyPointer;
 		FieldTYPE xTempNewValue, intensity, world[2], position[2];
@@ -513,6 +596,9 @@ void CubicSplineResampleImage2D(nifti_image *floatingImage,
 
 			if ((maskPtr[index]) > -1)
 			{
+            world[0]=static_cast<FieldTYPE>(deformationFieldPtrX[index]);
+            world[1]=static_cast<FieldTYPE>(deformationFieldPtrY[index]);
+            world[2]=0;
 
 				world[0] = (FieldTYPE)deformationFieldPtrX[index];
 				world[1] = (FieldTYPE)deformationFieldPtrY[index];
@@ -1130,19 +1216,19 @@ void NearestNeighborResampleImage2D(nifti_image *floatingImage,
 }
 /* *************************************************************** */
 
-/** This function resample a source image into the referential
+/** This function resample a floating image into the referential
  * of a reference image by applying an affine transformation and
  * a deformation field. The affine transformation has to be in
  * real coordinate and the deformation field is in mm in the space
- * of the target image.
+ * of the reference image.
  * interp can be either 0, 1 or 3 meaning nearest neighbor, linear
  * or cubic spline interpolation.
- * every voxel which is not fully in the source image takes the
+ * every voxel which is not fully in the floating image takes the
  * backgreg_round value. The dtIndicies are an array of size 6
  * that provides the position of the DT components (if there are any)
  * these values are set to -1 if there are not
  */
-template <class FieldTYPE, class SourceTYPE>
+template <class FieldTYPE, class FloatingTYPE>
 void reg_resampleImage2(nifti_image *floatingImage,
 	nifti_image *warpedImage,
 	nifti_image *deformationFieldImage,
@@ -1254,7 +1340,6 @@ void reg_resampleImage(nifti_image *floatingImage,
 	for (int i = 0; i < 6; ++i) dtIndicies[i] = -1;
 	if (dti_timepoint != NULL)
 	{
-
 		if (jacMat == NULL)
 		{
 			printf("[NiftyReg ERROR] reg_resampleImage\tDTI resampling\n");
@@ -1664,18 +1749,18 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
 			if (iProgressStep % progressUnit == 0)
 				progressXML(100 * iProgressStep / nProgressSteps, "Performing Bilinear Gradient Resampling...");
 
-			// Increment the progress counter
-			iProgressStep++;
+         // Increment the progress counter
+         iProgressStep++;
 #endif
-		} // x
-	} // y
+      } // x
+   } // y
 }
 /* *************************************************************** */
 template <class DTYPE>
 void reg_trilinearResampleGradient(nifti_image *floatingImage,
-	nifti_image *warpedImage,
-	nifti_image *deformationField,
-	float paddingValue)
+                                   nifti_image *warpedImage,
+                                   nifti_image *deformationField,
+                                   float paddingValue)
 {
 	size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
 	size_t warpedVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny*warpedImage->nz;
@@ -1918,73 +2003,73 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
 				++warpedIndex;
 
 #ifndef _OPENMP
-				// Announce the progress via CLI
-				if (iProgressStep % progressUnit == 0)
-					progressXML(100 * iProgressStep / nProgressSteps, "Performing Trilinear Gradient Resampling...");
+            // Announce the progress via CLI
+            if (iProgressStep % progressUnit == 0)
+               progressXML(100 * iProgressStep / nProgressSteps, "Performing Trilinear Gradient Resampling...");
 
-				// Increment the progress counter
-				iProgressStep++;
+            // Increment the progress counter
+            iProgressStep++;
 #endif
-			} // x
-		} // y
-	} // z
+         } // x
+      } // y
+   } // z
 }
 /* *************************************************************** */
 void reg_resampleGradient(nifti_image *floatingImage,
-	nifti_image *warpedImage,
-	nifti_image *deformationField,
-	int interp,
-	float paddingValue)
+                          nifti_image *warpedImage,
+                          nifti_image *deformationField,
+                          int interp,
+                          float paddingValue)
 {
-	interp = interp; // to avoid a warning - need to add the spline interpolation
-	if (floatingImage->datatype != warpedImage->datatype ||
-		floatingImage->datatype != deformationField->datatype)
-	{
-		fprintf(stderr, "[NiftyReg ERROR] reg_resampleGradient - Input images are expected to have the same type\n");
-		reg_exit(1);
-	}
-	switch (floatingImage->datatype)
-	{
-	case NIFTI_TYPE_FLOAT32:
-		if (warpedImage->nz > 1)
-		{
-			reg_trilinearResampleGradient<float>(floatingImage,
-				warpedImage,
-				deformationField,
-				paddingValue);
-		}
-		else
-		{
-			reg_bilinearResampleGradient<float>(floatingImage,
-				warpedImage,
-				deformationField,
-				paddingValue);
-		}
-		break;
-	case NIFTI_TYPE_FLOAT64:
-		if (warpedImage->nz > 1)
-		{
-			reg_trilinearResampleGradient<double>(floatingImage,
-				warpedImage,
-				deformationField,
-				paddingValue);
-		}
-		else
-		{
-			reg_bilinearResampleGradient<double>(floatingImage,
-				warpedImage,
-				deformationField,
-				paddingValue);
-		}
-		break;
-	default:
-		fprintf(stderr, "[NiftyReg ERROR] reg_resampleGradient - Only single and double floating precision are supported\n");
-		reg_exit(1);
-	}
+   interp=interp; // to avoid a warning - need to add the spline interpolation
+   if(floatingImage->datatype!=warpedImage->datatype ||
+         floatingImage->datatype!=deformationField->datatype)
+   {
+      fprintf(stderr, "[NiftyReg ERROR] reg_resampleGradient - Input images are expected to have the same type\n");
+      reg_exit(1);
+   }
+   switch(floatingImage->datatype)
+   {
+   case NIFTI_TYPE_FLOAT32:
+      if(warpedImage->nz>1)
+      {
+         reg_trilinearResampleGradient<float>(floatingImage,
+                                              warpedImage,
+                                              deformationField,
+                                              paddingValue);
+      }
+      else
+      {
+         reg_bilinearResampleGradient<float>(floatingImage,
+                                             warpedImage,
+                                             deformationField,
+                                             paddingValue);
+      }
+      break;
+   case NIFTI_TYPE_FLOAT64:
+      if(warpedImage->nz>1)
+      {
+         reg_trilinearResampleGradient<double>(floatingImage,
+                                               warpedImage,
+                                               deformationField,
+                                               paddingValue);
+      }
+      else
+      {
+         reg_bilinearResampleGradient<double>(floatingImage,
+                                              warpedImage,
+                                              deformationField,
+                                              paddingValue);
+      }
+      break;
+   default:
+      fprintf(stderr, "[NiftyReg ERROR] reg_resampleGradient - Only single and double floating precision are supported\n");
+      reg_exit(1);
+   }
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template<class SourceTYPE, class GradientTYPE, class FieldTYPE>
+template<class FloatingTYPE, class GradientTYPE, class FieldTYPE>
 void TrilinearImageGradient(nifti_image *floatingImage,
 	nifti_image *deformationField,
 	nifti_image *resultGradientImage,
@@ -2192,7 +2277,7 @@ void TrilinearImageGradient(nifti_image *floatingImage,
 }
 }
 /* *************************************************************** */
-template<class SourceTYPE, class GradientTYPE, class FieldTYPE>
+template<class FloatingTYPE, class GradientTYPE, class FieldTYPE>
 void BilinearImageGradient(nifti_image *floatingImage,
 	nifti_image *deformationField,
 	nifti_image *resultGradientImage,
@@ -2338,7 +2423,7 @@ void BilinearImageGradient(nifti_image *floatingImage,
 }
 }
 /* *************************************************************** */
-template<class SourceTYPE, class GradientTYPE, class FieldTYPE>
+template<class FloatingTYPE, class GradientTYPE, class FieldTYPE>
 void CubicSplineImageGradient3D(nifti_image *floatingImage,
 	nifti_image *deformationField,
 	nifti_image *resultGradientImage,
@@ -2516,7 +2601,7 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
 }
 }
 /* *************************************************************** */
-template<class SourceTYPE, class GradientTYPE, class FieldTYPE>
+template<class FloatingTYPE, class GradientTYPE, class FieldTYPE>
 void CubicSplineImageGradient2D(nifti_image *floatingImage,
 	nifti_image *deformationField,
 	nifti_image *resultGradientImage,
@@ -2655,7 +2740,7 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
 }
 }
 /* *************************************************************** */
-template <class FieldTYPE, class SourceTYPE, class GradientTYPE>
+template <class FieldTYPE, class FloatingTYPE, class GradientTYPE>
 void reg_getImageGradient3(nifti_image *floatingImage,
 	nifti_image *resultGradientImage,
 	nifti_image *deformationField,
@@ -2729,7 +2814,7 @@ void reg_getImageGradient3(nifti_image *floatingImage,
 		);
 }
 /* *************************************************************** */
-template <class FieldTYPE, class SourceTYPE>
+template <class FieldTYPE, class FloatingTYPE>
 void reg_getImageGradient2(nifti_image *floatingImage,
 	nifti_image *resultGradientImage,
 	nifti_image *deformationField,
