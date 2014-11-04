@@ -44,23 +44,23 @@ void reg_mat44_logm_cuda(float* mat) {
 template <class DTYPE>
 __device__ __inline__ void reg_mat44_mul_cuda(DTYPE const* mat, DTYPE const* in, DTYPE *out) {
 	out[0] = mat[0 * 4 + 0] * in[0] +
-		mat[0 * 4 + 1] * in[1] +
-		mat[0 * 4 + 2] * in[2] +
-		mat[0 * 4 + 3];
+			 mat[0 * 4 + 1] * in[1] +
+			 mat[0 * 4 + 2] * in[2] +
+			 mat[0 * 4 + 3];
 	out[1] = mat[1 * 4 + 0] * in[0] +
-		mat[1 * 4 + 1] * in[1] +
-		mat[1 * 4 + 2] * in[2] +
-		mat[1 * 4 + 3];
+			 mat[1 * 4 + 1] * in[1] +
+			 mat[1 * 4 + 2] * in[2] +
+			 mat[1 * 4 + 3];
 	out[2] = mat[2 * 4 + 0] * in[0] +
-		mat[2 * 4 + 1] * in[1] +
-		mat[2 * 4 + 2] * in[2] +
-		mat[2 * 4 + 3];
+			 mat[2 * 4 + 1] * in[1] +
+			 mat[2 * 4 + 2] * in[2] +
+			 mat[2 * 4 + 3];
 	return;
 }
 
 
 __device__ __inline__ int cuda_reg_floor(float a) {
-	return a > 0 ? (int)a : (int)(a - 1);
+	return (int)(floor(a));
 }
 
 template <class FieldTYPE>
@@ -251,6 +251,8 @@ __global__ void TrilinearResampleImage(float *floatingImage, float *deformationF
 
 	int *maskPtr = &mask[0];
 
+	bool flag = threadIdx.x==775 && blockIdx.x==2;//temp code
+
 	// The resampling scheme is applied along each time
 
 	long index = blockIdx.x*blockDim.x + threadIdx.x;
@@ -285,6 +287,8 @@ __global__ void TrilinearResampleImage(float *floatingImage, float *deformationF
 				previous[0] = cuda_reg_floor(position[0]);
 				previous[1] = cuda_reg_floor(position[1]);
 				previous[2] = cuda_reg_floor(position[2]);
+				if (flag) printf(" t: %d %d:%d:%d \n",t, previous[0], previous[1], previous[2]);
+				if (flag) printf("idx: %d txvn: %lu - %lu \n", previous[2]*fi_xyz.x*fi_xyz.y + previous[1]*fi_xyz.x + previous[0], (unsigned long)(t*voxelNumber.y), voxelNumber.y);
 
 				// basis values along the x axis
 				relative = position[0] - previous[0];
@@ -311,10 +315,12 @@ __global__ void TrilinearResampleImage(float *floatingImage, float *deformationF
 								Y = previous[1] + b;
 								if (Y>-1 && Y < fi_xyz.y) {
 									xyzPointer = &zPointer[Y*fi_xyz.x + previous[0]];
-									xTempNewValue = 0.0;
+									xTempNewValue = 0.0f;
 									for (a = 0; a<2; a++) {
 										X = previous[0] + a;
 										if (X>-1 && X < fi_xyz.x) {
+											if (flag) printf("idx: %d\n", Y*fi_xyz.x + previous[0]);
+//											if (flag) printf("ptr: %f\n", *xyzPointer);
 											xTempNewValue += *xyzPointer * xBasis[a];
 										} // X
 										else xTempNewValue += paddingValue * xBasis[a];
@@ -335,11 +341,11 @@ __global__ void TrilinearResampleImage(float *floatingImage, float *deformationF
 					for (c = 0; c < 2; c++) {
 						Z = previous[2] + c;
 						zPointer = &sourceIntensity[Z*fi_xyz.x*fi_xyz.y];
-						yTempNewValue = 0.0;
+						yTempNewValue = 0.0f;
 						for (b = 0; b < 2; b++) {
 							Y = previous[1] + b;
 							xyzPointer = &zPointer[Y*fi_xyz.x + previous[0]];
-							xTempNewValue = 0.0;
+							xTempNewValue = 0.0f;
 							for (a = 0; a < 2; a++) {
 								X = previous[0] + a;
 								xTempNewValue += *xyzPointer * xBasis[a];
@@ -871,7 +877,7 @@ void runKernel(nifti_image *floatingImage, nifti_image *warpedImage, nifti_image
 	cudaDeviceProp  prop;
 	cudaGetDeviceProperties(&prop, 0);
 	unsigned int maxThreads = prop.maxThreadsDim[0];
-	unsigned int maxBlocks = prop.maxThreadsDim[0];
+	unsigned int maxBlocks = prop.maxGridSize[0];
 	unsigned int blocks = (targetVoxelNumber % maxThreads) ? (targetVoxelNumber / maxThreads) + 1 : targetVoxelNumber / maxThreads;
 	blocks = min1(blocks, maxBlocks);
 

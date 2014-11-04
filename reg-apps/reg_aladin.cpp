@@ -129,6 +129,7 @@ int main(int argc, char **argv)
    int levelsToPerform=std::numeric_limits<int>::max();
    int affineFlag=1;
    int rigidFlag=1;
+   unsigned int platformFlag = 0;
    int blockPercentage=50;
    float inlierLts=50.0f;
    int alignCentre=1;
@@ -290,6 +291,17 @@ int main(int argc, char **argv)
 	  {
 		 verbose=false;
 	  }
+	  else if(strcmp(argv[i], "-platf")==0 || strcmp(argv[i], "--platf")==0)
+	  {
+		  const int value=atoi(argv[++i]);
+		  printf("val: %d\n", value);
+		 		 if(value<0 || value>2){
+		 			reg_print_msg_error("The platform argument is expected to be between 0 and 2 | 0+CPU, 1=CUDA 2=OPENCL");
+		 			return EXIT_FAILURE;
+		 		 }
+	  		 platformFlag=value;
+	  }
+
 #if defined (_OPENMP)
 	  else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
 	  {
@@ -451,6 +463,7 @@ int main(int argc, char **argv)
    REG->SetBlockPercentage(blockPercentage);
    REG->SetInlierLts(inlierLts);
    REG->SetInterpolation(interpolation);
+   REG->setPlatformCode(platformFlag);
 
    if (referenceLowerThr != referenceUpperThr)
    {

@@ -10,6 +10,7 @@ CudaContext::~CudaContext(){
 void CudaContext::allocateCuPtrs(){
 	//cudaDeviceReset();
 	cudaCommon_allocateArrayToDevice<int>(&mask_d, referenceDims);
+	std::cout<<"Allocating: "<<nVoxels<<std::endl;
 	cudaCommon_allocateArrayToDevice<float>(&referenceImageArray_d, referenceDims);
 	cudaCommon_allocateArrayToDevice<float>(&warpedImageArray_d, referenceDims);
 	cudaCommon_allocateArrayToDevice<float>(&deformationFieldArray_d, CurrentDeformationField->nvox);

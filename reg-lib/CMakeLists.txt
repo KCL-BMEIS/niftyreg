@@ -352,7 +352,7 @@ install(TARGETS ${NAME}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   )
-install(FILES ${NAME}.h ${NAME}_sym.h ${NAME}.cpp ${NAME}_sym.cpp _reg_macros.h  CLContext.h CudaContext.h Context.h Platform.h  CPUPlatform.h Kernel.h KernelImpl.h KernelFactory.h  CPUKernelFactory.h Kernels.h   CPUKernels.h   DESTINATION include)
+install(FILES ${NAME}.h ${NAME}_sym.h ${NAME}.cpp ${NAME}_sym.cpp _reg_macros.h  CLContext.h CudaContext.h Context.h Platform.h  CPUPlatform.h Kernel.h KernelImpl.h KernelFactory.h  CPUKernelFactory.h kernels.h   CPUKernels.h   DESTINATION include)
 
 #-----------------------------------------------------------------------------
 ## BUILD THE TPS LIBRARY CPU

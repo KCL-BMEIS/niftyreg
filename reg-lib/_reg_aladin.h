@@ -68,7 +68,7 @@ protected:
 	int InlierLts;
 	_reg_blockMatchingParam *blockMatchingParams;
 
-	unsigned int platformCode;
+	int platformCode;
 
 	bool AlignCentre;
 
@@ -145,6 +145,10 @@ public:
 	}
 
 	void SetInputTransform(const char *filename);
+	void setPlatformCode(const  int platformCodeIn){
+		platformCode = platformCodeIn;
+		std::cout<<"1. code: "<<platformCode<<std::endl;
+	}
 	mat44* GetInputTransform()
 	{
 		return this->InputTransform;
@@ -158,6 +162,8 @@ public:
 
 	SetMacro(MaxIterations, unsigned int);
 	GetMacro(MaxIterations, unsigned int);
+
+
 
 	SetMacro(NumberOfLevels, unsigned int);
 	GetMacro(NumberOfLevels, unsigned int);

@@ -169,7 +169,9 @@ void reg_aladin_sym<T>::GetWarpedImage(int interp)
 	reg_aladin<T>::GetWarpedImage(interp);
 	this->GetBackwardDeformationField();
 	//TODO: This needs correction, otherwise we are transforming an image that has already been warped
+	std::cout<<"++++++++++++++++++++++START+++++++++++++++++++++++++++++++++++++++++++++++++++"<<std::endl;
 	bResamplingKernel->castTo<ResampleImageKernel>()->execute(interp, 0);
+	std::cout<<"+++++++++++++++++++++++END++++++++++++++++++++++++++++++++++++++++++++++++++"<<std::endl;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>

@@ -58,14 +58,8 @@ template <class T> reg_aladin<T>::reg_aladin()
 	this->funcProgressCallback = NULL;
 	this->paramsProgressCallback = NULL;
 
-	this->platformCode = 1;
 
-	if (platformCode == 0)
-		this->platform = new CPUPlatform();
-	else if (platformCode == 1)
-		this->platform = new CudaPlatform();
-	else
-		this->platform = new CLPlatform();
+
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T> reg_aladin<T>::~reg_aladin()
@@ -217,6 +211,14 @@ void reg_aladin<T>::InitialiseRegistration()
 #ifndef NDEBUG
 	printf("[NiftyReg DEBUG] reg_aladin::InitialiseRegistration() called\n");
 #endif
+
+	std::cout<<"code: "<<platformCode<<std::endl;
+		if (platformCode == 0)
+			this->platform = new CPUPlatform();
+		else if (platformCode == 1)
+			this->platform = new CudaPlatform();
+		else
+			this->platform = new CLPlatform();
 
 	convolutionKernel = platform->createKernel(ConvolutionKernel::Name(), NULL);
 	this->Print();
@@ -485,7 +487,6 @@ void reg_aladin<T>::Run()
 		}
 
 		/* initialise the block matching */
-#define NDEBUG
 
 
 #ifdef NDEBUG
