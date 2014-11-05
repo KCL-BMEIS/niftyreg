@@ -118,10 +118,10 @@ void initialise_block_matching_method(nifti_image * referenceImage,
  * @param mask Maks array where only voxel defined as active are considered
  */
 extern "C++"
-void block_matching_method(	nifti_image * referenceImage,
-                              nifti_image * warpedImage,
-                              _reg_blockMatchingParam *params,
-                              int *mask);
+void block_matching_method(nifti_image * referenceImage,
+                           nifti_image * warpedImage,
+                           _reg_blockMatchingParam *params,
+                           int *mask);
 
 /** @brief Apply the given affine transformation to a point
  * @todo I should remove this function as it is redondant

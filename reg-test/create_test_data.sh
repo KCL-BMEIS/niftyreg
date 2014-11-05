@@ -113,11 +113,11 @@ copy_compress ${input_ref3D} ${refImg3D} ${TEMPFOLDER}/niftyreg-git_test
 copy_compress ${input_flo3D} ${floImg3D} ${TEMPFOLDER}/niftyreg-git_test
 
 # Checkout the code
-# git clone git://git.code.sf.net/p/niftyreg/git ${TEMPFOLDER}/niftyreg-git
-# cd ${TEMPFOLDER}/niftyreg-git
-# git checkout -b $5
+git clone git://git.code.sf.net/p/niftyreg/git ${TEMPFOLDER}/niftyreg-git
+cd ${TEMPFOLDER}/niftyreg-git
+git checkout -b $5
 
-NR_OPENMP=ON
+NR_OPENMP=OFF
 NR_SSE=ON
 NR_BUILD=Debug
 
@@ -131,8 +131,7 @@ cmake \
 	-D USE_OPENMP=${NR_OPENMP} \
 	-D USE_SSE=${NR_SSE} \
 	-D USE_CUDA=OFF \
-	/Users/mmodat/Dropbox/niftyreg
-# 	${TEMPFOLDER}/niftyreg-git
+	${TEMPFOLDER}/niftyreg-git
 make
 
 # Define some 2D variables
@@ -221,8 +220,10 @@ echo "CMAKE_BUILD_TYPE set to ${NR_BUILD}" >> README.txt
 echo "Git hash key ${5}" >> README.txt
 echo "os ${OS}" >> README.txt
 echo "`cmake --version`" >> README.txt
-echo "C compiler: `cat CMakeCache.txt | grep CMAKE_C_COMPILER | awk -F = '{print $2}'` --version | head -n 1" >> README.txt
-echo "CXX compiler: `cat CMakeCache.txt | grep CMAKE_CXX_COMPILER | awk -F = '{print $2}'` --version | head -n 1" >> README.txt
+c_compiler=`cat ${TEMPFOLDER}/niftyreg-git_build/CMakeCache.txt | grep CMAKE_C_COMPILER | awk -F = '{print $2}'`
+echo "C compiler: `${c_compiler} --version | head -n 1`" >> README.txt
+cxx_compiler=`cat ${TEMPFOLDER}/niftyreg-git_build/CMakeCache.txt | grep CMAKE_CXX_COMPILER | awk -F = '{print $2}'`
+echo "CXX compiler: `${cxx_compiler} --version | head -n 1`" >> README.txt
 
 
 tar czvf ${input_output}/niftyreg_test_data.tar.gz \
@@ -244,5 +245,3 @@ cd ${CURRENTDIR}
 rm -rf ${TEMPFOLDER}/niftyreg-git
 rm -rf ${TEMPFOLDER}/niftyreg-git_test
 rm -rf ${TEMPFOLDER}/niftyreg-git_build
-
-echo "here"

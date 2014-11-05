@@ -556,6 +556,24 @@ void block_matching_method3D(nifti_image * target,
    DTYPE resultValues[16][BLOCK_SIZE];
    bool targetOverlap[16][BLOCK_SIZE];
    bool resultOverlap[16][BLOCK_SIZE];
+   float **currentTargetPosition =
+         (float **)malloc(threadNumber*sizeof(float *));
+   float **currentResultPosition =
+         (float **)malloc(threadNumber*sizeof(float *));
+   int blockPerThread = params->activeBlockNumber;
+   for(i=0; i<threadNumber; ++i)
+   {
+      currentTargetPosition[i] =
+            (float *)malloc(3*blockPerThread*sizeof(float));
+      currentResultPosition[i] =
+            (float *)malloc(3*blockPerThread*sizeof(float));
+      for(j=0; j<3*blockPerThread; j+=3)
+      {
+         currentTargetPosition[i][j]=std::numeric_limits<float>::quiet_NaN();
+         currentResultPosition[i][j]=std::numeric_limits<float>::quiet_NaN();
+      }
+   }
+   int tidDefinedActiveBlock=0;
 #else
    DTYPE targetValues[1][BLOCK_SIZE];
    DTYPE resultValues[1][BLOCK_SIZE];
@@ -563,20 +581,17 @@ void block_matching_method3D(nifti_image * target,
    bool resultOverlap[1][BLOCK_SIZE];
 #endif
 
-#if defined (_OPENMP)
-   float *currentTargetPosition = (float *)
-                                  malloc(3*params->activeBlockNumber*sizeof(float));
-   float *currentResultPosition = (float *)
-                                  malloc(3*params->activeBlockNumber*sizeof(float));
    for(i=0; i<3*params->activeBlockNumber; i+=3)
    {
-      currentTargetPosition[i]=std::numeric_limits<float>::quiet_NaN();
-      currentResultPosition[i]=std::numeric_limits<float>::quiet_NaN();
+      params->targetPosition[i]=std::numeric_limits<float>::quiet_NaN();
+      params->resultPosition[i]=std::numeric_limits<float>::quiet_NaN();
    }
+
+#if defined (_OPENMP)
    #pragma omp parallel for default(none) \
    shared(params, target, result, targetPtr, resultPtr, mask, targetMatrix_xyz, \
           targetOverlap, resultOverlap, targetValues, resultValues, \
-          currentTargetPosition, currentResultPosition) \
+          currentTargetPosition, currentResultPosition, blockPerThread) \
    private(i, j, k, l, m, n, x, y, z, blockIndex, targetIndex, \
            index, tid, targetPtr_Z, targetPtr_XYZ, resultPtr_Z, resultPtr_XYZ, \
            maskPtr_Z, maskPtr_XYZ, value, bestCC, bestDisplacement, \
@@ -585,7 +600,8 @@ void block_matching_method3D(nifti_image * target,
            resultIndex_start_x, resultIndex_start_y, resultIndex_start_z, \
            resultIndex_end_x, resultIndex_end_y, resultIndex_end_z, \
            resultIndex, targetPosition_temp, tempPosition, targetTemp, resultTemp, \
-           targetMean, targetVar, resultMean, resultVar, voxelNumber,localCC)
+           targetMean, targetVar, resultMean, resultVar, voxelNumber,localCC) \
+   firstprivate(tidDefinedActiveBlock)
 #endif
    for(k=0; k<params->blockNumber[2]; k++)
    {
@@ -759,10 +775,10 @@ void block_matching_method3D(nifti_image * target,
 
                   reg_mat44_mul(targetMatrix_xyz, targetPosition_temp, tempPosition);
 #if defined (_OPENMP)
-                  z=3*params->activeBlock[blockIndex];
-                  currentTargetPosition[ z ] = tempPosition[0];
-                  currentTargetPosition[z+1] = tempPosition[1];
-                  currentTargetPosition[z+2] = tempPosition[2];
+                  z=3*tidDefinedActiveBlock;
+                  currentTargetPosition[tid][ z ] = tempPosition[0];
+                  currentTargetPosition[tid][z+1] = tempPosition[1];
+                  currentTargetPosition[tid][z+2] = tempPosition[2];
 #else
                   z=3*params->definedActiveBlock;
                   params->targetPosition[ z ] = tempPosition[0];
@@ -771,13 +787,18 @@ void block_matching_method3D(nifti_image * target,
 #endif
                   reg_mat44_mul(targetMatrix_xyz, bestDisplacement, tempPosition);
 #if defined (_OPENMP)
-                  currentResultPosition[ z ] = tempPosition[0];
-                  currentResultPosition[z+1] = tempPosition[1];
-                  currentResultPosition[z+2] = tempPosition[2];
+                  currentResultPosition[tid][ z ] = tempPosition[0];
+                  currentResultPosition[tid][z+1] = tempPosition[1];
+                  currentResultPosition[tid][z+2] = tempPosition[2];
 #else
                   params->resultPosition[ z ] = tempPosition[0];
                   params->resultPosition[z+1] = tempPosition[1];
                   params->resultPosition[z+2] = tempPosition[2];
+#endif
+
+#if defined (_OPENMP)
+                  tidDefinedActiveBlock++;
+#else
                   params->definedActiveBlock++;
 #endif
                }
@@ -788,20 +809,24 @@ void block_matching_method3D(nifti_image * target,
    }
 
 #if defined (_OPENMP)
-   j=0;
-   for(i=0; i<3*params->activeBlockNumber; i+=3)
+   i=0;
+   for(tid=0; tid<threadNumber; ++tid)
    {
-      if(currentTargetPosition[i]==currentTargetPosition[i])
+      for(j=0; j<blockPerThread; j+=3)
       {
-         params->targetPosition[j] = currentTargetPosition[i];
-         params->targetPosition[j+1]=currentTargetPosition[i+1];
-         params->targetPosition[j+2]=currentTargetPosition[i+2];
-         params->resultPosition[j] = currentResultPosition[i];
-         params->resultPosition[j+1]=currentResultPosition[i+1];
-         params->resultPosition[j+2]=currentResultPosition[i+2];
+         if(currentTargetPosition[tid][j]!=currentTargetPosition[tid][j])
+            break;
+         params->targetPosition[ i ] = currentTargetPosition[tid][ j ];
+         params->targetPosition[i+1] = currentTargetPosition[tid][j+1];
+         params->targetPosition[i+2] = currentTargetPosition[tid][j+2];
+         params->resultPosition[ i ] = currentResultPosition[tid][ j ];
+         params->resultPosition[i+1] = currentResultPosition[tid][j+1];
+         params->resultPosition[i+2] = currentResultPosition[tid][j+2];
          params->definedActiveBlock++;
-         j+=3;
+         i+=3;
       }
+      free(currentTargetPosition[tid]);
+      free(currentResultPosition[tid]);
    }
    free(currentTargetPosition);
    free(currentResultPosition);

@@ -75,10 +75,10 @@ bool reg_isAnImageFileName(char *name)
 /* *************************************************************** */
 template<class DTYPE>
 void reg_intensityRescale_core(nifti_image *image,
-                           int timePoint,
-                           float newMin,
-                           float newMax
-                          )
+                               int timePoint,
+                               float newMin,
+                               float newMax
+                               )
 {
    DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
    unsigned int voxelNumber = image->nx*image->ny*image->nz;
@@ -168,7 +168,7 @@ void reg_intensityRescale(nifti_image *image,
                           int timepoint,
                           float newMin,
                           float newMax
-                         )
+                          )
 {
    switch(image->datatype)
    {
@@ -290,7 +290,7 @@ template<class T,class DTYPE>
 void reg_thresholdImage2(nifti_image *image,
                          T lowThr,
                          T upThr
-                        )
+                         )
 {
    DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
    T currentMin=std::numeric_limits<T>::max();
@@ -325,7 +325,7 @@ template<class T>
 void reg_thresholdImage(nifti_image *image,
                         T lowThr,
                         T upThr
-                       )
+                        )
 {
    switch(image->datatype)
    {
@@ -545,9 +545,9 @@ void reg_tools_operationImageToImage(nifti_image *img1,
    {
    case 0:
 #if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(i) \
-      shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
+#pragma omp parallel for default(none) \
+   private(i) \
+   shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
 #endif // _OPENMP
       for(i=0; i<voxelNumber; i++)
          resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) +
@@ -556,9 +556,9 @@ void reg_tools_operationImageToImage(nifti_image *img1,
       break;
    case 1:
 #if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(i) \
-      shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
+#pragma omp parallel for default(none) \
+   private(i) \
+   shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
 #endif // _OPENMP
       for(i=0; i<voxelNumber; i++)
          resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) -
@@ -567,9 +567,9 @@ void reg_tools_operationImageToImage(nifti_image *img1,
       break;
    case 2:
 #if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(i) \
-      shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
+#pragma omp parallel for default(none) \
+   private(i) \
+   shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
 #endif // _OPENMP
       for(i=0; i<voxelNumber; i++)
          resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) *
@@ -578,9 +578,9 @@ void reg_tools_operationImageToImage(nifti_image *img1,
       break;
    case 3:
 #if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(i) \
-      shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
+#pragma omp parallel for default(none) \
+   private(i) \
+   shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
 #endif // _OPENMP
       for(i=0; i<voxelNumber; i++)
          resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) /
@@ -804,9 +804,9 @@ void reg_tools_operationValueToImage(nifti_image *img1,
    {
    case 0:
 #if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(i) \
-      shared(voxelNumber,resPtr,img1Ptr,img1,val)
+#pragma omp parallel for default(none) \
+   private(i) \
+   shared(voxelNumber,resPtr,img1Ptr,img1,val)
 #endif // _OPENMP
       for(i=0; i<voxelNumber; i++)
          resPtr[i] = (TYPE1)(((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) +
@@ -814,9 +814,9 @@ void reg_tools_operationValueToImage(nifti_image *img1,
       break;
    case 1:
 #if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(i) \
-      shared(voxelNumber,resPtr,img1Ptr,img1,val)
+#pragma omp parallel for default(none) \
+   private(i) \
+   shared(voxelNumber,resPtr,img1Ptr,img1,val)
 #endif // _OPENMP
       for(i=0; i<voxelNumber; i++)
          resPtr[i] = (TYPE1)(((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) -
@@ -824,9 +824,9 @@ void reg_tools_operationValueToImage(nifti_image *img1,
       break;
    case 2:
 #if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(i) \
-      shared(voxelNumber,resPtr,img1Ptr,img1,val)
+#pragma omp parallel for default(none) \
+   private(i) \
+   shared(voxelNumber,resPtr,img1Ptr,img1,val)
 #endif // _OPENMP
       for(i=0; i<voxelNumber; i++)
          resPtr[i] = (TYPE1)(((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) *
@@ -834,9 +834,9 @@ void reg_tools_operationValueToImage(nifti_image *img1,
       break;
    case 3:
 #if defined (NDEBUG) && defined (_OPENMP)
-      #pragma omp parallel for default(none) \
-      private(i) \
-      shared(voxelNumber,resPtr,img1Ptr,img1,val)
+#pragma omp parallel for default(none) \
+   private(i) \
+   shared(voxelNumber,resPtr,img1Ptr,img1,val)
 #endif // _OPENMP
       for(i=0; i<voxelNumber; i++)
          resPtr[i] = (TYPE1)(((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) /
@@ -1063,9 +1063,9 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
       {
          DTYPE *intensityPtr = &imagePtr[t * voxelNumber];
 #if defined (_OPENMP)
-         #pragma omp parallel for default(none) \
-         shared(densityPtr, intensityPtr, mask, nanImagePtr, voxelNumber) \
-         private(index)
+#pragma omp parallel for default(none) \
+   shared(densityPtr, intensityPtr, mask, nanImagePtr, voxelNumber) \
+   private(index)
 #endif
          for(index=0; index<voxelNumber; index++)
          {
@@ -1165,12 +1165,12 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                   float bufferDensitycur=0;
 
 #if defined (_OPENMP)
-                  #pragma omp parallel for default(none) \
-                  shared(imageDim, intensityPtr, densityPtr, radius, kernel, lineOffset, n, \
-                         planeNumber,kernelSum) \
-                  private(realIndex,currentIntensityPtr,currentDensityPtr,lineIndex,bufferIntensity, \
-                          bufferDensity,shiftPre,shiftPst,kernelPtr,kernelValue,densitySum,intensitySum, \
-                          k, bufferIntensitycur,bufferDensitycur, planeIndex)
+#pragma omp parallel for default(none) \
+   shared(imageDim, intensityPtr, densityPtr, radius, kernel, lineOffset, n, \
+   planeNumber,kernelSum) \
+   private(realIndex,currentIntensityPtr,currentDensityPtr,lineIndex,bufferIntensity, \
+   bufferDensity,shiftPre,shiftPst,kernelPtr,kernelValue,densitySum,intensitySum, \
+   k, bufferIntensitycur,bufferDensitycur, planeIndex)
 #endif // _OPENMP
                   // Loop over the different voxel
                   for(planeIndex=0; planeIndex<planeNumber; ++planeIndex)
@@ -1183,8 +1183,8 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                         break;
                      case 1:
                         realIndex = (planeIndex/imageDim[0]) *
-                                    imageDim[0]*imageDim[1] +
-                                    planeIndex%imageDim[0];
+                              imageDim[0]*imageDim[1] +
+                              planeIndex%imageDim[0];
                         break;
                      case 2:
                         realIndex = planeIndex;
@@ -1275,40 +1275,40 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
                            realIndex += lineOffset;
                         } // line convolution of mean filter
 
-//								// Compute the mean at the first point
-//								intensitySum=0;
-//								densitySum = 0;
-//								if(imageDim[n]<=radius){
-//									for(k=0;k<imageDim[n];++k){
-//										intensitySum += bufferIntensity[k];
-//										densitySum   += bufferDensity[k];
-//									}
-//								}
-//								else{
-//									for(k=0;k<=radius;++k){
-//										intensitySum += bufferIntensity[k];
-//										densitySum   += bufferDensity[k];
-//									}
-//								}
-//								intensityPtr[realIndex] = static_cast<DTYPE>(intensitySum);
-//								densityPtr[realIndex]   = static_cast<float>(densitySum);
-//								realIndex += lineOffset;
-//								// Compute the mean along 1 line from the second point onward
-//								shiftPre = 1 - radius - 1; // to be removed
-//								shiftPst = 1 + radius; // to be added
-//								for(lineIndex=1;lineIndex<imageDim[n];++lineIndex,++shiftPre,++shiftPst){
-//									if(shiftPre>=0){
-//										intensitySum -= bufferIntensity[shiftPre];
-//										densitySum   -= bufferDensity[shiftPre];
-//									}
-//									if(shiftPst<imageDim[n]){
-//										intensitySum += bufferIntensity[shiftPst];
-//										densitySum   += bufferDensity[shiftPst];
-//									}
-//									intensityPtr[realIndex] = static_cast<DTYPE>(intensitySum);
-//									densityPtr[realIndex] = static_cast<float>(densitySum);
-//									realIndex += lineOffset;
-//								} // line convolution of mean filter
+                        //								// Compute the mean at the first point
+                        //								intensitySum=0;
+                        //								densitySum = 0;
+                        //								if(imageDim[n]<=radius){
+                        //									for(k=0;k<imageDim[n];++k){
+                        //										intensitySum += bufferIntensity[k];
+                        //										densitySum   += bufferDensity[k];
+                        //									}
+                        //								}
+                        //								else{
+                        //									for(k=0;k<=radius;++k){
+                        //										intensitySum += bufferIntensity[k];
+                        //										densitySum   += bufferDensity[k];
+                        //									}
+                        //								}
+                        //								intensityPtr[realIndex] = static_cast<DTYPE>(intensitySum);
+                        //								densityPtr[realIndex]   = static_cast<float>(densitySum);
+                        //								realIndex += lineOffset;
+                        //								// Compute the mean along 1 line from the second point onward
+                        //								shiftPre = 1 - radius - 1; // to be removed
+                        //								shiftPst = 1 + radius; // to be added
+                        //								for(lineIndex=1;lineIndex<imageDim[n];++lineIndex,++shiftPre,++shiftPst){
+                        //									if(shiftPre>=0){
+                        //										intensitySum -= bufferIntensity[shiftPre];
+                        //										densitySum   -= bufferDensity[shiftPre];
+                        //									}
+                        //									if(shiftPst<imageDim[n]){
+                        //										intensitySum += bufferIntensity[shiftPst];
+                        //										densitySum   += bufferDensity[shiftPst];
+                        //									}
+                        //									intensityPtr[realIndex] = static_cast<DTYPE>(intensitySum);
+                        //									densityPtr[realIndex] = static_cast<float>(densitySum);
+                        //									realIndex += lineOffset;
+                        //								} // line convolution of mean filter
                      } // No kernel computation
                   } // pixel in starting plane
                } // radius > 0
@@ -1316,9 +1316,9 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
          } // axes
          // Normalise per timepoint
 #if defined (NDEBUG) && defined (_OPENMP)
-         #pragma omp parallel for default(none) \
-         shared(voxelNumber, intensityPtr, densityPtr, nanImagePtr) \
-         private(index)
+#pragma omp parallel for default(none) \
+   shared(voxelNumber, intensityPtr, densityPtr, nanImagePtr) \
+   private(index)
 #endif
          for(index=0; index<voxelNumber; ++index)
          {
@@ -1343,179 +1343,195 @@ void reg_tools_labelKernelConvolution_core(nifti_image *image,
                                            int *mask,
                                            bool *timePoint)
 {
-    if(image->nx>2048 || image->ny>2048 || image->nz>2048){
-        reg_print_fct_error("reg_tools_labelKernelConvolution_core");
-        reg_print_msg_error("This function does not support images with dimension > 2048");
-        reg_exit(1);
-    }
+   if(image->nx>2048 || image->ny>2048 || image->nz>2048){
+      reg_print_fct_error("reg_tools_labelKernelConvolution_core");
+      reg_print_msg_error("This function does not support images with dimension > 2048");
+      reg_exit(1);
+   }
 #ifdef WIN32
-    long index;
-    long voxelNumber = (long)image->nx*image->ny*image->nz;
+   long index;
+   long voxelNumber = (long)image->nx*image->ny*image->nz;
 #else
-    size_t index;
-    size_t voxelNumber = (size_t)image->nx*image->ny*image->nz;
+   size_t index;
+   size_t voxelNumber = (size_t)image->nx*image->ny*image->nz;
 #endif
-    DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
+   DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
 
-    bool * activeTimePoint = (bool *)calloc(image->nt*image->nu,sizeof(bool));
-    // Check if input time points and masks are NULL
-    if(timePoint==NULL)
-    {
-       // All time points are considered as active
-       for(int i=0; i<image->nt*image->nu; i++) activeTimePoint[i]=true;
-    }
-    else for(int i=0; i<image->nt*image->nu; i++) activeTimePoint[i]=timePoint[i];
+   bool * activeTimePoint = (bool *)calloc(image->nt*image->nu,sizeof(bool));
+   // Check if input time points and masks are NULL
+   if(timePoint==NULL)
+   {
+      // All time points are considered as active
+      for(int i=0; i<image->nt*image->nu; i++) activeTimePoint[i]=true;
+   }
+   else for(int i=0; i<image->nt*image->nu; i++) activeTimePoint[i]=timePoint[i];
 
-    int *currentMask=NULL;
-    if(mask==NULL)
-    {
-       currentMask=(int *)calloc(image->nx*image->ny*image->nz,sizeof(int));
-    }
-    else currentMask=mask;
+   int *currentMask=NULL;
+   if(mask==NULL)
+   {
+      currentMask=(int *)calloc(image->nx*image->ny*image->nz,sizeof(int));
+   }
+   else currentMask=mask;
 
 
-    bool *nanImagePtr = (bool *)calloc(voxelNumber, sizeof(bool));
-    DTYPE *tmpImagePtr = (DTYPE *)calloc(voxelNumber, sizeof(DTYPE));
+   bool *nanImagePtr = (bool *)calloc(voxelNumber, sizeof(bool));
+   DTYPE *tmpImagePtr = (DTYPE *)calloc(voxelNumber, sizeof(DTYPE));
 
-    typedef std::map <DTYPE, float> DataPointMap;
-    typedef std::pair <DTYPE, float> DataPointPair;
-    typedef typename std::map<DTYPE,float>::iterator DataPointMapIt;
+   typedef std::map <DTYPE, float> DataPointMap;
+   typedef std::pair <DTYPE, float> DataPointPair;
+   typedef typename std::map<DTYPE,float>::iterator DataPointMapIt;
 
-    // Loop over the dimension higher than 3
-    for(int t=0; t<image->nt*image->nu; t++)
-    {
-        if(activeTimePoint[t])
-        {
-            DTYPE *intensityPtr = &imagePtr[t * voxelNumber];
+   // Loop over the dimension higher than 3
+   for(int t=0; t<image->nt*image->nu; t++)
+   {
+      if(activeTimePoint[t])
+      {
+         DTYPE *intensityPtr = &imagePtr[t * voxelNumber];
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
-    shared(stderr,intensityPtr, currentMask, nanImagePtr, voxelNumber,varianceX,varianceY,varianceZ) \
-    private(index)
+   shared(stderr,intensityPtr, currentMask, nanImagePtr, voxelNumber,varianceX,varianceY,varianceZ) \
+   private(index)
 #endif
-            for(index=0; index<voxelNumber; index++)
-            {
-                nanImagePtr[index] = (intensityPtr[index]==intensityPtr[index])?true:false;
-                nanImagePtr[index] = (currentMask[index]>=0)?nanImagePtr[index]:false;
-            }
-            float gaussX_var=varianceX;
-            float gaussY_var=varianceY;
-            float gaussZ_var=varianceZ;
-            int index=0;
-            int currentXYZposition[3]={0};
-            int dim_array[3]= {image->nx,image->ny,image->nz};
-            int shiftdirection[3]= {1,image->nx,image->nx*image->ny};
+         for(index=0; index<voxelNumber; index++)
+         {
+            nanImagePtr[index] = (intensityPtr[index]==intensityPtr[index])?true:false;
+            nanImagePtr[index] = (currentMask[index]>=0)?nanImagePtr[index]:false;
+         }
+         float gaussX_var=varianceX;
+         float gaussY_var=varianceY;
+         float gaussZ_var=varianceZ;
+         index=0;
+         int currentXYZposition[3]={0};
+         int dim_array[3]= {image->nx,image->ny,image->nz};
+         int shiftdirection[3]= {1,image->nx,image->nx*image->ny};
 
+         int kernelXsize, kernelXshift, shiftXstart, shiftXstop;
+         int kernelYsize, kernelYshift, shiftYstart, shiftYstop;
+         int kernelZsize, kernelZshift, shiftZstart, shiftZstop;
+         int shiftx, shifty, shiftz;
+         int indexNeighbour;
+         float kernelval;
+         DTYPE maxindex;
+         double maxval;
+         DataPointMapIt location, currIterator;
+         DataPointMap tmp_lab;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-    shared(stderr,intensityPtr, mask, nanImagePtr,dim_array,shiftdirection,tmpImagePtr,gaussX_var,gaussY_var,gaussZ_var) \
-    private(currentXYZposition,index)
+   shared(stderr,intensityPtr, mask, nanImagePtr,dim_array,shiftdirection,tmpImagePtr,gaussX_var,gaussY_var,gaussZ_var) \
+   private(currentXYZposition,index, \
+   kernelXsize, kernelXshift, shiftXstart, shiftXstop, \
+   kernelYsize, kernelYshift, shiftYstart, shiftYstop, \
+   kernelZsize, kernelZshift, shiftZstart, shiftZstop, \
+   shiftx, shifty, shiftz, indexNeighbour, kernelval, \
+   maxindex, maxval, location, currIterator, tmp_lab)
 #endif
-            for(int currentZposition=0; currentZposition<dim_array[2]; currentZposition++)
+         for(int currentZposition=0; currentZposition<dim_array[2]; currentZposition++)
+         {
+            currentXYZposition[2]=currentZposition;
+            for(currentXYZposition[1]=0; currentXYZposition[1]<dim_array[1]; currentXYZposition[1]++)
             {
-                currentXYZposition[2]=currentZposition;
-                for(currentXYZposition[1]=0; currentXYZposition[1]<dim_array[1]; currentXYZposition[1]++)
-                {
-                    for(currentXYZposition[0]=0; currentXYZposition[0]<dim_array[0]; currentXYZposition[0]++)
-                    {
-                        index=currentXYZposition[0]+(currentXYZposition[1]+currentXYZposition[2]*dim_array[1])*dim_array[0];
+               for(currentXYZposition[0]=0; currentXYZposition[0]<dim_array[0]; currentXYZposition[0]++)
+               {
 
-                        // Calculate allowed kernel shifts
-                        int kernelXsize=(int)(sqrtf(gaussX_var)*6.0f) % 2 != 0 ?
-                                 (int)(sqrtf(gaussX_var)*6.0f) : (int)(sqrtf(gaussX_var)*6.0f)+1;
-                        int kernelXshift=(int)(kernelXsize/2.0f);
-                        int shiftXstart=((currentXYZposition[0]<kernelXshift)?
-                                 -currentXYZposition[0]:-kernelXshift);
-                        int shiftXstop=((currentXYZposition[0]>=(dim_array[0]-kernelXshift))?
-                                 (int)dim_array[0]-currentXYZposition[0]-1:kernelXshift);
+                  tmp_lab.clear();
+                  index=currentXYZposition[0]+(currentXYZposition[1]+currentXYZposition[2]*dim_array[1])*dim_array[0];
 
-                        int kernelYsize=(int)(sqrtf(gaussY_var)*6.0f) % 2 != 0 ?
-                                 (int)(sqrtf(gaussY_var)*6.0f) : (int)(sqrtf(gaussY_var)*6.0f)+1;
-                        int kernelYshift=(int)(kernelYsize/2.0f);
-                        int shiftYstart=((currentXYZposition[1]<kernelYshift)?
-                                 -currentXYZposition[1]:-kernelYshift);
-                        int shiftYstop=((currentXYZposition[1]>=(dim_array[1]-kernelYshift))?
-                                 (int)dim_array[1]-currentXYZposition[1]-1:kernelYshift);
+                  // Calculate allowed kernel shifts
+                  kernelXsize=(int)(sqrtf(gaussX_var)*6.0f) % 2 != 0 ?
+                           (int)(sqrtf(gaussX_var)*6.0f) : (int)(sqrtf(gaussX_var)*6.0f)+1;
+                  kernelXshift=(int)(kernelXsize/2.0f);
+                  shiftXstart=((currentXYZposition[0]<kernelXshift)?
+                           -currentXYZposition[0]:-kernelXshift);
+                  shiftXstop=((currentXYZposition[0]>=(dim_array[0]-kernelXshift))?
+                           (int)dim_array[0]-currentXYZposition[0]-1:kernelXshift);
 
-                        int kernelZsize=(int)(sqrtf(gaussZ_var)*6.0f) % 2 != 0 ?
-                                 (int)(sqrtf(gaussZ_var)*6.0f) : (int)(sqrtf(gaussZ_var)*6.0f)+1;
-                        int kernelZshift=(int)(kernelZsize/2.0f);
-                        int shiftZstart=((currentXYZposition[2]<kernelZshift)?
-                                 -currentXYZposition[2]:-kernelZshift);
-                        int shiftZstop=((currentXYZposition[2]>=(dim_array[2]-kernelZshift))?
-                                 (int)dim_array[2]-currentXYZposition[2]-1:kernelZshift);
+                  kernelYsize=(int)(sqrtf(gaussY_var)*6.0f) % 2 != 0 ?
+                           (int)(sqrtf(gaussY_var)*6.0f) : (int)(sqrtf(gaussY_var)*6.0f)+1;
+                  kernelYshift=(int)(kernelYsize/2.0f);
+                  shiftYstart=((currentXYZposition[1]<kernelYshift)?
+                           -currentXYZposition[1]:-kernelYshift);
+                  shiftYstop=((currentXYZposition[1]>=(dim_array[1]-kernelYshift))?
+                           (int)dim_array[1]-currentXYZposition[1]-1:kernelYshift);
 
-                        DataPointMap tmp_lab;
-                        if(nanImagePtr[index]!=0){
-                            for(int shiftx=shiftXstart; shiftx<=shiftXstop; shiftx++)
-                            {
-                                for(int shifty=shiftYstart; shifty<=shiftYstop; shifty++)
-                                {
-                                    for(int shiftz=shiftZstart; shiftz<=shiftZstop; shiftz++)
-                                    {
+                  kernelZsize=(int)(sqrtf(gaussZ_var)*6.0f) % 2 != 0 ?
+                           (int)(sqrtf(gaussZ_var)*6.0f) : (int)(sqrtf(gaussZ_var)*6.0f)+1;
+                  kernelZshift=(int)(kernelZsize/2.0f);
+                  shiftZstart=((currentXYZposition[2]<kernelZshift)?
+                           -currentXYZposition[2]:-kernelZshift);
+                  shiftZstop=((currentXYZposition[2]>=(dim_array[2]-kernelZshift))?
+                           (int)dim_array[2]-currentXYZposition[2]-1:kernelZshift);
 
-                                        // Data Blur
-                                        int indexNeighbour=index+(shiftx*shiftdirection[0])+
-                                              (shifty*shiftdirection[1])+(shiftz*shiftdirection[2]);
-                                        if(nanImagePtr[indexNeighbour]!=0){
-                                           float kernelval=expf((float)(-0.5f *(powf(shiftx,2)/gaussX_var
-                                                                                +powf(shifty,2)/gaussY_var
-                                                                                +powf(shiftz,2)/gaussZ_var
-                                                                                )))/
-                                                 (sqrtf(2.0f*3.14159265*powf(gaussX_var*gaussY_var*gaussZ_var, 2)));
+                  if(nanImagePtr[index]!=0){
+                     for(shiftx=shiftXstart; shiftx<=shiftXstop; shiftx++)
+                     {
+                        for(shifty=shiftYstart; shifty<=shiftYstop; shifty++)
+                        {
+                           for(shiftz=shiftZstart; shiftz<=shiftZstop; shiftz++)
+                           {
 
-                                            DataPointMapIt location=tmp_lab.find(intensityPtr[indexNeighbour]);
-                                            if(location!=tmp_lab.end())
-                                            {
-                                                location->second=location->second+kernelval;
-                                            }
-                                            else
-                                            {
-                                                tmp_lab.insert(DataPointPair(intensityPtr[indexNeighbour],kernelval));
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            DataPointMapIt currIterator = tmp_lab.begin();
-                            DTYPE maxindex=0;
-                            double maxval=-std::numeric_limits<float>::max();;
-                            while(currIterator != tmp_lab.end())
-                            {
-                                if(currIterator->second>maxval)
-                                {
-                                    maxindex=currIterator->first;
-                                    maxval=currIterator->second;
-                                }
-                                currIterator++;
-                            }
-                            tmpImagePtr[index]=maxindex;
+                              // Data Blur
+                              indexNeighbour=index+(shiftx*shiftdirection[0])+
+                                    (shifty*shiftdirection[1])+(shiftz*shiftdirection[2]);
+                              if(nanImagePtr[indexNeighbour]!=0){
+                                 kernelval=expf((float)(-0.5f *(powf(shiftx,2)/gaussX_var
+                                                                +powf(shifty,2)/gaussY_var
+                                                                +powf(shiftz,2)/gaussZ_var
+                                                                )))/
+                                       (sqrtf(2.0f*3.14159265*powf(gaussX_var*gaussY_var*gaussZ_var, 2)));
+
+                                 location=tmp_lab.find(intensityPtr[indexNeighbour]);
+                                 if(location!=tmp_lab.end())
+                                 {
+                                    location->second=location->second+kernelval;
+                                 }
+                                 else
+                                 {
+                                    tmp_lab.insert(DataPointPair(intensityPtr[indexNeighbour],kernelval));
+                                 }
+                              }
+                           }
                         }
-                        else{
-                            tmpImagePtr[index]=std::numeric_limits<DTYPE>::quiet_NaN();
+                     }
+                     currIterator = tmp_lab.begin();
+                     maxindex=0;
+                     maxval=-std::numeric_limits<float>::max();;
+                     while(currIterator != tmp_lab.end())
+                     {
+                        if(currIterator->second>maxval)
+                        {
+                           maxindex=currIterator->first;
+                           maxval=currIterator->second;
                         }
-                    }
-                }
+                        currIterator++;
+                     }
+                     tmpImagePtr[index]=maxindex;
+                  }
+                  else{
+                     tmpImagePtr[index]=std::numeric_limits<DTYPE>::quiet_NaN();
+                  }
+               }
             }
-            // Normalise per timepoint
+         }
+         // Normalise per timepoint
 #if defined (NDEBUG) && defined (_OPENMP)
 #pragma omp parallel for default(none) \
-    shared(voxelNumber, intensityPtr, nanImagePtr,tmpImagePtr) \
-    private(index)
+   shared(voxelNumber, intensityPtr, nanImagePtr,tmpImagePtr) \
+   private(index)
 #endif
-            for(index=0; index<voxelNumber; ++index)
-            {
-                if(nanImagePtr[index]==0)
-                    intensityPtr[index] = std::numeric_limits<DTYPE>::quiet_NaN();
-                else
-                    intensityPtr[index]=tmpImagePtr[index];
-            }
-        } // check if the time point is active
-    } // loop over the time points
+         for(index=0; index<voxelNumber; ++index)
+         {
+            if(nanImagePtr[index]==0)
+               intensityPtr[index] = std::numeric_limits<DTYPE>::quiet_NaN();
+            else
+               intensityPtr[index]=tmpImagePtr[index];
+         }
+      } // check if the time point is active
+   } // loop over the time points
 
-    free(tmpImagePtr);
-    free(currentMask);
-    free(activeTimePoint);
-    free(nanImagePtr);
+   free(tmpImagePtr);
+   free(currentMask);
+   free(activeTimePoint);
+   free(nanImagePtr);
 }
 /* *************************************************************** */
 
@@ -1525,45 +1541,45 @@ void reg_tools_labelKernelConvolution(nifti_image *image,
                                       float varianceZ,
                                       int *mask,
                                       bool *timePoint){
-    switch(image->datatype)
-    {
-    case NIFTI_TYPE_UINT8:
-        reg_tools_labelKernelConvolution_core<unsigned char>
-              (image,varianceX,varianceY,varianceZ,mask,timePoint);
-        break;
-    case NIFTI_TYPE_INT8:
-        reg_tools_labelKernelConvolution_core<char>
-              (image,varianceX,varianceY,varianceZ,mask,timePoint);
-        break;
-    case NIFTI_TYPE_UINT16:
-        reg_tools_labelKernelConvolution_core<unsigned short>
-              (image,varianceX,varianceY,varianceZ,mask,timePoint);
-        break;
-    case NIFTI_TYPE_INT16:
-        reg_tools_labelKernelConvolution_core<short>
-              (image,varianceX,varianceY,varianceZ,mask,timePoint);
-        break;
-    case NIFTI_TYPE_UINT32:
-        reg_tools_labelKernelConvolution_core<unsigned int>
-              (image,varianceX,varianceY,varianceZ,mask,timePoint);
-        break;
-    case NIFTI_TYPE_INT32:
-        reg_tools_labelKernelConvolution_core<int>
-              (image,varianceX,varianceY,varianceZ,mask,timePoint);
-        break;
-    case NIFTI_TYPE_FLOAT32:
-        reg_tools_labelKernelConvolution_core<float>
-              (image,varianceX,varianceY,varianceZ,mask,timePoint);
-        break;
-    case NIFTI_TYPE_FLOAT64:
-        reg_tools_labelKernelConvolution_core<double>
-              (image,varianceX,varianceY,varianceZ,mask,timePoint);
-        break;
-    default:
-        fprintf(stderr,"[NiftyReg ERROR] reg_tools_labelKernelConvolution\tThe image data type is not supported\n");
-        reg_exit(1);
-    }
-    return;
+   switch(image->datatype)
+   {
+   case NIFTI_TYPE_UINT8:
+      reg_tools_labelKernelConvolution_core<unsigned char>
+            (image,varianceX,varianceY,varianceZ,mask,timePoint);
+      break;
+   case NIFTI_TYPE_INT8:
+      reg_tools_labelKernelConvolution_core<char>
+            (image,varianceX,varianceY,varianceZ,mask,timePoint);
+      break;
+   case NIFTI_TYPE_UINT16:
+      reg_tools_labelKernelConvolution_core<unsigned short>
+            (image,varianceX,varianceY,varianceZ,mask,timePoint);
+      break;
+   case NIFTI_TYPE_INT16:
+      reg_tools_labelKernelConvolution_core<short>
+            (image,varianceX,varianceY,varianceZ,mask,timePoint);
+      break;
+   case NIFTI_TYPE_UINT32:
+      reg_tools_labelKernelConvolution_core<unsigned int>
+            (image,varianceX,varianceY,varianceZ,mask,timePoint);
+      break;
+   case NIFTI_TYPE_INT32:
+      reg_tools_labelKernelConvolution_core<int>
+            (image,varianceX,varianceY,varianceZ,mask,timePoint);
+      break;
+   case NIFTI_TYPE_FLOAT32:
+      reg_tools_labelKernelConvolution_core<float>
+            (image,varianceX,varianceY,varianceZ,mask,timePoint);
+      break;
+   case NIFTI_TYPE_FLOAT64:
+      reg_tools_labelKernelConvolution_core<double>
+            (image,varianceX,varianceY,varianceZ,mask,timePoint);
+      break;
+   default:
+      fprintf(stderr,"[NiftyReg ERROR] reg_tools_labelKernelConvolution\tThe image data type is not supported\n");
+      reg_exit(1);
+   }
+   return;
 }
 /* *************************************************************** */
 
@@ -1726,13 +1742,13 @@ void reg_downsampleImage1(nifti_image *image, int type, bool *downsampleAxis)
 
    // Reallocate the image
    image->nvox =
-      (size_t)image->nx*
-      (size_t)image->ny*
-      (size_t)image->nz*
-      (size_t)image->nt*
-      (size_t)image->nu*
-      (size_t)image->nv*
-      (size_t)image->nw;
+         (size_t)image->nx*
+         (size_t)image->ny*
+         (size_t)image->nz*
+         (size_t)image->nt*
+         (size_t)image->nu*
+         (size_t)image->nv*
+         (size_t)image->nw;
    image->data=(void *)calloc(image->nvox, image->nbyper);
    imagePtr = static_cast<ImageTYPE *>(image->data);
 
@@ -1751,17 +1767,17 @@ void reg_downsampleImage1(nifti_image *image, int type, bool *downsampleAxis)
             {
                // Extract the voxel coordinate in mm
                real[0]=x*image->qto_xyz.m[0][0] +
-                       y*image->qto_xyz.m[0][1] +
-                       z*image->qto_xyz.m[0][2] +
-                       image->qto_xyz.m[0][3];
+                     y*image->qto_xyz.m[0][1] +
+                     z*image->qto_xyz.m[0][2] +
+                     image->qto_xyz.m[0][3];
                real[1]=x*image->qto_xyz.m[1][0] +
-                       y*image->qto_xyz.m[1][1] +
-                       z*image->qto_xyz.m[1][2] +
-                       image->qto_xyz.m[1][3];
+                     y*image->qto_xyz.m[1][1] +
+                     z*image->qto_xyz.m[1][2] +
+                     image->qto_xyz.m[1][3];
                real[2]=x*image->qto_xyz.m[2][0] +
-                       y*image->qto_xyz.m[2][1] +
-                       z*image->qto_xyz.m[2][2] +
-                       image->qto_xyz.m[2][3];
+                     y*image->qto_xyz.m[2][1] +
+                     z*image->qto_xyz.m[2][2] +
+                     image->qto_xyz.m[2][3];
                // Extract the position in voxel in the old image;
                position[0]=real[0]*real2Voxel_qform.m[0][0] + real[1]*real2Voxel_qform.m[0][1] + real[2]*real2Voxel_qform.m[0][2] + real2Voxel_qform.m[0][3];
                position[1]=real[0]*real2Voxel_qform.m[1][0] + real[1]*real2Voxel_qform.m[1][1] + real[2]*real2Voxel_qform.m[1][2] + real2Voxel_qform.m[1][3];
@@ -2147,9 +2163,9 @@ int reg_createImagePyramid(nifti_image *inputImage, nifti_image **pyramid, int u
    // FINEST LEVEL OF REGISTRATION
    pyramid[levelToPerform-1]=nifti_copy_nim_info(inputImage);
    pyramid[levelToPerform-1]->data = (void *)calloc(pyramid[levelToPerform-1]->nvox,
-                                     pyramid[levelToPerform-1]->nbyper);
+         pyramid[levelToPerform-1]->nbyper);
    memcpy(pyramid[levelToPerform-1]->data, inputImage->data,
-          pyramid[levelToPerform-1]->nvox* pyramid[levelToPerform-1]->nbyper);
+         pyramid[levelToPerform-1]->nvox* pyramid[levelToPerform-1]->nbyper);
    reg_tools_changeDatatype<DTYPE>(pyramid[levelToPerform-1]);
    reg_tools_removeSCLInfo(pyramid[levelToPerform-1]);
 
@@ -2171,7 +2187,7 @@ int reg_createImagePyramid(nifti_image *inputImage, nifti_image **pyramid, int u
       pyramid[l]->data = (void *)calloc(pyramid[l]->nvox,
                                         pyramid[l]->nbyper);
       memcpy(pyramid[l]->data, pyramid[l+1]->data,
-             pyramid[l]->nvox* pyramid[l]->nbyper);
+            pyramid[l]->nvox* pyramid[l]->nbyper);
 
       // Downsample the image if appropriate
       bool downsampleAxis[8]= {false,true,true,true,false,false,false,false};
@@ -2195,7 +2211,7 @@ int reg_createMaskPyramid(nifti_image *inputMaskImage, int **maskPyramid, int un
    tempMaskImagePyramid[levelToPerform-1]->data = (void *)calloc(tempMaskImagePyramid[levelToPerform-1]->nvox,
          tempMaskImagePyramid[levelToPerform-1]->nbyper);
    memcpy(tempMaskImagePyramid[levelToPerform-1]->data, inputMaskImage->data,
-          tempMaskImagePyramid[levelToPerform-1]->nvox* tempMaskImagePyramid[levelToPerform-1]->nbyper);
+         tempMaskImagePyramid[levelToPerform-1]->nvox* tempMaskImagePyramid[levelToPerform-1]->nbyper);
    reg_tools_binarise_image(tempMaskImagePyramid[levelToPerform-1]);
    reg_tools_changeDatatype<unsigned char>(tempMaskImagePyramid[levelToPerform-1]);
 
@@ -2209,12 +2225,12 @@ int reg_createMaskPyramid(nifti_image *inputMaskImage, int **maskPyramid, int un
       reg_downsampleImage<DTYPE>(tempMaskImagePyramid[levelToPerform-1], 0, downsampleAxis);
    }
    activeVoxelNumber[levelToPerform-1]=tempMaskImagePyramid[levelToPerform-1]->nx *
-                                       tempMaskImagePyramid[levelToPerform-1]->ny *
-                                       tempMaskImagePyramid[levelToPerform-1]->nz;
+         tempMaskImagePyramid[levelToPerform-1]->ny *
+         tempMaskImagePyramid[levelToPerform-1]->nz;
    maskPyramid[levelToPerform-1]=(int *)malloc(activeVoxelNumber[levelToPerform-1] * sizeof(int));
    reg_tools_binaryImage2int(tempMaskImagePyramid[levelToPerform-1],
-                             maskPyramid[levelToPerform-1],
-                             activeVoxelNumber[levelToPerform-1]);
+         maskPyramid[levelToPerform-1],
+         activeVoxelNumber[levelToPerform-1]);
 
    // Images for each subsequent levels are allocated and downsampled if appropriate
    for(int l=levelToPerform-2; l>=0; l--)
@@ -2222,9 +2238,9 @@ int reg_createMaskPyramid(nifti_image *inputMaskImage, int **maskPyramid, int un
       // Allocation of the reference image
       tempMaskImagePyramid[l]=nifti_copy_nim_info(tempMaskImagePyramid[l+1]);
       tempMaskImagePyramid[l]->data = (void *)calloc(tempMaskImagePyramid[l]->nvox,
-                                      tempMaskImagePyramid[l]->nbyper);
+                                                     tempMaskImagePyramid[l]->nbyper);
       memcpy(tempMaskImagePyramid[l]->data, tempMaskImagePyramid[l+1]->data,
-             tempMaskImagePyramid[l]->nvox* tempMaskImagePyramid[l]->nbyper);
+            tempMaskImagePyramid[l]->nvox* tempMaskImagePyramid[l]->nbyper);
 
       // Downsample the image if appropriate
       bool downsampleAxis[8]= {false,true,true,true,false,false,false,false};
@@ -2234,8 +2250,8 @@ int reg_createMaskPyramid(nifti_image *inputMaskImage, int **maskPyramid, int un
       reg_downsampleImage<DTYPE>(tempMaskImagePyramid[l], 0, downsampleAxis);
 
       activeVoxelNumber[l]=tempMaskImagePyramid[l]->nx *
-                           tempMaskImagePyramid[l]->ny *
-                           tempMaskImagePyramid[l]->nz;
+            tempMaskImagePyramid[l]->ny *
+            tempMaskImagePyramid[l]->nz;
       maskPyramid[l]=(int *)malloc(activeVoxelNumber[l] * sizeof(int));
       reg_tools_binaryImage2int(tempMaskImagePyramid[l],
                                 maskPyramid[l],
@@ -2275,28 +2291,28 @@ int reg_tools_nanMask_image1(nifti_image *image, nifti_image *maskImage, nifti_i
    {
    case NIFTI_TYPE_UINT8:
       return reg_tools_nanMask_image2<TYPE1,unsigned char>
-             (image, maskImage, resultImage);
+            (image, maskImage, resultImage);
    case NIFTI_TYPE_INT8:
       return reg_tools_nanMask_image2<TYPE1,char>
-             (image, maskImage, resultImage);
+            (image, maskImage, resultImage);
    case NIFTI_TYPE_UINT16:
       return reg_tools_nanMask_image2<TYPE1,unsigned short>
-             (image, maskImage, resultImage);
+            (image, maskImage, resultImage);
    case NIFTI_TYPE_INT16:
       return reg_tools_nanMask_image2<TYPE1,short>
-             (image, maskImage, resultImage);
+            (image, maskImage, resultImage);
    case NIFTI_TYPE_UINT32:
       return reg_tools_nanMask_image2<TYPE1,unsigned int>
-             (image, maskImage, resultImage);
+            (image, maskImage, resultImage);
    case NIFTI_TYPE_INT32:
       return reg_tools_nanMask_image2<TYPE1,int>
-             (image, maskImage, resultImage);
+            (image, maskImage, resultImage);
    case NIFTI_TYPE_FLOAT32:
       return reg_tools_nanMask_image2<TYPE1,float>
-             (image, maskImage, resultImage);
+            (image, maskImage, resultImage);
    case NIFTI_TYPE_FLOAT64:
       return reg_tools_nanMask_image2<TYPE1,double>
-             (image, maskImage, resultImage);
+            (image, maskImage, resultImage);
    default:
       fprintf(stderr,"[NiftyReg ERROR] reg_tools_nanMask_image\tThe image data type is not supported\n");
       exit(1);
@@ -2321,28 +2337,28 @@ int reg_tools_nanMask_image(nifti_image *image, nifti_image *maskImage, nifti_im
    {
    case NIFTI_TYPE_UINT8:
       return reg_tools_nanMask_image1<unsigned char>
-             (image, maskImage, resultImage);
+            (image, maskImage, resultImage);
    case NIFTI_TYPE_INT8:
       return reg_tools_nanMask_image1<char>
-             (image, maskImage, resultImage);
+            (image, maskImage, resultImage);
    case NIFTI_TYPE_UINT16:
       return reg_tools_nanMask_image1<unsigned short>
-             (image, maskImage, resultImage);
+            (image, maskImage, resultImage);
    case NIFTI_TYPE_INT16:
       return reg_tools_nanMask_image1<short>
-             (image, maskImage, resultImage);
+            (image, maskImage, resultImage);
    case NIFTI_TYPE_UINT32:
       return reg_tools_nanMask_image1<unsigned int>
-             (image, maskImage, resultImage);
+            (image, maskImage, resultImage);
    case NIFTI_TYPE_INT32:
       return reg_tools_nanMask_image1<int>
-             (image, maskImage, resultImage);
+            (image, maskImage, resultImage);
    case NIFTI_TYPE_FLOAT32:
       return reg_tools_nanMask_image1<float>
-             (image, maskImage, resultImage);
+            (image, maskImage, resultImage);
    case NIFTI_TYPE_FLOAT64:
       return reg_tools_nanMask_image1<double>
-             (image, maskImage, resultImage);
+            (image, maskImage, resultImage);
    default:
       fprintf(stderr,"[NiftyReg ERROR] reg_tools_nanMask_image\tThe image data type is not supported\n");
       exit(1);
@@ -2453,7 +2469,7 @@ void reg_flippAxis_type(int nx,
                         void *inputArray,
                         void *outputArray,
                         std::string cmd
-                       )
+                        )
 {
    // Allocate the outputArray if it is not allocated yet
    if(outputArray==NULL)
@@ -2513,50 +2529,50 @@ void reg_flippAxis_type(int nx,
 void reg_flippAxis(nifti_image *image,
                    void *outputArray,
                    std::string cmd
-                  )
+                   )
 {
    // Check the image data type
    switch(image->datatype)
    {
    case NIFTI_TYPE_UINT8:
       reg_flippAxis_type<unsigned char>
-      (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
-       image->data, outputArray, cmd);
+            (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
+             image->data, outputArray, cmd);
       break;
    case NIFTI_TYPE_INT8:
       reg_flippAxis_type<char>
-      (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
-       image->data, outputArray, cmd);
+            (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
+             image->data, outputArray, cmd);
       break;
    case NIFTI_TYPE_UINT16:
       reg_flippAxis_type<unsigned short>
-      (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
-       image->data, outputArray, cmd);
+            (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
+             image->data, outputArray, cmd);
       break;
    case NIFTI_TYPE_INT16:
       reg_flippAxis_type<short>
-      (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
-       image->data, outputArray, cmd);
+            (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
+             image->data, outputArray, cmd);
       break;
    case NIFTI_TYPE_UINT32:
       reg_flippAxis_type<unsigned int>
-      (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
-       image->data, outputArray, cmd);
+            (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
+             image->data, outputArray, cmd);
       break;
    case NIFTI_TYPE_INT32:
       reg_flippAxis_type<int>
-      (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
-       image->data, outputArray, cmd);
+            (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
+             image->data, outputArray, cmd);
       break;
    case NIFTI_TYPE_FLOAT32:
       reg_flippAxis_type<float>
-      (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
-       image->data, outputArray, cmd);
+            (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
+             image->data, outputArray, cmd);
       break;
    case NIFTI_TYPE_FLOAT64:
       reg_flippAxis_type<double>
-      (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
-       image->data, outputArray, cmd);
+            (image->nx, image->ny, image->nz, image->nt, image->nu, image->nv, image->nw,
+             image->data, outputArray, cmd);
       break;
    default:
       fprintf(stderr,"[NiftyReg ERROR] reg_flippAxis\tThe image data type is not supported\n");
@@ -2580,7 +2596,7 @@ void reg_getDisplacementFromDeformation_2D(nifti_image *field)
    int x, y,  index;
    DTYPE xInit, yInit;
 #if defined (NDEBUG) && defined (_OPENMP)
-   #pragma omp parallel for default(none) \
+#pragma omp parallel for default(none) \
    shared(field, matrix, ptrX, ptrY) \
    private(x, y, index, xInit, yInit)
 #endif
@@ -2592,11 +2608,11 @@ void reg_getDisplacementFromDeformation_2D(nifti_image *field)
 
          // Get the initial control point position
          xInit = matrix.m[0][0]*(DTYPE)x
-                 + matrix.m[0][1]*(DTYPE)y
-                 + matrix.m[0][3];
+               + matrix.m[0][1]*(DTYPE)y
+               + matrix.m[0][3];
          yInit = matrix.m[1][0]*(DTYPE)x
-                 + matrix.m[1][1]*(DTYPE)y
-                 + matrix.m[1][3];
+               + matrix.m[1][1]*(DTYPE)y
+               + matrix.m[1][3];
 
          // The initial position is subtracted from every values
          ptrX[index] -= xInit;
@@ -2621,9 +2637,9 @@ void reg_getDisplacementFromDeformation_3D(nifti_image *field)
    int x, y, z, index;
    float xInit, yInit, zInit;
 #if defined (NDEBUG) && defined (_OPENMP)
-   #pragma omp parallel for default(none) \
+#pragma omp parallel for default(none) \
    shared(field, matrix, \
-          ptrX, ptrY, ptrZ) \
+   ptrX, ptrY, ptrZ) \
    private(x, y, z, index, xInit, yInit, zInit)
 #endif
    for(z=0; z<field->nz; z++)
@@ -2636,17 +2652,17 @@ void reg_getDisplacementFromDeformation_3D(nifti_image *field)
 
             // Get the initial control point position
             xInit = matrix.m[0][0]*static_cast<float>(x)
-                    + matrix.m[0][1]*static_cast<float>(y)
-                    + matrix.m[0][2]*static_cast<float>(z)
-                    + matrix.m[0][3];
+                  + matrix.m[0][1]*static_cast<float>(y)
+                  + matrix.m[0][2]*static_cast<float>(z)
+                  + matrix.m[0][3];
             yInit = matrix.m[1][0]*static_cast<float>(x)
-                    + matrix.m[1][1]*static_cast<float>(y)
-                    + matrix.m[1][2]*static_cast<float>(z)
-                    + matrix.m[1][3];
+                  + matrix.m[1][1]*static_cast<float>(y)
+                  + matrix.m[1][2]*static_cast<float>(z)
+                  + matrix.m[1][3];
             zInit = matrix.m[2][0]*static_cast<float>(x)
-                    + matrix.m[2][1]*static_cast<float>(y)
-                    + matrix.m[2][2]*static_cast<float>(z)
-                    + matrix.m[2][3];
+                  + matrix.m[2][1]*static_cast<float>(y)
+                  + matrix.m[2][2]*static_cast<float>(z)
+                  + matrix.m[2][3];
 
             // The initial position is subtracted from every values
             ptrX[index] -= static_cast<DTYPE>(xInit);
@@ -2725,9 +2741,9 @@ void reg_getDeformationFromDisplacement_2D(nifti_image *field)
    int x, y, index;
    DTYPE xInit, yInit;
 #if defined (NDEBUG) && defined (_OPENMP)
-   #pragma omp parallel for default(none) \
+#pragma omp parallel for default(none) \
    shared(field, matrix, \
-          ptrX, ptrY) \
+   ptrX, ptrY) \
    private(x, y, index, xInit, yInit)
 #endif
    for(y=0; y<field->ny; y++)
@@ -2738,11 +2754,11 @@ void reg_getDeformationFromDisplacement_2D(nifti_image *field)
 
          // Get the initial control point position
          xInit = matrix.m[0][0]*(DTYPE)x
-                 + matrix.m[0][1]*(DTYPE)y
-                 + matrix.m[0][3];
+               + matrix.m[0][1]*(DTYPE)y
+               + matrix.m[0][3];
          yInit = matrix.m[1][0]*(DTYPE)x
-                 + matrix.m[1][1]*(DTYPE)y
-                 + matrix.m[1][3];
+               + matrix.m[1][1]*(DTYPE)y
+               + matrix.m[1][3];
 
          // The initial position is added from every values
          ptrX[index] += xInit;
@@ -2768,9 +2784,9 @@ void reg_getDeformationFromDisplacement_3D(nifti_image *field)
    int x, y, z, index;
    float xInit, yInit, zInit;
 #if defined (NDEBUG) && defined (_OPENMP)
-   #pragma omp parallel for default(none) \
+#pragma omp parallel for default(none) \
    shared(field, matrix, \
-          ptrX, ptrY, ptrZ) \
+   ptrX, ptrY, ptrZ) \
    private(x, y, z, index, xInit, yInit, zInit)
 #endif
    for(z=0; z<field->nz; z++)
@@ -2783,17 +2799,17 @@ void reg_getDeformationFromDisplacement_3D(nifti_image *field)
 
             // Get the initial control point position
             xInit = matrix.m[0][0]*static_cast<float>(x)
-                    + matrix.m[0][1]*static_cast<float>(y)
-                    + matrix.m[0][2]*static_cast<float>(z)
-                    + matrix.m[0][3];
+                  + matrix.m[0][1]*static_cast<float>(y)
+                  + matrix.m[0][2]*static_cast<float>(z)
+                  + matrix.m[0][3];
             yInit = matrix.m[1][0]*static_cast<float>(x)
-                    + matrix.m[1][1]*static_cast<float>(y)
-                    + matrix.m[1][2]*static_cast<float>(z)
-                    + matrix.m[1][3];
+                  + matrix.m[1][1]*static_cast<float>(y)
+                  + matrix.m[1][2]*static_cast<float>(z)
+                  + matrix.m[1][3];
             zInit = matrix.m[2][0]*static_cast<float>(x)
-                    + matrix.m[2][1]*static_cast<float>(y)
-                    + matrix.m[2][2]*static_cast<float>(z)
-                    + matrix.m[2][3];
+                  + matrix.m[2][1]*static_cast<float>(y)
+                  + matrix.m[2][2]*static_cast<float>(z)
+                  + matrix.m[2][3];
 
             // The initial position is subtracted from every values
             ptrX[index] += static_cast<DTYPE>(xInit);
@@ -2995,7 +3011,7 @@ static std::string CLI_PROGRESS_UPDATES = std::string(getenv("NIFTK_CLI_PROGRESS
 void startProgress(std::string name)
 {
    if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
-         CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
+       CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
    {
       std::cout<< "<filter-start>\n";
       std::cout<< "<filter-name>"    <<name.c_str() <<"</filter-name>\n";
@@ -3008,7 +3024,7 @@ void startProgress(std::string name)
 void progressXML(unsigned long p, std::string text)
 {
    if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
-         CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
+       CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
    {
       float val = static_cast<float>((float)p/100.0f);
       std::cout << "<filter-progress>" << val <<"</filter-progress>\n";
@@ -3019,7 +3035,7 @@ void progressXML(unsigned long p, std::string text)
 void closeProgress(std::string name, std::string status)
 {
    if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
-         CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
+       CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
    {
       std::cout << "<filter-result name=exitStatusOutput>" << status.c_str() << "</filter-result>\n";
       std::cout << "<filter-progress>100</filter-progress>\n";

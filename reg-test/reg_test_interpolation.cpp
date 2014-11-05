@@ -36,18 +36,15 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
    }
    // Check the dimension of the input images
-   if(floatingImage->nx != inputDeformationField->nx ||
-      floatingImage->ny != inputDeformationField->ny ||
-      floatingImage->nz != inputDeformationField->nz ||
-      (floatingImage->nz>1?3:2) != inputDeformationField->nu){
-      reg_print_msg_error("The input floating and deformation field images do not have corresponding sizes");
+   if(warpedImage->nx != inputDeformationField->nx ||
+      warpedImage->ny != inputDeformationField->ny ||
+      warpedImage->nz != inputDeformationField->nz ||
+      (warpedImage->nz>1?3:2) != inputDeformationField->nu){
+      reg_print_msg_error("The input warped and deformation field images do not have corresponding sizes");
       return EXIT_FAILURE;
    }
-   // Check the dimension of the input images
-   if(floatingImage->nx != warpedImage->nx ||
-      floatingImage->ny != warpedImage->ny ||
-      floatingImage->nz != warpedImage->nz ||
-      floatingImage->nt != warpedImage->nt ){
+   if((floatingImage->nz>1) != (warpedImage->nz>1) ||
+      floatingImage->nt != warpedImage->nt){
       reg_print_msg_error("The input floating and warped images do not have corresponding sizes");
       return EXIT_FAILURE;
    }

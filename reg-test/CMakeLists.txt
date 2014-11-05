@@ -2,17 +2,31 @@
 	set(DATA_FOLDER ${CMAKE_BINARY_DIR}/reg-test/test-data)
 	if(NOT EXISTS "${DATA_FOLDER}/test_data.tar.gz")
 		file(MAKE_DIRECTORY ${DATA_FOLDER})
-		message("Downloading the test data")
+		set(test_data_url "http://www.cs.ucl.ac.uk/staff/mmodat/niftyreg_test_data.tar.gz")
+		message(STATUS "Downloading the test data: ${test_data_url}")
 		file(DOWNLOAD
-				 "http://www.cs.ucl.ac.uk/staff/mmodat/niftyreg_test_data.tar.gz"
+				 ${test_data_url}
 				 "${DATA_FOLDER}/test_data.tar.gz"
-				 SHOW_PROGRESS)
-		message("Extract the test data")
-		execute_process(
-			COMMAND ${CMAKE_COMMAND} -E tar xzvf ${DATA_FOLDER}/test_data.tar.gz
-			WORKING_DIRECTORY ${DATA_FOLDER}
-		)
+				 SHOW_PROGRESS STATUS download_status)
+		list(GET download_status 0 test_data_download_status)
+		if(${test_data_download_status})
+			message(WARNING "Error when downloading the test data, forcing BUILD_TESTING to OFF")
+			set(BUILD_TESTING OFF CACHE BOOL "To build the unit tests" FORCE)
+			endif(${test_data_download_status})
 	endif(NOT EXISTS "${DATA_FOLDER}/test_data.tar.gz")
+
+	if(NOT EXISTS "${DATA_FOLDER}/refImg2D.nii.gz")
+		message(STATUS "Extracting test data in ${DATA_FOLDER}")
+		execute_process(
+			COMMAND ${CMAKE_COMMAND} -E tar xzf ${DATA_FOLDER}/test_data.tar.gz
+			WORKING_DIRECTORY ${DATA_FOLDER}
+			ERROR_VARIABLE test_data_extract_status
+		)
+		if(NOT ${test_data_extract_status} STREQUAL "")
+			message(WARNING "Error when extracting the test data, forcing BUILD_TESTING to OFF")
+			set(BUILD_TESTING OFF CACHE BOOL "To build the unit tests" FORCE)
+		endif(NOT ${test_data_extract_status} STREQUAL "")
+	endif(NOT EXISTS "${DATA_FOLDER}/refImg2D.nii.gz")
 
 	set(EXEC reg_test_affine_deformation_field)
 	add_executable(${EXEC} ${EXEC}.cpp)
