@@ -1,84 +1,71 @@
-set(DATA_FOLDER ${CMAKE_SOURCE_DIR}/reg-test/reg-test-data)
+	# The test data are dowloaded
+	set(DATA_FOLDER ${CMAKE_BINARY_DIR}/reg-test/test-data)
+	if(NOT EXISTS "${DATA_FOLDER}/test_data.tar.gz")
+		file(MAKE_DIRECTORY ${DATA_FOLDER})
+		message("Downloading the test data")
+		file(DOWNLOAD
+				 "http://www.cs.ucl.ac.uk/staff/mmodat/niftyreg_test_data.tar.gz"
+				 "${DATA_FOLDER}/test_data.tar.gz"
+				 SHOW_PROGRESS)
+		message("Extract the test data")
+		execute_process(
+			COMMAND ${CMAKE_COMMAND} -E tar xzvf ${DATA_FOLDER}/test_data.tar.gz
+			WORKING_DIRECTORY ${DATA_FOLDER}
+		)
+	endif(NOT EXISTS "${DATA_FOLDER}/test_data.tar.gz")
 
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC reg_test_interp)
-if(USE_CUDA)
-		cuda_add_executable(${EXEC} ${EXEC}.cpp)
-else(USE_CUDA)
+	set(EXEC reg_test_affine_deformation_field)
 	add_executable(${EXEC} ${EXEC}.cpp)
-endif(USE_CUDA)
-target_link_libraries(${EXEC} _reg_f3d)
-foreach(dim 2 3)
-	foreach(type 0 1 3)
-		add_test(${EXEC}_${dim}D_${type} ${EXEC} ${dim} ${type})
-	endforeach(type)
-	if(USE_CUDA)
-		add_test(${EXEC}_${dim}D_4 ${EXEC} ${dim} 4)
-	endif(USE_CUDA)
-endforeach(dim)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC reg_test_convolution)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_f3d)
-foreach(dim 2 3)
-	foreach(type 0 1 2)
-		add_test(${EXEC}_${dim}D_${type} ${EXEC} ${dim} ${type})
-	endforeach(type)
-endforeach(dim)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC reg_test_dti)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_f3d)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC reg_test_mat44_operations)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_f3d)
-add_test(mat44_operations ${EXEC})
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC reg_test_fullReg)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_f3d)
-foreach(dim 2 3)
-	foreach(type 0 1 2 3 4)
-		add_test(${EXEC}_${dim}D_${type} ${EXEC} ${dim} ${type})
-	endforeach(type)
-endforeach(dim)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-if(USE_CUDA)
-		set(EXEC reg_test_def_gpu)
-		cuda_add_executable(${EXEC} ${EXEC}.cpp)
-				target_link_libraries(${EXEC} _reg_f3d)
-		foreach(dim 2 3)
-				foreach(type def comp exp be beg ajac ajac jac ajacg jacg)
-						add_test(${EXEC}_${dim}D_${type} ${EXEC} ${dim} ${type})
-				endforeach(type)
-		endforeach(dim)
-#-----------------------------------------------------------------------------
-	set(EXEC reg_test_measure_gpu)
-	cuda_add_executable(${EXEC} ${EXEC}.cpp)
 	target_link_libraries(${EXEC} _reg_f3d)
-	foreach(dim 2 3)
-		foreach(type spa nmig ssd ssdg)
-			add_test(${EXEC}_${dim}D_${type} ${EXEC} ${dim} ${type})
-		endforeach(type)
-	endforeach(dim)
-#-----------------------------------------------------------------------------
-		set(EXEC reg_test_optimiser_gpu)
-		cuda_add_executable(${EXEC} ${EXEC}.cpp)
-		target_link_libraries(${EXEC} _reg_f3d)
-		foreach(dim 2 3)
-				foreach(type descent conjugate)
-								add_test(${EXEC}_${dim}D_${type} ${EXEC} ${dim} ${type})
-				endforeach(type)
-		endforeach(dim)
-#-----------------------------------------------------------------------------
-endif(USE_CUDA)
+	add_test(${EXEC}_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/affine_mat2D.txt ${DATA_FOLDER}/affine_def2D.nii.gz)
+	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
+
+	set(EXEC reg_test_nonlinear_deformation_field)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_f3d)
+	add_test(${EXEC}_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/nonlin_cpp2D.nii.gz ${DATA_FOLDER}/nonlin_def2D.nii.gz)
+	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/nonlin_cpp3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz)
+
+	set(EXEC reg_test_interpolation)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_f3d)
+	add_test(${EXEC}_0_2D ${EXEC} ${DATA_FOLDER}/floImg2D.nii.gz ${DATA_FOLDER}/nonlin_def2D.nii.gz ${DATA_FOLDER}/warped_nea2D.nii.gz 0)
+	add_test(${EXEC}_0_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_nea3D.nii.gz 0)
+	add_test(${EXEC}_1_2D ${EXEC} ${DATA_FOLDER}/floImg2D.nii.gz ${DATA_FOLDER}/nonlin_def2D.nii.gz ${DATA_FOLDER}/warped_lin2D.nii.gz 1)
+	add_test(${EXEC}_1_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 1)
+	add_test(${EXEC}_3_2D ${EXEC} ${DATA_FOLDER}/floImg2D.nii.gz ${DATA_FOLDER}/nonlin_def2D.nii.gz ${DATA_FOLDER}/warped_cub2D.nii.gz 3)
+	add_test(${EXEC}_3_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_cub3D.nii.gz 3)
+	add_test(${EXEC}_4_2D ${EXEC} ${DATA_FOLDER}/floImg2D.nii.gz ${DATA_FOLDER}/nonlin_def2D.nii.gz ${DATA_FOLDER}/warped_sin2D.nii.gz 4)
+	add_test(${EXEC}_4_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz 4)
+
+	set(EXEC reg_test_compose_deformation_field)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_f3d)
+	add_test(${EXEC}_2D ${EXEC} ${DATA_FOLDER}/nonlin_def2D.nii.gz ${DATA_FOLDER}/nonlin_com2D.nii.gz)
+	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/nonlin_com3D.nii.gz)
+
+	set(EXEC reg_test_fullAffine)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_aladin)
+	add_test(${EXEC}_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/floImg2D.nii.gz ${DATA_FOLDER}/affine_mat2D.txt)
+	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt)
+
+	set(EXEC reg_test_fullNonlinear)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_f3d)
+	add_test(${EXEC}_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/floImg2D.nii.gz ${DATA_FOLDER}/affine_mat2D.txt ${DATA_FOLDER}/nonlin_cpp2D.nii.gz)
+	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/nonlin_cpp3D.nii.gz)
+
+	set(EXEC reg_test_matrix_operation)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_maths reg_nifti z)
+	add_test(${EXEC} ${EXEC})
+
+	set(EXEC reg_test_svd)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_maths)
+	add_test(${EXEC} ${EXEC})
+
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 

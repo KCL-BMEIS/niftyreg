@@ -670,12 +670,12 @@ mat44 reg_mat44_sqrt(mat44 const* mat)
 mat44 reg_mat44_expm(mat44 const* mat)
 {
    mat44 X;
-   Eigen::Matrix4f m;
+   Eigen::Matrix4d m;
    for(size_t i=0; i<4; ++i)
    {
       for(size_t j=0; j<4; ++j)
       {
-         m(i,j)=static_cast<float>(mat->m[i][j]);
+         m(i,j)=static_cast<double>(mat->m[i][j]);
       }
    }
    m=m.exp();
@@ -690,12 +690,12 @@ mat44 reg_mat44_expm(mat44 const* mat)
 mat44 reg_mat44_logm(mat44 const* mat)
 {
    mat44 X;
-   Eigen::Matrix4f m;
+   Eigen::Matrix4d m;
    for(size_t i=0; i<4; ++i)
    {
       for(size_t j=0; j<4; ++j)
       {
-         m(i,j)=static_cast<float>(mat->m[i][j]);
+         m(i,j)=static_cast<double>(mat->m[i][j]);
       }
    }
    m=m.log();

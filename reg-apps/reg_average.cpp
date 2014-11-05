@@ -1010,7 +1010,7 @@ int main(int argc, char **argv)
 #ifndef NDEBUG
             reg_print_msg_debug("reg_average: Warping floating image:");
             reg_print_msg_debug(floatingImage->fname);
-            sprintf(msg,"reg_average_%i.nii",i);
+            sprintf(msg,"reg_average_%lu.nii",i);
             reg_io_WriteImageFile(tempImage,msg);
 #endif
             reg_tools_addImageToImage(averageImage,tempImage,averageImage);

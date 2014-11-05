@@ -30,9 +30,9 @@ endif(NOT cmake_build_type_tolower STREQUAL "debug"
 	 AND NOT cmake_build_type_tolower STREQUAL "release"
 	 AND NOT cmake_build_type_tolower STREQUAL "relwithdebinfo")
 if(cmake_build_type_tolower STREQUAL "debug")
-		set(DEBUG_MODE ON)
+	set(DEBUG_MODE ON)
 elseif(cmake_build_type_tolower STREQUAL "release")
-		set(DEBUG_MODE OFF)
+	set(DEBUG_MODE OFF)
 endif(cmake_build_type_tolower STREQUAL "debug")
 
 #-----------------------------------------------------------------------------
@@ -48,7 +48,7 @@ else(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 
 #-----------------------------------------------------------------------------
-option(BUILD_TESTING "To build the unit tests" ON)
+option(BUILD_TESTING "To build the unit tests" OFF)
 option(BUILD_NR_SLICER_EXT "Where NiftyReg meets 3DSlicer" ${NiftyRegExtension_BUILD_SLICER_EXTENSION})
 mark_as_advanced(BUILD_NR_SLICER_EXT)
 option(USE_SSE "To enable SEE computation in some case" ON)
@@ -262,9 +262,9 @@ subdirs(reg-lib)
 subdirs(reg-apps)
 subdirs(third-party)
 if(BUILD_TESTING)
-		enable_testing()
-		include(${CMAKE_ROOT}/Modules/Dart.cmake)
-		subdirs(reg-test)
+	enable_testing()
+	include(${CMAKE_ROOT}/Modules/Dart.cmake)
+	subdirs(reg-test)
 endif(BUILD_TESTING)
 
 #-----------------------------------------------------------------------------

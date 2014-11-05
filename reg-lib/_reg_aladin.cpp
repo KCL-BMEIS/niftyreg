@@ -20,8 +20,8 @@ template <class T> reg_aladin<T>::reg_aladin ()
    this->activeVoxelNumber=NULL;
 
    this->deformationFieldImage=NULL;
-   TransformationMatrix=new mat44;
-   InputTransformName=NULL;
+   this->TransformationMatrix=new mat44;
+   this->InputTransformName=NULL;
 
    this->Verbose = true;
 
