@@ -8,24 +8,16 @@
 #include"_reg_maths.h"
 #include "cudaKernelFuncs.h"
 #include "_reg_common_gpu.h"
-
 #include"_reg_tools.h"
 #include"_reg_ReadWriteImage.h"
-#include "cuda_profiler_api.h"
-
-
-
 #include "_reg_blockMatching_gpu.h"
 #include "_reg_blockMatching.h"
 
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
 
 unsigned int min1(unsigned int a, unsigned int b) {
 	return (a < b) ? a : b;
 }
 
-texture<float, 3, cudaReadModeElementType> floatingTexture;
 
 __device__ __constant__ float cIdentity[16];
 void runKernel(nifti_image *floatingImage, nifti_image *warpedImage, nifti_image *deformationFieldImage, int *mask, int interp, float paddingValue, int *dtiIndeces, mat33 * jacMat);
@@ -81,6 +73,24 @@ void reg_mat44_eye(float *mat) {
 	mat[2 * 4 + 0] = mat[2 * 4 + 1] = mat[2 * 4 + 3] = 0.f;
 	mat[3 * 4 + 3] = 1.f;
 	mat[3 * 4 + 0] = mat[3 * 4 + 1] = mat[3 * 4 + 2] = 0.f;
+}
+
+
+__device__ __inline__ void getPosition(float* position, float* matrix, float* voxel, const unsigned int idx) {
+	position[idx] =
+		matrix[idx * 4 + 0] * voxel[0] +
+		matrix[idx * 4 + 1] * voxel[1] +
+		matrix[idx * 4 + 2] * voxel[2] +
+		matrix[idx * 4 + 3];
+}
+
+__device__ __inline__ double getPosition( float* matrix, double* voxel, const unsigned int idx) {
+//	if ( voxel[0] == 74.0f && voxel[1] == 0.0f && voxel[2]==0.0f && idx ==0) printf("(%f-%f-%f) (%f-%f-%f-%f)\n",voxel[0],voxel[1], voxel[2], matrix[idx * 4 + 0], matrix[idx * 4 + 1], matrix[idx * 4 + 2], matrix[idx * 4 + 3]);
+	return
+		(double)matrix[idx * 4 + 0] * voxel[0] +
+		(double)matrix[idx * 4 + 1] * voxel[1] +
+		(double)matrix[idx * 4 + 2] * voxel[2] +
+		(double)matrix[idx * 4 + 3];
 }
 
 
@@ -367,41 +377,34 @@ __global__ void TrilinearResampleImage(float *floatingImage, float *deformationF
 }
 
 
-__device__ __inline__ void getPosition(float* position, float* matrix, float* voxel, const unsigned int idx) {
-	position[idx] =
-		matrix[idx * 4 + 0] * voxel[0] +
-		matrix[idx * 4 + 1] * voxel[1] +
-		matrix[idx * 4 + 2] * voxel[2] +
-		matrix[idx * 4 + 3];
-}
 
-__global__ void affineKernel(float* transformationMatrix, float* defField, int* mask, const uint3 params, const unsigned long voxelNumber, const bool composition) {
+__global__ void affineKernel(float* transformationMatrix, float* defField, int* mask, const uint3 dims, const unsigned long voxelNumber, const bool composition) {
 
 	float *deformationFieldPtrX = defField;
 	float *deformationFieldPtrY = &deformationFieldPtrX[voxelNumber];
 	float *deformationFieldPtrZ = &deformationFieldPtrY[voxelNumber];
 
-	float voxel[3], position[3];
+	double voxel[3];
 
 
 	const unsigned int z = blockIdx.z*blockDim.z + threadIdx.z;
 	const unsigned int y = blockIdx.y*blockDim.y + threadIdx.y;
 	const unsigned int x = blockIdx.x*blockDim.x + threadIdx.x;
-	const unsigned long index = x + y*params.x + z * params.x * params.y;
-	if (z < params.z && y < params.y && x < params.x &&  mask[index] >= 0) {
 
-		voxel[0] = composition ? deformationFieldPtrX[index] : (float)x;
-		voxel[1] = composition ? deformationFieldPtrY[index] : (float)y;
-		voxel[2] = composition ? deformationFieldPtrZ[index] : (float)z;
+	const unsigned long index = x + y*dims.x + z * dims.x * dims.y;
 
-		getPosition(position, transformationMatrix, voxel, 0);
-		getPosition(position, transformationMatrix, voxel, 1);
-		getPosition(position, transformationMatrix, voxel, 2);
+
+	if (z < dims.z && y < dims.y && x < dims.x &&  mask[index] >= 0) {
+
+		voxel[0] = composition ? deformationFieldPtrX[index] : (double)x;
+		voxel[1] = composition ? deformationFieldPtrY[index] : (double)y;
+		voxel[2] = composition ? deformationFieldPtrZ[index] : (double)z;
 
 		/* the deformation field (real coordinates) is stored */
-		deformationFieldPtrX[index] = position[0];
-		deformationFieldPtrY[index] = position[1];
-		deformationFieldPtrZ[index] = position[2];
+//		if (index == 165 ) printf("x: %f | val: %f\n",voxel[0], getPosition( transformationMatrix, voxel, 0));
+		deformationFieldPtrX[index] = getPosition( transformationMatrix, voxel, 0);
+		deformationFieldPtrY[index] = getPosition( transformationMatrix, voxel, 1);
+		deformationFieldPtrZ[index] = getPosition( transformationMatrix, voxel, 2);
 
 	}
 }
@@ -605,7 +608,8 @@ __global__ void convolutionKernel(nifti_image *image, float*densityPtr, bool* na
 	}
 }
 
-void launch(nifti_image *image, float *sigma, int kernelType, int *mask, bool *timePoint, bool *axis) {
+//++++++++++++++++++++++++++++++++++++++++++ wraper funcs ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+void launchConvolution(nifti_image *image, float *sigma, int kernelType, int *mask, bool *timePoint, bool *axis) {
 	bool *axisToSmooth = new bool[3];
 	bool *activeTimePoint = new bool[image->nt*image->nu];
 	unsigned long voxelNumber = (long)image->nx*image->ny*image->nz;
@@ -715,36 +719,19 @@ void launch(nifti_image *image, float *sigma, int kernelType, int *mask, bool *t
 }
 
 
+void launchAffine(mat44 *affineTransformation, nifti_image *deformationField, float** def_d, int** mask_d, bool compose) {
 
+	float* trans = (float *)malloc(16 * sizeof(float));
+	float *trans_d;
 
-nifti_params_t getParams(nifti_image image) {
-	nifti_params_t params = {
-		image.ndim,                    /*!< last dimension greater than 1 (1..7) */
-		image.nx,                      /*!< dimensions of grid array             */
-		image.ny,                      /*!< dimensions of grid array             */
-		image.nz,                      /*!< dimensions of grid array             */
-		image.nt,                      /*!< dimensions of grid array             */
-		image.nu,                      /*!< dimensions of grid array             */
-		image.nv,                      /*!< dimensions of grid array             */
-		image.nw,                      /*!< dimensions of grid array             */
-		image.nvox,					   /*!< number of voxels = nx*ny*nz*...*nw   */
-		image.nbyper,                  /*!< bytes per voxel, matches datatype    */
-		image.datatype,                /*!< type of data in voxels: DT_* code    */
+	const mat44 *targetMatrix = (deformationField->sform_code > 0) ? &(deformationField->sto_xyz) : &(deformationField->qto_xyz);
+	mat44 transformationMatrix = (compose == true) ? *affineTransformation : reg_mat44_mul(affineTransformation, targetMatrix);
+	mat44ToCptr(transformationMatrix, trans);
 
-		image.dx,					/*!< grid spacings      */
-		image.dy,                   /*!< grid spacings      */
-		image.dz,                   /*!< grid spacings      */
-		image.dt,                   /*!< grid spacings      */
-		image.du,                   /*!< grid spacings      */
-		image.dv,                   /*!< grid spacings      */
-		image.dw,                    /*!< grid spacings      */
-		image.nx*image.ny*image.nz   //xyz image size
-	};
+	for (int i = 0; i < 4; ++i)
+		for (int j = 0; j < 4; ++j)
+			if(transformationMatrix.m[i][j] != trans[4*i + j]) printf("Probs\n");
 
-	return params;
-}
-
-void launchAffine2(mat44 *affineTransformation, nifti_image *deformationField, float** def_d, int** mask_d, bool compose) {
 
 	const unsigned int xThreads = 8;
 	const unsigned int yThreads = 8;
@@ -754,53 +741,25 @@ void launchAffine2(mat44 *affineTransformation, nifti_image *deformationField, f
 	const unsigned int yBlocks = ((deformationField->ny % yThreads) == 0) ? (deformationField->ny / yThreads) : (deformationField->ny / yThreads) + 1;
 	const unsigned int zBlocks = ((deformationField->nz % zThreads) == 0) ? (deformationField->nz / zThreads) : (deformationField->nz / zThreads) + 1;
 
-
 	dim3 G1_b(xBlocks, yBlocks, zBlocks);
 	dim3 B1_b(xThreads, yThreads, zThreads);
-
-
-
-	const mat44 *targetMatrix = (deformationField->sform_code > 0) ? &(deformationField->sto_xyz) : &(deformationField->qto_xyz);
-	mat44 transformationMatrix = (compose == true) ? *affineTransformation : reg_mat44_mul(affineTransformation, targetMatrix);
-
-	float* trans = (float *)malloc(16 * sizeof(float));
-	mat44ToCptr(transformationMatrix, trans);
-
-	nifti_params params_d = getParams(*deformationField);
-	float *trans_d;
 
 	NR_CUDA_SAFE_CALL(cudaMalloc((void**)(&trans_d), 16 * sizeof(float)));
 	NR_CUDA_SAFE_CALL(cudaMemcpy(trans_d, trans, 16 * sizeof(float), cudaMemcpyHostToDevice));
 
-	uint3 pms_d = make_uint3(params_d.nx, params_d.ny, params_d.nz);
-	affineKernel << <G1_b, B1_b >> >(trans_d, *def_d, *mask_d, pms_d, params_d.nxyz, compose);
+	uint3 dims_d = make_uint3(deformationField->nx, deformationField->ny, deformationField->nz);
+	affineKernel << <G1_b, B1_b >> >(trans_d, *def_d, *mask_d, dims_d, deformationField->nx* deformationField->ny* deformationField->nz, compose);
 	//NR_CUDA_CHECK_KERNEL(G1_b, B1_b)
 	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
+
 	cudaFree(trans_d);
 	free(trans);
 
 }
-void launchOptimize(_reg_blockMatchingParam *params, mat44 *transformation_matrix, bool affine) {
-	float in[3];
-	float out[3];
-	for (size_t i = 0; i<static_cast<size_t>(params->activeBlockNumber); ++i)
-	{
-		size_t index = 3 * i;
-		in[0] = params->resultPosition[index];
-		in[1] = params->resultPosition[index + 1];
-		in[2] = params->resultPosition[index + 2];
-		reg_mat44_mul(transformation_matrix, in, out);
-		params->resultPosition[index++] = out[0];
-		params->resultPosition[index++] = out[1];
-		params->resultPosition[index] = out[2];
-	}
-	if (affine)
-		launchOptimizeAffine(params, transformation_matrix, true);
-	else launchOptimizeRigid(params, transformation_matrix, false);
-}
 
 
-void launchResample2(nifti_image *floatingImage, nifti_image *warpedImage, int *mask, int interp, float paddingValue, bool *dti_timepoint, mat33 * jacMat, float** floatingImage_d,  float** warpedImage_d, float** deformationFieldImage_d, int** mask_d) {
+
+void launchResample(nifti_image *floatingImage, nifti_image *warpedImage, int *mask, int interp, float paddingValue, bool *dti_timepoint, mat33 * jacMat, float** floatingImage_d,  float** warpedImage_d, float** deformationFieldImage_d, int** mask_d) {
 
 	if (floatingImage->datatype != warpedImage->datatype) {
 		printf("[NiftyReg ERROR] reg_resampleImage\tSource and result image should have the same data type\n");
@@ -859,6 +818,8 @@ void runKernel2(nifti_image *floatingImage, nifti_image *warpedImage, int *mask,
 
 
 	long targetVoxelNumber = (long)warpedImage->nx*warpedImage->ny*warpedImage->nz;
+
+	//the below lines need to be moved to cu common
 	cudaDeviceProp  prop;
 	cudaGetDeviceProperties(&prop, 0);
 	unsigned int maxThreads = prop.maxThreadsDim[0];
@@ -868,41 +829,28 @@ void runKernel2(nifti_image *floatingImage, nifti_image *warpedImage, int *mask,
 
 	dim3 mygrid(blocks, 1, 1);
 	dim3 myblocks(maxThreads, 1, 1);
-	//printf("maxBlocks b: %d | maxThreads: %d\n", maxBlocks, maxThreads);
-	//printf("blocks: %d | threads: %d\n", blocks, maxThreads);
 
-	// The floating image data is copied in case one deal with DTI
-	void *originalFloatingData = NULL;
+
 
 	//number of jacobian matrices
-	int numMats = 0;//needs to be transfered to a param 
-	
-	float *sourceIJKMatrix_h = (float*)malloc(16 * sizeof(float));
-	float* jacMat_h = (float*)malloc(9 * numMats*sizeof(float));
-	
-	mat44 *sourceIJKMatrix;
-	if (floatingImage->sform_code > 0)
-		sourceIJKMatrix = &(floatingImage->sto_ijk);
-	else sourceIJKMatrix = &(floatingImage->qto_ijk);
+	int numMats = 0;//needs to be transfered to a param
 
 	float* sourceIJKMatrix_d, *jacMat_d;
+	float *sourceIJKMatrix_h = (float*)malloc(16 * sizeof(float));
+	float* jacMat_h = (float*)malloc(9 * numMats*sizeof(float));
+
 	int* dtiIndeces_d;
+
+	mat44 *sourceIJKMatrix = (floatingImage->sform_code > 0)? &(floatingImage->sto_ijk):sourceIJKMatrix = &(floatingImage->qto_ijk);
+	mat44ToCptr(*sourceIJKMatrix, sourceIJKMatrix_h);
+
 	ulong2 voxelNumber = make_ulong2(warpedImage->nx*warpedImage->ny*warpedImage->nz, floatingImage->nx*floatingImage->ny*floatingImage->nz);
 	uint3 fi_xyz = make_uint3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
 	uint2 wi_tu = make_uint2(warpedImage->nt, warpedImage->nu);
 
+	if (numMats) mat33ToCptr(jacMat, jacMat_h, numMats);
 
-	mat44ToCptr(*sourceIJKMatrix, sourceIJKMatrix_h);
-	if (numMats)
-		mat33ToCptr(jacMat, jacMat_h, numMats);
-
-	char* floating = "floating";
-	char* floating1 = "deformationFieldImage_d";
-	char* floating2 = "warpedImage_d";
-	char* floating3 = "mask_d";
-	char* floating4 = "matrix";
-
-	//mask_d
+	//dti indeces
 	NR_CUDA_SAFE_CALL(cudaMalloc((void**)(&dtiIndeces_d), 6 * sizeof(int)));
 	NR_CUDA_SAFE_CALL(cudaMemcpy(dtiIndeces_d, dtiIndeces, 6 * sizeof(int), cudaMemcpyHostToDevice));
 
@@ -914,6 +862,9 @@ void runKernel2(nifti_image *floatingImage, nifti_image *warpedImage, int *mask,
 	NR_CUDA_SAFE_CALL(cudaMalloc((void**)(&jacMat_d), numMats * 9 * sizeof(float)));
 	NR_CUDA_SAFE_CALL(cudaMemcpy(jacMat_d, jacMat_h, numMats * 9 * sizeof(float), cudaMemcpyHostToDevice));
 
+
+	// The floating image data is copied in case one deal with DTI
+	void *originalFloatingData = NULL;
 	// The DTI are logged
 	reg_dti_resampling_preprocessing<float>(floatingImage, &originalFloatingData, dtiIndeces);//need to either write it in cuda or do the transfers
 	//reg_dti_resampling_preprocessing<float> << <mygrid, myblocks >> >(floatingImage_d, dtiIndeces, fi_xyz);
@@ -941,7 +892,7 @@ void runKernel2(nifti_image *floatingImage, nifti_image *warpedImage, int *mask,
 	cudaFree(sourceIJKMatrix_d);
 	cudaFree(jacMat_d);
 	cudaFree(dtiIndeces_d);
-	
+
 	//free(originalFloatingData);
 	free(sourceIJKMatrix_h);
 	free(jacMat_h);
@@ -949,50 +900,6 @@ void runKernel2(nifti_image *floatingImage, nifti_image *warpedImage, int *mask,
 
 }
 
-void launchBlockMatching(nifti_image * target, nifti_image * result, _reg_blockMatchingParam *params, int *mask){
-
-	float *targetImageArray_d;
-	float *resultImageArray_d;
-	float *targetPosition_d;
-	float *resultPosition_d;
-	int *activeBlock_d, *mask_d;
-
-	//targetImageArray_d
-	NR_CUDA_SAFE_CALL(cudaMalloc((void**)(&targetImageArray_d), target->nvox * sizeof(float)));
-	NR_CUDA_SAFE_CALL(cudaMemcpy(targetImageArray_d, target->data, target->nvox * sizeof(float), cudaMemcpyHostToDevice));
-
-	//resultImageArray_d
-	NR_CUDA_SAFE_CALL(cudaMalloc((void**)(&resultImageArray_d), result->nvox * sizeof(float)));
-	NR_CUDA_SAFE_CALL(cudaMemcpy(resultImageArray_d, result->data, result->nvox * sizeof(float), cudaMemcpyHostToDevice));
-
-	//targetPosition_d
-	NR_CUDA_SAFE_CALL(cudaMalloc((void**)(&targetPosition_d), params->activeBlockNumber * 3 * sizeof(float)));
-	NR_CUDA_SAFE_CALL(cudaMemcpy(targetPosition_d, params->targetPosition, params->activeBlockNumber * 3 * sizeof(float), cudaMemcpyHostToDevice));
-
-	//resultPosition_d
-	NR_CUDA_SAFE_CALL(cudaMalloc((void**)(&resultPosition_d), params->activeBlockNumber * 3 * sizeof(float)));
-	NR_CUDA_SAFE_CALL(cudaMemcpy(resultPosition_d, params->resultPosition, params->activeBlockNumber * 3 * sizeof(float), cudaMemcpyHostToDevice));
-
-	//activeBlock_d
-
-	int3 bDim = make_int3(params->blockNumber[0], params->blockNumber[1], params->blockNumber[2]);
-	const int numBlocks = bDim.x*bDim.y*bDim.z;
-	NR_CUDA_SAFE_CALL(cudaMalloc((void**)(&activeBlock_d), numBlocks  * sizeof(int)));
-	NR_CUDA_SAFE_CALL(cudaMemcpy(activeBlock_d, params->activeBlock, numBlocks  * sizeof(int), cudaMemcpyHostToDevice));
-	
-	NR_CUDA_SAFE_CALL(cudaMalloc((void**)(&mask_d), target->nvox * sizeof(int)));
-	NR_CUDA_SAFE_CALL(cudaMemcpy(mask_d, mask, target->nvox * sizeof(int), cudaMemcpyHostToDevice));
-
-	block_matching_method_gpu(target, result, params, &targetImageArray_d, &resultImageArray_d, &targetPosition_d, &resultPosition_d, &activeBlock_d, &mask_d);
-
-	
-	//cudaDeviceReset();
-	/*cudaFree(targetImageArray_d);
-	cudaFree(resultImageArray_d);
-	cudaFree(targetPosition_d);
-	cudaFree(resultPosition_d);
-	cudaFree(activeBlock_d);*/
-}
 
 void identityConst(){
 	float* mat_h = (float*)malloc(16*sizeof(float));
@@ -1007,171 +914,9 @@ void identityConst(){
 	cudaMemcpyToSymbol(cIdentity, &mat_h, 16*sizeof(float));
 }
 
-void launchBlockMatching2(nifti_image * target,  _reg_blockMatchingParam *params, float **targetImageArray_d,
-	float **resultImageArray_d,
-	float **targetPosition_d,
-	float **resultPosition_d,
-	int **activeBlock_d, int **mask_d){
-
-
+void launchBlockMatching(nifti_image * target,  _reg_blockMatchingParam *params, float **targetImageArray_d,float **resultImageArray_d,float **targetPosition_d, float **resultPosition_d, int **activeBlock_d, int **mask_d){
 
 	block_matching_method_gpu3(target, params, targetImageArray_d, resultImageArray_d, targetPosition_d, resultPosition_d, activeBlock_d, mask_d);
 }
 
 
-
-void launchOptimizeAffine(_reg_blockMatchingParam* params, mat44* final, bool affine){
-
-	//
-
-	////    const unsigned num_points = params->activeBlockNumber;
-	//const unsigned num_points = params->definedActiveBlock;
-	//unsigned long num_equations = num_points * 3;
-	//std::multimap<double, _reg_sorted_point3D> queue;
-	//std::vector<_reg_sorted_point3D> top_points;
-	//double distance = 0.0;
-	//double lastDistance = std::numeric_limits<double>::max();
-	//unsigned long i;
-
-	//float* a_h, *w_h, *v_h, *r_h = (float*)malloc(num_equations*12*sizeof(float));
-	//float* b_h = (float*)malloc(num_equations * sizeof(float));
-
-
-	//// massive left hand side matrix
-	//float ** a = new float *[num_equations];
-	//for (unsigned k = 0; k < num_equations; ++k)
-	//{
-	//	a[k] = new float[12]; // full affine
-	//}
-
-	//// The array of singular values returned by svd
-	//float *w = new float[12];
-
-	//// v will be n x n
-	//float **v = new float *[12];
-	//for (unsigned k = 0; k < 12; ++k)
-	//{
-	//	v[k] = new float[12];
-	//}
-
-	//// Allocate memory for pseudoinverse
-	//float **r = new float *[12];
-	//for (unsigned k = 0; k < 12; ++k)
-	//{
-	//	r[k] = new float[num_equations];
-	//}
-
-	//// Allocate memory for RHS vector
-	//float *b = new float[num_equations];
-
-	//// The initial vector with all the input points
-	//for (unsigned j = 0; j < num_points * 3; j += 3)
-	//{
-	//	top_points.push_back(_reg_sorted_point3D(&(params->targetPosition[j]), &(params->resultPosition[j]), 0.0f));
-	//}
-
-	//// estimate the optimal transformation while considering all the points
-	//estimate_affine_transformation3D(top_points, final, a, w, v, r, b);
-
-	//// Delete a, b and r. w and v will not change size in subsequent svd operations.
-	//for (unsigned int k = 0; k < num_equations; ++k)
-	//{
-	//	delete[] a[k];
-	//}
-	//delete[] a;
-	//delete[] b;
-
-	//for (unsigned k = 0; k < 12; ++k)
-	//{
-	//	delete[] r[k];
-	//}
-	//delete[] r;
-
-
-	//// The LS in the iterations is done on subsample of the input data
-	//float * newResultPosition = new float[num_points * 3];
-	//const unsigned long num_to_keep = (unsigned long)(num_points * (params->percent_to_keep / 100.0f));
-	//num_equations = num_to_keep * 3;
-
-	//// The LHS matrix
-	//a = new float *[num_equations];
-	//for (unsigned k = 0; k < num_equations; ++k)
-	//{
-	//	a[k] = new float[12]; // full affine
-	//}
-
-	//// Allocate memory for pseudoinverse
-	//r = new float *[12];
-	//for (unsigned k = 0; k < 12; ++k)
-	//{
-	//	r[k] = new float[num_equations];
-	//}
-
-	//// Allocate memory for RHS vector
-	//b = new float[num_equations];
-	//mat44 lastTransformation;
-	//memset(&lastTransformation, 0, sizeof(mat44));
-
-	//for (unsigned count = 0; count < MAX_ITERATIONS; ++count)
-	//{
-	//	// Transform the points in the target
-	//	for (unsigned j = 0; j < num_points * 3; j += 3)
-	//	{
-	//		reg_mat44_mul(final, &(params->targetPosition[j]), &newResultPosition[j]);
-	//	}
-
-	//	queue = std::multimap<double, _reg_sorted_point3D>();
-	//	for (unsigned j = 0; j < num_points * 3; j += 3)
-	//	{
-	//		distance = get_square_distance(&newResultPosition[j], &(params->resultPosition[j]));
-	//		queue.insert(std::pair<double, _reg_sorted_point3D>(distance, _reg_sorted_point3D(&(params->targetPosition[j]),
-	//			&(params->resultPosition[j]), distance)));
-	//	}
-
-	//	distance = 0.0;
-	//	i = 0;
-	//	top_points.clear();
-
-	//	for (std::multimap<double, _reg_sorted_point3D>::iterator it = queue.begin();
-	//		it != queue.end(); ++it, ++i)
-	//	{
-	//		if (i >= num_to_keep) break;
-	//		top_points.push_back((*it).second);
-	//		distance += (*it).first;
-	//	}
-
-	//	// If the change is not substantial or we are getting worst, we return
-	//	if ((distance >= lastDistance) || (lastDistance - distance) < TOLERANCE)
-	//	{
-	//		// restore the last transformation
-	//		copy_transformation_4x4(lastTransformation, *(final));
-	//		break;
-	//	}
-	//	lastDistance = distance;
-	//	copy_transformation_4x4(*(final), lastTransformation);
-	//	estimate_affine_transformation3D(top_points, final, a, w, v, r, b);
-	//}
-	//delete[] newResultPosition;
-	//delete[] b;
-	//for (unsigned k = 0; k < 12; ++k)
-	//{
-	//	delete[] r[k];
-	//}
-	//delete[] r;
-
-	//// free the memory
-	//for (unsigned int k = 0; k < num_equations; ++k)
-	//{
-	//	delete[] a[k];
-	//}
-	//delete[] a;
-
-	//delete[] w;
-	//for (int k = 0; k < 12; ++k)
-	//{
-	//	delete[] v[k];
-	//}
-	//delete[] v;
-
-}
-void launchOptimizeRigid(_reg_blockMatchingParam* params, mat44* transformation_matrix, bool affine){}

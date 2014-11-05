@@ -27,28 +27,8 @@ typedef struct nifti_params {
 
 } nifti_params_t;
 
-void launch(nifti_image *image, float *sigma, int kernelType, int *mask,
-		bool *timePoint, bool *axis);
-void launchAffine2(mat44 *affineTransformation, nifti_image *deformationField,
-		float** def_d, int** mask_d, bool compose = false);
-void launchBlockMatching(nifti_image * target, nifti_image * result,
-		_reg_blockMatchingParam *params, int *mask);
-void launchBlockMatching2(nifti_image * target, _reg_blockMatchingParam *params,
-		float **targetImageArray_d, float **resultImageArray_d,
-		float **targetPosition_d, float **resultPosition_d, int **activeBlock_d,
-		int **mask_d);
-
-void launchOptimize(_reg_blockMatchingParam *params,
-		mat44 *transformation_matrix, bool affine);
-void launchOptimizeAffine(_reg_blockMatchingParam* params,
-		mat44* transformation_matrix, bool affine);
-void launchOptimizeRigid(_reg_blockMatchingParam* params,
-		mat44* transformation_matrix, bool affine);
-void launchResample2(nifti_image *floatingImage, nifti_image *warpedImage,
-		int *mask, int interp, float paddingValue, bool *dti_timepoint,
-		mat33 * jacMat, float** floatingImage_d, float** warpedImage_d,
-		float** deformationFieldImage_d, int** mask_d);
-void runKernel2(nifti_image *floatingImage, nifti_image *warpedImage, int *mask,
-		int interp, float paddingValue, int *dtiIndeces, mat33 * jacMat,
-		float** floatingImage_d, float** warpedImage_d,
-		float** deformationFieldImage_d, int** mask_d);
+void launchConvolution(nifti_image *image, float *sigma, int kernelType, int *mask, bool *timePoint, bool *axis);
+void launchAffine(mat44 *affineTransformation, nifti_image *deformationField,float** def_d, int** mask_d, bool compose = false);
+void launchBlockMatching(nifti_image * target, _reg_blockMatchingParam *params, float **targetImageArray_d, float **resultImageArray_d, float **targetPosition_d, float **resultPosition_d, int **activeBlock_d, int **mask_d);
+void launchResample(nifti_image *floatingImage, nifti_image *warpedImage, int *mask, int interp, float paddingValue, bool *dti_timepoint, mat33 * jacMat, float** floatingImage_d, float** warpedImage_d, float** deformationFieldImage_d, int** mask_d);
+void runKernel2(nifti_image *floatingImage, nifti_image *warpedImage, int *mask, int interp, float paddingValue, int *dtiIndeces, mat33 * jacMat, float** floatingImage_d, float** warpedImage_d, float** deformationFieldImage_d, int** mask_d);

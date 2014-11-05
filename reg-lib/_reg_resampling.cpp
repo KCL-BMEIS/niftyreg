@@ -345,6 +345,9 @@ inputIntensityXY,inputIntensityXZ,inputIntensityYZ, jacMat, mask)
 #endif
 	}
 }
+template
+void reg_dti_resampling_postprocessing<float>(nifti_image *inputImage, int *mask,
+		mat33 *jacMat, int *dtIndicies, nifti_image *warpedImage = NULL);
 /* *************************************************************** */
 template<class FloatingTYPE, class FieldTYPE>
 void ResampleImage3D(nifti_image *floatingImage, nifti_image *deformationField,

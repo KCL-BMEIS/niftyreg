@@ -98,8 +98,8 @@ public:
 	nifti_image* CurrentDeformationField;
 	nifti_image* CurrentWarped;
 
-	nifti_image* CurrentBackwardsDeformationField;
-	nifti_image* CurrentBackwardsWarped;
+//	nifti_image* CurrentBackwardsDeformationField;
+//	nifti_image* CurrentBackwardsWarped;
 
 
 

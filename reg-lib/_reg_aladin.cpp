@@ -551,8 +551,7 @@ void reg_aladin<T>::Run()
 				this->UpdateTransformationMatrix(AFFINE);
 				if (funcProgressCallback && paramsProgressCallback)
 				{
-					(*funcProgressCallback)(100.0f * (float)iProgressStep / (float)nProgressSteps,
-							paramsProgressCallback);
+					(*funcProgressCallback)(100.0f * (float)iProgressStep / (float)nProgressSteps, paramsProgressCallback);
 				}
 
 				// Announce the progress via CLI
@@ -616,12 +615,9 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 
 	this->CurrentReferenceMask = (int *)calloc(CurrentReference->nx*CurrentReference->ny*CurrentReference->nz, sizeof(int));
 
-	if (platformCode == 0)
-	this->con = new Context(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T)/*, 50, 50*/);
-	else if (platformCode == 1)
-	this->con = new CudaContext(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T)/*, 50, 50*/);
-	else
-	this->con = new Context(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T)/*, 50, 50*/);
+	if (platformCode == 0) this->con = new Context(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T)/*, 50, 50*/);
+	else if (platformCode == 1) this->con = new CudaContext(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T)/*, 50, 50*/);
+	else this->con = new Context(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T)/*, 50, 50*/);
 
 	this->CurrentWarped = con->getCurrentWarped();
 	this->deformationFieldImage = con->getCurrentDeformationField();
