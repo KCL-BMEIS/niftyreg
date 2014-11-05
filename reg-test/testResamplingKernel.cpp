@@ -43,11 +43,11 @@ float test(const unsigned int platformCode, const unsigned int interp, std::stri
 	Context *con;
 
 	if (platform->getName() == "cpu_platform")
-		con = new Context(mockRef, CurrentFloating, CurrentReferenceMask, sizeof(float), 50, 50);
+		con = new Context(mockRef, CurrentFloating, CurrentReferenceMask, sizeof(float), 50, 50, 1);
 	else if (platform->getName() == "cuda_platform")
-		con = new CudaContext(mockRef, CurrentFloating, CurrentReferenceMask, sizeof(float), 50, 50);
+		con = new CudaContext(mockRef, CurrentFloating, CurrentReferenceMask, sizeof(float), 50, 50, 1);
 	else 
-		con = new Context(mockRef, CurrentFloating, CurrentReferenceMask, sizeof(float), 50, 50);
+		con = new Context(mockRef, CurrentFloating, CurrentReferenceMask, sizeof(float), 50, 50, 1);
 
 	con->setCurrentWarped(CurrentWarped);
 	con->setCurrentDeformationField(deformationFieldImage);

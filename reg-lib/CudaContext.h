@@ -12,7 +12,7 @@ public:
 		allocateCuPtrs();
 		uploadContext();
 	}
-	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int  inlierLts) :Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte, blockPercentage, inlierLts){
+	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int  inlierLts, int blockStep) :Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte, blockPercentage, inlierLts, blockStep){
 		//std::cout << "Cuda context constructor called: " <<bm<< std::endl;
 		initVars();
 		allocateCuPtrs();

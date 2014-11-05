@@ -112,7 +112,7 @@ float test( Platform* platform, const unsigned int type, char* msg) {
 	mat44* TransformationMatrix = new mat44;
 	mockInitialMatrix(TransformationMatrix);
 
-	Context *con = new Context(CurrentReference, mockFloating, CurrentReferenceMask, sizeof(float), CurrentPercentageOfBlockToUse, InlierLts);//temp
+	Context *con = new Context(CurrentReference, mockFloating, CurrentReferenceMask, sizeof(float), CurrentPercentageOfBlockToUse, InlierLts, 1);//temp
 	con->setCurrentWarped(CurrentWarped);
 	con->setTransformationMatrix(TransformationMatrix);
 

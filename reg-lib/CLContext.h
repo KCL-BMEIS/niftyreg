@@ -5,7 +5,7 @@ class CLContext : public Context
 
 public:
 	CLContext();
-	CLContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int InlierLts, const unsigned int  CurrentReferenceMask) :Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte, InlierLts, CurrentReferenceMask){}
+	CLContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int InlierLts, const unsigned int  CurrentReferenceMask, int blockStep) :Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte, InlierLts, CurrentReferenceMask, blockStep){}
 	CLContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte) :Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte){}
 	~CLContext();
 

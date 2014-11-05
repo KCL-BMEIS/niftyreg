@@ -50,10 +50,10 @@ void test(Platform* platform, const char* msg) {
 	Context *con;
 
 	if (platform->getName() == "cpu_platform")
-		con = new Context(reference, reference, mask, sizeof(float), 50, 50);
+		con = new Context(reference, reference, mask, sizeof(float), 50, 50,1);
 	else if (platform->getName() == "cuda_platform")
-		con = new CudaContext(reference, reference, mask, sizeof(float), 50, 50);
-	else con = new Context(reference, reference, mask, sizeof(float), 50, 50);
+		con = new CudaContext(reference, reference, mask, sizeof(float), 50, 50,1);
+	else con = new Context(reference, reference, mask, sizeof(float), 50, 50,1);
 
 
 	con->setTransformationMatrix(affine);

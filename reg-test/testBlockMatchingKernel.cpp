@@ -62,7 +62,7 @@ void mockParams(Platform* platform, const unsigned int blocksPercentage, const u
 	nifti_image* warped = reg_io_ReadImageFile(WRP);
 	int* mask = (int *)calloc(reference->nx*reference->ny*reference->nz, sizeof(int));
 
-	Context *con = new Context(reference, floating, mask, sizeof(float), blocksPercentage, inliers);//temp
+	Context *con = new Context(reference, floating, mask, sizeof(float), blocksPercentage, inliers, 1);//temp
 	con->setCurrentWarped(warped);
 	Kernel* bmKernel = platform->createKernel(BlockMatchingKernel::Name(), con);
 	//run kernel
@@ -119,9 +119,9 @@ void test(Platform* platform, const char* msg,  const unsigned int blocksPercent
 	Context *con;
 
 	if (platform->getName() == "cpu_platform")
-		con = new Context(reference, reference, mask, sizeof(float), blocksPercentage, inliers);//temp
+		con = new Context(reference, reference, mask, sizeof(float), blocksPercentage, inliers, 1);//temp
 	else if (platform->getName() == "cuda_platform")
-		con = new CudaContext(reference, reference, mask, sizeof(float), blocksPercentage, inliers);//temp
+		con = new CudaContext(reference, reference, mask, sizeof(float), blocksPercentage, inliers,1);//temp
 	else con = new Context();
 	con->setCurrentWarped(warped);
 

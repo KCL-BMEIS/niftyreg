@@ -105,11 +105,6 @@ struct _reg_blockMatchingParam
  */
 extern "C++"
 void initialise_block_matching_method(nifti_image * referenceImage,
-									  _reg_blockMatchingParam *params,
-									  int percentToKeep_block,
-									  int percentToKeep_opt,
-									  int *mask,
-									  bool runningOnGPU = false);
                                       _reg_blockMatchingParam *params,
                                       int percentToKeep_block,
                                       int percentToKeep_opt,

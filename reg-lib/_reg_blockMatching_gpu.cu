@@ -242,67 +242,66 @@ void block_matching_method_gpu2(nifti_image *targetImage,
 	float **resultPosition_d,
 	int **activeBlock_d)
 {
-<<<<<<< HEAD
-=======
-    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
-    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+//
+//    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
+//    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+//
+//    if(targetImage->nvox!=resultImage->nvox){
+//       reg_print_fct_error("block_matching_method_gpu");
+//       reg_print_msg_error("Target and warped images are expected to have the same size");
+//       reg_exit(1);
+//    }
+//
+//    // Copy some required parameters over to the device
+//    int3 bDim =make_int3(params->blockNumber[0], params->blockNumber[1], params->blockNumber[2]);
+//    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_BlockDim, &bDim, sizeof(int3)));
+//
+//    // Image size
+//    int3 image_size= make_int3(targetImage->nx, targetImage->ny, targetImage->nz);
+//    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ImageSize, &image_size, sizeof(int3)));
+//
+//    // Texture binding
+//    const int numBlocks = bDim.x*bDim.y*bDim.z;
+//    NR_CUDA_SAFE_CALL(cudaBindTexture(0, targetImageArray_texture, *targetImageArray_d, targetImage->nvox*sizeof(float)));
+//    NR_CUDA_SAFE_CALL(cudaBindTexture(0, resultImageArray_texture, *resultImageArray_d, targetImage->nvox*sizeof(float)));
+//    NR_CUDA_SAFE_CALL(cudaBindTexture(0, activeBlock_texture, *activeBlock_d, numBlocks*sizeof(int)));
+//
+//    // Copy the sform transformation matrix onto the device memort
+//    mat44 *xyz_mat;
+//    if(targetImage->sform_code>0)
+//        xyz_mat=&(targetImage->sto_xyz);
+//    else xyz_mat=&(targetImage->qto_xyz);
+//    float4 t_m_a_h = make_float4(xyz_mat->m[0][0],xyz_mat->m[0][1],xyz_mat->m[0][2],xyz_mat->m[0][3]);
+//    float4 t_m_b_h = make_float4(xyz_mat->m[1][0],xyz_mat->m[1][1],xyz_mat->m[1][2],xyz_mat->m[1][3]);
+//    float4 t_m_c_h = make_float4(xyz_mat->m[2][0],xyz_mat->m[2][1],xyz_mat->m[2][2],xyz_mat->m[2][3]);
+//    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(t_m_a, &t_m_a_h,sizeof(float4)));
+//    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(t_m_b, &t_m_b_h,sizeof(float4)));
+//    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(t_m_c, &t_m_c_h,sizeof(float4)));
+//    // We need to allocate some memory to keep track of overlap areas and values for blocks
+//    unsigned memSize = BLOCK_SIZE * params->activeBlockNumber;
+//    float * targetValues;NR_CUDA_SAFE_CALL(cudaMalloc(&targetValues, memSize * sizeof(float)));
+//    memSize = BLOCK_SIZE * params->activeBlockNumber;
+//    float * resultValues;NR_CUDA_SAFE_CALL(cudaMalloc(&resultValues, memSize * sizeof(float)));
+//    unsigned int Grid_block_matching = (unsigned int)ceil((float)params->activeBlockNumber/(float)NR_BLOCK->Block_target_block);
+//    unsigned int Grid_block_matching_2 = 1;
+//
+//    // We have hit the limit in one dimension
+//    if (Grid_block_matching > 65335) {
+//        Grid_block_matching_2 = (unsigned int)ceil((float)Grid_block_matching/65535.0f);
+//        Grid_block_matching = 65335;
+//    }
+//
+//    dim3 B1(NR_BLOCK->Block_target_block,1,1);
+//    dim3 G1(Grid_block_matching,Grid_block_matching_2,1);
+//    // process the target blocks
+//    process_target_blocks_gpu<<<G1, B1>>>(*targetPosition_d,
+//                                          targetValues);
+//    NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
+//#ifndef NDEBUG
+//    printf("[NiftyReg CUDA DEBUG] process_target_blocks_gpu kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
+//           cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
+//#endif
 
-    if(targetImage->nvox!=resultImage->nvox){
-       reg_print_fct_error("block_matching_method_gpu");
-       reg_print_msg_error("Target and warped images are expected to have the same size");
-       reg_exit(1);
-    }
-
-    // Copy some required parameters over to the device
-    int3 bDim =make_int3(params->blockNumber[0], params->blockNumber[1], params->blockNumber[2]);
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_BlockDim, &bDim, sizeof(int3)));
-
-    // Image size
-    int3 image_size= make_int3(targetImage->nx, targetImage->ny, targetImage->nz);
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ImageSize, &image_size, sizeof(int3)));
-
-    // Texture binding
-    const int numBlocks = bDim.x*bDim.y*bDim.z;
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, targetImageArray_texture, *targetImageArray_d, targetImage->nvox*sizeof(float)));
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, resultImageArray_texture, *resultImageArray_d, targetImage->nvox*sizeof(float)));
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, activeBlock_texture, *activeBlock_d, numBlocks*sizeof(int)));
-
-    // Copy the sform transformation matrix onto the device memort
-    mat44 *xyz_mat;
-    if(targetImage->sform_code>0)
-        xyz_mat=&(targetImage->sto_xyz);
-    else xyz_mat=&(targetImage->qto_xyz);
-    float4 t_m_a_h = make_float4(xyz_mat->m[0][0],xyz_mat->m[0][1],xyz_mat->m[0][2],xyz_mat->m[0][3]);
-    float4 t_m_b_h = make_float4(xyz_mat->m[1][0],xyz_mat->m[1][1],xyz_mat->m[1][2],xyz_mat->m[1][3]);
-    float4 t_m_c_h = make_float4(xyz_mat->m[2][0],xyz_mat->m[2][1],xyz_mat->m[2][2],xyz_mat->m[2][3]);
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(t_m_a, &t_m_a_h,sizeof(float4)));
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(t_m_b, &t_m_b_h,sizeof(float4)));
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(t_m_c, &t_m_c_h,sizeof(float4)));
-    // We need to allocate some memory to keep track of overlap areas and values for blocks
-    unsigned memSize = BLOCK_SIZE * params->activeBlockNumber;
-    float * targetValues;NR_CUDA_SAFE_CALL(cudaMalloc(&targetValues, memSize * sizeof(float)));
-    memSize = BLOCK_SIZE * params->activeBlockNumber;
-    float * resultValues;NR_CUDA_SAFE_CALL(cudaMalloc(&resultValues, memSize * sizeof(float)));
-    unsigned int Grid_block_matching = (unsigned int)ceil((float)params->activeBlockNumber/(float)NR_BLOCK->Block_target_block);
-    unsigned int Grid_block_matching_2 = 1;
-
-    // We have hit the limit in one dimension
-    if (Grid_block_matching > 65335) {
-        Grid_block_matching_2 = (unsigned int)ceil((float)Grid_block_matching/65535.0f);
-        Grid_block_matching = 65335;
-    }
-
-    dim3 B1(NR_BLOCK->Block_target_block,1,1);
-    dim3 G1(Grid_block_matching,Grid_block_matching_2,1);
-    // process the target blocks
-    process_target_blocks_gpu<<<G1, B1>>>(*targetPosition_d,
-                                          targetValues);
-    NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
-#ifndef NDEBUG
-    printf("[NiftyReg CUDA DEBUG] process_target_blocks_gpu kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n",
-           cudaGetErrorString(cudaGetLastError()),G1.x,G1.y,G1.z,B1.x,B1.y,B1.z);
-#endif
->>>>>>> 50d4431ddbf373d01262eea7f00bb06022647c8f
 
 
 	//this way, we can try different block sizes. My guess is that a dynamic size, will suit better. Larger sizes, will take care of the first big moves
@@ -420,7 +419,6 @@ void block_matching_method_gpu2(nifti_image *targetImage,
 
 }
 
-<<<<<<< HEAD
 void optimize_gpu(_reg_blockMatchingParam *blockMatchingParams,
 	mat44 *updateAffineMatrix,
 	float **targetPosition_d,
@@ -430,22 +428,7 @@ void optimize_gpu(_reg_blockMatchingParam *blockMatchingParams,
 
 	// Cheat and call the CPU version.
 	optimize(blockMatchingParams, updateAffineMatrix, affine);
-=======
-void optimize_gpu(	_reg_blockMatchingParam *blockMatchingParams,
-                  mat44 *updateAffineMatrix,
-                  float **targetPosition_d,
-                  float **resultPosition_d,
-                  bool affine)
-{
-    // We will simply call the CPU version as this step is probably
-    // not worth implementing on the GPU.
-    // device to host copy
-    int memSize = blockMatchingParams->activeBlockNumber * 3 * sizeof(float);
-    NR_CUDA_SAFE_CALL(cudaMemcpy(blockMatchingParams->targetPosition, *targetPosition_d, memSize, cudaMemcpyDeviceToHost));
-    NR_CUDA_SAFE_CALL(cudaMemcpy(blockMatchingParams->resultPosition, *resultPosition_d, memSize, cudaMemcpyDeviceToHost));
-    // Cheat and call the CPU version.
-    optimize(blockMatchingParams, updateAffineMatrix, affine);
->>>>>>> 50d4431ddbf373d01262eea7f00bb06022647c8f
+
 }
 
 #endif
