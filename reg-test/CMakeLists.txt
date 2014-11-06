@@ -80,6 +80,16 @@
 	target_link_libraries(${EXEC} _reg_maths)
 	add_test(${EXEC} ${EXEC})
 
+	set(EXEC reg_test_measure)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_f3d)
+	add_test(${EXEC}_LNCC_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/warped_sin2D.nii.gz LNCC)
+	add_test(${EXEC}_NMI_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/warped_sin2D.nii.gz NMI)
+	add_test(${EXEC}_SSD_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/warped_sin2D.nii.gz SSD)
+	add_test(${EXEC}_LNCC_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz LNCC)
+	add_test(${EXEC}_NMI_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz NMI)
+	add_test(${EXEC}_SSD_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz SSD)
+
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 
