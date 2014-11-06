@@ -107,16 +107,16 @@ void CudaContext::uploadContext(){
 }
 void CudaContext::freeCuPtrs(){
 
-	cudaCommon_free(&referenceImageArray_d);
-	cudaCommon_free(&floatingImageArray_d);
-	cudaCommon_free(&warpedImageArray_d);
-	cudaCommon_free(&deformationFieldArray_d);
+	cudaCommon_free<float>(&referenceImageArray_d);
+	cudaCommon_free<float>(&floatingImageArray_d);
+	cudaCommon_free<float>(&warpedImageArray_d);
+	cudaCommon_free<float>(&deformationFieldArray_d);
 
-	cudaCommon_free(&mask_d);
+	cudaCommon_free<int>(&mask_d);
 	if (bm){
-		cudaCommon_free(&activeBlock_d);
-		cudaCommon_free(&targetPosition_d);
-		cudaCommon_free(&resultPosition_d);
+		cudaCommon_free<int>(&activeBlock_d);
+		cudaCommon_free<float>(&targetPosition_d);
+		cudaCommon_free<float>(&resultPosition_d);
 	}
 
 

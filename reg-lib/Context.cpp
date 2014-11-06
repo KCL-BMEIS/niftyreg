@@ -45,7 +45,7 @@ Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn
 	this->AllocateDeformationField(&this->CurrentDeformationField, this->CurrentReference, bytes);
 	this->bm = true;
 	//std::cout << "typeConIn: " << CurrentReference->datatype << std::endl;
-	initialise_block_matching_method(CurrentReference, blockMatchingParams, CurrentPercentageOfBlockToUse, InlierLts, stepSize_block, CurrentReferenceMask, true);
+	initialise_block_matching_method(CurrentReference, blockMatchingParams, CurrentPercentageOfBlockToUse, InlierLts, stepSize_block, CurrentReferenceMask, false);
 
 
 

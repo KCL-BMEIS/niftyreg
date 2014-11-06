@@ -118,7 +118,7 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
 						voxel[1] = deformationFieldPtrY[index];
 						voxel[2] = deformationFieldPtrZ[index];
 					}
-					if (index == 165 ) printf("(%f-%f-%f) (%f-%f-%f-%f)\n",voxel[0],voxel[1], voxel[2], transformationMatrix.m[0 * 4 ][ 0], transformationMatrix.m[0 * 4][ 1], transformationMatrix.m[0 * 4 ][ 2], transformationMatrix.m[0 * 4 ][ 3]);
+//					if (index == 165 ) printf("(%f-%f-%f) (%f-%f-%f-%f)\n",voxel[0],voxel[1], voxel[2], transformationMatrix.m[0 * 4 ][ 0], transformationMatrix.m[0 * 4][ 1], transformationMatrix.m[0 * 4 ][ 2], transformationMatrix.m[0 * 4 ][ 3]);
 					position[0] =
 						transformationMatrix.m[0][0] * voxel[0] +
 						transformationMatrix.m[0][1] * voxel[1] +
@@ -135,7 +135,7 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
 						transformationMatrix.m[2][2] * voxel[2] +
 						transformationMatrix.m[2][3];
 					//                    reg_mat44_mul(&transformationMatrix, voxel, position);
-					if (index == 165 ) printf("x: %f | val: %f\n",voxel[0], position[0]);
+//					if (index == 165 ) printf("x: %f | val: %f\n",voxel[0], position[0]);
 					/* the deformation field (real coordinates) is stored */
 					deformationFieldPtrX[index] = position[0];
 					deformationFieldPtrY[index] = position[1];

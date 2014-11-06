@@ -1,5 +1,5 @@
 #include "_reg_aladin.h"
-//#include "Context.h"
+#include "CLContext.h"
 #include "CudaContext.h"
 #include "CPUPlatform.h"
 #include "CLPlatform.h"
@@ -449,7 +449,7 @@ void reg_aladin<T>::initContext() {
 	else if (platformCode == 1)
 	this->con = new CudaContext(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts, this->BlockStepSize);
 	else
-	this->con = new Context(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts, this->BlockStepSize);
+	this->con = new ClContext(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts, this->BlockStepSize);
 
 	this->CurrentReference = con->getCurrentReference();
 	this->CurrentFloating = con->getCurrentFloating();
@@ -617,7 +617,7 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 
 	if (platformCode == 0) this->con = new Context(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T)/*, 50, 50*/);
 	else if (platformCode == 1) this->con = new CudaContext(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T)/*, 50, 50*/);
-	else this->con = new Context(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T)/*, 50, 50*/);
+	else this->con = new ClContext(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T)/*, 50, 50*/);
 
 	this->CurrentWarped = con->getCurrentWarped();
 	this->deformationFieldImage = con->getCurrentDeformationField();

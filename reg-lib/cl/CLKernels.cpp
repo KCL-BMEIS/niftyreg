@@ -19,7 +19,7 @@ unsigned int min_cl(unsigned int a, unsigned int b) {
 
 void CLAffineDeformationFieldKernel::execute(bool compose) {
 	std::cout << "Launching CL  affine kernel!" << std::endl;
-	
+
 	const unsigned int xThreads = 8;
 	const unsigned int yThreads = 8;
 	const unsigned int zThreads = 8;
@@ -49,8 +49,8 @@ void CLAffineDeformationFieldKernel::execute(bool compose) {
 	cl_kernel kernel = 0;
 	cl_mem memObjects[3] = { 0, 0, 0 };
 	cl_int errNum;
-	
-	
+
+
 
 	// Create OpenCL kernel
 	kernel = clCreateKernel(program, "affineKernel", NULL);
@@ -64,7 +64,7 @@ void CLAffineDeformationFieldKernel::execute(bool compose) {
 	sContext->checkErrNum(errNum, "failed memObj1: ");
 	memObjects[2] = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(unsigned int) * nxyz, tempMask, &errNum);
 	sContext->checkErrNum(errNum, "failed memObj2: ");
-	
+
 	cl_uint3 pms_d = { this->deformationFieldImage->nx,this->deformationFieldImage->ny, this->deformationFieldImage->nz };
 	cl_uint composition = compose;
 
