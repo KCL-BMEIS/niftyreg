@@ -41,7 +41,6 @@ typedef struct
    float smoothValueY;
    float smoothValueZ;
    float thresholdImageValue;
-   float removeNanInfValue;
 } PARAM;
 typedef struct
 {
@@ -52,7 +51,6 @@ typedef struct
    bool rmsImageFlag;
    bool smoothSplineFlag;
    bool smoothGaussianFlag;
-   bool smoothLabFlag;
    bool smoothMeanFlag;
    bool binarisedImageFlag;
    bool thresholdImageFlag;
@@ -61,7 +59,6 @@ typedef struct
    int operationTypeFlag;
    bool iso;
    bool nosclFlag;
-   bool removeNanInf;
 } FLAG;
 
 
@@ -82,7 +79,6 @@ void Usage(char *exec)
    printf("\t-down\t\t\tThe input image is downsampled 2 times\n");
    printf("\t-smoS <float> <float> <float>\tThe input image is smoothed using a cubic b-spline kernel\n");
    printf("\t-smoG <float> <float> <float>\tThe input image is smoothed using Gaussian kernel\n");
-   printf("\t-smoL <float> <float> <float>\tThe input label image is smoothed using Gaussian kernel\n");
    printf("\t-add <filename/float>\tThis image (or value) is added to the input\n");
    printf("\t-sub <filename/float>\tThis image (or value) is subtracted to the input\n");
    printf("\t-mul <filename/float>\tThis image (or value) is multiplied to the input\n");
@@ -93,7 +89,6 @@ void Usage(char *exec)
    printf("\t-nan <filename>\t\tThis image is used to mask the input image.\n\t\t\t\tVoxels outside of the mask are set to nan\n");
    printf("\t-iso\t\t\tThe resulting image is made isotropic\n");
    printf("\t-noscl\t\t\tThe scl_slope and scl_inter are set to 1 and 0 respectively\n");
-   printf("\t-rmNanInf <float>\t\tRemove the nan and inf from the input image and replace them by the specified value\n");
 #ifdef _GIT_HASH
    printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
 #endif
@@ -219,13 +214,6 @@ int main(int argc, char **argv)
          param->smoothValueZ=atof(argv[++i]);
          flag->smoothGaussianFlag=1;
       }
-      else if(strcmp(argv[i], "-smoL") == 0)
-      {
-         param->smoothValueX=atof(argv[++i]);
-         param->smoothValueY=atof(argv[++i]);
-         param->smoothValueZ=atof(argv[++i]);
-         flag->smoothLabFlag=1;
-      }
       else if(strcmp(argv[i], "-smoM") == 0)
       {
          param->smoothValueX=atof(argv[++i]);
@@ -254,11 +242,6 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "-noscl") == 0)
       {
          flag->nosclFlag=1;
-      }
-      else if(strcmp(argv[i], "-rmNanInf") == 0)
-      {
-         flag->removeNanInf=1;
-         param->removeNanInfValue=atof(argv[++i]);
       }
       else
       {
@@ -352,31 +335,6 @@ int main(int argc, char **argv)
          reg_tools_kernelConvolution(smoothImg,kernelSize,1,NULL,timePoint,boolZ);
       else reg_tools_kernelConvolution(smoothImg,kernelSize,0,NULL,timePoint,boolZ);
       delete []kernelSize;
-      delete []timePoint;
-      if(flag->outputImageFlag)
-         reg_io_WriteImageFile(smoothImg, param->outputImageName);
-      else reg_io_WriteImageFile(smoothImg, "output.nii");
-      nifti_image_free(smoothImg);
-   }
-
-
-   //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
-
-   if(flag->smoothLabFlag)
-   {
-      nifti_image *smoothImg = nifti_copy_nim_info(image);
-      smoothImg->data = (void *)malloc(smoothImg->nvox * smoothImg->nbyper);
-      memcpy(smoothImg->data, image->data, smoothImg->nvox*smoothImg->nbyper);
-
-      bool *timePoint = new bool[smoothImg->nt*smoothImg->nu];
-      for(int i=0; i<smoothImg->nt*smoothImg->nu; ++i) timePoint[i]=true;
-
-      float varX=param->smoothValueX;
-      float varY=param->smoothValueY;
-      float varZ=param->smoothValueZ;
-
-      reg_tools_labelKernelConvolution(smoothImg,varX,varY,varZ,NULL,timePoint);
-
       delete []timePoint;
       if(flag->outputImageFlag)
          reg_io_WriteImageFile(smoothImg, param->outputImageName);
@@ -574,49 +532,6 @@ int main(int argc, char **argv)
       if(flag->outputImageFlag)
          reg_io_WriteImageFile(image,param->outputImageName);
       else reg_io_WriteImageFile(image,"output.nii");
-   }
-   //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
-   if(flag->removeNanInf)
-   {
-      size_t nanNumber=0, infNumber=0,finNumber=0;
-      if(image->datatype==NIFTI_TYPE_FLOAT32)
-      {
-         float *imgDataPtr=static_cast<float *>(image->data);
-         for(size_t i=0;i<image->nvox;++i){
-            float value=imgDataPtr[i];
-            if(value==std::numeric_limits<float>::quiet_NaN()){
-               nanNumber++;
-               imgDataPtr[i]=param->removeNanInfValue;
-            }
-            else if(value==std::numeric_limits<float>::infinity()){
-               infNumber++;
-               imgDataPtr[i]=param->removeNanInfValue;
-            }
-            else finNumber++;
-         }
-      }
-      else if(image->datatype==NIFTI_TYPE_FLOAT64)
-      {
-         double *imgDataPtr=static_cast<double *>(image->data);
-         for(size_t i=0;i<image->nvox;++i){
-            double value=imgDataPtr[i];
-            if(value==std::numeric_limits<double>::quiet_NaN()){
-               nanNumber++;
-               imgDataPtr[i]=param->removeNanInfValue;
-            }
-            else if(value==std::numeric_limits<double>::infinity()){
-               infNumber++;
-               imgDataPtr[i]=param->removeNanInfValue;
-            }
-            else finNumber++;
-         }
-      }
-      else{
-         reg_print_msg_error("Nan and Inf value can only be removed when the input image is of float or double datatype");
-         return 1;
-      }
-      printf("The input image contained %lu NaN, %lu Inf and %lu finite values\n",
-             nanNumber, infNumber, finNumber);
    }
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 

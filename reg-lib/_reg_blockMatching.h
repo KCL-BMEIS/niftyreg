@@ -17,6 +17,7 @@
 #include "_reg_maths.h"
 #include <vector>
 
+
 #define TOLERANCE 0.01
 #define MAX_ITERATIONS 30
 
@@ -75,16 +76,17 @@ struct _reg_blockMatchingParam
    int stepSize;
 
    _reg_blockMatchingParam()
-      : targetPosition(0),
-        resultPosition(0),
-        activeBlock(0)
-   {}
+	  : targetPosition(0),
+		resultPosition(0),
+		activeBlock(0)
+   {
+   }
 
    ~_reg_blockMatchingParam()
    {
-      if(targetPosition) free(targetPosition);
-      if(resultPosition) free(resultPosition);
-      if(activeBlock) free(activeBlock);
+	  if(targetPosition) free(targetPosition);
+	  if(resultPosition) free(resultPosition);
+	  if(activeBlock) free(activeBlock);  
    }
 };
 

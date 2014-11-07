@@ -1,3 +1,4 @@
+
 	# The test data are dowloaded
 	set(DATA_FOLDER ${CMAKE_BINARY_DIR}/reg-test/test-data)
 	if(NOT EXISTS "${DATA_FOLDER}/test_data.tar.gz")
@@ -89,7 +90,39 @@
 	add_test(${EXEC}_LNCC_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz LNCC)
 	add_test(${EXEC}_NMI_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz NMI)
 	add_test(${EXEC}_SSD_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz SSD)
-
+	
+	#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+set(EXEC clInfo)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_aladin)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+set(EXEC testOptimizerKernel)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_aladin)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+set(EXEC testConvolutionKernel)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_aladin)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+set(EXEC testAffineDeformationKernel)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_aladin)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+set(EXEC testResamplingKernel)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_aladin)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+set(EXEC testBlockMatchingKernel)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_aladin)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------

@@ -5375,7 +5375,7 @@ nifti_image * nifti_make_new_nim(const int dims[], int datatype, int data_fill)
       fprintf(stderr,"** NMNN: nifti_convert_nhdr2nim failure\n");
       return NULL;
    }
-
+   
    if( g_opts.debug > 1 )
       fprintf(stderr,"+d nifti_make_new_nim, data_fill = %d\n",data_fill);
 

@@ -1,3 +1,14 @@
+#ADD_SUBDIRECTORY(
+#	cpu
+#	factory
+#	cl
+#	cuda
+#	)
+
+
+
+ADD_SUBDIRECTORY(cl)
+ADD_SUBDIRECTORY(cuda)
 #-----------------------------------------------------------------------------
 ##BUILD THE CPU LIBRARIES
 #-----------------------------------------------------------------------------
@@ -13,6 +24,29 @@ install(TARGETS _reg_maths
   ARCHIVE DESTINATION lib
   )
 install(FILES _reg_maths.h DESTINATION include)
+
+#ADD_LIBRARY(_reg_aladin ${NIFTYREG_LIBRARY_TYPE}
+#	)
+#SET(ALADIN_LIBRARIES
+#	_reg_tools
+#	_reg_maths
+#	)
+#IF (USE_OPENCL)
+#	SET(ALADIN_LIBRARIES
+#		${ALADIN_LIBRARIES}
+#		aladin_openclkernels
+#		)
+#ELSEIF(USE_CUDA)
+#	SET(ALADIN_LIBRARIES
+#		${ALADIN_LIBRARIES}
+#		aladin_cudakernels
+#		)
+#ENDIF()
+#
+#TARGET_LINK_LIBRARIES(_reg_aladin
+#	${ALADIN_LIBRARIES}
+#	)
+
 
 #-----------------------------------------------------------------------------
 add_library(_reg_tools ${NIFTYREG_LIBRARY_TYPE} 
@@ -59,16 +93,16 @@ set(LIB_LIST
 
 foreach(NAME ${LIB_LIST})
   add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} 
-    ${NAME}.h 
-    ${NAME}.cpp)
+	${NAME}.h 
+	${NAME}.cpp)
   target_link_libraries(${NAME} 
-    _reg_globalTransformation
-    )
+	_reg_globalTransformation
+	)
   install(TARGETS ${NAME}
-    RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    )
+	RUNTIME DESTINATION bin
+	LIBRARY DESTINATION lib
+	ARCHIVE DESTINATION lib
+	)
   install(FILES ${NAME}.h DESTINATION include)
 endforeach(NAME)
 
@@ -105,17 +139,17 @@ if(USE_CUDA)
   set(NAME _reg_common_gpu)
   cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.h ${NAME}.cu _reg_blocksize_gpu.h _reg_blocksize_gpu.cu)
   if(WIN32)
-    target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY})
+	target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY})
   endif(WIN32)
   #	if(APPLE)
   #		FIND_LIBRARY(CUDA_CUDA_LIB cuda)
   #		target_link_libraries(${NAME} ${CUDA_CUDA_LIB})
   #	endif(APPLE)
   install(TARGETS ${NAME}
-    RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    )
+	RUNTIME DESTINATION bin
+	LIBRARY DESTINATION lib
+	ARCHIVE DESTINATION lib
+	)
   install(FILES ${NAME}.h DESTINATION include)
   #-----------------------------------------------------------------------------
   set(LIST _reg_globalTransformation)
@@ -127,13 +161,13 @@ if(USE_CUDA)
   set(LIST ${LIST} _reg_tools)
   set(LIST ${LIST} _reg_optimiser)
   foreach(NAME ${LIST})
-    cuda_add_library(${NAME}_gpu ${NIFTYREG_LIBRARY_TYPE} ${NAME}_gpu.h ${NAME}_gpu.cu ${NAME}_kernels.cu)
-    install(TARGETS ${NAME}_gpu
-      RUNTIME DESTINATION bin
-      LIBRARY DESTINATION lib
-      ARCHIVE DESTINATION lib
-      )
-    install(FILES ${NAME}_gpu.h DESTINATION include)
+	cuda_add_library(${NAME}_gpu ${NIFTYREG_LIBRARY_TYPE} ${NAME}_gpu.h ${NAME}_gpu.cu ${NAME}_kernels.cu)
+	install(TARGETS ${NAME}_gpu
+	  RUNTIME DESTINATION bin
+	  LIBRARY DESTINATION lib
+	  ARCHIVE DESTINATION lib
+	  )
+	install(FILES ${NAME}_gpu.h DESTINATION include)
   endforeach(NAME)
   #-----------------------------------------------------------------------------
   install(FILES _reg_blocksize_gpu.h DESTINATION include)
@@ -163,73 +197,73 @@ set(NAME _reg_f3d)
 if(USE_CUDA)
   #-----------------------------------------------------------------------------
   cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
-    _reg_base.h
-    _reg_base.cpp
-    ${NAME}.h
-    ${NAME}.cpp
-    ${NAME}_sym.h
-    ${NAME}_sym.cpp
-    ${NAME}2.h
-    ${NAME}2.cpp
-    ${NAME}_gpu.h
-    ${NAME}_gpu.cpp)
+	_reg_base.h
+	_reg_base.cpp
+	${NAME}.h
+	${NAME}.cpp
+	${NAME}_sym.h
+	${NAME}_sym.cpp
+	${NAME}2.h
+	${NAME}2.cpp
+	${NAME}_gpu.h
+	${NAME}_gpu.cpp)
   target_link_libraries(${NAME}
-    _reg_localTransformation
-    _reg_resampling
-    _reg_globalTransformation
-    _reg_KLdivergence
-    _reg_ssd
-    _reg_nmi
-    _reg_dti
-    _reg_lncc
-    _reg_optimiser
-    _reg_tools
-    _reg_ReadWriteImage
-    _reg_optimiser_gpu
-    _reg_localTransformation_gpu
-    _reg_resampling_gpu
-    _reg_globalTransformation_gpu
-    _reg_nmi_gpu
-    _reg_ssd_gpu
-    _reg_tools_gpu
-    _reg_common_gpu)
+	_reg_localTransformation
+	_reg_resampling
+	_reg_globalTransformation
+	_reg_KLdivergence
+	_reg_ssd
+	_reg_nmi
+	_reg_dti
+	_reg_lncc
+	_reg_optimiser
+	_reg_tools
+	_reg_ReadWriteImage
+	_reg_optimiser_gpu
+	_reg_localTransformation_gpu
+	_reg_resampling_gpu
+	_reg_globalTransformation_gpu
+	_reg_nmi_gpu
+	_reg_ssd_gpu
+	_reg_tools_gpu
+	_reg_common_gpu)
   install(FILES ${NAME}_gpu.h ${NAME}_gpu.cpp DESTINATION include)
   #-----------------------------------------------------------------------------
 else(USE_CUDA)
   #-----------------------------------------------------------------------------
   if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    add_library(${NAME} SHARED
-      _reg_base.h
-      _reg_base.cpp
-      ${NAME}.h
-      ${NAME}.cpp
-      ${NAME}2.h
-      ${NAME}2.cpp
-      ${NAME}_sym.h
-      ${NAME}_sym.cpp)
+	add_library(${NAME} SHARED
+	  _reg_base.h
+	  _reg_base.cpp
+	  ${NAME}.h
+	  ${NAME}.cpp
+	  ${NAME}2.h
+	  ${NAME}2.cpp
+	  ${NAME}_sym.h
+	  ${NAME}_sym.cpp)
   else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
-      _reg_base.h
-      _reg_base.h
-      _reg_base.cpp
-      ${NAME}.h
-      ${NAME}.cpp
-      ${NAME}2.h
-      ${NAME}2.cpp
-      ${NAME}_sym.h
-      ${NAME}_sym.cpp)
+	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
+	  _reg_base.h
+	  _reg_base.h
+	  _reg_base.cpp
+	  ${NAME}.h
+	  ${NAME}.cpp
+	  ${NAME}2.h
+	  ${NAME}2.cpp
+	  ${NAME}_sym.h
+	  ${NAME}_sym.cpp)
   endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   target_link_libraries(${NAME}
-    _reg_localTransformation
-    _reg_resampling
-    _reg_globalTransformation
-    _reg_lncc
-    _reg_dti
-    _reg_KLdivergence
-    _reg_ssd _reg_nmi
-    _reg_optimiser
-    _reg_tools
-    _reg_ReadWriteImage)
+	_reg_localTransformation
+	_reg_resampling
+	_reg_globalTransformation
+	_reg_lncc
+	_reg_dti
+	_reg_KLdivergence
+	_reg_ssd _reg_nmi
+	_reg_optimiser
+	_reg_tools
+	_reg_ReadWriteImage)
 endif(USE_CUDA)
 install(TARGETS ${NAME}
   RUNTIME DESTINATION bin
@@ -247,18 +281,57 @@ install(FILES ${NAME}_sym.h ${NAME}_sym.cpp DESTINATION include)
 set(NAME _reg_aladin)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   add_library(${NAME} SHARED
-    ${NAME}.h
-    ${NAME}.cpp
-    ${NAME}_sym.h
-    ${NAME}_sym.cpp
-    )
+	${NAME}.h
+	${NAME}.cpp
+	${NAME}_sym.h
+	${NAME}_sym.cpp
+	Context.cpp
+	CudaContext.cpp
+	CLContext.cpp
+	
+	Platform.cpp
+	Kernel.cpp
+	KernelImpl.cpp
+	
+	CPUPlatfom.cpp
+	
+	#Kernels.cpp
+	
+
+	CPUKernelFactory.cpp
+	CPUKernels.cpp
+
+	)
+	
 else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
-    ${NAME}.h
-    ${NAME}.cpp
-    ${NAME}_sym.h
-    ${NAME}_sym.cpp
-    )
+	${NAME}.h
+	${NAME}.cpp
+	${NAME}_sym.h
+	${NAME}_sym.cpp
+	
+	Context.cpp
+	CudaContext.cpp
+	CLContext.cpp
+	
+	Platform.cpp
+	Kernel.cpp
+	
+	KernelImpl.cpp
+	
+	CPUPlatfom.cpp
+	
+	CPUKernelFactory.cpp
+	CPUKernels.cpp
+
+	#Kernels.cpp
+	
+	
+	)
+	#cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ConvolutionKernel.cu)
+	#target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY})
+	#target_link_libraries(${NAME} ${OPENCL_LIBRARIES} )
+	#configure_file(affineDeformationKernel.cl ${CMAKE_CURRENT_BINARY_DIR}/affineDeformationKernel.cl COPYONLY)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 target_link_libraries(${NAME}
@@ -270,13 +343,16 @@ target_link_libraries(${NAME}
   _reg_nmi
   _reg_tools
   _reg_ReadWriteImage
+  _reg_common_gpu
+  _reg_opencl_kernels
+  _reg_cuda_kernels
   )
 install(TARGETS ${NAME}
   RUNTIME DESTINATION lib
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   )
-install(FILES ${NAME}.h ${NAME}_sym.h ${NAME}.cpp ${NAME}_sym.cpp _reg_macros.h DESTINATION include)
+install(FILES ${NAME}.h ${NAME}_sym.h ${NAME}.cpp ${NAME}_sym.cpp _reg_macros.h  CLContext.h CudaContext.h Context.h Platform.h  CPUPlatform.h Kernel.h KernelImpl.h KernelFactory.h  CPUKernelFactory.h kernels.h   CPUKernels.h   DESTINATION include)
 
 #-----------------------------------------------------------------------------
 ## BUILD THE TPS LIBRARY CPU

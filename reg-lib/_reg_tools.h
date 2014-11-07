@@ -16,8 +16,8 @@
 
 #include <fstream>
 #include <limits>
-#include <map>
 #include "_reg_maths.h"
+#include "Context.h"
 
 
 /* *************************************************************** */
@@ -80,6 +80,7 @@ void reg_getRealImageSpacing(nifti_image *image,
  * @param axis Boolean array to specify which axis have to be
  * smoothed. The array follow the dim array of the nifti header.
  */
+
 extern "C++"
 void reg_tools_kernelConvolution(nifti_image *image,
                                  float *sigma,
@@ -87,26 +88,6 @@ void reg_tools_kernelConvolution(nifti_image *image,
                                  int *mask = NULL,
                                  bool *timePoints = NULL,
                                  bool *axis = NULL);
-
-/* *************************************************************** */
-/** @brief Smooth a label image using a Gaussian kernel
- * @param image Image to be smoothed
- * @param varianceX The variance of the Gaussian kernel in X
- * @param varianceY The variance of the Gaussian kernel in Y
- * @param varianceZ The variance of the Gaussian kernel in Z
- * @param mask An integer mask over which the Gaussian smoothing should occour
- * @param timePoint Boolean array to specify which timepoints have to be
- * smoothed.
- */
-extern "C++"
-void reg_tools_labelKernelConvolution(nifti_image *image,
-                                      float varianceX,
-                                      float varianceY,
-                                      float varianceZ,
-                                      int *mask=NULL,
-                                      bool *timePoint=NULL);
-
-
 /* *************************************************************** */
 /** @brief Downsample an image by a ratio of two
  * @param image Image to be downsampled
@@ -411,4 +392,8 @@ void startProgress(std::string name);
 extern "C++"
 void closeProgress(std::string name, std::string status);
 /* *************************************************************** */
+extern "C++"
+void mat44ToCptr(mat44 mat, float* cMat);
+extern "C++"
+void mat33ToCptr(mat33* mat, float* cMat, const unsigned int numMats);
 #endif

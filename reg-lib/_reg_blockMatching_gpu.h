@@ -15,6 +15,7 @@
 #include "_reg_common_gpu.h"
 #include "_reg_blockMatching.h"
 
+
 // targetImage: The target/fixed/reference image.
 // resultImage: The warped/deformed/result image.
 // blockMatchingParam:
@@ -24,20 +25,32 @@
 // activeBlock_d: Array specifying which blocks are active.
 extern "C++"
 void block_matching_method_gpu(	nifti_image *targetImage,
-                                 nifti_image *resultImage,
-                                 _reg_blockMatchingParam *blockMatchingParams,
-                                 float **targetImageArray_d,
-                                 float **resultImageArray_d,
-                                 float **targetPosition_d,
-                                 float **resultPosition_d,
-                                 int **activeBlock_d);
+								 nifti_image *resultImage,
+								 _reg_blockMatchingParam *blockMatchingParams,
+								 float **targetImageArray_d,
+								 float **resultImageArray_d,
+								 float **targetPosition_d,
+								 float **resultPosition_d,
+								 int **activeBlock_d,
+								 int **mask_);
+extern "C++"
+void block_matching_method_gpu3(nifti_image *targetImage, _reg_blockMatchingParam *params, float **targetImageArray_d, float **resultImageArray_d, float **targetPosition_d, float **resultPosition_d, int **activeBlock_d, int **mask_d);
+
 
 extern "C++"
 void optimize_gpu(	_reg_blockMatchingParam *blockMatchingParams,
-                     mat44 *updateAffineMatrix,
-                     float **targetPosition_d,
-                     float **resultPosition_d,
-                     bool affine = true);
-
+					 mat44 *updateAffineMatrix,
+					 float **targetPosition_d,
+					 float **resultPosition_d,
+					 bool affine = true);
+extern "C++"
+void block_matching_method_gpu2(nifti_image *targetImage,
+nifti_image *resultImage,
+_reg_blockMatchingParam *blockMatchingParams,
+float **targetImageArray_d,
+float **resultImageArray_d,
+float **targetPosition_d,
+float **resultPosition_d,
+int **activeBlock_d);
 #endif
 

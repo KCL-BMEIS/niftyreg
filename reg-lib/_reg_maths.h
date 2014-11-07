@@ -4,34 +4,30 @@
  * @author Marc Modat
  * @date 25/03/2009
  *
- *  Created by Marc Modat on 25/03/2009.
- *  Copyright (c) 2009, University College London. All rights reserved.
- *  Centre for Medical Image Computing (CMIC)
- *  See the LICENSE.txt file in the nifty_reg root folder
+ * Created by Marc Modat on 25/03/2009.
+ * Copyright (c) 2009, University College London. All rights reserved.
+ * Centre for Medical Image Computing (CMIC)
+ * See the LICENSE.txt file in the nifty_reg root folder
  *
  */
 #ifndef _REG_MATHS_H
 #define _REG_MATHS_H
-
 #include <stdio.h>
 #include <math.h>
 #include <iostream>
 #include "nifti1_io.h"
-
 #if defined (_OPENMP)
 #include <omp.h>
 #endif
-
 typedef enum
 {
-   DEF_FIELD,
-   DISP_FIELD,
-   SPLINE_GRID,
-   DEF_VEL_FIELD,
-   DISP_VEL_FIELD,
-   SPLINE_VEL_GRID
+	DEF_FIELD,
+	DISP_FIELD,
+	SPLINE_GRID,
+	DEF_VEL_FIELD,
+	DISP_VEL_FIELD,
+	SPLINE_VEL_GRID
 } NREG_TRANS_TYPE;
-
 /* *************************************************************** */
 #define reg_pow2(a) ((a)*(a))
 #define reg_ceil(a) (ceil(a))
@@ -47,8 +43,8 @@ typedef enum
 #define SQR(a) (a==0.0 ? 0.0 : a*a)
 /* *************************************************************** */
 #define reg_exit(val){ \
-    fprintf(stderr,"[NiftyReg] Exit here. File: %s:%i\n",__FILE__, __LINE__); \
-    exit(val); \
+fprintf(stderr,"[NiftyReg] Exit here. File: %s:%i\n",__FILE__, __LINE__); \
+exit(val); \
 }
 #define reg_print_fct_debug(name){printf("[NiftyReg DEBUG] Function: %s called\n",name);}
 #define reg_print_msg_debug(name){printf("[NiftyReg DEBUG] Message: %s\n",name);}
@@ -72,66 +68,54 @@ typedef enum
 #endif
 template<class PrecisionType> inline int round(PrecisionType x)
 {
-   return int(x > 0.0 ? (x + 0.5) : (x - 0.5));
+	return int(x > 0.0 ? (x + 0.5) : (x - 0.5));
 }
 #if _MSC_VER < 1800 //test if visual studio version older than 2013
 template<typename T>inline bool isinf(T value)
 {
-   return std::numeric_limits<T>::has_infinity && value == std::numeric_limits<T>::infinity();
+	return std::numeric_limits<T>::has_infinity && value == std::numeric_limits<T>::infinity();
 }
 #endif
 inline int fabs(int _x)
 {
-   return (int)fabs((float)(_x));
+	return (int)fabs((float)(_x));
 }
 #endif // If on windows...
-
 /* *************************************************************** */
-/* Functions calling the Eigen library                             */
-/* See http://eigen.tuxfamily.org/index.php?title=Main_Page        */
+/* Functions calling the Eigen library */
+/* See http://eigen.tuxfamily.org/index.php?title=Main_Page */
 /* *************************************************************** */
-extern "C++"
-void reg_logarithm_tensor(mat33 *in_tensor);
+extern "C++" void reg_logarithm_tensor(mat33 *in_tensor);
 /* *************************************************************** */
-extern "C++"
-void reg_exponentiate_logged_tensor(mat33 *in_tensor);
+extern "C++" void reg_exponentiate_logged_tensor(mat33 *in_tensor);
 /* *************************************************************** */
 /* *************************************************************** */
-extern "C++" template <class T>
+extern "C++" template<class T>
 void svd(T ** in, size_t m, size_t n, T * w, T ** v);
 /* *************************************************************** */
 /* *************************************************************** */
-extern "C++" template <class T>
-void reg_LUdecomposition(T *inputMatrix,
-                         size_t dim,
-                         size_t *index);
+extern "C++" template<class T>
+void reg_LUdecomposition(T *inputMatrix, size_t dim, size_t *index);
 /* *************************************************************** */
-extern "C++" template <class T>
-void reg_matrixMultiply(T *mat1,
-                        T *mat2,
-                        int *dim1,
-                        int *dim2,
-                        T * &res);
+extern "C++" template<class T>
+void reg_matrixMultiply(T *mat1, T *mat2, int *dim1, int *dim2, T * &res);
 /* *************************************************************** */
-extern "C++" template <class T>
-void reg_matrixInvertMultiply(T *mat,
-                              size_t dim,
-                              size_t *index,
-                              T *vec);
+extern "C++" template<class T>
+void reg_matrixInvertMultiply(T *mat, size_t dim, size_t *index, T *vec);
 /* *************************************************************** */
-extern "C++"
-void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum);
+extern "C++" void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum);
 /* *************************************************************** */
-extern "C++" template <class T>
-void reg_heapSort(T *array_tmp,int blockNum);
+extern "C++" template<class T>
+void reg_heapSort(T *array_tmp, int blockNum);
 /* *************************************************************** */
 /* *************************************************************** */
-bool operator==(mat44 A,mat44 B);
+bool operator==(mat44 A, mat44 B);
 /* *************************************************************** */
-bool operator!=(mat44 A,mat44 B);
+bool operator!=(mat44 A, mat44 B);
 /* *************************************************************** */
 /** @brief here
  */
+
 mat33 reg_mat44_to_mat33(mat44 const* A);
 /* *************************************************************** */
 /** @brief Multipy two 4-by-4 matrices
@@ -194,6 +178,7 @@ mat44 reg_mat44_expm(mat44 const* mat);
 /** @brief Compute the log of a 4-by-4 matrix
  */
 mat44 reg_mat44_logm(mat44 const* mat);
+
 /* *************************************************************** */
 /** @brief Compute the average of two matrices using a log-euclidean
  * framework
@@ -209,5 +194,6 @@ void reg_mat44_disp(mat44 *mat,
  */
 void reg_mat33_disp(mat33 *mat,
                     char * title);
+
 /* *************************************************************** */
 #endif // _REG_MATHS_H

@@ -64,4 +64,14 @@ void reg_getImageGradient(nifti_image *floatingImage,
 extern "C++"
 nifti_image *reg_makeIsotropic(nifti_image *, int);
 
+extern "C++"
+template <class DTYPE>
+void reg_dti_resampling_postprocessing(nifti_image *inputImage, int *mask,
+		mat33 *jacMat, int *dtIndicies, nifti_image *warpedImage = NULL);
+
+extern "C++"
+template <class DTYPE>
+void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
+		void **originalFloatingData, int *dtIndicies);
+
 #endif

@@ -26,45 +26,48 @@ struct __attribute__((aligned(4))) float4
 /* ******************************** */
 #if CUDART_VERSION >= 3200
 #   define NR_CUDA_SAFE_CALL(call) { \
-        call; \
-        cudaError err = cudaPeekAtLastError(); \
-        if( cudaSuccess != err) { \
-            fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
-            __FILE__, __LINE__, cudaGetErrorString(err)); \
-            exit(EXIT_FAILURE); \
-        } \
-    }
+		call; \
+		cudaError err = cudaPeekAtLastError(); \
+		if( cudaSuccess != err) { \
+			fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
+			__FILE__, __LINE__, cudaGetErrorString(err)); \
+			exit(EXIT_FAILURE); \
+		} \
+	}
 #   define NR_CUDA_CHECK_KERNEL(grid,block) { \
-        cudaThreadSynchronize(); \
-        cudaError err = cudaPeekAtLastError(); \
-        if( err != cudaSuccess) { \
-            fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
-            __FILE__, __LINE__, cudaGetErrorString(err)); \
-            fprintf(stderr, "Grid [%ix%ix%i] | Block [%ix%ix%i]\n", \
-            grid.x,grid.y,grid.z,block.x,block.y,block.z); \
-            exit(EXIT_FAILURE); \
-        } \
-    }
+		cudaThreadSynchronize(); \
+		cudaError err = cudaPeekAtLastError(); \
+		if( err != cudaSuccess) { \
+			fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
+			__FILE__, __LINE__, cudaGetErrorString(err)); \
+			fprintf(stderr, "Grid [%ix%ix%i] | Block [%ix%ix%i]\n", \
+			grid.x,grid.y,grid.z,block.x,block.y,block.z); \
+			exit(EXIT_FAILURE); \
+		} \
+		else{\
+		printf("[NiftyReg CUDA DEBUG] kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n", cudaGetErrorString(cudaGetLastError()), grid.x, grid.y, grid.z, block.x, block.y, block.z);\
+		}\
+	}
 #else //CUDART_VERSION >= 3200
 #   define NR_CUDA_SAFE_CALL(call) { \
-        call; \
-        cudaError err = cudaThreadSynchronize(); \
-        if( cudaSuccess != err) { \
-            fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
-            __FILE__, __LINE__, cudaGetErrorString(err)); \
-            exit(EXIT_FAILURE); \
-        } \
-    }
+		call; \
+		cudaError err = cudaThreadSynchronize(); \
+		if( cudaSuccess != err) { \
+			fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
+			__FILE__, __LINE__, cudaGetErrorString(err)); \
+			exit(EXIT_FAILURE); \
+		} \
+	}
 #   define NR_CUDA_CHECK_KERNEL(grid,block) { \
-        cudaError err = cudaThreadSynchronize(); \
-        if( err != cudaSuccess) { \
-            fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
-            __FILE__, __LINE__, cudaGetErrorString(err)); \
-            fprintf(stderr, "Grid [%ix%ix%i] | Block [%ix%ix%i]\n", \
-            grid.x,grid.y,grid.z,block.x,block.y,block.z); \
-            exit(EXIT_FAILURE); \
-        } \
-    }
+		cudaError err = cudaThreadSynchronize(); \
+		if( err != cudaSuccess) { \
+			fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
+			__FILE__, __LINE__, cudaGetErrorString(err)); \
+			fprintf(stderr, "Grid [%ix%ix%i] | Block [%ix%ix%i]\n", \
+			grid.x,grid.y,grid.z,block.x,block.y,block.z); \
+			exit(EXIT_FAILURE); \
+		} \
+	}
 #endif //CUDART_VERSION >= 3200
 /* ******************************** */
 /* ******************************** */
@@ -137,7 +140,7 @@ public:    /* _reg_blockMatching_gpu */
    NiftyReg_CudaBlock100();
    ~NiftyReg_CudaBlock100()
    {
-      ;
+	  ;
    }
 };
 /* ******************************** */
@@ -147,7 +150,7 @@ public:
    NiftyReg_CudaBlock200();
    ~NiftyReg_CudaBlock200()
    {
-      ;
+	  ;
    }
 };
 /* ******************************** */
@@ -157,7 +160,7 @@ public:
    NiftyReg_CudaBlock300();
    ~NiftyReg_CudaBlock300()
    {
-      ;
+	  ;
    }
 };
 /* ******************************** */
@@ -166,23 +169,23 @@ class NiftyReg_CudaBlock
 public:
    static NiftyReg_CudaBlock100 * getInstance(int major)
    {
-      if (instance) return instance;
-      else
-      {
-         switch(major)
-         {
-         case 3:
-            instance = new NiftyReg_CudaBlock300();
-            break;
-         case 2:
-            instance = new NiftyReg_CudaBlock200();
-            break;
-         default:
-            instance = new NiftyReg_CudaBlock100();
-            break;
-         }
-      }
-      return instance;
+	  if (instance) return instance;
+	  else
+	  {
+		 switch(major)
+		 {
+		 case 3:
+			instance = new NiftyReg_CudaBlock300();
+			break;
+		 case 2:
+			instance = new NiftyReg_CudaBlock200();
+			break;
+		 default:
+			instance = new NiftyReg_CudaBlock100();
+			break;
+		 }
+	  }
+	  return instance;
    }
 private:
    static NiftyReg_CudaBlock100 * instance;
