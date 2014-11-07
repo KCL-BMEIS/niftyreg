@@ -70,6 +70,12 @@
 	add_test(${EXEC}_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/floImg2D.nii.gz ${DATA_FOLDER}/affine_mat2D.txt ${DATA_FOLDER}/nonlin_cpp2D.nii.gz)
 	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/nonlin_cpp3D.nii.gz)
 
+	set(EXEC reg_test_fullSymNonlinear)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_f3d)
+	add_test(${EXEC}_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/floImg2D.nii.gz ${DATA_FOLDER}/affine_mat2D.txt ${DATA_FOLDER}/nonlin_vel2D.nii.gz)
+	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/nonlin_vel3D.nii.gz)
+
 	set(EXEC reg_test_matrix_operation)
 	add_executable(${EXEC} ${EXEC}.cpp)
 	target_link_libraries(${EXEC} _reg_maths reg_nifti z)

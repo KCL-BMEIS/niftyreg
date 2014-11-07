@@ -6,12 +6,13 @@
 #include "_reg_ssd.h"
 #include "_reg_lncc.h"
 
-#define LNCC_VALUE_2D 0.713088
-#define NMI_VALUE_2D 1.12037
-#define SSD_VALUE_2D -0.0373425
-#define LNCC_VALUE_3D 0.872566
-#define NMI_VALUE_3D 1.14906
-#define SSD_VALUE_3D -0.0173248
+#define LNCC_VALUE_2D 0.691751
+#define NMI_VALUE_2D  1.116657
+#define SSD_VALUE_2D -0.0367104
+
+#define LNCC_VALUE_3D 0.872809
+#define NMI_VALUE_3D  1.149116
+#define SSD_VALUE_3D -0.017684
 
 #define EPS 0.000001
 
@@ -76,10 +77,12 @@ int main(int argc, char **argv)
                                         NULL,
                                         NULL);
       double measure=measure_object->GetSimilarityMeasureValue();
+      printf("reg_test_measure: LNCC value %iD = %g\n",
+             (refImage->nz>1?3:2), measure);
       double expectedValue = LNCC_VALUE_2D;
       if(refImage->nz>1)
          expectedValue = LNCC_VALUE_3D;
-      if((measure-expectedValue)>EPS)
+      if(fabs(measure-expectedValue)>EPS)
       {
          printf("reg_test_measure: Incorrect measure value %g (!=%g)\n",
                 measure, expectedValue);
@@ -100,13 +103,15 @@ int main(int argc, char **argv)
                                         NULL,
                                         NULL);
       double measure=measure_object->GetSimilarityMeasureValue();
+      printf("reg_test_measure: NMI value %iD = %.7g\n",
+             (refImage->nz>1?3:2), measure);
       double expectedValue = NMI_VALUE_2D;
       if(refImage->nz>1)
          expectedValue = NMI_VALUE_3D;
-      if((measure-expectedValue)>EPS)
+      if(fabs(measure-expectedValue)>EPS)
       {
-         printf("reg_test_measure: Incorrect measure value %g (!=%g)\n",
-                measure, expectedValue);
+         printf("reg_test_measure: Incorrect measure value %g (%g)\n",
+                measure, fabs(measure-expectedValue));
          return_value = EXIT_FAILURE;
       }
       delete measure_object;
@@ -124,10 +129,12 @@ int main(int argc, char **argv)
                                         NULL,
                                         NULL);
       double measure=measure_object->GetSimilarityMeasureValue();
+      printf("reg_test_measure: SSD value %iD = %g\n",
+             (refImage->nz>1?3:2), measure);
       double expectedValue = SSD_VALUE_2D;
       if(refImage->nz>1)
          expectedValue = SSD_VALUE_3D;
-      if((measure-expectedValue)>EPS)
+      if(fabs(measure-expectedValue)>EPS)
       {
          printf("reg_test_measure: Incorrect measure value %g (!=%g)\n",
                 measure, expectedValue);
