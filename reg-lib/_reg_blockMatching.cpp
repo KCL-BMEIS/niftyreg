@@ -17,34 +17,11 @@
 
 
 
-/* *************************************************************** */
-/* *************************************************************** */
-void copy_transformation_4x4(const mat44 &source, mat44 &dest)
-{
-   dest.m[0][0] = source.m[0][0];
-   dest.m[0][1] = source.m[0][1];
-   dest.m[0][2] = source.m[0][2];
-   dest.m[0][3] = source.m[0][3];
 
-   dest.m[1][0] = source.m[1][0];
-   dest.m[1][1] = source.m[1][1];
-   dest.m[1][2] = source.m[1][2];
-   dest.m[1][3] = source.m[1][3];
-
-   dest.m[2][0] = source.m[2][0];
-   dest.m[2][1] = source.m[2][1];
-   dest.m[2][2] = source.m[2][2];
-   dest.m[2][3] = source.m[2][3];
-
-   dest.m[3][0] = source.m[3][0];
-   dest.m[3][1] = source.m[3][1];
-   dest.m[3][2] = source.m[3][2];
-   dest.m[3][3] = source.m[3][3];
-}
 /* *************************************************************** */
 /* *************************************************************** */
 // Helper function: Get the square of the Euclidean distance
-double get_square_distance(float * first_point3D, float * second_point3D)
+double get_square_distance3D(float * first_point3D, float * second_point3D)
 {
    return  sqrt((first_point3D[0]-second_point3D[0])*(first_point3D[0]-second_point3D[0]) +
                 (first_point3D[1]-second_point3D[1])*(first_point3D[1]-second_point3D[1]) +
@@ -212,7 +189,6 @@ void _reg_set_active_blocks(nifti_image *targetImage, _reg_blockMatchingParam *p
 
    reg_heapSort(varianceArray, indexArray, totalBlockNumber);
 
-   memset(params->activeBlock, 0, totalBlockNumber * sizeof(int));
    int *indexArrayPtr = &indexArray[totalBlockNumber-1];
    int count = 0;
    for(int i=0; i<params->activeBlockNumber; i++)
@@ -521,7 +497,6 @@ void block_matching_method3D(nifti_image * target,
    DTYPE *targetPtr=static_cast<DTYPE *>(target->data);
    DTYPE *resultPtr=static_cast<DTYPE *>(result->data);
 
-
    mat44 *targetMatrix_xyz;
    if(target->sform_code >0)
       targetMatrix_xyz = &(target->sto_xyz);
@@ -556,24 +531,6 @@ void block_matching_method3D(nifti_image * target,
    DTYPE resultValues[16][BLOCK_SIZE];
    bool targetOverlap[16][BLOCK_SIZE];
    bool resultOverlap[16][BLOCK_SIZE];
-   float **currentTargetPosition =
-         (float **)malloc(threadNumber*sizeof(float *));
-   float **currentResultPosition =
-         (float **)malloc(threadNumber*sizeof(float *));
-   int blockPerThread = params->activeBlockNumber;
-   for(i=0; i<threadNumber; ++i)
-   {
-      currentTargetPosition[i] =
-            (float *)malloc(3*blockPerThread*sizeof(float));
-      currentResultPosition[i] =
-            (float *)malloc(3*blockPerThread*sizeof(float));
-      for(j=0; j<3*blockPerThread; j+=3)
-      {
-         currentTargetPosition[i][j]=std::numeric_limits<float>::quiet_NaN();
-         currentResultPosition[i][j]=std::numeric_limits<float>::quiet_NaN();
-      }
-   }
-   int tidDefinedActiveBlock=0;
 #else
    DTYPE targetValues[1][BLOCK_SIZE];
    DTYPE resultValues[1][BLOCK_SIZE];
@@ -581,17 +538,16 @@ void block_matching_method3D(nifti_image * target,
    bool resultOverlap[1][BLOCK_SIZE];
 #endif
 
+   float *temp_target_position=(float *)malloc(3*params->activeBlockNumber*sizeof(float));
+   float *temp_result_position=(float *)malloc(3*params->activeBlockNumber*sizeof(float));
    for(i=0; i<3*params->activeBlockNumber; i+=3)
-   {
-      params->targetPosition[i]=std::numeric_limits<float>::quiet_NaN();
-      params->resultPosition[i]=std::numeric_limits<float>::quiet_NaN();
-   }
+      temp_target_position[i]=std::numeric_limits<float>::quiet_NaN();
 
 #if defined (_OPENMP)
    #pragma omp parallel for default(none) \
    shared(params, target, result, targetPtr, resultPtr, mask, targetMatrix_xyz, \
           targetOverlap, resultOverlap, targetValues, resultValues, \
-          currentTargetPosition, currentResultPosition, blockPerThread) \
+          temp_target_position, temp_result_position) \
    private(i, j, k, l, m, n, x, y, z, blockIndex, targetIndex, \
            index, tid, targetPtr_Z, targetPtr_XYZ, resultPtr_Z, resultPtr_XYZ, \
            maskPtr_Z, maskPtr_XYZ, value, bestCC, bestDisplacement, \
@@ -600,8 +556,7 @@ void block_matching_method3D(nifti_image * target,
            resultIndex_start_x, resultIndex_start_y, resultIndex_start_z, \
            resultIndex_end_x, resultIndex_end_y, resultIndex_end_z, \
            resultIndex, targetPosition_temp, tempPosition, targetTemp, resultTemp, \
-           targetMean, targetVar, resultMean, resultVar, voxelNumber,localCC) \
-   firstprivate(tidDefinedActiveBlock)
+           targetMean, targetVar, resultMean, resultVar, voxelNumber,localCC)
 #endif
    for(k=0; k<params->blockNumber[2]; k++)
    {
@@ -774,33 +729,14 @@ void block_matching_method3D(nifti_image * target,
                   bestDisplacement[2] += targetPosition_temp[2];
 
                   reg_mat44_mul(targetMatrix_xyz, targetPosition_temp, tempPosition);
-#if defined (_OPENMP)
-                  z=3*tidDefinedActiveBlock;
-                  currentTargetPosition[tid][ z ] = tempPosition[0];
-                  currentTargetPosition[tid][z+1] = tempPosition[1];
-                  currentTargetPosition[tid][z+2] = tempPosition[2];
-#else
-                  z=3*params->definedActiveBlock;
-                  params->targetPosition[ z ] = tempPosition[0];
-                  params->targetPosition[z+1] = tempPosition[1];
-                  params->targetPosition[z+2] = tempPosition[2];
-#endif
+                  z=3*params->activeBlock[blockIndex];
+                  temp_target_position[ z ] = tempPosition[0];
+                  temp_target_position[z+1] = tempPosition[1];
+                  temp_target_position[z+2] = tempPosition[2];
                   reg_mat44_mul(targetMatrix_xyz, bestDisplacement, tempPosition);
-#if defined (_OPENMP)
-                  currentResultPosition[tid][ z ] = tempPosition[0];
-                  currentResultPosition[tid][z+1] = tempPosition[1];
-                  currentResultPosition[tid][z+2] = tempPosition[2];
-#else
-                  params->resultPosition[ z ] = tempPosition[0];
-                  params->resultPosition[z+1] = tempPosition[1];
-                  params->resultPosition[z+2] = tempPosition[2];
-#endif
-
-#if defined (_OPENMP)
-                  tidDefinedActiveBlock++;
-#else
-                  params->definedActiveBlock++;
-#endif
+                  temp_result_position[ z ] = tempPosition[0];
+                  temp_result_position[z+1] = tempPosition[1];
+                  temp_result_position[z+2] = tempPosition[2];
                }
             }
             blockIndex++;
@@ -808,28 +744,27 @@ void block_matching_method3D(nifti_image * target,
       }
    }
 
-#if defined (_OPENMP)
-   i=0;
-   for(tid=0; tid<threadNumber; ++tid)
+   // Removing the NaNs and defining the number of active block
+   params->definedActiveBlock=0;
+   j=0;
+   for(i=0;i<3*params->activeBlockNumber;i+=3)
    {
-      for(j=0; j<blockPerThread; j+=3)
+      if(temp_target_position[i]==temp_target_position[i])
       {
-         if(currentTargetPosition[tid][j]!=currentTargetPosition[tid][j])
-            break;
-         params->targetPosition[ i ] = currentTargetPosition[tid][ j ];
-         params->targetPosition[i+1] = currentTargetPosition[tid][j+1];
-         params->targetPosition[i+2] = currentTargetPosition[tid][j+2];
-         params->resultPosition[ i ] = currentResultPosition[tid][ j ];
-         params->resultPosition[i+1] = currentResultPosition[tid][j+1];
-         params->resultPosition[i+2] = currentResultPosition[tid][j+2];
+         params->targetPosition[ j ] = temp_target_position[ i ];
+         params->targetPosition[j+1] = temp_target_position[i+1];
+         params->targetPosition[j+2] = temp_target_position[i+2];
+         params->resultPosition[ j ] = temp_result_position[ i ];
+         params->resultPosition[j+1] = temp_result_position[i+1];
+         params->resultPosition[j+2] = temp_result_position[i+2];
          params->definedActiveBlock++;
-         i+=3;
+         j+=3;
       }
-      free(currentTargetPosition[tid]);
-      free(currentResultPosition[tid]);
    }
-   free(currentTargetPosition);
-   free(currentResultPosition);
+   free(temp_target_position);
+   free(temp_result_position);
+
+#if defined (_OPENMP)
    omp_set_num_threads(threadNumber);
 #endif
 }
@@ -886,8 +821,14 @@ void block_matching_method(nifti_image * target,
 /* *************************************************************** */
 void apply_affine2D(mat44 * mat, float *pt, float *result)
 {
-   result[0] = (mat->m[0][0] * pt[0]) + (mat->m[0][1]*pt[1]) + (mat->m[0][3]);
-   result[1] = (mat->m[1][0] * pt[0]) + (mat->m[1][1]*pt[1]) + (mat->m[1][3]);
+   result[0] = static_cast<float>(
+         static_cast<double>(pt[0])*static_cast<double>(mat->m[0][0]) +
+         static_cast<double>(pt[1])*static_cast<double>(mat->m[0][1]) +
+         static_cast<double>(mat->m[0][3]));
+   result[1] = static_cast<float>(
+         static_cast<double>(pt[0])*static_cast<double>(mat->m[1][0]) +
+         static_cast<double>(pt[1])*static_cast<double>(mat->m[1][1]) +
+         static_cast<double>(mat->m[1][3]));
 }
 /* *************************************************************** */
 struct _reg_sorted_point3D
@@ -956,7 +897,7 @@ void mul_matrices(float ** a, float ** b, int ar, int ac, int bc, float ** r, bo
             r[i][j] = 0.0f;
             for (int k = 0; k < ac; ++k)
             {
-               r[i][j] += a[i][k] * b[j][k];
+               r[i][j] += static_cast<float>(static_cast<double>(a[i][k]) * static_cast<double>(b[j][k]));
             }
          }
       }
@@ -970,7 +911,7 @@ void mul_matrices(float ** a, float ** b, int ar, int ac, int bc, float ** r, bo
             r[i][j] = 0.0f;
             for (int k = 0; k < ac; ++k)
             {
-               r[i][j] += a[i][k] * b[k][j];
+               r[i][j] += static_cast<float>(static_cast<double>(a[i][k]) * static_cast<double>(b[k][j]));
             }
          }
       }
@@ -986,7 +927,7 @@ void mul_matvec(float ** a, int ar, int ac, float * b, float * r)
       r[i] = 0;
       for (int k = 0; k < ac; ++k)
       {
-         r[i] += a[i][k] * b[k];
+         r[i] += static_cast<float>(static_cast<double>(a[i][k]) * static_cast<double>(b[k]));
       }
    }
 }
@@ -1022,11 +963,6 @@ void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> &points,
       A[c+1][3] = points[k].target[1];
       A[c+1][0] = A[c+1][1] = A[c+1][4] = 0.0f;
       A[c+1][5] = 1.0f;
-   }
-
-   for (unsigned k = 0; k < 6; ++k)
-   {
-      w[k] = 0.0f;
    }
 
    svd(A, num_equations, 6, w, v);
@@ -1128,10 +1064,6 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points,
       A[c+2][11] = 1.0f;
    }
 
-   for (unsigned k = 0; k < 12; ++k)
-   {
-      w[k] = 0.0f;
-   }
    // Now we can compute our svd
    svd(A, num_equations, 12, w, v);
 
@@ -1146,7 +1078,7 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points,
       }
       else
       {
-         w[k] = 1.0f/w[k];
+         w[k] = static_cast<float>(1.0/static_cast<double>(w[k]));
       }
    }
 
@@ -1158,7 +1090,7 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points,
    {
       for (unsigned j = 0; j < 12; ++j)
       {
-         v[j][k] *=w[k];
+         v[j][k] = static_cast<float>(static_cast<double>(v[j][k]) * static_cast<double>(w[k]));
       }
    }
 
@@ -1205,13 +1137,8 @@ void optimize_affine2D(_reg_blockMatchingParam * params,
                        mat44 * final)
 {
    // Set the current transformation to identity
-   final->m[0][0] = final->m[1][1] = final->m[2][2] = final->m[3][3] = 1.0f;
-   final->m[0][1] = final->m[0][2] = final->m[0][3] = 0.0f;
-   final->m[1][0] = final->m[1][2] = final->m[1][3] = 0.0f;
-   final->m[2][0] = final->m[2][1] = final->m[2][3] = 0.0f;
-   final->m[3][0] = final->m[3][1] = final->m[3][2] = 0.0f;
+   reg_mat44_eye(final);
 
-//    const unsigned num_points = params->activeBlockNumber;
    const unsigned num_points = params->definedActiveBlock;
    unsigned long num_equations = num_points * 2;
    std::multimap<double, _reg_sorted_point2D> queue;
@@ -1251,7 +1178,8 @@ void optimize_affine2D(_reg_blockMatchingParam * params,
    for (unsigned j = 0; j < num_points*2; j+=2)
    {
       top_points.push_back(_reg_sorted_point2D(&(params->targetPosition[j]),
-                           &(params->resultPosition[j]),0.0f));
+                                               &(params->resultPosition[j]),
+                                               0.0f));
    }
 
    // estimate the optimal transformation while considering all the points
@@ -1305,9 +1233,13 @@ void optimize_affine2D(_reg_blockMatchingParam * params,
       queue = std::multimap<double, _reg_sorted_point2D> ();
       for (unsigned j = 0; j < num_points * 2; j+=2)
       {
-         distance = get_square_distance2D(&newResultPosition[j], &(params->resultPosition[j]));
-         queue.insert(std::pair<double, _reg_sorted_point2D>(distance, _reg_sorted_point2D(&(params->targetPosition[j]),
-                      &(params->resultPosition[j]), distance)));
+         distance = get_square_distance2D(&newResultPosition[j],
+                                          &(params->resultPosition[j]));
+         queue.insert(std::pair<double,
+                      _reg_sorted_point2D>(distance,
+                                           _reg_sorted_point2D(&(params->targetPosition[j]),
+                                                               &(params->resultPosition[j]),
+                                                               distance)));
       }
 
       distance = 0.0;
@@ -1325,11 +1257,11 @@ void optimize_affine2D(_reg_blockMatchingParam * params,
       if ((distance > lastDistance) || (lastDistance - distance) < TOLERANCE)
       {
          // restore the last transformation
-         copy_transformation_4x4(lastTransformation, *(final));
+         memcpy(final, &lastTransformation, sizeof(mat44));
          break;
       }
       lastDistance = distance;
-      copy_transformation_4x4(*(final), lastTransformation);
+      memcpy(&lastTransformation, final, sizeof(mat44));
       estimate_affine_transformation2D(top_points, final, a, w, v, r, b);
    }
 
@@ -1360,13 +1292,8 @@ void optimize_affine3D(_reg_blockMatchingParam *params,
                        mat44 * final)
 {
    // Set the current transformation to identity
-   final->m[0][0] = final->m[1][1] = final->m[2][2] = final->m[3][3] = 1.0f;
-   final->m[0][1] = final->m[0][2] = final->m[0][3] = 0.0f;
-   final->m[1][0] = final->m[1][2] = final->m[1][3] = 0.0f;
-   final->m[2][0] = final->m[2][1] = final->m[2][3] = 0.0f;
-   final->m[3][0] = final->m[3][1] = final->m[3][2] = 0.0f;
+   reg_mat44_eye(final);
 
-//    const unsigned num_points = params->activeBlockNumber;
    const unsigned num_points = params->definedActiveBlock;
    unsigned long num_equations = num_points * 3;
    std::multimap<double, _reg_sorted_point3D> queue;
@@ -1406,7 +1333,8 @@ void optimize_affine3D(_reg_blockMatchingParam *params,
    for (unsigned j = 0; j < num_points*3; j+=3)
    {
       top_points.push_back(_reg_sorted_point3D(&(params->targetPosition[j]),
-                           &(params->resultPosition[j]),0.0f));
+                                               &(params->resultPosition[j]),
+                                               0.0f));
    }
 
    // estimate the optimal transformation while considering all the points
@@ -1462,9 +1390,12 @@ void optimize_affine3D(_reg_blockMatchingParam *params,
       queue = std::multimap<double, _reg_sorted_point3D> ();
       for (unsigned j = 0; j < num_points * 3; j+=3)
       {
-         distance = get_square_distance(&newResultPosition[j], &(params->resultPosition[j]));
-         queue.insert(std::pair<double, _reg_sorted_point3D>(distance, _reg_sorted_point3D(&(params->targetPosition[j]),
-                      &(params->resultPosition[j]), distance)));
+         distance = get_square_distance3D(&newResultPosition[j], &(params->resultPosition[j]));
+         queue.insert(std::pair<double,
+                      _reg_sorted_point3D>(distance,
+                                           _reg_sorted_point3D(&(params->targetPosition[j]),
+                                                               &(params->resultPosition[j]),
+                                                               distance)));
       }
 
       distance = 0.0;
@@ -1483,11 +1414,11 @@ void optimize_affine3D(_reg_blockMatchingParam *params,
       if ((distance >= lastDistance) || (lastDistance - distance) < TOLERANCE)
       {
          // restore the last transformation
-         copy_transformation_4x4(lastTransformation, *(final));
+         memcpy(final, &lastTransformation, sizeof(mat44));
          break;
       }
       lastDistance = distance;
-      copy_transformation_4x4(*(final), lastTransformation);
+      memcpy(&lastTransformation, final, sizeof(mat44));
       estimate_affine_transformation3D(top_points, final, a, w, v, r, b);
    }
    delete[] newResultPosition;
@@ -1789,8 +1720,8 @@ void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> &points,
 
 // Find the optimal rigid transformation that will
 // bring the point clouds into alignment.
-void optimize_rigid2D(  _reg_blockMatchingParam *params,
-                        mat44 * final)
+void optimize_rigid2D(_reg_blockMatchingParam *params,
+                      mat44 * final)
 {
 //    unsigned num_points = params->activeBlockNumber;
    const unsigned num_points = params->definedActiveBlock;
@@ -1812,7 +1743,8 @@ void optimize_rigid2D(  _reg_blockMatchingParam *params,
    for (unsigned j = 0; j < num_points * 2; j+= 2)
    {
       top_points.push_back(_reg_sorted_point2D(&(params->targetPosition[j]),
-                           &(params->resultPosition[j]), 0.0f));
+                                               &(params->resultPosition[j]),
+                                               0.0f));
    }
 
    estimate_rigid_transformation2D(top_points, final);
@@ -1833,9 +1765,11 @@ void optimize_rigid2D(  _reg_blockMatchingParam *params,
       for (unsigned j = 0; j < num_points * 2; j+= 2)
       {
          distance = get_square_distance2D(&newResultPosition[j], &(params->resultPosition[j]));
-         queue.insert(std::pair<double, _reg_sorted_point2D>(distance,
-                      _reg_sorted_point2D(&(params->targetPosition[j]),
-                                          &(params->resultPosition[j]), distance)));
+         queue.insert(std::pair<double,
+                      _reg_sorted_point2D>(distance,
+                                           _reg_sorted_point2D(&(params->targetPosition[j]),
+                                                               &(params->resultPosition[j]),
+                                                               distance)));
       }
 
       distance = 0.0;
@@ -1852,11 +1786,11 @@ void optimize_rigid2D(  _reg_blockMatchingParam *params,
       // If the change is not substantial, we return
       if ((distance > lastDistance) || (lastDistance - distance) < TOLERANCE)
       {
-         copy_transformation_4x4(lastTransformation, *(final));
+         memcpy(final, &lastTransformation, sizeof(mat44));
          break;
       }
       lastDistance = distance;
-      copy_transformation_4x4(*(final), lastTransformation);
+      memcpy(&lastTransformation, final, sizeof(mat44));
       estimate_rigid_transformation2D(top_points, final);
    }
    delete [] newResultPosition;
@@ -1864,7 +1798,6 @@ void optimize_rigid2D(  _reg_blockMatchingParam *params,
 void optimize_rigid3D(_reg_blockMatchingParam *params,
                       mat44 *final)
 {
-//    const unsigned num_points = params->activeBlockNumber;
    const unsigned num_points = params->definedActiveBlock;
    // Keep a sorted list of the distance measure
    std::multimap<double, _reg_sorted_point3D> queue;
@@ -1874,16 +1807,13 @@ void optimize_rigid3D(_reg_blockMatchingParam *params,
    unsigned long i;
 
    // Set the current transformation to identity
-   final->m[0][0] = final->m[1][1] = final->m[2][2] = final->m[3][3] = 1.0f;
-   final->m[0][1] = final->m[0][2] = final->m[0][3] = 0.0f;
-   final->m[1][0] = final->m[1][2] = final->m[1][3] = 0.0f;
-   final->m[2][0] = final->m[2][1] = final->m[2][3] = 0.0f;
-   final->m[3][0] = final->m[3][1] = final->m[3][2] = 0.0f;
+   reg_mat44_eye(final);
 
    for (unsigned j = 0; j < num_points * 3; j+= 3)
    {
       top_points.push_back(_reg_sorted_point3D(&(params->targetPosition[j]),
-                           &(params->resultPosition[j]), 0.0f));
+                                               &(params->resultPosition[j]),
+                                               0.0f));
    }
 
    estimate_rigid_transformation3D(top_points, final);
@@ -1903,17 +1833,18 @@ void optimize_rigid3D(_reg_blockMatchingParam *params,
       queue = std::multimap<double, _reg_sorted_point3D>();
       for (unsigned j = 0; j < num_points * 3; j+= 3)
       {
-         distance = get_square_distance(&newResultPosition[j], &(params->resultPosition[j]));
-         queue.insert(std::pair<double, _reg_sorted_point3D>(distance,
-                      _reg_sorted_point3D(&(params->targetPosition[j]),
-                                          &(params->resultPosition[j]), distance)));
+         distance = get_square_distance3D(&newResultPosition[j], &(params->resultPosition[j]));
+         queue.insert(std::pair<double,
+                      _reg_sorted_point3D>(distance,
+                                           _reg_sorted_point3D(&(params->targetPosition[j]),
+                                                               &(params->resultPosition[j]),
+                                                               distance)));
       }
 
       distance = 0.0;
       i = 0;
       top_points.clear();
-      for (std::multimap<double, _reg_sorted_point3D>::iterator it = queue.begin();
-            it != queue.end(); ++it, ++i)
+      for (std::multimap<double, _reg_sorted_point3D>::iterator it = queue.begin();it != queue.end(); ++it, ++i)
       {
          if (i >= num_to_keep) break;
          top_points.push_back((*it).second);
@@ -1923,14 +1854,13 @@ void optimize_rigid3D(_reg_blockMatchingParam *params,
       // If the change is not substantial, we return
       if ((distance > lastDistance) || (lastDistance - distance) < TOLERANCE)
       {
-         copy_transformation_4x4(lastTransformation, *(final));
+         memcpy(final, &lastTransformation, sizeof(mat44));
          break;
       }
       lastDistance = distance;
-      copy_transformation_4x4(*(final), lastTransformation);
+      memcpy(&lastTransformation, final, sizeof(mat44));
       estimate_rigid_transformation3D(top_points, final);
    }
-
    delete [] newResultPosition;
 }
 
@@ -1950,11 +1880,12 @@ void optimize(	_reg_blockMatchingParam *params,
       float out[2];
       for(size_t i=0; i<static_cast<size_t>(params->activeBlockNumber); ++i)
       {
-         in[0]=params->resultPosition[2*i];
-         in[1]=params->resultPosition[2*i+1];
+         size_t index=2*i;
+         in[0]=params->resultPosition[index];
+         in[1]=params->resultPosition[index+1];
          apply_affine2D(transformation_matrix,in,out);
-         params->resultPosition[2*i]=out[0];
-         params->resultPosition[2*i+1]=out[1];
+         params->resultPosition[ index ]=static_cast<float>(out[0]);
+         params->resultPosition[index+1]=static_cast<float>(out[1]);
       }
       if(affine)
          optimize_affine2D(params, transformation_matrix);
@@ -1962,8 +1893,8 @@ void optimize(	_reg_blockMatchingParam *params,
    }
    else  // 3D images
    {
-      float in[3];
-      float out[3];
+      double in[3];
+      double out[3];
       for(size_t i=0; i<static_cast<size_t>(params->activeBlockNumber); ++i)
       {
          size_t index=3*i;
@@ -1971,9 +1902,9 @@ void optimize(	_reg_blockMatchingParam *params,
          in[1]=params->resultPosition[index+1];
          in[2]=params->resultPosition[index+2];
          reg_mat44_mul(transformation_matrix,in,out);
-         params->resultPosition[index++]=out[0];
-         params->resultPosition[index++]=out[1];
-         params->resultPosition[index]=out[2];
+         params->resultPosition[index++]=static_cast<float>(out[0]);
+         params->resultPosition[index++]=static_cast<float>(out[1]);
+         params->resultPosition[ index ]=static_cast<float>(out[2]);
       }
       if(affine)
          optimize_affine3D(params, transformation_matrix);

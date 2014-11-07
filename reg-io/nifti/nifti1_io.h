@@ -441,7 +441,7 @@ http://afni.nimh.nih.gov/afni      */
 
 #define NIFTI_ECODE_COMMENT          6  /* plain ASCII text only              */
 
-#define NIFTI_ECODE_XCEDE            8  /* David B Keator: dbkeator@uci.edu 
+#define NIFTI_ECODE_XCEDE            8  /* David B Keator: dbkeator@uci.edu
 http://www.nbirn.net/Resources
    /Users/Applications/
    /xcede/index.htm              */

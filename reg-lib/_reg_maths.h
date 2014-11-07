@@ -132,92 +132,81 @@ bool operator!=(mat44 A,mat44 B);
 /* *************************************************************** */
 /** @brief here
  */
-extern "C++"
 mat33 reg_mat44_to_mat33(mat44 const* A);
 /* *************************************************************** */
 /** @brief Multipy two 4-by-4 matrices
  */
-mat44 reg_mat44_mul(mat44 const* A,mat44 const* B);
-mat44 operator*(mat44 A,mat44 B);
+mat44 reg_mat44_mul(mat44 const* A,
+                    mat44 const* B);
+mat44 operator*(mat44 A,
+                mat44 B);
 /* *************************************************************** */
 /** @brief Multipy a vector with a 4-by-4 matrix
  */
-extern "C++" template <class DTYPE>
 void reg_mat44_mul(mat44 const* mat,
-                   DTYPE const* in,
-                   DTYPE *out);
+                   float const* in,
+                   float *out);
+void reg_mat44_mul(mat44 const* mat,
+                   double const* in,
+                   double *out);
 /* *************************************************************** */
 /** @brief Multipy a 4-by-4 matrix with a scalar
  */
-extern "C++"
 mat44 reg_mat44_mul(mat44 const* mat,
                     double scalar);
 /* *************************************************************** */
 /** @brief Add two 4-by-4 matrices
  */
-extern "C++"
 mat44 reg_mat44_add(mat44 const* A, mat44 const* B);
 mat44 operator+(mat44 A,mat44 B);
 /* *************************************************************** */
 /** @brief Substract two 4-by-4 matrices
  */
-extern "C++"
 mat44 reg_mat44_minus(mat44 const* A, mat44 const* B);
 mat44 operator-(mat44 A,mat44 B);
 /* *************************************************************** */
 /** @brief Set up a 3-by-3 matrix with an identity
  */
-extern "C++"
 void reg_mat33_eye (mat33 *mat);
 /* *************************************************************** */
 /** @brief Set up a 4-by-4 matrix with an identity
  */
-extern "C++"
 void reg_mat44_eye(mat44 *mat);
 /* *************************************************************** */
 /** @brief Compute the determinant of a 4-by-4 matrix
  */
-extern "C++"
 float reg_mat44_det(mat44 const* A);
 /* *************************************************************** */
 /** @brief Compute the inverse of a 4-by-4 matrix
  */
-extern "C++"
 mat44 reg_mat44_inv(mat44 const* A);
 /* *************************************************************** */
-extern "C++"
 float reg_mat44_norm_inf(mat44 const* mat);
 /* *************************************************************** */
 /** @brief Compute the square root of a 4-by-4 matrix
  */
-extern "C++"
 mat44 reg_mat44_sqrt(mat44 const* mat);
 /* *************************************************************** */
 /** @brief Compute the exp of a 4-by-4 matrix
  */
-extern "C++"
 mat44 reg_mat44_expm(mat44 const* mat);
 /* *************************************************************** */
 /** @brief Compute the log of a 4-by-4 matrix
  */
-extern "C++"
 mat44 reg_mat44_logm(mat44 const* mat);
 /* *************************************************************** */
 /** @brief Compute the average of two matrices using a log-euclidean
  * framework
  */
-extern "C++"
 mat44 reg_mat44_avg2(mat44 const* A, mat44 const* b);
 /* *************************************************************** */
 /** @brief Display a mat44 matrix
  */
-extern "C++"
 void reg_mat44_disp(mat44 *mat,
                     char * title);
 /* *************************************************************** */
 /** @brief Display a mat33 matrix
  */
-extern "C++"
 void reg_mat33_disp(mat33 *mat,
                     char * title);
 /* *************************************************************** */

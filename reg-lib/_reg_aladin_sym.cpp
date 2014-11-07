@@ -388,13 +388,19 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
    mat44 bInverted = nifti_mat44_inverse(*(this->BackwardTransformationMatrix));
 
    // We average the forward and inverted backward matrix
-   *(this->TransformationMatrix) =  reg_mat44_avg2 (this->TransformationMatrix,
-                                    &bInverted
-                                                   );
+   *(this->TransformationMatrix)=reg_mat44_avg2(this->TransformationMatrix,
+                                                &bInverted
+                                                );
    // We average the inverted forward and backward matrix
-   *(this->BackwardTransformationMatrix) =  reg_mat44_avg2 (&fInverted,
-         this->BackwardTransformationMatrix
-                                                           );
+   *(this->BackwardTransformationMatrix)=reg_mat44_avg2(&fInverted,
+                                                        this->BackwardTransformationMatrix
+                                                        );
+   for(int i=0;i<3;++i){
+      this->TransformationMatrix->m[3][i]=0.f;
+      this->BackwardTransformationMatrix->m[3][i]=0.f;
+   }
+   this->TransformationMatrix->m[3][3]=1.f;
+   this->BackwardTransformationMatrix->m[3][3]=1.f;
 #ifndef NDEBUG
    reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] updated forward transformation matrix");
    reg_mat44_disp(this->BackwardTransformationMatrix, (char *)"[DEBUG] updated backward transformation matrix");

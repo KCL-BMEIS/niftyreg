@@ -253,34 +253,31 @@ void reg_tools_removeSCLInfo(nifti_image *image)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template<class DTYPE>
 void reg_getRealImageSpacing(nifti_image *image,
-                             DTYPE *spacingValues)
+                             float *spacingValues)
 {
-   double indexVoxel1[3]= {0,0,0};
-   double indexVoxel2[3], realVoxel1[3], realVoxel2[3];
+   float indexVoxel1[3]= {0,0,0};
+   float indexVoxel2[3], realVoxel1[3], realVoxel2[3];
    reg_mat44_mul(&(image->sto_xyz), indexVoxel1, realVoxel1);
 
    indexVoxel2[1]=indexVoxel2[2]=0;
    indexVoxel2[0]=1;
    reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
-   spacingValues[0]=(DTYPE)sqrt(reg_pow2(realVoxel1[0]-realVoxel2[0])+reg_pow2(realVoxel1[1]-realVoxel2[1])+reg_pow2(realVoxel1[2]-realVoxel2[2]));
+   spacingValues[0]=sqrtf(reg_pow2(realVoxel1[0]-realVoxel2[0])+reg_pow2(realVoxel1[1]-realVoxel2[1])+reg_pow2(realVoxel1[2]-realVoxel2[2]));
 
    indexVoxel2[0]=indexVoxel2[2]=0;
    indexVoxel2[1]=1;
    reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
-   spacingValues[1]=(DTYPE)sqrt(reg_pow2(realVoxel1[0]-realVoxel2[0])+reg_pow2(realVoxel1[1]-realVoxel2[1])+reg_pow2(realVoxel1[2]-realVoxel2[2]));
+   spacingValues[1]=sqrtf(reg_pow2(realVoxel1[0]-realVoxel2[0])+reg_pow2(realVoxel1[1]-realVoxel2[1])+reg_pow2(realVoxel1[2]-realVoxel2[2]));
 
    if(image->nz>1)
    {
       indexVoxel2[0]=indexVoxel2[1]=0;
       indexVoxel2[2]=1;
       reg_mat44_mul(&(image->sto_xyz), indexVoxel2, realVoxel2);
-      spacingValues[2]=(DTYPE)sqrt(reg_pow2(realVoxel1[0]-realVoxel2[0])+reg_pow2(realVoxel1[1]-realVoxel2[1])+reg_pow2(realVoxel1[2]-realVoxel2[2]));
+      spacingValues[2]=sqrtf(reg_pow2(realVoxel1[0]-realVoxel2[0])+reg_pow2(realVoxel1[1]-realVoxel2[1])+reg_pow2(realVoxel1[2]-realVoxel2[2]));
    }
 }
-template void reg_getRealImageSpacing<float>(nifti_image *, float *);
-template void reg_getRealImageSpacing<double>(nifti_image *, double *);
 /* *************************************************************** */
 /* *************************************************************** */
 //this function will threshold an image to the values provided,
@@ -1274,41 +1271,6 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
 
                            realIndex += lineOffset;
                         } // line convolution of mean filter
-
-                        //								// Compute the mean at the first point
-                        //								intensitySum=0;
-                        //								densitySum = 0;
-                        //								if(imageDim[n]<=radius){
-                        //									for(k=0;k<imageDim[n];++k){
-                        //										intensitySum += bufferIntensity[k];
-                        //										densitySum   += bufferDensity[k];
-                        //									}
-                        //								}
-                        //								else{
-                        //									for(k=0;k<=radius;++k){
-                        //										intensitySum += bufferIntensity[k];
-                        //										densitySum   += bufferDensity[k];
-                        //									}
-                        //								}
-                        //								intensityPtr[realIndex] = static_cast<DTYPE>(intensitySum);
-                        //								densityPtr[realIndex]   = static_cast<float>(densitySum);
-                        //								realIndex += lineOffset;
-                        //								// Compute the mean along 1 line from the second point onward
-                        //								shiftPre = 1 - radius - 1; // to be removed
-                        //								shiftPst = 1 + radius; // to be added
-                        //								for(lineIndex=1;lineIndex<imageDim[n];++lineIndex,++shiftPre,++shiftPst){
-                        //									if(shiftPre>=0){
-                        //										intensitySum -= bufferIntensity[shiftPre];
-                        //										densitySum   -= bufferDensity[shiftPre];
-                        //									}
-                        //									if(shiftPst<imageDim[n]){
-                        //										intensitySum += bufferIntensity[shiftPst];
-                        //										densitySum   += bufferDensity[shiftPst];
-                        //									}
-                        //									intensityPtr[realIndex] = static_cast<DTYPE>(intensitySum);
-                        //									densityPtr[realIndex] = static_cast<float>(densitySum);
-                        //									realIndex += lineOffset;
-                        //								} // line convolution of mean filter
                      } // No kernel computation
                   } // pixel in starting plane
                } // radius > 0

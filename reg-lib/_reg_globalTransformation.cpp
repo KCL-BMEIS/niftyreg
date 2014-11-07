@@ -330,7 +330,7 @@ void reg_tool_WriteAffineFile(mat44 *mat,
    FILE *affineFile;
    affineFile=fopen(fileName, "w");
    for(int i=0; i<4; i++)
-      fprintf(affineFile, "%.7f %.7f %.7f %.7f\n", mat->m[i][0], mat->m[i][1], mat->m[i][2], mat->m[i][3]);
+      fprintf(affineFile, "%.7g %.7g %.7g %.7g\n", mat->m[i][0], mat->m[i][1], mat->m[i][2], mat->m[i][3]);
    fclose(affineFile);
 }
 /* *************************************************************** */

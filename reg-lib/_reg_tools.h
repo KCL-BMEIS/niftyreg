@@ -69,9 +69,9 @@ void reg_tools_removeSCLInfo(nifti_image *img);
  * @param image image
  * @param spacingValues spacingValues
  */
-extern "C++" template <class DTYPE>
+extern "C++"
 void reg_getRealImageSpacing(nifti_image *image,
-                             DTYPE *spacingValues);
+                             float *spacingValues);
 /* *************************************************************** */
 /** @brief Smooth an image using a Gaussian kernel
  * @param image Image to be smoothed

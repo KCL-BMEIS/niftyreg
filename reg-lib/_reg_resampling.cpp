@@ -1012,7 +1012,7 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
       floating_mm_to_voxel = &floatingImage->sto_ijk;
 
    // The spacing is computed in case the sform if defined
-   DTYPE realSpacing[2];
+   float realSpacing[2];
    if(warpedImage->sform_code>0)
    {
       reg_getRealImageSpacing(warpedImage,realSpacing);
@@ -1212,7 +1212,7 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
       floating_mm_to_voxel = &floatingImage->sto_ijk;
 
    // The spacing is computed in case the sform if defined
-   DTYPE realSpacing[3];
+   float realSpacing[3];
    if(warpedImage->sform_code>0)
    {
       reg_getRealImageSpacing(warpedImage,realSpacing);

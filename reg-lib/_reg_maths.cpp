@@ -93,7 +93,7 @@ void svd(T ** in, size_t size_m, size_t size_n, T * w, T ** v)
    size_t sm, sn, sn2;
    size_t size__m=size_m,size__n=size_n;
 #endif
-   Eigen::MatrixXf m(size_m,size_n);
+   Eigen::MatrixXd m(size_m,size_n);
 
 #if defined (NDEBUG) && defined (_OPENMP)
    #pragma omp parallel for default(none) \
@@ -104,11 +104,11 @@ void svd(T ** in, size_t size_m, size_t size_n, T * w, T ** v)
    {
       for(sn=0; sn<size__n; sn++)
       {
-         m(sm,sn)=static_cast<T>(in[sm][sn]);
+         m(sm,sn)=static_cast<double>(in[sm][sn]);
       }
    }
 
-   Eigen::JacobiSVD<Eigen::MatrixXf> svd(m,Eigen::ComputeThinV|Eigen::ComputeThinU);
+   Eigen::JacobiSVD<Eigen::MatrixXd> svd(m,Eigen::ComputeThinV|Eigen::ComputeThinU);
 
 #if defined (NDEBUG) && defined (_OPENMP)
    #pragma omp parallel for default(none) \
@@ -602,27 +602,52 @@ float reg_mat44_norm_inf(mat44 const* mat)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-template <class DTYPE>
 void reg_mat44_mul(mat44 const* mat,
-                   DTYPE const* in,
-                   DTYPE *out)
+                   float const* in,
+                   float *out)
 {
-   out[0]= (DTYPE)mat->m[0][0]*in[0] +
-           (DTYPE)mat->m[0][1]*in[1] +
-           (DTYPE)mat->m[0][2]*in[2] +
-           (DTYPE)mat->m[0][3];
-   out[1]= (DTYPE)mat->m[1][0]*in[0] +
-           (DTYPE)mat->m[1][1]*in[1] +
-           (DTYPE)mat->m[1][2]*in[2] +
-           (DTYPE)mat->m[1][3];
-   out[2]= (DTYPE)mat->m[2][0]*in[0] +
-           (DTYPE)mat->m[2][1]*in[1] +
-           (DTYPE)mat->m[2][2]*in[2] +
-           (DTYPE)mat->m[2][3];
+   double matD[4][4], inD[3]={in[0],in[1],in[2]};
+   for(int i=0;i<4;++i)
+      for(int j=0;j<4;++j)
+         matD[i][j]=static_cast<double>(mat->m[i][j]);
+   out[0]=static_cast<float>(matD[0][0]*inD[0] +
+         matD[0][1]*inD[1] +
+         matD[0][2]*inD[2] +
+         matD[0][3]);
+   out[1]=static_cast<float>(matD[1][0]*inD[0] +
+         matD[1][1]*inD[1] +
+         matD[1][2]*inD[2] +
+         matD[1][3]);
+   out[2]=static_cast<float>(matD[2][0]*inD[0] +
+         matD[2][1]*inD[1] +
+         matD[2][2]*inD[2] +
+         matD[2][3]);
    return;
 }
-template void reg_mat44_mul<float>(mat44 const*, float const*, float*);
-template void reg_mat44_mul<double>(mat44 const*, double const*, double*);
+/* *************************************************************** */
+/* *************************************************************** */
+void reg_mat44_mul(mat44 const* mat,
+                   double const* in,
+                   double *out)
+{
+   double matD[4][4];
+   for(int i=0;i<4;++i)
+      for(int j=0;j<4;++j)
+         matD[i][j]=static_cast<double>(mat->m[i][j]);
+   out[0]=matD[0][0]*in[0] +
+          matD[0][1]*in[1] +
+          matD[0][2]*in[2] +
+          matD[0][3];
+   out[1]=matD[1][0]*in[0] +
+          matD[1][1]*in[1] +
+          matD[1][2]*in[2] +
+          matD[1][3];
+   out[2]=matD[2][0]*in[0] +
+          matD[2][1]*in[1] +
+          matD[2][2]*in[2] +
+          matD[2][3];
+   return;
+}
 /* *************************************************************** */
 /* *************************************************************** */
 mat44 reg_mat44_mul(mat44 const* A, double scalar)
@@ -711,6 +736,10 @@ mat44 reg_mat44_avg2(mat44 const* A, mat44 const* B)
    mat44 out;
    mat44 logA=reg_mat44_logm(A);
    mat44 logB=reg_mat44_logm(B);
+   for(int i=0;i<4;++i){
+      logA.m[3][i]=0.f;
+      logB.m[3][i]=0.f;
+   }
    logA = reg_mat44_add(&logA,&logB);
    out = reg_mat44_mul(&logA,0.5);
    return reg_mat44_expm(&out);
@@ -720,7 +749,7 @@ mat44 reg_mat44_avg2(mat44 const* A, mat44 const* B)
 /* *************************************************************** */
 void reg_mat44_disp(mat44 *mat, char * title)
 {
-   printf("%s:\n%.4f\t%.4f\t%.4f\t%.4f\n%.4f\t%.4f\t%.4f\t%.4f\n%.4f\t%.4f\t%.4f\t%.4f\n%.4f\t%.4f\t%.4f\t%.4f\n", title,
+   printf("%s:\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n", title,
           mat->m[0][0], mat->m[0][1], mat->m[0][2], mat->m[0][3],
           mat->m[1][0], mat->m[1][1], mat->m[1][2], mat->m[1][3],
           mat->m[2][0], mat->m[2][1], mat->m[2][2], mat->m[2][3],

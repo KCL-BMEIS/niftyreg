@@ -2628,7 +2628,7 @@ void reg_defField_getJacobianMap3D(nifti_image *deformationField,
    if(jacobianDeterminant!=NULL)
       jacDetPtr=static_cast<DTYPE *>(jacobianDeterminant->data);
 
-   DTYPE realSpacing[3];
+   float realSpacing[3];
    if(deformationField->sform_code>0)
    {
       reg_getRealImageSpacing(deformationField,realSpacing);
