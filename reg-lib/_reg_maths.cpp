@@ -718,7 +718,7 @@ mat44 reg_mat44_avg2(mat44 const* A, mat44 const* B)
 /* *************************************************************** */
 void reg_mat44_disp(mat44 *mat, char * title)
 {
-   printf("%s:\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n", title,
+   printf("%s:\n%.6f\t%.6f\t%.6f\t%.6f\n%.6f\t%.6f\t%.6f\t%.6f\n%.6f\t%.6f\t%.6f\t%.6f\n%.6f\t%.6f\t%.6f\t%.6f\n", title,
           mat->m[0][0], mat->m[0][1], mat->m[0][2], mat->m[0][3],
           mat->m[1][0], mat->m[1][1], mat->m[1][2], mat->m[1][3],
           mat->m[2][0], mat->m[2][1], mat->m[2][2], mat->m[2][3],
