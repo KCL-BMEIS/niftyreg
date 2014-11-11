@@ -40,26 +40,27 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
       transformationMatrix = *affineTransformation;
    else transformationMatrix = reg_mat44_mul(affineTransformation, targetMatrix);
 
-   float index[3];
+   float voxel[3]; voxel[2]=0;
    float position[3];
-   index[2]=0;
+   size_t index=0;
    for(int y=0; y<deformationFieldImage->ny; y++)
    {
-      index[1]=(float)y;
+      voxel[1]=(float)y;
       for(int x=0; x<deformationFieldImage->nx; x++)
       {
-         index[0]=(float)x;
+         voxel[0]=(float)x;
+         if(mask[index++]>=0){
+            if(compose==true)
+            {
+               voxel[0]=deformationFieldPtr[deformationFieldIndX];
+               voxel[1]=deformationFieldPtr[deformationFieldIndY];
+            }
+            reg_mat44_mul(&transformationMatrix, voxel, position);
 
-         if(compose==true)
-         {
-            index[0]=deformationFieldPtr[deformationFieldIndX];
-            index[1]=deformationFieldPtr[deformationFieldIndY];
+            /* the deformation field (real coordinates) is stored */
+            deformationFieldPtr[deformationFieldIndX++] = position[0];
+            deformationFieldPtr[deformationFieldIndY++] = position[1];
          }
-         reg_mat44_mul(&transformationMatrix, index, position);
-
-         /* the deformation field (real coordinates) is stored */
-         deformationFieldPtr[deformationFieldIndX++] = position[0];
-         deformationFieldPtr[deformationFieldIndY++] = position[1];
       }
    }
 }

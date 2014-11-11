@@ -28,8 +28,7 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
    }
 
    uch sig[8];
-   size_t a=fread(sig, 1, 8, fopen (pngFileName, "r"));
-   a=a;
+   fread(sig, 1, 8, fopen (pngFileName, "r"));
    if(!png_check_sig(sig, 8)) exit(1);
 
    png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);

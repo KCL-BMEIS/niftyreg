@@ -213,7 +213,7 @@ public:
 //    void DoNotApproximateParzenWindow();
    virtual void UseNMISetReferenceBinNumber(int,int);
    virtual void UseNMISetFloatingBinNumber(int,int);
-   virtual void UseMultiChannelNMI(int timepointNumber, int *timepoint);
+   virtual void UseMultiChannelNMI(int timepointNumber);
    virtual void UseSSD(int timepoint);
    virtual void UseKLDivergence(int timepoint);
    virtual void UseDTI(bool *timepoint);

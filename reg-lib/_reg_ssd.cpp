@@ -251,8 +251,7 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                                   nifti_image *warpedImageGradient,
                                   nifti_image *ssdGradientImage,
                                   nifti_image *jacobianDetImage,
-                                  int *mask,
-                                  float *currentValue)
+                                  int *mask)
 {
    // Create pointers to the reference and warped images
 #ifdef _WIN32
@@ -335,9 +334,9 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
 }
 /* *************************************************************** */
 template void reg_getVoxelBasedSSDGradient<float>
-(nifti_image *,nifti_image *,bool *,nifti_image *,nifti_image *,nifti_image *, int *, float *);
+(nifti_image *,nifti_image *,bool *,nifti_image *,nifti_image *,nifti_image *, int *);
 template void reg_getVoxelBasedSSDGradient<double>
-(nifti_image *,nifti_image *,bool *,nifti_image *,nifti_image *,nifti_image *, int *, float *);
+(nifti_image *,nifti_image *,bool *,nifti_image *,nifti_image *,nifti_image *, int *);
 /* *************************************************************** */
 void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
 {
@@ -363,8 +362,7 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
        this->warpedFloatingGradientImagePointer,
        this->forwardVoxelBasedGradientImagePointer,
        NULL, // HERE TODO this->forwardJacDetImagePointer,
-       this->referenceMaskPointer,
-       this->currentValue
+       this->referenceMaskPointer
       );
       break;
    case NIFTI_TYPE_FLOAT64:
@@ -375,8 +373,7 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
        this->warpedFloatingGradientImagePointer,
        this->forwardVoxelBasedGradientImagePointer,
        NULL, // HERE TODO this->forwardJacDetImagePointer,
-       this->referenceMaskPointer,
-       this->currentValue
+       this->referenceMaskPointer
       );
       break;
    default:
@@ -408,8 +405,7 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
           this->warpedReferenceGradientImagePointer,
           this->backwardVoxelBasedGradientImagePointer,
           NULL, // HERE TODO this->backwardJacDetImagePointer,
-          this->floatingMaskPointer,
-          this->currentValue
+          this->floatingMaskPointer
          );
          break;
       case NIFTI_TYPE_FLOAT64:
@@ -420,8 +416,7 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
           this->warpedReferenceGradientImagePointer,
           this->backwardVoxelBasedGradientImagePointer,
           NULL, // HERE TODO this->backwardJacDetImagePointer,
-          this->floatingMaskPointer,
-          this->currentValue
+          this->floatingMaskPointer
          );
          break;
       default:

@@ -326,7 +326,7 @@ int main(int argc, char **argv)
    }
 
    // Tell the CLI that the process has started
-   startProgress("reg_resample");
+//   startProgress("reg_resample");
    // Set up progress indicators
 //   float iProgressStep=1, nProgressSteps;
 
@@ -364,7 +364,7 @@ int main(int argc, char **argv)
    }
 
    // Update progress via CLI
-   progressXML(1, "Transform loaded...");
+//   progressXML(1, "Transform loaded...");
 
    // Create a deformation field
    nifti_image *deformationFieldImage = nifti_copy_nim_info(referenceImage);
@@ -475,7 +475,7 @@ int main(int argc, char **argv)
    }
 
    // Update progress via CLI
-   progressXML(2, "Deformation field ready...");
+//   progressXML(2, "Deformation field ready...");
 
    /* ************************* */
    /* WARP THE FLOATING IMAGE */
@@ -749,7 +749,7 @@ int main(int argc, char **argv)
    }
 
    // Tell the CLI that we finished
-   closeProgress("reg_resample", "Normal exit");
+//   closeProgress("reg_resample", "Normal exit");
 
    nifti_image_free(referenceImage);
    nifti_image_free(floatingImage);

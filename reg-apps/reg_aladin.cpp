@@ -325,7 +325,7 @@ int main(int argc, char **argv)
    }
 
    // Update the CLI progress bar that the registration has started
-   startProgress("reg_aladin");
+//   startProgress("reg_aladin");
 
    // Output the command line
 #ifdef NDEBUG
@@ -451,7 +451,7 @@ int main(int argc, char **argv)
 
 
    // Update the CLI progress bar
-   progressXML(2, "Input data ready...");
+//   progressXML(2, "Input data ready...");
 
    REG->SetMaxIterations(maxIter);
    REG->SetNumberOfLevels(nLevels);
@@ -509,7 +509,7 @@ int main(int argc, char **argv)
    else reg_tool_WriteAffineFile(REG->GetTransformationMatrix(), (char *)"outputAffine.txt");
 
    // Tell the CLI that we finished
-   closeProgress("reg_aladin", "Normal exit");
+//   closeProgress("reg_aladin", "Normal exit");
 
 
    nifti_image_free(referenceHeader);

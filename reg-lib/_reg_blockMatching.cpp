@@ -965,7 +965,7 @@ void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> &points,
       A[c+1][5] = 1.0f;
    }
 
-   svd(A, num_equations, 6, w, v);
+   reg_svd(A, num_equations, 6, w, v);
 
    for (unsigned k = 0; k < 6; ++k)
    {
@@ -1065,7 +1065,7 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points,
    }
 
    // Now we can compute our svd
-   svd(A, num_equations, 12, w, v);
+   reg_svd(A, num_equations, 12, w, v);
 
    // First we make sure that the really small singular values
    // are set to 0. and compute the inverse by taking the reciprocal
@@ -1498,7 +1498,7 @@ void estimate_rigid_transformation2D(  std::vector<_reg_sorted_point2D> &points,
       u[1][1] += points[j].target[1] * points[j].result[1];
    }
 
-   svd(u, 2, 2, w, v);
+   reg_svd(u, 2, 2, w, v);
 
    // Calculate transpose
    ut[0][0] = u[0][0];
@@ -1637,7 +1637,7 @@ void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> &points,
 
    }
 
-   svd(u, 3, 3, w, v);
+   reg_svd(u, 3, 3, w, v);
 
    // Calculate transpose
    ut[0][0] = u[0][0];

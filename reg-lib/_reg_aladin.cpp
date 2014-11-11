@@ -533,7 +533,7 @@ void reg_aladin<T>::Run()
    }
 
    // Compute the progress unit
-   unsigned long progressUnit = (unsigned long)ceil((float)nProgressSteps / 100.0f);
+//   unsigned long progressUnit = (unsigned long)ceil((float)nProgressSteps / 100.0f);
 
    //Main loop over the levels:
    for(this->CurrentLevel=0; this->CurrentLevel < this->LevelsToPerform; this->CurrentLevel++)
@@ -585,18 +585,18 @@ void reg_aladin<T>::Run()
 #endif
             this->GetWarpedImage(this->Interpolation);
             this->UpdateTransformationMatrix(RIGID);
-            if ( funcProgressCallback && paramsProgressCallback )
-            {
-               (*funcProgressCallback)(100.0f * (float)iProgressStep / (float)nProgressSteps,
-                                       paramsProgressCallback);
-            }
+//            if ( funcProgressCallback && paramsProgressCallback )
+//            {
+//               (*funcProgressCallback)(100.0f * (float)iProgressStep / (float)nProgressSteps,
+//                                       paramsProgressCallback);
+//            }
 
             // Announce the progress via CLI
-            if ((int)(iProgressStep % progressUnit) == 0)
-               progressXML(100 * iProgressStep / nProgressSteps, "Performing Rigid Registration...");
+//            if ((int)(iProgressStep % progressUnit) == 0)
+//               progressXML(100 * iProgressStep / nProgressSteps);
+//            iProgressStep++;
 
             iteration++;
-            iProgressStep++;
          }
       }
 
@@ -613,17 +613,17 @@ void reg_aladin<T>::Run()
 #endif
             this->GetWarpedImage(this->Interpolation);
             this->UpdateTransformationMatrix(AFFINE);
-            if ( funcProgressCallback && paramsProgressCallback )
-            {
-               (*funcProgressCallback)(100.0f * (float)iProgressStep / (float)nProgressSteps,
-                                       paramsProgressCallback);
-            }
+//            if ( funcProgressCallback && paramsProgressCallback )
+//            {
+//               (*funcProgressCallback)(100.0f * (float)iProgressStep / (float)nProgressSteps,
+//                                       paramsProgressCallback);
+//            }
 
             // Announce the progress via CLI
-            if ((int)(iProgressStep % progressUnit) == 0)
-            {
-               progressXML(100 * iProgressStep / nProgressSteps, "Performing Affine Registration...");
-            }
+//            if ((int)(iProgressStep % progressUnit) == 0)
+//            {
+//               progressXML(100 * iProgressStep / nProgressSteps);
+//            }
 
             iteration++;
             iProgressStep++;
