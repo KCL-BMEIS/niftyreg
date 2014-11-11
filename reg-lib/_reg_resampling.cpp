@@ -145,7 +145,7 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
       // Should log the tensor up front
       // We need to take the logarithm of the tensor for each voxel in the floating intensity
       // image, and replace the warped
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(floatingIndex,diffTensor) \
    shared(floatingVoxelNumber,floatingIntensityXX,floatingIntensityYY, \
@@ -234,7 +234,7 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
          mat33 jacobianMatrix, R;
          mat33 inputTensor, warpedTensor, RotMat, RotMatT;
          int col, row;
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(warpedIndex,inputTensor,jacobianMatrix,R,RotMat,RotMatT, \
    testSum, warpedTensor, col, row) \
@@ -403,7 +403,7 @@ void ResampleImage3D(nifti_image *floatingImage,
 
       FloatingTYPE *zPointer, *xyzPointer;
       double xTempNewValue, yTempNewValue, intensity, world[3], position[3];
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(index, intensity, world, position, previous, xBasis, yBasis, zBasis, relative, \
    a, b, c, Y, Z, zPointer, xyzPointer, xTempNewValue, yTempNewValue) \
@@ -585,7 +585,7 @@ void ResampleImage2D(nifti_image *floatingImage,
 
       FloatingTYPE *xyzPointer;
       FieldTYPE xTempNewValue, intensity, world[3], position[3];
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(index, intensity, world, position, previous, xBasis, yBasis, relative, \
    a, b, Y, xyzPointer, xTempNewValue) \
@@ -1043,7 +1043,7 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
 //#endif
 
    // Loop over all voxel
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(x,y,a,b,val_x,val_y,defIndex,floIndex,warpedIndex, \
    anteIntX,anteIntY,xFloCoord,yFloCoord, \
@@ -1243,7 +1243,7 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
 //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
 //#endif
    // Loop over all voxel
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(x,y,z,a,b,c,val_x,val_y,val_z,defIndex,floIndex,warpedIndex, \
    anteIntX,anteIntY,anteIntZ,xFloCoord,yFloCoord,zFloCoord, \
@@ -1562,7 +1562,7 @@ void TrilinearImageGradient(nifti_image *floatingImage,
       FieldTYPE relative, world[3], grad[3], coeff;
       FieldTYPE xxTempNewValue, yyTempNewValue, zzTempNewValue, xTempNewValue, yTempNewValue;
       FloatingTYPE *zPointer, *xyzPointer;
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(index, world, position, previous, xBasis, yBasis, zBasis, relative, grad, coeff, \
    a, b, c, X, Y, Z, zPointer, xyzPointer, xTempNewValue, yTempNewValue, xxTempNewValue, yyTempNewValue, zzTempNewValue) \
@@ -1770,7 +1770,7 @@ void BilinearImageGradient(nifti_image *floatingImage,
       int previous[3], a, b, X, Y;
       FloatingTYPE *xyPointer;
 
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(index, world, position, previous, xBasis, yBasis, relative, grad, coeff, \
    a, b, X, Y, xyPointer, xTempNewValue, yTempNewValue) \
@@ -1916,7 +1916,7 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
       FieldTYPE coeff, position[3], world[3], grad[3];
       FieldTYPE xxTempNewValue, yyTempNewValue, zzTempNewValue, xTempNewValue, yTempNewValue;
       FloatingTYPE *zPointer, *yzPointer, *xyzPointer;
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(index, world, position, previous, xBasis, yBasis, zBasis, xDeriv, yDeriv, zDeriv, relative, grad, coeff, \
    a, b, c, Y, Z, zPointer, yzPointer, xyzPointer, xTempNewValue, yTempNewValue, xxTempNewValue, yyTempNewValue, zzTempNewValue) \
@@ -2090,7 +2090,7 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
       FieldTYPE coeff, position[3], world[3], grad[2];
       FieldTYPE xTempNewValue, yTempNewValue;
       FloatingTYPE *yPointer, *xyPointer;
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(index, world, position, previous, xBasis, yBasis, xDeriv, yDeriv, relative, grad, coeff, bg, \
    a, b, Y, yPointer, xyPointer, xTempNewValue, yTempNewValue) \

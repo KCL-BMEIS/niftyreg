@@ -111,20 +111,10 @@ double reg_getDTIMeasureValue(nifti_image *referenceImage,
    DTYPE *referenceIntensityYZ = &firstRefVox[voxelNumber*dtIndicies[4]];
    DTYPE *referenceIntensityZZ = &firstRefVox[voxelNumber*dtIndicies[5]];
 
-//	double SUM_TEST=0;
-//	for(unsigned int i=0;i<warpedImage->nvox-voxelNumber;++i){
-//		double currentValue = reg_pow2(warpedIntensityXX[i] - referenceIntensityXX[i]);
-//		if(currentValue==currentValue)
-//			SUM_TEST += currentValue;
-//	}
-//	std::cerr.precision(10);
-//	std::cerr << "BAM " << SUM_TEST << std::endl;
-//	reg_exit(1);
-
    double DTI_cost=0.0, n=0.0;
    const double twoThirds = (2.0/3.0);
    DTYPE rXX, rXY, rYY, rXZ, rYZ, rZZ;
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
    #pragma omp parallel for default(none) \
    shared(referenceImage, referenceIntensityXX, referenceIntensityXY, referenceIntensityXZ, \
           referenceIntensityYY, referenceIntensityYZ, referenceIntensityZZ, \
@@ -286,13 +276,13 @@ void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
    const double fourThirds = 4.0/3.0;
 
    DTYPE rXX, rXY, rYY, rXZ, rYZ, rZZ, xxGrad, yyGrad, zzGrad, xyGrad, xzGrad, yzGrad;
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
    #pragma omp parallel for default(none) \
    shared(referenceIntensityXX, referenceIntensityXY, referenceIntensityXZ, \
           referenceIntensityYY, referenceIntensityYZ, referenceIntensityZZ,warpedIntensityXX, \
           warpedIntensityXY,warpedIntensityXZ ,warpedIntensityYY,warpedIntensityYZ, warpedIntensityZZ, \
           mask, spatialGradXX, spatialGradXY, spatialGradXZ, spatialGradYY, spatialGradYZ, spatialGradZZ, \
-          dtiMeasureGradPtrX, dtiMeasureGradPtrY, dtiMeasureGradPtrZ, voxelNumber,currentValue) \
+          dtiMeasureGradPtrX, dtiMeasureGradPtrY, dtiMeasureGradPtrZ, voxelNumber) \
    private(voxel, rXX, rXY, rYY, rXZ, rYZ, rZZ, xxGrad, yyGrad, zzGrad, xyGrad, xzGrad, yzGrad)
 #endif
    for(voxel=0; voxel<voxelNumber; voxel++)

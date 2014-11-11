@@ -1,9 +1,11 @@
 	# Build the coverage test
 	option(BUILD_CTEST_COVERAGE "Set up the C, CXX and linker flags to run the coverage test" OFF)
-	mark_as_advanced(BUILD_CTEST_COVERAGE)
 	if(BUILD_CTEST_COVERAGE)
 		set(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY_ONCE TRUE)
-		set(CMAKE_BUILD_TYPE "Debug")
+#		set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
+#				"Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel."
+#				FORCE)
+		set(CMAKE_BUILD_TYPE "Debug" FORCE)
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -Wall -W -fprofile-arcs -ftest-coverage")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -Wall -W -Wunused-variable -Wunused-parameter -Wunused-function -Wunused -Wno-system-headers -Wno-deprecated -Woverloaded-virtual -Wwrite-strings -fprofile-arcs -ftest-coverage")
 		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-coverage")
@@ -13,6 +15,7 @@
 	endif(BUILD_CTEST_COVERAGE)
 
 	# Set the build name
+	unset(BUILDNAME CACHE)
 	set(CTEST_BUILD_NAME "${CMAKE_SYSTEM}_${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}_cmake-${CMAKE_VERSION}_${CMAKE_BUILD_TYPE}")
 	if(USE_SSE)
 		set(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}_sse")
@@ -23,7 +26,8 @@
 	if(USE_CUDA)
 		set(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}_cuda-${CUDA_VERSION}")
 	endif(USE_CUDA)
-	set(BUILD_NAME ${CTEST_BUILD_NAME})
+	set(BUILDNAME ${CTEST_BUILD_NAME} CACHE STRING "Build name variable for CDash")
+	mark_as_advanced(BUILDNAME)
 
 	# The test data are dowloaded
 	set(DATA_FOLDER ${CMAKE_BINARY_DIR}/reg-test/test-data)

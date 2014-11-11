@@ -695,7 +695,7 @@ void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
          DTYPE refValue,warValue,gradX,gradY,gradZ;
          double jointDeriv[3],refDeriv[3],warDeriv[3],commun,jointLog,refLog,warLog;
          // Iterate over all voxel
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
          #pragma omp parallel for default(none) \
          private(i,r,w,refValue,warValue,gradX,gradY,gradZ, \
                  jointDeriv,refDeriv,warDeriv,commun,jointLog,refLog,warLog) \

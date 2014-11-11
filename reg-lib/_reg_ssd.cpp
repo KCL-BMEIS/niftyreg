@@ -121,7 +121,7 @@ double reg_getSSDValue(nifti_image *referenceImage,
 
          double SSD_local=0.;
          n=0.;
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
          #pragma omp parallel for default(none) \
          shared(referenceImage, currentRefPtr, currentWarPtr, mask, \
                 jacobianDetImage, jacDetPtr, voxelNumber) \
@@ -297,11 +297,11 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
          if(referenceImage->nz>1)
             spatialGradPtrZ=&spatialGradPtrY[voxelNumber];
 
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
          #pragma omp parallel for default(none) \
          shared(referenceImage, warpedImage, currentRefPtr, currentWarPtr, time, \
                 mask, jacDetPtr, spatialGradPtrX, spatialGradPtrY, spatialGradPtrZ, \
-                ssdGradPtrX, ssdGradPtrY, ssdGradPtrZ, voxelNumber,currentValue) \
+                ssdGradPtrX, ssdGradPtrY, ssdGradPtrZ, voxelNumber) \
          private(voxel, targetValue, resultValue, common)
 #endif
          for(voxel=0; voxel<voxelNumber; voxel++)

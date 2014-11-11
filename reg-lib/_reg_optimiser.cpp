@@ -331,7 +331,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues()
       printf("[NiftyReg DEBUG] Conjugate gradient initialisation\n");
 #endif
       // first conjugate gradient iteration
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
       #pragma omp parallel for default(none) \
       shared(num,array1Ptr,array2Ptr,gradientPtr) \
       private(i)
@@ -342,7 +342,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues()
       }
       if(this->dofNumber_b>0)
       {
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
          #pragma omp parallel for default(none) \
          shared(num_b,array1Ptr_b,array2Ptr_b,gradientPtr_b) \
          private(i)
@@ -360,7 +360,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues()
       printf("[NiftyReg DEBUG] Conjugate gradient update\n");
 #endif
       double dgg=0.0, gg=0.0;
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
       #pragma omp parallel for default(none) \
       shared(num,array1Ptr,array2Ptr,gradientPtr) \
       private(i) \
@@ -377,7 +377,7 @@ reduction(+:dgg)
       if(this->dofNumber_b>0)
       {
          double dgg_b=0.0, gg_b=0.0;
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
          #pragma omp parallel for default(none) \
          shared(num_b,array1Ptr_b,array2Ptr_b,gradientPtr_b) \
          private(i) \
@@ -391,7 +391,7 @@ reduction(+:dgg_b)
          }
          gam = (dgg+dgg_b)/(gg+gg_b);
       }
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
       #pragma omp parallel for default(none) \
       shared(num,array1Ptr,array2Ptr,gradientPtr,gam) \
       private(i)
@@ -404,7 +404,7 @@ reduction(+:dgg_b)
       }
       if(this->dofNumber_b>0)
       {
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
          #pragma omp parallel for default(none) \
          shared(num_b,array1Ptr_b,array2Ptr_b,gradientPtr_b,gam) \
          private(i)

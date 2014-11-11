@@ -541,7 +541,7 @@ void reg_tools_operationImageToImage(nifti_image *img1,
    switch(type)
    {
    case 0:
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
@@ -552,7 +552,7 @@ void reg_tools_operationImageToImage(nifti_image *img1,
                               (double)img1->scl_inter)/(double)img1->scl_slope);
       break;
    case 1:
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
@@ -563,7 +563,7 @@ void reg_tools_operationImageToImage(nifti_image *img1,
                               (double)img1->scl_inter)/(double)img1->scl_slope);
       break;
    case 2:
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
@@ -574,7 +574,7 @@ void reg_tools_operationImageToImage(nifti_image *img1,
                               (double)img1->scl_inter)/(double)img1->scl_slope);
       break;
    case 3:
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
@@ -800,7 +800,7 @@ void reg_tools_operationValueToImage(nifti_image *img1,
    switch(type)
    {
    case 0:
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img1,val)
@@ -810,7 +810,7 @@ void reg_tools_operationValueToImage(nifti_image *img1,
                                (double)val) - (double)img1->scl_inter)/(double)img1->scl_slope);
       break;
    case 1:
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img1,val)
@@ -820,7 +820,7 @@ void reg_tools_operationValueToImage(nifti_image *img1,
                                (double)val) - (double)img1->scl_inter)/(double)img1->scl_slope);
       break;
    case 2:
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img1,val)
@@ -830,7 +830,7 @@ void reg_tools_operationValueToImage(nifti_image *img1,
                                (double)val) - (double)img1->scl_inter)/(double)img1->scl_slope);
       break;
    case 3:
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img1,val)
@@ -1277,7 +1277,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
             } // active axis
          } // axes
          // Normalise per timepoint
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    shared(voxelNumber, intensityPtr, densityPtr, nanImagePtr) \
    private(index)
@@ -1475,7 +1475,7 @@ void reg_tools_labelKernelConvolution_core(nifti_image *image,
             }
          }
          // Normalise per timepoint
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    shared(voxelNumber, intensityPtr, nanImagePtr,tmpImagePtr) \
    private(index)
@@ -2557,7 +2557,7 @@ void reg_getDisplacementFromDeformation_2D(nifti_image *field)
 
    int x, y,  index;
    DTYPE xInit, yInit;
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    shared(field, matrix, ptrX, ptrY) \
    private(x, y, index, xInit, yInit)
@@ -2598,7 +2598,7 @@ void reg_getDisplacementFromDeformation_3D(nifti_image *field)
 
    int x, y, z, index;
    float xInit, yInit, zInit;
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    shared(field, matrix, \
    ptrX, ptrY, ptrZ) \
@@ -2702,7 +2702,7 @@ void reg_getDeformationFromDisplacement_2D(nifti_image *field)
 
    int x, y, index;
    DTYPE xInit, yInit;
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    shared(field, matrix, \
    ptrX, ptrY) \
@@ -2745,7 +2745,7 @@ void reg_getDeformationFromDisplacement_3D(nifti_image *field)
 
    int x, y, z, index;
    float xInit, yInit, zInit;
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    shared(field, matrix, \
    ptrX, ptrY, ptrZ) \

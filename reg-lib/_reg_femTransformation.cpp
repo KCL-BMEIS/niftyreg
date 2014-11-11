@@ -164,7 +164,7 @@ void reg_fem_getDeformationField(float *nodePositions,
 
    float coefficients[4];
    float positionA[3], positionB[3], positionC[3], positionD[3];
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
    #pragma omp parallel for default(none) \
    shared(defPtrX, defPtrY, defPtrZ, femInterpolationWeight, \
           nodePositions, closestNodes, voxelNumber) \

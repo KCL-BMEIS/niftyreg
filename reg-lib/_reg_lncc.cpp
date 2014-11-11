@@ -101,7 +101,7 @@ void reg_lncc::UpdateLocalStatImages(nifti_image *originalImage,
    size_t voxelNumber=originalImage->nvox;
 #endif
 
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
    #pragma omp parallel for default(none) \
    shared(voxelNumber, sdevPtr, meanPtr) \
    private(voxel)
@@ -314,7 +314,7 @@ double reg_getLNCCValue(nifti_image *referenceImage,
          DTYPE *warSdevPtr0 = &warSdevPtr[t*voxelNumber];
          DTYPE *correlaPtr0 = &correlaPtr[t*voxelNumber];
          // Iteration over all voxels
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
          #pragma omp parallel for default(none) \
          shared(voxelNumber,refMask,refMeanPtr0,warMeanPtr0, \
                 refSdevPtr0,warSdevPtr0,correlaPtr0) \
@@ -510,7 +510,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
              warSdevValue, correlaValue;
       double temp1, temp2, temp3;
       // Iteration over all voxels
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
       #pragma omp parallel for default(none) \
       shared(voxelNumber,refMask,refMeanPtr0,warMeanPtr0, \
              refSdevPtr0,warSdevPtr0,correlaPtr0) \
@@ -572,7 +572,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
       DTYPE *warImagePtr0 = &warImagePtr[t*voxelNumber];
       double common;
       // Iteration over all voxels
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
       #pragma omp parallel for default(none) \
       shared(voxelNumber,refMask,refImagePtr0,warImagePtr0, \
              temp1Ptr,temp2Ptr,temp3Ptr,lnccGradPtrX,lnccGradPtrY,lnccGradPtrZ, \
@@ -603,7 +603,7 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
 #else
    voxelNumber=lnccGradientImage->nvox;
 #endif
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
    #pragma omp parallel for default(none) \
    shared(voxelNumber,lnccGradPtrX) \
    private(voxel, val)

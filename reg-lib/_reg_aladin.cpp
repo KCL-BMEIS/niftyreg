@@ -514,25 +514,23 @@ void reg_aladin<T>::Run()
    // Initialise the registration parameters
    this->InitialiseRegistration();
 
-   // Compute the resolution of the progress bar
-   unsigned long iProgressStep = 1;
-   unsigned long nProgressSteps = 1;
-
-   if (this->PerformRigid && !this->PerformAffine)
-   {
-      nProgressSteps = this->MaxIterations*(this->LevelsToPerform + 1);
-   }
-   else if (this->PerformAffine && this->PerformRigid)
-   {
-      nProgressSteps = this->MaxIterations*4*2
-                       + this->MaxIterations*(this->LevelsToPerform + 1);
-   }
-   else
-   {
-      nProgressSteps = this->MaxIterations*(this->LevelsToPerform + 1);
-   }
-
-   // Compute the progress unit
+//   // Compute the resolution of the progress bar
+//   unsigned long iProgressStep = 1;
+//   unsigned long nProgressSteps = 1;
+//   if (this->PerformRigid && !this->PerformAffine)
+//   {
+//      nProgressSteps = this->MaxIterations*(this->LevelsToPerform + 1);
+//   }
+//   else if (this->PerformAffine && this->PerformRigid)
+//   {
+//      nProgressSteps = this->MaxIterations*4*2
+//                       + this->MaxIterations*(this->LevelsToPerform + 1);
+//   }
+//   else
+//   {
+//      nProgressSteps = this->MaxIterations*(this->LevelsToPerform + 1);
+//   }
+//   // Compute the progress unit
 //   unsigned long progressUnit = (unsigned long)ceil((float)nProgressSteps / 100.0f);
 
    //Main loop over the levels:
@@ -547,7 +545,6 @@ void reg_aladin<T>::Run()
       if(CurrentLevel==0)
       {
          maxNumberOfIterationToPerform*=2;
-//            percentageOfBlockToUse=100;
       }
 
       /* initialise the block matching */
@@ -618,15 +615,13 @@ void reg_aladin<T>::Run()
 //               (*funcProgressCallback)(100.0f * (float)iProgressStep / (float)nProgressSteps,
 //                                       paramsProgressCallback);
 //            }
-
-            // Announce the progress via CLI
+//            // Announce the progress via CLI
 //            if ((int)(iProgressStep % progressUnit) == 0)
 //            {
 //               progressXML(100 * iProgressStep / nProgressSteps);
 //            }
-
+//            iProgressStep++;
             iteration++;
-            iProgressStep++;
          }
       }
 
@@ -645,10 +640,10 @@ void reg_aladin<T>::Run()
 
    } // level this->LevelsToPerform
 
-   if ( funcProgressCallback && paramsProgressCallback )
-   {
-      (*funcProgressCallback)( 100., paramsProgressCallback);
-   }
+//   if ( funcProgressCallback && paramsProgressCallback )
+//   {
+//      (*funcProgressCallback)( 100., paramsProgressCallback);
+//   }
 
 #ifndef NDEBUG
    printf("[NiftyReg DEBUG] reg_aladin::Run() done\n");

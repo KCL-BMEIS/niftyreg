@@ -95,7 +95,7 @@ void reg_svd(T ** in, size_t size_m, size_t size_n, T * w, T ** v)
 #endif
    Eigen::MatrixXd m(size_m,size_n);
 
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
    #pragma omp parallel for default(none) \
    shared(in,m, size__m, size__n) \
    private(sm, sn)
@@ -110,7 +110,7 @@ void reg_svd(T ** in, size_t size_m, size_t size_n, T * w, T ** v)
 
    Eigen::JacobiSVD<Eigen::MatrixXd> svd(m,Eigen::ComputeThinV|Eigen::ComputeThinU);
 
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
    #pragma omp parallel for default(none) \
    shared(in,svd,v,w, size__n,size__m) \
    private(sn2, sn, sm)
