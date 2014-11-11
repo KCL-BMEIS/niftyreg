@@ -318,7 +318,6 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                   if(jacDetPtr!=NULL)
                      common *= jacDetPtr[voxel];
 
-//						common /= currentValue[time];
                   ssdGradPtrX[voxel] += (DTYPE)(common * spatialGradPtrX[voxel]);
                   ssdGradPtrY[voxel] += (DTYPE)(common * spatialGradPtrY[voxel]);
 

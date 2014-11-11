@@ -31,7 +31,7 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
    if(!fread(sig, 1, 8, fopen (pngFileName, "r")))
       reg_exit(1);
    if(!png_check_sig(sig, 8))
-      reg_exit(1);;
+      reg_exit(1);
 
    png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
    if (!png_ptr)

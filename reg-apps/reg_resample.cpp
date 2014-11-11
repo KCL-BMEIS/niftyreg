@@ -279,9 +279,9 @@ int main(int argc, char **argv)
       };
       // Compute the new reference image dimension
       int refNewDim[3]={
-         reg_ceil(resolutionRatio[0]*static_cast<float>(referenceImage->nx)),
-         reg_ceil(resolutionRatio[1]*static_cast<float>(referenceImage->ny)),
-         reg_ceil(resolutionRatio[2]*static_cast<float>(referenceImage->nz))
+         static_cast<int>(reg_ceil(resolutionRatio[0]*static_cast<float>(referenceImage->nx))),
+         static_cast<int>(reg_ceil(resolutionRatio[1]*static_cast<float>(referenceImage->ny))),
+         static_cast<int>(reg_ceil(resolutionRatio[2]*static_cast<float>(referenceImage->nz)))
       };
       // Update the reference image header
       referenceImage->nvox=(size_t)refNewDim[0]*
@@ -325,9 +325,9 @@ int main(int argc, char **argv)
       }
    }
 
-   // Tell the CLI that the process has started
+//   // Tell the CLI that the process has started
 //   startProgress("reg_resample");
-   // Set up progress indicators
+//   // Set up progress indicators
 //   float iProgressStep=1, nProgressSteps;
 
    /* *********************** */
@@ -363,7 +363,7 @@ int main(int argc, char **argv)
       reg_mat44_eye(&inputAffineTransformation);
    }
 
-   // Update progress via CLI
+//   // Update progress via CLI
 //   progressXML(1, "Transform loaded...");
 
    // Create a deformation field
@@ -474,7 +474,7 @@ int main(int argc, char **argv)
                                      NULL);
    }
 
-   // Update progress via CLI
+//   // Update progress via CLI
 //   progressXML(2, "Deformation field ready...");
 
    /* ************************* */
@@ -748,7 +748,7 @@ int main(int argc, char **argv)
          printf("[NiftyReg] Resampled grid has been saved: %s\n", param->outputBlankName);
    }
 
-   // Tell the CLI that we finished
+//   // Tell the CLI that we finished
 //   closeProgress("reg_resample", "Normal exit");
 
    nifti_image_free(referenceImage);

@@ -76,10 +76,9 @@ double reg_getDTIMeasureValue(nifti_image *targetImage,
  */
 extern "C++" template <class DTYPE>
 void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
-                                         nifti_image *warpedImage,
-                                         nifti_image *warpedImageGradient,
-                                         nifti_image *dtiMeasureGradientImage,
-                                         int *mask,
-                                         unsigned int * dtIndicies
-                                         );
+      nifti_image *warpedImage,
+      nifti_image *warpedImageGradient,
+      nifti_image *dtiMeasureGradientImage,
+      int *mask,
+      unsigned int * dtIndicies);
 #endif

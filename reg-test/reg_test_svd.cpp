@@ -47,7 +47,7 @@ int main()
    res_v[4][0]=-0.517638f;res_v[4][1]=0.0930836f;res_v[4][2]=0.64108f;res_v[4][3]=-0.539535f;res_v[4][4]=0.145964f;
    res_w[0]=3.868f;res_w[1]=1.28005f;res_w[2]=0.862982f;res_w[3]=0.625536f;res_w[4]=0.456751f;
 
-   reg_svd<float>(matrix, m, n, w, v);
+   svd<float>(matrix, m, n, w, v);
 
    for(size_t i=0;i<n;++i){
       float difference=fabsf(res_w[i]-w[i]);

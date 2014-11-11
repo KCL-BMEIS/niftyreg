@@ -587,12 +587,10 @@ void reg_aladin<T>::Run()
 //               (*funcProgressCallback)(100.0f * (float)iProgressStep / (float)nProgressSteps,
 //                                       paramsProgressCallback);
 //            }
-
-            // Announce the progress via CLI
+//            // Announce the progress via CLI
 //            if ((int)(iProgressStep % progressUnit) == 0)
-//               progressXML(100 * iProgressStep / nProgressSteps);
+//               progressXML(100 * iProgressStep / nProgressSteps, "Performing Rigid Registration...");
 //            iProgressStep++;
-
             iteration++;
          }
       }

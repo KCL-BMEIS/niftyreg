@@ -2968,7 +2968,7 @@ void reg_tools_abs_image(nifti_image *img)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-//static std::string CLI_PROGRESS_UPDATES = std::string(getenv("NIFTK_CLI_PROGRESS_UPD") != 0 ? getenv("NIFTK_CLI_PROGRESS_UPD") : "");
+static std::string CLI_PROGRESS_UPDATES = std::string(getenv("NIFTK_CLI_PROGRESS_UPD") != 0 ? getenv("NIFTK_CLI_PROGRESS_UPD") : "");
 /* *************************************************************** */
 //void startProgress(std::string name)
 //{
@@ -2983,7 +2983,7 @@ void reg_tools_abs_image(nifti_image *img)
 //   }
 //}
 /* *************************************************************** */
-//void progressXML(unsigned long p)
+//void progressXML(unsigned long p, std::string text)
 //{
 //   if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
 //       CLI_PROGRESS_UPDATES.find("1") != std::string::npos)

@@ -77,7 +77,7 @@ void reg_exponentiate_logged_tensor(mat33 *in_tensor)
   * @param v rotation part
   */
 template <class T>
-void reg_svd(T ** in, size_t size_m, size_t size_n, T * w, T ** v)
+void svd(T ** in, size_t size_m, size_t size_n, T * w, T ** v)
 {
    if(size_m==0 || size_n==0)
    {
@@ -128,8 +128,8 @@ void reg_svd(T ** in, size_t size_m, size_t size_n, T * w, T ** v)
       }
    }
 }
-template void reg_svd<float>(float ** in, size_t m, size_t n, float * w, float ** v);
-template void reg_svd<double>(double ** in, size_t m, size_t n, double * w, double ** v);
+template void svd<float>(float ** in, size_t m, size_t n, float * w, float ** v);
+template void svd<double>(double ** in, size_t m, size_t n, double * w, double ** v);
 /* *************************************************************** */
 /* *************************************************************** */
 template <class T>

@@ -121,15 +121,17 @@ template <class T>
 void reg_f3d2<T>::GetInverseConsistencyErrorField(bool forceAll)
 {
    if(this->inverseConsistencyWeight<=0) return;
+
    if(forceAll)
    {
       reg_print_fct_error("reg_f3d2<T>::GetInverseConsistencyErrorField()");
+      reg_print_msg_error("Option not supported in F3D2");
    }
    else
    {
       reg_print_fct_error("reg_f3d2<T>::GetInverseConsistencyErrorField()");
+      reg_print_msg_error("Option not supported in F3D2");
    }
-   reg_print_msg_error("This function is not available with f3d2");
    reg_exit(1);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -140,7 +142,7 @@ void reg_f3d2<T>::GetInverseConsistencyGradient()
    if(this->inverseConsistencyWeight<=0) return;
 
    reg_print_fct_error("reg_f3d2<T>::GetInverseConsistencyGradient()");
-   reg_print_msg_error("This function is not available with f3d2");
+   reg_print_msg_error("Option not supported in F3D2");
    reg_exit(1);
 
    return;

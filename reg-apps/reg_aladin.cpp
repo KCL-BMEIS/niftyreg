@@ -324,7 +324,7 @@ int main(int argc, char **argv)
       return 1;
    }
 
-   // Update the CLI progress bar that the registration has started
+//   // Update the CLI progress bar that the registration has started
 //   startProgress("reg_aladin");
 
    // Output the command line
@@ -450,7 +450,7 @@ int main(int argc, char **argv)
    }
 
 
-   // Update the CLI progress bar
+//   // Update the CLI progress bar
 //   progressXML(2, "Input data ready...");
 
    REG->SetMaxIterations(maxIter);
@@ -508,7 +508,7 @@ int main(int argc, char **argv)
       reg_tool_WriteAffineFile(REG->GetTransformationMatrix(), outputAffineName);
    else reg_tool_WriteAffineFile(REG->GetTransformationMatrix(), (char *)"outputAffine.txt");
 
-   // Tell the CLI that we finished
+//   // Tell the CLI that we finished
 //   closeProgress("reg_aladin", "Normal exit");
 
 

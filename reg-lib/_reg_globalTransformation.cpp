@@ -49,7 +49,9 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
       for(int x=0; x<deformationFieldImage->nx; x++)
       {
          voxel[0]=(float)x;
-         if(mask[index++]>=0){
+
+         if(mask[index++]>-1)
+         {
             if(compose==true)
             {
                voxel[0]=deformationFieldPtr[deformationFieldIndX];
@@ -92,9 +94,9 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
    int x, y, z;
    size_t index;
 #if defined (_OPENMP)
-   #pragma omp parallel for default(none) \
+#pragma omp parallel for default(none) \
    shared(deformationFieldImage, transformationMatrix, deformationFieldPtrX, \
-          deformationFieldPtrY, deformationFieldPtrZ, mask, composition) \
+   deformationFieldPtrY, deformationFieldPtrZ, mask, composition) \
    private(voxel, position, x, y, z, index)
 #endif
    for(z=0; z<deformationFieldImage->nz; z++)
@@ -107,7 +109,7 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
          for(x=0; x<deformationFieldImage->nx; x++)
          {
             voxel[0]=(float)x;
-            if(mask[index]>=0)
+            if(mask[index]>-1)
             {
                if(composition==true)
                {
@@ -116,21 +118,21 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
                   voxel[2]=deformationFieldPtrZ[index];
                }
                position[0] =
-                  transformationMatrix.m[0][0] * voxel[0] +
-                  transformationMatrix.m[0][1] * voxel[1] +
-                  transformationMatrix.m[0][2] * voxel[2] +
-                  transformationMatrix.m[0][3] ;
+                     transformationMatrix.m[0][0] * voxel[0] +
+                     transformationMatrix.m[0][1] * voxel[1] +
+                     transformationMatrix.m[0][2] * voxel[2] +
+                     transformationMatrix.m[0][3] ;
                position[1] =
-                  transformationMatrix.m[1][0] * voxel[0] +
-                  transformationMatrix.m[1][1] * voxel[1] +
-                  transformationMatrix.m[1][2] * voxel[2] +
-                  transformationMatrix.m[1][3] ;
+                     transformationMatrix.m[1][0] * voxel[0] +
+                     transformationMatrix.m[1][1] * voxel[1] +
+                     transformationMatrix.m[1][2] * voxel[2] +
+                     transformationMatrix.m[1][3] ;
                position[2] =
-                  transformationMatrix.m[2][0] * voxel[0] +
-                  transformationMatrix.m[2][1] * voxel[1] +
-                  transformationMatrix.m[2][2] * voxel[2] +
-                  transformationMatrix.m[2][3] ;
-//                    reg_mat44_mul(&transformationMatrix, voxel, position);
+                     transformationMatrix.m[2][0] * voxel[0] +
+                     transformationMatrix.m[2][1] * voxel[1] +
+                     transformationMatrix.m[2][2] * voxel[2] +
+                     transformationMatrix.m[2][3] ;
+               //                    reg_mat44_mul(&transformationMatrix, voxel, position);
 
                /* the deformation field (real coordinates) is stored */
                deformationFieldPtrX[index] = position[0];
@@ -260,11 +262,11 @@ void reg_tool_ReadAffineFile(mat44 *mat,
       for(int i=0; i<3; i++)
       {
          absoluteTarget.m[i][i]=sqrt(targetMatrix->m[0][i]*targetMatrix->m[0][i]
-                                     + targetMatrix->m[1][i]*targetMatrix->m[1][i]
-                                     + targetMatrix->m[2][i]*targetMatrix->m[2][i]);
+               + targetMatrix->m[1][i]*targetMatrix->m[1][i]
+               + targetMatrix->m[2][i]*targetMatrix->m[2][i]);
          absoluteSource.m[i][i]=sqrt(sourceMatrix->m[0][i]*sourceMatrix->m[0][i]
-                                     + sourceMatrix->m[1][i]*sourceMatrix->m[1][i]
-                                     + sourceMatrix->m[2][i]*sourceMatrix->m[2][i]);
+               + sourceMatrix->m[1][i]*sourceMatrix->m[1][i]
+               + sourceMatrix->m[2][i]*sourceMatrix->m[2][i]);
       }
       absoluteTarget.m[3][3]=absoluteSource.m[3][3]=1.0;
 #ifndef NDEBUG

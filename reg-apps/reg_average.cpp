@@ -81,7 +81,7 @@ int main(int argc, char **argv)
       return 0;
    }
    // Check if help is required
-   for(size_t i=1; i<argc; ++i)
+   for(int i=1; i<argc; ++i)
    {
       if(strcmp(argv[i],"-h")==0 ||
             strcmp(argv[i],"-H")==0 ||
@@ -111,7 +111,7 @@ int main(int argc, char **argv)
    }
    // Command line
    printf("\nCommand line:\n\t");
-   for(size_t i=0; i<argc; ++i)
+   for(int i=0; i<argc; ++i)
       printf("%s ",argv[i]);
    printf("\n\n");
 
@@ -669,7 +669,7 @@ int main(int argc, char **argv)
          size_t affineNumber = (argc - 4)/2;
          // All affine matrices are read in
          mat44 *affineMatrices = (mat44 *)malloc(affineNumber*sizeof(mat44));
-         for(size_t i=4, j=0; i<argc; i+=2,++j)
+         for(int i=4, j=0; i<argc; i+=2,++j)
          {
             if(reg_isAnImageFileName(argv[i]))
             {
@@ -732,7 +732,7 @@ int main(int argc, char **argv)
          tempImage->scl_inter=0.f;
          tempImage->data = (void *)malloc(tempImage->nvox*tempImage->nbyper);
          // warp all floating images and sum them up
-         for(size_t i=5, j=0; i<argc; i+=2,++j)
+         for(int i=5, j=0; i<argc; i+=2,++j)
          {
             nifti_image *floatingImage = reg_io_ReadImageFile(argv[i]);
             if(floatingImage==NULL)
@@ -801,7 +801,7 @@ int main(int argc, char **argv)
          reg_tools_multiplyValueToImage(averageField,averageField,0.f);
          // Iterate over all the transformation parametrisations - Note that I don't store them all to save space
 
-         for(size_t i=operation; i<argc; i+=incrementValue)
+         for(int i=operation; i<argc; i+=incrementValue)
          {
             nifti_image *transformation = reg_io_ReadImageFile(argv[i]);
             if(transformation==NULL)
@@ -918,7 +918,7 @@ int main(int argc, char **argv)
          nifti_image *tempImage = nifti_copy_nim_info(averageImage);
          tempImage->data = (void *)malloc(tempImage->nvox*tempImage->nbyper);
          // Iterate over all the transformation parametrisations
-         for(size_t i=operation; i<argc; i+=incrementValue)
+         for(int i=operation; i<argc; i+=incrementValue)
          {
             nifti_image *transformation = reg_io_ReadImageFile(argv[i]);
             if(transformation==NULL)
@@ -1010,7 +1010,7 @@ int main(int argc, char **argv)
 #ifndef NDEBUG
             reg_print_msg_debug("reg_average: Warping floating image:");
             reg_print_msg_debug(floatingImage->fname);
-            sprintf(msg,"reg_average_%lu.nii",i);
+            sprintf(msg,"reg_average_%i.nii",i);
             reg_io_WriteImageFile(tempImage,msg);
 #endif
             reg_tools_addImageToImage(averageImage,tempImage,averageImage);

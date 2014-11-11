@@ -348,7 +348,7 @@ void ResampleImage3D(nifti_image *floatingImage,
    FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[warpedVoxelNumber];
 
 //#ifndef _OPENMP
-   // Compute the resolution of the progress bar
+//   // Compute the resolution of the progress bar
 //   unsigned long iProgressStep  = 1;
 //   unsigned long nProgressSteps = warpedImage->nt * warpedImage->nu * warpedVoxelNumber;
 //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
@@ -500,8 +500,7 @@ void ResampleImage3D(nifti_image *floatingImage,
 //#ifndef _OPENMP
 //         // Announce the progress via CLI
 //         if (iProgressStep % progressUnit == 0)
-//            progressXML(100 * iProgressStep / nProgressSteps);
-
+//            progressXML(100 * iProgressStep / nProgressSteps, "Performing 3D Resampling...");
 //         // Increment the progress counter
 //         iProgressStep++;
 //#endif
@@ -532,7 +531,7 @@ void ResampleImage2D(nifti_image *floatingImage,
    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[warpedVoxelNumber];
 
 //#ifndef _OPENMP
-   // Compute the resolution of the progress bar
+//   // Compute the resolution of the progress bar
 //   unsigned long iProgressStep  = 1;
 //   unsigned long nProgressSteps = warpedImage->nt * warpedImage->nu * warpedVoxelNumber;
 //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
@@ -669,8 +668,7 @@ void ResampleImage2D(nifti_image *floatingImage,
 //#ifndef _OPENMP
 //            // Announce the progress via CLI
 //            if (iProgressStep % progressUnit == 0)
-//               progressXML(100 * iProgressStep / nProgressSteps);
-
+//               progressXML(100 * iProgressStep / nProgressSteps, "Performing 3D Resampling...");
 //            // Increment the progress counter
 //            iProgressStep++;
 //#endif
@@ -1036,7 +1034,7 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
    DTYPE val_x,val_y,weight[2];
 
 //#ifndef _OPENMP
-   // Compute the resolution of the progress bar
+//   // Compute the resolution of the progress bar
 //   unsigned long iProgressStep  = 1;
 //   unsigned long nProgressSteps = warpedImage->nx * warpedImage->ny;
 //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
@@ -1179,8 +1177,7 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
 //#ifndef _OPENMP
 //         // Announce the progress via CLI
 //         if (iProgressStep % progressUnit == 0)
-//            progressXML(100 * iProgressStep / nProgressSteps);
-
+//            progressXML(100 * iProgressStep / nProgressSteps, "Performing Bilinear Gradient Resampling...");
 //         // Increment the progress counter
 //         iProgressStep++;
 //#endif
@@ -1237,7 +1234,7 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
    DTYPE val_x,val_y,val_z,weight[3];
 
 //#ifndef _OPENMP
-   // Compute the resolution of the progress bar
+//   // Compute the resolution of the progress bar
 //   unsigned long iProgressStep  = 1;
 //   unsigned long nProgressSteps = warpedVoxelNumber;
 //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
@@ -1437,8 +1434,7 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
 //#ifndef _OPENMP
 //            // Announce the progress via CLI
 //            if (iProgressStep % progressUnit == 0)
-//               progressXML(100 * iProgressStep / nProgressSteps);
-
+//               progressXML(100 * iProgressStep / nProgressSteps, "Performing Trilinear Gradient Resampling...");
 //            // Increment the progress counter
 //            iProgressStep++;
 //#endif
@@ -1453,16 +1449,18 @@ void reg_resampleGradient(nifti_image *floatingImage,
                           int interp,
                           float paddingValue)
 {
-   // Only linear interpolation is supported here
    if(interp!=1)
    {
-      fprintf(stderr, "[NiftyReg ERROR] reg_resampleGradient - Only linear interpolation is supported\n");
+      reg_print_fct_error("reg_resampleGradient");
+      reg_print_msg_error("Only linear interpolation is supported");
       reg_exit(1);
+
    }
    if(floatingImage->datatype!=warpedImage->datatype ||
          floatingImage->datatype!=deformationField->datatype)
    {
-      fprintf(stderr, "[NiftyReg ERROR] reg_resampleGradient - Input images are expected to have the same type\n");
+      reg_print_fct_error("reg_resampleGradient");
+      reg_print_msg_error("Input images are expected to have the same type");
       reg_exit(1);
    }
    switch(floatingImage->datatype)
@@ -1536,7 +1534,7 @@ void TrilinearImageGradient(nifti_image *floatingImage,
    else floatingIJKMatrix=&(floatingImage->qto_ijk);
 
 //#ifndef _OPENMP
-   // Compute the resolution of the progress bar
+//   // Compute the resolution of the progress bar
 //   unsigned long iProgressStep  = 1;
 //   unsigned long nProgressSteps = warpedGradientImage->nt * referenceVoxelNumber;
 //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
@@ -1705,8 +1703,7 @@ void TrilinearImageGradient(nifti_image *floatingImage,
 //#ifndef _OPENMP
 //         // Announce the progress via CLI
 //         if (iProgressStep % progressUnit == 0)
-//            progressXML(100 * iProgressStep / nProgressSteps);
-
+//            progressXML(100 * iProgressStep / nProgressSteps, "Performing Trilinear Gradient Computation...");
 //         // Increment the progress counter
 //         iProgressStep++;
 //#endif
@@ -1744,7 +1741,7 @@ void BilinearImageGradient(nifti_image *floatingImage,
    else floatingIJKMatrix=floatingImage->qto_ijk;
 
 //#ifndef _OPENMP
-   // Compute the resolution of the progress bar
+//   // Compute the resolution of the progress bar
 //   unsigned long iProgressStep  = 1;
 //   unsigned long nProgressSteps = warpedGradientImage->nt * referenceVoxelNumber;
 //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
@@ -1851,8 +1848,7 @@ void BilinearImageGradient(nifti_image *floatingImage,
 //#ifndef _OPENMP
 //         // Announce the progress via CLI
 //         if (iProgressStep % progressUnit == 0)
-//            progressXML(100 * iProgressStep / nProgressSteps);
-
+//            progressXML(100 * iProgressStep / nProgressSteps, "Performing Bilinear Gradient Computation...");
 //         // Increment the progress counter
 //         iProgressStep++;
 //#endif
@@ -1891,7 +1887,7 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
    else floatingIJKMatrix=&(floatingImage->qto_ijk);
 
 //#ifndef _OPENMP
-   // Compute the resolution of the progress bar
+//   // Compute the resolution of the progress bar
 //   unsigned long iProgressStep  = 1;
 //   unsigned long nProgressSteps = warpedGradientImage->nt * referenceVoxelNumber;
 //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
@@ -2029,8 +2025,7 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
 //#ifndef _OPENMP
 //         // Announce the progress via CLI
 //         if (iProgressStep % progressUnit == 0)
-//            progressXML(100 * iProgressStep / nProgressSteps);
-
+//            progressXML(100 * iProgressStep / nProgressSteps, "Performing 3D Cubic Spline Gradient Computation...");
 //         // Increment the progress counter
 //         iProgressStep++;
 //#endif
@@ -2067,7 +2062,7 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
    else floatingIJKMatrix=&(floatingImage->qto_ijk);
 
 //#ifndef _OPENMP
-   // Compute the resolution of the progress bar
+//   // Compute the resolution of the progress bar
 //   unsigned long iProgressStep  = 1;
 //   unsigned long nProgressSteps = warpedGradientImage->nt * referenceVoxelNumber;
 //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
@@ -2168,8 +2163,7 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
 //#ifndef _OPENMP
 //         // Announce the progress via CLI
 //         if (iProgressStep % progressUnit == 0)
-//            progressXML(100 * iProgressStep / nProgressSteps);
-
+//            progressXML(100 * iProgressStep / nProgressSteps, "Performing 2D Cubic Spline Gradient Computation...");
 //         // Increment the progress counter
 //         iProgressStep++;
 //#endif

@@ -24,9 +24,7 @@ int isNumeric (const char *s)
    if(s==NULL || *s=='\0' || isspace(*s))
       return 0;
    char * p;
-   double a=0;
-   a=a; //useless - here to avoid a warning
-   a=strtod (s, &p);
+   strtod (s, &p);
    return *p == '\0';
 }
 
@@ -310,8 +308,8 @@ int main(int argc, char **argv)
       normImage->data = (void *)malloc(normImage->nvox * normImage->nbyper);
       memcpy(normImage->data, image->data, normImage->nvox*normImage->nbyper);
       reg_heapSort(static_cast<float *>(normImage->data), normImage->nvox);
-      float minValue = static_cast<float *>(normImage->data)[static_cast<int>(reg_floor(03*normImage->nvox/100))];
-      float maxValue = static_cast<float *>(normImage->data)[static_cast<int>(reg_floor(97*normImage->nvox/100))];
+      float minValue = static_cast<float *>(normImage->data)[static_cast<int>(reg_floor(03*(int)normImage->nvox/100))];
+      float maxValue = static_cast<float *>(normImage->data)[static_cast<int>(reg_floor(97*(int)normImage->nvox/100))];
       reg_tools_substractValueToImage(image,normImage,minValue);
       reg_tools_divideValueToImage(normImage,normImage,maxValue-minValue);
       if(flag->outputImageFlag)

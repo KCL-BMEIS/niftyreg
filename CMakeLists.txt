@@ -18,7 +18,8 @@ endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Release")
 endif(NOT CMAKE_BUILD_TYPE)
-
+set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 #-----------------------------------------------------------------------------
 string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_tolower)
 if(NOT cmake_build_type_tolower STREQUAL "debug"
@@ -248,7 +249,7 @@ if(GIT_FOUND)
 	)
 	if(NOT GIT_FAILED)
 		 add_definitions(-D_GIT_HASH=\"${GIT_COMMIT_HASH}\")
-		 message(STATUS "Found GIT - the hash is added to the source.")
+		 message(STATUS "Found Git - the hash is added to the source.")
 	else(NOT GIT_FAILED)
 		 add_definitions(-D_GIT_HASH="${NiftyReg_VERSION_MAJOR}.${NiftyReg_VERSION_MINOR}.${NiftyReg_VERSION_PATCH}")
 	endif(NOT GIT_FAILED)

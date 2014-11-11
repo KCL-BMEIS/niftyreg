@@ -401,7 +401,7 @@ void reg_tools_abs_image(nifti_image *img);
 /* *************************************************************** */
 /** @brief This function tells the progress to the CLI */
 //extern "C++"
-//void progressXML(unsigned long p);
+//void progressXML(unsigned long p, std::string text);
 /* *************************************************************** */
 /** @brief This function initiates progress updates through the CLI */
 //extern "C++"
