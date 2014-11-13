@@ -4,8 +4,8 @@
 
 #include"Kernel.h"
 #include"kernels.h"
-#include "CLPlatform.h"
-#include "Context.h"
+#include "CudaPlatform.h"
+#include "CudaContext.h"
 
 #define EPS 0.000001
 
@@ -61,12 +61,12 @@ int main(int argc, char **argv)
    test_field->data=(void *)malloc(test_field->nvox*test_field->nbyper);
 
    // Compute the affine deformation field
-   Context *con = new CudaContext(referenceImage, NULL, NULL, sizeof(float));
-   con->setTransformationMatrix(inputMatrix);
-   con->setCurrentDeformationField(test_field);
-   test(con);
-   defField = con->getCurrentDeformationField();
-
+   Context *con = new CudaContext(referenceImage, NULL, NULL, sizeof(float)); std::cout<<"1"<<std::endl;
+   con->setTransformationMatrix(inputMatrix); std::cout<<"2"<<std::endl;
+   con->setCurrentDeformationField(test_field); std::cout<<"3"<<std::endl;
+   test(con); std::cout<<"4"<<std::endl;
+   test_field = con->getCurrentDeformationField(); std::cout<<"5"<<std::endl;
+   std::cout<<"6"<<std::endl;
    // Compute the difference between the computed and inputed deformation field
    reg_tools_substractImageToImage(inputDeformationField,test_field,test_field);
    reg_tools_abs_image(test_field);
@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 
    nifti_image_free(referenceImage);
    nifti_image_free(inputDeformationField);
-
+   std::cout<<"7"<<std::endl;
    delete con;
    free(inputMatrix);
 

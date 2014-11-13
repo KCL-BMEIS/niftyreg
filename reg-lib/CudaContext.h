@@ -21,11 +21,12 @@ public:
 
 	}
 	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte) :Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte){
-		//std::cout << "cuda (small) context constructor called3" << std::endl;
+		std::cout << "cuda (small) context constructor called3" << std::endl;
 
 		initVars();
 		allocateCuPtrs();
 		uploadContext();
+		std::cout << "cuda context constructor called" << std::endl;
 	}
 	~CudaContext();
 
@@ -61,7 +62,7 @@ public:
 		return referenceDims;
 	}
 	int* getFloatingDims(){
-		return floatingDims;;
+		return floatingDims;
 	}
 
 
@@ -99,5 +100,5 @@ private:
 	int referenceDims[4];
 	int floatingDims[4];
 
-	unsigned int nVoxels;
+	unsigned long nVoxels;
 };

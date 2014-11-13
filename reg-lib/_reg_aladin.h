@@ -106,6 +106,8 @@ protected:
 	void (*funcProgressCallback)(float pcntProgress, void *params);
 	void *paramsProgressCallback;
 
+	void mockBmParams();
+
 public:
 	reg_aladin();
 
@@ -141,7 +143,6 @@ public:
 	void SetInputTransform(const char *filename);
 	void setPlatformCode(const int platformCodeIn) {
 		platformCode = platformCodeIn;
-		std::cout << "1. code: " << platformCode << std::endl;
 	}
 	mat44* GetInputTransform() {
 		return this->InputTransform;

@@ -123,6 +123,29 @@ add_executable(${EXEC} ${EXEC}.cpp)
 target_link_libraries(${EXEC} _reg_aladin)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
-
+if(USE_OPENCL)
+  set(EXEC reg_test_affine_deformation_field_cl)
+  add_executable(${EXEC} ${EXEC}.cpp)
+  target_link_libraries(${EXEC} _reg_aladin)
+  add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
+endif(USE_OPENCL)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+if(USE_CUDA)
+  set(EXEC reg_test_affine_deformation_field_cuda)
+  add_executable(${EXEC} ${EXEC}.cpp)
+  target_link_libraries(${EXEC} _reg_aladin)
+  add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
+endif(USE_CUDA)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+set(EXEC reg_test_interpolation_cl)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_aladin)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+set(EXEC reg_test_interpolation_cuda)
+add_executable(${EXEC} ${EXEC}.cpp)
+target_link_libraries(${EXEC} _reg_aladin)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------

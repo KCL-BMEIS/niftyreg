@@ -12,6 +12,14 @@
 project(NiftyReg)
 cmake_minimum_required(VERSION 2.8.0)
 
+
+
+set(SOURCE_PATH ${CMAKE_BINARY_DIR})
+
+configure_file( config.h.in ${CMAKE_BINARY_DIR}/config.h CONFIGURE IMMEDIATE)
+
+include_directories( ${CMAKE_BINARY_DIR} ) # Make sure it can be included...
+
 if("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^2\\.8\\.0$")
  mark_as_advanced(FORCE CMAKE_BACKWARDS_COMPATIBILITY)
 else("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^2\\.8\\.0$")

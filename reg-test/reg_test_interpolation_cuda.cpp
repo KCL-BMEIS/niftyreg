@@ -10,16 +10,16 @@
 
 #define EPS 0.000001
 
-float test(Context *con, const unsigned int interp) {
+void test(Context *con, const unsigned int interp) {
 
-	Platform *platform = new CudaPlatform();
+	Platform *cudaPlatform = new CudaPlatform();
 
-	Kernel* resamplingKernel = platform->createKernel(ResampleImageKernel::Name(), con);
+	Kernel* resamplingKernel = cudaPlatform->createKernel(ResampleImageKernel::Name(), con);
 
 	//run kernel
 	resamplingKernel->castTo<ResampleImageKernel>()->execute( interp, 0);
 	
-	delete platform;
+	delete cudaPlatform;
 }
 
 int main(int argc, char **argv)
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
    test_warped->data=(void *)malloc(test_warped->nvox*test_warped->nbyper);
 
    // Compute the non-linear deformation field
-   Context *con= new CudaContext(NULL, CurrentFloating, NULL, sizeof(float));
+   Context *con= new CudaContext(NULL, floatingImage, NULL, sizeof(float));
    con->setCurrentWarped(test_warped);
    con->setCurrentDeformationField(inputDeformationField);
    test(con, interpolation);

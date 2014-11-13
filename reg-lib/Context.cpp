@@ -2,18 +2,11 @@
 #include "kernels.h"
 #include "Platform.h"
 
-#include <iostream>
-
-#define CPUX 0
-#define OCLX 1
-#define CUDA 2
-
-
 using namespace std;
 
-Context::Context(){
+Context::Context() {
 	//std::cout << "context constructor (mock)" << std::endl;
-	int dim[8] = { 2, 20 , 20, 1, 1, 1, 1, 1 };
+	int dim[8] = { 2, 20, 20, 1, 1, 1, 1, 1 };
 
 	this->CurrentFloating = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
 	this->CurrentReference = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
@@ -21,13 +14,17 @@ Context::Context(){
 	this->bm = false;
 
 }
-Context::~Context(){
-	//std::cout << "Context Destructor called" << std::endl;
-	ClearWarpedImage();
-	ClearDeformationField();
+Context::~Context() {
+	std::cout << "Context Destructor called" << std::endl;
 
+	ClearWarpedImage();
+	std::cout << "1" << std::endl;
+
+	ClearDeformationField();
+	std::cout << "2" << std::endl;
 	if (this->bm)
-	delete blockMatchingParams;
+		delete blockMatchingParams;
+	std::cout << "3" << std::endl;
 }
 void Context::shout() {
 	//std::cout << "context listens" << std::endl;
@@ -37,119 +34,108 @@ void Context::shout() {
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
-Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t bytes, const unsigned int CurrentPercentageOfBlockToUse, const unsigned int InlierLts,int stepSize_block/*, bool symmetric*/) :CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn)
-{
+Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t bytes, const unsigned int CurrentPercentageOfBlockToUse, const unsigned int InlierLts, int stepSize_block/*, bool symmetric*/) :
+		CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn) {
 	//std::cout << "context constructor called" << std::endl;
 	blockMatchingParams = new _reg_blockMatchingParam();
-	this->AllocateWarpedImage(&this->CurrentWarped, this->CurrentReference, this->CurrentFloating,  bytes);
-	this->AllocateDeformationField(&this->CurrentDeformationField, this->CurrentReference, bytes);
+	this->AllocateWarpedImage();
+	this->AllocateDeformationField(bytes);
 	this->bm = true;
 	//std::cout << "typeConIn: " << CurrentReference->datatype << std::endl;
 	initialise_block_matching_method(CurrentReference, blockMatchingParams, CurrentPercentageOfBlockToUse, InlierLts, stepSize_block, CurrentReferenceMask, false);
-
-
-
-
-
 }
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
-Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t bytes) :CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn)
-{
+Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t bytes) :
+		CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn) {
+	std::cout << "context constructor called" << std::endl;
 	this->bm = false;
-	this->AllocateWarpedImage(&this->CurrentWarped, this->CurrentReference, this->CurrentFloating,  bytes);
-	this->AllocateDeformationField(&this->CurrentDeformationField, this->CurrentReference, bytes);
+	if (this->CurrentFloating != NULL && this->CurrentReference != NULL)
+		this->AllocateWarpedImage();
+	else
+		this->CurrentWarped = NULL;
+	if (this->CurrentReference != NULL)
+		this->AllocateDeformationField(bytes);
+	else
+		this->CurrentDeformationField = NULL;
+	std::cout << "context constructor done" << std::endl;
 }
 
-
-void Context::initVars(const unsigned int platformFlagIn){
+void Context::initVars(const unsigned int platformFlagIn) {
 
 }
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-void Context::AllocateWarpedImage(nifti_image** warpedIn, nifti_image* refIn, nifti_image* floatIn, size_t bytes)
-{
-	if (this->CurrentReference == NULL || this->CurrentFloating == NULL)
-	{
+void Context::AllocateWarpedImage() {
+	if (this->CurrentReference == NULL || this->CurrentFloating == NULL) {
 		fprintf(stderr, "[NiftyReg ERROR] reg_aladin::AllocateWarpedImage()\n");
-		fprintf(stderr, "[NiftyReg ERROR] Reference and FLoating images are not defined. Exit.\n");
+		fprintf(stderr, "[NiftyReg ERROR] Reference and this->CurrentFloatingg images are not defined. Exit.\n");
 		reg_exit(1);
 	}
 
-	(*warpedIn) = nifti_copy_nim_info(refIn);
-	(*warpedIn)->dim[0] = (*warpedIn)->ndim = floatIn->ndim;
-	(*warpedIn)->dim[4] = (*warpedIn)->nt = floatIn->nt;
-	(*warpedIn)->pixdim[4] = (*warpedIn)->dt = 1.0;
-	(*warpedIn)->nvox =
-		(size_t)(*warpedIn)->nx *
-		(size_t)(*warpedIn)->ny *
-		(size_t)(*warpedIn)->nz *
-		(size_t)(*warpedIn)->nt;
-	(*warpedIn)->datatype = floatIn->datatype;
-	(*warpedIn)->nbyper = floatIn->nbyper;
-	(*warpedIn)->data = (void *)calloc((*warpedIn)->nvox, (*warpedIn)->nbyper);
+	this->CurrentWarped = nifti_copy_nim_info(this->CurrentReference);
+	this->CurrentWarped->dim[0] = this->CurrentWarped->ndim = this->CurrentFloating->ndim;
+	this->CurrentWarped->dim[4] = this->CurrentWarped->nt = this->CurrentFloating->nt;
+	this->CurrentWarped->pixdim[4] = this->CurrentWarped->dt = 1.0;
+	this->CurrentWarped->nvox = (size_t) this->CurrentWarped->nx * (size_t) this->CurrentWarped->ny * (size_t) this->CurrentWarped->nz * (size_t) this->CurrentWarped->nt;
+	this->CurrentWarped->datatype = this->CurrentFloating->datatype;
+	this->CurrentWarped->nbyper = this->CurrentFloating->nbyper;
+	this->CurrentWarped->data = (void *) calloc(this->CurrentWarped->nvox, this->CurrentWarped->nbyper);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
-void Context::ClearWarpedImage()
-{
+void Context::ClearWarpedImage() {
 	if (this->CurrentWarped != NULL)
 		nifti_image_free(this->CurrentWarped);
 	this->CurrentWarped = NULL;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
-void Context::AllocateDeformationField(nifti_image** defFieldIn, nifti_image* refIn, size_t bytes)
-{
-	if (refIn == NULL)
-	{
+void Context::AllocateDeformationField(size_t bytes) {
+	if (this->CurrentReference == NULL) {
 		fprintf(stderr, "[NiftyReg ERROR] reg_aladin::AllocateDeformationField()\n");
 		fprintf(stderr, "[NiftyReg ERROR] Reference image is not defined. Exit.\n");
 		reg_exit(1);
 	}
 	//ClearDeformationField();
 
-	((*defFieldIn)) = nifti_copy_nim_info(refIn);
-	((*defFieldIn))->dim[0] = ((*defFieldIn))->ndim = 5;
-	((*defFieldIn))->dim[4] = ((*defFieldIn))->nt = 1;
-	((*defFieldIn))->pixdim[4] = (*defFieldIn)->dt = 1.0;
-	if (refIn->nz == 1)
-		((*defFieldIn))->dim[5] = (*defFieldIn)->nu = 2;
-	else ((*defFieldIn))->dim[5] = (*defFieldIn)->nu = 3;
-	((*defFieldIn))->pixdim[5] = (*defFieldIn)->du = 1.0;
-	((*defFieldIn))->dim[6] = (*defFieldIn)->nv = 1;
-	((*defFieldIn))->pixdim[6] = (*defFieldIn)->dv = 1.0;
-	((*defFieldIn))->dim[7] = (*defFieldIn)->nw = 1;
-	(*defFieldIn)->pixdim[7] = (*defFieldIn)->dw = 1.0;
-	(*defFieldIn)->nvox = (size_t)(*defFieldIn)->nx *
-		(size_t)(*defFieldIn)->ny *
-		(size_t)(*defFieldIn)->nz *
-		(size_t)(*defFieldIn)->nt *
-		(size_t)(*defFieldIn)->nu;
-	(*defFieldIn)->nbyper = bytes;
-	if (bytes == 4)
-		(*defFieldIn)->datatype = NIFTI_TYPE_FLOAT32;
-	else if (bytes == 8)
-		(*defFieldIn)->datatype = NIFTI_TYPE_FLOAT64;
+	this->CurrentDeformationField = nifti_copy_nim_info(this->CurrentReference);
+//	std::cout<<CurrentDeformationField->nvox<<std::endl;
+	this->CurrentDeformationField->dim[0] = this->CurrentDeformationField->ndim = 5;
+	this->CurrentDeformationField->dim[4] = this->CurrentDeformationField->nt = 1;
+	this->CurrentDeformationField->pixdim[4] = this->CurrentDeformationField->dt = 1.0;
+	if (this->CurrentReference->nz == 1)
+		this->CurrentDeformationField->dim[5] = this->CurrentDeformationField->nu = 2;
 	else
-	{
+		this->CurrentDeformationField->dim[5] = this->CurrentDeformationField->nu = 3;
+	this->CurrentDeformationField->pixdim[5] = this->CurrentDeformationField->du = 1.0;
+	this->CurrentDeformationField->dim[6] = this->CurrentDeformationField->nv = 1;
+	this->CurrentDeformationField->pixdim[6] = this->CurrentDeformationField->dv = 1.0;
+	this->CurrentDeformationField->dim[7] = this->CurrentDeformationField->nw = 1;
+	this->CurrentDeformationField->pixdim[7] = this->CurrentDeformationField->dw = 1.0;
+	this->CurrentDeformationField->nvox = (size_t) this->CurrentDeformationField->nx * (size_t) this->CurrentDeformationField->ny * (size_t) this->CurrentDeformationField->nz * (size_t) this->CurrentDeformationField->nt * (size_t) this->CurrentDeformationField->nu;
+//	std::cout<<CurrentDeformationField->nvox<<std::endl;
+	this->CurrentDeformationField->nbyper = bytes;
+	if (bytes == 4)
+		this->CurrentDeformationField->datatype = NIFTI_TYPE_FLOAT32;
+	else if (bytes == 8)
+		this->CurrentDeformationField->datatype = NIFTI_TYPE_FLOAT64;
+	else {
 		fprintf(stderr, "[NiftyReg ERROR] reg_aladin::AllocateDeformationField()\n");
 		fprintf(stderr, "[NiftyReg ERROR] Only float or double are expected for the deformation field. Exit.\n");
 		reg_exit(1);
 	}
-	(*defFieldIn)->scl_slope = 1.f;
-	(*defFieldIn)->scl_inter = 0.f;
-	(*defFieldIn)->data = (void *)calloc((*defFieldIn)->nvox, (*defFieldIn)->nbyper);
+	this->CurrentDeformationField->scl_slope = 1.f;
+	this->CurrentDeformationField->scl_inter = 0.f;
+	this->CurrentDeformationField->data = (void *) calloc(this->CurrentDeformationField->nvox, this->CurrentDeformationField->nbyper);
+
 	return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-void Context::ClearDeformationField()
-{
+void Context::ClearDeformationField() {
 	if (this->CurrentDeformationField != NULL)
 		nifti_image_free(this->CurrentDeformationField);
 	this->CurrentDeformationField = NULL;
 }
-
-
 

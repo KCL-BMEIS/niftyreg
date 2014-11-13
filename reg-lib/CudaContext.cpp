@@ -9,12 +9,11 @@ CudaContext::~CudaContext(){
 
 void CudaContext::allocateCuPtrs(){
 	//cudaDeviceReset();
-	cudaCommon_allocateArrayToDevice<int>(&mask_d, referenceDims);
-	std::cout<<"Allocating: "<<nVoxels<<std::endl;
-	cudaCommon_allocateArrayToDevice<float>(&referenceImageArray_d, referenceDims);
-	cudaCommon_allocateArrayToDevice<float>(&warpedImageArray_d, referenceDims);
-	cudaCommon_allocateArrayToDevice<float>(&deformationFieldArray_d, CurrentDeformationField->nvox);
-	cudaCommon_allocateArrayToDevice<float>(&floatingImageArray_d, floatingDims);
+	cudaCommon_allocateArrayToDevice<int>(&mask_d, referenceVoxels);
+	cudaCommon_allocateArrayToDevice<float>(&referenceImageArray_d, referenceVoxels);
+	cudaCommon_allocateArrayToDevice<float>(&warpedImageArray_d, referenceVoxels);
+	cudaCommon_allocateArrayToDevice<float>(&deformationFieldArray_d, referenceVoxels);
+	cudaCommon_allocateArrayToDevice<float>(&floatingImageArray_d, floatingVoxels);
 	
 	if (bm){
 		cudaCommon_allocateArrayToDevice<float>(&targetPosition_d, blockMatchingParams->activeBlockNumber * 3);
@@ -27,21 +26,10 @@ void CudaContext::allocateCuPtrs(){
 
 void CudaContext::initVars(){
 
-	nifti_image* reference = getCurrentReference();
-	referenceDims[1] = reference->nx;
-	referenceDims[2] = reference->ny;
-	referenceDims[3] = reference->nz;
-
-	nVoxels = referenceDims[3] * referenceDims[1] * referenceDims[2];
-	//std::cout << "sze1: " << nVoxels << std::endl;
-
-	nifti_image* floating = getCurrentFloating();
-	floatingDims[1] = floating->nx;
-	floatingDims[2] = floating->ny;
-	floatingDims[3] = floating->nz;
-
-	if (bm) numBlocks = blockMatchingParams->blockNumber[0] * blockMatchingParams->blockNumber[1] * blockMatchingParams->blockNumber[2];
-
+	referenceVoxels = (this->CurrentReference!= NULL)?this->CurrentReference->nvox:0;
+	floatingVoxels = (this->CurrentFloating!= NULL)?this->CurrentFloating->nvox:0;
+	numBlocks = (bm)?blockMatchingParams->blockNumber[0] * blockMatchingParams->blockNumber[1] * blockMatchingParams->blockNumber[2]:0;
+	std::cout<<referenceVoxels<<": "<<floatingVoxels<<":"<<numBlocks<<std::endl;
 }
 
 nifti_image* CudaContext::getCurrentWarped(){
@@ -70,8 +58,6 @@ void CudaContext::setTransformationMatrix(mat44* transformationMatrixIn){
 void CudaContext::setCurrentDeformationField(nifti_image* CurrentDeformationFieldIn){
 
 	Context::setCurrentDeformationField(CurrentDeformationFieldIn);
-	//cudaFree(deformationFieldArray_d);
-	//cudaCommon_allocateArrayToDevice<float>(&deformationFieldArray_d, CurrentDeformationFieldIn->nvox);
 	cudaCommon_transferFromDeviceToNiftiSimple<float>(&deformationFieldArray_d, Context::getCurrentDeformationField());
 }
 
@@ -84,19 +70,19 @@ void CudaContext::downloadFromCudaContext(){
 void CudaContext::setCurrentWarped(nifti_image* currentWarped){
 
 	Context::setCurrentWarped(currentWarped);
-	/*cudaFree(warpedImageArray_d);
-	cudaCommon_allocateArrayToDevice<float>(&warpedImageArray_d, currentWarped->nvox);*/
 	cudaCommon_transferFromDeviceToNiftiSimple<float>(&warpedImageArray_d, Context::getCurrentWarped());
 }
 void CudaContext::uploadContext(){
 
+	nifti_image* def = Context::getCurrentDeformationField();
+	 std::cout<<"refs: "<<this->CurrentReference->nvox<<":"<<referenceVoxels<<":"<<this->CurrentDeformationField->nvox<<": "<<def->nvox<<std::endl;
+	 if(this->CurrentDeformationField!= NULL) cudaCommon_transferFromDeviceToNiftiSimple<float>(&deformationFieldArray_d, this->CurrentDeformationField); std::cout<<"1"<<std::endl;
+	if(this->CurrentReferenceMask != NULL) cudaCommon_transferFromDeviceToNiftiSimple1<int>(&mask_d, this->CurrentReferenceMask, referenceVoxels); std::cout<<"2"<<std::endl;
+	if(this->CurrentReference != NULL)cudaCommon_transferFromDeviceToNiftiSimple<float>(&referenceImageArray_d, this->CurrentReference); std::cout<<"3"<<std::endl;
+	if(this->CurrentWarped != NULL) cudaCommon_transferFromDeviceToNiftiSimple<float>(&warpedImageArray_d, getCurrentWarped()); std::cout<<"4"<<std::endl;
 
-	cudaCommon_transferFromDeviceToNiftiSimple1<int>(&mask_d, getCurrentReferenceMask(), nVoxels);
-	cudaCommon_transferFromDeviceToNiftiSimple<float>(&referenceImageArray_d, getCurrentReference());
-	cudaCommon_transferFromDeviceToNiftiSimple<float>(&warpedImageArray_d, getCurrentWarped());
-	cudaCommon_transferFromDeviceToNiftiSimple<float>(&deformationFieldArray_d, getCurrentDeformationField());
-	cudaCommon_transferFromDeviceToNiftiSimple<float>(&floatingImageArray_d, getCurrentFloating());
-
+	if(this->CurrentFloating!= NULL) cudaCommon_transferFromDeviceToNiftiSimple<float>(&floatingImageArray_d, getCurrentFloating()); std::cout<<"1"<<std::endl;
+	 std::cout<<"1"<<std::endl;
 	if (bm){
 		cudaCommon_transferFromDeviceToNiftiSimple1<float>(&targetPosition_d, blockMatchingParams->targetPosition, blockMatchingParams->activeBlockNumber * 3);
 		cudaCommon_transferFromDeviceToNiftiSimple1<float>(&resultPosition_d, blockMatchingParams->resultPosition, blockMatchingParams->activeBlockNumber * 3);
@@ -107,12 +93,12 @@ void CudaContext::uploadContext(){
 }
 void CudaContext::freeCuPtrs(){
 
-	cudaCommon_free<float>(&referenceImageArray_d);
-	cudaCommon_free<float>(&floatingImageArray_d);
-	cudaCommon_free<float>(&warpedImageArray_d);
-	cudaCommon_free<float>(&deformationFieldArray_d);
+	if(this->CurrentReference != NULL) cudaCommon_free<float>(&referenceImageArray_d);
+	if(this->CurrentFloating!= NULL) cudaCommon_free<float>(&floatingImageArray_d);
+	if(this->CurrentWarped != NULL) cudaCommon_free<float>(&warpedImageArray_d);
+	if(this->CurrentDeformationField!= NULL) cudaCommon_free<float>(&deformationFieldArray_d);
 
-	cudaCommon_free<int>(&mask_d);
+	if(this->CurrentReferenceMask != NULL)  cudaCommon_free<int>(&mask_d);
 	if (bm){
 		cudaCommon_free<int>(&activeBlock_d);
 		cudaCommon_free<float>(&targetPosition_d);

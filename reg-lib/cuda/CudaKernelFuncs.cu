@@ -85,7 +85,7 @@ __device__ __inline__ void getPosition(float* position, float* matrix, float* vo
 }
 
 __device__ __inline__ double getPosition( float* matrix, double* voxel, const unsigned int idx) {
-//	if ( voxel[0] == 74.0f && voxel[1] == 0.0f && voxel[2]==0.0f && idx ==0) printf("(%f-%f-%f) (%f-%f-%f-%f)\n",voxel[0],voxel[1], voxel[2], matrix[idx * 4 + 0], matrix[idx * 4 + 1], matrix[idx * 4 + 2], matrix[idx * 4 + 3]);
+//	if ( voxel[0] == 126.0f && voxel[1] == 90.0f && voxel[2]==59.0f ) printf("(%d): (%f-%f-%f-%f)\n",idx, matrix[idx * 4 + 0], matrix[idx * 4 + 1], matrix[idx * 4 + 2], matrix[idx * 4 + 3]);
 	return
 		(double)matrix[idx * 4 + 0] * voxel[0] +
 		(double)matrix[idx * 4 + 1] * voxel[1] +
@@ -401,10 +401,17 @@ __global__ void affineKernel(float* transformationMatrix, float* defField, int* 
 		voxel[2] = composition ? deformationFieldPtrZ[index] : (double)z;
 
 		/* the deformation field (real coordinates) is stored */
-//		if (index == 165 ) printf("x: %f | val: %f\n",voxel[0], getPosition( transformationMatrix, voxel, 0));
+
+
+//		if (index == 978302 ) printf("%d-%d-%d\n",x, y, z);
+
 		deformationFieldPtrX[index] = getPosition( transformationMatrix, voxel, 0);
 		deformationFieldPtrY[index] = getPosition( transformationMatrix, voxel, 1);
 		deformationFieldPtrZ[index] = getPosition( transformationMatrix, voxel, 2);
+
+//		if (index == 978302 ) printf("x: %f | val: %f\n",voxel[0], deformationFieldPtrX[index]);
+//		if (index == 978302 ) printf("y: %f | val: %f\n",voxel[1], deformationFieldPtrY[index]);
+//		if (index == 978302 ) printf("z: %f | val: %f\n",voxel[2], deformationFieldPtrZ[index]);
 
 	}
 }
@@ -866,7 +873,7 @@ void runKernel2(nifti_image *floatingImage, nifti_image *warpedImage, int *mask,
 	// The floating image data is copied in case one deal with DTI
 	void *originalFloatingData = NULL;
 	// The DTI are logged
-	reg_dti_resampling_preprocessing<float>(floatingImage, &originalFloatingData, dtiIndeces);//need to either write it in cuda or do the transfers
+	//reg_dti_resampling_preprocessing<float>(floatingImage, &originalFloatingData, dtiIndeces);//need to either write it in cuda or do the transfers
 	//reg_dti_resampling_preprocessing<float> << <mygrid, myblocks >> >(floatingImage_d, dtiIndeces, fi_xyz);
 
 	if (interp == 1)
@@ -887,7 +894,7 @@ void runKernel2(nifti_image *floatingImage, nifti_image *warpedImage, int *mask,
 	}
 	// The interpolated tensors are reoriented and exponentiated
 	//reg_dti_resampling_postprocessing<float> << <mygrid, myblocks >> >(warpedImage_d, NULL, mask_d, jacMat_d, dtiIndeces_d, fi_xyz, wi_tu);
-	reg_dti_resampling_postprocessing<float>(warpedImage, mask, jacMat, dtiIndeces);//need to either write it in cuda or do the transfers
+	//reg_dti_resampling_postprocessing<float>(warpedImage, mask, jacMat, dtiIndeces);//need to either write it in cuda or do the transfers
 
 	cudaFree(sourceIJKMatrix_d);
 	cudaFree(jacMat_d);

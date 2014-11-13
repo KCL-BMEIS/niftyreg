@@ -34,10 +34,10 @@ public:
 	//Platform* platform;
 
 	/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-	void AllocateWarpedImage(nifti_image** warpedIn, nifti_image* refIn, nifti_image* floatIn, size_t bytes);
+	void AllocateWarpedImage();
 	void ClearWarpedImage();
 	/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-	void AllocateDeformationField(nifti_image** defFieldIn, nifti_image* refIn, size_t bytes);
+	void AllocateDeformationField( size_t bytes);
 	void ClearDeformationField();
 	void initVars(const unsigned int platformFlagIn);
 
@@ -46,6 +46,7 @@ public:
 	int* CurrentReferenceMask;
 	bool bm;
 	bool symmetric;
+	unsigned int floatingVoxels, referenceVoxels;
 
 	mat44* transformationMatrix;
 	_reg_blockMatchingParam* blockMatchingParams;
@@ -97,13 +98,6 @@ public:
 	//private:
 	nifti_image* CurrentDeformationField;
 	nifti_image* CurrentWarped;
-
-//	nifti_image* CurrentBackwardsDeformationField;
-//	nifti_image* CurrentBackwardsWarped;
-
-
-
-
 
 };
 

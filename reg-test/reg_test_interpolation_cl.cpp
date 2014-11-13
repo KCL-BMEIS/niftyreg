@@ -9,7 +9,7 @@
 
 #define EPS 0.000001
 
-float test(Context *con, const unsigned int interp) {
+void test(Context *con, const unsigned int interp) {
 
 	Platform *platform = new CLPlatform();
 
@@ -17,7 +17,7 @@ float test(Context *con, const unsigned int interp) {
 
 	//run kernel
 	resamplingKernel->castTo<ResampleImageKernel>()->execute( interp, 0);
-	
+
 	delete platform;
 }
 
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
    test_warped->data=(void *)malloc(test_warped->nvox*test_warped->nbyper);
 
    // Compute the non-linear deformation field
-   Context *con= new CLContext(NULL, CurrentFloating, NULL, sizeof(float));
+   Context *con= new ClContext(NULL, floatingImage, NULL, sizeof(float));
    con->setCurrentWarped(test_warped);
    con->setCurrentDeformationField(inputDeformationField);
    test(con, interpolation);
@@ -84,8 +84,9 @@ int main(int argc, char **argv)
 
    nifti_image_free(floatingImage);
    nifti_image_free(warpedImage);
-   nifti_image_free(inputDeformationField);
-   nifti_image_free(test_warped);
+//   nifti_image_free(inputDeformationField); they are freed at ~con
+//   nifti_image_free(test_warped); they are freed at ~con
+   delete con;
 
    if(max_difference>EPS){
       fprintf(stderr, "reg_test_interpolation error too large: %g (>%g)\n",

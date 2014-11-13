@@ -12,7 +12,6 @@
 
 #include "_reg_blockMatching_gpu.h"
 #include "_reg_blockMatching_kernels.cu"
-#include <fstream>
 
 #include "_reg_blocksize_gpu.h"
 #include "_reg_ReadWriteImage.h"
@@ -22,7 +21,6 @@
 
 
 void block_matching_method_gpu3(nifti_image *targetImage, _reg_blockMatchingParam *params, float **targetImageArray_d, float **resultImageArray_d, float **targetPosition_d, float **resultPosition_d, int **activeBlock_d, int **mask_d) {
-
 
 	// Copy some required parameters over to the device
 	int3 bDim = make_int3(params->blockNumber[0], params->blockNumber[1], params->blockNumber[2]);
@@ -57,7 +55,7 @@ void block_matching_method_gpu3(nifti_image *targetImage, _reg_blockMatchingPara
 	const uint3 blockSize = make_uint3(4, 4, 4);
 
 
-	resultsKernel2pp21 << <BlocksGrid3D, BlockDims1D >> >(*resultPosition_d, *targetPosition_d, *mask_d, targetMat_d, blockSize, definedBlock_d);
+	blockMatchingKernel << <BlocksGrid3D, BlockDims1D >> >(*resultPosition_d, *targetPosition_d, *mask_d, targetMat_d, blockSize, definedBlock_d);
 	//NR_CUDA_CHECK_KERNEL(BlocksGrid3D, BlockDims1D)
 
 	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());

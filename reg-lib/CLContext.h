@@ -1,69 +1,80 @@
-#pragma once
-#include "Context.h"
+#ifndef CLCONTEXT_H_
+#define CLCONTEXT_H_
 
-class ClContext : public Context
-{
+#include "Context.h"
+#include "CLContextSingletton.h"
+
+#ifdef __APPLE__
+#include <OpenCL/cl.h>
+#else
+#include <CL/cl.h>
+#endif
+
+class ClContext: public Context {
 
 public:
-	ClContext(){
+	ClContext() {
 		//std::cout << "Cl context constructor called(empty)" << std::endl;
-
+		sContext = &CLContextSingletton::Instance();
 		initVars();
 		allocateClPtrs();
-		uploadContext();
 	}
-	ClContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int  inlierLts, int blockStep) :Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte, blockPercentage, inlierLts, blockStep){
+	ClContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep) :
+			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte, blockPercentage, inlierLts, blockStep) {
 		//std::cout << "Cl context constructor called: " <<bm<< std::endl;
+		sContext = &CLContextSingletton::Instance();
+
 		initVars();
 		allocateClPtrs();
-		uploadContext();
-
 
 	}
-	ClContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte) :Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte){
-		//std::cout << "Cl (small) context constructor called3" << std::endl;
-
+	ClContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte) :
+			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte) {
+//		std::cout << "Cl (small) context constructor called3" << std::endl;
+		sContext = &CLContextSingletton::Instance();
 		initVars();
 		allocateClPtrs();
-		uploadContext();
+
 	}
 	~ClContext();
 
+	CLContextSingletton *sContext;
+	cl_context clContext;
+	cl_int errNum;
+	cl_command_queue commandQueue;
 
-	float* getReferenceImageArray_d(){
-		return referenceImageArray_d;
+	cl_mem getReferenceImageArray_d() {
+		return referenceImageClmem;
 	}
-	float* getFloatingImageArray_d(){
-		return floatingImageArray_d;
+	cl_mem getFloatingImageArray_d() {
+		return floatingImageClmem;
 	}
-	float* getWarpedImageArray_d(){
-		return warpedImageArray_d;
+	cl_mem getWarpedImageArray_d() {
+		return warpedImageClmem;
 	}
 
-	float* getTargetPosition_d(){
+	cl_mem getTargetPosition_d() {
 		return targetPosition_d;
 	}
-	float* getResultPosition_d(){
+	cl_mem getResultPosition_d() {
 		return resultPosition_d;
 	}
-	float* getDeformationFieldArray_d(){
-		return deformationFieldArray_d;
+	cl_mem getDeformationFieldArray_d() {
+		return deformationFieldClmem;
 	}
-	int* getActiveBlock_d(){
+	cl_mem getActiveBlock_d() {
 		return activeBlock_d;
 	}
-	int* getMask_d(){
+	cl_mem getMask_d() {
 		return mask_d;
 	}
 
-
-	int* getReferenceDims(){
+	int* getReferenceDims() {
 		return referenceDims;
 	}
-	int* getFloatingDims(){
+	int* getFloatingDims() {
 		return floatingDims;
 	}
-
 
 	void downloadFromClContext();
 
@@ -71,33 +82,50 @@ public:
 	nifti_image* getCurrentDeformationField();
 	nifti_image* getCurrentWarped();
 
-
-
 	void setTransformationMatrix(mat44* transformationMatrixIn);
 	void setCurrentWarped(nifti_image* warpedImageIn);
 	void setCurrentDeformationField(nifti_image* CurrentDeformationFieldIn);
+	void checkErrNum(cl_int errNum, std::string message);
 
 private:
 	void initVars();
-
 
 	void uploadContext();
 	void allocateClPtrs();
 	void freeClPtrs();
 
-
 	unsigned int numBlocks;
 
-	float *referenceImageArray_d;
-	float *floatingImageArray_d;
-	float *warpedImageArray_d;
-	float *deformationFieldArray_d;
-	float *targetPosition_d;
-	float *resultPosition_d;
-	int *activeBlock_d, *mask_d;
+	cl_mem referenceImageClmem;
+	cl_mem floatingImageClmem;
+	cl_mem warpedImageClmem;
+	cl_mem deformationFieldClmem;
+	cl_mem targetPosition_d;
+	cl_mem resultPosition_d;
+	cl_mem activeBlock_d, mask_d;
+
+	float* referenceBuffer;
+	float* floatingBuffer;
+
+	float* warpedBuffer;
+	float* deformationFieldBuffer;
 
 	int referenceDims[4];
 	int floatingDims[4];
 
 	unsigned int nVoxels;
+
+	template<class T>
+	void fillBuffer(float** buffer, T* array, size_t size, cl_mem* memoryObject, cl_mem_flags flag, bool keep, std::string message);
+
+	void uploadImage(float** buffer, nifti_image* image, cl_mem* memoryObject, cl_mem_flags flag, bool keep, std::string message);
+	void downloadImage(float* buffer, nifti_image* image, cl_mem memoryObject, cl_mem_flags flag,  std::string message);
+
+
+	void fillBuffers();
+
+	template<class T>
+	void fillImageData(float* buffer, T* array, size_t size, cl_mem memoryObject, cl_mem_flags flag,  std::string message);
 };
+
+#endif //CLCONTEXT_H_

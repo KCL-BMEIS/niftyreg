@@ -6,8 +6,15 @@
 #include "CudaPlatform.h"
 #include "kernels.h"
 
+#include "_reg_ReadWriteImage.h"
+#include "config.h"
+
+
 #ifndef _REG_ALADIN_CPP
 #define _REG_ALADIN_CPP
+
+
+
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T> reg_aladin<T>::reg_aladin()
 {
@@ -32,9 +39,7 @@ template <class T> reg_aladin<T>::reg_aladin()
 
 	this->Verbose = true;
 
-
 	this->MaxIterations = 5;
-
 
 	this->deformationFieldImage=NULL;
 	this->TransformationMatrix=new mat44;
@@ -67,6 +72,9 @@ template <class T> reg_aladin<T>::reg_aladin()
 
 	this->funcProgressCallback=NULL;
 	this->paramsProgressCallback=NULL;
+
+
+
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T> reg_aladin<T>::~reg_aladin()
@@ -96,6 +104,22 @@ template <class T> reg_aladin<T>::~reg_aladin()
 	free(activeVoxelNumber);
 	/*this->ClearWarpedImage();
 	 this->ClearDeformationField();*/
+}
+template <class T>
+void reg_aladin<T>::mockBmParams() {
+
+	nifti_image *mockRef = con->getCurrentReference();
+	nifti_image *mockFlo = con->getCurrentFloating();
+	nifti_image *mockWrpd = con->getCurrentWarped();
+
+	char* mockRefName=(char *)"mockRef.nii";
+	char* mockFloName=(char *)"mockFlo.nii";
+	char* mockWrpdName=(char *)"mockWrpd.nii";
+
+	reg_io_WriteImageFile(mockRef,mockRefName);
+	reg_io_WriteImageFile(mockFlo,mockFloName);
+	reg_io_WriteImageFile(mockWrpd,mockWrpdName);
+
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -383,7 +407,7 @@ void reg_aladin<T>::ClearCurrentInputImage()
 	this->CurrentFloating=NULL;
 	this->CurrentReferenceMask=NULL;
 	/*this->ClearWarpedImage();
-	this->ClearDeformationField();*/
+	 this->ClearDeformationField();*/
 }
 template <class T>
 void reg_aladin<T>::createKernels() {
@@ -431,9 +455,9 @@ void reg_aladin<T>::UpdateTransformationMatrix(int type)
 {
 
 	blockMatchingKernel->castTo<BlockMatchingKernel>()->execute(); //watch the trans matrix!!!!!!
-	//reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] pre matrix");
+//	reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] pre matrix");
 	optimiseKernel->castTo<OptimiseKernel>()->execute(type);
-	//reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] after matrix");
+//	reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] after matrix");
 
 #ifndef NDEBUG
 	reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] updated matrix");
@@ -446,12 +470,9 @@ void reg_aladin<T>::clearContext() {
 template <class T>
 void reg_aladin<T>::initContext() {
 
-	if (platformCode == 0)
-	this->con = new Context(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts, this->BlockStepSize);
-	else if (platformCode == 1)
-	this->con = new CudaContext(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts, this->BlockStepSize);
-	else
-	this->con = new ClContext(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts, this->BlockStepSize);
+	if (platformCode == 0) this->con = new Context(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts, this->BlockStepSize);
+	else if (platformCode == 1) this->con = new CudaContext(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(float), this->BlockPercentage, InlierLts, this->BlockStepSize);
+	else this->con = new ClContext(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(float), this->BlockPercentage, InlierLts, this->BlockStepSize);
 
 	this->CurrentReference = con->getCurrentReference();
 	this->CurrentFloating = con->getCurrentFloating();
@@ -523,6 +544,7 @@ void reg_aladin<T>::Run()
 
 				this->GetWarpedImage(this->Interpolation);
 				this->UpdateTransformationMatrix(RIGID);
+
 				if (funcProgressCallback && paramsProgressCallback)
 				{
 					(*funcProgressCallback)(100.0f * (float)iProgressStep / (float)nProgressSteps, paramsProgressCallback);

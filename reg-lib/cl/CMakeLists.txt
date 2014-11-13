@@ -22,5 +22,6 @@ IF (USE_OPENCL)
 			ARCHIVE DESTINATION lib
 		)
 		install(FILES  CLPlatform.h CLKernelFactory.h CLKernels.h CLContextSingletton.h DESTINATION include)
+		install(FILES  resampleKernel.cl affineDeformationKernel.cl blockMatchingKernel.cl  DESTINATION include/cl)
 	ENDIF()
 ENDIF()

@@ -8,11 +8,16 @@
  * See the LICENSE.txt file in the nifty_reg root folder
  *
  */
+
 #include "_reg_blockMatching.h"
 #include "_reg_globalTransformation.h"
 #include <map>
 #include <iostream>
 #include <limits>
+
+
+
+
 /* *************************************************************** */
 /* *************************************************************** */
 // Helper function: Get the square of the Euclidean distance
@@ -509,6 +514,7 @@ targetMean, targetVar, resultMean, resultVar, voxelNumber,localCC)
 			targetIndex_start_y = j * BLOCK_WIDTH;
 			targetIndex_end_y = targetIndex_start_y + BLOCK_WIDTH;
 			for (i = 0; i < params->blockNumber[0]; i++) {
+				bool b2_13_10 = i==2&&j==13&&k==10;
 				targetIndex_start_x = i * BLOCK_WIDTH;
 				targetIndex_end_x = targetIndex_start_x + BLOCK_WIDTH;
 				if (params->activeBlock[blockIndex] > -1) {
@@ -565,6 +571,14 @@ targetMean, targetVar, resultMean, resultVar, voxelNumber,localCC)
 									+ BLOCK_WIDTH;
 							for (l = -OVERLAP_SIZE; l <= OVERLAP_SIZE; l +=
 									params->stepSize) {
+
+								bool nIs_1_0_m3 = l == 1  && m == 0  && n == -3 ;
+									bool nIs_1_0_m2 = l == 1  && m == 0  && n == -2 ;
+
+										bool condition1 = b2_13_10  && nIs_1_0_m3 ;
+										bool condition2 = b2_13_10  && nIs_1_0_m2;
+
+
 								resultIndex_start_x = targetIndex_start_x + l;
 								resultIndex_end_x = resultIndex_start_x
 										+ BLOCK_WIDTH;
@@ -574,6 +588,10 @@ targetMean, targetVar, resultMean, resultVar, voxelNumber,localCC)
 								for (z = resultIndex_start_z;
 										z < resultIndex_end_z; z++) {
 									if (-1 < z && z < result->nz) {
+
+
+
+
 										index = z * result->nx * result->ny;
 										resultPtr_Z = &resultPtr[index];
 										int *maskPtr_Z = &mask[index];
@@ -615,6 +633,7 @@ targetMean, targetVar, resultMean, resultVar, voxelNumber,localCC)
 								targetMean = 0.0;
 								resultMean = 0.0;
 								voxelNumber = 0.0;
+								float sumTargetResult =0.0f;
 								for (int a = 0; a < BLOCK_SIZE; a++) {
 									if (targetOverlap[tid][a]
 											&& resultOverlap[tid][a]) {
@@ -642,14 +661,15 @@ targetMean, targetVar, resultMean, resultVar, voxelNumber,localCC)
 													* (resultTemp);
 											localCC += (targetTemp)
 													* (resultTemp);
+											sumTargetResult += targetVar* resultVar;
 										}
 									}
-									localCC =
-											fabs(
-													localCC
-															/ sqrt(
-																	targetVar
-																			* resultVar));
+
+									localCC = fabs(localCC/ sqrt(targetVar* resultVar));
+
+									/*if (condition1) printf("CPU -3 | sze: %f | TMN: %f | TVR: %f | RMN: %f |RVR %f | STR: %f | LCC: %f\n", voxelNumber, targetMean, targetVar, resultMean, resultVar, sumTargetResult, localCC);
+									if (condition2) printf("CPU -2 | sze: %f | TMN: %f | TVR: %f | RMN: %f |RVR %f | STR: %f | LCC: %f\n", voxelNumber, targetMean, targetVar, resultMean, resultVar, sumTargetResult, localCC);
+*/
 									if (localCC > bestCC) {
 										bestCC = localCC;
 										bestDisplacement[0] = (float) l;
@@ -661,6 +681,8 @@ targetMean, targetVar, resultMean, resultVar, voxelNumber,localCC)
 						}
 					}
 					if (bestDisplacement[0] == bestDisplacement[0]) {
+//						if (b2_13_10) printf("disp: %f-%f-%f\n", bestDisplacement[0],bestDisplacement[1], bestDisplacement[2]);
+
 						targetPosition_temp[0] = (float) (i * BLOCK_WIDTH);
 						targetPosition_temp[1] = (float) (j * BLOCK_WIDTH);
 						targetPosition_temp[2] = (float) (k * BLOCK_WIDTH);
@@ -678,6 +700,11 @@ targetMean, targetVar, resultMean, resultVar, voxelNumber,localCC)
 						temp_result_position[z] = tempPosition[0];
 						temp_result_position[z + 1] = tempPosition[1];
 						temp_result_position[z + 2] = tempPosition[2];
+
+//						if (j==13 && k==10)
+//							if (i>=2 || i<=10 ){
+//								printf("i: %d | %f-%f-%f \n", i, tempPosition[0], tempPosition[1], tempPosition[2]);
+//							}
 					}
 				}
 				blockIndex++;
@@ -689,6 +716,8 @@ targetMean, targetVar, resultMean, resultVar, voxelNumber,localCC)
 	j = 0;
 	for (i = 0; i < 3 * params->activeBlockNumber; i += 3) {
 		if (temp_target_position[i] == temp_target_position[i]) {
+
+//			if(params->definedActiveBlock == 1671) printf("I: %d\n", i/3);//1756
 			params->targetPosition[j] = temp_target_position[i];
 			params->targetPosition[j + 1] = temp_target_position[i + 1];
 			params->targetPosition[j + 2] = temp_target_position[i + 2];

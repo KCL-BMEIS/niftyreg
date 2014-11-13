@@ -11,12 +11,12 @@
 #include "CudaContext.h"
 #include <ctime>
 
-#define REF "input_CurrentReference_BlockMatchingKernel2.nii"
-#define FLO "input_CurrentFloating_BlockMatchingKernel2.nii"
-#define WRP "input_CurrentWarped_BlockMatchingKernel2.nii"
+#define REF "/home/thanasis/Documents/mockRef.nii"
+#define FLO "/home/thanasis/Documents/mockFlo.nii"
+#define WRP "/home/thanasis/Documents/mockWrpd.nii"
 
-#define RES "mock_bm_result2.nii"
-#define TAR "mock_bm_target2.nii"
+#define RES "/home/thanasis/Documents/mockRes.nii"
+#define TAR "/home/thanasis/Documents/mockTar.nii"
 
 
 #define BMV_PNT 50
@@ -57,10 +57,11 @@ void mockParams(Platform* platform, const unsigned int blocksPercentage, const u
 	//init ref params
 	nifti_image* reference = reg_io_ReadImageFile(REF);
 	nifti_image* floating = reg_io_ReadImageFile(FLO);
-	reg_tools_changeDatatype<float>(reference);
-	reg_tools_changeDatatype<float>(floating);
 	nifti_image* warped = reg_io_ReadImageFile(WRP);
 	int* mask = (int *)calloc(reference->nx*reference->ny*reference->nz, sizeof(int));
+
+	reg_tools_changeDatatype<float>(reference);
+	reg_tools_changeDatatype<float>(floating);
 
 	Context *con = new Context(reference, floating, mask, sizeof(float), blocksPercentage, inliers, 1);//temp
 	con->setCurrentWarped(warped);
@@ -70,13 +71,14 @@ void mockParams(Platform* platform, const unsigned int blocksPercentage, const u
 	_reg_blockMatchingParam* refParams = con->getBlockMatchingParams();
 
 	//not the ideal copy, but should do the job!
-	const int dim[8] = { 3, refParams->blockNumber[0], refParams->blockNumber[1], refParams->blockNumber[2], 1, 1, 1, 1 };
+	const int dim[8] = { 3, refParams->blockNumber[0]*2, refParams->blockNumber[1]*2, refParams->blockNumber[2]*2, 1, 1, 1, 1 };
 	nifti_image* result = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
 	nifti_image* target = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
 	std::cout << "4 " << refParams->blockNumber[0]* refParams->blockNumber[1]* refParams->blockNumber[2]<< std::endl;
 	float* tempTarget = static_cast<float*>(target->data);
 	float* tempResult = static_cast<float*>(result->data);
 
+	std::cout<<refParams->activeBlockNumber * 3<<" - "<<refParams->blockNumber[0] * refParams->blockNumber[1] * refParams->blockNumber[2]<<std::endl;
 	for (size_t i = 0; i < refParams->activeBlockNumber * 3; i++)
 	{
 		tempTarget[i] = refParams->targetPosition[i];
@@ -229,7 +231,7 @@ void test(Platform* platform, const char* msg,  const unsigned int blocksPercent
 				resultSum[1] = abs(outResultPt[1] - refResultPt[1]);
 				resultSum[2] = abs(outResultPt[2] - refResultPt[2]);
 				if (resultSum[0] >0 || resultSum[1] > 0 || resultSum[2]>0)
-					printf("i: %d | j: %d | (dif: %f-%f-%f) | (out: %f, %f, %f) | (ref: %f, %f, %f)", i, j, resultSum[0], resultSum[1], resultSum[2], outResultPt[0], outResultPt[1], outResultPt[2], refResultPt[0], refResultPt[1], refResultPt[2]);
+					printf("i: %d | j: %d | (dif: %f-%f-%f) | (out: %f, %f, %f) | (ref: %f, %f, %f)\n", i, j, resultSum[0], resultSum[1], resultSum[2], outResultPt[0], outResultPt[1], outResultPt[2], refResultPt[0], refResultPt[1], refResultPt[2]);
 			}
 		}
 
@@ -268,12 +270,14 @@ int main(int argc, char **argv) {
 	Platform *cudaPlatform = new CudaPlatform();
 	Platform *clPlatform = new CLPlatform();
 
-	mockParams(cpuPlatform, BMV_PNT, INLIERS);
+//	mockParams(cpuPlatform, BMV_PNT, INLIERS);
 
 
 
-	/*test(cudaPlatform, "Cuda Platform", BMV_PNT, INLIERS);
-	test(cpuPlatform, "CPU Platform", BMV_PNT, INLIERS);*/
+
+	test(cpuPlatform, "CPU Platform", BMV_PNT, INLIERS);
+
+	test(cudaPlatform, "Cuda Platform", BMV_PNT, INLIERS);
 
 	//cudaDeviceReset();
 

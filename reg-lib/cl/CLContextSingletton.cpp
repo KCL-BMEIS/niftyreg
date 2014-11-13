@@ -15,14 +15,9 @@
 //}
 
 CLContextSingletton::CLContextSingletton(){
-	std::cout << "Singletton called!" << std::endl;
 	commandQueue = NULL;
-	std::cout << "Context" << std::endl;
 	CreateContext();
-	
-	std::cout << "queue!" << std::endl;
 	CreateCommandQueue();
-	std::cout << "Grid dims" << std::endl;
 	queryGridDims();
 }
 
@@ -72,10 +67,7 @@ void CLContextSingletton::CreateContext() {
 	cl_context_properties contextProperties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties)firstPlatformId, 0 };
 	context = clCreateContextFromType(contextProperties, CL_DEVICE_TYPE_GPU, NULL, NULL, &errNum);
 
-	for (size_t i = 0; i < numPlatforms; i++)
-	{
-		std::cout << "num plats: " << numPlatforms << " plat:" << i << "props: " << contextProperties[i] << std::endl;
-	}
+
 	if (errNum != CL_SUCCESS) {
 		std::cout << "Could not create GPU context, trying CPU..." << std::endl;
 		context = clCreateContextFromType(contextProperties, CL_DEVICE_TYPE_CPU, NULL, NULL, &errNum);
@@ -193,7 +185,7 @@ void CLContextSingletton::Cleanup( cl_program program, cl_kernel kernel, cl_mem*
 
 void CLContextSingletton::checkErrNum(cl_int errNum, std::string message) {
 	if (errNum != CL_SUCCESS) {
-		std::cerr << message << errNum << std::endl;
+		std::cerr << message <<": "<< errNum << std::endl;
 
 	}
 }

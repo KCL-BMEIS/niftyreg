@@ -5,22 +5,16 @@
 #include"Kernel.h"
 #include"kernels.h"
 #include "CLPlatform.h"
-#include "Context.h"
+#include "CLContext.h"
 
 #define EPS 0.000001
 
-void test(Context* con, nifti_image* defField,  mat44 *affine) {
+void test(Context* con) {
 
 	Platform *clPlatform = new CLPlatform();
 
-
-	con->setTransformationMatrix(affine);
-	con->setCurrentDeformationField(defField);
-
 	Kernel* affineDeformKernel = clPlatform->createKernel(AffineDeformationFieldKernel::Name(), con);
 	affineDeformKernel->castTo<AffineDeformationFieldKernel>()->execute();
-	defField = con->getCurrentDeformationField();
-
 
 	delete affineDeformKernel;
 	delete clPlatform;
@@ -67,8 +61,13 @@ int main(int argc, char **argv)
    test_field->data=(void *)malloc(test_field->nvox*test_field->nbyper);
 
    // Compute the affine deformation field
-   Context *con = new Context(referenceImage, NULL, NULL, sizeof(float));
-   test(con,test_field, inputMatrix);
+   // Compute the affine deformation field
+
+     Context *con = new ClContext(referenceImage, NULL, NULL, sizeof(float));
+     con->setTransformationMatrix(inputMatrix);
+     con->setCurrentDeformationField(test_field);
+     test(con);
+     test_field = con->getCurrentDeformationField();
 
    // Compute the difference between the computed and inputed deformation field
    reg_tools_substractImageToImage(inputDeformationField,test_field,test_field);

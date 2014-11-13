@@ -183,9 +183,8 @@ floatingIntensityYZ)
 	}
 }
 
-template
-void reg_dti_resampling_preprocessing<float>(nifti_image *floatingImage,
-		void **originalFloatingData, int *dtIndicies);
+template void reg_dti_resampling_preprocessing<float>(nifti_image *, void **, int *);
+
 
 /* *************************************************************** */
 template<class DTYPE>

@@ -2849,8 +2849,10 @@ float reg_test_compare_arrays(DTYPE *ptrA,DTYPE *ptrB,size_t nvox) {
 	//why float? DTYPE? REAL?
 	float maxDifference = -50.f;
 
+	float a=0.f, b=0.f;
 	bool first = true;
 	int count = 0;
+	int j = -1;
 	for (size_t i = 0; i < nvox; ++i) {
 		//similar
 		double valA = (double)ptrA[i];
@@ -2871,11 +2873,14 @@ float reg_test_compare_arrays(DTYPE *ptrA,DTYPE *ptrB,size_t nvox) {
 			printf("first err i: %d | %f | a: %f - b: %f\n", i, maxDifference, valA, valB); 
 			first = false;
 		}
-		else if (diff>threshold && i < 150){
-			printf("err i: %d | %f | a: %f - b: %f\n", i, maxDifference, valA, valB);
+		else if (diff>threshold && diff == maxDifference){
+			j=i;
+			a=valA;
+			b= valB;
 		}
 	}
 	printf("nans: %d\n", count);
+	printf("err i: %d | %f | a: %f - b: %f\n", j, maxDifference, a, b);
 	return maxDifference;
 }
 template float reg_test_compare_arrays<float>(float *ptrA, float *ptrB, size_t nvox);

@@ -298,7 +298,6 @@ int main(int argc, char **argv)
 	  else if(strcmp(argv[i], "-platf")==0 || strcmp(argv[i], "--platf")==0)
 	  {
 		  const int value=atoi(argv[++i]);
-		  printf("val: %d\n", value);
 		 		 if(value<0 || value>2){
 		 			reg_print_msg_error("The platform argument is expected to be between 0 and 2 | 0+CPU, 1=CUDA 2=OPENCL");
 		 			return EXIT_FAILURE;
