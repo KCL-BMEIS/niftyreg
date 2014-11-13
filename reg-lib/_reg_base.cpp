@@ -1006,7 +1006,7 @@ void reg_base<T>::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber)
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-void reg_base<T>::UseMultiChannelNMI(int timepointNumber, int *timepoint)
+void reg_base<T>::UseMultiChannelNMI(int timepointNumber)
 {
    if(this->measure_multichannel_nmi==NULL)
       this->measure_multichannel_nmi=new reg_multichannel_nmi;

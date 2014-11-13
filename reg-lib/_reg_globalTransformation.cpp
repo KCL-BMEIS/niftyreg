@@ -41,28 +41,32 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
 		transformationMatrix = *affineTransformation;
 	else transformationMatrix = reg_mat44_mul(affineTransformation, targetMatrix);
 
-	float index[3];
-	float position[3];
-	index[2] = 0;
-	for (int y = 0; y < deformationFieldImage->ny; y++)
-	{
-		index[1] = (float)y;
-		for (int x = 0; x < deformationFieldImage->nx; x++)
-		{
-			index[0] = (float)x;
 
-			if (compose == true)
-			{
-				index[0] = deformationFieldPtr[deformationFieldIndX];
-				index[1] = deformationFieldPtr[deformationFieldIndY];
-			}
-			reg_mat44_mul(&transformationMatrix, index, position);
+   float voxel[3]; voxel[2]=0;
+   float position[3];
+   size_t index=0;
+   for(int y=0; y<deformationFieldImage->ny; y++)
+   {
+      voxel[1]=(float)y;
+      for(int x=0; x<deformationFieldImage->nx; x++)
+      {
+         voxel[0]=(float)x;
 
-			/* the deformation field (real coordinates) is stored */
-			deformationFieldPtr[deformationFieldIndX++] = position[0];
-			deformationFieldPtr[deformationFieldIndY++] = position[1];
-		}
-	}
+         if(mask[index++]>-1)
+         {
+            if(compose==true)
+            {
+               voxel[0]=deformationFieldPtr[deformationFieldIndX];
+               voxel[1]=deformationFieldPtr[deformationFieldIndY];
+            }
+            reg_mat44_mul(&transformationMatrix, voxel, position);
+
+            /* the deformation field (real coordinates) is stored */
+            deformationFieldPtr[deformationFieldIndX++] = position[0];
+            deformationFieldPtr[deformationFieldIndY++] = position[1];
+         }
+      }
+   }
 }
 /* *************************************************************** */
 template <class FieldTYPE>
@@ -90,34 +94,61 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
 		transformationMatrix = *affineTransformation;
 	else transformationMatrix = reg_mat44_mul(affineTransformation, targetMatrix);
 
-	float voxel[3], position[3];
-	int x, y, z;
-	size_t index;
-#if defined (NDEBUG) && defined (_OPENMP)
+   mat44 *targetMatrix;
+   if(deformationFieldImage->sform_code>0)
+   {
+      targetMatrix=&(deformationFieldImage->sto_xyz);
+   }
+   else targetMatrix=&(deformationFieldImage->qto_xyz);
+
+   mat44 transformationMatrix;
+   if(composition==true)
+      transformationMatrix = *affineTransformation;
+   else transformationMatrix = reg_mat44_mul(affineTransformation, targetMatrix);
+
+   float voxel[3], position[3];
+   int x, y, z;
+   size_t index;
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    shared(deformationFieldImage, transformationMatrix, deformationFieldPtrX, \
-		  deformationFieldPtrY, deformationFieldPtrZ, mask, composition) \
+   deformationFieldPtrY, deformationFieldPtrZ, mask, composition) \
    private(voxel, position, x, y, z, index)
 #endif
-	//std::cout << "In field2" << std::endl;
-	for (z = 0; z < deformationFieldImage->nz; z++)
-	{
-		index = z*deformationFieldImage->nx*deformationFieldImage->ny;
-		voxel[2] = (float)z;
-		for (y = 0; y < deformationFieldImage->ny; y++)
-		{
-			voxel[1] = (float)y;
-			for (x = 0; x < deformationFieldImage->nx; x++)
-			{
-				voxel[0] = (float)x;
-				if (mask[index] >= 0)
-				{
-					if (composition == true)
-					{
-						voxel[0] = deformationFieldPtrX[index];
-						voxel[1] = deformationFieldPtrY[index];
-						voxel[2] = deformationFieldPtrZ[index];
-					}
+   for(z=0; z<deformationFieldImage->nz; z++)
+   {
+      index=z*deformationFieldImage->nx*deformationFieldImage->ny;
+      voxel[2]=(float)z;
+      for(y=0; y<deformationFieldImage->ny; y++)
+      {
+         voxel[1]=(float)y;
+         for(x=0; x<deformationFieldImage->nx; x++)
+         {
+            voxel[0]=(float)x;
+            if(mask[index]>-1)
+            {
+               if(composition==true)
+               {
+                  voxel[0]=deformationFieldPtrX[index];
+                  voxel[1]=deformationFieldPtrY[index];
+                  voxel[2]=deformationFieldPtrZ[index];
+               }
+               position[0] =
+                     transformationMatrix.m[0][0] * voxel[0] +
+                     transformationMatrix.m[0][1] * voxel[1] +
+                     transformationMatrix.m[0][2] * voxel[2] +
+                     transformationMatrix.m[0][3] ;
+               position[1] =
+                     transformationMatrix.m[1][0] * voxel[0] +
+                     transformationMatrix.m[1][1] * voxel[1] +
+                     transformationMatrix.m[1][2] * voxel[2] +
+                     transformationMatrix.m[1][3] ;
+               position[2] =
+                     transformationMatrix.m[2][0] * voxel[0] +
+                     transformationMatrix.m[2][1] * voxel[1] +
+                     transformationMatrix.m[2][2] * voxel[2] +
+                     transformationMatrix.m[2][3] ;
+               //                    reg_mat44_mul(&transformationMatrix, voxel, position);
 
 					position[0] =
 						transformationMatrix.m[0][0] * voxel[0] +
@@ -259,16 +290,17 @@ void reg_tool_ReadAffineFile(mat44 *mat,
 	}
 		else sourceMatrix = &(source->qto_xyz);
 
-		for (int i = 0; i < 3; i++)
-		{
-			absoluteTarget.m[i][i] = sqrt(targetMatrix->m[0][i] * targetMatrix->m[0][i]
-				+ targetMatrix->m[1][i] * targetMatrix->m[1][i]
-				+ targetMatrix->m[2][i] * targetMatrix->m[2][i]);
-			absoluteSource.m[i][i] = sqrt(sourceMatrix->m[0][i] * sourceMatrix->m[0][i]
-				+ sourceMatrix->m[1][i] * sourceMatrix->m[1][i]
-				+ sourceMatrix->m[2][i] * sourceMatrix->m[2][i]);
-		}
-		absoluteTarget.m[3][3]=absoluteSource.m[3][3]=1.0;
+
+      for(int i=0; i<3; i++)
+      {
+         absoluteTarget.m[i][i]=sqrt(targetMatrix->m[0][i]*targetMatrix->m[0][i]
+               + targetMatrix->m[1][i]*targetMatrix->m[1][i]
+               + targetMatrix->m[2][i]*targetMatrix->m[2][i]);
+         absoluteSource.m[i][i]=sqrt(sourceMatrix->m[0][i]*sourceMatrix->m[0][i]
+               + sourceMatrix->m[1][i]*sourceMatrix->m[1][i]
+               + sourceMatrix->m[2][i]*sourceMatrix->m[2][i]);
+      }
+      absoluteTarget.m[3][3]=absoluteSource.m[3][3]=1.0;
 #ifndef NDEBUG
 		printf("[NiftyReg DEBUG] An flirt affine file is assumed and is converted to a real word affine matrix\n");
 		reg_mat44_disp(mat, (char *)"[DEBUG] Matrix read from the input file");

@@ -253,6 +253,79 @@ int main(int argc, char **argv)
       printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n");
    }
 
+<<<<<<< HEAD
+=======
+
+   // Define a higher resolution image of the reference image if required (-psf)
+   if(flag->usePSF)
+   {
+      // Check if the resolution of the input images is relevant
+      if(referenceImage->dx<=floatingImage->dx &&
+         referenceImage->dy<=floatingImage->dy &&
+         referenceImage->dz<=floatingImage->dz){
+         reg_print_msg_warn("The -psf argument expect the reference image to be of lower resolution than the floating image.");
+         reg_print_msg_warn("Your input images have the reverse charateristics.");
+      }
+      // First compute the resolution ration between the two input images
+      float resolutionRatio[3]={
+         referenceImage->dx/floatingImage->dx,
+         referenceImage->dy/floatingImage->dy,
+         referenceImage->dz/floatingImage->dz
+      };
+      // Compute the new reference image dimension
+      int refNewDim[3]={
+         static_cast<int>(reg_ceil(resolutionRatio[0]*static_cast<float>(referenceImage->nx))),
+         static_cast<int>(reg_ceil(resolutionRatio[1]*static_cast<float>(referenceImage->ny))),
+         static_cast<int>(reg_ceil(resolutionRatio[2]*static_cast<float>(referenceImage->nz)))
+      };
+      // Update the reference image header
+      referenceImage->nvox=(size_t)refNewDim[0]*
+            refNewDim[1]*refNewDim[2]*
+            referenceImage->nt*referenceImage->nu*
+            referenceImage->nv*referenceImage->nw;
+      referenceImage->dim[1]=referenceImage->nx=refNewDim[0];
+      referenceImage->dim[2]=referenceImage->ny=refNewDim[1];
+      referenceImage->dim[3]=referenceImage->nz=refNewDim[2];
+      referenceImage->pixdim[1]=referenceImage->dx=floatingImage->dx;
+      referenceImage->pixdim[2]=referenceImage->dy=floatingImage->dx;
+      referenceImage->pixdim[3]=referenceImage->dz=floatingImage->dx;
+      if(referenceImage->qform_code>0)
+      {
+         // Update the qform matrices
+         referenceImage->qto_xyz = nifti_quatern_to_mat44(referenceImage->quatern_b,
+         referenceImage->quatern_c,
+         referenceImage->quatern_d,
+         referenceImage->qoffset_x,
+         referenceImage->qoffset_y,
+         referenceImage->qoffset_z,
+         referenceImage->dx,
+         referenceImage->dy,
+         referenceImage->dz,
+         referenceImage->qfac);
+         referenceImage->qto_ijk = nifti_mat44_inverse(referenceImage->qto_xyz);
+      }
+      if(referenceImage->sform_code>0)
+      {
+         // Update the sform matrices
+         referenceImage->sto_xyz.m[0][0]=referenceImage->sto_xyz.m[0][0] / resolutionRatio[0];
+         referenceImage->sto_xyz.m[1][0]=referenceImage->sto_xyz.m[1][0] / resolutionRatio[0];
+         referenceImage->sto_xyz.m[2][0]=referenceImage->sto_xyz.m[2][0] / resolutionRatio[0];
+         referenceImage->sto_xyz.m[0][1]=referenceImage->sto_xyz.m[0][1] / resolutionRatio[1];
+         referenceImage->sto_xyz.m[1][1]=referenceImage->sto_xyz.m[1][1] / resolutionRatio[1];
+         referenceImage->sto_xyz.m[2][1]=referenceImage->sto_xyz.m[2][1] / resolutionRatio[1];
+         referenceImage->sto_xyz.m[0][2]=referenceImage->sto_xyz.m[0][2] / resolutionRatio[2];
+         referenceImage->sto_xyz.m[1][2]=referenceImage->sto_xyz.m[1][2] / resolutionRatio[2];
+         referenceImage->sto_xyz.m[2][2]=referenceImage->sto_xyz.m[2][2] / resolutionRatio[2];
+         referenceImage->sto_ijk = nifti_mat44_inverse(referenceImage->sto_xyz);
+      }
+   }
+
+//   // Tell the CLI that the process has started
+//   startProgress("reg_resample");
+//   // Set up progress indicators
+//   float iProgressStep=1, nProgressSteps;
+
+>>>>>>> master
    /* *********************** */
    /* READ THE TRANSFORMATION */
    /* *********************** */
@@ -286,8 +359,8 @@ int main(int argc, char **argv)
       reg_mat44_eye(&inputAffineTransformation);
    }
 
-   // Update progress via CLI
-   progressXML(1, "Transform loaded...");
+//   // Update progress via CLI
+//   progressXML(1, "Transform loaded...");
 
    // Create a deformation field
    nifti_image *deformationFieldImage = nifti_copy_nim_info(referenceImage);
@@ -377,8 +450,8 @@ int main(int argc, char **argv)
                                      NULL);
    }
 
-   // Update progress via CLI
-   progressXML(2, "Deformation field ready...");
+//   // Update progress via CLI
+//   progressXML(2, "Deformation field ready...");
 
    /* ************************* */
    /* WARP THE FLOATING IMAGE */
@@ -553,8 +626,8 @@ int main(int argc, char **argv)
          printf("[NiftyReg] Resampled grid has been saved: %s\n", param->outputBlankName);
    }
 
-   // Tell the CLI that we finished
-   closeProgress("reg_resample", "Normal exit");
+//   // Tell the CLI that we finished
+//   closeProgress("reg_resample", "Normal exit");
 
    nifti_image_free(referenceImage);
    nifti_image_free(floatingImage);

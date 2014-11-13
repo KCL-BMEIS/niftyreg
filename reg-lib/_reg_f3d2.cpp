@@ -118,11 +118,20 @@ void reg_f3d2<T>::GetDeformationField()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_f3d2<T>::GetInverseConsistencyErrorField()
+void reg_f3d2<T>::GetInverseConsistencyErrorField(bool forceAll)
 {
    if(this->inverseConsistencyWeight<=0) return;
 
-   fprintf(stderr, "NR ERROR - reg_f3d2<T>::GetInverseConsistencyErrorField() has to be implemented");
+   if(forceAll)
+   {
+      reg_print_fct_error("reg_f3d2<T>::GetInverseConsistencyErrorField()");
+      reg_print_msg_error("Option not supported in F3D2");
+   }
+   else
+   {
+      reg_print_fct_error("reg_f3d2<T>::GetInverseConsistencyErrorField()");
+      reg_print_msg_error("Option not supported in F3D2");
+   }
    reg_exit(1);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -132,7 +141,8 @@ void reg_f3d2<T>::GetInverseConsistencyGradient()
 {
    if(this->inverseConsistencyWeight<=0) return;
 
-   fprintf(stderr, "NR ERROR - reg_f3d2<T>::GetInverseConsistencyGradient() has to be implemented");
+   reg_print_fct_error("reg_f3d2<T>::GetInverseConsistencyGradient()");
+   reg_print_msg_error("Option not supported in F3D2");
    reg_exit(1);
 
    return;
@@ -176,7 +186,7 @@ void reg_f3d2<T>::ExponentiateGradient()
    nifti_image *tempGrad=nifti_copy_nim_info(this->voxelBasedMeasureGradientImage);
 
    tempGrad->data=(void *)malloc(tempGrad->nvox*tempGrad->nbyper);
-   for(unsigned int i=0; i<(int)fabs(this->backwardControlPointGrid->intent_p2); ++i)
+   for(int i=0; i<(int)fabsf(this->backwardControlPointGrid->intent_p2); ++i)
    {
 
       reg_resampleGradient(this->voxelBasedMeasureGradientImage, // floating
@@ -190,7 +200,7 @@ void reg_f3d2<T>::ExponentiateGradient()
    }
 
    // Free the temporary deformation field
-   for(unsigned int i=0; i<=(int)fabs(this->backwardControlPointGrid->intent_p2); ++i)
+   for(int i=0; i<=(int)fabsf(this->backwardControlPointGrid->intent_p2); ++i)
    {
       nifti_image_free(tempDef[i]);
       tempDef[i]=NULL;
@@ -224,7 +234,7 @@ void reg_f3d2<T>::ExponentiateGradient()
    reg_spline_getIntermediateDefFieldFromVelGrid(this->controlPointGrid,
          tempDef);
 
-   for(unsigned int i=0; i<(int)fabs(this->controlPointGrid->intent_p2); ++i)
+   for(int i=0; i<(int)fabsf(this->controlPointGrid->intent_p2); ++i)
    {
 
       reg_resampleGradient(this->backwardVoxelBasedMeasureGradientImage, // floating
@@ -238,7 +248,7 @@ void reg_f3d2<T>::ExponentiateGradient()
    }
 
    // Free the temporary deformation field
-   for(unsigned int i=0; i<=(int)fabs(this->controlPointGrid->intent_p2); ++i)
+   for(int i=0; i<=(int)fabsf(this->controlPointGrid->intent_p2); ++i)
    {
       nifti_image_free(tempDef[i]);
       tempDef[i]=NULL;

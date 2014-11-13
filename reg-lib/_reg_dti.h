@@ -60,8 +60,7 @@ extern "C++" template <class DTYPE>
 double reg_getDTIMeasureValue(nifti_image *targetImage,
                               nifti_image *resultImage,
                               int *mask,
-                              unsigned int * dtIndicies,
-                              float currentValue
+                              unsigned int * dtIndicies
                              );
 
 /** @brief Compute a voxel based gradient of the sum squared difference.
@@ -81,6 +80,5 @@ void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
       nifti_image *warpedImageGradient,
       nifti_image *dtiMeasureGradientImage,
       int *mask,
-      unsigned int * dtIndicies,
-      float *currentValue);
+      unsigned int * dtIndicies);
 #endif

@@ -21,10 +21,10 @@ int main()
    res_w = (float *)malloc(m*sizeof(float));
    v = (float **)malloc(n*sizeof(float*));
    res_v = (float **)malloc(n*sizeof(float*));
-   for(int i=0;i<m;++i){
+   for(size_t i=0;i<m;++i){
       matrix[i] = (float *)malloc(n*sizeof(float));
    }
-   for(int i=0;i<n;++i){
+   for(size_t i=0;i<n;++i){
       v[i] = (float *)malloc(n*sizeof(float));
       res_v[i] = (float *)malloc(n*sizeof(float));
    }
@@ -49,15 +49,15 @@ int main()
 
    svd<float>(matrix, m, n, w, v);
 
-   for(int i=0;i<n;++i){
+   for(size_t i=0;i<n;++i){
       float difference=fabsf(res_w[i]-w[i]);
       if(difference>EPS){
          fprintf(stderr, "reg_test_svd - Error in the SVD computation %.8g (>%g)\n", difference, EPS);
          return EXIT_FAILURE;
       }
    }
-   for(int i=0;i<n;++i){
-      for(int j=0;j<n;++j){
+   for(size_t i=0;i<n;++i){
+      for(size_t j=0;j<n;++j){
          float difference=fabsf(res_v[i][j])+-fabsf(v[i][j]);
          if(difference>EPS){
             fprintf(stderr, "reg_test_svd - Error in the SVD computation %.8g (>%g)\n", difference, EPS);
@@ -66,10 +66,10 @@ int main()
       }
    }
    // Free the allocated variables
-   for(int i=0;i<m;++i){
+   for(size_t i=0;i<m;++i){
       free(matrix[i]);
    }
-   for(int i=0;i<n;++i){
+   for(size_t i=0;i<n;++i){
       free(v[i]);
       free(res_v[i]);
    }

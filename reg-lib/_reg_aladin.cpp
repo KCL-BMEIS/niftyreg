@@ -542,6 +542,7 @@ void reg_aladin<T>::Run()
 				printf("[DEBUG] -Rigid- iteration %i\n", iteration);
 #endif
 
+
 				this->GetWarpedImage(this->Interpolation);
 				this->UpdateTransformationMatrix(RIGID);
 
@@ -566,6 +567,7 @@ void reg_aladin<T>::Run()
 		{
 			while (iteration < maxNumberOfIterationToPerform)
 			{
+
 #ifndef NDEBUG
 				printf("[DEBUG] -Affine- iteration %i/%i\n", iteration+1, maxNumberOfIterationToPerform);
 #endif
@@ -608,11 +610,11 @@ void reg_aladin<T>::Run()
 
 	} // level this->LevelsToPerform
 
-	if (funcProgressCallback && paramsProgressCallback)
+	/*if (funcProgressCallback && paramsProgressCallback)
 	{
 		(*funcProgressCallback)(100., paramsProgressCallback);
 	}
-
+*/
 #ifndef NDEBUG
 	printf("[NiftyReg DEBUG] reg_aladin::Run() done\n");
 #endif

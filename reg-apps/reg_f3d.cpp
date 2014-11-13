@@ -712,7 +712,7 @@ int main(int argc, char **argv)
    printf("[NiftyReg DEBUG] *******************************************\n");
 #endif
 
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
    if(verbose)
    {
       int maxThreadNumber = omp_get_max_threads();

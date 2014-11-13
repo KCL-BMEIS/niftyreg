@@ -28,15 +28,16 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
    }
 
    uch sig[8];
-   size_t a=fread(sig, 1, 8, fopen (pngFileName, "r"));
-   a=a;
-   if(!png_check_sig(sig, 8)) exit(1);
+   if(!fread(sig, 1, 8, fopen (pngFileName, "r")))
+      reg_exit(1);
+   if(!png_check_sig(sig, 8))
+      reg_exit(1);
 
    png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
    if (!png_ptr)
    {
       fprintf(stderr,"[NiftyReg ERROR]: Error when reading the png file - out of memory\n");
-      exit(1);
+      reg_exit(1);
    }
 
    png_infop info_ptr = png_create_info_struct(png_ptr);
@@ -44,7 +45,7 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
    {
       png_destroy_read_struct(&png_ptr, NULL, NULL);
       fprintf(stderr,"[NiftyReg ERROR]: Error when reading the png file - out of memory\n");
-      exit(1);
+      reg_exit(1);
    }
 
    png_init_io(png_ptr, pngFile);
@@ -68,7 +69,7 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
    if (bit_depth == 16)
       png_set_strip_16(png_ptr);
    if (color_type == PNG_COLOR_TYPE_GRAY ||
-         color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
+       color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
       png_set_gray_to_rgb(png_ptr);
 
    png_bytep *row_pointers= new png_bytep[Height];

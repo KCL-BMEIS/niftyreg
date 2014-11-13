@@ -23,7 +23,7 @@ protected:
    int BCHUpdateValue;
 
    virtual void GetDeformationField();
-   virtual void GetInverseConsistencyErrorField();
+   virtual void GetInverseConsistencyErrorField(bool forceAll);
    virtual void GetInverseConsistencyGradient();
    virtual void GetVoxelBasedGradient();
    virtual void UpdateParameters(float);

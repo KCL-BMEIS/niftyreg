@@ -121,7 +121,7 @@ double reg_getSSDValue(nifti_image *referenceImage,
 
          double SSD_local=0.;
          n=0.;
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
          #pragma omp parallel for default(none) \
          shared(referenceImage, currentRefPtr, currentWarPtr, mask, \
                 jacobianDetImage, jacDetPtr, voxelNumber) \
@@ -251,8 +251,7 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                                   nifti_image *warpedImageGradient,
                                   nifti_image *ssdGradientImage,
                                   nifti_image *jacobianDetImage,
-                                  int *mask,
-                                  float *currentValue)
+                                  int *mask)
 {
    // Create pointers to the reference and warped images
 #ifdef _WIN32
@@ -298,11 +297,11 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
          if(referenceImage->nz>1)
             spatialGradPtrZ=&spatialGradPtrY[voxelNumber];
 
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
          #pragma omp parallel for default(none) \
          shared(referenceImage, warpedImage, currentRefPtr, currentWarPtr, time, \
                 mask, jacDetPtr, spatialGradPtrX, spatialGradPtrY, spatialGradPtrZ, \
-                ssdGradPtrX, ssdGradPtrY, ssdGradPtrZ, voxelNumber,currentValue) \
+                ssdGradPtrX, ssdGradPtrY, ssdGradPtrZ, voxelNumber) \
          private(voxel, targetValue, resultValue, common)
 #endif
          for(voxel=0; voxel<voxelNumber; voxel++)
@@ -319,7 +318,6 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
                   if(jacDetPtr!=NULL)
                      common *= jacDetPtr[voxel];
 
-//						common /= currentValue[time];
                   ssdGradPtrX[voxel] += (DTYPE)(common * spatialGradPtrX[voxel]);
                   ssdGradPtrY[voxel] += (DTYPE)(common * spatialGradPtrY[voxel]);
 
@@ -335,9 +333,9 @@ void reg_getVoxelBasedSSDGradient(nifti_image *referenceImage,
 }
 /* *************************************************************** */
 template void reg_getVoxelBasedSSDGradient<float>
-(nifti_image *,nifti_image *,bool *,nifti_image *,nifti_image *,nifti_image *, int *, float *);
+(nifti_image *,nifti_image *,bool *,nifti_image *,nifti_image *,nifti_image *, int *);
 template void reg_getVoxelBasedSSDGradient<double>
-(nifti_image *,nifti_image *,bool *,nifti_image *,nifti_image *,nifti_image *, int *, float *);
+(nifti_image *,nifti_image *,bool *,nifti_image *,nifti_image *,nifti_image *, int *);
 /* *************************************************************** */
 void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
 {
@@ -363,8 +361,7 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
        this->warpedFloatingGradientImagePointer,
        this->forwardVoxelBasedGradientImagePointer,
        NULL, // HERE TODO this->forwardJacDetImagePointer,
-       this->referenceMaskPointer,
-       this->currentValue
+       this->referenceMaskPointer
       );
       break;
    case NIFTI_TYPE_FLOAT64:
@@ -375,8 +372,7 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
        this->warpedFloatingGradientImagePointer,
        this->forwardVoxelBasedGradientImagePointer,
        NULL, // HERE TODO this->forwardJacDetImagePointer,
-       this->referenceMaskPointer,
-       this->currentValue
+       this->referenceMaskPointer
       );
       break;
    default:
@@ -408,8 +404,7 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
           this->warpedReferenceGradientImagePointer,
           this->backwardVoxelBasedGradientImagePointer,
           NULL, // HERE TODO this->backwardJacDetImagePointer,
-          this->floatingMaskPointer,
-          this->currentValue
+          this->floatingMaskPointer
          );
          break;
       case NIFTI_TYPE_FLOAT64:
@@ -420,8 +415,7 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
           this->warpedReferenceGradientImagePointer,
           this->backwardVoxelBasedGradientImagePointer,
           NULL, // HERE TODO this->backwardJacDetImagePointer,
-          this->floatingMaskPointer,
-          this->currentValue
+          this->floatingMaskPointer
          );
          break;
       default:

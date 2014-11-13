@@ -542,46 +542,54 @@ void reg_tools_operationImageToImage(nifti_image *img1,
 	size_t voxelNumber=res->nvox;
 #endif
 
-	switch (type)
-	{
-	case 0:
-#if defined (NDEBUG) && defined (_OPENMP)
+
+   switch(type)
+   {
+   case 0:
+#if defined (_OPENMP)
+
 #pragma omp parallel for default(none) \
    private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
 
 #endif // _OPENMP
-		for (i = 0; i < voxelNumber; i++)
-			resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) +
-			((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
-			(double)img1->scl_inter) / (double)img1->scl_slope);
-		break;
-	case 1:
-#if defined (NDEBUG) && defined (_OPENMP)
+
+      for(i=0; i<voxelNumber; i++)
+         resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) +
+                              ((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
+                              (double)img1->scl_inter)/(double)img1->scl_slope);
+      break;
+   case 1:
+#if defined (_OPENMP)
+
 #pragma omp parallel for default(none) \
    private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
 
 #endif // _OPENMP
-		for (i = 0; i < voxelNumber; i++)
-			resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) -
-			((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
-			(double)img1->scl_inter) / (double)img1->scl_slope);
-		break;
-	case 2:
-#if defined (NDEBUG) && defined (_OPENMP)
+
+      for(i=0; i<voxelNumber; i++)
+         resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) -
+                              ((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
+                              (double)img1->scl_inter)/(double)img1->scl_slope);
+      break;
+   case 2:
+#if defined (_OPENMP)
+
 #pragma omp parallel for default(none) \
    private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
 
 #endif // _OPENMP
-		for (i = 0; i < voxelNumber; i++)
-			resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) *
-			((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
-			(double)img1->scl_inter) / (double)img1->scl_slope);
-		break;
-	case 3:
-#if defined (NDEBUG) && defined (_OPENMP)
+
+      for(i=0; i<voxelNumber; i++)
+         resPtr[i] = (TYPE1)((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) *
+                              ((double)img2Ptr[i] * (double)img2->scl_slope + (double)img2->scl_inter) -
+                              (double)img1->scl_inter)/(double)img1->scl_slope);
+      break;
+   case 3:
+#if defined (_OPENMP)
+
 #pragma omp parallel for default(none) \
    private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2)
@@ -804,40 +812,46 @@ void reg_tools_operationValueToImage(nifti_image *img1,
 	size_t voxelNumber=res->nvox;
 #endif
 
-	switch (type)
-	{
-	case 0:
-#if defined (NDEBUG) && defined (_OPENMP)
+
+   switch(type)
+   {
+   case 0:
+#if defined (_OPENMP)
+
 #pragma omp parallel for default(none) \
    private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img1,val)
 #endif // _OPENMP
-		for (i = 0; i < voxelNumber; i++)
-			resPtr[i] = (TYPE1)(((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) +
-			(double)val) - (double)img1->scl_inter) / (double)img1->scl_slope);
-		break;
-	case 1:
-#if defined (NDEBUG) && defined (_OPENMP)
+
+      for(i=0; i<voxelNumber; i++)
+         resPtr[i] = (TYPE1)(((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) +
+                               (double)val) - (double)img1->scl_inter)/(double)img1->scl_slope);
+      break;
+   case 1:
+#if defined (_OPENMP)
+
 #pragma omp parallel for default(none) \
    private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img1,val)
 #endif // _OPENMP
-		for (i = 0; i < voxelNumber; i++)
-			resPtr[i] = (TYPE1)(((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) -
-			(double)val) - (double)img1->scl_inter) / (double)img1->scl_slope);
-		break;
-	case 2:
-#if defined (NDEBUG) && defined (_OPENMP)
+
+      for(i=0; i<voxelNumber; i++)
+         resPtr[i] = (TYPE1)(((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) -
+                               (double)val) - (double)img1->scl_inter)/(double)img1->scl_slope);
+      break;
+   case 2:
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img1,val)
 #endif // _OPENMP
-		for (i = 0; i < voxelNumber; i++)
-			resPtr[i] = (TYPE1)(((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) *
-			(double)val) - (double)img1->scl_inter) / (double)img1->scl_slope);
-		break;
-	case 3:
-#if defined (NDEBUG) && defined (_OPENMP)
+
+      for(i=0; i<voxelNumber; i++)
+         resPtr[i] = (TYPE1)(((((double)img1Ptr[i] * (double)img1->scl_slope + (double)img1->scl_inter) *
+                               (double)val) - (double)img1->scl_inter)/(double)img1->scl_slope);
+      break;
+   case 3:
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(i) \
    shared(voxelNumber,resPtr,img1Ptr,img1,val)
@@ -1284,7 +1298,7 @@ void reg_tools_kernelConvolution_core(nifti_image *image,
             } // active axis
          } // axes
          // Normalise per timepoint
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    shared(voxelNumber, intensityPtr, densityPtr, nanImagePtr) \
    private(index)
@@ -1482,7 +1496,7 @@ void reg_tools_labelKernelConvolution_core(nifti_image *image,
             }
          }
          // Normalise per timepoint
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    shared(voxelNumber, intensityPtr, nanImagePtr,tmpImagePtr) \
    private(index)
@@ -2562,9 +2576,10 @@ void reg_getDisplacementFromDeformation_2D(nifti_image *field)
 		matrix = field->sto_xyz;
 	else matrix = field->qto_xyz;
 
-	int x, y, index;
-	DTYPE xInit, yInit;
-#if defined (NDEBUG) && defined (_OPENMP)
+
+   int x, y,  index;
+   DTYPE xInit, yInit;
+#if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    shared(field, matrix, ptrX, ptrY) \
    private(x, y, index, xInit, yInit)
@@ -2603,9 +2618,11 @@ void reg_getDisplacementFromDeformation_3D(nifti_image *field)
 		matrix = field->sto_xyz;
 	else matrix = field->qto_xyz;
 
-	int x, y, z, index;
-	float xInit, yInit, zInit;
-#if defined (NDEBUG) && defined (_OPENMP)
+
+   int x, y, z, index;
+   float xInit, yInit, zInit;
+#if defined (_OPENMP)
+
 #pragma omp parallel for default(none) \
    shared(field, matrix, \
    ptrX, ptrY, ptrZ) \
@@ -2707,9 +2724,11 @@ void reg_getDeformationFromDisplacement_2D(nifti_image *field)
 		matrix = field->sto_xyz;
 	else matrix = field->qto_xyz;
 
-	int x, y, index;
-	DTYPE xInit, yInit;
-#if defined (NDEBUG) && defined (_OPENMP)
+
+   int x, y, index;
+   DTYPE xInit, yInit;
+#if defined (_OPENMP)
+
 #pragma omp parallel for default(none) \
    shared(field, matrix, \
    ptrX, ptrY) \
@@ -2749,9 +2768,11 @@ void reg_getDeformationFromDisplacement_3D(nifti_image *field)
 		matrix = field->sto_xyz;
 	else matrix = field->qto_xyz;
 
-	int x, y, z, index;
-	float xInit, yInit, zInit;
-#if defined (NDEBUG) && defined (_OPENMP)
+
+   int x, y, z, index;
+   float xInit, yInit, zInit;
+#if defined (_OPENMP)
+
 #pragma omp parallel for default(none) \
    shared(field, matrix, \
    ptrX, ptrY, ptrZ) \
@@ -2976,43 +2997,43 @@ void reg_tools_abs_image(nifti_image *img)
 /* *************************************************************** */
 static std::string CLI_PROGRESS_UPDATES = std::string(getenv("NIFTK_CLI_PROGRESS_UPD") != 0 ? getenv("NIFTK_CLI_PROGRESS_UPD") : "");
 /* *************************************************************** */
-void startProgress(std::string name)
-{
-   if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
-       CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
-   {
-      std::cout<< "<filter-start>\n";
-      std::cout<< "<filter-name>"    <<name.c_str() <<"</filter-name>\n";
-      std::cout<< "<filter-comment>" <<name.c_str() <<"</filter-comment>\n";
-      std::cout<< "</filter-start>\n";
-      std::cout << std::flush;
-   }
-}
+//void startProgress(std::string name)
+//{
+//   if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
+//       CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
+//   {
+//      std::cout<< "<filter-start>\n";
+//      std::cout<< "<filter-name>"    <<name.c_str() <<"</filter-name>\n";
+//      std::cout<< "<filter-comment>" <<name.c_str() <<"</filter-comment>\n";
+//      std::cout<< "</filter-start>\n";
+//      std::cout << std::flush;
+//   }
+//}
 /* *************************************************************** */
-void progressXML(unsigned long p, std::string text)
-{
-   if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
-       CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
-   {
-      float val = static_cast<float>((float)p/100.0f);
-      std::cout << "<filter-progress>" << val <<"</filter-progress>\n";
-      std::cout << std::flush;
-   }
-}
+//void progressXML(unsigned long p, std::string text)
+//{
+//   if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
+//       CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
+//   {
+//      float val = static_cast<float>((float)p/100.0f);
+//      std::cout << "<filter-progress>" << val <<"</filter-progress>\n";
+//      std::cout << std::flush;
+//   }
+//}
 /* *************************************************************** */
-void closeProgress(std::string name, std::string status)
-{
-   if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
-       CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
-   {
-      std::cout << "<filter-result name=exitStatusOutput>" << status.c_str() << "</filter-result>\n";
-      std::cout << "<filter-progress>100</filter-progress>\n";
-      std::cout << "<filter-end>\n";
-      std::cout << "<filter-name>" <<name.c_str() <<"</filter-name>\n";
-      std::cout << "<filter-comment>Finished</filter-comment></filter-end>\n";
-      std::cout << std::flush;
-   }
-}
+//void closeProgress(std::string name, std::string status)
+//{
+//   if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
+//       CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
+//   {
+//      std::cout << "<filter-result name=exitStatusOutput>" << status.c_str() << "</filter-result>\n";
+//      std::cout << "<filter-progress>100</filter-progress>\n";
+//      std::cout << "<filter-end>\n";
+//      std::cout << "<filter-name>" <<name.c_str() <<"</filter-name>\n";
+//      std::cout << "<filter-comment>Finished</filter-comment></filter-end>\n";
+//      std::cout << std::flush;
+//   }
+//}
 /* *************************************************************** */
 /* *************************************************************** */
 void mat44ToCptr(mat44 mat, float* cMat) {

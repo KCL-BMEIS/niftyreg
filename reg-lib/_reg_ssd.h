@@ -90,7 +90,6 @@ void reg_getVoxelBasedSSDGradient(nifti_image *targetImage,
                                   nifti_image *resultImageGradient,
                                   nifti_image *ssdGradientImage,
                                   nifti_image *jacobianDeterminantImage,
-                                  int *mask,
-                                  float *currentValue
+                                  int *mask
                                  );
 #endif

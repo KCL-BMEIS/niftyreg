@@ -14,7 +14,7 @@
 
 #include "_reg_measure.h"
 #include <vector>
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
 #include "omp.h"
 #endif
 

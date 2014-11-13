@@ -138,6 +138,7 @@ make
 affine_mat2D=${TEMPFOLDER}/niftyreg-git_test/affine_mat2D.txt
 affine_def2D=${TEMPFOLDER}/niftyreg-git_test/affine_def2D.nii.gz
 nonlin_cpp2D=${TEMPFOLDER}/niftyreg-git_test/nonlin_cpp2D.nii.gz
+nonlin_vel2D=${TEMPFOLDER}/niftyreg-git_test/nonlin_vel2D.nii.gz
 nonlin_def2D=${TEMPFOLDER}/niftyreg-git_test/nonlin_def2D.nii.gz
 nonlin_com2D=${TEMPFOLDER}/niftyreg-git_test/nonlin_com2D.nii.gz
 warped_nea2D=${TEMPFOLDER}/niftyreg-git_test/warped_nea2D.nii.gz
@@ -149,6 +150,7 @@ warped_sin2D=${TEMPFOLDER}/niftyreg-git_test/warped_sin2D.nii.gz
 affine_mat3D=${TEMPFOLDER}/niftyreg-git_test/affine_mat3D.txt
 affine_def3D=${TEMPFOLDER}/niftyreg-git_test/affine_def3D.nii.gz
 nonlin_cpp3D=${TEMPFOLDER}/niftyreg-git_test/nonlin_cpp3D.nii.gz
+nonlin_vel3D=${TEMPFOLDER}/niftyreg-git_test/nonlin_vel3D.nii.gz
 nonlin_def3D=${TEMPFOLDER}/niftyreg-git_test/nonlin_def3D.nii.gz
 nonlin_com3D=${TEMPFOLDER}/niftyreg-git_test/nonlin_com3D.nii.gz
 warped_nea3D=${TEMPFOLDER}/niftyreg-git_test/warped_nea3D.nii.gz
@@ -166,13 +168,20 @@ ${TEMPFOLDER}/niftyreg-git_build/reg-apps/reg_transform \
 	-ref ${refImg2D} -def ${affine_mat2D} ${affine_def2D} &> /dev/null
 ${TEMPFOLDER}/niftyreg-git_build/reg-apps/reg_transform \
 	-ref ${refImg3D} -def ${affine_mat3D} ${affine_def3D} &> /dev/null
-# Run nonlinear registrations
+# Run nonlinear registrations - f3d
 ${TEMPFOLDER}/niftyreg-git_build/reg-apps/reg_f3d \
 	-ref ${refImg2D} -flo ${floImg2D} -aff ${affine_mat2D} -res /dev/null \
 	-cpp ${nonlin_cpp2D} &> /dev/null
 ${TEMPFOLDER}/niftyreg-git_build/reg-apps/reg_f3d \
 	-ref ${refImg3D} -flo ${floImg3D} -aff ${affine_mat3D} -res /dev/null \
 	-cpp ${nonlin_cpp3D} &> /dev/null
+# Run nonlinear registrations - f3d2
+${TEMPFOLDER}/niftyreg-git_build/reg-apps/reg_f3d -vel \
+	-ref ${refImg2D} -flo ${floImg2D} -aff ${affine_mat2D} -res /dev/null \
+	-cpp ${nonlin_vel2D} &> /dev/null
+${TEMPFOLDER}/niftyreg-git_build/reg-apps/reg_f3d -vel \
+	-ref ${refImg3D} -flo ${floImg3D} -aff ${affine_mat3D} -res /dev/null \
+	-cpp ${nonlin_vel3D} &> /dev/null
 # Generate nonlinear deformation fields
 ${TEMPFOLDER}/niftyreg-git_build/reg-apps/reg_transform \
 	-ref ${refImg2D} -def ${nonlin_cpp2D} ${nonlin_def2D} &> /dev/null
@@ -232,6 +241,7 @@ tar czvf ${input_output}/niftyreg_test_data.tar.gz \
 	$(basename ${affine_mat2D}) $(basename ${affine_mat3D}) \
 	$(basename ${affine_def2D}) $(basename ${affine_def3D}) \
 	$(basename ${nonlin_cpp2D}) $(basename ${nonlin_cpp3D}) \
+	$(basename ${nonlin_vel2D}) $(basename ${nonlin_vel3D}) \
 	$(basename ${nonlin_def2D}) $(basename ${nonlin_def3D}) \
 	$(basename ${nonlin_com2D}) $(basename ${nonlin_com3D}) \
 	$(basename ${warped_nea2D}) $(basename ${warped_nea3D}) \

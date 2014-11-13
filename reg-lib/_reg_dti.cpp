@@ -80,8 +80,7 @@ template<class DTYPE>
 double reg_getDTIMeasureValue(nifti_image *referenceImage,
                               nifti_image *warpedImage,
                               int *mask,
-                              unsigned int * dtIndicies,
-                              float currentValue
+                              unsigned int * dtIndicies
                              )
 {
 #ifdef _WIN32
@@ -112,20 +111,10 @@ double reg_getDTIMeasureValue(nifti_image *referenceImage,
    DTYPE *referenceIntensityYZ = &firstRefVox[voxelNumber*dtIndicies[4]];
    DTYPE *referenceIntensityZZ = &firstRefVox[voxelNumber*dtIndicies[5]];
 
-//	double SUM_TEST=0;
-//	for(unsigned int i=0;i<warpedImage->nvox-voxelNumber;++i){
-//		double currentValue = reg_pow2(warpedIntensityXX[i] - referenceIntensityXX[i]);
-//		if(currentValue==currentValue)
-//			SUM_TEST += currentValue;
-//	}
-//	std::cerr.precision(10);
-//	std::cerr << "BAM " << SUM_TEST << std::endl;
-//	reg_exit(1);
-
    double DTI_cost=0.0, n=0.0;
    const double twoThirds = (2.0/3.0);
    DTYPE rXX, rXY, rYY, rXZ, rYZ, rZZ;
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
    #pragma omp parallel for default(none) \
    shared(referenceImage, referenceIntensityXX, referenceIntensityXY, referenceIntensityXZ, \
           referenceIntensityYY, referenceIntensityYZ, referenceIntensityZZ, \
@@ -159,8 +148,8 @@ reduction(+:n)
    } // loop over voxels
    return DTI_cost/n;
 }
-template double reg_getDTIMeasureValue<float>(nifti_image *,nifti_image *,int *, unsigned int *, float);
-template double reg_getDTIMeasureValue<double>(nifti_image *,nifti_image *,int *, unsigned int *, float);
+template double reg_getDTIMeasureValue<float>(nifti_image *,nifti_image *,int *, unsigned int *);
+template double reg_getDTIMeasureValue<double>(nifti_image *,nifti_image *,int *, unsigned int *);
 /* *************************************************************** */
 double reg_dti::GetSimilarityMeasureValue()
 {
@@ -179,8 +168,7 @@ double reg_dti::GetSimilarityMeasureValue()
                         (this->referenceImagePointer,
                          this->warpedFloatingImagePointer,
                          this->referenceMaskPointer,
-                         this->dtIndicies,
-                         this->currentValue
+                         this->dtIndicies
                         );
       break;
    case NIFTI_TYPE_FLOAT64:
@@ -188,8 +176,7 @@ double reg_dti::GetSimilarityMeasureValue()
                         (this->referenceImagePointer,
                          this->warpedFloatingImagePointer,
                          this->referenceMaskPointer,
-                         this->dtIndicies,
-                         this->currentValue
+                         this->dtIndicies
                         );
       break;
    default:
@@ -214,8 +201,7 @@ double reg_dti::GetSimilarityMeasureValue()
                             (this->floatingImagePointer,
                              this->warpedReferenceImagePointer,
                              this->floatingMaskPointer,
-                             this->dtIndicies,
-                             this->currentValue
+                             this->dtIndicies
                             );
          break;
       case NIFTI_TYPE_FLOAT64:
@@ -223,8 +209,7 @@ double reg_dti::GetSimilarityMeasureValue()
                             (this->floatingImagePointer,
                              this->warpedReferenceImagePointer,
                              this->floatingMaskPointer,
-                             this->dtIndicies,
-                             this->currentValue
+                             this->dtIndicies
                             );
          break;
       default:
@@ -242,8 +227,7 @@ void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
       nifti_image *warpedImageGradient,
       nifti_image *dtiMeasureGradientImage,
       int *mask,
-      unsigned int * dtIndicies,
-      float currentValue)
+      unsigned int * dtIndicies)
 {
    // Create pointers to the reference and warped images
 #ifdef _WIN32
@@ -292,13 +276,13 @@ void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
    const double fourThirds = 4.0/3.0;
 
    DTYPE rXX, rXY, rYY, rXZ, rYZ, rZZ, xxGrad, yyGrad, zzGrad, xyGrad, xzGrad, yzGrad;
-#if defined (NDEBUG) && defined (_OPENMP)
+#if defined (_OPENMP)
    #pragma omp parallel for default(none) \
    shared(referenceIntensityXX, referenceIntensityXY, referenceIntensityXZ, \
           referenceIntensityYY, referenceIntensityYZ, referenceIntensityZZ,warpedIntensityXX, \
           warpedIntensityXY,warpedIntensityXZ ,warpedIntensityYY,warpedIntensityYZ, warpedIntensityZZ, \
           mask, spatialGradXX, spatialGradXY, spatialGradXZ, spatialGradYY, spatialGradYZ, spatialGradZZ, \
-          dtiMeasureGradPtrX, dtiMeasureGradPtrY, dtiMeasureGradPtrZ, voxelNumber,currentValue) \
+          dtiMeasureGradPtrX, dtiMeasureGradPtrY, dtiMeasureGradPtrZ, voxelNumber) \
    private(voxel, rXX, rXY, rYY, rXZ, rYZ, rZZ, xxGrad, yyGrad, zzGrad, xyGrad, xzGrad, yzGrad)
 #endif
    for(voxel=0; voxel<voxelNumber; voxel++)
@@ -337,9 +321,9 @@ void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
 }
 /* *************************************************************** */
 template void reg_getVoxelBasedDTIMeasureGradient<float>
-(nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, unsigned int *, float );
+(nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, unsigned int *);
 template void reg_getVoxelBasedDTIMeasureGradient<double>
-(nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, unsigned int *, float );
+(nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, unsigned int *);
 /* *************************************************************** */
 void reg_dti::GetVoxelBasedSimilarityMeasureGradient()
 {
@@ -364,8 +348,7 @@ void reg_dti::GetVoxelBasedSimilarityMeasureGradient()
        this->warpedFloatingGradientImagePointer,
        this->forwardVoxelBasedGradientImagePointer,
        this->referenceMaskPointer,
-       this->dtIndicies,
-       this->currentValue
+       this->dtIndicies
       );
       break;
    case NIFTI_TYPE_FLOAT64:
@@ -375,8 +358,7 @@ void reg_dti::GetVoxelBasedSimilarityMeasureGradient()
        this->warpedFloatingGradientImagePointer,
        this->forwardVoxelBasedGradientImagePointer,
        this->referenceMaskPointer,
-       this->dtIndicies,
-       this->currentValue
+       this->dtIndicies
       );
       break;
    default:
@@ -407,8 +389,7 @@ void reg_dti::GetVoxelBasedSimilarityMeasureGradient()
           this->warpedReferenceGradientImagePointer,
           this->backwardVoxelBasedGradientImagePointer,
           this->floatingMaskPointer,
-          this->dtIndicies,
-          this->currentValue
+          this->dtIndicies
          );
          break;
       case NIFTI_TYPE_FLOAT64:
@@ -418,8 +399,7 @@ void reg_dti::GetVoxelBasedSimilarityMeasureGradient()
           this->warpedReferenceGradientImagePointer,
           this->backwardVoxelBasedGradientImagePointer,
           this->floatingMaskPointer,
-          this->dtIndicies,
-          this->currentValue
+          this->dtIndicies
          );
          break;
       default:
