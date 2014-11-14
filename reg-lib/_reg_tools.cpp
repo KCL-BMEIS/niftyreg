@@ -1349,11 +1349,6 @@ void reg_tools_labelKernelConvolution_core(nifti_image *image,
       if(activeTimePoint[t])
       {
          DTYPE *intensityPtr = &imagePtr[t * voxelNumber];
-#if defined (_OPENMP)
-#pragma omp parallel for default(none) \
-   shared(stderr,intensityPtr, currentMask, nanImagePtr, voxelNumber,varianceX,varianceY,varianceZ) \
-   private(index)
-#endif
          for(index=0; index<voxelNumber; index++)
          {
             nanImagePtr[index] = (intensityPtr[index]==intensityPtr[index])?true:false;
@@ -1377,16 +1372,7 @@ void reg_tools_labelKernelConvolution_core(nifti_image *image,
          double maxval;
          DataPointMapIt location, currIterator;
          DataPointMap tmp_lab;
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-   shared(stderr,intensityPtr, mask, nanImagePtr,dim_array,shiftdirection,tmpImagePtr,gaussX_var,gaussY_var,gaussZ_var) \
-   private(currentXYZposition,index, \
-   kernelXsize, kernelXshift, shiftXstart, shiftXstop, \
-   kernelYsize, kernelYshift, shiftYstart, shiftYstop, \
-   kernelZsize, kernelZshift, shiftZstart, shiftZstop, \
-   shiftx, shifty, shiftz, indexNeighbour, kernelval, \
-   maxindex, maxval, location, currIterator, tmp_lab)
-#endif
+
          for(int currentZposition=0; currentZposition<dim_array[2]; currentZposition++)
          {
             currentXYZposition[2]=currentZposition;
@@ -1475,11 +1461,6 @@ void reg_tools_labelKernelConvolution_core(nifti_image *image,
             }
          }
          // Normalise per timepoint
-#if defined (_OPENMP)
-#pragma omp parallel for default(none) \
-   shared(voxelNumber, intensityPtr, nanImagePtr,tmpImagePtr) \
-   private(index)
-#endif
          for(index=0; index<voxelNumber; ++index)
          {
             if(nanImagePtr[index]==0)
