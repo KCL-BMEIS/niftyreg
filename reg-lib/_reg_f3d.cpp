@@ -145,8 +145,16 @@ T reg_f3d<T>::InitialiseCurrentLevel()
       maxStepSize = (this->currentReference->dz>maxStepSize)?this->currentReference->dz:maxStepSize;
 
    // Refine the control point grid if required
-   if(this->currentLevel!=0 && this->gridRefinement==true)
-      reg_spline_refineControlPointGrid(this->controlPointGrid,this->currentReference);
+   if(this->gridRefinement==true)
+   {
+      if(this->currentLevel==0)
+         this->bendingEnergyWeight = this->bendingEnergyWeight / static_cast<T>(powf(16.0f, this->levelToPerform-1));
+      else
+      {
+         reg_spline_refineControlPointGrid(this->controlPointGrid,this->currentReference);
+         this->bendingEnergyWeight = this->bendingEnergyWeight * static_cast<T>(16);
+      }
+   }
 
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::InitialiseCurrentLevel");

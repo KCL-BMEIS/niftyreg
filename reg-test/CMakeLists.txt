@@ -1,22 +1,5 @@
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
-	# Set the build name
-	unset(BUILDNAME CACHE)
-	set(CTEST_BUILD_NAME "${CMAKE_SYSTEM}_${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}_cmake-${CMAKE_VERSION}_${CMAKE_BUILD_TYPE}")
-	if(USE_SSE)
-		set(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}_sse")
-	endif(USE_SSE)
-	if(USE_OPENMP)
-		set(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}_openmp")
-	endif(USE_OPENMP)
-	if(USE_CUDA)
-		set(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}_cuda-${CUDA_VERSION}")
-	endif(USE_CUDA)
-	unset(BUILDNAME)
-	set(BUILDNAME ${CTEST_BUILD_NAME} CACHE STRING "Build name variable for CDash" FORCE)
-	mark_as_advanced(BUILDNAME)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
 	# Build the coverage test
 	option(WITH_COVERAGE "Set up the C, CXX and linker flags to run the coverage test" OFF)
 	if(WITH_COVERAGE)
@@ -37,6 +20,23 @@
 		configure_file(${CMAKE_SOURCE_DIR}/reg-test/CTestCustom.cmake.in
 									 ${CMAKE_BINARY_DIR}/CTestCustom.cmake)
 	endif(WITH_COVERAGE)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+	# Set the build name
+	unset(BUILDNAME CACHE)
+	set(CTEST_BUILD_NAME "${CMAKE_SYSTEM}_${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}_cmake-${CMAKE_VERSION}_${CMAKE_BUILD_TYPE}")
+	if(USE_SSE)
+		set(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}_sse")
+	endif(USE_SSE)
+	if(USE_OPENMP)
+		set(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}_openmp")
+	endif(USE_OPENMP)
+	if(USE_CUDA)
+		set(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}_cuda-${CUDA_VERSION}")
+	endif(USE_CUDA)
+	unset(BUILDNAME)
+	set(BUILDNAME ${CTEST_BUILD_NAME} CACHE STRING "Build name variable for CDash" FORCE)
+	mark_as_advanced(BUILDNAME)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 	# The test data are dowloaded
