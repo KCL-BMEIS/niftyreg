@@ -10,76 +10,60 @@
 #ifndef EIGEN_ALLANDANY_H
 #define EIGEN_ALLANDANY_H
 
-namespace Eigen
-{
+namespace Eigen { 
 
-namespace internal
-{
+namespace internal {
 
 template<typename Derived, int UnrollCount>
 struct all_unroller
 {
-   enum
-   {
-      col = (UnrollCount-1) / Derived::RowsAtCompileTime,
-      row = (UnrollCount-1) % Derived::RowsAtCompileTime
-   };
+  enum {
+    col = (UnrollCount-1) / Derived::RowsAtCompileTime,
+    row = (UnrollCount-1) % Derived::RowsAtCompileTime
+  };
 
-   static inline bool run(const Derived &mat)
-   {
-      return all_unroller<Derived, UnrollCount-1>::run(mat) && mat.coeff(row, col);
-   }
+  static inline bool run(const Derived &mat)
+  {
+    return all_unroller<Derived, UnrollCount-1>::run(mat) && mat.coeff(row, col);
+  }
 };
 
 template<typename Derived>
-struct all_unroller<Derived, 1>
+struct all_unroller<Derived, 0>
 {
-   static inline bool run(const Derived &mat)
-   {
-      return mat.coeff(0, 0);
-   }
+  static inline bool run(const Derived &/*mat*/) { return true; }
 };
 
 template<typename Derived>
 struct all_unroller<Derived, Dynamic>
 {
-   static inline bool run(const Derived &)
-   {
-      return false;
-   }
+  static inline bool run(const Derived &) { return false; }
 };
 
 template<typename Derived, int UnrollCount>
 struct any_unroller
 {
-   enum
-   {
-      col = (UnrollCount-1) / Derived::RowsAtCompileTime,
-      row = (UnrollCount-1) % Derived::RowsAtCompileTime
-   };
+  enum {
+    col = (UnrollCount-1) / Derived::RowsAtCompileTime,
+    row = (UnrollCount-1) % Derived::RowsAtCompileTime
+  };
 
-   static inline bool run(const Derived &mat)
-   {
-      return any_unroller<Derived, UnrollCount-1>::run(mat) || mat.coeff(row, col);
-   }
+  static inline bool run(const Derived &mat)
+  {
+    return any_unroller<Derived, UnrollCount-1>::run(mat) || mat.coeff(row, col);
+  }
 };
 
 template<typename Derived>
-struct any_unroller<Derived, 1>
+struct any_unroller<Derived, 0>
 {
-   static inline bool run(const Derived &mat)
-   {
-      return mat.coeff(0, 0);
-   }
+  static inline bool run(const Derived & /*mat*/) { return false; }
 };
 
 template<typename Derived>
 struct any_unroller<Derived, Dynamic>
 {
-   static inline bool run(const Derived &)
-   {
-      return false;
-   }
+  static inline bool run(const Derived &) { return false; }
 };
 
 } // end namespace internal
@@ -94,22 +78,21 @@ struct any_unroller<Derived, Dynamic>
 template<typename Derived>
 inline bool DenseBase<Derived>::all() const
 {
-   enum
-   {
-      unroll = SizeAtCompileTime != Dynamic
-               && CoeffReadCost != Dynamic
-               && NumTraits<Scalar>::AddCost != Dynamic
-               && SizeAtCompileTime * (CoeffReadCost + NumTraits<Scalar>::AddCost) <= EIGEN_UNROLLING_LIMIT
-   };
-   if(unroll)
-      return internal::all_unroller<Derived, unroll ? int(SizeAtCompileTime) : Dynamic>::run(derived());
-   else
-   {
-      for(Index j = 0; j < cols(); ++j)
-         for(Index i = 0; i < rows(); ++i)
-            if (!coeff(i, j)) return false;
-      return true;
-   }
+  enum {
+    unroll = SizeAtCompileTime != Dynamic
+          && CoeffReadCost != Dynamic
+          && NumTraits<Scalar>::AddCost != Dynamic
+          && SizeAtCompileTime * (CoeffReadCost + NumTraits<Scalar>::AddCost) <= EIGEN_UNROLLING_LIMIT
+  };
+  if(unroll)
+    return internal::all_unroller<Derived, unroll ? int(SizeAtCompileTime) : Dynamic>::run(derived());
+  else
+  {
+    for(Index j = 0; j < cols(); ++j)
+      for(Index i = 0; i < rows(); ++i)
+        if (!coeff(i, j)) return false;
+    return true;
+  }
 }
 
 /** \returns true if at least one coefficient is true
@@ -119,22 +102,21 @@ inline bool DenseBase<Derived>::all() const
 template<typename Derived>
 inline bool DenseBase<Derived>::any() const
 {
-   enum
-   {
-      unroll = SizeAtCompileTime != Dynamic
-               && CoeffReadCost != Dynamic
-               && NumTraits<Scalar>::AddCost != Dynamic
-               && SizeAtCompileTime * (CoeffReadCost + NumTraits<Scalar>::AddCost) <= EIGEN_UNROLLING_LIMIT
-   };
-   if(unroll)
-      return internal::any_unroller<Derived, unroll ? int(SizeAtCompileTime) : Dynamic>::run(derived());
-   else
-   {
-      for(Index j = 0; j < cols(); ++j)
-         for(Index i = 0; i < rows(); ++i)
-            if (coeff(i, j)) return true;
-      return false;
-   }
+  enum {
+    unroll = SizeAtCompileTime != Dynamic
+          && CoeffReadCost != Dynamic
+          && NumTraits<Scalar>::AddCost != Dynamic
+          && SizeAtCompileTime * (CoeffReadCost + NumTraits<Scalar>::AddCost) <= EIGEN_UNROLLING_LIMIT
+  };
+  if(unroll)
+    return internal::any_unroller<Derived, unroll ? int(SizeAtCompileTime) : Dynamic>::run(derived());
+  else
+  {
+    for(Index j = 0; j < cols(); ++j)
+      for(Index i = 0; i < rows(); ++i)
+        if (coeff(i, j)) return true;
+    return false;
+  }
 }
 
 /** \returns the number of coefficients which evaluate to true
@@ -144,7 +126,7 @@ inline bool DenseBase<Derived>::any() const
 template<typename Derived>
 inline typename DenseBase<Derived>::Index DenseBase<Derived>::count() const
 {
-   return derived().template cast<bool>().template cast<Index>().sum();
+  return derived().template cast<bool>().template cast<Index>().sum();
 }
 
 /** \returns true is \c *this contains at least one Not A Number (NaN).
@@ -154,7 +136,7 @@ inline typename DenseBase<Derived>::Index DenseBase<Derived>::count() const
 template<typename Derived>
 inline bool DenseBase<Derived>::hasNaN() const
 {
-   return !((derived().array()==derived().array()).all());
+  return !((derived().array()==derived().array()).all());
 }
 
 /** \returns true if \c *this contains only finite numbers, i.e., no NaN and no +/-INF values.
@@ -164,9 +146,9 @@ inline bool DenseBase<Derived>::hasNaN() const
 template<typename Derived>
 inline bool DenseBase<Derived>::allFinite() const
 {
-   return !((derived()-derived()).hasNaN());
+  return !((derived()-derived()).hasNaN());
 }
-
+    
 } // end namespace Eigen
 
 #endif // EIGEN_ALLANDANY_H
