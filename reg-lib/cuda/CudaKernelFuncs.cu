@@ -5,7 +5,7 @@
 #include"_reg_blocksize_gpu.h"
 #include"_reg_resampling.h"
 #include"_reg_maths.h"
-#include "cudaKernelFuncs.h"
+#include "CudaKernelFuncs.h"
 #include "_reg_common_gpu.h"
 #include"_reg_tools.h"
 #include"_reg_ReadWriteImage.h"
@@ -17,7 +17,6 @@ unsigned int min1(unsigned int a, unsigned int b) {
 }
 
 __device__ __constant__ float cIdentity[16];
-void runKernel(nifti_image *floatingImage, nifti_image *warpedImage, nifti_image *deformationFieldImage, int *mask, int interp, float paddingValue, int *dtiIndeces, mat33 * jacMat);
 
 __device__ __inline__ void reg_mat44_expm_cuda(float* mat) {
 	//todo 

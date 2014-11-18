@@ -1,14 +1,6 @@
 #pragma once
-#include "kernels.h"
+#include "Kernels.h"
 #include"Context.h"
-
-
-
-class CPUAffineDeformationFieldKernel;
-class CPUBlockMatchingKernel;
-class CPUConvolutionKernel;
-class CPUOptimiseKernel;
-class CPUResampleImageKernel;
 
 
 //Kernel functions for affine deformation field 

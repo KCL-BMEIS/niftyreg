@@ -3,7 +3,7 @@
 #include "_reg_tools.h"
 
 #include"Kernel.h"
-#include"kernels.h"
+#include"Kernels.h"
 #include "CudaPlatform.h"
 #include "CudaContext.h"
 

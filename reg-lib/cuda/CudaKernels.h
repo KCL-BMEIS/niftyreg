@@ -1,28 +1,19 @@
 #pragma once
-#include "kernels.h"
-#include "Context.h"
+#include "Kernels.h"
 #include "CudaContext.h"
-
-
-class CudaAffineDeformationFieldKernel;
-class CudaBlockMatchingKernel;
-class CudaConvolutionKernel;
-class CudaResampleImageKernel;
-
 
 //Kernel functions for affine deformation field 
 class CudaAffineDeformationFieldKernel : public AffineDeformationFieldKernel {
 public:
 	CudaAffineDeformationFieldKernel(Context* conIn, std::string nameIn) : AffineDeformationFieldKernel(nameIn){
 		con = ((CudaContext*)conIn);
-		this->deformationFieldImage = con->getCurrentDeformationField();
-		this->affineTransformation = con->getTransformationMatrix();
+		this->deformationFieldImage = con->CurrentDeformationField;
+		this->affineTransformation = con->transformationMatrix;
 
 		mask_d = con->getMask_d();
 		deformationFieldArray_d = con->getDeformationFieldArray_d();
 
 	}
-
 
 	void execute(bool compose = false);
 
@@ -38,11 +29,12 @@ public:
 class CudaBlockMatchingKernel : public BlockMatchingKernel {
 public:
 
+
 	CudaBlockMatchingKernel(Context* conIn, std::string name) : BlockMatchingKernel(name) {
-		target = conIn->getCurrentReference();
-		result = conIn->getCurrentWarped();
-		params = conIn->getBlockMatchingParams();
-		mask = conIn->getCurrentReferenceMask();
+		target = conIn->CurrentReference;
+		result = conIn->CurrentWarped;
+		params = conIn->blockMatchingParams;
+		mask = conIn->CurrentReferenceMask;
 
 		targetImageArray_d = ((CudaContext*)conIn)->getReferenceImageArray_d();
 		resultImageArray_d = ((CudaContext*)conIn)->getWarpedImageArray_d();
@@ -83,10 +75,13 @@ public:
 class CudaOptimiseKernel : public OptimiseKernel {
 public:
 
+
+
 	CudaOptimiseKernel(Context* conIn, std::string name) : OptimiseKernel(name) {
-		transformationMatrix = conIn->getTransformationMatrix();
-		blockMatchingParams = conIn->getBlockMatchingParams();
 		con = static_cast<CudaContext*>(conIn);
+		transformationMatrix = con->transformationMatrix;
+		blockMatchingParams = con->blockMatchingParams;
+
 	}
 	_reg_blockMatchingParam *blockMatchingParams;
 	mat44 *transformationMatrix;

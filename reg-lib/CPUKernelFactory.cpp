@@ -1,7 +1,5 @@
 #include "CPUKernelFactory.h"
-#include "KernelImpl.h"
 #include "CPUKernels.h"
-#include "Platform.h"
 #include "Context.h"
 
 Kernel* CPUKernelFactory::createKernel(std::string name,  Context* con) const {

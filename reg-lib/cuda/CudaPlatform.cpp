@@ -1,6 +1,6 @@
 #include "CudaPlatform.h"
 #include "CudaKernelFactory.h"
-#include "kernels.h"
+#include "Kernels.h"
 CudaPlatform::CudaPlatform() {
 
 	//register the necessary kernels for the platform 

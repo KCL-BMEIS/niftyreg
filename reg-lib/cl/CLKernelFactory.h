@@ -1,9 +1,6 @@
 #pragma once
 #include "KernelFactory.h"
 
-
-class Platform;
-class KernelImpl;
 class Context;
 class CLKernelFactory : public KernelFactory
 {

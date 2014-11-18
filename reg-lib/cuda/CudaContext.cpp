@@ -185,7 +185,7 @@ void CudaContext::downloadImage(  nifti_image* image, float* memoryObject, bool 
 		fillImageData<int>( static_cast<int*>(image->data), image->nvox, memoryObject, flag,datatype, message);
 		break;
 	default:
-		std::cout << "unsupported type" << std::endl;
+		std::cout << "unsupported type: "<< datatype<< std::endl;
 		break;
 	}
 }

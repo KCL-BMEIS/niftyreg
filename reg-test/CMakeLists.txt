@@ -139,6 +139,14 @@ if(USE_CUDA)
 endif(USE_CUDA)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
+if(USE_CUDA)
+  set(EXEC reg_test_fullAffine_cuda)
+  add_executable(${EXEC} ${EXEC}.cpp)
+  target_link_libraries(${EXEC} _reg_aladin)
+  #add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
+endif(USE_CUDA)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 set(EXEC reg_test_interpolation_cl)
 add_executable(${EXEC} ${EXEC}.cpp)
 target_link_libraries(${EXEC} _reg_aladin)

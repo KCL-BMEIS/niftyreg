@@ -5,10 +5,11 @@ IF (USE_OPENCL)
 	IF (OPENCL_FOUND)
 		set(NAME _reg_opencl_kernels)
 		ADD_LIBRARY(${NAME} ${NIFTYREG_LIBRARY_TYPE} 
+		CLContextSingletton.cpp
+		CLContext.cpp
 		CLKernelFactory.cpp
 		CLKernels.cpp
 		CLPlatform.cpp
-		CLContextSingletton.cpp
 		)
 		
 		target_link_libraries(${NAME} ${OPENCL_LIBRARIES} )
@@ -21,7 +22,7 @@ IF (USE_OPENCL)
 			LIBRARY DESTINATION lib
 			ARCHIVE DESTINATION lib
 		)
-		install(FILES  CLPlatform.h CLKernelFactory.h CLKernels.h CLContextSingletton.h DESTINATION include)
+		install(FILES  CLContextSingletton.h CLContext.h CLKernelFactory.h CLKernels.h CLPlatform.h DESTINATION include)
 		install(FILES  resampleKernel.cl affineDeformationKernel.cl blockMatchingKernel.cl  DESTINATION include/cl)
 	ENDIF()
 ENDIF()

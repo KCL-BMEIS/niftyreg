@@ -2,13 +2,12 @@
 #define KERNELS_H_
 
 #include <iosfwd>
-#include <set>
 #include <string>
 #include <vector>
 
 #include "Kernel.h"
 #include "nifti1_io.h"
-#include "_reg_blockMatching.h"//temporarily
+
 
 class AffineDeformationFieldKernel : public Kernel {
 public:

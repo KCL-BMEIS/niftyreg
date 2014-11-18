@@ -426,8 +426,8 @@ floatingIJKMatrix, floatingImage, paddingValue, kernel_size, kernel_offset, kern
 					intensity += yTempNewValue * zBasis[c];
 				}
 			}
-			if (index < 100)
-				printf("idx: %d | intensity %f\n", index, intensity);
+			/*if (index < 100)
+				printf("idx: %d | intensity %f\n", index, intensity);*/
 			switch (floatingImage->datatype) {
 			case NIFTI_TYPE_FLOAT32:
 				warpedIntensity[index] = static_cast<FloatingTYPE>(intensity);

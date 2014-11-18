@@ -4,7 +4,7 @@
 #include "CPUPlatform.h"
 #include "CLPlatform.h"
 #include "CudaPlatform.h"
-#include "kernels.h"
+#include "Kernels.h"
 
 #include "_reg_ReadWriteImage.h"
 #include "config.h"
@@ -474,10 +474,10 @@ void reg_aladin<T>::initContext() {
 	else if (platformCode == 1) this->con = new CudaContext(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(float), this->BlockPercentage, InlierLts, this->BlockStepSize);
 	else this->con = new ClContext(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(float), this->BlockPercentage, InlierLts, this->BlockStepSize);
 
-	this->CurrentReference = con->getCurrentReference();
-	this->CurrentFloating = con->getCurrentFloating();
+	this->CurrentReference = con->CurrentReference;
+	this->CurrentFloating = con->CurrentFloating;
+	this->blockMatchingParams = con->blockMatchingParams;
 
-	this->blockMatchingParams = con->getBlockMatchingParams();
 	con->setTransformationMatrix(this->TransformationMatrix);
 
 }
@@ -645,13 +645,14 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 	else if (platformCode == 1) this->con = new CudaContext(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T)/*, 50, 50*/);
 	else this->con = new ClContext(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T)/*, 50, 50*/);
 
-	this->CurrentWarped = con->getCurrentWarped();
-	this->deformationFieldImage = con->getCurrentDeformationField();
+
 
 	con->setTransformationMatrix(this->TransformationMatrix);
 	reg_aladin<T>::createKernels();
 
 	reg_aladin<T>::GetWarpedImage(3); // cubic spline interpolation
+
+	this->CurrentWarped = con->getCurrentWarped(this->InputFloating->datatype);
 
 	nifti_image *resultImage = nifti_copy_nim_info(this->CurrentWarped);
 	resultImage->cal_min = this->InputFloating->cal_min;

@@ -14,7 +14,6 @@ class Context;
 class  Platform {
 public:
 	Platform();
-	void shout();
 	Kernel* createKernel(const std::string& name, Context* con) const;
 	void registerKernelFactory(const std::string& name, KernelFactory* factory);
 

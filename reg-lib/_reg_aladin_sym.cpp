@@ -273,7 +273,10 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
 
 template <class T>
 void reg_aladin_sym<T>::initContext() {
+
+
 	reg_aladin<T>::initContext();
+
 
 	if (this->platformCode == 0)
 	this->backCon = new Context(this->FloatingPyramid[this->CurrentLevel], this->ReferencePyramid[this->CurrentLevel], this->FloatingMaskPyramid[this->CurrentLevel], sizeof(T), this->BlockPercentage, this->InlierLts, this->BlockStepSize);
@@ -283,9 +286,10 @@ void reg_aladin_sym<T>::initContext() {
 	this->backCon = new Context(this->FloatingPyramid[this->CurrentLevel], this->ReferencePyramid[this->CurrentLevel], this->FloatingMaskPyramid[this->CurrentLevel], sizeof(T), this->BlockPercentage, this->InlierLts, this->BlockStepSize);
 
 	this->backCon->setTransformationMatrix(this->BackwardTransformationMatrix);
-	this->BackwardBlockMatchingParams = this->backCon->getBlockMatchingParams();
-	this->CurrentBackwardWarped = this->backCon->getCurrentWarped();
-	this->BackwardDeformationFieldImage = this->backCon->getCurrentDeformationField();
+
+	this->BackwardBlockMatchingParams = this->backCon->blockMatchingParams;
+	this->CurrentBackwardWarped = this->backCon->CurrentWarped;
+	this->BackwardDeformationFieldImage = this->backCon->CurrentDeformationField;
 }
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

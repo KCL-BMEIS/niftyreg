@@ -1,5 +1,5 @@
 #include "CudaKernels.h"
-#include "cudaKernelFuncs.h"
+#include "CudaKernelFuncs.h"
 #include "_reg_tools.h"
 
 #include"_reg_resampling.h"

@@ -1,8 +1,6 @@
 #include "CLKernelFactory.h"
-#include "KernelImpl.h"
 #include "CLKernels.h"
-#include "Platform.h"
-#include "CLContext.h"
+#include "Context.h"
 
 Kernel* CLKernelFactory::createKernel(std::string name, Context* con) const {
 	//std::cout << "CL Factory called!" << std::endl;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "kernels.h"
+#include "Kernels.h"
 #include "CLContextSingletton.h"
 #include "CLContext.h"
 #include "config.h"

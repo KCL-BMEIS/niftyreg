@@ -1,6 +1,5 @@
 #include "Context.h"
-#include "kernels.h"
-#include "Platform.h"
+
 
 using namespace std;
 
@@ -21,11 +20,6 @@ Context::~Context() {
 	if (this->bm)
 		delete blockMatchingParams;
 
-}
-void Context::shout() {
-	//std::cout << "context listens" << std::endl;
-	Platform *platform = new Platform();
-	platform->shout();
 }
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

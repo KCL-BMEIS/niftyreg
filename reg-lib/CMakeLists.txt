@@ -1,12 +1,3 @@
-#ADD_SUBDIRECTORY(
-#	cpu
-#	factory
-#	cl
-#	cuda
-#	)
-
-
-
 ADD_SUBDIRECTORY(cl)
 ADD_SUBDIRECTORY(cuda)
 #-----------------------------------------------------------------------------
@@ -34,12 +25,12 @@ install(FILES _reg_maths.h DESTINATION include)
 #IF (USE_OPENCL)
 #	SET(ALADIN_LIBRARIES
 #		${ALADIN_LIBRARIES}
-#		aladin_openclkernels
+#		_reg_opencl_kernels
 #		)
 #ELSEIF(USE_CUDA)
 #	SET(ALADIN_LIBRARIES
 #		${ALADIN_LIBRARIES}
-#		aladin_cudakernels
+#		_reg_cuda_kernels
 #		)
 #ENDIF()
 #
@@ -153,7 +144,6 @@ if(USE_CUDA)
   install(FILES ${NAME}.h DESTINATION include)
   #-----------------------------------------------------------------------------
   set(LIST _reg_globalTransformation)
-  set(LIST ${LIST} _reg_blockMatching)
   set(LIST ${LIST} _reg_localTransformation)
   set(LIST ${LIST} _reg_nmi)
   set(LIST ${LIST} _reg_ssd)
@@ -286,18 +276,8 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	${NAME}_sym.h
 	${NAME}_sym.cpp
 	Context.cpp
-	CudaContext.cpp
-	CLContext.cpp
-	
 	Platform.cpp
-	Kernel.cpp
-	KernelImpl.cpp
-	
 	CPUPlatfom.cpp
-	
-	#Kernels.cpp
-	
-
 	CPUKernelFactory.cpp
 	CPUKernels.cpp
 
@@ -311,27 +291,13 @@ else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	${NAME}_sym.cpp
 	
 	Context.cpp
-	CudaContext.cpp
-	CLContext.cpp
-	
 	Platform.cpp
-	Kernel.cpp
-	
-	KernelImpl.cpp
-	
 	CPUPlatfom.cpp
-	
 	CPUKernelFactory.cpp
 	CPUKernels.cpp
-
-	#Kernels.cpp
 	
 	
 	)
-	#cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ConvolutionKernel.cu)
-	#target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY})
-	#target_link_libraries(${NAME} ${OPENCL_LIBRARIES} )
-	#configure_file(affineDeformationKernel.cl ${CMAKE_CURRENT_BINARY_DIR}/affineDeformationKernel.cl COPYONLY)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 target_link_libraries(${NAME}
@@ -352,7 +318,7 @@ install(TARGETS ${NAME}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   )
-install(FILES ${NAME}.h ${NAME}_sym.h ${NAME}.cpp ${NAME}_sym.cpp _reg_macros.h  CLContext.h CudaContext.h Context.h Platform.h  CPUPlatform.h Kernel.h KernelImpl.h KernelFactory.h  CPUKernelFactory.h kernels.h   CPUKernels.h   DESTINATION include)
+install(FILES ${NAME}.h ${NAME}_sym.h ${NAME}.cpp ${NAME}_sym.cpp _reg_macros.h  Context.h Platform.h  CPUPlatform.h Kernel.h KernelFactory.h  CPUKernelFactory.h Kernels.h   CPUKernels.h   DESTINATION include)
 
 #-----------------------------------------------------------------------------
 ## BUILD THE TPS LIBRARY CPU

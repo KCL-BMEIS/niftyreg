@@ -1,7 +1,6 @@
 #include "CudaKernelFactory.h"
-#include "KernelImpl.h"
 #include "CudaKernels.h"
-#include "Platform.h"
+#include "Context.h"
 
 Kernel* CudaKernelFactory::createKernel(std::string name,  Context* con) const {
 	//std::cout << "CUDA Factory called!" << std::endl;

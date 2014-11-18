@@ -1,8 +1,6 @@
 #ifndef KERNELFACTORY_H_
 #define KERNELFACTORY_H_
 
-
-#include "KernelImpl.h"
 #include "Context.h"
 
 class  KernelFactory {

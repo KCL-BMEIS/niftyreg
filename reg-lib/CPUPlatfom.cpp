@@ -1,6 +1,6 @@
 #include "CPUPlatform.h"
 #include "CPUKernelFactory.h"
-#include "kernels.h"
+#include "Kernels.h"
 CPUPlatform::CPUPlatform() {
 
 	//register the necessary kernels for the platform 

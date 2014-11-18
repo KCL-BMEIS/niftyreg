@@ -1,15 +1,12 @@
 #include"Kernel.h"
-#include"kernels.h"
-//#include"CudaKernels.h"
-//#include"CLKernels.h"
+#include"Kernels.h"
 #include "CPUPlatform.h"
 #include "CudaPlatform.h"
 #include "CLPlatform.h"
 #include "_reg_ReadWriteImage.h"
-#include"cuda_runtime.h"
 #include "Context.h"
 #include "CudaContext.h"
-#include <ctime>
+
 
 #define REF "/home/thanasis/Documents/mockRef.nii"
 #define FLO "/home/thanasis/Documents/mockFlo.nii"
