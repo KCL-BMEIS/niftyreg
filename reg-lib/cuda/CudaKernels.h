@@ -14,13 +14,13 @@ class CudaResampleImageKernel;
 class CudaAffineDeformationFieldKernel : public AffineDeformationFieldKernel {
 public:
 	CudaAffineDeformationFieldKernel(Context* conIn, std::string nameIn) : AffineDeformationFieldKernel(nameIn){
-		this->deformationFieldImage = conIn->getCurrentDeformationField();
-		this->affineTransformation = conIn->getTransformationMatrix();
-		this->mask = conIn->getCurrentReferenceMask();
-
-		mask_d = ((CudaContext*)conIn)->getMask_d();
-		deformationFieldArray_d = ((CudaContext*)conIn)->getDeformationFieldArray_d();
 		con = ((CudaContext*)conIn);
+		this->deformationFieldImage = con->getCurrentDeformationField();
+		this->affineTransformation = con->getTransformationMatrix();
+
+		mask_d = con->getMask_d();
+		deformationFieldArray_d = con->getDeformationFieldArray_d();
+
 	}
 
 
@@ -28,14 +28,10 @@ public:
 
 	mat44 *affineTransformation;
 	nifti_image *deformationFieldImage;
-	int* mask;
 
 	float *deformationFieldArray_d;
 	int* mask_d;
 	CudaContext* con;
-	/*template<class FieldTYPE> void runKernel3D(mat44 *affineTransformation, nifti_image *deformationField, bool compose, int *mask);
-	template <class FieldTYPE> void runKernel2D(mat44 *affineTransformation, nifti_image *deformationFieldImage, bool compose, int *mask);*/
-
 
 };
 //Kernel functions for block matching
@@ -102,17 +98,20 @@ public:
 class CudaResampleImageKernel : public ResampleImageKernel {
 public:
 	CudaResampleImageKernel(Context* conIn, std::string name) : ResampleImageKernel(name) {
-		floatingImage = conIn->getCurrentFloating();
-		warpedImage = conIn->getCurrentWarped();
-		deformationField = conIn->getCurrentDeformationField();
-		mask = conIn->getCurrentReferenceMask();
 
-		floatingImageArray_d = ((CudaContext*)conIn)->getFloatingImageArray_d();
-		warpedImageArray_d = ((CudaContext*)conIn)->getWarpedImageArray_d();
-		deformationFieldImageArray_d = ((CudaContext*)conIn)->getDeformationFieldArray_d();
-		mask_d = ((CudaContext*)conIn)->getMask_d();
+		floatingImage = conIn->CurrentFloating;
+		warpedImage = conIn->CurrentWarped;
+		deformationField = conIn->CurrentDeformationField;
+		mask = conIn->CurrentReferenceMask;
 
 		con = static_cast<CudaContext*>(conIn);
+
+		floatingImageArray_d = con->getFloatingImageArray_d();
+		warpedImageArray_d = con->getWarpedImageArray_d();
+		deformationFieldImageArray_d = con->getDeformationFieldArray_d();
+		mask_d = con->getMask_d();
+
+
 	}
 	nifti_image *floatingImage;
 	nifti_image *warpedImage;

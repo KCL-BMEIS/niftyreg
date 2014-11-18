@@ -20,7 +20,6 @@ void CudaAffineDeformationFieldKernel::execute(  bool compose ) {
 }
 
 void CudaResampleImageKernel::execute( int interp, float paddingValue, bool *dti_timepoint , mat33 * jacMat ) {
-
 	launchResample(floatingImage, warpedImage,  mask, interp, paddingValue, dti_timepoint, jacMat, &floatingImageArray_d, &warpedImageArray_d, &deformationFieldImageArray_d, &mask_d);
 
 }

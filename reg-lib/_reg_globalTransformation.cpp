@@ -94,17 +94,6 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
 		transformationMatrix = *affineTransformation;
 	else transformationMatrix = reg_mat44_mul(affineTransformation, targetMatrix);
 
-   mat44 *targetMatrix;
-   if(deformationFieldImage->sform_code>0)
-   {
-      targetMatrix=&(deformationFieldImage->sto_xyz);
-   }
-   else targetMatrix=&(deformationFieldImage->qto_xyz);
-
-   mat44 transformationMatrix;
-   if(composition==true)
-      transformationMatrix = *affineTransformation;
-   else transformationMatrix = reg_mat44_mul(affineTransformation, targetMatrix);
 
    float voxel[3], position[3];
    int x, y, z;

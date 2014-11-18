@@ -33,7 +33,7 @@ int main(int argc, char **argv)
    char *inputDefImageName=argv[3];
 
    // Read the input reference image
-   nifti_image *referenceImage = reg_io_ReadImageHeader(inputRefImageName);
+   nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
    if(referenceImage==NULL){
       reg_print_msg_error("The input reference image could not be read");
       return EXIT_FAILURE;
@@ -61,12 +61,13 @@ int main(int argc, char **argv)
    test_field->data=(void *)malloc(test_field->nvox*test_field->nbyper);
 
    // Compute the affine deformation field
-   Context *con = new CudaContext(referenceImage, NULL, NULL, sizeof(float)); std::cout<<"1"<<std::endl;
-   con->setTransformationMatrix(inputMatrix); std::cout<<"2"<<std::endl;
-   con->setCurrentDeformationField(test_field); std::cout<<"3"<<std::endl;
-   test(con); std::cout<<"4"<<std::endl;
-   test_field = con->getCurrentDeformationField(); std::cout<<"5"<<std::endl;
-   std::cout<<"6"<<std::endl;
+   reg_tools_changeDatatype<float>(referenceImage);
+   int* tempMask = (int *) calloc(referenceImage->nvox, sizeof(int));
+   Context *con = new CudaContext(referenceImage, NULL, tempMask, sizeof(float));
+   con->setTransformationMatrix(inputMatrix);
+   con->setCurrentDeformationField(test_field);
+   test(con);
+   test_field = con->getCurrentDeformationField();
    // Compute the difference between the computed and inputed deformation field
    reg_tools_substractImageToImage(inputDeformationField,test_field,test_field);
    reg_tools_abs_image(test_field);
@@ -74,9 +75,10 @@ int main(int argc, char **argv)
 
    nifti_image_free(referenceImage);
    nifti_image_free(inputDeformationField);
-   std::cout<<"7"<<std::endl;
+
    delete con;
    free(inputMatrix);
+   free(tempMask);
 
    if(max_difference>EPS){
       fprintf(stderr, "reg_test_affine_deformation_field error too large: %g (>%g)\n",

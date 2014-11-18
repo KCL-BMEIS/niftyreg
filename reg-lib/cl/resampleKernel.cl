@@ -1,4 +1,5 @@
 
+
 //for now no templates opencl 2. supports them!
 __inline void interpolantCubicSpline(float ratio, float *basis) {
 	if (ratio < 0.0f) ratio = 0.0f; //reg_rounding error
@@ -125,8 +126,135 @@ __kernel void  CubicSplineResampleImage3D(__global float* floatingImage, __globa
 	index += get_num_groups(0)*get_local_size(0);
 	}
 }
+__kernel void TrilinearResampleImage(__global float *floatingImage,__global float *deformationField,__global float *warpedImage,__global int *mask,__global float* sourceIJKMatrix, ulong2 voxelNumber, uint3 fi_xyz, uint2 wi_tu, float paddingValue) {
 
-__kernel void TrilinearResampleImage(__global float* floatingImage, __global float* deformationField, __global float* warpedImage, __global int* mask, __global /*mat44*/float* sourceIJKMatrix, long2 voxelNumber, uint3 fi_xyz, uint2 wi_tu, float paddingValue) {
+	//targetVoxelNumber voxelNumber.x
+	// sourceVoxelNumber voxelNumber.y
+
+	//intensity images
+	__global float *sourceIntensityPtr = (floatingImage);	//best to be a texture
+	__global float *resultIntensityPtr = (warpedImage);
+
+	//deformation field image
+	__global float *deformationFieldPtrX = (deformationField);
+	__global float *deformationFieldPtrY = &deformationFieldPtrX[voxelNumber.x];
+	__global float *deformationFieldPtrZ = &deformationFieldPtrY[voxelNumber.x];
+
+
+	// The resampling scheme is applied along each time
+
+	__private long index = get_group_id(0)*get_local_size(0) + get_local_id(0);
+	while (index < voxelNumber.x) {
+		for (unsigned int t = 0; t < wi_tu.x * wi_tu.y; t++) {
+
+			__global float *resultIntensity = &resultIntensityPtr[t * voxelNumber.x];
+			__global float *sourceIntensity = &sourceIntensityPtr[t * voxelNumber.y];
+
+			float xBasis[2], yBasis[2], zBasis[2], relative;
+			int a, b, c, X, Y, Z, previous[3];
+
+			__global float *zPointer, *xyzPointer;
+			float xTempNewValue, yTempNewValue, intensity, world[3], position[3];
+
+			//for( index = 0; index<targetVoxelNumber; index++ ) {
+
+			intensity = paddingValue;
+
+			if (mask[index] > -1) {
+				intensity = 0.0f;
+
+				world[0] = deformationFieldPtrX[index];
+				world[1] = deformationFieldPtrY[index];
+				world[2] = deformationFieldPtrZ[index];
+
+				/* real -> voxel; source space */
+				reg_mat44_mul_cl(sourceIJKMatrix, world, position);
+
+				previous[0] = cl_reg_floor(position[0]);
+				previous[1] = cl_reg_floor(position[1]);
+				previous[2] = cl_reg_floor(position[2]);
+
+				// basis values along the x axis
+				relative = position[0] - previous[0];
+				xBasis[0] = (1.0f - relative);
+				xBasis[1] = relative;
+				// basis values along the y axis
+				relative = position[1] - previous[1];
+				yBasis[0] = (1.0f - relative);
+				yBasis[1] = relative;
+				// basis values along the z axis
+				relative = position[2] - previous[2];
+				zBasis[0] = (1.0f - relative);
+				zBasis[1] = relative;
+
+				// For efficiency reason two interpolation are here, with and without using a padding value
+				if (paddingValue == paddingValue) {
+					// Interpolation using the padding value
+					for (c = 0; c < 2; c++) {
+						Z = previous[2] + c;
+						if (Z > -1 && Z < fi_xyz.z) {
+							zPointer = &sourceIntensity[Z * fi_xyz.x * fi_xyz.y];
+							yTempNewValue = 0.0f;
+							for (b = 0; b < 2; b++) {
+								Y = previous[1] + b;
+								if (Y > -1 && Y < fi_xyz.y) {
+
+									xTempNewValue = 0.0f;
+									for (a = 0; a < 2; a++) {
+										X = previous[0] + a;
+										if (X > -1 && X < fi_xyz.x) {
+											xyzPointer = &zPointer[Y * fi_xyz.x + X];
+											xTempNewValue += *xyzPointer * xBasis[a];
+										} // X
+										else
+											xTempNewValue += paddingValue * xBasis[a];
+//										xyzPointer++;
+									} // a
+									yTempNewValue += xTempNewValue * yBasis[b];
+								} // Y
+								else
+									yTempNewValue += paddingValue * yBasis[b];
+							} // b
+							intensity += yTempNewValue * zBasis[c];
+						} // Z
+						else
+							intensity += paddingValue * zBasis[c];
+					} // c
+				} // padding value is defined
+				else if (previous[0] >= 0.f && previous[0] < (fi_xyz.x - 1) && previous[1] >= 0.f && previous[1] < (fi_xyz.y - 1) && previous[2] >= 0.f && previous[2] < (fi_xyz.z - 1)) {
+					for (c = 0; c < 2; c++) {
+						Z = previous[2] + c;
+						zPointer = &sourceIntensity[Z * fi_xyz.x * fi_xyz.y];
+						yTempNewValue = 0.0f;
+						for (b = 0; b < 2; b++) {
+							Y = previous[1] + b;
+							xyzPointer = &zPointer[Y * fi_xyz.x + previous[0]];
+							xTempNewValue = 0.0f;
+							for (a = 0; a < 2; a++) {
+								X = previous[0] + a;
+								xTempNewValue += *xyzPointer * xBasis[a];
+								xyzPointer++;
+							} // a
+							yTempNewValue += xTempNewValue * yBasis[b];
+						} // b
+						intensity += yTempNewValue * zBasis[c];
+					} // c
+				} // padding value is not defined
+				  // The voxel is outside of the source space and thus set to NaN here
+				else
+					intensity = paddingValue;
+			} // voxel is in the mask
+
+			resultIntensity[index] = intensity;
+
+			//}
+		}
+		index += get_num_groups(0)*get_local_size(0);
+	}
+
+}
+
+__kernel void TrilinearResampleImage2(__global float* floatingImage, __global float* deformationField, __global float* warpedImage, __global int* mask, __global float* sourceIJKMatrix, long2 voxelNumber, uint3 fi_xyz, uint2 wi_tu, float paddingValue) {
 
 	//if( get_local_id(0) == 0 ) printf("block: %zu \n", get_group_id(0));
 
@@ -164,8 +292,7 @@ __kernel void TrilinearResampleImage(__global float* floatingImage, __global flo
 
 			intensity = paddingValue;
 
-			if (maskPtr[index]>-1) {
-
+			if (maskPtr[index] > -1) {
 				intensity = 0;
 
 				world[0] = deformationFieldPtrX[index];
@@ -193,46 +320,48 @@ __kernel void TrilinearResampleImage(__global float* floatingImage, __global flo
 				zBasis[1] = relative;
 
 				// For efficiency reason two interpolation are here, with and without using a padding value
-				if (paddingValue==paddingValue) {
+				if (paddingValue == paddingValue) {
 					// Interpolation using the padding value
-					for (c = 0; c<2; c++) {
+					for (c = 0; c < 2; c++) {
 						Z = previous[2] + c;
-						if (Z>-1 && Z < fi_xyz.z) {
-							zPointer = &sourceIntensity[Z*fi_xyz.x*fi_xyz.y];
+						if (Z > -1 && Z < fi_xyz.z) {
+							zPointer = &sourceIntensity[Z * fi_xyz.x * fi_xyz.y];
 							yTempNewValue = 0.0;
-							for (b = 0; b<2; b++) {
+							for (b = 0; b < 2; b++) {
 								Y = previous[1] + b;
-								if (Y>-1 && Y < fi_xyz.y) {
-									xyzPointer = &zPointer[Y*fi_xyz.x + previous[0]];
-									xTempNewValue = 0.0;
-									for (a = 0; a<2; a++) {
+								if (Y > -1 && Y < fi_xyz.y) {
+
+									xTempNewValue = 0.0f;
+									for (a = 0; a < 2; a++) {
 										X = previous[0] + a;
-										if (X>-1 && X < fi_xyz.x) {
+										if (X > -1 && X < fi_xyz.x) {
+											xyzPointer = &zPointer[Y * fi_xyz.x + X];
 											xTempNewValue += *xyzPointer * xBasis[a];
 										} // X
-										else xTempNewValue += paddingValue * xBasis[a];
-										xyzPointer++;
+										else
+											xTempNewValue += paddingValue * xBasis[a];
+//										xyzPointer++;
 									} // a
 									yTempNewValue += xTempNewValue * yBasis[b];
 								} // Y
-								else yTempNewValue += paddingValue * yBasis[b];
+								else
+									yTempNewValue += paddingValue * yBasis[b];
 							} // b
 							intensity += yTempNewValue * zBasis[c];
 						} // Z
-						else intensity += paddingValue * zBasis[c];
+						else
+							intensity += paddingValue * zBasis[c];
 					} // c
 				} // padding value is defined
-				else if (previous[0] >= 0.f && previous[0] < (fi_xyz.x - 1) &&
-					previous[1] >= 0.f && previous[1] < (fi_xyz.y - 1) &&
-					previous[2] >= 0.f && previous[2] < (fi_xyz.z - 1)) {
+				else if (previous[0] >= 0.f && previous[0] < (fi_xyz.x - 1) && previous[1] >= 0.f && previous[1] < (fi_xyz.y - 1) && previous[2] >= 0.f && previous[2] < (fi_xyz.z - 1)) {
 					for (c = 0; c < 2; c++) {
 						Z = previous[2] + c;
-						zPointer = &sourceIntensity[Z*fi_xyz.x*fi_xyz.y];
-						yTempNewValue = 0.0;
+						zPointer = &sourceIntensity[Z * fi_xyz.x * fi_xyz.y];
+						yTempNewValue = 0.0f;
 						for (b = 0; b < 2; b++) {
 							Y = previous[1] + b;
-							xyzPointer = &zPointer[Y*fi_xyz.x + previous[0]];
-							xTempNewValue = 0.0;
+							xyzPointer = &zPointer[Y * fi_xyz.x + previous[0]];
+							xTempNewValue = 0.0f;
 							for (a = 0; a < 2; a++) {
 								X = previous[0] + a;
 								xTempNewValue += *xyzPointer * xBasis[a];
@@ -243,12 +372,12 @@ __kernel void TrilinearResampleImage(__global float* floatingImage, __global flo
 						intensity += yTempNewValue * zBasis[c];
 					} // c
 				} // padding value is not defined
-				// The voxel is outside of the source space and thus set to NaN here
-				else intensity = paddingValue;
+				  // The voxel is outside of the source space and thus set to NaN here
+				else
+					intensity = paddingValue;
 			} // voxel is in the mask
 
 			resultIntensity[index] = intensity;
-
 			//}
 		}
 		index += get_num_groups(0)*get_local_size(0);

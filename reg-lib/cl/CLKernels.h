@@ -38,11 +38,13 @@ public:
 		commandQueue = sContext->getCommandQueue();
 		// Create OpenCL kernel
 		kernel = clCreateKernel(program, "affineKernel", NULL);
-		clDeformationField = con->getDeformationFieldArray_d();
+		clDeformationField = con->getDeformationFieldArrayClmem();
 	}
 	virtual ~CLAffineDeformationFieldKernel() {
 		if (kernel != 0)
 			clReleaseKernel(kernel);
+		if (mask == NULL)
+			free(tempMask);
 	}
 
 	void execute(bool compose = false);
@@ -123,12 +125,16 @@ public:
 	CLResampleImageKernel(Context* conIn, std::string name) :
 			ResampleImageKernel(name) {
 
+		clCurrentFloating = 0;
+		clCurrentDeformationField = 0;
+		clCurrentWarped = 0;
+		clMask = 0;
+
 		con = (ClContext*) conIn;
 		sContext = &CLContextSingletton::Instance();
 
 		floatingImage = con->CurrentFloating;
 		warpedImage = con->CurrentWarped;
-		deformationField = con->CurrentDeformationField;
 		mask = con->getCurrentReferenceMask();
 
 		std::string clInstallPath(CL_KERNELS_PATH);
@@ -139,9 +145,9 @@ public:
 		commandQueue = sContext->getCommandQueue();
 
 		kernel = 0;
-		clCurrentFloating = con->getFloatingImageArray_d();
-		clCurrentDeformationField = con->getDeformationFieldArray_d();
-		clCurrentWarped = con->getWarpedImageArray_d();
+		clCurrentFloating = con->getFloatingImageArrayClmem();
+		clCurrentDeformationField = con->getDeformationFieldArrayClmem();
+		clCurrentWarped = con->getWarpedImageClmem();
 
 		// a mask array is created if no mask is specified
 		bool MrPropreRules = false;
@@ -149,11 +155,11 @@ public:
 			cl_int errNum;
 			// voxels in the backgreg_round are set to -1 so 0 will do the job here
 			mask = (int *) calloc(warpedImage->nx * warpedImage->ny * warpedImage->nz, sizeof(int));
-			clMask = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, con->CurrentFloating->nvox * sizeof(int), mask, &errNum);
+			clMask = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, warpedImage->nx * warpedImage->ny * warpedImage->nz * sizeof(int), mask, &errNum);
 			sContext->checkErrNum(errNum, "failed CurrentReferenceMask: ");
 			MrPropreRules = true;
 		} else
-			clMask = con->getMask_d();
+			clMask = con->getMaskClmem();
 
 	}
 
@@ -167,7 +173,6 @@ public:
 	bool MrPropreRules;
 	nifti_image *floatingImage;
 	nifti_image *warpedImage;
-	nifti_image *deformationField;
 	int *mask;
 	CLContextSingletton* sContext;
 

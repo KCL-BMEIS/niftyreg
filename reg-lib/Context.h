@@ -64,7 +64,7 @@ public:
 	nifti_image* getCurrentFloating(){
 		return  this->CurrentFloating;
 	}
-	virtual nifti_image* getCurrentWarped(){
+	virtual nifti_image* getCurrentWarped(int datatype=0){
 		return CurrentWarped;
 	}
 	int* getCurrentReferenceMask(){
@@ -94,6 +94,7 @@ public:
 		//nifti_image_free(CurrentWarped);
 		CurrentWarped = CurrentWarpedImageIn;
 	}
+	virtual void setCurrentReferenceMask(int* maskIn, size_t nvox){}
 
 	//private:
 	nifti_image* CurrentDeformationField;

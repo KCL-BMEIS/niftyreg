@@ -56,8 +56,7 @@ void CLAffineDeformationFieldKernel::execute(bool compose) {
 	clFinish(commandQueue);
 	sContext->checkErrNum(errNum, "Error reading result buffer.");
 
-	if (mask == NULL)
-		free(tempMask);
+
 	return;
 }
 
@@ -87,8 +86,7 @@ void CLResampleImageKernel::execute(int interp, float paddingValue, bool *dti_ti
 		}
 	}
 
-
-	const unsigned int numMemObjects = 5;
+	//TODO Pre-processing kernel
 
 	// Create OpenCL kernel
 	if (interp == 3)
@@ -99,10 +97,8 @@ void CLResampleImageKernel::execute(int interp, float paddingValue, bool *dti_ti
 		kernel = clCreateKernel(program, "TrilinearResampleImage", NULL);
 	if (kernel == NULL) {
 		std::cerr << "Failed to create kernel" << std::endl;
-//		sContext->Cleanup(program, kernel, memObjects, numMemObjects);
 		return;
 	}
-//	cl_mem memObjects[numMemObjects] = { 0, 0, 0, 0, 0 };
 
 	long targetVoxelNumber = (long) warpedImage->nx * warpedImage->ny * warpedImage->nz;
 	const unsigned int maxThreads = sContext->getMaxThreads();
@@ -112,16 +108,11 @@ void CLResampleImageKernel::execute(int interp, float paddingValue, bool *dti_ti
 	blocks = min_cl(blocks, maxBlocks);
 
 	const cl_uint dims = 1;
-
 	const size_t globalWorkSize[dims] = { blocks * maxThreads };
 	const size_t localWorkSize[dims] = { maxThreads };
 
-	// The floating image data is copied in case one deal with DTI
-	/*void *originalFloatingData = NULL;
-	originalFloatingData = (void *) malloc(floatingImage->nvox * sizeof(float));
-	memcpy(originalFloatingData, floatingImage->data, floatingImage->nvox * sizeof(float));*/
 
-	int numMats = 0;
+	int numMats = 0;//needs to be a parameter
 
 	float *sourceIJKMatrix_h = (float*) malloc(16 * sizeof(float));
 	float* jacMat_h = (float*) malloc(9 * numMats * sizeof(float));
@@ -138,12 +129,13 @@ void CLResampleImageKernel::execute(int interp, float paddingValue, bool *dti_ti
 		mat33ToCptr(jacMat, jacMat_h, numMats);
 
 	cl_mem clIjkMat = clCreateBuffer(clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 16 * sizeof(float), sourceIJKMatrix, &errNum);
-	sContext->checkErrNum(errNum, "failed memObj4: ");
+	sContext->checkErrNum(errNum, "failed clIjkMat: ");
 
-	errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), &clCurrentFloating);
-	errNum |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &clCurrentDeformationField);
-	errNum |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &clCurrentWarped);
-	errNum |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &clMask);
+
+	errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), &this->clCurrentFloating);
+	errNum |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &this->clCurrentDeformationField);
+	errNum |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &this->clCurrentWarped);
+	errNum |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &this->clMask);
 	errNum |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &clIjkMat);
 	errNum |= clSetKernelArg(kernel, 5, sizeof(cl_long2), &voxelNumber);
 
@@ -156,18 +148,9 @@ void CLResampleImageKernel::execute(int interp, float paddingValue, bool *dti_ti
 	sContext->checkErrNum(errNum, "Error queuing kernel for execution: ");
 
 	clFinish(commandQueue);
-	sContext->checkErrNum(errNum, "Error reading result buffer.");
 
-	// The temporary logged floating array is deleted
-	/*if (originalFloatingData != NULL) {
-		free(floatingImage->data);
-		floatingImage->data = originalFloatingData;
-		originalFloatingData = NULL;
-	}*/
-	// The interpolated tensors are reoriented and exponentiated
-	//reg_dti_resampling_postprocessing<float> << <mygrid, myblocks >> >(warpedImage_d, NULL, mask_d, jacMat_d, dtiIndeces_d, fi_xyz, wi_tu);
-//	reg_dti_resampling_postprocessing<float>(warpedImage, mask, jacMat, dtiIndeces);
 
+	//TODO Post-processing kernel
 
 }
 

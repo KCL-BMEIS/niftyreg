@@ -1,28 +1,27 @@
 #pragma once
 #include "Context.h"
 
-class CudaContext : public Context 
-{
+class CudaContext: public Context {
 
 public:
-	CudaContext(){
+	CudaContext() {
 		//std::cout << "Cuda context constructor called(empty)" << std::endl;
 
 		initVars();
 		allocateCuPtrs();
 		uploadContext();
 	}
-	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int  inlierLts, int blockStep) :Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte, blockPercentage, inlierLts, blockStep){
+	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep) :
+			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte, blockPercentage, inlierLts, blockStep) {
 		//std::cout << "Cuda context constructor called: " <<bm<< std::endl;
 		initVars();
 		allocateCuPtrs();
 		uploadContext();
 
-
 	}
-	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte) :Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte){
+	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte) :
+			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte) {
 		std::cout << "cuda (small) context constructor called3" << std::endl;
-
 		initVars();
 		allocateCuPtrs();
 		uploadContext();
@@ -30,62 +29,56 @@ public:
 	}
 	~CudaContext();
 
-
-	float* getReferenceImageArray_d(){
+	float* getReferenceImageArray_d() {
 		return referenceImageArray_d;
 	}
-	float* getFloatingImageArray_d(){
+	float* getFloatingImageArray_d() {
 		return floatingImageArray_d;
 	}
-	float* getWarpedImageArray_d(){
+	float* getWarpedImageArray_d() {
 		return warpedImageArray_d;
 	}
 
-	float* getTargetPosition_d(){
+	float* getTargetPosition_d() {
 		return targetPosition_d;
 	}
-	float* getResultPosition_d(){
+	float* getResultPosition_d() {
 		return resultPosition_d;
 	}
-	float* getDeformationFieldArray_d(){
+	float* getDeformationFieldArray_d() {
 		return deformationFieldArray_d;
 	}
-	int* getActiveBlock_d(){
+	int* getActiveBlock_d() {
 		return activeBlock_d;
 	}
-	int* getMask_d(){
+	int* getMask_d() {
 		return mask_d;
 	}
 
-
-	int* getReferenceDims(){
+	int* getReferenceDims() {
 		return referenceDims;
 	}
-	int* getFloatingDims(){
+	int* getFloatingDims() {
 		return floatingDims;
 	}
-
 
 	void downloadFromCudaContext();
 
 	_reg_blockMatchingParam* getBlockMatchingParams();
 	nifti_image* getCurrentDeformationField();
-	nifti_image* getCurrentWarped();
-
-
+	nifti_image* getCurrentWarped(int typ);
 
 	void setTransformationMatrix(mat44* transformationMatrixIn);
 	void setCurrentWarped(nifti_image* warpedImageIn);
 	void setCurrentDeformationField(nifti_image* CurrentDeformationFieldIn);
+	void setCurrentReferenceMask(int* maskIn, size_t size);
 
 private:
 	void initVars();
-	
-	
+
 	void uploadContext();
 	void allocateCuPtrs();
 	void freeCuPtrs();
-
 
 	unsigned int numBlocks;
 
@@ -100,5 +93,14 @@ private:
 	int referenceDims[4];
 	int floatingDims[4];
 
+
+	void downloadImage( nifti_image* image, float* memoryObject, bool flag, int datatype, std::string message);
+	template<class T>
+	void fillImageData( T* array, size_t size, float* memoryObject, bool warped, int type, std::string message);
+
+	template<class FloatingTYPE>
+	FloatingTYPE fillWarpedImageData(  float intensity,int datatype );
+
 	unsigned long nVoxels;
+
 };

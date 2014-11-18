@@ -552,7 +552,7 @@ void reg_aladin<T>::Run()
 				}
 
 				// Announce the progress via CLI
-				if ((int)(iProgressStep % progressUnit) == 0) progressXML(100 * iProgressStep / nProgressSteps, "Performing Rigid Registration...");
+//				if ((int)(iProgressStep % progressUnit) == 0) progressXML(100 * iProgressStep / nProgressSteps, "Performing Rigid Registration...");
 
 				iteration++;
 				iProgressStep++;
@@ -581,10 +581,10 @@ void reg_aladin<T>::Run()
 				}
 
 				// Announce the progress via CLI
-				if ((int)(iProgressStep % progressUnit) == 0)
+				/*if ((int)(iProgressStep % progressUnit) == 0)
 				{
 					progressXML(100 * iProgressStep / nProgressSteps, "Performing Affine Registration...");
-				}
+				}*/
 
 				iteration++;
 				iProgressStep++;

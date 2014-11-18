@@ -44,6 +44,7 @@ typedef struct
    bool outputBlankYZFlag;
    bool outputBlankXZFlag;
    bool isTensor;
+   bool usePSF;
 } FLAG;
 
 
@@ -230,7 +231,7 @@ int main(int argc, char **argv)
    reg_checkAndCorrectDimension(floatingImage);
 
    // Tell the CLI that the process has started
-   startProgress("reg_resample");
+//   startProgress("reg_resample");
 
    // Set up progress indicators
 //   float iProgressStep=1, nProgressSteps;
@@ -253,8 +254,7 @@ int main(int argc, char **argv)
       printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n");
    }
 
-<<<<<<< HEAD
-=======
+
 
    // Define a higher resolution image of the reference image if required (-psf)
    if(flag->usePSF)
@@ -325,7 +325,7 @@ int main(int argc, char **argv)
 //   // Set up progress indicators
 //   float iProgressStep=1, nProgressSteps;
 
->>>>>>> master
+
    /* *********************** */
    /* READ THE TRANSFORMATION */
    /* *********************** */

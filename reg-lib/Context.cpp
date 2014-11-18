@@ -15,16 +15,12 @@ Context::Context() {
 
 }
 Context::~Context() {
-	std::cout << "Context Destructor called" << std::endl;
 
 	ClearWarpedImage();
-	std::cout << "1" << std::endl;
-
 	ClearDeformationField();
-	std::cout << "2" << std::endl;
 	if (this->bm)
 		delete blockMatchingParams;
-	std::cout << "3" << std::endl;
+
 }
 void Context::shout() {
 	//std::cout << "context listens" << std::endl;
@@ -49,7 +45,7 @@ Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn
 
 Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t bytes) :
 		CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn) {
-	std::cout << "context constructor called" << std::endl;
+
 	this->bm = false;
 	if (this->CurrentFloating != NULL && this->CurrentReference != NULL)
 		this->AllocateWarpedImage();
@@ -59,7 +55,7 @@ Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn
 		this->AllocateDeformationField(bytes);
 	else
 		this->CurrentDeformationField = NULL;
-	std::cout << "context constructor done" << std::endl;
+
 }
 
 void Context::initVars(const unsigned int platformFlagIn) {

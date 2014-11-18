@@ -711,7 +711,6 @@ template void cudaCommon_free<float4>(float4 **);
 template <class DTYPE>
 int cudaCommon_transferFromDeviceToNiftiSimple(DTYPE **array_d, nifti_image *img)
 {
-	printf("nvox: %lu", img->nvox);
 	NR_CUDA_SAFE_CALL(cudaMemcpy(*array_d, img->data, img->nvox * sizeof(DTYPE), cudaMemcpyHostToDevice));
 
 	return 0;
