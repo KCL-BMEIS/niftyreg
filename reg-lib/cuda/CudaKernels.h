@@ -3,10 +3,11 @@
 #include "CudaContext.h"
 
 //Kernel functions for affine deformation field 
-class CudaAffineDeformationFieldKernel : public AffineDeformationFieldKernel {
+class CudaAffineDeformationFieldKernel: public AffineDeformationFieldKernel {
 public:
-	CudaAffineDeformationFieldKernel(Context* conIn, std::string nameIn) : AffineDeformationFieldKernel(nameIn){
-		con = ((CudaContext*)conIn);
+	CudaAffineDeformationFieldKernel(Context* conIn, std::string nameIn) :
+			AffineDeformationFieldKernel(nameIn) {
+		con = ((CudaContext*) conIn);
 		this->deformationFieldImage = con->CurrentDeformationField;
 		this->affineTransformation = con->transformationMatrix;
 
@@ -26,24 +27,24 @@ public:
 
 };
 //Kernel functions for block matching
-class CudaBlockMatchingKernel : public BlockMatchingKernel {
+class CudaBlockMatchingKernel: public BlockMatchingKernel {
 public:
 
-
-	CudaBlockMatchingKernel(Context* conIn, std::string name) : BlockMatchingKernel(name) {
+	CudaBlockMatchingKernel(Context* conIn, std::string name) :
+			BlockMatchingKernel(name) {
 		target = conIn->CurrentReference;
 		result = conIn->CurrentWarped;
 		params = conIn->blockMatchingParams;
 		mask = conIn->CurrentReferenceMask;
 
-		targetImageArray_d = ((CudaContext*)conIn)->getReferenceImageArray_d();
-		resultImageArray_d = ((CudaContext*)conIn)->getWarpedImageArray_d();
-		targetPosition_d = ((CudaContext*)conIn)->getTargetPosition_d();
-		resultPosition_d = ((CudaContext*)conIn)->getResultPosition_d();
+		targetImageArray_d = ((CudaContext*) conIn)->getReferenceImageArray_d();
+		resultImageArray_d = ((CudaContext*) conIn)->getWarpedImageArray_d();
+		targetPosition_d = ((CudaContext*) conIn)->getTargetPosition_d();
+		resultPosition_d = ((CudaContext*) conIn)->getResultPosition_d();
 
-		activeBlock_d = ((CudaContext*)conIn)->getActiveBlock_d();
-		mask_d = ((CudaContext*)conIn)->getMask_d();
-		con = ((CudaContext*)conIn);
+		activeBlock_d = ((CudaContext*) conIn)->getActiveBlock_d();
+		mask_d = ((CudaContext*) conIn)->getMask_d();
+		con = ((CudaContext*) conIn);
 	}
 
 	void execute();
@@ -54,16 +55,16 @@ public:
 
 	CudaContext* con;
 
-
 	float *targetImageArray_d, *resultImageArray_d, *targetPosition_d, *resultPosition_d;
 	int *activeBlock_d, *mask_d;
 
 };
 //a kernel function for convolution (gaussian smoothing?)
-class CudaConvolutionKernel : public ConvolutionKernel {
+class CudaConvolutionKernel: public ConvolutionKernel {
 public:
 
-	CudaConvolutionKernel(std::string name) : ConvolutionKernel(name) {
+	CudaConvolutionKernel(std::string name) :
+			ConvolutionKernel(name) {
 	}
 
 	void execute(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL);
@@ -72,12 +73,11 @@ public:
 };
 
 //kernel functions for numerical optimisation
-class CudaOptimiseKernel : public OptimiseKernel {
+class CudaOptimiseKernel: public OptimiseKernel {
 public:
 
-
-
-	CudaOptimiseKernel(Context* conIn, std::string name) : OptimiseKernel(name) {
+	CudaOptimiseKernel(Context* conIn, std::string name) :
+			OptimiseKernel(name) {
 		con = static_cast<CudaContext*>(conIn);
 		transformationMatrix = con->transformationMatrix;
 		blockMatchingParams = con->blockMatchingParams;
@@ -90,9 +90,10 @@ public:
 };
 
 //kernel functions for image resampling with three interpolation variations
-class CudaResampleImageKernel : public ResampleImageKernel {
+class CudaResampleImageKernel: public ResampleImageKernel {
 public:
-	CudaResampleImageKernel(Context* conIn, std::string name) : ResampleImageKernel(name) {
+	CudaResampleImageKernel(Context* conIn, std::string name) :
+			ResampleImageKernel(name) {
 
 		floatingImage = conIn->CurrentFloating;
 		warpedImage = conIn->CurrentWarped;
@@ -106,6 +107,17 @@ public:
 		deformationFieldImageArray_d = con->getDeformationFieldArray_d();
 		mask_d = con->getMask_d();
 
+		if (floatingImage->datatype != warpedImage->datatype) {
+			printf("[NiftyReg ERROR] reg_resampleImage\tSource and result image should have the same data type\n");
+			printf("[NiftyReg ERROR] reg_resampleImage\tNothing has been done\n");
+			reg_exit(1);
+		}
+
+		if (floatingImage->nt != warpedImage->nt) {
+			printf("[NiftyReg ERROR] reg_resampleImage\tThe source and result images have different dimension along the time axis\n");
+			printf("[NiftyReg ERROR] reg_resampleImage\tNothing has been done\n");
+			reg_exit(1);
+		}
 
 	}
 	nifti_image *floatingImage;

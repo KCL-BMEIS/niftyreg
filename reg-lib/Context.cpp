@@ -1,6 +1,5 @@
 #include "Context.h"
 
-
 using namespace std;
 
 Context::Context() {
@@ -17,30 +16,32 @@ Context::~Context() {
 
 	ClearWarpedImage();
 	ClearDeformationField();
-	if (this->bm)
+	if (blockMatchingParams != NULL)
 		delete blockMatchingParams;
 
 }
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
-Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t bytes, const unsigned int CurrentPercentageOfBlockToUse, const unsigned int InlierLts, int stepSize_block/*, bool symmetric*/) :
-		CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn) {
-	//std::cout << "context constructor called" << std::endl;
+Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t bytesIn, const unsigned int currentPercentageOfBlockToUseIn, const unsigned int inlierLtsIn, int stepSizeBlockIn/*, bool symmetric*/) :
+		CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn), bytes(bytesIn),currentPercentageOfBlockToUse(currentPercentageOfBlockToUseIn),inlierLts(inlierLtsIn), stepSizeBlock(stepSizeBlockIn) {
+
 	blockMatchingParams = new _reg_blockMatchingParam();
-	this->AllocateWarpedImage();
-	this->AllocateDeformationField(bytes);
-	this->bm = true;
-	//std::cout << "typeConIn: " << CurrentReference->datatype << std::endl;
-	initialise_block_matching_method(CurrentReference, blockMatchingParams, CurrentPercentageOfBlockToUse, InlierLts, stepSize_block, CurrentReferenceMask, false);
+	initVars();
+
 }
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
-Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t bytes) :
-		CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn) {
+Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t bytesIn) :
+		CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn), bytes(bytesIn) {
 
-	this->bm = false;
+	initVars();
+
+}
+
+void Context::initVars() {
+
 	if (this->CurrentFloating != NULL && this->CurrentReference != NULL)
 		this->AllocateWarpedImage();
 	else
@@ -50,10 +51,12 @@ Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn
 	else
 		this->CurrentDeformationField = NULL;
 
-}
-
-void Context::initVars(const unsigned int platformFlagIn) {
-
+	if (blockMatchingParams != NULL)
+		initialise_block_matching_method(CurrentReference, blockMatchingParams, currentPercentageOfBlockToUse, inlierLts, stepSizeBlock, CurrentReferenceMask, false);
+	if (this->CurrentReferenceMask == NULL && this->CurrentReference != NULL)
+		this->CurrentReferenceMask = (int *) calloc(this->CurrentReference->nx * this->CurrentReference->ny * this->CurrentReference->nz, sizeof(int));
+	if (this->CurrentReferenceMask == NULL && this->CurrentWarped != NULL)
+			this->CurrentReferenceMask = (int *) calloc(this->CurrentWarped->nx * this->CurrentWarped->ny * this->CurrentWarped->nz, sizeof(int));
 }
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

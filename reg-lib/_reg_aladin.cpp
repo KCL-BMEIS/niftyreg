@@ -73,6 +73,8 @@ template <class T> reg_aladin<T>::reg_aladin()
 	this->funcProgressCallback=NULL;
 	this->paramsProgressCallback=NULL;
 
+	this->platformCode = 0;
+
 
 
 }
@@ -195,6 +197,7 @@ int reg_aladin<T>::Print()
 	{
 #endif
 		printf("[%s] Parameters\n", this->ExecutableName);
+		printf("[%s] Platform: %s \n", this->ExecutableName, this->platform->getName().c_str());
 		printf("[%s] Reference image name: %s\n", this->ExecutableName, this->InputReference->fname);
 		printf("[%s] \t%ix%ix%i voxels\n", this->ExecutableName, this->InputReference->nx,this->InputReference->ny,this->InputReference->nz);
 		printf("[%s] \t%gx%gx%g mm\n", this->ExecutableName, this->InputReference->dx,this->InputReference->dy,this->InputReference->dz);

@@ -33,7 +33,6 @@ void CLAffineDeformationFieldKernel::execute(bool compose) {
 	cl_ulong nxyz = this->deformationFieldImage->nx * this->deformationFieldImage->ny * this->deformationFieldImage->nz;
 
 	cl_mem cltransMat = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * 16, trans, &errNum);
-	cl_mem clMask = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * nxyz, tempMask, &errNum);
 	cl_uint3 pms_d = { this->deformationFieldImage->nx, this->deformationFieldImage->ny, this->deformationFieldImage->nz };
 	cl_uint composition = compose;
 

@@ -29,7 +29,7 @@ public:
 	/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 	void AllocateDeformationField(size_t bytes);
 	void ClearDeformationField();
-	void initVars(const unsigned int platformFlagIn);
+	virtual void initVars();
 
 	bool bm;
 	bool symmetric;
@@ -89,6 +89,11 @@ public:
 
 	mat44* transformationMatrix;
 	_reg_blockMatchingParam* blockMatchingParams;
+
+	 int stepSizeBlock;
+	unsigned int currentPercentageOfBlockToUse;
+	unsigned int inlierLts;
+	size_t bytes;
 
 };
 

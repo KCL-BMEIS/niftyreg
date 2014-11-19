@@ -20,7 +20,7 @@ void CudaContext::allocateCuPtrs() {
 	if (this->CurrentFloating != NULL)
 		cudaCommon_allocateArrayToDevice<float>(&floatingImageArray_d, floatingVoxels);
 
-	if (bm) {
+	if (this->blockMatchingParams != NULL) {
 		cudaCommon_allocateArrayToDevice<float>(&targetPosition_d, blockMatchingParams->activeBlockNumber * 3);
 		cudaCommon_allocateArrayToDevice<float>(&resultPosition_d, blockMatchingParams->activeBlockNumber * 3);
 		cudaCommon_allocateArrayToDevice<int>(&activeBlock_d, numBlocks);
@@ -33,7 +33,7 @@ void CudaContext::initVars() {
 
 	referenceVoxels = (this->CurrentReference != NULL) ? this->CurrentReference->nvox : 0;
 	floatingVoxels = (this->CurrentFloating != NULL) ? this->CurrentFloating->nvox : 0;
-	numBlocks = (bm) ? blockMatchingParams->blockNumber[0] * blockMatchingParams->blockNumber[1] * blockMatchingParams->blockNumber[2] : 0;
+	numBlocks = (this->blockMatchingParams != NULL) ? blockMatchingParams->blockNumber[0] * blockMatchingParams->blockNumber[1] * blockMatchingParams->blockNumber[2] : 0;
 //	std::cout << referenceVoxels << ": " << floatingVoxels << " : " << numBlocks << std::endl;
 }
 
@@ -104,7 +104,7 @@ void CudaContext::uploadContext() {
 	if (this->CurrentFloating != NULL)
 		cudaCommon_transferFromDeviceToNiftiSimple<float>(&floatingImageArray_d, this->CurrentFloating);
 
-	if (bm) {
+	if (this->blockMatchingParams != NULL) {
 		cudaCommon_transferFromDeviceToNiftiSimple1<float>(&targetPosition_d, blockMatchingParams->targetPosition, blockMatchingParams->activeBlockNumber * 3);
 		cudaCommon_transferFromDeviceToNiftiSimple1<float>(&resultPosition_d, blockMatchingParams->resultPosition, blockMatchingParams->activeBlockNumber * 3);
 		cudaCommon_transferFromDeviceToNiftiSimple1<int>(&activeBlock_d, blockMatchingParams->activeBlock, numBlocks);
@@ -112,7 +112,7 @@ void CudaContext::uploadContext() {
 }
 template<class DataType>
 DataType CudaContext::fillWarpedImageData(float intensity, int datatype) {
-//	std::cout<<"dtype: "<<datatype<<std::endl;
+
 	switch (datatype) {
 	case NIFTI_TYPE_FLOAT32:
 		return static_cast<float>(intensity);
@@ -185,7 +185,7 @@ void CudaContext::downloadImage(  nifti_image* image, float* memoryObject, bool 
 		fillImageData<int>( static_cast<int*>(image->data), image->nvox, memoryObject, flag,datatype, message);
 		break;
 	default:
-		std::cout << "unsupported type: "<< datatype<< std::endl;
+		std::cout << "CUDA: unsupported type: "<< datatype<< std::endl;
 		break;
 	}
 }
@@ -203,7 +203,7 @@ void CudaContext::freeCuPtrs() {
 
 	if (this->CurrentReferenceMask != NULL)
 		cudaCommon_free<int>(&mask_d);
-	if (bm) {
+	if (this->blockMatchingParams != NULL) {
 		cudaCommon_free<int>(&activeBlock_d);
 		cudaCommon_free<float>(&targetPosition_d);
 		cudaCommon_free<float>(&resultPosition_d);

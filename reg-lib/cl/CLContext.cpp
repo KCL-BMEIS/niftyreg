@@ -173,7 +173,7 @@ void ClContext::downloadImage(nifti_image* image, cl_mem memoryObject, cl_mem_fl
 		fillImageData<int>(image, memoryObject, flag, datatype, message);
 		break;
 	default:
-		std::cout << "unsupported type" << std::endl;
+		std::cout << "CL: unsupported type" << std::endl;
 		break;
 	}
 }

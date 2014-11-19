@@ -714,17 +714,7 @@ void launchAffine(mat44 *affineTransformation, nifti_image *deformationField, fl
 
 void launchResample(nifti_image *floatingImage, nifti_image *warpedImage, int *mask, int interp, float paddingValue, bool *dti_timepoint, mat33 * jacMat, float** floatingImage_d, float** warpedImage_d, float** deformationFieldImage_d, int** mask_d) {
 
-	if (floatingImage->datatype != warpedImage->datatype) {
-		printf("[NiftyReg ERROR] reg_resampleImage\tSource and result image should have the same data type\n");
-		printf("[NiftyReg ERROR] reg_resampleImage\tNothing has been done\n");
-		reg_exit(1);
-	}
 
-	if (floatingImage->nt != warpedImage->nt) {
-		printf("[NiftyReg ERROR] reg_resampleImage\tThe source and result images have different dimension along the time axis\n");
-		printf("[NiftyReg ERROR] reg_resampleImage\tNothing has been done\n");
-		reg_exit(1);
-	}
 
 	// Define the DTI indices if required
 	int dtiIndeces[6];
@@ -749,21 +739,8 @@ void launchResample(nifti_image *floatingImage, nifti_image *warpedImage, int *m
 		}
 	}
 
-	// a mask array is created if no mask is specified
-	bool MrPropreRules = false;
-	if (mask == NULL) {
-		// voxels in the backgreg_round are set to -1 so 0 will do the job here
-		mask = (int *) calloc(warpedImage->nx * warpedImage->ny * warpedImage->nz, sizeof(int));
-		MrPropreRules = true;
-	}
-
-	printf("kernel2run");
 	runKernel2(floatingImage, warpedImage, mask, interp, paddingValue, dtiIndeces, jacMat, floatingImage_d, warpedImage_d, deformationFieldImage_d, mask_d);
-	printf("kernel2 end");
-	if (MrPropreRules == true) {
-		free(mask);
-		mask = NULL;
-	}
+
 }
 
 void runKernel2(nifti_image *floatingImage, nifti_image *warpedImage, int *mask, int interp, float paddingValue, int *dtiIndeces, mat33 * jacMat, float** floatingImage_d, float** warpedImage_d, float** deformationFieldImage_d, int** mask_d) {

@@ -18,15 +18,10 @@ public:
 			AffineDeformationFieldKernel(nameIn) {
 		con = (ClContext*) conIn;
 		sContext = &CLContextSingletton::Instance();
-		this->deformationFieldImage = con->getCurrentDeformationField();
+		this->deformationFieldImage = con->CurrentDeformationField;
 		this->affineTransformation = con->getTransformationMatrix();
-		this->mask = con->getCurrentReferenceMask();
+		this->mask = con->CurrentReferenceMask;
 
-		//inits
-		tempMask = this->mask;
-		if (mask == NULL) {
-			tempMask = (int *) calloc(this->deformationFieldImage->nx * this->deformationFieldImage->ny * this->deformationFieldImage->nz, sizeof(int));
-		} //free this on the destructor
 
 		targetMatrix = (this->deformationFieldImage->sform_code > 0) ? &(this->deformationFieldImage->sto_xyz) : &(this->deformationFieldImage->qto_xyz);
 
@@ -39,18 +34,13 @@ public:
 		// Create OpenCL kernel
 		kernel = clCreateKernel(program, "affineKernel", NULL);
 		clDeformationField = con->getDeformationFieldArrayClmem();
+		clMask = con->getMaskClmem();
 	}
-	virtual ~CLAffineDeformationFieldKernel() {
-		if (kernel != 0)
-			clReleaseKernel(kernel);
-		if (mask == NULL)
-			free(tempMask);
-	}
+
 
 	void execute(bool compose = false);
 
 	mat44 *targetMatrix;
-	int *tempMask;
 	mat44 *affineTransformation;
 	nifti_image *deformationFieldImage;
 	int* mask;
@@ -60,7 +50,7 @@ public:
 	cl_context clContext;
 	cl_program program;
 
-	cl_mem clDeformationField;
+	cl_mem clDeformationField, clMask;
 	CLContextSingletton* sContext;
 
 };
@@ -148,28 +138,11 @@ public:
 		clCurrentFloating = con->getFloatingImageArrayClmem();
 		clCurrentDeformationField = con->getDeformationFieldArrayClmem();
 		clCurrentWarped = con->getWarpedImageClmem();
-
-		// a mask array is created if no mask is specified
-		bool MrPropreRules = false;
-		if (mask == NULL) {
-			cl_int errNum;
-			// voxels in the backgreg_round are set to -1 so 0 will do the job here
-			mask = (int *) calloc(warpedImage->nx * warpedImage->ny * warpedImage->nz, sizeof(int));
-			clMask = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, warpedImage->nx * warpedImage->ny * warpedImage->nz * sizeof(int), mask, &errNum);
-			sContext->checkErrNum(errNum, "failed CurrentReferenceMask: ");
-			MrPropreRules = true;
-		} else
-			clMask = con->getMaskClmem();
+		clMask = con->getMaskClmem();
 
 	}
 
-	virtual ~CLResampleImageKernel() {
-		if (MrPropreRules == true) {
-			free(mask);
-			mask = NULL;
-			clReleaseMemObject(clMask);
-		}
-	}
+
 	bool MrPropreRules;
 	nifti_image *floatingImage;
 	nifti_image *warpedImage;
