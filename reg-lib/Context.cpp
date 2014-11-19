@@ -24,7 +24,7 @@ Context::~Context() {
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
 Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t bytesIn, const unsigned int currentPercentageOfBlockToUseIn, const unsigned int inlierLtsIn, int stepSizeBlockIn/*, bool symmetric*/) :
-		CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn), bytes(bytesIn),currentPercentageOfBlockToUse(currentPercentageOfBlockToUseIn),inlierLts(inlierLtsIn), stepSizeBlock(stepSizeBlockIn) {
+		CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn), bytes(bytesIn), currentPercentageOfBlockToUse(currentPercentageOfBlockToUseIn), inlierLts(inlierLtsIn), stepSizeBlock(stepSizeBlockIn) {
 
 	blockMatchingParams = new _reg_blockMatchingParam();
 	initVars();
@@ -35,28 +35,32 @@ Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn
 
 Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t bytesIn) :
 		CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn), bytes(bytesIn) {
-
+//	std::cout<<"Context Constructor Init"<<std::endl;
+	blockMatchingParams = NULL;
 	initVars();
+//	std::cout<<"Context Constructor End"<<std::endl;
 
 }
 
 void Context::initVars() {
 
+//	std::cout<<"Allocate Warped"<<std::endl;
 	if (this->CurrentFloating != NULL && this->CurrentReference != NULL)
 		this->AllocateWarpedImage();
 	else
 		this->CurrentWarped = NULL;
+//	std::cout<<"Allocate Def"<<std::endl;
 	if (this->CurrentReference != NULL)
 		this->AllocateDeformationField(bytes);
 	else
 		this->CurrentDeformationField = NULL;
-
-	if (blockMatchingParams != NULL)
-		initialise_block_matching_method(CurrentReference, blockMatchingParams, currentPercentageOfBlockToUse, inlierLts, stepSizeBlock, CurrentReferenceMask, false);
+//	std::cout<<"Allocate Mask if NULL"<<std::endl;
 	if (this->CurrentReferenceMask == NULL && this->CurrentReference != NULL)
 		this->CurrentReferenceMask = (int *) calloc(this->CurrentReference->nx * this->CurrentReference->ny * this->CurrentReference->nz, sizeof(int));
-	if (this->CurrentReferenceMask == NULL && this->CurrentWarped != NULL)
-			this->CurrentReferenceMask = (int *) calloc(this->CurrentWarped->nx * this->CurrentWarped->ny * this->CurrentWarped->nz, sizeof(int));
+//	std::cout<<"Allocate Block Matching Params"<<std::endl;
+	if (blockMatchingParams != NULL)
+		initialise_block_matching_method(CurrentReference, blockMatchingParams, currentPercentageOfBlockToUse, inlierLts, stepSizeBlock, CurrentReferenceMask, false);
+//	std::cout<<"End Init"<<std::endl;
 }
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

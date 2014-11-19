@@ -34,7 +34,7 @@ void ClContext::allocateClPtrs() {
 		sContext->checkErrNum(errNum, "failed CurrentReference: ");
 	}
 
-	if (bm) {
+	if (this->blockMatchingParams != NULL) {
 
 		//targetPositionClmem
 		targetPositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE, blockMatchingParams->activeBlockNumber * 3 * sizeof(float), blockMatchingParams->targetPosition, &errNum);
@@ -64,8 +64,7 @@ void ClContext::initVars() {
 	commandQueue = sContext->getCommandQueue();
 	referenceVoxels = (this->CurrentReference != NULL) ? this->CurrentReference->nvox : 0;
 	floatingVoxels = (this->CurrentFloating != NULL) ? this->CurrentFloating->nvox : 0;
-//	std::cout << floatingVoxels << ": " << referenceVoxels << std::endl;
-	numBlocks = (bm) ? blockMatchingParams->blockNumber[0] * blockMatchingParams->blockNumber[1] * blockMatchingParams->blockNumber[2] : 0;
+	numBlocks = (this->blockMatchingParams != NULL) ? blockMatchingParams->blockNumber[0] * blockMatchingParams->blockNumber[1] * blockMatchingParams->blockNumber[2] : 0;
 }
 
 template<class DataType>
@@ -228,7 +227,7 @@ void ClContext::setCurrentWarped(nifti_image* currentWarped) {
 
 void ClContext::freeClPtrs() {
 
-	std::cout << "free cl ptrs" << std::endl;
+//	std::cout << "free cl ptrs" << std::endl;
 	if (this->CurrentReference != NULL)
 		clReleaseMemObject(referenceImageClmem);
 	if (this->CurrentFloating != NULL)
@@ -240,7 +239,7 @@ void ClContext::freeClPtrs() {
 
 	if (this->CurrentReferenceMask != NULL)
 		clReleaseMemObject(maskClmem);
-	if (bm) {
+	if (this->blockMatchingParams != NULL) {
 		clReleaseMemObject(activeBlockClmem);
 		clReleaseMemObject(targetPositionClmem);
 		clReleaseMemObject(resultPositionClmem);

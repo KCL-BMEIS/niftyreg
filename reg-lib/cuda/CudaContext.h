@@ -13,19 +13,20 @@ public:
 	}
 	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep) :
 			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte, blockPercentage, inlierLts, blockStep) {
-		//std::cout << "Cuda context constructor called: " <<bm<< std::endl;
+//		std::cout<<"Cuda Context Constructor Init"<<std::endl;
 		initVars();
 		allocateCuPtrs();
 		uploadContext();
+//		std::cout<<"Cuda Context Constructor End"<<std::endl;
 
 	}
 	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte) :
 			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte) {
-		std::cout << "cuda (small) context constructor called3" << std::endl;
+//		std::cout<<"Cuda Context Constructor Init"<<std::endl;
 		initVars();
 		allocateCuPtrs();
 		uploadContext();
-		std::cout << "cuda context constructor called" << std::endl;
+//		std::cout<<"Cuda Context Constructor End"<<std::endl;
 	}
 	~CudaContext();
 

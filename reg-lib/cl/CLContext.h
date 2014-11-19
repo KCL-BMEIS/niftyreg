@@ -23,17 +23,18 @@ public:
 			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte, blockPercentage, inlierLts, blockStep) {
 		//std::cout << "Cl context constructor called: " <<bm<< std::endl;
 
-
+//		std::cout<<"CL Context Constructor Init"<<std::endl;
 		initVars();
 		allocateClPtrs();
-
+//		std::cout<<"CL Context Constructor End"<<std::endl;
 	}
 	ClContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte) :
 			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte) {
-
+//		std::cout<<"CL Context Constructor Init"<<std::endl;
 		initVars();
+//		std::cout<<"CL Context Init Vars"<<std::endl;
 		allocateClPtrs();
-
+//		std::cout<<"CL Context Constructor End"<<std::endl;
 	}
 	~ClContext();
 
