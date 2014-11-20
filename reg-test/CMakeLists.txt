@@ -131,36 +131,7 @@
 	add_test(${EXEC}_NMI_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz NMI)
 	add_test(${EXEC}_SSD_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz SSD)
 
-	#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC clInfo)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_aladin)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC testOptimizerKernel)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_aladin)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC testConvolutionKernel)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_aladin)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC testAffineDeformationKernel)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_aladin)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC testResamplingKernel)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_aladin)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC testBlockMatchingKernel)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_aladin)
+
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 if(USE_OPENCL)
@@ -168,6 +139,13 @@ if(USE_OPENCL)
 	add_executable(${EXEC} ${EXEC}.cpp)
 	target_link_libraries(${EXEC} _reg_aladin)
 	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
+
+	set(EXEC reg_test_interpolation_cl)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_aladin)
+	add_test(${EXEC}_0_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_nea3D.nii.gz 0)
+	add_test(${EXEC}_1_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 1)
+	add_test(${EXEC}_3_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_cub3D.nii.gz 3)
 endif(USE_OPENCL)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
@@ -176,24 +154,16 @@ if(USE_CUDA)
 	add_executable(${EXEC} ${EXEC}.cpp)
 	target_link_libraries(${EXEC} _reg_aladin)
 	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
-endif(USE_CUDA)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-if(USE_CUDA)
 	set(EXEC reg_test_fullAffine_cuda)
 	add_executable(${EXEC} ${EXEC}.cpp)
 	target_link_libraries(${EXEC} _reg_aladin)
-	#add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
+	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
+	set(EXEC reg_test_interpolation_cuda)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_aladin)
+	add_test(${EXEC}_0_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_nea3D.nii.gz 0)
+	add_test(${EXEC}_1_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 1)
+	add_test(${EXEC}_3_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_cub3D.nii.gz 3)
 endif(USE_CUDA)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC reg_test_interpolation_cl)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_aladin)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC reg_test_interpolation_cuda)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_aladin)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------

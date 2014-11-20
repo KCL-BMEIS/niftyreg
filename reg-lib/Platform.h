@@ -10,6 +10,9 @@ class Kernel;
 class KernelFactory;
 class Context;
 
+#define NR_PLATFORM_CPU 0
+#define NR_PLATFORM_CUDA 1
+#define NR_PLATFORM_CL 2
 
 class  Platform {
 public:

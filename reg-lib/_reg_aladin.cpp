@@ -1,18 +1,15 @@
-#include "_reg_aladin.h"
-#include "CLContext.h"
-#include "CudaContext.h"
-#include "CPUPlatform.h"
-#include "CLPlatform.h"
-#include "CudaPlatform.h"
-#include "Kernels.h"
-
-#include "_reg_ReadWriteImage.h"
-#include "config.h"
-
-
 #ifndef _REG_ALADIN_CPP
 #define _REG_ALADIN_CPP
 
+#include "_reg_aladin.h"
+#ifdef _USE_CUDA
+#include "CudaPlatform.h"
+#include "CudaContext.h"
+#endif
+#ifdef _USE_OPENCL
+#include "CLPlatform.h"
+#include "CLContext.h"
+#endif
 
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -228,12 +225,16 @@ void reg_aladin<T>::InitialiseRegistration()
 	printf("[NiftyReg DEBUG] reg_aladin::InitialiseRegistration() called\n");
 #endif
 
-	if (platformCode == 0)
-	this->platform = new CPUPlatform();
-	else if (platformCode == 1)
-	this->platform = new CudaPlatform();
-	else
-	this->platform = new CLPlatform();
+	if (platformCode == NR_PLATFORM_CPU)
+		this->platform = new CPUPlatform();
+#ifdef _USE_CUDA
+	else if (platformCode == NR_PLATFORM_CUDA)
+		this->platform = new CudaPlatform();
+#endif
+#ifdef _USE_OPENCL
+	else if (platformCode == NR_PLATFORM_CL)
+		this->platform = new CLPlatform();
+#endif
 
 	convolutionKernel = platform->createKernel(ConvolutionKernel::Name(), NULL);
 	this->Print();
@@ -473,10 +474,22 @@ void reg_aladin<T>::clearContext() {
 template <class T>
 void reg_aladin<T>::initContext() {
 
-	if (platformCode == 0) this->con = new Context(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage, InlierLts, this->BlockStepSize);
-	else if (platformCode == 1) this->con = new CudaContext(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(float), this->BlockPercentage, InlierLts, this->BlockStepSize);
-	else this->con = new ClContext(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel], this->ReferenceMaskPyramid[CurrentLevel], sizeof(float), this->BlockPercentage, InlierLts, this->BlockStepSize);
-
+	if(platformCode == NR_PLATFORM_CPU)
+		this->con = new Context(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel],
+										this->ReferenceMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage,
+										InlierLts, this->BlockStepSize);
+#ifdef _USE_CUDA
+	else if(platformCode == NR_PLATFORM_CUDA)
+		this->con = new CudaContext(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel],
+											 this->ReferenceMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage,
+											 InlierLts, this->BlockStepSize);
+#endif
+#ifdef _USE_OPENCL
+	else if(platformCode == NR_PLATFORM_CL)
+		this->con = new ClContext(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel],
+										  this->ReferenceMaskPyramid[CurrentLevel], sizeof(T), this->BlockPercentage,
+										  InlierLts, this->BlockStepSize);
+#endif
 	this->CurrentReference = con->CurrentReference;
 	this->CurrentFloating = con->CurrentFloating;
 	this->blockMatchingParams = con->blockMatchingParams;
@@ -644,11 +657,16 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 
 	this->CurrentReferenceMask = (int *)calloc(CurrentReference->nx*CurrentReference->ny*CurrentReference->nz, sizeof(int));
 
-	if (platformCode == 0) this->con = new Context(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T)/*, 50, 50*/);
-	else if (platformCode == 1) this->con = new CudaContext(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T)/*, 50, 50*/);
-	else this->con = new ClContext(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T)/*, 50, 50*/);
-
-
+	if (platformCode == NR_PLATFORM_CPU)
+		this->con = new Context(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T));
+#ifdef _USE_CUDA
+	else if (platformCode == NR_PLATFORM_CUDA)
+		this->con = new CudaContext(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T));
+#endif
+#ifdef _USE_OPENCL
+	else if (platformCode == NR_PLATFORM_CL)
+		this->con = new ClContext(this->InputReference, this->InputFloating, this->CurrentReferenceMask, sizeof(T));
+#endif
 
 	con->setTransformationMatrix(this->TransformationMatrix);
 	reg_aladin<T>::createKernels();

@@ -2,10 +2,10 @@
 #include "_reg_globalTransformation.h"
 #include "_reg_tools.h"
 
-#include"Kernel.h"
-#include"Kernels.h"
-#include "CudaPlatform.h"
-#include "CudaContext.h"
+#include "Kernel.h"
+#include "Kernels.h"
+#include "cuda/CudaPlatform.h"
+#include "cuda/CudaContext.h"
 
 #define EPS 0.000001
 
