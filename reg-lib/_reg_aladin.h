@@ -11,6 +11,7 @@
 
 #ifndef _REG_ALADIN_H
 #define _REG_ALADIN_H
+
 #define CONVERGENCE_EPS 0.00001
 #define RIGID 0
 #define AFFINE 1
@@ -22,6 +23,9 @@
 #include "_reg_ssd.h"
 #include "_reg_tools.h"
 #include "float.h"
+#include "CPUPlatform.h"
+#include "Kernels.h"
+#include "_reg_ReadWriteImage.h"
 #include <limits>
 
 class Context;

@@ -4,8 +4,8 @@
 
 #include"Kernel.h"
 #include"Kernels.h"
-#include "CLPlatform.h"
-#include "CLContext.h"
+#include "cl/CLPlatform.h"
+#include "cl/CLContext.h"
 
 #define EPS 0.000001
 

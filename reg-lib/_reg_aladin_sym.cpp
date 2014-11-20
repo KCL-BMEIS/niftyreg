@@ -278,13 +278,22 @@ void reg_aladin_sym<T>::initContext() {
 	reg_aladin<T>::initContext();
 
 
-	if (this->platformCode == 0)
-	this->backCon = new Context(this->FloatingPyramid[this->CurrentLevel], this->ReferencePyramid[this->CurrentLevel], this->FloatingMaskPyramid[this->CurrentLevel], sizeof(T), this->BlockPercentage, this->InlierLts, this->BlockStepSize);
-	else if (this->platformCode == 1)
-	this->backCon = new CudaContext(this->FloatingPyramid[this->CurrentLevel], this->ReferencePyramid[this->CurrentLevel], this->FloatingMaskPyramid[this->CurrentLevel], sizeof(T), this->BlockPercentage, this->InlierLts, this->BlockStepSize);
-	else
-	this->backCon = new Context(this->FloatingPyramid[this->CurrentLevel], this->ReferencePyramid[this->CurrentLevel], this->FloatingMaskPyramid[this->CurrentLevel], sizeof(T), this->BlockPercentage, this->InlierLts, this->BlockStepSize);
-
+	if (this->platformCode == NR_PLATFORM_CPU)
+	this->backCon = new Context(this->FloatingPyramid[this->CurrentLevel],
+			this->ReferencePyramid[this->CurrentLevel], this->FloatingMaskPyramid[this->CurrentLevel],
+			sizeof(T), this->BlockPercentage, this->InlierLts, this->BlockStepSize);
+#ifdef _USE_CUDA
+	else if (this->platformCode == NR_PLATFORM_CUDA)
+	this->backCon = new CudaContext(this->FloatingPyramid[this->CurrentLevel],
+			this->ReferencePyramid[this->CurrentLevel], this->FloatingMaskPyramid[this->CurrentLevel],
+			sizeof(T), this->BlockPercentage, this->InlierLts, this->BlockStepSize);
+#endif
+#ifdef _USE_OPENCL
+	else if (this->platformCode == NR_PLATFORM_CL)
+	this->backCon = new Context(this->FloatingPyramid[this->CurrentLevel],
+			this->ReferencePyramid[this->CurrentLevel], this->FloatingMaskPyramid[this->CurrentLevel],
+			sizeof(T), this->BlockPercentage, this->InlierLts, this->BlockStepSize);
+#endif
 	this->backCon->setTransformationMatrix(this->BackwardTransformationMatrix);
 
 	this->BackwardBlockMatchingParams = this->backCon->blockMatchingParams;

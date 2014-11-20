@@ -10,9 +10,9 @@
 #include "nifti1_io.h"
 #include "_reg_blockMatching.h"
 
-#define CPUX_PLATFORM 0
+#define CPU_PLATFORM 0
 #define CUDA_PLATFORM 1
-#define OCLX_PLATFORM 2
+#define CL_PLATFORM 2
 
 class Context {
 public:

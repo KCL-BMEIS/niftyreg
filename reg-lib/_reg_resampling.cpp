@@ -171,7 +171,7 @@ template void reg_dti_resampling_preprocessing<float>(nifti_image *, void **, in
 
 /* *************************************************************** */
 template<class DTYPE>
-void reg_dti_resampling_postprocessing(nifti_image *inputImage, int *mask, mat33 *jacMat, int *dtIndicies, nifti_image *warpedImage = NULL) {
+void reg_dti_resampling_postprocessing(nifti_image *inputImage, int *mask, mat33 *jacMat, int *dtIndicies, nifti_image *warpedImage) {
 // If we have some valid diffusion tensor indicies, we need to exponentiate the previously logged tensor components
 // we also need to reorient the tensors based on the local transformation Jacobians
 	if (dtIndicies[0] != -1) {
@@ -290,7 +290,7 @@ inputIntensityXY,inputIntensityXZ,inputIntensityYZ, jacMat, mask)
 	}
 }
 template
-void reg_dti_resampling_postprocessing<float>(nifti_image *inputImage, int *mask, mat33 *jacMat, int *dtIndicies, nifti_image *warpedImage = NULL);
+void reg_dti_resampling_postprocessing<float>(nifti_image *inputImage, int *mask, mat33 *jacMat, int *dtIndicies, nifti_image *warpedImage);
 /* *************************************************************** */
 template<class FloatingTYPE, class FieldTYPE>
 void ResampleImage3D(nifti_image *floatingImage, nifti_image *deformationField, nifti_image *warpedImage, int *mask, FieldTYPE paddingValue, int kernel) {

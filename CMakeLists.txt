@@ -1,24 +1,6 @@
-#cmake_minimum_required(VERSION 2.8.0)
-#
-#project(NiftyReg)
-#
-#option(USE_OPENCL "Use the OpenCL platform" OFF)
-#option(USE_CUDA "Use the OpenCL platform" OFF)
-#
-#ADD_SUBDIRECTORY(reg-lib)
-
-
 #-----------------------------------------------------------------------------
 project(NiftyReg)
 cmake_minimum_required(VERSION 2.8.0)
-
-
-
-set(SOURCE_PATH ${CMAKE_BINARY_DIR})
-
-configure_file( config.h.in ${CMAKE_BINARY_DIR}/config.h CONFIGURE IMMEDIATE)
-
-include_directories( ${CMAKE_BINARY_DIR} ) # Make sure it can be included...
 
 if("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^2\\.8\\.0$")
  mark_as_advanced(FORCE CMAKE_BACKWARDS_COMPATIBILITY)
@@ -35,10 +17,8 @@ endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Release")
 endif(NOT CMAKE_BUILD_TYPE)
-
 #-----------------------------------------------------------------------------
 string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_tolower)
-MESSAGE(cmake_build_type_tolower)
 if(NOT cmake_build_type_tolower STREQUAL "debug"
 	 AND NOT cmake_build_type_tolower STREQUAL "release"
 	 AND NOT cmake_build_type_tolower STREQUAL "relwithdebinfo")
@@ -48,17 +28,10 @@ endif(NOT cmake_build_type_tolower STREQUAL "debug"
 	 AND NOT cmake_build_type_tolower STREQUAL "release"
 	 AND NOT cmake_build_type_tolower STREQUAL "relwithdebinfo")
 if(cmake_build_type_tolower STREQUAL "debug")
-	MESSAGE("DEBUG ON>>>>>>>>>>>")
 	set(DEBUG_MODE ON)
 elseif(cmake_build_type_tolower STREQUAL "release")
-	MESSAGE("DEBUG OFF>>>>>>>>>>>")
 	set(DEBUG_MODE OFF)
 endif(cmake_build_type_tolower STREQUAL "debug")
-
-
-#temp code
-#set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-#find_package( OpenCL REQUIRED )
 
 #-----------------------------------------------------------------------------
 set(NiftyReg_VERSION_MAJOR 1)
@@ -81,75 +54,13 @@ endif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 option(BUILD_TESTING "To build the unit tests" ON)
 option(BUILD_ALL_DEP "All the dependencies are build" OFF)
 option(BUILD_NR_SLICER_EXT "Where NiftyReg meets 3DSlicer" ${NiftyRegExtension_BUILD_SLICER_EXTENSION})
-option(BUILD_SHARED_LIBS "Build the libraries as shared" OFF)
 mark_as_advanced(BUILD_NR_SLICER_EXT)
+option(BUILD_SHARED_LIBS "Build the libraries as shared" OFF)
 option(USE_SSE "To enable SEE computation in some case" ON)
 option(USE_DOUBLE "To force double precision instead of single precision" OFF)
 option(USE_OPENMP "To use openMP for multi-CPU processing" ON)
 option(USE_OPENCL "Use the OpenCL platform" OFF)
 option(USE_CUDA "To enable CUDA for a GPU implementation of the code" OFF)
-
-if(USE_CUDA)
-	# Check if the CUDA driver are available
-	find_package(CUDA)
-	mark_as_advanced(CUDA_SDK_ROOT_DIR)
-		
-	if(CUDA_FOUND)
-		# Display the CUDA version
-		message(STATUS "The CUDA version you have is v${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR}")
-		# Compile an executable to check if there is at least one suitable graphical card
-		try_run(RUN_RESULT_VAR COMPILE_RESULT_VAR ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/reg-lib/cuda/checkCudaCard.cpp
-				CMAKE_FLAGS -DINCLUDE_DIRECTORIES:STRING=${CUDA_INCLUDE_DIRS} -DLINK_LIBRARIES:STRING=${CUDA_LIBRARIES}
-				COMPILE_OUTPUT_VARIABLE COMPILE_OUTPUT_VAR
-				RUN_OUTPUT_VARIABLE RUN_OUTPUT_VAR
-		)
-
-		# Check if the executable could not compile
-		if(NOT COMPILE_RESULT_VAR)
-			message(WARNING "The code to check the presence of a CUDA-enabled card failed.")
-			message(WARNING "The USE_CUDA flag has been turned OFF.")
-			set(USE_CUDA OFF CACHE BOOL "To enable CUDA for a GPU implementation of the code" FORCE)
-			# Check if the executable return failure
-		elseif(RUN_RESULT_VAR)
-			message(WARNING "No CUDA-enabled card has been detected\nResult code: ${RUN_RESULT_VAR}\nError message: ${RUN_OUTPUT_VAR}\nThe USE_CUDA flag has been turned OFF.")
-			set(USE_CUDA OFF CACHE BOOL "To enable CUDA for a GPU implementation of the code" FORCE)
-		else(NOT COMPILE_RESULT_VAR)
-			message(STATUS "Found CUDA and a CUDA-enabled card:  ${RUN_OUTPUT_VAR}")
-				set(CUDA_NVCC_FLAGS "")			
-				
-				#check cuda version and adjust compile flags
-				if(RUN_OUTPUT_VAR EQUAL "1.0")
-					set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_10,code=sm_10")
-				elseif(RUN_OUTPUT_VAR EQUAL "2.0")
-					set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_20,code=sm_20")
-				elseif(RUN_OUTPUT_VAR EQUAL "3.0")
-					set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_30,code=sm_30")
-				elseif(RUN_OUTPUT_VAR EQUAL "3.5")
-					set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_35,code=sm_35")
-				elseif(RUN_OUTPUT_VAR EQUAL "5.0")
-					set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_50,code=sm_50")
-				endif(RUN_OUTPUT_VAR EQUAL "1.0")
-				
-				#adjust for debug and release versions
-				if(DEBUG_MODE)
-					#common debug flags for all architectures
-					set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --ptxas-options=-v -g -G -lineinfo")
-				else(DEBUG_MODE)
-					set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -use_fast_math -O3 -Xcompiler")
-				endif(DEBUG_MODE) 
-								
-				message(STATUS "Debug: ${DEBUG_MODE} | NVCC Flags: ${CUDA_NVCC_FLAGS}")
-				# The CUDA implementation is used
-				add_definitions(-D_USE_CUDA)
-		endif(NOT COMPILE_RESULT_VAR)
-	else(CUDA_FOUND)
-		set(USE_CUDA OFF CACHE BOOL "To enable CUDA for a GPU implementation of the code" FORCE)
-		message(WARNING "CUDA is not compatible with shared libraries. Forcing BUILD_SHARED_LIBS to OFF")
-	endif(CUDA_FOUND)
-endif(USE_CUDA)
-#-----------------------------------------------------------------------------
-
-
 #-----------------------------------------------------------------------------
 if(WIN32)
 		set(BUILD_ALL_DEP ON CACHE BOOL "All the dependencies are build" FORCE)
@@ -213,16 +124,13 @@ endif(NOT BUILD_ALL_DEP)
 include_directories(${CMAKE_SOURCE_DIR}/reg-io/png)
 include_directories(${PNG_INCLUDE_DIR})
 #-----------------------------------------------------------------------------
+include_directories(${CMAKE_BINARY_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/reg-lib)
-include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cl)
-include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cuda)
 include_directories(${CMAKE_SOURCE_DIR}/reg-io)
 include_directories(${CMAKE_SOURCE_DIR}/reg-io/nifti)
 include_directories(${CMAKE_SOURCE_DIR}/third-party)
-include_directories(${CMAKE_BINARY_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/reg-io/nrrd)
 include_directories(${CMAKE_SOURCE_DIR}/reg-io/nrrd/NrrdIO)
-include_directories(${OPENCL_INCLUDE_DIRS})
 #-----------------------------------------------------------------------------
 if(USE_DOUBLE)
 		if(USE_SSE)
@@ -267,7 +175,6 @@ else(BUILD_SHARED_LIBS)
 	set(NIFTYREG_LIBRARY_TYPE STATIC)
 endif(BUILD_SHARED_LIBS)
 #-----------------------------------------------------------------------------
-
 find_package(Git)
 if(GIT_FOUND)
 	execute_process(

@@ -1,4 +1,44 @@
-
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+	# Build the coverage test
+	option(WITH_COVERAGE "Set up the C, CXX and linker flags to run the coverage test" OFF)
+	if(WITH_COVERAGE)
+		set(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY_ONCE TRUE)
+		set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
+				"Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel."
+				FORCE)
+		set(CMAKE_C_FLAGS_DEBUG
+				"-g -O0 -Wall -W -fprofile-arcs -ftest-coverage"
+				CACHE STRING "Force the debug C flags for the coverage test" FORCE)
+		set(CMAKE_CXX_FLAGS_DEBUG
+				"-g -O0 -Wall -W -Wunused-variable -Wunused-parameter -Wunused-function -Wunused -Wno-system-headers -Wno-deprecated -Woverloaded-virtual -Wwrite-strings -fprofile-arcs -ftest-coverage"
+				CACHE STRING "Force the debug CXX flags for the coverage test" FORCE)
+		set(CMAKE_EXE_LINKER_FLAGS_DEBUG
+				"-fprofile-arcs -ftest-coverage"
+				CACHE STRING "Force the debug linker flags for the coverage test" FORCE)
+		set(BUILD_ALL_DEP ON CACHE BOOL "All the dependencies are build" FORCE)
+		configure_file(${CMAKE_SOURCE_DIR}/reg-test/CTestCustom.cmake.in
+									 ${CMAKE_BINARY_DIR}/CTestCustom.cmake)
+	endif(WITH_COVERAGE)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+	# Set the build name
+	unset(BUILDNAME CACHE)
+	set(CTEST_BUILD_NAME "${CMAKE_SYSTEM}_${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}_cmake-${CMAKE_VERSION}_${CMAKE_BUILD_TYPE}")
+	if(USE_SSE)
+		set(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}_sse")
+	endif(USE_SSE)
+	if(USE_OPENMP)
+		set(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}_openmp")
+	endif(USE_OPENMP)
+	if(USE_CUDA)
+		set(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}_cuda-${CUDA_VERSION}")
+	endif(USE_CUDA)
+	unset(BUILDNAME)
+	set(BUILDNAME ${CTEST_BUILD_NAME} CACHE STRING "Build name variable for CDash" FORCE)
+	mark_as_advanced(BUILDNAME)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 	# The test data are dowloaded
 	set(DATA_FOLDER ${CMAKE_BINARY_DIR}/reg-test/test-data)
 	if(NOT EXISTS "${DATA_FOLDER}/test_data.tar.gz")
@@ -90,70 +130,40 @@
 	add_test(${EXEC}_LNCC_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz LNCC)
 	add_test(${EXEC}_NMI_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz NMI)
 	add_test(${EXEC}_SSD_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz SSD)
-	
-	#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC clInfo)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_aladin)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC testOptimizerKernel)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_aladin)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC testConvolutionKernel)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_aladin)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC testAffineDeformationKernel)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_aladin)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC testResamplingKernel)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_aladin)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC testBlockMatchingKernel)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_aladin)
+
+
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 if(USE_OPENCL)
-  set(EXEC reg_test_affine_deformation_field_cl)
-  add_executable(${EXEC} ${EXEC}.cpp)
-  target_link_libraries(${EXEC} _reg_aladin)
-  add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
+	set(EXEC reg_test_affine_deformation_field_cl)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_aladin)
+	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
+
+	set(EXEC reg_test_interpolation_cl)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_aladin)
+	add_test(${EXEC}_0_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_nea3D.nii.gz 0)
+	add_test(${EXEC}_1_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 1)
+	add_test(${EXEC}_3_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_cub3D.nii.gz 3)
 endif(USE_OPENCL)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 if(USE_CUDA)
-  set(EXEC reg_test_affine_deformation_field_cuda)
-  add_executable(${EXEC} ${EXEC}.cpp)
-  target_link_libraries(${EXEC} _reg_aladin)
-  add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
+	set(EXEC reg_test_affine_deformation_field_cuda)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_aladin)
+	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
+	set(EXEC reg_test_fullAffine_cuda)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_aladin)
+	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
+	set(EXEC reg_test_interpolation_cuda)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_aladin)
+	add_test(${EXEC}_0_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_nea3D.nii.gz 0)
+	add_test(${EXEC}_1_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 1)
+	add_test(${EXEC}_3_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_cub3D.nii.gz 3)
 endif(USE_CUDA)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-if(USE_CUDA)
-  set(EXEC reg_test_fullAffine_cuda)
-  add_executable(${EXEC} ${EXEC}.cpp)
-  target_link_libraries(${EXEC} _reg_aladin)
-  #add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
-endif(USE_CUDA)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC reg_test_interpolation_cl)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_aladin)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-set(EXEC reg_test_interpolation_cuda)
-add_executable(${EXEC} ${EXEC}.cpp)
-target_link_libraries(${EXEC} _reg_aladin)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
