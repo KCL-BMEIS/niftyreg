@@ -61,7 +61,7 @@ public:
 	ResampleImageKernel( std::string name) : Kernel(name) {
 
 	}
-
+	virtual ~ResampleImageKernel(){std::cout<<"virtual ResampleImageKernel"<<std::endl;}
 
 	virtual void execute(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL) = 0;
 };

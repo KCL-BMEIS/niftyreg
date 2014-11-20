@@ -53,9 +53,6 @@ void CLAffineDeformationFieldKernel::execute(bool compose) {
 	sContext->checkErrNum(errNum, "Error queuing kernel for execution: ");
 
 	clFinish(commandQueue);
-	sContext->checkErrNum(errNum, "Error reading result buffer.");
-
-
 	return;
 }
 
@@ -116,31 +113,33 @@ void CLResampleImageKernel::execute(int interp, float paddingValue, bool *dti_ti
 	float *sourceIJKMatrix_h = (float*) malloc(16 * sizeof(float));
 	float* jacMat_h = (float*) malloc(9 * numMats * sizeof(float));
 
-	mat44 *sourceIJKMatrix = (floatingImage->sform_code > 0) ? &(floatingImage->sto_ijk) : sourceIJKMatrix = &(floatingImage->qto_ijk);
+	mat44 *sourceIJKMatrix = (floatingImage->sform_code > 0) ? &(floatingImage->sto_ijk) :  &(floatingImage->qto_ijk);
+	mat44ToCptr(*sourceIJKMatrix, sourceIJKMatrix_h);
 
 	cl_long2 voxelNumber = { warpedImage->nx * warpedImage->ny * warpedImage->nz, floatingImage->nx * floatingImage->ny * floatingImage->nz };
 	cl_uint3 fi_xyz = { floatingImage->nx, floatingImage->ny, floatingImage->nz };
 	cl_uint2 wi_tu = { warpedImage->nt, warpedImage->nu };
 
-	mat44ToCptr(*sourceIJKMatrix, sourceIJKMatrix_h);
+
+
 
 	if (numMats)
 		mat33ToCptr(jacMat, jacMat_h, numMats);
 
-	cl_mem clIjkMat = clCreateBuffer(clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 16 * sizeof(float), sourceIJKMatrix, &errNum);
+	cl_mem clIjkMat = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 16 * sizeof(float), sourceIJKMatrix_h, &errNum);
 	sContext->checkErrNum(errNum, "failed clIjkMat: ");
 
 
-	errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), &this->clCurrentFloating);
-	errNum |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &this->clCurrentDeformationField);
-	errNum |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &this->clCurrentWarped);
-	errNum |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &this->clMask);
-	errNum |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &clIjkMat);
-	errNum |= clSetKernelArg(kernel, 5, sizeof(cl_long2), &voxelNumber);
+	errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), &this->clCurrentFloating);sContext->checkErrNum(errNum, "Error setting kernel arguments.");
+	errNum |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &this->clCurrentDeformationField);sContext->checkErrNum(errNum, "Error setting kernel arguments.");
+	errNum |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &this->clCurrentWarped);sContext->checkErrNum(errNum, "Error setting kernel arguments.");
+	errNum |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &this->clMask);sContext->checkErrNum(errNum, "Error setting kernel arguments.");
+	errNum |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &clIjkMat);sContext->checkErrNum(errNum, "Error setting kernel arguments.");
+	errNum |= clSetKernelArg(kernel, 5, sizeof(cl_long2), &voxelNumber);sContext->checkErrNum(errNum, "Error setting kernel arguments.");
 
-	errNum |= clSetKernelArg(kernel, 6, sizeof(cl_uint3), &fi_xyz);
-	errNum |= clSetKernelArg(kernel, 7, sizeof(cl_uint2), &wi_tu);
-	errNum |= clSetKernelArg(kernel, 8, sizeof(float), &paddingValue);
+	errNum |= clSetKernelArg(kernel, 6, sizeof(cl_uint3), &fi_xyz);sContext->checkErrNum(errNum, "Error setting kernel arguments.");
+	errNum |= clSetKernelArg(kernel, 7, sizeof(cl_uint2), &wi_tu);sContext->checkErrNum(errNum, "Error setting kernel arguments.");
+	errNum |= clSetKernelArg(kernel, 8, sizeof(float), &paddingValue);sContext->checkErrNum(errNum, "Error setting kernel arguments.");
 	sContext->checkErrNum(errNum, "Error setting kernel arguments.");
 
 	errNum = clEnqueueNDRangeKernel(commandQueue, kernel, dims, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
@@ -177,11 +176,6 @@ void CLBlockMatchingKernel::execute() {
 	cl_float4 t_m_b = { xyz_mat->m[1][0], xyz_mat->m[1][1], xyz_mat->m[1][2], xyz_mat->m[1][3] };
 	cl_float4 t_m_c = { xyz_mat->m[2][0], xyz_mat->m[2][1], xyz_mat->m[2][2], xyz_mat->m[2][3] };
 
-	if (targetKernel == NULL) {
-		std::cerr << "Failed to create targetKernel" << std::endl;
-		sContext->Cleanup(program, targetKernel, memObjects, numMemObjects);
-		return;
-	}
 
 	float *targetImageArray_d;
 	float *resultImageArray_d;

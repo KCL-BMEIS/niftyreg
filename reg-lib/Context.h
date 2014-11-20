@@ -88,6 +88,8 @@ public:
 	int* CurrentReferenceMask;
 
 	mat44* transformationMatrix;
+	mat44 refMatrix_xyz;
+	mat44 floMatrix_ijk;
 	_reg_blockMatchingParam* blockMatchingParams;
 
 	 int stepSizeBlock;

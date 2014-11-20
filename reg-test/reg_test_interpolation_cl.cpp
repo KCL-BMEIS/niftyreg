@@ -14,8 +14,9 @@ void test(Context *con, const unsigned int interp) {
 	Platform *platform = new CLPlatform();
 
 	Kernel* resamplingKernel = platform->createKernel(ResampleImageKernel::Name(), con);
-	//run kernel
 	resamplingKernel->castTo<ResampleImageKernel>()->execute(interp, 0);
+
+	delete resamplingKernel;
 	delete platform;
 }
 
@@ -64,25 +65,24 @@ int main(int argc, char **argv) {
 
 
 	// Compute the non-linear deformation field
-	int* tempMask = (int *) calloc(test_warped->nx*test_warped->ny*test_warped->nz, sizeof(int));
+	int* tempMask = (int *) calloc(test_warped->nvox, sizeof(int));
 	reg_tools_changeDatatype<float>(floatingImage);
 	reg_tools_changeDatatype<float>(test_warped);
-//	reg_tools_changeDatatype<float>(inputDeformationField);
 
 	Context *con = new ClContext(NULL, floatingImage, NULL, sizeof(float));
 	con->setCurrentWarped(test_warped);
 	con->setCurrentDeformationField(inputDeformationField);
-	con->setCurrentReferenceMask(tempMask, test_warped->nx*test_warped->ny*test_warped->nz);
+	con->setCurrentReferenceMask(tempMask, test_warped->nvox);
 
 	test(con, interpolation);
-	test_warped = con->getCurrentWarped(warpedImage->datatype);
+	test_warped = con->getCurrentWarped(warpedImage->datatype);//check
 
-	short* a = static_cast<short*>(test_warped->data);
+	/*short* a = static_cast<short*>(test_warped->data);
 	short* b = static_cast<short*>(warpedImage->data);
 	for (int i = 0; i < 100; ++i) {
 		if (a[i] - b[i] != 0)
 			std::cout << i << ": " << a[i] << " - " << b[i] << std::endl;
-	}
+	}*/
 
 	// Compute the difference between the computed and inputed warped image
 	reg_tools_substractImageToImage(warpedImage, test_warped, test_warped);

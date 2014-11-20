@@ -6,7 +6,7 @@
 	static __local float sData2[64];
 
 	sData2[tid] = data;
-	__syncthreads();
+	barrier(CLK_LOCAL_MEM_FENCE);
 
 	if (tid < 32) sData2[tid] += sData2[tid + 32];
 	if (tid < 16) sData2[tid] += sData2[tid + 16];
@@ -15,7 +15,7 @@
 	if (tid < 2) sData2[tid] += sData2[tid + 2];
 	if (tid == 0) sData2[0] += sData2[1];
 
-	__syncthreads();
+	barrier(CLK_LOCAL_MEM_FENCE);
 	return sData2[0];
 }
 
@@ -23,24 +23,22 @@
 
 __kernel void blockMatchingKernel(__global float *resultPosition, __global float *targetPosition, __global int* mask, __global float* targetMatrix_xyz, uint3 blockDims, unsigned int* definedBlock){
 
-	__shared__ float sResultValues[12 * 12 * 12];
+	__local float sResultValues[12 * 12 * 12];
 
-	//const bool is_7_21_11 = blockIdx.x == 7 && blockIdx.y == 21 && blockIdx.z == 11;
-//	bool b2_13_10 = blockIdx.x==2&&blockIdx.y==13&&blockIdx.z==10;
-	const bool border = blockIdx.x == gridDim.x - 1 || blockIdx.y == gridDim.y - 1 || blockIdx.z == gridDim.z - 1;
+	const bool border = get_group_id(0) == get_num_groups(0) - 1 || get_group_id(1) == get_num_groups(1) - 1 || get_group_id(2) == get_num_groups(2) - 1;
 
-	const unsigned int idz = threadIdx.x / 16;
-	const unsigned int idy = (threadIdx.x - 16 * idz) / 4;
-	const unsigned int idx = threadIdx.x - 16 * idz - 4 * idy;
+	const unsigned int idz = get_local_id(0) / 16;
+	const unsigned int idy = (get_local_id(0) - 16 * idz) / 4;
+	const unsigned int idx = get_local_id(0) - 16 * idz - 4 * idy;
 
-	const unsigned int bid = blockIdx.x + gridDim.x * blockIdx.y + (gridDim.x * gridDim.y) * blockIdx.z;
+	const unsigned int bid = get_group_id(0) + get_num_groups(0) * get_group_id(1) + (get_num_groups(0) * get_num_groups(1)) * get_group_id(2);
 
-	const unsigned int xBaseImage = blockIdx.x * 4;
-	const unsigned int yBaseImage = blockIdx.y * 4;
-	const unsigned int zBaseImage = blockIdx.z * 4;
+	const unsigned int xBaseImage = get_group_id(0) * 4;
+	const unsigned int yBaseImage = get_group_id(1) * 4;
+	const unsigned int zBaseImage = get_group_id(2) * 4;
 
 
-	const unsigned int tid = threadIdx.x;//0-blockSize
+	const unsigned int tid = get_local_id(0);//0-blockSize
 
 	const unsigned int xImage = xBaseImage + idx;
 	const unsigned int yImage = yBaseImage + idy;
@@ -90,20 +88,15 @@ __kernel void blockMatchingKernel(__global float *resultPosition, __global float
 		// iteration over the result blocks
 		for (unsigned int n = 1; n < 8; n += 1)
 		{
-			const bool nBorder = (n < 4 && blockIdx.z == 0) || (n>4 && blockIdx.z >= gridDim.z - 2);
+			const bool nBorder = (n < 4 && get_group_id(2) == 0) || (n>4 && get_group_id(2) >= get_num_groups(2) - 2);
 			for (unsigned int m = 1; m < 8; m += 1)
 			{
-				const bool mBorder = (m < 4 && blockIdx.y == 0) || (m>4 && blockIdx.y >= gridDim.y - 2);
+				const bool mBorder = (m < 4 && get_group_id(1) == 0) || (m>4 && get_group_id(1) >= get_num_groups(1) - 2);
 				for (unsigned int l = 1; l < 8; l += 1)
 				{
 
-					/*bool nIs_1_0_m3 = l == 1 + 4 && m == 0 + 4 && n == -3 + 4;
-					bool nIs_1_0_m2 = l == 1 + 4 && m == 0 + 4 && n == -2 + 4;
 
-					bool condition1 = b2_13_10  && nIs_1_0_m3 && tid==0;
-					bool condition2 = b2_13_10  && nIs_1_0_m2 && tid==0;*/
-
-					const bool lBorder = (l < 4 && blockIdx.x == 0) || (l>4 && blockIdx.x >= gridDim.x - 2);
+					const bool lBorder = (l < 4 && get_group_id(0) == 0) || (l>4 && get_group_id(0) >= get_num_groups(0) - 2);
 
 					const unsigned int x = idx + l;
 					const unsigned int y = idy + m;
@@ -137,9 +130,7 @@ __kernel void blockMatchingKernel(__global float *resultPosition, __global float
 						const float sumTargetResult = REDUCE((newTargetTemp)*(resultTemp), tid);
 						const float localCC = fabs((sumTargetResult) / sqrtf(ttargetvar*resultVar));
 
-						/*if (condition1) printf("GPU -3 | sze: %d | TMN: %f | TVR: %f | RMN: %f |RVR %f | STR: %f | LCC: %f\n", bSize, targetMean, targetVar, resultMean, resultVar, sumTargetResult, localCC);
-						if (condition2) printf("GPU -2 | sze: %d | TMN: %f | TVR: %f | RMN: %f |RVR %f | STR: %f | LCC: %f\n", bSize, targetMean, targetVar, resultMean, resultVar, sumTargetResult, localCC);
-*/
+
 						if (tid == 0 && localCC > bestCC) {
 							bestCC = localCC;
 							bestDisplacement[0] = l - 4.0f;
@@ -154,13 +145,11 @@ __kernel void blockMatchingKernel(__global float *resultPosition, __global float
 
 		if (tid == 0 && isfinite(bestDisplacement[0])) {
 
-//			if (b2_13_10) printf("disp: %f-%f-%f\n", bestDisplacement[0],bestDisplacement[1], bestDisplacement[2]);
-			const unsigned int posIdx = 3 * atomicAdd(&(definedBlock[0]), 1);
-			//printf("%d: %d \n", definedBlock[0], bid);
+			const unsigned int posIdx = 3 * atomic_add(&(definedBlock[0]), 1);
 			resultPosition += posIdx;
 			targetPosition += posIdx;
 
-			const float targetPosition_temp[3] = {blockIdx.x*BLOCK_WIDTH,blockIdx.y*BLOCK_WIDTH, blockIdx.z*BLOCK_WIDTH };
+			const float targetPosition_temp[3] = {get_group_id(0)*BLOCK_WIDTH,get_group_id(1)*BLOCK_WIDTH, get_group_id(2)*BLOCK_WIDTH };
 
 			bestDisplacement[0] += targetPosition_temp[0];
 			bestDisplacement[1] += targetPosition_temp[1];

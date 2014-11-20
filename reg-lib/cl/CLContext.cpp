@@ -15,6 +15,7 @@ void ClContext::allocateClPtrs() {
 	}
 
 	if (this->CurrentWarped != NULL) {
+		std::cout << "NN2" << std::endl;
 		warpedImageClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE, this->CurrentWarped->nvox * sizeof(float), this->CurrentWarped->data, &errNum);
 		sContext->checkErrNum(errNum, "failed CurrentWarped: ");
 	}
@@ -50,14 +51,14 @@ void ClContext::allocateClPtrs() {
 
 void ClContext::initVars() {
 
-	referenceImageClmem=0;
-	floatingImageClmem=0;
-	warpedImageClmem=0;
-	deformationFieldClmem=0;
-	targetPositionClmem=0;
-	resultPositionClmem=0;
-	activeBlockClmem=0;
-	maskClmem=0;
+	referenceImageClmem = 0;
+	floatingImageClmem = 0;
+	warpedImageClmem = 0;
+	deformationFieldClmem = 0;
+	targetPositionClmem = 0;
+	resultPositionClmem = 0;
+	activeBlockClmem = 0;
+	maskClmem = 0;
 
 	sContext = &CLContextSingletton::Instance();
 	clContext = sContext->getContext();
@@ -97,7 +98,7 @@ DataType ClContext::fillWarpedImageData(float intensity, int datatype) {
 template<class T>
 void ClContext::fillImageData(nifti_image* image, cl_mem memoryObject, cl_mem_flags flag, int type, std::string message) {
 
-	size_t size = image->nx * image->ny * image->nz;
+	size_t size = image->nvox;
 	float* buffer = NULL;
 	buffer = (float*) malloc(size * sizeof(float));
 
@@ -105,18 +106,21 @@ void ClContext::fillImageData(nifti_image* image, cl_mem memoryObject, cl_mem_fl
 		printf("\nERROR: Memory allocation did not complete successfully!");
 	}
 
-	warpedImageBuffer = static_cast<float*>(this->CurrentWarped->data);
+	warpedImageBuffer = static_cast<float*>(image->data);
 	for (int i = 0; i < 100; ++i) {
 		if (warpedImageBuffer[i] > 0.00001)
 			printf("data pre idx: %d | intensity %f\n", i, warpedImageBuffer[i]);
 	}
 
-	errNum = clEnqueueReadBuffer(commandQueue, memoryObject, flag, 0, size * sizeof(float), this->CurrentWarped->data, 0, NULL, NULL);
+	errNum = clEnqueueReadBuffer(this->commandQueue, warpedImageClmem, CL_TRUE, 0, size * sizeof(float), CurrentWarped->data, 0, NULL, NULL);
 	sContext->checkErrNum(errNum, "Error reading warped buffer.");
-	warpedImageBuffer = static_cast<float*>(this->CurrentWarped->data);
+
+	warpedImageBuffer = NULL;
+	warpedImageBuffer = static_cast<float*>(image->data);
 
 	for (int i = 0; i < 100; ++i) {
-		printf("after idx: %d | intensity %f\n", i, warpedImageBuffer[i]);
+		if (warpedImageBuffer[i] > 0.00001)
+			printf("after idx: %d | intensity %f\n", i, warpedImageBuffer[i]);
 	}
 
 	for (size_t i = 0; i < size; ++i) {
@@ -181,7 +185,7 @@ nifti_image* ClContext::getCurrentWarped(int datatype) {
 
 	downloadImage(this->CurrentWarped, warpedImageClmem, CL_TRUE, datatype, "warpedImageClmem");
 	this->CurrentWarped->datatype = datatype;
-	return CurrentWarped;
+	return this->CurrentWarped;
 }
 
 nifti_image* ClContext::getCurrentDeformationField() {
@@ -201,25 +205,27 @@ void ClContext::setTransformationMatrix(mat44* transformationMatrixIn) {
 
 void ClContext::setCurrentDeformationField(nifti_image* CurrentDeformationFieldIn) {
 	if (this->CurrentDeformationField != NULL)
-			clReleaseMemObject(deformationFieldClmem);
+		clReleaseMemObject(deformationFieldClmem);
 
 	Context::setCurrentDeformationField(CurrentDeformationFieldIn);
-	deformationFieldClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE,  this->CurrentDeformationField->nvox*sizeof(float), this->CurrentDeformationField->data, &errNum);
+	deformationFieldClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE, this->CurrentDeformationField->nvox * sizeof(float), this->CurrentDeformationField->data, &errNum);
 	sContext->checkErrNum(errNum, "failed CurrentDeformationField: ");
 }
 void ClContext::setCurrentReferenceMask(int* maskIn, size_t nvox) {
 
-	if (this->CurrentReference != NULL)
+	if (this->CurrentReferenceMask != NULL)
 		clReleaseMemObject(maskClmem);
 
 	this->CurrentReferenceMask = maskIn;
-	maskClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, nvox * sizeof(int), maskIn, &errNum);
+	maskClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, nvox * sizeof(int), this->CurrentReferenceMask, &errNum);
 }
 
 void ClContext::setCurrentWarped(nifti_image* currentWarped) {
 
-	if (this->CurrentWarped != NULL)
+	if (this->CurrentWarped != NULL) {
+		std::cout << "NN2" << std::endl;
 		clReleaseMemObject(warpedImageClmem);
+	}
 	Context::setCurrentWarped(currentWarped);
 	warpedImageClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE, this->CurrentWarped->nvox * sizeof(float), this->CurrentWarped->data, &errNum);
 	sContext->checkErrNum(errNum, "failed CurrentWarped: ");
@@ -232,8 +238,10 @@ void ClContext::freeClPtrs() {
 		clReleaseMemObject(referenceImageClmem);
 	if (this->CurrentFloating != NULL)
 		clReleaseMemObject(floatingImageClmem);
-	if (this->CurrentWarped != NULL)
+	if (this->CurrentWarped != NULL) {
+		std::cout << "NN3" << std::endl;
 		clReleaseMemObject(warpedImageClmem);
+	}
 	if (this->CurrentDeformationField != NULL)
 		clReleaseMemObject(deformationFieldClmem);
 

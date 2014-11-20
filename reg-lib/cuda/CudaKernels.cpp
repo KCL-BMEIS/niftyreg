@@ -20,12 +20,12 @@ void CudaAffineDeformationFieldKernel::execute(  bool compose ) {
 }
 
 void CudaResampleImageKernel::execute( int interp, float paddingValue, bool *dti_timepoint , mat33 * jacMat ) {
-	launchResample(floatingImage, warpedImage,  mask, interp, paddingValue, dti_timepoint, jacMat, &floatingImageArray_d, &warpedImageArray_d, &deformationFieldImageArray_d, &mask_d);
+	launchResample(floatingImage, warpedImage,  mask, interp, paddingValue, dti_timepoint, jacMat, &floatingImageArray_d, &warpedImageArray_d, &deformationFieldImageArray_d, &mask_d, &floIJKMat_d);
 
 }
 void CudaBlockMatchingKernel::execute(){
 
-	launchBlockMatching(target, params, &targetImageArray_d, &resultImageArray_d, &targetPosition_d, &resultPosition_d, &activeBlock_d, &mask_d);
+	launchBlockMatching(target, params, &targetImageArray_d, &resultImageArray_d, &targetPosition_d, &resultPosition_d, &activeBlock_d, &mask_d, &targetMat_d);
 }
 void CudaOptimiseKernel::execute( bool affine) {
 

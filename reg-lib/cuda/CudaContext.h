@@ -1,5 +1,6 @@
 #pragma once
 #include "Context.h"
+#include "_reg_tools.h"
 
 class CudaContext: public Context {
 
@@ -49,6 +50,12 @@ public:
 	float* getDeformationFieldArray_d() {
 		return deformationFieldArray_d;
 	}
+	float* getTargetMat_d() {
+			return targetMat_d;
+		}
+	float* getFloIJKMat_d(){
+		return floIJKMat_d;
+	}
 	int* getActiveBlock_d() {
 		return activeBlock_d;
 	}
@@ -90,6 +97,8 @@ private:
 	float *targetPosition_d;
 	float *resultPosition_d;
 	int *activeBlock_d, *mask_d;
+	float* targetMat_d;
+	float* floIJKMat_d;
 
 	int referenceDims[4];
 	int floatingDims[4];

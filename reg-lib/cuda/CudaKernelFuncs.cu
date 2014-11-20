@@ -222,7 +222,6 @@ __global__ void TrilinearResampleImage(float *floatingImage, float *deformationF
 	float *deformationFieldPtrY = &deformationFieldPtrX[voxelNumber.x];
 	float *deformationFieldPtrZ = &deformationFieldPtrY[voxelNumber.x];
 
-
 	// The resampling scheme is applied along each time
 
 	long index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -712,9 +711,7 @@ void launchAffine(mat44 *affineTransformation, nifti_image *deformationField, fl
 
 }
 
-void launchResample(nifti_image *floatingImage, nifti_image *warpedImage, int *mask, int interp, float paddingValue, bool *dti_timepoint, mat33 * jacMat, float** floatingImage_d, float** warpedImage_d, float** deformationFieldImage_d, int** mask_d) {
-
-
+void launchResample(nifti_image *floatingImage, nifti_image *warpedImage, int *mask, int interp, float paddingValue, bool *dti_timepoint, mat33 * jacMat, float** floatingImage_d, float** warpedImage_d, float** deformationFieldImage_d, int** mask_d, float** floIJKMat_d) {
 
 	// Define the DTI indices if required
 	int dtiIndeces[6];
@@ -739,11 +736,11 @@ void launchResample(nifti_image *floatingImage, nifti_image *warpedImage, int *m
 		}
 	}
 
-	runKernel2(floatingImage, warpedImage, mask, interp, paddingValue, dtiIndeces, jacMat, floatingImage_d, warpedImage_d, deformationFieldImage_d, mask_d);
+	runKernel2(floatingImage, warpedImage, mask, interp, paddingValue, dtiIndeces, jacMat, floatingImage_d, warpedImage_d, deformationFieldImage_d, mask_d, floIJKMat_d);
 
 }
 
-void runKernel2(nifti_image *floatingImage, nifti_image *warpedImage, int *mask, int interp, float paddingValue, int *dtiIndeces, mat33 * jacMat, float** floatingImage_d, float** warpedImage_d, float** deformationFieldImage_d, int** mask_d) {
+void runKernel2(nifti_image *floatingImage, nifti_image *warpedImage, int *mask, int interp, float paddingValue, int *dtiIndeces, mat33 * jacMat, float** floatingImage_d, float** warpedImage_d, float** deformationFieldImage_d, int** mask_d, float** sourceIJKMatrix_d) {
 
 	long targetVoxelNumber = (long) warpedImage->nx * warpedImage->ny * warpedImage->nz;
 
@@ -760,15 +757,11 @@ void runKernel2(nifti_image *floatingImage, nifti_image *warpedImage, int *mask,
 
 	//number of jacobian matrices
 	int numMats = 0; //needs to be transfered to a param
-
-	float* sourceIJKMatrix_d, *jacMat_d;
-	float *sourceIJKMatrix_h = (float*) malloc(16 * sizeof(float));
-	float* jacMat_h = (float*) malloc(9 * numMats * sizeof(float));
-
 	int* dtiIndeces_d;
 
-	mat44 *sourceIJKMatrix = (floatingImage->sform_code > 0) ? &(floatingImage->sto_ijk) : sourceIJKMatrix = &(floatingImage->qto_ijk);
-	mat44ToCptr(*sourceIJKMatrix, sourceIJKMatrix_h);
+	float* jacMat_d;
+	float* jacMat_h = (float*) malloc(9 * numMats * sizeof(float));
+
 
 	ulong2 voxelNumber = make_ulong2(warpedImage->nx * warpedImage->ny * warpedImage->nz, floatingImage->nx * floatingImage->ny * floatingImage->nz);
 	uint3 fi_xyz = make_uint3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
@@ -781,11 +774,7 @@ void runKernel2(nifti_image *floatingImage, nifti_image *warpedImage, int *mask,
 	NR_CUDA_SAFE_CALL(cudaMalloc((void** )(&dtiIndeces_d), 6 * sizeof(int)));
 	NR_CUDA_SAFE_CALL(cudaMemcpy(dtiIndeces_d, dtiIndeces, 6 * sizeof(int), cudaMemcpyHostToDevice));
 
-	//sourceIJKMatrix_d
-	NR_CUDA_SAFE_CALL(cudaMalloc((void** )(&sourceIJKMatrix_d), 16 * sizeof(float)));
-	NR_CUDA_SAFE_CALL(cudaMemcpy(sourceIJKMatrix_d, sourceIJKMatrix_h, 16 * sizeof(float), cudaMemcpyHostToDevice));
-
-	//sourceIJKMatrix_d
+	//jac_mat_d
 	NR_CUDA_SAFE_CALL(cudaMalloc((void** )(&jacMat_d), numMats * 9 * sizeof(float)));
 	NR_CUDA_SAFE_CALL(cudaMemcpy(jacMat_d, jacMat_h, numMats * 9 * sizeof(float), cudaMemcpyHostToDevice));
 
@@ -796,11 +785,11 @@ void runKernel2(nifti_image *floatingImage, nifti_image *warpedImage, int *mask,
 	//reg_dti_resampling_preprocessing<float> << <mygrid, myblocks >> >(floatingImage_d, dtiIndeces, fi_xyz);
 
 	if (interp == 1)
-		TrilinearResampleImage<< <mygrid, myblocks >> >(*floatingImage_d, *deformationFieldImage_d, *warpedImage_d, *mask_d, sourceIJKMatrix_d, voxelNumber, fi_xyz, wi_tu, paddingValue);
+		TrilinearResampleImage<< <mygrid, myblocks >> >(*floatingImage_d, *deformationFieldImage_d, *warpedImage_d, *mask_d, *sourceIJKMatrix_d, voxelNumber, fi_xyz, wi_tu, paddingValue);
 		else if (interp == 3)
-		CubicSplineResampleImage3D << <mygrid, myblocks >> >(*floatingImage_d, *deformationFieldImage_d, *warpedImage_d, *mask_d, sourceIJKMatrix_d, voxelNumber, fi_xyz, wi_tu, paddingValue);
+		CubicSplineResampleImage3D << <mygrid, myblocks >> >(*floatingImage_d, *deformationFieldImage_d, *warpedImage_d, *mask_d, *sourceIJKMatrix_d, voxelNumber, fi_xyz, wi_tu, paddingValue);
 		else
-		NearestNeighborResampleImage << <mygrid, myblocks >> >(*floatingImage_d, *deformationFieldImage_d, *warpedImage_d, *mask_d, sourceIJKMatrix_d, voxelNumber, fi_xyz, wi_tu, paddingValue);
+		NearestNeighborResampleImage << <mygrid, myblocks >> >(*floatingImage_d, *deformationFieldImage_d, *warpedImage_d, *mask_d, *sourceIJKMatrix_d, voxelNumber, fi_xyz, wi_tu, paddingValue);
 //	NR_CUDA_CHECK_KERNEL(mygrid, myblocks)
 	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
 
@@ -815,12 +804,12 @@ void runKernel2(nifti_image *floatingImage, nifti_image *warpedImage, int *mask,
 	//reg_dti_resampling_postprocessing<float> << <mygrid, myblocks >> >(warpedImage_d, NULL, mask_d, jacMat_d, dtiIndeces_d, fi_xyz, wi_tu);
 	//reg_dti_resampling_postprocessing<float>(warpedImage, mask, jacMat, dtiIndeces);//need to either write it in cuda or do the transfers
 
-	cudaFree(sourceIJKMatrix_d);
+//	cudaFree(sourceIJKMatrix_d);
 	cudaFree(jacMat_d);
 	cudaFree(dtiIndeces_d);
 
 	//free(originalFloatingData);
-	free(sourceIJKMatrix_h);
+//	free(sourceIJKMatrix_h);
 	free(jacMat_h);
 
 }
@@ -838,8 +827,8 @@ void identityConst() {
 	cudaMemcpyToSymbol(cIdentity, &mat_h, 16 * sizeof(float));
 }
 
-void launchBlockMatching(nifti_image * target, _reg_blockMatchingParam *params, float **targetImageArray_d, float **resultImageArray_d, float **targetPosition_d, float **resultPosition_d, int **activeBlock_d, int **mask_d) {
+void launchBlockMatching(nifti_image * target, _reg_blockMatchingParam *params, float **targetImageArray_d, float **resultImageArray_d, float **targetPosition_d, float **resultPosition_d, int **activeBlock_d, int **mask_d, float** targetMat_d) {
 
-	block_matching_method_gpu3(target, params, targetImageArray_d, resultImageArray_d, targetPosition_d, resultPosition_d, activeBlock_d, mask_d);
+	block_matching_method_gpu3(target, params, targetImageArray_d, resultImageArray_d, targetPosition_d, resultPosition_d, activeBlock_d, mask_d, targetMat_d);
 }
 

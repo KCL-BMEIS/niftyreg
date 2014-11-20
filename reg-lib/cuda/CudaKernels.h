@@ -36,15 +36,16 @@ public:
 		result = conIn->CurrentWarped;
 		params = conIn->blockMatchingParams;
 		mask = conIn->CurrentReferenceMask;
-
-		targetImageArray_d = ((CudaContext*) conIn)->getReferenceImageArray_d();
-		resultImageArray_d = ((CudaContext*) conIn)->getWarpedImageArray_d();
-		targetPosition_d = ((CudaContext*) conIn)->getTargetPosition_d();
-		resultPosition_d = ((CudaContext*) conIn)->getResultPosition_d();
-
-		activeBlock_d = ((CudaContext*) conIn)->getActiveBlock_d();
-		mask_d = ((CudaContext*) conIn)->getMask_d();
 		con = ((CudaContext*) conIn);
+
+		targetImageArray_d = con->getReferenceImageArray_d();
+		resultImageArray_d = con->getWarpedImageArray_d();
+		targetPosition_d = con->getTargetPosition_d();
+		resultPosition_d = con->getResultPosition_d();
+		activeBlock_d = con->getActiveBlock_d();
+		mask_d = con->getMask_d();
+		targetMat_d = con->getTargetMat_d();
+
 	}
 
 	void execute();
@@ -55,7 +56,7 @@ public:
 
 	CudaContext* con;
 
-	float *targetImageArray_d, *resultImageArray_d, *targetPosition_d, *resultPosition_d;
+	float *targetImageArray_d, *resultImageArray_d, *targetPosition_d, *resultPosition_d, *targetMat_d;
 	int *activeBlock_d, *mask_d;
 
 };
@@ -106,6 +107,7 @@ public:
 		warpedImageArray_d = con->getWarpedImageArray_d();
 		deformationFieldImageArray_d = con->getDeformationFieldArray_d();
 		mask_d = con->getMask_d();
+		floIJKMat_d = con->getFloIJKMat_d();
 
 		if (floatingImage->datatype != warpedImage->datatype) {
 			printf("[NiftyReg ERROR] reg_resampleImage\tSource and result image should have the same data type\n");
@@ -126,6 +128,7 @@ public:
 	int *mask;
 
 	float* floatingImageArray_d;
+	float* floIJKMat_d;
 	float* warpedImageArray_d;
 	float* deformationFieldImageArray_d;
 	int* mask_d;

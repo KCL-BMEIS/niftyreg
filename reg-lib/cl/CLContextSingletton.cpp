@@ -86,8 +86,8 @@ void CLContextSingletton::CreateContext() {
 //
 void CLContextSingletton::CreateCommandQueue() {
 	cl_int errNum;
-	
-	
+
+
 	size_t deviceBufferSize = -1;
 
 	// First get the size of the devices buffer
@@ -155,6 +155,7 @@ cl_program CLContextSingletton::CreateProgram( const char* fileName) {
 }
 
 void CLContextSingletton::shutDown(){
+	std::cout<<"Shutting down cl"<<std::endl;
 	if (context != 0)
 		clReleaseContext(context);
 	if (commandQueue != 0)
@@ -167,19 +168,6 @@ void CLContextSingletton::shutDown(){
 //  Cleanup any created OpenCL resources
 //
 void CLContextSingletton::Cleanup( cl_program program, cl_kernel kernel, cl_mem* memObjects, int length) {
-	for (int i = 0; i < length; i++) {
-		if (memObjects[i] != 0)
-			clReleaseMemObject(memObjects[i]);
-	}
-	
-
-	if (kernel != 0)
-		clReleaseKernel(kernel);
-
-	if (program != 0)
-		clReleaseProgram(program);
-
-	
 
 }
 

@@ -4,21 +4,25 @@
 CudaContext::~CudaContext() {
 	//std::cout << "cuda context destructor" << std::endl;
 	freeCuPtrs();
-	//cudaDeviceReset();
+
 }
 
 void CudaContext::allocateCuPtrs() {
 	//cudaDeviceReset();
 	if (this->CurrentReferenceMask != NULL)
 		cudaCommon_allocateArrayToDevice<int>(&mask_d, referenceVoxels);
-	if (this->CurrentReference != NULL)
+	if (this->CurrentReference != NULL){
 		cudaCommon_allocateArrayToDevice<float>(&referenceImageArray_d, referenceVoxels);
+		cudaCommon_allocateArrayToDevice<float>(&targetMat_d, 16);
+	}
 	if (this->CurrentWarped != NULL)
 		cudaCommon_allocateArrayToDevice<float>(&warpedImageArray_d, this->CurrentWarped->nvox);
 	if (this->CurrentDeformationField != NULL)
 		cudaCommon_allocateArrayToDevice<float>(&deformationFieldArray_d, this->CurrentDeformationField->nvox);
-	if (this->CurrentFloating != NULL)
+	if (this->CurrentFloating != NULL){
 		cudaCommon_allocateArrayToDevice<float>(&floatingImageArray_d, floatingVoxels);
+		cudaCommon_allocateArrayToDevice<float>(&floIJKMat_d, 16);
+	}
 
 	if (this->blockMatchingParams != NULL) {
 		cudaCommon_allocateArrayToDevice<float>(&targetPosition_d, blockMatchingParams->activeBlockNumber * 3);
@@ -35,6 +39,7 @@ void CudaContext::initVars() {
 	floatingVoxels = (this->CurrentFloating != NULL) ? this->CurrentFloating->nvox : 0;
 	numBlocks = (this->blockMatchingParams != NULL) ? blockMatchingParams->blockNumber[0] * blockMatchingParams->blockNumber[1] * blockMatchingParams->blockNumber[2] : 0;
 //	std::cout << referenceVoxels << ": " << floatingVoxels << " : " << numBlocks << std::endl;
+
 }
 
 nifti_image* CudaContext::getCurrentWarped(int type) {
@@ -95,14 +100,28 @@ void CudaContext::uploadContext() {
 	if (this->CurrentReferenceMask != NULL)
 		cudaCommon_transferFromDeviceToNiftiSimple1<int>(&mask_d, this->CurrentReferenceMask, referenceVoxels);
 
-	if (this->CurrentReference != NULL)
+	if (this->CurrentReference != NULL){
 		cudaCommon_transferFromDeviceToNiftiSimple<float>(&referenceImageArray_d, this->CurrentReference);
+
+		float* targetMat = (float *)malloc(16 * sizeof(float));//freed
+		mat44ToCptr(this->refMatrix_xyz, targetMat);
+		cudaCommon_transferFromDeviceToNiftiSimple1<float>(&targetMat_d, targetMat, 16);
+		free(targetMat);
+	}
 
 	if (this->CurrentWarped != NULL)
 		cudaCommon_transferFromDeviceToNiftiSimple<float>(&warpedImageArray_d, this->CurrentWarped);
 
-	if (this->CurrentFloating != NULL)
+	if (this->CurrentFloating != NULL){
 		cudaCommon_transferFromDeviceToNiftiSimple<float>(&floatingImageArray_d, this->CurrentFloating);
+
+		float *sourceIJKMatrix_h = (float*) malloc(16 * sizeof(float));
+		mat44ToCptr(this->floMatrix_ijk, sourceIJKMatrix_h);
+
+		//sourceIJKMatrix_d
+		NR_CUDA_SAFE_CALL(cudaMemcpy(floIJKMat_d, sourceIJKMatrix_h, 16 * sizeof(float), cudaMemcpyHostToDevice));
+		free(sourceIJKMatrix_h);
+	}
 
 	if (this->blockMatchingParams != NULL) {
 		cudaCommon_transferFromDeviceToNiftiSimple1<float>(&targetPosition_d, blockMatchingParams->targetPosition, blockMatchingParams->activeBlockNumber * 3);
@@ -192,10 +211,14 @@ void CudaContext::downloadImage(  nifti_image* image, float* memoryObject, bool 
 
 void CudaContext::freeCuPtrs() {
 
-	if (this->CurrentReference != NULL)
+	if (this->CurrentReference != NULL){
 		cudaCommon_free<float>(&referenceImageArray_d);
-	if (this->CurrentFloating != NULL)
+		cudaCommon_free<float>(&targetMat_d);
+	}
+	if (this->CurrentFloating != NULL){
 		cudaCommon_free<float>(&floatingImageArray_d);
+		cudaCommon_free<float>(&floIJKMat_d);
+	}
 	if (this->CurrentWarped != NULL)
 		cudaCommon_free<float>(&warpedImageArray_d);
 	if (this->CurrentDeformationField != NULL)
