@@ -2,6 +2,8 @@
 #define _REG_ALADIN_CPP
 
 #include "_reg_aladin.h"
+#include "Platform.h"
+#include "CPUPlatform.h"
 #ifdef _USE_CUDA
 #include "CudaPlatform.h"
 #include "CudaContext.h"
@@ -224,6 +226,7 @@ void reg_aladin<T>::InitialiseRegistration()
 #ifndef NDEBUG
 	printf("[NiftyReg DEBUG] reg_aladin::InitialiseRegistration() called\n");
 #endif
+
 
 	if (platformCode == NR_PLATFORM_CPU)
 		this->platform = new CPUPlatform();

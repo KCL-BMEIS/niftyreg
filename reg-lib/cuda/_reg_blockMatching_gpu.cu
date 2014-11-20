@@ -13,7 +13,7 @@
 #include "_reg_blockMatching_gpu.h"
 #include "_reg_blockMatching_kernels.cu"
 
-#include "_reg_blocksize_gpu.h"
+//#include "_reg_blocksize_gpu.h"
 #include "_reg_ReadWriteImage.h"
 #include "_reg_tools.h"
 

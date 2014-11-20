@@ -23,7 +23,7 @@
 #include "_reg_ssd.h"
 #include "_reg_tools.h"
 #include "float.h"
-#include "CPUPlatform.h"
+//#include "Platform.h"
 #include "Kernels.h"
 #include "_reg_ReadWriteImage.h"
 #include <limits>
