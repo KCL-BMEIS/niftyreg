@@ -5,17 +5,7 @@
 //Kernel functions for affine deformation field 
 class CudaAffineDeformationFieldKernel: public AffineDeformationFieldKernel {
 public:
-	CudaAffineDeformationFieldKernel(Context* conIn, std::string nameIn) :
-			AffineDeformationFieldKernel(nameIn) {
-		con = ((CudaContext*) conIn);
-		this->deformationFieldImage = con->CurrentDeformationField;
-		this->affineTransformation = con->transformationMatrix;
-
-		mask_d = con->getMask_d();
-		deformationFieldArray_d = con->getDeformationFieldArray_d();
-
-	}
-
+	CudaAffineDeformationFieldKernel(Context* conIn, std::string nameIn);
 	void execute(bool compose = false);
 
 	mat44 *affineTransformation;
@@ -30,29 +20,11 @@ public:
 class CudaBlockMatchingKernel: public BlockMatchingKernel {
 public:
 
-	CudaBlockMatchingKernel(Context* conIn, std::string name) :
-			BlockMatchingKernel(name) {
-		target = conIn->CurrentReference;
-		result = conIn->CurrentWarped;
-		params = conIn->blockMatchingParams;
-		mask = conIn->CurrentReferenceMask;
-		con = ((CudaContext*) conIn);
-
-		targetImageArray_d = con->getReferenceImageArray_d();
-		resultImageArray_d = con->getWarpedImageArray_d();
-		targetPosition_d = con->getTargetPosition_d();
-		resultPosition_d = con->getResultPosition_d();
-		activeBlock_d = con->getActiveBlock_d();
-		mask_d = con->getMask_d();
-		targetMat_d = con->getTargetMat_d();
-
-	}
-
+	CudaBlockMatchingKernel(Context* conIn, std::string name);
 	void execute();
+
 	nifti_image* target;
-	nifti_image* result;
 	_reg_blockMatchingParam* params;
-	int* mask;
 
 	CudaContext* con;
 
@@ -69,7 +41,6 @@ public:
 	}
 
 	void execute(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL);
-	template<class T> void runKernel(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL);
 
 };
 
@@ -77,56 +48,25 @@ public:
 class CudaOptimiseKernel: public OptimiseKernel {
 public:
 
-	CudaOptimiseKernel(Context* conIn, std::string name) :
-			OptimiseKernel(name) {
-		con = static_cast<CudaContext*>(conIn);
-		transformationMatrix = con->transformationMatrix;
-		blockMatchingParams = con->blockMatchingParams;
+	CudaOptimiseKernel(Context* conIn, std::string name);
+	void execute(bool affine);
 
-	}
 	_reg_blockMatchingParam *blockMatchingParams;
 	mat44 *transformationMatrix;
 	CudaContext *con;
-	void execute(bool affine);
 };
 
 //kernel functions for image resampling with three interpolation variations
 class CudaResampleImageKernel: public ResampleImageKernel {
 public:
-	CudaResampleImageKernel(Context* conIn, std::string name) :
-			ResampleImageKernel(name) {
+	CudaResampleImageKernel(Context* conIn, std::string name);
+	void execute(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
 
-		floatingImage = conIn->CurrentFloating;
-		warpedImage = conIn->CurrentWarped;
-		deformationField = conIn->CurrentDeformationField;
-		mask = conIn->CurrentReferenceMask;
-
-		con = static_cast<CudaContext*>(conIn);
-
-		floatingImageArray_d = con->getFloatingImageArray_d();
-		warpedImageArray_d = con->getWarpedImageArray_d();
-		deformationFieldImageArray_d = con->getDeformationFieldArray_d();
-		mask_d = con->getMask_d();
-		floIJKMat_d = con->getFloIJKMat_d();
-
-		if (floatingImage->datatype != warpedImage->datatype) {
-			printf("[NiftyReg ERROR] reg_resampleImage\tSource and result image should have the same data type\n");
-			printf("[NiftyReg ERROR] reg_resampleImage\tNothing has been done\n");
-			reg_exit(1);
-		}
-
-		if (floatingImage->nt != warpedImage->nt) {
-			printf("[NiftyReg ERROR] reg_resampleImage\tThe source and result images have different dimension along the time axis\n");
-			printf("[NiftyReg ERROR] reg_resampleImage\tNothing has been done\n");
-			reg_exit(1);
-		}
-
-	}
 	nifti_image *floatingImage;
 	nifti_image *warpedImage;
-	nifti_image *deformationField;
-	int *mask;
 
+
+	//cuda ptrs
 	float* floatingImageArray_d;
 	float* floIJKMat_d;
 	float* warpedImageArray_d;
@@ -135,6 +75,6 @@ public:
 
 	CudaContext *con;
 
-	void execute(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
+
 };
 

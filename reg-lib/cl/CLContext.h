@@ -68,6 +68,12 @@ public:
 	cl_mem getMaskClmem() {
 		return maskClmem;
 	}
+	cl_mem getRefMatClmem(){
+		return refMatClmem;
+	}
+	cl_mem getFloMatClmem(){
+		return floMatClmem;
+	}
 
 	int* getReferenceDims() {
 		return referenceDims;
@@ -104,6 +110,7 @@ private:
 	cl_mem targetPositionClmem;
 	cl_mem resultPositionClmem;
 	cl_mem activeBlockClmem, maskClmem;
+	cl_mem refMatClmem, floMatClmem;
 
 	int referenceDims[4];
 	int floatingDims[4];

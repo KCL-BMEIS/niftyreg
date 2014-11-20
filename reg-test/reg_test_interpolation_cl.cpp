@@ -77,12 +77,12 @@ int main(int argc, char **argv) {
 	test(con, interpolation);
 	test_warped = con->getCurrentWarped(warpedImage->datatype);//check
 
-	/*short* a = static_cast<short*>(test_warped->data);
+	short* a = static_cast<short*>(test_warped->data);
 	short* b = static_cast<short*>(warpedImage->data);
 	for (int i = 0; i < 100; ++i) {
 		if (a[i] - b[i] != 0)
 			std::cout << i << ": " << a[i] << " - " << b[i] << std::endl;
-	}*/
+	}
 
 	// Compute the difference between the computed and inputed warped image
 	reg_tools_substractImageToImage(warpedImage, test_warped, test_warped);

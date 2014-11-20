@@ -21,7 +21,7 @@
 
 
 
-__kernel void blockMatchingKernel(__global float *resultPosition, __global float *targetPosition, __global int* mask, __global float* targetMatrix_xyz, uint3 blockDims, unsigned int* definedBlock){
+__kernel void blockMatchingKernel(__global float* resultImageArray, __global float* targetImageArray,  __global float *resultPosition, __global float *targetPosition, __global int* mask, __global float* targetMatrix_xyz, unsigned int* definedBlock, uint3 c_ImageSize){
 
 	__local float sResultValues[12 * 12 * 12];
 
@@ -47,7 +47,7 @@ __kernel void blockMatchingKernel(__global float *resultPosition, __global float
 	const unsigned long imgIdx = xImage + yImage *(c_ImageSize.x) + zImage * (c_ImageSize.x * c_ImageSize.y);
 	const bool targetInBounds = xImage < c_ImageSize.x && yImage < c_ImageSize.y && zImage < c_ImageSize.z;
 
-	const int currentBlockIndex = tex1Dfetch(activeBlock_texture, bid);
+	const int currentBlockIndex = activeBlock[bid];
 
 	if (currentBlockIndex > -1){
 
@@ -70,13 +70,13 @@ __kernel void blockMatchingKernel(__global float *resultPosition, __global float
 					const int indexXYZIn = xImageIn + yImageIn *(c_ImageSize.x) + zImageIn * (c_ImageSize.x * c_ImageSize.y);
 
 					const bool valid = (xImageIn >= 0 && xImageIn < c_ImageSize.x) && (yImageIn >= 0 && yImageIn < c_ImageSize.y) && (zImageIn >= 0 && zImageIn < c_ImageSize.z);
-					sResultValues[sIdx] = (valid) ? tex1Dfetch(resultImageArray_texture, indexXYZIn) : nanf("sNaN");
+					sResultValues[sIdx] = (valid) ? resultImageArray[ indexXYZIn] : nanf("sNaN");
 
 				}
 			}
 		}
 
-		const float rTargetValue = (targetInBounds) ? tex1Dfetch(targetImageArray_texture, imgIdx) : nanf("sNaN");
+		const float rTargetValue = (targetInBounds) ? tex1Dfetch(targetImageArray, imgIdx) : nanf("sNaN");
 
 		const float targetMean = REDUCE(rTargetValue, tid) / 64;
 		const float targetTemp = rTargetValue - targetMean;

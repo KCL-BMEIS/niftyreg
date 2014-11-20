@@ -21,8 +21,8 @@ endif(USE_CUDA)
 ##BUILD THE CPU LIBRARIES
 #-----------------------------------------------------------------------------
 add_library(_reg_maths ${NIFTYREG_LIBRARY_TYPE}
-	_reg_maths.h
-	_reg_maths.cpp
+	cpu/_reg_maths.h
+	cpu/_reg_maths.cpp
 )
 target_link_libraries(_reg_maths
 )
@@ -31,7 +31,7 @@ install(TARGETS _reg_maths
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 )
-install(FILES _reg_maths.h DESTINATION include)
+install(FILES cpu/_reg_maths.h DESTINATION include)
 #-----------------------------------------------------------------------------
 add_library(_reg_tools ${NIFTYREG_LIBRARY_TYPE}
 	_reg_tools.h
@@ -51,8 +51,8 @@ install(FILES _reg_tools.h DESTINATION include)
 #-----------------------------------------------------------------------------
 add_library(_reg_globalTransformation
 	${NIFTYREG_LIBRARY_TYPE}
-	_reg_globalTransformation.h
-	_reg_globalTransformation.cpp
+	cpu/_reg_globalTransformation.h
+	cpu/_reg_globalTransformation.cpp
 )
 target_link_libraries(_reg_globalTransformation
 	_reg_tools
@@ -62,7 +62,7 @@ install(TARGETS _reg_globalTransformation
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 )
-install(FILES _reg_globalTransformation.h DESTINATION include)
+install(FILES cpu/_reg_globalTransformation.h DESTINATION include)
 
 #-----------------------------------------------------------------------------
 set(LIB_LIST
@@ -78,8 +78,8 @@ set(LIB_LIST
 )
 foreach(NAME ${LIB_LIST})
 	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
-	${NAME}.h
-	${NAME}.cpp)
+	cpu/${NAME}.h
+	cpu/${NAME}.cpp)
 	target_link_libraries(${NAME}
 	_reg_globalTransformation
 	)
@@ -88,17 +88,17 @@ foreach(NAME ${LIB_LIST})
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 	)
-	install(FILES ${NAME}.h DESTINATION include)
+	install(FILES cpu/${NAME}.h DESTINATION include)
 endforeach(NAME)
 
-install(FILES _reg_measure.h DESTINATION include)
+install(FILES cpu/_reg_measure.h DESTINATION include)
 
 #-----------------------------------------------------------------------------
 set(NAME _reg_optimiser)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	add_library(${NAME} SHARED ${NAME}.h ${NAME}.cpp)
+	add_library(${NAME} SHARED cpu/${NAME}.h cpu/${NAME}.cpp)
 else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.h ${NAME}.cpp)
+	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} cpu/${NAME}.h cpu/${NAME}.cpp)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 target_link_libraries(${NAME})
 install(TARGETS ${NAME}
@@ -106,7 +106,7 @@ install(TARGETS ${NAME}
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 	)
-install(FILES ${NAME}.h ${NAME}.cpp DESTINATION include)
+install(FILES cpu/${NAME}.h  DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 # use, i.e. don't skip the full RPATH for the build tree
@@ -128,8 +128,8 @@ endif("${isSystemDir}" STREQUAL "-1")
 ## BUILD THE F3D LIBRARY
 set(NAME _reg_f3d)
 set(_reg_f3d_files
-		_reg_base.h
-		_reg_base.cpp
+		cpu/_reg_base.h
+		cpu/_reg_base.cpp
 		${NAME}.h
 		${NAME}.cpp
 		${NAME}2.h
@@ -160,10 +160,10 @@ install(TARGETS ${NAME}
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 	)
-install(FILES _reg_base.h _reg_base.cpp DESTINATION include)
-install(FILES ${NAME}.h ${NAME}.cpp DESTINATION include)
-install(FILES ${NAME}2.h ${NAME}2.cpp DESTINATION include)
-install(FILES ${NAME}_sym.h ${NAME}_sym.cpp DESTINATION include)
+install(FILES cpu/_reg_base.h  DESTINATION include)
+install(FILES ${NAME}.h  DESTINATION include)
+install(FILES ${NAME}2.h  DESTINATION include)
+install(FILES ${NAME}_sym.h  DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 ## BUILD THE ALADIN LIBRARY
@@ -174,11 +174,11 @@ set(_reg_aladin_files
 	${NAME}.cpp
 	${NAME}_sym.h
 	${NAME}_sym.cpp
-	Context.cpp
+	cpu/Context.cpp
+	cpu/CPUPlatfom.cpp
+	cpu/CPUKernelFactory.cpp
+	cpu/CPUKernels.cpp
 	Platform.cpp
-	CPUPlatfom.cpp
-	CPUKernelFactory.cpp
-	CPUKernels.cpp
 )
 set(_reg_aladin_libraries
 	_reg_localTransformation
@@ -203,16 +203,16 @@ install(TARGETS ${NAME}
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 	)
-install(FILES ${NAME}.h ${NAME}_sym.h _reg_macros.h DESTINATION include)
-install(FILES Context.h Platform.h CPUPlatform.h DESTINATION include)
-install(FILES Kernel.h CPUKernels.h KernelFactory.h CPUKernelFactory.h DESTINATION include)
+install(FILES ${NAME}.h ${NAME}_sym.h cpu/_reg_macros.h DESTINATION include)
+install(FILES cpu/Context.h Platform.h cpu/CPUPlatform.h DESTINATION include)
+install(FILES Kernel.h cpu/CPUKernels.h KernelFactory.h cpu/CPUKernelFactory.h DESTINATION include)
 #-----------------------------------------------------------------------------
 ## BUILD THE TPS LIBRARY
 set(NAME _reg_thinPlateSpline)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	add_library(${NAME} SHARED ${NAME}.h ${NAME}.cpp)
 else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.h ${NAME}.cpp)
+	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} cpu/${NAME}.h cpu/${NAME}.cpp)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 target_link_libraries(${NAME} _reg_tools _reg_ReadWriteImage)
 install(TARGETS ${NAME}
@@ -220,14 +220,14 @@ install(TARGETS ${NAME}
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 	)
-install(FILES ${NAME}.h ${NAME}.cpp DESTINATION include)
+install(FILES cpu/${NAME}.h  DESTINATION include)
 #-----------------------------------------------------------------------------
 ## BUILD THE POLYAFFINE LIBRARY
 set(NAME _reg_polyAffine)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	add_library(${NAME} SHARED _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
 else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
+	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} cpu/_reg_base.h cpu/_reg_base.cpp cpu/${NAME}.h cpu/${NAME}.cpp)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 target_link_libraries(${NAME} _reg_tools _reg_ReadWriteImage)
 install(TARGETS ${NAME}
@@ -235,6 +235,6 @@ install(TARGETS ${NAME}
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 	)
-install(FILES ${NAME}.h ${NAME}.cpp DESTINATION include)
+install(FILES cpu/${NAME}.h  DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------

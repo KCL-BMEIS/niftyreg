@@ -711,7 +711,7 @@ void launchAffine(mat44 *affineTransformation, nifti_image *deformationField, fl
 
 }
 
-void launchResample(nifti_image *floatingImage, nifti_image *warpedImage, int *mask, int interp, float paddingValue, bool *dti_timepoint, mat33 * jacMat, float** floatingImage_d, float** warpedImage_d, float** deformationFieldImage_d, int** mask_d, float** floIJKMat_d) {
+void launchResample(nifti_image *floatingImage, nifti_image *warpedImage,  int interp, float paddingValue, bool *dti_timepoint, mat33 * jacMat, float** floatingImage_d, float** warpedImage_d, float** deformationFieldImage_d, int** mask_d, float** floIJKMat_d) {
 
 	// Define the DTI indices if required
 	int dtiIndeces[6];
@@ -736,11 +736,11 @@ void launchResample(nifti_image *floatingImage, nifti_image *warpedImage, int *m
 		}
 	}
 
-	runKernel2(floatingImage, warpedImage, mask, interp, paddingValue, dtiIndeces, jacMat, floatingImage_d, warpedImage_d, deformationFieldImage_d, mask_d, floIJKMat_d);
+	runKernel2(floatingImage, warpedImage,  interp, paddingValue, dtiIndeces, jacMat, floatingImage_d, warpedImage_d, deformationFieldImage_d, mask_d, floIJKMat_d);
 
 }
 
-void runKernel2(nifti_image *floatingImage, nifti_image *warpedImage, int *mask, int interp, float paddingValue, int *dtiIndeces, mat33 * jacMat, float** floatingImage_d, float** warpedImage_d, float** deformationFieldImage_d, int** mask_d, float** sourceIJKMatrix_d) {
+void runKernel2(nifti_image *floatingImage, nifti_image *warpedImage,  int interp, float paddingValue, int *dtiIndeces, mat33 * jacMat, float** floatingImage_d, float** warpedImage_d, float** deformationFieldImage_d, int** mask_d, float** sourceIJKMatrix_d) {
 
 	long targetVoxelNumber = (long) warpedImage->nx * warpedImage->ny * warpedImage->nz;
 

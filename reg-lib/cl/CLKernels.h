@@ -68,9 +68,8 @@ public:
 			BlockMatchingKernel(name) {
 		sContext = &CLContextSingletton::Instance();
 		target = con->CurrentReference;
-		result = con->CurrentWarped;
 		params = con->blockMatchingParams;
-		mask = con->CurrentReferenceMask;
+
 
 		std::string clInstallPath(CL_KERNELS_PATH);
 		std::string clKernel("blockMatchingKernel.cl");
@@ -87,12 +86,14 @@ public:
 	nifti_image* target;
 	nifti_image* result;
 	_reg_blockMatchingParam* params;
-	int* mask;
+
 
 	cl_kernel kernel;
 	cl_context clContext;
 	cl_program program;
 	cl_command_queue commandQueue;
+
+	cl_mem  targetImageArray, resultImageArray, resultPosition, targetPosition, mask, targetMat;
 
 };
 //a kernel function for convolution (gaussian smoothing?)
@@ -154,6 +155,7 @@ public:
 		clCurrentDeformationField = con->getDeformationFieldArrayClmem();
 		clCurrentWarped = con->getWarpedImageClmem();
 		clMask = con->getMaskClmem();
+		floMat = con->getFloMatClmem();
 
 	}
 
@@ -177,7 +179,7 @@ public:
 	cl_context clContext;
 	cl_program program;
 
-	cl_mem clCurrentFloating, clCurrentDeformationField, clCurrentWarped, clMask;
+	cl_mem clCurrentFloating, clCurrentDeformationField, clCurrentWarped, clMask, floMat;
 
 	void execute(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
 };

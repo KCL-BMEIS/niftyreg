@@ -276,6 +276,8 @@ int main(int argc, char **argv) {
 
 	test(cudaPlatform, "Cuda Platform", BMV_PNT, INLIERS);
 
+	test(clPlatform, "Cl Platform", BMV_PNT, INLIERS);
+
 	//cudaDeviceReset();
 
 
