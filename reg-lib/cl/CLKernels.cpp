@@ -161,22 +161,27 @@ void CLBlockMatchingKernel::execute() {
 	const size_t globalWorkSize[dims] = { params->blockNumber[0] * 64, params->blockNumber[1] * 64, params->blockNumber[2] * 64 };
 	const size_t localWorkSize[dims] = { 64, 1, 1 };
 
+
+	std::cout<<"setting"<<std::endl;
 	errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), &this->resultImageArray);
 	sContext->checkErrNum(errNum, "Error setting resultImageArray.");
-	errNum |= clSetKernelArg(kernel, 0, sizeof(cl_mem), &this->targetImageArray);
+	errNum |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &this->targetImageArray);
 	sContext->checkErrNum(errNum, "Error setting targetImageArray.");
-	errNum |= clSetKernelArg(kernel, 0, sizeof(cl_mem), &this->resultPosition);
+	errNum |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &this->resultPosition);
 	sContext->checkErrNum(errNum, "Error setting resultPosition.");
-	errNum |= clSetKernelArg(kernel, 0, sizeof(cl_mem), &this->targetPosition);
+	errNum |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &this->targetPosition);
 	sContext->checkErrNum(errNum, "Error setting targetPosition.");
-	errNum |= clSetKernelArg(kernel, 0, sizeof(cl_mem), &this->mask);
+	errNum |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &this->activeBlock);
 	sContext->checkErrNum(errNum, "Error setting mask.");
-	errNum |= clSetKernelArg(kernel, 0, sizeof(cl_mem), &this->targetMat);
+	errNum |= clSetKernelArg(kernel, 5, sizeof(cl_mem), &this->mask);
+	sContext->checkErrNum(errNum, "Error setting mask.");
+	errNum |= clSetKernelArg(kernel, 6, sizeof(cl_mem), &this->targetMat);
 	sContext->checkErrNum(errNum, "Error setting targetMatrix_xyz.");
-	errNum |= clSetKernelArg(kernel, 0, sizeof(cl_mem), &definedBlock);
+	errNum |= clSetKernelArg(kernel, 7, sizeof(cl_mem), &definedBlock);
 	sContext->checkErrNum(errNum, "Error setting targetMatrix_xyz.");
-	errNum |= clSetKernelArg(kernel, 0, sizeof(cl_uint3), &imageSize);
+	errNum |= clSetKernelArg(kernel, 8, sizeof(cl_uint3), &imageSize);
 	sContext->checkErrNum(errNum, "Error setting targetMatrix_xyz.");
+	std::cout<<"setted"<<std::endl;
 
 	errNum = clEnqueueNDRangeKernel(commandQueue, kernel, dims, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
 	sContext->checkErrNum(errNum, "Error queuing kernel for execution: ");

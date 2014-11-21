@@ -4,7 +4,7 @@
 #include "CudaPlatform.h"
 #include "CLPlatform.h"
 #include "_reg_ReadWriteImage.h"
-#include "Context.h"
+#include "CLContext.h"
 #include "CudaContext.h"
 
 
@@ -118,10 +118,10 @@ void test(Platform* platform, const char* msg,  const unsigned int blocksPercent
 	Context *con;
 
 	if (platform->getName() == "cpu_platform")
-		con = new Context(reference, reference, mask, sizeof(float), blocksPercentage, inliers, 1);//temp
+		con = new Context(reference, floating, mask, sizeof(float), blocksPercentage, inliers, 1);//temp
 	else if (platform->getName() == "cuda_platform")
-		con = new CudaContext(reference, reference, mask, sizeof(float), blocksPercentage, inliers,1);//temp
-	else con = new Context();
+		con = new CudaContext(reference, floating, mask, sizeof(float), blocksPercentage, inliers,1);//temp
+	else con = new ClContext(reference, floating, mask, sizeof(float), blocksPercentage, inliers,1);
 	con->setCurrentWarped(warped);
 
 	Kernel* bmKernel = platform->createKernel(BlockMatchingKernel::Name(), con);

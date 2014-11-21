@@ -64,12 +64,13 @@ public:
 class CLBlockMatchingKernel: public BlockMatchingKernel {
 public:
 
-	CLBlockMatchingKernel(Context* con, std::string name) :
+	CLBlockMatchingKernel(Context* conIn, std::string name) :
 			BlockMatchingKernel(name) {
 		sContext = &CLContextSingletton::Instance();
+
+		con = (ClContext*) conIn;
 		target = con->CurrentReference;
 		params = con->blockMatchingParams;
-
 
 		std::string clInstallPath(CL_KERNELS_PATH);
 		std::string clKernel("blockMatchingKernel.cl");
@@ -79,21 +80,30 @@ public:
 		commandQueue = sContext->getCommandQueue();
 		// Create OpenCL kernel
 		kernel = clCreateKernel(program, "blockMatchingKernel", NULL);
+
+		activeBlock = con->getActiveBlockClmem();
+		targetImageArray = con->getReferenceImageArrayClmem();
+		resultImageArray = con->getWarpedImageClmem();
+		resultPosition = con->getResultPositionClmem();
+		targetPosition = con->getTargetPositionClmem();
+		mask = con->getMaskClmem();
+		targetMat = con->getRefMatClmem();
 	}
-	CLContextSingletton* sContext;
+
 	void execute();
 
+	CLContextSingletton* sContext;
+	ClContext* con;
 	nifti_image* target;
 	nifti_image* result;
 	_reg_blockMatchingParam* params;
-
 
 	cl_kernel kernel;
 	cl_context clContext;
 	cl_program program;
 	cl_command_queue commandQueue;
 
-	cl_mem  targetImageArray, resultImageArray, resultPosition, targetPosition, mask, targetMat;
+	cl_mem activeBlock, targetImageArray, resultImageArray, resultPosition, targetPosition, mask, targetMat;
 
 };
 //a kernel function for convolution (gaussian smoothing?)
