@@ -231,7 +231,7 @@ install(FILES cpu/${NAME}.h  DESTINATION include)
 ## BUILD THE POLYAFFINE LIBRARY
 set(NAME _reg_polyAffine)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	add_library(${NAME} SHARED cpu/_reg_base.h cpu/_reg_base.cpp cpu/${NAME}.h cpu/${NAME}.cpp)
+	add_library(${NAME} SHARED _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
 else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} cpu/_reg_base.h cpu/_reg_base.cpp cpu/${NAME}.h cpu/${NAME}.cpp)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -241,12 +241,12 @@ install(TARGETS ${NAME}
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 	)
-install(FILES cpu/${NAME}.h  DESTINATION include)
+install(FILES ${NAME}.h  DESTINATION include)
 #set(NAME _reg_polyAffine)
 #if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 #	add_library(${NAME} SHARED _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
 #else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-#	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} cpu/_reg_base.h cpu/_reg_base.cpp cpu/${NAME}.h cpu/${NAME}.cpp)
+#	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
 #endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 #target_link_libraries(${NAME} _reg_tools _reg_ReadWriteImage)
 #install(TARGETS ${NAME}
