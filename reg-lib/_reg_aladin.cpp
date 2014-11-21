@@ -2,7 +2,7 @@
 #define _REG_ALADIN_CPP
 
 #include "_reg_aladin.h"
-
+#include "Platform.h"
 #include "CPUPlatform.h"
 #ifdef _USE_CUDA
 #include "CudaPlatform.h"
@@ -12,6 +12,7 @@
 #include "CLPlatform.h"
 #include "CLContext.h"
 #endif
+
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T> reg_aladin<T>::reg_aladin()
@@ -419,20 +420,17 @@ template <class T>
 void reg_aladin<T>::createKernels() {
 	affineTransformation3DKernel = platform->createKernel(AffineDeformationFieldKernel::Name(), this->con);
 	resamplingKernel = platform->createKernel(ResampleImageKernel::Name(), this->con);
-	if (con->bm) {
-		blockMatchingKernel = platform->createKernel(BlockMatchingKernel::Name(), this->con);
-		optimiseKernel = platform->createKernel(OptimiseKernel::Name(), this->con);
-	}
+	blockMatchingKernel = platform->createKernel(BlockMatchingKernel::Name(), this->con);
+	optimiseKernel = platform->createKernel(OptimiseKernel::Name(), this->con);
+
 }
 
 template <class T>
 void reg_aladin<T>::clearKernels() {
 	delete affineTransformation3DKernel;
 	delete resamplingKernel;
-	if (con->bm) {
-		delete blockMatchingKernel;
-		delete optimiseKernel;
-	}
+	delete blockMatchingKernel;
+	delete optimiseKernel;
 }
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -576,7 +574,6 @@ void reg_aladin<T>::Run()
 				iProgressStep++;
 			}
 		}
-
 		/* ******************* */
 		/* Affine registration */
 		/* ******************* */

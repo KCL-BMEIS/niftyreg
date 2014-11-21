@@ -9,7 +9,6 @@ Context::Context() {
 	this->CurrentFloating = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
 	this->CurrentReference = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
 	this->CurrentReferenceMask = NULL;
-	this->bm = false;
 
 }
 Context::~Context() {

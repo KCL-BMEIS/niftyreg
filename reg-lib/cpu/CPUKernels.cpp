@@ -25,8 +25,6 @@ void CPUConvolutionKernel::execute(nifti_image *image, float *sigma, int kernelT
 //------------------------------------------------------------------------------------------------------------------------
 void CPUBlockMatchingKernel::execute() {
 	block_matching_method(this->target, this->result, this->params, this->mask);
-
-
 }
 
 void CPUOptimiseKernel::execute(bool affine) {

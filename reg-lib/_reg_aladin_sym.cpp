@@ -319,10 +319,8 @@ void reg_aladin_sym<T>::clearKernels()
 	reg_aladin<T>::clearKernels();
 	delete bResamplingKernel;
 	delete bAffineTransformation3DKernel;
-	if (backCon->bm) {
-		delete bBlockMatchingKernel;
-		delete bOptimiseKernel;
-	}
+	delete bBlockMatchingKernel;
+	delete bOptimiseKernel;
 }
 
 template <class T>
