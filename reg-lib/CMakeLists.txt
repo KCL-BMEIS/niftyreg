@@ -167,7 +167,7 @@ install(TARGETS ${NAME}
 	ARCHIVE DESTINATION lib
 	)
 install(FILES ${NAME}.h ${NAME}_sym.h cpu/_reg_macros.h DESTINATION include)
-install(FILES cpu/Context.h Platform.h cpu/CPUPlatform.h DESTINATION include)
+install(FILES Context.h Platform.h cpu/CPUPlatform.h DESTINATION include)
 install(FILES Kernel.h cpu/CPUKernels.h KernelFactory.h cpu/CPUKernelFactory.h DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
@@ -206,7 +206,7 @@ install(TARGETS ${NAME}
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 	)
-install(FILES cpu/_reg_base.h  DESTINATION include)
+install(FILES _reg_base.h  DESTINATION include)
 install(FILES ${NAME}.h  DESTINATION include)
 install(FILES ${NAME}2.h  DESTINATION include)
 install(FILES ${NAME}_sym.h  DESTINATION include)
