@@ -210,7 +210,7 @@ install(FILES Kernel.h cpu/CPUKernels.h KernelFactory.h cpu/CPUKernelFactory.h D
 ## BUILD THE TPS LIBRARY
 set(NAME _reg_thinPlateSpline)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	add_library(${NAME} SHARED ${NAME}.h ${NAME}.cpp)
+	add_library(${NAME} SHARED cpu/${NAME}.h cpu/${NAME}.cpp)
 else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} cpu/${NAME}.h cpu/${NAME}.cpp)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -225,7 +225,7 @@ install(FILES cpu/${NAME}.h  DESTINATION include)
 ## BUILD THE POLYAFFINE LIBRARY
 set(NAME _reg_polyAffine)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	add_library(${NAME} SHARED _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
+	add_library(${NAME} SHARED cpu/_reg_base.h cpu/_reg_base.cpp cpu/${NAME}.h cpu/${NAME}.cpp)
 else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} cpu/_reg_base.h cpu/_reg_base.cpp cpu/${NAME}.h cpu/${NAME}.cpp)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
