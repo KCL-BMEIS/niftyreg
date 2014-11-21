@@ -37,6 +37,6 @@ __kernel void affineKernel(__global float* transformationMatrix, __global  float
 		deformationFieldPtrX[index] = getPosition( transformationMatrix, voxel, 0);
 		deformationFieldPtrY[index] = getPosition( transformationMatrix, voxel, 1);
 		deformationFieldPtrZ[index] = getPosition( transformationMatrix, voxel, 2);
-        if(index<100) printf("idx: %d\n", index);
-	}	
+
+	}
 }

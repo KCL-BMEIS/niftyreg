@@ -135,6 +135,11 @@
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 if(USE_OPENCL)
+
+	set(EXEC reg_test_fullAffine_cl)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_aladin)
+	
 	set(EXEC reg_test_affine_deformation_field_cl)
 	add_executable(${EXEC} ${EXEC}.cpp)
 	target_link_libraries(${EXEC} _reg_aladin)

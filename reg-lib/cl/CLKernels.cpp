@@ -1,6 +1,11 @@
 #include <iostream>
 #include "nifti1_io.h"
 
+#include "Context.h"
+#include "CLContextSingletton.h"
+#include "CLContext.h"
+#include "config.h"
+
 #include "CLKernels.h"
 #include "_reg_tools.h"
 #include"_reg_resampling.h"
@@ -13,9 +18,49 @@
 unsigned int min_cl(unsigned int a, unsigned int b) {
 	return (a < b) ? a : b;
 }
+//===========================================================
+CLConvolutionKernel::CLConvolutionKernel(std::string name) :
+			ConvolutionKernel(name) {
+	sContext = &CLContextSingletton::Instance();
+}
+void CLConvolutionKernel::execute(nifti_image *image, float *sigma, int kernelType, int *mask, bool *timePoints, bool *axis) {
+	//cpu cheat
+	std::cout<<"≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠CLConvolutionKernel≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠"<<std::endl;
+	reg_tools_kernelConvolution(image, sigma, kernelType, mask, timePoints, axis);
+}
+//==========================================================
+//==============================Affine Kernel CL===================================================
+CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Context* conIn, std::string nameIn) :
+			AffineDeformationFieldKernel(nameIn) {
+		con = (ClContext*) conIn;
+		sContext = &CLContextSingletton::Instance();
+		this->deformationFieldImage = con->CurrentDeformationField;
+		this->affineTransformation = con->getTransformationMatrix();
+		targetMatrix = (this->deformationFieldImage->sform_code > 0) ? &(this->deformationFieldImage->sto_xyz) : &(this->deformationFieldImage->qto_xyz);
+
+
+		std::string clInstallPath(CL_KERNELS_PATH);
+		std::string clKernel("affineDeformationKernel.cl");
+
+		clContext = sContext->getContext();
+		program = sContext->CreateProgram((clInstallPath + clKernel).c_str());
+		commandQueue = sContext->getCommandQueue();
+		// Create OpenCL kernel
+		kernel = clCreateKernel(program, "affineKernel", NULL);
+		clDeformationField = con->getDeformationFieldArrayClmem();
+		clMask = con->getMaskClmem();
+	}
+CLAffineDeformationFieldKernel::~CLAffineDeformationFieldKernel() {
+
+	if (kernel != 0)
+		clReleaseKernel(kernel);
+
+	if (program != 0)
+		clReleaseProgram(program);
+}
 
 void CLAffineDeformationFieldKernel::execute(bool compose) {
-
+	std::cout<<"≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠CLAffineDeformationFieldKernel≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠"<<std::endl;
 	const unsigned int xThreads = 8;
 	const unsigned int yThreads = 8;
 	const unsigned int zThreads = 8;
@@ -38,7 +83,7 @@ void CLAffineDeformationFieldKernel::execute(bool compose) {
 
 	errNum = clSetKernelArg(this->kernel, 0, sizeof(cl_mem), &cltransMat);
 	errNum |= clSetKernelArg(this->kernel, 1, sizeof(cl_mem), &this->clDeformationField);
-	errNum |= clSetKernelArg(this->kernel, 2, sizeof(cl_mem), &clMask);
+	errNum |= clSetKernelArg(this->kernel, 2, sizeof(cl_mem), &this->clMask);
 	errNum |= clSetKernelArg(this->kernel, 3, sizeof(cl_uint3), &pms_d);
 	errNum |= clSetKernelArg(this->kernel, 4, sizeof(cl_ulong), &nxyz);
 	errNum |= clSetKernelArg(this->kernel, 5, sizeof(cl_uint), &composition);
@@ -55,8 +100,42 @@ void CLAffineDeformationFieldKernel::execute(bool compose) {
 	clFinish(commandQueue);
 	return;
 }
+//==========================================================================================================
+CLResampleImageKernel::CLResampleImageKernel(Context* conIn, std::string name) :
+			ResampleImageKernel(name) {
 
+		std::string clInstallPath(CL_KERNELS_PATH);
+		std::string clKernel("resampleKernel.cl");
+
+		sContext = &CLContextSingletton::Instance();
+		clContext = sContext->getContext();
+		commandQueue = sContext->getCommandQueue();
+
+		program = sContext->CreateProgram((clInstallPath + clKernel).c_str());
+
+		con = (ClContext*) conIn;
+		floatingImage = con->CurrentFloating;
+		warpedImage = con->CurrentWarped;
+		mask = con->CurrentReferenceMask;
+
+		kernel = 0;
+		clCurrentFloating = con->getFloatingImageArrayClmem();
+		clCurrentDeformationField = con->getDeformationFieldArrayClmem();
+		clCurrentWarped = con->getWarpedImageClmem();
+		clMask = con->getMaskClmem();
+		floMat = con->getFloMatClmem();
+
+	}
+
+CLResampleImageKernel::~CLResampleImageKernel() {
+		if (kernel != 0)
+			clReleaseKernel(kernel);
+
+		if (program != 0)
+			clReleaseProgram(program);
+	}
 void CLResampleImageKernel::execute(int interp, float paddingValue, bool *dti_timepoint, mat33 * jacMat) {
+	std::cout<<"≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠CLResampleImageKernel≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠≠"<<std::endl;
 
 	cl_int errNum;
 	// Define the DTI indices if required
@@ -145,7 +224,34 @@ void CLResampleImageKernel::execute(int interp, float paddingValue, bool *dti_ti
 	//TODO Post-processing kernel
 
 }
+//==========================================================================
+CLBlockMatchingKernel::CLBlockMatchingKernel(Context* conIn, std::string name) :
+			BlockMatchingKernel(name) {
+		sContext = &CLContextSingletton::Instance();
 
+		con = (ClContext*) conIn;
+		target = con->CurrentReference;
+		params = con->blockMatchingParams;
+
+		std::string clInstallPath(CL_KERNELS_PATH);
+		std::string clKernel("blockMatchingKernel.cl");
+
+		clContext = sContext->getContext();
+		program = sContext->CreateProgram((clInstallPath + clKernel).c_str());
+		commandQueue = sContext->getCommandQueue();
+		// Create OpenCL kernel
+		cl_int errNum;
+		kernel = clCreateKernel(program, "blockMatchingKernel2", &errNum);
+		sContext->checkErrNum(errNum, "Error setting bm kernel.");
+
+		activeBlock = con->getActiveBlockClmem();
+		targetImageArray = con->getReferenceImageArrayClmem();
+		resultImageArray = con->getWarpedImageClmem();
+		resultPosition = con->getResultPositionClmem();
+		targetPosition = con->getTargetPositionClmem();
+		mask = con->getMaskClmem();
+		targetMat = con->getRefMatClmem();
+}
 void CLBlockMatchingKernel::execute() {
 	std::cout << "===================================================" << std::endl;
 	std::cout << "Launching cl  block matching kernel!" << std::endl;
@@ -155,14 +261,15 @@ void CLBlockMatchingKernel::execute() {
 	cl_uint3 imageSize = { this->target->nx, this->target->ny, this->target->nz };
 	unsigned int *definedBlock_h = (unsigned int*) malloc(sizeof(unsigned int));
 	*definedBlock_h = 0;
-	cl_mem definedBlock = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(unsigned int), definedBlock_h, &errNum);
+	cl_mem definedBlock = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(unsigned int), definedBlock_h, &errNum);
+	sContext->checkErrNum(errNum, "Error setting defblock.");
 
+//	std::cout<<params->blockNumber[0]<<"-"<<params->blockNumber[1]<<"-"<<params->blockNumber[2]<<std::endl;
 	const cl_uint dims = 3;
-	const size_t globalWorkSize[dims] = { params->blockNumber[0] * 64, params->blockNumber[1] * 64, params->blockNumber[2] * 64 };
+	const size_t globalWorkSize[dims] = { params->blockNumber[0] * 4, params->blockNumber[1] * 4, params->blockNumber[2] * 4 };
 	const size_t localWorkSize[dims] = { 64, 1, 1 };
 
 
-	std::cout<<"setting"<<std::endl;
 	errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), &this->resultImageArray);
 	sContext->checkErrNum(errNum, "Error setting resultImageArray.");
 	errNum |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &this->targetImageArray);
@@ -180,11 +287,10 @@ void CLBlockMatchingKernel::execute() {
 	errNum |= clSetKernelArg(kernel, 7, sizeof(cl_mem), &definedBlock);
 	sContext->checkErrNum(errNum, "Error setting targetMatrix_xyz.");
 	errNum |= clSetKernelArg(kernel, 8, sizeof(cl_uint3), &imageSize);
-	sContext->checkErrNum(errNum, "Error setting targetMatrix_xyz.");
-	std::cout<<"setted"<<std::endl;
+	sContext->checkErrNum(errNum, "Error setting image size.");
 
 	errNum = clEnqueueNDRangeKernel(commandQueue, kernel, dims, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-	sContext->checkErrNum(errNum, "Error queuing kernel for execution: ");
+	sContext->checkErrNum(errNum, "Error queuing blockmatching kernel for execution: ");
 
 	clFinish(commandQueue);
 
@@ -196,4 +302,18 @@ void CLBlockMatchingKernel::execute() {
 
 	std::cout << "===================================================" << std::endl;
 }
+//===========================
+CLOptimiseKernel::CLOptimiseKernel(Context* conIn, std::string name) :
+			OptimiseKernel(name) {
+	con = (ClContext*) conIn;
+	sContext = &CLContextSingletton::Instance();
+	transformationMatrix = con->getTransformationMatrix();
+	blockMatchingParams = con->blockMatchingParams;
+}
+void CLOptimiseKernel::execute(bool affine) {
+	std::cout << "=================CLOptimiseKernel==================================" << std::endl;
+	this->blockMatchingParams = con->getBlockMatchingParams();
+	optimize(this->blockMatchingParams, this->transformationMatrix, affine);
+}
+//==============================
 
