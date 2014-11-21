@@ -12,6 +12,16 @@
 #include "nifti1_io.h"
 #include "cuda_runtime.h"
 #include "cuda.h"
+
+/* ******************************** */
+/* ******************************** */
+#ifndef __VECTOR_TYPES_H__
+#define __VECTOR_TYPES_H__
+struct __attribute__((aligned(4))) float4
+{
+	float x,y,z,w;
+};
+#endif
 /* ******************************** */
 /* ******************************** */
 #if CUDART_VERSION >= 3200
@@ -61,11 +71,8 @@
 #endif //CUDART_VERSION >= 3200
 /* ******************************** */
 /* ******************************** */
-
-/* ******************************** */
-/* ******************************** */
 int cudaCommon_setCUDACard(CUcontext *ctx,
-                           bool verbose);
+									bool verbose);
 /* ******************************** */
 void cudaCommon_unsetCUDACard(CUcontext *ctx);
 /* ******************************** */
@@ -135,6 +142,8 @@ template <class DTYPE>
 int cudaCommon_transferNiftiToNiftiOnDevice1(nifti_image **image_d, nifti_image *img);
 
 
+/* ******************************** */
+/* ******************************** */
 extern "C++"
 template <class DTYPE>
 int cudaCommon_transferFromDeviceToNiftiSimple(DTYPE **, nifti_image * );
@@ -146,5 +155,7 @@ int cudaCommon_transferFromDeviceToNiftiSimple1(DTYPE **array_d, DTYPE *img, con
 extern "C++"
 template <class DTYPE>
 int cudaCommon_transferFromDeviceToCpu(DTYPE *cpuPtr, DTYPE **cuPtr, const unsigned int nElements);
+/* ******************************** */
+/* ******************************** */
 
 #endif

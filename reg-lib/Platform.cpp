@@ -6,11 +6,14 @@ using namespace std;
 
 
 
-Platform::Platform() {
+Platform::Platform()
+{
+}
 
+Platform::~Platform()
+{
 }
-Platform::~Platform() {
-}
+
 Kernel* Platform::createKernel(const string& name, Context* con) const {
 	return kernelFactories.find(name)->second->createKernel(name, con);
 }

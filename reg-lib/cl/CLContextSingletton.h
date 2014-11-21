@@ -1,4 +1,6 @@
-#pragma once
+#ifndef CLPCONTEXTSINGLETTON_H
+#define CLPCONTEXTSINGLETTON_H
+
 
 #ifdef __APPLE__
 #include <OpenCL/cl.h>
@@ -51,10 +53,10 @@ public:
 	size_t getMaxThreads();
 	unsigned int getMaxBlocks();
 
-	
+
 
 private:
-	
+
 	static CLContextSingletton* _instance;
 
 	CLContextSingletton();
@@ -76,3 +78,4 @@ private:
 	size_t maxThreads;
 	unsigned int maxBlocks;
 };
+#endif

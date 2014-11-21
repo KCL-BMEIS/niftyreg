@@ -73,9 +73,9 @@ option(USE_CUDA "To enable CUDA for a GPU implementation of the code" OFF)
 if(WIN32)
 		set(BUILD_ALL_DEP ON CACHE BOOL "All the dependencies are build" FORCE)
 endif(WIN32)
-if(APPLE)#will need to specify version here. I think 10.8 onwards uses these
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
-endif(APPLE)
+#if(APPLE)#will need to specify version here. I think 10.8 onwards uses these
+#		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
+#endif(APPLE)
 #-----------------------------------------------------------------------------
 # All dependencies are build to create the 3DSlicer package
 if(BUILD_NR_SLICER_EXT)

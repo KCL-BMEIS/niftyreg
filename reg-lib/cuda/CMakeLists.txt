@@ -57,7 +57,7 @@ endif(NOT COMPILE_RESULT_VAR)
 #install(FILES _reg_blocksize_gpu.h DESTINATION include)
 #-----------------------------------------------------------------------------
 set(NAME _reg_common_gpu)
-cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.h ${NAME}.cu )
+cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.h ${NAME}.cu)
 if(WIN32)
 	target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY})
 endif(WIN32)

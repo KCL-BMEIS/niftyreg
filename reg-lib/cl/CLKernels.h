@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CLPKERNELS_H
+#define CLPKERNELS_H
 
 #include "Kernels.h"
 #include "CLContextSingletton.h"
@@ -11,7 +12,7 @@ class CLBlockMatchingKernel;
 class CLConvolutionKernel;
 class CLResampleImageKernel;
 
-//Kernel functions for affine deformation field 
+//Kernel functions for affine deformation field
 class CLAffineDeformationFieldKernel: public AffineDeformationFieldKernel {
 public:
 	CLAffineDeformationFieldKernel(Context* conIn, std::string nameIn) :
@@ -194,3 +195,4 @@ public:
 	void execute(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
 };
 
+#endif

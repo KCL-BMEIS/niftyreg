@@ -2,7 +2,7 @@
 #define _REG_ALADIN_CPP
 
 #include "_reg_aladin.h"
-#include "Platform.h"
+
 #include "CPUPlatform.h"
 #ifdef _USE_CUDA
 #include "CudaPlatform.h"
@@ -12,7 +12,6 @@
 #include "CLPlatform.h"
 #include "CLContext.h"
 #endif
-
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T> reg_aladin<T>::reg_aladin()
