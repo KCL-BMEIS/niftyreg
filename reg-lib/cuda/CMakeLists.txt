@@ -49,15 +49,15 @@ else(NOT COMPILE_RESULT_VAR)
 	endif(DEBUG_MODE)
 	message(STATUS "Debug: ${DEBUG_MODE} | NVCC Flags: ${CUDA_NVCC_FLAGS}")
 	# The CUDA implementation is used
-	add_definitions(-D_USE_CUDA)
+	#add_definitions(-D_USE_CUDA)
 endif(NOT COMPILE_RESULT_VAR)
 
 
 #-----------------------------------------------------------------------------
-install(FILES _reg_blocksize_gpu.h DESTINATION include)
+#install(FILES _reg_blocksize_gpu.h DESTINATION include)
 #-----------------------------------------------------------------------------
 set(NAME _reg_common_gpu)
-cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.h ${NAME}.cu _reg_blocksize_gpu.h _reg_blocksize_gpu.cu)
+cuda_add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${NAME}.h ${NAME}.cu)
 if(WIN32)
 	target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY})
 endif(WIN32)
@@ -68,22 +68,22 @@ install(TARGETS ${NAME}
 )
 install(FILES ${NAME}.h DESTINATION include)
 #-----------------------------------------------------------------------------
-set(LIST _reg_globalTransformation)
-set(LIST ${LIST} _reg_localTransformation)
-set(LIST ${LIST} _reg_nmi)
-set(LIST ${LIST} _reg_ssd)
-set(LIST ${LIST} _reg_resampling)
-set(LIST ${LIST} _reg_tools)
-set(LIST ${LIST} _reg_optimiser)
-foreach(NAME ${LIST})
-	cuda_add_library(${NAME}_gpu ${NIFTYREG_LIBRARY_TYPE} ${NAME}_gpu.h ${NAME}_gpu.cu ${NAME}_kernels.cu)
-	install(TARGETS ${NAME}_gpu
-		RUNTIME DESTINATION bin
-		LIBRARY DESTINATION lib
-		ARCHIVE DESTINATION lib
-	)
-	install(FILES ${NAME}_gpu.h DESTINATION include)
-endforeach(NAME)
+#set(LIST _reg_globalTransformation)
+#set(LIST ${LIST} _reg_localTransformation)
+#set(LIST ${LIST} _reg_nmi)
+#set(LIST ${LIST} _reg_ssd)
+#set(LIST ${LIST} _reg_resampling)
+#set(LIST ${LIST} _reg_tools)
+#set(LIST ${LIST} _reg_optimiser)
+#foreach(NAME ${LIST})
+#	cuda_add_library(${NAME}_gpu ${NIFTYREG_LIBRARY_TYPE} ${NAME}_gpu.h ${NAME}_gpu.cu ${NAME}_kernels.cu)
+#	install(TARGETS ${NAME}_gpu
+#		RUNTIME DESTINATION bin
+#		LIBRARY DESTINATION lib
+#		ARCHIVE DESTINATION lib
+#	)
+#	install(FILES ${NAME}_gpu.h DESTINATION include)
+#endforeach(NAME)
 #-----------------------------------------------------------------------------
 set(NAME _reg_cuda_kernels)
 CUDA_ADD_LIBRARY(${NAME} ${NIFTYREG_LIBRARY_TYPE}
@@ -101,7 +101,6 @@ install(TARGETS ${NAME}
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 )
-install(FILES _reg_blockMatching_gpu.h CudaContext.cpp DESTINATION include)
-install(FILES CudaKernelFactory.h CudaKernelFuncs.h CudaKernels.h DESTINATION include)
-install(FILES CudaPlatform.h DESTINATION include)
+install(FILES _reg_blockMatching_gpu.h CudaContext.h DESTINATION include)
+install(FILES CudaKernelFactory.h CudaKernelFuncs.h CudaKernels.h CudaPlatform.h DESTINATION include)
 #-----------------------------------------------------------------------------

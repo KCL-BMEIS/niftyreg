@@ -19,7 +19,7 @@
 #define __VECTOR_TYPES_H__
 struct __attribute__((aligned(4))) float4
 {
-   float x,y,z,w;
+	float x,y,z,w;
 };
 #endif
 /* ******************************** */
@@ -140,7 +140,7 @@ public:    /* _reg_blockMatching_gpu */
    NiftyReg_CudaBlock100();
    ~NiftyReg_CudaBlock100()
    {
-	  ;
+     ;
    }
 };
 /* ******************************** */
@@ -150,7 +150,7 @@ public:
    NiftyReg_CudaBlock200();
    ~NiftyReg_CudaBlock200()
    {
-	  ;
+     ;
    }
 };
 /* ******************************** */
@@ -160,7 +160,7 @@ public:
    NiftyReg_CudaBlock300();
    ~NiftyReg_CudaBlock300()
    {
-	  ;
+     ;
    }
 };
 /* ******************************** */
@@ -169,23 +169,23 @@ class NiftyReg_CudaBlock
 public:
    static NiftyReg_CudaBlock100 * getInstance(int major)
    {
-	  if (instance) return instance;
-	  else
-	  {
-		 switch(major)
-		 {
-		 case 3:
-			instance = new NiftyReg_CudaBlock300();
-			break;
-		 case 2:
-			instance = new NiftyReg_CudaBlock200();
-			break;
-		 default:
-			instance = new NiftyReg_CudaBlock100();
-			break;
-		 }
-	  }
-	  return instance;
+     if (instance) return instance;
+     else
+     {
+       switch(major)
+       {
+       case 3:
+         instance = new NiftyReg_CudaBlock300();
+         break;
+       case 2:
+         instance = new NiftyReg_CudaBlock200();
+         break;
+       default:
+         instance = new NiftyReg_CudaBlock100();
+         break;
+       }
+     }
+     return instance;
    }
 private:
    static NiftyReg_CudaBlock100 * instance;

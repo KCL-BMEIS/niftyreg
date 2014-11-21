@@ -9,6 +9,8 @@
  *
  */
 
+#include "Context.h"
+#include "Platform.h"
 #ifndef _REG_ALADIN_H
 #define _REG_ALADIN_H
 
@@ -23,7 +25,6 @@
 #include "_reg_ssd.h"
 #include "_reg_tools.h"
 #include "float.h"
-#include "CPUPlatform.h"
 #include "Kernels.h"
 #include "_reg_ReadWriteImage.h"
 #include <limits>
@@ -119,8 +120,7 @@ public:
 
 	nifti_image *deformationFieldImage;
 
-	GetStringMacro(ExecutableName)
-	;
+	GetStringMacro(ExecutableName);
 
 	//No allocating of the images here...
 	void SetInputReference(nifti_image *input) {

@@ -1,12 +1,31 @@
 
 
 #define REDUCE reduceCustom
+#define BLOCK_WIDTH 4
+
+
+__inline__
+void reg_mat44_mul_cl(__global float* mat, float const* in, __global float *out)
+{
+	out[0] = mat[0 * 4 + 0] * in[0] +
+		mat[0 * 4 + 1] * in[1] +
+		mat[0 * 4 + 2] * in[2] +
+		mat[0 * 4 + 3];
+	out[1] = mat[1 * 4 + 0] * in[0] +
+		mat[1 * 4 + 1] * in[1] +
+		mat[1 * 4 + 2] * in[2] +
+		mat[1 * 4 + 3];
+	out[2] = mat[2 * 4 + 0] * in[0] +
+		mat[2 * 4 + 1] * in[1] +
+		mat[2 * 4 + 2] * in[2] +
+		mat[2 * 4 + 3];
+}
 
  __inline__ float reduceCustom(float data, const unsigned int tid){
 	static __local float sData2[64];
 
 	sData2[tid] = data;
-	__syncthreads();
+	barrier(CLK_LOCAL_MEM_FENCE);
 
 	if (tid < 32) sData2[tid] += sData2[tid + 32];
 	if (tid < 16) sData2[tid] += sData2[tid + 16];
@@ -15,32 +34,32 @@
 	if (tid < 2) sData2[tid] += sData2[tid + 2];
 	if (tid == 0) sData2[0] += sData2[1];
 
-	__syncthreads();
+	barrier(CLK_LOCAL_MEM_FENCE);
 	return sData2[0];
 }
 
+__kernel void blockMatchingKernel(__global float* resultImageArray, __global float* targetImageArray,  __global float *resultPosition, __global float *targetPosition,__global int *activeBlock, __global int* mask, __global float* targetMatrix_xyz, __global unsigned int* definedBlock, uint3 c_ImageSize){
+
+}
+
+__kernel void blockMatchingKernel2(__global float* resultImageArray, __global float* targetImageArray,  __global float *resultPosition, __global float *targetPosition,__global int *activeBlock, __global int* mask, __global float* targetMatrix_xyz, __global unsigned int* definedBlock, uint3 c_ImageSize){
+
+	__local float sResultValues[12 * 12 * 12];
+
+	const bool border = get_group_id(0) == get_num_groups(0) - 1 || get_group_id(1) == get_num_groups(1) - 1 || get_group_id(2) == get_num_groups(2) - 1;
+
+	const unsigned int idz = get_local_id(0) / 16;
+	const unsigned int idy = (get_local_id(0) - 16 * idz) / 4;
+	const unsigned int idx = get_local_id(0) - 16 * idz - 4 * idy;
+
+	const unsigned int bid = get_group_id(0) + get_num_groups(0) * get_group_id(1) + (get_num_groups(0) * get_num_groups(1)) * get_group_id(2);
+
+	const unsigned int xBaseImage = get_group_id(0) * 4;
+	const unsigned int yBaseImage = get_group_id(1) * 4;
+	const unsigned int zBaseImage = get_group_id(2) * 4;
 
 
-__kernel void blockMatchingKernel(__global float *resultPosition, __global float *targetPosition, __global int* mask, __global float* targetMatrix_xyz, uint3 blockDims, unsigned int* definedBlock){
-
-	__shared__ float sResultValues[12 * 12 * 12];
-
-	//const bool is_7_21_11 = blockIdx.x == 7 && blockIdx.y == 21 && blockIdx.z == 11;
-//	bool b2_13_10 = blockIdx.x==2&&blockIdx.y==13&&blockIdx.z==10;
-	const bool border = blockIdx.x == gridDim.x - 1 || blockIdx.y == gridDim.y - 1 || blockIdx.z == gridDim.z - 1;
-
-	const unsigned int idz = threadIdx.x / 16;
-	const unsigned int idy = (threadIdx.x - 16 * idz) / 4;
-	const unsigned int idx = threadIdx.x - 16 * idz - 4 * idy;
-
-	const unsigned int bid = blockIdx.x + gridDim.x * blockIdx.y + (gridDim.x * gridDim.y) * blockIdx.z;
-
-	const unsigned int xBaseImage = blockIdx.x * 4;
-	const unsigned int yBaseImage = blockIdx.y * 4;
-	const unsigned int zBaseImage = blockIdx.z * 4;
-
-
-	const unsigned int tid = threadIdx.x;//0-blockSize
+	const unsigned int tid = get_local_id(0);//0-blockSize
 
 	const unsigned int xImage = xBaseImage + idx;
 	const unsigned int yImage = yBaseImage + idy;
@@ -49,7 +68,7 @@ __kernel void blockMatchingKernel(__global float *resultPosition, __global float
 	const unsigned long imgIdx = xImage + yImage *(c_ImageSize.x) + zImage * (c_ImageSize.x * c_ImageSize.y);
 	const bool targetInBounds = xImage < c_ImageSize.x && yImage < c_ImageSize.y && zImage < c_ImageSize.z;
 
-	const int currentBlockIndex = tex1Dfetch(activeBlock_texture, bid);
+	const int currentBlockIndex = activeBlock[bid];
 
 	if (currentBlockIndex > -1){
 
@@ -72,38 +91,33 @@ __kernel void blockMatchingKernel(__global float *resultPosition, __global float
 					const int indexXYZIn = xImageIn + yImageIn *(c_ImageSize.x) + zImageIn * (c_ImageSize.x * c_ImageSize.y);
 
 					const bool valid = (xImageIn >= 0 && xImageIn < c_ImageSize.x) && (yImageIn >= 0 && yImageIn < c_ImageSize.y) && (zImageIn >= 0 && zImageIn < c_ImageSize.z);
-					sResultValues[sIdx] = (valid) ? tex1Dfetch(resultImageArray_texture, indexXYZIn) : nanf("sNaN");
+					sResultValues[sIdx] = (valid) ? resultImageArray[ indexXYZIn] : NAN;
 
 				}
 			}
 		}
 
-		const float rTargetValue = (targetInBounds) ? tex1Dfetch(targetImageArray_texture, imgIdx) : nanf("sNaN");
+		const float rTargetValue = targetInBounds ? targetImageArray[imgIdx] : NAN;
 
 		const float targetMean = REDUCE(rTargetValue, tid) / 64;
 		const float targetTemp = rTargetValue - targetMean;
 		const float targetVar = REDUCE(targetTemp*targetTemp, tid);
 
-		float bestDisplacement[3] = { nanf("sNaN"),0.0f,0.0f };
+		float bestDisplacement[3] = { NAN,0.0f,0.0f };
 		float bestCC = 0.0f;
 
 		// iteration over the result blocks
 		for (unsigned int n = 1; n < 8; n += 1)
 		{
-			const bool nBorder = (n < 4 && blockIdx.z == 0) || (n>4 && blockIdx.z >= gridDim.z - 2);
+			const bool nBorder = (n < 4 && get_group_id(2) == 0) || (n>4 && get_group_id(2) >= get_num_groups(2) - 2);
 			for (unsigned int m = 1; m < 8; m += 1)
 			{
-				const bool mBorder = (m < 4 && blockIdx.y == 0) || (m>4 && blockIdx.y >= gridDim.y - 2);
+				const bool mBorder = (m < 4 && get_group_id(1) == 0) || (m>4 && get_group_id(1) >= get_num_groups(1) - 2);
 				for (unsigned int l = 1; l < 8; l += 1)
 				{
 
-					/*bool nIs_1_0_m3 = l == 1 + 4 && m == 0 + 4 && n == -3 + 4;
-					bool nIs_1_0_m2 = l == 1 + 4 && m == 0 + 4 && n == -2 + 4;
 
-					bool condition1 = b2_13_10  && nIs_1_0_m3 && tid==0;
-					bool condition2 = b2_13_10  && nIs_1_0_m2 && tid==0;*/
-
-					const bool lBorder = (l < 4 && blockIdx.x == 0) || (l>4 && blockIdx.x >= gridDim.x - 2);
+					const bool lBorder = (l < 4 && get_group_id(0) == 0) || (l>4 && get_group_id(0) >= get_num_groups(0) - 2);
 
 					const unsigned int x = idx + l;
 					const unsigned int y = idy + m;
@@ -135,11 +149,9 @@ __kernel void blockMatchingKernel(__global float *resultPosition, __global float
 						const float resultVar = REDUCE(resultTemp*resultTemp, tid);
 
 						const float sumTargetResult = REDUCE((newTargetTemp)*(resultTemp), tid);
-						const float localCC = fabs((sumTargetResult) / sqrtf(ttargetvar*resultVar));
+						const float localCC = fabs((sumTargetResult) / sqrt(ttargetvar*resultVar));
 
-						/*if (condition1) printf("GPU -3 | sze: %d | TMN: %f | TVR: %f | RMN: %f |RVR %f | STR: %f | LCC: %f\n", bSize, targetMean, targetVar, resultMean, resultVar, sumTargetResult, localCC);
-						if (condition2) printf("GPU -2 | sze: %d | TMN: %f | TVR: %f | RMN: %f |RVR %f | STR: %f | LCC: %f\n", bSize, targetMean, targetVar, resultMean, resultVar, sumTargetResult, localCC);
-*/
+
 						if (tid == 0 && localCC > bestCC) {
 							bestCC = localCC;
 							bestDisplacement[0] = l - 4.0f;
@@ -154,21 +166,19 @@ __kernel void blockMatchingKernel(__global float *resultPosition, __global float
 
 		if (tid == 0 && isfinite(bestDisplacement[0])) {
 
-//			if (b2_13_10) printf("disp: %f-%f-%f\n", bestDisplacement[0],bestDisplacement[1], bestDisplacement[2]);
-			const unsigned int posIdx = 3 * atomicAdd(&(definedBlock[0]), 1);
-			//printf("%d: %d \n", definedBlock[0], bid);
+			const unsigned int posIdx = 3 * atomic_add(&(definedBlock[0]), 1);
 			resultPosition += posIdx;
 			targetPosition += posIdx;
 
-			const float targetPosition_temp[3] = {blockIdx.x*BLOCK_WIDTH,blockIdx.y*BLOCK_WIDTH, blockIdx.z*BLOCK_WIDTH };
+			const float targetPosition_temp[3] = {get_group_id(0)*BLOCK_WIDTH,get_group_id(1)*BLOCK_WIDTH, get_group_id(2)*BLOCK_WIDTH };
 
 			bestDisplacement[0] += targetPosition_temp[0];
 			bestDisplacement[1] += targetPosition_temp[1];
 			bestDisplacement[2] += targetPosition_temp[2];
 
 			//float  tempPosition[3];
-			reg_mat44_mul_cuda(targetMatrix_xyz, targetPosition_temp, targetPosition);
-			reg_mat44_mul_cuda(targetMatrix_xyz, bestDisplacement, resultPosition);
+			reg_mat44_mul_cl(targetMatrix_xyz, targetPosition_temp, targetPosition);
+			reg_mat44_mul_cl(targetMatrix_xyz, bestDisplacement, resultPosition);
 
 		}
 	}

@@ -50,17 +50,24 @@ void Context::initVars() {
 	else
 		this->CurrentWarped = NULL;
 //	std::cout<<"Allocate Def"<<std::endl;
-	if (this->CurrentReference != NULL)
+	if (this->CurrentReference != NULL){
 		this->AllocateDeformationField(bytes);
+		refMatrix_xyz = (CurrentReference->sform_code > 0) ? (CurrentReference->sto_xyz) : (CurrentReference->qto_xyz);
+	}
 	else
 		this->CurrentDeformationField = NULL;
 //	std::cout<<"Allocate Mask if NULL"<<std::endl;
 	if (this->CurrentReferenceMask == NULL && this->CurrentReference != NULL)
 		this->CurrentReferenceMask = (int *) calloc(this->CurrentReference->nx * this->CurrentReference->ny * this->CurrentReference->nz, sizeof(int));
 //	std::cout<<"Allocate Block Matching Params"<<std::endl;
+
+	if (this->CurrentFloating != NULL){
+		floMatrix_ijk = (CurrentFloating->sform_code > 0) ? (CurrentFloating->sto_ijk) :  (CurrentFloating->qto_ijk);
+	}
 	if (blockMatchingParams != NULL)
 		initialise_block_matching_method(CurrentReference, blockMatchingParams, currentPercentageOfBlockToUse, inlierLts, stepSizeBlock, CurrentReferenceMask, false);
 //	std::cout<<"End Init"<<std::endl;
+
 }
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

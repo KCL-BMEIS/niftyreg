@@ -2,6 +2,8 @@
 #define _REG_ALADIN_CPP
 
 #include "_reg_aladin.h"
+
+#include "CPUPlatform.h"
 #ifdef _USE_CUDA
 #include "CudaPlatform.h"
 #include "CudaContext.h"
@@ -10,7 +12,6 @@
 #include "CLPlatform.h"
 #include "CLContext.h"
 #endif
-
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T> reg_aladin<T>::reg_aladin()
@@ -224,6 +225,7 @@ void reg_aladin<T>::InitialiseRegistration()
 #ifndef NDEBUG
 	printf("[NiftyReg DEBUG] reg_aladin::InitialiseRegistration() called\n");
 #endif
+
 
 	if (platformCode == NR_PLATFORM_CPU)
 		this->platform = new CPUPlatform();

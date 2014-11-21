@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CLPKERNELS_H
+#define CLPKERNELS_H
 
 #include "Kernels.h"
 #include "CLContextSingletton.h"
@@ -11,7 +12,7 @@ class CLBlockMatchingKernel;
 class CLConvolutionKernel;
 class CLResampleImageKernel;
 
-//Kernel functions for affine deformation field 
+//Kernel functions for affine deformation field
 class CLAffineDeformationFieldKernel: public AffineDeformationFieldKernel {
 public:
 	CLAffineDeformationFieldKernel(Context* conIn, std::string nameIn) :
@@ -21,7 +22,6 @@ public:
 		this->deformationFieldImage = con->CurrentDeformationField;
 		this->affineTransformation = con->getTransformationMatrix();
 		this->mask = con->CurrentReferenceMask;
-
 
 		targetMatrix = (this->deformationFieldImage->sform_code > 0) ? &(this->deformationFieldImage->sto_xyz) : &(this->deformationFieldImage->qto_xyz);
 
@@ -36,7 +36,14 @@ public:
 		clDeformationField = con->getDeformationFieldArrayClmem();
 		clMask = con->getMaskClmem();
 	}
+	~CLAffineDeformationFieldKernel() {
+		std::cout << "clean up context staff" << std::endl;
+		if (kernel != 0)
+			clReleaseKernel(kernel);
 
+		if (program != 0)
+			clReleaseProgram(program);
+	}
 
 	void execute(bool compose = false);
 
@@ -58,21 +65,46 @@ public:
 class CLBlockMatchingKernel: public BlockMatchingKernel {
 public:
 
-	CLBlockMatchingKernel(Context* con, std::string name) :
+	CLBlockMatchingKernel(Context* conIn, std::string name) :
 			BlockMatchingKernel(name) {
 		sContext = &CLContextSingletton::Instance();
-		target = con->getCurrentReference();
-		result = con->getCurrentWarped();
-		params = con->getBlockMatchingParams();
-		mask = con->getCurrentReferenceMask();
+
+		con = (ClContext*) conIn;
+		target = con->CurrentReference;
+		params = con->blockMatchingParams;
+
+		std::string clInstallPath(CL_KERNELS_PATH);
+		std::string clKernel("blockMatchingKernel.cl");
+
+		clContext = sContext->getContext();
+		program = sContext->CreateProgram((clInstallPath + clKernel).c_str());
+		commandQueue = sContext->getCommandQueue();
+		// Create OpenCL kernel
+		kernel = clCreateKernel(program, "blockMatchingKernel", NULL);
+
+		activeBlock = con->getActiveBlockClmem();
+		targetImageArray = con->getReferenceImageArrayClmem();
+		resultImageArray = con->getWarpedImageClmem();
+		resultPosition = con->getResultPositionClmem();
+		targetPosition = con->getTargetPositionClmem();
+		mask = con->getMaskClmem();
+		targetMat = con->getRefMatClmem();
 	}
-	CLContextSingletton* sContext;
+
 	void execute();
 
+	CLContextSingletton* sContext;
+	ClContext* con;
 	nifti_image* target;
 	nifti_image* result;
 	_reg_blockMatchingParam* params;
-	int* mask;
+
+	cl_kernel kernel;
+	cl_context clContext;
+	cl_program program;
+	cl_command_queue commandQueue;
+
+	cl_mem activeBlock, targetImageArray, resultImageArray, resultPosition, targetPosition, mask, targetMat;
 
 };
 //a kernel function for convolution (gaussian smoothing?)
@@ -115,35 +147,38 @@ public:
 	CLResampleImageKernel(Context* conIn, std::string name) :
 			ResampleImageKernel(name) {
 
-		clCurrentFloating = 0;
-		clCurrentDeformationField = 0;
-		clCurrentWarped = 0;
-		clMask = 0;
-
-		con = (ClContext*) conIn;
-		sContext = &CLContextSingletton::Instance();
-
-		floatingImage = con->CurrentFloating;
-		warpedImage = con->CurrentWarped;
-		mask = con->getCurrentReferenceMask();
-
 		std::string clInstallPath(CL_KERNELS_PATH);
 		std::string clKernel("resampleKernel.cl");
 
+		sContext = &CLContextSingletton::Instance();
 		clContext = sContext->getContext();
-		program = sContext->CreateProgram((clInstallPath + clKernel).c_str());
 		commandQueue = sContext->getCommandQueue();
+
+		program = sContext->CreateProgram((clInstallPath + clKernel).c_str());
+
+		con = (ClContext*) conIn;
+		floatingImage = con->CurrentFloating;
+		warpedImage = con->CurrentWarped;
+		mask = con->CurrentReferenceMask;
 
 		kernel = 0;
 		clCurrentFloating = con->getFloatingImageArrayClmem();
 		clCurrentDeformationField = con->getDeformationFieldArrayClmem();
 		clCurrentWarped = con->getWarpedImageClmem();
 		clMask = con->getMaskClmem();
+		floMat = con->getFloMatClmem();
 
 	}
 
+	~CLResampleImageKernel() {
+		std::cout << "CLResampleImageKernel: clean up context staff" << std::endl;
+		if (kernel != 0)
+			clReleaseKernel(kernel);
 
-	bool MrPropreRules;
+		if (program != 0)
+			clReleaseProgram(program);
+	}
+
 	nifti_image *floatingImage;
 	nifti_image *warpedImage;
 	int *mask;
@@ -155,8 +190,9 @@ public:
 	cl_context clContext;
 	cl_program program;
 
-	cl_mem clCurrentFloating, clCurrentDeformationField, clCurrentWarped, clMask;
+	cl_mem clCurrentFloating, clCurrentDeformationField, clCurrentWarped, clMask, floMat;
 
 	void execute(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
 };
 
+#endif

@@ -478,7 +478,7 @@ __device__ __inline__ float countNans(float data, const unsigned int tid, bool c
 
 
 
-__global__ void blockMatchingKernel(float *resultPosition, float *targetPosition, int* mask, float* targetMatrix_xyz, uint3 blockDims, unsigned int* definedBlock){
+__global__ void blockMatchingKernel(float *resultPosition, float *targetPosition, int* mask, float* targetMatrix_xyz, unsigned int* definedBlock, uint3 c_ImageSize){
 
 	__shared__ float sResultValues[12 * 12 * 12];
 

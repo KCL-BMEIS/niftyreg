@@ -1,9 +1,11 @@
-#pragma once
+#ifndef CPUKERNELS_H
+#define CPUKERNELS_H
+
 #include "Kernels.h"
-#include"Context.h"
+#include "Context.h"
 
 
-//Kernel functions for affine deformation field 
+//Kernel functions for affine deformation field
 class CPUAffineDeformationFieldKernel : public AffineDeformationFieldKernel {
 public:
 	CPUAffineDeformationFieldKernel(Context* con, std::string nameIn) : AffineDeformationFieldKernel( nameIn) {
@@ -14,7 +16,7 @@ public:
 
 
 	void execute(bool compose = false);
-	
+
 	mat44 *affineTransformation;
 	nifti_image *deformationFieldImage;
 	int* mask;
@@ -82,3 +84,4 @@ public:
 	void execute(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
 };
 
+#endif

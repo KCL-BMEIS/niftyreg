@@ -15,9 +15,11 @@
 #include <float.h>
 #include <limits>
 
+/*
 #ifdef _USE_CUDA
 #   include "_reg_f3d_gpu.h"
 #endif
+*/
 
 #ifdef _WIN32
 #   include <time.h>
@@ -150,11 +152,13 @@ void Usage(char *exec)
    printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i]\n",
           omp_get_num_procs());
 #endif
+/*
 #ifdef _USE_CUDA
    printf("\n*** GPU-related options:\n");
    printf("\t-mem\t\t\tDisplay an approximate memory requierment and exit\n");
    printf("\t-gpu \t\t\tTo use the GPU implementation [no]\n");
 #endif
+*/
    printf("\n*** Other options:\n");
    printf("\t-smoothGrad <float>\tTo smooth the metric derivative (in mm) [0]\n");
    printf("\t-pad <float>\t\tPadding value [nan]\n");
@@ -272,9 +276,11 @@ int main(int argc, char **argv)
    }
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Check the type of registration object to create
+/*
 #ifdef _USE_CUDA
    CUcontext ctx;
 #endif // _USE_CUDA
+*/
    reg_f3d<PrecisionTYPE> *REG=NULL;
    for(int i=1; i<argc; i++)
    {
@@ -288,6 +294,7 @@ int main(int argc, char **argv)
          REG=new reg_f3d_sym<PrecisionTYPE>(referenceImage->nt,floatingImage->nt);
          break;
       }
+/*
 #ifdef _USE_CUDA
       if(strcmp(argv[i], "-gpu")==0 || strcmp(argv[i], "-mem")==0)
       {
@@ -301,6 +308,7 @@ int main(int argc, char **argv)
          break;
       }
 #endif // _USE_CUDA
+*/
    }
    if(REG==NULL)
       REG=new reg_f3d<PrecisionTYPE>(referenceImage->nt,floatingImage->nt);
@@ -315,9 +323,11 @@ int main(int argc, char **argv)
    char *outputWarpedImageName=NULL;
    char *outputCPPImageName=NULL;
    bool useMeanLNCC=false;
+/*
 #ifdef _USE_CUDA
    bool checkMemory=false;
 #endif // _use_CUDA
+*/
    int refBinNumber=0;
    int floBinNumber=0;
 
@@ -675,12 +685,14 @@ int main(int argc, char **argv)
          omp_set_num_threads(atoi(argv[++i]));
       }
 #endif
+/*
 #ifdef _USE_CUDA
       else if(strcmp(argv[i], "-mem")==0)
       {
          checkMemory=true;
       }
 #endif
+*/
       /* All the following arguments should have already been parsed */
       else if(strcmp(argv[i], "-help")!=0 && strcmp(argv[i], "-Help")!=0 &&
       strcmp(argv[i], "-HELP")!=0 && strcmp(argv[i], "-h")!=0 &&
@@ -689,9 +701,11 @@ int main(int argc, char **argv)
       strcmp(argv[i], "-Version")!=0 && strcmp(argv[i], "-V")!=0 &&
       strcmp(argv[i], "-v")!=0 && strcmp(argv[i], "--v")!=0 &&
       strcmp(argv[i], "--version")!=0 && strcmp(argv[i], "-helpPenalty")!=0 &&
+/*
 #ifdef _USE_CUDA
       strcmp(argv[i], "-gpu")!=0 &&
 #endif
+*/
       strcmp(argv[i], "-vel")!=0 && strcmp(argv[i], "-sym")!=0)
       {
          fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
@@ -721,6 +735,7 @@ int main(int argc, char **argv)
 #endif // _OPENMP
 
    // Run the registration
+/*
 #ifdef _USE_CUDA
    if(checkMemory)
    {
@@ -734,6 +749,7 @@ int main(int argc, char **argv)
    else
    {
 #endif
+*/
       REG->Run();
 
       // Save the control point result
@@ -828,10 +844,12 @@ int main(int argc, char **argv)
       outputWarpedImage[1]=NULL;
       free(outputWarpedImage);
       outputWarpedImage=NULL;
+/*
 #ifdef _USE_CUDA
    }
    cudaCommon_unsetCUDACard(&ctx);
 #endif
+*/
    // Erase the registration object
    delete REG;
 

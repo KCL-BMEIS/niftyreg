@@ -9,7 +9,7 @@ public:
 
 
 	Kernel(std::string nameIn){ name = nameIn; }
-	virtual ~Kernel(){}
+	virtual ~Kernel(){std::cout<<"virt kernel"<<std::endl;}
 
 	std::string getName() const;
 	std::string name;

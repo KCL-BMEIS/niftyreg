@@ -9,12 +9,70 @@
 #ifndef _REG_COMMON_GPU_H
 #define _REG_COMMON_GPU_H
 
-#include "_reg_blocksize_gpu.h"
+#include "nifti1_io.h"
+#include "cuda_runtime.h"
+#include "cuda.h"
 
 /* ******************************** */
 /* ******************************** */
+#ifndef __VECTOR_TYPES_H__
+#define __VECTOR_TYPES_H__
+struct __attribute__((aligned(4))) float4
+{
+	float x,y,z,w;
+};
+#endif
+/* ******************************** */
+/* ******************************** */
+#if CUDART_VERSION >= 3200
+#   define NR_CUDA_SAFE_CALL(call) { \
+		call; \
+		cudaError err = cudaPeekAtLastError(); \
+		if( cudaSuccess != err) { \
+			fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
+			__FILE__, __LINE__, cudaGetErrorString(err)); \
+			exit(EXIT_FAILURE); \
+		} \
+	}
+#   define NR_CUDA_CHECK_KERNEL(grid,block) { \
+		cudaThreadSynchronize(); \
+		cudaError err = cudaPeekAtLastError(); \
+		if( err != cudaSuccess) { \
+			fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
+			__FILE__, __LINE__, cudaGetErrorString(err)); \
+			fprintf(stderr, "Grid [%ix%ix%i] | Block [%ix%ix%i]\n", \
+			grid.x,grid.y,grid.z,block.x,block.y,block.z); \
+			exit(EXIT_FAILURE); \
+		} \
+		else{\
+		printf("[NiftyReg CUDA DEBUG] kernel: %s - Grid size [%i %i %i] - Block size [%i %i %i]\n", cudaGetErrorString(cudaGetLastError()), grid.x, grid.y, grid.z, block.x, block.y, block.z);\
+		}\
+	}
+#else //CUDART_VERSION >= 3200
+#   define NR_CUDA_SAFE_CALL(call) { \
+		call; \
+		cudaError err = cudaThreadSynchronize(); \
+		if( cudaSuccess != err) { \
+			fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
+			__FILE__, __LINE__, cudaGetErrorString(err)); \
+			exit(EXIT_FAILURE); \
+		} \
+	}
+#   define NR_CUDA_CHECK_KERNEL(grid,block) { \
+		cudaError err = cudaThreadSynchronize(); \
+		if( err != cudaSuccess) { \
+			fprintf(stderr, "[NiftyReg CUDA ERROR] file '%s' in line %i : %s.\n", \
+			__FILE__, __LINE__, cudaGetErrorString(err)); \
+			fprintf(stderr, "Grid [%ix%ix%i] | Block [%ix%ix%i]\n", \
+			grid.x,grid.y,grid.z,block.x,block.y,block.z); \
+			exit(EXIT_FAILURE); \
+		} \
+	}
+#endif //CUDART_VERSION >= 3200
+/* ******************************** */
+/* ******************************** */
 int cudaCommon_setCUDACard(CUcontext *ctx,
-                           bool verbose);
+									bool verbose);
 /* ******************************** */
 void cudaCommon_unsetCUDACard(CUcontext *ctx);
 /* ******************************** */
@@ -84,8 +142,10 @@ template <class DTYPE>
 int cudaCommon_transferNiftiToNiftiOnDevice1(nifti_image **image_d, nifti_image *img);
 
 
+/* ******************************** */
+/* ******************************** */
 extern "C++"
-template <class DTYPE> 
+template <class DTYPE>
 int cudaCommon_transferFromDeviceToNiftiSimple(DTYPE **, nifti_image * );
 
 extern "C++"
@@ -95,5 +155,7 @@ int cudaCommon_transferFromDeviceToNiftiSimple1(DTYPE **array_d, DTYPE *img, con
 extern "C++"
 template <class DTYPE>
 int cudaCommon_transferFromDeviceToCpu(DTYPE *cpuPtr, DTYPE **cuPtr, const unsigned int nElements);
+/* ******************************** */
+/* ******************************** */
 
 #endif

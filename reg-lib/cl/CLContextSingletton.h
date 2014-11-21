@@ -1,4 +1,6 @@
-#pragma once
+#ifndef CLPCONTEXTSINGLETTON_H
+#define CLPCONTEXTSINGLETTON_H
+
 
 #ifdef __APPLE__
 #include <OpenCL/cl.h>
@@ -51,17 +53,18 @@ public:
 	size_t getMaxThreads();
 	unsigned int getMaxBlocks();
 
-	
+
 
 private:
-	
+
 	static CLContextSingletton* _instance;
 
-	CLContextSingletton(); // Constructor? (the {} brackets) are needed here.
-	// Dont forget to declare these two. You want to make sure they
-	// are unaccessable otherwise you may accidently get copies of
-	// your singleton appearing.
-	CLContextSingletton(CLContextSingletton const&);              // Don't Implement
+	CLContextSingletton();
+	~CLContextSingletton(){
+		shutDown();
+	}
+
+	CLContextSingletton(CLContextSingletton const&);// Don't Implement
 	void operator=(CLContextSingletton const&); // Don't implement
 
 
@@ -75,3 +78,4 @@ private:
 	size_t maxThreads;
 	unsigned int maxBlocks;
 };
+#endif

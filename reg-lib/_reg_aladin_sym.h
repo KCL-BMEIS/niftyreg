@@ -50,7 +50,7 @@ protected:
 	//virtual void InitialiseBlockMatching(int);
 	//virtual void SetCurrentImages();
 	virtual void GetWarpedImage(int);
-	
+
 
 public:
 	reg_aladin_sym();

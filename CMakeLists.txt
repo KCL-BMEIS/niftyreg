@@ -1,7 +1,7 @@
 #-----------------------------------------------------------------------------
 project(NiftyReg)
 cmake_minimum_required(VERSION 2.8.0)
-
+add_definitions(-DUSECUDA3)
 if("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^2\\.8\\.0$")
  mark_as_advanced(FORCE CMAKE_BACKWARDS_COMPATIBILITY)
 else("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^2\\.8\\.0$")
@@ -17,6 +17,14 @@ endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Release")
 endif(NOT CMAKE_BUILD_TYPE)
+#-----------------------------------------------------------------------------
+#---------------------------------For Marc to check--------------------------------------------
+if(USE_OPENCL)
+add_definitions(-D_USE_OPENCL)
+endif(USE_OPENCL)
+if(USE_CUDA)
+add_definitions(-D_USE_CUDA)
+endif(USE_CUDA)
 #-----------------------------------------------------------------------------
 string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_tolower)
 if(NOT cmake_build_type_tolower STREQUAL "debug"
@@ -65,9 +73,9 @@ option(USE_CUDA "To enable CUDA for a GPU implementation of the code" OFF)
 if(WIN32)
 		set(BUILD_ALL_DEP ON CACHE BOOL "All the dependencies are build" FORCE)
 endif(WIN32)
-if(APPLE)#will need to specify version here. I think 10.8 onwards uses these
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
-endif(APPLE)
+#if(APPLE)#will need to specify version here. I think 10.8 onwards uses these
+#		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
+#endif(APPLE)
 #-----------------------------------------------------------------------------
 # All dependencies are build to create the 3DSlicer package
 if(BUILD_NR_SLICER_EXT)
@@ -126,11 +134,21 @@ include_directories(${PNG_INCLUDE_DIR})
 #-----------------------------------------------------------------------------
 include_directories(${CMAKE_BINARY_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/reg-lib)
+include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cpu)
 include_directories(${CMAKE_SOURCE_DIR}/reg-io)
 include_directories(${CMAKE_SOURCE_DIR}/reg-io/nifti)
 include_directories(${CMAKE_SOURCE_DIR}/third-party)
 include_directories(${CMAKE_SOURCE_DIR}/reg-io/nrrd)
 include_directories(${CMAKE_SOURCE_DIR}/reg-io/nrrd/NrrdIO)
+if(USE_OPENCL)
+include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cl)
+include_directories(${OPENCL_INCLUDE_DIRS})
+endif(USE_OPENCL)
+if(USE_CUDA)
+include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cuda)
+endif(USE_CUDA)
+
+
 #-----------------------------------------------------------------------------
 if(USE_DOUBLE)
 		if(USE_SSE)

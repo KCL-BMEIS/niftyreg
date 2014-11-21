@@ -2,7 +2,7 @@
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 find_package(OPENCL REQUIRED)
 if(NOT OPENCL_FOUND)
-	set(USE_CUDA OFF CACHE BOOL "To enable the OpenCL platform" FORCE)
+	set(USE_OPENCL OFF CACHE BOOL "To enable the OpenCL platform" FORCE)
 	message(ERROR "OpenCL not found. The USE_OPENCL flag is turned OFF")
 endif(NOT OPENCL_FOUND)
 
@@ -22,6 +22,8 @@ add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	CLKernelFactory.cpp
 	CLKernels.cpp
 	CLPlatform.cpp
+	../Context.cpp
+	../Platform.cpp
 )
 target_link_libraries(${NAME} ${OPENCL_LIBRARIES} )
 configure_file(resampleKernel.cl ${CMAKE_CURRENT_BINARY_DIR}/resampleKernel.cl COPYONLY)

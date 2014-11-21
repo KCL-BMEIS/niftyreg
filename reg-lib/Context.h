@@ -7,12 +7,7 @@
 #include <string>
 #include <vector>
 #include "Kernel.h"
-#include "nifti1_io.h"
 #include "_reg_blockMatching.h"
-
-#define CPU_PLATFORM 0
-#define CUDA_PLATFORM 1
-#define CL_PLATFORM 2
 
 class Context {
 public:
@@ -88,6 +83,8 @@ public:
 	int* CurrentReferenceMask;
 
 	mat44* transformationMatrix;
+	mat44 refMatrix_xyz;
+	mat44 floMatrix_ijk;
 	_reg_blockMatchingParam* blockMatchingParams;
 
 	 int stepSizeBlock;
