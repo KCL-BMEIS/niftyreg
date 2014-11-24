@@ -229,9 +229,7 @@ void reg_aladin_sym<T>::GetWarpedImage(int interp)
 	reg_aladin<T>::GetWarpedImage(interp);
 	this->GetBackwardDeformationField();
 	//TODO: This needs correction, otherwise we are transforming an image that has already been warped
-//	std::cout<<"++++++++++++++++++++++START+++++++++++++++++++++++++++++++++++++++++++++++++++"<<std::endl;
 	bResamplingKernel->castTo<ResampleImageKernel>()->execute(interp, 0);
-//	std::cout<<"+++++++++++++++++++++++END++++++++++++++++++++++++++++++++++++++++++++++++++"<<std::endl;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -290,7 +288,7 @@ void reg_aladin_sym<T>::initContext() {
 #endif
 #ifdef _USE_OPENCL
 	else if (this->platformCode == NR_PLATFORM_CL)
-	this->backCon = new Context(this->FloatingPyramid[this->CurrentLevel],
+	this->backCon = new ClContext(this->FloatingPyramid[this->CurrentLevel],
 			this->ReferencePyramid[this->CurrentLevel], this->FloatingMaskPyramid[this->CurrentLevel],
 			sizeof(T), this->BlockPercentage, this->InlierLts, this->BlockStepSize);
 #endif

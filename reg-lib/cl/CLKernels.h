@@ -33,12 +33,14 @@ public:
 	cl_mem clDeformationField, clMask;
 	CLContextSingletton* sContext;
 
+
 };
 //Kernel functions for block matching
 class CLBlockMatchingKernel: public BlockMatchingKernel {
 public:
 
 	CLBlockMatchingKernel(Context* conIn, std::string name);
+	~CLBlockMatchingKernel();
 	void execute();
 
 	CLContextSingletton* sContext;

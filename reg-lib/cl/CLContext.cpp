@@ -51,7 +51,7 @@ void ClContext::allocateClPtrs() {
 		sContext->checkErrNum(errNum, "failed activeBlockClmem: ");
 	}
 	if (this->CurrentReferenceMask != NULL) {
-			maskClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, this->CurrentReference->nvox * sizeof(int), this->CurrentReferenceMask, &errNum);
+			maskClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, this->CurrentReference->nx *this->CurrentReference->ny*this->CurrentReference->nz* sizeof(int), this->CurrentReferenceMask, &errNum);
 			sContext->checkErrNum(errNum, "failed CurrentReferenceMask: ");
 	}
 }

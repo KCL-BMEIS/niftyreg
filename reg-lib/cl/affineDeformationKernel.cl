@@ -14,8 +14,10 @@ __inline__ float getPosition( __global float* matrix, float* voxel, const unsign
 		matrix[idx * 4 + 3];
 }
 
-__kernel void affineKernel(__global float* transformationMatrix, __global  float* defField,__global  int* mask, const uint3 params, const unsigned long voxelNumber, const unsigned int composition) {
+__kernel void affineKernel(__global float* transformationMatrix, __global  float* defField,__global  int* mask, const uint3 params, const unsigned int composition) {
 
+    const unsigned long voxelNumber = params.x*params.y*params.z;
+    
 	__global float *deformationFieldPtrX =  defField ;
 	__global float *deformationFieldPtrY = &deformationFieldPtrX[voxelNumber];
 	__global float *deformationFieldPtrZ = &deformationFieldPtrY[voxelNumber]; 

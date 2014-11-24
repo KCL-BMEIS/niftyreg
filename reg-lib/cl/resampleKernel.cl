@@ -5,17 +5,17 @@ __inline void interpolantCubicSpline(float ratio, float *basis) {
 	if (ratio < 0.0f) ratio = 0.0f; //reg_rounding error
 	float FF = ratio*ratio;
 	basis[0] = ((ratio * ((2.0f - ratio)*ratio - 1.0f)) / 2.0f);
-	basis[1] = ((FF * (3.0f*ratio - 5.0) + 2.0f) / 2.0f);
+	basis[1] = ((FF * (3.0f*ratio - 5.0f) + 2.0f) / 2.0f);
 	basis[2] = ((ratio * ((4.0f - 3.0f*ratio)*ratio + 1.0f)) / 2.0f);
 	basis[3] = ((ratio - 1.0f) * FF / 2.0f);
 }
 
  __inline int cl_reg_floor(float a) {
-	return a > 0 ? (int)a : (int)(a - 1);
+	return a > 0.0f ? (int)a : (int)(a - 1);
 }
 
 __inline float  reg_round(float a) {
-return a>0.0 ?(int)(a+0.5):(int)(a-0.5);}
+return a>0.0f ?(int)(a+0.5f):(int)(a-0.5f);}
 
 __inline void reg_mat44_mul_cl(__global float const* mat, float const* in, float *out) {
 	out[0] = mat[0 * 4 + 0] * in[0] +
@@ -79,15 +79,15 @@ __kernel void  CubicSplineResampleImage3D(__global float* floatingImage, __globa
 
 				// basis values along the x axis
 				relative = position[0] - previous[0];
-				relative = relative > 0 ? relative : 0;
+				relative = relative > 0.0f ? relative : 0.0f;
 				interpolantCubicSpline(relative, xBasis);
 				// basis values along the y axis
 				relative = position[1] - previous[1];
-				relative = relative > 0 ? relative : 0;
+				relative = relative > 0.0f ? relative : 0.0f;
 				interpolantCubicSpline(relative, yBasis);
 				// basis values along the z axis
 				relative = position[2] - previous[2];
-				relative = relative > 0 ? relative : 0;
+				relative = relative > 0.0f ? relative : 0.0f;
 				interpolantCubicSpline(relative, zBasis);
 
 				--previous[0];
@@ -97,12 +97,12 @@ __kernel void  CubicSplineResampleImage3D(__global float* floatingImage, __globa
 				for (c = 0; c < 4; c++) {
 					Z = previous[2] + c;
 					zPointer = &sourceIntensity[Z*fi_xyz.x*fi_xyz.y];
-					yTempNewValue = 0.0;
+					yTempNewValue = 0.0f;
 					for (b = 0; b < 4; b++) {
 						Y = previous[1] + b;
 						yzPointer = &zPointer[Y*fi_xyz.x];
 						xyzPointer = &yzPointer[previous[0]];
-						xTempNewValue = 0.0;
+						xTempNewValue = 0.0f;
 						for (a = 0; a < 4; a++) {
 							if (-1 < (previous[0] + a) && (previous[0] + a) < fi_xyz.x &&
 								-1 < Z && Z < fi_xyz.z &&
@@ -293,7 +293,7 @@ __kernel void TrilinearResampleImage2(__global float* floatingImage, __global fl
 			intensity = paddingValue;
 
 			if (maskPtr[index] > -1) {
-				intensity = 0;
+				intensity = 0.0f;
 
 				world[0] = deformationFieldPtrX[index];
 				world[1] = deformationFieldPtrY[index];
@@ -308,15 +308,15 @@ __kernel void TrilinearResampleImage2(__global float* floatingImage, __global fl
 
 				// basis values along the x axis
 				relative = position[0] - previous[0];
-				xBasis[0] = (1.0 - relative);
+				xBasis[0] = (1.0f - relative);
 				xBasis[1] = relative;
 				// basis values along the y axis
 				relative = position[1] - previous[1];
-				yBasis[0] = (1.0 - relative);
+				yBasis[0] = (1.0f - relative);
 				yBasis[1] = relative;
 				// basis values along the z axis
 				relative = position[2] - previous[2];
-				zBasis[0] = (1.0 - relative);
+				zBasis[0] = (1.0f - relative);
 				zBasis[1] = relative;
 
 				// For efficiency reason two interpolation are here, with and without using a padding value
@@ -326,7 +326,7 @@ __kernel void TrilinearResampleImage2(__global float* floatingImage, __global fl
 						Z = previous[2] + c;
 						if (Z > -1 && Z < fi_xyz.z) {
 							zPointer = &sourceIntensity[Z * fi_xyz.x * fi_xyz.y];
-							yTempNewValue = 0.0;
+							yTempNewValue = 0.0f;
 							for (b = 0; b < 2; b++) {
 								Y = previous[1] + b;
 								if (Y > -1 && Y < fi_xyz.y) {
@@ -403,7 +403,7 @@ __kernel void NearestNeighborResampleImage(__global float *floatingImage,__globa
 	long index = get_group_id(0)*get_local_size(0) + get_local_id(0);	
 	while (index < voxelNumber.x) {
 
-		for (int t = 0; t<wi_tu.x*wi_tu.x; t++) {
+		for (unsigned int t = 0; t<wi_tu.x*wi_tu.x; t++) {
 
 			__global float *resultIntensity = &resultIntensityPtr[t*voxelNumber.x];
 			__global float *sourceIntensity = &sourceIntensityPtr[t*voxelNumber.y];
