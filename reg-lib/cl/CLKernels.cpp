@@ -65,7 +65,7 @@ CLAffineDeformationFieldKernel::~CLAffineDeformationFieldKernel() {
 }
 
 void CLAffineDeformationFieldKernel::execute(bool compose) {
-	std::cout << "CLAffineDeformationFieldKernel exec" << std::endl;
+//	std::cout << "CLAffineDeformationFieldKernel exec" << std::endl;
 	const unsigned int xThreads = 8;
 	const unsigned int yThreads = 8;
 	const unsigned int zThreads = 8;
@@ -268,7 +268,7 @@ void CLResampleImageKernel::execute(int interp, float paddingValue,
 //==========================================================================
 CLBlockMatchingKernel::CLBlockMatchingKernel(Context* conIn, std::string name) :
 		BlockMatchingKernel(name) {
-	std::cout << "CLBlockMatchingKernel" << std::endl;
+//	std::cout << "CLBlockMatchingKernel" << std::endl;
 
 	sContext = &CLContextSingletton::Instance();
 
@@ -304,7 +304,7 @@ CLBlockMatchingKernel::~CLBlockMatchingKernel() {
 		clReleaseProgram(program);
 }
 void CLBlockMatchingKernel::execute() {
-	std::cout << "CLBlockMatchingKernel exec" << std::endl;
+//	std::cout << "CLBlockMatchingKernel exec" << std::endl;
 	cl_int errNum;
 	// Copy some required parameters over to the device
 

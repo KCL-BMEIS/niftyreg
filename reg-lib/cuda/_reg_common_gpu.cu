@@ -58,12 +58,7 @@ int cudaCommon_transferNiftiToArrayOnDevice1(DTYPE **array_d, nifti_image *img)
 	}
 	return 0;
 }
-/* ******************************** */
-template <class DTYPE>
-int cudaCommon_transferNiftiToArrayOnDevice(DTYPE **array_d, DTYPE *img, int* dims){
 
-
-}
 /* ******************************** */
 template <class DTYPE>
 int cudaCommon_transferNiftiToArrayOnDevice(DTYPE **array_d, nifti_image *img)

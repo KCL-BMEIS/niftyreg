@@ -12,12 +12,12 @@
 #endif
 
 #define BSE
-#define REF "/Users/thanasio/cuda-workspace/niftyreg_cl_git_build/reg-test/test-data/mockRef.nii"
-#define FLO "/Users/thanasio/cuda-workspace/niftyreg_cl_git_build/reg-test/test-data/mockFlo.nii"
-#define WRP "/Users/thanasio/cuda-workspace/niftyreg_cl_git_build/reg-test/test-data/mockWrpd.nii"
+#define REF "/home/thanasis/Documents/mockRef.nii"
+#define FLO "/home/thanasis/Documents/mockFlo.nii"
+#define WRP "/home/thanasis/Documents/mockWrpd.nii"
 
-#define RES "/Users/thanasio/cuda-workspace/niftyreg_cl_git_build/reg-test/test-data/mockRes.nii"
-#define TAR "/Users/thanasio/cuda-workspace/niftyreg_cl_git_build/reg-test/test-data/mockTar.nii"
+#define RES "/home/thanasis/Documents/mockRes.nii"
+#define TAR "/home/thanasis/Documents/mockTar.nii"
 
 
 #define BMV_PNT 50
@@ -232,7 +232,7 @@ void test(Platform* platform, const char* msg,  const unsigned int blocksPercent
 				resultSum[1] = abs(outResultPt[1] - refResultPt[1]);
 				resultSum[2] = abs(outResultPt[2] - refResultPt[2]);
 				if (resultSum[0] >0 || resultSum[1] > 0 || resultSum[2]>0)
-					printf("i: %d | j: %d | (dif: %f-%f-%f) | (out: %f, %f, %f) | (ref: %f, %f, %f)\n", i, j, resultSum[0], resultSum[1], resultSum[2], outResultPt[0], outResultPt[1], outResultPt[2], refResultPt[0], refResultPt[1], refResultPt[2]);
+					printf("i: %lu | j: %lu | (dif: %f-%f-%f) | (out: %f, %f, %f) | (ref: %f, %f, %f)\n", i, j, resultSum[0], resultSum[1], resultSum[2], outResultPt[0], outResultPt[1], outResultPt[2], refResultPt[0], refResultPt[1], refResultPt[2]);
 			}
 		}
 
@@ -269,7 +269,7 @@ int main(int argc, char **argv) {
 	//init platform params
 	Platform *cpuPlatform = new CPUPlatform();
 #ifdef _USE_CUDA
-//	Platform *cudaPlatform = new CudaPlatform();
+	Platform *cudaPlatform = new CudaPlatform();
 #endif
 	Platform *clPlatform = new CLPlatform();
 
@@ -278,9 +278,9 @@ int main(int argc, char **argv) {
 
 
 
-//	test(cpuPlatform, "CPU Platform", BMV_PNT, INLIERS);
+	test(cpuPlatform, "CPU Platform", BMV_PNT, INLIERS);
 
-//	test(cudaPlatform, "Cuda Platform", BMV_PNT, INLIERS);
+	test(cudaPlatform, "Cuda Platform", BMV_PNT, INLIERS);
 
 	test(clPlatform, "Cl Platform", BMV_PNT, INLIERS);
 
