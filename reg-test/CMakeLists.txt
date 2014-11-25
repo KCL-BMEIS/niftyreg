@@ -43,7 +43,7 @@
 	set(DATA_FOLDER ${CMAKE_BINARY_DIR}/reg-test/test-data)
 	if(NOT EXISTS "${DATA_FOLDER}/test_data.tar.gz")
 		file(MAKE_DIRECTORY ${DATA_FOLDER})
-		set(test_data_url "http://www.cs.ucl.ac.uk/staff/mmodat/niftyreg_test_data.tar.gz")
+		set(test_data_url "http://www.cs.ucl.ac.uk/staff/mmodat/niftyreg_test_data_390df2b.tar.gz")
 		message(STATUS "Downloading the test data: ${test_data_url}")
 		file(DOWNLOAD
 				 ${test_data_url}

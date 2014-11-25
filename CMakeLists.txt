@@ -241,7 +241,7 @@ endif(USE_CUDA)
 find_package(Git)
 if(GIT_FOUND)
 	execute_process(
-		COMMAND git rev-parse HEAD
+		COMMAND git rev-parse --short HEAD
 		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 		OUTPUT_VARIABLE GIT_COMMIT_HASH
 		RESULT_VARIABLE GIT_FAILED
