@@ -1,19 +1,23 @@
 #include"Kernel.h"
 #include"Kernels.h"
 #include "CPUPlatform.h"
+#ifdef _USE_CUDA
 #include "CudaPlatform.h"
+#endif
 #include "CLPlatform.h"
 #include "_reg_ReadWriteImage.h"
 #include "CLContext.h"
+#ifdef _USE_CUDA
 #include "CudaContext.h"
+#endif
 
+#define BSE
+#define REF "/Users/thanasio/cuda-workspace/niftyreg_cl_git_build/reg-test/test-data/mockRef.nii"
+#define FLO "/Users/thanasio/cuda-workspace/niftyreg_cl_git_build/reg-test/test-data/mockFlo.nii"
+#define WRP "/Users/thanasio/cuda-workspace/niftyreg_cl_git_build/reg-test/test-data/mockWrpd.nii"
 
-#define REF "/home/thanasis/Documents/mockRef.nii"
-#define FLO "/home/thanasis/Documents/mockFlo.nii"
-#define WRP "/home/thanasis/Documents/mockWrpd.nii"
-
-#define RES "/home/thanasis/Documents/mockRes.nii"
-#define TAR "/home/thanasis/Documents/mockTar.nii"
+#define RES "/Users/thanasio/cuda-workspace/niftyreg_cl_git_build/reg-test/test-data/mockRes.nii"
+#define TAR "/Users/thanasio/cuda-workspace/niftyreg_cl_git_build/reg-test/test-data/mockTar.nii"
 
 
 #define BMV_PNT 50
@@ -47,9 +51,6 @@ struct _reg_sorted_point3D
 };
 
 void mockParams(Platform* platform, const unsigned int blocksPercentage, const unsigned int inliers) {
-
-
-
 
 	//init ref params
 	nifti_image* reference = reg_io_ReadImageFile(REF);
@@ -119,11 +120,14 @@ void test(Platform* platform, const char* msg,  const unsigned int blocksPercent
 
 	if (platform->getName() == "cpu_platform")
 		con = new Context(reference, floating, mask, sizeof(float), blocksPercentage, inliers, 1);//temp
+#ifdef _USE_CUDA
 	else if (platform->getName() == "cuda_platform")
 		con = new CudaContext(reference, floating, mask, sizeof(float), blocksPercentage, inliers,1);//temp
+#endif
+#ifdef _USE_OPENCL
 	else con = new ClContext(reference, floating, mask, sizeof(float), blocksPercentage, inliers,1);
 	con->setCurrentWarped(warped);
-
+#endif
 	Kernel* bmKernel = platform->createKernel(BlockMatchingKernel::Name(), con);
 
 	clock_t begin = clock();
@@ -264,7 +268,9 @@ int main(int argc, char **argv) {
 
 	//init platform params
 	Platform *cpuPlatform = new CPUPlatform();
-	Platform *cudaPlatform = new CudaPlatform();
+#ifdef _USE_CUDA
+//	Platform *cudaPlatform = new CudaPlatform();
+#endif
 	Platform *clPlatform = new CLPlatform();
 
 //	mockParams(cpuPlatform, BMV_PNT, INLIERS);
@@ -272,9 +278,9 @@ int main(int argc, char **argv) {
 
 
 
-	test(cpuPlatform, "CPU Platform", BMV_PNT, INLIERS);
+//	test(cpuPlatform, "CPU Platform", BMV_PNT, INLIERS);
 
-	test(cudaPlatform, "Cuda Platform", BMV_PNT, INLIERS);
+//	test(cudaPlatform, "Cuda Platform", BMV_PNT, INLIERS);
 
 	test(clPlatform, "Cl Platform", BMV_PNT, INLIERS);
 
