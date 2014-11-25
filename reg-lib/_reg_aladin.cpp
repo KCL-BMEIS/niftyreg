@@ -120,6 +120,7 @@ void reg_aladin<T>::mockBmParams() {
 	reg_io_WriteImageFile(mockRef,mockRefName);
 	reg_io_WriteImageFile(mockFlo,mockFloName);
 	reg_io_WriteImageFile(mockWrpd,mockWrpdName);
+	exit(0);
 
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -587,8 +588,9 @@ void reg_aladin<T>::Run()
 				printf("[DEBUG] -Affine- iteration %i/%i\n", iteration+1, maxNumberOfIterationToPerform);
 #endif
 
-				//bool print = iteration == 1;
 				this->GetWarpedImage(this->Interpolation);
+//				mockBmParams();
+
 				this->UpdateTransformationMatrix(AFFINE);
 				if (funcProgressCallback && paramsProgressCallback)
 				{
