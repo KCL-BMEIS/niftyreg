@@ -532,6 +532,7 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 			}
 		}
 
+		//update with 0.0f and tSize if border condition!
 		const float rTargetValue = (targetInBounds) ? tex1Dfetch(targetImageArray_texture, imgIdx) : nanf("sNaN");
 
 		const float targetMean = REDUCE(rTargetValue, tid) / 64;

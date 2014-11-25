@@ -279,9 +279,9 @@ int main(int argc, char **argv) {
 
 
 	test(cpuPlatform, "CPU Platform", BMV_PNT, INLIERS);
-
+#ifdef _USE_CUDA
 	test(cudaPlatform, "Cuda Platform", BMV_PNT, INLIERS);
-
+#endif
 	test(clPlatform, "Cl Platform", BMV_PNT, INLIERS);
 
 	//cudaDeviceReset();
