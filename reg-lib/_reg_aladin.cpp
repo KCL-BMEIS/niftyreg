@@ -321,9 +321,7 @@ void reg_aladin<T>::InitialiseRegistration()
 			sigma[0] = this->ReferenceSigma;
 			//kernel1
 			//reg_tools_kernelConvolution(co,this->FloatingPyramid[l], sigma, 0, NULL, active);
-
-			convolutionKernel->castTo<ConvolutionKernel>()->execute(this->FloatingPyramid[l], sigma, 0, NULL, active);
-
+			convolutionKernel->castTo<ConvolutionKernel>()->execute(this->ReferencePyramid[l], sigma, 0, NULL, active);
 			delete[]active;
 			delete[]sigma;
 			delete convolutionKernel;
@@ -338,9 +336,7 @@ void reg_aladin<T>::InitialiseRegistration()
 			active[i] = false;
 			sigma[0] = this->FloatingSigma;
 			//reg_tools_kernelConvolution(co, this->FloatingPyramid[l], sigma, 0, NULL, active);
-
 			convolutionKernel->castTo<ConvolutionKernel>()->execute(this->FloatingPyramid[l], sigma, 0, NULL, active);
-
 			delete[]active;
 			delete[]sigma;
 			delete convolutionKernel;

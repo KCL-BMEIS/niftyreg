@@ -2872,7 +2872,7 @@ float reg_test_compare_arrays(DTYPE *ptrA,DTYPE *ptrB,size_t nvox) {
 		//if (diff > 0.001) { printf("idx: %lu | diff: %f | a: %f - b: %f\n", i, diff, valA, valB); /* return diff;*/ }
 		maxDifference = std::max<float>(maxDifference, diff);
 		if (first && diff>threshold) {
-			printf("first err i: %d | %f | a: %f - b: %f\n", i, maxDifference, valA, valB); 
+			std::cout<<"first err i: "<<i<<" | "<<maxDifference<<" | a: "<<valA<<" - b: "<<valB<<std::endl;
 			first = false;
 		}
 		else if (diff>threshold && diff == maxDifference){
@@ -2881,8 +2881,8 @@ float reg_test_compare_arrays(DTYPE *ptrA,DTYPE *ptrB,size_t nvox) {
 			b= valB;
 		}
 	}
-	printf("nans: %d\n", count);
-	printf("err i: %d | %f | a: %f - b: %f\n", j, maxDifference, a, b);
+	std::cout<<"nans: "<<count<<std::endl;
+	std::cout<<"err i: "<<j<<" | a: "<<maxDifference<<" | a: "<<a<<" - b: "<<b<<std::endl;
 	return maxDifference;
 }
 template float reg_test_compare_arrays<float>(float *ptrA, float *ptrB, size_t nvox);

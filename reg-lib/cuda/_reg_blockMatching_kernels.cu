@@ -441,9 +441,6 @@ __device__ __inline__ unsigned long flatIdx(uint3 imgIdIn, uint3 imgSize){
 	return imgIdIn.x + imgIdIn.y *(imgSize.x) + imgIdIn.z * (imgSize.x * imgSize.y);
 }
 
-__device__ __inline__ bool valid(uint3 imgIdIn, uint3 imgSize){
-	return (imgIdIn.x >= 0 && imgIdIn.x < imgSize.x) && (imgIdIn.y >= 0 && imgIdIn.y < imgSize.y) && (imgIdIn.z >= 0 && imgIdIn.z < imgSize.z);
-}
 
 __device__ __inline__ uint3 idx3D(unsigned int tid, uint3 blockSize){
 	const unsigned int xy = (blockSize.x * blockSize.y);

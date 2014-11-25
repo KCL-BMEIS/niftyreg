@@ -210,7 +210,7 @@ void ClContext::setCurrentReferenceMask(int* maskIn, size_t nvox) {
 }
 
 void ClContext::setCurrentWarped(nifti_image* currentWarped) {
-
+std::cout<<"Called from CL"<<std::endl;
 	if (this->CurrentWarped != NULL) {
 		clReleaseMemObject(warpedImageClmem);
 	}
