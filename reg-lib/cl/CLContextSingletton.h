@@ -24,6 +24,7 @@ public:
 	void queryGridDims();
 
 	void CreateContext();
+	void checDebugKernelInfo(cl_program program, char* message);
 
 	///
 	//  Create a command queue on the first device available on the
@@ -51,6 +52,9 @@ public:
 	cl_platform_id* getPlatformIds();
 	cl_uint getNumDevices();
 	size_t getMaxThreads();
+	cl_program getAffineProgram();
+	cl_program getResampleProgram();
+	cl_program getBlockMatchingProgram();
 	unsigned int getMaxBlocks();
 
 
@@ -76,6 +80,7 @@ private:
 	cl_platform_id* platformIds;
 	cl_uint  numDevices;
 	size_t maxThreads;
+	cl_program affineProgram, resampleProgram, blockMatchingProgram;
 	unsigned int maxBlocks;
 };
 #endif

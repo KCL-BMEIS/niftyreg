@@ -26,8 +26,6 @@ public:
 	void ClearDeformationField();
 	virtual void initVars();
 
-	bool bm;
-	bool symmetric;
 	unsigned int floatingVoxels, referenceVoxels;
 
 	//getters

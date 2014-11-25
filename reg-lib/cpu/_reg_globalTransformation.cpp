@@ -70,29 +70,26 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
 /* *************************************************************** */
 template <class FieldTYPE>
 void reg_affine_deformationField3D(mat44 *affineTransformation,
-	nifti_image *deformationFieldImage,
-	bool composition,
-	int *mask)
+                                   nifti_image *deformationFieldImage,
+                                   bool composition,
+                                   int *mask)
 {
-	//std::cout << "In field" << std::endl;
-	size_t voxelNumber = deformationFieldImage->nx*deformationFieldImage->ny*deformationFieldImage->nz;
-	FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationFieldImage->data);
-	FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[voxelNumber];
-	FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[voxelNumber];
-	//std::cout << "In field" << deformationFieldImage->sform_code << std::endl;
-	mat44 *targetMatrix;
-	if (deformationFieldImage->sform_code > 0)
-	{
-		targetMatrix = &(deformationFieldImage->sto_xyz);
-	}
-	else targetMatrix = &(deformationFieldImage->qto_xyz);
-	//reg_mat44_disp(targetMatrix, (char *)"[reg_aladin] target transformation matrix:");
-	//reg_mat44_disp(affineTransformation, (char *)"[reg_aladin] affine transformation matrix:");
-	mat44 transformationMatrix;
-	if (composition == true)
-		transformationMatrix = *affineTransformation;
-	else transformationMatrix = reg_mat44_mul(affineTransformation, targetMatrix);
+   size_t voxelNumber=deformationFieldImage->nx*deformationFieldImage->ny*deformationFieldImage->nz;
+   FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationFieldImage->data);
+   FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[voxelNumber];
+   FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[voxelNumber];
 
+   mat44 *targetMatrix;
+   if(deformationFieldImage->sform_code>0)
+   {
+      targetMatrix=&(deformationFieldImage->sto_xyz);
+   }
+   else targetMatrix=&(deformationFieldImage->qto_xyz);
+
+   mat44 transformationMatrix;
+   if(composition==true)
+      transformationMatrix = *affineTransformation;
+   else transformationMatrix = reg_mat44_mul(affineTransformation, targetMatrix);
 
    float voxel[3], position[3];
    int x, y, z;
@@ -138,34 +135,15 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
                      transformationMatrix.m[2][3] ;
                //                    reg_mat44_mul(&transformationMatrix, voxel, position);
 
-					position[0] =
-						transformationMatrix.m[0][0] * voxel[0] +
-						transformationMatrix.m[0][1] * voxel[1] +
-						transformationMatrix.m[0][2] * voxel[2] +
-						transformationMatrix.m[0][3];
-					position[1] =
-						transformationMatrix.m[1][0] * voxel[0] +
-						transformationMatrix.m[1][1] * voxel[1] +
-						transformationMatrix.m[1][2] * voxel[2] +
-						transformationMatrix.m[1][3];
-					position[2] =
-						transformationMatrix.m[2][0] * voxel[0] +
-						transformationMatrix.m[2][1] * voxel[1] +
-						transformationMatrix.m[2][2] * voxel[2] +
-						transformationMatrix.m[2][3];
-//					if (index == 978302 )
-//						reg_mat44_disp(&transformationMatrix, "BUG");
-					//                    reg_mat44_mul(&transformationMatrix, voxel, position);
-//					if (index == 165 ) printf("x: %f | val: %f\n",voxel[0], position[0]);
-					/* the deformation field (real coordinates) is stored */
-					deformationFieldPtrX[index] = position[0];
-					deformationFieldPtrY[index] = position[1];
-					deformationFieldPtrZ[index] = position[2];
-				}
-				index++;
-			}
-		}
-	}
+               /* the deformation field (real coordinates) is stored */
+               deformationFieldPtrX[index] = position[0];
+               deformationFieldPtrY[index] = position[1];
+               deformationFieldPtrZ[index] = position[2];
+            }
+            index++;
+         }
+      }
+   }
 }
 
 /* *************************************************************** */
