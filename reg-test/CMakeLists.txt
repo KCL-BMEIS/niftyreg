@@ -69,6 +69,24 @@
 		endif(NOT ${test_data_extract_status} STREQUAL "")
 	endif(NOT EXISTS "${DATA_FOLDER}/refImg2D.nii.gz")
 #-----------------------------------------------------------------------------
+	set(EXEC reg_test_blockMatching)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_aladin)
+	add_test(${EXEC}_rig_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/warped_lin2D.nii.gz 1)
+	add_test(${EXEC}_aff_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/warped_lin2D.nii.gz 0)
+	add_test(${EXEC}_rig_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 1)
+	add_test(${EXEC}_aff_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 0)
+#-----------------------------------------------------------------------------
+	set(EXEC reg_test_matrix_operation)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_maths reg_nifti z)
+	add_test(${EXEC} ${EXEC})
+#-----------------------------------------------------------------------------
+	set(EXEC reg_test_svd)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_maths)
+	add_test(${EXEC} ${EXEC})
+#-----------------------------------------------------------------------------
 	set(EXEC reg_test_affine_deformation_field)
 	add_executable(${EXEC} ${EXEC}.cpp)
 	target_link_libraries(${EXEC} _reg_f3d)
@@ -117,16 +135,6 @@
 	add_test(${EXEC}_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/floImg2D.nii.gz ${DATA_FOLDER}/affine_mat2D.txt ${DATA_FOLDER}/nonlin_vel2D.nii.gz)
 	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/nonlin_vel3D.nii.gz)
 #-----------------------------------------------------------------------------
-	set(EXEC reg_test_matrix_operation)
-	add_executable(${EXEC} ${EXEC}.cpp)
-	target_link_libraries(${EXEC} _reg_maths reg_nifti z)
-	add_test(${EXEC} ${EXEC})
-#-----------------------------------------------------------------------------
-	set(EXEC reg_test_svd)
-	add_executable(${EXEC} ${EXEC}.cpp)
-	target_link_libraries(${EXEC} _reg_maths)
-	add_test(${EXEC} ${EXEC})
-#-----------------------------------------------------------------------------
 	set(EXEC reg_test_measure)
 	add_executable(${EXEC} ${EXEC}.cpp)
 	target_link_libraries(${EXEC} _reg_f3d)
@@ -136,7 +144,6 @@
 	add_test(${EXEC}_LNCC_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz LNCC)
 	add_test(${EXEC}_NMI_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz NMI)
 	add_test(${EXEC}_SSD_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz SSD)
-
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 

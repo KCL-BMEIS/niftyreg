@@ -51,9 +51,9 @@ int main(int argc, char **argv)
 
    for(int i=0;i<4;++i){
       for(int j=0;j<4;++j){
-         if(differenceMatrix.m[i][j]>EPS){
+         if(fabsf(differenceMatrix.m[i][j])>EPS){
             fprintf(stderr, "reg_test_fullAffine error too large: %g (>%g)\n",
-                    differenceMatrix.m[i][j], EPS);
+                    fabs(differenceMatrix.m[i][j]), EPS);
             return EXIT_FAILURE;
          }
       }
