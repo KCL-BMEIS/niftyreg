@@ -728,6 +728,7 @@ targetMean, targetVar, resultMean, resultVar, voxelNumber,localCC)
 			j += 3;
 		}
 	}
+	 printf("defActiveBlock: %d\n", params->definedActiveBlock);
 	free(temp_target_position);
 	free(temp_result_position);
 #if defined (_OPENMP)
