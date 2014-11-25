@@ -62,7 +62,6 @@ int main(int argc, char **argv)
             &recoveredTransformation,
             transType);
 
-   nifti_image_free(referenceImage);
    nifti_image_free(warpedImage);
    free(mask);
 
@@ -101,6 +100,11 @@ int main(int argc, char **argv)
       else testMatrix=&rigid2D;
 
    }
+   nifti_image_free(referenceImage);
+
+   reg_mat44_disp(testMatrix,(char *)"expected");
+   reg_mat44_disp(&recoveredTransformation,(char *)"recovered");
+
    mat44 differenceMatrix = *testMatrix - recoveredTransformation;
    for(int i=0;i<4;++i){
       for(int j=0;j<4;++j){
