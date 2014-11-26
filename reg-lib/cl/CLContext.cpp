@@ -184,7 +184,9 @@ nifti_image* ClContext::getCurrentDeformationField() {
 _reg_blockMatchingParam* ClContext::getBlockMatchingParams() {
 
 	errNum = clEnqueueReadBuffer(this->commandQueue, resultPositionClmem, CL_TRUE, 0, sizeof(float) * blockMatchingParams->activeBlockNumber * 3, blockMatchingParams->resultPosition, 0, NULL, NULL); //CLCONTEXT
+	sContext->checkErrNum(errNum, "CLContext: failed result position: ");
 	errNum = clEnqueueReadBuffer(this->commandQueue, targetPositionClmem, CL_TRUE, 0, sizeof(float) * blockMatchingParams->activeBlockNumber * 3, blockMatchingParams->targetPosition, 0, NULL, NULL); //CLCONTEXT
+	sContext->checkErrNum(errNum, "CLContext: failed target position: ");
 	return blockMatchingParams;
 }
 
@@ -210,7 +212,6 @@ void ClContext::setCurrentReferenceMask(int* maskIn, size_t nvox) {
 }
 
 void ClContext::setCurrentWarped(nifti_image* currentWarped) {
-std::cout<<"Called from CL"<<std::endl;
 	if (this->CurrentWarped != NULL) {
 		clReleaseMemObject(warpedImageClmem);
 	}

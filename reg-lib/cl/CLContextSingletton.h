@@ -56,6 +56,7 @@ public:
 	cl_program getResampleProgram();
 	cl_program getBlockMatchingProgram();
 	unsigned int getMaxBlocks();
+	size_t getwarpGroupLength(cl_kernel kernel);
 
 
 
