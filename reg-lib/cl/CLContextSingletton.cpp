@@ -258,3 +258,15 @@ cl_program CLContextSingletton::getBlockMatchingProgram() {
 	}
 	return blockMatchingProgram;
 }
+
+size_t CLContextSingletton::getwarpGroupLength(cl_kernel kernel){
+	size_t local;
+	  // Get the maximum work group size for executing the kernel on the device
+	    cl_int err = clGetKernelWorkGroupInfo(kernel, deviceId, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(local), &local, NULL);
+	    if (err != CL_SUCCESS)
+	    {
+	        printf("Error: Failed to retrieve kernel work group info! %d\n", err);
+	        exit(1);
+	    }
+	    return local;
+}

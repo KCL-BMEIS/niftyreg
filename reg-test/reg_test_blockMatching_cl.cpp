@@ -58,6 +58,9 @@ int main(int argc, char **argv)
    test(con);
 
    _reg_blockMatchingParam *blockMatchingParams = con->getBlockMatchingParams();
+   /*for (int i = 0; i < 1000; ++i) {
+      		printf("i: %d | %f - %f\n",i, blockMatchingParams->resultPosition[i], blockMatchingParams->targetPosition[i]);
+      	}*/
 
    mat44 recoveredTransformation;
    reg_mat44_eye(&recoveredTransformation);
@@ -71,9 +74,8 @@ int main(int argc, char **argv)
             &recoveredTransformation,
             transType);
 
-   nifti_image_free(referenceImage);
-   nifti_image_free(warpedImage);
-   free(mask);
+
+
 
    mat44 rigid2D;
    rigid2D.m[0][0]=1.020541f;rigid2D.m[0][1]=0.008200279f;rigid2D.m[0][2]=0.f;rigid2D.m[0][3]=3.793443f;
@@ -110,16 +112,23 @@ int main(int argc, char **argv)
       else testMatrix=&rigid2D;
 
    }
+
+   std::cout<<blockMatchingParams->definedActiveBlock<<std::endl;
    mat44 differenceMatrix = *testMatrix - recoveredTransformation;
    for(int i=0;i<4;++i){
       for(int j=0;j<4;++j){
          if(fabsf(differenceMatrix.m[i][j])>EPS){
-            fprintf(stderr, "reg_test_fullAffine_cl error too large: %g (>%g) [%i,%i]\n",
+            fprintf(stderr, "reg_test_blockmatching_cl error too large: %g (>%g) [%i,%i]\n",
                     fabs(differenceMatrix.m[i][j]), EPS, i, j);
 //            return EXIT_FAILURE;
          }
       }
    }
+
+   nifti_image_free(referenceImage);
+//   nifti_image_free(warpedImage);
+   free(mask);
+   delete con;
 
    return EXIT_SUCCESS;
 }

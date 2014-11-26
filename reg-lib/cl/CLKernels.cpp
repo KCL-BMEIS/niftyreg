@@ -339,6 +339,7 @@ void CLBlockMatchingKernel::execute() {
 
 
 
+	printf("warp: %lu\n", sContext->getwarpGroupLength(kernel));
 	const cl_uint dims = 3;
 	const size_t globalWorkSize[dims] = { params->blockNumber[0] * 4,
 			params->blockNumber[1] * 4, params->blockNumber[2] * 4 };
@@ -352,7 +353,6 @@ void CLBlockMatchingKernel::execute() {
 
 	errNum = clEnqueueReadBuffer(this->commandQueue, definedBlock, CL_TRUE, 0,
 			sizeof(unsigned int), definedBlock_h, 0, NULL, NULL);
-	params->definedActiveBlock = *definedBlock_h;
 	sContext->checkErrNum(errNum, "Error reading  var after for execution: ");
 	params->definedActiveBlock = *definedBlock_h;
 
