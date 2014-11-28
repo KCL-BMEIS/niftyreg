@@ -22,6 +22,7 @@ public:
 
 	CudaBlockMatchingKernel(Context* conIn, std::string name);
 	void execute();
+	void compare(nifti_image *referenceImage,nifti_image *warpedImage,int* mask, _reg_blockMatchingParam *refParams);
 
 	nifti_image* target;
 	_reg_blockMatchingParam* params;

@@ -29,6 +29,9 @@ void CLConvolutionKernel::execute(nifti_image *image, float *sigma,
 	reg_tools_kernelConvolution(image, sigma, kernelType, mask, timePoints,
 			axis);
 }
+CLConvolutionKernel::~CLConvolutionKernel() {
+
+}
 //==========================================================
 //==============================Affine Kernel CL===================================================
 CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Context* conIn,
@@ -56,12 +59,13 @@ CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Context* conIn,
 
 }
 CLAffineDeformationFieldKernel::~CLAffineDeformationFieldKernel() {
-
+//std::cout<<"releasing CLAffineDeformationFieldKernel"<<std::endl;
 	if (kernel != 0)
 		clReleaseKernel(kernel);
 
 	if (program != 0)
 		clReleaseProgram(program);
+//	std::cout<<"done releasing CLAffineDeformationFieldKernel"<<std::endl;
 }
 
 void CLAffineDeformationFieldKernel::execute(bool compose) {
@@ -155,11 +159,13 @@ CLResampleImageKernel::CLResampleImageKernel(Context* conIn, std::string name) :
 }
 
 CLResampleImageKernel::~CLResampleImageKernel() {
+//	std::cout<<"Destroying CLResampleImageKernel"<<std::endl;
 	if (kernel != 0)
 		clReleaseKernel(kernel);
 
 	if (program != 0)
 		clReleaseProgram(program);
+//	std::cout<<"End Destroying CLResampleImageKernel"<<std::endl;
 }
 void CLResampleImageKernel::execute(int interp, float paddingValue,
 		bool *dti_timepoint, mat33 * jacMat) {
@@ -298,11 +304,13 @@ CLBlockMatchingKernel::CLBlockMatchingKernel(Context* conIn, std::string name) :
 
 }
 CLBlockMatchingKernel::~CLBlockMatchingKernel() {
+//	std::cout<<"Destroying CLBlockMatchingKernel"<<std::endl;
 	if (kernel != 0)
 		clReleaseKernel(kernel);
 
 	if (program != 0)
 		clReleaseProgram(program);
+//	std::cout<<"End Destroying CLBlockMatchingKernel"<<std::endl;
 }
 void CLBlockMatchingKernel::execute() {
 //	std::cout << "CLBlockMatchingKernel exec" << std::endl;
@@ -340,7 +348,7 @@ void CLBlockMatchingKernel::execute() {
 
 
 
-	printf("warp: %lu\n", sContext->getwarpGroupLength(kernel));
+//	printf("warp: %lu\n", sContext->getwarpGroupLength(kernel));
 	const cl_uint dims = 3;
 	const size_t globalWorkSize[dims] = { params->blockNumber[0] * 4,
 			params->blockNumber[1] * 4, params->blockNumber[2] * 4 };
@@ -369,6 +377,9 @@ CLOptimiseKernel::CLOptimiseKernel(Context* conIn, std::string name) :
 	sContext = &CLContextSingletton::Instance();
 	transformationMatrix = con->getTransformationMatrix();
 	blockMatchingParams = con->blockMatchingParams;
+}
+CLOptimiseKernel::~CLOptimiseKernel() {
+
 }
 void CLOptimiseKernel::execute(bool affine) {
 

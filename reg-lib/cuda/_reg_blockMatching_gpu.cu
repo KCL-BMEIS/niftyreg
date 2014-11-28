@@ -50,7 +50,7 @@ void block_matching_method_gpu3(nifti_image *targetImage, _reg_blockMatchingPara
 
 	NR_CUDA_SAFE_CALL(cudaMemcpy((void *)definedBlock_h, (void *)definedBlock_d, sizeof(unsigned int), cudaMemcpyDeviceToHost));
 	params->definedActiveBlock = *definedBlock_h;
-	//printf("definedActiveBlock: %d\n", params->definedActiveBlock);
+	/*printf("definedActiveBlock: %d\n", params->definedActiveBlock);*/
 	NR_CUDA_SAFE_CALL(cudaUnbindTexture(targetImageArray_texture));
 	NR_CUDA_SAFE_CALL(cudaUnbindTexture(resultImageArray_texture));
 	NR_CUDA_SAFE_CALL(cudaUnbindTexture(activeBlock_texture));

@@ -13,7 +13,7 @@ public:
 		uploadContext();
 	}
 	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep) :
-			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte, blockPercentage, inlierLts, blockStep) {
+			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, sizeof(float), blockPercentage, inlierLts, blockStep) {
 //		std::cout<<"Cuda Context Constructor Init"<<std::endl;
 		initVars();
 		allocateCuPtrs();
@@ -22,12 +22,30 @@ public:
 
 	}
 	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte) :
-			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte) {
+			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, sizeof(float)) {
 //		std::cout<<"Cuda Context Constructor Init"<<std::endl;
 		initVars();
 		allocateCuPtrs();
 		uploadContext();
 //		std::cout<<"Cuda Context Constructor End"<<std::endl;
+	}
+
+	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep) :
+			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, transMat, sizeof(float), blockPercentage, inlierLts, blockStep) {
+		//		std::cout<<"Cuda Context Constructor Init"<<std::endl;
+		initVars();
+		allocateCuPtrs();
+		uploadContext();
+		//		std::cout<<"Cuda Context Constructor End"<<std::endl;
+
+	}
+	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte) :
+			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, transMat, sizeof(float)) {
+		//		std::cout<<"Cuda Context Constructor Init"<<std::endl;
+		initVars();
+		allocateCuPtrs();
+		uploadContext();
+		//		std::cout<<"Cuda Context Constructor End"<<std::endl;
 	}
 	~CudaContext();
 
@@ -51,9 +69,9 @@ public:
 		return deformationFieldArray_d;
 	}
 	float* getTargetMat_d() {
-			return targetMat_d;
-		}
-	float* getFloIJKMat_d(){
+		return targetMat_d;
+	}
+	float* getFloIJKMat_d() {
 		return floIJKMat_d;
 	}
 	int* getActiveBlock_d() {
@@ -103,13 +121,12 @@ private:
 	int referenceDims[4];
 	int floatingDims[4];
 
-
-	void downloadImage( nifti_image* image, float* memoryObject, bool flag, int datatype, std::string message);
+	void downloadImage(nifti_image* image, float* memoryObject, bool flag, int datatype, std::string message);
 	template<class T>
-	void fillImageData( T* array, size_t size, float* memoryObject, bool warped, int type, std::string message);
+	void fillImageData(nifti_image* image, float* memoryObject, bool warped, int type, std::string message);
 
 	template<class FloatingTYPE>
-	FloatingTYPE fillWarpedImageData(  float intensity,int datatype );
+	FloatingTYPE fillWarpedImageData(float intensity, int datatype);
 
 	unsigned long nVoxels;
 

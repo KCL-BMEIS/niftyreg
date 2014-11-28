@@ -7,7 +7,7 @@
 #include "cl/CLPlatform.h"
 #include "cl/CLContext.h"
 
-#define EPS 0.000001
+#define EPS 0.00005
 
 void test(Context* con) {
 

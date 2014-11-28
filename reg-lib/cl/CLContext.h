@@ -36,6 +36,24 @@ public:
 		allocateClPtrs();
 //		std::cout<<"CL Context Constructor End"<<std::endl;
 	}
+
+	ClContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn,mat44* transMat, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep) :
+			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn,transMat, byte, blockPercentage, inlierLts, blockStep) {
+		//std::cout << "Cl context constructor called: " <<bm<< std::endl;
+
+		//		std::cout<<"CL Context Constructor Init"<<std::endl;
+		initVars();
+		allocateClPtrs();
+		//		std::cout<<"CL Context Constructor End"<<std::endl;
+	}
+	ClContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn,mat44* transMat, size_t byte) :
+			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn,transMat, byte) {
+		//		std::cout<<"CL Context Constructor Init"<<std::endl;
+		initVars();
+		//		std::cout<<"CL Context Init Vars"<<std::endl;
+		allocateClPtrs();
+		//		std::cout<<"CL Context Constructor End"<<std::endl;
+	}
 	~ClContext();
 
 	CLContextSingletton *sContext;
@@ -68,10 +86,10 @@ public:
 	cl_mem getMaskClmem() {
 		return maskClmem;
 	}
-	cl_mem getRefMatClmem(){
+	cl_mem getRefMatClmem() {
 		return refMatClmem;
 	}
-	cl_mem getFloMatClmem(){
+	cl_mem getFloMatClmem() {
 		return floMatClmem;
 	}
 
@@ -117,11 +135,11 @@ private:
 
 	unsigned int nVoxels;
 
-	void downloadImage(nifti_image* image, cl_mem memoryObject, cl_mem_flags flag,int datatype, std::string message);
+	void downloadImage(nifti_image* image, cl_mem memoryObject, cl_mem_flags flag, int datatype, std::string message);
 	template<class T>
-	void fillImageData(nifti_image* image,  cl_mem memoryObject, cl_mem_flags flag, int type, std::string message);
+	void fillImageData(nifti_image* image, cl_mem memoryObject, cl_mem_flags flag, int type, std::string message);
 	template<class FloatingTYPE>
-	FloatingTYPE fillWarpedImageData( float intensity, int datatype);
+	FloatingTYPE fillWarpedImageData(float intensity, int datatype);
 
 	float* warpedImageBuffer;
 

@@ -1,5 +1,6 @@
 #include "CudaContext.h" 
 #include "_reg_common_gpu.h"
+#include "_reg_tools.h"
 
 CudaContext::~CudaContext() {
 	//std::cout << "cuda context destructor" << std::endl;
@@ -11,7 +12,7 @@ void CudaContext::allocateCuPtrs() {
 	//cudaDeviceReset();
 	if (this->CurrentReferenceMask != NULL)
 		cudaCommon_allocateArrayToDevice<int>(&mask_d, referenceVoxels);
-	if (this->CurrentReference != NULL){
+	if (this->CurrentReference != NULL) {
 		cudaCommon_allocateArrayToDevice<float>(&referenceImageArray_d, referenceVoxels);
 		cudaCommon_allocateArrayToDevice<float>(&targetMat_d, 16);
 	}
@@ -19,7 +20,7 @@ void CudaContext::allocateCuPtrs() {
 		cudaCommon_allocateArrayToDevice<float>(&warpedImageArray_d, this->CurrentWarped->nvox);
 	if (this->CurrentDeformationField != NULL)
 		cudaCommon_allocateArrayToDevice<float>(&deformationFieldArray_d, this->CurrentDeformationField->nvox);
-	if (this->CurrentFloating != NULL){
+	if (this->CurrentFloating != NULL) {
 		cudaCommon_allocateArrayToDevice<float>(&floatingImageArray_d, floatingVoxels);
 		cudaCommon_allocateArrayToDevice<float>(&floIJKMat_d, 16);
 	}
@@ -32,8 +33,15 @@ void CudaContext::allocateCuPtrs() {
 
 }
 
-
 void CudaContext::initVars() {
+
+	if (this->CurrentReference != NULL && this->CurrentReference->nbyper != NIFTI_TYPE_FLOAT32)
+		reg_tools_changeDatatype<float>(this->CurrentReference);
+	if (this->CurrentFloating != NULL && this->CurrentFloating->nbyper != NIFTI_TYPE_FLOAT32) {
+		reg_tools_changeDatatype<float>(CurrentFloating);
+		if (this->CurrentWarped != NULL)
+			reg_tools_changeDatatype<float>(CurrentWarped);
+	}
 
 	referenceVoxels = (this->CurrentReference != NULL) ? this->CurrentReference->nvox : 0;
 	floatingVoxels = (this->CurrentFloating != NULL) ? this->CurrentFloating->nvox : 0;
@@ -43,8 +51,7 @@ void CudaContext::initVars() {
 }
 
 nifti_image* CudaContext::getCurrentWarped(int type) {
-	downloadImage( CurrentWarped, warpedImageArray_d, true, type,"warpedImage");
-	CurrentWarped->datatype = type;
+	downloadImage(CurrentWarped, warpedImageArray_d, true, type, "warpedImage");
 	return CurrentWarped;
 }
 
@@ -83,6 +90,7 @@ void CudaContext::setCurrentWarped(nifti_image* currentWarped) {
 	if (this->CurrentWarped != NULL)
 		cudaCommon_free<float>(&warpedImageArray_d);
 	Context::setCurrentWarped(currentWarped);
+	reg_tools_changeDatatype<float>( this->CurrentWarped);
 
 	cudaCommon_allocateArrayToDevice<float>(&warpedImageArray_d, CurrentWarped->nvox);
 	cudaCommon_transferFromDeviceToNiftiSimple<float>(&warpedImageArray_d, this->CurrentWarped);
@@ -100,10 +108,10 @@ void CudaContext::uploadContext() {
 	if (this->CurrentReferenceMask != NULL)
 		cudaCommon_transferFromDeviceToNiftiSimple1<int>(&mask_d, this->CurrentReferenceMask, referenceVoxels);
 
-	if (this->CurrentReference != NULL){
+	if (this->CurrentReference != NULL) {
 		cudaCommon_transferFromDeviceToNiftiSimple<float>(&referenceImageArray_d, this->CurrentReference);
 
-		float* targetMat = (float *)malloc(16 * sizeof(float));//freed
+		float* targetMat = (float *) malloc(16 * sizeof(float)); //freed
 		mat44ToCptr(this->refMatrix_xyz, targetMat);
 		cudaCommon_transferFromDeviceToNiftiSimple1<float>(&targetMat_d, targetMat, 16);
 		free(targetMat);
@@ -112,7 +120,7 @@ void CudaContext::uploadContext() {
 	if (this->CurrentWarped != NULL)
 		cudaCommon_transferFromDeviceToNiftiSimple<float>(&warpedImageArray_d, this->CurrentWarped);
 
-	if (this->CurrentFloating != NULL){
+	if (this->CurrentFloating != NULL) {
 		cudaCommon_transferFromDeviceToNiftiSimple<float>(&floatingImageArray_d, this->CurrentFloating);
 
 		float *sourceIJKMatrix_h = (float*) malloc(16 * sizeof(float));
@@ -158,7 +166,10 @@ DataType CudaContext::fillWarpedImageData(float intensity, int datatype) {
 }
 
 template<class T>
-void CudaContext::fillImageData( T* array, size_t size, float* memoryObject, bool warped, int type, std::string message) {
+void CudaContext::fillImageData(nifti_image* image, float* memoryObject, bool warped, int type, std::string message) {
+
+	size_t size = image->nvox;
+	T* array = static_cast<T*>(image->data);
 
 	float* buffer = NULL;
 	buffer = (float*) malloc(size * sizeof(float));
@@ -169,53 +180,56 @@ void CudaContext::fillImageData( T* array, size_t size, float* memoryObject, boo
 
 	cudaCommon_transferFromDeviceToCpu<float>(buffer, &memoryObject, size);
 
+
 	for (size_t i = 0; i < size; ++i) {
 		array[i] = fillWarpedImageData<T>(buffer[i], type);
 	}
+	image->datatype = type;
+	image->nbyper = sizeof(T);
 
 	free(buffer);
 }
 
-void CudaContext::downloadImage(  nifti_image* image, float* memoryObject, bool flag, int datatype, std::string message) {
+void CudaContext::downloadImage(nifti_image* image, float* memoryObject, bool flag, int datatype, std::string message) {
 
 	switch (datatype) {
 	case NIFTI_TYPE_FLOAT32:
-		fillImageData<float>( static_cast<float*>(image->data), image->nvox, memoryObject, flag, datatype, message);
+		fillImageData<float>(image, memoryObject, flag, datatype, message);
 		break;
 	case NIFTI_TYPE_FLOAT64:
-		fillImageData<double>( static_cast<double*>(image->data), image->nvox, memoryObject, flag, datatype,message);
+		fillImageData<double>(image, memoryObject, flag, datatype, message);
 		break;
 	case NIFTI_TYPE_UINT8:
-		fillImageData<unsigned char>( static_cast<unsigned char*>(image->data), image->nvox, memoryObject, flag, datatype,message);
+		fillImageData<unsigned char>(image, memoryObject, flag, datatype, message);
 		break;
 	case NIFTI_TYPE_INT8:
-		fillImageData<char>( static_cast<char*>(image->data), image->nvox, memoryObject, flag, datatype,message);
+		fillImageData<char>(image, memoryObject, flag, datatype, message);
 		break;
 	case NIFTI_TYPE_UINT16:
-		fillImageData<unsigned short>( static_cast<unsigned short*>(image->data), image->nvox, memoryObject, flag, datatype,message);
+		fillImageData<unsigned short>(image, memoryObject, flag, datatype, message);
 		break;
 	case NIFTI_TYPE_INT16:
-		fillImageData<short>( static_cast<short*>(image->data), image->nvox, memoryObject, flag, datatype,message);
+		fillImageData<short>(image, memoryObject, flag, datatype, message);
 		break;
 	case NIFTI_TYPE_UINT32:
-		fillImageData<unsigned int>( static_cast<unsigned int*>(image->data), image->nvox, memoryObject, flag,datatype, message);
+		fillImageData<unsigned int>(image, memoryObject, flag, datatype, message);
 		break;
 	case NIFTI_TYPE_INT32:
-		fillImageData<int>( static_cast<int*>(image->data), image->nvox, memoryObject, flag,datatype, message);
+		fillImageData<int>(image, memoryObject, flag, datatype, message);
 		break;
 	default:
-		std::cout << "CUDA: unsupported type: "<< datatype<< std::endl;
+		std::cout << "CUDA: unsupported type: " << datatype << std::endl;
 		break;
 	}
 }
 
 void CudaContext::freeCuPtrs() {
 
-	if (this->CurrentReference != NULL){
+	if (this->CurrentReference != NULL) {
 		cudaCommon_free<float>(&referenceImageArray_d);
 		cudaCommon_free<float>(&targetMat_d);
 	}
-	if (this->CurrentFloating != NULL){
+	if (this->CurrentFloating != NULL) {
 		cudaCommon_free<float>(&floatingImageArray_d);
 		cudaCommon_free<float>(&floIJKMat_d);
 	}

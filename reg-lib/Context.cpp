@@ -11,14 +11,28 @@ Context::Context() {
 	this->CurrentReferenceMask = NULL;
 
 }
-Context::~Context() {
 
-	ClearWarpedImage();
-	ClearDeformationField();
-	if (blockMatchingParams != NULL)
-		delete blockMatchingParams;
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+
+Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t bytesIn, const unsigned int currentPercentageOfBlockToUseIn, const unsigned int inlierLtsIn, int stepSizeBlockIn/*, bool symmetric*/) :
+		CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn), transformationMatrix(transMat), bytes(bytesIn), currentPercentageOfBlockToUse(currentPercentageOfBlockToUseIn), inlierLts(inlierLtsIn), stepSizeBlock(stepSizeBlockIn) {
+
+	blockMatchingParams = new _reg_blockMatchingParam();
+	initVars();
 
 }
+
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+
+Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn,mat44* transMat, size_t bytesIn) :
+		CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn),transformationMatrix(transMat),  bytes(bytesIn) {
+//	std::cout<<"Context Constructor Init"<<std::endl;
+	blockMatchingParams = NULL;
+	initVars();
+//	std::cout<<"Context Constructor End"<<std::endl;
+
+}
+
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
@@ -41,32 +55,47 @@ Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn
 
 }
 
+Context::~Context() {
+//	std::cout<<"Context Destructor "<<std::endl;
+	ClearWarpedImage();
+	ClearDeformationField();
+	if (blockMatchingParams != NULL)
+		delete blockMatchingParams;
+//	std::cout<<"Context Destructor end "<<std::endl;
+
+}
+
 void Context::initVars() {
 
-//	std::cout<<"Allocate Warped"<<std::endl;
 	if (this->CurrentFloating != NULL && this->CurrentReference != NULL)
 		this->AllocateWarpedImage();
 	else
 		this->CurrentWarped = NULL;
-//	std::cout<<"Allocate Def"<<std::endl;
+
 	if (this->CurrentReference != NULL){
 		this->AllocateDeformationField(bytes);
 		refMatrix_xyz = (CurrentReference->sform_code > 0) ? (CurrentReference->sto_xyz) : (CurrentReference->qto_xyz);
 	}
 	else
 		this->CurrentDeformationField = NULL;
-//	std::cout<<"Allocate Mask if NULL"<<std::endl;
+
 	if (this->CurrentReferenceMask == NULL && this->CurrentReference != NULL)
 		this->CurrentReferenceMask = (int *) calloc(this->CurrentReference->nx * this->CurrentReference->ny * this->CurrentReference->nz, sizeof(int));
-//	std::cout<<"Allocate Block Matching Params"<<std::endl;
+
 
 	if (this->CurrentFloating != NULL){
 		floMatrix_ijk = (CurrentFloating->sform_code > 0) ? (CurrentFloating->sto_ijk) :  (CurrentFloating->qto_ijk);
 	}
 	if (blockMatchingParams != NULL)
 		initialise_block_matching_method(CurrentReference, blockMatchingParams, currentPercentageOfBlockToUse, inlierLts, stepSizeBlock, CurrentReferenceMask, false);
-//	std::cout<<"End Init"<<std::endl;
-
+#ifndef NDEBUG
+	if(this->CurrentReference==NULL) printf("Context Warning: CurrentReference image is NULL\n");
+	if(this->CurrentFloating==NULL) printf("Context Warning: CurrentFloating image is NULL\n");
+	if(this->CurrentDeformationField==NULL) printf("Context Warning: CurrentDeformationField image is NULL\n");
+	if(this->CurrentWarped==NULL) printf("Context Warning: CurrentWarped image is NULL\n");
+	if(this->CurrentReferenceMask==NULL) printf("Context Warning: CurrentReferenceMask image is NULL\n");
+	if(this->blockMatchingParams==NULL) printf("Context Warning: blockMatchingParams image is NULL\n");
+#endif
 }
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -85,14 +114,10 @@ void Context::AllocateWarpedImage() {
 	this->CurrentWarped->datatype = this->CurrentFloating->datatype;
 	this->CurrentWarped->nbyper = this->CurrentFloating->nbyper;
 	this->CurrentWarped->data = (void *) calloc(this->CurrentWarped->nvox, this->CurrentWarped->nbyper);
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
-void Context::ClearWarpedImage() {
-	if (this->CurrentWarped != NULL)
-		nifti_image_free(this->CurrentWarped);
-	this->CurrentWarped = NULL;
+	this->floatingDatatype = this->CurrentFloating->datatype;
 }
+
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
 void Context::AllocateDeformationField(size_t bytes) {
@@ -132,7 +157,6 @@ void Context::AllocateDeformationField(size_t bytes) {
 	this->CurrentDeformationField->scl_slope = 1.f;
 	this->CurrentDeformationField->scl_inter = 0.f;
 	this->CurrentDeformationField->data = (void *) calloc(this->CurrentDeformationField->nvox, this->CurrentDeformationField->nbyper);
-
 	return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -140,5 +164,11 @@ void Context::ClearDeformationField() {
 	if (this->CurrentDeformationField != NULL)
 		nifti_image_free(this->CurrentDeformationField);
 	this->CurrentDeformationField = NULL;
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+void Context::ClearWarpedImage() {
+	if (this->CurrentWarped != NULL)
+		nifti_image_free(this->CurrentWarped);
+	this->CurrentWarped = NULL;
 }
 

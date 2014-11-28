@@ -60,20 +60,17 @@ __inline float interpLoop(__global float* floatingIntensity,float* xBasis, float
     float intensity = paddingValue;
     for (int c = 0; c < kernel_size; c++) {
         int Z = previous[2] + c;
-        __global float* zPointer = &floatingIntensity[Z * fi_xyz.x * fi_xyz.y];
+        bool zInBounds = -1 < Z && Z < fi_xyz.z;
         float yTempNewValue = 0.0f;
         for (int b = 0; b < kernel_size; b++) {
             int Y = previous[1] + b;
-            __global float* xyzPointer = &zPointer[Y * fi_xyz.x + previous[0]];
+            bool yInBounds = -1 < Y && Y < fi_xyz.y;
             float xTempNewValue = 0.0f;
             for (int a = 0; a < kernel_size; a++) {
-                if (-1 < (previous[0] + a) && (previous[0] + a) < fi_xyz.x && -1 < Z && Z < fi_xyz.z && -1 < Y && Y < fi_xyz.y) {
-                    xTempNewValue += (*xyzPointer) * xBasis[a];
-                } else {
-                    // paddingValue
-                    xTempNewValue += paddingValue * xBasis[a];
-                }
-                xyzPointer++;
+            	int X = previous[0] + a;
+				bool xInBounds = -1 < X && (X + a) < fi_xyz.x;
+				const unsigned int idx = Z * fi_xyz.x * fi_xyz.y + Y * fi_xyz.x + X;
+				xTempNewValue += (xInBounds && yInBounds  && zInBounds)? floatingIntensity[idx] * xBasis[a]:paddingValue * xBasis[a];
             }
             yTempNewValue += xTempNewValue * yBasis[b];
         }
@@ -81,7 +78,7 @@ __inline float interpLoop(__global float* floatingIntensity,float* xBasis, float
     }
     return intensity;
 }
-
+ 
 
  __inline int cl_reg_floor(float a) {
 	return a > 0.0f ? (int)a : (int)(a - 1);
@@ -189,4 +186,8 @@ __kernel void ResampleImage3D(__global float* floatingImage, __global float* def
         }
         index += get_num_groups(0)*get_local_size(0);
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> branch 't_dev/cl_aladin' of ssh://thanasio@git.code.sf.net/p/niftyreg/git

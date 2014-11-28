@@ -61,6 +61,7 @@ class CLConvolutionKernel: public ConvolutionKernel {
 public:
 
 	CLConvolutionKernel(std::string name);
+	~CLConvolutionKernel();
 	void execute(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL);
 	CLContextSingletton* sContext;
 };
@@ -70,6 +71,7 @@ class CLOptimiseKernel: public OptimiseKernel {
 public:
 
 	CLOptimiseKernel(Context* con, std::string name);
+	~CLOptimiseKernel();
 	void execute(bool affine);
 	_reg_blockMatchingParam *blockMatchingParams;
 	mat44 *transformationMatrix;

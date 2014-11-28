@@ -118,9 +118,8 @@ int main(int argc, char **argv)
    for(int i=0;i<4;++i){
       for(int j=0;j<4;++j){
          if(fabsf(differenceMatrix.m[i][j])>EPS){
-            fprintf(stderr, "reg_test_blockmatching_cl error too large: %g (>%g) [%i,%i]\n",
-                    fabs(differenceMatrix.m[i][j]), EPS, i, j);
-//            return EXIT_FAILURE;
+            fprintf(stderr, "reg_test_blockmatching_cl error too large: %g (>%g) [%i,%i]\n", fabs(differenceMatrix.m[i][j]), EPS, i, j);
+            return EXIT_FAILURE;
          }
       }
    }

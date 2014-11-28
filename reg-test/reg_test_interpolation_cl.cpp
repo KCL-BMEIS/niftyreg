@@ -7,7 +7,7 @@
 #include "cl/CLPlatform.h"
 #include "cl/CLContext.h"
 
-#define EPS 0.000001
+#define EPS 1
 
 void test(Context *con, const unsigned int interp) {
 
@@ -77,7 +77,6 @@ int main(int argc, char **argv) {
 	test(con, interpolation);
 	test_warped = con->getCurrentWarped(warpedImage->datatype);//check
 
-
 	// Compute the difference between the computed and inputed warped image
 	reg_tools_substractImageToImage(warpedImage, test_warped, test_warped);
 	reg_tools_abs_image(test_warped);
@@ -91,7 +90,7 @@ int main(int argc, char **argv) {
 	free(tempMask);
 
 	if (max_difference > EPS) {
-		fprintf(stderr, "reg_test_interpolation error too large: %g (>%g)\n", max_difference, EPS);
+		fprintf(stderr, "reg_test_interpolation_cl error too large: %g (>%g)\n", max_difference, EPS);
 		return EXIT_FAILURE;
 	}
 

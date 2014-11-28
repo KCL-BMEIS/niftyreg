@@ -67,6 +67,12 @@ void ClContext::initVars() {
 	activeBlockClmem = 0;
 	maskClmem = 0;
 
+	if (this->CurrentReference != NULL && this->CurrentReference->nbyper != NIFTI_TYPE_FLOAT32)
+		reg_tools_changeDatatype<float>(this->CurrentReference);
+	if (this->CurrentFloating != NULL && this->CurrentFloating->nbyper != NIFTI_TYPE_FLOAT32){
+		reg_tools_changeDatatype<float>(CurrentFloating);
+		if (this->CurrentWarped != NULL) reg_tools_changeDatatype<float>(CurrentWarped);
+	}
 	sContext = &CLContextSingletton::Instance();
 	clContext = sContext->getContext();
 	commandQueue = sContext->getCommandQueue();
@@ -122,7 +128,8 @@ void ClContext::fillImageData(nifti_image* image, cl_mem memoryObject, cl_mem_fl
 	for (size_t i = 0; i < size; ++i) {
 		dataT[i] = fillWarpedImageData<T>(buffer[i], type);
 	}
-
+	image->datatype = type;
+	image->nbyper = sizeof(T);
 	free(buffer);
 }
 
@@ -172,7 +179,6 @@ void ClContext::downloadImage(nifti_image* image, cl_mem memoryObject, cl_mem_fl
 nifti_image* ClContext::getCurrentWarped(int datatype) {
 
 	downloadImage(this->CurrentWarped, warpedImageClmem, CL_TRUE, datatype, "warpedImageClmem");
-	this->CurrentWarped->datatype = datatype;
 	return this->CurrentWarped;
 }
 
@@ -245,5 +251,5 @@ void ClContext::freeClPtrs() {
 		clReleaseMemObject(targetPositionClmem);
 		clReleaseMemObject(resultPositionClmem);
 	}
-
+//	std::cout << "done free cl ptrs" << std::endl;
 }

@@ -538,6 +538,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
    reg_tools_kernelConvolution(this->voxelBasedMeasureGradientImage,
                                currentNodeSpacing,
                                1, // cubic spline kernel
+                               NULL, // mask
                                NULL, // all volumes are considered as active
                                activeAxis
                               );
@@ -548,6 +549,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
    reg_tools_kernelConvolution(this->voxelBasedMeasureGradientImage,
                                currentNodeSpacing,
                                1, // cubic spline kernel
+                               NULL, // mask
                                NULL, // all volumes are considered as active
                                activeAxis
                               );
@@ -560,6 +562,7 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
       reg_tools_kernelConvolution(this->voxelBasedMeasureGradientImage,
                                   currentNodeSpacing,
                                   1, // cubic spline kernel
+                                  NULL, // mask
                                   NULL, // all volumes are considered as active
                                   activeAxis
                                  );
@@ -568,18 +571,18 @@ void reg_f3d<T>::GetSimilarityMeasureGradient()
    // The node based NMI gradient is extracted
    mat44 reorientation;
    if(this->currentFloating->sform_code>0)
-      reorientation = this->currentFloating->sto_xyz;
-   else reorientation = this->currentFloating->qto_xyz;
+      reorientation = this->currentFloating->sto_ijk;
+   else reorientation = this->currentFloating->qto_ijk;
    reg_voxelCentric2NodeCentric(this->transformationGradient,
                                 this->voxelBasedMeasureGradientImage,
                                 this->similarityWeight,
                                 false, // no update
                                 &reorientation
                                );
-   return;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::GetSimilarityMeasureGradient");
 #endif
+   return;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */

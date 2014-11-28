@@ -138,6 +138,7 @@ cl_program CLContextSingletton::CreateProgram(const char* fileName) {
 	cl_int errNum;
 	cl_program program;
 
+//	std::cout<<"creating: "<<fileName<<std::endl;
 	std::ifstream kernelFile(fileName, std::ios::in);
 	if (!kernelFile.is_open()) {
 		std::cerr << "Failed to open file for reading: " << fileName

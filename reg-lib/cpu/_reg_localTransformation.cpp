@@ -1785,16 +1785,16 @@ void reg_voxelCentric2NodeCentric_core(nifti_image *nodeImage,
             DTYPE reorientedValue[3]={0,0,0};
             reorientedValue[0] =
                   reorientation.m[0][0] * interpolatedValue[0] +
-                  reorientation.m[0][1] * interpolatedValue[1] +
-                  reorientation.m[0][2] * interpolatedValue[2] ;
+                  reorientation.m[1][0] * interpolatedValue[1] +
+                  reorientation.m[2][0] * interpolatedValue[2] ;
             reorientedValue[1] =
-                  reorientation.m[1][0] * interpolatedValue[0] +
+                  reorientation.m[0][1] * interpolatedValue[0] +
                   reorientation.m[1][1] * interpolatedValue[1] +
-                  reorientation.m[1][2] * interpolatedValue[2] ;
+                  reorientation.m[2][1] * interpolatedValue[2] ;
             if(voxelPtrZ!=NULL)
                reorientedValue[2] =
-                     reorientation.m[2][0] * interpolatedValue[0] +
-                     reorientation.m[2][1] * interpolatedValue[1] +
+                     reorientation.m[0][2] * interpolatedValue[0] +
+                     reorientation.m[1][2] * interpolatedValue[1] +
                      reorientation.m[2][2] * interpolatedValue[2] ;
             if(update)
             {

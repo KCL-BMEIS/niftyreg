@@ -7,7 +7,7 @@
 #include "cuda/CudaPlatform.h"
 #include "cuda/CudaContext.h"
 
-#define EPS 0.000001
+#define EPS 0.00005
 
 void test(Context* con) {
 

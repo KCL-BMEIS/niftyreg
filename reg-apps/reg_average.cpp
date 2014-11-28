@@ -32,9 +32,8 @@ void usage(char *exec)
    printf("\t-avg <inputAffineName1> <inputAffineName2> ... <inputAffineNameN> \n");
    printf("\t\tIf the input are images, the intensities are averaged\n");
    printf("\t\tIf the input are affine matrices, out=expm((logm(M1)+logm(M2)+...+logm(MN))/N)\n\n");
-   printf("\t-avg_lts <percent> <AffineMat1> <AffineMat2> ... <AffineMatN> \n");
-   printf("\t\tThe <percent> is the percentage of outliers affine transformations\n");
-   printf("\t\tIt will estimate the weighted LTS affine matrix, out=expm((W1*logm(M1)+W2*logm(M2)+...+WN*logm(MN))/N)\n\n");
+   printf("\t-avg_lts <AffineMat1> <AffineMat2> ... <AffineMatN> \n");
+   printf("\t\tIt will estimate the robust average affine matrix by considering half of the matrices as ouliers.\n\n");
    printf("\t-avg_tran <referenceImage> <transformationFileName1> <floatingImage1> ... <transformationFileNameN> <floatingImageN> \n");
    printf("\t\tAll input images are resampled into the space of <reference image> and averaged\n");
    printf("\t\tA cubic spline interpolation scheme is used for resampling\n\n");
@@ -333,7 +332,7 @@ int main(int argc, char **argv)
                n.find( ".img") != std::string::npos ||
                n.find( ".img.gz") != std::string::npos)
        {
-           reg_print_msg_error(" The LTS average method only works with affine transformations.\n");
+           reg_print_msg_error("The LTS average method only works with affine transformations.\n");
            return EXIT_FAILURE;
        }
        else
@@ -699,12 +698,10 @@ int main(int argc, char **argv)
          averageMatrix = reg_mat44_expm(&averageMatrix);
          // The average matrix is inverted
          averageMatrix = nifti_mat44_inverse(averageMatrix);
-         averageMatrix = reg_mat44_logm(&averageMatrix);
          // Demean all the input affine matrices
-         for(size_t i=0; i<affineNumber; ++i){
-            affineMatrices[i] = reg_mat44_logm(&affineMatrices[i]);
-            affineMatrices[i] = averageMatrix + affineMatrices[i];
-            affineMatrices[i] = reg_mat44_expm(&affineMatrices[i]);
+         for(size_t i=0; i<affineNumber; ++i)
+         {
+            affineMatrices[i] = averageMatrix * affineMatrices[i];
          }
          // Create a deformation field to be used to resample all the floating images
          nifti_image *deformationField = nifti_copy_nim_info(referenceImage);
