@@ -16,7 +16,7 @@ public:
 	}
 	AffineDeformationFieldKernel( std::string name) : Kernel(name) {
 	}
-
+	virtual ~AffineDeformationFieldKernel(){}
 	virtual void execute(bool compose = false) = 0;
 };
 
@@ -28,7 +28,7 @@ public:
 	BlockMatchingKernel(std::string name) : Kernel(name) {
 
 	}
-
+	virtual ~BlockMatchingKernel(){}
 	virtual void execute() = 0;
 };
 
@@ -40,7 +40,7 @@ public:
 	}
 	ConvolutionKernel(std::string name) : Kernel(name) {
 	}
-
+	virtual ~ConvolutionKernel(){}
 	virtual void execute(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL) = 0;
 };
 
@@ -51,6 +51,7 @@ public:
 	}
 	OptimiseKernel(std::string name) : Kernel(name) {
 	}
+	virtual ~OptimiseKernel(){}
 	virtual void execute(bool affine) = 0;
 };
 class ResampleImageKernel : public Kernel {

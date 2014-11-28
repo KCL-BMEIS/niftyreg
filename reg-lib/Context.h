@@ -13,9 +13,11 @@ class Context {
 public:
 
 	Context();
-	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int percentageOfBlocks, const unsigned int InlierLts, int BlockStepSize/*, bool symmetric*/);
+	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int percentageOfBlocks, const unsigned int InlierLts, int BlockStepSize);
 	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte);
 
+	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int percentageOfBlocks, const unsigned int InlierLts, int BlockStepSize);
+		Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn,mat44* transMat, size_t byte);
 	virtual ~Context();
 
 	/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -47,6 +49,9 @@ public:
 	}
 	mat44* getTransformationMatrix() {
 		return this->transformationMatrix;
+	}
+	int getFloatingDatatype(){
+		return this->floatingDatatype;
 	}
 	virtual _reg_blockMatchingParam* getBlockMatchingParams() {
 		//std::cout << "serve bm params from cpu" << std::endl;
@@ -85,7 +90,7 @@ public:
 	mat44 floMatrix_ijk;
 	_reg_blockMatchingParam* blockMatchingParams;
 
-	 int stepSizeBlock;
+	 int stepSizeBlock, floatingDatatype;
 	unsigned int currentPercentageOfBlockToUse;
 	unsigned int inlierLts;
 	size_t bytes;

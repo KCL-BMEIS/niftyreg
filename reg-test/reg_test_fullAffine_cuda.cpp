@@ -2,7 +2,7 @@
 #include "_reg_aladin_sym.h"
 #include "_reg_tools.h"
 
-#define EPS 0.000001
+#define EPS 0.00001
 
 int main(int argc, char **argv)
 {

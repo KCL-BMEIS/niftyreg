@@ -9,7 +9,11 @@
 
 #define EPS 0.000001
 
-void compare(_reg_blockMatchingParam *cpu, _reg_blockMatchingParam *refParams) {
+void compare(nifti_image *referenceImage,nifti_image *warpedImage,int* mask, _reg_blockMatchingParam *refParams) {
+
+	_reg_blockMatchingParam *cpu = new _reg_blockMatchingParam();
+	initialise_block_matching_method(referenceImage, cpu, 50, 50, 1, mask, false);
+	block_matching_method(referenceImage, warpedImage, cpu, mask);
 
 	float* cpuTargetData = static_cast<float*>(cpu->targetPosition);
 	float* cpuResultData = static_cast<float*>(cpu->resultPosition);
@@ -49,13 +53,13 @@ void compare(_reg_blockMatchingParam *cpu, _reg_blockMatchingParam *refParams) {
 				resultSum[1] = abs(cpuResultPt[1] - cudaResultPt[1]);
 				resultSum[2] = abs(cpuResultPt[2] - cudaResultPt[2]);
 				found = true;
-				if (resultSum[0] > 0 || resultSum[1] > 0 || resultSum[2] > 0) {
+				if (resultSum[0] > 0.000001f || resultSum[1] > 0.000001f || resultSum[2] > 0.000001f)
 					printf("i: %lu | j: %lu | (dif: %f-%f-%f) | (out: %f, %f, %f) | (ref: %f, %f, %f)\n", i, j, resultSum[0], resultSum[1], resultSum[2], cpuResultPt[0], cpuResultPt[1], cpuResultPt[2], cudaResultPt[0], cudaResultPt[1], cudaResultPt[2]);
 
-				}
 			}
 		}
-		if (! found) printf("i: %lu has no match\n", i);
+		if (!found)
+			printf("i: %lu has no match\n", i);
 		/*double targetDiff = abs(refTargetPt[0] - outTargetPt[0]) + abs(refTargetPt[1] - outTargetPt[1]) + abs(refTargetPt[2] - outTargetPt[2]);
 		 double resultDiff = abs(refResultPt[0] - outResultPt[0]) + abs(refResultPt[1] - outResultPt[1]) + abs(refResultPt[2] - outResultPt[2]);
 
@@ -112,12 +116,7 @@ int main(int argc, char **argv) {
 
 	_reg_blockMatchingParam *blockMatchingParams = con->getBlockMatchingParams();
 
-	_reg_blockMatchingParam cpuBlockMatchingParams;
-	initialise_block_matching_method(referenceImage, &cpuBlockMatchingParams, 50, 50, 1, mask, false // GPU is not used here
-			);
-	block_matching_method(referenceImage, warpedImage, &cpuBlockMatchingParams, mask);
-
-	compare(&cpuBlockMatchingParams, blockMatchingParams);
+//	compare(referenceImage, warpedImage,mask, blockMatchingParams);
 
 	mat44 recoveredTransformation;
 	reg_mat44_eye(&recoveredTransformation);
@@ -128,10 +127,6 @@ int main(int argc, char **argv) {
 	recoveredTransformation.m[1][3] = 4.f;
 	recoveredTransformation.m[2][3] = 4.f;
 	optimize(blockMatchingParams, &recoveredTransformation, transType);
-
-	nifti_image_free(referenceImage);
-	nifti_image_free(warpedImage);
-	free(mask);
 
 	mat44 rigid2D;
 	rigid2D.m[0][0] = 1.020541f;
@@ -219,11 +214,16 @@ int main(int argc, char **argv) {
 	for (int i = 0; i < 4; ++i) {
 		for (int j = 0; j < 4; ++j) {
 			if (fabsf(differenceMatrix.m[i][j]) > EPS) {
-				fprintf(stderr, "reg_test_fullAffine_cuda error too large: %g (>%g) [%i,%i]\n", fabs(differenceMatrix.m[i][j]), EPS, i, j);
+				fprintf(stderr, "reg_test_blockMatching_cuda error too large: %g (>%g) [%i,%i]\n", fabs(differenceMatrix.m[i][j]), EPS, i, j);
 //            return EXIT_FAILURE;
 			}
 		}
 	}
+
+	nifti_image_free(referenceImage);
+	//   nifti_image_free(warpedImage);
+	free(mask);
+	delete con;
 
 	return EXIT_SUCCESS;
 }

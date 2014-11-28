@@ -29,6 +29,9 @@ void CLConvolutionKernel::execute(nifti_image *image, float *sigma,
 	reg_tools_kernelConvolution(image, sigma, kernelType, mask, timePoints,
 			axis);
 }
+CLConvolutionKernel::~CLConvolutionKernel() {
+
+}
 //==========================================================
 //==============================Affine Kernel CL===================================================
 CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Context* conIn,
@@ -56,12 +59,13 @@ CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Context* conIn,
 
 }
 CLAffineDeformationFieldKernel::~CLAffineDeformationFieldKernel() {
-
+//std::cout<<"releasing CLAffineDeformationFieldKernel"<<std::endl;
 	if (kernel != 0)
 		clReleaseKernel(kernel);
 
 	if (program != 0)
 		clReleaseProgram(program);
+//	std::cout<<"done releasing CLAffineDeformationFieldKernel"<<std::endl;
 }
 
 void CLAffineDeformationFieldKernel::execute(bool compose) {
@@ -155,11 +159,13 @@ CLResampleImageKernel::CLResampleImageKernel(Context* conIn, std::string name) :
 }
 
 CLResampleImageKernel::~CLResampleImageKernel() {
+//	std::cout<<"Destroying CLResampleImageKernel"<<std::endl;
 	if (kernel != 0)
 		clReleaseKernel(kernel);
 
 	if (program != 0)
 		clReleaseProgram(program);
+//	std::cout<<"End Destroying CLResampleImageKernel"<<std::endl;
 }
 void CLResampleImageKernel::execute(int interp, float paddingValue,
 		bool *dti_timepoint, mat33 * jacMat) {
@@ -195,7 +201,7 @@ void CLResampleImageKernel::execute(int interp, float paddingValue,
 	//TODO Pre-processing kernel
 
 	// Create OpenCL kernel
-	if (interp == 3)
+	/*if (interp == 3)
 		kernel = clCreateKernel(program, "CubicSplineResampleImage3D", NULL);
 	else if (interp == 0)
 		kernel = clCreateKernel(program, "NearestNeighborResampleImage", NULL);
@@ -204,7 +210,10 @@ void CLResampleImageKernel::execute(int interp, float paddingValue,
 	if (kernel == NULL) {
 		std::cerr << "Failed to create kernel" << std::endl;
 		return;
-	}
+	}*/
+
+	kernel = clCreateKernel(program, "ResampleImage3D", &errNum);
+	sContext->checkErrNum(errNum, "Error setting kernel ResampleImage3D.");
 
 	long targetVoxelNumber = (long) warpedImage->nx * warpedImage->ny
 			* warpedImage->nz;
@@ -234,11 +243,9 @@ void CLResampleImageKernel::execute(int interp, float paddingValue,
 	if (numMats)
 		mat33ToCptr(jacMat, jacMat_h, numMats);
 
-	errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem),
-			&this->clCurrentFloating);
+	errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem),&this->clCurrentFloating);
 	sContext->checkErrNum(errNum, "Error setting kernel arguments.");
-	errNum |= clSetKernelArg(kernel, 1, sizeof(cl_mem),
-			&this->clCurrentDeformationField);
+	errNum |= clSetKernelArg(kernel, 1, sizeof(cl_mem),&this->clCurrentDeformationField);
 	sContext->checkErrNum(errNum, "Error setting kernel arguments.");
 	errNum |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &this->clCurrentWarped);
 	sContext->checkErrNum(errNum, "Error setting kernel arguments.");
@@ -248,17 +255,17 @@ void CLResampleImageKernel::execute(int interp, float paddingValue,
 	sContext->checkErrNum(errNum, "Error setting kernel arguments.");
 	errNum |= clSetKernelArg(kernel, 5, sizeof(cl_long2), &voxelNumber);
 	sContext->checkErrNum(errNum, "Error setting kernel arguments.");
-
 	errNum |= clSetKernelArg(kernel, 6, sizeof(cl_uint3), &fi_xyz);
 	sContext->checkErrNum(errNum, "Error setting kernel arguments.");
 	errNum |= clSetKernelArg(kernel, 7, sizeof(cl_uint2), &wi_tu);
 	sContext->checkErrNum(errNum, "Error setting kernel arguments.");
 	errNum |= clSetKernelArg(kernel, 8, sizeof(float), &paddingValue);
 	sContext->checkErrNum(errNum, "Error setting kernel arguments.");
+	errNum |= clSetKernelArg(kernel, 9, sizeof(cl_int), &interp);
+	sContext->checkErrNum(errNum, "Error setting kernel arguments.");
 
-	errNum = clEnqueueNDRangeKernel(commandQueue, kernel, dims, NULL,
-			globalWorkSize, localWorkSize, 0, NULL, NULL);
-	sContext->checkErrNum(errNum, "Error queuing kernel for execution: ");
+	errNum = clEnqueueNDRangeKernel(commandQueue, kernel, dims, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+	sContext->checkErrNum(errNum, "Error queuing interp kernel for execution: ");
 
 	clFinish(commandQueue);
 
@@ -297,11 +304,13 @@ CLBlockMatchingKernel::CLBlockMatchingKernel(Context* conIn, std::string name) :
 
 }
 CLBlockMatchingKernel::~CLBlockMatchingKernel() {
+//	std::cout<<"Destroying CLBlockMatchingKernel"<<std::endl;
 	if (kernel != 0)
 		clReleaseKernel(kernel);
 
 	if (program != 0)
 		clReleaseProgram(program);
+//	std::cout<<"End Destroying CLBlockMatchingKernel"<<std::endl;
 }
 void CLBlockMatchingKernel::execute() {
 //	std::cout << "CLBlockMatchingKernel exec" << std::endl;
@@ -339,7 +348,7 @@ void CLBlockMatchingKernel::execute() {
 
 
 
-	printf("warp: %lu\n", sContext->getwarpGroupLength(kernel));
+//	printf("warp: %lu\n", sContext->getwarpGroupLength(kernel));
 	const cl_uint dims = 3;
 	const size_t globalWorkSize[dims] = { params->blockNumber[0] * 4,
 			params->blockNumber[1] * 4, params->blockNumber[2] * 4 };
@@ -368,6 +377,9 @@ CLOptimiseKernel::CLOptimiseKernel(Context* conIn, std::string name) :
 	sContext = &CLContextSingletton::Instance();
 	transformationMatrix = con->getTransformationMatrix();
 	blockMatchingParams = con->blockMatchingParams;
+}
+CLOptimiseKernel::~CLOptimiseKernel() {
+
 }
 void CLOptimiseKernel::execute(bool affine) {
 

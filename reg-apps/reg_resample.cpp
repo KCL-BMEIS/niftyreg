@@ -64,12 +64,13 @@ void Usage(char *exec)
    printf("\t-trans <filename>\n\t\tFilename of the file containing the transformation parametrisation (from reg_aladin, reg_f3d or reg_transform)\n");
    printf("\t-res <filename>\n\t\tFilename of the resampled image [none]\n");
    printf("\t-blank <filename>\n\t\tFilename of the resampled blank grid [none]\n");
-   printf("\t-inter <int>\n\t\tInterpolation order (0,1,3)[3] (0=NN, 1=LIN; 3=CUB)\n");
+   printf("\t-inter <int>\n\t\tInterpolation order (0, 1, 3, 4)[3] (0=NN, 1=LIN; 3=CUB, 4=SINC)\n");
    printf("\t-pad <int>\n\t\tInterpolation padding value [0]\n");
    printf("\t-tensor\n\t\tThe last six timepoints of the floating image are considered to be tensor order as XX, XY, YY, XZ, YZ, ZZ [off]\n");
+   printf("\t-psf\n\t\tPerform the resampling in two steps to resample an image to a lower resolution [off]\n");
    printf("\t-voff\n\t\tTurns verbose off [on]\n");
 #ifdef _GIT_HASH
-   printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
+   printf("\n\t--version\n\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
 #endif
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
    return;
@@ -161,6 +162,10 @@ int main(int argc, char **argv)
       {
          param->interpolation=3;
       }
+      else if(strcmp(argv[i], "-SINC") == 0)
+      {
+         param->interpolation=4;
+      }
       else if(strcmp(argv[i], "-pad") == 0 ||
               (strcmp(argv[i],"--pad")==0))
       {
@@ -194,6 +199,11 @@ int main(int argc, char **argv)
               (strcmp(argv[i],"--tensor")==0))
       {
          flag->isTensor=true;
+      }
+      else if(strcmp(argv[i], "-psf") == 0 ||
+              (strcmp(argv[i],"--psf")==0))
+      {
+         flag->usePSF=true;
       }
       else
       {
@@ -230,11 +240,7 @@ int main(int argc, char **argv)
    }
    reg_checkAndCorrectDimension(floatingImage);
 
-   // Tell the CLI that the process has started
-//   startProgress("reg_resample");
 
-   // Set up progress indicators
-//   float iProgressStep=1, nProgressSteps;
 
    /* *********************************** */
    /* DISPLAY THE RESAMPLING PARAMETERS */
@@ -253,7 +259,6 @@ int main(int argc, char **argv)
       printf("\t%gx%gx%g mm\n",floatingImage->dx,floatingImage->dy,floatingImage->dz);
       printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n");
    }
-
 
 
    // Define a higher resolution image of the reference image if required (-psf)
@@ -324,7 +329,6 @@ int main(int argc, char **argv)
 //   startProgress("reg_resample");
 //   // Set up progress indicators
 //   float iProgressStep=1, nProgressSteps;
-
 
    /* *********************** */
    /* READ THE TRANSFORMATION */
@@ -408,9 +412,19 @@ int main(int argc, char **argv)
                                         true);
          break;
       case DISP_VEL_FIELD:
+         if(flag->usePSF)
+         {
+            reg_print_msg_error("The -psf option is not supported yet with a displacement flow as an input transformation.");
+            reg_exit(0);
+         }
          reg_getDeformationFromDisplacement(inputTransformationImage);
       case DEF_VEL_FIELD:
       {
+            if(flag->usePSF)
+            {
+               reg_print_msg_error("The -psf option is not supported yet with a deformation flow as an input transformation.");
+               reg_exit(0);
+            }
          nifti_image *tempFlowField = nifti_copy_nim_info(deformationFieldImage);
          tempFlowField->data = (void *)malloc(tempFlowField->nvox*tempFlowField->nbyper);
          memcpy(tempFlowField->data,deformationFieldImage->data,
@@ -432,8 +446,18 @@ int main(int argc, char **argv)
                false);
          break;
       case DISP_FIELD:
+         if(flag->usePSF)
+         {
+            reg_print_msg_error("The -psf option is not supported yet with a displacement field as an input transformation.");
+            reg_exit(0);
+         }
          reg_getDeformationFromDisplacement(inputTransformationImage);
       default: // deformation field
+         if(flag->usePSF)
+         {
+            reg_print_msg_error("The -psf option is not supported yet with a deformation field as an input transformation.");
+            reg_exit(0);
+         }
          reg_defField_compose(inputTransformationImage,
                               deformationFieldImage,
                               NULL);
@@ -465,6 +489,9 @@ int main(int argc, char **argv)
          break;
       case 1:
          param->interpolation=1;
+         break;
+      case 4:
+         param->interpolation=4;
          break;
       default:
          param->interpolation=3;
@@ -524,9 +551,104 @@ int main(int argc, char **argv)
                            param->interpolation,
                            param->paddingValue);
       }
-      memset(warpedImage->descrip, 0, 80);
-      strcpy (warpedImage->descrip,"Warped image using NiftyReg (reg_resample)");
-      reg_io_WriteImageFile(warpedImage,param->outputResultName);
+
+      // Resample the high resolution warped image to the native reference image resolution
+      if(flag->usePSF)
+      {
+         // Read the original reference image
+         nifti_image *origRefImage = reg_io_ReadImageHeader(param->referenceImageName);
+         // The warped image is first convolved with a Gaussian kernel
+         bool *timePoint = new bool[warpedImage->nt*warpedImage->nu];
+         for(int i=0; i<warpedImage->nt*warpedImage->nu; ++i) timePoint[i]=true;
+
+         if(param->interpolation>0){
+             float *kernelSize = new float[warpedImage->nt*warpedImage->nu];
+             bool boolX[3]= {1,0,0};
+             for(int i=0; i<warpedImage->nt*warpedImage->nu; ++i)
+                 kernelSize[i]=sqrt(reg_pow2(origRefImage->dx/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(referenceImage->dx/(2.f*sqrt(2.f*log(2.f)))));
+             reg_tools_kernelConvolution(warpedImage,kernelSize,0,NULL,timePoint,boolX);
+             bool boolY[3]= {0,1,0};
+             for(int i=0; i<warpedImage->nt*warpedImage->nu; ++i)
+                 kernelSize[i]=sqrt(reg_pow2(origRefImage->dy/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(referenceImage->dy/(2.f*sqrt(2.f*log(2.f)))));
+             reg_tools_kernelConvolution(warpedImage,kernelSize,0,NULL,timePoint,boolY);
+             bool boolZ[3]= {0,0,1};
+             for(int i=0; i<warpedImage->nt*warpedImage->nu; ++i)
+                 kernelSize[i]=sqrt(reg_pow2(origRefImage->dz/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(referenceImage->dz/(2.f*sqrt(2.f*log(2.f)))));
+             reg_tools_kernelConvolution(warpedImage,kernelSize,0,NULL,timePoint,boolZ);
+             delete []kernelSize;
+         }
+         else{
+             float kernelVarianceX=reg_pow2(origRefImage->dx/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(referenceImage->dx/(2.f*sqrt(2.f*log(2.f))));
+             float kernelVarianceY=reg_pow2(origRefImage->dy/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(referenceImage->dy/(2.f*sqrt(2.f*log(2.f))));
+             float kernelVarianceZ=reg_pow2(origRefImage->dz/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(referenceImage->dz/(2.f*sqrt(2.f*log(2.f))));
+             reg_tools_labelKernelConvolution(warpedImage,kernelVarianceX,kernelVarianceY,kernelVarianceZ,NULL,timePoint);
+         }
+         delete []timePoint;
+
+         // A new warped image is created based on the origin reference image
+         nifti_image *origWarpedImage = nifti_copy_nim_info(origRefImage);
+         origWarpedImage->dim[0]=origWarpedImage->ndim=floatingImage->dim[0];
+         origWarpedImage->dim[4]=origWarpedImage->nt=floatingImage->dim[4];
+         origWarpedImage->cal_min=floatingImage->cal_min;
+         origWarpedImage->cal_max=floatingImage->cal_max;
+         origWarpedImage->scl_slope=floatingImage->scl_slope;
+         origWarpedImage->scl_inter=floatingImage->scl_inter;
+         origWarpedImage->datatype = floatingImage->datatype;
+         origWarpedImage->nbyper = floatingImage->nbyper;
+         origWarpedImage->nvox = (size_t)origWarpedImage->dim[1] * origWarpedImage->dim[2] *
+                             origWarpedImage->dim[3] * origWarpedImage->dim[4];
+         origWarpedImage->data = (void *)calloc(origWarpedImage->nvox, origWarpedImage->nbyper);
+         // An identity deformation field is created
+         nifti_image *origDefFieldImage = nifti_copy_nim_info(origRefImage);
+         origDefFieldImage->dim[0]=origDefFieldImage->ndim=5;
+         origDefFieldImage->dim[1]=origDefFieldImage->nx=origDefFieldImage->nx;
+         origDefFieldImage->dim[2]=origDefFieldImage->ny=origDefFieldImage->ny;
+         origDefFieldImage->dim[3]=origDefFieldImage->nz=origDefFieldImage->nz;
+         origDefFieldImage->dim[4]=origDefFieldImage->nt=1;
+         origDefFieldImage->pixdim[4]=origDefFieldImage->dt=1.0;
+         origDefFieldImage->dim[5]=origDefFieldImage->nu=origDefFieldImage->nz>1?3:2;
+         origDefFieldImage->dim[6]=origDefFieldImage->nv=1;
+         origDefFieldImage->dim[7]=origDefFieldImage->nw=1;
+         origDefFieldImage->nvox =(size_t)origDefFieldImage->nx*
+                                      origDefFieldImage->ny*origDefFieldImage->nz*
+                                      origDefFieldImage->nt*origDefFieldImage->nu;
+         origDefFieldImage->scl_slope=1.f;
+         origDefFieldImage->scl_inter=0.f;
+         origDefFieldImage->datatype = NIFTI_TYPE_FLOAT32;
+         origDefFieldImage->nbyper = sizeof(float);
+         origDefFieldImage->data = (void *)calloc(origDefFieldImage->nvox, origDefFieldImage->nbyper);
+         reg_getDeformationFromDisplacement(origDefFieldImage);
+         // The high resolution warped image is resampled into the low resolution warped image
+          if(param->interpolation>0){
+         reg_resampleImage(warpedImage,
+                           origWarpedImage,
+                           origDefFieldImage,
+                           NULL,
+                           1, // linear interpolation
+                           0 // padding value set to 0 since field of view are aligned
+                           );
+          }else{
+              reg_resampleImage(warpedImage,
+                                origWarpedImage,
+                                origDefFieldImage,
+                                NULL,
+                                0, // Nearest Neighbour
+                                0 // padding value set to 0 since field of view are aligned
+                                );
+
+          }
+         memset(origWarpedImage->descrip, 0, 80);
+         strcpy (origWarpedImage->descrip,"Warped image using NiftyReg (reg_resample)");
+         reg_io_WriteImageFile(origWarpedImage,param->outputResultName);
+         nifti_image_free(origWarpedImage);
+         nifti_image_free(origRefImage);
+         nifti_image_free(origDefFieldImage);
+      }
+      else{
+         memset(warpedImage->descrip, 0, 80);
+         strcpy (warpedImage->descrip,"Warped image using NiftyReg (reg_resample)");
+         reg_io_WriteImageFile(warpedImage,param->outputResultName);
+      }
       if(verbose)
          printf("[NiftyReg] Resampled image has been saved: %s\n", param->outputResultName);
       nifti_image_free(warpedImage);
@@ -596,7 +718,7 @@ int main(int argc, char **argv)
          }
       }
 
-      nifti_image *warpedImage = nifti_copy_nim_info(warpedImage);
+      nifti_image *warpedImage = nifti_copy_nim_info(referenceImage);
       warpedImage->cal_min=0;
       warpedImage->cal_max=255;
       warpedImage->scl_slope=1.f;

@@ -94,6 +94,9 @@ CUDA_ADD_LIBRARY(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	CudaKernelFuncs.cu
 	CudaKernels.cpp
 	CudaPlatform.cpp
+	
+	../cpu/_reg_resampling.cpp
+	../cpu/_reg_globalTransformation.cpp
 )
 target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_gpu  )
 install(TARGETS ${NAME}

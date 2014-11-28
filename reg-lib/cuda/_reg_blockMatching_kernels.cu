@@ -543,7 +543,7 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 					const int indexXYZIn = xImageIn + yImageIn * (c_ImageSize.x) + zImageIn * (c_ImageSize.x * c_ImageSize.y);
 
 					const bool valid = (xImageIn >= 0 && xImageIn < c_ImageSize.x) && (yImageIn >= 0 && yImageIn < c_ImageSize.y) && (zImageIn >= 0 && zImageIn < c_ImageSize.z);
-					sResultValues[sIdx] = (valid) ? tex1Dfetch(resultImageArray_texture, indexXYZIn) : nanf("sNaN");
+					sResultValues[sIdx] = (valid /*&& mask[indexXYZIn]>-1*/ ) ? tex1Dfetch(resultImageArray_texture, indexXYZIn) : nanf("sNaN");
 
 				}
 			}
@@ -551,7 +551,7 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 
 		//for most cases we need this out of th loop
 		//value if the block is 4x4x4 NaN otherwise
-		const float rTargetValue = (targetInBounds) ? tex1Dfetch(targetImageArray_texture, imgIdx) : nanf("sNaN");
+		const float rTargetValue = (targetInBounds /*&& mask[imgIdx>-1]*/) ? tex1Dfetch(targetImageArray_texture, imgIdx) : nanf("sNaN");
 		const float targetMean = REDUCE(rTargetValue, tid) / 64;
 		const float targetTemp = rTargetValue - targetMean;
 		const float targetVar = REDUCE(targetTemp * targetTemp, tid);
@@ -580,7 +580,8 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 					const bool overlap = isfinite(rResultValue) && targetInBounds;//both result and target pixels in bounds?
 
 					//number of overlapped voxels
-					const unsigned int bSize = (nBorder || mBorder || lBorder || targetIsBorder) ? (unsigned int) REDUCE(overlap ? 1.0f : 0.0f, tid) : 64;     //out
+					const float currentPixel = overlap ? 1.0f : 0.0f;
+					const unsigned int bSize = (nBorder || mBorder || lBorder || targetIsBorder) ? REDUCE(currentPixel, tid) : 64;     //out
 
 
 					if (bSize > 32) {
@@ -613,7 +614,7 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 							bestDisplacement[2] = n - 4.0f;
 						}
 
-					}
+					}/*else if(tid==0)printf("bSize: %d\n", bSize);*/
 				}
 			}
 		}
@@ -626,15 +627,15 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 			resultPosition += posIdx;
 			targetPosition += posIdx;
 
-			const float targetPosition_temp[3] = { blockIdx.x * BLOCK_WIDTH, blockIdx.y * BLOCK_WIDTH, blockIdx.z * BLOCK_WIDTH };
+			const float targetPosition_temp[3] = { xBaseImage, yBaseImage, zBaseImage };
 
 			bestDisplacement[0] += targetPosition_temp[0];
 			bestDisplacement[1] += targetPosition_temp[1];
 			bestDisplacement[2] += targetPosition_temp[2];
 
 			//float  tempPosition[3];
-			reg_mat44_mul_cuda(targetMatrix_xyz, targetPosition_temp, targetPosition);
-			reg_mat44_mul_cuda(targetMatrix_xyz, bestDisplacement, resultPosition);
+			reg_mat44_mul_cuda<float>(targetMatrix_xyz, targetPosition_temp, targetPosition);
+			reg_mat44_mul_cuda<float>(targetMatrix_xyz, bestDisplacement, resultPosition);
 
 		}
 	}

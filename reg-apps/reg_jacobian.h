@@ -25,7 +25,7 @@ char xml_jacobian[] =
    "  <parameters advanced=\"false\">\n"
    "    <label>Input reference image</label>\n"
    "    <description>Input images</description>\n"
-   "    <file fileExtensions=\"nii,nii.gz,nrrd,txt,mat\">\n"
+   "    <file fileExtensions=\".nii,.nii.gz,.nrrd,.txt,.mat\">\n"
    "      <name>InTrans</name>\n"
    "      <longflag>trans</longflag>\n"
    "      <description>Input transformation</description>\n"
@@ -33,7 +33,7 @@ char xml_jacobian[] =
    "      <default>required</default>\n"
    "      <channel>input</channel>\n"
    "    </file>\n"
-   "    <image fileExtensions=\"nii,nii.gz,nrrd,png\">"
+   "    <image fileExtensions=\".nii,.nii..gz,.nrrd,.png\">"
    "      <name>referenceImageName</name>\n"
    "      <longflag>ref</longflag>\n"
    "      <description>Reference image filename, required if the transformation is a spline parametrisation</description>\n"
@@ -45,28 +45,40 @@ char xml_jacobian[] =
    "  <parameters advanced=\"false\">\n"
    "    <label>Output image</label>\n"
    "    <description>Jacobian determinants or matrices images</description>\n"
-   "    <image fileExtensions=\"*.nii,*.nii.gz,*.nrrd,*.png\">"
+   "    <image fileExtensions=\".nii,.nii.gz,.nrrd,.png\">"
    "      <name>jacDetImage</name>\n"
    "      <longflag>jac</longflag>\n"
    "      <description>Jacobian determinant image</description>\n"
    "      <label>Jac. det. image</label>\n"
+#ifdef GIMIAS_CLI
+   "      <default>None</default>\n"
+#else
    "      <default>jacDetImage.nii</default>\n"
+#endif
    "      <channel>output</channel>\n"
    "    </image>"
-   "    <image fileExtensions=\"*.nii,*.nii.gz,*.nrrd,*.png\">"
+   "    <image fileExtensions=\".nii,.nii.gz,.nrrd,.png\">"
    "      <name>logJacDetImage</name>\n"
    "      <longflag>jacL</longflag>\n"
    "      <description>Log of the Jacobian determinant image</description>\n"
    "      <label>Log. Jac. det. image</label>\n"
+#ifdef GIMIAS_CLI
+   "      <default>None</default>\n"
+#else
    "      <default>logJacDetImage.nii</default>\n"
+#endif
    "      <channel>output</channel>\n"
    "    </image>"
-   "    <image fileExtensions=\"*.nii,*.nii.gz,*.nrrd,*.png\">"
+   "    <image fileExtensions=\".nii,.nii.gz,.nrrd,.png\">"
    "      <name>JacMatImage</name>\n"
    "      <longflag>jacM</longflag>\n"
    "      <description>Jacobian matrix image</description>\n"
    "      <label>Jac. mat. image</label>\n"
+#ifdef GIMIAS_CLI
+   "      <default>None</default>\n"
+#else
    "      <default>JacMatImage.nii</default>\n"
+#endif
    "      <channel>output</channel>\n"
    "    </image>"
    "  </parameters>\n"
