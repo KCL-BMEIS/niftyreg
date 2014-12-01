@@ -27,14 +27,16 @@ CudaAffineDeformationFieldKernel::CudaAffineDeformationFieldKernel(Context* conI
 
 	mask_d = con->getMask_d();
 	deformationFieldArray_d = con->getDeformationFieldArray_d();
+	transformationMatrix_d = con->getTransformationMatrix_d();
 
 }
 
 
 void CudaAffineDeformationFieldKernel::execute(bool compose) {
-	reg_affine_getDeformationField(this->affineTransformation, con->CurrentDeformationField, compose, con->CurrentReferenceMask);
-//	launchAffine(this->affineTransformation, this->deformationFieldImage, &deformationFieldArray_d, &mask_d, compose);
-
+//	reg_affine_getDeformationField(con->transformationMatrix, con->CurrentDeformationField, compose, con->CurrentReferenceMask);
+	this->affineTransformation = con->transformationMatrix;
+	launchAffine(this->affineTransformation, this->deformationFieldImage, &deformationFieldArray_d, &mask_d,&transformationMatrix_d, compose);
+//	con->setCurrentDeformationField(con->CurrentDeformationField);
 }
 //------------------------------------------------------------------------------------
 
@@ -70,8 +72,10 @@ CudaResampleImageKernel::CudaResampleImageKernel(Context* conIn, std::string nam
 }
 
 void CudaResampleImageKernel::execute(int interp, float paddingValue, bool *dti_timepoint, mat33 * jacMat) {
-//	launchResample(floatingImage, warpedImage, interp, paddingValue, dti_timepoint, jacMat, &floatingImageArray_d, &warpedImageArray_d, &deformationFieldImageArray_d, &mask_d, &floIJKMat_d);
-	reg_resampleImage(con->CurrentFloating, con->CurrentWarped, con->CurrentDeformationField, con->CurrentReferenceMask, interp, paddingValue, dti_timepoint, jacMat);
+//	deformationFieldImageArray_d = con->getDeformationFieldArray_d();
+	launchResample(floatingImage, warpedImage, interp, paddingValue, dti_timepoint, jacMat, &floatingImageArray_d, &warpedImageArray_d, &deformationFieldImageArray_d, &mask_d, &floIJKMat_d);
+//	con->getCurrentDeformationField();
+//		reg_resampleImage(con->CurrentFloating, con->CurrentWarped, con->CurrentDeformationField, con->CurrentReferenceMask, interp, paddingValue, dti_timepoint, jacMat);
 }
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //==============================Cuda Block Matching Kernel================================================================
@@ -154,14 +158,10 @@ void CudaBlockMatchingKernel::compare(nifti_image *referenceImage,nifti_image *w
 }
 
 void CudaBlockMatchingKernel::execute() {
-//	block_matching_method(con->CurrentReference, con->CurrentWarped, con->blockMatchingParams, con->getCurrentReferenceMask());
-	con->setCurrentWarped(con->CurrentWarped);
-	resultImageArray_d = con->getWarpedImageArray_d();
-	launchBlockMatching(target, params, &targetImageArray_d, &resultImageArray_d, &targetPosition_d, &resultPosition_d, &activeBlock_d, &mask_d, &targetMat_d);
 
-	this->params = con->getBlockMatchingParams();
-	compare(con->CurrentReference, con->CurrentWarped,con->getCurrentReferenceMask(), this->params);
-	exit(0);
+//	con->setCurrentWarped(con->CurrentWarped);
+//	launchBlockMatching(target, params, &targetImageArray_d, &resultImageArray_d, &targetPosition_d, &resultPosition_d, &activeBlock_d, &mask_d, &targetMat_d);
+	block_matching_method(con->CurrentReference, con->getCurrentWarped(16), con->blockMatchingParams, con->CurrentReferenceMask);
 }
 //===================================================================================================================================================================
 CudaOptimiseKernel::CudaOptimiseKernel(Context* conIn, std::string name) :
@@ -174,7 +174,7 @@ CudaOptimiseKernel::CudaOptimiseKernel(Context* conIn, std::string name) :
 
 void CudaOptimiseKernel::execute(bool affine) {
 
-	this->blockMatchingParams = con->getBlockMatchingParams();
-	optimize(this->blockMatchingParams, this->transformationMatrix, affine);
+//	this->blockMatchingParams = con->getBlockMatchingParams();
+	optimize(this->blockMatchingParams, con->transformationMatrix, affine);
 }
 

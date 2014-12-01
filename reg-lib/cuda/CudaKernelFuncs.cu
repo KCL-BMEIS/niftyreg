@@ -148,7 +148,7 @@ __inline__ __device__ double interpLoop(float* floatingIntensity, double* xBasis
 			double xTempNewValue = 0.0;
 			for (int a = 0; a < kernel_size; a++) {
 				int X = previous[0] + a;
-				bool xInBounds = -1 < X && X  < fi_xyz.x;
+				bool xInBounds = -1 < X && X < fi_xyz.x;
 				const unsigned int idx = Z * fi_xyz.x * fi_xyz.y + Y * fi_xyz.x + X;
 				xTempNewValue += (xInBounds && yInBounds && zInBounds) ? floatingIntensity[idx] * xBasis[a] : paddingValue * xBasis[a];
 			}
@@ -586,14 +586,7 @@ void launchConvolution(nifti_image *image, float *sigma, int kernelType, int *ma
 //	cudaFree(densityPtr);
 }
 
-void launchAffine(mat44 *affineTransformation, nifti_image *deformationField, float** def_d, int** mask_d, bool compose) {
-
-	float* trans = (float *) malloc(16 * sizeof(float));
-	float *trans_d;
-
-	const mat44 *targetMatrix = (deformationField->sform_code > 0) ? &(deformationField->sto_xyz) : &(deformationField->qto_xyz);
-	mat44 transformationMatrix = (compose == true) ? *affineTransformation : reg_mat44_mul(affineTransformation, targetMatrix);
-	mat44ToCptr(transformationMatrix, trans);
+void launchAffine(mat44 *affineTransformation, nifti_image *deformationField, float** def_d, int** mask_d, float** trans_d, bool compose) {
 
 	const unsigned int xThreads = 8;
 	const unsigned int yThreads = 8;
@@ -606,16 +599,17 @@ void launchAffine(mat44 *affineTransformation, nifti_image *deformationField, fl
 	dim3 G1_b(xBlocks, yBlocks, zBlocks);
 	dim3 B1_b(xThreads, yThreads, zThreads);
 
-	NR_CUDA_SAFE_CALL(cudaMalloc((void** )(&trans_d), 16 * sizeof(float)));
-	NR_CUDA_SAFE_CALL(cudaMemcpy(trans_d, trans, 16 * sizeof(float), cudaMemcpyHostToDevice));
+	float* trans = (float *) malloc(16 * sizeof(float));
+	const mat44 *targetMatrix = (deformationField->sform_code > 0) ? &(deformationField->sto_xyz) : &(deformationField->qto_xyz);
+	mat44 transformationMatrix = (compose == true) ? *affineTransformation : reg_mat44_mul(affineTransformation, targetMatrix);
+	mat44ToCptr(transformationMatrix, trans);
+	NR_CUDA_SAFE_CALL(cudaMemcpy(*trans_d, trans, 16 * sizeof(float), cudaMemcpyHostToDevice));
+	free(trans);
 
 	uint3 dims_d = make_uint3(deformationField->nx, deformationField->ny, deformationField->nz);
-	affineKernel<< <G1_b, B1_b >> >(trans_d, *def_d, *mask_d, dims_d, deformationField->nx* deformationField->ny* deformationField->nz, compose);
+	affineKernel<< <G1_b, B1_b >> >(*trans_d, *def_d, *mask_d, dims_d, deformationField->nx* deformationField->ny* deformationField->nz, compose);
 	//NR_CUDA_CHECK_KERNEL(G1_b, B1_b)
 	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
-
-	cudaFree(trans_d);
-	free(trans);
 
 }
 

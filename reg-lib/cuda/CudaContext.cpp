@@ -10,6 +10,8 @@ CudaContext::~CudaContext() {
 
 void CudaContext::allocateCuPtrs() {
 	//cudaDeviceReset();
+	if (this->transformationMatrix != NULL)
+			cudaCommon_allocateArrayToDevice<float>(&transformationMatrix_d, 16);
 	if (this->CurrentReferenceMask != NULL)
 		cudaCommon_allocateArrayToDevice<int>(&mask_d, referenceVoxels);
 	if (this->CurrentReference != NULL) {
@@ -64,7 +66,7 @@ _reg_blockMatchingParam* CudaContext::getBlockMatchingParams() {
 
 	cudaCommon_transferFromDeviceToCpu<float>(blockMatchingParams->resultPosition, &resultPosition_d, blockMatchingParams->activeBlockNumber * 3);
 	cudaCommon_transferFromDeviceToCpu<float>(blockMatchingParams->targetPosition, &targetPosition_d, blockMatchingParams->activeBlockNumber * 3);
-
+//	printf("Context definedActiveBlock: %d\n", blockMatchingParams->definedActiveBlock);
 	return blockMatchingParams;
 }
 
@@ -225,6 +227,8 @@ void CudaContext::downloadImage(nifti_image* image, float* memoryObject, bool fl
 
 void CudaContext::freeCuPtrs() {
 
+	if (this->transformationMatrix != NULL)
+		cudaCommon_free<float>(&transformationMatrix_d);
 	if (this->CurrentReference != NULL) {
 		cudaCommon_free<float>(&referenceImageArray_d);
 		cudaCommon_free<float>(&targetMat_d);

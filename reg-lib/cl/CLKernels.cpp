@@ -481,7 +481,7 @@ void CLBlockMatchingKernel::execute() {
 	clReleaseMemObject(definedBlock);
 
 
-	compare();
+//	compare();
 
 }
 //===========================

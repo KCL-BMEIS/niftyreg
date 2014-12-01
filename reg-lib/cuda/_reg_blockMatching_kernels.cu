@@ -21,15 +21,15 @@
 // The caller is supposed to ensure that the values are set
 
 // Number of blocks in each dimension
-__device__  __constant__ int3 c_BlockDim;
+__device__   __constant__ int3 c_BlockDim;
 __device__ __constant__ int c_StepSize;
-__device__  __constant__ uint3 c_ImageSize;
+__device__   __constant__ uint3 c_ImageSize;
 __device__ __constant__ float r1c1;
 
 // Transformation matrix from nifti header
-__device__  __constant__ float4 t_m_a;
-__device__  __constant__ float4 t_m_b;
-__device__  __constant__ float4 t_m_c;
+__device__   __constant__ float4 t_m_a;
+__device__   __constant__ float4 t_m_b;
+__device__   __constant__ float4 t_m_c;
 
 #define BLOCK_WIDTH 4
 #define BLOCK_SIZE 64
@@ -458,7 +458,7 @@ __device__ __inline__ unsigned long flatIdx(uint3 imgIdIn, uint3 imgSize) {
 	return imgIdIn.x + imgIdIn.y * (imgSize.x) + imgIdIn.z * (imgSize.x * imgSize.y);
 }
 
-__device__  __inline__ uint3 idx3D(unsigned int tid, uint3 blockSize) {
+__device__   __inline__ uint3 idx3D(unsigned int tid, uint3 blockSize) {
 	const unsigned int xy = (blockSize.x * blockSize.y);
 	const unsigned int idz = tid / xy;
 	const unsigned int idy = (tid - xy * idz) / blockSize.x;
@@ -498,7 +498,7 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 
 	//const bool is_7_21_11 = blockIdx.x == 7 && blockIdx.y == 21 && blockIdx.z == 11;
 //	bool b2_13_10 = blockIdx.x==2&&blockIdx.y==13&&blockIdx.z==10;
-	const bool targetIsBorder = (blockIdx.x == gridDim.x - 1) || (blockIdx.y == gridDim.y - 1) || (blockIdx.z == gridDim.z - 1);
+//	const bool targetIsBorder = (blockIdx.x == gridDim.x - 1) || (blockIdx.y == gridDim.y - 1) || (blockIdx.z == gridDim.z - 1);
 
 	const unsigned int idz = threadIdx.x / 16;
 	const unsigned int idy = (threadIdx.x - 16 * idz) / 4;
@@ -543,7 +543,7 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 					const int indexXYZIn = xImageIn + yImageIn * (c_ImageSize.x) + zImageIn * (c_ImageSize.x * c_ImageSize.y);
 
 					const bool valid = (xImageIn >= 0 && xImageIn < c_ImageSize.x) && (yImageIn >= 0 && yImageIn < c_ImageSize.y) && (zImageIn >= 0 && zImageIn < c_ImageSize.z);
-					sResultValues[sIdx] = (valid /*&& mask[indexXYZIn]>-1*/ ) ? tex1Dfetch(resultImageArray_texture, indexXYZIn) : nanf("sNaN");
+					sResultValues[sIdx] = (valid /*&& mask[indexXYZIn]>-1*/) ? tex1Dfetch(resultImageArray_texture, indexXYZIn) : nanf("sNaN");
 
 				}
 			}
@@ -551,91 +551,89 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 
 		//for most cases we need this out of th loop
 		//value if the block is 4x4x4 NaN otherwise
-		const float rTargetValue = (targetInBounds /*&& mask[imgIdx>-1]*/) ? tex1Dfetch(targetImageArray_texture, imgIdx) : nanf("sNaN");
-		const float targetMean = REDUCE(rTargetValue, tid) / 64;
-		const float targetTemp = rTargetValue - targetMean;
-		const float targetVar = REDUCE(targetTemp * targetTemp, tid);
+		float rTargetValue = (targetInBounds /*&& mask[imgIdx>-1]*/) ? tex1Dfetch(targetImageArray_texture, imgIdx) : nanf("sNaN");
+		const bool finiteTargetIntensity = isfinite(rTargetValue);
+		rTargetValue = finiteTargetIntensity ? rTargetValue : 0.f;
 
-		// iteration over the result blocks (block matching part)
-		for (unsigned int n = 1; n < 8; n += 1) {
-			const bool nBorder = (n < 4 && blockIdx.z == 0) || (n > 4 && blockIdx.z >= gridDim.z - 2);
-			for (unsigned int m = 1; m < 8; m += 1) {
-				const bool mBorder = (m < 4 && blockIdx.y == 0) || (m > 4 && blockIdx.y >= gridDim.y - 2);
-				for (unsigned int l = 1; l < 8; l += 1) {
+		const unsigned int targetBlockSize = __syncthreads_count(finiteTargetIntensity);
 
-					/*bool nIs_1_0_m3 = l == 1 + 4 && m == 0 + 4 && n == -3 + 4;
-					 bool nIs_1_0_m2 = l == 1 + 4 && m == 0 + 4 && n == -2 + 4;
+		if (targetBlockSize > 32) {
+			//the target values must remain constant throughout the block matching process
+			const float targetMean = REDUCE(rTargetValue, tid) / targetBlockSize;
+			const float targetTemp = finiteTargetIntensity ? rTargetValue - targetMean : 0.f;
+			const float targetVar = REDUCE(targetTemp * targetTemp, tid);
 
-					 bool condition1 = b2_13_10  && nIs_1_0_m3 && tid==0;
-					 bool condition2 = b2_13_10  && nIs_1_0_m2 && tid==0;*/
+			// iteration over the result blocks (block matching part)
+			for (unsigned int n = 1; n < 8; n += 1) {
+				for (unsigned int m = 1; m < 8; m += 1) {
+					for (unsigned int l = 1; l < 8; l += 1) {
 
-					const bool lBorder = (l < 4 && blockIdx.x == 0) || (l > 4 && blockIdx.x >= gridDim.x - 2);
+						/*bool nIs_1_0_m3 = l == 1 + 4 && m == 0 + 4 && n == -3 + 4;
+						 bool nIs_1_0_m2 = l == 1 + 4 && m == 0 + 4 && n == -2 + 4;
 
-					const unsigned int x = idx + l;
-					const unsigned int y = idy + m;
-					const unsigned int z = idz + n;
-					const unsigned int sIdxIn = z * 144 /*12*12*/+ y * 12 + x;
+						 bool condition1 = b2_13_10  && nIs_1_0_m3 && tid==0;
+						 bool condition2 = b2_13_10  && nIs_1_0_m2 && tid==0;*/
 
-					const float rResultValue = sResultValues[sIdxIn];
-					const bool overlap = isfinite(rResultValue) && targetInBounds;//both result and target pixels in bounds?
+						const unsigned int sIdxIn = (idz + n) * 144 /*12*12*/+ (idy + m) * 12 + idx + l;
+						const float rResultValue = sResultValues[sIdxIn];
+						const bool overlap = isfinite(rResultValue) && finiteTargetIntensity;		//both result and target pixels in bounds?
+						const unsigned int blockSize = __syncthreads_count(overlap);     //out
 
-					//number of overlapped voxels
-					const float currentPixel = overlap ? 1.0f : 0.0f;
-					const unsigned int bSize = (nBorder || mBorder || lBorder || targetIsBorder) ? REDUCE(currentPixel, tid) : 64;     //out
+						if (blockSize > 32) {
 
-					if (bSize > 32) {
+							//the target values must remain constant at each loop, so please do not touch this!
+							float newTargetTemp = targetTemp;
+							float newTargetVar = targetVar;
+							if (blockSize != targetBlockSize) {
 
-						float newTargetTemp = targetTemp;
-						float ttargetvar = targetVar;
-						if (bSize < 64) {
+								const float newTargetValue = overlap ? rTargetValue : 0.0f;
+								const float newTargetMean = REDUCE(newTargetValue, tid) / blockSize;
+								newTargetTemp = overlap ? newTargetValue - newTargetMean : 0.0f;
+								newTargetVar = REDUCE(newTargetTemp * newTargetTemp, tid);
+							}
 
-							const float tChecked = overlap ? rTargetValue : 0.0f;
-							const float ttargetMean = REDUCE(tChecked, tid) / bSize;
-							newTargetTemp = overlap ? tChecked - ttargetMean : 0.0f;
-							ttargetvar = REDUCE(newTargetTemp * newTargetTemp, tid);
-						}
+							const float rChecked = overlap ? rResultValue : 0.0f;
+							const float resultMean = REDUCE(rChecked, tid) / blockSize;
+							const float resultTemp = overlap ? rChecked - resultMean : 0.0f;
+							const float resultVar = REDUCE(resultTemp * resultTemp, tid);
 
-						const float rChecked = overlap ? rResultValue : 0.0f;
-						const float resultMean = REDUCE(rChecked, tid) / bSize;
-						const float resultTemp = overlap ? rResultValue - resultMean : 0.0f;
-						const float resultVar = REDUCE(resultTemp * resultTemp, tid);
+							const float sumTargetResult = REDUCE((newTargetTemp) * (resultTemp), tid);
+							const float localCC = fabs((sumTargetResult) / sqrtf(newTargetVar * resultVar));
 
-						const float sumTargetResult = REDUCE((newTargetTemp) * (resultTemp), tid);
-						const float localCC = fabs((sumTargetResult) / sqrtf(ttargetvar * resultVar));
+							/*if (condition1) printf("GPU -3 | sze: %d | TMN: %f | TVR: %f | RMN: %f |RVR %f | STR: %f | LCC: %f\n", bSize, targetMean, targetVar, resultMean, resultVar, sumTargetResult, localCC);
+							 if (condition2) printf("GPU -2 | sze: %d | TMN: %f | TVR: %f | RMN: %f |RVR %f | STR: %f | LCC: %f\n", bSize, targetMean, targetVar, resultMean, resultVar, sumTargetResult, localCC);
+							 */
+							if (tid == 0 && localCC > bestCC) {
+								bestCC = localCC;
+								bestDisplacement[0] = l - 4.0f;
+								bestDisplacement[1] = m - 4.0f;
+								bestDisplacement[2] = n - 4.0f;
+							}
 
-						/*if (condition1) printf("GPU -3 | sze: %d | TMN: %f | TVR: %f | RMN: %f |RVR %f | STR: %f | LCC: %f\n", bSize, targetMean, targetVar, resultMean, resultVar, sumTargetResult, localCC);
-						 if (condition2) printf("GPU -2 | sze: %d | TMN: %f | TVR: %f | RMN: %f |RVR %f | STR: %f | LCC: %f\n", bSize, targetMean, targetVar, resultMean, resultVar, sumTargetResult, localCC);
-						 */
-						if (tid == 0 && localCC > bestCC) {
-							bestCC = localCC;
-							bestDisplacement[0] = l - 4.0f;
-							bestDisplacement[1] = m - 4.0f;
-							bestDisplacement[2] = n - 4.0f;
-						}
-
-					}/*else if(tid==0)printf("bSize: %d\n", bSize);*/
+						}/*else if(tid==0)printf("bSize: %d\n", bSize);*/
+					}
 				}
 			}
-		}
 
-		if (tid == 0 && isfinite(bestDisplacement[0])) {
+			if (tid == 0 && isfinite(bestDisplacement[0])) {
 
 //			if (b2_13_10) printf("disp: %f-%f-%f\n", bestDisplacement[0],bestDisplacement[1], bestDisplacement[2]);
-			const unsigned int posIdx = 3 * atomicAdd(definedBlock, 1);
-			//printf("%d: %d \n", definedBlock[0], blockIndex);
-			resultPosition += posIdx;
-			targetPosition += posIdx;
+				const unsigned int posIdx = 3 * atomicAdd(definedBlock, 1);
+				//printf("%d: %d \n", definedBlock[0], blockIndex);
+				resultPosition += posIdx;
+				targetPosition += posIdx;
 
-			const float targetPosition_temp[3] = { xBaseImage, yBaseImage, zBaseImage };
+				const float targetPosition_temp[3] = { xBaseImage, yBaseImage, zBaseImage };
 
-			bestDisplacement[0] += targetPosition_temp[0];
-			bestDisplacement[1] += targetPosition_temp[1];
-			bestDisplacement[2] += targetPosition_temp[2];
+				bestDisplacement[0] += targetPosition_temp[0];
+				bestDisplacement[1] += targetPosition_temp[1];
+				bestDisplacement[2] += targetPosition_temp[2];
 
-			//float  tempPosition[3];
-			reg_mat44_mul_cuda<float>(targetMatrix_xyz, targetPosition_temp, targetPosition);
-			reg_mat44_mul_cuda<float>(targetMatrix_xyz, bestDisplacement, resultPosition);
+				//float  tempPosition[3];
+				reg_mat44_mul_cuda<float>(targetMatrix_xyz, targetPosition_temp, targetPosition);
+				reg_mat44_mul_cuda<float>(targetMatrix_xyz, bestDisplacement, resultPosition);
 
+			}
 		}
 	}
 
