@@ -1,42 +1,46 @@
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 	# Build the coverage test
+if(NOT MSVC)
 	option(WITH_COVERAGE "Set up the C, CXX and linker flags to run the coverage test" OFF)
 	if(WITH_COVERAGE)
 		set(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY_ONCE TRUE)
 		set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
-				"Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel."
-				FORCE)
-		set(CMAKE_C_FLAGS_DEBUG
-				"-g -O0 -Wall -W -fprofile-arcs -ftest-coverage"
-				CACHE STRING "Force the debug C flags for the coverage test" FORCE)
+			"Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel."
+			FORCE)
 		set(CMAKE_CXX_FLAGS_DEBUG
-				"-g -O0 -Wall -W -Wunused-variable -Wunused-parameter -Wunused-function -Wunused -Wno-system-headers -Wno-deprecated -Woverloaded-virtual -Wwrite-strings -fprofile-arcs -ftest-coverage"
-				CACHE STRING "Force the debug CXX flags for the coverage test" FORCE)
+			"-g -O0 -Wall -W -Wunused-variable -Wunused-parameter -Wunused-function -Wunused -Wno-system-headers -Wno-deprecated -Woverloaded-virtual -Wwrite-strings -fprofile-arcs -ftest-coverage"
+			CACHE STRING "Force the debug CXX flags for the coverage test" FORCE)
 		set(CMAKE_EXE_LINKER_FLAGS_DEBUG
-				"-fprofile-arcs -ftest-coverage"
-				CACHE STRING "Force the debug linker flags for the coverage test" FORCE)
+			"-fprofile-arcs -ftest-coverage"
+			CACHE STRING "Force the debug linker flags for the coverage test" FORCE)
 		set(BUILD_ALL_DEP ON CACHE BOOL "All the dependencies are build" FORCE)
 		configure_file(${CMAKE_SOURCE_DIR}/reg-test/CTestCustom.cmake.in
 									 ${CMAKE_BINARY_DIR}/CTestCustom.cmake)
 	endif(WITH_COVERAGE)
+endif(NOT MSVC)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
-	# Set the build name
+# Set the build name
+set(CTEST_BUILD_NAME "${CMAKE_SYSTEM}_${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}_cmake-${CMAKE_VERSION}_${CMAKE_BUILD_TYPE}")
+if(USE_SSE)
+	set(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}_sse")
+endif(USE_SSE)
+if(USE_OPENMP)
+	set(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}_openmp")
+endif(USE_OPENMP)
+if(USE_CUDA)
+	set(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}_cuda-${CUDA_VERSION}")
+endif(USE_CUDA)
+if(NOT MSVC)
 	unset(BUILDNAME CACHE)
-	set(CTEST_BUILD_NAME "${CMAKE_SYSTEM}_${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}_cmake-${CMAKE_VERSION}_${CMAKE_BUILD_TYPE}")
-	if(USE_SSE)
-		set(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}_sse")
-	endif(USE_SSE)
-	if(USE_OPENMP)
-		set(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}_openmp")
-	endif(USE_OPENMP)
-	if(USE_CUDA)
-		set(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}_cuda-${CUDA_VERSION}")
-	endif(USE_CUDA)
 	unset(BUILDNAME)
 	set(BUILDNAME ${CTEST_BUILD_NAME} CACHE STRING "Build name variable for CDash" FORCE)
-	mark_as_advanced(BUILDNAME)
+else(MSVC)
+	set(BUILDNAME ${CTEST_BUILD_NAME} CACHE STRING "Build name variable for CDash")
+	message(STATUS "The buildname might need manual editing")
+endif(NOT MSVC)
+mark_as_advanced(BUILDNAME)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 	# The test data are dowloaded

@@ -15,27 +15,25 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 
 #-----------------------------------------------------------------------------
-if(NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE "Release")
-endif(NOT CMAKE_BUILD_TYPE)
-set(CMAKE_C_FLAGS_RELEASE "-O3 -DNDEBUG")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
-#-----------------------------------------------------------------------------
-string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_tolower)
-if(NOT cmake_build_type_tolower STREQUAL "debug"
-	 AND NOT cmake_build_type_tolower STREQUAL "release"
-	 AND NOT cmake_build_type_tolower STREQUAL "relwithdebinfo")
-	message("Unknown build type \"${CMAKE_BUILD_TYPE}\".")
-	message(FATAL_ERROR "Allowed values are Debug, Release, RelWithDebInfo (case-insensitive).")
-endif(NOT cmake_build_type_tolower STREQUAL "debug"
-	 AND NOT cmake_build_type_tolower STREQUAL "release"
-	 AND NOT cmake_build_type_tolower STREQUAL "relwithdebinfo")
-if(cmake_build_type_tolower STREQUAL "debug")
-	set(DEBUG_MODE ON)
-elseif(cmake_build_type_tolower STREQUAL "release")
-	set(DEBUG_MODE OFF)
-endif(cmake_build_type_tolower STREQUAL "debug")
-
+if(NOT MSVC)
+	if(NOT CMAKE_BUILD_TYPE)
+		set(CMAKE_BUILD_TYPE "Release")
+	endif(NOT CMAKE_BUILD_TYPE)
+	string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_tolower)
+	if(NOT cmake_build_type_tolower STREQUAL "debug"
+		 AND NOT cmake_build_type_tolower STREQUAL "release"
+		 AND NOT cmake_build_type_tolower STREQUAL "relwithdebinfo")
+		message("Unknown build type \"${CMAKE_BUILD_TYPE}\".")
+		message(FATAL_ERROR "Allowed values are Debug, Release, RelWithDebInfo (case-insensitive).")
+	endif(NOT cmake_build_type_tolower STREQUAL "debug"
+		 AND NOT cmake_build_type_tolower STREQUAL "release"
+		 AND NOT cmake_build_type_tolower STREQUAL "relwithdebinfo")
+	if(cmake_build_type_tolower STREQUAL "debug")
+		set(DEBUG_MODE ON)
+	elseif(cmake_build_type_tolower STREQUAL "release")
+		set(DEBUG_MODE OFF)
+	endif(cmake_build_type_tolower STREQUAL "debug")
+endif(NOT MSVC)
 #-----------------------------------------------------------------------------
 set(NiftyReg_VERSION_MAJOR 1)
 set(NiftyReg_VERSION_MINOR 4)
@@ -148,8 +146,12 @@ endif(USE_DOUBLE)
 
 #-----------------------------------------------------------------------------
 if(USE_SSE)
-		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse")
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse")
+		if(MSVC)
+			add_definitions(/arch:SSE2)
+		else(MSVC)
+			set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse")
+			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse")
+		endif(MSVC)
 		add_definitions(-D_USE_SSE)
 endif(USE_SSE)
 
