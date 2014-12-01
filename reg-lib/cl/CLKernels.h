@@ -21,6 +21,7 @@ public:
 	~CLAffineDeformationFieldKernel();
 
 	void execute(bool compose = false);
+	void compare( bool compose, nifti_image*refDef);
 
 	mat44 *affineTransformation, *targetMatrix;
 	nifti_image *deformationFieldImage;
@@ -41,6 +42,7 @@ public:
 
 	CLBlockMatchingKernel(Context* conIn, std::string name);
 	~CLBlockMatchingKernel();
+	void compare();
 	void execute();
 
 	CLContextSingletton* sContext;
@@ -100,6 +102,7 @@ public:
 	cl_mem clCurrentFloating, clCurrentDeformationField, clCurrentWarped, clMask, floMat;
 
 	void execute(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
+	void compare( int interp,float paddingValue);
 };
 
 #endif

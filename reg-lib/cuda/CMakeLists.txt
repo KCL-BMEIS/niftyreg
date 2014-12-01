@@ -95,6 +95,7 @@ CUDA_ADD_LIBRARY(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	CudaKernels.cpp
 	CudaPlatform.cpp
 	
+	#for debugging
 	../cpu/_reg_resampling.cpp
 	../cpu/_reg_globalTransformation.cpp
 )

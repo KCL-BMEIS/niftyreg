@@ -9,7 +9,7 @@ ClContext::~ClContext() {
 void ClContext::allocateClPtrs() {
 
 	if (this->CurrentWarped != NULL) {
-		warpedImageClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, this->CurrentWarped->nvox * sizeof(float), this->CurrentWarped->data, &errNum);
+		warpedImageClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, this->CurrentWarped->nvox * sizeof(float), this->CurrentWarped->data, &errNum);
 		sContext->checkErrNum(errNum, "failed CurrentWarped: ");
 	}
 
@@ -177,7 +177,7 @@ void ClContext::downloadImage(nifti_image* image, cl_mem memoryObject, cl_mem_fl
 }
 
 nifti_image* ClContext::getCurrentWarped(int datatype) {
-
+	std::cout<<"get Warped1!"<<std::endl;
 	downloadImage(this->CurrentWarped, warpedImageClmem, CL_TRUE, datatype, "warpedImageClmem");
 	return this->CurrentWarped;
 }

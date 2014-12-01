@@ -583,7 +583,6 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 					const float currentPixel = overlap ? 1.0f : 0.0f;
 					const unsigned int bSize = (nBorder || mBorder || lBorder || targetIsBorder) ? REDUCE(currentPixel, tid) : 64;     //out
 
-
 					if (bSize > 32) {
 
 						float newTargetTemp = targetTemp;

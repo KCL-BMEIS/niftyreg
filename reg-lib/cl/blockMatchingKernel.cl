@@ -137,10 +137,13 @@ __kernel void blockMatchingKernel3(__global float* resultImageArray, __global fl
         }
         
         
-        const float rTargetValue = targetInBounds ? targetImageArray[imgIdx] : 0.0f;
-        const float targetMean = reduceCustom2(sData,rTargetValue, tid) / 64;
+        float rTargetValue = targetInBounds ? targetImageArray[imgIdx] : NAN;
+        const bool finiteTarget = isfinite(rTargetValue);
+        const unsigned int targetSize = reduceCustom2(sData,finiteTarget?1.0f:0.0f, tid);
+        rTargetValue = finiteTarget? rTargetValue:0.0f;
+        const float targetMean = reduceCustom2(sData,rTargetValue, tid) / targetSize;
 //        if (targetMean-sData[0]/64 != 0)printf("tid: %d | %f-%f\n", tid,targetMean, sData[0]/64);
-        const float targetTemp = targetInBounds ? rTargetValue - targetMean:0.0f;
+        const float targetTemp = finiteTarget ? rTargetValue - targetMean:0.0f;
         const float targetVar = reduceCustom2(sData,targetTemp*targetTemp, tid);
 //        if (targetVar-sData[0] != 0)printf("tid: %d | %f-%f\n", tid,targetVar, sData[0]);
         float bestDisplacement[3] = { NAN,0.0f,0.0f };
@@ -149,15 +152,10 @@ __kernel void blockMatchingKernel3(__global float* resultImageArray, __global fl
         // iteration over the result blocks
         for (unsigned int n = 1; n < 8; n += 1)
         {
-            const bool nBorder = (n < 4 && get_group_id(2) == 0) || (n>4 && get_group_id(2) >= get_num_groups(2) - 2);
             for (unsigned int m = 1; m < 8; m += 1)
             {
-                const bool mBorder = (m < 4 && get_group_id(1) == 0) || (m>4 && get_group_id(1) >= get_num_groups(1) - 2);
                 for (unsigned int l = 1; l < 8; l += 1)
                 {
-                    
-                    
-                    const bool lBorder = (l < 4 && get_group_id(0) == 0) || (l>4 && get_group_id(0) >= get_num_groups(0) - 2);
                     
                     const unsigned int x = idx + l;
                     const unsigned int y = idy + m;
@@ -166,18 +164,15 @@ __kernel void blockMatchingKernel3(__global float* resultImageArray, __global fl
                     const unsigned int sIdxIn = z * 144 /*12*12*/ + y * 12 + x;
                     
                     const float rResultValue = sResultValues[sIdxIn];
-                    const bool overlap = isfinite(rResultValue) && targetInBounds;
-                    //					const unsigned int bSize = (nBorder || mBorder || lBorder || border) ? countNans(rResultValue, tid, targetInBounds) : 64;//out
-                    const float val = overlap?1.0f:0.0f;
-                    const unsigned int bSize = (nBorder || mBorder || lBorder || border) ? (unsigned int)reduceCustom2( sData, val, tid) : 64;//out
-//                     if ((nBorder || mBorder || lBorder || border) && ((float)bSize-sData[0]) != 0)printf("bSize tid: %d | %d-%f\n", tid,bSize, sData[0]);
-                    
+                    const bool overlap = isfinite(rResultValue) && finiteTarget;
+                    const unsigned int bSize = reduceCustom2( sData, overlap?1.0f:0.0f, tid);
+
                     if (bSize > 32 ){
                         
-                        const float rChecked = overlap ? rResultValue : 0.0f;
+                        
                         float newTargetTemp = targetTemp;
                         float ttargetvar = targetVar;
-                        if (bSize < 64){
+                        if (bSize < 64 && bSize != targetSize){
                             
                             const float tChecked = overlap ? rTargetValue : 0.0f;
                             const float ttargetMean = reduceCustom2( sData, tChecked, tid) / bSize;
@@ -187,6 +182,7 @@ __kernel void blockMatchingKernel3(__global float* resultImageArray, __global fl
 //                            if (ttargetvar-sData[0] != 0)printf("ttargetvar tid: %d | %f-%f\n", tid,ttargetvar, sData[0]);
                         }
                         
+                        const float rChecked = overlap ? rResultValue : 0.0f;
                         const float resultMean = reduceCustom2( sData, rChecked, tid) / bSize;
 //                        if (resultMean-sData[0]/bSize != 0)printf("resultMean tid: %d | %f-%f\n", tid,resultMean, sData[0]/bSize);
                         const float resultTemp = overlap ? rResultValue - resultMean : 0.0f;
@@ -195,7 +191,7 @@ __kernel void blockMatchingKernel3(__global float* resultImageArray, __global fl
                         const float sumTargetResult = reduceCustom2( sData, (newTargetTemp)*(resultTemp), tid);
 //                        if (sumTargetResult-sData[0] != 0)printf("sumTargetResult tid: %d | %f-%f\n", tid,sumTargetResult, sData[0]);
                         const float localCC = fabs((sumTargetResult) / sqrt(ttargetvar*resultVar));
-                        
+//                        if(get_group_id(0)==5 && get_group_id(1)==7 && get_group_id(2)==3 && tid==0)printf("%d: %f-%f-%f\n",targetInBounds, sumTargetResult, ttargetvar, resultVar);
                         
                         if (tid == 0 && localCC > bestCC) {
                             bestCC = localCC;
@@ -203,7 +199,7 @@ __kernel void blockMatchingKernel3(__global float* resultImageArray, __global fl
                             bestDisplacement[1] = m - 4.0f;
                             bestDisplacement[2] = n - 4.0f;
                         }
-                        
+//                       if(get_group_id(0)==5 && get_group_id(1)==7 && get_group_id(2)==3 && tid==0)printf("ocl: %d-%d-%d | sze: %d | localcc: %f \n",l-4,m-4,  n-4,  bSize,localCC);
                     }
                 }
             }

@@ -714,6 +714,7 @@ void block_matching_method3D(nifti_image * target,
                               bestDisplacement[1] = (float)m;
                               bestDisplacement[2] = (float)n;
                            }
+//                           if(i==5 && j==7 && k==3 && tid==0) printf("cpu: %d-%d-%d | sze: %f | localcc: %f \n",l,m, n,  voxelNumber,localCC);
                         }
                      }
                   }

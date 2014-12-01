@@ -148,7 +148,7 @@ __inline__ __device__ double interpLoop(float* floatingIntensity, double* xBasis
 			double xTempNewValue = 0.0;
 			for (int a = 0; a < kernel_size; a++) {
 				int X = previous[0] + a;
-				bool xInBounds = -1 < X && (X + a) < fi_xyz.x;
+				bool xInBounds = -1 < X && X  < fi_xyz.x;
 				const unsigned int idx = Z * fi_xyz.x * fi_xyz.y + Y * fi_xyz.x + X;
 				xTempNewValue += (xInBounds && yInBounds && zInBounds) ? floatingIntensity[idx] * xBasis[a] : paddingValue * xBasis[a];
 			}

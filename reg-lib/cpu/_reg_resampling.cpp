@@ -471,7 +471,6 @@ void ResampleImage3D(nifti_image *floatingImage,
                intensity += yTempNewValue * zBasis[c];
             }
          }
-//         if (index == 78852 || index == 94278) printf("idx: %lu | intensity: %f | prev: (%d-%d-%d) | world: (%f-%f-%f)\n", index, intensity, previous[0], previous[1], previous[2],world[0], world[1], world[2]);
 
          switch(floatingImage->datatype)
          {

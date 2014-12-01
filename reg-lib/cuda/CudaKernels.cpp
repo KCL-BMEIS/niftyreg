@@ -2,8 +2,10 @@
 #include "CudaKernelFuncs.h"
 #include "_reg_tools.h"
 
+//debugging
 #include"_reg_resampling.h"
 #include"_reg_globalTransformation.h"
+//----
 
 //------------------------------------------------------------------------------------------------------------------------
 //..................CudaConvolutionKernel----------------------------------------------------------------------------------
