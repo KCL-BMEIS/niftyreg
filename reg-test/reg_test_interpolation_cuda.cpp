@@ -93,6 +93,7 @@ int main(int argc, char **argv) {
 	free(tempMask);
 	delete con;
 
+//	std::cout<<"max diff: "<<max_difference<<std::endl;
 	if (max_difference > EPS) {
 		fprintf(stderr, "reg_test_interpolation_cuda error too large: %g (>%g)\n", max_difference, EPS);
 		return EXIT_FAILURE;

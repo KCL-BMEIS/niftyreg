@@ -58,6 +58,9 @@ public:
 	float* getWarpedImageArray_d() {
 		return warpedImageArray_d;
 	}
+	float* getTransformationMatrix_d() {
+		return transformationMatrix_d;
+	}
 
 	float* getTargetPosition_d() {
 		return targetPosition_d;
@@ -115,6 +118,8 @@ private:
 	float *targetPosition_d;
 	float *resultPosition_d;
 	int *activeBlock_d, *mask_d;
+
+	float* transformationMatrix_d;
 	float* targetMat_d;
 	float* floIJKMat_d;
 
