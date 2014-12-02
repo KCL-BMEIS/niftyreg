@@ -84,7 +84,7 @@ __kernel void blockMatchingKernel3(__global float* resultImageArray, __global fl
     __local float sResultValues[12 * 12 * 12];
     __local float sData[64];
     
-    const bool border = (get_group_id(0) == get_num_groups(0) - 1 )|| (get_group_id(1) == get_num_groups(1) - 1 )|| (get_group_id(2) == get_num_groups(2) - 1);
+//    const bool border = (get_group_id(0) == get_num_groups(0) - 1 )|| (get_group_id(1) == get_num_groups(1) - 1 )|| (get_group_id(2) == get_num_groups(2) - 1);
     
     const unsigned int idx = get_local_id(0) ;
     const unsigned int idy = get_local_id(1) ;

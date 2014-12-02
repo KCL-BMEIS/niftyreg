@@ -21,7 +21,7 @@ public:
 	~CLAffineDeformationFieldKernel();
 
 	void execute(bool compose = false);
-	void compare( bool compose, nifti_image*refDef);
+	void compare( bool compose, float* refDef);
 
 	mat44 *affineTransformation, *targetMatrix;
 	nifti_image *deformationFieldImage;
