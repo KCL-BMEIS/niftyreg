@@ -72,22 +72,28 @@ CLAffineDeformationFieldKernel::~CLAffineDeformationFieldKernel() {
 //	std::cout<<"done releasing CLAffineDeformationFieldKernel"<<std::endl;
 }
 
-void CLAffineDeformationFieldKernel::compare(bool compose, nifti_image*refDef) {
+void CLAffineDeformationFieldKernel::compare(bool compose, float* cpuDataAr) {
 
-	nifti_image* defField = con->getCurrentDeformationField();
-	mat44* transMat = con->transformationMatrix;
-	int* mask = con->CurrentReferenceMask;
+	nifti_image* gpuField = con->getCurrentDeformationField();
+	float* gpuData = static_cast<float*>(gpuField->data);
 
-	reg_affine_getDeformationField(transMat, defField, compose, mask);
+	nifti_image *cpuField = nifti_copy_nim_info(gpuField);
+	cpuField->data = (void *) malloc(gpuField->nvox * gpuField->nbyper);
+
+	float*cpuData = static_cast<float*>(cpuField->data);
+	for (int i = 0; i < cpuField->nvox; ++i) {
+		cpuData[i] = cpuDataAr[i];
+	}
+
+	reg_affine_getDeformationField(con->transformationMatrix, cpuField, compose, con->CurrentReferenceMask);
+	cpuData = static_cast<float*>(cpuField->data);
 
 	int count = 0;
-	float* cpuData = static_cast<float*>(defField->data);
-	float* gpuData = static_cast<float*>(refDef->data);
+	float threshold = 0.000001f;
 
-	std::cout << "cpu nvox: " << defField->nvox << " | cuda nvox: " << refDef->nvox << std::endl;
-	for (unsigned long i = 0; i < defField->nvox; i++) {
-		if (cpuData[i] != gpuData[i]) {
-			printf("cpu: %f | gpu: %f\n", cpuData[i], gpuData[i]);
+	for (unsigned long i = 0; i < gpuField->nvox; i++) {
+		if (abs(cpuData[i] - gpuData[i]) > threshold) {
+//			printf("i: %d | cpu: %f | gpu: %f\n",i, cpuData[i], gpuData[i]);
 			count++;
 		}
 	}
@@ -99,7 +105,15 @@ void CLAffineDeformationFieldKernel::compare(bool compose, nifti_image*refDef) {
 
 void CLAffineDeformationFieldKernel::execute(bool compose) {
 
-	nifti_image* def = con->getCurrentDeformationField();
+	/*nifti_image* def = con->getCurrentDeformationField();
+	float* data = static_cast<float*>(def->data);
+	float* a = (float*) malloc(def->nvox * sizeof(float));
+	for (int i = 0; i < def->nvox; ++i) {
+		a[i] = data[i];
+	}*/
+
+	con->setCurrentDeformationField(con->CurrentDeformationField);
+
 	const unsigned int xThreads = 8;
 	const unsigned int yThreads = 8;
 	const unsigned int zThreads = 8;
@@ -135,14 +149,12 @@ void CLAffineDeformationFieldKernel::execute(bool compose) {
 	cl_uint composition = compose;
 	errNum = clSetKernelArg(this->kernel, 0, sizeof(cl_mem), &cltransMat);
 	sContext->checkErrNum(errNum, "Error setting cltransMat.");
-
+	errNum |= clSetKernelArg(this->kernel, 1, sizeof(cl_mem), &this->clDeformationField);
+	sContext->checkErrNum(errNum, "Error setting clDeformationField.");
 	errNum |= clSetKernelArg(this->kernel, 3, sizeof(cl_uint3), &pms_d);
 	sContext->checkErrNum(errNum, "Error setting kernel arguments.");
 	errNum |= clSetKernelArg(this->kernel, 4, sizeof(cl_uint), &composition);
 	sContext->checkErrNum(errNum, "Error setting kernel arguments.");
-
-	errNum |= clSetKernelArg(this->kernel, 1, sizeof(cl_mem), &this->clDeformationField);
-	sContext->checkErrNum(errNum, "Error setting clDeformationField.");
 
 	const cl_uint dims = 3;
 
@@ -154,7 +166,9 @@ void CLAffineDeformationFieldKernel::execute(bool compose) {
 	clFinish(commandQueue);
 	free(trans);
 	clReleaseMemObject(cltransMat);
-//	compare(compose, def);
+//	compare(compose, a);
+	con->getCurrentDeformationField();
+//	free(a);
 
 	return;
 }
@@ -198,7 +212,7 @@ void CLResampleImageKernel::compare(int interp, float paddingValue) {
 	nifti_image* cWar = con->CurrentWarped;
 	reg_resampleImage(con->CurrentFloating, cWar, def, con->CurrentReferenceMask, interp, paddingValue, NULL, NULL);
 	float* cpuData2 = static_cast<float*>(cWar->data);
-	float* cpuData = (float*)malloc(cWar->nvox*sizeof(float));
+	float* cpuData = (float*) malloc(cWar->nvox * sizeof(float));
 	for (int i = 0; i < cWar->nvox; ++i) {
 		cpuData[i] = cpuData2[i];
 	}
@@ -209,13 +223,13 @@ void CLResampleImageKernel::compare(int interp, float paddingValue) {
 
 	const float threshold = 0.000010;
 	for (unsigned long i = 0; i < cWar->nvox; i++) {
-		if (abs(cpuData[i] - gpuData[i])> threshold) {
-			printf("i: %d | cpu: %f | gpu: %f\n",i, cpuData[i], gpuData[i]);
+		if (abs(cpuData[i] - gpuData[i]) > threshold) {
+			printf("i: %d | cpu: %f | gpu: %f\n", i, cpuData[i], gpuData[i]);
 			count++;
 		}
 	}
 
-	std::cout << count << " targets have no match" << std::endl;
+	std::cout << count << "Resample: targets have no match" << std::endl;
 	if (count > 0)
 		exit(0);
 
@@ -310,8 +324,8 @@ void CLResampleImageKernel::execute(int interp, float paddingValue, bool *dti_ti
 void CLBlockMatchingKernel::compare() {
 	nifti_image* referenceImage = con->CurrentReference;
 	nifti_image* warpedImage = con->getCurrentWarped(16);
-	int* mask =con->getCurrentReferenceMask();
-   _reg_blockMatchingParam *refParams =  con->getBlockMatchingParams();
+	int* mask = con->getCurrentReferenceMask();
+	_reg_blockMatchingParam *refParams = con->getBlockMatchingParams();
 	_reg_blockMatchingParam *cpu = new _reg_blockMatchingParam();
 	initialise_block_matching_method(referenceImage, cpu, 50, 50, 1, mask, false);
 	block_matching_method(referenceImage, warpedImage, cpu, mask);
@@ -383,7 +397,7 @@ void CLBlockMatchingKernel::compare() {
 		 maxResultDiff = (resultDiff > maxResultDiff) ? resultDiff : maxResultDiff;*/
 	}
 
-	std::cout << count << " targets have no match" << std::endl;
+	std::cout << count << "BM targets have no match" << std::endl;
 	if (count > 0)
 		exit(0);
 }
@@ -479,7 +493,6 @@ void CLBlockMatchingKernel::execute() {
 
 	free(definedBlock_h);
 	clReleaseMemObject(definedBlock);
-
 
 //	compare();
 
