@@ -242,8 +242,9 @@ public:
       funcProgressCallback = funcProgCallback;
       paramsProgressCallback = paramsProgCallback;
    }
-private:
    Context *con;
+private:
+
    Kernel* affineTransformation3DKernel, *blockMatchingKernel, *optimiseKernel, *resamplingKernel;
 
 };

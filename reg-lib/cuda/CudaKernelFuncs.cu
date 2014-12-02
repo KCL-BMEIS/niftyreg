@@ -266,9 +266,9 @@ __global__ void affineKernel(float* transformationMatrix, float* defField, int* 
 		/* the deformation field (real coordinates) is stored */
 
 //		if (index == 978302 ) printf("%d-%d-%d\n",x, y, z);
-		deformationFieldPtrX[index] = getPosition(transformationMatrix, voxel, 0);
-		deformationFieldPtrY[index] = getPosition(transformationMatrix, voxel, 1);
-		deformationFieldPtrZ[index] = getPosition(transformationMatrix, voxel, 2);
+		deformationFieldPtrX[index] = (float)getPosition(transformationMatrix, voxel, 0);
+		deformationFieldPtrY[index] = (float)getPosition(transformationMatrix, voxel, 1);
+		deformationFieldPtrZ[index] = (float)getPosition(transformationMatrix, voxel, 2);
 
 //		if (index == 978302 ) printf("x: %f | val: %f\n",voxel[0], deformationFieldPtrX[index]);
 //		if (index == 978302 ) printf("y: %f | val: %f\n",voxel[1], deformationFieldPtrY[index]);

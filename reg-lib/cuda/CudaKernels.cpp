@@ -34,7 +34,6 @@ CudaAffineDeformationFieldKernel::CudaAffineDeformationFieldKernel(Context* conI
 
 void CudaAffineDeformationFieldKernel::execute(bool compose) {
 //	reg_affine_getDeformationField(con->transformationMatrix, con->CurrentDeformationField, compose, con->CurrentReferenceMask);
-	this->affineTransformation = con->transformationMatrix;
 	launchAffine(this->affineTransformation, this->deformationFieldImage, &deformationFieldArray_d, &mask_d,&transformationMatrix_d, compose);
 //	con->setCurrentDeformationField(con->CurrentDeformationField);
 }
@@ -160,8 +159,8 @@ void CudaBlockMatchingKernel::compare(nifti_image *referenceImage,nifti_image *w
 void CudaBlockMatchingKernel::execute() {
 
 //	con->setCurrentWarped(con->CurrentWarped);
-//	launchBlockMatching(target, params, &targetImageArray_d, &resultImageArray_d, &targetPosition_d, &resultPosition_d, &activeBlock_d, &mask_d, &targetMat_d);
-	block_matching_method(con->CurrentReference, con->getCurrentWarped(16), con->blockMatchingParams, con->CurrentReferenceMask);
+	launchBlockMatching(target, params, &targetImageArray_d, &resultImageArray_d, &targetPosition_d, &resultPosition_d, &activeBlock_d, &mask_d, &targetMat_d);
+//	block_matching_method(con->CurrentReference, con->getCurrentWarped(16), con->blockMatchingParams, con->CurrentReferenceMask);
 }
 //===================================================================================================================================================================
 CudaOptimiseKernel::CudaOptimiseKernel(Context* conIn, std::string name) :
@@ -174,7 +173,7 @@ CudaOptimiseKernel::CudaOptimiseKernel(Context* conIn, std::string name) :
 
 void CudaOptimiseKernel::execute(bool affine) {
 
-//	this->blockMatchingParams = con->getBlockMatchingParams();
+	this->blockMatchingParams = con->getBlockMatchingParams();
 	optimize(this->blockMatchingParams, con->transformationMatrix, affine);
 }
 

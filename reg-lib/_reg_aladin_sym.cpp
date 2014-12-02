@@ -370,8 +370,14 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
                AFFINE);
    }*/
    // Update now the backward transformation matrix
-	bBlockMatchingKernel->castTo<BlockMatchingKernel>()->execute();//watch the trans matrix!!!!!!
+	bBlockMatchingKernel->castTo<BlockMatchingKernel>()->execute();
 	bOptimiseKernel->castTo<OptimiseKernel>()->execute(type);
+
+#ifndef NDEBUG
+   reg_mat44_disp(this->con->transformationMatrix, (char *)"[DEBUG] Pre average forward transformation matrix");
+   reg_mat44_disp(backCon->transformationMatrix, (char *)"[DEBUG] Pre average backward transformation matrix");
+#endif
+
   /* block_matching_method(this->CurrentFloating,
                          this->CurrentBackwardWarped,
                          &this->BackwardBlockMatchingParams,
@@ -389,26 +395,21 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
                AFFINE);
    }*/
    // Forward and backward matrix are inverted
-   mat44 fInverted = nifti_mat44_inverse(*(this->TransformationMatrix));
-   mat44 bInverted = nifti_mat44_inverse(*(this->BackwardTransformationMatrix));
-
+   mat44 fInverted = nifti_mat44_inverse(*(this->con->transformationMatrix));
+   mat44 bInverted = nifti_mat44_inverse(*(backCon->transformationMatrix));
    // We average the forward and inverted backward matrix
-   *(this->TransformationMatrix)=reg_mat44_avg2(this->TransformationMatrix,
-                                                &bInverted
-                                                );
+   *(this->TransformationMatrix)=reg_mat44_avg2(this->con->transformationMatrix, &bInverted);
    // We average the inverted forward and backward matrix
-   *(this->BackwardTransformationMatrix)=reg_mat44_avg2(&fInverted,
-                                                        this->BackwardTransformationMatrix
-                                                        );
+   *(this->BackwardTransformationMatrix)=reg_mat44_avg2(&fInverted, backCon->transformationMatrix);
    for(int i=0;i<3;++i){
-      this->TransformationMatrix->m[3][i]=0.f;
-      this->BackwardTransformationMatrix->m[3][i]=0.f;
+   	this->con->transformationMatrix->m[3][i]=0.f;
+   	backCon->transformationMatrix->m[3][i]=0.f;
    }
-   this->TransformationMatrix->m[3][3]=1.f;
-   this->BackwardTransformationMatrix->m[3][3]=1.f;
+   this->con->transformationMatrix->m[3][3]=1.f;
+   backCon->transformationMatrix->m[3][3]=1.f;
 #ifndef NDEBUG
-   reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] updated forward transformation matrix");
-   reg_mat44_disp(this->BackwardTransformationMatrix, (char *)"[DEBUG] updated backward transformation matrix");
+   reg_mat44_disp(this->con->transformationMatrix, (char *)"[DEBUG] updated forward transformation matrix");
+   reg_mat44_disp(backCon->transformationMatrix, (char *)"[DEBUG] updated backward transformation matrix");
 #endif
 }
 

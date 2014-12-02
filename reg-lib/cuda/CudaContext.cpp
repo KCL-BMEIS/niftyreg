@@ -64,8 +64,8 @@ nifti_image* CudaContext::getCurrentDeformationField() {
 }
 _reg_blockMatchingParam* CudaContext::getBlockMatchingParams() {
 
-	cudaCommon_transferFromDeviceToCpu<float>(blockMatchingParams->resultPosition, &resultPosition_d, blockMatchingParams->activeBlockNumber * 3);
-	cudaCommon_transferFromDeviceToCpu<float>(blockMatchingParams->targetPosition, &targetPosition_d, blockMatchingParams->activeBlockNumber * 3);
+	cudaCommon_transferFromDeviceToCpu<float>(blockMatchingParams->resultPosition, &resultPosition_d, blockMatchingParams->definedActiveBlock * 3);
+	cudaCommon_transferFromDeviceToCpu<float>(blockMatchingParams->targetPosition, &targetPosition_d, blockMatchingParams->definedActiveBlock * 3);
 //	printf("Context definedActiveBlock: %d\n", blockMatchingParams->definedActiveBlock);
 	return blockMatchingParams;
 }
@@ -104,8 +104,8 @@ void CudaContext::downloadFromCudaContext() {
 }
 void CudaContext::uploadContext() {
 
-	if (this->CurrentDeformationField != NULL)
-		cudaCommon_transferFromDeviceToNiftiSimple<float>(&deformationFieldArray_d, this->CurrentDeformationField);
+	/*if (this->CurrentDeformationField != NULL)
+		cudaCommon_transferFromDeviceToNiftiSimple<float>(&deformationFieldArray_d, this->CurrentDeformationField);*/
 
 	if (this->CurrentReferenceMask != NULL)
 		cudaCommon_transferFromDeviceToNiftiSimple1<int>(&mask_d, this->CurrentReferenceMask, referenceVoxels);
@@ -119,8 +119,8 @@ void CudaContext::uploadContext() {
 		free(targetMat);
 	}
 
-	if (this->CurrentWarped != NULL)
-		cudaCommon_transferFromDeviceToNiftiSimple<float>(&warpedImageArray_d, this->CurrentWarped);
+	/*if (this->CurrentWarped != NULL)
+		cudaCommon_transferFromDeviceToNiftiSimple<float>(&warpedImageArray_d, this->CurrentWarped);*/
 
 	if (this->CurrentFloating != NULL) {
 		cudaCommon_transferFromDeviceToNiftiSimple<float>(&floatingImageArray_d, this->CurrentFloating);
@@ -134,8 +134,8 @@ void CudaContext::uploadContext() {
 	}
 
 	if (this->blockMatchingParams != NULL) {
-		cudaCommon_transferFromDeviceToNiftiSimple1<float>(&targetPosition_d, blockMatchingParams->targetPosition, blockMatchingParams->activeBlockNumber * 3);
-		cudaCommon_transferFromDeviceToNiftiSimple1<float>(&resultPosition_d, blockMatchingParams->resultPosition, blockMatchingParams->activeBlockNumber * 3);
+		/*cudaCommon_transferFromDeviceToNiftiSimple1<float>(&targetPosition_d, blockMatchingParams->targetPosition, blockMatchingParams->activeBlockNumber * 3);
+		cudaCommon_transferFromDeviceToNiftiSimple1<float>(&resultPosition_d, blockMatchingParams->resultPosition, blockMatchingParams->activeBlockNumber * 3);*/
 		cudaCommon_transferFromDeviceToNiftiSimple1<int>(&activeBlock_d, blockMatchingParams->activeBlock, numBlocks);
 	}
 }
