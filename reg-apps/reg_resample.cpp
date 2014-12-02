@@ -619,24 +619,26 @@ int main(int argc, char **argv)
          origDefFieldImage->data = (void *)calloc(origDefFieldImage->nvox, origDefFieldImage->nbyper);
          reg_getDeformationFromDisplacement(origDefFieldImage);
          // The high resolution warped image is resampled into the low resolution warped image
-          if(param->interpolation>0){
-         reg_resampleImage(warpedImage,
-                           origWarpedImage,
-                           origDefFieldImage,
-                           NULL,
-                           1, // linear interpolation
-                           0 // padding value set to 0 since field of view are aligned
-                           );
-          }else{
-              reg_resampleImage(warpedImage,
-                                origWarpedImage,
-                                origDefFieldImage,
-                                NULL,
-                                0, // Nearest Neighbour
-                                0 // padding value set to 0 since field of view are aligned
-                                );
+         if(param->interpolation>0){
+            reg_resampleImage(warpedImage,
+                              origWarpedImage,
+                              origDefFieldImage,
+                              NULL,
+                              1, // linear interpolation
+                              0 // padding value set to 0 since field of view are aligned
+                              );
+         }
+         else
+         {
+            reg_resampleImage(warpedImage,
+                              origWarpedImage,
+                              origDefFieldImage,
+                              NULL,
+                              0, // Nearest Neighbour
+                              0 // padding value set to 0 since field of view are aligned
+                              );
 
-          }
+         }
          memset(origWarpedImage->descrip, 0, 80);
          strcpy (origWarpedImage->descrip,"Warped image using NiftyReg (reg_resample)");
          reg_io_WriteImageFile(origWarpedImage,param->outputResultName);
