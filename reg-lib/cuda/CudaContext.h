@@ -5,94 +5,32 @@
 class CudaContext: public Context {
 
 public:
-	CudaContext() {
-		//std::cout << "Cuda context constructor called(empty)" << std::endl;
-
-		initVars();
-		allocateCuPtrs();
-		uploadContext();
-	}
-	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep) :
-			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, sizeof(float), blockPercentage, inlierLts, blockStep) {
-//		std::cout<<"Cuda Context Constructor Init"<<std::endl;
-		initVars();
-		allocateCuPtrs();
-		uploadContext();
-//		std::cout<<"Cuda Context Constructor End"<<std::endl;
-
-	}
-	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte) :
-			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, sizeof(float)) {
-//		std::cout<<"Cuda Context Constructor Init"<<std::endl;
-		initVars();
-		allocateCuPtrs();
-		uploadContext();
-//		std::cout<<"Cuda Context Constructor End"<<std::endl;
-	}
-
-	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep) :
-			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, transMat, sizeof(float), blockPercentage, inlierLts, blockStep) {
-		//		std::cout<<"Cuda Context Constructor Init"<<std::endl;
-		initVars();
-		allocateCuPtrs();
-		uploadContext();
-		//		std::cout<<"Cuda Context Constructor End"<<std::endl;
-
-	}
-	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte) :
-			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, transMat, sizeof(float)) {
-		//		std::cout<<"Cuda Context Constructor Init"<<std::endl;
-		initVars();
-		allocateCuPtrs();
-		uploadContext();
-		//		std::cout<<"Cuda Context Constructor End"<<std::endl;
-	}
+	CudaContext();
+	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep);
+	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte);
+	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep);
+	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte);
 	~CudaContext();
 
-	float* getReferenceImageArray_d() {
-		return referenceImageArray_d;
-	}
-	float* getFloatingImageArray_d() {
-		return floatingImageArray_d;
-	}
-	float* getWarpedImageArray_d() {
-		return warpedImageArray_d;
-	}
-	float* getTransformationMatrix_d() {
-		return transformationMatrix_d;
-	}
+	//device getters
+	float* getReferenceImageArray_d();
+	float* getFloatingImageArray_d();
+	float* getWarpedImageArray_d();
+	float* getTransformationMatrix_d();
+	float* getTargetPosition_d();
+	float* getResultPosition_d();
+	float* getDeformationFieldArray_d();
+	float* getTargetMat_d();
+	float* getFloIJKMat_d();
+	int* getActiveBlock_d();
+	int* getMask_d();
 
-	float* getTargetPosition_d() {
-		return targetPosition_d;
-	}
-	float* getResultPosition_d() {
-		return resultPosition_d;
-	}
-	float* getDeformationFieldArray_d() {
-		return deformationFieldArray_d;
-	}
-	float* getTargetMat_d() {
-		return targetMat_d;
-	}
-	float* getFloIJKMat_d() {
-		return floIJKMat_d;
-	}
-	int* getActiveBlock_d() {
-		return activeBlock_d;
-	}
-	int* getMask_d() {
-		return mask_d;
-	}
+	int* getReferenceDims();
+	int* getFloatingDims();
 
-	int* getReferenceDims() {
-		return referenceDims;
-	}
-	int* getFloatingDims() {
-		return floatingDims;
-	}
 
-	void downloadFromCudaContext();
 
+	//cpu getters and setters
 	_reg_blockMatchingParam* getBlockMatchingParams();
 	nifti_image* getCurrentDeformationField();
 	nifti_image* getCurrentWarped(int typ);

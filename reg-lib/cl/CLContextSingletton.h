@@ -22,24 +22,13 @@ public:
 	}
 
 	void queryGridDims();
-
 	void CreateContext();
 	void checDebugKernelInfo(cl_program program, char* message);
-
-	///
-	//  Create a command queue on the first device available on the
-	//  context
-	//
 	void CreateCommandQueue();
 
-	///
-	//  Create an OpenCL program from the kernel source file
-	//
 	cl_program CreateProgram( const char* fileName);
 
-	///
-	//  Cleanup any created OpenCL resources
-	//
+
 	void Cleanup(cl_program program, cl_kernel kernel, cl_mem* memObjects, int length);
 	void checkErrNum(cl_int errNum, std::string message);
 	void shutDown();

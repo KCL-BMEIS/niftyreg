@@ -20,7 +20,7 @@
 
 
 
-void block_matching_method_gpu3(nifti_image *targetImage, _reg_blockMatchingParam *params, float **targetImageArray_d, float **resultImageArray_d, float **targetPosition_d, float **resultPosition_d, int **activeBlock_d, int **mask_d, float** targetMat_d) {
+void block_matching_method_gpu(nifti_image *targetImage, _reg_blockMatchingParam *params, float **targetImageArray_d, float **resultImageArray_d, float **targetPosition_d, float **resultPosition_d, int **activeBlock_d, int **mask_d, float** targetMat_d) {
 
 	// Copy some required parameters over to the device
 	uint3 imageSize = make_uint3(targetImage->nx, targetImage->ny, targetImage->nz);// Image size
@@ -44,8 +44,10 @@ void block_matching_method_gpu3(nifti_image *targetImage, _reg_blockMatchingPara
 	dim3 BlocksGrid3D(params->blockNumber[0], params->blockNumber[1], params->blockNumber[2]);
 
 	blockMatchingKernel << <BlocksGrid3D, BlockDims1D >> >(*resultPosition_d, *targetPosition_d, *mask_d, *targetMat_d, definedBlock_d, imageSize);
-	//NR_CUDA_CHECK_KERNEL(BlocksGrid3D, BlockDims1D)
 
+	#ifndef NDEBUG
+	NR_CUDA_CHECK_KERNEL(BlocksGrid3D, BlockDims1D)
+#endif
 	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
 
 	NR_CUDA_SAFE_CALL(cudaMemcpy((void *)definedBlock_h, (void *)definedBlock_d, sizeof(unsigned int), cudaMemcpyDeviceToHost));

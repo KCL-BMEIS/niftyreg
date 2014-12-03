@@ -20,8 +20,8 @@ public:
 	CLAffineDeformationFieldKernel(Context* conIn, std::string nameIn);
 	~CLAffineDeformationFieldKernel();
 
-	void execute(bool compose = false);
-	void compare( bool compose, float* refDef);
+	void calculate(bool compose = false);
+	void compare( bool compose);
 
 	mat44 *affineTransformation, *targetMatrix;
 	nifti_image *deformationFieldImage;
@@ -43,7 +43,7 @@ public:
 	CLBlockMatchingKernel(Context* conIn, std::string name);
 	~CLBlockMatchingKernel();
 	void compare();
-	void execute();
+	void calculate();
 
 	CLContextSingletton* sContext;
 	ClContext* con;
@@ -64,7 +64,7 @@ public:
 
 	CLConvolutionKernel(std::string name);
 	~CLConvolutionKernel();
-	void execute(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL);
+	void calculate(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL);
 	CLContextSingletton* sContext;
 };
 
@@ -74,7 +74,7 @@ public:
 
 	CLOptimiseKernel(Context* con, std::string name);
 	~CLOptimiseKernel();
-	void execute(bool affine);
+	void calculate(bool affine);
 	_reg_blockMatchingParam *blockMatchingParams;
 	mat44 *transformationMatrix;
 	CLContextSingletton* sContext;
@@ -101,7 +101,7 @@ public:
 
 	cl_mem clCurrentFloating, clCurrentDeformationField, clCurrentWarped, clMask, floMat;
 
-	void execute(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
+	void calculate(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
 	void compare( int interp,float paddingValue);
 };
 

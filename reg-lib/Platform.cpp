@@ -17,7 +17,7 @@ Platform::~Platform()
 Kernel* Platform::createKernel(const string& name, Context* con) const {
 	return kernelFactories.find(name)->second->createKernel(name, con);
 }
-void Platform::registerKernelFactory(const string& name, KernelFactory* factory) {
+void Platform::assignKernelToFactory(const string& name, KernelFactory* factory) {
 	kernelFactories[name] = factory;
 }
 

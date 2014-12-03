@@ -15,9 +15,9 @@ public:
 	Context();
 	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int percentageOfBlocks, const unsigned int InlierLts, int BlockStepSize);
 	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte);
-
 	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int percentageOfBlocks, const unsigned int InlierLts, int BlockStepSize);
-		Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn,mat44* transMat, size_t byte);
+	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn,mat44* transMat, size_t byte);
+
 	virtual ~Context();
 
 	/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -64,14 +64,10 @@ public:
 	}
 
 	virtual void setCurrentDeformationField(nifti_image* CurrentDeformationFieldIn) {
-		//std::cout << "from context setCurrentDeformationField" << std::endl;
-		//nifti_image_free(CurrentDeformationFieldIn);
 		CurrentDeformationField = CurrentDeformationFieldIn;
 	}
 
 	virtual void setCurrentWarped(nifti_image* CurrentWarpedImageIn) {
-		//std::cout << "from context" << std::endl;
-		//nifti_image_free(CurrentWarped);
 		CurrentWarped = CurrentWarpedImageIn;
 	}
 	virtual void setCurrentReferenceMask(int* maskIn, size_t nvox) {

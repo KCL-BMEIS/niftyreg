@@ -13,8 +13,8 @@ void test(Context* con) {
 
 	Platform *clPlatform = new CLPlatform();
 
-	Kernel* affineDeformKernel = clPlatform->createKernel(AffineDeformationFieldKernel::Name(), con);
-	affineDeformKernel->castTo<AffineDeformationFieldKernel>()->execute();
+	Kernel* affineDeformKernel = clPlatform->createKernel(AffineDeformationFieldKernel::getName(), con);
+	affineDeformKernel->castTo<AffineDeformationFieldKernel>()->calculate();
 
 	delete affineDeformKernel;
 	delete clPlatform;

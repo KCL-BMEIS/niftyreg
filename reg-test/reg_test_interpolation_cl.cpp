@@ -13,8 +13,8 @@ void test(Context *con, const unsigned int interp) {
 
 	Platform *platform = new CLPlatform();
 
-	Kernel* resamplingKernel = platform->createKernel(ResampleImageKernel::Name(), con);
-	resamplingKernel->castTo<ResampleImageKernel>()->execute(interp, 0);
+	Kernel* resamplingKernel = platform->createKernel(ResampleImageKernel::getName(), con);
+	resamplingKernel->castTo<ResampleImageKernel>()->calculate(interp, 0);
 
 	delete resamplingKernel;
 	delete platform;

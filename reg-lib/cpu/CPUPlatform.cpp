@@ -5,11 +5,11 @@ CPUPlatform::CPUPlatform() {
 
 	//register the necessary kernels for the platform 
 	CPUKernelFactory* factory = new CPUKernelFactory();
-	registerKernelFactory(AffineDeformationFieldKernel::Name(), factory);
-	registerKernelFactory(BlockMatchingKernel::Name(), factory);
-	registerKernelFactory(ConvolutionKernel::Name(), factory);
-	registerKernelFactory(OptimiseKernel::Name(), factory);
-	registerKernelFactory(ResampleImageKernel::Name(), factory);
+	assignKernelToFactory(AffineDeformationFieldKernel::getName(), factory);
+	assignKernelToFactory(BlockMatchingKernel::getName(), factory);
+	assignKernelToFactory(ConvolutionKernel::getName(), factory);
+	assignKernelToFactory(OptimiseKernel::getName(), factory);
+	assignKernelToFactory(ResampleImageKernel::getName(), factory);
 	
 
 }

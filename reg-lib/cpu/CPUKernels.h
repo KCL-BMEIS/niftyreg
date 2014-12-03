@@ -15,7 +15,7 @@ public:
 	}
 
 
-	void execute(bool compose = false);
+	void calculate(bool compose = false);
 
 	mat44 *affineTransformation;
 	nifti_image *deformationFieldImage;
@@ -32,7 +32,7 @@ public:
 		mask = con->getCurrentReferenceMask();
 	}
 
-	void execute();
+	void calculate();
 	nifti_image* target;
 	nifti_image* result;
 	_reg_blockMatchingParam* params;
@@ -46,7 +46,7 @@ public:
 	CPUConvolutionKernel(std::string name) : ConvolutionKernel(name) {
 	}
 
-	void execute(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL);
+	void calculate(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL);
 private:
 	bool *nanImagePtr;
 	float *densityPtr;
@@ -64,7 +64,7 @@ public:
 	_reg_blockMatchingParam *blockMatchingParams;
 	mat44 *transformationMatrix;
 
-	void execute(bool affine);
+	void calculate(bool affine);
 };
 
 //kernel functions for image resampling with three interpolation variations
@@ -81,7 +81,7 @@ public:
 	nifti_image *deformationField;
 	int *mask;
 
-	void execute(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
+	void calculate(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
 };
 
 #endif

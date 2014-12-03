@@ -6,7 +6,8 @@
 class CudaAffineDeformationFieldKernel: public AffineDeformationFieldKernel {
 public:
 	CudaAffineDeformationFieldKernel(Context* conIn, std::string nameIn);
-	void execute(bool compose = false);
+	void calculate(bool compose = false);
+	void compare(bool compose);
 
 	mat44 *affineTransformation;
 	nifti_image *deformationFieldImage;
@@ -21,8 +22,8 @@ class CudaBlockMatchingKernel: public BlockMatchingKernel {
 public:
 
 	CudaBlockMatchingKernel(Context* conIn, std::string name);
-	void execute();
-	void compare(nifti_image *referenceImage,nifti_image *warpedImage,int* mask, _reg_blockMatchingParam *refParams);
+	void calculate();
+	void compare();
 
 	nifti_image* target;
 	_reg_blockMatchingParam* params;
@@ -41,7 +42,7 @@ public:
 			ConvolutionKernel(name) {
 	}
 
-	void execute(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL);
+	void calculate(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL);
 
 };
 
@@ -50,7 +51,7 @@ class CudaOptimiseKernel: public OptimiseKernel {
 public:
 
 	CudaOptimiseKernel(Context* conIn, std::string name);
-	void execute(bool affine);
+	void calculate(bool affine);
 
 	_reg_blockMatchingParam *blockMatchingParams;
 	mat44 *transformationMatrix;
@@ -61,7 +62,7 @@ public:
 class CudaResampleImageKernel: public ResampleImageKernel {
 public:
 	CudaResampleImageKernel(Context* conIn, std::string name);
-	void execute(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
+	void calculate(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
 
 	nifti_image *floatingImage;
 	nifti_image *warpedImage;

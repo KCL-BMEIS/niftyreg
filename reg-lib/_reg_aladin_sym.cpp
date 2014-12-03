@@ -330,7 +330,7 @@ void reg_aladin_sym<T>::GetBackwardDeformationField()
 {
    /*reg_affine_getDeformationField(this->BackwardTransformationMatrix,
                                   this->BackwardDeformationFieldImage);*/
-	bAffineTransformation3DKernel->castTo<AffineDeformationFieldKernel>()->execute();
+	bAffineTransformation3DKernel->castTo<AffineDeformationFieldKernel>()->calculate();
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -339,7 +339,7 @@ void reg_aladin_sym<T>::GetWarpedImage(int interp)
    reg_aladin<T>::GetWarpedImage(interp);
    this->GetBackwardDeformationField();
    //TODO: This needs correction, otherwise we are transforming an image that has already been warped
-   bResamplingKernel->castTo<ResampleImageKernel>()->execute(interp, 0);
+   bResamplingKernel->castTo<ResampleImageKernel>()->calculate(interp, 0);
   /* reg_resampleImage(this->CurrentReference,
                      this->CurrentBackwardWarped,
                      this->BackwardDeformationFieldImage,
@@ -370,14 +370,8 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
                AFFINE);
    }*/
    // Update now the backward transformation matrix
-	bBlockMatchingKernel->castTo<BlockMatchingKernel>()->execute();
-	bOptimiseKernel->castTo<OptimiseKernel>()->execute(type);
-
-#ifndef NDEBUG
-   reg_mat44_disp(this->con->transformationMatrix, (char *)"[DEBUG] Pre average forward transformation matrix");
-   reg_mat44_disp(backCon->transformationMatrix, (char *)"[DEBUG] Pre average backward transformation matrix");
-#endif
-
+	bBlockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();
+	bOptimiseKernel->castTo<OptimiseKernel>()->calculate(type);
   /* block_matching_method(this->CurrentFloating,
                          this->CurrentBackwardWarped,
                          &this->BackwardBlockMatchingParams,
@@ -395,21 +389,26 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
                AFFINE);
    }*/
    // Forward and backward matrix are inverted
-   mat44 fInverted = nifti_mat44_inverse(*(this->con->transformationMatrix));
-   mat44 bInverted = nifti_mat44_inverse(*(backCon->transformationMatrix));
+   mat44 fInverted = nifti_mat44_inverse(*(this->TransformationMatrix));
+   mat44 bInverted = nifti_mat44_inverse(*(this->BackwardTransformationMatrix));
+
    // We average the forward and inverted backward matrix
-   *(this->TransformationMatrix)=reg_mat44_avg2(this->con->transformationMatrix, &bInverted);
+   *(this->TransformationMatrix)=reg_mat44_avg2(this->TransformationMatrix,
+                                                &bInverted
+                                                );
    // We average the inverted forward and backward matrix
-   *(this->BackwardTransformationMatrix)=reg_mat44_avg2(&fInverted, backCon->transformationMatrix);
+   *(this->BackwardTransformationMatrix)=reg_mat44_avg2(&fInverted,
+                                                        this->BackwardTransformationMatrix
+                                                        );
    for(int i=0;i<3;++i){
-   	this->con->transformationMatrix->m[3][i]=0.f;
-   	backCon->transformationMatrix->m[3][i]=0.f;
+      this->TransformationMatrix->m[3][i]=0.f;
+      this->BackwardTransformationMatrix->m[3][i]=0.f;
    }
-   this->con->transformationMatrix->m[3][3]=1.f;
-   backCon->transformationMatrix->m[3][3]=1.f;
+   this->TransformationMatrix->m[3][3]=1.f;
+   this->BackwardTransformationMatrix->m[3][3]=1.f;
 #ifndef NDEBUG
-   reg_mat44_disp(this->con->transformationMatrix, (char *)"[DEBUG] updated forward transformation matrix");
-   reg_mat44_disp(backCon->transformationMatrix, (char *)"[DEBUG] updated backward transformation matrix");
+   reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] updated forward transformation matrix");
+   reg_mat44_disp(this->BackwardTransformationMatrix, (char *)"[DEBUG] updated backward transformation matrix");
 #endif
 }
 
@@ -452,10 +451,10 @@ void reg_aladin_sym<T>::ClearCurrentInputImage()
 template <class T>
 void reg_aladin_sym<T>::createKernels() {
 	reg_aladin<T>::createKernels();
-	bAffineTransformation3DKernel = this->platform->createKernel (AffineDeformationFieldKernel::Name(), this->backCon);
-	bBlockMatchingKernel = this->platform->createKernel(BlockMatchingKernel::Name(), this->backCon);
-	bResamplingKernel = this->platform->createKernel(ResampleImageKernel::Name(), this->backCon);
-	bOptimiseKernel = this->platform->createKernel(OptimiseKernel::Name(), this->backCon);
+	bAffineTransformation3DKernel = this->platform->createKernel (AffineDeformationFieldKernel::getName(), this->backCon);
+	bBlockMatchingKernel = this->platform->createKernel(BlockMatchingKernel::getName(), this->backCon);
+	bResamplingKernel = this->platform->createKernel(ResampleImageKernel::getName(), this->backCon);
+	bOptimiseKernel = this->platform->createKernel(OptimiseKernel::getName(), this->backCon);
 }
 
 template <class T>
