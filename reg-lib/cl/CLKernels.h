@@ -9,6 +9,7 @@
 
 #include "Kernels.h"
 
+#pragma OPENCL EXTENSION cl_khr_fp64 : enable
 
 class Context;
 class ClContext;
@@ -21,7 +22,7 @@ public:
 	~CLAffineDeformationFieldKernel();
 
 	void execute(bool compose = false);
-	void compare( bool compose, float* refDef);
+	void compare( bool compose);
 
 	mat44 *affineTransformation, *targetMatrix;
 	nifti_image *deformationFieldImage;

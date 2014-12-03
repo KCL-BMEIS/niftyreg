@@ -609,10 +609,10 @@ void reg_aladin<T>::clearContext() {
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::Run()
-{
+{std::cout<<"START"<<std::endl;
    // Initialise the registration parameters
    this->InitialiseRegistration();
-
+   std::cout<<"END"<<std::endl;
 //   // Compute the resolution of the progress bar
 //   unsigned long iProgressStep = 1;
 //   unsigned long nProgressSteps = 1;

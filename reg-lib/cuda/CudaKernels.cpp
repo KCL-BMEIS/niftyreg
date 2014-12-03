@@ -33,7 +33,7 @@ CudaAffineDeformationFieldKernel::CudaAffineDeformationFieldKernel(Context* conI
 
 
 void CudaAffineDeformationFieldKernel::execute(bool compose) {
-//	reg_affine_getDeformationField(con->transformationMatrix, con->CurrentDeformationField, compose, con->CurrentReferenceMask);
+	reg_affine_getDeformationField(con->transformationMatrix, con->CurrentDeformationField, compose, con->CurrentReferenceMask);
 	this->affineTransformation = con->transformationMatrix;
 	launchAffine(this->affineTransformation, this->deformationFieldImage, &deformationFieldArray_d, &mask_d,&transformationMatrix_d, compose);
 //	con->setCurrentDeformationField(con->CurrentDeformationField);

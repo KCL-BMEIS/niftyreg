@@ -72,7 +72,7 @@ CLAffineDeformationFieldKernel::~CLAffineDeformationFieldKernel() {
 //	std::cout<<"done releasing CLAffineDeformationFieldKernel"<<std::endl;
 }
 
-void CLAffineDeformationFieldKernel::compare(bool compose, float* cpuDataAr) {
+void CLAffineDeformationFieldKernel::compare(bool compose) {
 
 	nifti_image* gpuField = con->getCurrentDeformationField();
 	float* gpuData = static_cast<float*>(gpuField->data);
@@ -80,19 +80,18 @@ void CLAffineDeformationFieldKernel::compare(bool compose, float* cpuDataAr) {
 	nifti_image *cpuField = nifti_copy_nim_info(gpuField);
 	cpuField->data = (void *) malloc(gpuField->nvox * gpuField->nbyper);
 
-	float*cpuData = static_cast<float*>(cpuField->data);
-	for (int i = 0; i < cpuField->nvox; ++i) {
-		cpuData[i] = cpuDataAr[i];
-	}
+
+
 
 	reg_affine_getDeformationField(con->transformationMatrix, cpuField, compose, con->CurrentReferenceMask);
-	cpuData = static_cast<float*>(cpuField->data);
+	float*cpuData = static_cast<float*>(cpuField->data);
 
 	int count = 0;
-	float threshold = 0.000001f;
+	float threshold = 0.000015f;
 
 	for (unsigned long i = 0; i < gpuField->nvox; i++) {
-		if (abs(cpuData[i] - gpuData[i]) > threshold) {
+		float base = fabs(cpuData[i])>1?fabs(cpuData[i]):fabs(cpuData[i])+1;
+		if (fabs(cpuData[i] - gpuData[i])/base > threshold) {
 //			printf("i: %d | cpu: %f | gpu: %f\n",i, cpuData[i], gpuData[i]);
 			count++;
 		}
@@ -100,19 +99,11 @@ void CLAffineDeformationFieldKernel::compare(bool compose, float* cpuDataAr) {
 
 	std::cout << count << " targets have no match" << std::endl;
 	if (count > 0)
-		exit(0);
+		std::cin.get();
 }
 
 void CLAffineDeformationFieldKernel::execute(bool compose) {
 
-	/*nifti_image* def = con->getCurrentDeformationField();
-	float* data = static_cast<float*>(def->data);
-	float* a = (float*) malloc(def->nvox * sizeof(float));
-	for (int i = 0; i < def->nvox; ++i) {
-		a[i] = data[i];
-	}*/
-
-	con->setCurrentDeformationField(con->CurrentDeformationField);
 
 	const unsigned int xThreads = 8;
 	const unsigned int yThreads = 8;
@@ -145,6 +136,7 @@ void CLAffineDeformationFieldKernel::execute(bool compose) {
 			this->deformationFieldImage->ny, this->deformationFieldImage->nz };
 
 	cl_mem cltransMat = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * 16, trans, &errNum);
+//	clEnqueueWriteBuffer(this->commandQueue, cltransMat, CL_TRUE, 0, sizeof(float) * 16, trans, 0, NULL, NULL);
 
 	cl_uint composition = compose;
 	errNum = clSetKernelArg(this->kernel, 0, sizeof(cl_mem), &cltransMat);
@@ -166,8 +158,8 @@ void CLAffineDeformationFieldKernel::execute(bool compose) {
 	clFinish(commandQueue);
 	free(trans);
 	clReleaseMemObject(cltransMat);
-//	compare(compose, a);
-	con->getCurrentDeformationField();
+	compare(compose);
+//	con->getCurrentDeformationField();
 //	free(a);
 
 	return;
@@ -224,7 +216,7 @@ void CLResampleImageKernel::compare(int interp, float paddingValue) {
 	const float threshold = 0.000010;
 	for (unsigned long i = 0; i < cWar->nvox; i++) {
 		if (abs(cpuData[i] - gpuData[i]) > threshold) {
-			printf("i: %d | cpu: %f | gpu: %f\n", i, cpuData[i], gpuData[i]);
+//			printf("i: %d | cpu: %f | gpu: %f\n", i, cpuData[i], gpuData[i]);
 			count++;
 		}
 	}
@@ -343,6 +335,7 @@ void CLBlockMatchingKernel::compare() {
 	double targetSum[3] = /*reg_test_compare_arrays<float>(refParams->targetPosition, static_cast<float*>(target->data), refParams->definedActiveBlock * 3)*/{ 0.0, 0.0, 0.0 };
 	double resultSum[3] = /*reg_test_compare_arrays<float>(refParams->resultPosition, static_cast<float*>(result->data), refParams->definedActiveBlock * 3)*/{ 0.0, 0.0, 0.0 };
 
+	int count2=0;
 	//a better test will be to sort the 3d points and test the diff of each one!
 	/*for (unsigned int i = 0; i < refParams->definedActiveBlock*3; i++) {
 
@@ -367,20 +360,21 @@ void CLBlockMatchingKernel::compare() {
 			float cudaTargetPt[3] = { cudaTargetData[3 * j + 0], cudaTargetData[3 * j + 1], cudaTargetData[3 * j + 2] };
 			float cudaResultPt[3] = { cudaResultData[3 * j + 0], cudaResultData[3 * j + 1], cudaResultData[3 * j + 2] };
 
-			targetSum[0] = abs(cpuTargetPt[0] - cudaTargetPt[0]);
-			targetSum[1] = abs(cpuTargetPt[1] - cudaTargetPt[1]);
-			targetSum[2] = abs(cpuTargetPt[2] - cudaTargetPt[2]);
+			targetSum[0] = fabs(cpuTargetPt[0] - cudaTargetPt[0]);
+			targetSum[1] = fabs(cpuTargetPt[1] - cudaTargetPt[1]);
+			targetSum[2] = fabs(cpuTargetPt[2] - cudaTargetPt[2]);
 
-			const float threshold = 0.0001f;
+			const float threshold = 0.00001f;
 			if (targetSum[0] <= threshold && targetSum[1] <= threshold && targetSum[2] <= threshold) {
 
-				resultSum[0] = abs(cpuResultPt[0] - cudaResultPt[0]);
-				resultSum[1] = abs(cpuResultPt[1] - cudaResultPt[1]);
-				resultSum[2] = abs(cpuResultPt[2] - cudaResultPt[2]);
+				resultSum[0] = fabs(cpuResultPt[0] - cudaResultPt[0]);
+				resultSum[1] = fabs(cpuResultPt[1] - cudaResultPt[1]);
+				resultSum[2] = fabs(cpuResultPt[2] - cudaResultPt[2]);
 				found = true;
-				if (resultSum[0] > 0.000001f || resultSum[1] > 0.000001f || resultSum[2] > 0.000001f)
+				if (resultSum[0] > threshold || resultSum[1] > threshold|| resultSum[2] > threshold){
 					printf("i: %lu | j: %lu | (dif: %f-%f-%f) | (out: %f, %f, %f) | (ref: %f, %f, %f)\n", i, j, resultSum[0], resultSum[1], resultSum[2], cpuResultPt[0], cpuResultPt[1], cpuResultPt[2], cudaResultPt[0], cudaResultPt[1], cudaResultPt[2]);
-
+					count2++;
+				}
 			}
 		}
 		if (!found) {
@@ -400,6 +394,8 @@ void CLBlockMatchingKernel::compare() {
 	std::cout << count << "BM targets have no match" << std::endl;
 	if (count > 0)
 		exit(0);
+	if (count2 > 0)
+			exit(0);
 }
 
 //==========================================================================
@@ -494,7 +490,7 @@ void CLBlockMatchingKernel::execute() {
 	free(definedBlock_h);
 	clReleaseMemObject(definedBlock);
 
-//	compare();
+	compare();
 
 }
 //===========================
