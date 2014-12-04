@@ -330,7 +330,7 @@ void reg_aladin_sym<T>::GetBackwardDeformationField()
 {
    /*reg_affine_getDeformationField(this->BackwardTransformationMatrix,
                                   this->BackwardDeformationFieldImage);*/
-	bAffineTransformation3DKernel->castTo<AffineDeformationFieldKernel>()->execute();
+	bAffineTransformation3DKernel->castTo<AffineDeformationFieldKernel>()->calculate();
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -339,7 +339,7 @@ void reg_aladin_sym<T>::GetWarpedImage(int interp)
    reg_aladin<T>::GetWarpedImage(interp);
    this->GetBackwardDeformationField();
    //TODO: This needs correction, otherwise we are transforming an image that has already been warped
-   bResamplingKernel->castTo<ResampleImageKernel>()->execute(interp, 0);
+   bResamplingKernel->castTo<ResampleImageKernel>()->calculate(interp, 0);
   /* reg_resampleImage(this->CurrentReference,
                      this->CurrentBackwardWarped,
                      this->BackwardDeformationFieldImage,
@@ -370,8 +370,8 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
                AFFINE);
    }*/
    // Update now the backward transformation matrix
-	bBlockMatchingKernel->castTo<BlockMatchingKernel>()->execute();//watch the trans matrix!!!!!!
-	bOptimiseKernel->castTo<OptimiseKernel>()->execute(type);
+	bBlockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();
+	bOptimiseKernel->castTo<OptimiseKernel>()->calculate(type);
   /* block_matching_method(this->CurrentFloating,
                          this->CurrentBackwardWarped,
                          &this->BackwardBlockMatchingParams,
@@ -451,10 +451,10 @@ void reg_aladin_sym<T>::ClearCurrentInputImage()
 template <class T>
 void reg_aladin_sym<T>::createKernels() {
 	reg_aladin<T>::createKernels();
-	bAffineTransformation3DKernel = this->platform->createKernel (AffineDeformationFieldKernel::Name(), this->backCon);
-	bBlockMatchingKernel = this->platform->createKernel(BlockMatchingKernel::Name(), this->backCon);
-	bResamplingKernel = this->platform->createKernel(ResampleImageKernel::Name(), this->backCon);
-	bOptimiseKernel = this->platform->createKernel(OptimiseKernel::Name(), this->backCon);
+	bAffineTransformation3DKernel = this->platform->createKernel (AffineDeformationFieldKernel::getName(), this->backCon);
+	bBlockMatchingKernel = this->platform->createKernel(BlockMatchingKernel::getName(), this->backCon);
+	bResamplingKernel = this->platform->createKernel(ResampleImageKernel::getName(), this->backCon);
+	bOptimiseKernel = this->platform->createKernel(OptimiseKernel::getName(), this->backCon);
 }
 
 template <class T>

@@ -23,18 +23,9 @@
 // targetPosition_d: Output. The center of the blocks in the target image.
 // resultPosition_d: Output. The corresponding center of the blocks in the result.
 // activeBlock_d: Array specifying which blocks are active.
+
 extern "C++"
-void block_matching_method_gpu(	nifti_image *targetImage,
-								 nifti_image *resultImage,
-								 _reg_blockMatchingParam *blockMatchingParams,
-								 float **targetImageArray_d,
-								 float **resultImageArray_d,
-								 float **targetPosition_d,
-								 float **resultPosition_d,
-								 int **activeBlock_d,
-								 int **mask_);
-extern "C++"
-void block_matching_method_gpu3(nifti_image *targetImage, _reg_blockMatchingParam *params, float **targetImageArray_d, float **resultImageArray_d, float **targetPosition_d, float **resultPosition_d, int **activeBlock_d, int **mask_d, float** targetMat_d);
+void block_matching_method_gpu(nifti_image *targetImage, _reg_blockMatchingParam *params, float **targetImageArray_d, float **resultImageArray_d, float **targetPosition_d, float **resultPosition_d, int **activeBlock_d, int **mask_d, float** targetMat_d);
 
 
 extern "C++"
@@ -43,14 +34,6 @@ void optimize_gpu(	_reg_blockMatchingParam *blockMatchingParams,
 					 float **targetPosition_d,
 					 float **resultPosition_d,
 					 bool affine = true);
-extern "C++"
-void block_matching_method_gpu2(nifti_image *targetImage,
-nifti_image *resultImage,
-_reg_blockMatchingParam *blockMatchingParams,
-float **targetImageArray_d,
-float **resultImageArray_d,
-float **targetPosition_d,
-float **resultPosition_d,
-int **activeBlock_d);
+
 #endif
 

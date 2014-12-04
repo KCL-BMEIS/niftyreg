@@ -12,10 +12,10 @@
 void test(Context *con, const unsigned int interp) {
 
 	Platform *cudaPlatform = new CudaPlatform();
-	Kernel* resamplingKernel = cudaPlatform->createKernel(ResampleImageKernel::Name(), con);
+	Kernel* resamplingKernel = cudaPlatform->createKernel(ResampleImageKernel::getName(), con);
 
 	//run kernel
-	resamplingKernel->castTo<ResampleImageKernel>()->execute(interp, 0);
+	resamplingKernel->castTo<ResampleImageKernel>()->calculate(interp, 0);
 
 	delete resamplingKernel;
 	delete cudaPlatform;

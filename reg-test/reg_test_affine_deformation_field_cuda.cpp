@@ -13,8 +13,8 @@ void test(Context* con) {
 
 	Platform *cudaPlatform = new CudaPlatform();
 
-	Kernel* affineDeformKernel = cudaPlatform->createKernel(AffineDeformationFieldKernel::Name(), con);
-	affineDeformKernel->castTo<AffineDeformationFieldKernel>()->execute();
+	Kernel* affineDeformKernel = cudaPlatform->createKernel(AffineDeformationFieldKernel::getName(), con);
+	affineDeformKernel->castTo<AffineDeformationFieldKernel>()->calculate();
 
 	delete affineDeformKernel;
 	delete cudaPlatform;

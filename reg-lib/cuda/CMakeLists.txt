@@ -45,11 +45,21 @@ else(NOT COMPILE_RESULT_VAR)
 		#common debug flags for all architectures
 		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --ptxas-options=-v -g -G -lineinfo")
 	else(DEBUG_MODE)
-		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -use_fast_math -O3 -Xcompiler")
+		set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -O3 -Xcompiler")
 	endif(DEBUG_MODE)
-	message(STATUS "Debug: ${DEBUG_MODE} | NVCC Flags: ${CUDA_NVCC_FLAGS}")
-	# The CUDA implementation is used
-	#add_definitions(-D_USE_CUDA)
+#	if(CUDA_PRECISE_SQRT)
+#	    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --prec-sqrt=true")
+#	elseif(CUDA_PRECISE_SQRT)
+#	    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --prec-sqrt=false")
+#	endif(CUDA_PRECISE_SQRT)
+#	if(CUDA_PRECISE_DIV)
+#	    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --prec-div=true")
+#	elseif(CUDA_PRECISE_DIV)
+#	    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --prec-div=false")
+#	endif(CUDA_PRECISE_DIV)
+	if(CUDA_FAST_MATH AND CUDA_PRECISE_SQRT EQUAL "OFF" AND CUDA_PRECISE_DIV EQUAL "OFF")
+	    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -use_fast_math")
+	endif(CUDA_FAST_MATH AND CUDA_PRECISE_SQRT EQUAL "OFF" AND CUDA_PRECISE_DIV EQUAL "OFF")
 endif(NOT COMPILE_RESULT_VAR)
 
 
@@ -94,10 +104,12 @@ CUDA_ADD_LIBRARY(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	CudaKernelFuncs.cu
 	CudaKernels.cpp
 	CudaPlatform.cpp
+	../Context.cpp
 	
 	#for debugging
 	../cpu/_reg_resampling.cpp
 	../cpu/_reg_globalTransformation.cpp
+	../cpu/_reg_blockMatching.cpp
 )
 target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_gpu  )
 install(TARGETS ${NAME}

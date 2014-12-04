@@ -17,7 +17,7 @@ class  Platform {
 public:
 	Platform();
 	Kernel* createKernel(const std::string& name, Context* con) const;
-	void registerKernelFactory(const std::string& name, KernelFactory* factory);
+	void assignKernelToFactory(const std::string& name, KernelFactory* factory);
 
 	std::map<std::string, KernelFactory*> kernelFactories;
 	virtual std::string getName(){ return ""; }

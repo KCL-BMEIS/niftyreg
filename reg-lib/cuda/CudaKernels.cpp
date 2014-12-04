@@ -1,20 +1,22 @@
 #include "CudaKernels.h"
 #include "CudaKernelFuncs.h"
 #include "_reg_tools.h"
-
-//debugging
+#include "_reg_blockMatching_gpu.h"
+#include "_reg_blockMatching.h"
 #include"_reg_resampling.h"
 #include"_reg_globalTransformation.h"
+
+
+
 //----
 
 //------------------------------------------------------------------------------------------------------------------------
 //..................CudaConvolutionKernel----------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------
-void CudaConvolutionKernel::execute(nifti_image *image, float *sigma, int kernelType, int *mask, bool *timePoint, bool *axis) {
+void CudaConvolutionKernel::calculate(nifti_image *image, float *sigma, int kernelType, int *mask, bool *timePoint, bool *axis) {
 	//cpu cheat
 	reg_tools_kernelConvolution(image, sigma, kernelType, mask, timePoint, axis);
 }
-
 
 //==============================Cuda Affine Kernel================================================================
 CudaAffineDeformationFieldKernel::CudaAffineDeformationFieldKernel(Context* conIn, std::string nameIn) :
@@ -31,12 +33,42 @@ CudaAffineDeformationFieldKernel::CudaAffineDeformationFieldKernel(Context* conI
 
 }
 
+void CudaAffineDeformationFieldKernel::compare(bool compose) {
 
-void CudaAffineDeformationFieldKernel::execute(bool compose) {
-	reg_affine_getDeformationField(con->transformationMatrix, con->CurrentDeformationField, compose, con->CurrentReferenceMask);
-	this->affineTransformation = con->transformationMatrix;
-	launchAffine(this->affineTransformation, this->deformationFieldImage, &deformationFieldArray_d, &mask_d,&transformationMatrix_d, compose);
-//	con->setCurrentDeformationField(con->CurrentDeformationField);
+
+	nifti_image* gpuField = con->getCurrentDeformationField();
+	float* gpuData = static_cast<float*>(gpuField->data);
+
+	nifti_image *cpuField = nifti_copy_nim_info(gpuField);
+	cpuField->data = (void *) malloc(gpuField->nvox * gpuField->nbyper);
+
+	reg_affine_getDeformationField(con->transformationMatrix, cpuField, compose, con->CurrentReferenceMask);
+	float* cpuData = static_cast<float*>(cpuField->data);
+
+	int count = 0;
+	float threshold = 0.000015f;
+
+	for (unsigned long i = 0; i < gpuField->nvox; i++) {
+		float base = fabs(cpuData[i]) > 1 ? fabs(cpuData[i]) : fabs(cpuData[i]) + 1;
+		if (fabs(cpuData[i] - gpuData[i]) / base > threshold) {
+			printf("i: %d | cpu: %f | gpu: %f\n", i, cpuData[i], gpuData[i]);
+			count++;
+		}
+	}
+
+	std::cout << count << "[DEFCHECK]: pixels above threshold: " << threshold << std::endl;
+	if (count > 0)
+		std::cin.get();
+}
+
+void CudaAffineDeformationFieldKernel::calculate(bool compose) {
+//		reg_affine_getDeformationField(con->transformationMatrix, con->CurrentDeformationField, compose, con->CurrentReferenceMask);
+//		con->setCurrentDeformationField(con->CurrentDeformationField);
+	launchAffine(this->affineTransformation, this->deformationFieldImage, &deformationFieldArray_d, &mask_d, &transformationMatrix_d, compose);
+#ifndef NDEBUG
+	compare(compose);
+#endif
+
 }
 //------------------------------------------------------------------------------------
 
@@ -71,11 +103,9 @@ CudaResampleImageKernel::CudaResampleImageKernel(Context* conIn, std::string nam
 
 }
 
-void CudaResampleImageKernel::execute(int interp, float paddingValue, bool *dti_timepoint, mat33 * jacMat) {
+void CudaResampleImageKernel::calculate(int interp, float paddingValue, bool *dti_timepoint, mat33 * jacMat) {
 //	deformationFieldImageArray_d = con->getDeformationFieldArray_d();
 	launchResample(floatingImage, warpedImage, interp, paddingValue, dti_timepoint, jacMat, &floatingImageArray_d, &warpedImageArray_d, &deformationFieldImageArray_d, &mask_d, &floIJKMat_d);
-//	con->getCurrentDeformationField();
-//		reg_resampleImage(con->CurrentFloating, con->CurrentWarped, con->CurrentDeformationField, con->CurrentReferenceMask, interp, paddingValue, dti_timepoint, jacMat);
 }
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //==============================Cuda Block Matching Kernel================================================================
@@ -96,32 +126,31 @@ CudaBlockMatchingKernel::CudaBlockMatchingKernel(Context* conIn, std::string nam
 	targetMat_d = con->getTargetMat_d();
 
 }
-void CudaBlockMatchingKernel::compare(nifti_image *referenceImage,nifti_image *warpedImage,int* mask, _reg_blockMatchingParam *refParams) {
+void CudaBlockMatchingKernel::compare() {
+	nifti_image* referenceImage = con->CurrentReference;
+	nifti_image* warpedImage = con->getCurrentWarped(16);
+	int* mask = con->getCurrentReferenceMask();
+	_reg_blockMatchingParam *refParams = con->getBlockMatchingParams();
 
 	_reg_blockMatchingParam *cpu = new _reg_blockMatchingParam();
 	initialise_block_matching_method(referenceImage, cpu, 50, 50, 1, mask, false);
+
 	block_matching_method(referenceImage, warpedImage, cpu, mask);
 
+	int count = 0, count2 = 0;
 	float* cpuTargetData = static_cast<float*>(cpu->targetPosition);
 	float* cpuResultData = static_cast<float*>(cpu->resultPosition);
 
 	float* cudaTargetData = static_cast<float*>(refParams->targetPosition);
 	float* cudaResultData = static_cast<float*>(refParams->resultPosition);
 
-	double maxTargetDiff = /*reg_test_compare_arrays<float>(refParams->targetPosition, static_cast<float*>(target->data), refParams->definedActiveBlock * 3)*/0.0;
-	double maxResultDiff = /*reg_test_compare_arrays<float>(refParams->resultPosition, static_cast<float*>(result->data), refParams->definedActiveBlock * 3)*/0.0;
+	double maxTargetDiff =0.0;
+	double maxResultDiff = 0.0;
 
-	double targetSum[3] = /*reg_test_compare_arrays<float>(refParams->targetPosition, static_cast<float*>(target->data), refParams->definedActiveBlock * 3)*/{ 0.0, 0.0, 0.0 };
-	double resultSum[3] = /*reg_test_compare_arrays<float>(refParams->resultPosition, static_cast<float*>(result->data), refParams->definedActiveBlock * 3)*/{ 0.0, 0.0, 0.0 };
+	double targetSum[3] ={ 0.0, 0.0, 0.0 };
+	double resultSum[3] ={ 0.0, 0.0, 0.0 };
 
-	//a better test will be to sort the 3d points and test the diff of each one!
-	/*for (unsigned int i = 0; i < refParams->definedActiveBlock*3; i++) {
 
-	 printf("i: %d target|%f-%f| result|%f-%f|\n", i, cpuTargetData[i], cudaTargetData[i], cpuResultData[i], cudaResultData[i]);
-	 }*/
-	std::cout<<"cpu definedActive: "<<cpu->definedActiveBlock<<" | cuda definedActive: "<<refParams->definedActiveBlock<<std::endl;
-	std::cout<<"cpu active: "<<cpu->activeBlockNumber<<" | cuda active: "<<refParams->activeBlockNumber<<std::endl;
-	std::cout<<"cpu active: "<<cpu->blockNumber[0]*cpu->blockNumber[1]*cpu->blockNumber[2]<<" | cuda active: "<<refParams->blockNumber[0]*refParams->blockNumber[1]*refParams->blockNumber[2]<<std::endl;
 	for (unsigned long i = 0; i < refParams->definedActiveBlock; i++) {
 
 		float cpuTargetPt[3] = { cpuTargetData[3 * i + 0], cpuTargetData[3 * i + 1], cpuTargetData[3 * i + 2] };
@@ -132,49 +161,67 @@ void CudaBlockMatchingKernel::compare(nifti_image *referenceImage,nifti_image *w
 			float cudaTargetPt[3] = { cudaTargetData[3 * j + 0], cudaTargetData[3 * j + 1], cudaTargetData[3 * j + 2] };
 			float cudaResultPt[3] = { cudaResultData[3 * j + 0], cudaResultData[3 * j + 1], cudaResultData[3 * j + 2] };
 
-			targetSum[0] = cpuTargetPt[0] - cudaTargetPt[0];
-			targetSum[1] = cpuTargetPt[1] - cudaTargetPt[1];
-			targetSum[2] = cpuTargetPt[2] - cudaTargetPt[2];
+			targetSum[0] = fabs(cpuTargetPt[0] - cudaTargetPt[0]);
+			targetSum[1] = fabs(cpuTargetPt[1] - cudaTargetPt[1]);
+			targetSum[2] = fabs(cpuTargetPt[2] - cudaTargetPt[2]);
 
-			if (targetSum[0] == 0 && targetSum[1] == 0 && targetSum[2] == 0) {
+			const float threshold = 0.00001f;
+			if (targetSum[0] <= threshold && targetSum[1] <= threshold && targetSum[2] <= threshold) {
 
-				resultSum[0] = abs(cpuResultPt[0] - cudaResultPt[0]);
-				resultSum[1] = abs(cpuResultPt[1] - cudaResultPt[1]);
-				resultSum[2] = abs(cpuResultPt[2] - cudaResultPt[2]);
+				resultSum[0] = fabs(cpuResultPt[0] - cudaResultPt[0]);
+				resultSum[1] = fabs(cpuResultPt[1] - cudaResultPt[1]);
+				resultSum[2] = fabs(cpuResultPt[2] - cudaResultPt[2]);
 				found = true;
-				if (resultSum[0] > 0.000001f || resultSum[1] > 0.000001f || resultSum[2] > 0.000001f)
-					printf("i: %lu | j: %lu | (dif: %f-%f-%f) | (out: %f, %f, %f) | (ref: %f, %f, %f)\n", i, j, resultSum[0], resultSum[1], resultSum[2], cpuResultPt[0], cpuResultPt[1], cpuResultPt[2], cudaResultPt[0], cudaResultPt[1], cudaResultPt[2]);
-
+				if (resultSum[0] > 0.000001f || resultSum[1] > 0.000001f || resultSum[2] > 0.000001f) {
+					mat44 mat = referenceImage->qto_ijk;
+					float out[3], res[3];
+					reg_mat44_mul(&mat, cudaTargetPt, out);
+					reg_mat44_mul(&mat, cudaResultPt, res);
+					printf("i: %lu | j: %lu | target: (%f-%f-%f) | (dif: %f-%f-%f) | (cpu: %f, %f, %f) | (ref: %f, %f, %f) | (%f-%F-%f)\n", i, j, out[0], out[1], out[2],resultSum[0] , resultSum[1] , resultSum[2], cpuResultPt[0], cpuResultPt[1], cpuResultPt[2], cudaResultPt[0], cudaResultPt[1], cudaResultPt[2],  res[0], res[1], res[2]);
+					count2++;
+				}
 			}
 		}
-		if (!found)
-			printf("i: %lu has no match\n", i);
-		/*double targetDiff = abs(refTargetPt[0] - outTargetPt[0]) + abs(refTargetPt[1] - outTargetPt[1]) + abs(refTargetPt[2] - outTargetPt[2]);
-		 double resultDiff = abs(refResultPt[0] - outResultPt[0]) + abs(refResultPt[1] - outResultPt[1]) + abs(refResultPt[2] - outResultPt[2]);
+		if (!found) {
+			mat44 mat = referenceImage->qto_ijk;
+			float out[3];
+			reg_mat44_mul(&mat, cpuTargetPt, out);
+			printf("i: %lu has no match | target: %f-%f-%f\n", i, out[0] / 4, out[1] / 4, out[2] / 4);
+			count++;
+		}
+	}
 
-		 maxTargetDiff = (targetDiff > maxTargetDiff) ? targetDiff : maxTargetDiff;
-		 maxResultDiff = (resultDiff > maxResultDiff) ? resultDiff : maxResultDiff;*/
+	std::cout << count << "BM targets have no match" << std::endl;
+	std::cout << count2 << "BM results have no match" << std::endl;
+	if (count > 0)
+		exit(0);
+	if (count2 > 0) {
+		std::cout << "Press a key to continue..!!!!!!!!" << std::endl;
+		std::cin.get();
 	}
 }
 
-void CudaBlockMatchingKernel::execute() {
+void CudaBlockMatchingKernel::calculate() {
 
-//	con->setCurrentWarped(con->CurrentWarped);
-//	launchBlockMatching(target, params, &targetImageArray_d, &resultImageArray_d, &targetPosition_d, &resultPosition_d, &activeBlock_d, &mask_d, &targetMat_d);
-	block_matching_method(con->CurrentReference, con->getCurrentWarped(16), con->blockMatchingParams, con->CurrentReferenceMask);
+	//	con->setCurrentWarped(con->CurrentWarped);
+//		block_matching_method(con->CurrentReference, con->getCurrentWarped(16), con->blockMatchingParams, con->CurrentReferenceMask);
+	block_matching_method_gpu(target, params, &targetImageArray_d, &resultImageArray_d, &targetPosition_d, &resultPosition_d, &activeBlock_d, &mask_d, &targetMat_d);
+#ifndef NDEBUG
+	compare();
+#endif
 }
 //===================================================================================================================================================================
 CudaOptimiseKernel::CudaOptimiseKernel(Context* conIn, std::string name) :
-			OptimiseKernel(name) {
-		con = static_cast<CudaContext*>(conIn);
-		transformationMatrix = con->transformationMatrix;
-		blockMatchingParams = con->blockMatchingParams;
+		OptimiseKernel(name) {
+	con = static_cast<CudaContext*>(conIn);
+	transformationMatrix = con->transformationMatrix;
+	blockMatchingParams = con->blockMatchingParams;
 
-	}
+}
 
-void CudaOptimiseKernel::execute(bool affine) {
+void CudaOptimiseKernel::calculate(bool affine) {
 
-//	this->blockMatchingParams = con->getBlockMatchingParams();
+	this->blockMatchingParams = con->getBlockMatchingParams();
 	optimize(this->blockMatchingParams, con->transformationMatrix, affine);
 }
 

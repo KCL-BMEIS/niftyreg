@@ -21,15 +21,15 @@
 // The caller is supposed to ensure that the values are set
 
 // Number of blocks in each dimension
-__device__   __constant__ int3 c_BlockDim;
+__device__    __constant__ int3 c_BlockDim;
 __device__ __constant__ int c_StepSize;
-__device__   __constant__ uint3 c_ImageSize;
+__device__    __constant__ uint3 c_ImageSize;
 __device__ __constant__ float r1c1;
 
 // Transformation matrix from nifti header
-__device__   __constant__ float4 t_m_a;
-__device__   __constant__ float4 t_m_b;
-__device__   __constant__ float4 t_m_c;
+__device__    __constant__ float4 t_m_a;
+__device__    __constant__ float4 t_m_b;
+__device__    __constant__ float4 t_m_c;
 
 #define BLOCK_WIDTH 4
 #define BLOCK_SIZE 64
@@ -448,57 +448,9 @@ __device__ __inline__ void rewind(float* sValues, unsigned int tid) {
 	}
 }
 
-__device__ __inline__ unsigned long flatIdx(uint3 imgIdIn, const dim3 imgSize) {
-	assert(imgIdIn.x + imgIdIn.y * (imgSize.x) + imgIdIn.z * (imgSize.x * imgSize.y) < imgSize.x * imgSize.y * imgSize.z);
-	return imgIdIn.x + imgIdIn.y * (imgSize.x) + imgIdIn.z * (imgSize.x * imgSize.y);
-}
-
-__device__ __inline__ unsigned long flatIdx(uint3 imgIdIn, uint3 imgSize) {
-	assert(imgIdIn.x + imgIdIn.y * (imgSize.x) + imgIdIn.z * (imgSize.x * imgSize.y) < imgSize.x * imgSize.y * imgSize.z);
-	return imgIdIn.x + imgIdIn.y * (imgSize.x) + imgIdIn.z * (imgSize.x * imgSize.y);
-}
-
-__device__   __inline__ uint3 idx3D(unsigned int tid, uint3 blockSize) {
-	const unsigned int xy = (blockSize.x * blockSize.y);
-	const unsigned int idz = tid / xy;
-	const unsigned int idy = (tid - xy * idz) / blockSize.x;
-	const unsigned int idx = tid - xy * idz - blockSize.x * idy;
-	/*assert(idx < blockSize.x);
-	 assert(idy < blockSize.y);
-	 assert(idz < blockSize.z);*/
-	return make_uint3(idx, idy, idz);
-}
-
-__device__ __inline__ float countNans(float data, const unsigned int tid, bool condition) {
-	static __shared__ unsigned int sData2[64];
-
-	sData2[tid] = isfinite(data) && condition ? 1 : 0;
-	__syncthreads();
-
-	if (tid < 32)
-		sData2[tid] += sData2[tid + 32];
-	if (tid < 16)
-		sData2[tid] += sData2[tid + 16];
-	if (tid < 8)
-		sData2[tid] += sData2[tid + 8];
-	if (tid < 4)
-		sData2[tid] += sData2[tid + 4];
-	if (tid < 2)
-		sData2[tid] += sData2[tid + 2];
-	if (tid == 0)
-		sData2[0] += sData2[1];
-
-	__syncthreads();
-	return sData2[0];
-}
-
 __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition, int* mask, float* targetMatrix_xyz, unsigned int* definedBlock, uint3 c_ImageSize) {
 
 	__shared__ float sResultValues[12 * 12 * 12];
-
-	//const bool is_7_21_11 = blockIdx.x == 7 && blockIdx.y == 21 && blockIdx.z == 11;
-//	bool b2_13_10 = blockIdx.x==2&&blockIdx.y==13&&blockIdx.z==10;
-//	const bool targetIsBorder = (blockIdx.x == gridDim.x - 1) || (blockIdx.y == gridDim.y - 1) || (blockIdx.z == gridDim.z - 1);
 
 	const unsigned int idz = threadIdx.x / 16;
 	const unsigned int idy = (threadIdx.x - 16 * idz) / 4;
@@ -509,6 +461,8 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 	const unsigned int xBaseImage = blockIdx.x * 4;
 	const unsigned int yBaseImage = blockIdx.y * 4;
 	const unsigned int zBaseImage = blockIdx.z * 4;
+
+//	bool predicate = xBaseImage == 16 && yBaseImage == 24 && zBaseImage == 24;
 
 	const unsigned int tid = threadIdx.x;     //0-blockSize
 
@@ -551,7 +505,7 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 
 		//for most cases we need this out of th loop
 		//value if the block is 4x4x4 NaN otherwise
-		float rTargetValue = (targetInBounds /*&& mask[imgIdx>-1]*/) ? tex1Dfetch(targetImageArray_texture, imgIdx) : nanf("sNaN");
+		float rTargetValue = (targetInBounds /*&& mask[imgIdx]>-1*/) ? tex1Dfetch(targetImageArray_texture, imgIdx) : nanf("sNaN");
 		const bool finiteTargetIntensity = isfinite(rTargetValue);
 		rTargetValue = finiteTargetIntensity ? rTargetValue : 0.f;
 
@@ -559,7 +513,7 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 
 		if (targetBlockSize > 32) {
 			//the target values must remain constant throughout the block matching process
-			const float targetMean = REDUCE(rTargetValue, tid) / targetBlockSize;
+			const float targetMean = __fdividef(REDUCE(rTargetValue, tid) , targetBlockSize);
 			const float targetTemp = finiteTargetIntensity ? rTargetValue - targetMean : 0.f;
 			const float targetVar = REDUCE(targetTemp * targetTemp, tid);
 
@@ -568,16 +522,10 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 				for (unsigned int m = 1; m < 8; m += 1) {
 					for (unsigned int l = 1; l < 8; l += 1) {
 
-						/*bool nIs_1_0_m3 = l == 1 + 4 && m == 0 + 4 && n == -3 + 4;
-						 bool nIs_1_0_m2 = l == 1 + 4 && m == 0 + 4 && n == -2 + 4;
-
-						 bool condition1 = b2_13_10  && nIs_1_0_m3 && tid==0;
-						 bool condition2 = b2_13_10  && nIs_1_0_m2 && tid==0;*/
-
 						const unsigned int sIdxIn = (idz + n) * 144 /*12*12*/+ (idy + m) * 12 + idx + l;
 						const float rResultValue = sResultValues[sIdxIn];
-						const bool overlap = isfinite(rResultValue) && finiteTargetIntensity;		//both result and target pixels in bounds?
-						const unsigned int blockSize = __syncthreads_count(overlap);     //out
+						const bool overlap = isfinite(rResultValue) && finiteTargetIntensity;
+						const unsigned int blockSize = __syncthreads_count(overlap);
 
 						if (blockSize > 32) {
 
@@ -587,39 +535,40 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 							if (blockSize != targetBlockSize) {
 
 								const float newTargetValue = overlap ? rTargetValue : 0.0f;
-								const float newTargetMean = REDUCE(newTargetValue, tid) / blockSize;
+								const float newTargetMean = __fdividef(REDUCE(newTargetValue, tid) , blockSize);
 								newTargetTemp = overlap ? newTargetValue - newTargetMean : 0.0f;
 								newTargetVar = REDUCE(newTargetTemp * newTargetTemp, tid);
 							}
 
 							const float rChecked = overlap ? rResultValue : 0.0f;
-							const float resultMean = REDUCE(rChecked, tid) / blockSize;
+							const float resultMean = __fdividef(REDUCE(rChecked, tid),blockSize)  ;
 							const float resultTemp = overlap ? rChecked - resultMean : 0.0f;
 							const float resultVar = REDUCE(resultTemp * resultTemp, tid);
 
-							const float sumTargetResult = REDUCE((newTargetTemp) * (resultTemp), tid);
-							const float localCC = fabs((sumTargetResult) / sqrtf(newTargetVar * resultVar));
+							const float sumTargetResult =  REDUCE((newTargetTemp) * (resultTemp), tid);
+							const float localCC = fabs((sumTargetResult) * rsqrtf( newTargetVar *  resultVar));
 
-							/*if (condition1) printf("GPU -3 | sze: %d | TMN: %f | TVR: %f | RMN: %f |RVR %f | STR: %f | LCC: %f\n", bSize, targetMean, targetVar, resultMean, resultVar, sumTargetResult, localCC);
-							 if (condition2) printf("GPU -2 | sze: %d | TMN: %f | TVR: %f | RMN: %f |RVR %f | STR: %f | LCC: %f\n", bSize, targetMean, targetVar, resultMean, resultVar, sumTargetResult, localCC);
-							 */
-							if (tid == 0 && localCC > bestCC) {
+//							if (predicate && tid==0 && 0.981295-localCC<0.04 && fabs(0.981295 - localCC)>=0) printf("G|%d-%d-%d|%d|TMN:%f|TVR:%f|RMN:%f|RVR:%f|LCC:%lf|BCC:%lf\n",l-4,m-4,n-4, blockSize, targetMean, targetVar, resultMean, resultVar, localCC, bestCC);
+
+							//temporary for testing
+//							if (tid == 0 && bestCC != 0.981295f && (localCC > bestCC )) {
+							if (tid == 0 && localCC > bestCC ) {
 								bestCC = localCC;
 								bestDisplacement[0] = l - 4.0f;
 								bestDisplacement[1] = m - 4.0f;
 								bestDisplacement[2] = n - 4.0f;
 							}
-
-						}/*else if(tid==0)printf("bSize: %d\n", bSize);*/
+							/*if (predicate && tid==0 )
+								printf("C|%d-%d-%d|%f-%f-%f\n", l-4, m-4, n-4, bestDisplacement[0], bestDisplacement[1], bestDisplacement[2]);*/
+						}
 					}
 				}
 			}
 
 			if (tid == 0 && isfinite(bestDisplacement[0])) {
-
-//			if (b2_13_10) printf("disp: %f-%f-%f\n", bestDisplacement[0],bestDisplacement[1], bestDisplacement[2]);
 				const unsigned int posIdx = 3 * atomicAdd(definedBlock, 1);
-				//printf("%d: %d \n", definedBlock[0], blockIndex);
+//				if(predicate)printf("defined: %d | %d-%d-%d\n", *definedBlock, xBaseImage, yBaseImage, zBaseImage);
+
 				resultPosition += posIdx;
 				targetPosition += posIdx;
 
@@ -632,7 +581,6 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 				//float  tempPosition[3];
 				reg_mat44_mul_cuda<float>(targetMatrix_xyz, targetPosition_temp, targetPosition);
 				reg_mat44_mul_cuda<float>(targetMatrix_xyz, bestDisplacement, resultPosition);
-
 			}
 		}
 	}

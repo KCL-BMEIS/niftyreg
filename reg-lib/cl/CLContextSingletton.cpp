@@ -4,16 +4,6 @@
 #include <sstream>
 
 #include "config.h"
-//// Implementation 
-//CLContextSingletton* CLContextSingletton::_instance = 0;
-//
-//CLContextSingletton* CLContextSingletton::Instance() {
-//	if (_instance == 0) {
-//		std::cout << "Singletton called!"<<std::endl;
-//		_instance = new CLContextSingletton();
-//	}
-//	return _instance;
-//}
 
 CLContextSingletton::CLContextSingletton() {
 	commandQueue = NULL;

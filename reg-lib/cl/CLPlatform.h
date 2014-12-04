@@ -9,6 +9,5 @@ class CLPlatform : public Platform
 public:
 	CLPlatform();
 	std::string getName(){ return "cl_platform"; }
-
 };
 #endif

@@ -214,7 +214,7 @@ void reg_aladin<T>::InitialiseRegistration()
    		this->platform = new CLPlatform();
    #endif
 
-   	Kernel* convolutionKernel = platform->createKernel(ConvolutionKernel::Name(), NULL);
+   	Kernel* convolutionKernel = platform->createKernel(ConvolutionKernel::getName(), NULL);
 
    this->Print();
 
@@ -302,7 +302,7 @@ void reg_aladin<T>::InitialiseRegistration()
          for(int i=1; i<this->ReferencePyramid[l]->nt; ++i)
             active[i]=false;
          sigma[0]=this->ReferenceSigma;
-         convolutionKernel->castTo<ConvolutionKernel>()->execute(this->ReferencePyramid[l], sigma, 0, NULL, active);
+         convolutionKernel->castTo<ConvolutionKernel>()->calculate(this->ReferencePyramid[l], sigma, 0, NULL, active);
          delete []active;
          delete []sigma;
       }
@@ -315,7 +315,7 @@ void reg_aladin<T>::InitialiseRegistration()
          for(int i=1; i<this->FloatingPyramid[l]->nt; ++i)
             active[i]=false;
          sigma[0]=this->FloatingSigma;
-         convolutionKernel->castTo<ConvolutionKernel>()->execute(this->FloatingPyramid[l], sigma, 0, NULL, active);
+         convolutionKernel->castTo<ConvolutionKernel>()->calculate(this->FloatingPyramid[l], sigma, 0, NULL, active);
          delete []active;
          delete []sigma;
       }
@@ -504,11 +504,11 @@ void reg_aladin<T>::InitialiseBlockMatching(int CurrentPercentageOfBlockToUse)
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin<T>::createKernels() {
-	affineTransformation3DKernel = platform->createKernel(AffineDeformationFieldKernel::Name(), this->con);
-	resamplingKernel = platform->createKernel(ResampleImageKernel::Name(), this->con);
+	affineTransformation3DKernel = platform->createKernel(AffineDeformationFieldKernel::getName(), this->con);
+	resamplingKernel = platform->createKernel(ResampleImageKernel::getName(), this->con);
 	if(this->con->blockMatchingParams != NULL){
-		blockMatchingKernel = platform->createKernel(BlockMatchingKernel::Name(), this->con);
-		optimiseKernel = platform->createKernel(OptimiseKernel::Name(), this->con);
+		blockMatchingKernel = platform->createKernel(BlockMatchingKernel::getName(), this->con);
+		optimiseKernel = platform->createKernel(OptimiseKernel::getName(), this->con);
 	}else{
 		blockMatchingKernel = NULL;
 		optimiseKernel = NULL;
@@ -528,7 +528,7 @@ void reg_aladin<T>::GetDeformationField()
 {
    /*reg_affine_getDeformationField(this->TransformationMatrix,
                                   this->deformationFieldImage);*/
-	affineTransformation3DKernel->castTo<AffineDeformationFieldKernel>()->execute();
+	affineTransformation3DKernel->castTo<AffineDeformationFieldKernel>()->calculate();
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -542,7 +542,7 @@ void reg_aladin<T>::GetWarpedImage(int interp)
                      this->CurrentReferenceMask,
                      interp,
                      0);*/
-   resamplingKernel->castTo<ResampleImageKernel>()->execute(interp, 0);
+   resamplingKernel->castTo<ResampleImageKernel>()->calculate(interp, 0);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -561,8 +561,8 @@ void reg_aladin<T>::UpdateTransformationMatrix(int type)
                this->TransformationMatrix,
                AFFINE);*/
 
-	blockMatchingKernel->castTo<BlockMatchingKernel>()->execute();
-	optimiseKernel->castTo<OptimiseKernel>()->execute(type);
+	blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();
+	optimiseKernel->castTo<OptimiseKernel>()->calculate(type);
 
 #ifndef NDEBUG
    reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] updated matrix");

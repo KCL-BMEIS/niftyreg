@@ -72,8 +72,8 @@ void test(Context* con) {
 
 	Platform *cudaPlatform = new CudaPlatform();
 
-	Kernel* blockMatchingKernel = cudaPlatform->createKernel(BlockMatchingKernel::Name(), con);
-	blockMatchingKernel->castTo<BlockMatchingKernel>()->execute();
+	Kernel* blockMatchingKernel = cudaPlatform->createKernel(BlockMatchingKernel::getName(), con);
+	blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();
 
 	delete blockMatchingKernel;
 	delete cudaPlatform;

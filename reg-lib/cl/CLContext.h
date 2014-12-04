@@ -13,104 +13,40 @@
 class ClContext: public Context {
 
 public:
-	ClContext() {
-		//std::cout << "Cl context constructor called(empty)" << std::endl;
 
-		initVars();
-		allocateClPtrs();
-	}
-	ClContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep) :
-			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte, blockPercentage, inlierLts, blockStep) {
-		//std::cout << "Cl context constructor called: " <<bm<< std::endl;
-
-//		std::cout<<"CL Context Constructor Init"<<std::endl;
-		initVars();
-		allocateClPtrs();
-//		std::cout<<"CL Context Constructor End"<<std::endl;
-	}
-	ClContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte) :
-			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, byte) {
-//		std::cout<<"CL Context Constructor Init"<<std::endl;
-		initVars();
-//		std::cout<<"CL Context Init Vars"<<std::endl;
-		allocateClPtrs();
-//		std::cout<<"CL Context Constructor End"<<std::endl;
-	}
-
-	ClContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn,mat44* transMat, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep) :
-			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn,transMat, byte, blockPercentage, inlierLts, blockStep) {
-		//std::cout << "Cl context constructor called: " <<bm<< std::endl;
-
-		//		std::cout<<"CL Context Constructor Init"<<std::endl;
-		initVars();
-		allocateClPtrs();
-		//		std::cout<<"CL Context Constructor End"<<std::endl;
-	}
-	ClContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn,mat44* transMat, size_t byte) :
-			Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn,transMat, byte) {
-		//		std::cout<<"CL Context Constructor Init"<<std::endl;
-		initVars();
-		//		std::cout<<"CL Context Init Vars"<<std::endl;
-		allocateClPtrs();
-		//		std::cout<<"CL Context Constructor End"<<std::endl;
-	}
+	//constructors
+	ClContext();
+	ClContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep);
+	ClContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte);
+	ClContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep);
+	ClContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte);
 	~ClContext();
 
-	CLContextSingletton *sContext;
-	cl_context clContext;
-	cl_int errNum;
-	cl_command_queue commandQueue;
+	//opencl getters
+	cl_mem getReferenceImageArrayClmem();
+	cl_mem getFloatingImageArrayClmem();
+	cl_mem getWarpedImageClmem();
+	cl_mem getTargetPositionClmem();
+	cl_mem getResultPositionClmem();
+	cl_mem getDeformationFieldArrayClmem();
+	cl_mem getActiveBlockClmem();
+	cl_mem getMaskClmem();
+	cl_mem getRefMatClmem();
+	cl_mem getFloMatClmem();
+	int* getReferenceDims();
+	int* getFloatingDims();
 
-	cl_mem getReferenceImageArrayClmem() {
-		return referenceImageClmem;
-	}
-	cl_mem getFloatingImageArrayClmem() {
-		return floatingImageClmem;
-	}
-	cl_mem getWarpedImageClmem() {
-		return warpedImageClmem;
-	}
-
-	cl_mem getTargetPositionClmem() {
-		return targetPositionClmem;
-	}
-	cl_mem getResultPositionClmem() {
-		return resultPositionClmem;
-	}
-	cl_mem getDeformationFieldArrayClmem() {
-		return deformationFieldClmem;
-	}
-	cl_mem getActiveBlockClmem() {
-		return activeBlockClmem;
-	}
-	cl_mem getMaskClmem() {
-		return maskClmem;
-	}
-	cl_mem getRefMatClmem() {
-		return refMatClmem;
-	}
-	cl_mem getFloMatClmem() {
-		return floMatClmem;
-	}
-
-	int* getReferenceDims() {
-		return referenceDims;
-	}
-	int* getFloatingDims() {
-		return floatingDims;
-	}
-
-	void downloadFromClContext();
-
+	//cpu getters with data downloaded from device
 	_reg_blockMatchingParam* getBlockMatchingParams();
 	nifti_image* getCurrentDeformationField();
 	nifti_image* getCurrentWarped(int typ);
 
+	//setters
 	void setTransformationMatrix(mat44* transformationMatrixIn);
 	void setCurrentWarped(nifti_image* warpedImageIn);
 	void setCurrentDeformationField(nifti_image* CurrentDeformationFieldIn);
 	void setCurrentReferenceMask(int* maskIn, size_t size);
-//	void checkErrNum(cl_int errNum, std::string message);
+
 
 private:
 	void initVars();
@@ -120,6 +56,10 @@ private:
 	void freeClPtrs();
 
 	unsigned int numBlocks;
+	CLContextSingletton *sContext;
+	cl_context clContext;
+	cl_int errNum;
+	cl_command_queue commandQueue;
 
 	cl_mem referenceImageClmem;
 	cl_mem floatingImageClmem;
@@ -140,8 +80,6 @@ private:
 	void fillImageData(nifti_image* image, cl_mem memoryObject, cl_mem_flags flag, int type, std::string message);
 	template<class FloatingTYPE>
 	FloatingTYPE fillWarpedImageData(float intensity, int datatype);
-
-	float* warpedImageBuffer;
 
 };
 

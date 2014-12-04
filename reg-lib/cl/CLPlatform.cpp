@@ -5,9 +5,9 @@ CLPlatform::CLPlatform() {
 
 	//register the necessary kernels for the platform 
 	CLKernelFactory* factory = new CLKernelFactory();
-	registerKernelFactory(AffineDeformationFieldKernel::Name(), factory);
-	registerKernelFactory(BlockMatchingKernel::Name(), factory);
-	registerKernelFactory(ConvolutionKernel::Name(), factory);
-	registerKernelFactory(OptimiseKernel::Name(), factory);
-	registerKernelFactory(ResampleImageKernel::Name(), factory);
+	assignKernelToFactory(AffineDeformationFieldKernel::getName(), factory);
+	assignKernelToFactory(BlockMatchingKernel::getName(), factory);
+	assignKernelToFactory(ConvolutionKernel::getName(), factory);
+	assignKernelToFactory(OptimiseKernel::getName(), factory);
+	assignKernelToFactory(ResampleImageKernel::getName(), factory);
 }

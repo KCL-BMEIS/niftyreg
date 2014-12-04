@@ -13,8 +13,8 @@ void test(Context* con) {
 
 	Platform *clPlatform = new CLPlatform();
 
-	Kernel* blockMatchingKernel = clPlatform->createKernel(BlockMatchingKernel::Name(), con);
-	blockMatchingKernel->castTo<BlockMatchingKernel>()->execute();
+	Kernel* blockMatchingKernel = clPlatform->createKernel(BlockMatchingKernel::getName(), con);
+	blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();
 
 	delete blockMatchingKernel;
 	delete clPlatform;

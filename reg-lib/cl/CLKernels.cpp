@@ -28,11 +28,9 @@ CLConvolutionKernel::CLConvolutionKernel(std::string name) :
 		ConvolutionKernel(name) {
 	sContext = &CLContextSingletton::Instance();
 }
-void CLConvolutionKernel::execute(nifti_image *image, float *sigma,
-		int kernelType, int *mask, bool *timePoints, bool *axis) {
+void CLConvolutionKernel::calculate(nifti_image *image, float *sigma, int kernelType, int *mask, bool *timePoints, bool *axis) {
 	//cpu cheat
-	reg_tools_kernelConvolution(image, sigma, kernelType, mask, timePoints,
-			axis);
+	reg_tools_kernelConvolution(image, sigma, kernelType, mask, timePoints, axis);
 }
 CLConvolutionKernel::~CLConvolutionKernel() {
 
@@ -63,13 +61,11 @@ CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Context* conIn, s
 
 }
 CLAffineDeformationFieldKernel::~CLAffineDeformationFieldKernel() {
-//std::cout<<"releasing CLAffineDeformationFieldKernel"<<std::endl;
 	if (kernel != 0)
 		clReleaseKernel(kernel);
 
 	if (program != 0)
 		clReleaseProgram(program);
-//	std::cout<<"done releasing CLAffineDeformationFieldKernel"<<std::endl;
 }
 
 void CLAffineDeformationFieldKernel::compare(bool compose) {
@@ -79,9 +75,6 @@ void CLAffineDeformationFieldKernel::compare(bool compose) {
 
 	nifti_image *cpuField = nifti_copy_nim_info(gpuField);
 	cpuField->data = (void *) malloc(gpuField->nvox * gpuField->nbyper);
-
-
-
 
 	reg_affine_getDeformationField(con->transformationMatrix, cpuField, compose, con->CurrentReferenceMask);
 	float*cpuData = static_cast<float*>(cpuField->data);
@@ -102,38 +95,27 @@ void CLAffineDeformationFieldKernel::compare(bool compose) {
 		std::cin.get();
 }
 
-void CLAffineDeformationFieldKernel::execute(bool compose) {
-
+void CLAffineDeformationFieldKernel::calculate(bool compose) {
 
 	const unsigned int xThreads = 8;
 	const unsigned int yThreads = 8;
 	const unsigned int zThreads = 8;
 
-	const unsigned int xBlocks =
-			((this->deformationFieldImage->nx % xThreads) == 0) ?
-																					(this->deformationFieldImage->nx / xThreads) :
-																					(this->deformationFieldImage->nx / xThreads) + 1;
-	const unsigned int yBlocks =
-			((this->deformationFieldImage->ny % yThreads) == 0) ?
-																					(this->deformationFieldImage->ny / yThreads) :
-																					(this->deformationFieldImage->ny / yThreads) + 1;
-	const unsigned int zBlocks =
-			((this->deformationFieldImage->nz % zThreads) == 0) ?
-																					(this->deformationFieldImage->nz / zThreads) :
-																					(this->deformationFieldImage->nz / zThreads) + 1;
+	const unsigned int xBlocks = ((this->deformationFieldImage->nx % xThreads) == 0) ? (this->deformationFieldImage->nx / xThreads) : (this->deformationFieldImage->nx / xThreads) + 1;
+	const unsigned int yBlocks = ((this->deformationFieldImage->ny % yThreads) == 0) ? (this->deformationFieldImage->ny / yThreads) : (this->deformationFieldImage->ny / yThreads) + 1;
+	const unsigned int zBlocks = ((this->deformationFieldImage->nz % zThreads) == 0) ? (this->deformationFieldImage->nz / zThreads) : (this->deformationFieldImage->nz / zThreads) + 1;
+	const cl_uint dims = 3;
+	const size_t globalWorkSize[dims] = { xBlocks * xThreads, yBlocks * yThreads, zBlocks * zThreads };
+	const size_t localWorkSize[dims] = { xThreads, yThreads, zThreads };
 
-	mat44 transformationMatrix =
-			(compose == true) ?
-										*this->affineTransformation :
-										reg_mat44_mul(this->affineTransformation, targetMatrix);
+	mat44 transformationMatrix = (compose == true) ? *this->affineTransformation : reg_mat44_mul(this->affineTransformation, targetMatrix);
 
 	float* trans = (float *) malloc(16 * sizeof(float));
 	mat44ToCptr(transformationMatrix, trans);
 
 	cl_int errNum;
 
-	cl_uint3 pms_d = { this->deformationFieldImage->nx,
-			this->deformationFieldImage->ny, this->deformationFieldImage->nz };
+	cl_uint3 pms_d = { this->deformationFieldImage->nx, this->deformationFieldImage->ny, this->deformationFieldImage->nz };
 
 	cl_mem cltransMat = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * 16, trans, &errNum);
 //	clEnqueueWriteBuffer(this->commandQueue, cltransMat, CL_TRUE, 0, sizeof(float) * 16, trans, 0, NULL, NULL);
@@ -148,19 +130,14 @@ void CLAffineDeformationFieldKernel::execute(bool compose) {
 	errNum |= clSetKernelArg(this->kernel, 4, sizeof(cl_uint), &composition);
 	sContext->checkErrNum(errNum, "Error setting kernel arguments.");
 
-	const cl_uint dims = 3;
-
-	const size_t globalWorkSize[dims] = { xBlocks * xThreads, yBlocks * yThreads, zBlocks * zThreads };
-	const size_t localWorkSize[dims] = { xThreads, yThreads, zThreads };
-
 	errNum = clEnqueueNDRangeKernel(this->commandQueue, kernel, dims, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
 	sContext->checkErrNum(errNum, "Error queuing kernel for execution: ");
 	clFinish(commandQueue);
 	free(trans);
 	clReleaseMemObject(cltransMat);
+#ifndef NDEBUG
 	compare(compose);
-//	con->getCurrentDeformationField();
-//	free(a);
+#endif
 
 	return;
 }
@@ -191,13 +168,12 @@ CLResampleImageKernel::CLResampleImageKernel(Context* conIn, std::string name) :
 }
 
 CLResampleImageKernel::~CLResampleImageKernel() {
-//	std::cout<<"Destroying CLResampleImageKernel"<<std::endl;
+
 	if (kernel != 0)
 		clReleaseKernel(kernel);
 
 	if (program != 0)
 		clReleaseProgram(program);
-//	std::cout<<"End Destroying CLResampleImageKernel"<<std::endl;
 }
 void CLResampleImageKernel::compare(int interp, float paddingValue) {
 	nifti_image* def = con->getCurrentDeformationField();
@@ -226,9 +202,8 @@ void CLResampleImageKernel::compare(int interp, float paddingValue) {
 		exit(0);
 
 }
-void CLResampleImageKernel::execute(int interp, float paddingValue, bool *dti_timepoint, mat33 * jacMat) {
-//	reg_resampleImage(con->CurrentFloating, con->CurrentWarped, con->CurrentDeformationField, con->CurrentReferenceMask, interp, paddingValue, dti_timepoint, jacMat);
-//con->setCurrentDeformationField(con->CurrentDeformationField);
+void CLResampleImageKernel::calculate(int interp, float paddingValue, bool *dti_timepoint, mat33 * jacMat) {
+
 	cl_int errNum;
 	// Define the DTI indices if required
 	int dtiIndeces[6];
@@ -238,8 +213,7 @@ void CLResampleImageKernel::execute(int interp, float paddingValue, bool *dti_ti
 
 		if (jacMat == NULL) {
 			printf("[NiftyReg ERROR] reg_resampleImage\tDTI resampling\n");
-			printf(
-					"[NiftyReg ERROR] reg_resampleImage\tNo Jacobian matrix array has been provided\n");
+			printf("[NiftyReg ERROR] reg_resampleImage\tNo Jacobian matrix array has been provided\n");
 			reg_exit(1);
 		}
 		int j = 0;
@@ -247,12 +221,9 @@ void CLResampleImageKernel::execute(int interp, float paddingValue, bool *dti_ti
 			if (dti_timepoint[i] == true)
 				dtiIndeces[j++] = i;
 		}
-		if ((floatingImage->nz > 1 && j != 6)
-				&& (floatingImage->nz == 1 && j != 3)) {
-			printf(
-					"[NiftyReg ERROR] reg_resampleImage\tUnexpected number of DTI components\n");
-			printf(
-					"[NiftyReg ERROR] reg_resampleImage\tNothing has been done\n");
+		if ((floatingImage->nz > 1 && j != 6) && (floatingImage->nz == 1 && j != 3)) {
+			printf("[NiftyReg ERROR] reg_resampleImage\tUnexpected number of DTI components\n");
+			printf("[NiftyReg ERROR] reg_resampleImage\tNothing has been done\n");
 			reg_exit(1);
 		}
 	}
@@ -329,27 +300,15 @@ void CLBlockMatchingKernel::compare() {
 	float* cudaTargetData = static_cast<float*>(refParams->targetPosition);
 	float* cudaResultData = static_cast<float*>(refParams->resultPosition);
 
-	double maxTargetDiff = /*reg_test_compare_arrays<float>(refParams->targetPosition, static_cast<float*>(target->data), refParams->definedActiveBlock * 3)*/0.0;
-	double maxResultDiff = /*reg_test_compare_arrays<float>(refParams->resultPosition, static_cast<float*>(result->data), refParams->definedActiveBlock * 3)*/0.0;
+	double maxTargetDiff = 0.0;
+	double maxResultDiff = 0.0;
 
-	double targetSum[3] = /*reg_test_compare_arrays<float>(refParams->targetPosition, static_cast<float*>(target->data), refParams->definedActiveBlock * 3)*/{ 0.0, 0.0, 0.0 };
-	double resultSum[3] = /*reg_test_compare_arrays<float>(refParams->resultPosition, static_cast<float*>(result->data), refParams->definedActiveBlock * 3)*/{ 0.0, 0.0, 0.0 };
+	double targetSum[3] ={ 0.0, 0.0, 0.0 };
+	double resultSum[3] ={ 0.0, 0.0, 0.0 };
+
 
 	int count2=0;
-	//a better test will be to sort the 3d points and test the diff of each one!
-	/*for (unsigned int i = 0; i < refParams->definedActiveBlock*3; i++) {
 
-	 printf("i: %d target|%f-%f| result|%f-%f|\n", i, cpuTargetData[i], cudaTargetData[i], cpuResultData[i], cudaResultData[i]);
-	 }*/
-	std::cout << "cpu definedActive: " << cpu->definedActiveBlock << " | cuda definedActive: " << refParams->definedActiveBlock << std::endl;
-	std::cout << "cpu active: " << cpu->activeBlockNumber << " | cuda active: " << refParams->activeBlockNumber << std::endl;
-	std::cout << "cpu active: " << cpu->blockNumber[0] * cpu->blockNumber[1] * cpu->blockNumber[2] << " | cuda active: " << refParams->blockNumber[0] * refParams->blockNumber[1] * refParams->blockNumber[2] << std::endl;
-	for (unsigned long i = 0; i < cpu->blockNumber[0] * cpu->blockNumber[1] * cpu->blockNumber[2]; i++) {
-		int cpuActive = cpu->activeBlock[i];
-		int gpuActive = refParams->activeBlock[i];
-		if (cpuActive - gpuActive != 0)
-			printf("i: %lu - PROBLEM\n", i);
-	}
 	for (unsigned long i = 0; i < refParams->definedActiveBlock; i++) {
 
 		float cpuTargetPt[3] = { cpuTargetData[3 * i + 0], cpuTargetData[3 * i + 1], cpuTargetData[3 * i + 2] };
@@ -384,11 +343,6 @@ void CLBlockMatchingKernel::compare() {
 			printf("i: %lu has no match | target: %f-%f-%f\n", i, out[0] / 4, out[1] / 4, out[2] / 4);
 			count++;
 		}
-		/*double targetDiff = abs(refTargetPt[0] - outTargetPt[0]) + abs(refTargetPt[1] - outTargetPt[1]) + abs(refTargetPt[2] - outTargetPt[2]);
-		 double resultDiff = abs(refResultPt[0] - outResultPt[0]) + abs(refResultPt[1] - outResultPt[1]) + abs(refResultPt[2] - outResultPt[2]);
-
-		 maxTargetDiff = (targetDiff > maxTargetDiff) ? targetDiff : maxTargetDiff;
-		 maxResultDiff = (resultDiff > maxResultDiff) ? resultDiff : maxResultDiff;*/
 	}
 
 	std::cout << count << "BM targets have no match" << std::endl;
@@ -401,7 +355,6 @@ void CLBlockMatchingKernel::compare() {
 //==========================================================================
 CLBlockMatchingKernel::CLBlockMatchingKernel(Context* conIn, std::string name) :
 		BlockMatchingKernel(name) {
-//	std::cout << "CLBlockMatchingKernel" << std::endl;
 
 	sContext = &CLContextSingletton::Instance();
 
@@ -430,19 +383,14 @@ CLBlockMatchingKernel::CLBlockMatchingKernel(Context* conIn, std::string name) :
 
 }
 CLBlockMatchingKernel::~CLBlockMatchingKernel() {
-//	std::cout<<"Destroying CLBlockMatchingKernel"<<std::endl;
 	if (kernel != 0)
 		clReleaseKernel(kernel);
 
 	if (program != 0)
 		clReleaseProgram(program);
-//	std::cout<<"End Destroying CLBlockMatchingKernel"<<std::endl;
 }
-void CLBlockMatchingKernel::execute() {
+void CLBlockMatchingKernel::calculate() {
 
-//	con->setCurrentWarped(con->CurrentWarped);
-
-//	std::cout << "CLBlockMatchingKernel exec" << std::endl;
 	cl_int errNum;
 	// Copy some required parameters over to the device
 
@@ -472,15 +420,12 @@ void CLBlockMatchingKernel::execute() {
 	errNum |= clSetKernelArg(kernel, 8, sizeof(cl_uint3), &imageSize);
 	sContext->checkErrNum(errNum, "Error setting image size.");
 
-//	printf("warp: %lu\n", sContext->getwarpGroupLength(kernel));
 	const cl_uint dims = 3;
 	const size_t globalWorkSize[dims] = { params->blockNumber[0] * 4, params->blockNumber[1] * 4, params->blockNumber[2] * 4 };
 	const size_t localWorkSize[dims] = { 4, 4, 4 };
 
-	errNum = clEnqueueNDRangeKernel(commandQueue, kernel, dims, NULL,
-			globalWorkSize, localWorkSize, 0, NULL, NULL);
-	sContext->checkErrNum(errNum,
-			"Error queuing blockmatching kernel for execution: ");
+	errNum = clEnqueueNDRangeKernel(commandQueue, kernel, dims, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+	sContext->checkErrNum(errNum, "Error queuing blockmatching kernel for execution: ");
 	clFinish(commandQueue);
 
 	errNum = clEnqueueReadBuffer(this->commandQueue, definedBlock, CL_TRUE, 0, sizeof(unsigned int), definedBlock_h, 0, NULL, NULL);
@@ -490,8 +435,9 @@ void CLBlockMatchingKernel::execute() {
 	free(definedBlock_h);
 	clReleaseMemObject(definedBlock);
 
+#ifndef NDEBUG
 	compare();
-
+#endif
 }
 //===========================
 CLOptimiseKernel::CLOptimiseKernel(Context* conIn, std::string name) :
@@ -505,7 +451,7 @@ CLOptimiseKernel::CLOptimiseKernel(Context* conIn, std::string name) :
 CLOptimiseKernel::~CLOptimiseKernel() {
 
 }
-void CLOptimiseKernel::execute(bool affine) {
+void CLOptimiseKernel::calculate(bool affine) {
 
 	this->blockMatchingParams = con->getBlockMatchingParams();
 	optimize(this->blockMatchingParams, this->transformationMatrix, affine);

@@ -9,7 +9,6 @@ class CudaPlatform : public Platform
 public:
 	CudaPlatform();
 
-
 	std::string getName(){ return "cuda_platform"; }
 
 };

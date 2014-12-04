@@ -21,9 +21,9 @@ public:
 	CLAffineDeformationFieldKernel(Context* conIn, std::string nameIn);
 	~CLAffineDeformationFieldKernel();
 
-	void execute(bool compose = false);
-	void compare( bool compose);
-
+	void calculate(bool compose = false);
+	void compare(bool compose);
+private:
 	mat44 *affineTransformation, *targetMatrix;
 	nifti_image *deformationFieldImage;
 	ClContext* con;
@@ -35,7 +35,6 @@ public:
 	cl_mem clDeformationField, clMask;
 	CLContextSingletton* sContext;
 
-
 };
 //Kernel functions for block matching
 class CLBlockMatchingKernel: public BlockMatchingKernel {
@@ -44,8 +43,8 @@ public:
 	CLBlockMatchingKernel(Context* conIn, std::string name);
 	~CLBlockMatchingKernel();
 	void compare();
-	void execute();
-
+	void calculate();
+private:
 	CLContextSingletton* sContext;
 	ClContext* con;
 	nifti_image* target;
@@ -65,7 +64,8 @@ public:
 
 	CLConvolutionKernel(std::string name);
 	~CLConvolutionKernel();
-	void execute(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL);
+	void calculate(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL);
+private:
 	CLContextSingletton* sContext;
 };
 
@@ -75,7 +75,8 @@ public:
 
 	CLOptimiseKernel(Context* con, std::string name);
 	~CLOptimiseKernel();
-	void execute(bool affine);
+	void calculate(bool affine);
+private:
 	_reg_blockMatchingParam *blockMatchingParams;
 	mat44 *transformationMatrix;
 	CLContextSingletton* sContext;
@@ -89,6 +90,10 @@ public:
 	CLResampleImageKernel(Context* conIn, std::string name);
 	~CLResampleImageKernel();
 
+	void calculate(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
+	void compare(int interp, float paddingValue);
+private:
+
 	nifti_image *floatingImage;
 	nifti_image *warpedImage;
 	int *mask;
@@ -101,9 +106,6 @@ public:
 	cl_program program;
 
 	cl_mem clCurrentFloating, clCurrentDeformationField, clCurrentWarped, clMask, floMat;
-
-	void execute(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
-	void compare( int interp,float paddingValue);
 };
 
 #endif

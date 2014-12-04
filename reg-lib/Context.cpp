@@ -3,7 +3,6 @@
 using namespace std;
 
 Context::Context() {
-	//std::cout << "context constructor (mock)" << std::endl;
 	int dim[8] = { 2, 20, 20, 1, 1, 1, 1, 1 };
 
 	this->CurrentFloating = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
@@ -26,11 +25,8 @@ Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn
 
 Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn,mat44* transMat, size_t bytesIn) :
 		CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn),transformationMatrix(transMat),  bytes(bytesIn) {
-//	std::cout<<"Context Constructor Init"<<std::endl;
 	blockMatchingParams = NULL;
 	initVars();
-//	std::cout<<"Context Constructor End"<<std::endl;
-
 }
 
 
@@ -48,21 +44,16 @@ Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn
 
 Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t bytesIn) :
 		CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn), bytes(bytesIn) {
-//	std::cout<<"Context Constructor Init"<<std::endl;
 	blockMatchingParams = NULL;
 	initVars();
-//	std::cout<<"Context Constructor End"<<std::endl;
 
 }
 
 Context::~Context() {
-//	std::cout<<"Context Destructor "<<std::endl;
 	ClearWarpedImage();
 	ClearDeformationField();
 	if (blockMatchingParams != NULL)
 		delete blockMatchingParams;
-//	std::cout<<"Context Destructor end "<<std::endl;
-
 }
 
 void Context::initVars() {
@@ -129,7 +120,6 @@ void Context::AllocateDeformationField(size_t bytes) {
 	//ClearDeformationField();
 
 	this->CurrentDeformationField = nifti_copy_nim_info(this->CurrentReference);
-//	std::cout<<CurrentDeformationField->nvox<<std::endl;
 	this->CurrentDeformationField->dim[0] = this->CurrentDeformationField->ndim = 5;
 	this->CurrentDeformationField->dim[4] = this->CurrentDeformationField->nt = 1;
 	this->CurrentDeformationField->pixdim[4] = this->CurrentDeformationField->dt = 1.0;
@@ -143,7 +133,6 @@ void Context::AllocateDeformationField(size_t bytes) {
 	this->CurrentDeformationField->dim[7] = this->CurrentDeformationField->nw = 1;
 	this->CurrentDeformationField->pixdim[7] = this->CurrentDeformationField->dw = 1.0;
 	this->CurrentDeformationField->nvox = (size_t) this->CurrentDeformationField->nx * (size_t) this->CurrentDeformationField->ny * (size_t) this->CurrentDeformationField->nz * (size_t) this->CurrentDeformationField->nt * (size_t) this->CurrentDeformationField->nu;
-//	std::cout<<CurrentDeformationField->nvox<<std::endl;
 	this->CurrentDeformationField->nbyper = bytes;
 	if (bytes == 4)
 		this->CurrentDeformationField->datatype = NIFTI_TYPE_FLOAT32;
