@@ -59,6 +59,7 @@ protected:
 
    bool PerformRigid;
    bool PerformAffine;
+   bool ils;
 
    int BlockPercentage;
    int InlierLts;
@@ -115,6 +116,10 @@ public:
 
    void setPlatformCode(const int platformCodeIn) {
    	platformCode = platformCodeIn;
+   }
+
+   void setIls(const bool ilsIn) {
+      	ils = ilsIn;
    }
 
    //No allocating of the images here...

@@ -219,9 +219,9 @@ CudaOptimiseKernel::CudaOptimiseKernel(Context* conIn, std::string name) :
 
 }
 
-void CudaOptimiseKernel::calculate(bool affine) {
+void CudaOptimiseKernel::calculate(bool affine, bool ils) {
 
 	this->blockMatchingParams = con->getBlockMatchingParams();
-	optimize(this->blockMatchingParams, con->transformationMatrix, affine);
+	optimize(this->blockMatchingParams, con->transformationMatrix, affine, ils);
 }
 

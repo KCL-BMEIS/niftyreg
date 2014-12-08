@@ -148,6 +148,7 @@ int main(int argc, char **argv)
    bool iso=false;
    bool verbose=true;
    unsigned int platformFlag = 0;
+   bool ils = false;
 
    /* read the input parameter */
    for(int i=1; i<argc; i++)
@@ -275,6 +276,10 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "-speeeeed")==0 || strcmp(argv[i], "--speeed")==0)
       {
          blockStepSize=2;
+      }
+      else if(strcmp(argv[i], "-ils")==0 || strcmp(argv[i], "--ils")==0)
+      {
+         ils=true;
       }
       else if(strcmp(argv[i], "-interp")==0 || strcmp(argv[i], "--interp")==0)
       {
@@ -477,6 +482,7 @@ int main(int argc, char **argv)
    REG->SetInlierLts(inlierLts);
    REG->SetInterpolation(interpolation);
    REG->setPlatformCode(platformFlag);
+   REG->setIls(ils);
 
    if (referenceLowerThr != referenceUpperThr)
    {

@@ -1,4 +1,3 @@
-#pragma OPENCL EXTENSION cl_khr_fp64 : enable
 
 __inline void getPosition1(float* position, __global float* matrix, float* voxel, const unsigned int idx) {
 	position[idx] =
@@ -15,14 +14,7 @@ __inline__ float getPosition( __global float* matrix, float* voxel, const unsign
 		matrix[idx * 4 + 2] * voxel[2] +
 		matrix[idx * 4 + 3];
 }
-__inline__ double getPosition( __global float* matrix, double* voxel, const unsigned int idx) {
-    //	if ( voxel[0] == 126.0f && voxel[1] == 90.0f && voxel[2]==59.0f ) printf("(%d): (%f-%f-%f-%f)\n",idx, matrix[idx * 4 + 0], matrix[idx * 4 + 1], matrix[idx * 4 + 2], matrix[idx * 4 + 3]);
-    return
-    (double)matrix[idx * 4 + 0] * voxel[0] +
-    (double)matrix[idx * 4 + 1] * voxel[1] +
-    (double)matrix[idx * 4 + 2] * voxel[2] +
-    (double)matrix[idx * 4 + 3];
-}
+
 
 __kernel void affineKernel(__global float* transformationMatrix, __global  float* defField,__global  int* mask, const uint3 params, const unsigned int composition) {
 

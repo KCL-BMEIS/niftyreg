@@ -1,6 +1,7 @@
 # Check if the CUDA drivers are available
 find_package(CUDA)
 mark_as_advanced(CUDA_SDK_ROOT_DIR)
+
 if(NOT CUDA_FOUND)
 	set(USE_CUDA OFF CACHE BOOL "To enable the CUDA platform" FORCE)
 	message(ERROR "CUDA not found. The USE_OPENCL flag is turned OFF")

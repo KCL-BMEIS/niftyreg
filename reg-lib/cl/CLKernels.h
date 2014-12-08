@@ -9,7 +9,6 @@
 
 #include "Kernels.h"
 
-#pragma OPENCL EXTENSION cl_khr_fp64 : enable
 
 class Context;
 class ClContext;
@@ -75,7 +74,7 @@ public:
 
 	CLOptimiseKernel(Context* con, std::string name);
 	~CLOptimiseKernel();
-	void calculate(bool affine);
+	void calculate(bool affine, bool ils);
 private:
 	_reg_blockMatchingParam *blockMatchingParams;
 	mat44 *transformationMatrix;

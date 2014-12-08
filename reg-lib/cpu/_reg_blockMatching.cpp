@@ -188,10 +188,10 @@ void initialise_block_matching_method(nifti_image * target, _reg_blockMatchingPa
 		params->resultPosition = NULL;
 	}
 
-	params->blockNumber[0] = (int) reg_ceil((float)target->nx / (float)BLOCK_WIDTH);
-	params->blockNumber[1] = (int) reg_ceil((float)target->ny / (float)BLOCK_WIDTH);
+	params->blockNumber[0] = (int) reg_ceil((float) target->nx / (float) BLOCK_WIDTH);
+	params->blockNumber[1] = (int) reg_ceil((float) target->ny / (float) BLOCK_WIDTH);
 	if (target->nz > 1)
-		params->blockNumber[2] = (int) reg_ceil((float)target->nz / (float)BLOCK_WIDTH);
+		params->blockNumber[2] = (int) reg_ceil((float) target->nz / (float) BLOCK_WIDTH);
 	else
 		params->blockNumber[2] = 1;
 
@@ -211,7 +211,7 @@ void initialise_block_matching_method(nifti_image * target, _reg_blockMatchingPa
 	default:
 		fprintf(stderr, "[NiftyReg ERROR] initialise_block_matching_method\tThe target image data type is not supported\n");
 		reg_exit(1)
-		;
+				;
 	}
 	if (params->activeBlockNumber < 2) {
 		fprintf(stderr, "[NiftyReg ERROR] There are no active blocks\n");
@@ -594,21 +594,21 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 
 									localCC = fabs(localCC / sqrt(targetVar * resultVar));
 									/*bool predicate = i * BLOCK_WIDTH == 16 && j * BLOCK_WIDTH == 24 && k * BLOCK_WIDTH == 24;
-									if (predicate && 0.981295 - localCC < 0.04 && fabs(0.981295 - localCC) >= 0)
-										printf("C|%d-%d-%d|%.0f|TMN:%f|TVR:%f|RMN:%f|RVR:%f|LCC:%lf|BCC:%lf\n", l, m, n, voxelNumber, targetMean, targetVar, resultMean, resultVar, localCC, bestCC);
-//*/
+									 if (predicate && 0.981295 - localCC < 0.04 && fabs(0.981295 - localCC) >= 0)
+									 printf("C|%d-%d-%d|%.0f|TMN:%f|TVR:%f|RMN:%f|RVR:%f|LCC:%lf|BCC:%lf\n", l, m, n, voxelNumber, targetMean, targetVar, resultMean, resultVar, localCC, bestCC);
+									 //*/
 
 									//hack for Marc's integration tests
 //									if (localCC > bestCC || (fabs(localCC - 0.981295)<0.000001 && fabs(bestCC-0.981295)<0.000001)) {
-									if (localCC > bestCC){
+									if (localCC > bestCC) {
 										bestCC = localCC;
 										bestDisplacement[0] = (float) l;
 										bestDisplacement[1] = (float) m;
 										bestDisplacement[2] = (float) n;
 									}
 									/*bool predicate = i * BLOCK_WIDTH == 16 && j * BLOCK_WIDTH == 24 && k * BLOCK_WIDTH == 24;
-									if (predicate )
-												printf("C|%d-%d-%d|%f-%f-%f\n", l, m, n, bestDisplacement[0], bestDisplacement[1], bestDisplacement[2]);*/
+									 if (predicate )
+									 printf("C|%d-%d-%d|%f-%f-%f\n", l, m, n, bestDisplacement[0], bestDisplacement[1], bestDisplacement[2]);*/
 
 								}
 							}
@@ -678,11 +678,11 @@ void block_matching_method(nifti_image * target, nifti_image * result, _reg_bloc
 			break;
 		default:
 			reg_print_fct_error("block_matching_method")
-			;
+					;
 			reg_print_msg_error("The target image data type is not supported")
-			;
+					;
 			reg_exit(1)
-			;
+					;
 		}
 	} else {
 		switch (target->datatype) {
@@ -694,11 +694,11 @@ void block_matching_method(nifti_image * target, nifti_image * result, _reg_bloc
 			break;
 		default:
 			reg_print_fct_error("block_matching_method")
-			;
+					;
 			reg_print_msg_error("The target image data type is not supported")
-			;
+					;
 			reg_exit(1)
-			;
+					;
 		}
 	}
 }
@@ -1085,86 +1085,149 @@ void optimize_affine2D(_reg_blockMatchingParam * params, mat44 * final) {
 	}
 	delete[] v;
 }
+void perturbate(mat44 *affine, double ratio) {
+//	std::cout << "perturbating: " << ratio << std::endl;
+	for (int i = 0; i < 3; ++i) {
+		for (int j = 0; j < 4; ++j) {
+			affine->m[i][j] += ratio * affine->m[i][j];
+		}
+	}
+}
 
-void optimize_affine3D(_reg_blockMatchingParam *params, mat44 * final) {
-	// Set the current transformation to identity
-	reg_mat44_eye(final);
+void localSearch(_reg_blockMatchingParam *params, std::vector<_reg_sorted_point3D> top_points, mat44 * final, float * w, float ** v) {
+	// The LS in the iterations is done on subsample of the input data
+	// The LS in the iterations is done on subsample of the input data
 
-	const unsigned num_points = params->definedActiveBlock;
-	unsigned long num_equations = num_points * 3;
+	unsigned long num_points = params->definedActiveBlock;
+	const unsigned long num_to_keep = (unsigned long) (num_points * (params->percent_to_keep / 100.0f));
+	const unsigned long num_equations = num_to_keep * 3;
+	float * newResultPosition = new float[num_points * 3];
 	std::multimap<double, _reg_sorted_point3D> queue;
-	std::vector<_reg_sorted_point3D> top_points;
+	mat44 lastTransformation;
+	memset(&lastTransformation, 0, sizeof(mat44));
+	double lastLowest = 1000000000.0;
+
+	double pert = 0.8;
+	//optimization routine
+	unsigned int count = 0;
+
 	double distance = 0.0;
 	double lastDistance = std::numeric_limits<double>::max();
 	unsigned long i;
 
-	// massive left hand side matrix
-	float ** a = new float *[num_equations];
+	// The LHS matrix
+	float** a = new float *[num_equations];
 	for (unsigned k = 0; k < num_equations; ++k) {
 		a[k] = new float[12]; // full affine
 	}
 
-	// The array of singular values returned by svd
-	float *w = new float[12];
-
-	// v will be n x n
-	float **v = new float *[12];
-	for (unsigned k = 0; k < 12; ++k) {
-		v[k] = new float[12];
-	}
-
 	// Allocate memory for pseudoinverse
-	float **r = new float *[12];
+	float** r = new float *[12];
 	for (unsigned k = 0; k < 12; ++k) {
 		r[k] = new float[num_equations];
 	}
 
 	// Allocate memory for RHS vector
-	float *b = new float[num_equations];
+	float* b = new float[num_equations];
 
-	// The initial vector with all the input points
-	for (unsigned j = 0; j < num_points * 3; j += 3) {
-		top_points.push_back(_reg_sorted_point3D(&(params->targetPosition[j]), &(params->resultPosition[j]), 0.0f));
+	for (unsigned count = 0; count < MAX_ITERATIONS; ++count)
+			{
+		// Transform the points in the target
+		for (unsigned j = 0; j < num_points * 3; j += 3)
+				{
+			reg_mat44_mul(final, &(params->targetPosition[j]), &newResultPosition[j]);
+		}
+
+		queue = std::multimap<double, _reg_sorted_point3D>();
+		for (unsigned j = 0; j < num_points * 3; j += 3)
+				{
+			distance = get_square_distance3D(&newResultPosition[j], &(params->resultPosition[j]));
+			queue.insert(std::pair<double,
+					_reg_sorted_point3D>(distance,
+					_reg_sorted_point3D(&(params->targetPosition[j]),
+							&(params->resultPosition[j]),
+							distance)));
+		}
+
+		distance = 0.0;
+		i = 0;
+		top_points.clear();
+
+		for (std::multimap<double, _reg_sorted_point3D>::iterator it = queue.begin();
+				it != queue.end(); ++it, ++i)
+				{
+			if (i >= num_to_keep)
+				break;
+			top_points.push_back((*it).second);
+			distance += (*it).first;
+		}
+
+		// If the change is not substantial or we are getting worst, we return
+		if ((distance >= lastDistance) || (lastDistance - distance) < TOLERANCE)
+		{
+			// restore the last transformation
+			memcpy(final, &lastTransformation, sizeof(mat44));
+			break;
+		}
+		lastDistance = distance;
+		memcpy(&lastTransformation, final, sizeof(mat44));
+		estimate_affine_transformation3D(top_points, final, a, w, v, r, b);
 	}
 
-	// estimate the optimal transformation while considering all the points
-	estimate_affine_transformation3D(top_points, final, a, w, v, r, b);
+	memcpy(final, &lastTransformation, sizeof(mat44));
+	delete[] newResultPosition;
 
-	// Delete a, b and r. w and v will not change size in subsequent svd operations.
-	for (unsigned int k = 0; k < num_equations; ++k) {
-		delete[] a[k];
-	}
-	delete[] a;
 	delete[] b;
-
 	for (unsigned k = 0; k < 12; ++k) {
 		delete[] r[k];
 	}
 	delete[] r;
 
+	// free the memory
+	for (unsigned int k = 0; k < num_equations; ++k) {
+		delete[] a[k];
+	}
+	delete[] a;
+}
+
+void iterativeLocalSearch(_reg_blockMatchingParam *params, std::vector<_reg_sorted_point3D> top_points, mat44 * final, float * w, float ** v) {
 	// The LS in the iterations is done on subsample of the input data
-	float * newResultPosition = new float[num_points * 3];
+
+	unsigned long num_points = params->definedActiveBlock;
 	const unsigned long num_to_keep = (unsigned long) (num_points * (params->percent_to_keep / 100.0f));
-	num_equations = num_to_keep * 3;
+	const unsigned long num_equations = num_to_keep * 3;
+	float * newResultPosition = new float[num_points * 3];
+	std::multimap<double, _reg_sorted_point3D> queue;
+	mat44 lastTransformation;
+	memset(&lastTransformation, 0, sizeof(mat44));
+	double lastLowest = 1000000000.0;
+
+	double pert = 0.8;
+	//optimization routine
+	unsigned int count = 0;
+
+	double distance = 0.0;
+	double lastDistance = std::numeric_limits<double>::max();
+
+	unsigned long i;
 
 	// The LHS matrix
-	a = new float *[num_equations];
+	float** a = new float *[num_equations];
 	for (unsigned k = 0; k < num_equations; ++k) {
 		a[k] = new float[12]; // full affine
 	}
 
 	// Allocate memory for pseudoinverse
-	r = new float *[12];
+	float** r = new float *[12];
 	for (unsigned k = 0; k < 12; ++k) {
 		r[k] = new float[num_equations];
 	}
 
 	// Allocate memory for RHS vector
-	b = new float[num_equations];
-	mat44 lastTransformation;
-	memset(&lastTransformation, 0, sizeof(mat44));
+	float* b = new float[num_equations];
 
-	for (unsigned count = 0; count < MAX_ITERATIONS; ++count) {
+	while (pert >= 0) {
+
 		// Transform the points in the target
 		for (unsigned j = 0; j < num_points * 3; j += 3) {
 			reg_mat44_mul(final, &(params->targetPosition[j]), &newResultPosition[j]);
@@ -1188,16 +1251,45 @@ void optimize_affine3D(_reg_blockMatchingParam *params, mat44 * final) {
 		}
 
 		// If the change is not substantial or we are getting worst, we return
-		if ((distance >= lastDistance) || (lastDistance - distance) < TOLERANCE) {
-			// restore the last transformation
-			memcpy(final, &lastTransformation, sizeof(mat44));
-			break;
-		}
+		/*if ((distance >= lastDistance) || (lastDistance - distance) < TOLERANCE) {
+		 // restore the last transformation
+		 memcpy(final, &lastTransformation, sizeof(mat44));
+		 break;
+		 }*/
+
+		//		std::cout << count << "/" << MAX_ITERATIONS << ": " << distance << " - " << lastDistance << " - " << lastLowest << std::endl;
 		lastDistance = distance;
-		memcpy(&lastTransformation, final, sizeof(mat44));
+		if (lastDistance <= lastLowest) {
+			lastLowest = lastDistance;
+			memcpy(&lastTransformation, final, sizeof(mat44));
+		}
 		estimate_affine_transformation3D(top_points, final, a, w, v, r, b);
+		for (unsigned j = 0; j < num_points * 3; j += 3) {
+			reg_mat44_mul(final, &(params->targetPosition[j]), &newResultPosition[j]);
+		}
+
+		queue = std::multimap<double, _reg_sorted_point3D>();
+		for (unsigned j = 0; j < num_points * 3; j += 3) {
+			distance = get_square_distance3D(&newResultPosition[j], &(params->resultPosition[j]));
+			queue.insert(std::pair<double, _reg_sorted_point3D>(distance, _reg_sorted_point3D(&(params->targetPosition[j]), &(params->resultPosition[j]), distance)));
+		}
+
+		distance = 0.0;
+		i = 0;
+		for (std::multimap<double, _reg_sorted_point3D>::iterator it = queue.begin(); it != queue.end(); ++it, i++) {
+			if (i >= num_to_keep)
+				break;
+			distance += (*it).first;
+		}
+		if (lastDistance == distance) {
+			perturbate(final, pert);
+			pert -= 0.1;
+		}
+		count++;
 	}
+	memcpy(final, &lastTransformation, sizeof(mat44));
 	delete[] newResultPosition;
+
 	delete[] b;
 	for (unsigned k = 0; k < 12; ++k) {
 		delete[] r[k];
@@ -1209,9 +1301,79 @@ void optimize_affine3D(_reg_blockMatchingParam *params, mat44 * final) {
 		delete[] a[k];
 	}
 	delete[] a;
+}
+
+void optimize_affine3D(_reg_blockMatchingParam *params,
+		mat44 * final, bool ilsIn)
+		{
+	// Set the current transformation to identity
+	reg_mat44_eye(final);
+
+	const unsigned num_points = params->definedActiveBlock;
+	unsigned long num_equations = num_points * 3;
+	std::multimap<double, _reg_sorted_point3D> queue;
+	std::vector<_reg_sorted_point3D> top_points;
+	double distance = 0.0;
+	double lastDistance = std::numeric_limits<double>::max();
+	unsigned long i;
+
+	// massive left hand side matrix
+	float ** a = new float *[num_equations];
+	for (unsigned k = 0; k < num_equations; ++k)
+			{
+		a[k] = new float[12]; // full affine
+	}
+
+	// The array of singular values returned by svd
+	float *w = new float[12];
+
+	// v will be n x n
+	float **v = new float *[12];
+	for (unsigned k = 0; k < 12; ++k)
+			{
+		v[k] = new float[12];
+	}
+
+	// Allocate memory for pseudoinverse
+	float **r = new float *[12];
+	for (unsigned k = 0; k < 12; ++k)
+			{
+		r[k] = new float[num_equations];
+	}
+
+	// Allocate memory for RHS vector
+	float *b = new float[num_equations];
+
+	// The initial vector with all the input points
+	for (unsigned j = 0; j < num_points * 3; j += 3)
+			{
+		top_points.push_back(_reg_sorted_point3D(&(params->targetPosition[j]),
+				&(params->resultPosition[j]),
+				0.0f));
+	}
+
+	// estimate the optimal transformation while considering all the points
+	estimate_affine_transformation3D(top_points, final, a, w, v, r, b);
+
+	// Delete a, b and r. w and v will not change size in subsequent svd operations.
+	for (unsigned int k = 0; k < num_equations; ++k)
+			{
+		delete[] a[k];
+	}
+	delete[] a;
+	delete[] b;
+
+	for (unsigned k = 0; k < 12; ++k)
+			{
+		delete[] r[k];
+	}
+	delete[] r;
+
+	if(ilsIn) iterativeLocalSearch(params, top_points, final, w, v); else localSearch(params, top_points, final, w, v);
 
 	delete[] w;
-	for (int k = 0; k < 12; ++k) {
+	for (int k = 0; k < 12; ++k)
+			{
 		delete[] v[k];
 	}
 	delete[] v;
@@ -1584,7 +1746,7 @@ void optimize_rigid3D(_reg_blockMatchingParam *params, mat44 *final) {
 }
 
 // Find the optimal affine transformation
-void optimize(_reg_blockMatchingParam *params, mat44 *transformation_matrix, bool affine) {
+void optimize(_reg_blockMatchingParam *params, mat44 *transformation_matrix, bool affine, bool ils) {
 	// The block matching provide correspondences in millimeters
 	// in the space of the reference image. All warped image coordinates
 	// are updated to be in the original floating space
@@ -1620,7 +1782,7 @@ void optimize(_reg_blockMatchingParam *params, mat44 *transformation_matrix, boo
 			params->resultPosition[index] = static_cast<float>(out[2]);
 		}
 		if (affine)
-			optimize_affine3D(params, transformation_matrix);
+			optimize_affine3D(params, transformation_matrix, ils);
 		else
 			optimize_rigid3D(params, transformation_matrix);
 	}
