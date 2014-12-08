@@ -1193,20 +1193,18 @@ void localSearch(_reg_blockMatchingParam *params, std::vector<_reg_sorted_point3
 void iterativeLocalSearch(_reg_blockMatchingParam *params, std::vector<_reg_sorted_point3D> top_points, mat44 * final, float * w, float ** v) {
 	// The LS in the iterations is done on subsample of the input data
 
-	unsigned long num_points = params->definedActiveBlock;
+	const unsigned long num_points = params->definedActiveBlock;
 	const unsigned long num_to_keep = (unsigned long) (num_points * (params->percent_to_keep / 100.0f));
 	const unsigned long num_equations = num_to_keep * 3;
 	float * newResultPosition = new float[num_points * 3];
-	std::multimap<double, _reg_sorted_point3D> queue;
 	mat44 lastTransformation;
 	memset(&lastTransformation, 0, sizeof(mat44));
-	double lastLowest = 1000000000.0;
-
-	double pert = 0.8;
-	//optimization routine
+	double lastLowest = std::numeric_limits<double>::max();
+	double lastDistance = std::numeric_limits<double>::max();
+	const double pert = 0.1;
 	unsigned int count = 0;
 
-	double lastDistance = std::numeric_limits<double>::max();
+
 
 	// The LHS matrix
 	float** a = new float *[num_equations];
@@ -1230,7 +1228,7 @@ void iterativeLocalSearch(_reg_blockMatchingParam *params, std::vector<_reg_sort
 			reg_mat44_mul(final, &(params->targetPosition[j]), &newResultPosition[j]);
 		}
 
-		queue = std::multimap<double, _reg_sorted_point3D>();
+		std::multimap<double, _reg_sorted_point3D> queue = std::multimap<double, _reg_sorted_point3D>();
 		for (unsigned j = 0; j < num_points * 3; j += 3) {
 			const double distanceIn = get_square_distance3D(&newResultPosition[j], &(params->resultPosition[j]));
 			queue.insert(std::pair<double, _reg_sorted_point3D>(distanceIn, _reg_sorted_point3D(&(params->targetPosition[j]), &(params->resultPosition[j]), distanceIn)));
@@ -1248,8 +1246,8 @@ void iterativeLocalSearch(_reg_blockMatchingParam *params, std::vector<_reg_sort
 			distance += (*it).first;
 		}
 //		local search converged
-		if (lastDistance - distance <0.000000001) {
-			perturbate(final, pert);
+		if ( abs(distance - lastDistance)  <0.000000001) {
+			perturbate(final, pert*count);
 //			pert -= 0.1;
 			count++;
 		} else {
