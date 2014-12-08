@@ -1164,7 +1164,9 @@ void optimize_affine3D(_reg_blockMatchingParam *params, mat44 * final) {
 	mat44 lastTransformation;
 	memset(&lastTransformation, 0, sizeof(mat44));
 
-	for (unsigned count = 0; count < MAX_ITERATIONS; ++count) {
+	mat44* temp;
+	double lowestDistance = 0.0;
+	for (unsigned int count = 0; count < MAX_ITERATIONS; ++count) {
 		// Transform the points in the target
 		for (unsigned j = 0; j < num_points * 3; j += 3) {
 			reg_mat44_mul(final, &(params->targetPosition[j]), &newResultPosition[j]);
@@ -1188,8 +1190,9 @@ void optimize_affine3D(_reg_blockMatchingParam *params, mat44 * final) {
 		}
 
 		// If the change is not substantial or we are getting worst, we return
-		if ((distance >= lastDistance) || (lastDistance - distance) < TOLERANCE) {
+		if ((distance >= lastDistance) /*|| (lastDistance - distance) < TOLERANCE*/) {
 			// restore the last transformation
+			std::cout<<"Converged: "<<count<<": "<<MAX_ITERATIONS<< std::endl;
 			memcpy(final, &lastTransformation, sizeof(mat44));
 			break;
 		}
