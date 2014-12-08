@@ -1206,10 +1206,7 @@ void iterativeLocalSearch(_reg_blockMatchingParam *params, std::vector<_reg_sort
 	//optimization routine
 	unsigned int count = 0;
 
-	double distance = 0.0;
 	double lastDistance = std::numeric_limits<double>::max();
-
-	unsigned long i;
 
 	// The LHS matrix
 	float** a = new float *[num_equations];
@@ -1225,8 +1222,8 @@ void iterativeLocalSearch(_reg_blockMatchingParam *params, std::vector<_reg_sort
 
 	// Allocate memory for RHS vector
 	float* b = new float[num_equations];
-
-	while (pert >= 0) {
+	bool foundLower = true;
+	while (count < 10) {
 
 		// Transform the points in the target
 		for (unsigned j = 0; j < num_points * 3; j += 3) {
@@ -1235,13 +1232,14 @@ void iterativeLocalSearch(_reg_blockMatchingParam *params, std::vector<_reg_sort
 
 		queue = std::multimap<double, _reg_sorted_point3D>();
 		for (unsigned j = 0; j < num_points * 3; j += 3) {
-			distance = get_square_distance3D(&newResultPosition[j], &(params->resultPosition[j]));
-			queue.insert(std::pair<double, _reg_sorted_point3D>(distance, _reg_sorted_point3D(&(params->targetPosition[j]), &(params->resultPosition[j]), distance)));
+			const double distanceIn = get_square_distance3D(&newResultPosition[j], &(params->resultPosition[j]));
+			queue.insert(std::pair<double, _reg_sorted_point3D>(distanceIn, _reg_sorted_point3D(&(params->targetPosition[j]), &(params->resultPosition[j]), distanceIn)));
 		}
 
-		distance = 0.0;
-		i = 0;
 		top_points.clear();
+
+		double distance = 0.0;
+		unsigned long i = 0;
 
 		for (std::multimap<double, _reg_sorted_point3D>::iterator it = queue.begin(); it != queue.end(); ++it, ++i) {
 			if (i >= num_to_keep)
@@ -1249,43 +1247,25 @@ void iterativeLocalSearch(_reg_blockMatchingParam *params, std::vector<_reg_sort
 			top_points.push_back((*it).second);
 			distance += (*it).first;
 		}
-
-		// If the change is not substantial or we are getting worst, we return
-		/*if ((distance >= lastDistance) || (lastDistance - distance) < TOLERANCE) {
-		 // restore the last transformation
-		 memcpy(final, &lastTransformation, sizeof(mat44));
-		 break;
-		 }*/
-
-		//		std::cout << count << "/" << MAX_ITERATIONS << ": " << distance << " - " << lastDistance << " - " << lastLowest << std::endl;
-		lastDistance = distance;
-		if (lastDistance <= lastLowest) {
-			lastLowest = lastDistance;
-			memcpy(&lastTransformation, final, sizeof(mat44));
-		}
-		estimate_affine_transformation3D(top_points, final, a, w, v, r, b);
-		for (unsigned j = 0; j < num_points * 3; j += 3) {
-			reg_mat44_mul(final, &(params->targetPosition[j]), &newResultPosition[j]);
-		}
-
-		queue = std::multimap<double, _reg_sorted_point3D>();
-		for (unsigned j = 0; j < num_points * 3; j += 3) {
-			distance = get_square_distance3D(&newResultPosition[j], &(params->resultPosition[j]));
-			queue.insert(std::pair<double, _reg_sorted_point3D>(distance, _reg_sorted_point3D(&(params->targetPosition[j]), &(params->resultPosition[j]), distance)));
-		}
-
-		distance = 0.0;
-		i = 0;
-		for (std::multimap<double, _reg_sorted_point3D>::iterator it = queue.begin(); it != queue.end(); ++it, i++) {
-			if (i >= num_to_keep)
-				break;
-			distance += (*it).first;
-		}
-		if (lastDistance == distance) {
+//		local search converged
+		if (lastDistance - distance <0.000000001) {
 			perturbate(final, pert);
-			pert -= 0.1;
+//			pert -= 0.1;
+			count++;
+		} else {
+
+			//		std::cout << count << "/" << MAX_ITERATIONS << ": " << distance << " - " << lastDistance << " - " << lastLowest << std::endl;
+			lastDistance = distance;
+			if (distance <= lastLowest) {
+				lastLowest = distance;
+				memcpy(&lastTransformation, final, sizeof(mat44));
+			}
+			estimate_affine_transformation3D(top_points, final, a, w, v, r, b);
+			for (unsigned j = 0; j < num_points * 3; j += 3) {
+				reg_mat44_mul(final, &(params->targetPosition[j]), &newResultPosition[j]);
+			}
+
 		}
-		count++;
 	}
 	memcpy(final, &lastTransformation, sizeof(mat44));
 	delete[] newResultPosition;
@@ -1369,7 +1349,10 @@ void optimize_affine3D(_reg_blockMatchingParam *params,
 	}
 	delete[] r;
 
-	if(ilsIn) iterativeLocalSearch(params, top_points, final, w, v); else localSearch(params, top_points, final, w, v);
+	if (ilsIn)
+		iterativeLocalSearch(params, top_points, final, w, v);
+	else
+		localSearch(params, top_points, final, w, v);
 
 	delete[] w;
 	for (int k = 0; k < 12; ++k)
