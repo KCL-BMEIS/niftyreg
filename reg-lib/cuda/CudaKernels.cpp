@@ -201,7 +201,7 @@ void CudaBlockMatchingKernel::compare() {
 	}
 }
 
-void CudaBlockMatchingKernel::calculate() {
+void CudaBlockMatchingKernel::calculate(int range) {
 
 	//	con->setCurrentWarped(con->CurrentWarped);
 //		block_matching_method(con->CurrentReference, con->getCurrentWarped(16), con->blockMatchingParams, con->CurrentReferenceMask);

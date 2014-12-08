@@ -22,7 +22,7 @@ class CudaBlockMatchingKernel: public BlockMatchingKernel {
 public:
 
 	CudaBlockMatchingKernel(Context* conIn, std::string name);
-	void calculate();
+	void calculate(int range);
 	void compare();
 private:
 	nifti_image* target;

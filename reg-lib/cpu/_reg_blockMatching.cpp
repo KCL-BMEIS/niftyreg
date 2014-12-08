@@ -14,7 +14,7 @@
 #include <map>
 #include <iostream>
 #include <limits>
-
+#include <cmath>
 /* *************************************************************** */
 /* *************************************************************** */
 // Helper function: Get the square of the Euclidean distance
@@ -405,7 +405,7 @@ void block_matching_method2D(nifti_image * target, nifti_image * result, _reg_bl
 }
 /* *************************************************************** */
 template<typename DTYPE>
-void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_blockMatchingParam *params, int *mask) {
+void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_blockMatchingParam *params, int *mask, int range) {
 	DTYPE *targetPtr = static_cast<DTYPE *>(target->data);
 	DTYPE *resultPtr = static_cast<DTYPE *>(result->data);
 
@@ -460,7 +460,7 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 #pragma omp parallel for default(none) \
    shared(params, target, result, targetPtr, resultPtr, mask, targetMatrix_xyz, \
           targetOverlap, resultOverlap, targetValues, resultValues, \
-          temp_target_position, temp_result_position) \
+          temp_target_position, temp_result_position, range) \
    private(i, j, k, l, m, n, x, y, z, blockIndex, targetIndex, \
            index, tid, targetPtr_Z, targetPtr_XYZ, resultPtr_Z, resultPtr_XYZ, \
            maskPtr_Z, maskPtr_XYZ, value, bestCC, bestDisplacement, \
@@ -524,13 +524,13 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 					bestDisplacement[2] = 0.f;
 
 					// iteration over the result blocks
-					for (n = -OVERLAP_SIZE; n <= OVERLAP_SIZE; n += params->stepSize) {
+					for (n = -1*range; n <= range; n += params->stepSize) {
 						resultIndex_start_z = targetIndex_start_z + n;
 						resultIndex_end_z = resultIndex_start_z + BLOCK_WIDTH;
-						for (m = -OVERLAP_SIZE; m <= OVERLAP_SIZE; m += params->stepSize) {
+						for (m = -1*range; m <= range; m += params->stepSize) {
 							resultIndex_start_y = targetIndex_start_y + m;
 							resultIndex_end_y = resultIndex_start_y + BLOCK_WIDTH;
-							for (l = -OVERLAP_SIZE; l <= OVERLAP_SIZE; l += params->stepSize) {
+							for (l = -1*range; l <= range; l += params->stepSize) {
 								resultIndex_start_x = targetIndex_start_x + l;
 								resultIndex_end_x = resultIndex_start_x + BLOCK_WIDTH;
 								resultIndex = 0;
@@ -663,7 +663,7 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 }
 /* *************************************************************** */
 // Block matching interface function
-void block_matching_method(nifti_image * target, nifti_image * result, _reg_blockMatchingParam *params, int *mask) {
+void block_matching_method(nifti_image * target, nifti_image * result, _reg_blockMatchingParam *params, int *mask, int range) {
 	if (target->datatype != result->datatype) {
 		reg_print_fct_error("block_matching_method");
 		reg_print_msg_error("Both input images are expected to be of the same type");
@@ -687,10 +687,10 @@ void block_matching_method(nifti_image * target, nifti_image * result, _reg_bloc
 	} else {
 		switch (target->datatype) {
 		case NIFTI_TYPE_FLOAT64:
-			block_matching_method3D<double>(target, result, params, mask);
+			block_matching_method3D<double>(target, result, params, mask, range);
 			break;
 		case NIFTI_TYPE_FLOAT32:
-			block_matching_method3D<float>(target, result, params, mask);
+			block_matching_method3D<float>(target, result, params, mask, range);
 			break;
 		default:
 			reg_print_fct_error("block_matching_method")
@@ -1192,20 +1192,19 @@ void localSearch(_reg_blockMatchingParam *params, std::vector<_reg_sorted_point3
 void iterativeLocalSearch(_reg_blockMatchingParam *params, std::vector<_reg_sorted_point3D> top_points, mat44 * final, float * w, float ** v) {
 	// The LS in the iterations is done on subsample of the input data
 
-	unsigned long num_points = params->definedActiveBlock;
+	const unsigned long num_points = params->definedActiveBlock;
 	const unsigned long num_to_keep = (unsigned long) (num_points * (params->percent_to_keep / 100.0f));
 	const unsigned long num_equations = num_to_keep * 3;
 	float * newResultPosition = new float[num_points * 3];
-	std::multimap<double, _reg_sorted_point3D> queue;
 	mat44 lastTransformation;
 	memset(&lastTransformation, 0, sizeof(mat44));
-	double lastLowest = 1000000000.0;
 
-	double pert = 0.1;
-	//optimization routine
+	double lastLowest = std::numeric_limits<double>::max();
+	double lastDistance = std::numeric_limits<double>::max();
+	const double pert = 0.1;
 	unsigned int count = 0;
 
-	double lastDistance = std::numeric_limits<double>::max();
+
 
 	// The LHS matrix
 	float** a = new float *[num_equations];
@@ -1231,7 +1230,7 @@ void iterativeLocalSearch(_reg_blockMatchingParam *params, std::vector<_reg_sort
 			reg_mat44_mul(final, &(params->targetPosition[j]), &newResultPosition[j]);
 		}
 
-		queue = std::multimap<double, _reg_sorted_point3D>();
+		std::multimap<double, _reg_sorted_point3D> queue = std::multimap<double, _reg_sorted_point3D>();
 		for (unsigned j = 0; j < num_points * 3; j += 3) {
 			const double distanceIn = get_square_distance3D(&newResultPosition[j], &(params->resultPosition[j]));
 			queue.insert(std::pair<double, _reg_sorted_point3D>(distanceIn, _reg_sorted_point3D(&(params->targetPosition[j]), &(params->resultPosition[j]), distanceIn)));
@@ -1250,8 +1249,8 @@ void iterativeLocalSearch(_reg_blockMatchingParam *params, std::vector<_reg_sort
 		}
 
 //		local search converged
-		if (lastDistance - distance <0.000000001) {
-			perturbate(final, pert);
+		if ( std::abs(distance - lastDistance)  <0.0000001) {
+			perturbate(final, pert*(count%10));
 //			pert -= 0.1;
 			count++;
 		} else {

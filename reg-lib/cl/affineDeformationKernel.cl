@@ -24,7 +24,7 @@ __kernel void affineKernel(__global float* transformationMatrix, __global  float
 	__global float *deformationFieldPtrY = &deformationFieldPtrX[voxelNumber];
 	__global float *deformationFieldPtrZ = &deformationFieldPtrY[voxelNumber]; 
 
-	double voxel[3];
+	float voxel[3];
 
 	
 	const unsigned int z = get_group_id(2)*get_local_size(2) + get_local_id(2);
@@ -33,9 +33,9 @@ __kernel void affineKernel(__global float* transformationMatrix, __global  float
 	const unsigned long index = x + y*params.x + z * params.x * params.y;
 	if( z<params.z && y<params.y && x<params.x &&  mask[index] >= 0 ) {
 
-		voxel[0] = composition ? deformationFieldPtrX[index] : (double)x;
-		voxel[1] = composition ? deformationFieldPtrY[index] : (double)y;
-		voxel[2] = composition ? deformationFieldPtrZ[index] : (double)z;
+		voxel[0] = composition ? deformationFieldPtrX[index] : (float)x;
+		voxel[1] = composition ? deformationFieldPtrY[index] : (float)y;
+		voxel[2] = composition ? deformationFieldPtrZ[index] : (float)z;
 
 		/* the deformation field (real coordinates) is stored */
 		deformationFieldPtrX[index] = getPosition( transformationMatrix, voxel, 0);

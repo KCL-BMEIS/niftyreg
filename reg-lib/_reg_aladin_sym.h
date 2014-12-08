@@ -45,7 +45,7 @@ protected:
    virtual void AllocateBackwardDeformationField();
    virtual void ClearBackwardDeformationField();
    virtual void GetBackwardDeformationField();
-   virtual void UpdateTransformationMatrix(int);
+   virtual void UpdateTransformationMatrix(int, int);
 
    virtual void DebugPrintLevelInfoStart();
    virtual void DebugPrintLevelInfoEnd();

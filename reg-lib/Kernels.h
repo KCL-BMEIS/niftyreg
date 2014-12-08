@@ -29,7 +29,7 @@ public:
 
 	}
 	virtual ~BlockMatchingKernel(){}
-	virtual void calculate() = 0;
+	virtual void calculate(int range=3) = 0;
 };
 
 

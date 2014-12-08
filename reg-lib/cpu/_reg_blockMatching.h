@@ -121,7 +121,7 @@ extern "C++"
 void block_matching_method(nifti_image * referenceImage,
                            nifti_image * warpedImage,
                            _reg_blockMatchingParam *params,
-                           int *mask);
+                           int *mask, int range=3);
 
 /** @brief Apply the given affine transformation to a point
  * @todo I should remove this function as it is redondant

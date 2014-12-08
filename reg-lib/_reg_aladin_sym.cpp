@@ -349,10 +349,10 @@ void reg_aladin_sym<T>::GetWarpedImage(int interp)
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
+void reg_aladin_sym<T>::UpdateTransformationMatrix(int type, int range)
 {
    // Update first the forward transformation matrix
-	reg_aladin<T>::UpdateTransformationMatrix(type);
+	reg_aladin<T>::UpdateTransformationMatrix(type, range);
   /* block_matching_method(this->CurrentReference,
                          this->CurrentWarped,
                          &this->blockMatchingParams,
@@ -370,7 +370,7 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
                AFFINE);
    }*/
    // Update now the backward transformation matrix
-	bBlockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();
+	bBlockMatchingKernel->castTo<BlockMatchingKernel>()->calculate(range);
 	bOptimiseKernel->castTo<OptimiseKernel>()->calculate(type, this->ils);
   /* block_matching_method(this->CurrentFloating,
                          this->CurrentBackwardWarped,

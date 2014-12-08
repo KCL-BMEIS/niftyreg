@@ -546,7 +546,7 @@ void reg_aladin<T>::GetWarpedImage(int interp)
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_aladin<T>::UpdateTransformationMatrix(int type)
+void reg_aladin<T>::UpdateTransformationMatrix(int type, int range)
 {
    /*block_matching_method(this->CurrentReference,
                          this->CurrentWarped,
@@ -561,7 +561,7 @@ void reg_aladin<T>::UpdateTransformationMatrix(int type)
                this->TransformationMatrix,
                AFFINE);*/
 
-	blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();
+	blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate(range);
 	optimiseKernel->castTo<OptimiseKernel>()->calculate(type, ils);
 
 #ifndef NDEBUG
@@ -684,7 +684,7 @@ void reg_aladin<T>::Run()
             printf("[DEBUG] -Rigid- iteration %i\n",iteration);
 #endif
             this->GetWarpedImage(this->Interpolation);
-            this->UpdateTransformationMatrix(RIGID);
+            this->UpdateTransformationMatrix(RIGID, 5);
 //            if ( funcProgressCallback && paramsProgressCallback )
 //            {
 //               (*funcProgressCallback)(100.0f * (float)iProgressStep / (float)nProgressSteps,
@@ -710,7 +710,7 @@ void reg_aladin<T>::Run()
             printf("[DEBUG] -Affine- iteration %i\n",iteration);
 #endif
             this->GetWarpedImage(this->Interpolation);
-            this->UpdateTransformationMatrix(AFFINE);
+            this->UpdateTransformationMatrix(AFFINE,3);
 //            if ( funcProgressCallback && paramsProgressCallback )
 //            {
 //               (*funcProgressCallback)(100.0f * (float)iProgressStep / (float)nProgressSteps,

@@ -94,7 +94,7 @@ protected:
    virtual void InitialiseBlockMatching(int);
    virtual void GetDeformationField();
    virtual void GetWarpedImage(int);
-   virtual void UpdateTransformationMatrix(int);
+   virtual void UpdateTransformationMatrix(int, int);
 
    void (*funcProgressCallback)(float pcntProgress, void *params);
    void *paramsProgressCallback;
