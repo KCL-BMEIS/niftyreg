@@ -1225,9 +1225,9 @@ void iterativeLocalSearch(_reg_blockMatchingParam *params, std::vector<_reg_sort
 	// Allocate memory for RHS vector
 	float* b = new float[num_equations];
 
-
+//	std::cout<<"in: "<<std::endl;
 	while (pert >= 0) {
-
+//		std::cout<<"count: "<<count <<" pert: "<<pert<<std::endl;
 		// Transform the points in the target
 		for (unsigned j = 0; j < num_points * 3; j += 3) {
 			reg_mat44_mul(final, &(params->targetPosition[j]), &newResultPosition[j]);
@@ -1274,12 +1274,13 @@ void iterativeLocalSearch(_reg_blockMatchingParam *params, std::vector<_reg_sort
 				break;
 			distance += (*it).first;
 		}
-		if (lastDistance == distance) {
+//		std::cout<<"last distance: "<<lastDistance<<" | distance: "<<distance<<std::endl;
+		if (lastDistance - distance < 0.0000000001) {
 			perturbate(final, pert);
 			pert -= 0.1;
 		}
 		count++;
-	}
+	}/*std::cout<<"out"<<std::endl;*/
 	memcpy(final, &lastTransformation, sizeof(mat44));
 	delete[] newResultPosition;
 
