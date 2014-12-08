@@ -562,7 +562,7 @@ void reg_aladin<T>::UpdateTransformationMatrix(int type)
                AFFINE);*/
 
 	blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();
-	optimiseKernel->castTo<OptimiseKernel>()->calculate(type);
+	optimiseKernel->castTo<OptimiseKernel>()->calculate(type, ils);
 
 #ifndef NDEBUG
    reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] updated matrix");

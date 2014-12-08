@@ -371,7 +371,7 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
    }*/
    // Update now the backward transformation matrix
 	bBlockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();
-	bOptimiseKernel->castTo<OptimiseKernel>()->calculate(type);
+	bOptimiseKernel->castTo<OptimiseKernel>()->calculate(type, this->ils);
   /* block_matching_method(this->CurrentFloating,
                          this->CurrentBackwardWarped,
                          &this->BackwardBlockMatchingParams,

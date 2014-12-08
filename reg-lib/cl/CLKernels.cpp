@@ -52,11 +52,13 @@ CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Context* conIn, s
 	program = sContext->CreateProgram((clInstallPath + clKernel).c_str());
 	commandQueue = sContext->getCommandQueue();
 	// Create OpenCL kernel
-	kernel = clCreateKernel(program, "affineKernel", NULL);
+	cl_int errNum;
+	kernel = clCreateKernel(program, "affineKernel", &errNum);
+	sContext->checkErrNum(errNum, "Error setting kernel CLAffineDeformationFieldKernel.");
 	clDeformationField = con->getDeformationFieldArrayClmem();
 	clMask = con->getMaskClmem();
 
-	cl_uint errNum = clSetKernelArg(this->kernel, 2, sizeof(cl_mem), &this->clMask);
+	errNum = clSetKernelArg(this->kernel, 2, sizeof(cl_mem), &this->clMask);
 	sContext->checkErrNum(errNum, "Error setting clMask.");
 
 }
@@ -131,7 +133,7 @@ void CLAffineDeformationFieldKernel::calculate(bool compose) {
 	sContext->checkErrNum(errNum, "Error setting kernel arguments.");
 
 	errNum = clEnqueueNDRangeKernel(this->commandQueue, kernel, dims, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-	sContext->checkErrNum(errNum, "Error queuing kernel for execution: ");
+	sContext->checkErrNum(errNum, "Error queuing CLAffineDeformationFieldKernel for execution: ");
 	clFinish(commandQueue);
 	free(trans);
 	clReleaseMemObject(cltransMat);
@@ -451,10 +453,10 @@ CLOptimiseKernel::CLOptimiseKernel(Context* conIn, std::string name) :
 CLOptimiseKernel::~CLOptimiseKernel() {
 
 }
-void CLOptimiseKernel::calculate(bool affine) {
+void CLOptimiseKernel::calculate(bool affine, bool ils) {
 
 	this->blockMatchingParams = con->getBlockMatchingParams();
-	optimize(this->blockMatchingParams, this->transformationMatrix, affine);
+	optimize(this->blockMatchingParams, this->transformationMatrix, affine, ils);
 }
 //==============================
 

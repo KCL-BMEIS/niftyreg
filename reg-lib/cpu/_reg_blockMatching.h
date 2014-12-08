@@ -18,7 +18,7 @@
 #include <vector>
 
 #define TOLERANCE 0.01
-#define MAX_ITERATIONS 30
+#define MAX_ITERATIONS 60
 
 #define BLOCK_WIDTH 4
 #define BLOCK_SIZE 64
@@ -142,7 +142,7 @@ void apply_affine(mat44 * mat,
  */
 void optimize(_reg_blockMatchingParam *params,
               mat44 * transformation_matrix,
-              bool affine = true);
+              bool affine = true, bool ils=false);
 
 
 

@@ -111,7 +111,7 @@ void ClContext::allocateClPtrs() {
 }
 
 nifti_image* ClContext::getCurrentWarped(int datatype) {
-	std::cout << "get Warped1!" << std::endl;
+//	std::cout << "get Warped1!" << std::endl;
 	downloadImage(this->CurrentWarped, warpedImageClmem, CL_TRUE, datatype, "warpedImageClmem");
 	return this->CurrentWarped;
 }

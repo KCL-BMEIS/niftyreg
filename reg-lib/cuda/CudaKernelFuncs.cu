@@ -12,8 +12,6 @@
 
 #define SINC_KERNEL_RADIUS 3
 #define SINC_KERNEL_SIZE SINC_KERNEL_RADIUS*2
-#define M_PI		3.14159265358979323846	/* pi */
-
 
 unsigned int min1(unsigned int a, unsigned int b) {
 	return (a < b) ? a : b;

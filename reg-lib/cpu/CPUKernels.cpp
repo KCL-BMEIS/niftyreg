@@ -27,8 +27,8 @@ void CPUBlockMatchingKernel::calculate() {
 	block_matching_method(this->target, this->result, this->params, this->mask);
 }
 
-void CPUOptimiseKernel::calculate(bool affine) {
-	optimize(this->blockMatchingParams, this->transformationMatrix, affine);
+void CPUOptimiseKernel::calculate(bool affine, bool ils) {
+	optimize(this->blockMatchingParams, this->transformationMatrix, affine, ils);
 }
 
 void CPUResampleImageKernel::calculate(int interp, float paddingValue, bool *dti_timepoint, mat33 * jacMat) {
