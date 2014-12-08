@@ -651,7 +651,7 @@ void reg_aladin<T>::Run()
       }
 
       /* initialise the block matching */
-      this->InitialiseBlockMatching(percentageOfBlockToUse);
+//      this->InitialiseBlockMatching(percentageOfBlockToUse);
 
 #ifdef NDEBUG
       if(this->Verbose)
