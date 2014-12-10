@@ -4,7 +4,7 @@
 #define USE_EIGEN
 
 #include "_reg_maths.h"
-// Eigen headers are in there because of nvcc preprocessing step
+// Eigen headers are in there because of the nvcc preprocessing step
 #include "Eigen/Core"
 #include "Eigen/SVD"
 #include "Eigen/unsupported/MatrixFunctions"
