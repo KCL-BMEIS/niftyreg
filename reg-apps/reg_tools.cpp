@@ -594,7 +594,7 @@ int main(int argc, char **argv)
          float *imgDataPtr=static_cast<float *>(image->data);
          for(size_t i=0;i<image->nvox;++i){
             float value=imgDataPtr[i];
-            if(value==std::numeric_limits<float>::quiet_NaN()){
+            if(value!=value){
                nanNumber++;
                imgDataPtr[i]=param->removeNanInfValue;
             }
@@ -610,7 +610,7 @@ int main(int argc, char **argv)
          double *imgDataPtr=static_cast<double *>(image->data);
          for(size_t i=0;i<image->nvox;++i){
             double value=imgDataPtr[i];
-            if(value==std::numeric_limits<double>::quiet_NaN()){
+            if(value!=value){
                nanNumber++;
                imgDataPtr[i]=param->removeNanInfValue;
             }

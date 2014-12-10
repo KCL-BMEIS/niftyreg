@@ -504,7 +504,7 @@ int main(int argc, char **argv)
       warpedImage->cal_max=floatingImage->cal_max;
       warpedImage->scl_slope=floatingImage->scl_slope;
       warpedImage->scl_inter=floatingImage->scl_inter;
-      if(param->paddingValue==std::numeric_limits<float>::quiet_NaN() &&
+      if(param->paddingValue!=param->paddingValue &&
          (floatingImage->datatype!=NIFTI_TYPE_FLOAT32 ||
           floatingImage->datatype!=NIFTI_TYPE_FLOAT64)){
          warpedImage->datatype = NIFTI_TYPE_FLOAT32;

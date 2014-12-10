@@ -119,10 +119,16 @@ template <class T>
 T reg_f3d_sym<T>::InitialiseCurrentLevel()
 {
    // Refine the control point grids if required
-   if(this->currentLevel!=0)
+   if(this->gridRefinement==true)
    {
-      reg_spline_refineControlPointGrid(this->controlPointGrid);
-      reg_spline_refineControlPointGrid(this->backwardControlPointGrid);
+      if(this->currentLevel==0)
+         this->bendingEnergyWeight = this->bendingEnergyWeight / static_cast<T>(powf(16.0f, this->levelToPerform-1));
+      else
+      {
+         reg_spline_refineControlPointGrid(this->controlPointGrid);
+         reg_spline_refineControlPointGrid(this->backwardControlPointGrid);
+         this->bendingEnergyWeight = this->bendingEnergyWeight * static_cast<T>(16);
+      }
    }
 
    // Set the mask images
@@ -136,6 +142,7 @@ T reg_f3d_sym<T>::InitialiseCurrentLevel()
       this->currentMask = this->maskPyramid[0];
       this->currentFloatingMask = this->floatingMaskPyramid[0];
    }
+
    // Define the initial step size for the gradient ascent optimisation
    T maxStepSize = this->currentReference->dx;
    maxStepSize = this->currentReference->dy>maxStepSize?this->currentReference->dy:maxStepSize;
@@ -818,6 +825,7 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
                         this->currentFloatingMask,
                         this->interpolation,
                         this->warpedPaddingValue);
+
    //    }
    // The voxel based gradient image is initialised with zeros
    reg_tools_multiplyValueToImage(this->voxelBasedMeasureGradientImage,
@@ -826,6 +834,7 @@ void reg_f3d_sym<T>::GetVoxelBasedGradient()
    reg_tools_multiplyValueToImage(this->backwardVoxelBasedMeasureGradientImage,
                                   this->backwardVoxelBasedMeasureGradientImage,
                                   0.f);
+
    // The gradient of the various measures of similarity are computed
    if(this->measure_nmi!=NULL)
       this->measure_nmi->GetVoxelBasedSimilarityMeasureGradient();

@@ -621,12 +621,16 @@ void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
                               double jointLog = logHistoPtr[r+w*referenceBinNumber[t]];
                               double refLog = logHistoPtr[r+referenceOffset];
                               double warLog = logHistoPtr[w+floatingOffset];
-                              jointDeriv[0] += commun * gradX * jointLog;
-                              jointDeriv[1] += commun * gradY * jointLog;
-                              refDeriv[0] += commun * gradX * refLog;
-                              refDeriv[1] += commun * gradY * refLog;
-                              warDeriv[0] += commun * gradX * warLog;
-                              warDeriv[1] += commun * gradY * warLog;
+                              if(gradX==gradX){
+                                 jointDeriv[0] += commun * gradX * jointLog;
+                                 refDeriv[0] += commun * gradX * refLog;
+                                 warDeriv[0] += commun * gradX * warLog;
+                              }
+                              if(gradY==gradY){
+                                 jointDeriv[1] += commun * gradY * jointLog;
+                                 refDeriv[1] += commun * gradY * refLog;
+                                 warDeriv[1] += commun * gradY * warLog;
+                              }
                            }
                         }
                      }
@@ -733,15 +737,21 @@ void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
                               jointLog = logHistoPtr[r+w*referenceBinNumber[t]];
                               refLog = logHistoPtr[r+referenceOffset];
                               warLog = logHistoPtr[w+floatingOffset];
-                              jointDeriv[0] += commun * gradX * jointLog;
-                              jointDeriv[1] += commun * gradY * jointLog;
-                              jointDeriv[2] += commun * gradZ * jointLog;
-                              refDeriv[0] += commun * gradX * refLog;
-                              refDeriv[1] += commun * gradY * refLog;
-                              refDeriv[2] += commun * gradZ * refLog;
-                              warDeriv[0] += commun * gradX * warLog;
-                              warDeriv[1] += commun * gradY * warLog;
-                              warDeriv[2] += commun * gradZ * warLog;
+                              if(gradX==gradX){
+                                 refDeriv[0] += commun * gradX * refLog;
+                                 warDeriv[0] += commun * gradX * warLog;
+                                 jointDeriv[0] += commun * gradX * jointLog;
+                              }
+                              if(gradY==gradY){
+                                 refDeriv[1] += commun * gradY * refLog;
+                                 warDeriv[1] += commun * gradY * warLog;
+                                 jointDeriv[1] += commun * gradY * jointLog;
+                              }
+                              if(gradZ==gradZ){
+                                 refDeriv[2] += commun * gradZ * refLog;
+                                 warDeriv[2] += commun * gradZ * warLog;
+                                 jointDeriv[2] += commun * gradZ * jointLog;
+                              }
                            }
                         }
                      }

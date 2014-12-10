@@ -44,8 +44,6 @@ int main(int argc, char **argv)
    mat44 differenceMatrix = *inputMatrix - *(affine->GetTransformationMatrix());
 
    // Cleaning up
-   free(inputMatrix);
-   delete affine;
    nifti_image_free(referenceImage);
    nifti_image_free(floatingImage);
 
@@ -54,10 +52,17 @@ int main(int argc, char **argv)
          if(fabsf(differenceMatrix.m[i][j])>EPS){
             fprintf(stderr, "reg_test_fullAffine error too large: %g (>%g)\n",
                     fabs(differenceMatrix.m[i][j]), EPS);
+            reg_mat44_disp(inputMatrix, (char *)"Expected Matrix");
+            reg_mat44_disp(affine->GetTransformationMatrix(), (char *)"Obtained Matrix");
+            reg_mat44_disp(&differenceMatrix, (char *)"Difference Matrix");
+            free(inputMatrix);
+            delete affine;
             return EXIT_FAILURE;
          }
       }
    }
+   free(inputMatrix);
+   delete affine;
 
    return EXIT_SUCCESS;
 }
