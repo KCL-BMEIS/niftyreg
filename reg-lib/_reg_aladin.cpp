@@ -644,8 +644,7 @@ void reg_aladin<T>::Run()
 	this->InitialiseRegistration();
 
 	//Main loop over the levels:
-	for (this->CurrentLevel = 0; this->CurrentLevel < this->LevelsToPerform; this->CurrentLevel++)
-			{
+	for (this->CurrentLevel = 0; this->CurrentLevel < this->LevelsToPerform; this->CurrentLevel++){
 		this->initContext(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel],
 				this->ReferenceMaskPyramid[CurrentLevel], this->TransformationMatrix, sizeof(T), this->BlockPercentage,
 				InlierLts, this->BlockStepSize);
@@ -656,8 +655,7 @@ void reg_aladin<T>::Run()
 		// All the blocks are used during the first level
 		int maxNumberOfIterationToPerform = this->MaxIterations;
 		int percentageOfBlockToUse = this->BlockPercentage;
-		if (CurrentLevel == 0)
-				{
+		if (CurrentLevel == 0){
 			maxNumberOfIterationToPerform *= 2;
 		}
 
@@ -669,7 +667,7 @@ void reg_aladin<T>::Run()
 #endif
 		this->DebugPrintLevelInfoStart();
 #ifdef NDEBUG
-	}
+		}
 #endif
 
 #ifndef NDEBUG
@@ -687,24 +685,16 @@ void reg_aladin<T>::Run()
 		/* ****************** */
 
 		if (overlap > 3) {
-			std::cout << "ALIGN" << std::endl;
 			con->setOverlapLength(overlap);
-//			con->blockMatchingParams->stepSize = 2;
-			const bool tils = ils;
-			ils = false;
 			resolveMatrix(maxNumberOfIterationToPerform, RIGID);
 			if (this->PerformAffine)
 				resolveMatrix(maxNumberOfIterationToPerform, AFFINE);
 			overlap = 3;
 			con->setOverlapLength(overlap);
-//			con->blockMatchingParams->stepSize = BlockStepSize;
-			ils = tils;
 		}
 
 		if ((this->PerformRigid && !this->PerformAffine) || (this->PerformAffine && this->PerformRigid && CurrentLevel == 0)) {
-			int ratio = 1;
-			if (this->PerformAffine && this->PerformRigid && CurrentLevel == 0)
-				ratio = 4;
+			const unsigned int ratio = (this->PerformAffine && this->PerformRigid && CurrentLevel == 0)?4:1;
 			resolveMatrix(maxNumberOfIterationToPerform * ratio, RIGID);
 		}
 
