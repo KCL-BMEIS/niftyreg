@@ -42,8 +42,9 @@ void block_matching_method_gpu(nifti_image *targetImage, _reg_blockMatchingParam
 
 	dim3 BlockDims1D(64, 1, 1);
 	dim3 BlocksGrid3D(params->blockNumber[0], params->blockNumber[1], params->blockNumber[2]);
-
-	blockMatchingKernel << <BlocksGrid3D, BlockDims1D >> >(*resultPosition_d, *targetPosition_d, *mask_d, *targetMat_d, definedBlock_d, imageSize);
+	const int numOverlappedBlocks = params->overlapLength%4?params->overlapLength/4+1:params->overlapLength/4;
+	const unsigned int sMem = (numOverlappedBlocks * 2 + 1)*(numOverlappedBlocks * 2 + 1)*(numOverlappedBlocks * 2 + 1)*64*sizeof(float);
+	blockMatchingKernel2 << <BlocksGrid3D, BlockDims1D, sMem >> >(*resultPosition_d, *targetPosition_d, *mask_d, *targetMat_d, definedBlock_d, imageSize, numOverlappedBlocks, params->stepSize);
 
 	#ifndef NDEBUG
 	NR_CUDA_CHECK_KERNEL(BlocksGrid3D, BlockDims1D)

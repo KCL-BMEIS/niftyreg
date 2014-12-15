@@ -130,14 +130,14 @@ __kernel void blockMatchingKernel3(__global float* resultImageArray, __global fl
                     const int indexXYZIn = xImageIn + yImageIn *(c_ImageSize.x) + zImageIn * (c_ImageSize.x * c_ImageSize.y);
                     
                     const bool valid = (xImageIn >= 0 && xImageIn < c_ImageSize.x) && (yImageIn >= 0 && yImageIn < c_ImageSize.y) && (zImageIn >= 0 && zImageIn < c_ImageSize.z);
-                    sResultValues[sIdx] = (valid) ? resultImageArray[ indexXYZIn] : NAN;
+                    sResultValues[sIdx] = (valid && mask[indexXYZIn]>-1) ? resultImageArray[ indexXYZIn] : NAN;
                     
                 }
             }
         }
         
         
-        float rTargetValue = targetInBounds ? targetImageArray[imgIdx] : NAN;
+        float rTargetValue = (targetInBounds && mask[imgIdx]>-1) ? targetImageArray[imgIdx] : NAN;
         const bool finiteTarget = isfinite(rTargetValue);
         const unsigned int targetSize = reduceCustom2(sData,finiteTarget?1.0f:0.0f, tid);
         rTargetValue = finiteTarget? rTargetValue:0.0f;

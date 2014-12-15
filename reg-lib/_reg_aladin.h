@@ -60,6 +60,7 @@ protected:
    bool PerformRigid;
    bool PerformAffine;
    bool ils;
+   int overlap;
 
    int BlockPercentage;
    int InlierLts;
@@ -94,7 +95,7 @@ protected:
    virtual void InitialiseBlockMatching(int);
    virtual void GetDeformationField();
    virtual void GetWarpedImage(int);
-   virtual void UpdateTransformationMatrix(int);
+   virtual void UpdateTransformationMatrix(int, int);
 
    void (*funcProgressCallback)(float pcntProgress, void *params);
    void *paramsProgressCallback;
@@ -231,6 +232,10 @@ public:
    {
       this->SetInterpolation(3);
    }
+   void setOverlap(int overlapIn)
+   {
+      this->overlap = overlapIn;
+   }
 
    virtual int Check();
    virtual int Print();
@@ -251,6 +256,7 @@ public:
 private:
 
    Kernel* affineTransformation3DKernel, *blockMatchingKernel, *optimiseKernel, *resamplingKernel;
+   void resolveMatrix(unsigned int iterations, const unsigned int optimizationFlag);
 
 };
 

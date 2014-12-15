@@ -71,6 +71,7 @@ struct _reg_blockMatchingParam
    int *activeBlock;
 
    int definedActiveBlock;
+   int overlapLength;
 
    int stepSize;
 

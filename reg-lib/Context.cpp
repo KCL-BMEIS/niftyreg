@@ -148,6 +148,9 @@ void Context::AllocateDeformationField(size_t bytes) {
 	this->CurrentDeformationField->data = (void *) calloc(this->CurrentDeformationField->nvox, this->CurrentDeformationField->nbyper);
 	return;
 }
+void Context::setOverlapLength(const int length){
+		blockMatchingParams->overlapLength = length;
+	}
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void Context::ClearDeformationField() {
 	if (this->CurrentDeformationField != NULL)

@@ -349,10 +349,10 @@ void reg_aladin_sym<T>::GetWarpedImage(int interp)
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
+void reg_aladin_sym<T>::UpdateTransformationMatrix(int type, int overlap)
 {
    // Update first the forward transformation matrix
-	reg_aladin<T>::UpdateTransformationMatrix(type);
+	reg_aladin<T>::UpdateTransformationMatrix(type, overlap);
   /* block_matching_method(this->CurrentReference,
                          this->CurrentWarped,
                          &this->blockMatchingParams,
@@ -369,6 +369,7 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
                this->TransformationMatrix,
                AFFINE);
    }*/
+	backCon->setOverlapLength(overlap);
    // Update now the backward transformation matrix
 	bBlockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();
 	bOptimiseKernel->castTo<OptimiseKernel>()->calculate(type, this->ils);
@@ -388,6 +389,10 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
                this->BackwardTransformationMatrix,
                AFFINE);
    }*/
+#ifndef NDEBUG
+   reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] pre-updated forward transformation matrix");
+   reg_mat44_disp(this->BackwardTransformationMatrix, (char *)"[DEBUG] pre-updated backward transformation matrix");
+#endif
    // Forward and backward matrix are inverted
    mat44 fInverted = nifti_mat44_inverse(*(this->TransformationMatrix));
    mat44 bInverted = nifti_mat44_inverse(*(this->BackwardTransformationMatrix));
