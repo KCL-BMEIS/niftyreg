@@ -78,7 +78,12 @@ struct _reg_blockMatchingParam
    _reg_blockMatchingParam()
       : targetPosition(0),
         resultPosition(0),
-        activeBlock(0)
+        activeBlock(0),
+        percent_to_keep(0),
+        voxelCaptureRange(0),
+        stepSize(0),
+        definedActiveBlock(0),
+        activeBlockNumber(0)
    {}
 
    ~_reg_blockMatchingParam()

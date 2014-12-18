@@ -164,7 +164,7 @@ cl_program CLContextSingletton::CreateProgram(const char* fileName) {
 }
 
 void CLContextSingletton::shutDown() {
-	std::cout << "Shutting down cl" << std::endl;
+	/*std::cout << "Shutting down cl" << std::endl;*/
 	if (context != 0)
 		clReleaseContext(context);
 	if (commandQueue != 0)

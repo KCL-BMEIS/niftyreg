@@ -152,7 +152,7 @@ if(USE_OPENCL)
 	set(EXEC reg_test_fullAffine_cl)
 	add_executable(${EXEC} ${EXEC}.cpp)
 	target_link_libraries(${EXEC} _reg_aladin)
-	#add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt)
+	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt)
 	
 	#blockMatching cl tests
 	set(EXEC reg_test_blockMatching_cl)

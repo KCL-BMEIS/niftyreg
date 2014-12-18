@@ -104,7 +104,6 @@ int main(int argc, char **argv)
 
    }
 
-   std::cout<<blockMatchingParams->definedActiveBlock<<std::endl;
    mat44 differenceMatrix = *testMatrix - recoveredTransformation;
    for(int i=0;i<4;++i){
       for(int j=0;j<4;++j){

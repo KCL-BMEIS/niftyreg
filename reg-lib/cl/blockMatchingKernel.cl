@@ -1,6 +1,6 @@
 
 
-#define REDUCE reduceCustom2
+#define REDUCE reduceCustom
 #define BLOCK_WIDTH 4
 
 
@@ -23,25 +23,21 @@ void reg_mat44_mul_cl(__global float* mat, float const* in, __global float *out)
 
 
 
-
-__inline__ float reduceCustom2(__local float* sData2, float data, const unsigned int tid){
+__inline__ float reduceCustom(__local float* sData2, float data, const unsigned int tid){
 
     sData2[tid] = data;
     barrier(CLK_LOCAL_MEM_FENCE);
     
-    float temp =0.0f;
-//    if (tid < 32) sData2[tid] += sData2[tid + 32];
-//    if (tid < 16) sData2[tid] += sData2[tid + 16];
-//    if (tid < 8) sData2[tid] += sData2[tid + 8];
-//    if (tid < 4) sData2[tid] += sData2[tid + 4];
-//    if (tid < 2) sData2[tid] += sData2[tid + 2];
-//    if (tid == 0) sData2[0] += sData2[1];
-    for(int i =0;i<64;i++)
-        temp += sData2[i];
+    for(int i = 32; i > 0; i >>=1){
+        if (tid < i) sData2[tid] += sData2[tid + i];
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+
+    const float temp = sData2[0];
     barrier(CLK_LOCAL_MEM_FENCE);
+
     return temp;
 }
-
 
 
 
@@ -76,6 +72,9 @@ __kernel void blockMatchingKernel(__local float *sResultValues, __global float* 
     
     if (currentBlockIndex > -1){
         
+        float bestDisplacement[3] = { NAN,0.0f,0.0f };
+        float bestCC = blocksRange>1?0.9f:0.0f;
+        
         //populate shared memory with resultImageArray's values
         for (int n = -1*blocksRange; n <= blocksRange; n += 1) {
             for (int m = -1*blocksRange; m <= blocksRange; m += 1) {
@@ -93,7 +92,7 @@ __kernel void blockMatchingKernel(__local float *sResultValues, __global float* 
                     const int indexXYZIn = xImageIn + yImageIn *(c_ImageSize.x) + zImageIn * (c_ImageSize.x * c_ImageSize.y);
                     
                     const bool valid = (xImageIn >= 0 && xImageIn < c_ImageSize.x) && (yImageIn >= 0 && yImageIn < c_ImageSize.y) && (zImageIn >= 0 && zImageIn < c_ImageSize.z);
-                    sResultValues[sIdx] = (valid /*&& mask[indexXYZIn]>-1*/) ? resultImageArray[ indexXYZIn] : NAN;
+                    sResultValues[sIdx] = (valid && mask[indexXYZIn]>-1) ? resultImageArray[ indexXYZIn] : NAN;
                     
                 }
             }
@@ -102,50 +101,53 @@ __kernel void blockMatchingKernel(__local float *sResultValues, __global float* 
         
         float rTargetValue = (targetInBounds && mask[imgIdx]>-1) ? targetImageArray[imgIdx] : NAN;
         const bool finiteTarget = isfinite(rTargetValue);
-        const unsigned int targetSize = reduceCustom2(sData,finiteTarget?1.0f:0.0f, tid);
         rTargetValue = finiteTarget? rTargetValue:0.0f;
-        const float targetMean = reduceCustom2(sData,rTargetValue, tid) / targetSize;
-        const float targetTemp = finiteTarget ? rTargetValue - targetMean:0.0f;
-        const float targetVar = reduceCustom2(sData,targetTemp*targetTemp, tid);
-        float bestDisplacement[3] = { NAN,0.0f,0.0f };
-        float bestCC = 0.0f;
-        
-        // iteration over the result blocks (block matching part)
-        for (unsigned int n = 1; n < blocksRange*8 /*2*4*/; n += stepSize) {
-            for (unsigned int m = 1; m < blocksRange*8 /*2*4*/; m += stepSize) {
-                for (unsigned int l = 1; l < blocksRange*8 /*2*4*/; l += stepSize) {
-                    
-                    const unsigned int sIdxIn = (idz + n) * numBlocks*4 * numBlocks*4 + (idy + m) * numBlocks*4  + idx + l;
-                    
-                    const float rResultValue = sResultValues[sIdxIn];
-                    const bool overlap = isfinite(rResultValue) && finiteTarget;
-                    const unsigned int bSize = reduceCustom2( sData, overlap?1.0f:0.0f, tid);
 
-                    if (bSize > 32 ){
+        const unsigned int targetSize = REDUCE(sData,finiteTarget?1.0f:0.0f, tid);
+        
+        if(targetSize>32){
+            
+            const float targetMean = REDUCE(sData,rTargetValue, tid) / targetSize;
+            const float targetTemp = finiteTarget ? rTargetValue - targetMean:0.0f;
+            const float targetVar = REDUCE(sData,targetTemp*targetTemp, tid);
+            
+            // iteration over the result blocks (block matching part)
+            for (unsigned int n = 1; n < blocksRange*8 /*2*4*/; n += stepSize) {
+                for (unsigned int m = 1; m < blocksRange*8 /*2*4*/; m += stepSize) {
+                    for (unsigned int l = 1; l < blocksRange*8 /*2*4*/; l += stepSize) {
                         
+                        const unsigned int sIdxIn = (idz + n) * numBlocks*4 * numBlocks*4 + (idy + m) * numBlocks*4  + idx + l;
                         
-                        float newTargetTemp = targetTemp;
-                        float ttargetvar = targetVar;
-                        if (bSize < 64 && bSize != targetSize){
+                        const float rResultValue = sResultValues[sIdxIn];
+                        const bool overlap = isfinite(rResultValue) && finiteTarget;
+                        const unsigned int bSize = REDUCE( sData, overlap?1.0f:0.0f, tid);
+                        
+                        if (bSize > 32 ){
+
+                            float newTargetTemp = targetTemp;
+                            float newTargetvar = targetVar;
+                            if (bSize != targetSize){
+                                
+                                const float newTargetValue = overlap ? rTargetValue : 0.0f;
+                                const float newargetMean = REDUCE( sData, newTargetValue, tid) / bSize;
+                                newTargetTemp = overlap ? newTargetValue - newargetMean : 0.0f;
+                                newTargetvar = REDUCE( sData, newTargetTemp*newTargetTemp, tid);
+                            }
                             
-                            const float tChecked = overlap ? rTargetValue : 0.0f;
-                            const float ttargetMean = reduceCustom2( sData, tChecked, tid) / bSize;
-                            newTargetTemp = overlap ? tChecked - ttargetMean : 0.0f;
-                            ttargetvar = reduceCustom2( sData, newTargetTemp*newTargetTemp, tid);
-                        }
-                        
-                        const float rChecked = overlap ? rResultValue : 0.0f;
-                        const float resultMean = reduceCustom2( sData, rChecked, tid) / bSize;
-                        const float resultTemp = overlap ? rResultValue - resultMean : 0.0f;
-                        const float resultVar = reduceCustom2( sData, resultTemp*resultTemp, tid);
-                        const float sumTargetResult = reduceCustom2( sData, (newTargetTemp)*(resultTemp), tid);
-                        const float localCC = fabs((sumTargetResult) / sqrt(ttargetvar*resultVar));
-                        
-                        if (tid == 0 && localCC > bestCC) {
-                            bestCC = localCC;
-                            bestDisplacement[0] = l - 4.0f;
-                            bestDisplacement[1] = m - 4.0f;
-                            bestDisplacement[2] = n - 4.0f;
+                            const float rChecked = overlap ? rResultValue : 0.0f;
+                            const float resultMean = REDUCE( sData, rChecked, tid) / bSize;
+                            const float resultTemp = overlap ? rResultValue - resultMean : 0.0f;
+                            const float resultVar = REDUCE( sData, resultTemp*resultTemp, tid);
+                            
+                            const float sumTargetResult = REDUCE( sData, (newTargetTemp)*(resultTemp), tid);
+                            const float localCC = fabs((sumTargetResult) / sqrt(newTargetvar*resultVar));
+                            
+                            if (tid == 0 && localCC > bestCC) {
+                                bestCC = localCC;
+                                bestDisplacement[0] = l - 4.0f;
+                                bestDisplacement[1] = m - 4.0f;
+                                bestDisplacement[2] = n - 4.0f;
+                            }
                         }
                     }
                 }
@@ -159,7 +161,7 @@ __kernel void blockMatchingKernel(__local float *sResultValues, __global float* 
             resultPosition += posIdx;
             targetPosition += posIdx;
             
-            const float targetPosition_temp[3] = {get_group_id(0)*BLOCK_WIDTH,get_group_id(1)*BLOCK_WIDTH, get_group_id(2)*BLOCK_WIDTH };
+            const float targetPosition_temp[3] = {(float)xBaseImage,(float)yBaseImage, (float)zBaseImage };
             
             bestDisplacement[0] += targetPosition_temp[0];
             bestDisplacement[1] += targetPosition_temp[1];

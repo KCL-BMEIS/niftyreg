@@ -205,6 +205,7 @@ __global__ void ResampleImage3D(float* floatingImage, float* deformationField, f
 					interpNearestNeighKernel(relative[0], xBasisIn);
 					interpNearestNeighKernel(relative[1], yBasisIn);
 					interpNearestNeighKernel(relative[2], zBasisIn);
+					/*if(index == 19400 || index == 42547) printf("idx: %lu | x: %f-%f | y: %f-%f | z: %f-%f | prev: %d-%d-%d | rel: %f-%f-%f \n", index, xBasisIn[0], xBasisIn[1], yBasisIn[0], yBasisIn[1], zBasisIn[0], zBasisIn[1], previous[0], previous[1], previous[2], relative[0], relative[1], relative[2]);*/
 					intensity = interpLoop(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 2);
 				} else if (kernelType == 1) {
 
@@ -238,7 +239,7 @@ __global__ void ResampleImage3D(float* floatingImage, float* deformationField, f
 					interpCubicSplineKernel(relative[2], zBasisIn);
 					intensity = interpLoop(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 4);
 				}
-			}
+			}/*if(index == 19400 || index == 42547) printf("idx: %lu | val: %f\n", index, intensity);*/
 			resultIntensity[index] = intensity;
 		}
 		index += blockDim.x * gridDim.x;
@@ -264,215 +265,10 @@ __global__ void affineKernel(float* transformationMatrix, float* defField, int* 
 		voxel[1] = composition ? deformationFieldPtrY[index] : (double) y;
 		voxel[2] = composition ? deformationFieldPtrZ[index] : (double) z;
 
-		/* the deformation field (real coordinates) is stored */
-
-//		if (index == 978302 ) printf("%d-%d-%d\n",x, y, z);
 		deformationFieldPtrX[index] = (float)getPosition(transformationMatrix, voxel, 0);
 		deformationFieldPtrY[index] = (float)getPosition(transformationMatrix, voxel, 1);
 		deformationFieldPtrZ[index] = (float)getPosition(transformationMatrix, voxel, 2);
 
-//		if (index == 978302 ) printf("x: %f | val: %f\n",voxel[0], deformationFieldPtrX[index]);
-//		if (index == 978302 ) printf("y: %f | val: %f\n",voxel[1], deformationFieldPtrY[index]);
-//		if (index == 978302 ) printf("z: %f | val: %f\n",voxel[2], deformationFieldPtrZ[index]);
-
-	}
-}
-
-template<class DTYPE>
-__global__ void convolutionKernel(nifti_image *image, float*densityPtr, bool* nanImagePtr, float *size, int kernelType, int *mask, bool *timePoint, bool *axis) {
-	if (threadIdx.x == 0) {
-		//printf("hi from %d-%d \n", blockIdx.x, threadIdx.x);
-		const unsigned long voxelNumber = image->dim[1] * image->dim[2] * image->dim[3];
-		DTYPE *imagePtr = static_cast<DTYPE *>(image->data);
-		int imageDim[3] = { image->dim[1], image->dim[2], image->dim[3] };
-
-		// Loop over the dimension higher than 3
-		for (int t = 0; t < image->dim[4] * image->dim[5]; t++) {
-			if (timePoint[t]) {
-				DTYPE *intensityPtr = &imagePtr[t * voxelNumber];
-
-				for (unsigned long index = 0; index < voxelNumber; index++) {
-					densityPtr[index] = (intensityPtr[index] == intensityPtr[index]) ? 1 : 0;
-					densityPtr[index] *= (mask[index] >= 0) ? 1 : 0;
-					nanImagePtr[index] = static_cast<bool>(densityPtr[index]);
-					if (nanImagePtr[index] == 0)
-						intensityPtr[index] = static_cast<DTYPE>(0);
-				}
-				// Loop over the x, y and z dimensions
-				for (int n = 0; n < 3; n++) {
-					if (axis[n] && image->dim[n] > 1) {
-						double temp;
-						if (size[t] > 0)
-							temp = size[t] / image->pixdim[n + 1]; // mm to voxel
-						else
-							temp = fabs(size[t]); // voxel based if negative value
-						int radius;
-						// Define the kernel size
-						if (kernelType == 2) {
-							// Mean filtering
-							radius = static_cast<int>(temp);
-						} else if (kernelType == 1) {
-							// Cubic Spline kernel
-							radius = static_cast<int>(temp * 2.0f);
-						} else {
-							// Gaussian kernel
-							radius = static_cast<int>(temp * 3.0f);
-						}
-						if (radius > 0) {
-							// Allocate the kernel
-							float kernel[2048];
-							double kernelSum = 0;
-							// Fill the kernel
-							if (kernelType == 1) {
-								// Compute the Cubic Spline kernel
-								for (int i = -radius; i <= radius; i++) {
-									// temp contains the kernel node spacing
-									double relative = (double) (fabs((double) (double) i / (double) temp));
-									if (relative < 1.0)
-										kernel[i + radius] = (float) (2.0 / 3.0 - relative * relative + 0.5 * relative * relative * relative);
-									else if (relative < 2.0)
-										kernel[i + radius] = (float) (-(relative - 2.0) * (relative - 2.0) * (relative - 2.0) / 6.0);
-									else
-										kernel[i + radius] = 0;
-									kernelSum += kernel[i + radius];
-								}
-							}
-							// No kernel is required for the mean filtering
-							else if (kernelType != 2) {
-								// Compute the Gaussian kernel
-								for (int i = -radius; i <= radius; i++) {
-									// 2.506... = sqrt(2*pi)
-									// temp contains the sigma in voxel
-									kernel[radius + i] = static_cast<float>(exp(-(double) (i * i) / (2.0 * reg_pow2(temp))) / (temp * 2.506628274631));
-									kernelSum += kernel[radius + i];
-								}
-							}
-							// No need for kernel normalisation as this is handle by the density function
-							int planeNumber, planeIndex, lineOffset;
-							int lineIndex, shiftPre, shiftPst, k;
-							switch (n) {
-							case 0:
-								planeNumber = imageDim[1] * imageDim[2];
-								lineOffset = 1;
-								break;
-							case 1:
-								planeNumber = imageDim[0] * imageDim[2];
-								lineOffset = imageDim[0];
-								break;
-							case 2:
-								planeNumber = imageDim[0] * imageDim[1];
-								lineOffset = planeNumber;
-								break;
-							}
-
-							size_t realIndex;
-							float *kernelPtr, kernelValue;
-							double densitySum, intensitySum;
-							DTYPE *currentIntensityPtr = NULL;
-							float *currentDensityPtr = NULL;
-							DTYPE bufferIntensity[2048];
-							;
-							float bufferDensity[2048];
-							DTYPE bufferIntensitycur = 0;
-							float bufferDensitycur = 0;
-
-							// Loop over the different voxel
-							for (planeIndex = 0; planeIndex < planeNumber; ++planeIndex) {
-
-								switch (n) {
-								case 0:
-									realIndex = planeIndex * imageDim[0];
-									break;
-								case 1:
-									realIndex = (planeIndex / imageDim[0]) * imageDim[0] * imageDim[1] + planeIndex % imageDim[0];
-									break;
-								case 2:
-									realIndex = planeIndex;
-									break;
-								default:
-									realIndex = 0;
-								}
-								// Fetch the current line into a stack buffer
-								currentIntensityPtr = &intensityPtr[realIndex];
-								currentDensityPtr = &densityPtr[realIndex];
-								for (lineIndex = 0; lineIndex < imageDim[n]; ++lineIndex) {
-									bufferIntensity[lineIndex] = *currentIntensityPtr;
-									bufferDensity[lineIndex] = *currentDensityPtr;
-									currentIntensityPtr += lineOffset;
-									currentDensityPtr += lineOffset;
-								}
-								if (kernelSum > 0) {
-									// Perform the kernel convolution along 1 line
-									for (lineIndex = 0; lineIndex < imageDim[n]; ++lineIndex) {
-										// Define the kernel boundaries
-										shiftPre = lineIndex - radius;
-										shiftPst = lineIndex + radius + 1;
-										if (shiftPre < 0) {
-											kernelPtr = &kernel[-shiftPre];
-											shiftPre = 0;
-										} else
-											kernelPtr = &kernel[0];
-										if (shiftPst > imageDim[n])
-											shiftPst = imageDim[n];
-										// Set the current values to zero
-										intensitySum = 0;
-										densitySum = 0;
-										// Increment the current value by performing the weighted sum
-										for (k = shiftPre; k < shiftPst; ++k) {
-											kernelValue = *kernelPtr++;
-											intensitySum += kernelValue * bufferIntensity[k];
-											densitySum += kernelValue * bufferDensity[k];
-										}
-										// Store the computed value inplace
-										intensityPtr[realIndex] = static_cast<DTYPE>(intensitySum);
-										densityPtr[realIndex] = static_cast<float>(densitySum);
-										realIndex += lineOffset;
-									} // line convolution
-								} // kernel type
-								else {
-									for (lineIndex = 1; lineIndex < imageDim[n]; ++lineIndex) {
-										bufferIntensity[lineIndex] += bufferIntensity[lineIndex - 1];
-										bufferDensity[lineIndex] += bufferDensity[lineIndex - 1];
-									}
-									shiftPre = -radius - 1;
-									shiftPst = radius;
-									for (lineIndex = 0; lineIndex < imageDim[n]; ++lineIndex, ++shiftPre, ++shiftPst) {
-										if (shiftPre > -1) {
-											if (shiftPst < imageDim[n]) {
-												bufferIntensitycur = (DTYPE) (bufferIntensity[shiftPre] - bufferIntensity[shiftPst]);
-												bufferDensitycur = (DTYPE) (bufferDensity[shiftPre] - bufferDensity[shiftPst]);
-											} else {
-												bufferIntensitycur = (DTYPE) (bufferIntensity[shiftPre] - bufferIntensity[imageDim[n] - 1]);
-												bufferDensitycur = (DTYPE) (bufferDensity[shiftPre] - bufferDensity[imageDim[n] - 1]);
-											}
-										} else {
-											if (shiftPst < imageDim[n]) {
-												bufferIntensitycur = (DTYPE) (-bufferIntensity[shiftPst]);
-												bufferDensitycur = (DTYPE) (-bufferDensity[shiftPst]);
-											} else {
-												bufferIntensitycur = (DTYPE) (0);
-												bufferDensitycur = (DTYPE) (0);
-											}
-										}
-										intensityPtr[realIndex] = bufferIntensitycur;
-										densityPtr[realIndex] = bufferDensitycur;
-
-										realIndex += lineOffset;
-									} // line convolution of mean filter
-								} // No kernel computation
-							} // pixel in starting plane
-						} // radius > 0
-					} // active axis
-				} // axes
-				  // Normalise per timepoint
-				for (unsigned long index = 0; index < voxelNumber; ++index) {
-					if (nanImagePtr[index] != 0)
-						intensityPtr[index] = static_cast<DTYPE>((float) intensityPtr[index] / densityPtr[index]);
-					else
-						intensityPtr[index] = 0;
-				}
-			} // check if the time point is active
-		} // loop over the time points
 	}
 }
 

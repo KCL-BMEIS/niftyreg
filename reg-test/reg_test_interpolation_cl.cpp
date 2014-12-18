@@ -66,7 +66,6 @@ int main(int argc, char **argv) {
 
 	// Compute the non-linear deformation field
 	int* tempMask = (int *) calloc(test_warped->nvox, sizeof(int));
-	reg_tools_changeDatatype<float>(floatingImage);
 	reg_tools_changeDatatype<float>(test_warped);
 
 	Context *con = new ClContext(NULL, floatingImage, NULL, sizeof(float));
