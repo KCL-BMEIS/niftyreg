@@ -37,6 +37,15 @@ template<class T> reg_aladin<T>::reg_aladin()
 	this->TransformationMatrix = new mat44;
 	this->InputTransformName = NULL;
 
+	this->affineTransformation3DKernel = NULL;
+	this->blockMatchingKernel=NULL;
+	this->optimiseKernel=NULL;
+	this->resamplingKernel=NULL;
+
+	this->con = NULL;
+	this->blockMatchingParams=NULL;
+	this->platform=NULL;
+
 	this->Verbose = true;
 
 	this->MaxIterations = 5;
@@ -68,6 +77,12 @@ template<class T> reg_aladin<T>::reg_aladin()
 	this->platformCode = NR_PLATFORM_CPU;
 	this->captureRangeVox=3;
 	this->ils=false;
+	this->CurrentLevel=0;
+
+	//check those
+	this->FloatingLowerThreshold=0.f;
+	this->FloatingUpperThreshold=0.f;
+
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T> reg_aladin<T>::~reg_aladin()
@@ -527,22 +542,24 @@ void reg_aladin<T>::GetWarpedImage(int interp) {
 	resamplingKernel->castTo<ResampleImageKernel>()->calculate(interp, 0);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template<class T>
-void reg_aladin<T>::UpdateTransformationMatrix(int type, int overlap) {
-	/*block_matching_method(this->CurrentReference,
-	 this->CurrentWarped,
-	 &this->blockMatchingParams,
-	 this->CurrentReferenceMask);
-	 if(type==RIGID)
-	 optimize(&this->blockMatchingParams,
-	 this->TransformationMatrix,
-	 RIGID);
-	 else
-	 optimize(&this->blockMatchingParams,
-	 this->TransformationMatrix,
-	 AFFINE);*/
-	con->setOverlapLength(overlap);
-	blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();
+
+template <class T>
+void reg_aladin<T>::UpdateTransformationMatrix(int type)
+{
+   /*block_matching_method(this->CurrentReference,
+                         this->CurrentWarped,
+                         &this->blockMatchingParams,
+                         this->CurrentReferenceMask);
+   if(type==RIGID)
+      optimize(&this->blockMatchingParams,
+               this->TransformationMatrix,
+               RIGID);
+   else
+      optimize(&this->blockMatchingParams,
+               this->TransformationMatrix,
+               AFFINE);*/
+
+	blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate(captureRangeVox);
 	optimiseKernel->castTo<OptimiseKernel>()->calculate(type, ils);
 
 #ifndef NDEBUG
@@ -597,7 +614,7 @@ void reg_aladin<T>::resolveMatrix(unsigned int iterations, const unsigned int op
 		printf("[DEBUG] -%s- Level: %i/%i | iteration %i/%i \n",regStr, this->CurrentLevel, this->NumberOfLevels,  iteration, iterations);
 #endif
 		this->GetWarpedImage(this->Interpolation);
-		this->UpdateTransformationMatrix(optimizationFlag, captureRangeVox);
+		this->UpdateTransformationMatrix(optimizationFlag);
 
 		iteration++;
 	}
@@ -642,16 +659,16 @@ void reg_aladin<T>::Run()
 		else
 			reg_mat44_disp(&this->CurrentFloating->qto_xyz, (char *) "[DEBUG] Floating image matrix (qform qto_xyz)");
 #endif
+
 		/* ****************** */
 		/* Rigid registration */
 		/* ****************** */
 
 		if (captureRangeVox > 3) {
-			con->setOverlapLength(captureRangeVox);
 			resolveMatrix(maxNumberOfIterationToPerform, RIGID);
 			if (this->PerformAffine) resolveMatrix(maxNumberOfIterationToPerform, AFFINE);
 			captureRangeVox = 3;
-			con->setOverlapLength(captureRangeVox);
+
 		}
 
 		if ((this->PerformRigid && !this->PerformAffine) || (this->PerformAffine && this->PerformRigid && CurrentLevel == 0)) {

@@ -23,8 +23,8 @@ void CPUConvolutionKernel::calculate(nifti_image *image, float *sigma, int kerne
 //------------------------------------------------------------------------------------------------------------------------
 //..................END CPUConvolutionKernel------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------
-void CPUBlockMatchingKernel::calculate() {
-	block_matching_method(this->target, this->result, this->params, this->mask);
+void CPUBlockMatchingKernel::calculate(int range) {
+	block_matching_method(this->target, this->result, this->params, this->mask, range);
 }
 
 void CPUOptimiseKernel::calculate(bool affine, bool ils) {

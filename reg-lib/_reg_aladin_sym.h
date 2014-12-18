@@ -45,7 +45,7 @@ protected:
    virtual void AllocateBackwardDeformationField();
    virtual void ClearBackwardDeformationField();
    virtual void GetBackwardDeformationField();
-   virtual void UpdateTransformationMatrix(int, int);
+   virtual void UpdateTransformationMatrix(int);
 
    virtual void DebugPrintLevelInfoStart();
    virtual void DebugPrintLevelInfoEnd();
@@ -56,7 +56,7 @@ protected:
 
 public:
    reg_aladin_sym();
-   ~reg_aladin_sym();
+   virtual ~reg_aladin_sym();
    //int Check();
    //int Print();
    //void Run();

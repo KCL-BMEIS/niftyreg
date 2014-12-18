@@ -415,7 +415,7 @@ CLBlockMatchingKernel::~CLBlockMatchingKernel() {
 	if (program != 0)
 		clReleaseProgram(program);
 }
-void CLBlockMatchingKernel::calculate() {
+void CLBlockMatchingKernel::calculate(int range) {
 
 	cl_int errNum;
 

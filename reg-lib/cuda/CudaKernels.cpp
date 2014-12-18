@@ -199,7 +199,7 @@ void CudaBlockMatchingKernel::compare() {
 	}
 }
 
-void CudaBlockMatchingKernel::calculate() {
+void CudaBlockMatchingKernel::calculate(int range) {
 
 	block_matching_method_gpu(target, params, &targetImageArray_d, &resultImageArray_d, &targetPosition_d, &resultPosition_d, &activeBlock_d, &mask_d, &targetMat_d);
 #ifndef NDEBUG

@@ -72,7 +72,7 @@ public:
 	}
 	virtual void setCurrentReferenceMask(int* maskIn, size_t nvox) {
 	}
-	void setOverlapLength(const int length);
+	void setCaptureRange(const int captureRangeIn);
 
 protected:
 	nifti_image* CurrentDeformationField;

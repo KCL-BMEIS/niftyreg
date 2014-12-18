@@ -42,7 +42,7 @@ public:
 	CLBlockMatchingKernel(Context* conIn, std::string name);
 	~CLBlockMatchingKernel();
 	void compare();
-	void calculate();
+	void calculate(int range);
 private:
 	CLContextSingletton* sContext;
 	ClContext* con;

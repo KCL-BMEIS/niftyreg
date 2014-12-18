@@ -18,6 +18,15 @@ reg_aladin_sym<T>::reg_aladin_sym ()
    this->CurrentBackwardWarped=NULL;
    this->BackwardTransformationMatrix=new mat44;
 
+   this->bAffineTransformation3DKernel = NULL;
+   this->bConvolutionKernel=NULL;
+   this->bBlockMatchingKernel=NULL;
+   this->bOptimiseKernel=NULL;
+   this->bResamplingKernel=NULL;
+
+   this->backCon = NULL;
+   this->BackwardBlockMatchingParams=NULL;
+
    this->FloatingUpperThreshold=std::numeric_limits<T>::max();
    this->FloatingLowerThreshold=-std::numeric_limits<T>::max();
 
@@ -349,10 +358,10 @@ void reg_aladin_sym<T>::GetWarpedImage(int interp)
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_aladin_sym<T>::UpdateTransformationMatrix(int type, int overlap)
-{
-   // Update first the forward transformation matrix
-	reg_aladin<T>::UpdateTransformationMatrix(type, overlap);
+void reg_aladin_sym<T>::UpdateTransformationMatrix(int type){
+
+	reg_aladin<T>::UpdateTransformationMatrix(type);
+
   /* block_matching_method(this->CurrentReference,
                          this->CurrentWarped,
                          &this->blockMatchingParams,
@@ -369,9 +378,9 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type, int overlap)
                this->TransformationMatrix,
                AFFINE);
    }*/
-	backCon->setOverlapLength(overlap);
+
    // Update now the backward transformation matrix
-	bBlockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();
+	bBlockMatchingKernel->castTo<BlockMatchingKernel>()->calculate(this->captureRangeVox);
 	bOptimiseKernel->castTo<OptimiseKernel>()->calculate(type, this->ils);
   /* block_matching_method(this->CurrentFloating,
                          this->CurrentBackwardWarped,

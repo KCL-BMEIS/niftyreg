@@ -32,7 +32,7 @@ public:
 		mask = con->getCurrentReferenceMask();
 	}
 
-	void calculate();
+	void calculate(int range);
 	nifti_image* target;
 	nifti_image* result;
 	_reg_blockMatchingParam* params;
