@@ -1262,10 +1262,6 @@ void iterativeLocalSearch(_reg_blockMatchingParam *params, std::vector<_reg_sort
 				memcpy(&lastTransformation, final, sizeof(mat44));
 			}
 			estimate_affine_transformation3D(top_points, final, a, w, v, r, b);
-			for (unsigned j = 0; j < num_points * 3; j += 3) {
-				reg_mat44_mul(final, &(params->targetPosition[j]), &newResultPosition[j]);
-			}
-
 		}
 
 	}
