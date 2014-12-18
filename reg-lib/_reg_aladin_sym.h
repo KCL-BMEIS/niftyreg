@@ -35,7 +35,7 @@ protected:
    int *CurrentFloatingMask;
    int *BackwardActiveVoxelNumber;
 
-   _reg_blockMatchingParam BackwardBlockMatchingParams;
+   _reg_blockMatchingParam *BackwardBlockMatchingParams;
 
    mat44 *BackwardTransformationMatrix;
 

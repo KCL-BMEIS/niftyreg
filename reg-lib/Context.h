@@ -74,7 +74,7 @@ public:
 	}
 	void setOverlapLength(const int length);
 
-	//private:
+protected:
 	nifti_image* CurrentDeformationField;
 	nifti_image* CurrentWarped;
 

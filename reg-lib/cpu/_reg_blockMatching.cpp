@@ -191,7 +191,7 @@ void initialise_block_matching_method(nifti_image * target, _reg_blockMatchingPa
 		params->resultPosition = NULL;
 	}
 
-	params->overlapLength = 3;
+	params->voxelCaptureRange = 3;
 	params->blockNumber[0] = (int) reg_ceil((float) target->nx / (float) BLOCK_WIDTH);
 	params->blockNumber[1] = (int) reg_ceil((float) target->ny / (float) BLOCK_WIDTH);
 	if (target->nz > 1)
@@ -304,14 +304,14 @@ void block_matching_method2D(nifti_image * target, nifti_image * result, _reg_bl
 					} else
 						targetIndex += BLOCK_WIDTH;
 				}
-				PrecisionTYPE bestCC = params->overlapLength>3?0.9:0.0;//only when misaligned images are registered
+				PrecisionTYPE bestCC = params->voxelCaptureRange>3?0.9:0.0;//only when misaligned images are registered
 				float bestDisplacement[3] = { std::numeric_limits<float>::quiet_NaN(), 0.f, 0.f };
 
 				// iteration over the result blocks
-				for (int m = -1 * params->overlapLength; m <= params->overlapLength; m += params->stepSize) {
+				for (int m = -1 * params->voxelCaptureRange; m <= params->voxelCaptureRange; m += params->stepSize) {
 					resultIndex_start_y = targetIndex_start_y + m;
 					resultIndex_end_y = resultIndex_start_y + BLOCK_WIDTH;
-					for (int l = -1 * params->overlapLength; l <= params->overlapLength; l += params->stepSize) {
+					for (int l = -1 * params->voxelCaptureRange; l <= params->voxelCaptureRange; l += params->stepSize) {
 						resultIndex_start_x = targetIndex_start_x + l;
 						resultIndex_end_x = resultIndex_start_x + BLOCK_WIDTH;
 
@@ -523,19 +523,19 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 						} else
 							targetIndex += BLOCK_WIDTH * BLOCK_WIDTH;
 					}
-					bestCC = params->overlapLength>3?0.9:0.0;//only when misaligned images are registered
+					bestCC = params->voxelCaptureRange>3?0.9:0.0;//only when misaligned images are registered
 					bestDisplacement[0] = std::numeric_limits<float>::quiet_NaN();
 					bestDisplacement[1] = 0.f;
 					bestDisplacement[2] = 0.f;
 
 					// iteration over the result blocks
-					for (n = -1 * params->overlapLength; n <= params->overlapLength; n += params->stepSize) {
+					for (n = -1 * params->voxelCaptureRange; n <= params->voxelCaptureRange; n += params->stepSize) {
 						resultIndex_start_z = targetIndex_start_z + n;
 						resultIndex_end_z = resultIndex_start_z + BLOCK_WIDTH;
-						for (m = -1 * params->overlapLength; m <= params->overlapLength; m += params->stepSize) {
+						for (m = -1 * params->voxelCaptureRange; m <= params->voxelCaptureRange; m += params->stepSize) {
 							resultIndex_start_y = targetIndex_start_y + m;
 							resultIndex_end_y = resultIndex_start_y + BLOCK_WIDTH;
-							for (l = -1 * params->overlapLength; l <= params->overlapLength; l += params->stepSize) {
+							for (l = -1 * params->voxelCaptureRange; l <= params->voxelCaptureRange; l += params->stepSize) {
 								resultIndex_start_x = targetIndex_start_x + l;
 								resultIndex_end_x = resultIndex_start_x + BLOCK_WIDTH;
 								resultIndex = 0;

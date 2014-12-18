@@ -71,7 +71,7 @@ struct _reg_blockMatchingParam
    int *activeBlock;
 
    int definedActiveBlock;
-   int overlapLength;
+   int voxelCaptureRange;
 
    int stepSize;
 

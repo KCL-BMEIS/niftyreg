@@ -8,13 +8,12 @@
 
 #include "CLKernels.h"
 #include "_reg_tools.h"
-#include"_reg_resampling.h"
-
 #include <cstring>
 
 //debugging
-#include"_reg_resampling.h"
-#include"_reg_globalTransformation.h"
+#include "_reg_resampling.h"
+#include "_reg_globalTransformation.h"
+#include "_reg_blockMatching.h"
 //---
 
 #define SIZE 128
@@ -39,25 +38,36 @@ CLConvolutionKernel::~CLConvolutionKernel() {
 //==============================Affine Kernel CL===================================================
 CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Context* conIn, std::string nameIn) :
 		AffineDeformationFieldKernel(nameIn) {
-	con = (ClContext*) conIn;
-	sContext = &CLContextSingletton::Instance();
-	this->deformationFieldImage = con->CurrentDeformationField;
-	this->affineTransformation = con->getTransformationMatrix();
-	targetMatrix = (this->deformationFieldImage->sform_code > 0) ? &(this->deformationFieldImage->sto_xyz) : &(this->deformationFieldImage->qto_xyz);
 
+	//populate the CLContext object ptr
+	con = static_cast<ClContext*>(conIn);
+
+	//path to kernel files
 	std::string clInstallPath(CL_KERNELS_PATH);
 	std::string clKernel("affineDeformationKernel.cl");
 
+	//get opencl context params
+	sContext = &CLContextSingletton::Instance();
 	clContext = sContext->getContext();
-	program = sContext->CreateProgram((clInstallPath + clKernel).c_str());
 	commandQueue = sContext->getCommandQueue();
-	// Create OpenCL kernel
+	program = sContext->CreateProgram((clInstallPath + clKernel).c_str());
+
 	cl_int errNum;
+
+	// Create OpenCL kernel
 	kernel = clCreateKernel(program, "affineKernel", &errNum);
 	sContext->checkErrNum(errNum, "Error setting kernel CLAffineDeformationFieldKernel.");
+
+	//get cpu ptrs
+	this->deformationFieldImage = con->Context::getCurrentDeformationField();
+	this->affineTransformation = con->Context::getTransformationMatrix();
+	this->targetMatrix = (this->deformationFieldImage->sform_code > 0) ? &(this->deformationFieldImage->sto_xyz) : &(this->deformationFieldImage->qto_xyz);
+
+	//get cl ptrs
 	clDeformationField = con->getDeformationFieldArrayClmem();
 	clMask = con->getMaskClmem();
 
+	//set some final kernel args
 	errNum = clSetKernelArg(this->kernel, 2, sizeof(cl_mem), &this->clMask);
 	sContext->checkErrNum(errNum, "Error setting clMask.");
 
@@ -78,15 +88,15 @@ void CLAffineDeformationFieldKernel::compare(bool compose) {
 	nifti_image *cpuField = nifti_copy_nim_info(gpuField);
 	cpuField->data = (void *) malloc(gpuField->nvox * gpuField->nbyper);
 
-	reg_affine_getDeformationField(con->transformationMatrix, cpuField, compose, con->CurrentReferenceMask);
+	reg_affine_getDeformationField(affineTransformation, cpuField, compose, con->Context::getCurrentReferenceMask());
 	float*cpuData = static_cast<float*>(cpuField->data);
 
 	int count = 0;
 	float threshold = 0.000015f;
 
 	for (unsigned long i = 0; i < gpuField->nvox; i++) {
-		float base = fabs(cpuData[i])>1?fabs(cpuData[i]):fabs(cpuData[i])+1;
-		if (fabs(cpuData[i] - gpuData[i])/base > threshold) {
+		float base = fabs(cpuData[i]) > 1 ? fabs(cpuData[i]) : fabs(cpuData[i]) + 1;
+		if (fabs(cpuData[i] - gpuData[i]) / base > threshold) {
 //			printf("i: %d | cpu: %f | gpu: %f\n",i, cpuData[i], gpuData[i]);
 			count++;
 		}
@@ -120,7 +130,6 @@ void CLAffineDeformationFieldKernel::calculate(bool compose) {
 	cl_uint3 pms_d = { this->deformationFieldImage->nx, this->deformationFieldImage->ny, this->deformationFieldImage->nz };
 
 	cl_mem cltransMat = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * 16, trans, &errNum);
-//	clEnqueueWriteBuffer(this->commandQueue, cltransMat, CL_TRUE, 0, sizeof(float) * 16, trans, 0, NULL, NULL);
 
 	cl_uint composition = compose;
 	errNum = clSetKernelArg(this->kernel, 0, sizeof(cl_mem), &cltransMat);
@@ -135,6 +144,7 @@ void CLAffineDeformationFieldKernel::calculate(bool compose) {
 	errNum = clEnqueueNDRangeKernel(this->commandQueue, kernel, dims, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
 	sContext->checkErrNum(errNum, "Error queuing CLAffineDeformationFieldKernel for execution: ");
 	clFinish(commandQueue);
+
 	free(trans);
 	clReleaseMemObject(cltransMat);
 #ifndef NDEBUG
@@ -146,26 +156,34 @@ void CLAffineDeformationFieldKernel::calculate(bool compose) {
 //==========================================================================================================
 CLResampleImageKernel::CLResampleImageKernel(Context* conIn, std::string name) :
 		ResampleImageKernel(name) {
+
+	//populate the CLContext object ptr
+	con = static_cast<ClContext*>(conIn);
+
+	//path to kernel file
 	std::string clInstallPath(CL_KERNELS_PATH);
 	std::string clKernel("resampleKernel.cl");
 
+	//get opencl context params
 	sContext = &CLContextSingletton::Instance();
 	clContext = sContext->getContext();
 	commandQueue = sContext->getCommandQueue();
-
 	program = sContext->CreateProgram((clInstallPath + clKernel).c_str());
 
-	con = (ClContext*) conIn;
-	floatingImage = con->CurrentFloating;
-	warpedImage = con->CurrentWarped;
-	mask = con->CurrentReferenceMask;
+	//get cpu ptrs
+	floatingImage = con->Context::getCurrentFloating();
+	warpedImage = con->Context::getCurrentWarped();
+	mask = con->Context::getCurrentReferenceMask();
 
-	kernel = 0;
+	//get cl ptrs
 	clCurrentFloating = con->getFloatingImageArrayClmem();
 	clCurrentDeformationField = con->getDeformationFieldArrayClmem();
 	clCurrentWarped = con->getWarpedImageClmem();
 	clMask = con->getMaskClmem();
 	floMat = con->getFloMatClmem();
+
+	//init kernel
+	kernel = 0;
 
 }
 
@@ -179,8 +197,8 @@ CLResampleImageKernel::~CLResampleImageKernel() {
 }
 void CLResampleImageKernel::compare(int interp, float paddingValue) {
 	nifti_image* def = con->getCurrentDeformationField();
-	nifti_image* cWar = con->CurrentWarped;
-	reg_resampleImage(con->CurrentFloating, cWar, def, con->CurrentReferenceMask, interp, paddingValue, NULL, NULL);
+	nifti_image* cWar = con->Context::getCurrentWarped();
+	reg_resampleImage(floatingImage, cWar, def, mask, interp, paddingValue, NULL, NULL);
 	float* cpuData2 = static_cast<float*>(cWar->data);
 	float* cpuData = (float*) malloc(cWar->nvox * sizeof(float));
 	for (int i = 0; i < cWar->nvox; ++i) {
@@ -287,9 +305,10 @@ void CLResampleImageKernel::calculate(int interp, float paddingValue, bool *dti_
 
 }
 void CLBlockMatchingKernel::compare() {
-	nifti_image* referenceImage = con->CurrentReference;
+	nifti_image* referenceImage = con->Context::getCurrentReference();
 	nifti_image* warpedImage = con->getCurrentWarped(16);
-	int* mask = con->getCurrentReferenceMask();
+	int* mask = con->Context::getCurrentReferenceMask();
+
 	_reg_blockMatchingParam *refParams = con->getBlockMatchingParams();
 	_reg_blockMatchingParam *cpu = new _reg_blockMatchingParam();
 	initialise_block_matching_method(referenceImage, cpu, 50, 50, 1, mask, false);
@@ -305,11 +324,10 @@ void CLBlockMatchingKernel::compare() {
 	double maxTargetDiff = 0.0;
 	double maxResultDiff = 0.0;
 
-	double targetSum[3] ={ 0.0, 0.0, 0.0 };
-	double resultSum[3] ={ 0.0, 0.0, 0.0 };
+	double targetSum[3] = { 0.0, 0.0, 0.0 };
+	double resultSum[3] = { 0.0, 0.0, 0.0 };
 
-
-	int count2=0;
+	int count2 = 0;
 
 	for (unsigned long i = 0; i < refParams->definedActiveBlock; i++) {
 
@@ -332,7 +350,7 @@ void CLBlockMatchingKernel::compare() {
 				resultSum[1] = fabs(cpuResultPt[1] - cudaResultPt[1]);
 				resultSum[2] = fabs(cpuResultPt[2] - cudaResultPt[2]);
 				found = true;
-				if (resultSum[0] > threshold || resultSum[1] > threshold|| resultSum[2] > threshold){
+				if (resultSum[0] > threshold || resultSum[1] > threshold || resultSum[2] > threshold) {
 					printf("i: %lu | j: %lu | (dif: %f-%f-%f) | (out: %f, %f, %f) | (ref: %f, %f, %f)\n", i, j, resultSum[0], resultSum[1], resultSum[2], cpuResultPt[0], cpuResultPt[1], cpuResultPt[2], cudaResultPt[0], cudaResultPt[1], cudaResultPt[2]);
 					count2++;
 				}
@@ -351,37 +369,43 @@ void CLBlockMatchingKernel::compare() {
 	if (count > 0)
 		exit(0);
 	if (count2 > 0)
-			exit(0);
+		exit(0);
 }
 
 //==========================================================================
 CLBlockMatchingKernel::CLBlockMatchingKernel(Context* conIn, std::string name) :
 		BlockMatchingKernel(name) {
 
-	sContext = &CLContextSingletton::Instance();
+	//populate the CLContext object ptr
+	con = static_cast<ClContext*>(conIn);
 
-	con = (ClContext*) conIn;
-	target = con->CurrentReference;
-	params = con->blockMatchingParams;
-
+	//path to kernel file
 	std::string clInstallPath(CL_KERNELS_PATH);
 	std::string clKernel("blockMatchingKernel.cl");
 
+	//get opencl context params
+	sContext = &CLContextSingletton::Instance();
 	clContext = sContext->getContext();
-	program = sContext->CreateProgram((clInstallPath + clKernel).c_str());
 	commandQueue = sContext->getCommandQueue();
+	program = sContext->CreateProgram((clInstallPath + clKernel).c_str());
+
 	// Create OpenCL kernel
 	cl_int errNum;
-	kernel = clCreateKernel(program, "blockMatchingKernel3", &errNum);
+	kernel = clCreateKernel(program, "blockMatchingKernel", &errNum);
 	sContext->checkErrNum(errNum, "Error setting bm kernel.");
 
-	activeBlock = con->getActiveBlockClmem();
-	targetImageArray = con->getReferenceImageArrayClmem();
-	resultImageArray = con->getWarpedImageClmem();
-	resultPosition = con->getResultPositionClmem();
-	targetPosition = con->getTargetPositionClmem();
-	mask = con->getMaskClmem();
-	targetMat = con->getRefMatClmem();
+	//get cl ptrs
+	clActiveBlock = con->getActiveBlockClmem();
+	clTargetImageArray = con->getReferenceImageArrayClmem();
+	clResultImageArray = con->getWarpedImageClmem();
+	clResultPosition = con->getResultPositionClmem();
+	clTargetPosition = con->getTargetPositionClmem();
+	clMask = con->getMaskClmem();
+	clTargetMat = con->getRefMatClmem();
+
+	//get cpu ptrs
+	target = con->Context::getCurrentReference();
+	params = con->Context::getBlockMatchingParams();
 
 }
 CLBlockMatchingKernel::~CLBlockMatchingKernel() {
@@ -394,33 +418,46 @@ CLBlockMatchingKernel::~CLBlockMatchingKernel() {
 void CLBlockMatchingKernel::calculate() {
 
 	cl_int errNum;
-	// Copy some required parameters over to the device
 
+	// Copy some required parameters over to the device
 	unsigned int *definedBlock_h = (unsigned int*) malloc(sizeof(unsigned int));
 	*definedBlock_h = 0;
 	cl_mem definedBlock = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(unsigned int), definedBlock_h, &errNum);
 	sContext->checkErrNum(errNum, "Error setting defblock.");
 
+	const unsigned int blockRange = params->voxelCaptureRange%4?params->voxelCaptureRange/4+1:params->voxelCaptureRange/4;
+	const unsigned int stepSize = params->stepSize;
+
+	const unsigned int numBlocks = blockRange * 2 + 1;
+	const unsigned int sMemSize = numBlocks*numBlocks*numBlocks*64;
+
 	cl_uint3 imageSize = { this->target->nx, this->target->ny, this->target->nz };
 
-	errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), &this->resultImageArray);
+	errNum = clSetKernelArg(kernel, 0, sMemSize * sizeof(cl_float), NULL);
+	sContext->checkErrNum(errNum, "Error setting shared memory.");
+
+	errNum = clSetKernelArg(kernel, 1, sizeof(cl_mem), &this->clResultImageArray);
 	sContext->checkErrNum(errNum, "Error setting resultImageArray.");
-	errNum |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &this->targetImageArray);
+	errNum |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &this->clTargetImageArray);
 	sContext->checkErrNum(errNum, "Error setting targetImageArray.");
-	errNum |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &this->resultPosition);
+	errNum |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &this->clResultPosition);
 	sContext->checkErrNum(errNum, "Error setting resultPosition.");
-	errNum |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &this->targetPosition);
+	errNum |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &this->clTargetPosition);
 	sContext->checkErrNum(errNum, "Error setting targetPosition.");
-	errNum |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &this->activeBlock);
+	errNum |= clSetKernelArg(kernel, 5, sizeof(cl_mem), &this->clActiveBlock);
 	sContext->checkErrNum(errNum, "Error setting mask.");
-	errNum |= clSetKernelArg(kernel, 5, sizeof(cl_mem), &this->mask);
+	errNum |= clSetKernelArg(kernel, 6, sizeof(cl_mem), &this->clMask);
 	sContext->checkErrNum(errNum, "Error setting mask.");
-	errNum |= clSetKernelArg(kernel, 6, sizeof(cl_mem), &this->targetMat);
+	errNum |= clSetKernelArg(kernel, 7, sizeof(cl_mem), &this->clTargetMat);
 	sContext->checkErrNum(errNum, "Error setting targetMatrix_xyz.");
-	errNum |= clSetKernelArg(kernel, 7, sizeof(cl_mem), &definedBlock);
+	errNum |= clSetKernelArg(kernel, 8, sizeof(cl_mem), &definedBlock);
 	sContext->checkErrNum(errNum, "Error setting definedBlock.");
-	errNum |= clSetKernelArg(kernel, 8, sizeof(cl_uint3), &imageSize);
+	errNum |= clSetKernelArg(kernel, 9, sizeof(cl_uint3), &imageSize);
 	sContext->checkErrNum(errNum, "Error setting image size.");
+	errNum |= clSetKernelArg(kernel, 10, sizeof(cl_uint), &blockRange);
+	sContext->checkErrNum(errNum, "Error setting blockRange.");
+	errNum |= clSetKernelArg(kernel, 11, sizeof(cl_uint), &stepSize);
+	sContext->checkErrNum(errNum, "Error setting step size.");
 
 	const cl_uint dims = 3;
 	const size_t globalWorkSize[dims] = { params->blockNumber[0] * 4, params->blockNumber[1] * 4, params->blockNumber[2] * 4 };
@@ -444,11 +481,17 @@ void CLBlockMatchingKernel::calculate() {
 //===========================
 CLOptimiseKernel::CLOptimiseKernel(Context* conIn, std::string name) :
 		OptimiseKernel(name) {
+	//populate the CLContext object ptr
+	con = static_cast<ClContext*>(conIn);
 
-	con = (ClContext*) conIn;
+	//get opencl context params
 	sContext = &CLContextSingletton::Instance();
-	transformationMatrix = con->getTransformationMatrix();
-	blockMatchingParams = con->blockMatchingParams;
+	/*clContext = sContext->getContext();*/
+	/*commandQueue = sContext->getCommandQueue();*/
+
+	//get necessary cpu ptrs
+	transformationMatrix = con->Context::getTransformationMatrix();
+	blockMatchingParams = con->Context::getBlockMatchingParams();
 }
 CLOptimiseKernel::~CLOptimiseKernel() {
 

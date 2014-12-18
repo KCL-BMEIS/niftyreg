@@ -47,10 +47,6 @@ public:
 	}
 
 	void calculate(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL);
-private:
-	bool *nanImagePtr;
-	float *densityPtr;
-
 };
 
 //kernel functions for numerical optimisation

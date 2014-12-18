@@ -58,7 +58,9 @@ private:
 	CudaContext *con;
 };
 
-//kernel functions for image resampling with three interpolation variations
+/*
+ * kernel functions for image resampling with three interpolation variations
+ * */
 class CudaResampleImageKernel: public ResampleImageKernel {
 public:
 	CudaResampleImageKernel(Context* conIn, std::string name);

@@ -54,7 +54,7 @@ private:
 	cl_program program;
 	cl_command_queue commandQueue;
 
-	cl_mem activeBlock, targetImageArray, resultImageArray, resultPosition, targetPosition, mask, targetMat;
+	cl_mem clActiveBlock, clTargetImageArray, clResultImageArray, clResultPosition, clTargetPosition, clMask, clTargetMat;
 
 };
 //a kernel function for convolution (gaussian smoothing?)

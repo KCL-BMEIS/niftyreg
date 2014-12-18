@@ -63,9 +63,7 @@ int main(int argc, char **argv)
    // Compute the affine deformation field
    reg_tools_changeDatatype<float>(referenceImage);
    int* tempMask = (int *) calloc(referenceImage->nvox, sizeof(int));
-   Context *con = new CudaContext(referenceImage, NULL, tempMask, sizeof(float));
-   con->setTransformationMatrix(inputMatrix);
-   con->setCurrentDeformationField(test_field);
+   Context *con = new CudaContext(referenceImage, NULL, tempMask, inputMatrix, sizeof(float));
    test(con);
    test_field = con->getCurrentDeformationField();
    // Compute the difference between the computed and inputed deformation field

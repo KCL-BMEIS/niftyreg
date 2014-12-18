@@ -149,7 +149,7 @@ int main(int argc, char **argv)
    bool verbose=true;
    unsigned int platformFlag = 0;
    bool ils = false;
-   int overlapLength =3;
+   int captureRangeVox =3;
 
    /* read the input parameter */
    for(int i=1; i<argc; i++)
@@ -229,9 +229,9 @@ int main(int argc, char **argv)
       {
          levelsToPerform=atoi(argv[++i]);
       }
-      else if(strcmp(argv[i], "-olp")==0 || strcmp(argv[i], "--olp")==0)
+      else if(strcmp(argv[i], "-crv")==0 || strcmp(argv[i], "--crv")==0)
       {
-         overlapLength=atoi(argv[++i]);
+         captureRangeVox=atoi(argv[++i]);
       }
       else if(strcmp(argv[i], "-smooR")==0 || strcmp(argv[i], "-smooT")==0 || strcmp(argv[i], "--smooR")==0)
       {
@@ -488,7 +488,7 @@ int main(int argc, char **argv)
    REG->SetInterpolation(interpolation);
    REG->setPlatformCode(platformFlag);
    REG->setIls(ils);
-   REG->setOverlap(overlapLength);
+   REG->setCaptureRangeVox(captureRangeVox);
 
    if (referenceLowerThr != referenceUpperThr)
    {

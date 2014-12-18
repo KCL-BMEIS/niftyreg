@@ -60,12 +60,12 @@ protected:
    bool PerformRigid;
    bool PerformAffine;
    bool ils;
-   int overlap;
+   int captureRangeVox;
 
    int BlockPercentage;
    int InlierLts;
    int BlockStepSize;
-   _reg_blockMatchingParam blockMatchingParams;
+   _reg_blockMatchingParam *blockMatchingParams;
 
    bool AlignCentre;
    bool AlignCentreGravity;
@@ -232,9 +232,9 @@ public:
    {
       this->SetInterpolation(3);
    }
-   void setOverlap(int overlapIn)
+   void setCaptureRangeVox(int captureRangeIn)
    {
-      this->overlap = overlapIn;
+      this->captureRangeVox = captureRangeIn;
    }
 
    virtual int Check();

@@ -50,17 +50,13 @@ int main(int argc, char **argv)
 
    // Create a mask
    int *mask=(int *)malloc(referenceImage->nvox*sizeof(int));
-   for(size_t i=0;i<referenceImage->nvox;++i)
-      mask[i]=i;
+   for(size_t i=0;i<referenceImage->nvox;++i) mask[i]=i;
 
    Context* con = new ClContext(referenceImage, NULL, mask, sizeof(float), 50, 50,1);
    con->setCurrentWarped(warpedImage);
    test(con);
 
    _reg_blockMatchingParam *blockMatchingParams = con->getBlockMatchingParams();
-   /*for (int i = 0; i < 1000; ++i) {
-      		printf("i: %d | %f - %f\n",i, blockMatchingParams->resultPosition[i], blockMatchingParams->targetPosition[i]);
-      	}*/
 
    mat44 recoveredTransformation;
    reg_mat44_eye(&recoveredTransformation);
@@ -70,12 +66,7 @@ int main(int argc, char **argv)
    recoveredTransformation.m[0][3]=4.f;
    recoveredTransformation.m[1][3]=4.f;
    recoveredTransformation.m[2][3]=4.f;
-   optimize(blockMatchingParams,
-            &recoveredTransformation,
-            transType);
-
-
-
+   optimize(blockMatchingParams, &recoveredTransformation,  transType);
 
    mat44 rigid2D;
    rigid2D.m[0][0]=1.020541f;rigid2D.m[0][1]=0.008200279f;rigid2D.m[0][2]=0.f;rigid2D.m[0][3]=3.793443f;

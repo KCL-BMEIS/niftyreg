@@ -307,7 +307,7 @@ void reg_aladin_sym<T>::InitialiseBlockMatching(int CurrentPercentageOfBlockToUs
    //Then do the same thing for the block matching algorithm
    reg_aladin<T>::InitialiseBlockMatching(CurrentPercentageOfBlockToUse);
    initialise_block_matching_method(this->CurrentFloating,
-                                    &this->BackwardBlockMatchingParams,
+                                    this->BackwardBlockMatchingParams,
                                     CurrentPercentageOfBlockToUse,    // percentage of block kept
                                     this->InlierLts,         // percentage of inlier in the optimisation process
                                     this->BlockStepSize,
@@ -435,7 +435,7 @@ void reg_aladin_sym<T>::initContext(nifti_image* ref, nifti_image* flo,  int* ma
 	else if (this->platformCode == NR_PLATFORM_CL)
 	this->backCon = new ClContext(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
-
+	this->BackwardBlockMatchingParams = backCon->Context::getBlockMatchingParams();
 }
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -491,10 +491,10 @@ void reg_aladin_sym<T>::DebugPrintLevelInfoStart()
       printf("[%s] Block size = [4 4 1]\n", this->ExecutableName);
    else printf("[%s] Block size = [4 4 4]\n", this->ExecutableName);
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   printf("[%s] Forward Block number = [%i %i %i]\n", this->ExecutableName, this->blockMatchingParams.blockNumber[0],
-          this->blockMatchingParams.blockNumber[1], this->blockMatchingParams.blockNumber[2]);
-   printf("[%s] Backward Block number = [%i %i %i]\n", this->ExecutableName, this->BackwardBlockMatchingParams.blockNumber[0],
-          this->BackwardBlockMatchingParams.blockNumber[1], this->BackwardBlockMatchingParams.blockNumber[2]);
+   printf("[%s] Forward Block number = [%i %i %i]\n", this->ExecutableName, this->blockMatchingParams->blockNumber[0],
+          this->blockMatchingParams->blockNumber[1], this->blockMatchingParams->blockNumber[2]);
+   printf("[%s] Backward Block number = [%i %i %i]\n", this->ExecutableName, this->BackwardBlockMatchingParams->blockNumber[0],
+          this->BackwardBlockMatchingParams->blockNumber[1], this->BackwardBlockMatchingParams->blockNumber[2]);
    reg_mat44_disp(this->TransformationMatrix,
                   (char *)"[reg_aladin_sym] Initial forward transformation matrix:");
    reg_mat44_disp(this->BackwardTransformationMatrix,

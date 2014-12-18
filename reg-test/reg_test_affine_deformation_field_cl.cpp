@@ -59,8 +59,7 @@ int main(int argc, char **argv) {
 
 	//GPU code
 	reg_tools_changeDatatype<float>(referenceImage);
-	Context *con = new ClContext(referenceImage, NULL, NULL, sizeof(float));
-	con->setTransformationMatrix(inputMatrix);
+	Context *con = new ClContext(referenceImage, NULL, NULL,inputMatrix, sizeof(float));
 	test(con);
 	test_field = con->getCurrentDeformationField();
 	//END
