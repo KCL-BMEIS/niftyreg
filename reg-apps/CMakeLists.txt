@@ -33,6 +33,12 @@ else(USE_CUDA)
 	add_executable(reg_aladin reg_aladin.cpp)
 endif(USE_CUDA)
 target_link_libraries(reg_aladin _reg_aladin)
+
+if(USE_OPENCL)
+    add_executable(reg_clinfo reg_clinfo.cpp)
+    include_directories(${OPENCL_INCLUDE_DIRS})
+    target_link_libraries(reg_clinfo ${OPENCL_LIBRARIES} )
+endif(USE_OPENCL)
 #-----------------------------------------------------------------------------
 set(MODULE_LIST
 		reg_resample

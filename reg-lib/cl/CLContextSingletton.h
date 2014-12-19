@@ -25,6 +25,14 @@ public:
 	void CreateContext();
 	void checDebugKernelInfo(cl_program program, char* message);
 	void CreateCommandQueue();
+	void init();
+
+	void setClIdx(unsigned int clIdxIn){
+		printf("pre id: %d\n", clIdxIn);
+		clIdx=clIdxIn;
+		printf("apr id: %d\n", clIdxIn);
+		init();
+	}
 
 	cl_program CreateProgram( const char* fileName);
 
@@ -72,5 +80,6 @@ private:
 	size_t maxThreads;
 	cl_program affineProgram, resampleProgram, blockMatchingProgram;
 	unsigned int maxBlocks;
+	unsigned int clIdx;
 };
 #endif

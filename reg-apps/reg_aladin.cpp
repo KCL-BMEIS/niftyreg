@@ -150,6 +150,7 @@ int main(int argc, char **argv)
    unsigned int platformFlag = 0;
    bool ils = false;
    int captureRangeVox =3;
+   unsigned int clIdx = 0;
 
    /* read the input parameter */
    for(int i=1; i<argc; i++)
@@ -187,6 +188,10 @@ int main(int argc, char **argv)
       {
          floatingImageName=argv[++i];
          floatingImageFlag=1;
+      }
+      else if(strcmp(argv[i], "-clid")==0 || strcmp(argv[i], "--clid")==0)
+      {
+         clIdx = atoi(argv[++i]);
       }
       else if(strcmp(argv[i], "-noSym")==0 || strcmp(argv[i], "--noSym")==0)
       {
@@ -489,6 +494,7 @@ int main(int argc, char **argv)
    REG->setPlatformCode(platformFlag);
    REG->setIls(ils);
    REG->setCaptureRangeVox(captureRangeVox);
+   REG->setClIdx(clIdx);
 
    if (referenceLowerThr != referenceUpperThr)
    {

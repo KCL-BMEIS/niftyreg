@@ -14,6 +14,7 @@
 #ifdef _USE_OPENCL
 #include "CLPlatform.h"
 #include "CLContext.h"
+#include "CLContextSingletton.h"
 #endif
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T> reg_aladin<T>::reg_aladin()
@@ -82,6 +83,7 @@ template<class T> reg_aladin<T>::reg_aladin()
 	//check those
 	this->FloatingLowerThreshold=0.f;
 	this->FloatingUpperThreshold=0.f;
+	this->clIdx = 0;
 
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -238,6 +240,8 @@ void reg_aladin<T>::InitialiseRegistration()
 #ifdef _USE_OPENCL
 	else if (platformCode == NR_PLATFORM_CL)
 	this->platform = new CLPlatform();
+	CLContextSingletton *sContext = &CLContextSingletton::Instance();
+	sContext->setClIdx(clIdx);
 #endif
 
 	Kernel* convolutionKernel = platform->createKernel(ConvolutionKernel::getName(), NULL);

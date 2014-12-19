@@ -7,14 +7,17 @@
 
 CLContextSingletton::CLContextSingletton() {
 	commandQueue = NULL;
-	affineProgram=NULL;
-	resampleProgram=NULL;
-	blockMatchingProgram=NULL;
+	affineProgram = NULL;
+	resampleProgram = NULL;
+	blockMatchingProgram = NULL;
+	clIdx = 0;
+	init();
+}
+void CLContextSingletton::init() {
 	CreateContext();
 	CreateCommandQueue();
 	queryGridDims();
 }
-
 void CLContextSingletton::queryGridDims() {
 	std::size_t paramValueSize;
 	//------------------------------------
@@ -56,9 +59,11 @@ void CLContextSingletton::CreateContext() {
 	errNum = clGetPlatformIDs(numPlatforms, platformIds, NULL);
 	checkErrNum(errNum, "Failed to find any OpenCL platforms.");
 
-	errNum = clGetDeviceIDs(platformIds[0], CL_DEVICE_TYPE_ALL, 0, NULL,
-			&numDevices);
+	errNum = clGetDeviceIDs(platformIds[0], CL_DEVICE_TYPE_ALL, 0, NULL,&numDevices);
 	checkErrNum(errNum, "Failed to find OpenCL devices.");
+
+	devices = new cl_device_id[numDevices];
+	errNum = clGetDeviceIDs(platformIds[0], CL_DEVICE_TYPE_ALL, numDevices, devices, NULL);
 
 	// Next, create an OpenCL context on the platform.  Attempt to
 	// create a GPU-based context, and if that fails, try to create
@@ -96,7 +101,7 @@ void CLContextSingletton::CreateCommandQueue() {
 			&deviceBufferSize);
 	if (errNum != CL_SUCCESS) {
 		std::cerr
-				<< "Failed call to clGetContextInfo(...,GL_CONTEXT_DEVICES,...)";
+		<< "Failed call to clGetContextInfo(...,GL_CONTEXT_DEVICES,...)";
 		return;
 	}
 
@@ -106,19 +111,16 @@ void CLContextSingletton::CreateCommandQueue() {
 	}
 
 	// Allocate memory for the devices buffer
-	devices = new cl_device_id[deviceBufferSize / sizeof(cl_device_id)];
+//	devices = new cl_device_id[deviceBufferSize / sizeof(cl_device_id)];
 	errNum = clGetContextInfo(context, CL_CONTEXT_DEVICES, deviceBufferSize,
 			devices, NULL);
+
 	checkErrNum(errNum, "Failed to get device IDs");
+	commandQueue = clCreateCommandQueue(context, devices[clIdx], CL_QUEUE_PROFILING_ENABLE, NULL);
+	checkErrNum(errNum, "Failed to create commandQueue for device ");
 
-	// In this example, we just choose the first available device.  In a
-	// real program, you would likely use all available devices or choose
-	// the highest performance device based on OpenCL device queries
-	commandQueue = clCreateCommandQueue(context, devices[0],
-			CL_QUEUE_PROFILING_ENABLE, NULL);
-	checkErrNum(errNum, "Failed to create commandQueue for device 0");
-
-	deviceId = devices[0];
+	deviceId = devices[clIdx];
+	std::cout << "Dev id: " << deviceId << "::" << clIdx << std::endl;
 }
 
 ///
@@ -226,7 +228,7 @@ unsigned int CLContextSingletton::getMaxBlocks() {
 }
 cl_program CLContextSingletton::getAffineProgram() {
 	if (affineProgram == NULL) {
-		std::cout<<"Lets create"<<std::endl;
+		std::cout << "Lets create" << std::endl;
 		std::string clInstallPath(CL_KERNELS_PATH);
 		std::string clKernel("affineDeformationKernel.cl");
 		affineProgram = CreateProgram((clInstallPath + clKernel).c_str());
@@ -250,14 +252,14 @@ cl_program CLContextSingletton::getBlockMatchingProgram() {
 	return blockMatchingProgram;
 }
 
-size_t CLContextSingletton::getwarpGroupLength(cl_kernel kernel){
+size_t CLContextSingletton::getwarpGroupLength(cl_kernel kernel) {
 	size_t local;
-	  // Get the maximum work group size for executing the kernel on the device
-	    cl_int err = clGetKernelWorkGroupInfo(kernel, deviceId, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(local), &local, NULL);
-	    if (err != CL_SUCCESS)
-	    {
-	        printf("Error: Failed to retrieve kernel work group info! %d\n", err);
-	        exit(1);
-	    }
-	    return local;
+	// Get the maximum work group size for executing the kernel on the device
+	cl_int err = clGetKernelWorkGroupInfo(kernel, deviceId, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(local), &local, NULL);
+	if (err != CL_SUCCESS)
+	{
+		printf("Error: Failed to retrieve kernel work group info! %d\n", err);
+		exit(1);
+	}
+	return local;
 }

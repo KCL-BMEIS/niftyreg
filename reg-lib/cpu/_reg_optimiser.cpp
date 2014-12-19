@@ -24,6 +24,13 @@ reg_optimiser<T>::reg_optimiser()
    this->bestDOF=NULL;
    this->bestDOF_b=NULL;
    this->backward=false;
+   this->gradient=NULL;
+   this->currentIterationNumber=0;
+   this->currentObjFunctionValue=0.0;
+   this->maxIterationNumber=0.0;
+   this->bestObjFunctionValue=0.0;
+   this->objFunc=NULL;
+   this->gradient_b=NULL;
 
 #ifndef NDEBUG
    printf("[NiftyReg DEBUG] reg_optimiser<T>::reg_optimiser() called\n");
