@@ -15,6 +15,7 @@
 #include "CLPlatform.h"
 #include "CLContext.h"
 #include "CLContextSingletton.h"
+#include "InfoDevice.h"
 #endif
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T> reg_aladin<T>::reg_aladin()
@@ -200,7 +201,15 @@ int reg_aladin<T>::Print()
 	if(this->Verbose)
 	{
 #endif
+
+
+
 	printf("[%s] Parameters\n", this->ExecutableName);
+#ifdef _USE_OPENCL
+	CLContextSingletton *sContext = &CLContextSingletton::Instance();
+	InfoDevice<ArrayType<char> >::display(sContext->getDeviceId(), CL_DEVICE_NAME, "Card: ");
+	InfoDevice<ArrayType<char> >::display(sContext->getDeviceId(), CL_DEVICE_VENDOR, "Vendor: ");
+#endif
 	printf("[%s] Platform: %s \n", this->ExecutableName, this->platform->getName().c_str());
 	printf("[%s] Reference image name: %s\n", this->ExecutableName, this->InputReference->fname);
 	printf("[%s] \t%ix%ix%i voxels\n", this->ExecutableName, this->InputReference->nx, this->InputReference->ny, this->InputReference->nz);

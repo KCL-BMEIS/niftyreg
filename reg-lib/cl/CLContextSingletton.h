@@ -28,9 +28,7 @@ public:
 	void init();
 
 	void setClIdx(unsigned int clIdxIn){
-		printf("pre id: %d\n", clIdxIn);
 		clIdx=clIdxIn;
-		printf("apr id: %d\n", clIdxIn);
 		init();
 	}
 
@@ -41,6 +39,7 @@ public:
 	void checkErrNum(cl_int errNum, std::string message);
 	void shutDown();
 
+
 	cl_context getContext();
 	cl_device_id getDeviceId();
 	cl_device_id* getDevices();
@@ -49,13 +48,9 @@ public:
 	cl_platform_id* getPlatformIds();
 	cl_uint getNumDevices();
 	size_t getMaxThreads();
-	cl_program getAffineProgram();
-	cl_program getResampleProgram();
-	cl_program getBlockMatchingProgram();
+
 	unsigned int getMaxBlocks();
 	size_t getwarpGroupLength(cl_kernel kernel);
-
-
 
 private:
 
@@ -69,6 +64,7 @@ private:
 	CLContextSingletton(CLContextSingletton const&);// Don't Implement
 	void operator=(CLContextSingletton const&); // Don't implement
 
+	void pickCard();
 
 	cl_context context;
 	cl_device_id deviceId;
@@ -78,7 +74,7 @@ private:
 	cl_platform_id* platformIds;
 	cl_uint  numDevices;
 	size_t maxThreads;
-	cl_program affineProgram, resampleProgram, blockMatchingProgram;
+
 	unsigned int maxBlocks;
 	unsigned int clIdx;
 };

@@ -35,7 +35,7 @@ endif(USE_CUDA)
 target_link_libraries(reg_aladin _reg_aladin)
 
 if(USE_OPENCL)
-    add_executable(reg_clinfo reg_clinfo.cpp)
+    add_executable(reg_clinfo reg_clinfo.cpp ../reg-lib/cl/CLContextSingletton.cpp)
     include_directories(${OPENCL_INCLUDE_DIRS})
     target_link_libraries(reg_clinfo ${OPENCL_LIBRARIES} )
 endif(USE_OPENCL)
