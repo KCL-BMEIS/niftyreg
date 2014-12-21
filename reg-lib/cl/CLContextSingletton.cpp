@@ -5,8 +5,6 @@
 #include <fstream>
 #include <sstream>
 
-#include "config.h"
-
 CLContextSingletton::CLContextSingletton() {
 	commandQueue = NULL;
 	context = NULL;
@@ -105,7 +103,7 @@ cl_program CLContextSingletton::CreateProgram(const char* fileName) {
 
 	errNum = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
 	if (errNum != CL_SUCCESS)
-		checDebugKernelInfo(program, "Errors in kernel: ");
+		checDebugKernelInfo(program,deviceId, "Errors in kernel: ");
 
 	return program;
 }
@@ -120,10 +118,10 @@ void CLContextSingletton::shutDown() {
 	delete devices;
 }
 
-void CLContextSingletton::checDebugKernelInfo(cl_program program, char* message) {
+void CLContextSingletton::checDebugKernelInfo(cl_program program, cl_device_id devIdIn, char* message) {
 	char buffer[10240];
-	cl_device_id* devs = getDevices();
-	clGetProgramBuildInfo(program, devs[0], CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, NULL);
+
+	clGetProgramBuildInfo(program, devIdIn, CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, NULL);
 	fprintf(stderr, "%s:\n%s", message, buffer);
 }
 
@@ -167,4 +165,34 @@ size_t CLContextSingletton::getwarpGroupLength(cl_kernel kernel) {
 	checkErrNum(err, "Error: Failed to retrieve kernel work group info!");
 
 	return local;
+}
+cl_kernel CLContextSingletton::dummyKernel(cl_device_id deviceIdIn) {
+
+	const char *source = "\n"
+			"__kernel void dummy(                                                       \n"
+			"   __global float* in,                                              \n"
+			"   __global float* out,                                             \n"
+			"   const unsigned int count)                                           \n"
+			"{                                                                      \n"
+			"   int i = get_global_id(0);                                           \n"
+			"   if(i < count)                                                       \n"
+			"       out[i] = in[i] * out[i];                               			 \n"
+			"}                                                                      \n"
+			"\n";
+
+	cl_int  err ;
+	cl_program program = clCreateProgramWithSource(context, 1, (const char **) & source, NULL, &err);
+	checkErrNum(err, "Failed to create CL program");
+	err = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+	if (err != CL_SUCCESS) checDebugKernelInfo(program,deviceIdIn, "Errors in kernel: ");
+
+	// Create the compute kernel in the program we wish to run
+	//
+	cl_kernel kernel = clCreateKernel(program, "dummy", &err);
+	if (!kernel || err != CL_SUCCESS)
+	{
+		printf("Error: Failed to create compute kernel!\n");
+		return NULL;
+	}
+	return kernel;
 }

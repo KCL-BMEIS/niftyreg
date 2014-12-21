@@ -40,13 +40,13 @@ template<class T> reg_aladin<T>::reg_aladin()
 	this->InputTransformName = NULL;
 
 	this->affineTransformation3DKernel = NULL;
-	this->blockMatchingKernel=NULL;
-	this->optimiseKernel=NULL;
-	this->resamplingKernel=NULL;
+	this->blockMatchingKernel = NULL;
+	this->optimiseKernel = NULL;
+	this->resamplingKernel = NULL;
 
 	this->con = NULL;
-	this->blockMatchingParams=NULL;
-	this->platform=NULL;
+	this->blockMatchingParams = NULL;
+	this->platform = NULL;
 
 	this->Verbose = true;
 
@@ -77,13 +77,13 @@ template<class T> reg_aladin<T>::reg_aladin()
 	this->paramsProgressCallback = NULL;
 
 	this->platformCode = NR_PLATFORM_CPU;
-	this->captureRangeVox=3;
-	this->ils=false;
-	this->CurrentLevel=0;
+	this->captureRangeVox = 3;
+	this->ils = false;
+	this->CurrentLevel = 0;
 
 	//check those
-	this->FloatingLowerThreshold=0.f;
-	this->FloatingUpperThreshold=0.f;
+	this->FloatingLowerThreshold = 0.f;
+	this->FloatingUpperThreshold = 0.f;
 	this->clIdx = 0;
 
 }
@@ -203,13 +203,16 @@ int reg_aladin<T>::Print()
 #endif
 
 
-
-	printf("[%s] Parameters\n", this->ExecutableName);
 #ifdef _USE_OPENCL
 	CLContextSingletton *sContext = &CLContextSingletton::Instance();
-	InfoDevice<ArrayType<char> >::display(sContext->getDeviceId(), CL_DEVICE_NAME, "Card: ");
-	InfoDevice<ArrayType<char> >::display(sContext->getDeviceId(), CL_DEVICE_VENDOR, "Vendor: ");
+	std::cout <<std::endl<<"\t"<< "******************************************************" << std::endl;
+	DeviceLog<char >::show(sContext->getDeviceId(), CL_DEVICE_NAME, "**** CL_DEVICE_NAME");
+	DeviceLog<char >::show(sContext->getDeviceId(), CL_DEVICE_VENDOR, "**** CL_DEVICE_VENDOR");
+	DeviceLog<char >::show(sContext->getDeviceId(), CL_DRIVER_VERSION, "**** CL_DRIVER_VERSION");
+	DeviceLog<char >::show(sContext->getDeviceId(), CL_DEVICE_VERSION, "**** CL_DEVICE_VERSION");
+	std::cout <<"\t"<< "******************************************************" << std::endl<<std::endl;
 #endif
+	printf("[%s] Parameters\n", this->ExecutableName);
 	printf("[%s] Platform: %s \n", this->ExecutableName, this->platform->getName().c_str());
 	printf("[%s] Reference image name: %s\n", this->ExecutableName, this->InputReference->fname);
 	printf("[%s] \t%ix%ix%i voxels\n", this->ExecutableName, this->InputReference->nx, this->InputReference->ny, this->InputReference->nz);
@@ -228,7 +231,7 @@ int reg_aladin<T>::Print()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-void reg_aladin<T>::SetInputTransform(const char *filename){
+void reg_aladin<T>::SetInputTransform(const char *filename) {
 	this->InputTransformName = (char *) filename;
 	return;
 }
@@ -272,22 +275,22 @@ void reg_aladin<T>::InitialiseRegistration()
 				this->NumberOfLevels,
 				this->LevelsToPerform,
 				this->activeVoxelNumber);
-	else{
-		for (unsigned int l = 0; l < this->LevelsToPerform; ++l){
+	else {
+		for (unsigned int l = 0; l < this->LevelsToPerform; ++l) {
 			this->activeVoxelNumber[l] = this->ReferencePyramid[l]->nx * this->ReferencePyramid[l]->ny * this->ReferencePyramid[l]->nz;
 			this->ReferenceMaskPyramid[l] = (int *) calloc(activeVoxelNumber[l], sizeof(int));
 		}
 	}
 
 	// CHECK THE THRESHOLD VALUES TO UPDATE THE MASK
-	if (this->ReferenceUpperThreshold != std::numeric_limits<T>::max()){
-		for (unsigned int l = 0; l < this->LevelsToPerform; ++l){
+	if (this->ReferenceUpperThreshold != std::numeric_limits<T>::max()) {
+		for (unsigned int l = 0; l < this->LevelsToPerform; ++l) {
 			T *refPtr = static_cast<T *>(this->ReferencePyramid[l]->data);
 			int *mskPtr = this->ReferenceMaskPyramid[l];
 			size_t removedVoxel = 0;
-			for (size_t i = 0; i < (size_t) this->ReferencePyramid[l]->nx * this->ReferencePyramid[l]->ny * this->ReferencePyramid[l]->nz;++i){
-				if (mskPtr[i] > -1){
-					if (refPtr[i] > this->ReferenceUpperThreshold){
+			for (size_t i = 0; i < (size_t) this->ReferencePyramid[l]->nx * this->ReferencePyramid[l]->ny * this->ReferencePyramid[l]->nz; ++i) {
+				if (mskPtr[i] > -1) {
+					if (refPtr[i] > this->ReferenceUpperThreshold) {
 						++removedVoxel;
 						mskPtr[i] = -1;
 					}
@@ -296,14 +299,14 @@ void reg_aladin<T>::InitialiseRegistration()
 			this->activeVoxelNumber[l] -= removedVoxel;
 		}
 	}
-	if (this->ReferenceLowerThreshold != -std::numeric_limits<T>::max()){
-		for (unsigned int l = 0; l < this->LevelsToPerform; ++l){
+	if (this->ReferenceLowerThreshold != -std::numeric_limits<T>::max()) {
+		for (unsigned int l = 0; l < this->LevelsToPerform; ++l) {
 			T *refPtr = static_cast<T *>(this->ReferencePyramid[l]->data);
 			int *mskPtr = this->ReferenceMaskPyramid[l];
 			size_t removedVoxel = 0;
-			for (size_t i = 0; i < (size_t) this->ReferencePyramid[l]->nx * this->ReferencePyramid[l]->ny * this->ReferencePyramid[l]->nz; ++i){
-				if (mskPtr[i] > -1){
-					if (refPtr[i] < this->ReferenceLowerThreshold){
+			for (size_t i = 0; i < (size_t) this->ReferencePyramid[l]->nx * this->ReferencePyramid[l]->ny * this->ReferencePyramid[l]->nz; ++i) {
+				if (mskPtr[i] > -1) {
+					if (refPtr[i] < this->ReferenceLowerThreshold) {
 						++removedVoxel;
 						mskPtr[i] = -1;
 					}
@@ -314,24 +317,26 @@ void reg_aladin<T>::InitialiseRegistration()
 	}
 
 	// SMOOTH THE INPUT IMAGES IF REQUIRED
-	for (unsigned int l = 0; l < this->LevelsToPerform; l++){
-		if (this->ReferenceSigma != 0.0){
+	for (unsigned int l = 0; l < this->LevelsToPerform; l++) {
+		if (this->ReferenceSigma != 0.0) {
 			// Only the first image is smoothed
 			bool *active = new bool[this->ReferencePyramid[l]->nt];
 			float *sigma = new float[this->ReferencePyramid[l]->nt];
 			active[0] = true;
-			for (int i = 1; i < this->ReferencePyramid[l]->nt; ++i) active[i] = false;
+			for (int i = 1; i < this->ReferencePyramid[l]->nt; ++i)
+				active[i] = false;
 			sigma[0] = this->ReferenceSigma;
 			convolutionKernel->castTo<ConvolutionKernel>()->calculate(this->ReferencePyramid[l], sigma, 0, NULL, active);
 			delete[] active;
 			delete[] sigma;
 		}
-		if (this->FloatingSigma != 0.0){
+		if (this->FloatingSigma != 0.0) {
 			// Only the first image is smoothed
 			bool *active = new bool[this->FloatingPyramid[l]->nt];
 			float *sigma = new float[this->FloatingPyramid[l]->nt];
 			active[0] = true;
-			for (int i = 1; i < this->FloatingPyramid[l]->nt; ++i) active[i] = false;
+			for (int i = 1; i < this->FloatingPyramid[l]->nt; ++i)
+				active[i] = false;
 			sigma[0] = this->FloatingSigma;
 			convolutionKernel->castTo<ConvolutionKernel>()->calculate(this->FloatingPyramid[l], sigma, 0, NULL, active);
 			delete[] active;
@@ -342,7 +347,7 @@ void reg_aladin<T>::InitialiseRegistration()
 	// Initialise the transformation
 	if (this->InputTransformName != NULL)
 	{
-		if (FILE *aff = fopen(this->InputTransformName, "r")){
+		if (FILE *aff = fopen(this->InputTransformName, "r")) {
 			fclose(aff);
 		}
 		else
@@ -362,8 +367,8 @@ void reg_aladin<T>::InitialiseRegistration()
 		}
 		if (this->AlignCentre)
 		{
-			const mat44 *floatingMatrix = (this->InputFloating->sform_code > 0) ? &(this->InputFloating->sto_xyz):floatingMatrix = &(this->InputFloating->qto_xyz);
-			const mat44 *referenceMatrix = (this->InputReference->sform_code > 0) ? &(this->InputReference->sto_xyz):referenceMatrix = &(this->InputReference->qto_xyz);
+			const mat44 *floatingMatrix = (this->InputFloating->sform_code > 0) ? &(this->InputFloating->sto_xyz) : floatingMatrix = &(this->InputFloating->qto_xyz);
+			const mat44 *referenceMatrix = (this->InputReference->sform_code > 0) ? &(this->InputReference->sto_xyz) : referenceMatrix = &(this->InputReference->qto_xyz);
 			float floatingCenter[3];
 			floatingCenter[0] = (float) (this->InputFloating->nx) / 2.0f;
 			floatingCenter[1] = (float) (this->InputFloating->ny) / 2.0f;
@@ -556,21 +561,21 @@ void reg_aladin<T>::GetWarpedImage(int interp) {
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
-template <class T>
+template<class T>
 void reg_aladin<T>::UpdateTransformationMatrix(int type)
-{
-   /*block_matching_method(this->CurrentReference,
-                         this->CurrentWarped,
-                         &this->blockMatchingParams,
-                         this->CurrentReferenceMask);
-   if(type==RIGID)
-      optimize(&this->blockMatchingParams,
-               this->TransformationMatrix,
-               RIGID);
-   else
-      optimize(&this->blockMatchingParams,
-               this->TransformationMatrix,
-               AFFINE);*/
+		{
+	/*block_matching_method(this->CurrentReference,
+	 this->CurrentWarped,
+	 &this->blockMatchingParams,
+	 this->CurrentReferenceMask);
+	 if(type==RIGID)
+	 optimize(&this->blockMatchingParams,
+	 this->TransformationMatrix,
+	 RIGID);
+	 else
+	 optimize(&this->blockMatchingParams,
+	 this->TransformationMatrix,
+	 AFFINE);*/
 
 	blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate(captureRangeVox);
 	optimiseKernel->castTo<OptimiseKernel>()->calculate(type, ils);
@@ -622,9 +627,9 @@ void reg_aladin<T>::resolveMatrix(unsigned int iterations, const unsigned int op
 
 	unsigned int iteration = 0;
 	const char* regStr = optimizationFlag ? "Affine" : "Rigid";
-	while (iteration < iterations){
+	while (iteration < iterations) {
 #ifndef NDEBUG
-		printf("[DEBUG] -%s- Level: %i/%i | iteration %i/%i \n",regStr, this->CurrentLevel, this->NumberOfLevels,  iteration, iterations);
+		printf("[DEBUG] -%s- Level: %i/%i | iteration %i/%i \n", regStr, this->CurrentLevel, this->NumberOfLevels, iteration, iterations);
 #endif
 		this->GetWarpedImage(this->Interpolation);
 		this->UpdateTransformationMatrix(optimizationFlag);
@@ -649,7 +654,7 @@ void reg_aladin<T>::Run()
 
 		// Twice more iterations are performed during the first level
 		// All the blocks are used during the first level
-		const unsigned int maxNumberOfIterationToPerform = (CurrentLevel == 0)?this->MaxIterations:this->MaxIterations*2;
+		const unsigned int maxNumberOfIterationToPerform = (CurrentLevel == 0) ? this->MaxIterations : this->MaxIterations * 2;
 
 		/* initialise the block matching */
 //      this->InitialiseBlockMatching(percentageOfBlockToUse);
@@ -679,7 +684,8 @@ void reg_aladin<T>::Run()
 
 		if (captureRangeVox > 3) {
 			resolveMatrix(maxNumberOfIterationToPerform, RIGID);
-			if (this->PerformAffine) resolveMatrix(maxNumberOfIterationToPerform, AFFINE);
+			if (this->PerformAffine)
+				resolveMatrix(maxNumberOfIterationToPerform, AFFINE);
 			captureRangeVox = 3;
 
 		}
@@ -692,8 +698,8 @@ void reg_aladin<T>::Run()
 		/* ******************* */
 		/* Affine registration */
 		/* ******************* */
-		if (this->PerformAffine) resolveMatrix(maxNumberOfIterationToPerform, AFFINE);
-
+		if (this->PerformAffine)
+			resolveMatrix(maxNumberOfIterationToPerform, AFFINE);
 
 		// SOME CLEANING IS PERFORMED
 		this->clearKernels();

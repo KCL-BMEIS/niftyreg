@@ -23,10 +23,10 @@ public:
 
 	void queryGridDims();
 	void CreateContext();
-	void checDebugKernelInfo(cl_program program, char* message);
+	void checDebugKernelInfo(cl_program program, cl_device_id devIdIn, char* message);
 	void CreateCommandQueue();
 	void init();
-
+	cl_kernel dummyKernel(cl_device_id deviceIdIn);
 	void setClIdx(unsigned int clIdxIn){
 		clIdx=clIdxIn;
 		init();
