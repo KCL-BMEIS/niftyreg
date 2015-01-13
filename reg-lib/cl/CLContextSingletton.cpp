@@ -8,7 +8,7 @@
 CLContextSingletton::CLContextSingletton() {
 	commandQueue = NULL;
 	context = NULL;
-	clIdx = 0;
+	clIdx = -1;
 	init();
 }
 void CLContextSingletton::init() {
@@ -109,10 +109,8 @@ cl_program CLContextSingletton::CreateProgram(const char* fileName) {
 
 void CLContextSingletton::shutDown() {
 	/*std::cout << "Shutting down cl" << std::endl;*/
-	if (context != 0)
-		clReleaseContext(context);
-	if (commandQueue != 0)
-		clReleaseCommandQueue(commandQueue);
+	if (context != 0) clReleaseContext(context);
+	if (commandQueue != 0) clReleaseCommandQueue(commandQueue);
 
 	delete devices;
 }
