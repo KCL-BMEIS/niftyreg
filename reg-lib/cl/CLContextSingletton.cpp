@@ -27,7 +27,7 @@ void CLContextSingletton::init() {
 	devices = new cl_device_id[numDevices];
 	errNum = clGetDeviceIDs(platformIds[0], CL_DEVICE_TYPE_ALL, numDevices, devices, NULL);
 
-	pickCard();
+	if(clIdx<0)pickCard();
 
 	cl_context_properties contextProperties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties) platformIds[0], 0 };
 	context = clCreateContextFromType(contextProperties, CL_DEVICE_TYPE_GPU, NULL, NULL, &errNum);
@@ -102,8 +102,7 @@ cl_program CLContextSingletton::CreateProgram(const char* fileName) {
 	checkErrNum(errNum, "Failed to create CL program");
 
 	errNum = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
-	if (errNum != CL_SUCCESS)
-		checDebugKernelInfo(program,deviceId, "Errors in kernel: ");
+	if (errNum != CL_SUCCESS) checDebugKernelInfo(program,deviceId, "Errors in kernel: ");
 
 	return program;
 }

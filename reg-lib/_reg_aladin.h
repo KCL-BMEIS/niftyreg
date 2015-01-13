@@ -79,7 +79,7 @@ protected:
    float ReferenceLowerThreshold;
    float FloatingUpperThreshold;
    float FloatingLowerThreshold;
-   unsigned int clIdx;
+   int clIdx;
 
    Platform *platform;
 
@@ -238,7 +238,7 @@ public:
       this->captureRangeVox = captureRangeIn;
    }
 
-   void setClIdx(unsigned int clIdxIn){
+   void setClIdx( int clIdxIn){
    	this->clIdx = clIdxIn;
    }
    virtual int Check();

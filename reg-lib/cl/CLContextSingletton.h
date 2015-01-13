@@ -27,7 +27,7 @@ public:
 	void CreateCommandQueue();
 	void init();
 	cl_kernel dummyKernel(cl_device_id deviceIdIn);
-	void setClIdx(unsigned int clIdxIn){
+	void setClIdx( int clIdxIn){
 		clIdx=clIdxIn;
 		init();
 	}
@@ -76,6 +76,6 @@ private:
 	size_t maxThreads;
 
 	unsigned int maxBlocks;
-	unsigned int clIdx;
+	int clIdx;
 };
 #endif

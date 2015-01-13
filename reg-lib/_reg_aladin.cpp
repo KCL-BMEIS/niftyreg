@@ -202,15 +202,17 @@ int reg_aladin<T>::Print()
 	{
 #endif
 
-
 #ifdef _USE_OPENCL
-	CLContextSingletton *sContext = &CLContextSingletton::Instance();
-	std::cout <<std::endl<<"\t"<< "******************************************************" << std::endl;
-	DeviceLog<char >::show(sContext->getDeviceId(), CL_DEVICE_NAME, "**** CL_DEVICE_NAME");
-	DeviceLog<char >::show(sContext->getDeviceId(), CL_DEVICE_VENDOR, "**** CL_DEVICE_VENDOR");
-	DeviceLog<char >::show(sContext->getDeviceId(), CL_DRIVER_VERSION, "**** CL_DRIVER_VERSION");
-	DeviceLog<char >::show(sContext->getDeviceId(), CL_DEVICE_VERSION, "**** CL_DEVICE_VERSION");
-	std::cout <<"\t"<< "******************************************************" << std::endl<<std::endl;
+	if(this->platformCode == NR_PLATFORM_CL) {
+		CLContextSingletton *sContext = &CLContextSingletton::Instance();
+		std::cout <<std::endl<<"\t"<< "******************************************************" << std::endl;
+		DeviceLog<char >::show(sContext->getDeviceId(), CL_DEVICE_NAME, "**** CL_DEVICE_NAME");
+		DeviceLog<char >::show(sContext->getDeviceId(), CL_DEVICE_VENDOR, "**** CL_DEVICE_VENDOR");
+		DeviceLog<char >::show(sContext->getDeviceId(), CL_DRIVER_VERSION, "**** CL_DRIVER_VERSION");
+		DeviceLog<char >::show(sContext->getDeviceId(), CL_DEVICE_VERSION, "**** CL_DEVICE_VERSION");
+		std::cout <<"\t"<< "******************************************************" << std::endl<<std::endl;
+	}
+
 #endif
 	printf("[%s] Parameters\n", this->ExecutableName);
 	printf("[%s] Platform: %s \n", this->ExecutableName, this->platform->getName().c_str());
