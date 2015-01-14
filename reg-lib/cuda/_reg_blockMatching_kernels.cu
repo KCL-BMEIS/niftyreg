@@ -12,8 +12,14 @@
 #ifndef __REG_BLOCKMATCHING_KERNELS_CU__
 #define __REG_BLOCKMATCHING_KERNELS_CU__
 
-//#define REDUCE reduceCustom
-#define REDUCE blockReduceSum
+#ifdef _CUDA_30
+	#define REDUCE blockReduceSum
+#else
+	#define REDUCE reduceCustom
+#endif
+
+
+
 
 #include "assert.h"
 #include "_reg_blockMatching.h"
@@ -58,215 +64,6 @@ void reg_mat44_mul_cuda(float* mat, DTYPE const* in, DTYPE *out) {
 	return;
 }
 
-//Marc's kernel
-// CUDA kernel to process the target values
-__global__ void process_target_blocks_gpu(float *targetPosition_d, float *targetValues) {
-	const int tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-	const int3 bDim = c_BlockDim;
-
-	if (tid < bDim.x * bDim.y * bDim.z) {
-		const int currentBlockIndex = tex1Dfetch(activeBlock_texture, tid);
-		if (currentBlockIndex >= 0) {
-			// Get the corresponding (i, j, k) indices
-			int tempIndex = currentBlockIndex;
-			const int k = (int) (tempIndex / (bDim.x * bDim.y));
-			tempIndex -= k * bDim.x * bDim.y;
-			const int j = (int) (tempIndex / (bDim.x));
-			const int i = tempIndex - j * (bDim.x);
-			const int offset = tid * BLOCK_SIZE;
-			const int targetIndex_start_x = i * BLOCK_WIDTH;
-			const int targetIndex_start_y = j * BLOCK_WIDTH;
-			const int targetIndex_start_z = k * BLOCK_WIDTH;
-
-			int targetIndex_end_x = targetIndex_start_x + BLOCK_WIDTH;
-			int targetIndex_end_y = targetIndex_start_y + BLOCK_WIDTH;
-			int targetIndex_end_z = targetIndex_start_z + BLOCK_WIDTH;
-			const uint3 imageSize = c_ImageSize;
-			for (int count = 0; count < BLOCK_SIZE; ++count)
-				targetValues[count + offset] = 0.0f;
-			unsigned int index = 0;
-
-			for (int z = targetIndex_start_z; z < targetIndex_end_z; ++z) {
-				if (z >= 0 && z < imageSize.z) {
-					int indexZ = z * imageSize.x * imageSize.y;
-					for (int y = targetIndex_start_y; y < targetIndex_end_y; ++y) {
-						if (y >= 0 && y < imageSize.y) {
-							int indexXYZ = indexZ + y * imageSize.x + targetIndex_start_x;
-							for (int x = targetIndex_start_x; x < targetIndex_end_x; ++x) {
-								if (x >= 0 && x < imageSize.x) {
-									targetValues[index + offset] = tex1Dfetch(targetImageArray_texture, indexXYZ);
-								}
-								indexXYZ++;
-								index++;
-							}
-						} else
-							index += BLOCK_WIDTH;
-					}
-				} else
-					index += BLOCK_WIDTH * BLOCK_WIDTH;
-			}
-
-			float4 targetPosition;
-			targetPosition.x = i * BLOCK_WIDTH;
-			targetPosition.y = j * BLOCK_WIDTH;
-			targetPosition.z = k * BLOCK_WIDTH;
-			apply_affine(targetPosition, &(targetPosition_d[tid * 3]));
-		}
-	}
-}
-
-//Marc's kernel
-// CUDA kernel to process the result blocks
-__global__ void resultBlocksKernel(float *resultPosition_d, float *targetValues) {
-
-	const int tid = (blockIdx.y * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
-	const int3 bDim = c_BlockDim;
-	int tempIndex = tid % NUM_BLOCKS_TO_COMPARE;
-	__shared__ int ctid;
-	if (tempIndex == 0)
-		ctid = (int) (tid / NUM_BLOCKS_TO_COMPARE);
-	__syncthreads();
-	//const int ctid = (int)(tid / NUM_BLOCKS_TO_COMPARE);
-	__shared__ float4 localCC[NUM_BLOCKS_TO_COMPARE];
-	__shared__ int3 indexes;
-	localCC[tempIndex] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-	__shared__ int updateThreadID;
-	updateThreadID = -1;
-	if (ctid < bDim.x * bDim.y * bDim.z) {
-		const int activeBlockIndex = tex1Dfetch(activeBlock_texture, ctid);
-		tempIndex = activeBlockIndex;
-		int k = (int) (tempIndex / (bDim.x * bDim.y));
-		tempIndex -= k * bDim.x * bDim.y;
-		int j = (int) (tempIndex / (bDim.x));
-		int i = tempIndex - j * (bDim.x);
-		tempIndex = tid % NUM_BLOCKS_TO_COMPARE;
-		if (tempIndex == 0) {
-			indexes.x = i * BLOCK_WIDTH;
-			indexes.y = j * BLOCK_WIDTH;
-			indexes.z = k * BLOCK_WIDTH;
-		}
-		__syncthreads();
-
-		if (activeBlockIndex >= 0) {
-			const int block_offset = ctid * BLOCK_SIZE;
-			const uint3 imageSize = c_ImageSize;
-			int k = (int) tempIndex / NUM_BLOCKS_TO_COMPARE_2D;
-			tempIndex -= k * NUM_BLOCKS_TO_COMPARE_2D;
-			int j = (int) tempIndex / NUM_BLOCKS_TO_COMPARE_1D;
-			int i = tempIndex - j * NUM_BLOCKS_TO_COMPARE_1D;
-			k -= OVERLAP_SIZE;
-			j -= OVERLAP_SIZE;
-			i -= OVERLAP_SIZE;
-			tempIndex = tid % NUM_BLOCKS_TO_COMPARE;
-			int resultIndex_start_z = indexes.z + k;
-			int resultIndex_end_z = resultIndex_start_z + BLOCK_WIDTH;
-			int resultIndex_start_y = indexes.y + j;
-			int resultIndex_end_y = resultIndex_start_y + BLOCK_WIDTH;
-			int resultIndex_start_x = indexes.x + i;
-			int resultIndex_end_x = resultIndex_start_x + BLOCK_WIDTH;
-			__shared__ float4 cc_vars[NUM_BLOCKS_TO_COMPARE];
-			cc_vars[tempIndex].x = 0.0f;
-			cc_vars[tempIndex].y = 0.0f;
-			unsigned int index = 0;
-			for (int z = resultIndex_start_z; z < resultIndex_end_z; ++z) {
-				if (z >= 0 && z < imageSize.z) {
-					int indexZ = z * imageSize.y * imageSize.x;
-					for (int y = resultIndex_start_y; y < resultIndex_end_y; ++y) {
-						if (y >= 0 && y < imageSize.y) {
-							int indexXYZ = indexZ + y * imageSize.x + resultIndex_start_x;
-							for (int x = resultIndex_start_x; x < resultIndex_end_x; ++x) {
-								if (x >= 0 && x < imageSize.x) {
-									cc_vars[tempIndex].x = tex1Dfetch(resultImageArray_texture, indexXYZ);
-									cc_vars[tempIndex].y = targetValues[block_offset + index];
-									if (cc_vars[tempIndex].x != 0.0f && cc_vars[tempIndex].y != 0.0f) {
-										localCC[tempIndex].x += cc_vars[tempIndex].x;
-										localCC[tempIndex].y += cc_vars[tempIndex].y;
-										++localCC[tempIndex].z;
-									}
-								}
-								++indexXYZ;
-								++index;
-							}
-						} else
-							index += BLOCK_WIDTH;
-					}
-				} else
-					index += BLOCK_WIDTH * BLOCK_WIDTH;
-			}
-
-			if (localCC[tempIndex].z > 0) {
-				localCC[tempIndex].x /= localCC[tempIndex].z;
-				localCC[tempIndex].y /= localCC[tempIndex].z;
-			}
-			cc_vars[tempIndex].z = 0.0f;
-			cc_vars[tempIndex].w = 0.0f;
-			index = 0;
-			for (int z = resultIndex_start_z; z < resultIndex_end_z; ++z) {
-				if (z >= 0 && z < imageSize.z) {
-					int indexZ = z * imageSize.y * imageSize.x;
-					for (int y = resultIndex_start_y; y < resultIndex_end_y; ++y) {
-						if (y >= 0 && y < imageSize.y) {
-							int indexXYZ = indexZ + y * imageSize.x + resultIndex_start_x;
-							for (int x = resultIndex_start_x; x < resultIndex_end_x; ++x) {
-								if (x >= 0 && x < imageSize.x) {
-									cc_vars[tempIndex].x = tex1Dfetch(resultImageArray_texture, indexXYZ);
-									cc_vars[tempIndex].y = targetValues[block_offset + index];
-									if (cc_vars[tempIndex].x != 0.0f && cc_vars[tempIndex].y != 0.0f) {
-										cc_vars[tempIndex].x -= localCC[tempIndex].x;
-										cc_vars[tempIndex].y -= localCC[tempIndex].y;
-
-										cc_vars[tempIndex].z += cc_vars[tempIndex].x * cc_vars[tempIndex].x;
-										cc_vars[tempIndex].w += cc_vars[tempIndex].y * cc_vars[tempIndex].y;
-										localCC[tempIndex].w += cc_vars[tempIndex].x * cc_vars[tempIndex].y;
-									}
-								}
-								++indexXYZ;
-								++index;
-							}
-						} else
-							index += BLOCK_WIDTH;
-					}
-				} else
-					index += BLOCK_WIDTH * BLOCK_WIDTH;
-			}
-
-			if (localCC[tempIndex].z > (float) (BLOCK_SIZE / 2)) {
-				if (cc_vars[tempIndex].z > 0.0f && cc_vars[tempIndex].w > 0.0f) {
-					localCC[tempIndex].w = fabsf(localCC[tempIndex].w / sqrt(cc_vars[tempIndex].z * cc_vars[tempIndex].w));
-				}
-			} else {
-				localCC[tempIndex].w = 0.0f;
-			}
-
-			localCC[tempIndex].x = i;
-			localCC[tempIndex].y = j;
-			localCC[tempIndex].z = k;
-
-			// Just take ownership of updating the final value
-			if (updateThreadID == -1)
-				updateThreadID = tid;
-		}
-		__syncthreads();
-
-		// Just let one thread do the final update
-		if (tid == updateThreadID) {
-			__shared__ float4 bestCC;
-			bestCC = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
-			for (int i = 0; i < NUM_BLOCKS_TO_COMPARE; ++i) {
-				if (localCC[i].w > bestCC.w) {
-					bestCC.x = localCC[i].x;
-					bestCC.y = localCC[i].y;
-					bestCC.z = localCC[i].z;
-					bestCC.w = localCC[i].w;
-				}
-			}
-			bestCC.x += indexes.x;
-			bestCC.y += indexes.y;
-			bestCC.z += indexes.z;
-			apply_affine(bestCC, &(resultPosition_d[ctid * 3]));
-		}
-	}
-}
 
 __device__ __inline__ void reduceCC(float* sData, const unsigned int tid, const unsigned int blockSize) {
 
@@ -384,7 +181,6 @@ __device__ __inline__ float reduceCustom_f(float data, const unsigned int tid) {
 
 __device__ __inline__ float reduceCustom(float data, const unsigned int tid) {
 	static __shared__ float sData2[64];
-
 	sData2[tid] = data;
 	__syncthreads();
 
@@ -421,7 +217,6 @@ float warpReduceSum(float val) {
 
 __inline__ __device__
 float blockReduceSum(float val, int tid) {
-
 	static __shared__ float shared[2];
 	int laneId = tid % 32;
 	int warpId = tid / 32;
@@ -436,21 +231,14 @@ float blockReduceSum(float val, int tid) {
 	return shared[0] + shared[1];
 }
 
-__device__ __inline__ void rewind(float* sValues, unsigned int tid) {
 
-	while (tid < 11 * 11 * 11) {
-		const float buffer = sValues[tid];
-		__syncthreads();
-		if (tid > 0)
-			sValues[tid - 1] = buffer;
 
-		tid += blockDim.x;
-	}
-}
+//recently switched to this kernel as it can accomodate greater capture range
+__global__ void blockMatchingKernel(float *resultPosition, float *targetPosition, int* mask, float* targetMatrix_xyz, unsigned int* definedBlock, uint3 c_ImageSize, const int blocksRange, const unsigned int stepSize) {
 
-__global__ void blockMatchingKernel(float *resultPosition, float *targetPosition, int* mask, float* targetMatrix_xyz, unsigned int* definedBlock, uint3 c_ImageSize) {
+	extern __shared__ float sResultValues[];
 
-	__shared__ float sResultValues[12 * 12 * 12];
+	const unsigned int numBlocks = blocksRange * 2 + 1;
 
 	const unsigned int idz = threadIdx.x / 16;
 	const unsigned int idy = (threadIdx.x - 16 * idz) / 4;
@@ -461,8 +249,6 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 	const unsigned int xBaseImage = blockIdx.x * 4;
 	const unsigned int yBaseImage = blockIdx.y * 4;
 	const unsigned int zBaseImage = blockIdx.z * 4;
-
-//	bool predicate = xBaseImage == 16 && yBaseImage == 24 && zBaseImage == 24;
 
 	const unsigned int tid = threadIdx.x;     //0-blockSize
 
@@ -478,17 +264,17 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 	if (currentBlockIndex > -1) {
 
 		float bestDisplacement[3] = { nanf("sNaN"), 0.0f, 0.0f };
-		float bestCC = 0.0f;
+		float bestCC = blocksRange>1?0.9f:0.0f;
 
 		//populate shared memory with resultImageArray's values
-		for (int n = -1; n <= 1; n += 1) {
-			for (int m = -1; m <= 1; m += 1) {
-				for (int l = -1; l <= 1; l += 1) {
+		for (int n = -1*blocksRange; n <= blocksRange; n += 1) {
+			for (int m = -1*blocksRange; m <= blocksRange; m += 1) {
+				for (int l = -1*blocksRange; l <= blocksRange; l += 1) {
 					const int x = l * 4 + idx;
 					const int y = m * 4 + idy;
 					const int z = n * 4 + idz;
 
-					const unsigned int sIdx = (z + 4) * 12 * 12 + (y + 4) * 12 + (x + 4);
+					const unsigned int sIdx = (z + blocksRange*4)* numBlocks*4 * numBlocks*4  + (y + blocksRange*4) * numBlocks*4  + (x + blocksRange*4);
 
 					const int xImageIn = xBaseImage + x;
 					const int yImageIn = yBaseImage + y;
@@ -497,7 +283,7 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 					const int indexXYZIn = xImageIn + yImageIn * (c_ImageSize.x) + zImageIn * (c_ImageSize.x * c_ImageSize.y);
 
 					const bool valid = (xImageIn >= 0 && xImageIn < c_ImageSize.x) && (yImageIn >= 0 && yImageIn < c_ImageSize.y) && (zImageIn >= 0 && zImageIn < c_ImageSize.z);
-					sResultValues[sIdx] = (valid /*&& mask[indexXYZIn]>-1*/) ? tex1Dfetch(resultImageArray_texture, indexXYZIn) : nanf("sNaN");
+					sResultValues[sIdx] = (valid /*&& mask[indexXYZIn]>-1*/) ? tex1Dfetch(resultImageArray_texture, indexXYZIn) : nanf("sNaN");//for some reason the mask here creates probs
 
 				}
 			}
@@ -505,7 +291,7 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 
 		//for most cases we need this out of th loop
 		//value if the block is 4x4x4 NaN otherwise
-		float rTargetValue = (targetInBounds /*&& mask[imgIdx]>-1*/) ? tex1Dfetch(targetImageArray_texture, imgIdx) : nanf("sNaN");
+		float rTargetValue = (targetInBounds && mask[imgIdx]>-1) ? tex1Dfetch(targetImageArray_texture, imgIdx) : nanf("sNaN");
 		const bool finiteTargetIntensity = isfinite(rTargetValue);
 		rTargetValue = finiteTargetIntensity ? rTargetValue : 0.f;
 
@@ -518,11 +304,11 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 			const float targetVar = REDUCE(targetTemp * targetTemp, tid);
 
 			// iteration over the result blocks (block matching part)
-			for (unsigned int n = 1; n < 8; n += 1) {
-				for (unsigned int m = 1; m < 8; m += 1) {
-					for (unsigned int l = 1; l < 8; l += 1) {
+			for (unsigned int n = 1; n < blocksRange*8 /*2*4*/; n += stepSize) {
+				for (unsigned int m = 1; m < blocksRange*8 /*2*4*/; m += stepSize) {
+					for (unsigned int l = 1; l < blocksRange*8 /*2*4*/; l += stepSize) {
 
-						const unsigned int sIdxIn = (idz + n) * 144 /*12*12*/+ (idy + m) * 12 + idx + l;
+						const unsigned int sIdxIn = (idz + n) * numBlocks*4 * numBlocks*4 + (idy + m) * numBlocks*4  + idx + l;
 						const float rResultValue = sResultValues[sIdxIn];
 						const bool overlap = isfinite(rResultValue) && finiteTargetIntensity;
 						const unsigned int blockSize = __syncthreads_count(overlap);
@@ -548,18 +334,12 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 							const float sumTargetResult =  REDUCE((newTargetTemp) * (resultTemp), tid);
 							const float localCC = fabs((sumTargetResult) * rsqrtf( newTargetVar *  resultVar));
 
-//							if (predicate && tid==0 && 0.981295-localCC<0.04 && fabs(0.981295 - localCC)>=0) printf("G|%d-%d-%d|%d|TMN:%f|TVR:%f|RMN:%f|RVR:%f|LCC:%lf|BCC:%lf\n",l-4,m-4,n-4, blockSize, targetMean, targetVar, resultMean, resultVar, localCC, bestCC);
-
-							//temporary for testing
-//							if (tid == 0 && bestCC != 0.981295f && (localCC > bestCC )) {
 							if (tid == 0 && localCC > bestCC ) {
 								bestCC = localCC;
-								bestDisplacement[0] = l - 4.0f;
-								bestDisplacement[1] = m - 4.0f;
-								bestDisplacement[2] = n - 4.0f;
+								bestDisplacement[0] = l - blocksRange*4.0f;
+								bestDisplacement[1] = m - blocksRange*4.0f;
+								bestDisplacement[2] = n - blocksRange*4.0f;
 							}
-							/*if (predicate && tid==0 )
-								printf("C|%d-%d-%d|%f-%f-%f\n", l-4, m-4, n-4, bestDisplacement[0], bestDisplacement[1], bestDisplacement[2]);*/
 						}
 					}
 				}
@@ -567,7 +347,6 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 
 			if (tid == 0 && isfinite(bestDisplacement[0])) {
 				const unsigned int posIdx = 3 * atomicAdd(definedBlock, 1);
-//				if(predicate)printf("defined: %d | %d-%d-%d\n", *definedBlock, xBaseImage, yBaseImage, zBaseImage);
 
 				resultPosition += posIdx;
 				targetPosition += posIdx;

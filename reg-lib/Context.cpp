@@ -8,7 +8,7 @@ Context::Context() {
 	this->CurrentFloating = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
 	this->CurrentReference = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
 	this->CurrentReferenceMask = NULL;
-
+	initVars();
 }
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -148,6 +148,9 @@ void Context::AllocateDeformationField(size_t bytes) {
 	this->CurrentDeformationField->data = (void *) calloc(this->CurrentDeformationField->nvox, this->CurrentDeformationField->nbyper);
 	return;
 }
+void Context::setCaptureRange(const int voxelCaptureRangeIn){
+		blockMatchingParams->voxelCaptureRange = voxelCaptureRangeIn;
+	}
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 void Context::ClearDeformationField() {
 	if (this->CurrentDeformationField != NULL)

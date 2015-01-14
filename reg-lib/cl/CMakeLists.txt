@@ -28,6 +28,7 @@ add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	#for debugging
 	../cpu/_reg_resampling.cpp
 	../cpu/_reg_globalTransformation.cpp
+	../cpu/_reg_blockMatching.cpp
 )
 target_link_libraries(${NAME} ${OPENCL_LIBRARIES} )
 configure_file(resampleKernel.cl ${CMAKE_CURRENT_BINARY_DIR}/resampleKernel.cl COPYONLY)

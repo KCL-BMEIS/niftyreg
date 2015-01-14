@@ -60,11 +60,12 @@ protected:
    bool PerformRigid;
    bool PerformAffine;
    bool ils;
+   int captureRangeVox;
 
    int BlockPercentage;
    int InlierLts;
    int BlockStepSize;
-   _reg_blockMatchingParam blockMatchingParams;
+   _reg_blockMatchingParam *blockMatchingParams;
 
    bool AlignCentre;
    bool AlignCentreGravity;
@@ -94,7 +95,7 @@ protected:
    virtual void InitialiseBlockMatching(int);
    virtual void GetDeformationField();
    virtual void GetWarpedImage(int);
-   virtual void UpdateTransformationMatrix(int, int);
+   virtual void UpdateTransformationMatrix(int);
 
    void (*funcProgressCallback)(float pcntProgress, void *params);
    void *paramsProgressCallback;
@@ -231,6 +232,10 @@ public:
    {
       this->SetInterpolation(3);
    }
+   void setCaptureRangeVox(int captureRangeIn)
+   {
+      this->captureRangeVox = captureRangeIn;
+   }
 
    virtual int Check();
    virtual int Print();
@@ -251,6 +256,7 @@ public:
 private:
 
    Kernel* affineTransformation3DKernel, *blockMatchingKernel, *optimiseKernel, *resamplingKernel;
+   void resolveMatrix(unsigned int iterations, const unsigned int optimizationFlag);
 
 };
 

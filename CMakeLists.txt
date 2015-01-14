@@ -1,7 +1,6 @@
 #-----------------------------------------------------------------------------
 project(NiftyReg)
 cmake_minimum_required(VERSION 2.8.0)
-add_definitions(-DUSECUDA3)
 if("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^2\\.8\\.0$")
  mark_as_advanced(FORCE CMAKE_BACKWARDS_COMPATIBILITY)
 else("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^2\\.8\\.0$")
@@ -34,14 +33,6 @@ SET(CMAKE_INSTALL_RPATH "")
 # which point to directories outside the build tree to the install RPATH
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
 
-#-----------------------------------------------------------------------------
-#---------------------------------For Marc to check--------------------------------------------
-if(USE_OPENCL)
-add_definitions(-D_USE_OPENCL)
-endif(USE_OPENCL)
-if(USE_CUDA)
-add_definitions(-D_USE_CUDA)
-endif(USE_CUDA)
 #-----------------------------------------------------------------------------
 string(TOLOWER "${CMAKE_BUILD_TYPE}" cmake_build_type_tolower)
 if(NOT cmake_build_type_tolower STREQUAL "debug"
@@ -163,13 +154,14 @@ include_directories(${CMAKE_SOURCE_DIR}/third-party)
 include_directories(${CMAKE_SOURCE_DIR}/reg-io/nrrd)
 include_directories(${CMAKE_SOURCE_DIR}/reg-io/nrrd/NrrdIO)
 if(USE_OPENCL)
-include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cl)
-include_directories(${OPENCL_INCLUDE_DIRS})
+    include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cl)
+    include_directories(${OPENCL_INCLUDE_DIRS})
+    add_definitions(-D_USE_OPENCL)
 endif(USE_OPENCL)
 if(USE_CUDA)
-include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cuda)
+    include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cuda)
+    add_definitions(-D_USE_CUDA)
 endif(USE_CUDA)
-
 
 #-----------------------------------------------------------------------------
 if(USE_DOUBLE)
@@ -234,14 +226,14 @@ else(GIT_FOUND)
 	 add_definitions(-D_GIT_HASH="${NiftyReg_VERSION_MAJOR}.${NiftyReg_VERSION_MINOR}.${NiftyReg_VERSION_PATCH}")
 endif(GIT_FOUND)
 #-----------------------------------------------------------------------------
-subdirs(reg-io)
-subdirs(reg-lib)
-subdirs(reg-apps)
-subdirs(third-party)
+add_subdirectory(reg-io)
+add_subdirectory(reg-lib)
+add_subdirectory(reg-apps)
+add_subdirectory(third-party)
 if(BUILD_TESTING)
 		enable_testing()
 		include(${CMAKE_ROOT}/Modules/Dart.cmake)
-		subdirs(reg-test)
+		add_subdirectory(reg-test)
 endif(BUILD_TESTING)
 #-----------------------------------------------------------------------------
 # add a target to generate API documentation with Doxygen

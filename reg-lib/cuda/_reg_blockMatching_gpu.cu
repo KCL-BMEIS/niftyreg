@@ -42,8 +42,9 @@ void block_matching_method_gpu(nifti_image *targetImage, _reg_blockMatchingParam
 
 	dim3 BlockDims1D(64, 1, 1);
 	dim3 BlocksGrid3D(params->blockNumber[0], params->blockNumber[1], params->blockNumber[2]);
-
-	blockMatchingKernel << <BlocksGrid3D, BlockDims1D >> >(*resultPosition_d, *targetPosition_d, *mask_d, *targetMat_d, definedBlock_d, imageSize);
+	const int blockRange = params->voxelCaptureRange%4?params->voxelCaptureRange/4+1:params->voxelCaptureRange/4;
+	const unsigned int sMem = (blockRange * 2 + 1)*(blockRange * 2 + 1)*(blockRange * 2 + 1)*64*sizeof(float);
+	blockMatchingKernel << <BlocksGrid3D, BlockDims1D, sMem >> >(*resultPosition_d, *targetPosition_d, *mask_d, *targetMat_d, definedBlock_d, imageSize, blockRange, params->stepSize);
 
 	#ifndef NDEBUG
 	NR_CUDA_CHECK_KERNEL(BlocksGrid3D, BlockDims1D)

@@ -9,64 +9,6 @@
 
 #define EPS 0.000001
 
-void compare(nifti_image *referenceImage, nifti_image *warpedImage, int* mask, _reg_blockMatchingParam *refParams) {
-
-	_reg_blockMatchingParam *cpu = new _reg_blockMatchingParam();
-	initialise_block_matching_method(referenceImage, cpu, 50, 50, 1, mask, false);
-	block_matching_method(referenceImage, warpedImage, cpu, mask);
-
-	float* cpuTargetData = static_cast<float*>(cpu->targetPosition);
-	float* cpuResultData = static_cast<float*>(cpu->resultPosition);
-
-	float* cudaTargetData = static_cast<float*>(refParams->targetPosition);
-	float* cudaResultData = static_cast<float*>(refParams->resultPosition);
-
-	double maxTargetDiff = /*reg_test_compare_arrays<float>(refParams->targetPosition, static_cast<float*>(target->data), refParams->definedActiveBlock * 3)*/0.0;
-	double maxResultDiff = /*reg_test_compare_arrays<float>(refParams->resultPosition, static_cast<float*>(result->data), refParams->definedActiveBlock * 3)*/0.0;
-
-	double targetSum[3] = /*reg_test_compare_arrays<float>(refParams->targetPosition, static_cast<float*>(target->data), refParams->definedActiveBlock * 3)*/{ 0.0, 0.0, 0.0 };
-	double resultSum[3] = /*reg_test_compare_arrays<float>(refParams->resultPosition, static_cast<float*>(result->data), refParams->definedActiveBlock * 3)*/{ 0.0, 0.0, 0.0 };
-
-	//a better test will be to sort the 3d points and test the diff of each one!
-	/*for (unsigned int i = 0; i < refParams->definedActiveBlock*3; i++) {
-
-	 printf("i: %d target|%f-%f| result|%f-%f|\n", i, cpuTargetData[i], cudaTargetData[i], cpuResultData[i], cudaResultData[i]);
-	 }*/
-
-	for (unsigned long i = 0; i < refParams->definedActiveBlock; i++) {
-
-		float cpuTargetPt[3] = { cpuTargetData[3 * i + 0], cpuTargetData[3 * i + 1], cpuTargetData[3 * i + 2] };
-		float cpuResultPt[3] = { cpuResultData[3 * i + 0], cpuResultData[3 * i + 1], cpuResultData[3 * i + 2] };
-
-		bool found = false;
-		for (unsigned long j = 0; j < refParams->definedActiveBlock; j++) {
-			float cudaTargetPt[3] = { cudaTargetData[3 * j + 0], cudaTargetData[3 * j + 1], cudaTargetData[3 * j + 2] };
-			float cudaResultPt[3] = { cudaResultData[3 * j + 0], cudaResultData[3 * j + 1], cudaResultData[3 * j + 2] };
-
-			targetSum[0] = cpuTargetPt[0] - cudaTargetPt[0];
-			targetSum[1] = cpuTargetPt[1] - cudaTargetPt[1];
-			targetSum[2] = cpuTargetPt[2] - cudaTargetPt[2];
-
-			if (targetSum[0] == 0 && targetSum[1] == 0 && targetSum[2] == 0) {
-
-				resultSum[0] = abs(cpuResultPt[0] - cudaResultPt[0]);
-				resultSum[1] = abs(cpuResultPt[1] - cudaResultPt[1]);
-				resultSum[2] = abs(cpuResultPt[2] - cudaResultPt[2]);
-				found = true;
-				if (resultSum[0] > 0.000001f || resultSum[1] > 0.000001f || resultSum[2] > 0.000001f)
-					printf("i: %lu | j: %lu | (dif: %f-%f-%f) | (out: %f, %f, %f) | (ref: %f, %f, %f)\n", i, j, resultSum[0], resultSum[1], resultSum[2], cpuResultPt[0], cpuResultPt[1], cpuResultPt[2], cudaResultPt[0], cudaResultPt[1], cudaResultPt[2]);
-
-			}
-		}
-		if (!found)
-			printf("i: %lu has no match\n", i);
-		/*double targetDiff = abs(refTargetPt[0] - outTargetPt[0]) + abs(refTargetPt[1] - outTargetPt[1]) + abs(refTargetPt[2] - outTargetPt[2]);
-		 double resultDiff = abs(refResultPt[0] - outResultPt[0]) + abs(refResultPt[1] - outResultPt[1]) + abs(refResultPt[2] - outResultPt[2]);
-
-		 maxTargetDiff = (targetDiff > maxTargetDiff) ? targetDiff : maxTargetDiff;
-		 maxResultDiff = (resultDiff > maxResultDiff) ? resultDiff : maxResultDiff;*/
-	}
-}
 
 void test(Context* con) {
 
@@ -106,8 +48,7 @@ int main(int argc, char **argv) {
 
 	// Create a mask
 	int *mask = (int *) malloc(referenceImage->nvox * sizeof(int));
-	for (size_t i = 0; i < referenceImage->nvox; ++i)
-		mask[i] = i;
+	for (size_t i = 0; i < referenceImage->nvox; ++i) mask[i] = i;
 
 	Context* con = new CudaContext(referenceImage, NULL, mask, sizeof(float), 50, 50, 1);
 	con->setCurrentWarped(warpedImage);
@@ -115,7 +56,6 @@ int main(int argc, char **argv) {
 
 	_reg_blockMatchingParam *blockMatchingParams = con->getBlockMatchingParams();
 
-//	compare(referenceImage, warpedImage, mask, blockMatchingParams);
 
 	mat44 recoveredTransformation;
 	reg_mat44_eye(&recoveredTransformation);

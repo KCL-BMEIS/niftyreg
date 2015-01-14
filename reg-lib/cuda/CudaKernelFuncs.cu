@@ -170,17 +170,19 @@ __global__ void ResampleImage3D(float* floatingImage, float* deformationField, f
 	int *maskPtr = &mask[0];
 
 	long index = blockIdx.x * blockDim.x + threadIdx.x;
+
 	while (index < voxelNumber.x) {
 
 		for (unsigned int t = 0; t < wi_tu.x * wi_tu.y; t++) {
 
 			float *resultIntensity = &resultIntensityPtr[t * voxelNumber.x];
 			float *floatingIntensity = &sourceIntensityPtr[t * voxelNumber.y];
+			double intensity=paddingValue;
 
 			if (maskPtr[index] > -1) {
 
 				int previous[3];
-				double world[3], position[3], relative[3], intensity;
+				double world[3], position[3], relative[3];
 
 				world[0] = static_cast<double>(deformationFieldPtrX[index]);
 				world[1] = static_cast<double>(deformationFieldPtrY[index]);
@@ -236,9 +238,8 @@ __global__ void ResampleImage3D(float* floatingImage, float* deformationField, f
 					interpCubicSplineKernel(relative[2], zBasisIn);
 					intensity = interpLoop(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 4);
 				}
-
-				resultIntensity[index] = intensity;
 			}
+			resultIntensity[index] = intensity;
 		}
 		index += blockDim.x * gridDim.x;
 	}
@@ -476,116 +477,8 @@ __global__ void convolutionKernel(nifti_image *image, float*densityPtr, bool* na
 }
 
 //++++++++++++++++++++++++++++++++++++++++++ wraper funcs ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-void launchConvolution(nifti_image *image, float *sigma, int kernelType, int *mask, bool *timePoint, bool *axis) {
-//	bool *axisToSmooth = new bool[3];
-//	bool *activeTimePoint = new bool[image->nt * image->nu];
-//	unsigned long voxelNumber = (long) image->nx * image->ny * image->nz;
-//
-//	bool *nanImagePtr;
-//	float *densityPtr;
-//	float *sigma_d;
-//	int *mask_d;
-//	bool* timePoint_d;
-//	bool* axis_d;
-//
-//	int dim[3] = { image->nx, image->ny, image->nz };
-//	std::cout << image->nx << ": " << image->ny << ": " << image->nz << std::endl;
-//	nifti_image* image_d;
-//
-//	if (image->nx > 2048 || image->ny > 2048 || image->nz > 2048) {
-//		reg_print_fct_error("reg_tools_kernelConvolution_core");
-//		reg_print_msg_error("This function does not support images with dimension > 2048");
-//		reg_exit(1);
-//	}
-//
-//	if (image->nt <= 0)
-//		image->nt = image->dim[4] = 1;
-//	if (image->nu <= 0)
-//		image->nu = image->dim[5] = 1;
-//
-//	/*densityPtr[4] = 8.8f;
-//	 std::cout << "test float: " << densityPtr[4] << std::endl;*/
-//
-//	if (axis == NULL) {
-//		// All axis are smoothed by default
-//		for (int i = 0; i < 3; i++)
-//			axisToSmooth[i] = true;
-//	} else
-//		for (int i = 0; i < 3; i++)
-//			axisToSmooth[i] = axis[i];
-//
-//	if (timePoint == NULL) {
-//		// All time points are considered as active
-//		for (int i = 0; i < image->nt * image->nu; i++)
-//			activeTimePoint[i] = true;
-//	} else
-//		for (int i = 0; i < image->nt * image->nu; i++)
-//			activeTimePoint[i] = timePoint[i];
-//
-//	int *currentMask = NULL;
-//	if (mask == NULL) {
-//		currentMask = (int *) calloc(image->nx * image->ny * image->nz, sizeof(int));
-//	} else
-//		currentMask = mask;
-//
-//	/*cudaCommon_allocateNiftiToDevice<float>(&image_d, dim);
-//	 cudaCommon_transferNiftiToNiftiOnDevice1<float>(&image_d, image);*/
-//
-//	NR_CUDA_SAFE_CALL(cudaMalloc((void** )(sigma_d), image->dim[4] * image->dim[5] * sizeof(float)));
-//	NR_CUDA_SAFE_CALL(cudaMemcpy(sigma_d, sigma, image->dim[4] * image->dim[5] * sizeof(float), cudaMemcpyHostToDevice));
-//
-//	NR_CUDA_SAFE_CALL(cudaMalloc((void** )(mask_d), voxelNumber * sizeof(int)));
-//	NR_CUDA_SAFE_CALL(cudaMemcpy(mask_d, currentMask, voxelNumber * sizeof(int), cudaMemcpyHostToDevice));
-//
-//	NR_CUDA_SAFE_CALL(cudaMalloc((void** )(timePoint_d), image->dim[4] * image->dim[5] * sizeof(bool)));
-//	NR_CUDA_SAFE_CALL(cudaMemcpy(timePoint_d, timePoint, image->dim[4] * image->dim[5] * sizeof(bool), cudaMemcpyHostToDevice));
-//
-//	NR_CUDA_SAFE_CALL(cudaMalloc((void** )(axis_d), 3 * sizeof(bool)));
-//	NR_CUDA_SAFE_CALL(cudaMemcpy(axis_d, axis, 3 * sizeof(bool), cudaMemcpyHostToDevice));
-//
-//	NR_CUDA_SAFE_CALL(cudaMalloc(&nanImagePtr, voxelNumber * sizeof(bool)));
-//	NR_CUDA_SAFE_CALL(cudaMalloc(&densityPtr, voxelNumber * sizeof(float)));
-//
-//	switch (image->datatype) {
-//	case NIFTI_TYPE_UINT8:
-//		//convolutionKernel<unsigned char> <<<1, 1 >>>( image, densityPtr, nanImagePtr, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth );
-//		break;
-//	case NIFTI_TYPE_INT8:
-//		//convolutionKernel <char> << <1, 1 >> >( image, densityPtr, nanImagePtr, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth );
-//		break;
-//	case NIFTI_TYPE_UINT16:
-//		//convolutionKernel <unsigned short> << <1, 1 >> >( image, densityPtr, nanImagePtr, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth );
-//		break;
-//	case NIFTI_TYPE_INT16:
-//		//convolutionKernel <short> << <1, 1 >> >( image, densityPtr, nanImagePtr, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth );
-//		break;
-//	case NIFTI_TYPE_UINT32:
-//		//convolutionKernel<unsigned int> << <1, 1 >> >( image, densityPtr, nanImagePtr, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth );
-//		break;
-//	case NIFTI_TYPE_INT32:
-//		//convolutionKernel <int> << <1, 1 >> >( image, densityPtr, nanImagePtr, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth );
-//		break;
-//	case NIFTI_TYPE_FLOAT32:
-//		std::cout << "called instead of kernel!" << std::endl;
-//		convolutionKernel<float> << <1, 1 >> >(image_d, densityPtr, nanImagePtr, sigma_d, kernelType, mask_d, timePoint_d, axis_d);
-//		//NR_CUDA_CHECK_KERNEL(1, 1)
-//		break;
-//		case NIFTI_TYPE_FLOAT64:
-//		//convolutionKernel <double> << <1, 1 >> >( image, densityPtr, nanImagePtr, sigma, kernelType, currentMask, activeTimePoint, axisToSmooth );
-//		break;
-//		default:
-//		fprintf(stderr, "[NiftyReg ERROR] reg_gaussianSmoothing\tThe image data type is not supported\n");
-//		reg_exit(1);
-//	}
-//
-//	if (mask == NULL)
-//		free(currentMask);
-//	delete[] axisToSmooth;
-//	delete[] activeTimePoint;
-//	cudaFree(nanImagePtr);
-//	cudaFree(densityPtr);
-}
 
+/*in future versions this kernel could be ommited and the deformation field should be calculated on the fly at the resampling kernel. Faster and it will save 3xsize_of_image memory space (x2 if symmetric)*/
 void launchAffine(mat44 *affineTransformation, nifti_image *deformationField, float** def_d, int** mask_d, float** trans_d, bool compose) {
 
 	const unsigned int xThreads = 8;

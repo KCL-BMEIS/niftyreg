@@ -72,8 +72,9 @@ public:
 	}
 	virtual void setCurrentReferenceMask(int* maskIn, size_t nvox) {
 	}
+	void setCaptureRange(const int captureRangeIn);
 
-	//private:
+protected:
 	nifti_image* CurrentDeformationField;
 	nifti_image* CurrentWarped;
 

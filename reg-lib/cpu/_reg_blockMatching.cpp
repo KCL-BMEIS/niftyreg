@@ -15,13 +15,16 @@
 #include <iostream>
 #include <limits>
 #include <cmath>
+
 /* *************************************************************** */
 /* *************************************************************** */
+//is it square distance or just distance?
 // Helper function: Get the square of the Euclidean distance
 double get_square_distance3D(float * first_point3D, float * second_point3D) {
 	return sqrt((first_point3D[0] - second_point3D[0]) * (first_point3D[0] - second_point3D[0]) + (first_point3D[1] - second_point3D[1]) * (first_point3D[1] - second_point3D[1]) + (first_point3D[2] - second_point3D[2]) * (first_point3D[2] - second_point3D[2]));
 }
 /* *************************************************************** */
+//is it square distance or just distance?
 double get_square_distance2D(float * first_point2D, float * second_point2D) {
 	return sqrt((first_point2D[0] - second_point2D[0]) * (first_point2D[0] - second_point2D[0]) + (first_point2D[1] - second_point2D[1]) * (first_point2D[1] - second_point2D[1]));
 }
@@ -188,6 +191,7 @@ void initialise_block_matching_method(nifti_image * target, _reg_blockMatchingPa
 		params->resultPosition = NULL;
 	}
 
+	params->voxelCaptureRange = 3;
 	params->blockNumber[0] = (int) reg_ceil((float) target->nx / (float) BLOCK_WIDTH);
 	params->blockNumber[1] = (int) reg_ceil((float) target->ny / (float) BLOCK_WIDTH);
 	if (target->nz > 1)
@@ -300,14 +304,14 @@ void block_matching_method2D(nifti_image * target, nifti_image * result, _reg_bl
 					} else
 						targetIndex += BLOCK_WIDTH;
 				}
-				PrecisionTYPE bestCC = 0.0;
+				PrecisionTYPE bestCC = params->voxelCaptureRange>3?0.9:0.0;//only when misaligned images are registered
 				float bestDisplacement[3] = { std::numeric_limits<float>::quiet_NaN(), 0.f, 0.f };
 
 				// iteration over the result blocks
-				for (int m = -OVERLAP_SIZE; m <= OVERLAP_SIZE; m += params->stepSize) {
+				for (int m = -1 * params->voxelCaptureRange; m <= params->voxelCaptureRange; m += params->stepSize) {
 					resultIndex_start_y = targetIndex_start_y + m;
 					resultIndex_end_y = resultIndex_start_y + BLOCK_WIDTH;
-					for (int l = -OVERLAP_SIZE; l <= OVERLAP_SIZE; l += params->stepSize) {
+					for (int l = -1 * params->voxelCaptureRange; l <= params->voxelCaptureRange; l += params->stepSize) {
 						resultIndex_start_x = targetIndex_start_x + l;
 						resultIndex_end_x = resultIndex_start_x + BLOCK_WIDTH;
 
@@ -363,7 +367,8 @@ void block_matching_method2D(nifti_image * target, nifti_image * result, _reg_bl
 								}
 							}
 
-							localCC = fabs(localCC / sqrt(targetVar * resultVar));
+							localCC = (targetVar * resultVar)>0.0?fabs(localCC / sqrt(targetVar * resultVar)): 0;
+//							printf("%d-%d: %f\n",l,m, localCC);
 
 							if (localCC > bestCC) {
 								bestCC = localCC;
@@ -374,7 +379,7 @@ void block_matching_method2D(nifti_image * target, nifti_image * result, _reg_bl
 					}
 				}
 
-				if (bestDisplacement[0] == bestDisplacement[0]) {
+				if (std::isfinite(bestDisplacement[0])) {
 					float targetPosition_temp[3];
 					targetPosition_temp[0] = (float) (i * BLOCK_WIDTH);
 					targetPosition_temp[1] = (float) (j * BLOCK_WIDTH);
@@ -518,19 +523,20 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 						} else
 							targetIndex += BLOCK_WIDTH * BLOCK_WIDTH;
 					}
-					bestCC = 0.0;
+					bestCC = params->voxelCaptureRange>3?0.9:0.0;//only when misaligned images are registered
 					bestDisplacement[0] = std::numeric_limits<float>::quiet_NaN();
 					bestDisplacement[1] = 0.f;
 					bestDisplacement[2] = 0.f;
 
 					// iteration over the result blocks
-					for (n = -1*range; n <= range; n += params->stepSize) {
+					for (n = -1 * params->voxelCaptureRange; n <= params->voxelCaptureRange; n += params->stepSize) {
 						resultIndex_start_z = targetIndex_start_z + n;
 						resultIndex_end_z = resultIndex_start_z + BLOCK_WIDTH;
-						for (m = -1*range; m <= range; m += params->stepSize) {
+						for (m = -1 * params->voxelCaptureRange; m <= params->voxelCaptureRange; m += params->stepSize) {
 							resultIndex_start_y = targetIndex_start_y + m;
 							resultIndex_end_y = resultIndex_start_y + BLOCK_WIDTH;
-							for (l = -1*range; l <= range; l += params->stepSize) {
+							for (l = -1 * params->voxelCaptureRange; l <= params->voxelCaptureRange; l += params->stepSize) {
+
 								resultIndex_start_x = targetIndex_start_x + l;
 								resultIndex_end_x = resultIndex_start_x + BLOCK_WIDTH;
 								resultIndex = 0;
@@ -1094,7 +1100,7 @@ void perturbate(mat44 *affine, double ratio) {
 	}
 }
 
-void localSearch(_reg_blockMatchingParam *params, std::vector<_reg_sorted_point3D> top_points, mat44 * final, float * w, float ** v) {
+void affineLocalSearch3D(_reg_blockMatchingParam *params, std::vector<_reg_sorted_point3D> top_points, mat44 * final, float * w, float ** v) {
 	// The LS in the iterations is done on subsample of the input data
 
 	unsigned long num_points = params->definedActiveBlock;
@@ -1189,7 +1195,7 @@ void localSearch(_reg_blockMatchingParam *params, std::vector<_reg_sorted_point3
 	delete[] a;
 }
 
-void iterativeLocalSearch(_reg_blockMatchingParam *params, std::vector<_reg_sorted_point3D> top_points, mat44 * final, float * w, float ** v) {
+void affineIterativeLocalSearch3D(_reg_blockMatchingParam *params, std::vector<_reg_sorted_point3D> top_points, mat44 * final, float * w, float ** v) {
 	// The LS in the iterations is done on subsample of the input data
 
 	const unsigned long num_points = params->definedActiveBlock;
@@ -1202,9 +1208,7 @@ void iterativeLocalSearch(_reg_blockMatchingParam *params, std::vector<_reg_sort
 	double lastLowest = std::numeric_limits<double>::max();
 	double lastDistance = std::numeric_limits<double>::max();
 	const double pert = 0.1;
-	unsigned int count = 0;
-
-
+	unsigned int count = 0, iter=0;
 
 	// The LHS matrix
 	float** a = new float *[num_equations];
@@ -1221,9 +1225,9 @@ void iterativeLocalSearch(_reg_blockMatchingParam *params, std::vector<_reg_sort
 	// Allocate memory for RHS vector
 	float* b = new float[num_equations];
 
-	bool foundLower = true;
-	while (count < 10) {
+	while (count < 10 && iter<MAX_ITERATIONS) {
 
+		bool foundLower = true;
 
 		// Transform the points in the target
 		for (unsigned j = 0; j < num_points * 3; j += 3) {
@@ -1249,10 +1253,13 @@ void iterativeLocalSearch(_reg_blockMatchingParam *params, std::vector<_reg_sort
 		}
 
 //		local search converged
-		if ( std::abs(distance - lastDistance)  <0.0000001) {
+
+		if ( std::abs(distance - lastDistance)/distance  <0.0000001) {
 			perturbate(final, pert*(count%10));
+
 //			pert -= 0.1;
 			count++;
+			iter=0;
 		} else {
 
 			//		std::cout << count << "/" << MAX_ITERATIONS << ": " << distance << " - " << lastDistance << " - " << lastLowest << std::endl;
@@ -1262,6 +1269,8 @@ void iterativeLocalSearch(_reg_blockMatchingParam *params, std::vector<_reg_sort
 				memcpy(&lastTransformation, final, sizeof(mat44));
 			}
 			estimate_affine_transformation3D(top_points, final, a, w, v, r, b);
+			iter++;
+
 		}
 
 	}
@@ -1349,9 +1358,9 @@ void optimize_affine3D(_reg_blockMatchingParam *params,
 	delete[] r;
 
 	if (ilsIn)
-		iterativeLocalSearch(params, top_points, final, w, v);
+		affineIterativeLocalSearch3D(params, top_points, final, w, v);
 	else
-		localSearch(params, top_points, final, w, v);
+		affineLocalSearch3D(params, top_points, final, w, v);
 
 	delete[] w;
 	for (int k = 0; k < 12; ++k)
@@ -1608,31 +1617,79 @@ void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> &points, m
 	delete[] w;
 }
 
-// Find the optimal rigid transformation that will
-// bring the point clouds into alignment.
-void optimize_rigid2D(_reg_blockMatchingParam *params, mat44 * final) {
-//    unsigned num_points = params->activeBlockNumber;
+void rigidIteratedLocalSearch2D(_reg_blockMatchingParam* params, std::vector<_reg_sorted_point2D> top_points, mat44 * final) {
+	// Keep a sorted list of the distance measure
+
 	const unsigned num_points = params->definedActiveBlock;
+	std::cout<<"num: "<<num_points<<std::endl;
+	double lastDistance = std::numeric_limits<double>::max();
+	double lastLowest = std::numeric_limits<double>::max();
+	const double pert = 0.1;
+
+
+	unsigned long num_to_keep = (unsigned long) (num_points * (params->percent_to_keep / 100.0f));
+	float * newResultPosition = new float[num_points * 2];
+
+	mat44 lastTransformation;
+	memset(&lastTransformation, 0, sizeof(mat44));
+	unsigned int count =0, iter=0;
+	std::cout<<"Start"<<std::endl;
+	while (count<10 && iter < MAX_ITERATIONS) {
+		// Transform the points in the target
+		for (unsigned j = 0; j < num_points * 2; j += 2) {
+			apply_affine2D(final, &(params->targetPosition[j]), &newResultPosition[j]);
+		}
+		std::multimap<double, _reg_sorted_point2D> queue = std::multimap<double, _reg_sorted_point2D>();
+		for (unsigned j = 0; j < num_points * 2; j += 2) {
+			const double distanceIn = get_square_distance2D(&newResultPosition[j], &(params->resultPosition[j]));
+			if(!std::isfinite(distanceIn)){ printf("NAN: %d \n", j);exit(0);}
+			queue.insert(std::pair<double, _reg_sorted_point2D>(distanceIn, _reg_sorted_point2D(&(params->targetPosition[j]), &(params->resultPosition[j]), distanceIn)));
+		}
+
+		double distance = 0.0;
+		unsigned long i = 0;
+		top_points.clear();
+		for (std::multimap<double, _reg_sorted_point2D>::iterator it = queue.begin(); it != queue.end(); ++it, ++i) {
+			if (i >= num_to_keep)
+				break;
+			top_points.push_back((*it).second);
+			distance += std::isfinite((*it).first)?(*it).first:0;
+		}
+		//==================
+		if(!std::isfinite(distance)){ printf("NAN: %d \n", count);exit(0);}
+		//		local search converged
+		if (distance>0 && (std::abs(distance - lastDistance)/distance) < 0.000001) {
+			perturbate(final, pert * (count%3));
+			//			pert -= 0.1;
+			count++;
+			iter=0;
+		} else {
+
+			//		std::cout << count << "/" << MAX_ITERATIONS << ": " << distance << " - " << lastDistance << " - " << lastLowest << std::endl;
+			lastDistance = distance;
+			if (distance <= lastLowest) {
+				lastLowest = distance;
+				memcpy(&lastTransformation, final, sizeof(mat44));
+				std::cout<<"count: "<<count<<" | dist: "<<distance/num_to_keep<<" | "<<num_to_keep<<std::endl;
+			}
+			estimate_rigid_transformation2D(top_points, final);
+			iter++;
+		}
+	}
+	std::cout<<"End"<<std::endl;
+	memcpy( final,&lastTransformation, sizeof(mat44));
+	delete[] newResultPosition;
+}
+
+void rigidLocalSearch2D(_reg_blockMatchingParam* params, std::vector<_reg_sorted_point2D> top_points, mat44 * final) {
 	// Keep a sorted list of the distance measure
 	std::multimap<double, _reg_sorted_point2D> queue;
 
-	std::vector<_reg_sorted_point2D> top_points;
+	const unsigned num_points = params->definedActiveBlock;
 	double distance = 0.0;
 	double lastDistance = std::numeric_limits<double>::max();
 	unsigned long i;
 
-	// Set the current transformation to identity
-	final->m[0][0] = final->m[1][1] = final->m[2][2] = final->m[3][3] = 1.0f;
-	final->m[0][1] = final->m[0][2] = final->m[0][3] = 0.0f;
-	final->m[1][0] = final->m[1][2] = final->m[1][3] = 0.0f;
-	final->m[2][0] = final->m[2][1] = final->m[2][3] = 0.0f;
-	final->m[3][0] = final->m[3][1] = final->m[3][2] = 0.0f;
-
-	for (unsigned j = 0; j < num_points * 2; j += 2) {
-		top_points.push_back(_reg_sorted_point2D(&(params->targetPosition[j]), &(params->resultPosition[j]), 0.0f));
-	}
-
-	estimate_rigid_transformation2D(top_points, final);
 	unsigned long num_to_keep = (unsigned long) (num_points * (params->percent_to_keep / 100.0f));
 	float * newResultPosition = new float[num_points * 2];
 
@@ -1659,7 +1716,7 @@ void optimize_rigid2D(_reg_blockMatchingParam *params, mat44 * final) {
 			top_points.push_back((*it).second);
 			distance += (*it).first;
 		}
-
+		std::cout<<"count: "<<count<<" | dist: "<<distance/num_to_keep<<std::endl;
 		// If the change is not substantial, we return
 		if ((distance > lastDistance) || (lastDistance - distance) < TOLERANCE) {
 			memcpy(final, &lastTransformation, sizeof(mat44));
@@ -1670,6 +1727,31 @@ void optimize_rigid2D(_reg_blockMatchingParam *params, mat44 * final) {
 		estimate_rigid_transformation2D(top_points, final);
 	}
 	delete[] newResultPosition;
+}
+
+// Find the optimal rigid transformation that will
+// bring the point clouds into alignment.
+void optimize_rigid2D(_reg_blockMatchingParam *params, mat44 * final, bool ils) {
+//    unsigned num_points = params->activeBlockNumber;
+	const unsigned num_points = params->definedActiveBlock;
+
+	std::vector<_reg_sorted_point2D> top_points;
+
+	// Set the current transformation to identity
+	final->m[0][0] = final->m[1][1] = final->m[2][2] = final->m[3][3] = 1.0f;
+	final->m[0][1] = final->m[0][2] = final->m[0][3] = 0.0f;
+	final->m[1][0] = final->m[1][2] = final->m[1][3] = 0.0f;
+	final->m[2][0] = final->m[2][1] = final->m[2][3] = 0.0f;
+	final->m[3][0] = final->m[3][1] = final->m[3][2] = 0.0f;
+
+	for (unsigned j = 0; j < num_points * 2; j += 2) {
+		top_points.push_back(_reg_sorted_point2D(&(params->targetPosition[j]), &(params->resultPosition[j]), 0.0f));
+	}
+
+
+	estimate_rigid_transformation2D(top_points, final);
+	if(ils) rigidIteratedLocalSearch2D(params, top_points, final); else rigidLocalSearch2D(params, top_points, final);
+
 }
 void optimize_rigid3D(_reg_blockMatchingParam *params, mat44 *final) {
 	const unsigned num_points = params->definedActiveBlock;
@@ -1748,7 +1830,7 @@ void optimize(_reg_blockMatchingParam *params, mat44 *transformation_matrix, boo
 		if (affine)
 			optimize_affine2D(params, transformation_matrix);
 		else
-			optimize_rigid2D(params, transformation_matrix);
+			optimize_rigid2D(params, transformation_matrix, ils);
 	} else  // 3D images
 	{
 		double in[3];
