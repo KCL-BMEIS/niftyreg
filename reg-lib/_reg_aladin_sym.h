@@ -22,9 +22,9 @@ private:
 	Content* backCon;
 	Kernel* bAffineTransformation3DKernel, *bConvolutionKernel, *bBlockMatchingKernel, *bOptimiseKernel, *bResamplingKernel;
 
-	 virtual void initContent(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes, unsigned int blockPercentage,
+	virtual void initContent(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes, unsigned int blockPercentage,
 				unsigned int inlierLts, unsigned int blockStepSize);
-	 virtual void clearContent();
+	virtual void clearContent();
 	virtual void createKernels();
 	virtual void clearKernels();
 protected:
