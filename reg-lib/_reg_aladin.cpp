@@ -244,7 +244,9 @@ void reg_aladin<T>::InitialiseRegistration()
 
 
 	this->platform = new Platform(platformCode);
+#ifdef _USE_OPENCL
 	this->platform->setClIdx(clIdx);
+#endif
 
 	Kernel* convolutionKernel = platform->createKernel(ConvolutionKernel::getName(), NULL);
 
