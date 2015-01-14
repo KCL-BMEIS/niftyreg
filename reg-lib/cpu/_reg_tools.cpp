@@ -2951,7 +2951,7 @@ void reg_tools_abs_image(nifti_image *img)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-static std::string CLI_PROGRESS_UPDATES = std::string(getenv("NIFTK_CLI_PROGRESS_UPD") != 0 ? getenv("NIFTK_CLI_PROGRESS_UPD") : "");
+//static std::string CLI_PROGRESS_UPDATES = std::string(getenv("NIFTK_CLI_PROGRESS_UPD") != 0 ? getenv("NIFTK_CLI_PROGRESS_UPD") : "");
 /* *************************************************************** */
 //void startProgress(std::string name)
 //{
