@@ -34,17 +34,18 @@ else(USE_CUDA)
 endif(USE_CUDA)
 target_link_libraries(reg_aladin _reg_aladin)
 
-if(USE_OPENCL)
-    add_executable(reg_clinfo reg_clinfo.cpp ../reg-lib/cl/CLContextSingletton.cpp)
-    include_directories(${OPENCL_INCLUDE_DIRS})
-    target_link_libraries(reg_clinfo ${OPENCL_LIBRARIES} )
-endif(USE_OPENCL)
+#-----------------------------------------------------------------------------
+add_executable(reg_clinfo reg_clinfo.cpp ../reg-lib/cl/CLContextSingletton.cpp)
+include_directories(${OPENCL_INCLUDE_DIRS})
+target_link_libraries(reg_clinfo ${OPENCL_LIBRARIES} )
+
 #-----------------------------------------------------------------------------
 set(MODULE_LIST
 		reg_resample
 		reg_jacobian
 		reg_aladin
 		reg_f3d
+		reg_clinfo
 		)
 #-----------------------------------------------------------------------------
 if(BUILD_NR_SLICER_EXT)

@@ -105,7 +105,6 @@ CUDA_ADD_LIBRARY(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	CudaKernelFactory.cpp
 	CudaKernelFuncs.cu
 	CudaKernels.cpp
-	CudaPlatform.cpp
 	../Content.cpp
 	
 	#for debugging
@@ -120,5 +119,5 @@ install(TARGETS ${NAME}
 	ARCHIVE DESTINATION lib
 )
 install(FILES _reg_blockMatching_gpu.h CudaContent.h DESTINATION include)
-install(FILES CudaKernelFactory.h CudaKernelFuncs.h CudaKernels.h CudaPlatform.h DESTINATION include)
+install(FILES CudaKernelFactory.h CudaKernelFuncs.h CudaKernels.h DESTINATION include)
 #-----------------------------------------------------------------------------

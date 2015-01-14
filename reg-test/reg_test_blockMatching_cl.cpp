@@ -4,14 +4,14 @@
 
 #include"Kernel.h"
 #include"Kernels.h"
-#include "cl/CLPlatform.h"
+#include "Platform.h"
 #include "cl/CLContent.h"
 
 #define EPS 0.000001
 
 void test(Content* con) {
 
-	Platform *clPlatform = new CLPlatform();
+	Platform *clPlatform = new Platform(NR_PLATFORM_CL);
 
 	Kernel* blockMatchingKernel = clPlatform->createKernel(BlockMatchingKernel::getName(), con);
 	blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();

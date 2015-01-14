@@ -8,13 +8,10 @@
 #include "Kernels.h"
 #include "Content.h"
 #ifdef _USE_CUDA
-#include "CudaPlatform.h"
 #include "CudaContent.h"
 #endif
 #ifdef _USE_OPENCL
-#include "CLPlatform.h"
 #include "CLContent.h"
-#include "CLContextSingletton.h"
 #include "InfoDevice.h"
 #endif
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -245,18 +242,9 @@ void reg_aladin<T>::InitialiseRegistration()
 	printf("[NiftyReg DEBUG] reg_aladin::InitialiseRegistration() called\n");
 #endif
 
-	if (platformCode == NR_PLATFORM_CPU)
-		this->platform = new CPUPlatform();
-#ifdef _USE_CUDA
-	else if (platformCode == NR_PLATFORM_CUDA)
-	this->platform = new CudaPlatform();
-#endif
-#ifdef _USE_OPENCL
-	else if (platformCode == NR_PLATFORM_CL)
-	this->platform = new CLPlatform();
-	CLContextSingletton *sContext = &CLContextSingletton::Instance();
-	sContext->setClIdx(clIdx);
-#endif
+
+	this->platform = new Platform(platformCode);
+	this->platform->setClIdx(clIdx);
 
 	Kernel* convolutionKernel = platform->createKernel(ConvolutionKernel::getName(), NULL);
 

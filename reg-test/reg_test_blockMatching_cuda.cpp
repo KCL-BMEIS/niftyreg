@@ -4,7 +4,7 @@
 
 #include"Kernel.h"
 #include"Kernels.h"
-#include "cuda/CudaPlatform.h"
+#include "Platform.h"
 #include "cuda/CudaContent.h"
 
 #define EPS 0.000001
@@ -12,7 +12,7 @@
 
 void test(Content* con) {
 
-	Platform *cudaPlatform = new CudaPlatform();
+	Platform *cudaPlatform = new Platform(NR_PLATFORM_CUDA);
 
 	Kernel* blockMatchingKernel = cudaPlatform->createKernel(BlockMatchingKernel::getName(), con);
 	blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();

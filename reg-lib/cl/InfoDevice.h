@@ -30,12 +30,12 @@ public:
 
 		sContext->checkErrNum(clGetDeviceInfo(id, name, 0, NULL, &paramValueSize), "Failed to find OpenCL device info ");
 
-		T * info = (T *) alloca(sizeof(T) * paramValueSize);
-		sContext->checkErrNum(clGetDeviceInfo(id, name, paramValueSize, info, NULL), "Failed to find OpenCL device info ");
+		T * field = (T *) alloca(sizeof(T) * paramValueSize);
+		sContext->checkErrNum(clGetDeviceInfo(id, name, paramValueSize, field, NULL), "Failed to find OpenCL device info ");
 
 		switch (name) {
 		case CL_DEVICE_TYPE: {
-			const cl_device_type deviceType = *(reinterpret_cast<cl_device_type*>(info));
+			const cl_device_type deviceType = *(reinterpret_cast<cl_device_type*>(field));
 			appendToString(deviceType & CL_DEVICE_TYPE_CPU, "CL_DEVICE_TYPE_CPU", clInfo);
 			appendToString(deviceType & CL_DEVICE_TYPE_GPU, "CL_DEVICE_TYPE_GPU", clInfo);
 			appendToString(deviceType & CL_DEVICE_TYPE_ACCELERATOR, "CL_DEVICE_TYPE_ACCELERATOR", clInfo);
@@ -45,7 +45,7 @@ public:
 		}
 			break;
 		case CL_DEVICE_GLOBAL_MEM_CACHE_TYPE: {
-			const cl_device_mem_cache_type cacheType = *(reinterpret_cast<cl_device_mem_cache_type*>(info));
+			const cl_device_mem_cache_type cacheType = *(reinterpret_cast<cl_device_mem_cache_type*>(field));
 			appendToString(cacheType & CL_NONE, "CL_NONE", clInfo);
 			appendToString(cacheType & CL_READ_ONLY_CACHE, "CL_READ_ONLY_CACHE", clInfo);
 			appendToString(cacheType & CL_READ_WRITE_CACHE, "CL_READ_WRITE_CACHE", clInfo);
@@ -54,7 +54,7 @@ public:
 		}
 			break;
 		case CL_DEVICE_LOCAL_MEM_TYPE: {
-			const cl_device_local_mem_type localMemType = *(reinterpret_cast<cl_device_local_mem_type*>(info));
+			const cl_device_local_mem_type localMemType = *(reinterpret_cast<cl_device_local_mem_type*>(field));
 			appendToString(localMemType & CL_LOCAL, "CL_LOCAL", clInfo);
 			appendToString(localMemType & CL_GLOBAL, "CL_GLOBAL", clInfo);
 
@@ -63,7 +63,7 @@ public:
 			break;
 		case CL_DEVICE_EXECUTION_CAPABILITIES: {
 
-			const cl_device_exec_capabilities execCapabilities = *(reinterpret_cast<cl_device_exec_capabilities*>(info));
+			const cl_device_exec_capabilities execCapabilities = *(reinterpret_cast<cl_device_exec_capabilities*>(field));
 
 			appendToString(execCapabilities & CL_EXEC_KERNEL, "CL_EXEC_KERNEL", clInfo);
 			appendToString(execCapabilities & CL_EXEC_NATIVE_KERNEL, "CL_EXEC_NATIVE_KERNEL", clInfo);
@@ -73,8 +73,8 @@ public:
 			break;
 		case CL_DEVICE_QUEUE_PROPERTIES: {
 
-			appendToString(*(reinterpret_cast<cl_device_exec_capabilities*>(info)) & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, "CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE", clInfo);
-			appendToString(*(reinterpret_cast<cl_device_exec_capabilities*>(info)) & CL_QUEUE_PROFILING_ENABLE, "CL_QUEUE_PROFILING_ENABLE", clInfo);
+			appendToString(*(reinterpret_cast<cl_device_exec_capabilities*>(field)) & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, "CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE", clInfo);
+			appendToString(*(reinterpret_cast<cl_device_exec_capabilities*>(field)) & CL_QUEUE_PROFILING_ENABLE, "CL_QUEUE_PROFILING_ENABLE", clInfo);
 
 			std::cout << "\t"<< std::left<< std::setw(outputWidth) << str << ":\t" << clInfo << std::endl;
 		}
@@ -85,7 +85,7 @@ public:
 			sContext->checkErrNum(clGetDeviceInfo(id, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof(cl_uint), &maxWorkItemDimensions, NULL), "Failed to find OpenCL device info  CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS.");
 			std::cout << "\t"<< std::left<< std::setw(outputWidth) << str << ":\t";
 			for (cl_uint i = 0; i < maxWorkItemDimensions; i++)
-				std::cout << info[i] << " ";
+				std::cout << field[i] << " ";
 			std::cout << std::endl;
 		}
 			break;
@@ -94,11 +94,11 @@ public:
 			case CL_DEVICE_VENDOR:
 			case CL_DRIVER_VERSION:
 			case CL_DEVICE_VERSION: {
-			std::cout << "\t"<< std::left<< std::setw(outputWidth) << str << ":\t" << info << std::endl;
+			std::cout << "\t"<< std::left<< std::setw(outputWidth) << str << ":\t" << field << std::endl;
 		}
 			break;
 		default:
-			std::cout << "\t"<< std::left<< std::setw(outputWidth) << str << ":\t" << *info << std::endl;
+			std::cout << "\t"<< std::left<< std::setw(outputWidth) << str << ":\t" << *field << std::endl;
 			break;
 		}
 	}

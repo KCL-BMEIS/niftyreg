@@ -4,14 +4,14 @@
 
 #include"Kernel.h"
 #include"Kernels.h"
-#include "cl/CLPlatform.h"
+#include "Platform.h"
 #include "cl/CLContent.h"
 
 #define EPS 1
 
 void test(Content *con, const unsigned int interp) {
 
-	Platform *platform = new CLPlatform();
+	Platform *platform = new Platform(NR_PLATFORM_CL);
 
 	Kernel* resamplingKernel = platform->createKernel(ResampleImageKernel::getName(), con);
 	resamplingKernel->castTo<ResampleImageKernel>()->calculate(interp, 0);

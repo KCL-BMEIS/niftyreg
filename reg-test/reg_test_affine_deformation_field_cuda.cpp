@@ -4,14 +4,14 @@
 
 #include "Kernel.h"
 #include "Kernels.h"
-#include "cuda/CudaPlatform.h"
+#include "Platform.h"
 #include "cuda/CudaContent.h"
 
 #define EPS 0.00005
 
 void test(Content* con) {
 
-	Platform *cudaPlatform = new CudaPlatform();
+	Platform *cudaPlatform = new Platform(NR_PLATFORM_CUDA);
 
 	Kernel* affineDeformKernel = cudaPlatform->createKernel(AffineDeformationFieldKernel::getName(), con);
 	affineDeformKernel->castTo<AffineDeformationFieldKernel>()->calculate();
