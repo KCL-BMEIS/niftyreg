@@ -2,13 +2,13 @@
 #define CPUKERNELS_H
 
 #include "Kernels.h"
-#include "Context.h"
+#include "Content.h"
 
 
 //Kernel functions for affine deformation field
 class CPUAffineDeformationFieldKernel : public AffineDeformationFieldKernel {
 public:
-	CPUAffineDeformationFieldKernel(Context* con, std::string nameIn) : AffineDeformationFieldKernel( nameIn) {
+	CPUAffineDeformationFieldKernel(Content* con, std::string nameIn) : AffineDeformationFieldKernel( nameIn) {
 		this->deformationFieldImage = con->getCurrentDeformationField();
 		this->affineTransformation = con->getTransformationMatrix();
 		this->mask = con->getCurrentReferenceMask();
@@ -25,7 +25,7 @@ public:
 class CPUBlockMatchingKernel : public BlockMatchingKernel {
 public:
 
-	CPUBlockMatchingKernel(Context* con, std::string name) : BlockMatchingKernel( name) {
+	CPUBlockMatchingKernel(Content* con, std::string name) : BlockMatchingKernel( name) {
 		target = con->getCurrentReference();
 		result = con->getCurrentWarped();
 		params = con->getBlockMatchingParams();
@@ -53,7 +53,7 @@ public:
 class CPUOptimiseKernel : public OptimiseKernel {
 public:
 
-	CPUOptimiseKernel(Context* con, std::string name) : OptimiseKernel( name) {
+	CPUOptimiseKernel(Content* con, std::string name) : OptimiseKernel( name) {
 		transformationMatrix = con->getTransformationMatrix();
 		blockMatchingParams = con->getBlockMatchingParams();
 	}
@@ -66,7 +66,7 @@ public:
 //kernel functions for image resampling with three interpolation variations
 class CPUResampleImageKernel : public ResampleImageKernel {
 public:
-	CPUResampleImageKernel(Context* con, std::string name) : ResampleImageKernel( name) {
+	CPUResampleImageKernel(Content* con, std::string name) : ResampleImageKernel( name) {
 		floatingImage = con->getCurrentFloating();
 		warpedImage = con->getCurrentWarped();
 		deformationField = con->getCurrentDeformationField();

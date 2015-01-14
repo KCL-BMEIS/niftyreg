@@ -5,11 +5,11 @@
 #include"Kernel.h"
 #include"Kernels.h"
 #include "cl/CLPlatform.h"
-#include "cl/CLContext.h"
+#include "cl/CLContent.h"
 
 #define EPS 1
 
-void test(Context *con, const unsigned int interp) {
+void test(Content *con, const unsigned int interp) {
 
 	Platform *platform = new CLPlatform();
 
@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
 	int* tempMask = (int *) calloc(test_warped->nvox, sizeof(int));
 	reg_tools_changeDatatype<float>(test_warped);
 
-	Context *con = new ClContext(NULL, floatingImage, NULL, sizeof(float));
+	Content *con = new ClContent(NULL, floatingImage, NULL, sizeof(float));
 	con->setCurrentWarped(test_warped);
 	con->setCurrentDeformationField(inputDeformationField);
 	con->setCurrentReferenceMask(tempMask, test_warped->nvox);

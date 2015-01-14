@@ -1,7 +1,7 @@
 #ifndef CudaPLATFORM_H_
 #define CudaPLATFORM_H_
 
-#include "Context.h"
+#include "Content.h"
 #include "Platform.h"
 
 class CudaPlatform : public Platform

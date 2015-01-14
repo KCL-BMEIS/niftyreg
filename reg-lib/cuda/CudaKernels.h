@@ -1,11 +1,11 @@
 #pragma once
 #include "Kernels.h"
-#include "CudaContext.h"
+#include "CudaContent.h"
 
 //Kernel functions for affine deformation field 
 class CudaAffineDeformationFieldKernel: public AffineDeformationFieldKernel {
 public:
-	CudaAffineDeformationFieldKernel(Context* conIn, std::string nameIn);
+	CudaAffineDeformationFieldKernel(Content* conIn, std::string nameIn);
 	void calculate(bool compose = false);
 	void compare(bool compose);
 private:
@@ -14,21 +14,21 @@ private:
 
 	float *deformationFieldArray_d, *transformationMatrix_d;
 	int* mask_d;
-	CudaContext* con;
+	CudaContent* con;
 
 };
 //Kernel functions for block matching
 class CudaBlockMatchingKernel: public BlockMatchingKernel {
 public:
 
-	CudaBlockMatchingKernel(Context* conIn, std::string name);
+	CudaBlockMatchingKernel(Content* conIn, std::string name);
 	void calculate(int range);
 	void compare();
 private:
 	nifti_image* target;
 	_reg_blockMatchingParam* params;
 
-	CudaContext* con;
+	CudaContent* con;
 
 	float *targetImageArray_d, *resultImageArray_d, *targetPosition_d, *resultPosition_d, *targetMat_d;
 	int *activeBlock_d, *mask_d;
@@ -50,12 +50,12 @@ public:
 class CudaOptimiseKernel: public OptimiseKernel {
 public:
 
-	CudaOptimiseKernel(Context* conIn, std::string name);
+	CudaOptimiseKernel(Content* conIn, std::string name);
 	void calculate(bool affine, bool ils);
 private:
 	_reg_blockMatchingParam *blockMatchingParams;
 	mat44 *transformationMatrix;
-	CudaContext *con;
+	CudaContent *con;
 };
 
 /*
@@ -63,7 +63,7 @@ private:
  * */
 class CudaResampleImageKernel: public ResampleImageKernel {
 public:
-	CudaResampleImageKernel(Context* conIn, std::string name);
+	CudaResampleImageKernel(Content* conIn, std::string name);
 	void calculate(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
 private:
 	nifti_image *floatingImage;
@@ -77,7 +77,7 @@ private:
 	float* deformationFieldImageArray_d;
 	int* mask_d;
 
-	CudaContext *con;
+	CudaContent *con;
 
 
 };

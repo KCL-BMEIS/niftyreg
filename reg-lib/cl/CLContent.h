@@ -1,7 +1,7 @@
-#ifndef CLCONTEXT_H_
-#define CLCONTEXT_H_
+#ifndef CLCONTENT_H_
+#define CLCONTENT_H_
 
-#include "Context.h"
+#include "Content.h"
 #include "CLContextSingletton.h"
 
 #ifdef __APPLE__
@@ -10,17 +10,17 @@
 #include <CL/cl.h>
 #endif
 
-class ClContext: public Context {
+class ClContent: public Content {
 
 public:
 
 	//constructors
-	ClContext();
-	ClContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep);
-	ClContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte);
-	ClContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep);
-	ClContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte);
-	~ClContext();
+	ClContent();
+	ClContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep);
+	ClContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte);
+	ClContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep);
+	ClContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte);
+	~ClContent();
 
 	//opencl getters
 	cl_mem getReferenceImageArrayClmem();
@@ -83,4 +83,4 @@ private:
 
 };
 
-#endif //CLCONTEXT_H_
+#endif //CLCONTENT_H_

@@ -5,11 +5,11 @@
 #include"Kernel.h"
 #include"Kernels.h"
 #include "cl/CLPlatform.h"
-#include "cl/CLContext.h"
+#include "cl/CLContent.h"
 
 #define EPS 0.00005
 
-void test(Context* con) {
+void test(Content* con) {
 
 	Platform *clPlatform = new CLPlatform();
 
@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
 
 	//GPU code
 	reg_tools_changeDatatype<float>(referenceImage);
-	Context *con = new ClContext(referenceImage, NULL, NULL,inputMatrix, sizeof(float));
+	Content *con = new ClContent(referenceImage, NULL, NULL,inputMatrix, sizeof(float));
 	test(con);
 	test_field = con->getCurrentDeformationField();
 	//END

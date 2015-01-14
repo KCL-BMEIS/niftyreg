@@ -8,7 +8,7 @@
 class CPUKernelFactory : public KernelFactory
 {
 public:
-   Kernel* createKernel(std::string name,  Context* con) const;
+   Kernel* createKernel(std::string name,  Content* con) const;
 };
 
 #endif

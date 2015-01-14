@@ -15,14 +15,14 @@ void CudaConvolutionKernel::calculate(nifti_image *image, float *sigma, int kern
 }
 
 //==============================Cuda Affine Kernel================================================================
-CudaAffineDeformationFieldKernel::CudaAffineDeformationFieldKernel(Context* conIn, std::string nameIn) :
+CudaAffineDeformationFieldKernel::CudaAffineDeformationFieldKernel(Content* conIn, std::string nameIn) :
 		AffineDeformationFieldKernel(nameIn) {
 
-	con = static_cast<CudaContext*>(conIn);
+	con = static_cast<CudaContent*>(conIn);
 
 	//get necessary cpu ptrs
-	this->deformationFieldImage = con->Context::getCurrentDeformationField();
-	this->affineTransformation = con->Context::getTransformationMatrix();
+	this->deformationFieldImage = con->Content::getCurrentDeformationField();
+	this->affineTransformation = con->Content::getTransformationMatrix();
 
 	//get necessary cuda ptrs
 	mask_d = con->getMask_d();
@@ -40,7 +40,7 @@ void CudaAffineDeformationFieldKernel::compare(bool compose) {
 	nifti_image *cpuField = nifti_copy_nim_info(gpuField);
 	cpuField->data = (void *) malloc(gpuField->nvox * gpuField->nbyper);
 
-	reg_affine_getDeformationField(con->Context::getTransformationMatrix(), cpuField, compose, con->Context::getCurrentReferenceMask());
+	reg_affine_getDeformationField(con->Content::getTransformationMatrix(), cpuField, compose, con->Content::getCurrentReferenceMask());
 	float* cpuData = static_cast<float*>(cpuField->data);
 
 	int count = 0;
@@ -70,13 +70,13 @@ void CudaAffineDeformationFieldKernel::calculate(bool compose) {
 
 //==============================Cuda Resamlple Kernel================================================================
 
-CudaResampleImageKernel::CudaResampleImageKernel(Context* conIn, std::string name) :
+CudaResampleImageKernel::CudaResampleImageKernel(Content* conIn, std::string name) :
 		ResampleImageKernel(name) {
 
-	con = static_cast<CudaContext*>(conIn);
+	con = static_cast<CudaContent*>(conIn);
 
-	floatingImage = con->Context::getCurrentFloating();
-	warpedImage = con->Context::getCurrentWarped();
+	floatingImage = con->Content::getCurrentFloating();
+	warpedImage = con->Content::getCurrentWarped();
 
 	//cuda ptrs
 	floatingImageArray_d = con->getFloatingImageArray_d();
@@ -104,15 +104,15 @@ void CudaResampleImageKernel::calculate(int interp, float paddingValue, bool *dt
 }
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //==============================Cuda Block Matching Kernel================================================================
-CudaBlockMatchingKernel::CudaBlockMatchingKernel(Context* conIn, std::string name) :
+CudaBlockMatchingKernel::CudaBlockMatchingKernel(Content* conIn, std::string name) :
 		BlockMatchingKernel(name) {
 
-	//get CudaContext ptr
-	con = static_cast<CudaContext*>(conIn);
+	//get CudaContent ptr
+	con = static_cast<CudaContent*>(conIn);
 
 	//get cpu ptrs
-	target = con->Context::getCurrentReference();
-	params = con->Context::getBlockMatchingParams();
+	target = con->Content::getCurrentReference();
+	params = con->Content::getBlockMatchingParams();
 
 	//get cuda ptrs
 	targetImageArray_d = con->getReferenceImageArray_d();
@@ -125,7 +125,7 @@ CudaBlockMatchingKernel::CudaBlockMatchingKernel(Context* conIn, std::string nam
 
 }
 void CudaBlockMatchingKernel::compare() {
-	nifti_image* referenceImage = con->Context::getCurrentReference();
+	nifti_image* referenceImage = con->Content::getCurrentReference();
 	nifti_image* warpedImage = con->getCurrentWarped(16);
 	int* mask = con->getCurrentReferenceMask();
 	_reg_blockMatchingParam *refParams = con->getBlockMatchingParams();
@@ -207,15 +207,15 @@ void CudaBlockMatchingKernel::calculate(int range) {
 #endif
 }
 //===================================================================================================================================================================
-CudaOptimiseKernel::CudaOptimiseKernel(Context* conIn, std::string name) :
+CudaOptimiseKernel::CudaOptimiseKernel(Content* conIn, std::string name) :
 		OptimiseKernel(name) {
 
-	//get CudaContext ptr
-	con = static_cast<CudaContext*>(conIn);
+	//get CudaContent ptr
+	con = static_cast<CudaContent*>(conIn);
 
 	//get cpu ptrs
-	transformationMatrix = con->Context::getTransformationMatrix();
-	blockMatchingParams = con->Context::getBlockMatchingParams();
+	transformationMatrix = con->Content::getTransformationMatrix();
+	blockMatchingParams = con->Content::getBlockMatchingParams();
 
 }
 
@@ -223,6 +223,6 @@ void CudaOptimiseKernel::calculate(bool affine, bool ils) {
 
 	//for now. Soon we will have a GPU version of it
 	this->blockMatchingParams = con->getBlockMatchingParams();
-	optimize(this->blockMatchingParams, con->Context::getTransformationMatrix(), affine, ils);
+	optimize(this->blockMatchingParams, con->Content::getTransformationMatrix(), affine, ils);
 }
 

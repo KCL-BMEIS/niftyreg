@@ -101,12 +101,12 @@ set(NAME _reg_cuda_kernels)
 CUDA_ADD_LIBRARY(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	_reg_blockMatching_gpu.cu
 	_reg_blockMatching_kernels.cu
-	CudaContext.cpp
+	CudaContent.cpp
 	CudaKernelFactory.cpp
 	CudaKernelFuncs.cu
 	CudaKernels.cpp
 	CudaPlatform.cpp
-	../Context.cpp
+	../Content.cpp
 	
 	#for debugging
 	../cpu/_reg_resampling.cpp
@@ -119,6 +119,6 @@ install(TARGETS ${NAME}
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 )
-install(FILES _reg_blockMatching_gpu.h CudaContext.h DESTINATION include)
+install(FILES _reg_blockMatching_gpu.h CudaContent.h DESTINATION include)
 install(FILES CudaKernelFactory.h CudaKernelFuncs.h CudaKernels.h CudaPlatform.h DESTINATION include)
 #-----------------------------------------------------------------------------

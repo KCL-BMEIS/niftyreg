@@ -1,8 +1,8 @@
-#include "Context.h"
+#include "Content.h"
 
 using namespace std;
 
-Context::Context() {
+Content::Content() {
 	int dim[8] = { 2, 20, 20, 1, 1, 1, 1, 1 };
 
 	this->CurrentFloating = nifti_make_new_nim(dim, NIFTI_TYPE_FLOAT32, true);
@@ -13,7 +13,7 @@ Context::Context() {
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
-Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t bytesIn, const unsigned int currentPercentageOfBlockToUseIn, const unsigned int inlierLtsIn, int stepSizeBlockIn/*, bool symmetric*/) :
+Content::Content(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t bytesIn, const unsigned int currentPercentageOfBlockToUseIn, const unsigned int inlierLtsIn, int stepSizeBlockIn/*, bool symmetric*/) :
 		CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn), transformationMatrix(transMat), bytes(bytesIn), currentPercentageOfBlockToUse(currentPercentageOfBlockToUseIn), inlierLts(inlierLtsIn), stepSizeBlock(stepSizeBlockIn) {
 
 	blockMatchingParams = new _reg_blockMatchingParam();
@@ -23,7 +23,7 @@ Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
-Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn,mat44* transMat, size_t bytesIn) :
+Content::Content(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn,mat44* transMat, size_t bytesIn) :
 		CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn),transformationMatrix(transMat),  bytes(bytesIn) {
 	blockMatchingParams = NULL;
 	initVars();
@@ -32,7 +32,7 @@ Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
-Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t bytesIn, const unsigned int currentPercentageOfBlockToUseIn, const unsigned int inlierLtsIn, int stepSizeBlockIn/*, bool symmetric*/) :
+Content::Content(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t bytesIn, const unsigned int currentPercentageOfBlockToUseIn, const unsigned int inlierLtsIn, int stepSizeBlockIn/*, bool symmetric*/) :
 		CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn), bytes(bytesIn), currentPercentageOfBlockToUse(currentPercentageOfBlockToUseIn), inlierLts(inlierLtsIn), stepSizeBlock(stepSizeBlockIn) {
 
 	blockMatchingParams = new _reg_blockMatchingParam();
@@ -42,21 +42,21 @@ Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
-Context::Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t bytesIn) :
+Content::Content(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t bytesIn) :
 		CurrentReference(CurrentReferenceIn), CurrentFloating(CurrentFloatingIn), CurrentReferenceMask(CurrentReferenceMaskIn), bytes(bytesIn) {
 	blockMatchingParams = NULL;
 	initVars();
 
 }
 
-Context::~Context() {
+Content::~Content() {
 	ClearWarpedImage();
 	ClearDeformationField();
 	if (blockMatchingParams != NULL)
 		delete blockMatchingParams;
 }
 
-void Context::initVars() {
+void Content::initVars() {
 
 	if (this->CurrentFloating != NULL && this->CurrentReference != NULL)
 		this->AllocateWarpedImage();
@@ -80,17 +80,17 @@ void Context::initVars() {
 	if (blockMatchingParams != NULL)
 		initialise_block_matching_method(CurrentReference, blockMatchingParams, currentPercentageOfBlockToUse, inlierLts, stepSizeBlock, CurrentReferenceMask, false);
 #ifndef NDEBUG
-	if(this->CurrentReference==NULL) printf("Context Warning: CurrentReference image is NULL\n");
-	if(this->CurrentFloating==NULL) printf("Context Warning: CurrentFloating image is NULL\n");
-	if(this->CurrentDeformationField==NULL) printf("Context Warning: CurrentDeformationField image is NULL\n");
-	if(this->CurrentWarped==NULL) printf("Context Warning: CurrentWarped image is NULL\n");
-	if(this->CurrentReferenceMask==NULL) printf("Context Warning: CurrentReferenceMask image is NULL\n");
-	if(this->blockMatchingParams==NULL) printf("Context Warning: blockMatchingParams image is NULL\n");
+	if(this->CurrentReference==NULL) printf("Content Warning: CurrentReference image is NULL\n");
+	if(this->CurrentFloating==NULL) printf("Content Warning: CurrentFloating image is NULL\n");
+	if(this->CurrentDeformationField==NULL) printf("Content Warning: CurrentDeformationField image is NULL\n");
+	if(this->CurrentWarped==NULL) printf("Content Warning: CurrentWarped image is NULL\n");
+	if(this->CurrentReferenceMask==NULL) printf("Content Warning: CurrentReferenceMask image is NULL\n");
+	if(this->blockMatchingParams==NULL) printf("Content Warning: blockMatchingParams image is NULL\n");
 #endif
 }
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-void Context::AllocateWarpedImage() {
+void Content::AllocateWarpedImage() {
 	if (this->CurrentReference == NULL || this->CurrentFloating == NULL) {
 		fprintf(stderr, "[NiftyReg ERROR] reg_aladin::AllocateWarpedImage()\n");
 		fprintf(stderr, "[NiftyReg ERROR] Reference and this->CurrentFloatingg images are not defined. Exit.\n");
@@ -111,7 +111,7 @@ void Context::AllocateWarpedImage() {
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
-void Context::AllocateDeformationField(size_t bytes) {
+void Content::AllocateDeformationField(size_t bytes) {
 	if (this->CurrentReference == NULL) {
 		fprintf(stderr, "[NiftyReg ERROR] reg_aladin::AllocateDeformationField()\n");
 		fprintf(stderr, "[NiftyReg ERROR] Reference image is not defined. Exit.\n");
@@ -148,17 +148,17 @@ void Context::AllocateDeformationField(size_t bytes) {
 	this->CurrentDeformationField->data = (void *) calloc(this->CurrentDeformationField->nvox, this->CurrentDeformationField->nbyper);
 	return;
 }
-void Context::setCaptureRange(const int voxelCaptureRangeIn){
+void Content::setCaptureRange(const int voxelCaptureRangeIn){
 		blockMatchingParams->voxelCaptureRange = voxelCaptureRangeIn;
 	}
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-void Context::ClearDeformationField() {
+void Content::ClearDeformationField() {
 	if (this->CurrentDeformationField != NULL)
 		nifti_image_free(this->CurrentDeformationField);
 	this->CurrentDeformationField = NULL;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-void Context::ClearWarpedImage() {
+void Content::ClearWarpedImage() {
 	if (this->CurrentWarped != NULL)
 		nifti_image_free(this->CurrentWarped);
 	this->CurrentWarped = NULL;

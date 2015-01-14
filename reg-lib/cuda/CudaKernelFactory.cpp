@@ -1,8 +1,8 @@
 #include "CudaKernelFactory.h"
 #include "CudaKernels.h"
-#include "Context.h"
+#include "Content.h"
 
-Kernel* CudaKernelFactory::createKernel(std::string name,  Context* con) const {
+Kernel* CudaKernelFactory::createKernel(std::string name,  Content* con) const {
 	if( name == AffineDeformationFieldKernel::getName() ) return new CudaAffineDeformationFieldKernel(con, name);
 	else if( name == ConvolutionKernel::getName() ) return new CudaConvolutionKernel(name);
 	else if( name == BlockMatchingKernel::getName() ) return new CudaBlockMatchingKernel( con, name);

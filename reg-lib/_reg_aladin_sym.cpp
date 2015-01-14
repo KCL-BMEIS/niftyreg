@@ -427,24 +427,24 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type){
 }
 
 template <class T>
-void reg_aladin_sym<T>::initContext(nifti_image* ref, nifti_image* flo,  int* mask, mat44* transMat, size_t bytes, unsigned int blockPercentage,
+void reg_aladin_sym<T>::initContent(nifti_image* ref, nifti_image* flo,  int* mask, mat44* transMat, size_t bytes, unsigned int blockPercentage,
 		unsigned int inlierLts, unsigned int blockStepSize) {
 
 
-	reg_aladin<T>::initContext(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
+	reg_aladin<T>::initContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 
 
 	if (this->platformCode == NR_PLATFORM_CPU)
-	this->backCon = new Context(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
+	this->backCon = new Content(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
 #ifdef _USE_CUDA
 	else if (this->platformCode == NR_PLATFORM_CUDA)
-	this->backCon = new CudaContext(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
+	this->backCon = new CudaContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
 #ifdef _USE_OPENCL
 	else if (this->platformCode == NR_PLATFORM_CL)
-	this->backCon = new ClContext(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
+	this->backCon = new ClContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
-	this->BackwardBlockMatchingParams = backCon->Context::getBlockMatchingParams();
+	this->BackwardBlockMatchingParams = backCon->Content::getBlockMatchingParams();
 }
 
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -472,8 +472,8 @@ void reg_aladin_sym<T>::createKernels() {
 }
 
 template <class T>
-void reg_aladin_sym<T>::clearContext() {
-	reg_aladin<T>::clearContext();
+void reg_aladin_sym<T>::clearContent() {
+	reg_aladin<T>::clearContent();
 	delete this->backCon;
 }
 template <class T>

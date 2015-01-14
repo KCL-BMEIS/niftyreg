@@ -24,7 +24,7 @@
 #include "float.h"
 #include <limits>
 
-class Context;
+class Content;
 class Platform;
 class Kernel;
 
@@ -102,10 +102,10 @@ protected:
    void *paramsProgressCallback;
 
    //platform factory methods
-   virtual void initContext(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes, unsigned int blockPercentage,
+   virtual void initContent(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes, unsigned int blockPercentage,
 			unsigned int inlierLts, unsigned int blockStepSize);
-   virtual void initContext(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes);
-   virtual void clearContext();
+   virtual void initContent(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes);
+   virtual void clearContent();
    virtual void createKernels();
    virtual void clearKernels();
 
@@ -256,7 +256,7 @@ public:
       funcProgressCallback = funcProgCallback;
       paramsProgressCallback = paramsProgCallback;
    }
-   Context *con;
+   Content *con;
 private:
 
    Kernel* affineTransformation3DKernel, *blockMatchingKernel, *optimiseKernel, *resamplingKernel;

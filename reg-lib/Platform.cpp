@@ -1,5 +1,5 @@
 #include "Platform.h"
-#include "Context.h"
+#include "Content.h"
 #include "KernelFactory.h"
 
 using namespace std;
@@ -14,7 +14,7 @@ Platform::~Platform()
 {
 }
 
-Kernel* Platform::createKernel(const string& name, Context* con) const {
+Kernel* Platform::createKernel(const string& name, Content* con) const {
 	return kernelFactories.find(name)->second->createKernel(name, con);
 }
 void Platform::assignKernelToFactory(const string& name, KernelFactory* factory) {

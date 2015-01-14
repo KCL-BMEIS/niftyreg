@@ -11,12 +11,12 @@
 
 class Kernel;
 class KernelFactory;
-class Context;
+class Content;
 
 class  Platform {
 public:
 	Platform();
-	Kernel* createKernel(const std::string& name, Context* con) const;
+	Kernel* createKernel(const std::string& name, Content* con) const;
 	void assignKernelToFactory(const std::string& name, KernelFactory* factory);
 
 	std::map<std::string, KernelFactory*> kernelFactories;

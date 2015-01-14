@@ -1,12 +1,12 @@
 #pragma once
 #include "KernelFactory.h"
-#include "Context.h"
+#include "Content.h"
 
 class Platform;
 class Kernel;
 class CudaKernelFactory : public KernelFactory
 {
 public:
-	Kernel* createKernel(std::string name, Context* con) const;
+	Kernel* createKernel(std::string name, Content* con) const;
 };
 

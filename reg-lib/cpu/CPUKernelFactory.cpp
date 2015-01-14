@@ -2,7 +2,7 @@
 #include "CPUKernels.h"
 #include "Context.h"
 
-Kernel* CPUKernelFactory::createKernel(std::string name,  Context* con) const {
+Kernel* CPUKernelFactory::createKernel(std::string name,  Content* con) const {
 	if (name == AffineDeformationFieldKernel::getName()) return new CPUAffineDeformationFieldKernel(con, name);
 	else if (name == ConvolutionKernel::getName()) return new CPUConvolutionKernel(name);
 	else if (name == BlockMatchingKernel::getName()) return new CPUBlockMatchingKernel(con, name);

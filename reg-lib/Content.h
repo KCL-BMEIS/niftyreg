@@ -1,5 +1,5 @@
-#ifndef CONTEXT_H_
-#define CONTEXT_H_
+#ifndef CONTENT_H_
+#define CONTENT_H_
 
 #include <ctime>
 #include <iosfwd>
@@ -9,16 +9,16 @@
 #include "Kernel.h"
 #include "_reg_blockMatching.h"
 
-class Context {
+class Content {
 public:
 
-	Context();
-	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int percentageOfBlocks, const unsigned int InlierLts, int BlockStepSize);
-	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte);
-	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int percentageOfBlocks, const unsigned int InlierLts, int BlockStepSize);
-	Context(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn,mat44* transMat, size_t byte);
+	Content();
+	Content(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int percentageOfBlocks, const unsigned int InlierLts, int BlockStepSize);
+	Content(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte);
+	Content(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int percentageOfBlocks, const unsigned int InlierLts, int BlockStepSize);
+	Content(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn,mat44* transMat, size_t byte);
 
-	virtual ~Context();
+	virtual ~Content();
 
 	/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 	void AllocateWarpedImage();
@@ -94,4 +94,4 @@ protected:
 
 };
 
-#endif /*CONTEXT_H_*/
+#endif /*CONTENT_H_*/

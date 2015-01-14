@@ -10,14 +10,14 @@
 #include "Kernels.h"
 
 
-class Context;
-class ClContext;
+class Content;
+class ClContent;
 class CLContextSingletton;
 
 //Kernel functions for affine deformation field
 class CLAffineDeformationFieldKernel: public AffineDeformationFieldKernel {
 public:
-	CLAffineDeformationFieldKernel(Context* conIn, std::string nameIn);
+	CLAffineDeformationFieldKernel(Content* conIn, std::string nameIn);
 	~CLAffineDeformationFieldKernel();
 
 	void calculate(bool compose = false);
@@ -25,7 +25,7 @@ public:
 private:
 	mat44 *affineTransformation, *targetMatrix;
 	nifti_image *deformationFieldImage;
-	ClContext* con;
+	ClContent* con;
 	cl_command_queue commandQueue;
 	cl_kernel kernel;
 	cl_context clContext;
@@ -39,13 +39,13 @@ private:
 class CLBlockMatchingKernel: public BlockMatchingKernel {
 public:
 
-	CLBlockMatchingKernel(Context* conIn, std::string name);
+	CLBlockMatchingKernel(Content* conIn, std::string name);
 	~CLBlockMatchingKernel();
 	void compare();
 	void calculate(int range);
 private:
 	CLContextSingletton* sContext;
-	ClContext* con;
+	ClContent* con;
 	nifti_image* target;
 	_reg_blockMatchingParam* params;
 
@@ -72,21 +72,21 @@ private:
 class CLOptimiseKernel: public OptimiseKernel {
 public:
 
-	CLOptimiseKernel(Context* con, std::string name);
+	CLOptimiseKernel(Content* con, std::string name);
 	~CLOptimiseKernel();
 	void calculate(bool affine, bool ils);
 private:
 	_reg_blockMatchingParam *blockMatchingParams;
 	mat44 *transformationMatrix;
 	CLContextSingletton* sContext;
-	ClContext* con;
+	ClContent* con;
 };
 
 //kernel functions for image resampling with three interpolation variations
 class CLResampleImageKernel: public ResampleImageKernel {
 public:
 
-	CLResampleImageKernel(Context* conIn, std::string name);
+	CLResampleImageKernel(Content* conIn, std::string name);
 	~CLResampleImageKernel();
 
 	void calculate(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
@@ -98,7 +98,7 @@ private:
 	int *mask;
 	CLContextSingletton* sContext;
 
-	ClContext* con;
+	ClContent* con;
 	cl_command_queue commandQueue;
 	cl_kernel kernel;
 	cl_context clContext;

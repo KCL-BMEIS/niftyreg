@@ -6,14 +6,14 @@
 #include "Platform.h"
 #include "CPUPlatform.h"
 #include "Kernels.h"
-#include "Context.h"
+#include "Content.h"
 #ifdef _USE_CUDA
 #include "CudaPlatform.h"
-#include "CudaContext.h"
+#include "CudaContent.h"
 #endif
 #ifdef _USE_OPENCL
 #include "CLPlatform.h"
-#include "CLContext.h"
+#include "CLContent.h"
 #include "CLContextSingletton.h"
 #include "InfoDevice.h"
 #endif
@@ -90,7 +90,7 @@ template<class T> reg_aladin<T>::reg_aladin()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T> reg_aladin<T>::~reg_aladin()
 {
-	//they are created and cleared in Context now!
+	//they are created and cleared in Content now!
 	/*this->ClearWarpedImage();
 	 this->ClearDeformationField();*/
 
@@ -415,7 +415,7 @@ void reg_aladin<T>::ClearCurrentInputImage()
 	this->CurrentFloating = NULL;
 	this->CurrentReferenceMask = NULL;
 
-	//Context does this
+	//Content does this
 	/*this->ClearWarpedImage();
 	 this->ClearDeformationField();*/
 }
@@ -588,40 +588,40 @@ void reg_aladin<T>::UpdateTransformationMatrix(int type)
 }
 
 template<class T>
-void reg_aladin<T>::initContext(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes, unsigned int blockPercentage,
+void reg_aladin<T>::initContent(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes, unsigned int blockPercentage,
 		unsigned int inlierLts, unsigned int blockStepSize) {
 
 	if (platformCode == NR_PLATFORM_CPU)
-		this->con = new Context(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
+		this->con = new Content(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #ifdef _USE_CUDA
 	else if(platformCode == NR_PLATFORM_CUDA)
-	this->con = new CudaContext(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
+	this->con = new CudaContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
 #ifdef _USE_OPENCL
 	else if(platformCode == NR_PLATFORM_CL)
-	this->con = new ClContext(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
+	this->con = new ClContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
-	this->blockMatchingParams = con->Context::getBlockMatchingParams();
+	this->blockMatchingParams = con->Content::getBlockMatchingParams();
 }
 
 template<class T>
-void reg_aladin<T>::initContext(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes) {
+void reg_aladin<T>::initContent(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes) {
 
 	if (platformCode == NR_PLATFORM_CPU)
-		this->con = new Context(ref, flo, mask, transMat, bytes);
+		this->con = new Content(ref, flo, mask, transMat, bytes);
 #ifdef _USE_CUDA
 	else if(platformCode == NR_PLATFORM_CUDA)
-	this->con = new CudaContext(ref, flo, mask,transMat, bytes);
+	this->con = new CudaContent(ref, flo, mask,transMat, bytes);
 #endif
 #ifdef _USE_OPENCL
 	else if(platformCode == NR_PLATFORM_CL)
-	this->con = new ClContext(ref, flo, mask,transMat, bytes);
+	this->con = new ClContent(ref, flo, mask,transMat, bytes);
 #endif
-	this->blockMatchingParams = con->Context::getBlockMatchingParams();
+	this->blockMatchingParams = con->Content::getBlockMatchingParams();
 }
 
 template<class T>
-void reg_aladin<T>::clearContext() {
+void reg_aladin<T>::clearContent() {
 	delete con;
 }
 template<class T>
@@ -648,7 +648,7 @@ void reg_aladin<T>::Run()
 
 	//Main loop over the levels:
 	for (this->CurrentLevel = 0; this->CurrentLevel < this->LevelsToPerform; this->CurrentLevel++) {
-		this->initContext(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel],
+		this->initContent(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel],
 				this->ReferenceMaskPyramid[CurrentLevel], this->TransformationMatrix, sizeof(T), this->BlockPercentage,
 				InlierLts, this->BlockStepSize);
 		this->createKernels();
@@ -705,7 +705,7 @@ void reg_aladin<T>::Run()
 
 		// SOME CLEANING IS PERFORMED
 		this->clearKernels();
-		this->clearContext();
+		this->clearContent();
 		this->ClearCurrentInputImage();
 
 #ifdef NDEBUG
@@ -745,7 +745,7 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 	this->CurrentFloating = this->InputFloating;
 	this->CurrentReferenceMask = NULL;
 
-	reg_aladin<T>::initContext(this->CurrentReference, this->CurrentFloating, this->CurrentReferenceMask, this->TransformationMatrix, sizeof(T));
+	reg_aladin<T>::initContent(this->CurrentReference, this->CurrentFloating, this->CurrentReferenceMask, this->TransformationMatrix, sizeof(T));
 	reg_aladin<T>::createKernels();
 	/*reg_aladin<T>::AllocateWarpedImage();
 	 reg_aladin<T>::AllocateDeformationField();*/
@@ -764,7 +764,7 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 
 //   reg_aladin<T>::ClearWarpedImage();
 	reg_aladin<T>::clearKernels();
-	reg_aladin<T>::clearContext();
+	reg_aladin<T>::clearContent();
 	return resultImage;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
