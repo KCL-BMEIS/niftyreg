@@ -18,6 +18,15 @@ reg_aladin_sym<T>::reg_aladin_sym ()
    this->CurrentBackwardWarped=NULL;
    this->BackwardTransformationMatrix=new mat44;
 
+   this->bAffineTransformation3DKernel = NULL;
+   this->bConvolutionKernel=NULL;
+   this->bBlockMatchingKernel=NULL;
+   this->bOptimiseKernel=NULL;
+   this->bResamplingKernel=NULL;
+
+   this->backCon = NULL;
+   this->BackwardBlockMatchingParams=NULL;
+
    this->FloatingUpperThreshold=std::numeric_limits<T>::max();
    this->FloatingLowerThreshold=-std::numeric_limits<T>::max();
 
@@ -307,7 +316,7 @@ void reg_aladin_sym<T>::InitialiseBlockMatching(int CurrentPercentageOfBlockToUs
    //Then do the same thing for the block matching algorithm
    reg_aladin<T>::InitialiseBlockMatching(CurrentPercentageOfBlockToUse);
    initialise_block_matching_method(this->CurrentFloating,
-                                    &this->BackwardBlockMatchingParams,
+                                    this->BackwardBlockMatchingParams,
                                     CurrentPercentageOfBlockToUse,    // percentage of block kept
                                     this->InlierLts,         // percentage of inlier in the optimisation process
                                     this->BlockStepSize,
@@ -321,15 +330,16 @@ void reg_aladin_sym<T>::SetCurrentImages()
 {
    reg_aladin<T>::SetCurrentImages();
    this->CurrentFloatingMask=this->FloatingMaskPyramid[this->CurrentLevel];
-   this->AllocateBackwardWarpedImage();
-   this->AllocateBackwardDeformationField();
+   /*this->AllocateBackwardWarpedImage();
+   this->AllocateBackwardDeformationField();*/
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin_sym<T>::GetBackwardDeformationField()
 {
-   reg_affine_getDeformationField(this->BackwardTransformationMatrix,
-                                  this->BackwardDeformationFieldImage);
+   /*reg_affine_getDeformationField(this->BackwardTransformationMatrix,
+                                  this->BackwardDeformationFieldImage);*/
+	bAffineTransformation3DKernel->castTo<AffineDeformationFieldKernel>()->calculate();
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -338,19 +348,21 @@ void reg_aladin_sym<T>::GetWarpedImage(int interp)
    reg_aladin<T>::GetWarpedImage(interp);
    this->GetBackwardDeformationField();
    //TODO: This needs correction, otherwise we are transforming an image that has already been warped
-   reg_resampleImage(this->CurrentReference,
+   bResamplingKernel->castTo<ResampleImageKernel>()->calculate(interp, 0);
+  /* reg_resampleImage(this->CurrentReference,
                      this->CurrentBackwardWarped,
                      this->BackwardDeformationFieldImage,
                      this->CurrentFloatingMask,
                      interp,
-                     0);
+                     0);*/
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
-{
-   // Update first the forward transformation matrix
-   block_matching_method(this->CurrentReference,
+void reg_aladin_sym<T>::UpdateTransformationMatrix(int type){
+
+	reg_aladin<T>::UpdateTransformationMatrix(type);
+
+  /* block_matching_method(this->CurrentReference,
                          this->CurrentWarped,
                          &this->blockMatchingParams,
                          this->CurrentReferenceMask);
@@ -365,9 +377,12 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
       optimize(&this->blockMatchingParams,
                this->TransformationMatrix,
                AFFINE);
-   }
+   }*/
+
    // Update now the backward transformation matrix
-   block_matching_method(this->CurrentFloating,
+	bBlockMatchingKernel->castTo<BlockMatchingKernel>()->calculate(this->captureRangeVox);
+	bOptimiseKernel->castTo<OptimiseKernel>()->calculate(type, this->ils);
+  /* block_matching_method(this->CurrentFloating,
                          this->CurrentBackwardWarped,
                          &this->BackwardBlockMatchingParams,
                          this->CurrentFloatingMask);
@@ -382,7 +397,11 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
       optimize(&this->BackwardBlockMatchingParams,
                this->BackwardTransformationMatrix,
                AFFINE);
-   }
+   }*/
+#ifndef NDEBUG
+   reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] pre-updated forward transformation matrix");
+   reg_mat44_disp(this->BackwardTransformationMatrix, (char *)"[DEBUG] pre-updated backward transformation matrix");
+#endif
    // Forward and backward matrix are inverted
    mat44 fInverted = nifti_mat44_inverse(*(this->TransformationMatrix));
    mat44 bInverted = nifti_mat44_inverse(*(this->BackwardTransformationMatrix));
@@ -406,6 +425,28 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type)
    reg_mat44_disp(this->BackwardTransformationMatrix, (char *)"[DEBUG] updated backward transformation matrix");
 #endif
 }
+
+template <class T>
+void reg_aladin_sym<T>::initContent(nifti_image* ref, nifti_image* flo,  int* mask, mat44* transMat, size_t bytes, unsigned int blockPercentage,
+		unsigned int inlierLts, unsigned int blockStepSize) {
+
+
+	reg_aladin<T>::initContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
+
+
+	if (this->platformCode == NR_PLATFORM_CPU)
+	this->backCon = new Content(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
+#ifdef _USE_CUDA
+	else if (this->platformCode == NR_PLATFORM_CUDA)
+	this->backCon = new CudaContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
+#endif
+#ifdef _USE_OPENCL
+	else if (this->platformCode == NR_PLATFORM_CL)
+	this->backCon = new ClContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
+#endif
+	this->BackwardBlockMatchingParams = backCon->Content::getBlockMatchingParams();
+}
+
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin_sym<T>::ClearCurrentInputImage()
@@ -418,6 +459,31 @@ void reg_aladin_sym<T>::ClearCurrentInputImage()
 
    this->ClearBackwardWarpedImage();
    this->ClearBackwardDeformationField();
+}
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+template <class T>
+void reg_aladin_sym<T>::createKernels() {
+	reg_aladin<T>::createKernels();
+	bAffineTransformation3DKernel = this->platform->createKernel (AffineDeformationFieldKernel::getName(), this->backCon);
+	bBlockMatchingKernel = this->platform->createKernel(BlockMatchingKernel::getName(), this->backCon);
+	bResamplingKernel = this->platform->createKernel(ResampleImageKernel::getName(), this->backCon);
+	bOptimiseKernel = this->platform->createKernel(OptimiseKernel::getName(), this->backCon);
+}
+
+template <class T>
+void reg_aladin_sym<T>::clearContent() {
+	reg_aladin<T>::clearContent();
+	delete this->backCon;
+}
+template <class T>
+void reg_aladin_sym<T>::clearKernels()
+{
+	reg_aladin<T>::clearKernels();
+	delete bResamplingKernel;
+	delete bAffineTransformation3DKernel;
+	delete bBlockMatchingKernel;
+	delete bOptimiseKernel;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -434,10 +500,10 @@ void reg_aladin_sym<T>::DebugPrintLevelInfoStart()
       printf("[%s] Block size = [4 4 1]\n", this->ExecutableName);
    else printf("[%s] Block size = [4 4 4]\n", this->ExecutableName);
    printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   printf("[%s] Forward Block number = [%i %i %i]\n", this->ExecutableName, this->blockMatchingParams.blockNumber[0],
-          this->blockMatchingParams.blockNumber[1], this->blockMatchingParams.blockNumber[2]);
-   printf("[%s] Backward Block number = [%i %i %i]\n", this->ExecutableName, this->BackwardBlockMatchingParams.blockNumber[0],
-          this->BackwardBlockMatchingParams.blockNumber[1], this->BackwardBlockMatchingParams.blockNumber[2]);
+   printf("[%s] Forward Block number = [%i %i %i]\n", this->ExecutableName, this->blockMatchingParams->blockNumber[0],
+          this->blockMatchingParams->blockNumber[1], this->blockMatchingParams->blockNumber[2]);
+   printf("[%s] Backward Block number = [%i %i %i]\n", this->ExecutableName, this->BackwardBlockMatchingParams->blockNumber[0],
+          this->BackwardBlockMatchingParams->blockNumber[1], this->BackwardBlockMatchingParams->blockNumber[2]);
    reg_mat44_disp(this->TransformationMatrix,
                   (char *)"[reg_aladin_sym] Initial forward transformation matrix:");
    reg_mat44_disp(this->BackwardTransformationMatrix,

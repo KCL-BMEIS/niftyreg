@@ -21,26 +21,31 @@ add_executable(reg_jacobian reg_jacobian.cpp)
 target_link_libraries(reg_jacobian _reg_resampling _reg_localTransformation _reg_tools _reg_globalTransformation _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
 if(USE_CUDA)
-	cuda_add_executable(reg_aladin reg_aladin.cpp)
-	target_link_libraries(reg_aladin _reg_aladin cuda)
-else(USE_CUDA)
-	add_executable(reg_aladin reg_aladin.cpp)
-	target_link_libraries(reg_aladin _reg_aladin)
-endif(USE_CUDA)
-#-----------------------------------------------------------------------------
-if(USE_CUDA)
 	cuda_add_executable(reg_f3d reg_f3d.cpp)
-	target_link_libraries(reg_f3d _reg_f3d cuda)
 else(USE_CUDA)
 	add_executable(reg_f3d reg_f3d.cpp)
-	target_link_libraries(reg_f3d _reg_f3d)
 endif(USE_CUDA)
+target_link_libraries(reg_f3d _reg_f3d)
+#-----------------------------------------------------------------------------
+if(USE_CUDA)
+	cuda_add_executable(reg_aladin reg_aladin.cpp)
+else(USE_CUDA)
+	add_executable(reg_aladin reg_aladin.cpp)
+endif(USE_CUDA)
+target_link_libraries(reg_aladin _reg_aladin)
+
+#-----------------------------------------------------------------------------
+add_executable(reg_clinfo reg_clinfo.cpp ../reg-lib/cl/CLContextSingletton.cpp)
+include_directories(${OPENCL_INCLUDE_DIRS})
+target_link_libraries(reg_clinfo ${OPENCL_LIBRARIES} )
+
 #-----------------------------------------------------------------------------
 set(MODULE_LIST
 		reg_resample
 		reg_jacobian
 		reg_aladin
 		reg_f3d
+		reg_clinfo
 		)
 #-----------------------------------------------------------------------------
 if(BUILD_NR_SLICER_EXT)

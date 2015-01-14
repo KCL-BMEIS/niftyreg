@@ -77,9 +77,12 @@ void Usage(char *exec)
    printf("\t-interp\t\t\tInterpolation order to use internally to warp the floating image.\n");
    printf("\t-iso\t\t\tMake floating and reference images isotropic if required.\n");
 
-   printf("\t-pv <int>\t\tPercentage of blocks to use in the optimisation scheme. [50]\n");
-   printf("\t-pi <int>\t\tPercentage of blocks to consider as inlier in the optimisation scheme. [50]\n");
+   printf("\t-pv <int>\t\t\tPercentage of blocks to use in the optimisation scheme. [50]\n");
+   printf("\t-pi <int>\t\t\tPercentage of blocks to consider as inlier in the optimisation scheme. [50]\n");
    printf("\t-speeeeed\t\tGo faster\n");
+   printf("\t-platf\t\t\tChoose platform: CPU=0 | Cuda=1 | OpenCL=2\n");
+   printf("\t-clid\t\t\tChoose a custom opencl platform id. Please run reg_clinfo first to get platform information and their corresponding ids\n");
+   printf("\t-crv\t\t\tChoose custom capture range for the block matching alg\n");
 #if defined (_OPENMP)
    printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i]\n",
           omp_get_num_procs());
@@ -147,6 +150,10 @@ int main(int argc, char **argv)
 
    bool iso=false;
    bool verbose=true;
+   unsigned int platformFlag = 0;
+   bool ils = false;
+   int captureRangeVox =3;
+   int clIdx = -1;
 
    /* read the input parameter */
    for(int i=1; i<argc; i++)
@@ -185,6 +192,7 @@ int main(int argc, char **argv)
          floatingImageName=argv[++i];
          floatingImageFlag=1;
       }
+
       else if(strcmp(argv[i], "-noSym")==0 || strcmp(argv[i], "--noSym")==0)
       {
          symFlag=0;
@@ -226,6 +234,7 @@ int main(int argc, char **argv)
       {
          levelsToPerform=atoi(argv[++i]);
       }
+
       else if(strcmp(argv[i], "-smooR")==0 || strcmp(argv[i], "-smooT")==0 || strcmp(argv[i], "--smooR")==0)
       {
          referenceSigma = (float)(atof(argv[++i]));
@@ -275,6 +284,10 @@ int main(int argc, char **argv)
       {
          blockStepSize=2;
       }
+      else if(strcmp(argv[i], "-ils")==0 || strcmp(argv[i], "--ils")==0)
+      {
+         ils=true;
+      }
       else if(strcmp(argv[i], "-interp")==0 || strcmp(argv[i], "--interp")==0)
       {
          interpolation=atoi(argv[++i]);
@@ -302,6 +315,23 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "-voff")==0 || strcmp(argv[i], "--voff")==0)
       {
          verbose=false;
+      }
+      else if(strcmp(argv[i], "-platf")==0 || strcmp(argv[i], "--platf")==0)
+      {
+      	const int value=atoi(argv[++i]);
+      	if(value<0 || value>2){
+      		reg_print_msg_error("The platform argument is expected to be between 0 and 2 | 0=CPU, 1=CUDA 2=OPENCL");
+      		return EXIT_FAILURE;
+      	}
+      	platformFlag=value;
+      }
+      else if(strcmp(argv[i], "-clid")==0 || strcmp(argv[i], "--clid")==0)
+      {
+          clIdx = atoi(argv[++i]);
+      }
+      else if(strcmp(argv[i], "-crv")==0 || strcmp(argv[i], "--crv")==0)
+      {
+          captureRangeVox=atoi(argv[++i]);
       }
 #if defined (_OPENMP)
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
@@ -466,6 +496,10 @@ int main(int argc, char **argv)
    REG->SetBlockPercentage(blockPercentage);
    REG->SetInlierLts(inlierLts);
    REG->SetInterpolation(interpolation);
+   REG->setPlatformCode(platformFlag);
+   REG->setIls(ils);
+   REG->setCaptureRangeVox(captureRangeVox);
+   REG->setClIdx(clIdx);
 
    if (referenceLowerThr != referenceUpperThr)
    {

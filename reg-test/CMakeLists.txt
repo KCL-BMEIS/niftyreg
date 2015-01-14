@@ -148,6 +148,74 @@ mark_as_advanced(BUILDNAME)
 	add_test(${EXEC}_LNCC_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz LNCC)
 	add_test(${EXEC}_NMI_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz NMI)
 	add_test(${EXEC}_SSD_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz SSD)
+
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+if(USE_OPENCL)
+
+	#integration fullAffine_cl tests
+	set(EXEC reg_test_fullAffine_cl)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_aladin)
+	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt)
+	
+	#blockMatching cl tests
+	set(EXEC reg_test_blockMatching_cl)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_aladin)
+	add_test(${EXEC}_rig_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 1)
+	add_test(${EXEC}_aff_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 0)
+	
+	#interpolation cl tests
+	set(EXEC reg_test_interpolation_cl)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_aladin)
+	add_test(${EXEC}_0_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_nea3D.nii.gz 0)
+	add_test(${EXEC}_1_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 1)
+	add_test(${EXEC}_3_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_cub3D.nii.gz 3)
+	add_test(${EXEC}_4_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz 4)
+	
+	#affine cl tests
+	set(EXEC reg_test_affine_deformation_field_cl)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_aladin)
+	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
+	#include_directories(${OPENCL_INCLUDE_DIRS})
+	
+endif(USE_OPENCL)
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+if(USE_CUDA)
+
+	#integration aladin cuda tests
+	set(EXEC reg_test_fullAffine_cuda)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_aladin)
+	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt)
+
+	#blockMatching cuda tests
+	set(EXEC reg_test_blockMatching_cuda)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_aladin)
+	add_test(${EXEC}_rig_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 1)
+	add_test(${EXEC}_aff_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 0)
+	
+	#interpolation cuda tests
+	set(EXEC reg_test_interpolation_cuda)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_aladin)
+	add_test(${EXEC}_0_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_nea3D.nii.gz 0)
+	add_test(${EXEC}_1_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 1)
+	add_test(${EXEC}_3_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_cub3D.nii.gz 3)
+	add_test(${EXEC}_4_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz 4)
+
+	#affine cuda tests
+	set(EXEC reg_test_affine_deformation_field_cuda)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_aladin)
+	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
+
+endif(USE_CUDA)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 

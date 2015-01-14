@@ -24,6 +24,10 @@
 #include "float.h"
 #include <limits>
 
+class Content;
+class Platform;
+class Kernel;
+
 template <class T>
 class reg_aladin
 {
@@ -55,11 +59,13 @@ protected:
 
    bool PerformRigid;
    bool PerformAffine;
+   bool ils;
+   int captureRangeVox;
 
    int BlockPercentage;
    int InlierLts;
    int BlockStepSize;
-   _reg_blockMatchingParam blockMatchingParams;
+   _reg_blockMatchingParam *blockMatchingParams;
 
    bool AlignCentre;
    bool AlignCentreGravity;
@@ -73,6 +79,9 @@ protected:
    float ReferenceLowerThreshold;
    float FloatingUpperThreshold;
    float FloatingLowerThreshold;
+   int clIdx;
+
+   Platform *platform;
 
    bool TestMatrixConvergence(mat44 *mat);
 
@@ -92,10 +101,28 @@ protected:
    void (*funcProgressCallback)(float pcntProgress, void *params);
    void *paramsProgressCallback;
 
+   //platform factory methods
+   virtual void initContent(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes, unsigned int blockPercentage,
+			unsigned int inlierLts, unsigned int blockStepSize);
+   virtual void initContent(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes);
+   virtual void clearContent();
+   virtual void createKernels();
+   virtual void clearKernels();
+
 public:
    reg_aladin();
    virtual ~reg_aladin();
    GetStringMacro(ExecutableName);
+
+   int platformCode;
+
+   void setPlatformCode(const int platformCodeIn) {
+   	platformCode = platformCodeIn;
+   }
+
+   void setIls(const bool ilsIn) {
+      	ils = ilsIn;
+   }
 
    //No allocating of the images here...
    void SetInputReference(nifti_image *input)
@@ -206,7 +233,14 @@ public:
    {
       this->SetInterpolation(3);
    }
+   void setCaptureRangeVox(int captureRangeIn)
+   {
+      this->captureRangeVox = captureRangeIn;
+   }
 
+   void setClIdx( int clIdxIn){
+   	this->clIdx = clIdxIn;
+   }
    virtual int Check();
    virtual int Print();
    virtual void Run();
@@ -222,6 +256,11 @@ public:
       funcProgressCallback = funcProgCallback;
       paramsProgressCallback = paramsProgCallback;
    }
+   Content *con;
+private:
+
+   Kernel* affineTransformation3DKernel, *blockMatchingKernel, *optimiseKernel, *resamplingKernel;
+   void resolveMatrix(unsigned int iterations, const unsigned int optimizationFlag);
 
 };
 

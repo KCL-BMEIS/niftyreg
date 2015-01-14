@@ -14,9 +14,19 @@
 
 #include "_reg_aladin.h"
 
+
 template <class T>
 class reg_aladin_sym : public reg_aladin<T>
 {
+private:
+	Content* backCon;
+	Kernel* bAffineTransformation3DKernel, *bConvolutionKernel, *bBlockMatchingKernel, *bOptimiseKernel, *bResamplingKernel;
+
+	virtual void initContent(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes, unsigned int blockPercentage,
+				unsigned int inlierLts, unsigned int blockStepSize);
+	virtual void clearContent();
+	virtual void createKernels();
+	virtual void clearKernels();
 protected:
    nifti_image *InputFloatingMask;
    nifti_image *CurrentBackwardWarped;
@@ -25,7 +35,7 @@ protected:
    int *CurrentFloatingMask;
    int *BackwardActiveVoxelNumber;
 
-   _reg_blockMatchingParam BackwardBlockMatchingParams;
+   _reg_blockMatchingParam *BackwardBlockMatchingParams;
 
    mat44 *BackwardTransformationMatrix;
 
@@ -46,7 +56,7 @@ protected:
 
 public:
    reg_aladin_sym();
-   ~reg_aladin_sym();
+   virtual ~reg_aladin_sym();
    //int Check();
    //int Print();
    //void Run();
