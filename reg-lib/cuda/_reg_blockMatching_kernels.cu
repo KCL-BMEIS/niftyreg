@@ -355,6 +355,7 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 				//float  tempPosition[3];
 				reg_mat44_mul_cuda<float>(targetMatrix_xyz, targetPosition_temp, targetPosition);
 				reg_mat44_mul_cuda<float>(targetMatrix_xyz, bestDisplacement, resultPosition);
+				if (posIdx/3<50) printf("%d: in(%f-%f-%f)  | Cuda\n", posIdx/3, resultPosition[0], resultPosition[1], resultPosition[2]);
 			}
 		}
 	}
@@ -397,17 +398,28 @@ __global__ void trimAndInvertSingularValuesKernel(float* sigma){
 	sigma[threadIdx.x] = (sigma[threadIdx.x] < 0.0001) ? 0.0f : (1.0 / sigma[threadIdx.x]);
 	printf("%d: %f\n", threadIdx.x, sigma[threadIdx.x]);
 }
+__device__ void reg_mat44_dispCmat(float *mat, char * title, int tid)
+{
+	if(tid==0)
+   printf("%s:\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n", title,
+          mat[0*4+0], mat[0*4+1], mat[0*4+2], mat[0*4+3],
+          mat[1*4+0], mat[1*4+1], mat[1*4+2], mat[1*4+3],
+          mat[2*4+0], mat[2*4+1], mat[2*4+2], mat[2*4+3],
+          mat[3*4+0], mat[3*4+1], mat[3*4+2], mat[3*4+3]);
+}
 
 //threads: 512 | blocks:numEquations/512
-__global__ void transformResultPointsKernel(float* transform, float* in, float* out, unsigned int activeBlockNum){
+__global__ void transformResultPointsKernel(float* transform, float* in, float* out, unsigned int definedBlockNum){
 
-	unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-		if (tid < activeBlockNum) {
-			unsigned int c = tid * 3;
-			in += c;
-			out += c;
+	const unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
+//	printf("tid: %d :: idx: %d | blk: %d | dim: %d | defined: %d\n", tid, threadIdx.x, blockIdx.x, blockDim.x, definedBlockNum);
+	reg_mat44_dispCmat(transform, "GPU MAT", tid);
+		if (tid < definedBlockNum) {
+			const unsigned int posIdx = 3 * tid;
+			in += posIdx;
+			out += posIdx;
 			reg_mat44_mul_cuda<float>(transform, in, out);
+			if (posIdx/3<50) printf("%d: in(%f-%f-%f) | out(%f-%f-%f) | Cuda\n", posIdx/3, in[0], in[1], in[2], out[0], out[1], out[2]);
 		}
 
 }

@@ -1713,7 +1713,7 @@ void optimize_rigid2D(_reg_blockMatchingParam *params, mat44 * final, bool ils) 
 	if(ils) rigidIteratedLocalSearch2D(params, top_points, final); else rigidLocalSearch2D(params, top_points, final);
 
 }
-void optimize_rigid3D(_reg_blockMatchingParam *params, mat44 *final) {
+void optimize_rigid3D(_reg_blockMatchingParam *params, mat44 *final, bool ils) {
 	const unsigned num_points = params->definedActiveBlock;
 	// Keep a sorted list of the distance measure
 	std::multimap<double, _reg_sorted_point3D> queue;
