@@ -25,20 +25,23 @@
 // The caller is supposed to ensure that the values are set
 
 // Number of blocks in each dimension
-__device__       __constant__ int3 c_BlockDim;
+__device__        __constant__ int3 c_BlockDim;
 __device__ __constant__ int c_StepSize;
-__device__       __constant__ uint3 c_ImageSize;
+__device__        __constant__ uint3 c_ImageSize;
 __device__ __constant__ float r1c1;
 
 // Transformation matrix from nifti header
-__device__       __constant__ float4 t_m_a;
-__device__       __constant__ float4 t_m_b;
-__device__       __constant__ float4 t_m_c;
+__device__        __constant__ float4 t_m_a;
+__device__        __constant__ float4 t_m_b;
+__device__        __constant__ float4 t_m_c;
 
 #define BLOCK_WIDTH 4
 #define BLOCK_SIZE 64
 #define OVERLAP_SIZE 3
 #define STEP_SIZE 1
+
+#define IDX2C(i,j,ld) (((j)*(ld))+(i))
+
 
 texture<float, 1, cudaReadModeElementType> targetImageArray_texture;
 texture<float, 1, cudaReadModeElementType> resultImageArray_texture;
@@ -368,60 +371,73 @@ __global__ void populateMatrixA(float* A, float *target, unsigned int numBlocks)
 	const unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	const unsigned int c = tid * 3;
 	const unsigned int n = 12;
+	const unsigned int lda = numBlocks*3;
 
 	if (tid < numBlocks) {
-		target +=c;
-		A[c*n +0] = target[0];
-		A[c*n +1] = target[1];
-		A[c*n +2] = target[2];
-		A[c*n +3] = A[c*n +4] = A[c*n +5] = A[c*n +6] = A[c*n +7] = A[c*n +8] = A[c*n +10] = A[c*n +11] = 0.0f;
-		A[c*n +9] = 1.0f;
+		target += c;
+		//IDX2C(i,j,ld)
+		A[IDX2C(c, 0, lda)] = target[0];
+		A[IDX2C(c, 1, lda)] = target[1];
+		A[IDX2C(c, 2, lda)] = target[2];
+		A[IDX2C(c, 3, lda)] = A[IDX2C(c, 4, lda)] = A[IDX2C(c, 5, lda)] = A[IDX2C(c, 6, lda)] = A[IDX2C(c, 7, lda)] = A[IDX2C(c, 8, lda)] = A[IDX2C(c, 10, lda)] = A[IDX2C(c, 11, lda)] = 0.0f;
+		A[IDX2C(c, 9, lda)] = 1.0f;
 
-		A[(c+1)*n +3] = target[0];
-		A[(c+1)*n +4] = target[1];
-		A[(c+1)*n +5] = target[2];
-		A[(c+1)*n +0] = A[(c+1)*n +1] = A[(c+1)*n +2] = A[(c+1)*n +6] = A[(c+1)*n +7] = A[(c+1)*n +8] = A[(c+1)*n +9] = A[(c+1)*n +11] = 0.0f;
-		A[(c+1)*n +10] = 1.0f;
+		A[IDX2C((c + 1), 3, lda)] = target[0];
+		A[IDX2C((c + 1), 4, lda)] = target[1];
+		A[IDX2C((c + 1), 5, lda)] = target[2];
+		A[IDX2C((c + 1), 0, lda)] = A[IDX2C((c + 1), 1, lda)] = A[IDX2C((c + 1), 2, lda)] = A[IDX2C((c + 1), 6, lda)] = A[IDX2C((c + 1), 7, lda)] = A[IDX2C((c + 1), 8, lda)] = A[IDX2C((c + 1), 9, lda)] = A[IDX2C((c + 1), 11, lda)] = 0.0f;
+		A[IDX2C((c + 1), 10, lda)] = 1.0f;
 
-		A[(c+2)*n +6] = target[0];
-		A[(c+2)*n +7] = target[1];
-		A[(c+2)*n +8] = target[2];
-		A[(c+2)*n +0] = A[(c+2)*n +1] = A[(c+2)*n +2] = A[(c+2)*n +3] = A[(c+2)*n +4] = A[(c+2)*n +5] = A[(c+2)*n +9] = A[(c+2)*n +10] = 0.0f;
-		A[(c+2)*n +11] = 1.0f;
-		if (tid<32) printf("0 %d: %f-%f-%f-%f-%f-%f-%f-%f-%f-%f-%f-%f\n", tid, A[c*n +0], A[c*n +1], A[c*n +2],A[c*n +3], A[c*n +4], A[c*n +5], A[c*n +6], A[c*n +7], A[c*n +8],A[c*n +9], A[c*n +10], A[c*n +11]);__syncthreads();
-		//if (tid<32) printf("1 %d: %f-%f-%f-%f-%f-%f-%f-%f-%f-%f-%f-%f\n", tid, A[(c+1)*n +0], A[(c+1)*n +1], A[(c+1)*n +2],A[(c+1)*n +3], A[(c+1)*n +4], A[(c+1)*n +5], A[(c+1)*n +6], A[(c+1)*n +7], A[(c+1)*n +8],A[(c+1)*n +9], A[(c+1)*n +10], A[(c+1)*n +11]);__syncthreads();
-		//if (tid<32) printf("2 %d: %f-%f-%f-%f-%f-%f-%f-%f-%f-%f-%f-%f\n", tid, A[(c+2)*n +0], A[(c+2)*n +1], A[(c+2)*n +2],A[(c+2)*n +3], A[(c+2)*n +4], A[(c+2)*n +5], A[(c+2)*n +6], A[(c+2)*n +7], A[(c+2)*n +8],A[(c+2)*n +9], A[(c+2)*n +10], A[(c+2)*n +11]);__syncthreads();
+		A[IDX2C((c + 2), 6, lda)] = target[0];
+		A[IDX2C((c + 2), 7, lda)] = target[1];
+		A[IDX2C((c + 2), 8, lda)] = target[2];
+		A[IDX2C((c + 2), 0, lda)] = A[IDX2C((c + 2), 1, lda)] = A[IDX2C((c + 2), 2, lda)] = A[IDX2C((c + 2), 3, lda)] = A[IDX2C((c + 2), 4, lda)] = A[IDX2C((c + 2), 5, lda)] = A[IDX2C((c + 2), 9, lda)] = A[IDX2C((c + 2), 10, lda)] = 0.0f;
+		A[IDX2C((c + 2), 11, lda)] = 1.0f;
 
 	}
 
 }
 
+//launched as 1 block 1 thread
+__global__ void outputMat(float* mat, const unsigned int ldm, const unsigned int n, char* msg) {
+	printf("===============================CUDA ========================================\n");
+	for (int i = 0; i < ldm; ++i) {
+		printf("%d ",i);
+		for (int j = 0; j < n; ++j) {
+			printf("%f ", mat[IDX2C(i, j, ldm)]);
+		}
+		printf("\n");
+	}
+	printf("=======================================================================\n");
+}
+
+
 //blocks: 1 | threads: 12
-__global__ void trimAndInvertSingularValuesKernel(float* sigma){
+__global__ void trimAndInvertSingularValuesKernel(float* sigma) {
 	sigma[threadIdx.x] = (sigma[threadIdx.x] < 0.0001) ? 0.0f : (1.0 / sigma[threadIdx.x]);
 	printf("%d: %f\n", threadIdx.x, sigma[threadIdx.x]);
 }
 __device__ void reg_mat44_dispCmat(float *mat, char * title, int tid)
-{
-	if(tid==0)
-   printf("%s:\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n", title,
-          mat[0*4+0], mat[0*4+1], mat[0*4+2], mat[0*4+3],
-          mat[1*4+0], mat[1*4+1], mat[1*4+2], mat[1*4+3],
-          mat[2*4+0], mat[2*4+1], mat[2*4+2], mat[2*4+3],
-          mat[3*4+0], mat[3*4+1], mat[3*4+2], mat[3*4+3]);
+		{
+	if (tid == 0)
+		printf("%s:\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n", title,
+				mat[0 * 4 + 0], mat[0 * 4 + 1], mat[0 * 4 + 2], mat[0 * 4 + 3],
+				mat[1 * 4 + 0], mat[1 * 4 + 1], mat[1 * 4 + 2], mat[1 * 4 + 3],
+				mat[2 * 4 + 0], mat[2 * 4 + 1], mat[2 * 4 + 2], mat[2 * 4 + 3],
+				mat[3 * 4 + 0], mat[3 * 4 + 1], mat[3 * 4 + 2], mat[3 * 4 + 3]);
 }
 
 //threads: 512 | blocks:numEquations/512
-__global__ void transformResultPointsKernel(float* transform, float* in, float* out, unsigned int definedBlockNum){
+__global__ void transformResultPointsKernel(float* transform, float* in, float* out, unsigned int definedBlockNum) {
 
 	const unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-		if (tid < definedBlockNum) {
-			const unsigned int posIdx = 3 * tid;
-			in += posIdx;
-			out += posIdx;
-			reg_mat44_mul_cuda<float>(transform, in, out);
-		}
+	if (tid < definedBlockNum) {
+		const unsigned int posIdx = 3 * tid;
+		in += posIdx;
+		out += posIdx;
+		reg_mat44_mul_cuda<float>(transform, in, out);
+	}
 
 }
 #endif

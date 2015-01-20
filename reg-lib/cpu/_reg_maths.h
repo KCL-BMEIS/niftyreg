@@ -210,4 +210,6 @@ void reg_mat44_disp(mat44 *mat,
 void reg_mat33_disp(mat33 *mat,
                     char * title);
 /* *************************************************************** */
+void outputCMat(float** mat, const unsigned int m, const unsigned int n, char* msg);
+void outputCVect(float* mat,  const unsigned int n, char* msg) ;
 #endif // _REG_MATHS_H

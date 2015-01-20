@@ -215,7 +215,7 @@ void initialise_block_matching_method(nifti_image * target, _reg_blockMatchingPa
 	default:
 		fprintf(stderr, "[NiftyReg ERROR] initialise_block_matching_method\tThe target image data type is not supported\n");
 		reg_exit(1)
-				;
+		;
 	}
 	if (params->activeBlockNumber < 2) {
 		fprintf(stderr, "[NiftyReg ERROR] There are no active blocks\n");
@@ -684,11 +684,11 @@ void block_matching_method(nifti_image * target, nifti_image * result, _reg_bloc
 			break;
 		default:
 			reg_print_fct_error("block_matching_method")
-					;
+			;
 			reg_print_msg_error("The target image data type is not supported")
-					;
+			;
 			reg_exit(1)
-					;
+			;
 		}
 	} else {
 		switch (target->datatype) {
@@ -700,11 +700,11 @@ void block_matching_method(nifti_image * target, nifti_image * result, _reg_bloc
 			break;
 		default:
 			reg_print_fct_error("block_matching_method")
-					;
+			;
 			reg_print_msg_error("The target image data type is not supported")
-					;
+			;
 			reg_exit(1)
-					;
+			;
 		}
 	}
 }
@@ -877,16 +877,24 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, 
 		A[c + 2][0] = A[c + 2][1] = A[c + 2][2] = A[c + 2][3] = A[c + 2][4] = A[c + 2][5] = A[c + 2][9] = A[c + 2][10] = 0.0f;
 		A[c + 2][11] = 1.0f;
 
-
-		if (k < 32) printf("0 %d: %f-%f-%f-%f-%f-%f-%f-%f-%f-%f-%f-%f\n", k, A[c][ 0], A[c][ 1], A[c][ 2], A[c][ 3], A[c][ 4], A[c][ 5], A[c][ 6], A[c][ 7], A[c][ 8], A[c][ 9], A[c][ 10], A[c][ 11]);
-		//if (k < 32) printf("1 %d: %f-%f-%f-%f-%f-%f-%f-%f-%f-%f-%f-%f\n", k, A[c+1][ 0], A[c+1][ 1], A[c+1][ 2], A[c+1][ 3], A[c+1][ 4], A[c+1][ 5], A[c+1][ 6], A[c+1][ 7], A[c+1][ 8], A[c+1][ 9], A[c+1][ 10], A[c+1][ 11]);
-		//if (k < 32) printf("2 %d: %f-%f-%f-%f-%f-%f-%f-%f-%f-%f-%f-%f\n", k, A[c+2][ 0], A[c+2][ 1], A[c+2][ 2], A[c+2][ 3], A[c+2][ 4], A[c+2][ 5], A[c+2][ 6], A[c+2][ 7], A[c+2][ 8], A[c+2][ 9], A[c+2][ 10], A[c+2][ 11]);
-
 	}
+	int n = 12;
+	int m = num_equations;
+
+	//passed
+//	outputCMat(A, m, n, "CPU A Trimmed before");
 
 	// Now we can compute our svd
 	svd(A, num_equations, 12, w, v);
 
+//	outputCMat(A, n, n, "CPU A Trimmed after");
+//	outputCMat(A, m, m, "CPU U ");
+	outputCVect(w, n, "CPU S\n");
+	outputCMat(v, n, n, "CPU VT");
+
+	//A: U | w: Sigma | v: V
+
+	return;
 	// First we make sure that the really small singular values
 	// are set to 0. and compute the inverse by taking the reciprocal
 	// of the entries
@@ -1314,7 +1322,7 @@ void optimize_affine3D(_reg_blockMatchingParam *params, mat44 * final, bool ilsI
 
 	// estimate the optimal transformation while considering all the points
 	estimate_affine_transformation3D(top_points, final, a, w, v, r, b);
-
+	return;
 	// Delete a, b and r. w and v will not change size in subsequent svd operations.
 	for (unsigned int k = 0; k < num_equations; ++k)
 		delete[] a[k];
