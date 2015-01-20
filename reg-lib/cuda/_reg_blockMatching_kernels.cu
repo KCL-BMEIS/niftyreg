@@ -20,6 +20,7 @@
 
 #include "assert.h"
 #include "_reg_blockMatching.h"
+
 // Some parameters that we need for the kernel execution.
 // The caller is supposed to ensure that the values are set
 
@@ -396,21 +397,7 @@ __global__ void trimAndInvertSingularValuesKernel(float* sigma){
 	sigma[threadIdx.x] = (sigma[threadIdx.x] < 0.0001) ? 0.0f : (1.0 / sigma[threadIdx.x]);
 	printf("%d: %f\n", threadIdx.x, sigma[threadIdx.x]);
 }
-__inline__ __device__ double getSquareDistance3Dcu(float * first_point3D, float * second_point3D) {
-	return sqrt((first_point3D[0] - second_point3D[0]) * (first_point3D[0] - second_point3D[0]) + (first_point3D[1] - second_point3D[1]) * (first_point3D[1] - second_point3D[1]) + (first_point3D[2] - second_point3D[2]) * (first_point3D[2] - second_point3D[2]));
-}
-//threads: 512 | blocks:numEquations/512
-__global__ void populateLengthsKernel(float* lengths, float* result_d, float* newResult_d, unsigned int numEquations){
-	unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
-		unsigned int c = tid * 3;
 
-		if (tid < numEquations) {
-			newResult_d += c;
-			result_d += c;
-			lengths[tid] = getSquareDistance3Dcu(result_d, newResult_d);
-		}
-
-}
 //threads: 512 | blocks:numEquations/512
 __global__ void transformResultPointsKernel(float* transform, float* in, float* out, unsigned int activeBlockNum){
 

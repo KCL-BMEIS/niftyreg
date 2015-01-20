@@ -25,10 +25,13 @@
  #include <thrust/sort.h>
  #include <thrust/device_vector.h>
  */
+/*
 #include <thrust/device_vector.h>
 #include <thrust/device_ptr.h>
-//#include <thrust/sort.h>
+#include <thrust/sort.h>
 #include <thrust/gather.h>
+*/
+#include "CudaKernelFuncs.h"
 
 void checkStatus(cusolverStatus_t status, char* msg){
 	if (status == CUSOLVER_STATUS_SUCCESS) printf("%s: PASS\n", msg);
@@ -695,36 +698,7 @@ void getAffineMat3D(float* A_d, float* Sigma_d, float* VT_d, float* U_d, float* 
 	if (status != CUBLAS_STATUS_SUCCESS)
 		fprintf(stderr, "!!!! CUBLAS cublasDestroy error\n");
 }
-double sortAndReduce(float* lengths_d, float* target_d, float* result_d, float* newResult_d, const unsigned int numBlocks, const unsigned int m) {
 
-	//populateLengthsKernel
-	populateLengthsKernel<<<numBlocks, 512>>>(lengths_d, result_d, newResult_d, m/3);
-
-	// The initial vector with all the input points
-	thrust::device_ptr<float> target_d_ptr(target_d);
-	thrust::device_vector<float> vecTarget_d(target_d_ptr, target_d_ptr + m);
-
-	thrust::device_ptr<float> result_d_ptr(result_d);
-	thrust::device_vector<float> vecResult_d(result_d_ptr, result_d_ptr + m);
-
-	thrust::device_ptr<float> lengths_d_ptr(lengths_d);
-	thrust::device_vector<float> vec_lengths_d(lengths_d_ptr, lengths_d_ptr + m);
-
-	// initialize indices vector to [0,1,2,..]
-	thrust::counting_iterator<int> iter(0);
-	thrust::device_vector<int> indices(m);
-	thrust::copy(iter, iter + indices.size(), indices.begin());
-
-// first sort the keys and indices by the keys
-//	thrust::sort_by_key(vec_lengths_d.begin(), vec_lengths_d.end(), indices.begin());
-
-	// Now reorder the ID arrays using the sorted indices
-	thrust::gather(indices.begin(), indices.end(), vecTarget_d.begin(), vecTarget_d.begin());//end()?
-	thrust::gather(indices.begin(), indices.end(), vecResult_d.begin(), vecResult_d.begin());//end()?
-
-	return thrust::reduce(vec_lengths_d.begin(), vec_lengths_d.end());
-
-}
 void optimize_affine3D_cuda(mat44* cpuMat, float* final_d, float* A_d, float* U_d, float* Sigma_d, float* VT_d, float* r_d, float* lengths_d, float* target_d, float* result_d, float* newResult_d, unsigned int m, unsigned int n, const unsigned int numToKeep, bool ilsIn) {
 
 	const unsigned int numEquations = m / 3;
