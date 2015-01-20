@@ -174,6 +174,7 @@ void optimize(_reg_blockMatchingParam *params,
               bool affine = true, bool ils=false);
 
 void optimize_rigid3D(_reg_blockMatchingParam *params, mat44 *final, bool ils=false);
+void optimize_affine3D(_reg_blockMatchingParam *params, mat44 * final, bool ilsIn=false);
 
 
 #endif

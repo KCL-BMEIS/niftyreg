@@ -355,7 +355,7 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 				//float  tempPosition[3];
 				reg_mat44_mul_cuda<float>(targetMatrix_xyz, targetPosition_temp, targetPosition);
 				reg_mat44_mul_cuda<float>(targetMatrix_xyz, bestDisplacement, resultPosition);
-				if (posIdx/3<50) printf("%d: in(%f-%f-%f)  | Cuda\n", posIdx/3, resultPosition[0], resultPosition[1], resultPosition[2]);
+//				if (posIdx/3<32) printf("%d: in(%f-%f-%f)  | Cuda\n", posIdx/3, targetPosition[0], targetPosition[1], targetPosition[2]);
 			}
 		}
 	}
@@ -388,7 +388,10 @@ __global__ void populateMatrixA(float* A, float *target, unsigned int numBlocks)
 		A[(c+2)*n +8] = target[2];
 		A[(c+2)*n +0] = A[(c+2)*n +1] = A[(c+2)*n +2] = A[(c+2)*n +3] = A[(c+2)*n +4] = A[(c+2)*n +5] = A[(c+2)*n +9] = A[(c+2)*n +10] = 0.0f;
 		A[(c+2)*n +11] = 1.0f;
-		printf("%d: %f-%f-%f\n", tid, target[0], target[1], target[2]);
+		if (tid<32) printf("0 %d: %f-%f-%f-%f-%f-%f-%f-%f-%f-%f-%f-%f\n", tid, A[c*n +0], A[c*n +1], A[c*n +2],A[c*n +3], A[c*n +4], A[c*n +5], A[c*n +6], A[c*n +7], A[c*n +8],A[c*n +9], A[c*n +10], A[c*n +11]);__syncthreads();
+		//if (tid<32) printf("1 %d: %f-%f-%f-%f-%f-%f-%f-%f-%f-%f-%f-%f\n", tid, A[(c+1)*n +0], A[(c+1)*n +1], A[(c+1)*n +2],A[(c+1)*n +3], A[(c+1)*n +4], A[(c+1)*n +5], A[(c+1)*n +6], A[(c+1)*n +7], A[(c+1)*n +8],A[(c+1)*n +9], A[(c+1)*n +10], A[(c+1)*n +11]);__syncthreads();
+		//if (tid<32) printf("2 %d: %f-%f-%f-%f-%f-%f-%f-%f-%f-%f-%f-%f\n", tid, A[(c+2)*n +0], A[(c+2)*n +1], A[(c+2)*n +2],A[(c+2)*n +3], A[(c+2)*n +4], A[(c+2)*n +5], A[(c+2)*n +6], A[(c+2)*n +7], A[(c+2)*n +8],A[(c+2)*n +9], A[(c+2)*n +10], A[(c+2)*n +11]);__syncthreads();
+
 	}
 
 }
@@ -412,14 +415,12 @@ __device__ void reg_mat44_dispCmat(float *mat, char * title, int tid)
 __global__ void transformResultPointsKernel(float* transform, float* in, float* out, unsigned int definedBlockNum){
 
 	const unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
-//	printf("tid: %d :: idx: %d | blk: %d | dim: %d | defined: %d\n", tid, threadIdx.x, blockIdx.x, blockDim.x, definedBlockNum);
-	reg_mat44_dispCmat(transform, "GPU MAT", tid);
+
 		if (tid < definedBlockNum) {
 			const unsigned int posIdx = 3 * tid;
 			in += posIdx;
 			out += posIdx;
 			reg_mat44_mul_cuda<float>(transform, in, out);
-			if (posIdx/3<50) printf("%d: in(%f-%f-%f) | out(%f-%f-%f) | Cuda\n", posIdx/3, in[0], in[1], in[2], out[0], out[1], out[2]);
 		}
 
 }

@@ -24,7 +24,6 @@
 
 #include "CudaKernelFuncs.h"
 
-
 /* *************************************************************** */
 
 void block_matching_method_gpu(nifti_image *targetImage, _reg_blockMatchingParam *params, float **targetImageArray_d, float **resultImageArray_d, float **targetPosition_d, float **resultPosition_d, int **activeBlock_d, int **mask_d, float** targetMat_d) {
@@ -68,21 +67,31 @@ void block_matching_method_gpu(nifti_image *targetImage, _reg_blockMatchingParam
 }
 
 //------------Optimizer------------------------------------
-void checkStatus(cusolverStatus_t status, char* msg){
-	if (status == CUSOLVER_STATUS_SUCCESS) printf("%s: PASS\n", msg);
-	else if (status == CUSOLVER_STATUS_NOT_INITIALIZED) printf("%s: the library was not initialized.\n", msg);
-	else if (status == CUSOLVER_STATUS_INVALID_VALUE) printf("%s: invalid parameters were passed (m,n<0 or lda<max(1,m) or ldu<max(1,m) or ldvt<max(1,n) ).\n", msg);
-	else if (status == CUSOLVER_STATUS_ARCH_MISMATCH) printf("%s: the device only supports compute capability 2.0 and above.\n", msg);
-	else if (status == CUSOLVER_STATUS_INTERNAL_ERROR) printf("%s: an internal operation failed.\n", msg);
-	else if (status == CUSOLVER_STATUS_EXECUTION_FAILED) printf("%s: a kernel failed to launch on the GPU.\n", msg);
-	else printf("%s: %d\n", msg, status);
+void checkStatus(cusolverStatus_t status, char* msg) {
+	if (status == CUSOLVER_STATUS_SUCCESS)
+		printf("%s: PASS\n", msg);
+	else if (status == CUSOLVER_STATUS_NOT_INITIALIZED)
+		printf("%s: the library was not initialized.\n", msg);
+	else if (status == CUSOLVER_STATUS_INVALID_VALUE)
+		printf("%s: invalid parameters were passed (m,n<0 or lda<max(1,m) or ldu<max(1,m) or ldvt<max(1,n) ).\n", msg);
+	else if (status == CUSOLVER_STATUS_ARCH_MISMATCH)
+		printf("%s: the device only supports compute capability 2.0 and above.\n", msg);
+	else if (status == CUSOLVER_STATUS_INTERNAL_ERROR)
+		printf("%s: an internal operation failed.\n", msg);
+	else if (status == CUSOLVER_STATUS_EXECUTION_FAILED)
+		printf("%s: a kernel failed to launch on the GPU.\n", msg);
+	else
+		printf("%s: %d\n", msg, status);
 }
-void checkDevInfo(int *devInfo){
-	int * hostDevInfo = (int*)malloc(sizeof(int));
+void checkDevInfo(int *devInfo) {
+	int * hostDevInfo = (int*) malloc(sizeof(int));
 	cudaMemcpy(hostDevInfo, devInfo, sizeof(int), cudaMemcpyDeviceToHost);
-	if (hostDevInfo<0) printf("parameter: %d is wrong\n", hostDevInfo);
-	if (hostDevInfo>0) printf("%d superdiagonals of an intermediate bidiagonal form B did not converge to zero.\n", hostDevInfo);
-	else printf(" %d: operation successful\n", hostDevInfo);
+	if (hostDevInfo < 0)
+		printf("parameter: %d is wrong\n", hostDevInfo);
+	if (hostDevInfo > 0)
+		printf("%d superdiagonals of an intermediate bidiagonal form B did not converge to zero.\n", hostDevInfo);
+	else
+		printf(" %d: operation successful\n", hostDevInfo);
 	free(hostDevInfo);
 }
 void cusolverSVD(float* A_d, unsigned int m, unsigned int n, float* S_d, float* VT_d, float* U_d) {
@@ -117,11 +126,10 @@ void cusolverSVD(float* A_d, unsigned int m, unsigned int n, float* S_d, float* 
 	status = cusolverDnCreate(&gH);
 	checkStatus(status, "cusolverDnCreate");
 
-
 	status = cusolverDnSgesvd_bufferSize(gH, m, n, &Lwork);
 	checkStatus(status, "cusolverDnSgesvd_bufferSize");
 
-	printf("LWork: %d:%d:%d | m: %d n: %d \n", Lwork, Lwork/4,  Lwork%4, m, n);
+	printf("LWork: %d:%d:%d | m: %d n: %d \n", Lwork, Lwork / 4, Lwork % 4, m, n);
 
 	cudaMalloc(&Work, Lwork * sizeof(float));
 	cudaMalloc(&rwork, Lwork * sizeof(float));
@@ -132,7 +140,6 @@ void cusolverSVD(float* A_d, unsigned int m, unsigned int n, float* S_d, float* 
 	checkStatus(status, "cusolverDnSgesvd");
 	checkDevInfo(devInfo);
 
-
 	status = cusolverDnDestroy(gH);
 	checkStatus(status, "cusolverDnDestroy");
 
@@ -141,8 +148,6 @@ void cusolverSVD(float* A_d, unsigned int m, unsigned int n, float* S_d, float* 
 	cudaFree(Work);
 
 }
-
-
 
 void downloadMat44(mat44 *lastTransformation, float* transform_d) {
 	float* tempMat = (float*) malloc(16 * sizeof(float));
@@ -153,19 +158,23 @@ void downloadMat44(mat44 *lastTransformation, float* transform_d) {
 void uploadMat44(mat44 lastTransformation, float* transform_d) {
 	float* tempMat = (float*) malloc(16 * sizeof(float));
 	mat44ToCptr(lastTransformation, tempMat);
-	cudaMemcpy(transform_d,tempMat,  16 * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(transform_d, tempMat, 16 * sizeof(float), cudaMemcpyHostToDevice);
 	free(tempMat);
 }
-
-
 
 //OPTIMIZER-----------------------------------------------
 
 // estimate an affine transformation using least square
 void getAffineMat3D(float* A_d, float* Sigma_d, float* VT_d, float* U_d, float* target_d, float* result_d, float* r_d, float *transformation, const unsigned int numBlocks, unsigned int m, unsigned int n) {
 
+	dim3 blks(numBlocks, 1, 1);
+	dim3 threads(512, 1, 1);
+
 	//populate A
-	populateMatrixA<<<numBlocks, 512>>>(A_d,target_d, m/3);//test 1
+	populateMatrixA<<<numBlocks, 512>>>(A_d,target_d, m/3); //test 2
+	NR_CUDA_CHECK_KERNEL(blks, threads)
+	printf("test 2 exit\n");
+	exit(0);
 
 	//calculate SVD on the GPU
 	cusolverSVD(A_d, m, n, Sigma_d, VT_d, U_d);
@@ -184,7 +193,7 @@ void getAffineMat3D(float* A_d, float* Sigma_d, float* VT_d, float* U_d, float* 
 	printf("CUBLAS\n");
 	status = cublasCreate(&handle);
 	if (status != CUBLAS_STATUS_SUCCESS)
-	fprintf(stderr, "!!!! CUBLAS initialization error\n");
+		fprintf(stderr, "!!!! CUBLAS initialization error\n");
 
 	// Now we can compute the pseudoinverse which is given by V*inv(W)*U'
 
@@ -215,7 +224,7 @@ void optimize_affine3D_cuda(mat44* cpuMat, float* final_d, float* A_d, float* U_
 	const unsigned int numBlocks = (numEquations % 512) ? (numEquations / 512) + 1 : numEquations / 512;
 
 	// run the local search optimization routine
-	affineLocalSearch3DCuda(cpuMat, final_d, A_d,Sigma_d,U_d, VT_d, r_d,newResult_d,    target_d, result_d, lengths_d, numBlocks, numToKeep, m, n);
+	affineLocalSearch3DCuda(cpuMat, final_d, A_d, Sigma_d, U_d, VT_d, r_d, newResult_d, target_d, result_d, lengths_d, numBlocks, numToKeep, m, n);
 
 }
 void affineLocalSearch3DCuda(mat44 *cpuMat, float* final_d, float *A_d, float* Sigma_d, float* U_d, float* VT_d, float* r_d, float * newResultPos_d, float* targetPos_d, float* resultPos_d, float* lengths_d, const unsigned int numBlocks, const unsigned long num_to_keep, const unsigned int m, const unsigned int n) {
@@ -225,14 +234,13 @@ void affineLocalSearch3DCuda(mat44 *cpuMat, float* final_d, float *A_d, float* S
 	float* lastTransformation_d;
 	cudaMalloc(&lastTransformation_d, 16 * sizeof(float));
 	//transform result points
-	printf("transform points test: %d ? blocks: %d\n", m/3, numBlocks);
+	printf("transform points test: %d ? blocks: %d\n", m / 3, numBlocks);
 	dim3 blks(numBlocks, 1, 1);
 	dim3 threads(512, 1, 1);
-	transformResultPointsKernel<<<numBlocks, 512>>>(final_d, resultPos_d,newResultPos_d, m/3); //test 0
+	transformResultPointsKernel<<<numBlocks, 512>>>(final_d, resultPos_d,newResultPos_d, m/3); //test 1
 	NR_CUDA_CHECK_KERNEL(blks, threads)
-	printf("Exiting");
-	exit(0);
-	cudaMemcpy(resultPos_d, newResultPos_d, m * sizeof(float), cudaMemcpyDeviceToDevice); //test 0
+
+	cudaMemcpy(resultPos_d, newResultPos_d, m * sizeof(float), cudaMemcpyDeviceToDevice);
 
 	//get initial affine matrix
 	getAffineMat3D(A_d, Sigma_d, VT_d, U_d, targetPos_d, resultPos_d, r_d, final_d, numBlocks, m, n);

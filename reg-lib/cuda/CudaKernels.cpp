@@ -232,7 +232,7 @@ void CudaOptimiseKernel::calculate(bool affine, bool ils) {
 
 	//for now. Soon we will have a GPU version of it
 	this->blockMatchingParams = con->getBlockMatchingParams();
-	std::cout << "OPT: definedBlock: " << blockMatchingParams->definedActiveBlock << std::endl;
+//	std::cout << "OPT: definedBlock: " << blockMatchingParams->definedActiveBlock << std::endl;
 //	optimize(this->blockMatchingParams, con->Content::getTransformationMatrix(), affine, ils);
 
 //	std::cout << "OPT: definedBlock: " << blockMatchingParams->definedActiveBlock << std::endl;
@@ -240,7 +240,7 @@ void CudaOptimiseKernel::calculate(bool affine, bool ils) {
 	//test 0
 	double in[3];
 	double out[3];
-	reg_mat44_disp(transformationMatrix, (char *) "[DEBUG] cpu matrix");
+//	reg_mat44_disp(transformationMatrix, (char *) "[DEBUG] cpu matrix");
 	for (size_t i = 0; i < static_cast<size_t>(this->blockMatchingParams->activeBlockNumber); ++i) {
 		size_t index = 3 * i;
 		in[0] = this->blockMatchingParams->resultPosition[index];
@@ -250,14 +250,17 @@ void CudaOptimiseKernel::calculate(bool affine, bool ils) {
 		this->blockMatchingParams->resultPosition[index] = static_cast<float>(out[0]);
 		this->blockMatchingParams->resultPosition[index+1] = static_cast<float>(out[1]);
 		this->blockMatchingParams->resultPosition[index+ 2] = static_cast<float>(out[2]);
-
-		if (affine && i<50) printf("%lu: in(%f-%f-%f) | out(%f-%f-%f) | CPU\n", i, in[0], in[1], in[2], out[0], out[1], out[2]);
 	}
 
 
-	if (affine)
-		optimize_affine3D_cuda(transformationMatrix, transformationMatrix_d, A_d, U_d, Sigma_d, VT_d, r_d,lengths_d, targetPos_d, resultPos_d, newResultPos_d,     blockMatchingParams->definedActiveBlock * 3, 12, num_to_keep, false);
-//		optimize_affine3D1(this->blockMatchingParams, con->Content::getTransformationMatrix(), ils);
+	if (affine){
+		std::cout<<"CPU"<<std::endl;
+		mat44 cpy = *transformationMatrix;
+		optimize_affine3D(this->blockMatchingParams, con->Content::getTransformationMatrix(), ils);
+
+		std::cout<<"Cuda"<<std::endl;
+		optimize_affine3D_cuda(&cpy, transformationMatrix_d, A_d, U_d, Sigma_d, VT_d, r_d,lengths_d, targetPos_d, resultPos_d, newResultPos_d,     blockMatchingParams->definedActiveBlock * 3, 12, num_to_keep, false);
+	}
 	else {
 		optimize_rigid3D(this->blockMatchingParams, con->Content::getTransformationMatrix(), ils);
 	}
