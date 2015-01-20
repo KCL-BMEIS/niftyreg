@@ -94,6 +94,29 @@ struct _reg_blockMatchingParam
    }
 };
 
+/* *************************************************************** */
+struct _reg_sorted_point3D {
+	float target[3];
+	float result[3];
+
+	double distance;
+
+	_reg_sorted_point3D(float * t, float * r, double d) :
+			distance(d) {
+		target[0] = t[0];
+		target[1] = t[1];
+		target[2] = t[2];
+
+		result[0] = r[0];
+		result[1] = r[1];
+		result[2] = r[2];
+	}
+
+	bool operator <(const _reg_sorted_point3D &sp) const {
+		return (sp.distance < distance);
+	}
+};
+
 /** @brief This function initialise a _reg_blockMatchingParam structure
  * according to the the provided arguments
  * @param referenceImage Reference image where the blocks are defined

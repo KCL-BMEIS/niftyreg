@@ -112,7 +112,8 @@ CUDA_ADD_LIBRARY(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	../cpu/_reg_globalTransformation.cpp
 	../cpu/_reg_blockMatching.cpp
 )
-target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_gpu  )
+#temp code till we find a cleaner way to pass the lib flags to nvcc
+target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_gpu /Developer/NVIDIA/CUDA-7.0/lib/libcublas.dylib /Developer/NVIDIA/CUDA-7.0/lib/libcusolver.dylib )
 install(TARGETS ${NAME}
 	RUNTIME DESTINATION lib
 	LIBRARY DESTINATION lib

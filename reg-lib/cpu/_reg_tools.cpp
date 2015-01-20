@@ -3001,6 +3001,14 @@ void mat44ToCptr(mat44 mat, float* cMat) {
 		}
 	}
 }
+void cPtrToMat44(mat44 *mat, float* cMat) {
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			 mat->m[i][j]=cMat[i * 4 + j];
+
+		}
+	}
+}
 /* *************************************************************** */
 void mat33ToCptr(mat33 *mat, float* cMat, const unsigned int numMats) {
 	for (size_t k = 0; k < numMats; k++)

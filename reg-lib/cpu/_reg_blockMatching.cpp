@@ -714,28 +714,7 @@ void apply_affine2D(mat44 * mat, float *pt, float *result) {
 	result[0] = static_cast<float>(static_cast<double>(pt[0]) * static_cast<double>(mat->m[0][0]) + static_cast<double>(pt[1]) * static_cast<double>(mat->m[0][1]) + static_cast<double>(mat->m[0][3]));
 	result[1] = static_cast<float>(static_cast<double>(pt[0]) * static_cast<double>(mat->m[1][0]) + static_cast<double>(pt[1]) * static_cast<double>(mat->m[1][1]) + static_cast<double>(mat->m[1][3]));
 }
-/* *************************************************************** */
-struct _reg_sorted_point3D {
-	float target[3];
-	float result[3];
 
-	double distance;
-
-	_reg_sorted_point3D(float * t, float * r, double d) :
-			distance(d) {
-		target[0] = t[0];
-		target[1] = t[1];
-		target[2] = t[2];
-
-		result[0] = r[0];
-		result[1] = r[1];
-		result[2] = r[2];
-	}
-
-	bool operator <(const _reg_sorted_point3D &sp) const {
-		return (sp.distance < distance);
-	}
-};
 /* *************************************************************** */
 struct _reg_sorted_point2D {
 	float target[2];
@@ -1290,9 +1269,7 @@ void affineIterativeLocalSearch3D(_reg_blockMatchingParam *params, std::vector<_
 	delete[] a;
 }
 
-void optimize_affine3D(_reg_blockMatchingParam *params,
-		mat44 * final, bool ilsIn)
-		{
+void optimize_affine3D(_reg_blockMatchingParam *params, mat44 * final, bool ilsIn) {
 	// Set the current transformation to identity
 	reg_mat44_eye(final);
 
@@ -1306,54 +1283,40 @@ void optimize_affine3D(_reg_blockMatchingParam *params,
 
 	// massive left hand side matrix
 	float ** a = new float *[num_equations];
-	for (unsigned k = 0; k < num_equations; ++k)
-			{
-		a[k] = new float[12]; // full affine
-	}
+	for (unsigned k = 0; k < num_equations; ++k) a[k] = new float[12]; // full affine
+
 
 	// The array of singular values returned by svd
 	float *w = new float[12];
 
 	// v will be n x n
 	float **v = new float *[12];
-	for (unsigned k = 0; k < 12; ++k)
-			{
-		v[k] = new float[12];
-	}
+	for (unsigned k = 0; k < 12; ++k) v[k] = new float[12];
+
 
 	// Allocate memory for pseudoinverse
 	float **r = new float *[12];
-	for (unsigned k = 0; k < 12; ++k)
-			{
-		r[k] = new float[num_equations];
-	}
+	for (unsigned k = 0; k < 12; ++k) r[k] = new float[num_equations];
+
 
 	// Allocate memory for RHS vector
 	float *b = new float[num_equations];
 
 	// The initial vector with all the input points
-	for (unsigned j = 0; j < num_points * 3; j += 3)
-			{
-		top_points.push_back(_reg_sorted_point3D(&(params->targetPosition[j]),
-				&(params->resultPosition[j]),
-				0.0f));
-	}
+	for (unsigned j = 0; j < num_points * 3; j += 3) top_points.push_back(_reg_sorted_point3D(&(params->targetPosition[j]), &(params->resultPosition[j]), 0.0f));
+
 
 	// estimate the optimal transformation while considering all the points
 	estimate_affine_transformation3D(top_points, final, a, w, v, r, b);
 
 	// Delete a, b and r. w and v will not change size in subsequent svd operations.
-	for (unsigned int k = 0; k < num_equations; ++k)
-			{
-		delete[] a[k];
-	}
+	for (unsigned int k = 0; k < num_equations; ++k) delete[] a[k];
+
 	delete[] a;
 	delete[] b;
 
-	for (unsigned k = 0; k < 12; ++k)
-			{
-		delete[] r[k];
-	}
+	for (unsigned k = 0; k < 12; ++k) delete[] r[k];
+
 	delete[] r;
 
 	if (ilsIn)
@@ -1362,10 +1325,8 @@ void optimize_affine3D(_reg_blockMatchingParam *params,
 		affineLocalSearch3D(params, top_points, final, w, v);
 
 	delete[] w;
-	for (int k = 0; k < 12; ++k)
-			{
-		delete[] v[k];
-	}
+
+	for (int k = 0; k < 12; ++k) delete[] v[k];
 	delete[] v;
 }
 void estimate_rigid_transformation2D(std::vector<_reg_sorted_point2D> &points, mat44 * transformation) {
@@ -1814,8 +1775,8 @@ void optimize(_reg_blockMatchingParam *params, mat44 *transformation_matrix, boo
 	// in the space of the reference image. All warped image coordinates
 	// are updated to be in the original floating space
 //    mat44 inverseMatrix = nifti_mat44_inverse(*transformation_matrix);
-	if (params->blockNumber[2] == 1)  // 2D images
-			{
+	if (params->blockNumber[2] == 1) { // 2D images
+
 		float in[2];
 		float out[2];
 		for (size_t i = 0; i < static_cast<size_t>(params->activeBlockNumber); ++i) {

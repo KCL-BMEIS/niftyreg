@@ -16,6 +16,7 @@
 #include "_reg_blockMatching.h"
 
 
+
 // targetImage: The target/fixed/reference image.
 // resultImage: The warped/deformed/result image.
 // blockMatchingParam:
@@ -34,6 +35,27 @@ void optimize_gpu(	_reg_blockMatchingParam *blockMatchingParams,
 					 float **targetPosition_d,
 					 float **resultPosition_d,
 					 bool affine = true);
+
+extern "C++"
+void optimize_affine3D1(_reg_blockMatchingParam *params, mat44 *final, bool ilsIn=false);
+
+extern "C++"
+void optimize_affine3D_cuda(mat44* cpuMat, float* final_d, float* A_d, float* U_d, float* Sigma_d, float* VT_d, float* r_d, float* lengths_d, float* target_d, float* result_d, float* newResult_d, unsigned int m, unsigned int n,const unsigned int numToKeep, bool ilsIn);
+
+extern "C++"
+void optimize_rigid3D1(_reg_blockMatchingParam *params, mat44 *final, bool ilsIn=false);
+
+extern "C++"
+void getAffineMat3D(float* A_d, float* Sigma_d, float* VT_d, float* U_d, float* target_d, float* result_d, float* r_d, float *transformation,const unsigned int numBlocks, unsigned int m, unsigned int n);
+
+extern "C++"
+void estimate_rigid_transformation3D1(std::vector<_reg_sorted_point3D> &points, mat44 * transformation);
+
+extern "C++"
+void estimate_affine_transformation3D1(std::vector<_reg_sorted_point3D> &points, mat44 * transformation, float ** A, float * w, float ** v, float ** r, float * b);
+
+extern "C++"
+double sortAndReduce(float* lengths_d, float* target_d, float* result_d, float* newResult_d, const unsigned int numBlocks, const unsigned int m);
 
 #endif
 

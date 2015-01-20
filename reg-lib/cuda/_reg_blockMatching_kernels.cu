@@ -13,13 +13,10 @@
 #define __REG_BLOCKMATCHING_KERNELS_CU__
 
 #ifdef _CUDA_30
-	#define REDUCE blockReduceSum
+#define REDUCE blockReduceSum
 #else
-	#define REDUCE reduceCustom
+#define REDUCE reduceCustom
 #endif
-
-
-
 
 #include "assert.h"
 #include "_reg_blockMatching.h"
@@ -27,15 +24,15 @@
 // The caller is supposed to ensure that the values are set
 
 // Number of blocks in each dimension
-__device__    __constant__ int3 c_BlockDim;
+__device__       __constant__ int3 c_BlockDim;
 __device__ __constant__ int c_StepSize;
-__device__    __constant__ uint3 c_ImageSize;
+__device__       __constant__ uint3 c_ImageSize;
 __device__ __constant__ float r1c1;
 
 // Transformation matrix from nifti header
-__device__    __constant__ float4 t_m_a;
-__device__    __constant__ float4 t_m_b;
-__device__    __constant__ float4 t_m_c;
+__device__       __constant__ float4 t_m_a;
+__device__       __constant__ float4 t_m_b;
+__device__       __constant__ float4 t_m_c;
 
 #define BLOCK_WIDTH 4
 #define BLOCK_SIZE 64
@@ -63,7 +60,6 @@ void reg_mat44_mul_cuda(float* mat, DTYPE const* in, DTYPE *out) {
 	out[2] = (DTYPE) mat[2 * 4 + 0] * in[0] + (DTYPE) mat[2 * 4 + 1] * in[1] + (DTYPE) mat[2 * 4 + 2] * in[2] + (DTYPE) mat[2 * 4 + 3];
 	return;
 }
-
 
 __device__ __inline__ void reduceCC(float* sData, const unsigned int tid, const unsigned int blockSize) {
 
@@ -231,8 +227,6 @@ float blockReduceSum(float val, int tid) {
 	return shared[0] + shared[1];
 }
 
-
-
 //recently switched to this kernel as it can accomodate greater capture range
 __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition, int* mask, float* targetMatrix_xyz, unsigned int* definedBlock, uint3 c_ImageSize, const int blocksRange, const unsigned int stepSize) {
 
@@ -264,17 +258,17 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 	if (currentBlockIndex > -1) {
 
 		float bestDisplacement[3] = { nanf("sNaN"), 0.0f, 0.0f };
-		float bestCC = blocksRange>1?0.9f:0.0f;
+		float bestCC = blocksRange > 1 ? 0.9f : 0.0f;
 
 		//populate shared memory with resultImageArray's values
-		for (int n = -1*blocksRange; n <= blocksRange; n += 1) {
-			for (int m = -1*blocksRange; m <= blocksRange; m += 1) {
-				for (int l = -1*blocksRange; l <= blocksRange; l += 1) {
+		for (int n = -1 * blocksRange; n <= blocksRange; n += 1) {
+			for (int m = -1 * blocksRange; m <= blocksRange; m += 1) {
+				for (int l = -1 * blocksRange; l <= blocksRange; l += 1) {
 					const int x = l * 4 + idx;
 					const int y = m * 4 + idy;
 					const int z = n * 4 + idz;
 
-					const unsigned int sIdx = (z + blocksRange*4)* numBlocks*4 * numBlocks*4  + (y + blocksRange*4) * numBlocks*4  + (x + blocksRange*4);
+					const unsigned int sIdx = (z + blocksRange * 4) * numBlocks * 4 * numBlocks * 4 + (y + blocksRange * 4) * numBlocks * 4 + (x + blocksRange * 4);
 
 					const int xImageIn = xBaseImage + x;
 					const int yImageIn = yBaseImage + y;
@@ -283,7 +277,7 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 					const int indexXYZIn = xImageIn + yImageIn * (c_ImageSize.x) + zImageIn * (c_ImageSize.x * c_ImageSize.y);
 
 					const bool valid = (xImageIn >= 0 && xImageIn < c_ImageSize.x) && (yImageIn >= 0 && yImageIn < c_ImageSize.y) && (zImageIn >= 0 && zImageIn < c_ImageSize.z);
-					sResultValues[sIdx] = (valid /*&& mask[indexXYZIn]>-1*/) ? tex1Dfetch(resultImageArray_texture, indexXYZIn) : nanf("sNaN");//for some reason the mask here creates probs
+					sResultValues[sIdx] = (valid /*&& mask[indexXYZIn]>-1*/) ? tex1Dfetch(resultImageArray_texture, indexXYZIn) : nanf("sNaN");     //for some reason the mask here creates probs
 
 				}
 			}
@@ -291,7 +285,7 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 
 		//for most cases we need this out of th loop
 		//value if the block is 4x4x4 NaN otherwise
-		float rTargetValue = (targetInBounds && mask[imgIdx]>-1) ? tex1Dfetch(targetImageArray_texture, imgIdx) : nanf("sNaN");
+		float rTargetValue = (targetInBounds && mask[imgIdx] > -1) ? tex1Dfetch(targetImageArray_texture, imgIdx) : nanf("sNaN");
 		const bool finiteTargetIntensity = isfinite(rTargetValue);
 		rTargetValue = finiteTargetIntensity ? rTargetValue : 0.f;
 
@@ -299,16 +293,16 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 
 		if (targetBlockSize > 32) {
 			//the target values must remain constant throughout the block matching process
-			const float targetMean = __fdividef(REDUCE(rTargetValue, tid) , targetBlockSize);
+			const float targetMean = __fdividef(REDUCE(rTargetValue, tid), targetBlockSize);
 			const float targetTemp = finiteTargetIntensity ? rTargetValue - targetMean : 0.f;
 			const float targetVar = REDUCE(targetTemp * targetTemp, tid);
 
 			// iteration over the result blocks (block matching part)
-			for (unsigned int n = 1; n < blocksRange*8 /*2*4*/; n += stepSize) {
-				for (unsigned int m = 1; m < blocksRange*8 /*2*4*/; m += stepSize) {
-					for (unsigned int l = 1; l < blocksRange*8 /*2*4*/; l += stepSize) {
+			for (unsigned int n = 1; n < blocksRange * 8 /*2*4*/; n += stepSize) {
+				for (unsigned int m = 1; m < blocksRange * 8 /*2*4*/; m += stepSize) {
+					for (unsigned int l = 1; l < blocksRange * 8 /*2*4*/; l += stepSize) {
 
-						const unsigned int sIdxIn = (idz + n) * numBlocks*4 * numBlocks*4 + (idy + m) * numBlocks*4  + idx + l;
+						const unsigned int sIdxIn = (idz + n) * numBlocks * 4 * numBlocks * 4 + (idy + m) * numBlocks * 4 + idx + l;
 						const float rResultValue = sResultValues[sIdxIn];
 						const bool overlap = isfinite(rResultValue) && finiteTargetIntensity;
 						const unsigned int blockSize = __syncthreads_count(overlap);
@@ -321,24 +315,24 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 							if (blockSize != targetBlockSize) {
 
 								const float newTargetValue = overlap ? rTargetValue : 0.0f;
-								const float newTargetMean = __fdividef(REDUCE(newTargetValue, tid) , blockSize);
+								const float newTargetMean = __fdividef(REDUCE(newTargetValue, tid), blockSize);
 								newTargetTemp = overlap ? newTargetValue - newTargetMean : 0.0f;
 								newTargetVar = REDUCE(newTargetTemp * newTargetTemp, tid);
 							}
 
 							const float rChecked = overlap ? rResultValue : 0.0f;
-							const float resultMean = __fdividef(REDUCE(rChecked, tid),blockSize)  ;
+							const float resultMean = __fdividef(REDUCE(rChecked, tid), blockSize);
 							const float resultTemp = overlap ? rChecked - resultMean : 0.0f;
 							const float resultVar = REDUCE(resultTemp * resultTemp, tid);
 
-							const float sumTargetResult =  REDUCE((newTargetTemp) * (resultTemp), tid);
-							const float localCC = fabs((sumTargetResult) * rsqrtf( newTargetVar *  resultVar));
+							const float sumTargetResult = REDUCE((newTargetTemp) * (resultTemp), tid);
+							const float localCC = fabs((sumTargetResult) * rsqrtf(newTargetVar * resultVar));
 
-							if (tid == 0 && localCC > bestCC ) {
+							if (tid == 0 && localCC > bestCC) {
 								bestCC = localCC;
-								bestDisplacement[0] = l - blocksRange*4.0f;
-								bestDisplacement[1] = m - blocksRange*4.0f;
-								bestDisplacement[2] = n - blocksRange*4.0f;
+								bestDisplacement[0] = l - blocksRange * 4.0f;
+								bestDisplacement[1] = m - blocksRange * 4.0f;
+								bestDisplacement[2] = n - blocksRange * 4.0f;
 							}
 						}
 					}
@@ -366,4 +360,68 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 
 }
 
+//threads: 512 | blocks:numEquations/512
+__global__ void populateMatrixA(float* A, float *target, unsigned int numBlocks) {
+
+	const unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	const unsigned int c = tid * 3;
+	const unsigned int n = 12;
+
+	if (tid < numBlocks) {
+		target +=c;
+		A[c*n +0] = target[0];
+		A[c*n +1] = target[1];
+		A[c*n +2] = target[2];
+		A[c*n +3] = A[c*n +4] = A[c*n +5] = A[c*n +6] = A[c*n +7] = A[c*n +8] = A[c*n +10] = A[c*n +11] = 0.0f;
+		A[c*n +9] = 1.0f;
+
+		A[(c+1)*n +3] = target[0];
+		A[(c+1)*n +4] = target[1];
+		A[(c+1)*n +5] = target[2];
+		A[(c+1)*n +0] = A[(c+1)*n +1] = A[(c+1)*n +2] = A[(c+1)*n +6] = A[(c+1)*n +7] = A[(c+1)*n +8] = A[(c+1)*n +9] = A[(c+1)*n +11] = 0.0f;
+		A[(c+1)*n +10] = 1.0f;
+
+		A[(c+2)*n +6] = target[0];
+		A[(c+2)*n +7] = target[1];
+		A[(c+2)*n +8] = target[2];
+		A[(c+2)*n +0] = A[(c+2)*n +1] = A[(c+2)*n +2] = A[(c+2)*n +3] = A[(c+2)*n +4] = A[(c+2)*n +5] = A[(c+2)*n +9] = A[(c+2)*n +10] = 0.0f;
+		A[(c+2)*n +11] = 1.0f;
+		printf("%d: %f-%f-%f\n", tid, target[0], target[1], target[2]);
+	}
+
+}
+
+//blocks: 1 | threads: 12
+__global__ void trimAndInvertSingularValuesKernel(float* sigma){
+	sigma[threadIdx.x] = (sigma[threadIdx.x] < 0.0001) ? 0.0f : (1.0 / sigma[threadIdx.x]);
+	printf("%d: %f\n", threadIdx.x, sigma[threadIdx.x]);
+}
+__inline__ __device__ double getSquareDistance3Dcu(float * first_point3D, float * second_point3D) {
+	return sqrt((first_point3D[0] - second_point3D[0]) * (first_point3D[0] - second_point3D[0]) + (first_point3D[1] - second_point3D[1]) * (first_point3D[1] - second_point3D[1]) + (first_point3D[2] - second_point3D[2]) * (first_point3D[2] - second_point3D[2]));
+}
+//threads: 512 | blocks:numEquations/512
+__global__ void populateLengthsKernel(float* lengths, float* result_d, float* newResult_d, unsigned int numEquations){
+	unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
+		unsigned int c = tid * 3;
+
+		if (tid < numEquations) {
+			newResult_d += c;
+			result_d += c;
+			lengths[tid] = getSquareDistance3Dcu(result_d, newResult_d);
+		}
+
+}
+//threads: 512 | blocks:numEquations/512
+__global__ void transformResultPointsKernel(float* transform, float* in, float* out, unsigned int activeBlockNum){
+
+	unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+		if (tid < activeBlockNum) {
+			unsigned int c = tid * 3;
+			in += c;
+			out += c;
+			reg_mat44_mul_cuda<float>(transform, in, out);
+		}
+
+}
 #endif

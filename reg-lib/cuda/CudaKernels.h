@@ -56,6 +56,18 @@ private:
 	_reg_blockMatchingParam *blockMatchingParams;
 	mat44 *transformationMatrix;
 	CudaContent *con;
+
+	float* transformationMatrix_d;
+	float* A_d;
+	float* U_d;
+	float* Sigma_d;
+	float* r_d;
+	float* VT_d;
+	float* lengths_d;
+	float* targetPos_d;
+	float* resultPos_d;
+	float* newResultPos_d;
+
 };
 
 /*
