@@ -878,23 +878,10 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, 
 		A[c + 2][11] = 1.0f;
 
 	}
-	int n = 12;
-	int m = num_equations;
-
-	//passed
-//	outputCMat(A, m, n, "CPU A Trimmed before");
 
 	// Now we can compute our svd
 	svd(A, num_equations, 12, w, v);
 
-//	outputCMat(A, n, n, "CPU A Trimmed after");
-//	outputCMat(A, m, m, "CPU U ");
-	outputCVect(w, n, "CPU S\n");
-	outputCMat(v, n, n, "CPU VT");
-
-	//A: U | w: Sigma | v: V
-
-	return;
 	// First we make sure that the really small singular values
 	// are set to 0. and compute the inverse by taking the reciprocal
 	// of the entries
@@ -904,7 +891,8 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, 
 		} else {
 			w[k] = static_cast<float>(1.0 / static_cast<double>(w[k]));
 		}
-	}
+		printf("CPU %d: %f\n", k, w[k]);
+	}return;
 
 	// Now we can compute the pseudoinverse which is given by
 	// V*inv(W)*U'

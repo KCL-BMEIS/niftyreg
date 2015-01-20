@@ -107,8 +107,6 @@ void cusolverSVD(float* A_d, unsigned int m, unsigned int n, float* S_d, float* 
 	float *rwork;
 	int *devInfo;
 
-	dim3 blks(1, 1, 1);
-	dim3 threads(1, 1, 1);
 
 	/*
 	 * 'A': all m columns of U are returned in array
@@ -132,38 +130,16 @@ void cusolverSVD(float* A_d, unsigned int m, unsigned int n, float* S_d, float* 
 	status = cusolverDnSgesvd_bufferSize(gH, m, n, &Lwork);
 	checkStatus(status, "cusolverDnSgesvd_bufferSize");
 
-	printf("LWork: %d:%d:%d | m: %d n: %d \n", Lwork, Lwork / 4, Lwork % 4, m, n);
 
 	cudaMalloc(&Work, Lwork * sizeof(float));
 	cudaMalloc(&rwork, Lwork * sizeof(float));
 	cudaMalloc(&devInfo, sizeof(int));
 
-	//passed
-	/*outputMat<<<1,1>>>(A_d, m, n, "CUDA A Trimmed before");
-	NR_CUDA_CHECK_KERNEL(blks, threads)*/
-
-
 	status = cusolverDnSgesvd(gH, jobu, jobvt, m, n, A_d, m, S_d, U_d, m, VT_d, n, Work, Lwork, NULL, devInfo);
 	cudaDeviceSynchronize();
+
 	checkStatus(status, "cusolverDnSgesvd");
 	checkDevInfo(devInfo);
-
-	/*outputMat<<<1,1>>>(A_d, n, n, "CUDA A Trimmed after");
-	NR_CUDA_CHECK_KERNEL(blks, threads)
-
-	outputMat<<<1,1>>>(U_d, n, n, "CUDA U Trimmed");
-	NR_CUDA_CHECK_KERNEL(blks, threads)*/
-
-	//passed
-	outputMat<<<1,1>>>(S_d, n, 1, "CUDA S\n");
-	NR_CUDA_CHECK_KERNEL(blks, threads)
-
-	//looks like passed. The singular vectors match, but in different order
-	outputMat<<<1,1>>>(VT_d, n, n, "CUDA VT");
-	NR_CUDA_CHECK_KERNEL(blks, threads)
-
-	printf("test 2 exit\n");
-	exit(0);
 
 	status = cusolverDnDestroy(gH);
 	checkStatus(status, "cusolverDnDestroy");
@@ -200,11 +176,11 @@ void getAffineMat3D(float* A_d, float* Sigma_d, float* VT_d, float* U_d, float* 
 	NR_CUDA_CHECK_KERNEL(blks, threads)
 
 	//calculate SVD on the GPU
-	cusolverSVD(A_d, m, n, Sigma_d, VT_d, U_d); //test 3
+	cusolverSVD(A_d, m, n, Sigma_d, VT_d, U_d);
 
 	// First we make sure that the really small singular values
 	// are set to 0. and compute the inverse by taking the reciprocal of the entries
-	trimAndInvertSingularValuesKernel<<<1, n>>>(Sigma_d);
+	trimAndInvertSingularValuesKernel<<<1, n>>>(Sigma_d);//test 3
 
 	cublasStatus_t status;
 	cublasHandle_t handle;
