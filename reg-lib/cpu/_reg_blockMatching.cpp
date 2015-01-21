@@ -891,8 +891,7 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, 
 		} else {
 			w[k] = static_cast<float>(1.0 / static_cast<double>(w[k]));
 		}
-		printf("CPU %d: %f\n", k, w[k]);
-	}return;
+	}
 
 	// Now we can compute the pseudoinverse which is given by
 	// V*inv(W)*U'
@@ -904,9 +903,13 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, 
 		}
 	}
 
+
 	// Now multiply the matrices together
 	// Pseudoinverse = v * e * A(transpose)
 	mul_matrices(v, A, 12, 12, num_equations, r, true);
+
+//	outputCMat(r, 12, num_equations, "CPU r");
+
 	// Now r contains the pseudoinverse
 	// Create vector b and then multiple rb to get the affine paramsA
 	for (unsigned k = 0; k < points.size(); ++k) {
@@ -918,6 +921,7 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, 
 
 	float * transform = new float[12];
 	mul_matvec(r, 12, num_equations, b, transform);
+
 
 	transformation->m[0][0] = transform[0];
 	transformation->m[0][1] = transform[1];
@@ -940,6 +944,7 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, 
 	transformation->m[3][3] = 1.0f;
 
 	delete[] transform;
+	reg_mat44_disp(transformation, "CPU Affine");
 }
 
 void optimize_affine2D(_reg_blockMatchingParam * params, mat44 * final) {

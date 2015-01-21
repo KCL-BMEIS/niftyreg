@@ -398,6 +398,16 @@ __global__ void populateMatrixA(float* A, float *target, unsigned int numBlocks)
 
 }
 
+//launched as ldm blocks n threads
+__global__ void scaleV(float* V, const unsigned int ldm, const unsigned int n, float*w) {
+
+	unsigned int k = blockIdx.x;
+	unsigned int j = threadIdx.x;
+
+	V[IDX2C(j, k, ldm)] *= w[j];
+
+}
+
 //launched as 1 block 1 thread
 __global__ void outputMat(float* mat, const unsigned int ldm, const unsigned int n, char* msg) {
 	printf("===============================CUDA ========================================\n");
@@ -415,7 +425,6 @@ __global__ void outputMat(float* mat, const unsigned int ldm, const unsigned int
 //blocks: 1 | threads: 12
 __global__ void trimAndInvertSingularValuesKernel(float* sigma) {
 	sigma[threadIdx.x] = (sigma[threadIdx.x] < 0.0001) ? 0.0f : (1.0 / sigma[threadIdx.x]);
-	printf("%d: %f\n", threadIdx.x, sigma[threadIdx.x]);
 }
 __device__ void reg_mat44_dispCmat(float *mat, char * title, int tid)
 		{

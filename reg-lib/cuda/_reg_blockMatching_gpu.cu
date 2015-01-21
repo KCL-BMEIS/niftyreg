@@ -102,11 +102,14 @@ void cusolverSVD(float* A_d, unsigned int m, unsigned int n, float* S_d, float* 
 	cusolverDnHandle_t gH = NULL;
 	int Lwork;
 
+	const int lda = m;
+	const int ldu = m;
+	const int ldvt = n;
+
 	//device ptrs
 	float *Work;
 	float *rwork;
 	int *devInfo;
-
 
 	/*
 	 * 'A': all m columns of U are returned in array
@@ -130,12 +133,11 @@ void cusolverSVD(float* A_d, unsigned int m, unsigned int n, float* S_d, float* 
 	status = cusolverDnSgesvd_bufferSize(gH, m, n, &Lwork);
 	checkStatus(status, "cusolverDnSgesvd_bufferSize");
 
-
 	cudaMalloc(&Work, Lwork * sizeof(float));
 	cudaMalloc(&rwork, Lwork * sizeof(float));
 	cudaMalloc(&devInfo, sizeof(int));
 
-	status = cusolverDnSgesvd(gH, jobu, jobvt, m, n, A_d, m, S_d, U_d, m, VT_d, n, Work, Lwork, NULL, devInfo);
+	status = cusolverDnSgesvd(gH, jobu, jobvt, m, n, A_d, lda, S_d, U_d, ldu, VT_d, ldvt, Work, Lwork, rwork, devInfo);
 	cudaDeviceSynchronize();
 
 	checkStatus(status, "cusolverDnSgesvd");
@@ -180,7 +182,7 @@ void getAffineMat3D(float* A_d, float* Sigma_d, float* VT_d, float* U_d, float* 
 
 	// First we make sure that the really small singular values
 	// are set to 0. and compute the inverse by taking the reciprocal of the entries
-	trimAndInvertSingularValuesKernel<<<1, n>>>(Sigma_d);//test 3
+	trimAndInvertSingularValuesKernel<<<1, n>>>(Sigma_d);	//test 3
 
 	cublasStatus_t status;
 	cublasHandle_t handle;
@@ -197,21 +199,42 @@ void getAffineMat3D(float* A_d, float* Sigma_d, float* VT_d, float* U_d, float* 
 	// Now we can compute the pseudoinverse which is given by V*inv(W)*U'
 
 	// First compute the V * inv(w) in place.
-	status = cublasSgemv(handle, CUBLAS_OP_N, n, n, &alpha, VT_d, n, Sigma_d, 1, &beta, VT_d, 1);
-	if (status != CUBLAS_STATUS_SUCCESS)
-		fprintf(stderr, "!!!! CUBLAS cublasSgemv error\n");
+
+	//scale VT_d's vectors'
+	scaleV<<<n,n>>>(VT_d, n, n, Sigma_d);
+	cudaThreadSynchronize();
+	outputMat<<<1,1>>>(VT_d, n, n, "scaled VT");
+	cudaThreadSynchronize();
+
+	const int ldvt = n;
+	const int ldu = m;
+	const int ldr = n;
+
+	const int rowsVTandR = n;
+	const int colsUandR = m;
+	const int colsVtRowsU = n;
+
 	// Now multiply the matrices together
-	status = cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_T, n, n, n, &alpha, VT_d, n, U_d, n, &beta, r_d, n);
+	status = cublasSgemm(handle, CUBLAS_OP_T, CUBLAS_OP_T, rowsVTandR, colsUandR, colsVtRowsU, &alpha, VT_d, ldvt, U_d, ldu, &beta, r_d, ldr);
 	if (status != CUBLAS_STATUS_SUCCESS)
 		fprintf(stderr, "!!!! CUBLAS cublasSgemm 1 error\n");
-	//r*b -> trans
-	status = cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, n, n, n, &alpha, r_d, n, result_d, n, &beta, transformation, n);
-	if (status != CUBLAS_STATUS_SUCCESS)
-		fprintf(stderr, "!!!! CUBLAS cublasSgemm 2 error\n");
+
+//	outputMat<<<1,1>>>(r_d, n, m, "");
+	cudaDeviceSynchronize();
+
+	cublasSgemv(handle, CUBLAS_OP_N, n, m, &alpha, r_d, ldr, result_d, 1, &beta, transformation, 1);
+	cudaDeviceSynchronize();
+	if (status != CUBLAS_STATUS_SUCCESS) fprintf(stderr, "!!!! CUBLAS cublasSgemm 2 error\n");
+
+	outputMat<<<1,1>>>(transformation, 4, 4, "");cudaDeviceSynchronize();
+
 	/* Shutdown */
 	status = cublasDestroy(handle);
 	if (status != CUBLAS_STATUS_SUCCESS)
 		fprintf(stderr, "!!!! CUBLAS cublasDestroy error\n");
+
+	printf("CUBLAS Tests\n");
+	exit(0);
 }
 
 void optimize_affine3D_cuda(mat44* cpuMat, float* final_d, float* A_d, float* U_d, float* Sigma_d, float* VT_d, float* r_d, float* lengths_d, float* target_d, float* result_d, float* newResult_d, unsigned int m, unsigned int n, const unsigned int numToKeep, bool ilsIn) {

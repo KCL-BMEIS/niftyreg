@@ -76,10 +76,8 @@ void reg_exponentiate_logged_tensor(mat33 *in_tensor)
  * @param v rotation part
  */
 template<class T>
-void svd(T ** in, size_t size_m, size_t size_n, T * w, T ** v)
-		{
-	if (size_m == 0 || size_n == 0)
-			{
+void svd(T ** in, size_t size_m, size_t size_n, T * w, T ** v) {
+	if (size_m == 0 || size_n == 0) {
 		reg_print_fct_error("svd");
 		reg_print_msg_error("The specified matrix is empty");
 		reg_exit(1);
@@ -114,15 +112,12 @@ void svd(T ** in, size_t size_m, size_t size_n, T * w, T ** v)
    shared(in,svd,v,w, size__n,size__m) \
    private(sn2, sn, sm)
 #endif
-	for (sn = 0; sn < size__n; sn++)
-			{
+	for (sn = 0; sn < size__n; sn++) {
 		w[sn] = svd.singularValues()(sn);
-		for (sn2 = 0; sn2 < size__n; sn2++)
-				{
+		for (sn2 = 0; sn2 < size__n; sn2++) {
 			v[sn2][sn] = static_cast<T>(svd.matrixV()(sn2, sn));
 		}
-		for (sm = 0; sm < size__m; sm++)
-				{
+		for (sm = 0; sm < size__m; sm++) {
 			in[sm][sn] = static_cast<T>(svd.matrixU()(sm, sn));
 		}
 	}

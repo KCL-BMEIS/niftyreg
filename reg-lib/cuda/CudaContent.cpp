@@ -83,10 +83,10 @@ void CudaContent::allocateCuPtrs() {
 		unsigned int n = 12;
 
 		cudaCommon_allocateArrayToDevice<float>(&A_d, m * n);
-		cudaCommon_allocateArrayToDevice<float>(&U_d, m * m);
+		cudaCommon_allocateArrayToDevice<float>(&U_d, m * m);//only the singular vectors output is needed
 		cudaCommon_allocateArrayToDevice<float>(&VT_d, n * n);
 		cudaCommon_allocateArrayToDevice<float>(&Sigma_d, std::min(m, n));
-		cudaCommon_allocateArrayToDevice<float>(&r_d, m * n);
+		cudaCommon_allocateArrayToDevice<float>(&r_d, n * m);
 		cudaCommon_allocateArrayToDevice<float>(&lengths_d, blockMatchingParams->activeBlockNumber);
 		cudaCommon_allocateArrayToDevice<float>(&newResultPos_d, blockMatchingParams->activeBlockNumber * 3);
 
