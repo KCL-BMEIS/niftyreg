@@ -58,10 +58,9 @@ private:
 	CudaContent *con;
 
 	float* transformationMatrix_d;
-	float* A_d;
+	float* AR_d;
 	float* U_d;
 	float* Sigma_d;
-	float* r_d;
 	float* VT_d;
 	float* lengths_d;
 	float* targetPos_d;

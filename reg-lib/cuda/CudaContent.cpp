@@ -82,11 +82,10 @@ void CudaContent::allocateCuPtrs() {
 		unsigned int m = blockMatchingParams->activeBlockNumber * 3;
 		unsigned int n = 12;
 
-		cudaCommon_allocateArrayToDevice<float>(&A_d, m * n);
+		cudaCommon_allocateArrayToDevice<float>(&AR_d, m * n);
 		cudaCommon_allocateArrayToDevice<float>(&U_d, m * m);//only the singular vectors output is needed
 		cudaCommon_allocateArrayToDevice<float>(&VT_d, n * n);
 		cudaCommon_allocateArrayToDevice<float>(&Sigma_d, std::min(m, n));
-		cudaCommon_allocateArrayToDevice<float>(&r_d, n * m);
 		cudaCommon_allocateArrayToDevice<float>(&lengths_d, blockMatchingParams->activeBlockNumber);
 		cudaCommon_allocateArrayToDevice<float>(&newResultPos_d, blockMatchingParams->activeBlockNumber * 3);
 
@@ -283,8 +282,8 @@ float* CudaContent::getFloIJKMat_d() {
 	return floIJKMat_d;
 }
 
-float* CudaContent::getA_d() {
-	return A_d;
+float* CudaContent::getAR_d() {
+	return AR_d;
 }
 float* CudaContent::getU_d() {
 	return U_d;
@@ -295,9 +294,7 @@ float* CudaContent::getVT_d() {
 float* CudaContent::getSigma_d() {
 	return Sigma_d;
 }
-float* CudaContent::getR_d() {
-	return r_d;
-}
+
 float* CudaContent::getLengths_d() {
 	return lengths_d;
 }
@@ -344,11 +341,10 @@ void CudaContent::freeCuPtrs() {
 		cudaCommon_free<float>(&targetPosition_d);
 		cudaCommon_free<float>(&resultPosition_d);
 
-		cudaCommon_free<float>(&A_d);
+		cudaCommon_free<float>(&AR_d);
 		cudaCommon_free<float>(&U_d);
 		cudaCommon_free<float>(&VT_d);
 		cudaCommon_free<float>(&Sigma_d);
-		cudaCommon_free<float>(&r_d);
 		cudaCommon_free<float>(&lengths_d);
 		cudaCommon_free<float>(&newResultPos_d);
 	}

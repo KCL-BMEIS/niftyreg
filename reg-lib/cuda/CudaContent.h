@@ -23,11 +23,10 @@ public:
 	float* getTargetMat_d();
 	float* getFloIJKMat_d();
 
-	float* getA_d();
+	float* getAR_d();
 	float* getU_d();
 	float* getVT_d();
 	float* getSigma_d();
-	float* getR_d();
 	float* getLengths_d();
 	float* getNewResultPos_d();
 
@@ -71,11 +70,10 @@ private:
 	float* floIJKMat_d;
 
 	//svd
-	float* A_d;
+	float* AR_d;//A and then pseudoinverse
 	float* U_d;
 	float* VT_d;
 	float* Sigma_d;
-	float* r_d;//pseudoinverse
 	float* lengths_d;
 	float* newResultPos_d;
 

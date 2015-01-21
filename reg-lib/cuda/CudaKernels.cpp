@@ -216,11 +216,10 @@ CudaOptimiseKernel::CudaOptimiseKernel(Content* conIn, std::string name) :
 	blockMatchingParams = con->Content::getBlockMatchingParams();
 
 	transformationMatrix_d = con->getTransformationMatrix_d();
-	A_d = con->getA_d();
+	AR_d = con->getAR_d();
 	U_d = con->getU_d();
 	Sigma_d = con->getSigma_d();
 	VT_d = con->getVT_d();
-	r_d = con->getR_d();
 	lengths_d = con->getLengths_d();
 	targetPos_d = con->getTargetPosition_d();
 	resultPos_d = con->getResultPosition_d();
@@ -259,7 +258,7 @@ void CudaOptimiseKernel::calculate(bool affine, bool ils) {
 		optimize_affine3D(this->blockMatchingParams, con->Content::getTransformationMatrix(), ils);
 
 		std::cout<<"Cuda"<<std::endl;
-		optimize_affine3D_cuda(&cpy, transformationMatrix_d, A_d, U_d, Sigma_d, VT_d, r_d,lengths_d, targetPos_d, resultPos_d, newResultPos_d,     blockMatchingParams->definedActiveBlock * 3, 12, num_to_keep, false);
+		optimize_affine3D_cuda(&cpy, transformationMatrix_d, AR_d, U_d, Sigma_d, VT_d,lengths_d, targetPos_d, resultPos_d, newResultPos_d,     blockMatchingParams->definedActiveBlock * 3, 12, num_to_keep, false);
 	}
 	else {
 		optimize_rigid3D(this->blockMatchingParams, con->Content::getTransformationMatrix(), ils);

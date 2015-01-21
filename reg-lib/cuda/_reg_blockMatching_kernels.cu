@@ -25,15 +25,15 @@
 // The caller is supposed to ensure that the values are set
 
 // Number of blocks in each dimension
-__device__        __constant__ int3 c_BlockDim;
+__device__          __constant__ int3 c_BlockDim;
 __device__ __constant__ int c_StepSize;
-__device__        __constant__ uint3 c_ImageSize;
+__device__          __constant__ uint3 c_ImageSize;
 __device__ __constant__ float r1c1;
 
 // Transformation matrix from nifti header
-__device__        __constant__ float4 t_m_a;
-__device__        __constant__ float4 t_m_b;
-__device__        __constant__ float4 t_m_c;
+__device__          __constant__ float4 t_m_a;
+__device__          __constant__ float4 t_m_b;
+__device__          __constant__ float4 t_m_c;
 
 #define BLOCK_WIDTH 4
 #define BLOCK_SIZE 64
@@ -41,7 +41,6 @@ __device__        __constant__ float4 t_m_c;
 #define STEP_SIZE 1
 
 #define IDX2C(i,j,ld) (((j)*(ld))+(i))
-
 
 texture<float, 1, cudaReadModeElementType> targetImageArray_texture;
 texture<float, 1, cudaReadModeElementType> resultImageArray_texture;
@@ -371,7 +370,7 @@ __global__ void populateMatrixA(float* A, float *target, unsigned int numBlocks)
 	const unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	const unsigned int c = tid * 3;
 	const unsigned int n = 12;
-	const unsigned int lda = numBlocks*3;
+	const unsigned int lda = numBlocks * 3;
 
 	if (tid < numBlocks) {
 		target += c;
@@ -407,12 +406,20 @@ __global__ void scaleV(float* V, const unsigned int ldm, const unsigned int n, f
 	V[IDX2C(j, k, ldm)] *= w[j];
 
 }
+//launched as 1 block 1 thread
+__global__ void outputMatFlat(float* mat, const unsigned int ldm, const unsigned int n, char* msg) {
+	printf("===============================CUDA ========================================\n");
+	for (int i = 0; i < ldm * n; ++i)
+		printf("%f | ", mat[i]);
 
+	printf("\n");
+	printf("=======================================================================\n");
+}
 //launched as 1 block 1 thread
 __global__ void outputMat(float* mat, const unsigned int ldm, const unsigned int n, char* msg) {
 	printf("===============================CUDA ========================================\n");
 	for (int i = 0; i < ldm; ++i) {
-		printf("%d ",i);
+		printf("%d ", i);
 		for (int j = 0; j < n; ++j) {
 			printf("%f ", mat[IDX2C(i, j, ldm)]);
 		}
@@ -420,7 +427,6 @@ __global__ void outputMat(float* mat, const unsigned int ldm, const unsigned int
 	}
 	printf("=======================================================================\n");
 }
-
 
 //blocks: 1 | threads: 12
 __global__ void trimAndInvertSingularValuesKernel(float* sigma) {

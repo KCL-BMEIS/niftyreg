@@ -37,11 +37,11 @@ void optimize_gpu(	_reg_blockMatchingParam *blockMatchingParams,
 					 bool affine = true);
 
 extern "C++"
-void affineLocalSearch3DCuda(mat44 *cpuMat, float* final_d, float *A_d, float* Sigma_d, float* U_d, float* VT_d, float* r_d, float * newResultPos_d, float* targetPos_d, float* resultPos_d, float* lengths_d, const unsigned int numBlocks, const unsigned long num_to_keep, const unsigned int m, const unsigned int n) ;
+void affineLocalSearch3DCuda(mat44 *cpuMat, float* final_d, float *A_d, float* Sigma_d, float* U_d, float* VT_d, float * newResultPos_d, float* targetPos_d, float* resultPos_d, float* lengths_d, const unsigned int numBlocks, const unsigned long num_to_keep, const unsigned int m, const unsigned int n) ;
 
 
 extern "C++"
-void optimize_affine3D_cuda(mat44* cpuMat, float* final_d, float* A_d, float* U_d, float* Sigma_d, float* VT_d, float* r_d, float* lengths_d, float* target_d, float* result_d, float* newResult_d, unsigned int m, unsigned int n,const unsigned int numToKeep, bool ilsIn);
+void optimize_affine3D_cuda(mat44* cpuMat, float* final_d, float* A_d, float* U_d, float* Sigma_d, float* VT_d,  float* lengths_d, float* target_d, float* result_d, float* newResult_d, unsigned int m, unsigned int n,const unsigned int numToKeep, bool ilsIn);
 
 
 extern "C++"
