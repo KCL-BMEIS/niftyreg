@@ -205,17 +205,15 @@ void cublasPseudoInverse(float* transformation, float *R_d, float* result_d, flo
 
 }
 
-
-
 //OPTIMIZER-----------------------------------------------
 
 // estimate an affine transformation using least square
 void getAffineMat3D(float* AR_d, float* Sigma_d, float* VT_d, float* U_d, float* target_d, float* result_d, float *transformation, const unsigned int numBlocks, unsigned int m, unsigned int n) {
 
-	//populate A
+//populate A
 	populateMatrixA<<<numBlocks, 512>>>(AR_d,target_d, m/3); //test 2
 
-	//calculate SVD on the GPU
+//calculate SVD on the GPU
 	cusolverSVD(AR_d, m, n, Sigma_d, VT_d, U_d);
 	cublasPseudoInverse(transformation, AR_d,result_d, VT_d,Sigma_d, U_d, m, n);
 
@@ -243,7 +241,6 @@ void affineLocalSearch3DCuda(mat44 *cpuMat, float* final_d, float *AR_d, float* 
 	dim3 blks(numBlocks, 1, 1);
 	dim3 threads(512, 1, 1);
 	transformResultPointsKernel<<<numBlocks, 512>>>(final_d, resultPos_d,newResultPos_d, m/3); //test 1
-
 
 	cudaMemcpy(resultPos_d, newResultPos_d, m * sizeof(float), cudaMemcpyDeviceToDevice);
 

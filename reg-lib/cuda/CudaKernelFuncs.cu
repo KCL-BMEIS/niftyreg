@@ -83,9 +83,9 @@ __device__ __inline__ void getPosition(float* position, float* matrix, float* vo
 __device__ __inline__ double getPosition(float* matrix, double* voxel, const unsigned int idx) {
 //	if ( voxel[0] == 126.0f && voxel[1] == 90.0f && voxel[2]==59.0f ) printf("(%d): (%f-%f-%f-%f)\n",idx, matrix[idx * 4 + 0], matrix[idx * 4 + 1], matrix[idx * 4 + 2], matrix[idx * 4 + 3]);
 	return ((double) matrix[idx * 4 + 0]) * voxel[0] +
-			 ((double) matrix[idx * 4 + 1]) * voxel[1] +
-			 ((double) matrix[idx * 4 + 2]) * voxel[2] +
-			 ((double) matrix[idx * 4 + 3]);
+			((double) matrix[idx * 4 + 1]) * voxel[1] +
+			((double) matrix[idx * 4 + 2]) * voxel[2] +
+			((double) matrix[idx * 4 + 3]);
 }
 
 __inline__ __device__ void interpWindowedSincKernel(double relative, double *basis) {
@@ -183,7 +183,7 @@ __global__ void ResampleImage3D(float* floatingImage, float* deformationField, f
 
 			float *resultIntensity = &resultIntensityPtr[t * voxelNumber.x];
 			float *floatingIntensity = &sourceIntensityPtr[t * voxelNumber.y];
-			double intensity=paddingValue;
+			double intensity = paddingValue;
 
 			if (maskPtr[index] > -1) {
 
@@ -271,9 +271,9 @@ __global__ void affineKernel(float* transformationMatrix, float* defField, int* 
 		voxel[1] = composition ? deformationFieldPtrY[index] : (double) y;
 		voxel[2] = composition ? deformationFieldPtrZ[index] : (double) z;
 
-		deformationFieldPtrX[index] = (float)getPosition(transformationMatrix, voxel, 0);
-		deformationFieldPtrY[index] = (float)getPosition(transformationMatrix, voxel, 1);
-		deformationFieldPtrZ[index] = (float)getPosition(transformationMatrix, voxel, 2);
+		deformationFieldPtrX[index] = (float) getPosition(transformationMatrix, voxel, 0);
+		deformationFieldPtrY[index] = (float) getPosition(transformationMatrix, voxel, 1);
+		deformationFieldPtrZ[index] = (float) getPosition(transformationMatrix, voxel, 2);
 
 	}
 }
@@ -282,15 +282,15 @@ __inline__ __device__ double getSquareDistance3Dcu(float * first_point3D, float 
 }
 
 //threads: 512 | blocks:numEquations/512
-__global__ void populateLengthsKernel(float* lengths, float* result_d, float* newResult_d, unsigned int numEquations){
+__global__ void populateLengthsKernel(float* lengths, float* result_d, float* newResult_d, unsigned int numEquations) {
 	unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
-		unsigned int c = tid * 3;
+	unsigned int c = tid * 3;
 
-		if (tid < numEquations) {
-			newResult_d += c;
-			result_d += c;
-			lengths[tid] = getSquareDistance3Dcu(result_d, newResult_d);
-		}
+	if (tid < numEquations) {
+		newResult_d += c;
+		result_d += c;
+		lengths[tid] = getSquareDistance3Dcu(result_d, newResult_d);
+	}
 
 }
 
@@ -351,70 +351,69 @@ void launchResample(nifti_image *floatingImage, nifti_image *warpedImage, int in
 
 	long targetVoxelNumber = (long) warpedImage->nx * warpedImage->ny * warpedImage->nz;
 
-		//the below lines need to be moved to cu common
-		cudaDeviceProp prop;
-		cudaGetDeviceProperties(&prop, 0);
-		unsigned int maxThreads = prop.maxThreadsDim[0];
-		unsigned int maxBlocks = prop.maxThreadsDim[0];
-		unsigned int blocks = (targetVoxelNumber % maxThreads) ? (targetVoxelNumber / maxThreads) + 1 : targetVoxelNumber / maxThreads;
-		blocks = min1(blocks, maxBlocks);
+	//the below lines need to be moved to cu common
+	cudaDeviceProp prop;
+	cudaGetDeviceProperties(&prop, 0);
+	unsigned int maxThreads = prop.maxThreadsDim[0];
+	unsigned int maxBlocks = prop.maxThreadsDim[0];
+	unsigned int blocks = (targetVoxelNumber % maxThreads) ? (targetVoxelNumber / maxThreads) + 1 : targetVoxelNumber / maxThreads;
+	blocks = min1(blocks, maxBlocks);
 
-		dim3 mygrid(blocks, 1, 1);
-		dim3 myblocks(maxThreads, 1, 1);
+	dim3 mygrid(blocks, 1, 1);
+	dim3 myblocks(maxThreads, 1, 1);
 
-		//number of jacobian matrices
-		int numMats = 0; //needs to be transfered to a param
-		int* dtiIndeces_d;
+	//number of jacobian matrices
+	int numMats = 0; //needs to be transfered to a param
+	int* dtiIndeces_d;
 
-		float* jacMat_d;
-		float* jacMat_h = (float*) malloc(9 * numMats * sizeof(float));
+	float* jacMat_d;
+	float* jacMat_h = (float*) malloc(9 * numMats * sizeof(float));
 
-		ulong2 voxelNumber = make_ulong2(warpedImage->nx * warpedImage->ny * warpedImage->nz, floatingImage->nx * floatingImage->ny * floatingImage->nz);
-		uint3 fi_xyz = make_uint3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
-		uint2 wi_tu = make_uint2(warpedImage->nt, warpedImage->nu);
+	ulong2 voxelNumber = make_ulong2(warpedImage->nx * warpedImage->ny * warpedImage->nz, floatingImage->nx * floatingImage->ny * floatingImage->nz);
+	uint3 fi_xyz = make_uint3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
+	uint2 wi_tu = make_uint2(warpedImage->nt, warpedImage->nu);
 
-		if (numMats)
-			mat33ToCptr(jacMat, jacMat_h, numMats);
+	if (numMats)
+		mat33ToCptr(jacMat, jacMat_h, numMats);
 
-		//dti indeces
-		NR_CUDA_SAFE_CALL(cudaMalloc((void** )(&dtiIndeces_d), 6 * sizeof(int)));
-		NR_CUDA_SAFE_CALL(cudaMemcpy(dtiIndeces_d, dtiIndeces, 6 * sizeof(int), cudaMemcpyHostToDevice));
+	//dti indeces
+	NR_CUDA_SAFE_CALL(cudaMalloc((void** )(&dtiIndeces_d), 6 * sizeof(int)));
+	NR_CUDA_SAFE_CALL(cudaMemcpy(dtiIndeces_d, dtiIndeces, 6 * sizeof(int), cudaMemcpyHostToDevice));
 
-		//jac_mat_d
-		NR_CUDA_SAFE_CALL(cudaMalloc((void** )(&jacMat_d), numMats * 9 * sizeof(float)));
-		NR_CUDA_SAFE_CALL(cudaMemcpy(jacMat_d, jacMat_h, numMats * 9 * sizeof(float), cudaMemcpyHostToDevice));
+	//jac_mat_d
+	NR_CUDA_SAFE_CALL(cudaMalloc((void** )(&jacMat_d), numMats * 9 * sizeof(float)));
+	NR_CUDA_SAFE_CALL(cudaMemcpy(jacMat_d, jacMat_h, numMats * 9 * sizeof(float), cudaMemcpyHostToDevice));
 
-		// The floating image data is copied in case one deal with DTI
-		void *originalFloatingData = NULL;
-		// The DTI are logged
-		//reg_dti_resampling_preprocessing<float>(floatingImage, &originalFloatingData, dtiIndeces);//need to either write it in cuda or do the transfers
-		//reg_dti_resampling_preprocessing<float> << <mygrid, myblocks >> >(floatingImage_d, dtiIndeces, fi_xyz);
+	// The floating image data is copied in case one deal with DTI
+	void *originalFloatingData = NULL;
+	// The DTI are logged
+	//reg_dti_resampling_preprocessing<float>(floatingImage, &originalFloatingData, dtiIndeces);//need to either write it in cuda or do the transfers
+	//reg_dti_resampling_preprocessing<float> << <mygrid, myblocks >> >(floatingImage_d, dtiIndeces, fi_xyz);
 
-		ResampleImage3D<< <mygrid, myblocks >> >(*floatingImage_d, *deformationFieldImage_d, *warpedImage_d, *mask_d, *sourceIJKMatrix_d, voxelNumber, fi_xyz, wi_tu, paddingValue, interp);
+	ResampleImage3D<< <mygrid, myblocks >> >(*floatingImage_d, *deformationFieldImage_d, *warpedImage_d, *mask_d, *sourceIJKMatrix_d, voxelNumber, fi_xyz, wi_tu, paddingValue, interp);
 
 	//	NR_CUDA_CHECK_KERNEL(mygrid, myblocks)
-		NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
+	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
 
-		//NR_CUDA_SAFE_CALL(cudaMemcpy(warpedImage->data, *warpedImage_d, warpedImage->nvox * sizeof(float), cudaMemcpyDeviceToHost));
-		// The temporary logged floating array is deleted
-		if (originalFloatingData != NULL) {
-			free(floatingImage->data);
-			floatingImage->data = originalFloatingData;
-			originalFloatingData = NULL;
-		}
-		// The interpolated tensors are reoriented and exponentiated
-		//reg_dti_resampling_postprocessing<float> << <mygrid, myblocks >> >(warpedImage_d, NULL, mask_d, jacMat_d, dtiIndeces_d, fi_xyz, wi_tu);
-		//reg_dti_resampling_postprocessing<float>(warpedImage, mask, jacMat, dtiIndeces);//need to either write it in cuda or do the transfers
+	//NR_CUDA_SAFE_CALL(cudaMemcpy(warpedImage->data, *warpedImage_d, warpedImage->nvox * sizeof(float), cudaMemcpyDeviceToHost));
+	// The temporary logged floating array is deleted
+	if (originalFloatingData != NULL) {
+		free(floatingImage->data);
+		floatingImage->data = originalFloatingData;
+		originalFloatingData = NULL;
+	}
+	// The interpolated tensors are reoriented and exponentiated
+	//reg_dti_resampling_postprocessing<float> << <mygrid, myblocks >> >(warpedImage_d, NULL, mask_d, jacMat_d, dtiIndeces_d, fi_xyz, wi_tu);
+	//reg_dti_resampling_postprocessing<float>(warpedImage, mask, jacMat, dtiIndeces);//need to either write it in cuda or do the transfers
 
 	//	cudaFree(sourceIJKMatrix_d);
-		cudaFree(jacMat_d);
-		cudaFree(dtiIndeces_d);
+	cudaFree(jacMat_d);
+	cudaFree(dtiIndeces_d);
 
-		//free(originalFloatingData);
+	//free(originalFloatingData);
 	//	free(sourceIJKMatrix_h);
-		free(jacMat_h);
+	free(jacMat_h);
 }
-
 
 void identityConst() {
 	float* mat_h = (float*) malloc(16 * sizeof(float));
@@ -428,6 +427,9 @@ void identityConst() {
 	mat44ToCptr(*final, mat_h);
 	cudaMemcpyToSymbol(cIdentity, &mat_h, 16 * sizeof(float));
 }
+
+
+
 double sortAndReduce(float* lengths_d, float* target_d, float* result_d, float* newResult_d, const unsigned int numBlocks, const unsigned int m) {
 
 	//populateLengthsKernel
