@@ -441,6 +441,22 @@ __device__ void reg_mat44_dispCmat(float *mat, char * title, int tid)
 				mat[2 * 4 + 0], mat[2 * 4 + 1], mat[2 * 4 + 2], mat[2 * 4 + 3],
 				mat[3 * 4 + 0], mat[3 * 4 + 1], mat[3 * 4 + 2], mat[3 * 4 + 3]);
 }
+//threads: 16 | blocks:1
+__global__ void permuteAffineMatrix(float* transform) {
+
+	__shared__ float buffer[16];
+	const unsigned int i = threadIdx.x;
+
+	buffer[i] = transform[i];
+	__syncthreads();
+	const unsigned int idx33 = (i/3)*4 + i%3;
+	const unsigned int idx34 = (i%3)*4 + 3;
+
+	if (i<9) transform[idx33] = buffer[i];
+	else if (i<12)transform[idx34] = buffer[i];
+	else transform[i] = buffer[i];
+
+}
 
 //threads: 512 | blocks:numEquations/512
 __global__ void transformResultPointsKernel(float* transform, float* in, float* out, unsigned int definedBlockNum) {

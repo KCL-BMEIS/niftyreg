@@ -441,7 +441,7 @@ double sortAndReduce(float* lengths_d, float* target_d, float* result_d, float* 
 	thrust::device_vector<float> vecResult_d(result_d_ptr, result_d_ptr + m);
 
 	thrust::device_ptr<float> lengths_d_ptr(lengths_d);
-	thrust::device_vector<float> vec_lengths_d(lengths_d_ptr, lengths_d_ptr + m);
+	thrust::device_vector<float> vec_lengths_d(lengths_d_ptr, lengths_d_ptr + m/3);
 
 	// initialize indices vector to [0,1,2,..]
 	thrust::counting_iterator<int> iter(0);

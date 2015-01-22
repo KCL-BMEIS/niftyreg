@@ -104,30 +104,11 @@ void checkDevInfo(int *devInfo) {
 		printf(" %d: operation successful\n", hostDevInfo);
 	free(hostDevInfo);
 }
-void downloadMat44(mat44 *transformation, float* transform_d) {
-	float* transform = (float*) malloc(16 * sizeof(float));
-	cudaMemcpy(transform, transform_d, 16 * sizeof(float), cudaMemcpyDeviceToHost);
-	transformation->m[0][0] = transform[0];
-	transformation->m[0][1] = transform[1];
-	transformation->m[0][2] = transform[2];
-	transformation->m[0][3] = transform[9];
-
-	transformation->m[1][0] = transform[3];
-	transformation->m[1][1] = transform[4];
-	transformation->m[1][2] = transform[5];
-	transformation->m[1][3] = transform[10];
-
-	transformation->m[2][0] = transform[6];
-	transformation->m[2][1] = transform[7];
-	transformation->m[2][2] = transform[8];
-	transformation->m[2][3] = transform[11];
-
-	transformation->m[3][0] = 0.0f;
-	transformation->m[3][1] = 0.0f;
-	transformation->m[3][2] = 0.0f;
-	transformation->m[3][3] = 1.0f;
-
-	free(transform);
+void downloadMat44(mat44 *lastTransformation, float* transform_d) {
+	float* tempMat = (float*) malloc(16 * sizeof(float));
+	cudaMemcpy(tempMat, transform_d, 16 * sizeof(float), cudaMemcpyDeviceToHost);
+	cPtrToMat44(lastTransformation, tempMat);
+	free(tempMat);
 }
 void uploadMat44(mat44 lastTransformation, float* transform_d) {
 	float* tempMat = (float*) malloc(16 * sizeof(float));
@@ -219,18 +200,9 @@ void cublasPseudoInverse(float* transformation, float *R_d, float* result_d, flo
 	//finally M=Rxb, where M is our affine matrix and b a vector containg the result points
 	checkCublasStatus(cublasSgemv(handle, CUBLAS_OP_N, n, m, &alpha, R_d, ldr, result_d, 1, &beta, transformation, 1));
 	checkCublasStatus(cublasDestroy(handle));
-
-	outputMat<<<1,1>>>(transformation, 4, 4, "ptls");
+	permuteAffineMatrix<<<1,16>>>(transformation);
 	cudaThreadSynchronize();
-	outputMatFlat<<<1,1>>>(transformation, 4, 4, "ptls");
-	cudaThreadSynchronize();
-	mat44 *trans = new mat44();
-	downloadMat44(trans, transformation);
 
-	reg_mat44_disp(trans, "CUDA Affine");
-
-	printf("CUBLAS Tests\n");
-	exit(0);
 }
 
 
@@ -268,11 +240,10 @@ void affineLocalSearch3DCuda(mat44 *cpuMat, float* final_d, float *AR_d, float* 
 	float* lastTransformation_d;
 	cudaMalloc(&lastTransformation_d, 16 * sizeof(float));
 	//transform result points
-	printf("transform points test: %d ? blocks: %d\n", m / 3, numBlocks);
 	dim3 blks(numBlocks, 1, 1);
 	dim3 threads(512, 1, 1);
 	transformResultPointsKernel<<<numBlocks, 512>>>(final_d, resultPos_d,newResultPos_d, m/3); //test 1
-	NR_CUDA_CHECK_KERNEL(blks, threads)
+
 
 	cudaMemcpy(resultPos_d, newResultPos_d, m * sizeof(float), cudaMemcpyDeviceToDevice);
 

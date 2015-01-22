@@ -944,7 +944,6 @@ void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, 
 	transformation->m[3][3] = 1.0f;
 
 	delete[] transform;
-	reg_mat44_disp(transformation, "CPU Affine");
 }
 
 void optimize_affine2D(_reg_blockMatchingParam * params, mat44 * final) {
