@@ -23,6 +23,7 @@
 #include "_reg_maths.h"
 
 #include "CudaKernelFuncs.h"
+
 #include "nvToolsExt.h"
 #include "nvToolsExtCuda.h"
 

@@ -4,7 +4,7 @@
 #include "_reg_aladin.h"
 
 #include "Platform.h"
-#include "CPUPlatform.h"
+
 #include "Kernels.h"
 #include "Content.h"
 #ifdef _USE_CUDA
@@ -244,7 +244,7 @@ void reg_aladin<T>::InitialiseRegistration()
 
 
 	this->platform = new Platform(platformCode);
-	this->platform->setClIdx(clIdx);
+	if (platformCode == NR_PLATFORM_CL) this->platform->setClIdx(clIdx);
 
 	Kernel* convolutionKernel = platform->createKernel(ConvolutionKernel::getName(), NULL);
 
@@ -583,7 +583,7 @@ void reg_aladin<T>::initContent(nifti_image* ref, nifti_image* flo, int* mask, m
 		this->con = new Content(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #ifdef _USE_CUDA
 	else if(platformCode == NR_PLATFORM_CUDA)
-	this->con = new CudaContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
+	this->con = new CudaContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize, cusvd);
 #endif
 #ifdef _USE_OPENCL
 	else if(platformCode == NR_PLATFORM_CL)
