@@ -4,7 +4,6 @@
 #include "_reg_aladin.h"
 
 #include "Platform.h"
-#include "CPUPlatform.h"
 #include "Kernels.h"
 #include "Content.h"
 #ifdef _USE_CUDA
