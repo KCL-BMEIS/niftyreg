@@ -8,6 +8,7 @@ if(NOT CUDA_FOUND)
 endif(NOT CUDA_FOUND)
 
 include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cuda)
+set(NVIDIA_PATH /Developer/NVIDIA/CUDA-7.0/lib)
 
 # Display the CUDA version
 message(STATUS "The CUDA version you have is v${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR}")
@@ -113,7 +114,7 @@ CUDA_ADD_LIBRARY(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	../cpu/_reg_blockMatching.cpp
 )
 #temp code till we find a cleaner way to pass the lib flags to nvcc
-target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_gpu /Developer/NVIDIA/CUDA-7.0/lib/libcublas.dylib /Developer/NVIDIA/CUDA-7.0/lib/libcusolver.dylib )
+target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_gpu ${NVIDIA_PATH}/libcublas.dylib ${NVIDIA_PATH}/libcusolver.dylib ${NVIDIA_PATH}/libnvToolsExt.dylib )
 install(TARGETS ${NAME}
 	RUNTIME DESTINATION lib
 	LIBRARY DESTINATION lib

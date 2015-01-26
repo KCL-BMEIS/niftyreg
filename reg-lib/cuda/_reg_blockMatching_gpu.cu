@@ -23,6 +23,8 @@
 #include "_reg_maths.h"
 
 #include "CudaKernelFuncs.h"
+#include "nvToolsExt.h"
+#include "nvToolsExtCuda.h"
 
 /* *************************************************************** */
 
@@ -148,18 +150,23 @@ void cusolverSVD(float* A_d, unsigned int m, unsigned int n, float* S_d, float* 
 	float *Work;
 	float *rwork;
 	int *devInfo;
+	nvtxNameOsThread(1, "MAIN");
+	nvtxRangePush(__FUNCTION__);
 
 	//init cusolver compute SVD and shut down
+	nvtxMark("Init...");
 	checkCUSOLVERStatus(cusolverDnCreate(&gH), "cusolverDnCreate");
+	nvtxMark("Lwork...");
 	checkCUSOLVERStatus(cusolverDnSgesvd_bufferSize(gH, m, n, &Lwork), "cusolverDnSgesvd_bufferSize");
 
 	cudaMalloc(&Work, Lwork * sizeof(float));
 	cudaMalloc(&rwork, Lwork * sizeof(float));
 	cudaMalloc(&devInfo, sizeof(int));
-
-	checkCUSOLVERStatus(cusolverDnSgesvd(gH, jobu, jobvt, m, n, A_d, lda, S_d, U_d, ldu, VT_d, ldvt, Work, Lwork, rwork, devInfo), "cusolverDnSgesvd");
+	nvtxMark("SVD...");
+	checkCUSOLVERStatus(cusolverDnSgesvd(gH, jobu, jobvt, m, n, A_d, lda, S_d, U_d, ldu, VT_d, ldvt, Work, Lwork, NULL, devInfo), "cusolverDnSgesvd");
+	nvtxMark("Destroy!!!");
 	checkCUSOLVERStatus(cusolverDnDestroy(gH), "cusolverDnDestroy");
-
+	nvtxRangePop();
 	//free vars
 	cudaFree(devInfo);
 	cudaFree(rwork);
@@ -173,6 +180,8 @@ void cusolverSVD(float* A_d, unsigned int m, unsigned int n, float* S_d, float* 
 void cublasPseudoInverse(float* transformation, float *R_d, float* result_d, float *VT_d, float* Sigma_d, float *U_d, const unsigned int m, const unsigned int n) {
 	// First we make sure that the really small singular values
 	// are set to 0. and compute the inverse by taking the reciprocal of the entries
+	nvtxNameOsThread(1, "MAIN");
+	nvtxRangePush(__FUNCTION__);
 	trimAndInvertSingularValuesKernel<<<1, n>>>(Sigma_d);	//test 3
 
 	cublasHandle_t handle;
@@ -180,13 +189,13 @@ void cublasPseudoInverse(float* transformation, float *R_d, float* result_d, flo
 	const float alpha = 1.f;
 	const float beta = 0.f;
 
-	const int ldvt = n;//VT's lead dimension
-	const int ldu = m;//U's lead dimension
-	const int ldr = n;//Pseudoinverse's r lead dimension
+	const int ldvt = n;	//VT's lead dimension
+	const int ldu = m;	//U's lead dimension
+	const int ldr = n;	//Pseudoinverse's r lead dimension
 
-	const int rowsVTandR = n;//VT and r's num rows
-	const int colsUandR = m;//U and r's num cols
-	const int colsVtRowsU = n;//VT's cols and U's rows
+	const int rowsVTandR = n;	//VT and r's num rows
+	const int colsUandR = m;	//U and r's num cols
+	const int colsVtRowsU = n;	//VT's cols and U's rows
 
 	// V x inv(S) in place | We scale eaach row with the corresponding singular value as V is transpose
 	scaleV<<<n,n>>>(VT_d, n, n, Sigma_d);
@@ -202,6 +211,7 @@ void cublasPseudoInverse(float* transformation, float *R_d, float* result_d, flo
 	checkCublasStatus(cublasDestroy(handle));
 	permuteAffineMatrix<<<1,16>>>(transformation);
 	cudaThreadSynchronize();
+	nvtxRangePop();
 
 }
 
@@ -214,8 +224,13 @@ void getAffineMat3D(float* AR_d, float* Sigma_d, float* VT_d, float* U_d, float*
 	populateMatrixA<<<numBlocks, 512>>>(AR_d,target_d, m/3); //test 2
 
 //calculate SVD on the GPU
+
+	nvtxNameOsThread(1,"MAIN");
+	nvtxRangePush(__FUNCTION__);
 	cusolverSVD(AR_d, m, n, Sigma_d, VT_d, U_d);
+
 	cublasPseudoInverse(transformation, AR_d,result_d, VT_d,Sigma_d, U_d, m, n);
+	nvtxRangePop();
 
 }
 
@@ -223,37 +238,32 @@ void optimize_affine3D_cuda(mat44* cpuMat, float* final_d, float* AR_d, float* U
 
 	//m | blockMatchingParams->definedActiveBlock * 3
 	//n | 12
-	uploadMat44(*cpuMat, final_d);
 	const unsigned int numEquations = m / 3;
 	const unsigned int numBlocks = (numEquations % 512) ? (numEquations / 512) + 1 : numEquations / 512;
+
+	uploadMat44(*cpuMat, final_d);
+	transformResultPointsKernel<<<numBlocks, 512>>>(final_d, result_d,newResult_d, m/3); //test 1
+	cudaMemcpy(result_d, newResult_d, m * sizeof(float), cudaMemcpyDeviceToDevice);
 
 	// run the local search optimization routine
 	affineLocalSearch3DCuda(cpuMat, final_d, AR_d, Sigma_d, U_d, VT_d, newResult_d, target_d, result_d, lengths_d, numBlocks, numToKeep, m, n);
 
 }
-void affineLocalSearch3DCuda(mat44 *cpuMat, float* final_d, float *AR_d, float* Sigma_d, float* U_d, float* VT_d, float * newResultPos_d, float* targetPos_d, float* resultPos_d, float* lengths_d, const unsigned int numBlocks, const unsigned long num_to_keep, const unsigned int m, const unsigned int n) {
+void affineLocalSearch3DCuda(mat44 *cpuMat, float* final_d, float *AR_d, float* Sigma_d, float* U_d, float* VT_d, float * newResultPos_d, float* targetPos_d, float* resultPos_d, float* lengths_d, const unsigned int numBlocks, const unsigned int num_to_keep, const unsigned int m, const unsigned int n) {
 
 	double lastDistance = std::numeric_limits<double>::max();
 
 	float* lastTransformation_d;
 	cudaMalloc(&lastTransformation_d, 16 * sizeof(float));
-	//transform result points
-	dim3 blks(numBlocks, 1, 1);
-	dim3 threads(512, 1, 1);
-	transformResultPointsKernel<<<numBlocks, 512>>>(final_d, resultPos_d,newResultPos_d, m/3); //test 1
-
-	cudaMemcpy(resultPos_d, newResultPos_d, m * sizeof(float), cudaMemcpyDeviceToDevice);
 
 	//get initial affine matrix
 	getAffineMat3D(AR_d, Sigma_d, VT_d, U_d, targetPos_d, resultPos_d, final_d, numBlocks, m, n);
 
-	for (unsigned count = 0; count < MAX_ITERATIONS; ++count) {
+	for (unsigned int count = 0; count < MAX_ITERATIONS; ++count) {
 
 		// Transform the points in the target
 		transformResultPointsKernel<<<numBlocks, 512>>>(final_d, targetPos_d,newResultPos_d, m/3); //test 1
-
-		double distance = sortAndReduce( lengths_d, targetPos_d, resultPos_d, newResultPos_d, numBlocks, m);
-
+		double distance = sortAndReduce( lengths_d, targetPos_d, resultPos_d, newResultPos_d, numBlocks,num_to_keep, m);
 		// If the change is not substantial or we are getting worst, we return
 		if ((distance >= lastDistance) || (lastDistance - distance) < TOLERANCE) break;
 

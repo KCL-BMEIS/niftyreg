@@ -51,7 +51,7 @@ class CudaOptimiseKernel: public OptimiseKernel {
 public:
 
 	CudaOptimiseKernel(Content* conIn, std::string name);
-	void calculate(bool affine, bool ils);
+	void calculate(bool affine, bool ils, bool cusvd);
 private:
 	_reg_blockMatchingParam *blockMatchingParams;
 	mat44 *transformationMatrix;

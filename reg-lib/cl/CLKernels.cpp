@@ -496,7 +496,7 @@ CLOptimiseKernel::CLOptimiseKernel(Content* conIn, std::string name) :
 CLOptimiseKernel::~CLOptimiseKernel() {
 
 }
-void CLOptimiseKernel::calculate(bool affine, bool ils) {
+void CLOptimiseKernel::calculate(bool affine, bool ils, bool clsvd) {
 
 	this->blockMatchingParams = con->getBlockMatchingParams();
 	optimize(this->blockMatchingParams, this->transformationMatrix, affine, ils);

@@ -568,7 +568,7 @@ void reg_aladin<T>::UpdateTransformationMatrix(int type)
 	 AFFINE);*/
 
 	blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate(captureRangeVox);
-	optimiseKernel->castTo<OptimiseKernel>()->calculate(type, ils);
+	optimiseKernel->castTo<OptimiseKernel>()->calculate(type, ils, cusvd);
 
 #ifndef NDEBUG
 	reg_mat44_disp(this->TransformationMatrix, (char *) "[DEBUG] updated matrix");

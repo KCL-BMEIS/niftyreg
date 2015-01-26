@@ -430,7 +430,7 @@ void identityConst() {
 
 
 
-double sortAndReduce(float* lengths_d, float* target_d, float* result_d, float* newResult_d, const unsigned int numBlocks, const unsigned int m) {
+double sortAndReduce(float* lengths_d, float* target_d, float* result_d, float* newResult_d, const unsigned int numBlocks,const unsigned int numToKeep, const unsigned int m) {
 
 	//populateLengthsKernel
 	populateLengthsKernel<<<numBlocks, 512>>>(lengths_d, result_d, newResult_d, m/3);
@@ -445,18 +445,16 @@ double sortAndReduce(float* lengths_d, float* target_d, float* result_d, float* 
 	thrust::device_ptr<float> lengths_d_ptr(lengths_d);
 	thrust::device_vector<float> vec_lengths_d(lengths_d_ptr, lengths_d_ptr + m/3);
 
-	// initialize indices vector to [0,1,2,..]
+	// initialize indices vector to [0,1,2,..m]
 	thrust::counting_iterator<int> iter(0);
 	thrust::device_vector<int> indices(m);
 	thrust::copy(iter, iter + indices.size(), indices.begin());
 
-// first sort the keys and indices by the keys
+	//sort an indices array by lengths as key. Then use it to sort target and result arrays
 	thrust::sort_by_key(vec_lengths_d.begin(), vec_lengths_d.end(), indices.begin());
-
-	// Now reorder the ID arrays using the sorted indices
 	thrust::gather(indices.begin(), indices.end(), vecTarget_d.begin(), vecTarget_d.begin());//end()?
 	thrust::gather(indices.begin(), indices.end(), vecResult_d.begin(), vecResult_d.begin());//end()?
 
-	return thrust::reduce(vec_lengths_d.begin(), vec_lengths_d.end());
+	return thrust::reduce(lengths_d_ptr, lengths_d_ptr + numToKeep,0, thrust::plus<double>());
 
 }

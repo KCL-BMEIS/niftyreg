@@ -1120,34 +1120,25 @@ void affineLocalSearch3D(_reg_blockMatchingParam *params, std::vector<_reg_sorte
 	// Allocate memory for RHS vector
 	float* b = new float[num_equations];
 
-	for (unsigned count = 0; count < MAX_ITERATIONS; ++count)
-			{
+	for (unsigned count = 0; count < MAX_ITERATIONS; ++count) {
 		// Transform the points in the target
-		for (unsigned j = 0; j < num_points * 3; j += 3)
-				{
+		for (unsigned j = 0; j < num_points * 3; j += 3) {
 			reg_mat44_mul(final, &(params->targetPosition[j]), &newResultPosition[j]);
 		}
 
 		queue = std::multimap<double, _reg_sorted_point3D>();
-		for (unsigned j = 0; j < num_points * 3; j += 3)
-				{
+		for (unsigned j = 0; j < num_points * 3; j += 3) {
 			distance = get_square_distance3D(&newResultPosition[j], &(params->resultPosition[j]));
-			queue.insert(std::pair<double,
-					_reg_sorted_point3D>(distance,
-					_reg_sorted_point3D(&(params->targetPosition[j]),
-							&(params->resultPosition[j]),
-							distance)));
+			queue.insert(std::pair<double, _reg_sorted_point3D>(distance,
+					_reg_sorted_point3D(&(params->targetPosition[j]), &(params->resultPosition[j]), distance)));
 		}
 
 		distance = 0.0;
 		i = 0;
 		top_points.clear();
 
-		for (std::multimap<double, _reg_sorted_point3D>::iterator it = queue.begin();
-				it != queue.end(); ++it, ++i)
-				{
-			if (i >= num_to_keep)
-				break;
+		for (std::multimap<double, _reg_sorted_point3D>::iterator it = queue.begin(); it != queue.end(); ++it, ++i) {
+			if (i >= num_to_keep) break;
 			top_points.push_back((*it).second);
 			distance += (*it).first;
 		}

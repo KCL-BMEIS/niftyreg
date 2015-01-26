@@ -74,6 +74,7 @@ struct _reg_blockMatchingParam
    int voxelCaptureRange;
 
    int stepSize;
+   bool cusvd;
 
    _reg_blockMatchingParam()
       : targetPosition(0),
