@@ -4,14 +4,14 @@
 
 #include "Kernel.h"
 #include "Kernels.h"
-#include "cuda/CudaPlatform.h"
-#include "cuda/CudaContext.h"
+#include "Platform.h"
+#include "cuda/CudaContent.h"
 
 #define EPS 1
 //#define EPS 0.000001
-void test(Context *con, const unsigned int interp) {
+void test(Content *con, const unsigned int interp) {
 
-	Platform *cudaPlatform = new CudaPlatform();
+	Platform *cudaPlatform = new Platform(NR_PLATFORM_CUDA);
 	Kernel* resamplingKernel = cudaPlatform->createKernel(ResampleImageKernel::getName(), con);
 
 	//run kernel
@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
 	int* tempMask = (int *) calloc(test_warped->nvox, sizeof(int));
 	reg_tools_changeDatatype<float>(test_warped);
 
-	Context *con = new CudaContext(NULL, floatingImage, NULL, sizeof(float));
+	Content *con = new CudaContent(NULL, floatingImage, NULL, sizeof(float));
 	con->setCurrentWarped(test_warped);
 	con->setCurrentDeformationField(inputDeformationField);
 	con->setCurrentReferenceMask(tempMask, test_warped->nvox);

@@ -1,46 +1,46 @@
-#include "CudaContext.h" 
+#include "CudaContent.h"
 #include "_reg_common_gpu.h"
 #include "_reg_tools.h"
 
-CudaContext::CudaContext() {
+CudaContent::CudaContent() {
 	initVars();
 	allocateCuPtrs();
-	uploadContext();
+	uploadContent();
 }
-CudaContext::CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep) :
-		Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, sizeof(float), blockPercentage, inlierLts, blockStep) {
+CudaContent::CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep) :
+		Content(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, sizeof(float), blockPercentage, inlierLts, blockStep) {
 	initVars();
 	allocateCuPtrs();
-	uploadContext();
+	uploadContent();
 
 }
-CudaContext::CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte) :
-		Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, sizeof(float)) {
+CudaContent::CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte) :
+		Content(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, sizeof(float)) {
 	initVars();
 	allocateCuPtrs();
-	uploadContext();
+	uploadContent();
 }
 
-CudaContext::CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep) :
-		Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, transMat, sizeof(float), blockPercentage, inlierLts, blockStep) {
+CudaContent::CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep) :
+		Content(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, transMat, sizeof(float), blockPercentage, inlierLts, blockStep) {
 	initVars();
 	allocateCuPtrs();
-	uploadContext();
+	uploadContent();
 
 }
-CudaContext::CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte) :
-		Context(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, transMat, sizeof(float)) {
+CudaContent::CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte) :
+		Content(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, transMat, sizeof(float)) {
 	initVars();
 	allocateCuPtrs();
-	uploadContext();
+	uploadContent();
 }
 
-CudaContext::~CudaContext() {
+CudaContent::~CudaContent() {
 	freeCuPtrs();
 
 }
 
-void CudaContext::initVars() {
+void CudaContent::initVars() {
 
 	if (this->CurrentReference != NULL && this->CurrentReference->nbyper != NIFTI_TYPE_FLOAT32)
 		reg_tools_changeDatatype<float>(this->CurrentReference);
@@ -55,7 +55,7 @@ void CudaContext::initVars() {
 	numBlocks = (this->blockMatchingParams != NULL) ? blockMatchingParams->blockNumber[0] * blockMatchingParams->blockNumber[1] * blockMatchingParams->blockNumber[2] : 0;
 }
 
-void CudaContext::allocateCuPtrs() {
+void CudaContent::allocateCuPtrs() {
 
 	if (this->transformationMatrix != NULL)
 		cudaCommon_allocateArrayToDevice<float>(&transformationMatrix_d, 16);
@@ -78,11 +78,22 @@ void CudaContext::allocateCuPtrs() {
 		cudaCommon_allocateArrayToDevice<float>(&targetPosition_d, blockMatchingParams->activeBlockNumber * 3);
 		cudaCommon_allocateArrayToDevice<float>(&resultPosition_d, blockMatchingParams->activeBlockNumber * 3);
 		cudaCommon_allocateArrayToDevice<int>(&activeBlock_d, numBlocks);
+
+		unsigned int m = blockMatchingParams->activeBlockNumber * 3;
+		unsigned int n = 12;
+
+		cudaCommon_allocateArrayToDevice<float>(&AR_d, m * n);
+		cudaCommon_allocateArrayToDevice<float>(&U_d, m * m);//only the singular vectors output is needed
+		cudaCommon_allocateArrayToDevice<float>(&VT_d, n * n);
+		cudaCommon_allocateArrayToDevice<float>(&Sigma_d, std::min(m, n));
+		cudaCommon_allocateArrayToDevice<float>(&lengths_d, blockMatchingParams->activeBlockNumber);
+		cudaCommon_allocateArrayToDevice<float>(&newResultPos_d, blockMatchingParams->activeBlockNumber * 3);
+
 	}
 
 }
 
-void CudaContext::uploadContext() {
+void CudaContent::uploadContent() {
 
 	if (this->CurrentReferenceMask != NULL)
 		cudaCommon_transferFromDeviceToNiftiSimple1<int>(&mask_d, this->CurrentReferenceMask, referenceVoxels);
@@ -112,56 +123,53 @@ void CudaContext::uploadContext() {
 	}
 }
 
-nifti_image* CudaContext::getCurrentWarped(int type) {
+nifti_image* CudaContent::getCurrentWarped(int type) {
 	downloadImage(CurrentWarped, warpedImageArray_d, true, type, "warpedImage");
 	return CurrentWarped;
 }
 
-nifti_image* CudaContext::getCurrentDeformationField() {
+nifti_image* CudaContent::getCurrentDeformationField() {
 
 	cudaCommon_transferFromDeviceToCpu<float>((float*) CurrentDeformationField->data, &deformationFieldArray_d, CurrentDeformationField->nvox);
 	return CurrentDeformationField;
 }
-_reg_blockMatchingParam* CudaContext::getBlockMatchingParams() {
+_reg_blockMatchingParam* CudaContent::getBlockMatchingParams() {
 
 	cudaCommon_transferFromDeviceToCpu<float>(blockMatchingParams->resultPosition, &resultPosition_d, blockMatchingParams->definedActiveBlock * 3);
 	cudaCommon_transferFromDeviceToCpu<float>(blockMatchingParams->targetPosition, &targetPosition_d, blockMatchingParams->definedActiveBlock * 3);
 	return blockMatchingParams;
 }
 
-
-
-void CudaContext::setTransformationMatrix(mat44* transformationMatrixIn) {
-	Context::setTransformationMatrix(transformationMatrixIn);
+void CudaContent::setTransformationMatrix(mat44* transformationMatrixIn) {
+	Content::setTransformationMatrix(transformationMatrixIn);
 }
 
-void CudaContext::setCurrentDeformationField(nifti_image* CurrentDeformationFieldIn) {
+void CudaContent::setCurrentDeformationField(nifti_image* CurrentDeformationFieldIn) {
 	if (this->CurrentDeformationField != NULL)
 		cudaCommon_free<float>(&deformationFieldArray_d);
-	Context::setCurrentDeformationField(CurrentDeformationFieldIn);
+	Content::setCurrentDeformationField(CurrentDeformationFieldIn);
 
 	cudaCommon_allocateArrayToDevice<float>(&deformationFieldArray_d, this->CurrentDeformationField->nvox);
 	cudaCommon_transferFromDeviceToNiftiSimple<float>(&deformationFieldArray_d, this->CurrentDeformationField);
 }
-void CudaContext::setCurrentReferenceMask(int* maskIn, size_t nvox) {
+void CudaContent::setCurrentReferenceMask(int* maskIn, size_t nvox) {
 
 	cudaCommon_allocateArrayToDevice<int>(&mask_d, nvox);
 	cudaCommon_transferFromDeviceToNiftiSimple1<int>(&mask_d, maskIn, nvox);
 }
 
-void CudaContext::setCurrentWarped(nifti_image* currentWarped) {
+void CudaContent::setCurrentWarped(nifti_image* currentWarped) {
 	if (this->CurrentWarped != NULL)
 		cudaCommon_free<float>(&warpedImageArray_d);
-	Context::setCurrentWarped(currentWarped);
+	Content::setCurrentWarped(currentWarped);
 	reg_tools_changeDatatype<float>(this->CurrentWarped);
 
 	cudaCommon_allocateArrayToDevice<float>(&warpedImageArray_d, CurrentWarped->nvox);
 	cudaCommon_transferFromDeviceToNiftiSimple<float>(&warpedImageArray_d, this->CurrentWarped);
 }
 
-
 template<class DataType>
-DataType CudaContext::fillWarpedImageData(float intensity, int datatype) {
+DataType CudaContent::fillWarpedImageData(float intensity, int datatype) {
 
 	switch (datatype) {
 	case NIFTI_TYPE_FLOAT32:
@@ -189,7 +197,7 @@ DataType CudaContext::fillWarpedImageData(float intensity, int datatype) {
 }
 
 template<class T>
-void CudaContext::fillImageData(nifti_image* image, float* memoryObject, bool warped, int type, std::string message) {
+void CudaContent::fillImageData(nifti_image* image, float* memoryObject, bool warped, int type, std::string message) {
 
 	size_t size = image->nvox;
 	T* array = static_cast<T*>(image->data);
@@ -212,7 +220,7 @@ void CudaContext::fillImageData(nifti_image* image, float* memoryObject, bool wa
 	free(buffer);
 }
 
-void CudaContext::downloadImage(nifti_image* image, float* memoryObject, bool flag, int datatype, std::string message) {
+void CudaContent::downloadImage(nifti_image* image, float* memoryObject, bool flag, int datatype, std::string message) {
 
 	switch (datatype) {
 	case NIFTI_TYPE_FLOAT32:
@@ -245,50 +253,71 @@ void CudaContext::downloadImage(nifti_image* image, float* memoryObject, bool fl
 	}
 }
 
-
-float* CudaContext::getReferenceImageArray_d() {
+float* CudaContent::getReferenceImageArray_d() {
 	return referenceImageArray_d;
 }
-float* CudaContext::getFloatingImageArray_d() {
+float* CudaContent::getFloatingImageArray_d() {
 	return floatingImageArray_d;
 }
-float* CudaContext::getWarpedImageArray_d() {
+float* CudaContent::getWarpedImageArray_d() {
 	return warpedImageArray_d;
 }
-float* CudaContext::getTransformationMatrix_d() {
+float* CudaContent::getTransformationMatrix_d() {
 	return transformationMatrix_d;
 }
 
-float* CudaContext::getTargetPosition_d() {
+float* CudaContent::getTargetPosition_d() {
 	return targetPosition_d;
 }
-float* CudaContext::getResultPosition_d() {
+float* CudaContent::getResultPosition_d() {
 	return resultPosition_d;
 }
-float* CudaContext::getDeformationFieldArray_d() {
+float* CudaContent::getDeformationFieldArray_d() {
 	return deformationFieldArray_d;
 }
-float* CudaContext::getTargetMat_d() {
+float* CudaContent::getTargetMat_d() {
 	return targetMat_d;
 }
-float* CudaContext::getFloIJKMat_d() {
+float* CudaContent::getFloIJKMat_d() {
 	return floIJKMat_d;
 }
-int* CudaContext::getActiveBlock_d() {
+
+float* CudaContent::getAR_d() {
+	return AR_d;
+}
+float* CudaContent::getU_d() {
+	return U_d;
+}
+float* CudaContent::getVT_d() {
+	return VT_d;
+}
+float* CudaContent::getSigma_d() {
+	return Sigma_d;
+}
+
+float* CudaContent::getLengths_d() {
+	return lengths_d;
+}
+
+float* CudaContent::getNewResultPos_d() {
+	return newResultPos_d;
+}
+
+int* CudaContent::getActiveBlock_d() {
 	return activeBlock_d;
 }
-int* CudaContext::getMask_d() {
+int* CudaContent::getMask_d() {
 	return mask_d;
 }
 
-int* CudaContext::getReferenceDims() {
+int* CudaContent::getReferenceDims() {
 	return referenceDims;
 }
-int* CudaContext::getFloatingDims() {
+int* CudaContent::getFloatingDims() {
 	return floatingDims;
 }
 
-void CudaContext::freeCuPtrs() {
+void CudaContent::freeCuPtrs() {
 
 	if (this->transformationMatrix != NULL)
 		cudaCommon_free<float>(&transformationMatrix_d);
@@ -311,5 +340,12 @@ void CudaContext::freeCuPtrs() {
 		cudaCommon_free<int>(&activeBlock_d);
 		cudaCommon_free<float>(&targetPosition_d);
 		cudaCommon_free<float>(&resultPosition_d);
+
+		cudaCommon_free<float>(&AR_d);
+		cudaCommon_free<float>(&U_d);
+		cudaCommon_free<float>(&VT_d);
+		cudaCommon_free<float>(&Sigma_d);
+		cudaCommon_free<float>(&lengths_d);
+		cudaCommon_free<float>(&newResultPos_d);
 	}
 }

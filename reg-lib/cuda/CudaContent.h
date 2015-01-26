@@ -1,16 +1,16 @@
 #pragma once
-#include "Context.h"
+#include "Content.h"
 #include "_reg_tools.h"
 
-class CudaContext: public Context {
+class CudaContent: public Content {
 
 public:
-	CudaContext();
-	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep);
-	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte);
-	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep);
-	CudaContext(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte);
-	~CudaContext();
+	CudaContent();
+	CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep);
+	CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte);
+	CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep);
+	CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte);
+	~CudaContent();
 
 	//device getters
 	float* getReferenceImageArray_d();
@@ -22,6 +22,14 @@ public:
 	float* getDeformationFieldArray_d();
 	float* getTargetMat_d();
 	float* getFloIJKMat_d();
+
+	float* getAR_d();
+	float* getU_d();
+	float* getVT_d();
+	float* getSigma_d();
+	float* getLengths_d();
+	float* getNewResultPos_d();
+
 	int* getActiveBlock_d();
 	int* getMask_d();
 
@@ -43,7 +51,7 @@ public:
 private:
 	void initVars();
 
-	void uploadContext();
+	void uploadContent();
 	void allocateCuPtrs();
 	void freeCuPtrs();
 
@@ -60,6 +68,14 @@ private:
 	float* transformationMatrix_d;
 	float* targetMat_d;
 	float* floIJKMat_d;
+
+	//svd
+	float* AR_d;//A and then pseudoinverse
+	float* U_d;
+	float* VT_d;
+	float* Sigma_d;
+	float* lengths_d;
+	float* newResultPos_d;
 
 	int referenceDims[4];
 	int floatingDims[4];

@@ -4,14 +4,14 @@
 
 #include"Kernel.h"
 #include"Kernels.h"
-#include "cl/CLPlatform.h"
-#include "cl/CLContext.h"
+#include "Platform.h"
+#include "cl/CLContent.h"
 
 #define EPS 0.000001
 
-void test(Context* con) {
+void test(Content* con) {
 
-	Platform *clPlatform = new CLPlatform();
+	Platform *clPlatform = new Platform(NR_PLATFORM_CL);
 
 	Kernel* blockMatchingKernel = clPlatform->createKernel(BlockMatchingKernel::getName(), con);
 	blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();
@@ -52,7 +52,7 @@ int main(int argc, char **argv)
    int *mask=(int *)malloc(referenceImage->nvox*sizeof(int));
    for(size_t i=0;i<referenceImage->nvox;++i) mask[i]=i;
 
-   Context* con = new ClContext(referenceImage, NULL, mask, sizeof(float), 50, 50,1);
+   Content* con = new ClContent(referenceImage, NULL, mask, sizeof(float), 50, 50,1);
    con->setCurrentWarped(warpedImage);
    test(con);
 
@@ -104,7 +104,6 @@ int main(int argc, char **argv)
 
    }
 
-   std::cout<<blockMatchingParams->definedActiveBlock<<std::endl;
    mat44 differenceMatrix = *testMatrix - recoveredTransformation;
    for(int i=0;i<4;++i){
       for(int j=0;j<4;++j){

@@ -4,14 +4,14 @@
 
 #include"Kernel.h"
 #include"Kernels.h"
-#include "cl/CLPlatform.h"
-#include "cl/CLContext.h"
+#include "Platform.h"
+#include "cl/CLContent.h"
 
 #define EPS 1
 
-void test(Context *con, const unsigned int interp) {
+void test(Content *con, const unsigned int interp) {
 
-	Platform *platform = new CLPlatform();
+	Platform *platform = new Platform(NR_PLATFORM_CL);
 
 	Kernel* resamplingKernel = platform->createKernel(ResampleImageKernel::getName(), con);
 	resamplingKernel->castTo<ResampleImageKernel>()->calculate(interp, 0);
@@ -66,10 +66,9 @@ int main(int argc, char **argv) {
 
 	// Compute the non-linear deformation field
 	int* tempMask = (int *) calloc(test_warped->nvox, sizeof(int));
-	reg_tools_changeDatatype<float>(floatingImage);
 	reg_tools_changeDatatype<float>(test_warped);
 
-	Context *con = new ClContext(NULL, floatingImage, NULL, sizeof(float));
+	Content *con = new ClContent(NULL, floatingImage, NULL, sizeof(float));
 	con->setCurrentWarped(test_warped);
 	con->setCurrentDeformationField(inputDeformationField);
 	con->setCurrentReferenceMask(tempMask, test_warped->nvox);

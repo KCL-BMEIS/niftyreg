@@ -4,14 +4,14 @@
 
 #include "Kernel.h"
 #include "Kernels.h"
-#include "cuda/CudaPlatform.h"
-#include "cuda/CudaContext.h"
+#include "Platform.h"
+#include "cuda/CudaContent.h"
 
 #define EPS 0.00005
 
-void test(Context* con) {
+void test(Content* con) {
 
-	Platform *cudaPlatform = new CudaPlatform();
+	Platform *cudaPlatform = new Platform(NR_PLATFORM_CUDA);
 
 	Kernel* affineDeformKernel = cudaPlatform->createKernel(AffineDeformationFieldKernel::getName(), con);
 	affineDeformKernel->castTo<AffineDeformationFieldKernel>()->calculate();
@@ -63,7 +63,7 @@ int main(int argc, char **argv)
    // Compute the affine deformation field
    reg_tools_changeDatatype<float>(referenceImage);
    int* tempMask = (int *) calloc(referenceImage->nvox, sizeof(int));
-   Context *con = new CudaContext(referenceImage, NULL, tempMask, inputMatrix, sizeof(float));
+   Content *con = new CudaContent(referenceImage, NULL, tempMask, inputMatrix, sizeof(float));
    test(con);
    test_field = con->getCurrentDeformationField();
    // Compute the difference between the computed and inputed deformation field

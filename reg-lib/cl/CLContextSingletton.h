@@ -23,8 +23,14 @@ public:
 
 	void queryGridDims();
 	void CreateContext();
-	void checDebugKernelInfo(cl_program program, char* message);
+	void checDebugKernelInfo(cl_program program, cl_device_id devIdIn, char* message);
 	void CreateCommandQueue();
+	void init();
+	cl_kernel dummyKernel(cl_device_id deviceIdIn);
+	void setClIdx( int clIdxIn){
+		clIdx=clIdxIn;
+		init();
+	}
 
 	cl_program CreateProgram( const char* fileName);
 
@@ -32,6 +38,7 @@ public:
 	void Cleanup(cl_program program, cl_kernel kernel, cl_mem* memObjects, int length);
 	void checkErrNum(cl_int errNum, std::string message);
 	void shutDown();
+
 
 	cl_context getContext();
 	cl_device_id getDeviceId();
@@ -41,13 +48,9 @@ public:
 	cl_platform_id* getPlatformIds();
 	cl_uint getNumDevices();
 	size_t getMaxThreads();
-	cl_program getAffineProgram();
-	cl_program getResampleProgram();
-	cl_program getBlockMatchingProgram();
+
 	unsigned int getMaxBlocks();
 	size_t getwarpGroupLength(cl_kernel kernel);
-
-
 
 private:
 
@@ -61,6 +64,7 @@ private:
 	CLContextSingletton(CLContextSingletton const&);// Don't Implement
 	void operator=(CLContextSingletton const&); // Don't implement
 
+	void pickCard();
 
 	cl_context context;
 	cl_device_id deviceId;
@@ -70,7 +74,8 @@ private:
 	cl_platform_id* platformIds;
 	cl_uint  numDevices;
 	size_t maxThreads;
-	cl_program affineProgram, resampleProgram, blockMatchingProgram;
+
 	unsigned int maxBlocks;
+	int clIdx;
 };
 #endif

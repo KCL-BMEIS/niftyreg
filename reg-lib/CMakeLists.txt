@@ -132,13 +132,11 @@ set(_reg_aladin_files
 	${NAME}.cpp
 	${NAME}_sym.h
 	${NAME}_sym.cpp
-	Context.cpp
-	Context.h
+	Content.cpp
+	Content.h
 	Platform.cpp
 	Platform.h
 	Kernel.h
-	cpu/CPUPlatform.cpp
-	cpu/CPUPlatform.h
 	cpu/CPUKernels.cpp
 	cpu/CPUKernels.h
 	cpu/CPUKernelFactory.cpp
@@ -168,7 +166,7 @@ install(TARGETS ${NAME}
 	ARCHIVE DESTINATION lib
 	)
 install(FILES ${NAME}.h ${NAME}_sym.h cpu/_reg_macros.h DESTINATION include)
-install(FILES Context.h Platform.h cpu/CPUPlatform.h DESTINATION include)
+install(FILES Content.h Platform.h  DESTINATION include)
 install(FILES Kernel.h cpu/CPUKernels.h KernelFactory.h cpu/CPUKernelFactory.h DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------

@@ -2367,7 +2367,9 @@ float reg_tools_getMaxValue1(nifti_image *image)
    for(size_t i=0; i<image->nvox; ++i)
    {
       DTYPE currentVal = static_cast<DTYPE>(imgPtr[i] * image->scl_slope + image->scl_inter);
-      maxValue=currentVal>maxValue?currentVal:maxValue;
+      float fVal = static_cast<float>(currentVal);
+      maxValue=fVal>maxValue?fVal:maxValue;
+      /*if (fVal>0) printf("i: %lu | val: %f: %f\n", i,fVal, maxValue);*/
    }
    // The lowest value is returned
    return maxValue;
@@ -2949,7 +2951,7 @@ void reg_tools_abs_image(nifti_image *img)
 }
 /* *************************************************************** */
 /* *************************************************************** */
-static std::string CLI_PROGRESS_UPDATES = std::string(getenv("NIFTK_CLI_PROGRESS_UPD") != 0 ? getenv("NIFTK_CLI_PROGRESS_UPD") : "");
+//static std::string CLI_PROGRESS_UPDATES = std::string(getenv("NIFTK_CLI_PROGRESS_UPD") != 0 ? getenv("NIFTK_CLI_PROGRESS_UPD") : "");
 /* *************************************************************** */
 //void startProgress(std::string name)
 //{
@@ -2995,6 +2997,14 @@ void mat44ToCptr(mat44 mat, float* cMat) {
 	for (int i = 0; i < 4; i++) {
 		for (int j = 0; j < 4; j++) {
 			cMat[i * 4 + j] = mat.m[i][j];
+
+		}
+	}
+}
+void cPtrToMat44(mat44 *mat, float* cMat) {
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			 mat->m[i][j]=cMat[i * 4 + j];
 
 		}
 	}

@@ -1,39 +1,7 @@
 #define SINC_KERNEL_RADIUS 3
 #define SINC_KERNEL_SIZE SINC_KERNEL_RADIUS*2
 
-#define NIFTI_TYPE_UINT8           2
-/*! signed short. */
-#define NIFTI_TYPE_INT16           4
-/*! signed int. */
-#define NIFTI_TYPE_INT32           8
-/*! 32 bit float. */
-#define NIFTI_TYPE_FLOAT32        16
-/*! 64 bit complex = 2 32 bit floats. */
-#define NIFTI_TYPE_COMPLEX64      32
-/*! 64 bit float = double. */
-#define NIFTI_TYPE_FLOAT64        64
-/*! 3 8 bit bytes. */
-#define NIFTI_TYPE_RGB24         128
-/*! signed char. */
-#define NIFTI_TYPE_INT8          256
-/*! unsigned short. */
-#define NIFTI_TYPE_UINT16        512
-/*! unsigned int. */
-#define NIFTI_TYPE_UINT32        768
-/*! signed long long. */
-#define NIFTI_TYPE_INT64        1024
-/*! unsigned long long. */
-#define NIFTI_TYPE_UINT64       1280
-/*! 128 bit float = long double. */
-#define NIFTI_TYPE_FLOAT128     1536
-/*! 128 bit complex = 2 64 bit floats. */
-#define NIFTI_TYPE_COMPLEX128   1792
-/*! 256 bit complex = 2 128 bit floats */
-#define NIFTI_TYPE_COMPLEX256   2048
-/*! 4 8 bit bytes. */
-#define NIFTI_TYPE_RGBA32       2304
 
-//#define M_PI 3.141593f   /* pi             */
 
 __inline void interpWindowedSincKernel(float relative, float *basis) {
     if (relative < 0.0f)
@@ -70,8 +38,7 @@ __inline void interpCubicSplineKernel(float relative, float *basis) {
 /* *************************************************************** */
 /* *************************************************************** */
 __inline void interpLinearKernel(float relative, float *basis) {
-    if (relative < 0.0f)
-        relative = 0.0f; //reg_rounding error
+    if (relative < 0.0f) relative = 0.0f; //reg_rounding error
     basis[1] = relative;
     basis[0] = 1.0f - relative;
 }
@@ -79,10 +46,9 @@ __inline void interpLinearKernel(float relative, float *basis) {
 /* *************************************************************** */
 /* *************************************************************** */
 __inline void interpNearestNeighKernel(float relative, float *basis) {
-    if (relative < 0.0f)
-        relative = 0.0f; //reg_rounding error
+    if (relative < 0.0f) relative = 0.0f; //reg_rounding error
     basis[0] = basis[1] = 0.0f;
-    if (relative > 0.5f)
+    if (relative >/*=*/ 0.5f)
         basis[1] = 1.f;
     else
         basis[0] = 1.f;
@@ -157,14 +123,12 @@ __kernel void ResampleImage3D(__global float* floatingImage, __global float* def
 
             __global float *resultIntensity = &resultIntensityPtr[t * voxelNumber.x];
             __global float *floatingIntensity = &sourceIntensityPtr[t * voxelNumber.y];
-        
-            
-
+            float intensity = paddingValue;
 
             if (maskPtr[index] > -1) {
 
                 int  previous[3];
-                float world[3], position[3], relative[3], intensity;
+                float world[3], position[3], relative[3];
                 
                 world[0] = (deformationFieldPtrX[index]);
                 world[1] = (deformationFieldPtrY[index]);
@@ -188,6 +152,7 @@ __kernel void ResampleImage3D(__global float* floatingImage, __global float* def
                         interpNearestNeighKernel(relative[0], xBasisIn);
                         interpNearestNeighKernel(relative[1], yBasisIn);
                         interpNearestNeighKernel(relative[2], zBasisIn);
+                    /*if(index == 19400 || index == 42547) printf("idx: %lu | x: %f-%f | y: %f-%f | z: %f-%f | prev: %d-%d-%d | rel: %f-%f-%f \n", index, xBasisIn[0], xBasisIn[1], yBasisIn[0], yBasisIn[1], zBasisIn[0], zBasisIn[1], previous[0], previous[1], previous[2], relative[0], relative[1], relative[2]);*/
                         intensity = interpLoop(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 2);
                 }else if (kernelType == 1){
 
@@ -217,48 +182,8 @@ __kernel void ResampleImage3D(__global float* floatingImage, __global float* def
                         interpCubicSplineKernel(relative[2], zBasisIn);
                         intensity = interpLoop(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 4);
                 }
-                resultIntensity[index]=intensity;
-                
-
-//                switch(datatype)
-//                {
-//                    case NIFTI_TYPE_FLOAT32:
-//                        resultIntensity[index]=intensity;
-//                        break;
-//                    case NIFTI_TYPE_FLOAT64:
-//                        resultIntensity[index]=intensity;
-//                        break;
-//                    case NIFTI_TYPE_UINT8:
-//                        intensity=(intensity<=255.0f?cl_reg_round(intensity):255.0f); // 255=2^8-1
-//                        resultIntensity[index]=(unsigned char)(intensity>0.0f?cl_reg_round(intensity):0.0f);
-//                        break;
-//                    case NIFTI_TYPE_UINT16:
-//                        intensity=(intensity<=65535.0f?cl_reg_round(intensity):65535.0f); // 65535=2^16-1
-//                        resultIntensity[index]=(unsigned short)(intensity>0.f?cl_reg_round(intensity):0.f);
-//                        break;
-//                    case NIFTI_TYPE_UINT32:
-//                        intensity=(intensity<=4294967295.0f?cl_reg_round(intensity):4294967295.0f); // 4294967295=2^32-1
-//                        resultIntensity[index]=(unsigned int)(intensity>0.0f?cl_reg_round(intensity):0.0f);
-//                        break;
-//                    case NIFTI_TYPE_INT8:
-//                        
-//                        resultIntensity[index]=(char)(cl_reg_round(intensity));
-//                        break;
-//                    case NIFTI_TYPE_INT16:
-//                        if(index<100){
-//                            printf("%f-%f/n", intensity, (float)((short)(cl_reg_round(intensity))));
-//                        }
-//                        resultIntensity[index]=(short)(cl_reg_round(intensity));
-//                        break;
-//                    case NIFTI_TYPE_INT32:
-//                        resultIntensity[index]=(int)(cl_reg_round(intensity));
-//                        break;
-//                    default:
-//                        resultIntensity[index]=(cl_reg_round(intensity));
-//                        break;
-//                }
-
-            }
+            }/*if(index == 19400 || index == 42547) printf("idx: %lu | val: %f\n", index, intensity);*/
+            resultIntensity[index]=intensity;
         }
         index += get_num_groups(0)*get_local_size(0);
     }

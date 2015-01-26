@@ -8,6 +8,7 @@ if(NOT CUDA_FOUND)
 endif(NOT CUDA_FOUND)
 
 include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cuda)
+set(NVIDIA_PATH /Developer/NVIDIA/CUDA-7.0/lib)
 
 # Display the CUDA version
 message(STATUS "The CUDA version you have is v${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR}")
@@ -101,24 +102,24 @@ set(NAME _reg_cuda_kernels)
 CUDA_ADD_LIBRARY(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	_reg_blockMatching_gpu.cu
 	_reg_blockMatching_kernels.cu
-	CudaContext.cpp
+	CudaContent.cpp
 	CudaKernelFactory.cpp
 	CudaKernelFuncs.cu
 	CudaKernels.cpp
-	CudaPlatform.cpp
-	../Context.cpp
+	../Content.cpp
 	
 	#for debugging
 	../cpu/_reg_resampling.cpp
 	../cpu/_reg_globalTransformation.cpp
 	../cpu/_reg_blockMatching.cpp
 )
-target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_gpu  )
+#temp code till we find a cleaner way to pass the lib flags to nvcc
+target_link_libraries(${NAME} ${CUDA_CUDA_LIBRARY} _reg_common_gpu ${NVIDIA_PATH}/libcublas.dylib ${NVIDIA_PATH}/libcusolver.dylib ${NVIDIA_PATH}/libnvToolsExt.dylib )
 install(TARGETS ${NAME}
 	RUNTIME DESTINATION lib
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 )
-install(FILES _reg_blockMatching_gpu.h CudaContext.h DESTINATION include)
-install(FILES CudaKernelFactory.h CudaKernelFuncs.h CudaKernels.h CudaPlatform.h DESTINATION include)
+install(FILES _reg_blockMatching_gpu.h CudaContent.h DESTINATION include)
+install(FILES CudaKernelFactory.h CudaKernelFuncs.h CudaKernels.h DESTINATION include)
 #-----------------------------------------------------------------------------

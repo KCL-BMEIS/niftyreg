@@ -3,11 +3,11 @@
 
 #include "KernelFactory.h"
 
-class Context;
+class Content;
 class CLKernelFactory : public KernelFactory
 {
 public:
-   Kernel* createKernel(std::string name, Context* con) const;
+   Kernel* produceKernel(std::string name, Content* con) const;
 };
 
 #endif

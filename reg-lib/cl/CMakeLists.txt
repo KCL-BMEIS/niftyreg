@@ -18,11 +18,10 @@ include_directories(${OPENCL_INCLUDE_DIRS})
 set(NAME _reg_opencl_kernels)
 add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	CLContextSingletton.cpp
-	CLContext.cpp
+	CLContent.cpp
 	CLKernelFactory.cpp
 	CLKernels.cpp
-	CLPlatform.cpp
-	../Context.cpp
+	../Content.cpp
 	../Platform.cpp
 	
 	#for debugging
@@ -38,5 +37,5 @@ install(TARGETS ${NAME}
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 )
-install(FILES CLContextSingletton.h CLContext.h CLKernelFactory.h CLKernels.h CLPlatform.h DESTINATION include)
+install(FILES CLContextSingletton.h CLContent.h CLKernelFactory.h CLKernels.h DESTINATION include)
 install(FILES resampleKernel.cl affineDeformationKernel.cl blockMatchingKernel.cl DESTINATION include/cl)

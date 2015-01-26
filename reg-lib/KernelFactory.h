@@ -1,12 +1,12 @@
 #ifndef KERNELFACTORY_H_
 #define KERNELFACTORY_H_
 
-#include "Context.h"
+#include "Content.h"
 
 class  KernelFactory {
 public:
 
-    virtual Kernel* createKernel(std::string name, Context* con) const = 0;
+    virtual Kernel* produceKernel(std::string name, Content* con) const = 0;
     virtual ~KernelFactory() {
     }
 };

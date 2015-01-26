@@ -74,11 +74,17 @@ struct _reg_blockMatchingParam
    int voxelCaptureRange;
 
    int stepSize;
+   bool cusvd;
 
    _reg_blockMatchingParam()
       : targetPosition(0),
         resultPosition(0),
-        activeBlock(0)
+        activeBlock(0),
+        percent_to_keep(0),
+        voxelCaptureRange(0),
+        stepSize(0),
+        definedActiveBlock(0),
+        activeBlockNumber(0)
    {}
 
    ~_reg_blockMatchingParam()
@@ -87,6 +93,29 @@ struct _reg_blockMatchingParam
       if(resultPosition) free(resultPosition);
       if(activeBlock) free(activeBlock);
    }
+};
+
+/* *************************************************************** */
+struct _reg_sorted_point3D {
+	float target[3];
+	float result[3];
+
+	double distance;
+
+	_reg_sorted_point3D(float * t, float * r, double d) :
+			distance(d) {
+		target[0] = t[0];
+		target[1] = t[1];
+		target[2] = t[2];
+
+		result[0] = r[0];
+		result[1] = r[1];
+		result[2] = r[2];
+	}
+
+	bool operator <(const _reg_sorted_point3D &sp) const {
+		return (sp.distance < distance);
+	}
 };
 
 /** @brief This function initialise a _reg_blockMatchingParam structure
@@ -145,6 +174,8 @@ void optimize(_reg_blockMatchingParam *params,
               mat44 * transformation_matrix,
               bool affine = true, bool ils=false);
 
+void optimize_rigid3D(_reg_blockMatchingParam *params, mat44 *final, bool ils=false);
+void optimize_affine3D(_reg_blockMatchingParam *params, mat44 * final, bool ilsIn=false);
 
 
 #endif

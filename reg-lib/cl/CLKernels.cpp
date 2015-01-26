@@ -1,9 +1,9 @@
 #include <iostream>
 #include "nifti1_io.h"
 
-#include "Context.h"
+#include "Content.h"
 #include "CLContextSingletton.h"
-#include "CLContext.h"
+#include "CLContent.h"
 #include "config.h"
 
 #include "CLKernels.h"
@@ -36,11 +36,11 @@ CLConvolutionKernel::~CLConvolutionKernel() {
 }
 //==========================================================
 //==============================Affine Kernel CL===================================================
-CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Context* conIn, std::string nameIn) :
+CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Content* conIn, std::string nameIn) :
 		AffineDeformationFieldKernel(nameIn) {
 
-	//populate the CLContext object ptr
-	con = static_cast<ClContext*>(conIn);
+	//populate the CLContent object ptr
+	con = static_cast<ClContent*>(conIn);
 
 	//path to kernel files
 	std::string clInstallPath(CL_KERNELS_PATH);
@@ -59,8 +59,8 @@ CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Context* conIn, s
 	sContext->checkErrNum(errNum, "Error setting kernel CLAffineDeformationFieldKernel.");
 
 	//get cpu ptrs
-	this->deformationFieldImage = con->Context::getCurrentDeformationField();
-	this->affineTransformation = con->Context::getTransformationMatrix();
+	this->deformationFieldImage = con->Content::getCurrentDeformationField();
+	this->affineTransformation = con->Content::getTransformationMatrix();
 	this->targetMatrix = (this->deformationFieldImage->sform_code > 0) ? &(this->deformationFieldImage->sto_xyz) : &(this->deformationFieldImage->qto_xyz);
 
 	//get cl ptrs
@@ -88,7 +88,7 @@ void CLAffineDeformationFieldKernel::compare(bool compose) {
 	nifti_image *cpuField = nifti_copy_nim_info(gpuField);
 	cpuField->data = (void *) malloc(gpuField->nvox * gpuField->nbyper);
 
-	reg_affine_getDeformationField(affineTransformation, cpuField, compose, con->Context::getCurrentReferenceMask());
+	reg_affine_getDeformationField(affineTransformation, cpuField, compose, con->Content::getCurrentReferenceMask());
 	float*cpuData = static_cast<float*>(cpuField->data);
 
 	int count = 0;
@@ -154,11 +154,11 @@ void CLAffineDeformationFieldKernel::calculate(bool compose) {
 	return;
 }
 //==========================================================================================================
-CLResampleImageKernel::CLResampleImageKernel(Context* conIn, std::string name) :
+CLResampleImageKernel::CLResampleImageKernel(Content* conIn, std::string name) :
 		ResampleImageKernel(name) {
 
 	//populate the CLContext object ptr
-	con = static_cast<ClContext*>(conIn);
+	con = static_cast<ClContent*>(conIn);
 
 	//path to kernel file
 	std::string clInstallPath(CL_KERNELS_PATH);
@@ -171,9 +171,9 @@ CLResampleImageKernel::CLResampleImageKernel(Context* conIn, std::string name) :
 	program = sContext->CreateProgram((clInstallPath + clKernel).c_str());
 
 	//get cpu ptrs
-	floatingImage = con->Context::getCurrentFloating();
-	warpedImage = con->Context::getCurrentWarped();
-	mask = con->Context::getCurrentReferenceMask();
+	floatingImage = con->Content::getCurrentFloating();
+	warpedImage = con->Content::getCurrentWarped();
+	mask = con->Content::getCurrentReferenceMask();
 
 	//get cl ptrs
 	clCurrentFloating = con->getFloatingImageArrayClmem();
@@ -197,7 +197,7 @@ CLResampleImageKernel::~CLResampleImageKernel() {
 }
 void CLResampleImageKernel::compare(int interp, float paddingValue) {
 	nifti_image* def = con->getCurrentDeformationField();
-	nifti_image* cWar = con->Context::getCurrentWarped();
+	nifti_image* cWar = con->Content::getCurrentWarped();
 	reg_resampleImage(floatingImage, cWar, def, mask, interp, paddingValue, NULL, NULL);
 	float* cpuData2 = static_cast<float*>(cWar->data);
 	float* cpuData = (float*) malloc(cWar->nvox * sizeof(float));
@@ -305,9 +305,9 @@ void CLResampleImageKernel::calculate(int interp, float paddingValue, bool *dti_
 
 }
 void CLBlockMatchingKernel::compare() {
-	nifti_image* referenceImage = con->Context::getCurrentReference();
+	nifti_image* referenceImage = con->Content::getCurrentReference();
 	nifti_image* warpedImage = con->getCurrentWarped(16);
-	int* mask = con->Context::getCurrentReferenceMask();
+	int* mask = con->Content::getCurrentReferenceMask();
 
 	_reg_blockMatchingParam *refParams = con->getBlockMatchingParams();
 	_reg_blockMatchingParam *cpu = new _reg_blockMatchingParam();
@@ -373,11 +373,11 @@ void CLBlockMatchingKernel::compare() {
 }
 
 //==========================================================================
-CLBlockMatchingKernel::CLBlockMatchingKernel(Context* conIn, std::string name) :
+CLBlockMatchingKernel::CLBlockMatchingKernel(Content* conIn, std::string name) :
 		BlockMatchingKernel(name) {
 
-	//populate the CLContext object ptr
-	con = static_cast<ClContext*>(conIn);
+	//populate the CLContent object ptr
+	con = static_cast<ClContent*>(conIn);
 
 	//path to kernel file
 	std::string clInstallPath(CL_KERNELS_PATH);
@@ -404,8 +404,8 @@ CLBlockMatchingKernel::CLBlockMatchingKernel(Context* conIn, std::string name) :
 	clTargetMat = con->getRefMatClmem();
 
 	//get cpu ptrs
-	target = con->Context::getCurrentReference();
-	params = con->Context::getBlockMatchingParams();
+	target = con->Content::getCurrentReference();
+	params = con->Content::getBlockMatchingParams();
 
 }
 CLBlockMatchingKernel::~CLBlockMatchingKernel() {
@@ -479,10 +479,10 @@ void CLBlockMatchingKernel::calculate(int range) {
 #endif
 }
 //===========================
-CLOptimiseKernel::CLOptimiseKernel(Context* conIn, std::string name) :
+CLOptimiseKernel::CLOptimiseKernel(Content* conIn, std::string name) :
 		OptimiseKernel(name) {
-	//populate the CLContext object ptr
-	con = static_cast<ClContext*>(conIn);
+	//populate the CLContent object ptr
+	con = static_cast<ClContent*>(conIn);
 
 	//get opencl context params
 	sContext = &CLContextSingletton::Instance();
@@ -490,13 +490,13 @@ CLOptimiseKernel::CLOptimiseKernel(Context* conIn, std::string name) :
 	/*commandQueue = sContext->getCommandQueue();*/
 
 	//get necessary cpu ptrs
-	transformationMatrix = con->Context::getTransformationMatrix();
-	blockMatchingParams = con->Context::getBlockMatchingParams();
+	transformationMatrix = con->Content::getTransformationMatrix();
+	blockMatchingParams = con->Content::getBlockMatchingParams();
 }
 CLOptimiseKernel::~CLOptimiseKernel() {
 
 }
-void CLOptimiseKernel::calculate(bool affine, bool ils) {
+void CLOptimiseKernel::calculate(bool affine, bool ils, bool clsvd) {
 
 	this->blockMatchingParams = con->getBlockMatchingParams();
 	optimize(this->blockMatchingParams, this->transformationMatrix, affine, ils);

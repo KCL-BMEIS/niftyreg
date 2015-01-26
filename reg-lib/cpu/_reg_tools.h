@@ -415,5 +415,7 @@ void reg_tools_abs_image(nifti_image *img);
 extern "C++"
 void mat44ToCptr(mat44 mat, float* cMat);
 extern "C++"
+void cPtrToMat44(mat44 *mat, float* cMat);
+extern "C++"
 void mat33ToCptr(mat33* mat, float* cMat, const unsigned int numMats);
 #endif

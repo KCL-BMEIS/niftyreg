@@ -4,15 +4,15 @@
 
 #include"Kernel.h"
 #include"Kernels.h"
-#include "cuda/CudaPlatform.h"
-#include "cuda/CudaContext.h"
+#include "Platform.h"
+#include "cuda/CudaContent.h"
 
 #define EPS 0.000001
 
 
-void test(Context* con) {
+void test(Content* con) {
 
-	Platform *cudaPlatform = new CudaPlatform();
+	Platform *cudaPlatform = new Platform(NR_PLATFORM_CUDA);
 
 	Kernel* blockMatchingKernel = cudaPlatform->createKernel(BlockMatchingKernel::getName(), con);
 	blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();
@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
 	int *mask = (int *) malloc(referenceImage->nvox * sizeof(int));
 	for (size_t i = 0; i < referenceImage->nvox; ++i) mask[i] = i;
 
-	Context* con = new CudaContext(referenceImage, NULL, mask, sizeof(float), 50, 50, 1);
+	Content* con = new CudaContent(referenceImage, NULL, mask, sizeof(float), 50, 50, 1);
 	con->setCurrentWarped(warpedImage);
 	test(con);
 

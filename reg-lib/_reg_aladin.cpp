@@ -6,14 +6,13 @@
 #include "Platform.h"
 #include "CPUPlatform.h"
 #include "Kernels.h"
-#include "Context.h"
+#include "Content.h"
 #ifdef _USE_CUDA
-#include "CudaPlatform.h"
-#include "CudaContext.h"
+#include "CudaContent.h"
 #endif
 #ifdef _USE_OPENCL
-#include "CLPlatform.h"
-#include "CLContext.h"
+#include "CLContent.h"
+#include "InfoDevice.h"
 #endif
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T> reg_aladin<T>::reg_aladin()
@@ -38,13 +37,13 @@ template<class T> reg_aladin<T>::reg_aladin()
 	this->InputTransformName = NULL;
 
 	this->affineTransformation3DKernel = NULL;
-	this->blockMatchingKernel=NULL;
-	this->optimiseKernel=NULL;
-	this->resamplingKernel=NULL;
+	this->blockMatchingKernel = NULL;
+	this->optimiseKernel = NULL;
+	this->resamplingKernel = NULL;
 
 	this->con = NULL;
-	this->blockMatchingParams=NULL;
-	this->platform=NULL;
+	this->blockMatchingParams = NULL;
+	this->platform = NULL;
 
 	this->Verbose = true;
 
@@ -75,19 +74,20 @@ template<class T> reg_aladin<T>::reg_aladin()
 	this->paramsProgressCallback = NULL;
 
 	this->platformCode = NR_PLATFORM_CPU;
-	this->captureRangeVox=3;
-	this->ils=false;
-	this->CurrentLevel=0;
+	this->captureRangeVox = 3;
+	this->ils = false;
+	this->CurrentLevel = 0;
 
 	//check those
-	this->FloatingLowerThreshold=0.f;
-	this->FloatingUpperThreshold=0.f;
+	this->FloatingLowerThreshold = 0.f;
+	this->FloatingUpperThreshold = 0.f;
+	this->clIdx = 0;
 
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T> reg_aladin<T>::~reg_aladin()
 {
-	//they are created and cleared in Context now!
+	//they are created and cleared in Content now!
 	/*this->ClearWarpedImage();
 	 this->ClearDeformationField();*/
 
@@ -198,6 +198,19 @@ int reg_aladin<T>::Print()
 	if(this->Verbose)
 	{
 #endif
+
+#ifdef _USE_OPENCL
+	if(this->platformCode == NR_PLATFORM_CL) {
+		CLContextSingletton *sContext = &CLContextSingletton::Instance();
+		std::cout <<std::endl<<"\t"<< "******************************************************" << std::endl;
+		DeviceLog<char >::show(sContext->getDeviceId(), CL_DEVICE_NAME, "**** CL_DEVICE_NAME");
+		DeviceLog<char >::show(sContext->getDeviceId(), CL_DEVICE_VENDOR, "**** CL_DEVICE_VENDOR");
+		DeviceLog<char >::show(sContext->getDeviceId(), CL_DRIVER_VERSION, "**** CL_DRIVER_VERSION");
+		DeviceLog<char >::show(sContext->getDeviceId(), CL_DEVICE_VERSION, "**** CL_DEVICE_VERSION");
+		std::cout <<"\t"<< "******************************************************" << std::endl<<std::endl;
+	}
+
+#endif
 	printf("[%s] Parameters\n", this->ExecutableName);
 	printf("[%s] Platform: %s \n", this->ExecutableName, this->platform->getName().c_str());
 	printf("[%s] Reference image name: %s\n", this->ExecutableName, this->InputReference->fname);
@@ -217,7 +230,7 @@ int reg_aladin<T>::Print()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-void reg_aladin<T>::SetInputTransform(const char *filename){
+void reg_aladin<T>::SetInputTransform(const char *filename) {
 	this->InputTransformName = (char *) filename;
 	return;
 }
@@ -229,16 +242,9 @@ void reg_aladin<T>::InitialiseRegistration()
 	printf("[NiftyReg DEBUG] reg_aladin::InitialiseRegistration() called\n");
 #endif
 
-	if (platformCode == NR_PLATFORM_CPU)
-		this->platform = new CPUPlatform();
-#ifdef _USE_CUDA
-	else if (platformCode == NR_PLATFORM_CUDA)
-	this->platform = new CudaPlatform();
-#endif
-#ifdef _USE_OPENCL
-	else if (platformCode == NR_PLATFORM_CL)
-	this->platform = new CLPlatform();
-#endif
+
+	this->platform = new Platform(platformCode);
+	this->platform->setClIdx(clIdx);
 
 	Kernel* convolutionKernel = platform->createKernel(ConvolutionKernel::getName(), NULL);
 
@@ -259,22 +265,22 @@ void reg_aladin<T>::InitialiseRegistration()
 				this->NumberOfLevels,
 				this->LevelsToPerform,
 				this->activeVoxelNumber);
-	else{
-		for (unsigned int l = 0; l < this->LevelsToPerform; ++l){
+	else {
+		for (unsigned int l = 0; l < this->LevelsToPerform; ++l) {
 			this->activeVoxelNumber[l] = this->ReferencePyramid[l]->nx * this->ReferencePyramid[l]->ny * this->ReferencePyramid[l]->nz;
 			this->ReferenceMaskPyramid[l] = (int *) calloc(activeVoxelNumber[l], sizeof(int));
 		}
 	}
 
 	// CHECK THE THRESHOLD VALUES TO UPDATE THE MASK
-	if (this->ReferenceUpperThreshold != std::numeric_limits<T>::max()){
-		for (unsigned int l = 0; l < this->LevelsToPerform; ++l){
+	if (this->ReferenceUpperThreshold != std::numeric_limits<T>::max()) {
+		for (unsigned int l = 0; l < this->LevelsToPerform; ++l) {
 			T *refPtr = static_cast<T *>(this->ReferencePyramid[l]->data);
 			int *mskPtr = this->ReferenceMaskPyramid[l];
 			size_t removedVoxel = 0;
-			for (size_t i = 0; i < (size_t) this->ReferencePyramid[l]->nx * this->ReferencePyramid[l]->ny * this->ReferencePyramid[l]->nz;++i){
-				if (mskPtr[i] > -1){
-					if (refPtr[i] > this->ReferenceUpperThreshold){
+			for (size_t i = 0; i < (size_t) this->ReferencePyramid[l]->nx * this->ReferencePyramid[l]->ny * this->ReferencePyramid[l]->nz; ++i) {
+				if (mskPtr[i] > -1) {
+					if (refPtr[i] > this->ReferenceUpperThreshold) {
 						++removedVoxel;
 						mskPtr[i] = -1;
 					}
@@ -283,14 +289,14 @@ void reg_aladin<T>::InitialiseRegistration()
 			this->activeVoxelNumber[l] -= removedVoxel;
 		}
 	}
-	if (this->ReferenceLowerThreshold != -std::numeric_limits<T>::max()){
-		for (unsigned int l = 0; l < this->LevelsToPerform; ++l){
+	if (this->ReferenceLowerThreshold != -std::numeric_limits<T>::max()) {
+		for (unsigned int l = 0; l < this->LevelsToPerform; ++l) {
 			T *refPtr = static_cast<T *>(this->ReferencePyramid[l]->data);
 			int *mskPtr = this->ReferenceMaskPyramid[l];
 			size_t removedVoxel = 0;
-			for (size_t i = 0; i < (size_t) this->ReferencePyramid[l]->nx * this->ReferencePyramid[l]->ny * this->ReferencePyramid[l]->nz; ++i){
-				if (mskPtr[i] > -1){
-					if (refPtr[i] < this->ReferenceLowerThreshold){
+			for (size_t i = 0; i < (size_t) this->ReferencePyramid[l]->nx * this->ReferencePyramid[l]->ny * this->ReferencePyramid[l]->nz; ++i) {
+				if (mskPtr[i] > -1) {
+					if (refPtr[i] < this->ReferenceLowerThreshold) {
 						++removedVoxel;
 						mskPtr[i] = -1;
 					}
@@ -301,24 +307,26 @@ void reg_aladin<T>::InitialiseRegistration()
 	}
 
 	// SMOOTH THE INPUT IMAGES IF REQUIRED
-	for (unsigned int l = 0; l < this->LevelsToPerform; l++){
-		if (this->ReferenceSigma != 0.0){
+	for (unsigned int l = 0; l < this->LevelsToPerform; l++) {
+		if (this->ReferenceSigma != 0.0) {
 			// Only the first image is smoothed
 			bool *active = new bool[this->ReferencePyramid[l]->nt];
 			float *sigma = new float[this->ReferencePyramid[l]->nt];
 			active[0] = true;
-			for (int i = 1; i < this->ReferencePyramid[l]->nt; ++i) active[i] = false;
+			for (int i = 1; i < this->ReferencePyramid[l]->nt; ++i)
+				active[i] = false;
 			sigma[0] = this->ReferenceSigma;
 			convolutionKernel->castTo<ConvolutionKernel>()->calculate(this->ReferencePyramid[l], sigma, 0, NULL, active);
 			delete[] active;
 			delete[] sigma;
 		}
-		if (this->FloatingSigma != 0.0){
+		if (this->FloatingSigma != 0.0) {
 			// Only the first image is smoothed
 			bool *active = new bool[this->FloatingPyramid[l]->nt];
 			float *sigma = new float[this->FloatingPyramid[l]->nt];
 			active[0] = true;
-			for (int i = 1; i < this->FloatingPyramid[l]->nt; ++i) active[i] = false;
+			for (int i = 1; i < this->FloatingPyramid[l]->nt; ++i)
+				active[i] = false;
 			sigma[0] = this->FloatingSigma;
 			convolutionKernel->castTo<ConvolutionKernel>()->calculate(this->FloatingPyramid[l], sigma, 0, NULL, active);
 			delete[] active;
@@ -329,7 +337,7 @@ void reg_aladin<T>::InitialiseRegistration()
 	// Initialise the transformation
 	if (this->InputTransformName != NULL)
 	{
-		if (FILE *aff = fopen(this->InputTransformName, "r")){
+		if (FILE *aff = fopen(this->InputTransformName, "r")) {
 			fclose(aff);
 		}
 		else
@@ -349,8 +357,8 @@ void reg_aladin<T>::InitialiseRegistration()
 		}
 		if (this->AlignCentre)
 		{
-			const mat44 *floatingMatrix = (this->InputFloating->sform_code > 0) ? &(this->InputFloating->sto_xyz):floatingMatrix = &(this->InputFloating->qto_xyz);
-			const mat44 *referenceMatrix = (this->InputReference->sform_code > 0) ? &(this->InputReference->sto_xyz):referenceMatrix = &(this->InputReference->qto_xyz);
+			const mat44 *floatingMatrix = (this->InputFloating->sform_code > 0) ? &(this->InputFloating->sto_xyz) : floatingMatrix = &(this->InputFloating->qto_xyz);
+			const mat44 *referenceMatrix = (this->InputReference->sform_code > 0) ? &(this->InputReference->sto_xyz) : referenceMatrix = &(this->InputReference->qto_xyz);
 			float floatingCenter[3];
 			floatingCenter[0] = (float) (this->InputFloating->nx) / 2.0f;
 			floatingCenter[1] = (float) (this->InputFloating->ny) / 2.0f;
@@ -395,7 +403,7 @@ void reg_aladin<T>::ClearCurrentInputImage()
 	this->CurrentFloating = NULL;
 	this->CurrentReferenceMask = NULL;
 
-	//Context does this
+	//Content does this
 	/*this->ClearWarpedImage();
 	 this->ClearDeformationField();*/
 }
@@ -543,24 +551,24 @@ void reg_aladin<T>::GetWarpedImage(int interp) {
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
-template <class T>
+template<class T>
 void reg_aladin<T>::UpdateTransformationMatrix(int type)
-{
-   /*block_matching_method(this->CurrentReference,
-                         this->CurrentWarped,
-                         &this->blockMatchingParams,
-                         this->CurrentReferenceMask);
-   if(type==RIGID)
-      optimize(&this->blockMatchingParams,
-               this->TransformationMatrix,
-               RIGID);
-   else
-      optimize(&this->blockMatchingParams,
-               this->TransformationMatrix,
-               AFFINE);*/
+		{
+	/*block_matching_method(this->CurrentReference,
+	 this->CurrentWarped,
+	 &this->blockMatchingParams,
+	 this->CurrentReferenceMask);
+	 if(type==RIGID)
+	 optimize(&this->blockMatchingParams,
+	 this->TransformationMatrix,
+	 RIGID);
+	 else
+	 optimize(&this->blockMatchingParams,
+	 this->TransformationMatrix,
+	 AFFINE);*/
 
 	blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate(captureRangeVox);
-	optimiseKernel->castTo<OptimiseKernel>()->calculate(type, ils);
+	optimiseKernel->castTo<OptimiseKernel>()->calculate(type, ils, cusvd);
 
 #ifndef NDEBUG
 	reg_mat44_disp(this->TransformationMatrix, (char *) "[DEBUG] updated matrix");
@@ -568,40 +576,40 @@ void reg_aladin<T>::UpdateTransformationMatrix(int type)
 }
 
 template<class T>
-void reg_aladin<T>::initContext(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes, unsigned int blockPercentage,
+void reg_aladin<T>::initContent(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes, unsigned int blockPercentage,
 		unsigned int inlierLts, unsigned int blockStepSize) {
 
 	if (platformCode == NR_PLATFORM_CPU)
-		this->con = new Context(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
+		this->con = new Content(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #ifdef _USE_CUDA
 	else if(platformCode == NR_PLATFORM_CUDA)
-	this->con = new CudaContext(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
+	this->con = new CudaContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
 #ifdef _USE_OPENCL
 	else if(platformCode == NR_PLATFORM_CL)
-	this->con = new ClContext(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
+	this->con = new ClContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
-	this->blockMatchingParams = con->Context::getBlockMatchingParams();
+	this->blockMatchingParams = con->Content::getBlockMatchingParams();
 }
 
 template<class T>
-void reg_aladin<T>::initContext(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes) {
+void reg_aladin<T>::initContent(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes) {
 
 	if (platformCode == NR_PLATFORM_CPU)
-		this->con = new Context(ref, flo, mask, transMat, bytes);
+		this->con = new Content(ref, flo, mask, transMat, bytes);
 #ifdef _USE_CUDA
 	else if(platformCode == NR_PLATFORM_CUDA)
-	this->con = new CudaContext(ref, flo, mask,transMat, bytes);
+	this->con = new CudaContent(ref, flo, mask,transMat, bytes);
 #endif
 #ifdef _USE_OPENCL
 	else if(platformCode == NR_PLATFORM_CL)
-	this->con = new ClContext(ref, flo, mask,transMat, bytes);
+	this->con = new ClContent(ref, flo, mask,transMat, bytes);
 #endif
-	this->blockMatchingParams = con->Context::getBlockMatchingParams();
+	this->blockMatchingParams = con->Content::getBlockMatchingParams();
 }
 
 template<class T>
-void reg_aladin<T>::clearContext() {
+void reg_aladin<T>::clearContent() {
 	delete con;
 }
 template<class T>
@@ -609,9 +617,9 @@ void reg_aladin<T>::resolveMatrix(unsigned int iterations, const unsigned int op
 
 	unsigned int iteration = 0;
 	const char* regStr = optimizationFlag ? "Affine" : "Rigid";
-	while (iteration < iterations){
+	while (iteration < iterations) {
 #ifndef NDEBUG
-		printf("[DEBUG] -%s- Level: %i/%i | iteration %i/%i \n",regStr, this->CurrentLevel, this->NumberOfLevels,  iteration, iterations);
+		printf("[DEBUG] -%s- Level: %i/%i | iteration %i/%i \n", regStr, this->CurrentLevel, this->NumberOfLevels, iteration, iterations);
 #endif
 		this->GetWarpedImage(this->Interpolation);
 		this->UpdateTransformationMatrix(optimizationFlag);
@@ -628,7 +636,7 @@ void reg_aladin<T>::Run()
 
 	//Main loop over the levels:
 	for (this->CurrentLevel = 0; this->CurrentLevel < this->LevelsToPerform; this->CurrentLevel++) {
-		this->initContext(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel],
+		this->initContent(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel],
 				this->ReferenceMaskPyramid[CurrentLevel], this->TransformationMatrix, sizeof(T), this->BlockPercentage,
 				InlierLts, this->BlockStepSize);
 		this->createKernels();
@@ -636,7 +644,7 @@ void reg_aladin<T>::Run()
 
 		// Twice more iterations are performed during the first level
 		// All the blocks are used during the first level
-		const unsigned int maxNumberOfIterationToPerform = (CurrentLevel == 0)?this->MaxIterations:this->MaxIterations*2;
+		const unsigned int maxNumberOfIterationToPerform = (CurrentLevel == 0) ? this->MaxIterations : this->MaxIterations * 2;
 
 		/* initialise the block matching */
 //      this->InitialiseBlockMatching(percentageOfBlockToUse);
@@ -666,7 +674,8 @@ void reg_aladin<T>::Run()
 
 		if (captureRangeVox > 3) {
 			resolveMatrix(maxNumberOfIterationToPerform, RIGID);
-			if (this->PerformAffine) resolveMatrix(maxNumberOfIterationToPerform, AFFINE);
+			if (this->PerformAffine)
+				resolveMatrix(maxNumberOfIterationToPerform, AFFINE);
 			captureRangeVox = 3;
 
 		}
@@ -679,12 +688,12 @@ void reg_aladin<T>::Run()
 		/* ******************* */
 		/* Affine registration */
 		/* ******************* */
-		if (this->PerformAffine) resolveMatrix(maxNumberOfIterationToPerform, AFFINE);
-
+		if (this->PerformAffine)
+			resolveMatrix(maxNumberOfIterationToPerform, AFFINE);
 
 		// SOME CLEANING IS PERFORMED
 		this->clearKernels();
-		this->clearContext();
+		this->clearContent();
 		this->ClearCurrentInputImage();
 
 #ifdef NDEBUG
@@ -724,7 +733,7 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 	this->CurrentFloating = this->InputFloating;
 	this->CurrentReferenceMask = NULL;
 
-	reg_aladin<T>::initContext(this->CurrentReference, this->CurrentFloating, this->CurrentReferenceMask, this->TransformationMatrix, sizeof(T));
+	reg_aladin<T>::initContent(this->CurrentReference, this->CurrentFloating, this->CurrentReferenceMask, this->TransformationMatrix, sizeof(T));
 	reg_aladin<T>::createKernels();
 	/*reg_aladin<T>::AllocateWarpedImage();
 	 reg_aladin<T>::AllocateDeformationField();*/
@@ -743,7 +752,7 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 
 //   reg_aladin<T>::ClearWarpedImage();
 	reg_aladin<T>::clearKernels();
-	reg_aladin<T>::clearContext();
+	reg_aladin<T>::clearContent();
 	return resultImage;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
