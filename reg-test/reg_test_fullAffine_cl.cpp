@@ -37,10 +37,11 @@ int main(int argc, char **argv)
    reg_tool_ReadAffineFile(inputMatrix, inputMatFileName);
 
    // Run the affine registration
-   reg_aladin_sym<float> *affine=new reg_aladin_sym<float>();
+   reg_aladin<float> *affine=new reg_aladin_sym<float>();
    affine->SetInputReference(referenceImage);
    affine->SetInputFloating(floatingImage);
    affine->setPlatformCode(2);
+   affine->setClIdx(1);
    affine->Run();
    mat44 differenceMatrix = *inputMatrix - *(affine->GetTransformationMatrix());
 
