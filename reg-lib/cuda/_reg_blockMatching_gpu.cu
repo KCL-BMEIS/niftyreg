@@ -151,23 +151,18 @@ void cusolverSVD(float* A_d, unsigned int m, unsigned int n, float* S_d, float* 
 	float *Work;
 	float *rwork;
 	int *devInfo;
-	nvtxNameOsThread(1, "MAIN");
-	nvtxRangePush(__FUNCTION__);
 
 	//init cusolver compute SVD and shut down
-	nvtxMark("Init...");
 	checkCUSOLVERStatus(cusolverDnCreate(&gH), "cusolverDnCreate");
-	nvtxMark("Lwork...");
 	checkCUSOLVERStatus(cusolverDnSgesvd_bufferSize(gH, m, n, &Lwork), "cusolverDnSgesvd_bufferSize");
 
 	cudaMalloc(&Work, Lwork * sizeof(float));
 	cudaMalloc(&rwork, Lwork * sizeof(float));
 	cudaMalloc(&devInfo, sizeof(int));
-	nvtxMark("SVD...");
+
 	checkCUSOLVERStatus(cusolverDnSgesvd(gH, jobu, jobvt, m, n, A_d, lda, S_d, U_d, ldu, VT_d, ldvt, Work, Lwork, NULL, devInfo), "cusolverDnSgesvd");
-	nvtxMark("Destroy!!!");
 	checkCUSOLVERStatus(cusolverDnDestroy(gH), "cusolverDnDestroy");
-	nvtxRangePop();
+
 	//free vars
 	cudaFree(devInfo);
 	cudaFree(rwork);
@@ -181,8 +176,7 @@ void cusolverSVD(float* A_d, unsigned int m, unsigned int n, float* S_d, float* 
 void cublasPseudoInverse(float* transformation, float *R_d, float* result_d, float *VT_d, float* Sigma_d, float *U_d, const unsigned int m, const unsigned int n) {
 	// First we make sure that the really small singular values
 	// are set to 0. and compute the inverse by taking the reciprocal of the entries
-	nvtxNameOsThread(1, "MAIN");
-	nvtxRangePush(__FUNCTION__);
+
 	trimAndInvertSingularValuesKernel<<<1, n>>>(Sigma_d);	//test 3
 
 	cublasHandle_t handle;
@@ -212,7 +206,7 @@ void cublasPseudoInverse(float* transformation, float *R_d, float* result_d, flo
 	checkCublasStatus(cublasDestroy(handle));
 	permuteAffineMatrix<<<1,16>>>(transformation);
 	cudaThreadSynchronize();
-	nvtxRangePop();
+
 
 }
 
@@ -221,17 +215,13 @@ void cublasPseudoInverse(float* transformation, float *R_d, float* result_d, flo
 // estimate an affine transformation using least square
 void getAffineMat3D(float* AR_d, float* Sigma_d, float* VT_d, float* U_d, float* target_d, float* result_d, float *transformation, const unsigned int numBlocks, unsigned int m, unsigned int n) {
 
-//populate A
+	//populate A
 	populateMatrixA<<<numBlocks, 512>>>(AR_d,target_d, m/3); //test 2
 
-//calculate SVD on the GPU
-
-	nvtxNameOsThread(1,"MAIN");
-	nvtxRangePush(__FUNCTION__);
+	//calculate SVD on the GPU
 	cusolverSVD(AR_d, m, n, Sigma_d, VT_d, U_d);
-
+	//calculate the pseudoinverse
 	cublasPseudoInverse(transformation, AR_d,result_d, VT_d,Sigma_d, U_d, m, n);
-	nvtxRangePop();
 
 }
 
