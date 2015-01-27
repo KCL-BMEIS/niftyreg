@@ -1246,6 +1246,7 @@ void affineIterativeLocalSearch3D(_reg_blockMatchingParam *params, std::vector<_
 			}
 			estimate_affine_transformation3D(top_points, final, a, w, v, r, b);
 			iter++;
+
 		}
 
 	}

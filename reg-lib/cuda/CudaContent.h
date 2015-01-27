@@ -6,9 +6,9 @@ class CudaContent: public Content {
 
 public:
 	CudaContent();
-	CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep);
+	CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep, bool cusvd=false);
 	CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte);
-	CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep);
+	CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep, bool cusvd=false);
 	CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte);
 	~CudaContent();
 
@@ -88,5 +88,6 @@ private:
 	FloatingTYPE fillWarpedImageData(float intensity, int datatype);
 
 	unsigned long nVoxels;
+	bool cusvd;
 
 };

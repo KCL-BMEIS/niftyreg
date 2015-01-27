@@ -407,7 +407,7 @@ void reg_aladin_sym<T>::initContent(nifti_image* ref, nifti_image* flo,  int* ma
 	this->backCon = new Content(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
 #ifdef _USE_CUDA
 	else if (this->platformCode == NR_PLATFORM_CUDA)
-	this->backCon = new CudaContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
+	this->backCon = new CudaContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize, this->cusvd);
 #endif
 #ifdef _USE_OPENCL
 	else if (this->platformCode == NR_PLATFORM_CL)

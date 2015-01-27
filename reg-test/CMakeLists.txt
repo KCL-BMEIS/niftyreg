@@ -195,6 +195,13 @@ if(USE_CUDA)
 	add_test(${EXEC}_rig_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 1)
 	add_test(${EXEC}_aff_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 0)
 	
+	#blockMatching cuda tests
+	set(EXEC reg_test_blockMatching_cuda_cusvd)
+	add_executable(${EXEC} ${EXEC}.cpp)
+	target_link_libraries(${EXEC} _reg_aladin)
+	add_test(${EXEC}_rig_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_lin3D.nii.gz 0)
+
+	
 	#interpolation cuda tests
 	set(EXEC reg_test_interpolation_cuda)
 	add_executable(${EXEC} ${EXEC}.cpp)

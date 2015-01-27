@@ -23,6 +23,7 @@
 #include "_reg_maths.h"
 
 #include "CudaKernelFuncs.h"
+
 #include "nvToolsExt.h"
 #include "nvToolsExtCuda.h"
 
@@ -248,6 +249,7 @@ void optimize_affine3D_cuda(mat44* cpuMat, float* final_d, float* AR_d, float* U
 	// run the local search optimization routine
 	affineLocalSearch3DCuda(cpuMat, final_d, AR_d, Sigma_d, U_d, VT_d, newResult_d, target_d, result_d, lengths_d, numBlocks, numToKeep, m, n);
 
+	downloadMat44(cpuMat, final_d);
 }
 void affineLocalSearch3DCuda(mat44 *cpuMat, float* final_d, float *AR_d, float* Sigma_d, float* U_d, float* VT_d, float * newResultPos_d, float* targetPos_d, float* resultPos_d, float* lengths_d, const unsigned int numBlocks, const unsigned int num_to_keep, const unsigned int m, const unsigned int n) {
 
@@ -264,6 +266,7 @@ void affineLocalSearch3DCuda(mat44 *cpuMat, float* final_d, float *AR_d, float* 
 		// Transform the points in the target
 		transformResultPointsKernel<<<numBlocks, 512>>>(final_d, targetPos_d,newResultPos_d, m/3); //test 1
 		double distance = sortAndReduce( lengths_d, targetPos_d, resultPos_d, newResultPos_d, numBlocks,num_to_keep, m);
+
 		// If the change is not substantial or we are getting worst, we return
 		if ((distance >= lastDistance) || (lastDistance - distance) < TOLERANCE) break;
 
@@ -276,9 +279,6 @@ void affineLocalSearch3DCuda(mat44 *cpuMat, float* final_d, float *AR_d, float* 
 	//async cudamemcpy here
 	cudaMemcpy(final_d, lastTransformation_d, 16 * sizeof(float), cudaMemcpyDeviceToDevice);
 	cudaFree(lastTransformation_d);
-
-	downloadMat44(cpuMat, final_d);
-
 }
 
 #endif

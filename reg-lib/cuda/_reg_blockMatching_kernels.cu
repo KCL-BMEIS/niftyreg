@@ -312,7 +312,7 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 
 						if (blockSize > 32) {
 
-							//the target values must remain constant at each loop, so please do not touch this!
+							//the target values must remain intact at each loop, so please do not touch this!
 							float newTargetTemp = targetTemp;
 							float newTargetVar = targetVar;
 							if (blockSize != targetBlockSize) {

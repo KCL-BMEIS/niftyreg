@@ -234,7 +234,7 @@ void CudaOptimiseKernel::calculate(bool affine, bool ils, bool cusvd) {
 
 	if (affine) {
 		if (cusvd)
-			optimize_affine3D_cuda(transformationMatrix, transformationMatrix_d, AR_d, U_d, Sigma_d, VT_d, lengths_d, targetPos_d, resultPos_d, newResultPos_d, blockMatchingParams->definedActiveBlock * 3, 12, num_to_keep, false);
+			optimize_affine3D_cuda(transformationMatrix, transformationMatrix_d, AR_d, U_d, Sigma_d, VT_d, lengths_d, targetPos_d, resultPos_d, newResultPos_d, blockMatchingParams->definedActiveBlock * 3, 12, num_to_keep, ils);
 		else {
 			this->blockMatchingParams = con->getBlockMatchingParams();
 			optimize(this->blockMatchingParams, transformationMatrix, affine, ils);
