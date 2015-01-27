@@ -5,6 +5,12 @@
 #include "../reg-lib/cl/CLContextSingletton.h"
 #include "../reg-lib/cl/InfoDevice.h"
 
+#include <pthread.h>
+void junk() {
+  int i;
+  i=pthread_getconcurrency();
+};
+
 void showInfo(void) {
 	cl_int errNum;
 	CLContextSingletton *sContext = &CLContextSingletton::Instance();

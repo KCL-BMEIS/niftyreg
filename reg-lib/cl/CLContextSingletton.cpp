@@ -67,12 +67,12 @@ void CLContextSingletton::pickCard() {
 	clIdx = 0;
 	cl_int errNum;
 	std::size_t paramValueSize;
-	cl_uint * info = (cl_uint *) alloca(sizeof(cl_uint) * paramValueSize);
+
 
 	for (int i = 0; i < numDevices; ++i) {
 		errNum = clGetDeviceInfo(devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, 0, NULL, &paramValueSize);
 		checkErrNum(errNum, "Failed to find OpenCL device info ");
-
+		cl_uint * info = (cl_uint *) alloca(sizeof(cl_uint) * paramValueSize);
 		errNum = clGetDeviceInfo(devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, paramValueSize, info, NULL);
 		checkErrNum(errNum, "Failed to find OpenCL device info ");
 		cl_uint numProcs = *info;
