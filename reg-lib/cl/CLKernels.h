@@ -74,7 +74,7 @@ public:
 
 	CLOptimiseKernel(Content* con, std::string name);
 	~CLOptimiseKernel();
-	void calculate(bool affine, bool ils);
+	void calculate(bool affine, bool ils, bool clsvd=0);
 private:
 	_reg_blockMatchingParam *blockMatchingParams;
 	mat44 *transformationMatrix;

@@ -1,6 +1,6 @@
 #include "CPUKernelFactory.h"
 #include "CPUKernels.h"
-#include "Context.h"
+#include "Content.h"
 
 Kernel* CPUKernelFactory::produceKernel(std::string name,  Content* con) const {
 	if (name == AffineDeformationFieldKernel::getName()) return new CPUAffineDeformationFieldKernel(con, name);

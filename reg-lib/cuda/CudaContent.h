@@ -6,9 +6,9 @@ class CudaContent: public Content {
 
 public:
 	CudaContent();
-	CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep);
+	CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep, bool cusvd=false);
 	CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte);
-	CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep);
+	CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep, bool cusvd=false);
 	CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte);
 	~CudaContent();
 
@@ -22,6 +22,14 @@ public:
 	float* getDeformationFieldArray_d();
 	float* getTargetMat_d();
 	float* getFloIJKMat_d();
+
+	float* getAR_d();
+	float* getU_d();
+	float* getVT_d();
+	float* getSigma_d();
+	float* getLengths_d();
+	float* getNewResultPos_d();
+
 	int* getActiveBlock_d();
 	int* getMask_d();
 
@@ -61,6 +69,14 @@ private:
 	float* targetMat_d;
 	float* floIJKMat_d;
 
+	//svd
+	float* AR_d;//A and then pseudoinverse
+	float* U_d;
+	float* VT_d;
+	float* Sigma_d;
+	float* lengths_d;
+	float* newResultPos_d;
+
 	int referenceDims[4];
 	int floatingDims[4];
 
@@ -72,5 +88,6 @@ private:
 	FloatingTYPE fillWarpedImageData(float intensity, int datatype);
 
 	unsigned long nVoxels;
+	bool cusvd;
 
 };

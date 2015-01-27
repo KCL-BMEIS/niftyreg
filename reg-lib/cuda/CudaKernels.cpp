@@ -33,7 +33,6 @@ CudaAffineDeformationFieldKernel::CudaAffineDeformationFieldKernel(Content* conI
 
 void CudaAffineDeformationFieldKernel::compare(bool compose) {
 
-
 	nifti_image* gpuField = con->getCurrentDeformationField();
 	float* gpuData = static_cast<float*>(gpuField->data);
 
@@ -142,12 +141,11 @@ void CudaBlockMatchingKernel::compare() {
 	float* cudaTargetData = static_cast<float*>(refParams->targetPosition);
 	float* cudaResultData = static_cast<float*>(refParams->resultPosition);
 
-	double maxTargetDiff =0.0;
+	double maxTargetDiff = 0.0;
 	double maxResultDiff = 0.0;
 
-	double targetSum[3] ={ 0.0, 0.0, 0.0 };
-	double resultSum[3] ={ 0.0, 0.0, 0.0 };
-
+	double targetSum[3] = { 0.0, 0.0, 0.0 };
+	double resultSum[3] = { 0.0, 0.0, 0.0 };
 
 	for (unsigned long i = 0; i < refParams->definedActiveBlock; i++) {
 
@@ -175,7 +173,7 @@ void CudaBlockMatchingKernel::compare() {
 					float out[3], res[3];
 					reg_mat44_mul(&mat, cudaTargetPt, out);
 					reg_mat44_mul(&mat, cudaResultPt, res);
-					printf("i: %lu | j: %lu | target: (%f-%f-%f) | (dif: %f-%f-%f) | (cpu: %f, %f, %f) | (ref: %f, %f, %f) | (%f-%F-%f)\n", i, j, out[0], out[1], out[2],resultSum[0] , resultSum[1] , resultSum[2], cpuResultPt[0], cpuResultPt[1], cpuResultPt[2], cudaResultPt[0], cudaResultPt[1], cudaResultPt[2],  res[0], res[1], res[2]);
+					printf("i: %lu | j: %lu | target: (%f-%f-%f) | (dif: %f-%f-%f) | (cpu: %f, %f, %f) | (ref: %f, %f, %f) | (%f-%F-%f)\n", i, j, out[0], out[1], out[2], resultSum[0], resultSum[1], resultSum[2], cpuResultPt[0], cpuResultPt[1], cpuResultPt[2], cudaResultPt[0], cudaResultPt[1], cudaResultPt[2], res[0], res[1], res[2]);
 					count2++;
 				}
 			}
@@ -217,12 +215,33 @@ CudaOptimiseKernel::CudaOptimiseKernel(Content* conIn, std::string name) :
 	transformationMatrix = con->Content::getTransformationMatrix();
 	blockMatchingParams = con->Content::getBlockMatchingParams();
 
+	transformationMatrix_d = con->getTransformationMatrix_d();
+	AR_d = con->getAR_d();
+	U_d = con->getU_d();
+	Sigma_d = con->getSigma_d();
+	VT_d = con->getVT_d();
+	lengths_d = con->getLengths_d();
+	targetPos_d = con->getTargetPosition_d();
+	resultPos_d = con->getResultPosition_d();
+	newResultPos_d = con->getNewResultPos_d();
+
 }
 
-void CudaOptimiseKernel::calculate(bool affine, bool ils) {
+void CudaOptimiseKernel::calculate(bool affine, bool ils, bool cusvd) {
 
 	//for now. Soon we will have a GPU version of it
-	this->blockMatchingParams = con->getBlockMatchingParams();
-	optimize(this->blockMatchingParams, con->Content::getTransformationMatrix(), affine, ils);
-}
+	const unsigned long num_to_keep = (unsigned long) (blockMatchingParams->definedActiveBlock * (blockMatchingParams->percent_to_keep / 100.0f));
 
+	if (affine) {
+		if (cusvd)
+			optimize_affine3D_cuda(transformationMatrix, transformationMatrix_d, AR_d, U_d, Sigma_d, VT_d, lengths_d, targetPos_d, resultPos_d, newResultPos_d, blockMatchingParams->definedActiveBlock * 3, 12, num_to_keep, ils);
+		else {
+			this->blockMatchingParams = con->getBlockMatchingParams();
+			optimize(this->blockMatchingParams, transformationMatrix, affine, ils);
+		}
+	}
+	else {
+		this->blockMatchingParams = con->getBlockMatchingParams();
+		optimize(this->blockMatchingParams, transformationMatrix, affine, ils);
+	}
+}

@@ -60,7 +60,7 @@ public:
 	_reg_blockMatchingParam *blockMatchingParams;
 	mat44 *transformationMatrix;
 
-	void calculate(bool affine, bool ils);
+	void calculate(bool affine, bool ils, bool svd=0);
 };
 
 //kernel functions for image resampling with three interpolation variations

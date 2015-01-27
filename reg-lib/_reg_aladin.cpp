@@ -2,11 +2,10 @@
 #define _REG_ALADIN_CPP
 
 #include "_reg_aladin.h"
-
 #include "Platform.h"
-#include "CPUPlatform.h"
 #include "Kernels.h"
 #include "Content.h"
+
 #ifdef _USE_CUDA
 #include "CudaContent.h"
 #endif
@@ -82,6 +81,7 @@ template<class T> reg_aladin<T>::reg_aladin()
 	this->FloatingLowerThreshold = 0.f;
 	this->FloatingUpperThreshold = 0.f;
 	this->clIdx = 0;
+	this->cusvd = false;
 
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
@@ -244,9 +244,7 @@ void reg_aladin<T>::InitialiseRegistration()
 
 
 	this->platform = new Platform(platformCode);
-#ifdef _USE_OPENCL
-	this->platform->setClIdx(clIdx);
-#endif
+	if (platformCode == NR_PLATFORM_CL) this->platform->setClIdx(clIdx);
 
 	Kernel* convolutionKernel = platform->createKernel(ConvolutionKernel::getName(), NULL);
 
@@ -570,7 +568,7 @@ void reg_aladin<T>::UpdateTransformationMatrix(int type)
 	 AFFINE);*/
 
 	blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate(captureRangeVox);
-	optimiseKernel->castTo<OptimiseKernel>()->calculate(type, ils);
+	optimiseKernel->castTo<OptimiseKernel>()->calculate(type, ils, cusvd);
 
 #ifndef NDEBUG
 	reg_mat44_disp(this->TransformationMatrix, (char *) "[DEBUG] updated matrix");
@@ -585,7 +583,7 @@ void reg_aladin<T>::initContent(nifti_image* ref, nifti_image* flo, int* mask, m
 		this->con = new Content(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #ifdef _USE_CUDA
 	else if(platformCode == NR_PLATFORM_CUDA)
-	this->con = new CudaContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
+	this->con = new CudaContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize, cusvd);
 #endif
 #ifdef _USE_OPENCL
 	else if(platformCode == NR_PLATFORM_CL)

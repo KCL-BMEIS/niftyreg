@@ -2,8 +2,8 @@
 #define CPUKERNLFACTORY_H
 
 #include "KernelFactory.h"
-#include "Context.h"
 
+class Content;
 
 class CPUKernelFactory : public KernelFactory
 {

@@ -7,8 +7,8 @@ CudaContent::CudaContent() {
 	allocateCuPtrs();
 	uploadContent();
 }
-CudaContent::CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep) :
-		Content(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, sizeof(float), blockPercentage, inlierLts, blockStep) {
+CudaContent::CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep, bool cusvdIn) :
+		Content(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, sizeof(float), blockPercentage, inlierLts, blockStep), cusvd(cusvdIn) {
 	initVars();
 	allocateCuPtrs();
 	uploadContent();
@@ -21,8 +21,8 @@ CudaContent::CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFl
 	uploadContent();
 }
 
-CudaContent::CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep) :
-		Content(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, transMat, sizeof(float), blockPercentage, inlierLts, blockStep) {
+CudaContent::CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep, bool cusvdIn) :
+		Content(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, transMat, sizeof(float), blockPercentage, inlierLts, blockStep), cusvd(cusvdIn) {
 	initVars();
 	allocateCuPtrs();
 	uploadContent();
@@ -78,6 +78,18 @@ void CudaContent::allocateCuPtrs() {
 		cudaCommon_allocateArrayToDevice<float>(&targetPosition_d, blockMatchingParams->activeBlockNumber * 3);
 		cudaCommon_allocateArrayToDevice<float>(&resultPosition_d, blockMatchingParams->activeBlockNumber * 3);
 		cudaCommon_allocateArrayToDevice<int>(&activeBlock_d, numBlocks);
+
+		if (cusvd) {
+			unsigned int m = blockMatchingParams->activeBlockNumber * 3;
+			unsigned int n = 12;
+
+			cudaCommon_allocateArrayToDevice<float>(&AR_d, m * n);
+			cudaCommon_allocateArrayToDevice<float>(&U_d, m * m); //only the singular vectors output is needed
+			cudaCommon_allocateArrayToDevice<float>(&VT_d, n * n);
+			cudaCommon_allocateArrayToDevice<float>(&Sigma_d, std::min(m, n));
+			cudaCommon_allocateArrayToDevice<float>(&lengths_d, blockMatchingParams->activeBlockNumber);
+			cudaCommon_allocateArrayToDevice<float>(&newResultPos_d, blockMatchingParams->activeBlockNumber * 3);
+		}
 	}
 
 }
@@ -129,8 +141,6 @@ _reg_blockMatchingParam* CudaContent::getBlockMatchingParams() {
 	return blockMatchingParams;
 }
 
-
-
 void CudaContent::setTransformationMatrix(mat44* transformationMatrixIn) {
 	Content::setTransformationMatrix(transformationMatrixIn);
 }
@@ -158,7 +168,6 @@ void CudaContent::setCurrentWarped(nifti_image* currentWarped) {
 	cudaCommon_allocateArrayToDevice<float>(&warpedImageArray_d, CurrentWarped->nvox);
 	cudaCommon_transferFromDeviceToNiftiSimple<float>(&warpedImageArray_d, this->CurrentWarped);
 }
-
 
 template<class DataType>
 DataType CudaContent::fillWarpedImageData(float intensity, int datatype) {
@@ -245,7 +254,6 @@ void CudaContent::downloadImage(nifti_image* image, float* memoryObject, bool fl
 	}
 }
 
-
 float* CudaContent::getReferenceImageArray_d() {
 	return referenceImageArray_d;
 }
@@ -274,6 +282,28 @@ float* CudaContent::getTargetMat_d() {
 float* CudaContent::getFloIJKMat_d() {
 	return floIJKMat_d;
 }
+
+float* CudaContent::getAR_d() {
+	return AR_d;
+}
+float* CudaContent::getU_d() {
+	return U_d;
+}
+float* CudaContent::getVT_d() {
+	return VT_d;
+}
+float* CudaContent::getSigma_d() {
+	return Sigma_d;
+}
+
+float* CudaContent::getLengths_d() {
+	return lengths_d;
+}
+
+float* CudaContent::getNewResultPos_d() {
+	return newResultPos_d;
+}
+
 int* CudaContent::getActiveBlock_d() {
 	return activeBlock_d;
 }
@@ -311,5 +341,13 @@ void CudaContent::freeCuPtrs() {
 		cudaCommon_free<int>(&activeBlock_d);
 		cudaCommon_free<float>(&targetPosition_d);
 		cudaCommon_free<float>(&resultPosition_d);
+		if (cusvd) {
+			cudaCommon_free<float>(&AR_d);
+			cudaCommon_free<float>(&U_d);
+			cudaCommon_free<float>(&VT_d);
+			cudaCommon_free<float>(&Sigma_d);
+			cudaCommon_free<float>(&lengths_d);
+			cudaCommon_free<float>(&newResultPos_d);
+		}
 	}
 }

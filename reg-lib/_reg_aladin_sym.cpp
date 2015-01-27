@@ -362,42 +362,11 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type){
 
 	reg_aladin<T>::UpdateTransformationMatrix(type);
 
-  /* block_matching_method(this->CurrentReference,
-                         this->CurrentWarped,
-                         &this->blockMatchingParams,
-                         this->CurrentReferenceMask);
-   if(type==RIGID)
-   {
-      optimize(&this->blockMatchingParams,
-               this->TransformationMatrix,
-               RIGID);
-   }
-   else
-   {
-      optimize(&this->blockMatchingParams,
-               this->TransformationMatrix,
-               AFFINE);
-   }*/
 
    // Update now the backward transformation matrix
 	bBlockMatchingKernel->castTo<BlockMatchingKernel>()->calculate(this->captureRangeVox);
-	bOptimiseKernel->castTo<OptimiseKernel>()->calculate(type, this->ils);
-  /* block_matching_method(this->CurrentFloating,
-                         this->CurrentBackwardWarped,
-                         &this->BackwardBlockMatchingParams,
-                         this->CurrentFloatingMask);
-   if(type==RIGID)
-   {
-      optimize(&this->BackwardBlockMatchingParams,
-               this->BackwardTransformationMatrix,
-               RIGID);
-   }
-   else
-   {
-      optimize(&this->BackwardBlockMatchingParams,
-               this->BackwardTransformationMatrix,
-               AFFINE);
-   }*/
+	bOptimiseKernel->castTo<OptimiseKernel>()->calculate(type, this->ils, this->cusvd);
+
 #ifndef NDEBUG
    reg_mat44_disp(this->TransformationMatrix, (char *)"[DEBUG] pre-updated forward transformation matrix");
    reg_mat44_disp(this->BackwardTransformationMatrix, (char *)"[DEBUG] pre-updated backward transformation matrix");
@@ -438,7 +407,7 @@ void reg_aladin_sym<T>::initContent(nifti_image* ref, nifti_image* flo,  int* ma
 	this->backCon = new Content(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
 #ifdef _USE_CUDA
 	else if (this->platformCode == NR_PLATFORM_CUDA)
-	this->backCon = new CudaContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize);
+	this->backCon = new CudaContent(flo, ref, this->FloatingMaskPyramid[this->CurrentLevel],this->BackwardTransformationMatrix,bytes, blockPercentage, inlierLts, blockStepSize, this->cusvd);
 #endif
 #ifdef _USE_OPENCL
 	else if (this->platformCode == NR_PLATFORM_CL)
