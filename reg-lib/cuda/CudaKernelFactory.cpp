@@ -9,5 +9,4 @@ Kernel* CudaKernelFactory::produceKernel(std::string name,  Content* con) const 
 	else if( name == ResampleImageKernel::getName() ) return new CudaResampleImageKernel(con, name);
 	else if( name == OptimiseKernel::getName() ) return new CudaOptimiseKernel(con, name);
 	else return NULL;
-
 }

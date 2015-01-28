@@ -433,14 +433,14 @@ void reg_aladin<T>::ClearWarpedImage()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_aladin<T>::createKernels() {
-	affineTransformation3DKernel = platform->createKernel(AffineDeformationFieldKernel::getName(), this->con);
-	resamplingKernel = platform->createKernel(ResampleImageKernel::getName(), this->con);
+	this->affineTransformation3DKernel = platform->createKernel(AffineDeformationFieldKernel::getName(), this->con);
+	this->resamplingKernel = platform->createKernel(ResampleImageKernel::getName(), this->con);
 	if (this->blockMatchingParams != NULL) {
-		blockMatchingKernel = platform->createKernel(BlockMatchingKernel::getName(), this->con);
-		optimiseKernel = platform->createKernel(OptimiseKernel::getName(), this->con);
+		this->blockMatchingKernel = platform->createKernel(BlockMatchingKernel::getName(), this->con);
+		this->optimiseKernel = platform->createKernel(OptimiseKernel::getName(), this->con);
 	} else {
-		blockMatchingKernel = NULL;
-		optimiseKernel = NULL;
+		this->blockMatchingKernel = NULL;
+		this->optimiseKernel = NULL;
 	}
 }
 
@@ -482,7 +482,7 @@ template<class T>
 void reg_aladin<T>::initContent(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes, unsigned int blockPercentage,
 		unsigned int inlierLts, unsigned int blockStepSize) {
 
-	if (platformCode == NR_PLATFORM_CPU)
+	if (this->platformCode == NR_PLATFORM_CPU)
 		this->con = new Content(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #ifdef _USE_CUDA
 	else if(platformCode == NR_PLATFORM_CUDA)
@@ -541,7 +541,7 @@ void reg_aladin<T>::Run()
 	for (this->CurrentLevel = 0; this->CurrentLevel < this->LevelsToPerform; this->CurrentLevel++) {
 		this->initContent(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel],
 				this->ReferenceMaskPyramid[CurrentLevel], this->TransformationMatrix, sizeof(T), this->BlockPercentage,
-				InlierLts, this->BlockStepSize);
+				this->InlierLts, this->BlockStepSize);
 		this->createKernels();
 		this->SetCurrentImages();
 
@@ -582,7 +582,7 @@ void reg_aladin<T>::Run()
 		}
 
 		if ((this->PerformRigid && !this->PerformAffine) || (this->PerformAffine && this->PerformRigid && this->CurrentLevel == 0)) {
-			const unsigned int ratio = (this->PerformAffine && this->PerformRigid && CurrentLevel == 0) ? 4 : 1;
+			const unsigned int ratio = (this->PerformAffine && this->PerformRigid && this->CurrentLevel == 0) ? 4 : 1;
 			resolveMatrix(maxNumberOfIterationToPerform * ratio, RIGID);
 		}
 
@@ -644,7 +644,7 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 	resultImage->data = (void *) malloc(resultImage->nvox * resultImage->nbyper);
 	memcpy(resultImage->data, this->CurrentWarped->data, resultImage->nvox * resultImage->nbyper);
 
-//   reg_aladin<T>::ClearWarpedImage();
+
 	reg_aladin<T>::clearKernels();
 	reg_aladin<T>::clearContent();
 	return resultImage;
