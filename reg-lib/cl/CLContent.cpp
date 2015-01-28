@@ -233,7 +233,7 @@ void ClContent::fillImageData(nifti_image* image, cl_mem memoryObject, cl_mem_fl
 	buffer = (float*) malloc(size * sizeof(float));
 
 	if (buffer == NULL) {
-		printf("\nERROR: Memory allocation did not complete successfully!");
+		reg_print_fct_error("\nERROR: Memory allocation did not complete successfully!");
 	}
 
 	errNum = clEnqueueReadBuffer(this->commandQueue, memoryObject, CL_TRUE, 0, size * sizeof(float), buffer, 0, NULL, NULL);

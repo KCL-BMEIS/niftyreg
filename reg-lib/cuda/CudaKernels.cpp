@@ -190,7 +190,7 @@ void CudaBlockMatchingKernel::compare() {
 	std::cout << count << "BM targets have no match" << std::endl;
 	std::cout << count2 << "BM results have no match" << std::endl;
 	if (count > 0)
-		exit(0);
+		reg_exit(0);
 	if (count2 > 0) {
 		std::cout << "Press a key to continue..!!!!!!!!" << std::endl;
 		std::cin.get();
@@ -237,11 +237,11 @@ void CudaOptimiseKernel::calculate(bool affine, bool ils, bool cusvd) {
 			optimize_affine3D_cuda(transformationMatrix, transformationMatrix_d, AR_d, U_d, Sigma_d, VT_d, lengths_d, targetPos_d, resultPos_d, newResultPos_d, blockMatchingParams->definedActiveBlock * 3, 12, num_to_keep, ils);
 		else {
 			this->blockMatchingParams = con->getBlockMatchingParams();
-			optimize(this->blockMatchingParams, transformationMatrix, affine, ils);
+			optimize(this->blockMatchingParams, transformationMatrix, affine);
 		}
 	}
 	else {
 		this->blockMatchingParams = con->getBlockMatchingParams();
-		optimize(this->blockMatchingParams, transformationMatrix, affine, ils);
+		optimize(this->blockMatchingParams, transformationMatrix, affine);
 	}
 }

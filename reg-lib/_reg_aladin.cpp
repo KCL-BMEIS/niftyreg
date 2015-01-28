@@ -644,7 +644,7 @@ void reg_aladin<T>::Run()
 
 		// Twice more iterations are performed during the first level
 		// All the blocks are used during the first level
-		const unsigned int maxNumberOfIterationToPerform = (CurrentLevel == 0) ? this->MaxIterations : this->MaxIterations * 2;
+		const unsigned int maxNumberOfIterationToPerform = (CurrentLevel == 0) ? this->MaxIterations*2 : this->MaxIterations;
 
 		/* initialise the block matching */
 //      this->InitialiseBlockMatching(percentageOfBlockToUse);

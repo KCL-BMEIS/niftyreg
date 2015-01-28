@@ -18,7 +18,7 @@
 #include <vector>
 
 #define TOLERANCE 0.01
-#define MAX_ITERATIONS 60
+#define MAX_ITERATIONS 30
 
 #define BLOCK_WIDTH 4
 #define BLOCK_SIZE 64
@@ -95,28 +95,7 @@ struct _reg_blockMatchingParam
    }
 };
 
-/* *************************************************************** */
-struct _reg_sorted_point3D {
-	float target[3];
-	float result[3];
 
-	double distance;
-
-	_reg_sorted_point3D(float * t, float * r, double d) :
-			distance(d) {
-		target[0] = t[0];
-		target[1] = t[1];
-		target[2] = t[2];
-
-		result[0] = r[0];
-		result[1] = r[1];
-		result[2] = r[2];
-	}
-
-	bool operator <(const _reg_sorted_point3D &sp) const {
-		return (sp.distance < distance);
-	}
-};
 
 /** @brief This function initialise a _reg_blockMatchingParam structure
  * according to the the provided arguments
@@ -172,10 +151,10 @@ void apply_affine(mat44 * mat,
  */
 void optimize(_reg_blockMatchingParam *params,
               mat44 * transformation_matrix,
-              bool affine = true, bool ils=false);
+              bool affine = true);
 
-void optimize_rigid3D(_reg_blockMatchingParam *params, mat44 *final, bool ils=false);
-void optimize_affine3D(_reg_blockMatchingParam *params, mat44 * final, bool ilsIn=false);
+void optimize_rigid3D(_reg_blockMatchingParam *params, mat44 *final);
+void optimize_affine3D(_reg_blockMatchingParam *params, mat44 * final);
 
 
 #endif

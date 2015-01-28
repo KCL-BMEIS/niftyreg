@@ -74,7 +74,7 @@ void block_matching_method_gpu(nifti_image *targetImage, _reg_blockMatchingParam
 void checkCublasStatus(cublasStatus_t status) {
 	if (status != CUBLAS_STATUS_SUCCESS) {
 		fprintf(stderr, "!!!! CUBLAS  error\n");
-		exit(0);
+		reg_exit(0);
 	}
 }
 void checkCUSOLVERStatus(cusolverStatus_t status, char* msg) {
@@ -93,7 +93,7 @@ void checkCUSOLVERStatus(cusolverStatus_t status, char* msg) {
 			printf("%s: a kernel failed to launch on the GPU.\n", msg);
 		else
 			printf("%s: %d\n", msg, status);
-		exit(0);
+		reg_exit(0);
 	}
 }
 void checkDevInfo(int *devInfo) {

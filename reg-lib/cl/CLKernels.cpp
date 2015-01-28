@@ -219,7 +219,7 @@ void CLResampleImageKernel::compare(int interp, float paddingValue) {
 
 	std::cout << count << "Resample: targets have no match" << std::endl;
 	if (count > 0)
-		exit(0);
+		reg_exit(0);
 
 }
 void CLResampleImageKernel::calculate(int interp, float paddingValue, bool *dti_timepoint, mat33 * jacMat) {
@@ -367,9 +367,9 @@ void CLBlockMatchingKernel::compare() {
 
 	std::cout << count << "BM targets have no match" << std::endl;
 	if (count > 0)
-		exit(0);
+		reg_exit(0);
 	if (count2 > 0)
-		exit(0);
+		reg_exit(0);
 }
 
 //==========================================================================
@@ -499,7 +499,7 @@ CLOptimiseKernel::~CLOptimiseKernel() {
 void CLOptimiseKernel::calculate(bool affine, bool ils, bool clsvd) {
 
 	this->blockMatchingParams = con->getBlockMatchingParams();
-	optimize(this->blockMatchingParams, this->transformationMatrix, affine, ils);
+	optimize(this->blockMatchingParams, this->transformationMatrix, affine);
 }
 //==============================
 

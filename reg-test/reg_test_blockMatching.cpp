@@ -60,7 +60,7 @@ int main(int argc, char **argv)
    recoveredTransformation.m[2][3]=4.f;
    optimize(&blockMatchingParams,
             &recoveredTransformation,
-            transType, false);
+            transType);
 
    nifti_image_free(warpedImage);
    free(mask);
