@@ -70,31 +70,7 @@ void reg_aladin_sym<T>::SetInputFloatingMask(nifti_image *m)
    this->InputFloatingMask = m;
    return;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-void reg_aladin_sym<T>::AllocateBackwardWarpedImage()
-{
-   if(this->CurrentReference==NULL || this->CurrentFloating==NULL)
-   {
-      fprintf(stderr,"[NiftyReg ERROR] reg_aladin_sym::AllocateBackwardWarpedImage()\n");
-      fprintf(stderr,"[NiftyReg ERROR] Reference and FLoating images are not defined. Exit.\n");
-      reg_exit(1);
-   }
-   this->ClearBackwardWarpedImage();
-   this->CurrentBackwardWarped=nifti_copy_nim_info(this->CurrentFloating);
-   this->CurrentBackwardWarped->dim[0]=this->CurrentBackwardWarped->ndim=this->CurrentReference->ndim;
-   this->CurrentBackwardWarped->dim[4]=this->CurrentBackwardWarped->nt=this->CurrentReference->nt;
-   this->CurrentBackwardWarped->pixdim[4]=this->CurrentBackwardWarped->dt=1.0;
-   this->CurrentBackwardWarped->nvox =
-      (size_t)this->CurrentBackwardWarped->nx *
-      (size_t)this->CurrentBackwardWarped->ny *
-      (size_t)this->CurrentBackwardWarped->nz *
-      (size_t)this->CurrentBackwardWarped->nt;
-   this->CurrentBackwardWarped->datatype=this->CurrentReference->datatype;
-   this->CurrentBackwardWarped->nbyper=this->CurrentReference->nbyper;
-   this->CurrentBackwardWarped->data = (void*) calloc(this->CurrentBackwardWarped->nvox,this->CurrentBackwardWarped->nbyper);
 
-}
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
 void reg_aladin_sym<T>::ClearBackwardWarpedImage()
@@ -103,48 +79,6 @@ void reg_aladin_sym<T>::ClearBackwardWarpedImage()
       nifti_image_free(this->CurrentBackwardWarped);
    this->CurrentBackwardWarped=NULL;
 
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
-void reg_aladin_sym<T>::AllocateBackwardDeformationField()
-{
-   if(this->CurrentFloating==NULL)
-   {
-      fprintf(stderr,"[NiftyReg ERROR] reg_aladin_sym::AllocateBackwardDeformationField()\n");
-      fprintf(stderr,"[NiftyReg ERROR] Floating image is not defined. Exit.\n");
-      reg_exit(1);
-   }
-   this->ClearBackwardDeformationField();
-   this->BackwardDeformationFieldImage = nifti_copy_nim_info(this->CurrentFloating);
-   this->BackwardDeformationFieldImage->dim[0]=this->BackwardDeformationFieldImage->ndim=5;
-   this->BackwardDeformationFieldImage->dim[4]=this->BackwardDeformationFieldImage->nt=1;
-   this->BackwardDeformationFieldImage->pixdim[4]=this->BackwardDeformationFieldImage->dt=1.0;
-   if(this->CurrentFloating->nz==1)
-      this->BackwardDeformationFieldImage->dim[5]=this->BackwardDeformationFieldImage->nu=2;
-   else this->BackwardDeformationFieldImage->dim[5]=this->BackwardDeformationFieldImage->nu=3;
-   this->BackwardDeformationFieldImage->pixdim[5]=this->BackwardDeformationFieldImage->du=1.0;
-   this->BackwardDeformationFieldImage->dim[6]=this->BackwardDeformationFieldImage->nv=1;
-   this->BackwardDeformationFieldImage->pixdim[6]=this->BackwardDeformationFieldImage->dv=1.0;
-   this->BackwardDeformationFieldImage->dim[7]=this->BackwardDeformationFieldImage->nw=1;
-   this->BackwardDeformationFieldImage->pixdim[7]=this->BackwardDeformationFieldImage->dw=1.0;
-   this->BackwardDeformationFieldImage->nvox =
-      (size_t)this->BackwardDeformationFieldImage->nx *
-      (size_t)this->BackwardDeformationFieldImage->ny *
-      (size_t)this->BackwardDeformationFieldImage->nz *
-      (size_t)this->BackwardDeformationFieldImage->nt *
-      (size_t)this->BackwardDeformationFieldImage->nu;
-   this->BackwardDeformationFieldImage->nbyper = sizeof(T);
-   if(sizeof(T)==4)
-      this->BackwardDeformationFieldImage->datatype = NIFTI_TYPE_FLOAT32;
-   else if(sizeof(T)==8)
-      this->BackwardDeformationFieldImage->datatype = NIFTI_TYPE_FLOAT64;
-   else
-   {
-      fprintf(stderr,"[NiftyReg ERROR] reg_aladin_sym::AllocateBackwardDeformationField()\n");
-      fprintf(stderr,"[NiftyReg ERROR] Only float or double are expected for the deformation field. Exit.\n");
-      reg_exit(1);
-   }
-   this->BackwardDeformationFieldImage->data = (void *)calloc(this->BackwardDeformationFieldImage->nvox, this->BackwardDeformationFieldImage->nbyper);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -306,32 +240,10 @@ void reg_aladin_sym<T>::InitialiseRegistration()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
-void reg_aladin_sym<T>::InitialiseBlockMatching(int CurrentPercentageOfBlockToUse)
-{
-   //Perform conventional block matchingin initialisation
-   //Then initialise for the backward case.
-   //TODO: If using halfway space, then we need to initialize the block matching
-   //so that the HalfwayFloating (Warped) now serves as the target
-   //and the Mask is correct as well
-   //Then do the same thing for the block matching algorithm
-   reg_aladin<T>::InitialiseBlockMatching(CurrentPercentageOfBlockToUse);
-   initialise_block_matching_method(this->CurrentFloating,
-                                    this->BackwardBlockMatchingParams,
-                                    CurrentPercentageOfBlockToUse,    // percentage of block kept
-                                    this->InlierLts,         // percentage of inlier in the optimisation process
-                                    this->BlockStepSize,
-                                    this->CurrentFloatingMask,
-                                    false // GPU is not used here
-                                   );
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template <class T>
 void reg_aladin_sym<T>::SetCurrentImages()
 {
    reg_aladin<T>::SetCurrentImages();
    this->CurrentFloatingMask=this->FloatingMaskPyramid[this->CurrentLevel];
-   /*this->AllocateBackwardWarpedImage();
-   this->AllocateBackwardDeformationField();*/
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template <class T>
@@ -484,10 +396,8 @@ void reg_aladin_sym<T>::DebugPrintLevelInfoStart()
 template <class T>
 void reg_aladin_sym<T>::DebugPrintLevelInfoEnd()
 {
-   reg_mat44_disp(this->TransformationMatrix,
-                  (char *)"[reg_aladin_sym] Final forward transformation matrix:");
-   reg_mat44_disp(this->BackwardTransformationMatrix,
-                  (char *)"[reg_aladin_sym] Final backward transformation matrix:");
+   reg_mat44_disp(this->TransformationMatrix, (char *)"[reg_aladin_sym] Final forward transformation matrix:");
+   reg_mat44_disp(this->BackwardTransformationMatrix, (char *)"[reg_aladin_sym] Final backward transformation matrix:");
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 #endif //REG_ALADIN_SYM_CPP

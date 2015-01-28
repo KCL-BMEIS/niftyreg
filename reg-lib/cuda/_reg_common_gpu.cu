@@ -12,6 +12,7 @@
 #define _REG_COMMON_GPU_CU
 
 #include "_reg_common_gpu.h"
+#include "_reg_maths.h"
 
 /* ******************************** */
 /* ******************************** */

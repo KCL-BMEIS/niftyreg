@@ -207,7 +207,7 @@ void CudaContent::fillImageData(nifti_image* image, float* memoryObject, bool wa
 	buffer = (float*) malloc(size * sizeof(float));
 
 	if (buffer == NULL) {
-		printf("\nERROR: Memory allocation did not complete successfully!");
+		reg_print_fct_error("\nERROR: Memory allocation did not complete successfully!");
 	}
 
 	cudaCommon_transferFromDeviceToCpu<float>(buffer, &memoryObject, size);

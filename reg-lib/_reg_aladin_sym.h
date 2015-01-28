@@ -40,9 +40,7 @@ protected:
    mat44 *BackwardTransformationMatrix;
 
    virtual void ClearCurrentInputImage();
-   virtual void AllocateBackwardWarpedImage();
    virtual void ClearBackwardWarpedImage();
-   virtual void AllocateBackwardDeformationField();
    virtual void ClearBackwardDeformationField();
    virtual void GetBackwardDeformationField();
    virtual void UpdateTransformationMatrix(int);
@@ -50,16 +48,13 @@ protected:
    virtual void DebugPrintLevelInfoStart();
    virtual void DebugPrintLevelInfoEnd();
    virtual void InitialiseRegistration();
-   virtual void InitialiseBlockMatching(int);
    virtual void SetCurrentImages();
    virtual void GetWarpedImage(int);
 
 public:
    reg_aladin_sym();
    virtual ~reg_aladin_sym();
-   //int Check();
-   //int Print();
-   //void Run();
+
 
    virtual void SetInputFloatingMask(nifti_image *);
 };

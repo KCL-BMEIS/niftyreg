@@ -16,16 +16,19 @@
 //#include "_reg_blocksize_gpu.h"
 #include "_reg_ReadWriteImage.h"
 #include "_reg_tools.h"
-#include "cublas_v2.h"
-#include "cusolverDn.h"
 
+#ifdef CUDA7
+	#include "cublas_v2.h"
+	#include "cusolverDn.h"
+	#include "nvToolsExt.h"
+	#include "nvToolsExtCuda.h"
+#endif
 #include <vector>
 #include "_reg_maths.h"
 
 #include "CudaKernelFuncs.h"
 
-#include "nvToolsExt.h"
-#include "nvToolsExtCuda.h"
+
 
 /* *************************************************************** */
 
@@ -70,29 +73,22 @@ void block_matching_method_gpu(nifti_image *targetImage, _reg_blockMatchingParam
 }
 
 //------------Optimizer------------------------------------
-
+//enable when cuda 7 is available?
+#ifdef CUDA7
 void checkCublasStatus(cublasStatus_t status) {
 	if (status != CUBLAS_STATUS_SUCCESS) {
-		fprintf(stderr, "!!!! CUBLAS  error\n");
+		reg_print_fct_error("!!!! CUBLAS  error\n");
 		reg_exit(0);
 	}
 }
 void checkCUSOLVERStatus(cusolverStatus_t status, char* msg) {
+
 	if (status != CUSOLVER_STATUS_SUCCESS) {
-		if (status == CUSOLVER_STATUS_SUCCESS)
-			printf("%s: PASS\n", msg);
-		else if (status == CUSOLVER_STATUS_NOT_INITIALIZED)
-			printf("%s: the library was not initialized.\n", msg);
-		else if (status == CUSOLVER_STATUS_INVALID_VALUE)
-			printf("%s: invalid parameters were passed (m,n<0 or lda<max(1,m) or ldu<max(1,m) or ldvt<max(1,n) ).\n", msg);
-		else if (status == CUSOLVER_STATUS_ARCH_MISMATCH)
-			printf("%s: the device only supports compute capability 2.0 and above.\n", msg);
+		if (status == CUSOLVER_STATUS_NOT_INITIALIZED)
+			reg_print_fct_error("the library was not initialized.")
 		else if (status == CUSOLVER_STATUS_INTERNAL_ERROR)
-			printf("%s: an internal operation failed.\n", msg);
-		else if (status == CUSOLVER_STATUS_EXECUTION_FAILED)
-			printf("%s: a kernel failed to launch on the GPU.\n", msg);
-		else
-			printf("%s: %d\n", msg, status);
+			reg_print_fct_error(" an internal operation failed.");
+
 		reg_exit(0);
 	}
 }
@@ -184,13 +180,13 @@ void cublasPseudoInverse(float* transformation, float *R_d, float* result_d, flo
 	const float alpha = 1.f;
 	const float beta = 0.f;
 
-	const int ldvt = n;	//VT's lead dimension
-	const int ldu = m;	//U's lead dimension
-	const int ldr = n;	//Pseudoinverse's r lead dimension
+	const int ldvt = n;//VT's lead dimension
+	const int ldu = m;//U's lead dimension
+	const int ldr = n;//Pseudoinverse's r lead dimension
 
-	const int rowsVTandR = n;	//VT and r's num rows
-	const int colsUandR = m;	//U and r's num cols
-	const int colsVtRowsU = n;	//VT's cols and U's rows
+	const int rowsVTandR = n;//VT and r's num rows
+	const int colsUandR = m;//U and r's num cols
+	const int colsVtRowsU = n;//VT's cols and U's rows
 
 	// V x inv(S) in place | We scale eaach row with the corresponding singular value as V is transpose
 	scaleV<<<n,n>>>(VT_d, n, n, Sigma_d);
@@ -206,7 +202,6 @@ void cublasPseudoInverse(float* transformation, float *R_d, float* result_d, flo
 	checkCublasStatus(cublasDestroy(handle));
 	permuteAffineMatrix<<<1,16>>>(transformation);
 	cudaThreadSynchronize();
-
 
 }
 
@@ -270,5 +265,5 @@ void affineLocalSearch3DCuda(mat44 *cpuMat, float* final_d, float *AR_d, float* 
 	cudaMemcpy(final_d, lastTransformation_d, 16 * sizeof(float), cudaMemcpyDeviceToDevice);
 	cudaFree(lastTransformation_d);
 }
-
+#endif
 #endif

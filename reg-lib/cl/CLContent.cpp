@@ -35,98 +35,98 @@ ClContent::~ClContent() {
 
 void ClContent::initVars() {
 
-	referenceImageClmem = 0;
-	floatingImageClmem = 0;
-	warpedImageClmem = 0;
-	deformationFieldClmem = 0;
-	targetPositionClmem = 0;
-	resultPositionClmem = 0;
-	activeBlockClmem = 0;
-	maskClmem = 0;
+	this->referenceImageClmem = 0;
+	this->floatingImageClmem = 0;
+	this->warpedImageClmem = 0;
+	this->deformationFieldClmem = 0;
+	this->targetPositionClmem = 0;
+	this->resultPositionClmem = 0;
+	this->activeBlockClmem = 0;
+	this->maskClmem = 0;
 
 	if (this->CurrentReference != NULL && this->CurrentReference->nbyper != NIFTI_TYPE_FLOAT32)
 		reg_tools_changeDatatype<float>(this->CurrentReference);
 	if (this->CurrentFloating != NULL && this->CurrentFloating->nbyper != NIFTI_TYPE_FLOAT32) {
-		reg_tools_changeDatatype<float>(CurrentFloating);
+		reg_tools_changeDatatype<float>(this->CurrentFloating);
 		if (this->CurrentWarped != NULL)
-			reg_tools_changeDatatype<float>(CurrentWarped);
+			reg_tools_changeDatatype<float>(this->CurrentWarped);
 	}
-	sContext = &CLContextSingletton::Instance();
-	clContext = sContext->getContext();
-	commandQueue = sContext->getCommandQueue();
-	referenceVoxels = (this->CurrentReference != NULL) ? this->CurrentReference->nvox : 0;
-	floatingVoxels = (this->CurrentFloating != NULL) ? this->CurrentFloating->nvox : 0;
-	numBlocks = (this->blockMatchingParams != NULL) ? blockMatchingParams->blockNumber[0] * blockMatchingParams->blockNumber[1] * blockMatchingParams->blockNumber[2] : 0;
+	this->sContext = &CLContextSingletton::Instance();
+	this->clContext = this->sContext->getContext();
+	this->commandQueue = this->sContext->getCommandQueue();
+	this->referenceVoxels = (this->CurrentReference != NULL) ? this->CurrentReference->nvox : 0;
+	this->floatingVoxels = (this->CurrentFloating != NULL) ? this->CurrentFloating->nvox : 0;
+	this->numBlocks = (this->blockMatchingParams != NULL) ? this->blockMatchingParams->blockNumber[0] * this->blockMatchingParams->blockNumber[1] * this->blockMatchingParams->blockNumber[2] : 0;
 }
 
 void ClContent::allocateClPtrs() {
 
 	if (this->CurrentWarped != NULL) {
-		warpedImageClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, this->CurrentWarped->nvox * sizeof(float), this->CurrentWarped->data, &errNum);
-		sContext->checkErrNum(errNum, "Constructor: failed CurrentWarped: ");
+		this->warpedImageClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, this->CurrentWarped->nvox * sizeof(float), this->CurrentWarped->data, &this->errNum);
+		this->sContext->checkErrNum(errNum, "Constructor: failed CurrentWarped: ");
 	}
 
 	if (this->CurrentDeformationField != NULL) {
-		deformationFieldClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(float) * this->CurrentDeformationField->nvox, this->CurrentDeformationField->data, &errNum);
-		sContext->checkErrNum(errNum, "Constructor: failed CurrentDeformationField: ");
+		this->deformationFieldClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(float) * this->CurrentDeformationField->nvox, this->CurrentDeformationField->data, &this->errNum);
+		this->sContext->checkErrNum(this->errNum, "Constructor: failed CurrentDeformationField: ");
 	}
 
 	if (this->CurrentFloating != NULL) {
-		floatingImageClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * this->CurrentFloating->nvox, this->CurrentFloating->data, &errNum);
-		sContext->checkErrNum(errNum, "failed CurrentFloating: ");
+		this->floatingImageClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * this->CurrentFloating->nvox, this->CurrentFloating->data, &this->errNum);
+		this->sContext->checkErrNum(this->errNum, "failed CurrentFloating: ");
 
 		float *sourceIJKMatrix_h = (float*) malloc(16 * sizeof(float));
 		mat44ToCptr(this->floMatrix_ijk, sourceIJKMatrix_h);
-		floMatClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 16 * sizeof(float), sourceIJKMatrix_h, &errNum);
+		this->floMatClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 16 * sizeof(float), sourceIJKMatrix_h, &this->errNum);
 		free(sourceIJKMatrix_h);
 	}
 
 	if (this->CurrentReference != NULL) {
-		referenceImageClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * this->CurrentReference->nvox, this->CurrentReference->data, &errNum);
-		sContext->checkErrNum(errNum, "failed CurrentReference: ");
+		this->referenceImageClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * this->CurrentReference->nvox, this->CurrentReference->data, &this->errNum);
+		this->sContext->checkErrNum(this->errNum, "failed CurrentReference: ");
 
 		float* targetMat = (float *) malloc(16 * sizeof(float)); //freed
 		mat44ToCptr(this->refMatrix_xyz, targetMat);
-		refMatClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 16 * sizeof(float), targetMat, &errNum);
+		this->refMatClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 16 * sizeof(float), targetMat, &this->errNum);
 		free(targetMat);
 	}
 
 	if (this->blockMatchingParams != NULL) {
 
 		//targetPositionClmem
-		targetPositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, blockMatchingParams->activeBlockNumber * 3 * sizeof(float), blockMatchingParams->targetPosition, &errNum);
-		sContext->checkErrNum(errNum, "failed targetPositionClmem: ");
+		this->targetPositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->activeBlockNumber * 3 * sizeof(float), this->blockMatchingParams->targetPosition, &this->errNum);
+		this->sContext->checkErrNum(this->errNum, "failed targetPositionClmem: ");
 		//resultPositionClmem
-		resultPositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, blockMatchingParams->activeBlockNumber * 3 * sizeof(float), blockMatchingParams->resultPosition, &errNum);
-		sContext->checkErrNum(errNum, "failed resultPositionClmem: ");
+		this->resultPositionClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, this->blockMatchingParams->activeBlockNumber * 3 * sizeof(float), this->blockMatchingParams->resultPosition, &this->errNum);
+		this->sContext->checkErrNum(this->errNum, "failed resultPositionClmem: ");
 		//activeBlockClmem
-		activeBlockClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, numBlocks * sizeof(int), blockMatchingParams->activeBlock, &errNum);
-		sContext->checkErrNum(errNum, "failed activeBlockClmem: ");
+		this->activeBlockClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, this->numBlocks * sizeof(int), this->blockMatchingParams->activeBlock, &this->errNum);
+		this->sContext->checkErrNum(this->errNum, "failed activeBlockClmem: ");
 	}
 	if (this->CurrentReferenceMask != NULL) {
-		maskClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, this->CurrentReference->nx * this->CurrentReference->ny * this->CurrentReference->nz * sizeof(int), this->CurrentReferenceMask, &errNum);
-		sContext->checkErrNum(errNum, "failed CurrentReferenceMask: ");
+		this->maskClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, this->CurrentReference->nx * this->CurrentReference->ny * this->CurrentReference->nz * sizeof(int), this->CurrentReferenceMask, &this->errNum);
+		this->sContext->checkErrNum(this->errNum, "failed CurrentReferenceMask: ");
 	}
 }
 
 nifti_image* ClContent::getCurrentWarped(int datatype) {
 //	std::cout << "get Warped1!" << std::endl;
-	downloadImage(this->CurrentWarped, warpedImageClmem, CL_TRUE, datatype, "warpedImageClmem");
+	downloadImage(this->CurrentWarped, this->warpedImageClmem, CL_TRUE, datatype, "warpedImageClmem");
 	return this->CurrentWarped;
 }
 
 nifti_image* ClContent::getCurrentDeformationField() {
-	errNum = clEnqueueReadBuffer(this->commandQueue, deformationFieldClmem, CL_TRUE, 0, this->CurrentDeformationField->nvox * sizeof(float), this->CurrentDeformationField->data, 0, NULL, NULL); //CLCONTEXT
-	sContext->checkErrNum(errNum, "Get: failed CurrentDeformationField: ");
-	return CurrentDeformationField;
+	this->errNum = clEnqueueReadBuffer(this->commandQueue, this->deformationFieldClmem, CL_TRUE, 0, this->CurrentDeformationField->nvox * sizeof(float), this->CurrentDeformationField->data, 0, NULL, NULL); //CLCONTEXT
+	this->sContext->checkErrNum(errNum, "Get: failed CurrentDeformationField: ");
+	return this->CurrentDeformationField;
 }
 _reg_blockMatchingParam* ClContent::getBlockMatchingParams() {
 
-	errNum = clEnqueueReadBuffer(this->commandQueue, resultPositionClmem, CL_TRUE, 0, sizeof(float) * blockMatchingParams->activeBlockNumber * 3, blockMatchingParams->resultPosition, 0, NULL, NULL); //CLCONTEXT
-	sContext->checkErrNum(errNum, "CLContext: failed result position: ");
-	errNum = clEnqueueReadBuffer(this->commandQueue, targetPositionClmem, CL_TRUE, 0, sizeof(float) * blockMatchingParams->activeBlockNumber * 3, blockMatchingParams->targetPosition, 0, NULL, NULL); //CLCONTEXT
-	sContext->checkErrNum(errNum, "CLContext: failed target position: ");
-	return blockMatchingParams;
+	this->errNum = clEnqueueReadBuffer(this->commandQueue, resultPositionClmem, CL_TRUE, 0, sizeof(float) * this->blockMatchingParams->activeBlockNumber * 3, this->blockMatchingParams->resultPosition, 0, NULL, NULL); //CLCONTEXT
+	this->sContext->checkErrNum(this->errNum, "CLContext: failed result position: ");
+	this->errNum = clEnqueueReadBuffer(this->commandQueue, targetPositionClmem, CL_TRUE, 0, sizeof(float) * this->blockMatchingParams->activeBlockNumber * 3, this->blockMatchingParams->targetPosition, 0, NULL, NULL); //CLCONTEXT
+	this->sContext->checkErrNum(this->errNum, "CLContext: failed target position: ");
+	return this->blockMatchingParams;
 }
 
 void ClContent::setTransformationMatrix(mat44* transformationMatrixIn) {
@@ -135,11 +135,11 @@ void ClContent::setTransformationMatrix(mat44* transformationMatrixIn) {
 
 void ClContent::setCurrentDeformationField(nifti_image* CurrentDeformationFieldIn) {
 	if (this->CurrentDeformationField != NULL)
-		clReleaseMemObject(deformationFieldClmem);
+		clReleaseMemObject(this->deformationFieldClmem);
 
 	Content::setCurrentDeformationField(CurrentDeformationFieldIn);
-	deformationFieldClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, this->CurrentDeformationField->nvox * sizeof(float), this->CurrentDeformationField->data, &errNum);
-	sContext->checkErrNum(errNum, "Set: failed CurrentDeformationField: ");
+	this->deformationFieldClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, this->CurrentDeformationField->nvox * sizeof(float), this->CurrentDeformationField->data, &this->errNum);
+	this->sContext->checkErrNum(this->errNum, "Set: failed CurrentDeformationField: ");
 }
 void ClContent::setCurrentReferenceMask(int* maskIn, size_t nvox) {
 
@@ -147,55 +147,55 @@ void ClContent::setCurrentReferenceMask(int* maskIn, size_t nvox) {
 		clReleaseMemObject(maskClmem);
 
 	this->CurrentReferenceMask = maskIn;
-	maskClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, nvox * sizeof(int), this->CurrentReferenceMask, &errNum);
+	maskClmem = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, nvox * sizeof(int), this->CurrentReferenceMask, &this->errNum);
 }
 
 void ClContent::setCurrentWarped(nifti_image* currentWarped) {
 	if (this->CurrentWarped != NULL) {
-		clReleaseMemObject(warpedImageClmem);
+		clReleaseMemObject(this->warpedImageClmem);
 	}
 	Content::setCurrentWarped(currentWarped);
-	warpedImageClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, this->CurrentWarped->nvox * sizeof(float), this->CurrentWarped->data, &errNum);
-	sContext->checkErrNum(errNum, "failed CurrentWarped: ");
+	this->warpedImageClmem = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, this->CurrentWarped->nvox * sizeof(float), this->CurrentWarped->data, &this->errNum);
+	this->sContext->checkErrNum(this->errNum, "failed CurrentWarped: ");
 }
 
 cl_mem ClContent::getReferenceImageArrayClmem() {
-	return referenceImageClmem;
+	return this->referenceImageClmem;
 }
 cl_mem ClContent::getFloatingImageArrayClmem() {
-	return floatingImageClmem;
+	return this->floatingImageClmem;
 }
 cl_mem ClContent::getWarpedImageClmem() {
-	return warpedImageClmem;
+	return this->warpedImageClmem;
 }
 
 cl_mem ClContent::getTargetPositionClmem() {
-	return targetPositionClmem;
+	return this->targetPositionClmem;
 }
 cl_mem ClContent::getResultPositionClmem() {
-	return resultPositionClmem;
+	return this->resultPositionClmem;
 }
 cl_mem ClContent::getDeformationFieldArrayClmem() {
-	return deformationFieldClmem;
+	return this->deformationFieldClmem;
 }
 cl_mem ClContent::getActiveBlockClmem() {
-	return activeBlockClmem;
+	return this->activeBlockClmem;
 }
 cl_mem ClContent::getMaskClmem() {
-	return maskClmem;
+	return this->maskClmem;
 }
 cl_mem ClContent::getRefMatClmem() {
-	return refMatClmem;
+	return this->refMatClmem;
 }
 cl_mem ClContent::getFloMatClmem() {
-	return floMatClmem;
+	return this->floMatClmem;
 }
 
 int* ClContent::getReferenceDims() {
-	return referenceDims;
+	return this->referenceDims;
 }
 int* ClContent::getFloatingDims() {
-	return floatingDims;
+	return this->floatingDims;
 }
 
 template<class DataType>
@@ -236,8 +236,8 @@ void ClContent::fillImageData(nifti_image* image, cl_mem memoryObject, cl_mem_fl
 		reg_print_fct_error("\nERROR: Memory allocation did not complete successfully!");
 	}
 
-	errNum = clEnqueueReadBuffer(this->commandQueue, memoryObject, CL_TRUE, 0, size * sizeof(float), buffer, 0, NULL, NULL);
-	sContext->checkErrNum(errNum, "Error reading warped buffer.");
+	this->errNum = clEnqueueReadBuffer(this->commandQueue, memoryObject, CL_TRUE, 0, size * sizeof(float), buffer, 0, NULL, NULL);
+	this->sContext->checkErrNum(this->errNum, "Error reading warped buffer.");
 
 	T* dataT = static_cast<T*>(image->data);
 	for (size_t i = 0; i < size; ++i) {
@@ -283,25 +283,25 @@ void ClContent::downloadImage(nifti_image* image, cl_mem memoryObject, cl_mem_fl
 
 void ClContent::freeClPtrs() {
 	if (this->CurrentReference != NULL) {
-		clReleaseMemObject(referenceImageClmem);
-		clReleaseMemObject(refMatClmem);
+		clReleaseMemObject(this->referenceImageClmem);
+		clReleaseMemObject(this->refMatClmem);
 	}
 	if (this->CurrentFloating != NULL) {
-		clReleaseMemObject(floatingImageClmem);
-		clReleaseMemObject(floMatClmem);
+		clReleaseMemObject(this->floatingImageClmem);
+		clReleaseMemObject(this->floMatClmem);
 	}
 	if (this->CurrentWarped != NULL) {
 
-		clReleaseMemObject(warpedImageClmem);
+		clReleaseMemObject(this->warpedImageClmem);
 	}
 	if (this->CurrentDeformationField != NULL)
-		clReleaseMemObject(deformationFieldClmem);
+		clReleaseMemObject(this->deformationFieldClmem);
 
 	if (this->CurrentReferenceMask != NULL)
-		clReleaseMemObject(maskClmem);
+		clReleaseMemObject(this->maskClmem);
 	if (this->blockMatchingParams != NULL) {
-		clReleaseMemObject(activeBlockClmem);
-		clReleaseMemObject(targetPositionClmem);
-		clReleaseMemObject(resultPositionClmem);
+		clReleaseMemObject(this->activeBlockClmem);
+		clReleaseMemObject(this->targetPositionClmem);
+		clReleaseMemObject(this->resultPositionClmem);
 	}
 }

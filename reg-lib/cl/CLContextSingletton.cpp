@@ -1,36 +1,38 @@
 #include "CLContextSingletton.h"
 #include "../reg-lib/cl/InfoDevice.h"
 
+#include "_reg_maths.h"
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
 
 CLContextSingletton::CLContextSingletton() {
-	commandQueue = NULL;
-	context = NULL;
-	clIdx = -1;
+	this->commandQueue = NULL;
+	this->context = NULL;
+	this->clIdx = -1;
 	init();
 }
 void CLContextSingletton::init() {
 
 	// Query the number of platforms
-	cl_int errNum = clGetPlatformIDs(0, NULL, &numPlatforms);
+	cl_int errNum = clGetPlatformIDs(0, NULL, &this->numPlatforms);
 	checkErrNum(errNum, "Failed to find CL platforms.");
 
-	platformIds = (cl_platform_id *) alloca(sizeof(cl_platform_id) * numPlatforms);
-	errNum = clGetPlatformIDs(numPlatforms, platformIds, NULL);
+	this->platformIds = (cl_platform_id *) alloca(sizeof(cl_platform_id) * this->numPlatforms);
+	errNum = clGetPlatformIDs(this->numPlatforms, this->platformIds, NULL);
 	checkErrNum(errNum, "Failed to find any OpenCL platforms.");
 
-	errNum = clGetDeviceIDs(platformIds[0], CL_DEVICE_TYPE_ALL, 0, NULL, &numDevices);
+	errNum = clGetDeviceIDs(this->platformIds[0], CL_DEVICE_TYPE_ALL, 0, NULL, &this->numDevices);
 	checkErrNum(errNum, "Failed to find OpenCL devices.");
 
-	devices = new cl_device_id[numDevices];
-	errNum = clGetDeviceIDs(platformIds[0], CL_DEVICE_TYPE_ALL, numDevices, devices, NULL);
+	this->devices = new cl_device_id[this->numDevices];
+	errNum = clGetDeviceIDs(this->platformIds[0], CL_DEVICE_TYPE_ALL, this->numDevices, this->devices, NULL);
 
 	if(clIdx<0)pickCard();
 
-	cl_context_properties contextProperties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties) platformIds[0], 0 };
-	context = clCreateContextFromType(contextProperties, CL_DEVICE_TYPE_GPU, NULL, NULL, &errNum);
+	cl_context_properties contextProperties[] = { CL_CONTEXT_PLATFORM, (cl_context_properties) this->platformIds[0], 0 };
+	this->context = clCreateContextFromType(contextProperties, CL_DEVICE_TYPE_GPU, NULL, NULL, &errNum);
 
 	if (errNum != CL_SUCCESS) {
 		std::cout << "Could not create GPU context, trying CPU..." << std::endl;
@@ -43,41 +45,41 @@ void CLContextSingletton::init() {
 		}
 	}
 
-	commandQueue = clCreateCommandQueue(context, devices[clIdx], CL_QUEUE_PROFILING_ENABLE, NULL);
+	this->commandQueue = clCreateCommandQueue(this->context, this->devices[this->clIdx], CL_QUEUE_PROFILING_ENABLE, NULL);
 	checkErrNum(errNum, "Failed to create commandQueue for device ");
 
-	deviceId = devices[clIdx];
+	this->deviceId = this->devices[this->clIdx];
 	queryGridDims();
 }
 void CLContextSingletton::queryGridDims() {
 	std::size_t paramValueSize;
 	//------------------------------------
-	cl_int errNum = clGetDeviceInfo(devices[clIdx], CL_DEVICE_MAX_WORK_GROUP_SIZE, 0, NULL, &paramValueSize);
+	cl_int errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_MAX_WORK_GROUP_SIZE, 0, NULL, &paramValueSize);
 	checkErrNum(errNum, "Failed to find OpenCL device info  CL_DEVICE_MAX_WORK_GROUP_SIZE");
 
 	size_t* info = (size_t *) alloca(sizeof(size_t) * paramValueSize);
-	errNum = clGetDeviceInfo(devices[clIdx], CL_DEVICE_MAX_WORK_GROUP_SIZE, paramValueSize, info, NULL);
+	errNum = clGetDeviceInfo(this->devices[this->clIdx], CL_DEVICE_MAX_WORK_GROUP_SIZE, paramValueSize, info, NULL);
 	checkErrNum(errNum, "Failed to find OpenCL device info  CL_DEVICE_MAX_WORK_GROUP_SIZE2");
-	maxThreads = *info;
-	maxBlocks = 65535;
+	this->maxThreads = *info;
+	this->maxBlocks = 65535;
 }
 
 void CLContextSingletton::pickCard() {
 	cl_uint maxProcs = 0;
-	clIdx = 0;
+	this->clIdx = 0;
 	cl_int errNum;
 	std::size_t paramValueSize;
 
 
-	for (int i = 0; i < numDevices; ++i) {
-		errNum = clGetDeviceInfo(devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, 0, NULL, &paramValueSize);
+	for (int i = 0; i < this->numDevices; ++i) {
+		errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, 0, NULL, &paramValueSize);
 		checkErrNum(errNum, "Failed to find OpenCL device info ");
 		cl_uint * info = (cl_uint *) alloca(sizeof(cl_uint) * paramValueSize);
-		errNum = clGetDeviceInfo(devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, paramValueSize, info, NULL);
+		errNum = clGetDeviceInfo(this->devices[i], CL_DEVICE_MAX_COMPUTE_UNITS, paramValueSize, info, NULL);
 		checkErrNum(errNum, "Failed to find OpenCL device info ");
 		cl_uint numProcs = *info;
 		const bool found = numProcs > maxProcs;
-		clIdx = found ? i : clIdx;
+		this->clIdx = found ? i : this->clIdx;
 		maxProcs = found ? numProcs : maxProcs;
 	}
 
@@ -98,67 +100,67 @@ cl_program CLContextSingletton::CreateProgram(const char* fileName) {
 
 	std::string srcStdStr = oss.str();
 	const char *srcStr = srcStdStr.c_str();
-	program = clCreateProgramWithSource(context, 1, (const char**) &srcStr, NULL, &errNum);
+	program = clCreateProgramWithSource(this->context, 1, (const char**) &srcStr, NULL, &errNum);
 	checkErrNum(errNum, "Failed to create CL program");
 
 	errNum = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
-	if (errNum != CL_SUCCESS) checDebugKernelInfo(program,deviceId, "Errors in kernel: ");
+	if (errNum != CL_SUCCESS) checDebugKernelInfo(program,this->deviceId, "Errors in kernel: ");
 
 	return program;
 }
 
 void CLContextSingletton::shutDown() {
 	/*std::cout << "Shutting down cl" << std::endl;*/
-	if (context != 0) clReleaseContext(context);
-	if (commandQueue != 0) clReleaseCommandQueue(commandQueue);
+	if (this->context != 0) clReleaseContext(this->context);
+	if (this->commandQueue != 0) clReleaseCommandQueue(this->commandQueue);
 
-	delete devices;
+	delete this->devices;
 }
 
 void CLContextSingletton::checDebugKernelInfo(cl_program program, cl_device_id devIdIn, char* message) {
 	char buffer[10240];
 
 	clGetProgramBuildInfo(program, devIdIn, CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, NULL);
-	fprintf(stderr, "%s:\n%s", message, buffer);
+	reg_print_fct_error(message);
+	reg_print_fct_error(buffer);
 }
 
 void CLContextSingletton::checkErrNum(cl_int errNum, std::string message) {
-	if (errNum != CL_SUCCESS)
-		std::cerr << message << ": " << errNum << std::endl;
+	if (errNum != CL_SUCCESS) reg_print_fct_error(message.c_str());
 }
 
 cl_context CLContextSingletton::getContext() {
-	return context;
+	return this->context;
 }
 cl_device_id CLContextSingletton::getDeviceId() {
-	return deviceId;
+	return this->deviceId;
 }
 cl_device_id* CLContextSingletton::getDevices() {
-	return devices;
+	return this->devices;
 }
 cl_command_queue CLContextSingletton::getCommandQueue() {
-	return commandQueue;
+	return this->commandQueue;
 }
 cl_uint CLContextSingletton::getNumPlatforms() {
-	return numPlatforms;
+	return this->numPlatforms;
 }
 cl_platform_id* CLContextSingletton::getPlatformIds() {
-	return platformIds;
+	return this->platformIds;
 }
 cl_uint CLContextSingletton::getNumDevices() {
-	return numDevices;
+	return this->numDevices;
 }
 size_t CLContextSingletton::getMaxThreads() {
-	return maxThreads;
+	return this->maxThreads;
 }
 unsigned int CLContextSingletton::getMaxBlocks() {
-	return maxBlocks;
+	return this->maxBlocks;
 }
 
 size_t CLContextSingletton::getwarpGroupLength(cl_kernel kernel) {
 	size_t local;
 	// Get the maximum work group size for executing the kernel on the device
-	cl_int err = clGetKernelWorkGroupInfo(kernel, deviceId, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(local), &local, NULL);
+	cl_int err = clGetKernelWorkGroupInfo(kernel, this->deviceId, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(local), &local, NULL);
 	checkErrNum(err, "Error: Failed to retrieve kernel work group info!");
 
 	return local;
@@ -178,7 +180,7 @@ cl_kernel CLContextSingletton::dummyKernel(cl_device_id deviceIdIn) {
 			"\n";
 
 	cl_int  err ;
-	cl_program program = clCreateProgramWithSource(context, 1, (const char **) & source, NULL, &err);
+	cl_program program = clCreateProgramWithSource(this->context, 1, (const char **) & source, NULL, &err);
 	checkErrNum(err, "Failed to create CL program");
 	err = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
 	if (err != CL_SUCCESS) checDebugKernelInfo(program,deviceIdIn, "Errors in kernel: ");
@@ -188,7 +190,7 @@ cl_kernel CLContextSingletton::dummyKernel(cl_device_id deviceIdIn) {
 	cl_kernel kernel = clCreateKernel(program, "dummy", &err);
 	if (!kernel || err != CL_SUCCESS)
 	{
-		printf("Error: Failed to create compute kernel!\n");
+		reg_print_fct_error("Error: Failed to create compute kernel!\n");
 		return NULL;
 	}
 	return kernel;

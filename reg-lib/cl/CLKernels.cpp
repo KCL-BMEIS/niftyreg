@@ -232,8 +232,8 @@ void CLResampleImageKernel::calculate(int interp, float paddingValue, bool *dti_
 	if (dti_timepoint != NULL) {
 
 		if (jacMat == NULL) {
-			printf("[NiftyReg ERROR] reg_resampleImage\tDTI resampling\n");
-			printf("[NiftyReg ERROR] reg_resampleImage\tNo Jacobian matrix array has been provided\n");
+			reg_print_fct_error("[NiftyReg ERROR] reg_resampleImage\tDTI resampling\n");
+			reg_print_fct_error("[NiftyReg ERROR] reg_resampleImage\tNo Jacobian matrix array has been provided\n");
 			reg_exit(1);
 		}
 		int j = 0;
@@ -242,8 +242,8 @@ void CLResampleImageKernel::calculate(int interp, float paddingValue, bool *dti_
 				dtiIndeces[j++] = i;
 		}
 		if ((floatingImage->nz > 1 && j != 6) && (floatingImage->nz == 1 && j != 3)) {
-			printf("[NiftyReg ERROR] reg_resampleImage\tUnexpected number of DTI components\n");
-			printf("[NiftyReg ERROR] reg_resampleImage\tNothing has been done\n");
+			reg_print_fct_error("[NiftyReg ERROR] reg_resampleImage\tUnexpected number of DTI components\n");
+			reg_print_fct_error("[NiftyReg ERROR] reg_resampleImage\tNothing has been done\n");
 			reg_exit(1);
 		}
 	}

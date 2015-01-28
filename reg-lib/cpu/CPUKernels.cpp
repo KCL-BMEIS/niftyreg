@@ -32,5 +32,5 @@ void CPUOptimiseKernel::calculate(bool affine, bool ils, bool svd) {
 }
 
 void CPUResampleImageKernel::calculate(int interp, float paddingValue, bool *dti_timepoint, mat33 * jacMat) {
-	reg_resampleImage(floatingImage, warpedImage, deformationField, mask, interp, paddingValue, dti_timepoint, jacMat);
+	reg_resampleImage(this->floatingImage, this->warpedImage, this->deformationField, this->mask, interp, paddingValue, dti_timepoint, jacMat);
 }

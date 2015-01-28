@@ -87,9 +87,6 @@ template<class T> reg_aladin<T>::reg_aladin()
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T> reg_aladin<T>::~reg_aladin()
 {
-	//they are created and cleared in Content now!
-	/*this->ClearWarpedImage();
-	 this->ClearDeformationField();*/
 
 	if (this->TransformationMatrix != NULL)
 		delete this->TransformationMatrix;
@@ -116,8 +113,7 @@ template<class T> reg_aladin<T>::~reg_aladin()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-bool reg_aladin<T>::TestMatrixConvergence(mat44 *mat)
-		{
+bool reg_aladin<T>::TestMatrixConvergence(mat44 *mat) {
 	bool convergence = true;
 	if ((fabsf(mat->m[0][0]) - 1.0f) > CONVERGENCE_EPS)
 		convergence = false;
@@ -244,9 +240,9 @@ void reg_aladin<T>::InitialiseRegistration()
 
 
 	this->platform = new Platform(platformCode);
-	if (platformCode == NR_PLATFORM_CL) this->platform->setClIdx(clIdx);
+	if (this->platformCode == NR_PLATFORM_CL) this->platform->setClIdx(this->clIdx);
 
-	Kernel* convolutionKernel = platform->createKernel(ConvolutionKernel::getName(), NULL);
+	Kernel* convolutionKernel = this->platform->createKernel(ConvolutionKernel::getName(), NULL);
 
 	this->Print();
 
@@ -386,8 +382,6 @@ void reg_aladin<T>::SetCurrentImages()
 	this->CurrentFloating = this->FloatingPyramid[this->CurrentLevel];
 	this->CurrentReferenceMask = this->ReferenceMaskPyramid[this->CurrentLevel];
 
-	/*this->AllocateWarpedImage();
-	 this->AllocateDeformationField();*/
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
@@ -403,9 +397,6 @@ void reg_aladin<T>::ClearCurrentInputImage()
 	this->CurrentFloating = NULL;
 	this->CurrentReferenceMask = NULL;
 
-	//Content does this
-	/*this->ClearWarpedImage();
-	 this->ClearDeformationField();*/
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
@@ -441,72 +432,6 @@ void reg_aladin<T>::ClearWarpedImage()
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
-void reg_aladin<T>::AllocateDeformationField()
-{
-	if (this->CurrentReference == NULL)
-	{
-		fprintf(stderr, "[NiftyReg ERROR] reg_aladin::AllocateDeformationField()\n");
-		fprintf(stderr, "[NiftyReg ERROR] Reference image is not defined. Exit.\n");
-		reg_exit(1);
-	}
-	reg_aladin<T>::ClearDeformationField();
-	this->deformationFieldImage = nifti_copy_nim_info(this->CurrentReference);
-	this->deformationFieldImage->dim[0] = this->deformationFieldImage->ndim = 5;
-	this->deformationFieldImage->dim[4] = this->deformationFieldImage->nt = 1;
-	this->deformationFieldImage->pixdim[4] = this->deformationFieldImage->dt = 1.0;
-	if (this->CurrentReference->nz == 1)
-		this->deformationFieldImage->dim[5] = this->deformationFieldImage->nu = 2;
-	else
-		this->deformationFieldImage->dim[5] = this->deformationFieldImage->nu = 3;
-	this->deformationFieldImage->pixdim[5] = this->deformationFieldImage->du = 1.0;
-	this->deformationFieldImage->dim[6] = this->deformationFieldImage->nv = 1;
-	this->deformationFieldImage->pixdim[6] = this->deformationFieldImage->dv = 1.0;
-	this->deformationFieldImage->dim[7] = this->deformationFieldImage->nw = 1;
-	this->deformationFieldImage->pixdim[7] = this->deformationFieldImage->dw = 1.0;
-	this->deformationFieldImage->nvox = (size_t) this->deformationFieldImage->nx *
-			(size_t) this->deformationFieldImage->ny *
-			(size_t) this->deformationFieldImage->nz *
-			(size_t) this->deformationFieldImage->nt *
-			(size_t) this->deformationFieldImage->nu;
-	this->deformationFieldImage->nbyper = sizeof(T);
-	if (sizeof(T) == 4)
-		this->deformationFieldImage->datatype = NIFTI_TYPE_FLOAT32;
-	else if (sizeof(T) == 8)
-		this->deformationFieldImage->datatype = NIFTI_TYPE_FLOAT64;
-	else
-	{
-		fprintf(stderr, "[NiftyReg ERROR] reg_aladin::AllocateDeformationField()\n");
-		fprintf(stderr, "[NiftyReg ERROR] Only float or double are expected for the deformation field. Exit.\n");
-		reg_exit(1);
-	}
-	this->deformationFieldImage->scl_slope = 1.f;
-	this->deformationFieldImage->scl_inter = 0.f;
-	this->deformationFieldImage->data = (void *) calloc(this->deformationFieldImage->nvox, this->deformationFieldImage->nbyper);
-	return;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template<class T>
-void reg_aladin<T>::ClearDeformationField()
-{
-	if (this->deformationFieldImage != NULL)
-		nifti_image_free(this->deformationFieldImage);
-	this->deformationFieldImage = NULL;
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template<class T>
-void reg_aladin<T>::InitialiseBlockMatching(int CurrentPercentageOfBlockToUse)
-		{
-	initialise_block_matching_method(this->CurrentReference,
-			this->blockMatchingParams,
-			CurrentPercentageOfBlockToUse,    // percentage of block kept
-			this->InlierLts,         // percentage of inlier in the optimisation process
-			this->BlockStepSize,
-			this->CurrentReferenceMask,
-			false // GPU is not used here
-			);
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-template<class T>
 void reg_aladin<T>::createKernels() {
 	affineTransformation3DKernel = platform->createKernel(AffineDeformationFieldKernel::getName(), this->con);
 	resamplingKernel = platform->createKernel(ResampleImageKernel::getName(), this->con);
@@ -521,54 +446,32 @@ void reg_aladin<T>::createKernels() {
 
 template<class T>
 void reg_aladin<T>::clearKernels() {
-	delete affineTransformation3DKernel;
-	delete resamplingKernel;
-	if (blockMatchingKernel != NULL)
-		delete blockMatchingKernel;
-	if (optimiseKernel != NULL)
-		delete optimiseKernel;
+	delete this->affineTransformation3DKernel;
+	delete this->resamplingKernel;
+	if (this->blockMatchingKernel != NULL)
+		delete this->blockMatchingKernel;
+	if (this->optimiseKernel != NULL)
+		delete this->optimiseKernel;
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_aladin<T>::GetDeformationField()
 {
-	/*reg_affine_getDeformationField(this->TransformationMatrix,
-	 this->deformationFieldImage);*/
-	affineTransformation3DKernel->castTo<AffineDeformationFieldKernel>()->calculate();
+	this->affineTransformation3DKernel->template castTo<AffineDeformationFieldKernel>()->calculate();
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 template<class T>
 void reg_aladin<T>::GetWarpedImage(int interp) {
 	this->GetDeformationField();
-
-	/*reg_resampleImage(this->CurrentFloating,
-	 this->CurrentWarped,
-	 this->deformationFieldImage,
-	 this->CurrentReferenceMask,
-	 interp,
-	 0);*/
-	resamplingKernel->castTo<ResampleImageKernel>()->calculate(interp, 0);
+	this->resamplingKernel->template castTo<ResampleImageKernel>()->calculate(interp, 0);
 }
 /* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
 
 template<class T>
-void reg_aladin<T>::UpdateTransformationMatrix(int type)
-		{
-	/*block_matching_method(this->CurrentReference,
-	 this->CurrentWarped,
-	 &this->blockMatchingParams,
-	 this->CurrentReferenceMask);
-	 if(type==RIGID)
-	 optimize(&this->blockMatchingParams,
-	 this->TransformationMatrix,
-	 RIGID);
-	 else
-	 optimize(&this->blockMatchingParams,
-	 this->TransformationMatrix,
-	 AFFINE);*/
+void reg_aladin<T>::UpdateTransformationMatrix(int type) {
 
-	blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate(captureRangeVox);
-	optimiseKernel->castTo<OptimiseKernel>()->calculate(type, ils, cusvd);
+	this->blockMatchingKernel->template castTo<BlockMatchingKernel>()->calculate(this->captureRangeVox);
+	this->optimiseKernel->template castTo<OptimiseKernel>()->calculate(type, this->ils, this->cusvd);
 
 #ifndef NDEBUG
 	reg_mat44_disp(this->TransformationMatrix, (char *) "[DEBUG] updated matrix");
@@ -589,13 +492,13 @@ void reg_aladin<T>::initContent(nifti_image* ref, nifti_image* flo, int* mask, m
 	else if(platformCode == NR_PLATFORM_CL)
 	this->con = new ClContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
-	this->blockMatchingParams = con->Content::getBlockMatchingParams();
+	this->blockMatchingParams = this->con->Content::getBlockMatchingParams();
 }
 
 template<class T>
 void reg_aladin<T>::initContent(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes) {
 
-	if (platformCode == NR_PLATFORM_CPU)
+	if (this->platformCode == NR_PLATFORM_CPU)
 		this->con = new Content(ref, flo, mask, transMat, bytes);
 #ifdef _USE_CUDA
 	else if(platformCode == NR_PLATFORM_CUDA)
@@ -605,12 +508,12 @@ void reg_aladin<T>::initContent(nifti_image* ref, nifti_image* flo, int* mask, m
 	else if(platformCode == NR_PLATFORM_CL)
 	this->con = new ClContent(ref, flo, mask,transMat, bytes);
 #endif
-	this->blockMatchingParams = con->Content::getBlockMatchingParams();
+	this->blockMatchingParams = this->con->Content::getBlockMatchingParams();
 }
 
 template<class T>
 void reg_aladin<T>::clearContent() {
-	delete con;
+	delete this->con;
 }
 template<class T>
 void reg_aladin<T>::resolveMatrix(unsigned int iterations, const unsigned int optimizationFlag) {
@@ -646,8 +549,6 @@ void reg_aladin<T>::Run()
 		// All the blocks are used during the first level
 		const unsigned int maxNumberOfIterationToPerform = (CurrentLevel == 0) ? this->MaxIterations*2 : this->MaxIterations;
 
-		/* initialise the block matching */
-//      this->InitialiseBlockMatching(percentageOfBlockToUse);
 #ifdef NDEBUG
 		if(this->Verbose)
 		{
@@ -672,15 +573,15 @@ void reg_aladin<T>::Run()
 		/* Rigid registration */
 		/* ****************** */
 
-		if (captureRangeVox > 3) {
-			resolveMatrix(maxNumberOfIterationToPerform, RIGID);
+		if (this->captureRangeVox > 3) {
+			this->resolveMatrix(maxNumberOfIterationToPerform, RIGID);
 			if (this->PerformAffine)
 				resolveMatrix(maxNumberOfIterationToPerform, AFFINE);
-			captureRangeVox = 3;
+			this->captureRangeVox = 3;
 
 		}
 
-		if ((this->PerformRigid && !this->PerformAffine) || (this->PerformAffine && this->PerformRigid && CurrentLevel == 0)) {
+		if ((this->PerformRigid && !this->PerformAffine) || (this->PerformAffine && this->PerformRigid && this->CurrentLevel == 0)) {
 			const unsigned int ratio = (this->PerformAffine && this->PerformRigid && CurrentLevel == 0) ? 4 : 1;
 			resolveMatrix(maxNumberOfIterationToPerform * ratio, RIGID);
 		}
@@ -706,12 +607,7 @@ void reg_aladin<T>::Run()
 	}
 #endif
 
-	} // level this->LevelsToPerform
-
-//   if ( funcProgressCallback && paramsProgressCallback )
-//   {
-//      (*funcProgressCallback)( 100., paramsProgressCallback);
-//   }
+	}
 
 #ifndef NDEBUG
 	printf("[NiftyReg DEBUG] reg_aladin::Run() done\n");
@@ -735,12 +631,10 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 
 	reg_aladin<T>::initContent(this->CurrentReference, this->CurrentFloating, this->CurrentReferenceMask, this->TransformationMatrix, sizeof(T));
 	reg_aladin<T>::createKernels();
-	/*reg_aladin<T>::AllocateWarpedImage();
-	 reg_aladin<T>::AllocateDeformationField();*/
+
 
 	reg_aladin<T>::GetWarpedImage(3); // cubic spline interpolation
 	this->CurrentWarped = con->getCurrentWarped(floatingType);
-//   reg_aladin<T>::ClearDeformationField();
 
 	nifti_image *resultImage = nifti_copy_nim_info(this->CurrentWarped);
 	resultImage->cal_min = this->InputFloating->cal_min;

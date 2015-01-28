@@ -91,10 +91,7 @@ protected:
 	virtual void ClearCurrentInputImage();
 	virtual void AllocateWarpedImage();
 	virtual void ClearWarpedImage();
-	virtual void AllocateDeformationField();
-	virtual void ClearDeformationField();
 
-	virtual void InitialiseBlockMatching(int);
 	virtual void GetDeformationField();
 	virtual void GetWarpedImage(int);
 	virtual void UpdateTransformationMatrix(int);
