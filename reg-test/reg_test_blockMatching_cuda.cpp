@@ -67,24 +67,6 @@ int main(int argc, char **argv) {
 	recoveredTransformation.m[2][3] = 4.f;
 	optimize(blockMatchingParams, &recoveredTransformation, transType);
 
-	mat44 rigid2D;
-	rigid2D.m[0][0] = 1.027961f;
-	rigid2D.m[0][1] = -0.004180538f;
-	rigid2D.m[0][2] = 0.f;
-	rigid2D.m[0][3] = 3.601387f;
-	rigid2D.m[1][0] = 0.01252018f;
-	rigid2D.m[1][1] = 0.9764945f;
-	rigid2D.m[1][2] = 0.f;
-	rigid2D.m[1][3] = 3.17229f;
-	rigid2D.m[2][0] = 0.f;
-	rigid2D.m[2][1] = 0.f;
-	rigid2D.m[2][2] = 1.f;
-	rigid2D.m[2][3] = 0.f;
-	rigid2D.m[3][0] = 0.f;
-	rigid2D.m[3][1] = 0.f;
-	rigid2D.m[3][2] = 0.f;
-	rigid2D.m[3][3] = 1.f;
-
 	mat44 rigid3D;
 	rigid3D.m[0][0] = 1.028082f;
 	rigid3D.m[0][1] = -0.004869822f;
@@ -102,24 +84,6 @@ int main(int argc, char **argv) {
 	rigid3D.m[3][1] = 0.f;
 	rigid3D.m[3][2] = 0.f;
 	rigid3D.m[3][3] = 1.f;
-
-	mat44 affine2D;
-	affine2D.m[0][0] = 0.9999999f;
-	affine2D.m[0][1] = 0.0003671125f;
-	affine2D.m[0][2] = 0.f;
-	affine2D.m[0][3] = 3.652262f;
-	affine2D.m[1][0] = -0.0003671125f;
-	affine2D.m[1][1] = 0.9999999f;
-	affine2D.m[1][2] = 0.f;
-	affine2D.m[1][3] = 3.319299f;
-	affine2D.m[2][0] = 0.f;
-	affine2D.m[2][1] = 0.f;
-	affine2D.m[2][2] = 1.f;
-	affine2D.m[2][3] = 0.f;
-	affine2D.m[3][0] = 0.f;
-	affine2D.m[3][1] = 0.f;
-	affine2D.m[3][2] = 0.f;
-	affine2D.m[3][3] = 1.f;
 
 	mat44 affine3D;
 	affine3D.m[0][0] = 0.9999814f;
@@ -139,19 +103,8 @@ int main(int argc, char **argv) {
 	affine3D.m[3][2] = 0.f;
 	affine3D.m[3][3] = 1.f;
 
-	mat44 *testMatrix = NULL;
-	if (referenceImage->nz > 1) {
-		if (transType == 0)
-			testMatrix = &affine3D;
-		else
-			testMatrix = &rigid3D;
-	} else {
-		if (transType == 0)
-			testMatrix = &affine2D;
-		else
-			testMatrix = &rigid2D;
+	mat44 *testMatrix = (transType == 0) ? &affine3D : testMatrix = &rigid3D;
 
-	}
 #ifndef NDEBUG
 	reg_mat44_disp(testMatrix, (char *) "expected");
 	reg_mat44_disp(&recoveredTransformation, (char *) "recovered");
