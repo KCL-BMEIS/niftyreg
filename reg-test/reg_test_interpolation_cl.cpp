@@ -83,8 +83,7 @@ int main(int argc, char **argv) {
 
 	nifti_image_free(floatingImage);
 	nifti_image_free(warpedImage);
-//   nifti_image_free(inputDeformationField); they are freed at ~con
-//   nifti_image_free(test_warped); they are freed at ~con
+
 	delete con;
 	free(tempMask);
 

@@ -7,8 +7,7 @@
 #include "Platform.h"
 #include "cuda/CudaContent.h"
 
-#define EPS 1
-//#define EPS 0.000001
+#define EPS 0.000001
 void test(Content *con, const unsigned int interp) {
 
 	Platform *cudaPlatform = new Platform(NR_PLATFORM_CUDA);

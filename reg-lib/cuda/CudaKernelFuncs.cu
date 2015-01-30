@@ -354,8 +354,8 @@ void launchResample(nifti_image *floatingImage, nifti_image *warpedImage, int in
 	//the below lines need to be moved to cu common
 	cudaDeviceProp prop;
 	cudaGetDeviceProperties(&prop, 0);
-	unsigned int maxThreads = prop.maxThreadsDim[0];
-	unsigned int maxBlocks = prop.maxThreadsDim[0];
+	unsigned int maxThreads = 512;
+	unsigned int maxBlocks = 65365;
 	unsigned int blocks = (targetVoxelNumber % maxThreads) ? (targetVoxelNumber / maxThreads) + 1 : targetVoxelNumber / maxThreads;
 	blocks = min1(blocks, maxBlocks);
 
