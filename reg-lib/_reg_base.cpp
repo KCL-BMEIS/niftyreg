@@ -366,7 +366,6 @@ template<class T>
 void reg_base<T>::UseConjugateGradient()
 {
    this->useConjGradient = true;
-   this->useApproxGradient = false;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseConjugateGradient");
 #endif
@@ -376,7 +375,6 @@ template<class T>
 void reg_base<T>::DoNotUseConjugateGradient()
 {
    this->useConjGradient = false;
-   this->useApproxGradient = false;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::DoNotUseConjugateGradient");
 #endif
@@ -385,7 +383,6 @@ void reg_base<T>::DoNotUseConjugateGradient()
 template<class T>
 void reg_base<T>::UseApproximatedGradient()
 {
-   this->useConjGradient = false;
    this->useApproxGradient = true;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::UseApproximatedGradient");
@@ -395,7 +392,6 @@ void reg_base<T>::UseApproximatedGradient()
 template<class T>
 void reg_base<T>::DoNotUseApproximatedGradient()
 {
-   this->useConjGradient = true;
    this->useApproxGradient = false;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::DoNotUseApproximatedGradient");

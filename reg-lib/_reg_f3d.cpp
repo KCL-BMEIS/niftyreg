@@ -24,7 +24,7 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
    this->executableName=(char *)"NiftyReg F3D";
    this->inputControlPointGrid=NULL; // pointer to external
    this->controlPointGrid=NULL;
-   this->bendingEnergyWeight=0.005;
+   this->bendingEnergyWeight=0.01;
    this->linearEnergyWeight0=0.;
    this->linearEnergyWeight1=0.;
    this->L2NormWeight=0.;
@@ -1105,17 +1105,16 @@ void reg_f3d<T>::GetObjectiveFunctionGradient()
       {
          this->SetGradientImageToZero();
       }
-   }
-
-   if(!this->useApproxGradient)
-   {
       // Compute the penalty term gradients if required
       this->GetBendingEnergyGradient();
       this->GetJacobianBasedGradient();
       this->GetLinearEnergyGradient();
       this->GetL2NormDispGradient();
    }
-   else this->GetApproximatedGradient();
+   else
+   {
+      this->GetApproximatedGradient();
+   }
 
    this->optimiser->IncrementCurrentIterationNumber();
 
