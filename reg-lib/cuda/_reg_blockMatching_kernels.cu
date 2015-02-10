@@ -67,6 +67,41 @@ void reg_mat44_mul_cuda(float* mat, DTYPE const* in, DTYPE *out)
 	return;
 }
 /* *************************************************************** */
+#ifdef _CUDA_30
+__inline__ __device__
+float warpAllReduceSum(float val)
+{
+	for (int mask = 16; mask > 0; mask /= 2)
+		val += __shfl_xor(val, mask);
+	return val;
+}
+/* *************************************************************** */
+__inline__ __device__
+float warpReduceSum(float val)
+{
+	for (int offset = 16; offset > 0; offset /= 2)
+		val += __shfl_down(val, offset);
+	return val;
+}
+/* *************************************************************** */
+__inline__ __device__
+float blockReduceSum(float val, int tid)
+{
+	static __shared__ float shared[2];
+	int laneId = tid % 32;
+	int warpId = tid / 32;
+
+	val = warpReduceSum(val);     // Each warp performs partial reduction
+
+	if (laneId == 0)
+		shared[warpId] = val;
+	//if (blockIdx.x == 8 && blockIdx.y == 0 && blockIdx.z == 0) printf("idx: %d | lane: %d \n", tid, lane);
+	__syncthreads();
+
+	return shared[0] + shared[1];
+}
+/* *************************************************************** */
+#else
 __device__ __inline__ void reduceCC(float* sData, const unsigned int tid, const unsigned int blockSize)
 {
 	if (blockSize >= 512) {
@@ -205,39 +240,7 @@ __device__ __inline__ float reduceCustom(float data, const unsigned int tid)
 	__syncthreads();
 	return sData2[0];
 }
-/* *************************************************************** */
-__inline__ __device__
-float warpAllReduceSum(float val)
-{
-	for (int mask = 16; mask > 0; mask /= 2)
-		val += __shfl_xor(val, mask);
-	return val;
-}
-/* *************************************************************** */
-__inline__ __device__
-float warpReduceSum(float val)
-{
-	for (int offset = 16; offset > 0; offset /= 2)
-		val += __shfl_down(val, offset);
-	return val;
-}
-/* *************************************************************** */
-__inline__ __device__
-float blockReduceSum(float val, int tid)
-{
-	static __shared__ float shared[2];
-	int laneId = tid % 32;
-	int warpId = tid / 32;
-
-	val = warpReduceSum(val);     // Each warp performs partial reduction
-
-	if (laneId == 0)
-		shared[warpId] = val;
-	//if (blockIdx.x == 8 && blockIdx.y == 0 && blockIdx.z == 0) printf("idx: %d | lane: %d \n", tid, lane);
-	__syncthreads();
-
-	return shared[0] + shared[1];
-}
+#endif
 /* *************************************************************** */
 //recently switched to this kernel as it can accomodate greater capture range
 __global__ void blockMatchingKernel(float *resultPosition,
