@@ -12,12 +12,6 @@
 #ifndef __REG_BLOCKMATCHING_KERNELS_CU__
 #define __REG_BLOCKMATCHING_KERNELS_CU__
 
-#ifdef _CUDA_30
-#define REDUCE blockReduceSum
-#else
-#define REDUCE reduceCustom
-#endif
-
 #include "assert.h"
 #include "_reg_blockMatching.h"
 
@@ -67,7 +61,6 @@ void reg_mat44_mul_cuda(float* mat, DTYPE const* in, DTYPE *out)
 	return;
 }
 /* *************************************************************** */
-#ifdef _CUDA_30
 __inline__ __device__
 float warpAllReduceSum(float val)
 {
@@ -100,147 +93,6 @@ float blockReduceSum(float val, int tid)
 
 	return shared[0] + shared[1];
 }
-/* *************************************************************** */
-#else
-__device__ __inline__ void reduceCC(float* sData, const unsigned int tid, const unsigned int blockSize)
-{
-	if (blockSize >= 512) {
-		if (tid < 256) {
-			sData[tid] += sData[tid + 256];
-		}
-		__syncthreads();
-	}
-	if (blockSize >= 256) {
-		if (tid < 128) {
-			sData[tid] += sData[tid + 128];
-		}
-		__syncthreads();
-	}
-	if (blockSize >= 128) {
-		if (tid < 64) {
-			sData[tid] += sData[tid + 64];
-		}
-		__syncthreads();
-	}
-	if (tid < 32) {
-		if (blockSize >= 64)
-			sData[tid] += sData[tid + 32];
-		if (blockSize >= 32)
-			sData[tid] += sData[tid + 16];
-		if (blockSize >= 16)
-			sData[tid] += sData[tid + 8];
-		if (blockSize >= 8)
-			sData[tid] += sData[tid + 4];
-		if (blockSize >= 4)
-			sData[tid] += sData[tid + 2];
-		if (blockSize >= 2)
-			sData[tid] += sData[tid + 1];
-	}
-}
-/* *************************************************************** */
-__device__ __inline__ void reduce(float* sData, const unsigned int tid, const unsigned int blockSize)
-{
-	if (blockSize >= 512) {
-		if (tid < 256) {
-			sData[tid] += sData[tid + 256];
-		}
-		__syncthreads();
-	}
-	if (blockSize >= 256) {
-		if (tid < 128) {
-			sData[tid] += sData[tid + 128];
-		}
-		__syncthreads();
-	}
-	if (blockSize >= 128) {
-		if (tid < 64) {
-			sData[tid] += sData[tid + 64];
-		}
-		__syncthreads();
-	}
-	if (tid < 32) {
-		if (blockSize >= 64)
-			sData[tid] += sData[tid + 32];
-		if (blockSize >= 32)
-			sData[tid] += sData[tid + 16];
-		if (blockSize >= 16)
-			sData[tid] += sData[tid + 8];
-		if (blockSize >= 8)
-			sData[tid] += sData[tid + 4];
-		if (blockSize >= 4)
-			sData[tid] += sData[tid + 2];
-		if (blockSize >= 2)
-			sData[tid] += sData[tid + 1];
-	}
-}
-/* *************************************************************** */
-//must parameterize warpsize in both cuda and cl
-__device__ __inline__ float reduceCustom_f1(float data, const unsigned int tid, const unsigned int blockSize)
-{
-	static __shared__ float sDataBuff[8 * 8 * 8];
-
-	sDataBuff[tid] = data;
-	__syncthreads();
-
-	const unsigned int warpId = tid / 32;
-	const unsigned int bid = tid / blockSize;
-
-	if (warpId % 2 == 0) {
-		sDataBuff[tid] += sDataBuff[tid + 32];
-		sDataBuff[tid] += sDataBuff[tid + 16];
-		sDataBuff[tid] += sDataBuff[tid + 8];
-		sDataBuff[tid] += sDataBuff[tid + 4];
-		sDataBuff[tid] += sDataBuff[tid + 2];
-		sDataBuff[tid] += sDataBuff[tid + 1];
-	}
-
-	__syncthreads();
-	return sDataBuff[bid * blockSize];
-}
-/* *************************************************************** */
-__device__ __inline__ float reduceCustom_f(float data, const unsigned int tid)
-{
-	static __shared__ float sData2[64];
-
-	sData2[tid] = data;
-	__syncthreads();
-
-	if (tid < 32) {
-		sData2[tid] += sData2[tid + 32];
-		sData2[tid] += sData2[tid + 16];
-		sData2[tid] += sData2[tid + 8];
-		sData2[tid] += sData2[tid + 4];
-		sData2[tid] += sData2[tid + 2];
-		sData2[tid] += sData2[tid + 1];
-	}
-
-	__syncthreads();
-	return sData2[0];
-}
-/* *************************************************************** */
-__device__ __inline__ float reduceCustom(float data, const unsigned int tid)
-{
-	static __shared__ float sData2[64];
-	sData2[tid] = data;
-	__syncthreads();
-
-	if (tid < 32)
-		sData2[tid] += sData2[tid + 32];
-	if (tid < 16)
-		sData2[tid] += sData2[tid + 16];
-	if (tid < 8)
-		sData2[tid] += sData2[tid + 8];
-	if (tid < 4)
-		sData2[tid] += sData2[tid + 4];
-	if (tid < 2)
-		sData2[tid] += sData2[tid + 2];
-	if (tid == 0)
-		sData2[0] += sData2[1];
-
-	__syncthreads();
-	return sData2[0];
-}
-#endif
 /* *************************************************************** */
 //recently switched to this kernel as it can accomodate greater capture range
 __global__ void blockMatchingKernel(float *resultPosition,

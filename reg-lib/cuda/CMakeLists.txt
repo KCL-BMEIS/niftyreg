@@ -19,8 +19,8 @@ try_run(RUN_RESULT_VAR COMPILE_RESULT_VAR ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_SO
 # Check if the executable could not compile
 if(NOT COMPILE_RESULT_VAR)
 	message(WARNING "The code to check the presence of a CUDA-enabled card failed.")
-	message(WARNING "The USE_CUDA flag has been turned OFF.")
-	set(USE_CUDA OFF CACHE BOOL "To enable CUDA for a GPU implementation of the code" FORCE)
+        message(WARNING "The USE_CUDA flag has been turned OFF.")
+        set(USE_CUDA OFF CACHE BOOL "To use the CUDA platform" FORCE)
 	# Check if the executable return failure
 elseif(RUN_RESULT_VAR)
 	message(WARNING "No CUDA-enabled card has been detected\nResult code: ${RUN_RESULT_VAR}\nError message: ${RUN_OUTPUT_VAR}\nThe USE_CUDA flag has been turned OFF.")
@@ -30,10 +30,11 @@ else(NOT COMPILE_RESULT_VAR)
 	set(CUDA_NVCC_FLAGS "")
 	#check cuda version and adjust compile flags
 	string(REPLACE "." "" CAPABILITY_CODE ${RUN_OUTPUT_VAR})
-	set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_${CAPABILITY_CODE},code=sm_${CAPABILITY_CODE}")
-	if("${RUN_OUTPUT_VAR}" MATCHES "^3\\.0$")
-		add_definitions(-D_CUDA_30)
-	endif("${RUN_OUTPUT_VAR}" MATCHES "^3\\.0$")
+        if(NOT "${RUN_OUTPUT_VAR}" MATCHES "^3\\.0$")
+                set(USE_CUDA OFF CACHE BOOL "To use the CUDA platform" FORCE)
+                message(ERROR "CUDA card with capability 1.x are not supported. The USE_CUDA flag is turned OFF")
+        endif(NOT "${RUN_OUTPUT_VAR}" MATCHES "^3\\.0$")
+        set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_${CAPABILITY_CODE},code=sm_${CAPABILITY_CODE}")
 	#adjust for debug and release versions
 	if(DEBUG_MODE)
 		#common debug flags for all architectures
@@ -52,7 +53,7 @@ else(NOT COMPILE_RESULT_VAR)
 #	    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --prec-div=false")
 #	endif(CUDA_PRECISE_DIV)
 	if(CUDA_FAST_MATH AND CUDA_PRECISE_SQRT EQUAL "OFF" AND CUDA_PRECISE_DIV EQUAL "OFF")
-			set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -use_fast_math")
+                set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -use_fast_math")
 	endif(CUDA_FAST_MATH AND CUDA_PRECISE_SQRT EQUAL "OFF" AND CUDA_PRECISE_DIV EQUAL "OFF")
 endif(NOT COMPILE_RESULT_VAR)
 #-----------------------------------------------------------------------------
