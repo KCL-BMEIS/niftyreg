@@ -161,7 +161,7 @@ int main(int argc, char **argv)
             strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0)
       {
          Usage(argv[0]);
-         return 0;
+         return EXIT_SUCCESS;
       }
 #ifdef _GIT_HASH
       else if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
@@ -226,7 +226,7 @@ int main(int argc, char **argv)
          }
          nifti_image_free(source);
          nifti_image_free(makesource);
-         return 0;
+         return EXIT_SUCCESS;
       }
       else if(strcmp(argv[i], "-pmask") == 0)
       {
@@ -363,7 +363,7 @@ int main(int argc, char **argv)
    }
    if(flag->makesourcex)
    {
-      return 0;  // stop if being used to concatenate 3D images into 4D object.
+      return EXIT_SUCCESS;  // stop if being used to concatenate 3D images into 4D object.
    }
    if(flag->tp)
    {
@@ -374,14 +374,14 @@ int main(int argc, char **argv)
    {
       fprintf(stderr,"Error:\tAt least define a source image!\n");
       Usage(argv[0]);
-      return 1;
+      return EXIT_FAILURE;
    }
 
    nifti_image *image = nifti_image_read(param->sourceImageName,true);
    if(image == NULL)
    {
       fprintf(stderr,"* ERROR Error when reading image: %s\n",param->sourceImageName);
-      return 1;
+      return EXIT_FAILURE;
    }
    reg_tools_changeDatatype<PrecisionTYPE>(image); // FIX DATA TYPE - DOES THIS WORK?
 
@@ -393,7 +393,7 @@ int main(int argc, char **argv)
       if(mask == NULL)
       {
          fprintf(stderr,"* ERROR Error when reading image: %s\n",param->pcaMaskName);
-         return 1;
+         return EXIT_FAILURE;
       }
       reg_tools_changeDatatype<PrecisionTYPE>(mask);
    }
@@ -1098,5 +1098,5 @@ int main(int argc, char **argv)
    free( flag );
    free( param );
 
-   return 0;
+   return EXIT_SUCCESS;
 }

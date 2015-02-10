@@ -1,19 +1,13 @@
+#-----------------------------------------------------------------------------
 if(USE_OPENCL)
 	add_subdirectory(cl)
 	set(NR_OPENCL_LIBRARIES _reg_opencl_kernels)
 #	add_definitions(-D_USE_OPENCL)
 endif(USE_OPENCL)
+#-----------------------------------------------------------------------------
 if(USE_CUDA)
-#    add_definitions(-D_USE_CUDA)
 	add_subdirectory(cuda)
 	set(NR_CUDA_LIBRARIES
-#		"_reg_globalTransformation_gpu"
-#		"_reg_localTransformation_gpu"
-#		"_reg_nmi_gpu"
-#		"_reg_ssd_gpu"
-#		"_reg_resampling_gpu"
-#		"_reg_tools_gpu"
-#		"_reg_optimiser_gpu"
 		_reg_common_gpu
 		_reg_cuda_kernels
 	)

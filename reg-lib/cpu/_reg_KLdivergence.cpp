@@ -92,7 +92,8 @@ double reg_getKLDivergence(nifti_image *referenceImage,
    // Check that both images are of the same type
    if(referenceImage->datatype!=warpedImage->datatype)
    {
-      fprintf(stderr, "[NiftyReg ERROR] reg_getKLDivergence: both input images are expected to have the same type\n");
+      reg_print_fct_error("reg_getKLDivergence()");
+      reg_print_msg_error("Both input images are expected to have the same type");
       reg_exit(1);
    }
    // If the Jacobian determinant image if define, it checks it has the type of the referenceImage image
@@ -100,7 +101,8 @@ double reg_getKLDivergence(nifti_image *referenceImage,
    {
       if(referenceImage->datatype!=jacobianDetImg->datatype)
       {
-         fprintf(stderr, "[NiftyReg ERROR] reg_getKLDivergence: input images are expected to have the same type\n");
+         reg_print_fct_error("reg_getKLDivergence()");
+         reg_print_msg_error("Input images are expected to have the same type");
          reg_exit(1);
       }
    }
@@ -109,8 +111,8 @@ double reg_getKLDivergence(nifti_image *referenceImage,
    {
       if(referenceImage->dim[i] != warpedImage->dim[i])
       {
-         fprintf(stderr,"[NiftyReg ERROR] reg_getSSD\n");
-         fprintf(stderr,"[NiftyReg ERROR] Input images are expected to have the same dimension");
+         reg_print_fct_error("reg_getKLDivergence()");
+         reg_print_msg_error("Input images are expected to have the same dimension");
          reg_exit(1);
       }
    }
@@ -123,9 +125,9 @@ double reg_getKLDivergence(nifti_image *referenceImage,
       return reg_getKLDivergence1<double>(referenceImage,warpedImage,jacobianDetImg,mask);
       break;
    default:
-      fprintf(stderr, "[NiftyReg ERROR] reg_getKLDivergence: unsupported datatype\n");
+      reg_print_fct_error("reg_getKLDivergence()");
+      reg_print_msg_error("Unsupported datatype");
       reg_exit(1);
-      break;
    }
    return 0.;
 }
@@ -254,25 +256,29 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
    if(referenceImage->datatype!=warpedImage->datatype ||
          referenceImage->datatype!=warpedImageGradient->datatype)
    {
-      fprintf(stderr, "[NiftyReg ERROR] reg_getKLDivergenceVoxelBasedGradient: input images are expected to have the same type\n");
+      reg_print_fct_error("reg_getKLDivergenceVoxelBasedGradient()");
+      reg_print_msg_error("Input images are expected to have the same type");
       reg_exit(1);
    }
    if(jacobianDetImg!=NULL)
    {
       if(referenceImage->datatype!=jacobianDetImg->datatype)
       {
-         fprintf(stderr, "[NiftyReg ERROR] reg_getKLDivergenceVoxelBasedGradient: input images are expected to have the same type\n");
+         reg_print_fct_error("reg_getKLDivergenceVoxelBasedGradient()");
+         reg_print_msg_error("Input images are expected to have the same type");
          reg_exit(1);
       }
    }
    if(referenceImage->nvox!=warpedImage->nvox)
    {
-      fprintf(stderr, "[NiftyReg ERROR] reg_getKLDivergenceVoxelBasedGradient: both input images have different size\n");
+      reg_print_fct_error("reg_getKLDivergenceVoxelBasedGradient()");
+      reg_print_msg_error("Both input images have different size");
       reg_exit(1);
    }
    if(referenceImage->nz>1 && warpedImageGradient->nu!=3 && KLdivGradient->nu!=3)
    {
-      fprintf(stderr, "[NiftyReg ERROR] reg_getKLDivergenceVoxelBasedGradient: check code\n");
+      reg_print_fct_error("reg_getKLDivergenceVoxelBasedGradient()");
+      reg_print_msg_error("Check code");
       reg_exit(1);
    }
    switch(referenceImage->datatype)
@@ -286,7 +292,8 @@ void reg_getKLDivergenceVoxelBasedGradient(nifti_image *referenceImage,
       (referenceImage,warpedImage,warpedImageGradient,KLdivGradient,jacobianDetImg,mask);
       break;
    default:
-      fprintf(stderr, "[NiftyReg ERROR] reg_getKLDivergenceVoxelBasedGradient: unsupported datatype\n");
+      reg_print_fct_error("reg_getKLDivergenceVoxelBasedGradient()");
+      reg_print_msg_error("Unsupported datatype");
       reg_exit(1);
       break;
    }

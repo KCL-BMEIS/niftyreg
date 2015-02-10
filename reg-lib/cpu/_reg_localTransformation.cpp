@@ -1565,8 +1565,8 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
 #if _USE_SSE
    if(splineControlPoint->datatype != NIFTI_TYPE_FLOAT32)
    {
-      fprintf(stderr,"[NiftyReg ERROR] SSE computation has only been implemented for single precision.\n");
-      fprintf(stderr,"[NiftyReg ERROR] The deformation field is not computed\n");
+      reg_print_fct_error("reg_spline_getDeformationField");
+      reg_print_msg_error("SSE computation has only been implemented for single precision.");
       reg_exit(1);
    }
 #endif
@@ -2317,7 +2317,7 @@ void reg_spline_refineControlPointGrid(nifti_image *controlPointGrid,
                                        nifti_image *referenceImage)
 {
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] Starting the refine the control point grid\n");
+   reg_print_msg_debug("Starting the refine the control point grid");
 #endif
    if(controlPointGrid->nz==1)
    {
@@ -2447,7 +2447,7 @@ void reg_spline_refineControlPointGrid(nifti_image *controlPointGrid,
       controlPointGrid->sto_ijk = nifti_mat44_inverse(controlPointGrid->sto_xyz);
    }
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] The control point grid has been refined\n");
+   reg_print_msg_debug("The control point grid has been refined");
 #endif
    return;
 }
@@ -3813,16 +3813,16 @@ int reg_spline_cppComposition(nifti_image *grid1,
 
    if(grid1->datatype != grid2->datatype)
    {
-      fprintf(stderr,"[NiftyReg ERROR] reg_spline_cppComposition\n");
-      fprintf(stderr,"[NiftyReg ERROR] Both input images do not have the same type\n");
+      reg_print_fct_error("reg_spline_cppComposition");
+      reg_print_msg_error("Both input images do not have the same type.");
       reg_exit(1);
    }
 
 #if _USE_SSE
    if(grid1->datatype != NIFTI_TYPE_FLOAT32)
    {
-      fprintf(stderr,"[NiftyReg ERROR] SSE computation has only been implemented for single precision.\n");
-      fprintf(stderr,"[NiftyReg ERROR] The deformation field is not computed\n");
+      reg_print_fct_error("reg_spline_cppComposition");
+      reg_print_msg_error("SSE computation has only been implemented for single precision.");
       reg_exit(1);
    }
 #endif
@@ -3840,9 +3840,9 @@ int reg_spline_cppComposition(nifti_image *grid1,
                (grid1, grid2, displacement1, displacement2, bspline);
          break;
       default:
-         fprintf(stderr,"[NiftyReg ERROR] reg_spline_cppComposition 3D\n");
-         fprintf(stderr,"[NiftyReg ERROR] Only implemented for single or double floating images\n");
-         return 1;
+         reg_print_fct_error("reg_spline_cppComposition");
+         reg_print_msg_error("Only implemented for single or double floating images");
+         reg_exit(1);
       }
    }
    else
@@ -3858,12 +3858,12 @@ int reg_spline_cppComposition(nifti_image *grid1,
                (grid1, grid2, displacement1, displacement2, bspline);
          break;
       default:
-         fprintf(stderr,"[NiftyReg ERROR] reg_spline_cppComposition 2D\n");
-         fprintf(stderr,"[NiftyReg ERROR] Only implemented for single or double precision images\n");
-         return 1;
+         reg_print_fct_error("reg_spline_cppComposition");
+         reg_print_msg_error("Only implemented for single or double floating images");
+         reg_exit(1);
       }
    }
-   return 0;
+   return EXIT_SUCCESS;
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -3873,8 +3873,8 @@ void reg_spline_getFlowFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
    // Check first if the velocity field is actually a velocity field
    if(velocityFieldGrid->intent_p1 != SPLINE_VEL_GRID)
    {
-      fprintf(stderr, "[NiftyReg ERROR] reg_spline_getFlowFieldFromVelocityGrid`n");
-      fprintf(stderr, "[NiftyReg ERROR] The provide grid is not a velocity field\n");
+      reg_print_fct_error("reg_spline_getFlowFieldFromVelocityGrid");
+      reg_print_msg_error("The provide grid is not a velocity field");
       reg_exit(1);
    }
 
@@ -4000,7 +4000,9 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
       memcpy(deformationFieldImage->data, flowFieldImage->data,
              deformationFieldImage->nvox*deformationFieldImage->nbyper);
 #ifndef NDEBUG
-      printf("[NiftyReg DEBUG] Squaring (composition) step %u/%u\n", i+1, squaringNumber);
+      char text[255];
+      sprintf(text, "Squaring (composition) step %u/%u\n", i+1, squaringNumber);
+      reg_print_msg_debug(text);
 #endif
    }
    // The affine conponent of the transformation is restored
@@ -4126,7 +4128,9 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
                            deformationFieldImage[i+1], // to update
             NULL);
 #ifndef NDEBUG
-      printf("[NiftyReg DEBUG] Squaring (composition) step %u/%u\n", i+1, squaringNumber);
+      char text[255];
+      sprintf(text, "Squaring (composition) step %u/%u\n", i+1, squaringNumber);
+      reg_print_msg_debug(text);
 #endif
    }
    return;
@@ -4285,8 +4289,8 @@ void compute_lie_bracket(nifti_image *img1,
    nifti_image_free(two_one);
    //    reg_spline_GetDeconvolvedCoefficents(res);
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class DTYPE>
 void compute_BCH_update1(nifti_image *img1, // current field
                          nifti_image *img2, // gradient
@@ -4390,15 +4394,15 @@ void compute_BCH_update1(nifti_image *img1, // current field
    memcpy(img1->data, res, img1->nvox*img1->nbyper);
    free(res);
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 void compute_BCH_update(nifti_image *img1, // current field
                         nifti_image *img2, // gradient
                         int type)
 {
    if(img1->datatype!=img2->datatype)
    {
-      fprintf(stderr,"[NiftyReg ERROR] compute_BCH_update\n");
-      fprintf(stderr,"[NiftyReg ERROR] Both input images are expected to be of similar type\n");
+      reg_print_fct_error("compute_BCH_update");
+      reg_print_msg_error("Both input images are expected to be of similar type");
       reg_exit(1);
    }
    switch(img1->datatype)
@@ -4410,27 +4414,27 @@ void compute_BCH_update(nifti_image *img1, // current field
       compute_BCH_update1<double>(img1, img2, type);
       break;
    default:
-      fprintf(stderr,"[NiftyReg ERROR] compute_BCH_update\n");
-      fprintf(stderr,"[NiftyReg ERROR] Only implemented for single or double precision images\n");
+      reg_print_fct_error("compute_BCH_update");
+      reg_print_msg_error("Only implemented for single or double precision images");
       reg_exit(1);
    }
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class DTYPE>
 void extractLine(int start, int end, int increment,const DTYPE *image, DTYPE *values)
 {
    size_t index = 0;
    for(int i=start; i<end; i+=increment) values[index++] = image[i];
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template <class DTYPE>
 void restoreLine(int start, int end, int increment, DTYPE *image, const DTYPE *values)
 {
    size_t index = 0;
    for(int i=start; i<end; i+=increment) image[i] = values[index++];
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template <class DTYPE>
 void intensitiesToSplineCoefficients(DTYPE *values, int number)
 {
@@ -4466,7 +4470,7 @@ void intensitiesToSplineCoefficients(DTYPE *values, int number)
    }
    return;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template <class DTYPE>
 void reg_spline_GetDeconvolvedCoefficents1(nifti_image *img)
 {
@@ -4534,7 +4538,7 @@ void reg_spline_GetDeconvolvedCoefficents1(nifti_image *img)
       imgPtr[i]=coeff[i];
    free(coeff);
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 void reg_spline_GetDeconvolvedCoefficents(nifti_image *img)
 {
 
@@ -4547,13 +4551,13 @@ void reg_spline_GetDeconvolvedCoefficents(nifti_image *img)
       reg_spline_GetDeconvolvedCoefficents1<double>(img);
       break;
    default:
-      fprintf(stderr,"[NiftyReg ERROR] reg_spline_GetDeconvolvedCoefficents1\n");
-      fprintf(stderr,"[NiftyReg ERROR] Only implemented for single or double precision images\n");
+      reg_print_fct_error("reg_spline_GetDeconvolvedCoefficents");
+      reg_print_msg_error("Only implemented for single or double precision images");
       reg_exit(1);
    }
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 
 #include "_reg_localTransformation_jac.cpp"
 #include "_reg_localTransformation_be.cpp"

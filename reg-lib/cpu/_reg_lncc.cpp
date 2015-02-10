@@ -14,8 +14,8 @@
 
 #include "_reg_lncc.h"
 
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 reg_lncc::reg_lncc()
    : reg_measure()
 {
@@ -37,11 +37,11 @@ reg_lncc::reg_lncc()
    for(int i=0; i<255; ++i)
       kernelStandardDeviation[i]=-5.f;
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] reg_lncc constructor called\n");
+   reg_print_msg_debug("reg_lncc constructor called");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 reg_lncc::~reg_lncc()
 {
    if(this->forwardCorrelationImage!=NULL)
@@ -76,8 +76,8 @@ reg_lncc::~reg_lncc()
       nifti_image_free(this->warpedReferenceSdevImage);
    this->warpedReferenceSdevImage=NULL;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class DTYPE>
 void reg_lncc::UpdateLocalStatImages(nifti_image *originalImage,
                                      nifti_image *meanImage,
@@ -114,8 +114,8 @@ void reg_lncc::UpdateLocalStatImages(nifti_image *originalImage,
       if(sdevPtr[voxel]<1.e-06) sdevPtr[voxel]=static_cast<DTYPE>(0);
    }
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 void reg_lncc::InitialiseMeasure(nifti_image *refImgPtr,
                                  nifti_image *floImgPtr,
                                  int *maskRefPtr,
@@ -259,15 +259,15 @@ void reg_lncc::InitialiseMeasure(nifti_image *refImgPtr,
       }
    }
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] reg_lncc::InitialiseMeasure(). Active time point:");
+   reg_print_msg_debug("reg_lncc::InitialiseMeasure(). Active time point:");
    for(int i=0; i<this->referenceImagePointer->nt; ++i)
       if(this->activeTimePoint[i])
          printf(" %i",i);
    printf("\n");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template<class DTYPE>
 double reg_getLNCCValue(nifti_image *referenceImage,
                         nifti_image *referenceMeanImage,
@@ -344,8 +344,8 @@ reduction(+:activeVoxel_num)
    }
    return lncc_value_sum/activeVoxel_num;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 double reg_lncc::GetSimilarityMeasureValue()
 {
    double lncc_value=0.f;
@@ -446,8 +446,8 @@ double reg_lncc::GetSimilarityMeasureValue()
    }
    return lncc_value;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class DTYPE>
 void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
                                    nifti_image *referenceMeanImage,
@@ -615,8 +615,8 @@ void reg_getVoxelBasedLNCCGradient(nifti_image *referenceImage,
          lnccGradPtrX[voxel]=static_cast<DTYPE>(0);
    }
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 void reg_lncc::GetVoxelBasedSimilarityMeasureGradient()
 {
    // Update the local statistic images - Forward
@@ -724,7 +724,7 @@ void reg_lncc::GetVoxelBasedSimilarityMeasureGradient()
    }
    return;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 #endif
 

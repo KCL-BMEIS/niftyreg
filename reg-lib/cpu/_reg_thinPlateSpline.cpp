@@ -133,7 +133,8 @@ T reg_tps<T>::GetTPSEuclideanDistance(size_t i, T *p)
 template <class T>
 T reg_tps<T>::GetTPSweight(T dist)
 {
-   if(dist==0) return 0;
+   if(dist==0)
+      return EXIT_SUCCESS;
    return dist*dist*log(dist);
 }
 /* *************************************************************** */
@@ -145,10 +146,13 @@ void reg_tps<T>::InitialiseTPS()
    T *matrixL=(T *)calloc(matrix_side*matrix_side,sizeof(T));
    if(matrixL==NULL)
    {
-      fprintf(stderr,"[NiftyReg] ERROR Calloc failed, the TPS distance matrix is too large\n");
-      fprintf(stderr,"[NiftyReg] ERROR Size should be %g GB (%i x %i) ... Exit\n",
+      char text[255];
+      sprintf(text,"Size should be %g GB (%i x %i)",
               (T)(matrix_side*matrix_side)*sizeof(T)/1000000000.f,
               (int)matrix_side,(int)matrix_side);
+      reg_print_fct_error("reg_tps<T>::InitialiseTPS()");
+      reg_print_msg_error("Calloc failed, the TPS distance matrix is too large");
+      reg_print_msg_error(text);
       reg_exit(1);
    }
 
@@ -187,22 +191,17 @@ void reg_tps<T>::InitialiseTPS()
          matrixL[i*matrix_side+j]=0;
       }
    }
-   printf("[NiftyReg] TPS Distance matrix initialised\n");
 
    // Run the LU decomposition
    size_t *index=(size_t *)calloc(matrix_side,sizeof(size_t));
    reg_LUdecomposition<T>(matrixL, matrix_side, index);
-   printf("[NiftyReg] TPS LU decomposition done\n");
 
    // Perform the multiplications
    reg_matrixInvertMultiply<T>(matrixL, matrix_side, index, this->coefficientX);
-   printf("[NiftyReg] TPS x-axis coefficients computed\n");
    reg_matrixInvertMultiply<T>(matrixL, matrix_side, index, this->coefficientY);
-   printf("[NiftyReg] TPS y-axis coefficients computed\n");
    if(this->dim==3)
    {
       reg_matrixInvertMultiply<T>(matrixL, matrix_side, index, this->coefficientZ);
-      printf("[NiftyReg] TPS z-axis coefficients computed\n");
    }
 
    free(index);

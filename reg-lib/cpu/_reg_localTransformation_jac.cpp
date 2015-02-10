@@ -2377,9 +2377,9 @@ double reg_spline_correctFolding(nifti_image *splineControlPoint,
                (splineControlPoint, referenceImage, approx, false);
          break;
       default:
-         fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the Jacobian determinant gradient\n");
-         fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not computed\n");
-         exit(1);
+         reg_print_fct_error("reg_spline_correctFolding");
+         reg_print_msg_error("Only implemented for single or double precision images");
+         reg_exit(1);
       }
    }
    else
@@ -2395,9 +2395,9 @@ double reg_spline_correctFolding(nifti_image *splineControlPoint,
                (splineControlPoint, referenceImage, approx, false);
          break;
       default:
-         fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the Jacobian determinant gradient\n");
-         fprintf(stderr,"[NiftyReg ERROR] The bending energy gradient has not computed\n");
-         exit(1);
+         reg_print_fct_error("reg_spline_correctFolding");
+         reg_print_msg_error("Only implemented for single or double precision images");
+         reg_exit(1);
       }
    }
 }
@@ -2427,9 +2427,9 @@ void reg_spline_GetJacobianMap(nifti_image *splineControlPoint,
                                        true);
          break;
       default:
-         fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the jacobian map image\n");
-         fprintf(stderr,"[NiftyReg ERROR] The jacobian map has not computed\n");
-         exit(1);
+         reg_print_fct_error("reg_spline_GetJacobianMap");
+         reg_print_msg_error("Only implemented for single or double precision images");
+         reg_exit(1);
       }
    }
    else
@@ -2453,9 +2453,9 @@ void reg_spline_GetJacobianMap(nifti_image *splineControlPoint,
                                        true);
          break;
       default:
-         fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the jacobian map image\n");
-         fprintf(stderr,"[NiftyReg ERROR] The jacobian map has not computed\n");
-         exit(1);
+         reg_print_fct_error("reg_spline_GetJacobianMap");
+         reg_print_msg_error("Only implemented for single or double precision images");
+         reg_exit(1);
       }
    }
 }
@@ -2486,9 +2486,9 @@ void reg_spline_GetJacobianMatrix(nifti_image *referenceImage,
                                        true);
          break;
       default:
-         fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the jacobian map image\n");
-         fprintf(stderr,"[NiftyReg ERROR] The jacobian map has not computed\n");
-         exit(1);
+         reg_print_fct_error("reg_spline_GetJacobianMatrix");
+         reg_print_msg_error("Only implemented for single or double precision images");
+         reg_exit(1);
       }
    }
    else
@@ -2512,9 +2512,9 @@ void reg_spline_GetJacobianMatrix(nifti_image *referenceImage,
                                        true);
          break;
       default:
-         fprintf(stderr,"[NiftyReg ERROR] Only single or double precision is implemented for the jacobian map image\n");
-         fprintf(stderr,"[NiftyReg ERROR] The jacobian map has not computed\n");
-         exit(1);
+         reg_print_fct_error("reg_spline_GetJacobianMatrix");
+         reg_print_msg_error("Only implemented for single or double precision images");
+         reg_exit(1);
       }
    }
 }
@@ -2756,9 +2756,9 @@ void reg_defField_getJacobianMap(nifti_image *deformationField,
 {
    if(deformationField->datatype!=jacobianImage->datatype)
    {
-      printf("[NiftyReg ERROR] reg_defField_getJacobianMap\n");
-      printf("[NiftyReg ERROR] Both input images have different type. Exit\n");
-      exit(1);
+      reg_print_fct_error("reg_defField_getJacobianMap");
+      reg_print_msg_error("Both input images have different datatype");
+      reg_exit(1);
    }
    switch(deformationField->datatype)
    {
@@ -2773,9 +2773,9 @@ void reg_defField_getJacobianMap(nifti_image *deformationField,
       else reg_defField_getJacobianMap2D<double>(deformationField,jacobianImage,NULL);
       break;
    default:
-      printf("[NiftyReg ERROR] reg_defField_getJacobianMap\n");
-      printf("[NiftyReg ERROR] Voxel type unsupported.\n");
-      exit(1);
+      reg_print_fct_error("reg_defField_getJacobianMap");
+      reg_print_msg_error("Only implemented for single or double precision images");
+      reg_exit(1);
    }
 }
 /* *************************************************************** */
@@ -2796,9 +2796,9 @@ void reg_defField_getJacobianMatrix(nifti_image *deformationField,
       else reg_defField_getJacobianMap2D<double>(deformationField,NULL,jacobianMatrices);
       break;
    default:
-      printf("[NiftyReg ERROR] reg_defField_getJacobianMap\n");
-      printf("[NiftyReg ERROR] Voxel type unsupported.\n");
-      exit(1);
+      reg_print_fct_error("reg_defField_getJacobianMatrix");
+      reg_print_msg_error("Only implemented for single or double precision images");
+      reg_exit(1);
    }
 }
 /* *************************************************************** */

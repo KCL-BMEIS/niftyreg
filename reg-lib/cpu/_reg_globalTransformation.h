@@ -50,8 +50,8 @@ void reg_affine_getDeformationField(mat44 *affine,
  */
 extern "C++"
 void reg_tool_ReadAffineFile(mat44 *mat,
-                             nifti_image* referenceImage,
-                             nifti_image* floatingImage,
+                             nifti_image *referenceImage,
+                             nifti_image *floatingImage,
                              char *fileName,
                              bool flirtFile);
 /** @brief Read a file that contains a 4-by-4 matrix and store it into

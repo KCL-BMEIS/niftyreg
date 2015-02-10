@@ -14,8 +14,8 @@
 
 #include "_reg_base.h"
 
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
 {
@@ -92,8 +92,8 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
    reg_print_fct_debug("reg_base<T>::reg_base");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 reg_base<T>::~reg_base()
 {
@@ -225,8 +225,8 @@ reg_base<T>::~reg_base()
    reg_print_fct_debug("reg_base<T>::~reg_base");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetReferenceImage(nifti_image *r)
 {
@@ -235,7 +235,7 @@ void reg_base<T>::SetReferenceImage(nifti_image *r)
    reg_print_fct_debug("reg_base<T>::SetReferenceImage");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetFloatingImage(nifti_image *f)
 {
@@ -244,7 +244,7 @@ void reg_base<T>::SetFloatingImage(nifti_image *f)
    reg_print_fct_debug("reg_base<T>::SetFloatingImage");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetMaximalIterationNumber(unsigned int iter)
 {
@@ -253,7 +253,7 @@ void reg_base<T>::SetMaximalIterationNumber(unsigned int iter)
    reg_print_fct_debug("reg_base<T>::SetMaximalIterationNumber");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetReferenceMask(nifti_image *m)
 {
@@ -262,7 +262,7 @@ void reg_base<T>::SetReferenceMask(nifti_image *m)
    reg_print_fct_debug("reg_base<T>::SetReferenceMask");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetAffineTransformation(mat44 *a)
 {
@@ -271,7 +271,7 @@ void reg_base<T>::SetAffineTransformation(mat44 *a)
    reg_print_fct_debug("reg_base<T>::SetAffineTransformation");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetReferenceSmoothingSigma(T s)
 {
@@ -280,7 +280,7 @@ void reg_base<T>::SetReferenceSmoothingSigma(T s)
    reg_print_fct_debug("reg_base<T>::SetReferenceSmoothingSigma");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetFloatingSmoothingSigma(T s)
 {
@@ -289,7 +289,7 @@ void reg_base<T>::SetFloatingSmoothingSigma(T s)
    reg_print_fct_debug("reg_base<T>::SetFloatingSmoothingSigma");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetReferenceThresholdUp(unsigned int i, T t)
 {
@@ -298,7 +298,7 @@ void reg_base<T>::SetReferenceThresholdUp(unsigned int i, T t)
    reg_print_fct_debug("reg_base<T>::SetReferenceThresholdUp");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetReferenceThresholdLow(unsigned int i, T t)
 {
@@ -307,7 +307,7 @@ void reg_base<T>::SetReferenceThresholdLow(unsigned int i, T t)
    reg_print_fct_debug("reg_base<T>::SetReferenceThresholdLow");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetFloatingThresholdUp(unsigned int i, T t)
 {
@@ -316,7 +316,7 @@ void reg_base<T>::SetFloatingThresholdUp(unsigned int i, T t)
    reg_print_fct_debug("reg_base<T>::SetFloatingThresholdUp");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetFloatingThresholdLow(unsigned int i, T t)
 {
@@ -325,7 +325,7 @@ void reg_base<T>::SetFloatingThresholdLow(unsigned int i, T t)
    reg_print_fct_debug("reg_base<T>::SetFloatingThresholdLow");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetWarpedPaddingValue(T p)
 {
@@ -334,7 +334,7 @@ void reg_base<T>::SetWarpedPaddingValue(T p)
    reg_print_fct_debug("reg_base<T>::SetWarpedPaddingValue");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetLevelNumber(unsigned int l)
 {
@@ -343,7 +343,7 @@ void reg_base<T>::SetLevelNumber(unsigned int l)
    reg_print_fct_debug("reg_base<T>::SetLevelNumber");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetLevelToPerform(unsigned int l)
 {
@@ -352,7 +352,7 @@ void reg_base<T>::SetLevelToPerform(unsigned int l)
    reg_print_fct_debug("reg_base<T>::SetLevelToPerform");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetGradientSmoothingSigma(T g)
 {
@@ -361,7 +361,7 @@ void reg_base<T>::SetGradientSmoothingSigma(T g)
    reg_print_fct_debug("reg_base<T>::SetGradientSmoothingSigma");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseConjugateGradient()
 {
@@ -370,7 +370,7 @@ void reg_base<T>::UseConjugateGradient()
    reg_print_fct_debug("reg_base<T>::UseConjugateGradient");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::DoNotUseConjugateGradient()
 {
@@ -379,7 +379,7 @@ void reg_base<T>::DoNotUseConjugateGradient()
    reg_print_fct_debug("reg_base<T>::DoNotUseConjugateGradient");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseApproximatedGradient()
 {
@@ -388,7 +388,7 @@ void reg_base<T>::UseApproximatedGradient()
    reg_print_fct_debug("reg_base<T>::UseApproximatedGradient");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::DoNotUseApproximatedGradient()
 {
@@ -397,7 +397,7 @@ void reg_base<T>::DoNotUseApproximatedGradient()
    reg_print_fct_debug("reg_base<T>::DoNotUseApproximatedGradient");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::PrintOutInformation()
 {
@@ -406,7 +406,7 @@ void reg_base<T>::PrintOutInformation()
    reg_print_fct_debug("reg_base<T>::PrintOutInformation");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::DoNotPrintOutInformation()
 {
@@ -415,7 +415,7 @@ void reg_base<T>::DoNotPrintOutInformation()
    reg_print_fct_debug("reg_base<T>::DoNotPrintOutInformation");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::DoNotUsePyramidalApproach()
 {
@@ -424,7 +424,7 @@ void reg_base<T>::DoNotUsePyramidalApproach()
    reg_print_fct_debug("reg_base<T>::DoNotUsePyramidalApproach");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseNeareatNeighborInterpolation()
 {
@@ -433,7 +433,7 @@ void reg_base<T>::UseNeareatNeighborInterpolation()
    reg_print_fct_debug("reg_base<T>::UseNeareatNeighborInterpolation");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseLinearInterpolation()
 {
@@ -442,7 +442,7 @@ void reg_base<T>::UseLinearInterpolation()
    reg_print_fct_debug("reg_base<T>::UseLinearInterpolation");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseCubicSplineInterpolation()
 {
@@ -451,8 +451,8 @@ void reg_base<T>::UseCubicSplineInterpolation()
    reg_print_fct_debug("reg_base<T>::UseCubicSplineInterpolation");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::ClearCurrentInputImage()
 {
@@ -463,14 +463,15 @@ void reg_base<T>::ClearCurrentInputImage()
    reg_print_fct_debug("reg_base<T>::ClearCurrentInputImage");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::AllocateWarped()
 {
    if(this->currentReference==NULL)
    {
-      fprintf(stderr, "[NiftyReg ERROR] The reference image is not defined\n");
+      reg_print_fct_error("reg_base::AllocateWarped()");
+      reg_print_msg_error("The reference image is not defined");
       reg_exit(1);
    }
    reg_base<T>::ClearWarped();
@@ -492,7 +493,7 @@ void reg_base<T>::AllocateWarped()
    reg_print_fct_debug("reg_base<T>::AllocateWarped");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::ClearWarped()
 {
@@ -503,14 +504,15 @@ void reg_base<T>::ClearWarped()
    reg_print_fct_debug("reg_base<T>::ClearWarped");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::AllocateDeformationField()
 {
    if(this->currentReference==NULL)
    {
-      fprintf(stderr, "[NiftyReg ERROR] The reference image is not defined\n");
+      reg_print_fct_error("reg_base::AllocateDeformationField()");
+      reg_print_msg_error("The reference image is not defined");
       reg_exit(1);
    }
    reg_base<T>::ClearDeformationField();
@@ -558,7 +560,7 @@ void reg_base<T>::AllocateDeformationField()
    reg_print_fct_debug("reg_base<T>::AllocateDeformationField");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::ClearDeformationField()
 {
@@ -574,13 +576,14 @@ void reg_base<T>::ClearDeformationField()
    reg_print_fct_debug("reg_base<T>::ClearDeformationField");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::AllocateWarpedGradient()
 {
    if(this->deformationFieldImage==NULL)
    {
-      fprintf(stderr, "[NiftyReg ERROR] The deformation field image is not defined\n");
+      reg_print_fct_error("reg_base::AllocateWarpedGradient()");
+      reg_print_msg_error("The deformation field image is not defined");
       reg_exit(1);
    }
    reg_base<T>::ClearWarpedGradient();
@@ -599,7 +602,7 @@ void reg_base<T>::AllocateWarpedGradient()
    reg_print_fct_debug("reg_base<T>::AllocateWarpedGradient");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::ClearWarpedGradient()
 {
@@ -612,13 +615,14 @@ void reg_base<T>::ClearWarpedGradient()
    reg_print_fct_debug("reg_base<T>::ClearWarpedGradient");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::AllocateVoxelBasedMeasureGradient()
 {
    if(this->deformationFieldImage==NULL)
    {
-      fprintf(stderr, "[NiftyReg ERROR] The deformation field image is not defined\n");
+      reg_print_fct_error("reg_base::AllocateVoxelBasedMeasureGradient()");
+      reg_print_msg_error("The deformation field image is not defined");
       reg_exit(1);
    }
    reg_base<T>::ClearVoxelBasedMeasureGradient();
@@ -629,7 +633,7 @@ void reg_base<T>::AllocateVoxelBasedMeasureGradient()
    reg_print_fct_debug("reg_base<T>::AllocateVoxelBasedMeasureGradient");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::ClearVoxelBasedMeasureGradient()
 {
@@ -642,19 +646,21 @@ void reg_base<T>::ClearVoxelBasedMeasureGradient()
    reg_print_fct_debug("reg_base<T>::ClearVoxelBasedMeasureGradient");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::CheckParameters()
 {
    // CHECK THAT BOTH INPUT IMAGES ARE DEFINED
    if(this->inputReference==NULL)
    {
-      fprintf(stderr,"[NiftyReg ERROR] No reference image has been defined.\n");
+      reg_print_fct_error("reg_base::CheckParameters()");
+      reg_print_msg_error("The reference image is not defined");
       reg_exit(1);
    }
    if(this->inputFloating==NULL)
    {
-      fprintf(stderr,"[NiftyReg ERROR] No floating image has been defined.\n");
+      reg_print_fct_error("reg_base::CheckParameters()");
+      reg_print_msg_error("The floating image is not defined");
       reg_exit(1);
    }
 
@@ -665,10 +671,8 @@ void reg_base<T>::CheckParameters()
             this->inputReference->ny != this->maskImage->ny ||
             this->inputReference->nz != this->maskImage->nz )
       {
-         printf("x: %i %i\n",this->inputReference->nx, this->maskImage->nx);
-         printf("y: %i %i\n",this->inputReference->ny, this->maskImage->ny);
-         printf("z: %i %i\n",this->inputReference->nz, this->maskImage->nz);
-         fprintf(stderr,"[NiftyReg ERROR] The mask image has different x, y or z dimension than the reference image.\n");
+         reg_print_fct_error("reg_base::CheckParameters()");
+         reg_print_msg_error("The reference and mask images have different dimension");
          reg_exit(1);
       }
    }
@@ -686,7 +690,7 @@ void reg_base<T>::CheckParameters()
    reg_print_fct_debug("reg_base<T>::CheckParameters");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::InitialiseSimilarity()
 {
@@ -760,7 +764,7 @@ void reg_base<T>::InitialiseSimilarity()
 #endif
    return;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::Initialise()
 {
@@ -858,8 +862,8 @@ void reg_base<T>::Initialise()
    reg_print_fct_debug("reg_base<T>::Initialise");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::SetOptimiser()
 {
@@ -870,8 +874,8 @@ void reg_base<T>::SetOptimiser()
    reg_print_fct_debug("reg_base<T>::SetOptimiser");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 double reg_base<T>::ComputeSimilarityMeasure()
 {
@@ -899,8 +903,8 @@ double reg_base<T>::ComputeSimilarityMeasure()
 #endif
    return double(this->similarityWeight) * measure;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::GetVoxelBasedGradient()
 {
@@ -952,8 +956,8 @@ void reg_base<T>::GetVoxelBasedGradient()
    reg_print_fct_debug("reg_base<T>::GetVoxelBasedGradient");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 //template<class T>
 //void reg_base<T>::ApproximateParzenWindow()
 //{
@@ -962,7 +966,7 @@ void reg_base<T>::GetVoxelBasedGradient()
 //    this->measure_nmi=approxParzenWindow = true;
 //    return;
 //}
-///* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+///* *************************************************************** */
 //template<class T>
 //void reg_base<T>::DoNotApproximateParzenWindow()
 //{
@@ -971,8 +975,8 @@ void reg_base<T>::GetVoxelBasedGradient()
 //    this->measure_nmi=approxParzenWindow = false;
 //    return;
 //}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseNMISetReferenceBinNumber(int timepoint, int refBinNumber)
 {
@@ -986,7 +990,7 @@ void reg_base<T>::UseNMISetReferenceBinNumber(int timepoint, int refBinNumber)
    reg_print_fct_debug("reg_base<T>::UseNMISetReferenceBinNumber");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber)
 {
@@ -1000,7 +1004,7 @@ void reg_base<T>::UseNMISetFloatingBinNumber(int timepoint, int floBinNumber)
    reg_print_fct_debug("reg_base<T>::UseNMISetFloatingBinNumber");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseMultiChannelNMI(int timepointNumber)
 {
@@ -1012,7 +1016,7 @@ void reg_base<T>::UseMultiChannelNMI(int timepointNumber)
    reg_print_fct_debug("reg_base<T>::UseMultiChannelNMI");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseSSD(int timepoint)
 {
@@ -1023,7 +1027,7 @@ void reg_base<T>::UseSSD(int timepoint)
    reg_print_fct_debug("reg_base<T>::UseSSD");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseKLDivergence(int timepoint)
 {
@@ -1034,7 +1038,7 @@ void reg_base<T>::UseKLDivergence(int timepoint)
    reg_print_fct_debug("reg_base<T>::UseKLDivergence");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseLNCC(int timepoint, float stddev)
 {
@@ -1046,7 +1050,7 @@ void reg_base<T>::UseLNCC(int timepoint, float stddev)
    reg_print_fct_debug("reg_base<T>::UseLNCC");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::SetLNCCKernelType(int type)
 {
@@ -1061,7 +1065,7 @@ void reg_base<T>::SetLNCCKernelType(int type)
    reg_print_fct_debug("reg_base<T>::SetLNCCKernelType");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_base<T>::UseDTI(bool *timepoint)
 {
@@ -1076,8 +1080,8 @@ void reg_base<T>::UseDTI(bool *timepoint)
    reg_print_fct_debug("reg_base<T>::UseDTI");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::WarpFloatingImage(int inter)
 {
@@ -1111,13 +1115,15 @@ void reg_base<T>::WarpFloatingImage(int inter)
    reg_print_fct_debug("reg_base<T>::WarpFloatingImage");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_base<T>::Run()
 {
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] %s::Run() called\n", this->executableName);
+   char text[255];
+   sprintf(text, "%s::Run() called\n", this->executableName);
+   reg_print_msg_debug(text);
 #endif
 
    if(!this->initialised) this->Initialise();
@@ -1233,12 +1239,12 @@ void reg_base<T>::Run()
             if(this->verbose)
             {
 #endif
-               printf("[%s] Perturbation Step - The number of iteration is reset to 0\n",
-                      this->executableName);
-               printf("[%s] Perturbation Step - Every control point positions is altered by [-%g %g]\n",
-                      this->executableName,
+               char text[255];
+               reg_print_info(this->executableName, "Perturbation Step - The number of iteration is reset to 0\n");
+               sprintf(text, "Perturbation Step - Every control point positions is altered by [-%g %g]\n",
                       smallestSize,
                       smallestSize);
+               reg_print_info(this->executableName, text);
 
 #ifdef NDEBUG
             }
@@ -1281,8 +1287,8 @@ void reg_base<T>::Run()
       if(this->verbose)
       {
 #endif
-         printf("[%s] Current registration level done\n", this->executableName);
-         printf("[%s] --------------------------------------------------\n", this->executableName);
+         reg_print_info(this->executableName, "Current registration level done");
+         reg_print_info(this->executableName, "-----------------------------------------------------------");
 #ifdef NDEBUG
       }
 #endif
@@ -1297,7 +1303,7 @@ void reg_base<T>::Run()
    reg_print_fct_debug("reg_base<T>::Run");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 
 #endif // _REG_BASE_CPP

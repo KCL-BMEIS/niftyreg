@@ -13,8 +13,9 @@
 
 using namespace std;
 
-Platform::Platform(int platformCode) {
-
+/* *************************************************************** */
+Platform::Platform(int platformCode)
+{
 	if (platformCode == NR_PLATFORM_CPU) {
 		this->factory = new CPUKernelFactory();
 		this->platformName = "cpu_platform";
@@ -30,28 +31,35 @@ Platform::Platform(int platformCode) {
 		this->factory = new CLKernelFactory();
 		this->platformName = "cl_platform";
 	}
-
 #endif
-
 }
-
-Platform::~Platform()
+/* *************************************************************** */
+Kernel *Platform::createKernel(const string& name, Content *con) const
 {
-}
-
-Kernel* Platform::createKernel(const string& name, Content* con) const {
 	return this->factory->produceKernel(name, con);
 }
-
-
-
-std::string Platform::getName(){
+/* *************************************************************** */
+std::string Platform::getName()
+{
 	return this->platformName;
 }
-
-void Platform::setClIdx(int clIdxIn){
+/* *************************************************************** */
+void Platform::setClIdx(int clIdxIn)
+{
 #ifdef _USE_OPENCL
 	CLContextSingletton *sContext = &CLContextSingletton::Instance();
 	sContext->setClIdx(clIdxIn);
+	std::size_t paramValueSize;
+	sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(), CL_DEVICE_TYPE, 0, NULL, &paramValueSize), "Failed to find OpenCL device info ");
+	cl_device_type *field = (cl_device_type *) alloca(sizeof(cl_device_type) * paramValueSize);
+	sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(), CL_DEVICE_TYPE, paramValueSize, field, NULL), "Failed to find OpenCL device info ");
+	if(CL_DEVICE_TYPE_CPU==*field){
+		reg_print_fct_error("Platform::setClIdx");
+		reg_print_msg_error("The OpenCL kernels only support GPU devices for now. Exit");
+		reg_exit(1);
+	}
 #endif
 }
+/* *************************************************************** */
+Platform::~Platform(){}
+/* *************************************************************** */

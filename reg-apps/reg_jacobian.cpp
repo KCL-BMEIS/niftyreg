@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 {
    if(argc==1){
       PetitUsage(argv[0]);
-      return 1;
+      return EXIT_FAILURE;
    }
 
    PARAM *param = (PARAM *)calloc(1,sizeof(PARAM));
@@ -143,12 +143,12 @@ int main(int argc, char **argv)
             strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0)
       {
          Usage(argv[0]);
-         return 0;
+         return EXIT_SUCCESS;
       }
       else if(strcmp(argv[i], "--xml")==0)
       {
          printf("%s",xml_jacobian);
-         return 0;
+         return EXIT_SUCCESS;
       }
 #ifdef _GIT_HASH
       else if( strcmp(argv[i], "-version")==0 ||
@@ -196,7 +196,7 @@ int main(int argc, char **argv)
       {
          fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
          PetitUsage(argv[0]);
-         return 1;
+         return EXIT_FAILURE;
       }
    }
 
@@ -218,14 +218,14 @@ int main(int argc, char **argv)
       if(inputTransformation == NULL)
       {
          fprintf(stderr,"** ERROR Error when reading the transformation image: %s\n",param->inputTransName);
-         return 1;
+         return EXIT_FAILURE;
       }
       reg_checkAndCorrectDimension(inputTransformation);
    }
    else
    {
       fprintf(stderr, "No transformation has been provided.\n");
-      return 1;
+      return EXIT_FAILURE;
    }
 
    /* *************************** */

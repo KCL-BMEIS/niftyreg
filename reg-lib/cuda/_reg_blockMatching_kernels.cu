@@ -45,9 +45,10 @@ __device__          __constant__ float4 t_m_c;
 texture<float, 1, cudaReadModeElementType> targetImageArray_texture;
 texture<float, 1, cudaReadModeElementType> resultImageArray_texture;
 texture<int, 1, cudaReadModeElementType> activeBlock_texture;
-
+/* *************************************************************** */
 // Apply the transformation matrix
-__device__ inline void apply_affine(const float4 &pt, float * result) {
+__device__ inline void apply_affine(const float4 &pt, float * result)
+{
 	float4 mat = t_m_a;
 	result[0] = (mat.x * pt.x) + (mat.y * pt.y) + (mat.z * pt.z) + (mat.w);
 	mat = t_m_b;
@@ -55,17 +56,19 @@ __device__ inline void apply_affine(const float4 &pt, float * result) {
 	mat = t_m_c;
 	result[2] = (mat.x * pt.x) + (mat.y * pt.y) + (mat.z * pt.z) + (mat.w);
 }
+/* *************************************************************** */
 template<class DTYPE>
 __device__ __inline__
-void reg_mat44_mul_cuda(float* mat, DTYPE const* in, DTYPE *out) {
+void reg_mat44_mul_cuda(float* mat, DTYPE const* in, DTYPE *out)
+{
 	out[0] = (DTYPE) mat[0 * 4 + 0] * in[0] + (DTYPE) mat[0 * 4 + 1] * in[1] + (DTYPE) mat[0 * 4 + 2] * in[2] + (DTYPE) mat[0 * 4 + 3];
 	out[1] = (DTYPE) mat[1 * 4 + 0] * in[0] + (DTYPE) mat[1 * 4 + 1] * in[1] + (DTYPE) mat[1 * 4 + 2] * in[2] + (DTYPE) mat[1 * 4 + 3];
 	out[2] = (DTYPE) mat[2 * 4 + 0] * in[0] + (DTYPE) mat[2 * 4 + 1] * in[1] + (DTYPE) mat[2 * 4 + 2] * in[2] + (DTYPE) mat[2 * 4 + 3];
 	return;
 }
-
-__device__ __inline__ void reduceCC(float* sData, const unsigned int tid, const unsigned int blockSize) {
-
+/* *************************************************************** */
+__device__ __inline__ void reduceCC(float* sData, const unsigned int tid, const unsigned int blockSize)
+{
 	if (blockSize >= 512) {
 		if (tid < 256) {
 			sData[tid] += sData[tid + 256];
@@ -99,9 +102,9 @@ __device__ __inline__ void reduceCC(float* sData, const unsigned int tid, const 
 			sData[tid] += sData[tid + 1];
 	}
 }
-
-__device__ __inline__ void reduce(float* sData, const unsigned int tid, const unsigned int blockSize) {
-
+/* *************************************************************** */
+__device__ __inline__ void reduce(float* sData, const unsigned int tid, const unsigned int blockSize)
+{
 	if (blockSize >= 512) {
 		if (tid < 256) {
 			sData[tid] += sData[tid + 256];
@@ -135,9 +138,10 @@ __device__ __inline__ void reduce(float* sData, const unsigned int tid, const un
 			sData[tid] += sData[tid + 1];
 	}
 }
-
+/* *************************************************************** */
 //must parameterize warpsize in both cuda and cl
-__device__ __inline__ float reduceCustom_f1(float data, const unsigned int tid, const unsigned int blockSize) {
+__device__ __inline__ float reduceCustom_f1(float data, const unsigned int tid, const unsigned int blockSize)
+{
 	static __shared__ float sDataBuff[8 * 8 * 8];
 
 	sDataBuff[tid] = data;
@@ -158,8 +162,9 @@ __device__ __inline__ float reduceCustom_f1(float data, const unsigned int tid, 
 	__syncthreads();
 	return sDataBuff[bid * blockSize];
 }
-
-__device__ __inline__ float reduceCustom_f(float data, const unsigned int tid) {
+/* *************************************************************** */
+__device__ __inline__ float reduceCustom_f(float data, const unsigned int tid)
+{
 	static __shared__ float sData2[64];
 
 	sData2[tid] = data;
@@ -177,8 +182,9 @@ __device__ __inline__ float reduceCustom_f(float data, const unsigned int tid) {
 	__syncthreads();
 	return sData2[0];
 }
-
-__device__ __inline__ float reduceCustom(float data, const unsigned int tid) {
+/* *************************************************************** */
+__device__ __inline__ float reduceCustom(float data, const unsigned int tid)
+{
 	static __shared__ float sData2[64];
 	sData2[tid] = data;
 	__syncthreads();
@@ -199,23 +205,26 @@ __device__ __inline__ float reduceCustom(float data, const unsigned int tid) {
 	__syncthreads();
 	return sData2[0];
 }
-
+/* *************************************************************** */
 __inline__ __device__
-float warpAllReduceSum(float val) {
+float warpAllReduceSum(float val)
+{
 	for (int mask = 16; mask > 0; mask /= 2)
 		val += __shfl_xor(val, mask);
 	return val;
 }
-
+/* *************************************************************** */
 __inline__ __device__
-float warpReduceSum(float val) {
+float warpReduceSum(float val)
+{
 	for (int offset = 16; offset > 0; offset /= 2)
 		val += __shfl_down(val, offset);
 	return val;
 }
-
+/* *************************************************************** */
 __inline__ __device__
-float blockReduceSum(float val, int tid) {
+float blockReduceSum(float val, int tid)
+{
 	static __shared__ float shared[2];
 	int laneId = tid % 32;
 	int warpId = tid / 32;
@@ -229,10 +238,17 @@ float blockReduceSum(float val, int tid) {
 
 	return shared[0] + shared[1];
 }
-
+/* *************************************************************** */
 //recently switched to this kernel as it can accomodate greater capture range
-__global__ void blockMatchingKernel(float *resultPosition, float *targetPosition, int* mask, float* targetMatrix_xyz, unsigned int* definedBlock, uint3 c_ImageSize, const int blocksRange, const unsigned int stepSize) {
-
+__global__ void blockMatchingKernel(float *resultPosition,
+												float *targetPosition,
+												int *mask,
+												float* targetMatrix_xyz,
+												unsigned int *definedBlock,
+												uint3 c_ImageSize,
+												const int blocksRange,
+												const unsigned int stepSize)
+{
 	extern __shared__ float sResultValues[];
 
 	const unsigned int numBlocks = blocksRange * 2 + 1;
@@ -357,19 +373,18 @@ __global__ void blockMatchingKernel(float *resultPosition, float *targetPosition
 				//float  tempPosition[3];
 				reg_mat44_mul_cuda<float>(targetMatrix_xyz, targetPosition_temp, targetPosition);
 				reg_mat44_mul_cuda<float>(targetMatrix_xyz, bestDisplacement, resultPosition);
-//				if (posIdx/3<32) printf("%d: in(%f-%f-%f)  | Cuda\n", posIdx/3, targetPosition[0], targetPosition[1], targetPosition[2]);
+				//				if (posIdx/3<32) printf("%d: in(%f-%f-%f)  | Cuda\n", posIdx/3, targetPosition[0], targetPosition[1], targetPosition[2]);
 			}
 		}
 	}
-
 }
-
+/* *************************************************************** */
 //threads: 512 | blocks:numEquations/512
-__global__ void populateMatrixA(float* A, float *target, unsigned int numBlocks) {
-
+__global__ void populateMatrixA(float* A, float *target, unsigned int numBlocks)
+{
 	const unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	const unsigned int c = tid * 3;
-	const unsigned int n = 12;
+	//	const unsigned int n = 12;
 	const unsigned int lda = numBlocks * 3;
 
 	if (tid < numBlocks) {
@@ -392,32 +407,28 @@ __global__ void populateMatrixA(float* A, float *target, unsigned int numBlocks)
 		A[IDX2C((c + 2), 8, lda)] = target[2];
 		A[IDX2C((c + 2), 0, lda)] = A[IDX2C((c + 2), 1, lda)] = A[IDX2C((c + 2), 2, lda)] = A[IDX2C((c + 2), 3, lda)] = A[IDX2C((c + 2), 4, lda)] = A[IDX2C((c + 2), 5, lda)] = A[IDX2C((c + 2), 9, lda)] = A[IDX2C((c + 2), 10, lda)] = 0.0f;
 		A[IDX2C((c + 2), 11, lda)] = 1.0f;
-
 	}
-
 }
-
+/* *************************************************************** */
 //launched as ldm blocks n threads
-__global__ void scaleV(float* V, const unsigned int ldm, const unsigned int n, float*w) {
-
+__global__ void scaleV(float* V, const unsigned int ldm, const unsigned int n, float*w)
+{
 	unsigned int k = blockIdx.x;
 	unsigned int j = threadIdx.x;
-
 	V[IDX2C(j, k, ldm)] *= w[j];
-
 }
+/* *************************************************************** */
 //launched as 1 block 1 thread
-__global__ void outputMatFlat(float* mat, const unsigned int ldm, const unsigned int n, char* msg) {
-	printf("===============================CUDA ========================================\n");
+__global__ void outputMatFlat(float* mat, const unsigned int ldm, const unsigned int n, char* msg)
+{
 	for (int i = 0; i < ldm * n; ++i)
 		printf("%f | ", mat[i]);
-
 	printf("\n");
-	printf("=======================================================================\n");
 }
+/* *************************************************************** */
 //launched as 1 block 1 thread
-__global__ void outputMat(float* mat, const unsigned int ldm, const unsigned int n, char* msg) {
-	printf("===============================CUDA ========================================\n");
+__global__ void outputMat(float* mat, const unsigned int ldm, const unsigned int n, char* msg)
+{
 	for (int i = 0; i < ldm; ++i) {
 		printf("%d ", i);
 		for (int j = 0; j < n; ++j) {
@@ -425,25 +436,28 @@ __global__ void outputMat(float* mat, const unsigned int ldm, const unsigned int
 		}
 		printf("\n");
 	}
-	printf("=======================================================================\n");
+	printf("\n");
 }
-
+/* *************************************************************** */
 //blocks: 1 | threads: 12
-__global__ void trimAndInvertSingularValuesKernel(float* sigma) {
+__global__ void trimAndInvertSingularValuesKernel(float* sigma)
+{
 	sigma[threadIdx.x] = (sigma[threadIdx.x] < 0.0001) ? 0.0f : (1.0 / sigma[threadIdx.x]);
 }
+/* *************************************************************** */
 __device__ void reg_mat44_dispCmat(float *mat, char * title, int tid)
-		{
+{
 	if (tid == 0)
 		printf("%s:\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n%g\t%g\t%g\t%g\n", title,
-				mat[0 * 4 + 0], mat[0 * 4 + 1], mat[0 * 4 + 2], mat[0 * 4 + 3],
+				 mat[0 * 4 + 0], mat[0 * 4 + 1], mat[0 * 4 + 2], mat[0 * 4 + 3],
 				mat[1 * 4 + 0], mat[1 * 4 + 1], mat[1 * 4 + 2], mat[1 * 4 + 3],
 				mat[2 * 4 + 0], mat[2 * 4 + 1], mat[2 * 4 + 2], mat[2 * 4 + 3],
 				mat[3 * 4 + 0], mat[3 * 4 + 1], mat[3 * 4 + 2], mat[3 * 4 + 3]);
 }
+/* *************************************************************** */
 //threads: 16 | blocks:1
-__global__ void permuteAffineMatrix(float* transform) {
-
+__global__ void permuteAffineMatrix(float* transform)
+{
 	__shared__ float buffer[16];
 	const unsigned int i = threadIdx.x;
 
@@ -457,18 +471,16 @@ __global__ void permuteAffineMatrix(float* transform) {
 	else transform[i] = buffer[i];
 
 }
-
+/* *************************************************************** */
 //threads: 512 | blocks:numEquations/512
-__global__ void transformResultPointsKernel(float* transform, float* in, float* out, unsigned int definedBlockNum) {
-
+__global__ void transformResultPointsKernel(float* transform, float* in, float* out, unsigned int definedBlockNum)
+{
 	const unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
 	if (tid < definedBlockNum) {
 		const unsigned int posIdx = 3 * tid;
 		in += posIdx;
 		out += posIdx;
 		reg_mat44_mul_cuda<float>(transform, in, out);
 	}
-
 }
 #endif

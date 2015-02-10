@@ -19,7 +19,7 @@ reg_ssd::reg_ssd()
    : reg_measure()
 {
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] reg_ssd constructor called\n");
+   reg_print_msg_debug("reg_ssd constructor called");
 #endif
 }
 /* *************************************************************** */
@@ -50,9 +50,8 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImgPtr,
    // Check that the input images have the same number of time point
    if(this->referenceImagePointer->nt != this->floatingImagePointer->nt)
    {
-      fprintf(stderr,"[NiftyReg ERROR] reg_nmi::InitialiseMeasure\n");
-      fprintf(stderr,"[NiftyReg ERROR] This number of time point should\n");
-      fprintf(stderr,"[NiftyReg ERROR] be the same for both input images\n");
+      reg_print_fct_error("reg_ssd::InitialiseMeasure");
+      reg_print_msg_error("This number of time point should be the same for both input images");
       reg_exit(1);
    }
    // Input images are normalised between 0 and 1
@@ -71,7 +70,7 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImgPtr,
       }
    }
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] reg_ssd::InitialiseMeasure(). Active time point:");
+   reg_print_msg_debug("reg_ssd::InitialiseMeasure(). Active time point:");
    for(int i=0; i<this->referenceImagePointer->nt; ++i)
       if(this->activeTimePoint[i])
          printf(" %i",i);
@@ -114,7 +113,6 @@ double reg_getSSDValue(nifti_image *referenceImage,
    {
       if(activeTimePoint[time])
       {
-
          // Create pointers to the current time point of the reference and warped images
          DTYPE *currentRefPtr=&referencePtr[time*voxelNumber];
          DTYPE *currentWarPtr=&warpedPtr[time*voxelNumber];
@@ -171,8 +169,8 @@ double reg_ssd::GetSimilarityMeasureValue()
    // Check that all the specified image are of the same datatype
    if(this->warpedFloatingImagePointer->datatype != this->referenceImagePointer->datatype)
    {
-      fprintf(stderr, "[NiftyReg ERROR] reg_ssd::GetSimilarityMeasureValue\n");
-      fprintf(stderr, "[NiftyReg ERROR] Both input images are exepected to have the same type\n");
+      reg_print_fct_error("reg_ssd::GetSimilarityMeasureValue");
+      reg_print_msg_error("Both input images are exepected to have the same type");
       reg_exit(1);
    }
    double SSDValue;
@@ -199,7 +197,8 @@ double reg_ssd::GetSimilarityMeasureValue()
                  );
       break;
    default:
-      fprintf(stderr,"[NiftyReg ERROR] Result pixel type unsupported in the SSD computation function.\n");
+      reg_print_fct_error("reg_ssd::GetSimilarityMeasureValue");
+      reg_print_msg_error("Warped pixel type unsupported");
       reg_exit(1);
    }
 
@@ -209,8 +208,8 @@ double reg_ssd::GetSimilarityMeasureValue()
       // Check that all the specified image are of the same datatype
       if(this->warpedReferenceImagePointer->datatype != this->floatingImagePointer->datatype)
       {
-         fprintf(stderr, "[NiftyReg ERROR] reg_nmi::GetSimilarityMeasureValue\n");
-         fprintf(stderr, "[NiftyReg ERROR] Both input images are exepected to have the same type\n");
+         reg_print_fct_error("reg_ssd::GetSimilarityMeasureValue");
+         reg_print_msg_error("Both input images are exepected to have the same type");
          reg_exit(1);
       }
       switch(this->floatingImagePointer->datatype)
@@ -236,7 +235,8 @@ double reg_ssd::GetSimilarityMeasureValue()
                      );
          break;
       default:
-         fprintf(stderr,"[NiftyReg ERROR] Result pixel type unsupported in the SSD computation function.\n");
+         reg_print_fct_error("reg_ssd::GetSimilarityMeasureValue");
+         reg_print_msg_error("Warped pixel type unsupported");
          reg_exit(1);
       }
    }
@@ -349,8 +349,8 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
          this->forwardVoxelBasedGradientImagePointer->datatype != dtype
      )
    {
-      fprintf(stderr, "[NiftyReg ERROR] reg_nmi::GetVoxelBasedSimilarityMeasureGradient\n");
-      fprintf(stderr, "[NiftyReg ERROR] Input images are exepected to be of the same type\n");
+      reg_print_fct_error("reg_ssd::GetVoxelBasedSimilarityMeasureGradient");
+      reg_print_msg_error("Input images are exepected to be of the same type");
       reg_exit(1);
    }
    // Compute the gradient of the ssd for the forward transformation
@@ -379,8 +379,8 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
       );
       break;
    default:
-      fprintf(stderr,"[NiftyReg ERROR] reg_nmi::GetVoxelBasedSimilarityMeasureGradient\n");
-      fprintf(stderr,"[NiftyReg ERROR] The input image data type is not supported\n");
+      reg_print_fct_error("reg_ssd::GetVoxelBasedSimilarityMeasureGradient");
+      reg_print_msg_error("Unsupported datatype");
       reg_exit(1);
    }
    // Compute the gradient of the ssd for the backward transformation
@@ -392,8 +392,8 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
             this->backwardVoxelBasedGradientImagePointer->datatype != dtype
         )
       {
-         fprintf(stderr, "[NiftyReg ERROR] reg_nmi::GetVoxelBasedSimilarityMeasureGradient\n");
-         fprintf(stderr, "[NiftyReg ERROR] Input images are exepected to be of the same type\n");
+         reg_print_fct_error("reg_ssd::GetVoxelBasedSimilarityMeasureGradient");
+         reg_print_msg_error("Input images are exepected to be of the same type");
          reg_exit(1);
       }
       // Compute the gradient of the nmi for the backward transformation
@@ -422,8 +422,8 @@ void reg_ssd::GetVoxelBasedSimilarityMeasureGradient()
          );
          break;
       default:
-         fprintf(stderr,"[NiftyReg ERROR] reg_nmi::GetVoxelBasedSimilarityMeasureGradient\n");
-         fprintf(stderr,"[NiftyReg ERROR] The input image data type is not supported\n");
+         reg_print_fct_error("reg_ssd::GetVoxelBasedSimilarityMeasureGradient");
+         reg_print_msg_error("Unsupported datatype");
          reg_exit(1);
       }
    }

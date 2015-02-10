@@ -2,7 +2,6 @@
 #include <assert.h>
 #include "cuda_runtime.h"
 #include "cuda.h"
-//#include"_reg_blocksize_gpu.h"
 #include"_reg_resampling.h"
 #include"_reg_maths.h"
 #include "CudaKernelFuncs.h"
@@ -13,49 +12,55 @@
 
 #include <thrust/device_vector.h>
 #include <thrust/device_ptr.h>
-/*#include <thrust/sort.h>*/
 #include <thrust/gather.h>
 
 #define SINC_KERNEL_RADIUS 3
 #define SINC_KERNEL_SIZE SINC_KERNEL_RADIUS*2
 
-unsigned int min1(unsigned int a, unsigned int b) {
+/* *************************************************************** */
+unsigned int min1(unsigned int a, unsigned int b)
+{
 	return (a < b) ? a : b;
 }
-
+/* *************************************************************** */
 __device__ __constant__ float cIdentity[16];
-
-__device__ __inline__ void reg_mat44_expm_cuda(float* mat) {
-	//todo 
-}
-
-__device__ __inline__
-void reg_mat44_logm_cuda(float* mat) {
+__device__ __inline__ void reg_mat44_expm_cuda(float* mat)
+{
 	//todo
 }
-
+__device__ __inline__
+void reg_mat44_logm_cuda(float* mat)
+{
+	//todo
+}
+/* *************************************************************** */
 template<class DTYPE>
-__device__ __inline__ void reg_mat44_mul_cuda(DTYPE const* mat, DTYPE const* in, DTYPE *out) {
+__device__ __inline__ void reg_mat44_mul_cuda(DTYPE const* mat, DTYPE const* in, DTYPE *out)
+{
 	out[0] = mat[0 * 4 + 0] * in[0] + mat[0 * 4 + 1] * in[1] + mat[0 * 4 + 2] * in[2] + mat[0 * 4 + 3];
 	out[1] = mat[1 * 4 + 0] * in[0] + mat[1 * 4 + 1] * in[1] + mat[1 * 4 + 2] * in[2] + mat[1 * 4 + 3];
 	out[2] = mat[2 * 4 + 0] * in[0] + mat[2 * 4 + 1] * in[1] + mat[2 * 4 + 2] * in[2] + mat[2 * 4 + 3];
 	return;
 }
+/* *************************************************************** */
 template<class DTYPE>
 __device__ __inline__
-void reg_mat44_mul_cuda(float* mat, DTYPE const* in, DTYPE *out) {
+void reg_mat44_mul_cuda(float* mat, DTYPE const* in, DTYPE *out)
+{
 	out[0] = (DTYPE) mat[0 * 4 + 0] * in[0] + (DTYPE) mat[0 * 4 + 1] * in[1] + (DTYPE) mat[0 * 4 + 2] * in[2] + (DTYPE) mat[0 * 4 + 3];
 	out[1] = (DTYPE) mat[1 * 4 + 0] * in[0] + (DTYPE) mat[1 * 4 + 1] * in[1] + (DTYPE) mat[1 * 4 + 2] * in[2] + (DTYPE) mat[1 * 4 + 3];
 	out[2] = (DTYPE) mat[2 * 4 + 0] * in[0] + (DTYPE) mat[2 * 4 + 1] * in[1] + (DTYPE) mat[2 * 4 + 2] * in[2] + (DTYPE) mat[2 * 4 + 3];
 	return;
 }
-
-__device__ __inline__ int cuda_reg_floor(float a) {
+/* *************************************************************** */
+__device__ __inline__ int cuda_reg_floor(float a)
+{
 	return (int) (floor(a));
 }
-
+/* *************************************************************** */
 template<class FieldTYPE>
-__device__ __inline__ void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *basis) {
+__device__ __inline__ void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *basis)
+{
 	if (ratio < 0.0f)
 		ratio = 0.0f; //reg_rounding error
 	FieldTYPE FF = ratio * ratio;
@@ -64,6 +69,7 @@ __device__ __inline__ void interpolantCubicSpline(FieldTYPE ratio, FieldTYPE *ba
 	basis[2] = (FieldTYPE) ((ratio * ((4.0f - 3.0f * ratio) * ratio + 1.0f)) / 2.0f);
 	basis[3] = (FieldTYPE) ((ratio - 1.0f) * FF / 2.0f);
 }
+/* *************************************************************** */
 __device__ __inline__
 void reg_mat44_eye(float *mat) {
 	mat[0 * 4 + 0] = 1.f;
@@ -75,20 +81,25 @@ void reg_mat44_eye(float *mat) {
 	mat[3 * 4 + 3] = 1.f;
 	mat[3 * 4 + 0] = mat[3 * 4 + 1] = mat[3 * 4 + 2] = 0.f;
 }
-
-__device__ __inline__ void getPosition(float* position, float* matrix, float* voxel, const unsigned int idx) {
-	position[idx] = matrix[idx * 4 + 0] * voxel[0] + matrix[idx * 4 + 1] * voxel[1] + matrix[idx * 4 + 2] * voxel[2] + matrix[idx * 4 + 3];
+/* *************************************************************** */
+__device__ __inline__ void getPosition(float* position, float* matrix, float* voxel, const unsigned int idx)
+{
+	position[idx] = matrix[idx * 4 + 0] * voxel[0] +
+			matrix[idx * 4 + 1] * voxel[1] +
+			matrix[idx * 4 + 2] * voxel[2] +
+			matrix[idx * 4 + 3];
 }
-
-__device__ __inline__ double getPosition(float* matrix, double* voxel, const unsigned int idx) {
-//	if ( voxel[0] == 126.0f && voxel[1] == 90.0f && voxel[2]==59.0f ) printf("(%d): (%f-%f-%f-%f)\n",idx, matrix[idx * 4 + 0], matrix[idx * 4 + 1], matrix[idx * 4 + 2], matrix[idx * 4 + 3]);
+/* *************************************************************** */
+__device__ __inline__ double getPosition(float* matrix, double* voxel, const unsigned int idx)
+{
 	return ((double) matrix[idx * 4 + 0]) * voxel[0] +
 			((double) matrix[idx * 4 + 1]) * voxel[1] +
 			((double) matrix[idx * 4 + 2]) * voxel[2] +
 			((double) matrix[idx * 4 + 3]);
 }
-
-__inline__ __device__ void interpWindowedSincKernel(double relative, double *basis) {
+/* *************************************************************** */
+__inline__ __device__ void interpWindowedSincKernel(double relative, double *basis)
+{
 	if (relative < 0.0)
 		relative = 0.0; //reg_rounding error
 	int j = 0;
@@ -110,8 +121,8 @@ __inline__ __device__ void interpWindowedSincKernel(double relative, double *bas
 		basis[i] /= sum;
 }
 /* *************************************************************** */
-/* *************************************************************** */
-__inline__ __device__ void interpCubicSplineKernel(double relative, double *basis) {
+__inline__ __device__ void interpCubicSplineKernel(double relative, double *basis)
+{
 	if (relative < 0.0)
 		relative = 0.0; //reg_rounding error
 	double FF = relative * relative;
@@ -121,17 +132,16 @@ __inline__ __device__ void interpCubicSplineKernel(double relative, double *basi
 	basis[3] = (relative - 1.0) * FF / 2.0;
 }
 /* *************************************************************** */
-/* *************************************************************** */
-__inline__ __device__ void interpLinearKernel(double relative, double *basis) {
+__inline__ __device__ void interpLinearKernel(double relative, double *basis)
+{
 	if (relative < 0.0)
 		relative = 0.0; //reg_rounding error
 	basis[1] = relative;
 	basis[0] = 1.0 - relative;
 }
-
 /* *************************************************************** */
-/* *************************************************************** */
-__inline__ __device__ void interpNearestNeighKernel(double relative, double *basis) {
+__inline__ __device__ void interpNearestNeighKernel(double relative, double *basis)
+{
 	if (relative < 0.0)
 		relative = 0.0; //reg_rounding error
 	basis[0] = basis[1] = 0.0;
@@ -141,8 +151,15 @@ __inline__ __device__ void interpNearestNeighKernel(double relative, double *bas
 		basis[0] = 1;
 }
 /* *************************************************************** */
-/* *************************************************************** */
-__inline__ __device__ double interpLoop(float* floatingIntensity, double* xBasis, double* yBasis, double* zBasis, int* previous, uint3 fi_xyz, double paddingValue, unsigned int kernel_size) {
+__inline__ __device__ double interpLoop(float* floatingIntensity,
+													 double* xBasis,
+													 double* yBasis,
+													 double* zBasis,
+													 int *previous,
+													 uint3 fi_xyz,
+													 double paddingValue,
+													 unsigned int kernel_size)
+{
 	double intensity = static_cast<double>(paddingValue);
 	for (int c = 0; c < kernel_size; c++) {
 		int Z = previous[2] + c;
@@ -164,9 +181,18 @@ __inline__ __device__ double interpLoop(float* floatingIntensity, double* xBasis
 	}
 	return intensity;
 }
-
-__global__ void ResampleImage3D(float* floatingImage, float* deformationField, float* warpedImage, int* mask, float* sourceIJKMatrix, ulong2 voxelNumber, uint3 fi_xyz, uint2 wi_tu, float paddingValue, int kernelType) {
-
+/* *************************************************************** */
+__global__ void ResampleImage3D(float* floatingImage,
+										  float* deformationField,
+										  float* warpedImage,
+										  int *mask,
+										  float* sourceIJKMatrix,
+										  ulong2 voxelNumber,
+										  uint3 fi_xyz,
+										  uint2 wi_tu,
+										  float paddingValue,
+										  int kernelType)
+{
 	float *sourceIntensityPtr = (floatingImage);
 	float *resultIntensityPtr = (warpedImage);
 	float *deformationFieldPtrX = (deformationField);
@@ -211,7 +237,6 @@ __global__ void ResampleImage3D(float* floatingImage, float* deformationField, f
 					interpNearestNeighKernel(relative[0], xBasisIn);
 					interpNearestNeighKernel(relative[1], yBasisIn);
 					interpNearestNeighKernel(relative[2], zBasisIn);
-					/*if(index == 19400 || index == 42547) printf("idx: %lu | x: %f-%f | y: %f-%f | z: %f-%f | prev: %d-%d-%d | rel: %f-%f-%f \n", index, xBasisIn[0], xBasisIn[1], yBasisIn[0], yBasisIn[1], zBasisIn[0], zBasisIn[1], previous[0], previous[1], previous[2], relative[0], relative[1], relative[2]);*/
 					intensity = interpLoop(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 2);
 				} else if (kernelType == 1) {
 
@@ -245,13 +270,20 @@ __global__ void ResampleImage3D(float* floatingImage, float* deformationField, f
 					interpCubicSplineKernel(relative[2], zBasisIn);
 					intensity = interpLoop(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 4);
 				}
-			}/*if(index == 19400 || index == 42547) printf("idx: %lu | val: %f\n", index, intensity);*/
+			}
 			resultIntensity[index] = intensity;
 		}
-		index += blockDim.x * gridDim.x;
 	}
+	index += blockDim.x * gridDim.x;
 }
-__global__ void affineKernel(float* transformationMatrix, float* defField, int* mask, const uint3 dims, const unsigned long voxelNumber, const bool composition) {
+/* *************************************************************** */
+__global__ void affineKernel(float* transformationMatrix,
+									  float* defField,
+									  int *mask,
+									  const uint3 dims,
+									  const unsigned long voxelNumber,
+									  const bool composition)
+{
 
 	float *deformationFieldPtrX = defField;
 	float *deformationFieldPtrY = &deformationFieldPtrX[voxelNumber];
@@ -277,12 +309,15 @@ __global__ void affineKernel(float* transformationMatrix, float* defField, int* 
 
 	}
 }
-__inline__ __device__ double getSquareDistance3Dcu(float * first_point3D, float * second_point3D) {
+/* *************************************************************** */
+__inline__ __device__ double getSquareDistance3Dcu(float * first_point3D, float * second_point3D)
+{
 	return sqrt((first_point3D[0] - second_point3D[0]) * (first_point3D[0] - second_point3D[0]) + (first_point3D[1] - second_point3D[1]) * (first_point3D[1] - second_point3D[1]) + (first_point3D[2] - second_point3D[2]) * (first_point3D[2] - second_point3D[2]));
 }
-
+/* *************************************************************** */
 //threads: 512 | blocks:numEquations/512
-__global__ void populateLengthsKernel(float* lengths, float* result_d, float* newResult_d, unsigned int numEquations) {
+__global__ void populateLengthsKernel(float* lengths, float* result_d, float* newResult_d, unsigned int numEquations)
+{
 	unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	unsigned int c = tid * 3;
 
@@ -293,11 +328,13 @@ __global__ void populateLengthsKernel(float* lengths, float* result_d, float* ne
 	}
 
 }
-
-//++++++++++++++++++++++++++++++++++++++++++ wraper funcs ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-/*in future versions this kernel could be ommited and the deformation field should be calculated on the fly at the resampling kernel. Faster and it will save 3xsize_of_image memory space (x2 if symmetric)*/
-void launchAffine(mat44 *affineTransformation, nifti_image *deformationField, float** def_d, int** mask_d, float** trans_d, bool compose) {
+/* *************************************************************** */
+void launchAffine(mat44 *affineTransformation,
+						nifti_image *deformationField,
+						float **def_d,
+						int **mask_d,
+						float **trans_d,
+						bool compose) {
 
 	const unsigned int xThreads = 8;
 	const unsigned int yThreads = 8;
@@ -319,34 +356,28 @@ void launchAffine(mat44 *affineTransformation, nifti_image *deformationField, fl
 
 	uint3 dims_d = make_uint3(deformationField->nx, deformationField->ny, deformationField->nz);
 	affineKernel<< <G1_b, B1_b >> >(*trans_d, *def_d, *mask_d, dims_d, deformationField->nx* deformationField->ny* deformationField->nz, compose);
-	//NR_CUDA_CHECK_KERNEL(G1_b, B1_b)
-	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
+	NR_CUDA_CHECK_KERNEL(G1_b, B1_b)
+			NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
 
 }
-
-void launchResample(nifti_image *floatingImage, nifti_image *warpedImage, int interp, float paddingValue, bool *dti_timepoint, mat33 * jacMat, float** floatingImage_d, float** warpedImage_d, float** deformationFieldImage_d, int** mask_d, float** sourceIJKMatrix_d) {
+/* *************************************************************** */
+void launchResample(nifti_image *floatingImage,
+						  nifti_image *warpedImage,
+						  int interp,
+						  float paddingValue,
+						  bool *dti_timepoint,
+						  mat33 *jacMat,
+						  float **floatingImage_d,
+						  float **warpedImage_d,
+						  float **deformationFieldImage_d,
+						  int **mask_d,
+						  float **sourceIJKMatrix_d) {
 
 	// Define the DTI indices if required
-	int dtiIndeces[6];
-	for (int i = 0; i < 6; ++i)
-		dtiIndeces[i] = -1;
-	if (dti_timepoint != NULL) {
-
-		if (jacMat == NULL) {
-			printf("[NiftyReg ERROR] reg_resampleImage\tDTI resampling\n");
-			printf("[NiftyReg ERROR] reg_resampleImage\tNo Jacobian matrix array has been provided\n");
-			reg_exit(1);
-		}
-		int j = 0;
-		for (int i = 0; i < floatingImage->nt; ++i) {
-			if (dti_timepoint[i] == true)
-				dtiIndeces[j++] = i;
-		}
-		if ((floatingImage->nz > 1 && j != 6) && (floatingImage->nz == 1 && j != 3)) {
-			printf("[NiftyReg ERROR] reg_resampleImage\tUnexpected number of DTI components\n");
-			printf("[NiftyReg ERROR] reg_resampleImage\tNothing has been done\n");
-			reg_exit(1);
-		}
+	if(dti_timepoint!=NULL || jacMat!=NULL){
+		reg_print_fct_error("launchResample");
+		reg_print_msg_error("The DTI resampling has not yet been implemented with the CUDA platform. Exit.");
+		reg_exit(1);
 	}
 
 	long targetVoxelNumber = (long) warpedImage->nx * warpedImage->ny * warpedImage->nz;
@@ -362,62 +393,20 @@ void launchResample(nifti_image *floatingImage, nifti_image *warpedImage, int in
 	dim3 mygrid(blocks, 1, 1);
 	dim3 myblocks(maxThreads, 1, 1);
 
-	//number of jacobian matrices
-	int numMats = 0; //needs to be transfered to a param
-	int* dtiIndeces_d;
-
-	float* jacMat_d;
-	float* jacMat_h = (float*) malloc(9 * numMats * sizeof(float));
-
 	ulong2 voxelNumber = make_ulong2(warpedImage->nx * warpedImage->ny * warpedImage->nz, floatingImage->nx * floatingImage->ny * floatingImage->nz);
 	uint3 fi_xyz = make_uint3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
 	uint2 wi_tu = make_uint2(warpedImage->nt, warpedImage->nu);
 
-	if (numMats)
-		mat33ToCptr(jacMat, jacMat_h, numMats);
-
-	//dti indeces
-	NR_CUDA_SAFE_CALL(cudaMalloc((void** )(&dtiIndeces_d), 6 * sizeof(int)));
-	NR_CUDA_SAFE_CALL(cudaMemcpy(dtiIndeces_d, dtiIndeces, 6 * sizeof(int), cudaMemcpyHostToDevice));
-
-	//jac_mat_d
-	NR_CUDA_SAFE_CALL(cudaMalloc((void** )(&jacMat_d), numMats * 9 * sizeof(float)));
-	NR_CUDA_SAFE_CALL(cudaMemcpy(jacMat_d, jacMat_h, numMats * 9 * sizeof(float), cudaMemcpyHostToDevice));
-
-	// The floating image data is copied in case one deal with DTI
-	void *originalFloatingData = NULL;
-	// The DTI are logged
-	//reg_dti_resampling_preprocessing<float>(floatingImage, &originalFloatingData, dtiIndeces);//need to either write it in cuda or do the transfers
-	//reg_dti_resampling_preprocessing<float> << <mygrid, myblocks >> >(floatingImage_d, dtiIndeces, fi_xyz);
-
 	ResampleImage3D<< <mygrid, myblocks >> >(*floatingImage_d, *deformationFieldImage_d, *warpedImage_d, *mask_d, *sourceIJKMatrix_d, voxelNumber, fi_xyz, wi_tu, paddingValue, interp);
 
-	//	NR_CUDA_CHECK_KERNEL(mygrid, myblocks)
-	NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
-
-	//NR_CUDA_SAFE_CALL(cudaMemcpy(warpedImage->data, *warpedImage_d, warpedImage->nvox * sizeof(float), cudaMemcpyDeviceToHost));
-	// The temporary logged floating array is deleted
-	if (originalFloatingData != NULL) {
-		free(floatingImage->data);
-		floatingImage->data = originalFloatingData;
-		originalFloatingData = NULL;
-	}
-	// The interpolated tensors are reoriented and exponentiated
-	//reg_dti_resampling_postprocessing<float> << <mygrid, myblocks >> >(warpedImage_d, NULL, mask_d, jacMat_d, dtiIndeces_d, fi_xyz, wi_tu);
-	//reg_dti_resampling_postprocessing<float>(warpedImage, mask, jacMat, dtiIndeces);//need to either write it in cuda or do the transfers
-
-	//	cudaFree(sourceIJKMatrix_d);
-	cudaFree(jacMat_d);
-	cudaFree(dtiIndeces_d);
-
-	//free(originalFloatingData);
-	//	free(sourceIJKMatrix_h);
-	free(jacMat_h);
+	NR_CUDA_CHECK_KERNEL(mygrid, myblocks)
+			NR_CUDA_SAFE_CALL(cudaThreadSynchronize());
 }
-
-void identityConst() {
+/* *************************************************************** */
+void identityConst()
+{
 	float* mat_h = (float*) malloc(16 * sizeof(float));
-	mat44* final = new mat44();
+	mat44 *final = new mat44();
 	// Set the current transformation to identity
 	final->m[0][0] = final->m[1][1] = final->m[2][2] = final->m[3][3] = 1.0f;
 	final->m[0][1] = final->m[0][2] = final->m[0][3] = 0.0f;
@@ -427,11 +416,15 @@ void identityConst() {
 	mat44ToCptr(*final, mat_h);
 	cudaMemcpyToSymbol(cIdentity, &mat_h, 16 * sizeof(float));
 }
-
-
-
-double sortAndReduce(float* lengths_d, float* target_d, float* result_d, float* newResult_d, const unsigned int numBlocks,const unsigned int numToKeep, const unsigned int m) {
-
+/* *************************************************************** */
+double sortAndReduce(float* lengths_d,
+							float* target_d,
+							float* result_d,
+							float* newResult_d,
+							const unsigned int numBlocks,
+							const unsigned int numToKeep,
+							const unsigned int m)
+{
 	//populateLengthsKernel
 	populateLengthsKernel<<<numBlocks, 512>>>(lengths_d, result_d, newResult_d, m/3);
 
@@ -456,5 +449,5 @@ double sortAndReduce(float* lengths_d, float* target_d, float* result_d, float* 
 	thrust::gather(indices.begin(), indices.end(), vecResult_d.begin(), vecResult_d.begin());//end()?
 
 	return thrust::reduce(lengths_d_ptr, lengths_d_ptr + numToKeep,0, thrust::plus<double>());
-
 }
+/* *************************************************************** */

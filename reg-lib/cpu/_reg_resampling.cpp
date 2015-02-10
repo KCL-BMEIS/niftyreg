@@ -104,7 +104,7 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
    if( dtIndicies[0] != -1 )
    {
 #ifndef NDEBUG
-      printf("[NiftyReg DEBUG] DTI indices:");
+      reg_print_msg_debug("DTI indices:");
       for(unsigned int i = 0; i < 6; i++ )
          printf(" %i", dtIndicies[i]);
       printf("\n");
@@ -123,7 +123,7 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
              floatingImage->data,
              floatingImage->nvox*sizeof(DTYPE));
 #ifndef NDEBUG
-      printf("[NiftyReg DEBUG] The floating image data has been copied\n");
+      reg_print_msg_debug("The floating image data has been copied");
 #endif
 
       /* As the tensor has 6 unique components that we need to worry about, read them out
@@ -179,7 +179,7 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
          floatingIntensityZZ[floatingIndex] = static_cast<DTYPE>(diffTensor.m[2][2]);
       }
 #ifndef NDEBUG
-      printf("[NiftyReg DEBUG] Tensors have been logged\n");
+      reg_print_msg_debug("Tensors have been logged");
 #endif
    }
 }
@@ -319,7 +319,7 @@ void reg_dti_resampling_postprocessing(nifti_image *inputImage,
          }
       }
 #ifndef NDEBUG
-      printf("[NiftyReg DEBUG] Exponentiated and rotated all voxels\n");
+      reg_print_msg_debug("Exponentiated and rotated all voxels");
 #endif
    }
 }
@@ -392,7 +392,9 @@ void ResampleImage3D(nifti_image *floatingImage,
    for(size_t t=0; t<(size_t)warpedImage->nt*warpedImage->nu; t++)
    {
 #ifndef NDEBUG
-      printf("[NiftyReg DEBUG] 3D resampling of volume number %lu\n",t);
+      char text[255];
+      sprintf(text, "3D resampling of volume number %lu",t);
+      reg_print_msg_debug(text);
 #endif
 
       FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*warpedVoxelNumber];
@@ -481,18 +483,26 @@ void ResampleImage3D(nifti_image *floatingImage,
             warpedIntensity[index]=intensity;
             break;
          case NIFTI_TYPE_UINT8:
+            if(intensity!=intensity)
+               intensity=0;
             intensity=(intensity<=255?reg_round(intensity):255); // 255=2^8-1
             warpedIntensity[index]=static_cast<FloatingTYPE>(intensity>0?reg_round(intensity):0);
             break;
          case NIFTI_TYPE_UINT16:
+            if(intensity!=intensity)
+               intensity=0;
             intensity=(intensity<=65535?reg_round(intensity):65535); // 65535=2^16-1
             warpedIntensity[index]=static_cast<FloatingTYPE>(intensity>0?reg_round(intensity):0);
             break;
          case NIFTI_TYPE_UINT32:
+            if(intensity!=intensity)
+               intensity=0;
             intensity=(intensity<=4294967295?reg_round(intensity):4294967295); // 4294967295=2^32-1
             warpedIntensity[index]=static_cast<FloatingTYPE>(intensity>0?reg_round(intensity):0);
             break;
          default:
+            if(intensity!=intensity)
+               intensity=0;
             warpedIntensity[index]=static_cast<FloatingTYPE>(reg_round(intensity));
             break;
          }
@@ -548,9 +558,10 @@ void ResampleImage2D(nifti_image *floatingImage,
    for(size_t t=0; t<(size_t)warpedImage->nt*warpedImage->nu; t++)
    {
 #ifndef NDEBUG
-      printf("[NiftyReg DEBUG] 2D resampling of volume number %lu\n",t);
+      char text[255];
+      sprintf(text, "2D resampling of volume number %lu",t);
+      reg_print_msg_debug(text);
 #endif
-
       FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*warpedVoxelNumber];
       FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
 
@@ -698,7 +709,7 @@ void reg_resampleImage2(nifti_image *floatingImage,
                         int *mask,
                         int interp,
                         FieldTYPE paddingValue,
-                        int* dtIndicies,
+                        int *dtIndicies,
                         mat33 * jacMat)
 {
    // The floating image data is copied in case one deal with DTI
@@ -753,15 +764,15 @@ void reg_resampleImage(nifti_image *floatingImage,
 {
    if(floatingImage->datatype != warpedImage->datatype)
    {
-      printf("[NiftyReg ERROR] reg_resampleImage\tfloating and warped image should have the same data type\n");
-      printf("[NiftyReg ERROR] reg_resampleImage\tNothing has been done\n");
+      reg_print_fct_error("reg_resampleImage");
+      reg_print_msg_error("The floating and warped image should have the same data type");
       reg_exit(1);
    }
 
    if(floatingImage->nt != warpedImage->nt)
    {
-      printf("[NiftyReg ERROR] reg_resampleImage\tThe floating and warped images have different dimension along the time axis\n");
-      printf("[NiftyReg ERROR] reg_resampleImage\tNothing has been done\n");
+      reg_print_fct_error("reg_resampleImage");
+      reg_print_msg_error("The floating and warped images have different dimension along the time axis");
       reg_exit(1);
    }
 
@@ -772,8 +783,8 @@ void reg_resampleImage(nifti_image *floatingImage,
    {
       if(jacMat==NULL)
       {
-         printf("[NiftyReg ERROR] reg_resampleImage\tDTI resampling\n");
-         printf("[NiftyReg ERROR] reg_resampleImage\tNo Jacobian matrix array has been provided\n");
+         reg_print_fct_error("reg_resampleImage");
+         reg_print_msg_error("DTI resampling: No Jacobian matrix array has been provided");
          reg_exit(1);
       }
       int j=0;
@@ -784,8 +795,8 @@ void reg_resampleImage(nifti_image *floatingImage,
       }
       if((floatingImage->nz>1 && j!=6) && (floatingImage->nz==1 && j!=3))
       {
-         printf("[NiftyReg ERROR] reg_resampleImage\tUnexpected number of DTI components\n");
-         printf("[NiftyReg ERROR] reg_resampleImage\tNothing has been done\n");
+         reg_print_fct_error("reg_resampleImage");
+         reg_print_msg_error("DTI resampling: Unexpected number of DTI components");
          reg_exit(1);
       }
    }
@@ -1498,7 +1509,8 @@ void reg_resampleGradient(nifti_image *floatingImage,
       }
       break;
    default:
-      fprintf(stderr, "[NiftyReg ERROR] reg_resampleGradient - Only single and double floating precision are supported\n");
+      reg_print_fct_error("reg_resampleGradient");
+      reg_print_msg_error("Only single and double floating precision are supported");
       reg_exit(1);
    }
 }
@@ -1544,7 +1556,9 @@ void TrilinearImageGradient(nifti_image *floatingImage,
    for(int t=0; t<warpedGradientImage->nt; t++)
    {
 #ifndef NDEBUG
-      printf("[NiftyReg DEBUG] 3D linear gradient computation of volume number %i\n",t);
+      char text[255];
+      sprintf(text, "3D linear gradient computation of volume number %i\n",t);
+      reg_print_msg_debug(text);
 #endif
       GradientTYPE *warpedGradientPtrX = &warpedGradientImagePtr[t*3*referenceVoxelNumber];
       GradientTYPE *warpedGradientPtrY = &warpedGradientPtrX[referenceVoxelNumber];
@@ -1751,7 +1765,9 @@ void BilinearImageGradient(nifti_image *floatingImage,
    for(int t=0; t<warpedGradientImage->nt; t++)
    {
 #ifndef NDEBUG
-      printf("[NiftyReg DEBUG] 2D linear gradient computation of volume number %i\n",t);
+      char text[255];
+      sprintf(text, "2D linear gradient computation of volume number %i\n",t);
+      reg_print_msg_debug(text);
 #endif
       GradientTYPE *warpedGradientPtrX = &warpedGradientImagePtr[2*t*referenceVoxelNumber];
       GradientTYPE *warpedGradientPtrY = &warpedGradientPtrX[referenceVoxelNumber];
@@ -1897,7 +1913,9 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
    for(int t=0; t<warpedGradientImage->nt; t++)
    {
 #ifndef NDEBUG
-      printf("[NiftyReg DEBUG] 3D cubic spline gradient computation of volume number %i\n",t);
+      char text[255];
+      sprintf(text, "3D cubic spline gradient computation of volume number %i\n",t);
+      reg_print_msg_debug(text);
 #endif
 
       GradientTYPE *warpedGradientPtrX = &warpedGradientImagePtr[3*t*referenceVoxelNumber];
@@ -2072,7 +2090,9 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
    for(int t=0; t<warpedGradientImage->nt; t++)
    {
 #ifndef NDEBUG
-      printf("[NiftyReg DEBUG] 2D cubic spline gradient computation of volume number %i\n",t);
+      char text[255];
+      sprintf(text, "2D cubic spline gradient computation of volume number %i\n",t);
+      reg_print_msg_debug(text);
 #endif
 
       GradientTYPE *warpedGradientPtrX = &warpedGradientImagePtr[t*2*referenceVoxelNumber];
@@ -2270,8 +2290,9 @@ void reg_getImageGradient2(nifti_image *floatingImage,
             (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    default:
-      printf("[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe warped image data type is not supported\n");
-      return;
+      reg_print_fct_error("reg_getImageGradient2");
+      reg_print_msg_error("The warped image data type is not supported");
+      reg_exit(1);
    }
 }
 /* *************************************************************** */
@@ -2322,8 +2343,9 @@ void reg_getImageGradient1(nifti_image *floatingImage,
             (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    default:
-      printf("[NiftyReg ERROR] reg_getVoxelBasedNMIGradientUsingPW\tThe warped image data type is not supported\n");
-      return;
+      reg_print_fct_error("reg_getImageGradient1");
+      reg_print_msg_error("Unsupported floating image datatype");
+      reg_exit(1);
    }
 }
 /* *************************************************************** */
@@ -2350,9 +2372,9 @@ void reg_getImageGradient(nifti_image *floatingImage,
    // Check if the dimension are correct
    if(floatingImage->nt != warpedGradientImage->nt)
    {
-      printf("[NiftyReg ERROR] reg_getImageGradient\tThe floating and warped images have different dimension along the time axis\n");
-      printf("[NiftyReg ERROR] reg_getImageGradient\tNothing has been done\n");
-      return;
+      reg_print_fct_error("reg_getImageGradient");
+      reg_print_msg_error("The floating and warped images have different dimension along the time axis");
+      reg_exit(1);
    }
 
    // Define the DTI indices if required
@@ -2363,8 +2385,8 @@ void reg_getImageGradient(nifti_image *floatingImage,
 
       if(jacMat==NULL)
       {
-         printf("[NiftyReg ERROR] reg_resampleImage\tDTI resampling\n");
-         printf("[NiftyReg ERROR] reg_resampleImage\tNo Jacobian matrix array has been provided\n");
+         reg_print_fct_error("reg_getImageGradient");
+         reg_print_msg_error("DTI resampling: No Jacobian matrix array has been provided");
          reg_exit(1);
       }
       int j=0;
@@ -2375,8 +2397,8 @@ void reg_getImageGradient(nifti_image *floatingImage,
       }
       if((floatingImage->nz>1 && j!=6) && (floatingImage->nz==1 && j!=3))
       {
-         printf("[NiftyReg ERROR] reg_resampleImage\tUnexpected number of DTI components\n");
-         printf("[NiftyReg ERROR] reg_resampleImage\tNothing has been done\n");
+         reg_print_fct_error("reg_getImageGradient");
+         reg_print_msg_error("DTI resampling: Unexpected number of DTI components");
          reg_exit(1);
       }
    }
@@ -2392,7 +2414,9 @@ void reg_getImageGradient(nifti_image *floatingImage,
             (floatingImage,warpedGradientImage,deformationField,mask,interp,paddingValue,dtIndicies,jacMat, warpedImage);
       break;
    default:
-      printf("[NiftyReg ERROR] reg_getImageGradient\tDeformation field pixel type unsupported.\n");
+      reg_print_fct_error("reg_getImageGradient");
+      reg_print_msg_error("Unsupported deformation field image datatype");
+      reg_exit(1);
       break;
    }
    if(MrPropreRule==true) free(mask);

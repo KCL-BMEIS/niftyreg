@@ -16,7 +16,7 @@
 #include "_reg_tools.h"
 
 /* *************************************************************** */
-void reg_hack_filename(nifti_image* image, const char *filename)
+void reg_hack_filename(nifti_image *image, const char *filename)
 {
    std::string name(filename);
    name.append("\0");
@@ -54,7 +54,11 @@ int reg_io_checkFileFormat(const char *filename)
       return NR_NRRD_FORMAT;
    else if(b.find( ".nhdr") != std::string::npos)
       return NR_NRRD_FORMAT;
-   else fprintf(stderr, "[NiftyReg WARNING]: No filename extension provided - the Nifti library is used by default\n");
+   else
+   {
+      reg_print_fct_warn("reg_io_checkFileFormat");
+      reg_print_msg_warn("No filename extension provided - the Nifti library is used by default");
+   }
 
    return NR_NII_FORMAT;
 }
@@ -139,8 +143,9 @@ void reg_io_WriteImageFile(nifti_image *image, const char *filename)
       // the filename is converted to nifti
       std::string b(filename);
       b.replace(b.find( ".png"),4,".nii.gz");
-      printf("[NiftyReg WARNING] The file can not be saved as png and is converted to nifti\n");
-      printf("[NiftyReg WARNING] %s -> %s\n", filename, b.c_str());
+      reg_print_msg_warn("The file can not be saved as png and is converted to nifti");
+      char text[255];sprintf(text,"%s -> %s\n", filename, b.c_str());
+      reg_print_msg_warn(text);
       filename=b.c_str();
       fileFormat=NR_NII_FORMAT;
    }

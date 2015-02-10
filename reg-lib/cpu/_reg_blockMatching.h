@@ -77,14 +77,14 @@ struct _reg_blockMatchingParam
    bool cusvd;
 
    _reg_blockMatchingParam()
-      : targetPosition(0),
+      : percent_to_keep(0),
+        targetPosition(0),
         resultPosition(0),
+        activeBlockNumber(0),
         activeBlock(0),
-        percent_to_keep(0),
-        voxelCaptureRange(0),
-        stepSize(0),
         definedActiveBlock(0),
-        activeBlockNumber(0)
+        voxelCaptureRange(0),
+        stepSize(0)
    {}
 
    ~_reg_blockMatchingParam()
@@ -130,7 +130,7 @@ extern "C++"
 void block_matching_method(nifti_image * referenceImage,
                            nifti_image * warpedImage,
                            _reg_blockMatchingParam *params,
-                           int *mask, int range=3);
+                           int *mask);
 
 /** @brief Apply the given affine transformation to a point
  * @todo I should remove this function as it is redondant

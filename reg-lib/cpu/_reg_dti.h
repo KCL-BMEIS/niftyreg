@@ -17,8 +17,8 @@
 //#include "_reg_measure.h"
 #include "_reg_ssd.h" // HERE
 
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 /// @brief DTI related measure of similarity class
 class reg_dti : public reg_measure
 {
@@ -47,7 +47,7 @@ protected:
    unsigned int dtIndicies[6];
    float currentValue;
 };
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 
 /** @brief Copmutes and returns the SSD between two input image
  * @param targetImage First input image to use to compute the metric

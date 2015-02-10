@@ -7,13 +7,15 @@
 #include "Platform.h"
 #include "cl/CLContent.h"
 
-#define EPS 1
+#include <stdlib.h>
+
+#define EPS 0.000001
 
 void test(Content *con, const unsigned int interp) {
 
 	Platform *platform = new Platform(NR_PLATFORM_CL);
 
-	Kernel* resamplingKernel = platform->createKernel(ResampleImageKernel::getName(), con);
+	Kernel *resamplingKernel = platform->createKernel(ResampleImageKernel::getName(), con);
 	resamplingKernel->castTo<ResampleImageKernel>()->calculate(interp, 0);
 
 	delete resamplingKernel;
@@ -65,7 +67,7 @@ int main(int argc, char **argv) {
 
 
 	// Compute the non-linear deformation field
-	int* tempMask = (int *) calloc(test_warped->nvox, sizeof(int));
+	int *tempMask = (int *) calloc(test_warped->nvox, sizeof(int));
 	reg_tools_changeDatatype<float>(test_warped);
 
 	Content *con = new ClContent(NULL, floatingImage, NULL, sizeof(float));
@@ -80,6 +82,19 @@ int main(int argc, char **argv) {
 	reg_tools_substractImageToImage(warpedImage, test_warped, test_warped);
 	reg_tools_abs_image(test_warped);
 	double max_difference = reg_tools_getMaxValue(test_warped);
+
+#ifndef NDEBUG
+	if (max_difference > EPS) {
+		const char* tmpdir = getenv("TMPDIR");
+		char filename[255];
+		if(tmpdir!=NULL)
+			sprintf(filename,"%s/difference_warp_cl_%i.nii", tmpdir, interpolation);
+		else sprintf(filename,"./difference_warp_cl_%i.nii", interpolation);
+		reg_io_WriteImageFile(test_warped,filename);
+		reg_print_msg_error("Saving temp warped image:");
+		reg_print_msg_error(filename);
+	}
+#endif
 
 	nifti_image_free(floatingImage);
 	nifti_image_free(warpedImage);

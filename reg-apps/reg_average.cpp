@@ -19,37 +19,42 @@
 
 #include "reg_average.h"
 
-#ifdef _USE_NR_DOUBLE
-#define PrecisionTYPE double
-#else
 #define PrecisionTYPE float
-#endif
 
 void usage(char *exec)
 {
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   printf("usage:\n\t%s <outputFileName> [OPTIONS]\n\n", exec);
-   printf("\t-avg <inputAffineName1> <inputAffineName2> ... <inputAffineNameN> \n");
-   printf("\t\tIf the input are images, the intensities are averaged\n");
-   printf("\t\tIf the input are affine matrices, out=expm((logm(M1)+logm(M2)+...+logm(MN))/N)\n\n");
-   printf("\t-avg_lts <AffineMat1> <AffineMat2> ... <AffineMatN> \n");
-   printf("\t\tIt will estimate the robust average affine matrix by considering half of the matrices as ouliers.\n\n");
-   printf("\t-avg_tran <referenceImage> <transformationFileName1> <floatingImage1> ... <transformationFileNameN> <floatingImageN> \n");
-   printf("\t\tAll input images are resampled into the space of <reference image> and averaged\n");
-   printf("\t\tA cubic spline interpolation scheme is used for resampling\n\n");
-   printf("\t-demean1 <referenceImage> <AffineMat1> <floatingImage1> ...  <AffineMatN> <floatingImageN>\n");
-   printf("\t\tThe demean1 option enforces the mean of all affine matrices to have\n");
-   printf("\t\ta Jacobian determinant equal to one. This is done by computing the\n");
-   printf("\t\taverage transformation by considering only the scaling and shearing\n");
-   printf("\t\targuments.The inverse of this computed average matrix is then removed\n");
-   printf("\t\tto all input affine matrix beforeresampling all floating images to the\n");
-   printf("\t\tuser-defined reference space\n\n");
-   printf("\t-demean2 <referenceImage> <NonRigidTrans1> <floatingImage1> ... <NonRigidTransN> <floatingImageN>\n");
-   printf("\t-demean3 <referenceImage> <AffineMat1> <NonRigidTrans1> <floatingImage1> ...  <AffineMatN> <NonRigidTransN> <floatingImageN>\n\n");
+   char text[255];
+   reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+   reg_print_info(exec, "usage:");
+   sprintf(text, "\t%s <outputFileName> [OPTIONS]", exec);
+   reg_print_info(exec, text);
+   reg_print_info(exec, "\t-avg <inputAffineName1> <inputAffineName2> ... <inputAffineNameN>");
+   reg_print_info(exec, "\t\tIf the input are images, the intensities are averaged");
+   reg_print_info(exec, "\t\tIf the input are affine matrices, out=expm((logm(M1)+logm(M2)+...+logm(MN))/N)");
+   reg_print_info(exec, "");
+   reg_print_info(exec, "\t-avg_lts <AffineMat1> <AffineMat2> ... <AffineMatN> ");
+   reg_print_info(exec, "\t\tIt will estimate the robust average affine matrix by considering half of the matrices as ouliers.");
+   reg_print_info(exec, "");
+   reg_print_info(exec, "\t-avg_tran <referenceImage> <transformationFileName1> <floatingImage1> ... <transformationFileNameN> <floatingImageN> ");
+   reg_print_info(exec, "\t\tAll input images are resampled into the space of <reference image> and averaged");
+   reg_print_info(exec, "\t\tA cubic spline interpolation scheme is used for resampling");
+   reg_print_info(exec, "");
+   reg_print_info(exec, "\t-demean1 <referenceImage> <AffineMat1> <floatingImage1> ...  <AffineMatN> <floatingImageN>");
+   reg_print_info(exec, "\t\tThe demean1 option enforces the mean of all affine matrices to have");
+   reg_print_info(exec, "\t\ta Jacobian determinant equal to one. This is done by computing the");
+   reg_print_info(exec, "\t\taverage transformation by considering only the scaling and shearing");
+   reg_print_info(exec, "\t\targuments.The inverse of this computed average matrix is then removed");
+   reg_print_info(exec, "\t\tto all input affine matrix beforeresampling all floating images to the");
+   reg_print_info(exec, "\t\tuser-defined reference space");
+   reg_print_info(exec, "");
+   reg_print_info(exec, "\t-demean2 <referenceImage> <NonRigidTrans1> <floatingImage1> ... <NonRigidTransN> <floatingImageN>");
+   reg_print_info(exec, "\t-demean3 <referenceImage> <AffineMat1> <NonRigidTrans1> <floatingImage1> ...  <AffineMatN> <NonRigidTransN> <floatingImageN>");
 #ifdef _GIT_HASH
-   printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
+   reg_print_info(exec, "");
+   sprintf(text, "\t--version\t\tPrint current source code git hash key and exit\t\t\t\t(%s)", _GIT_HASH);
+   reg_print_info(exec, text);
 #endif
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+   reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 
 template <class DTYPE>
@@ -78,7 +83,7 @@ int main(int argc, char **argv)
    if(strcmp(argv[1], "--xml")==0)
    {
       printf("%s",xml_average);
-      return 0;
+      return EXIT_SUCCESS;
    }
    // Check if help is required
    for(int i=1; i<argc; ++i)
@@ -97,7 +102,7 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "--xml")==0)
       {
          printf("%s",xml_average);
-         return 0;
+         return EXIT_SUCCESS;
       }
 #ifdef _GIT_HASH
       else if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
@@ -109,11 +114,12 @@ int main(int argc, char **argv)
       }
 #endif
    }
-   // Command line
-   printf("\nCommand line:\n\t");
-   for(int i=0; i<argc; ++i)
-      printf("%s ",argv[i]);
-   printf("\n\n");
+   reg_print_info(argv[0], "");
+   reg_print_info(argv[0], "Command line:");
+   for(int i=0; i<argc; i++)
+      printf(" %s", argv[i]);
+   printf("\n");
+   reg_print_info(argv[0], "");
 
    // Set the name of the file to output
    char *outputName = argv[1];
@@ -157,7 +163,7 @@ int main(int argc, char **argv)
          nifti_image *tempImage=reg_io_ReadImageHeader(argv[3]);
          if(tempImage==NULL)
          {
-            reg_print_msg_error("The following image can not be read:\n");
+            reg_print_msg_error("The following image can not be read:");
             reg_print_msg_error(argv[3]);
             return EXIT_FAILURE;
          }
@@ -181,7 +187,7 @@ int main(int argc, char **argv)
             nifti_image *tempImage=reg_io_ReadImageFile(argv[i]);
             if(tempImage==NULL)
             {
-               reg_print_msg_error("The following image can not be read:\n");
+               reg_print_msg_error("The following image can not be read:");
                reg_print_msg_error(argv[i]);
                return EXIT_FAILURE;
             }
@@ -191,7 +197,7 @@ int main(int argc, char **argv)
             else reg_tools_changeDatatype<float>(tempImage);
             if(averageImage->nvox!=tempImage->nvox)
             {
-               reg_print_msg_error(" All images must have the same size. Error when processing:\n");
+               reg_print_msg_error(" All images must have the same size. Error when processing:");
                reg_print_msg_error(argv[i]);
                return EXIT_FAILURE;
             }
@@ -223,7 +229,7 @@ int main(int argc, char **argv)
             }
             else
             {
-               reg_print_msg_error("The specified input affine file can not be read\n");
+               reg_print_msg_error("The specified input affine file can not be read");
                reg_print_msg_error(argv[m+3]);
                reg_exit(1);
             }
@@ -332,7 +338,7 @@ int main(int argc, char **argv)
                n.find( ".img") != std::string::npos ||
                n.find( ".img.gz") != std::string::npos)
        {
-           reg_print_msg_error("The LTS average method only works with affine transformations.\n");
+           reg_print_msg_error("The LTS average method only works with affine transformations.");
            return EXIT_FAILURE;
        }
        else
@@ -350,7 +356,7 @@ int main(int argc, char **argv)
                }
                else
                {
-                   reg_print_msg_error("The specified input affine file can not be read\n");
+                   reg_print_msg_error("The specified input affine file can not be read");
                    reg_print_msg_error(argv[m+3]);
                    reg_exit(1);
                }
@@ -508,7 +514,7 @@ int main(int argc, char **argv)
       nifti_image *referenceImage=reg_io_ReadImageFile(argv[3]);
       if(referenceImage==NULL)
       {
-         reg_print_msg_error("The reference image cannot be read. Filename:");
+         reg_print_msg_error("The reference image cannot be read:");
          reg_print_msg_error(argv[3]);
          return EXIT_FAILURE;
       }
@@ -543,9 +549,9 @@ int main(int argc, char **argv)
                inputTransformationImage=reg_io_ReadImageFile(argv[i]);
                if(inputTransformationImage==NULL)
                {
-                  fprintf(stderr, "[NiftyReg ERROR] Error when reading the provided transformation: %s\n",
-                          argv[i]);
-                  return 1;
+                  reg_print_msg_error("Error when reading the provided transformation:");
+                  reg_print_msg_error(argv[i]);
+                  return EXIT_FAILURE;
                }
                reg_checkAndCorrectDimension(inputTransformationImage);
             }
@@ -673,7 +679,7 @@ int main(int argc, char **argv)
          {
             if(reg_isAnImageFileName(argv[i]))
             {
-               reg_print_msg_error("An affine transformation was expected. Filename:");
+               reg_print_msg_error("An affine transformation was expected:");
                reg_print_msg_error(argv[i]);
                return EXIT_FAILURE;
             }
@@ -737,7 +743,7 @@ int main(int argc, char **argv)
             nifti_image *floatingImage = reg_io_ReadImageFile(argv[i]);
             if(floatingImage==NULL)
             {
-               reg_print_msg_error("The floating image cannot be read. Filename:");
+               reg_print_msg_error("The floating image cannot be read:");
                reg_print_msg_error(argv[i]);
                return EXIT_FAILURE;
             }
@@ -806,13 +812,13 @@ int main(int argc, char **argv)
             nifti_image *transformation = reg_io_ReadImageFile(argv[i]);
             if(transformation==NULL)
             {
-               reg_print_msg_error("The transformation parametrisation cannot be read. Filename:");
+               reg_print_msg_error("The transformation parametrisation cannot be read:");
                reg_print_msg_error(argv[i]);
                return EXIT_FAILURE;
             }
             if(transformation->ndim!=5)
             {
-               reg_print_msg_error("The specified filename does not seem to be a transformation parametrisation. Filename:");
+               reg_print_msg_error("The specified filename does not seem to be a transformation parametrisation:");
                reg_print_msg_error(transformation->fname);
                return EXIT_FAILURE;
             }
@@ -847,12 +853,12 @@ int main(int argc, char **argv)
             case SPLINE_VEL_GRID:
                reg_spline_getFlowFieldFromVelocityGrid(transformation,deformationField);
 #ifndef NDEBUG
-               reg_print_msg_debug("reg_average: A dense flow field has been computed from:");
+               reg_print_msg_debug("A dense flow field has been computed from:");
                reg_print_msg_debug(transformation->fname);
 #endif
                break;
             default:
-               reg_print_msg_error("Unsupported transformation parametrisation type. Filename:");
+               reg_print_msg_error("Unsupported transformation parametrisation type:");
                reg_print_msg_error(transformation->fname);
                return EXIT_FAILURE;
             }
@@ -882,7 +888,7 @@ int main(int argc, char **argv)
                   reg_tool_ReadAffineFile(&affineTransformation,
                                           argv[i-1]);
 #ifndef NDEBUG
-                  reg_print_msg_debug("reg_average: Input affine transformation. Filename:");
+                  reg_print_msg_debug("reg_average: Input affine transformation:");
                   reg_print_msg_debug(argv[i-1]);
 #endif
                }
@@ -923,13 +929,13 @@ int main(int argc, char **argv)
             nifti_image *transformation = reg_io_ReadImageFile(argv[i]);
             if(transformation==NULL)
             {
-               reg_print_msg_error("The transformation parametrisation cannot be read. Filename:");
+               reg_print_msg_error("The transformation parametrisation cannot be read:");
                reg_print_msg_error(argv[i]);
                return EXIT_FAILURE;
             }
             if(transformation->ndim!=5)
             {
-               reg_print_msg_error("The specified filename does not seem to be a transformation parametrisation. Filename");
+               reg_print_msg_error("The specified filename does not seem to be a transformation parametrisation");
                reg_print_msg_error(transformation->fname);
                return EXIT_FAILURE;
             }
@@ -967,7 +973,7 @@ int main(int argc, char **argv)
                reg_spline_getFlowFieldFromVelocityGrid(transformation,deformationField);
                break;
             default:
-               reg_print_msg_error("Unsupported transformation parametrisation type. Filename:");
+               reg_print_msg_error("Unsupported transformation parametrisation type:");
                reg_print_msg_error(transformation->fname);
                return EXIT_FAILURE;
             }
@@ -990,7 +996,7 @@ int main(int argc, char **argv)
             nifti_image *floatingImage=reg_io_ReadImageFile(argv[i+1]);
             if(floatingImage==NULL)
             {
-               reg_print_msg_error("The floating image cannot be read. Filename:");
+               reg_print_msg_error("The floating image cannot be read:");
                reg_print_msg_error(argv[i+1]);
                return EXIT_FAILURE;
             }

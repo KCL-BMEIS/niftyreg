@@ -10,11 +10,11 @@ int check_matrix_difference(mat44 matrix1, mat44 matrix2, char *name)
          if(difference>EPS){
             fprintf(stderr, "reg_test_matrix_operation - %s failed %g>%g\n",
                     name, difference,EPS);
-            return 1;
+            return EXIT_FAILURE;
          }
       }
    }
-   return 0;
+   return EXIT_SUCCESS;
 }
 
 int main()

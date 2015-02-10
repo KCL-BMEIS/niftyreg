@@ -22,7 +22,7 @@
 int isNumeric (const char *s)
 {
    if(s==NULL || *s=='\0' || isspace(*s))
-      return 0;
+      return EXIT_SUCCESS;
    char * p;
    strtod (s, &p);
    return *p == '\0';
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
    if (argc < 2)
    {
       PetitUsage(argv[0]);
-      return 1;
+      return EXIT_FAILURE;
    }
 
    /* read the input parameter */
@@ -124,12 +124,12 @@ int main(int argc, char **argv)
             strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0)
       {
          Usage(argv[0]);
-         return 0;
+         return EXIT_SUCCESS;
       }
       else if(strcmp(argv[i], "--xml")==0)
       {
          printf("%s",xml_tools);
-         return 0;
+         return EXIT_SUCCESS;
       }
 #ifdef _GIT_HASH
       else if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
@@ -274,7 +274,7 @@ int main(int argc, char **argv)
       {
          fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
          PetitUsage(argv[0]);
-         return 1;
+         return EXIT_FAILURE;
       }
    }
 
@@ -285,7 +285,7 @@ int main(int argc, char **argv)
    if(image == NULL)
    {
       fprintf(stderr,"** ERROR Error when reading the target image: %s\n",param->inputImageName);
-      return 1;
+      return EXIT_FAILURE;
    }
    reg_checkAndCorrectDimension(image);
 
@@ -405,7 +405,7 @@ int main(int argc, char **argv)
          if(image2 == NULL)
          {
             fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->operationImageName);
-            return 1;
+            return EXIT_FAILURE;
          }
          reg_checkAndCorrectDimension(image2);
       }
@@ -506,7 +506,7 @@ int main(int argc, char **argv)
       if(image2 == NULL)
       {
          fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->rmsImageName);
-         return 1;
+         return EXIT_FAILURE;
       }
       reg_checkAndCorrectDimension(image2);
       // Check image dimension
@@ -520,7 +520,7 @@ int main(int argc, char **argv)
             image->dim[7]!=image2->dim[7])
       {
          fprintf(stderr,"Both images do not have the same dimension\n");
-         return 1;
+         return EXIT_FAILURE;
       }
 
       double meanRMSerror = reg_tools_getMeanRMS(image, image2);
@@ -552,7 +552,7 @@ int main(int argc, char **argv)
       if(maskImage == NULL)
       {
          fprintf(stderr,"** ERROR Error when reading the image: %s\n",param->operationImageName);
-         return 1;
+         return EXIT_FAILURE;
       }
       reg_checkAndCorrectDimension(maskImage);
 
@@ -623,7 +623,7 @@ int main(int argc, char **argv)
       }
       else{
          reg_print_msg_error("Nan and Inf value can only be removed when the input image is of float or double datatype");
-         return 1;
+         return EXIT_FAILURE;
       }
       printf("The input image contained %lu NaN, %lu Inf and %lu finite values\n",
              nanNumber, infNumber, finNumber);
@@ -847,7 +847,7 @@ int main(int argc, char **argv)
    //    nifti_image_free(temp);
 
    nifti_image_free(image);
-   return 0;
+   return EXIT_SUCCESS;
 }
 
 #endif

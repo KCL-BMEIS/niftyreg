@@ -17,7 +17,7 @@ reg_dti::reg_dti()
    : reg_measure()
 {
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] reg_dti constructor called\n");
+   reg_print_msg_debug("reg_dti constructor called");
 #endif
 }
 /* *************************************************************** */
@@ -49,9 +49,8 @@ void reg_dti::InitialiseMeasure(nifti_image *refImgPtr,
    // Check that the input images have the same number of time point
    if(this->referenceImagePointer->nt != this->floatingImagePointer->nt)
    {
-      fprintf(stderr,"[NiftyReg ERROR] reg_nmi::InitialiseMeasure\n");
-      fprintf(stderr,"[NiftyReg ERROR] This number of time point should\n");
-      fprintf(stderr,"[NiftyReg ERROR] be the same for both input images\n");
+      reg_print_fct_error("reg_dti::InitialiseMeasure");
+      reg_print_msg_error("This number of time point should be the same for both input images");
       reg_exit(1);
    }
 
@@ -62,7 +61,7 @@ void reg_dti::InitialiseMeasure(nifti_image *refImgPtr,
       {
          this->dtIndicies[j++]=i;
 #ifndef NDEBUG
-         printf("[NiftyReg DEBUG] reg_dti::InitialiseMeasure(). Active time point:");
+         reg_print_msg_debug("reg_dti::InitialiseMeasure(). Active time point:");
          printf(" %i",i);
          printf("\n");
 #endif
@@ -70,8 +69,8 @@ void reg_dti::InitialiseMeasure(nifti_image *refImgPtr,
    }
    if((refImgPtr->nz>1 && j!=6) && (refImgPtr->nz==1 && j!=3))
    {
-      printf("[NiftyReg ERROR] reg_resampleImage\tUnexpected number of DTI components\n");
-      printf("[NiftyReg ERROR] reg_resampleImage\tNothing has been done\n");
+      reg_print_fct_error("reg_dti::InitialiseMeasure");
+      reg_print_msg_error("Unexpected number of DTI components");
       reg_exit(1);
    }
 }
@@ -156,8 +155,8 @@ double reg_dti::GetSimilarityMeasureValue()
    // Check that all the specified image are of the same datatype
    if(this->warpedFloatingImagePointer->datatype != this->referenceImagePointer->datatype)
    {
-      fprintf(stderr, "[NiftyReg ERROR] reg_dti::GetSimilarityMeasureValue\n");
-      fprintf(stderr, "[NiftyReg ERROR] Both input images are exepected to have the same type\n");
+      reg_print_fct_error("reg_dti::GetSimilarityMeasureValue");
+      reg_print_msg_error("Both input images are exepected to have the same type");
       reg_exit(1);
    }
    double DTIMeasureValue;
@@ -180,7 +179,8 @@ double reg_dti::GetSimilarityMeasureValue()
                         );
       break;
    default:
-      fprintf(stderr,"[NiftyReg ERROR] Result pixel type unsupported in the DTI computation function.\n");
+      reg_print_fct_error("reg_dti::GetSimilarityMeasureValue");
+      reg_print_msg_error("Result pixel type unsupported in the DTI computation function");
       reg_exit(1);
    }
 
@@ -190,8 +190,8 @@ double reg_dti::GetSimilarityMeasureValue()
       // Check that all the specified image are of the same datatype
       if(this->warpedReferenceImagePointer->datatype != this->floatingImagePointer->datatype)
       {
-         fprintf(stderr, "[NiftyReg ERROR] reg_dti::GetSimilarityMeasureValue\n");
-         fprintf(stderr, "[NiftyReg ERROR] Both input images are exepected to have the same type\n");
+         reg_print_fct_error("reg_dti::GetSimilarityMeasureValue");
+         reg_print_msg_error("Both input images are exepected to have the same type");
          reg_exit(1);
       }
       switch(this->floatingImagePointer->datatype)
@@ -213,7 +213,8 @@ double reg_dti::GetSimilarityMeasureValue()
                             );
          break;
       default:
-         fprintf(stderr,"[NiftyReg ERROR] Result pixel type unsupported in the SSD computation function.\n");
+         reg_print_fct_error("reg_dti::GetSimilarityMeasureValue");
+         reg_print_msg_error("Warped pixel type unsupported in the DTI computation function");
          reg_exit(1);
       }
    }
@@ -334,8 +335,8 @@ void reg_dti::GetVoxelBasedSimilarityMeasureGradient()
          this->forwardVoxelBasedGradientImagePointer->datatype != dtype
      )
    {
-      fprintf(stderr, "[NiftyReg ERROR] reg_nmi::GetVoxelBasedSimilarityMeasureGradient\n");
-      fprintf(stderr, "[NiftyReg ERROR] Input images are exepected to be of the same type\n");
+      reg_print_fct_error("reg_dti::GetVoxelBasedSimilarityMeasureGradient");
+      reg_print_msg_error("Input images are exepected to be of the same type");
       reg_exit(1);
    }
    // Compute the gradient of the ssd for the forward transformation
@@ -362,8 +363,8 @@ void reg_dti::GetVoxelBasedSimilarityMeasureGradient()
       );
       break;
    default:
-      fprintf(stderr,"[NiftyReg ERROR] reg_nmi::GetVoxelBasedSimilarityMeasureGradient\n");
-      fprintf(stderr,"[NiftyReg ERROR] The input image data type is not supported\n");
+      reg_print_fct_error("reg_dti::GetVoxelBasedSimilarityMeasureGradient");
+      reg_print_msg_error("The input image data type is not supported");
       reg_exit(1);
    }
    // Compute the gradient of the ssd for the backward transformation
@@ -375,8 +376,8 @@ void reg_dti::GetVoxelBasedSimilarityMeasureGradient()
             this->backwardVoxelBasedGradientImagePointer->datatype != dtype
         )
       {
-         fprintf(stderr, "[NiftyReg ERROR] reg_nmi::GetVoxelBasedSimilarityMeasureGradient\n");
-         fprintf(stderr, "[NiftyReg ERROR] Input images are exepected to be of the same type\n");
+         reg_print_fct_error("reg_dti::GetVoxelBasedSimilarityMeasureGradient");
+         reg_print_msg_error("Input images are exepected to be of the same type");
          reg_exit(1);
       }
       // Compute the gradient of the nmi for the backward transformation
@@ -403,8 +404,8 @@ void reg_dti::GetVoxelBasedSimilarityMeasureGradient()
          );
          break;
       default:
-         fprintf(stderr,"[NiftyReg ERROR] reg_dti::GetVoxelBasedSimilarityMeasureGradient\n");
-         fprintf(stderr,"[NiftyReg ERROR] The input image data type is not supported\n");
+         reg_print_fct_error("reg_dti::GetVoxelBasedSimilarityMeasureGradient");
+         reg_print_msg_error("The input image data type is not supported");
          reg_exit(1);
       }
    }

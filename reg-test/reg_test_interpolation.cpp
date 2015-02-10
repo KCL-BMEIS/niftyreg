@@ -66,6 +66,19 @@ int main(int argc, char **argv)
    reg_tools_abs_image(test_warped);
    double max_difference=reg_tools_getMaxValue(test_warped);
 
+#ifndef NDEBUG
+	if (max_difference > EPS) {
+		const char* tmpdir = getenv("TMPDIR");
+		char filename[255];
+		if(tmpdir!=NULL)
+			sprintf(filename,"%s/difference_warp_%i.nii", tmpdir, interpolation);
+		else sprintf(filename,"./difference_warp_cl_%i.nii", interpolation);
+		reg_io_WriteImageFile(test_warped,filename);
+		reg_print_msg_error("Saving temp warped image:");
+		reg_print_msg_error(filename);
+	}
+#endif
+
    nifti_image_free(floatingImage);
    nifti_image_free(warpedImage);
    nifti_image_free(inputDeformationField);

@@ -135,7 +135,7 @@ public:
    // F3D_gpu specific option
    virtual int CheckMemoryMB()
    {
-      return 0;
+      return EXIT_SUCCESS;
    }
 
    virtual void CheckParameters();

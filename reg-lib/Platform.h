@@ -18,7 +18,7 @@ public:
 	Platform(int platformCode);
 	virtual ~Platform();
 
-	Kernel* createKernel(const std::string& name, Content* con) const;
+	Kernel *createKernel(const std::string& name, Content *con) const;
 	std::string getName();
 	void setClIdx(int clIdxIn);
 

@@ -3596,7 +3596,7 @@ int disp_nifti_1_header( const char * info, const nifti_1_header * hp )
 
    \return an allocated nifti_image, or NULL on failure
 *//*--------------------------------------------------------------------*/
-nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
+nifti_image *nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
                                     const char * fname)
 {
    int   ii , doswap , ioff ;
@@ -5239,7 +5239,7 @@ static int nifti_write_extensions(znzFile fp, nifti_image *nim)
 /*----------------------------------------------------------------------*/
 /*! basic initialization of a nifti_image struct (to a 1x1x1 image)
 *//*--------------------------------------------------------------------*/
-nifti_image* nifti_simple_init_nim(void)
+nifti_image *nifti_simple_init_nim(void)
 {
   nifti_image *nim;
   struct nifti_1_header nhdr;

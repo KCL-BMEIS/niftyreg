@@ -55,7 +55,7 @@ __inline void interpNearestNeighKernel(float relative, float *basis) {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-__inline float interpLoop(__global float* floatingIntensity,float* xBasis, float* yBasis, float* zBasis,  int* previous, uint3 fi_xyz, float paddingValue, unsigned int kernel_size){
+__inline float interpLoop(__global float* floatingIntensity,float* xBasis, float* yBasis, float* zBasis,  int *previous, uint3 fi_xyz, float paddingValue, unsigned int kernel_size){
     float intensity = paddingValue;
     for (int c = 0; c < kernel_size; c++) {
         int Z = previous[2] + c;
@@ -104,7 +104,7 @@ float cl_reg_round(float a) {
     return (float)((a)>0.0f ?(int)((a)+0.5):(int)((a)-0.5));
 }
 
-__kernel void ResampleImage3D(__global float* floatingImage, __global float* deformationField, __global float* warpedImage,__global int* mask,__global float* sourceIJKMatrix, long2 voxelNumber, uint3 fi_xyz, uint2 wi_tu, float paddingValue, int kernelType, int datatype) {
+__kernel void ResampleImage3D(__global float* floatingImage, __global float* deformationField, __global float* warpedImage,__global int *mask,__global float* sourceIJKMatrix, long2 voxelNumber, uint3 fi_xyz, uint2 wi_tu, float paddingValue, int kernelType, int datatype) {
 
     __global float *sourceIntensityPtr = (floatingImage);
     __global float *resultIntensityPtr = (warpedImage);

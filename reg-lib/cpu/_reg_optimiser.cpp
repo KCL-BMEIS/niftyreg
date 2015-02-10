@@ -8,8 +8,8 @@
 
 #include "_reg_optimiser.h"
 
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 reg_optimiser<T>::reg_optimiser()
 {
@@ -33,11 +33,11 @@ reg_optimiser<T>::reg_optimiser()
    this->gradient_b=NULL;
 
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] reg_optimiser<T>::reg_optimiser() called\n");
+   reg_print_msg_debug("reg_optimiser<T>::reg_optimiser() called");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 reg_optimiser<T>::~reg_optimiser()
 {
@@ -48,11 +48,11 @@ reg_optimiser<T>::~reg_optimiser()
       free(this->bestDOF_b);
    this->bestDOF_b=NULL;
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] reg_optimiser<T>::~reg_optimiser() called\n");
+   reg_print_msg_debug("reg_optimiser<T>::~reg_optimiser() called");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_optimiser<T>::Initialise(size_t nvox,
                                   int dim,
@@ -101,11 +101,11 @@ void reg_optimiser<T>::Initialise(size_t nvox,
                                    this->objFunc->GetObjectiveFunctionValue();
 
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] reg_optimiser<T>::Initialise called\n");
+   reg_print_msg_debug("reg_optimiser<T>::Initialise called");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_optimiser<T>::RestoreBestDOF()
 {
@@ -115,8 +115,8 @@ void reg_optimiser<T>::RestoreBestDOF()
    if(this->currentDOF_b!=NULL && this->bestDOF_b!=NULL && this->dofNumber_b>0)
       memcpy(this->currentDOF_b,this->bestDOF_b,this->dofNumber_b*sizeof(T));
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_optimiser<T>::StoreCurrentDOF()
 {
@@ -126,8 +126,8 @@ void reg_optimiser<T>::StoreCurrentDOF()
    if(this->currentDOF_b!=NULL && this->bestDOF_b!=NULL && this->dofNumber_b>0)
       memcpy(this->bestDOF_b,this->currentDOF_b,this->dofNumber_b*sizeof(T));
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_optimiser<T>::Perturbation(float length)
 {
@@ -151,8 +151,8 @@ void reg_optimiser<T>::Perturbation(float length)
    this->currentObjFunctionValue=this->bestObjFunctionValue=
                                     this->objFunc->GetObjectiveFunctionValue();
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_optimiser<T>::Optimise(T maxLength,
                                 T smallLength,
@@ -180,10 +180,12 @@ void reg_optimiser<T>::Optimise(T maxLength,
       if(this->currentObjFunctionValue > this->bestObjFunctionValue)
       {
 #ifndef NDEBUG
-         printf("[NiftyReg DEBUG] [%i] objective function: %g | Increment %g | ACCEPTED\n",
-                (int)this->currentIterationNumber,
-                this->currentObjFunctionValue,
-                currentLength);
+         char text[255];
+         sprintf(text, "[%i] objective function: %g | Increment %g | ACCEPTED\n",
+                 (int)this->currentIterationNumber,
+                 this->currentObjFunctionValue,
+                 currentLength);
+         reg_print_msg_debug(text);
 #endif
          // Improvement - Save the new objective function value
          this->objFunc->UpdateBestObjFunctionValue();
@@ -199,10 +201,12 @@ void reg_optimiser<T>::Optimise(T maxLength,
       else
       {
 #ifndef NDEBUG
-         printf("[NiftyReg DEBUG] [%i] objective function: %g | Increment %g | REJECTED\n",
-                (int)this->currentIterationNumber,
-                this->currentObjFunctionValue,
-                currentLength);
+         char text[255];
+         sprintf(text, "[%i] objective function: %g | Increment %g | REJECTED\n",
+                 (int)this->currentIterationNumber,
+                 this->currentObjFunctionValue,
+                 currentLength);
+         reg_print_msg_debug(text);
 #endif
          // No improvement - Decrease the step size
          currentLength*=0.5;
@@ -215,15 +219,15 @@ void reg_optimiser<T>::Optimise(T maxLength,
    // Restore the last best deformation parametrisation
    this->RestoreBestDOF();
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_optimiser<T>::reg_test_optimiser()
 {
    this->objFunc->UpdateParameters(1.f);
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 reg_conjugateGradient<T>::reg_conjugateGradient()
    :reg_optimiser<T>::reg_optimiser()
@@ -234,11 +238,11 @@ reg_conjugateGradient<T>::reg_conjugateGradient()
    this->array2_b=NULL;
 
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] reg_conjugateGradient<T>::reg_conjugateGradient() called\n");
+   reg_print_msg_debug("reg_conjugateGradient<T>::reg_conjugateGradient() called");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 reg_conjugateGradient<T>::~reg_conjugateGradient()
 {
@@ -259,11 +263,11 @@ reg_conjugateGradient<T>::~reg_conjugateGradient()
    this->array2_b=NULL;
 
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] reg_conjugateGradient<T>::~reg_conjugateGradient() called\n");
+   reg_print_msg_debug("reg_conjugateGradient<T>::~reg_conjugateGradient() called");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_conjugateGradient<T>::Initialise(size_t nvox,
       int dim,
@@ -305,11 +309,11 @@ void reg_conjugateGradient<T>::Initialise(size_t nvox,
    }
 
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] reg_conjugateGradient<T>::Initialise called\n");
+   reg_print_msg_debug("reg_conjugateGradient<T>::Initialise called");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_conjugateGradient<T>::UpdateGradientValues()
 {
@@ -335,7 +339,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues()
    if(this->firstcall==true)
    {
 #ifndef NDEBUG
-      printf("[NiftyReg DEBUG] Conjugate gradient initialisation\n");
+      reg_print_msg_debug("Conjugate gradient initialisation");
 #endif
       // first conjugate gradient iteration
 #if defined (_OPENMP)
@@ -364,7 +368,7 @@ void reg_conjugateGradient<T>::UpdateGradientValues()
    else
    {
 #ifndef NDEBUG
-      printf("[NiftyReg DEBUG] Conjugate gradient update\n");
+      reg_print_msg_debug("Conjugate gradient update");
 #endif
       double dgg=0.0, gg=0.0;
 #if defined (_OPENMP)
@@ -426,8 +430,8 @@ reduction(+:dgg_b)
    }
    return;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_conjugateGradient<T>::Optimise(T maxLength,
                                         T smallLength,
@@ -438,24 +442,24 @@ void reg_conjugateGradient<T>::Optimise(T maxLength,
                               smallLength,
                               startLength);
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_conjugateGradient<T>::Perturbation(float length)
 {
    reg_optimiser<T>::Perturbation(length);
    this->firstcall=true;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_conjugateGradient<T>::reg_test_optimiser()
 {
    this->UpdateGradientValues();
    reg_optimiser<T>::reg_test_optimiser();
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 reg_lbfgs<T>::reg_lbfgs()
    :reg_optimiser<T>::reg_optimiser()
@@ -466,8 +470,8 @@ reg_lbfgs<T>::reg_lbfgs()
    this->diffDOF=NULL;
    this->diffGrad=NULL;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 reg_lbfgs<T>::~reg_lbfgs()
 {
@@ -493,8 +497,8 @@ reg_lbfgs<T>::~reg_lbfgs()
       free(this->diffGrad);
    this->diffGrad=NULL;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_lbfgs<T>::Initialise(size_t nvox,
                               int dim,
@@ -532,7 +536,8 @@ void reg_lbfgs<T>::Initialise(size_t nvox,
       this->diffGrad[i]=(T *)malloc(this->dofNumber*sizeof(T));
       if(this->diffDOF[i]==NULL || this->diffGrad[i]==NULL)
       {
-         fprintf(stderr, "[NiftyReg ERROR] reg_lbfgs running out of memory. Exit");
+         reg_print_fct_error("reg_lbfgs<T>::Initialise");
+         reg_print_msg_error("Out of memory");
          reg_exit(1);
       }
    }
@@ -540,19 +545,20 @@ void reg_lbfgs<T>::Initialise(size_t nvox,
    this->oldGrad=(T *)malloc(this->dofNumber*sizeof(T));
    if(this->oldDOF==NULL || this->oldGrad==NULL)
    {
-      fprintf(stderr, "[NiftyReg ERROR] reg_lbfgs running out of memory. Exit");
+      reg_print_fct_error("reg_lbfgs<T>::Initialise");
+      reg_print_msg_error("Out of memory");
       reg_exit(1);
    }
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_lbfgs<T>::UpdateGradientValues()
 {
 
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class T>
 void reg_lbfgs<T>::Optimise(T maxLength,
                             T smallLength,
@@ -564,6 +570,6 @@ void reg_lbfgs<T>::Optimise(T maxLength,
                               smallLength,
                               startLength);
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 #endif // _REG_OPTIMISER_CPP

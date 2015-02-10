@@ -4,32 +4,25 @@
 
 #include "../reg-lib/cl/CLContextSingletton.h"
 #include "../reg-lib/cl/InfoDevice.h"
-
-//only because some nvidia drivers were creating some obscure issue that is treated with this
-//------------------------------
 #include <pthread.h>
-void junk() {
-  int i;
-  i=pthread_getconcurrency();
-};
-//------------------------------
-void showInfo(void) {
-	cl_int errNum;
+
+void showInfo(void)
+{
+//	cl_int errNum;
+//	cl_platform_id * platformIds = sContext->getPlatformIds();
 	CLContextSingletton *sContext = &CLContextSingletton::Instance();
 	cl_uint numPlatforms = sContext->getNumPlatforms();
-	cl_platform_id * platformIds = sContext->getPlatformIds();
 
-
-	for (cl_uint i = 0; i < numPlatforms; i++) {
-
+	for (cl_uint i = 0; i < numPlatforms; i++)
+	{
 		cl_uint numDevices = sContext->getNumDevices();
 		cl_device_id * devices = sContext->getDevices();
 		std::cout <<std::endl<<"\t"<< "******************************************************" << std::endl;
 		std::cout << "\t**** Number of devices: \t" << numDevices << std::endl;
 		std::cout <<"\t"<< "******************************************************" << std::endl;
 		// Iterate through each device, displaying associated information
-		for (cl_uint j = 0; j < numDevices; j++) {
-
+		for (cl_uint j = 0; j < numDevices; j++)
+		{
 			std::cout <<std::endl<<"\t"<< "************************************************************************************" << std::endl;
 			std::cout << "\t"<<"----------------------------------Device id: " << j << "--------------------------------------" << std::endl;
 			DeviceLog<char >::show(devices[j], CL_DEVICE_NAME, "**** CL_DEVICE_NAME");
@@ -37,7 +30,6 @@ void showInfo(void) {
 			DeviceLog<char >::show(devices[j], CL_DRIVER_VERSION, "**** CL_DRIVER_VERSION");
 			DeviceLog<char >::show(devices[j], CL_DEVICE_VERSION, "**** CL_DEVICE_VERSION");
 			std::cout <<"\t"<< "************************************************************************************" << std::endl<< std::endl;
-
 
 			DeviceLog<cl_device_type>::show(devices[j], CL_DEVICE_TYPE, "CL_DEVICE_TYPE");
 			DeviceLog<cl_uint>::show(devices[j], CL_DEVICE_MAX_COMPUTE_UNITS, "CL_DEVICE_MAX_COMPUTE_UNITS");
@@ -60,12 +52,10 @@ void showInfo(void) {
 		}
 	}
 }
-
-
-int main(int argc, char** argv) {
-
-
+/* *************************************************************** */
+int main()
+{
 	showInfo();
-
-	return 0;
+	return EXIT_SUCCESS;
 }
+/* *************************************************************** */

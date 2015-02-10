@@ -93,12 +93,12 @@ int main(int argc, char **argv)
             strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0)
       {
          Usage(argv[0]);
-         return 0;
+         return EXIT_SUCCESS;
       }
       else if(strcmp(argv[i], "--xml")==0)
       {
          printf("%s",xml_resample);
-         return 0;
+         return EXIT_SUCCESS;
       }
       else if(strcmp(argv[i], "-voff")==0)
       {
@@ -209,7 +209,7 @@ int main(int argc, char **argv)
       {
          fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
          PetitUsage(argv[0]);
-         return 1;
+         return EXIT_FAILURE;
       }
    }
 
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
    {
       fprintf(stderr,"[NiftyReg ERROR] The reference and the floating image have both to be defined.\n");
       PetitUsage(argv[0]);
-      return 1;
+      return EXIT_FAILURE;
    }
 
    /* Read the reference image */
@@ -226,7 +226,7 @@ int main(int argc, char **argv)
    {
       fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference image: %s\n",
               param->referenceImageName);
-      return 1;
+      return EXIT_FAILURE;
    }
    reg_checkAndCorrectDimension(referenceImage);
 
@@ -236,7 +236,7 @@ int main(int argc, char **argv)
    {
       fprintf(stderr,"[NiftyReg ERROR] Error when reading the floating image: %s\n",
               param->floatingImageName);
-      return 1;
+      return EXIT_FAILURE;
    }
    reg_checkAndCorrectDimension(floatingImage);
 
@@ -249,7 +249,7 @@ int main(int argc, char **argv)
       printf("\n* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
       printf("Command line:\n");
       for(int i=0; i<argc; i++) printf(" %s", argv[i]);
-      printf("\n\n");
+      printf("\n");
       printf("Parameters\n");
       printf("Reference image name: %s\n",referenceImage->fname);
       printf("\t%ix%ix%i voxels, %i volumes\n",referenceImage->nx,referenceImage->ny,referenceImage->nz,referenceImage->nt);
@@ -346,7 +346,7 @@ int main(int argc, char **argv)
          {
             fprintf(stderr, "[NiftyReg ERROR] Error when reading the provided transformation: %s\n",
                     param->inputTransName);
-            return 1;
+            return EXIT_FAILURE;
          }
          reg_checkAndCorrectDimension(inputTransformationImage);
       }
@@ -519,7 +519,7 @@ int main(int argc, char **argv)
       if((floatingImage->dim[4]==6 || floatingImage->dim[4]==7) && flag->isTensor==true)
       {
 #ifndef NDEBUG
-         printf("[NiftyReg DEBUG] DTI-based resampling\n");
+         reg_print_msg_debug("DTI-based resampling\n");
 #endif
          // Compute first the Jacobian matrices
          mat33 *jacobian = (mat33 *)malloc(deformationFieldImage->nx *
@@ -759,7 +759,7 @@ int main(int argc, char **argv)
 
    free(flag);
    free(param);
-   return 0;
+   return EXIT_SUCCESS;
 }
 
 #endif

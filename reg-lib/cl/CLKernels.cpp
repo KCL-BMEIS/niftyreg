@@ -19,26 +19,28 @@
 #define SIZE 128
 #define BLOCK_SIZE 64
 
-unsigned int min_cl(unsigned int a, unsigned int b) {
+unsigned int min_cl(unsigned int a, unsigned int b)
+{
 	return (a < b) ? a : b;
 }
-//===========================================================
+/* *************************************************************** */
 CLConvolutionKernel::CLConvolutionKernel(std::string name) :
 		ConvolutionKernel(name) {
 	sContext = &CLContextSingletton::Instance();
 }
-void CLConvolutionKernel::calculate(nifti_image *image, float *sigma, int kernelType, int *mask, bool *timePoints, bool *axis) {
-	//cpu cheat
+/* *************************************************************** */
+void CLConvolutionKernel::calculate(nifti_image *image, float *sigma, int kernelType, int *mask, bool *timePoints, bool *axis)
+{
+	//cpu atm
 	reg_tools_kernelConvolution(image, sigma, kernelType, mask, timePoints, axis);
 }
-CLConvolutionKernel::~CLConvolutionKernel() {
-
-}
-//==========================================================
-//==============================Affine Kernel CL===================================================
-CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Content* conIn, std::string nameIn) :
-		AffineDeformationFieldKernel(nameIn) {
-
+/* *************************************************************** */
+CLConvolutionKernel::~CLConvolutionKernel() {}
+/* *************************************************************** */
+/* *************************************************************** */
+CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Content *conIn, std::string nameIn) :
+		AffineDeformationFieldKernel(nameIn)
+{
 	//populate the CLContent object ptr
 	con = static_cast<ClContent*>(conIn);
 
@@ -61,7 +63,7 @@ CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Content* conIn, s
 	//get cpu ptrs
 	this->deformationFieldImage = con->Content::getCurrentDeformationField();
 	this->affineTransformation = con->Content::getTransformationMatrix();
-	this->targetMatrix = (this->deformationFieldImage->sform_code > 0) ? &(this->deformationFieldImage->sto_xyz) : &(this->deformationFieldImage->qto_xyz);
+	this->ReferenceMatrix = (this->deformationFieldImage->sform_code > 0) ? &(this->deformationFieldImage->sto_xyz) : &(this->deformationFieldImage->qto_xyz);
 
 	//get cl ptrs
 	clDeformationField = con->getDeformationFieldArrayClmem();
@@ -72,43 +74,9 @@ CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Content* conIn, s
 	sContext->checkErrNum(errNum, "Error setting clMask.");
 
 }
-CLAffineDeformationFieldKernel::~CLAffineDeformationFieldKernel() {
-	if (kernel != 0)
-		clReleaseKernel(kernel);
-
-	if (program != 0)
-		clReleaseProgram(program);
-}
-
-void CLAffineDeformationFieldKernel::compare(bool compose) {
-
-	nifti_image* gpuField = con->getCurrentDeformationField();
-	float* gpuData = static_cast<float*>(gpuField->data);
-
-	nifti_image *cpuField = nifti_copy_nim_info(gpuField);
-	cpuField->data = (void *) malloc(gpuField->nvox * gpuField->nbyper);
-
-	reg_affine_getDeformationField(affineTransformation, cpuField, compose, con->Content::getCurrentReferenceMask());
-	float*cpuData = static_cast<float*>(cpuField->data);
-
-	int count = 0;
-	float threshold = 0.000015f;
-
-	for (unsigned long i = 0; i < gpuField->nvox; i++) {
-		float base = fabs(cpuData[i]) > 1 ? fabs(cpuData[i]) : fabs(cpuData[i]) + 1;
-		if (fabs(cpuData[i] - gpuData[i]) / base > threshold) {
-//			printf("i: %d | cpu: %f | gpu: %f\n",i, cpuData[i], gpuData[i]);
-			count++;
-		}
-	}
-
-	std::cout << count << " targets have no match" << std::endl;
-	if (count > 0)
-		std::cin.get();
-}
-
-void CLAffineDeformationFieldKernel::calculate(bool compose) {
-
+/* *************************************************************** */
+void CLAffineDeformationFieldKernel::calculate(bool compose)
+{
 	const unsigned int xThreads = 8;
 	const unsigned int yThreads = 8;
 	const unsigned int zThreads = 8;
@@ -120,16 +88,20 @@ void CLAffineDeformationFieldKernel::calculate(bool compose) {
 	const size_t globalWorkSize[dims] = { xBlocks * xThreads, yBlocks * yThreads, zBlocks * zThreads };
 	const size_t localWorkSize[dims] = { xThreads, yThreads, zThreads };
 
-	mat44 transformationMatrix = (compose == true) ? *this->affineTransformation : reg_mat44_mul(this->affineTransformation, targetMatrix);
+	mat44 transformationMatrix = (compose == true) ? *this->affineTransformation : reg_mat44_mul(this->affineTransformation, ReferenceMatrix);
 
 	float* trans = (float *) malloc(16 * sizeof(float));
 	mat44ToCptr(transformationMatrix, trans);
 
 	cl_int errNum;
 
-	cl_uint3 pms_d = { this->deformationFieldImage->nx, this->deformationFieldImage->ny, this->deformationFieldImage->nz };
+	cl_uint3 pms_d = {{ (cl_uint)this->deformationFieldImage->nx,
+							  (cl_uint)this->deformationFieldImage->ny,
+							  (cl_uint)this->deformationFieldImage->nz,
+							  (cl_uint)0 }};
 
 	cl_mem cltransMat = clCreateBuffer(this->clContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * 16, trans, &errNum);
+	this->sContext->checkErrNum(errNum, "CLAffineDeformationFieldKernel::calculate failed to allocate memory (cltransMat): ");
 
 	cl_uint composition = compose;
 	errNum = clSetKernelArg(this->kernel, 0, sizeof(cl_mem), &cltransMat);
@@ -142,21 +114,26 @@ void CLAffineDeformationFieldKernel::calculate(bool compose) {
 	sContext->checkErrNum(errNum, "Error setting kernel arguments.");
 
 	errNum = clEnqueueNDRangeKernel(this->commandQueue, kernel, dims, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-	sContext->checkErrNum(errNum, "Error queuing CLAffineDeformationFieldKernel for execution: ");
+	sContext->checkErrNum(errNum, "Error queuing CLAffineDeformationFieldKernel for execution");
 	clFinish(commandQueue);
 
 	free(trans);
 	clReleaseMemObject(cltransMat);
-#ifndef NDEBUG
-	compare(compose);
-#endif
-
 	return;
 }
-//==========================================================================================================
-CLResampleImageKernel::CLResampleImageKernel(Content* conIn, std::string name) :
-		ResampleImageKernel(name) {
-
+/* *************************************************************** */
+CLAffineDeformationFieldKernel::~CLAffineDeformationFieldKernel()
+{
+	if (kernel != 0)
+		clReleaseKernel(kernel);
+	if (program != 0)
+		clReleaseProgram(program);
+}
+/* *************************************************************** */
+/* *************************************************************** */
+CLResampleImageKernel::CLResampleImageKernel(Content *conIn, std::string name) :
+		ResampleImageKernel(name)
+{
 	//populate the CLContext object ptr
 	con = static_cast<ClContent*>(conIn);
 
@@ -184,68 +161,19 @@ CLResampleImageKernel::CLResampleImageKernel(Content* conIn, std::string name) :
 
 	//init kernel
 	kernel = 0;
-
 }
-
-CLResampleImageKernel::~CLResampleImageKernel() {
-
-	if (kernel != 0)
-		clReleaseKernel(kernel);
-
-	if (program != 0)
-		clReleaseProgram(program);
-}
-void CLResampleImageKernel::compare(int interp, float paddingValue) {
-	nifti_image* def = con->getCurrentDeformationField();
-	nifti_image* cWar = con->Content::getCurrentWarped();
-	reg_resampleImage(floatingImage, cWar, def, mask, interp, paddingValue, NULL, NULL);
-	float* cpuData2 = static_cast<float*>(cWar->data);
-	float* cpuData = (float*) malloc(cWar->nvox * sizeof(float));
-	for (int i = 0; i < cWar->nvox; ++i) {
-		cpuData[i] = cpuData2[i];
-	}
-	nifti_image* gWar = con->getCurrentWarped(16);
-	int count = 0;
-
-	float* gpuData = static_cast<float*>(gWar->data);
-
-	const float threshold = 0.000010;
-	for (unsigned long i = 0; i < cWar->nvox; i++) {
-		if (abs(cpuData[i] - gpuData[i]) > threshold) {
-//			printf("i: %d | cpu: %f | gpu: %f\n", i, cpuData[i], gpuData[i]);
-			count++;
-		}
-	}
-
-	std::cout << count << "Resample: targets have no match" << std::endl;
-	if (count > 0)
-		reg_exit(0);
-
-}
-void CLResampleImageKernel::calculate(int interp, float paddingValue, bool *dti_timepoint, mat33 * jacMat) {
-
+/* *************************************************************** */
+void CLResampleImageKernel::calculate(int interp,
+												  float paddingValue,
+												  bool *dti_timepoint,
+												  mat33 *jacMat)
+{
 	cl_int errNum;
 	// Define the DTI indices if required
-	int dtiIndeces[6];
-	for (int i = 0; i < 6; ++i)
-		dtiIndeces[i] = -1;
-	if (dti_timepoint != NULL) {
-
-		if (jacMat == NULL) {
-			reg_print_fct_error("[NiftyReg ERROR] reg_resampleImage\tDTI resampling\n");
-			reg_print_fct_error("[NiftyReg ERROR] reg_resampleImage\tNo Jacobian matrix array has been provided\n");
-			reg_exit(1);
-		}
-		int j = 0;
-		for (int i = 0; i < floatingImage->nt; ++i) {
-			if (dti_timepoint[i] == true)
-				dtiIndeces[j++] = i;
-		}
-		if ((floatingImage->nz > 1 && j != 6) && (floatingImage->nz == 1 && j != 3)) {
-			reg_print_fct_error("[NiftyReg ERROR] reg_resampleImage\tUnexpected number of DTI components\n");
-			reg_print_fct_error("[NiftyReg ERROR] reg_resampleImage\tNothing has been done\n");
-			reg_exit(1);
-		}
+	if(dti_timepoint!=NULL || jacMat!=NULL){
+		reg_print_fct_error("CLResampleImageKernel::calculate");
+		reg_print_msg_error("The DTI resampling has not yet been implemented with the OpenCL platform. Exit.");
+		reg_exit(1);
 	}
 
 	kernel = clCreateKernel(program, "ResampleImage3D", &errNum);
@@ -265,9 +193,13 @@ void CLResampleImageKernel::calculate(int interp, float paddingValue, bool *dti_
 	int numMats = 0; //needs to be a parameter
 	float* jacMat_h = (float*) malloc(9 * numMats * sizeof(float));
 
-	cl_long2 voxelNumber = { warpedImage->nx * warpedImage->ny * warpedImage->nz, floatingImage->nx * floatingImage->ny * floatingImage->nz };
-	cl_uint3 fi_xyz = { floatingImage->nx, floatingImage->ny, floatingImage->nz };
-	cl_uint2 wi_tu = { warpedImage->nt, warpedImage->nu };
+	cl_long2 voxelNumber = {{ (cl_long)warpedImage->nx * warpedImage->ny * warpedImage->nz,
+									  (cl_long)floatingImage->nx * floatingImage->ny * floatingImage->nz }};
+	cl_uint3 fi_xyz = {{ (cl_uint)floatingImage->nx,
+								(cl_uint)floatingImage->ny,
+								(cl_uint)floatingImage->nz }};
+	cl_uint2 wi_tu = {{ (cl_uint)warpedImage->nt,
+							  (cl_uint)warpedImage->nu }};
 
 	if (numMats)
 		mat33ToCptr(jacMat, jacMat_h, numMats);
@@ -300,82 +232,20 @@ void CLResampleImageKernel::calculate(int interp, float paddingValue, bool *dti_
 	sContext->checkErrNum(errNum, "Error queuing interp kernel for execution: ");
 
 	clFinish(commandQueue);
-//	compare(interp, paddingValue);
-	//TODO Post-processing kernel
-
 }
-void CLBlockMatchingKernel::compare() {
-	nifti_image* referenceImage = con->Content::getCurrentReference();
-	nifti_image* warpedImage = con->getCurrentWarped(16);
-	int* mask = con->Content::getCurrentReferenceMask();
-
-	_reg_blockMatchingParam *refParams = con->getBlockMatchingParams();
-	_reg_blockMatchingParam *cpu = new _reg_blockMatchingParam();
-	initialise_block_matching_method(referenceImage, cpu, 50, 50, 1, mask, false);
-	block_matching_method(referenceImage, warpedImage, cpu, mask);
-
-	int count = 0;
-	float* cpuTargetData = static_cast<float*>(cpu->targetPosition);
-	float* cpuResultData = static_cast<float*>(cpu->resultPosition);
-
-	float* cudaTargetData = static_cast<float*>(refParams->targetPosition);
-	float* cudaResultData = static_cast<float*>(refParams->resultPosition);
-
-	double maxTargetDiff = 0.0;
-	double maxResultDiff = 0.0;
-
-	double targetSum[3] = { 0.0, 0.0, 0.0 };
-	double resultSum[3] = { 0.0, 0.0, 0.0 };
-
-	int count2 = 0;
-
-	for (unsigned long i = 0; i < refParams->definedActiveBlock; i++) {
-
-		float cpuTargetPt[3] = { cpuTargetData[3 * i + 0], cpuTargetData[3 * i + 1], cpuTargetData[3 * i + 2] };
-		float cpuResultPt[3] = { cpuResultData[3 * i + 0], cpuResultData[3 * i + 1], cpuResultData[3 * i + 2] };
-
-		bool found = false;
-		for (unsigned long j = 0; j < refParams->definedActiveBlock; j++) {
-			float cudaTargetPt[3] = { cudaTargetData[3 * j + 0], cudaTargetData[3 * j + 1], cudaTargetData[3 * j + 2] };
-			float cudaResultPt[3] = { cudaResultData[3 * j + 0], cudaResultData[3 * j + 1], cudaResultData[3 * j + 2] };
-
-			targetSum[0] = fabs(cpuTargetPt[0] - cudaTargetPt[0]);
-			targetSum[1] = fabs(cpuTargetPt[1] - cudaTargetPt[1]);
-			targetSum[2] = fabs(cpuTargetPt[2] - cudaTargetPt[2]);
-
-			const float threshold = 0.00001f;
-			if (targetSum[0] <= threshold && targetSum[1] <= threshold && targetSum[2] <= threshold) {
-
-				resultSum[0] = fabs(cpuResultPt[0] - cudaResultPt[0]);
-				resultSum[1] = fabs(cpuResultPt[1] - cudaResultPt[1]);
-				resultSum[2] = fabs(cpuResultPt[2] - cudaResultPt[2]);
-				found = true;
-				if (resultSum[0] > threshold || resultSum[1] > threshold || resultSum[2] > threshold) {
-					printf("i: %lu | j: %lu | (dif: %f-%f-%f) | (out: %f, %f, %f) | (ref: %f, %f, %f)\n", i, j, resultSum[0], resultSum[1], resultSum[2], cpuResultPt[0], cpuResultPt[1], cpuResultPt[2], cudaResultPt[0], cudaResultPt[1], cudaResultPt[2]);
-					count2++;
-				}
-			}
-		}
-		if (!found) {
-			mat44 mat = referenceImage->qto_ijk;
-			float out[3];
-			reg_mat44_mul(&mat, cpuTargetPt, out);
-			printf("i: %lu has no match | target: %f-%f-%f\n", i, out[0] / 4, out[1] / 4, out[2] / 4);
-			count++;
-		}
-	}
-
-	std::cout << count << "BM targets have no match" << std::endl;
-	if (count > 0)
-		reg_exit(0);
-	if (count2 > 0)
-		reg_exit(0);
+/* *************************************************************** */
+CLResampleImageKernel::~CLResampleImageKernel()
+{
+	if (kernel != 0)
+		clReleaseKernel(kernel);
+	if (program != 0)
+		clReleaseProgram(program);
 }
-
-//==========================================================================
-CLBlockMatchingKernel::CLBlockMatchingKernel(Content* conIn, std::string name) :
-		BlockMatchingKernel(name) {
-
+/* *************************************************************** */
+/* *************************************************************** */
+CLBlockMatchingKernel::CLBlockMatchingKernel(Content *conIn, std::string name) :
+		BlockMatchingKernel(name)
+{
 	//populate the CLContent object ptr
 	con = static_cast<ClContent*>(conIn);
 
@@ -396,34 +266,27 @@ CLBlockMatchingKernel::CLBlockMatchingKernel(Content* conIn, std::string name) :
 
 	//get cl ptrs
 	clActiveBlock = con->getActiveBlockClmem();
-	clTargetImageArray = con->getReferenceImageArrayClmem();
-	clResultImageArray = con->getWarpedImageClmem();
-	clResultPosition = con->getResultPositionClmem();
-	clTargetPosition = con->getTargetPositionClmem();
+	clReferenceImageArray = con->getReferenceImageArrayClmem();
+	clWarpedImageArray = con->getWarpedImageClmem();
+	clWarpedPosition = con->getWarpedPositionClmem();
+	clReferencePosition = con->getReferencePositionClmem();
 	clMask = con->getMaskClmem();
-	clTargetMat = con->getRefMatClmem();
+	clReferenceMat = con->getRefMatClmem();
 
 	//get cpu ptrs
-	target = con->Content::getCurrentReference();
+	reference = con->Content::getCurrentReference();
 	params = con->Content::getBlockMatchingParams();
 
 }
-CLBlockMatchingKernel::~CLBlockMatchingKernel() {
-	if (kernel != 0)
-		clReleaseKernel(kernel);
-
-	if (program != 0)
-		clReleaseProgram(program);
-}
-void CLBlockMatchingKernel::calculate(int range) {
-
-	cl_int errNum;
-
+/* *************************************************************** */
+void CLBlockMatchingKernel::calculate()
+{
 	// Copy some required parameters over to the device
 	unsigned int *definedBlock_h = (unsigned int*) malloc(sizeof(unsigned int));
 	*definedBlock_h = 0;
+	cl_int errNum;
 	cl_mem definedBlock = clCreateBuffer(this->clContext, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(unsigned int), definedBlock_h, &errNum);
-	sContext->checkErrNum(errNum, "Error setting defblock.");
+	this->sContext->checkErrNum(errNum, "CLBlockMatchingKernel::calculate failed to allocate memory (definedBlock): ");
 
 	const unsigned int blockRange = params->voxelCaptureRange%4?params->voxelCaptureRange/4+1:params->voxelCaptureRange/4;
 	const unsigned int stepSize = params->stepSize;
@@ -431,24 +294,26 @@ void CLBlockMatchingKernel::calculate(int range) {
 	const unsigned int numBlocks = blockRange * 2 + 1;
 	const unsigned int sMemSize = numBlocks*numBlocks*numBlocks*64;
 
-	cl_uint3 imageSize = { this->target->nx, this->target->ny, this->target->nz };
+	cl_uint3 imageSize = {{(cl_uint)this->reference->nx,
+								  (cl_uint)this->reference->ny,
+								  (cl_uint)this->reference->nz,
+								 (cl_uint)0 }};
 
 	errNum = clSetKernelArg(kernel, 0, sMemSize * sizeof(cl_float), NULL);
 	sContext->checkErrNum(errNum, "Error setting shared memory.");
-
-	errNum = clSetKernelArg(kernel, 1, sizeof(cl_mem), &this->clResultImageArray);
+	errNum = clSetKernelArg(kernel, 1, sizeof(cl_mem), &this->clWarpedImageArray);
 	sContext->checkErrNum(errNum, "Error setting resultImageArray.");
-	errNum |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &this->clTargetImageArray);
+	errNum |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &this->clReferenceImageArray);
 	sContext->checkErrNum(errNum, "Error setting targetImageArray.");
-	errNum |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &this->clResultPosition);
+	errNum |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &this->clWarpedPosition);
 	sContext->checkErrNum(errNum, "Error setting resultPosition.");
-	errNum |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &this->clTargetPosition);
+	errNum |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &this->clReferencePosition);
 	sContext->checkErrNum(errNum, "Error setting targetPosition.");
 	errNum |= clSetKernelArg(kernel, 5, sizeof(cl_mem), &this->clActiveBlock);
 	sContext->checkErrNum(errNum, "Error setting mask.");
 	errNum |= clSetKernelArg(kernel, 6, sizeof(cl_mem), &this->clMask);
 	sContext->checkErrNum(errNum, "Error setting mask.");
-	errNum |= clSetKernelArg(kernel, 7, sizeof(cl_mem), &this->clTargetMat);
+	errNum |= clSetKernelArg(kernel, 7, sizeof(cl_mem), &this->clReferenceMat);
 	sContext->checkErrNum(errNum, "Error setting targetMatrix_xyz.");
 	errNum |= clSetKernelArg(kernel, 8, sizeof(cl_mem), &definedBlock);
 	sContext->checkErrNum(errNum, "Error setting definedBlock.");
@@ -459,11 +324,12 @@ void CLBlockMatchingKernel::calculate(int range) {
 	errNum |= clSetKernelArg(kernel, 11, sizeof(cl_uint), &stepSize);
 	sContext->checkErrNum(errNum, "Error setting step size.");
 
-	const cl_uint dims = 3;
-	const size_t globalWorkSize[dims] = { params->blockNumber[0] * 4, params->blockNumber[1] * 4, params->blockNumber[2] * 4 };
-	const size_t localWorkSize[dims] = { 4, 4, 4 };
+	const size_t globalWorkSize[3] = { (size_t)params->blockNumber[0] * 4,
+												  (size_t)params->blockNumber[1] * 4,
+												  (size_t)params->blockNumber[2] * 4 };
+	const size_t localWorkSize[3] = { 4, 4, 4 };
 
-	errNum = clEnqueueNDRangeKernel(commandQueue, kernel, dims, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+	errNum = clEnqueueNDRangeKernel(commandQueue, kernel, 3, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
 	sContext->checkErrNum(errNum, "Error queuing blockmatching kernel for execution: ");
 	clFinish(commandQueue);
 
@@ -473,14 +339,20 @@ void CLBlockMatchingKernel::calculate(int range) {
 
 	free(definedBlock_h);
 	clReleaseMemObject(definedBlock);
-
-#ifndef NDEBUG
-	compare();
-#endif
 }
-//===========================
-CLOptimiseKernel::CLOptimiseKernel(Content* conIn, std::string name) :
-		OptimiseKernel(name) {
+/* *************************************************************** */
+CLBlockMatchingKernel::~CLBlockMatchingKernel()
+{
+	if (kernel != 0)
+		clReleaseKernel(kernel);
+	if (program != 0)
+		clReleaseProgram(program);
+}
+/* *************************************************************** */
+/* *************************************************************** */
+CLOptimiseKernel::CLOptimiseKernel(Content *conIn, std::string name) :
+		OptimiseKernel(name)
+{
 	//populate the CLContent object ptr
 	con = static_cast<ClContent*>(conIn);
 
@@ -493,13 +365,14 @@ CLOptimiseKernel::CLOptimiseKernel(Content* conIn, std::string name) :
 	transformationMatrix = con->Content::getTransformationMatrix();
 	blockMatchingParams = con->Content::getBlockMatchingParams();
 }
-CLOptimiseKernel::~CLOptimiseKernel() {
-
-}
-void CLOptimiseKernel::calculate(bool affine, bool ils, bool clsvd) {
-
+/* *************************************************************** */
+void CLOptimiseKernel::calculate(bool affine, bool ils, bool clsvd)
+{
+	//cpu atm
 	this->blockMatchingParams = con->getBlockMatchingParams();
 	optimize(this->blockMatchingParams, this->transformationMatrix, affine);
 }
-//==============================
-
+/* *************************************************************** */
+CLOptimiseKernel::~CLOptimiseKernel() {}
+/* *************************************************************** */
+/* *************************************************************** */

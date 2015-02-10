@@ -9,12 +9,12 @@
 
 #define EPS 0.000001
 
-void test(Content* con) {
+void test(Content *con) {
 
 	Platform *clPlatform = new Platform(NR_PLATFORM_CL);
 //	clPlatform->setClIdx(0);
 
-	Kernel* blockMatchingKernel = clPlatform->createKernel(BlockMatchingKernel::getName(), con);
+	Kernel *blockMatchingKernel = clPlatform->createKernel(BlockMatchingKernel::getName(), con);
 	blockMatchingKernel->castTo<BlockMatchingKernel>()->calculate();
 
 	delete blockMatchingKernel;
@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 	for (size_t i = 0; i < referenceImage->nvox; ++i)
 		mask[i] = i;
 
-	Content* con = new ClContent(referenceImage, NULL, mask, sizeof(float), 50, 50, 1);
+	Content *con = new ClContent(referenceImage, NULL, mask, sizeof(float), 50, 50, 1);
 	con->setCurrentWarped(warpedImage);
 	test(con);
 
@@ -106,14 +106,14 @@ int main(int argc, char **argv)
 	affine3D.m[3][2] = 0.f;
 	affine3D.m[3][3] = 1.f;
 
-	mat44 *testMatrix = (transType == 0) ? &affine3D : testMatrix = &rigid3D;
+	mat44 *testMatrix = (transType == 0) ? &affine3D : &rigid3D;
 
 	mat44 differenceMatrix = *testMatrix - recoveredTransformation;
 	for (int i = 0; i < 4; ++i) {
 		for (int j = 0; j < 4; ++j) {
 			if (fabsf(differenceMatrix.m[i][j]) > EPS) {
 				fprintf(stderr, "reg_test_blockmatching_cl error too large: %g (>%g) [%i,%i]\n", fabs(differenceMatrix.m[i][j]), EPS, i, j);
-            return EXIT_FAILURE;
+				return EXIT_FAILURE;
 			}
 		}
 	}

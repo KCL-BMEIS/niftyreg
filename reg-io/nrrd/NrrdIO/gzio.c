@@ -299,7 +299,7 @@ _nrrdGzClose (gzFile file) {
 ** Returns the number of bytes actually read (0 for end of file).
 */
 int
-_nrrdGzRead(gzFile file, voidp buf, size_t len, unsigned int* read) {
+_nrrdGzRead(gzFile file, voidp buf, size_t len, unsigned int *read) {
   static const char me[]="_nrrdGzRead";
   _NrrdGzStream *s = (_NrrdGzStream*)file;
   Bytef *start = (Bytef*)buf; /* starting point for crc computation */
@@ -407,7 +407,7 @@ _nrrdGzRead(gzFile file, voidp buf, size_t len, unsigned int* read) {
 */
 int
 _nrrdGzWrite(gzFile file, const voidp buf, size_t len,
-             unsigned int* written) {
+             unsigned int *written) {
   static const char me[]="_nrrdGzWrite";
   _NrrdGzStream *s = (_NrrdGzStream*)file;
 

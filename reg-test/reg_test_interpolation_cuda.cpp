@@ -8,6 +8,7 @@
 #include "cuda/CudaContent.h"
 
 #define EPS 0.000001
+
 void test(Content *con, const unsigned int interp) {
 
 	Platform *cudaPlatform = new Platform(NR_PLATFORM_CUDA);
@@ -82,6 +83,19 @@ int main(int argc, char **argv) {
 	reg_tools_substractImageToImage(warpedImage, test_warped, test_warped);
 	reg_tools_abs_image(test_warped);
 	double max_difference = reg_tools_getMaxValue(test_warped);
+
+#ifndef NDEBUG
+	if (max_difference > EPS) {
+		const char* tmpdir = getenv("TMPDIR");
+		char filename[255];
+		if(tmpdir!=NULL)
+			sprintf(filename,"%s/difference_wapr_cuda_%i.nii", tmpdir, interpolation);
+		else sprintf(filename,"./difference_warp_cuda_%i.nii", interpolation);
+		reg_io_WriteImageFile(test_warped,filename);
+		reg_print_msg_error("Saving temp warped image:");
+		reg_print_msg_error(filename);
+	}
+#endif
 
 	nifti_image_free(floatingImage);
 	nifti_image_free(warpedImage);

@@ -11,12 +11,13 @@
 #include <string>
 
 // Declaration
-class CLContextSingletton {
+class CLContextSingletton
+{
 public:
 
 	static CLContextSingletton& Instance()
 	{
-		static CLContextSingletton    instance; // Guaranteed to be destroyed.
+		static CLContextSingletton instance; // Guaranteed to be destroyed.
 		// Instantiated on first use.
 		return instance;
 	}
@@ -27,18 +28,17 @@ public:
 	void CreateCommandQueue();
 	void init();
 	cl_kernel dummyKernel(cl_device_id deviceIdIn);
-	void setClIdx( int clIdxIn){
+	void setClIdx( int clIdxIn)
+	{
 		clIdx=clIdxIn;
 		init();
 	}
-
 	cl_program CreateProgram( const char* fileName);
 
 
 	void Cleanup(cl_program program, cl_kernel kernel, cl_mem* memObjects, int length);
 	void checkErrNum(cl_int errNum, std::string message);
 	void shutDown();
-
 
 	cl_context getContext();
 	cl_device_id getDeviceId();
@@ -53,11 +53,11 @@ public:
 	size_t getwarpGroupLength(cl_kernel kernel);
 
 private:
-
 	static CLContextSingletton* _instance;
 
 	CLContextSingletton();
-	~CLContextSingletton(){
+	~CLContextSingletton()
+	{
 		shutDown();
 	}
 

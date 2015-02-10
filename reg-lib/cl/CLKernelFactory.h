@@ -7,7 +7,7 @@ class Content;
 class CLKernelFactory : public KernelFactory
 {
 public:
-   Kernel* produceKernel(std::string name, Content* con) const;
+   Kernel *produceKernel(std::string name, Content *con) const;
 };
 
 #endif

@@ -13,17 +13,37 @@ class Content {
 public:
 
 	Content();
-	Content(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int percentageOfBlocks, const unsigned int InlierLts, int BlockStepSize);
-	Content(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte);
-	Content(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int percentageOfBlocks, const unsigned int InlierLts, int BlockStepSize);
-	Content(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn,mat44* transMat, size_t byte);
+	Content(nifti_image *CurrentReferenceIn,
+			  nifti_image *CurrentFloatingIn,
+			  int *CurrentReferenceMaskIn,
+			  size_t byte,
+			  const unsigned int percentageOfBlocks,
+			  const unsigned int InlierLts,
+			  int BlockStepSize);
+	Content(nifti_image *CurrentReferenceIn,
+			  nifti_image *CurrentFloatingIn,
+			  int *CurrentReferenceMaskIn,
+			  size_t byte);
+	Content(nifti_image *CurrentReferenceIn,
+			  nifti_image *CurrentFloatingIn,
+			  int *CurrentReferenceMaskIn,
+			  mat44 *transMat,
+			  size_t byte,
+			  const unsigned int percentageOfBlocks,
+			  const unsigned int InlierLts,
+			  int BlockStepSize);
+	Content(nifti_image *CurrentReferenceIn,
+			  nifti_image *CurrentFloatingIn,
+			  int *CurrentReferenceMaskIn,
+			  mat44 *transMat,
+			  size_t byte);
 
 	virtual ~Content();
 
-	/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+	/* *************************************************************** */
 	void AllocateWarpedImage();
 	void ClearWarpedImage();
-	/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+	/* *************************************************************** */
 	void AllocateDeformationField(size_t bytes);
 	void ClearDeformationField();
 	virtual void initVars();
@@ -31,67 +51,72 @@ public:
 	unsigned int floatingVoxels, referenceVoxels;
 
 	//getters
-	virtual nifti_image* getCurrentDeformationField() {
+	virtual nifti_image *getCurrentDeformationField()
+	{
 		return this->CurrentDeformationField;
 	}
-
-	nifti_image* getCurrentReference() {
+	nifti_image *getCurrentReference()
+	{
 		return this->CurrentReference;
 	}
-	nifti_image* getCurrentFloating() {
+	nifti_image *getCurrentFloating()
+	{
 		return this->CurrentFloating;
 	}
-	virtual nifti_image* getCurrentWarped(int datatype = 0) {
+	virtual nifti_image *getCurrentWarped(int = 0)
+	{
 		return CurrentWarped;
 	}
-	int* getCurrentReferenceMask() {
+	int *getCurrentReferenceMask()
+	{
 		return this->CurrentReferenceMask;
 	}
-	mat44* getTransformationMatrix() {
+	mat44 *getTransformationMatrix()
+	{
 		return this->transformationMatrix;
 	}
-	int getFloatingDatatype(){
+	int getFloatingDatatype()
+	{
 		return this->floatingDatatype;
 	}
-	virtual _reg_blockMatchingParam* getBlockMatchingParams() {
-		//std::cout << "serve bm params from cpu" << std::endl;
+	virtual _reg_blockMatchingParam* getBlockMatchingParams()
+	{
 		return blockMatchingParams;
 	}
-
 	//setters
-	virtual void setTransformationMatrix(mat44* transformationMatrixIn) {
+	virtual void setTransformationMatrix(mat44 *transformationMatrixIn)
+	{
 		transformationMatrix = transformationMatrixIn;
 	}
-
-	virtual void setCurrentDeformationField(nifti_image* CurrentDeformationFieldIn) {
+	virtual void setCurrentDeformationField(nifti_image *CurrentDeformationFieldIn)
+	{
 		CurrentDeformationField = CurrentDeformationFieldIn;
 	}
-
-	virtual void setCurrentWarped(nifti_image* CurrentWarpedImageIn) {
+	virtual void setCurrentWarped(nifti_image *CurrentWarpedImageIn)
+	{
 		CurrentWarped = CurrentWarpedImageIn;
 	}
-	virtual void setCurrentReferenceMask(int* maskIn, size_t nvox) {
-	}
+	virtual void setCurrentReferenceMask(int *, size_t) {}
 	void setCaptureRange(const int captureRangeIn);
 
 protected:
-	nifti_image* CurrentDeformationField;
-	nifti_image* CurrentWarped;
+	nifti_image *CurrentDeformationField;
+	nifti_image *CurrentWarped;
 
-	nifti_image* CurrentReference;
-	nifti_image* CurrentFloating;
-	int* CurrentReferenceMask;
+	nifti_image *CurrentReference;
+	nifti_image *CurrentFloating;
+	int *CurrentReferenceMask;
 
-	mat44* transformationMatrix;
+	mat44 *transformationMatrix;
 	mat44 refMatrix_xyz;
 	mat44 floMatrix_ijk;
 	_reg_blockMatchingParam* blockMatchingParams;
 
-	 int stepSizeBlock, floatingDatatype;
+	int floatingDatatype;
+	size_t bytes;
 	unsigned int currentPercentageOfBlockToUse;
 	unsigned int inlierLts;
-	size_t bytes;
-
+	int stepSizeBlock;
 };
 
 #endif /*CONTENT_H_*/

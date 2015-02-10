@@ -5,10 +5,12 @@
 #include "Content.h"
 
 
+/* *************************************************************** */
 //Kernel functions for affine deformation field
-class CPUAffineDeformationFieldKernel : public AffineDeformationFieldKernel {
+class CPUAffineDeformationFieldKernel : public AffineDeformationFieldKernel
+{
 public:
-	CPUAffineDeformationFieldKernel(Content* con, std::string nameIn) : AffineDeformationFieldKernel( nameIn) {
+	CPUAffineDeformationFieldKernel(Content *con, std::string nameIn) : AffineDeformationFieldKernel( nameIn) {
 		this->deformationFieldImage = con->getCurrentDeformationField();
 		this->affineTransformation = con->getTransformationMatrix();
 		this->mask = con->getCurrentReferenceMask();
@@ -19,28 +21,32 @@ public:
 
 	mat44 *affineTransformation;
 	nifti_image *deformationFieldImage;
-	int* mask;
+	int *mask;
 };
+/* *************************************************************** */
 //Kernel functions for block matching
-class CPUBlockMatchingKernel : public BlockMatchingKernel {
+class CPUBlockMatchingKernel : public BlockMatchingKernel
+{
 public:
 
-	CPUBlockMatchingKernel(Content* con, std::string name) : BlockMatchingKernel( name) {
-		target = con->getCurrentReference();
-		result = con->getCurrentWarped();
+	CPUBlockMatchingKernel(Content *con, std::string name) : BlockMatchingKernel( name) {
+		reference = con->getCurrentReference();
+		warped = con->getCurrentWarped();
 		params = con->getBlockMatchingParams();
 		mask = con->getCurrentReferenceMask();
 	}
 
-	void calculate(int range);
-	nifti_image* target;
-	nifti_image* result;
+	void calculate();
+	nifti_image *reference;
+	nifti_image *warped;
 	_reg_blockMatchingParam* params;
-	int* mask;
+	int *mask;
 
 };
+/* *************************************************************** */
 //a kernel function for convolution (gaussian smoothing?)
-class CPUConvolutionKernel : public ConvolutionKernel {
+class CPUConvolutionKernel : public ConvolutionKernel
+{
 public:
 
 	CPUConvolutionKernel(std::string name) : ConvolutionKernel(name) {
@@ -48,12 +54,13 @@ public:
 
 	void calculate(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL);
 };
-
+/* *************************************************************** */
 //kernel functions for numerical optimisation
-class CPUOptimiseKernel : public OptimiseKernel {
+class CPUOptimiseKernel : public OptimiseKernel
+{
 public:
 
-	CPUOptimiseKernel(Content* con, std::string name) : OptimiseKernel( name) {
+	CPUOptimiseKernel(Content *con, std::string name) : OptimiseKernel( name) {
 		transformationMatrix = con->getTransformationMatrix();
 		blockMatchingParams = con->getBlockMatchingParams();
 	}
@@ -62,11 +69,12 @@ public:
 
 	void calculate(bool affine, bool ils, bool svd=0);
 };
-
+/* *************************************************************** */
 //kernel functions for image resampling with three interpolation variations
-class CPUResampleImageKernel : public ResampleImageKernel {
+class CPUResampleImageKernel : public ResampleImageKernel
+{
 public:
-	CPUResampleImageKernel(Content* con, std::string name) : ResampleImageKernel( name) {
+	CPUResampleImageKernel(Content *con, std::string name) : ResampleImageKernel( name) {
 		floatingImage = con->getCurrentFloating();
 		warpedImage = con->getCurrentWarped();
 		deformationField = con->getCurrentDeformationField();
@@ -79,5 +87,6 @@ public:
 
 	void calculate(int interp, float paddingValue, bool *dti_timepoint = NULL, mat33 * jacMat = NULL);
 };
+/* *************************************************************** */
 
 #endif

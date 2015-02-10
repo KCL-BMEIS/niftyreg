@@ -169,8 +169,9 @@ void reg_affine_getDeformationField(mat44 *affineTransformation,
          reg_affine_deformationField2D<double>(affineTransformation, deformationField, compose, tempMask);
          break;
       default:
-         fprintf(stderr,"[NiftyReg ERROR] reg_affine_deformationField\tThe deformation field data type is not supported\n");
-         return;
+         reg_print_fct_error("reg_affine_getDeformationField");
+         reg_print_msg_error("The deformation field data type is not supported");
+         reg_exit(1);
       }
    }
    else
@@ -184,8 +185,9 @@ void reg_affine_getDeformationField(mat44 *affineTransformation,
          reg_affine_deformationField3D<double>(affineTransformation, deformationField, compose, tempMask);
          break;
       default:
-         fprintf(stderr,"[NiftyReg ERROR] reg_affine_deformationField: The deformation field data type is not supported\n");
-         return;
+         reg_print_fct_error("reg_affine_getDeformationField");
+         reg_print_msg_error("The deformation field data type is not supported");
+         reg_exit(1);
       }
    }
    if(mask==NULL)
@@ -194,8 +196,8 @@ void reg_affine_getDeformationField(mat44 *affineTransformation,
 /* *************************************************************** */
 /* *************************************************************** */
 void reg_tool_ReadAffineFile(mat44 *mat,
-                             nifti_image* target,
-                             nifti_image* source,
+                             nifti_image *target,
+                             nifti_image *source,
                              char *fileName,
                              bool flirtFile)
 {
@@ -218,7 +220,9 @@ void reg_tool_ReadAffineFile(mat44 *mat,
    }
    else
    {
-      fprintf(stderr, "[NiftyReg ERROR] The affine file can not be read: %s\n", fileName);
+      char text[255];sprintf(text, "The affine file can not be read: %s\n", fileName);
+      reg_print_fct_error("reg_tool_ReadAffineFile");
+      reg_print_msg_error(text);
       reg_exit(1);
    }
    affineFile.close();
@@ -244,7 +248,7 @@ void reg_tool_ReadAffineFile(mat44 *mat,
       {
          targetMatrix = &(target->sto_xyz);
 #ifndef NDEBUG
-         printf("[NiftyReg DEBUG] The target sform matrix is defined and used\n");
+         reg_print_msg_debug("The target sform matrix is defined and used\n");
 #endif
       }
       else targetMatrix = &(target->qto_xyz);
@@ -253,7 +257,7 @@ void reg_tool_ReadAffineFile(mat44 *mat,
       if(source->sform_code > 0)
       {
 #ifndef NDEBUG
-         printf("[NiftyReg DEBUG]  The source sform matrix is defined and used\n");
+         reg_print_msg_debug(" The source sform matrix is defined and used\n");
 #endif
          sourceMatrix = &(source->sto_xyz);
       }
@@ -270,12 +274,12 @@ void reg_tool_ReadAffineFile(mat44 *mat,
       }
       absoluteTarget.m[3][3]=absoluteSource.m[3][3]=1.0;
 #ifndef NDEBUG
-      printf("[NiftyReg DEBUG] An flirt affine file is assumed and is converted to a real word affine matrix\n");
-      reg_mat44_disp(mat, (char *)"[DEBUG] Matrix read from the input file");
-      reg_mat44_disp(targetMatrix, (char *)"[DEBUG] Target Matrix");
-      reg_mat44_disp(sourceMatrix, (char *)"[DEBUG] Source Matrix");
-      reg_mat44_disp(&(absoluteTarget), (char *)"[DEBUG] Target absolute Matrix");
-      reg_mat44_disp(&(absoluteSource), (char *)"[DEBUG] Source absolute Matrix");
+      reg_print_msg_debug("An flirt affine file is assumed and is converted to a real word affine matrix\n");
+      reg_mat44_disp(mat, (char *)"[NiftyReg DEBUG] Matrix read from the input file");
+      reg_mat44_disp(targetMatrix, (char *)"[NiftyReg DEBUG] Target Matrix");
+      reg_mat44_disp(sourceMatrix, (char *)"[NiftyReg DEBUG] Source Matrix");
+      reg_mat44_disp(&(absoluteTarget), (char *)"[NiftyReg DEBUG] Target absolute Matrix");
+      reg_mat44_disp(&(absoluteSource), (char *)"[NiftyReg DEBUG] Source absolute Matrix");
 #endif
 
       absoluteSource = nifti_mat44_inverse(absoluteSource);
@@ -289,7 +293,7 @@ void reg_tool_ReadAffineFile(mat44 *mat,
    }
 
 #ifndef NDEBUG
-   reg_mat44_disp(mat, (char *)"[DEBUG] Affine matrix");
+   reg_mat44_disp(mat, (char *)"[NiftyReg DEBUG] Affine matrix");
 #endif
 }
 /* *************************************************************** */
@@ -316,13 +320,15 @@ void reg_tool_ReadAffineFile(mat44 *mat,
    }
    else
    {
-      fprintf(stderr, "[NiftyReg ERROR] The affine file can not be read: %s\n", fileName);
+      char text[255];sprintf(text, "The affine file can not be read: %s\n", fileName);
+      reg_print_fct_error("reg_tool_ReadAffineFile");
+      reg_print_msg_error(text);
       reg_exit(1);
    }
    affineFile.close();
 
 #ifndef NDEBUG
-   reg_mat44_disp(mat, (char *)"[DEBUG] Affine matrix");
+   reg_mat44_disp(mat, (char *)"[NiftyReg DEBUG] Affine matrix");
 #endif
 }
 /* *************************************************************** */

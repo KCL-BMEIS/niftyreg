@@ -6,14 +6,12 @@ if("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHE
 else("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^2\\.8\\.8$")
  mark_as_advanced(CLEAR CMAKE_BACKWARDS_COMPATIBILITY)
 endif("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^2\\.8\\.8$")
-
 #-----------------------------------------------------------------------------
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 	message("In-source builds not allowed by NiftyReg police.")
 	message("Please create a new directory (called a build directory) and run CMake from there.")
 	message(FATAL_ERROR "You may need to remove CMakeCache.txt and CMakeFiles.")
 endif(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
-
 #-----------------------------------------------------------------------------
 if(NOT MSVC)
 	if(NOT CMAKE_BUILD_TYPE)
@@ -38,36 +36,26 @@ endif(NOT MSVC)
 set(NiftyReg_VERSION_MAJOR 1)
 set(NiftyReg_VERSION_MINOR 4)
 set(NiftyReg_VERSION_PATCH 0)
-
 #-----------------------------------------------------------------------------
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 		add_definitions(/W1)
 else(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 		add_definitions(-fPIC)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-
 #-----------------------------------------------------------------------------
+option(BUILD_ALL_DEP "All the dependencies are build" OFF)
 option(BUILD_TESTING "To build the unit tests" OFF)
+option(BUILD_SHARED_LIBS "Build the libraries as shared" OFF)
 option(BUILD_NR_SLICER_EXT "Where NiftyReg meets 3DSlicer" ${NiftyRegExtension_BUILD_SLICER_EXTENSION})
 mark_as_advanced(BUILD_NR_SLICER_EXT)
-option(USE_SSE "To enable SEE computation in some case" ON)
-option(USE_DOUBLE "To force double precision instead of single precision" OFF)
+option(USE_CUDA "To use the CUDA platform" OFF)
+option(USE_OPENCL "To use the OpenCL platform" OFF)
 option(USE_OPENMP "To use openMP for multi-CPU processing" ON)
-option(BUILD_SHARED_LIBS "Build the libraries as shared" OFF)
-option(USE_CUDA "To enable CUDA for a GPU implementation of the code" OFF)
-option(USE_OPENCL "Use the OpenCL platform" OFF)
-option(BUILD_ALL_DEP "All the dependencies are build" OFF)
-#-----------------------------------------------------------------------------
-if(USE_CUDA)
-    option(CUDA_FAST_MATH "To use the fast math flag" OFF)
-#    option(CUDA_PRECISE_SQRT "To use more accurate square root" OFF)
-#    option(CUDA_PRECISE_DIV "To use more accurate divisions" OFF)
-endif(USE_CUDA)
+option(USE_SSE "To enable SEE computation in some case" ON)
 #-----------------------------------------------------------------------------
 if(WIN32)
 		set(BUILD_ALL_DEP ON CACHE BOOL "All the dependencies are build" FORCE)
 endif(WIN32)
-
 #-----------------------------------------------------------------------------
 # All dependencies are build to create the 3DSlicer package
 if(BUILD_NR_SLICER_EXT)
@@ -76,7 +64,6 @@ if(BUILD_NR_SLICER_EXT)
 else(BUILD_NR_SLICER_EXT)
 		mark_as_advanced(CLEAR BUILD_ALL_DEP)
 endif(BUILD_NR_SLICER_EXT)
-
 #-----------------------------------------------------------------------------
 # Z library
 # Try first to find the z library on the system and built is from the sources if it can not be find
@@ -92,7 +79,6 @@ if(NOT BUILD_ALL_DEP)
 else(NOT BUILD_ALL_DEP)
 		include_directories(${CMAKE_SOURCE_DIR}/reg-io/zlib)
 endif(NOT BUILD_ALL_DEP)
-
 #-----------------------------------------------------------------------------
 # Try to find the png library and header on the system
 if(NOT BUILD_ALL_DEP)
@@ -136,29 +122,22 @@ include_directories(${CMAKE_SOURCE_DIR}/reg-io/nrrd)
 include_directories(${CMAKE_SOURCE_DIR}/reg-io/nrrd/NrrdIO)
 #-----------------------------------------------------------------------------
 if(USE_OPENCL)
-    include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cl)
-    include_directories(${OPENCL_INCLUDE_DIRS})
-    add_definitions(-D_USE_OPENCL)
+		include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cl)
+		include_directories(${OPENCL_INCLUDE_DIRS})
+		add_definitions(-D_USE_OPENCL)
 endif(USE_OPENCL)
-if(USE_CUDA)
-    include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cuda)
-    add_definitions(-D_USE_CUDA)
-endif(USE_CUDA)
 #-----------------------------------------------------------------------------
-if(USE_DOUBLE)
-		if(USE_SSE)
-				# Double can not be used with SSE as it has only been implemented for single precision
-				message("Can not use double precision and SSE implementation concurrenlty")
-				message(FATAL_ERROR "Please turn USE_SSE OFF to use double precision")
-		endif(USE_SSE)
-		if(USE_CUDA)
-				# Double can not be used with CUDA
-				message("Can not use double precision and CUDA implementation concurrenlty")
-				message(FATAL_ERROR "Please turn USE_CUDA OFF to use double precision")
-		endif(USE_CUDA)
-		add_definitions(-D_USE_NR_DOUBLE)
-endif(USE_DOUBLE)
-
+if(USE_CUDA)
+	include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cuda)
+	add_definitions(-D_USE_CUDA)
+	option(CUDA_FAST_MATH "To use the fast math flag" OFF)
+	if(NOT MSVC)
+		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lcudart -lcuda -L${CUDA_TOOLKIT_ROOT_DIR}/lib")
+	endif(NOT MSVC)
+	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libstdc++")
+	endif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+endif(USE_CUDA)
 #-----------------------------------------------------------------------------
 if(USE_SSE)
 		if(MSVC)
@@ -169,7 +148,6 @@ if(USE_SSE)
 		endif(MSVC)
 		add_definitions(-D_USE_SSE)
 endif(USE_SSE)
-
 #-----------------------------------------------------------------------------
 if(USE_OPENMP)
 	find_package(OpenMP)
@@ -181,7 +159,6 @@ if(USE_OPENMP)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 	endif(NOT OPENMP_FOUND)
 endif(USE_OPENMP)
-
 #-----------------------------------------------------------------------------
 if(BUILD_SHARED_LIBS)
 	if(USE_CUDA)
@@ -194,7 +171,6 @@ if(BUILD_SHARED_LIBS)
 else(BUILD_SHARED_LIBS)
 	set(NIFTYREG_LIBRARY_TYPE STATIC)
 endif(BUILD_SHARED_LIBS)
-
 #-----------------------------------------------------------------------------
 find_package(Git)
 if(GIT_FOUND)

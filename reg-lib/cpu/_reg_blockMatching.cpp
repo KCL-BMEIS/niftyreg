@@ -213,17 +213,21 @@ void initialise_block_matching_method(nifti_image * target, _reg_blockMatchingPa
 		_reg_set_active_blocks<double>(target, params, mask, runningOnGPU);
 		break;
 	default:
-		fprintf(stderr, "[NiftyReg ERROR] initialise_block_matching_method\tThe target image data type is not supported\n");
-		reg_exit(1)
+		reg_print_fct_error("initialise_block_matching_method()");
+		reg_print_msg_error("The target image data type is not supported");
+		reg_exit(1);
 		;
 	}
 	if (params->activeBlockNumber < 2) {
-		fprintf(stderr, "[NiftyReg ERROR] There are no active blocks\n");
-		fprintf(stderr, "[NiftyReg ERROR] ... Exit ...\n");
+		reg_print_fct_error("initialise_block_matching_method()");
+		reg_print_msg_error("There are no active blocks");
 		reg_exit(1);
 	}
 #ifndef NDEBUG
-	printf("[NiftyReg DEBUG]: There are %i active block(s) out of %i.\n", params->activeBlockNumber, params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2]);
+	char text[255];
+	sprintf(text,"There are %i active block(s) out of %i.",
+			  params->activeBlockNumber, params->blockNumber[0] * params->blockNumber[1] * params->blockNumber[2]);
+	reg_print_msg_debug(text)
 #endif
 	if (target->nz > 1) {
 		params->targetPosition = (float *) malloc(params->activeBlockNumber * 3 * sizeof(float));
@@ -233,7 +237,7 @@ void initialise_block_matching_method(nifti_image * target, _reg_blockMatchingPa
 		params->resultPosition = (float *) malloc(params->activeBlockNumber * 2 * sizeof(float));
 	}
 #ifndef NDEBUG
-	printf("[NiftyReg DEBUG] block matching initialisation done.\n");
+	reg_print_msg_debug("block matching initialisation done.");
 #endif
 }
 /* *************************************************************** */
@@ -410,7 +414,7 @@ void block_matching_method2D(nifti_image * target, nifti_image * result, _reg_bl
 }
 /* *************************************************************** */
 template<typename DTYPE>
-void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_blockMatchingParam *params, int *mask, int range) {
+void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_blockMatchingParam *params, int *mask) {
 	DTYPE *targetPtr = static_cast<DTYPE *>(target->data);
 	DTYPE *resultPtr = static_cast<DTYPE *>(result->data);
 
@@ -465,7 +469,7 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 #pragma omp parallel for default(none) \
    shared(params, target, result, targetPtr, resultPtr, mask, targetMatrix_xyz, \
           targetOverlap, resultOverlap, targetValues, resultValues, \
-          temp_target_position, temp_result_position, range) \
+          temp_target_position, temp_result_position) \
    private(i, j, k, l, m, n, x, y, z, blockIndex, targetIndex, \
            index, tid, targetPtr_Z, targetPtr_XYZ, resultPtr_Z, resultPtr_XYZ, \
            maskPtr_Z, maskPtr_XYZ, value, bestCC, bestDisplacement, \
@@ -476,9 +480,9 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
            resultIndex, targetPosition_temp, tempPosition, targetTemp, resultTemp, \
            targetMean, targetVar, resultMean, resultVar, voxelNumber,localCC)
 #endif
-	for (k = 0; k < params->blockNumber[2]; k++) {
+   for (k = 0; k < params->blockNumber[2]; k++) {
 #if defined (_OPENMP)
-		tid = omp_get_thread_num();
+      tid = omp_get_thread_num();
 #endif
 		blockIndex = k * params->blockNumber[0] * params->blockNumber[1];
 		targetIndex_start_z = k * BLOCK_WIDTH;
@@ -669,7 +673,7 @@ void block_matching_method3D(nifti_image * target, nifti_image * result, _reg_bl
 }
 /* *************************************************************** */
 // Block matching interface function
-void block_matching_method(nifti_image * target, nifti_image * result, _reg_blockMatchingParam *params, int *mask, int range) {
+void block_matching_method(nifti_image * target, nifti_image * result, _reg_blockMatchingParam *params, int *mask) {
 	if (target->datatype != result->datatype) {
 		reg_print_fct_error("block_matching_method");
 		reg_print_msg_error("Both input images are expected to be of the same type");
@@ -693,10 +697,10 @@ void block_matching_method(nifti_image * target, nifti_image * result, _reg_bloc
 	} else {
 		switch (target->datatype) {
 		case NIFTI_TYPE_FLOAT64:
-			block_matching_method3D<double>(target, result, params, mask, range);
+			block_matching_method3D<double>(target, result, params, mask);
 			break;
 		case NIFTI_TYPE_FLOAT32:
-			block_matching_method3D<float>(target, result, params, mask, range);
+			block_matching_method3D<float>(target, result, params, mask);
 			break;
 		default:
 			reg_print_fct_error("block_matching_method")
@@ -777,7 +781,7 @@ struct _reg_sorted_point2D
 
 // We can specify if we want to multiply A with the transpose of B
 
-void mul_matrices(float ** a, float ** b, int ar, int ac, int bc, float ** r, bool transposeB)
+void mul_matrices(float **a, float **b, int ar, int ac, int bc, float **r, bool transposeB)
 {
    if (transposeB)
    {
@@ -811,7 +815,7 @@ void mul_matrices(float ** a, float ** b, int ar, int ac, int bc, float ** r, bo
 /* *************************************************************** */
 
 // Multiply a matrix with a vctor
-void mul_matvec(float ** a, int ar, int ac, float * b, float * r)
+void mul_matvec(float **a, int ar, int ac, float * b, float * r)
 {
    for (int i = 0; i < ar; ++i)
    {
@@ -824,7 +828,7 @@ void mul_matvec(float ** a, int ar, int ac, float * b, float * r)
 }
 /* *************************************************************** */
 // Compute determinant of a 3x3 matrix
-float compute_determinant3x3(float ** mat)
+float compute_determinant3x3(float **mat)
 {
    return 	(mat[0][0]*(mat[1][1]*mat[2][2]-mat[1][2]*mat[2][1]))-
             (mat[0][1]*(mat[1][0]*mat[2][2]-mat[1][2]*mat[2][0]))+
@@ -834,10 +838,10 @@ float compute_determinant3x3(float ** mat)
 // estimate an affine transformation using least square
 void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> &points,
                                       mat44 * transformation,
-                                      float ** A,
+                                      float **A,
                                       float *  w,
-                                      float ** v,
-                                      float ** r,
+                                      float **v,
+                                      float **r,
                                       float *  b)
 {
    int num_equations = points.size() * 2;
@@ -923,10 +927,10 @@ void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> &points,
 // estimate an affine transformation using least square
 void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points,
                                       mat44 * transformation,
-                                      float ** A,
+                                      float **A,
                                       float *  w,
-                                      float ** v,
-                                      float ** r,
+                                      float **v,
+                                      float **r,
                                       float *  b)
 {
    // Create our A matrix
@@ -1039,7 +1043,7 @@ void optimize_affine2D(_reg_blockMatchingParam * params,
    unsigned long i;
 
    // massive left hand side matrix
-   float ** a = new float *[num_equations];
+   float **a = new float *[num_equations];
    for (unsigned k = 0; k < num_equations; ++k)
    {
       a[k] = new float[6]; // full affine
@@ -1194,7 +1198,7 @@ void optimize_affine3D(_reg_blockMatchingParam *params,
    unsigned long i;
 
    // massive left hand side matrix
-   float ** a = new float *[num_equations];
+   float **a = new float *[num_equations];
    for (unsigned k = 0; k < num_equations; ++k)
    {
       a[k] = new float[12]; // full affine
@@ -1354,11 +1358,11 @@ void estimate_rigid_transformation2D(  std::vector<_reg_sorted_point2D> &points,
    centroid_result[0] /= (float)(points.size());
    centroid_result[1] /= (float)(points.size());
 
-   float ** u = new float*[2];
+   float **u = new float*[2];
    float * w = new float[2];
-   float ** v = new float*[2];
-   float ** ut = new float*[2];
-   float ** r = new float*[2];
+   float **v = new float*[2];
+   float **ut = new float*[2];
+   float **r = new float*[2];
 
    for (unsigned i = 0; i < 2; ++i)
    {
@@ -1481,11 +1485,11 @@ void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> &points,
    centroid_result[1] /= (float)(points.size());
    centroid_result[2] /= (float)(points.size());
 
-   float ** u = new float*[3];
+   float **u = new float*[3];
    float * w = new float[3];
-   float ** v = new float*[3];
-   float ** ut = new float*[3];
-   float ** r = new float*[3];
+   float **v = new float*[3];
+   float **ut = new float*[3];
+   float **r = new float*[3];
 
    for (unsigned i = 0; i < 3; ++i)
    {

@@ -2,7 +2,7 @@
 #include "CLKernels.h"
 #include "Content.h"
 
-Kernel* CLKernelFactory::produceKernel(std::string name, Content* con) const {
+Kernel *CLKernelFactory::produceKernel(std::string name, Content *con) const {
 
 	if( name == AffineDeformationFieldKernel::getName() ) return new CLAffineDeformationFieldKernel(con, name);
 	else if( name == ConvolutionKernel::getName() ) return new CLConvolutionKernel(name);

@@ -6,10 +6,32 @@ class CudaContent: public Content {
 
 public:
 	CudaContent();
-	CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep, bool cusvd=false);
-	CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte);
-	CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep, bool cusvd=false);
-	CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte);
+	CudaContent(nifti_image *CurrentReferenceIn,
+					nifti_image *CurrentFloatingIn,
+					int *CurrentReferenceMaskIn,
+					size_t byte,
+					const unsigned int blockPercentage,
+					const unsigned int inlierLts,
+					int blockStep,
+					bool cusvd=false);
+	CudaContent(nifti_image *CurrentReferenceIn,
+					nifti_image *CurrentFloatingIn,
+					int *CurrentReferenceMaskIn,
+					size_t byte);
+	CudaContent(nifti_image *CurrentReferenceIn,
+					nifti_image *CurrentFloatingIn,
+					int *CurrentReferenceMaskIn,
+					mat44 *transMat,
+					size_t byte,
+					const unsigned int blockPercentage,
+					const unsigned int inlierLts,
+					int blockStep,
+					bool cusvd=false);
+	CudaContent(nifti_image *CurrentReferenceIn,
+					nifti_image *CurrentFloatingIn,
+					int *CurrentReferenceMaskIn,
+					mat44 *transMat,
+					size_t byte);
 	~CudaContent();
 
 	//device getters
@@ -30,23 +52,21 @@ public:
 	float* getLengths_d();
 	float* getNewResultPos_d();
 
-	int* getActiveBlock_d();
-	int* getMask_d();
+	int *getActiveBlock_d();
+	int *getMask_d();
 
-	int* getReferenceDims();
-	int* getFloatingDims();
-
-
+	int *getReferenceDims();
+	int *getFloatingDims();
 
 	//cpu getters and setters
 	_reg_blockMatchingParam* getBlockMatchingParams();
-	nifti_image* getCurrentDeformationField();
-	nifti_image* getCurrentWarped(int typ);
+	nifti_image *getCurrentDeformationField();
+	nifti_image *getCurrentWarped(int typ);
 
-	void setTransformationMatrix(mat44* transformationMatrixIn);
-	void setCurrentWarped(nifti_image* warpedImageIn);
-	void setCurrentDeformationField(nifti_image* CurrentDeformationFieldIn);
-	void setCurrentReferenceMask(int* maskIn, size_t size);
+	void setTransformationMatrix(mat44 *transformationMatrixIn);
+	void setCurrentWarped(nifti_image *warpedImageIn);
+	void setCurrentDeformationField(nifti_image *CurrentDeformationFieldIn);
+	void setCurrentReferenceMask(int *maskIn, size_t size);
 
 private:
 	void initVars();
@@ -80,14 +100,13 @@ private:
 	int referenceDims[4];
 	int floatingDims[4];
 
-	void downloadImage(nifti_image* image, float* memoryObject, bool flag, int datatype, std::string message);
+	void downloadImage(nifti_image *image, float* memoryObject, int datatype);
 	template<class T>
-	void fillImageData(nifti_image* image, float* memoryObject, bool warped, int type, std::string message);
+	void fillImageData(nifti_image *image, float* memoryObject, int type);
 
 	template<class FloatingTYPE>
 	FloatingTYPE fillWarpedImageData(float intensity, int datatype);
 
 	unsigned long nVoxels;
 	bool cusvd;
-
 };

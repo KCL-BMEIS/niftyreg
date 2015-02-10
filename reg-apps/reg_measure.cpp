@@ -91,12 +91,12 @@ int main(int argc, char **argv)
             strcmp(argv[i], "--h")==0 || strcmp(argv[i], "--help")==0)
       {
          Usage(argv[0]);
-         return 0;
+         return EXIT_SUCCESS;
       }
 //      else if(strcmp(argv[i], "--xml")==0)
 //      {
 //         printf("%s",xml_measure);
-//         return 0;
+//         return exit_success;
 //      }
 #ifdef _GIT_HASH
       else if( strcmp(argv[i], "-version")==0 ||
@@ -174,7 +174,7 @@ int main(int argc, char **argv)
       {
          fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
          PetitUsage(argv[0]);
-         return 1;
+         return EXIT_FAILURE;
       }
    }
 
@@ -182,7 +182,7 @@ int main(int argc, char **argv)
    {
       fprintf(stderr,"[NiftyReg ERROR] The reference and the floating image have both to be defined.\n");
       PetitUsage(argv[0]);
-      return 1;
+      return EXIT_FAILURE;
    }
 
    /* Read the reference image */
@@ -191,7 +191,7 @@ int main(int argc, char **argv)
    {
       fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference image: %s\n",
               param->refImageName);
-      return 1;
+      return EXIT_FAILURE;
    }
    reg_checkAndCorrectDimension(refImage);
    reg_tools_changeDatatype<float>(refImage);
@@ -202,7 +202,7 @@ int main(int argc, char **argv)
    {
       fprintf(stderr,"[NiftyReg ERROR] Error when reading the floating image: %s\n",
               param->floImageName);
-      return 1;
+      return EXIT_FAILURE;
    }
    reg_checkAndCorrectDimension(floImage);
    reg_tools_changeDatatype<float>(floImage);
@@ -216,7 +216,7 @@ int main(int argc, char **argv)
       {
          fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference mask image: %s\n",
                  param->refMaskImageName);
-         return 1;
+         return EXIT_FAILURE;
       }
       reg_checkAndCorrectDimension(refMaskImage);
       reg_createMaskPyramid<float>(refMaskImage, &refMask, 1, 1, &refMaskVoxNumber);
@@ -370,7 +370,7 @@ int main(int argc, char **argv)
 
    free(flag);
    free(param);
-   return 0;
+   return EXIT_SUCCESS;
 }
 
 #endif

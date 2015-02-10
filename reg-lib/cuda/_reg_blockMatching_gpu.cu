@@ -13,7 +13,6 @@
 #include "_reg_blockMatching_gpu.h"
 #include "_reg_blockMatching_kernels.cu"
 
-//#include "_reg_blocksize_gpu.h"
 #include "_reg_ReadWriteImage.h"
 #include "_reg_tools.h"
 
@@ -31,9 +30,16 @@
 
 
 /* *************************************************************** */
-
-void block_matching_method_gpu(nifti_image *targetImage, _reg_blockMatchingParam *params, float **targetImageArray_d, float **resultImageArray_d, float **targetPosition_d, float **resultPosition_d, int **activeBlock_d, int **mask_d, float** targetMat_d) {
-
+void block_matching_method_gpu(nifti_image *targetImage,
+										 _reg_blockMatchingParam *params,
+										 float **targetImageArray_d,
+										 float **resultImageArray_d,
+										 float **targetPosition_d,
+										 float **resultPosition_d,
+										 int **activeBlock_d,
+										 int **mask_d,
+										 float** targetMat_d)
+{
 	// Copy some required parameters over to the device
 	uint3 imageSize = make_uint3(targetImage->nx, targetImage->ny, targetImage->nz); // Image size
 
@@ -43,7 +49,7 @@ void block_matching_method_gpu(nifti_image *targetImage, _reg_blockMatchingParam
 	NR_CUDA_SAFE_CALL(cudaBindTexture(0, resultImageArray_texture, *resultImageArray_d, targetImage->nvox * sizeof(float)));
 	NR_CUDA_SAFE_CALL(cudaBindTexture(0, activeBlock_texture, *activeBlock_d, numBlocks * sizeof(int)));
 
-	unsigned int* definedBlock_d;
+	unsigned int *definedBlock_d;
 	unsigned int *definedBlock_h = (unsigned int*) malloc(sizeof(unsigned int));
 	*definedBlock_h = 0;
 	NR_CUDA_SAFE_CALL(cudaMalloc((void** )(&definedBlock_d), sizeof(unsigned int)));
@@ -53,7 +59,14 @@ void block_matching_method_gpu(nifti_image *targetImage, _reg_blockMatchingParam
 	dim3 BlocksGrid3D(params->blockNumber[0], params->blockNumber[1], params->blockNumber[2]);
 	const int blockRange = params->voxelCaptureRange % 4 ? params->voxelCaptureRange / 4 + 1 : params->voxelCaptureRange / 4;
 	const unsigned int sMem = (blockRange * 2 + 1) * (blockRange * 2 + 1) * (blockRange * 2 + 1) * 64 * sizeof(float);
-	blockMatchingKernel<< <BlocksGrid3D, BlockDims1D, sMem >> >(*resultPosition_d, *targetPosition_d, *mask_d, *targetMat_d, definedBlock_d, imageSize, blockRange, params->stepSize);
+	blockMatchingKernel<< <BlocksGrid3D, BlockDims1D, sMem >> >(*resultPosition_d,
+																					*targetPosition_d,
+																					*mask_d,
+																					*targetMat_d,
+																					definedBlock_d,
+																					imageSize,
+																					blockRange,
+																					params->stepSize);
 
 #ifndef NDEBUG
 	NR_CUDA_CHECK_KERNEL(BlocksGrid3D, BlockDims1D)
@@ -72,15 +85,18 @@ void block_matching_method_gpu(nifti_image *targetImage, _reg_blockMatchingParam
 
 }
 
-//------------Optimizer------------------------------------
+/* *************************************************************** */
 //enable when cuda 7 is available?
 #ifdef CUDA7
-void checkCublasStatus(cublasStatus_t status) {
+void checkCublasStatus(cublasStatus_t status)
+{
 	if (status != CUBLAS_STATUS_SUCCESS) {
-		reg_print_fct_error("!!!! CUBLAS  error\n");
+		reg_print_fct_error("checkCublasStatus");
+		reg_print_msg_error("!!!! CUBLAS  error");
 		reg_exit(0);
 	}
 }
+/* *************************************************************** */
 void checkCUSOLVERStatus(cusolverStatus_t status, char* msg) {
 
 	if (status != CUSOLVER_STATUS_SUCCESS) {
@@ -92,6 +108,7 @@ void checkCUSOLVERStatus(cusolverStatus_t status, char* msg) {
 		reg_exit(0);
 	}
 }
+/* *************************************************************** */
 void checkDevInfo(int *devInfo) {
 	int * hostDevInfo = (int*) malloc(sizeof(int));
 	cudaMemcpy(hostDevInfo, devInfo, sizeof(int), cudaMemcpyDeviceToHost);
@@ -103,18 +120,21 @@ void checkDevInfo(int *devInfo) {
 		printf(" %d: operation successful\n", hostDevInfo);
 	free(hostDevInfo);
 }
+/* *************************************************************** */
 void downloadMat44(mat44 *lastTransformation, float* transform_d) {
 	float* tempMat = (float*) malloc(16 * sizeof(float));
 	cudaMemcpy(tempMat, transform_d, 16 * sizeof(float), cudaMemcpyDeviceToHost);
 	cPtrToMat44(lastTransformation, tempMat);
 	free(tempMat);
 }
+/* *************************************************************** */
 void uploadMat44(mat44 lastTransformation, float* transform_d) {
 	float* tempMat = (float*) malloc(16 * sizeof(float));
 	mat44ToCptr(lastTransformation, tempMat);
 	cudaMemcpy(transform_d, tempMat, 16 * sizeof(float), cudaMemcpyHostToDevice);
 	free(tempMat);
 }
+/* *************************************************************** */
 /*
  * the function computes the SVD of a matrix A
  * A = V* x S x U, where V* is a (conjugate) transpose of V
@@ -165,6 +185,7 @@ void cusolverSVD(float* A_d, unsigned int m, unsigned int n, float* S_d, float* 
 	cudaFree(Work);
 
 }
+/* *************************************************************** */
 /*
  * the function computes the Pseudoinverse from the products of the SVD factorisation of A
  * R = V x inv(S) x U*
@@ -205,6 +226,7 @@ void cublasPseudoInverse(float* transformation, float *R_d, float* result_d, flo
 
 }
 
+/* *************************************************************** */
 //OPTIMIZER-----------------------------------------------
 
 // estimate an affine transformation using least square
@@ -219,8 +241,9 @@ void getAffineMat3D(float* AR_d, float* Sigma_d, float* VT_d, float* U_d, float*
 	cublasPseudoInverse(transformation, AR_d,result_d, VT_d,Sigma_d, U_d, m, n);
 
 }
+/* *************************************************************** */
 
-void optimize_affine3D_cuda(mat44* cpuMat, float* final_d, float* AR_d, float* U_d, float* Sigma_d, float* VT_d, float* lengths_d, float* target_d, float* result_d, float* newResult_d, unsigned int m, unsigned int n, const unsigned int numToKeep, bool ilsIn) {
+void optimize_affine3D_cuda(mat44 *cpuMat, float* final_d, float* AR_d, float* U_d, float* Sigma_d, float* VT_d, float* lengths_d, float* target_d, float* result_d, float* newResult_d, unsigned int m, unsigned int n, const unsigned int numToKeep, bool ilsIn) {
 
 	//m | blockMatchingParams->definedActiveBlock * 3
 	//n | 12
@@ -236,6 +259,7 @@ void optimize_affine3D_cuda(mat44* cpuMat, float* final_d, float* AR_d, float* U
 
 	downloadMat44(cpuMat, final_d);
 }
+/* *************************************************************** */
 void affineLocalSearch3DCuda(mat44 *cpuMat, float* final_d, float *AR_d, float* Sigma_d, float* U_d, float* VT_d, float * newResultPos_d, float* targetPos_d, float* resultPos_d, float* lengths_d, const unsigned int numBlocks, const unsigned int num_to_keep, const unsigned int m, const unsigned int n) {
 
 	double lastDistance = std::numeric_limits<double>::max();

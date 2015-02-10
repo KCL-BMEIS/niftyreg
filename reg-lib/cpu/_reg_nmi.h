@@ -18,8 +18,8 @@
 #include "omp.h"
 #endif
 
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 /// @brief NMI measure of similarity classe
 class reg_nmi : public reg_measure
 {
@@ -77,8 +77,8 @@ protected:
 
    void ClearHistogram();
 };
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 /// @brief NMI measure of similarity classe
 class reg_multichannel_nmi : public reg_measure
 {
@@ -108,8 +108,8 @@ protected:
    double *backwardJointHistogramLog;
    double *backwardEntropyValues;
 };
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 extern "C++" template <class DTYPE>
 void reg_getNMIValue(nifti_image *referenceImage,
                      nifti_image *warpedImage,
@@ -122,7 +122,7 @@ void reg_getNMIValue(nifti_image *referenceImage,
                      double **entropyValues,
                      int *referenceMask
                     );
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 extern "C++" template <class DTYPE>
 void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
                                     nifti_image *warpedImage,
@@ -135,7 +135,7 @@ void reg_getVoxelBasedNMIGradient2D(nifti_image *referenceImage,
                                     nifti_image *nmiGradientImage,
                                     int *referenceMask
                                    );
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 extern "C++" template <class DTYPE>
 void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
                                     nifti_image *warpedImage,
@@ -148,8 +148,8 @@ void reg_getVoxelBasedNMIGradient3D(nifti_image *referenceImage,
                                     nifti_image *nmiGradientImage,
                                     int *referenceMask
                                    );
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 // Simple class to dynamically manage an array of pointers
 // Needed for multi channel NMI
 template<class DataTYPE>
@@ -319,7 +319,7 @@ void reg_getVoxelBasedMultiChannelNMIGradient3D(nifti_image *targetImages,
       nifti_image *nmiGradientImage,
       int *mask,
       bool approx);
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 
 #endif

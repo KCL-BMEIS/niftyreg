@@ -14,8 +14,8 @@
 
 #include "_reg_measure.h"
 
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 class reg_lncc : public reg_measure
 {
 public:
@@ -71,8 +71,8 @@ protected:
                               nifti_image *sdev,
                               int *mask);
 };
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 /** @brief Copmutes and returns the LNCC between two input image
  * @param targetImage First input image to use to compute the metric
  * @param resultImage Second input image to use to compute the metric
@@ -95,7 +95,7 @@ double reg_getLNCCValue(nifti_image *referenceImage,
                         nifti_image *correlationImage,
                         int kernelType);
 
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 /** @brief Compute a voxel based gradient of the LNCC.
  *  @param targetImage First input image to use to compute the metric
  *  @param resultImage Second input image to use to compute the metric

@@ -16,8 +16,8 @@
 
 #include "_reg_measure.h"
 
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 /// @brief SSD measure of similarity classe
 class reg_ssd : public reg_measure
 {
@@ -44,7 +44,7 @@ public:
 protected:
    float currentValue[255];
 };
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 
 /** @brief Copmutes and returns the SSD between two input image
  * @param targetImage First input image to use to compute the metric

@@ -14,8 +14,8 @@
 
 #include "_reg_nmi.h"
 
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 reg_nmi::reg_nmi()
    : reg_measure()
 {
@@ -32,19 +32,19 @@ reg_nmi::reg_nmi()
       this->floatingBinNumber[i]=68;
    }
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] reg_nmi constructor called\n");
+   reg_print_msg_debug("reg_nmi constructor called");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 reg_nmi::~reg_nmi()
 {
    this->ClearHistogram();
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] reg_nmi destructor called\n");
+   reg_print_msg_debug("reg_nmi destructor called");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 void reg_nmi::ClearHistogram()
 {
    int timepoint=this->referenceTimePoint;
@@ -118,11 +118,11 @@ void reg_nmi::ClearHistogram()
    }
    this->backwardEntropyValues=NULL;
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] reg_nmi::ClearHistogram called\n");
+   reg_print_msg_debug("reg_nmi::ClearHistogram called");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 void reg_nmi::InitialiseMeasure(nifti_image *refImgPtr,
                                 nifti_image *floImgPtr,
                                 int *maskRefPtr,
@@ -212,15 +212,15 @@ void reg_nmi::InitialiseMeasure(nifti_image *refImgPtr,
       }
    }
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] reg_nmi::InitialiseMeasure called. Active time point:");
+   reg_print_msg_debug("reg_nmi::InitialiseMeasure called. Active time point:");
    for(int i=0; i<this->referenceImagePointer->nt; ++i)
       if(this->activeTimePoint[i])
          printf(" %i",i);
    printf("\n");
 #endif
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template<class PrecisionTYPE>
 PrecisionTYPE GetBasisSplineValue(PrecisionTYPE x)
 {
@@ -238,7 +238,7 @@ PrecisionTYPE GetBasisSplineValue(PrecisionTYPE x)
    }
    return value;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class PrecisionTYPE>
 PrecisionTYPE GetBasisSplineDerivativeValue(PrecisionTYPE ori)
 {
@@ -257,8 +257,8 @@ PrecisionTYPE GetBasisSplineDerivativeValue(PrecisionTYPE ori)
    }
    return value;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 template <class DTYPE>
 void reg_getNMIValue(nifti_image *referenceImage,
                      nifti_image *warpedImage,
@@ -285,7 +285,9 @@ void reg_getNMIValue(nifti_image *referenceImage,
       if(activeTimePoint[t])
       {
 #ifndef NDEBUG
-         printf("[NiftyReg DEBUG] Computing NMI for time point %i\n",t);
+         char text[255];
+         sprintf(text, "Computing NMI for time point %i\n",t);
+         reg_print_msg_debug(text);
 #endif
          // Define some pointers to the current histograms
          double *jointHistoProPtr = jointhistogramPro[t];
@@ -437,18 +439,18 @@ void reg_getNMIValue(nifti_image *referenceImage,
       } // if active time point
    } // iterate over all time point in the reference image
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template void reg_getNMIValue<float>(nifti_image *,nifti_image *,bool *,unsigned short *,unsigned short *,unsigned short *,double **,double **,double **,int *);
 template void reg_getNMIValue<double>(nifti_image *,nifti_image *,bool *,unsigned short *,unsigned short *,unsigned short *,double **,double **,double **,int *);
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+/* *************************************************************** */
 double reg_nmi::GetSimilarityMeasureValue()
 {
    // Check that all the specified image are of the same datatype
    if(this->warpedFloatingImagePointer->datatype !=this->referenceImagePointer->datatype)
    {
-      fprintf(stderr, "[NiftyReg ERROR] reg_nmi::GetSimilarityMeasureValue\n");
-      fprintf(stderr, "[NiftyReg ERROR] Both input images are exepected to have the same type\n");
+      reg_print_fct_error("reg_nmi::GetSimilarityMeasureValue()");
+      reg_print_msg_error("Both input images are exepected to have the same type");
       reg_exit(1);
    }
    switch(this->referenceImagePointer->datatype)
@@ -482,7 +484,8 @@ double reg_nmi::GetSimilarityMeasureValue()
       );
       break;
    default:
-      fprintf(stderr,"[NiftyReg ERROR] reg_nmi::GetSimilarityMeasureValue\tThe reference image data type is not supported\n");
+      reg_print_fct_error("reg_nmi::GetSimilarityMeasureValue()");
+      reg_print_msg_error("Unsupported datatype");
       reg_exit(1);
    }
 
@@ -491,8 +494,8 @@ double reg_nmi::GetSimilarityMeasureValue()
       // Check that all the specified image are of the same datatype
       if(this->floatingImagePointer->datatype !=this->warpedReferenceImagePointer->datatype)
       {
-         fprintf(stderr, "[NiftyReg ERROR] reg_nmi::GetSimilarityMeasureValue\n");
-         fprintf(stderr, "[NiftyReg ERROR] Both input images are exepected to have the same type\n");
+         reg_print_fct_error("reg_nmi::GetSimilarityMeasureValue()");
+         reg_print_msg_error("Both input images are exepected to have the same type");
          reg_exit(1);
       }
       switch(this->floatingImagePointer->datatype)
@@ -526,7 +529,8 @@ double reg_nmi::GetSimilarityMeasureValue()
          );
          break;
       default:
-         fprintf(stderr,"[NiftyReg ERROR] reg_nmi::GetSimilarityMeasureValue\tThe reference image data type is not supported\n");
+         reg_print_fct_error("reg_nmi::GetSimilarityMeasureValue()");
+         reg_print_msg_error("Unsupported datatype");
          reg_exit(1);
       }
    }
@@ -547,7 +551,7 @@ double reg_nmi::GetSimilarityMeasureValue()
       }
    }
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] reg_nmi::GetSimilarityMeasureValue called\n");
+   reg_print_msg_debug("reg_nmi::GetSimilarityMeasureValue called");
 #endif
    return nmi_value_forward+nmi_value_backward;
 }
@@ -781,8 +785,8 @@ void reg_nmi::GetVoxelBasedSimilarityMeasureGradient()
          this->forwardVoxelBasedGradientImagePointer->datatype != dtype
      )
    {
-      fprintf(stderr, "[NiftyReg ERROR] reg_nmi::GetVoxelBasedSimilarityMeasureGradient\n");
-      fprintf(stderr, "[NiftyReg ERROR] Input images are exepected to be of the same type\n");
+      reg_print_fct_error("reg_nmi::GetVoxelBasedSimilarityMeasureGradient()");
+      reg_print_msg_error("Input images are exepected to be of the same type");
       reg_exit(1);
    }
 
@@ -819,8 +823,8 @@ void reg_nmi::GetVoxelBasedSimilarityMeasureGradient()
                                                 this->referenceMaskPointer);
          break;
       default:
-         fprintf(stderr,"[NiftyReg ERROR] reg_nmi::GetVoxelBasedSimilarityMeasureGradient\n");
-         fprintf(stderr,"[NiftyReg ERROR] The input image data type is not supported\n");
+         reg_print_fct_error("reg_nmi::GetVoxelBasedSimilarityMeasureGradient()");
+         reg_print_msg_error("Unsupported datatype");
          reg_exit(1);
       }
    }
@@ -853,8 +857,8 @@ void reg_nmi::GetVoxelBasedSimilarityMeasureGradient()
                                                 this->referenceMaskPointer);
          break;
       default:
-         fprintf(stderr,"[NiftyReg ERROR] reg_nmi::GetVoxelBasedSimilarityMeasureGradient\n");
-         fprintf(stderr,"[NiftyReg ERROR] The input image data type is not supported\n");
+         reg_print_fct_error("reg_nmi::GetVoxelBasedSimilarityMeasureGradient()");
+         reg_print_msg_error("Unsupported datatype");
          reg_exit(1);
       }
    }
@@ -867,8 +871,8 @@ void reg_nmi::GetVoxelBasedSimilarityMeasureGradient()
             this->backwardVoxelBasedGradientImagePointer->datatype != dtype
         )
       {
-         fprintf(stderr, "[NiftyReg ERROR] reg_nmi::GetVoxelBasedSimilarityMeasureGradient\n");
-         fprintf(stderr, "[NiftyReg ERROR] Input images are exepected to be of the same type\n");
+         reg_print_fct_error("reg_nmi::GetVoxelBasedSimilarityMeasureGradient()");
+         reg_print_msg_error("Input images are exepected to be of the same type");
          reg_exit(1);
       }
       // Compute the gradient of the nmi for the backward transformation
@@ -901,8 +905,8 @@ void reg_nmi::GetVoxelBasedSimilarityMeasureGradient()
                                                    this->floatingMaskPointer);
             break;
          default:
-            fprintf(stderr,"[NiftyReg ERROR] reg_nmi::GetVoxelBasedSimilarityMeasureGradient\n");
-            fprintf(stderr,"[NiftyReg ERROR] The input image data type is not supported\n");
+            reg_print_fct_error("reg_nmi::GetVoxelBasedSimilarityMeasureGradient()");
+            reg_print_msg_error("Unsupported datatype");
             reg_exit(1);
          }
       }
@@ -935,14 +939,14 @@ void reg_nmi::GetVoxelBasedSimilarityMeasureGradient()
                                                    this->floatingMaskPointer);
             break;
          default:
-            fprintf(stderr,"[NiftyReg ERROR] reg_nmi::GetVoxelBasedSimilarityMeasureGradient\n");
-            fprintf(stderr,"[NiftyReg ERROR] The input image data type is not supported\n");
+            reg_print_fct_error("reg_nmi::GetVoxelBasedSimilarityMeasureGradient()");
+            reg_print_msg_error("Unsupported datatype");
             reg_exit(1);
          }
       }
    }
 #ifndef NDEBUG
-   printf("[NiftyReg DEBUG] reg_nmi::GetVoxelBasedSimilarityMeasureGradient called\n");
+   reg_print_msg_debug("reg_nmi::GetVoxelBasedSimilarityMeasureGradient called");
 #endif
 }
 /* *************************************************************** */

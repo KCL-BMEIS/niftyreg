@@ -13,10 +13,11 @@
 #include "CLContent.h"
 #include "InfoDevice.h"
 #endif
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+
+/* *************************************************************** */
 template<class T> reg_aladin<T>::reg_aladin()
 {
-	this->ExecutableName = (char*) "Aladin";
+	this->executableName = (char*) "Aladin";
 	this->InputReference = NULL;
 	this->InputFloating = NULL;
 	this->InputReferenceMask = NULL;
@@ -73,7 +74,6 @@ template<class T> reg_aladin<T>::reg_aladin()
 	this->paramsProgressCallback = NULL;
 
 	this->platformCode = NR_PLATFORM_CPU;
-	this->captureRangeVox = 3;
 	this->ils = false;
 	this->CurrentLevel = 0;
 
@@ -82,18 +82,16 @@ template<class T> reg_aladin<T>::reg_aladin()
 	this->FloatingUpperThreshold = 0.f;
 	this->clIdx = 0;
 	this->cusvd = false;
-
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T> reg_aladin<T>::~reg_aladin()
 {
-
 	if (this->TransformationMatrix != NULL)
 		delete this->TransformationMatrix;
 	this->TransformationMatrix = NULL;
 
 	for (unsigned int l = 0; l < this->LevelsToPerform; ++l)
-			{
+	{
 		nifti_image_free(this->ReferencePyramid[l]);
 		this->ReferencePyramid[l] = NULL;
 		nifti_image_free(this->FloatingPyramid[l]);
@@ -111,9 +109,10 @@ template<class T> reg_aladin<T>::~reg_aladin()
 	free(activeVoxelNumber);
 	delete this->platform;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
-bool reg_aladin<T>::TestMatrixConvergence(mat44 *mat) {
+bool reg_aladin<T>::TestMatrixConvergence(mat44 *mat)
+{
 	bool convergence = true;
 	if ((fabsf(mat->m[0][0]) - 1.0f) > CONVERGENCE_EPS)
 		convergence = false;
@@ -145,46 +144,50 @@ bool reg_aladin<T>::TestMatrixConvergence(mat44 *mat) {
 
 	return convergence;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
-void reg_aladin<T>::SetVerbose(bool _verbose) {
+void reg_aladin<T>::SetVerbose(bool _verbose)
+{
 	this->Verbose = _verbose;
 }
-
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 int reg_aladin<T>::Check()
 {
 	//This does all the initial checking
 	if (this->InputReference == NULL)
 	{
-		fprintf(stderr, "[NiftyReg ERROR] No reference image has been specified or it can not be read\n");
-		return 1;
+		reg_print_fct_error("reg_aladin<T>::Check()");
+		reg_print_msg_error("No reference image has been specified or it can not be read");
+		return EXIT_FAILURE;
 	}
 	reg_checkAndCorrectDimension(this->InputReference);
 
 	if (this->InputFloating == NULL)
 	{
-		fprintf(stderr, "[NiftyReg ERROR] No floating image has been specified or it can not be read\n");
-		return 1;
+		reg_print_fct_error("reg_aladin<T>::Check()");
+		reg_print_msg_error("No floating image has been specified or it can not be read");
+		return EXIT_FAILURE;
 	}
 	reg_checkAndCorrectDimension(this->InputFloating);
 
-	return 0;
+	return EXIT_SUCCESS;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 int reg_aladin<T>::Print()
 {
 	if (this->InputReference == NULL)
 	{
-		fprintf(stderr, "[NiftyReg ERROR] No reference image has been specified\n");
-		return 1;
+		reg_print_fct_error("reg_aladin<T>::Print()");
+		reg_print_msg_error("No reference image has been specified");
+		return EXIT_FAILURE;
 	}
 	if (this->InputFloating == NULL)
 	{
-		fprintf(stderr, "[NiftyReg ERROR] No floating image has been specified\n");
-		return 1;
+		reg_print_fct_error("reg_aladin<T>::Print()");
+		reg_print_msg_error("No floating image has been specified");
+		return EXIT_FAILURE;
 	}
 
 	/* *********************************** */
@@ -194,55 +197,118 @@ int reg_aladin<T>::Print()
 	if(this->Verbose)
 	{
 #endif
-
+		char text[255];
 #ifdef _USE_OPENCL
-	if(this->platformCode == NR_PLATFORM_CL) {
-		CLContextSingletton *sContext = &CLContextSingletton::Instance();
-		std::cout <<std::endl<<"\t"<< "******************************************************" << std::endl;
-		DeviceLog<char >::show(sContext->getDeviceId(), CL_DEVICE_NAME, "**** CL_DEVICE_NAME");
-		DeviceLog<char >::show(sContext->getDeviceId(), CL_DEVICE_VENDOR, "**** CL_DEVICE_VENDOR");
-		DeviceLog<char >::show(sContext->getDeviceId(), CL_DRIVER_VERSION, "**** CL_DRIVER_VERSION");
-		DeviceLog<char >::show(sContext->getDeviceId(), CL_DEVICE_VERSION, "**** CL_DEVICE_VERSION");
-		std::cout <<"\t"<< "******************************************************" << std::endl<<std::endl;
-	}
-
+		if(this->platformCode == NR_PLATFORM_CL)
+		{
+			CLContextSingletton *sContext = &CLContextSingletton::Instance();
+			std::size_t paramValueSize;
+			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
+															  CL_DEVICE_NAME,
+															  0,
+															  NULL,
+															  &paramValueSize),
+										 "Failed to find OpenCL device info ");
+			char *cl_deviceName = (char *) alloca(sizeof(char) * paramValueSize);
+			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
+															  CL_DEVICE_NAME,
+															  paramValueSize,
+															  cl_deviceName,
+															  NULL),
+										 "Failed to find OpenCL device info ");
+			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
+															  CL_DEVICE_VENDOR,
+															  0,
+															  NULL,
+															  &paramValueSize),
+										 "Failed to find OpenCL device info ");
+			char *cl_deviceVendor = (char *) alloca(sizeof(char) * paramValueSize);
+			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
+															  CL_DEVICE_VENDOR,
+															  paramValueSize,
+															  cl_deviceVendor,
+															  NULL),
+										 "Failed to find OpenCL device info ");
+			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
+															  CL_DEVICE_VERSION,
+															  0,
+															  NULL,
+															  &paramValueSize),
+										 "Failed to find OpenCL device info ");
+			char *cl_deviceVersion = (char *) alloca(sizeof(char) * paramValueSize);
+			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
+															  CL_DEVICE_VERSION,
+															  paramValueSize,
+															  cl_deviceVersion,
+															  NULL),
+										 "Failed to find OpenCL device info ");
+			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
+															  CL_DRIVER_VERSION,
+															  0,
+															  NULL,
+															  &paramValueSize),
+										 "Failed to find OpenCL device info ");
+			char *cl_driverVersion = (char *) alloca(sizeof(char) * paramValueSize);
+			sContext->checkErrNum(clGetDeviceInfo(sContext->getDeviceId(),
+															  CL_DRIVER_VERSION,
+															  paramValueSize,
+															  cl_driverVersion,
+															  NULL),
+										 "Failed to find OpenCL device info ");
+			sprintf(text, "OpenCL device name: %s (%s)", cl_deviceName, cl_deviceVendor);
+			reg_print_info(this->executableName, text);
+			sprintf(text, "OpenCL device version: %s", cl_deviceVersion);
+			reg_print_info(this->executableName, text);
+			sprintf(text, "OpenCL driver version: %s", cl_driverVersion);
+			reg_print_info(this->executableName, text);
+		}
 #endif
-	printf("[%s] Parameters\n", this->ExecutableName);
-	printf("[%s] Platform: %s \n", this->ExecutableName, this->platform->getName().c_str());
-	printf("[%s] Reference image name: %s\n", this->ExecutableName, this->InputReference->fname);
-	printf("[%s] \t%ix%ix%i voxels\n", this->ExecutableName, this->InputReference->nx, this->InputReference->ny, this->InputReference->nz);
-	printf("[%s] \t%gx%gx%g mm\n", this->ExecutableName, this->InputReference->dx, this->InputReference->dy, this->InputReference->dz);
-	printf("[%s] Floating image name: %s\n", this->ExecutableName, this->InputFloating->fname);
-	printf("[%s] \t%ix%ix%i voxels\n", this->ExecutableName, this->InputFloating->nx, this->InputFloating->ny, this->InputFloating->nz);
-	printf("[%s] \t%gx%gx%g mm\n", this->ExecutableName, this->InputFloating->dx, this->InputFloating->dy, this->InputFloating->dz);
-	printf("[%s] Maximum iteration number: %i", this->ExecutableName, this->MaxIterations);
-	printf(" (%i during the first level)\n", 2 * this->MaxIterations);
-	printf("[%s] Percentage of blocks: %i %%\n", this->ExecutableName, this->BlockPercentage);
-	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+		reg_print_info(this->executableName, "Parameters");
+		sprintf(text, "Platform: %s", this->platform->getName().c_str());
+		reg_print_info(this->executableName, text);
+		sprintf(text, "Reference image name: %s", this->InputReference->fname);
+		reg_print_info(this->executableName, text);
+		sprintf(text, "\t%ix%ix%i voxels", this->InputReference->nx, this->InputReference->ny, this->InputReference->nz);
+		reg_print_info(this->executableName, text);
+		sprintf(text, "\t%gx%gx%g mm", this->InputReference->dx, this->InputReference->dy, this->InputReference->dz);
+		reg_print_info(this->executableName, text);
+		sprintf(text, "Floating image name: %s", this->InputFloating->fname);
+		reg_print_info(this->executableName, text);
+		sprintf(text, "\t%ix%ix%i voxels", this->InputFloating->nx, this->InputFloating->ny, this->InputFloating->nz);
+		reg_print_info(this->executableName, text);
+		sprintf(text, "\t%gx%gx%g mm", this->InputFloating->dx, this->InputFloating->dy, this->InputFloating->dz);
+		reg_print_info(this->executableName, text);
+		sprintf(text, "Maximum iteration number: %i", this->MaxIterations);
+		reg_print_info(this->executableName, text);
+		sprintf(text, "\t(%i during the first level)", 2 * this->MaxIterations);
+		reg_print_info(this->executableName, text);
+		sprintf(text, "Percentage of blocks: %i %%", this->BlockPercentage);
+		reg_print_info(this->executableName, text);
+		reg_print_info(this->executableName, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 #ifdef NDEBUG
-}
+	}
 #endif
-	return 0;
+	return EXIT_SUCCESS;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
-void reg_aladin<T>::SetInputTransform(const char *filename) {
+void reg_aladin<T>::SetInputTransform(const char *filename)
+{
 	this->InputTransformName = (char *) filename;
 	return;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_aladin<T>::InitialiseRegistration()
 {
 #ifndef NDEBUG
-	printf("[NiftyReg DEBUG] reg_aladin::InitialiseRegistration() called\n");
+	reg_print_fct_debug("reg_aladin::InitialiseRegistration()");
 #endif
-
 
 	this->platform = new Platform(platformCode);
 	if (this->platformCode == NR_PLATFORM_CL) this->platform->setClIdx(this->clIdx);
 
-	Kernel* convolutionKernel = this->platform->createKernel(ConvolutionKernel::getName(), NULL);
+	Kernel *convolutionKernel = this->platform->createKernel(ConvolutionKernel::getName(), NULL);
 
 	this->Print();
 
@@ -257,10 +323,10 @@ void reg_aladin<T>::InitialiseRegistration()
 	reg_createImagePyramid<T>(this->InputFloating, this->FloatingPyramid, this->NumberOfLevels, this->LevelsToPerform);
 	if (this->InputReferenceMask != NULL)
 		reg_createMaskPyramid<T>(this->InputReferenceMask,
-				this->ReferenceMaskPyramid,
-				this->NumberOfLevels,
-				this->LevelsToPerform,
-				this->activeVoxelNumber);
+										 this->ReferenceMaskPyramid,
+										 this->NumberOfLevels,
+										 this->LevelsToPerform,
+										 this->activeVoxelNumber);
 	else {
 		for (unsigned int l = 0; l < this->LevelsToPerform; ++l) {
 			this->activeVoxelNumber[l] = this->ReferencePyramid[l]->nx * this->ReferencePyramid[l]->ny * this->ReferencePyramid[l]->nz;
@@ -338,7 +404,10 @@ void reg_aladin<T>::InitialiseRegistration()
 		}
 		else
 		{
-			fprintf(stderr, "The specified input affine file (%s) can not be read\n", this->InputTransformName);
+			char text[255];
+			sprintf(text, "The specified input affine file (%s) can not be read\n", this->InputTransformName);
+			reg_print_fct_error("reg_aladin<T>::InitialiseRegistration()");
+			reg_print_msg_error(text);
 			reg_exit(1);
 		}
 		reg_tool_ReadAffineFile(this->TransformationMatrix, this->InputTransformName);
@@ -353,8 +422,8 @@ void reg_aladin<T>::InitialiseRegistration()
 		}
 		if (this->AlignCentre)
 		{
-			const mat44 *floatingMatrix = (this->InputFloating->sform_code > 0) ? &(this->InputFloating->sto_xyz) : floatingMatrix = &(this->InputFloating->qto_xyz);
-			const mat44 *referenceMatrix = (this->InputReference->sform_code > 0) ? &(this->InputReference->sto_xyz) : referenceMatrix = &(this->InputReference->qto_xyz);
+			const mat44 *floatingMatrix = (this->InputFloating->sform_code > 0) ? &(this->InputFloating->sto_xyz) : &(this->InputFloating->qto_xyz);
+			const mat44 *referenceMatrix = (this->InputReference->sform_code > 0) ? &(this->InputReference->sto_xyz) : &(this->InputReference->qto_xyz);
 			float floatingCenter[3];
 			floatingCenter[0] = (float) (this->InputFloating->nx) / 2.0f;
 			floatingCenter[1] = (float) (this->InputFloating->ny) / 2.0f;
@@ -374,7 +443,7 @@ void reg_aladin<T>::InitialiseRegistration()
 	}
 	delete convolutionKernel;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_aladin<T>::SetCurrentImages()
 {
@@ -383,7 +452,7 @@ void reg_aladin<T>::SetCurrentImages()
 	this->CurrentReferenceMask = this->ReferenceMaskPyramid[this->CurrentLevel];
 
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_aladin<T>::ClearCurrentInputImage()
 {
@@ -398,14 +467,14 @@ void reg_aladin<T>::ClearCurrentInputImage()
 	this->CurrentReferenceMask = NULL;
 
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_aladin<T>::AllocateWarpedImage()
 {
 	if (this->CurrentReference == NULL || this->CurrentFloating == NULL)
 	{
-		fprintf(stderr, "[NiftyReg ERROR] reg_aladin::AllocateWarpedImage()\n");
-		fprintf(stderr, "[NiftyReg ERROR] Reference and FLoating images are not defined. Exit.\n");
+		reg_print_fct_error("reg_aladin<T>::AllocateWarpedImage()");
+		reg_print_msg_error("Reference and FLoating images are not defined. Exit");
 		reg_exit(1);
 	}
 	reg_aladin<T>::ClearWarpedImage();
@@ -415,14 +484,14 @@ void reg_aladin<T>::AllocateWarpedImage()
 	this->CurrentWarped->pixdim[4] = this->CurrentWarped->dt = 1.0;
 	this->CurrentWarped->nvox =
 			(size_t) this->CurrentWarped->nx *
-					(size_t) this->CurrentWarped->ny *
-					(size_t) this->CurrentWarped->nz *
-					(size_t) this->CurrentWarped->nt;
+			(size_t) this->CurrentWarped->ny *
+			(size_t) this->CurrentWarped->nz *
+			(size_t) this->CurrentWarped->nt;
 	this->CurrentWarped->datatype = this->CurrentFloating->datatype;
 	this->CurrentWarped->nbyper = this->CurrentFloating->nbyper;
 	this->CurrentWarped->data = (void *) calloc(this->CurrentWarped->nvox, this->CurrentWarped->nbyper);
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_aladin<T>::ClearWarpedImage()
 {
@@ -430,9 +499,10 @@ void reg_aladin<T>::ClearWarpedImage()
 		nifti_image_free(this->CurrentWarped);
 	this->CurrentWarped = NULL;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
-void reg_aladin<T>::createKernels() {
+void reg_aladin<T>::createKernels()
+{
 	this->affineTransformation3DKernel = platform->createKernel(AffineDeformationFieldKernel::getName(), this->con);
 	this->resamplingKernel = platform->createKernel(ResampleImageKernel::getName(), this->con);
 	if (this->blockMatchingParams != NULL) {
@@ -443,9 +513,10 @@ void reg_aladin<T>::createKernels() {
 		this->optimiseKernel = NULL;
 	}
 }
-
+/* *************************************************************** */
 template<class T>
-void reg_aladin<T>::clearKernels() {
+void reg_aladin<T>::clearKernels()
+{
 	delete this->affineTransformation3DKernel;
 	delete this->resamplingKernel;
 	if (this->blockMatchingKernel != NULL)
@@ -453,76 +524,91 @@ void reg_aladin<T>::clearKernels() {
 	if (this->optimiseKernel != NULL)
 		delete this->optimiseKernel;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_aladin<T>::GetDeformationField()
 {
 	this->affineTransformation3DKernel->template castTo<AffineDeformationFieldKernel>()->calculate();
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
-void reg_aladin<T>::GetWarpedImage(int interp) {
+void reg_aladin<T>::GetWarpedImage(int interp)
+{
 	this->GetDeformationField();
 	this->resamplingKernel->template castTo<ResampleImageKernel>()->calculate(interp, 0);
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-
+/* *************************************************************** */
 template<class T>
-void reg_aladin<T>::UpdateTransformationMatrix(int type) {
-
-	this->blockMatchingKernel->template castTo<BlockMatchingKernel>()->calculate(this->captureRangeVox);
+void reg_aladin<T>::UpdateTransformationMatrix(int type)
+{
+	this->blockMatchingKernel->template castTo<BlockMatchingKernel>()->calculate();
 	this->optimiseKernel->template castTo<OptimiseKernel>()->calculate(type, this->ils, this->cusvd);
 
 #ifndef NDEBUG
-	reg_mat44_disp(this->TransformationMatrix, (char *) "[DEBUG] updated matrix");
+	reg_mat44_disp(this->TransformationMatrix, (char *) "[NiftyReg DEBUG] updated forward matrix");
 #endif
 }
-
+/* *************************************************************** */
 template<class T>
-void reg_aladin<T>::initContent(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes, unsigned int blockPercentage,
-		unsigned int inlierLts, unsigned int blockStepSize) {
-
+void reg_aladin<T>::initContent(nifti_image *ref,
+										  nifti_image *flo,
+										  int *mask,
+										  mat44 *transMat,
+										  size_t bytes,
+										  unsigned int blockPercentage,
+										  unsigned int inlierLts,
+										  unsigned int blockStepSize)
+{
 	if (this->platformCode == NR_PLATFORM_CPU)
 		this->con = new Content(ref, flo, mask, transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #ifdef _USE_CUDA
 	else if(platformCode == NR_PLATFORM_CUDA)
-	this->con = new CudaContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize, cusvd);
+		this->con = new CudaContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize, cusvd);
 #endif
 #ifdef _USE_OPENCL
 	else if(platformCode == NR_PLATFORM_CL)
-	this->con = new ClContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
+		this->con = new ClContent(ref, flo, mask,transMat, bytes, blockPercentage, inlierLts, blockStepSize);
 #endif
 	this->blockMatchingParams = this->con->Content::getBlockMatchingParams();
 }
-
+/* *************************************************************** */
 template<class T>
-void reg_aladin<T>::initContent(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes) {
-
+void reg_aladin<T>::initContent(nifti_image *ref,
+										  nifti_image *flo,
+										  int *mask,
+										  mat44 *transMat,
+										  size_t bytes)
+{
 	if (this->platformCode == NR_PLATFORM_CPU)
 		this->con = new Content(ref, flo, mask, transMat, bytes);
 #ifdef _USE_CUDA
 	else if(platformCode == NR_PLATFORM_CUDA)
-	this->con = new CudaContent(ref, flo, mask,transMat, bytes);
+		this->con = new CudaContent(ref, flo, mask,transMat, bytes);
 #endif
 #ifdef _USE_OPENCL
 	else if(platformCode == NR_PLATFORM_CL)
-	this->con = new ClContent(ref, flo, mask,transMat, bytes);
+		this->con = new ClContent(ref, flo, mask,transMat, bytes);
 #endif
 	this->blockMatchingParams = this->con->Content::getBlockMatchingParams();
 }
-
+/* *************************************************************** */
 template<class T>
-void reg_aladin<T>::clearContent() {
+void reg_aladin<T>::clearContent()
+{
 	delete this->con;
 }
+/* *************************************************************** */
 template<class T>
-void reg_aladin<T>::resolveMatrix(unsigned int iterations, const unsigned int optimizationFlag) {
-
+void reg_aladin<T>::resolveMatrix(unsigned int iterations, const unsigned int optimizationFlag)
+{
 	unsigned int iteration = 0;
-	const char* regStr = optimizationFlag ? "Affine" : "Rigid";
 	while (iteration < iterations) {
 #ifndef NDEBUG
-		printf("[DEBUG] -%s- Level: %i/%i | iteration %i/%i \n", regStr, this->CurrentLevel, this->NumberOfLevels, iteration, iterations);
+		char text[255];
+		sprintf(text, "%s - level: %i/%i - iteration %i/%i",
+				  optimizationFlag ? (char *)"Affine" : (char *)"Rigid",
+				  this->CurrentLevel+1, this->NumberOfLevels, iteration+1, iterations);
+		reg_print_msg_debug(text);
 #endif
 		this->GetWarpedImage(this->Interpolation);
 		this->UpdateTransformationMatrix(optimizationFlag);
@@ -530,8 +616,7 @@ void reg_aladin<T>::resolveMatrix(unsigned int iterations, const unsigned int op
 		iteration++;
 	}
 }
-
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_aladin<T>::Run()
 {
@@ -540,8 +625,8 @@ void reg_aladin<T>::Run()
 	//Main loop over the levels:
 	for (this->CurrentLevel = 0; this->CurrentLevel < this->LevelsToPerform; this->CurrentLevel++) {
 		this->initContent(this->ReferencePyramid[CurrentLevel], this->FloatingPyramid[CurrentLevel],
-				this->ReferenceMaskPyramid[CurrentLevel], this->TransformationMatrix, sizeof(T), this->BlockPercentage,
-				this->InlierLts, this->BlockStepSize);
+								this->ReferenceMaskPyramid[CurrentLevel], this->TransformationMatrix, sizeof(T), this->BlockPercentage,
+								this->InlierLts, this->BlockStepSize);
 		this->createKernels();
 		this->SetCurrentImages();
 
@@ -553,35 +638,27 @@ void reg_aladin<T>::Run()
 		if(this->Verbose)
 		{
 #endif
-		this->DebugPrintLevelInfoStart();
+			this->DebugPrintLevelInfoStart();
 #ifdef NDEBUG
-	}
+		}
 #endif
 
 #ifndef NDEBUG
 		if (this->CurrentReference->sform_code > 0)
-			reg_mat44_disp(&this->CurrentReference->sto_xyz, (char *) "[DEBUG] Reference image matrix (sform sto_xyz)");
+			reg_mat44_disp(&this->CurrentReference->sto_xyz, (char *) "[NiftyReg DEBUG] Reference image matrix (sform sto_xyz)");
 		else
-			reg_mat44_disp(&this->CurrentReference->qto_xyz, (char *) "[DEBUG] Reference image matrix (qform qto_xyz)");
+			reg_mat44_disp(&this->CurrentReference->qto_xyz, (char *) "[NiftyReg DEBUG] Reference image matrix (qform qto_xyz)");
 		if (this->CurrentFloating->sform_code > 0)
-			reg_mat44_disp(&this->CurrentFloating->sto_xyz, (char *) "[DEBUG] Floating image matrix (sform sto_xyz)");
+			reg_mat44_disp(&this->CurrentFloating->sto_xyz, (char *) "[NiftyReg DEBUG] Floating image matrix (sform sto_xyz)");
 		else
-			reg_mat44_disp(&this->CurrentFloating->qto_xyz, (char *) "[DEBUG] Floating image matrix (qform qto_xyz)");
+			reg_mat44_disp(&this->CurrentFloating->qto_xyz, (char *) "[NiftyReg DEBUG] Floating image matrix (qform qto_xyz)");
 #endif
 
 		/* ****************** */
 		/* Rigid registration */
 		/* ****************** */
-
-		if (this->captureRangeVox > 3) {
-			this->resolveMatrix(maxNumberOfIterationToPerform, RIGID);
-			if (this->PerformAffine)
-				resolveMatrix(maxNumberOfIterationToPerform, AFFINE);
-			this->captureRangeVox = 3;
-
-		}
-
-		if ((this->PerformRigid && !this->PerformAffine) || (this->PerformAffine && this->PerformRigid && this->CurrentLevel == 0)) {
+		if ((this->PerformRigid && !this->PerformAffine) || (this->PerformAffine && this->PerformRigid && this->CurrentLevel == 0))
+		{
 			const unsigned int ratio = (this->PerformAffine && this->PerformRigid && this->CurrentLevel == 0) ? 4 : 1;
 			resolveMatrix(maxNumberOfIterationToPerform * ratio, RIGID);
 		}
@@ -601,35 +678,40 @@ void reg_aladin<T>::Run()
 		if(this->Verbose)
 		{
 #endif
-		this->DebugPrintLevelInfoEnd();
-		printf("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n");
+			this->DebugPrintLevelInfoEnd();
+			reg_print_info(this->executableName, "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -");
 #ifdef NDEBUG
-	}
+		}
 #endif
 
 	}
 
 #ifndef NDEBUG
-	printf("[NiftyReg DEBUG] reg_aladin::Run() done\n");
+	reg_print_msg_debug("reg_aladin::Run() done");
 #endif
 	return;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 {
 	int floatingType = this->InputFloating->datatype; //t_dev ask before touching this!
 	// The initial images are used
 	if (this->InputReference == NULL || this->InputFloating == NULL || this->TransformationMatrix == NULL) {
-		fprintf(stderr, "[NiftyReg ERROR] reg_aladin::GetWarpedImage()\n");
-		fprintf(stderr, " * The reference, floating images and the transformation have to be defined\n");
+		reg_print_fct_error("reg_aladin::GetFinalWarpedImage()");
+		reg_print_msg_error("The reference, floating images and the transformation have to be defined");
+		reg_exit(1);
 	}
 
 	this->CurrentReference = this->InputReference;
 	this->CurrentFloating = this->InputFloating;
 	this->CurrentReferenceMask = NULL;
 
-	reg_aladin<T>::initContent(this->CurrentReference, this->CurrentFloating, this->CurrentReferenceMask, this->TransformationMatrix, sizeof(T));
+	reg_aladin<T>::initContent(this->CurrentReference,
+										this->CurrentFloating,
+										this->CurrentReferenceMask,
+										this->TransformationMatrix,
+										sizeof(T));
 	reg_aladin<T>::createKernels();
 
 
@@ -649,33 +731,38 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 	reg_aladin<T>::clearContent();
 	return resultImage;
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_aladin<T>::DebugPrintLevelInfoStart()
 {
 	/* Display some parameters specific to the current level */
-	printf("[%s] Current level %i / %i\n", this->ExecutableName, this->CurrentLevel + 1, this->NumberOfLevels);
-	printf("[%s] reference image size: \t%ix%ix%i voxels\t%gx%gx%g mm\n", this->ExecutableName,
-			this->CurrentReference->nx, this->CurrentReference->ny, this->CurrentReference->nz,
-			this->CurrentReference->dx, this->CurrentReference->dy, this->CurrentReference->dz);
-	printf("[%s] floating image size: \t%ix%ix%i voxels\t%gx%gx%g mm\n", this->ExecutableName,
-			this->CurrentFloating->nx, this->CurrentFloating->ny, this->CurrentFloating->nz,
-			this->CurrentFloating->dx, this->CurrentFloating->dy, this->CurrentFloating->dz);
-	if (this->CurrentReference->nz == 1)
-		printf("[%s] Block size = [4 4 1]\n", this->ExecutableName);
-	else
-		printf("[%s] Block size = [4 4 4]\n", this->ExecutableName);
-	printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-	printf("[%s] Block number = [%i %i %i]\n", this->ExecutableName, this->blockMatchingParams->blockNumber[0],
+	char text[255];
+	sprintf(text, "Current level %i / %i", this->CurrentLevel + 1, this->NumberOfLevels);
+	reg_print_info(this->executableName,text);
+	sprintf(text, "reference image size: \t%ix%ix%i voxels\t%gx%gx%g mm",
+			 this->CurrentReference->nx, this->CurrentReference->ny, this->CurrentReference->nz,
+			 this->CurrentReference->dx, this->CurrentReference->dy, this->CurrentReference->dz);
+	reg_print_info(this->executableName,text);
+	sprintf(text, "floating image size: \t%ix%ix%i voxels\t%gx%gx%g mm",
+			 this->CurrentFloating->nx, this->CurrentFloating->ny, this->CurrentFloating->nz,
+			 this->CurrentFloating->dx, this->CurrentFloating->dy, this->CurrentFloating->dz);
+	reg_print_info(this->executableName,text);
+	if (this->CurrentReference->nz == 1){
+		reg_print_info(this->executableName, "Block size = [4 4 1]");
+	}
+	else reg_print_info(this->executableName, "Block size = [4 4 4]");
+	reg_print_info(this->executableName, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+	sprintf(text, "Block number = [%i %i %i]\n", this->blockMatchingParams->blockNumber[0],
 			this->blockMatchingParams->blockNumber[1], this->blockMatchingParams->blockNumber[2]);
+	reg_print_info(this->executableName,text);
 	reg_mat44_disp(this->TransformationMatrix, (char *) "[reg_aladin] Initial transformation matrix:");
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 template<class T>
 void reg_aladin<T>::DebugPrintLevelInfoEnd()
 {
 	reg_mat44_disp(this->TransformationMatrix, (char *) "[reg_aladin] Final transformation matrix:");
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
 
 #endif //#ifndef _REG_ALADIN_CPP

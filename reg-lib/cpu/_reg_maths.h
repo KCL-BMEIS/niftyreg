@@ -50,12 +50,13 @@ typedef enum
     fprintf(stderr,"[NiftyReg] Exit here. File: %s:%i\n",__FILE__, __LINE__); \
     exit(val); \
 }
-#define reg_print_fct_debug(name){printf("[NiftyReg DEBUG] Function: %s called\n",name);}
-#define reg_print_msg_debug(name){printf("[NiftyReg DEBUG] Message: %s\n",name);}
-#define reg_print_fct_warn(name){printf("[NiftyReg WARNING] Function: %s\n",name);}
-#define reg_print_msg_warn(name){printf("[NiftyReg WARNING] Message: %s\n",name);}
-#define reg_print_fct_error(name){fprintf(stderr,"[NiftyReg ERROR] Function: %s\n",name);}
-#define reg_print_msg_error(name){fprintf(stderr,"[NiftyReg ERROR] Message: %s\n",name);}
+#define reg_print_info(executable,text){printf("[%s] %s\n", executable, text);}
+#define reg_print_fct_debug(text){printf("[NiftyReg DEBUG] Function: %s called\n", text);}
+#define reg_print_msg_debug(text){printf("[NiftyReg DEBUG] %s\n", text);}
+#define reg_print_fct_warn(text){printf("[NiftyReg WARNING] Function: %s\n", text);}
+#define reg_print_msg_warn(text){printf("[NiftyReg WARNING] %s\n", text);}
+#define reg_print_fct_error(text){fprintf(stderr,"[NiftyReg ERROR] Function: %s\n", text);}
+#define reg_print_msg_error(text){fprintf(stderr,"[NiftyReg ERROR] %s\n", text);}
 /* *************************************************************** */
 #if defined(_WIN32) && !defined(__CYGWIN__)
 #include <limits>
@@ -96,9 +97,8 @@ void reg_logarithm_tensor(mat33 *in_tensor);
 extern "C++"
 void reg_exponentiate_logged_tensor(mat33 *in_tensor);
 /* *************************************************************** */
-/* *************************************************************** */
 extern "C++" template <class T>
-void svd(T ** in, size_t m, size_t n, T * w, T ** v);
+void svd(T **in, size_t m, size_t n, T * w, T **v);
 /* *************************************************************** */
 /* *************************************************************** */
 extern "C++" template <class T>
@@ -210,6 +210,4 @@ void reg_mat44_disp(mat44 *mat,
 void reg_mat33_disp(mat33 *mat,
                     char * title);
 /* *************************************************************** */
-void outputCMat(float** mat, const unsigned int m, const unsigned int n, char* msg);
-void outputCVect(float* mat,  const unsigned int n, char* msg) ;
 #endif // _REG_MATHS_H

@@ -7,13 +7,13 @@
 #include "Platform.h"
 #include "cl/CLContent.h"
 
-#define EPS 0.00005
+#define EPS 0.000001
 
-void test(Content* con) {
+void test(Content *con) {
 
 	Platform *clPlatform = new Platform(NR_PLATFORM_CL);
 
-	Kernel* affineDeformKernel = clPlatform->createKernel(AffineDeformationFieldKernel::getName(), con);
+	Kernel *affineDeformKernel = clPlatform->createKernel(AffineDeformationFieldKernel::getName(), con);
 	affineDeformKernel->castTo<AffineDeformationFieldKernel>()->calculate();
 
 	delete affineDeformKernel;

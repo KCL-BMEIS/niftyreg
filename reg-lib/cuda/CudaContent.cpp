@@ -2,46 +2,114 @@
 #include "_reg_common_gpu.h"
 #include "_reg_tools.h"
 
-CudaContent::CudaContent() {
+/* *************************************************************** */
+CudaContent::CudaContent()
+{
 	initVars();
 	allocateCuPtrs();
 	uploadContent();
 }
-CudaContent::CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep, bool cusvdIn) :
-		Content(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, sizeof(float), blockPercentage, inlierLts, blockStep), cusvd(cusvdIn) {
+/* *************************************************************** */
+CudaContent::CudaContent(nifti_image *CurrentReferenceIn,
+								 nifti_image *CurrentFloatingIn,
+								 int *CurrentReferenceMaskIn,
+								 size_t byte,
+								 const unsigned int blockPercentage,
+								 const unsigned int inlierLts,
+								 int blockStep,
+								 bool cusvdIn) :
+		Content(CurrentReferenceIn,
+				  CurrentFloatingIn,
+				  CurrentReferenceMaskIn,
+				  sizeof(float), // forcing float for CUDA
+				  blockPercentage,
+				  inlierLts,
+				  blockStep),
+		cusvd(cusvdIn)
+{
+	if(byte!=sizeof(float)){
+		reg_print_fct_warn("CudaContent::CudaContent");
+		reg_print_msg_warn("Datatype has been forced to float");
+	}
 	initVars();
 	allocateCuPtrs();
 	uploadContent();
 
 }
-CudaContent::CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, size_t byte) :
-		Content(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, sizeof(float)) {
+/* *************************************************************** */
+CudaContent::CudaContent(nifti_image *CurrentReferenceIn,
+								 nifti_image *CurrentFloatingIn,
+								 int *CurrentReferenceMaskIn,
+								 size_t byte) :
+		Content(CurrentReferenceIn,
+				  CurrentFloatingIn,
+				  CurrentReferenceMaskIn,
+				  sizeof(float)) // forcing float for CUDA
+{
+	if(byte!=sizeof(float)){
+		reg_print_fct_warn("CudaContent::CudaContent");
+		reg_print_msg_warn("Datatype has been forced to float");
+	}
 	initVars();
 	allocateCuPtrs();
 	uploadContent();
 }
-
-CudaContent::CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte, const unsigned int blockPercentage, const unsigned int inlierLts, int blockStep, bool cusvdIn) :
-		Content(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, transMat, sizeof(float), blockPercentage, inlierLts, blockStep), cusvd(cusvdIn) {
+/* *************************************************************** */
+CudaContent::CudaContent(nifti_image *CurrentReferenceIn,
+								 nifti_image *CurrentFloatingIn,
+								 int *CurrentReferenceMaskIn,
+								 mat44 *transMat,
+								 size_t byte,
+								 const unsigned int blockPercentage,
+								 const unsigned int inlierLts,
+								 int blockStep,
+								 bool cusvdIn) :
+		Content(CurrentReferenceIn,
+				  CurrentFloatingIn,
+				  CurrentReferenceMaskIn,
+				  transMat,
+				  sizeof(float), // forcing float for CUDA
+				  blockPercentage,
+				  inlierLts,
+				  blockStep),
+		cusvd(cusvdIn)
+{
+	if(byte!=sizeof(float)){
+		reg_print_fct_warn("CudaContent::CudaContent");
+		reg_print_msg_warn("Datatype has been forced to float");
+	}
 	initVars();
 	allocateCuPtrs();
 	uploadContent();
-
 }
-CudaContent::CudaContent(nifti_image* CurrentReferenceIn, nifti_image* CurrentFloatingIn, int* CurrentReferenceMaskIn, mat44* transMat, size_t byte) :
-		Content(CurrentReferenceIn, CurrentFloatingIn, CurrentReferenceMaskIn, transMat, sizeof(float)) {
+/* *************************************************************** */
+CudaContent::CudaContent(nifti_image *CurrentReferenceIn,
+								 nifti_image *CurrentFloatingIn,
+								 int *CurrentReferenceMaskIn,
+								 mat44 *transMat,
+								 size_t byte) :
+		Content(CurrentReferenceIn,
+				  CurrentFloatingIn,
+				  CurrentReferenceMaskIn,
+				  transMat,
+				  sizeof(float)) // forcing float for CUDA
+{
+	if(byte!=sizeof(float)){
+		reg_print_fct_warn("CudaContent::CudaContent");
+		reg_print_msg_warn("Datatype has been forced to float");
+	}
 	initVars();
 	allocateCuPtrs();
 	uploadContent();
 }
-
-CudaContent::~CudaContent() {
+/* *************************************************************** */
+CudaContent::~CudaContent()
+{
 	freeCuPtrs();
-
 }
-
-void CudaContent::initVars() {
-
+/* *************************************************************** */
+void CudaContent::initVars()
+{
 	if (this->CurrentReference != NULL && this->CurrentReference->nbyper != NIFTI_TYPE_FLOAT32)
 		reg_tools_changeDatatype<float>(this->CurrentReference);
 	if (this->CurrentFloating != NULL && this->CurrentFloating->nbyper != NIFTI_TYPE_FLOAT32) {
@@ -54,8 +122,9 @@ void CudaContent::initVars() {
 	floatingVoxels = (this->CurrentFloating != NULL) ? this->CurrentFloating->nvox : 0;
 	numBlocks = (this->blockMatchingParams != NULL) ? blockMatchingParams->blockNumber[0] * blockMatchingParams->blockNumber[1] * blockMatchingParams->blockNumber[2] : 0;
 }
-
-void CudaContent::allocateCuPtrs() {
+/* *************************************************************** */
+void CudaContent::allocateCuPtrs()
+{
 
 	if (this->transformationMatrix != NULL)
 		cudaCommon_allocateArrayToDevice<float>(&transformationMatrix_d, 16);
@@ -91,10 +160,10 @@ void CudaContent::allocateCuPtrs() {
 			cudaCommon_allocateArrayToDevice<float>(&newResultPos_d, blockMatchingParams->activeBlockNumber * 3);
 		}
 	}
-
 }
-
-void CudaContent::uploadContent() {
+/* *************************************************************** */
+void CudaContent::uploadContent()
+{
 
 	if (this->CurrentReferenceMask != NULL)
 		cudaCommon_transferFromDeviceToNiftiSimple1<int>(&mask_d, this->CurrentReferenceMask, referenceVoxels);
@@ -123,29 +192,35 @@ void CudaContent::uploadContent() {
 		cudaCommon_transferFromDeviceToNiftiSimple1<int>(&activeBlock_d, blockMatchingParams->activeBlock, numBlocks);
 	}
 }
-
-nifti_image* CudaContent::getCurrentWarped(int type) {
-	downloadImage(CurrentWarped, warpedImageArray_d, true, type, "warpedImage");
+/* *************************************************************** */
+nifti_image *CudaContent::getCurrentWarped(int type)
+{
+	downloadImage(CurrentWarped, warpedImageArray_d, type);
 	return CurrentWarped;
 }
-
-nifti_image* CudaContent::getCurrentDeformationField() {
+/* *************************************************************** */
+nifti_image *CudaContent::getCurrentDeformationField()
+{
 
 	cudaCommon_transferFromDeviceToCpu<float>((float*) CurrentDeformationField->data, &deformationFieldArray_d, CurrentDeformationField->nvox);
 	return CurrentDeformationField;
 }
-_reg_blockMatchingParam* CudaContent::getBlockMatchingParams() {
+/* *************************************************************** */
+_reg_blockMatchingParam* CudaContent::getBlockMatchingParams()
+{
 
 	cudaCommon_transferFromDeviceToCpu<float>(blockMatchingParams->resultPosition, &resultPosition_d, blockMatchingParams->definedActiveBlock * 3);
 	cudaCommon_transferFromDeviceToCpu<float>(blockMatchingParams->targetPosition, &targetPosition_d, blockMatchingParams->definedActiveBlock * 3);
 	return blockMatchingParams;
 }
-
-void CudaContent::setTransformationMatrix(mat44* transformationMatrixIn) {
+/* *************************************************************** */
+void CudaContent::setTransformationMatrix(mat44 *transformationMatrixIn)
+{
 	Content::setTransformationMatrix(transformationMatrixIn);
 }
-
-void CudaContent::setCurrentDeformationField(nifti_image* CurrentDeformationFieldIn) {
+/* *************************************************************** */
+void CudaContent::setCurrentDeformationField(nifti_image *CurrentDeformationFieldIn)
+{
 	if (this->CurrentDeformationField != NULL)
 		cudaCommon_free<float>(&deformationFieldArray_d);
 	Content::setCurrentDeformationField(CurrentDeformationFieldIn);
@@ -153,13 +228,16 @@ void CudaContent::setCurrentDeformationField(nifti_image* CurrentDeformationFiel
 	cudaCommon_allocateArrayToDevice<float>(&deformationFieldArray_d, this->CurrentDeformationField->nvox);
 	cudaCommon_transferFromDeviceToNiftiSimple<float>(&deformationFieldArray_d, this->CurrentDeformationField);
 }
-void CudaContent::setCurrentReferenceMask(int* maskIn, size_t nvox) {
+/* *************************************************************** */
+void CudaContent::setCurrentReferenceMask(int *maskIn, size_t nvox)
+{
 
 	cudaCommon_allocateArrayToDevice<int>(&mask_d, nvox);
 	cudaCommon_transferFromDeviceToNiftiSimple1<int>(&mask_d, maskIn, nvox);
 }
-
-void CudaContent::setCurrentWarped(nifti_image* currentWarped) {
+/* *************************************************************** */
+void CudaContent::setCurrentWarped(nifti_image *currentWarped)
+{
 	if (this->CurrentWarped != NULL)
 		cudaCommon_free<float>(&warpedImageArray_d);
 	Content::setCurrentWarped(currentWarped);
@@ -168,7 +246,7 @@ void CudaContent::setCurrentWarped(nifti_image* currentWarped) {
 	cudaCommon_allocateArrayToDevice<float>(&warpedImageArray_d, CurrentWarped->nvox);
 	cudaCommon_transferFromDeviceToNiftiSimple<float>(&warpedImageArray_d, this->CurrentWarped);
 }
-
+/* *************************************************************** */
 template<class DataType>
 DataType CudaContent::fillWarpedImageData(float intensity, int datatype) {
 
@@ -196,9 +274,12 @@ DataType CudaContent::fillWarpedImageData(float intensity, int datatype) {
 		break;
 	}
 }
-
+/* *************************************************************** */
 template<class T>
-void CudaContent::fillImageData(nifti_image* image, float* memoryObject, bool warped, int type, std::string message) {
+void CudaContent::fillImageData(nifti_image *image,
+										  float* memoryObject,
+										  int type)
+{
 
 	size_t size = image->nvox;
 	T* array = static_cast<T*>(image->data);
@@ -220,106 +301,139 @@ void CudaContent::fillImageData(nifti_image* image, float* memoryObject, bool wa
 
 	free(buffer);
 }
-
-void CudaContent::downloadImage(nifti_image* image, float* memoryObject, bool flag, int datatype, std::string message) {
-
+/* *************************************************************** */
+void CudaContent::downloadImage(nifti_image *image,
+										  float* memoryObject,
+										  int datatype)
+{
 	switch (datatype) {
 	case NIFTI_TYPE_FLOAT32:
-		fillImageData<float>(image, memoryObject, flag, datatype, message);
+		fillImageData<float>(image, memoryObject, datatype);
 		break;
 	case NIFTI_TYPE_FLOAT64:
-		fillImageData<double>(image, memoryObject, flag, datatype, message);
+		fillImageData<double>(image, memoryObject, datatype);
 		break;
 	case NIFTI_TYPE_UINT8:
-		fillImageData<unsigned char>(image, memoryObject, flag, datatype, message);
+		fillImageData<unsigned char>(image, memoryObject, datatype);
 		break;
 	case NIFTI_TYPE_INT8:
-		fillImageData<char>(image, memoryObject, flag, datatype, message);
+		fillImageData<char>(image, memoryObject, datatype);
 		break;
 	case NIFTI_TYPE_UINT16:
-		fillImageData<unsigned short>(image, memoryObject, flag, datatype, message);
+		fillImageData<unsigned short>(image, memoryObject, datatype);
 		break;
 	case NIFTI_TYPE_INT16:
-		fillImageData<short>(image, memoryObject, flag, datatype, message);
+		fillImageData<short>(image, memoryObject, datatype);
 		break;
 	case NIFTI_TYPE_UINT32:
-		fillImageData<unsigned int>(image, memoryObject, flag, datatype, message);
+		fillImageData<unsigned int>(image, memoryObject, datatype);
 		break;
 	case NIFTI_TYPE_INT32:
-		fillImageData<int>(image, memoryObject, flag, datatype, message);
+		fillImageData<int>(image, memoryObject, datatype);
 		break;
 	default:
-		std::cout << "CUDA: unsupported type: " << datatype << std::endl;
+		std::cout << "CUDA: unsupported type" << std::endl;
 		break;
 	}
 }
-
-float* CudaContent::getReferenceImageArray_d() {
+/* *************************************************************** */
+float* CudaContent::getReferenceImageArray_d()
+{
 	return referenceImageArray_d;
 }
-float* CudaContent::getFloatingImageArray_d() {
+/* *************************************************************** */
+float* CudaContent::getFloatingImageArray_d()
+{
 	return floatingImageArray_d;
 }
-float* CudaContent::getWarpedImageArray_d() {
+/* *************************************************************** */
+float* CudaContent::getWarpedImageArray_d()
+{
 	return warpedImageArray_d;
 }
-float* CudaContent::getTransformationMatrix_d() {
+/* *************************************************************** */
+float* CudaContent::getTransformationMatrix_d()
+{
 	return transformationMatrix_d;
 }
-
-float* CudaContent::getTargetPosition_d() {
+/* *************************************************************** */
+float* CudaContent::getTargetPosition_d()
+{
 	return targetPosition_d;
 }
-float* CudaContent::getResultPosition_d() {
+/* *************************************************************** */
+float* CudaContent::getResultPosition_d()
+{
 	return resultPosition_d;
 }
-float* CudaContent::getDeformationFieldArray_d() {
+/* *************************************************************** */
+float* CudaContent::getDeformationFieldArray_d()
+{
 	return deformationFieldArray_d;
 }
-float* CudaContent::getTargetMat_d() {
+/* *************************************************************** */
+float* CudaContent::getTargetMat_d()
+{
 	return targetMat_d;
 }
-float* CudaContent::getFloIJKMat_d() {
+/* *************************************************************** */
+float* CudaContent::getFloIJKMat_d()
+{
 	return floIJKMat_d;
 }
-
-float* CudaContent::getAR_d() {
+/* *************************************************************** */
+float* CudaContent::getAR_d()
+{
 	return AR_d;
 }
-float* CudaContent::getU_d() {
+/* *************************************************************** */
+float* CudaContent::getU_d()
+{
 	return U_d;
 }
-float* CudaContent::getVT_d() {
+/* *************************************************************** */
+float* CudaContent::getVT_d()
+{
 	return VT_d;
 }
-float* CudaContent::getSigma_d() {
+/* *************************************************************** */
+float* CudaContent::getSigma_d()
+{
 	return Sigma_d;
 }
-
-float* CudaContent::getLengths_d() {
+/* *************************************************************** */
+float* CudaContent::getLengths_d()
+{
 	return lengths_d;
 }
-
-float* CudaContent::getNewResultPos_d() {
+/* *************************************************************** */
+float* CudaContent::getNewResultPos_d()
+{
 	return newResultPos_d;
 }
-
-int* CudaContent::getActiveBlock_d() {
+/* *************************************************************** */
+int *CudaContent::getActiveBlock_d()
+{
 	return activeBlock_d;
 }
-int* CudaContent::getMask_d() {
+/* *************************************************************** */
+int *CudaContent::getMask_d()
+{
 	return mask_d;
 }
-
-int* CudaContent::getReferenceDims() {
+/* *************************************************************** */
+int *CudaContent::getReferenceDims()
+{
 	return referenceDims;
 }
-int* CudaContent::getFloatingDims() {
+/* *************************************************************** */
+int *CudaContent::getFloatingDims()
+{
 	return floatingDims;
 }
-
-void CudaContent::freeCuPtrs() {
-
+/* *************************************************************** */
+void CudaContent::freeCuPtrs()
+{
 	if (this->transformationMatrix != NULL)
 		cudaCommon_free<float>(&transformationMatrix_d);
 	if (this->CurrentReference != NULL) {
@@ -351,3 +465,4 @@ void CudaContent::freeCuPtrs() {
 		}
 	}
 }
+/* *************************************************************** */

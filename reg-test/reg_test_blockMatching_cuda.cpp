@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
 	affine3D.m[3][2] = 0.f;
 	affine3D.m[3][3] = 1.f;
 
-	mat44 *testMatrix = (transType == 0) ? &affine3D : testMatrix = &rigid3D;
+	mat44 *testMatrix = (transType == 0) ? &affine3D : &rigid3D;
 
 #ifndef NDEBUG
 	reg_mat44_disp(testMatrix, (char *) "expected");

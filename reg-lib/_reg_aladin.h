@@ -32,7 +32,7 @@ template<class T>
 class reg_aladin
 {
 protected:
-	char *ExecutableName;
+	char *executableName;
 	nifti_image *InputReference;
 	nifti_image *InputFloating;
 	nifti_image *InputReferenceMask;
@@ -100,9 +100,19 @@ protected:
 	void *paramsProgressCallback;
 
 	//platform factory methods
-	virtual void initContent(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes, unsigned int blockPercentage,
-			unsigned int inlierLts, unsigned int blockStepSize);
-	virtual void initContent(nifti_image* ref, nifti_image* flo, int* mask, mat44* transMat, size_t bytes);
+	virtual void initContent(nifti_image *ref,
+									 nifti_image *flo,
+									 int *mask,
+									 mat44 *transMat,
+									 size_t bytes,
+									 unsigned int blockPercentage,
+									 unsigned int inlierLts,
+									 unsigned int blockStepSize);
+	virtual void initContent(nifti_image *ref,
+									 nifti_image *flo,
+									 int *mask,
+									 mat44 *transMat,
+									 size_t bytes);
 	virtual void clearContent();
 	virtual void createKernels();
 	virtual void clearKernels();
@@ -110,34 +120,34 @@ protected:
 public:
 	reg_aladin();
 	virtual ~reg_aladin();
-	GetStringMacro(ExecutableName)
-	;
+	GetStringMacro(executableName)
 
 	int platformCode;
 
-	void setPlatformCode(const int platformCodeIn) {
+	void setPlatformCode(const int platformCodeIn)
+	{
 		platformCode = platformCodeIn;
 	}
-
-	void setIls(const bool ilsIn) {
+	void setIls(const bool ilsIn)
+	{
 		ils = ilsIn;
 	}
-	void setCusvd(const bool cusvdIn) {
+	void setCusvd(const bool cusvdIn)
+	{
 		cusvd = cusvdIn;
 	}
 
 	//No allocating of the images here...
 	void SetInputReference(nifti_image *input)
-			{
+	{
 		this->InputReference = input;
 	}
-	nifti_image* GetInputReference()
+	nifti_image *GetInputReference()
 	{
 		return this->InputReference;
 	}
-
 	void SetInputFloating(nifti_image *input)
-			{
+	{
 		this->InputFloating = input;
 	}
 	nifti_image *GetInputFloating()
@@ -146,7 +156,7 @@ public:
 	}
 
 	void SetInputMask(nifti_image *input)
-			{
+	{
 		this->InputReferenceMask = input;
 	}
 	nifti_image *GetInputMask()
@@ -155,111 +165,73 @@ public:
 	}
 
 	void SetInputTransform(const char *filename);
-	mat44* GetInputTransform()
+	mat44 *GetInputTransform()
 	{
 		return this->InputTransform;
 	}
 
-	mat44* GetTransformationMatrix()
+	mat44 *GetTransformationMatrix()
 	{
 		return this->TransformationMatrix;
 	}
 	nifti_image *GetFinalWarpedImage();
 
 	SetMacro(MaxIterations,unsigned int)
-	;
 	GetMacro(MaxIterations,unsigned int)
-	;
 
 	SetMacro(NumberOfLevels,unsigned int)
-	;
 	GetMacro(NumberOfLevels,unsigned int)
-	;
 
 	SetMacro(LevelsToPerform,unsigned int)
-	;
 	GetMacro(LevelsToPerform,unsigned int)
-	;
 
 	SetMacro(BlockPercentage,int)
-	;
 	GetMacro(BlockPercentage,int)
-	;
 
 	SetMacro(BlockStepSize,int)
-	;
 	GetMacro(BlockStepSize,int)
-	;
 
 	SetMacro(InlierLts,float)
-	;
 	GetMacro(InlierLts,float)
-	;
 
 	SetMacro(ReferenceSigma,float)
-	;
 	GetMacro(ReferenceSigma,float)
-	;
 
 	SetMacro(ReferenceUpperThreshold,float)
-	;
 	GetMacro(ReferenceUpperThreshold,float)
-	;
 	SetMacro(ReferenceLowerThreshold,float)
-	;
 	GetMacro(ReferenceLowerThreshold,float)
-	;
 
 	SetMacro(FloatingUpperThreshold,float)
-	;
 	GetMacro(FloatingUpperThreshold,float)
-	;
 	SetMacro(FloatingLowerThreshold,float)
-	;
 	GetMacro(FloatingLowerThreshold,float)
-	;
 
 	SetMacro(FloatingSigma,float)
-	;
 	GetMacro(FloatingSigma,float)
-	;
 
 	SetMacro(PerformRigid,int)
-	;
 	GetMacro(PerformRigid,int)
-	;
 	BooleanMacro(PerformRigid, int)
-	;
 
 	SetMacro(PerformAffine,int)
-	;
 	GetMacro(PerformAffine,int)
-	;
 	BooleanMacro(PerformAffine, int)
-	;
 
 	GetMacro(AlignCentre,int)
-	;
 	SetMacro(AlignCentre,int)
-	;
 	BooleanMacro(AlignCentre, int)
-	;
-
 	GetMacro(AlignCentreGravity,int)
-	;
 	SetMacro(AlignCentreGravity,int)
-	;
 	BooleanMacro(AlignCentreGravity, int)
-	;
 
 	SetClampMacro(Interpolation,int,0,3)
-	;
 	GetMacro(Interpolation, int)
-	;
 
 	virtual void SetInputFloatingMask(nifti_image*)
-			{
-		fprintf(stderr, "Floating mask not used in one way affine\n");
+	{
+		reg_print_fct_warn("reg_aladin::SetInputFloatingMask()");
+		reg_print_msg_warn("Floating mask not used in the asymmetric global registration");
 	}
 	void SetInterpolationToNearestNeighbor()
 	{
@@ -274,7 +246,7 @@ public:
 		this->SetInterpolation(3);
 	}
 	void setCaptureRangeVox(int captureRangeIn)
-			{
+	{
 		this->captureRangeVox = captureRangeIn;
 	}
 
@@ -290,18 +262,19 @@ public:
 	virtual void SetVerbose(bool _verbose);
 
 	void SetProgressCallbackFunction(void (*funcProgCallback)(float pcntProgress,
-			void *params),
-			void *paramsProgCallback)
-			{
+																				 void *params),
+												void *paramsProgCallback)
+	{
 		funcProgressCallback = funcProgCallback;
 		paramsProgressCallback = paramsProgCallback;
 	}
 	Content *con;
-	private:
 
-	Kernel* affineTransformation3DKernel, *blockMatchingKernel, *optimiseKernel, *resamplingKernel;
-	void resolveMatrix(unsigned int iterations, const unsigned int optimizationFlag);
-
+private:
+	Kernel *affineTransformation3DKernel,*blockMatchingKernel;
+	Kernel *optimiseKernel, *resamplingKernel;
+	void resolveMatrix(unsigned int iterations,
+							 const unsigned int optimizationFlag);
 };
 
 #include "_reg_aladin.cpp"

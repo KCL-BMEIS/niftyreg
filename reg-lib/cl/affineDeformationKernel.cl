@@ -16,7 +16,7 @@ __inline__ float getPosition( __global float* matrix, float* voxel, const unsign
 }
 
 
-__kernel void affineKernel(__global float* transformationMatrix, __global  float* defField,__global  int* mask, const uint3 params, const unsigned int composition) {
+__kernel void affineKernel(__global float* transformationMatrix, __global  float* defField,__global  int *mask, const uint3 params, const unsigned int composition) {
 
     const unsigned long voxelNumber = params.x*params.y*params.z;
     

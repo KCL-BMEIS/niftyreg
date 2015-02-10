@@ -376,11 +376,11 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
  */
 extern "C++"
 int reg_defField_GetJacobianMatFromFlowField(mat33* jacobianMatrices,
-                                             nifti_image* flowFieldImage);
+                                             nifti_image *flowFieldImage);
 extern "C++"
 int reg_spline_GetJacobianMatFromVelocityGrid(mat33* jacobianMatrices,
-                                              nifti_image* velocityGridImage,
-                                              nifti_image* referenceImage
+                                              nifti_image *velocityGridImage,
+                                              nifti_image *referenceImage
                                               );
 /* *************************************************************** */
 /** @brief This function computed a Jacobian determinant map by integrating
@@ -391,12 +391,12 @@ int reg_spline_GetJacobianMatFromVelocityGrid(mat33* jacobianMatrices,
  * parametrised using a grid of control points
  */
 extern "C++"
-int reg_defField_GetJacobianDetFromFlowField(nifti_image* jacobianDetImage,
-                                             nifti_image* flowFieldImage
+int reg_defField_GetJacobianDetFromFlowField(nifti_image *jacobianDetImage,
+                                             nifti_image *flowFieldImage
                                              );
 extern "C++"
-int reg_spline_GetJacobianDetFromVelocityGrid(nifti_image* jacobianDetImage,
-                                              nifti_image* velocityGridImage);
+int reg_spline_GetJacobianDetFromVelocityGrid(nifti_image *jacobianDetImage,
+                                              nifti_image *velocityGridImage);
 /* *************************************************************** */
 /** @brief The deformation field (img2) is computed by integrating
  * a velocity Grid (img1)

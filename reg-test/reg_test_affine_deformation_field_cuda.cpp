@@ -7,7 +7,7 @@
 #include "Platform.h"
 #include "cuda/CudaContent.h"
 
-#define EPS 0.00005
+#define EPS 0.000001
 
 void test(Content* con) {
 

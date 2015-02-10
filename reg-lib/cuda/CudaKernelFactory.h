@@ -7,6 +7,6 @@ class Kernel;
 class CudaKernelFactory : public KernelFactory
 {
 public:
-	Kernel* produceKernel(std::string name, Content* con) const;
+	Kernel *produceKernel(std::string name, Content *con) const;
 };
 
