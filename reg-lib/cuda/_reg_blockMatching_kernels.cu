@@ -167,9 +167,9 @@ __global__ void blockMatchingKernel(float *resultPosition,
 
 		if (targetBlockSize > 32) {
 			//the target values must remain constant throughout the block matching process
-			const float targetMean = __fdividef(REDUCE(rTargetValue, tid), targetBlockSize);
+			const float targetMean = __fdividef(blockReduceSum(rTargetValue, tid), targetBlockSize);
 			const float targetTemp = finiteTargetIntensity ? rTargetValue - targetMean : 0.f;
-			const float targetVar = REDUCE(targetTemp * targetTemp, tid);
+			const float targetVar = blockReduceSum(targetTemp * targetTemp, tid);
 
 			// iteration over the result blocks (block matching part)
 			for (unsigned int n = 1; n < blocksRange * 8 /*2*4*/; n += stepSize) {
@@ -189,17 +189,17 @@ __global__ void blockMatchingKernel(float *resultPosition,
 							if (blockSize != targetBlockSize) {
 
 								const float newTargetValue = overlap ? rTargetValue : 0.0f;
-								const float newTargetMean = __fdividef(REDUCE(newTargetValue, tid), blockSize);
+								const float newTargetMean = __fdividef(blockReduceSum(newTargetValue, tid), blockSize);
 								newTargetTemp = overlap ? newTargetValue - newTargetMean : 0.0f;
-								newTargetVar = REDUCE(newTargetTemp * newTargetTemp, tid);
+								newTargetVar = blockReduceSum(newTargetTemp * newTargetTemp, tid);
 							}
 
 							const float rChecked = overlap ? rResultValue : 0.0f;
-							const float resultMean = __fdividef(REDUCE(rChecked, tid), blockSize);
+							const float resultMean = __fdividef(blockReduceSum(rChecked, tid), blockSize);
 							const float resultTemp = overlap ? rChecked - resultMean : 0.0f;
-							const float resultVar = REDUCE(resultTemp * resultTemp, tid);
+							const float resultVar = blockReduceSum(resultTemp * resultTemp, tid);
 
-							const float sumTargetResult = REDUCE((newTargetTemp) * (resultTemp), tid);
+							const float sumTargetResult = blockReduceSum((newTargetTemp) * (resultTemp), tid);
 							const float localCC = fabs((sumTargetResult) * rsqrtf(newTargetVar * resultVar));
 
 							if (tid == 0 && localCC > bestCC) {
