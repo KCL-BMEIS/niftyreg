@@ -1,9 +1,11 @@
 #define SINC_KERNEL_RADIUS 3
 #define SINC_KERNEL_SIZE SINC_KERNEL_RADIUS*2
 
-
-
-__inline void interpWindowedSincKernel(float relative, float *basis) {
+/* *************************************************************** */
+/* *************************************************************** */
+__inline void interpWindowedSincKernel(float relative,
+																			 float *basis)
+{
 		if (relative < 0.0f)
 				relative = 0.0f; //reg_rounding error
 		int j = 0;
@@ -26,7 +28,9 @@ __inline void interpWindowedSincKernel(float relative, float *basis) {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-__inline void interpCubicSplineKernel(float relative, float *basis) {
+__inline void interpCubicSplineKernel(float relative,
+																			float *basis)
+{
 		if (relative < 0.0f)
 				relative = 0.0f; //reg_rounding error
 		float FF = relative * relative;
@@ -37,15 +41,18 @@ __inline void interpCubicSplineKernel(float relative, float *basis) {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-__inline void interpLinearKernel(float relative, float *basis) {
+__inline void interpLinearKernel(float relative,
+																 float *basis)
+{
 		if (relative < 0.0f) relative = 0.0f; //reg_rounding error
 		basis[1] = relative;
 		basis[0] = 1.0f - relative;
 }
-
 /* *************************************************************** */
 /* *************************************************************** */
-__inline void interpNearestNeighKernel(float relative, float *basis) {
+__inline void interpNearestNeighKernel(float relative,
+																			 float *basis)
+{
 		if (relative < 0.0f) relative = 0.0f; //reg_rounding error
 		basis[0] = basis[1] = 0.0f;
 		if (relative >/*=*/ 0.5f)
@@ -55,17 +62,25 @@ __inline void interpNearestNeighKernel(float relative, float *basis) {
 }
 /* *************************************************************** */
 /* *************************************************************** */
-__inline float interpLoop(__global float* floatingIntensity,float* xBasis, float* yBasis, float* zBasis,  int *previous, uint3 fi_xyz, float paddingValue, unsigned int kernel_size){
+__inline float interpLoop(__global float* floatingIntensity,
+													float* xBasis,
+													float* yBasis,
+													float* zBasis,
+													int *previous,
+													uint3 fi_xyz,
+													float paddingValue,
+													unsigned int kernel_size)
+{
 		float intensity = paddingValue;
-		for (int c = 0; c < kernel_size; c++) {
+		for (unsigned int c = 0; c < kernel_size; c++) {
 				int Z = previous[2] + c;
 				bool zInBounds = -1 < Z && Z < fi_xyz.z;
 				float yTempNewValue = 0.0f;
-				for (int b = 0; b < kernel_size; b++) {
+				for (unsigned int b = 0; b < kernel_size; b++) {
 						int Y = previous[1] + b;
 						bool yInBounds = -1 < Y && Y < fi_xyz.y;
 						float xTempNewValue = 0.0f;
-						for (int a = 0; a < kernel_size; a++) {
+						for (unsigned int a = 0; a < kernel_size; a++) {
 							int X = previous[0] + a;
 				bool xInBounds = -1 < X && X  < fi_xyz.x;
 				const unsigned int idx = Z * fi_xyz.x * fi_xyz.y + Y * fi_xyz.x + X;
@@ -79,13 +94,18 @@ __inline float interpLoop(__global float* floatingIntensity,float* xBasis, float
 
 		return intensity;
 }
-
-
- __inline int cl_reg_floor(float a) {
+/* *************************************************************** */
+/* *************************************************************** */
+ __inline int cl_reg_floor(float a)
+{
 	return a > 0.0f ? (int)a : (int)(a - 1);
 }
-
-__inline void reg_mat44_mul_cl(__global float const* mat, float const* in, float *out) {
+/* *************************************************************** */
+/* *************************************************************** */
+__inline void reg_mat44_mul_cl(__global float const* mat,
+															 float const* in,
+															 float *out)
+{
 	out[0] = mat[0 * 4 + 0] * in[0] +
 		mat[0 * 4 + 1] * in[1] +
 		mat[0 * 4 + 2] * in[2] +
@@ -100,11 +120,26 @@ __inline void reg_mat44_mul_cl(__global float const* mat, float const* in, float
 		mat[2 * 4 + 3];
 	return;
 }
-float cl_reg_round(float a) {
+/* *************************************************************** */
+/* *************************************************************** */
+float cl_reg_round(float a)
+{
 		return (float)((a)>0.0f ?(int)((a)+0.5):(int)((a)-0.5));
 }
-
-__kernel void ResampleImage3D(__global float* floatingImage, __global float* deformationField, __global float* warpedImage,__global int *mask,__global float* sourceIJKMatrix, long2 voxelNumber, uint3 fi_xyz, uint2 wi_tu, float paddingValue, int kernelType, int datatype) {
+/* *************************************************************** */
+/* *************************************************************** */
+__kernel void ResampleImage3D(__global float* floatingImage,
+															__global float* deformationField,
+															__global float* warpedImage,
+															__global int *mask,
+															__global float* sourceIJKMatrix,
+															long2 voxelNumber,
+															uint3 fi_xyz,
+															uint2 wi_tu,
+															float paddingValue,
+															int kernelType,
+															int datatype)
+{
 
 		__global float *sourceIntensityPtr = (floatingImage);
 		__global float *resultIntensityPtr = (warpedImage);
@@ -181,8 +216,11 @@ __kernel void ResampleImage3D(__global float* floatingImage, __global float* def
 												interpCubicSplineKernel(relative[2], zBasisIn);
 												intensity = interpLoop(floatingIntensity, xBasisIn, yBasisIn, zBasisIn, previous, fi_xyz, paddingValue, 4);
 								}
+						}
 						resultIntensity[index]=intensity;
 				}
 				index += get_num_groups(0)*get_local_size(0);
 		}
 }
+/* *************************************************************** */
+/* *************************************************************** */

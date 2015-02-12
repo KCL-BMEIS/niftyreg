@@ -45,7 +45,14 @@ CLAffineDeformationFieldKernel::CLAffineDeformationFieldKernel(Content *conIn, s
 	con = static_cast<ClContent*>(conIn);
 
 	//path to kernel files
-	std::string clInstallPath(CL_KERNELS_PATH);
+	const char* niftyreg_install_dir = getenv("NIFTYREG_INSTALL_DIR");
+	std::string clInstallPath;
+	if(niftyreg_install_dir!=NULL){
+		char opencl_kernel_path[255];
+		sprintf(opencl_kernel_path, "%s/include/cl/", niftyreg_install_dir);
+		clInstallPath = opencl_kernel_path;
+	}
+	else clInstallPath = CL_KERNELS_PATH;
 	std::string clKernel("affineDeformationKernel.cl");
 
 	//get opencl context params
@@ -138,7 +145,14 @@ CLResampleImageKernel::CLResampleImageKernel(Content *conIn, std::string name) :
 	con = static_cast<ClContent*>(conIn);
 
 	//path to kernel file
-	std::string clInstallPath(CL_KERNELS_PATH);
+	const char* niftyreg_install_dir = getenv("NIFTYREG_INSTALL_DIR");
+	std::string clInstallPath;
+	if(niftyreg_install_dir!=NULL){
+		char opencl_kernel_path[255];
+		sprintf(opencl_kernel_path, "%s/include/cl/", niftyreg_install_dir);
+		clInstallPath = opencl_kernel_path;
+	}
+	else clInstallPath = CL_KERNELS_PATH;
 	std::string clKernel("resampleKernel.cl");
 
 	//get opencl context params
@@ -250,7 +264,14 @@ CLBlockMatchingKernel::CLBlockMatchingKernel(Content *conIn, std::string name) :
 	con = static_cast<ClContent*>(conIn);
 
 	//path to kernel file
-	std::string clInstallPath(CL_KERNELS_PATH);
+	const char* niftyreg_install_dir = getenv("NIFTYREG_INSTALL_DIR");
+	std::string clInstallPath;
+	if(niftyreg_install_dir!=NULL){
+		char opencl_kernel_path[255];
+		sprintf(opencl_kernel_path, "%s/include/cl/", niftyreg_install_dir);
+		clInstallPath = opencl_kernel_path;
+	}
+	else clInstallPath = CL_KERNELS_PATH;
 	std::string clKernel("blockMatchingKernel.cl");
 
 	//get opencl context params
