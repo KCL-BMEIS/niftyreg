@@ -216,9 +216,10 @@ int main(int argc, char **argv)
 #endif
       reg_print_info(argv[0], "");
       reg_print_info(argv[0], "Command line:");
+      sprintf(text, "\t");
       for(int i=0; i<argc; i++)
-         printf(" %s", argv[i]);
-      printf("\n");
+         sprintf(text, "%s %s", text, argv[i]);
+      reg_print_info(argv[0], text);
       reg_print_info(argv[0], "");
 #ifdef NDEBUG
    }
@@ -687,7 +688,7 @@ int main(int argc, char **argv)
    if(verbose)
    {
       int maxThreadNumber = omp_get_max_threads();
-      sprintf(text, "OpenMP is used with %i thread(s)\n", maxThreadNumber);
+      sprintf(text, "OpenMP is used with %i thread(s)", maxThreadNumber);
       reg_print_info(argv[0], text);
    }
 #endif // _OPENMP

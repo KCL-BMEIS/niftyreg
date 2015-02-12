@@ -170,7 +170,6 @@ void reg_tps<T>::InitialiseTPS()
    }
    a/=(double)(this->number*this->number);
    a=(double)this->approxInter*a*a;
-   printf("a=%f\n",a);
    for(size_t i=0; i<this->number; ++i)
    {
       matrixL[i*matrix_side+i]=a;

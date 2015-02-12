@@ -87,7 +87,7 @@ nifti_image *reg_io_readPNGfile(const char *pngFileName, bool readData)
    if(Channels > 3)
    {
       char text[255];
-      sprintf(text, "The PNG file has %i channels. Only the first three are considered for RGB to gray conversion.\n", Channels);
+      sprintf(text, "The PNG file has %i channels. Only the first three are considered for RGB to gray conversion.", Channels);
       reg_print_fct_warn("reg_io_readPNGfile");
       reg_print_msg_warn(text);
    }
@@ -182,7 +182,7 @@ void reg_io_writePNGfile(nifti_image *image, const char *filename)
                            newMinValue,
                            newMaxValue);
       char text[255];
-      sprintf(text, "The image intensities have been rescaled from [%g %g] to [0 255].\n",
+      sprintf(text, "The image intensities have been rescaled from [%g %g] to [0 255].",
              minValue, maxValue);
       reg_print_fct_warn("reg_io_writePNGfile");
       reg_print_msg_warn(text);
@@ -200,7 +200,7 @@ void reg_io_writePNGfile(nifti_image *image, const char *filename)
    if(!fp)
    {
       char text[255];
-      sprintf(text,"The png file can not be written: %s\n", filename);
+      sprintf(text,"The png file can not be written: %s", filename);
       reg_print_fct_error("reg_io_writePNGfile");
       reg_print_msg_error(text);
       reg_exit(1);

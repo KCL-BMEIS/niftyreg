@@ -72,15 +72,6 @@ void reg_f3d2<T>::Initialise()
    this->controlPointGrid->intent_p2=6;
    this->backwardControlPointGrid->intent_p2=6;
 
-#ifdef NDEBUG
-   if(this->verbose)
-   {
-#endif
-      printf("[%s]\n", this->executableName);
-#ifdef NDEBUG
-   }
-#endif
-
 #ifndef NDEBUG
    reg_print_msg_debug("reg_f3d2::Initialise_f3d() done");
 #endif
@@ -97,7 +88,7 @@ void reg_f3d2<T>::GetDeformationField()
       updateStepNumber=false;
 #ifndef NDEBUG
    char text[255];
-   sprintf(text, "Velocity integration forward. Step number update=%i\n",updateStepNumber);
+   sprintf(text, "Velocity integration forward. Step number update=%i",updateStepNumber);
    reg_print_msg_debug(text);
 #endif
    // The forward transformation is computed using the scaling-and-squaring approach
@@ -106,7 +97,7 @@ void reg_f3d2<T>::GetDeformationField()
                                           updateStepNumber
                                           );
 #ifndef NDEBUG
-   sprintf(text, "Velocity integration backward. Step number update=%i\n",updateStepNumber);
+   sprintf(text, "Velocity integration backward. Step number update=%i",updateStepNumber);
    reg_print_msg_debug(text);
 #endif
    // The number of step number is copied over from the forward transformation
@@ -170,7 +161,7 @@ void reg_f3d2<T>::ExponentiateGradient()
    /* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\ */
    // Exponentiate the forward gradient using the backward transformation
 #ifndef NDEBUG
-   printf("[NiftyReg f3d2] Update the forward measure gradient using a Dartel like approach\n");
+   reg_print_msg_debug("Update the forward measure gradient using a Dartel like approach");
 #endif
    // Create all deformation field images needed for resampling
    nifti_image **tempDef=(nifti_image **)malloc(
@@ -221,7 +212,7 @@ void reg_f3d2<T>::ExponentiateGradient()
    /* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\ */
    /* Exponentiate the backward gradient using the forward transformation */
 #ifndef NDEBUG
-   printf("[NiftyReg f3d2] Update the backward measure gradient using a Dartel like approach\n");
+   reg_print_msg_debug("Update the backward measure gradient using a Dartel like approach");
 #endif
    // Allocate a temporary gradient image to store the backward gradient
    tempGrad=nifti_copy_nim_info(this->backwardVoxelBasedMeasureGradientImage);
@@ -291,9 +282,9 @@ void reg_f3d2<T>::UpdateParameters(float scale)
    if(this->BCHUpdate)
    {
       // Compute the BCH update
-      printf("USING BCH FORWARD - TESTING ONLY\n");
+      reg_print_msg_warn("USING BCH FORWARD - TESTING ONLY");
 #ifndef NDEBUG
-      printf("[NiftyReg f3d2] Update the forward control point grid using BCH approximation\n");
+      reg_print_msg_debug("Update the forward control point grid using BCH approximation");
 #endif
       compute_BCH_update(this->controlPointGrid,
                          forwardScaledGradient,
@@ -325,9 +316,9 @@ void reg_f3d2<T>::UpdateParameters(float scale)
    if(this->BCHUpdate)
    {
       // Compute the BCH update
-      printf("USING BCH BACKWARD - TESTING ONLY\n");
+      reg_print_msg_warn("USING BCH BACKWARD - TESTING ONLY");
 #ifndef NDEBUG
-      printf("[NiftyReg f3d2] Update the backward control point grid using BCH approximation\n");
+      reg_print_msg_debug("Update the backward control point grid using BCH approximation");
 #endif
       compute_BCH_update(this->backwardControlPointGrid,
                          backwardScaledGradient,

@@ -220,7 +220,7 @@ void reg_tool_ReadAffineFile(mat44 *mat,
    }
    else
    {
-      char text[255];sprintf(text, "The affine file can not be read: %s\n", fileName);
+      char text[255];sprintf(text, "The affine file can not be read: %s", fileName);
       reg_print_fct_error("reg_tool_ReadAffineFile");
       reg_print_msg_error(text);
       reg_exit(1);
@@ -248,7 +248,7 @@ void reg_tool_ReadAffineFile(mat44 *mat,
       {
          targetMatrix = &(target->sto_xyz);
 #ifndef NDEBUG
-         reg_print_msg_debug("The target sform matrix is defined and used\n");
+         reg_print_msg_debug("The target sform matrix is defined and used");
 #endif
       }
       else targetMatrix = &(target->qto_xyz);
@@ -257,7 +257,7 @@ void reg_tool_ReadAffineFile(mat44 *mat,
       if(source->sform_code > 0)
       {
 #ifndef NDEBUG
-         reg_print_msg_debug(" The source sform matrix is defined and used\n");
+         reg_print_msg_debug(" The source sform matrix is defined and used");
 #endif
          sourceMatrix = &(source->sto_xyz);
       }
@@ -274,7 +274,7 @@ void reg_tool_ReadAffineFile(mat44 *mat,
       }
       absoluteTarget.m[3][3]=absoluteSource.m[3][3]=1.0;
 #ifndef NDEBUG
-      reg_print_msg_debug("An flirt affine file is assumed and is converted to a real word affine matrix\n");
+      reg_print_msg_debug("An flirt affine file is assumed and is converted to a real word affine matrix");
       reg_mat44_disp(mat, (char *)"[NiftyReg DEBUG] Matrix read from the input file");
       reg_mat44_disp(targetMatrix, (char *)"[NiftyReg DEBUG] Target Matrix");
       reg_mat44_disp(sourceMatrix, (char *)"[NiftyReg DEBUG] Source Matrix");
@@ -320,7 +320,7 @@ void reg_tool_ReadAffineFile(mat44 *mat,
    }
    else
    {
-      char text[255];sprintf(text, "The affine file can not be read: %s\n", fileName);
+      char text[255];sprintf(text, "The affine file can not be read: %s", fileName);
       reg_print_fct_error("reg_tool_ReadAffineFile");
       reg_print_msg_error(text);
       reg_exit(1);

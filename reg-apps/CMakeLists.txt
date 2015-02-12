@@ -42,10 +42,10 @@ set(MODULE_LIST
 		)
 #-----------------------------------------------------------------------------
 if(USE_OPENCL)
-    add_executable(reg_clinfo reg_clinfo.cpp ../reg-lib/cl/CLContextSingletton.cpp)
-    include_directories(${OPENCL_INCLUDE_DIRS})
-    target_link_libraries(reg_clinfo ${OPENCL_LIBRARIES} )
-    set(MODULE_LIST ${MODULE_LIST} reg_clinfo)
+		add_executable(reg_clinfo reg_clinfo.cpp ../reg-lib/cl/CLContextSingletton.cpp)
+		include_directories(${OPENCL_INCLUDE_DIRS})
+		target_link_libraries(reg_clinfo ${OPENCL_LIBRARIES} )
+		set(MODULE_LIST ${MODULE_LIST} reg_clinfo)
 endif(USE_OPENCL)
 #-----------------------------------------------------------------------------
 if(BUILD_NR_SLICER_EXT)

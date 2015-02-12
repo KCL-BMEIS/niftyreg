@@ -1122,11 +1122,19 @@ void reg_base<T>::Run()
 {
 #ifndef NDEBUG
    char text[255];
-   sprintf(text, "%s::Run() called\n", this->executableName);
+   sprintf(text, "%s::Run() called", this->executableName);
    reg_print_msg_debug(text);
 #endif
 
    if(!this->initialised) this->Initialise();
+#ifdef NDEBUG
+   if(this->verbose)
+   {
+#endif
+      reg_print_info(this->executableName, "***********************************************************");
+#ifdef NDEBUG
+   }
+#endif
 
    // Compute the resolution of the progress bar
    float iProgressStep=1, nProgressSteps;
@@ -1240,10 +1248,9 @@ void reg_base<T>::Run()
             {
 #endif
                char text[255];
-               reg_print_info(this->executableName, "Perturbation Step - The number of iteration is reset to 0\n");
-               sprintf(text, "Perturbation Step - Every control point positions is altered by [-%g %g]\n",
-                      smallestSize,
-                      smallestSize);
+               reg_print_info(this->executableName, "Perturbation Step - The number of iteration is reset to 0");
+               sprintf(text, "Perturbation Step - Every control point positions is altered by [-%g %g]",
+                      smallestSize, smallestSize);
                reg_print_info(this->executableName, text);
 
 #ifdef NDEBUG
@@ -1288,7 +1295,7 @@ void reg_base<T>::Run()
       {
 #endif
          reg_print_info(this->executableName, "Current registration level done");
-         reg_print_info(this->executableName, "-----------------------------------------------------------");
+         reg_print_info(this->executableName, "***********************************************************");
 #ifdef NDEBUG
       }
 #endif

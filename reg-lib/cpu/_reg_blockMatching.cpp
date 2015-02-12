@@ -372,7 +372,6 @@ void block_matching_method2D(nifti_image * target, nifti_image * result, _reg_bl
 							}
 
 							localCC = (targetVar * resultVar) > 0.0 ? fabs(localCC / sqrt(targetVar * resultVar)) : 0;
-//							printf("%d-%d: %f\n",l,m, localCC);
 
 							if (localCC > bestCC) {
 								bestCC = localCC;

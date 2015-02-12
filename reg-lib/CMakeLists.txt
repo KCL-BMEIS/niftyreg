@@ -2,13 +2,12 @@
 if(USE_OPENCL)
 	add_subdirectory(cl)
 	set(NR_OPENCL_LIBRARIES _reg_opencl_kernels)
-#	add_definitions(-D_USE_OPENCL)
 endif(USE_OPENCL)
 #-----------------------------------------------------------------------------
 if(USE_CUDA)
 	add_subdirectory(cuda)
 	set(NR_CUDA_LIBRARIES
-		_reg_common_gpu
+		_reg_common_cuda
 		_reg_cuda_kernels
 	)
 endif(USE_CUDA)
@@ -86,14 +85,30 @@ foreach(NAME ${LIB_LIST})
 endforeach(NAME)
 
 install(FILES cpu/_reg_measure.h DESTINATION include)
-
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+## use, i.e. don't skip the full RPATH for the build tree
+#set(CMAKE_SKIP_BUILD_RPATH  FALSE)
+## when building, don't use the install RPATH already
+## (but later on when installing)
+#set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+#set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+## add the automatically determined parts of the RPATH
+## which point to directories outside the build tree to the install RPATH
+#set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+## the RPATH to be used when installing, but only if it's not a system directory
+#list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
+#if("${isSystemDir}" STREQUAL "-1")
+#	set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+#endif("${isSystemDir}" STREQUAL "-1")
+#-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 set(NAME _reg_optimiser)
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	add_library(${NAME} SHARED cpu/${NAME}.h cpu/${NAME}.cpp)
-else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+if(APPLE)
+add_library(${NAME} SHARED cpu/${NAME}.h cpu/${NAME}.cpp)
+else(APPLE)
 	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} cpu/${NAME}.h cpu/${NAME}.cpp)
-endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+endif(APPLE)
 target_link_libraries(${NAME})
 install(TARGETS ${NAME}
 	RUNTIME DESTINATION bin
@@ -101,22 +116,6 @@ install(TARGETS ${NAME}
 	ARCHIVE DESTINATION lib
 	)
 install(FILES cpu/${NAME}.h  DESTINATION include)
-#-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
-# use, i.e. don't skip the full RPATH for the build tree
-set(CMAKE_SKIP_BUILD_RPATH  FALSE)
-# when building, don't use the install RPATH already
-# (but later on when installing)
-set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-# add the automatically determined parts of the RPATH
-# which point to directories outside the build tree to the install RPATH
-set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-# the RPATH to be used when installing, but only if it's not a system directory
-list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
-if("${isSystemDir}" STREQUAL "-1")
-	set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-endif("${isSystemDir}" STREQUAL "-1")
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 ## BUILD THE ALADIN LIBRARY
@@ -148,11 +147,11 @@ set(_reg_aladin_libraries
 	${NR_OPENCL_LIBRARIES}
 	${NR_CUDA_LIBRARIES}
 )
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+if(APPLE)
 	add_library(${NAME} SHARED ${_reg_aladin_files})
-else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+else(APPLE)
 	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${_reg_aladin_files})
-endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+endif(APPLE)
 target_link_libraries(${NAME} ${_reg_aladin_libraries})
 install(TARGETS ${NAME}
 	RUNTIME DESTINATION lib
@@ -188,11 +187,11 @@ set(_reg_f3d_libraries
 	_reg_tools
 	_reg_ReadWriteImage
 )
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+if(APPLE)
 	add_library(${NAME} SHARED ${_reg_f3d_files})
-else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+else(APPLE)
 	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} ${_reg_f3d_files})
-endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+endif(APPLE)
 target_link_libraries(${NAME} ${_reg_f3d_libraries})
 install(TARGETS ${NAME}
 	RUNTIME DESTINATION bin
@@ -207,11 +206,11 @@ install(FILES ${NAME}_sym.h  DESTINATION include)
 #-----------------------------------------------------------------------------
 # BUILD THE TPS LIBRARY
 set(NAME _reg_thinPlateSpline)
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+if(APPLE)
 	add_library(${NAME} SHARED cpu/${NAME}.h cpu/${NAME}.cpp)
-else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+else(APPLE)
 	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} cpu/${NAME}.h cpu/${NAME}.cpp)
-endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+endif(APPLE)
 target_link_libraries(${NAME} _reg_tools _reg_ReadWriteImage)
 install(TARGETS ${NAME}
 	RUNTIME DESTINATION bin
@@ -222,25 +221,25 @@ install(FILES cpu/${NAME}.h  DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 ## BUILD THE POLYAFFINE LIBRARY
-set(NAME _reg_polyAffine)
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	add_library(${NAME} SHARED _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
-else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
-endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-target_link_libraries(${NAME} _reg_tools _reg_ReadWriteImage)
-install(TARGETS ${NAME}
-	RUNTIME DESTINATION bin
-	LIBRARY DESTINATION lib
-	ARCHIVE DESTINATION lib
-	)
-install(FILES ${NAME}.h  DESTINATION include)
 #set(NAME _reg_polyAffine)
-#if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+#if(APPLE)
 #	add_library(${NAME} SHARED _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
-#else(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+#else(APPLE)
 #	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
-#endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+#endif(APPLE)
+#target_link_libraries(${NAME} _reg_tools _reg_ReadWriteImage)
+#install(TARGETS ${NAME}
+#	RUNTIME DESTINATION bin
+#	LIBRARY DESTINATION lib
+#	ARCHIVE DESTINATION lib
+#	)
+#install(FILES ${NAME}.h  DESTINATION include)
+#set(NAME _reg_polyAffine)
+#if(APPLE)
+#	add_library(${NAME} SHARED _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
+#else(APPLE)
+#	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE} _reg_base.h _reg_base.cpp ${NAME}.h ${NAME}.cpp)
+#endif(APPLE)
 #target_link_libraries(${NAME} _reg_tools _reg_ReadWriteImage)
 #install(TARGETS ${NAME}
 #	RUNTIME DESTINATION bin

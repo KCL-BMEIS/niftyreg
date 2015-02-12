@@ -432,11 +432,11 @@ void reg_spline_getFlowFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
  * This image is updated
  * @param img2 This image contains the gradient to use
  * @param type The type encodes the number of component of the serie
- * to be considered:\n
- * 0 - w=u+v\n
- * 1 - w=u+v+0.5*[u,v]\n
- * 2 - w=u+v+0.5*[u,v]+[u,[u,v]]/12\n
- * 3 - w=u+v+0.5*[u,v]+[u,[u,v]]/12-[v,[u,v]]/12\n
+ * to be considered:
+ * 0 - w=u+v
+ * 1 - w=u+v+0.5*[u,v]
+ * 2 - w=u+v+0.5*[u,v]+[u,[u,v]]/12
+ * 3 - w=u+v+0.5*[u,v]+[u,[u,v]]/12-[v,[u,v]]/12
  * 4 - w=u+v+0.5*[u,v]+[u,[u,v]]/12-[v,[u,v]]/12-[v,[u,[u,g]]]/24
  */
 extern "C++"

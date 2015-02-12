@@ -10,7 +10,7 @@
 #ifndef _REG_BLOCKMATCHING_GPU_CU
 #define _REG_BLOCKMATCHING_GPU_CU
 
-#include "_reg_blockMatching_gpu.h"
+#include "_reg_blockMatching_cuda.h"
 #include "_reg_blockMatching_kernels.cu"
 
 #include "_reg_ReadWriteImage.h"

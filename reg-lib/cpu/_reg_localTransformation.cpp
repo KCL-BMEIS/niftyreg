@@ -3957,10 +3957,12 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
       // Set the number of squaring step in the flow field
       if(fabs(flowFieldImage->intent_p2)!=squaringNumber)
       {
-         printf("[NiftyReg] Changing from %i to %i squaring step (equivalent to scaling down by %i)\n",
+         char text[255];
+         sprintf(text, "Changing from %i to %i squaring step (equivalent to scaling down by %i)",
                 static_cast<int>(reg_round(fabs(flowFieldImage->intent_p2))),
                 abs(squaringNumber),
                 (int)pow(2.0f,squaringNumber));
+         reg_print_fct_warn(text);
       }
       // Update the number of squaring step required
       if(flowFieldImage->intent_p2>=0)
@@ -4001,7 +4003,7 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowFieldImage,
              deformationFieldImage->nvox*deformationFieldImage->nbyper);
 #ifndef NDEBUG
       char text[255];
-      sprintf(text, "Squaring (composition) step %u/%u\n", i+1, squaringNumber);
+      sprintf(text, "Squaring (composition) step %u/%u", i+1, squaringNumber);
       reg_print_msg_debug(text);
 #endif
    }
@@ -4129,7 +4131,7 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGri
             NULL);
 #ifndef NDEBUG
       char text[255];
-      sprintf(text, "Squaring (composition) step %u/%u\n", i+1, squaringNumber);
+      sprintf(text, "Squaring (composition) step %u/%u", i+1, squaringNumber);
       reg_print_msg_debug(text);
 #endif
    }

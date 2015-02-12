@@ -405,7 +405,7 @@ void reg_aladin<T>::InitialiseRegistration()
 		else
 		{
 			char text[255];
-			sprintf(text, "The specified input affine file (%s) can not be read\n", this->InputTransformName);
+			sprintf(text, "The specified input affine file (%s) can not be read", this->InputTransformName);
 			reg_print_fct_error("reg_aladin<T>::InitialiseRegistration()");
 			reg_print_msg_error(text);
 			reg_exit(1);
@@ -752,7 +752,7 @@ void reg_aladin<T>::DebugPrintLevelInfoStart()
 	}
 	else reg_print_info(this->executableName, "Block size = [4 4 4]");
 	reg_print_info(this->executableName, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
-	sprintf(text, "Block number = [%i %i %i]\n", this->blockMatchingParams->blockNumber[0],
+	sprintf(text, "Block number = [%i %i %i]", this->blockMatchingParams->blockNumber[0],
 			this->blockMatchingParams->blockNumber[1], this->blockMatchingParams->blockNumber[2]);
 	reg_print_info(this->executableName,text);
 	reg_mat44_disp(this->TransformationMatrix, (char *) "[reg_aladin] Initial transformation matrix:");

@@ -331,7 +331,7 @@ void reg_f3d<T>::Initialise()
       reg_print_info(this->executableName, "");
       reg_print_info(this->executableName, "Floating image:");
       reg_print_info(this->executableName, text);
-      sprintf(text, "\t* name: %s\n", this->inputFloating->fname);
+      sprintf(text, "\t* name: %s", this->inputFloating->fname);
       reg_print_info(this->executableName, text);
       sprintf(text, "\t* image dimension: %i x %i x %i x %i",
              this->inputFloating->nx, this->inputFloating->ny,
@@ -356,6 +356,7 @@ void reg_f3d<T>::Initialise()
       }
       sprintf(text, "\t* gaussian smoothing sigma: %g", this->floatingSmoothingSigma);
       reg_print_info(this->executableName, text);
+      reg_print_info(this->executableName, "");
       sprintf(text, "Warped image padding value: %g", this->warpedPaddingValue);
       reg_print_info(this->executableName, text);
       reg_print_info(this->executableName, "");
@@ -365,12 +366,14 @@ void reg_f3d<T>::Initialise()
          sprintf(text, "\t* Level to perform: %i", this->levelToPerform);
          reg_print_info(this->executableName, text);
       }
-      printf("[%s]\n", this->executableName);
-      printf("[%s] Maximum iteration number per level: %i", this->executableName, (int)this->maxiterationNumber);
+      reg_print_info(this->executableName, "");
+      sprintf(text, "Maximum iteration number per level: %i", (int)this->maxiterationNumber);
       reg_print_info(this->executableName, text);
-      printf("[%s] Final spacing in mm: %g %g %g", this->executableName,
-             this->spacing[0], this->spacing[1], this->spacing[2]);
+      reg_print_info(this->executableName, "");
+      sprintf(text, "Final spacing in mm: %g %g %g",
+              this->spacing[0], this->spacing[1], this->spacing[2]);
       reg_print_info(this->executableName, text);
+      reg_print_info(this->executableName, "");
       if(this->measure_ssd!=NULL)
          reg_print_info(this->executableName, "The SSD is used as a similarity measure.");
       if(this->measure_kld!=NULL)
@@ -388,23 +391,31 @@ void reg_f3d<T>::Initialise()
       sprintf(text, "Similarity measure term weight: %g", this->similarityWeight);
       reg_print_info(this->executableName, text);
       reg_print_info(this->executableName, "");
-      sprintf(text, "Bending energy penalty term weight: %g", this->bendingEnergyWeight);
-      reg_print_info(this->executableName, text);
-      reg_print_info(this->executableName, "");
-      sprintf(text, "Linear energy penalty term weights: %g %g",
-             this->linearEnergyWeight0, this->linearEnergyWeight1);
-      reg_print_info(this->executableName, text);
-      reg_print_info(this->executableName, "");
-      sprintf(text, "L2 norm of the displacement penalty term weights: %g",
-             this->L2NormWeight);
-      reg_print_info(this->executableName, "");
-      sprintf(text, "Jacobian-based penalty term weight: %g\n", this->jacobianLogWeight);
-      if(this->jacobianLogWeight>0)
-      {
+      if(this->bendingEnergyWeight>0){
+         sprintf(text, "Bending energy penalty term weight: %g", this->bendingEnergyWeight);
+         reg_print_info(this->executableName, text);
+         reg_print_info(this->executableName, "");
+      }
+      if((this->linearEnergyWeight0+this->linearEnergyWeight1)>0){
+         sprintf(text, "Linear energy penalty term weights: %g %g",
+                 this->linearEnergyWeight0, this->linearEnergyWeight1);
+         reg_print_info(this->executableName, text);
+         reg_print_info(this->executableName, "");
+      }
+      if(this->L2NormWeight>0){
+         sprintf(text, "L2 norm of the displacement penalty term weight: %g",
+                 this->L2NormWeight);
+         reg_print_info(this->executableName, text);
+         reg_print_info(this->executableName, "");
+      }
+      if(this->jacobianLogWeight>0){
+         sprintf(text, "Jacobian-based penalty term weight: %g", this->jacobianLogWeight);
+         reg_print_info(this->executableName, text);
          if(this->jacobianLogApproximation){
             reg_print_info(this->executableName, "\t* Jacobian-based penalty term is approximated");
          }
          else reg_print_info(this->executableName, "\t* Jacobian-based penalty term is not approximated");
+         reg_print_info(this->executableName, "");
       }
 #ifdef NDEBUG
    }
@@ -484,8 +495,11 @@ double reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(int type)
       else
       {
 #ifndef NDEBUG
-         if(it>0)
-            printf("[%s] Folding correction, %i step(s)\n", this->executableName, it);
+         if(it>0){
+            char text[255];
+            sprintf(text, "Folding correction, %i step(s)", it);
+            reg_print_msg_debug(text);
+         }
 #endif
       }
    }
@@ -730,7 +744,7 @@ T reg_f3d<T>::NormaliseGradient()
       // It will be normalised later when running f3d_sym or f3d2
 #ifndef NDEBUG
       char text[255];
-      sprintf(text, "Objective function gradient maximal length: %g\n",maxGradValue);
+      sprintf(text, "Objective function gradient maximal length: %g",maxGradValue);
       reg_print_msg_debug(text);
 #endif
       ptrX = static_cast<T *>(this->transformationGradient->data);
@@ -796,7 +810,6 @@ void reg_f3d<T>::DisplayCurrentLevelParameters()
    {
 #endif
       char text[255];
-      reg_print_info(this->executableName, "***********************************************************");
       sprintf(text, "Current level: %i / %i", this->currentLevel+1, this->levelNumber);
       reg_print_info(this->executableName, text);
       reg_print_info(this->executableName, "Current reference image");
@@ -873,7 +886,7 @@ double reg_f3d<T>::GetObjectiveFunctionValue()
    }
 #ifndef NDEBUG
    char text[255];
-   sprintf(text, "(wMeasure) %g | (wBE) %g | (wLE) %g | (wL2) %g | (wJac) %g\n",
+   sprintf(text, "(wMeasure) %g | (wBE) %g | (wLE) %g | (wL2) %g | (wJac) %g",
            this->currentWMeasure, this->currentWBE, this->currentWLE, this->currentWL2, this->currentWJac);
    reg_print_msg_debug(text);
 #endif

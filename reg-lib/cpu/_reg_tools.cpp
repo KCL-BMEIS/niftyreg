@@ -2413,7 +2413,6 @@ float reg_tools_getMaxValue1(nifti_image *image)
       DTYPE currentVal = static_cast<DTYPE>(imgPtr[i] * image->scl_slope + image->scl_inter);
       float fVal = static_cast<float>(currentVal);
       maxValue=fVal>maxValue?fVal:maxValue;
-      /*if (fVal>0) printf("i: %lu | val: %f: %f\n", i,fVal, maxValue);*/
    }
    // The lowest value is returned
    return maxValue;

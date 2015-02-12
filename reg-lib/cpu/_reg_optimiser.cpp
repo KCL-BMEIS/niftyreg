@@ -181,7 +181,7 @@ void reg_optimiser<T>::Optimise(T maxLength,
       {
 #ifndef NDEBUG
          char text[255];
-         sprintf(text, "[%i] objective function: %g | Increment %g | ACCEPTED\n",
+         sprintf(text, "[%i] objective function: %g | Increment %g | ACCEPTED",
                  (int)this->currentIterationNumber,
                  this->currentObjFunctionValue,
                  currentLength);
@@ -202,7 +202,7 @@ void reg_optimiser<T>::Optimise(T maxLength,
       {
 #ifndef NDEBUG
          char text[255];
-         sprintf(text, "[%i] objective function: %g | Increment %g | REJECTED\n",
+         sprintf(text, "[%i] objective function: %g | Increment %g | REJECTED",
                  (int)this->currentIterationNumber,
                  this->currentObjFunctionValue,
                  currentLength);

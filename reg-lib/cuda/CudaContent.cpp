@@ -1,5 +1,5 @@
 #include "CudaContent.h"
-#include "_reg_common_gpu.h"
+#include "_reg_common_cuda.h"
 #include "_reg_tools.h"
 
 /* *************************************************************** */

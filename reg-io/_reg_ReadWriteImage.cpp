@@ -144,7 +144,7 @@ void reg_io_WriteImageFile(nifti_image *image, const char *filename)
       std::string b(filename);
       b.replace(b.find( ".png"),4,".nii.gz");
       reg_print_msg_warn("The file can not be saved as png and is converted to nifti");
-      char text[255];sprintf(text,"%s -> %s\n", filename, b.c_str());
+      char text[255];sprintf(text,"%s -> %s", filename, b.c_str());
       reg_print_msg_warn(text);
       filename=b.c_str();
       fileFormat=NR_NII_FORMAT;

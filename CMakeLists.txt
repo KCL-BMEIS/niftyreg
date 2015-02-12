@@ -7,6 +7,10 @@ else("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATC
  mark_as_advanced(CLEAR CMAKE_BACKWARDS_COMPATIBILITY)
 endif("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}" MATCHES "^2\\.8\\.8$")
 #-----------------------------------------------------------------------------
+if(APPLE)
+	set(CMAKE_MACOSX_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+endif(APPLE)
+#-----------------------------------------------------------------------------
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 	message("In-source builds not allowed by NiftyReg police.")
 	message("Please create a new directory (called a build directory) and run CMake from there.")

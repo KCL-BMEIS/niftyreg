@@ -104,10 +104,12 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
    if( dtIndicies[0] != -1 )
    {
 #ifndef NDEBUG
+      char text[255];
       reg_print_msg_debug("DTI indices:");
+      sprintf(text, "Active time point:");
       for(unsigned int i = 0; i < 6; i++ )
-         printf(" %i", dtIndicies[i]);
-      printf("\n");
+            sprintf(text, "%s %i", text, dtIndicies[i]);
+      reg_print_msg_debug(text);
 #endif
 
 #ifdef WIN32
@@ -1557,7 +1559,7 @@ void TrilinearImageGradient(nifti_image *floatingImage,
    {
 #ifndef NDEBUG
       char text[255];
-      sprintf(text, "3D linear gradient computation of volume number %i\n",t);
+      sprintf(text, "3D linear gradient computation of volume number %i",t);
       reg_print_msg_debug(text);
 #endif
       GradientTYPE *warpedGradientPtrX = &warpedGradientImagePtr[t*3*referenceVoxelNumber];
@@ -1766,7 +1768,7 @@ void BilinearImageGradient(nifti_image *floatingImage,
    {
 #ifndef NDEBUG
       char text[255];
-      sprintf(text, "2D linear gradient computation of volume number %i\n",t);
+      sprintf(text, "2D linear gradient computation of volume number %i",t);
       reg_print_msg_debug(text);
 #endif
       GradientTYPE *warpedGradientPtrX = &warpedGradientImagePtr[2*t*referenceVoxelNumber];
@@ -1914,7 +1916,7 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
    {
 #ifndef NDEBUG
       char text[255];
-      sprintf(text, "3D cubic spline gradient computation of volume number %i\n",t);
+      sprintf(text, "3D cubic spline gradient computation of volume number %i",t);
       reg_print_msg_debug(text);
 #endif
 
@@ -2091,7 +2093,7 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
    {
 #ifndef NDEBUG
       char text[255];
-      sprintf(text, "2D cubic spline gradient computation of volume number %i\n",t);
+      sprintf(text, "2D cubic spline gradient computation of volume number %i",t);
       reg_print_msg_debug(text);
 #endif
 

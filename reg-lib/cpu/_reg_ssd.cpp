@@ -70,11 +70,13 @@ void reg_ssd::InitialiseMeasure(nifti_image *refImgPtr,
       }
    }
 #ifndef NDEBUG
-   reg_print_msg_debug("reg_ssd::InitialiseMeasure(). Active time point:");
+   char text[255];
+   reg_print_msg_debug("reg_ssd::InitialiseMeasure().");
+   sprintf(text, "Active time point:");
    for(int i=0; i<this->referenceImagePointer->nt; ++i)
       if(this->activeTimePoint[i])
-         printf(" %i",i);
-   printf("\n");
+         sprintf(text, "%s %i", text, i);
+   reg_print_msg_debug(text);
 #endif
 }
 /* *************************************************************** */

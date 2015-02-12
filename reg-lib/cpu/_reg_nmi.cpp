@@ -212,11 +212,13 @@ void reg_nmi::InitialiseMeasure(nifti_image *refImgPtr,
       }
    }
 #ifndef NDEBUG
-   reg_print_msg_debug("reg_nmi::InitialiseMeasure called. Active time point:");
+   char text[255];
+   reg_print_msg_debug("reg_nmi::InitialiseMeasure().");
+   sprintf(text, "Active time point:");
    for(int i=0; i<this->referenceImagePointer->nt; ++i)
       if(this->activeTimePoint[i])
-         printf(" %i",i);
-   printf("\n");
+         sprintf(text, "%s %i", text, i);
+   reg_print_msg_debug(text);
 #endif
 }
 /* *************************************************************** */
@@ -286,7 +288,7 @@ void reg_getNMIValue(nifti_image *referenceImage,
       {
 #ifndef NDEBUG
          char text[255];
-         sprintf(text, "Computing NMI for time point %i\n",t);
+         sprintf(text, "Computing NMI for time point %i",t);
          reg_print_msg_debug(text);
 #endif
          // Define some pointers to the current histograms

@@ -569,9 +569,12 @@ void reg_f3d_sym<T>::Initialise()
    if(this->verbose)
    {
 #endif
-      printf("[%s]\n", this->executableName);
-      printf("[%s] Inverse consistency error penalty term weight: %g\n",
-             this->executableName, this->inverseConsistencyWeight);
+      if(this->inverseConsistencyWeight>0){
+         char text[255];
+         sprintf(text, "Inverse consistency error penalty term weight: %g",
+                 this->inverseConsistencyWeight);
+         reg_print_info(this->executableName, text);
+      }
 #ifdef NDEBUG
    }
 #endif
@@ -724,7 +727,9 @@ double reg_f3d_sym<T>::ComputeJacobianBasedPenaltyTerm(int type)
          if(this->verbose)
          {
 #endif
-            printf("[%s] Backward transformation folding correction, %i step(s)\n", this->executableName, it);
+            char text[255];
+            sprintf(text, "Backward transformation folding correction, %i step(s)", it);
+            reg_print_msg_debug(text);
 #ifdef NDEBUG
          }
 #endif
@@ -1106,7 +1111,7 @@ T reg_f3d_sym<T>::NormaliseGradient()
    maxGradValue = maxGradValue>forwardMaxValue?maxGradValue:forwardMaxValue;
 #ifndef NDEBUG
    char text[255];
-   sprintf(text, "Objective function gradient maximal length: %g\n", maxGradValue);
+   sprintf(text, "Objective function gradient maximal length: %g", maxGradValue);
    reg_print_msg_debug(text);
 #endif
 
@@ -1176,13 +1181,16 @@ void reg_f3d_sym<T>::DisplayCurrentLevelParameters()
    if(this->verbose)
    {
 #endif
-      printf("[%s] Current backward control point image\n", this->executableName);
-      printf("[%s] \t* image dimension: %i x %i x %i\n", this->executableName,
+      char text[255];
+      reg_print_info(this->executableName, "Current backward control point image");
+      sprintf(text, "\t* image dimension: %i x %i x %i",
              this->backwardControlPointGrid->nx, this->backwardControlPointGrid->ny,
              this->backwardControlPointGrid->nz);
-      printf("[%s] \t* image spacing: %g x %g x %g mm\n", this->executableName,
+      reg_print_info(this->executableName, text);
+      sprintf(text, "\t* image spacing: %g x %g x %g mm",
              this->backwardControlPointGrid->dx, this->backwardControlPointGrid->dy,
              this->backwardControlPointGrid->dz);
+      reg_print_info(this->executableName, text);
 #ifdef NDEBUG
    }
 #endif
@@ -1540,22 +1548,23 @@ void reg_f3d_sym<T>::PrintCurrentObjFunctionValue(T currentSize)
 {
    if(!this->verbose) return;
 
-   printf("[%s] [%i] Current objective function: %g",
-          this->executableName,
+   char text[255];
+   sprintf(text, "[%i] Current objective function: %g",
           (int)this->optimiser->GetCurrentIterationNumber(),
           this->optimiser->GetBestObjFunctionValue());
-   printf(" = (wSIM)%g", this->bestWMeasure);
+   sprintf(text, "%s = (wSIM)%g", text, this->bestWMeasure);
    if(this->bendingEnergyWeight>0)
-      printf(" - (wBE)%.2e", this->bestWBE);
+      sprintf(text, "%s - (wBE)%.2e", text, this->bestWBE);
    if(this->linearEnergyWeight0>0 || this->linearEnergyWeight1>0)
-      printf(" - (wLE)%.2e", this->bestWLE);
+      sprintf(text, "%s - (wLE)%.2e", text, this->bestWLE);
    if(this->L2NormWeight>0)
-      printf(" - (wL2)%.2e", this->bestWL2);
+      sprintf(text, "%s - (wL2)%.2e", text, this->bestWL2);
    if(this->jacobianLogWeight>0)
-      printf(" - (wJAC)%.2e", this->bestWJac);
+      sprintf(text, "%s - (wJAC)%.2e", text, this->bestWJac);
    if(this->inverseConsistencyWeight>0)
-      printf(" - (wIC)%.2e", this->bestIC);
-   printf(" [+ %g mm]\n", currentSize);
+      sprintf(text, "%s - (wIC)%.2e", text, this->bestIC);
+   sprintf(text, "%s [+ %g mm]", text, currentSize);
+   reg_print_info(this->executableName, text);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d_sym<T>::PrintCurrentObjFunctionValue");
 #endif
@@ -1578,7 +1587,9 @@ void reg_f3d_sym<T>::PrintInitialObjFunctionValue()
 {
    if(!this->verbose) return;
    reg_f3d<T>::PrintInitialObjFunctionValue();
-   printf("[%s] Initial Inverse consistency value: %g\n", this->executableName, this->bestIC);
+//   char text[255];
+//   sprintf(text, "Initial Inverse consistency value: %g", this->bestIC);
+//   reg_print_info(this->executableName, text);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d_sym<T>::PrintInitialObjFunctionValue");
 #endif
@@ -1609,7 +1620,7 @@ double reg_f3d_sym<T>::GetObjectiveFunctionValue()
 
 #ifndef NDEBUG
    char text[255];
-   sprintf(text, "(wMeasure) %g | (wBE) %g | (wLE) %g | (wL2) %g | (wJac) %g | (wIC) %g \n",
+   sprintf(text, "(wMeasure) %g | (wBE) %g | (wLE) %g | (wL2) %g | (wJac) %g | (wIC) %g",
            this->currentWMeasure, this->currentWBE,
            this->currentWLE, this->currentWL2,
            this->currentWJac, this->currentIC);

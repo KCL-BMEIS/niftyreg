@@ -76,8 +76,8 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-interp\t\t\tInterpolation order to use internally to warp the floating image.");
    reg_print_info(exec, "\t-iso\t\t\tMake floating and reference images isotropic if required.");
 
-   reg_print_info(exec, "\t-pv <int>\t\t\tPercentage of blocks to use in the optimisation scheme. [50]");
-   reg_print_info(exec, "\t-pi <int>\t\t\tPercentage of blocks to consider as inlier in the optimisation scheme. [50]");
+   reg_print_info(exec, "\t-pv <int>\t\tPercentage of blocks to use in the optimisation scheme. [50]");
+   reg_print_info(exec, "\t-pi <int>\t\tPercentage of blocks to consider as inlier in the optimisation scheme. [50]");
    reg_print_info(exec, "\t-speeeeed\t\tGo faster");
 #if defined(_USE_CUDA) && defined(_USE_OPENCL)
    reg_print_info(exec, "\t-platf\t\t\tChoose platform: CPU=0 | Cuda=1 | OpenCL=2 [0]");
@@ -91,7 +91,7 @@ void Usage(char *exec)
 #endif
 #ifdef _USE_OPENCL
    reg_print_info(exec, "\t-clid\t\t\tChoose a custom opencl platform id.");
-   reg_print_info(exec, "\t\tPlease run reg_clinfo first to get platform information and their corresponding ids");
+   reg_print_info(exec, "\t\t\t\tPlease run reg_clinfo first to get platform information and their corresponding ids");
 #endif
    reg_print_info(exec, "\t-crv\t\t\tChoose custom capture range for the block matching alg");
 #if defined (_OPENMP)
@@ -102,7 +102,8 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-voff\t\t\tTurns verbose off [on]");
 #ifdef _GIT_HASH
    reg_print_info(exec, "");
-   sprintf(text, "\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)",_GIT_HASH);
+   reg_print_info(exec, "\t--version\t\tPrint current source code git hash key and exit");
+   sprintf(text, "\t\t\t\t(%s)",_GIT_HASH);
    reg_print_info(exec, text);
 #endif
    reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
@@ -396,9 +397,10 @@ int main(int argc, char **argv)
 #endif
       reg_print_info(argv[0], "");
       reg_print_info(argv[0], "Command line:");
+      sprintf(text, "\t");
       for(int i=0; i<argc; i++)
-         printf(" %s", argv[i]);
-      printf("\n");
+         sprintf(text, "%s %s", text, argv[i]);
+      reg_print_info(argv[0], text);
       reg_print_info(argv[0], "");
 #ifdef NDEBUG
    }
@@ -561,6 +563,25 @@ int main(int argc, char **argv)
 
    // Set the verbose type
    REG->SetVerbose(verbose);
+
+#ifndef NDEBUG
+   reg_print_msg_debug("*******************************************");
+   reg_print_msg_debug("*******************************************");
+   reg_print_msg_debug("NiftyReg has been compiled in DEBUG mode");
+   reg_print_msg_debug("Please re-run cmake to set the variable");
+   reg_print_msg_debug("CMAKE_BUILD_TYPE to \"Release\" if required");
+   reg_print_msg_debug("*******************************************");
+   reg_print_msg_debug("*******************************************");
+#endif
+
+#if defined (_OPENMP)
+   if(verbose)
+   {
+      int maxThreadNumber = omp_get_max_threads();
+      sprintf(text, "OpenMP is used with %i thread(s)", maxThreadNumber);
+      reg_print_info(argv[0], text);
+   }
+#endif // _OPENMP
 
    // Run the registration
    REG->Run();

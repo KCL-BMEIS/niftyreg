@@ -1,7 +1,7 @@
 #include "CudaKernels.h"
 #include "CudaKernelFuncs.h"
 #include "_reg_tools.h"
-#include "_reg_blockMatching_gpu.h"
+#include "_reg_blockMatching_cuda.h"
 #include "_reg_blockMatching.h"
 #include"_reg_resampling.h"
 #include"_reg_globalTransformation.h"
