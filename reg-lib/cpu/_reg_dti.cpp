@@ -61,8 +61,10 @@ void reg_dti::InitialiseMeasure(nifti_image *refImgPtr,
       {
          this->dtIndicies[j++]=i;
 #ifndef NDEBUG
-         reg_print_msg_debug("reg_dti::InitialiseMeasure(). Active time point:");
-         reg_print_msg_debug(i);
+         reg_print_msg_debug("reg_dti::InitialiseMeasure().");
+         char text[255];
+         sprintf(text, "Active time point: %i", i);
+         reg_print_msg_debug(text);
 #endif
       }
    }

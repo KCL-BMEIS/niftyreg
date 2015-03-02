@@ -1747,6 +1747,7 @@ nifti_image **reg_f3d_sym<T>::GetWarpedImage()
       reg_exit(1);
    }
 
+   this->warpedPaddingValue=0.;
    reg_f3d_sym<T>::currentReference = this->inputReference;
    reg_f3d_sym<T>::currentFloating = this->inputFloating;
    reg_f3d_sym<T>::currentMask = NULL;

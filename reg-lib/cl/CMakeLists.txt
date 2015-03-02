@@ -30,15 +30,12 @@ add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	../Platform.cpp
 )
 target_link_libraries(${NAME} ${OPENCL_LIBRARIES} )
-#-----------------------------------------------------------------------------
-configure_file(resampleKernel.cl ${CMAKE_CURRENT_BINARY_DIR}/resampleKernel.cl COPYONLY)
-configure_file(affineDeformationKernel.cl ${CMAKE_CURRENT_BINARY_DIR}/affineDeformationKernel.cl COPYONLY)
-#-----------------------------------------------------------------------------
 install(TARGETS ${NAME}
 	RUNTIME DESTINATION lib
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 )
+#-----------------------------------------------------------------------------
 install(FILES CLContextSingletton.h CLContent.h CLKernelFactory.h CLKernels.h DESTINATION include)
 install(FILES resampleKernel.cl affineDeformationKernel.cl blockMatchingKernel.cl DESTINATION include/cl)
 #-----------------------------------------------------------------------------
