@@ -1880,6 +1880,7 @@ mat33 nifti_mat33_mul( mat33 A , mat33 B )  /* multiply 2 3x3 matrices */
    return C ;
 }
 
+
 /*---------------------------------------------------------------------------*/
 /*! polar decomposition of a 3x3 matrix
 

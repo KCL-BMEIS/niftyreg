@@ -159,6 +159,7 @@ mat44 reg_mat44_mul(mat44 const* mat,
  */
 mat33 reg_mat33_add(mat33 const* A, mat33 const* B);
 mat33 operator+(mat33 A,mat33 B);
+mat33 reg_mat33_trans(mat33 A);
 /* *************************************************************** */
 /** @brief Add two 4-by-4 matrices
  */

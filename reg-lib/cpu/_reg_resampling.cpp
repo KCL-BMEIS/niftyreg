@@ -1049,6 +1049,12 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
    memset(&psfKernelVarFloat,0,sizeof(mat33));
    for(int j=0; j<3; j++){
       for(int i=0; i<3; i++){
+          psfKernelVarWarp.m[i][j]=0;
+          psfKernelVarFloat.m[i][j]=0;
+      }
+   }
+   for(int j=0; j<3; j++){
+      for(int i=0; i<3; i++){
          psfKernelVarWarp.m[j][j] += reg_pow2(warpedMatrix->m[i][j]);
          psfKernelVarFloat.m[j][j] += reg_pow2(floatingMatrix->m[i][j]);
       }
@@ -1101,14 +1107,15 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
 
       float psf_xyz[3];
 
-      mat33 finalCovariance, invFinalCovariance, tmpDiagFloat;
-      float currentDeterminant, maxDiag, psfKernelShift=1.5f, psfNumbSamples, psfSampleSpacing, psfWeightSum;
+      mat33 finalCovariance, invFinalCovariance, tmpDiagFloat, invJac;
+      float currentDeterminant, maxDiag, psfKernelShift=1.0f, psfSampleSpacing, psfWeightSum;
+      int psfNumbSamples;
 
       FloatingTYPE *zPointer, *xyzPointer;
       double xTempNewValue, yTempNewValue, intensity, psfIntensity, psfWorld[3], position[3];
       float currentA, currentB, currentC, psf_a_vox, psf_b_vox, psf_c_vox, psf_a, psf_b, psf_c, mahal, psfWeight;
       float currentAPre, currentARel, currentBPre, currentBRel, currentCPre, currentCRel, resamplingWeightSum, resamplingWeight;
-      int currentIndex;
+      size_t currentIndex;
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(intensity, tmpDiagFloat, finalCovariance, currentDeterminant, maxDiag, \
@@ -1117,7 +1124,7 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
    psf_xyz, mahal, currentAPre, currentARel, currentBPre, currentBRel, currentCPre, currentCRel,\
    resamplingWeightSum, resamplingWeight, currentIndex, previous, relative,\
    xBasis, yBasis, zBasis, Y, Z, psfIntensity, yTempNewValue, xTempNewValue,\
-   xyzPointer, zPointer) \
+   xyzPointer, zPointer,invJac) \
    shared(warpedVoxelNumber, maskPtr, jacMat, psfKernelVarFloat, psfKernelVarWarp, paddingValue,\
    a, b, c, fwhmToStd, psfKernelShift, warpedPlaneNumber, warpedLineNumber, floatingIntensity,\
    deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, floatingIJKMatrix,\
@@ -1129,18 +1136,24 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
 
          if((maskPtr[index])>-1)
          {
-            // Reorient the floating image co-variance matric based on the Jacobian matrix of the transformation
-            tmpDiagFloat.m[0][0]=jacMat[index].m[0][0]*psfKernelVarFloat.m[0][0]+jacMat[index].m[0][1]*psfKernelVarFloat.m[1][1]+jacMat[index].m[0][2]*psfKernelVarFloat.m[2][2];
-            tmpDiagFloat.m[1][1]=jacMat[index].m[1][0]*psfKernelVarFloat.m[0][0]+jacMat[index].m[1][1]*psfKernelVarFloat.m[1][1]+jacMat[index].m[1][2]*psfKernelVarFloat.m[2][2];
-            tmpDiagFloat.m[2][2]=jacMat[index].m[2][0]*psfKernelVarFloat.m[0][0]+jacMat[index].m[2][1]*psfKernelVarFloat.m[1][1]+jacMat[index].m[2][2]*psfKernelVarFloat.m[2][2];
 
-            // Check the difference in FWHM by projecting the rotated matrix back onto the warped axes
+
+            invJac=nifti_mat33_inverse(jacMat[index]);
+
+            tmpDiagFloat=nifti_mat33_mul(nifti_mat33_mul(reg_mat33_trans(invJac), psfKernelVarFloat), invJac);
+
+           // Check the difference in FWHM by projecting the rotated matrix back onto the warped axes
             for(b=0; b<3; b++){
-               for(a=0; a<3; a++)
+                finalCovariance.m[0][b]=0;
+                finalCovariance.m[1][b]=0;
+                finalCovariance.m[2][b]=0;
+               for(a=0; a<3; a++){
                   finalCovariance.m[b][b] += reg_pow2(tmpDiagFloat.m[a][b]);
-               finalCovariance.m[b][b] = psfKernelVarWarp.m[b][b] - reg_pow2(sqrtf(psfKernelVarWarp.m[b][b]) / fwhmToStd);
+               }
+               finalCovariance.m[b][b] = psfKernelVarWarp.m[b][b] - reg_pow2(sqrtf(finalCovariance.m[b][b]) );
                finalCovariance.m[b][b] = finalCovariance.m[b][b]<=0.0001f?0.0001f:finalCovariance.m[b][b];
             }
+
             currentDeterminant = nifti_mat33_determ(finalCovariance);
 
             // Extract the maximal scaling value
@@ -1151,10 +1164,14 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
             invFinalCovariance=nifti_mat33_inverse(finalCovariance);
 
             // Set the maximal number of samples per direction
-            psfNumbSamples=2.0f*reg_floor(4.0f*pow(maxDiag,1.0f/2.0f))+4;
 
-            psfNumbSamples=psfNumbSamples<20?psfNumbSamples:20;
-            psfSampleSpacing=(psfKernelShift*2.0f)/psfNumbSamples;
+
+
+            psfNumbSamples=reg_floor(FMAX(reg_round(4.0f/(1.0f+0.5f*(nifti_mat33_determ(invJac)-1.0f))),1));
+            psfNumbSamples=psfNumbSamples>8?8:psfNumbSamples;
+            psfNumbSamples=3;
+            psfSampleSpacing=1.5f/(float)(psfNumbSamples);
+            psfKernelShift=(float)(psfNumbSamples)*psfSampleSpacing;
             psfWeightSum=0.0f;
             intensity=0.0;
 
@@ -1162,6 +1179,10 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
             currentC=reg_floor(index/warpedPlaneNumber);
             currentB=reg_floor((index-currentC*warpedPlaneNumber)/warpedLineNumber);
             currentA=(index-currentB*warpedLineNumber-currentC*warpedPlaneNumber);
+
+//            if(currentA==27 && currentB==48 && currentC==23){
+//             printf("here\n");
+//            }
 
             // Test if center is out of bounds, and if it is, skip all the psf stuff and assign to padding
             // Marc: Is this correct?
@@ -1195,16 +1216,20 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
                            psf_xyz[0]=psf_a;
                            psf_xyz[1]=psf_b;
                            psf_xyz[2]=psf_c;
-                           mahal=0;
+                           //mahal=0;
                            mahal=psf_a*invFinalCovariance.m[0][0]*psf_a+
-                                 psf_b*invFinalCovariance.m[1][0]*psf_a+
-                                 psf_c*invFinalCovariance.m[2][0]*psf_a+
-                                 psf_a*invFinalCovariance.m[0][1]*psf_b+
+                                 psf_a*invFinalCovariance.m[1][0]*psf_b+
+                                 psf_a*invFinalCovariance.m[2][0]*psf_c+
+                                 psf_b*invFinalCovariance.m[0][1]*psf_a+
                                  psf_b*invFinalCovariance.m[1][1]*psf_b+
-                                 psf_c*invFinalCovariance.m[2][1]*psf_b+
-                                 psf_a*invFinalCovariance.m[0][2]*psf_c+
-                                 psf_b*invFinalCovariance.m[1][2]*psf_c+
+                                 psf_b*invFinalCovariance.m[2][1]*psf_c+
+                                 psf_c*invFinalCovariance.m[0][2]*psf_a+
+                                 psf_c*invFinalCovariance.m[1][2]*psf_b+
                                  psf_c*invFinalCovariance.m[2][2]*psf_c;
+
+//                           if(currentA==27 && currentB==48 && currentC==23){
+//                            printf("mahal=%f\n",mahal);
+//                           }
 
 
                            psfWeight=powf(2.f*M_PI,-3.f/2.f)*
@@ -1235,9 +1260,9 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
                                        if((currentAPre+a)>=0
                                              && (currentBPre+b)>=0
                                              && (currentCPre+c)>=0
-                                             && (currentAPre+a)<=warpedImage->nx
-                                             && (currentBPre+b)<=warpedImage->ny
-                                             && (currentCPre+c)<=warpedImage->nz){
+                                             && (currentAPre+a)<warpedImage->nx
+                                             && (currentBPre+b)<warpedImage->ny
+                                             && (currentCPre+c)<warpedImage->nz){
 
                                           currentIndex=(currentAPre+a)+
                                                 (currentBPre+b)*warpedLineNumber+
@@ -1320,6 +1345,401 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
                      }
                   }
                }
+            }
+//            if(currentA==39 && currentB==54 && currentC==14){
+//             printf("\nWeight=%f\n",psfWeightSum);
+//            }
+            if(psfWeightSum>0){
+               intensity/=psfWeightSum;
+            }
+            else{
+               intensity=paddingValue;
+            }
+//            if(currentA==27 && currentB==48 && currentC==23){
+//             printf("Weight=%f\n",intensity);
+//            }
+         } // if in mask
+         switch(floatingImage->datatype)
+         {
+         case NIFTI_TYPE_FLOAT32:
+            warpedIntensity[index]=static_cast<FloatingTYPE>(intensity);
+            break;
+         case NIFTI_TYPE_FLOAT64:
+            warpedIntensity[index]=intensity;
+            break;
+         case NIFTI_TYPE_UINT8:
+            if(intensity!=intensity)
+               intensity=0;
+            intensity=(intensity<=255?reg_round(intensity):255); // 255=2^8-1
+            warpedIntensity[index]=static_cast<FloatingTYPE>(intensity>0?reg_round(intensity):0);
+            break;
+         case NIFTI_TYPE_UINT16:
+            if(intensity!=intensity)
+               intensity=0;
+            intensity=(intensity<=65535?reg_round(intensity):65535); // 65535=2^16-1
+            warpedIntensity[index]=static_cast<FloatingTYPE>(intensity>0?reg_round(intensity):0);
+            break;
+         case NIFTI_TYPE_UINT32:
+            if(intensity!=intensity)
+               intensity=0;
+            intensity=(intensity<=4294967295?reg_round(intensity):4294967295); // 4294967295=2^32-1
+            warpedIntensity[index]=static_cast<FloatingTYPE>(intensity>0?reg_round(intensity):0);
+            break;
+         default:
+            if(intensity!=intensity)
+               intensity=0;
+            warpedIntensity[index]=static_cast<FloatingTYPE>(reg_round(intensity));
+            break;
+         }
+      }
+   }
+}
+
+/********************************/
+
+template<class FloatingTYPE, class FieldTYPE>
+void ResampleImage3D_PSF_rot(nifti_image *floatingImage,
+                         nifti_image *deformationField,
+                         nifti_image *warpedImage,
+                         int *mask,
+                         FieldTYPE paddingValue,
+                         int kernel,
+                         mat33 * jacMat)
+{
+#ifdef _WIN32
+   long  index;
+   long warpedVoxelNumber = (long)warpedImage->nx*warpedImage->ny*warpedImage->nz;
+   long warpedPlaneNumber = (long)warpedImage->nx*warpedImage->ny;
+   long warpedLineNumber = (long)warpedImage->nx;
+   long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+#else
+   size_t  index;
+   size_t warpedVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny*warpedImage->nz;
+   size_t warpedPlaneNumber = (size_t)warpedImage->nx*warpedImage->ny;
+   size_t warpedLineNumber = (size_t)warpedImage->nx;
+   size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+#endif
+   FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
+   FloatingTYPE *warpedIntensityPtr = static_cast<FloatingTYPE *>(warpedImage->data);
+   FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+   FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[warpedVoxelNumber];
+   FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[warpedVoxelNumber];
+
+   int *maskPtr = &mask[0];
+
+   mat44 *floatingIJKMatrix;
+   if(floatingImage->sform_code>0)
+      floatingIJKMatrix=&(floatingImage->sto_ijk);
+   else floatingIJKMatrix=&(floatingImage->qto_ijk);
+   mat44 *warpedMatrix = &(warpedImage->qto_xyz);
+   if(warpedImage->sform_code>0)
+      warpedMatrix = &(warpedImage->sto_xyz);
+   mat44 *floatingMatrix = &(floatingImage->qto_xyz);
+   if(floatingImage->sform_code>0)
+      floatingMatrix = &(floatingImage->sto_xyz);
+
+   float fwhmToStd=2.355f;
+   mat33 psfKernelVarWarp, psfKernelVarFloat;
+   memset(&psfKernelVarWarp,0,sizeof(mat33));
+   memset(&psfKernelVarFloat,0,sizeof(mat33));
+   for(int j=0; j<3; j++){
+      for(int i=0; i<3; i++){
+          psfKernelVarWarp.m[i][j]=0;
+          psfKernelVarFloat.m[i][j]=0;
+      }
+   }
+   for(int j=0; j<3; j++){
+      for(int i=0; i<3; i++){
+         psfKernelVarWarp.m[j][j] += reg_pow2(warpedMatrix->m[i][j]);
+         psfKernelVarFloat.m[j][j] += reg_pow2(floatingMatrix->m[i][j]);
+      }
+      psfKernelVarWarp.m[j][j] = reg_pow2(sqrtf(psfKernelVarWarp.m[j][j]) / fwhmToStd);
+      psfKernelVarFloat.m[j][j] = reg_pow2(sqrtf(psfKernelVarFloat.m[j][j]) / fwhmToStd);
+   }
+
+   // Define the kernel to use
+   int kernel_size;
+   int kernel_offset=0;
+   void (*kernelCompFctPtr)(double,double *);
+   switch(kernel){
+   case 0:
+      reg_print_fct_error("ResampleImage3D_PSF");
+      reg_print_msg_error("Not implemented for NN interpolation yet");
+      reg_exit(1);
+      kernel_size=2;
+      kernelCompFctPtr=&interpNearestNeighKernel;
+      kernel_offset=0;
+      break; // nereast-neighboor interpolation
+   case 1:
+      kernel_size=2;
+      kernelCompFctPtr=&interpLinearKernel;
+      kernel_offset=0;
+      break; // linear interpolation
+   case 4:
+      kernel_size=SINC_KERNEL_SIZE;
+      kernelCompFctPtr=&interpWindowedSincKernel;
+      kernel_offset=SINC_KERNEL_RADIUS;
+      break; // sinc interpolation
+   default:
+      kernel_size=4;
+      kernelCompFctPtr=&interpCubicSplineKernel;
+      kernel_offset=1;
+      break; // cubic spline interpolation
+   }
+
+   // Iteration over the different volume along the 4th axis
+   for(size_t t=0; t<(size_t)warpedImage->nt*warpedImage->nu; t++)
+   {
+#ifndef NDEBUG
+      printf("[NiftyReg DEBUG] 3D resampling of volume number %lu\n",t);
+#endif
+
+      FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*warpedVoxelNumber];
+      FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
+
+      double xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], zBasis[SINC_KERNEL_SIZE], relative[3];
+      int a, b, c, Y, Z, previous[3];
+
+      float psf_xyz[3];
+
+      mat33 finalCovariance, invFinalCovariance, tmpDiagFloat, invJac;
+      float currentDeterminant, maxDiag, psfKernelShift=1.0f, psfNumbSamples, psfSampleSpacing, psfWeightSum;
+
+      FloatingTYPE *zPointer, *xyzPointer;
+      double xTempNewValue, yTempNewValue, intensity, psfIntensity, psfWorld[3], position[3];
+      float currentA, currentB, currentC, radius, angle_phi, angle_rho,psf_vox_a, psf_vox_b, psf_vox_c, psf_a, psf_b, psf_c, mahal, psfWeight;
+      float currentAPre, currentARel, currentBPre, currentBRel, currentCPre, currentCRel, resamplingWeightSum, resamplingWeight;
+      size_t currentIndex;
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   private(intensity, tmpDiagFloat, finalCovariance, currentDeterminant, maxDiag, \
+   invFinalCovariance, psfNumbSamples, psfSampleSpacing, psfWeightSum, psfWeight, \
+   currentA, currentB, currentC, psfWorld, position, psf_a, psf_b, psf_c,\
+   psf_xyz, mahal, currentAPre, currentARel, currentBPre, currentBRel, currentCPre, currentCRel,\
+   resamplingWeightSum, resamplingWeight, currentIndex, previous, relative,\
+   xBasis, yBasis, zBasis, Y, Z, psfIntensity, yTempNewValue, xTempNewValue,\
+   xyzPointer, zPointer,invJac) \
+   shared(warpedVoxelNumber, maskPtr, jacMat, psfKernelVarFloat, psfKernelVarWarp, paddingValue,\
+   a, b, c, fwhmToStd, psfKernelShift, warpedPlaneNumber, warpedLineNumber, floatingIntensity,\
+   deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, floatingIJKMatrix,\
+   floatingImage, warpedImage, kernelCompFctPtr, kernel_offset, kernel_size, warpedIntensity)
+#endif // _OPENMP
+      for(index=0; index<warpedVoxelNumber; index++)
+      {
+         intensity=paddingValue;
+
+         if((maskPtr[index])>-1)
+         {
+
+
+            invJac=nifti_mat33_inverse(jacMat[index]);
+            // Reorient the floating image co-variance matric based on the Jacobian matrix of the transformation
+            //tmpDiagFloat.m[0][0]=invJac.m[0][0]*psfKernelVarFloat.m[0][0]+invJac.m[1][0]*psfKernelVarFloat.m[1][1]+invJac.m[2][0]*psfKernelVarFloat.m[2][2];
+            //tmpDiagFloat.m[1][1]=invJac.m[0][1]*psfKernelVarFloat.m[0][0]+invJac.m[1][1]*psfKernelVarFloat.m[1][1]+invJac.m[2][1]*psfKernelVarFloat.m[2][2];
+            //tmpDiagFloat.m[2][2]=invJac.m[0][2]*psfKernelVarFloat.m[0][0]+invJac.m[1][2]*psfKernelVarFloat.m[1][1]+invJac.m[2][2]*psfKernelVarFloat.m[2][2];
+            //tmpDiagFloat=nifti_mat33_mul(psfKernelVarFloat,nifti_mat33_mul(psfKernelVarFloat, reg_mat33_trans(invJac)));
+
+            tmpDiagFloat=nifti_mat33_mul(nifti_mat33_mul(reg_mat33_trans(invJac), psfKernelVarFloat), invJac);
+ 
+           // Check the difference in FWHM by projecting the rotated matrix back onto the warped axes
+            for(b=0; b<3; b++){
+                finalCovariance.m[b][b]=0;
+               for(a=0; a<3; a++)
+               {
+                   if(a!=b){
+                   finalCovariance.m[a][b]=0;
+                   }
+                  finalCovariance.m[b][b] += reg_pow2(tmpDiagFloat.m[a][b]);
+               }
+               finalCovariance.m[b][b] = psfKernelVarWarp.m[b][b] - reg_pow2(sqrtf(finalCovariance.m[b][b]) );
+               finalCovariance.m[b][b] = finalCovariance.m[b][b]<=0.0001f?0.0001f:finalCovariance.m[b][b];
+            }
+            reg_mat33_disp(&finalCovariance,"finalCovariance");
+
+            currentDeterminant = nifti_mat33_determ(finalCovariance);
+
+            // Extract the maximal scaling value
+            maxDiag=finalCovariance.m[0][0];
+            maxDiag=maxDiag<finalCovariance.m[1][1]?finalCovariance.m[1][1]:maxDiag;
+            maxDiag=maxDiag<finalCovariance.m[2][2]?finalCovariance.m[2][2]:maxDiag;
+
+            invFinalCovariance=nifti_mat33_inverse(finalCovariance);
+
+            // Set the maximal number of samples per direction
+
+            psfNumbSamples=8;
+            psfSampleSpacing=(psfKernelShift*2.0f)/psfNumbSamples;
+            psfWeightSum=0.0f;
+            intensity=0.0;
+
+            // extract XYZ
+            currentC=reg_floor(index/warpedPlaneNumber);
+            currentB=reg_floor((index-currentC*warpedPlaneNumber)/warpedLineNumber);
+            currentA=(index-currentB*warpedLineNumber-currentC*warpedPlaneNumber);
+
+            // Test if center is out of bounds, and if it is, skip all the psf stuff and assign to padding
+            // Marc: Is this correct?
+            psfWorld[0]=static_cast<double>(deformationFieldPtrX[index]);
+            psfWorld[1]=static_cast<double>(deformationFieldPtrY[index]);
+            psfWorld[2]=static_cast<double>(deformationFieldPtrZ[index]);
+            reg_mat44_mul(floatingIJKMatrix, psfWorld, position);
+            if(position[0]>0 && position[0]<floatingImage->nx &&
+               position[1]>0 && position[1]<floatingImage->ny &&
+               position[2]>0 && position[2]<floatingImage->nz){
+
+                for(radius=0;radius<=4; radius++)
+                {
+                    for(angle_phi=0;angle_phi<8; angle_phi++)
+                    {
+                        for(angle_rho=0;angle_rho<8; angle_rho++)
+                        {
+                            if( radius>0 || (radius==0 && angle_phi==0 && angle_rho==0)){
+                                psf_a=(float)(sqrtf(-2.0f*logf(1.0f-radius/4.01f)))*
+                                        sin(2.0f*M_PI*angle_phi/8.0f)*
+                                        cos(2.0f*M_PI*angle_rho/8.0f)*
+                                        finalCovariance.m[0][0];
+
+                                psf_b=(float)(sqrtf(-2.0f*logf(1.0f-radius/4.01f)))*
+                                        sin(2.0f*M_PI*angle_phi/8.0f)*
+                                        sin(2.0f*M_PI*angle_rho/8.0f)*
+                                        finalCovariance.m[1][1];
+
+                                psf_c=(float)(sqrtf(-2.0f*logf(1.0f-radius/4.01f)))*
+                                        cos(2.0f*M_PI*angle_phi/8.0f)*
+                                        finalCovariance.m[2][2];
+
+                                psf_vox_a=psf_a/(float)(warpedImage->pixdim[1]);
+                                psf_vox_b=psf_b/(float)(warpedImage->pixdim[2]);
+                                psf_vox_c=psf_c/(float)(warpedImage->pixdim[3]);
+
+                                psf_xyz[0]=psf_a;
+                                psf_xyz[1]=psf_b;
+                                psf_xyz[2]=psf_c;
+                                mahal=1;
+//                                mahal=psf_a*invFinalCovariance.m[0][0]*psf_a+
+//                                        psf_b*invFinalCovariance.m[1][0]*psf_a+
+//                                        psf_c*invFinalCovariance.m[2][0]*psf_a+
+//                                        psf_a*invFinalCovariance.m[0][1]*psf_b+
+//                                        psf_b*invFinalCovariance.m[1][1]*psf_b+
+//                                        psf_c*invFinalCovariance.m[2][1]*psf_b+
+//                                        psf_a*invFinalCovariance.m[0][2]*psf_c+
+//                                        psf_b*invFinalCovariance.m[1][2]*psf_c+
+//                                        psf_c*invFinalCovariance.m[2][2]*psf_c;
+
+                                psfWeight=powf(2.f*M_PI,-3.f/2.f)*
+                                        pow(currentDeterminant,-0.5f)*
+                                        expf(-0.5f*mahal);
+
+                                if(psfWeight!=0.f){ // If the relative weight is above 0
+
+                                    // Interpolate (trilinearly) the deformation field for non-integer positions
+                                    currentAPre=(float)(reg_floor(currentA+psf_vox_a));
+                                    currentARel=currentA+psf_vox_a-(float)(currentAPre);
+
+                                    currentBPre=(float)(reg_floor(currentB+psf_vox_b));
+                                    currentBRel=currentB+psf_vox_b-(float)(currentBPre);
+
+                                    currentCPre=(float)(reg_floor(currentC+psf_vox_c));
+                                    currentCRel=currentC+psf_vox_c-(float)(currentCPre);
+
+                                    // Interpolate the PSF world coordinates
+                                    psfWorld[0]=0.0f;
+                                    psfWorld[1]=0.0f;
+                                    psfWorld[2]=0.0f;
+                                    resamplingWeightSum=0.0f;
+                                    for (a=0;a<=1;a++){
+                                        for (b=0;b<=1;b++){
+                                            for (c=0;c<=1;c++){
+
+                                                if((currentAPre+a)>=0
+                                                        && (currentBPre+b)>=0
+                                                        && (currentCPre+c)>=0
+                                                        && (currentAPre+a)<warpedImage->nx
+                                                        && (currentBPre+b)<warpedImage->ny
+                                                        && (currentCPre+c)<warpedImage->nz){
+
+                                                    currentIndex=(currentAPre+a)+
+                                                            (currentBPre+b)*warpedLineNumber+
+                                                            (currentCPre+c)*warpedPlaneNumber;
+
+                                                    resamplingWeight=fabs((float)(1-a)-currentARel)*
+                                                            fabs((float)(1-b)-currentBRel)*
+                                                            fabs((float)(1-c)-currentCRel);
+
+                                                    resamplingWeightSum+=resamplingWeight;
+
+                                                    psfWorld[0]+=static_cast<double>(resamplingWeight*deformationFieldPtrX[currentIndex]);
+                                                    psfWorld[1]+=static_cast<double>(resamplingWeight*deformationFieldPtrY[currentIndex]);
+                                                    psfWorld[2]+=static_cast<double>(resamplingWeight*deformationFieldPtrZ[currentIndex]);
+                                                }
+                                            }
+                                        }
+
+
+                                        if(resamplingWeightSum>0){
+                                            psfWorld[0]/=resamplingWeightSum;
+                                            psfWorld[1]/=resamplingWeightSum;
+                                            psfWorld[2]/=resamplingWeightSum;
+
+                                            // real -> voxel; floating space
+                                            reg_mat44_mul(floatingIJKMatrix, psfWorld, position);
+
+                                            previous[0] = static_cast<int>(reg_floor(position[0]));
+                                            previous[1] = static_cast<int>(reg_floor(position[1]));
+                                            previous[2] = static_cast<int>(reg_floor(position[2]));
+
+                                            relative[0]=position[0]-static_cast<double>(previous[0]);
+                                            relative[1]=position[1]-static_cast<double>(previous[1]);
+                                            relative[2]=position[2]-static_cast<double>(previous[2]);
+
+                                            (*kernelCompFctPtr)(relative[0], xBasis);
+                                            (*kernelCompFctPtr)(relative[1], yBasis);
+                                            (*kernelCompFctPtr)(relative[2], zBasis);
+                                            previous[0]-=kernel_offset;
+                                            previous[1]-=kernel_offset;
+                                            previous[2]-=kernel_offset;
+
+                                            psfIntensity=0.0;
+                                            for(c=0; c<kernel_size; c++)
+                                            {
+                                                Z= previous[2]+c;
+                                                zPointer = &floatingIntensity[Z*floatingImage->nx*floatingImage->ny];
+                                                yTempNewValue=0.0;
+                                                for(b=0; b<kernel_size; b++)
+                                                {
+                                                    Y= previous[1]+b;
+                                                    xyzPointer = &zPointer[Y*floatingImage->nx+previous[0]];
+                                                    xTempNewValue=0.0;
+                                                    for(a=0; a<kernel_size; a++)
+                                                    {
+                                                        if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx &&
+                                                                -1<Z && Z<floatingImage->nz &&
+                                                                -1<Y && Y<floatingImage->ny)
+                                                        {
+                                                            xTempNewValue +=  static_cast<double>(*xyzPointer) * xBasis[a];
+                                                        }
+                                                        else
+                                                        {
+                                                            // paddingValue
+                                                            xTempNewValue +=  paddingValue * xBasis[a];
+                                                        }
+                                                        xyzPointer++;
+                                                    }
+                                                    yTempNewValue += xTempNewValue * yBasis[b];
+                                                }
+                                                psfIntensity += yTempNewValue * zBasis[c];
+                                            }
+                                            if(!(psfIntensity!=psfIntensity)){
+                                                intensity+=psfWeight*psfIntensity;
+                                                psfWeightSum+=psfWeight;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
             if(psfWeightSum>0){
                intensity/=psfWeightSum;
@@ -3083,9 +3503,9 @@ nifti_image *reg_makeIsotropic(nifti_image *img,
       newImg->sto_xyz.m[1][2]=img->sto_xyz.m[1][2] * scalingRatio[2];
       newImg->sto_xyz.m[2][2]=img->sto_xyz.m[2][2] * scalingRatio[2];
       newImg->sto_xyz.m[3][2]=img->sto_xyz.m[3][2];
-      newImg->sto_xyz.m[0][3]=img->sto_xyz.m[0][3]+smallestPixDim/2.f-img->dx/2.f;
-      newImg->sto_xyz.m[1][3]=img->sto_xyz.m[1][3]+smallestPixDim/2.f-img->dy/2.f;
-      newImg->sto_xyz.m[2][3]=img->sto_xyz.m[2][3]+smallestPixDim/2.f-img->dz/2.f;
+      newImg->sto_xyz.m[0][3]=img->sto_xyz.m[0][3] + smallestPixDim/2.f - img->dx/2.f;
+      newImg->sto_xyz.m[1][3]=img->sto_xyz.m[1][3] + smallestPixDim/2.f - img->dy/2.f;
+      newImg->sto_xyz.m[2][3]=img->sto_xyz.m[2][3] + smallestPixDim/2.f - img->dz/2.f;
       newImg->sto_xyz.m[3][3]=img->sto_xyz.m[3][3];
       newImg->sto_ijk=nifti_mat44_inverse(newImg->sto_xyz);
    }
@@ -3122,5 +3542,87 @@ nifti_image *reg_makeIsotropic(nifti_image *img,
 }
 /* *************************************************************** */
 /* *************************************************************** */
+
+nifti_image * reg_upsampleX2(nifti_image *img)
+{
+
+   // Define the size of the new image
+   int newDim[8];
+   for(size_t i=1; i<4; ++i){
+       newDim[i]=img->dim[i]*2.0f;
+   }
+   newDim[0]=3;
+
+
+   // Create the new image
+   nifti_image *newImg=nifti_make_new_nim(newDim,img->datatype,true);
+
+
+   newImg->pixdim[1]=newImg->dx=img->dx/2.f;
+   newImg->pixdim[2]=newImg->dy=img->dy/2.f;
+   newImg->pixdim[3]=newImg->dz=img->dz/2.f;
+   newImg->qform_code=img->qform_code;
+   newImg->sform_code=img->sform_code;
+   // Update the qform matrix
+   newImg->qfac=img->qfac;
+   newImg->quatern_b=img->quatern_b;
+   newImg->quatern_c=img->quatern_c;
+   newImg->quatern_d=img->quatern_d;
+   newImg->qoffset_x=img->qoffset_x+img->dx/2.f;
+   newImg->qoffset_y=img->qoffset_y+img->dy/2.f;
+   newImg->qoffset_z=img->qoffset_z+img->dz/2.f;
+   newImg->qto_xyz=nifti_quatern_to_mat44(newImg->quatern_b,
+                                          newImg->quatern_c,
+                                          newImg->quatern_d,
+                                          newImg->qoffset_x,
+                                          newImg->qoffset_y,
+                                          newImg->qoffset_z,
+                                          img->dx/2.f,
+                                          img->dy/2.f,
+                                          img->dz/2.f,
+                                          newImg->qfac);
+   newImg->qto_ijk=nifti_mat44_inverse(newImg->qto_xyz);
+   newImg->sform_code=0;
+   img->sform_code=0;
+
+   reg_checkAndCorrectDimension(newImg);
+
+   // Create a deformation field
+   nifti_image *def=nifti_copy_nim_info(newImg);
+   def->dim[0]=def->ndim=5;
+   def->dim[4]=def->nt=1;
+   def->pixdim[4]=def->dt=1.0;
+   if(newImg->nz==1)
+      def->dim[5]=def->nu=2;
+   else def->dim[5]=def->nu=3;
+   def->pixdim[5]=def->du=1.0;
+   def->dim[6]=def->nv=1;
+   def->pixdim[6]=def->dv=1.0;
+   def->dim[7]=def->nw=1;
+   def->pixdim[7]=def->dw=1.0;
+   def->nvox =
+         (size_t)def->nx *
+         (size_t)def->ny *
+         (size_t)def->nz *
+         (size_t)def->nt *
+         (size_t)def->nu;
+   def->nbyper = sizeof(float);
+   def->datatype = NIFTI_TYPE_FLOAT32;
+   def->data = (void *)calloc(def->nvox,def->nbyper);
+   // Fill the deformation field with an identity transformation
+   reg_getDeformationFromDisplacement(def);
+   // resample the original image into the space of the new image
+
+   reg_resampleImage(img,newImg,def,NULL,4,0.f);
+   nifti_set_filenames(newImg,"tempIsotropicImage",0,0);
+   nifti_image_free(def);
+
+   nifti_image_free(img);
+
+   return newImg;
+}
+/* *************************************************************** */
+/* *************************************************************** */
+
 
 #endif
