@@ -1638,7 +1638,7 @@ void reg_downsampleImage1(nifti_image *image, int type, bool *downsampleAxis)
    {
       /* the input image is first smooth */
       float *sigma=new float[image->nt];
-      for(int i=0; i<image->nt; ++i) sigma[i]=-0.7f;
+      for(int i=0; i<image->nt; ++i) sigma[i]=-0.7355f;
       reg_tools_kernelConvolution(image,sigma,0);
       delete []sigma;
    }

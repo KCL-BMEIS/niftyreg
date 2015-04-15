@@ -167,10 +167,20 @@ void reg_mat44_mul(mat44 const* mat,
 mat44 reg_mat44_mul(mat44 const* mat,
                     double scalar);
 /* *************************************************************** */
+/** @brief Add two 3-by-3 matrices
+ */
+mat33 reg_mat33_add(mat33 const* A, mat33 const* B);
+mat33 operator+(mat33 A,mat33 B);
+/* *************************************************************** */
 /** @brief Add two 4-by-4 matrices
  */
 mat44 reg_mat44_add(mat44 const* A, mat44 const* B);
 mat44 operator+(mat44 A,mat44 B);
+/* *************************************************************** */
+/** @brief Substract two 3-by-3 matrices
+ */
+mat33 reg_mat33_minus(mat33 const* A, mat33 const* B);
+mat33 operator-(mat33 A,mat33 B);
 /* *************************************************************** */
 /** @brief Substract two 4-by-4 matrices
  */
