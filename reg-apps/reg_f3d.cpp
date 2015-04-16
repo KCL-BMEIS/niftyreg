@@ -164,7 +164,7 @@ int main(int argc, char **argv)
    time(&start);
    int verbose=true;
 
-   char text[255];
+   char text[1024];
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Check if any information is required
    for(int i=1; i<argc; i++)
@@ -224,6 +224,7 @@ int main(int argc, char **argv)
 #ifdef NDEBUG
    }
 #endif
+
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Read the reference and floating image
    nifti_image *referenceImage=NULL;
@@ -300,7 +301,6 @@ int main(int argc, char **argv)
    /* read the input parameter */
    for(int i=1; i<argc; i++)
    {
-
       if(strcmp(argv[i],"-ref")==0 || strcmp(argv[i],"-target")==0 ||
             strcmp(argv[i],"--ref")==0 || strcmp(argv[i],"-flo")==0 ||
             strcmp(argv[i],"-source")==0 || strcmp(argv[i],"--flo")==0 )

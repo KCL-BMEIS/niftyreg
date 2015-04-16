@@ -114,7 +114,7 @@ int main(int argc, char **argv)
       }
 #endif
    }
-   char text[255];
+   char text[1024];
    reg_print_info(argv[0], "");
    reg_print_info(argv[0], "Command line:");
    sprintf(text, "\t");

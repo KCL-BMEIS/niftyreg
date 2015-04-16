@@ -1009,7 +1009,7 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
                          int *mask,
                          FieldTYPE paddingValue,
                          int kernel,
-                         mat33 * jacMat)
+                         mat33 *jacMat)
 {
 #ifdef _WIN32
    long  index;
@@ -1117,9 +1117,9 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
    psf_xyz, mahal, currentAPre, currentARel, currentBPre, currentBRel, currentCPre, currentCRel,\
    resamplingWeightSum, resamplingWeight, currentIndex, previous, relative,\
    xBasis, yBasis, zBasis, Y, Z, psfIntensity, yTempNewValue, xTempNewValue,\
-   xyzPointer, zPointer) \
+   xyzPointer, zPointer, a, b, c) \
    shared(warpedVoxelNumber, maskPtr, jacMat, psfKernelVarFloat, psfKernelVarWarp, paddingValue,\
-   a, b, c, fwhmToStd, psfKernelShift, warpedPlaneNumber, warpedLineNumber, floatingIntensity,\
+   fwhmToStd, psfKernelShift, warpedPlaneNumber, warpedLineNumber, floatingIntensity,\
    deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, floatingIJKMatrix,\
    floatingImage, warpedImage, kernelCompFctPtr, kernel_offset, kernel_size, warpedIntensity)
 #endif // _OPENMP
@@ -1130,16 +1130,29 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
          if((maskPtr[index])>-1)
          {
             // Reorient the floating image co-variance matric based on the Jacobian matrix of the transformation
-            tmpDiagFloat.m[0][0]=jacMat[index].m[0][0]*psfKernelVarFloat.m[0][0]+jacMat[index].m[0][1]*psfKernelVarFloat.m[1][1]+jacMat[index].m[0][2]*psfKernelVarFloat.m[2][2];
-            tmpDiagFloat.m[1][1]=jacMat[index].m[1][0]*psfKernelVarFloat.m[0][0]+jacMat[index].m[1][1]*psfKernelVarFloat.m[1][1]+jacMat[index].m[1][2]*psfKernelVarFloat.m[2][2];
-            tmpDiagFloat.m[2][2]=jacMat[index].m[2][0]*psfKernelVarFloat.m[0][0]+jacMat[index].m[2][1]*psfKernelVarFloat.m[1][1]+jacMat[index].m[2][2]*psfKernelVarFloat.m[2][2];
+            tmpDiagFloat.m[0][0]=
+                  jacMat[index].m[0][0]*psfKernelVarFloat.m[0][0]+
+                  jacMat[index].m[0][1]*psfKernelVarFloat.m[1][1]+
+                  jacMat[index].m[0][2]*psfKernelVarFloat.m[2][2];
+            tmpDiagFloat.m[1][1]=
+                  jacMat[index].m[1][0]*psfKernelVarFloat.m[0][0]+
+                  jacMat[index].m[1][1]*psfKernelVarFloat.m[1][1]+
+                  jacMat[index].m[1][2]*psfKernelVarFloat.m[2][2];
+            tmpDiagFloat.m[2][2]=
+                  jacMat[index].m[2][0]*psfKernelVarFloat.m[0][0]+
+                  jacMat[index].m[2][1]*psfKernelVarFloat.m[1][1]+
+                  jacMat[index].m[2][2]*psfKernelVarFloat.m[2][2];
 
             // Check the difference in FWHM by projecting the rotated matrix back onto the warped axes
+            memset(&finalCovariance, 0, sizeof(mat33));
             for(b=0; b<3; b++){
                for(a=0; a<3; a++)
                   finalCovariance.m[b][b] += reg_pow2(tmpDiagFloat.m[a][b]);
-               finalCovariance.m[b][b] = psfKernelVarWarp.m[b][b] - reg_pow2(sqrtf(psfKernelVarWarp.m[b][b]) / fwhmToStd);
-               finalCovariance.m[b][b] = finalCovariance.m[b][b]<=0.0001f?0.0001f:finalCovariance.m[b][b];
+               finalCovariance.m[b][b] =
+                     psfKernelVarWarp.m[b][b] -
+                     reg_pow2(sqrtf(psfKernelVarWarp.m[b][b]) / fwhmToStd);
+               finalCovariance.m[b][b] =
+                     finalCovariance.m[b][b]<=0.0001f?0.0001f:finalCovariance.m[b][b];
             }
             currentDeterminant = nifti_mat33_determ(finalCovariance);
 
@@ -1164,7 +1177,7 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
             currentA=(index-currentB*warpedLineNumber-currentC*warpedPlaneNumber);
 
             // Test if center is out of bounds, and if it is, skip all the psf stuff and assign to padding
-            // Marc: Is this correct?
+            // Marc: This is not the default behavior in the rest of the code
             psfWorld[0]=static_cast<double>(deformationFieldPtrX[index]);
             psfWorld[1]=static_cast<double>(deformationFieldPtrY[index]);
             psfWorld[2]=static_cast<double>(deformationFieldPtrZ[index]);
@@ -1224,34 +1237,40 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
                               currentCRel=currentC+psf_c_vox-(float)(currentCPre);
 
                               // Interpolate the PSF world coordinates
-                              psfWorld[0]=0.0f;
-                              psfWorld[1]=0.0f;
-                              psfWorld[2]=0.0f;
-                              resamplingWeightSum=0.0f;
+                              psfWorld[0]=0.;
+                              psfWorld[1]=0.;
+                              psfWorld[2]=0.;
+                              resamplingWeightSum=0.f;
                               for (a=0;a<=1;a++){
-                                 for (b=0;b<=1;b++){
-                                    for (c=0;c<=1;c++){
+                                 if((currentAPre+a)>=0 &&
+                                    (currentAPre+a)<warpedImage->nx){
+                                    for (b=0;b<=1;b++){
+                                       if((currentBPre+b)>=0 &&
+                                          (currentBPre+b)<warpedImage->ny){
+                                          for (c=0;c<=1;c++){
+                                             if((currentCPre+c)>=0 &&
+                                                (currentCPre+c)<warpedImage->nz){
 
-                                       if((currentAPre+a)>=0
-                                             && (currentBPre+b)>=0
-                                             && (currentCPre+c)>=0
-                                             && (currentAPre+a)<=warpedImage->nx
-                                             && (currentBPre+b)<=warpedImage->ny
-                                             && (currentCPre+c)<=warpedImage->nz){
+                                                currentIndex=
+                                                      (currentAPre+a)+
+                                                      (currentBPre+b)*warpedLineNumber+
+                                                      (currentCPre+c)*warpedPlaneNumber;
 
-                                          currentIndex=(currentAPre+a)+
-                                                (currentBPre+b)*warpedLineNumber+
-                                                (currentCPre+c)*warpedPlaneNumber;
+                                                resamplingWeight=
+                                                      fabs(static_cast<float>(1-a)-currentARel)*
+                                                      fabs(static_cast<float>(1-b)-currentBRel)*
+                                                      fabs(static_cast<float>(1-c)-currentCRel);
 
-                                          resamplingWeight=fabs((float)(1-a)-currentARel)*
-                                                fabs((float)(1-b)-currentBRel)*
-                                                fabs((float)(1-c)-currentCRel);
+                                                resamplingWeightSum+=resamplingWeight;
 
-                                          resamplingWeightSum+=resamplingWeight;
-
-                                          psfWorld[0]+=static_cast<double>(resamplingWeight*deformationFieldPtrX[currentIndex]);
-                                          psfWorld[1]+=static_cast<double>(resamplingWeight*deformationFieldPtrY[currentIndex]);
-                                          psfWorld[2]+=static_cast<double>(resamplingWeight*deformationFieldPtrZ[currentIndex]);
+                                                psfWorld[0] += static_cast<double>
+                                                      (resamplingWeight*deformationFieldPtrX[currentIndex]);
+                                                psfWorld[1] += static_cast<double>
+                                                      (resamplingWeight*deformationFieldPtrY[currentIndex]);
+                                                psfWorld[2] += static_cast<double>
+                                                      (resamplingWeight*deformationFieldPtrZ[currentIndex]);
+                                             }
+                                          }
                                        }
                                     }
                                  }
@@ -1280,22 +1299,22 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
                                  previous[1]-=kernel_offset;
                                  previous[2]-=kernel_offset;
 
-                                 psfIntensity=0.0;
+                                 psfIntensity=0.;
                                  for(c=0; c<kernel_size; c++)
                                  {
                                     Z= previous[2]+c;
                                     zPointer = &floatingIntensity[Z*floatingImage->nx*floatingImage->ny];
-                                    yTempNewValue=0.0;
+                                    yTempNewValue=0.;
                                     for(b=0; b<kernel_size; b++)
                                     {
                                        Y= previous[1]+b;
                                        xyzPointer = &zPointer[Y*floatingImage->nx+previous[0]];
-                                       xTempNewValue=0.0;
+                                       xTempNewValue=0.;
                                        for(a=0; a<kernel_size; a++)
                                        {
                                           if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx &&
-                                                -1<Z && Z<floatingImage->nz &&
-                                                -1<Y && Y<floatingImage->ny)
+                                             -1<Z && Z<floatingImage->nz &&
+                                             -1<Y && Y<floatingImage->ny)
                                           {
                                              xTempNewValue +=  static_cast<double>(*xyzPointer) * xBasis[a];
                                           }
@@ -1310,7 +1329,7 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
                                     }
                                     psfIntensity += yTempNewValue * zBasis[c];
                                  }
-                                 if(!(psfIntensity!=psfIntensity)){
+                                 if(psfIntensity==psfIntensity){
                                     intensity+=psfWeight*psfIntensity;
                                     psfWeightSum+=psfWeight;
                                  }
@@ -1360,7 +1379,7 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
             warpedIntensity[index]=static_cast<FloatingTYPE>(reg_round(intensity));
             break;
          }
-      }
+      } // index
    }
 }
 /* *************************************************************** */

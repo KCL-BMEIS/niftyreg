@@ -94,7 +94,7 @@ void Usage(char *exec)
    printf("\t-thr <float>\t\tThreshold the input image (val<thr?val=0:val=1)\n");
    printf("\t-nan <filename>\t\tThis image is used to mask the input image.\n\t\t\t\tVoxels outside of the mask are set to nan\n");
    printf("\t-iso\t\t\tThe resulting image is made isotropic\n");
-   printf("\t-chgres <float> <float> <float>\n\t\t\t\tResample the floating image to the specified resolution\n");
+   printf("\t-chgres <float> <float> <float>\n\t\t\t\tResample the input image to the specified resolution (in mm)\n");
    printf("\t-noscl\t\t\tThe scl_slope and scl_inter are set to 1 and 0 respectively\n");
    printf("\t-rmNanInf <float>\tRemove the nan and inf from the input image and replace them by the specified value\n");
 #ifdef _GIT_HASH
@@ -641,14 +641,12 @@ int main(int argc, char **argv)
       newDim[2]=(int)ceilf((float)image->dim[2]*image->pixdim[2]/param->pixdimY);
       if(image->nz>1)
          newDim[3]=(int)ceilf((float)image->dim[3]*image->pixdim[3]/param->pixdimZ);
-      else newDim[3]=1;
       // Create the new image
       nifti_image *newImg=nifti_make_new_nim(newDim,image->datatype,true);
       newImg->pixdim[1]=newImg->dx=param->pixdimX;
       newImg->pixdim[2]=newImg->dy=param->pixdimY;
       if(image->nz>1)
          newImg->pixdim[3]=newImg->dz=param->pixdimZ;
-      else newImg->pixdim[3]=1;
       newImg->qform_code=image->qform_code;
       newImg->sform_code=image->sform_code;
       // Update the qform matrix
@@ -702,50 +700,19 @@ int main(int argc, char **argv)
          newImg->sto_ijk=nifti_mat44_inverse(newImg->sto_xyz);
       }
       reg_checkAndCorrectDimension(newImg);
-      // Convolve the input image with a gaussian to account for the different psf if appropriate
-      reg_tools_changeDatatype<float>(image);
-      bool *timePoint = new bool[image->nt*image->nu];
-      for(int i=0; i<image->nt*image->nu; ++i) timePoint[i]=true;
-      float *kernelSize = new float[image->nt*image->nu];
-      bool boolX[3]= {1,0,0};
-      for(int i=0; i<image->nt*image->nu; ++i)
-         kernelSize[i]=sqrt(reg_pow2(newImg->dx/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(image->dx/(2.f*sqrt(2.f*log(2.f)))));
-      reg_tools_kernelConvolution(image,kernelSize,0,NULL,timePoint,boolX);
-      bool boolY[3]= {0,1,0};
-      for(int i=0; i<image->nt*image->nu; ++i)
-         kernelSize[i]=sqrt(reg_pow2(newImg->dy/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(image->dy/(2.f*sqrt(2.f*log(2.f)))));
-      reg_tools_kernelConvolution(image,kernelSize,0,NULL,timePoint,boolY);
-      if(image->nz>1)
-      {
-         bool boolZ[3]= {0,0,1};
-         for(int i=0; i<image->nt*image->nu; ++i)
-            kernelSize[i]=sqrt(reg_pow2(newImg->dz/(2.f*sqrt(2.f*log(2.f))))-reg_pow2(image->dz/(2.f*sqrt(2.f*log(2.f)))));
-         reg_tools_kernelConvolution(image,kernelSize,0,NULL,timePoint,boolZ);
-      }
-      delete []kernelSize;
-      delete []timePoint;
-      switch(newImg->datatype){
-      case NIFTI_TYPE_UINT8: reg_tools_changeDatatype<unsigned char>(image);break;
-      case NIFTI_TYPE_UINT16: reg_tools_changeDatatype<unsigned short>(image);break;
-      case NIFTI_TYPE_UINT32: reg_tools_changeDatatype<unsigned int>(image);break;
-      case NIFTI_TYPE_INT8: reg_tools_changeDatatype<char>(image);break;
-      case NIFTI_TYPE_INT16: reg_tools_changeDatatype<short>(image);break;
-      case NIFTI_TYPE_INT32: reg_tools_changeDatatype<int>(image);break;
-      case NIFTI_TYPE_FLOAT64: reg_tools_changeDatatype<double>(image);break;
-      }
       // Create a deformation field
       nifti_image *def=nifti_copy_nim_info(newImg);
       def->dim[0]=def->ndim=5;
       def->dim[4]=def->nt=1;
-      def->pixdim[4]=def->dt=1.0;
+      def->pixdim[4]=def->dt=1.f;
       if(newImg->nz==1)
          def->dim[5]=def->nu=2;
       else def->dim[5]=def->nu=3;
-      def->pixdim[5]=def->du=1.0;
+      def->pixdim[5]=def->du=1.f;
       def->dim[6]=def->nv=1;
-      def->pixdim[6]=def->dv=1.0;
+      def->pixdim[6]=def->dv=1.f;
       def->dim[7]=def->nw=1;
-      def->pixdim[7]=def->dw=1.0;
+      def->pixdim[7]=def->dw=1.f;
       def->nvox = (size_t)def->nx * def->ny *
             def->nz * def->nt * def->nu;
       def->nbyper = sizeof(float);
@@ -753,13 +720,43 @@ int main(int argc, char **argv)
       def->data = (void *)calloc(def->nvox,def->nbyper);
       // Fill the deformation field with an identity transformation
       reg_getDeformationFromDisplacement(def);
+      // Allocate and compute the Jacobian matrices
+      mat33 *jacobian = (mat33 *)malloc(def->nx *
+                                        def->ny *
+                                        def->nz *
+                                        sizeof(mat33));
+      for(size_t i=0;i<(size_t)def->nx*def->ny*def->nz;++i)
+         reg_mat33_eye(&jacobian[i]);
       // resample the original image into the space of the new image
-      reg_resampleImage(image,newImg,def,NULL,1.0,0.f);
+      if(newImg->pixdim[1]>image->pixdim[1] ||
+         newImg->pixdim[2]>image->pixdim[2] ||
+         newImg->pixdim[3]>image->pixdim[3] ){
+         reg_resampleImage_PSF(image,
+                               newImg,
+                               def,
+                               NULL,
+                               3,
+                               0.f,
+                               jacobian);
+      }
+      else{
+         reg_resampleImage(image,
+                           newImg,
+                           def,
+                           NULL,
+                           3,
+                           0.f);
+      }
+#ifndef NDEBUG
+      reg_print_msg_debug("PSF resampling completed\n");
+#endif
+      free(jacobian);
+      nifti_image_free(def);
+      // Save and free the new iamge
       if(flag->outputImageFlag)
          reg_io_WriteImageFile(newImg,param->outputImageName);
       else reg_io_WriteImageFile(newImg,"output.nii");
       nifti_image_free(newImg);
-      nifti_image_free(def);
    }
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//
 
