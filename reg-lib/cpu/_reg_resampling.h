@@ -43,6 +43,14 @@ void reg_resampleImage(nifti_image *floatingImage,
                        float paddingValue,
                        bool *dti_timepoint = NULL,
                        mat33 * jacMat = NULL);
+extern "C++"
+void reg_resampleImage_PSF(nifti_image *floatingImage,
+                           nifti_image *warpedImage,
+                           nifti_image *deformationField,
+                           int *mask,
+                           int interp,
+                           float paddingValue,
+                           mat33 * jacMat);
 
 extern "C++"
 void reg_resampleGradient(nifti_image *gradientImage,

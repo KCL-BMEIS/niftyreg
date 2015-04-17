@@ -108,7 +108,7 @@ void reg_dti_resampling_preprocessing(nifti_image *floatingImage,
       reg_print_msg_debug("DTI indices:");
       sprintf(text, "Active time point:");
       for(unsigned int i = 0; i < 6; i++ )
-            sprintf(text, "%s %i", text, dtIndicies[i]);
+         sprintf(text, "%s %i", text, dtIndicies[i]);
       reg_print_msg_debug(text);
 #endif
 
@@ -349,12 +349,12 @@ void ResampleImage3D(nifti_image *floatingImage,
    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[warpedVoxelNumber];
    FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[warpedVoxelNumber];
 
-//#ifndef _OPENMP
-//   // Compute the resolution of the progress bar
-//   unsigned long iProgressStep  = 1;
-//   unsigned long nProgressSteps = warpedImage->nt * warpedImage->nu * warpedVoxelNumber;
-//   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-//#endif
+   //#ifndef _OPENMP
+   //   // Compute the resolution of the progress bar
+   //   unsigned long iProgressStep  = 1;
+   //   unsigned long nProgressSteps = warpedImage->nt * warpedImage->nu * warpedVoxelNumber;
+   //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
+   //#endif
 
    int *maskPtr = &mask[0];
 
@@ -509,13 +509,13 @@ void ResampleImage3D(nifti_image *floatingImage,
             break;
          }
 
-//#ifndef _OPENMP
-//         // Announce the progress via CLI
-//         if (iProgressStep % progressUnit == 0)
-//            progressXML(100 * iProgressStep / nProgressSteps, "Performing 3D Resampling...");
-//         // Increment the progress counter
-//         iProgressStep++;
-//#endif
+         //#ifndef _OPENMP
+         //         // Announce the progress via CLI
+         //         if (iProgressStep % progressUnit == 0)
+         //            progressXML(100 * iProgressStep / nProgressSteps, "Performing 3D Resampling...");
+         //         // Increment the progress counter
+         //         iProgressStep++;
+         //#endif
       }
    }
 }
@@ -542,12 +542,12 @@ void ResampleImage2D(nifti_image *floatingImage,
    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[warpedVoxelNumber];
 
-//#ifndef _OPENMP
-//   // Compute the resolution of the progress bar
-//   unsigned long iProgressStep  = 1;
-//   unsigned long nProgressSteps = warpedImage->nt * warpedImage->nu * warpedVoxelNumber;
-//   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-//#endif
+   //#ifndef _OPENMP
+   //   // Compute the resolution of the progress bar
+   //   unsigned long iProgressStep  = 1;
+   //   unsigned long nProgressSteps = warpedImage->nt * warpedImage->nu * warpedVoxelNumber;
+   //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
+   //#endif
 
    int *maskPtr = &mask[0];
 
@@ -678,13 +678,13 @@ void ResampleImage2D(nifti_image *floatingImage,
                break;
             }
 
-//#ifndef _OPENMP
-//            // Announce the progress via CLI
-//            if (iProgressStep % progressUnit == 0)
-//               progressXML(100 * iProgressStep / nProgressSteps, "Performing 3D Resampling...");
-//            // Increment the progress counter
-//            iProgressStep++;
-//#endif
+            //#ifndef _OPENMP
+            //            // Announce the progress via CLI
+            //            if (iProgressStep % progressUnit == 0)
+            //               progressXML(100 * iProgressStep / nProgressSteps, "Performing 3D Resampling...");
+            //            // Increment the progress counter
+            //            iProgressStep++;
+            //#endif
          }
       }
    }
@@ -1002,6 +1002,622 @@ void reg_resampleImage(nifti_image *floatingImage,
 }
 /* *************************************************************** */
 /* *************************************************************** */
+template<class FloatingTYPE, class FieldTYPE>
+void ResampleImage3D_PSF(nifti_image *floatingImage,
+                         nifti_image *deformationField,
+                         nifti_image *warpedImage,
+                         int *mask,
+                         FieldTYPE paddingValue,
+                         int kernel,
+                         mat33 *jacMat)
+{
+#ifdef _WIN32
+   long  index;
+   long warpedVoxelNumber = (long)warpedImage->nx*warpedImage->ny*warpedImage->nz;
+   long warpedPlaneNumber = (long)warpedImage->nx*warpedImage->ny;
+   long warpedLineNumber = (long)warpedImage->nx;
+   long floatingVoxelNumber = (long)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+#else
+   size_t  index;
+   size_t warpedVoxelNumber = (size_t)warpedImage->nx*warpedImage->ny*warpedImage->nz;
+   size_t warpedPlaneNumber = (size_t)warpedImage->nx*warpedImage->ny;
+   size_t warpedLineNumber = (size_t)warpedImage->nx;
+   size_t floatingVoxelNumber = (size_t)floatingImage->nx*floatingImage->ny*floatingImage->nz;
+#endif
+   FloatingTYPE *floatingIntensityPtr = static_cast<FloatingTYPE *>(floatingImage->data);
+   FloatingTYPE *warpedIntensityPtr = static_cast<FloatingTYPE *>(warpedImage->data);
+   FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
+   FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[warpedVoxelNumber];
+   FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[warpedVoxelNumber];
+
+   int *maskPtr = &mask[0];
+
+   mat44 *floatingIJKMatrix;
+   if(floatingImage->sform_code>0)
+      floatingIJKMatrix=&(floatingImage->sto_ijk);
+   else floatingIJKMatrix=&(floatingImage->qto_ijk);
+   mat44 *warpedMatrix = &(warpedImage->qto_xyz);
+   if(warpedImage->sform_code>0)
+      warpedMatrix = &(warpedImage->sto_xyz);
+   mat44 *floatingMatrix = &(floatingImage->qto_xyz);
+   if(floatingImage->sform_code>0)
+      floatingMatrix = &(floatingImage->sto_xyz);
+
+   float fwhmToStd=2.355f;
+   mat33 psfKernelVarWarp, psfKernelVarFloat;
+   memset(&psfKernelVarWarp,0,sizeof(mat33));
+   memset(&psfKernelVarFloat,0,sizeof(mat33));
+   for(int j=0; j<3; j++){
+      for(int i=0; i<3; i++){
+         psfKernelVarWarp.m[j][j] += reg_pow2(warpedMatrix->m[i][j]);
+         psfKernelVarFloat.m[j][j] += reg_pow2(floatingMatrix->m[i][j]);
+      }
+      psfKernelVarWarp.m[j][j] = reg_pow2(sqrtf(psfKernelVarWarp.m[j][j]) / fwhmToStd);
+      psfKernelVarFloat.m[j][j] = reg_pow2(sqrtf(psfKernelVarFloat.m[j][j]) / fwhmToStd);
+   }
+
+   // Define the kernel to use
+   int kernel_size;
+   int kernel_offset=0;
+   void (*kernelCompFctPtr)(double,double *);
+   switch(kernel){
+   case 0:
+      reg_print_fct_error("ResampleImage3D_PSF");
+      reg_print_msg_error("Not implemented for NN interpolation yet");
+      reg_exit(1);
+      kernel_size=2;
+      kernelCompFctPtr=&interpNearestNeighKernel;
+      kernel_offset=0;
+      break; // nereast-neighboor interpolation
+   case 1:
+      kernel_size=2;
+      kernelCompFctPtr=&interpLinearKernel;
+      kernel_offset=0;
+      break; // linear interpolation
+   case 4:
+      kernel_size=SINC_KERNEL_SIZE;
+      kernelCompFctPtr=&interpWindowedSincKernel;
+      kernel_offset=SINC_KERNEL_RADIUS;
+      break; // sinc interpolation
+   default:
+      kernel_size=4;
+      kernelCompFctPtr=&interpCubicSplineKernel;
+      kernel_offset=1;
+      break; // cubic spline interpolation
+   }
+
+   // Iteration over the different volume along the 4th axis
+   for(size_t t=0; t<(size_t)warpedImage->nt*warpedImage->nu; t++)
+   {
+#ifndef NDEBUG
+      printf("[NiftyReg DEBUG] 3D resampling of volume number %lu\n",t);
+#endif
+
+      FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*warpedVoxelNumber];
+      FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
+
+      double xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], zBasis[SINC_KERNEL_SIZE], relative[3];
+      int a, b, c, Y, Z, previous[3];
+
+      float psf_xyz[3];
+
+      mat33 finalCovariance, invFinalCovariance, tmpDiagFloat;
+      float currentDeterminant, maxDiag, psfKernelShift=1.5f, psfNumbSamples, psfSampleSpacing, psfWeightSum;
+
+      FloatingTYPE *zPointer, *xyzPointer;
+      double xTempNewValue, yTempNewValue, intensity, psfIntensity, psfWorld[3], position[3];
+      float currentA, currentB, currentC, psf_a_vox, psf_b_vox, psf_c_vox, psf_a, psf_b, psf_c, mahal, psfWeight;
+      float currentAPre, currentARel, currentBPre, currentBRel, currentCPre, currentCRel, resamplingWeightSum, resamplingWeight;
+      int currentIndex;
+#if defined (_OPENMP)
+#pragma omp parallel for default(none) \
+   private(intensity, tmpDiagFloat, finalCovariance, currentDeterminant, maxDiag, \
+   invFinalCovariance, psfNumbSamples, psfSampleSpacing, psfWeightSum, psfWeight, \
+   currentA, currentB, currentC, psfWorld, position, psf_a, psf_b, psf_c, psf_a_vox, psf_b_vox, psf_c_vox,\
+   psf_xyz, mahal, currentAPre, currentARel, currentBPre, currentBRel, currentCPre, currentCRel,\
+   resamplingWeightSum, resamplingWeight, currentIndex, previous, relative,\
+   xBasis, yBasis, zBasis, Y, Z, psfIntensity, yTempNewValue, xTempNewValue,\
+   xyzPointer, zPointer, a, b, c) \
+   shared(warpedVoxelNumber, maskPtr, jacMat, psfKernelVarFloat, psfKernelVarWarp, paddingValue,\
+   fwhmToStd, psfKernelShift, warpedPlaneNumber, warpedLineNumber, floatingIntensity,\
+   deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, floatingIJKMatrix,\
+   floatingImage, warpedImage, kernelCompFctPtr, kernel_offset, kernel_size, warpedIntensity)
+#endif // _OPENMP
+      for(index=0; index<warpedVoxelNumber; index++)
+      {
+         intensity=paddingValue;
+
+         if((maskPtr[index])>-1)
+         {
+            // Reorient the floating image co-variance matric based on the Jacobian matrix of the transformation
+            tmpDiagFloat.m[0][0]=
+                  jacMat[index].m[0][0]*psfKernelVarFloat.m[0][0]+
+                  jacMat[index].m[0][1]*psfKernelVarFloat.m[1][1]+
+                  jacMat[index].m[0][2]*psfKernelVarFloat.m[2][2];
+            tmpDiagFloat.m[1][1]=
+                  jacMat[index].m[1][0]*psfKernelVarFloat.m[0][0]+
+                  jacMat[index].m[1][1]*psfKernelVarFloat.m[1][1]+
+                  jacMat[index].m[1][2]*psfKernelVarFloat.m[2][2];
+            tmpDiagFloat.m[2][2]=
+                  jacMat[index].m[2][0]*psfKernelVarFloat.m[0][0]+
+                  jacMat[index].m[2][1]*psfKernelVarFloat.m[1][1]+
+                  jacMat[index].m[2][2]*psfKernelVarFloat.m[2][2];
+
+            // Check the difference in FWHM by projecting the rotated matrix back onto the warped axes
+            memset(&finalCovariance, 0, sizeof(mat33));
+            for(b=0; b<3; b++){
+               for(a=0; a<3; a++)
+                  finalCovariance.m[b][b] += reg_pow2(tmpDiagFloat.m[a][b]);
+               finalCovariance.m[b][b] =
+                     psfKernelVarWarp.m[b][b] -
+                     reg_pow2(sqrtf(psfKernelVarWarp.m[b][b]) / fwhmToStd);
+               finalCovariance.m[b][b] =
+                     finalCovariance.m[b][b]<=0.0001f?0.0001f:finalCovariance.m[b][b];
+            }
+            currentDeterminant = nifti_mat33_determ(finalCovariance);
+
+            // Extract the maximal scaling value
+            maxDiag=finalCovariance.m[0][0];
+            maxDiag=maxDiag<finalCovariance.m[1][1]?finalCovariance.m[1][1]:maxDiag;
+            maxDiag=maxDiag<finalCovariance.m[2][2]?finalCovariance.m[2][2]:maxDiag;
+
+            invFinalCovariance=nifti_mat33_inverse(finalCovariance);
+
+            // Set the maximal number of samples per direction
+            psfNumbSamples=2.0f*reg_floor(4.0f*pow(maxDiag,1.0f/2.0f))+4;
+
+            psfNumbSamples=psfNumbSamples<20?psfNumbSamples:20;
+            psfSampleSpacing=(psfKernelShift*2.0f)/psfNumbSamples;
+            psfWeightSum=0.0f;
+            intensity=0.0;
+
+            // extract XYZ
+            currentC=reg_floor(index/warpedPlaneNumber);
+            currentB=reg_floor((index-currentC*warpedPlaneNumber)/warpedLineNumber);
+            currentA=(index-currentB*warpedLineNumber-currentC*warpedPlaneNumber);
+
+            // Test if center is out of bounds, and if it is, skip all the psf stuff and assign to padding
+            // Marc: This is not the default behavior in the rest of the code
+            psfWorld[0]=static_cast<double>(deformationFieldPtrX[index]);
+            psfWorld[1]=static_cast<double>(deformationFieldPtrY[index]);
+            psfWorld[2]=static_cast<double>(deformationFieldPtrZ[index]);
+            reg_mat44_mul(floatingIJKMatrix, psfWorld, position);
+            if(position[0]>0 && position[0]<floatingImage->nx &&
+               position[1]>0 && position[1]<floatingImage->ny &&
+               position[2]>0 && position[2]<floatingImage->nz){
+
+               for(psf_a_vox=-psfKernelShift;psf_a_vox<=(psfKernelShift); psf_a_vox+=psfSampleSpacing)
+               {
+                  psf_a=(float)(psf_a_vox)*(float)(warpedImage->pixdim[1]);
+
+                  for(psf_b_vox=-psfKernelShift;psf_b_vox<=(psfKernelShift); psf_b_vox+=psfSampleSpacing)
+                  {
+                     psf_b=(float)(psf_b_vox)*warpedImage->pixdim[2];
+
+                     for(psf_c_vox=-psfKernelShift;psf_c_vox<=(psfKernelShift); psf_c_vox+=psfSampleSpacing)
+                     {
+                        if((currentA+(float)(psf_a_vox))>0
+                              && (currentA+(float)(psf_a_vox))<=(float)(warpedImage->nx-1)
+                              && (currentB+(float)(psf_b_vox))>0
+                              && (currentB+(float)(psf_b_vox))<=(float)(warpedImage->ny-1)
+                              && (currentC+(float)(psf_c_vox))>0
+                              && (currentC+(float)(psf_c_vox))<=(float)(warpedImage->nz-1)){
+
+                           psf_c=(float)(psf_c_vox)*warpedImage->pixdim[3];
+
+                           psf_xyz[0]=psf_a;
+                           psf_xyz[1]=psf_b;
+                           psf_xyz[2]=psf_c;
+                           mahal=0;
+                           mahal=psf_a*invFinalCovariance.m[0][0]*psf_a+
+                                 psf_b*invFinalCovariance.m[1][0]*psf_a+
+                                 psf_c*invFinalCovariance.m[2][0]*psf_a+
+                                 psf_a*invFinalCovariance.m[0][1]*psf_b+
+                                 psf_b*invFinalCovariance.m[1][1]*psf_b+
+                                 psf_c*invFinalCovariance.m[2][1]*psf_b+
+                                 psf_a*invFinalCovariance.m[0][2]*psf_c+
+                                 psf_b*invFinalCovariance.m[1][2]*psf_c+
+                                 psf_c*invFinalCovariance.m[2][2]*psf_c;
+
+
+                           psfWeight=powf(2.f*M_PI,-3.f/2.f)*
+                                 pow(currentDeterminant,-0.5f)*
+                                 expf(-0.5f*mahal);
+
+                           if(psfWeight!=0.f){ // If the relative weight is above 0
+
+                              // Interpolate (trilinearly) the deformation field for non-integer positions
+                              currentAPre=(float)(reg_floor(currentA+psf_a_vox));
+                              currentARel=currentA+psf_a_vox-(float)(currentAPre);
+
+                              currentBPre=(float)(reg_floor(currentB+psf_b_vox));
+                              currentBRel=currentB+psf_b_vox-(float)(currentBPre);
+
+                              currentCPre=(float)(reg_floor(currentC+psf_c_vox));
+                              currentCRel=currentC+psf_c_vox-(float)(currentCPre);
+
+                              // Interpolate the PSF world coordinates
+                              psfWorld[0]=0.;
+                              psfWorld[1]=0.;
+                              psfWorld[2]=0.;
+                              resamplingWeightSum=0.f;
+                              for (a=0;a<=1;a++){
+                                 if((currentAPre+a)>=0 &&
+                                    (currentAPre+a)<warpedImage->nx){
+                                    for (b=0;b<=1;b++){
+                                       if((currentBPre+b)>=0 &&
+                                          (currentBPre+b)<warpedImage->ny){
+                                          for (c=0;c<=1;c++){
+                                             if((currentCPre+c)>=0 &&
+                                                (currentCPre+c)<warpedImage->nz){
+
+                                                currentIndex=
+                                                      (currentAPre+a)+
+                                                      (currentBPre+b)*warpedLineNumber+
+                                                      (currentCPre+c)*warpedPlaneNumber;
+
+                                                resamplingWeight=
+                                                      fabs(static_cast<float>(1-a)-currentARel)*
+                                                      fabs(static_cast<float>(1-b)-currentBRel)*
+                                                      fabs(static_cast<float>(1-c)-currentCRel);
+
+                                                resamplingWeightSum+=resamplingWeight;
+
+                                                psfWorld[0] += static_cast<double>
+                                                      (resamplingWeight*deformationFieldPtrX[currentIndex]);
+                                                psfWorld[1] += static_cast<double>
+                                                      (resamplingWeight*deformationFieldPtrY[currentIndex]);
+                                                psfWorld[2] += static_cast<double>
+                                                      (resamplingWeight*deformationFieldPtrZ[currentIndex]);
+                                             }
+                                          }
+                                       }
+                                    }
+                                 }
+                              }
+
+                              if(resamplingWeightSum>0){
+                                 psfWorld[0]/=resamplingWeightSum;
+                                 psfWorld[1]/=resamplingWeightSum;
+                                 psfWorld[2]/=resamplingWeightSum;
+
+                                 // real -> voxel; floating space
+                                 reg_mat44_mul(floatingIJKMatrix, psfWorld, position);
+
+                                 previous[0] = static_cast<int>(reg_floor(position[0]));
+                                 previous[1] = static_cast<int>(reg_floor(position[1]));
+                                 previous[2] = static_cast<int>(reg_floor(position[2]));
+
+                                 relative[0]=position[0]-static_cast<double>(previous[0]);
+                                 relative[1]=position[1]-static_cast<double>(previous[1]);
+                                 relative[2]=position[2]-static_cast<double>(previous[2]);
+
+                                 (*kernelCompFctPtr)(relative[0], xBasis);
+                                 (*kernelCompFctPtr)(relative[1], yBasis);
+                                 (*kernelCompFctPtr)(relative[2], zBasis);
+                                 previous[0]-=kernel_offset;
+                                 previous[1]-=kernel_offset;
+                                 previous[2]-=kernel_offset;
+
+                                 psfIntensity=0.;
+                                 for(c=0; c<kernel_size; c++)
+                                 {
+                                    Z= previous[2]+c;
+                                    zPointer = &floatingIntensity[Z*floatingImage->nx*floatingImage->ny];
+                                    yTempNewValue=0.;
+                                    for(b=0; b<kernel_size; b++)
+                                    {
+                                       Y= previous[1]+b;
+                                       xyzPointer = &zPointer[Y*floatingImage->nx+previous[0]];
+                                       xTempNewValue=0.;
+                                       for(a=0; a<kernel_size; a++)
+                                       {
+                                          if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx &&
+                                             -1<Z && Z<floatingImage->nz &&
+                                             -1<Y && Y<floatingImage->ny)
+                                          {
+                                             xTempNewValue +=  static_cast<double>(*xyzPointer) * xBasis[a];
+                                          }
+                                          else
+                                          {
+                                             // paddingValue
+                                             xTempNewValue +=  paddingValue * xBasis[a];
+                                          }
+                                          xyzPointer++;
+                                       }
+                                       yTempNewValue += xTempNewValue * yBasis[b];
+                                    }
+                                    psfIntensity += yTempNewValue * zBasis[c];
+                                 }
+                                 if(psfIntensity==psfIntensity){
+                                    intensity+=psfWeight*psfIntensity;
+                                    psfWeightSum+=psfWeight;
+                                 }
+                              }
+                           }
+                        }
+                     }
+                  }
+               }
+            }
+            if(psfWeightSum>0){
+               intensity/=psfWeightSum;
+            }
+            else{
+               intensity=paddingValue;
+            }
+         } // if in mask
+         switch(floatingImage->datatype)
+         {
+         case NIFTI_TYPE_FLOAT32:
+            warpedIntensity[index]=static_cast<FloatingTYPE>(intensity);
+            break;
+         case NIFTI_TYPE_FLOAT64:
+            warpedIntensity[index]=intensity;
+            break;
+         case NIFTI_TYPE_UINT8:
+            if(intensity!=intensity)
+               intensity=0;
+            intensity=(intensity<=255?reg_round(intensity):255); // 255=2^8-1
+            warpedIntensity[index]=static_cast<FloatingTYPE>(intensity>0?reg_round(intensity):0);
+            break;
+         case NIFTI_TYPE_UINT16:
+            if(intensity!=intensity)
+               intensity=0;
+            intensity=(intensity<=65535?reg_round(intensity):65535); // 65535=2^16-1
+            warpedIntensity[index]=static_cast<FloatingTYPE>(intensity>0?reg_round(intensity):0);
+            break;
+         case NIFTI_TYPE_UINT32:
+            if(intensity!=intensity)
+               intensity=0;
+            intensity=(intensity<=4294967295?reg_round(intensity):4294967295); // 4294967295=2^32-1
+            warpedIntensity[index]=static_cast<FloatingTYPE>(intensity>0?reg_round(intensity):0);
+            break;
+         default:
+            if(intensity!=intensity)
+               intensity=0;
+            warpedIntensity[index]=static_cast<FloatingTYPE>(reg_round(intensity));
+            break;
+         }
+      } // index
+   }
+}
+/* *************************************************************** */
+template <class FieldTYPE, class FloatingTYPE>
+void reg_resampleImage2_PSF(nifti_image *floatingImage,
+                            nifti_image *warpedImage,
+                            nifti_image *deformationFieldImage,
+                            int *mask,
+                            int interp,
+                            FieldTYPE paddingValue,
+                            mat33 * jacMat)
+{
+
+   // The deformation field contains the position in the real world
+   if(deformationFieldImage->nz>1)
+   {
+      ResampleImage3D_PSF<FloatingTYPE,FieldTYPE>(floatingImage,
+                                                  deformationFieldImage,
+                                                  warpedImage,
+                                                  mask,
+                                                  paddingValue,
+                                                  interp,
+                                                  jacMat);
+   }
+   else
+   {
+      reg_print_fct_error("reg_resampleImage2_PSF");
+      reg_print_msg_error("Not implemented for 2D images yet");
+      reg_exit(1);
+   }
+
+}
+/* *************************************************************** */
+void reg_resampleImage_PSF(nifti_image *floatingImage,
+                           nifti_image *warpedImage,
+                           nifti_image *deformationField,
+                           int *mask,
+                           int interp,
+                           float paddingValue,
+                           mat33 * jacMat)
+{
+   if(floatingImage->datatype != warpedImage->datatype)
+   {
+      reg_print_fct_error("reg_resampleImage");
+      reg_print_msg_error("The floating and warped image should have the same data type");
+      reg_exit(1);
+   }
+
+   if(floatingImage->nt != warpedImage->nt)
+   {
+      reg_print_fct_error("reg_resampleImage");
+      reg_print_msg_error("The floating and warped images have different dimension along the time axis");
+      reg_exit(1);
+   }
+
+   // a mask array is created if no mask is specified
+   bool MrPropreRules = false;
+   if(mask==NULL)
+   {
+      // voxels in the background are set to negative value so 0 corresponds to active voxel
+      mask=(int *)calloc(warpedImage->nx*warpedImage->ny*warpedImage->nz,sizeof(int));
+      MrPropreRules = true;
+   }
+
+   switch ( deformationField->datatype )
+   {
+   case NIFTI_TYPE_FLOAT32:
+      switch ( floatingImage->datatype )
+      {
+      case NIFTI_TYPE_UINT8:
+         reg_resampleImage2_PSF<float,unsigned char>(floatingImage,
+                                                     warpedImage,
+                                                     deformationField,
+                                                     mask,
+                                                     interp,
+                                                     paddingValue,
+                                                     jacMat);
+         break;
+      case NIFTI_TYPE_INT8:
+         reg_resampleImage2_PSF<float,char>(floatingImage,
+                                            warpedImage,
+                                            deformationField,
+                                            mask,
+                                            interp,
+                                            paddingValue,
+                                            jacMat);
+         break;
+      case NIFTI_TYPE_UINT16:
+         reg_resampleImage2_PSF<float,unsigned short>(floatingImage,
+                                                      warpedImage,
+                                                      deformationField,
+                                                      mask,
+                                                      interp,
+                                                      paddingValue,
+                                                      jacMat);
+         break;
+      case NIFTI_TYPE_INT16:
+         reg_resampleImage2_PSF<float,short>(floatingImage,
+                                             warpedImage,
+                                             deformationField,
+                                             mask,
+                                             interp,
+                                             paddingValue,
+                                             jacMat);
+         break;
+      case NIFTI_TYPE_UINT32:
+         reg_resampleImage2_PSF<float,unsigned int>(floatingImage,
+                                                    warpedImage,
+                                                    deformationField,
+                                                    mask,
+                                                    interp,
+                                                    paddingValue,
+                                                    jacMat);
+         break;
+      case NIFTI_TYPE_INT32:
+         reg_resampleImage2_PSF<float,int>(floatingImage,
+                                           warpedImage,
+                                           deformationField,
+                                           mask,
+                                           interp,
+                                           paddingValue,
+                                           jacMat);
+         break;
+      case NIFTI_TYPE_FLOAT32:
+         reg_resampleImage2_PSF<float,float>(floatingImage,
+                                             warpedImage,
+                                             deformationField,
+                                             mask,
+                                             interp,
+                                             paddingValue,
+                                             jacMat);
+         break;
+      case NIFTI_TYPE_FLOAT64:
+         reg_resampleImage2_PSF<float,double>(floatingImage,
+                                              warpedImage,
+                                              deformationField,
+                                              mask,
+                                              interp,
+                                              paddingValue,
+                                              jacMat);
+         break;
+      default:
+         printf("floating pixel type unsupported.");
+         break;
+      }
+      break;
+   case NIFTI_TYPE_FLOAT64:
+      switch ( floatingImage->datatype )
+      {
+      case NIFTI_TYPE_UINT8:
+         reg_resampleImage2_PSF<double,unsigned char>(floatingImage,
+                                                      warpedImage,
+                                                      deformationField,
+                                                      mask,
+                                                      interp,
+                                                      paddingValue,
+                                                      jacMat);
+         break;
+      case NIFTI_TYPE_INT8:
+         reg_resampleImage2_PSF<double,char>(floatingImage,
+                                             warpedImage,
+                                             deformationField,
+                                             mask,
+                                             interp,
+                                             paddingValue,
+                                             jacMat);
+         break;
+      case NIFTI_TYPE_UINT16:
+         reg_resampleImage2_PSF<double,unsigned short>(floatingImage,
+                                                       warpedImage,
+                                                       deformationField,
+                                                       mask,
+                                                       interp,
+                                                       paddingValue,
+                                                       jacMat);
+         break;
+      case NIFTI_TYPE_INT16:
+         reg_resampleImage2_PSF<double,short>(floatingImage,
+                                              warpedImage,
+                                              deformationField,
+                                              mask,
+                                              interp,
+                                              paddingValue,
+                                              jacMat);
+         break;
+      case NIFTI_TYPE_UINT32:
+         reg_resampleImage2_PSF<double,unsigned int>(floatingImage,
+                                                     warpedImage,
+                                                     deformationField,
+                                                     mask,
+                                                     interp,
+                                                     paddingValue,
+                                                     jacMat );
+         break;
+      case NIFTI_TYPE_INT32:
+         reg_resampleImage2_PSF<double,int>(floatingImage,
+                                            warpedImage,
+                                            deformationField,
+                                            mask,
+                                            interp,
+                                            paddingValue,
+                                            jacMat);
+         break;
+      case NIFTI_TYPE_FLOAT32:
+         reg_resampleImage2_PSF<double,float>(floatingImage,
+                                              warpedImage,
+                                              deformationField,
+                                              mask,
+                                              interp,
+                                              paddingValue,
+                                              jacMat);
+         break;
+      case NIFTI_TYPE_FLOAT64:
+         reg_resampleImage2_PSF<double,double>(floatingImage,
+                                               warpedImage,
+                                               deformationField,
+                                               mask,
+                                               interp,
+                                               paddingValue,
+                                               jacMat);
+         break;
+      default:
+         printf("floating pixel type unsupported.");
+         break;
+      }
+      break;
+   default:
+      printf("Deformation field pixel type unsupported.");
+      break;
+   }
+   if(MrPropreRules==true)
+   {
+      free(mask);
+      mask=NULL;
+   }
+}
+/* *************************************************************** */
+/* *************************************************************** */
 template <class DTYPE>
 void reg_bilinearResampleGradient(nifti_image *floatingImage,
                                   nifti_image *warpedImage,
@@ -1046,12 +1662,12 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
    int x,y,a,b,defIndex,floIndex,warpedIndex;
    DTYPE val_x,val_y,weight[2];
 
-//#ifndef _OPENMP
-//   // Compute the resolution of the progress bar
-//   unsigned long iProgressStep  = 1;
-//   unsigned long nProgressSteps = warpedImage->nx * warpedImage->ny;
-//   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-//#endif
+   //#ifndef _OPENMP
+   //   // Compute the resolution of the progress bar
+   //   unsigned long iProgressStep  = 1;
+   //   unsigned long nProgressSteps = warpedImage->nx * warpedImage->ny;
+   //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
+   //#endif
 
    // Loop over all voxel
 #if defined (_OPENMP)
@@ -1187,13 +1803,13 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
 
          ++warpedIndex;
 
-//#ifndef _OPENMP
-//         // Announce the progress via CLI
-//         if (iProgressStep % progressUnit == 0)
-//            progressXML(100 * iProgressStep / nProgressSteps, "Performing Bilinear Gradient Resampling...");
-//         // Increment the progress counter
-//         iProgressStep++;
-//#endif
+         //#ifndef _OPENMP
+         //         // Announce the progress via CLI
+         //         if (iProgressStep % progressUnit == 0)
+         //            progressXML(100 * iProgressStep / nProgressSteps, "Performing Bilinear Gradient Resampling...");
+         //         // Increment the progress counter
+         //         iProgressStep++;
+         //#endif
       } // x
    } // y
 }
@@ -1246,12 +1862,12 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
    int x,y,z,a,b,c,defIndex,floIndex,warpedIndex;
    DTYPE val_x,val_y,val_z,weight[3];
 
-//#ifndef _OPENMP
-//   // Compute the resolution of the progress bar
-//   unsigned long iProgressStep  = 1;
-//   unsigned long nProgressSteps = warpedVoxelNumber;
-//   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-//#endif
+   //#ifndef _OPENMP
+   //   // Compute the resolution of the progress bar
+   //   unsigned long iProgressStep  = 1;
+   //   unsigned long nProgressSteps = warpedVoxelNumber;
+   //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
+   //#endif
    // Loop over all voxel
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
@@ -1444,13 +2060,13 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
 
             ++warpedIndex;
 
-//#ifndef _OPENMP
-//            // Announce the progress via CLI
-//            if (iProgressStep % progressUnit == 0)
-//               progressXML(100 * iProgressStep / nProgressSteps, "Performing Trilinear Gradient Resampling...");
-//            // Increment the progress counter
-//            iProgressStep++;
-//#endif
+            //#ifndef _OPENMP
+            //            // Announce the progress via CLI
+            //            if (iProgressStep % progressUnit == 0)
+            //               progressXML(100 * iProgressStep / nProgressSteps, "Performing Trilinear Gradient Resampling...");
+            //            // Increment the progress counter
+            //            iProgressStep++;
+            //#endif
          } // x
       } // y
    } // z
@@ -1547,12 +2163,12 @@ void TrilinearImageGradient(nifti_image *floatingImage,
       floatingIJKMatrix=&(floatingImage->sto_ijk);
    else floatingIJKMatrix=&(floatingImage->qto_ijk);
 
-//#ifndef _OPENMP
-//   // Compute the resolution of the progress bar
-//   unsigned long iProgressStep  = 1;
-//   unsigned long nProgressSteps = warpedGradientImage->nt * referenceVoxelNumber;
-//   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-//#endif
+   //#ifndef _OPENMP
+   //   // Compute the resolution of the progress bar
+   //   unsigned long iProgressStep  = 1;
+   //   unsigned long nProgressSteps = warpedGradientImage->nt * referenceVoxelNumber;
+   //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
+   //#endif
 
    // Iteration over the different volume along the 4th axis
    for(int t=0; t<warpedGradientImage->nt; t++)
@@ -1716,13 +2332,13 @@ void TrilinearImageGradient(nifti_image *floatingImage,
          warpedGradientPtrY[index] = (GradientTYPE)grad[1];
          warpedGradientPtrZ[index] = (GradientTYPE)grad[2];
 
-//#ifndef _OPENMP
-//         // Announce the progress via CLI
-//         if (iProgressStep % progressUnit == 0)
-//            progressXML(100 * iProgressStep / nProgressSteps, "Performing Trilinear Gradient Computation...");
-//         // Increment the progress counter
-//         iProgressStep++;
-//#endif
+         //#ifndef _OPENMP
+         //         // Announce the progress via CLI
+         //         if (iProgressStep % progressUnit == 0)
+         //            progressXML(100 * iProgressStep / nProgressSteps, "Performing Trilinear Gradient Computation...");
+         //         // Increment the progress counter
+         //         iProgressStep++;
+         //#endif
       }
    }
 }
@@ -1756,12 +2372,12 @@ void BilinearImageGradient(nifti_image *floatingImage,
       floatingIJKMatrix=floatingImage->sto_ijk;
    else floatingIJKMatrix=floatingImage->qto_ijk;
 
-//#ifndef _OPENMP
-//   // Compute the resolution of the progress bar
-//   unsigned long iProgressStep  = 1;
-//   unsigned long nProgressSteps = warpedGradientImage->nt * referenceVoxelNumber;
-//   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-//#endif
+   //#ifndef _OPENMP
+   //   // Compute the resolution of the progress bar
+   //   unsigned long iProgressStep  = 1;
+   //   unsigned long nProgressSteps = warpedGradientImage->nt * referenceVoxelNumber;
+   //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
+   //#endif
 
    // Iteration over the different volume along the 4th axis
    for(int t=0; t<warpedGradientImage->nt; t++)
@@ -1863,13 +2479,13 @@ void BilinearImageGradient(nifti_image *floatingImage,
          warpedGradientPtrX[index] = (GradientTYPE)grad[0];
          warpedGradientPtrY[index] = (GradientTYPE)grad[1];
 
-//#ifndef _OPENMP
-//         // Announce the progress via CLI
-//         if (iProgressStep % progressUnit == 0)
-//            progressXML(100 * iProgressStep / nProgressSteps, "Performing Bilinear Gradient Computation...");
-//         // Increment the progress counter
-//         iProgressStep++;
-//#endif
+         //#ifndef _OPENMP
+         //         // Announce the progress via CLI
+         //         if (iProgressStep % progressUnit == 0)
+         //            progressXML(100 * iProgressStep / nProgressSteps, "Performing Bilinear Gradient Computation...");
+         //         // Increment the progress counter
+         //         iProgressStep++;
+         //#endif
       }
    }
 }
@@ -1904,12 +2520,12 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
       floatingIJKMatrix=&(floatingImage->sto_ijk);
    else floatingIJKMatrix=&(floatingImage->qto_ijk);
 
-//#ifndef _OPENMP
-//   // Compute the resolution of the progress bar
-//   unsigned long iProgressStep  = 1;
-//   unsigned long nProgressSteps = warpedGradientImage->nt * referenceVoxelNumber;
-//   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-//#endif
+   //#ifndef _OPENMP
+   //   // Compute the resolution of the progress bar
+   //   unsigned long iProgressStep  = 1;
+   //   unsigned long nProgressSteps = warpedGradientImage->nt * referenceVoxelNumber;
+   //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
+   //#endif
 
    // Iteration over the different volume along the 4th axis
    for(int t=0; t<warpedGradientImage->nt; t++)
@@ -2042,13 +2658,13 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
          warpedGradientPtrY[index] = (GradientTYPE)grad[1];
          warpedGradientPtrZ[index] = (GradientTYPE)grad[2];
 
-//#ifndef _OPENMP
-//         // Announce the progress via CLI
-//         if (iProgressStep % progressUnit == 0)
-//            progressXML(100 * iProgressStep / nProgressSteps, "Performing 3D Cubic Spline Gradient Computation...");
-//         // Increment the progress counter
-//         iProgressStep++;
-//#endif
+         //#ifndef _OPENMP
+         //         // Announce the progress via CLI
+         //         if (iProgressStep % progressUnit == 0)
+         //            progressXML(100 * iProgressStep / nProgressSteps, "Performing 3D Cubic Spline Gradient Computation...");
+         //         // Increment the progress counter
+         //         iProgressStep++;
+         //#endif
       }
    }
 }
@@ -2081,12 +2697,12 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
       floatingIJKMatrix=&(floatingImage->sto_ijk);
    else floatingIJKMatrix=&(floatingImage->qto_ijk);
 
-//#ifndef _OPENMP
-//   // Compute the resolution of the progress bar
-//   unsigned long iProgressStep  = 1;
-//   unsigned long nProgressSteps = warpedGradientImage->nt * referenceVoxelNumber;
-//   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-//#endif
+   //#ifndef _OPENMP
+   //   // Compute the resolution of the progress bar
+   //   unsigned long iProgressStep  = 1;
+   //   unsigned long nProgressSteps = warpedGradientImage->nt * referenceVoxelNumber;
+   //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
+   //#endif
 
    // Iteration over the different volume along the 4th axis
    for(int t=0; t<warpedGradientImage->nt; t++)
@@ -2182,13 +2798,13 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
          warpedGradientPtrX[index] = (GradientTYPE)grad[0];
          warpedGradientPtrY[index] = (GradientTYPE)grad[1];
 
-//#ifndef _OPENMP
-//         // Announce the progress via CLI
-//         if (iProgressStep % progressUnit == 0)
-//            progressXML(100 * iProgressStep / nProgressSteps, "Performing 2D Cubic Spline Gradient Computation...");
-//         // Increment the progress counter
-//         iProgressStep++;
-//#endif
+         //#ifndef _OPENMP
+         //         // Announce the progress via CLI
+         //         if (iProgressStep % progressUnit == 0)
+         //            progressXML(100 * iProgressStep / nProgressSteps, "Performing 2D Cubic Spline Gradient Computation...");
+         //         // Increment the progress counter
+         //         iProgressStep++;
+         //#endif
       }
    }
 }

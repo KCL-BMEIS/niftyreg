@@ -17,7 +17,7 @@
 #include "_reg_maths.h"
 #include <vector>
 
-#define TOLERANCE 0.01
+#define TOLERANCE 0.001
 #define MAX_ITERATIONS 30
 
 #define BLOCK_WIDTH 4

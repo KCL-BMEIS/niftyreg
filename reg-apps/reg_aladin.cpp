@@ -118,7 +118,7 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
    }
 
-   char text[255];
+   char text[1024];
 
    time_t start;
    time(&start);

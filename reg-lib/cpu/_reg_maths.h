@@ -46,6 +46,17 @@ typedef enum
 #define IMIN(a,b) (a < b ? a : b)
 #define SQR(a) (a==0.0 ? 0.0 : a*a)
 /* *************************************************************** */
+#ifdef RNIFTYREG
+#include <R.h>  // This may have to change to Rcpp.h or RcppEigen.h later
+#define reg_exit(val){error("[NiftyReg] Fatal error with code %d", val);}
+#define reg_print_info(executable,text){Rprintf("[%s] %s\n", executable, text);}
+#define reg_print_fct_debug(text){Rprintf("[NiftyReg DEBUG] Function: %s called\n", text);}
+#define reg_print_msg_debug(text){Rprintf("[NiftyReg DEBUG] %s\n", text);}
+#define reg_print_fct_warn(text){REprintf("[NiftyReg WARNING] Function: %s\n", text);}
+#define reg_print_msg_warn(text){REprintf("[NiftyReg WARNING] %s\n", text);}
+#define reg_print_fct_error(text){REprintf("[NiftyReg ERROR] Function: %s\n", text);}
+#define reg_print_msg_error(text){REprintf("[NiftyReg ERROR] %s\n", text);}
+#else
 #define reg_exit(val){ \
     fprintf(stderr,"[NiftyReg] Exit here. File: %s:%i\n",__FILE__, __LINE__); \
     exit(val); \
@@ -57,6 +68,7 @@ typedef enum
 #define reg_print_msg_warn(text){printf("[NiftyReg WARNING] %s\n", text);}
 #define reg_print_fct_error(text){fprintf(stderr,"[NiftyReg ERROR] Function: %s\n", text);}
 #define reg_print_msg_error(text){fprintf(stderr,"[NiftyReg ERROR] %s\n", text);}
+#endif
 /* *************************************************************** */
 #if defined(_WIN32) && !defined(__CYGWIN__)
 #include <limits>
@@ -155,10 +167,20 @@ void reg_mat44_mul(mat44 const* mat,
 mat44 reg_mat44_mul(mat44 const* mat,
                     double scalar);
 /* *************************************************************** */
+/** @brief Add two 3-by-3 matrices
+ */
+mat33 reg_mat33_add(mat33 const* A, mat33 const* B);
+mat33 operator+(mat33 A,mat33 B);
+/* *************************************************************** */
 /** @brief Add two 4-by-4 matrices
  */
 mat44 reg_mat44_add(mat44 const* A, mat44 const* B);
 mat44 operator+(mat44 A,mat44 B);
+/* *************************************************************** */
+/** @brief Substract two 3-by-3 matrices
+ */
+mat33 reg_mat33_minus(mat33 const* A, mat33 const* B);
+mat33 operator-(mat33 A,mat33 B);
 /* *************************************************************** */
 /** @brief Substract two 4-by-4 matrices
  */
