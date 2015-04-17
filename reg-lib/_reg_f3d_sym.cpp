@@ -122,7 +122,7 @@ T reg_f3d_sym<T>::InitialiseCurrentLevel()
    if(this->gridRefinement==true)
    {
       if(this->currentLevel==0)
-         this->bendingEnergyWeight = this->bendingEnergyWeight / static_cast<T>(powf(16.0f, this->levelToPerform-1));
+         this->bendingEnergyWeight = this->bendingEnergyWeight / static_cast<T>(powf(16.0f, this->levelNumber-1));
       else
       {
          reg_spline_refineControlPointGrid(this->controlPointGrid);
