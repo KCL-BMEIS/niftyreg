@@ -131,6 +131,11 @@ void Usage(char *exec)
    printf("\t\tfilename3 - Image used as a floating (-in arg in FLIRT)\n");
    printf("\t\tfilename4 - Output affine transformation file name\n\n");
 
+#if defined (_OPENMP)
+   printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [1/%i]\n",
+          omp_get_num_procs());
+#endif
+
 #ifdef _GIT_HASH
    printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
 #endif
@@ -160,6 +165,11 @@ int main(int argc, char **argv)
    PARAM *param = (PARAM *)calloc(1,sizeof(PARAM));
    FLAG *flag = (FLAG *)calloc(1,sizeof(FLAG));
 
+#if defined (_OPENMP)
+   // Set the default number of thread to one
+   omp_set_num_threads(1);
+#endif
+
    // Parse the input data
    for(int i=1; i<argc; ++i)
    {
@@ -174,6 +184,12 @@ int main(int argc, char **argv)
          Usage(argv[0]);
          return EXIT_SUCCESS;
       }
+#if defined (_OPENMP)
+      else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
+      {
+         omp_set_num_threads(atoi(argv[++i]));
+      }
+#endif
 #ifdef _GIT_HASH
       else if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
             strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||

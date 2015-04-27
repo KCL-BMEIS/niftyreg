@@ -131,7 +131,7 @@ void Usage(char *exec)
 #if defined (_OPENMP)
    reg_print_info(exec, "");
    reg_print_info(exec, "*** OpenMP-related options:");
-   sprintf(text, "\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i]",
+   sprintf(text, "\t-omp <int>\t\tNumber of thread to use with OpenMP. [1/%i]",
           omp_get_num_procs());
    reg_print_info(exec, text);
 #endif
@@ -163,6 +163,11 @@ int main(int argc, char **argv)
    time_t start;
    time(&start);
    int verbose=true;
+
+#if defined (_OPENMP)
+   // Set the default number of thread to one
+   omp_set_num_threads(1);
+#endif
 
    char text[1024];
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/

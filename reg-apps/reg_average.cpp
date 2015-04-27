@@ -49,6 +49,11 @@ void usage(char *exec)
    reg_print_info(exec, "");
    reg_print_info(exec, "\t-demean2 <referenceImage> <NonRigidTrans1> <floatingImage1> ... <NonRigidTransN> <floatingImageN>");
    reg_print_info(exec, "\t-demean3 <referenceImage> <AffineMat1> <NonRigidTrans1> <floatingImage1> ...  <AffineMatN> <NonRigidTransN> <floatingImageN>");
+#if defined (_OPENMP)
+   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [1/%i]",
+          omp_get_num_procs());
+   reg_print_info(exec, text);
+#endif
 #ifdef _GIT_HASH
    reg_print_info(exec, "");
    sprintf(text, "\t--version\t\tPrint current source code git hash key and exit\t\t\t\t(%s)", _GIT_HASH);
@@ -79,6 +84,10 @@ int main(int argc, char **argv)
       usage(argv[0]);
       return EXIT_FAILURE;
    }
+#if defined (_OPENMP)
+   // Set the default number of thread to one
+   omp_set_num_threads(1);
+#endif
    // Check if the --xml information is required
    if(strcmp(argv[1], "--xml")==0)
    {
@@ -104,6 +113,12 @@ int main(int argc, char **argv)
          printf("%s",xml_average);
          return EXIT_SUCCESS;
       }
+#if defined (_OPENMP)
+      else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
+      {
+         omp_set_num_threads(atoi(argv[++i]));
+      }
+#endif
 #ifdef _GIT_HASH
       else if(strcmp(argv[i], "-version")==0 || strcmp(argv[i], "-Version")==0 ||
             strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||

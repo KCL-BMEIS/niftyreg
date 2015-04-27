@@ -118,6 +118,10 @@ void Usage(char *exec)
    printf("\t\tFilename of the Jacobian matrix map. (9 or 4 values are stored as a 5D nifti).\n");
    printf("\t-jacL <filename>\n");
    printf("\t\tFilename of the Log of the Jacobian determinant map.\n");
+#if defined (_OPENMP)
+   printf("\t-omp <int>\t\tNumber of thread to use with OpenMP. [1/%i]\n",
+          omp_get_num_procs());
+#endif
 #ifdef _GIT_HASH
    printf("\n\t--version\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
 #endif
@@ -135,6 +139,11 @@ int main(int argc, char **argv)
    PARAM *param = (PARAM *)calloc(1,sizeof(PARAM));
    FLAG *flag = (FLAG *)calloc(1,sizeof(FLAG));
 
+#if defined (_OPENMP)
+   // Set the default number of thread to one
+   omp_set_num_threads(1);
+#endif
+
    // read the input parameters
    for(int i=1; i<argc; i++)
    {
@@ -150,6 +159,12 @@ int main(int argc, char **argv)
          printf("%s",xml_jacobian);
          return EXIT_SUCCESS;
       }
+#if defined (_OPENMP)
+      else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
+      {
+         omp_set_num_threads(atoi(argv[++i]));
+      }
+#endif
 #ifdef _GIT_HASH
       else if( strcmp(argv[i], "-version")==0 ||
           strcmp(argv[i], "-Version")==0 ||

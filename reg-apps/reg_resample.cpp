@@ -69,6 +69,10 @@ void Usage(char *exec)
    printf("\t-tensor\n\t\tThe last six timepoints of the floating image are considered to be tensor order as XX, XY, YY, XZ, YZ, ZZ [off]\n");
    printf("\t-psf\n\t\tPerform the resampling in two steps to resample an image to a lower resolution [off]\n");
    printf("\t-voff\n\t\tTurns verbose off [on]\n");
+#if defined (_OPENMP)
+   printf("\t-omp <int>\n\t\tNumber of thread to use with OpenMP. [1/%i]\n",
+          omp_get_num_procs());
+#endif
 #ifdef _GIT_HASH
    printf("\n\t--version\n\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
 #endif
@@ -84,6 +88,11 @@ int main(int argc, char **argv)
    param->interpolation=3; // Cubic spline interpolation used by default
    param->paddingValue=0;
    bool verbose=true;
+
+#if defined (_OPENMP)
+   // Set the default number of thread to one
+   omp_set_num_threads(1);
+#endif
 
    /* read the input parameter */
    for(int i=1; i<argc; i++)
@@ -104,6 +113,12 @@ int main(int argc, char **argv)
       {
          verbose=false;
       }
+#if defined (_OPENMP)
+      else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
+      {
+         omp_set_num_threads(atoi(argv[++i]));
+      }
+#endif
 #ifdef _GIT_HASH
       else if( strcmp(argv[i], "-version")==0 ||
                strcmp(argv[i], "-Version")==0 ||
