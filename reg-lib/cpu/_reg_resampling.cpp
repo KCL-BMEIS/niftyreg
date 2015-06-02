@@ -349,13 +349,6 @@ void ResampleImage3D(nifti_image *floatingImage,
    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[warpedVoxelNumber];
    FieldTYPE *deformationFieldPtrZ = &deformationFieldPtrY[warpedVoxelNumber];
 
-   //#ifndef _OPENMP
-   //   // Compute the resolution of the progress bar
-   //   unsigned long iProgressStep  = 1;
-   //   unsigned long nProgressSteps = warpedImage->nt * warpedImage->nu * warpedVoxelNumber;
-   //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-   //#endif
-
    int *maskPtr = &mask[0];
 
    mat44 *floatingIJKMatrix;
@@ -508,14 +501,6 @@ void ResampleImage3D(nifti_image *floatingImage,
             warpedIntensity[index]=static_cast<FloatingTYPE>(reg_round(intensity));
             break;
          }
-
-         //#ifndef _OPENMP
-         //         // Announce the progress via CLI
-         //         if (iProgressStep % progressUnit == 0)
-         //            progressXML(100 * iProgressStep / nProgressSteps, "Performing 3D Resampling...");
-         //         // Increment the progress counter
-         //         iProgressStep++;
-         //#endif
       }
    }
 }
@@ -541,13 +526,6 @@ void ResampleImage2D(nifti_image *floatingImage,
    FloatingTYPE *warpedIntensityPtr = static_cast<FloatingTYPE *>(warpedImage->data);
    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationField->data);
    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[warpedVoxelNumber];
-
-   //#ifndef _OPENMP
-   //   // Compute the resolution of the progress bar
-   //   unsigned long iProgressStep  = 1;
-   //   unsigned long nProgressSteps = warpedImage->nt * warpedImage->nu * warpedVoxelNumber;
-   //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-   //#endif
 
    int *maskPtr = &mask[0];
 
@@ -677,14 +655,6 @@ void ResampleImage2D(nifti_image *floatingImage,
                warpedIntensity[index]=static_cast<FloatingTYPE>(reg_round(intensity));
                break;
             }
-
-            //#ifndef _OPENMP
-            //            // Announce the progress via CLI
-            //            if (iProgressStep % progressUnit == 0)
-            //               progressXML(100 * iProgressStep / nProgressSteps, "Performing 3D Resampling...");
-            //            // Increment the progress counter
-            //            iProgressStep++;
-            //#endif
          }
       }
    }
@@ -1662,13 +1632,6 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
    int x,y,a,b,defIndex,floIndex,warpedIndex;
    DTYPE val_x,val_y,weight[2];
 
-   //#ifndef _OPENMP
-   //   // Compute the resolution of the progress bar
-   //   unsigned long iProgressStep  = 1;
-   //   unsigned long nProgressSteps = warpedImage->nx * warpedImage->ny;
-   //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-   //#endif
-
    // Loop over all voxel
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
@@ -1802,14 +1765,6 @@ void reg_bilinearResampleGradient(nifti_image *floatingImage,
          warpedIntensityY[warpedIndex]=jacMat.m[1][0]*val_x + jacMat.m[1][1]*val_y;
 
          ++warpedIndex;
-
-         //#ifndef _OPENMP
-         //         // Announce the progress via CLI
-         //         if (iProgressStep % progressUnit == 0)
-         //            progressXML(100 * iProgressStep / nProgressSteps, "Performing Bilinear Gradient Resampling...");
-         //         // Increment the progress counter
-         //         iProgressStep++;
-         //#endif
       } // x
    } // y
 }
@@ -1862,12 +1817,6 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
    int x,y,z,a,b,c,defIndex,floIndex,warpedIndex;
    DTYPE val_x,val_y,val_z,weight[3];
 
-   //#ifndef _OPENMP
-   //   // Compute the resolution of the progress bar
-   //   unsigned long iProgressStep  = 1;
-   //   unsigned long nProgressSteps = warpedVoxelNumber;
-   //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-   //#endif
    // Loop over all voxel
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
@@ -2059,14 +2008,6 @@ void reg_trilinearResampleGradient(nifti_image *floatingImage,
             warpedIntensityZ[warpedIndex]=jacMat.m[2][0]*val_x+jacMat.m[2][1]*val_y+jacMat.m[2][2]*val_z;
 
             ++warpedIndex;
-
-            //#ifndef _OPENMP
-            //            // Announce the progress via CLI
-            //            if (iProgressStep % progressUnit == 0)
-            //               progressXML(100 * iProgressStep / nProgressSteps, "Performing Trilinear Gradient Resampling...");
-            //            // Increment the progress counter
-            //            iProgressStep++;
-            //#endif
          } // x
       } // y
    } // z
@@ -2162,13 +2103,6 @@ void TrilinearImageGradient(nifti_image *floatingImage,
    if(floatingImage->sform_code>0)
       floatingIJKMatrix=&(floatingImage->sto_ijk);
    else floatingIJKMatrix=&(floatingImage->qto_ijk);
-
-   //#ifndef _OPENMP
-   //   // Compute the resolution of the progress bar
-   //   unsigned long iProgressStep  = 1;
-   //   unsigned long nProgressSteps = warpedGradientImage->nt * referenceVoxelNumber;
-   //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-   //#endif
 
    // Iteration over the different volume along the 4th axis
    for(int t=0; t<warpedGradientImage->nt; t++)
@@ -2331,14 +2265,6 @@ void TrilinearImageGradient(nifti_image *floatingImage,
          warpedGradientPtrX[index] = (GradientTYPE)grad[0];
          warpedGradientPtrY[index] = (GradientTYPE)grad[1];
          warpedGradientPtrZ[index] = (GradientTYPE)grad[2];
-
-         //#ifndef _OPENMP
-         //         // Announce the progress via CLI
-         //         if (iProgressStep % progressUnit == 0)
-         //            progressXML(100 * iProgressStep / nProgressSteps, "Performing Trilinear Gradient Computation...");
-         //         // Increment the progress counter
-         //         iProgressStep++;
-         //#endif
       }
    }
 }
@@ -2371,13 +2297,6 @@ void BilinearImageGradient(nifti_image *floatingImage,
    if(floatingImage->sform_code>0)
       floatingIJKMatrix=floatingImage->sto_ijk;
    else floatingIJKMatrix=floatingImage->qto_ijk;
-
-   //#ifndef _OPENMP
-   //   // Compute the resolution of the progress bar
-   //   unsigned long iProgressStep  = 1;
-   //   unsigned long nProgressSteps = warpedGradientImage->nt * referenceVoxelNumber;
-   //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-   //#endif
 
    // Iteration over the different volume along the 4th axis
    for(int t=0; t<warpedGradientImage->nt; t++)
@@ -2478,14 +2397,6 @@ void BilinearImageGradient(nifti_image *floatingImage,
 
          warpedGradientPtrX[index] = (GradientTYPE)grad[0];
          warpedGradientPtrY[index] = (GradientTYPE)grad[1];
-
-         //#ifndef _OPENMP
-         //         // Announce the progress via CLI
-         //         if (iProgressStep % progressUnit == 0)
-         //            progressXML(100 * iProgressStep / nProgressSteps, "Performing Bilinear Gradient Computation...");
-         //         // Increment the progress counter
-         //         iProgressStep++;
-         //#endif
       }
    }
 }
@@ -2519,13 +2430,6 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
    if(floatingImage->sform_code>0)
       floatingIJKMatrix=&(floatingImage->sto_ijk);
    else floatingIJKMatrix=&(floatingImage->qto_ijk);
-
-   //#ifndef _OPENMP
-   //   // Compute the resolution of the progress bar
-   //   unsigned long iProgressStep  = 1;
-   //   unsigned long nProgressSteps = warpedGradientImage->nt * referenceVoxelNumber;
-   //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-   //#endif
 
    // Iteration over the different volume along the 4th axis
    for(int t=0; t<warpedGradientImage->nt; t++)
@@ -2657,14 +2561,6 @@ void CubicSplineImageGradient3D(nifti_image *floatingImage,
          warpedGradientPtrX[index] = (GradientTYPE)grad[0];
          warpedGradientPtrY[index] = (GradientTYPE)grad[1];
          warpedGradientPtrZ[index] = (GradientTYPE)grad[2];
-
-         //#ifndef _OPENMP
-         //         // Announce the progress via CLI
-         //         if (iProgressStep % progressUnit == 0)
-         //            progressXML(100 * iProgressStep / nProgressSteps, "Performing 3D Cubic Spline Gradient Computation...");
-         //         // Increment the progress counter
-         //         iProgressStep++;
-         //#endif
       }
    }
 }
@@ -2696,13 +2592,6 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
    if(floatingImage->sform_code>0)
       floatingIJKMatrix=&(floatingImage->sto_ijk);
    else floatingIJKMatrix=&(floatingImage->qto_ijk);
-
-   //#ifndef _OPENMP
-   //   // Compute the resolution of the progress bar
-   //   unsigned long iProgressStep  = 1;
-   //   unsigned long nProgressSteps = warpedGradientImage->nt * referenceVoxelNumber;
-   //   unsigned long progressUnit   = (unsigned long)ceil((float)nProgressSteps / 100.0f);
-   //#endif
 
    // Iteration over the different volume along the 4th axis
    for(int t=0; t<warpedGradientImage->nt; t++)
@@ -2797,14 +2686,6 @@ void CubicSplineImageGradient2D(nifti_image *floatingImage,
          }
          warpedGradientPtrX[index] = (GradientTYPE)grad[0];
          warpedGradientPtrY[index] = (GradientTYPE)grad[1];
-
-         //#ifndef _OPENMP
-         //         // Announce the progress via CLI
-         //         if (iProgressStep % progressUnit == 0)
-         //            progressXML(100 * iProgressStep / nProgressSteps, "Performing 2D Cubic Spline Gradient Computation...");
-         //         // Increment the progress counter
-         //         iProgressStep++;
-         //#endif
       }
    }
 }

@@ -13,8 +13,8 @@
 #define _REG_BASE_H
 
 #include "_reg_resampling.h"
-#include "_reg_globalTransformation.h"
-#include "_reg_localTransformation.h"
+#include "_reg_globalTrans.h"
+#include "_reg_localTrans.h"
 #include "_reg_nmi.h"
 #include "_reg_dti.h"
 #include "_reg_ssd.h"
@@ -273,6 +273,6 @@ public:
    }
 };
 
-#include "_reg_base.cpp"
+//#include "_reg_base.cpp"
 
 #endif // _REG_BASE_H

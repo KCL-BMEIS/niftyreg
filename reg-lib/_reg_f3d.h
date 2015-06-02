@@ -21,9 +21,7 @@ protected:
    nifti_image *inputControlPointGrid; // pointer to external
    nifti_image *controlPointGrid;
    T bendingEnergyWeight;
-   T linearEnergyWeight0;
-   T linearEnergyWeight1;
-   T L2NormWeight;
+   T linearEnergyWeight;
    T jacobianLogWeight;
    bool jacobianLogApproximation;
    T spacing[3];
@@ -34,11 +32,9 @@ protected:
    double currentWJac;
    double currentWBE;
    double currentWLE;
-   double currentWL2;
    double bestWJac;
    double bestWBE;
    double bestWLE;
-   double bestWL2;
 
    virtual void AllocateTransformationGradient();
    virtual void ClearTransformationGradient();
@@ -47,11 +43,9 @@ protected:
    virtual double ComputeJacobianBasedPenaltyTerm(int);
    virtual double ComputeBendingEnergyPenaltyTerm();
    virtual double ComputeLinearEnergyPenaltyTerm();
-   virtual double ComputeL2NormDispPenaltyTerm();
 
    virtual void GetBendingEnergyGradient();
    virtual void GetLinearEnergyGradient();
-   virtual void GetL2NormDispGradient();
    virtual void GetJacobianBasedGradient();
    virtual void SetGradientImageToZero();
    virtual T NormaliseGradient();
@@ -82,8 +76,7 @@ public:
 
    void SetControlPointGridImage(nifti_image *);
    void SetBendingEnergyWeight(T);
-   void SetLinearEnergyWeights(T,T);
-   void SetL2NormDisplacementWeight(T);
+   void SetLinearEnergyWeight(T);
    void SetJacobianLogWeight(T);
    void ApproximateJacobianLog();
    void DoNotApproximateJacobianLog();
@@ -150,6 +143,6 @@ public:
    }
 };
 
-#include "_reg_f3d.cpp"
+//#include "_reg_f3d.cpp"
 
 #endif

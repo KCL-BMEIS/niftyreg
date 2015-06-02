@@ -17,8 +17,8 @@
 
 #include "_reg_ReadWriteImage.h"
 #include "_reg_resampling.h"
-#include "_reg_globalTransformation.h"
-#include "_reg_localTransformation.h"
+#include "_reg_globalTrans.h"
+#include "_reg_localTrans.h"
 #include "_reg_tools.h"
 #include "reg_resample.h"
 
@@ -275,11 +275,6 @@ int main(int argc, char **argv)
       printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n");
    }
 
-   //   // Tell the CLI that the process has started
-   //   startProgress("reg_resample");
-   //   // Set up progress indicators
-   //   float iProgressStep=1, nProgressSteps;
-
    /* *********************** */
    /* READ THE TRANSFORMATION */
    /* *********************** */
@@ -312,9 +307,6 @@ int main(int argc, char **argv)
       // No transformation is specified, an identity transformation is used
       reg_mat44_eye(&inputAffineTransformation);
    }
-
-   //   // Update progress via CLI
-   //   progressXML(1, "Transform loaded...");
 
    // Create a deformation field
    nifti_image *deformationFieldImage = nifti_copy_nim_info(referenceImage);
@@ -403,9 +395,6 @@ int main(int argc, char **argv)
                                      false,
                                      NULL);
    }
-
-   //   // Update progress via CLI
-   //   progressXML(2, "Deformation field ready...");
 
    /* ************************* */
    /* WARP THE FLOATING IMAGE */

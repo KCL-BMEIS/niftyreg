@@ -524,10 +524,6 @@ int main(int argc, char **argv)
       else REG->SetInputFloatingMask(floatingMaskImage);
    }
 
-
-//   // Update the CLI progress bar
-//   progressXML(2, "Input data ready...");
-
    REG->SetMaxIterations(maxIter);
    REG->SetNumberOfLevels(nLevels);
    REG->SetLevelsToPerform(levelsToPerform);

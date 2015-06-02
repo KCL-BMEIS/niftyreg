@@ -312,7 +312,7 @@ void reg_aladin<T>::InitialiseRegistration()
 
 	this->Print();
 
-	// CREATE THE PYRAMIDE IMAGES
+	// CREATE THE PYRAMID IMAGES
 	this->ReferencePyramid = (nifti_image **) malloc(this->LevelsToPerform * sizeof(nifti_image *));
 	this->FloatingPyramid = (nifti_image **) malloc(this->LevelsToPerform * sizeof(nifti_image *));
 	this->ReferenceMaskPyramid = (int **) malloc(this->LevelsToPerform * sizeof(int *));
@@ -331,40 +331,6 @@ void reg_aladin<T>::InitialiseRegistration()
 		for (unsigned int l = 0; l < this->LevelsToPerform; ++l) {
 			this->activeVoxelNumber[l] = this->ReferencePyramid[l]->nx * this->ReferencePyramid[l]->ny * this->ReferencePyramid[l]->nz;
 			this->ReferenceMaskPyramid[l] = (int *) calloc(activeVoxelNumber[l], sizeof(int));
-		}
-	}
-
-	// CHECK THE THRESHOLD VALUES TO UPDATE THE MASK
-	if (this->ReferenceUpperThreshold != std::numeric_limits<T>::max()) {
-		for (unsigned int l = 0; l < this->LevelsToPerform; ++l) {
-			T *refPtr = static_cast<T *>(this->ReferencePyramid[l]->data);
-			int *mskPtr = this->ReferenceMaskPyramid[l];
-			size_t removedVoxel = 0;
-			for (size_t i = 0; i < (size_t) this->ReferencePyramid[l]->nx * this->ReferencePyramid[l]->ny * this->ReferencePyramid[l]->nz; ++i) {
-				if (mskPtr[i] > -1) {
-					if (refPtr[i] > this->ReferenceUpperThreshold) {
-						++removedVoxel;
-						mskPtr[i] = -1;
-					}
-				}
-			}
-			this->activeVoxelNumber[l] -= removedVoxel;
-		}
-	}
-	if (this->ReferenceLowerThreshold != -std::numeric_limits<T>::max()) {
-		for (unsigned int l = 0; l < this->LevelsToPerform; ++l) {
-			T *refPtr = static_cast<T *>(this->ReferencePyramid[l]->data);
-			int *mskPtr = this->ReferenceMaskPyramid[l];
-			size_t removedVoxel = 0;
-			for (size_t i = 0; i < (size_t) this->ReferencePyramid[l]->nx * this->ReferencePyramid[l]->ny * this->ReferencePyramid[l]->nz; ++i) {
-				if (mskPtr[i] > -1) {
-					if (refPtr[i] < this->ReferenceLowerThreshold) {
-						++removedVoxel;
-						mskPtr[i] = -1;
-					}
-				}
-			}
-			this->activeVoxelNumber[l] -= removedVoxel;
 		}
 	}
 
@@ -395,6 +361,13 @@ void reg_aladin<T>::InitialiseRegistration()
 			delete[] sigma;
 		}
 	}
+
+   // THRESHOLD THE INPUT IMAGES IF REQUIRED
+   for(unsigned int l=0; l<this->LevelsToPerform; l++)
+   {
+      reg_thresholdImage<T>(this->ReferencePyramid[l],this->ReferenceLowerThreshold, this->ReferenceUpperThreshold);
+      reg_thresholdImage<T>(this->FloatingPyramid[l],this->FloatingLowerThreshold, this->FloatingUpperThreshold);
+   }
 
 	// Initialise the transformation
 	if (this->InputTransformName != NULL)
@@ -535,7 +508,7 @@ template<class T>
 void reg_aladin<T>::GetWarpedImage(int interp)
 {
 	this->GetDeformationField();
-	this->resamplingKernel->template castTo<ResampleImageKernel>()->calculate(interp, 0);
+	this->resamplingKernel->template castTo<ResampleImageKernel>()->calculate(interp, std::numeric_limits<T>::quiet_NaN());
 }
 /* *************************************************************** */
 template<class T>
@@ -714,9 +687,8 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 										sizeof(T));
 	reg_aladin<T>::createKernels();
 
-
 	reg_aladin<T>::GetWarpedImage(3); // cubic spline interpolation
-	this->CurrentWarped = con->getCurrentWarped(floatingType);
+	this->CurrentWarped = this->con->getCurrentWarped(floatingType);
 
 	nifti_image *resultImage = nifti_copy_nim_info(this->CurrentWarped);
 	resultImage->cal_min = this->InputFloating->cal_min;
@@ -725,7 +697,6 @@ nifti_image *reg_aladin<T>::GetFinalWarpedImage()
 	resultImage->scl_inter = this->InputFloating->scl_inter;
 	resultImage->data = (void *) malloc(resultImage->nvox * resultImage->nbyper);
 	memcpy(resultImage->data, this->CurrentWarped->data, resultImage->nvox * resultImage->nbyper);
-
 
 	reg_aladin<T>::clearKernels();
 	reg_aladin<T>::clearContent();

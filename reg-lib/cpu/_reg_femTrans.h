@@ -12,8 +12,8 @@
  *
  */
 
-#ifndef _REG_FEMTRANSFORMATION_H
-#define _REG_FEMTRANSFORMATION_H
+#ifndef _REG_FEMTRANS_H
+#define _REG_FEMTRANS_H
 
 #include "nifti1_io.h"
 #include <fstream>

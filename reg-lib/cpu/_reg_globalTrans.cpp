@@ -9,10 +9,10 @@
  *
  */
 
-#ifndef _REG_AFFINETRANSFORMATION_CPP
-#define _REG_AFFINETRANSFORMATION_CPP
+#ifndef _REG_AFFINETRANS_CPP
+#define _REG_AFFINETRANS_CPP
 
-#include "_reg_globalTransformation.h"
+#include "_reg_globalTrans.h"
 #include "_reg_maths.h"
 
 /* *************************************************************** */
@@ -20,51 +20,57 @@
 template <class FieldTYPE>
 void reg_affine_deformationField2D(mat44 *affineTransformation,
                                    nifti_image *deformationFieldImage,
-                                   bool compose,
+                                   bool composition,
                                    int *mask)
-{
-   FieldTYPE *deformationFieldPtr = static_cast<FieldTYPE *>(deformationFieldImage->data);
+{   size_t voxelNumber=deformationFieldImage->nx*deformationFieldImage->ny;
+    FieldTYPE *deformationFieldPtrX = static_cast<FieldTYPE *>(deformationFieldImage->data);
+    FieldTYPE *deformationFieldPtrY = &deformationFieldPtrX[voxelNumber];
 
-   size_t deformationFieldIndX=0;
-   size_t deformationFieldIndY=deformationFieldImage->nx*deformationFieldImage->ny;
+    mat44 *targetMatrix;
+    if(deformationFieldImage->sform_code>0)
+    {
+       targetMatrix=&(deformationFieldImage->sto_xyz);
+    }
+    else targetMatrix=&(deformationFieldImage->qto_xyz);
 
-   mat44 *targetMatrix;
-   if(deformationFieldImage->sform_code>0)
-   {
-      targetMatrix=&(deformationFieldImage->sto_xyz);
-   }
-   else targetMatrix=&(deformationFieldImage->qto_xyz);
+    mat44 transformationMatrix;
+    if(composition==true)
+       transformationMatrix = *affineTransformation;
+    else transformationMatrix = reg_mat44_mul(affineTransformation, targetMatrix);
 
-   mat44 transformationMatrix;
-   if(compose==true)
-      transformationMatrix = *affineTransformation;
-   else transformationMatrix = reg_mat44_mul(affineTransformation, targetMatrix);
+    float voxel[2], position[2];
+    int x, y;
+    size_t index;
+ #if defined (_OPENMP)
+ #pragma omp parallel for default(none) \
+    shared(deformationFieldImage, transformationMatrix, affineTransformation, \
+    deformationFieldPtrX, deformationFieldPtrY, mask, composition) \
+    private(voxel, position, x, y, index)
+ #endif
+     for(y=0; y<deformationFieldImage->ny; y++)
+     {
+        index=y*deformationFieldImage->nx;
+        voxel[1]=(float)y;
+        for(x=0; x<deformationFieldImage->nx; x++)
+        {
+           voxel[0]=(float)x;
+           if(mask[index]>-1)
+           {
+              if(composition==true)
+              {
+                 voxel[0]=deformationFieldPtrX[index];
+                 voxel[1]=deformationFieldPtrY[index];
+                 reg_mat44_mul(&transformationMatrix, voxel, position);
+              }
+              else reg_mat44_mul(&transformationMatrix, voxel, position);
 
-   float voxel[3]; voxel[2]=0;
-   float position[3];
-   size_t index=0;
-   for(int y=0; y<deformationFieldImage->ny; y++)
-   {
-      voxel[1]=(float)y;
-      for(int x=0; x<deformationFieldImage->nx; x++)
-      {
-         voxel[0]=(float)x;
-
-         if(mask[index++]>-1)
-         {
-            if(compose==true)
-            {
-               voxel[0]=deformationFieldPtr[deformationFieldIndX];
-               voxel[1]=deformationFieldPtr[deformationFieldIndY];
-            }
-            reg_mat44_mul(&transformationMatrix, voxel, position);
-
-            /* the deformation field (real coordinates) is stored */
-            deformationFieldPtr[deformationFieldIndX++] = position[0];
-            deformationFieldPtr[deformationFieldIndY++] = position[1];
-         }
-      }
-   }
+              /* the deformation field (real coordinates) is stored */
+              deformationFieldPtrX[index] = position[0];
+              deformationFieldPtrY[index] = position[1];
+           }
+           index++;
+        }
+     }
 }
 /* *************************************************************** */
 template <class FieldTYPE>
@@ -95,8 +101,8 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
    size_t index;
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   shared(deformationFieldImage, transformationMatrix, deformationFieldPtrX, \
-   deformationFieldPtrY, deformationFieldPtrZ, mask, composition) \
+   shared(deformationFieldImage, transformationMatrix, affineTransformation, \
+   deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, mask, composition) \
    private(voxel, position, x, y, z, index)
 #endif
    for(z=0; z<deformationFieldImage->nz; z++)
@@ -116,23 +122,9 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
                   voxel[0]=deformationFieldPtrX[index];
                   voxel[1]=deformationFieldPtrY[index];
                   voxel[2]=deformationFieldPtrZ[index];
+                  reg_mat44_mul(&transformationMatrix, voxel, position);
                }
-               position[0] =
-                     transformationMatrix.m[0][0] * voxel[0] +
-                     transformationMatrix.m[0][1] * voxel[1] +
-                     transformationMatrix.m[0][2] * voxel[2] +
-                     transformationMatrix.m[0][3] ;
-               position[1] =
-                     transformationMatrix.m[1][0] * voxel[0] +
-                     transformationMatrix.m[1][1] * voxel[1] +
-                     transformationMatrix.m[1][2] * voxel[2] +
-                     transformationMatrix.m[1][3] ;
-               position[2] =
-                     transformationMatrix.m[2][0] * voxel[0] +
-                     transformationMatrix.m[2][1] * voxel[1] +
-                     transformationMatrix.m[2][2] * voxel[2] +
-                     transformationMatrix.m[2][3] ;
-               //                    reg_mat44_mul(&transformationMatrix, voxel, position);
+               else reg_mat44_mul(&transformationMatrix, voxel, position);
 
                /* the deformation field (real coordinates) is stored */
                deformationFieldPtrX[index] = position[0];

@@ -248,7 +248,7 @@ void reg_aladin_sym<T>::GetWarpedImage(int interp)
    reg_aladin<T>::GetWarpedImage(interp);
    this->GetBackwardDeformationField();
    //TODO: This needs correction, otherwise we are transforming an image that has already been warped
-   this->bResamplingKernel->template castTo<ResampleImageKernel>()->calculate(interp, 0);
+   this->bResamplingKernel->template castTo<ResampleImageKernel>()->calculate(interp, std::numeric_limits<T>::quiet_NaN());
 
 }
 /* *************************************************************** */

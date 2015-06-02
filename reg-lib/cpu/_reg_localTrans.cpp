@@ -9,10 +9,10 @@
  *
  */
 
-#ifndef _REG_TRANSFORMATION_CPP
-#define _REG_TRANSFORMATION_CPP
+#ifndef _REG_LOCALTRANS_CPP
+#define _REG_LOCALTRANS_CPP
 
-#include "_reg_localTransformation.h"
+#include "_reg_localTrans.h"
 
 /* *************************************************************** */
 /* *************************************************************** */
@@ -4606,7 +4606,7 @@ void reg_spline_GetDeconvolvedCoefficents(nifti_image *img)
 /* *************************************************************** */
 /* *************************************************************** */
 
-#include "_reg_localTransformation_jac.cpp"
-#include "_reg_localTransformation_be.cpp"
+#include "_reg_localTrans_jacobian.cpp"
+#include "_reg_localTrans_regularisation.cpp"
 
 #endif

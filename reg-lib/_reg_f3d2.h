@@ -38,6 +38,6 @@ public:
    virtual nifti_image **GetWarpedImage();
 };
 
-#include "_reg_f3d2.cpp"
+//#include "_reg_f3d2.cpp"
 
 #endif

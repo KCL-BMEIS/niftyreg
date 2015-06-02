@@ -11,8 +11,8 @@
  *
  */
 
-#ifndef _REG_AFFINETRANSFORMATION_H
-#define _REG_AFFINETRANSFORMATION_H
+#ifndef _REG_AFFINETRANS_H
+#define _REG_AFFINETRANS_H
 
 #include "nifti1_io.h"
 #include <fstream>

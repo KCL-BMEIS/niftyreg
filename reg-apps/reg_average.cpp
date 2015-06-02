@@ -14,8 +14,8 @@
 #include "_reg_ReadWriteImage.h"
 #include "_reg_tools.h"
 #include "_reg_resampling.h"
-#include "_reg_globalTransformation.h"
-#include "_reg_localTransformation.h"
+#include "_reg_globalTrans.h"
+#include "_reg_localTrans.h"
 
 #include "reg_average.h"
 
@@ -129,14 +129,14 @@ int main(int argc, char **argv)
       }
 #endif
    }
-   char text[1024];
-   reg_print_info(argv[0], "");
-   reg_print_info(argv[0], "Command line:");
-   sprintf(text, "\t");
-   for(int i=0; i<argc; i++)
-      sprintf(text, "%s %s", text, argv[i]);
-   reg_print_info(argv[0], text);
-   reg_print_info(argv[0], "");
+//   reg_print_info(argv[0], "");
+//   reg_print_info(argv[0], "Command line:");
+//   char text[4096];
+//   sprintf(text, "\t");
+//   for(int i=0; i<argc; i++)
+//      sprintf(text, "%s %s", text, argv[i]);
+//   reg_print_info(argv[0], text);
+//   reg_print_info(argv[0], "");
 
    // Set the name of the file to output
    char *outputName = argv[1];
@@ -707,11 +707,14 @@ int main(int argc, char **argv)
          memset(&averageMatrix,0,sizeof(mat44));
          for(size_t i=0; i<affineNumber; ++i)
          {
+            // extract the rigid matrix from the affine
             float qb,qc,qd,qx,qy,qz,qfac;
             nifti_mat44_to_quatern(affineMatrices[i],&qb,&qc,&qd,&qx,&qy,&qz,NULL,NULL,NULL,&qfac);
             tempMatrix=nifti_quatern_to_mat44(qb,qc,qd,qx,qy,qz,1.f,1.f,1.f,qfac);
+            // remove the rigid componenent from the affine matrix
             tempMatrix=nifti_mat44_inverse(tempMatrix);
             tempMatrix=reg_mat44_mul(&tempMatrix,&affineMatrices[i]);
+            // sum up all the affine matrices
             tempMatrix = reg_mat44_logm(&tempMatrix);
             averageMatrix = averageMatrix + tempMatrix;
          }
@@ -778,9 +781,6 @@ int main(int argc, char **argv)
                }
             }
             reg_resampleImage(floatingImage,tempImage,deformationField,NULL,3,0.f);
-//            if(sizeof(PrecisionTYPE)==sizeof(double))
-//               average_norm_intensity<double>(tempImage);
-//            else average_norm_intensity<float>(tempImage);
             reg_tools_addImageToImage(averageImage,tempImage,averageImage);
             nifti_image_free(floatingImage);
          }
@@ -791,7 +791,7 @@ int main(int argc, char **argv)
          nifti_image_free(tempImage);
          free(affineMatrices);
          // Save the average image
-         reg_io_WriteImageFile(averageImage,outputName);
+         reg_io_WriteImageFile(averageImage, outputName);
          // Free the average image
          nifti_image_free(averageImage);
       } // -demean1

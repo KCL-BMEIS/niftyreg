@@ -20,7 +20,7 @@ template <class T>
 reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
 {
    this->optimiser=NULL;
-   this->maxiterationNumber=300;
+   this->maxiterationNumber=100;
    this->optimiseX=true;
    this->optimiseY=true;
    this->optimiseZ=true;
@@ -84,9 +84,6 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
    this->voxelBasedMeasureGradientImage=NULL;
 
    this->interpolation=1;
-
-   this->funcProgressCallback=NULL;
-   this->paramsProgressCallback=NULL;
 
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::reg_base");
@@ -1136,9 +1133,8 @@ void reg_base<T>::Run()
    }
 #endif
 
-   // Compute the resolution of the progress bar
-   float iProgressStep=1, nProgressSteps;
-   nProgressSteps = this->levelToPerform*this->maxiterationNumber;
+   // Update the maximal number of iteration to perform per level
+   this->maxiterationNumber = this->maxiterationNumber * pow(2, this->levelToPerform-1);
 
    // Loop over the different resolution level to perform
    for(this->currentLevel=0;
@@ -1199,8 +1195,10 @@ void reg_base<T>::Run()
             if(currentSize==0)
                break;
 
-            if(this->optimiser->GetCurrentIterationNumber()>=this->optimiser->GetMaxIterationNumber())
+            if(this->optimiser->GetCurrentIterationNumber()>=this->optimiser->GetMaxIterationNumber()){
+               reg_print_msg_warn("The current level reached the maximum number of iteration");
                break;
+            }
 
             // Compute the objective function gradient
             this->GetObjectiveFunctionGradient();
@@ -1217,26 +1215,6 @@ void reg_base<T>::Run()
             // Update the obecjtive function variables and print some information
             this->PrintCurrentObjFunctionValue(currentSize);
 
-            // Monitoring progression when f3d is ran as a library
-            if(currentSize==0.f)
-            {
-               iProgressStep += this->optimiser->GetMaxIterationNumber() - 1 - this->optimiser->GetCurrentIterationNumber();
-               if(funcProgressCallback && paramsProgressCallback)
-               {
-                  (*funcProgressCallback)(100.*iProgressStep/nProgressSteps,
-                                          paramsProgressCallback);
-               }
-               break;
-            }
-            else
-            {
-               iProgressStep++;
-               if(funcProgressCallback && paramsProgressCallback)
-               {
-                  (*funcProgressCallback)(100.*iProgressStep/nProgressSteps,
-                                          paramsProgressCallback);
-               }
-            }
          } // while
          if(perturbation<this->perturbationNumber)
          {
@@ -1299,18 +1277,15 @@ void reg_base<T>::Run()
 #ifdef NDEBUG
       }
 #endif
-
+      // Update the number of level for the next level
+      this->maxiterationNumber /= 2;
    } // level this->levelToPerform
 
-   if ( funcProgressCallback && paramsProgressCallback )
-   {
-      (*funcProgressCallback)( 100., paramsProgressCallback);
-   }
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::Run");
 #endif
 }
 /* *************************************************************** */
 /* *************************************************************** */
-
+template class reg_base<float>;
 #endif // _REG_BASE_CPP

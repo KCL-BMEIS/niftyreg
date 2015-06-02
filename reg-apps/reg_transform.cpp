@@ -14,8 +14,8 @@
 
 #include "_reg_ReadWriteImage.h"
 #include "_reg_resampling.h"
-#include "_reg_globalTransformation.h"
-#include "_reg_localTransformation.h"
+#include "_reg_globalTrans.h"
+#include "_reg_localTrans.h"
 #include "_reg_tools.h"
 #include "_reg_thinPlateSpline.h"
 

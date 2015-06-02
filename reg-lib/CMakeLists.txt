@@ -43,23 +43,23 @@ install(TARGETS _reg_tools
 install(FILES cpu/_reg_tools.h DESTINATION include)
 
 #-----------------------------------------------------------------------------
-add_library(_reg_globalTransformation
+add_library(_reg_globalTrans
 	${NIFTYREG_LIBRARY_TYPE}
-	cpu/_reg_globalTransformation.h
-	cpu/_reg_globalTransformation.cpp
+	cpu/_reg_globalTrans.h
+	cpu/_reg_globalTrans.cpp
 )
-target_link_libraries(_reg_globalTransformation
+target_link_libraries(_reg_globalTrans
 	_reg_tools
 )
-install(TARGETS _reg_globalTransformation
+install(TARGETS _reg_globalTrans
 	RUNTIME DESTINATION bin
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 )
-install(FILES cpu/_reg_globalTransformation.h DESTINATION include)
+install(FILES cpu/_reg_globalTrans.h DESTINATION include)
 #-----------------------------------------------------------------------------
 set(LIB_LIST
-	_reg_localTransformation
+	_reg_localTrans
 	_reg_resampling
 	_reg_nmi
 	_reg_ssd
@@ -67,14 +67,14 @@ set(LIB_LIST
 	_reg_lncc
 	_reg_dti
 	_reg_blockMatching
-	_reg_femTransformation
+	_reg_femTrans
 )
 foreach(NAME ${LIB_LIST})
 	add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	cpu/${NAME}.h
 	cpu/${NAME}.cpp)
 	target_link_libraries(${NAME}
-	_reg_globalTransformation
+	_reg_globalTrans
 	)
 	install(TARGETS ${NAME}
 	RUNTIME DESTINATION bin
@@ -136,10 +136,10 @@ set(_reg_aladin_files
 	cpu/CPUKernelFactory.h
 )
 set(_reg_aladin_libraries
-	_reg_localTransformation
+	_reg_localTrans
 	_reg_blockMatching
 	_reg_resampling
-	_reg_globalTransformation
+	_reg_globalTrans
 	_reg_ssd
 	_reg_nmi
 	_reg_tools
@@ -176,9 +176,9 @@ set(_reg_f3d_files
 		${NAME}_sym.cpp
 )
 set(_reg_f3d_libraries
-	_reg_localTransformation
+	_reg_localTrans
 	_reg_resampling
-	_reg_globalTransformation
+	_reg_globalTrans
 	_reg_lncc
 	_reg_dti
 	_reg_KLdivergence
@@ -198,10 +198,10 @@ install(TARGETS ${NAME}
 	LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION lib
 	)
-install(FILES _reg_base.h  DESTINATION include)
-install(FILES ${NAME}.h  DESTINATION include)
-install(FILES ${NAME}2.h  DESTINATION include)
-install(FILES ${NAME}_sym.h  DESTINATION include)
+install(FILES _reg_base.h DESTINATION include)
+install(FILES ${NAME}.h DESTINATION include)
+install(FILES ${NAME}2.h DESTINATION include)
+install(FILES ${NAME}_sym.h DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 # BUILD THE TPS LIBRARY
