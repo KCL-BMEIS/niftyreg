@@ -96,10 +96,11 @@ void Usage(char *exec)
    reg_print_info(exec, "\t--kld\t\t\tKLD. Used for all time points");
    reg_print_info(exec, "\t-kld <tp>\t\tKLD. Used for the specified timepoint");
    reg_print_info(exec, "\t* For the Kullback–Leibler divergence, reference and floating are expected to be probabilities");
-   reg_print_info(exec, "\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)");
+   reg_print_info(exec, "\t-rr\t\t\tIntensities are thresholded between the 2 and 98 \%ile.");
+//   reg_print_info(exec, "\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)");
    reg_print_info(exec, "");
    reg_print_info(exec, "*** Optimisation options:");
-   reg_print_info(exec, "\t-maxit <int>\t\tMaximal number of iteration at the final level [100]");
+   reg_print_info(exec, "\t-maxit <int>\t\tMaximal number of iteration at the final level [150]");
    reg_print_info(exec, "\t-ln <int>\t\tNumber of level to perform [3]");
    reg_print_info(exec, "\t-lp <int>\t\tOnly perform the first levels [ln]");
    reg_print_info(exec, "\t-nopy\t\t\tDo not use a pyramidal approach");
@@ -503,6 +504,10 @@ int main(int argc, char **argv)
 //        else if(strcmp(argv[i], "-amc")==0){ // HERE TODO
 //            REG->UseMultiChannelNMI();
 //        }
+      else if(strcmp(argv[i], "-rr")==0)
+      {
+            REG->UseRobustRange();
+      }
       else if(strcmp(argv[i], "-lncc")==0)
       {
          int tp=atoi(argv[++i]);

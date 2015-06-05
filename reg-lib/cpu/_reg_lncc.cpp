@@ -335,7 +335,7 @@ reduction(+:activeVoxel_num)
                             ) /
                             (refSdevPtr0[voxel]*warSdevPtr0[voxel]);
 
-               if(lncc_value==lncc_value && fabs(lncc_value)<1.01 && isinf(lncc_value)==0)
+               if(lncc_value==lncc_value && isinf(lncc_value)==0)
                {
                   lncc_value_sum += fabs(lncc_value);
                   ++activeVoxel_num;

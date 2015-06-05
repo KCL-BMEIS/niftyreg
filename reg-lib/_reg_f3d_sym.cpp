@@ -123,14 +123,14 @@ T reg_f3d_sym<T>::InitialiseCurrentLevel()
    {
       if(this->currentLevel==0){
          this->bendingEnergyWeight = this->bendingEnergyWeight / static_cast<T>(powf(16.0f, this->levelNumber-1));
-         this->linearEnergyWeight = this->linearEnergyWeight / static_cast<T>(powf(4.0f, this->levelNumber-1));
+         this->linearEnergyWeight = this->linearEnergyWeight / static_cast<T>(powf(3.0f, this->levelNumber-1));
       }
       else
       {
          reg_spline_refineControlPointGrid(this->controlPointGrid);
          reg_spline_refineControlPointGrid(this->backwardControlPointGrid);
          this->bendingEnergyWeight = this->bendingEnergyWeight * static_cast<T>(16);
-         this->linearEnergyWeight = this->linearEnergyWeight * static_cast<T>(4);
+         this->linearEnergyWeight = this->linearEnergyWeight * static_cast<T>(3);
       }
    }
 

@@ -63,6 +63,7 @@ protected:
    float *referenceThresholdLow;
    float *floatingThresholdUp;
    float *floatingThresholdLow;
+   bool robustRange;
    T warpedPaddingValue;
    unsigned int levelNumber;
    unsigned int levelToPerform;
@@ -231,6 +232,8 @@ public:
    void SetReferenceThresholdLow(unsigned int,T);
    void SetFloatingThresholdUp(unsigned int, T);
    void SetFloatingThresholdLow(unsigned int,T);
+   void UseRobustRange();
+   void DoNotUseRobustRange();
    void SetWarpedPaddingValue(T);
    void SetLevelNumber(unsigned int);
    void SetLevelToPerform(unsigned int);

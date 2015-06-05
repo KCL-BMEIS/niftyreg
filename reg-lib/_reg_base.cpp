@@ -20,7 +20,7 @@ template <class T>
 reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
 {
    this->optimiser=NULL;
-   this->maxiterationNumber=100;
+   this->maxiterationNumber=150;
    this->optimiseX=true;
    this->optimiseY=true;
    this->optimiseZ=true;
@@ -61,6 +61,7 @@ reg_base<T>::reg_base(int refTimePoint,int floTimePoint)
       this->floatingThresholdUp[i]=std::numeric_limits<T>::max();
       this->floatingThresholdLow[i]=-std::numeric_limits<T>::max();
    }
+   this->robustRange=false;
    this->warpedPaddingValue=std::numeric_limits<T>::quiet_NaN();
    this->levelNumber=3;
    this->levelToPerform=0;
@@ -320,6 +321,24 @@ void reg_base<T>::SetFloatingThresholdLow(unsigned int i, T t)
    this->floatingThresholdLow[i] = t;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_base<T>::SetFloatingThresholdLow");
+#endif
+}
+/* *************************************************************** */
+template <class T>
+void reg_base<T>::UseRobustRange()
+{
+   this->robustRange=true;
+#ifndef NDEBUG
+   reg_print_fct_debug("reg_base<T>::UseRobustRange");
+#endif
+}
+/* *************************************************************** */
+template <class T>
+void reg_base<T>::DoNotUseRobustRange()
+{
+   this->robustRange=false;
+#ifndef NDEBUG
+   reg_print_fct_debug("reg_base<T>::UseRobustRange");
 #endif
 }
 /* *************************************************************** */
@@ -783,6 +802,41 @@ void reg_base<T>::Initialise()
       this->floatingPyramid = (nifti_image **)malloc(sizeof(nifti_image *));
       this->maskPyramid = (int **)malloc(sizeof(int *));
       this->activeVoxelNumber= (int *)malloc(sizeof(int));
+   }
+
+   // Update the input images threshold if required
+   if(this->robustRange==true){
+      // Create a copy of the reference image to extract the robust range
+      nifti_image *temp_reference = nifti_copy_nim_info(this->inputReference);
+      temp_reference->data = (void *)malloc(temp_reference->nvox * temp_reference->nbyper);
+      memcpy(temp_reference->data, this->inputReference->data,temp_reference->nvox * temp_reference->nbyper);
+      reg_tools_changeDatatype<T>(temp_reference);
+      // Extract the robust range of the reference image
+      T *refDataPtr = static_cast<T *>(temp_reference->data);
+      reg_heapSort(refDataPtr, temp_reference->nvox);
+      // Update the reference threshold values if no value has been setup by the user
+      if(this->referenceThresholdLow[0]==-std::numeric_limits<T>::max())
+         this->referenceThresholdLow[0] = refDataPtr[(int)reg_round((float)temp_reference->nvox*0.02f)];
+      if(this->referenceThresholdUp[0]==std::numeric_limits<T>::max())
+         this->referenceThresholdUp[0] = refDataPtr[(int)reg_round((float)temp_reference->nvox*0.98f)];
+      // Free the temporarly allocated image
+      nifti_image_free(temp_reference);
+
+      // Create a copy of the floating image to extract the robust range
+      nifti_image *temp_floating = nifti_copy_nim_info(this->inputFloating);
+      temp_floating->data = (void *)malloc(temp_floating->nvox * temp_floating->nbyper);
+      memcpy(temp_floating->data, this->inputFloating->data,temp_floating->nvox * temp_floating->nbyper);
+      reg_tools_changeDatatype<T>(temp_floating);
+      // Extract the robust range of the floating image
+      T *floDataPtr = static_cast<T *>(temp_floating->data);
+      reg_heapSort(floDataPtr, temp_floating->nvox);
+      // Update the floating threshold values if no value has been setup by the user
+      if(this->floatingThresholdLow[0]==-std::numeric_limits<T>::max())
+         this->floatingThresholdLow[0] = floDataPtr[(int)reg_round((float)temp_reference->nvox*0.02f)];
+      if(this->floatingThresholdUp[0]==std::numeric_limits<T>::max())
+         this->floatingThresholdUp[0] = floDataPtr[(int)reg_round((float)temp_reference->nvox*0.98f)];
+      // Free the temporarly allocated image
+      nifti_image_free(temp_floating);
    }
 
    // FINEST LEVEL OF REGISTRATION
