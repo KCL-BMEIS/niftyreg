@@ -50,7 +50,18 @@ void reg_resampleImage_PSF(nifti_image *floatingImage,
                            int *mask,
                            int interp,
                            float paddingValue,
-                           mat33 * jacMat = NULL);
+                           mat33 * jacMat,
+                           char algorithm);
+
+extern "C++"
+void reg_resampleImage_PSF_Sinc(nifti_image *floatingImage,
+                           nifti_image *warpedImage,
+                           nifti_image *deformationField,
+                           int *mask,
+                           int interp,
+                           float paddingValue,
+                           mat33 * jacMat,
+                           char algorithm);
 
 extern "C++"
 void reg_resampleGradient(nifti_image *gradientImage,

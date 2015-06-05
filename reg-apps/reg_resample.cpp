@@ -32,6 +32,7 @@ typedef struct
    float sourceBGValue;
    int interpolation;
    float paddingValue;
+   float PSF_Algorithm;
 } PARAM;
 typedef struct
 {
@@ -68,6 +69,7 @@ void Usage(char *exec)
    printf("\t-pad <int>\n\t\tInterpolation padding value [0]\n");
    printf("\t-tensor\n\t\tThe last six timepoints of the floating image are considered to be tensor order as XX, XY, YY, XZ, YZ, ZZ [off]\n");
    printf("\t-psf\n\t\tPerform the resampling in two steps to resample an image to a lower resolution [off]\n");
+   printf("\t-psf_alg <0/1>\n\t\tMinimise the matrix metric (0) or the determinant (1) when estimating the PSF [0]\n");
    printf("\t-voff\n\t\tTurns verbose off [on]\n");
 #ifdef _GIT_HASH
    printf("\n\t--version\n\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
@@ -83,6 +85,7 @@ int main(int argc, char **argv)
 
    param->interpolation=3; // Cubic spline interpolation used by default
    param->paddingValue=0;
+   param->PSF_Algorithm=0;
    bool verbose=true;
 
    /* read the input parameter */
@@ -204,6 +207,11 @@ int main(int argc, char **argv)
               (strcmp(argv[i],"--psf")==0))
       {
          flag->usePSF=true;
+      }
+      else if(strcmp(argv[i], "-psf_alg") == 0 ||
+              (strcmp(argv[i],"--psf_alg")==0))
+      {
+         param->PSF_Algorithm=(float)atof(argv[++i]);
       }
       else
       {
@@ -466,13 +474,15 @@ int main(int argc, char **argv)
                                               sizeof(mat33));
             reg_defField_getJacobianMatrix(deformationFieldImage,
                                            jacobian);
+
             reg_resampleImage_PSF(floatingImage,
                                   warpedImage,
                                   deformationFieldImage,
                                   NULL,
                                   param->interpolation,
                                   param->paddingValue,
-                                  jacobian);
+                                  jacobian,
+                                  (char)round(param->PSF_Algorithm));
 #ifndef NDEBUG
             reg_print_msg_debug("PSF resampling completed\n");
 #endif

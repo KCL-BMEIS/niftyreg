@@ -116,6 +116,7 @@ install(TARGETS ${NAME}
 	ARCHIVE DESTINATION lib
 	)
 install(FILES cpu/${NAME}.h  DESTINATION include)
+install(FILES cpu/${NAME}.cpp  DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 ## BUILD THE ALADIN LIBRARY
@@ -159,8 +160,9 @@ install(TARGETS ${NAME}
 	ARCHIVE DESTINATION lib
 	)
 install(FILES ${NAME}.h ${NAME}_sym.h cpu/_reg_macros.h DESTINATION include)
+install(FILES ${NAME}.cpp ${NAME}_sym.cpp DESTINATION include)
 install(FILES Content.h Platform.h  DESTINATION include)
-install(FILES Kernel.h cpu/CPUKernels.h KernelFactory.h cpu/CPUKernelFactory.h DESTINATION include)
+install(FILES Kernel.h Kernels.h cpu/CPUKernels.h KernelFactory.h cpu/CPUKernelFactory.h DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 ## BUILD THE F3D LIBRARY
@@ -202,6 +204,12 @@ install(FILES _reg_base.h  DESTINATION include)
 install(FILES ${NAME}.h  DESTINATION include)
 install(FILES ${NAME}2.h  DESTINATION include)
 install(FILES ${NAME}_sym.h  DESTINATION include)
+
+install(FILES _reg_base.cpp  DESTINATION include)
+install(FILES ${NAME}.cpp  DESTINATION include)
+install(FILES ${NAME}2.cpp  DESTINATION include)
+install(FILES ${NAME}_sym.cpp  DESTINATION include)
+
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 # BUILD THE TPS LIBRARY
