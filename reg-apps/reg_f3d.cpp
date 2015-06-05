@@ -21,24 +21,6 @@
 
 #define PrecisionTYPE float
 
-void HelpPenaltyTerm(char *exec)
-{
-   reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
-   reg_print_info(exec, "Additional help on the penalty term that have been implemented in F3D");
-   reg_print_info(exec, "\t-be\t Bending Energy, sum of the second derivatives of the transformation T");
-   reg_print_info(exec, "\t\t\t (d2T/dxx)^2 + (d2T/dyy)^2 + (d2T/dzz)^2 + 2*((d2T/dxy)^2 + (d2T/dyz)^2 + (d2T/dxz)^2)");
-   reg_print_info(exec, "\t-le\t Linear Elasticity, 2 parameters weighted differently:");
-   reg_print_info(exec, "\t\t\t 1: Squared member of the symmetric part of the Jacobian matrix");
-   reg_print_info(exec, "\t\t\t 1: (dTx/dx)^2 + (dTy/dy)^2 + (dTz/dz)^2 + 1/2 * ( (dTx/dy+dTy/dx)^2 +  (dTx/dz+dTz/dx)^2 +  (dTy/dz+dTz/dy)^2 )");
-   reg_print_info(exec, "\t\t\t 2: Divergence");
-   reg_print_info(exec, "\t\t\t 2: (dTx/dx)^2 + (dTy/dy)^2 + (dTz/dz)^2");
-   reg_print_info(exec, "\t-l2\t Squared Eucliean distance of the displacement field D");
-   reg_print_info(exec, "\t\t\t (Dx)^2 + (Dy)^2 + (Dz)^2");
-   reg_print_info(exec, "\t-jl\t Penalty term based on the Jacobian determiant |J(T)|. Squared log of the Jacobian determinant");
-   reg_print_info(exec, "\t\t\t log^2(|J(T)|)");
-   reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
-   return;
-}
 void PetitUsage(char *exec)
 {
    char text[255];
@@ -95,9 +77,8 @@ void Usage(char *exec)
    reg_print_info(exec, "\t-sz <float>\t\tFinal grid spacing along the z axis in mm (in voxel if negative value) [sx value]");
    reg_print_info(exec, "");
    reg_print_info(exec, "*** Regularisation options:");
-   reg_print_info(exec, "\t-be <float>\t\tWeight of the bending energy penalty term [0.005]");
-   reg_print_info(exec, "\t-le <float> <float>\tWeights of linear elasticity penalty term [0.0 0.0]");
-   reg_print_info(exec, "\t-l2 <float>\t\tWeights of L2 norm displacement penalty term [0.0]");
+   reg_print_info(exec, "\t-be <float>\t\tWeight of the bending energy (second derivative of the transformation) penalty term [0.001]");
+   reg_print_info(exec, "\t-le <float>\t\tWeight of first order penalty term (symmetric and anti-symmetric part of the Jacobian) [0.01]");
    reg_print_info(exec, "\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]");
    reg_print_info(exec, "\t-noAppJL\t\tTo not approximate the JL value only at the control point position");
    reg_print_info(exec, "");
@@ -115,10 +96,11 @@ void Usage(char *exec)
    reg_print_info(exec, "\t--kld\t\t\tKLD. Used for all time points");
    reg_print_info(exec, "\t-kld <tp>\t\tKLD. Used for the specified timepoint");
    reg_print_info(exec, "\t* For the Kullback–Leibler divergence, reference and floating are expected to be probabilities");
-   reg_print_info(exec, "\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)");
+   reg_print_info(exec, "\t-rr\t\t\tIntensities are thresholded between the 2 and 98 \%ile.");
+//   reg_print_info(exec, "\t-amc\t\t\tTo use the additive NMI for multichannel data (bivariate NMI by default)");
    reg_print_info(exec, "");
    reg_print_info(exec, "*** Optimisation options:");
-   reg_print_info(exec, "\t-maxit <int>\t\tMaximal number of iteration per level [300]");
+   reg_print_info(exec, "\t-maxit <int>\t\tMaximal number of iteration at the final level [150]");
    reg_print_info(exec, "\t-ln <int>\t\tNumber of level to perform [3]");
    reg_print_info(exec, "\t-lp <int>\t\tOnly perform the first levels [ln]");
    reg_print_info(exec, "\t-nopy\t\t\tDo not use a pyramidal approach");
@@ -131,7 +113,7 @@ void Usage(char *exec)
 #if defined (_OPENMP)
    reg_print_info(exec, "");
    reg_print_info(exec, "*** OpenMP-related options:");
-   sprintf(text, "\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i]",
+   sprintf(text, "\t-omp <int>\t\tNumber of thread to use with OpenMP. [1/%i]",
           omp_get_num_procs());
    reg_print_info(exec, text);
 #endif
@@ -147,9 +129,6 @@ void Usage(char *exec)
    reg_print_info(exec, text);
 #endif
    reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
-   sprintf(text, "For further description of the penalty term, use: %s -helpPenalty", exec);
-   reg_print_info(exec, text);
-   reg_print_info(exec, "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
    return;
 }
 
@@ -164,7 +143,12 @@ int main(int argc, char **argv)
    time(&start);
    int verbose=true;
 
-   char text[255];
+#if defined (_OPENMP)
+   // Set the default number of thread to one
+   omp_set_num_threads(1);
+#endif
+
+   char text[1024];
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Check if any information is required
    for(int i=1; i<argc; i++)
@@ -202,11 +186,6 @@ int main(int argc, char **argv)
          return EXIT_SUCCESS;
       }
 #endif
-      if(strcmp(argv[i], "-helpPenalty")==0)
-      {
-         HelpPenaltyTerm(argv[0]);
-         return EXIT_SUCCESS;
-      }
    }
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Output the command line
@@ -224,6 +203,7 @@ int main(int argc, char **argv)
 #ifdef NDEBUG
    }
 #endif
+
    //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
    // Read the reference and floating image
    nifti_image *referenceImage=NULL;
@@ -300,7 +280,6 @@ int main(int argc, char **argv)
    /* read the input parameter */
    for(int i=1; i<argc; i++)
    {
-
       if(strcmp(argv[i],"-ref")==0 || strcmp(argv[i],"-target")==0 ||
             strcmp(argv[i],"--ref")==0 || strcmp(argv[i],"-flo")==0 ||
             strcmp(argv[i],"-source")==0 || strcmp(argv[i],"--flo")==0 )
@@ -434,13 +413,7 @@ int main(int argc, char **argv)
       }
       else if(strcmp(argv[i], "-le")==0)
       {
-         float val1=atof(argv[++i]);
-         float val2=atof(argv[++i]);
-         REG->SetLinearEnergyWeights(val1,val2);
-      }
-      else if(strcmp(argv[i], "-l2")==0 || strcmp(argv[i], "--l2")==0)
-      {
-         REG->SetL2NormDisplacementWeight(atof(argv[++i]));
+         REG->SetLinearEnergyWeight(atof(argv[++i]));
       }
       else if(strcmp(argv[i], "-jl")==0 || strcmp(argv[i], "--jl")==0)
       {
@@ -531,6 +504,10 @@ int main(int argc, char **argv)
 //        else if(strcmp(argv[i], "-amc")==0){ // HERE TODO
 //            REG->UseMultiChannelNMI();
 //        }
+      else if(strcmp(argv[i], "-rr")==0)
+      {
+            REG->UseRobustRange();
+      }
       else if(strcmp(argv[i], "-lncc")==0)
       {
          int tp=atoi(argv[++i]);
@@ -661,7 +638,6 @@ int main(int argc, char **argv)
       strcmp(argv[i], "--xml")!=0 && strcmp(argv[i], "-version")!=0 &&
       strcmp(argv[i], "-Version")!=0 && strcmp(argv[i], "-V")!=0 &&
       strcmp(argv[i], "-v")!=0 && strcmp(argv[i], "--v")!=0 &&
-      strcmp(argv[i], "--version")!=0 && strcmp(argv[i], "-helpPenalty")!=0 &&
       strcmp(argv[i], "-gpu")!=0 && strcmp(argv[i], "--gpu")!=0 &&
       strcmp(argv[i], "-vel")!=0 && strcmp(argv[i], "-sym")!=0)
       {

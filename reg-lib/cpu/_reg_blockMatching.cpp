@@ -10,7 +10,7 @@
  */
 
 #include "_reg_blockMatching.h"
-#include "_reg_globalTransformation.h"
+#include "_reg_globalTrans.h"
 #include <map>
 #include <iostream>
 #include <limits>

@@ -24,10 +24,8 @@ reg_f3d<T>::reg_f3d(int refTimePoint,int floTimePoint)
    this->executableName=(char *)"NiftyReg F3D";
    this->inputControlPointGrid=NULL; // pointer to external
    this->controlPointGrid=NULL;
-   this->bendingEnergyWeight=0.01;
-   this->linearEnergyWeight0=0.;
-   this->linearEnergyWeight1=0.;
-   this->L2NormWeight=0.;
+   this->bendingEnergyWeight=0.001;
+   this->linearEnergyWeight=0.01;
    this->jacobianLogWeight=0.;
    this->jacobianLogApproximation=true;
    this->spacing[0]=-5;
@@ -82,21 +80,11 @@ void reg_f3d<T>::SetBendingEnergyWeight(T be)
 }
 /* *************************************************************** */
 template<class T>
-void reg_f3d<T>::SetLinearEnergyWeights(T w0, T w1)
+void reg_f3d<T>::SetLinearEnergyWeight(T le)
 {
-   this->linearEnergyWeight0=w0;
-   this->linearEnergyWeight1=w1;
+   this->linearEnergyWeight=le;
 #ifndef NDEBUG
-   reg_print_fct_debug("reg_f3d<T>::SetLinearEnergyWeights");
-#endif
-}
-/* *************************************************************** */
-template<class T>
-void reg_f3d<T>::SetL2NormDisplacementWeight(T w)
-{
-   this->L2NormWeight=w;
-#ifndef NDEBUG
-   reg_print_fct_debug("reg_f3d<T>::SetL2NormDisplacementWeight");
+   reg_print_fct_debug("reg_f3d<T>::SetLinearEnergyWeight");
 #endif
 }
 /* *************************************************************** */
@@ -147,12 +135,15 @@ T reg_f3d<T>::InitialiseCurrentLevel()
    // Refine the control point grid if required
    if(this->gridRefinement==true)
    {
-      if(this->currentLevel==0)
-         this->bendingEnergyWeight = this->bendingEnergyWeight / static_cast<T>(powf(16.0f, this->levelToPerform-1));
+      if(this->currentLevel==0){
+         this->bendingEnergyWeight = this->bendingEnergyWeight / static_cast<T>(powf(16.0f, this->levelNumber-1));
+         this->linearEnergyWeight = this->linearEnergyWeight / static_cast<T>(powf(3.0f, this->levelNumber-1));
+      }
       else
       {
          reg_spline_refineControlPointGrid(this->controlPointGrid,this->currentReference);
          this->bendingEnergyWeight = this->bendingEnergyWeight * static_cast<T>(16);
+         this->linearEnergyWeight = this->linearEnergyWeight * static_cast<T>(3);
       }
    }
 
@@ -203,18 +194,14 @@ void reg_f3d<T>::CheckParameters()
          strcmp(this->executableName,"NiftyReg F3D GPU")==0)
    {
       T penaltySum=this->bendingEnergyWeight +
-                   this->linearEnergyWeight0 +
-                   this->linearEnergyWeight1 +
-                   this->L2NormWeight +
+                   this->linearEnergyWeight +
                    this->jacobianLogWeight;
       if(penaltySum>=1.0)
       {
          this->similarityWeight=0;
          this->similarityWeight /= penaltySum;
          this->bendingEnergyWeight /= penaltySum;
-         this->linearEnergyWeight0 /= penaltySum;
-         this->linearEnergyWeight1 /= penaltySum;
-         this->L2NormWeight /= penaltySum;
+         this->linearEnergyWeight /= penaltySum;
          this->jacobianLogWeight /= penaltySum;
       }
       else this->similarityWeight=1.0 - penaltySum;
@@ -367,7 +354,7 @@ void reg_f3d<T>::Initialise()
          reg_print_info(this->executableName, text);
       }
       reg_print_info(this->executableName, "");
-      sprintf(text, "Maximum iteration number per level: %i", (int)this->maxiterationNumber);
+      sprintf(text, "Maximum iteration number during the last level: %i", (int)this->maxiterationNumber);
       reg_print_info(this->executableName, text);
       reg_print_info(this->executableName, "");
       sprintf(text, "Final spacing in mm: %g %g %g",
@@ -396,15 +383,9 @@ void reg_f3d<T>::Initialise()
          reg_print_info(this->executableName, text);
          reg_print_info(this->executableName, "");
       }
-      if((this->linearEnergyWeight0+this->linearEnergyWeight1)>0){
-         sprintf(text, "Linear energy penalty term weights: %g %g",
-                 this->linearEnergyWeight0, this->linearEnergyWeight1);
-         reg_print_info(this->executableName, text);
-         reg_print_info(this->executableName, "");
-      }
-      if(this->L2NormWeight>0){
-         sprintf(text, "L2 norm of the displacement penalty term weight: %g",
-                 this->L2NormWeight);
+      if((this->linearEnergyWeight)>0){
+         sprintf(text, "Linear energy penalty term weight: %g",
+                 this->linearEnergyWeight);
          reg_print_info(this->executableName, text);
          reg_print_info(this->executableName, "");
       }
@@ -526,32 +507,15 @@ double reg_f3d<T>::ComputeBendingEnergyPenaltyTerm()
 template <class T>
 double reg_f3d<T>::ComputeLinearEnergyPenaltyTerm()
 {
-   if(this->linearEnergyWeight0<=0 && this->linearEnergyWeight1<=0)
+   if(this->linearEnergyWeight<=0)
       return 0.;
 
-   double values_le[2]= {0.,0.};
-   reg_spline_linearEnergy(this->controlPointGrid, values_le);
+   double value = reg_spline_approxLinearEnergy(this->controlPointGrid);
 
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::ComputeLinearEnergyPenaltyTerm");
 #endif
-   return this->linearEnergyWeight0*values_le[0] +
-          this->linearEnergyWeight1*values_le[1];
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template <class T>
-double reg_f3d<T>::ComputeL2NormDispPenaltyTerm()
-{
-   if(this->L2NormWeight<=0)
-      return 0.;
-
-   double values_l2=reg_spline_L2norm_displacement(this->controlPointGrid);
-
-#ifndef NDEBUG
-   reg_print_fct_debug("reg_f3d<T>::ComputeL2NormDispPenaltyTerm");
-#endif
-   return (double)this->L2NormWeight*values_l2;
+   return this->linearEnergyWeight*value;
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -633,30 +597,13 @@ void reg_f3d<T>::GetBendingEnergyGradient()
 template <class T>
 void reg_f3d<T>::GetLinearEnergyGradient()
 {
-   if(this->linearEnergyWeight0<=0 && this->linearEnergyWeight1<=0) return;
+   if(this->linearEnergyWeight<=0) return;
 
-   reg_spline_linearEnergyGradient(this->controlPointGrid,
-                                   this->currentReference,
-                                   this->transformationGradient,
-                                   this->linearEnergyWeight0,
-                                   this->linearEnergyWeight1);
+   reg_spline_approxLinearEnergyGradient(this->controlPointGrid,
+                                         this->transformationGradient,
+                                         this->linearEnergyWeight);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::GetLinearEnergyGradient");
-#endif
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template <class T>
-void reg_f3d<T>::GetL2NormDispGradient()
-{
-   if(this->L2NormWeight<=0) return;
-
-   reg_spline_L2norm_dispGradient(this->controlPointGrid,
-                                  this->currentReference,
-                                  this->transformationGradient,
-                                  this->L2NormWeight);
-#ifndef NDEBUG
-   reg_print_fct_debug("reg_f3d<T>::GetL2NormDispGradient");
 #endif
 }
 /* *************************************************************** */
@@ -812,6 +759,8 @@ void reg_f3d<T>::DisplayCurrentLevelParameters()
       char text[255];
       sprintf(text, "Current level: %i / %i", this->currentLevel+1, this->levelNumber);
       reg_print_info(this->executableName, text);
+      sprintf(text, "Maximum iteration number: %i", (int)this->maxiterationNumber);
+      reg_print_info(this->executableName, text);
       reg_print_info(this->executableName, "Current reference image");
       sprintf(text, "\t* image dimension: %i x %i x %i x %i",
              this->currentReference->nx, this->currentReference->ny,
@@ -871,8 +820,6 @@ double reg_f3d<T>::GetObjectiveFunctionValue()
 
    this->currentWLE = this->ComputeLinearEnergyPenaltyTerm();
 
-   this->currentWL2 = this->ComputeL2NormDispPenaltyTerm();
-
    // Compute initial similarity measure
    this->currentWMeasure = 0.0;
    if(this->similarityWeight>0)
@@ -886,8 +833,8 @@ double reg_f3d<T>::GetObjectiveFunctionValue()
    }
 #ifndef NDEBUG
    char text[255];
-   sprintf(text, "(wMeasure) %g | (wBE) %g | (wLE) %g | (wL2) %g | (wJac) %g",
-           this->currentWMeasure, this->currentWBE, this->currentWLE, this->currentWL2, this->currentWJac);
+   sprintf(text, "(wMeasure) %g | (wBE) %g | (wLE) %g | (wJac) %g",
+           this->currentWMeasure, this->currentWBE, this->currentWLE, this->currentWJac);
    reg_print_msg_debug(text);
 #endif
 
@@ -895,7 +842,7 @@ double reg_f3d<T>::GetObjectiveFunctionValue()
    reg_print_fct_debug("reg_f3d<T>::GetObjectiveFunctionValue");
 #endif
    // Store the global objective function value
-   return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWL2 - this->currentWJac;
+   return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWJac;
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -1081,7 +1028,6 @@ void reg_f3d<T>::UpdateBestObjFunctionValue()
    this->bestWMeasure=this->currentWMeasure;
    this->bestWBE=this->currentWBE;
    this->bestWLE=this->currentWLE;
-   this->bestWL2=this->currentWL2;
    this->bestWJac=this->currentWJac;
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::UpdateBestObjFunctionValue");
@@ -1097,8 +1043,8 @@ void reg_f3d<T>::PrintInitialObjFunctionValue()
    double bestValue=this->optimiser->GetBestObjFunctionValue();
 
    char text[255];
-   sprintf(text, "Initial objective function: %g = (wSIM)%g - (wBE)%g - (wLE)%g - (wL2)%g - (wJAC)%g",
-          bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWL2, this->bestWJac);
+   sprintf(text, "Initial objective function: %g = (wSIM)%g - (wBE)%g - (wLE)%g - (wJAC)%g",
+          bestValue, this->bestWMeasure, this->bestWBE, this->bestWLE, this->bestWJac);
    reg_print_info(this->executableName, text);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d<T>::PrintInitialObjFunctionValue");
@@ -1118,10 +1064,8 @@ void reg_f3d<T>::PrintCurrentObjFunctionValue(T currentSize)
    sprintf(text, "%s = (wSIM)%g", text, this->bestWMeasure);
    if(this->bendingEnergyWeight>0)
       sprintf(text, "%s - (wBE)%.2e", text, this->bestWBE);
-   if(this->linearEnergyWeight0>0 || this->linearEnergyWeight1>0)
+   if(this->linearEnergyWeight>0)
       sprintf(text, "%s - (wLE)%.2e", text, this->bestWLE);
-   if(this->L2NormWeight>0)
-      sprintf(text, "%s - (wL2)%.2e", text, this->bestWL2);
    if(this->jacobianLogWeight>0)
       sprintf(text, "%s - (wJAC)%.2e", text, this->bestWJac);
    sprintf(text, "%s [+ %g mm]", text, currentSize);
@@ -1152,7 +1096,6 @@ void reg_f3d<T>::GetObjectiveFunctionGradient()
       this->GetBendingEnergyGradient();
       this->GetJacobianBasedGradient();
       this->GetLinearEnergyGradient();
-      this->GetL2NormDispGradient();
    }
    else
    {
@@ -1180,4 +1123,5 @@ void reg_f3d<T>::CorrectTransformation()
 }
 /* *************************************************************** */
 /* *************************************************************** */
+template class reg_f3d<float>;
 #endif

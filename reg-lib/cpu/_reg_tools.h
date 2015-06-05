@@ -399,18 +399,6 @@ float reg_test_compare_images(nifti_image *imgA,
 extern "C++"
 void reg_tools_abs_image(nifti_image *img);
 /* *************************************************************** */
-/** @brief This function tells the progress to the CLI */
-//extern "C++"
-//void progressXML(unsigned long p, std::string text);
-/* *************************************************************** */
-/** @brief This function initiates progress updates through the CLI */
-//extern "C++"
-//void startProgress(std::string name);
-/* *************************************************************** */
-/** @brief This function closes progress updates through the CLI */
-//extern "C++"
-//void closeProgress(std::string name, std::string status);
-/* *************************************************************** */
 //t_dev
 extern "C++"
 void mat44ToCptr(mat44 mat, float* cMat);

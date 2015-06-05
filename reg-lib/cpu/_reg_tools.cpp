@@ -3036,45 +3036,4 @@ void mat33ToCptr(mat33 *mat, float* cMat, const unsigned int numMats)
 	}
 }
 /* *************************************************************** */
-/* *************************************************************** */
-//static std::string CLI_PROGRESS_UPDATES = std::string(getenv("NIFTK_CLI_PROGRESS_UPD") != 0 ? getenv("NIFTK_CLI_PROGRESS_UPD") : "");
-/* *************************************************************** */
-//void startProgress(std::string name)
-//{
-//   if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
-//       CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
-//   {
-//      std::cout<< "<filter-start>\n";
-//      std::cout<< "<filter-name>"    <<name.c_str() <<"</filter-name>\n";
-//      std::cout<< "<filter-comment>" <<name.c_str() <<"</filter-comment>\n";
-//      std::cout<< "</filter-start>\n";
-//      std::cout << std::flush;
-//   }
-//}
-/* *************************************************************** */
-//void progressXML(unsigned long p, std::string text)
-//{
-//   if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
-//       CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
-//   {
-//      float val = static_cast<float>((float)p/100.0f);
-//      std::cout << "<filter-progress>" << val <<"</filter-progress>\n";
-//      std::cout << std::flush;
-//   }
-//}
-/* *************************************************************** */
-//void closeProgress(std::string name, std::string status)
-//{
-//   if (CLI_PROGRESS_UPDATES.find("ON") != std::string::npos ||
-//       CLI_PROGRESS_UPDATES.find("1") != std::string::npos)
-//   {
-//      std::cout << "<filter-result name=exitStatusOutput>" << status.c_str() << "</filter-result>\n";
-//      std::cout << "<filter-progress>100</filter-progress>\n";
-//      std::cout << "<filter-end>\n";
-//      std::cout << "<filter-name>" <<name.c_str() <<"</filter-name>\n";
-//      std::cout << "<filter-comment>Finished</filter-comment></filter-end>\n";
-//      std::cout << std::flush;
-//   }
-//}
-/* *************************************************************** */
 #endif

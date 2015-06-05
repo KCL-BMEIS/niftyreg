@@ -121,13 +121,16 @@ T reg_f3d_sym<T>::InitialiseCurrentLevel()
    // Refine the control point grids if required
    if(this->gridRefinement==true)
    {
-      if(this->currentLevel==0)
-         this->bendingEnergyWeight = this->bendingEnergyWeight / static_cast<T>(powf(16.0f, this->levelToPerform-1));
+      if(this->currentLevel==0){
+         this->bendingEnergyWeight = this->bendingEnergyWeight / static_cast<T>(powf(16.0f, this->levelNumber-1));
+         this->linearEnergyWeight = this->linearEnergyWeight / static_cast<T>(powf(3.0f, this->levelNumber-1));
+      }
       else
       {
          reg_spline_refineControlPointGrid(this->controlPointGrid);
          reg_spline_refineControlPointGrid(this->backwardControlPointGrid);
          this->bendingEnergyWeight = this->bendingEnergyWeight * static_cast<T>(16);
+         this->linearEnergyWeight = this->linearEnergyWeight * static_cast<T>(3);
       }
    }
 
@@ -441,18 +444,14 @@ void reg_f3d_sym<T>::CheckParameters()
    // NORMALISE THE OBJECTIVE FUNCTION WEIGHTS
    T penaltySum=
          this->bendingEnergyWeight
-         +this->linearEnergyWeight0
-         +this->linearEnergyWeight1
-         +this->L2NormWeight
+         +this->linearEnergyWeight
          +this->jacobianLogWeight
          +this->inverseConsistencyWeight;
    if(penaltySum>=1)
    {
       this->similarityWeight=0;
       this->bendingEnergyWeight /= penaltySum;
-      this->linearEnergyWeight0 /= penaltySum;
-      this->linearEnergyWeight1 /= penaltySum;
-      this->L2NormWeight /= penaltySum;
+      this->linearEnergyWeight /= penaltySum;
       this->jacobianLogWeight /= penaltySum;
       this->inverseConsistencyWeight /= penaltySum;
    }
@@ -762,38 +761,14 @@ double reg_f3d_sym<T>::ComputeBendingEnergyPenaltyTerm()
 template <class T>
 double reg_f3d_sym<T>::ComputeLinearEnergyPenaltyTerm()
 {
-   if(this->linearEnergyWeight0<=0 && this->linearEnergyWeight1<=0) return 0.;
+   if(this->linearEnergyWeight<=0) return 0.;
 
    double forwardPenaltyTerm=reg_f3d<T>::ComputeLinearEnergyPenaltyTerm();
 
-   double values_le[2]= {0.,0.};
-   reg_spline_linearEnergy(this->backwardControlPointGrid, values_le);
-
-   double backwardPenaltyTerm = this->linearEnergyWeight0*values_le[0] +
-         this->linearEnergyWeight1*values_le[1];
+   double backwardPenaltyTerm = this->linearEnergyWeight*reg_spline_approxLinearEnergy(this->backwardControlPointGrid);
 
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d_sym<T>::ComputeLinearEnergyPenaltyTerm");
-#endif
-   return forwardPenaltyTerm+backwardPenaltyTerm;
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template <class T>
-double reg_f3d_sym<T>::ComputeL2NormDispPenaltyTerm()
-{
-   if(this->L2NormWeight<=0) return 0.;
-
-   // Compute the L2 norm penalty term along the forward direction
-   double forwardPenaltyTerm=reg_f3d<T>::ComputeL2NormDispPenaltyTerm();
-
-   // Compute the L2 norm penalty term along the backward direction
-   double backwardPenaltyTerm = (double)this->L2NormWeight *
-         reg_spline_L2norm_displacement(this->backwardControlPointGrid);
-
-   // Return the sum of the forward and backward squared L2 norm of the displacement
-#ifndef NDEBUG
-   reg_print_fct_debug("reg_f3d_sym<T>::ComputeL2NormDispPenaltyTerm");
 #endif
    return forwardPenaltyTerm+backwardPenaltyTerm;
 }
@@ -972,35 +947,15 @@ void reg_f3d_sym<T>::GetBendingEnergyGradient()
 template <class T>
 void reg_f3d_sym<T>::GetLinearEnergyGradient()
 {
-   if(this->linearEnergyWeight0<=0 && this->linearEnergyWeight1<=0) return;
+   if(this->linearEnergyWeight<=0) return;
 
    reg_f3d<T>::GetLinearEnergyGradient();
 
-   reg_spline_linearEnergyGradient(this->backwardControlPointGrid,
-                                   this->currentFloating,
-                                   this->transformationGradient,
-                                   this->linearEnergyWeight0,
-                                   this->linearEnergyWeight1);
+   reg_spline_approxLinearEnergyGradient(this->backwardControlPointGrid,
+                                         this->transformationGradient,
+                                         this->linearEnergyWeight);
 #ifndef NDEBUG
    reg_print_fct_debug("reg_f3d_sym<T>::GetLinearEnergyGradient");
-#endif
-   return;
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template <class T>
-void reg_f3d_sym<T>::GetL2NormDispGradient()
-{
-   if(this->L2NormWeight<=0) return;
-
-   reg_f3d<T>::GetL2NormDispGradient();
-
-   reg_spline_L2norm_dispGradient(this->backwardControlPointGrid,
-                                  this->currentFloating,
-                                  this->backwardTransformationGradient,
-                                  this->L2NormWeight);
-#ifndef NDEBUG
-   reg_print_fct_debug("reg_f3d_sym<T>::GetL2NormDispGradient");
 #endif
    return;
 }
@@ -1164,7 +1119,6 @@ void reg_f3d_sym<T>::GetObjectiveFunctionGradient()
       this->GetBendingEnergyGradient();
       this->GetJacobianBasedGradient();
       this->GetLinearEnergyGradient();
-      this->GetL2NormDispGradient();
       this->GetInverseConsistencyGradient();
    }
 #ifndef NDEBUG
@@ -1555,10 +1509,8 @@ void reg_f3d_sym<T>::PrintCurrentObjFunctionValue(T currentSize)
    sprintf(text, "%s = (wSIM)%g", text, this->bestWMeasure);
    if(this->bendingEnergyWeight>0)
       sprintf(text, "%s - (wBE)%.2e", text, this->bestWBE);
-   if(this->linearEnergyWeight0>0 || this->linearEnergyWeight1>0)
+   if(this->linearEnergyWeight)
       sprintf(text, "%s - (wLE)%.2e", text, this->bestWLE);
-   if(this->L2NormWeight>0)
-      sprintf(text, "%s - (wL2)%.2e", text, this->bestWL2);
    if(this->jacobianLogWeight>0)
       sprintf(text, "%s - (wJAC)%.2e", text, this->bestWJac);
    if(this->inverseConsistencyWeight>0)
@@ -1605,8 +1557,6 @@ double reg_f3d_sym<T>::GetObjectiveFunctionValue()
 
    this->currentWLE = this->ComputeLinearEnergyPenaltyTerm();
 
-   this->currentWL2 = this->ComputeL2NormDispPenaltyTerm();
-
    // Compute initial similarity measure
    this->currentWMeasure = 0.0;
    if(this->similarityWeight>0)
@@ -1620,9 +1570,9 @@ double reg_f3d_sym<T>::GetObjectiveFunctionValue()
 
 #ifndef NDEBUG
    char text[255];
-   sprintf(text, "(wMeasure) %g | (wBE) %g | (wLE) %g | (wL2) %g | (wJac) %g | (wIC) %g",
+   sprintf(text, "(wMeasure) %g | (wBE) %g | (wLE) %g | (wJac) %g | (wIC) %g",
            this->currentWMeasure, this->currentWBE,
-           this->currentWLE, this->currentWL2,
+           this->currentWLE,
            this->currentWJac, this->currentIC);
    reg_print_msg_debug(text);
 #endif
@@ -1631,7 +1581,7 @@ double reg_f3d_sym<T>::GetObjectiveFunctionValue()
    reg_print_fct_debug("reg_f3d_sym<T>::GetObjectiveFunctionValue");
 #endif
    // Store the global objective function value
-   return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWL2 - this->currentWJac - this->currentIC;
+   return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWJac - this->currentIC;
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -1803,5 +1753,5 @@ nifti_image * reg_f3d_sym<T>::GetBackwardControlPointPositionImage()
 }
 /* *************************************************************** */
 /* *************************************************************** */
-
+template class reg_f3d_sym<float>;
 #endif

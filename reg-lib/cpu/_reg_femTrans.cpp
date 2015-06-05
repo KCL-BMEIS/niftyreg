@@ -9,10 +9,10 @@
  *
  */
 
-#ifndef _REG_FEMTRANSFORMATION_CPP
-#define _REG_FEMTRANSFORMATION_CPP
+#ifndef _REG_FEMTRANS_CPP
+#define _REG_FEMTRANS_CPP
 
-#include "_reg_femTransformation.h"
+#include "_reg_femTrans.h"
 
 float reg_getTetrahedronVolume(float *node1,float *node2,float *node3,float *node4)
 {

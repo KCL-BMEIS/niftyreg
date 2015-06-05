@@ -59,7 +59,6 @@ protected:
    virtual double ComputeJacobianBasedPenaltyTerm(int);
    virtual double ComputeBendingEnergyPenaltyTerm();
    virtual double ComputeLinearEnergyPenaltyTerm();
-   virtual double ComputeL2NormDispPenaltyTerm();
    virtual void GetDeformationField();
    virtual void WarpFloatingImage(int);
    virtual void GetVoxelBasedGradient();
@@ -67,7 +66,6 @@ protected:
    virtual void GetObjectiveFunctionGradient();
    virtual void GetBendingEnergyGradient();
    virtual void GetLinearEnergyGradient();
-   virtual void GetL2NormDispGradient();
    virtual void GetJacobianBasedGradient();
    virtual void SetGradientImageToZero();
    virtual T NormaliseGradient();
@@ -102,6 +100,6 @@ public:
    }
 };
 
-#include "_reg_f3d_sym.cpp"
+//#include "_reg_f3d_sym.cpp"
 
 #endif

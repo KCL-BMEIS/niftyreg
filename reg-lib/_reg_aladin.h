@@ -17,7 +17,7 @@
 #include "_reg_macros.h"
 #include "_reg_resampling.h"
 #include "_reg_blockMatching.h"
-#include "_reg_globalTransformation.h"
+#include "_reg_globalTrans.h"
 #include "_reg_nmi.h"
 #include "_reg_ssd.h"
 #include "_reg_tools.h"

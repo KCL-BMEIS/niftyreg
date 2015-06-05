@@ -13,8 +13,8 @@
 #define _REG_BASE_H
 
 #include "_reg_resampling.h"
-#include "_reg_globalTransformation.h"
-#include "_reg_localTransformation.h"
+#include "_reg_globalTrans.h"
+#include "_reg_localTrans.h"
 #include "_reg_nmi.h"
 #include "_reg_dti.h"
 #include "_reg_ssd.h"
@@ -63,6 +63,7 @@ protected:
    float *referenceThresholdLow;
    float *floatingThresholdUp;
    float *floatingThresholdLow;
+   bool robustRange;
    T warpedPaddingValue;
    unsigned int levelNumber;
    unsigned int levelToPerform;
@@ -231,6 +232,8 @@ public:
    void SetReferenceThresholdLow(unsigned int,T);
    void SetFloatingThresholdUp(unsigned int, T);
    void SetFloatingThresholdLow(unsigned int,T);
+   void UseRobustRange();
+   void DoNotUseRobustRange();
    void SetWarpedPaddingValue(T);
    void SetLevelNumber(unsigned int);
    void SetLevelToPerform(unsigned int);
@@ -273,6 +276,6 @@ public:
    }
 };
 
-#include "_reg_base.cpp"
+//#include "_reg_base.cpp"
 
 #endif // _REG_BASE_H

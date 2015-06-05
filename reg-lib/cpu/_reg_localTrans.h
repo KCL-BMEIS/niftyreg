@@ -13,10 +13,10 @@
  * Marcel van Herk (CMIC / NKI / AVL)
  */
 
-#ifndef _REG_TRANSFORMATION_H
-#define _REG_TRANSFORMATION_H
+#ifndef _REG_TRANS_H
+#define _REG_TRANS_H
 
-#include "_reg_globalTransformation.h"
+#include "_reg_globalTrans.h"
 #include "float.h"
 #include <limits>
 #include "_reg_tools.h"
@@ -105,14 +105,10 @@ void reg_spline_approxBendingEnergyGradient(nifti_image *controlPointGridImage,
  * at the control point positions only.
  * @param controlPointGridImage Image that contains the transformation
  * parametrisation
- * @param values Array[2] that contains (0) the penalty term based on
- * the anti-symmetric part of the Jacobian matrices and (1) the squared
- * trace of the Jacobian matrices
+ * @return The normalised linear energy. Normalised by the number of voxel
  */
 extern "C++"
-void reg_spline_linearEnergy(nifti_image *controlPointGridImage,
-                             double *values
-                             );
+double reg_spline_approxLinearEnergy(nifti_image *controlPointGridImage);
 /* *************************************************************** */
 /** @brief Compute the gradient of the linear elastic energy terms
  * approximated at the control point positions only.
@@ -124,42 +120,13 @@ void reg_spline_linearEnergy(nifti_image *controlPointGridImage,
  * grid and that contains the gradient of the objective function.
  * The gradient of the linear elasticily terms are added to the
  * current values
- * @param weight0 Weight to apply to the first term of the penalty
- * @param weight1 Weight to apply to the second term of the penalty
+ * @param weight Weight to apply to the term of the penalty
  */
 extern "C++"
-void reg_spline_linearEnergyGradient(nifti_image *controlPointGridImage,
-                                     nifti_image *referenceImage,
-                                     nifti_image *gradientImage,
-                                     float weight0,
-                                     float weight1
-                                     );
-/* *************************************************************** */
-/** @brief Compute and return the L2 norm of the displacement approximated
-  * at the control point positions only.
-  * @param controlPointGridImage Image that contains the transformation parameters
-  * @return The sum of squared Euclidean displacement at every control
-  * point position
-  */
-extern "C++"
-double reg_spline_L2norm_displacement(nifti_image *controlPointGridImage);
-/* *************************************************************** */
-/** @brief Compute the gradient of the L2 norm of the displacement approximated
- * at the control point positions only.
- * @param controlPointGridImage Image that contains the transformation parameters
- * @param referenceImage Image that defines the space of the deformation field
- * @param gradientImage Image of similar size than the control point
- * grid and that contains the gradient of the objective function.
- * The gradient of the L2 norm of the displacement terms are added to the
- * current values
- * @param weight The gradient of the Euclidean displacement of the control
- * point position is weighted by this value
- */
-extern "C++"
-void reg_spline_L2norm_dispGradient(nifti_image *controlPointGridImage,
-                                    nifti_image *referenceImage,
-                                    nifti_image *gradientImage,
-                                    float weight);
+void reg_spline_approxLinearEnergyGradient(nifti_image *controlPointGridImage,
+                                           nifti_image *gradientImage,
+                                           float weight
+                                           );
 /* *************************************************************** */
 /** @brief Compute the Jacobian determinant map using a cubic b-spline
  * @param controlPointGridImage Image that contains the transformation

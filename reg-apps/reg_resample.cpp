@@ -17,8 +17,8 @@
 
 #include "_reg_ReadWriteImage.h"
 #include "_reg_resampling.h"
-#include "_reg_globalTransformation.h"
-#include "_reg_localTransformation.h"
+#include "_reg_globalTrans.h"
+#include "_reg_localTrans.h"
 #include "_reg_tools.h"
 #include "reg_resample.h"
 
@@ -71,6 +71,10 @@ void Usage(char *exec)
    printf("\t-psf\n\t\tPerform the resampling in two steps to resample an image to a lower resolution [off]\n");
    printf("\t-psf_alg <0/1>\n\t\tMinimise the matrix metric (0) or the determinant (1) when estimating the PSF [0]\n");
    printf("\t-voff\n\t\tTurns verbose off [on]\n");
+#if defined (_OPENMP)
+   printf("\t-omp <int>\n\t\tNumber of thread to use with OpenMP. [1/%i]\n",
+          omp_get_num_procs());
+#endif
 #ifdef _GIT_HASH
    printf("\n\t--version\n\t\tPrint current source code git hash key and exit\n\t\t\t\t(%s)\n",_GIT_HASH);
 #endif
@@ -87,6 +91,11 @@ int main(int argc, char **argv)
    param->paddingValue=0;
    param->PSF_Algorithm=0;
    bool verbose=true;
+
+#if defined (_OPENMP)
+   // Set the default number of thread to one
+   omp_set_num_threads(1);
+#endif
 
    /* read the input parameter */
    for(int i=1; i<argc; i++)
@@ -107,6 +116,12 @@ int main(int argc, char **argv)
       {
          verbose=false;
       }
+#if defined (_OPENMP)
+      else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
+      {
+         omp_set_num_threads(atoi(argv[++i]));
+      }
+#endif
 #ifdef _GIT_HASH
       else if( strcmp(argv[i], "-version")==0 ||
                strcmp(argv[i], "-Version")==0 ||
@@ -268,11 +283,6 @@ int main(int argc, char **argv)
       printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n");
    }
 
-   //   // Tell the CLI that the process has started
-   //   startProgress("reg_resample");
-   //   // Set up progress indicators
-   //   float iProgressStep=1, nProgressSteps;
-
    /* *********************** */
    /* READ THE TRANSFORMATION */
    /* *********************** */
@@ -305,9 +315,6 @@ int main(int argc, char **argv)
       // No transformation is specified, an identity transformation is used
       reg_mat44_eye(&inputAffineTransformation);
    }
-
-   //   // Update progress via CLI
-   //   progressXML(1, "Transform loaded...");
 
    // Create a deformation field
    nifti_image *deformationFieldImage = nifti_copy_nim_info(referenceImage);
@@ -396,9 +403,6 @@ int main(int argc, char **argv)
                                      false,
                                      NULL);
    }
-
-   //   // Update progress via CLI
-   //   progressXML(2, "Deformation field ready...");
 
    /* ************************* */
    /* WARP THE FLOATING IMAGE */

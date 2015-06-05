@@ -9,8 +9,6 @@
  *
  */
 
-#include "_reg_localTransformation.h"
-
 #define _USE_SQUARE_LOG_JAC
 
 /* *************************************************************** */

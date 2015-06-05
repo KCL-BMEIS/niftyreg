@@ -9,10 +9,10 @@
  *
  */
 
-#ifndef _REG_TRANSFORMATION_CPP
-#define _REG_TRANSFORMATION_CPP
+#ifndef _REG_LOCALTRANS_CPP
+#define _REG_LOCALTRANS_CPP
 
-#include "_reg_localTransformation.h"
+#include "_reg_localTrans.h"
 
 /* *************************************************************** */
 /* *************************************************************** */
@@ -4079,61 +4079,106 @@ void reg_spline_getDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
 void reg_spline_getIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGrid,
                                                    nifti_image **deformationFieldImage)
 {
-   reg_exit(1);// Needs to be updated
-   // Check first if the velocity field is actually a velocity field
-   if( velocityFieldGrid->intent_p1!=SPLINE_VEL_GRID)
+   // Check if the velocity field is actually a velocity field
+   if(velocityFieldGrid->intent_p1 == SPLINE_VEL_GRID)
+   {
+      // Create an image to store the flow field
+      nifti_image *flowFieldImage = nifti_copy_nim_info(deformationFieldImage[0]);
+      flowFieldImage->data = (void *)calloc(flowFieldImage->nvox,flowFieldImage->nbyper);
+      flowFieldImage->intent_code=NIFTI_INTENT_VECTOR;
+      memset(flowFieldImage->intent_name, 0, 16);
+      strcpy(flowFieldImage->intent_name,"NREG_TRANS");
+      flowFieldImage->intent_p1=DEF_VEL_FIELD;
+      flowFieldImage->intent_p2=velocityFieldGrid->intent_p2;
+      if(velocityFieldGrid->num_ext>0 && flowFieldImage->ext_list==NULL)
+         nifti_copy_extensions(flowFieldImage, velocityFieldGrid);
+
+      // Generate the velocity field
+      reg_spline_getFlowFieldFromVelocityGrid(velocityFieldGrid,
+                                              flowFieldImage);
+      // Remove the affine component from the flow field
+      nifti_image *affineOnly=NULL;
+      if(flowFieldImage->num_ext>0)
+      {
+         if(flowFieldImage->ext_list[0].edata!=NULL)
+         {
+            // Create a field that contains the affine component only
+            affineOnly = nifti_copy_nim_info(deformationFieldImage[0]);
+            affineOnly->data = (void *)calloc(affineOnly->nvox,affineOnly->nbyper);
+            reg_affine_getDeformationField(reinterpret_cast<mat44 *>(flowFieldImage->ext_list[0].edata),
+                  affineOnly,
+                  false);
+            reg_tools_substractImageToImage(flowFieldImage,affineOnly,flowFieldImage);
+         }
+      }
+      else reg_getDisplacementFromDeformation(flowFieldImage);
+
+      // Compute the number of scaling value to ensure unfolded transformation
+      int squaringNumber = squaringNumber=static_cast<int>(fabsf(velocityFieldGrid->intent_p2));
+
+      // The displacement field is scaled
+      float scalingValue = pow(2.0f,fabs(squaringNumber));
+      if(velocityFieldGrid->intent_p2<0)
+         // backward deformation field is scaled down
+         reg_tools_divideValueToImage(flowFieldImage,
+                                      deformationFieldImage[0],
+                                      -scalingValue); // (/-scalingValue)
+      else
+         // forward deformation field is scaled down
+         reg_tools_divideValueToImage(flowFieldImage,
+                                      deformationFieldImage[0],
+                                      scalingValue); // (/scalingValue)
+
+      // Clear the allocated flow field
+      nifti_image_free(flowFieldImage);
+      flowFieldImage=NULL;
+
+      // Conversion from displacement to deformation
+      reg_getDeformationFromDisplacement(deformationFieldImage[0]);
+
+      // The deformation field is squared
+      for(unsigned short i=0; i<squaringNumber; ++i)
+      {
+         // The computed scaled deformation field is copied over
+         memcpy(deformationFieldImage[i+1]->data, deformationFieldImage[i]->data,
+               deformationFieldImage[i]->nvox*deformationFieldImage[i]->nbyper);
+         // The deformation field is applied to itself
+         reg_defField_compose(deformationFieldImage[i], // to apply
+                              deformationFieldImage[i+1], // to update
+               NULL);
+   #ifndef NDEBUG
+         char text[255];
+         sprintf(text, "Squaring (composition) step %u/%u", i+1, squaringNumber);
+         reg_print_msg_debug(text);
+   #endif
+      }
+      // The affine conponent of the transformation is restored
+      if(affineOnly!=NULL)
+      {
+         for(unsigned short i=0; i<=squaringNumber; ++i){
+            reg_getDisplacementFromDeformation(deformationFieldImage[i]);
+            reg_tools_addImageToImage(deformationFieldImage[i],affineOnly,deformationFieldImage[i]);
+            deformationFieldImage[i]->intent_p1=DEF_FIELD;
+            deformationFieldImage[i]->intent_p2=0;
+         }
+         nifti_image_free(affineOnly);
+         affineOnly=NULL;
+      }
+      // If required an affine component is composed
+      if(velocityFieldGrid->num_ext>1)
+      {
+         for(unsigned short i=0; i<=squaringNumber; ++i){
+            reg_affine_getDeformationField(reinterpret_cast<mat44 *>(velocityFieldGrid->ext_list[1].edata),
+                  deformationFieldImage[i],
+                  true);
+         }
+      }
+   }
+   else
    {
       reg_print_fct_error("reg_spline_getIntermediateDefFieldFromVelGrid");
-      reg_print_msg_error("The provided grid is not a velocity field");
+      reg_print_msg_error("The provided input image is not a spline parametrised transformation");
       reg_exit(1);
-   }
-   // Set the initial deformation field to an identity transformation
-   memset(deformationFieldImage[0]->data,0,
-         deformationFieldImage[0]->nvox* deformationFieldImage[0]->nbyper); // (*0)
-   reg_getDeformationFromDisplacement(deformationFieldImage[0]);
-   // The initial deformation is generated using cubic B-Spline parametrisation
-   reg_spline_getDeformationField(velocityFieldGrid,
-                                  deformationFieldImage[0],
-         NULL, // mask
-         true, //composition
-         true // bspline
-         );
-
-   // The deformation field is converted from deformation field to displacement field
-   reg_getDisplacementFromDeformation(deformationFieldImage[0]);
-
-   // The deformation field is scaled
-   float scalingValue = pow(2.0f,fabs(velocityFieldGrid->intent_p2));
-   if(velocityFieldGrid->intent_p1<0)
-      // backward deformation field is scaled down
-      reg_tools_divideValueToImage(deformationFieldImage[0],
-            deformationFieldImage[0],
-            -scalingValue);
-   else
-      // forward deformation field is scaled down
-      reg_tools_divideValueToImage(deformationFieldImage[0],
-            deformationFieldImage[0],
-            scalingValue);
-
-   // The displacement field is converted back into a deformation field
-   reg_getDeformationFromDisplacement(deformationFieldImage[0]);
-
-   // The deformation field is squared
-   unsigned int squaringNumber = (unsigned int)fabs(velocityFieldGrid->intent_p2);
-   for(unsigned int i=0; i<squaringNumber; ++i)
-   {
-      // The computed scaled deformation field is copied over
-      memcpy(deformationFieldImage[i+1]->data, deformationFieldImage[i]->data,
-            deformationFieldImage[i]->nvox*deformationFieldImage[i]->nbyper);
-      // The deformation field is applied to itself
-      reg_defField_compose(deformationFieldImage[i], // to apply
-                           deformationFieldImage[i+1], // to update
-            NULL);
-#ifndef NDEBUG
-      char text[255];
-      sprintf(text, "Squaring (composition) step %u/%u", i+1, squaringNumber);
-      reg_print_msg_debug(text);
-#endif
    }
    return;
 }
@@ -4561,7 +4606,7 @@ void reg_spline_GetDeconvolvedCoefficents(nifti_image *img)
 /* *************************************************************** */
 /* *************************************************************** */
 
-#include "_reg_localTransformation_jac.cpp"
-#include "_reg_localTransformation_be.cpp"
+#include "_reg_localTrans_jacobian.cpp"
+#include "_reg_localTrans_regularisation.cpp"
 
 #endif

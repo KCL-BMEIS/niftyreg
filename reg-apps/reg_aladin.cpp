@@ -95,7 +95,7 @@ void Usage(char *exec)
 #endif
    reg_print_info(exec, "\t-crv\t\t\tChoose custom capture range for the block matching alg");
 #if defined (_OPENMP)
-   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [%i]",
+   sprintf(text,"\t-omp <int>\t\tNumber of thread to use with OpenMP. [1/%i]",
           omp_get_num_procs());
    reg_print_info(exec, text);
 #endif
@@ -118,7 +118,7 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
    }
 
-   char text[255];
+   char text[1024];
 
    time_t start;
    time(&start);
@@ -169,9 +169,14 @@ int main(int argc, char **argv)
    bool verbose=true;
    unsigned int platformFlag = 0;
    bool ils = false;
-   int captureRangeVox =3;
+   int captureRangeVox = 3;
    int clIdx = -1;
    bool cusvd =false;
+
+#if defined (_OPENMP)
+   // Set the default number of thread to one
+   omp_set_num_threads(1);
+#endif
 
    /* read the input parameter */
    for(int i=1; i<argc; i++)
@@ -518,10 +523,6 @@ int main(int argc, char **argv)
       }
       else REG->SetInputFloatingMask(floatingMaskImage);
    }
-
-
-//   // Update the CLI progress bar
-//   progressXML(2, "Input data ready...");
 
    REG->SetMaxIterations(maxIter);
    REG->SetNumberOfLevels(nLevels);
