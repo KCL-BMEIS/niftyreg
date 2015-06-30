@@ -63,7 +63,7 @@ set(LIB_LIST
 	_reg_resampling
 	_reg_nmi
 	_reg_ssd
-	_reg_KLdivergence
+	_reg_kld
 	_reg_lncc
 	_reg_dti
 	_reg_blockMatching
@@ -183,7 +183,7 @@ set(_reg_f3d_libraries
 	_reg_globalTrans
 	_reg_lncc
 	_reg_dti
-	_reg_KLdivergence
+	_reg_kld
 	_reg_ssd _reg_nmi
 	_reg_optimiser
 	_reg_tools

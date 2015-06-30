@@ -9,7 +9,7 @@ add_executable(reg_resample reg_resample.cpp)
 target_link_libraries(reg_resample _reg_resampling _reg_localTrans _reg_tools _reg_globalTrans _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
 add_executable(reg_measure reg_measure.cpp)
-target_link_libraries(reg_measure _reg_resampling _reg_tools _reg_nmi _reg_ssd _reg_KLdivergence _reg_lncc _reg_dti _reg_ReadWriteImage)
+target_link_libraries(reg_measure _reg_resampling _reg_tools _reg_nmi _reg_ssd _reg_kld _reg_lncc _reg_dti _reg_ReadWriteImage)
 #-----------------------------------------------------------------------------
 add_executable(reg_ppcnr reg_ppcnr.cpp)
 target_link_libraries(reg_ppcnr _reg_ReadWriteImage)
