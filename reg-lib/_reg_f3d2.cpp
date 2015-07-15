@@ -24,7 +24,7 @@ reg_f3d2<T>::reg_f3d2(int refTimePoint,int floTimePoint)
    this->executableName=(char *)"NiftyReg F3D2";
    this->inverseConsistencyWeight=0;
    this->BCHUpdate=false;
-   this->useGradientCumulativeExp=false;
+   this->useGradientCumulativeExp=true;
    this->BCHUpdateValue=0;
 
 #ifndef NDEBUG
@@ -57,6 +57,13 @@ void reg_f3d2<T>::UseGradientCumulativeExp()
 {
    this->BCHUpdate = false;
    this->useGradientCumulativeExp = true;
+}
+/* *************************************************************** */
+/* *************************************************************** */
+template <class T>
+void reg_f3d2<T>::DoNotUseGradientCumulativeExp()
+{
+   this->useGradientCumulativeExp = false;
 }
 /* *************************************************************** */
 /* *************************************************************** */

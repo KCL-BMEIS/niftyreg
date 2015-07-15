@@ -109,6 +109,7 @@ void Usage(char *exec)
    reg_print_info(exec, "");
    reg_print_info(exec, "*** F3D2 options:");
    reg_print_info(exec, "\t-vel \t\t\tUse a velocity field integration to generate the deformation");
+   reg_print_info(exec, "\t-nogce \t\t\tDo not use the gradient accumulation through exponentiation");
    reg_print_info(exec, "\t-fmask <filename>\tFilename of a mask image in the floating space");
 #if defined (_OPENMP)
    reg_print_info(exec, "");
@@ -614,9 +615,9 @@ int main(int argc, char **argv)
       {
          REG->NoGridRefinement();
       }
-      else if(strcmp(argv[i], "-gce")==0 || strcmp(argv[i], "--gce")==0)
+      else if(strcmp(argv[i], "-nogce")==0 || strcmp(argv[i], "--nogce")==0)
       {
-         REG->UseGradientCumulativeExp();
+         REG->DoNotUseGradientCumulativeExp();
       }
       else if(strcmp(argv[i], "-bch")==0 || strcmp(argv[i], "--bch")==0)
       {

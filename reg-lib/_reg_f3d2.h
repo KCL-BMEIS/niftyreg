@@ -30,6 +30,7 @@ protected:
    virtual void ExponentiateGradient();
    virtual void UseBCHUpdate(int);
    virtual void UseGradientCumulativeExp();
+   virtual void DoNotUseGradientCumulativeExp();
 
 public:
    reg_f3d2(int refTimePoint,int floTimePoint);

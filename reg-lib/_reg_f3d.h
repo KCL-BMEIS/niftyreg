@@ -110,6 +110,10 @@ public:
    {
       return;
    }
+   virtual void DoNotUseGradientCumulativeExp()
+   {
+      return;
+   }
 
    // F3D_SYM specific options
    virtual void SetFloatingMask(nifti_image *)
