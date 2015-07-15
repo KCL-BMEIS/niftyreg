@@ -2529,10 +2529,20 @@ void reg_defField_getJacobianMap2D(nifti_image *deformationField,
    if(jacobianDeterminant!=NULL)
       jacDetPtr=static_cast<DTYPE *>(jacobianDeterminant->data);
 
-   mat33 jacobianMatrix, reorientation;
+   float spacing[3];
+   mat33 reorientation, jacobianMatrix;
+
    if(deformationField->sform_code>0)
-      reorientation = reg_mat44_to_mat33(&deformationField->sto_ijk);
-   else reorientation = reg_mat44_to_mat33(&deformationField->qto_ijk);
+   {
+      reg_getRealImageSpacing(deformationField,spacing);
+      reorientation=nifti_mat33_inverse(nifti_mat33_polar(reg_mat44_to_mat33(&deformationField->sto_xyz)));
+   }
+   else
+   {
+      spacing[0]=deformationField->dx;
+      spacing[1]=deformationField->dy;
+      reorientation=nifti_mat33_inverse(nifti_mat33_polar(reg_mat44_to_mat33(&deformationField->qto_xyz)));
+   }
 
    DTYPE *deformationPtrX = static_cast<DTYPE *>(deformationField->data);
    DTYPE *deformationPtrY = &deformationPtrX[voxelNumber];
@@ -2541,12 +2551,12 @@ void reg_defField_getJacobianMap2D(nifti_image *deformationField,
    DTYPE first[2]= {-1.0,1.0};
    DTYPE firstX, firstY, defX, defY;
 
-   int currentIndex, x, y, a, b, index;
+   int currentIndex, x, y, a, b, currentZ, index;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(deformationField, jacobianDeterminant, jacobianMatrices, reorientation, \
-   basis, first, jacDetPtr, deformationPtrX, deformationPtrY) \
-   private(currentIndex, x, y, a, b, index, \
+   basis, first, jacDetPtr, deformationPtrX, deformationPtrY, spacing) \
+   private(currentIndex, x, y, a, b, currentZ, index, \
    jacobianMatrix, defX, defY, firstX, firstY)
 #endif
    for(y=0; y<deformationField->ny-1; ++y)
@@ -2554,7 +2564,6 @@ void reg_defField_getJacobianMap2D(nifti_image *deformationField,
       currentIndex=y*deformationField->nx;
       for(x=0; x<deformationField->nx-1; ++x)
       {
-
          memset(&jacobianMatrix,0,sizeof(mat33));
 
          for(b=0; b<2; ++b)
@@ -2580,10 +2589,13 @@ void reg_defField_getJacobianMap2D(nifti_image *deformationField,
                ++index;
             }//a
          }//b
-         jacobianMatrix.m[2][2] =1.;
 
          // reorient and scale the Jacobian matrix
          jacobianMatrix=nifti_mat33_mul(reorientation,jacobianMatrix);
+         jacobianMatrix.m[0][0] /= spacing[0];
+         jacobianMatrix.m[0][1] /= spacing[1];
+         jacobianMatrix.m[1][0] /= spacing[0];
+         jacobianMatrix.m[1][1] /= spacing[1];
 
          // Update the output arrays if required
          if(jacobianDeterminant!=NULL)
@@ -2595,6 +2607,7 @@ void reg_defField_getJacobianMap2D(nifti_image *deformationField,
       }// x jacImage
    }//y jacImage
    // Sliding is assumed. The Jacobian at the boundary are then replicated
+
    for(y=0; y<deformationField->ny; ++y)
    {
       currentIndex=y*deformationField->nx;
@@ -2626,20 +2639,21 @@ void reg_defField_getJacobianMap3D(nifti_image *deformationField,
    if(jacobianDeterminant!=NULL)
       jacDetPtr=static_cast<DTYPE *>(jacobianDeterminant->data);
 
-   float realSpacing[3];
+   float spacing[3];
+   mat33 reorientation, jacobianMatrix;
+
    if(deformationField->sform_code>0)
    {
-      reg_getRealImageSpacing(deformationField,realSpacing);
+      reg_getRealImageSpacing(deformationField,spacing);
+      reorientation=nifti_mat33_inverse(nifti_mat33_polar(reg_mat44_to_mat33(&deformationField->sto_xyz)));
    }
    else
    {
-      realSpacing[0]=deformationField->dx;
-      realSpacing[1]=deformationField->dy;
-      realSpacing[2]=deformationField->dz;
+      spacing[0]=deformationField->dx;
+      spacing[1]=deformationField->dy;
+      spacing[2]=deformationField->dz;
+      reorientation=nifti_mat33_inverse(nifti_mat33_polar(reg_mat44_to_mat33(&deformationField->qto_xyz)));
    }
-
-   mat33 jacobianMatrix;
-   mat33 reorient=nifti_mat33_inverse(nifti_mat33_polar(reg_mat44_to_mat33(&deformationField->sto_xyz)));
 
    DTYPE *deformationPtrX = static_cast<DTYPE *>(deformationField->data);
    DTYPE *deformationPtrY = &deformationPtrX[voxelNumber];
@@ -2652,8 +2666,8 @@ void reg_defField_getJacobianMap3D(nifti_image *deformationField,
    int currentIndex, x, y, z, a, b, c, currentZ, index;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-   shared(deformationField, jacobianDeterminant, jacobianMatrices, reorient, \
-   basis, first, jacDetPtr, deformationPtrX, deformationPtrY, deformationPtrZ, realSpacing) \
+   shared(deformationField, jacobianDeterminant, jacobianMatrices, reorientation, \
+   basis, first, jacDetPtr, deformationPtrX, deformationPtrY, deformationPtrZ, spacing) \
    private(currentIndex, x, y, z, a, b, c, currentZ, index, \
    jacobianMatrix, defX, defY, defZ, firstX, firstY, firstZ)
 #endif
@@ -2703,16 +2717,16 @@ void reg_defField_getJacobianMap3D(nifti_image *deformationField,
             }//c
 
             // reorient and scale the Jacobian matrix
-            jacobianMatrix=nifti_mat33_mul(reorient,jacobianMatrix);
-            jacobianMatrix.m[0][0] /= realSpacing[0];
-            jacobianMatrix.m[0][1] /= realSpacing[1];
-            jacobianMatrix.m[0][2] /= realSpacing[2];
-            jacobianMatrix.m[1][0] /= realSpacing[0];
-            jacobianMatrix.m[1][1] /= realSpacing[1];
-            jacobianMatrix.m[1][2] /= realSpacing[2];
-            jacobianMatrix.m[2][0] /= realSpacing[0];
-            jacobianMatrix.m[2][1] /= realSpacing[1];
-            jacobianMatrix.m[2][2] /= realSpacing[2];
+            jacobianMatrix=nifti_mat33_mul(reorientation,jacobianMatrix);
+            jacobianMatrix.m[0][0] /= spacing[0];
+            jacobianMatrix.m[0][1] /= spacing[1];
+            jacobianMatrix.m[0][2] /= spacing[2];
+            jacobianMatrix.m[1][0] /= spacing[0];
+            jacobianMatrix.m[1][1] /= spacing[1];
+            jacobianMatrix.m[1][2] /= spacing[2];
+            jacobianMatrix.m[2][0] /= spacing[0];
+            jacobianMatrix.m[2][1] /= spacing[1];
+            jacobianMatrix.m[2][2] /= spacing[2];
 
             // Update the output arrays if required
             if(jacobianDeterminant!=NULL)
