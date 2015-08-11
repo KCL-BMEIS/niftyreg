@@ -305,7 +305,7 @@ void reg_aladin<T>::InitialiseRegistration()
 	reg_print_fct_debug("reg_aladin::InitialiseRegistration()");
 #endif
 
-	this->platform = new Platform(platformCode);
+	this->platform = new Platform(this->platformCode);
 	if (this->platformCode == NR_PLATFORM_CL) this->platform->setClIdx(this->clIdx);
 
 	Kernel *convolutionKernel = this->platform->createKernel(ConvolutionKernel::getName(), NULL);

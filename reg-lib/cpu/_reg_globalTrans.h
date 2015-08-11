@@ -1,5 +1,5 @@
 /**
- * @file _reg_globalTransformation.h
+ * @file _reg_globalTrans.h
  * @author Marc Modat
  * @date 25/03/2009
  * @brief library that contains the function related to global transformation

@@ -1,5 +1,5 @@
 #include "_reg_ReadWriteImage.h"
-#include "_reg_globalTransformation.h"
+#include "_reg_globalTrans.h"
 #include "_reg_tools.h"
 
 #include "Kernel.h"

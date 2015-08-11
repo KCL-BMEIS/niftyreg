@@ -12,7 +12,7 @@
 
 //debugging
 #include "_reg_resampling.h"
-#include "_reg_globalTransformation.h"
+#include "_reg_globalTrans.h"
 #include "_reg_blockMatching.h"
 //---
 

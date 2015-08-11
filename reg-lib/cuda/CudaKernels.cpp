@@ -4,7 +4,7 @@
 #include "_reg_blockMatching_cuda.h"
 #include "_reg_blockMatching.h"
 #include"_reg_resampling.h"
-#include"_reg_globalTransformation.h"
+#include"_reg_globalTrans.h"
 
 /* *************************************************************** */
 void CudaConvolutionKernel::calculate(nifti_image *image,
