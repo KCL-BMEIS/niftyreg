@@ -1080,6 +1080,7 @@ void ResampleImage3D_PSF_Sinc(nifti_image *floatingImage,
         float currentAPre, currentARel, currentBPre, currentBRel, currentCPre, currentCRel, resamplingWeightSum, resamplingWeight;
         size_t currentIndex;
 
+/*
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
     private(intensity, psfWeightSum, psfWeight, \
@@ -1093,6 +1094,7 @@ void ResampleImage3D_PSF_Sinc(nifti_image *floatingImage,
     deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, floatingIJKMatrix,\
     floatingImage, warpedImage, kernelCompFctPtr, kernel_offset, kernel_size, warpedIntensity,stderr)
 #endif // _OPENMP
+*/
         for(index=0; index<warpedVoxelNumber; index++)
         {
             intensity=paddingValue;
@@ -1397,6 +1399,7 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
         float currentA, currentB, currentC, psf_eig[3],  mahal, psfWeight;
         float currentAPre, currentARel, currentBPre, currentBRel, currentCPre, currentCRel, resamplingWeightSum, resamplingWeight;
         size_t currentIndex;
+/*
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
     private(intensity, ASAt,TmS,TmS_EigVec,TmS_EigVal,TmS_EigVal_inv,TmS_EigVec_trans, P, currentDeterminant, maxDiag, \
@@ -1411,6 +1414,7 @@ void ResampleImage3D_PSF(nifti_image *floatingImage,
     deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, floatingIJKMatrix,\
     floatingImage, warpedImage, kernelCompFctPtr, kernel_offset, kernel_size, warpedIntensity,stderr,algorithm)
 #endif // _OPENMP
+*/
         for(index=0; index<warpedVoxelNumber; index++)
         {
             intensity=paddingValue;

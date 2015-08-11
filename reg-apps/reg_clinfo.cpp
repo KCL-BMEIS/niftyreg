@@ -4,7 +4,7 @@
 
 #include "../reg-lib/cl/CLContextSingletton.h"
 #include "../reg-lib/cl/InfoDevice.h"
-#include <pthread.h>
+//#include <pthread.h>
 
 void showInfo(void)
 {
