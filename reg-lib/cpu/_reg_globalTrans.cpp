@@ -96,14 +96,14 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
       transformationMatrix = *affineTransformation;
    else transformationMatrix = reg_mat44_mul(affineTransformation, targetMatrix);
 
-   float voxel[3], position[3];
-   int x, y, z;
-   size_t index;
+   float voxel[3]={0,0,0}, position[3]={0,0,0};
+   int x=0, y=0, z=0;
+   size_t index=0;
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    shared(deformationFieldImage, transformationMatrix, affineTransformation, \
-   deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, mask, composition) \
-   private(voxel, position, x, y, z, index)
+   deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, mask, composition, index) \
+   private(voxel, position, x, y, z)
 #endif
    for(z=0; z<deformationFieldImage->nz; z++)
    {
