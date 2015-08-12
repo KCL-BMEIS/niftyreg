@@ -38,14 +38,14 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
        transformationMatrix = *affineTransformation;
     else transformationMatrix = reg_mat44_mul(affineTransformation, targetMatrix);
 
-    float voxel[2], position[2];
-    int x, y;
-    size_t index;
+    float voxel[2]={0,0}, position[2]={0,0};
+    int x=0, y=0;
+    size_t index=0;
  #if defined (_OPENMP)
  #pragma omp parallel for default(none) \
     shared(deformationFieldImage, transformationMatrix, affineTransformation, \
-    deformationFieldPtrX, deformationFieldPtrY, mask, composition) \
-    private(voxel, position, x, y, index)
+    deformationFieldPtrX, deformationFieldPtrY, mask, composition, index) \
+    private(voxel, position, x, y)
  #endif
      for(y=0; y<deformationFieldImage->ny; y++)
      {
