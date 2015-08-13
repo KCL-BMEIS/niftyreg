@@ -38,7 +38,7 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
        transformationMatrix = *affineTransformation;
     else transformationMatrix = reg_mat44_mul(affineTransformation, targetMatrix);
 
-    float voxel[2]={0,0}, position[2]={0,0};
+    float voxel[3]={0,0,1}, position[3]={0,0,1};
     int x=0, y=0;
     size_t index=0;
  #if defined (_OPENMP)
