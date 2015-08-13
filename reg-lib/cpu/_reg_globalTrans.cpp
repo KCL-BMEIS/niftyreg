@@ -44,8 +44,8 @@ void reg_affine_deformationField2D(mat44 *affineTransformation,
  #if defined (_OPENMP)
  #pragma omp parallel for default(none) \
     shared(deformationFieldImage, transformationMatrix, affineTransformation, \
-    deformationFieldPtrX, deformationFieldPtrY, mask, composition, index) \
-    private(voxel, position, x, y)
+    deformationFieldPtrX, deformationFieldPtrY, mask, composition) \
+    private(voxel, position, x, y, index)
  #endif
      for(y=0; y<deformationFieldImage->ny; y++)
      {
@@ -102,8 +102,8 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    shared(deformationFieldImage, transformationMatrix, affineTransformation, \
-   deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, mask, composition, index) \
-   private(voxel, position, x, y, z)
+   deformationFieldPtrX, deformationFieldPtrY, deformationFieldPtrZ, mask, composition) \
+   private(voxel, position, x, y, z, index)
 #endif
    for(z=0; z<deformationFieldImage->nz; z++)
    {
