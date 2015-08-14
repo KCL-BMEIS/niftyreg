@@ -25,7 +25,12 @@ add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
 	CLContextSingletton.cpp
 	CLContent.cpp
 	CLKernelFactory.cpp
-	CLKernels.cpp
+        #CLKernels.cpp
+        CLAffineDeformationFieldKernel.cpp
+        CLBlockMatchingKernel.cpp
+        CLConvolutionKernel.cpp
+        CLOptimiseKernel.cpp
+        CLResampleImageKernel.cpp
 	../Content.cpp
 	../Platform.cpp
 )
@@ -36,6 +41,12 @@ install(TARGETS ${NAME}
 	ARCHIVE DESTINATION lib
 )
 #-----------------------------------------------------------------------------
-install(FILES CLContextSingletton.h CLContent.h CLKernelFactory.h CLKernels.h DESTINATION include)
+install(FILES CLContextSingletton.h CLContent.h CLKernelFactory.h #CLKernels.h
+        CLAffineDeformationFieldKernel.h
+        CLBlockMatchingKernel.h
+        CLConvolutionKernel.h
+        CLOptimiseKernel.h
+        CLResampleImageKernel.h
+        DESTINATION include)
 install(FILES resampleKernel.cl affineDeformationKernel.cl blockMatchingKernel.cl DESTINATION include/cl)
 #-----------------------------------------------------------------------------

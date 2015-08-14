@@ -3,7 +3,12 @@
 
 #include "_reg_aladin.h"
 #include "Platform.h"
-#include "Kernels.h"
+//#include "Kernels.h"
+#include "AffineDeformationFieldKernel.h"
+#include "ResampleImageKernel.h"
+#include "BlockMatchingKernel.h"
+#include "OptimiseKernel.h"
+#include "ConvolutionKernel.h"
 #include "Content.h"
 
 #ifdef _USE_CUDA
@@ -397,7 +402,8 @@ void reg_aladin<T>::InitialiseRegistration()
 		{
 			const mat44 *floatingMatrix = (this->InputFloating->sform_code > 0) ? &(this->InputFloating->sto_xyz) : &(this->InputFloating->qto_xyz);
 			const mat44 *referenceMatrix = (this->InputReference->sform_code > 0) ? &(this->InputReference->sto_xyz) : &(this->InputReference->qto_xyz);
-			float floatingCenter[3];
+            //In pixel coordinates
+            float floatingCenter[3];
 			floatingCenter[0] = (float) (this->InputFloating->nx) / 2.0f;
 			floatingCenter[1] = (float) (this->InputFloating->ny) / 2.0f;
 			floatingCenter[2] = (float) (this->InputFloating->nz) / 2.0f;
@@ -405,10 +411,12 @@ void reg_aladin<T>::InitialiseRegistration()
 			referenceCenter[0] = (float) (this->InputReference->nx) / 2.0f;
 			referenceCenter[1] = (float) (this->InputReference->ny) / 2.0f;
 			referenceCenter[2] = (float) (this->InputReference->nz) / 2.0f;
+            //From pixel coordinates to real coordinates
 			float floatingRealPosition[3];
 			reg_mat44_mul(floatingMatrix, floatingCenter, floatingRealPosition);
 			float referenceRealPosition[3];
 			reg_mat44_mul(referenceMatrix, referenceCenter, referenceRealPosition);
+            //Set translation to the transformation matrix
 			this->TransformationMatrix->m[0][3] = floatingRealPosition[0] - referenceRealPosition[0];
 			this->TransformationMatrix->m[1][3] = floatingRealPosition[1] - referenceRealPosition[1];
 			this->TransformationMatrix->m[2][3] = floatingRealPosition[2] - referenceRealPosition[2];

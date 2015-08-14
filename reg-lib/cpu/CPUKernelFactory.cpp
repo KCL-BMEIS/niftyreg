@@ -1,5 +1,11 @@
 #include "CPUKernelFactory.h"
-#include "CPUKernels.h"
+//#include "CPUKernels.h"
+#include "CPUAffineDeformationFieldKernel.h"
+#include "CPUConvolutionKernel.h"
+#include "CPUBlockMatchingKernel.h"
+#include "CPUResampleImageKernel.h"
+#include "CPUOptimiseKernel.h"
+//
 #include "Content.h"
 
 Kernel *CPUKernelFactory::produceKernel(std::string name,  Content *con) const

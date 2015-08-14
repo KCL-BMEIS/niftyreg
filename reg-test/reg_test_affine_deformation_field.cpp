@@ -2,7 +2,25 @@
 #include "_reg_globalTrans.h"
 #include "_reg_tools.h"
 
+#include"Kernel.h"
+#include "AffineDeformationFieldKernel.h"
+#include "Platform.h"
+#include "Content.h"
+
 #define EPS 0.000001
+
+/*
+void test(Content *con) {
+
+    Platform *cpuPlatform = new Platform(NR_PLATFORM_CPU);
+
+    Kernel *affineDeformKernel = cpuPlatform->createKernel(AffineDeformationFieldKernel::getName(), con);
+    affineDeformKernel->castTo<AffineDeformationFieldKernel>()->calculate();
+
+    delete affineDeformKernel;
+    delete cpuPlatform;
+}
+*/
 
 int main(int argc, char **argv)
 {
@@ -47,6 +65,12 @@ int main(int argc, char **argv)
    // Compute the affine deformation field
    reg_affine_getDeformationField(inputMatrix,
                                   test_field);
+   //CPU code
+   //reg_tools_changeDatatype<float>(referenceImage);
+   //Content *con = new Content(referenceImage, NULL, NULL,inputMatrix, sizeof(float));
+   //test(con);
+   //test_field = con->getCurrentDeformationField();
+   //end
 
    // Compute the difference between the computed and inputed deformation field
    reg_tools_substractImageToImage(inputDeformationField,test_field,test_field);

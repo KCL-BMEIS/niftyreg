@@ -131,8 +131,18 @@ set(_reg_aladin_files
 	Platform.cpp
 	Platform.h
 	Kernel.h
-	cpu/CPUKernels.cpp
-	cpu/CPUKernels.h
+        #cpu/CPUKernels.cpp
+        #cpu/CPUKernels.h
+        cpu/CPUAffineDeformationFieldKernel.h
+        cpu/CPUAffineDeformationFieldKernel.cpp
+        cpu/CPUBlockMatchingKernel.h
+        cpu/CPUBlockMatchingKernel.cpp
+        cpu/CPUConvolutionKernel.h
+        cpu/CPUConvolutionKernel.cpp
+        cpu/CPUOptimiseKernel.h
+        cpu/CPUOptimiseKernel.cpp
+        cpu/CPUResampleImageKernel.h
+        cpu/CPUResampleImageKernel.cpp
 	cpu/CPUKernelFactory.cpp
 	cpu/CPUKernelFactory.h
 )
@@ -162,7 +172,19 @@ install(TARGETS ${NAME}
 install(FILES ${NAME}.h ${NAME}_sym.h cpu/_reg_macros.h DESTINATION include)
 install(FILES ${NAME}.cpp ${NAME}_sym.cpp DESTINATION include)
 install(FILES Content.h Platform.h  DESTINATION include)
-install(FILES Kernel.h Kernels.h cpu/CPUKernels.h KernelFactory.h cpu/CPUKernelFactory.h DESTINATION include)
+install(FILES
+        Kernel.h #Kernels.h cpu/CPUKernels.h
+        AffineDeformationFieldKernel.h
+        BlockMatchingKernel.h
+        ConvolutionKernel.h
+        OptimiseKernel.h
+        ResampleImageKernel.h
+        cpu/CPUAffineDeformationFieldKernel.h
+        cpu/CPUBlockMatchingKernel.h
+        cpu/CPUConvolutionKernel.h
+        cpu/CPUOptimiseKernel.h
+        cpu/CPUResampleImageKernel.h
+        KernelFactory.h cpu/CPUKernelFactory.h DESTINATION include)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 ## BUILD THE F3D LIBRARY

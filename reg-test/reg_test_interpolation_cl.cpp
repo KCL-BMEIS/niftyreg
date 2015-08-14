@@ -3,7 +3,8 @@
 #include "_reg_tools.h"
 
 #include"Kernel.h"
-#include"Kernels.h"
+//#include"Kernels.h"
+#include "ResampleImageKernel.h"
 #include "Platform.h"
 #include "cl/CLContent.h"
 

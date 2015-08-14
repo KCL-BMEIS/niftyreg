@@ -1,5 +1,10 @@
 #include "CLKernelFactory.h"
-#include "CLKernels.h"
+//#include "CLKernels.h"
+#include "CLAffineDeformationFieldKernel.h"
+#include "CLConvolutionKernel.h"
+#include "CLBlockMatchingKernel.h"
+#include "CLResampleImageKernel.h"
+#include "CLOptimiseKernel.h"
 #include "Content.h"
 
 Kernel *CLKernelFactory::produceKernel(std::string name, Content *con) const {

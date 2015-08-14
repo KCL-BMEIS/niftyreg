@@ -9,7 +9,7 @@
 #include "CLKernelFactory.h"
 #include "CLContextSingletton.h"
 #endif
-#include "Kernels.h"
+//#include "Kernels.h"
 
 using namespace std;
 
