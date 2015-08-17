@@ -1,7 +1,7 @@
 #include "CLResampleImageKernel.h"
 #include "config.h"
-
 #include "_reg_tools.h"
+#include <algorithm>
 
 /* *************************************************************** */
 CLResampleImageKernel::CLResampleImageKernel(Content *conIn, std::string name) : ResampleImageKernel(name) {

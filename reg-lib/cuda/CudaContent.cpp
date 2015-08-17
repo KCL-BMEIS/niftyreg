@@ -1,6 +1,7 @@
 #include "CudaContent.h"
 #include "_reg_common_cuda.h"
 #include "_reg_tools.h"
+#include <algorithm>
 
 /* *************************************************************** */
 CudaContent::CudaContent()
