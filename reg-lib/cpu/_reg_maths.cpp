@@ -575,7 +575,7 @@ mat33 reg_mat33_trans(mat33 A)
 /* *************************************************************** */
 mat33 operator+(mat33 A, mat33 B)
 {
-	return reg_mat33_add(&A, &B);
+   return reg_mat33_add(&A, &B);
 }
 /* *************************************************************** */
 /* *************************************************************** */
@@ -717,7 +717,7 @@ void reg_mat33_diagonalize(mat33 const* A, mat33 * Q, mat33 * D)
 /* *************************************************************** */
 mat33 operator-(mat33 A, mat33 B)
 {
-	return reg_mat33_minus(&A, &B);
+   return reg_mat33_minus(&A, &B);
 }
 
 /* *************************************************************** */
@@ -787,22 +787,18 @@ void reg_mat44_mul(mat44 const* mat,
 						 float const* in,
 						 float *out)
 {
-	double matD[4][4], inD[3] = { in[0], in[1], in[2] };
-	for (int i = 0; i < 4; ++i)
-		for (int j = 0; j < 4; ++j)
-			matD[i][j] = static_cast<double>(mat->m[i][j]);
-	out[0] = static_cast<float>(matD[0][0] * inD[0] +
-			matD[0][1] * inD[1] +
-			matD[0][2] * inD[2] +
-			matD[0][3]);
-	out[1] = static_cast<float>(matD[1][0] * inD[0] +
-			matD[1][1] * inD[1] +
-			matD[1][2] * inD[2] +
-			matD[1][3]);
-	out[2] = static_cast<float>(matD[2][0] * inD[0] +
-			matD[2][1] * inD[1] +
-			matD[2][2] * inD[2] +
-			matD[2][3]);
+	out[0] = mat->m[0][0] * in[0] +
+			mat->m[0][1] * in[1] +
+			mat->m[0][2] * in[2] +
+			mat->m[0][3];
+	out[1] = mat->m[1][0] * in[0] +
+			mat->m[1][1] * in[1] +
+			mat->m[1][2] * in[2] +
+			mat->m[1][3];
+	out[2] = mat->m[2][0] * in[0] +
+			mat->m[2][1] * in[1] +
+			mat->m[2][2] * in[2] +
+			mat->m[2][3];
 	return;
 }
 /* *************************************************************** */

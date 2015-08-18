@@ -122,9 +122,8 @@ void reg_affine_deformationField3D(mat44 *affineTransformation,
                   voxel[0]=deformationFieldPtrX[index];
                   voxel[1]=deformationFieldPtrY[index];
                   voxel[2]=deformationFieldPtrZ[index];
-                  reg_mat44_mul(&transformationMatrix, voxel, position);
                }
-               else reg_mat44_mul(&transformationMatrix, voxel, position);
+               reg_mat44_mul(&transformationMatrix, voxel, position);
 
                /* the deformation field (real coordinates) is stored */
                deformationFieldPtrX[index] = position[0];
