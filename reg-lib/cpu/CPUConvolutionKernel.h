@@ -6,8 +6,7 @@
 
 class CPUConvolutionKernel : public ConvolutionKernel {
 public:
-    CPUConvolutionKernel(std::string name) : ConvolutionKernel(name) {
-    }
+    CPUConvolutionKernel(std::string name);
 
     void calculate(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL);
 };

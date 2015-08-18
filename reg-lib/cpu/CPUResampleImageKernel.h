@@ -7,12 +7,7 @@
 class CPUResampleImageKernel : public ResampleImageKernel
 {
     public:
-        CPUResampleImageKernel(Content *con, std::string name) : ResampleImageKernel( name) {
-            floatingImage = con->getCurrentFloating();
-            warpedImage = con->getCurrentWarped();
-            deformationField = con->getCurrentDeformationField();
-            mask = con->getCurrentReferenceMask();
-        }
+        CPUResampleImageKernel(Content *con, std::string name);
 
         nifti_image *floatingImage;
         nifti_image *warpedImage;

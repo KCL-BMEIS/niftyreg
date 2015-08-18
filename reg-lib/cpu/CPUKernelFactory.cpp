@@ -17,4 +17,3 @@ Kernel *CPUKernelFactory::produceKernel(std::string name,  Content *con) const
 	else if (name == OptimiseKernel::getName()) return new CPUOptimiseKernel(con, name);
 	else return NULL;
 }
-

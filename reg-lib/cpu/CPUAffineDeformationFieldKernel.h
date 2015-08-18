@@ -8,12 +8,7 @@
 
 class CPUAffineDeformationFieldKernel : public AffineDeformationFieldKernel {
 public:
-        CPUAffineDeformationFieldKernel(Content *con, std::string nameIn) : AffineDeformationFieldKernel(nameIn) {
-            this->deformationFieldImage = con->getCurrentDeformationField();
-            this->affineTransformation = con->getTransformationMatrix();
-            this->mask = con->getCurrentReferenceMask();
-        }
-
+        CPUAffineDeformationFieldKernel(Content *con, std::string nameIn);
 
         void calculate(bool compose = false);
 
