@@ -788,16 +788,16 @@ void reg_mat44_mul(mat44 const* mat,
 						 float *out)
 {
 	out[0] = mat->m[0][0] * in[0] +
-			mat->m[0][1] * in[1] +
-			mat->m[0][2] * in[2] +
+            mat->m[0][1]  * in[1] +
+            mat->m[0][2]  * in[2] +
 			mat->m[0][3];
 	out[1] = mat->m[1][0] * in[0] +
-			mat->m[1][1] * in[1] +
-			mat->m[1][2] * in[2] +
+            mat->m[1][1]  * in[1] +
+            mat->m[1][2]  * in[2] +
 			mat->m[1][3];
 	out[2] = mat->m[2][0] * in[0] +
-			mat->m[2][1] * in[1] +
-			mat->m[2][2] * in[2] +
+            mat->m[2][1]  * in[1] +
+            mat->m[2][2]  * in[2] +
 			mat->m[2][3];
 	return;
 }
@@ -811,17 +811,18 @@ void reg_mat44_mul(mat44 const* mat,
 	for (int i = 0; i < 4; ++i)
 		for (int j = 0; j < 4; ++j)
 			matD[i][j] = static_cast<double>(mat->m[i][j]);
+
 	out[0] = matD[0][0] * in[0] +
-			matD[0][1] * in[1] +
-			matD[0][2] * in[2] +
+            matD[0][1]  * in[1] +
+            matD[0][2]  * in[2] +
 			matD[0][3];
 	out[1] = matD[1][0] * in[0] +
-			matD[1][1] * in[1] +
-			matD[1][2] * in[2] +
+            matD[1][1]  * in[1] +
+            matD[1][2]  * in[2] +
 			matD[1][3];
 	out[2] = matD[2][0] * in[0] +
-			matD[2][1] * in[1] +
-			matD[2][2] * in[2] +
+            matD[2][1]  * in[1] +
+            matD[2][2]  * in[2] +
 			matD[2][3];
 	return;
 }
