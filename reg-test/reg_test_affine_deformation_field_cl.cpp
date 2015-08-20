@@ -2,7 +2,7 @@
 #include "_reg_globalTrans.h"
 #include "_reg_tools.h"
 
-#include"Kernel.h"
+#include "Kernel.h"
 //#include"Kernels.h"
 #include "AffineDeformationFieldKernel.h"
 #include "Platform.h"
@@ -79,7 +79,9 @@ int main(int argc, char **argv) {
 	if (max_difference > EPS) {
 		fprintf(stderr, "reg_test_affine_deformation_field error too large: %g (>%g)\n", max_difference, EPS);
 		return EXIT_FAILURE;
-	}
-
-	return EXIT_SUCCESS;
+    } else {
+        fprintf(stdout, "reg_test_affine_deformation_field ok: %g (<%g)\n",
+                max_difference, EPS);
+       return EXIT_SUCCESS;
+    }
 }

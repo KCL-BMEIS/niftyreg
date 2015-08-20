@@ -170,5 +170,76 @@ void reg_io_WriteImageFile(nifti_image *image, const char *filename)
    return;
 }
 /* *************************************************************** */
+template <class FieldTYPE>
+void reg_io_diplayImageData1(FieldTYPE *data, int nx, int ny, int nz)
+{
+    reg_print_msg_debug("image values:");
+    for(int z=0; z<nz; z++)
+    {
+       for(int y=0; y<ny; y++)
+       {
+          for(int x=0; x<nx; x++)
+          {
+              FieldTYPE xValue = 0;
+              FieldTYPE yValue = 0;
+              FieldTYPE zValue = 0;
 
+              if (nz==1) {
+                  xValue = data[x+y*nx+z*nx*ny];
+                  yValue = data[x+y*nx+z*nx*ny+nx*ny*nz];
+              }
+              else {
+                  xValue = data[x+y*nx+z*nx*ny];
+                  yValue = data[x+y*nx+z*nx*ny+nx*ny*nz];
+                  zValue = data[x+y*nx+z*nx*ny+2*nx*ny*nz];
+              }
+
+              char text[255];
+              sprintf(text, "current indice: %d - %d - %d -- current values: %f %f %f ",x,y,z,xValue,yValue,zValue);
+              reg_print_msg_debug(text);
+          }
+       }
+    }
+}
+//
+void reg_io_diplayImageData(nifti_image *image)
+{
+    int xSize = image->nx;
+    int ySize = image->ny;
+    int zSize = image->nz;
+
+    switch(image->datatype)
+    {
+    case NIFTI_TYPE_UINT8:
+       reg_io_diplayImageData1<unsigned char>(static_cast<unsigned char *> (image->data),xSize,ySize,zSize);
+       break;
+    case NIFTI_TYPE_INT8:
+       reg_io_diplayImageData1<char>(static_cast<char *> (image->data),xSize,ySize,zSize);
+       break;
+    case NIFTI_TYPE_UINT16:
+       reg_io_diplayImageData1<unsigned short>(static_cast<unsigned short *> (image->data),xSize,ySize,zSize);
+       break;
+    case NIFTI_TYPE_INT16:
+       reg_io_diplayImageData1<short>(static_cast<short *> (image->data),xSize,ySize,zSize);
+       break;
+    case NIFTI_TYPE_UINT32:
+       reg_io_diplayImageData1<unsigned int>(static_cast<unsigned int *> (image->data),xSize,ySize,zSize);
+       break;
+    case NIFTI_TYPE_INT32:
+       reg_io_diplayImageData1<int>(static_cast<int *> (image->data),xSize,ySize,zSize);
+       break;
+    case NIFTI_TYPE_FLOAT32:
+       reg_io_diplayImageData1<float>(static_cast<float *> (image->data),xSize,ySize,zSize);
+       break;
+    case NIFTI_TYPE_FLOAT64:
+       reg_io_diplayImageData1<double>(static_cast<double *> (image->data),xSize,ySize,zSize);
+       break;
+    default:
+       reg_print_fct_error("reg_io_diplayImageData");
+       reg_print_msg_error("Unsupported datatype");
+       reg_exit(1);
+    }
+   return;
+}
+/* *************************************************************** */
 #endif

@@ -1,6 +1,6 @@
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
-	# Build the coverage test
+# Build the coverage test
 if(NOT MSVC)
 	option(WITH_COVERAGE "Set up the C, CXX and linker flags to run the coverage test" OFF)
 	if(WITH_COVERAGE)
@@ -96,7 +96,7 @@ mark_as_advanced(BUILDNAME)
 #-----------------------------------------------------------------------------
 	set(EXEC reg_test_affine_deformation_field)
 	add_executable(${EXEC} ${EXEC}.cpp)
-	target_link_libraries(${EXEC} _reg_f3d)
+        target_link_libraries(${EXEC} _reg_aladin)
 	add_test(${EXEC}_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/affine_mat2D.txt ${DATA_FOLDER}/affine_def2D.nii.gz)
 	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
 #-----------------------------------------------------------------------------
@@ -152,6 +152,19 @@ mark_as_advanced(BUILDNAME)
 	add_test(${EXEC}_NMI_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz NMI)
 	add_test(${EXEC}_SSD_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/warped_sin3D.nii.gz SSD)
 
+#-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
+#-------------------------NEW TESTS-------------------------------------------
+        set(EXEC reg_test_changeDataType)
+        add_executable(${EXEC} ${EXEC}.cpp)
+        target_link_libraries(${EXEC} _reg_aladin)
+        add_test(${EXEC}_uchar_2D  ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz uchar  ${DATA_FOLDER}/refImg2D_uchar.nii.gz)
+        add_test(${EXEC}_float_2D  ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz float  ${DATA_FOLDER}/refImg2D_float.nii.gz)
+        add_test(${EXEC}_double_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz double ${DATA_FOLDER}/refImg2D_double.nii.gz)
+        add_test(${EXEC}_uchar_3D  ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz uchar  ${DATA_FOLDER}/refImg3D_uchar.nii.gz)
+        add_test(${EXEC}_float_3D  ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz float  ${DATA_FOLDER}/refImg3D_float.nii.gz)
+        add_test(${EXEC}_double_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz double ${DATA_FOLDER}/refImg3D_double.nii.gz)
+#-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 if(USE_OPENCL)

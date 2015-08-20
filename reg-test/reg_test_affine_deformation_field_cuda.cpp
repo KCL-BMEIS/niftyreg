@@ -66,6 +66,7 @@ int main(int argc, char **argv)
    Content *con = new CudaContent(referenceImage, NULL, tempMask, inputMatrix, sizeof(float));
    test(con);
    test_field = con->getCurrentDeformationField();
+
    // Compute the difference between the computed and inputed deformation field
    reg_tools_substractImageToImage(inputDeformationField,test_field,test_field);
    reg_tools_abs_image(test_field);
@@ -82,7 +83,9 @@ int main(int argc, char **argv)
       fprintf(stderr, "reg_test_affine_deformation_field error too large: %g (>%g)\n",
               max_difference, EPS);
       return EXIT_FAILURE;
+   } else {
+       fprintf(stdout, "reg_test_affine_deformation_field ok: %g (<%g)\n",
+               max_difference, EPS);
+      return EXIT_SUCCESS;
    }
-
-   return EXIT_SUCCESS;
 }

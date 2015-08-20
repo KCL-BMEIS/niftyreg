@@ -2,14 +2,13 @@
 #include "_reg_globalTrans.h"
 #include "_reg_tools.h"
 
-#include"Kernel.h"
+#include "Kernel.h"
 #include "AffineDeformationFieldKernel.h"
 #include "Platform.h"
 #include "Content.h"
 
 #define EPS 0.000001
 
-/*
 void test(Content *con) {
 
     Platform *cpuPlatform = new Platform(NR_PLATFORM_CPU);
@@ -20,7 +19,6 @@ void test(Content *con) {
     delete affineDeformKernel;
     delete cpuPlatform;
 }
-*/
 
 int main(int argc, char **argv)
 {
@@ -35,7 +33,7 @@ int main(int argc, char **argv)
    char *inputDefImageName=argv[3];
 
    // Read the input reference image
-   nifti_image *referenceImage = reg_io_ReadImageHeader(inputRefImageName);
+   nifti_image *referenceImage = reg_io_ReadImageFile(inputRefImageName);
    if(referenceImage==NULL){
       reg_print_msg_error("The input reference image could not be read");
       return EXIT_FAILURE;
@@ -63,14 +61,19 @@ int main(int argc, char **argv)
    test_field->data=(void *)malloc(test_field->nvox*test_field->nbyper);
 
    // Compute the affine deformation field
-   reg_affine_getDeformationField(inputMatrix,
-                                  test_field);
+
    //CPU code
-   //reg_tools_changeDatatype<float>(referenceImage);
-   //Content *con = new Content(referenceImage, NULL, NULL,inputMatrix, sizeof(float));
-   //test(con);
-   //test_field = con->getCurrentDeformationField();
-   //end
+   reg_tools_changeDatatype<float>(referenceImage);
+   Content *con = new Content(referenceImage, NULL, NULL,inputMatrix, sizeof(float));
+   test(con);
+   test_field = con->getCurrentDeformationField();
+
+//DEBUG
+   //PRINT THE FIELD VALUES
+   //reg_io_diplayImageData(test_field);
+   //reg_io_WriteImageFile(test_field,"testField.nii");
+   //END
+//DEBUG
 
    // Compute the difference between the computed and inputed deformation field
    reg_tools_substractImageToImage(inputDeformationField,test_field,test_field);
@@ -79,14 +82,17 @@ int main(int argc, char **argv)
 
    nifti_image_free(referenceImage);
    nifti_image_free(inputDeformationField);
-   nifti_image_free(test_field);
+
+   delete con;
    free(inputMatrix);
 
    if(max_difference>EPS){
       fprintf(stderr, "reg_test_affine_deformation_field error too large: %g (>%g)\n",
               max_difference, EPS);
       return EXIT_FAILURE;
+   } else {
+       fprintf(stdout, "reg_test_affine_deformation_field ok: %g (<%g)\n",
+               max_difference, EPS);
+      return EXIT_SUCCESS;
    }
-
-   return EXIT_SUCCESS;
 }

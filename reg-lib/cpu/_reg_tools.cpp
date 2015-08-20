@@ -446,11 +446,25 @@ void reg_tools_changeDatatype1(nifti_image *image,int type)
       image->datatype=type;
    }
    else{
-      if(sizeof(NewTYPE)==sizeof(unsigned char)) image->datatype = NIFTI_TYPE_UINT8;
-      else if(sizeof(NewTYPE)==sizeof(float)) image->datatype = NIFTI_TYPE_FLOAT32;
-      else if(sizeof(NewTYPE)==sizeof(double)) image->datatype = NIFTI_TYPE_FLOAT64;
-      else
-      {
+      if(sizeof(NewTYPE)==sizeof(unsigned char)) {
+          image->datatype = NIFTI_TYPE_UINT8;
+#ifndef NDEBUG
+    reg_print_msg_debug("new datatype is NIFTI_TYPE_UINT8");
+#endif
+      }
+      else if(sizeof(NewTYPE)==sizeof(float)) {
+          image->datatype = NIFTI_TYPE_FLOAT32;
+#ifndef NDEBUG
+    reg_print_msg_debug("new datatype is NIFTI_TYPE_FLOAT32");
+#endif
+      }
+      else if(sizeof(NewTYPE)==sizeof(double)) {
+          image->datatype = NIFTI_TYPE_FLOAT64;
+#ifndef NDEBUG
+    reg_print_msg_debug("new datatype is NIFTI_TYPE_FLOAT64");
+#endif
+      }
+      else {
          reg_print_fct_error("reg_tools_changeDatatype1");
          reg_print_msg_error("Only change to unsigned char, float or double are supported");
          reg_exit(1);
@@ -458,6 +472,11 @@ void reg_tools_changeDatatype1(nifti_image *image,int type)
    }
    free(image->data);
    image->nbyper = sizeof(NewTYPE);
+#ifndef NDEBUG
+   char text[255];
+   sprintf(text,"corresponding new bytes per voxel is: %d",image->nbyper);
+    reg_print_msg_debug(text);
+#endif
    image->data = (void *)calloc(image->nvox,sizeof(NewTYPE));
    NewTYPE *dataPtr = static_cast<NewTYPE *>(image->data);
    for(size_t i=0; i<image->nvox; i++)
