@@ -543,12 +543,12 @@ void reg_tools_operationImageToImage(nifti_image *img1,
    TYPE1 *img2Ptr = static_cast<TYPE1 *>(img2->data);
 
 
-   if(img1->scl_slope==0)
-   {
+   if(img1->scl_slope==0) {
       img1->scl_slope=1.f;
    }
-   if(img2->scl_slope==0)
-      img2->scl_slope=1.f;
+   if(img2->scl_slope==0) {
+       img2->scl_slope=1.f;
+   }
 
    res->scl_slope=img1->scl_slope;
    res->scl_inter=img1->scl_inter;
