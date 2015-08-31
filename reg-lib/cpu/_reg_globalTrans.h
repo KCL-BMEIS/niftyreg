@@ -60,6 +60,10 @@ void reg_tool_ReadAffineFile(mat44 *mat,
  * @param filename Filename of the text file that contains the matrix to read
  */
 extern "C++"
+void reg_tool_ReadAffineFilev2(mat44 *mat,
+                               char *filename);
+
+extern "C++"
 void reg_tool_ReadAffineFile(mat44 *mat,
                              char *filename);
 

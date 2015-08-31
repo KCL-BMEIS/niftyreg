@@ -1787,8 +1787,8 @@ void optimize(	_reg_blockMatchingParam *params,
    }
    else  // 3D images
    {
-      double in[3];
-      double out[3];
+      float in[3];
+      float out[3];
       for(size_t i=0; i<static_cast<size_t>(params->activeBlockNumber); ++i)
       {
          size_t index=3*i;

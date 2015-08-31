@@ -297,6 +297,50 @@ void reg_tool_ReadAffineFile(mat44 *mat,
 }
 /* *************************************************************** */
 /* *************************************************************** */
+void reg_tool_ReadAffineFilev2(mat44 *mat, char *filename)
+{
+      std::string line;
+      std::ifstream affineFile (filename);
+      double currentValue = 0;
+      if (affineFile.is_open())
+      {
+        int j=0;
+        while(std::getline(affineFile,line))
+        {
+          std::cout << line << '\n';
+          std::string delimiter = " ";
+          int i=0;
+          size_t pos = 0;
+          std::string token;
+          while ((pos = line.find(delimiter)) != std::string::npos)
+          {
+              token = line.substr(0, pos);
+              std::cout << token << std::endl;
+              currentValue = atof(token.c_str());
+              mat->m[j][i] = currentValue;
+              //mat->m[j][i] = std::stof(token);
+              std::cout.precision(20);
+              std::cout << "currentValue=" << currentValue << std::endl;
+              std::cout << "mat->m[j][i]=" << mat->m[j][i] << std::endl;
+              line.erase(0, pos + delimiter.length());
+              i++;
+          }
+          std::cout << line << std::endl;
+          currentValue = atof(line.c_str());
+          mat->m[j][i] = currentValue;
+          std::cout.precision(20);
+          std::cout << "currentValue=" << currentValue << std::endl;
+          std::cout << "mat->m[j][i]=" << mat->m[j][i] << std::endl;
+          j++;
+        }
+        affineFile.close();
+      }
+#ifndef NDEBUG
+   reg_mat44_disp(mat, (char *)"[NiftyReg DEBUG] Affine matrix");
+#endif
+}
+/* *************************************************************** */
+/* *************************************************************** */
 void reg_tool_ReadAffineFile(mat44 *mat,
                              char *fileName)
 {
@@ -309,6 +353,11 @@ void reg_tool_ReadAffineFile(mat44 *mat,
       while(!affineFile.eof())
       {
          affineFile >> value1 >> value2 >> value3 >> value4;
+#ifndef NDEBUG
+         char text[255];
+         sprintf(text, "Affine matrix values - value1 - value2 - value3 - value4: %f - %f - %f - %f", value1,value2, value3, value4);
+         reg_print_msg_debug(text);
+#endif
          mat->m[i][0] = value1;
          mat->m[i][1] = value2;
          mat->m[i][2] = value3;
