@@ -15,6 +15,10 @@
 #include "_reg_globalTrans.h"
 #include "_reg_maths.h"
 
+//STD
+#include <iostream>
+#include <string>
+
 /* *************************************************************** */
 /* *************************************************************** */
 template <class FieldTYPE>
