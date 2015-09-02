@@ -2,7 +2,24 @@
 #include "_reg_resampling.h"
 #include "_reg_tools.h"
 
+#include "Kernel.h"
+#include "ResampleImageKernel.h"
+#include "Platform.h"
+#include "Content.h"
+
 #define EPS 0.000001
+
+void test(Content *con, const unsigned int interp) {
+
+    Platform *cpuPlatform = new Platform(NR_PLATFORM_CPU);
+
+    Kernel *resampleImageKernel = cpuPlatform->createKernel(ResampleImageKernel::getName(), con);
+    resampleImageKernel->castTo<ResampleImageKernel>()->calculate(interp, 0);
+
+    delete resampleImageKernel;
+    delete cpuPlatform;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -53,13 +70,25 @@ int main(int argc, char **argv)
    nifti_image *test_warped=nifti_copy_nim_info(warpedImage);
    test_warped->data=(void *)malloc(test_warped->nvox*test_warped->nbyper);
 
+   //CPU code
+   int *tempMask = (int *)calloc(test_warped->nvox, sizeof(int));
+   reg_tools_changeDatatype<float>(test_warped);
+
+   Content *con = new Content(NULL, floatingImage, NULL, sizeof(float));
+   con->setCurrentWarped(test_warped);
+   con->setCurrentDeformationField(inputDeformationField);
+   con->setCurrentReferenceMask(tempMask, test_warped->nvox);
+
+   test(con, interpolation);
+   test_warped = con->getCurrentWarped(warpedImage->datatype);//check
+
    // Compute the non-linear deformation field
-   reg_resampleImage(floatingImage,
-                     test_warped,
-                     inputDeformationField,
-                     NULL,
-                     interpolation,
-                     0.f);
+   //reg_resampleImage(floatingImage,
+   //                  test_warped,
+   //                  inputDeformationField,
+   //                  NULL,
+   //                  interpolation,
+   //                  0.f);
 
    // Compute the difference between the computed and inputed warped image
    reg_tools_substractImageToImage(warpedImage,test_warped,test_warped);

@@ -108,7 +108,7 @@ mark_as_advanced(BUILDNAME)
 #-----------------------------------------------------------------------------
 	set(EXEC reg_test_interpolation)
 	add_executable(${EXEC} ${EXEC}.cpp)
-	target_link_libraries(${EXEC} _reg_f3d)
+	target_link_libraries(${EXEC} _reg_aladin)
 	add_test(${EXEC}_0_2D ${EXEC} ${DATA_FOLDER}/floImg2D.nii.gz ${DATA_FOLDER}/nonlin_def2D.nii.gz ${DATA_FOLDER}/warped_nea2D.nii.gz 0)
 	add_test(${EXEC}_0_3D ${EXEC} ${DATA_FOLDER}/floImg3D.nii.gz ${DATA_FOLDER}/nonlin_def3D.nii.gz ${DATA_FOLDER}/warped_nea3D.nii.gz 0)
 	add_test(${EXEC}_1_2D ${EXEC} ${DATA_FOLDER}/floImg2D.nii.gz ${DATA_FOLDER}/nonlin_def2D.nii.gz ${DATA_FOLDER}/warped_lin2D.nii.gz 1)
@@ -155,15 +155,15 @@ mark_as_advanced(BUILDNAME)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 #-------------------------NEW TESTS-------------------------------------------
-        set(EXEC reg_test_changeDataType)
-        add_executable(${EXEC} ${EXEC}.cpp)
-        target_link_libraries(${EXEC} _reg_aladin)
-        add_test(${EXEC}_uchar_2D  ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz uchar  ${DATA_FOLDER}/refImg2D_uchar.nii.gz)
-        add_test(${EXEC}_float_2D  ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz float  ${DATA_FOLDER}/refImg2D_float.nii.gz)
-        add_test(${EXEC}_double_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz double ${DATA_FOLDER}/refImg2D_double.nii.gz)
-        add_test(${EXEC}_uchar_3D  ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz uchar  ${DATA_FOLDER}/refImg3D_uchar.nii.gz)
-        add_test(${EXEC}_float_3D  ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz float  ${DATA_FOLDER}/refImg3D_float.nii.gz)
-        add_test(${EXEC}_double_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz double ${DATA_FOLDER}/refImg3D_double.nii.gz)
+    set(EXEC reg_test_changeDataType)
+    add_executable(${EXEC} ${EXEC}.cpp)
+    target_link_libraries(${EXEC} _reg_aladin)
+    add_test(${EXEC}_uchar_2D  ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz uchar  ${DATA_FOLDER}/refImg2D_uchar.nii.gz)
+    add_test(${EXEC}_float_2D  ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz float  ${DATA_FOLDER}/refImg2D_float.nii.gz)
+    add_test(${EXEC}_double_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz double ${DATA_FOLDER}/refImg2D_double.nii.gz)
+    add_test(${EXEC}_uchar_3D  ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz uchar  ${DATA_FOLDER}/refImg3D_uchar.nii.gz)
+    add_test(${EXEC}_float_3D  ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz float  ${DATA_FOLDER}/refImg3D_float.nii.gz)
+    add_test(${EXEC}_double_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz double ${DATA_FOLDER}/refImg3D_double.nii.gz)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
