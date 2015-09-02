@@ -72,7 +72,6 @@ int main(int argc, char **argv)
 
    //CPU code
    int *tempMask = (int *)calloc(test_warped->nvox, sizeof(int));
-   reg_tools_changeDatatype<float>(test_warped);
 
    Content *con = new Content(NULL, floatingImage, NULL, sizeof(float));
    con->setCurrentWarped(test_warped);
