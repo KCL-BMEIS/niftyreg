@@ -112,6 +112,9 @@ void reg_exponentiate_logged_tensor(mat33 *in_tensor);
 extern "C++" template <class T>
 void svd(T **in, size_t m, size_t n, T * w, T **v);
 /* *************************************************************** */
+extern "C++" template <class T>
+void svd(T **in, size_t m, size_t n, T ***U, T ***S, T ***V);
+/* *************************************************************** */
 /* *************************************************************** */
 extern "C++" template <class T>
 void reg_LUdecomposition(T *inputMatrix,
@@ -130,6 +133,19 @@ void reg_matrixInvertMultiply(T *mat,
                               size_t dim,
                               size_t *index,
                               T *vec);
+/* *************************************************************** */
+/* *************************************************************** */
+/* *************************************************************** */
+extern "C++" template<class T>
+T** reg_matrix2DAllocate(size_t arraySizeX, size_t arraySizeY);
+/* *************************************************************** */
+extern "C++" template<class T>
+T** reg_matrix2DTranspose(T** mat, size_t arraySizeX, size_t arraySizeY);
+/* *************************************************************** */
+extern "C++" template<class T>
+T** reg_matrix2DMultiply(T** mat1, size_t mat1X, size_t mat1Y, T** mat2, size_t mat2X, size_t mat2Y);
+/* *************************************************************** */
+/* *************************************************************** */
 /* *************************************************************** */
 extern "C++"
 void reg_heapSort(float *array_tmp, int *index_tmp, int blockNum);
@@ -217,16 +233,20 @@ mat44 reg_mat44_sqrt(mat44 const* mat);
 /* *************************************************************** */
 /** @brief Compute the exp of a 4-by-4 matrix
  */
-mat44 reg_mat44_expm(mat44 const* mat);
+mat44 reg_mat44_expm(const mat44 *mat);
 /* *************************************************************** */
 /** @brief Compute the log of a 4-by-4 matrix
  */
-mat44 reg_mat44_logm(mat44 const* mat);
+mat44 reg_mat44_logm(const mat44 *mat);
 /* *************************************************************** */
 /** @brief Compute the average of two matrices using a log-euclidean
  * framework
  */
 mat44 reg_mat44_avg2(mat44 const* A, mat44 const* b);
+/* *************************************************************** */
+/** @brief Compute the inverse of a  4-by-4 matrix
+*/
+mat44 reg_mat44_invEigen(mat44 const* mat);
 /* *************************************************************** */
 /** @brief Display a mat44 matrix
  */
@@ -237,5 +257,6 @@ void reg_mat44_disp(mat44 *mat,
  */
 void reg_mat33_disp(mat33 *mat,
                     char * title);
+/* *************************************************************** */
 /* *************************************************************** */
 #endif // _REG_MATHS_H

@@ -75,4 +75,27 @@ extern "C++"
 void reg_tool_WriteAffineFile(mat44 *mat,
                               const char *fileName);
 
+/**
+* @brief Read a file that contains a m-by-n matrix and return its size
+* @param filename Filename of the text file that contains the matrix to read
+**/
+extern "C++"
+std::pair<size_t, size_t> reg_tool_sizeInputMatrixFile(char *filename);
+/**
+* @brief Read a file that contains a m-by-n matrix and store it into
+* an appropriate structure
+* @param nbLine number of line of the imput matrix
+* @param nbColumn number of column of the imput matrix
+* @param filename Filename of the text file that contains the matrix to read
+**/
+extern "C++" template <class T>
+T** reg_tool_ReadMatrixFile(char *filename, size_t nbLine, size_t nbColumn);
+/**
+* @brief Read a file that contains a 4-by-4 matrix and store it into
+* a mat44 structure
+* @param filename Filename of the text file that contains the matrix to read
+**/
+extern "C++"
+mat44* reg_tool_ReadMat44File(char *fileName);
+
 #endif

@@ -100,7 +100,6 @@ int main(int argc, char **argv)
 		reg_print_msg_error("Saving temp warped image:");
 		reg_print_msg_error(filename);
 	}
-	else printf("reg_test_interpolation error is %g (<%g)\n", max_difference, EPS);
 #endif
 
    nifti_image_free(floatingImage);
@@ -113,6 +112,8 @@ int main(int argc, char **argv)
               max_difference, EPS);
       return EXIT_FAILURE;
    }
-
+#ifndef NDEBUG
+   fprintf(stdout, "reg_test_interpolation ok: %g ( <%g )\n", max_difference, EPS);
+#endif
    return EXIT_SUCCESS;
 }

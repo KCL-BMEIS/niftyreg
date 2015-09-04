@@ -86,17 +86,17 @@ mark_as_advanced(BUILDNAME)
 #-----------------------------------------------------------------------------
 	set(EXEC reg_test_matrix_operation)
 	add_executable(${EXEC} ${EXEC}.cpp)
-	target_link_libraries(${EXEC} _reg_maths reg_nifti z)
+	target_link_libraries(${EXEC} _reg_aladin)
 	add_test(${EXEC} ${EXEC})
 #-----------------------------------------------------------------------------
 	set(EXEC reg_test_svd)
 	add_executable(${EXEC} ${EXEC}.cpp)
-	target_link_libraries(${EXEC} _reg_maths)
+	target_link_libraries(${EXEC} _reg_aladin)
 	add_test(${EXEC} ${EXEC})
 #-----------------------------------------------------------------------------
 	set(EXEC reg_test_affine_deformation_field)
 	add_executable(${EXEC} ${EXEC}.cpp)
-        target_link_libraries(${EXEC} _reg_aladin)
+    target_link_libraries(${EXEC} _reg_aladin)
 	add_test(${EXEC}_2D ${EXEC} ${DATA_FOLDER}/refImg2D.nii.gz ${DATA_FOLDER}/affine_mat2D.txt ${DATA_FOLDER}/affine_def2D.nii.gz)
 	add_test(${EXEC}_3D ${EXEC} ${DATA_FOLDER}/refImg3D.nii.gz ${DATA_FOLDER}/affine_mat3D.txt ${DATA_FOLDER}/affine_def3D.nii.gz)
 #-----------------------------------------------------------------------------
