@@ -7,14 +7,14 @@
 #include "Platform.h"
 #include "Content.h"
 
-#define EPS 0.000001
+#define EPS 0.0001
 
 void test(Content *con, const unsigned int interp) {
 
     Platform *cpuPlatform = new Platform(NR_PLATFORM_CPU);
 
     Kernel *resampleImageKernel = cpuPlatform->createKernel(ResampleImageKernel::getName(), con);
-    resampleImageKernel->castTo<ResampleImageKernel>()->calculate(interp, 0);
+    resampleImageKernel->castTo<ResampleImageKernel>()->calculate(interp, std::numeric_limits<float>::quiet_NaN());
 
     delete resampleImageKernel;
     delete cpuPlatform;
@@ -40,18 +40,21 @@ int main(int argc, char **argv)
       reg_print_msg_error("The input floating image could not be read");
       return EXIT_FAILURE;
    }
+   reg_tools_changeDatatype<float>(floatingImage);
    // Read the input deformation field image image
    nifti_image *inputDeformationField = reg_io_ReadImageFile(inputDefImageName);
    if(inputDeformationField==NULL){
       reg_print_msg_error("The input deformation field image could not be read");
       return EXIT_FAILURE;
    }
+   reg_tools_changeDatatype<float>(inputDeformationField);
    // Read the input reference image
    nifti_image *warpedImage = reg_io_ReadImageFile(inputWarpedImageName);
    if(warpedImage==NULL){
       reg_print_msg_error("The input warped image could not be read");
       return EXIT_FAILURE;
    }
+   reg_tools_changeDatatype<float>(warpedImage);
    // Check the dimension of the input images
    if(warpedImage->nx != inputDeformationField->nx ||
       warpedImage->ny != inputDeformationField->ny ||
@@ -81,14 +84,6 @@ int main(int argc, char **argv)
    test(con, interpolation);
    test_warped = con->getCurrentWarped(warpedImage->datatype);//check
 
-   // Compute the non-linear deformation field
-   //reg_resampleImage(floatingImage,
-   //                  test_warped,
-   //                  inputDeformationField,
-   //                  NULL,
-   //                  interpolation,
-   //                  0.f);
-
    // Compute the difference between the computed and inputed warped image
    reg_tools_substractImageToImage(warpedImage,test_warped,test_warped);
    reg_tools_abs_image(test_warped);
@@ -99,12 +94,13 @@ int main(int argc, char **argv)
 		const char* tmpdir = getenv("TMPDIR");
 		char filename[255];
 		if(tmpdir!=NULL)
-			sprintf(filename,"%s/difference_warp_%i.nii", tmpdir, interpolation);
-		else sprintf(filename,"./difference_warp_cl_%i.nii", interpolation);
+			sprintf(filename,"%s/difference_warp_%iD_%i.nii", tmpdir, (warpedImage->nz>1?3:2), interpolation);
+		else sprintf(filename,"./difference_warp_%iD_%i.nii", (warpedImage->nz>1?3:2), interpolation);
 		reg_io_WriteImageFile(test_warped,filename);
 		reg_print_msg_error("Saving temp warped image:");
 		reg_print_msg_error(filename);
 	}
+	else printf("reg_test_interpolation error is %g (<%g)\n", max_difference, EPS);
 #endif
 
    nifti_image_free(floatingImage);

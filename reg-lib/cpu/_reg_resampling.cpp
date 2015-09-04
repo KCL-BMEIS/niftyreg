@@ -412,10 +412,10 @@ void ResampleImage3D(nifti_image *floatingImage,
       FloatingTYPE *warpedIntensity = &warpedIntensityPtr[t*warpedVoxelNumber];
       FloatingTYPE *floatingIntensity = &floatingIntensityPtr[t*floatingVoxelNumber];
 
-      double xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], zBasis[SINC_KERNEL_SIZE], relative[3];
       int a, b, c, Y, Z, previous[3];
 
       FloatingTYPE *zPointer, *xyzPointer;
+      double xBasis[SINC_KERNEL_SIZE], yBasis[SINC_KERNEL_SIZE], zBasis[SINC_KERNEL_SIZE], relative[3];
       double xTempNewValue, yTempNewValue, intensity, world[3], position[3];
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
@@ -591,7 +591,8 @@ void ResampleImage2D(nifti_image *floatingImage,
       }
 
       FloatingTYPE *xyzPointer;
-      FieldTYPE xTempNewValue, intensity, world[3], position[3];
+      double xTempNewValue, intensity;
+      FieldTYPE world[3], position[3];
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    private(index, intensity, world, position, previous, xBasis, yBasis, relative, \
@@ -636,7 +637,7 @@ void ResampleImage2D(nifti_image *floatingImage,
                   if(-1<(previous[0]+a) && (previous[0]+a)<floatingImage->nx &&
                         -1<Y && Y<floatingImage->ny)
                   {
-                     xTempNewValue +=  (FieldTYPE)*xyzPointer * xBasis[a];
+                     xTempNewValue +=  static_cast<double>(*xyzPointer) * xBasis[a];
                   }
                   else
                   {
