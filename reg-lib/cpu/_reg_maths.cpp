@@ -155,7 +155,7 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
     //Convert to Eigen matrix
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
-   shared(in, size__m, size__n) \
+   shared(in, m, size__m, size__n) \
    private(sm, sn)
 #endif
     for (sm = 0; sm < size__m; sm++)
@@ -172,14 +172,13 @@ void svd(T **in, size_t size_m, size_t size_n, T ***U, T ***S, T ***V) {
     //std::cout << "Its left singular vectors are the columns of the thin U matrix:" << std::endl << svd.matrixU() << std::endl;
     //std::cout << "Its right singular vectors are the columns of the thin V matrix:" << std::endl << svd.matrixV() << std::endl;
 
-    size_t i, j;
+    int i, j;
+    min_dim = std::min(size__m, size__n);
 #if defined (_OPENMP)
 #pragma omp parallel for default(none) \
    shared(in, svd, U, S, V, size__n, size__m, min_dim) \
    private(i, j)
 #endif
-
-    min_dim = std::min(size__m, size__n);
     //Convert to C matrix
     for (i = 0; i < min_dim; i++) {
         for (j = 0; j < min_dim; j++) {
